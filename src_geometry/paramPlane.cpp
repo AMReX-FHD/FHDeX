@@ -83,6 +83,8 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
         paramPlaneList[0].periodicity = 0;
         paramPlaneList[0].porosityLeft = 0;
         paramPlaneList[0].porosityRight = 0;
+        paramPlaneList[0].specularityLeft = 1;
+        paramPlaneList[0].specularityRight = 1;
     }
 
     paramPlaneList[0].boundary = 1;
@@ -163,6 +165,8 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
         paramPlaneList[1].periodicity = 0;
         paramPlaneList[1].porosityLeft = 0;
         paramPlaneList[1].porosityRight = 0;
+        paramPlaneList[1].specularityLeft = 1;
+        paramPlaneList[1].specularityRight = 1;
 
     }
 
@@ -245,6 +249,8 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
         paramPlaneList[2].periodicity = 0;
         paramPlaneList[2].porosityLeft = 0;
         paramPlaneList[2].porosityRight = 0;
+        paramPlaneList[2].specularityLeft = 1;
+        paramPlaneList[2].specularityRight = 1;
     }
 
     paramPlaneList[2].boundary = 3;
@@ -326,6 +332,8 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
         paramPlaneList[3].periodicity = 0;
         paramPlaneList[3].porosityLeft = 0;
         paramPlaneList[3].porosityRight = 0;
+        paramPlaneList[3].specularityLeft = 1;
+        paramPlaneList[3].specularityRight = 1;
 
     }
 
@@ -407,6 +415,9 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
         paramPlaneList[4].periodicity = 0;
         paramPlaneList[4].porosityLeft = 0;
         paramPlaneList[4].porosityRight = 0;
+        paramPlaneList[4].specularityLeft = 1;
+        paramPlaneList[4].specularityRight = 1;
+
 
     }
 
@@ -503,6 +514,8 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
         paramPlaneList[5].periodicity = 0;
         paramPlaneList[5].porosityLeft = 0;
         paramPlaneList[5].porosityRight = 0;
+        paramPlaneList[5].specularityLeft = 1;
+        paramPlaneList[5].specularityRight = 1;
 
     }
 

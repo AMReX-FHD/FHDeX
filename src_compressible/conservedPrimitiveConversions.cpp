@@ -81,7 +81,7 @@ void conservedToPrimitive(MultiFab& prim_in, const MultiFab& cons_in)
             Real sumYk = 0.;
             for (int n=0; n<nspecies_gpu; ++n) {
                 Yk[n] = cons(i,j,k,5+n)/cons(i,j,k,0);
-                Yk_fixed[n] = std::max(0.,std::min(1.,Yk[n]));
+                Yk_fixed[n] = amrex::max(0.,amrex::min(1.,Yk[n]));
                 sumYk += Yk_fixed[n];
             }
             

@@ -90,7 +90,7 @@ include_directories(
     )
 
 
-add_executable(main.ex main.cpp main_driver.cpp)
+add_executable(main.ex main.cpp main_driver.cpp WritePlotFile.cpp)
 
 target_link_libraries(
     main.ex

@@ -1252,6 +1252,10 @@ contains
     call get_particle_normal(normalrand(2))
     call get_particle_normal(normalrand(3))
 
+!    normalrand(1) = 0.5d0
+!    normalrand(2) = 0.5d0
+!    normalrand(3) = 0.5d0
+
     !std = sqrt(part%dry_diff*k_B*2d0*t_init(1))
     std(1) = sqrt(2.0*mb(1)*part%dry_diff)
     std(2) = sqrt(2.0*mb(2)*part%dry_diff)
@@ -1267,8 +1271,6 @@ contains
     dry_terms(1) = mb(1)*part%dry_diff*part%force(1)/(k_B*t_init(1))+bfac(1)
     dry_terms(2) = mb(2)*part%dry_diff*part%force(2)/(k_B*t_init(1))+bfac(2)
     dry_terms(3) = mb(3)*part%dry_diff*part%force(3)/(k_B*t_init(1))+bfac(3)
-
-    !print *, part%force
 
   end subroutine dry
   
@@ -1537,7 +1539,11 @@ contains
 
                wcheck(1) = wcheck(1) + weights(i,j,k,1)
 
+               !print *, fi(1)+i,fi(2)+j+fn(2),fi(3)+k+fn(3), coordsu(fi(1)+i,fi(2)+j+fn(2),fi(3)+k+fn(3),1), coordsu(fi(1)+i,fi(2)+j+fn(2),fi(3)+k+fn(3),2), coordsu(fi(1)+i,fi(2)+j+fn(2),fi(3)+k+fn(3),3)
+
                !print*, "xw: ", w1, "I: ", indicies(i,j,k,1,1), indicies(i,j,k,1,2), "D: ", xx*dxfinv(1), yy*dxfinv(2)
+
+               !print *, i,j,k,w1*w2*w3
 
                !print *, "Accessing: ", fi(1)+i+fn(1),fi(2)+j,fi(3)+k+fn(3)
 
@@ -1883,6 +1889,8 @@ contains
 
        part%vel = 0
 
+!print *, "Dims:", -(ks-1), ks
+
        do k = -(ks-1), ks
           do j = -(ks-1), ks
              do i = -(ks-1), ks
@@ -1905,7 +1913,7 @@ contains
 
                 part%vel(3) = part%vel(3) + weights(i,j,k,3)*velw(ii,jj,kk)
 
-       !print *, velu(ii,jj,kk), velv(ii,jj,kk), velw(ii,jj,kk)
+      ! print *, ii, jj, kk, velu(ii,jj,kk), weights(i,j,k,1)
 
              enddo
           enddo
@@ -2288,7 +2296,7 @@ contains
     real(amrex_real) normalrand(3), tempvel(3), intold, inttime, runerr, runtime, adj, adjalt
     real(amrex_real) domsize(3), posalt(3), propvec(3), norm(3), dry_terms(3)
     real(amrex_real) diffest, diffav, distav, veltest, posold(3), velold(3)
-    real(amrex_real) speed, mb(3), dist
+    real(amrex_real) speed, mb(3), dist, wcheck
 
     double precision, allocatable :: weights(:,:,:,:)
     integer, allocatable :: indicies(:,:,:,:,:)
@@ -2306,7 +2314,7 @@ contains
 
     domsize = phi - plo
 
-    adj = 0.99999
+    adj = 0.99999d0
     adjalt = 2d0*(1d0 - adj)
 
     dxinv = 1.d0/dx
@@ -2368,7 +2376,7 @@ contains
 #endif
                      part, ks, dxf, boundflag, midpoint, rejected)
 
-                !print *, "Vel", part%vel
+                   !print *, part%id, "Vel", part%vel(1), "Pos", part%pos(1)
 
                 if(move_tog .eq. 2) then !mid point time stepping - First step 1/2 a time step then interpolate velocity field
 
@@ -2398,7 +2406,6 @@ contains
 #if (BL_SPACEDIM == 3)
                       part%pos(3) = part%pos(3) + inttime*part%vel(3)*adj
 #endif
-                      
 
                       if(intsurf .gt. 0) then
 
@@ -2406,7 +2413,9 @@ contains
 
                          if(surf%periodicity .eq. 0) then
 
+
                            call apply_bc(surf, part, intside, domsize, push, 1, 1)
+
 
                            runtime = runtime - inttime
 
@@ -2431,6 +2440,8 @@ contains
 
                    end do
 
+
+
                    midpoint = 1
                    moves = moves + 1
 
@@ -2440,10 +2451,12 @@ contains
 #if (BL_SPACEDIM == 3)
                         coordsz, coordszlo, coordszhi, &
 #endif
-                        part, ks, plof, rejected)
+                        part, ks, plof, wcheck)
 
 
-                   if(rejected .ne. 0) then
+                   !if(rejected .ne. 0) then
+
+                        !print *, "Interpolating"
                      call inter_op(weights, indicies, &
                           velx, velxlo, velxhi, &
                           vely, velylo, velyhi, &
@@ -2452,12 +2465,17 @@ contains
 #endif
                           part, ks, dxf, boundflag, midpoint, rejected)
 
-                    endif
+                    !endif
+
+
+                    !print *, "Moved", part%pos(1)-posold(1)
+
                     part%pos = posold
+
         
 
                 endif
-
+                
                 runtime = dt
 
                 if (dry_move_tog .eq. 1) then
@@ -2480,6 +2498,8 @@ contains
 
                    part%vel = part%vel + dry_terms
                 endif
+
+                !print *, "adding", dry_terms(1), mb
 
                 speed = part%vel(1)**2 + part%vel(2)**2 + part%vel(3)**2              
 
@@ -2511,9 +2531,8 @@ contains
 
                       surf => paramplanes(intsurf)
 
-                      !print *, "Intersecting ", intsurf, part%pos
-
                       call apply_bc(surf, part, intside, domsize, push, 1, 1)
+
 
                       if(push .eq. 1) then
 
@@ -2527,6 +2546,8 @@ contains
                    endif
 
                 end do
+
+                !print *, part%id, "pre Vel", part%vel(1), "Pos", part%pos(1)
 
 !!!!!!!!!! Mean square displacement measurer.
 

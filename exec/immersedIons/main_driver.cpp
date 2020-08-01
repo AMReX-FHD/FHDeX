@@ -437,9 +437,9 @@ void main_driver(const char* argv)
         }
         else {
             // if particle count is negative, we instead compute the number of particles based on particle density and particle_neff
-            ionParticle[i].total = (int)ceil(particle_n0[i]*domainVol/particle_neff);
+            ionParticle[i].total = (int)amrex::Math::ceil(particle_n0[i]*domainVol/particle_neff);
             // adjust number of particles up so there is the same number per box  
-            ionParticle[i].ppb = (int)ceil((double)ionParticle[i].total/(double)ba.size());
+            ionParticle[i].ppb = (int)amrex::Math::ceil((double)ionParticle[i].total/(double)ba.size());
             //ionParticle[i].total = ionParticle[i].ppb*ba.size();
             ionParticle[i].n0 = ionParticle[i].total/domainVol;
 
@@ -903,7 +903,7 @@ void main_driver(const char* argv)
         {
             //Calls wet ion interpolation and movement.
             Print() << "Start move.\n";
-            particles.MoveIons(dt, dx, dxp, geom, umac, efield, RealFaceCoords, source, sourceTemp, dryMobility, paramPlaneList,
+            particles.MoveIonsGPU1(dt, dx, dxp, geom, umac, efield, RealFaceCoords, source, sourceTemp, dryMobility, paramPlaneList,
                                paramPlaneCount, 3 /*this number currently does nothing, but we will use it later*/);
 
             // reset statistics after step n_steps_skip
@@ -917,9 +917,10 @@ void main_driver(const char* argv)
                 particles.MeanSqrCalc(0, 0);
             }
 
-			particles.clearNeighbors();
-            particles.Redistribute();
-            particles.ReBin();
+            //particles.clearNeighbors();
+            //particles.Redistribute();
+            //particles.ReBin();
+
             Print() << "Finish move.\n";
         }
 
@@ -999,8 +1000,8 @@ void main_driver(const char* argv)
 	// Update structure factor
 #ifndef AMREX_USE_CUDA
         if (struct_fact_int > 0 &&
-            istep > std::abs(n_steps_skip) &&
-            (istep-std::abs(n_steps_skip)-1)%struct_fact_int == 0) {
+            istep > amrex::Math::abs(n_steps_skip) &&
+            (istep-amrex::Math::abs(n_steps_skip)-1)%struct_fact_int == 0) {
 
             // charge
             MultiFab::Copy(struct_cc_charge, charge, 0, 0, nvar_sf_charge, 0);

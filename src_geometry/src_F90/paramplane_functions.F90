@@ -333,6 +333,7 @@
 
         if(get_uniform_func() < surf%specularityright) then
 
+
 #if (BL_SPACEDIM == 2)
           dotprod = part%vel(1)*surf%rnx + part%vel(2)*surf%rny
 #endif

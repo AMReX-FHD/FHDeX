@@ -177,7 +177,7 @@ void main_driver(const char* argv)
 
         if(particle_count[i] >= 0)
         {
-            ionParticle[i].ppb = (int)ceil((double)particle_count[i]/(double)ba.size());
+            ionParticle[i].ppb = (int)amrex::Math::ceil((double)particle_count[i]/(double)ba.size());
 
             ionParticle[i].total = ionParticle[i].ppb*ba.size();
 
@@ -188,9 +188,9 @@ void main_driver(const char* argv)
         }else
         {
             ionParticle[i].n0 = particle_n0[i];
-            ionParticle[i].total = (int)ceil(ionParticle[i].n0*domainVol/particle_neff);
+            ionParticle[i].total = (int)amrex::Math::ceil(ionParticle[i].n0*domainVol/particle_neff);
 
-            ionParticle[i].ppb = (int)ceil((double)ionParticle[i].total/(double)ba.size());
+            ionParticle[i].ppb = (int)amrex::Math::ceil((double)ionParticle[i].total/(double)ba.size());
 
             ionParticle[i].total = ionParticle[i].ppb*ba.size();
 

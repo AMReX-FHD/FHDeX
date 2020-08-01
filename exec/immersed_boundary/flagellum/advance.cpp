@@ -173,7 +173,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     RealVect driv_u = {0, 0, 1};
 
     // Slowly ramp up driving amplitude
-    Real driv_amp = std::min(time*10, 1.);
+    Real driv_amp = amrex::min(time*10, 1.);
     Print() << "driv_amp = " << driv_amp << std::endl;
 
     // I'm too impatient to wait... -JPB
