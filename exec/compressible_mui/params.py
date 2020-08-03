@@ -60,11 +60,11 @@ m2 = M2/Navo
 m3 = M3/Navo
 m4 = M4/Navo
 
-print "- total number density = %.3e" % ntot
-print "- number density of spec1 = %.3e" % n1
-print "- number density of spec2 = %.3e" % n2
-print "- number density of spec3 = %.3e" % n3
-print "- number density of spec4 = %.3e\n" % n4
+print "- total number density = %e" % ntot
+print "- number density of spec1 = %e" % n1
+print "- number density of spec2 = %e" % n2
+print "- number density of spec3 = %e" % n3
+print "- number density of spec4 = %e\n" % n4
 
 ##########
 
@@ -174,9 +174,9 @@ print "*** spec4 ***"
 print "- collision rate (onto a site) = %e" % rcol_site4
 print "- conversion probability (collision->adsorption) = %f" % ads_prob4
 print "- equilibrium coverage (for single component) = %f" % eq_cov4
-print "- r_ads = %e" % rads4
-print "- r_des = %e" % rdes4
-print "- c_ads = %e\n" % cads4
+print "- r_ads4 = %e" % rads4
+print "- r_des4 = %e" % rdes4
+print "- c_ads4 = %e\n" % cads4
 
 ##########
 
