@@ -111,7 +111,7 @@ void main_driver(const char* argv)
     /////////////////////////////////////////
 
     // NOTE: only fhdSeed is used currently
-        // zero is a clock-based seed
+    // zero is a clock-based seed
     int fhdSeed      = seed;
     int particleSeed = seed;
     int selectorSeed = seed;
@@ -266,127 +266,6 @@ void main_driver(const char* argv)
     Real time = 0;
 
     int step, statsCount;
-    
-    ////////////////////////////////
-    // create equilibrium covariance matrix
-    Real molmix, avgmolmass;
-    Real P_bar;
-    Real c_v, c_v2;
-    Real dVol = dx[0]*dx[1];
-    molmix = 0.0;
-    avgmolmass = 0.0;
-    for(int i=0; i<nspecies; i++) {
-      molmix     += rhobar[i]/molmass[i];
-      avgmolmass += rhobar[i]*molmass[i];
-    }
-    molmix = 1.0/molmix;                // molar mass of mixture
-    P_bar = rho0*(Runiv/molmix)*T0;     // eqm pressure
-    c_v  = 1.5*(Runiv/molmix);          // Assuming all gases are monoatomic (dof=3)
-    c_v2 = c_v*c_v;
-    // calc cell volume
-    if (AMREX_SPACEDIM == 2) {
-        dVol *= cell_depth;
-    } else if (AMREX_SPACEDIM == 3) {
-        dVol *= dx[2];
-    }
-    // calc momentum variance
-    Real Jeqmvar = rho0*k_B*T0/dVol;
-    Real Meqmvar = (rho0/P_bar)*Jeqmvar;
-    Real Eeqmvar = (c_v2*T0*T0)*Meqmvar + (c_v*T0)*Jeqmvar;
-    Real MEeqmcovar = (rho0/P_bar)*(c_v*T0)*Jeqmvar;
-
-    // setup covariance eqm. variance matrix
-    int cnt = 0;
-    int nvar_sf = nvars;
-    int ncov_sf = nvar_sf*(nvar_sf+1)/2;
-    int nb_sf = 4;
-    int nbcov_sf = nb_sf*(nb_sf+1)/2;
-
-    // struct. fact. eqm. variances
-    Vector< Real > eqmvars(ncov_sf);
-    Vector< Real > beqmvars(nbcov_sf);
-    Vector< int > blocks(nb_sf);
-
-    // layout of covariance matrix:
-    //
-    // <cons_i,cons_j> =
-    // | <rho,rho>         ...      ...       ...            ...      ... |
-    // | <Jx,rho>       <Jx,Jx>     ...       ...            ...      ... |
-    // |    ...            ...      ...       ...            ...      ... |
-    // | <rhoE,rho>     <rhoE,Jx>   ...   <rhoE,rhoE>        ...      ... |
-    // | <rho1,rho>     <rho1,Jx>   ...   <rho1,rhoE>    <rho1,rho1>  ... |
-    // |    ...            ...      ...       ...            ...      ... |
-
-    // covariance matrix block sizes
-    cnt = 0;
-    blocks[cnt++] = 1;
-    blocks[cnt++] = AMREX_SPACEDIM;
-    blocks[cnt++] = 1;
-    blocks[cnt++] = nspecies;
-
-    // covariance matrix block scaling
-    cnt = 0;
-    beqmvars[cnt++] = Meqmvar*avgmolmass/molmix;  // rho,rho
-    beqmvars[cnt++] = sqrt(Meqmvar*Jeqmvar);      // J_i,rho      - cheat scale
-    beqmvars[cnt++] = MEeqmcovar;                 // rhoE,rho
-    beqmvars[cnt++] = Meqmvar;                    // rho_k,rho    - scaled by mass fracs later
-    beqmvars[cnt++] = Jeqmvar;                    // J_i,J_j
-    beqmvars[cnt++] = sqrt(Eeqmvar*Jeqmvar);      // rhoE,J_j     - cheat scale
-    beqmvars[cnt++] = sqrt(Meqmvar*Jeqmvar);      // rho_k,J_j    - cheat scale
-    beqmvars[cnt++] = Eeqmvar;                    // rhoE,rhoE
-    beqmvars[cnt++] = MEeqmcovar;                 // rho_k,rhoE   - scaled by mass fracs later
-    beqmvars[cnt++] = Meqmvar;                    // rho_k,rho_l  - scaled by mass fracs later
-    
-//    // loop over lower triangular block matrix
-//    cnt = 0;
-//    int bcnt = 0;
-//    int ig, jg = 0;
-//    // loop over matrix blocks
-//    for(int jb=0; jb<nb_sf; jb++) {
-//      ig = jg;
-//      for(int ib=jb; ib<nb_sf; ib++) {
-//	// loop within blocks
-//	for(int j=0; j<blocks[jb]; j++) {
-//	  int low_ind;
-//	  if(ib==jb){      // if block lies on diagonal...
-//	    low_ind=j;
-//	  } else {
-//	    low_ind=0;
-//	  }
-//	  for(int i=low_ind; i<blocks[ib]; i++) {
-//	    cnt = (ig+i)+nvar_sf*(jg+j)-(jg+j)*(jg+j+1)/2;
-//	    eqmvars[cnt] = beqmvars[bcnt];
-
-//	    // fix scale for individual species
-//	    if(ib != 2 && jb != 2) { // not for energy
-
-//	      if(blocks[ib]==nspecies && blocks[jb]==nspecies) {
-//	    	eqmvars[cnt] *= sqrt(rhobar[i]*molmass[i]/molmix);
-//	    	eqmvars[cnt] *= sqrt(rhobar[j]*molmass[j]/molmix);
-//	      } else if (blocks[ib]==nspecies) {
-//	    	eqmvars[cnt] *= rhobar[i]*molmass[i]/molmix;
-//	      } else if (blocks[jb]==nspecies) {
-//	    	eqmvars[cnt] *= rhobar[j]*molmass[j]/molmix;
-//	      }
-
-//	    } else {
-//	      
-//	      // if rho_k & energy, only scale by Yk
-//	      if(blocks[ib]==nspecies && jb==2) {
-//	    	eqmvars[cnt] *= rhobar[i];
-//	      }
-//	      
-//	    }
-
-//	  }
-//	}
-//	bcnt++;
-//	ig += blocks[ib];
-//      }
-//      jg += blocks[jb];
-//    }
-
-    ////////////////////////////////
 
 #ifndef AMREX_USE_CUDA
     ///////////////////////////////////////////
@@ -403,7 +282,7 @@ void main_driver(const char* argv)
     Vector< std::string > prim_var_names;
     prim_var_names.resize(structVarsPrim);
 
-    cnt = 0;
+    int cnt = 0;
     std::string x;
 
     // rho
@@ -436,12 +315,9 @@ void main_driver(const char* argv)
         var_scaling[d] = 1./(dx[0]*dx[1]*dx[2]);
     }
 
-#if 1
-    // option to compute all pairs
+    // compute all pairs
+    // note: StructFactPrim option to compute only speicified pairs not written yet
     StructFact structFactPrim(ba,dmap,prim_var_names,var_scaling);
-#else
-    Abort("StructFactPrim option to compute only speicified pairs not written yet");
-#endif
     
     //////////////////////////////////////////////
 
@@ -490,13 +366,10 @@ void main_driver(const char* argv)
         var_scaling[d] = 1./(dx[0]*dx[1]*dx[2]);
     }
 
-#if 1
-    // option to compute all pairs
+    // compute all pairs
+    // note: StructFactCons option to compute only speicified pairs not written yet
     StructFact structFactCons(ba,dmap,cons_var_names,var_scaling);
-#else
-    Abort("StructFactCons option to compute only speicified pairs not written yet");
-#endif    
-
+    
     //////////////////////////////////////////////
     
     // structure factor class for vertically-averaged dataset
