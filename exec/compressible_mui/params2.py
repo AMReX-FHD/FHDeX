@@ -7,26 +7,42 @@ n2 = 3.604090e+18
 n3 = 1.820603e+18
 n4 = 8.678933e+17
 
+# collision rates onto a site (this is proportional to site area)
+
+rcol1 = 3.662392e+11
+rcol2 = 3.235236e+10
+rcol3 = 1.161544e+10
+rcol4 = 3.823068e+09
+
 # adsorption/desorption parameters
 
-cads1 = 2.015564e-09
-rdes1 = 3.296152e+11
+cads1 = 4.031128e-09
+rdes1 = 6.592305e+11
 
-cads2 = 8.976568e-10
-rdes2 = 2.911713e+10
+cads2 = 2.692970e-09
+rdes2 = 1.844085e+11
 
-rdes3 = 2.206933e+10
-cads3 = 6.379993e-10
+cads3 = 1.594998e-09
+rdes3 = 1.161544e+10
 
-rdes4 = 7.263829e+09
-cads4 = 4.404998e-10
+cads4 = 2.642999e-09
+rdes4 = 2.293841e+09
 
-# equilibrium coverage
+# conversion probabilities
 
 rads1 = cads1*n1
 rads2 = cads2*n2
 rads3 = cads3*n3
 rads4 = cads4*n4
+
+print "conversion probabilities: ", [rads1/rcol1,rads1/rcol1,rads1/rcol1,rads1/rcol1]
+
+# single-component equilibirium coverage
+
+print "single-component equilibrium coverage: ", [rads1/(rads1+rdes1),rads2/(rads2+rdes2),rads3/(rads3+rdes3),rads4/(rads4+rdes4)]
+print 
+
+# equilibrium coverage
 
 A = np.array([[rads1+rdes1,rads1,rads1,rads1],[rads2,rads2+rdes2,rads2,rads2],[rads3,rads3,rads3+rdes3,rads3],[rads4,rads4,rads4,rads4+rdes4]])
 b = np.array([rads1,rads2,rads3,rads4])

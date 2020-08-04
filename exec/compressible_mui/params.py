@@ -112,7 +112,7 @@ print "- lattice constant = %e\n" % lat_const
 
 ##########
 
-ads_prob1 = 0.1
+ads_prob1 = 0.2
 eq_cov1 = 0.1
 rcol_site1 = math.sqrt(0.5*kB*temp/math.pi/m1)*n1*lat_const**2
 rads1 = ads_prob1*rcol_site1
@@ -129,8 +129,8 @@ print "- c_ads1 = %e\n" % cads1
 
 ##########
 
-ads_prob2 = 0.1
-eq_cov2 = 0.1
+ads_prob2 = 0.2
+eq_cov2 = 0.05
 rcol_site2 = math.sqrt(0.5*kB*temp/math.pi/m2)*n2*lat_const**2
 rads2 = ads_prob2*rcol_site2
 rdes2 = (1-eq_cov2)/eq_cov2*rads2
@@ -146,8 +146,8 @@ print "- c_ads2 = %e\n" % cads2
 
 ##########
 
-ads_prob3 = 0.1
-eq_cov3 = 0.05
+ads_prob3 = 0.2
+eq_cov3 = 0.2
 rcol_site3 = math.sqrt(0.5*kB*temp/math.pi/m3)*n3*lat_const**2
 rads3 = ads_prob3*rcol_site3
 rdes3 = (1-eq_cov3)/eq_cov3*rads3
@@ -163,8 +163,8 @@ print "- c_ads3 = %e\n" % cads3
 
 ##########
 
-ads_prob4 = 0.1
-eq_cov4 = 0.05
+ads_prob4 = 0.2
+eq_cov4 = 0.5
 rcol_site4 = math.sqrt(0.5*kB*temp/math.pi/m4)*n4*lat_const**2
 rads4 = ads_prob4*rcol_site4
 rdes4 = (1-eq_cov4)/eq_cov4*rads4
