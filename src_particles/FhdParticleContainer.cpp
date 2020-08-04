@@ -482,9 +482,10 @@ void FhdParticleContainer::MoveIonsGPU1(const Real dt, const Real* dxFluid, cons
     int intsurf, intside, push;
     int midpoint = 0;
     Real posAlt[3];
+    Real check;
 
 
-    InterpolateMarkersGpu(0, dx, umac, RealFaceCoords);
+    InterpolateMarkersGpu(0, dxFluid, umac, RealFaceCoords, check);
 
 
     if(move_tog == 2)
@@ -499,6 +500,8 @@ void FhdParticleContainer::MoveIonsGPU1(const Real dt, const Real* dxFluid, cons
             Real posOld[3];
             Real velOld[3];
 
+            moves_tile = 0;
+
             for (int i = 0; i < np; ++ i) {
                 ParticleType & part = particles[i];
 
@@ -509,7 +512,7 @@ void FhdParticleContainer::MoveIonsGPU1(const Real dt, const Real* dxFluid, cons
 //                    //part.pos(d) += dt * part.rdata(FHD_realData::velx + d);
 //                }
 
-
+                moves_tile++;
                 for (int d=0; d<AMREX_SPACEDIM; ++d)
                 {
                     velOld[d] = part.rdata(FHD_realData::velx + d);
@@ -568,22 +571,28 @@ void FhdParticleContainer::MoveIonsGPU1(const Real dt, const Real* dxFluid, cons
 
                 }
 
-                for (int d=0; d<AMREX_SPACEDIM; ++d)
-                {
+//                for (int d=0; d<AMREX_SPACEDIM; ++d)
+//                {
 
-                  part.rdata(FHD_realData::velx + d) = 0;
-                }
+//                  part.rdata(FHD_realData::velx + d) = 0;
+//                }
 
             
              
             }
+
+            moves_proc    += moves_tile;
+
+            //std::cout << "Moves " << moves_tile << std::endl;
+
                 
         }
 
 
  
         //Need to add midpoint rejecting feature here.
-        InterpolateMarkersGpu(0, dx, umac, RealFaceCoords);
+        InterpolateMarkersGpu(0, dxFluid, umac, RealFaceCoords, check);
+        //std::cout << "check: " << check << "\n";
  
         for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
 
@@ -869,8 +878,6 @@ void FhdParticleContainer::MoveIonsGPU1(const Real dt, const Real* dxFluid, cons
 
         // gather statistics
         np_proc       += np;
-        rejected_proc += rejected_tile;
-        moves_proc    += moves_tile;
 
     }
 
@@ -881,7 +888,7 @@ void FhdParticleContainer::MoveIonsGPU1(const Real dt, const Real* dxFluid, cons
 
     // gather statistics
     ParallelDescriptor::ReduceIntSum(np_proc);
-    ParallelDescriptor::ReduceRealSum(rejected_proc);
+    ParallelDescriptor::ReduceRealSum(check);
     ParallelDescriptor::ReduceRealSum(moves_proc);
     ParallelDescriptor::ReduceRealMax(maxspeed_proc);
     ParallelDescriptor::ReduceRealMax(maxdist_proc);
@@ -891,7 +898,7 @@ void FhdParticleContainer::MoveIonsGPU1(const Real dt, const Real* dxFluid, cons
     if (ParallelDescriptor::IOProcessor()) {
         Print() << "I see " << np_proc << " particles\n";
         if (move_tog == 2) {
-            Print() << "Fraction of midpoint moves rejected: " << rejected_proc/moves_proc << "\n";
+            Print() << "Fraction of midpoint moves rejected: " << check/moves_proc << "\n";
         }
         Print() <<"Maximum observed speed: " << sqrt(maxspeed_proc) << "\n";
         Print() <<"Maximum observed displacement (fraction of radius): " << maxdist_proc << "\n";
