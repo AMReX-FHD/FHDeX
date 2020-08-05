@@ -4,7 +4,7 @@
 exec1=SPPARKS_MUI/spk_mui
 if [ ! -f $exec1 ]
 then
-  echo "ERROR: spparks executable $exec1 not found"
+  echo "ERROR: kmc executable $exec1 not found"
   exit
 fi
 
@@ -20,4 +20,6 @@ fi
 spkscr=in.4spec
 fhdscr=inputs_equil_3d
 echo "** running kmc and fhd"
-mpirun -np 1 $exec1 < $spkscr : -np 1 $exec2 $fhdscr
+time mpirun -np 1 $exec1 -var SEED 100 < $spkscr : -np 1 $exec2 $fhdscr
+
+./coverage.sh

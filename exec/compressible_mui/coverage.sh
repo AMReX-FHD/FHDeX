@@ -9,4 +9,4 @@ then
     exit
 fi
 
-grep -B1 "Loop" $log --no-group-separator | awk 'NR % 2 == 1{printf("%e\t%d\t%d\t%d\t%d\n",$1,$7,$8,$9,$10)}' | tee $res
+grep -B1 "Loop" $log --no-group-separator | awk 'NR % 2 == 1{printf("%e\t%d\t%d\t%d\t%d\n",$1,$7,$8,$9,$10)}' > $res

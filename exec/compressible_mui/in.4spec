@@ -31,14 +31,14 @@ mui_kmc_lattice_offset ${lat_const2} ${lat_const2}
 set         i1 value 1                  # all siteA 
 set         i2 value 0                  # all vac
 
-event       4 siteA vac   4.031128e-09 spec1     # adsorption of spec1
-event       5 siteA spec1 6.592305e+11 vac       # desorption of spec1
-event       4 siteA vac   2.692970e-09 spec2     # adsorption of spec2
-event       5 siteA spec2 1.844085e+11 vac       # desorption of spec2
-event       4 siteA vac   1.594998e-09 spec3     # adsorption of spec3
-event       5 siteA spec3 1.161544e+10 vac       # desorption of spec3
-event       4 siteA vac   2.642999e-09 spec4     # adsorption of spec4
-event       5 siteA spec4 2.293841e+09 vac       # desorption of spec4
+event       4 siteA vac   4.03112801e-09 spec1     # adsorption of spec1
+event       5 siteA spec1 7.32478310e+10 vac       # desorption of spec1
+event       4 siteA vac   1.79531365e-09 spec2     # adsorption of spec2
+event       5 siteA spec2 1.22938978e+11 vac       # desorption of spec2
+event       4 siteA vac   1.27599850e-09 spec3     # adsorption of spec3
+event       5 siteA spec3 9.29234841e+09 vac       # desorption of spec3
+event       4 siteA vac   8.80999528e-10 spec4     # adsorption of spec4
+event       5 siteA spec4 6.88152255e+09 vac       # desorption of spec4
 
 variable    Trun   equal 1.e-12 
 variable    Tstat  equal 1.e-12
@@ -50,7 +50,7 @@ diag_style  surfchemtest stats yes list vac spec1 spec2 spec3 spec4
 # dump        3 image ${Timage} dump.*.jpg i2 site shape cube crange 0 2 drange 1 4 sdiam 6e-7 shape cube view 0 0 box no 0 size 1000 1000
 # dump_modify 3 scolor 0 gray scolor 1 red scolor 2 green pad 3
 
-variable    nstep equal 10000
+variable    nstep equal 1000
 
 variable ts loop ${nstep}
 label ts_loop

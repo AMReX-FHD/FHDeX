@@ -20,4 +20,6 @@ fi
 # run the two executables simultaneously
 spkscr=in.4spec
 echo "** running kmc and pseudo-fhd"
-mpirun -np 1 $exec1 < $spkscr : -np 1 $exec2 
+time mpirun -np 1 $exec1 -var SEED 100 < $spkscr : -np 1 $exec2
+
+../coverage.sh
