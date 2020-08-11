@@ -1166,7 +1166,7 @@ void IBParticleContainer::PrintParticleData(int lev) {
             )
         };
     // Find max inv_dx (in case we have an anisotropic grid)
-    Real mx_inv_dx = * amrex::max_element(inv_dx.begin(), inv_dx.end());
+    Real mx_inv_dx = * std::max_element(inv_dx.begin(), inv_dx.end());
 
     amrex::AllPrintToFile("ib_particle_data") << "Particles on each box:" << std::endl;
 
