@@ -578,10 +578,10 @@ void compute_p3m_sr_correction_nl_gpu (FhdParticleContainer::AoS& aos, int Np, i
 
 
         }
-        if( p1.id() ==  1)
-        {
-            Print() << setprecision(15)  << p1.rdata(FHD_realData::forcex) << ", "<< p1.rdata(FHD_realData::forcey) << ", "<< p1.rdata(FHD_realData::forcez) << "\n";
-        }
+//        if( p1.id() ==  1)
+//        {
+//            Print() << setprecision(15)  << p1.rdata(FHD_realData::forcex) << ", "<< p1.rdata(FHD_realData::forcey) << ", "<< p1.rdata(FHD_realData::forcez) << "\n";
+//        }
     });
 
     rcount = std::min(rcount, rcount_d.dataValue());    
