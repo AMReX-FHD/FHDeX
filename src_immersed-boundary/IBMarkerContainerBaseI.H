@@ -833,7 +833,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateMarkersGpu(
             const std::array<MultiFab, AMREX_SPACEDIM> & coords)
 {
 
-    int check;
+    Real check;
     InterpolateMarkersGpu(lev, dx, f_in, coords,check);
 
     if (check)
@@ -1094,7 +1094,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateKernelGpu(AoS& aos
     BL_PROFILE_VAR("InterpolateKernelGpu()",InterpolateKernelGpu);
 
     GpuArray<Real, AMREX_SPACEDIM> invdx;
-    Gpu::ManagedDeviceVector<int> checkg(1, check);
+    //Gpu::ManagedDeviceVector<int> checkg(1, check);
 
     Real invvol = 1.0;
 
@@ -1124,6 +1124,9 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateKernelGpu(AoS& aos
 
     check = 0;
 
+    Gpu::DeviceScalar<Real> check_gpu(check);
+    Real* pcheck = check_gpu.dataPtr();
+
     AMREX_FOR_1D( Np, ip,
     {
         ParticleType& p = pstruct[ip];
@@ -1131,6 +1134,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateKernelGpu(AoS& aos
         int lo_dim[3];
         int hi_dim[3];
         int gs;
+        int checkg = 0;
 
         if(pkernel_fluid == 3)
         {
@@ -1173,28 +1177,29 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateKernelGpu(AoS& aos
 //        }
 //        else
 
-        checkg[0] = 0;
+        checkg = 0;
 
         {
             lo_dim[0] = static_cast<int>(p.pos(0) * invdx[0] - gs);
-            if (lo_dim[0]<bx_lo[0]) checkg[0] = 1;
+            if (lo_dim[0]<bx_lo[0]) checkg = 1;
             hi_dim[0] = static_cast<int>(p.pos(0) * invdx[0] + gs);
-            if (hi_dim[0]>bx_hi[0]) checkg[0] = 1;
+            if (hi_dim[0]>bx_hi[0]) checkg = 1;
             lo_dim[1] = static_cast<int>(p.pos(1) * invdx[1] - gs);
-            if (lo_dim[1]<bx_lo[1]) checkg[0] = 1;
+            if (lo_dim[1]<bx_lo[1]) checkg = 1;
             hi_dim[1] = static_cast<int>(p.pos(1) * invdx[1] + gs);
-            if (hi_dim[1]>bx_hi[1]) checkg[0] = 1;
+            if (hi_dim[1]>bx_hi[1]) checkg = 1;
             lo_dim[2] = static_cast<int>(p.pos(2) * invdx[2] - gs);
-            if (lo_dim[2]<bx_lo[2]) checkg[0] = 1;
+            if (lo_dim[2]<bx_lo[2]) checkg = 1;
             hi_dim[2] = static_cast<int>(p.pos(2) * invdx[2] + gs);
-            if (hi_dim[2]>bx_hi[2]) checkg[0] = 1;
+            if (hi_dim[2]>bx_hi[2]) checkg = 1;
         }
         //Print() << "dx: " << dx[0] << ", " << invdx[0] << "\n"; 
         //Print() << "Pos: " << p.pos(0) << ", " << p.pos(1) << ", " << p.pos(2) << "\n";
         //Print() << "Dims: " << lo_dim[0] << ", " << lo_dim[1] << ", " << lo_dim[2] << ", "  << hi_dim[0] << ", "  << hi_dim[1] << ", "  << hi_dim[2] << "\n";
         //Print() << "Box : " << bx_lo[0] << ", " << bx_lo[1] << ", " << bx_lo[2] << ", "  << bx_hi[0] << ", "  << bx_hi[1] << ", "  << bx_hi[2] << "\n";
 
-        if(checkg[0] == 0)
+        if(checkg == 0)
+        //if(true)
         {
 
         p.rdata(StructReal::velx + 0) = 0;
@@ -1331,11 +1336,12 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateKernelGpu(AoS& aos
         }
         }else
         {
-           check++;
+           pcheck[0]++;
            //std::cout << "Fail\n";
         }
     });
 
+    check = check_gpu.dataValue();
     //std::cout << "HERE! " << check << std::endl;
 
 }
