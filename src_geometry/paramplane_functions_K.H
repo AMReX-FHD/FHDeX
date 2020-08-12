@@ -136,151 +136,113 @@ void randomhemisphere(Real costheta, Real sintheta, Real cosphi, Real sinphi, Re
 
 }
 
-//void app_bc_gpu(const paramPlane* surf, FhdParticleContainer::ParticleType& part, int intside, Real* domsize, int *push, Real time, Real inttime)
-//{
-//    
-//    
-//    if(intside .eq. 1) then
-//   
-//      if(get_uniform_func() > surf%porosityright) then
-
-//        push = 0
+void app_bc_gpu(const paramPlane* surf, FhdParticleContainer::ParticleType& part, int intside, Real* domsize, int *push, Real time, Real inttime)
+{
+    
+    
+    if(intside == 1)
+    {
+      if(amrex::Random() > surf->porosityRight)
+      {
+        *push = 0;
 
 //        surf%fxright = surf%fxright + part%mass*part%vel(1)
 //        surf%fyright = surf%fyright + part%mass*part%vel(2)
 //        surf%fzright = surf%fzright + part%mass*part%vel(3)
 
-//        if(get_uniform_func() < surf%specularityright) then
+        if(get_uniform_func() < surf->specularityRight)
+        {
 
-//#if (BL_SPACEDIM == 2)
-//          dotprod = part%vel(1)*surf%rnx + part%vel(2)*surf%rny
-//#endif
-//#if (BL_SPACEDIM == 3)
-//          dotprod = part%vel(1)*surf%rnx + part%vel(2)*surf%rny + part%vel(3)*surf%rnz
-//#endif
-//          part%vel(1) = -2d0*dotprod*surf%rnx + part%vel(1)
-//          part%vel(2) = -2d0*dotprod*surf%rny + part%vel(2)
-//#if (BL_SPACEDIM == 3)
-//          part%vel(3) = -2d0*dotprod*surf%rnz + part%vel(3)
-//#endif
-//        else
-//          
-//          srt = sqrt(part%r*surf%temperatureright)
+          Real dotprod = part.rdata(FHD_realData::velx)*surf->rnx + part.rdata(FHD_realData::vely)*surf->rny + part.rdata(FHD_realData::velz)*surf->rnz;
 
-//#if (BL_SPACEDIM == 3)
-//          part%vel(1) = srt*get_particle_normal_func()
-//          part%vel(2) = srt*get_particle_normal_func()
-//          part%vel(3) = 1.414213562*srt*sqrt(-log(get_uniform_func()))
-//        
-//          call rotation(surf%costhetaright, surf%sinthetaright, surf%cosphiright, surf%sinphiright, part%vel(1), part%vel(2), part%vel(3))
-//#endif
+          part.rdata(FHD_realData::velx) = -2.0*dotprod*surf->rnx + part.rdata(FHD_realData::velx);
+          part.rdata(FHD_realData::vely) = -2.0*dotprod*surf->rny + part.rdata(FHD_realData::vely);
+          part.rdata(FHD_realData::velz) = -2.0*dotprod*surf->rnz + part.rdata(FHD_realData::velz);
+        }else
+        {
+          
+          Real srt = sqrt(part.rdata(FHD_realData::R)*surf->temperatureRight);
 
-//#if (BL_SPACEDIM == 2)
-//          part%vel(1) = 1.414213562*srt*sqrt(-log(get_uniform_func()))
-//          part%vel(2) = srt*get_particle_normal_func()
-//          part%vel(3) = srt*get_particle_normal_func()
-
-//          call rotation(surf%costhetaright, surf%sinthetaright, part%vel(1), part%vel(2))
-//#endif
+          part.rdata(FHD_realData::velx) = srt*amrex::RandomNormal(0.,1.);
+          part.rdata(FHD_realData::vely) = srt*amrex::RandomNormal(0.,1.);
+          part.rdata(FHD_realData::velz) = 1.414213562*srt*sqrt(-log(amrex::Random()));
+        
+          rotation(surf->cosThetaRight, surf->sinThetaRight, surf->cosPhiRight, surf->sinPhiRight, &part.rdata(FHD_realData::velx), &part.rdata(FHD_realData::vely), &part.rdata(FHD_realData::velz));
 
 
-//        endif
-//      elseif(get_uniform_func() < surf%periodicity) then
+        }
+      }else if(amrex::Random() < surf->periodicity)
+      {
+        *push = 0;
 
-//        push = 0
+        if(surf->boundary == 1)
+        {
+          part.pos(0) = part.pos(0) + 0.9999999*domsize[0];
+        }
+        else if(surf->boundary == 2)
+        {
+          part.pos(0) = part.pos(0) - 0.9999999*domsize[0];
+        }
+        else if(surf->boundary == 3)
+        {
+          part.pos(1) = part.pos(1) + 0.9999999*domsize[1];
+        }
+        else if(surf->boundary == 4)
+        {
+          part.pos(1) = part.pos(1) - 0.9999999*domsize[1];
+        }
+        else if(surf->boundary == 5)
+        {
+          part.pos(2) = part.pos(2) + 0.9999999*domsize[2];
+        }
+        else if(surf->boundary == 6)
+        {
+          part.pos(2) = part.pos(2) - 0.9999999*domsize[2];
+        }
 
-//        if(surf%boundary .eq. 1) then
+      }else
+      {
+        *push = 1;
 
-//          part%pos(1) = part%pos(1) + 0.9999999*domsize(1)
+        if(amrex::Random() > surf->momentumConsRight)
+        {
+          randomhemisphere(surf->cosThetaRight, surf->sinThetaRight, surf->cosPhiRight, surf->sinPhiRight, &part.rdata(FHD_realData::velx), &part.rdata(FHD_realData::vely), &part.rdata(FHD_realData::velz));
+        }
+      }
 
-//        elseif(surf%boundary .eq. 2) then
+    }else
+    {
 
-//          part%pos(1) = part%pos(1) - 0.9999999*domsize(1)
-
-//        elseif(surf%boundary .eq. 3) then
-
-//          part%pos(2) = part%pos(2) + 0.9999999*domsize(2)
-
-//        elseif(surf%boundary .eq. 4) then
-
-//          part%pos(2) = part%pos(2) - 0.9999999*domsize(2)
-
-//#if (BL_SPACEDIM == 3)
-
-//        elseif(surf%boundary .eq. 5) then
-
-//          part%pos(3) = part%pos(3) + 0.9999999*domsize(3)
-
-//        elseif(surf%boundary .eq. 6) then
-
-//          part%pos(3) = part%pos(3) - 0.9999999*domsize(3)
-//#endif
-
-//        endif
-//      else
-
-//        push = 1
-
-//        if(get_uniform_func() > surf%momentumright) then
-
-//#if (BL_SPACEDIM == 3)
-//          call randomhemisphere(surf%costhetaleft, surf%sinthetaleft, surf%cosphileft, surf%sinphileft, part%vel(1), part%vel(2), part%vel(3))
-//          !print *, "Scattering!"
-//#endif
-//#if (BL_SPACEDIM == 2)
-//          call randomhemisphere(surf%costhetaleft, surf%sinthetaleft, part%vel(1), part%vel(2), part%vel(3))
-//#endif
-
-//        endif
-
-//      endif
-
-//    else
-
-//      if(get_uniform_func() > surf%porosityleft) then
-
-//        push = 0
+//      if(get_uniform_func() > surf%porosityleft)
+//      {
+//        *push = 0;
 
 //        surf%fxleft = surf%fxleft + part%mass*part%vel(1)
 //        surf%fyleft = surf%fyleft + part%mass*part%vel(1)
 //        surf%fzleft = surf%fzleft + part%mass*part%vel(1)
 
-//        if(get_uniform_func() < surf%specularityleft) then
-
-//#if (BL_SPACEDIM == 2)
-//          dotprod = part%vel(1)*surf%lnx + part%vel(2)*surf%lny
-//#endif
-//#if (BL_SPACEDIM == 3)
+//        if(get_uniform_func() < surf%specularityleft)
+//        {
 //          dotprod = part%vel(1)*surf%lnx + part%vel(2)*surf%lny + part%vel(3)*surf%lnz
-//#endif
-//          !print *, "dot left: ", dotprod
+
 //          part%vel(1) = -2d0*dotprod*surf%lnx + part%vel(1)
 //          part%vel(2) = -2d0*dotprod*surf%lny + part%vel(2)
-//#if (BL_SPACEDIM == 3)
 //          part%vel(3) = -2d0*dotprod*surf%lnz + part%vel(3)
-//#endif
+//        }
 //        else
-//          
+//        { 
 //          srt = sqrt(part%r*surf%temperatureleft)
 
-//#if (BL_SPACEDIM == 3)
 //          part%vel(1) = srt*get_particle_normal_func()
 //          part%vel(2) = srt*get_particle_normal_func()
 //          part%vel(3) = 1.414213562*srt*sqrt(-log(get_uniform_func()))
 
 //          call rotation(surf%costhetaleft, surf%sinthetaleft, surf%cosphileft, surf%sinphileft, part%vel(1), part%vel(2), part%vel(3))
-//#endif
-//#if (BL_SPACEDIM == 2)
-//          part%vel(1) = 1.414213562*srt*sqrt(-log(get_uniform_func()))
-//          part%vel(2) = srt*get_particle_normal_func()
-//          part%vel(3) = srt*get_particle_normal_func()
-
-//          call rotation(surf%costhetaleft, surf%sinthetaleft, part%vel(1), part%vel(2))
-//#endif
-//       
-//        endif
-//      elseif(get_uniform_func() < surf%periodicity) then
-
+//        }
+       
+//      }
+//      else if(amrex::Random() < surf->periodicity)
+//      {
 //        push = 0
 
 //        if(surf%boundary .eq. 1) then
@@ -324,8 +286,8 @@ void randomhemisphere(Real costheta, Real sintheta, Real cosphi, Real sinphi, Re
 //        endif
 
 //      endif
-//  
-//   endif
+  
+   }
 //   if(graphene_tog .eq. 1) then
 //      if(surf%boundary .eq. 6) then
 
@@ -333,7 +295,7 @@ void randomhemisphere(Real costheta, Real sintheta, Real cosphi, Real sinphi, Re
 //      call surf_velocity(surf, part, time, oldvel, inttime)
 //   endif
 //   endif
-//        
-// end subroutine app_bc
+        
+}
 
 #endif

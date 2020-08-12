@@ -527,8 +527,8 @@ void FhdParticleContainer::MoveIonsGPU1(const Real dt, const Real* dxFluid, cons
 
                 while(runtime > 0)
                 {
-                    //find_inter(&part, &runtime, paramPlaneList, &paramPlaneCount, &intsurf, &inttime, &intside, ZFILL(plo), ZFILL(phi));
-                    find_inter_gpu(part, runtime, paramPlaneList, paramPlaneCount, &intsurf, &inttime, &intside, ZFILL(plo), ZFILL(phi));
+                    find_inter(&part, &runtime, paramPlaneList, &paramPlaneCount, &intsurf, &inttime, &intside, ZFILL(plo), ZFILL(phi));
+                    //find_inter_gpu(part, runtime, paramPlaneList, paramPlaneCount, &intsurf, &inttime, &intside, ZFILL(plo), ZFILL(phi));
                     
                     for (int d=0; d<AMREX_SPACEDIM; ++d)
                     {
@@ -542,7 +542,7 @@ void FhdParticleContainer::MoveIonsGPU1(const Real dt, const Real* dxFluid, cons
                     if(intsurf > 0)
                     {
 
-                        const paramPlane& surf = paramPlaneList[intsurf]; //intsurf-1 for fortran find_inter, intsurf for c++ find_inter_gpu
+                        const paramPlane& surf = paramPlaneList[intsurf-1]; //intsurf-1 for fortran find_inter, intsurf for c++ find_inter_gpu
 
                         if(surf.periodicity == 0)
                         {
@@ -690,8 +690,8 @@ void FhdParticleContainer::MoveIonsGPU1(const Real dt, const Real* dxFluid, cons
 
             while(runtime > 0)
             {
-                //find_inter(&part, &runtime, paramPlaneList, &paramPlaneCount, &intsurf, &inttime, &intside, ZFILL(plo), ZFILL(phi));
-                find_inter_gpu(part, runtime, paramPlaneList, paramPlaneCount, &intsurf, &inttime, &intside, ZFILL(plo), ZFILL(phi));
+                find_inter(&part, &runtime, paramPlaneList, &paramPlaneCount, &intsurf, &inttime, &intside, ZFILL(plo), ZFILL(phi));
+                //find_inter_gpu(part, runtime, paramPlaneList, paramPlaneCount, &intsurf, &inttime, &intside, ZFILL(plo), ZFILL(phi));
                 
                 for (int d=0; d<AMREX_SPACEDIM; ++d)
                 {
@@ -706,7 +706,7 @@ void FhdParticleContainer::MoveIonsGPU1(const Real dt, const Real* dxFluid, cons
                 runtime = runtime - inttime;
                 if(intsurf > 0)
                 {
-                    const paramPlane& surf = paramPlaneList[intsurf]; //intsurf-1 for fortran find_inter, intsurf for c++ find_inter_gpu
+                    const paramPlane& surf = paramPlaneList[intsurf-1]; //intsurf-1 for fortran find_inter, intsurf for c++ find_inter_gpu
 
                     Real dummy = 1;
                     app_bc(&surf, &part, &intside, domsize, &push, &dummy, &dummy);
