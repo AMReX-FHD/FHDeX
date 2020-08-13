@@ -1007,7 +1007,7 @@ void IBMultiBlobContainer::PrintMarkerData(int lev) const {
                                         this->Geom(lev).InvCellSize(2)   )};
 
     // Find max inv_dx (in case we have an anisotropic grid)
-    Real mx_inv_dx = * amrex::max_element(inv_dx.begin(), inv_dx.end());
+    Real mx_inv_dx = * std::max_element(inv_dx.begin(), inv_dx.end());
 
 
     amrex::AllPrintToFile("ib_marker_data") << "Particles on each box:" << std::endl;

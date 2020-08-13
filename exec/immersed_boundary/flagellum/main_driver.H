@@ -80,6 +80,25 @@ void advance_CN(std::array<MultiFab, AMREX_SPACEDIM> & umac,
 
 
 
+void advance_stokes(std::array<MultiFab, AMREX_SPACEDIM> & umac,
+                    std::array<MultiFab, AMREX_SPACEDIM> & umacNew,
+                    MultiFab & pres,
+                    IBMarkerContainer & ib_mc,
+                    const std::array<MultiFab, AMREX_SPACEDIM> & mfluxdiv_predict,
+                    const std::array<MultiFab, AMREX_SPACEDIM> & mfluxdiv_correct,
+                          std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
+                          std::array<MultiFab, AMREX_SPACEDIM> & force_ib,
+                    const MultiFab& beta, const MultiFab & gamma,
+# if (AMREX_SPACEDIM == 2)
+                    const std::array<MultiFab, 1> & beta_ed,
+# endif
+# if (AMREX_SPACEDIM == 3)
+                    const std::array<MultiFab, 3> & beta_ed,
+# endif
+                    const Geometry geom, const Real & dt, Real time);
+
+
+
 void constrain_ibm_marker(IBMarkerContainer & ib_mc, int ib_lev, int component);
 
 
