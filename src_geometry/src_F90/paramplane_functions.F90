@@ -242,11 +242,10 @@
 
         tval = (-part%pos(3)*surf%uy*surf%vx + surf%z0*surf%uy*surf%vx + part%pos(2)*surf%uz*surf%vx - surf%y0*surf%uz*surf%vx + part%pos(3)*surf%ux*surf%vy - surf%z0*surf%ux*surf%vy - part%pos(1)*surf%uz*surf%vy + surf%x0*surf%uz*surf%vy - part%pos(2)*surf%ux*surf%vz + surf%y0*surf%ux*surf%vz + part%pos(1)*surf%uy*surf%vz - surf%x0*surf%uy*surf%vz)*denominv
 
-        !print *, "Testing ", s, "particle", part%id, uval, vval, tval, denominv
-        !print *, "Vel ", part%vel
-        !print *, "Surf1 ", surf%ux, surf%uy, surf%uz
-        !print *, "Surf2 ", surf%vx, surf%vy, surf%vz
-
+!        print *, "Testing ", s, "particle", part%id, uval, vval, tval, denominv
+!        print *, "Vel ", part%vel
+!        print *, "Surf1 ", surf%ux, surf%uy, surf%uz
+!        print *, "Surf2 ", surf%vx, surf%vy, surf%vz        
 
         if(  ((uval .gt. 0) .and. (uval .lt. surf%utop))    .and.   ((vval .gt. 0) .and. (vval .lt. surf%vtop))    .and.     ((tval .gt. 0) .and. (tval .lt. inttime))   ) then
 

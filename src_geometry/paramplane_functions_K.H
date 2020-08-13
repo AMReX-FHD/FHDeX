@@ -6,7 +6,7 @@
 #include <FhdParticleContainer.H>
 #include <math.h>
 
-void pre_check(FhdParticleContainer::ParticleType& part, const amrex_real delt, const paramPlane* paramplanes, 
+void pre_check_gpu(FhdParticleContainer::ParticleType& part, const amrex_real delt, const paramPlane* paramplanes, 
                                                 const int ns, int* flag, const amrex_real* phi, const amrex_real* plo)
 {
 
@@ -56,13 +56,13 @@ void find_inter_gpu(FhdParticleContainer::ParticleType& part, const amrex_real d
     *intsurf = -1;
     Real uval, vval, tval;
     
-    //pre_check(part, delt, paramplanes, ns, &flag, phi, plo);
+    pre_check_gpu(part, delt, paramplanes, ns, &flag, phi, plo);
 
     if(flag == 0)
     {
-        for(int s=0;s<ns;s++)
+        for(int s=1;s<=ns;s++)
         {
-            const paramPlane* surf = &paramplanes[s];
+            const paramPlane* surf = &paramplanes[s-1];
 
             Real denominv = 1.0/(part.rdata(FHD_realData::velz)*surf->uy*surf->vx - part.rdata(FHD_realData::vely)*surf->uz*surf->vx - part.rdata(FHD_realData::velz)*surf->ux*surf->vy + part.rdata(FHD_realData::velx)*surf->uz*surf->vy + part.rdata(FHD_realData::vely)*surf->ux*surf->vz - part.rdata(FHD_realData::velx)*surf->uy*surf->vz);
 
@@ -72,10 +72,10 @@ void find_inter_gpu(FhdParticleContainer::ParticleType& part, const amrex_real d
 
             tval = (-part.pos(2)*surf->uy*surf->vx + surf->z0*surf->uy*surf->vx + part.pos(1)*surf->uz*surf->vx - surf->y0*surf->uz*surf->vx + part.pos(2)*surf->ux*surf->vy - surf->z0*surf->ux*surf->vy - part.pos(0)*surf->uz*surf->vy + surf->x0*surf->uz*surf->vy - part.pos(1)*surf->ux*surf->vz + surf->y0*surf->ux*surf->vz + part.pos(0)*surf->uy*surf->vz - surf->x0*surf->uy*surf->vz)*denominv;
 
-            //Print() << "Testing "<< s+1 << " particle " << part.id() << ", " << uval << ", " << vval << ", " << tval << ", " << denominv << "\n";
-            //Print() << "Vel "<< part.rdata(FHD_realData::velx) << ", " << part.rdata(FHD_realData::vely) << ", " << part.rdata(FHD_realData::velz) << "\n";
-            //Print() << "surf1 "<< surf->ux << ", " << surf->uy << ", " << surf->uz << "\n";
-            //Print() << "surf2 "<< surf->vx << ", " << surf->vy << ", " << surf->vz << "\n";
+//            Print() << "Testing "<< s+1 << " particle " << part.id() << ", " << uval << ", " << vval << ", " << tval << ", " << denominv << "\n";
+//            Print() << "Vel "<< part.rdata(FHD_realData::velx) << ", " << part.rdata(FHD_realData::vely) << ", " << part.rdata(FHD_realData::velz) << "\n";
+//            Print() << "surf1 "<< surf->ux << ", " << surf->uy << ", " << surf->uz << "\n";
+//            Print() << "surf2 "<< surf->vx << ", " << surf->vy << ", " << surf->vz << "\n";
        
             if(  ((uval > 0) && (uval < surf->uTop)) && ((vval > 0) && (vval < surf->vTop))  &&  ((tval > 0) && (tval < *inttime))   )
             {
