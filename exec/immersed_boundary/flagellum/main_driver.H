@@ -33,6 +33,9 @@ void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
                        IBMarkerContainer & ib_mc, int ib_lev,
                        int component, bool pred_pos);
 
+void yeax_ibm_marker(Real mot, IBMarkerContainer & ib_mc, int ib_lev,
+                     int component_src, int component_dest);
+
 
 
 /********************************************************************************

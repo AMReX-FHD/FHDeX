@@ -108,7 +108,15 @@ Real ndrUW(const RealVect & r_m, const RealVect & r, const RealVect & r_p,
 void driving_f(      RealVect & f,       RealVect & f_p,       RealVect & f_m,
                const RealVect & r, const RealVect & r_p, const RealVect & r_m,
                const RealVect & u, Real theta, Real k);
+
+void rotate_z(Real & rx, Real & ry,
+              Real   tx, Real   ty,
+              Real theta);
+
+
+void next_node_z(Real & nx, Real & ny,
+                 Real   px, Real   py,
+                 Real   tx, Real   ty,
+                 Real ds);
 }
-
-
 #endif

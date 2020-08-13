@@ -68,7 +68,7 @@ Real theta(Real amp_ramp, Real time, int i_ib, int index_marker) {
     if(immbdy::contains_fourier) {
 
         // First two nodes reserved as "anchor"
-        index_marker = amrex::max(0, index_marker-2);
+        // index_marker = amrex::max(0, index_marker-1);
 
         int N                 = chlamy_flagellum::N[i_ib][index_marker];
         int coef_len          = ib_flagellum::fourier_coef_len;
@@ -188,9 +188,8 @@ void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
                 RealVect f_m = RealVect{AMREX_D_DECL(0., 0., 0.)};
 
                 // calling the active bending force calculation
-                // This a simple since wave imposed
 
-                Real th = theta(driv_amp, time, i_ib, mark.idata(IBMInt::id_1));
+                Real th = theta(driv_amp, time, i_ib, mark.idata(IBMInt::id_1)-1);
                 driving_f(f, f_p, f_m, r, r_p, r_m, driv_u, th, k_driv);
 
                 // updating the force on the minus, current, and plus particles.
@@ -203,4 +202,31 @@ void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
         }
     }
     BL_PROFILE_VAR_STOP(UpdateForces);
+};
+
+
+
+void yeax_ibm_marker(Real mot, IBMarkerContainer & ib_mc, int ib_lev,
+                     int component_src, int component_dest) {
+
+    BL_PROFILE_VAR("move_ibm_marker", move_ibm_marker);
+
+    for (IBMarIter pti(ib_mc, ib_lev); pti.isValid(); ++pti) {
+
+        // Get marker data (local to current thread)
+        TileIndex index(pti.index(), pti.LocalTileIndex());
+        AoS & markers = ib_mc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
+        long np = ib_mc.GetParticles(ib_lev).at(index).numParticles();
+
+        for (MarkerListIndex m_index(0, 0); m_index.first<np; ++m_index.first) {
+
+            ParticleType & mark = markers[m_index.first];
+
+            for (int d=0; d<AMREX_SPACEDIM; ++d)
+                 mark.rdata(component_dest + d) += mot * mark.rdata(component_src + d);
+
+        }
+    }
+
+    BL_PROFILE_VAR_STOP(move_ibm_marker);
 };
