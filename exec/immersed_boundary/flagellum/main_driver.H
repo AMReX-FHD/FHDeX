@@ -31,10 +31,13 @@ Real theta(Real amp_ramp, Real time, int i_ib, int index_marker);
 
 void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
                        IBMarkerContainer & ib_mc, int ib_lev,
-                       int component, bool pred_pos);
+                       int component, bool pred_pos,
+                       const Geometry & geom);
 
 void yeax_ibm_marker(Real mot, IBMarkerContainer & ib_mc, int ib_lev,
                      int component_src, int component_dest);
+
+Vector<RealVect> equil_pos(int i_ib, Real time, const Geometry & geom);
 
 
 

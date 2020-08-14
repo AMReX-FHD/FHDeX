@@ -110,7 +110,8 @@ Real theta(Real amp_ramp, Real time, int i_ib, int index_marker) {
 
 void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
                        IBMarkerContainer & ib_mc, int ib_lev,
-                       int component, bool pred_pos) {
+                       int component, bool pred_pos,
+                       const Geometry & geom) {
 
     BL_PROFILE_VAR("update_ibm_marker", UpdateForces);
 
@@ -145,15 +146,18 @@ void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
 
             // position vectors
             RealVect prev_pos, pos, next_pos;
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                pos[d] = mark.pos(d);
+                if (pred_pos) pos[d] += mark.rdata(IBMReal::pred_posx + d);
+            }
+
             if (status == 0) {
                 for(int d=0; d<AMREX_SPACEDIM; ++d) {
                     prev_pos[d] = prev_marker->pos(d);
-                    pos[d]      =         mark.pos(d);
                     next_pos[d] = next_marker->pos(d);
 
                     if (pred_pos) {
                         prev_pos[d] += prev_marker->rdata(IBMReal::pred_posx + d);
-                        pos[d]      += mark.rdata(IBMReal::pred_posx + d);
                         next_pos[d] += next_marker->rdata(IBMReal::pred_posx + d);
                     }
                 }
@@ -176,28 +180,35 @@ void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
                 }
             }
 
-            // update bending forces for curent, minus/prev, and next/plus
-            if (status == 0) { // has next (p) and prev (m)
+            // // update bending forces for curent, minus/prev, and next/plus
+            // if (status == 0) { // has next (p) and prev (m)
 
-                // position vectors
-                const RealVect & r = pos, & r_m = prev_pos, & r_p = next_pos;
+            //     // position vectors
+            //     const RealVect & r = pos, & r_m = prev_pos, & r_p = next_pos;
 
-                // Set bending forces to zero
-                RealVect f_p = RealVect{AMREX_D_DECL(0., 0., 0.)};
-                RealVect f   = RealVect{AMREX_D_DECL(0., 0., 0.)};
-                RealVect f_m = RealVect{AMREX_D_DECL(0., 0., 0.)};
+            //     // Set bending forces to zero
+            //     RealVect f_p = RealVect{AMREX_D_DECL(0., 0., 0.)};
+            //     RealVect f   = RealVect{AMREX_D_DECL(0., 0., 0.)};
+            //     RealVect f_m = RealVect{AMREX_D_DECL(0., 0., 0.)};
 
-                // calling the active bending force calculation
+            //     // calling the active bending force calculation
 
-                Real th = theta(driv_amp, time, i_ib, mark.idata(IBMInt::id_1)-1);
-                driving_f(f, f_p, f_m, r, r_p, r_m, driv_u, th, k_driv);
+            //     Real th = theta(driv_amp, time, i_ib, mark.idata(IBMInt::id_1)-1);
+            //     driving_f(f, f_p, f_m, r, r_p, r_m, driv_u, th, k_driv);
 
-                // updating the force on the minus, current, and plus particles.
-                for (int d=0; d<AMREX_SPACEDIM; ++d) {
-                    prev_marker->rdata(component + d) += f_m[d];
-                    mark.rdata(component + d)         +=   f[d];
-                    next_marker->rdata(component + d) += f_p[d];
-                }
+            //     // updating the force on the minus, current, and plus particles.
+            //     for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            //         prev_marker->rdata(component + d) += f_m[d];
+            //         mark.rdata(component + d)         +=   f[d];
+            //         next_marker->rdata(component + d) += f_p[d];
+            //     }
+            // }
+
+            Vector<RealVect> marker_positions = equil_pos(i_ib, time, geom);
+            int marker_seq_id                 = mark.idata(IBMInt::id_1);
+            RealVect target_pos               = marker_positions[marker_seq_id];
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                mark.rdata(component + d) += k_driv*(target_pos[d] - pos[d]);
             }
         }
     }
@@ -230,3 +241,68 @@ void yeax_ibm_marker(Real mot, IBMarkerContainer & ib_mc, int ib_lev,
 
     BL_PROFILE_VAR_STOP(move_ibm_marker);
 };
+
+
+
+Vector<RealVect> equil_pos(int i_ib, Real time, const Geometry & geom) {
+    // TODO: make this function work on general planes and orientation -- using
+    // the 3D rotation matrix defined in IBMarkerMD.cpp 
+
+    int N  = n_marker[i_ib];
+    Real L = ib_flagellum::length[i_ib];
+
+    Real l_link = L/(N-1);
+
+    const RealVect & x_0 = offset_0[i_ib];
+
+    // using fourier modes => first two nodes reserved as "anchor"
+    int N_markers = immbdy::contains_fourier ? N+1 : N;
+
+    Vector<Real> thetas(N_markers - 2);
+    for (int i = 0; i < N_markers - 2; ++i) {
+        Real th = theta(1, time, i_ib, i);
+        thetas[i] = th;
+    }
+
+    Real x = x_0[0];
+    Real y = x_0[1];
+    Real z = x_0[2];
+
+    // TODO: implement general orientation vector
+    Real tx = 1.;
+    Real ty = 0.;
+
+    Vector<RealVect> marker_positions(N_markers);
+    marker_positions[0] = RealVect{x, y, z};
+    for (int i=1; i<marker_positions.size()-1; ++i) {
+
+        // TODO: generalize to 3D
+        // Real x = x_0[0] + i*l_link;
+        Real nx, ny;
+        next_node_z(nx, ny, x, y, tx, ty, l_link);
+        x = nx;
+        y = ny;
+
+        // Compute periodic offset. Will work as long as winding number = 1
+        Real x_period = x < geom.ProbHi(0) ? x : x - geom.ProbLength(0);
+        Real y_period = y < geom.ProbHi(1) ? y : y - geom.ProbLength(1);
+
+        // marker_positions[i] = RealVect{x_period, x_0[1], x_0[2]};
+        marker_positions[i] = RealVect{x_period, y_period, z};
+
+        // TODO: Generalize to 3D
+        Real rx, ry;
+        rotate_z(rx, ry, tx, ty, thetas[i-1]);
+        tx = rx;
+        ty = ry;
+    }
+    Real nx, ny;
+    next_node_z(nx, ny, x, y, tx, ty, l_link);
+    // Compute periodic offset. Will work as long as winding number = 1
+    Real x_period = x < geom.ProbHi(0) ? nx : nx - geom.ProbLength(0);
+    Real y_period = y < geom.ProbHi(1) ? ny : ny - geom.ProbLength(1);
+    // marker_positions[i] = RealVect{x_period, x_0[1], x_0[2]};
+    marker_positions[N_markers-1] = RealVect{x_period, y_period, z};
+
+    return marker_positions;
+}

@@ -69,7 +69,8 @@ inline void setVal(std::array< MultiFab, AMREX_SPACEDIM > & mf_in,
 
 
 void find_equilibrium_position(IBMarkerContainer & ib_mc, int ib_lev, int nstep,
-                               RealVect driv_u, Real driv_amp, Real dt, Real mot) {
+                               RealVect driv_u, Real driv_amp, Real dt, Real mot,
+                               const Geometry & geom) {
 
 
     for (int i=0; i<nstep; ++i) {
@@ -82,7 +83,9 @@ void find_equilibrium_position(IBMarkerContainer & ib_mc, int ib_lev, int nstep,
         ib_mc.fillNeighbors(); // Does ghost cells
         ib_mc.buildNeighborList(ib_mc.CheckPair);
 
-        update_ibm_marker(driv_u, driv_amp, 0, ib_mc, ib_lev, IBMReal::forcex, false);
+        update_ibm_marker(driv_u, driv_amp, 0, ib_mc, ib_lev,
+                          IBMReal::forcex, false,
+                          geom);
         // Constrain it to move in the z = constant plane only
         constrain_ibm_marker(ib_mc, ib_lev, IBMReal::forcez);
         if(immbdy::contains_fourier)
@@ -498,54 +501,10 @@ void main_driver(const char * argv) {
         Print() << "l_link= " << l_link      << std::endl;
         Print() << "x_0=    " << x_0         << std::endl;
 
+        Vector<RealVect> marker_positions = equil_pos(i_ib, 0, geom);
+
         // using fourier modes => first two nodes reserved as "anchor"
         int N_markers = immbdy::contains_fourier ? N+1 : N;
-
-        Vector<Real> thetas(N_markers - 2);
-        for (int i = 0; i < N_markers - 2; ++i) {
-            Real th = theta(1, 0, i_ib, i);
-            thetas[i] = th;
-            Print() << "i = " << i << " theta = " << thetas[i] << std::endl;
-        }
-
-        Real x = x_0[0];
-        Real y = x_0[1];
-        Real z = x_0[2];
-
-        Real tx = 1.;
-        Real ty = 0.;
-
-        Vector<RealVect> marker_positions(N_markers);
-        marker_positions[0] = RealVect{x, y, z};
-        for (int i=1; i<marker_positions.size()-1; ++i) {
-
-            // Real x = x_0[0] + i*l_link;
-            Real nx, ny;
-            next_node_z(nx, ny, x, y, tx, ty, l_link);
-            x = nx;
-            y = ny;
-
-            // Compute periodic offset. Will work as long as winding number = 1
-            Real x_period = x < geom.ProbHi(0) ? x : x - geom.ProbLength(0);
-            Real y_period = y < geom.ProbHi(1) ? y : y - geom.ProbLength(1);
-
-            // marker_positions[i] = RealVect{x_period, x_0[1], x_0[2]};
-            marker_positions[i] = RealVect{x_period, y_period, z};
-
-            Real rx, ry;
-            rotate_z(rx, ry, tx, ty, thetas[i-1]);
-            tx = rx;
-            ty = ry;
-        }
-        Real nx, ny;
-        next_node_z(nx, ny, x, y, tx, ty, l_link);
-        // Compute periodic offset. Will work as long as winding number = 1
-        Real x_period = x < geom.ProbHi(0) ? nx : nx - geom.ProbLength(0);
-        Real y_period = y < geom.ProbHi(1) ? ny : ny - geom.ProbLength(1);
-        // marker_positions[i] = RealVect{x_period, x_0[1], x_0[2]};
-        marker_positions[N_markers-1] = RealVect{x_period, y_period, z};
-
-        // HAXOR: first node reserved as "anchor"
         Vector<Real> marker_radii(N_markers);
         for (int i=0; i<marker_radii.size(); ++i) marker_radii[i] = 4*l_link;
 
@@ -627,7 +586,8 @@ void main_driver(const char * argv) {
     // int       nstep = 1000000;
     // Real    dt_init = 1e-6;
     // Real        mot = 1e+4;
-    // find_equilibrium_position(ib_mc, 0, nstep, driv_u, driv_amp, dt_init, mot);
+    // find_equilibrium_position(ib_mc, 0, nstep, driv_u, driv_amp, dt_init, mot,
+    //                           geom);
 
 
     /****************************************************************************
