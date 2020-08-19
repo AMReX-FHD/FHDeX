@@ -70,10 +70,6 @@ void mui_push(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface2
 // - adsoprtion and desoprtion counts of each species between time points
 void mui_fetch(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface2d &uniface, const int step)
 {
-    std::cout << "unif_rand=" << Random() << std::endl;
-    std::cout << "norm_rand=" << RandomNormal(0.,1.) << std::endl;
-
-
     // assuming the interface is perpendicular to the z-axis 
     // and includes cells with the smallest value of z (i.e. k=0)
 
@@ -100,8 +96,6 @@ void mui_fetch(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface
                 double dV = dx[0]*dx[1]*dx[2];
                 double temp = prim_fab(i,j,k,4);
 
-                std::cout << x << '\t' << y << '\t';
-
                 for (int n = 0; n < nspecies; ++n) {
                 
                     std::string channel;
@@ -114,8 +108,6 @@ void mui_fetch(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface
                     channel = "CH_dc";
                     channel += '0'+(n+1);   // assuming nspecies<10
                     dc = uniface.fetch(channel,{x,y},step,s,t);
-
-                    std::cout << ac << '\t' << dc << '\t';
 
                     double mass = molmass[n]/6.02e23;
                     double kBTm = k_B*temp/mass;
@@ -159,8 +151,6 @@ void mui_fetch(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface
                     cu_fab(i,j,k,3) += dmomz/dV;
                     cu_fab(i,j,k,4) += derg/dV;
                 }
-
-                std::cout << std::endl;
             }
         }
     }

@@ -50,7 +50,7 @@ diag_style  surfchemtest stats yes list vac spec1 spec2 spec3 spec4
 # dump        3 image ${Timage} dump.*.jpg i2 site shape cube crange 0 2 drange 1 4 sdiam 6e-7 shape cube view 0 0 box no 0 size 1000 1000
 # dump_modify 3 scolor 0 gray scolor 1 red scolor 2 green pad 3
 
-variable    nstep equal 1000
+variable    nstep equal 10
 
 variable ts loop ${nstep}
 label ts_loop
@@ -58,4 +58,4 @@ label ts_loop
     run ${Trun}
     mui_push    ${ts} ac1 dc1 ac2 dc2 ac3 dc3 ac4 dc4
 next ts 
-jump in.4spec ts_loop
+jump in.kmc ts_loop

@@ -1,6 +1,10 @@
 #!/bin/bash
 
-# kmc executable
+RUNDIR=RUN
+SPKSCR=in.kmc
+FHDSCR=inputs_fhd
+
+# check kmc executable
 exec1=SPPARKS_MUI/spk_mui
 if [ ! -f $exec1 ]
 then
@@ -8,7 +12,7 @@ then
   exit
 fi
 
-# fhd executable 
+# check fhd executable 
 exec2=./main3d.gnu.DEBUG.MPI.ex
 if [ ! -f $exec2 ]
 then
@@ -16,10 +20,21 @@ then
   exit
 fi
 
-# run the two executables simultaneously
-spkscr=in.4spec
-fhdscr=inputs_equil_3d
-echo "** running kmc and fhd"
-time mpirun -np 1 $exec1 -var SEED 100 < $spkscr : -np 1 $exec2 $fhdscr
+# check RUNDIR and create RUNDIR
+if [ -d $RUNDIR ]
+then
+  echo "ERROR: $RUNDIR already exists"
+  exit
+fi
 
-./coverage.sh
+# copy scripts
+mkdir $RUNDIR
+cp $SPKSCR $RUNDIR
+cp $FHDSCR $RUNDIR
+cd $RUNDIR
+
+# run the two executables simultaneously
+echo "** running kmc and fhd"
+time mpirun -np 1 ../$exec1 -var SEED 100 -screen none < $SPKSCR : -np 1 ../$exec2 $FHDSCR | tee log.fhd
+
+../scripts/coverage.sh
