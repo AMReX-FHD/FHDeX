@@ -119,8 +119,10 @@
     intsurf = -1
 
     flag = 0    
-    call precheck(part, paramplanes, ns, delt, flag, phi, plo)
+    !call precheck(part, paramplanes, ns, delt, flag, phi, plo)
 
+
+       !print *, "testing2"
     
 #if (BL_SPACEDIM == 3)
 
@@ -139,6 +141,8 @@
 
         tval = (-part%pos(3)*surf%uy*surf%vx + surf%z0*surf%uy*surf%vx + part%pos(2)*surf%uz*surf%vx - surf%y0*surf%uz*surf%vx + part%pos(3)*surf%ux*surf%vy - surf%z0*surf%ux*surf%vy - part%pos(1)*surf%uz*surf%vy + surf%x0*surf%uz*surf%vy - part%pos(2)*surf%ux*surf%vz + surf%y0*surf%ux*surf%vz + part%pos(1)*surf%uy*surf%vz - surf%x0*surf%uy*surf%vz)*denominv
 
+
+       !print *, "testing"
 
         if(  ((uval .gt. 0) .and. (uval .lt. surf%utop))    .and.   ((vval .gt. 0) .and. (vval .lt. surf%vtop))    .and.     ((tval .gt. 0) .and. (tval .lt. inttime))   ) then
 
@@ -230,7 +234,6 @@
 
         surf => paramplanes(s)
 
-
         denominv = 1d0/(part%vel(3)*surf%uy*surf%vx - part%vel(2)*surf%uz*surf%vx - part%vel(3)*surf%ux*surf%vy + part%vel(1)*surf%uz*surf%vy + part%vel(2)*surf%ux*surf%vz - part%vel(1)*surf%uy*surf%vz)
 
         uval = (part%vel(3)*part%pos(2)*surf%vx - part%vel(2)*part%pos(3)*surf%vx - part%vel(3)*surf%y0*surf%vx + part%vel(2)*surf%z0*surf%vx - part%vel(3)*part%pos(1)*surf%vy + part%vel(1)*part%pos(3)*surf%vy + part%vel(3)*surf%x0*surf%vy - part%vel(1)*surf%z0*surf%vy + part%vel(2)*part%pos(1)*surf%vz - part%vel(1)*part%pos(2)*surf%vz -  part%vel(2)*surf%x0*surf%vz + part%vel(1)*surf%y0*surf%vz)*denominv
@@ -239,6 +242,10 @@
 
         tval = (-part%pos(3)*surf%uy*surf%vx + surf%z0*surf%uy*surf%vx + part%pos(2)*surf%uz*surf%vx - surf%y0*surf%uz*surf%vx + part%pos(3)*surf%ux*surf%vy - surf%z0*surf%ux*surf%vy - part%pos(1)*surf%uz*surf%vy + surf%x0*surf%uz*surf%vy - part%pos(2)*surf%ux*surf%vz + surf%y0*surf%ux*surf%vz + part%pos(1)*surf%uy*surf%vz - surf%x0*surf%uy*surf%vz)*denominv
 
+!        print *, "Testing ", s, "particle", part%id, uval, vval, tval, denominv
+!        print *, "Vel ", part%vel
+!        print *, "Surf1 ", surf%ux, surf%uy, surf%uz
+!        print *, "Surf2 ", surf%vx, surf%vy, surf%vz        
 
         if(  ((uval .gt. 0) .and. (uval .lt. surf%utop))    .and.   ((vval .gt. 0) .and. (vval .lt. surf%vtop))    .and.     ((tval .gt. 0) .and. (tval .lt. inttime))   ) then
 
@@ -253,7 +260,7 @@
             intside = 0 !0 for lhs
           endif
 
-          !print *, "Intersection! Intsurf: ", intsurf, ". Intside: ", intside, ". tval: ", tval
+          !print *, "Intersection! Intsurf: ", intsurf, ". Intside: ", intside, ". vel: ", part%vel
 
         endif
       enddo

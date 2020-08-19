@@ -387,6 +387,13 @@ void main_driver(const char * argv) {
         );
 
 
+    advanceStokes(
+            umac, pres,              /* LHS */
+            mfluxdiv, source_terms,  /* RHS */
+            alpha_fc, beta, gamma, beta_ed, geom, dt
+        );
+
+
     Real step_stop_time = ParallelDescriptor::second() - step_strt_time;
     ParallelDescriptor::ReduceRealMax(step_stop_time);
 

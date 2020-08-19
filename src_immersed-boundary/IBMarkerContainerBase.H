@@ -175,6 +175,7 @@ public:
                       const Real* dx,
                       const int* nghost,
                       int& check);
+
     //---------------------------------------------------------------------------
 
 
@@ -191,6 +192,12 @@ public:
             const Real * dx,
             const std::array<MultiFab, AMREX_SPACEDIM> & f_in,
             const std::array<MultiFab, AMREX_SPACEDIM> & coords);
+
+   void InterpolateMarkersGpu(
+            int lev,
+            const Real * dx,
+            const std::array<MultiFab, AMREX_SPACEDIM> & f_in,
+            const std::array<MultiFab, AMREX_SPACEDIM> & coords, Real& checkR);
     //___________________________________________________________________________
     // Interpolation operators applied to internal force fields (in amrex::Particles)
     void InterpolateMarkers(int lev,

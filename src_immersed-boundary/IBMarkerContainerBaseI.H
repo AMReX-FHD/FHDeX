@@ -775,24 +775,26 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadMarkersGpu(
         SpreadKernelGpu(particles, tile_box, f_out_fab, f_weights_fab, coords_fab, dx, & ghost);
     }
 }
- 
+
 template <typename StructReal, typename StructInt>
 void IBMarkerContainerBase<StructReal, StructInt>::InterpolateMarkersGpu(
             int lev,
             const Real * dx,
             const std::array<MultiFab, AMREX_SPACEDIM> & f_in,
-            const std::array<MultiFab, AMREX_SPACEDIM> & coords)
+            const std::array<MultiFab, AMREX_SPACEDIM> & coords,
+            Real& checkR)
 {
     // timer for profiling
     BL_PROFILE_VAR("InterpolateMarkersGpu()",InterpolateMarkersGpu);
 
-    int check = 0;
     std::array<MultiFab, AMREX_SPACEDIM> f_weights;
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         f_weights[d].define(f_in[d].boxArray(), f_in[d].DistributionMap(),
                             1, f_in[d].nGrow());
         f_weights[d].setVal(-1.);
     }
+    int rejected_proc = 0;
+    int check = 0;
 
     for (MyConstIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
 
@@ -816,8 +818,23 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateMarkersGpu(
         //Print() << "Here1!\n";
         InterpolateKernelGpu(particles, tile_box, f_in_fab, f_weights_fab, coords_fab, dx, 0, check);
 
-        //Print() << "Here2!\n";
+        //Print() << "Here2!" << check << "\n";
+        rejected_proc += check;
     }
+
+    checkR = rejected_proc;
+}
+ 
+template <typename StructReal, typename StructInt>
+void IBMarkerContainerBase<StructReal, StructInt>::InterpolateMarkersGpu(
+            int lev,
+            const Real * dx,
+            const std::array<MultiFab, AMREX_SPACEDIM> & f_in,
+            const std::array<MultiFab, AMREX_SPACEDIM> & coords)
+{
+
+    Real check;
+    InterpolateMarkersGpu(lev, dx, f_in, coords,check);
 
     if (check)
     {
@@ -1077,7 +1094,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateKernelGpu(AoS& aos
     BL_PROFILE_VAR("InterpolateKernelGpu()",InterpolateKernelGpu);
 
     GpuArray<Real, AMREX_SPACEDIM> invdx;
-    Gpu::ManagedDeviceVector<int> checkg(1, check);
+    //Gpu::ManagedDeviceVector<int> checkg(1, check);
 
     Real invvol = 1.0;
 
@@ -1105,6 +1122,11 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateKernelGpu(AoS& aos
     const auto pstruct = aos().dataPtr();
     int ng = nghost[0];
 
+    check = 0;
+
+    Gpu::DeviceScalar<Real> check_gpu(check);
+    Real* pcheck = check_gpu.dataPtr();
+
     AMREX_FOR_1D( Np, ip,
     {
         ParticleType& p = pstruct[ip];
@@ -1112,6 +1134,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateKernelGpu(AoS& aos
         int lo_dim[3];
         int hi_dim[3];
         int gs;
+        int checkg = 0;
 
         if(pkernel_fluid == 3)
         {
@@ -1153,23 +1176,36 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateKernelGpu(AoS& aos
 //            if (loc>bx_hi[2]) checkg[0] = 1;
 //        }
 //        else
+
+        checkg = 0;
+
         {
             lo_dim[0] = static_cast<int>(p.pos(0) * invdx[0] - gs);
-            if (lo_dim[0]<bx_lo[0]) checkg[0] = 1;
+            if (lo_dim[0]<bx_lo[0]) checkg = 1;
             hi_dim[0] = static_cast<int>(p.pos(0) * invdx[0] + gs);
-            if (hi_dim[0]>bx_hi[0]) checkg[0] = 1;
+            if (hi_dim[0]>bx_hi[0]) checkg = 1;
             lo_dim[1] = static_cast<int>(p.pos(1) * invdx[1] - gs);
-            if (lo_dim[1]<bx_lo[1]) checkg[0] = 1;
+            if (lo_dim[1]<bx_lo[1]) checkg = 1;
             hi_dim[1] = static_cast<int>(p.pos(1) * invdx[1] + gs);
-            if (hi_dim[1]>bx_hi[1]) checkg[0] = 1;
+            if (hi_dim[1]>bx_hi[1]) checkg = 1;
             lo_dim[2] = static_cast<int>(p.pos(2) * invdx[2] - gs);
-            if (lo_dim[2]<bx_lo[2]) checkg[0] = 1;
+            if (lo_dim[2]<bx_lo[2]) checkg = 1;
             hi_dim[2] = static_cast<int>(p.pos(2) * invdx[2] + gs);
-            if (hi_dim[2]>bx_hi[2]) checkg[0] = 1;
+            if (hi_dim[2]>bx_hi[2]) checkg = 1;
         }
+        //Print() << "dx: " << dx[0] << ", " << invdx[0] << "\n"; 
+        //Print() << "Pos: " << p.pos(0) << ", " << p.pos(1) << ", " << p.pos(2) << "\n";
+        //Print() << "Dims: " << lo_dim[0] << ", " << lo_dim[1] << ", " << lo_dim[2] << ", "  << hi_dim[0] << ", "  << hi_dim[1] << ", "  << hi_dim[2] << "\n";
+        //Print() << "Box : " << bx_lo[0] << ", " << bx_lo[1] << ", " << bx_lo[2] << ", "  << bx_hi[0] << ", "  << bx_hi[1] << ", "  << bx_hi[2] << "\n";
 
-       // Print() << "Dims: " << lo_dim[0] << ", " << lo_dim[1] << ", " << lo_dim[2] << ", "  << hi_dim[0] << ", "  << hi_dim[1] << ", "  << hi_dim[2] << "\n";
+        if(checkg == 0)
+        //if(true)
+        {
 
+        p.rdata(StructReal::velx + 0) = 0;
+        p.rdata(StructReal::velx + 1) = 0;
+        p.rdata(StructReal::velx + 2) = 0;
+        //std::cout << "SUCCESS\n";
         double wSum = 0;
         // x-components
         for (int k = lo_dim[2] ; k < hi_dim[2]; ++k) {
@@ -1298,8 +1334,16 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateKernelGpu(AoS& aos
                 }
             }
         }
+        }else
+        {
+           pcheck[0]++;
+           //std::cout << "Fail\n";
+        }
     });
-    check = checkg[0];
+
+    check = check_gpu.dataValue();
+    //std::cout << "HERE! " << check << std::endl;
+
 }
 
 template <typename StructReal, typename StructInt>
