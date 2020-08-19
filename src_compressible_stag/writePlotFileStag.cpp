@@ -2,7 +2,7 @@
  
 #include "common_functions.H"
 
-#include "compressible_functions.H"
+#include "compressible_functions_stag.H"
 
 void WritePlotFileStag(int step,
                        const amrex::Real time,

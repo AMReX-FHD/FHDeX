@@ -16,7 +16,7 @@ include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 VPATH_LOCATIONS   += .
 INCLUDE_LOCATIONS += .
 
-include ../../src_compressible/Make.package
+include ../../src_compressible_stag/Make.package
 VPATH_LOCATIONS   += ../../src_compressible_stag/
 INCLUDE_LOCATIONS += ../../src_compressible_stag/
 

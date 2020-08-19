@@ -1,5 +1,6 @@
 #include "common_functions.H"
 #include "compressible_functions.H"
+#include "compressible_functions_stag.H"
 
 #include "common_namespace_declarations.H"
 #include "compressible_namespace_declarations.H"
@@ -172,8 +173,25 @@ void main_driver(const char* argv)
     MultiFab cu  (ba,dmap,nvars,ngc);
     MultiFab cup (ba,dmap,nvars,ngc);
     MultiFab cup2(ba,dmap,nvars,ngc);
-    MultiFab cup3(ba,dmap,nvars,ngc);
 
+    // staggered momentum
+    std::array< MultiFab, AMREX_SPACEDIM > velStag;
+    std::array< MultiFab, AMREX_SPACEDIM > momStag;
+    std::array< MultiFab, AMREX_SPACEDIM > mompStag;
+    std::array< MultiFab, AMREX_SPACEDIM > momp2Stag;
+    std::array< MultiFab, AMREX_SPACEDIM > momMeansStag;
+    std::array< MultiFab, AMREX_SPACEDIM > momVarsStag;
+    for (int d=0; d<AMREX_SPACEDIM; d++) {
+        velStag[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
+        momStag[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
+        mompStag[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
+        momp2Stag[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
+        momMeansStag[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
+        momVarsStag[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
+        momMeansStag[d].setVal(0.);
+        momVarsStag[d].setVal(0.);
+    }
+  
     //primative quantaties
     // in C++ indexing (add +1 for F90)
     // 0            (rho; density)
@@ -267,145 +285,145 @@ void main_driver(const char* argv)
 
     int step, statsCount;
 
-#ifndef AMREX_USE_CUDA
-    ///////////////////////////////////////////
-    // Structure factor:
-    ///////////////////////////////////////////
+    //#ifndef AMREX_USE_CUDA
+    /////////////////////////////////////////////
+    //// Structure factor:
+    /////////////////////////////////////////////
 
-    // "primitive" variable structure factor will contain
-    // rho
-    // vel
-    // T
-    // Yk
-    int structVarsPrim = AMREX_SPACEDIM+nspecies+2;
+    //// "primitive" variable structure factor will contain
+    //// rho
+    //// vel
+    //// T
+    //// Yk
+    //int structVarsPrim = AMREX_SPACEDIM+nspecies+2;
 
-    Vector< std::string > prim_var_names;
-    prim_var_names.resize(structVarsPrim);
+    //Vector< std::string > prim_var_names;
+    //prim_var_names.resize(structVarsPrim);
 
-    int cnt = 0;
-    std::string x;
+    //int cnt = 0;
+    //std::string x;
 
-    // rho
-    prim_var_names[cnt++] = "rho";
+    //// rho
+    //prim_var_names[cnt++] = "rho";
 
-    // velx, vely, velz
-    for (int d=0; d<AMREX_SPACEDIM; d++) {
-      x = "vel";
-      x += (120+d);
-      prim_var_names[cnt++] = x;
-    }
+    //// velx, vely, velz
+    //for (int d=0; d<AMREX_SPACEDIM; d++) {
+    //  x = "vel";
+    //  x += (120+d);
+    //  prim_var_names[cnt++] = x;
+    //}
 
-    // Temp
-    prim_var_names[cnt++] = "Temp";
+    //// Temp
+    //prim_var_names[cnt++] = "Temp";
 
-    // Yk
-    for (int d=0; d<nspecies; d++) {
-      x = "Y";
-      x += (49+d);
-      prim_var_names[cnt++] = x;
-    }
+    //// Yk
+    //for (int d=0; d<nspecies; d++) {
+    //  x = "Y";
+    //  x += (49+d);
+    //  prim_var_names[cnt++] = x;
+    //}
 
-    MultiFab structFactPrimMF;
-    structFactPrimMF.define(ba, dmap, structVarsPrim, 0);
+    //MultiFab structFactPrimMF;
+    //structFactPrimMF.define(ba, dmap, structVarsPrim, 0);
 
-    // scale SF results by inverse cell volume
-    Vector<Real> var_scaling;
-    var_scaling.resize(structVarsPrim*(structVarsPrim+1)/2);
-    for (int d=0; d<var_scaling.size(); ++d) {
-        var_scaling[d] = 1./(dx[0]*dx[1]*dx[2]);
-    }
+    //// scale SF results by inverse cell volume
+    //Vector<Real> var_scaling;
+    //var_scaling.resize(structVarsPrim*(structVarsPrim+1)/2);
+    //for (int d=0; d<var_scaling.size(); ++d) {
+    //    var_scaling[d] = 1./(dx[0]*dx[1]*dx[2]);
+    //}
 
-    // compute all pairs
-    // note: StructFactPrim option to compute only speicified pairs not written yet
-    StructFact structFactPrim(ba,dmap,prim_var_names,var_scaling);
-    
-    //////////////////////////////////////////////
+    //// compute all pairs
+    //// note: StructFactPrim option to compute only speicified pairs not written yet
+    //StructFact structFactPrim(ba,dmap,prim_var_names,var_scaling);
+    //
+    ////////////////////////////////////////////////
 
-    // "conserved" variable structure factor will contain
-    // rho
-    // j
-    // rho*E
-    // rho*Yk
-    // Temperature (not in the conserved array; will have to copy it in)
-    int structVarsCons = AMREX_SPACEDIM+nspecies+3;
+    //// "conserved" variable structure factor will contain
+    //// rho
+    //// j
+    //// rho*E
+    //// rho*Yk
+    //// Temperature (not in the conserved array; will have to copy it in)
+    //int structVarsCons = AMREX_SPACEDIM+nspecies+3;
 
-    Vector< std::string > cons_var_names;
-    cons_var_names.resize(structVarsCons);
+    //Vector< std::string > cons_var_names;
+    //cons_var_names.resize(structVarsCons);
 
-    cnt = 0;
+    //cnt = 0;
 
-    // rho
-    cons_var_names[cnt++] = "rho";
+    //// rho
+    //cons_var_names[cnt++] = "rho";
 
-    // velx, vely, velz
-    for (int d=0; d<AMREX_SPACEDIM; d++) {
-      x = "j";
-      x += (120+d);
-      cons_var_names[cnt++] = x;
-    }
+    //// velx, vely, velz
+    //for (int d=0; d<AMREX_SPACEDIM; d++) {
+    //  x = "j";
+    //  x += (120+d);
+    //  cons_var_names[cnt++] = x;
+    //}
 
-    // rho*E
-    cons_var_names[cnt++] = "rhoE";
+    //// rho*E
+    //cons_var_names[cnt++] = "rhoE";
 
-    // rho*Yk
-    for (int d=0; d<nspecies; d++) {
-      x = "rhoY";
-      x += (49+d);
-      cons_var_names[cnt++] = x;
-    }
+    //// rho*Yk
+    //for (int d=0; d<nspecies; d++) {
+    //  x = "rhoY";
+    //  x += (49+d);
+    //  cons_var_names[cnt++] = x;
+    //}
 
-    // Temp
-    cons_var_names[cnt++] = "Temp";
+    //// Temp
+    //cons_var_names[cnt++] = "Temp";
 
-    MultiFab structFactConsMF;
-    structFactConsMF.define(ba, dmap, structVarsCons, 0);
+    //MultiFab structFactConsMF;
+    //structFactConsMF.define(ba, dmap, structVarsCons, 0);
 
-    // scale SF results by inverse cell volume
-    var_scaling.resize(structVarsCons*(structVarsCons+1)/2);
-    for (int d=0; d<var_scaling.size(); ++d) {
-        var_scaling[d] = 1./(dx[0]*dx[1]*dx[2]);
-    }
+    //// scale SF results by inverse cell volume
+    //var_scaling.resize(structVarsCons*(structVarsCons+1)/2);
+    //for (int d=0; d<var_scaling.size(); ++d) {
+    //    var_scaling[d] = 1./(dx[0]*dx[1]*dx[2]);
+    //}
 
-    // compute all pairs
-    // note: StructFactCons option to compute only speicified pairs not written yet
-    StructFact structFactCons(ba,dmap,cons_var_names,var_scaling);
-    
-    //////////////////////////////////////////////
-    
-    // structure factor class for vertically-averaged dataset
-    StructFact structFactPrimVerticalAverage;
-    
-    Geometry geom_flat;
+    //// compute all pairs
+    //// note: StructFactCons option to compute only speicified pairs not written yet
+    //StructFact structFactCons(ba,dmap,cons_var_names,var_scaling);
+    //
+    ////////////////////////////////////////////////
+    //
+    //// structure factor class for vertically-averaged dataset
+    //StructFact structFactPrimVerticalAverage;
+    //
+    //Geometry geom_flat;
 
-    if(project_dir >= 0){
-      prim.setVal(0.0);
-      ComputeVerticalAverage(prim, primVertAvg, geom, project_dir, 0, structVarsPrim);
-      BoxArray ba_flat = primVertAvg.boxArray();
-      const DistributionMapping& dmap_flat = primVertAvg.DistributionMap();
-      {
-        IntVect dom_lo(AMREX_D_DECL(           0,            0,            0));
-        IntVect dom_hi(AMREX_D_DECL(n_cells[0]-1, n_cells[1]-1, n_cells[2]-1));
-    	dom_hi[project_dir] = 0;
-        Box domain(dom_lo, dom_hi);
+    //if(project_dir >= 0){
+    //  prim.setVal(0.0);
+    //  ComputeVerticalAverage(prim, primVertAvg, geom, project_dir, 0, structVarsPrim);
+    //  BoxArray ba_flat = primVertAvg.boxArray();
+    //  const DistributionMapping& dmap_flat = primVertAvg.DistributionMap();
+    //  {
+    //    IntVect dom_lo(AMREX_D_DECL(           0,            0,            0));
+    //    IntVect dom_hi(AMREX_D_DECL(n_cells[0]-1, n_cells[1]-1, n_cells[2]-1));
+    //	dom_hi[project_dir] = 0;
+    //    Box domain(dom_lo, dom_hi);
 	
-    	// This defines the physical box
-    	Vector<Real> projected_hi(AMREX_SPACEDIM);
-    	for (int d=0; d<AMREX_SPACEDIM; d++) {
-    	  projected_hi[d] = prob_hi[d];
-    	}
-    	projected_hi[project_dir] = prob_hi[project_dir]/n_cells[project_dir];
-        RealBox real_box({AMREX_D_DECL(     prob_lo[0],     prob_lo[1],     prob_lo[2])},
-                         {AMREX_D_DECL(projected_hi[0],projected_hi[1],projected_hi[2])});
+    //	// This defines the physical box
+    //	Vector<Real> projected_hi(AMREX_SPACEDIM);
+    //	for (int d=0; d<AMREX_SPACEDIM; d++) {
+    //	  projected_hi[d] = prob_hi[d];
+    //	}
+    //	projected_hi[project_dir] = prob_hi[project_dir]/n_cells[project_dir];
+    //    RealBox real_box({AMREX_D_DECL(     prob_lo[0],     prob_lo[1],     prob_lo[2])},
+    //                     {AMREX_D_DECL(projected_hi[0],projected_hi[1],projected_hi[2])});
 
-        // This defines a Geometry object
-        geom_flat.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
-      }
+    //    // This defines a Geometry object
+    //    geom_flat.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
+    //  }
 
-      structFactPrimVerticalAverage.~StructFact(); // destruct
-      new(&structFactPrimVerticalAverage) StructFact(ba_flat,dmap_flat,prim_var_names,var_scaling); // reconstruct
-    
-    }
-#endif
+    //  structFactPrimVerticalAverage.~StructFact(); // destruct
+    //  new(&structFactPrimVerticalAverage) StructFact(ba_flat,dmap_flat,prim_var_names,var_scaling); // reconstruct
+    //
+    //}
+    //#endif
 
     ///////////////////////////////////////////
 
@@ -416,6 +434,7 @@ void main_driver(const char* argv)
     prim.setVal(0.,1,3,ngc);        // x/y/z velocity
     prim.setVal(T_init[0],4,1,ngc); // temperature
                                     // pressure computed later in conservedToPrimitive
+    
     for(int i=0;i<nspecies;i++) {
         prim.setVal(rhobar[i],6+i,1,ngc);    // mass fractions
     }
@@ -435,33 +454,41 @@ void main_driver(const char* argv)
         cu.setVal(rho0*rhobar[i],5+i,1,ngc); // mass densities
     }
 
+    for (int d=0; d<AMREX_SPACEDIM; d++) { // staggered momentum
+      momStag[d].setVal(0.);
+      velStag[d].setVal(0.);
+    }
+
     // RK stage storage
     cup.setVal(0.0,0,nvars,ngc);
     cup2.setVal(0.0,0,nvars,ngc);
-    cup3.setVal(0.0,0,nvars,ngc);
+
+    for (int d=0; d<AMREX_SPACEDIM; d++) { // staggered momentum for RK3
+      mompStag[d].setVal(0.);
+      momp2Stag[d].setVal(0.);
+    }
 
     // set density
     cup.setVal(rho0,0,1,ngc);
     cup2.setVal(rho0,0,1,ngc);
-    cup3.setVal(rho0,0,1,ngc);
 
     // initialize conserved variables
     if (prob_type > 1) {
-        InitConsVar(cu,prim,geom);
+        InitConsVarStag(cu,momStag,prim,geom); // Need to add for staggered -- Ishan
     }
 
     statsCount = 1;
 
     // Write initial plotfile
-    conservedToPrimitive(prim, cu);
+    conservedToPrimitiveStag(prim, velStag, cu, momStag);
 
-    // Set BC: 1) fill boundary 2) physical
+    // Set BC: 1) fill boundary 2) physical (How to do for staggered? -- Ishan)
     cu.FillBoundary(geom.periodicity());
     prim.FillBoundary(geom.periodicity());
     setBC(prim, cu);
     
     if (plot_int > 0) {
-	WritePlotFile(0, 0.0, geom, cu, cuMeans, cuVars,
+	      WritePlotFile(0, 0.0, geom, cu, cuMeans, cuVars,
                       prim, primMeans, primVars, spatialCross, eta, kappa);
     }
 
@@ -476,23 +503,23 @@ void main_driver(const char* argv)
         // timer
         Real ts1 = ParallelDescriptor::second();
     
-        RK3step(cu, cup, cup2, cup3, prim, source, eta, zeta, kappa, chi, D, flux,
+        RK3stepStag(cu, cup, cup2, momStag, mompStag, momp2Stag, prim, velStag, source, eta, zeta, kappa, chi, D, flux,
                 stochFlux, cornx, corny, cornz, visccorn, rancorn, geom, dx, dt);
 
         // timer
         Real ts2 = ParallelDescriptor::second() - ts1;
         ParallelDescriptor::ReduceRealMax(ts2);
-    	amrex::Print() << "Advanced step " << step << " in " << ts2 << " seconds\n";
+    	  amrex::Print() << "Advanced step " << step << " in " << ts2 << " seconds\n";
 
         // timer
         Real aux1 = ParallelDescriptor::second();
         
         // compute mean and variances
-	if (step > n_steps_skip) {
+	      if (step > n_steps_skip) {
             evaluateStats(cu, cuMeans, cuVars, prim, primMeans, primVars,
                           spatialCross, miscStats, miscVals, statsCount, dx);
             statsCount++;
-	}
+	      }
 
         // write a plotfile
         if (plot_int > 0 && step > 0 && step%plot_int == 0) {
@@ -508,29 +535,29 @@ void main_driver(const char* argv)
                            cuVars, prim, primMeans, primVars, spatialCross, miscStats, eta, kappa);
         }
 
-#ifndef AMREX_USE_CUDA
-	// collect a snapshot for structure factor
-	if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip)%struct_fact_int == 0) {
-            MultiFab::Copy(structFactPrimMF, prim, 0,                0,                structVarsPrim,   0);
-            MultiFab::Copy(structFactConsMF, cu,   0,                0,                structVarsCons-1, 0);
-            MultiFab::Copy(structFactConsMF, prim, AMREX_SPACEDIM+1, structVarsCons-1, 1,                0); // temperature too
-            structFactPrim.FortStructure(structFactPrimMF,geom);
-            structFactCons.FortStructure(structFactConsMF,geom);
-            if(project_dir >= 0) {
-                ComputeVerticalAverage(prim, primVertAvg, geom, project_dir, 0, structVarsPrim);
-                structFactPrimVerticalAverage.FortStructure(primVertAvg,geom_flat);
-            }
-        }
+       // #ifndef AMREX_USE_CUDA
+	     // // collect a snapshot for structure factor
+	     // if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip)%struct_fact_int == 0) {
+       //     MultiFab::Copy(structFactPrimMF, prim, 0,                0,                structVarsPrim,   0);
+       //     MultiFab::Copy(structFactConsMF, cu,   0,                0,                structVarsCons-1, 0);
+       //     MultiFab::Copy(structFactConsMF, prim, AMREX_SPACEDIM+1, structVarsCons-1, 1,                0); // temperature too
+       //     structFactPrim.FortStructure(structFactPrimMF,geom);
+       //     structFactCons.FortStructure(structFactConsMF,geom);
+       //     if(project_dir >= 0) {
+       //         ComputeVerticalAverage(prim, primVertAvg, geom, project_dir, 0, structVarsPrim);
+       //         structFactPrimVerticalAverage.FortStructure(primVertAvg,geom_flat);
+       //     }
+       // }
 
-        // write out structure factor
-        if (step > n_steps_skip && struct_fact_int > 0 && plot_int > 0 && step%plot_int == 0) {
-            structFactPrim.WritePlotFile(step,time,geom,"plt_SF_prim");
-            structFactCons.WritePlotFile(step,time,geom,"plt_SF_cons");
-            if(project_dir >= 0) {
-                structFactPrimVerticalAverage.WritePlotFile(step,time,geom_flat,"plt_SF_prim_VerticalAverage");
-            }
-        }
-#endif
+       // // write out structure factor
+       // if (step > n_steps_skip && struct_fact_int > 0 && plot_int > 0 && step%plot_int == 0) {
+       //     structFactPrim.WritePlotFile(step,time,geom,"plt_SF_prim");
+       //     structFactCons.WritePlotFile(step,time,geom,"plt_SF_cons");
+       //     if(project_dir >= 0) {
+       //         structFactPrimVerticalAverage.WritePlotFile(step,time,geom_flat,"plt_SF_prim_VerticalAverage");
+       //     }
+       // }
+       // #endif
         
         // timer
         Real aux2 = ParallelDescriptor::second() - aux1;
