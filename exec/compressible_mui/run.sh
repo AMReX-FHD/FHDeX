@@ -33,6 +33,15 @@ cp $SPKSCR $RUNDIR
 cp $FHDSCR $RUNDIR
 cd $RUNDIR
 
+# check number of steps
+N1=`grep nstep in.kmc | head -1 | awk '{print $4}'`
+N2=`grep max_step inputs_fhd | awk '{print $3}'`
+if [ "$N1" != "$N2" ]
+then
+  echo "ERROR: nstep = $N1 (kmc) and max_step = $N2 (fhd) do not match"
+  exit
+fi
+
 # run the two executables simultaneously
 echo "** running kmc and fhd"
 time mpirun -np 1 ../$exec1 -var SEED 100 -screen none < $SPKSCR : -np 1 ../$exec2 $FHDSCR | tee log.fhd

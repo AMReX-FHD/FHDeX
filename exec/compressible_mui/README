@@ -6,3 +6,7 @@ To compile SPPARKS (KMC codes):
 To comple FHD codes:
 - make
 (if you want to recompile the codes completely, try this first: make realclean)
+
+To run example
+- ./run.sh
+(if RUN directory already exists, delete or rename it.)
