@@ -355,7 +355,8 @@ void StructFact::ComputeFFT(const MultiFab& variables,
   int Ndims[3] = { nbz, nby, nbx };
   int     n[3] = { domain.length(2), domain.length(1), domain.length(0)};
 #endif
-  hacc::Distribution d(MPI_COMM_WORLD,n,Ndims,&rank_mapping[0]);
+  MPI_Comm comm = ParallelDescriptor::Communicator();
+  hacc::Distribution d(comm,n,Ndims,&rank_mapping[0]);
   hacc::Dfft dfft(d);
 
   if (verbosity > 0) {
