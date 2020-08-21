@@ -1,8 +1,6 @@
 #include "common_functions.H"
 
-
 #include "AMReX_PlotFileUtil.H"
-
 
 int greatest_common_factor(int,int);
 void factor(int,int*,int);
@@ -10,19 +8,22 @@ void factor(int,int*,int);
 void WriteHorizontalAverage(const MultiFab& mf_in, const int& dir, const int& incomp,
                             const int& ncomp, const int& step, const Geometry& geom)
 {
+    // number of points in the averaging direction
     int npts = n_cells[dir];
 
-    // first column is the coorinate
+    // we use ncomp+1 because th first column is the coorinate
     Vector<Real> average(npts*(ncomp+1),0.);
 
     Real h = geom.CellSize(dir);
 
+    // dummy variables
     int r;
     int comp;
 
     // no tiling or GPU to easily avoid race conditions
     for (MFIter mfi(mf_in, false); mfi.isValid(); ++mfi) {
 
+        // valid box and the lo/hi coordinates; no ghost cells needed
         const Box& bx = mfi.validbox();
         const auto lo = amrex::lbound(bx);
         const auto hi = amrex::ubound(bx);
@@ -41,6 +42,7 @@ void WriteHorizontalAverage(const MultiFab& mf_in, const int& dir, const int& in
                 } else if (dir == 2) {
                     r=k;
                 }
+                // sum up the data
                 // the "+1" is because the first column will store the physical coordinate
                 average[ r*(ncomp+1) + n + 1 ] += mf(i,j,k,comp);
             }
@@ -73,12 +75,20 @@ void WriteHorizontalAverage(const MultiFab& mf_in, const int& dir, const int& in
         average[r*(ncomp+1)] = prob_lo[dir] + (r+0.5)*h;
     }
 
-    // write out result
-    for (r=0; r<npts; ++r) {
-        for (auto n=0; n<ncomp+1; ++n) {
-            Print() << average[r*(ncomp+1) + n] << " ";
+    if (ParallelDescriptor::IOProcessor()) {
+        std::string filename = amrex::Concatenate("havg",step,9);
+        std::ofstream outfile;
+        outfile.open(filename);
+    
+        // write out result
+        for (r=0; r<npts; ++r) {
+            for (auto n=0; n<ncomp+1; ++n) {
+                outfile << average[r*(ncomp+1) + n] << " ";
+            }
+            outfile << std::endl;
         }
-        Print() << std::endl;
+
+        outfile.close();
     }
 }
 
