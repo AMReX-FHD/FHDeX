@@ -7,6 +7,104 @@
 int greatest_common_factor(int,int);
 void factor(int,int*,int);
 
+void WriteHorizontalAverage(const MultiFab& mf_in, const int& dir, const int& incomp,
+                            const int& ncomp, const int& step, const Geometry& geom)
+{
+    int npts = n_cells[dir];
+
+    // first column is the coorinate
+    Vector<Real> average(npts*(ncomp+1),0.);
+
+    Real h = geom.CellSize(dir);
+
+    // no tiling or GPU to easily avoid race conditions
+    for (MFIter mfi(mf_in, false); mfi.isValid(); ++mfi) {
+
+        const Box& bx = mfi.validbox();
+        const auto lo = amrex::lbound(bx);
+        const auto hi = amrex::ubound(bx);
+
+        const Array4<const Real> mf = mf_in.array(mfi);
+
+        if (dir == 0) {
+
+            for (auto n=0; n<ncomp; ++n) {
+                int comp = incomp+n;
+                for (auto k = lo.z; k <= hi.z; ++k) {
+                for (auto j = lo.y; j <= hi.y; ++j) {
+                for (auto i = lo.x; i <= hi.x; ++i) {
+                    // the "+1" is because the first column will store the physical coordinate
+                    average[ i*(ncomp+1) + n + 1 ] += mf(i,j,k,comp);
+                }
+                }
+                }
+            }
+
+        } else if (dir == 1) {
+
+            for (auto n=0; n<ncomp; ++n) {
+                int comp = incomp+n;
+                for (auto k = lo.z; k <= hi.z; ++k) {
+                for (auto j = lo.y; j <= hi.y; ++j) {
+                for (auto i = lo.x; i <= hi.x; ++i) {
+                    // the "+1" is because the first column will store the physical coordinate
+                    average[ j*(ncomp+1) + n + 1 ] += mf(i,j,k,comp);
+                }
+                }
+                }
+            }
+
+        } else if (dir == 2) {
+
+            for (auto n=0; n<ncomp; ++n) {
+                int comp = incomp+n;
+                for (auto k = lo.z; k <= hi.z; ++k) {
+                for (auto j = lo.y; j <= hi.y; ++j) {
+                for (auto i = lo.x; i <= hi.x; ++i) {
+                    // the "+1" is because the first column will store the physical coordinate
+                    average[ k*(ncomp+1) + n + 1 ] += mf(i,j,k,comp);
+                }
+                }
+                }
+            }
+
+        } // end test over direction
+
+    } // end MFiter
+
+    // sum over all processors
+    ParallelDescriptor::ReduceRealSum(average.dataPtr(),npts*(ncomp+1));
+
+    // divide by the number of cells
+    int navg;
+    if (dir == 0) {
+        navg = n_cells[1]*n_cells[2];
+    } else if (dir == 1) {
+        navg = n_cells[0]*n_cells[2];
+    } else if (dir == 2) {
+        navg = n_cells[0]*n_cells[1];
+    }
+    for (auto r=0; r<npts; ++r) {
+        for (auto n=1; n<ncomp+1; ++n) {
+            average[r*(ncomp+1) + n] /= navg;
+        }
+    }
+
+    // compute physical coordinate and store in first column
+    for (auto r=0; r<npts; ++r) {
+        average[r*(ncomp+1)] = prob_lo[dir] + (r+0.5)*h;
+    }
+
+    // write out result
+    for (auto r=0; r<npts; ++r) {
+        for (auto n=0; n<ncomp+1; ++n) {
+            Print() << average[r*(ncomp+1) + n] << " ";
+        }
+        Print() << std::endl;
+    }
+}
+
+
 void ComputeVerticalAverage(const MultiFab& mf, MultiFab& mf_avg,
 			    const Geometry& geom, const int dir,
 			    const int incomp, const int ncomp,

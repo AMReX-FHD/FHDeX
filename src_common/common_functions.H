@@ -107,6 +107,9 @@ void MaxSpeed(std::array< MultiFab, AMREX_SPACEDIM >& umac);
 ///////////////////////////
 // in ComputeAverages.cpp
 
+void WriteHorizontalAverage(const MultiFab& mf_in, const int& dir, const int& incomp,
+                            const int& ncomp, const int& step, const Geometry& geom);
+
 void ComputeVerticalAverage(const MultiFab & mf, MultiFab & mf_avg, const Geometry & geom,
                             const int dir, const int incomp, const int ncomp,
                             const int findredist=0);
