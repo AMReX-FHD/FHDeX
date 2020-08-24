@@ -242,7 +242,9 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     ib_mc.fillNeighbors(); // Does ghost cells
     ib_mc.buildNeighborList(ib_mc.CheckPair);
 
-    update_ibm_marker(driv_u, driv_amp, time, ib_mc, ib_lev, IBMReal::pred_forcex, true);
+    update_ibm_marker(driv_u, driv_amp, time, ib_mc, ib_lev,
+                      IBMReal::pred_forcex, true,
+                      geom);
     // Constrain it to move in the z = constant plane only
     constrain_ibm_marker(ib_mc, ib_lev, IBMReal::pred_forcez);
     if(immbdy::contains_fourier)
@@ -371,7 +373,9 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // ib_mc.fillNeighbors(); // Does ghost cells
     // ib_mc.buildNeighborList(ib_mc.CheckPair);
 
-    // update_ibm_marker(driv_u, driv_amp, time, ib_mc, ib_lev, IBMReal::forcex, false);
+    // update_ibm_marker(driv_u, driv_amp, time, ib_mc, ib_lev,
+    //                   IBMReal::forcex, false,
+    //                   geom);
     // // Constrain it to move in the z = constant plane only
     // constrain_ibm_marker(ib_mc, ib_lev, IBMReal::forcez);
     // if(immbdy::contains_fourier)

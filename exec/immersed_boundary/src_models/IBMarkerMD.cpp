@@ -219,8 +219,8 @@ Real UW(const RealVect & r_m, const RealVect & r, const RealVect & r_p,
     Real B1 = (1 - cosTh)*ux*uy;
     Real B2 = cosTh + (1 - cosTh)*uy*uy;
 
-    Real l_p = 1.; 
-    Real l_m = 1.; 
+    Real l_p = 1.;
+    Real l_m = 1.;
 
     // NOTE: this might not be necessary
     // Real l_p = std::sqrt( (xP-x)*(xP-x) + (yP-y)*(yP-y) );
@@ -372,6 +372,30 @@ void driving_f(      RealVect & f,       RealVect & f_p,       RealVect & f_m,
     f_m += f_m_loc;
 
     BL_PROFILE_VAR_STOP(BendingForce);
+}
+
+
+
+void rotate_z(Real & rx, Real & ry,
+              Real   tx, Real   ty,
+              Real theta) {
+
+    Real ct = cos(theta);
+    Real st = sin(theta);
+
+    rx = ct*tx - st*ty;
+    ry = st*tx + ct*ty;
+}
+
+
+
+void next_node_z(Real & nx, Real & ny,
+                 Real   px, Real   py,
+                 Real   tx, Real   ty,
+                 Real ds) {
+
+    nx = px + ds*tx;
+    ny = py + ds*ty;
 }
 
 };

@@ -68,6 +68,127 @@ inline void setVal(std::array< MultiFab, AMREX_SPACEDIM > & mf_in,
 
 
 
+void find_equilibrium_position(IBMarkerContainer & ib_mc, int ib_lev, int nstep,
+                               RealVect driv_u, Real driv_amp, Real dt, Real mot,
+                               const Geometry & geom) {
+
+
+    for (int i=0; i<nstep; ++i) {
+        ib_mc.ResetMarkers(ib_lev);
+
+        //_______________________________________________________________________
+        // Update forces between markers. TODO: expensive => use infrequently,
+        // use updateNeighbors for most steps
+        ib_mc.clearNeighbors();
+        ib_mc.fillNeighbors(); // Does ghost cells
+        ib_mc.buildNeighborList(ib_mc.CheckPair);
+
+        update_ibm_marker(driv_u, driv_amp, 0, ib_mc, ib_lev,
+                          IBMReal::forcex, false,
+                          geom);
+        // Constrain it to move in the z = constant plane only
+        constrain_ibm_marker(ib_mc, ib_lev, IBMReal::forcez);
+        if(immbdy::contains_fourier)
+            anchor_first_marker(ib_mc, ib_lev, IBMReal::forcex);
+        // Sum predictor forces added to neighbors back to the real markers
+        ib_mc.sumNeighbors(IBMReal::forcex, AMREX_SPACEDIM, 0, 0);
+
+        Real max_force = 0;
+        Real max_uw    = 0;
+        int  i_max_force = 0;
+        int  i_max_uw    = 0;
+        for (IBMarIter pti(ib_mc, ib_lev); pti.isValid(); ++pti) {
+
+            // Get marker data (local to current thread)
+            TileIndex index(pti.index(), pti.LocalTileIndex());
+            AoS & markers = ib_mc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
+            long np = ib_mc.GetParticles(ib_lev).at(index).numParticles();
+
+            for (MarkerListIndex m_index(0, 0); m_index.first<np; ++m_index.first) {
+
+                ParticleType & mark = markers[m_index.first];
+
+                int i_ib = mark.idata(IBMInt::cpu_1);
+
+                // Get previous and next markers connected to current marker (if they exist)
+                ParticleType * next_marker = NULL;
+                ParticleType * prev_marker = NULL;
+
+                int status = ib_mc.ConnectedMarkers(ib_lev, index, m_index,
+                                                    prev_marker, next_marker);
+
+
+                // position vectors
+                RealVect prev_pos, pos, next_pos;
+                if (status == 0) {
+                    for(int d=0; d<AMREX_SPACEDIM; ++d) {
+                        prev_pos[d] = prev_marker->pos(d);
+                        pos[d]      =         mark.pos(d);
+                        next_pos[d] = next_marker->pos(d);
+                    }
+
+                    Real th = theta(driv_amp, 0, i_ib, mark.idata(IBMInt::id_1)-1);
+                    Real uw = UW(prev_pos, pos, next_pos, driv_u, th);
+                    if (uw > max_uw) {
+                        max_uw = uw;
+                        i_max_uw = mark.idata(IBMInt::id_1);
+                    }
+                }
+
+                Real force_mag = 0;
+                for (int d=0; d<AMREX_SPACEDIM; ++d)
+                    force_mag += mark.rdata(IBMReal::forcex + d) * mark.rdata(IBMReal::forcex + d);
+
+                if (force_mag > max_force) {
+                    max_force = force_mag;
+                    i_max_force = IBMInt::id_1;
+                }
+
+                // if (i % (nstep/1000) == 0)
+                // if (mark.idata(IBMInt::id_1) == 2) {
+                //     for (int d=0; d<AMREX_SPACEDIM; ++d)
+                //         std::cout << "f: " << mark.rdata(IBMReal::forcex + d) << std::endl;
+
+                //     for (int d=0; d<AMREX_SPACEDIM; ++d)
+                //         std::cout << "r:" << mark.pos(d) << std::endl;
+                // }
+            }
+        }
+
+        ParallelDescriptor::ReduceRealMax(max_force);
+        ParallelDescriptor::ReduceRealMax(max_uw);
+        ParallelDescriptor::ReduceIntMax(i_max_force);
+        ParallelDescriptor::ReduceIntMax(i_max_uw);
+
+        // Real forcing_coef = std::min(mot/max_force, (1./dt)/100);
+        Real forcing_coef = 1.;
+        if (i % (nstep/10000) == 0)
+            Print() << "Initializing i = " << i << " "
+                    << "max_force = " << max_force << " (" << i_max_force << ") "
+                    << "forcing_coef = " << forcing_coef << " "
+                    << "max_uw = " << max_uw << " (" << i_max_uw << ") "
+                    << std::endl;
+
+        //_______________________________________________________________________
+        // Move markers according to velocity: x^(n+1) = x^n + mot * f^(n)
+        // (constrain it to move in the z = constant plane only)
+
+        yeax_ibm_marker(forcing_coef, ib_mc, ib_lev,
+                        IBMReal::forcex, IBMReal::velx);
+
+        constrain_ibm_marker(ib_mc, ib_lev, IBMReal::velz);
+        if(immbdy::contains_fourier)
+            anchor_first_marker(ib_mc, ib_lev, IBMReal::velx);
+
+        ib_mc.MoveMarkers(ib_lev, dt);
+
+        ib_mc.clearNeighbors(); // Important: clear neighbors before Redistribute
+        ib_mc.Redistribute();   // Don't forget to send particles to the right CPU
+    }
+}
+
+
+
 // argv contains the name of the inputs file entered at the command line
 void main_driver(const char * argv) {
 
@@ -380,20 +501,10 @@ void main_driver(const char * argv) {
         Print() << "l_link= " << l_link      << std::endl;
         Print() << "x_0=    " << x_0         << std::endl;
 
+        Vector<RealVect> marker_positions = equil_pos(i_ib, 0, geom);
+
         // using fourier modes => first two nodes reserved as "anchor"
-        int N_markers = immbdy::contains_fourier ? N+2 : N;
-
-        Vector<RealVect> marker_positions(N_markers);
-        for (int i=0; i<marker_positions.size(); ++i) {
-            Real x = x_0[0] + i*l_link;
-            // Compute periodic offset. Will work as long as winding number = 1
-            Real x_period = x < geom.ProbHi(0) ? x : x - geom.ProbLength(0);
-
-            marker_positions[i] = RealVect{x_period, x_0[1], x_0[2]};
-        }
-
-
-        // HAXOR: first node reserved as "anchor"
+        int N_markers = immbdy::contains_fourier ? N+1 : N;
         Vector<Real> marker_radii(N_markers);
         for (int i=0; i<marker_radii.size(); ++i) marker_radii[i] = 4*l_link;
 
@@ -470,12 +581,13 @@ void main_driver(const char * argv) {
     setVal(umac_avg, 0.);
 
 
-    //___________________________________________________________________________
-    // Write out initial state
-    if (plot_int > 0) {
-        WritePlotFile(step, time, geom, umac, umac_avg, force_ib, pres, ib_mc);
-    }
-
+    // RealVect driv_u = {0, 0, 1};
+    // Real   driv_amp = 1.;
+    // int       nstep = 1000000;
+    // Real    dt_init = 1e-6;
+    // Real        mot = 1e+4;
+    // find_equilibrium_position(ib_mc, 0, nstep, driv_u, driv_amp, dt_init, mot,
+    //                           geom);
 
 
     /****************************************************************************
@@ -483,6 +595,13 @@ void main_driver(const char * argv) {
      * Advance Time Steps                                                       *
      *                                                                          *
      ***************************************************************************/
+
+
+    //___________________________________________________________________________
+    // Write out initial state
+    if (plot_int > 0) {
+        WritePlotFile(step, time, geom, umac, umac_avg, force_ib, pres, ib_mc);
+    }
 
 
     for(step = 1; step <= max_step; ++step) {
@@ -505,8 +624,12 @@ void main_driver(const char * argv) {
 
         //_______________________________________________________________________
         // Advance umac
-        advance_CN(umac, umacNew, pres, ib_mc, mfluxdiv_predict, mfluxdiv_correct,
-                   alpha_fc, force_ib, beta, gamma, beta_ed, geom, dt, time);
+        // advance_CN(umac, umacNew, pres, ib_mc, mfluxdiv_predict, mfluxdiv_correct,
+        //            alpha_fc, force_ib, beta, gamma, beta_ed, geom, dt, time);
+        //
+        advance_stokes(umac, umacNew, pres, ib_mc, mfluxdiv_predict, mfluxdiv_correct,
+                       alpha_fc, force_ib, beta, gamma, beta_ed, geom, dt, time);
+
 
 
 

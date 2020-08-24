@@ -355,7 +355,8 @@ void StructFact::ComputeFFT(const MultiFab& variables,
   int Ndims[3] = { nbz, nby, nbx };
   int     n[3] = { domain.length(2), domain.length(1), domain.length(0)};
 #endif
-  hacc::Distribution d(MPI_COMM_WORLD,n,Ndims,&rank_mapping[0]);
+  MPI_Comm comm = ParallelDescriptor::Communicator();
+  hacc::Distribution d(comm,n,Ndims,&rank_mapping[0]);
   hacc::Dfft dfft(d);
 
   if (verbosity > 0) {
@@ -488,12 +489,23 @@ void StructFact::WritePlotFile(const int step, const Real time, const Geometry g
 
   Real dx = geom.CellSize(0);
   Real pi = 3.1415926535897932;
-  Geometry geom2 = geom;
-  
+
+  IntVect dom_lo(AMREX_D_DECL(           0,            0,            0));
+  IntVect dom_hi(AMREX_D_DECL(n_cells[0]-1, n_cells[1]-1, n_cells[2]-1));
+  Box domain(dom_lo, dom_hi);
+
   RealBox real_box({AMREX_D_DECL(-pi/dx,-pi/dx,-pi/dx)},
                    {AMREX_D_DECL( pi/dx, pi/dx, pi/dx)});
-  geom2.ProbDomain(real_box);
   
+  // check bc_vel_lo/hi to determine the periodicity
+  Vector<int> is_periodic(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
+  for (int i=0; i<AMREX_SPACEDIM; ++i) {
+      is_periodic[i] = geom.isPeriodic(i);
+  }
+
+  Geometry geom2;
+  geom2.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
+    
   // write a plotfile
   WriteSingleLevelPlotfile(plotfilename1,plotfile,varNames,geom2,time,step);
   
