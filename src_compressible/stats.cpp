@@ -13,11 +13,6 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
     double stepsminusone = steps - 1.;
     double stepsinv = 1./steps;
 
-    /*
-    Real fracvec[nspecies];
-    Real massvec[nspecies];
-    */
-
     GpuArray<Real,MAX_SPECIES> fracvec;
     GpuArray<Real,MAX_SPECIES> massvec;
 
@@ -48,11 +43,6 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
 
 #if 1
     
-    // from namelist
-    int nspecies_gpu = nspecies;
-    Real Runiv_gpu = Runiv;
-    int cross_cell_gpu = cross_cell;
-
     // from namelist
     GpuArray<Real,MAX_SPECIES> molmass_gpu;
     for (int n=0; n<nspecies; ++n) {
@@ -98,9 +88,9 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
             primmeans(i,j,k,2) = cumeans(i,j,k,2)*densitymeaninv;
             primmeans(i,j,k,3) = cumeans(i,j,k,3)*densitymeaninv;
 
-            GetTemperature(cumeans(i,j,k,4), massvec, primmeans(i,j,k,4), nspecies_gpu, hcv_gpu);
+            GetTemperature(cumeans(i,j,k,4), massvec, primmeans(i,j,k,4), nspecies, hcv_gpu);
             GetPressureGas(primmeans(i,j,k,5), fracvec, cumeans(i,j,k,0), cumeans(i,j,k,4),
-                           nspecies_gpu, Runiv_gpu, molmass_gpu);
+                           nspecies, Runiv, molmass_gpu);
 
             totalMass = totalMass + cu(i,j,k,0);
                     
@@ -125,40 +115,45 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
         const Array4<const Real> prim      = prim_in.array(mfi);
         const Array4<      Real> primmeans = primMean.array(mfi);
 
-        if (cross_cell_gpu >= lo.x && cross_cell_gpu <= hi.x) {
+        if (cross_cell >= lo.x && cross_cell <= hi.x) {
             for (auto k = lo.z; k <= hi.z; ++k) {
             for (auto j = lo.y; j <= hi.y; ++j) {
 
-                miscVals[0] = miscVals[0] + cumeans(cross_cell_gpu,j,k,1);   //slice average of mean x momentum
-                miscVals[1] = miscVals[1] + cu(cross_cell_gpu,j,k,1);        //slice average of instant x momentum
-                miscVals[2] = miscVals[2] + primmeans(cross_cell_gpu,j,k,1); //slice average of mean x velocity
-                miscVals[3] = miscVals[3] + cumeans(cross_cell_gpu,j,k,0);   //slice average of mean rho
-                miscVals[4] = miscVals[4] + cu(cross_cell_gpu,j,k,0);        //slice average of instant rho
-                miscVals[5] = miscVals[5] + prim(cross_cell_gpu,j,k,1);      //slice average of instant x velocity
-                miscVals[6] = miscVals[6] + cu(cross_cell_gpu,j,k,4);        //slice average of instant energy
-                miscVals[7] = miscVals[7] + cumeans(cross_cell_gpu,j,k,4);   //slice average of mean energy
-                miscVals[8] = miscVals[8] + cu(cross_cell_gpu,j,k,2);        //slice average of instant y momentum
-                miscVals[9] = miscVals[9] + cumeans(cross_cell_gpu,j,k,2);   //slice average of mean y momentum
-                miscVals[10] = miscVals[10] + cu(cross_cell_gpu,j,k,3);      //slice average of instant z momentum
-                miscVals[11] = miscVals[11] + cumeans(cross_cell_gpu,j,k,3); //slice average of mean z momentum
+                miscVals[0] = miscVals[0] + cumeans(cross_cell,j,k,1);   //slice average of mean x momentum
+                miscVals[1] = miscVals[1] + cu(cross_cell,j,k,1);        //slice average of instant x momentum
+                miscVals[2] = miscVals[2] + primmeans(cross_cell,j,k,1); //slice average of mean x velocity
+                miscVals[3] = miscVals[3] + cumeans(cross_cell,j,k,0);   //slice average of mean rho
+                miscVals[4] = miscVals[4] + cu(cross_cell,j,k,0);        //slice average of instant rho
+                miscVals[5] = miscVals[5] + prim(cross_cell,j,k,1);      //slice average of instant x velocity
+                miscVals[6] = miscVals[6] + cu(cross_cell,j,k,4);        //slice average of instant energy
+                miscVals[7] = miscVals[7] + cumeans(cross_cell,j,k,4);   //slice average of mean energy
+                
+                miscVals[8] = miscVals[8] + cu(cross_cell,j,k,2);        //slice average of instant y momentum
+                miscVals[9] = miscVals[9] + cumeans(cross_cell,j,k,2);   //slice average of mean y momentum
+                
+                miscVals[10] = miscVals[10] + cu(cross_cell,j,k,3);      //slice average of instant z momentum
+                miscVals[11] = miscVals[11] + cumeans(cross_cell,j,k,3); //slice average of mean z momentum
 
                 Real cv = 0;
-                for (int l=0; l>nspecies_gpu; ++l) {
-                    cv = cv + hcv[l]*cumeans(cross_cell_gpu,j,k,5+l)/cumeans(cross_cell_gpu,j,k,0);
+                for (int l=0; l<nspecies; ++l) {
+                    cv = cv + hcv[l]*cumeans(cross_cell,j,k,5+l)/cumeans(cross_cell,j,k,0);
                 }
 
                 miscVals[12] = miscVals[12] + cv; //slice average mean cv
-                miscVals[13] = miscVals[13] + primmeans(cross_cell_gpu,j,k,4); //slice average of mean temperature
-                miscVals[14] = miscVals[14] + primmeans(cross_cell_gpu,j,k,2); //slice average of mean y velocity
-                miscVals[15] = miscVals[15] + primmeans(cross_cell_gpu,j,k,3); //slice average of mean z velocity
-                miscVals[16] = miscVals[16] + prim(cross_cell_gpu,j,k,4);      //slice average of instant temperature
+                
+                miscVals[13] = miscVals[13] + primmeans(cross_cell,j,k,4); //slice average of mean temperature
+                
+                miscVals[14] = miscVals[14] + primmeans(cross_cell,j,k,2); //slice average of mean y velocity
+                miscVals[15] = miscVals[15] + primmeans(cross_cell,j,k,3); //slice average of mean z velocity
+                
+                miscVals[16] = miscVals[16] + prim(cross_cell,j,k,4);      //slice average of instant temperature
 
                 counter = counter + 1;
             }
             }
         }
     }
-    
+
     // parallel reduce sum miscVals and counter
     ParallelDescriptor::ReduceRealSum(miscVals,20);
     ParallelDescriptor::ReduceIntSum(counter);
@@ -182,6 +177,7 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
     }
 #endif
 
+    // parallel reduce sum miscVals and counter
     ParallelDescriptor::ReduceRealSum(miscVals,20);
     ParallelDescriptor::ReduceRealSum(totalMass);
 
