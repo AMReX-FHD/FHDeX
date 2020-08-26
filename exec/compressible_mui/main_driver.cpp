@@ -609,7 +609,7 @@ void main_driver(const char* argv)
     setBC(prim, cu);
     
     if (plot_int > 0) {
-	WritePlotFile(0, 0.0, geom, cu, cuMeans, cuVars,
+	    WritePlotFile(0, 0.0, geom, cu, cuMeans, cuVars,
                       prim, primMeans, primVars, spatialCross, eta, kappa);
     }
 
@@ -649,18 +649,23 @@ void main_driver(const char* argv)
         Real aux1 = ParallelDescriptor::second();
         
         // compute mean and variances
-	if (step > n_steps_skip) {
+	    if (step > n_steps_skip) {
             evaluateStats(cu, cuMeans, cuVars, prim, primMeans, primVars,
                           spatialCross, miscStats, miscVals, statsCount, dx);
             statsCount++;
-	}
+	    }
 
         // write a plotfile
         if (plot_int > 0 && step > 0 && step%plot_int == 0) {
+/*
            yzAverage(cuMeans, cuVars, primMeans, primVars, spatialCross,
                      cuMeansAv, cuVarsAv, primMeansAv, primVarsAv, spatialCrossAv);
            WritePlotFile(step, time, geom, cu, cuMeansAv, cuVarsAv,
                          prim, primMeansAv, primVarsAv, spatialCrossAv, eta, kappa);
+*/
+
+           // also horizontal average
+           WriteHorizontalAverage(cu,2,5,nspecies,step,geom);
         }
 
         if (chk_int > 0 && step > 0 && step%chk_int == 0)
@@ -670,17 +675,17 @@ void main_driver(const char* argv)
         }
 
 #ifndef AMREX_USE_CUDA
-	// collect a snapshot for structure factor
-	if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip)%struct_fact_int == 0) {
-            MultiFab::Copy(structFactPrimMF, prim, 0,                0,                structVarsPrim,   0);
-            MultiFab::Copy(structFactConsMF, cu,   0,                0,                structVarsCons-1, 0);
-            MultiFab::Copy(structFactConsMF, prim, AMREX_SPACEDIM+1, structVarsCons-1, 1,                0); // temperature too
-            structFactPrim.FortStructure(structFactPrimMF,geom);
-            structFactCons.FortStructure(structFactConsMF,geom);
-            if(project_dir >= 0) {
+	    // collect a snapshot for structure factor
+	    if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip)%struct_fact_int == 0) {
+           MultiFab::Copy(structFactPrimMF, prim, 0,                0,                structVarsPrim,   0);
+           MultiFab::Copy(structFactConsMF, cu,   0,                0,                structVarsCons-1, 0);
+           MultiFab::Copy(structFactConsMF, prim, AMREX_SPACEDIM+1, structVarsCons-1, 1,                0); // temperature too
+           structFactPrim.FortStructure(structFactPrimMF,geom);
+           structFactCons.FortStructure(structFactConsMF,geom);
+           if(project_dir >= 0) {
                 ComputeVerticalAverage(prim, primVertAvg, geom, project_dir, 0, structVarsPrim);
                 structFactPrimVerticalAverage.FortStructure(primVertAvg,geom_flat);
-            }
+           }
         }
 
         // write out structure factor
