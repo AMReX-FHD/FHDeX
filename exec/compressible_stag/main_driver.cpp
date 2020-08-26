@@ -171,25 +171,19 @@ void main_driver(const char* argv)
     // 4        (rho*E;   total energy)
     // 5:5+ns-1 (rho*Yk;  mass densities)
     MultiFab cu  (ba,dmap,nvars,ngc);
-    MultiFab cup (ba,dmap,nvars,ngc);
-    MultiFab cup2(ba,dmap,nvars,ngc);
 
     // staggered momentum
-    std::array< MultiFab, AMREX_SPACEDIM > velStag;
-    std::array< MultiFab, AMREX_SPACEDIM > momStag;
-    std::array< MultiFab, AMREX_SPACEDIM > mompStag;
-    std::array< MultiFab, AMREX_SPACEDIM > momp2Stag;
-    std::array< MultiFab, AMREX_SPACEDIM > momMeansStag;
-    std::array< MultiFab, AMREX_SPACEDIM > momVarsStag;
+    std::array< MultiFab, AMREX_SPACEDIM > facevel;
+    std::array< MultiFab, AMREX_SPACEDIM > cumom;
+    std::array< MultiFab, AMREX_SPACEDIM > cumomMeans;
+    std::array< MultiFab, AMREX_SPACEDIM > cumomVars;
     for (int d=0; d<AMREX_SPACEDIM; d++) {
-        velStag[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
-        momStag[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
-        mompStag[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
-        momp2Stag[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
-        momMeansStag[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
-        momVarsStag[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
-        momMeansStag[d].setVal(0.);
-        momVarsStag[d].setVal(0.);
+        facevel[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
+        cumom[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
+        cumomMeans[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
+        cumomVars[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
+        cumomMeans[d].setVal(0.);
+        cumomVars[d].setVal(0.);
     }
   
     //primative quantaties
@@ -242,11 +236,11 @@ void main_driver(const char* argv)
 
     T0 = T_init[0];
 
-    //fluxes
-    std::array< MultiFab, AMREX_SPACEDIM > flux;
-    AMREX_D_TERM(flux[0].define(convert(ba,nodal_flag_x), dmap, nvars, 0);,
-                 flux[1].define(convert(ba,nodal_flag_y), dmap, nvars, 0);,
-                 flux[2].define(convert(ba,nodal_flag_z), dmap, nvars, 0););
+    //fluxes (except momentum) at faces
+    std::array< MultiFab, AMREX_SPACEDIM > faceflux;
+    AMREX_D_TERM(faceflux[0].define(convert(ba,nodal_flag_x), dmap, nvars, 0);,
+                 faceflux[1].define(convert(ba,nodal_flag_y), dmap, nvars, 0);,
+                 faceflux[2].define(convert(ba,nodal_flag_z), dmap, nvars, 0););
 
     //stochastic fluxes
     std::array< MultiFab, AMREX_SPACEDIM > stochFlux;
@@ -262,24 +256,30 @@ void main_driver(const char* argv)
     rancorn.define(convert(ba,nodal_flag), dmap, 1, 0);
     rancorn.setVal(0.0);
 
-    //nodal arrays used for calculating viscous stress
-    std::array< MultiFab, AMREX_SPACEDIM > cornx;
-    AMREX_D_TERM(cornx[0].define(convert(ba,nodal_flag), dmap, 1, 0);,
-                 cornx[1].define(convert(ba,nodal_flag), dmap, 1, 0);,
-                 cornx[2].define(convert(ba,nodal_flag), dmap, 1, 0););
+    //momentum flux (edge + center)
+    #if (AMREX_SPACEDIM == 3)
+    std::array< MultiFab, 2 > edgeflux_x; // divide by dx
+    std::array< MultiFab, 2 > edgeflux_y; // divide by dy
+    std::array< MultiFab, 2 > edgeflux_z; // divide by dz
 
-    std::array< MultiFab, AMREX_SPACEDIM > corny;
-    AMREX_D_TERM(corny[0].define(convert(ba,nodal_flag), dmap, 1, 0);,
-                 corny[1].define(convert(ba,nodal_flag), dmap, 1, 0);,
-                 corny[2].define(convert(ba,nodal_flag), dmap, 1, 0););
+    edgeflux_x[0].define(convert(ba,nodal_flag_xy), dmap, 1, 1); // 0-2: rhoU, rhoV, rhoW
+    edgeflux_x[1].define(convert(ba,nodal_flag_xz), dmap, 1, 1);
+                 
+    edgeflux_y[0].define(convert(ba,nodal_flag_xy), dmap, 1, 1);
+    edgeflux_y[1].define(convert(ba,nodal_flag_yz), dmap, 1, 1);
 
-    std::array< MultiFab, AMREX_SPACEDIM > cornz;
-    AMREX_D_TERM(cornz[0].define(convert(ba,nodal_flag), dmap, 1, 0);,
-                 cornz[1].define(convert(ba,nodal_flag), dmap, 1, 0);,
-                 cornz[2].define(convert(ba,nodal_flag), dmap, 1, 0););
+    edgeflux_z[0].define(convert(ba,nodal_flag_xz), dmap, 1, 1);
+    edgeflux_z[1].define(convert(ba,nodal_flag_yz), dmap, 1, 1);
 
-    MultiFab visccorn;
-    visccorn.define(convert(ba,nodal_flag), dmap, 1, 0);
+    #elif (AMREX_SPACEDIM == 2)
+    Abort("Currently requires AMREX_SPACEDIM=3");
+    #endif
+
+    std::array< MultiFab, 3 > cenflux;
+    AMREX_D_TERM(cenflux[0].define(ba,dmap,1,ngc);, // 0-2: rhoU, rhoV, rhoW
+                 cenflux[1].define(ba,dmap,1,ngc);,
+                 cenflux[2].define(ba,dmap,1,ngc););
+                
 
     Real time = 0;
 
@@ -455,32 +455,19 @@ void main_driver(const char* argv)
     }
 
     for (int d=0; d<AMREX_SPACEDIM; d++) { // staggered momentum
-      momStag[d].setVal(0.);
-      velStag[d].setVal(0.);
+      cumom[d].setVal(0.);
+      facevel[d].setVal(0.);
     }
-
-    // RK stage storage
-    cup.setVal(0.0,0,nvars,ngc);
-    cup2.setVal(0.0,0,nvars,ngc);
-
-    for (int d=0; d<AMREX_SPACEDIM; d++) { // staggered momentum for RK3
-      mompStag[d].setVal(0.);
-      momp2Stag[d].setVal(0.);
-    }
-
-    // set density
-    cup.setVal(rho0,0,1,ngc);
-    cup2.setVal(rho0,0,1,ngc);
 
     // initialize conserved variables
     if (prob_type > 1) {
-        InitConsVarStag(cu,momStag,prim,geom); // Need to add for staggered -- Ishan
+        InitConsVarStag(cu,cumom,prim,geom); // Need to add for staggered -- Ishan
     }
 
     statsCount = 1;
 
     // Write initial plotfile
-    conservedToPrimitiveStag(prim, velStag, cu, momStag);
+    conservedToPrimitiveStag(prim, facevel, cu, cumom);
 
     // Set BC: 1) fill boundary 2) physical (How to do for staggered? -- Ishan)
     cu.FillBoundary(geom.periodicity());
@@ -503,8 +490,8 @@ void main_driver(const char* argv)
         // timer
         Real ts1 = ParallelDescriptor::second();
     
-        RK3stepStag(cu, cup, cup2, momStag, mompStag, momp2Stag, prim, velStag, source, eta, zeta, kappa, chi, D, flux,
-                stochFlux, cornx, corny, cornz, visccorn, rancorn, geom, dx, dt);
+        RK3stepStag(cu, cumom, prim, facevel, source, eta, zeta, kappa, chi, D, faceflux, edgeflux_x, edgeflux_y, edgeflux_z, cenflux,
+                stochFlux, rancorn, geom, dx, dt);
 
         // timer
         Real ts2 = ParallelDescriptor::second() - ts1;

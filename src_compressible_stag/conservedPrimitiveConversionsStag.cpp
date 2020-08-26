@@ -83,22 +83,19 @@ void conservedToPrimitiveStag(MultiFab& prim_in, std::array<MultiFab, AMREX_SPAC
 
             prim(i,j,k,0) = cons(i,j,k,0);
 
-            cons(i,j,k,1) = 0.5*(momx(i+1,j,k) + momx(i,j,k));
-            cons(i,j,k,2) = 0.5*(momy(i,j+1,k) + momy(i,j,k));
-            cons(i,j,k,3) = 0.5*(momz(i,j,k+1) + momz(i,j,k));
+            velx(i,j,k) = 2*momx(i,j,k)/(cons(i,j,k,0) + cons(i-1,j,k,0));
+            vely(i,j,k) = 2*momy(i,j,k)/(cons(i,j,k,0) + cons(i,j-1,k,0));
+            velz(i,j,k) = 2*momz(i,j,k)/(cons(i,j,k,0) + cons(i,j,k-1,0));
 
-            prim(i,j,k,1) = cons(i,j,k,1)/cons(i,j,k,0);
-            prim(i,j,k,2) = cons(i,j,k,2)/cons(i,j,k,0);
-            prim(i,j,k,3) = cons(i,j,k,3)/cons(i,j,k,0);
-
-            velx(i,j,k) = 2*momx(i,j,k)/(prim(i,j,k,0) + prim(i+1,j,k,0));
-            vely(i,j,k) = 2*momy(i,j,k)/(prim(i,j,k,0) + prim(i,j+1,k,0));
-            velz(i,j,k) = 2*momz(i,j,k)/(prim(i,j,k,0) + prim(i,j,k+1,0));
+            Real kinenergy = 0.;
+            kinenergy += (momx(i+1,j,k) + momx(i,j,k))*(momx(i+1,j,k) + momx(i,j,k));
+            kinenergy += (momy(i,j+1,k) + momy(i,j,k))*(momy(i,j+1,k) + momy(i,j,k));
+            kinenergy += (momz(i,j,k+1) + momz(i,j,k))*(momz(i,j,k+1) + momz(i,j,k));
+            kinenergy *= (0.125/cons(i,j,k,0));
 
             // Do we need to calculate staggered velocities here as well? (from rho averaged to all faces) -- Ishan
 
-            Real vsqr = prim(i,j,k,1)*prim(i,j,k,1) + prim(i,j,k,2)*prim(i,j,k,2) + prim(i,j,k,3)*prim(i,j,k,3);
-            Real intenergy = cons(i,j,k,4)/cons(i,j,k,0) - 0.5*vsqr;
+            Real intenergy = (cons(i,j,k,4)-kinenergy)/cons(i,j,k,0);
 
             Real sumYk = 0.;
             for (int n=0; n<nspecies_gpu; ++n) {
@@ -123,7 +120,7 @@ void conservedToPrimitiveStag(MultiFab& prim_in, std::array<MultiFab, AMREX_SPAC
                 prim(i,j,k,6+nspecies_gpu+n) = Xk[n];
             }
 
-            GetPressureGas(prim(i,j,k,5), Yk, prim(i,j,k,0), prim(i,j,k,4),
+            GetPressureGas(prim(i,j,k,5), Yk, cons(i,j,k,0), prim(i,j,k,4),
                            nspecies_gpu, Runiv_gpu, molmass_gpu);
         });
         
