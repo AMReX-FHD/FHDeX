@@ -90,7 +90,7 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
 
             GetTemperature(cumeans(i,j,k,4), massvec, primmeans(i,j,k,4), nspecies, hcv_gpu);
             GetPressureGas(primmeans(i,j,k,5), fracvec, cumeans(i,j,k,0), cumeans(i,j,k,4),
-                           nspecies, Runiv, molmass_gpu);
+                           nspecies, Runiv, molmass);
 
             totalMass = totalMass + cu(i,j,k,0);
                     
@@ -98,9 +98,6 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
         }
         }
     }
-
-    // parallel reduce sum totalMass
-    ParallelDescriptor::ReduceRealSum(totalMass);
     
     // Loop over boxes
     for ( MFIter mfi(prim_in); mfi.isValid(); ++mfi) {
@@ -115,6 +112,9 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
         const Array4<const Real> prim      = prim_in.array(mfi);
         const Array4<      Real> primmeans = primMean.array(mfi);
 
+        // fixme
+        counter = 0;
+        
         if (cross_cell >= lo.x && cross_cell <= hi.x) {
             for (auto k = lo.z; k <= hi.z; ++k) {
             for (auto j = lo.y; j <= hi.y; ++j) {
@@ -151,16 +151,28 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
                 counter = counter + 1;
             }
             }
+
+            // delete me
+            for (int i=0; i<17; ++i) {
+                miscVals[i] /= counter;
+            }
         }
     }
 
+
+    // parallel reduce sum totalMass
+    ParallelDescriptor::ReduceRealSum(totalMass);
+    
     // parallel reduce sum miscVals and counter
     ParallelDescriptor::ReduceRealSum(miscVals,20);
+
+    /*
     ParallelDescriptor::ReduceIntSum(counter);
 
     for (int i=0; i<17; ++i) {
         miscVals[i] /= counter;
     }
+    */
 
 #else
     // Loop over boxes
@@ -176,10 +188,6 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
                        miscStats[mfi].dataPtr(), miscVals, &totalMass);
     }
 #endif
-
-    // parallel reduce sum miscVals and counter
-    ParallelDescriptor::ReduceRealSum(miscVals,20);
-    ParallelDescriptor::ReduceRealSum(totalMass);
 
     for ( MFIter mfi(prim_in); mfi.isValid(); ++mfi) {
         
