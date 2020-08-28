@@ -16,7 +16,7 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
     GpuArray<Real,MAX_SPECIES> fracvec;
     GpuArray<Real,MAX_SPECIES> massvec;
 
-    /*
+    /* miscVals
       0  = mean xmom
       1  = instant xmom
       2  = mean xvel
@@ -35,13 +35,6 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
       15 = mean zvel
       16 = instant temperature
     */
-    for (int i=0; i<20; ++i) {
-        miscVals[i] = 0.;
-    }
-
-    int counter = 0;
-
-#if 1
     
     // from namelist
     GpuArray<Real,MAX_SPECIES> molmass_gpu;
@@ -90,7 +83,7 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
 
             GetTemperature(cumeans(i,j,k,4), massvec, primmeans(i,j,k,4), nspecies, hcv_gpu);
             GetPressureGas(primmeans(i,j,k,5), fracvec, cumeans(i,j,k,0), cumeans(i,j,k,4),
-                           nspecies, Runiv, molmass);
+                           nspecies, Runiv, molmass_gpu);
 
             totalMass = totalMass + cu(i,j,k,0);
                     
@@ -100,6 +93,7 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
     }
     
     // Loop over boxes
+    // FIXME: this routine assumes that there is only 1 box spanning the entire lo-x domain face
     for ( MFIter mfi(prim_in); mfi.isValid(); ++mfi) {
 
         const Box& bx = mfi.validbox();
@@ -112,8 +106,11 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
         const Array4<const Real> prim      = prim_in.array(mfi);
         const Array4<      Real> primmeans = primMean.array(mfi);
 
-        // fixme
-        counter = 0;
+        for (int i=0; i<20; ++i) {
+            miscVals[i] = 0.;
+        }
+        
+        int counter = 0;
         
         if (cross_cell >= lo.x && cross_cell <= hi.x) {
             for (auto k = lo.z; k <= hi.z; ++k) {
@@ -152,42 +149,17 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
             }
             }
 
-            // delete me
             for (int i=0; i<17; ++i) {
                 miscVals[i] /= counter;
             }
         }
     }
-
+    
+    // parallel reduce sum miscVals
+    ParallelDescriptor::ReduceRealSum(miscVals,20);
 
     // parallel reduce sum totalMass
     ParallelDescriptor::ReduceRealSum(totalMass);
-    
-    // parallel reduce sum miscVals and counter
-    ParallelDescriptor::ReduceRealSum(miscVals,20);
-
-    /*
-    ParallelDescriptor::ReduceIntSum(counter);
-
-    for (int i=0; i<17; ++i) {
-        miscVals[i] /= counter;
-    }
-    */
-
-#else
-    // Loop over boxes
-    for ( MFIter mfi(prim_in); mfi.isValid(); ++mfi) {
-        
-        const Box& bx = mfi.validbox();
-        
-        evaluate_means(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),  
-                       cons[mfi].dataPtr(),  
-                       consMean[mfi].dataPtr(),
-                       prim_in[mfi].dataPtr(),
-                       primMean[mfi].dataPtr(), &steps, 
-                       miscStats[mfi].dataPtr(), miscVals, &totalMass);
-    }
-#endif
 
     for ( MFIter mfi(prim_in); mfi.isValid(); ++mfi) {
         
