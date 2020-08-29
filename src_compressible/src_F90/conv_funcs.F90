@@ -7,11 +7,32 @@ module conv_module
 
   private
 
-  public :: get_density, get_energy, get_molfrac, &
-       get_massfrac, get_hc_gas, get_density_gas, &
+  public :: get_temperature, get_density, get_energy, get_molfrac, &
+       get_massfrac, get_hc_gas, get_pressure_gas, get_density_gas, &
        get_energy_gas
 
 contains
+
+  subroutine get_temperature(energy, massfrac, temp)     
+
+    !This function originaly had a reference to e0 - check this.
+
+    real(amrex_real), intent(inout) :: temp
+    real(amrex_real), intent(in   ) :: energy, massfrac(nspecies)
+
+    integer :: i
+    real(amrex_real) :: cvmix, e0
+
+    cvmix = 0.0d0; e0 = 0.0d0
+
+    do i = 1, nspecies
+       cvmix = cvmix + massfrac(i)*hcv(i)
+       ! e0 = e0 + massfrac(i)*e0ref(i)
+    enddo
+
+    temp = (energy-e0)/cvmix 
+
+  end subroutine get_temperature
 
   subroutine get_density(pressure, density, temp, massfrac)  bind(C,name="get_density")    
 
@@ -88,6 +109,24 @@ contains
     enddo
 
   end subroutine get_massfrac
+
+  subroutine get_pressure_gas(pressure, fracvec, density, temp)  bind(C,name="get_pressure_gas")    
+
+    real(amrex_real), intent(in   ) :: temp, fracvec(nspecies), density
+    real(amrex_real), intent(inout) :: pressure
+
+    integer :: i
+    real(amrex_real) :: molmix
+
+    molmix = 0.0d0
+    do i = 1, nspecies
+       molmix = molmix + fracvec(i)/molmass(i)
+    enddo
+    molmix = 1.0d0/molmix
+
+    pressure = density*(runiv/molmix)*temp 
+
+  end subroutine get_pressure_gas
 
   subroutine get_energy_gas(pressure, intenergy)  bind(C,name="get_energy_gas")    
 

@@ -8,9 +8,137 @@ module stats_module
 
   private
 
-  public :: evaluate_corrs, multifab_yzav
+  public :: evaluate_means, evaluate_corrs, multifab_yzav
 
 contains
+
+  subroutine evaluate_means(lo, hi, cu, cumeans, prim, primmeans, steps, miscstats, miscvals, totalmass) bind(c,name='evaluate_means')
+ 
+      implicit none
+
+      integer,          intent(in   ) :: steps, lo(3), hi(3)
+      double precision, intent(inout   ) :: totalmass, miscvals(20)
+      double precision, intent(in   ) :: cu       (lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3), nvars)
+      double precision, intent(inout) :: cumeans  (lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3), nvars)
+      double precision, intent(in   ) :: prim     (lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3), nprimvars)
+      double precision, intent(inout) :: primmeans(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3), nprimvars)
+      double precision, intent(inout) :: miscstats(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3), 10)
+
+      integer i,j,k,l, cells, ti, jc, kc, counter
+      double precision stepsminusone, stepsinv, densitymeaninv, fracvec(nspecies), massvec(nspecies), cv
+
+      stepsminusone = steps - 1.d0
+      stepsinv = 1.d0/steps
+
+      totalmass = 0.d0  
+
+      do k = lo(3), hi(3)
+        do j = lo(2), hi(2)
+          do i = lo(1), hi(1)
+
+            do l=1,nvars
+              cumeans(i,j,k,l) = (cumeans(i,j,k,l)*stepsminusone + cu(i,j,k,l))*stepsinv
+            enddo
+
+!              mixedstats(i,j,k,1) = cumeans(i,j,k,l)
+
+!            do l=1,nprimvars
+!              primmeans(i,j,k,l) = (primmeans(i,j,k,l)*stepsminusone + prim(i,j,k,l))*stepsinv
+!            enddo
+
+                !print *, "means: ", cumeans(i,j,k,l), stepsminusone
+
+
+            fracvec = cumeans(i,j,k,6:nvars)/cumeans(i,j,k,1)
+            massvec = cumeans(i,j,k,6:nvars)
+
+            densitymeaninv = 1.0/cumeans(i,j,k,1)
+
+            primmeans(i,j,k,1) = cumeans(i,j,k,1)
+            primmeans(i,j,k,2) = cumeans(i,j,k,2)*densitymeaninv
+            primmeans(i,j,k,3) = cumeans(i,j,k,3)*densitymeaninv
+            primmeans(i,j,k,4) = cumeans(i,j,k,4)*densitymeaninv
+
+            call get_temperature(cumeans(i,j,k,5), massvec, primmeans(i,j,k,5))
+            call get_pressure_gas(primmeans(i,j,k,6), fracvec, cumeans(i,j,k,1),cumeans(i,j,k,5))
+
+            totalmass = totalmass + cu(i,j,k,1)
+
+
+          enddo
+        enddo
+      enddo
+
+    do i = 1,20
+      miscVals(i) = 0
+    enddo
+
+    counter = 0
+
+    if((cross_cell .ge. lo(1)) .and. (cross_cell .le. hi(1))) then
+      
+      do k = lo(3), hi(3)
+        do j = lo(2), hi(2)
+          
+          miscvals(1) = miscvals(1) + cumeans(cross_cell,j,k,2) !slice average of mean x momentum
+          miscvals(2) = miscvals(2) + cu(cross_cell,j,k,2) !slice average of instant x momentum
+          miscvals(3) = miscvals(3) + primmeans(cross_cell,j,k,2) !slice average of mean x velocity
+          miscvals(4) = miscvals(4) + cumeans(cross_cell,j,k,1) !slice average of mean rho
+          miscvals(5) = miscvals(5) + cu(cross_cell,j,k,1) !slice average of instant rho
+          miscvals(6) = miscvals(6) + prim(cross_cell,j,k,2) !slice average of instant x velocity
+          miscvals(7) = miscvals(7) + cu(cross_cell,j,k,5) !slice average of instant energy
+          miscvals(8) = miscvals(8) + cumeans(cross_cell,j,k,5) !slice average of mean energy
+
+          miscvals(9) = miscvals(9) + cu(cross_cell,j,k,3) !slice average of instant y momentum
+          miscvals(10) = miscvals(10) + cumeans(cross_cell,j,k,3) !slice average of mean y momentum
+
+          miscvals(11) = miscvals(11) + cu(cross_cell,j,k,4) !slice average of instant z momentum
+          miscvals(12) = miscvals(12) + cumeans(cross_cell,j,k,4) !slice average of mean z momentum
+
+          cv = 0
+          do l=1,nspecies
+            cv = cv + hcv(l)*cumeans(cross_cell,j,k,5+l)/cumeans(cross_cell,j,k,1)
+          enddo
+
+          miscvals(13) = miscvals(13) + cv !slice average mean cv
+
+          miscvals(14) = miscvals(14) + primmeans(cross_cell,j,k,5) !slice average of mean temperature
+
+          miscvals(15) = miscvals(15) + primmeans(cross_cell,j,k,3) !slice average of mean y velocity
+          miscvals(16) = miscvals(16) + primmeans(cross_cell,j,k,4) !slice average of mean z velocity
+
+          miscvals(17) = miscvals(17) + prim(cross_cell,j,k,5) !slice average of instant temperature
+
+          counter = counter + 1
+
+         enddo
+       enddo
+
+       miscvals(1) = miscvals(1)/counter !slice average of mean x momentum
+       miscvals(2) = miscvals(2)/counter !slice average of instant x momentum
+       miscvals(3) = miscvals(3)/counter !slice average of mean x velocity
+       miscvals(4) = miscvals(4)/counter !slice average of mean rho
+       miscvals(5) = miscvals(5)/counter !slice average of instant rho
+       miscvals(6) = miscvals(6)/counter !slice average of instant x velocity
+       miscvals(7) = miscvals(7)/counter !slice average of instant energy
+       miscvals(8) = miscvals(8)/counter !slice average of mean energy
+
+       miscvals(9) = miscvals(9)/counter !slice average of instant y momentum
+       miscvals(10) = miscvals(10)/counter !slice average of mean y momentum
+
+       miscvals(11) = miscvals(11)/counter !slice average of instant z momentum
+       miscvals(12) = miscvals(12)/counter !slice average of mean z momentum
+
+       miscvals(13) = miscvals(13)/counter !slice average of mean cv
+
+       miscvals(14) = miscvals(14)/counter
+       miscvals(15) = miscvals(15)/counter
+       miscvals(16) = miscvals(16)/counter
+       miscvals(17) = miscvals(17)/counter
+
+     endif
+          
+  end subroutine evaluate_means
 
   subroutine evaluate_corrs(lo, hi, cu, cumeans, cuvars, prim, primmeans, primvars, spatialcross, steps, miscstats, miscvals) bind(c,name='evaluate_corrs')
 
