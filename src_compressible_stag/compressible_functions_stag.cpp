@@ -73,6 +73,7 @@ void InitConsVarStag(MultiFab& cons, std::array< MultiFab, AMREX_SPACEDIM >& mom
             GpuArray<Real,AMREX_SPACEDIM> relpos;
 
             GpuArray<Real,MAX_SPECIES> massvec;
+            GpuArray<Real,MAX_SPECIES> Yk;
 
             AMREX_D_TERM(itVec[0] = (i+0.5)*dx[0]; ,
                          itVec[1] = (j+0.5)*dx[1]; ,
@@ -187,7 +188,19 @@ void InitConsVarStag(MultiFab& cons, std::array< MultiFab, AMREX_SPACEDIM >& mom
                     cu(i,j,k,5) = cu(i,j,k,0)*bc_Yk_x_lo_gpu[0];
                     cu(i,j,k,6) = cu(i,j,k,0)*bc_Yk_x_lo_gpu[1];
                 }
-            } // prob_type
+            } else if (prob_type_gpu == 100) { // sinusoidal density variation
+
+                   Real y = itVec[1];
+                   Real Ly = realhi[1] - reallo[0];
+                   for (int l=0;l<nspecies_gpu;l++) {
+                     Yk[l] = cu(i,j,k,5+l)/cu(i,j,k,0);
+                   }
+                   cu(i,j,k,0) = rho0_gpu + 0.1*rho0_gpu*sin(2.*pi*y/Ly);
+                   for (int l=0;l<nspecies_gpu;l++) {
+                     cu(i,j,k,5+l) = cu(i,j,k,0)*Yk[l];
+                   }
+            } // prob type
+
         });
     } // end MFIter
 

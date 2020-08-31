@@ -781,9 +781,9 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
             w_z = (velz(i,j,k+1) - velz(i,j,k))/dx_gpu[2];
 
             Real div = u_x + v_y + w_z;
-            tauxx(i,j,k) = 2*eta(i,j,k)*u_x + (kappa(i,j,k) - 2*eta(i,j,k)/3.)*div; 
-            tauyy(i,j,k) = 2*eta(i,j,k)*v_y + (kappa(i,j,k) - 2*eta(i,j,k)/3.)*div; 
-            tauzz(i,j,k) = 2*eta(i,j,k)*w_z + (kappa(i,j,k) - 2*eta(i,j,k)/3.)*div;
+            tauxx(i,j,k) = 2*eta(i,j,k)*u_x + (zeta(i,j,k) - 2*eta(i,j,k)/3.)*div; 
+            tauyy(i,j,k) = 2*eta(i,j,k)*v_y + (zeta(i,j,k) - 2*eta(i,j,k)/3.)*div; 
+            tauzz(i,j,k) = 2*eta(i,j,k)*w_z + (zeta(i,j,k) - 2*eta(i,j,k)/3.)*div;
             });
 
         // Populate off-diagonal stress
@@ -825,9 +825,12 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
             GpuArray<Real,MAX_SPECIES> hk;
             GpuArray<Real,MAX_SPECIES> soret;
 
-            xflux(i,j,k,4) += 0.5*velx(i,j,k)*(tauxx(i-1,j,k)+tauxx(i,j,k));
-            xflux(i,j,k,4) += 0.25*((vely(i,j+1,k)+vely(i-1,j+1,k))*tauxy(i,j+1,k) + (vely(i,j,k)+vely(i-1,j,k))*tauxy(i,j,k));
-            xflux(i,j,k,4) += 0.25*((velz(i,j,k+1)+velz(i-1,j,k+1))*tauxz(i,j,k+1) + (velz(i,j,k)+velz(i-1,j,k))*tauxz(i,j,k));
+            xflux(i,j,k,4) -= 0.5*velx(i,j,k)*(tauxx(i-1,j,k)+tauxx(i,j,k));
+            xflux(i,j,k,4) -= 0.25*((vely(i,j+1,k)+vely(i-1,j+1,k))*tauxy(i,j+1,k) + (vely(i,j,k)+vely(i-1,j,k))*tauxy(i,j,k));
+            xflux(i,j,k,4) -= 0.25*((velz(i,j,k+1)+velz(i-1,j,k+1))*tauxz(i,j,k+1) + (velz(i,j,k)+velz(i-1,j,k))*tauxz(i,j,k));
+
+            Real kxp = 0.5*(kappa(i,j,k) + kappa(i-1,j,k));
+            xflux(i,j,k,4) -= kxp*(prim(i,j,k,4)-prim(i-1,j,k,4))/dx_gpu[0];
 
             Real meanT = 0.5*(prim(i-1,j,k,4)+prim(i,j,k,4));
             Real meanP = 0.5*(prim(i-1,j,k,5)+prim(i,j,k,5));
@@ -879,9 +882,12 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
             GpuArray<Real,MAX_SPECIES> hk;
             GpuArray<Real,MAX_SPECIES> soret;
 
-            yflux(i,j,k,4) += 0.25*((velx(i+1,j,k)+velx(i+1,j-1,k))*tauxy(i+1,j,k) + (velx(i,j,k)+velx(i,j-1,k))*tauxy(i,j,k));
-            yflux(i,j,k,4) += 0.5*vely(i,j,k)*(tauyy(i,j-1,k)+tauyy(i,j,k));
-            yflux(i,j,k,4) += 0.25*((velz(i,j,k+1)+velz(i,j-1,k+1))*tauyz(i,j,k+1) + (velz(i,j,k)+velz(i,j-1,k))*tauyz(i,j,k));
+            yflux(i,j,k,4) -= 0.25*((velx(i+1,j,k)+velx(i+1,j-1,k))*tauxy(i+1,j,k) + (velx(i,j,k)+velx(i,j-1,k))*tauxy(i,j,k));
+            yflux(i,j,k,4) -= 0.5*vely(i,j,k)*(tauyy(i,j-1,k)+tauyy(i,j,k));
+            yflux(i,j,k,4) -= 0.25*((velz(i,j,k+1)+velz(i,j-1,k+1))*tauyz(i,j,k+1) + (velz(i,j,k)+velz(i,j-1,k))*tauyz(i,j,k));
+
+            Real kyp = 0.5*(kappa(i,j,k) + kappa(i,j-1,k));
+            yflux(i,j,k,4) -= kyp*(prim(i,j,k,4)-prim(i,j-1,k,4))/dx_gpu[1];
 
             Real meanT = 0.5*(prim(i,j-1,k,4)+prim(i,j,k,4));
             Real meanP = 0.5*(prim(i,j-1,k,5)+prim(i,j,k,5));
@@ -935,9 +941,12 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                 GpuArray<Real,MAX_SPECIES> hk;
                 GpuArray<Real,MAX_SPECIES> soret;
                     
-                zflux(i,j,k,4) += 0.25*((velx(i+1,j,k-1)+velx(i+1,j,k))*tauxz(i+1,j,k) + (velx(i,j,k)+velx(i,j,k-1))*tauxz(i,j,k));
-                zflux(i,j,k,4) += 0.25*((vely(i,j+1,k-1)+vely(i,j+1,k))*tauyz(i,j+1,k) + (vely(i,j,k)+vely(i,j,k-1))*tauyz(i,j,k));
-                zflux(i,j,k,4) += 0.5*velz(i,j,k)*(tauzz(i,j,k-1)+tauzz(i,j,k));
+                zflux(i,j,k,4) -= 0.25*((velx(i+1,j,k-1)+velx(i+1,j,k))*tauxz(i+1,j,k) + (velx(i,j,k)+velx(i,j,k-1))*tauxz(i,j,k));
+                zflux(i,j,k,4) -= 0.25*((vely(i,j+1,k-1)+vely(i,j+1,k))*tauyz(i,j+1,k) + (vely(i,j,k)+vely(i,j,k-1))*tauyz(i,j,k));
+                zflux(i,j,k,4) -= 0.5*velz(i,j,k)*(tauzz(i,j,k-1)+tauzz(i,j,k));
+
+                Real kzp = 0.5*(kappa(i,j,k) + kappa(i,j,k-1));
+                zflux(i,j,k,4) -= kzp*(prim(i,j,k,4)-prim(i,j,k-1,4))/dx_gpu[2];
 
                 Real meanT = 0.5*(prim(i,j,k-1,4)+prim(i,j,k,4));
                 Real meanP = 0.5*(prim(i,j,k-1,5)+prim(i,j,k,5));
@@ -985,23 +994,23 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
         // Loop over edges for momemntum flux calculations [1:3]
         amrex::ParallelFor(bx_xy, bx_xz, bx_yz,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-            edgey_u(i,j,k) += tauxy(i,j,k);
-            edgex_v(i,j,k) += tauxy(i,j,k);
+            edgey_u(i,j,k) -= tauxy(i,j,k);
+            edgex_v(i,j,k) -= tauxy(i,j,k);
         },
         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-            edgez_u(i,j,k) += tauxz(i,j,k);
-            edgex_w(i,j,k) += tauxz(i,j,k);
+            edgez_u(i,j,k) -= tauxz(i,j,k);
+            edgex_w(i,j,k) -= tauxz(i,j,k);
         },
         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-            edgez_v(i,j,k) += tauyz(i,j,k);
-            edgey_w(i,j,k) += tauyz(i,j,k);
+            edgez_v(i,j,k) -= tauyz(i,j,k);
+            edgey_w(i,j,k) -= tauyz(i,j,k);
         });
         
         // Loop over the center cells and compute fluxes (diagonal momentum terms)
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
-            cenx_u(i,j,k) += tauxx(i,j,k);
-            ceny_v(i,j,k) += tauyy(i,j,k);
-            cenz_w(i,j,k) += tauzz(i,j,k);
+            cenx_u(i,j,k) -= tauxx(i,j,k);
+            ceny_v(i,j,k) -= tauyy(i,j,k);
+            cenz_w(i,j,k) -= tauzz(i,j,k);
         });
     }
 

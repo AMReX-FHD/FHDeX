@@ -48,6 +48,10 @@ void conservedToPrimitiveStag(MultiFab& prim_in, std::array<MultiFab, AMREX_SPAC
         
         const Box& bx = mfi.tilebox();
 
+        const Box& tbx = mfi.nodaltilebox(0);
+        const Box& tby = mfi.nodaltilebox(1);
+        const Box& tbz = mfi.nodaltilebox(2);
+
         //const Array4<const Real>& cons = cons_in.array(mfi);
         const Array4<      Real>& cons = cons_in.array(mfi);
         const Array4<      Real>& prim = prim_in.array(mfi);
@@ -71,6 +75,18 @@ void conservedToPrimitiveStag(MultiFab& prim_in, std::array<MultiFab, AMREX_SPAC
         // make sure Xk_fab doesn't go out of scope once the CPU finishes and GPU isn't done
         auto Xk_eli = Xk_fab.elixir();
         */
+
+        amrex::ParallelFor(tbx, tby, tbz,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+            velx(i,j,k) = 2*momx(i,j,k)/(cons(i,j,k,0) + cons(i-1,j,k,0));
+        },
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+            vely(i,j,k) = 2*momy(i,j,k)/(cons(i,j,k,0) + cons(i,j-1,k,0));
+        },
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+            velz(i,j,k) = 2*momz(i,j,k)/(cons(i,j,k,0) + cons(i,j,k-1,0));
+        });
+
         
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
@@ -80,12 +96,15 @@ void conservedToPrimitiveStag(MultiFab& prim_in, std::array<MultiFab, AMREX_SPAC
             GpuArray<Real,MAX_SPECIES> Yk;
             GpuArray<Real,MAX_SPECIES> Yk_fixed;
             
-
             prim(i,j,k,0) = cons(i,j,k,0);
 
-            velx(i,j,k) = 2*momx(i,j,k)/(cons(i,j,k,0) + cons(i-1,j,k,0));
-            vely(i,j,k) = 2*momy(i,j,k)/(cons(i,j,k,0) + cons(i,j-1,k,0));
-            velz(i,j,k) = 2*momz(i,j,k)/(cons(i,j,k,0) + cons(i,j,k-1,0));
+            prim(i,j,k,1) = 0.5*(velx(i,j,k) + velx(i+1,j,k));
+            prim(i,j,k,2) = 0.5*(vely(i,j,k) + vely(i,j+1,k));
+            prim(i,j,k,3) = 0.5*(velz(i,j,k) + velz(i,j,k+1));
+
+            cons(i,j,k,1) = 0.5*(momx(i,j,k) + momx(i+1,j,k));
+            cons(i,j,k,2) = 0.5*(momy(i,j,k) + momy(i,j+1,k));
+            cons(i,j,k,3) = 0.5*(momz(i,j,k) + momz(i,j,k+1));
 
             Real kinenergy = 0.;
             kinenergy += (momx(i+1,j,k) + momx(i,j,k))*(momx(i+1,j,k) + momx(i,j,k));

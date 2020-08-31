@@ -178,10 +178,10 @@ void main_driver(const char* argv)
     std::array< MultiFab, AMREX_SPACEDIM > cumomMeans;
     std::array< MultiFab, AMREX_SPACEDIM > cumomVars;
     for (int d=0; d<AMREX_SPACEDIM; d++) {
-        facevel[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
-        cumom[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
-        cumomMeans[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
-        cumomVars[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
+        facevel[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ngc);
+        cumom[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ngc);
+        cumomMeans[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ngc);
+        cumomVars[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ngc);
         cumomMeans[d].setVal(0.);
         cumomVars[d].setVal(0.);
     }
@@ -262,23 +262,23 @@ void main_driver(const char* argv)
     std::array< MultiFab, 2 > edgeflux_y; // divide by dy
     std::array< MultiFab, 2 > edgeflux_z; // divide by dz
 
-    edgeflux_x[0].define(convert(ba,nodal_flag_xy), dmap, 1, 1); // 0-2: rhoU, rhoV, rhoW
-    edgeflux_x[1].define(convert(ba,nodal_flag_xz), dmap, 1, 1);
+    edgeflux_x[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0); // 0-2: rhoU, rhoV, rhoW
+    edgeflux_x[1].define(convert(ba,nodal_flag_xz), dmap, 1, 0);
                  
-    edgeflux_y[0].define(convert(ba,nodal_flag_xy), dmap, 1, 1);
-    edgeflux_y[1].define(convert(ba,nodal_flag_yz), dmap, 1, 1);
+    edgeflux_y[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
+    edgeflux_y[1].define(convert(ba,nodal_flag_yz), dmap, 1, 0);
 
-    edgeflux_z[0].define(convert(ba,nodal_flag_xz), dmap, 1, 1);
-    edgeflux_z[1].define(convert(ba,nodal_flag_yz), dmap, 1, 1);
+    edgeflux_z[0].define(convert(ba,nodal_flag_xz), dmap, 1, 0);
+    edgeflux_z[1].define(convert(ba,nodal_flag_yz), dmap, 1, 0);
 
 #elif (AMREX_SPACEDIM == 2)
     Abort("Currently requires AMREX_SPACEDIM=3");
 #endif
 
     std::array< MultiFab, 3 > cenflux;
-    AMREX_D_TERM(cenflux[0].define(ba,dmap,1,ngc);, // 0-2: rhoU, rhoV, rhoW
-                 cenflux[1].define(ba,dmap,1,ngc);,
-                 cenflux[2].define(ba,dmap,1,ngc););
+    AMREX_D_TERM(cenflux[0].define(ba,dmap,1,1);, // 0-2: rhoU, rhoV, rhoW
+                 cenflux[1].define(ba,dmap,1,1);,
+                 cenflux[2].define(ba,dmap,1,1););
                 
 
     Real time = 0;
@@ -476,7 +476,7 @@ void main_driver(const char* argv)
     setBC(prim, cu);
     
     if (plot_int > 0) {
-	WritePlotFile(0, 0.0, geom, cu, cuMeans, cuVars,
+	WritePlotFileStag(0, 0.0, geom, cu, cuMeans, cuVars,
                       prim, primMeans, primVars, spatialCross, eta, kappa);
     }
 
@@ -513,7 +513,7 @@ void main_driver(const char* argv)
         if (plot_int > 0 && step > 0 && step%plot_int == 0) {
            yzAverage(cuMeans, cuVars, primMeans, primVars, spatialCross,
                      cuMeansAv, cuVarsAv, primMeansAv, primVarsAv, spatialCrossAv);
-           WritePlotFile(step, time, geom, cu, cuMeansAv, cuVarsAv,
+           WritePlotFileStag(step, time, geom, cu, cuMeansAv, cuVarsAv,
                          prim, primMeansAv, primVarsAv, spatialCrossAv, eta, kappa);
         }
 

@@ -19,6 +19,8 @@ GRTAGS
 
 ## All compiled programs
 **/*.gnu.*.ex
+**/*.o
+**/*.ex
 
 ## MacOS creates dynamic linker symbol files
 *.dSym
