@@ -22,7 +22,7 @@ stepmax  = 10000
 
 dx = 8.e-6
 dV = dx**3
-nc = 4*4
+nc = 8*8
 
 # surface
 
@@ -56,21 +56,25 @@ m4g = data4*dV*nc
 # output
 
 tmp = np.column_stack((m1s,m1g))
+np.savetxt(outfile1+"_final_vert",np.transpose(tmp[-1]))
 m1sum = np.sum(tmp,axis=1)
 tmp = np.column_stack((tmp,m1sum))
 np.savetxt(outfile1,tmp)
 
 tmp = np.column_stack((m2s,m2g))
+np.savetxt(outfile2+"_final_vert",np.transpose(tmp[-1]))
 m2sum = np.sum(tmp,axis=1)
 tmp = np.column_stack((tmp,m2sum))
 np.savetxt(outfile2,tmp)
 
 tmp = np.column_stack((m3s,m3g))
+np.savetxt(outfile3+"_final_vert",np.transpose(tmp[-1]))
 m3sum = np.sum(tmp,axis=1)
 tmp = np.column_stack((tmp,m3sum))
 np.savetxt(outfile3,tmp)
 
 tmp = np.column_stack((m4s,m4g))
+np.savetxt(outfile4+"_final_vert",np.transpose(tmp[-1]))
 m4sum = np.sum(tmp,axis=1)
 tmp = np.column_stack((tmp,m4sum))
 np.savetxt(outfile4,tmp)
