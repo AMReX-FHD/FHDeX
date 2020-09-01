@@ -1,6 +1,6 @@
 #!/bin/bash
 
-RUNDIR=RUN
+RUNDIR=RUN_4x4x40
 SPKSCR=in.kmc
 FHDSCR=inputs_fhd
 
@@ -32,6 +32,7 @@ mkdir $RUNDIR
 cp $0 $RUNDIR
 cp $SPKSCR $RUNDIR
 cp $FHDSCR $RUNDIR
+cp main_driver.cpp $RUNDIR
 cd $RUNDIR
 
 # check number of steps
@@ -45,6 +46,6 @@ fi
 
 # run the two executables simultaneously
 echo "** running kmc and fhd"
-time mpirun -np 1 ../$exec1 -var SEED 400 -screen none < $SPKSCR : -np 5 ../$exec2 $FHDSCR | tee log.fhd
+time mpirun -np 1 ../$exec1 -var SEED 100 -screen none < $SPKSCR : -np 2 ../$exec2 $FHDSCR | tee log.fhd
 
 ../scripts/coverage.sh

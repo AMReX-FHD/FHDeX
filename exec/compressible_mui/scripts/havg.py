@@ -29,11 +29,4 @@ for i in range(ntpt):
 # file output
 for n in range(nspec):
     outfile = "res.havg_spec%d" % (n+1)
-    f = open(outfile,'w')
-    line = "# z pts:"+str(zvec)+"\n"
-    f.write(line)
-    f.close()
-
-    f = open(outfile,'ab')
-    np.savetxt(f,res[n])
-    f.close()
+    np.savetxt(outfile,res[n])
