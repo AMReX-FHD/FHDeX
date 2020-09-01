@@ -182,7 +182,7 @@ void RK3stepStag(MultiFab& cu,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
             mompy(i,j,k) = momy(i,j,k)
                     -dt*(edgex_v(i+1,j,k) - edgex_v(i,j,k))/dx[0]
-                    -dt*(ceny_v(i,j,k) - cenx_u(i,j-1,k))/dx[1]
+                    -dt*(ceny_v(i,j,k) - ceny_v(i,j-1,k))/dx[1]
                     -dt*(edgez_v(i,j,k+1) - edgez_v(i,j,k))/dx[2]
                     +0.5*dt*grav_gpu[1]*(cu_fab(i,j-1,k,0)+cu_fab(i,j,k,0));
         },
@@ -190,7 +190,7 @@ void RK3stepStag(MultiFab& cu,
             mompz(i,j,k) = momz(i,j,k)
                     -dt*(edgex_w(i+1,j,k) - edgex_w(i,j,k))/dx[0]
                     -dt*(edgey_w(i,j+1,k) - edgey_w(i,j,k))/dx[1]
-                    -dt*(cenz_w(i,j,k) - cenx_u(i,j,k-1))/dx[2]
+                    -dt*(cenz_w(i,j,k) - cenz_w(i,j,k-1))/dx[2]
                     +0.5*dt*grav_gpu[2]*(cu_fab(i,j,k-1,0)+cu_fab(i,j,k,0));
         });
         
@@ -303,7 +303,7 @@ void RK3stepStag(MultiFab& cu,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
             momp2y(i,j,k) = 0.25*3.0*momy(i,j,k) + 0.25*mompy(i,j,k)
                     -0.25*dt*(edgex_v(i+1,j,k) - edgex_v(i,j,k))/dx[0]
-                    -0.25*dt*(ceny_v(i,j,k) - cenx_u(i,j-1,k))/dx[1]
+                    -0.25*dt*(ceny_v(i,j,k) - ceny_v(i,j-1,k))/dx[1]
                     -0.25*dt*(edgez_v(i,j,k+1) - edgez_v(i,j,k))/dx[2]
                     +0.5*0.25*dt*grav_gpu[1]*(cup_fab(i,j-1,k,0)+cup_fab(i,j,k,0));
         },
@@ -311,15 +311,15 @@ void RK3stepStag(MultiFab& cu,
             momp2z(i,j,k) = 0.25*3.0*momz(i,j,k) + 0.25*mompz(i,j,k)
                     -0.25*dt*(edgex_w(i+1,j,k) - edgex_w(i,j,k))/dx[0]
                     -0.25*dt*(edgey_w(i,j+1,k) - edgey_w(i,j,k))/dx[1]
-                    -0.25*dt*(cenz_w(i,j,k) - cenx_u(i,j,k-1))/dx[2]
+                    -0.25*dt*(cenz_w(i,j,k) - cenz_w(i,j,k-1))/dx[2]
                     +0.5*0.25*dt*grav_gpu[2]*(cup_fab(i,j,k-1,0)+cup_fab(i,j,k,0));
         });
         
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            cup2_fab(i,j,k,4) += 0.5 * 0.25 * dt * (  grav_gpu[0]*(momx(i+1,j,k)+momx(i,j,k))
-                                                    + grav_gpu[1]*(momy(i,j+1,k)+momy(i,j,k))
-                                                    + grav_gpu[2]*(momz(i,j,k+1)+momz(i,j,k)) );
+            cup2_fab(i,j,k,4) += 0.5 * 0.25 * dt * (  grav_gpu[0]*(mompx(i+1,j,k)+mompx(i,j,k))
+                                                    + grav_gpu[1]*(mompy(i,j+1,k)+mompy(i,j,k))
+                                                    + grav_gpu[2]*(mompz(i,j,k+1)+mompz(i,j,k)) );
         });
     }
         
@@ -420,7 +420,7 @@ void RK3stepStag(MultiFab& cu,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
             momy(i,j,k) = (2./3.)*(0.5*momy(i,j,k) + momp2y(i,j,k))
                   -(2./3.)*dt*(edgex_v(i+1,j,k) - edgex_v(i,j,k))/dx[0]
-                  -(2./3.)*dt*(ceny_v(i,j,k) - cenx_u(i,j-1,k))/dx[1]
+                  -(2./3.)*dt*(ceny_v(i,j,k) - ceny_v(i,j-1,k))/dx[1]
                   -(2./3.)*dt*(edgez_v(i,j,k+1) - edgez_v(i,j,k))/dx[2]
                   +0.5*(2/3.)*dt*grav_gpu[1]*(cup2_fab(i,j-1,k,0)+cup2_fab(i,j,k,0));
         },
@@ -428,19 +428,19 @@ void RK3stepStag(MultiFab& cu,
             momz(i,j,k) = (2./3.)*(0.5*momz(i,j,k) + momp2z(i,j,k))
                   -(2./3.)*dt*(edgex_w(i+1,j,k) - edgex_w(i,j,k))/dx[0]
                   -(2./3.)*dt*(edgey_w(i,j+1,k) - edgey_w(i,j,k))/dx[1]
-                  -(2./3.)*dt*(cenz_w(i,j,k) - cenx_u(i,j,k-1))/dx[2]
+                  -(2./3.)*dt*(cenz_w(i,j,k) - cenz_w(i,j,k-1))/dx[2]
                   +0.5*(2./3.)*dt*grav_gpu[2]*(cup2_fab(i,j,k-1,0)+cup2_fab(i,j,k,0));
         });
         
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            cup2_fab(i,j,k,4) += 0.5 * (2./3.) * dt * (  grav_gpu[0]*(momx(i+1,j,k)+momx(i,j,k))
-                                                    + grav_gpu[1]*(momy(i,j+1,k)+momy(i,j,k))
-                                                    + grav_gpu[2]*(momz(i,j,k+1)+momz(i,j,k)) );
+            cu_fab(i,j,k,4) += 0.5 * (2./3.) * dt * (  grav_gpu[0]*(momp2x(i+1,j,k)+momp2x(i,j,k))
+                                                    + grav_gpu[1]*(momp2y(i,j+1,k)+momp2y(i,j,k))
+                                                    + grav_gpu[2]*(momp2z(i,j,k+1)+momp2z(i,j,k)) );
         });
     }
 
-    conservedToPrimitiveStag(prim, facevel, cup, cupmom);
+    conservedToPrimitiveStag(prim, facevel, cu, cumom);
 
     // Set BC: 1) fill boundary 2) physical
     cu.FillBoundary(geom.periodicity());
