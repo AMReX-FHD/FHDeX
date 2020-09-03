@@ -61,7 +61,7 @@ c    1            vmsqt(1:ndim,4,4)
 
 c   
        mass1 = 6.63d-23
-       mass0 = mass1*1.d0
+       mass0 = mass1*3.d0
        d0=3.66d-8
        d1=3.66d-8
        seed = 632489
@@ -133,12 +133,10 @@ c   set up stuff to gather statistics
 
         
            do  i=1,npts
-             rho = rhoamb + .1*rhoamb*sin(2.d0*pi*x(i)/xlen)
-c            con(i,1) = rhoamb
-             con(i,1) = rho
+             con(i,1) = rhoamb
              con(i,2) = 0.d0
              con(i,3) = rhoamb*T0*(cv1*camb+cv0*(1.d0-camb))
-             con(i,4) = rho*camb
+             con(i,4) = rhoamb*camb
            enddo
              con(npts+1,2) = 0.d0
 

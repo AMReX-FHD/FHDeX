@@ -191,7 +191,7 @@ void InitConsVarStag(MultiFab& cons, std::array< MultiFab, AMREX_SPACEDIM >& mom
             } else if (prob_type_gpu == 100) { // sinusoidal density variation
 
                    Real y = itVec[1];
-                   Real Ly = realhi[1] - reallo[0];
+                   Real Ly = realhi[1] - reallo[1];
                    for (int l=0;l<nspecies_gpu;l++) {
                      Yk[l] = cu(i,j,k,5+l)/cu(i,j,k,0);
                    }
