@@ -5,6 +5,7 @@
 #include <FhdParticleContainer.H>
 #include <common_namespace.H>
 #include <kernel_functions_K.H>
+#include <math.h>
 
 /**
    Check if particle is near a boundary. Assumes boundary is parallel to either xy, zx, yz, plane
@@ -922,6 +923,46 @@ void spread_ions_fhd_gpu(FhdParticleContainer::AoS& aos,
     {
         spread_ions_fhd_gpu(aos, Kernel6P(), sourcex, sourcey, sourcez, plo_in, dx_in);
     }
+}
+
+void mob_interp_gpu(Real h, Real* tmob, Real* nmob)
+{
+
+//    !0.4706e-6, diff 1.1708e-05 1.326e-05
+    *tmob = std::max(0.935656798937413 + 10.48743922905448/pow(1.456211069295241 + h , 5) - 7.45512854038917/pow(1.456211069295241 + h , 3) - 0.1666926153450568/pow(1.456211069295241 + h , 1),0.0);
+    *nmob = std::max(0.8784836695101248 + 16.178193275967942/pow(1.8846739602964013 + h,3) - 13.450951287145715/pow(1.8846739602964013 + h,2) + 0.9286418269991527/(1.8846739602964013 + h),0.0);
+
+    //Single plane approximation
+    *nmob = std::max(1.0 - 9.0/(8.0*h) + 1.0/(2.0*pow(h,3.0)) - 1.0/(8.0*pow(h,5)) ,0.0);
+    *tmob = std::max(1.0 - 9.0/(16.0*h) + 2.0/(16.0*pow(h,3.0)) -1.0/(16.0*pow(h,5)),0.0);
+
+    //1e-6, diff 1.1708e-05 1.326e-05
+    *tmob = std::max(0.975240720746649 + 0.6618096094545308/pow(0.6399549837528644 + h,3) - 1.261848923090074/pow(0.6399549837528644 + h,2) -  0.2682891286963005/(0.6399549837528644 + h),0.0);
+    *nmob = std::max(0.9707837307169467 + 6.987793458468398/pow(1.5507333020341336 + h,3) - 6.037411430364329/pow(1.5507333020341336 + h,2) -  0.5177318798737919/(1.5507333020341336 + h),0.0);
+
+}
+
+void get_mobility_diff_gpu(Real* nmob, Real* tmob, FhdParticleContainer::ParticleType& part, Real z)
+{
+
+    //using namespace common;
+
+    Real awet = k_B*T_init[1]/(part.rdata(FHD_realData::wetDiff)*visc_coef*M_PI*6);
+    Real atotal = k_B*T_init[1]/(part.rdata(FHD_realData::totalDiff)*visc_coef*M_PI*6);
+
+    Real hwet = z/awet;
+    Real htotal = z/atotal;
+
+    Real tmobwet;
+    Real nmobwet;
+    Real tmobtotal;
+    Real nmobtotal;
+
+    mob_interp_gpu(hwet, &tmobwet, &nmobwet);
+    mob_interp_gpu(htotal, &tmobtotal, &nmobtotal);
+
+    *tmob = std::max((tmobtotal*part.rdata(FHD_realData::totalDiff) - tmobwet*part.rdata(FHD_realData::wetDiff))/part.rdata(FHD_realData::dryDiff),0.0);
+    *nmob = std::max((nmobtotal*part.rdata(FHD_realData::totalDiff) - nmobwet*part.rdata(FHD_realData::wetDiff))/part.rdata(FHD_realData::dryDiff),0.0);
 }
 
 #endif
