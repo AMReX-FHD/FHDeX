@@ -3289,7 +3289,9 @@ contains
     endif
 #endif
 
-    !print *, "z, a, nmob: ", z, a, nmob
+   ! print *, "z, nmob, pos: ", z, nmob, part%pos(3)
+
+   !call sleep(100)
   end subroutine get_explicit_mobility
 
   subroutine compute_dry_mobility(lo, hi, mobility, mlo, mhi, dx, plo, phi, ngc, species) &

@@ -947,8 +947,8 @@ void get_mobility_diff_gpu(Real* nmob, Real* tmob, FhdParticleContainer::Particl
 
     //using namespace common;
 
-    Real awet = k_B*T_init[0]/(part.rdata(FHD_realData::wetDiff)*visc_coef*M_PI*6);
-    Real atotal = k_B*T_init[0]/(part.rdata(FHD_realData::totalDiff)*visc_coef*M_PI*6);
+    Real awet = k_B*T_init[0]/(part.rdata(FHD_realData::wetDiff)*visc_coef*M_PI*6.0);
+    Real atotal = k_B*T_init[0]/(part.rdata(FHD_realData::totalDiff)*visc_coef*M_PI*6.0);
 
     Real hwet = z/awet;
     Real htotal = z/atotal;
@@ -964,6 +964,7 @@ void get_mobility_diff_gpu(Real* nmob, Real* tmob, FhdParticleContainer::Particl
     *tmob = std::max((tmobtotal*part.rdata(FHD_realData::totalDiff) - tmobwet*part.rdata(FHD_realData::wetDiff))/part.rdata(FHD_realData::dryDiff),0.0);
     *nmob = std::max((nmobtotal*part.rdata(FHD_realData::totalDiff) - nmobwet*part.rdata(FHD_realData::wetDiff))/part.rdata(FHD_realData::dryDiff),0.0);
 }
+
 
 void get_explicit_mobility_gpu(Real* mob, FhdParticleContainer::ParticleType& part, const Real* plo, const Real* phi)
 {                           
@@ -995,6 +996,7 @@ void get_explicit_mobility_gpu(Real* mob, FhdParticleContainer::ParticleType& pa
 
     if((bc_vel_lo[1] == 2) && (bc_vel_hi[1] == 2))
     {
+       z = part.pos(1);
 
        if(z > (phi[1]-plo[1])/2.0)
        {
@@ -1012,6 +1014,8 @@ void get_explicit_mobility_gpu(Real* mob, FhdParticleContainer::ParticleType& pa
     if((bc_vel_lo[2] == 2) && (bc_vel_hi[2] == 2))
     {
 
+       z = z = part.pos(2);;
+
        if(z > (phi[2]-plo[2])/2.0)
        {
           z = phi[2] - z;
@@ -1022,9 +1026,10 @@ void get_explicit_mobility_gpu(Real* mob, FhdParticleContainer::ParticleType& pa
        mob[0] = tmob;
        mob[1] = tmob;               
        mob[2] = nmob;
-
     }
 
+    //Print() << "z, nmob, pos: " << z << ", " << nmob << ", " << part.pos(2) << "\n";
+    //cin.get();
 }
 
 void dry_gpu(Real dt, FhdParticleContainer::ParticleType& part, Real* dry_terms, Real* mb)
