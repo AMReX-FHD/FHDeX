@@ -275,7 +275,7 @@ void main_driver(const char* argv)
     Abort("Currently requires AMREX_SPACEDIM=3");
 #endif
 
-    std::array< MultiFab, 3 > cenflux;
+    std::array< MultiFab, AMREX_SPACEDIM > cenflux;
     AMREX_D_TERM(cenflux[0].define(ba,dmap,1,1);, // 0-2: rhoU, rhoV, rhoW
                  cenflux[1].define(ba,dmap,1,1);,
                  cenflux[2].define(ba,dmap,1,1););
@@ -455,7 +455,7 @@ void main_driver(const char* argv)
         cu.setVal(rho0*rhobar[i],5+i,1,ngc); // mass densities
     }
 
-    for (int d=0; d<AMREX_SPACEDIM; d++) { // staggered momentum
+    for (int d=0; d<AMREX_SPACEDIM; d++) { // staggered momentum & velocities
       cumom[d].setVal(0.);
       facevel[d].setVal(0.);
     }
@@ -472,6 +472,9 @@ void main_driver(const char* argv)
 
     // Set BC: 1) fill boundary 2) physical (How to do for staggered? -- Ishan)
     cu.FillBoundary(geom.periodicity());
+    for (int d=0; d<AMREX_SPACEDIM; d++) {
+      cumom[d].FillBoundary(geom.periodicity());
+    }
     prim.FillBoundary(geom.periodicity());
     setBC(prim, cu);
     

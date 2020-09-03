@@ -47,3 +47,6 @@ exec/**/*_D_*
 exec/**/*_H
 
 exec/**/*.png
+
+## Output data
+exec/**/out
