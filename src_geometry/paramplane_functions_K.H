@@ -243,48 +243,44 @@ void app_bc_gpu(const paramPlane* surf, FhdParticleContainer::ParticleType& part
       }
       else if(amrex::Random() < surf->periodicity)
       {
-//        push = 0
+        *push = 0;
 
-//        if(surf%boundary .eq. 1) then
+        if(surf->boundary == 1)
+        {
 
-//          part%pos(1) = part%pos(1) + 0.9999999*domsize(1)
+          part.pos(0) = part.pos(0) + 0.9999999*domsize[0];
+        }
+        else if(surf->boundary == 2)
+        {
+          part.pos(0) = part.pos(0) - 0.9999999*domsize[0];
+        }
+        else if(surf->boundary == 3)
+        {
 
-//        elseif(surf%boundary .eq. 2) then
+          part.pos(1) = part.pos(1) + 0.9999999*domsize[1];
+        }
+        else if(surf->boundary == 4)
+        {
+          part.pos(1) = part.pos(1) - 0.9999999*domsize[1];
 
-//          part%pos(1) = part%pos(1) - 0.9999999*domsize(1)
-
-//        elseif(surf%boundary .eq. 3) then
-
-//          part%pos(2) = part%pos(2) + 0.9999999*domsize(2)
-
-//        elseif(surf%boundary .eq. 4) then
-
-//          part%pos(2) = part%pos(2) - 0.9999999*domsize(2)
-
-//#if (BL_SPACEDIM == 3)
-//        elseif(surf%boundary .eq. 5) then
-
-//          part%pos(3) = part%pos(3) + 0.9999999*domsize(3)
-
-//        elseif(surf%boundary .eq. 6) then
-
-//          part%pos(3) = part%pos(3) - 0.9999999*domsize(3)
-//#endif
-//        endif
+        }
+        else if(surf->boundary == 5)
+        {
+          part.pos(2) = part.pos(2) + 0.9999999*domsize[2];
+        }
+        else if(surf->boundary == 6)
+        {
+          part.pos(2) = part.pos(2) - 0.9999999*domsize[2];
+        }
 
       }else
       {
-//        push = 1      
+        *push = 1;
 
-//        if(get_uniform_func() > surf%momentumleft) then
-//#if (BL_SPACEDIM == 3)
-//          call randomhemisphere(surf%costhetaright, surf%sinthetaright, surf%cosphiright, surf%sinphiright, part%vel(1), part%vel(2), part%vel(3))
-//#endif
-//#if (BL_SPACEDIM == 2)
-//          call randomhemisphere(surf%costhetaright, surf%sinthetaright, part%vel(1), part%vel(2), part%vel(3))
-//#endif
-
-//        endif
+        if(amrex::Random() > surf->momentumConsLeft)
+        {
+          randomhemisphere(surf->cosThetaRight, surf->sinThetaRight, surf->cosPhiRight, surf->sinPhiRight, &part.rdata(FHD_realData::velx), &part.rdata(FHD_realData::vely), &part.rdata(FHD_realData::velz));
+        }
 
       }
   

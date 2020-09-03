@@ -548,7 +548,8 @@ void FhdParticleContainer::MoveIonsGPU1(const Real dt, const Real* dxFluid, cons
                         {
                            Real dummy = 1;
                            //std::cout << "Pre: " << part.rdata(FHD_realData::velx) << ", " << part.rdata(FHD_realData::vely) << ", " << part.rdata(FHD_realData::velz) << ", " << intside << "\n";
-                           app_bc(&surf, &part, &intside, domsize, &push, &dummy, &dummy);
+                           //app_bc(&surf, &part, &intside, domsize, &push, &dummy, &dummy);
+                           app_bc_gpu(&surf, part, intside, domsize, &push, dummy, dummy);
                            //std::cout << "Post: " << part.rdata(FHD_realData::velx) << ", " << part.rdata(FHD_realData::vely) << ", " << part.rdata(FHD_realData::velz) << ", " << intside << "\n";
 
                            runtime = runtime - inttime;
@@ -716,7 +717,8 @@ void FhdParticleContainer::MoveIonsGPU1(const Real dt, const Real* dxFluid, cons
                     const paramPlane& surf = paramPlaneList[intsurf-1];
 
                     Real dummy = 1;
-                    app_bc(&surf, &part, &intside, domsize, &push, &dummy, &dummy);
+                    //app_bc(&surf, &part, &intside, domsize, &push, &dummy, &dummy);
+                    app_bc_gpu(&surf, part, intside, domsize, &push, dummy, dummy);
                     //std::cout << "Post: " << part.id() << ", " << part.rdata(FHD_realData::velx) << ", " << part.rdata(FHD_realData::vely) << ", " << part.rdata(FHD_realData::velz) << ", " << intsurf << "\n";
 
                     if(push == 1)
