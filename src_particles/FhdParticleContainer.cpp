@@ -639,7 +639,9 @@ void FhdParticleContainer::MoveIonsGPU1(const Real dt, const Real* dxFluid, cons
                 Real dry_terms[3];
 
                 get_explicit_mobility(mb, &part, ZFILL(plo), ZFILL(phi));
-                dry(&dt,&part,dry_terms, mb);
+                //get_explicit_mobility_gpu(mb, part, plo, phi);
+                //dry(&dt,&part,dry_terms, mb);
+                dry_gpu(dt, part,dry_terms, mb);
 
                 for (int d=0; d<AMREX_SPACEDIM; ++d)
                 {                   
