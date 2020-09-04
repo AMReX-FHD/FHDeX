@@ -79,7 +79,9 @@
   !--------------
   nspecies = 2
 
-  molmass = 1.00784, 1.00784
+  ! molmass = 1.00784, 1.00784
+  !molmass = 39.92821140819353548164 39.92821140819353548164
+  molmass = 39.92820856716215701081 39.92820856716215701081
   diameter = 3.66e-8, 3.66e-8
   rhobar =  0.5, 0.5
 
@@ -89,7 +91,7 @@
   hcp = -1 -1 -1 -1
 
   ! how many steps to skip before taking structure factor snapshots
-  n_steps_skip = 40000
+  n_steps_skip = 100000
 
   ! how often to take structure factor snapshots
   struct_fact_int = 1
