@@ -214,27 +214,17 @@ void RK3stepStag(MultiFab& cu,
                                             + grav_gpu[1]*(momy(i,j+1,k)+momy(i,j,k))
                                             + grav_gpu[2]*(momz(i,j,k+1)+momz(i,j,k)) );
         });
-        //PrintMF(prim);
-        //Abort("Here");
     }
 
-    conservedToPrimitiveStag(prim, facevel, cup, cupmom);
-    
-    // Set BC: 1) fill boundary 2) physical
-    cup.FillBoundary(geom.periodicity());
     for (int d=0; d<AMREX_SPACEDIM; d++) {
       cupmom[d].FillBoundary(geom.periodicity());
     }
+    cup.FillBoundary(geom.periodicity());
+    conservedToPrimitiveStag(prim, facevel, cup, cupmom);
+    for (int d=0; d<AMREX_SPACEDIM; d++) {
+      facevel[d].FillBoundary(geom.periodicity());
+    }
     prim.FillBoundary(geom.periodicity());
-    //amrex::VisMF::Write(prim,"prim");
-    //amrex::VisMF::Write(cup,"cup");
-    //amrex::VisMF::Write(cupmom[0],"momx");
-    //amrex::VisMF::Write(cupmom[1],"momy");
-    //amrex::VisMF::Write(cupmom[2],"momz");
-    //amrex::VisMF::Write(facevel[0],"velx");
-    //amrex::VisMF::Write(facevel[1],"vely");
-    //amrex::VisMF::Write(facevel[2],"velz");
-    //Abort("Here");
     setBC(prim, cup);
 
     // Compute transport coefs after setting BCs
@@ -363,12 +353,13 @@ void RK3stepStag(MultiFab& cu,
         });
     }
         
-    conservedToPrimitiveStag(prim, facevel, cup2, cup2mom);
-
-    // Set BC: 1) fill boundary 2) physical
-    cup2.FillBoundary(geom.periodicity());
     for (int d=0; d<AMREX_SPACEDIM; d++) {
       cup2mom[d].FillBoundary(geom.periodicity());
+    }
+    cup2.FillBoundary(geom.periodicity());
+    conservedToPrimitiveStag(prim, facevel, cup2, cup2mom);
+    for (int d=0; d<AMREX_SPACEDIM; d++) {
+      facevel[d].FillBoundary(geom.periodicity());
     }
     prim.FillBoundary(geom.periodicity());
     setBC(prim, cup2);
@@ -405,6 +396,7 @@ void RK3stepStag(MultiFab& cu,
 
     calculateFluxStag(cup2, cup2mom, prim, facevel, eta, zeta, kappa, chi, D, faceflux, edgeflux_x, edgeflux_y, edgeflux_z, cenflux, stochFlux,
                       rancorn, geom, stoch_weights, dxp, dt);
+
 
     for (int d=0; d<AMREX_SPACEDIM; d++) {
       cenflux[d].FillBoundary(geom.periodicity());
@@ -494,15 +486,15 @@ void RK3stepStag(MultiFab& cu,
         });
     }
 
-    conservedToPrimitiveStag(prim, facevel, cu, cumom);
-
-    // Set BC: 1) fill boundary 2) physical
-    cu.FillBoundary(geom.periodicity());
     for (int d=0; d<AMREX_SPACEDIM; d++) {
       cumom[d].FillBoundary(geom.periodicity());
     }
+    cu.FillBoundary(geom.periodicity());
+    conservedToPrimitiveStag(prim, facevel, cu, cumom);
+    for (int d=0; d<AMREX_SPACEDIM; d++) {
+      facevel[d].FillBoundary(geom.periodicity());
+    }
     prim.FillBoundary(geom.periodicity());
-
     setBC(prim, cu);
 }
 
