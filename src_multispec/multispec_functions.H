@@ -1,5 +1,9 @@
-#ifndef _multispec_functions_Ho
+#ifndef _multispec_functions_H_
 #define _multispec_functions_H_
+
+// used for binary diffusion coefficients
+// needs to be MAX_SPECIES*(MAX_SPECIES-1)/2, MAX_SPECIES is in common_functions.H
+#define MAX_ELEMENT 6
 
 #include <AMReX_MultiFab.H>
 

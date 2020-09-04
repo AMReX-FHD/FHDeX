@@ -1,13 +1,10 @@
 #include "multispec_functions.H"
 
-
 void InitializeMultispecNamespace() {
 
-    int max_element = MAX_SPECIES*(MAX_SPECIES-1)/2;
-
-    Dbar.resize(max_element);
+    Dbar.resize(MAX_ELEMENT);
     Dtherm.resize(MAX_SPECIES);
-    H_offdiag.resize(max_element);
+    H_offdiag.resize(MAX_ELEMENT);
     H_diag.resize(MAX_SPECIES);
 
     c_init.resize(2*MAX_SPECIES);
