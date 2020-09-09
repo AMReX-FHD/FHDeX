@@ -168,8 +168,6 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
     //////////////////
     // evaluate_corrs
     //////////////////
-
-#if 0
     
     MultiFab slices_mf(prim_in.boxArray(),prim_in.DistributionMap(),20,0);
 
@@ -205,7 +203,7 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
         for (auto i = lo.x; i <= hi.x; ++i) {
 
             slices(i,lo.y,lo.z,0) = slices(i,lo.y,lo.z,0) + cu(i,j,k,0); // rho instant slices
-            slices(i,lo.y,lo.z,1) = slices(i,lo.y,lo.z,0) + cumeans(i,j,k,0); // rho mean slices
+            slices(i,lo.y,lo.z,1) = slices(i,lo.y,lo.z,1) + cumeans(i,j,k,0); // rho mean slices
             slices(i,lo.y,lo.z,2) = slices(i,lo.y,lo.z,2) + cu(i,j,k,4); // energy instant slices
             slices(i,lo.y,lo.z,3) = slices(i,lo.y,lo.z,3) + cumeans(i,j,k,4); // energy mean slices
 
@@ -383,23 +381,6 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
         }
     
     } // end MFIter
-
-#else
-    for ( MFIter mfi(prim_in); mfi.isValid(); ++mfi) {
-        
-        const Box& bx = mfi.validbox();
-
-        evaluate_corrs(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),  
-                       cons[mfi].dataPtr(),  
-                       consMean[mfi].dataPtr(),
-                       consVar[mfi].dataPtr(),
-                       prim_in[mfi].dataPtr(),
-                       primMean[mfi].dataPtr(),
-                       primVar[mfi].dataPtr(),
-                       spatialCross[mfi].dataPtr(),
-                       &steps, miscStats[mfi].dataPtr(), miscVals);
-    }
-#endif
 }
 
 void yzAverage(const MultiFab& consMean,
