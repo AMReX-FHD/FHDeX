@@ -7,7 +7,7 @@
    across = 4.d-10
 
    ntherm = 00
-   nstep =  1000
+   nstep =  10
    nout = 10
    nstat = 10
    iper = 1
