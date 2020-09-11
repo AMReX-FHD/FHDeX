@@ -6,6 +6,7 @@
 #include <FhdParticleContainer.H>
 #include <math.h>
 
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void pre_check_gpu(FhdParticleContainer::ParticleType& part, const amrex_real delt, const paramPlane* paramplanes, 
                                                 const int ns, int* flag, const amrex_real* phi, const amrex_real* plo)
 {
@@ -47,6 +48,7 @@ void pre_check_gpu(FhdParticleContainer::ParticleType& part, const amrex_real de
 #endif
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void find_inter_gpu(FhdParticleContainer::ParticleType& part, const amrex_real delt, const paramPlane* paramplanes, const int ns, int* intsurf,
                         amrex_real* inttime, int* intside, const amrex_real* phi, const amrex_real* plo)
 {
@@ -101,6 +103,7 @@ void find_inter_gpu(FhdParticleContainer::ParticleType& part, const amrex_real d
 
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void rotation(Real costheta, Real sintheta, Real cosphi, Real sinphi, Real *cx, Real *cy, Real *cz)
 {
 
@@ -110,8 +113,9 @@ void rotation(Real costheta, Real sintheta, Real cosphi, Real sinphi, Real *cx, 
 
     *cx = cxnew;
 
- }
+}
 
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void randomhemisphere(Real costheta, Real sintheta, Real cosphi, Real sinphi, Real *cx, Real *cy, Real *cz)
 {
     Real mag, costhetanew, sinthetanew, cosphinew, sinphinew, phi;
@@ -136,6 +140,7 @@ void randomhemisphere(Real costheta, Real sintheta, Real cosphi, Real sinphi, Re
 
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void app_bc_gpu(const paramPlane* surf, FhdParticleContainer::ParticleType& part, int intside, Real* domsize, int *push, Real time, Real inttime)
 {
     
