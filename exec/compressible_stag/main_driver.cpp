@@ -483,6 +483,7 @@ void main_driver(const char* argv)
                       prim, primMeans, primVars, spatialCross, eta, kappa);
     }
 
+
     //Time stepping loop
     for(step=1;step<=max_step;++step) {
 
@@ -514,10 +515,46 @@ void main_driver(const char* argv)
 
         // write a plotfile
         if (plot_int > 0 && step > 0 && step%plot_int == 0) {
-           yzAverage(cuMeans, cuVars, primMeans, primVars, spatialCross,
-                     cuMeansAv, cuVarsAv, primMeansAv, primVarsAv, spatialCrossAv);
-           WritePlotFileStag(step, time, geom, cu, cuMeansAv, cuVarsAv,
-                         prim, primMeansAv, primVarsAv, spatialCrossAv, eta, kappa);
+           //yzAverage(cuMeans, cuVars, primMeans, primVars, spatialCross,
+           //          cuMeansAv, cuVarsAv, primMeansAv, primVarsAv, spatialCrossAv);
+           //WritePlotFileStag(step, time, geom, cu, cuMeansAv, cuVarsAv,
+           //              prim, primMeansAv, primVarsAv, spatialCrossAv, eta, kappa);
+           //std::string momout = "mom"+ std::to_string(step) + ".txt"; 
+           //std::string rhoout = "rho"+ std::to_string(step) + ".txt"; 
+           //std::string pressout = "press"+ std::to_string(step) + ".txt"; 
+           //std::string Tout = "T"+ std::to_string(step) + ".txt"; 
+           //std::ofstream mout(momout);
+           //std::ofstream rout(rhoout);
+           //std::ofstream pout(pressout);
+           //std::ofstream tout(Tout);
+           {
+               std::string plotfilename = std::to_string(ParallelDescriptor::MyProc()) + "_" + "xmom" + std::to_string(step);
+               std::ofstream ofs(plotfilename, std::ofstream::out);
+               MultiFab output(cumom[0], amrex::make_alias, 0, 1);
+               for (MFIter mfi(output); mfi.isValid(); ++mfi) {
+                   ofs<<std::scientific<<std::setprecision(13)<<(output[mfi])<<std::endl;
+               }
+           }
+
+           {
+               std::string plotfilename = std::to_string(ParallelDescriptor::MyProc()) + "_" + "ymom" + std::to_string(step);
+               std::ofstream ofs(plotfilename, std::ofstream::out);
+               MultiFab output(cumom[1], amrex::make_alias, 0, 1);
+               for (MFIter mfi(output); mfi.isValid(); ++mfi) {
+                   ofs<<std::scientific<<std::setprecision(13)<<(output[mfi])<<std::endl;
+               }
+           }
+
+           {
+               std::string plotfilename = std::to_string(ParallelDescriptor::MyProc()) + "_" + "zmom" + std::to_string(step);
+               std::ofstream ofs(plotfilename, std::ofstream::out);
+               MultiFab output(cumom[2], amrex::make_alias, 0, 1);
+               for (MFIter mfi(output); mfi.isValid(); ++mfi) {
+                   ofs<<std::scientific<<std::setprecision(13)<<(output[mfi])<<std::endl;
+               }
+           }
+           //outputMFAscii(cumom[1],"ymom"+std::to_string(step));
+
         }
 
         if (chk_int > 0 && step > 0 && step%chk_int == 0)
