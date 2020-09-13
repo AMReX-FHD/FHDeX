@@ -155,7 +155,7 @@ void app_bc_gpu(const paramPlane* surf, FhdParticleContainer::ParticleType& part
 //        surf%fyright = surf%fyright + part%mass*part%vel(2)
 //        surf%fzright = surf%fzright + part%mass*part%vel(3)
 
-        if(get_uniform_func() < surf->specularityRight)
+        if(amrex::Random() < surf->specularityRight)
         {
 
           Real dotprod = part.rdata(FHD_realData::velx)*surf->rnx + part.rdata(FHD_realData::vely)*surf->rny + part.rdata(FHD_realData::velz)*surf->rnz;

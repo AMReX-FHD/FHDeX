@@ -487,7 +487,6 @@ void FhdParticleContainer::MoveIonsGPU(const Real dt, const Real* dxFluid, const
 
     InterpolateMarkersGpu(0, dxFluid, umac, RealFaceCoords, check);
 
-
     if(move_tog == 2)
     {
         for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
@@ -511,6 +510,10 @@ void FhdParticleContainer::MoveIonsGPU(const Real dt, const Real* dxFluid, const
             {
                 Real posOld[3];
                 Real velOld[3];
+                Real posAlt[3];
+
+                Real adj = 0.99999;
+                Real adjalt = 2.0*(1.0-0.99999);
 
                 ParticleType& part = pstruct[i];
                 (*moves_tile_ptr)++;
@@ -531,81 +534,6 @@ void FhdParticleContainer::MoveIonsGPU(const Real dt, const Real* dxFluid, const
                 while(runtime > 0)
                 {
                     find_inter_gpu(part, runtime, paramPlaneList, paramPlaneCount, &intsurf, &inttime, &intside, ZFILL(plo), ZFILL(phi));
-//                    
-//                    for (int d=0; d<AMREX_SPACEDIM; ++d)
-//                    {
-//                        posAlt[d] = inttime * part.rdata(FHD_realData::velx + d)*adjalt;
-//                    }
-//                    for (int d=0; d<AMREX_SPACEDIM; ++d)
-//                    {
-//                        part.pos(d) += inttime * part.rdata(FHD_realData::velx + d)*adj;
-//                    }
-
-//                    if(intsurf > 0)
-//                    {
-
-//                        const paramPlane& surf = paramPlaneList[intsurf-1]; //intsurf-1 for fortran find_inter, intsurf for c++ find_inter_gpu
-
-//                        if(surf.periodicity == 0)
-//                        {
-//                           Real dummy = 1;
-//                           //std::cout << "Pre: " << part.rdata(FHD_realData::velx) << ", " << part.rdata(FHD_realData::vely) << ", " << part.rdata(FHD_realData::velz) << ", " << intside << "\n";
-//                           //app_bc(&surf, &part, &intside, domsize, &push, &dummy, &dummy);
-//                           app_bc_gpu(&surf, part, intside, domsize, &push, dummy, dummy);
-//                           //std::cout << "Post: " << part.rdata(FHD_realData::velx) << ", " << part.rdata(FHD_realData::vely) << ", " << part.rdata(FHD_realData::velz) << ", " << intside << "\n";
-
-//                           runtime = runtime - inttime;
-
-//                        }else
-//                        {
-//                          runtime = runtime - inttime;
-
-//                          for (int d=0; d<AMREX_SPACEDIM; ++d)
-//                          {
-//         
-//                            part.pos(d) += runtime * part.rdata(FHD_realData::velx + d);
-//                          }
-//                          runtime = 0;
-
-//                        }
-
-//                    }else
-//                    {
-//                       runtime = 0;
-
-//                    }
-
-
-                }
-            });
-
-
-            for (int i = 0; i < np; ++ i) {
-                ParticleType & part = particles[i];
-
-
-//                for (int d=0; d<AMREX_SPACEDIM; ++d)
-//                {
-//                    part.rdata(FHD_realData::pred_posx + d) = part.pos(d);
-//                    //part.pos(d) += dt * part.rdata(FHD_realData::velx + d);
-//                }
-
-                moves_tile++;
-                for (int d=0; d<AMREX_SPACEDIM; ++d)
-                {
-                    velOld[d] = part.rdata(FHD_realData::velx + d);
-                    part.rdata(FHD_realData::pred_posx + d) = part.pos(d);
-                }
-
-                runtime = 0.5*dt;
-                inttime = 0;
-                midpoint = 0;
-
-
-                while(runtime > 0)
-                {
-                    //find_inter(&part, &runtime, paramPlaneList, &paramPlaneCount, &intsurf, &inttime, &intside, ZFILL(plo), ZFILL(phi));
-                    find_inter_gpu(part, runtime, paramPlaneList, paramPlaneCount, &intsurf, &inttime, &intside, ZFILL(plo), ZFILL(phi));
                     
                     for (int d=0; d<AMREX_SPACEDIM; ++d)
                     {
@@ -619,16 +547,18 @@ void FhdParticleContainer::MoveIonsGPU(const Real dt, const Real* dxFluid, const
                     if(intsurf > 0)
                     {
 
-                        const paramPlane& surf = paramPlaneList[intsurf-1]; //intsurf-1 for fortran find_inter, intsurf for c++ find_inter_gpu
+                        const paramPlane& surf = paramPlaneList[intsurf-1]; //find_inter indexes from 1 to maintain compatablity with fortran version
 
                         if(surf.periodicity == 0)
                         {
                            Real dummy = 1;
-                           //std::cout << "Pre: " << part.rdata(FHD_realData::velx) << ", " << part.rdata(FHD_realData::vely) << ", " << part.rdata(FHD_realData::velz) << ", " << intside << "\n";
-                           //app_bc(&surf, &part, &intside, domsize, &push, &dummy, &dummy);
-                           app_bc_gpu(&surf, part, intside, domsize, &push, dummy, dummy);
-                           //std::cout << "Post: " << part.rdata(FHD_realData::velx) << ", " << part.rdata(FHD_realData::vely) << ", " << part.rdata(FHD_realData::velz) << ", " << intside << "\n";
+                           Real domsize[3];
 
+                           for (int d=0; d<AMREX_SPACEDIM; ++d)
+                           {
+                               domsize[d] = phi[d]-plo[d];
+                           }
+                           app_bc_gpu(&surf, part, intside, domsize, &push, dummy, dummy);
                            runtime = runtime - inttime;
 
                         }else
@@ -652,22 +582,9 @@ void FhdParticleContainer::MoveIonsGPU(const Real dt, const Real* dxFluid, const
 
 
                 }
+            });
 
-//                for (int d=0; d<AMREX_SPACEDIM; ++d)
-//                {
-
-//                  part.rdata(FHD_realData::velx + d) = 0;
-//                }
-
-            
-             
-            }
-
-            moves_proc    += moves_tile;
-
-            //std::cout << "Moves " << moves_tile << std::endl;
-
-                
+            moves_proc    += moves_tile;        
         }
 
 
@@ -1095,7 +1012,7 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
                     if(intsurf > 0)
                     {
 
-                        const paramPlane& surf = paramPlaneList[intsurf-1]; //intsurf-1 for fortran find_inter, intsurf for c++ find_inter_gpu
+                        const paramPlane& surf = paramPlaneList[intsurf-1]; //find_inter indexes from 1 to maintain compatablity with fortran version
 
                         if(surf.periodicity == 0)
                         {
@@ -1263,7 +1180,7 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
                 runtime = runtime - inttime;
                 if(intsurf > 0)
                 {
-                    const paramPlane& surf = paramPlaneList[intsurf-1];
+                    const paramPlane& surf = paramPlaneList[intsurf-1];//find_inter indexes from 1 to maintain compatablity with fortran version
 
                     Real dummy = 1;
                     //app_bc(&surf, &part, &intside, domsize, &push, &dummy, &dummy);
