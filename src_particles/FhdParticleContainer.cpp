@@ -503,7 +503,7 @@ void FhdParticleContainer::MoveIonsGPU(const Real dt, const Real* dxFluid, const
 
             //This is how I'm making vars accessible in the AMREX_FOR_1D, I suspect it's not optimal -DRL
             const auto pstruct = particles().dataPtr();
-            Gpu::DeviceScalar<int> moves_tile_gpu(moves_tile);
+            Gpu::DeviceScalar<int> moves_tile_gpu(0);
             int* moves_tile_ptr = moves_tile_gpu.dataPtr();
             //testloop
             AMREX_FOR_1D( np, i,
@@ -517,6 +517,8 @@ void FhdParticleContainer::MoveIonsGPU(const Real dt, const Real* dxFluid, const
 
                 ParticleType& part = pstruct[i];
                 (*moves_tile_ptr)++;
+
+//                std::cout << "moves tile: " << (*moves_tile_ptr) << ", " << moves_tile_gpu.dataValue() << std::endl;
 
                 for (int d=0; d<AMREX_SPACEDIM; ++d)
                 {
@@ -584,7 +586,7 @@ void FhdParticleContainer::MoveIonsGPU(const Real dt, const Real* dxFluid, const
                 }
             });
 
-            moves_proc    += moves_tile;        
+            moves_proc += moves_tile_gpu.dataValue();        
         }
 
 
