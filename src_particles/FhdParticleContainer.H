@@ -215,7 +215,15 @@ public:
                   const MultiFab& mobility,
                   const paramPlane* paramPlaneList, const int paramPlaneCount, int sw);
 
-    void MoveIonsGPU1(const Real dt, const Real* dxFluid, const Real* dxE, const Geometry geomF,
+    void MoveIonsCPP(const Real dt, const Real* dxFluid, const Real* dxE, const Geometry geomF,
+                                    const std::array<MultiFab, AMREX_SPACEDIM>& umac, const std::array<MultiFab, AMREX_SPACEDIM>& efield,
+                                    const std::array<MultiFab, AMREX_SPACEDIM>& RealFaceCoords,
+                                    std::array<MultiFab, AMREX_SPACEDIM>& source,
+                                    std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
+                                    const MultiFab& mobility,
+                                    const paramPlane* paramPlaneList, const int paramPlaneCount, int sw);
+
+    void MoveIonsGPU(const Real dt, const Real* dxFluid, const Real* dxE, const Geometry geomF,
                                     const std::array<MultiFab, AMREX_SPACEDIM>& umac, const std::array<MultiFab, AMREX_SPACEDIM>& efield,
                                     const std::array<MultiFab, AMREX_SPACEDIM>& RealFaceCoords,
                                     std::array<MultiFab, AMREX_SPACEDIM>& source,
@@ -357,6 +365,7 @@ public:
     int n_list;
 
     struct CHECK_PAIR {
+        AMREX_GPU_HOST_DEVICE AMREX_INLINE
         bool operator()(const ParticleType & p1, const ParticleType & p2) const {
             return true;
         }

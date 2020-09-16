@@ -1,7 +1,7 @@
 #ifndef _common_functions_H_
 #define _common_functions_H_
 
-#define MAX_SPECIES 10
+#define MAX_SPECIES 4
 #define LOHI 2
 
 #include <AMReX.H>
