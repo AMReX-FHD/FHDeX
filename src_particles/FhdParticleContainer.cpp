@@ -25,6 +25,8 @@
 #include <iostream>
 #include <fstream>
 
+#include <cstdio>
+
 
 using namespace amrex;
 
@@ -501,6 +503,8 @@ void FhdParticleContainer::MoveIonsGPU(const Real dt, const Real* dxFluid, const
 
             moves_tile = 0;
 
+                printf("DT C%f\n",dt);
+
             //This is how I'm making vars accessible in the AMREX_FOR_1D, I suspect it's not optimal -DRL
             const auto pstruct = particles().dataPtr();
             Gpu::DeviceScalar<int> moves_tile_gpu(0);
@@ -535,85 +539,89 @@ void FhdParticleContainer::MoveIonsGPU(const Real dt, const Real* dxFluid, const
                 int push;
                 while(runtime > 0)
                 {
+                    printf("delt pre %e\n",inttime);
                     find_inter_gpu(part, runtime, paramPlaneList, paramPlaneCount, &intsurf, &inttime, &intside, ZFILL(plo), ZFILL(phi));
-                    
+
                     for (int d=0; d<AMREX_SPACEDIM; ++d)
                     {
                         posAlt[d] = inttime * part.rdata(FHD_realData::velx + d)*adjalt;
+                        //printf("test %e\n",inttime);
                     }
                     for (int d=0; d<AMREX_SPACEDIM; ++d)
                     {
-                        part.pos(d) += inttime * part.rdata(FHD_realData::velx + d)*adj;
+                        //part.pos(d) += part.rdata(FHD_realData::velx + d)*adj;
+                        //part.pos(d) += part.rdata(FHD_realData::velx + d)*adj*inttime;
+                        //printf("test %f\n",inttime);
                     }
 
-                    if(intsurf > 0)
-                    {
+//                    if(intsurf > 0)
+//                    {
 
-                        const paramPlane& surf = paramPlaneList[intsurf-1]; //find_inter indexes from 1 to maintain compatablity with fortran version
+//                        const paramPlane& surf = paramPlaneList[intsurf-1]; //find_inter indexes from 1 to maintain compatablity with fortran version
 
-                        if(surf.periodicity == 0)
-                        {
-                           Real dummy = 1;
-                           Real domsize[3];
+//                        if(surf.periodicity == 0)
+//                        {
+//                           Real dummy = 1;
+//                           Real domsize[3];
 
-                           for (int d=0; d<AMREX_SPACEDIM; ++d)
-                           {
-                               domsize[d] = phi[d]-plo[d];
-                           }
-                           app_bc_gpu(&surf, part, intside, domsize, &push, dummy, dummy);
-                           runtime = runtime - inttime;
+//                           for (int d=0; d<AMREX_SPACEDIM; ++d)
+//                           {
+//                               domsize[d] = phi[d]-plo[d];
+//                           }
+//                           app_bc_gpu(&surf, part, intside, domsize, &push, dummy, dummy);
+//                           runtime = runtime - inttime;
 
-                        }else
-                        {
-                          runtime = runtime - inttime;
+//                        }else
+//                        {
+//                          runtime = runtime - inttime;
 
-                          for (int d=0; d<AMREX_SPACEDIM; ++d)
-                          {
-         
-                            part.pos(d) += runtime * part.rdata(FHD_realData::velx + d);
-                          }
-                          runtime = 0;
+//                          for (int d=0; d<AMREX_SPACEDIM; ++d)
+//                          {
+//         
+//                            part.pos(d) += runtime * part.rdata(FHD_realData::velx + d);
+//                          }
+//                          runtime = 0;
 
-                        }
+//                        }
 
-                    }else
-                    {
-                       runtime = 0;
+//                    }else
+//                    {
+//                       runtime = 0;
 
-                    }
+//                    }
 
-
+                      runtime = 0;
                 }
             });
 
-            moves_proc += moves_tile_gpu.dataValue();        
+            //moves_proc += moves_tile_gpu.dataValue();        
         }
 
 
  
         //Need to add midpoint rejecting feature here.
-        InterpolateMarkersGpu(0, dxFluid, umac, RealFaceCoords, check);
+        //InterpolateMarkersGpu(0, dxFluid, umac, RealFaceCoords, check);
         //std::cout << "check: " << check << "\n";
  
-        for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
+//        for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
 
-            TileIndex index(pti.index(), pti.LocalTileIndex());
+//            TileIndex index(pti.index(), pti.LocalTileIndex());
 
-            AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
-            long np = this->GetParticles(lev).at(index).numParticles();
+//            AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
+//            long np = this->GetParticles(lev).at(index).numParticles();
 
-            for (int i = 0; i < np; ++ i) {
-                ParticleType & part = particles[i];
+//            for (int i = 0; i < np; ++ i) {
+//                ParticleType & part = particles[i];
 
-                for (int d=0; d<AMREX_SPACEDIM; ++d)
-                {                   
-                    part.pos(d) = part.rdata(FHD_realData::pred_posx + d);
-                }
+//                for (int d=0; d<AMREX_SPACEDIM; ++d)
+//                {                   
+//                    part.pos(d) = part.rdata(FHD_realData::pred_posx + d);
+//                }
 
 
 
-            }
-        }
+//            }
+//        }
     }
 
 
@@ -957,9 +965,7 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
     Real posAlt[3];
     Real check;
 
-
     InterpolateMarkersGpu(0, dxFluid, umac, RealFaceCoords, check);
-
 
     if(move_tog == 2)
     {

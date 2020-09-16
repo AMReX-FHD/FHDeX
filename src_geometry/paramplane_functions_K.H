@@ -7,9 +7,11 @@
 #include <math.h>
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
-void pre_check_gpu(FhdParticleContainer::ParticleType& part, const amrex_real delt, const paramPlane* paramplanes, 
-                                                const int ns, int* flag, const amrex_real* phi, const amrex_real* plo)
+void pre_check_gpu(FhdParticleContainer::ParticleType& part, const Real delt, const paramPlane* paramplanes, 
+                                                const int ns, int* flag, const Real* phi, const Real* plo, Real* inttime)
 {
+
+    //printf("delt preCheck1 %e\n",*inttime);
 
     Real proj[3];
     Real box1lo[3];
@@ -22,6 +24,8 @@ void pre_check_gpu(FhdParticleContainer::ParticleType& part, const amrex_real de
         proj[d] = part.pos(d) + delt*part.rdata(FHD_realData::velx + 0);
     }
 
+    //printf("delt preCheck2 %e\n",*inttime);
+
     for (int d=0; d<AMREX_SPACEDIM; ++d)
     {
         box1lo[d] = plo[d];
@@ -31,7 +35,8 @@ void pre_check_gpu(FhdParticleContainer::ParticleType& part, const amrex_real de
         box2hi[d] = phi[d];
     }
 
-#if (BL_SPACEDIM == 3)
+    //printf("delt preCheck3 %e\n",*inttime);
+
     if(  (part.pos(0) < box1hi[0]) && (part.pos(1) < box1hi[1]) && (part.pos(2) < box1hi[2]) && (part.pos(0) > box1lo[0]) && (part.pos(1) > box1lo[1]) && (part.pos(2) > box1lo[2])  )
     {
         if(  (proj[0] < box1hi[0]) && (proj[1] < box1hi[1]) && (proj[2] < box1hi[2]) && (proj[0] > box1lo[0]) && (proj[1] > box1lo[1]) && (proj[2] > box1lo[2]) )
@@ -45,23 +50,35 @@ void pre_check_gpu(FhdParticleContainer::ParticleType& part, const amrex_real de
             *flag = 1;
         }
     }
-#endif
+
+    //printf("delt preCheck4 %e\n",*inttime);
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
-void find_inter_gpu(FhdParticleContainer::ParticleType& part, const amrex_real delt, const paramPlane* paramplanes, const int ns, int* intsurf,
-                        amrex_real* inttime, int* intside, const amrex_real* phi, const amrex_real* plo)
+void dummy(Real* inttime)
+{
+        printf("delt dummy %e\n",*inttime);
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
+void find_inter_gpu(FhdParticleContainer::ParticleType& part, const Real delt, const paramPlane* paramplanes, const int ns, int* intsurf,
+                        Real* inttime, int* intside, const Real* phi, const Real* plo)
 {
 
     int flag = 0;
     *inttime = delt;
     *intsurf = -1;
     Real uval, vval, tval;
-    
-    pre_check_gpu(part, delt, paramplanes, ns, &flag, phi, plo);
+
+    //dummy(inttime);
+    //printf("delt post1 %e\n",*inttime);
+    pre_check_gpu(part, delt, paramplanes, ns, &flag, phi, plo, inttime);
+       // printf("delt post2 %e\n",*inttime);
 
     if(flag == 0)
     {
+
+        //printf("delt flag %e\n",*inttime);
         for(int s=1;s<=ns;s++)
         {
             const paramPlane* surf = &paramplanes[s-1];
@@ -100,6 +117,8 @@ void find_inter_gpu(FhdParticleContainer::ParticleType& part, const amrex_real d
         }
 
     }
+
+    //printf("delt post3 %e\n",*inttime);
 
 }
 
