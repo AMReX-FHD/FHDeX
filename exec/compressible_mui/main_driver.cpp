@@ -322,6 +322,8 @@ void main_driver(const char* argv)
     MultiFab cup2(ba,dmap,nvars,ngc);
     MultiFab cup3(ba,dmap,nvars,ngc);
 
+    MultiFab cu_temp(ba,dmap,nvars,ngc);
+
     //primative quantaties
     // in C++ indexing (add +1 for F90)
     // 0            (rho; density)
@@ -631,8 +633,15 @@ void main_driver(const char* argv)
         RK3step(cu, cup, cup2, cup3, prim, source, eta, zeta, kappa, chi, D, flux,
                 stochFlux, cornx, corny, cornz, visccorn, rancorn, geom, dx, dt);
 
-        mui_fetch(cu, prim, dx, uniface, step);
+        // set cu_temp to zero since mui_fetch *increments* cu_temp
+        cu_temp.setVal(0.);
 
+        // store the *increment* in cu_temp
+        mui_fetch(cu_temp, prim, dx, uniface, step);
+
+        // add cu_temp to cu
+        MultiFab::Add(cu,cu_temp,0,0,nvars,ngc);
+        
         conservedToPrimitive(prim, cu);
 
         // Set BC: 1) fill boundary 2) physical
