@@ -16,48 +16,6 @@ using namespace amrex;
 #include <mui.h>
 using namespace mui;
 
-double sample_Maxwell_inflow_normal(double a)
-{
-    double z;
-
-    if (a<=0)
-    {
-        while (true)
-        {
-            z = -sqrt(a*a-log(Random()));
-            if ((a-z)/(-z)>Random()) break;
-        }
-    }
-    else
-    {
-        double arpi = a*sqrt(M_PI);
-
-        while (true)
-        {
-            double u = Random();
-
-            if (arpi/(arpi+1+a*a) > u)
-            {
-                z = -fabs(RandomNormal(0.,1.))/sqrt(2);
-                break;
-            }
-            else if ((arpi+1)/(arpi+1+a*a) > u)
-            {
-                z = -sqrt(-log(Random()));
-                break;
-            }
-            else
-            {
-                z = (1-sqrt(Random()))*a;
-
-                if (exp(-z*z)>Random()) break;
-            }
-        }
-    }
-
-    return z;
-}
-
 // this routine pushes the following information to MUI
 // - species number densities and temperature of FHD cells contacting the interface
 void mui_push(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface2d &uniface, const int step)
@@ -110,7 +68,7 @@ void mui_push(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface2
 
 // this routine fetches the following information from MUI:
 // - adsoprtion and desoprtion counts of each species between time points
-void mui_fetch(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface2d &uniface, const int step)
+void mui_fetch(MultiFab& cu, MultiFab& cu2, MultiFab& prim, const amrex::Real* dx, mui::uniface2d &uniface, const int step)
 {
     // assuming the interface is perpendicular to the z-axis 
     // and includes cells with the smallest value of z (i.e. k=0)
@@ -124,6 +82,7 @@ void mui_fetch(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface
         Dim3 lo = lbound(bx);
         Dim3 hi = ubound(bx);
         const Array4<Real> & cu_fab = cu.array(mfi);
+        const Array4<Real> & cu2_fab = cu2.array(mfi);
         const Array4<Real> & prim_fab = prim.array(mfi);
 
         // unless bx contains cells at the interface, skip 
@@ -137,10 +96,6 @@ void mui_fetch(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface
                 double y = prob_lo[1]+(j+0.5)*dx[1];
                 double dV = dx[0]*dx[1]*dx[2];
                 double temp = prim_fab(i,j,k,4);
-
-                double Vx = cu_fab(i,j,k,1)/cu_fab(i,j,k,0);
-                double Vy = cu_fab(i,j,k,2)/cu_fab(i,j,k,0);
-                double Vz = cu_fab(i,j,k,3)/cu_fab(i,j,k,0);;
 
                 for (int n = 0; n < nspecies; ++n) {
                 
@@ -161,34 +116,27 @@ void mui_fetch(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface
                     double vx,vy,vz;
                     double dmomx,dmomy,dmomz,derg;
 
-                    double vT = sqrt(2*kBTm);
-                    double a;
-
                     dmomx = dmomy = dmomz = derg = 0.;
-
-                    a = -Vz/vT;
 
                     for (int l=0;l<ac;l++)
                     {
                         // colliding velocity
-                        vx = Vx+RandomNormal(0.,sqrtkBTm);
-                        vy = Vy+RandomNormal(0.,sqrtkBTm);
-                        vz = Vz+vT*sample_Maxwell_inflow_normal(a);
+                        vx = RandomNormal(0.,sqrtkBTm);
+                        vy = RandomNormal(0.,sqrtkBTm);
+                        vz = -sqrt(-2.*kBTm*log(1.-Random()));
 
                         dmomx -= mass*vx;
                         dmomy -= mass*vy;
-                        dmomz += mass*vz;
+                        dmomz -= mass*vz;
                         derg  -= 0.5*mass*(vx*vx+vy*vy+vz*vz);
                     }
-
-                    a = Vz/vT;
 
                     for (int l=0;l<dc;l++)
                     {
                         // new velocity
-                        vx = Vx+RandomNormal(0.,sqrtkBTm);
-                        vy = Vy+RandomNormal(0.,sqrtkBTm);
-                        vz = Vz-vT*sample_Maxwell_inflow_normal(a);
+                        vx = RandomNormal(0.,sqrtkBTm);
+                        vy = RandomNormal(0.,sqrtkBTm);
+                        vz = sqrt(-2.*kBTm*log(1.-Random()));
 
                         dmomx += mass*vx;
                         dmomy += mass*vy;
@@ -196,13 +144,16 @@ void mui_fetch(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface
                         derg  += 0.5*mass*(vx*vx+vy*vy+vz*vz);
                     }
 
-                    cu_fab(i,j,k,0) += (dc-ac)*mass/dV;
-                    cu_fab(i,j,k,5+n) += (dc-ac)*mass/dV;
+                    cu_fab(i,j,k,0) -= ac*mass/dV;
+                    cu_fab(i,j,k,5+n) -= ac*mass/dV;
 
-                    cu_fab(i,j,k,1) += dmomx/dV;
-                    cu_fab(i,j,k,2) += dmomy/dV;
-                    cu_fab(i,j,k,3) += dmomz/dV;
-                    cu_fab(i,j,k,4) += derg/dV;
+                    cu2_fab(i,j,k,0) += dc*mass/dV;
+                    cu2_fab(i,j,k,5+n) += dc*mass/dV;
+
+                    cu2_fab(i,j,k,1) += dmomx/dV;
+                    cu2_fab(i,j,k,2) += dmomy/dV;
+                    cu2_fab(i,j,k,3) += dmomz/dV;
+                    cu2_fab(i,j,k,4) += derg/dV;
                 }
             }
         }
@@ -374,6 +325,8 @@ void main_driver(const char* argv)
     MultiFab cup (ba,dmap,nvars,ngc);
     MultiFab cup2(ba,dmap,nvars,ngc);
     MultiFab cup3(ba,dmap,nvars,ngc);
+
+    MultiFab cu_temp(ba,dmap,nvars,ngc);
 
     //primative quantaties
     // in C++ indexing (add +1 for F90)
@@ -681,11 +634,18 @@ void main_driver(const char* argv)
 
         mui_push(cu, prim, dx, uniface, step);
     
+        // set cu_temp to zero since mui_fetch *increments* cu_temp
+        cu_temp.setVal(0.);
+
+        // store the *increment* in cu_temp
+        mui_fetch(cu, cu_temp, prim, dx, uniface, step);
+
         RK3step(cu, cup, cup2, cup3, prim, source, eta, zeta, kappa, chi, D, flux,
                 stochFlux, cornx, corny, cornz, visccorn, rancorn, geom, dx, dt);
 
-        mui_fetch(cu, prim, dx, uniface, step);
-
+        // add cu_temp to cu
+        MultiFab::Add(cu,cu_temp,0,0,nvars,ngc);
+        
         conservedToPrimitive(prim, cu);
 
         // Set BC: 1) fill boundary 2) physical

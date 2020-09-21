@@ -16,48 +16,6 @@ using namespace amrex;
 #include <mui.h>
 using namespace mui;
 
-double sample_Maxwell_inflow_normal(double a)
-{
-    double z;
-
-    if (a<=0)
-    {
-        while (true)
-        {
-            z = -sqrt(a*a-log(Random()));
-            if ((a-z)/(-z)>Random()) break;
-        }
-    }
-    else
-    {
-        double arpi = a*sqrt(M_PI);
-
-        while (true)
-        {
-            double u = Random();
-
-            if (arpi/(arpi+1+a*a) > u)
-            {
-                z = -fabs(RandomNormal(0.,1.))/sqrt(2);
-                break;
-            }
-            else if ((arpi+1)/(arpi+1+a*a) > u)
-            {
-                z = -sqrt(-log(Random()));
-                break;
-            }
-            else
-            {
-                z = (1-sqrt(Random()))*a;
-
-                if (exp(-z*z)>Random()) break;
-            }
-        }
-    }
-
-    return z;
-}
-
 // this routine pushes the following information to MUI
 // - species number densities and temperature of FHD cells contacting the interface
 void mui_push(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface2d &uniface, const int step)
@@ -138,10 +96,6 @@ void mui_fetch(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface
                 double dV = dx[0]*dx[1]*dx[2];
                 double temp = prim_fab(i,j,k,4);
 
-                double Vx = cu_fab(i,j,k,1)/cu_fab(i,j,k,0);
-                double Vy = cu_fab(i,j,k,2)/cu_fab(i,j,k,0);
-                double Vz = cu_fab(i,j,k,3)/cu_fab(i,j,k,0);;
-
                 for (int n = 0; n < nspecies; ++n) {
                 
                     std::string channel;
@@ -161,34 +115,27 @@ void mui_fetch(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface
                     double vx,vy,vz;
                     double dmomx,dmomy,dmomz,derg;
 
-                    double vT = sqrt(2*kBTm);
-                    double a;
-
                     dmomx = dmomy = dmomz = derg = 0.;
-
-                    a = -Vz/vT;
 
                     for (int l=0;l<ac;l++)
                     {
                         // colliding velocity
-                        vx = Vx+RandomNormal(0.,sqrtkBTm);
-                        vy = Vy+RandomNormal(0.,sqrtkBTm);
-                        vz = Vz+vT*sample_Maxwell_inflow_normal(a);
+                        vx = RandomNormal(0.,sqrtkBTm);
+                        vy = RandomNormal(0.,sqrtkBTm);
+                        vz = -sqrt(-2.*kBTm*log(1.-Random()));
 
                         dmomx -= mass*vx;
                         dmomy -= mass*vy;
-                        dmomz += mass*vz;
+                        dmomz -= mass*vz;
                         derg  -= 0.5*mass*(vx*vx+vy*vy+vz*vz);
                     }
-
-                    a = Vz/vT;
 
                     for (int l=0;l<dc;l++)
                     {
                         // new velocity
-                        vx = Vx+RandomNormal(0.,sqrtkBTm);
-                        vy = Vy+RandomNormal(0.,sqrtkBTm);
-                        vz = Vz-vT*sample_Maxwell_inflow_normal(a);
+                        vx = RandomNormal(0.,sqrtkBTm);
+                        vy = RandomNormal(0.,sqrtkBTm);
+                        vz = sqrt(-2.*kBTm*log(1.-Random()));
 
                         dmomx += mass*vx;
                         dmomy += mass*vy;
