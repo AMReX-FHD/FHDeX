@@ -80,7 +80,7 @@ MacProj_hydro (std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     // set solver parameters
     mac_mlmg.setVerbose(mg_verbose);
-    mac_mlmg.setCGVerbose(cg_verbose);
+    mac_mlmg.setBottomVerbose(cg_verbose);
 
     // for the preconditioner, we do 1 v-cycle and the bottom solver is smooths
     if (!full_solve) {
