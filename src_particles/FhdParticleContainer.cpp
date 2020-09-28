@@ -640,10 +640,11 @@ void FhdParticleContainer::MoveIonsGPU(const Real dt, const Real* dxFluid, const
                 ParticleType & part = particles[i];
 
                 Real mb[3];
+                Real mbDiv[3];
                 Real dry_terms[3];
 
                 //get_explicit_mobility(mb, &part, ZFILL(plo), ZFILL(phi));
-                get_explicit_mobility_gpu(mb, part, plo, phi);
+                get_explicit_mobility_gpu(mb, mbDiv,part, plo, phi);
                 //dry(&dt,&part,dry_terms, mb);
                 dry_gpu(dt, part,dry_terms, mb);
 
@@ -1114,10 +1115,11 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
                 ParticleType & part = particles[i];
 
                 Real mb[3];
+                Real mbDiv[3];
                 Real dry_terms[3];
 
                 //get_explicit_mobility(mb, &part, ZFILL(plo), ZFILL(phi));
-                get_explicit_mobility_gpu(mb, part, plo, phi);
+                get_explicit_mobility_gpu(mb, mbDiv, part, plo, phi);
                 //dry(&dt,&part,dry_terms, mb);
                 dry_gpu(dt, part,dry_terms, mb);
 
