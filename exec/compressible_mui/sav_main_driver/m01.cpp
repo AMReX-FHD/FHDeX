@@ -665,7 +665,7 @@ void main_driver(const char* argv)
 */
 
            // also horizontal average
-           WriteHorizontalAverage(cu,2,5,nspecies,step,geom);
+           WriteHorizontalAverage(cu,2,0,5+nspecies,step,geom);
         }
 
         if (chk_int > 0 && step > 0 && step%chk_int == 0)

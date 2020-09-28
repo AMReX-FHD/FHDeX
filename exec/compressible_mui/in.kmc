@@ -9,7 +9,7 @@ variable    lat_const2 equal 0.5*${lat_const}
 
 lattice     sq/4n ${lat_const}
 
-region      sys_domain block 0 40 0 40 -0.5 0.5
+region      sys_domain block 0 160 0 160 -0.5 0.5
 create_box  sys_domain
 create_sites    box 
 
@@ -50,7 +50,7 @@ diag_style  surfchemtest stats yes list vac spec1 spec2 spec3 spec4
 # dump        3 image ${Timage} dump.*.jpg i2 site shape cube crange 0 2 drange 1 4 sdiam 6e-7 shape cube view 0 0 box no 0 size 1000 1000
 # dump_modify 3 scolor 0 gray scolor 1 red scolor 2 green pad 3
 
-variable    nstep equal 10000
+variable    nstep equal 5000
 
 variable ts loop ${nstep}
 label ts_loop

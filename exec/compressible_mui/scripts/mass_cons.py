@@ -18,11 +18,11 @@ m3 = 39.95/navo
 m4 = 83.80/navo
 
 stepincr = 10
-stepmax  = 10000
+stepmax  = 5000
 
 dx = 8.e-6
 dV = dx**3
-nc = 8*8
+nc = 16*16
 
 # surface
 
