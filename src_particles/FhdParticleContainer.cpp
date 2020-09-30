@@ -985,7 +985,6 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
             for (int i = 0; i < np; ++ i) {
                 ParticleType & part = particles[i];
 
-
 //                for (int d=0; d<AMREX_SPACEDIM; ++d)
 //                {
 //                    part.rdata(FHD_realData::pred_posx + d) = part.pos(d);
@@ -1215,16 +1214,18 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
                 part.rdata(FHD_realData::ax + d) += part.rdata(FHD_realData::velx + d)*dt;
             }
 
-   // Print() << part.id() << " vel: " << setprecision(15) << part.rdata(FHD_realData::velx) << " pos: " << part.pos(0) << "\n";
+//            Print() << part.id() << " vel: " << setprecision(15) << part.rdata(FHD_realData::velx) << " pos: " << part.pos(0) << "\n";
 
-            Real dist = dt*sqrt(part.rdata(FHD_realData::velx)*part.rdata(FHD_realData::velx) + part.rdata(FHD_realData::vely)*part.rdata(FHD_realData::vely) + part.rdata(FHD_realData::velz)*part.rdata(FHD_realData::velz))/part.rdata(FHD_realData::radius);;
-
+            Real dist = dt*sqrt(part.rdata(FHD_realData::velx)*part.rdata(FHD_realData::velx) + part.rdata(FHD_realData::vely)*part.rdata(FHD_realData::vely) + part.rdata(FHD_realData::velz)*part.rdata(FHD_realData::velz))/part.rdata(FHD_realData::radius);
+            
             totaldist = sqrt(part.rdata(FHD_realData::ax)*part.rdata(FHD_realData::ax) + part.rdata(FHD_realData::ay)*part.rdata(FHD_realData::ay) + part.rdata(FHD_realData::az)*part.rdata(FHD_realData::az));
 
             if(dist > maxdist)
             {
                 maxdist = dist;
             }
+
+            //std::cout << "MAXDIST: " << maxdist << "\n";
 
             part.rdata(FHD_realData::travelTime) += dt;
 
@@ -1238,6 +1239,8 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
 
         maxspeed_proc = amrex::max(maxspeed_proc, maxspeed);
         maxdist_proc  = amrex::max(maxdist_proc, maxdist);
+        //std::cout << "MAXDISTPROC: " << maxdist_proc << "\n";
+
         diffinst_proc += diffinst;
     }
 
@@ -1270,6 +1273,15 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
         int* cell_part_cnt = m_vector_size[grid_id].dataPtr();
 
         //Print() << "Bounds: " << klo << ", " << khi << std::endl;
+
+    for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
+
+        TileIndex index(pti.index(), pti.LocalTileIndex());
+
+        AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
+        long np = this->GetParticles(lev).at(index).numParticles();
+
+        }
 
         for(int i=ilo;i<=ihi;i++)
         {
@@ -1306,7 +1318,7 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
 
                 if((ni[0] != i) || (ni[1] != j) || (ni[2] != k))
                 {
-                    part.rdata(FHD_intData::sorted) = 0;
+                    part.idata(FHD_intData::sorted) = 0;
                     remove_particle_from_cell(cell_parts, &cell_np, &new_np, &p);
                 }else
                 {
@@ -1314,13 +1326,12 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
                 }
             }
 
-//Print() << "Here7\n";
-
             cell_part_cnt[i,j,k] = new_np;
 
         }
         }
         }
+
     }
 
 //    for (FhdParIter pti(*this, lev); pti.isValid(); ++pti)
@@ -1374,7 +1385,6 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
 
     }
 
-
     clearNeighbors();
     Redistribute();
     ReBin();
@@ -1396,7 +1406,7 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
         Print() <<"Maximum observed speed: " << sqrt(maxspeed_proc) << "\n";
         Print() <<"Maximum observed displacement (fraction of radius): " << maxdist_proc << "\n";
         Print() <<"Average diffusion coefficient: " << diffinst_proc/np_proc << "\n";
-    }    
+    }
 }
 
 void FhdParticleContainer::SpreadIons(const Real dt, const Real* dxFluid, const Real* dxE, const Geometry geomF,
@@ -1536,6 +1546,7 @@ void FhdParticleContainer::SpreadIonsGPU(const Real dt, const Real* dxFluid, con
                          sourceTemp[0][pti], sourceTemp[1][pti], sourceTemp[2][pti],
                          ZFILL(plo),
                          ZFILL(dxFluid));
+
     }
 
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
@@ -2462,7 +2473,6 @@ void FhdParticleContainer::EvaluateStats(MultiFab& particleInstant,
                          BL_TO_FORTRAN_3D(particleInstant[pti]),
                          BL_TO_FORTRAN_3D(cellVols[pti]),&Neff, &Np
                         );
-
     }
 
     // FIXME - tiling doesn't work
@@ -2517,6 +2527,8 @@ void FhdParticleContainer::EvaluateStats(MultiFab& particleInstant,
         for (int i=0; i<3; ++i) {
             varcurrent_proc[i] += varcurrent_tile[i];
         }
+
+
     }
 
     // gather statistics
