@@ -375,7 +375,7 @@ contains
 
     do p = 1, np
 
-      part => particles(cell_parts(p))
+      part => particles(p)
 
       i = floor(part%pos(1)*dxinv(1))
       j = floor(part%pos(1)*dxinv(2))
@@ -447,7 +447,7 @@ contains
 
     do p = 1, np
 
-      part => particles(cell_parts(p))
+      part => particles(p)
 
       i = floor(part%pos(1)*dxinv(1))
       j = floor(part%pos(1)*dxinv(2))
