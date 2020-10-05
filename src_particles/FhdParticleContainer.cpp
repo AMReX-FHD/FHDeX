@@ -1274,14 +1274,14 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
 
         //Print() << "Bounds: " << klo << ", " << khi << std::endl;
 
-    for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
+//    for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
 
-        TileIndex index(pti.index(), pti.LocalTileIndex());
+//        TileIndex index(pti.index(), pti.LocalTileIndex());
 
-        AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
-        long np = this->GetParticles(lev).at(index).numParticles();
+//        AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
+//        long np = this->GetParticles(lev).at(index).numParticles();
 
-        }
+//        }
 
         for(int i=ilo;i<=ihi;i++)
         {
@@ -1300,8 +1300,7 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
             int new_np = cell_np;
 
             int p = 1;
-
-//Print() << "cell " << i << ", " << j << ", " << k << ". Particle " << p << " of " << new_np << "\n";
+ 
 //Print() << "cell " << i << ", " << j << ", " << k << " of " << p << " of " << ihi << ", " << jhi << ", " << khi << "\n";
 
             while(p <= new_np)
@@ -1315,6 +1314,12 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
                 {
                     ni[d] = (int)amrex::Math::floor((part.pos(d)-plo[d])/dxinv);
                 }
+
+//                if(ni[2] == 0)
+//                {
+//                        std::cout << "Particle in " << ni[0] << ", " << ni[1] << ", " << ni[2] << std::endl;
+//                }
+
 
                 if((ni[0] != i) || (ni[1] != j) || (ni[2] != k))
                 {
@@ -1387,7 +1392,9 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
 
     clearNeighbors();
     Redistribute();
+    UpdateCellVectors();
     ReBin();
+
 
     // gather statistics
     ParallelDescriptor::ReduceIntSum(np_proc);
@@ -2448,6 +2455,8 @@ void FhdParticleContainer::EvaluateStats(MultiFab& particleInstant,
     BoxArray ba = particleMeans.boxArray();
     long cellcount = ba.numPts();
 
+    const Real* dx = Geom(lev).CellSize();
+
     // zero instantaneous values
     particleInstant.setVal(0.);
     
@@ -2463,7 +2472,7 @@ void FhdParticleContainer::EvaluateStats(MultiFab& particleInstant,
 
         tp = tp + Np;
 
-        evaluate_fields(parts.data(),
+        evaluate_fields_pp(parts.data(),
                          ARLIM_3D(tile_box.loVect()),
                          ARLIM_3D(tile_box.hiVect()),
                          m_vector_ptrs[grid_id].dataPtr(),
@@ -2471,7 +2480,7 @@ void FhdParticleContainer::EvaluateStats(MultiFab& particleInstant,
                          ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
                          ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),   
                          BL_TO_FORTRAN_3D(particleInstant[pti]),
-                         BL_TO_FORTRAN_3D(cellVols[pti]),&Neff, &Np
+                         BL_TO_FORTRAN_3D(cellVols[pti]),&Neff, &Np, dx
                         );
     }
 
