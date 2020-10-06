@@ -6,9 +6,12 @@
 #include <FhdParticleContainer.H>
 #include <math.h>
 
-void pre_check_gpu(FhdParticleContainer::ParticleType& part, const amrex_real delt, const paramPlane* paramplanes, 
-                                                const int ns, int* flag, const amrex_real* phi, const amrex_real* plo)
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
+void pre_check_gpu(FhdParticleContainer::ParticleType& part, const Real delt, const paramPlane* paramplanes, 
+                                                const int ns, int* flag, const Real* phi, const Real* plo, Real* inttime)
 {
+
+    //printf("delt preCheck1 %e\n",*inttime);
 
     Real proj[3];
     Real box1lo[3];
@@ -21,6 +24,8 @@ void pre_check_gpu(FhdParticleContainer::ParticleType& part, const amrex_real de
         proj[d] = part.pos(d) + delt*part.rdata(FHD_realData::velx + 0);
     }
 
+    //printf("delt preCheck2 %e\n",*inttime);
+
     for (int d=0; d<AMREX_SPACEDIM; ++d)
     {
         box1lo[d] = plo[d];
@@ -30,7 +35,8 @@ void pre_check_gpu(FhdParticleContainer::ParticleType& part, const amrex_real de
         box2hi[d] = phi[d];
     }
 
-#if (BL_SPACEDIM == 3)
+    //printf("delt preCheck3 %e\n",*inttime);
+
     if(  (part.pos(0) < box1hi[0]) && (part.pos(1) < box1hi[1]) && (part.pos(2) < box1hi[2]) && (part.pos(0) > box1lo[0]) && (part.pos(1) > box1lo[1]) && (part.pos(2) > box1lo[2])  )
     {
         if(  (proj[0] < box1hi[0]) && (proj[1] < box1hi[1]) && (proj[2] < box1hi[2]) && (proj[0] > box1lo[0]) && (proj[1] > box1lo[1]) && (proj[2] > box1lo[2]) )
@@ -44,22 +50,35 @@ void pre_check_gpu(FhdParticleContainer::ParticleType& part, const amrex_real de
             *flag = 1;
         }
     }
-#endif
+
+    //printf("delt preCheck4 %e\n",*inttime);
 }
 
-void find_inter_gpu(FhdParticleContainer::ParticleType& part, const amrex_real delt, const paramPlane* paramplanes, const int ns, int* intsurf,
-                        amrex_real* inttime, int* intside, const amrex_real* phi, const amrex_real* plo)
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
+void dummy(Real* inttime)
+{
+        printf("delt dummy %e\n",*inttime);
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
+void find_inter_gpu(FhdParticleContainer::ParticleType& part, const Real delt, const paramPlane* paramplanes, const int ns, int* intsurf,
+                        Real* inttime, int* intside, const Real* phi, const Real* plo)
 {
 
     int flag = 0;
     *inttime = delt;
     *intsurf = -1;
     Real uval, vval, tval;
-    
-    pre_check_gpu(part, delt, paramplanes, ns, &flag, phi, plo);
+
+    //dummy(inttime);
+    //printf("delt post1 %e\n",*inttime);
+    pre_check_gpu(part, delt, paramplanes, ns, &flag, phi, plo, inttime);
+       // printf("delt post2 %e\n",*inttime);
 
     if(flag == 0)
     {
+
+        //printf("delt flag %e\n",*inttime);
         for(int s=1;s<=ns;s++)
         {
             const paramPlane* surf = &paramplanes[s-1];
@@ -99,8 +118,11 @@ void find_inter_gpu(FhdParticleContainer::ParticleType& part, const amrex_real d
 
     }
 
+    //printf("delt post3 %e\n",*inttime);
+
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void rotation(Real costheta, Real sintheta, Real cosphi, Real sinphi, Real *cx, Real *cy, Real *cz)
 {
 
@@ -110,8 +132,9 @@ void rotation(Real costheta, Real sintheta, Real cosphi, Real sinphi, Real *cx, 
 
     *cx = cxnew;
 
- }
+}
 
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void randomhemisphere(Real costheta, Real sintheta, Real cosphi, Real sinphi, Real *cx, Real *cy, Real *cz)
 {
     Real mag, costhetanew, sinthetanew, cosphinew, sinphinew, phi;
@@ -136,6 +159,7 @@ void randomhemisphere(Real costheta, Real sintheta, Real cosphi, Real sinphi, Re
 
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void app_bc_gpu(const paramPlane* surf, FhdParticleContainer::ParticleType& part, int intside, Real* domsize, int *push, Real time, Real inttime)
 {
     
@@ -150,7 +174,7 @@ void app_bc_gpu(const paramPlane* surf, FhdParticleContainer::ParticleType& part
 //        surf%fyright = surf%fyright + part%mass*part%vel(2)
 //        surf%fzright = surf%fzright + part%mass*part%vel(3)
 
-        if(get_uniform_func() < surf->specularityRight)
+        if(amrex::Random() < surf->specularityRight)
         {
 
           Real dotprod = part.rdata(FHD_realData::velx)*surf->rnx + part.rdata(FHD_realData::vely)*surf->rny + part.rdata(FHD_realData::velz)*surf->rnz;
@@ -213,79 +237,76 @@ void app_bc_gpu(const paramPlane* surf, FhdParticleContainer::ParticleType& part
     }else
     {
 
-//      if(get_uniform_func() > surf%porosityleft)
-//      {
-//        *push = 0;
+      if(amrex::Random() > surf->porosityLeft)
+      {
+        *push = 0;
 
 //        surf%fxleft = surf%fxleft + part%mass*part%vel(1)
 //        surf%fyleft = surf%fyleft + part%mass*part%vel(1)
 //        surf%fzleft = surf%fzleft + part%mass*part%vel(1)
 
-//        if(get_uniform_func() < surf%specularityleft)
-//        {
-//          dotprod = part%vel(1)*surf%lnx + part%vel(2)*surf%lny + part%vel(3)*surf%lnz
+        if(amrex::Random() < surf->specularityLeft)
+        {
+          Real dotprod = part.rdata(FHD_realData::velx)*surf->lnx + part.rdata(FHD_realData::vely)*surf->lny + part.rdata(FHD_realData::velz)*surf->lnz;
 
-//          part%vel(1) = -2d0*dotprod*surf%lnx + part%vel(1)
-//          part%vel(2) = -2d0*dotprod*surf%lny + part%vel(2)
-//          part%vel(3) = -2d0*dotprod*surf%lnz + part%vel(3)
-//        }
-//        else
-//        { 
-//          srt = sqrt(part%r*surf%temperatureleft)
+          part.rdata(FHD_realData::velx) = -2.0*dotprod*surf->lnx + part.rdata(FHD_realData::velx);
+          part.rdata(FHD_realData::vely) = -2.0*dotprod*surf->lny + part.rdata(FHD_realData::vely);
+          part.rdata(FHD_realData::velz) = -2.0*dotprod*surf->lnz + part.rdata(FHD_realData::velz);
+        }
+        else
+        { 
+          Real srt = sqrt(part.rdata(FHD_realData::R)*surf->temperatureLeft);
 
-//          part%vel(1) = srt*get_particle_normal_func()
-//          part%vel(2) = srt*get_particle_normal_func()
-//          part%vel(3) = 1.414213562*srt*sqrt(-log(get_uniform_func()))
+          part.rdata(FHD_realData::velx) = srt*amrex::RandomNormal(0.,1.);
+          part.rdata(FHD_realData::vely) = srt*amrex::RandomNormal(0.,1.);
+          part.rdata(FHD_realData::velz) = 1.414213562*srt*sqrt(-log(amrex::Random()));
 
-//          call rotation(surf%costhetaleft, surf%sinthetaleft, surf%cosphileft, surf%sinphileft, part%vel(1), part%vel(2), part%vel(3))
-//        }
+          rotation(surf->cosThetaLeft, surf->sinThetaLeft, surf->cosPhiLeft, surf->sinPhiLeft, &part.rdata(FHD_realData::velx), &part.rdata(FHD_realData::vely), &part.rdata(FHD_realData::velz));
+        }
        
-//      }
-//      else if(amrex::Random() < surf->periodicity)
-//      {
-//        push = 0
+      }
+      else if(amrex::Random() < surf->periodicity)
+      {
+        *push = 0;
 
-//        if(surf%boundary .eq. 1) then
+        if(surf->boundary == 1)
+        {
 
-//          part%pos(1) = part%pos(1) + 0.9999999*domsize(1)
+          part.pos(0) = part.pos(0) + 0.9999999*domsize[0];
+        }
+        else if(surf->boundary == 2)
+        {
+          part.pos(0) = part.pos(0) - 0.9999999*domsize[0];
+        }
+        else if(surf->boundary == 3)
+        {
 
-//        elseif(surf%boundary .eq. 2) then
+          part.pos(1) = part.pos(1) + 0.9999999*domsize[1];
+        }
+        else if(surf->boundary == 4)
+        {
+          part.pos(1) = part.pos(1) - 0.9999999*domsize[1];
 
-//          part%pos(1) = part%pos(1) - 0.9999999*domsize(1)
+        }
+        else if(surf->boundary == 5)
+        {
+          part.pos(2) = part.pos(2) + 0.9999999*domsize[2];
+        }
+        else if(surf->boundary == 6)
+        {
+          part.pos(2) = part.pos(2) - 0.9999999*domsize[2];
+        }
 
-//        elseif(surf%boundary .eq. 3) then
+      }else
+      {
+        *push = 1;
 
-//          part%pos(2) = part%pos(2) + 0.9999999*domsize(2)
+        if(amrex::Random() > surf->momentumConsLeft)
+        {
+          randomhemisphere(surf->cosThetaRight, surf->sinThetaRight, surf->cosPhiRight, surf->sinPhiRight, &part.rdata(FHD_realData::velx), &part.rdata(FHD_realData::vely), &part.rdata(FHD_realData::velz));
+        }
 
-//        elseif(surf%boundary .eq. 4) then
-
-//          part%pos(2) = part%pos(2) - 0.9999999*domsize(2)
-
-//#if (BL_SPACEDIM == 3)
-//        elseif(surf%boundary .eq. 5) then
-
-//          part%pos(3) = part%pos(3) + 0.9999999*domsize(3)
-
-//        elseif(surf%boundary .eq. 6) then
-
-//          part%pos(3) = part%pos(3) - 0.9999999*domsize(3)
-//#endif
-//        endif
-
-//      else
-//        push = 1      
-
-//        if(get_uniform_func() > surf%momentumleft) then
-//#if (BL_SPACEDIM == 3)
-//          call randomhemisphere(surf%costhetaright, surf%sinthetaright, surf%cosphiright, surf%sinphiright, part%vel(1), part%vel(2), part%vel(3))
-//#endif
-//#if (BL_SPACEDIM == 2)
-//          call randomhemisphere(surf%costhetaright, surf%sinthetaright, part%vel(1), part%vel(2), part%vel(3))
-//#endif
-
-//        endif
-
-//      endif
+      }
   
    }
 //   if(graphene_tog .eq. 1) then

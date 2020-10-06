@@ -902,8 +902,8 @@ void main_driver(const char* argv)
         if (move_tog != 0)
         {
             //Calls wet ion interpolation and movement.
-            Print() << "Start move.\n";
-            particles.MoveIonsGPU1(dt, dx, dxp, geom, umac, efield, RealFaceCoords, source, sourceTemp, dryMobility, paramPlaneList,
+
+            particles.MoveIonsCPP(dt, dx, dxp, geom, umac, efield, RealFaceCoords, source, sourceTemp, dryMobility, paramPlaneList,
                                paramPlaneCount, 3 /*this number currently does nothing, but we will use it later*/);
 
             // reset statistics after step n_steps_skip

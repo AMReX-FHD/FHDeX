@@ -6,15 +6,15 @@ module multispec_namelist_module
 
   implicit none
 
-  integer, parameter :: max_element=MAX_SPECIES*(MAX_SPECIES-1)/2
+  integer, parameter :: MAX_ELEMENT=MAX_SPECIES*(MAX_SPECIES-1)/2
 
   integer,            save :: inverse_type
   integer,            save :: temp_type
   integer,            save :: chi_iterations
   double precision,   save :: start_time 
-  double precision,   save :: Dbar(max_element)
+  double precision,   save :: Dbar(MAX_ELEMENT)
   double precision,   save :: Dtherm(MAX_SPECIES)
-  double precision,   save :: H_offdiag(max_element)
+  double precision,   save :: H_offdiag(MAX_ELEMENT)
   double precision,   save :: H_diag(MAX_SPECIES)
   double precision,   save :: fraction_tolerance
   integer,            save :: correct_flux
@@ -29,13 +29,36 @@ module multispec_namelist_module
   integer,            save :: avg_type
   integer,            save :: mixture_type
 
+  ! charged
+  integer,            save :: use_charged_fluid, print_debye_len
+  double precision,   save :: dielectric_const
+  integer,            save :: dielectric_type
+  double precision,   save :: charge_per_mass(MAX_SPECIES)
+  double precision,   save :: Epot_wall_bc_type(1:2,AMREX_SPACEDIM)
+  double precision,   save :: Epot_wall(1:2,AMREX_SPACEDIM)
+  double precision,   save :: theta_pot
+  integer,            save :: num_pot_iters
+  double precision,   save :: dpdt_factor
+  double precision,   save :: relxn_param_charge
+  integer,            save :: E_ext_type
+  double precision,   save :: E_ext_value(1:3)
+  integer,            save :: electroneutral
+  integer,            save :: induced_charge_eo 
+  integer,            save :: zero_eps_on_wall_type
+  integer,            save :: zero_charge_on_wall_type
+  double precision,   save :: zero_eps_on_wall_left_end, zero_eps_on_wall_right_start
+  integer,            save :: epot_mg_verbose
+  double precision,   save :: epot_mg_abs_tol, epot_mg_rel_tol
+  integer,            save :: bc_function_type
+  double precision,   save :: L_pos, L_trans, L_zero
+
   ! Physical properties:
   !----------------------
   namelist /multispec/ fraction_tolerance ! For roundoff errors in mass and mole fractions
   namelist /multispec/ start_time
   namelist /multispec/ inverse_type       ! Only for LAPACK:  1=inverse, 2=pseudo inverse
   namelist /multispec/ correct_flux       ! Manually ensure mass is conserved to roundoff 
-   namelist /multispec/ print_error_norms   
+  namelist /multispec/ print_error_norms   
   namelist /multispec/ is_ideal_mixture   ! If T assume Gamma=I (H=0) and simplify
   namelist /multispec/ is_nonisothermal   ! If T Soret effect will be included
   namelist /multispec/ use_lapack         ! Use LAPACK or iterative method for diffusion matrix (recommend False)
@@ -75,6 +98,45 @@ module multispec_namelist_module
                                     ! See compute_mixture_properties.f90 for values supported at present
                                     ! The default mixture_type=0 means no dependence on composition
 
+  ! for charged fluid
+  namelist /multispec/ use_charged_fluid
+  namelist /multispec/ print_debye_len
+  namelist /multispec/ dielectric_const
+  namelist /multispec/ dielectric_type
+  namelist /multispec/ charge_per_mass
+  namelist /multispec/ Epot_wall_bc_type  ! 1 = Dirichlet (fixed potential)
+                                          ! 2 = Neumann (fixed charge density)
+
+  namelist /multispec/ bc_function_type   ! 0 = constant 
+                                          ! 1 = cubic, see description below
+
+  namelist /multispec/ L_pos              ! length of part of boundary where there is positive charge flux, if cubic function is imposed
+  namelist /multispec/ L_trans            ! length of transition part of boundary, where the value varies like a cubic
+  namelist /multispec/ L_zero             ! length of part of boundary where there is zero charge flux, if cubic function is imposed
+
+  namelist /multispec/ Epot_wall          ! Dirichlet or Neumann condition
+  namelist /multispec/ theta_pot          ! for implicit algorithm_type=3, controls
+                                               ! temporal discretization for potential term
+  namelist /multispec/ num_pot_iters
+  namelist /multispec/ dpdt_factor
+  namelist /multispec/ E_ext_type         ! if 1, sets an external E field to E_ext_value
+  namelist /multispec/ E_ext_value        ! spacedim-vector specifying external E field
+
+  namelist /multispec/ electroneutral               ! use electroneutral diffusion fluxes
+  namelist /multispec/ induced_charge_eo            ! are we simulating ICEO?  
+  namelist /multispec/ relxn_param_charge           ! Used to prevent slow buildup of charge for electroneutral, keep at 1.0
+  namelist /multispec/ zero_eps_on_wall_type        ! set eps=0 on certain Dirichlet walls
+                                                    ! if we want homogeneous Neumann bc's on 
+                                                    ! phi for part of a Dirichlet wall
+  namelist /multispec/ zero_charge_on_wall_type     ! set sigma=0 on certain Neumann walls
+                                                    ! if we want homogeneous Neumann bc's on 
+                                                    ! phi for part of a Dirichlet wall
+  namelist /multispec/ zero_eps_on_wall_left_end    ! eg if set to 0.25, then eps will be set to 0 on the wall from 0*Lx --> 0.25*Lx
+  namelist /multispec/ zero_eps_on_wall_right_start ! eg if set to 0.75, then eps will be set to 0 on the wall from 0.75*Lx --> 1.*Lx
+  namelist /multispec/ epot_mg_verbose              ! verbosity for poisson solve
+  namelist /multispec/ epot_mg_abs_tol              ! absolute tolerance for poisson solve
+  namelist /multispec/ epot_mg_rel_tol              ! relative tolerance for poisson solve
+
 contains
 
   ! read in fortran namelist into multispec_params_module
@@ -104,6 +166,37 @@ contains
     avg_type           = 1
     mixture_type       = 0
 
+    ! charged
+    use_charged_fluid  = 0
+    print_debye_len    = 0
+    dielectric_const   = 1.d0
+    dielectric_type    = 0      ! 0 = assumes constant epsilon
+                                ! 1 = (1+c1)*dielectric_const
+                                ! see fluid_charge.f90:compute_permittivity()
+    charge_per_mass(:)     = 0.d0
+    Epot_wall_bc_type(:,:) = 1
+    bc_function_type       = 0 
+    L_pos                  = 0.d0
+    L_trans                = 0.d0
+    L_zero                 = 0.d0
+    Epot_wall(:,:)         = 0.d0
+    theta_pot              = 0.5d0
+    num_pot_iters          = 2
+    dpdt_factor            = 0.d0
+    E_ext_type             = 0
+    E_ext_value(:)         = 0.d0
+    epot_mg_verbose        = 0
+    epot_mg_abs_tol        = 0.d0
+    epot_mg_rel_tol        = 1.d-10
+
+    electroneutral = 0
+    induced_charge_eo = 0
+    relxn_param_charge = 1.0d0
+    zero_eps_on_wall_type = 0
+    zero_charge_on_wall_type = 0
+    zero_eps_on_wall_left_end = 0.25d0
+    zero_eps_on_wall_right_start = 0.75d0
+    
     ! read in multispec namelist
     open(unit=100, file=amrex_string_c_to_f(inputs_file), status='old', action='read')
     read(unit=100, nml=multispec)
@@ -118,29 +211,66 @@ contains
                                              is_nonisothermal_in, is_ideal_mixture_in, &
                                              use_lapack_in, c_init_in, c_bc_in, &
                                              midpoint_stoch_mass_flux_type_in, &
-                                             avg_type_in, mixture_type_in) &
+                                             avg_type_in, mixture_type_in, &
+                                             use_charged_fluid_in, print_debye_len_in, dielectric_const_in, &
+                                             dielectric_type_in, charge_per_mass_in, Epot_wall_bc_type_in, &
+                                             Epot_wall_in, theta_pot_in, num_pot_iters_in, dpdt_factor_in, &
+                                             relxn_param_charge_in, E_ext_type_in, E_ext_value_in, &
+                                             electroneutral_in, induced_charge_eo_in, &
+                                             zero_eps_on_wall_type_in, zero_charge_on_wall_type_in, &
+                                             zero_eps_on_wall_left_end_in,   zero_eps_on_wall_right_start_in, &
+                                             epot_mg_verbose_in, epot_mg_abs_tol_in, epot_mg_rel_tol_in, &
+                                             bc_function_type_in, L_pos_in, L_trans_in, L_zero_in) &
                                              bind(C, name="initialize_multispec_namespace")
 
-    integer,                intent(inout) :: inverse_type_in
-    integer,                intent(inout) :: temp_type_in
-    integer,                intent(inout) :: chi_iterations_in
-    double precision,       intent(inout) :: start_time_in 
-    double precision,       intent(inout) :: Dbar_in(max_element)
-    double precision,       intent(inout) :: Dtherm_in(MAX_SPECIES)
-    double precision,       intent(inout) :: H_offdiag_in(max_element)
-    double precision,       intent(inout) :: H_diag_in(MAX_SPECIES)
-    double precision,       intent(inout) :: fraction_tolerance_in
-    integer,                intent(inout) :: correct_flux_in
-    integer,                intent(inout) :: print_error_norms_in
-    integer,                intent(inout) :: is_nonisothermal_in
-    integer,                intent(inout) :: is_ideal_mixture_in
-    integer,                intent(inout) :: use_lapack_in
-    double precision,       intent(inout) :: c_init_in(2,MAX_SPECIES)
-    double precision,       intent(inout) :: c_bc_in(AMREX_SPACEDIM,2,MAX_SPECIES)
+    integer,            intent(inout) :: inverse_type_in
+    integer,            intent(inout) :: temp_type_in
+    integer,            intent(inout) :: chi_iterations_in
+    double precision,   intent(inout) :: start_time_in 
+    double precision,   intent(inout) :: Dbar_in(MAX_ELEMENT)
+    double precision,   intent(inout) :: Dtherm_in(MAX_SPECIES)
+    double precision,   intent(inout) :: H_offdiag_in(MAX_ELEMENT)
+    double precision,   intent(inout) :: H_diag_in(MAX_SPECIES)
+    double precision,   intent(inout) :: fraction_tolerance_in
+    integer,            intent(inout) :: correct_flux_in
+    integer,            intent(inout) :: print_error_norms_in
+    integer,            intent(inout) :: is_nonisothermal_in
+    integer,            intent(inout) :: is_ideal_mixture_in
+    integer,            intent(inout) :: use_lapack_in
+    double precision,   intent(inout) :: c_init_in(2,MAX_SPECIES)
+    double precision,   intent(inout) :: c_bc_in(AMREX_SPACEDIM,2,MAX_SPECIES)
 
-    integer,                intent(inout) :: midpoint_stoch_mass_flux_type_in
-    integer,                intent(inout) :: avg_type_in
-    integer,                intent(inout) :: mixture_type_in
+    integer,            intent(inout) :: midpoint_stoch_mass_flux_type_in
+    integer,            intent(inout) :: avg_type_in
+    integer,            intent(inout) :: mixture_type_in
+    
+    integer,            intent(inout) :: use_charged_fluid_in
+    integer,            intent(inout) :: print_debye_len_in
+    double precision,   intent(inout) :: dielectric_const_in
+    integer,            intent(inout) :: dielectric_type_in
+    double precision,   intent(inout) :: charge_per_mass_in(MAX_SPECIES)
+    double precision,   intent(inout) :: Epot_wall_bc_type_in(1:2,AMREX_SPACEDIM)
+    double precision,   intent(inout) :: Epot_wall_in(1:2,AMREX_SPACEDIM)
+    double precision,   intent(inout) :: theta_pot_in
+    integer,            intent(inout) :: num_pot_iters_in
+    double precision,   intent(inout) :: dpdt_factor_in
+    double precision,   intent(inout) :: relxn_param_charge_in
+    integer,            intent(inout) :: E_ext_type_in
+    double precision,   intent(inout) :: E_ext_value_in(1:3)
+    integer,            intent(inout) :: electroneutral_in
+    integer,            intent(inout) :: induced_charge_eo_in
+    integer,            intent(inout) :: zero_eps_on_wall_type_in
+    integer,            intent(inout) :: zero_charge_on_wall_type_in
+    double precision,   intent(inout) :: zero_eps_on_wall_left_end_in
+    double precision,   intent(inout) :: zero_eps_on_wall_right_start_in
+    integer,            intent(inout) :: epot_mg_verbose_in
+    double precision,   intent(inout) :: epot_mg_abs_tol_in
+    double precision,   intent(inout) :: epot_mg_rel_tol_in
+    integer,            intent(inout) :: bc_function_type_in
+    double precision,   intent(inout) :: L_pos_in
+    double precision,   intent(inout) :: L_trans_in
+    double precision,   intent(inout) :: L_zero_in
+
 
     inverse_type_in = inverse_type
     temp_type_in = temp_type
@@ -162,6 +292,33 @@ contains
     avg_type_in = avg_type
     mixture_type_in = mixture_type
 
+    use_charged_fluid_in = use_charged_fluid
+    print_debye_len_in = print_debye_len
+    dielectric_const_in = dielectric_const
+    dielectric_type_in = dielectric_type
+    charge_per_mass_in = charge_per_mass
+    Epot_wall_bc_type_in = Epot_wall_bc_type
+    Epot_wall_in = Epot_wall
+    theta_pot_in = theta_pot
+    num_pot_iters_in = num_pot_iters
+    dpdt_factor_in = dpdt_factor
+    relxn_param_charge_in = relxn_param_charge
+    E_ext_type_in = E_ext_type
+    E_ext_value_in = E_ext_value
+    electroneutral_in = electroneutral
+    induced_charge_eo_in = induced_charge_eo
+    zero_eps_on_wall_type_in = zero_eps_on_wall_type
+    zero_charge_on_wall_type_in = zero_charge_on_wall_type
+    zero_eps_on_wall_left_end_in = zero_eps_on_wall_left_end
+    zero_eps_on_wall_right_start_in = zero_eps_on_wall_right_start
+    epot_mg_verbose_in = epot_mg_verbose
+    epot_mg_abs_tol_in = epot_mg_abs_tol
+    epot_mg_rel_tol_in = epot_mg_rel_tol
+    bc_function_type_in = bc_function_type
+    L_pos_in = L_pos
+    L_trans_in = L_trans
+    L_zero_in = L_zero
+    
   end subroutine initialize_multispec_namespace
 
 end module multispec_namelist_module

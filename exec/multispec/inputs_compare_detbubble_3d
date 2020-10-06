@@ -4,10 +4,7 @@
   prob_lo(1:3) = 0.0 0.0 0.0   ! physical lo coordinate
   prob_hi(1:3) = 1.0 1.0 1.0   ! physical hi coordinate
 
-  ! if prob_type = 0, zero initial velocity
-  ! if prob_type = 1, vortex
-  ! if prob_type = 2, KH - sine
-  ! if prob_type = 3, KH - smooth
+  ! refer to init_funcs.F90
   prob_type = 12
   
   ! number of cells in domain

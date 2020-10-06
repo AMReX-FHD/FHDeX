@@ -5,6 +5,7 @@
 #include <FhdParticleContainer.H>
 #include <common_namespace.H>
 #include <kernel_functions_K.H>
+#include <math.h>
 
 /**
    Check if particle is near a boundary. Assumes boundary is parallel to either xy, zx, yz, plane
@@ -922,6 +923,218 @@ void spread_ions_fhd_gpu(FhdParticleContainer::AoS& aos,
     {
         spread_ions_fhd_gpu(aos, Kernel6P(), sourcex, sourcey, sourcez, plo_in, dx_in);
     }
+}
+
+void mob_interp_gpu(Real h, Real* tmob, Real* nmob)
+{
+
+//    !0.4706e-6, diff 1.1708e-05 1.326e-05
+//    *tmob = std::max(0.935656798937413 + 10.48743922905448/pow(1.456211069295241 + h , 5) - 7.45512854038917/pow(1.456211069295241 + h , 3) - 0.1666926153450568/pow(1.456211069295241 + h , 1),0.0);
+//    *nmob = std::max(0.8784836695101248 + 16.178193275967942/pow(1.8846739602964013 + h,3) - 13.450951287145715/pow(1.8846739602964013 + h,2) + 0.9286418269991527/(1.8846739602964013 + h),0.0);
+
+    Real cn = 0.6452124576429801;
+    Real ct = 0.6452124576429801;
+    //Single plane approximation
+    *nmob = std::max(1.0 - 9.0/(8.0*(h+cn)) + 1.0/(2.0*pow(h+cn,3.0)) - 1.0/(8.0*pow(h+cn,5)) ,0.0);
+    *tmob = std::max(1.0 - 9.0/(16.0*(h+ct)) + 2.0/(16.0*pow((h+ct),3.0)) -1.0/(16.0*pow((h+ct),5)),0.0);
+
+    //1e-6, diff 1.1708e-05 1.326e-05
+//    *tmob = std::max(0.975240720746649 + 0.6618096094545308/pow(0.6399549837528644 + h,3) - 1.261848923090074/pow(0.6399549837528644 + h,2) -  0.2682891286963005/(0.6399549837528644 + h),0.0);
+//    *nmob = std::max(0.9707837307169467 + 6.987793458468398/pow(1.5507333020341336 + h,3) - 6.037411430364329/pow(1.5507333020341336 + h,2) -  0.5177318798737919/(1.5507333020341336 + h),0.0);
+
+}
+
+void mob_interp_der_gpu(Real z, Real a, Real* tmobDer, Real* nmobDer)
+{
+
+    Real cn = 0.6452124576429801;
+    Real ct = 0.6452124576429801;
+    *nmobDer = 5.0/(8.*a*pow(cn + z/a,6)) - 3/(2.*a*pow(cn + z/a,4)) + 9/(8.*a*pow(cn + z/a,2));
+    *tmobDer = 5/(16.*a*pow(ct + z/a,6)) - 3/(8.*a*pow(ct + z/a,4)) + 9/(16.*a*pow(ct + z/a,2));
+}
+
+void get_mobility_diff_gpu(Real* nmob, Real* tmob, Real* nmobDer, Real* tmobDer, FhdParticleContainer::ParticleType& part, Real z)
+{
+
+    //using namespace common;
+
+    Real awet = k_B*T_init[0]/(part.rdata(FHD_realData::wetDiff)*visc_coef*M_PI*6.0);
+    Real atotal = k_B*T_init[0]/(part.rdata(FHD_realData::totalDiff)*visc_coef*M_PI*6.0);
+
+    Real hwet = z/awet;
+    Real htotal = z/atotal;
+
+    Real tmobwet;
+    Real nmobwet;
+    Real tmobtotal;
+    Real nmobtotal;
+
+    Real tmobwetDer;
+    Real nmobwetDer;
+    Real tmobtotalDer;
+    Real nmobtotalDer;
+
+    //The mobility is dimensionless but the derivative is dimensional. Fix this at some point.
+
+    mob_interp_gpu(hwet, &tmobwet, &nmobwet);
+    mob_interp_gpu(htotal, &tmobtotal, &nmobtotal);
+
+    mob_interp_der_gpu(z, awet, &tmobwetDer, &nmobwetDer);
+    mob_interp_der_gpu(z, atotal, &tmobtotalDer, &nmobtotalDer);
+
+    *tmob = std::max((tmobtotal*part.rdata(FHD_realData::totalDiff) - tmobwet*part.rdata(FHD_realData::wetDiff))/part.rdata(FHD_realData::dryDiff),0.0);
+    *nmob = std::max((nmobtotal*part.rdata(FHD_realData::totalDiff) - nmobwet*part.rdata(FHD_realData::wetDiff))/part.rdata(FHD_realData::dryDiff),0.0);
+
+    *nmobDer = (nmobtotalDer*part.rdata(FHD_realData::totalDiff) - nmobwetDer*part.rdata(FHD_realData::wetDiff))/part.rdata(FHD_realData::dryDiff);
+    *tmobDer = (tmobtotalDer*part.rdata(FHD_realData::totalDiff) - tmobwetDer*part.rdata(FHD_realData::wetDiff))/part.rdata(FHD_realData::dryDiff);
+}
+
+
+void get_explicit_mobility_gpu(Real* mob, Real* mobDer, FhdParticleContainer::ParticleType& part, const Real* plo, const Real* phi)
+{                           
+
+    Real nmob;
+    Real tmob;
+    Real nmobDer;
+    Real tmobDer;
+    Real z;
+
+    mob[0] = 1;
+    mob[1] = 1;
+    mob[2] = 1;
+
+    mobDer[0] = 1;
+    mobDer[1] = 1;
+    mobDer[2] = 1;
+
+
+    if((bc_vel_lo[0] == 2) && (bc_vel_hi[0] == 2))
+    {
+
+       z = part.pos(0);
+
+       if(z > (phi[0]-plo[0])/2.0)
+       {
+          z = phi[0] - z;
+       }
+
+       get_mobility_diff_gpu(&nmob, &tmob, &nmobDer, &tmobDer, part, z);
+
+       mob[0] = nmob;
+       mob[1] = tmob;               
+       mob[2] = tmob;
+
+       mobDer[0] = nmobDer;
+       mobDer[1] = tmobDer;               
+       mobDer[2] = tmobDer;
+
+       z = part.pos(0);
+       if(z > (phi[0]-plo[0])/2.0)
+       {
+           mobDer[0] = -mobDer[0];
+           mobDer[1] = -mobDer[1];
+           mobDer[2] = -mobDer[2];
+       }
+    }
+
+    if((bc_vel_lo[1] == 2) && (bc_vel_hi[1] == 2))
+    {
+       z = part.pos(1);
+
+       if(z > (phi[1]-plo[1])/2.0)
+       {
+          z = phi[1] - z;
+       }
+
+       get_mobility_diff_gpu(&nmob, &tmob, &nmobDer, &tmobDer, part, z);
+
+       mob[0] = tmob;
+       mob[1] = nmob;               
+       mob[2] = tmob;
+
+       mobDer[0] = tmobDer;
+       mobDer[1] = nmobDer;               
+       mobDer[2] = tmobDer;
+
+       z = part.pos(1);
+       if(z > (phi[1]-plo[1])/2.0)
+       {
+           mobDer[0] = -mobDer[0];
+           mobDer[1] = -mobDer[1];
+           mobDer[2] = -mobDer[2];
+       }
+
+        
+
+    }
+
+    if((bc_vel_lo[2] == 2) && (bc_vel_hi[2] == 2))
+    {
+
+       z = z = part.pos(2);;
+
+       if(z > (phi[2]-plo[2])/2.0)
+       {
+          z = phi[2] - z;
+       }
+
+       get_mobility_diff_gpu(&nmob, &tmob, &nmobDer, &tmobDer, part, z);
+
+       mob[0] = tmob;
+       mob[1] = tmob;               
+       mob[2] = nmob;
+
+       mobDer[0] = tmobDer;
+       mobDer[1] = tmobDer;               
+       mobDer[2] = nmobDer;
+
+       z = part.pos(2);
+       if(z > (phi[2]-plo[2])/2.0)
+       {
+           mobDer[0] = -mobDer[0];
+           mobDer[1] = -mobDer[1];
+           mobDer[2] = -mobDer[2];
+       }
+    }
+
+    //Print() << "z, nmob, pos: " << z << ", " << nmob << ", " << part.pos(2) << "\n";
+    //cin.get();
+}
+
+void dry_gpu(Real dt, FhdParticleContainer::ParticleType& part, Real* dry_terms, Real* mb, Real* mobDir)
+{
+    Real normalrand[3];
+    Real std[3];
+    Real bfac[3];
+
+    normalrand[0] = amrex::RandomNormal(0.,1.);
+    normalrand[1] = amrex::RandomNormal(0.,1.);
+    normalrand[2] = amrex::RandomNormal(0.,1.);
+
+//    !std = sqrt(part%dry_diff*k_B*2d0*t_init(1))
+    std[0] = sqrt(2.0*mb[0]*part.rdata(FHD_realData::dryDiff));
+    std[1] = sqrt(2.0*mb[1]*part.rdata(FHD_realData::dryDiff));
+    std[2] = sqrt(2.0*mb[2]*part.rdata(FHD_realData::dryDiff));
+
+    //DRL: dry diffusion coef: part%dry_diff, temperature: t_init(1)
+
+    bfac[0] = variance_coef_mom*std[0]*normalrand[0]/sqrt(dt);
+    bfac[1] = variance_coef_mom*std[1]*normalrand[1]/sqrt(dt);
+    bfac[2] = variance_coef_mom*std[2]*normalrand[2]/sqrt(dt);
+
+    dry_terms[0] = mb[0]*part.rdata(FHD_realData::dryDiff)*part.rdata(FHD_realData::forcex)/(k_B*T_init[0])+bfac[0];
+    dry_terms[1] = mb[1]*part.rdata(FHD_realData::dryDiff)*part.rdata(FHD_realData::forcey)/(k_B*T_init[0])+bfac[1];
+    dry_terms[2] = mb[2]*part.rdata(FHD_realData::dryDiff)*part.rdata(FHD_realData::forcez)/(k_B*T_init[0])+bfac[2];
+
+    //std::cout << "terms: " << dry_terms[1] << ", " << mobDir[1]*part.rdata(FHD_realData::dryDiff) << std::endl;
+
+    if(dry_move_tog == 2)
+    {
+        dry_terms[0] = dry_terms[0] + mobDir[0]*part.rdata(FHD_realData::dryDiff);
+        dry_terms[1] = dry_terms[1] + mobDir[1]*part.rdata(FHD_realData::dryDiff);
+        dry_terms[2] = dry_terms[2] + mobDir[2]*part.rdata(FHD_realData::dryDiff);
+    }
+
 }
 
 #endif
