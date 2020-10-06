@@ -18,74 +18,19 @@ if (OPENMP_FOUND)
     set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
 endif()
 
-#
-# Based on the AMReX Config -- this is HACK, and should be automated
-# TODO: this currently assumes macOS (Darwin) -- add linux
-#
+get_target_property(amrex_compile_defs AMReX::amrex  INTERFACE_COMPILE_DEFINITIONS)
+string(REPLACE       "$"     ""    amrex_compile_defs "${amrex_compile_defs}")
+string(REGEX REPLACE "<.*>;" ""    amrex_compile_defs "${amrex_compile_defs}")
+string(REPLACE       ";"     " -D" amrex_compile_defs "-D${amrex_compile_defs}")
 
-set(CMAKE_CXX_FLAGS
-    "-DAMREX_USE_MPI"
-    "-DBL_USE_MPI"
-    "-DAMREX_USE_OMP"
-    "-DBL_USE_OMP"
-    "-DAMREX_SPACEDIM=3"
-    "-DBL_SPACEDIM=3"
-    "-DAMREX_Darwin"
-    "-DBL_Darwin"
-    "-DBL_FORT_USE_UNDERSCORE"
-    "-DAMREX_USE_EB"
-    "-DAMREX_USE_F_INTERFACES"
-    "-DBL_USE_F_INTERFACES"
-    "-DAMREX_PARTICLES"
-    "-O3 -DNDEBUG -Werror=return-type"
-    )
-
-if(APPLE)
-    set(CMAKE_CXX_FLAGS
-        "${CMAKE_CXX_FLAGS}"
-        "-DAMREX_Darwin"
-        "-DBL_Darwin"
-        )
-elseif(UNIX)
-    set(CMAKE_CXX_FLAGS
-        "${CMAKE_CXX_FLAGS}"
-        "-DAMREX_Linux"
-        "-DBL_Linux"
-        )
-endif(APPLE)
+list(APPEND CMAKE_CXX_FLAGS "${amrex_compile_defs}")
+list(APPEND CMAKE_CXX_FLAGS "-O3 -DNDEBUG -Werror=return-type")
 
 string(REPLACE ";" " " CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 message(" *** CMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}")
 
-set(CMAKE_Fortran_FLAGS
-    "-DAMREX_USE_MPI"
-    "-DBL_USE_MPI"
-    "-DAMREX_USE_OMP"
-    "-DBL_USE_OMP"
-    "-DAMREX_SPACEDIM=3"
-    "-DBL_SPACEDIM=3"
-    "-DAMREX_Darwin"
-    "-DBL_LANG_FORT"
-    "-DAMREX_LANG_FORT"
-    "-DBL_FORT_USE_UNDERSCORE"
-    "-DAMREX_USE_EB"
-    "-DAMREX_USE_F_INTERFACES"
-    "-DBL_USE_F_INTERFACES"
-    "-DAMREX_PARTICLES"
-    "-O3 -DNDEBUG -O3 -fimplicit-none -ffixed-line-length-none -ffree-line-length-none"
-    )
-
-if(APPLE)
-    set(CMAKE_Fortran_FLAGS
-        "${CMAKE_Fortran_FLAGS}"
-        "-DBL_Darwin"
-        )
-elseif(UNIX)
-    set(CMAKE_Fortran_FLAGS
-        "${CMAKE_Fortran_FLAGS}"
-        "-DBL_Linux"
-        )
-endif(APPLE)
+list(APPEND CMAKE_Fortran_FLAGS "${amrex_compile_defs}")
+list(APPEND CMAKE_Fortran_FLAGS "-O3 -DNDEBUG -O3 -fimplicit-none -ffixed-line-length-none -ffree-line-length-none")
 
 string(REPLACE ";" " " CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS}")
 message(" *** CMAKE_Fortran_FLAGS=${CMAKE_Fortran_FLAGS}")
