@@ -378,8 +378,8 @@ contains
       part => particles(p)
 
       i = floor(part%pos(1)*dxinv(1))
-      j = floor(part%pos(1)*dxinv(2))
-      k = floor(part%pos(1)*dxinv(3))
+      j = floor(part%pos(2)*dxinv(2))
+      k = floor(part%pos(3)*dxinv(3))
 
       instant(i,j,k,1) = instant(i,j,k,1) + 1
 
@@ -419,7 +419,7 @@ contains
       do j = lo(2), hi(2)
         do i = lo(1), hi(1)
 
-          membersinv = instant(i,j,k,1)
+          membersinv = 1d0/instant(i,j,k,1)
 
           instant(i,j,k,2) = instant(i,j,k,2)*neff/cellvols(i,j,k)
    
@@ -450,8 +450,8 @@ contains
       part => particles(p)
 
       i = floor(part%pos(1)*dxinv(1))
-      j = floor(part%pos(1)*dxinv(2))
-      k = floor(part%pos(1)*dxinv(3))
+      j = floor(part%pos(2)*dxinv(2))
+      k = floor(part%pos(3)*dxinv(3))
 
       instant(i,j,k,6) = instant(i,j,k,6) + &
            (1d0/part%R)*( (instant(i,j,k,3)-part%vel(1))**2 &
