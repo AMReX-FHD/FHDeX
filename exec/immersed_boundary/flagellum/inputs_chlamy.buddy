@@ -11,16 +11,16 @@
   prob_type = 0
 
   ! number of cells in domain
-  n_cells(1:3)       = 64 64 32
+  n_cells(1:3)       =  128 128 64
   ! max number of cells in a box
-  max_grid_size(1:3) = 32 32 32
+  max_grid_size(1:3) =   16  16 16
 
   ! Time-step control
   fixed_dt = 1e-4
 
   ! Controls for number of steps between actions
-  max_step = 40000000
-  plot_int = 10
+  max_step = 400000
+  plot_int = 100
 
   ! Viscous friction L phi operator
   ! if abs(visc_type) = 1, L = div beta grad
@@ -34,6 +34,7 @@
   ! Stochastic parameters
   variance_coef_mom    = 0.
   initial_variance_mom = 0.
+
   k_B       = 1.38064852e-16 ! [units: cm2*g*s-2*K-1]
   T_init(1) = 295.00         ! [units: K]
 
@@ -46,8 +47,8 @@
   ! ----------------------
   ! BC specifications:
   ! -1 = periodic, 1 = finite slip wall 2 = no-slip wall, -2 = periodic pressure
-  bc_vel_lo(1:3) =  2  2  2
-  bc_vel_hi(1:3) =  2  2  2
+  bc_vel_lo(1:3) = -1 -1  2
+  bc_vel_hi(1:3) = -1 -1  2
 
   p_lo(1:3)  = 0 -.1  0
   p_hi(1:3)  = 0  .1  0
@@ -62,7 +63,7 @@
   ! Staggered multigrid solver parameters
   stag_mg_verbosity = 0           ! verbosity
   stag_mg_max_vcycles = 1         ! max number of v-cycles
-  stag_mg_minwidth = 2            ! length of box at coarsest multigrid level
+  stag_mg_minwidth = 1            ! length of box at coarsest multigrid level
   stag_mg_bottom_solver = 0       ! bottom solver type
                                   ! 0 = smooths only, controlled by mg_nsmooths_bottom
                                   ! 4 = Fancy bottom solve that coarsens additionally
@@ -82,7 +83,7 @@
   gmres_verbose = 1               ! gmres verbosity; if greater than 1, more residuals will be printed out
   gmres_max_outer = 20            ! max number of outer iterations
   gmres_max_inner = 20            ! max number of inner iterations, or restart number
-  gmres_max_iter = 400            ! max number of gmres iterations
+  gmres_max_iter = 400            ! max number of gmres iteration0
   gmres_min_iter = 1              ! min number of gmres iterations
 
 /
@@ -101,14 +102,14 @@
 &ib_flagellum
 
   n_marker(1:1)  = 21
-  offset_0(:, 1) = 1.5e-3 2.6e-3 1.e-3
+  offset_0(:, 1) = .5e-3 2.e-3 1.e-3
 
   amplitude(1:1)  = 1e4
   frequency(1:1)  = 1
-  length(1:1)     = 1.6e-3
+  length(1:1)     = 1.0e-3
   wavelength(1:1) = .8e-3
-  k_spring(1:1)   = 1e-2
-  k_driving(1:1)  = 1e-2
+  k_spring(1:1)   = 2e-3
+  k_driving(1:1)  = 2e-3
 
 
   fourier_coef_len = 4

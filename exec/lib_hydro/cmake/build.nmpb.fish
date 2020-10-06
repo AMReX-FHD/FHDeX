@@ -1,12 +1,27 @@
 #!/usr/bin/env fish
 
+# Parse input arguments
+argparse "d/delete" -- $argv
+
+if test -n "$_flag_d"
+    rm -r dist
+end
+
+# Assume location of the AMReX Executable
+if ! set -q AMREX_ROOT
+    set -gx AMREX_ROOT (realpath  ../../../../amrex/dist)
+end
+
+# Default to clang compiler
+if ! set -q CC && ! set -q CXX
+    set -gx CC (which clang)
+    set -gx CXX (which clang++)
+end
+
+# Build!
 mkdir -p dist
 pushd dist
-cmake .. -DAMReX_ROOT=/Users/blaschke/Science/amrex/dist \
-         -DCMAKE_INSTALL_PREFIX=. \
-         -DCMAKE_C_COMPILER=(which gcc-9) \
-         -DCMAKE_CXX_COMPILER=(which g++-9) \
-         -DCMAKE_Fortran_COMPILER=(which gfortran-9)
+cmake .. -DAMReX_ROOT=$AMREX_ROOT -DCMAKE_INSTALL_PREFIX="."
 make VERBOSE=TRUE -j
 make install
 popd
