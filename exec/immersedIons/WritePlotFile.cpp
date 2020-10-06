@@ -182,7 +182,7 @@ void WritePlotFile(int step,
 
        // amrex::MultiFab::Copy(ix,particleMeans,0,0,14,0);
 
-        std::string asciiName = Concatenate("means",step,9);
+        std::string asciiName = Concatenate("ascii_means",step,9);
         outputMFAscii(particleMeans, asciiName);
 
         std::string asciiPName = Concatenate("asciiParticles",step,9);
