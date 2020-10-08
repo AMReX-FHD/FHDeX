@@ -669,7 +669,7 @@ void compute_forces_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
         GpuArray<Real, 3> plo = {prob_lo[0], prob_lo[1], prob_lo[2]};
         GpuArray<Real, 3> phi = {prob_hi[0], prob_hi[1], prob_hi[2]};
 
-        if(prob_lo[0] != -1)
+        if(bc_vel_lo[0] != -1)
         {
             AMREX_FOR_1D( Np, i, 
             {
@@ -689,10 +689,12 @@ void compute_forces_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
                     repulsive_force_wall(p1, dx, dy, dz, r2);
                 }
 
+                printf("here");
+
             });
         }
 
-        if(prob_hi[0] != -1)
+        if(bc_vel_hi[0] != -1)
         {
             AMREX_FOR_1D( Np, i, 
             {
@@ -715,7 +717,7 @@ void compute_forces_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
             });
         }
 
-        if(prob_lo[1] != -1)
+        if(bc_vel_lo[1] != -1)
         {
             AMREX_FOR_1D( Np, i, 
             {
@@ -738,7 +740,7 @@ void compute_forces_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
             });
         }
 
-        if(prob_hi[1] != -1)
+        if(bc_vel_hi[1] != -1)
         {
             AMREX_FOR_1D( Np, i, 
             {
@@ -761,7 +763,7 @@ void compute_forces_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
             });
         }
 
-        if(prob_lo[2] != -1)
+        if(bc_vel_lo[2] != -1)
         {
             AMREX_FOR_1D( Np, i, 
             {
@@ -784,7 +786,7 @@ void compute_forces_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
             });
         }
 
-        if(prob_hi[2] != -1)
+        if(bc_vel_hi[2] != -1)
         {
             AMREX_FOR_1D( Np, i, 
             {
