@@ -850,7 +850,7 @@ void main_driver(const char* argv)
 
         // sr_tog is short range forces
         // es_tog is electrostatic solve (0=off, 1=Poisson, 2=Pairwise, 3=P3M)
-        if (sr_tog==1 || es_tog==3) {
+        if (sr_tog != 0 || es_tog==3) {
             // each tile clears its neighbors
             particles.clearNeighbors();
             

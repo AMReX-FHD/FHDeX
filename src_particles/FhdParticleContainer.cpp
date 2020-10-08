@@ -286,6 +286,8 @@ void FhdParticleContainer::computeForcesNLGPU(const MultiFab& charge, const Mult
     BL_PROFILE_VAR("computeForcesNL()",computeForcesNL);
 
     Real rcount = 0;
+    Real rdcount = 0;
+    Real recount = 0;
     const int lev = 0;
    
     buildNeighborList(CHECK_PAIR{});
@@ -304,26 +306,34 @@ void FhdParticleContainer::computeForcesNLGPU(const MultiFab& charge, const Mult
 
         const Box& tile_box  = pti.tilebox();
 
-        if (sr_tog==1)
+        if (sr_tog!= 0)
         {
             compute_forces_nl_gpu(particles, Np, Nn,
-                              m_neighbor_list[lev][index], rcount);            
+                              m_neighbor_list[lev][index], rcount, rdcount);            
         }
 
         if (es_tog==3)
         {
             compute_p3m_sr_correction_nl_gpu(particles, Np, Nn,
-                                        m_neighbor_list[lev][index], dx, rcount);
+                                        m_neighbor_list[lev][index], dx, recount);
 
         }
     
     }
 
-    if(sr_tog==1) 
+    if(sr_tog != 0) 
     {
             ParallelDescriptor::ReduceRealSum(rcount);
+            ParallelDescriptor::ReduceRealSum(rdcount);
 
             Print() << rcount/2 << " close range interactions.\n";
+            Print() << rdcount << " wall interactions.\n";
+    }
+    if(es_tog==3) 
+    {
+            ParallelDescriptor::ReduceRealSum(recount);
+
+            Print() << recount/2 << " p3m interactions.\n";
     }
 }
 

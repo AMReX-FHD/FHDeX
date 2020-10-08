@@ -17,14 +17,14 @@
             int near_wall: 0=part's p3m_radius/2 does not overlap with wall, 1=yes  
  */
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-int near_wall_check (const FhdParticleContainer::ParticleType& part, int dir)
+int near_wall_check (const FhdParticleContainer::ParticleType& part, int dir, Real dist)
 {
     using namespace amrex;
     using common::prob_hi;
     using common::prob_lo;
     
     const int abs_dir = std::abs(dir);
-    const Real p3m_rad = part.rdata(FHD_realData::p3m_radius);
+    //const Real p3m_rad = part.rdata(FHD_realData::p3m_radius);
     const int index = abs_dir - 1;
 
     int near_wall = 0;
@@ -33,14 +33,14 @@ int near_wall_check (const FhdParticleContainer::ParticleType& part, int dir)
     {
         if (dir > 0)
         {
-            if ((part.pos(index) + 0.5*p3m_rad) > prob_hi[index])
+            if ((part.pos(index) + dist) > prob_hi[index])
             {
                 near_wall = 1;
             }
         }
         else
         {
-            if ((part.pos(index) - 0.5*p3m_rad) < prob_lo[index])
+            if ((part.pos(index) - dist) < prob_lo[index])
             {
                 near_wall = 1;
             }
@@ -286,6 +286,25 @@ void repulsive_force (      FhdParticleContainer::ParticleType& part1,
     part1.rdata(FHD_realData::forcez) -= dz*ff;
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void repulsive_force_wall (      FhdParticleContainer::ParticleType& part1,
+                      amrex::Real dx, amrex::Real dy, amrex::Real dz, amrex::Real dr2)
+{
+    using namespace amrex;
+
+    //note that we are adjusting eps for the different wall potential
+    const Real eps1 = 0.02*part1.rdata(FHD_realData::eepsilon);
+    const Real sig1 = part1.rdata(FHD_realData::sigma);
+
+    const Real fac1 = std::pow((sig1)/2.0, 9);
+    const Real fac2 = std::pow((sig1)/2.0, 3);
+    const Real ff = eps1*1.5*sqrt(3)*(1./(dr2*dr2*sqrt(dr2)))*(-9*fac1/(dr2*dr2*dr2) + 3*fac2);
+    
+    part1.rdata(FHD_realData::forcex) -= dx*ff;
+    part1.rdata(FHD_realData::forcey) -= dy*ff;
+    part1.rdata(FHD_realData::forcez) -= dz*ff;
+}
+
 template <typename T>
 amrex::Gpu::DeviceVector<T> getDeviceVector (const amrex::Vector<T>& vec)
 {
@@ -336,10 +355,10 @@ void compute_p3m_sr_correction_nl_gpu (FhdParticleContainer::AoS& aos, int Np, i
         Real q = p1.rdata(FHD_realData::q);
 
         int near_wall_below = 0;
-        if (p_bc_es_lo_d[1] != -1) near_wall_below = near_wall_check(p1, -2);
+        if (p_bc_es_lo_d[1] != -1) near_wall_below = near_wall_check(p1, -2, 0.5*p3m_radius);
 
         int near_wall_above = 0;
-        if (p_bc_es_hi_d[1] != -1) near_wall_above = near_wall_check(p1,  2);
+        if (p_bc_es_hi_d[1] != -1) near_wall_above = near_wall_check(p1,  2, 0.5*p3m_radius);
 
         // image charge interactions for wall below
         if (near_wall_below)
@@ -469,7 +488,7 @@ void compute_p3m_sr_correction_nl_gpu (FhdParticleContainer::AoS& aos, int Np, i
                 // If part near wall, check if NL part also near wall
                 if (near_wall_below)
                 {
-                    int near_wall_below_nl_part = near_wall_check(p2, -2);
+                    int near_wall_below_nl_part = near_wall_check(p2, -2, 0.5*p3m_radius);
                     if (near_wall_below_nl_part)
                     {
                         RealVect im_charge_pos = calc_im_charge_loc(p2, -2);
@@ -524,7 +543,7 @@ void compute_p3m_sr_correction_nl_gpu (FhdParticleContainer::AoS& aos, int Np, i
 
                if (near_wall_above)
                {
-                    int near_wall_above_nl_part = near_wall_check(p2, 2);
+                    int near_wall_above_nl_part = near_wall_check(p2, 2, 0.5*p3m_radius);
                     if (near_wall_above_nl_part)
                     {
                         RealVect im_charge_pos = calc_im_charge_loc(p2, 2);
@@ -585,17 +604,19 @@ void compute_p3m_sr_correction_nl_gpu (FhdParticleContainer::AoS& aos, int Np, i
 //        }
     });
 
-    rcount = std::min(rcount, rcount_d.dataValue());    
+    //rcount = std::min(rcount, rcount_d.dataValue());    
 }
 
 void compute_forces_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
                         amrex::NeighborList<FhdParticleContainer::ParticleType>& neighbor_list,
-                        amrex::Real& rcount)
+                        amrex::Real& rcount, amrex::Real& rdcount)
 {
     using namespace amrex;
 
     Gpu::DeviceScalar<Real> rcount_d(rcount);
     Real* prcount_d = rcount_d.dataPtr();
+    Gpu::DeviceScalar<Real> rdcount_d(rdcount);
+    Real* prdcount_d = rdcount_d.dataPtr();
     
     auto nbor_data = neighbor_list.data();
     FhdParticleContainer::ParticleType* pstruct = aos().dataPtr();
@@ -605,6 +626,17 @@ void compute_forces_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
     auto pp_int_tog_d = p_int_tog_d.data();
 
     auto rmin = common::rmin;
+
+    // clearly we don't want to do this every time...
+    Gpu::DeviceVector<int> bc_vel_lo_d = getDeviceVector(bc_vel_lo);
+    Gpu::DeviceVector<int> bc_vel_hi_d = getDeviceVector(bc_vel_hi);    
+    auto p_bc_vel_lo_d = bc_vel_lo_d.data();
+    auto p_bc_vel_hi_d = bc_vel_hi_d.data();
+
+//    Gpu::DeviceVector<Real> prob_lo_d = getDeviceVector(prob_lo);
+//    Gpu::DeviceVector<Real> prob_hi_d = getDeviceVector(prob_hi);    
+//    auto p_prob_lo_d = prob_lo_d.data();
+//    auto p_prob_hi_d = prob_hi_d.data();
     
     AMREX_FOR_1D( Np, i, 
     {
@@ -623,7 +655,7 @@ void compute_forces_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
                 r2 = amrex::max(r2, rmin*rmin);
                 const Real r = sqrt(r2);
                 
-                if (r < (1.122*p1.rdata(FHD_realData::sigma)/2.0))
+                if (r < (1.122*(p1.rdata(FHD_realData::sigma)+p2.rdata(FHD_realData::sigma))/4.0))
                 {
                     Gpu::Atomic::Add(prcount_d, 1.0);
                     repulsive_force(p1, p2, dx, dy, dz, r2);
@@ -632,7 +664,155 @@ void compute_forces_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
         }
     });
 
-    rcount = std::min(rcount, rcount_d.dataValue());
+    if(sr_tog == 2)
+    {
+        GpuArray<Real, 3> plo = {prob_lo[0], prob_lo[1], prob_lo[2]};
+        GpuArray<Real, 3> phi = {prob_hi[0], prob_hi[1], prob_hi[2]};
+
+        if(prob_lo[0] != 0)
+        {
+            AMREX_FOR_1D( Np, i, 
+            {
+                FhdParticleContainer::ParticleType& p1 = pstruct[i];
+
+                const Real dx = p1.pos(0) - plo[0];
+                const Real dy = 0;
+                const Real dz = 0;
+
+                Real r2 = dx*dx;
+                r2 = amrex::max(r2, rmin*rmin);
+                const Real r = sqrt(r2);
+                
+                if (r < (1.20094*p1.rdata(FHD_realData::sigma)/4.0))
+                {
+                    Gpu::Atomic::Add(prdcount_d, 1.0);
+                    repulsive_force_wall(p1, dx, dy, dz, r2);
+                }
+
+            });
+        }
+
+        if(prob_hi[0] != 0)
+        {
+            AMREX_FOR_1D( Np, i, 
+            {
+                FhdParticleContainer::ParticleType& p1 = pstruct[i];
+
+                const Real dx = p1.pos(0) - phi[0];
+                const Real dy = 0;
+                const Real dz = 0;
+
+                Real r2 = dx*dx;
+                r2 = amrex::max(r2, rmin*rmin);
+                const Real r = sqrt(r2);
+                
+                if (r < (1.20094*p1.rdata(FHD_realData::sigma)/4.0))
+                {
+                    Gpu::Atomic::Add(prdcount_d, 1.0);
+                    repulsive_force_wall(p1, dx, dy, dz, r2);
+                }
+
+            });
+        }
+
+        if(prob_lo[1] != 0)
+        {
+            AMREX_FOR_1D( Np, i, 
+            {
+                FhdParticleContainer::ParticleType& p1 = pstruct[i];
+
+                const Real dx = 0;
+                const Real dy = p1.pos(1) - plo[1];
+                const Real dz = 0;
+
+                Real r2 = dy*dy;
+                r2 = amrex::max(r2, rmin*rmin);
+                const Real r = sqrt(r2);
+                
+                if (r < (1.20094*p1.rdata(FHD_realData::sigma)/4.0))
+                {
+                    Gpu::Atomic::Add(prdcount_d, 1.0);
+                    repulsive_force_wall(p1, dx, dy, dz, r2);
+                }
+
+            });
+        }
+
+        if(prob_hi[1] != 0)
+        {
+            AMREX_FOR_1D( Np, i, 
+            {
+                FhdParticleContainer::ParticleType& p1 = pstruct[i];
+
+                const Real dx = 0;
+                const Real dy = p1.pos(1) - phi[1];
+                const Real dz = 0;
+
+                Real r2 = dy*dy;
+                r2 = amrex::max(r2, rmin*rmin);
+                const Real r = sqrt(r2);
+                
+                if (r < (1.20094*p1.rdata(FHD_realData::sigma)/4.0))
+                {
+                    Gpu::Atomic::Add(prdcount_d, 1.0);
+                    repulsive_force_wall(p1, dx, dy, dz, r2);
+                }
+
+            });
+        }
+
+        if(prob_lo[2] != 0)
+        {
+            AMREX_FOR_1D( Np, i, 
+            {
+                FhdParticleContainer::ParticleType& p1 = pstruct[i];
+
+                const Real dx = 0;
+                const Real dy = 0;
+                const Real dz = p1.pos(2) - plo[2];
+
+                Real r2 = dz*dz;
+                r2 = amrex::max(r2, rmin*rmin);
+                const Real r = sqrt(r2);
+                
+                if (r < (1.20094*p1.rdata(FHD_realData::sigma)/4.0))
+                {
+                    Gpu::Atomic::Add(prdcount_d, 1.0);
+                    repulsive_force_wall(p1, dx, dy, dz, r2);
+                }
+
+            });
+        }
+
+        if(prob_hi[2] != 0)
+        {
+            AMREX_FOR_1D( Np, i, 
+            {
+                FhdParticleContainer::ParticleType& p1 = pstruct[i];
+
+                const Real dx = 0;
+                const Real dy = 0;
+                const Real dz = p1.pos(2) - phi[2];
+
+                Real r2 = dz*dz;
+                r2 = amrex::max(r2, rmin*rmin);
+                const Real r = sqrt(r2);
+                
+                if (r < (1.20094*p1.rdata(FHD_realData::sigma)/4.0))
+                {
+                    Gpu::Atomic::Add(prdcount_d, 1.0);
+                    repulsive_force_wall(p1, dx, dy, dz, r2);
+                }
+
+            });
+        }
+    }
+
+//    rcount = std::min(rcount, rcount_d.dataValue());
+//    rdcount = std::min(rdcount, rdcount_d.dataValue());
+
+    rcount = rcount_d.dataValue();
+    rdcount = rdcount_d.dataValue();
 }
 
 template <typename F>
