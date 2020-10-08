@@ -159,14 +159,16 @@ void WritePlotFile(int step,
 //        amrex::MultiFab::Copy(eyplotout,efield[1],0,0,1,0);
 //        amrex::MultiFab::Copy(ezplotout,efield[2],0,0,1,0);
 
-        std::string asciiName1 = Concatenate("asciiCharge",step,9);
-        std::string asciiName2 = Concatenate("asciiPotential",step,9);
-        std::string asciiName3 = Concatenate("asciiEx",step,9);
-        std::string asciiName4 = Concatenate("asciiEy",step,9);
-        std::string asciiName5 = Concatenate("asciiEz",step,9);
+//        std::string asciiName1 = Concatenate("asciiCharge",step,9);
+//        std::string asciiName2 = Concatenate("asciiPotential",step,9);
+//        std::string asciiName3 = Concatenate("asciiEx",step,9);
+//        std::string asciiName4 = Concatenate("asciiEy",step,9);
+//        std::string asciiName5 = Concatenate("asciiEz",step,9);
         //std::string asciiName6 = Concatenate("asciiIx",step,9);
         //std::string asciiName7 = Concatenate("asciiIy",step,9);
         //std::string asciiName8 = Concatenate("asciiIz",step,9);
+
+        
 
         //outputMFAscii(charge, asciiName1);
         //outputMFAscii(potential, asciiName2);
@@ -180,9 +182,8 @@ void WritePlotFile(int step,
 
        // amrex::MultiFab::Copy(ix,particleMeans,0,0,14,0);
 
-       // outputMFAscii(particleMeans[1], asciiName6);
-       // outputMFAscii(particleMeans[2], asciiName7);
-       // outputMFAscii(particleMeans[3], asciiName8);
+        std::string asciiName = Concatenate("ascii_means",step,9);
+        outputMFAscii(particleMeans, asciiName);
 
         std::string asciiPName = Concatenate("asciiParticles",step,9);
         particles.WriteParticlesAscii(asciiPName);

@@ -357,7 +357,6 @@ void StructFact::ComputeFFT(const MultiFab& variables,
 #endif
   MPI_Comm comm = ParallelDescriptor::Communicator();
   hacc::Distribution d(comm,n,Ndims,&rank_mapping[0]);
-  hacc::Dfft dfft(d);
 
   if (verbosity > 0) {
     Print() << "RANK MAPPING: \n";
@@ -388,6 +387,7 @@ void StructFact::ComputeFFT(const MultiFab& variables,
 
 	// Print() << "HACK FFT: got here" << std::endl;
 
+        hacc::Dfft dfft(d);
 	dfft.makePlans(&a[0],&b[0],&a[0],&b[0]);
 
 	// *******************************************

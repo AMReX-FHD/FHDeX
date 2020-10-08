@@ -25,6 +25,9 @@ GRTAGS
 ## MacOS creates dynamic linker symbol files
 *.dSym
 
+## MacOS crap
+.DS_Store
+
 ## Python caches
 **/__pycache__
 .ipynb_checkpoints

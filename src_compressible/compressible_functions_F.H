@@ -64,12 +64,6 @@ extern "C"
 
     void get_hc_gas();
 
-    void evaluate_corrs(const int* lo, const int* hi,
-                        const amrex::Real* cu, const amrex::Real* cumeans, amrex::Real* cuvars,
-                        const amrex::Real* prim, const amrex::Real* primmeans, amrex::Real* primvars,
-                        amrex::Real* spatialcross, const int* steps, amrex::Real* miscstats, amrex::Real* miscvals);
-
-
     void multifab_yzav(const int* lo, const int* hi, const amrex::Real* fabin, amrex::Real* fabout, const int* comps);
 
     void do_ssa(const int* lo, const int* hi,

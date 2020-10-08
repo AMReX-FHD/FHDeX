@@ -25,6 +25,8 @@
 #include <iostream>
 #include <fstream>
 
+#include <cstdio>
+
 
 using namespace amrex;
 
@@ -443,8 +445,7 @@ void FhdParticleContainer::MoveIons(const Real dt, const Real* dxFluid, const Re
     
 }
 
-
-void FhdParticleContainer::MoveIonsGPU1(const Real dt, const Real* dxFluid, const Real* dxE, const Geometry geomF,
+void FhdParticleContainer::MoveIonsGPU(const Real dt, const Real* dxFluid, const Real* dxE, const Geometry geomF,
                                     const std::array<MultiFab, AMREX_SPACEDIM>& umac, const std::array<MultiFab, AMREX_SPACEDIM>& efield,
                                     const std::array<MultiFab, AMREX_SPACEDIM>& RealFaceCoords,
                                     std::array<MultiFab, AMREX_SPACEDIM>& source,
@@ -488,7 +489,6 @@ void FhdParticleContainer::MoveIonsGPU1(const Real dt, const Real* dxFluid, cons
 
     InterpolateMarkersGpu(0, dxFluid, umac, RealFaceCoords, check);
 
-
     if(move_tog == 2)
     {
         for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
@@ -503,120 +503,125 @@ void FhdParticleContainer::MoveIonsGPU1(const Real dt, const Real* dxFluid, cons
 
             moves_tile = 0;
 
-            for (int i = 0; i < np; ++ i) {
-                ParticleType & part = particles[i];
+                printf("DT C%f\n",dt);
 
+            //This is how I'm making vars accessible in the AMREX_FOR_1D, I suspect it's not optimal -DRL
+            const auto pstruct = particles().dataPtr();
+            Gpu::DeviceScalar<int> moves_tile_gpu(0);
+            int* moves_tile_ptr = moves_tile_gpu.dataPtr();
+            //testloop
+            AMREX_FOR_1D( np, i,
+            {
+                Real posOld[3];
+                Real velOld[3];
+                Real posAlt[3];
 
-//                for (int d=0; d<AMREX_SPACEDIM; ++d)
-//                {
-//                    part.rdata(FHD_realData::pred_posx + d) = part.pos(d);
-//                    //part.pos(d) += dt * part.rdata(FHD_realData::velx + d);
-//                }
+                Real adj = 0.99999;
+                Real adjalt = 2.0*(1.0-0.99999);
 
-                moves_tile++;
+                ParticleType& part = pstruct[i];
+                (*moves_tile_ptr)++;
+
+//                std::cout << "moves tile: " << (*moves_tile_ptr) << ", " << moves_tile_gpu.dataValue() << std::endl;
+
                 for (int d=0; d<AMREX_SPACEDIM; ++d)
                 {
                     velOld[d] = part.rdata(FHD_realData::velx + d);
                     part.rdata(FHD_realData::pred_posx + d) = part.pos(d);
                 }
 
-                runtime = 0.5*dt;
-                inttime = 0;
-                midpoint = 0;
+                Real runtime = 0.5*dt;
+                Real inttime = 0;
+                Real midpoint = 0;
 
-
+                int intsurf;
+                int intside;
+                int push;
                 while(runtime > 0)
                 {
-                    //find_inter(&part, &runtime, paramPlaneList, &paramPlaneCount, &intsurf, &inttime, &intside, ZFILL(plo), ZFILL(phi));
+                    printf("delt pre %e\n",inttime);
                     find_inter_gpu(part, runtime, paramPlaneList, paramPlaneCount, &intsurf, &inttime, &intside, ZFILL(plo), ZFILL(phi));
-                    
+
                     for (int d=0; d<AMREX_SPACEDIM; ++d)
                     {
                         posAlt[d] = inttime * part.rdata(FHD_realData::velx + d)*adjalt;
+                        //printf("test %e\n",inttime);
                     }
                     for (int d=0; d<AMREX_SPACEDIM; ++d)
                     {
-                        part.pos(d) += inttime * part.rdata(FHD_realData::velx + d)*adj;
+                        //part.pos(d) += part.rdata(FHD_realData::velx + d)*adj;
+                        //part.pos(d) += part.rdata(FHD_realData::velx + d)*adj*inttime;
+                        //printf("test %f\n",inttime);
                     }
 
-                    if(intsurf > 0)
-                    {
+//                    if(intsurf > 0)
+//                    {
 
-                        const paramPlane& surf = paramPlaneList[intsurf-1]; //intsurf-1 for fortran find_inter, intsurf for c++ find_inter_gpu
+//                        const paramPlane& surf = paramPlaneList[intsurf-1]; //find_inter indexes from 1 to maintain compatablity with fortran version
 
-                        if(surf.periodicity == 0)
-                        {
-                           Real dummy = 1;
-                           //std::cout << "Pre: " << part.rdata(FHD_realData::velx) << ", " << part.rdata(FHD_realData::vely) << ", " << part.rdata(FHD_realData::velz) << ", " << intside << "\n";
-                           app_bc(&surf, &part, &intside, domsize, &push, &dummy, &dummy);
-                           //std::cout << "Post: " << part.rdata(FHD_realData::velx) << ", " << part.rdata(FHD_realData::vely) << ", " << part.rdata(FHD_realData::velz) << ", " << intside << "\n";
+//                        if(surf.periodicity == 0)
+//                        {
+//                           Real dummy = 1;
+//                           Real domsize[3];
 
-                           runtime = runtime - inttime;
+//                           for (int d=0; d<AMREX_SPACEDIM; ++d)
+//                           {
+//                               domsize[d] = phi[d]-plo[d];
+//                           }
+//                           app_bc_gpu(&surf, part, intside, domsize, &push, dummy, dummy);
+//                           runtime = runtime - inttime;
 
-                        }else
-                        {
-                          runtime = runtime - inttime;
+//                        }else
+//                        {
+//                          runtime = runtime - inttime;
 
-                          for (int d=0; d<AMREX_SPACEDIM; ++d)
-                          {
-         
-                            part.pos(d) += runtime * part.rdata(FHD_realData::velx + d);
-                          }
-                          runtime = 0;
+//                          for (int d=0; d<AMREX_SPACEDIM; ++d)
+//                          {
+//         
+//                            part.pos(d) += runtime * part.rdata(FHD_realData::velx + d);
+//                          }
+//                          runtime = 0;
 
-                        }
+//                        }
 
-                    }else
-                    {
-                       runtime = 0;
+//                    }else
+//                    {
+//                       runtime = 0;
 
-                    }
+//                    }
 
-
+                      runtime = 0;
                 }
+            });
 
-//                for (int d=0; d<AMREX_SPACEDIM; ++d)
-//                {
-
-//                  part.rdata(FHD_realData::velx + d) = 0;
-//                }
-
-            
-             
-            }
-
-            moves_proc    += moves_tile;
-
-            //std::cout << "Moves " << moves_tile << std::endl;
-
-                
+            //moves_proc += moves_tile_gpu.dataValue();        
         }
 
 
  
         //Need to add midpoint rejecting feature here.
-        InterpolateMarkersGpu(0, dxFluid, umac, RealFaceCoords, check);
+        //InterpolateMarkersGpu(0, dxFluid, umac, RealFaceCoords, check);
         //std::cout << "check: " << check << "\n";
  
-        for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
+//        for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
 
-            TileIndex index(pti.index(), pti.LocalTileIndex());
+//            TileIndex index(pti.index(), pti.LocalTileIndex());
 
-            AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
-            long np = this->GetParticles(lev).at(index).numParticles();
+//            AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
+//            long np = this->GetParticles(lev).at(index).numParticles();
 
-            for (int i = 0; i < np; ++ i) {
-                ParticleType & part = particles[i];
+//            for (int i = 0; i < np; ++ i) {
+//                ParticleType & part = particles[i];
 
-                for (int d=0; d<AMREX_SPACEDIM; ++d)
-                {                   
-                    part.pos(d) = part.rdata(FHD_realData::pred_posx + d);
-                }
+//                for (int d=0; d<AMREX_SPACEDIM; ++d)
+//                {                   
+//                    part.pos(d) = part.rdata(FHD_realData::pred_posx + d);
+//                }
 
 
 
-            }
-        }
+//            }
+//        }
     }
 
 
@@ -635,10 +640,13 @@ void FhdParticleContainer::MoveIonsGPU1(const Real dt, const Real* dxFluid, cons
                 ParticleType & part = particles[i];
 
                 Real mb[3];
+                Real mbDer[3];
                 Real dry_terms[3];
 
-                get_explicit_mobility(mb, &part, ZFILL(plo), ZFILL(phi));
-                dry(&dt,&part,dry_terms, mb);
+                //get_explicit_mobility(mb, &part, ZFILL(plo), ZFILL(phi));
+                get_explicit_mobility_gpu(mb, mbDer,part, plo, phi);
+                //dry(&dt,&part,dry_terms, mb);
+                dry_gpu(dt, part,dry_terms, mb, mbDer);
 
                 for (int d=0; d<AMREX_SPACEDIM; ++d)
                 {                   
@@ -668,12 +676,6 @@ void FhdParticleContainer::MoveIonsGPU1(const Real dt, const Real* dxFluid, cons
 
         for (int i = 0; i < np; ++ i) {
             ParticleType & part = particles[i];
-
-            Real mb[3];
-            Real dry_terms[3];
-
-            get_explicit_mobility(mb, &part, ZFILL(plo), ZFILL(phi));
-            dry(&dt,&part,dry_terms, mb);
 
             Real speed = 0;
 
@@ -716,7 +718,8 @@ void FhdParticleContainer::MoveIonsGPU1(const Real dt, const Real* dxFluid, cons
                     const paramPlane& surf = paramPlaneList[intsurf-1];
 
                     Real dummy = 1;
-                    app_bc(&surf, &part, &intside, domsize, &push, &dummy, &dummy);
+                    //app_bc(&surf, &part, &intside, domsize, &push, &dummy, &dummy);
+                    app_bc_gpu(&surf, part, intside, domsize, &push, dummy, dummy);
                     //std::cout << "Post: " << part.id() << ", " << part.rdata(FHD_realData::velx) << ", " << part.rdata(FHD_realData::vely) << ", " << part.rdata(FHD_realData::velz) << ", " << intsurf << "\n";
 
                     if(push == 1)
@@ -921,6 +924,498 @@ void FhdParticleContainer::MoveIonsGPU1(const Real dt, const Real* dxFluid, cons
     }    
 }
 
+
+void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const Real* dxE, const Geometry geomF,
+                                    const std::array<MultiFab, AMREX_SPACEDIM>& umac, const std::array<MultiFab, AMREX_SPACEDIM>& efield,
+                                    const std::array<MultiFab, AMREX_SPACEDIM>& RealFaceCoords,
+                                    std::array<MultiFab, AMREX_SPACEDIM>& source,
+                                    std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
+                                    const MultiFab& mobility,
+                                    const paramPlane* paramPlaneList, const int paramPlaneCount, int sw)
+{
+    BL_PROFILE_VAR("MoveIons()",MoveIons);
+
+    UpdateCellVectors();
+
+    const int lev = 0;
+    const Real* dx = Geom(lev).CellSize();
+    const Real* plo = Geom(lev).ProbLo();
+    const Real* phi = Geom(lev).ProbHi();
+
+    Real domsize[3];
+
+    for (int d=0; d<AMREX_SPACEDIM; ++d)
+    {
+        domsize[d] = phi[d]-plo[d];
+    }
+
+    double kinetic = 0;
+
+    int        np_tile = 0 ,       np_proc = 0 ; // particle count
+    Real rejected_tile = 0., rejected_proc = 0.; // rejected moves in midpoint scheme
+    Real    moves_tile = 0.,    moves_proc = 0.; // total moves in midpoint scheme
+    Real maxspeed_tile = 0., maxspeed_proc = 0.; // max speed
+    Real  maxdist_tile = 0.,  maxdist_proc = 0.; // max displacement (fraction of radius)
+    Real diffinst_tile = 0., diffinst_proc = 0.; // average diffusion coefficient
+
+    Real adj = 0.99999;
+    Real adjalt = 2.0*(1.0-0.99999);
+    Real runtime, inttime;
+    int intsurf, intside, push;
+    int midpoint = 0;
+    Real posAlt[3];
+    Real check;
+
+    InterpolateMarkersGpu(0, dxFluid, umac, RealFaceCoords, check);
+
+    if(move_tog == 2)
+    {
+        for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
+
+            TileIndex index(pti.index(), pti.LocalTileIndex());
+
+            AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
+            long np = this->GetParticles(lev).at(index).numParticles();
+
+            Real posOld[3];
+            Real velOld[3];
+
+            moves_tile = 0;
+
+            for (int i = 0; i < np; ++ i) {
+                ParticleType & part = particles[i];
+
+//                for (int d=0; d<AMREX_SPACEDIM; ++d)
+//                {
+//                    part.rdata(FHD_realData::pred_posx + d) = part.pos(d);
+//                    //part.pos(d) += dt * part.rdata(FHD_realData::velx + d);
+//                }
+
+                moves_tile++;
+                for (int d=0; d<AMREX_SPACEDIM; ++d)
+                {
+                    velOld[d] = part.rdata(FHD_realData::velx + d);
+                    part.rdata(FHD_realData::pred_posx + d) = part.pos(d);
+                }
+
+                runtime = 0.5*dt;
+                inttime = 0;
+                midpoint = 0;
+
+
+                while(runtime > 0)
+                {
+                    //find_inter(&part, &runtime, paramPlaneList, &paramPlaneCount, &intsurf, &inttime, &intside, ZFILL(plo), ZFILL(phi));
+                    find_inter_gpu(part, runtime, paramPlaneList, paramPlaneCount, &intsurf, &inttime, &intside, ZFILL(plo), ZFILL(phi));
+                    
+                    for (int d=0; d<AMREX_SPACEDIM; ++d)
+                    {
+                        posAlt[d] = inttime * part.rdata(FHD_realData::velx + d)*adjalt;
+                    }
+                    for (int d=0; d<AMREX_SPACEDIM; ++d)
+                    {
+                        part.pos(d) += inttime * part.rdata(FHD_realData::velx + d)*adj;
+                    }
+
+                    if(intsurf > 0)
+                    {
+
+                        const paramPlane& surf = paramPlaneList[intsurf-1]; //find_inter indexes from 1 to maintain compatablity with fortran version
+
+                        if(surf.periodicity == 0)
+                        {
+                           Real dummy = 1;
+                           //std::cout << "Pre: " << part.rdata(FHD_realData::velx) << ", " << part.rdata(FHD_realData::vely) << ", " << part.rdata(FHD_realData::velz) << ", " << intside << "\n";
+                           //app_bc(&surf, &part, &intside, domsize, &push, &dummy, &dummy);
+                           app_bc_gpu(&surf, part, intside, domsize, &push, dummy, dummy);
+                           //std::cout << "Post: " << part.rdata(FHD_realData::velx) << ", " << part.rdata(FHD_realData::vely) << ", " << part.rdata(FHD_realData::velz) << ", " << intside << "\n";
+
+                           runtime = runtime - inttime;
+
+                        }else
+                        {
+                          runtime = runtime - inttime;
+
+                          for (int d=0; d<AMREX_SPACEDIM; ++d)
+                          {
+         
+                            part.pos(d) += runtime * part.rdata(FHD_realData::velx + d);
+                          }
+                          runtime = 0;
+
+                        }
+
+                    }else
+                    {
+                       runtime = 0;
+
+                    }
+
+
+                }
+
+//                for (int d=0; d<AMREX_SPACEDIM; ++d)
+//                {
+
+//                  part.rdata(FHD_realData::velx + d) = 0;
+//                }
+
+            
+             
+            }
+
+            moves_proc    += moves_tile;
+
+            //std::cout << "Moves " << moves_tile << std::endl;
+
+                
+        }
+
+
+ 
+        //Need to add midpoint rejecting feature here.
+        InterpolateMarkersGpu(0, dxFluid, umac, RealFaceCoords, check);
+        //std::cout << "check: " << check << "\n";
+ 
+        for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
+
+            TileIndex index(pti.index(), pti.LocalTileIndex());
+
+            AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
+            long np = this->GetParticles(lev).at(index).numParticles();
+
+            for (int i = 0; i < np; ++ i) {
+                ParticleType & part = particles[i];
+
+                for (int d=0; d<AMREX_SPACEDIM; ++d)
+                {                   
+                    part.pos(d) = part.rdata(FHD_realData::pred_posx + d);
+                }
+
+
+
+            }
+        }
+    }
+
+
+//cin.get();
+
+    if((dry_move_tog == 1) || (dry_move_tog == 2))
+    {
+        for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
+
+            TileIndex index(pti.index(), pti.LocalTileIndex());
+
+            AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
+            long np = this->GetParticles(lev).at(index).numParticles();
+
+            for (int i = 0; i < np; ++ i) {
+                ParticleType & part = particles[i];
+
+                Real mb[3];
+                Real mbDer[3];
+                Real dry_terms[3];
+
+                //get_explicit_mobility(mb, &part, ZFILL(plo), ZFILL(phi));
+                get_explicit_mobility_gpu(mb, mbDer, part, plo, phi);
+                //dry(&dt,&part,dry_terms, mb);
+                dry_gpu(dt, part,dry_terms, mb, mbDer);
+
+                for (int d=0; d<AMREX_SPACEDIM; ++d)
+                {                   
+                    part.rdata(FHD_realData::velx + d) += dry_terms[d];
+                }
+//Print() << "Adding " << dry_terms[0] << "\n";
+
+
+            }
+        }
+    }
+
+    Real maxspeed = 0;
+    Real maxdist = 0;
+    Real totaldist, diffest;
+    Real diffinst = 0;
+    int moves = 0;
+
+   // PrintParticles();
+
+    for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
+
+        TileIndex index(pti.index(), pti.LocalTileIndex());
+
+        AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
+        long np = this->GetParticles(lev).at(index).numParticles();
+
+        for (int i = 0; i < np; ++ i) {
+            ParticleType & part = particles[i];
+
+            Real speed = 0;
+
+            for (int d=0; d<AMREX_SPACEDIM; ++d)
+            {                   
+                speed += part.rdata(FHD_realData::velx + d)*part.rdata(FHD_realData::velx + d);
+            }
+
+            if(speed > maxspeed)
+            {
+                maxspeed = speed;
+            }
+
+            moves++;
+
+            runtime = dt;
+
+            //Real thisMove[3] = {0,0,0};
+
+            while(runtime > 0)
+            {
+                //find_inter(&part, &runtime, paramPlaneList, &paramPlaneCount, &intsurf, &inttime, &intside, ZFILL(plo), ZFILL(phi));
+                find_inter_gpu(part, runtime, paramPlaneList, paramPlaneCount, &intsurf, &inttime, &intside, ZFILL(plo), ZFILL(phi));
+                //Print() << "PART " << part.id() << ", " << intsurf << "\n";
+                //cin.get();
+
+                for (int d=0; d<AMREX_SPACEDIM; ++d)
+                {
+                    posAlt[d] = inttime * part.rdata(FHD_realData::velx + d)*adjalt;
+                }
+                for (int d=0; d<AMREX_SPACEDIM; ++d)
+                {
+                    part.pos(d) += inttime * part.rdata(FHD_realData::velx + d)*adj;
+                    //part.rdata(FHD_realData::ax +d ) += inttime * part.rdata(FHD_realData::velx + d)*adj;
+                    //thisMove[d] += inttime * part.rdata(FHD_realData::velx + d)*adj;
+                }
+                runtime = runtime - inttime;
+                if(intsurf > 0)
+                {
+                    const paramPlane& surf = paramPlaneList[intsurf-1];//find_inter indexes from 1 to maintain compatablity with fortran version
+
+                    Real dummy = 1;
+                    //app_bc(&surf, &part, &intside, domsize, &push, &dummy, &dummy);
+                    app_bc_gpu(&surf, part, intside, domsize, &push, dummy, dummy);
+                    //std::cout << "Post: " << part.id() << ", " << part.rdata(FHD_realData::velx) << ", " << part.rdata(FHD_realData::vely) << ", " << part.rdata(FHD_realData::velz) << ", " << intsurf << "\n";
+
+                    if(push == 1)
+                    {
+                        for (int d=0; d<AMREX_SPACEDIM; ++d)
+                        {
+                            part.pos(d) += part.pos(d) + posAlt[d];
+                            //part.rdata(FHD_realData::ax + d) += part.pos(d) + posAlt[d];
+                            //thisMove[d] += part.pos(d) + posAlt[d];
+                        }
+                    }
+                }
+
+            }
+
+            for (int d=0; d<AMREX_SPACEDIM; ++d)
+            {
+                part.rdata(FHD_realData::ax + d) += part.rdata(FHD_realData::velx + d)*dt;
+            }
+
+//            Print() << part.id() << " vel: " << setprecision(15) << part.rdata(FHD_realData::velx) << " pos: " << part.pos(0) << "\n";
+
+            Real dist = dt*sqrt(part.rdata(FHD_realData::velx)*part.rdata(FHD_realData::velx) + part.rdata(FHD_realData::vely)*part.rdata(FHD_realData::vely) + part.rdata(FHD_realData::velz)*part.rdata(FHD_realData::velz))/part.rdata(FHD_realData::radius);
+            
+            totaldist = sqrt(part.rdata(FHD_realData::ax)*part.rdata(FHD_realData::ax) + part.rdata(FHD_realData::ay)*part.rdata(FHD_realData::ay) + part.rdata(FHD_realData::az)*part.rdata(FHD_realData::az));
+
+            if(dist > maxdist)
+            {
+                maxdist = dist;
+            }
+
+            //std::cout << "MAXDIST: " << maxdist << "\n";
+
+            part.rdata(FHD_realData::travelTime) += dt;
+
+            diffest = totaldist/(6.0*part.rdata(FHD_realData::travelTime));
+
+            diffinst += diffest;
+
+
+
+        }
+
+        maxspeed_proc = amrex::max(maxspeed_proc, maxspeed);
+        maxdist_proc  = amrex::max(maxdist_proc, maxdist);
+        //std::cout << "MAXDISTPROC: " << maxdist_proc << "\n";
+
+        diffinst_proc += diffinst;
+    }
+
+   // PrintParticles();
+
+
+    Real dxinv = 1.0/dx[1];
+
+    for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
+
+        TileIndex index(pti.index(), pti.LocalTileIndex());
+        const int grid_id = pti.index();
+        const Box& tile_box  = pti.tilebox();
+
+        AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
+        long np = this->GetParticles(lev).at(index).numParticles();
+
+        //long imap = tile_box.index(iv);
+
+        int ilo = m_vector_ptrs[grid_id].loVect()[0];
+        int ihi = m_vector_ptrs[grid_id].hiVect()[0];
+
+        int jlo = m_vector_ptrs[grid_id].loVect()[1];
+        int jhi = m_vector_ptrs[grid_id].hiVect()[1];
+
+        int klo = m_vector_ptrs[grid_id].loVect()[2];
+        int khi = m_vector_ptrs[grid_id].hiVect()[2];
+
+        int** cell_part_ids = m_vector_ptrs[grid_id].dataPtr();
+        int* cell_part_cnt = m_vector_size[grid_id].dataPtr();
+
+        //Print() << "Bounds: " << klo << ", " << khi << std::endl;
+
+//    for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
+
+//        TileIndex index(pti.index(), pti.LocalTileIndex());
+
+//        AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
+//        long np = this->GetParticles(lev).at(index).numParticles();
+
+//        }
+
+        for(int i=ilo;i<=ihi;i++)
+        {
+        for(int j=jlo;j<=jhi;j++)
+        {
+        for(int k=klo;k<=khi;k++)
+        {
+            //int* cell_parts = cell_part_ids[i][j][k];
+
+      //          Print() << "cell " << k << " of " << klo << ", " <<khi << "\n";
+
+            //int* cell_parts= m_vector_ptrs[grid_id].dataPtr()[i,j,k];
+            int cell_np = cell_part_cnt[i,j,k];
+            int* cell_parts= cell_part_ids[i,j,k];
+
+            int new_np = cell_np;
+
+            int p = 1;
+ 
+//Print() << "cell " << i << ", " << j << ", " << k << " of " << p << " of " << ihi << ", " << jhi << ", " << khi << "\n";
+
+            while(p <= new_np)
+            {
+                ParticleType & part = particles[cell_parts[p-1]];
+
+                int ni[3];
+
+                
+                for (int d=0; d<AMREX_SPACEDIM; ++d)
+                {
+                    ni[d] = (int)amrex::Math::floor((part.pos(d)-plo[d])/dxinv);
+                }
+
+//                if(ni[2] == 0)
+//                {
+//                        std::cout << "Particle in " << ni[0] << ", " << ni[1] << ", " << ni[2] << std::endl;
+//                }
+
+
+                if((ni[0] != i) || (ni[1] != j) || (ni[2] != k))
+                {
+                    part.idata(FHD_intData::sorted) = 0;
+                    remove_particle_from_cell(cell_parts, &cell_np, &new_np, &p);
+                }else
+                {
+                    p = p+1;
+                }
+            }
+
+            cell_part_cnt[i,j,k] = new_np;
+
+        }
+        }
+        }
+
+    }
+
+//    for (FhdParIter pti(*this, lev); pti.isValid(); ++pti)
+//    {
+//        const int grid_id = pti.index();
+//        const int tile_id = pti.LocalTileIndex();
+//        const Box& tile_box  = pti.tilebox();
+
+//        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+//        auto& particles = particle_tile.GetArrayOfStructs();
+//        long np = particles.numParticles();
+
+//        for(int pindex = 0; pindex < np; ++pindex)
+//        {
+//        ParticleType& p = particles[pindex];
+//        if (p.idata(FHD_intData::sorted)) continue;
+//            const IntVect& iv = this->Index(p, lev);
+//            p.idata(FHD_intData::sorted) = 1;
+//            p.idata(FHD_intData::i) = iv[0];
+//            p.idata(FHD_intData::j) = iv[1];
+//            p.idata(FHD_intData::k) = iv[2];
+
+//            long imap = tile_box.index(iv);
+//            // note - use 1-based indexing for convenience with Fortran
+//            m_cell_vectors[pti.index()][imap].push_back(pindex + 1);
+//        }
+//    }
+
+   // resize particle vectors after call to move_particles & gather stats
+    for (FhdParIter pti(*this, lev); pti.isValid(); ++pti)
+    {
+        const int grid_id = pti.index();
+        const int tile_id = pti.LocalTileIndex();
+        const Box& tile_box  = pti.tilebox();
+
+        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+        auto& particles = particle_tile.GetArrayOfStructs();
+        long np = particles.numParticles();
+
+       for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv))
+       {
+            const auto new_size = m_vector_size[grid_id](iv);
+            long imap = tile_box.index(iv);
+            auto& pvec = m_cell_vectors[grid_id][imap];
+            pvec.resize(new_size);
+        }
+
+
+        // gather statistics
+        np_proc       += np;
+
+    }
+
+    clearNeighbors();
+    Redistribute();
+    UpdateCellVectors();
+    ReBin();
+
+
+    // gather statistics
+    ParallelDescriptor::ReduceIntSum(np_proc);
+    ParallelDescriptor::ReduceRealSum(check);
+    ParallelDescriptor::ReduceRealSum(moves_proc);
+    ParallelDescriptor::ReduceRealMax(maxspeed_proc);
+    ParallelDescriptor::ReduceRealMax(maxdist_proc);
+    ParallelDescriptor::ReduceRealSum(diffinst_proc);
+
+    // write out global diagnostics
+    if (ParallelDescriptor::IOProcessor()) {
+        Print() << "I see " << np_proc << " particles\n";
+        if (move_tog == 2) {
+            Print() << "Fraction of midpoint moves rejected: " << check/moves_proc << "\n";
+        }
+        Print() <<"Maximum observed speed: " << sqrt(maxspeed_proc) << "\n";
+        Print() <<"Maximum observed displacement (fraction of radius): " << maxdist_proc << "\n";
+        Print() <<"Average diffusion coefficient: " << diffinst_proc/np_proc << "\n";
+    }
+}
+
 void FhdParticleContainer::SpreadIons(const Real dt, const Real* dxFluid, const Real* dxE, const Geometry geomF,
                                       const std::array<MultiFab, AMREX_SPACEDIM>& umac,
                                       const std::array<MultiFab, AMREX_SPACEDIM>& efield,
@@ -1058,6 +1553,7 @@ void FhdParticleContainer::SpreadIonsGPU(const Real dt, const Real* dxFluid, con
                          sourceTemp[0][pti], sourceTemp[1][pti], sourceTemp[2][pti],
                          ZFILL(plo),
                          ZFILL(dxFluid));
+
     }
 
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
@@ -1959,6 +2455,8 @@ void FhdParticleContainer::EvaluateStats(MultiFab& particleInstant,
     BoxArray ba = particleMeans.boxArray();
     long cellcount = ba.numPts();
 
+    const Real* dx = Geom(lev).CellSize();
+
     // zero instantaneous values
     particleInstant.setVal(0.);
     
@@ -1974,7 +2472,7 @@ void FhdParticleContainer::EvaluateStats(MultiFab& particleInstant,
 
         tp = tp + Np;
 
-        evaluate_fields(parts.data(),
+        evaluate_fields_pp(parts.data(),
                          ARLIM_3D(tile_box.loVect()),
                          ARLIM_3D(tile_box.hiVect()),
                          m_vector_ptrs[grid_id].dataPtr(),
@@ -1982,9 +2480,8 @@ void FhdParticleContainer::EvaluateStats(MultiFab& particleInstant,
                          ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
                          ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),   
                          BL_TO_FORTRAN_3D(particleInstant[pti]),
-                         BL_TO_FORTRAN_3D(cellVols[pti]),&Neff, &Np
+                         BL_TO_FORTRAN_3D(cellVols[pti]),&Neff, &Np, dx
                         );
-
     }
 
     // FIXME - tiling doesn't work
@@ -2039,6 +2536,8 @@ void FhdParticleContainer::EvaluateStats(MultiFab& particleInstant,
         for (int i=0; i<3; ++i) {
             varcurrent_proc[i] += varcurrent_tile[i];
         }
+
+
     }
 
     // gather statistics

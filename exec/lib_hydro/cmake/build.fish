@@ -9,7 +9,7 @@ end
 
 # Assume location of the AMReX Executable
 if ! set -q AMREX_ROOT
-    set -gx AMREX_ROOT (realpath  ../../../../../amrex/dist)
+    set -gx AMREX_ROOT (realpath  ../../../../amrex/dist)
 end
 
 # Default to clang compiler
