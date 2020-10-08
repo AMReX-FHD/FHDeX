@@ -813,10 +813,43 @@ void main_driver(const char* argv)
 //    WritePlotFileHydro(0, time, geom, umac, pres, umacM, umacV);
     remove("bulkFlowEst");
     //Time stepping loop
+
+    dt = dt*1e-5;
     for (int istep=step; istep<=max_step; ++istep) {
 
         // timer for time step
         Real time1 = ParallelDescriptor::second();
+
+        if(istep == 20)
+        {
+                dt = dt*10;
+                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+        }
+
+
+        if(istep == 40)
+        {
+                dt = dt*10;
+                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+        }
+
+        if(istep == 60)
+        {
+                dt = dt*10;
+                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+        }
+
+        if(istep == 80)
+        {
+                dt = dt*10;
+                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+        }
+
+        if(istep == 100)
+        {
+                dt = dt*10;
+                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+        }
 
 //        if(istep == 1)
 //        {
