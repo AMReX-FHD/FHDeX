@@ -259,6 +259,8 @@ contains
     
           instant(i,j,k,1) = cell_np
 
+ 
+
           do p = 1, cell_np
 
             part => particles(cell_parts(p))
@@ -333,6 +335,133 @@ contains
     enddo
 
   end subroutine evaluate_fields
+
+  subroutine evaluate_fields_pp(particles, lo, hi, cell_part_ids, cell_part_cnt, clo, chi, instant, ilo, ihi, cellvols, cvlo, cvhi, neff, np, dx) bind(c,name='evaluate_fields_pp')
+
+
+    use amrex_fort_module, only: amrex_real
+    use iso_c_binding, only: c_ptr, c_int, c_f_pointer
+    use cell_sorted_particle_module, only: particle_t
+
+    implicit none
+
+    integer,          intent(in      ) :: clo(3), chi(3), cvlo(3), cvhi(3), ilo(3), ihi(3), lo(3), hi(3), np
+    double precision, intent(in      ) :: neff, dx(3)
+
+    double precision, intent(inout   ) :: cellvols(cvlo(1):cvhi(1),cvlo(2):cvhi(2),cvlo(3):cvhi(3))
+    double precision, intent(inout   ) :: instant(ilo(1):ihi(1),ilo(2):ihi(2),ilo(3):ihi(3),14)
+
+    type(c_ptr), intent(inout)      :: cell_part_ids(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
+    integer(c_int), intent(inout)   :: cell_part_cnt(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
+
+    type(particle_t), intent(inout), target :: particles(np)
+
+    type(particle_t), pointer :: part
+    integer(c_int), pointer :: cell_parts(:)
+
+
+    !Go through this and optimise later
+
+    !double precision fac1, fac2, fac3, test, pairfrac
+    integer i,j,k,p,cell_np, ti, tj, tk, totalparticles
+    double precision membersinv, nrg, totalpx, totalpy, totalpz, rmean, dxinv(3)
+
+    totalpx = 0
+    totalpy = 0
+    totalpz = 0
+    totalparticles = 0
+
+    dxinv=1d0/dx
+
+    do p = 1, np
+
+      part => particles(p)
+
+      i = floor(part%pos(1)*dxinv(1))
+      j = floor(part%pos(2)*dxinv(2))
+      k = floor(part%pos(3)*dxinv(3))
+
+      instant(i,j,k,1) = instant(i,j,k,1) + 1
+
+      instant(i,j,k,2) = instant(i,j,k,2) + part%mass
+
+      instant(i,j,k,3) = instant(i,j,k,3) + part%vel(1)
+      instant(i,j,k,4) = instant(i,j,k,4) + part%vel(2)
+      instant(i,j,k,5) = instant(i,j,k,5) + part%vel(3)
+
+      instant(i,j,k,7) = instant(i,j,k,7) + part%vel(1)*part%mass
+      instant(i,j,k,8) = instant(i,j,k,8) + part%vel(2)*part%mass
+      instant(i,j,k,9) = instant(i,j,k,9) + part%vel(3)*part%mass
+
+      !if(part%q .gt. 0) then
+
+        instant(i,j,k,12) = instant(i,j,k,12) + part%vel(1)*part%q
+        instant(i,j,k,13) = instant(i,j,k,13) + part%vel(2)*part%q
+        instant(i,j,k,14) = instant(i,j,k,14) + part%vel(3)*part%q
+
+      !endif
+
+      nrg = 0.5*part%mass*(part%vel(1)*part%vel(1) + part%vel(2)*part%vel(2) + part%vel(3)*part%vel(3))
+
+      instant(i,j,k,10) = instant(i,j,k,10) + nrg
+
+      instant(i,j,k,11) = instant(i,j,k,11) + part%R
+
+      totalparticles = totalparticles + 1;
+
+      totalpx = totalpx +  part%vel(1)
+      totalpy = totalpy +  part%vel(2)
+      totalpz = totalpz +  part%vel(3)
+        
+    enddo
+
+    do k = lo(3), hi(3)
+      do j = lo(2), hi(2)
+        do i = lo(1), hi(1)
+
+          membersinv = 1d0/instant(i,j,k,1)
+
+          instant(i,j,k,2) = instant(i,j,k,2)*neff/cellvols(i,j,k)
+   
+          instant(i,j,k,3) = instant(i,j,k,3)*membersinv
+          instant(i,j,k,4) = instant(i,j,k,4)*membersinv
+          instant(i,j,k,5) = instant(i,j,k,5)*membersinv
+
+          instant(i,j,k,12) = instant(i,j,k,12)*neff/cellvols(i,j,k)
+          instant(i,j,k,13) = instant(i,j,k,13)*neff/cellvols(i,j,k)
+          instant(i,j,k,14) = instant(i,j,k,14)*neff/cellvols(i,j,k)
+
+          instant(i,j,k,7) = instant(i,j,k,7)*neff/cellvols(i,j,k)
+          instant(i,j,k,8) = instant(i,j,k,8)*neff/cellvols(i,j,k)
+          instant(i,j,k,9) = instant(i,j,k,9)*neff/cellvols(i,j,k)
+
+          instant(i,j,k,10) = instant(i,j,k,10)*neff/cellvols(i,j,k)
+
+          instant(i,j,k,6) = instant(i,j,k,6)*membersinv*0.33333333333333333
+
+          instant(i,j,k,11) = instant(i,j,k,11)*instant(i,j,k,2)*instant(i,j,k,5)*membersinv
+
+        enddo
+      enddo
+    enddo
+
+    do p = 1, np
+
+      part => particles(p)
+
+      i = floor(part%pos(1)*dxinv(1))
+      j = floor(part%pos(2)*dxinv(2))
+      k = floor(part%pos(3)*dxinv(3))
+
+      instant(i,j,k,6) = instant(i,j,k,6) + &
+           (1d0/part%R)*( (instant(i,j,k,3)-part%vel(1))**2 &
+                         +(instant(i,j,k,4)-part%vel(2))**2 &
+                         +(instant(i,j,k,5)-part%vel(3))**2 )
+
+
+    enddo
+
+  end subroutine evaluate_fields_pp
 
   subroutine evaluate_means(lo, hi, &
                             instant, ilo, ihi, &

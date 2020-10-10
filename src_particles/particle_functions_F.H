@@ -283,6 +283,13 @@ extern "C"
                         amrex_real* cellVols, const int* cvlo, const int* cvhi,
                         const amrex_real* neff, const int* np);
 
+   void evaluate_fields_pp(void* particles,
+                        const int* lo, const int* hi,
+                        int** c_vectors, int* sizes, const int* clo, const int* chi,
+                        amrex_real* instant, const int* ilo, const int* ihi,
+                        amrex_real* cellVols, const int* cvlo, const int* cvhi,
+                        const amrex_real* neff, const int* np, const amrex_real* dx);
+
 
 
    void evaluate_means(const int* lo, const int* hi,

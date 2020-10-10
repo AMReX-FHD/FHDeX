@@ -813,10 +813,43 @@ void main_driver(const char* argv)
 //    WritePlotFileHydro(0, time, geom, umac, pres, umacM, umacV);
     remove("bulkFlowEst");
     //Time stepping loop
+
+    dt = dt*1e-5;
     for (int istep=step; istep<=max_step; ++istep) {
 
         // timer for time step
         Real time1 = ParallelDescriptor::second();
+
+        if(istep == 20)
+        {
+                dt = dt*10;
+                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+        }
+
+
+        if(istep == 40)
+        {
+                dt = dt*10;
+                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+        }
+
+        if(istep == 60)
+        {
+                dt = dt*10;
+                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+        }
+
+        if(istep == 80)
+        {
+                dt = dt*10;
+                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+        }
+
+        if(istep == 100)
+        {
+                dt = dt*10;
+                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+        }
 
 //        if(istep == 1)
 //        {
@@ -850,7 +883,7 @@ void main_driver(const char* argv)
 
         // sr_tog is short range forces
         // es_tog is electrostatic solve (0=off, 1=Poisson, 2=Pairwise, 3=P3M)
-        if (sr_tog==1 || es_tog==3) {
+        if (sr_tog != 0 || es_tog==3) {
             // each tile clears its neighbors
             particles.clearNeighbors();
             
