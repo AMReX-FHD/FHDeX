@@ -50,7 +50,7 @@ x = np.linalg.solve(A,b)
 
 # output
 
-nsite = 40*40
+nsite = 80*80
 vac = 1-sum(x)
 p = np.append(vac,x)
 

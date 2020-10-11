@@ -1,6 +1,6 @@
 import numpy as np
 
-NSAMPLE=4
+NSAMPLE=64
 NSPEC=4
 
 for spec in range(NSPEC):
@@ -8,7 +8,7 @@ for spec in range(NSPEC):
     list = []
 
     for i in range(NSAMPLE):
-        infile = "RUN_8x8x100_%d/res.mass_spec%d_final_vert" % (i+1,spec+1)
+        infile = "RUN%d/res.mass_spec%d_final_vert" % (i+1,spec+1)
         a = np.loadtxt(infile)
         list.append(a)
     

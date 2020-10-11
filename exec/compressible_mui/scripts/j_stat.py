@@ -1,13 +1,13 @@
 import numpy as np
 
-NSAMPLE=4
+NSAMPLE=64
 
 for dim in ["x","y","z"]:
 
     list = []
 
     for i in range(NSAMPLE):
-        infile = "m01_16x16x8_5000_RUN%d/res.havg_j%s" % (i+1,dim)
+        infile = "RUN%d/res.havg_j%s" % (i+1,dim)
         a = np.loadtxt(infile)
         list.append(np.transpose(a))
 

@@ -2,7 +2,7 @@
 
 RUNDIR=RUN
 SPKSCR=in.kmc
-FHDSCR=inputs_fhd
+FHDSCR=inputs_fhd_coverage
 
 # check kmc executable
 exec1=SPPARKS_MUI/spk_mui
@@ -13,7 +13,7 @@ then
 fi
 
 # check fhd executable 
-exec2=./main3d.gnu.DEBUG.MPI.ex
+exec2=./main3d.gnu.MPI.ex
 if [ ! -f $exec2 ]
 then
   echo "ERROR: fhd executable $exec2 not found"
@@ -46,6 +46,6 @@ fi
 
 # run the two executables simultaneously
 echo "** running kmc and fhd"
-time mpirun -np 1 ../$exec1 -var SEED 100 -screen none < $SPKSCR : -np 4 ../$exec2 $FHDSCR | tee log.fhd
+time mpirun -np 1 ../$exec1 -var SEED 100 -screen none < $SPKSCR : -np 1 ../$exec2 $FHDSCR | tee log.fhd
 
 ../scripts/coverage.sh

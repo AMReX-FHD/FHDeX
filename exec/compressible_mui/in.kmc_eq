@@ -30,6 +30,10 @@ mui_kmc_lattice_offset ${lat_const2} ${lat_const2}
 
 set         i1 value 1                  # all siteA 
 set         i2 value 0                  # all vac
+set         i2 value 4 fraction 0.414 if i2 = 0
+set         i2 value 3 fraction 0.177 if i2 = 0
+set         i2 value 1 fraction 0.0954 if i2 = 0
+set         i2 value 2 fraction 0.0505 if i2 = 0
 
 event       4 siteA vac   4.031128e-09 spec1     # adsorption of spec1
 event       5 siteA spec1 6.592305e+11 vac       # desorption of spec1
@@ -50,7 +54,7 @@ diag_style  surfchemtest stats yes list vac spec1 spec2 spec3 spec4
 # dump        3 image ${Timage} dump.*.jpg i2 site shape cube crange 0 2 drange 1 4 sdiam 6e-7 shape cube view 0 0 box no 0 size 1000 1000
 # dump_modify 3 scolor 0 gray scolor 1 red scolor 2 green pad 3
 
-variable    nstep equal 10000
+variable    nstep equal 250000
 
 variable ts loop ${nstep}
 label ts_loop
@@ -58,4 +62,4 @@ label ts_loop
     run ${Trun}
     mui_push    ${ts} ac1 dc1 ac2 dc2 ac3 dc3 ac4 dc4
 next ts 
-jump in.kmc ts_loop
+jump in.kmc_eq ts_loop
