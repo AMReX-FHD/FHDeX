@@ -1,6 +1,6 @@
 import numpy as np
 
-stepmax  = 5000
+stepmax  = 10000
 stepincr = 10
 
 # figure out sizes

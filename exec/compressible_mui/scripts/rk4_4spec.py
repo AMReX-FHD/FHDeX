@@ -23,7 +23,7 @@ dens[2] = 1.81807e+18
 dens[3] = 8.57846e+17
 
 t0 = 0.
-T = 1e-12*5000
+T = 1e-12*10000
 
 spec_init = np.zeros(4)
 spec_init[0] = 0.;
