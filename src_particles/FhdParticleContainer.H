@@ -186,8 +186,8 @@ public:
                const paramPlane* paramPlaneList, const int paramPlaneCount, int sw);
     
     void PrintParticles();
-    void SetPosition(int rank, int id, Real x, Real y, Real z);
-    void SetVel(int rank, int id, Real x, Real y, Real z);
+    void SetPosition(int id, Real x, Real y, Real z);
+    void SetVel(int id, Real x, Real y, Real z);
 
     void MeanSqrCalc(int lev, int reset);
 

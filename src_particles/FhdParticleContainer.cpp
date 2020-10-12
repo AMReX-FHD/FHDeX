@@ -2791,38 +2791,35 @@ FhdParticleContainer::PrintParticles()
 }
 
 void
-FhdParticleContainer::SetPosition(int rank, int id, Real x, Real y, Real z)
+FhdParticleContainer::SetPosition(int id, Real x, Real y, Real z)
 {
     BL_PROFILE_VAR("SetPosition()",SetPosition);
     
     int lev =0;
 
-    if(ParallelDescriptor::MyProc() == rank)
+
+    for(FhdParIter pti(* this, lev); pti.isValid(); ++pti)
     {
-        for(FhdParIter pti(* this, lev); pti.isValid(); ++pti)
+        PairIndex index(pti.index(), pti.LocalTileIndex());
+
+        AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
+        long np = this->GetParticles(lev).at(index).numParticles();
+
+        for(int i=0;i < np;i++)
         {
-            PairIndex index(pti.index(), pti.LocalTileIndex());
 
-            AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
-            long np = this->GetParticles(lev).at(index).numParticles();
+            ParticleType & part = particles[i];
 
-            if(id <= np)
+            if(part.id() == id)
             {
- 
-                ParticleType & part = particles[id-1];
-
                 part.pos(0) = x;
                 part.pos(1) = y;
                 part.pos(2) = z;
-
-                std::cout << "Rank " << ParallelDescriptor::MyProc() << " particle " << id << " moving to " << x << ", " << y << ", " << z << std::endl;
-            }else
-            {
-                std::cout << "Particle does not exist!\n";
             }
-           
+            std::cout << "Rank " << ParallelDescriptor::MyProc() << " particle " << id << " moving to " << x << ", " << y << ", " << z << std::endl;
         }
     }
+    
     clearNeighbors();
     Redistribute();
     UpdateCellVectors();
@@ -2831,27 +2828,31 @@ FhdParticleContainer::SetPosition(int rank, int id, Real x, Real y, Real z)
 }
 
 void
-FhdParticleContainer::SetVel(int rank, int id, Real x, Real y, Real z)
+FhdParticleContainer::SetVel(int id, Real x, Real y, Real z)
 {
     BL_PROFILE_VAR("SetVel()",SetVel);
     
     int lev =0;
 
-    if(ParallelDescriptor::MyProc() == rank)
+    for(FhdParIter pti(* this, lev); pti.isValid(); ++pti)
     {
-        for(FhdParIter pti(* this, lev); pti.isValid(); ++pti)
+        PairIndex index(pti.index(), pti.LocalTileIndex());
+
+        AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
+        long np = this->GetParticles(lev).at(index).numParticles();
+
+        for(int i=0;i < np;i++)
         {
-            PairIndex index(pti.index(), pti.LocalTileIndex());
 
-            AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
-            long np = this->GetParticles(lev).at(index).numParticles();
- 
-            ParticleType & part = particles[id-1];
+            ParticleType & part = particles[i];
 
-            part.rdata(FHD_realData::velx) = x;
-            part.rdata(FHD_realData::vely) = y;
-            part.rdata(FHD_realData::velz) = z;
-           
+            if(part.id() == id)
+            {
+                part.rdata(FHD_realData::velx) = x;
+                part.rdata(FHD_realData::vely) = y;
+                part.rdata(FHD_realData::velz) = z;
+            }
+            std::cout << "Rank " << ParallelDescriptor::MyProc() << " particle " << id << " moving to " << x << ", " << y << ", " << z << std::endl;
         }
     }
 }
@@ -2972,7 +2973,7 @@ FhdParticleContainer::BuildCorrectionTable(const Real* dx, int setMeasureFinal) 
             y0 = prob_lo[1] + 0.25*(prob_hi[0]-prob_lo[0]) + get_uniform_func()*(prob_hi[1]-prob_lo[1])*0.5;
             z0 = prob_lo[2] + 0.25*(prob_hi[0]-prob_lo[0]) + get_uniform_func()*(prob_hi[2]-prob_lo[2])*0.5;
     
-            SetPosition(0, 1, x0, y0, z0);
+            SetPosition(1, x0, y0, z0);
 
             get_angles(&costheta, &sintheta, &cosphi, &sinphi);
 
@@ -2980,7 +2981,7 @@ FhdParticleContainer::BuildCorrectionTable(const Real* dx, int setMeasureFinal) 
             y1 = y0 + dr*sintheta*sinphi;
             z1 = z0 + dr*costheta;
 
-            SetPosition(0, 2, x1, y1, z1);
+            SetPosition(2, x1, y1, z1);
         }
 
         if(setMeasureFinal == 1)
