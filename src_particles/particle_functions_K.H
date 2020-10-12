@@ -1115,7 +1115,7 @@ void mob_interp_gpu(Real h, Real* tmob, Real* nmob)
 //    *nmob = std::max(0.8784836695101248 + 16.178193275967942/pow(1.8846739602964013 + h,3) - 13.450951287145715/pow(1.8846739602964013 + h,2) + 0.9286418269991527/(1.8846739602964013 + h),0.0);
 
     Real cn = 0.6452124576429801;
-    Real ct = 0.6452124576429801;
+    Real ct = 0.635779246332329;
     //Single plane approximation
     *nmob = std::max(1.0 - 9.0/(8.0*(h+cn)) + 1.0/(2.0*pow(h+cn,3.0)) - 1.0/(8.0*pow(h+cn,5)) ,0.0);
     *tmob = std::max(1.0 - 9.0/(16.0*(h+ct)) + 2.0/(16.0*pow((h+ct),3.0)) -1.0/(16.0*pow((h+ct),5)),0.0);
@@ -1130,7 +1130,7 @@ void mob_interp_der_gpu(Real z, Real a, Real* tmobDer, Real* nmobDer)
 {
 
     Real cn = 0.6452124576429801;
-    Real ct = 0.6452124576429801;
+    Real ct = 0.635779246332329;
     *nmobDer = 5.0/(8.*a*pow(cn + z/a,6)) - 3/(2.*a*pow(cn + z/a,4)) + 9/(8.*a*pow(cn + z/a,2));
     *tmobDer = 5/(16.*a*pow(ct + z/a,6)) - 3/(8.*a*pow(ct + z/a,4)) + 9/(16.*a*pow(ct + z/a,2));
 }
