@@ -11,8 +11,11 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                        std::array< MultiFab, 2 >& edgeflux_y_in,
                        std::array< MultiFab, 2 >& edgeflux_z_in,
                        std::array< MultiFab, AMREX_SPACEDIM>& cenflux_in,
-                       std::array< MultiFab, AMREX_SPACEDIM>& stochFlux_in,
-                       MultiFab& rancorn_in,
+                       std::array< MultiFab, AMREX_SPACEDIM>& stochface_in,
+                       std::array< MultiFab, 2 >& stochedge_x_in,
+                       std::array< MultiFab, 2 >& stochedge_y_in,
+                       std::array< MultiFab, 2 >& stochedge_z_in,
+                       std::array< MultiFab, AMREX_SPACEDIM>& stochcen_in,
                        const amrex::Geometry geom,
 		                   const amrex::Vector< amrex::Real >& stoch_weights,
 		                   const amrex::Real* dx, const amrex::Real dt)
@@ -72,18 +75,36 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                  tau_diag[1].define(cons_in.boxArray(),cons_in.DistributionMap(),1,ngc);,
                  tau_diag[2].define(cons_in.boxArray(),cons_in.DistributionMap(),1,ngc););
 
+    std::array< MultiFab, AMREX_SPACEDIM > tau_diag_stoch; // diagonal stochastic stress (defined at cell centers)
+    AMREX_D_TERM(tau_diag_stoch[0].define(cons_in.boxArray(),cons_in.DistributionMap(),1,ngc);,
+                 tau_diag_stoch[1].define(cons_in.boxArray(),cons_in.DistributionMap(),1,ngc);,
+                 tau_diag_stoch[2].define(cons_in.boxArray(),cons_in.DistributionMap(),1,ngc););
+
     std::array< MultiFab, NUM_EDGE > tau_diagoff; // off diagonal stress at edges
     AMREX_D_TERM(tau_diagoff[0].define(convert(cons_in.boxArray(),nodal_flag_xy),cons_in.DistributionMap(),1,ngc);,
                  tau_diagoff[1].define(convert(cons_in.boxArray(),nodal_flag_yz),cons_in.DistributionMap(),1,ngc);,
                  tau_diagoff[2].define(convert(cons_in.boxArray(),nodal_flag_xz),cons_in.DistributionMap(),1,ngc););
 
+    std::array< MultiFab, NUM_EDGE > tau_diagoff_stoch; // off diagonal stochastic stress at edges
+    AMREX_D_TERM(tau_diagoff_stoch[0].define(convert(cons_in.boxArray(),nodal_flag_xy),cons_in.DistributionMap(),1,ngc);,
+                 tau_diagoff_stoch[1].define(convert(cons_in.boxArray(),nodal_flag_yz),cons_in.DistributionMap(),1,ngc);,
+                 tau_diagoff_stoch[2].define(convert(cons_in.boxArray(),nodal_flag_xz),cons_in.DistributionMap(),1,ngc););
+
     AMREX_D_TERM(tau_diag[0].setVal(0.0);,
                  tau_diag[1].setVal(0.0);,
                  tau_diag[2].setVal(0.0););
 
+    AMREX_D_TERM(tau_diag_stoch[0].setVal(0.0);,
+                 tau_diag_stoch[1].setVal(0.0);,
+                 tau_diag_stoch[2].setVal(0.0););
+
     AMREX_D_TERM(tau_diagoff[0].setVal(0.0);,
                  tau_diagoff[1].setVal(0.0);,
                  tau_diagoff[2].setVal(0.0););
+
+    AMREX_D_TERM(tau_diagoff_stoch[0].setVal(0.0);,
+                 tau_diagoff_stoch[1].setVal(0.0);,
+                 tau_diagoff_stoch[2].setVal(0.0););
 
     ////////////////////
     // stochastic fluxes
@@ -97,19 +118,51 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
         // Loop over boxes
         for ( MFIter mfi(cons_in); mfi.isValid(); ++mfi) {
 
-            AMREX_D_TERM(const Array4<Real>& fluxx = faceflux_in[0].array(mfi); ,
-                         const Array4<Real>& fluxy = faceflux_in[1].array(mfi); ,
-                         const Array4<Real>& fluxz = faceflux_in[2].array(mfi));
+            AMREX_D_TERM(const Array4<Real>& xflux = faceflux_in[0].array(mfi); ,
+                         const Array4<Real>& yflux = faceflux_in[1].array(mfi); ,
+                         const Array4<Real>& zflux = faceflux_in[2].array(mfi));
 
-            AMREX_D_TERM(const Array4<Real>& ranfluxx = stochFlux_in[0].array(mfi); ,
-                         const Array4<Real>& ranfluxy = stochFlux_in[1].array(mfi); ,
-                         const Array4<Real>& ranfluxz = stochFlux_in[2].array(mfi));
+            const Array4<Real>& edgex_v = edgeflux_x_in[0].array(mfi);
+            const Array4<Real>& edgex_w = edgeflux_x_in[1].array(mfi);
+            const Array4<Real>& edgey_u = edgeflux_y_in[0].array(mfi);
+            const Array4<Real>& edgey_w = edgeflux_y_in[1].array(mfi);
+            const Array4<Real>& edgez_u = edgeflux_z_in[0].array(mfi);
+            const Array4<Real>& edgez_v = edgeflux_z_in[1].array(mfi);
+
+            const Array4<Real>& cenx_u = cenflux_in[0].array(mfi);
+            const Array4<Real>& ceny_v = cenflux_in[1].array(mfi);
+            const Array4<Real>& cenz_w = cenflux_in[2].array(mfi);
+
+            const Array4<Real> tauxx_stoch = tau_diag_stoch[0].array(mfi);
+            const Array4<Real> tauyy_stoch = tau_diag_stoch[1].array(mfi);
+            const Array4<Real> tauzz_stoch = tau_diag_stoch[2].array(mfi);
+
+            AMREX_D_TERM(const Array4<Real> tauxy_stoch = tau_diagoff_stoch[0].array(mfi);,
+                         const Array4<Real> tauyz_stoch = tau_diagoff_stoch[1].array(mfi);,
+                         const Array4<Real> tauxz_stoch = tau_diagoff_stoch[2].array(mfi););
+
+            AMREX_D_TERM(const Array4<Real>& stochfacex = stochface_in[0].array(mfi); ,
+                         const Array4<Real>& stochfacey = stochface_in[1].array(mfi); ,
+                         const Array4<Real>& stochfacez = stochface_in[2].array(mfi));
+
+            const Array4<Real>& stochedgex_v = stochedge_x_in[0].array(mfi);
+            const Array4<Real>& stochedgex_w = stochedge_x_in[1].array(mfi);
+            const Array4<Real>& stochedgey_u = stochedge_y_in[0].array(mfi);
+            const Array4<Real>& stochedgey_w = stochedge_y_in[1].array(mfi);
+            const Array4<Real>& stochedgez_u = stochedge_z_in[0].array(mfi);
+            const Array4<Real>& stochedgez_v = stochedge_z_in[1].array(mfi);
+
+            const Array4<Real>& stochcenx_u = stochcen_in[0].array(mfi);
+            const Array4<Real>& stochceny_v = stochcen_in[1].array(mfi);
+            const Array4<Real>& stochcenz_w = stochcen_in[2].array(mfi);
+
+            AMREX_D_TERM(Array4<Real const> const& velx = facevel_in[0].array(mfi);,
+                         Array4<Real const> const& vely = facevel_in[1].array(mfi);,
+                         Array4<Real const> const& velz = facevel_in[2].array(mfi););
 
             const Array4<const Real> prim = prim_in.array(mfi);
             const Array4<const Real> cons = cons_in.array(mfi);
 
-            const Array4<const Real> rancorn = rancorn_in.array(mfi);
-        
             const Array4<const Real> eta   = eta_in.array(mfi);
             const Array4<const Real> zeta  = zeta_in.array(mfi);
             const Array4<const Real> kappa = kappa_in.array(mfi);
@@ -119,13 +172,71 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
             const Box& tbx = mfi.nodaltilebox(0);
             const Box& tby = mfi.nodaltilebox(1);
             const Box& tbz = mfi.nodaltilebox(2);
-        
+
+            IntVect nd(AMREX_D_DECL(1,1,1));
+            const Box& tbn = mfi.tilebox(nd);
+
+            const Box & bx_xy = mfi.tilebox(nodal_flag_xy);
+            #if (AMREX_SPACEDIM == 3)
+            const Box & bx_xz = mfi.tilebox(nodal_flag_xz);
+            const Box & bx_yz = mfi.tilebox(nodal_flag_yz);
+            #endif
+
+            const Box& bx = mfi.tilebox();
+
+            // Populate diagonal stochastic stress
+            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+
+                Real etaT = eta(i,j,k) * prim(i,j,k,4);
+                Real zetaT = zeta(i,j,k) * prim(i,j,k,4);
+
+                Real fac1 = sqrt(2.0 * k_B_gpu * etaT * volinv * dtinv);
+                
+                Real fac2 =  -1.0 * sqrt(2.0 * k_B_gpu * etaT * volinv * dtinv /3.0);
+                if (amrex::Math::abs(visc_type_gpu) == 3) {
+                  Real fac2 = sqrt(k_B_gpu * zetaT * volinv * dtinv / 3.0) - sqrt(2.0 * k_B_gpu * etaT * volinv * dtinv /3.0);
+                }
+                  
+                Real traceZ = (stochcenx_u(i,j,k) + stochceny_v(i,j,k) + stochcenz_w(i,j,k))/3.0;
+
+                tauxx_stoch(i,j,k) = fac1 * stochcenx_u(i,j,k) + fac2 * traceZ;
+                tauyy_stoch(i,j,k) = fac1 * stochceny_v(i,j,k) + fac2 * traceZ;
+                tauzz_stoch(i,j,k) = fac1 * stochcenz_w(i,j,k) + fac2 * traceZ;
+            });
+
+            // Populate off-diagonal stress
+            amrex::ParallelFor(bx_xy, bx_xz, bx_yz,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                
+                Real etaT = 0.25*(eta(i-1,j-1,k)*prim(i-1,j-1,k,4) + eta(i-1,j,k)*prim(i-1,j,k,4) + 
+                                  eta(i,j-1,k)*prim(i,j-1,k,4) + eta(i,j,k)*prim(i,j,k,4));
+                Real fac = sqrt(2.0 * k_B_gpu * etaT * volinv * dtinv);
+                tauxy_stoch(i,j,k) = fac*stochedgex_v(i,j,k);
+            },
+
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+
+                Real etaT = 0.25*(eta(i-1,j,k-1)*prim(i-1,j,k-1,4) + eta(i-1,j,k)*prim(i-1,j,k,4) + 
+                                  eta(i,j,k-1)*prim(i,j,k-1,4) + eta(i,j,k)*prim(i,j,k,4));
+                Real fac = sqrt(2.0 * k_B_gpu * etaT * volinv * dtinv);
+                tauxz_stoch(i,j,k) = fac*stochedgex_w(i,j,k);
+            },
+
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+
+                Real etaT = 0.25*(eta(i,j-1,k-1)*prim(i,j-1,k-1,4) + eta(i,j-1,k)*prim(i,j-1,k,4) + 
+                                  eta(i,j,k-1)*prim(i,j,k-1,4) + eta(i,j,k)*prim(i,j,k,4));
+                Real fac = sqrt(2.0 * k_B_gpu * etaT * volinv * dtinv);
+                tauyz_stoch(i,j,k) = fac*stochedgey_w(i,j,k);
+            });
+
+            // Loop over faces for flux calculations (4:5+ns)
             amrex::ParallelFor(tbx, tby, tbz,
             [=] AMREX_GPU_DEVICE (int i, int j, int k) {
 
 
-                GpuArray<Real,MAX_SPECIES+5> fweights;
-                GpuArray<Real,MAX_SPECIES+5> weiner;
+                GpuArray<Real,MAX_SPECIES+1> fweights;
+                GpuArray<Real,MAX_SPECIES+1> weiner;
                 
                 GpuArray<Real,MAX_SPECIES> hk;
                 GpuArray<Real,MAX_SPECIES> yy;
@@ -134,115 +245,23 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                 GpuArray<Real,MAX_SPECIES*MAX_SPECIES> DijY_edge;
                 GpuArray<Real,MAX_SPECIES*MAX_SPECIES> sqD;
                                    
-                Real muxp = (eta(i,j,k)*prim(i,j,k,4) + eta(i-1,j,k)*prim(i-1,j,k,4));
                 Real kxp = (kappa(i,j,k)*prim(i,j,k,4)*prim(i,j,k,4) + kappa(i-1,j,k)*prim(i-1,j,k,4)*prim(i-1,j,k,4));
 
                 Real meanT = 0.5*(prim(i,j,k,4)+prim(i-1,j,k,4));
 
                 // Weights for facial fluxes:
-                fweights[0] = 0; // No mass flux;
-                fweights[1]=sqrt(k_B_gpu*muxp*volinv*dtinv);
-                fweights[2]=fweights[1];
-                fweights[3]=fweights[1];
-                fweights[4]=sqrt(k_B_gpu*kxp*volinv*dtinv);
-
-                // Construct the random increments
-                for (int n=0; n<5; ++n) {
-                    weiner[n] = fweights[n]*ranfluxx(i,j,k,n);
-                }
-                
-                Real nweight=sqrt(k_B_gpu*volinv*dtinv);
+                fweights[0]=sqrt(k_B_gpu*kxp*volinv*dtinv); //energy flux
+                weiner[0] = fweights[0]*stochfacex(i,j,k,4);
                                 
-                if (n_cells_z > 1) {
+                xflux(i,j,k,4) += weiner[0];
 
-                    // Corner viscosity coefficients in 3D
-                    Real muzepp = 0.25*(eta(i,j,k)*prim(i,j,k,4) + eta(i-1,j,k)*prim(i-1,j,k,4) +
-                                        eta(i,j+1,k)*prim(i,j+1,k,4) + eta(i-1,j+1,k)*prim(i-1,j+1,k,4) +
-                                        eta(i,j,k+1)*prim(i,j,k+1,4) + eta(i-1,j,k+1)*prim(i-1,j,k+1,4) +
-                                        eta(i,j+1,k+1)*prim(i,j+1,k+1,4) + eta(i-1,j+1,k+1)*prim(i-1,j+1,k+1,4) )/3.;
-                    
-                    Real muzemp = 0.25*(eta(i,j-1,k)*prim(i,j-1,k,4) + eta(i-1,j-1,k)*prim(i-1,j-1,k,4) +
-                                        eta(i,j,k)*prim(i,j,k,4) + eta(i-1,j,k)*prim(i-1,j,k,4) +
-                                        eta(i,j-1,k+1)*prim(i,j-1,k+1,4) + eta(i-1,j-1,k+1)*prim(i-1,j-1,k+1,4) +
-                                        eta(i,j,k+1)*prim(i,j,k+1,4) + eta(i-1,j,k+1)*prim(i-1,j,k+1,4) )/3.;
-                    
-                    Real muzepm = 0.25*(eta(i,j,k-1)*prim(i,j,k-1,4) + eta(i-1,j,k-1)*prim(i-1,j,k-1,4) +
-                                        eta(i,j+1,k-1)*prim(i,j+1,k-1,4) + eta(i-1,j+1,k-1)*prim(i-1,j+1,k-1,4) +
-                                        eta(i,j,k)*prim(i,j,k,4) + eta(i-1,j,k)*prim(i-1,j,k,4) +
-                                        eta(i,j+1,k)*prim(i,j+1,k,4) + eta(i-1,j+1,k)*prim(i-1,j+1,k,4) )/3.;
-                    
-                    Real muzemm = 0.25*(eta(i,j-1,k-1)*prim(i,j-1,k-1,4) + eta(i-1,j-1,k-1)*prim(i-1,j-1,k-1,4) +
-                                        eta(i,j,k-1)*prim(i,j,k-1,4) + eta(i-1,j,k-1)*prim(i-1,j,k-1,4) +
-                                        eta(i,j-1,k)*prim(i,j-1,k,4) + eta(i-1,j-1,k)*prim(i-1,j-1,k,4) +
-                                        eta(i,j,k)*prim(i,j,k,4) + eta(i-1,j,k)*prim(i-1,j,k,4) )/3.;
-
-                    if (amrex::Math::abs(visc_type_gpu) == 3) {
-
-                        muzepp = muzepp + 0.25*(zeta(i,j,k)*prim(i,j,k,4) + zeta(i-1,j,k)*prim(i-1,j,k,4) +
-                                                zeta(i,j+1,k)*prim(i,j+1,k,4) + zeta(i-1,j+1,k)*prim(i-1,j+1,k,4) +
-                                                zeta(i,j,k+1)*prim(i,j,k+1,4) + zeta(i-1,j,k+1)*prim(i-1,j,k+1,4) +
-                                                zeta(i,j+1,k+1)*prim(i,j+1,k+1,4) + zeta(i-1,j+1,k+1)*prim(i-1,j+1,k+1,4) );
-                        
-                        muzemp = muzemp + 0.25*(zeta(i,j-1,k)*prim(i,j-1,k,4) + zeta(i-1,j-1,k)*prim(i-1,j-1,k,4) +
-                                                zeta(i,j,k)*prim(i,j,k,4) + zeta(i-1,j,k)*prim(i-1,j,k,4) +
-                                                zeta(i,j-1,k+1)*prim(i,j-1,k+1,4) + zeta(i-1,j-1,k+1)*prim(i-1,j-1,k+1,4) +
-                                                zeta(i,j,k+1)*prim(i,j,k+1,4) + zeta(i-1,j,k+1)*prim(i-1,j,k+1,4) );
-                        
-                        muzepm = muzepm + 0.25*(zeta(i,j,k-1)*prim(i,j,k-1,4) + zeta(i-1,j,k-1)*prim(i-1,j,k-1,4) +
-                                                zeta(i,j+1,k-1)*prim(i,j+1,k-1,4) + zeta(i-1,j+1,k-1)*prim(i-1,j+1,k-1,4) +
-                                                zeta(i,j,k)*prim(i,j,k,4) + zeta(i-1,j,k)*prim(i-1,j,k,4) +
-                                                zeta(i,j+1,k)*prim(i,j+1,k,4) + zeta(i-1,j+1,k)*prim(i-1,j+1,k,4) );
-                        
-                        muzemm = muzemm + 0.25*(zeta(i,j-1,k-1)*prim(i,j-1,k-1,4) + zeta(i-1,j-1,k-1)*prim(i-1,j-1,k-1,4) +
-                                                zeta(i,j,k-1)*prim(i,j,k-1,4) + zeta(i-1,j,k-1)*prim(i-1,j,k-1,4) +
-                                                zeta(i,j-1,k)*prim(i,j-1,k,4) + zeta(i-1,j-1,k)*prim(i-1,j-1,k,4) +
-                                                zeta(i,j,k)*prim(i,j,k,4) + zeta(i-1,j,k)*prim(i-1,j,k,4) );
-                    }
-
-                    weiner[1] = weiner[1] + 0.25*nweight*(sqrt(muzepp)*rancorn(i,j+1,k+1)+
-                                                          sqrt(muzemp)*rancorn(i,j,k+1) + sqrt(muzepm)* rancorn(i,j+1,k)+ 
-                                                          sqrt(muzemm)*rancorn(i,j,k)); // Random "divergence" stress
-
-                } else if (n_cells_z == 1) {
-
-                    Abort("n_cells_z==1 case for stoch flux not written");
-/*                    
-          ! Corner viscosity coefficients in 2D
-          muzepp = 0.5*(eta(i,j,k)*prim(i,j,k,5) + eta(i-1,j,k)*prim(i-1,j,k,5) + &
-               eta(i,j+1,k)*prim(i,j+1,k,5) + eta(i-1,j+1,k)*prim(i-1,j+1,k,5) )/3.
-          muzemp = 0.5*(eta(i,j-1,k)*prim(i,j-1,k,5) + eta(i-1,j-1,k)*prim(i-1,j-1,k,5) + &
-               eta(i,j,k)*prim(i,j,k,5) + eta(i-1,j,k)*prim(i-1,j,k,5) )/3.
-
-          if (abs(visc_type) .eq. 3) then
-
-             muzepp = muzepp + 0.25*(zeta(i,j,k)*prim(i,j,k,5) + zeta(i-1,j,k)*prim(i-1,j,k,5) + &
-                  zeta(i,j+1,k)*prim(i,j+1,k,5) + zeta(i-1,j+1,k)*prim(i-1,j+1,k,5) )
-             muzemp = muzemp + 0.25*(zeta(i,j-1,k)*prim(i,j-1,k,5) + zeta(i-1,j-1,k)*prim(i-1,j-1,k,5) + &
-                  zeta(i,j,k)*prim(i,j,k,5) + zeta(i-1,j,k)*prim(i-1,j,k,5) )
-
-          endif
-
-          weiner(2) = weiner(2) + 0.5*nweight*(sqrt(muzepp)*rancorn(i,j+1,k)+ &
-               sqrt(muzemp)*rancorn(i,j,k)) ! Random "divergence" stress
-*/
-                }
-
-                for (int n=1; n<5; ++n) {
-                    fluxx(i,j,k,n) = fluxx(i,j,k,n) + weiner[n];
-                }
-
-                // Viscous heating:
-                Real phiflx =  weiner[1]*(prim(i-1,j,k,1)+prim(i,j,k,1)) +
-                    weiner[2]*(prim(i-1,j,k,2)+prim(i,j,k,2)) +
-                    weiner[3]*(prim(i-1,j,k,3)+prim(i,j,k,3));
-
-                phiflx =  - 0.5*phiflx;
-
-                fluxx(i,j,k,4) = fluxx(i,j,k,4) - phiflx;
+                xflux(i,j,k,4) -= 0.5*velx(i,j,k)*(tauxx_stoch(i-1,j,k)+tauxx_stoch(i,j,k));
+                xflux(i,j,k,4) -= 0.25*((vely(i,j+1,k)+vely(i-1,j+1,k))*tauxy_stoch(i,j+1,k) + (vely(i,j,k)+vely(i-1,j,k))*tauxy_stoch(i,j,k));
+                xflux(i,j,k,4) -= 0.25*((velz(i,j,k+1)+velz(i-1,j,k+1))*tauxz_stoch(i,j,k+1) + (velz(i,j,k)+velz(i-1,j,k))*tauxz_stoch(i,j,k));
 
                 if (algorithm_type_gpu == 2) {
 
-                    for (int n=5; n<5+nspecies_gpu; ++n) {
+                    for (int n=1; n<1+nspecies_gpu; ++n) {
                         weiner[n] = 0.;
                     }
 
@@ -294,10 +313,10 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
 
                     for (int ns=0; ns<nspecies_gpu; ++ns) {
                         for (int ll=0; ll<=ns; ++ll) {
-                            fweights[5+ll]=sqrt(k_B_gpu*MWmix*volinv/(Runiv_gpu*dt))*sqD[ns*nspecies_gpu+ll];
-                            weiner[5+ns] = weiner[5+ns] + fweights[5+ll]*ranfluxx(i,j,k,5+ll);
+                            fweights[1+ll]=sqrt(k_B_gpu*MWmix*volinv/(Runiv_gpu*dt))*sqD[ns*nspecies_gpu+ll];
+                            weiner[1+ns] = weiner[1+ns] + fweights[1+ll]*stochfacex(i,j,k,5+ll);
                         }
-                        fluxx(i,j,k,5+ns) = weiner[5+ns];
+                        xflux(i,j,k,5+ns) = weiner[1+ns];
                     }
 
                     GetEnthalpies(meanT, hk, hcp_gpu, nspecies_gpu);
@@ -306,17 +325,17 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
 
                     for (int ns=0; ns<nspecies_gpu; ++ns) {
                         soret = soret + (hk[ns] + Runiv_gpu*meanT/molmass_gpu[ns]
-                                         *0.5*(chi(i-1,j,k,ns)+chi(i,j,k,ns)))*weiner[5+ns];
+                                         *0.5*(chi(i-1,j,k,ns)+chi(i,j,k,ns)))*weiner[1+ns];
                     }
-                    fluxx(i,j,k,4) = fluxx(i,j,k,4) + soret;
+                    xflux(i,j,k,4) = xflux(i,j,k,4) + soret;
                 }
 
             },
 
             [=] AMREX_GPU_DEVICE (int i, int j, int k) {
 
-                GpuArray<Real,MAX_SPECIES+5> fweights;
-                GpuArray<Real,MAX_SPECIES+5> weiner;
+                GpuArray<Real,MAX_SPECIES+1> fweights;
+                GpuArray<Real,MAX_SPECIES+1> weiner;
                 
                 GpuArray<Real,MAX_SPECIES> hk;
                 GpuArray<Real,MAX_SPECIES> yy;
@@ -324,118 +343,24 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                 
                 GpuArray<Real,MAX_SPECIES*MAX_SPECIES> DijY_edge;
                 GpuArray<Real,MAX_SPECIES*MAX_SPECIES> sqD;
-                
 
-                Real muyp = eta(i,j,k)*prim(i,j,k,4) + eta(i,j-1,k)*prim(i,j-1,k,4);
                 Real kyp = kappa(i,j,k)*prim(i,j,k,4)*prim(i,j,k,4) + kappa(i,j-1,k)*prim(i,j-1,k,4)*prim(i,j-1,k,4);
 
                 Real meanT = 0.5*(prim(i,j,k,4)+prim(i,j-1,k,4));
 
                 // Weights for facial fluxes:
-                fweights[0] = 0; // No mass flux
-                fweights[1] = sqrt(k_B_gpu*muyp*volinv*dtinv);
-                fweights[2] = sqrt(k_B_gpu*muyp*volinv*dtinv);
-                fweights[3] = sqrt(k_B_gpu*muyp*volinv*dtinv);
-                fweights[4] = sqrt(k_B_gpu*kyp*volinv*dtinv);
+                fweights[0] = sqrt(k_B_gpu*kyp*volinv*dtinv);
+                weiner[0] = fweights[0]*stochfacey(i,j,k,4);
 
-                // Construct the random increments
-                for (int n=0; n<5; ++n) {
-                    weiner[n] = fweights[n]*ranfluxy(i,j,k,n);
-                }
+                yflux(i,j,k,4) += weiner[0];
 
-                Real nweight=sqrt(k_B_gpu*volinv*dtinv);
-                                
-                if (n_cells_z > 1) {
-
-                    // Corner viscosity coefficients 3D
-                    Real muzepp = 0.25*(eta(i+1,j-1,k)*prim(i+1,j-1,k,4) + eta(i,j-1,k)*prim(i,j-1,k,4) +
-                                        eta(i+1,j,k)*prim(i+1,j,k,4) + eta(i,j,k)*prim(i,j,k,4) +
-                                        eta(i+1,j-1,k+1)*prim(i+1,j-1,k+1,4) + eta(i,j-1,k+1)*prim(i,j-1,k+1,4) +
-                                        eta(i+1,j,k+1)*prim(i+1,j,k+1,4) + eta(i,j,k+1)*prim(i,j,k+1,4) )/3.;
-
-                    Real muzemp = 0.25*(eta(i-1,j,k)*prim(i-1,j,k,4) + eta(i,j,k)*prim(i,j,k,4) +
-                                        eta(i-1,j-1,k)*prim(i-1,j-1,k,4) + eta(i,j-1,k)*prim(i,j-1,k,4) +
-                                        eta(i-1,j,k+1)*prim(i-1,j,k+1,4) + eta(i,j,k+1)*prim(i,j,k+1,4) +
-                                        eta(i-1,j-1,k+1)*prim(i-1,j-1,k+1,4) + eta(i,j-1,k+1)*prim(i,j-1,k+1,4) )/3.;
-
-                    Real muzepm = 0.25*(eta(i+1,j-1,k-1)*prim(i+1,j-1,k-1,4) + eta(i,j-1,k-1)*prim(i,j-1,k-1,4) +
-                                        eta(i+1,j,k-1)*prim(i+1,j,k-1,4) + eta(i,j,k-1)*prim(i,j,k-1,4) +
-                                        eta(i+1,j-1,k)*prim(i+1,j-1,k,4) + eta(i,j-1,k)*prim(i,j-1,k,4) +
-                                        eta(i+1,j,k)*prim(i+1,j,k,4) + eta(i,j,k)*prim(i,j,k,4) )/3.;
-
-                    Real muzemm = 0.25*(eta(i-1,j,k-1)*prim(i-1,j,k-1,4) + eta(i,j,k-1)*prim(i,j,k-1,4) +
-                                        eta(i-1,j-1,k-1)*prim(i-1,j-1,k-1,4) + eta(i,j-1,k-1)*prim(i,j-1,k-1,4) +
-                                        eta(i-1,j,k)*prim(i-1,j,k,4) + eta(i,j,k)*prim(i,j,k,4) +
-                                        eta(i-1,j-1,k)*prim(i-1,j-1,k,4) + eta(i,j-1,k)*prim(i,j-1,k,4) )/3.;
-
-                    if (amrex::Math::abs(visc_type_gpu) == 3) {
-
-                        muzepp = muzepp + 0.25*(zeta(i+1,j-1,k)*prim(i+1,j-1,k,4) + zeta(i,j-1,k)*prim(i,j-1,k,4) +
-                                                zeta(i+1,j,k)*prim(i+1,j,k,4) + zeta(i,j,k)*prim(i,j,k,4) +
-                                                zeta(i+1,j-1,k+1)*prim(i+1,j-1,k+1,4) + zeta(i,j-1,k+1)*prim(i,j-1,k+1,4) +
-                                                zeta(i+1,j,k+1)*prim(i+1,j,k+1,4) + zeta(i,j,k+1)*prim(i,j,k+1,4) );
-
-                        muzemp = muzemp + 0.25*(zeta(i-1,j,k)*prim(i-1,j,k,4) + zeta(i,j,k)*prim(i,j,k,4) +
-                                                zeta(i-1,j-1,k)*prim(i-1,j-1,k,4) + zeta(i,j-1,k)*prim(i,j-1,k,4) +
-                                                zeta(i-1,j,k+1)*prim(i-1,j,k+1,4) + zeta(i,j,k+1)*prim(i,j,k+1,4) +
-                                                zeta(i-1,j-1,k+1)*prim(i-1,j-1,k+1,4) + zeta(i,j-1,k+1)*prim(i,j-1,k+1,4) );
-
-                        muzepm =  muzepm +0.25*(zeta(i+1,j-1,k-1)*prim(i+1,j-1,k-1,4) + zeta(i,j-1,k-1)*prim(i,j-1,k-1,4) +
-                                                zeta(i+1,j,k-1)*prim(i+1,j,k-1,4) + zeta(i,j,k-1)*prim(i,j,k-1,4) +
-                                                zeta(i+1,j-1,k)*prim(i+1,j-1,k,4) + zeta(i,j-1,k)*prim(i,j-1,k,4) +
-                                                zeta(i+1,j,k)*prim(i+1,j,k,4) + zeta(i,j,k)*prim(i,j,k,4) );
-
-                        muzemm = muzemm + 0.25*(zeta(i-1,j,k-1)*prim(i-1,j,k-1,4) + zeta(i,j,k-1)*prim(i,j,k-1,4) +
-                                                zeta(i-1,j-1,k-1)*prim(i-1,j-1,k-1,4) + zeta(i,j-1,k-1)*prim(i,j-1,k-1,4) +
-                                                zeta(i-1,j,k)*prim(i-1,j,k,4) + zeta(i,j,k)*prim(i,j,k,4) +
-                                                zeta(i-1,j-1,k)*prim(i-1,j-1,k,4) + zeta(i,j-1,k)*prim(i,j-1,k,4) );
-                    }
-
-                    weiner[2] = weiner[2] + 0.25*nweight*(sqrt(muzepp)*rancorn(i+1,j,k+1)+ sqrt(muzemp)*rancorn(i,j,k+1) + 
-                                                          sqrt(muzepm)* rancorn(i+1,j,k)+ sqrt(muzemm)*rancorn(i,j,k)); // Random "divergence" stress
-
-                } else if (n_cells_z == 1) {
-                    
-                    Abort("n_cells_z==1 case for stoch flux not written");
-/*
-          ! Corner viscosity coefficients 2D
-          muzepp = 0.5d0*(eta(i+1,j-1,k)*prim(i+1,j-1,k,5) + eta(i,j-1,k)*prim(i,j-1,k,5) + &
-               eta(i+1,j,k)*prim(i+1,j,k,5) + eta(i,j,k)*prim(i,j,k,5) )/3.d0
-
-          muzemp = 0.5d0*(eta(i-1,j,k)*prim(i-1,j,k,5) + eta(i,j,k)*prim(i,j,k,5) + &
-               eta(i-1,j-1,k)*prim(i-1,j-1,k,5) + eta(i,j-1,k)*prim(i,j-1,k,5) )/3.d0
-
-          if (abs(visc_type) .eq. 3) then
-
-             muzepp = muzepp + 0.25d0*(zeta(i+1,j-1,k)*prim(i+1,j-1,k,5) + zeta(i,j-1,k)*prim(i,j-1,k,5) + &
-                  zeta(i+1,j,k)*prim(i+1,j,k,5) + zeta(i,j,k)*prim(i,j,k,5) )
-
-             muzemp = muzemp + 0.25d0*(zeta(i-1,j,k)*prim(i-1,j,k,5) + zeta(i,j,k)*prim(i,j,k,5) + &
-                  zeta(i-1,j-1,k)*prim(i-1,j-1,k,5) + zeta(i,j-1,k)*prim(i,j-1,k,5) )
-
-          endif
-
-          weiner(3) = weiner(3) + 0.5d0*nweight*    &
-               (sqrt(muzepp)*rancorn(i+1,j,k) + sqrt(muzemp)*rancorn(i,j,k)) ! Random "divergence" stress
-*/
-                }
-
-                for (int n=1; n<5; ++n) {
-                    fluxy(i,j,k,n) = fluxy(i,j,k,n) + weiner[n];
-                }
+                yflux(i,j,k,4) -= 0.25*((velx(i+1,j,k)+velx(i+1,j-1,k))*tauxy_stoch(i+1,j,k) + (velx(i,j,k)+velx(i,j-1,k))*tauxy_stoch(i,j,k));
+                yflux(i,j,k,4) -= 0.5*vely(i,j,k)*(tauyy_stoch(i,j-1,k)+tauyy_stoch(i,j,k));
+                yflux(i,j,k,4) -= 0.25*((velz(i,j,k+1)+velz(i,j-1,k+1))*tauyz_stoch(i,j,k+1) + (velz(i,j,k)+velz(i,j-1,k))*tauyz_stoch(i,j,k));
             
-                // Viscous heating:
-                Real phiflx =  weiner[1]*(prim(i,j-1,k,1)+prim(i,j,k,1)) +
-                    weiner[2]*(prim(i,j-1,k,2)+prim(i,j,k,2)) +
-                    weiner[3]*(prim(i,j-1,k,3)+prim(i,j,k,3));
-                
-                phiflx =  - 0.5*phiflx;
-
-                fluxy(i,j,k,4) = fluxy(i,j,k,4) - phiflx;
-
                 if (algorithm_type_gpu == 2) {
 
-                    for (int n=5; n<5+nspecies_gpu; ++n) {
+                    for (int n=1; n<1+nspecies_gpu; ++n) {
                         weiner[n] = 0.;
                     }
 
@@ -487,10 +412,10 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
 
                     for (int ns=0; ns<nspecies_gpu; ++ns) {
                         for (int ll=0; ll<=ns; ++ll) {
-                            fweights[5+ll]=sqrt(k_B_gpu*MWmix*volinv/(Runiv_gpu*dt))*sqD[ns*nspecies_gpu+ll];
-                            weiner[5+ns] = weiner[5+ns] + fweights[5+ll]*ranfluxy(i,j,k,5+ll);
+                            fweights[1+ll]=sqrt(k_B_gpu*MWmix*volinv/(Runiv_gpu*dt))*sqD[ns*nspecies_gpu+ll];
+                            weiner[1+ns] = weiner[1+ns] + fweights[1+ll]*stochfacey(i,j,k,5+ll);
                         }
-                        fluxy(i,j,k,5+ns) = weiner[5+ns];
+                        yflux(i,j,k,5+ns) = weiner[1+ns];
                     }
 
                     GetEnthalpies(meanT, hk, hcp_gpu, nspecies_gpu);
@@ -499,16 +424,16 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
 
                     for (int ns=0; ns<nspecies_gpu; ++ns) {
                         soret = soret + (hk[ns] + Runiv_gpu*meanT/molmass_gpu[ns]
-                                         *0.5*(chi(i,j-1,k,ns)+chi(i,j,k,ns)))*weiner[5+ns];
+                                         *0.5*(chi(i,j-1,k,ns)+chi(i,j,k,ns)))*weiner[1+ns];
                     }
-                    fluxy(i,j,k,4) = fluxy(i,j,k,4) + soret;
+                    yflux(i,j,k,4) = yflux(i,j,k,4) + soret;
                 }
             },
 
             [=] AMREX_GPU_DEVICE (int i, int j, int k) {
 
-                GpuArray<Real,MAX_SPECIES+5> fweights;
-                GpuArray<Real,MAX_SPECIES+5> weiner;
+                GpuArray<Real,MAX_SPECIES+1> fweights;
+                GpuArray<Real,MAX_SPECIES+1> weiner;
                 
                 GpuArray<Real,MAX_SPECIES> hk;
                 GpuArray<Real,MAX_SPECIES> yy;
@@ -517,174 +442,125 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                 GpuArray<Real,MAX_SPECIES*MAX_SPECIES> DijY_edge;
                 GpuArray<Real,MAX_SPECIES*MAX_SPECIES> sqD;
                 
-                if (n_cells_z > 1) {
+                Real kzp = kappa(i,j,k)*prim(i,j,k,4)*prim(i,j,k,4) + kappa(i,j,k-1)*prim(i,j,k-1,4)*prim(i,j,k-1,4);
 
-                    Real muzp = eta(i,j,k)*prim(i,j,k,4) + eta(i,j,k-1)*prim(i,j,k-1,4);
-                    Real kzp = kappa(i,j,k)*prim(i,j,k,4)*prim(i,j,k,4) + kappa(i,j,k-1)*prim(i,j,k-1,4)*prim(i,j,k-1,4);
+                Real meanT = 0.5*(prim(i,j,k,4)+prim(i,j,k-1,4));
 
-                    Real meanT = 0.5*(prim(i,j,k,4)+prim(i,j,k-1,4));
+                // Weights for facial fluxes:
+                fweights[0] = sqrt(k_B_gpu*kzp*volinv*dtinv);
+                weiner[0] = fweights[0]*stochfacez(i,j,k,4);
 
-                    // Weights for facial fluxes:
-                    fweights[0] = 0; // No mass flux
-                    fweights[1] = sqrt(k_B_gpu*muzp*volinv*dtinv);
-                    fweights[2] = sqrt(k_B_gpu*muzp*volinv*dtinv);
-                    fweights[3] = sqrt(k_B_gpu*muzp*volinv*dtinv);
-                    fweights[4] = sqrt(k_B_gpu*kzp*volinv*dtinv);
-
-                    // Construct the random increments
-                    for (int n=0; n<5; ++n) {
-                        weiner[n] = fweights[n]*ranfluxz(i,j,k,n);
-                    }
+                zflux(i,j,k,4) += weiner[0];
+                    
+                zflux(i,j,k,4) -= 0.25*((velx(i+1,j,k-1)+velx(i+1,j,k))*tauxz_stoch(i+1,j,k) + (velx(i,j,k)+velx(i,j,k-1))*tauxz_stoch(i,j,k));
+                zflux(i,j,k,4) -= 0.25*((vely(i,j+1,k-1)+vely(i,j+1,k))*tauyz_stoch(i,j+1,k) + (vely(i,j,k)+vely(i,j,k-1))*tauyz_stoch(i,j,k));
+                zflux(i,j,k,4) -= 0.5*velz(i,j,k)*(tauzz_stoch(i,j,k-1)+tauzz_stoch(i,j,k));
                 
-                    Real nweight=sqrt(k_B_gpu*volinv*dtinv);
 
-                    // Corner viscosity coefficients
-                    Real muzepp = 0.25*(eta(i+1,j,k-1)*prim(i+1,j,k-1,4) + eta(i,j,k-1)*prim(i,j,k-1,4) +
-                                        eta(i+1,j+1,k-1)*prim(i+1,j+1,k-1,4) + eta(i,j+1,k-1)*prim(i,j+1,k-1,4) +
-                                        eta(i+1,j,k)*prim(i+1,j,k,4) + eta(i,j,k)*prim(i,j,k,4) +
-                                        eta(i+1,j+1,k)*prim(i+1,j+1,k,4) + eta(i,j+1,k)*prim(i,j+1,k,4) )/3.;
+                if (algorithm_type_gpu == 2) {
 
-                    Real muzemp = 0.25*(eta(i-1,j+1,k-1)*prim(i-1,j+1,k-1,4) + eta(i,j+1,k-1)*prim(i,j+1,k-1,4) +
-                                        eta(i-1,j,k-1)*prim(i-1,j,k-1,4) + eta(i,j,k-1)*prim(i,j,k-1,4) +
-                                        eta(i-1,j+1,k)*prim(i-1,j+1,k,4) + eta(i,j+1,k)*prim(i,j+1,k,4) +
-                                        eta(i-1,j,k)*prim(i-1,j,k,4) + eta(i,j,k)*prim(i,j,k,4) )/3.;
+                for (int n=1; n<1+nspecies_gpu; ++n) {
+                    weiner[n] = 0.;
+                }
 
-                    Real muzepm = 0.25*(eta(i+1,j,k)*prim(i+1,j,k,4) + eta(i,j,k-2)*prim(i,j,k,4) +
-                                        eta(i+1,j-1,k)*prim(i+1,j-1,k,4) + eta(i,j-1,k-2)*prim(i,j-1,k,4) +
-                                        eta(i+1,j,k-1)*prim(i+1,j,k-1,4) + eta(i,j,k-1)*prim(i,j,k-1,4) +
-                                        eta(i+1,j-1,k-1)*prim(i+1,j-1,k-1,4) + eta(i,j-1,k-1)*prim(i,j-1,k-1,4) )/3.;
+                for (int ns=0; ns<nspecies_gpu; ++ns) {
+                    yy[ns] = amrex::max(0.,amrex::min(1.,prim(i,j,k-1,6+ns)));
+                    yyp[ns] = amrex::max(0.,amrex::min(1.,prim(i,j,k,6+ns)));
+                }
 
-                    Real muzemm = 0.25*(eta(i-1,j-1,k)*prim(i-1,j-1,k,4) + eta(i,j-1,k)*prim(i,j-1,k,4) +
-                                        eta(i-1,j,k)*prim(i-1,j,k,4) + eta(i,j,k)*prim(i,j,k,4) +
-                                        eta(i-1,j-1,k-1)*prim(i-1,j-1,k-1,4) + eta(i,j-1,k-1)*prim(i,j-1,k-1,4) +
-                                        eta(i-1,j,k-1)*prim(i-1,j,k-1,4) + eta(i,j,k-1)*prim(i,j,k-1,4) )/3.;
+                Real sumy = 0.;
+                Real sumyp = 0.;
 
-                    if (amrex::Math::abs(visc_type_gpu) == 3) {
+                for (int n=0; n<nspecies_gpu; ++n) {
+                    sumy += yy[n];
+                    sumyp += yyp[n];
+                }
 
-                        muzepp = muzepp+ 0.25*(zeta(i+1,j,k-1)*prim(i+1,j,k-1,4) + zeta(i,j,k-1)*prim(i,j,k-1,4) +
-                                               zeta(i+1,j+1,k-1)*prim(i+1,j+1,k-1,4) + zeta(i,j+1,k-1)*prim(i,j+1,k-1,4) +
-                                               zeta(i+1,j,k)*prim(i+1,j,k,4) + zeta(i,j,k)*prim(i,j,k,4) +
-                                               zeta(i+1,j+1,k)*prim(i+1,j+1,k,4) + zeta(i,j+1,k)*prim(i,j+1,k,4) );
+                for (int n=0; n<nspecies_gpu; ++n) {
+                    yy[n] /= sumy;
+                    yyp[n] /= sumyp;
+                }
 
-                        muzemp = muzemp + 0.25*(zeta(i-1,j+1,k-1)*prim(i-1,j+1,k-1,4) + zeta(i,j+1,k-1)*prim(i,j+1,k-1,4) +
-                                                zeta(i-1,j,k-1)*prim(i-1,j,k-1,4) + zeta(i,j,k-1)*prim(i,j,k-1,4) +
-                                                zeta(i-1,j+1,k)*prim(i-1,j+1,k,4) + zeta(i,j+1,k)*prim(i,j+1,k,4) +
-                                                zeta(i-1,j,k)*prim(i-1,j,k,4) + zeta(i,j,k)*prim(i,j,k,4) );
+                Real MWmix = 0.;
 
-                        muzepm = muzepm + 0.25*(zeta(i+1,j,k)*prim(i+1,j,k,4) + zeta(i,j,k-2)*prim(i,j,k,4) +
-                                                zeta(i+1,j-1,k)*prim(i+1,j-1,k,4) + zeta(i,j-1,k-2)*prim(i,j-1,k,4) +
-                                                zeta(i+1,j,k-1)*prim(i+1,j,k-1,4) + zeta(i,j,k-1)*prim(i,j,k-1,4) +
-                                                zeta(i+1,j-1,k-1)*prim(i+1,j-1,k-1,4) + zeta(i,j-1,k-1)*prim(i,j-1,k-1,4) );
+                for (int ns=0; ns<nspecies_gpu; ++ns) {
 
-                        muzemm = muzemm + 0.25*(zeta(i-1,j-1,k)*prim(i-1,j-1,k,4) + zeta(i,j-1,k)*prim(i,j-1,k,4) +
-                                                zeta(i-1,j,k)*prim(i-1,j,k,4) + zeta(i,j,k)*prim(i,j,k,4) +
-                                                zeta(i-1,j-1,k-1)*prim(i-1,j-1,k-1,4) + zeta(i,j-1,k-1)*prim(i,j-1,k-1,4) +
-                                                zeta(i-1,j,k-1)*prim(i-1,j,k-1,4) + zeta(i,j,k-1)*prim(i,j,k-1,4) );
+                    MWmix = MWmix + 0.5*(yy[ns]+yyp[ns])/molmass_gpu[ns];
+
+                    for (int ll=0; ll<nspecies_gpu; ++ll) {
+                        DijY_edge[ns*nspecies_gpu+ll] = 0.5*(Dij(i,j,k-1,ll*nspecies_gpu+ns)*yy[ll] +
+                                                             Dij(i,j,k,ll*nspecies_gpu+ns)*yyp[ll] +
+                                                            (Dij(i,j,k-1,ns*nspecies_gpu+ll)*yy[ns] +
+                                                             Dij(i,j,k,ns*nspecies_gpu+ll)*yyp[ns] ));
 
                     }
-
-                    weiner[3] = weiner[3] + 0.25*nweight*   
-                        (sqrt(muzepp)*rancorn(i+1,j+1,k)+ sqrt(muzemp)*rancorn(i,j+1,k) + 
-                         sqrt(muzepm)* rancorn(i+1,j,k)+ sqrt(muzemm)*rancorn(i,j,k)); // Random "divergence" stress
+                }
 
 
-                    for (int n=1; n<5; ++n) {
-                        fluxz(i,j,k,n) = fluxz(i,j,k,n) + weiner[n];
-                    }
-                    
-                    // Viscous heating:
-                    Real phiflx =  weiner[1]*(prim(i,j,k-1,1)+prim(i,j,k,1)) +         
-                        weiner[2]*(prim(i,j,k-1,2)+prim(i,j,k,2)) +
-                        weiner[3]*(prim(i,j,k-1,3)+prim(i,j,k,3));
-                    
-                    phiflx =  - 0.5*phiflx;
-
-                    fluxz(i,j,k,4) = fluxz(i,j,k,4) - phiflx;
-
-                    if (algorithm_type_gpu == 2) {
-
-                    for (int n=5; n<5+nspecies_gpu; ++n) {
-                        weiner[n] = 0.;
-                    }
-
-                    for (int ns=0; ns<nspecies_gpu; ++ns) {
-                        yy[ns] = amrex::max(0.,amrex::min(1.,prim(i,j,k-1,6+ns)));
-                        yyp[ns] = amrex::max(0.,amrex::min(1.,prim(i,j,k,6+ns)));
-                    }
-
-                    Real sumy = 0.;
-                    Real sumyp = 0.;
-
-                    for (int n=0; n<nspecies_gpu; ++n) {
-                        sumy += yy[n];
-                        sumyp += yyp[n];
-                    }
-
-                    for (int n=0; n<nspecies_gpu; ++n) {
-                        yy[n] /= sumy;
-                        yyp[n] /= sumyp;
-                    }
-
-                    Real MWmix = 0.;
-
-                    for (int ns=0; ns<nspecies_gpu; ++ns) {
-
-                        MWmix = MWmix + 0.5*(yy[ns]+yyp[ns])/molmass_gpu[ns];
-
-                        for (int ll=0; ll<nspecies_gpu; ++ll) {
-                            DijY_edge[ns*nspecies_gpu+ll] = 0.5*(Dij(i,j,k-1,ll*nspecies_gpu+ns)*yy[ll] +
-                                                                 Dij(i,j,k,ll*nspecies_gpu+ns)*yyp[ll] +
-                                                                (Dij(i,j,k-1,ns*nspecies_gpu+ll)*yy[ns] +
-                                                                 Dij(i,j,k,ns*nspecies_gpu+ll)*yyp[ns] ));
-
+                for (int ns=0; ns<nspecies_gpu; ++ns) {
+                    if (amrex::Math::abs(yy[ns]) + amrex::Math::abs(yyp[ns]) <= 1.e-12) {
+                        for (int n=0; n<nspecies_gpu; ++n) {
+                            DijY_edge[ns*nspecies_gpu+n]=0.;
+                            DijY_edge[n*nspecies_gpu+ns]=0.;
                         }
                     }
+                }
 
+                MWmix = 1. / MWmix;
 
-                    for (int ns=0; ns<nspecies_gpu; ++ns) {
-                        if (amrex::Math::abs(yy[ns]) + amrex::Math::abs(yyp[ns]) <= 1.e-12) {
-                            for (int n=0; n<nspecies_gpu; ++n) {
-                                DijY_edge[ns*nspecies_gpu+n]=0.;
-                                DijY_edge[n*nspecies_gpu+ns]=0.;
-                            }
-                        }
+                CholeskyDecomp(DijY_edge,nspecies_gpu,sqD);
+
+                for (int ns=0; ns<nspecies_gpu; ++ns) {
+                    for (int ll=0; ll<=ns; ++ll) {
+                        fweights[1+ll]=sqrt(k_B_gpu*MWmix*volinv/(Runiv_gpu*dt))*sqD[ns*nspecies_gpu+ll];
+                        weiner[1+ns] = weiner[1+ns] + fweights[1+ll]*stochfacez(i,j,k,5+ll);
                     }
+                    zflux(i,j,k,5+ns) = weiner[1+ns];
+                }
 
-                    MWmix = 1. / MWmix;
+                GetEnthalpies(meanT, hk, hcp_gpu, nspecies_gpu);
 
-                    CholeskyDecomp(DijY_edge,nspecies_gpu,sqD);
+                Real soret = 0.;
 
-                    for (int ns=0; ns<nspecies_gpu; ++ns) {
-                        for (int ll=0; ll<=ns; ++ll) {
-                            fweights[5+ll]=sqrt(k_B_gpu*MWmix*volinv/(Runiv_gpu*dt))*sqD[ns*nspecies_gpu+ll];
-                            weiner[5+ns] = weiner[5+ns] + fweights[5+ll]*ranfluxz(i,j,k,5+ll);
-                        }
-                        fluxz(i,j,k,5+ns) = weiner[5+ns];
-                    }
-
-                    GetEnthalpies(meanT, hk, hcp_gpu, nspecies_gpu);
-
-                    Real soret = 0.;
-
-                    for (int ns=0; ns<nspecies_gpu; ++ns) {
-                        soret = soret + (hk[ns] + Runiv_gpu*meanT/molmass_gpu[ns]
-                                         *0.5*(chi(i,j,k-1,ns)+chi(i,j,k,ns)))*weiner[5+ns];
-                    }
-                    fluxz(i,j,k,4) = fluxz(i,j,k,4) + soret;
-                    
-                    }
+                for (int ns=0; ns<nspecies_gpu; ++ns) {
+                    soret = soret + (hk[ns] + Runiv_gpu*meanT/molmass_gpu[ns]
+                                     *0.5*(chi(i,j,k-1,ns)+chi(i,j,k,ns)))*weiner[1+ns];
+                }
+                zflux(i,j,k,4) = zflux(i,j,k,4) + soret;
+                
                 }
                 
             }); // end lambda function
 
+            // Loop over edges for momemntum flux calculations [1:3]
+            amrex::ParallelFor(bx_xy, bx_xz, bx_yz,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                edgey_u(i,j,k) -= tauxy_stoch(i,j,k);
+                edgex_v(i,j,k) -= tauxy_stoch(i,j,k);
+            },
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                edgez_u(i,j,k) -= tauxz_stoch(i,j,k);
+                edgex_w(i,j,k) -= tauxz_stoch(i,j,k);
+            },
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                edgez_v(i,j,k) -= tauyz_stoch(i,j,k);
+                edgey_w(i,j,k) -= tauyz_stoch(i,j,k);
+            });
+            
+            // Loop over the center cells and compute fluxes (diagonal momentum terms)
+            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
+                cenx_u(i,j,k) -= tauxx_stoch(i,j,k);
+                ceny_v(i,j,k) -= tauyy_stoch(i,j,k);
+                cenz_w(i,j,k) -= tauzz_stoch(i,j,k);
+            });
         } // end MFIter
 
-        // Loop over boxes
+
+        // Loop over boxes to enforce flux boundary conditions
         for ( MFIter mfi(cons_in); mfi.isValid(); ++mfi) {
             
             const Box& bx = mfi.tilebox();
 
-            // call this to enforce flux boundary conditions
             stoch_flux(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
                        cons_in[mfi].dataPtr(),  
                        prim_in[mfi].dataPtr(),    
@@ -693,12 +569,12 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
 #if (AMREX_SPACEDIM == 3)
                        faceflux_in[2][mfi].dataPtr(),
 #endif
-                       stochFlux_in[0][mfi].dataPtr(),
-                       stochFlux_in[1][mfi].dataPtr(),
+                       stochface_in[0][mfi].dataPtr(),
+                       stochface_in[1][mfi].dataPtr(),
 #if (AMREX_SPACEDIM == 3)
-                       stochFlux_in[2][mfi].dataPtr(),
+                       stochface_in[2][mfi].dataPtr(),
 #endif
-                       rancorn_in[mfi].dataPtr(),
+                       stochedge_x_in[0][mfi].dataPtr(), // originally rancorn[mfi] (ask Andy)
                        eta_in[mfi].dataPtr(),  
                        zeta_in[mfi].dataPtr(),  
                        kappa_in[mfi].dataPtr(),
@@ -781,10 +657,18 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
             w_z = (velz(i,j,k+1) - velz(i,j,k))/dx_gpu[2];
 
             Real div = u_x + v_y + w_z;
-            tauxx(i,j,k) = 2*eta(i,j,k)*u_x + (zeta(i,j,k) - 2*eta(i,j,k)/3.)*div; 
-            tauyy(i,j,k) = 2*eta(i,j,k)*v_y + (zeta(i,j,k) - 2*eta(i,j,k)/3.)*div; 
-            tauzz(i,j,k) = 2*eta(i,j,k)*w_z + (zeta(i,j,k) - 2*eta(i,j,k)/3.)*div;
-            });
+            if (amrex::Math::abs(visc_type_gpu) == 3) {
+              tauxx(i,j,k) = 2*eta(i,j,k)*u_x + (zeta(i,j,k) - 2*eta(i,j,k)/3.)*div; 
+              tauyy(i,j,k) = 2*eta(i,j,k)*v_y + (zeta(i,j,k) - 2*eta(i,j,k)/3.)*div; 
+              tauzz(i,j,k) = 2*eta(i,j,k)*w_z + (zeta(i,j,k) - 2*eta(i,j,k)/3.)*div;
+            }
+            else {
+              tauxx(i,j,k) = 2*eta(i,j,k)*u_x + (0.0 - 2*eta(i,j,k)/3.)*div; 
+              tauyy(i,j,k) = 2*eta(i,j,k)*v_y + (0.0 - 2*eta(i,j,k)/3.)*div; 
+              tauzz(i,j,k) = 2*eta(i,j,k)*w_z + (0.0 - 2*eta(i,j,k)/3.)*div;
+            }
+
+        });
 
         // Populate off-diagonal stress
         amrex::ParallelFor(bx_xy, bx_xz, bx_yz,

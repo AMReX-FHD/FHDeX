@@ -45,8 +45,6 @@ void RK3stepStag(MultiFab& cu,
                  std::array< MultiFab, 2 >& edgeflux_y,
                  std::array< MultiFab, 2 >& edgeflux_z,
                  std::array< MultiFab, AMREX_SPACEDIM>& cenflux,
-                 std::array< MultiFab, AMREX_SPACEDIM>& stochFlux,
-                 MultiFab& rancorn,
                  const amrex::Geometry geom, const amrex::Real* dxp, const amrex::Real dt);
 
 void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMREX_SPACEDIM >& momStag_in, 
@@ -58,8 +56,11 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                        std::array< MultiFab, 2 >& edgeflux_y_in,
                        std::array< MultiFab, 2 >& edgeflux_z_in,
                        std::array< MultiFab, AMREX_SPACEDIM>& cenflux_in,
-                       std::array< MultiFab, AMREX_SPACEDIM>& stochFlux_in,
-                       MultiFab& rancorn_in,
+                       std::array< MultiFab, AMREX_SPACEDIM>& stochface_in,
+                       std::array< MultiFab, 2 >& stochedge_x_in,
+                       std::array< MultiFab, 2 >& stochedge_y_in,
+                       std::array< MultiFab, 2 >& stochedge_z_in,
+                       std::array< MultiFab, AMREX_SPACEDIM>& stochcen_in,
                        const amrex::Geometry geom,
 		                   const amrex::Vector< amrex::Real >& stoch_weights,
 		                   const amrex::Real* dx, const amrex::Real dt);

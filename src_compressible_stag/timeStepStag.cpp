@@ -17,8 +17,6 @@ void RK3stepStag(MultiFab& cu,
                  std::array< MultiFab, 2 >& edgeflux_y,
                  std::array< MultiFab, 2 >& edgeflux_z,
                  std::array< MultiFab, AMREX_SPACEDIM>& cenflux,
-                 std::array< MultiFab, AMREX_SPACEDIM>& stochFlux,
-                 MultiFab& rancorn,
                  const amrex::Geometry geom, const amrex::Real* dxp, const amrex::Real dt)
 {
     BL_PROFILE_VAR("RK3stepStag()",RK3stepStag);
@@ -44,90 +42,185 @@ void RK3stepStag(MultiFab& cu,
     const GpuArray<Real,AMREX_SPACEDIM> grav_gpu{AMREX_D_DECL(grav[0], grav[1], grav[2])};
 
     /////////////////////////////////////////////////////
-    // Initialize white noise fields
+    // Setup stochastic flux MultiFabs
+    std::array< MultiFab, AMREX_SPACEDIM > stochface;
+    AMREX_D_TERM(stochface[0].define(convert(cu.boxArray(),nodal_flag_x), cu.DistributionMap(), nvars, 0);,
+                 stochface[1].define(convert(cu.boxArray(),nodal_flag_y), cu.DistributionMap(), nvars, 0);,
+                 stochface[2].define(convert(cu.boxArray(),nodal_flag_z), cu.DistributionMap(), nvars, 0););
+    
+    std::array< MultiFab, 2 > stochedge_x; 
+    std::array< MultiFab, 2 > stochedge_y; 
+    std::array< MultiFab, 2 > stochedge_z; 
 
+    stochedge_x[0].define(convert(cu.boxArray(),nodal_flag_xy), cu.DistributionMap(), 1, 0); 
+    stochedge_x[1].define(convert(cu.boxArray(),nodal_flag_xz), cu.DistributionMap(), 1, 0);
+             
+    stochedge_y[0].define(convert(cu.boxArray(),nodal_flag_xy), cu.DistributionMap(), 1, 0);
+    stochedge_y[1].define(convert(cu.boxArray(),nodal_flag_yz), cu.DistributionMap(), 1, 0);
+
+    stochedge_z[0].define(convert(cu.boxArray(),nodal_flag_xz), cu.DistributionMap(), 1, 0);
+    stochedge_z[1].define(convert(cu.boxArray(),nodal_flag_yz), cu.DistributionMap(), 1, 0);
+
+    std::array< MultiFab, AMREX_SPACEDIM > stochcen;
+    AMREX_D_TERM(stochcen[0].define(cu.boxArray(),cu.DistributionMap(),1,1);, 
+                 stochcen[1].define(cu.boxArray(),cu.DistributionMap(),1,1);,
+                 stochcen[2].define(cu.boxArray(),cu.DistributionMap(),1,1););
+    /////////////////////////////////////////////////////
+
+    /////////////////////////////////////////////////////
+    // Initialize white noise weighted fields
     // weights for stochastic fluxes; swgt2 changes each stage
     amrex::Vector< amrex::Real > stoch_weights;
     amrex::Real swgt1, swgt2;
     swgt1 = 1.0;
 
-    // Temp. stoch. fluxes
-
     // field "A"
-    std::array< MultiFab, AMREX_SPACEDIM > stochFlux_A;
-    AMREX_D_TERM(stochFlux_A[0].define(stochFlux[0].boxArray(), stochFlux[0].DistributionMap(), nvars, 0);,
-                 stochFlux_A[1].define(stochFlux[1].boxArray(), stochFlux[1].DistributionMap(), nvars, 0);,
-                 stochFlux_A[2].define(stochFlux[2].boxArray(), stochFlux[2].DistributionMap(), nvars, 0););
+    std::array< MultiFab, AMREX_SPACEDIM > stochface_A;
+    AMREX_D_TERM(stochface_A[0].define(stochface[0].boxArray(), stochface[0].DistributionMap(), nvars, 0);,
+                 stochface_A[1].define(stochface[1].boxArray(), stochface[1].DistributionMap(), nvars, 0);,
+                 stochface_A[2].define(stochface[2].boxArray(), stochface[2].DistributionMap(), nvars, 0););
 
-    MultiFab rancorn_A;
-    rancorn_A.define(rancorn.boxArray(), rancorn.DistributionMap(), 1, 0);
+    AMREX_D_TERM(stochface_A[0].setVal(0.0);,
+                 stochface_A[1].setVal(0.0);,
+                 stochface_A[2].setVal(0.0););
     
+    std::array< MultiFab, 2 > stochedge_x_A; 
+    std::array< MultiFab, 2 > stochedge_y_A; 
+    std::array< MultiFab, 2 > stochedge_z_A; 
+
+    stochedge_x_A[0].define(stochedge_x[0].boxArray(), stochedge_x[0].DistributionMap(), 1, 0); 
+    stochedge_x_A[1].define(stochedge_x[1].boxArray(), stochedge_x[1].DistributionMap(), 1, 0);
+             
+    stochedge_y_A[0].define(stochedge_y[0].boxArray(), stochedge_y[0].DistributionMap(), 1, 0);
+    stochedge_y_A[1].define(stochedge_y[1].boxArray(), stochedge_y[1].DistributionMap(), 1, 0);
+
+    stochedge_z_A[0].define(stochedge_z[0].boxArray(), stochedge_z[0].DistributionMap(), 1, 0);
+    stochedge_z_A[1].define(stochedge_z[1].boxArray(), stochedge_z[1].DistributionMap(), 1, 0);
+
+    stochedge_x_A[0].setVal(0.0); stochedge_x_A[1].setVal(0.0);
+    stochedge_y_A[0].setVal(0.0); stochedge_y_A[1].setVal(0.0);
+    stochedge_z_A[0].setVal(0.0); stochedge_z_A[1].setVal(0.0);
+
+    std::array< MultiFab, AMREX_SPACEDIM > stochcen_A;
+    AMREX_D_TERM(stochcen_A[0].define(stochcen[0].boxArray(),stochcen[0].DistributionMap(),1,1);, 
+                 stochcen_A[1].define(stochcen[1].boxArray(),stochcen[1].DistributionMap(),1,1);,
+                 stochcen_A[2].define(stochcen[2].boxArray(),stochcen[2].DistributionMap(),1,1););
+
+    AMREX_D_TERM(stochcen_A[0].setVal(0.0);,
+                 stochcen_A[1].setVal(0.0);,
+                 stochcen_A[2].setVal(0.0););
+
     // field "B"
-    std::array< MultiFab, AMREX_SPACEDIM > stochFlux_B;
-    AMREX_D_TERM(stochFlux_B[0].define(stochFlux[0].boxArray(), stochFlux[0].DistributionMap(), nvars, 0);,
-                 stochFlux_B[1].define(stochFlux[1].boxArray(), stochFlux[1].DistributionMap(), nvars, 0);,
-                 stochFlux_B[2].define(stochFlux[2].boxArray(), stochFlux[2].DistributionMap(), nvars, 0););
+    std::array< MultiFab, AMREX_SPACEDIM > stochface_B;
+    AMREX_D_TERM(stochface_B[0].define(stochface[0].boxArray(), stochface[0].DistributionMap(), nvars, 0);,
+                 stochface_B[1].define(stochface[1].boxArray(), stochface[1].DistributionMap(), nvars, 0);,
+                 stochface_B[2].define(stochface[2].boxArray(), stochface[2].DistributionMap(), nvars, 0););
 
-    MultiFab rancorn_B;
-    rancorn_B.define(rancorn.boxArray(), rancorn.DistributionMap(), 1, 0);
+    AMREX_D_TERM(stochface_B[0].setVal(0.0);,
+                 stochface_B[1].setVal(0.0);,
+                 stochface_B[2].setVal(0.0););
+    
+    std::array< MultiFab, 2 > stochedge_x_B; 
+    std::array< MultiFab, 2 > stochedge_y_B; 
+    std::array< MultiFab, 2 > stochedge_z_B; 
 
-    AMREX_D_TERM(stochFlux_A[0].setVal(0.0);,
-                 stochFlux_A[1].setVal(0.0);,
-                 stochFlux_A[2].setVal(0.0););
-    rancorn_A.setVal(0.0);
+    stochedge_x_B[0].define(stochedge_x[0].boxArray(), stochedge_x[0].DistributionMap(), 1, 0); 
+    stochedge_x_B[1].define(stochedge_x[1].boxArray(), stochedge_x[1].DistributionMap(), 1, 0);
+             
+    stochedge_y_B[0].define(stochedge_y[0].boxArray(), stochedge_y[0].DistributionMap(), 1, 0);
+    stochedge_y_B[1].define(stochedge_y[1].boxArray(), stochedge_y[1].DistributionMap(), 1, 0);
 
-    AMREX_D_TERM(stochFlux_B[0].setVal(0.0);,
-                 stochFlux_B[1].setVal(0.0);,
-                 stochFlux_B[2].setVal(0.0););
-    rancorn_B.setVal(0.0);
+    stochedge_z_B[0].define(stochedge_z[0].boxArray(), stochedge_z[0].DistributionMap(), 1, 0);
+    stochedge_z_B[1].define(stochedge_z[1].boxArray(), stochedge_z[1].DistributionMap(), 1, 0);
+
+    stochedge_x_B[0].setVal(0.0); stochedge_x_B[1].setVal(0.0);
+    stochedge_y_B[0].setVal(0.0); stochedge_y_B[1].setVal(0.0);
+    stochedge_z_B[0].setVal(0.0); stochedge_z_B[1].setVal(0.0);
+
+    std::array< MultiFab, AMREX_SPACEDIM > stochcen_B;
+    AMREX_D_TERM(stochcen_B[0].define(stochcen[0].boxArray(),stochcen[0].DistributionMap(),1,1);, 
+                 stochcen_B[1].define(stochcen[1].boxArray(),stochcen[1].DistributionMap(),1,1);,
+                 stochcen_B[2].define(stochcen[2].boxArray(),stochcen[2].DistributionMap(),1,1););
+
+    AMREX_D_TERM(stochcen_B[0].setVal(0.0);,
+                 stochcen_B[1].setVal(0.0);,
+                 stochcen_B[2].setVal(0.0););
 
     // fill random numbers (can skip density component 0)
     for(int d=0;d<AMREX_SPACEDIM;d++) {
-    	for(int i=1;i<nvars;i++) {
-    	    MultiFabFillRandom(stochFlux_A[d], i, 1.0, geom);
-	    MultiFabFillRandom(stochFlux_B[d], i, 1.0, geom);
+    	for(int i=4;i<nvars;i++) {
+    	    MultiFabFillRandom(stochface_A[d], i, 1.0, geom);
+	        MultiFabFillRandom(stochface_B[d], i, 1.0, geom);
         }
     }
-
-    MultiFabFillRandom(rancorn_A, 0, 1.0, geom);
-    MultiFabFillRandom(rancorn_B, 0, 1.0, geom);
+    for (int i=0; i<2; i++) {
+      MultiFabFillRandom(stochedge_x_A[i], 0, 1.0, geom);
+      MultiFabFillRandom(stochedge_x_B[i], 0, 1.0, geom);
+      MultiFabFillRandom(stochedge_y_A[i], 0, 1.0, geom);
+      MultiFabFillRandom(stochedge_y_B[i], 0, 1.0, geom);
+      MultiFabFillRandom(stochedge_z_A[i], 0, 1.0, geom);
+      MultiFabFillRandom(stochedge_z_B[i], 0, 1.0, geom);
+    }
+    for (int i=0; i<3; i++) {
+      MultiFabFillRandom(stochcen_A[i], 0, 1.0, geom);
+      MultiFabFillRandom(stochcen_B[i], 0, 1.0, geom);
+    }
+    /////////////////////////////////////////////////////
 
     /////////////////////////////////////////////////////
-    //
-    //
-
-    // Compute transport coefs after setting BCs    
-    calculateTransportCoeffs(prim, eta, zeta, kappa, chi, D);
-
-    ///////////////////////////////////////////////////////////
     // Perform weighting of white noise fields
-
     // Set stochastic weights
     swgt2 = ( 2.0*std::sqrt(2.0) + 1.0*std::sqrt(3.0) ) / 5.0;
     stoch_weights = {swgt1, swgt2};
 
-    AMREX_D_TERM(stochFlux[0].setVal(0.0);,
-                 stochFlux[1].setVal(0.0);,
-                 stochFlux[2].setVal(0.0););
-    rancorn.setVal(0.0);
+    // apply weights (only energy and ns-1 species)
+    AMREX_D_TERM(stochface[0].setVal(0.0);,
+                 stochface[1].setVal(0.0);,
+                 stochface[2].setVal(0.0););
 
-    // apply weights (only momentum and energy)
-    for(int d=0;d<AMREX_SPACEDIM;d++) {
-	      MultiFab::LinComb(stochFlux[d], 
-			  stoch_weights[0], stochFlux_A[d], 1, 
-			  stoch_weights[1], stochFlux_B[d], 1,
-			  1, nvars-1, 0);
+    stochedge_x[0].setVal(0.0); stochedge_x[1].setVal(0.0);
+    stochedge_y[0].setVal(0.0); stochedge_y[1].setVal(0.0);
+    stochedge_z[0].setVal(0.0); stochedge_z[1].setVal(0.0);
+
+    AMREX_D_TERM(stochcen[0].setVal(0.0);,
+                 stochcen[1].setVal(0.0);,
+                 stochcen[2].setVal(0.0););
+
+    for (int d=0;d<AMREX_SPACEDIM;d++) {
+	    MultiFab::LinComb(stochface[d], 
+          stoch_weights[0], stochface_A[d], 4, 
+          stoch_weights[1], stochface_B[d], 4,
+          4, nvars-1, 0);
     }
+    for (int i=0;i<2;i++) {
+      MultiFab::LinComb(stochedge_x[i],
+          stoch_weights[0], stochedge_x_A[i], 0,
+          stoch_weights[1], stochedge_x_B[i], 0,
+          0, 1, 0);
+      MultiFab::LinComb(stochedge_y[i],
+          stoch_weights[0], stochedge_y_A[i], 0,
+          stoch_weights[1], stochedge_y_B[i], 0,
+          0, 1, 0);
+      MultiFab::LinComb(stochedge_z[i],
+          stoch_weights[0], stochedge_z_A[i], 0,
+          stoch_weights[1], stochedge_z_B[i], 0,
+          0, 1, 0);
+    }
+    for (int i=0;i<3;i++) {
+      MultiFab::LinComb(stochcen[i],
+          stoch_weights[0], stochcen_A[i], 0,
+          stoch_weights[1], stochcen_B[i], 0,
+          0, 1, 0);
+    }
+    /////////////////////////////////////////////////////
 
-    MultiFab::LinComb(rancorn, 
-		      stoch_weights[0], rancorn_A, 0, 
-		      stoch_weights[1], rancorn_B, 0,
-		      0, 1, 0);
+    // Compute transport coefs after setting BCs    
+    calculateTransportCoeffs(prim, eta, zeta, kappa, chi, D);
 
-    ///////////////////////////////////////////////////////////
-
-    calculateFluxStag(cu, cumom, prim, facevel, eta, zeta, kappa, chi, D, faceflux, edgeflux_x, edgeflux_y, edgeflux_z, cenflux, stochFlux, 
-                      rancorn, geom, stoch_weights, dxp, dt);
+    calculateFluxStag(cu, cumom, prim, facevel, eta, zeta, kappa, chi, D, 
+        faceflux, edgeflux_x, edgeflux_y, edgeflux_z, cenflux, 
+        stochface, stochedge_x, stochedge_y, stochedge_z, stochcen, 
+        geom, stoch_weights, dxp, dt);
 
     for (int d=0; d<AMREX_SPACEDIM; d++) {
       cenflux[d].FillBoundary(geom.periodicity());
@@ -237,28 +330,51 @@ void RK3stepStag(MultiFab& cu,
     swgt2 = ( -4.0*std::sqrt(2.0) + 3.0*std::sqrt(3.0) ) / 5.0;
     stoch_weights = {swgt1, swgt2};
 
-    AMREX_D_TERM(stochFlux[0].setVal(0.0);,
-                 stochFlux[1].setVal(0.0);,
-                 stochFlux[2].setVal(0.0););
-    rancorn.setVal(0.0);
+    // apply weights (only energy and ns-1 species)
+    AMREX_D_TERM(stochface[0].setVal(0.0);,
+                 stochface[1].setVal(0.0);,
+                 stochface[2].setVal(0.0););
 
-    // apply weights (only momentum and energy)
-    for(int d=0;d<AMREX_SPACEDIM;d++) {
-	      MultiFab::LinComb(stochFlux[d], 
-			  stoch_weights[0], stochFlux_A[d], 1, 
-			  stoch_weights[1], stochFlux_B[d], 1,
-			  1, nvars-1, 0);
+    stochedge_x[0].setVal(0.0); stochedge_x[1].setVal(0.0);
+    stochedge_y[0].setVal(0.0); stochedge_y[1].setVal(0.0);
+    stochedge_z[0].setVal(0.0); stochedge_z[1].setVal(0.0);
+
+    AMREX_D_TERM(stochcen[0].setVal(0.0);,
+                 stochcen[1].setVal(0.0);,
+                 stochcen[2].setVal(0.0););
+
+    for (int d=0;d<AMREX_SPACEDIM;d++) {
+	    MultiFab::LinComb(stochface[d], 
+          stoch_weights[0], stochface_A[d], 4, 
+          stoch_weights[1], stochface_B[d], 4,
+          4, nvars-1, 0);
     }
-
-    MultiFab::LinComb(rancorn, 
-		      stoch_weights[0], rancorn_A, 0, 
-		      stoch_weights[1], rancorn_B, 0,
-		      0, 1, 0);
-
+    for (int i=0;i<2;i++) {
+      MultiFab::LinComb(stochedge_x[i],
+          stoch_weights[0], stochedge_x_A[i], 0,
+          stoch_weights[1], stochedge_x_B[i], 0,
+          0, 1, 0);
+      MultiFab::LinComb(stochedge_y[i],
+          stoch_weights[0], stochedge_y_A[i], 0,
+          stoch_weights[1], stochedge_y_B[i], 0,
+          0, 1, 0);
+      MultiFab::LinComb(stochedge_z[i],
+          stoch_weights[0], stochedge_z_A[i], 0,
+          stoch_weights[1], stochedge_z_B[i], 0,
+          0, 1, 0);
+    }
+    for (int i=0;i<3;i++) {
+      MultiFab::LinComb(stochcen[i],
+          stoch_weights[0], stochcen_A[i], 0,
+          stoch_weights[1], stochcen_B[i], 0,
+          0, 1, 0);
+    }
     ///////////////////////////////////////////////////////////
 
-    calculateFluxStag(cup, cupmom, prim, facevel, eta, zeta, kappa, chi, D, faceflux, edgeflux_x, edgeflux_y, edgeflux_z, cenflux, stochFlux, 
-                      rancorn, geom, stoch_weights, dxp, dt);
+    calculateFluxStag(cup, cupmom, prim, facevel, eta, zeta, kappa, chi, D, 
+        faceflux, edgeflux_x, edgeflux_y, edgeflux_z, cenflux, 
+        stochface, stochedge_x, stochedge_y, stochedge_z, stochcen, 
+        geom, stoch_weights, dxp, dt);
 
 
     for (int d=0; d<AMREX_SPACEDIM; d++) {
@@ -373,29 +489,52 @@ void RK3stepStag(MultiFab& cu,
     // Set stochastic weights
     swgt2 = ( 1.0*std::sqrt(2.0) - 2.0*std::sqrt(3.0) ) / 10.0;
     stoch_weights = {swgt1, swgt2};
-    
-    AMREX_D_TERM(stochFlux[0].setVal(0.0);,
-                 stochFlux[1].setVal(0.0);,
-                 stochFlux[2].setVal(0.0););
-    rancorn.setVal(0.0);
 
-    // apply weights (only momentum and energy)
-    for(int d=0;d<AMREX_SPACEDIM;d++) {
-	      MultiFab::LinComb(stochFlux[d], 
-			  stoch_weights[0], stochFlux_A[d], 1, 
-			  stoch_weights[1], stochFlux_B[d], 1,
-			  1, nvars-1, 0);
+    // apply weights (only energy and ns-1 species)
+    AMREX_D_TERM(stochface[0].setVal(0.0);,
+                 stochface[1].setVal(0.0);,
+                 stochface[2].setVal(0.0););
+
+    stochedge_x[0].setVal(0.0); stochedge_x[1].setVal(0.0);
+    stochedge_y[0].setVal(0.0); stochedge_y[1].setVal(0.0);
+    stochedge_z[0].setVal(0.0); stochedge_z[1].setVal(0.0);
+
+    AMREX_D_TERM(stochcen[0].setVal(0.0);,
+                 stochcen[1].setVal(0.0);,
+                 stochcen[2].setVal(0.0););
+
+    for (int d=0;d<AMREX_SPACEDIM;d++) {
+	    MultiFab::LinComb(stochface[d], 
+          stoch_weights[0], stochface_A[d], 4, 
+          stoch_weights[1], stochface_B[d], 4,
+          4, nvars-1, 0);
     }
-
-    MultiFab::LinComb(rancorn, 
-		      stoch_weights[0], rancorn_A, 0, 
-		      stoch_weights[1], rancorn_B, 0,
-		      0, 1, 0);
-
+    for (int i=0;i<2;i++) {
+      MultiFab::LinComb(stochedge_x[i],
+          stoch_weights[0], stochedge_x_A[i], 0,
+          stoch_weights[1], stochedge_x_B[i], 0,
+          0, 1, 0);
+      MultiFab::LinComb(stochedge_y[i],
+          stoch_weights[0], stochedge_y_A[i], 0,
+          stoch_weights[1], stochedge_y_B[i], 0,
+          0, 1, 0);
+      MultiFab::LinComb(stochedge_z[i],
+          stoch_weights[0], stochedge_z_A[i], 0,
+          stoch_weights[1], stochedge_z_B[i], 0,
+          0, 1, 0);
+    }
+    for (int i=0;i<3;i++) {
+      MultiFab::LinComb(stochcen[i],
+          stoch_weights[0], stochcen_A[i], 0,
+          stoch_weights[1], stochcen_B[i], 0,
+          0, 1, 0);
+    }
     ///////////////////////////////////////////////////////////
 
-    calculateFluxStag(cup2, cup2mom, prim, facevel, eta, zeta, kappa, chi, D, faceflux, edgeflux_x, edgeflux_y, edgeflux_z, cenflux, stochFlux,
-                      rancorn, geom, stoch_weights, dxp, dt);
+    calculateFluxStag(cup2, cup2mom, prim, facevel, eta, zeta, kappa, chi, D, 
+        faceflux, edgeflux_x, edgeflux_y, edgeflux_z, cenflux, 
+        stochface, stochedge_x, stochedge_y, stochedge_z, stochcen, 
+        geom, stoch_weights, dxp, dt);
 
 
     for (int d=0; d<AMREX_SPACEDIM; d++) {
@@ -497,4 +636,3 @@ void RK3stepStag(MultiFab& cu,
     prim.FillBoundary(geom.periodicity());
     setBC(prim, cu);
 }
-

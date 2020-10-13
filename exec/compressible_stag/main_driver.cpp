@@ -242,20 +242,6 @@ void main_driver(const char* argv)
                  faceflux[1].define(convert(ba,nodal_flag_y), dmap, nvars, 0);,
                  faceflux[2].define(convert(ba,nodal_flag_z), dmap, nvars, 0););
 
-    //stochastic fluxes
-    std::array< MultiFab, AMREX_SPACEDIM > stochFlux;
-    AMREX_D_TERM(stochFlux[0].define(convert(ba,nodal_flag_x), dmap, nvars, 0);,
-                 stochFlux[1].define(convert(ba,nodal_flag_y), dmap, nvars, 0);,
-                 stochFlux[2].define(convert(ba,nodal_flag_z), dmap, nvars, 0););
-
-    AMREX_D_TERM(stochFlux[0].setVal(0.0);,
-                 stochFlux[1].setVal(0.0);,
-                 stochFlux[2].setVal(0.0););
-
-    MultiFab rancorn;
-    rancorn.define(convert(ba,nodal_flag), dmap, 1, 0);
-    rancorn.setVal(0.0);
-
     //momentum flux (edge + center)
 #if (AMREX_SPACEDIM == 3)
     std::array< MultiFab, 2 > edgeflux_x; // divide by dx
@@ -495,8 +481,8 @@ void main_driver(const char* argv)
         // timer
         Real ts1 = ParallelDescriptor::second();
     
-        RK3stepStag(cu, cumom, prim, facevel, source, eta, zeta, kappa, chi, D, faceflux, edgeflux_x, edgeflux_y, edgeflux_z, cenflux,
-                stochFlux, rancorn, geom, dx, dt);
+        RK3stepStag(cu, cumom, prim, facevel, source, eta, zeta, kappa, chi, D, 
+            faceflux, edgeflux_x, edgeflux_y, edgeflux_z, cenflux, geom, dx, dt);
 
         // timer
         Real ts2 = ParallelDescriptor::second() - ts1;
