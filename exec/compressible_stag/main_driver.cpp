@@ -7,9 +7,7 @@
 
 #include "rng_functions.H"
 
-//#ifndef AMREX_USE_CUDA
 #include "StructFact.H"
-//#endif
 
 using namespace amrex;
 
@@ -271,8 +269,6 @@ void main_driver(const char* argv)
 
     int step, statsCount;
 
-//#if 0 // comment out structure factor stuff for now
-//#ifndef AMREX_USE_CUDA
     ///////////////////////////////////////////
     // Structure factor:
     ///////////////////////////////////////////
@@ -410,8 +406,6 @@ void main_driver(const char* argv)
       new(&structFactPrimVerticalAverage) StructFact(ba_flat,dmap_flat,prim_var_names,var_scaling); // reconstruct
     
     }
-//#endif
-// #endif // end structure factor stuff
 
     ///////////////////////////////////////////
 
@@ -549,7 +543,6 @@ void main_driver(const char* argv)
                            cuVars, prim, primMeans, primVars, spatialCross, miscStats, eta, kappa);
         }
 
-//#ifndef AMREX_USE_CUDA
 	// collect a snapshot for structure factor
 	if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip)%struct_fact_int == 0) {
             MultiFab::Copy(structFactPrimMF, prim, 0,                0,                structVarsPrim,   0);
@@ -571,7 +564,6 @@ void main_driver(const char* argv)
                 structFactPrimVerticalAverage.WritePlotFile(step,time,geom_flat,"plt_SF_prim_VerticalAverage");
             }
         }
-//#endif
         
         // timer
         Real aux2 = ParallelDescriptor::second() - aux1;
