@@ -47,7 +47,7 @@ INCLUDE_LOCATIONS += ../../src_common/
 include $(AMREX_HOME)/Src/Base/Make.package
 
 # structure factor and SWFFT stuff; does not work with CUDA build
-ifeq ($(USE_CUDA),FALSE)
+ifeq ($(USE_CUDA),TRUE)
  include ../../src_analysis/src_F90/Make.package
  VPATH_LOCATIONS   += ../../src_analysis/src_F90
  INCLUDE_LOCATIONS += ../../src_analysis/src_F90
