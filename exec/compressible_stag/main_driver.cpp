@@ -7,9 +7,9 @@
 
 #include "rng_functions.H"
 
-#ifndef AMREX_USE_CUDA
+//#ifndef AMREX_USE_CUDA
 #include "StructFact.H"
-#endif
+//#endif
 
 using namespace amrex;
 
@@ -271,8 +271,8 @@ void main_driver(const char* argv)
 
     int step, statsCount;
 
-#if 0 // comment out structure factor stuff for now
-#ifndef AMREX_USE_CUDA
+//#if 0 // comment out structure factor stuff for now
+//#ifndef AMREX_USE_CUDA
     ///////////////////////////////////////////
     // Structure factor:
     ///////////////////////////////////////////
@@ -410,8 +410,8 @@ void main_driver(const char* argv)
       new(&structFactPrimVerticalAverage) StructFact(ba_flat,dmap_flat,prim_var_names,var_scaling); // reconstruct
     
     }
-#endif
-#endif // end structure factor stuff
+//#endif
+// #endif // end structure factor stuff
 
     ///////////////////////////////////////////
 
@@ -501,10 +501,10 @@ void main_driver(const char* argv)
 
         // write a plotfile
         if (plot_int > 0 && step > 0 && step%plot_int == 0) {
-           //yzAverage(cuMeans, cuVars, primMeans, primVars, spatialCross,
-           //          cuMeansAv, cuVarsAv, primMeansAv, primVarsAv, spatialCrossAv);
-           //WritePlotFileStag(step, time, geom, cu, cuMeansAv, cuVarsAv,
-           //              prim, primMeansAv, primVarsAv, spatialCrossAv, eta, kappa);
+           yzAverage(cuMeans, cuVars, primMeans, primVars, spatialCross,
+                     cuMeansAv, cuVarsAv, primMeansAv, primVarsAv, spatialCrossAv);
+           WritePlotFileStag(step, time, geom, cu, cuMeansAv, cuVarsAv,
+                         prim, primMeansAv, primVarsAv, spatialCrossAv, eta, kappa);
            //std::string momout = "mom"+ std::to_string(step) + ".txt"; 
            //std::string rhoout = "rho"+ std::to_string(step) + ".txt"; 
            //std::string pressout = "press"+ std::to_string(step) + ".txt"; 
@@ -513,32 +513,32 @@ void main_driver(const char* argv)
            //std::ofstream rout(rhoout);
            //std::ofstream pout(pressout);
            //std::ofstream tout(Tout);
-           {
-               std::string plotfilename = std::to_string(ParallelDescriptor::MyProc()) + "_" + "xmom" + std::to_string(step);
-               std::ofstream ofs(plotfilename, std::ofstream::out);
-               MultiFab output(cumom[0], amrex::make_alias, 0, 1);
-               for (MFIter mfi(output); mfi.isValid(); ++mfi) {
-                   ofs<<std::scientific<<std::setprecision(13)<<(output[mfi])<<std::endl;
-               }
-           }
+           //{
+           //    std::string plotfilename = std::to_string(ParallelDescriptor::MyProc()) + "_" + "xmom" + std::to_string(step);
+           //    std::ofstream ofs(plotfilename, std::ofstream::out);
+           //    MultiFab output(cumom[0], amrex::make_alias, 0, 1);
+           //    for (MFIter mfi(output); mfi.isValid(); ++mfi) {
+           //        ofs<<std::scientific<<std::setprecision(13)<<(output[mfi])<<std::endl;
+           //    }
+           //}
 
-           {
-               std::string plotfilename = std::to_string(ParallelDescriptor::MyProc()) + "_" + "ymom" + std::to_string(step);
-               std::ofstream ofs(plotfilename, std::ofstream::out);
-               MultiFab output(cumom[1], amrex::make_alias, 0, 1);
-               for (MFIter mfi(output); mfi.isValid(); ++mfi) {
-                   ofs<<std::scientific<<std::setprecision(13)<<(output[mfi])<<std::endl;
-               }
-           }
+           //{
+           //    std::string plotfilename = std::to_string(ParallelDescriptor::MyProc()) + "_" + "ymom" + std::to_string(step);
+           //    std::ofstream ofs(plotfilename, std::ofstream::out);
+           //    MultiFab output(cumom[1], amrex::make_alias, 0, 1);
+           //    for (MFIter mfi(output); mfi.isValid(); ++mfi) {
+           //        ofs<<std::scientific<<std::setprecision(13)<<(output[mfi])<<std::endl;
+           //    }
+           //}
 
-           {
-               std::string plotfilename = std::to_string(ParallelDescriptor::MyProc()) + "_" + "zmom" + std::to_string(step);
-               std::ofstream ofs(plotfilename, std::ofstream::out);
-               MultiFab output(cumom[2], amrex::make_alias, 0, 1);
-               for (MFIter mfi(output); mfi.isValid(); ++mfi) {
-                   ofs<<std::scientific<<std::setprecision(13)<<(output[mfi])<<std::endl;
-               }
-           }
+           //{
+           //    std::string plotfilename = std::to_string(ParallelDescriptor::MyProc()) + "_" + "zmom" + std::to_string(step);
+           //    std::ofstream ofs(plotfilename, std::ofstream::out);
+           //    MultiFab output(cumom[2], amrex::make_alias, 0, 1);
+           //    for (MFIter mfi(output); mfi.isValid(); ++mfi) {
+           //        ofs<<std::scientific<<std::setprecision(13)<<(output[mfi])<<std::endl;
+           //    }
+           //}
            //outputMFAscii(cumom[1],"ymom"+std::to_string(step));
 
         }
@@ -549,8 +549,7 @@ void main_driver(const char* argv)
                            cuVars, prim, primMeans, primVars, spatialCross, miscStats, eta, kappa);
         }
 
-#if 0 // comment out structure factor stuff for now
-#ifndef AMREX_USE_CUDA
+//#ifndef AMREX_USE_CUDA
 	// collect a snapshot for structure factor
 	if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip)%struct_fact_int == 0) {
             MultiFab::Copy(structFactPrimMF, prim, 0,                0,                structVarsPrim,   0);
@@ -572,8 +571,7 @@ void main_driver(const char* argv)
                 structFactPrimVerticalAverage.WritePlotFile(step,time,geom_flat,"plt_SF_prim_VerticalAverage");
             }
         }
-#endif
-#endif // end structure factor stuff
+//#endif
         
         // timer
         Real aux2 = ParallelDescriptor::second() - aux1;
