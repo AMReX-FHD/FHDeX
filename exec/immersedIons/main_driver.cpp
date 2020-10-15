@@ -851,12 +851,12 @@ void main_driver(const char* argv)
                 Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
         }
 
-//        if(istep == 1)
-//        {
-//            particles.SetPosition(0, 1, prob_hi[0]*0.48, prob_hi[1]*0.01, prob_hi[2]*0.48);
-//            particles.SetPosition(0, 2, prob_hi[0]*0.49, prob_hi[1]*0.01, prob_hi[2]*0.49);
-//           
-//        }
+        if(istep == 1)
+        {
+            //particles.SetPosition(1, prob_hi[0]*0.4, prob_hi[1]*0.5, prob_hi[2]*0.4);
+            //particles.SetPosition(2, prob_hi[0]*0.1, prob_hi[1]*0.5, prob_hi[2]*0.5);
+           
+        }
 
     
         //Most of these functions are sensitive to the order of execution. We can fix this, but for now leave them in this order.
@@ -1109,7 +1109,9 @@ void main_driver(const char* argv)
         ParallelDescriptor::ReduceLongMax(max_fab_megabytes, IOProc);
 
         amrex::Print() << "Curent     FAB megabyte spread across MPI nodes: ["
-                       << min_fab_megabytes << " ... " << max_fab_megabytes << "]\n";       
+                       << min_fab_megabytes << " ... " << max_fab_megabytes << "]\n";
+
+        //particles.PrintParticles(); 
         
     }
     ///////////////////////////////////////////
