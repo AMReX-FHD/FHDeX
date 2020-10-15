@@ -41,6 +41,7 @@ void RK3stepStag(MultiFab& cu,
     
     const GpuArray<Real,AMREX_SPACEDIM> grav_gpu{AMREX_D_DECL(grav[0], grav[1], grav[2])};
 
+
     /////////////////////////////////////////////////////
     // Setup stochastic flux MultiFabs
     std::array< MultiFab, AMREX_SPACEDIM > stochface;
@@ -188,9 +189,9 @@ void RK3stepStag(MultiFab& cu,
 
     for (int d=0;d<AMREX_SPACEDIM;d++) {
 	    MultiFab::LinComb(stochface[d], 
-          stoch_weights[0], stochface_A[d], 4, 
-          stoch_weights[1], stochface_B[d], 4,
-          4, nvars-1, 0);
+          stoch_weights[0], stochface_A[d], 1, 
+          stoch_weights[1], stochface_B[d], 1,
+          1, nvars-1, 0);
     }
     for (int i=0;i<2;i++) {
       MultiFab::LinComb(stochedge_x[i],
@@ -345,9 +346,9 @@ void RK3stepStag(MultiFab& cu,
 
     for (int d=0;d<AMREX_SPACEDIM;d++) {
 	    MultiFab::LinComb(stochface[d], 
-          stoch_weights[0], stochface_A[d], 4, 
-          stoch_weights[1], stochface_B[d], 4,
-          4, nvars-1, 0);
+          stoch_weights[0], stochface_A[d], 1, 
+          stoch_weights[1], stochface_B[d], 1,
+          1, nvars-1, 0);
     }
     for (int i=0;i<2;i++) {
       MultiFab::LinComb(stochedge_x[i],
@@ -505,9 +506,9 @@ void RK3stepStag(MultiFab& cu,
 
     for (int d=0;d<AMREX_SPACEDIM;d++) {
 	    MultiFab::LinComb(stochface[d], 
-          stoch_weights[0], stochface_A[d], 4, 
-          stoch_weights[1], stochface_B[d], 4,
-          4, nvars-1, 0);
+          stoch_weights[0], stochface_A[d], 1, 
+          stoch_weights[1], stochface_B[d], 1,
+          1, nvars-1, 0);
     }
     for (int i=0;i<2;i++) {
       MultiFab::LinComb(stochedge_x[i],
