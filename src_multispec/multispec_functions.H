@@ -84,6 +84,14 @@ void DotWithZ(MultiFab& mf,
               MultiFab& mfdotz,
               int abs_z=0);
 
+void DotWithZFace(MultiFab& mf,
+                  std::array< MultiFab, AMREX_SPACEDIM >& mfdotz,
+                  int abs_0);
+
+void ComputeChargeCoef(MultiFab& rho,
+                       MultiFab& Temp,
+                       MultiFab& charge_coef);
+
 /////////////////////////////////////////////////////////////////////////////////
 // in InitialProjection.cpp
 
