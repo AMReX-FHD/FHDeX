@@ -78,6 +78,13 @@ void CorrectionFlux(const MultiFab& rho, const MultiFab& rhotot,
 		    std::array< MultiFab, AMREX_SPACEDIM >& flux);
 
 /////////////////////////////////////////////////////////////////////////////////
+// in FluicCharge.cpp
+
+void DotWithZ(MultiFab& mf,
+              MultiFab& mfdotz,
+              int abs_z=0);
+
+/////////////////////////////////////////////////////////////////////////////////
 // in InitialProjection.cpp
 
 void InitialProjection(std::array< MultiFab, AMREX_SPACEDIM >& umac,
