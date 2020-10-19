@@ -316,9 +316,21 @@ void main_driver(const char* argv)
         var_scaling[d] = 1./(dx[0]*dx[1]*dx[2]);
     }
 
+    /* TEST SELECTED PAIRS
+    Vector<int> xxx;
+    xxx.resize(1);
+
+    Vector<int> yyy;
+    yyy.resize(1);
+
+    xxx[0] = 0;
+    yyy[0] = 0;
+    */
+
     // compute all pairs
     // note: StructFactPrim option to compute only speicified pairs not written yet
     StructFact structFactPrim(ba,dmap,prim_var_names,var_scaling);
+//    StructFact structFactPrim(ba,dmap,prim_var_names,xxx,yyy,var_scaling);
     
     //////////////////////////////////////////////
 
@@ -548,6 +560,12 @@ void main_driver(const char* argv)
             MultiFab::Copy(structFactPrimMF, prim, 0,                0,                structVarsPrim,   0);
             MultiFab::Copy(structFactConsMF, cu,   0,                0,                structVarsCons-1, 0);
             MultiFab::Copy(structFactConsMF, prim, AMREX_SPACEDIM+1, structVarsCons-1, 1,                0); // temperature too
+
+            // overwrites the momentum fields by shifting in the face-centered momentum into the correct components
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                ShiftFaceToCC(cumom[d],0,structFactConsMF,d+1,1);
+            }
+
             structFactPrim.FortStructure(structFactPrimMF,geom);
             structFactCons.FortStructure(structFactConsMF,geom);
             if(project_dir >= 0) {

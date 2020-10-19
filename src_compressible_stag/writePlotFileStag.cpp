@@ -56,6 +56,13 @@ void WritePlotFileStag(int step,
     amrex::MultiFab::Copy(plotfile,cu,0,cnt,numvars,0);
     cnt+=numvars;
 
+    /* DO SOMETHING LIKE THIS
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                ShiftFaceToCC(cumom[d],0,plotfile,cnt,1);
+                ++cnt;
+            }
+    */
+
     // instantaneous values of primitive variables
     // rho, ux, uy, uz, temp, pres, Yk, Xk
     numvars = 6+2*nspecies;
@@ -110,9 +117,10 @@ void WritePlotFileStag(int step,
     cnt = 0;
 
     varNames[cnt++] = "rhoInstant";
-    varNames[cnt++] = "jxInstant";
+    varNames[cnt++] = "jx_avg_Instant"; // FIXME
     varNames[cnt++] = "jyInstant";
     varNames[cnt++] = "jzInstant";
+    varNames[cnt++] = "jx_shifted_Instant";  // FIXME
     varNames[cnt++] = "rhoEInstant";
     x = "rhoYkInstant_";
     for (i=0; i<nspecies; i++) {
