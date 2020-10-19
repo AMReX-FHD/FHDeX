@@ -6,6 +6,8 @@
 #SBATCH --constraint=haswell
 
 RUNDIR=RUN_SF
+KMCSCR=in.kmc_eq
+FHDSCR=inputs_fhd_SF
 
 if [ -d $RUNDIR ]
 then
@@ -14,6 +16,8 @@ then
 fi
 
 mkdir $RUNDIR
+cp $KMCSCR $RUNDIR
+cp $FHDSCR $RUNDIR
 cd $RUNDIR
 
 srun -n5 -l --multi-prog ../mpmd.conf 
