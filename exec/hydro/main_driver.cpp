@@ -6,9 +6,7 @@
 
 #include "StochMomFlux.H"
 
-#ifndef AMREX_USE_CUDA
 #include "StructFact.H"
-#endif
 
 #include "rng_functions_F.H"
 
@@ -219,7 +217,6 @@ void main_driver(const char* argv)
     // Declare object of StochMomFlux class
     StochMomFlux sMflux (ba,dmap,geom,n_rngs);
 
-#ifndef AMREX_USE_CUDA
     ///////////////////////////////////////////
     // Initialize structure factor object for analysis
     ///////////////////////////////////////////
@@ -273,7 +270,6 @@ void main_driver(const char* argv)
     StructFact structFact(ba,dmap,var_names,var_scaling,s_pairA,s_pairB);
 #endif
     
-#endif
 
     ///////////////////////////////////////////
     
@@ -347,7 +343,6 @@ void main_driver(const char* argv)
         step_start = 1;
         time = 0.;
 
-#ifndef AMREX_USE_CUDA        
         // We do the analysis first so we include the initial condition in the files if n_steps_skip=0
         if (n_steps_skip == 0 && struct_fact_int > 0) {
 
@@ -359,17 +354,14 @@ void main_driver(const char* argv)
             }
             structFact.FortStructure(structFactMF,geom);
         }
-#endif
 
         // write out initial state
         // write out umac, tracer, pres, and divergence to a plotfile
         if (plot_int > 0) {
             WritePlotFile(step_start,time,geom,umac,tracer,pres);
-#ifndef AMREX_USE_CUDA
             if (n_steps_skip == 0 && struct_fact_int > 0) {
                 structFact.WritePlotFile(0,0.,geom,"plt_SF");
             }
-#endif
         }
 
     }
@@ -400,7 +392,6 @@ void main_driver(const char* argv)
 
 	//////////////////////////////////////////////////
 
-#ifndef AMREX_USE_CUDA
 	if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip)%struct_fact_int == 0) {
 
             // add this snapshot to the average in the structure factor
@@ -411,7 +402,6 @@ void main_driver(const char* argv)
             }
             structFact.FortStructure(structFactMF,geom);
         }
-#endif
         
         Real step_stop_time = ParallelDescriptor::second() - step_strt_time;
         ParallelDescriptor::ReduceRealMax(step_stop_time);
@@ -423,11 +413,9 @@ void main_driver(const char* argv)
         if (plot_int > 0 && step%plot_int == 0) {
             // write out umac, tracer, pres, and divergence to a plotfile
             WritePlotFile(step,time,geom,umac,tracer,pres);
-#ifndef AMREX_USE_CUDA
             if (step > n_steps_skip && struct_fact_int > 0) {
                 structFact.WritePlotFile(step,time,geom,"plt_SF");
             }
-#endif
         }
 
         if (chk_int > 0 && step%chk_int == 0) {
