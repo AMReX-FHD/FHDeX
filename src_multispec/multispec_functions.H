@@ -80,17 +80,35 @@ void CorrectionFlux(const MultiFab& rho, const MultiFab& rhotot,
 /////////////////////////////////////////////////////////////////////////////////
 // in FluicCharge.cpp
 
-void DotWithZ(MultiFab& mf,
+void DotWithZ(const MultiFab& mf,
               MultiFab& mfdotz,
               int abs_z=0);
 
-void DotWithZFace(MultiFab& mf,
+void DotWithZFace(std::array< const MultiFab, AMREX_SPACEDIM >& mf,
                   std::array< MultiFab, AMREX_SPACEDIM >& mfdotz,
                   int abs_0);
 
-void ComputeChargeCoef(MultiFab& rho_in,
-                       MultiFab& Temp_in,
+void ComputeChargeCoef(const MultiFab& rho_in,
+                       const MultiFab& Temp_in,
                        MultiFab& charge_coef_in);
+
+void EnforceChargeNeutrality();
+
+void ImplicitPotentialCoef();
+
+void ModifyS();
+
+void ComputePermittivity();
+
+void ComputeLorentzForce(std::array< MultiFab, AMREX_SPACEDIM >& Lorentz_force,
+                         std::array< const MultiFab, AMREX_SPACEDIM >& grad_Epot,
+                         const MultiFab& permittivity,
+                         const MultiFab& charge,
+                         const Geometry& geom);
+
+void ComputeE_ext(MultiFab& E_ext);
+
+void ZeroEpsOnWall(std::array< MultiFab, AMREX_SPACEDIM >& beta);
 
 /////////////////////////////////////////////////////////////////////////////////
 // in InitialProjection.cpp
