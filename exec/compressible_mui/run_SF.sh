@@ -46,6 +46,6 @@ fi
 
 # run the two executables simultaneously
 echo "** running kmc and fhd"
-time mpirun -np 1 ../$exec1 -var SEED 100 -screen none < $SPKSCR : -np 4 ../$exec2 $FHDSCR | tee log.fhd
+time mpirun -np 4 ../$exec1 -var SEED 100 -screen none < $SPKSCR : -np 32 ../$exec2 $FHDSCR | tee log.fhd
 
 ../scripts/coverage.sh

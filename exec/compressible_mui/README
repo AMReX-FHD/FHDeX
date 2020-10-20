@@ -7,6 +7,6 @@ To comple FHD codes:
 - make
 (if you want to recompile the codes completely, try this first: make realclean)
 
-To run example
-- ./run.sh
-(if RUN directory already exists, delete or rename it.)
+To run SF example
+- ./run_SF.sh
+(if RUN_SF directory already exists, delete or rename it.)
