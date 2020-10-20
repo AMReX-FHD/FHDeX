@@ -171,12 +171,12 @@ void main_driver(const char* argv)
     MultiFab cu  (ba,dmap,nvars,ngc);
 
     // staggered momentum
-    std::array< MultiFab, AMREX_SPACEDIM > facevel;
+    std::array< MultiFab, AMREX_SPACEDIM > vel;
     std::array< MultiFab, AMREX_SPACEDIM > cumom;
     std::array< MultiFab, AMREX_SPACEDIM > cumomMeans;
     std::array< MultiFab, AMREX_SPACEDIM > cumomVars;
     for (int d=0; d<AMREX_SPACEDIM; d++) {
-        facevel[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ngc);
+        vel[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ngc);
         cumom[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ngc);
         cumomMeans[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ngc);
         cumomVars[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ngc);
@@ -291,9 +291,9 @@ void main_driver(const char* argv)
 
     // velx, vely, velz
     for (int d=0; d<AMREX_SPACEDIM; d++) {
-      x = "vel";
-      x += (120+d);
-      prim_var_names[cnt++] = x;
+        x = "vel";
+        x += (120+d);
+        prim_var_names[cnt++] = x;
     }
 
     // Temp
@@ -301,9 +301,9 @@ void main_driver(const char* argv)
 
     // Yk
     for (int d=0; d<nspecies; d++) {
-      x = "Y";
-      x += (49+d);
-      prim_var_names[cnt++] = x;
+        x = "Y";
+        x += (49+d);
+        prim_var_names[cnt++] = x;
     }
 
     MultiFab structFactPrimMF;
@@ -352,9 +352,9 @@ void main_driver(const char* argv)
 
     // velx, vely, velz
     for (int d=0; d<AMREX_SPACEDIM; d++) {
-      x = "j";
-      x += (120+d);
-      cons_var_names[cnt++] = x;
+        x = "j";
+        x += (120+d);
+        cons_var_names[cnt++] = x;
     }
 
     // rho*E
@@ -362,9 +362,9 @@ void main_driver(const char* argv)
 
     // rho*Yk
     for (int d=0; d<nspecies; d++) {
-      x = "rhoY";
-      x += (49+d);
-      cons_var_names[cnt++] = x;
+        x = "rhoY";
+        x += (49+d);
+        cons_var_names[cnt++] = x;
     }
 
     // Temp
@@ -391,31 +391,31 @@ void main_driver(const char* argv)
     Geometry geom_flat;
 
     if(project_dir >= 0){
-      prim.setVal(0.0);
-      ComputeVerticalAverage(prim, primVertAvg, geom, project_dir, 0, structVarsPrim);
-      BoxArray ba_flat = primVertAvg.boxArray();
-      const DistributionMapping& dmap_flat = primVertAvg.DistributionMap();
-      {
-        IntVect dom_lo(AMREX_D_DECL(           0,            0,            0));
-        IntVect dom_hi(AMREX_D_DECL(n_cells[0]-1, n_cells[1]-1, n_cells[2]-1));
-    	dom_hi[project_dir] = 0;
-        Box domain(dom_lo, dom_hi);
+        prim.setVal(0.0);
+        ComputeVerticalAverage(prim, primVertAvg, geom, project_dir, 0, structVarsPrim);
+        BoxArray ba_flat = primVertAvg.boxArray();
+        const DistributionMapping& dmap_flat = primVertAvg.DistributionMap();
+        {
+            IntVect dom_lo(AMREX_D_DECL(           0,            0,            0));
+            IntVect dom_hi(AMREX_D_DECL(n_cells[0]-1, n_cells[1]-1, n_cells[2]-1));
+              dom_hi[project_dir] = 0;
+            Box domain(dom_lo, dom_hi);
 	
-    	// This defines the physical box
-    	Vector<Real> projected_hi(AMREX_SPACEDIM);
-    	for (int d=0; d<AMREX_SPACEDIM; d++) {
-    	  projected_hi[d] = prob_hi[d];
-    	}
-    	projected_hi[project_dir] = prob_hi[project_dir]/n_cells[project_dir];
-        RealBox real_box({AMREX_D_DECL(     prob_lo[0],     prob_lo[1],     prob_lo[2])},
-                         {AMREX_D_DECL(projected_hi[0],projected_hi[1],projected_hi[2])});
+            // This defines the physical box
+            Vector<Real> projected_hi(AMREX_SPACEDIM);
+            for (int d=0; d<AMREX_SPACEDIM; d++) {
+                projected_hi[d] = prob_hi[d];
+            }
+            projected_hi[project_dir] = prob_hi[project_dir]/n_cells[project_dir];
+            RealBox real_box({AMREX_D_DECL(     prob_lo[0],     prob_lo[1],     prob_lo[2])},
+                             {AMREX_D_DECL(projected_hi[0],projected_hi[1],projected_hi[2])});
 
-        // This defines a Geometry object
-        geom_flat.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
-      }
+            // This defines a Geometry object
+            geom_flat.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
+        }
 
-      structFactPrimVerticalAverage.~StructFact(); // destruct
-      new(&structFactPrimVerticalAverage) StructFact(ba_flat,dmap_flat,prim_var_names,var_scaling); // reconstruct
+        structFactPrimVerticalAverage.~StructFact(); // destruct
+        new(&structFactPrimVerticalAverage) StructFact(ba_flat,dmap_flat,prim_var_names,var_scaling); // reconstruct
     
     }
 
@@ -449,7 +449,7 @@ void main_driver(const char* argv)
 
     for (int d=0; d<AMREX_SPACEDIM; d++) { // staggered momentum & velocities
       cumom[d].setVal(0.);
-      facevel[d].setVal(0.);
+      vel[d].setVal(0.);
     }
 
     // initialize conserved variables
@@ -460,24 +460,25 @@ void main_driver(const char* argv)
     statsCount = 1;
 
     // Write initial plotfile
-    conservedToPrimitiveStag(prim, facevel, cu, cumom);
+    conservedToPrimitiveStag(prim, vel, cu, cumom);
 
     // Set BC: 1) fill boundary 2) physical (How to do for staggered? -- Ishan)
     cu.FillBoundary(geom.periodicity());
-    for (int d=0; d<AMREX_SPACEDIM; d++) {
-      cumom[d].FillBoundary(geom.periodicity());
-    }
     prim.FillBoundary(geom.periodicity());
+    for (int d=0; d<AMREX_SPACEDIM; d++) {
+        cumom[d].FillBoundary(geom.periodicity());
+        vel[d].FillBoundary(geom.periodicity());
+    }
     setBC(prim, cu);
     
     if (plot_int > 0) {
-	WritePlotFileStag(0, 0.0, geom, cu, cuMeans, cuVars,
-                      prim, primMeans, primVars, spatialCross, eta, kappa);
+	    WritePlotFileStag(0, 0.0, geom, cu, cuMeans, cuVars, cumom, 
+                      prim, primMeans, primVars, vel, spatialCross, eta, kappa);
     }
 
 
     //Time stepping loop
-    for(step=1;step<=max_step;++step) {
+    for (step=1;step<=max_step;++step) {
 
         if (restart > 0 && step==1) {
             ReadCheckPoint(step, time, statsCount, geom, cu, cuMeans, cuVars, prim,
@@ -487,7 +488,7 @@ void main_driver(const char* argv)
         // timer
         Real ts1 = ParallelDescriptor::second();
     
-        RK3stepStag(cu, cumom, prim, facevel, source, eta, zeta, kappa, chi, D, 
+        RK3stepStag(cu, cumom, prim, vel, source, eta, zeta, kappa, chi, D, 
             faceflux, edgeflux_x, edgeflux_y, edgeflux_z, cenflux, geom, dx, dt);
 
         // timer
@@ -507,63 +508,64 @@ void main_driver(const char* argv)
 
         // write a plotfile
         if (plot_int > 0 && step > 0 && step%plot_int == 0) {
-           yzAverage(cuMeans, cuVars, primMeans, primVars, spatialCross,
-                     cuMeansAv, cuVarsAv, primMeansAv, primVarsAv, spatialCrossAv);
-           WritePlotFileStag(step, time, geom, cu, cuMeansAv, cuVarsAv,
-                         prim, primMeansAv, primVarsAv, spatialCrossAv, eta, kappa);
-           //std::string momout = "mom"+ std::to_string(step) + ".txt"; 
-           //std::string rhoout = "rho"+ std::to_string(step) + ".txt"; 
-           //std::string pressout = "press"+ std::to_string(step) + ".txt"; 
-           //std::string Tout = "T"+ std::to_string(step) + ".txt"; 
-           //std::ofstream mout(momout);
-           //std::ofstream rout(rhoout);
-           //std::ofstream pout(pressout);
-           //std::ofstream tout(Tout);
-           //{
-           //    std::string plotfilename = std::to_string(ParallelDescriptor::MyProc()) + "_" + "xmom" + std::to_string(step);
-           //    std::ofstream ofs(plotfilename, std::ofstream::out);
-           //    MultiFab output(cumom[0], amrex::make_alias, 0, 1);
-           //    for (MFIter mfi(output); mfi.isValid(); ++mfi) {
-           //        ofs<<std::scientific<<std::setprecision(13)<<(output[mfi])<<std::endl;
-           //    }
-           //}
+             yzAverage(cuMeans, cuVars, primMeans, primVars, spatialCross,
+                       cuMeansAv, cuVarsAv, primMeansAv, primVarsAv, spatialCrossAv);
+             WritePlotFileStag(step, time, geom, cu, cuMeansAv, cuVarsAv, cumom,
+                           prim, primMeansAv, primVarsAv, vel, spatialCrossAv, eta, kappa);
+             //std::string momout = "mom"+ std::to_string(step) + ".txt"; 
+             //std::string rhoout = "rho"+ std::to_string(step) + ".txt"; 
+             //std::string pressout = "press"+ std::to_string(step) + ".txt"; 
+             //std::string Tout = "T"+ std::to_string(step) + ".txt"; 
+             //std::ofstream mout(momout);
+             //std::ofstream rout(rhoout);
+             //std::ofstream pout(pressout);
+             //std::ofstream tout(Tout);
+             //{
+             //    std::string plotfilename = std::to_string(ParallelDescriptor::MyProc()) + "_" + "xmom" + std::to_string(step);
+             //    std::ofstream ofs(plotfilename, std::ofstream::out);
+             //    MultiFab output(cumom[0], amrex::make_alias, 0, 1);
+             //    for (MFIter mfi(output); mfi.isValid(); ++mfi) {
+             //        ofs<<std::scientific<<std::setprecision(13)<<(output[mfi])<<std::endl;
+             //    }
+             //}
 
-           //{
-           //    std::string plotfilename = std::to_string(ParallelDescriptor::MyProc()) + "_" + "ymom" + std::to_string(step);
-           //    std::ofstream ofs(plotfilename, std::ofstream::out);
-           //    MultiFab output(cumom[1], amrex::make_alias, 0, 1);
-           //    for (MFIter mfi(output); mfi.isValid(); ++mfi) {
-           //        ofs<<std::scientific<<std::setprecision(13)<<(output[mfi])<<std::endl;
-           //    }
-           //}
+             //{
+             //    std::string plotfilename = std::to_string(ParallelDescriptor::MyProc()) + "_" + "ymom" + std::to_string(step);
+             //    std::ofstream ofs(plotfilename, std::ofstream::out);
+             //    MultiFab output(cumom[1], amrex::make_alias, 0, 1);
+             //    for (MFIter mfi(output); mfi.isValid(); ++mfi) {
+             //        ofs<<std::scientific<<std::setprecision(13)<<(output[mfi])<<std::endl;
+             //    }
+             //}
 
-           //{
-           //    std::string plotfilename = std::to_string(ParallelDescriptor::MyProc()) + "_" + "zmom" + std::to_string(step);
-           //    std::ofstream ofs(plotfilename, std::ofstream::out);
-           //    MultiFab output(cumom[2], amrex::make_alias, 0, 1);
-           //    for (MFIter mfi(output); mfi.isValid(); ++mfi) {
-           //        ofs<<std::scientific<<std::setprecision(13)<<(output[mfi])<<std::endl;
-           //    }
-           //}
-           //outputMFAscii(cumom[1],"ymom"+std::to_string(step));
+             //{
+             //    std::string plotfilename = std::to_string(ParallelDescriptor::MyProc()) + "_" + "zmom" + std::to_string(step);
+             //    std::ofstream ofs(plotfilename, std::ofstream::out);
+             //    MultiFab output(cumom[2], amrex::make_alias, 0, 1);
+             //    for (MFIter mfi(output); mfi.isValid(); ++mfi) {
+             //        ofs<<std::scientific<<std::setprecision(13)<<(output[mfi])<<std::endl;
+             //    }
+             //}
+             //outputMFAscii(cumom[1],"ymom"+std::to_string(step));
 
         }
 
         if (chk_int > 0 && step > 0 && step%chk_int == 0)
         {
-           WriteCheckPoint(step, time, statsCount, geom, cu, cuMeans,
+             WriteCheckPoint(step, time, statsCount, geom, cu, cuMeans,
                            cuVars, prim, primMeans, primVars, spatialCross, miscStats, eta, kappa);
         }
 
-	// collect a snapshot for structure factor
-	if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip)%struct_fact_int == 0) {
+        // collect a snapshot for structure factor
+        if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip)%struct_fact_int == 0) {
             MultiFab::Copy(structFactPrimMF, prim, 0,                0,                structVarsPrim,   0);
             MultiFab::Copy(structFactConsMF, cu,   0,                0,                structVarsCons-1, 0);
             MultiFab::Copy(structFactConsMF, prim, AMREX_SPACEDIM+1, structVarsCons-1, 1,                0); // temperature too
 
-            // overwrites the momentum fields by shifting in the face-centered momentum into the correct components
+            // overwrites the momentum & velocity by shifting in the face-centered arrays into the cell-centered arrays
             for (int d=0; d<AMREX_SPACEDIM; ++d) {
                 ShiftFaceToCC(cumom[d],0,structFactConsMF,d+1,1);
+                ShiftFaceToCC(vel[d],0,structFactPrimMF,d+1,1);
             }
 
             structFactPrim.FortStructure(structFactPrimMF,geom);
@@ -609,7 +611,7 @@ void main_driver(const char* argv)
         ParallelDescriptor::ReduceLongMax(max_fab_megabytes, IOProc);
 
         amrex::Print() << "Curent     FAB megabyte spread across MPI nodes: ["
-                       << min_fab_megabytes << " ... " << max_fab_megabytes << "]\n";
+                     << min_fab_megabytes << " ... " << max_fab_megabytes << "]\n";
     }
 
     // timer

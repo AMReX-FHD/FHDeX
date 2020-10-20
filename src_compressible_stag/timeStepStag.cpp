@@ -8,7 +8,7 @@
 
 void RK3stepStag(MultiFab& cu, 
                  std::array< MultiFab, AMREX_SPACEDIM >& cumom,
-                 MultiFab& prim, std::array< MultiFab, AMREX_SPACEDIM >& facevel,
+                 MultiFab& prim, std::array< MultiFab, AMREX_SPACEDIM >& vel,
                  MultiFab& source,
                  MultiFab& eta, MultiFab& zeta, MultiFab& kappa,
                  MultiFab& chi, MultiFab& D,
@@ -155,16 +155,16 @@ void RK3stepStag(MultiFab& cu,
         }
     }
     for (int i=0; i<2; i++) {
-      MultiFabFillRandom(stochedge_x_A[i], 0, 1.0, geom);
-      MultiFabFillRandom(stochedge_x_B[i], 0, 1.0, geom);
-      MultiFabFillRandom(stochedge_y_A[i], 0, 1.0, geom);
-      MultiFabFillRandom(stochedge_y_B[i], 0, 1.0, geom);
-      MultiFabFillRandom(stochedge_z_A[i], 0, 1.0, geom);
-      MultiFabFillRandom(stochedge_z_B[i], 0, 1.0, geom);
+        MultiFabFillRandom(stochedge_x_A[i], 0, 1.0, geom);
+        MultiFabFillRandom(stochedge_x_B[i], 0, 1.0, geom);
+        MultiFabFillRandom(stochedge_y_A[i], 0, 1.0, geom);
+        MultiFabFillRandom(stochedge_y_B[i], 0, 1.0, geom);
+        MultiFabFillRandom(stochedge_z_A[i], 0, 1.0, geom);
+        MultiFabFillRandom(stochedge_z_B[i], 0, 1.0, geom);
     }
     for (int i=0; i<3; i++) {
-      MultiFabFillRandom(stochcen_A[i], 0, 1.0, geom);
-      MultiFabFillRandom(stochcen_B[i], 0, 1.0, geom);
+        MultiFabFillRandom(stochcen_A[i], 0, 1.0, geom);
+        MultiFabFillRandom(stochcen_B[i], 0, 1.0, geom);
     }
     /////////////////////////////////////////////////////
 
@@ -189,49 +189,49 @@ void RK3stepStag(MultiFab& cu,
 
     for (int d=0;d<AMREX_SPACEDIM;d++) {
 	    MultiFab::LinComb(stochface[d], 
-          stoch_weights[0], stochface_A[d], 1, 
-          stoch_weights[1], stochface_B[d], 1,
-          1, nvars-1, 0);
+            stoch_weights[0], stochface_A[d], 1, 
+            stoch_weights[1], stochface_B[d], 1,
+            1, nvars-1, 0);
     }
     for (int i=0;i<2;i++) {
-      MultiFab::LinComb(stochedge_x[i],
-          stoch_weights[0], stochedge_x_A[i], 0,
-          stoch_weights[1], stochedge_x_B[i], 0,
-          0, 1, 0);
-      MultiFab::LinComb(stochedge_y[i],
-          stoch_weights[0], stochedge_y_A[i], 0,
-          stoch_weights[1], stochedge_y_B[i], 0,
-          0, 1, 0);
-      MultiFab::LinComb(stochedge_z[i],
-          stoch_weights[0], stochedge_z_A[i], 0,
-          stoch_weights[1], stochedge_z_B[i], 0,
-          0, 1, 0);
+        MultiFab::LinComb(stochedge_x[i],
+            stoch_weights[0], stochedge_x_A[i], 0,
+            stoch_weights[1], stochedge_x_B[i], 0,
+            0, 1, 0);
+        MultiFab::LinComb(stochedge_y[i],
+            stoch_weights[0], stochedge_y_A[i], 0,
+            stoch_weights[1], stochedge_y_B[i], 0,
+            0, 1, 0);
+        MultiFab::LinComb(stochedge_z[i],
+            stoch_weights[0], stochedge_z_A[i], 0,
+            stoch_weights[1], stochedge_z_B[i], 0,
+            0, 1, 0);
     }
     for (int i=0;i<3;i++) {
-      MultiFab::LinComb(stochcen[i],
-          stoch_weights[0], stochcen_A[i], 0,
-          stoch_weights[1], stochcen_B[i], 0,
-          0, 1, 0);
+        MultiFab::LinComb(stochcen[i],
+            stoch_weights[0], stochcen_A[i], 0,
+            stoch_weights[1], stochcen_B[i], 0,
+            0, 1, 0);
     }
     /////////////////////////////////////////////////////
 
     // Compute transport coefs after setting BCs    
     calculateTransportCoeffs(prim, eta, zeta, kappa, chi, D);
 
-    calculateFluxStag(cu, cumom, prim, facevel, eta, zeta, kappa, chi, D, 
+    calculateFluxStag(cu, cumom, prim, vel, eta, zeta, kappa, chi, D, 
         faceflux, edgeflux_x, edgeflux_y, edgeflux_z, cenflux, 
         stochface, stochedge_x, stochedge_y, stochedge_z, stochcen, 
         geom, stoch_weights, dxp, dt);
 
     for (int d=0; d<AMREX_SPACEDIM; d++) {
-      cenflux[d].FillBoundary(geom.periodicity());
-      faceflux[d].FillBoundary(geom.periodicity());
+        cenflux[d].FillBoundary(geom.periodicity());
+        faceflux[d].FillBoundary(geom.periodicity());
     }
 
     for (int d=0; d<2; d++) {
-      edgeflux_x[d].FillBoundary(geom.periodicity());
-      edgeflux_y[d].FillBoundary(geom.periodicity());
-      edgeflux_z[d].FillBoundary(geom.periodicity());
+        edgeflux_x[d].FillBoundary(geom.periodicity());
+        edgeflux_y[d].FillBoundary(geom.periodicity());
+        edgeflux_z[d].FillBoundary(geom.periodicity());
     }
 
     for ( MFIter mfi(cu,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
@@ -311,12 +311,12 @@ void RK3stepStag(MultiFab& cu,
     }
 
     for (int d=0; d<AMREX_SPACEDIM; d++) {
-      cupmom[d].FillBoundary(geom.periodicity());
+        cupmom[d].FillBoundary(geom.periodicity());
     }
     cup.FillBoundary(geom.periodicity());
-    conservedToPrimitiveStag(prim, facevel, cup, cupmom);
+    conservedToPrimitiveStag(prim, vel, cup, cupmom);
     for (int d=0; d<AMREX_SPACEDIM; d++) {
-      facevel[d].FillBoundary(geom.periodicity());
+        vel[d].FillBoundary(geom.periodicity());
     }
     prim.FillBoundary(geom.periodicity());
     setBC(prim, cup);
@@ -346,47 +346,47 @@ void RK3stepStag(MultiFab& cu,
 
     for (int d=0;d<AMREX_SPACEDIM;d++) {
 	    MultiFab::LinComb(stochface[d], 
-          stoch_weights[0], stochface_A[d], 1, 
-          stoch_weights[1], stochface_B[d], 1,
-          1, nvars-1, 0);
+            stoch_weights[0], stochface_A[d], 1, 
+            stoch_weights[1], stochface_B[d], 1,
+            1, nvars-1, 0);
     }
     for (int i=0;i<2;i++) {
-      MultiFab::LinComb(stochedge_x[i],
-          stoch_weights[0], stochedge_x_A[i], 0,
-          stoch_weights[1], stochedge_x_B[i], 0,
-          0, 1, 0);
-      MultiFab::LinComb(stochedge_y[i],
-          stoch_weights[0], stochedge_y_A[i], 0,
-          stoch_weights[1], stochedge_y_B[i], 0,
-          0, 1, 0);
-      MultiFab::LinComb(stochedge_z[i],
-          stoch_weights[0], stochedge_z_A[i], 0,
-          stoch_weights[1], stochedge_z_B[i], 0,
-          0, 1, 0);
+        MultiFab::LinComb(stochedge_x[i],
+            stoch_weights[0], stochedge_x_A[i], 0,
+            stoch_weights[1], stochedge_x_B[i], 0,
+            0, 1, 0);
+        MultiFab::LinComb(stochedge_y[i],
+            stoch_weights[0], stochedge_y_A[i], 0,
+            stoch_weights[1], stochedge_y_B[i], 0,
+            0, 1, 0);
+        MultiFab::LinComb(stochedge_z[i],
+            stoch_weights[0], stochedge_z_A[i], 0,
+            stoch_weights[1], stochedge_z_B[i], 0,
+            0, 1, 0);
     }
     for (int i=0;i<3;i++) {
-      MultiFab::LinComb(stochcen[i],
-          stoch_weights[0], stochcen_A[i], 0,
-          stoch_weights[1], stochcen_B[i], 0,
-          0, 1, 0);
+        MultiFab::LinComb(stochcen[i],
+            stoch_weights[0], stochcen_A[i], 0,
+            stoch_weights[1], stochcen_B[i], 0,
+            0, 1, 0);
     }
     ///////////////////////////////////////////////////////////
 
-    calculateFluxStag(cup, cupmom, prim, facevel, eta, zeta, kappa, chi, D, 
+    calculateFluxStag(cup, cupmom, prim, vel, eta, zeta, kappa, chi, D, 
         faceflux, edgeflux_x, edgeflux_y, edgeflux_z, cenflux, 
         stochface, stochedge_x, stochedge_y, stochedge_z, stochcen, 
         geom, stoch_weights, dxp, dt);
 
 
     for (int d=0; d<AMREX_SPACEDIM; d++) {
-      cenflux[d].FillBoundary(geom.periodicity());
-      faceflux[d].FillBoundary(geom.periodicity());
+        cenflux[d].FillBoundary(geom.periodicity());
+        faceflux[d].FillBoundary(geom.periodicity());
     }
 
     for (int d=0; d<2; d++) {
-      edgeflux_x[d].FillBoundary(geom.periodicity());
-      edgeflux_y[d].FillBoundary(geom.periodicity());
-      edgeflux_z[d].FillBoundary(geom.periodicity());
+        edgeflux_x[d].FillBoundary(geom.periodicity());
+        edgeflux_y[d].FillBoundary(geom.periodicity());
+        edgeflux_z[d].FillBoundary(geom.periodicity());
     }
 
     for ( MFIter mfi(cu,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
@@ -471,12 +471,12 @@ void RK3stepStag(MultiFab& cu,
     }
         
     for (int d=0; d<AMREX_SPACEDIM; d++) {
-      cup2mom[d].FillBoundary(geom.periodicity());
+        cup2mom[d].FillBoundary(geom.periodicity());
     }
     cup2.FillBoundary(geom.periodicity());
-    conservedToPrimitiveStag(prim, facevel, cup2, cup2mom);
+    conservedToPrimitiveStag(prim, vel, cup2, cup2mom);
     for (int d=0; d<AMREX_SPACEDIM; d++) {
-      facevel[d].FillBoundary(geom.periodicity());
+        vel[d].FillBoundary(geom.periodicity());
     }
     prim.FillBoundary(geom.periodicity());
     setBC(prim, cup2);
@@ -506,47 +506,47 @@ void RK3stepStag(MultiFab& cu,
 
     for (int d=0;d<AMREX_SPACEDIM;d++) {
 	    MultiFab::LinComb(stochface[d], 
-          stoch_weights[0], stochface_A[d], 1, 
-          stoch_weights[1], stochface_B[d], 1,
-          1, nvars-1, 0);
+            stoch_weights[0], stochface_A[d], 1, 
+            stoch_weights[1], stochface_B[d], 1,
+            1, nvars-1, 0);
     }
     for (int i=0;i<2;i++) {
-      MultiFab::LinComb(stochedge_x[i],
-          stoch_weights[0], stochedge_x_A[i], 0,
-          stoch_weights[1], stochedge_x_B[i], 0,
-          0, 1, 0);
-      MultiFab::LinComb(stochedge_y[i],
-          stoch_weights[0], stochedge_y_A[i], 0,
-          stoch_weights[1], stochedge_y_B[i], 0,
-          0, 1, 0);
-      MultiFab::LinComb(stochedge_z[i],
-          stoch_weights[0], stochedge_z_A[i], 0,
-          stoch_weights[1], stochedge_z_B[i], 0,
-          0, 1, 0);
+        MultiFab::LinComb(stochedge_x[i],
+            stoch_weights[0], stochedge_x_A[i], 0,
+            stoch_weights[1], stochedge_x_B[i], 0,
+            0, 1, 0);
+        MultiFab::LinComb(stochedge_y[i],
+            stoch_weights[0], stochedge_y_A[i], 0,
+            stoch_weights[1], stochedge_y_B[i], 0,
+            0, 1, 0);
+        MultiFab::LinComb(stochedge_z[i],
+            stoch_weights[0], stochedge_z_A[i], 0,
+            stoch_weights[1], stochedge_z_B[i], 0,
+            0, 1, 0);
     }
     for (int i=0;i<3;i++) {
-      MultiFab::LinComb(stochcen[i],
-          stoch_weights[0], stochcen_A[i], 0,
-          stoch_weights[1], stochcen_B[i], 0,
-          0, 1, 0);
+        MultiFab::LinComb(stochcen[i],
+            stoch_weights[0], stochcen_A[i], 0,
+            stoch_weights[1], stochcen_B[i], 0,
+            0, 1, 0);
     }
     ///////////////////////////////////////////////////////////
 
-    calculateFluxStag(cup2, cup2mom, prim, facevel, eta, zeta, kappa, chi, D, 
+    calculateFluxStag(cup2, cup2mom, prim, vel, eta, zeta, kappa, chi, D, 
         faceflux, edgeflux_x, edgeflux_y, edgeflux_z, cenflux, 
         stochface, stochedge_x, stochedge_y, stochedge_z, stochcen, 
         geom, stoch_weights, dxp, dt);
 
 
     for (int d=0; d<AMREX_SPACEDIM; d++) {
-      cenflux[d].FillBoundary(geom.periodicity());
-      faceflux[d].FillBoundary(geom.periodicity());
+        cenflux[d].FillBoundary(geom.periodicity());
+        faceflux[d].FillBoundary(geom.periodicity());
     }
 
     for (int d=0; d<2; d++) {
-      edgeflux_x[d].FillBoundary(geom.periodicity());
-      edgeflux_y[d].FillBoundary(geom.periodicity());
-      edgeflux_z[d].FillBoundary(geom.periodicity());
+        edgeflux_x[d].FillBoundary(geom.periodicity());
+        edgeflux_y[d].FillBoundary(geom.periodicity());
+        edgeflux_z[d].FillBoundary(geom.periodicity());
     }
 
     for ( MFIter mfi(cu,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
@@ -627,12 +627,12 @@ void RK3stepStag(MultiFab& cu,
     }
 
     for (int d=0; d<AMREX_SPACEDIM; d++) {
-      cumom[d].FillBoundary(geom.periodicity());
+        cumom[d].FillBoundary(geom.periodicity());
     }
     cu.FillBoundary(geom.periodicity());
-    conservedToPrimitiveStag(prim, facevel, cu, cumom);
+    conservedToPrimitiveStag(prim, vel, cu, cumom);
     for (int d=0; d<AMREX_SPACEDIM; d++) {
-      facevel[d].FillBoundary(geom.periodicity());
+        vel[d].FillBoundary(geom.periodicity());
     }
     prim.FillBoundary(geom.periodicity());
     setBC(prim, cu);

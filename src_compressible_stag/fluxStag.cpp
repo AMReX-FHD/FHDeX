@@ -3,7 +3,7 @@
 #include "common_functions.H"
 
 void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMREX_SPACEDIM >& cumom_in, 
-                       const MultiFab& prim_in, const std::array< MultiFab, AMREX_SPACEDIM >& facevel_in,
+                       const MultiFab& prim_in, const std::array< MultiFab, AMREX_SPACEDIM >& vel_in,
                        const MultiFab& eta_in, const MultiFab& zeta_in, const MultiFab& kappa_in,
                        const MultiFab& chi_in, const MultiFab& D_in,
                        std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in,
@@ -156,9 +156,9 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
             const Array4<Real>& stochceny_v = stochcen_in[1].array(mfi);
             const Array4<Real>& stochcenz_w = stochcen_in[2].array(mfi);
 
-            AMREX_D_TERM(Array4<Real const> const& velx = facevel_in[0].array(mfi);,
-                         Array4<Real const> const& vely = facevel_in[1].array(mfi);,
-                         Array4<Real const> const& velz = facevel_in[2].array(mfi););
+            AMREX_D_TERM(Array4<Real const> const& velx = vel_in[0].array(mfi);,
+                         Array4<Real const> const& vely = vel_in[1].array(mfi);,
+                         Array4<Real const> const& velz = vel_in[2].array(mfi););
 
             const Array4<const Real> prim = prim_in.array(mfi);
             const Array4<const Real> cons = cons_in.array(mfi);
@@ -618,9 +618,9 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                      Array4<Real const> const& momy = cumom_in[1].array(mfi);,
                      Array4<Real const> const& momz = cumom_in[2].array(mfi););
 
-        AMREX_D_TERM(Array4<Real const> const& velx = facevel_in[0].array(mfi);,
-                     Array4<Real const> const& vely = facevel_in[1].array(mfi);,
-                     Array4<Real const> const& velz = facevel_in[2].array(mfi););
+        AMREX_D_TERM(Array4<Real const> const& velx = vel_in[0].array(mfi);,
+                     Array4<Real const> const& vely = vel_in[1].array(mfi);,
+                     Array4<Real const> const& velz = vel_in[2].array(mfi););
 
         const Array4<const Real> prim = prim_in.array(mfi);
         const Array4<const Real> cons = cons_in.array(mfi);
@@ -927,9 +927,9 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                      Array4<Real const> const& momy = cumom_in[1].array(mfi);,
                      Array4<Real const> const& momz = cumom_in[2].array(mfi););
 
-        AMREX_D_TERM(Array4<Real const> const& velx = facevel_in[0].array(mfi);,
-                     Array4<Real const> const& vely = facevel_in[1].array(mfi);,
-                     Array4<Real const> const& velz = facevel_in[2].array(mfi););
+        AMREX_D_TERM(Array4<Real const> const& velx = vel_in[0].array(mfi);,
+                     Array4<Real const> const& vely = vel_in[1].array(mfi);,
+                     Array4<Real const> const& velz = vel_in[2].array(mfi););
 
         const Array4<const Real> prim = prim_in.array(mfi);
         const Array4<const Real> cons = cons_in.array(mfi);
