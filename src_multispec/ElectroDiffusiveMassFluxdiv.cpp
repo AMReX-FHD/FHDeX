@@ -1,5 +1,7 @@
 #include "multispec_functions.H"
 #include "common_functions.H"
+#include <AMReX_MLMG.H>
+#include <AMReX_MLPoisson.H>
 
 void ElectroDiffusiveMassFluxdiv(const MultiFab& rho,
                                  const MultiFab& Temp,
@@ -118,8 +120,6 @@ void ElectroDiffusiveMassFlux(const MultiFab& rho,
         }
     }
 
-
-
     if (electroneutral == 1) {
         // For electroneutral we only support homogeneous Neumann BCs for potential
         // This is the correct Poisson BC for impermeable walls
@@ -143,9 +143,133 @@ void ElectroDiffusiveMassFlux(const MultiFab& rho,
         // set rhs equal to charge
         MultiFab::Copy(rhs,charge,0,0,1,0);
 
-        
+        // for inhomogeneous Neumann bc's, there is no need to put in homogeneous form
+        // the AMReX solver supports inhomogeneous Neumann provided the value in the
+        // ghost cell contains the Neumann value.
 
     }
 
+    if (E_ext_type != 0) {
+
+        // compute external electric field on edges
+        ComputeE_ext(E_ext);
+
+        // compute epsilon*E_ext
+        for (int i=0; i<AMREX_SPACEDIM; ++i) {
+            MultiFab::Multiply(permittivity_fc[i],E_ext[i],0,0,1,0);
+        }
+
+        // compute div (epsilon*E_ext) and add it to solver rhs
+        ComputeDiv(rhs,permittivity_fc,0,0,1,geom,1);
+    }
+
+    // solve (alpha - del dot beta grad) Epot = charge (for electro-explicit)
+    //   Inhomogeneous Dirichlet or homogeneous Neumann is OK
+    // solve (alpha - del dot beta grad) Epot = z^T F (for electro-neutral)
+    //   Only homogeneous Neumann BCs supported
+
+    LinOpBCType lo_linop_bc[3];
+    LinOpBCType hi_linop_bc[3];
+
+    for (int i=0; i<AMREX_SPACEDIM; ++i) {
+        if (bc_es_lo[i] == -1 && bc_es_hi[i] == -1) {
+            lo_linop_bc[i] = LinOpBCType::Periodic;
+            hi_linop_bc[i] = LinOpBCType::Periodic;
+        }
+        if(bc_es_lo[i] == 2)
+        {
+            lo_linop_bc[i] = LinOpBCType::inhomogNeumann;
+        }
+        if(bc_es_hi[i] == 2)
+        {
+            hi_linop_bc[i] = LinOpBCType::inhomogNeumann;
+        }
+        if(bc_es_lo[i] == 1)
+        {                 
+            lo_linop_bc[i] = LinOpBCType::Dirichlet;
+        }
+        if(bc_es_hi[i] == 1)
+        {
+            hi_linop_bc[i] = LinOpBCType::Dirichlet;
+        }
+    }
+
+    //create solver opject
+    MLPoisson linop({geom}, {ba}, {dmap});
+ 
+    //set BCs
+    linop.setDomainBC({AMREX_D_DECL(lo_linop_bc[0],
+                                    lo_linop_bc[1],
+                                    lo_linop_bc[2])},
+        {AMREX_D_DECL(hi_linop_bc[0],
+                      hi_linop_bc[1],
+                      hi_linop_bc[2])});
+
+    // fill in ghost cells with Dirichlet/Neumann values
+    // the ghost cells will hold the value ON the boundary
+    MultiFabPotentialBC_solver(Epot,geom);
+
+    // tell MLPoisson about these potentially inhomogeneous BC values
+    linop.setLevelBC(0, &Epot);
+
+    // uncomment this once AMReX PR #1471 is merged
+    // this forces the solver to NOT enforce solvability
+    // thus if there are Neumann conditions on phi they must
+    // be correct or the Poisson solver won't converge
+//        linop.setEnforceSingularSolvable(false);
+
+    //Multi Level Multi Grid
+    MLMG mlmg(linop);
+
+    // Solver parameters
+    mlmg.setMaxIter(poisson_max_iter);
+    mlmg.setVerbose(poisson_verbose);
+    mlmg.setBottomVerbose(poisson_bottom_verbose);
+        
+    //Do solve
+    mlmg.solve({&Epot}, {&charge}, poisson_rel_tol, 0.0);
+    
+    // restore original solver tolerance
+    if (electroneutral == 1) {
+        Abort("ElectroDiffusiveMassFluxdiv.cpp: electroneutral not written yet");
+    }
+
+    // for periodic problems subtract off the average of Epot
+    // we can generalize this later for walls
+    if (geom.isAllPeriodic()) {
+        Real sum = Epot.sum() / ba.numPts();
+        Epot.plus(-sum,0,1);
+    }
+
+    // fill ghost cells for electric potential
+    if (electroneutral == 1) {
+        // for electroneutral problems with reservoirs,
+        // the inhomogeneous BC for phi must be computed here for each face:
+        // grad(phi) = -z^T*F_diffstoch/(z^T*A_Phi)
+        //  We only need this to fill in BCs for phi
+        Abort("ElectroDiffusiveMassFluxdiv.cpp: electroneutral not written yet");
+    }
+
+    Epot.FillBoundary(geom.periodicity());
+
+    // call ghost cell filling routine that computes values of Epot ON the boundary
+    //
+    //
+    //
+
+/*
+    // compute the gradient of the electric potential
+    call compute_grad(mla,Epot,grad_Epot,dx,1,Epot_bc_comp,1,1,the_bc_tower%bc_tower_array);
+
+    if (E_ext_type != 0) {
+        // add external electric field
+        // since E = -grad(Epot), we have to subtract the external field from grad_Epot
+        do i=1,dm
+               call multifab_sub_sub_c(grad_Epot(n,i),1,E_ext(n,i),1,1,0)
+        end do
+    end if
+*/
+        
+    
 
 }

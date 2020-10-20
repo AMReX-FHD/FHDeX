@@ -137,7 +137,7 @@ void ComputeLorentzForce(std::array< MultiFab, AMREX_SPACEDIM >& Lorentz_force,
                          const MultiFab& charge,
                          const Geometry& geom);
 
-void ComputeE_ext(MultiFab& E_ext);
+void ComputeE_ext(std::array< MultiFab, AMREX_SPACEDIM >& E_ext);
 
 void ZeroEpsOnWall(std::array< MultiFab, AMREX_SPACEDIM >& beta);
 
