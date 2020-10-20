@@ -94,6 +94,20 @@ void ElectroDiffusiveMassFluxdiv(const MultiFab& rho,
                                  int zero_initial_Epot,
                                  const Geometry& geom);
 
+void ElectroDiffusiveMassFlux(const MultiFab& rho,
+                              const MultiFab& Temp,
+                              const MultiFab& rhoWchi,
+                              std::array< MultiFab, AMREX_SPACEDIM >& electro_mass_flux,
+                              std::array< MultiFab, AMREX_SPACEDIM >& diff_mass_flux,
+                              std::array< const MultiFab, AMREX_SPACEDIM >& stoch_mass_flux,
+                              MultiFab& charge,
+                              std::array< MultiFab, AMREX_SPACEDIM >& grad_Epot,
+                              MultiFab& Epot,
+                              const MultiFab& permittivity,
+                              Real dt,
+                              int zero_initial_Epot,
+                              const Geometry& geom);
+
 /////////////////////////////////////////////////////////////////////////////////
 // in FluicCharge.cpp
 
