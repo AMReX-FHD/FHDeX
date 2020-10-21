@@ -18,6 +18,19 @@ void advance(std::array< amrex::MultiFab, AMREX_SPACEDIM >& umac,
 ///////////////////////////
 
 ///////////////////////////
+// in advanceInertial.cpp
+void advanceInertial(std::array< amrex::MultiFab, AMREX_SPACEDIM >& umac,
+                     std::array< amrex::MultiFab, AMREX_SPACEDIM >& umacNew,
+                     amrex::MultiFab& pres, 
+                     const std::array< amrex::MultiFab, AMREX_SPACEDIM >& mfluxdiv_stoch,
+                     std::array< amrex::MultiFab, AMREX_SPACEDIM >& alpha_fc,
+                     const amrex::MultiFab& beta, const amrex::MultiFab& gamma,
+                     const std::array< amrex::MultiFab, NUM_EDGE >& beta_ed,
+                     const amrex::Geometry geom, const amrex::Real& dt);
+
+///////////////////////////
+
+///////////////////////////
 // in WritePlotFile.cpp
 
 void WritePlotFile(const int step,

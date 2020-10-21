@@ -110,9 +110,9 @@ void main_driver(const char* argv)
 
     // alpha_fc arrays
     std::array< MultiFab, AMREX_SPACEDIM > alpha_fc;
-    AMREX_D_TERM(alpha_fc[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
-                 alpha_fc[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
-                 alpha_fc[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
+    AMREX_D_TERM(alpha_fc[0].define(convert(ba,nodal_flag_x), dmap, 1, 0);,
+                 alpha_fc[1].define(convert(ba,nodal_flag_y), dmap, 1, 0);,
+                 alpha_fc[2].define(convert(ba,nodal_flag_z), dmap, 1, 0););
     AMREX_D_TERM(alpha_fc[0].setVal(dtinv);,
                  alpha_fc[1].setVal(dtinv);,
                  alpha_fc[2].setVal(dtinv););
@@ -125,12 +125,12 @@ void main_driver(const char* argv)
     // beta on edges in 3d
     std::array< MultiFab, NUM_EDGE > beta_ed;
 #if (AMREX_SPACEDIM == 2)
-    beta_ed[0].define(convert(ba,nodal_flag), dmap, 1, 1);
+    beta_ed[0].define(convert(ba,nodal_flag), dmap, 1, 0);
     beta_ed[0].setVal(visc_coef);
 #elif (AMREX_SPACEDIM == 3)
-    beta_ed[0].define(convert(ba,nodal_flag_xy), dmap, 1, 1);
-    beta_ed[1].define(convert(ba,nodal_flag_xz), dmap, 1, 1);
-    beta_ed[2].define(convert(ba,nodal_flag_yz), dmap, 1, 1);
+    beta_ed[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
+    beta_ed[1].define(convert(ba,nodal_flag_xz), dmap, 1, 0);
+    beta_ed[2].define(convert(ba,nodal_flag_yz), dmap, 1, 0);
     beta_ed[0].setVal(visc_coef);
     beta_ed[1].setVal(visc_coef);
     beta_ed[2].setVal(visc_coef);
@@ -156,7 +156,7 @@ void main_driver(const char* argv)
     std::array< MultiFab, NUM_EDGE >   eta_ed;
     std::array< MultiFab, NUM_EDGE >  temp_ed;
     // eta cell-centered
-    eta_cc.define(ba, dmap, 1, 1);
+    eta_cc.define(ba, dmap, 1, 0);
     // temperature cell-centered
     temp_cc.define(ba, dmap, 1, 1);
 #if (AMREX_SPACEDIM == 2)
@@ -387,8 +387,18 @@ void main_driver(const char* argv)
 	}
 
 	// Advance umac
-	advance(umac,umacNew,pres,tracer,mfluxdiv_stoch,
-		alpha_fc,beta,gamma,beta_ed,geom,dt);
+        if (algorithm_type == 0) {
+            
+            advance(umac,umacNew,pres,tracer,mfluxdiv_stoch,
+                    alpha_fc,beta,gamma,beta_ed,geom,dt);
+
+        } else if (algorithm_type == 1) {
+            
+            advanceInertial(umac,umacNew,pres,mfluxdiv_stoch,
+                            alpha_fc,beta,gamma,beta_ed,geom,dt);
+
+        }
+                
 
 	//////////////////////////////////////////////////
 

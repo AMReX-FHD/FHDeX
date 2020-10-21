@@ -45,7 +45,7 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
   // laplacian of umac field
   std::array< MultiFab, AMREX_SPACEDIM > Lumac;
   for (int d=0; d<AMREX_SPACEDIM; ++d) {
-      Lumac[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
+      Lumac[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 0);
       Lumac[d].setVal(0.);
   }
 
@@ -79,7 +79,7 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
   // alpha_fc_0 arrays
   std::array< MultiFab, AMREX_SPACEDIM > alpha_fc_0;
   for (int d=0; d<AMREX_SPACEDIM; ++d) {
-      alpha_fc_0[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
+      alpha_fc_0[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 0);
       alpha_fc_0[d].setVal(0.);
   }
 
