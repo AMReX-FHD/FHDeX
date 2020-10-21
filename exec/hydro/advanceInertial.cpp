@@ -11,14 +11,14 @@
 using namespace amrex;
 
 // argv contains the name of the inputs file entered at the command line
-void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
-	       std::array< MultiFab, AMREX_SPACEDIM >& umacNew,
-	       MultiFab& pres, MultiFab& tracer,
-	       const std::array< MultiFab, AMREX_SPACEDIM >& mfluxdiv_stoch,
-	       std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
-	       const MultiFab& beta, const MultiFab& gamma,
-	       const std::array< MultiFab, NUM_EDGE >& beta_ed,
-	       const Geometry geom, const Real& dt)
+void advanceInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
+                     std::array< MultiFab, AMREX_SPACEDIM >& umacNew,
+                     MultiFab& pres, 
+                     const std::array< MultiFab, AMREX_SPACEDIM >& mfluxdiv_stoch,
+                     std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
+                     const MultiFab& beta, const MultiFab& gamma,
+                     const std::array< MultiFab, NUM_EDGE >& beta_ed,
+                     const Geometry geom, const Real& dt)
 {
 
   BL_PROFILE_VAR("advance()",advance);
@@ -41,7 +41,7 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
       gmres_rhs_u[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 0);
       gmres_rhs_u[d].setVal(0.);
   }
-
+ 
   // laplacian of umac field
   std::array< MultiFab, AMREX_SPACEDIM > Lumac;
   for (int d=0; d<AMREX_SPACEDIM; ++d) {
@@ -62,21 +62,12 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
       advFluxdivPred[d].setVal(0.);
   }
 
-  // staggered momentum
-  std::array< MultiFab, AMREX_SPACEDIM > uMom;
-  for (int d=0; d<AMREX_SPACEDIM; ++d) {
-      uMom[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
-      uMom[d].setVal(0.);
-  }
-
-  MultiFab tracerPred(ba,dmap,1,1);
-  MultiFab advFluxdivS(ba,dmap,1,1);
-
   ///////////////////////////////////////////
   // Scaled alpha, beta, gamma:
   ///////////////////////////////////////////
 
   // alpha_fc_0 arrays
+  // set to zero so we can use it to compute L(u) with StagApplyOp
   std::array< MultiFab, AMREX_SPACEDIM > alpha_fc_0;
   for (int d=0; d<AMREX_SPACEDIM; ++d) {
       alpha_fc_0[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 0);
@@ -144,51 +135,11 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
     umac[d].FillBoundary(geom.periodicity());
   }
 
-  //////////////////////////
-  // Advance tracer
-  //////////////////////////
-
-  // Compute tracer:
-  tracer.FillBoundary(geom.periodicity());
-  MkAdvSFluxdiv_cc(umac,tracer,advFluxdivS,geom,0,1,0);
-  advFluxdivS.mult(dt, 1);
-
-  // compute predictor
-  MultiFab::Copy(tracerPred, tracer, 0, 0, 1, 1);
-  MultiFab::Add(tracerPred, advFluxdivS, 0, 0, 1, 0);
-  tracerPred.FillBoundary(geom.periodicity());
-  // FIXME need to fill physical boundary condition ghost cells for tracer
-  MkAdvSFluxdiv_cc(umac,tracerPred,advFluxdivS,geom,0,1,0);
-  advFluxdivS.mult(dt, 1);
-
-  // advance in time
-  MultiFab::Add(tracer, tracerPred, 0, 0, 1, 0);
-  MultiFab::Add(tracer, advFluxdivS, 0, 0, 1, 0);
-  tracer.mult(0.5, 1);
-
-  // amrex::Print() << "tracer L0 norm = " << tracer.norm0() << "\n";
-  //////////////////////////
-
   //////////////////////////////////////////////////
   // ADVANCE velocity field
   //////////////////////////////////////////////////
 
-  // PREDICTOR STEP (heun's method: part 1)
-  // compute advective term
-  AMREX_D_TERM(MultiFab::Copy(uMom[0], umac[0], 0, 0, 1, 0);,
-	       MultiFab::Copy(uMom[1], umac[1], 0, 0, 1, 0);,
-	       MultiFab::Copy(uMom[2], umac[2], 0, 0, 1, 0););
-
-  // let rho = 1
-  for (int d=0; d<AMREX_SPACEDIM; d++) {
-    uMom[d].mult(1.0, 1);
-  }
-
-  for (int d=0; d<AMREX_SPACEDIM; d++) {
-    uMom[d].FillBoundary(geom.periodicity());
-  }
-
-  MkAdvMFluxdiv(umac,uMom,advFluxdiv,dx,0);
+  MkAdvMFluxdiv(umac,umac,advFluxdiv,dx,0);
 
   // crank-nicolson terms
   StagApplyOp(geom,beta_negwtd,gamma_negwtd,beta_ed_negwtd,
@@ -209,9 +160,9 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
   // initial guess for new solution
   // for pressure use previous solution as initial guess
   for (int d=0; d<AMREX_SPACEDIM; d++) {
-    MultiFab::Copy(umacNew[d], umac[d], 0, 0, 1, 0);
+      MultiFab::Copy(umacNew[d], umac[d], 0, 0, 1, 0);
   }
-
+  
   // call GMRES to compute predictor
   GMRES gmres(ba,dmap,geom);
   gmres.Solve(gmres_rhs_u,gmres_rhs_p,umacNew,pres,
@@ -221,15 +172,9 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
   // Compute predictor advective term
   for (int d=0; d<AMREX_SPACEDIM; d++) {
     umacNew[d].FillBoundary(geom.periodicity());
-    MultiFab::Copy(uMom[d], umacNew[d], 0, 0, 1, 0);
-
-    // let rho = 1
-    uMom[d].mult(1.0, 1);
-
-    uMom[d].FillBoundary(geom.periodicity());
   }
 
-  MkAdvMFluxdiv(umacNew,uMom,advFluxdivPred,dx,0);
+  MkAdvMFluxdiv(umacNew,umacNew,advFluxdivPred,dx,0);
 
   // ADVANCE STEP (crank-nicolson + heun's method)
 
