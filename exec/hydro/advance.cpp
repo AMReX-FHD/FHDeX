@@ -131,8 +131,6 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // account for the negative viscous operator
     MultiFab::Subtract(gmres_rhs_u[d], Lumac[d], 0, 0, 1, 0);
     MultiFab::Add(gmres_rhs_u[d], advFluxdiv[d], 0, 0, 1, 0);
-
-    gmres_rhs_u[d].FillBoundary(geom.periodicity());
   }
 
   // initial guess for new solution
@@ -179,8 +177,6 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // account for the negative viscous operator
     MultiFab::Subtract(gmres_rhs_u[d], Lumac[d],     0, 0, 1, 0);
     MultiFab::Add(gmres_rhs_u[d], advFluxdiv[d],     0, 0, 1, 0);
-
-    gmres_rhs_u[d].FillBoundary(geom.periodicity());
 
     // initial guess for new solution
     // for pressure use previous solution as initial guess

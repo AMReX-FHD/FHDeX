@@ -56,12 +56,6 @@ void advanceInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
       advFluxdiv[d].setVal(0.);
   }
 
-  std::array< MultiFab, AMREX_SPACEDIM > advFluxdivPred;
-  for (int d=0; d<AMREX_SPACEDIM; ++d) {
-      advFluxdivPred[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
-      advFluxdivPred[d].setVal(0.);
-  }
-
   ///////////////////////////////////////////
 
   for (int d=0; d<AMREX_SPACEDIM; ++d) {
@@ -87,8 +81,6 @@ void advanceInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // account for the negative viscous operator
     MultiFab::Subtract(gmres_rhs_u[d], Lumac[d], 0, 0, 1, 0);
     MultiFab::Add(gmres_rhs_u[d], advFluxdiv[d], 0, 0, 1, 0);
-
-    gmres_rhs_u[d].FillBoundary(geom.periodicity());
   }
 
   // initial guess for new solution
@@ -126,8 +118,6 @@ void advanceInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // account for the negative viscous operator
     MultiFab::Subtract(gmres_rhs_u[d], Lumac[d],     0, 0, 1, 0);
     MultiFab::Add(gmres_rhs_u[d], advFluxdiv[d],     0, 0, 1, 0);
-
-    gmres_rhs_u[d].FillBoundary(geom.periodicity());
 
     // initial guess for new solution
     // for pressure use previous solution as initial guess
