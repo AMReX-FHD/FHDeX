@@ -119,22 +119,21 @@ void main_driver(const char* argv)
 
     // beta cell centred
     MultiFab beta(ba, dmap, 1, 1);
-    beta.setVal(visc_coef);
+    beta.setVal(0.5*visc_coef); // multiply by 0.5 here
 
     // beta on nodes in 2d
     // beta on edges in 3d
     std::array< MultiFab, NUM_EDGE > beta_ed;
 #if (AMREX_SPACEDIM == 2)
     beta_ed[0].define(convert(ba,nodal_flag), dmap, 1, 0);
-    beta_ed[0].setVal(visc_coef);
 #elif (AMREX_SPACEDIM == 3)
     beta_ed[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
     beta_ed[1].define(convert(ba,nodal_flag_xz), dmap, 1, 0);
     beta_ed[2].define(convert(ba,nodal_flag_yz), dmap, 1, 0);
-    beta_ed[0].setVal(visc_coef);
-    beta_ed[1].setVal(visc_coef);
-    beta_ed[2].setVal(visc_coef);
 #endif
+    for (int d=0; d<NUM_EDGE; ++d) {
+        beta_ed[d].setVal(0.5*visc_coef); // multiply by 0.5 here
+    }    
 
     // cell-centered gamma
     MultiFab gamma(ba, dmap, 1, 1);

@@ -16,8 +16,8 @@ void advanceInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                      MultiFab& pres, 
                      const std::array< MultiFab, AMREX_SPACEDIM >& mfluxdiv_stoch,
                      std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
-                     const MultiFab& beta, const MultiFab& gamma,
-                     const std::array< MultiFab, NUM_EDGE >& beta_ed,
+                     MultiFab& beta, MultiFab& gamma,
+                     std::array< MultiFab, NUM_EDGE >& beta_ed,
                      const Geometry geom, const Real& dt)
 {
 
@@ -63,73 +63,6 @@ void advanceInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
   }
 
   ///////////////////////////////////////////
-  // Scaled alpha, beta, gamma:
-  ///////////////////////////////////////////
-
-  // alpha_fc_0 arrays
-  // set to zero so we can use it to compute L(u) with StagApplyOp
-  std::array< MultiFab, AMREX_SPACEDIM > alpha_fc_0;
-  for (int d=0; d<AMREX_SPACEDIM; ++d) {
-      alpha_fc_0[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 0);
-      alpha_fc_0[d].setVal(0.);
-  }
-
-  // Scaled by 1/2:
-  // beta_wtd cell centered
-  MultiFab beta_wtd(ba, dmap, 1, 1);
-  MultiFab::Copy(beta_wtd, beta, 0, 0, 1, 1);
-  beta_wtd.mult(0.5, 1);
-
-  // beta_wtd on nodes in 2d
-  // beta_wtd on edges in 3d
-  std::array< MultiFab, NUM_EDGE > beta_ed_wtd;
-#if (AMREX_SPACEDIM == 2)
-  beta_ed_wtd[0].define(convert(ba,nodal_flag), dmap, 1, 1);
-  MultiFab::Copy(beta_ed_wtd[0], beta_ed[0], 0, 0, 1, 1);
-  beta_ed_wtd[0].mult(0.5, 1);
-#elif (AMREX_SPACEDIM == 3)
-  beta_ed_wtd[0].define(convert(ba,nodal_flag_xy), dmap, 1, 1);
-  beta_ed_wtd[1].define(convert(ba,nodal_flag_xz), dmap, 1, 1);
-  beta_ed_wtd[2].define(convert(ba,nodal_flag_yz), dmap, 1, 1);
-  for(int d=0; d<AMREX_SPACEDIM; d++) {
-    MultiFab::Copy(beta_ed_wtd[d], beta_ed[d], 0, 0, 1, 1);
-    beta_ed_wtd[d].mult(0.5, 1);
-  }
-#endif
-
-  // cell-centered gamma_wtd
-  MultiFab gamma_wtd(ba, dmap, 1, 1);
-  MultiFab::Copy(gamma_wtd, gamma, 0, 0, 1, 1);
-  gamma_wtd.mult(0.5, 1);
-
-  // Scaled by -1/2:
-  // beta_negwtd cell centered
-  MultiFab beta_negwtd(ba, dmap, 1, 1);
-  MultiFab::Copy(beta_negwtd, beta, 0, 0, 1, 1);
-  beta_negwtd.mult(-0.5, 1);
-
-  // beta_negwtd on nodes in 2d
-  // beta_negwtd on edges in 3d
-  std::array< MultiFab, NUM_EDGE > beta_ed_negwtd;
-#if (AMREX_SPACEDIM == 2)
-  beta_ed_negwtd[0].define(convert(ba,nodal_flag), dmap, 1, 1);
-  MultiFab::Copy(beta_ed_negwtd[0], beta_ed[0], 0, 0, 1, 1);
-  beta_ed_negwtd[0].mult(-0.5, 1);
-#elif (AMREX_SPACEDIM == 3)
-  beta_ed_negwtd[0].define(convert(ba,nodal_flag_xy), dmap, 1, 1);
-  beta_ed_negwtd[1].define(convert(ba,nodal_flag_xz), dmap, 1, 1);
-  beta_ed_negwtd[2].define(convert(ba,nodal_flag_yz), dmap, 1, 1);
-  for(int d=0; d<AMREX_SPACEDIM; d++) {
-    MultiFab::Copy(beta_ed_negwtd[d], beta_ed[d], 0, 0, 1, 1);
-    beta_ed_negwtd[d].mult(-0.5, 1);
-  }
-#endif
-
-  // cell-centered gamma
-  MultiFab gamma_negwtd(ba, dmap, 1, 1);
-  MultiFab::Copy(gamma_negwtd, gamma, 0, 0, 1, 1);
-  gamma_negwtd.mult(-0.5, 1);
-  ///////////////////////////////////////////
 
   for (int d=0; d<AMREX_SPACEDIM; ++d) {
     umac[d].FillBoundary(geom.periodicity());
@@ -141,17 +74,18 @@ void advanceInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
   MkAdvMFluxdiv(umac,umac,advFluxdiv,dx,0);
 
-  // crank-nicolson terms
-  StagApplyOp(geom,beta_negwtd,gamma_negwtd,beta_ed_negwtd,
-	      umac,Lumac,alpha_fc_0,dx,theta_alpha);
+  // compute t^n viscous operator
+  // passing in theta_alpha=0 so alpha_fc doesn't matter
+  // this computes the NEGATIVE operator so we have to multiply by -1 below
+  StagApplyOp(geom,beta,gamma,beta_ed,
+	      umac,Lumac,alpha_fc,dx,0.);
 
   for (int d=0; d<AMREX_SPACEDIM; d++) {
     MultiFab::Copy(gmres_rhs_u[d], umac[d], 0, 0, 1, 0);
-
     gmres_rhs_u[d].mult(dtinv, 0);
-
     MultiFab::Add(gmres_rhs_u[d], mfluxdiv_stoch[d], 0, 0, 1, 0);
-    MultiFab::Add(gmres_rhs_u[d], Lumac[d], 0, 0, 1, 0);
+    // account for the negative viscous operator
+    MultiFab::Subtract(gmres_rhs_u[d], Lumac[d], 0, 0, 1, 0);
     MultiFab::Add(gmres_rhs_u[d], advFluxdiv[d], 0, 0, 1, 0);
 
     gmres_rhs_u[d].FillBoundary(geom.periodicity());
@@ -166,7 +100,7 @@ void advanceInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
   // call GMRES to compute predictor
   GMRES gmres(ba,dmap,geom);
   gmres.Solve(gmres_rhs_u,gmres_rhs_p,umacNew,pres,
-              alpha_fc,beta_wtd,beta_ed_wtd,gamma_wtd,
+              alpha_fc,beta,beta_ed,gamma,
               theta_alpha,geom,norm_pre_rhs);
 
   // Compute predictor advective term
@@ -174,27 +108,24 @@ void advanceInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     umacNew[d].FillBoundary(geom.periodicity());
   }
 
-  MkAdvMFluxdiv(umacNew,umacNew,advFluxdivPred,dx,0);
-
-  // ADVANCE STEP (crank-nicolson + heun's method)
+  MkAdvMFluxdiv(umacNew,umacNew,advFluxdiv,dx,1);
 
   // Compute gmres_rhs
 
   // trapezoidal advective terms
   for (int d=0; d<AMREX_SPACEDIM; d++) {
     advFluxdiv[d].mult(0.5, 1);
-    advFluxdivPred[d].mult(0.5, 1);
-  }
+   }
 
   for (int d=0; d<AMREX_SPACEDIM; d++) {
     MultiFab::Copy(gmres_rhs_u[d], umac[d], 0, 0, 1, 0);
 
     gmres_rhs_u[d].mult(dtinv);
 
-    MultiFab::Add(gmres_rhs_u[d], mfluxdiv_stoch[d],    0, 0, 1, 0);
-    MultiFab::Add(gmres_rhs_u[d], Lumac[d],             0, 0, 1, 0);
-    MultiFab::Add(gmres_rhs_u[d], advFluxdiv[d],        0, 0, 1, 0);
-    MultiFab::Add(gmres_rhs_u[d], advFluxdivPred[d],    0, 0, 1, 0);
+    MultiFab::Add(gmres_rhs_u[d], mfluxdiv_stoch[d], 0, 0, 1, 0);
+    // account for the negative viscous operator
+    MultiFab::Subtract(gmres_rhs_u[d], Lumac[d],     0, 0, 1, 0);
+    MultiFab::Add(gmres_rhs_u[d], advFluxdiv[d],     0, 0, 1, 0);
 
     gmres_rhs_u[d].FillBoundary(geom.periodicity());
 
@@ -205,7 +136,7 @@ void advanceInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
   // call GMRES here
   gmres.Solve(gmres_rhs_u,gmres_rhs_p,umacNew,pres,
-              alpha_fc,beta_wtd,beta_ed_wtd,gamma_wtd,
+              alpha_fc,beta,beta_ed,gamma,
               theta_alpha,geom,norm_pre_rhs);
 
   for (int d=0; d<AMREX_SPACEDIM; d++) {
