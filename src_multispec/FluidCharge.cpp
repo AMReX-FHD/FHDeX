@@ -199,7 +199,7 @@ void ComputeLorentzForce(std::array< MultiFab, AMREX_SPACEDIM >& Lorentz_force,
     
 }
 
-void ComputeE_ext(MultiFab& E_ext) {
+void ComputeE_ext(std::array< MultiFab, AMREX_SPACEDIM >& E_ext) {
 
     BL_PROFILE_VAR("ComputeE_ext",ComputeE_ext);
     
