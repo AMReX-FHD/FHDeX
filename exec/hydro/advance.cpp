@@ -6,6 +6,8 @@
 
 #include "gmres_functions.H"
 
+#include "TurbForcing.H"
+
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_MultiFabUtil.H>
 
@@ -31,6 +33,8 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
   const BoxArray& ba = beta.boxArray();
   const DistributionMapping& dmap = beta.DistributionMap();
+
+  TurbForcing tf(ba,dmap,geom);
 
    // rhs_p GMRES solve
    MultiFab gmres_rhs_p(ba, dmap, 1, 0);
@@ -112,7 +116,8 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     MultiFab::Add(gmres_rhs_u[d], advFluxdiv[d], 0, 0, 1, 0);
   }
 
-  AddTurbForcing(gmres_rhs_u);
+  // turbulence forcing
+// tf.AddTurbForcing(gmres_rhs_u,dt,1);
 
   // initial guess for new solution
   // for pressure use previous solution as initial guess
@@ -147,9 +152,14 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // account for the negative viscous operator
     MultiFab::Subtract(gmres_rhs_u[d], Lumac[d], 0, 0, 1, 0);
     MultiFab::Add(gmres_rhs_u[d], advFluxdiv[d], 0, 0, 1, 0);
+  }
 
-    // initial guess for new solution
-    // for pressure use previous solution as initial guess
+  // turbulence forcing
+//  tf.AddTurbForcing(gmres_rhs_u,dt,0);
+
+  // initial guess for new solution
+  // for pressure use previous solution as initial guess
+  for (int d=0; d<AMREX_SPACEDIM; d++) {
     MultiFab::Copy(umacNew[d], umac[d], 0, 0, 1, 0);
   }
 
@@ -165,31 +175,3 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
 }
 
-void AddTurbForcing(std::array< MultiFab, AMREX_SPACEDIM >& gmres_rhs_u)
-{
-
-    Vector<Real> rngs_tmp;
-    rngs_tmp.resize(150);
-
-    // compute random numbers on IOProcessor
-    if (ParallelDescriptor::IOProcessor()) {
-        for (int i=0; i<150; ++i) {
-            rngs_tmp[i] = amrex::RandomNormal(0.,1.);
-        }
-    }
-
-    // broadcast random numbers fo all processors
-    amrex::BroadcastArray(rngs_tmp,
-                          ParallelDescriptor::MyProc(),
-                          ParallelDescriptor::IOProcessorNumber(),
-                          ParallelDescriptor::Communicator());
-
-    // copy random numbers in GpuArray
-    GpuArray<Real,150> rngs;
-    for (int i=0; i<150; ++i) {
-        rngs[i] = rngs_tmp[i];
-    }
-    
-    
-    
-}

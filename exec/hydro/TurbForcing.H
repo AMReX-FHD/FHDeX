@@ -1,10 +1,6 @@
 #ifndef _TurbForcing_H_
 #define _TurbForcing_H_
 
-#include <AMReX.H>
-#include <AMReX_MultiFab.H>
-#include <AMReX_Vector.H>
-
 #include "common_functions.H"
 
 class TurbForcing {
@@ -16,10 +12,13 @@ class TurbForcing {
     std::array< MultiFab, AMREX_SPACEDIM> sines;
     std::array< MultiFab, AMREX_SPACEDIM> cosines;
 
-public:
+    GpuArray<Real,132> rngs;
 
-    TurbForcing(BoxArray ba_in, DistributionMapping dmap_in, Geometry geom_in);
+public:TurbForcing(BoxArray ba_in, DistributionMapping dmap_in, Geometry geom_in);
 
+    void AddTurbForcing(std::array< MultiFab, AMREX_SPACEDIM >& gmres_rhs_u,
+                        const Real& dt,
+                        const int& reset_RNG);
 
 };
 
