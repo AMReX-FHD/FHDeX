@@ -1,5 +1,6 @@
 
 #include "hydro_functions.H"
+#include "hydro_test_functions.H"
 
 #include "common_functions.H"
 
@@ -111,6 +112,8 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     MultiFab::Add(gmres_rhs_u[d], advFluxdiv[d], 0, 0, 1, 0);
   }
 
+  AddTurbForcing(gmres_rhs_u);
+
   // initial guess for new solution
   // for pressure use previous solution as initial guess
   for (int d=0; d<AMREX_SPACEDIM; d++) {
@@ -160,4 +163,33 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
   }
   //////////////////////////////////////////////////
 
+}
+
+void AddTurbForcing(std::array< MultiFab, AMREX_SPACEDIM >& gmres_rhs_u)
+{
+
+    Vector<Real> rngs_tmp;
+    rngs_tmp.resize(150);
+
+    // compute random numbers on IOProcessor
+    if (ParallelDescriptor::IOProcessor()) {
+        for (int i=0; i<150; ++i) {
+            rngs_tmp[i] = amrex::RandomNormal(0.,1.);
+        }
+    }
+
+    // broadcast random numbers fo all processors
+    amrex::BroadcastArray(rngs_tmp,
+                          ParallelDescriptor::MyProc(),
+                          ParallelDescriptor::IOProcessorNumber(),
+                          ParallelDescriptor::Communicator());
+
+    // copy random numbers in GpuArray
+    GpuArray<Real,150> rngs;
+    for (int i=0; i<150; ++i) {
+        rngs[i] = rngs_tmp[i];
+    }
+    
+    
+    
 }

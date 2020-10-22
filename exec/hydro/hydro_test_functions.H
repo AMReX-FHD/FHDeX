@@ -15,6 +15,8 @@ void advance(std::array< amrex::MultiFab, AMREX_SPACEDIM >& umac,
 	     std::array< amrex::MultiFab, NUM_EDGE >& beta_ed,
 	     const amrex::Geometry geom, const amrex::Real& dt);
 
+void AddTurbForcing(std::array< MultiFab, AMREX_SPACEDIM >& gmres_rhs_u);
+
 ///////////////////////////
 
 ///////////////////////////
