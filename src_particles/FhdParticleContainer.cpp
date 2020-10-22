@@ -144,7 +144,45 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
 }
 
 
+void FhdParticleContainer::potentialFunction(Real* origin)
+{
 
+
+   const int lev = 0;
+
+   Real k = 1;
+   Real maxU = 0;
+
+   for (FhdParIter pti(*this, lev, MFItInfo().SetDynamic(false)); pti.isValid(); ++pti) {
+      
+        PairIndex index(pti.index(), pti.LocalTileIndex());
+        AoS& particles = pti.GetArrayOfStructs();
+        int np = pti.numParticles();
+
+        const Box& tile_box  = pti.tilebox();
+
+
+         for (int i = 0; i < np; ++i) {
+
+            ParticleType & part = particles[i];
+
+            Real radVec[3];
+            radVec[0] = part.pos(0)-origin[0];
+            radVec[1] = part.pos(1)-origin[1];
+            radVec[2] = part.pos(2)-origin[2];
+
+            part.rdata(FHD_realData::forcex) = part.rdata(FHD_realData::forcex) - k*radVec[0];
+            part.rdata(FHD_realData::forcey) = part.rdata(FHD_realData::forcey) - k*radVec[1];
+            part.rdata(FHD_realData::forcez) = part.rdata(FHD_realData::forcez) - k*radVec[2];
+
+            part.rdata(FHD_realData::potential) = 0.5*k*(pow(radVec[0],2) + pow(radVec[1],2) + pow(radVec[2],2));
+
+         }
+    }
+
+    ParallelDescriptor::ReduceRealMax(maxU);
+    Print() << "Max potential: " << part.rdata(FHD_realData::potential) << std::endl;
+}
 
 void FhdParticleContainer::DoRFD(const Real dt, const Real* dxFluid, const Real* dxE, const Geometry geomF,
                                  const std::array<MultiFab, AMREX_SPACEDIM>& umac, const std::array<MultiFab, AMREX_SPACEDIM>& efield,
