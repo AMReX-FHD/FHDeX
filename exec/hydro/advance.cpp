@@ -11,14 +11,14 @@
 using namespace amrex;
 
 // argv contains the name of the inputs file entered at the command line
-void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
-	       std::array< MultiFab, AMREX_SPACEDIM >& umacNew,
-	       MultiFab& pres, MultiFab& tracer,
-	       const std::array< MultiFab, AMREX_SPACEDIM >& mfluxdiv_stoch,
-	       std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
-	       MultiFab& beta, MultiFab& gamma,
-	       std::array< MultiFab, NUM_EDGE >& beta_ed,
-	       const Geometry geom, const Real& dt)
+void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
+             std::array< MultiFab, AMREX_SPACEDIM >& umacNew,
+             MultiFab& pres, MultiFab& tracer,
+             const std::array< MultiFab, AMREX_SPACEDIM >& mfluxdiv_stoch,
+             std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
+             MultiFab& beta, MultiFab& gamma,
+             std::array< MultiFab, NUM_EDGE >& beta_ed,
+             const Geometry geom, const Real& dt)
 {
 
   BL_PROFILE_VAR("advance()",advance);
@@ -56,16 +56,6 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
       advFluxdiv[d].setVal(0.);
   }
 
-  // staggered momentum
-  std::array< MultiFab, AMREX_SPACEDIM > uMom;
-  for (int d=0; d<AMREX_SPACEDIM; ++d) {
-      uMom[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
-      uMom[d].setVal(0.);
-  }
-
-  MultiFab tracerPred(ba,dmap,1,1);
-  MultiFab advFluxdivS(ba,dmap,1,1);
-
   ///////////////////////////////////////////
 
   for (int d=0; d<AMREX_SPACEDIM; ++d) {
@@ -76,6 +66,9 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
   // Advance tracer
   //////////////////////////
 
+  MultiFab tracerPred(ba,dmap,1,1);
+  MultiFab advFluxdivS(ba,dmap,1,1);
+  
   // Compute tracer:
   tracer.FillBoundary(geom.periodicity());
   MkAdvSFluxdiv_cc(umac,tracer,advFluxdivS,geom,0,1,0);
@@ -94,30 +87,15 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
   MultiFab::Add(tracer, advFluxdivS, 0, 0, 1, 0);
   tracer.mult(0.5, 1);
 
-  // amrex::Print() << "tracer L0 norm = " << tracer.norm0() << "\n";
   //////////////////////////
 
   //////////////////////////////////////////////////
   // ADVANCE velocity field
   //////////////////////////////////////////////////
 
-  // PREDICTOR STEP (heun's method: part 1)
-  // compute advective term
-  AMREX_D_TERM(MultiFab::Copy(uMom[0], umac[0], 0, 0, 1, 0);,
-	       MultiFab::Copy(uMom[1], umac[1], 0, 0, 1, 0);,
-	       MultiFab::Copy(uMom[2], umac[2], 0, 0, 1, 0););
+  // increment advFluxdiv
+  MkAdvMFluxdiv(umac,umac,advFluxdiv,dx,0);
 
-  // let rho = 1
-  for (int d=0; d<AMREX_SPACEDIM; d++) {
-    uMom[d].mult(1.0, 1);
-  }
-
-  for (int d=0; d<AMREX_SPACEDIM; d++) {
-    uMom[d].FillBoundary(geom.periodicity());
-  }
-
-  MkAdvMFluxdiv(umac,uMom,advFluxdiv,dx,0);
-  
   // compute t^n viscous operator
   // passing in theta_alpha=0 so alpha_fc doesn't matter
   // this computes the NEGATIVE operator so we have to multiply by -1 below
@@ -148,18 +126,10 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
   // Compute predictor advective term
   for (int d=0; d<AMREX_SPACEDIM; d++) {
     umacNew[d].FillBoundary(geom.periodicity());
-    MultiFab::Copy(uMom[d], umacNew[d], 0, 0, 1, 0);
-
-    // let rho = 1
-    uMom[d].mult(1.0, 1);
-
-    uMom[d].FillBoundary(geom.periodicity());
   }
 
   // increment advFluxdiv
-  MkAdvMFluxdiv(umacNew,uMom,advFluxdiv,dx,1);
-
-  // ADVANCE STEP (crank-nicolson + heun's method)
+  MkAdvMFluxdiv(umacNew,umacNew,advFluxdiv,dx,1);
 
   // Compute gmres_rhs
 

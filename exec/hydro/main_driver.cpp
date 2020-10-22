@@ -386,18 +386,8 @@ void main_driver(const char* argv)
 	}
 
 	// Advance umac
-        if (algorithm_type == 0) {
-            
-            advance(umac,umacNew,pres,tracer,mfluxdiv_stoch,
-                    alpha_fc,beta,gamma,beta_ed,geom,dt);
-
-        } else if (algorithm_type == 1) {
-            
-            advanceInertial(umac,umacNew,pres,mfluxdiv_stoch,
-                            alpha_fc,beta,gamma,beta_ed,geom,dt);
-
-        }
-                
+        advance(umac,umacNew,pres,tracer,mfluxdiv_stoch,
+                alpha_fc,beta,gamma,beta_ed,geom,dt);
 
 	//////////////////////////////////////////////////
 
