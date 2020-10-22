@@ -976,6 +976,8 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
     Real posAlt[3];
     Real check;
 
+    if(all_dry != 1)
+    {
     InterpolateMarkersGpu(0, dxFluid, umac, RealFaceCoords, check);
 
     if(move_tog == 2)
@@ -1107,9 +1109,11 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
             }
         }
     }
+    }
 
 
 //cin.get();
+
 
     if((dry_move_tog == 1) || (dry_move_tog == 2))
     {
@@ -1148,8 +1152,6 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
     Real totaldist, diffest;
     Real diffinst = 0;
     int moves = 0;
-
-   // PrintParticles();
 
     for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
 
@@ -1257,97 +1259,97 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
    // PrintParticles();
 
 
-    Real dxinv = 1.0/dx[1];
-
-    for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
-
-        TileIndex index(pti.index(), pti.LocalTileIndex());
-        const int grid_id = pti.index();
-        const Box& tile_box  = pti.tilebox();
-
-        AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
-        long np = this->GetParticles(lev).at(index).numParticles();
-
-        //long imap = tile_box.index(iv);
-
-        int ilo = m_vector_ptrs[grid_id].loVect()[0];
-        int ihi = m_vector_ptrs[grid_id].hiVect()[0];
-
-        int jlo = m_vector_ptrs[grid_id].loVect()[1];
-        int jhi = m_vector_ptrs[grid_id].hiVect()[1];
-
-        int klo = m_vector_ptrs[grid_id].loVect()[2];
-        int khi = m_vector_ptrs[grid_id].hiVect()[2];
-
-        int** cell_part_ids = m_vector_ptrs[grid_id].dataPtr();
-        int* cell_part_cnt = m_vector_size[grid_id].dataPtr();
-
-        //Print() << "Bounds: " << klo << ", " << khi << std::endl;
+//    Real dxinv = 1.0/dx[1];
 
 //    for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
 
 //        TileIndex index(pti.index(), pti.LocalTileIndex());
+//        const int grid_id = pti.index();
+//        const Box& tile_box  = pti.tilebox();
 
 //        AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
 //        long np = this->GetParticles(lev).at(index).numParticles();
 
-//        }
+//        //long imap = tile_box.index(iv);
 
-        for(int i=ilo;i<=ihi;i++)
-        {
-        for(int j=jlo;j<=jhi;j++)
-        {
-        for(int k=klo;k<=khi;k++)
-        {
-            //int* cell_parts = cell_part_ids[i][j][k];
+//        int ilo = m_vector_ptrs[grid_id].loVect()[0];
+//        int ihi = m_vector_ptrs[grid_id].hiVect()[0];
 
-      //          Print() << "cell " << k << " of " << klo << ", " <<khi << "\n";
+//        int jlo = m_vector_ptrs[grid_id].loVect()[1];
+//        int jhi = m_vector_ptrs[grid_id].hiVect()[1];
 
-            //int* cell_parts= m_vector_ptrs[grid_id].dataPtr()[i,j,k];
-            int cell_np = cell_part_cnt[i,j,k];
-            int* cell_parts= cell_part_ids[i,j,k];
+//        int klo = m_vector_ptrs[grid_id].loVect()[2];
+//        int khi = m_vector_ptrs[grid_id].hiVect()[2];
 
-            int new_np = cell_np;
+//        int** cell_part_ids = m_vector_ptrs[grid_id].dataPtr();
+//        int* cell_part_cnt = m_vector_size[grid_id].dataPtr();
 
-            int p = 1;
- 
-//Print() << "cell " << i << ", " << j << ", " << k << " of " << p << " of " << ihi << ", " << jhi << ", " << khi << "\n";
+//        //Print() << "Bounds: " << klo << ", " << khi << std::endl;
 
-            while(p <= new_np)
-            {
-                ParticleType & part = particles[cell_parts[p-1]];
+////    for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
 
-                int ni[3];
+////        TileIndex index(pti.index(), pti.LocalTileIndex());
 
-                
-                for (int d=0; d<AMREX_SPACEDIM; ++d)
-                {
-                    ni[d] = (int)amrex::Math::floor((part.pos(d)-plo[d])/dxinv);
-                }
+////        AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
+////        long np = this->GetParticles(lev).at(index).numParticles();
 
-//                if(ni[2] == 0)
+////        }
+
+//        for(int i=ilo;i<=ihi;i++)
+//        {
+//        for(int j=jlo;j<=jhi;j++)
+//        {
+//        for(int k=klo;k<=khi;k++)
+//        {
+//            //int* cell_parts = cell_part_ids[i][j][k];
+
+//      //          Print() << "cell " << k << " of " << klo << ", " <<khi << "\n";
+
+//            //int* cell_parts= m_vector_ptrs[grid_id].dataPtr()[i,j,k];
+//            int cell_np = cell_part_cnt[i,j,k];
+//            int* cell_parts= cell_part_ids[i,j,k];
+
+//            int new_np = cell_np;
+
+//            int p = 1;
+// 
+////Print() << "cell " << i << ", " << j << ", " << k << " of " << p << " of " << ihi << ", " << jhi << ", " << khi << "\n";
+
+//            while(p <= new_np)
+//            {
+//                ParticleType & part = particles[cell_parts[p-1]];
+
+//                int ni[3];
+
+//                
+//                for (int d=0; d<AMREX_SPACEDIM; ++d)
 //                {
-//                        std::cout << "Particle in " << ni[0] << ", " << ni[1] << ", " << ni[2] << std::endl;
+//                    ni[d] = (int)amrex::Math::floor((part.pos(d)-plo[d])/dxinv);
 //                }
 
+////                if(ni[2] == 0)
+////                {
+////                        std::cout << "Particle in " << ni[0] << ", " << ni[1] << ", " << ni[2] << std::endl;
+////                }
 
-                if((ni[0] != i) || (ni[1] != j) || (ni[2] != k))
-                {
-                    part.idata(FHD_intData::sorted) = 0;
-                    remove_particle_from_cell(cell_parts, &cell_np, &new_np, &p);
-                }else
-                {
-                    p = p+1;
-                }
-            }
 
-            cell_part_cnt[i,j,k] = new_np;
+//                if((ni[0] != i) || (ni[1] != j) || (ni[2] != k))
+//                {
+//                    part.idata(FHD_intData::sorted) = 0;
+//                    remove_particle_from_cell(cell_parts, &cell_np, &new_np, &p);
+//                }else
+//                {
+//                    p = p+1;
+//                }
+//            }
 
-        }
-        }
-        }
+//            cell_part_cnt[i,j,k] = new_np;
 
-    }
+//        }
+//        }
+//        }
+
+//    }
 
 //    for (FhdParIter pti(*this, lev); pti.isValid(); ++pti)
 //    {
@@ -1402,8 +1404,8 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
 
     clearNeighbors();
     Redistribute();
-    UpdateCellVectors();
-    ReBin();
+    //UpdateCellVectors();
+    //ReBin();
 
 
     // gather statistics
@@ -1558,36 +1560,42 @@ void FhdParticleContainer::SpreadIonsGPU(const Real dt, const Real* dxFluid, con
         emf_gpu(particles,
                       efield[0][pti], efield[1][pti], efield[2][pti],
                       ZFILL(plo), ZFILL(dxE));
-        
-        spread_ions_fhd_gpu(particles,                         
-                         sourceTemp[0][pti], sourceTemp[1][pti], sourceTemp[2][pti],
-                         ZFILL(plo),
-                         ZFILL(dxFluid));
+        if(fluid_tog != 0)
+        {
+            spread_ions_fhd_gpu(particles,                         
+                             sourceTemp[0][pti], sourceTemp[1][pti], sourceTemp[2][pti],
+                             ZFILL(plo),
+                             ZFILL(dxFluid));
+        }
 
     }
 
-    for (int i=0; i<AMREX_SPACEDIM; ++i) {
-        MultiFabPhysBCDomainStress(sourceTemp[i], geomF, i);
-        MultiFabPhysBCMacStress(sourceTemp[i], geomF, i);
+    if(fluid_tog != 0)
+    {  
+
+        for (int i=0; i<AMREX_SPACEDIM; ++i) {
+            MultiFabPhysBCDomainStress(sourceTemp[i], geomF, i);
+            MultiFabPhysBCMacStress(sourceTemp[i], geomF, i);
+        }
+
+        sourceTemp[0].SumBoundary(geomF.periodicity());
+        sourceTemp[1].SumBoundary(geomF.periodicity());
+#if (AMREX_SPACEDIM == 3)
+        sourceTemp[2].SumBoundary(geomF.periodicity());
+#endif
+
+        MultiFab::Add(source[0],sourceTemp[0],0,0,source[0].nComp(),source[0].nGrow());
+        MultiFab::Add(source[1],sourceTemp[1],0,0,source[1].nComp(),source[1].nGrow());
+#if (AMREX_SPACEDIM == 3)
+        MultiFab::Add(source[2],sourceTemp[2],0,0,source[2].nComp(),source[2].nGrow());
+#endif
+
+        source[0].FillBoundary(geomF.periodicity());
+        source[1].FillBoundary(geomF.periodicity());
+#if (AMREX_SPACEDIM == 3)
+        source[2].FillBoundary(geomF.periodicity());
+#endif
     }
-        
-    sourceTemp[0].SumBoundary(geomF.periodicity());
-    sourceTemp[1].SumBoundary(geomF.periodicity());
-#if (AMREX_SPACEDIM == 3)
-    sourceTemp[2].SumBoundary(geomF.periodicity());
-#endif
-
-    MultiFab::Add(source[0],sourceTemp[0],0,0,source[0].nComp(),source[0].nGrow());
-    MultiFab::Add(source[1],sourceTemp[1],0,0,source[1].nComp(),source[1].nGrow());
-#if (AMREX_SPACEDIM == 3)
-    MultiFab::Add(source[2],sourceTemp[2],0,0,source[2].nComp(),source[2].nGrow());
-#endif
-
-    source[0].FillBoundary(geomF.periodicity());
-    source[1].FillBoundary(geomF.periodicity());
-#if (AMREX_SPACEDIM == 3)
-    source[2].FillBoundary(geomF.periodicity());
-#endif
 
 }
 

@@ -7,10 +7,8 @@
 #include "species.H"
 #include "paramPlane.H"
 
-#ifndef AMREX_USE_CUDA
 #include "StructFact_F.H"
 #include "StructFact.H"
-#endif
 
 #include "StochMomFlux.H"
 
@@ -737,7 +735,6 @@ void main_driver(const char* argv)
     // structure factor for charge-charge
     ///////////////////////////////////////////
 
-#ifndef AMREX_USE_CUDA
     // names of variables in struct_cc_charge
     Vector< std::string > var_names_charge(1);
     var_names_charge[0] = "charge";
@@ -803,7 +800,6 @@ void main_driver(const char* argv)
 
     StructFact structFact_vel(ba,dmap,var_names_vel,scaling_vel,
                               s_pairA_vel,s_pairB_vel);
-#endif
 
 //    WritePlotFile(0, time, geom, geomC, geomP,
 //                  particleInstant, particleMeans, particleVars, particles,
@@ -1032,7 +1028,6 @@ void main_driver(const char* argv)
         
 	//_______________________________________________________________________
 	// Update structure factor
-#ifndef AMREX_USE_CUDA
         if (struct_fact_int > 0 &&
             istep > amrex::Math::abs(n_steps_skip) &&
             (istep-amrex::Math::abs(n_steps_skip)-1)%struct_fact_int == 0) {
@@ -1053,7 +1048,6 @@ void main_driver(const char* argv)
                 structFact_vel   .WritePlotFile(istep,time,geom ,"plt_SF_vel");
             }
         }
-#endif
 
         // FIXME - AJN: at the moment we are writing out plotfile plot_int-1 also
         // because the time-averaging for the fields resets at n_steps_skip

@@ -34,15 +34,13 @@ include ../../src_multispec/Make.package
 VPATH_LOCATIONS   += ../../src_multispec/
 INCLUDE_LOCATIONS += ../../src_multispec/
 
-ifeq ($(USE_CUDA),FALSE)
- include ../../src_analysis/src_F90/Make.package
- VPATH_LOCATIONS   += ../../src_analysis/src_F90
- INCLUDE_LOCATIONS += ../../src_analysis/src_F90
+include ../../src_analysis/src_F90/Make.package
+VPATH_LOCATIONS   += ../../src_analysis/src_F90
+INCLUDE_LOCATIONS += ../../src_analysis/src_F90
 
- include ../../src_analysis/Make.package
- VPATH_LOCATIONS   += ../../src_analysis/
- INCLUDE_LOCATIONS += ../../src_analysis/
-endif
+include ../../src_analysis/Make.package
+VPATH_LOCATIONS   += ../../src_analysis/
+INCLUDE_LOCATIONS += ../../src_analysis/
 
 include ../../src_rng/src_F90/Make.package
 VPATH_LOCATIONS   += ../../src_rng/src_F90
@@ -72,11 +70,9 @@ include $(AMREX_HOME)/Src/Base/Make.package
 include $(AMREX_HOME)/Src/Boundary/Make.package
 include $(AMREX_HOME)/Src/LinearSolvers/MLMG/Make.package
 
-ifeq ($(USE_CUDA),FALSE)
- include $(AMREX_HOME)/Src/Extern/SWFFT/Make.package
- INCLUDE_LOCATIONS	+= $(AMREX_HOME)/Src/Extern/SWFFT
- VPATH_LOCATIONS	+= $(AMREX_HOME)/Src/Extern/SWFFT
-endif
+include $(AMREX_HOME)/Src/Extern/SWFFT/Make.package
+INCLUDE_LOCATIONS	+= $(AMREX_HOME)/Src/Extern/SWFFT
+VPATH_LOCATIONS	+= $(AMREX_HOME)/Src/Extern/SWFFT
 
 LIBRARIES += -L$(FFTW_DIR) -lfftw3_mpi -lfftw3
 
