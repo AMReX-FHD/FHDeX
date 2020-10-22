@@ -26,7 +26,7 @@
   rfd_tog = 1 ! Apply RFD force to fluid
   move_tog = 2 ! ! Total particle move. 0 = off, 1 = single step, 2 = midpoint
   dry_move_tog = 0 ! Dry particle move
-  sr_tog = 2 ! 1=WCA short range forces without walls, 2=with walls
+  sr_tog = 2 ! 1=WCA short range forces without walls, 2=WCA with walls, 3=Shifted repulsive-only LJ, 4=LJ with LJ walls
  
   ! Fluid info
   !--------------
