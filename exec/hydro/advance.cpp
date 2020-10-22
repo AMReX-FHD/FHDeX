@@ -96,11 +96,11 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
   // increment advFluxdiv
   MkAdvMFluxdiv(umac,umac,advFluxdiv,dx,0);
 
-  // compute t^n viscous operator
+  // compute t^n viscous operator, (1/2) L(u)
   // passing in theta_alpha=0 so alpha_fc doesn't matter
-  // this computes the NEGATIVE operator so we have to multiply by -1 below
-  StagApplyOp(geom,beta,gamma,beta_ed,
-	      umac,Lumac,alpha_fc,dx,0.);
+  // beta's contain (1/2)*mu
+  // this computes the NEGATIVE operator, "(alpha - L_beta)u" so we have to multiply by -1 below
+  StagApplyOp(geom,beta,gamma,beta_ed,umac,Lumac,alpha_fc,dx,0.);
 
   for (int d=0; d<AMREX_SPACEDIM; d++) {
     MultiFab::Copy(gmres_rhs_u[d], umac[d], 0, 0, 1, 0);
@@ -131,22 +131,19 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
   // increment advFluxdiv
   MkAdvMFluxdiv(umacNew,umacNew,advFluxdiv,dx,1);
 
-  // Compute gmres_rhs
-
   // trapezoidal advective terms
   for (int d=0; d<AMREX_SPACEDIM; d++) {
     advFluxdiv[d].mult(0.5, 1);
   }
 
+  // Compute gmres_rhs
   for (int d=0; d<AMREX_SPACEDIM; d++) {
     MultiFab::Copy(gmres_rhs_u[d], umac[d], 0, 0, 1, 0);
-
     gmres_rhs_u[d].mult(dtinv);
-
     MultiFab::Add(gmres_rhs_u[d], mfluxdiv_stoch[d], 0, 0, 1, 0);
     // account for the negative viscous operator
-    MultiFab::Subtract(gmres_rhs_u[d], Lumac[d],     0, 0, 1, 0);
-    MultiFab::Add(gmres_rhs_u[d], advFluxdiv[d],     0, 0, 1, 0);
+    MultiFab::Subtract(gmres_rhs_u[d], Lumac[d], 0, 0, 1, 0);
+    MultiFab::Add(gmres_rhs_u[d], advFluxdiv[d], 0, 0, 1, 0);
 
     // initial guess for new solution
     // for pressure use previous solution as initial guess
