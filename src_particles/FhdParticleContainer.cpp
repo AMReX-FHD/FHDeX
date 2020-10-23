@@ -150,8 +150,9 @@ void FhdParticleContainer::potentialFunction(Real* origin)
 
    const int lev = 0;
 
-   Real k = 1;
+   Real k = 1e3;
    Real maxU = 0;
+   Real maxD = 0;
 
    for (FhdParIter pti(*this, lev, MFItInfo().SetDynamic(false)); pti.isValid(); ++pti) {
       
@@ -175,13 +176,27 @@ void FhdParticleContainer::potentialFunction(Real* origin)
             part.rdata(FHD_realData::forcey) = part.rdata(FHD_realData::forcey) - k*radVec[1];
             part.rdata(FHD_realData::forcez) = part.rdata(FHD_realData::forcez) - k*radVec[2];
 
-            part.rdata(FHD_realData::potential) = 0.5*k*(pow(radVec[0],2) + pow(radVec[1],2) + pow(radVec[2],2));
+            Real dSqr = (pow(radVec[0],2) + pow(radVec[1],2) + pow(radVec[2],2));
+
+            part.rdata(FHD_realData::potential) = 0.5*k*dSqr;
+
+            if(part.rdata(FHD_realData::potential) > maxU)
+            {
+                maxU = part.rdata(FHD_realData::potential);
+            }
+
+            if(dSqr > maxD)
+            {
+                maxD = dSqr;
+            }
 
          }
     }
 
     ParallelDescriptor::ReduceRealMax(maxU);
-    Print() << "Max potential: " << part.rdata(FHD_realData::potential) << std::endl;
+    ParallelDescriptor::ReduceRealMax(maxD);
+    Print() << "Max potential: " << maxU << std::endl;
+    Print() << "Max displacement: " << sqrt(maxD) << std::endl;
 }
 
 void FhdParticleContainer::DoRFD(const Real dt, const Real* dxFluid, const Real* dxE, const Geometry geomF,
@@ -2004,6 +2019,95 @@ void FhdParticleContainer::RadialDistribution(long totalParticles, const int ste
         for(int i=0;i<nspecies*nspecies;i++) {
             nearestN[i] = 0;
         }
+    }    
+}
+
+void FhdParticleContainer::potentialDistribution(long totalParticles, const int step, const species* particleInfo)
+{        
+    const int lev = 0;
+    int bin;
+    Real totalDist;
+    
+    Print() << "Calculating potential distribution\n";
+
+    // outer radial extent
+    totalDist = totalBins*binSize;
+
+    // this is the bin "hit count"
+    RealVector radDist   (totalBins, 0.);
+    
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) {
+            
+        const int grid_id = pti.index();
+        const int tile_id = pti.LocalTileIndex();
+
+        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+        auto& particles = particle_tile.GetArrayOfStructs();
+        const int np = particles.numParticles();   
+
+        // loop over particles
+        for (int i = 0; i < np; ++i) {
+
+            ParticleType & part = particles[i];
+
+            Real potential = part.rdata(FHD_realData::potential);
+
+            int bin = (int)floor(potential/binSize);
+            if(bin < totalBins)
+            {
+                radDist[bin]++;
+            }
+        } // loop over i (np; local particles)
+    }
+        
+    // collect the hit count
+    ParallelDescriptor::ReduceRealSum(radDist   .dataPtr(),totalBins);
+
+    // increment number of snapshots
+    radialStatsCount++;
+    int stepsminusone = radialStatsCount - 1;
+    double stepsinv = 1.0/(double)radialStatsCount;
+
+    // update the mean radial distribution
+    for(int i=0;i<totalBins;i++) {
+        meanRadialDistribution   [i] = (meanRadialDistribution   [i]*stepsminusone + radDist   [i])*stepsinv;
+    }
+
+    // output mean radial distribution g(r) based on plot_int
+    if (plot_int > 0 && step%plot_int == 0) {
+            
+        if(ParallelDescriptor::MyProc() == 0) {
+
+            std::string filename = Concatenate("potentialDistribution",step,9);;
+            std::ofstream ofs(filename, std::ofstream::out);
+
+            // normalize by
+            for(int i=0;i<totalBins;i++) {
+                ofs << (i+0.5)*binSize << " "
+                    << meanRadialDistribution[i] << std::endl;
+            }
+            ofs.close();
+        }
+    }
+
+    // reset the radial distribution at n_steps_skip (if n_steps_skip > 0)
+    // OR
+    // reset the radial distribution every |n_steps_skip| (if n_steps_skip < 0)
+    if ((n_steps_skip > 0 && step == n_steps_skip) ||
+        (n_steps_skip < 0 && step%n_steps_skip == 0) ) {
+                    
+        Print() << "Resetting potential distribution collection.\n";
+
+        radialStatsCount = 0;
+
+        for(int i=0;i<totalBins;i++) {
+            meanRadialDistribution   [i] = 0;
+
+        }
+
     }    
 }
 

@@ -810,50 +810,50 @@ void main_driver(const char* argv)
     remove("bulkFlowEst");
     //Time stepping loop
 
-    dt = dt*1e-5;
+ //   dt = dt*1e-5;
     for (int istep=step; istep<=max_step; ++istep) {
 
         // timer for time step
         Real time1 = ParallelDescriptor::second();
 
-        if(istep == 20)
-        {
-                dt = dt*10;
-                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
-        }
-
-
-        if(istep == 40)
-        {
-                dt = dt*10;
-                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
-        }
-
-        if(istep == 60)
-        {
-                dt = dt*10;
-                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
-        }
-
-        if(istep == 80)
-        {
-                dt = dt*10;
-                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
-        }
-
-        if(istep == 100)
-        {
-                dt = dt*10;
-                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
-        }
-
-
-//        if(istep == 1)
+//        if(istep == 20)
 //        {
-//            particles.SetPosition(1, prob_hi[0]*0.42, prob_hi[1]*(1.0/128.0), prob_hi[2]*0.42);
-//            //particles.SetPosition(2, prob_hi[0]*0.1, prob_hi[1]*0.5, prob_hi[2]*0.5);
-//           
+//                dt = dt*10;
+//                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
 //        }
+
+
+//        if(istep == 40)
+//        {
+//                dt = dt*10;
+//                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+//        }
+
+//        if(istep == 60)
+//        {
+//                dt = dt*10;
+//                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+//        }
+
+//        if(istep == 80)
+//        {
+//                dt = dt*10;
+//                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+//        }
+
+//        if(istep == 100)
+//        {
+//                dt = dt*10;
+//                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+//        }
+
+
+        if(istep == 1)
+        {
+            //particles.SetPosition(1, prob_hi[0]*0.42, prob_hi[1]*(1.0/128.0), prob_hi[2]*0.42);
+            //particles.SetPosition(2, prob_hi[0]*0.1, prob_hi[1]*0.5, prob_hi[2]*0.5);
+           
+        }
 
     
         //Most of these functions are sensitive to the order of execution. We can fix this, but for now leave them in this order.
@@ -877,6 +877,13 @@ void main_driver(const char* argv)
             // set velx/y/z and forcex/y/z for each particle to zero
             particles.ResetMarkers(0);
         }
+
+        Real origin[3];
+        origin[0] = prob_hi[0]/2.0;
+        origin[1] = prob_hi[1]/2.0;
+        origin[2] = prob_hi[2]/2.0;
+
+        particles.potentialFunction(origin);
 
         // sr_tog is short range forces
         // es_tog is electrostatic solve (0=off, 1=Poisson, 2=Pairwise, 3=P3M)
@@ -988,6 +995,7 @@ void main_driver(const char* argv)
 
             // compute g(r)
             particles.RadialDistribution(simParticles, istep, ionParticle);
+            //particles.potentialDistribution(simParticles, istep, ionParticle);
 
             // timer
             Real time_PC2 = ParallelDescriptor::second() - time_PC1;
