@@ -14,7 +14,14 @@ class TurbForcing {
 
     GpuArray<Real,132> rngs;
 
-public:TurbForcing(BoxArray ba_in, DistributionMapping dmap_in, Geometry geom_in);
+    Real forcing_a;
+    Real forcing_b;
+
+public:
+
+
+    TurbForcing(BoxArray ba_in, DistributionMapping dmap_in, Geometry geom_in,
+                const Real& a_in, const Real& b_in);
 
     void AddTurbForcing(std::array< MultiFab, AMREX_SPACEDIM >& gmres_rhs_u,
                         const Real& dt,

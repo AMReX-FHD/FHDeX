@@ -34,7 +34,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
   const BoxArray& ba = beta.boxArray();
   const DistributionMapping& dmap = beta.DistributionMap();
 
-  TurbForcing tf(ba,dmap,geom);
+  TurbForcing tf(ba,dmap,geom,turb_a,turb_b);
 
    // rhs_p GMRES solve
    MultiFab gmres_rhs_p(ba, dmap, 1, 0);

@@ -150,7 +150,8 @@ void InitializeCommonNamespace() {
                                 &dry_move_tog, &sr_tog, &graphene_tog, &crange, &thermostat_tog, &zero_net_force,
                                 &images, eamp.dataPtr(), efreq.dataPtr(), ephase.dataPtr(),
                                 &plot_ascii, &solve_chem, &diffcoeff, &scaling_factor,
-                                &source_strength, &regrid_int, &do_reflux, &particle_motion);
+                                &source_strength, &regrid_int, &do_reflux, &particle_motion,
+                                &turb_a, &turb_b);
 
     plot_base_name = temp_plot_base_name;
     chk_base_name = temp_chk_base_name;
