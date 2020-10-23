@@ -100,11 +100,10 @@ TurbForcing::TurbForcing(BoxArray ba_in, DistributionMapping dmap_in, Geometry g
 void TurbForcing::AddTurbForcing(std::array< MultiFab, AMREX_SPACEDIM >& gmres_rhs_u,
                                  const Real& dt,
                                  const int& reset_rng)
-{    
-    // constants for OU process
-    const Real a = 0.1;
-    const Real b = 0.1;
+{
 
+    Real sqrtdt = std::sqrt(dt);
+    
     if (reset_rng == 1) {
         Vector<Real> rngs_tmp;
         rngs_tmp.resize(132);
@@ -159,21 +158,21 @@ void TurbForcing::AddTurbForcing(std::array< MultiFab, AMREX_SPACEDIM >& gmres_r
 #elif (AMREX_SPACEDIM ==3)
         amrex::ParallelFor(bx_x, bx_y, bx_z, [=] AMREX_GPU_DEVICE (int i, int j, int k) {
                 for (int d=0; d<22; ++d) {
-                    rhs_x(i,j,k) += (-a*dt + b*rngs[6*d+0]) * cos_x(i,j,k,d);
-                    rhs_x(i,j,k) += (-a*dt + b*rngs[6*d+1]) * sin_x(i,j,k,d);
+                    rhs_x(i,j,k) += (-forcing_a*dt + forcing_b*sqrtdt*rngs[6*d+0]) * cos_x(i,j,k,d);
+                    rhs_x(i,j,k) += (-forcing_a*dt + forcing_b*sqrtdt*rngs[6*d+1]) * sin_x(i,j,k,d);
                 }
             },
             [=] AMREX_GPU_DEVICE (int i, int j, int k) {
                 for (int d=0; d<22; ++d) {
-                    rhs_y(i,j,k) += (-a*dt + b*rngs[6*d+2]) * cos_y(i,j,k,d);
-                    rhs_y(i,j,k) += (-a*dt + b*rngs[6*d+3]) * sin_y(i,j,k,d);
+                    rhs_y(i,j,k) += (-forcing_a*dt + forcing_b*sqrtdt*rngs[6*d+2]) * cos_y(i,j,k,d);
+                    rhs_y(i,j,k) += (-forcing_a*dt + forcing_b*sqrtdt*rngs[6*d+3]) * sin_y(i,j,k,d);
                 }
                 
             },
             [=] AMREX_GPU_DEVICE (int i, int j, int k) {
                 for (int d=0; d<22; ++d) {
-                    rhs_z(i,j,k) += (-a*dt + b*rngs[6*d+4]) * cos_z(i,j,k,d);
-                    rhs_z(i,j,k) += (-a*dt + b*rngs[6*d+5]) * sin_z(i,j,k,d);
+                    rhs_z(i,j,k) += (-forcing_a*dt + forcing_b*sqrtdt*rngs[6*d+4]) * cos_z(i,j,k,d);
+                    rhs_z(i,j,k) += (-forcing_a*dt + forcing_b*sqrtdt*rngs[6*d+5]) * sin_z(i,j,k,d);
                 }                
             });
 #endif
