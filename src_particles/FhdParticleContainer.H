@@ -178,6 +178,7 @@ public:
     void WriteParticlesAscii(string asciiName);
 
     void potentialFunction(Real* origin);
+    void potentialDistribution(long totalParticles, const int step, const species* particleInfo);
 
     void DoRFD(const Real dt, const Real* dxFluid, const Real* dxE, const Geometry geomF,
                const std::array<MultiFab, AMREX_SPACEDIM>& umac, const std::array<MultiFab, AMREX_SPACEDIM>& efield,

@@ -848,12 +848,12 @@ void main_driver(const char* argv)
         }
 
 
-//        if(istep == 1)
-//        {
-//            particles.SetPosition(1, prob_hi[0]*0.42, prob_hi[1]*(1.0/128.0), prob_hi[2]*0.42);
-//            //particles.SetPosition(2, prob_hi[0]*0.1, prob_hi[1]*0.5, prob_hi[2]*0.5);
-//           
-//        }
+        if(istep == 1)
+        {
+            //particles.SetPosition(1, prob_hi[0]*0.42, prob_hi[1]*(1.0/128.0), prob_hi[2]*0.42);
+            //particles.SetPosition(2, prob_hi[0]*0.1, prob_hi[1]*0.5, prob_hi[2]*0.5);
+           
+        }
 
     
         //Most of these functions are sensitive to the order of execution. We can fix this, but for now leave them in this order.
@@ -877,6 +877,13 @@ void main_driver(const char* argv)
             // set velx/y/z and forcex/y/z for each particle to zero
             particles.ResetMarkers(0);
         }
+
+        Real origin[3];
+        origin[0] = prob_hi[0]/2.0;
+        origin[1] = prob_hi[1]/2.0;
+        origin[2] = prob_hi[2]/2.0;
+
+        particles.potentialFunction(origin);
 
         // sr_tog is short range forces
         // es_tog is electrostatic solve (0=off, 1=Poisson, 2=Pairwise, 3=P3M)
@@ -988,6 +995,7 @@ void main_driver(const char* argv)
 
             // compute g(r)
             particles.RadialDistribution(simParticles, istep, ionParticle);
+            //particles.potentialDistribution(simParticles, istep, ionParticle);
 
             // timer
             Real time_PC2 = ParallelDescriptor::second() - time_PC1;
