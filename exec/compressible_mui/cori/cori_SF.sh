@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --qos=debug
-#SBATCH --time=30
-#SBATCH --nodes=1
+#SBATCH --time=10
+#SBATCH --nodes=3
 #SBATCH --tasks-per-node=32
 #SBATCH --constraint=haswell
 
@@ -18,6 +18,12 @@ fi
 mkdir $RUNDIR
 cp $KMCSCR $RUNDIR
 cp $FHDSCR $RUNDIR
+cp $0 $RUNDIR
+cp mpmd.conf $RUNDIR
 cd $RUNDIR
 
-srun -n5 -l --multi-prog ../mpmd.conf 
+echo "*** START: `date`"
+
+srun -n80 -l --multi-prog ../mpmd.conf
+
+echo "*** FINISH: `date`"

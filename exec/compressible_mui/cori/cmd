@@ -1,0 +1,1 @@
+grep Advanced slurm-*.out | awk '{ total += $6; count++ } END { printf("FHD:\t\t%f\t%d\n",total/count,count) }';grep Loop RUN_SF/log.spparks | awk '{ sum += $4;cnt+=1 } END { printf("SPPARKS:\t%f\t%d\n",sum/cnt,cnt) }'

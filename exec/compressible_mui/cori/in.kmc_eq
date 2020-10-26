@@ -9,7 +9,7 @@ variable    lat_const2 equal 0.5*${lat_const}
 
 lattice     sq/4n ${lat_const}
 
-region      sys_domain block 0 80 0 80 -0.5 0.5
+region      sys_domain block 0 640 0 640 -0.5 0.5
 create_box  sys_domain
 create_sites    box 
 
