@@ -1,7 +1,7 @@
 &common
   ! Problem specification
   prob_lo(1:3) = 0.0 0.0 0.0      ! physical lo coordinate
-  prob_hi(1:3) = 8.284925963482451e-07 8.284925963482451e-07 4.1424629817412256e-07     ! physical hi coordinate
+  prob_hi(1:3) = 8.284925963482451e-07 8.284925963482451e-07 8.284925963482451e-07     ! physical hi coordinate
     
   n_cells(1:3) = 64 64 32
   ! max number of cells in a box
@@ -9,7 +9,7 @@
   max_particle_tile_size(1:3) = 256 256 256 ! set to zero to use max_grid_size, setting a very large number will also use max grid size, but will also ensure that refined es and particle grids will do the same.
   ! above settings are for fluid grid. EM and particle grid (the grid for finding neighbour lists) are coarsened or refined off these grids. <1 = refine, >1 = coarsen.
   !Leave these on 1 until properly tested
-  particle_grid_refine = 0.5
+  particle_grid_refine = 1
   es_grid_refine = 1
   ! Time-step control
   fixed_dt = 1e-13

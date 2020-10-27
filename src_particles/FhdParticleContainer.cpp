@@ -150,7 +150,7 @@ void FhdParticleContainer::potentialFunction(Real* origin)
 
    const int lev = 0;
 
-   Real k = 1e3;
+   Real k = 5e2;
    Real maxU = 0;
    Real maxD = 0;
 
@@ -2073,7 +2073,7 @@ void FhdParticleContainer::potentialDistribution(long totalParticles, const int 
 
     // update the mean radial distribution
     for(int i=0;i<totalBins;i++) {
-        meanRadialDistribution   [i] = (meanRadialDistribution   [i]*stepsminusone + radDist   [i])*stepsinv;
+        meanRadialDistribution   [i] = (meanRadialDistribution   [i]*stepsminusone + (radDist[i])/(totalParticles*binSize))*stepsinv;
     }
 
     // output mean radial distribution g(r) based on plot_int
