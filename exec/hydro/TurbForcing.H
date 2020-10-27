@@ -12,7 +12,7 @@ class TurbForcing {
     std::array< MultiFab, AMREX_SPACEDIM> sines;
     std::array< MultiFab, AMREX_SPACEDIM> cosines;
 
-    GpuArray<Real,132> rngs;
+    GpuArray<Real,132> forcing_U;
 
     Real forcing_a;
     Real forcing_b;
@@ -25,7 +25,7 @@ public:
 
     void AddTurbForcing(std::array< MultiFab, AMREX_SPACEDIM >& gmres_rhs_u,
                         const Real& dt,
-                        const int& reset_RNG);
+                        const int& update_U);
 
 };
 
