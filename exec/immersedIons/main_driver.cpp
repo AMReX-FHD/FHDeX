@@ -811,6 +811,11 @@ void main_driver(const char* argv)
     //Time stepping loop
 
     dt = dt*1e-5;
+    //int sr_tog_org = sr_tog;
+    //if (sr_tog_org == 4) {
+    //  sr_tog = 2;
+    //}
+    Print() << "\n\nStarting with sr_tog: " << sr_tog << std::endl<< std::endl<< std::endl;
     for (int istep=step; istep<=max_step; ++istep) {
 
         // timer for time step
@@ -847,6 +852,11 @@ void main_driver(const char* argv)
                 Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
         }
 
+        //if(istep == 1000)
+        //{
+        //        sr_tog = sr_tog_org;
+        //        Print() << "\n\nSwitching back to sr_tog: " << sr_tog << std::endl<< std::endl<< std::endl;
+        //}
 
         if(istep == 1)
         {
