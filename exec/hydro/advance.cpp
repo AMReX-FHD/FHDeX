@@ -6,8 +6,6 @@
 
 #include "gmres_functions.H"
 
-#include "TurbForcing.H"
-
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_MultiFabUtil.H>
 
@@ -21,7 +19,8 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
              std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
              MultiFab& beta, MultiFab& gamma,
              std::array< MultiFab, NUM_EDGE >& beta_ed,
-             const Geometry geom, const Real& dt)
+             const Geometry geom, const Real& dt,
+             TurbForcing& tf)
 {
 
   BL_PROFILE_VAR("advance()",advance);
@@ -33,8 +32,6 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
   const BoxArray& ba = beta.boxArray();
   const DistributionMapping& dmap = beta.DistributionMap();
-
-  TurbForcing tf(ba,dmap,geom,turb_a,turb_b);
 
    // rhs_p GMRES solve
    MultiFab gmres_rhs_p(ba, dmap, 1, 0);
