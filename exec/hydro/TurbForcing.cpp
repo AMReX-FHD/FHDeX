@@ -164,20 +164,20 @@ void TurbForcing::AddTurbForcing(std::array< MultiFab, AMREX_SPACEDIM >& gmres_r
         amrex::ParallelFor(bx_x, bx_y, bx_z, [=] AMREX_GPU_DEVICE (int i, int j, int k) {
                 for (int d=0; d<22; ++d) {
                     rhs_x(i,j,k) += forcing_U[d] * cos_x(i,j,k,d);
-                    rhs_x(i,j,k) += forcing_U[d] * sin_x(i,j,k,d);
+                    rhs_x(i,j,k) += forcing_U[d+22] * sin_x(i,j,k,d);
                 }
             },
             [=] AMREX_GPU_DEVICE (int i, int j, int k) {
                 for (int d=0; d<22; ++d) {
-                    rhs_y(i,j,k) += forcing_U[d] * cos_y(i,j,k,d);
-                    rhs_y(i,j,k) += forcing_U[d] * sin_y(i,j,k,d);
+                    rhs_y(i,j,k) += forcing_U[d+44] * cos_y(i,j,k,d);
+                    rhs_y(i,j,k) += forcing_U[d+66] * sin_y(i,j,k,d);
                 }
                 
             },
             [=] AMREX_GPU_DEVICE (int i, int j, int k) {
                 for (int d=0; d<22; ++d) {
-                    rhs_z(i,j,k) += forcing_U[d] * cos_z(i,j,k,d);
-                    rhs_z(i,j,k) += forcing_U[d] * sin_z(i,j,k,d);
+                    rhs_z(i,j,k) += forcing_U[d+88] * cos_z(i,j,k,d);
+                    rhs_z(i,j,k) += forcing_U[d+110] * sin_z(i,j,k,d);
                 }                
             });
 #endif
