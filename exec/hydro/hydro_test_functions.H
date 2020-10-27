@@ -4,6 +4,8 @@
 #include "common_functions.H"
 #include "gmres_functions.H"
 
+#include "TurbForcing.H"
+
 ///////////////////////////
 // in advance.cpp
 void advance(std::array< amrex::MultiFab, AMREX_SPACEDIM >& umac,
@@ -13,7 +15,8 @@ void advance(std::array< amrex::MultiFab, AMREX_SPACEDIM >& umac,
 	     std::array< amrex::MultiFab, AMREX_SPACEDIM >& alpha_fc,
 	     amrex::MultiFab& beta, amrex::MultiFab& gamma,
 	     std::array< amrex::MultiFab, NUM_EDGE >& beta_ed,
-	     const amrex::Geometry geom, const amrex::Real& dt);
+	     const amrex::Geometry geom, const amrex::Real& dt,
+             TurbForcing& tf);
 
 ///////////////////////////
 
@@ -35,12 +38,12 @@ void WritePlotFile(const int step,
 void WriteCheckPoint(const int step,
                      const amrex::Real time,
                      std::array< MultiFab, AMREX_SPACEDIM >& umac,
-                     const MultiFab& tracer);
+                     const MultiFab& tracer, TurbForcing& tf);
 
 void ReadCheckPoint(int& step,
                     amrex::Real& time,
                     std::array< MultiFab, AMREX_SPACEDIM >& umac,
-                    MultiFab& tracer);
+                    MultiFab& tracer, TurbForcing& tf);
 
 ///////////////////////////
 

@@ -7,6 +7,7 @@
 #include "StochMomFlux.H"
 
 #include "StructFact.H"
+#include "TurbForcing.H"
 
 #include "rng_functions_F.H"
 
@@ -100,6 +101,9 @@ void main_driver(const char* argv)
         rng_initialize(&fhdSeed,&particleSeed,&selectorSeed,&thetaSeed,&phiSeed,&generalSeed);
     }
     /////////////////////////////////////////
+
+    // object for turbulent forcing
+    TurbForcing tf(ba,dmap,geom,turb_a,turb_b);
 
     ///////////////////////////////////////////
     // rho, alpha, beta, gamma:
@@ -293,7 +297,7 @@ void main_driver(const char* argv)
     std::array< MultiFab, AMREX_SPACEDIM > umac;
 
     if (restart > 0) {
-        ReadCheckPoint(step_start,time,umac,tracer);
+        ReadCheckPoint(step_start,time,umac,tracer,tf);
     }
     else {
 
@@ -387,7 +391,7 @@ void main_driver(const char* argv)
 
 	// Advance umac
         advance(umac,umacNew,pres,tracer,mfluxdiv_stoch,
-                alpha_fc,beta,gamma,beta_ed,geom,dt);
+                alpha_fc,beta,gamma,beta_ed,geom,dt,tf);
 
 	//////////////////////////////////////////////////
 
@@ -419,7 +423,7 @@ void main_driver(const char* argv)
 
         if (chk_int > 0 && step%chk_int == 0) {
             // write out umac and tracer to a checkpoint file
-            WriteCheckPoint(step,time,umac,tracer);
+            WriteCheckPoint(step,time,umac,tracer,tf);
         }
 
         // MultiFab memory usage

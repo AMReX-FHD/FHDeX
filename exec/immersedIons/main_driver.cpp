@@ -810,43 +810,44 @@ void main_driver(const char* argv)
     remove("bulkFlowEst");
     //Time stepping loop
 
-//    dt = dt*1e-5;
+
+    dt = dt*1e-5;
+
     for (int istep=step; istep<=max_step; ++istep) {
 
         // timer for time step
         Real time1 = ParallelDescriptor::second();
 
-//        if(istep == 20)
-//        {
-//                dt = dt*10;
-//                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
-//        }
+        if(istep == 20)
+        {
+                dt = dt*10;
+                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+        }
 
 
-//        if(istep == 40)
-//        {
-//                dt = dt*10;
-//                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
-//        }
+        if(istep == 40)
+        {
+                dt = dt*10;
+                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+        }
 
-//        if(istep == 60)
-//        {
-//                dt = dt*10;
-//                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
-//        }
+        if(istep == 60)
+        {
+                dt = dt*10;
+                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+        }
 
-//        if(istep == 80)
-//        {
-//                dt = dt*10;
-//                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
-//        }
+        if(istep == 80)
+        {
+                dt = dt*10;
+                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+        }
 
-//        if(istep == 100)
-//        {
-//                dt = dt*10;
-//                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
-//        }
-
+        if(istep == 100)
+        {
+                dt = dt*10;
+                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+        }
 
         if(istep == 1)
         {
@@ -994,8 +995,8 @@ void main_driver(const char* argv)
             Real time_PC1 = ParallelDescriptor::second();
 
             // compute g(r)
-            //particles.RadialDistribution(simParticles, istep, ionParticle);
-            particles.potentialDistribution(simParticles, istep, ionParticle);
+            particles.RadialDistribution(simParticles, istep, ionParticle);
+            //particles.potentialDistribution(simParticles, istep, ionParticle);
 
             // timer
             Real time_PC2 = ParallelDescriptor::second() - time_PC1;

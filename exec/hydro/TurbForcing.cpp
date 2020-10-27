@@ -2,11 +2,19 @@
 
 // initialize n_rngs, geom
 // build MultiFabs to hold random numbers
-TurbForcing::TurbForcing(BoxArray ba_in, DistributionMapping dmap_in, Geometry geom_in)
+TurbForcing::TurbForcing(BoxArray ba_in, DistributionMapping dmap_in, Geometry geom_in,
+                         const Real& a_in, const Real& b_in)
 {
 
     BL_PROFILE_VAR("TurbForcing()",TurbForcing);
 
+    for (int i=0; i<132; ++i) {
+        forcing_U[i] = 0.;
+    }
+    
+    forcing_a = a_in;
+    forcing_b = b_in;
+    
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
         sines  [i].define(convert(ba_in,nodal_flag_dir[i]), dmap_in, 22, 0);
         cosines[i].define(convert(ba_in,nodal_flag_dir[i]), dmap_in, 22, 0);
@@ -48,16 +56,16 @@ TurbForcing::TurbForcing(BoxArray ba_in, DistributionMapping dmap_in, Geometry g
                 Real x = prob_lo[0] + i*dx[0];
                 Real y = prob_lo[1] + (j+0.5)*dx[1];
                 for (int d=0; d<22; ++d) {
-                    sin_x(i,j,k) = sin(2.*pi*(kx[d]*x + ky[d]*y) / L);
-                    cos_x(i,j,k) = cos(2.*pi*(kx[d]*x + ky[d]*y) / L);
+                    sin_x(i,j,k,d) = sin(2.*pi*(kx[d]*x + ky[d]*y) / L);
+                    cos_x(i,j,k,d) = cos(2.*pi*(kx[d]*x + ky[d]*y) / L);
                 }
             },
             [=] AMREX_GPU_DEVICE (int i, int j, int k) {
                 Real x = prob_lo[0] + (i+0.5)*dx[0];
                 Real y = prob_lo[1] + j*dx[1];
                 for (int d=0; d<22; ++d) {
-                    sin_y(i,j,k) = sin(2.*pi*(kx[d]*x + ky[d]*y) / L);
-                    cos_y(i,j,k) = cos(2.*pi*(kx[d]*x + ky[d]*y) / L);
+                    sin_y(i,j,k,d) = sin(2.*pi*(kx[d]*x + ky[d]*y) / L);
+                    cos_y(i,j,k,d) = cos(2.*pi*(kx[d]*x + ky[d]*y) / L);
                 }
             });
 #elif (AMREX_SPACEDIM ==3)
@@ -66,8 +74,8 @@ TurbForcing::TurbForcing(BoxArray ba_in, DistributionMapping dmap_in, Geometry g
                 Real y = prob_lo[1] + (j+0.5)*dx[1];
                 Real z = prob_lo[2] + (k+0.5)*dx[2];
                 for (int d=0; d<22; ++d) {
-                    sin_x(i,j,k) = sin(2.*pi*(kx[d]*x + ky[d]*y + kz[d]*z) / L);
-                    cos_x(i,j,k) = cos(2.*pi*(kx[d]*x + ky[d]*y + kz[d]*z) / L);
+                    sin_x(i,j,k,d) = sin(2.*pi*(kx[d]*x + ky[d]*y + kz[d]*z) / L);
+                    cos_x(i,j,k,d) = cos(2.*pi*(kx[d]*x + ky[d]*y + kz[d]*z) / L);
                 }
             },
             [=] AMREX_GPU_DEVICE (int i, int j, int k) {
@@ -75,8 +83,8 @@ TurbForcing::TurbForcing(BoxArray ba_in, DistributionMapping dmap_in, Geometry g
                 Real y = prob_lo[1] + j*dx[1];
                 Real z = prob_lo[2] + (k+0.5)*dx[2];
                 for (int d=0; d<22; ++d) {
-                    sin_y(i,j,k) = sin(2.*pi*(kx[d]*x + ky[d]*y + kz[d]*z) / L);
-                    cos_y(i,j,k) = cos(2.*pi*(kx[d]*x + ky[d]*y + kz[d]*z) / L);
+                    sin_y(i,j,k,d) = sin(2.*pi*(kx[d]*x + ky[d]*y + kz[d]*z) / L);
+                    cos_y(i,j,k,d) = cos(2.*pi*(kx[d]*x + ky[d]*y + kz[d]*z) / L);
                 }
             },
             [=] AMREX_GPU_DEVICE (int i, int j, int k) {
@@ -84,8 +92,8 @@ TurbForcing::TurbForcing(BoxArray ba_in, DistributionMapping dmap_in, Geometry g
                 Real y = prob_lo[1] + (j+0.5)*dx[1];
                 Real z = prob_lo[2] + k*dx[2];
                 for (int d=0; d<22; ++d) {
-                    sin_z(i,j,k) = sin(2.*pi*(kx[d]*x + ky[d]*y + kz[d]*z) / L);
-                    cos_z(i,j,k) = cos(2.*pi*(kx[d]*x + ky[d]*y + kz[d]*z) / L);
+                    sin_z(i,j,k,d) = sin(2.*pi*(kx[d]*x + ky[d]*y + kz[d]*z) / L);
+                    cos_z(i,j,k,d) = cos(2.*pi*(kx[d]*x + ky[d]*y + kz[d]*z) / L);
                 }
             });
 #endif
@@ -95,33 +103,33 @@ TurbForcing::TurbForcing(BoxArray ba_in, DistributionMapping dmap_in, Geometry g
 
 void TurbForcing::AddTurbForcing(std::array< MultiFab, AMREX_SPACEDIM >& gmres_rhs_u,
                                  const Real& dt,
-                                 const int& reset_rng)
-{    
-    // constants for OU process
-    const Real a = 0.1;
-    const Real b = 0.1;
+                                 const int& update_U)
+{
 
-    if (reset_rng == 1) {
-        Vector<Real> rngs_tmp;
-        rngs_tmp.resize(132);
+    Real sqrtdt = std::sqrt(dt);
 
-        // compute random numbers on IOProcessor
+    // update U = U - a*dt + b*sqrt(dt)*Z
+    if (update_U == 1) {
+        
+        Vector<Real> rngs(132);
+
         if (ParallelDescriptor::IOProcessor()) {
+            // compute random numbers on IOProcessor
             for (int i=0; i<132; ++i) {
-                rngs_tmp[i] = amrex::RandomNormal(0.,1.);
+                rngs[i] = amrex::RandomNormal(0.,1.);
             }
         }
 
-        // broadcast random numbers fo all processors
-        amrex::BroadcastArray(rngs_tmp,
+        // broadcast random numbers to all processors
+        amrex::BroadcastArray(rngs,
                               ParallelDescriptor::MyProc(),
                               ParallelDescriptor::IOProcessorNumber(),
                               ParallelDescriptor::Communicator());
 
-        // copy random numbers into GpuArray
+        // update forcing_U
         for (int i=0; i<132; ++i) {
-            rngs[i] = rngs_tmp[i];
-        }
+            forcing_U[i] += -forcing_a*dt + forcing_b*sqrtdt*rngs[i];
+        }        
     }
 
     // Loop over boxes
@@ -146,7 +154,7 @@ void TurbForcing::AddTurbForcing(std::array< MultiFab, AMREX_SPACEDIM >& gmres_r
                      Box bx_z = mfi.tilebox(nodal_flag_z););
     
 #if (AMREX_SPACEDIM == 2)
-        Abort("2D AddTurbForcing not defined yet");
+        Warning("2D AddTurbForcing not defined yet");
         amrex::ParallelFor(bx_x, bx_y, [=] AMREX_GPU_DEVICE (int i, int j, int k) {
             },
             [=] AMREX_GPU_DEVICE (int i, int j, int k) {
@@ -155,23 +163,32 @@ void TurbForcing::AddTurbForcing(std::array< MultiFab, AMREX_SPACEDIM >& gmres_r
 #elif (AMREX_SPACEDIM ==3)
         amrex::ParallelFor(bx_x, bx_y, bx_z, [=] AMREX_GPU_DEVICE (int i, int j, int k) {
                 for (int d=0; d<22; ++d) {
-                    rhs_x(i,j,k) += (-a*dt + b*rngs[6*d+0]) * cos_x(i,j,k);
-                    rhs_x(i,j,k) += (-a*dt + b*rngs[6*d+1]) * sin_x(i,j,k);
+                    rhs_x(i,j,k) += forcing_U[d] * cos_x(i,j,k,d);
+                    rhs_x(i,j,k) += forcing_U[d+22] * sin_x(i,j,k,d);
                 }
             },
             [=] AMREX_GPU_DEVICE (int i, int j, int k) {
                 for (int d=0; d<22; ++d) {
-                    rhs_y(i,j,k) += (-a*dt + b*rngs[6*d+2]) * cos_y(i,j,k);
-                    rhs_y(i,j,k) += (-a*dt + b*rngs[6*d+3]) * sin_y(i,j,k);
+                    rhs_y(i,j,k) += forcing_U[d+44] * cos_y(i,j,k,d);
+                    rhs_y(i,j,k) += forcing_U[d+66] * sin_y(i,j,k,d);
                 }
                 
             },
             [=] AMREX_GPU_DEVICE (int i, int j, int k) {
                 for (int d=0; d<22; ++d) {
-                    rhs_z(i,j,k) += (-a*dt + b*rngs[6*d+4]) * cos_z(i,j,k);
-                    rhs_z(i,j,k) += (-a*dt + b*rngs[6*d+5]) * sin_z(i,j,k);
+                    rhs_z(i,j,k) += forcing_U[d+88] * cos_z(i,j,k,d);
+                    rhs_z(i,j,k) += forcing_U[d+110] * sin_z(i,j,k,d);
                 }                
             });
 #endif
     }    
+}
+
+Real TurbForcing::getU(const int& i) {
+    return forcing_U[i];
+}
+
+void TurbForcing::setU(const int& i, Real x) {
+    forcing_U[i] = x;
+    return;
 }
