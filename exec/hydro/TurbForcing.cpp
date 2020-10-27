@@ -183,3 +183,12 @@ void TurbForcing::AddTurbForcing(std::array< MultiFab, AMREX_SPACEDIM >& gmres_r
 #endif
     }    
 }
+
+Real TurbForcing::getU(const int& i) {
+    return forcing_U[i];
+}
+
+void TurbForcing::setU(const int& i, Real x) {
+    forcing_U[i] = x;
+    return;
+}

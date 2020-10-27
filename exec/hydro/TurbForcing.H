@@ -27,6 +27,10 @@ public:
                         const Real& dt,
                         const int& update_U);
 
+    Real getU(const int& i);
+
+    void setU(const int& i, Real x);
+
 };
 
 #endif
