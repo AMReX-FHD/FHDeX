@@ -38,12 +38,12 @@ void WritePlotFile(const int step,
 void WriteCheckPoint(const int step,
                      const amrex::Real time,
                      std::array< MultiFab, AMREX_SPACEDIM >& umac,
-                     const MultiFab& tracer);
+                     const MultiFab& tracer, TurbForcing& tf);
 
 void ReadCheckPoint(int& step,
                     amrex::Real& time,
                     std::array< MultiFab, AMREX_SPACEDIM >& umac,
-                    MultiFab& tracer);
+                    MultiFab& tracer, TurbForcing& tf);
 
 ///////////////////////////
 

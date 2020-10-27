@@ -297,7 +297,7 @@ void main_driver(const char* argv)
     std::array< MultiFab, AMREX_SPACEDIM > umac;
 
     if (restart > 0) {
-        ReadCheckPoint(step_start,time,umac,tracer);
+        ReadCheckPoint(step_start,time,umac,tracer,tf);
     }
     else {
 
@@ -423,7 +423,7 @@ void main_driver(const char* argv)
 
         if (chk_int > 0 && step%chk_int == 0) {
             // write out umac and tracer to a checkpoint file
-            WriteCheckPoint(step,time,umac,tracer);
+            WriteCheckPoint(step,time,umac,tracer,tf);
         }
 
         // MultiFab memory usage
