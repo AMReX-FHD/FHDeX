@@ -810,7 +810,9 @@ void main_driver(const char* argv)
     remove("bulkFlowEst");
     //Time stepping loop
 
+
     dt = dt*1e-5;
+
     for (int istep=step; istep<=max_step; ++istep) {
 
         // timer for time step
@@ -846,7 +848,6 @@ void main_driver(const char* argv)
                 dt = dt*10;
                 Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
         }
-
 
         if(istep == 1)
         {
