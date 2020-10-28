@@ -128,7 +128,7 @@ void TurbForcing::AddTurbForcing(std::array< MultiFab, AMREX_SPACEDIM >& gmres_r
 
         // update forcing_U
         for (int i=0; i<132; ++i) {
-            forcing_U[i] += -forcing_a*dt + forcing_b*sqrtdt*rngs[i];
+            forcing_U[i] += -forcing_a*forcing_U[i]*dt + forcing_b*sqrtdt*rngs[i];
         }        
     }
 
