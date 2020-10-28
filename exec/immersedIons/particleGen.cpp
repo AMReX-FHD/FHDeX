@@ -48,8 +48,8 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
 //#endif
                     p.rdata(FHD_realData::q) = particleInfo[i_spec].q;
 
-                     std::cout << "proc " << ParallelDescriptor::MyProc() << " Pos: " << p.pos(0) << ", " << p.pos(1) << ", " << p.pos(2)
-                               << ", " << p.rdata(FHD_realData::q) << ", " << p.id() << "\n" ;
+ //                    std::cout << "proc " << ParallelDescriptor::MyProc() << " Pos: " << p.pos(0) << ", " << p.pos(1) << ", " << p.pos(2)
+  //                             << ", " << p.rdata(FHD_realData::q) << ", " << p.id() << "\n" ;
 
                     //original position stored for MSD calculations
                     p.rdata(FHD_realData::ox) = p.pos(0);
