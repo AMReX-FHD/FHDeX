@@ -191,17 +191,16 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                 Real zetaT = zeta(i,j,k) * prim(i,j,k,4);
 
                 Real fac1 = sqrt(2.0 * k_B_gpu * etaT * volinv * dtinv);
-                
-                Real fac2 =  -1.0 * sqrt(2.0 * k_B_gpu * etaT * volinv * dtinv /3.0);
+                Real fac2 =  (-1.0/3.0)*sqrt(2.0 * k_B_gpu * etaT * volinv * dtinv); 
                 if (amrex::Math::abs(visc_type_gpu) == 3) {
-                  Real fac2 = sqrt(k_B_gpu * zetaT * volinv * dtinv / 3.0) - sqrt(2.0 * k_B_gpu * etaT * volinv * dtinv /3.0);
+                  Real fac2 = sqrt(k_B_gpu * zetaT * volinv * dtinv / 3.0) - sqrt(2.0 * k_B_gpu * etaT * volinv * dtinv)/3.0;
                 }
                   
-                Real traceZ = (stochcenx_u(i,j,k) + stochceny_v(i,j,k) + stochcenz_w(i,j,k))/3.0;
+                Real traceZ = stochcenx_u(i,j,k) + stochceny_v(i,j,k) + stochcenz_w(i,j,k);
 
-                tauxx_stoch(i,j,k) = fac1 * stochcenx_u(i,j,k) + fac2 * traceZ;
-                tauyy_stoch(i,j,k) = fac1 * stochceny_v(i,j,k) + fac2 * traceZ;
-                tauzz_stoch(i,j,k) = fac1 * stochcenz_w(i,j,k) + fac2 * traceZ;
+                tauxx_stoch(i,j,k) = (fac1 * stochcenx_u(i,j,k)) + (fac2 * traceZ);
+                tauyy_stoch(i,j,k) = (fac1 * stochceny_v(i,j,k)) + (fac2 * traceZ);
+                tauzz_stoch(i,j,k) = (fac1 * stochcenz_w(i,j,k)) + (fac2 * traceZ);
             });
 
             // Populate off-diagonal stress
@@ -535,23 +534,23 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
             // Loop over edges for momemntum flux calculations [1:3]
             amrex::ParallelFor(bx_xy, bx_xz, bx_yz,
             [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-                edgey_u(i,j,k) -= tauxy_stoch(i,j,k);
-                edgex_v(i,j,k) -= tauxy_stoch(i,j,k);
+                edgey_u(i,j,k) += tauxy_stoch(i,j,k);
+                edgex_v(i,j,k) += tauxy_stoch(i,j,k);
             },
             [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-                edgez_u(i,j,k) -= tauxz_stoch(i,j,k);
-                edgex_w(i,j,k) -= tauxz_stoch(i,j,k);
+                edgez_u(i,j,k) += tauxz_stoch(i,j,k);
+                edgex_w(i,j,k) += tauxz_stoch(i,j,k);
             },
             [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-                edgez_v(i,j,k) -= tauyz_stoch(i,j,k);
-                edgey_w(i,j,k) -= tauyz_stoch(i,j,k);
+                edgez_v(i,j,k) += tauyz_stoch(i,j,k);
+                edgey_w(i,j,k) += tauyz_stoch(i,j,k);
             });
             
             // Loop over the center cells and compute fluxes (diagonal momentum terms)
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
-                cenx_u(i,j,k) -= tauxx_stoch(i,j,k);
-                ceny_v(i,j,k) -= tauyy_stoch(i,j,k);
-                cenz_w(i,j,k) -= tauzz_stoch(i,j,k);
+                cenx_u(i,j,k) += tauxx_stoch(i,j,k);
+                ceny_v(i,j,k) += tauyy_stoch(i,j,k);
+                cenz_w(i,j,k) += tauzz_stoch(i,j,k);
             });
         } // end MFIter
 

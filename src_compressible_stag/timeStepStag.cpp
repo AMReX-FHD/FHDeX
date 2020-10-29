@@ -30,17 +30,25 @@ void RK3stepStag(MultiFab& cu,
 
     std::array< MultiFab, AMREX_SPACEDIM > cupmom;
     std::array< MultiFab, AMREX_SPACEDIM > cup2mom;
-    for (int d=0; d<AMREX_SPACEDIM; d++) {
-        cupmom[d].define(convert(cu.boxArray(),nodal_flag_dir[d]), cu.DistributionMap(), 1, 1);
-        cupmom[d].setVal(0.);
-        cup2mom[d].define(convert(cu.boxArray(),nodal_flag_dir[d]), cu.DistributionMap(), 1, 1);
-        cup2mom[d].setVal(0.);
-    }
+    AMREX_D_TERM(cupmom[0].define(convert(cu.boxArray(),nodal_flag_x), cu.DistributionMap(), 1, 1);,
+                 cupmom[1].define(convert(cu.boxArray(),nodal_flag_y), cu.DistributionMap(), 1, 1);,
+                 cupmom[2].define(convert(cu.boxArray(),nodal_flag_z), cu.DistributionMap(), 1, 1););
+
+    AMREX_D_TERM(cup2mom[0].define(convert(cu.boxArray(),nodal_flag_x), cu.DistributionMap(), 1, 1);,
+                 cup2mom[1].define(convert(cu.boxArray(),nodal_flag_y), cu.DistributionMap(), 1, 1);,
+                 cup2mom[2].define(convert(cu.boxArray(),nodal_flag_z), cu.DistributionMap(), 1, 1););
+    
+    AMREX_D_TERM(cupmom[0].setVal(0.0);,
+                 cupmom[1].setVal(0.0);,
+                 cupmom[2].setVal(0.0););
+
+    AMREX_D_TERM(cup2mom[0].setVal(0.0);,
+                 cup2mom[1].setVal(0.0);,
+                 cup2mom[2].setVal(0.0););
 
     const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
     
     const GpuArray<Real,AMREX_SPACEDIM> grav_gpu{AMREX_D_DECL(grav[0], grav[1], grav[2])};
-
 
     /////////////////////////////////////////////////////
     // Setup stochastic flux MultiFabs
@@ -63,9 +71,9 @@ void RK3stepStag(MultiFab& cu,
     stochedge_z[1].define(convert(cu.boxArray(),nodal_flag_yz), cu.DistributionMap(), 1, 0);
 
     std::array< MultiFab, AMREX_SPACEDIM > stochcen;
-    AMREX_D_TERM(stochcen[0].define(cu.boxArray(),cu.DistributionMap(),1,1);, 
-                 stochcen[1].define(cu.boxArray(),cu.DistributionMap(),1,1);,
-                 stochcen[2].define(cu.boxArray(),cu.DistributionMap(),1,1););
+    AMREX_D_TERM(stochcen[0].define(cu.boxArray(),cu.DistributionMap(),1,0);, 
+                 stochcen[1].define(cu.boxArray(),cu.DistributionMap(),1,0);,
+                 stochcen[2].define(cu.boxArray(),cu.DistributionMap(),1,0););
     /////////////////////////////////////////////////////
 
     /////////////////////////////////////////////////////
@@ -103,9 +111,9 @@ void RK3stepStag(MultiFab& cu,
     stochedge_z_A[0].setVal(0.0); stochedge_z_A[1].setVal(0.0);
 
     std::array< MultiFab, AMREX_SPACEDIM > stochcen_A;
-    AMREX_D_TERM(stochcen_A[0].define(stochcen[0].boxArray(),stochcen[0].DistributionMap(),1,1);, 
-                 stochcen_A[1].define(stochcen[1].boxArray(),stochcen[1].DistributionMap(),1,1);,
-                 stochcen_A[2].define(stochcen[2].boxArray(),stochcen[2].DistributionMap(),1,1););
+    AMREX_D_TERM(stochcen_A[0].define(stochcen[0].boxArray(),stochcen[0].DistributionMap(),1,0);, 
+                 stochcen_A[1].define(stochcen[1].boxArray(),stochcen[1].DistributionMap(),1,0);,
+                 stochcen_A[2].define(stochcen[2].boxArray(),stochcen[2].DistributionMap(),1,0););
 
     AMREX_D_TERM(stochcen_A[0].setVal(0.0);,
                  stochcen_A[1].setVal(0.0);,
@@ -139,9 +147,9 @@ void RK3stepStag(MultiFab& cu,
     stochedge_z_B[0].setVal(0.0); stochedge_z_B[1].setVal(0.0);
 
     std::array< MultiFab, AMREX_SPACEDIM > stochcen_B;
-    AMREX_D_TERM(stochcen_B[0].define(stochcen[0].boxArray(),stochcen[0].DistributionMap(),1,1);, 
-                 stochcen_B[1].define(stochcen[1].boxArray(),stochcen[1].DistributionMap(),1,1);,
-                 stochcen_B[2].define(stochcen[2].boxArray(),stochcen[2].DistributionMap(),1,1););
+    AMREX_D_TERM(stochcen_B[0].define(stochcen[0].boxArray(),stochcen[0].DistributionMap(),1,0);, 
+                 stochcen_B[1].define(stochcen[1].boxArray(),stochcen[1].DistributionMap(),1,0);,
+                 stochcen_B[2].define(stochcen[2].boxArray(),stochcen[2].DistributionMap(),1,0););
 
     AMREX_D_TERM(stochcen_B[0].setVal(0.0);,
                  stochcen_B[1].setVal(0.0);,
@@ -149,7 +157,7 @@ void RK3stepStag(MultiFab& cu,
 
     // fill random numbers (can skip density component 0)
     for(int d=0;d<AMREX_SPACEDIM;d++) {
-    	for(int i=4;i<nvars;i++) {
+     	for(int i=1;i<nvars;i++) {
     	    MultiFabFillRandom(stochface_A[d], i, 1.0, geom);
 	        MultiFabFillRandom(stochface_B[d], i, 1.0, geom);
         }
@@ -163,8 +171,8 @@ void RK3stepStag(MultiFab& cu,
         MultiFabFillRandom(stochedge_z_B[i], 0, 1.0, geom);
     }
     for (int i=0; i<3; i++) {
-        MultiFabFillRandom(stochcen_A[i], 0, 1.0, geom);
-        MultiFabFillRandom(stochcen_B[i], 0, 1.0, geom);
+        MultiFabFillRandom(stochcen_A[i], 0, 2.0, geom);
+        MultiFabFillRandom(stochcen_B[i], 0, 2.0, geom);
     }
     /////////////////////////////////////////////////////
 
