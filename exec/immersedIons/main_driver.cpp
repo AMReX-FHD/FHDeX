@@ -196,7 +196,7 @@ void main_driver(const char* argv)
         // (11) Cx
         // (12) Cy
         // (13) Cz
-        particleMeans.define(bc, dmap, 14, 0);
+        particleMeans.define(bc, dmap, 14+nspecies, 0);
         particleMeans.setVal(0.);
         
         // Variables (C++ index)
@@ -218,7 +218,7 @@ void main_driver(const char* argv)
         // (15) Cx
         // (16) Cy
         // (17) Cz 
-        particleVars.define(bc, dmap, 18, 0);
+        particleVars.define(bc, dmap, 18+nspecies, 0);
         particleVars.setVal(0.);
 
         //Cell centred es potential
@@ -459,7 +459,7 @@ void main_driver(const char* argv)
     Print() << "Sim particles per cell: " << simParticles/totalCollisionCells << "\n";
 
     // see the variable list used above above for particleMeans
-    MultiFab particleInstant(bc, dmap, 14, 0);
+    MultiFab particleInstant(bc, dmap, 14+nspecies, 0);
     
     //-----------------------------
     //  Hydro setup

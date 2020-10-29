@@ -341,6 +341,7 @@ void FhdParticleContainer::computeForcesNLGPU(const MultiFab& charge, const Mult
     Real rcount = 0;
     Real rdcount = 0;
     Real recount = 0;
+    Real recountI = 0;
     const int lev = 0;
    
     buildNeighborList(CHECK_PAIR{});
@@ -368,7 +369,7 @@ void FhdParticleContainer::computeForcesNLGPU(const MultiFab& charge, const Mult
         if (es_tog==3)
         {
             compute_p3m_sr_correction_nl_gpu(particles, Np, Nn,
-                                        m_neighbor_list[lev][index], dx, recount);
+                                        m_neighbor_list[lev][index], dx, recount, recountI);
 
         }
     
@@ -385,8 +386,10 @@ void FhdParticleContainer::computeForcesNLGPU(const MultiFab& charge, const Mult
     if(es_tog==3) 
     {
             ParallelDescriptor::ReduceRealSum(recount);
+            ParallelDescriptor::ReduceRealSum(recountI);
 
             Print() << recount/2 << " p3m interactions.\n";
+            Print() << recountI << " image charge interactions.\n";
     }
 }
 

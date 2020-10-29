@@ -341,7 +341,7 @@ amrex::Gpu::DeviceVector<T> getDeviceVector (const amrex::Vector<T>& vec)
 
 void compute_p3m_sr_correction_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
                                    amrex::NeighborList<FhdParticleContainer::ParticleType>& neighbor_list,
-                                   const amrex::Real* dxp, amrex::Real& rcount)
+                                   const amrex::Real* dxp, amrex::Real& rcount, amrex::Real& rcountI)
 {
     using namespace amrex;
     
@@ -349,6 +349,9 @@ void compute_p3m_sr_correction_nl_gpu (FhdParticleContainer::AoS& aos, int Np, i
     
     Gpu::DeviceScalar<Real> rcount_d(rcount);
     Real* prcount_d = rcount_d.dataPtr();
+
+    Gpu::DeviceScalar<Real> rcount_di(rcountI);
+    Real* prcount_di = rcount_di.dataPtr();
     
     auto nbor_data = neighbor_list.data();
     FhdParticleContainer::ParticleType* pstruct = aos().dataPtr();
@@ -408,6 +411,7 @@ void compute_p3m_sr_correction_nl_gpu (FhdParticleContainer::AoS& aos, int Np, i
 
                 // p3m
                 Real correction_force_mag = compute_p3m_force_mag(r, dx[0], dx[1], dx[2]);
+                Gpu::Atomic::Add(prcount_di, 1.0);
                 p1.rdata(FHD_realData::forcex) -= ee*(dr[0]/r)*q*(-q)*correction_force_mag*dx2_inv;
                 p1.rdata(FHD_realData::forcey) -= ee*(dr[1]/r)*q*(-q)*correction_force_mag*dx2_inv;
                 p1.rdata(FHD_realData::forcez) -= ee*(dr[2]/r)*q*(-q)*correction_force_mag*dx2_inv;
@@ -427,6 +431,7 @@ void compute_p3m_sr_correction_nl_gpu (FhdParticleContainer::AoS& aos, int Np, i
 
                 // p3m
                 Real correction_force_mag = compute_p3m_force_mag(r, dx[0], dx[1], dx[2]);
+                Gpu::Atomic::Add(prcount_di, 1.0);
                 p1.rdata(FHD_realData::forcex) -= ee*(dr[0]/r)*q*q*correction_force_mag*dx2_inv;
                 p1.rdata(FHD_realData::forcey) -= ee*(dr[1]/r)*q*q*correction_force_mag*dx2_inv;
                 p1.rdata(FHD_realData::forcez) -= ee*(dr[2]/r)*q*q*correction_force_mag*dx2_inv;
@@ -458,6 +463,7 @@ void compute_p3m_sr_correction_nl_gpu (FhdParticleContainer::AoS& aos, int Np, i
 
                 // p3m
                 Real correction_force_mag = compute_p3m_force_mag(r, dx[0], dx[1], dx[2]);
+                Gpu::Atomic::Add(prcount_di, 1.0);
                 p1.rdata(FHD_realData::forcex) -= ee*(dr[0]/r)*q*(-q)*correction_force_mag*dx2_inv;
                 p1.rdata(FHD_realData::forcey) -= ee*(dr[1]/r)*q*(-q)*correction_force_mag*dx2_inv;
                 p1.rdata(FHD_realData::forcez) -= ee*(dr[2]/r)*q*(-q)*correction_force_mag*dx2_inv;
@@ -473,6 +479,7 @@ void compute_p3m_sr_correction_nl_gpu (FhdParticleContainer::AoS& aos, int Np, i
 
                 // p3m
                 Real correction_force_mag = compute_p3m_force_mag(r, dx[0], dx[1], dx[2]);
+                Gpu::Atomic::Add(prcount_di, 1.0);
                 p1.rdata(FHD_realData::forcex) -= ee*(dr[0]/r)*q*q*correction_force_mag*dx2_inv;
                 p1.rdata(FHD_realData::forcey) -= ee*(dr[1]/r)*q*q*correction_force_mag*dx2_inv;
                 p1.rdata(FHD_realData::forcez) -= ee*(dr[2]/r)*q*q*correction_force_mag*dx2_inv;
@@ -502,6 +509,7 @@ void compute_p3m_sr_correction_nl_gpu (FhdParticleContainer::AoS& aos, int Np, i
 
                 //p3m
                 Real correction_force_mag = compute_p3m_force_mag(r, dx[0], dx[1], dx[2]);
+                Gpu::Atomic::Add(prcount_d, 1.0);
                 p1.rdata(FHD_realData::forcex) -= ee*(dr[0]/r)*q*q2*correction_force_mag*dx2_inv;
                 p1.rdata(FHD_realData::forcey) -= ee*(dr[1]/r)*q*q2*correction_force_mag*dx2_inv;
                 p1.rdata(FHD_realData::forcez) -= ee*(dr[2]/r)*q*q2*correction_force_mag*dx2_inv;
@@ -540,6 +548,7 @@ void compute_p3m_sr_correction_nl_gpu (FhdParticleContainer::AoS& aos, int Np, i
 
                             // p3m
                             Real correction_force_mag = compute_p3m_force_mag(r, dx[0], dx[1], dx[2]);
+                            Gpu::Atomic::Add(prcount_di, 1.0);
                             p1.rdata(FHD_realData::forcex) -= ee*(dr[0]/r)*q*(-q2)*correction_force_mag*dx2_inv;
                             p1.rdata(FHD_realData::forcey) -= ee*(dr[1]/r)*q*(-q2)*correction_force_mag*dx2_inv;
                             p1.rdata(FHD_realData::forcez) -= ee*(dr[2]/r)*q*(-q2)*correction_force_mag*dx2_inv;
@@ -557,6 +566,7 @@ void compute_p3m_sr_correction_nl_gpu (FhdParticleContainer::AoS& aos, int Np, i
                             
                             // p3m
                             Real correction_force_mag = compute_p3m_force_mag(r, dx[0], dx[1], dx[2]);
+                            Gpu::Atomic::Add(prcount_di, 1.0);
                             p1.rdata(FHD_realData::forcex) -= ee*(dr[0]/r)*q*q2*correction_force_mag*dx2_inv;
                             p1.rdata(FHD_realData::forcey) -= ee*(dr[1]/r)*q*q2*correction_force_mag*dx2_inv;
                             p1.rdata(FHD_realData::forcez) -= ee*(dr[2]/r)*q*q2*correction_force_mag*dx2_inv;
@@ -591,6 +601,7 @@ void compute_p3m_sr_correction_nl_gpu (FhdParticleContainer::AoS& aos, int Np, i
 
                             // p3m
                             Real correction_force_mag = compute_p3m_force_mag(r, dx[0], dx[1], dx[2]);
+                            Gpu::Atomic::Add(prcount_di, 1.0);
                             p1.rdata(FHD_realData::forcex) -= ee*(dr[0]/r)*q*(-q2)*correction_force_mag*dx2_inv;
                             p1.rdata(FHD_realData::forcey) -= ee*(dr[1]/r)*q*(-q2)*correction_force_mag*dx2_inv;
                             p1.rdata(FHD_realData::forcez) -= ee*(dr[2]/r)*q*(-q2)*correction_force_mag*dx2_inv;
@@ -609,6 +620,7 @@ void compute_p3m_sr_correction_nl_gpu (FhdParticleContainer::AoS& aos, int Np, i
 
                             // p3m
                             Real correction_force_mag = compute_p3m_force_mag(r, dx[0], dx[1], dx[2]);
+                            Gpu::Atomic::Add(prcount_di, 1.0);
                             p1.rdata(FHD_realData::forcex) -= ee*(dr[0]/r)*q*q2*correction_force_mag*dx2_inv;
                             p1.rdata(FHD_realData::forcey) -= ee*(dr[1]/r)*q*q2*correction_force_mag*dx2_inv;
                             p1.rdata(FHD_realData::forcez) -= ee*(dr[2]/r)*q*q2*correction_force_mag*dx2_inv;
@@ -621,13 +633,11 @@ void compute_p3m_sr_correction_nl_gpu (FhdParticleContainer::AoS& aos, int Np, i
 
 
         }
-//        if( p1.id() ==  1)
-//        {
-//            Print() << setprecision(15)  << p1.rdata(FHD_realData::forcex) << ", "<< p1.rdata(FHD_realData::forcey) << ", "<< p1.rdata(FHD_realData::forcez) << "\n";
-//        }
+
     });
 
-    //rcount = std::min(rcount, rcount_d.dataValue());    
+    rcount = rcount_d.dataValue();
+    rcountI = rcount_di.dataValue();
 }
 
 void compute_forces_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
@@ -1198,18 +1208,18 @@ void spread_ions_fhd_gpu(FhdParticleContainer::AoS& aos,
 void mob_interp_gpu(Real z, Real a, Real* tmob, Real* nmob)
 {
 
-/*    Real h = z/a;*/
-/*//  Measured using 256*256  !8.284925e-7, diff 1.326e-05*/
-/*    *tmob = std::max(0.977222 - 10.3514/pow(2.34431 + h , 3) - 0.407416/pow(2.34431 + h , 1),0.0);*/
-/*    *nmob = std::max(0.989214 + 152.697/pow(2.62177 + h,5) - 33.2256/pow(2.62177  + h,3) - 0.991641/(2.62177 + h),0.0);*/
+    Real h = z/a;
+//  Measured using 256*256  !8.284925e-7, diff 1.326e-05
+    *tmob = std::max(0.977222 - 10.3514/pow(2.34431 + h , 3) - 0.407416/pow(2.34431 + h , 1),0.0);
+    *nmob = std::max(0.989214 + 152.697/pow(2.62177 + h,5) - 33.2256/pow(2.62177  + h,3) - 0.991641/(2.62177 + h),0.0);
 
 
     //Single plane approximation
-    Real h = z/a;
-    Real cn = 0.6452124576429801;
-    Real ct = 0.635779246332329;
-    *nmob = std::max(1.0 - 9.0/(8.0*(h+cn)) + 1.0/(2.0*pow(h+cn,3.0)) - 1.0/(8.0*pow(h+cn,5)) ,0.0);
-    *tmob = std::max(1.0 - 9.0/(16.0*(h+ct)) + 2.0/(16.0*pow((h+ct),3.0)) -1.0/(16.0*pow((h+ct),5)),0.0);
+/*    Real h = z/a;*/
+/*    Real cn = 0.6452124576429801;*/
+/*    Real ct = 0.635779246332329;*/
+/*    *nmob = std::max(1.0 - 9.0/(8.0*(h+cn)) + 1.0/(2.0*pow(h+cn,3.0)) - 1.0/(8.0*pow(h+cn,5)) ,0.0);*/
+/*    *tmob = std::max(1.0 - 9.0/(16.0*(h+ct)) + 2.0/(16.0*pow((h+ct),3.0)) -1.0/(16.0*pow((h+ct),5)),0.0);*/
 
 }
 
@@ -1217,16 +1227,16 @@ void mob_interp_der_gpu(Real z, Real a, Real* tmobDer, Real* nmobDer)
 {
 
 //  Measured using 256*256  !8.284925e-7, diff 1.326e-05
-/*    Real h = z/a;*/
+    Real h = z/a;
 
-/*    *tmobDer = std::max(31.0541/(a*pow(2.34431 + h , 4)) + 0.407416/(a*pow(2.34431 + h , 2)),0.0);*/
-/*    *nmobDer = std::max(-763.486/(a*pow(2.62177 + h,6)) + 99.6767/(a*pow(2.62177  + h,4)) + 0.991641/(a*pow(2.62177 + h,2)),0.0);*/
+    *tmobDer = std::max(31.0541/(a*pow(2.34431 + h , 4)) + 0.407416/(a*pow(2.34431 + h , 2)),0.0);
+    *nmobDer = std::max(-763.486/(a*pow(2.62177 + h,6)) + 99.6767/(a*pow(2.62177  + h,4)) + 0.991641/(a*pow(2.62177 + h,2)),0.0);
 
     //Single plane approximation
-    Real cn = 0.6452124576429801;
-    Real ct = 0.635779246332329;
-    *nmobDer = 5.0/(8.*a*pow(cn + z/a,6)) - 3/(2.*a*pow(cn + z/a,4)) + 9/(8.*a*pow(cn + z/a,2));
-    *tmobDer = 5/(16.*a*pow(ct + z/a,6)) - 3/(8.*a*pow(ct + z/a,4)) + 9/(16.*a*pow(ct + z/a,2));
+/*    Real cn = 0.6452124576429801;*/
+/*    Real ct = 0.635779246332329;*/
+/*    *nmobDer = 5.0/(8.*a*pow(cn + z/a,6)) - 3/(2.*a*pow(cn + z/a,4)) + 9/(8.*a*pow(cn + z/a,2));*/
+/*    *tmobDer = 5/(16.*a*pow(ct + z/a,6)) - 3/(8.*a*pow(ct + z/a,4)) + 9/(16.*a*pow(ct + z/a,2));*/
 }
 
 void get_mobility_diff_gpu(Real* nmob, Real* tmob, Real* nmobDer, Real* tmobDer, FhdParticleContainer::ParticleType& part, Real z)
