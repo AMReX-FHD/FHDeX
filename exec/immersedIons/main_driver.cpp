@@ -879,12 +879,12 @@ void main_driver(const char* argv)
             particles.ResetMarkers(0);
         }
 
-        Real origin[3];
-        origin[0] = prob_hi[0]/2.0;
-        origin[1] = prob_hi[1]/2.0;
-        origin[2] = prob_hi[2]/2.0;
+//        Real origin[3];
+//        origin[0] = prob_hi[0]/2.0;
+//        origin[1] = prob_hi[1]/2.0;
+//        origin[2] = prob_hi[2]/2.0;
 
-        particles.potentialFunction(origin);
+//        particles.potentialFunction(origin);
 
         // sr_tog is short range forces
         // es_tog is electrostatic solve (0=off, 1=Poisson, 2=Pairwise, 3=P3M)
