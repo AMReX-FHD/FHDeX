@@ -1,7 +1,0 @@
-** compile fhd
-module swap PrgEnv-intel PrgEnv-gnu
-module add gcc
-module add cray-fftw
-
-** compile spparks
-make mui_cori

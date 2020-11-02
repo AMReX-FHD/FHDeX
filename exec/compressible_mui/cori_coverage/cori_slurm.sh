@@ -5,9 +5,9 @@
 #SBATCH --tasks-per-node=32
 #SBATCH --constraint=haswell
 
-RUNDIR=RUN_SF
-KMCSCR=in.kmc_eq
-FHDSCR=inputs_fhd_SF
+RUNDIR=RUN
+KMCSCR=in.kmc
+FHDSCR=inputs_fhd
 
 if [ -d $RUNDIR ]
 then

@@ -623,11 +623,26 @@ void main_driver(const char* argv)
         Real ts1 = ParallelDescriptor::second();
 
         mui_push(cu, prim, dx, uniface, step);
-    
+
+        Real ts3 = ParallelDescriptor::second();
+        Real ts_mp = ts3-ts1;
+        ParallelDescriptor::ReduceRealMax(ts_mp);
+        amrex::Print() << "MUI-PUSH step " << step << " in " << ts_mp << " seconds\n";
+
         RK3step(cu, cup, cup2, cup3, prim, source, eta, zeta, kappa, chi, D, flux,
                 stochFlux, cornx, corny, cornz, visccorn, rancorn, geom, dx, dt);
 
+        Real ts4 = ParallelDescriptor::second();
+        Real ts_rk = ts4-ts3;
+        ParallelDescriptor::ReduceRealMax(ts_rk);
+        amrex::Print() << "RK3 step " << step << " in " << ts_rk << " seconds\n";
+
         mui_fetch(cu, prim, dx, uniface, step);
+
+        Real ts5 = ParallelDescriptor::second();
+        Real ts_mf = ts5-ts4;
+        ParallelDescriptor::ReduceRealMax(ts_mf);
+        amrex::Print() << "MUI-FETCH step " << step << " in " << ts_mf << " seconds\n";
 
         conservedToPrimitive(prim, cu);
 
