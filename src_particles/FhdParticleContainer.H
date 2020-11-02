@@ -70,7 +70,7 @@ struct FHD_realData {
         sigma,
         eepsilon,
         potential,
-	p3m_radius,
+	    p3m_radius,
         count    // Awesome little trick! (only works if first field is 0)
     };
 
@@ -176,6 +176,9 @@ public:
     void PostRestart();
 
     void WriteParticlesAscii(string asciiName);
+
+    void potentialFunction(Real* origin);
+    void potentialDistribution(long totalParticles, const int step, const species* particleInfo);
 
     void DoRFD(const Real dt, const Real* dxFluid, const Real* dxE, const Geometry geomF,
                const std::array<MultiFab, AMREX_SPACEDIM>& umac, const std::array<MultiFab, AMREX_SPACEDIM>& efield,

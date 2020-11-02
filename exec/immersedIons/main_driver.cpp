@@ -7,10 +7,8 @@
 #include "species.H"
 #include "paramPlane.H"
 
-#ifndef AMREX_USE_CUDA
 #include "StructFact_F.H"
 #include "StructFact.H"
-#endif
 
 #include "StochMomFlux.H"
 
@@ -737,7 +735,6 @@ void main_driver(const char* argv)
     // structure factor for charge-charge
     ///////////////////////////////////////////
 
-#ifndef AMREX_USE_CUDA
     // names of variables in struct_cc_charge
     Vector< std::string > var_names_charge(1);
     var_names_charge[0] = "charge";
@@ -803,7 +800,6 @@ void main_driver(const char* argv)
 
     StructFact structFact_vel(ba,dmap,var_names_vel,scaling_vel,
                               s_pairA_vel,s_pairB_vel);
-#endif
 
 //    WritePlotFile(0, time, geom, geomC, geomP,
 //                  particleInstant, particleMeans, particleVars, particles,
@@ -814,7 +810,9 @@ void main_driver(const char* argv)
     remove("bulkFlowEst");
     //Time stepping loop
 
+
     dt = dt*1e-5;
+
     for (int istep=step; istep<=max_step; ++istep) {
 
         // timer for time step
@@ -853,7 +851,7 @@ void main_driver(const char* argv)
 
         if(istep == 1)
         {
-            //particles.SetPosition(1, prob_hi[0]*0.4, prob_hi[1]*0.5, prob_hi[2]*0.4);
+            //particles.SetPosition(1, prob_hi[0]*0.42, prob_hi[1]*(1.0/128.0), prob_hi[2]*0.42);
             //particles.SetPosition(2, prob_hi[0]*0.1, prob_hi[1]*0.5, prob_hi[2]*0.5);
            
         }
@@ -880,6 +878,13 @@ void main_driver(const char* argv)
             // set velx/y/z and forcex/y/z for each particle to zero
             particles.ResetMarkers(0);
         }
+
+        Real origin[3];
+        origin[0] = prob_hi[0]/2.0;
+        origin[1] = prob_hi[1]/2.0;
+        origin[2] = prob_hi[2]/2.0;
+
+        particles.potentialFunction(origin);
 
         // sr_tog is short range forces
         // es_tog is electrostatic solve (0=off, 1=Poisson, 2=Pairwise, 3=P3M)
@@ -991,6 +996,7 @@ void main_driver(const char* argv)
 
             // compute g(r)
             particles.RadialDistribution(simParticles, istep, ionParticle);
+            //particles.potentialDistribution(simParticles, istep, ionParticle);
 
             // timer
             Real time_PC2 = ParallelDescriptor::second() - time_PC1;
@@ -1031,7 +1037,6 @@ void main_driver(const char* argv)
         
 	//_______________________________________________________________________
 	// Update structure factor
-#ifndef AMREX_USE_CUDA
         if (struct_fact_int > 0 &&
             istep > amrex::Math::abs(n_steps_skip) &&
             (istep-amrex::Math::abs(n_steps_skip)-1)%struct_fact_int == 0) {
@@ -1052,7 +1057,6 @@ void main_driver(const char* argv)
                 structFact_vel   .WritePlotFile(istep,time,geom ,"plt_SF_vel");
             }
         }
-#endif
 
         // FIXME - AJN: at the moment we are writing out plotfile plot_int-1 also
         // because the time-averaging for the fields resets at n_steps_skip
@@ -1110,8 +1114,6 @@ void main_driver(const char* argv)
 
         amrex::Print() << "Curent     FAB megabyte spread across MPI nodes: ["
                        << min_fab_megabytes << " ... " << max_fab_megabytes << "]\n";
-
-        //particles.PrintParticles(); 
         
     }
     ///////////////////////////////////////////

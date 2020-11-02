@@ -6,9 +6,8 @@
 
 #include "StochMomFlux.H"
 
-#ifndef AMREX_USE_CUDA
 #include "StructFact.H"
-#endif
+#include "TurbForcing.H"
 
 #include "rng_functions_F.H"
 
@@ -103,6 +102,9 @@ void main_driver(const char* argv)
     }
     /////////////////////////////////////////
 
+    // object for turbulent forcing
+    TurbForcing tf(ba,dmap,geom,turb_a,turb_b);
+
     ///////////////////////////////////////////
     // rho, alpha, beta, gamma:
     ///////////////////////////////////////////
@@ -112,31 +114,30 @@ void main_driver(const char* argv)
 
     // alpha_fc arrays
     std::array< MultiFab, AMREX_SPACEDIM > alpha_fc;
-    AMREX_D_TERM(alpha_fc[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
-                 alpha_fc[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
-                 alpha_fc[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
+    AMREX_D_TERM(alpha_fc[0].define(convert(ba,nodal_flag_x), dmap, 1, 0);,
+                 alpha_fc[1].define(convert(ba,nodal_flag_y), dmap, 1, 0);,
+                 alpha_fc[2].define(convert(ba,nodal_flag_z), dmap, 1, 0););
     AMREX_D_TERM(alpha_fc[0].setVal(dtinv);,
                  alpha_fc[1].setVal(dtinv);,
                  alpha_fc[2].setVal(dtinv););
 
     // beta cell centred
     MultiFab beta(ba, dmap, 1, 1);
-    beta.setVal(visc_coef);
+    beta.setVal(0.5*visc_coef); // multiply by 0.5 here
 
     // beta on nodes in 2d
     // beta on edges in 3d
     std::array< MultiFab, NUM_EDGE > beta_ed;
 #if (AMREX_SPACEDIM == 2)
-    beta_ed[0].define(convert(ba,nodal_flag), dmap, 1, 1);
-    beta_ed[0].setVal(visc_coef);
+    beta_ed[0].define(convert(ba,nodal_flag), dmap, 1, 0);
 #elif (AMREX_SPACEDIM == 3)
-    beta_ed[0].define(convert(ba,nodal_flag_xy), dmap, 1, 1);
-    beta_ed[1].define(convert(ba,nodal_flag_xz), dmap, 1, 1);
-    beta_ed[2].define(convert(ba,nodal_flag_yz), dmap, 1, 1);
-    beta_ed[0].setVal(visc_coef);
-    beta_ed[1].setVal(visc_coef);
-    beta_ed[2].setVal(visc_coef);
+    beta_ed[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
+    beta_ed[1].define(convert(ba,nodal_flag_xz), dmap, 1, 0);
+    beta_ed[2].define(convert(ba,nodal_flag_yz), dmap, 1, 0);
 #endif
+    for (int d=0; d<NUM_EDGE; ++d) {
+        beta_ed[d].setVal(0.5*visc_coef); // multiply by 0.5 here
+    }    
 
     // cell-centered gamma
     MultiFab gamma(ba, dmap, 1, 1);
@@ -158,7 +159,7 @@ void main_driver(const char* argv)
     std::array< MultiFab, NUM_EDGE >   eta_ed;
     std::array< MultiFab, NUM_EDGE >  temp_ed;
     // eta cell-centered
-    eta_cc.define(ba, dmap, 1, 1);
+    eta_cc.define(ba, dmap, 1, 0);
     // temperature cell-centered
     temp_cc.define(ba, dmap, 1, 1);
 #if (AMREX_SPACEDIM == 2)
@@ -219,7 +220,6 @@ void main_driver(const char* argv)
     // Declare object of StochMomFlux class
     StochMomFlux sMflux (ba,dmap,geom,n_rngs);
 
-#ifndef AMREX_USE_CUDA
     ///////////////////////////////////////////
     // Initialize structure factor object for analysis
     ///////////////////////////////////////////
@@ -273,7 +273,6 @@ void main_driver(const char* argv)
     StructFact structFact(ba,dmap,var_names,var_scaling,s_pairA,s_pairB);
 #endif
     
-#endif
 
     ///////////////////////////////////////////
     
@@ -298,7 +297,7 @@ void main_driver(const char* argv)
     std::array< MultiFab, AMREX_SPACEDIM > umac;
 
     if (restart > 0) {
-        ReadCheckPoint(step_start,time,umac,tracer);
+        ReadCheckPoint(step_start,time,umac,tracer,tf);
     }
     else {
 
@@ -347,7 +346,6 @@ void main_driver(const char* argv)
         step_start = 1;
         time = 0.;
 
-#ifndef AMREX_USE_CUDA        
         // We do the analysis first so we include the initial condition in the files if n_steps_skip=0
         if (n_steps_skip == 0 && struct_fact_int > 0) {
 
@@ -359,17 +357,14 @@ void main_driver(const char* argv)
             }
             structFact.FortStructure(structFactMF,geom);
         }
-#endif
 
         // write out initial state
         // write out umac, tracer, pres, and divergence to a plotfile
         if (plot_int > 0) {
             WritePlotFile(step_start,time,geom,umac,tracer,pres);
-#ifndef AMREX_USE_CUDA
             if (n_steps_skip == 0 && struct_fact_int > 0) {
                 structFact.WritePlotFile(0,0.,geom,"plt_SF");
             }
-#endif
         }
 
     }
@@ -395,12 +390,11 @@ void main_driver(const char* argv)
 	}
 
 	// Advance umac
-	advance(umac,umacNew,pres,tracer,mfluxdiv_stoch,
-		alpha_fc,beta,gamma,beta_ed,geom,dt);
+        advance(umac,umacNew,pres,tracer,mfluxdiv_stoch,
+                alpha_fc,beta,gamma,beta_ed,geom,dt,tf);
 
 	//////////////////////////////////////////////////
 
-#ifndef AMREX_USE_CUDA
 	if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip)%struct_fact_int == 0) {
 
             // add this snapshot to the average in the structure factor
@@ -411,7 +405,6 @@ void main_driver(const char* argv)
             }
             structFact.FortStructure(structFactMF,geom);
         }
-#endif
         
         Real step_stop_time = ParallelDescriptor::second() - step_strt_time;
         ParallelDescriptor::ReduceRealMax(step_stop_time);
@@ -423,16 +416,14 @@ void main_driver(const char* argv)
         if (plot_int > 0 && step%plot_int == 0) {
             // write out umac, tracer, pres, and divergence to a plotfile
             WritePlotFile(step,time,geom,umac,tracer,pres);
-#ifndef AMREX_USE_CUDA
             if (step > n_steps_skip && struct_fact_int > 0) {
                 structFact.WritePlotFile(step,time,geom,"plt_SF");
             }
-#endif
         }
 
         if (chk_int > 0 && step%chk_int == 0) {
             // write out umac and tracer to a checkpoint file
-            WriteCheckPoint(step,time,umac,tracer);
+            WriteCheckPoint(step,time,umac,tracer,tf);
         }
 
         // MultiFab memory usage

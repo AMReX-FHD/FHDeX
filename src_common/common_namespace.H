@@ -244,6 +244,10 @@ namespace common {
     extern amrex::Real                scaling_factor;
     extern amrex::Real                source_strength;
     extern int                        regrid_int;    
-    extern int                        do_reflux;    
+    extern int                        do_reflux;
+
+    // parameters for turbulent forcing example
+    extern amrex::Real                turb_a;
+    extern amrex::Real                turb_b;
 
 }

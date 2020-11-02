@@ -177,6 +177,9 @@ module common_namelist_module
   integer,            save :: regrid_int
   integer,            save :: do_reflux
 
+  double precision,   save :: turb_a
+  double precision,   save :: turb_b
+
   ! Problem specification
   namelist /common/ prob_lo       ! physical lo coordinate
   namelist /common/ prob_hi       ! physical hi coordinate
@@ -377,6 +380,10 @@ module common_namelist_module
   namelist /common/ regrid_int
   namelist /common/ do_reflux
 
+  ! turblent forcing parameters
+  namelist /common/ turb_a
+  namelist /common/ turb_b
+
 contains
 
   ! read in fortran namelist into common_params_module
@@ -493,6 +500,10 @@ contains
     source_strength = 0.1
     regrid_int = 25
     do_reflux  = 0
+
+    turb_a = 1.d0
+    turb_b = 1.d0
+
     particle_motion = 0
 
     graphene_tog = 0
@@ -571,7 +582,8 @@ contains
                                          dry_move_tog_in, sr_tog_in, graphene_tog_in, crange_in, &
                                          thermostat_tog_in, zero_net_force_in, images_in, eamp_in, efreq_in, ephase_in, &
                                          plot_ascii_in, solve_chem_in, diffcoeff_in, scaling_factor_in, &
-                                         source_strength_in, regrid_int_in, do_reflux_in, particle_motion_in) &
+                                         source_strength_in, regrid_int_in, do_reflux_in, particle_motion_in, &
+                                         turb_a_in, turb_b_in) &
                                          bind(C, name="initialize_common_namespace")
 
     double precision,       intent(inout) :: prob_lo_in(AMREX_SPACEDIM)
@@ -728,6 +740,9 @@ contains
     integer,                intent(inout) :: do_reflux_in
     integer,                intent(inout) :: particle_motion_in
 
+    double precision,       intent(inout) :: turb_a_in
+    double precision,       intent(inout) :: turb_b_in
+
     prob_lo_in = prob_lo
     prob_hi_in = prob_hi
     n_cells_in = n_cells
@@ -875,6 +890,9 @@ contains
     regrid_int_in = regrid_int
     do_reflux_in  = do_reflux
     particle_motion_in = particle_motion
+
+    turb_a_in = turb_a
+    turb_b_in = turb_b
 
   end subroutine initialize_common_namespace
 

@@ -40,15 +40,13 @@ include $(FHDeX)/src_hydro/src_F90/Make.package
 VPATH_LOCATIONS   += $(FHDeX)/src_hydro/src_F90
 INCLUDE_LOCATIONS += $(FHDeX)/src_hydro/src_F90
 
-ifeq ($(USE_CUDA),FALSE)
- include $(FHDeX)/src_analysis/Make.package
- VPATH_LOCATIONS   += $(FHDeX)/src_analysis/
- INCLUDE_LOCATIONS += $(FHDeX)/src_analysis/
+include $(FHDeX)/src_analysis/Make.package
+VPATH_LOCATIONS   += $(FHDeX)/src_analysis/
+INCLUDE_LOCATIONS += $(FHDeX)/src_analysis/
 
- include $(FHDeX)/src_analysis/src_F90/Make.package
- VPATH_LOCATIONS   += $(FHDeX)/src_analysis/src_F90
- INCLUDE_LOCATIONS += $(FHDeX)/src_analysis/src_F90
-endif
+include $(FHDeX)/src_analysis/src_F90/Make.package
+VPATH_LOCATIONS   += $(FHDeX)/src_analysis/src_F90
+INCLUDE_LOCATIONS += $(FHDeX)/src_analysis/src_F90
 
 include $(FHDeX)/src_gmres/Make.package
 VPATH_LOCATIONS   += $(FHDeX)/src_gmres/
@@ -104,11 +102,9 @@ include $(AMREX_HOME)/Src/LinearSolvers/C_CellMG/Make.package
 include $(AMREX_HOME)/Src/LinearSolvers/MLMG/Make.package
 include $(AMREX_HOME)/Src/Particle/Make.package
 
-ifeq ($(USE_CUDA),FALSE)
- include $(AMREX_HOME)/Src/Extern/SWFFT/Make.package
- INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Extern/SWFFT
- VPATH_LOCATIONS   += $(AMREX_HOME)/Src/Extern/SWFFT
-endif
+include $(AMREX_HOME)/Src/Extern/SWFFT/Make.package
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Extern/SWFFT
+VPATH_LOCATIONS   += $(AMREX_HOME)/Src/Extern/SWFFT
 
 #ifeq ($(NERSC_HOST),) # check if NERSC_HOST is empty => hack to test if on cori
 #    LIBRARIES += -L$(FFTW_DIR) -lfftw3
