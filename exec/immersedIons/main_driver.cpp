@@ -437,7 +437,7 @@ void main_driver(const char* argv)
             // if particle count is negative, we instead compute the number of particles based on particle density and particle_neff
             ionParticle[i].total = (int)amrex::Math::ceil(particle_n0[i]*domainVol/particle_neff);
             // adjust number of particles up so there is the same number per box  
-            ionParticle[i].ppb = (int)amrex::Math::ceil((double)ionParticle[i].total/(double)ba.size());
+            ionParticle[i].ppb = (double)ionParticle[i].total/(double)ba.size();
             //ionParticle[i].total = ionParticle[i].ppb*ba.size();
             ionParticle[i].n0 = ionParticle[i].total/domainVol;
 
