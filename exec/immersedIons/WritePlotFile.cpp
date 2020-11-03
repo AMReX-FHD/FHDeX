@@ -206,6 +206,12 @@ void WritePlotFile(int step,
         std::string asciiName = Concatenate("ascii_means",step,9);
         outputMFAscii(particleMeans, asciiName);
 
+        std::string asciiName1 = Concatenate("ascii_charge_mean",step,9);
+        outputMFAscii(chargeM, asciiName1);
+
+        std::string asciiName2 = Concatenate("ascii_potential_mean",step,9);
+        outputMFAscii(potentialM, asciiName2);
+
         std::string asciiPName = Concatenate("asciiParticles",step,9);
         particles.WriteParticlesAscii(asciiPName);
     }
