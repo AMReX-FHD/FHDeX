@@ -36,7 +36,7 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
                     p.idata(FHD_intData::sorted) = 0;
                 
                     p.pos(0) = prob_lo[0] + get_uniform_func()*(prob_hi[0]-prob_lo[0]);
-                    p.pos(1) = prob_lo[1] + get_uniform_func()*(prob_hi[1]-prob_lo[1]);
+                    p.pos(1) = prob_lo[1] + 0.00*(prob_hi[1]-prob_lo[1]) + 1.0*get_uniform_func()*(prob_hi[1]-prob_lo[1]);
 #if (BL_SPACEDIM == 3)
                     p.pos(2) = prob_lo[2] + get_uniform_func()*(prob_hi[2]-prob_lo[2]);
 #endif
@@ -48,8 +48,8 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
 //#endif
                     p.rdata(FHD_realData::q) = particleInfo[i_spec].q;
 
-                     std::cout << "proc " << ParallelDescriptor::MyProc() << " Pos: " << p.pos(0) << ", " << p.pos(1) << ", " << p.pos(2)
-                               << ", " << p.rdata(FHD_realData::q) << ", " << p.id() << "\n" ;
+ //                    std::cout << "proc " << ParallelDescriptor::MyProc() << " Pos: " << p.pos(0) << ", " << p.pos(1) << ", " << p.pos(2)
+  //                             << ", " << p.rdata(FHD_realData::q) << ", " << p.id() << "\n" ;
 
                     //original position stored for MSD calculations
                     p.rdata(FHD_realData::ox) = p.pos(0);

@@ -196,7 +196,7 @@ void main_driver(const char* argv)
         // (11) Cx
         // (12) Cy
         // (13) Cz
-        particleMeans.define(bc, dmap, 14, 0);
+        particleMeans.define(bc, dmap, 14+nspecies, 0);
         particleMeans.setVal(0.);
         
         // Variables (C++ index)
@@ -218,7 +218,7 @@ void main_driver(const char* argv)
         // (15) Cx
         // (16) Cy
         // (17) Cz 
-        particleVars.define(bc, dmap, 18, 0);
+        particleVars.define(bc, dmap, 18+nspecies, 0);
         particleVars.setVal(0.);
 
         //Cell centred es potential
@@ -437,7 +437,7 @@ void main_driver(const char* argv)
             // if particle count is negative, we instead compute the number of particles based on particle density and particle_neff
             ionParticle[i].total = (int)amrex::Math::ceil(particle_n0[i]*domainVol/particle_neff);
             // adjust number of particles up so there is the same number per box  
-            ionParticle[i].ppb = (int)amrex::Math::ceil((double)ionParticle[i].total/(double)ba.size());
+            ionParticle[i].ppb = (double)ionParticle[i].total/(double)ba.size();
             //ionParticle[i].total = ionParticle[i].ppb*ba.size();
             ionParticle[i].n0 = ionParticle[i].total/domainVol;
 
@@ -459,7 +459,7 @@ void main_driver(const char* argv)
     Print() << "Sim particles per cell: " << simParticles/totalCollisionCells << "\n";
 
     // see the variable list used above above for particleMeans
-    MultiFab particleInstant(bc, dmap, 14, 0);
+    MultiFab particleInstant(bc, dmap, 14+nspecies, 0);
     
     //-----------------------------
     //  Hydro setup
@@ -879,12 +879,12 @@ void main_driver(const char* argv)
             particles.ResetMarkers(0);
         }
 
-        Real origin[3];
-        origin[0] = prob_hi[0]/2.0;
-        origin[1] = prob_hi[1]/2.0;
-        origin[2] = prob_hi[2]/2.0;
+//        Real origin[3];
+//        origin[0] = prob_hi[0]/2.0;
+//        origin[1] = prob_hi[1]/2.0;
+//        origin[2] = prob_hi[2]/2.0;
 
-        particles.potentialFunction(origin);
+//        particles.potentialFunction(origin);
 
         // sr_tog is short range forces
         // es_tog is electrostatic solve (0=off, 1=Poisson, 2=Pairwise, 3=P3M)

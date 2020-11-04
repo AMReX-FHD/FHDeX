@@ -17,6 +17,7 @@ CEXE_sources += Debug.cpp
 CEXE_sources += FindCoords.cpp
 CEXE_sources += FindNodalValues.cpp
 CEXE_sources += MultiFabPhysBC.cpp
+CEXE_sources += NormInnerProduct.cpp
 CEXE_sources += SqrtMF.cpp
 
 

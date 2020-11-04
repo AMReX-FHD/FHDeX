@@ -114,4 +114,12 @@ void advanceLowMach(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
 	       const std::array< MultiFab, NUM_EDGE >& beta_ed,
 	       const Geometry geom, const Real& dt);
 
+/////////////////////////////////////////////////////////////////////////////////
+// in Vorticity.cpp
+
+void MagVort(const std::array< MultiFab, AMREX_SPACEDIM >& umac,
+             MultiFab& magvort,
+             const Geometry& geom,
+             int outcomp=0);
+
 #endif

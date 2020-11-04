@@ -1,5 +1,4 @@
 CEXE_sources   += ApplyMatrix.cpp
-CEXE_sources   += NormInnerProduct.cpp
 CEXE_sources   += StagApplyOp.cpp
 CEXE_sources   += Utility.cpp
 

@@ -369,12 +369,8 @@ void main_driver(const char* argv)
 
     }
 
-    ///////////////////////////////////////////   
+    ///////////////////////////////////////////
 
-    // initial guess for new solution
-    for (int i=0; i<AMREX_SPACEDIM; i++) {
-      MultiFab::Copy(umacNew[i], umac[i], 0, 0, 1, 0);
-    }
     //Time stepping loop
     for(int step=step_start;step<=max_step;++step) {
 
@@ -425,6 +421,14 @@ void main_driver(const char* argv)
             // write out umac and tracer to a checkpoint file
             WriteCheckPoint(step,time,umac,tracer,tf);
         }
+
+        // compute kinetic energy integral(sqrt(U dot U) dV)
+        Real dVol = (AMREX_SPACEDIM==2) ? dx[0]*dx[1]*cell_depth : dx[0]*dx[1]*dx[2];
+        Vector<Real> udotu(3);
+        StagInnerProd(geom,umac,0,umac,0,umacNew,udotu);
+        Print() << "Kinetic energy "
+                << dVol*std::sqrt( udotu[0]*udotu[0] + udotu[1]*udotu[1] + udotu[2]*udotu[2] )
+                << std::endl;
 
         // MultiFab memory usage
         const int IOProc = ParallelDescriptor::IOProcessorNumber();
