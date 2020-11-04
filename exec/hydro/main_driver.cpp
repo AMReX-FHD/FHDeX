@@ -282,10 +282,10 @@ void main_driver(const char* argv)
     MultiFab pres(ba,dmap,1,1);
     pres.setVal(0.);  // initial guess
 
-    std::array< MultiFab, AMREX_SPACEDIM > umacNew;
-    AMREX_D_TERM(umacNew[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
-                 umacNew[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
-                 umacNew[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););   
+    std::array< MultiFab, AMREX_SPACEDIM > umacTemp;
+    AMREX_D_TERM(umacTemp[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
+                 umacTemp[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
+                 umacTemp[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););   
     
     int step_start;
     amrex::Real time;
@@ -296,6 +296,10 @@ void main_driver(const char* argv)
     // staggered velocities
     std::array< MultiFab, AMREX_SPACEDIM > umac;
 
+    // storage for grad(U) for energy dissipation calculation
+    MultiFab gradU(ba,dmap,3,0);
+    MultiFab ccTemp(ba,dmap,1,0);
+    
     if (restart > 0) {
         ReadCheckPoint(step_start,time,umac,tracer,tf);
     }
@@ -331,7 +335,7 @@ void main_driver(const char* argv)
     		   BL_TO_FORTRAN_ANYD(tracer[mfi]),
     		   dx, ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
 
-    }
+        }
     
         // Add initial equilibrium fluctuations
         if(initial_variance_mom != 0.0) {
@@ -339,9 +343,13 @@ void main_driver(const char* argv)
         }
 
         // Project umac onto divergence free field
-        MultiFab macrhs(ba,dmap,1,1);
-        macrhs.setVal(0.0);
-        MacProj_hydro(umac,rho,geom,true);
+        {
+            // macrhs only used once at beginning of simulaton
+            // put this in braces so it goes out of scope immediately
+            MultiFab macrhs(ba,dmap,1,1);
+            macrhs.setVal(0.0);
+            MacProj_hydro(umac,rho,geom,true);
+        }
 
         step_start = 1;
         time = 0.;
@@ -386,7 +394,7 @@ void main_driver(const char* argv)
 	}
 
 	// Advance umac
-        advance(umac,umacNew,pres,tracer,mfluxdiv_stoch,
+        advance(umac,umacTemp,pres,tracer,mfluxdiv_stoch,
                 alpha_fc,beta,gamma,beta_ed,geom,dt,tf);
 
 	//////////////////////////////////////////////////
@@ -422,12 +430,21 @@ void main_driver(const char* argv)
             WriteCheckPoint(step,time,umac,tracer,tf);
         }
 
-        // compute kinetic energy integral(sqrt(U dot U) dV)
+        // compute kinetic energy integral( (1/2) * rho * U dot U dV)
         Real dVol = (AMREX_SPACEDIM==2) ? dx[0]*dx[1]*cell_depth : dx[0]*dx[1]*dx[2];
         Vector<Real> udotu(3);
-        StagInnerProd(geom,umac,0,umac,0,umacNew,udotu);
+        StagInnerProd(geom,umac,0,umac,0,umacTemp,udotu);
         Print() << "Kinetic energy "
-                << dVol*std::sqrt( udotu[0]*udotu[0] + udotu[1]*udotu[1] + udotu[2]*udotu[2] )
+                << 0.5*dVol*( udotu[0] + udotu[1] + udotu[2] )
+                << std::endl;
+
+        // compute energy dissipation integral(eta grad(U) dot grad(U))
+        ComputeCentredGradFC(umac,gradU,geom);
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            CCInnerProd(gradU,d,gradU,d,ccTemp,udotu[d]);
+        }
+        Print() << "Energy dissipation "
+                << visc_coef*dVol*( udotu[0] + udotu[1] + udotu[2] )
                 << std::endl;
 
         // MultiFab memory usage
