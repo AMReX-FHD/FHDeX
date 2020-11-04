@@ -6,6 +6,8 @@
 
 #include "common_functions.H"
 
+#include "hydro_functions.H"
+
 
 
 void WritePlotFile(int step,
@@ -28,10 +30,11 @@ void WritePlotFile(int step,
 
     // plot all the velocity variables (averaged)
     // plot all the velocity variables (shifted)
+    // plot magvort
     // plot pressure
     // plot tracer
     // plot divergence
-    int nPlot = 2*AMREX_SPACEDIM+3;
+    int nPlot = 2*AMREX_SPACEDIM+4;
 
     MultiFab plotfile(ba, dmap, nPlot, 0);
 
@@ -52,6 +55,7 @@ void WritePlotFile(int step,
         varNames[cnt++] = x;
     }
 
+    varNames[cnt++] = "magvort";
     varNames[cnt++] = "tracer";
     varNames[cnt++] = "pres";
     varNames[cnt++] = "divergence";
@@ -68,6 +72,10 @@ void WritePlotFile(int step,
         ShiftFaceToCC(umac[i],0,plotfile,cnt,1);
         cnt++;
     }
+
+    // magnitude of vorticity
+    MagVort(umac,plotfile,geom,cnt);
+    cnt++;
 
     // copy tracer into plotfile
     MultiFab::Copy(plotfile, tracer, 0, cnt, 1, 0);
