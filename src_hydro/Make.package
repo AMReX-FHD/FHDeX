@@ -6,6 +6,7 @@ CEXE_sources += MkAdvSFluxdiv.cpp
 CEXE_sources += StochMomFlux.cpp
 CEXE_sources += MacProj_hydro.cpp
 CEXE_sources += HydroBCs.cpp
+CEXE_sources += Vorticity.cpp
 CEXE_sources += advance.cpp
 
 CEXE_headers += hydro_functions.H
