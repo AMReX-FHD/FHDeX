@@ -422,11 +422,12 @@ void main_driver(const char* argv)
             WriteCheckPoint(step,time,umac,tracer,tf);
         }
 
-        // compute kinetic energy sum(sqrt(U dot U))
+        // compute kinetic energy integral(sqrt(U dot U) dV)
+        Real dVol = (AMREX_SPACEDIM==2) ? dx[0]*dx[1]*cell_depth : dx[0]*dx[1]*dx[2];
         Vector<Real> udotu(3);
         StagInnerProd(geom,umac,0,umac,0,umacNew,udotu);
         Print() << "Kinetic energy "
-                << std::sqrt( udotu[0]*udotu[0] + udotu[1]*udotu[1] + udotu[2]*udotu[2] )
+                << dVol*std::sqrt( udotu[0]*udotu[0] + udotu[1]*udotu[1] + udotu[2]*udotu[2] )
                 << std::endl;
 
         // MultiFab memory usage
