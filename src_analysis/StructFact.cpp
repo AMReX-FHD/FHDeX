@@ -211,7 +211,7 @@ StructFact::StructFact(const BoxArray ba_in, const DistributionMapping dmap_in,
   }
 }
 
-void StructFact::FortStructure(const MultiFab& variables, const Geometry geom) {
+void StructFact::FortStructure(const MultiFab& variables, const Geometry geom, const int reset) {
 
   BL_PROFILE_VAR("StructFact::FortStructure()",FortStructure);
 
@@ -244,17 +244,30 @@ void StructFact::FortStructure(const MultiFab& variables, const Geometry geom) {
     MultiFab::AddProduct(cov_temp,variables_dft_real,i,variables_dft_real,j,0,1,0);
     MultiFab::AddProduct(cov_temp,variables_dft_imag,i,variables_dft_imag,j,0,1,0);
 
-    MultiFab::Add(cov_real,cov_temp,0,index,1,0);
+    if (reset == 1) {
+        MultiFab::Copy(cov_real,cov_temp,0,index,1,0);
+    } else {
+        MultiFab::Add(cov_real,cov_temp,0,index,1,0);
+    }
 
     // Imaginary component of covariance
     cov_temp.setVal(0.0);
     MultiFab::AddProduct(cov_temp,variables_dft_imag,i,variables_dft_real,j,0,1,0);
     cov_temp.mult(-1.0,0);
     MultiFab::AddProduct(cov_temp,variables_dft_real,i,variables_dft_imag,j,0,1,0);
-      
-    MultiFab::Add(cov_imag,cov_temp,0,index,1,0);
-      
-    index++;
+
+    if (reset == 1) {
+        MultiFab::Copy(cov_imag,cov_temp,0,index,1,0);
+    } else {
+        MultiFab::Add(cov_imag,cov_temp,0,index,1,0);
+    }
+
+    if (reset == 1) {
+        index = 1;
+    } else {
+        index++;
+    }
+
   }
 
   bool write_data = false;

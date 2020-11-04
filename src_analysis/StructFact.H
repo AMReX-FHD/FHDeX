@@ -66,7 +66,8 @@ public:
                const amrex::Vector< amrex::Real >&,
                const int verbosity=0);
 
-    void FortStructure(const amrex::MultiFab&, const amrex::Geometry);
+    void FortStructure(const amrex::MultiFab&, const amrex::Geometry,
+                       const int reset=0);
     
     void Finalize(amrex::MultiFab&, amrex::MultiFab&, 
                   const int zero_avg=1);
