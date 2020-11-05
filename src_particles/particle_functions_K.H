@@ -270,28 +270,36 @@ void force_function2 (      FhdParticleContainer::ParticleType& part1,
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void repulsive_force (      FhdParticleContainer::ParticleType& part1,
                       const FhdParticleContainer::ParticleType& part2,
-                      amrex::Real dx, amrex::Real dy, amrex::Real dz, amrex::Real dr2, amrex::Real dr2min)
+                      amrex::Real dx, amrex::Real dy, amrex::Real dz, amrex::Real dr2)
 {
     using namespace amrex;
 
+    const Real eps1 = part1.rdata(FHD_realData::eepsilon);
     const Real sig1 = part1.rdata(FHD_realData::sigma);
     const Real sig2 = part2.rdata(FHD_realData::sigma);
     const Real fac1 = std::pow((sig1 + sig2)/4.0, 12);
     const Real fac2 = std::pow((sig1 + sig2)/4.0, 6);
-
-    Real ff;
-    if ((sr_tog==1) || (sr_tog==2)) // WCA
-    {
-        const Real eps1 = part1.rdata(FHD_realData::eepsilon);
-        ff = eps1*4*(1./(dr2min*dr2min*dr2min*dr2min))*(-12*fac1/(dr2min*dr2min*dr2min) + 6*fac2);
-    }
-    else if ((sr_tog==3) || (sr_tog==4)) // Shifted repulsive LJ
-    {
-        const Real eps1 = k_B*T_init[0];
-        ff = eps1*4*(1./(dr2*dr2*dr2*dr2))*(-12*fac1/(dr2*dr2*dr2) + 6*fac2);
-    }
+    const Real ff = eps1*4*(1./(dr2*dr2*dr2*dr2))*(-12*fac1/(dr2*dr2*dr2) + 6*fac2);
     
-    //std::cout << ff << std::endl;
+    part1.rdata(FHD_realData::forcex) -= dx*ff;
+    part1.rdata(FHD_realData::forcey) -= dy*ff;
+    part1.rdata(FHD_realData::forcez) -= dz*ff;
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void repulsive_force_lj (      FhdParticleContainer::ParticleType& part1,
+                         const FhdParticleContainer::ParticleType& part2,
+                         amrex::Real dx, amrex::Real dy, amrex::Real dz, amrex::Real dr2)
+{
+    using namespace amrex;
+
+    const Real eps1 = k_B*T_init[0];
+    const Real sig1 = part1.rdata(FHD_realData::sigma);
+    const Real sig2 = part2.rdata(FHD_realData::sigma);
+    const Real fac1 = std::pow((sig1 + sig2)/4.0, 12);
+    const Real fac2 = std::pow((sig1 + sig2)/4.0, 6);
+    const Real ff = eps1*4*(1./(dr2*dr2*dr2*dr2))*(-12*fac1/(dr2*dr2*dr2) + 6*fac2);
+    
     part1.rdata(FHD_realData::forcex) -= dx*ff;
     part1.rdata(FHD_realData::forcey) -= dy*ff;
     part1.rdata(FHD_realData::forcez) -= dz*ff;
@@ -299,30 +307,35 @@ void repulsive_force (      FhdParticleContainer::ParticleType& part1,
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void repulsive_force_wall (      FhdParticleContainer::ParticleType& part1,
-                      amrex::Real dx, amrex::Real dy, amrex::Real dz, amrex::Real dr2,  amrex::Real dr2min)
+                      amrex::Real dx, amrex::Real dy, amrex::Real dz, amrex::Real dr2)
 {
     using namespace amrex;
 
     //note that we are adjusting eps for the different wall potential
+    const Real eps1 = 0.02*part1.rdata(FHD_realData::eepsilon);
     const Real sig1 = part1.rdata(FHD_realData::sigma);
 
-    Real ff;
-    if (sr_tog==2) // WCA walls
-    {
-        const Real fac1 = std::pow((sig1)/2.0, 9);
-        const Real fac2 = std::pow((sig1)/2.0, 3);
-        const Real eps1 = 0.02*part1.rdata(FHD_realData::eepsilon);
-        ff = eps1*1.5*sqrt(3)*(1./(dr2min*dr2min*sqrt(dr2min)))*(-9*fac1/(dr2min*dr2min*dr2min) + 3*fac2);
-    }
-    else if (sr_tog == 4) // LJ walls shifted repulsive 
-    {
-        const Real fac1 = std::pow((sig1)/2.0, 9);
-        const Real fac2 = std::pow((sig1)/2.0, 3);
-        const Real eps1 = 0.02*part1.rdata(FHD_realData::eepsilon);
-        ff = eps1*1.5*sqrt(3)*(1./(dr2min*dr2min*sqrt(dr2min)))*(-9*fac1/(dr2min*dr2min*dr2min) + 3*fac2);
-    }
+    const Real fac1 = std::pow((sig1)/2.0, 9);
+    const Real fac2 = std::pow((sig1)/2.0, 3);
+    const Real ff = eps1*1.5*sqrt(3)*(1./(dr2*dr2*sqrt(dr2)))*(-9*fac1/(dr2*dr2*dr2) + 3*fac2);
+    
+    part1.rdata(FHD_realData::forcex) -= dx*ff;
+    part1.rdata(FHD_realData::forcey) -= dy*ff;
+    part1.rdata(FHD_realData::forcez) -= dz*ff;
+}
 
-    //std::cout << dr2 << ' ' << dr2min << ' ' << ff << std::endl;
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void repulsive_force_wall_lj (      FhdParticleContainer::ParticleType& part1,
+                      amrex::Real dx, amrex::Real dy, amrex::Real dz, amrex::Real dr2)
+{
+    using namespace amrex;
+
+    const Real eps1 = k_B*T_init[0];
+    const Real sig1 = part1.rdata(FHD_realData::sigma);
+    const Real fac1 = std::pow(sig1/4.0, 12);
+    const Real fac2 = std::pow(sig1/4.0, 6);
+    const Real ff = eps1*4*(1./(dr2*dr2*dr2*dr2))*(-12*fac1/(dr2*dr2*dr2) + 6*fac2);
+
     part1.rdata(FHD_realData::forcex) -= dx*ff;
     part1.rdata(FHD_realData::forcey) -= dy*ff;
     part1.rdata(FHD_realData::forcez) -= dz*ff;
@@ -690,11 +703,17 @@ void compute_forces_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
                 
                 if (r < (1.122*(p1.rdata(FHD_realData::sigma)+p2.rdata(FHD_realData::sigma))/4.0))
                 {
-                    Gpu::Atomic::Add(prcount_d, 1.0);
-                    repulsive_force(p1, p2, dx, dy, dz, r2, r2min);
+                    if (sr_tog <= 2) {
+                        Gpu::Atomic::Add(prcount_d, 1.0);
+                        repulsive_force(p1, p2, dx, dy, dz, r2min);
+                    }
+                    else {
+                        Gpu::Atomic::Add(prcount_d, 1.0);
+                        repulsive_force_lj(p1, p2, dx, dy, dz, r2);
+                    }
                 }
-            }
-        }
+            }    
+        }    
     });
 
     if ((sr_tog == 2) || (sr_tog == 4))
@@ -716,23 +735,16 @@ void compute_forces_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
                 const Real r2min = amrex::max(r2, rmin*rmin);
                 const Real r = sqrt(r2);
                 
-                if ((sr_tog == 2)  || (sr_tog == 4))
+                if ( (r < (1.20094*p1.rdata(FHD_realData::sigma)/4.0)) && (sr_tog == 2) ) 
                 {
-                    if (r < (1.20094*p1.rdata(FHD_realData::sigma)/4.0))
-                    {
-                        Gpu::Atomic::Add(prdcount_d, 1.0);
-                        repulsive_force_wall(p1, dx, dy, dz, r2, r2min);
-                    }
+                    Gpu::Atomic::Add(prdcount_d, 1.0);
+                    repulsive_force_wall(p1, dx, dy, dz, r2min);
                 }
-                //else if (sr_tog == 4) 
-                //{
-                //    if (r < (1.1224*p1.rdata(FHD_realData::sigma)/4.0))
-                //    {
-                //        Gpu::Atomic::Add(prdcount_d, 1.0);
-                //        repulsive_force_wall(p1, dx, dy, dz, r2, r2min);
-                //    }
-                //}
-                printf("here");
+                else if (  (r < (1.122*p1.rdata(FHD_realData::sigma)/4.0)) && (sr_tog == 4) )
+                {
+                    Gpu::Atomic::Add(prdcount_d, 1.0);
+                    repulsive_force_wall_lj(p1, dx, dy, dz, r2);
+                }
 
             });
         }
@@ -751,22 +763,16 @@ void compute_forces_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
                 const Real r2min = amrex::max(r2, rmin*rmin);
                 const Real r = sqrt(r2);
                 
-                if ((sr_tog == 2)  || (sr_tog == 4))
+                if ( (r < (1.20094*p1.rdata(FHD_realData::sigma)/4.0)) && (sr_tog == 2) ) 
                 {
-                    if (r < (1.20094*p1.rdata(FHD_realData::sigma)/4.0))
-                    {
-                        Gpu::Atomic::Add(prdcount_d, 1.0);
-                        repulsive_force_wall(p1, dx, dy, dz, r2, r2min);
-                    }
+                    Gpu::Atomic::Add(prdcount_d, 1.0);
+                    repulsive_force_wall(p1, dx, dy, dz, r2min);
                 }
-                //else if (sr_tog == 4) 
-                //{
-                //    if (r < (1.1224*p1.rdata(FHD_realData::sigma)/4.0))
-                //    {
-                //        Gpu::Atomic::Add(prdcount_d, 1.0);
-                //        repulsive_force_wall(p1, dx, dy, dz, r2, r2min);
-                //    }
-                //}
+                else if (  (r < (1.122*p1.rdata(FHD_realData::sigma)/4.0)) && (sr_tog == 4) )
+                {
+                    Gpu::Atomic::Add(prdcount_d, 1.0);
+                    repulsive_force_wall_lj(p1, dx, dy, dz, r2);
+                }
 
             });
         }
@@ -785,23 +791,17 @@ void compute_forces_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
                 const Real r2min = amrex::max(r2, rmin*rmin);
                 const Real r = sqrt(r2);
                 
-                if ((sr_tog == 2)  || (sr_tog == 4))
+                if ( (r < (1.20094*p1.rdata(FHD_realData::sigma)/4.0)) && (sr_tog == 2) ) 
                 {
-                    if (r < (1.20094*p1.rdata(FHD_realData::sigma)/4.0))
-                    {
-                        Gpu::Atomic::Add(prdcount_d, 1.0);
-                        repulsive_force_wall(p1, dx, dy, dz, r2, r2min);
-                    }
+                    Gpu::Atomic::Add(prdcount_d, 1.0);
+                    repulsive_force_wall(p1, dx, dy, dz, r2min);
                 }
-                //else if (sr_tog == 4) 
-                //{
-                //    if (r < (1.1224*p1.rdata(FHD_realData::sigma)/4.0))
-                //    {
-                //        Gpu::Atomic::Add(prdcount_d, 1.0);
-                //        repulsive_force_wall(p1, dx, dy, dz, r2, r2min);
-                //    }
-                //}
-
+                else if (  (r < (1.122*p1.rdata(FHD_realData::sigma)/4.0)) && (sr_tog == 4) )
+                {
+                    Gpu::Atomic::Add(prdcount_d, 1.0);
+                    repulsive_force_wall_lj(p1, dx, dy, dz, r2);
+                }
+                
             });
         }
 
@@ -819,22 +819,16 @@ void compute_forces_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
                 const Real r2min = amrex::max(r2, rmin*rmin);
                 const Real r = sqrt(r2);
                 
-                if ((sr_tog == 2)  || (sr_tog == 4))
+                if ( (r < (1.20094*p1.rdata(FHD_realData::sigma)/4.0)) && (sr_tog == 2) ) 
                 {
-                    if (r < (1.20094*p1.rdata(FHD_realData::sigma)/4.0))
-                    {
-                        Gpu::Atomic::Add(prdcount_d, 1.0);
-                        repulsive_force_wall(p1, dx, dy, dz, r2, r2min);
-                    }
+                    Gpu::Atomic::Add(prdcount_d, 1.0);
+                    repulsive_force_wall(p1, dx, dy, dz, r2min);
                 }
-                //else if (sr_tog == 4) 
-                //{
-                //    if (r < (1.1224*p1.rdata(FHD_realData::sigma)/4.0))
-                //    {
-                //        Gpu::Atomic::Add(prdcount_d, 1.0);
-                //        repulsive_force_wall(p1, dx, dy, dz, r2, r2min);
-                //    }
-                //}
+                else if (  (r < (1.122*p1.rdata(FHD_realData::sigma)/4.0)) && (sr_tog == 4) )
+                {
+                    Gpu::Atomic::Add(prdcount_d, 1.0);
+                    repulsive_force_wall_lj(p1, dx, dy, dz, r2);
+                }
 
             });
         }
@@ -853,22 +847,16 @@ void compute_forces_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
                 const Real r2min = amrex::max(r2, rmin*rmin);
                 const Real r = sqrt(r2);
                 
-                if ((sr_tog == 2)  || (sr_tog == 4))
+                if ( (r < (1.20094*p1.rdata(FHD_realData::sigma)/4.0)) && (sr_tog == 2) ) 
                 {
-                    if (r < (1.20094*p1.rdata(FHD_realData::sigma)/4.0))
-                    {
-                        Gpu::Atomic::Add(prdcount_d, 1.0);
-                        repulsive_force_wall(p1, dx, dy, dz, r2, r2min);
-                    }
+                    Gpu::Atomic::Add(prdcount_d, 1.0);
+                    repulsive_force_wall(p1, dx, dy, dz, r2min);
                 }
-                //else if (sr_tog == 4) 
-                //{
-                //    if (r < (1.1224*p1.rdata(FHD_realData::sigma)/4.0))
-                //    {
-                //        Gpu::Atomic::Add(prdcount_d, 1.0);
-                //        repulsive_force_wall(p1, dx, dy, dz, r2, r2min);
-                //    }
-                //}
+                else if (  (r < (1.122*p1.rdata(FHD_realData::sigma)/4.0)) && (sr_tog == 4) )
+                {
+                    Gpu::Atomic::Add(prdcount_d, 1.0);
+                    repulsive_force_wall_lj(p1, dx, dy, dz, r2);
+                }
 
             });
         }
@@ -887,29 +875,20 @@ void compute_forces_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
                 const Real r2min = amrex::max(r2, rmin*rmin);
                 const Real r = sqrt(r2);
                 
-                if ((sr_tog == 2)  || (sr_tog == 4))
+                if ( (r < (1.20094*p1.rdata(FHD_realData::sigma)/4.0)) && (sr_tog == 2) ) 
                 {
-                    if (r < (1.20094*p1.rdata(FHD_realData::sigma)/4.0))
-                    {
-                        Gpu::Atomic::Add(prdcount_d, 1.0);
-                        repulsive_force_wall(p1, dx, dy, dz, r2, r2min);
-                    }
+                    Gpu::Atomic::Add(prdcount_d, 1.0);
+                    repulsive_force_wall(p1, dx, dy, dz, r2min);
                 }
-                //else if (sr_tog == 4) 
-                //{
-                //    if (r < (1.1224*p1.rdata(FHD_realData::sigma)/4.0))
-                //    {
-                //        Gpu::Atomic::Add(prdcount_d, 1.0);
-                //        repulsive_force_wall(p1, dx, dy, dz, r2, r2min);
-                //    }
-                //}
+                else if (  (r < (1.122*p1.rdata(FHD_realData::sigma)/4.0)) && (sr_tog == 4) )
+                {
+                    Gpu::Atomic::Add(prdcount_d, 1.0);
+                    repulsive_force_wall_lj(p1, dx, dy, dz, r2);
+                }
 
             });
         }
     }
-
-//    rcount = std::min(rcount, rcount_d.dataValue());
-//    rdcount = std::min(rdcount, rdcount_d.dataValue());
 
     rcount = rcount_d.dataValue();
     rdcount = rdcount_d.dataValue();
