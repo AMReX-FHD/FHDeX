@@ -363,7 +363,7 @@ contains
     !Go through this and optimise later
 
     !double precision fac1, fac2, fac3, test, pairfrac
-    integer i,j,k,p,cell_np, ti, tj, tk, totalparticles
+    integer i,j,k,p,cell_np, ti, tj, tk, totalparticles, l
     double precision membersinv, nrg, totalpx, totalpy, totalpz, rmean, dxinv(3)
 
     totalpx = 0
@@ -412,6 +412,8 @@ contains
       totalpx = totalpx +  part%vel(1)
       totalpy = totalpy +  part%vel(2)
       totalpz = totalpz +  part%vel(3)
+
+      instant(i,j,k,14+part%species) = instant(i,j,k,14+part%species) + part%mass
         
     enddo
 
@@ -440,6 +442,10 @@ contains
           instant(i,j,k,6) = instant(i,j,k,6)*membersinv*0.33333333333333333
 
           instant(i,j,k,11) = instant(i,j,k,11)*instant(i,j,k,2)*instant(i,j,k,5)*membersinv
+
+          do l = 1, nspecies
+            instant(i,j,k,14+l) = instant(i,j,k,14+l)*neff/cellvols(i,j,k)
+          enddo
 
         enddo
       enddo
@@ -487,7 +493,7 @@ contains
     double precision, intent(inout) :: avcurrent(1:3)
 
     !double precision fac1, fac2, fac3, test, pairfrac
-    integer i,j,k, ti, tj, tk, kc, jc
+    integer i,j,k, ti, tj, tk, kc, jc, l
     double precision stepsminusone, stepsinv, cv, cvinv, delg, qmean, delpx, delpy, delpz, delrho, delvelx, delvely, delvelz, delenergy, densitymeaninv
 
     stepsminusone = steps - 1
@@ -504,6 +510,10 @@ contains
 
           means(i,j,k,1) = (means(i,j,k,1)*stepsminusone + instant(i,j,k,1))*stepsinv !member density
           means(i,j,k,2) = (means(i,j,k,2)*stepsminusone + instant(i,j,k,2))*stepsinv !mass density
+
+          do l = 1, nspecies
+            means(i,j,k,14+l) = (means(i,j,k,14+l)*stepsminusone + instant(i,j,k,14+l))*stepsinv
+          enddo
 
 !          if(means(i,j,k,1) .ne. 0) then
 !            print *, i, j, k, means(i,j,k,1)

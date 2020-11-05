@@ -72,44 +72,6 @@ void CCApplyNegLap(MultiFab & phi,
                    const std::array<MultiFab, AMREX_SPACEDIM> & beta_fc,
                    const Geometry & geom);
 
-// In NormInnerProduct.cpp
-void SumStag(const Geometry& geom,
-             const std::array<MultiFab, AMREX_SPACEDIM> & m1,
-	     const int & comp,
-	     Vector<Real> & sum,
-	     const bool & divide_by_ncells=false);
-
-void SumCC(const MultiFab & m1,
-	   const int & comp,
-	   Real & sum,
-	   const bool & divide_by_ncells=false);
-
-void StagInnerProd(const Geometry& geom,
-                   const std::array<MultiFab, AMREX_SPACEDIM> & m1,
-                   const int & comp1,
-                   const std::array<MultiFab, AMREX_SPACEDIM> & m2,
-                   const int & comp2,
-                   std::array<MultiFab, AMREX_SPACEDIM>& mscr,
-                   Vector<Real> & prod_val);
-
-void CCInnerProd(const MultiFab & m1,
-		 const int & comp1,
-		 const MultiFab & m2,
-		 const int & comp2,
-                 amrex::MultiFab& mscr,
-		 Real & prod_val);
-
-void StagL2Norm(const Geometry& geom,
-                const std::array<MultiFab, AMREX_SPACEDIM> & m1,
-		const int & comp,
-                std::array<MultiFab, AMREX_SPACEDIM>& mscr,
-		Real & norm_l2);
-
-void CCL2Norm(const MultiFab & m1,
-	      const int & comp,
-              amrex::MultiFab& mscr,
-	      Real & norm_l2);
-
 // In StagApplyOp.cpp
 void StagApplyOp(const Geometry & geom,
                  const MultiFab & beta_cc,

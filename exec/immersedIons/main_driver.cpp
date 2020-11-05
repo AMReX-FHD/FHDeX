@@ -7,10 +7,8 @@
 #include "species.H"
 #include "paramPlane.H"
 
-#ifndef AMREX_USE_CUDA
 #include "StructFact_F.H"
 #include "StructFact.H"
-#endif
 
 #include "StochMomFlux.H"
 
@@ -198,7 +196,7 @@ void main_driver(const char* argv)
         // (11) Cx
         // (12) Cy
         // (13) Cz
-        particleMeans.define(bc, dmap, 14, 0);
+        particleMeans.define(bc, dmap, 14+nspecies, 0);
         particleMeans.setVal(0.);
         
         // Variables (C++ index)
@@ -220,7 +218,7 @@ void main_driver(const char* argv)
         // (15) Cx
         // (16) Cy
         // (17) Cz 
-        particleVars.define(bc, dmap, 18, 0);
+        particleVars.define(bc, dmap, 18+nspecies, 0);
         particleVars.setVal(0.);
 
         //Cell centred es potential
@@ -439,7 +437,7 @@ void main_driver(const char* argv)
             // if particle count is negative, we instead compute the number of particles based on particle density and particle_neff
             ionParticle[i].total = (int)amrex::Math::ceil(particle_n0[i]*domainVol/particle_neff);
             // adjust number of particles up so there is the same number per box  
-            ionParticle[i].ppb = (int)amrex::Math::ceil((double)ionParticle[i].total/(double)ba.size());
+            ionParticle[i].ppb = (double)ionParticle[i].total/(double)ba.size();
             //ionParticle[i].total = ionParticle[i].ppb*ba.size();
             ionParticle[i].n0 = ionParticle[i].total/domainVol;
 
@@ -461,7 +459,7 @@ void main_driver(const char* argv)
     Print() << "Sim particles per cell: " << simParticles/totalCollisionCells << "\n";
 
     // see the variable list used above above for particleMeans
-    MultiFab particleInstant(bc, dmap, 14, 0);
+    MultiFab particleInstant(bc, dmap, 14+nspecies, 0);
     
     //-----------------------------
     //  Hydro setup
@@ -737,7 +735,6 @@ void main_driver(const char* argv)
     // structure factor for charge-charge
     ///////////////////////////////////////////
 
-#ifndef AMREX_USE_CUDA
     // names of variables in struct_cc_charge
     Vector< std::string > var_names_charge(1);
     var_names_charge[0] = "charge";
@@ -803,7 +800,6 @@ void main_driver(const char* argv)
 
     StructFact structFact_vel(ba,dmap,var_names_vel,scaling_vel,
                               s_pairA_vel,s_pairB_vel);
-#endif
 
 //    WritePlotFile(0, time, geom, geomC, geomP,
 //                  particleInstant, particleMeans, particleVars, particles,
@@ -813,17 +809,52 @@ void main_driver(const char* argv)
 //    WritePlotFileHydro(0, time, geom, umac, pres, umacM, umacV);
     remove("bulkFlowEst");
     //Time stepping loop
+
+
+    dt = dt*1e-5;
+
     for (int istep=step; istep<=max_step; ++istep) {
 
         // timer for time step
         Real time1 = ParallelDescriptor::second();
 
-//        if(istep == 1)
-//        {
-//            particles.SetPosition(0, 1, prob_hi[0]*0.48, prob_hi[1]*0.01, prob_hi[2]*0.48);
-//            particles.SetPosition(0, 2, prob_hi[0]*0.49, prob_hi[1]*0.01, prob_hi[2]*0.49);
-//           
-//        }
+        if(istep == 200)
+        {
+                dt = dt*10;
+                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+        }
+
+
+        if(istep == 400)
+        {
+                dt = dt*10;
+                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+        }
+
+        if(istep == 600)
+        {
+                dt = dt*10;
+                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+        }
+
+        if(istep == 800)
+        {
+                dt = dt*10;
+                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+        }
+
+        if(istep == 1000)
+        {
+                dt = dt*10;
+                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+        }
+
+        if(istep == 1)
+        {
+            //particles.SetPosition(1, prob_hi[0]*0.42, prob_hi[1]*(1.0/128.0), prob_hi[2]*0.42);
+            //particles.SetPosition(2, prob_hi[0]*0.1, prob_hi[1]*0.5, prob_hi[2]*0.5);
+           
+        }
 
     
         //Most of these functions are sensitive to the order of execution. We can fix this, but for now leave them in this order.
@@ -848,9 +879,16 @@ void main_driver(const char* argv)
             particles.ResetMarkers(0);
         }
 
+//        Real origin[3];
+//        origin[0] = prob_hi[0]/2.0;
+//        origin[1] = prob_hi[1]/2.0;
+//        origin[2] = prob_hi[2]/2.0;
+
+//        particles.potentialFunction(origin);
+
         // sr_tog is short range forces
         // es_tog is electrostatic solve (0=off, 1=Poisson, 2=Pairwise, 3=P3M)
-        if (sr_tog==1 || es_tog==3) {
+        if (sr_tog != 0 || es_tog==3) {
             // each tile clears its neighbors
             particles.clearNeighbors();
             
@@ -958,6 +996,7 @@ void main_driver(const char* argv)
 
             // compute g(r)
             particles.RadialDistribution(simParticles, istep, ionParticle);
+            //particles.potentialDistribution(simParticles, istep, ionParticle);
 
             // timer
             Real time_PC2 = ParallelDescriptor::second() - time_PC1;
@@ -998,7 +1037,6 @@ void main_driver(const char* argv)
         
 	//_______________________________________________________________________
 	// Update structure factor
-#ifndef AMREX_USE_CUDA
         if (struct_fact_int > 0 &&
             istep > amrex::Math::abs(n_steps_skip) &&
             (istep-amrex::Math::abs(n_steps_skip)-1)%struct_fact_int == 0) {
@@ -1019,7 +1057,6 @@ void main_driver(const char* argv)
                 structFact_vel   .WritePlotFile(istep,time,geom ,"plt_SF_vel");
             }
         }
-#endif
 
         // FIXME - AJN: at the moment we are writing out plotfile plot_int-1 also
         // because the time-averaging for the fields resets at n_steps_skip
@@ -1076,7 +1113,7 @@ void main_driver(const char* argv)
         ParallelDescriptor::ReduceLongMax(max_fab_megabytes, IOProc);
 
         amrex::Print() << "Curent     FAB megabyte spread across MPI nodes: ["
-                       << min_fab_megabytes << " ... " << max_fab_megabytes << "]\n";       
+                       << min_fab_megabytes << " ... " << max_fab_megabytes << "]\n";
         
     }
     ///////////////////////////////////////////

@@ -35,7 +35,7 @@ void WritePlotFile(int step,
 
  
 //    int cnPlot = 40;
-    int cnPlot = 46;
+    int cnPlot = 46+3*nspecies;
 
     // charge, chargeM, chargeV
     // pot, potM, potV
@@ -63,9 +63,9 @@ void WritePlotFile(int step,
     amrex::MultiFab::Copy(eplotfile,efield[1] ,0,7,1,0);
     amrex::MultiFab::Copy(eplotfile,efield[2] ,0,8,1,0);
 
-    amrex::MultiFab::Copy(cplotfile,particleInstant,0,0 ,14,0);
-    amrex::MultiFab::Copy(cplotfile,particleMeans  ,0,14,14,0);
-    amrex::MultiFab::Copy(cplotfile,particleVars   ,0,28,18,0);
+    amrex::MultiFab::Copy(cplotfile,particleInstant,0,0 ,14+nspecies,0);
+    amrex::MultiFab::Copy(cplotfile,particleMeans  ,0,14+nspecies,14+nspecies,0);
+    amrex::MultiFab::Copy(cplotfile,particleVars   ,0,28+2*nspecies,18+nspecies,0);
 
     for (int l=0; l<nspecies; ++l)
     {
@@ -105,39 +105,60 @@ void WritePlotFile(int step,
     cvarNames[12] = "iyInstant";
     cvarNames[13] = "izInstant";
 
-    cvarNames[14] = "membersMean";
-    cvarNames[15] = "densityMean";
-    cvarNames[16] = "velxMean";
-    cvarNames[17] = "velyMean";
-    cvarNames[18] = "velzMean";
-    cvarNames[19] = "temperatureMean";
-    cvarNames[20] = "jxMean";
-    cvarNames[21] = "jyMean";
-    cvarNames[22] = "jzMean";
-    cvarNames[23] = "energyMean";
-    cvarNames[24] = "pressureMean";
-    cvarNames[25] = "ixMean";
-    cvarNames[26] = "iyMean";
-    cvarNames[27] = "izMean";
+    int ccount = 14;
+    for(int i=0;i<nspecies;i++)
+    {
+        std::string specname = Concatenate("densityInstantSpecies",i);
+        cvarNames[ccount+i]= specname;
+    }
 
-    cvarNames[28] = "membersVar";
-    cvarNames[29] = "densityVar";
-    cvarNames[30] = "velxVar";
-    cvarNames[31] = "velyVar";
-    cvarNames[32] = "velzVar";
-    cvarNames[33] = "temperatureVar";
-    cvarNames[34] = "jxVar";
-    cvarNames[35] = "jyVar";
-    cvarNames[36] = "jzVar";
-    cvarNames[37] = "energyVar";
-    cvarNames[38] = "pressureVar";
-    cvarNames[39] = "GVar";
-    cvarNames[40] = "KGCross";
-    cvarNames[41] = "KRhoCross";
-    cvarNames[42] = "RhoGCross";
-    cvarNames[43] = "ixVar";
-    cvarNames[44] = "iyVar";
-    cvarNames[45] = "izVar";
+    cvarNames[14+nspecies] = "membersMean";
+    cvarNames[15+nspecies] = "densityMean";
+    cvarNames[16+nspecies] = "velxMean";
+    cvarNames[17+nspecies] = "velyMean";
+    cvarNames[18+nspecies] = "velzMean";
+    cvarNames[19+nspecies] = "temperatureMean";
+    cvarNames[20+nspecies] = "jxMean";
+    cvarNames[21+nspecies] = "jyMean";
+    cvarNames[22+nspecies] = "jzMean";
+    cvarNames[23+nspecies] = "energyMean";
+    cvarNames[24+nspecies] = "pressureMean";
+    cvarNames[25+nspecies] = "ixMean";
+    cvarNames[26+nspecies] = "iyMean";
+    cvarNames[27+nspecies] = "izMean";
+
+    ccount = 28+nspecies;
+    for(int i=0;i<nspecies;i++)
+    {
+        std::string specname = Concatenate("densityMeanSpecies",i);
+        cvarNames[ccount+i]= specname;
+    }
+
+    cvarNames[28+2*nspecies] = "membersVar";
+    cvarNames[29+2*nspecies] = "densityVar";
+    cvarNames[30+2*nspecies] = "velxVar";
+    cvarNames[31+2*nspecies] = "velyVar";
+    cvarNames[32+2*nspecies] = "velzVar";
+    cvarNames[33+2*nspecies] = "temperatureVar";
+    cvarNames[34+2*nspecies] = "jxVar";
+    cvarNames[35+2*nspecies] = "jyVar";
+    cvarNames[36+2*nspecies] = "jzVar";
+    cvarNames[37+2*nspecies] = "energyVar";
+    cvarNames[38+2*nspecies] = "pressureVar";
+    cvarNames[39+2*nspecies] = "GVar";
+    cvarNames[40+2*nspecies] = "KGCross";
+    cvarNames[41+2*nspecies] = "KRhoCross";
+    cvarNames[42+2*nspecies] = "RhoGCross";
+    cvarNames[43+2*nspecies] = "ixVar";
+    cvarNames[44+2*nspecies] = "iyVar";
+    cvarNames[45+2*nspecies] = "izVar";
+
+    ccount = 46+2*nspecies;
+    for(int i=0;i<nspecies;i++)
+    {
+        std::string specname = Concatenate("densityMeanSpecies",i);
+        cvarNames[ccount+i]= specname;
+    }
 
 
     WriteSingleLevelPlotfile(cplotfilename,cplotfile,cvarNames,cgeom,time,step);
@@ -184,6 +205,12 @@ void WritePlotFile(int step,
 
         std::string asciiName = Concatenate("ascii_means",step,9);
         outputMFAscii(particleMeans, asciiName);
+
+        std::string asciiName1 = Concatenate("ascii_charge_mean",step,9);
+        outputMFAscii(chargeM, asciiName1);
+
+        std::string asciiName2 = Concatenate("ascii_potential_mean",step,9);
+        outputMFAscii(potentialM, asciiName2);
 
         std::string asciiPName = Concatenate("asciiParticles",step,9);
         particles.WriteParticlesAscii(asciiPName);
