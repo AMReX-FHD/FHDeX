@@ -441,16 +441,11 @@ void main_driver(const char* argv)
             // reset and compute structure factor
             turbStructFact.FortStructure(structFactMF,geom,1);
 
-            // writing the plotfiles does the shifting and coopying into cov_mag
-            structFact.WritePlotFile(0,0.,geom,"plt_Turb");
+            // writing the plotfiles does the shifting and copying into cov_mag
+            turbStructFact.WritePlotFile(step,time,geom,"plt_Turb");
                 
-            // turb contains U dot U* in Fourier space
-            // copy cov_mag into turb
-            MultiFab turb(ba,dmap,AMREX_SPACEDIM,0);
-            turbStructFact.StructOut(turb);
-
-            VisMF::Write(turb,"a_turb");
-            
+            // integrate cov_mag over shells in k and write to file
+            turbStructFact.IntegratekShells(step,geom);
         }
                 
         Real step_stop_time = ParallelDescriptor::second() - step_strt_time;

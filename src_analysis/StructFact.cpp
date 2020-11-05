@@ -10,12 +10,12 @@
 StructFact::StructFact()
 {}
 
-StructFact::StructFact(const BoxArray ba_in, const DistributionMapping dmap_in,
+StructFact::StructFact(const BoxArray& ba_in, const DistributionMapping& dmap_in,
 		       const Vector< std::string >& var_names,
 		       const Vector< Real >& var_scaling_in,
 		       const Vector< int >& s_pairA_in,
 		       const Vector< int >& s_pairB_in,
-		       const int verbosity_in) {
+		       const int& verbosity_in) {
 
   BL_PROFILE_VAR("StructFact::StructFact()",StructFact);
 
@@ -149,10 +149,10 @@ StructFact::StructFact(const BoxArray ba_in, const DistributionMapping dmap_in,
   }
 }
 
-StructFact::StructFact(const BoxArray ba_in, const DistributionMapping dmap_in,
+StructFact::StructFact(const BoxArray& ba_in, const DistributionMapping& dmap_in,
 		       const Vector< std::string >& var_names,
 		       const Vector< Real >& var_scaling_in,
-		       const int verbosity_in) {
+		       const int& verbosity_in) {
   
   BL_PROFILE_VAR("StructFact::StructFact()",StructFact);
 
@@ -211,7 +211,7 @@ StructFact::StructFact(const BoxArray ba_in, const DistributionMapping dmap_in,
   }
 }
 
-void StructFact::FortStructure(const MultiFab& variables, const Geometry geom, const int reset) {
+void StructFact::FortStructure(const MultiFab& variables, const Geometry& geom, const int& reset) {
 
   BL_PROFILE_VAR("StructFact::FortStructure()",FortStructure);
 
@@ -287,7 +287,7 @@ void StructFact::FortStructure(const MultiFab& variables, const Geometry geom, c
 void StructFact::ComputeFFT(const MultiFab& variables,
 			    MultiFab& variables_dft_real, 
 			    MultiFab& variables_dft_imag,
-			    const Geometry geom) {
+			    const Geometry& geom) {
 
   BL_PROFILE_VAR("StructFact::ComputeFFT()", ComputeFFT);
 
@@ -461,9 +461,9 @@ void StructFact::ComputeFFT(const MultiFab& variables,
   }
 }
 
-void StructFact::WritePlotFile(const int step, const Real time, const Geometry geom,
+void StructFact::WritePlotFile(const int step, const Real time, const Geometry& geom,
                                std::string plotfile_base,
-                               const int zero_avg) {
+                               const int& zero_avg) {
   
   BL_PROFILE_VAR("StructFact::WritePlotFile()",WritePlotFile);
 
@@ -567,7 +567,7 @@ void StructFact::StructOut(MultiFab& struct_out) {
   }
 }
 
-void StructFact::Finalize(MultiFab& cov_real_in, MultiFab& cov_imag_in, const int zero_avg) {
+void StructFact::Finalize(MultiFab& cov_real_in, MultiFab& cov_imag_in, const int& zero_avg) {
   
   Real nsamples_inv = 1.0/(Real)nsamples;
   
@@ -592,7 +592,7 @@ void StructFact::Finalize(MultiFab& cov_real_in, MultiFab& cov_imag_in, const in
 
 }
 
-void StructFact::ShiftFFT(MultiFab& dft_out, const int zero_avg) {
+void StructFact::ShiftFFT(MultiFab& dft_out, const int& zero_avg) {
 
   BoxArray ba_onegrid;
   {
@@ -622,5 +622,27 @@ void StructFact::ShiftFFT(MultiFab& dft_out, const int zero_avg) {
 
     dft_out.ParallelCopy(dft_onegrid, 0, d, 1);
   }
+
+}
+
+// integrate cov_mag over k shells
+void StructFact::IntegratekShells(const int& step, const Geometry& geom) {
+
+    GpuArray<int,AMREX_SPACEDIM> center;
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        center[d] = n_cells[d]/2;
+    }
+
+    for ( MFIter mfi(cov_mag,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
+        
+        const Box& bx = mfi.tilebox();
+
+        const Array4<Real> & cov = cov_mag.array(mfi);
+
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+
+        });
+    } 
 
 }
