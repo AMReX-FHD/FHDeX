@@ -633,6 +633,21 @@ void StructFact::IntegratekShells(const int& step, const Geometry& geom) {
         center[d] = n_cells[d]/2;
     }
 
+    int npts = n_cells[0]/2-1;
+
+    Gpu::DeviceVector<Real> phisum_vect(npts);
+    Gpu::DeviceVector<int>  phicnt_vect(npts);
+
+    for (int d=0; d<npts; ++d) {
+        phisum_vect[d] = 0.;
+        phicnt_vect[d] = 0;
+    }
+    
+    Real* phisum_gpu = phisum_vect.dataPtr();  // pointer to data
+    int*  phicnt_gpu = phicnt_vect.dataPtr();  // pointer to data
+
+    // only consider cells that are within 15k of the center point
+    
     for ( MFIter mfi(cov_mag,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
         
         const Box& bx = mfi.tilebox();
@@ -641,8 +656,25 @@ void StructFact::IntegratekShells(const int& step, const Geometry& geom) {
 
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
+            int ilen = amrex::Math::abs(i-center[0]);
+            int jlen = amrex::Math::abs(j-center[1]);
+            int klen = (AMREX_SPACEDIM == 3) ? amrex::Math::abs(k-center[2]) : 0;
 
+            Real dist = std::sqrt(ilen*ilen + jlen*jlen + klen*klen);
+            
+            if ( dist <= center[0]-0.5) {
+                int cell = int(dist);
+                for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                    phisum_gpu[cell] += cov(i,j,k,d);
+                }
+                ++phicnt_gpu[cell];
+            }
         });
+
+        for (int d=0; d<npts; ++d) {
+            Print() << d << " " << phisum_vect[d]/phicnt_vect[d] << std::endl;
+        }
+        
     } 
 
 }

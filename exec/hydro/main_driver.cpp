@@ -431,7 +431,7 @@ void main_driver(const char* argv)
         }
 
         // snapshot of instantaneous energy spectra
-        bool compute_energy_spectra = true;
+        bool compute_energy_spectra = false;
         if (compute_energy_spectra) {
 
             // copy velocities into structFactMF
