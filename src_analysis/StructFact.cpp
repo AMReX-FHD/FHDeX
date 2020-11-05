@@ -671,8 +671,8 @@ void StructFact::IntegratekShells(const int& step, const Geometry& geom) {
             }
         });
 
-        for (int d=0; d<npts; ++d) {
-            Print() << d << " " << phisum_vect[d]/phicnt_vect[d] << std::endl;
+        for (int d=1; d<npts; ++d) {
+            Print() << d << " " << phisum_vect[d]/phicnt_vect[d]/(d*d) << std::endl;
         }
         
     } 
