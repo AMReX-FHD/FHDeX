@@ -273,7 +273,26 @@ void main_driver(const char* argv)
     StructFact structFact(ba,dmap,var_names,var_scaling,s_pairA,s_pairB);
 #endif
     
+    ///////////////////////////////////////////
+    // Structure factor object to help compute tubulent energy spectra
+    ///////////////////////////////////////////
+    
+    // option to compute only specified pairs
+    amrex::Vector< int > s_pairA(AMREX_SPACEDIM);
+    amrex::Vector< int > s_pairB(AMREX_SPACEDIM);
 
+    var_scaling.resize(AMREX_SPACEDIM);
+    for (int d=0; d<var_scaling.size(); ++d) {
+        var_scaling[d] = 1./dVol;
+    }
+    
+    // Select which variable pairs to include in structure factor:
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        s_pairA[d] = d;
+        s_pairB[d] = d;
+    }    
+    StructFact turbStructFact(ba,dmap,var_names,var_scaling,s_pairA,s_pairB);
+    
     ///////////////////////////////////////////
     
     // FIXME need to fill physical boundary condition ghost cells for tracer
@@ -399,6 +418,7 @@ void main_driver(const char* argv)
 
 	//////////////////////////////////////////////////
 
+        // add a snapshot to the structure factor
 	if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip)%struct_fact_int == 0) {
 
             // add this snapshot to the average in the structure factor
@@ -409,7 +429,30 @@ void main_driver(const char* argv)
             }
             structFact.FortStructure(structFactMF,geom);
         }
-        
+
+        // snapshot of instantaneous energy spectra
+        bool compute_energy_spectra = true;
+        if (compute_energy_spectra) {
+
+            // copy velocities into structFactMF
+            for(int d=0; d<AMREX_SPACEDIM; d++) {
+                ShiftFaceToCC(umac[d], 0, structFactMF, d, 1);
+            }
+            // reset and compute structure factor
+            turbStructFact.FortStructure(structFactMF,geom,1);
+
+            // writing the plotfiles does the shifting and coopying into cov_mag
+            structFact.WritePlotFile(0,0.,geom,"plt_Turb");
+                
+            // turb contains U dot U* in Fourier space
+            // copy cov_mag into turb
+            MultiFab turb(ba,dmap,AMREX_SPACEDIM,0);
+            turbStructFact.StructOut(turb);
+
+            VisMF::Write(turb,"a_turb");
+            
+        }
+                
         Real step_stop_time = ParallelDescriptor::second() - step_strt_time;
         ParallelDescriptor::ReduceRealMax(step_stop_time);
 
