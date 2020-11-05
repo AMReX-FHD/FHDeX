@@ -20,7 +20,7 @@ StructFact::StructFact(const BoxArray ba_in, const DistributionMapping dmap_in,
   BL_PROFILE_VAR("StructFact::StructFact()",StructFact);
 
   if (s_pairA_in.size() != s_pairA_in.size())
-        amrex::Error("Must have an equal number of components");
+        amrex::Error("StructFact::StructFact() - Must have an equal number of components");
 
   NVAR = var_names.size();
 
@@ -30,7 +30,7 @@ StructFact::StructFact(const BoxArray ba_in, const DistributionMapping dmap_in,
   NCOV = s_pairA_in.size();
 
   if ( NCOV != var_scaling_in.size() )
-      amrex::Error("Structure factor scaling dimension mismatch");
+      amrex::Error("StructFact::StructFact() Constructor 1 - Structure factor scaling dimension mismatch");
 
   scaling.resize(NCOV);
   for (int n=0; n<NCOV; n++) {
@@ -80,7 +80,7 @@ StructFact::StructFact(const BoxArray ba_in, const DistributionMapping dmap_in,
     tot_iters++;
     if (tot_iters > 2*NVARU) {
       loop = 0;
-      amrex::Error("Bubble sort failed to converge");
+      amrex::Error("StructFact::StructFact() - Bubble sort failed to converge");
     }
   }
 
@@ -120,7 +120,7 @@ StructFact::StructFact(const BoxArray ba_in, const DistributionMapping dmap_in,
 
   for (int n=0; n<NCOV; n++) {
     if(s_pairA[n]<0 || s_pairA[n]>=NVAR || s_pairB[n]<0 || s_pairB[n]>=NVAR)
-       amrex::Error("Invalid pair select values: must be between 0 and (num of varibles - 1)");
+       amrex::Error("StructFact::StructFact() - Invalid pair select values: must be between 0 and (num of varibles - 1)");
   }
   //////////////////////////////////////////////////////
 
@@ -160,7 +160,7 @@ StructFact::StructFact(const BoxArray ba_in, const DistributionMapping dmap_in,
   NCOV = NVAR*(NVAR+1)/2;
 
   if ( NCOV != var_scaling_in.size() )
-      amrex::Error("Structure factor scaling dimension mismatch");
+      amrex::Error("StructFact::StructFact() Constructor 2 - Structure factor scaling dimension mismatch");
 
   scaling.resize(NCOV);
   for (int n=0; n<NCOV; n++) {
@@ -300,7 +300,7 @@ void StructFact::ComputeFFT(const MultiFab& variables,
   }
 
   if (variables_dft_real.nGrow() != 0 || variables.nGrow() != 0) {
-    amrex::Error("Current implementation requires that both variables_temp[0] and variables_dft_real[0] have no ghost cells");
+    amrex::Error("StructFact::ComputeFFT() - Current implementation requires that both variables_temp[0] and variables_dft_real[0] have no ghost cells");
   }
 
   // We assume that all grids have the same size hence 
@@ -326,7 +326,7 @@ void StructFact::ComputeFFT(const MultiFab& variables,
     amrex::Print() << "Number of boxes:\t" << nboxes << "\tBA size:\t" << ba.size() << std::endl;
   }
   if (nboxes != ba.size())
-    amrex::Error("NBOXES NOT COMPUTED CORRECTLY");
+    amrex::Error("StructFact::ComputeFFT() - NBOXES NOT COMPUTED CORRECTLY");
 
   Vector<int> rank_mapping;
   rank_mapping.resize(nboxes);
@@ -563,7 +563,7 @@ void StructFact::StructOut(MultiFab& struct_out) {
   if (struct_out.nComp() == cov_mag.nComp()) {
     MultiFab::Copy(struct_out,cov_mag,0,0,cov_mag.nComp(),0);
   } else {
-    amrex::Error("Must have an equal number of components");
+    amrex::Error("StructFact::StructOut() - Must have an equal number of components");
   }
 }
 
