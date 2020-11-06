@@ -671,9 +671,18 @@ void StructFact::IntegratekShells(const int& step, const Geometry& geom) {
             }
         });
 
+#if (AMREX_SPACEDIM == 2)
         for (int d=1; d<npts; ++d) {
-            Print() << d << " " << phisum_vect[d]/phicnt_vect[d]/(d*d) << std::endl;
+            Print() << d << " " <<
+                phisum_vect[d]*2*3.14159*d*1*1/phicnt_vect[d] << std::endl;
         }
+#else
+        for (int d=1; d<npts; ++d) {
+            Print() << d << " " <<
+                phisum_vect[d]*4*3.14159*(d*d)*(1*1)*1/phicnt_vect[d] << std::endl;
+        }
+
+#endif
         
     } 
 
