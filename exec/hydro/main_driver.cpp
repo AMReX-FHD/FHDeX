@@ -429,24 +429,6 @@ void main_driver(const char* argv)
             }
             structFact.FortStructure(structFactMF,geom);
         }
-
-        // snapshot of instantaneous energy spectra
-        bool compute_energy_spectra = false;
-        if (compute_energy_spectra) {
-
-            // copy velocities into structFactMF
-            for(int d=0; d<AMREX_SPACEDIM; d++) {
-                ShiftFaceToCC(umac[d], 0, structFactMF, d, 1);
-            }
-            // reset and compute structure factor
-            turbStructFact.FortStructure(structFactMF,geom,1);
-
-            // writing the plotfiles does the shifting and copying into cov_mag
-            turbStructFact.WritePlotFile(step,time,geom,"plt_Turb");
-                
-            // integrate cov_mag over shells in k and write to file
-            turbStructFact.IntegratekShells(step,geom);
-        }
                 
         Real step_stop_time = ParallelDescriptor::second() - step_strt_time;
         ParallelDescriptor::ReduceRealMax(step_stop_time);
@@ -458,8 +440,28 @@ void main_driver(const char* argv)
         if (plot_int > 0 && step%plot_int == 0) {
             // write out umac, tracer, pres, and divergence to a plotfile
             WritePlotFile(step,time,geom,umac,tracer,pres);
+
+            // write out structure factor to plotfile
             if (step > n_steps_skip && struct_fact_int > 0) {
                 structFact.WritePlotFile(step,time,geom,"plt_SF");
+            }
+
+            // snapshot of instantaneous energy spectra
+            bool compute_energy_spectra = true;
+            if (compute_energy_spectra) {
+
+                // copy velocities into structFactMF
+                for(int d=0; d<AMREX_SPACEDIM; d++) {
+                    ShiftFaceToCC(umac[d], 0, structFactMF, d, 1);
+                }
+                // reset and compute structure factor
+                turbStructFact.FortStructure(structFactMF,geom,1);
+
+                // writing the plotfiles does the shifting and copying into cov_mag
+                turbStructFact.WritePlotFile(step,time,geom,"plt_Turb");
+
+                // integrate cov_mag over shells in k and write to file
+                turbStructFact.IntegratekShells(step,geom);
             }
         }
 

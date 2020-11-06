@@ -670,20 +670,33 @@ void StructFact::IntegratekShells(const int& step, const Geometry& geom) {
                 ++phicnt_gpu[cell];
             }
         });
-
-#if (AMREX_SPACEDIM == 2)
-        for (int d=1; d<npts; ++d) {
-            Print() << d << " " <<
-                phisum_vect[d]*2*3.14159*d*1*1/phicnt_vect[d] << std::endl;
-        }
-#else
-        for (int d=1; d<npts; ++d) {
-            Print() << d << " " <<
-                phisum_vect[d]*4*3.14159*(d*d)*(1*1)*1/phicnt_vect[d] << std::endl;
-        }
-
-#endif
+    }
         
-    } 
+    for (int d=1; d<npts; ++d) {
+        ParallelDescriptor::ReduceRealSum(phisum_vect[d]);
+        ParallelDescriptor::ReduceIntSum(phicnt_vect[d]);
+    }
 
+    Real dk = 1.;
+    
+#if (AMREX_SPACEDIM == 2)
+    for (int d=1; d<npts; ++d) {
+        phisum_vect[d] *= 2.*M_PI*d*dk*dk/phicnt_vect[d];
+    }
+#else
+    for (int d=1; d<npts; ++d) {
+        phisum_vect[d] *= 4.*M_PI*(d*d)*dk*dk*dk/phicnt_vect[d];
+    }
+#endif
+    if (ParallelDescriptor::IOProcessor()) {
+        std::ofstream turb;
+        std::string turbName = "turb";
+        turbName += std::to_string(step);
+        turbName += ".txt";
+        
+        turb.open(turbName);
+        for (int d=1; d<npts; ++d) {
+            turb << d << " " << phisum_vect[d] << std::endl;
+        }
+    }
 }
