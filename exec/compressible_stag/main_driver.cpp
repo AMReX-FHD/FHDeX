@@ -173,15 +173,9 @@ void main_driver(const char* argv)
     // staggered momentum
     std::array< MultiFab, AMREX_SPACEDIM > vel;
     std::array< MultiFab, AMREX_SPACEDIM > cumom;
-    std::array< MultiFab, AMREX_SPACEDIM > cumomMeans;
-    std::array< MultiFab, AMREX_SPACEDIM > cumomVars;
     for (int d=0; d<AMREX_SPACEDIM; d++) {
         vel[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ngc);
         cumom[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ngc);
-        cumomMeans[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ngc);
-        cumomVars[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ngc);
-        cumomMeans[d].setVal(0.);
-        cumomVars[d].setVal(0.);
     }
   
     //primative quantaties
@@ -195,20 +189,23 @@ void main_driver(const char* argv)
     MultiFab prim(ba,dmap,nprimvars,ngc);
 
     //statistics    
-    MultiFab cuMeans  (ba,dmap,nvars,ngc);
-    MultiFab cuVars   (ba,dmap,nvars,ngc);
-    MultiFab cuMeansAv(ba,dmap,nvars,ngc);
-    MultiFab cuVarsAv (ba,dmap,nvars,ngc);
+    // we stack 3 towards the end
+    // corresponding to jx, jy, jz (shifted to CC)
+    // indices (1,2,3) correspond to averaged jx, jy, jz on CC
+    MultiFab cuMeans  (ba,dmap,nvars+3,ngc);
+    MultiFab cuVars   (ba,dmap,nvars+3,ngc);
+    MultiFab cuMeansAv(ba,dmap,nvars+3,ngc);
+    MultiFab cuVarsAv (ba,dmap,nvars+3,ngc);
 
     cuMeans.setVal(0.0);
     cuVars.setVal(0.0);
     
     MultiFab primVertAvg;  // flattened multifab defined below
 
-    MultiFab primMeans  (ba,dmap,nprimvars  ,ngc);
-    MultiFab primVars   (ba,dmap,nprimvars+5,ngc);
-    MultiFab primMeansAv(ba,dmap,nprimvars  ,ngc);
-    MultiFab primVarsAv (ba,dmap,nprimvars+5,ngc);
+    MultiFab primMeans  (ba,dmap,nprimvars+3,ngc);
+    MultiFab primVars   (ba,dmap,nprimvars+5+3,ngc);
+    MultiFab primMeansAv(ba,dmap,nprimvars+3,ngc);
+    MultiFab primVarsAv (ba,dmap,nprimvars+5+3,ngc);
     primMeans.setVal(0.0);
     primVars.setVal(0.0);
    
@@ -501,7 +498,7 @@ void main_driver(const char* argv)
         
         // compute mean and variances
         if (step > n_steps_skip) {
-            evaluateStats(cu, cuMeans, cuVars, prim, primMeans, primVars,
+            evaluateStatsStag(cu, cuMeans, cuVars, prim, primMeans, primVars,
                           spatialCross, miscStats, miscVals, statsCount, dx);
             statsCount++;
         }
@@ -512,41 +509,6 @@ void main_driver(const char* argv)
                        cuMeansAv, cuVarsAv, primMeansAv, primVarsAv, spatialCrossAv);
              WritePlotFileStag(step, time, geom, cu, cuMeansAv, cuVarsAv, cumom,
                            prim, primMeansAv, primVarsAv, vel, spatialCrossAv, eta, kappa);
-             //std::string momout = "mom"+ std::to_string(step) + ".txt"; 
-             //std::string rhoout = "rho"+ std::to_string(step) + ".txt"; 
-             //std::string pressout = "press"+ std::to_string(step) + ".txt"; 
-             //std::string Tout = "T"+ std::to_string(step) + ".txt"; 
-             //std::ofstream mout(momout);
-             //std::ofstream rout(rhoout);
-             //std::ofstream pout(pressout);
-             //std::ofstream tout(Tout);
-             //{
-             //    std::string plotfilename = std::to_string(ParallelDescriptor::MyProc()) + "_" + "xmom" + std::to_string(step);
-             //    std::ofstream ofs(plotfilename, std::ofstream::out);
-             //    MultiFab output(cumom[0], amrex::make_alias, 0, 1);
-             //    for (MFIter mfi(output); mfi.isValid(); ++mfi) {
-             //        ofs<<std::scientific<<std::setprecision(13)<<(output[mfi])<<std::endl;
-             //    }
-             //}
-
-             //{
-             //    std::string plotfilename = std::to_string(ParallelDescriptor::MyProc()) + "_" + "ymom" + std::to_string(step);
-             //    std::ofstream ofs(plotfilename, std::ofstream::out);
-             //    MultiFab output(cumom[1], amrex::make_alias, 0, 1);
-             //    for (MFIter mfi(output); mfi.isValid(); ++mfi) {
-             //        ofs<<std::scientific<<std::setprecision(13)<<(output[mfi])<<std::endl;
-             //    }
-             //}
-
-             //{
-             //    std::string plotfilename = std::to_string(ParallelDescriptor::MyProc()) + "_" + "zmom" + std::to_string(step);
-             //    std::ofstream ofs(plotfilename, std::ofstream::out);
-             //    MultiFab output(cumom[2], amrex::make_alias, 0, 1);
-             //    for (MFIter mfi(output); mfi.isValid(); ++mfi) {
-             //        ofs<<std::scientific<<std::setprecision(13)<<(output[mfi])<<std::endl;
-             //    }
-             //}
-             //outputMFAscii(cumom[1],"ymom"+std::to_string(step));
 
         }
 

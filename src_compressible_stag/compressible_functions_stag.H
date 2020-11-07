@@ -67,4 +67,22 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
 		                   const amrex::Vector< amrex::Real >& stoch_weights,
 		                   const amrex::Real* dx, const amrex::Real dt);
 
+
+void evaluateStatsStag(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
+                       const MultiFab& prim, MultiFab& primMean, MultiFab& primVar,
+                       const std::array<MultiFab, AMREX_SPACEDIM>& vel, 
+                       const std::array<MultiFab, AMREX_SPACEDIM>& cumom,
+                       MultiFab& spatialCross, MultiFab& miscStats, Real* miscVals,
+                       const int steps, const Real* dx);
+
+void yzAverageStag(const MultiFab& consMean, 
+                   const MultiFab& consVar, 
+                   const MultiFab& primMean, 
+                   const MultiFab& primVar, 
+                   const MultiFab& spatialCross, 
+                   MultiFab& consMeanAv, 
+                   MultiFab& consVarAv, 
+                   MultiFab& primMeanAv, 
+                   MultiFab& primVarAv, 
+                   MultiFab& spatialCrossAv);
 #endif
