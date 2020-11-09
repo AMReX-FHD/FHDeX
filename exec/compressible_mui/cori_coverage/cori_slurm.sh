@@ -1,6 +1,6 @@
 #!/bin/bash
-#SBATCH --qos=debug
-#SBATCH --time=10
+#SBATCH --qos=regular
+#SBATCH --time=180
 #SBATCH --nodes=3
 #SBATCH --tasks-per-node=32
 #SBATCH --constraint=haswell
@@ -24,6 +24,6 @@ cd $RUNDIR
 
 echo "*** START: `date`"
 
-srun -n80 -l --multi-prog ../mpmd.conf
+srun -n 80 -l --multi-prog ../mpmd.conf
 
 echo "*** FINISH: `date`"

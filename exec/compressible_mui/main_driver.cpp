@@ -83,8 +83,17 @@ void mui_fetch(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface
         const Array4<Real> & prim_fab = prim.array(mfi);
 
         // unless bx contains cells at the interface, skip 
+        // ad-hoc fix to avoid memory leakage
         int k = 0;
-        if (k<lo.z || k>hi.z) continue;
+        if (k<lo.z || k>hi.z)
+        {
+            double x = prob_lo[0]+(lo.x+0.5)*dx[0];
+            double y = prob_lo[1]+(lo.y+0.5)*dx[1];
+
+            uniface.fetch("CH_ac1",{x,y},step,s,t);
+
+            continue;
+        }
 
         for (int j = lo.y; j<= hi.y; ++j) {
             for (int i = lo.x; i<=hi.x; ++i) {
