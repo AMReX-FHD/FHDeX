@@ -3,22 +3,22 @@
   prob_lo(1:3) = 0.0 0.0 0.0      ! physical lo coordinate
   prob_hi(1:3) = 8.284925963482451e-07 8.284925963482451e-07 8.284925963482451e-07    ! physical hi coordinate
     
-  n_cells(1:3) = 64 64 64
+  n_cells(1:3) = 32 32 32
   ! max number of cells in a box
-  max_grid_size(1:3) = 32 32 64
+  max_grid_size(1:3) = 16 16 32
   max_particle_tile_size(1:3) = 256 256 256 ! set to zero to use max_grid_size, setting a very large number will also use max grid size, but will also ensure that refined es and particle grids will do the same.
   ! above settings are for fluid grid. EM and particle grid (the grid for finding neighbour lists) are coarsened or refined off these grids. <1 = refine, >1 = coarsen.
   !Leave these on 1 until properly tested
-  particle_grid_refine = 0.5
+  particle_grid_refine = 0.25
   es_grid_refine = 1
   ! Time-step control
-  fixed_dt = 2e-13
+  fixed_dt = 0.25e-13
   ! Controls for number of steps between actions
-  max_step = 1000000
+  max_step = 500000
   plot_int = 10000
   plot_ascii = 1
   struct_fact_int = -1
-  n_steps_skip = 10000
+  n_steps_skip = 20000
   ! Toggles 0=off, 1=on
 
   all_dry = 0
@@ -49,7 +49,7 @@
   particle_neff = 1
   ! ignore if particle_count is positive
   !particle_n0 = 6.02e20 6.02e20
-  particle_n0 = 6.02e20 3.01e20
+  particle_n0 = 6.02e21 6.02e21
   !Species info
   !--------------
   nspecies = 2
@@ -66,14 +66,14 @@
   !Interaction parameters
   !------------
   permittivity = 692.96e-21
-  crange = 10       !cell depth when building neighbour lists USING PARTICLE GRID CELL SIZE
+  crange = 20       !cell depth when building neighbour lists USING PARTICLE GRID CELL SIZE
   images = 0    !if pairwise Coulomb interactions have been selected, this is the number of periodic images to use
-  eamp = 1.0e14 0 0  !external electric field properties
+  eamp = 0 0 0  !external electric field properties
   efreq = 0 0 0
   ephase = 0 0 0     
   ! Poisson solver parameters -- there are more options which we can add to the namespace later
   !-------------------
-  poisson_rel_tol = 1.e-7                ! relative tolerance stopping criteria
+  poisson_rel_tol = 1.e-6                ! relative tolerance stopping criteria
   poisson_verbose =  1                   ! multigrid verbosity
   poisson_bottom_verbose =  0           ! base solver verbosity
   poisson_max_iter = 100                 
@@ -96,8 +96,8 @@
   ! -1 = periodic, 1 = dirichlet, 2 = neumann
   bc_es_lo(1:3) = -1 2 -1
   bc_es_hi(1:3) = -1 2 -1
-  potential_lo(1:3) = 0 -2.876078048775189e13 0
-  potential_hi(1:3) = 0 2.876078048775189e13 0 
+  potential_lo(1:3) = 0 0 0
+  potential_hi(1:3) = 0 0 0 !
   
 /
 &gmres
