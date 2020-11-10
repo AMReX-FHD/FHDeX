@@ -447,8 +447,7 @@ void main_driver(const char* argv)
             }
 
             // snapshot of instantaneous energy spectra
-            bool compute_energy_spectra = true;
-            if (compute_energy_spectra) {
+            if (turbForcing == 1) {
 
                 // copy velocities into structFactMF
                 for(int d=0; d<AMREX_SPACEDIM; d++) {
