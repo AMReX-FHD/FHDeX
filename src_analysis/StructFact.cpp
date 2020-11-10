@@ -262,11 +262,7 @@ void StructFact::FortStructure(const MultiFab& variables, const Geometry& geom, 
         MultiFab::Add(cov_imag,cov_temp,0,index,1,0);
     }
 
-    if (reset == 1) {
-        index = 1;
-    } else {
-        index++;
-    }
+    index++;
 
   }
 
@@ -281,7 +277,12 @@ void StructFact::FortStructure(const MultiFab& variables, const Geometry& geom, 
     VisMF::Write(cov_imag,plotname);
   }
 
-  nsamples++;
+  if (reset == 1) {
+      nsamples = 1;
+  } else {
+      nsamples++;
+  }
+  
 }
 
 void StructFact::ComputeFFT(const MultiFab& variables,
