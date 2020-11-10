@@ -33,6 +33,12 @@ TurbForcing::TurbForcing(BoxArray ba_in, DistributionMapping dmap_in, Geometry g
 #endif
 
     const GpuArray<Real,AMREX_SPACEDIM> dx = geom_in.CellSizeArray();
+
+    GpuArray<Real,AMREX_SPACEDIM> prob_lo_gpu;
+
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        prob_lo_gpu[d] = prob_lo[d];
+    }
     
     // Loop over boxes
     for (MFIter mfi(sines[0],TilingIfNotGPU()); mfi.isValid(); ++mfi) {
@@ -53,16 +59,16 @@ TurbForcing::TurbForcing(BoxArray ba_in, DistributionMapping dmap_in, Geometry g
     
 #if (AMREX_SPACEDIM == 2)
         amrex::ParallelFor(bx_x, bx_y, [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-                Real x = prob_lo[0] + i*dx[0];
-                Real y = prob_lo[1] + (j+0.5)*dx[1];
+                Real x = prob_lo_gpu[0] + i*dx[0];
+                Real y = prob_lo_gpu[1] + (j+0.5)*dx[1];
                 for (int d=0; d<22; ++d) {
                     sin_x(i,j,k,d) = sin(2.*pi*(kx[d]*x + ky[d]*y) / L);
                     cos_x(i,j,k,d) = cos(2.*pi*(kx[d]*x + ky[d]*y) / L);
                 }
             },
             [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-                Real x = prob_lo[0] + (i+0.5)*dx[0];
-                Real y = prob_lo[1] + j*dx[1];
+                Real x = prob_lo_gpu[0] + (i+0.5)*dx[0];
+                Real y = prob_lo_gpu[1] + j*dx[1];
                 for (int d=0; d<22; ++d) {
                     sin_y(i,j,k,d) = sin(2.*pi*(kx[d]*x + ky[d]*y) / L);
                     cos_y(i,j,k,d) = cos(2.*pi*(kx[d]*x + ky[d]*y) / L);
@@ -70,27 +76,27 @@ TurbForcing::TurbForcing(BoxArray ba_in, DistributionMapping dmap_in, Geometry g
             });
 #elif (AMREX_SPACEDIM ==3)
         amrex::ParallelFor(bx_x, bx_y, bx_z, [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-                Real x = prob_lo[0] + i*dx[0];
-                Real y = prob_lo[1] + (j+0.5)*dx[1];
-                Real z = prob_lo[2] + (k+0.5)*dx[2];
+                Real x = prob_lo_gpu[0] + i*dx[0];
+                Real y = prob_lo_gpu[1] + (j+0.5)*dx[1];
+                Real z = prob_lo_gpu[2] + (k+0.5)*dx[2];
                 for (int d=0; d<22; ++d) {
                     sin_x(i,j,k,d) = sin(2.*pi*(kx[d]*x + ky[d]*y + kz[d]*z) / L);
                     cos_x(i,j,k,d) = cos(2.*pi*(kx[d]*x + ky[d]*y + kz[d]*z) / L);
                 }
             },
             [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-                Real x = prob_lo[0] + (i+0.5)*dx[0];
-                Real y = prob_lo[1] + j*dx[1];
-                Real z = prob_lo[2] + (k+0.5)*dx[2];
+                Real x = prob_lo_gpu[0] + (i+0.5)*dx[0];
+                Real y = prob_lo_gpu[1] + j*dx[1];
+                Real z = prob_lo_gpu[2] + (k+0.5)*dx[2];
                 for (int d=0; d<22; ++d) {
                     sin_y(i,j,k,d) = sin(2.*pi*(kx[d]*x + ky[d]*y + kz[d]*z) / L);
                     cos_y(i,j,k,d) = cos(2.*pi*(kx[d]*x + ky[d]*y + kz[d]*z) / L);
                 }
             },
             [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-                Real x = prob_lo[0] + (i+0.5)*dx[0];
-                Real y = prob_lo[1] + (j+0.5)*dx[1];
-                Real z = prob_lo[2] + k*dx[2];
+                Real x = prob_lo_gpu[0] + (i+0.5)*dx[0];
+                Real y = prob_lo_gpu[1] + (j+0.5)*dx[1];
+                Real z = prob_lo_gpu[2] + k*dx[2];
                 for (int d=0; d<22; ++d) {
                     sin_z(i,j,k,d) = sin(2.*pi*(kx[d]*x + ky[d]*y + kz[d]*z) / L);
                     cos_z(i,j,k,d) = cos(2.*pi*(kx[d]*x + ky[d]*y + kz[d]*z) / L);

@@ -10,17 +10,17 @@
 StructFact::StructFact()
 {}
 
-StructFact::StructFact(const BoxArray ba_in, const DistributionMapping dmap_in,
+StructFact::StructFact(const BoxArray& ba_in, const DistributionMapping& dmap_in,
 		       const Vector< std::string >& var_names,
 		       const Vector< Real >& var_scaling_in,
 		       const Vector< int >& s_pairA_in,
 		       const Vector< int >& s_pairB_in,
-		       const int verbosity_in) {
+		       const int& verbosity_in) {
 
   BL_PROFILE_VAR("StructFact::StructFact()",StructFact);
 
   if (s_pairA_in.size() != s_pairA_in.size())
-        amrex::Error("Must have an equal number of components");
+        amrex::Error("StructFact::StructFact() - Must have an equal number of components");
 
   NVAR = var_names.size();
 
@@ -30,7 +30,7 @@ StructFact::StructFact(const BoxArray ba_in, const DistributionMapping dmap_in,
   NCOV = s_pairA_in.size();
 
   if ( NCOV != var_scaling_in.size() )
-      amrex::Error("Structure factor scaling dimension mismatch");
+      amrex::Error("StructFact::StructFact() Constructor 1 - Structure factor scaling dimension mismatch");
 
   scaling.resize(NCOV);
   for (int n=0; n<NCOV; n++) {
@@ -80,7 +80,7 @@ StructFact::StructFact(const BoxArray ba_in, const DistributionMapping dmap_in,
     tot_iters++;
     if (tot_iters > 2*NVARU) {
       loop = 0;
-      amrex::Error("Bubble sort failed to converge");
+      amrex::Error("StructFact::StructFact() - Bubble sort failed to converge");
     }
   }
 
@@ -120,7 +120,7 @@ StructFact::StructFact(const BoxArray ba_in, const DistributionMapping dmap_in,
 
   for (int n=0; n<NCOV; n++) {
     if(s_pairA[n]<0 || s_pairA[n]>=NVAR || s_pairB[n]<0 || s_pairB[n]>=NVAR)
-       amrex::Error("Invalid pair select values: must be between 0 and (num of varibles - 1)");
+       amrex::Error("StructFact::StructFact() - Invalid pair select values: must be between 0 and (num of varibles - 1)");
   }
   //////////////////////////////////////////////////////
 
@@ -149,10 +149,10 @@ StructFact::StructFact(const BoxArray ba_in, const DistributionMapping dmap_in,
   }
 }
 
-StructFact::StructFact(const BoxArray ba_in, const DistributionMapping dmap_in,
+StructFact::StructFact(const BoxArray& ba_in, const DistributionMapping& dmap_in,
 		       const Vector< std::string >& var_names,
 		       const Vector< Real >& var_scaling_in,
-		       const int verbosity_in) {
+		       const int& verbosity_in) {
   
   BL_PROFILE_VAR("StructFact::StructFact()",StructFact);
 
@@ -160,7 +160,7 @@ StructFact::StructFact(const BoxArray ba_in, const DistributionMapping dmap_in,
   NCOV = NVAR*(NVAR+1)/2;
 
   if ( NCOV != var_scaling_in.size() )
-      amrex::Error("Structure factor scaling dimension mismatch");
+      amrex::Error("StructFact::StructFact() Constructor 2 - Structure factor scaling dimension mismatch");
 
   scaling.resize(NCOV);
   for (int n=0; n<NCOV; n++) {
@@ -211,7 +211,7 @@ StructFact::StructFact(const BoxArray ba_in, const DistributionMapping dmap_in,
   }
 }
 
-void StructFact::FortStructure(const MultiFab& variables, const Geometry geom) {
+void StructFact::FortStructure(const MultiFab& variables, const Geometry& geom, const int& reset) {
 
   BL_PROFILE_VAR("StructFact::FortStructure()",FortStructure);
 
@@ -244,17 +244,30 @@ void StructFact::FortStructure(const MultiFab& variables, const Geometry geom) {
     MultiFab::AddProduct(cov_temp,variables_dft_real,i,variables_dft_real,j,0,1,0);
     MultiFab::AddProduct(cov_temp,variables_dft_imag,i,variables_dft_imag,j,0,1,0);
 
-    MultiFab::Add(cov_real,cov_temp,0,index,1,0);
+    if (reset == 1) {
+        MultiFab::Copy(cov_real,cov_temp,0,index,1,0);
+    } else {
+        MultiFab::Add(cov_real,cov_temp,0,index,1,0);
+    }
 
     // Imaginary component of covariance
     cov_temp.setVal(0.0);
     MultiFab::AddProduct(cov_temp,variables_dft_imag,i,variables_dft_real,j,0,1,0);
     cov_temp.mult(-1.0,0);
     MultiFab::AddProduct(cov_temp,variables_dft_real,i,variables_dft_imag,j,0,1,0);
-      
-    MultiFab::Add(cov_imag,cov_temp,0,index,1,0);
-      
-    index++;
+
+    if (reset == 1) {
+        MultiFab::Copy(cov_imag,cov_temp,0,index,1,0);
+    } else {
+        MultiFab::Add(cov_imag,cov_temp,0,index,1,0);
+    }
+
+    if (reset == 1) {
+        index = 1;
+    } else {
+        index++;
+    }
+
   }
 
   bool write_data = false;
@@ -274,7 +287,7 @@ void StructFact::FortStructure(const MultiFab& variables, const Geometry geom) {
 void StructFact::ComputeFFT(const MultiFab& variables,
 			    MultiFab& variables_dft_real, 
 			    MultiFab& variables_dft_imag,
-			    const Geometry geom) {
+			    const Geometry& geom) {
 
   BL_PROFILE_VAR("StructFact::ComputeFFT()", ComputeFFT);
 
@@ -287,7 +300,7 @@ void StructFact::ComputeFFT(const MultiFab& variables,
   }
 
   if (variables_dft_real.nGrow() != 0 || variables.nGrow() != 0) {
-    amrex::Error("Current implementation requires that both variables_temp[0] and variables_dft_real[0] have no ghost cells");
+    amrex::Error("StructFact::ComputeFFT() - Current implementation requires that both variables_temp[0] and variables_dft_real[0] have no ghost cells");
   }
 
   // We assume that all grids have the same size hence 
@@ -313,7 +326,7 @@ void StructFact::ComputeFFT(const MultiFab& variables,
     amrex::Print() << "Number of boxes:\t" << nboxes << "\tBA size:\t" << ba.size() << std::endl;
   }
   if (nboxes != ba.size())
-    amrex::Error("NBOXES NOT COMPUTED CORRECTLY");
+    amrex::Error("StructFact::ComputeFFT() - NBOXES NOT COMPUTED CORRECTLY");
 
   Vector<int> rank_mapping;
   rank_mapping.resize(nboxes);
@@ -448,9 +461,9 @@ void StructFact::ComputeFFT(const MultiFab& variables,
   }
 }
 
-void StructFact::WritePlotFile(const int step, const Real time, const Geometry geom,
+void StructFact::WritePlotFile(const int step, const Real time, const Geometry& geom,
                                std::string plotfile_base,
-                               const int zero_avg) {
+                               const int& zero_avg) {
   
   BL_PROFILE_VAR("StructFact::WritePlotFile()",WritePlotFile);
 
@@ -550,11 +563,11 @@ void StructFact::StructOut(MultiFab& struct_out) {
   if (struct_out.nComp() == cov_mag.nComp()) {
     MultiFab::Copy(struct_out,cov_mag,0,0,cov_mag.nComp(),0);
   } else {
-    amrex::Error("Must have an equal number of components");
+    amrex::Error("StructFact::StructOut() - Must have an equal number of components");
   }
 }
 
-void StructFact::Finalize(MultiFab& cov_real_in, MultiFab& cov_imag_in, const int zero_avg) {
+void StructFact::Finalize(MultiFab& cov_real_in, MultiFab& cov_imag_in, const int& zero_avg) {
   
   Real nsamples_inv = 1.0/(Real)nsamples;
   
@@ -579,7 +592,7 @@ void StructFact::Finalize(MultiFab& cov_real_in, MultiFab& cov_imag_in, const in
 
 }
 
-void StructFact::ShiftFFT(MultiFab& dft_out, const int zero_avg) {
+void StructFact::ShiftFFT(MultiFab& dft_out, const int& zero_avg) {
 
   BoxArray ba_onegrid;
   {
@@ -610,4 +623,80 @@ void StructFact::ShiftFFT(MultiFab& dft_out, const int zero_avg) {
     dft_out.ParallelCopy(dft_onegrid, 0, d, 1);
   }
 
+}
+
+// integrate cov_mag over k shells
+void StructFact::IntegratekShells(const int& step, const Geometry& geom) {
+
+    GpuArray<int,AMREX_SPACEDIM> center;
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        center[d] = n_cells[d]/2;
+    }
+
+    int npts = n_cells[0]/2-1;
+
+    Gpu::DeviceVector<Real> phisum_vect(npts);
+    Gpu::DeviceVector<int>  phicnt_vect(npts);
+
+    for (int d=0; d<npts; ++d) {
+        phisum_vect[d] = 0.;
+        phicnt_vect[d] = 0;
+    }
+    
+    Real* phisum_gpu = phisum_vect.dataPtr();  // pointer to data
+    int*  phicnt_gpu = phicnt_vect.dataPtr();  // pointer to data
+
+    // only consider cells that are within 15k of the center point
+    
+    for ( MFIter mfi(cov_mag,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
+        
+        const Box& bx = mfi.tilebox();
+
+        const Array4<Real> & cov = cov_mag.array(mfi);
+
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            int ilen = amrex::Math::abs(i-center[0]);
+            int jlen = amrex::Math::abs(j-center[1]);
+            int klen = (AMREX_SPACEDIM == 3) ? amrex::Math::abs(k-center[2]) : 0;
+
+            Real dist = std::sqrt(ilen*ilen + jlen*jlen + klen*klen);
+            
+            if ( dist <= center[0]-0.5) {
+                int cell = int(dist);
+                for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                    phisum_gpu[cell] += cov(i,j,k,d);
+                }
+                ++phicnt_gpu[cell];
+            }
+        });
+    }
+        
+    for (int d=1; d<npts; ++d) {
+        ParallelDescriptor::ReduceRealSum(phisum_vect[d]);
+        ParallelDescriptor::ReduceIntSum(phicnt_vect[d]);
+    }
+
+    Real dk = 1.;
+    
+#if (AMREX_SPACEDIM == 2)
+    for (int d=1; d<npts; ++d) {
+        phisum_vect[d] *= 2.*M_PI*d*dk*dk/phicnt_vect[d];
+    }
+#else
+    for (int d=1; d<npts; ++d) {
+        phisum_vect[d] *= 4.*M_PI*(d*d)*dk*dk*dk/phicnt_vect[d];
+    }
+#endif
+    if (ParallelDescriptor::IOProcessor()) {
+        std::ofstream turb;
+        std::string turbName = "turb";
+        turbName += std::to_string(step);
+        turbName += ".txt";
+        
+        turb.open(turbName);
+        for (int d=1; d<npts; ++d) {
+            turb << d << " " << phisum_vect[d] << std::endl;
+        }
+    }
 }

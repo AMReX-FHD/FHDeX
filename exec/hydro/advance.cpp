@@ -105,7 +105,9 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
   }
 
   // turbulence forcing
- tf.AddTurbForcing(gmres_rhs_u,dt,1);
+  if (turbForcing == 1) {
+      tf.AddTurbForcing(gmres_rhs_u,dt,1);
+  }
 
   // initial guess for new solution
   // for pressure use previous solution as initial guess
@@ -155,7 +157,9 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
   }
 
   // turbulence forcing
-  tf.AddTurbForcing(gmres_rhs_u,dt,0);
+  if (turbForcing == 1) {
+      tf.AddTurbForcing(gmres_rhs_u,dt,0);
+  }
 
   // initial guess for new solution
   // for pressure use previous solution as initial guess

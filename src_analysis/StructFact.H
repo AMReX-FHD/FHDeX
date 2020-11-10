@@ -55,31 +55,34 @@ public:
 
     StructFact();
     
-    StructFact(const amrex::BoxArray, const amrex::DistributionMapping, 
+    StructFact(const amrex::BoxArray&, const amrex::DistributionMapping&, 
                const amrex::Vector< std::string >&,
                const amrex::Vector< amrex::Real >&,
                const amrex::Vector< int >&, const amrex::Vector< int >&, 
-               const int verbosity=0);
+               const int& verbosity=0);
 
-    StructFact(const amrex::BoxArray, const amrex::DistributionMapping, 
+    StructFact(const amrex::BoxArray&, const amrex::DistributionMapping&, 
                const amrex::Vector< std::string >&,
                const amrex::Vector< amrex::Real >&,
-               const int verbosity=0);
+               const int& verbosity=0);
 
-    void FortStructure(const amrex::MultiFab&, const amrex::Geometry);
+    void FortStructure(const amrex::MultiFab&, const amrex::Geometry&,
+                       const int& reset=0);
     
     void Finalize(amrex::MultiFab&, amrex::MultiFab&, 
-                  const int zero_avg=1);
+                  const int& zero_avg=1);
     
-    void WritePlotFile(const int, const amrex::Real, const amrex::Geometry, 
-                       std::string, const int zero_avg=1);
+    void WritePlotFile(const int, const amrex::Real, const amrex::Geometry&, 
+                       std::string, const int& zero_avg=1);
     
     void StructOut(amrex::MultiFab&);
     
     void ComputeFFT(const amrex::MultiFab&, amrex::MultiFab&,
-                    amrex::MultiFab&, const amrex::Geometry);
+                    amrex::MultiFab&, const amrex::Geometry&);
     
-    void ShiftFFT(amrex::MultiFab&, const int zero_avg=1);
+    void ShiftFFT(amrex::MultiFab&, const int& zero_avg=1);
+
+    void IntegratekShells(const int& step, const amrex::Geometry& geom);
 };
 
 #endif

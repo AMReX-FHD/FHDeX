@@ -818,32 +818,32 @@ void main_driver(const char* argv)
         // timer for time step
         Real time1 = ParallelDescriptor::second();
 
-        if(istep == 20)
+        if(istep == 200)
         {
                 dt = dt*10;
                 Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
         }
 
 
-        if(istep == 40)
+        if(istep == 400)
         {
                 dt = dt*10;
                 Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
         }
 
-        if(istep == 60)
+        if(istep == 600)
         {
                 dt = dt*10;
                 Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
         }
 
-        if(istep == 80)
+        if(istep == 800)
         {
                 dt = dt*10;
                 Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
         }
 
-        if(istep == 100)
+        if(istep == 1000)
         {
                 dt = dt*10;
                 Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;

@@ -249,5 +249,6 @@ namespace common {
     // parameters for turbulent forcing example
     extern amrex::Real                turb_a;
     extern amrex::Real                turb_b;
+    extern int                        turbForcing;
 
 }

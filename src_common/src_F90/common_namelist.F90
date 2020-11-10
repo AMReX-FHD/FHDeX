@@ -179,6 +179,7 @@ module common_namelist_module
 
   double precision,   save :: turb_a
   double precision,   save :: turb_b
+  integer,            save :: turbForcing
 
   ! Problem specification
   namelist /common/ prob_lo       ! physical lo coordinate
@@ -383,6 +384,7 @@ module common_namelist_module
   ! turblent forcing parameters
   namelist /common/ turb_a
   namelist /common/ turb_b
+  namelist /common/ turbForcing
 
 contains
 
@@ -503,6 +505,7 @@ contains
 
     turb_a = 1.d0
     turb_b = 1.d0
+    turbForcing = 0
 
     particle_motion = 0
 
@@ -583,7 +586,7 @@ contains
                                          thermostat_tog_in, zero_net_force_in, images_in, eamp_in, efreq_in, ephase_in, &
                                          plot_ascii_in, solve_chem_in, diffcoeff_in, scaling_factor_in, &
                                          source_strength_in, regrid_int_in, do_reflux_in, particle_motion_in, &
-                                         turb_a_in, turb_b_in) &
+                                         turb_a_in, turb_b_in, turbForcing_in) &
                                          bind(C, name="initialize_common_namespace")
 
     double precision,       intent(inout) :: prob_lo_in(AMREX_SPACEDIM)
@@ -742,6 +745,7 @@ contains
 
     double precision,       intent(inout) :: turb_a_in
     double precision,       intent(inout) :: turb_b_in
+    integer,                intent(inout) :: turbForcing_in
 
     prob_lo_in = prob_lo
     prob_hi_in = prob_hi
@@ -893,6 +897,7 @@ contains
 
     turb_a_in = turb_a
     turb_b_in = turb_b
+    turbForcing_in = turbForcing
 
   end subroutine initialize_common_namespace
 

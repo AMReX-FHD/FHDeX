@@ -273,7 +273,26 @@ void main_driver(const char* argv)
     StructFact structFact(ba,dmap,var_names,var_scaling,s_pairA,s_pairB);
 #endif
     
+    ///////////////////////////////////////////
+    // Structure factor object to help compute tubulent energy spectra
+    ///////////////////////////////////////////
+    
+    // option to compute only specified pairs
+    amrex::Vector< int > s_pairA(AMREX_SPACEDIM);
+    amrex::Vector< int > s_pairB(AMREX_SPACEDIM);
 
+    var_scaling.resize(AMREX_SPACEDIM);
+    for (int d=0; d<var_scaling.size(); ++d) {
+        var_scaling[d] = 1./dVol;
+    }
+    
+    // Select which variable pairs to include in structure factor:
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        s_pairA[d] = d;
+        s_pairB[d] = d;
+    }    
+    StructFact turbStructFact(ba,dmap,var_names,var_scaling,s_pairA,s_pairB);
+    
     ///////////////////////////////////////////
     
     // FIXME need to fill physical boundary condition ghost cells for tracer
@@ -399,6 +418,7 @@ void main_driver(const char* argv)
 
 	//////////////////////////////////////////////////
 
+        // add a snapshot to the structure factor
 	if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip)%struct_fact_int == 0) {
 
             // add this snapshot to the average in the structure factor
@@ -409,7 +429,7 @@ void main_driver(const char* argv)
             }
             structFact.FortStructure(structFactMF,geom);
         }
-        
+                
         Real step_stop_time = ParallelDescriptor::second() - step_strt_time;
         ParallelDescriptor::ReduceRealMax(step_stop_time);
 
@@ -420,8 +440,27 @@ void main_driver(const char* argv)
         if (plot_int > 0 && step%plot_int == 0) {
             // write out umac, tracer, pres, and divergence to a plotfile
             WritePlotFile(step,time,geom,umac,tracer,pres);
+
+            // write out structure factor to plotfile
             if (step > n_steps_skip && struct_fact_int > 0) {
                 structFact.WritePlotFile(step,time,geom,"plt_SF");
+            }
+
+            // snapshot of instantaneous energy spectra
+            if (turbForcing == 1) {
+
+                // copy velocities into structFactMF
+                for(int d=0; d<AMREX_SPACEDIM; d++) {
+                    ShiftFaceToCC(umac[d], 0, structFactMF, d, 1);
+                }
+                // reset and compute structure factor
+                turbStructFact.FortStructure(structFactMF,geom,1);
+
+                // writing the plotfiles does the shifting and copying into cov_mag
+                turbStructFact.WritePlotFile(step,time,geom,"plt_Turb");
+
+                // integrate cov_mag over shells in k and write to file
+                turbStructFact.IntegratekShells(step,geom);
             }
         }
 
