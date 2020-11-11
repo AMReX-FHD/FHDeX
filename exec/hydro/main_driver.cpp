@@ -393,7 +393,7 @@ void main_driver(const char* argv)
         // write out initial state
         // write out umac, tracer, pres, and divergence to a plotfile
         if (plot_int > 0) {
-            WritePlotFile(step_start,time,geom,umac,tracer,pres);
+            WritePlotFile(0,time,geom,umac,tracer,pres);
             if (n_steps_skip == 0 && struct_fact_int > 0) {
                 structFact.WritePlotFile(0,0.,geom,"plt_SF");
             }
