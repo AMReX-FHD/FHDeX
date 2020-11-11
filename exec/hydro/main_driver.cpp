@@ -250,7 +250,7 @@ void main_driver(const char* argv)
 	dVol *= dx[2];
     }
     Real dProb = n_cells[0]*n_cells[1];
-    if (AMREX_SPACEDIM == 2) {
+    if (AMREX_SPACEDIM == 3) {
 	    dProb *= n_cells[2];
     }
     dProb = 1./dProb;
