@@ -682,11 +682,13 @@ void StructFact::IntegratekShells(const int& step, const Geometry& geom) {
     
 #if (AMREX_SPACEDIM == 2)
     for (int d=1; d<npts; ++d) {
-        phisum_vect[d] *= 2.*M_PI*d*dk*dk/phicnt_vect[d];
+      //  phisum_vect[d] *= 2.*M_PI*d*dk*dk/phicnt_vect[d];
+        phisum_vect[d] *= 2.*M_PI*(d*dk+.5*dk*dk)/phicnt_vect[d];
     }
 #else
     for (int d=1; d<npts; ++d) {
-        phisum_vect[d] *= 4.*M_PI*(d*d)*dk*dk*dk/phicnt_vect[d];
+      //  phisum_vect[d] *= 4.*M_PI*(d*d)*dk*dk*dk/phicnt_vect[d];
+        phisum_vect[d] *= 4.*M_PI*(d*d*dk+d*dk*dk+dk*dk*dk/3.)/phicnt_vect[d];
     }
 #endif
     if (ParallelDescriptor::IOProcessor()) {
