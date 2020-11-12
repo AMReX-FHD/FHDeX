@@ -143,7 +143,7 @@ contains
              do k = lo(3)-ngc(3),hi(3)+ngc(3)
              do j = lo(2)-ngc(2),hi(2)+ngc(2)
              do i = 1, ngc(1)
-                prim(lo(1)-i,j,k,6:nprimvars) = prim(lo(1)-1+i,j,k,6:nprimvars)
+!                prim(lo(1)-i,j,k,6:nprimvars) = prim(lo(1)-1+i,j,k,6:nprimvars)
              enddo
              enddo
              enddo
