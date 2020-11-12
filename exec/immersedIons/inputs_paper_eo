@@ -6,7 +6,7 @@
 
   all_dry = 0   ! set this to 1, and fluid_tog=0 for a dry simulation
   fluid_tog = 1 ! 0=Do nothing, 1=Do stokes solve, 2=Do low Mach solve
-  
+
   n_cells(1:3) = 64 32 64
   ! max number of cells in a box
   max_grid_size(1:3) = 16 16 16
@@ -23,13 +23,13 @@
   es_grid_refine = 1
 
   ! Time-step control
-  fixed_dt = 1e-13 
+  fixed_dt = 1e-13
 
   ! Controls for number of steps between actions
   max_step = 100000
   plot_int = 10000
   chk_int  = 10000
-  
+
   plot_ascii = 0
   struct_fact_int = -1
   n_steps_skip = -10000
@@ -82,7 +82,7 @@
 
   p_int_tog = 1 1 ! If zero, LJ/WCA forces will not be computed for this species with itself (different species always interact)
   eepsilon = 1e-16 1e-16 !WCA potential---note that Aleks uses 10^-3 but we're not sure of the units in BDWoGF
-  sigma = 8e-8 8e-8   !Close range repulsion diameter
+  sigma = 8e-8 8e-8   !Close range repulsion diameter*2
   rmin = 1e-8     !Minimum range to prevent blow up of force.  NOTE, THIS IS A RADIUS, THE OTHER VALUES ARE DIAMETER. YES THIS IS STUPID.
 
   !Interaction parameters

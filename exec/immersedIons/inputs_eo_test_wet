@@ -23,7 +23,7 @@
   es_grid_refine = 1
 
   ! Time-step control
-  fixed_dt = 2e-13
+  fixed_dt = 1e-13
 
   ! Controls for number of steps between actions
   max_step = 1000000
@@ -88,14 +88,14 @@
   !Interaction parameters
   !------------
   permittivity = 692.96e-21
-  
+
   crange = 10       !cell depth when building neighbour lists USING PARTICLE GRID CELL SIZE
   images = 0    !if pairwise Coulomb interactions have been selected, this is the number of periodic images to use
-  
-  eamp = 0 1.e14 0  !external electric field properties
+
+  eamp = 1.e14 0 0  !external electric field properties
   efreq = 0 0 0
   ephase = 0 0 0
-  
+
   ! Poisson solver parameters -- there are more options which we can add to the namespace later
   !-------------------
   poisson_rel_tol = 1.e-7                ! relative tolerance stopping criteria
@@ -128,7 +128,7 @@
   ! specify the Dirichlet or Neumann BC value
   ! for Neumann, the value is -/+ qtot/(eps*A)
   ! qtot is total charge in domain (qval*#ions)
-  ! A is total surface area  
+  ! A is total surface area
   potential_lo(1:3) = 0 2.876078048775189e13 0
   potential_hi(1:3) = 0 2.876078048775189e13 0 
   
