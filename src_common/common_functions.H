@@ -67,6 +67,10 @@ void ComputeGrad(const MultiFab & phi_in, std::array<MultiFab, AMREX_SPACEDIM> &
 void ComputeCentredGrad(const MultiFab& phi, std::array<MultiFab, AMREX_SPACEDIM>& gphi,
                         const Geometry& geom);
 
+void ComputeCentredGradFC(std::array<MultiFab, AMREX_SPACEDIM> & phi,
+                          MultiFab & gphi,
+                          const Geometry & geom);
+
 ///////////////////////////
 // in Debug.cpp
 void PrintMF(const MultiFab& MF);
@@ -141,5 +145,47 @@ void MultiFabPhysBCCharge(MultiFab& charge, const Geometry& geom);
 void MultiFabPhysBCMacStress(MultiFab& stress, const Geometry& geom, int dim);
 
 void MultiFabPhysBCDomainStress(MultiFab& stress, const amrex::Geometry& geom, int dim);
+
+
+///////////////////////////
+// in NormInnerProduct.cpp
+
+void SumStag(const Geometry& geom,
+             const std::array<MultiFab, AMREX_SPACEDIM> & m1,
+	     const int & comp,
+	     Vector<Real> & sum,
+	     const bool & divide_by_ncells=false);
+
+void SumCC(const MultiFab & m1,
+	   const int & comp,
+	   Real & sum,
+	   const bool & divide_by_ncells=false);
+
+void StagInnerProd(const Geometry& geom,
+                   const std::array<MultiFab, AMREX_SPACEDIM> & m1,
+                   const int & comp1,
+                   const std::array<MultiFab, AMREX_SPACEDIM> & m2,
+                   const int & comp2,
+                   std::array<MultiFab, AMREX_SPACEDIM>& mscr,
+                   Vector<Real> & prod_val);
+
+void CCInnerProd(const MultiFab & m1,
+		 const int & comp1,
+		 const MultiFab & m2,
+		 const int & comp2,
+                 amrex::MultiFab& mscr,
+		 Real & prod_val);
+
+void StagL2Norm(const Geometry& geom,
+                const std::array<MultiFab, AMREX_SPACEDIM> & m1,
+		const int & comp,
+                std::array<MultiFab, AMREX_SPACEDIM>& mscr,
+		Real & norm_l2);
+
+void CCL2Norm(const MultiFab & m1,
+	      const int & comp,
+              amrex::MultiFab& mscr,
+	      Real & norm_l2);
+
 
 #endif

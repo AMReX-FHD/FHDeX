@@ -167,3 +167,4 @@ int                        common::do_reflux;
 
 amrex::Real                common::turb_a;
 amrex::Real                common::turb_b;
+int                        common::turbForcing;

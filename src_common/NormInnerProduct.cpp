@@ -1,11 +1,4 @@
-#include "gmres_functions.H"
-
-#include "AMReX_ArrayLim.H"
-#include "AMReX_Box.H"
-#include "AMReX_MultiFab.H"
-#include "AMReX_ParallelDescriptor.H"
-
-using namespace amrex;
+#include "common_functions.H"
 
 void SumStag(const Geometry& geom,
              const std::array<MultiFab, AMREX_SPACEDIM>& m1,

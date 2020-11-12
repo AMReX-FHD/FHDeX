@@ -675,7 +675,12 @@ void main_driver(const char* argv)
 
     if (restart < 0 && particle_restart < 0) {
         // create particles
-        particles.InitParticles(ionParticle, dxp);
+        if (sr_tog == 4) {
+            particles.InitParticlesFromFile(ionParticle, dxp);
+        }
+        else {
+            particles.InitParticles(ionParticle, dxp);
+        }
     }
     else {
         ReadCheckPointParticles(particles, ionParticle, dxp);
@@ -818,32 +823,32 @@ void main_driver(const char* argv)
         // timer for time step
         Real time1 = ParallelDescriptor::second();
 
-        if(istep == 20)
+        if(istep == 200)
         {
                 dt = dt*10;
                 Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
         }
 
 
-        if(istep == 40)
+        if(istep == 400)
         {
                 dt = dt*10;
                 Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
         }
 
-        if(istep == 60)
+        if(istep == 600)
         {
                 dt = dt*10;
                 Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
         }
 
-        if(istep == 80)
+        if(istep == 800)
         {
                 dt = dt*10;
                 Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
         }
 
-        if(istep == 100)
+        if(istep == 1000)
         {
                 dt = dt*10;
                 Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
