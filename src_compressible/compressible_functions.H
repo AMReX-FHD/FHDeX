@@ -978,6 +978,26 @@ void IdealMixtureTransport ( int iloc, int jloc, int kloc,
 
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void GetDensity ( const Real pressure,
+                  Real& density,
+                  const Real temp,
+                  const GpuArray<Real,MAX_SPECIES>& massfrac,
+                  const GpuArray<Real,MAX_SPECIES>& molmass,
+                  const Real Runiv,
+                  const int nspecies)
+{
+    Real molmix = 0.;
+    for (int i=0; i<nspecies; ++i) {
+        molmix += massfrac[i]/molmass[i];
+    }
+
+    molmix = 1./molmix;
+
+    density = pressure/(Runiv/molmix)/temp;
+    
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void GetEnergy ( Real& energy,
                  const GpuArray<Real,MAX_SPECIES>& massvec,
                  const Real temp,
