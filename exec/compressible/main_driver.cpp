@@ -71,7 +71,7 @@ void main_driver(const char* argv)
     // if multispecies
     if (algorithm_type == 2) {
         // compute wall concentrations if BCs call for it
-        setup_cwall();
+        setup_cwall(bc_Yk.dataPtr(),bc_Xk.dataPtr());
     }
 
     // make BoxArray and Geometry

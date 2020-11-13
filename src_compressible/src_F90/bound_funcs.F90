@@ -10,6 +10,8 @@ module bound_module
 
   implicit none
 
+  integer, parameter :: LOHI = 2
+
   private
 
   public :: set_bc
@@ -139,34 +141,34 @@ contains
        ! mass fractions
        if (bc_mass_lo(1) .eq. 1) then ! wall
 
-          if (algorithm_type .eq. 2) then
-             do k = lo(3)-ngc(3),hi(3)+ngc(3)
-             do j = lo(2)-ngc(2),hi(2)+ngc(2)
-             do i = 1, ngc(1)
+! converged to GPU in boundary.cpp
+!          if (algorithm_type .eq. 2) then
+!             do k = lo(3)-ngc(3),hi(3)+ngc(3)
+!             do j = lo(2)-ngc(2),hi(2)+ngc(2)
+!             do i = 1, ngc(1)
 !                prim(lo(1)-i,j,k,6:nprimvars) = prim(lo(1)-1+i,j,k,6:nprimvars)
-             enddo
-             enddo
-             enddo
-          endif
+!             enddo
+!             enddo
+!             enddo
+!          endif
 
        else if (bc_mass_lo(1) .eq. 2) then ! reservoir
 
-          if (algorithm_type .eq. 2) then
-
-             Ywall(1:nspecies) = bc_Yk(1,1,1:nspecies)
-             Xwall(1:nspecies) = bc_Xk(1,1,1:nspecies)
-
-             do k = lo(3)-ngc(3),hi(3)+ngc(3)
-             do j = lo(2)-ngc(2),hi(2)+ngc(2)
-             do i = 1,ngc(1)
-                do l = 1, nspecies
-                   prim(lo(1)-i,j,k,6+l)          = 2.d0*Ywall(l) - prim(lo(1)-1+i,j,k,6+l)
-                   prim(lo(1)-i,j,k,6+nspecies+l) = 2.d0*Xwall(l) - prim(lo(1)-1+i,j,k,6+nspecies+l)
-                enddo
-             enddo
-             enddo
-             enddo
-          endif
+! converged to GPU in boundary.cpp
+!          if (algorithm_type .eq. 2) then
+!             Ywall(1:nspecies) = bc_Yk(1,1,1:nspecies)
+!             Xwall(1:nspecies) = bc_Xk(1,1,1:nspecies)
+!             do k = lo(3)-ngc(3),hi(3)+ngc(3)
+!             do j = lo(2)-ngc(2),hi(2)+ngc(2)
+!             do i = 1,ngc(1)
+!                do l = 1, nspecies
+!                   prim(lo(1)-i,j,k,6+l)          = 2.d0*Ywall(l) - prim(lo(1)-1+i,j,k,6+l)
+!                   prim(lo(1)-i,j,k,6+nspecies+l) = 2.d0*Xwall(l) - prim(lo(1)-1+i,j,k,6+nspecies+l)
+!                enddo
+!             enddo
+!             enddo
+!             enddo
+!          endif
 
        endif
 
@@ -1046,7 +1048,10 @@ contains
 
   end subroutine setup_bc
 
-  subroutine setup_cwall() bind(C,name="setup_cwall")
+  subroutine setup_cwall(bc_Yk_in,bc_Xk_in) bind(C,name="setup_cwall")
+
+    double precision, intent(inout) :: bc_Yk_in(AMREX_SPACEDIM,LOHI,MAX_SPECIES)
+    double precision, intent(inout) :: bc_Xk_in(AMREX_SPACEDIM,LOHI,MAX_SPECIES)
 
     integer :: ns, d
     integer :: index, nsx, dx
@@ -1097,6 +1102,9 @@ contains
        endif
 
     enddo
+
+    bc_Yk_in = bc_Yk
+    bc_Xk_in = bc_Xk
 
   end subroutine setup_cwall
 
