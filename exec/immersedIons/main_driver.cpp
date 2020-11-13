@@ -675,7 +675,12 @@ void main_driver(const char* argv)
 
     if (restart < 0 && particle_restart < 0) {
         // create particles
-        particles.InitParticles(ionParticle, dxp);
+        if (sr_tog == 4) {
+            particles.InitParticlesFromFile(ionParticle, dxp);
+        }
+        else {
+            particles.InitParticles(ionParticle, dxp);
+        }
     }
     else {
         ReadCheckPointParticles(particles, ionParticle, dxp);
