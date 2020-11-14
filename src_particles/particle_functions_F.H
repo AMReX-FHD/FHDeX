@@ -317,13 +317,6 @@ extern "C"
    void force_particles(amrex_real* spec3xPos, amrex_real* spec3yPos, amrex_real* spec3zPos, amrex_real* spec3xForce, amrex_real* spec3yForce,
                         amrex_real* spec3zForce, void* particles, const int* np, const int* length);
 
-
-   void user_force_calc_init(const char* inputs_file, const int length, const species* particleInfo);
-
-   void user_force_calc(const amrex_real* spec3xPos, const amrex_real* spec3yPos, const amrex_real* spec3zPos, amrex_real* spec3xForce, amrex_real* spec3yForce, amrex_real* spec3zForce, const int* length, const int* step, const species* particleInfo);
-
-   void user_force_calc_destroy();
-
    void get_explicit_mobility(amrex_real* mob, void* part, const amrex_real* plo, const amrex_real* phi);
 
    void dry(const amrex_real*dt,void* part,amrex_real* dry_terms, amrex_real* mb);

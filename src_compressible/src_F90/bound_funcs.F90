@@ -10,6 +10,8 @@ module bound_module
 
   implicit none
 
+  integer, parameter :: LOHI = 2
+
   private
 
   public :: set_bc
@@ -22,18 +24,16 @@ contains
     real(amrex_real), intent(inout) :: prim(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3),nprimvars)
     real(amrex_real), intent(inout) :: cons(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3),nvars)
 
-    integer :: i,j,k,l,bcell
+    integer :: i,j,k,l
 
     real(amrex_real) :: massvec(nspecies), fracvec(nspecies), intenergy, temp, rho, pt
     real(amrex_real) :: Ywall(nspecies), Xwall(nspecies)
 
       !Internal special case:
 
-      bcell = membrane_cell
+      if(membrane_cell .ge. 0) then !Apply if membrane
 
-      if(bcell .ge. 0) then !Apply if membrane
-
-         if(lo(1) .eq. bcell) then !Interior rhs, apply slip adiabatic
+         if(lo(1) .eq. membrane_cell) then !Interior rhs, apply slip adiabatic
 
             do k = lo(3)-ngc(3),hi(3)+ngc(3)
                do j = lo(2)-ngc(2),hi(2)+ngc(2)
@@ -81,7 +81,7 @@ contains
          endif
 
 
-         if(hi(1) .eq. bcell-1) then !Interior lhs, apply slip adiabatic
+         if(hi(1) .eq. membrane_cell-1) then !Interior lhs, apply slip adiabatic
 
             do k = lo(3)-ngc(3),hi(3)+ngc(3)
                do j = lo(2)-ngc(2),hi(2)+ngc(2)
@@ -129,153 +129,151 @@ contains
 
       endif
 
-
-    Ywall = 0.0d0
-    Xwall = 0.0d0
-
     ! lower x bound
     if (lo(1) .eq. 0) then 
 
        ! mass fractions
        if (bc_mass_lo(1) .eq. 1) then ! wall
 
-          if (algorithm_type .eq. 2) then
-             do k = lo(3)-ngc(3),hi(3)+ngc(3)
-             do j = lo(2)-ngc(2),hi(2)+ngc(2)
-             do i = 1, ngc(1)
-                prim(lo(1)-i,j,k,6:nprimvars) = prim(lo(1)-1+i,j,k,6:nprimvars)
-             enddo
-             enddo
-             enddo
-          endif
+! converged to GPU in boundary.cpp
+!          if (algorithm_type .eq. 2) then
+!             do k = lo(3)-ngc(3),hi(3)+ngc(3)
+!             do j = lo(2)-ngc(2),hi(2)+ngc(2)
+!             do i = 1, ngc(1)
+!                prim(lo(1)-i,j,k,6:nprimvars) = prim(lo(1)-1+i,j,k,6:nprimvars)
+!             enddo
+!             enddo
+!             enddo
+!          endif
 
        else if (bc_mass_lo(1) .eq. 2) then ! reservoir
 
-          if (algorithm_type .eq. 2) then
-
-             Ywall(1:nspecies) = bc_Yk(1,1,1:nspecies)
-             Xwall(1:nspecies) = bc_Xk(1,1,1:nspecies)
-
-             do k = lo(3)-ngc(3),hi(3)+ngc(3)
-             do j = lo(2)-ngc(2),hi(2)+ngc(2)
-             do i = 1,ngc(1)
-                do l = 1, nspecies
-                   prim(lo(1)-i,j,k,6+l)          = 2.d0*Ywall(l) - prim(lo(1)-1+i,j,k,6+l)
-                   prim(lo(1)-i,j,k,6+nspecies+l) = 2.d0*Xwall(l) - prim(lo(1)-1+i,j,k,6+nspecies+l)
-                enddo
-             enddo
-             enddo
-             enddo
-          endif
+! converged to GPU in boundary.cpp
+!          if (algorithm_type .eq. 2) then
+!             Ywall(1:nspecies) = bc_Yk(1,1,1:nspecies)
+!             Xwall(1:nspecies) = bc_Xk(1,1,1:nspecies)
+!             do k = lo(3)-ngc(3),hi(3)+ngc(3)
+!             do j = lo(2)-ngc(2),hi(2)+ngc(2)
+!             do i = 1,ngc(1)
+!                do l = 1, nspecies
+!                   prim(lo(1)-i,j,k,6+l)          = 2.d0*Ywall(l) - prim(lo(1)-1+i,j,k,6+l)
+!                   prim(lo(1)-i,j,k,6+nspecies+l) = 2.d0*Xwall(l) - prim(lo(1)-1+i,j,k,6+nspecies+l)
+!                enddo
+!             enddo
+!             enddo
+!             enddo
+!          endif
 
        endif
 
        ! temperature and pressure
        if (bc_therm_lo(1) .eq. 1) then ! adiabatic
 
-          do k = lo(3)-ngc(3),hi(3)+ngc(3)
-          do j = lo(2)-ngc(2),hi(2)+ngc(2)
-          do i = 1, ngc(1)          
-             prim(lo(1)-i,j,k,5) = prim(lo(1)-1+i,j,k,5)
-             prim(lo(1)-i,j,k,6) = prim(lo(1)-1+i,j,k,6)
-          enddo
-          enddo
-          enddo
+! converged to GPU in boundary.cpp
+!          do k = lo(3)-ngc(3),hi(3)+ngc(3)
+!          do j = lo(2)-ngc(2),hi(2)+ngc(2)
+!          do i = 1, ngc(1)          
+!             prim(lo(1)-i,j,k,5) = prim(lo(1)-1+i,j,k,5)
+!             prim(lo(1)-i,j,k,6) = prim(lo(1)-1+i,j,k,6)
+!          enddo
+!          enddo
+!          enddo
 
        else if (bc_therm_lo(1) .eq. 2) then ! isothermal
 
-          do k = lo(3)-ngc(3),hi(3)+ngc(3)
-          do j = lo(2)-ngc(2),hi(2)+ngc(2)
-          do i = 1,ngc(1)
-             prim(lo(1)-i,j,k,5) = -prim(lo(1)-1+i,j,k,5) + 2*t_lo(1)
-             prim(lo(1)-i,j,k,6) = prim(lo(1)-1+i,j,k,6)
-          enddo
-          enddo
-          enddo
+! converged to GPU in boundary.cpp
+!          do k = lo(3)-ngc(3),hi(3)+ngc(3)
+!          do j = lo(2)-ngc(2),hi(2)+ngc(2)
+!          do i = 1,ngc(1)
+!             prim(lo(1)-i,j,k,5) = -prim(lo(1)-1+i,j,k,5) + 2*t_lo(1)
+!             prim(lo(1)-i,j,k,6) = prim(lo(1)-1+i,j,k,6)
+!          enddo
+!          enddo
+!          enddo
 
        endif
 
        ! momentum, velocity, rho, rhoY, rhoE
        if (bc_vel_lo(1) .eq. 1) then ! slip
 
-          do k = lo(3)-ngc(3),hi(3)+ngc(3)
-          do j = lo(2)-ngc(2),hi(2)+ngc(2)
-          do i = 1, ngc(1)    
-      
-             cons(lo(1)-i,j,k,2) = -cons(lo(1)-1+i,j,k,2) 
-             cons(lo(1)-i,j,k,3) = cons(lo(1)-1+i,j,k,3) 
-             cons(lo(1)-i,j,k,4) = cons(lo(1)-1+i,j,k,4) 
-
-             prim(lo(1)-i,j,k,2) = -prim(lo(1)-1+i,j,k,2)
-             prim(lo(1)-i,j,k,3) = prim(lo(1)-1+i,j,k,3)
-             prim(lo(1)-i,j,k,4) = prim(lo(1)-1+i,j,k,4)
-
-             ! thermal & species (+pressure) BCs must be enforced first
-             fracvec = prim(lo(1)-i,j,k,6+1:6+nspecies)
-             temp = prim(lo(1)-i,j,k,5)
-             pt = prim(lo(1)-i,j,k,6)
-
-             call get_density(pt, rho, temp, fracvec)
-             call get_energy(intenergy, fracvec, temp)
-             ! call get_density_gas(pt, rho, temp)
-             ! call get_energy_gas(pt, intenergy)
-
-             ! total density depends on temperature
-             prim(lo(1)-i,j,k,1) = rho
-             cons(lo(1)-i,j,k,1) = rho
-             if (algorithm_type .eq. 2) then
-                do l = 1, nspecies
-                   cons(lo(1)-i,j,k,5+l) = rho*prim(lo(1)-i,j,k,6+l)
-                enddo
-             endif
-
-             ! must be last BC enforced: depends on rho, vel, & temp
-             cons(lo(1)-i,j,k,5) = rho*intenergy + 0.5*rho*(prim(lo(1)-i,j,k,2)**2 + & 
-                  prim(lo(1)-i,j,k,3)**2 + prim(lo(1)-i,j,k,4)**2)
-
-          enddo
-          enddo
-          enddo
+!          do k = lo(3)-ngc(3),hi(3)+ngc(3)
+!          do j = lo(2)-ngc(2),hi(2)+ngc(2)
+!          do i = 1, ngc(1)    
+!      
+!             cons(lo(1)-i,j,k,2) = -cons(lo(1)-1+i,j,k,2) 
+!             cons(lo(1)-i,j,k,3) = cons(lo(1)-1+i,j,k,3) 
+!             cons(lo(1)-i,j,k,4) = cons(lo(1)-1+i,j,k,4) 
+!
+!             prim(lo(1)-i,j,k,2) = -prim(lo(1)-1+i,j,k,2)
+!             prim(lo(1)-i,j,k,3) = prim(lo(1)-1+i,j,k,3)
+!             prim(lo(1)-i,j,k,4) = prim(lo(1)-1+i,j,k,4)
+!
+!             ! thermal & species (+pressure) BCs must be enforced first
+!             fracvec = prim(lo(1)-i,j,k,6+1:6+nspecies)
+!             temp = prim(lo(1)-i,j,k,5)
+!             pt = prim(lo(1)-i,j,k,6)
+!
+!             call get_density(pt, rho, temp, fracvec)
+!             call get_energy(intenergy, fracvec, temp)
+!             ! call get_density_gas(pt, rho, temp)
+!             ! call get_energy_gas(pt, intenergy)
+!
+!             ! total density depends on temperature
+!             prim(lo(1)-i,j,k,1) = rho
+!             cons(lo(1)-i,j,k,1) = rho
+!             if (algorithm_type .eq. 2) then
+!                do l = 1, nspecies
+!                   cons(lo(1)-i,j,k,5+l) = rho*prim(lo(1)-i,j,k,6+l)
+!                enddo
+!             endif
+!
+!             ! must be last BC enforced: depends on rho, vel, & temp
+!             cons(lo(1)-i,j,k,5) = rho*intenergy + 0.5*rho*(prim(lo(1)-i,j,k,2)**2 + & 
+!                  prim(lo(1)-i,j,k,3)**2 + prim(lo(1)-i,j,k,4)**2)
+!
+!          enddo
+!          enddo
+!          enddo
 
        else if (bc_vel_lo(1) .eq. 2) then ! no slip
  
-          do k = lo(3)-ngc(3),hi(3)+ngc(3)
-             do j = lo(2)-ngc(2),hi(2)+ngc(2)
-                do i = 1,ngc(1)
-
-                   prim(lo(1)-i,j,k,2) = -prim(lo(1)-1+i,j,k,2)
-                   prim(lo(1)-i,j,k,3) = -prim(lo(1)-1+i,j,k,3) 
-                   prim(lo(1)-i,j,k,4) = -prim(lo(1)-1+i,j,k,4)
-                   
-                   ! thermal & species (+pressure) BCs must be enforced first
-                   fracvec = prim(lo(1)-i,j,k,6+1:6+nspecies)
-                   temp = prim(lo(1)-i,j,k,5)
-                   pt = prim(lo(1)-i,j,k,6)
-
-                   call get_density(pt, rho, temp, fracvec)
-                   call get_energy(intenergy, fracvec, temp)
-                   ! call get_density_gas(pt, rho, temp)
-                   ! call get_energy_gas(pt, intenergy)
-
-                   prim(lo(1)-i,j,k,1) = rho
-                   cons(lo(1)-i,j,k,1) = rho
-                   if (algorithm_type .eq. 2) then
-                      do l = 1, nspecies
-                         cons(lo(1)-i,j,k,5+l) = rho*prim(lo(1)-i,j,k,6+l)
-                      enddo
-                   endif
-
-                   cons(lo(1)-i,j,k,2) = rho*prim(lo(1)-i,j,k,2)
-                   cons(lo(1)-i,j,k,3) = rho*prim(lo(1)-i,j,k,3)
-                   cons(lo(1)-i,j,k,4) = rho*prim(lo(1)-i,j,k,4)
-
-                   ! must be last BC enforced: depends on rho, vel, & temp
-                   cons(lo(1)-i,j,k,5) = rho*intenergy + 0.5*rho*(prim(lo(1)-i,j,k,2)**2 + & 
-                        prim(lo(1)-i,j,k,3)**2 + prim(lo(1)-i,j,k,4)**2)
-
-                enddo
-             enddo
-          enddo
+!          do k = lo(3)-ngc(3),hi(3)+ngc(3)
+!             do j = lo(2)-ngc(2),hi(2)+ngc(2)
+!                do i = 1,ngc(1)
+!
+!                   prim(lo(1)-i,j,k,2) = -prim(lo(1)-1+i,j,k,2)
+!                   prim(lo(1)-i,j,k,3) = -prim(lo(1)-1+i,j,k,3) 
+!                   prim(lo(1)-i,j,k,4) = -prim(lo(1)-1+i,j,k,4)
+!                   
+!                   ! thermal & species (+pressure) BCs must be enforced first
+!                   fracvec = prim(lo(1)-i,j,k,6+1:6+nspecies)
+!                   temp = prim(lo(1)-i,j,k,5)
+!                   pt = prim(lo(1)-i,j,k,6)
+!
+!                   call get_density(pt, rho, temp, fracvec)
+!                   call get_energy(intenergy, fracvec, temp)
+!                   ! call get_density_gas(pt, rho, temp)
+!                   ! call get_energy_gas(pt, intenergy)
+!
+!                   prim(lo(1)-i,j,k,1) = rho
+!                   cons(lo(1)-i,j,k,1) = rho
+!                   if (algorithm_type .eq. 2) then
+!                      do l = 1, nspecies
+!                         cons(lo(1)-i,j,k,5+l) = rho*prim(lo(1)-i,j,k,6+l)
+!                      enddo
+!                   endif
+!
+!                   cons(lo(1)-i,j,k,2) = rho*prim(lo(1)-i,j,k,2)
+!                   cons(lo(1)-i,j,k,3) = rho*prim(lo(1)-i,j,k,3)
+!                   cons(lo(1)-i,j,k,4) = rho*prim(lo(1)-i,j,k,4)
+!
+!                   ! must be last BC enforced: depends on rho, vel, & temp
+!                   cons(lo(1)-i,j,k,5) = rho*intenergy + 0.5*rho*(prim(lo(1)-i,j,k,2)**2 + & 
+!                        prim(lo(1)-i,j,k,3)**2 + prim(lo(1)-i,j,k,4)**2)
+!
+!                enddo
+!             enddo
+!          enddo
 
        endif
 
@@ -287,145 +285,145 @@ contains
        ! mass fractions
        if (bc_mass_hi(1) .eq. 1) then ! wall
 
-          if (algorithm_type .eq. 2) then
-             do k = lo(3)-ngc(3),hi(3)+ngc(3)
-             do j = lo(2)-ngc(2),hi(2)+ngc(2)
-             do i = 1, ngc(1)
-                prim(hi(1)+i,j,k,6:nprimvars) = prim(hi(1)+1-i,j,k,6:nprimvars) 
-             enddo
-             enddo
-             enddo
-          endif
+!          if (algorithm_type .eq. 2) then
+!             do k = lo(3)-ngc(3),hi(3)+ngc(3)
+!             do j = lo(2)-ngc(2),hi(2)+ngc(2)
+!             do i = 1, ngc(1)
+!                prim(hi(1)+i,j,k,6:nprimvars) = prim(hi(1)+1-i,j,k,6:nprimvars) 
+!             enddo
+!             enddo
+!             enddo
+!          endif
 
        else if (bc_mass_hi(1) .eq. 2) then ! reservoir
 
-          if (algorithm_type .eq. 2) then
-
-             Ywall(1:nspecies) = bc_Yk(1,2,1:nspecies)
-             Xwall(1:nspecies) = bc_Xk(1,2,1:nspecies)
-
-             do k = lo(3)-ngc(3),hi(3)+ngc(3)
-             do j = lo(2)-ngc(2),hi(2)+ngc(2)
-             do i = 1, ngc(1)
-                do l = 1, nspecies
-                   prim(hi(1)+i,j,k,6+l)          = 2.d0*Ywall(l) - prim(hi(1)+1-i,j,k,6+l)
-                   prim(hi(1)+i,j,k,6+nspecies+l) = 2.d0*Xwall(l) - prim(hi(1)+1-i,j,k,6+nspecies+l)
-                enddo
-             enddo
-             enddo
-             enddo
-
-          endif
+!          if (algorithm_type .eq. 2) then
+!
+!             Ywall(1:nspecies) = bc_Yk(1,2,1:nspecies)
+!             Xwall(1:nspecies) = bc_Xk(1,2,1:nspecies)
+!
+!             do k = lo(3)-ngc(3),hi(3)+ngc(3)
+!             do j = lo(2)-ngc(2),hi(2)+ngc(2)
+!             do i = 1, ngc(1)
+!                do l = 1, nspecies
+!                   prim(hi(1)+i,j,k,6+l)          = 2.d0*Ywall(l) - prim(hi(1)+1-i,j,k,6+l)
+!                   prim(hi(1)+i,j,k,6+nspecies+l) = 2.d0*Xwall(l) - prim(hi(1)+1-i,j,k,6+nspecies+l)
+!                enddo
+!             enddo
+!             enddo
+!             enddo
+!
+!          endif
 
        endif
 
        ! temperature and pressure
        if (bc_therm_hi(1) .eq. 1) then ! adiabatic
 
-          do k = lo(3)-ngc(3),hi(3)+ngc(3)
-          do j = lo(2)-ngc(2),hi(2)+ngc(2)
-          do i = 1, ngc(1)
-             prim(hi(1)+i,j,k,5) = prim(hi(1)+1-i,j,k,5)
-             prim(hi(1)+i,j,k,6) = prim(hi(1)+1-i,j,k,6)
-          enddo
-          enddo
-          enddo
+!          do k = lo(3)-ngc(3),hi(3)+ngc(3)
+!          do j = lo(2)-ngc(2),hi(2)+ngc(2)
+!          do i = 1, ngc(1)
+!             prim(hi(1)+i,j,k,5) = prim(hi(1)+1-i,j,k,5)
+!             prim(hi(1)+i,j,k,6) = prim(hi(1)+1-i,j,k,6)
+!          enddo
+!          enddo
+!          enddo
 
        else if (bc_therm_hi(1) .eq. 2) then ! isothermal
 
-          do k = lo(3)-ngc(3),hi(3)+ngc(3)
-          do j = lo(2)-ngc(2),hi(2)+ngc(2)
-          do i = 1, ngc(1)
-             prim(hi(1)+i,j,k,5) = -prim(hi(1)+1-i,j,k,5) + 2*t_hi(1)
-             prim(hi(1)+i,j,k,6) = prim(hi(1)+1-i,j,k,6)
-          enddo
-          enddo
-          enddo
+!          do k = lo(3)-ngc(3),hi(3)+ngc(3)
+!          do j = lo(2)-ngc(2),hi(2)+ngc(2)
+!          do i = 1, ngc(1)
+!             prim(hi(1)+i,j,k,5) = -prim(hi(1)+1-i,j,k,5) + 2*t_hi(1)
+!             prim(hi(1)+i,j,k,6) = prim(hi(1)+1-i,j,k,6)
+!          enddo
+!          enddo
+!          enddo
 
        endif
 
        ! momentum, velocity, rho, rhoY, rhoE
        if (bc_vel_hi(1) .eq. 1) then ! slip
 
-          do k = lo(3)-ngc(3),hi(3)+ngc(3)
-          do j = lo(2)-ngc(2),hi(2)+ngc(2)
-          do i = 1, ngc(1)
-
-             cons(hi(1)+i,j,k,2) = -cons(hi(1)+1-i,j,k,2) 
-             cons(hi(1)+i,j,k,3) = cons(hi(1)+1-i,j,k,3) 
-             cons(hi(1)+i,j,k,4) = cons(hi(1)+1-i,j,k,4)  
-
-             prim(hi(1)+i,j,k,2) = -prim(hi(1)+1-i,j,k,2)
-             prim(hi(1)+i,j,k,3) = prim(hi(1)+1-i,j,k,3)
-             prim(hi(1)+i,j,k,4) = prim(hi(1)+1-i,j,k,4)
-             
-             ! thermal & species (+pressure) BCs must be enforced first
-             fracvec = prim(hi(1)+i,j,k,6+1:6+nspecies)
-             temp = prim(hi(1)+i,j,k,5)
-             pt = prim(hi(1)+i,j,k,6)
-
-             call get_density(pt, rho, temp, fracvec)
-             call get_energy(intenergy, fracvec, temp)
-             ! call get_density_gas(pt, rho, temp)
-             ! call get_energy_gas(pt, intenergy)
-
-             ! total density depends on temperature
-             prim(hi(1)+i,j,k,1) = rho
-             cons(hi(1)+i,j,k,1) = rho
-             if (algorithm_type .eq. 2) then
-                do l = 1, nspecies
-                   cons(hi(1)+i,j,k,5+l) = rho*prim(hi(1)+i,j,k,6+l)
-                enddo
-             endif
-
-             ! must be last BC enforced: depends on rho, vel, & temp
-             cons(hi(1)+i,j,k,5) = rho*intenergy + 0.5*rho*(prim(hi(1)+i,j,k,2)**2 + & 
-                  prim(hi(1)+i,j,k,3)**2 + prim(hi(1)+i,j,k,4)**2)
-
-          enddo
-          enddo
-          enddo
+!          do k = lo(3)-ngc(3),hi(3)+ngc(3)
+!          do j = lo(2)-ngc(2),hi(2)+ngc(2)
+!          do i = 1, ngc(1)
+!
+!             cons(hi(1)+i,j,k,2) = -cons(hi(1)+1-i,j,k,2) 
+!             cons(hi(1)+i,j,k,3) = cons(hi(1)+1-i,j,k,3) 
+!             cons(hi(1)+i,j,k,4) = cons(hi(1)+1-i,j,k,4)  
+!
+!             prim(hi(1)+i,j,k,2) = -prim(hi(1)+1-i,j,k,2)
+!             prim(hi(1)+i,j,k,3) = prim(hi(1)+1-i,j,k,3)
+!             prim(hi(1)+i,j,k,4) = prim(hi(1)+1-i,j,k,4)
+!             
+!             ! thermal & species (+pressure) BCs must be enforced first
+!             fracvec = prim(hi(1)+i,j,k,6+1:6+nspecies)
+!             temp = prim(hi(1)+i,j,k,5)
+!             pt = prim(hi(1)+i,j,k,6)
+!
+!             call get_density(pt, rho, temp, fracvec)
+!             call get_energy(intenergy, fracvec, temp)
+!             ! call get_density_gas(pt, rho, temp)
+!             ! call get_energy_gas(pt, intenergy)
+!
+!             ! total density depends on temperature
+!             prim(hi(1)+i,j,k,1) = rho
+!             cons(hi(1)+i,j,k,1) = rho
+!             if (algorithm_type .eq. 2) then
+!                do l = 1, nspecies
+!                   cons(hi(1)+i,j,k,5+l) = rho*prim(hi(1)+i,j,k,6+l)
+!                enddo
+!             endif
+!
+!             ! must be last BC enforced: depends on rho, vel, & temp
+!             cons(hi(1)+i,j,k,5) = rho*intenergy + 0.5*rho*(prim(hi(1)+i,j,k,2)**2 + & 
+!                  prim(hi(1)+i,j,k,3)**2 + prim(hi(1)+i,j,k,4)**2)
+!
+!          enddo
+!          enddo
+!          enddo
 
        else if (bc_vel_hi(1) .eq. 2) then ! no slip
 
-          do k = lo(3)-ngc(3),hi(3)+ngc(3)
-          do j = lo(2)-ngc(2),hi(2)+ngc(2)
-          do i = 1, ngc(1)
-             
-             prim(hi(1)+i,j,k,2) = -prim(hi(1)+1-i,j,k,2)
-             prim(hi(1)+i,j,k,3) = -prim(hi(1)+1-i,j,k,3) 
-             prim(hi(1)+i,j,k,4) = -prim(hi(1)+1-i,j,k,4)
-
-             ! thermal & species (+pressure) BCs must be enforced first
-             fracvec = prim(hi(1)+i,j,k,6+1:6+nspecies)
-             temp = prim(hi(1)+i,j,k,5)
-             pt = prim(hi(1)+i,j,k,6)
-
-             call get_density(pt, rho, temp, fracvec)
-             call get_energy(intenergy, fracvec, temp)
-             ! call get_density_gas(pt, rho, temp)
-             ! call get_energy_gas(pt, intenergy)
-
-             ! total density depends on temperature
-             prim(hi(1)+i,j,k,1) = rho
-             cons(hi(1)+i,j,k,1) = rho
-             if (algorithm_type .eq. 2) then
-                do l = 1, nspecies
-                   cons(hi(1)+i,j,k,5+l) = rho*prim(hi(1)+i,j,k,6+l)
-                enddo
-             endif
-
-             cons(hi(1)+i,j,k,2) = rho*prim(hi(1)+i,j,k,2)
-             cons(hi(1)+i,j,k,3) = rho*prim(hi(1)+i,j,k,3)
-             cons(hi(1)+i,j,k,4) = rho*prim(hi(1)+i,j,k,4)
-
-             ! must be last BC enforced: depends on rho, vel, & temp
-             cons(hi(1)+i,j,k,5) = rho*intenergy + 0.5*rho*(prim(hi(1)+i,j,k,2)**2 + & 
-                  prim(hi(1)+i,j,k,3)**2 + prim(hi(1)+i,j,k,4)**2)
-
-          enddo
-          enddo
-          enddo
+!          do k = lo(3)-ngc(3),hi(3)+ngc(3)
+!          do j = lo(2)-ngc(2),hi(2)+ngc(2)
+!          do i = 1, ngc(1)
+!             
+!             prim(hi(1)+i,j,k,2) = -prim(hi(1)+1-i,j,k,2)
+!             prim(hi(1)+i,j,k,3) = -prim(hi(1)+1-i,j,k,3) 
+!             prim(hi(1)+i,j,k,4) = -prim(hi(1)+1-i,j,k,4)
+!
+!             ! thermal & species (+pressure) BCs must be enforced first
+!             fracvec = prim(hi(1)+i,j,k,6+1:6+nspecies)
+!             temp = prim(hi(1)+i,j,k,5)
+!             pt = prim(hi(1)+i,j,k,6)
+!
+!             call get_density(pt, rho, temp, fracvec)
+!             call get_energy(intenergy, fracvec, temp)
+!             ! call get_density_gas(pt, rho, temp)
+!             ! call get_energy_gas(pt, intenergy)
+!
+!             ! total density depends on temperature
+!             prim(hi(1)+i,j,k,1) = rho
+!             cons(hi(1)+i,j,k,1) = rho
+!             if (algorithm_type .eq. 2) then
+!                do l = 1, nspecies
+!                   cons(hi(1)+i,j,k,5+l) = rho*prim(hi(1)+i,j,k,6+l)
+!                enddo
+!             endif
+!
+!             cons(hi(1)+i,j,k,2) = rho*prim(hi(1)+i,j,k,2)
+!             cons(hi(1)+i,j,k,3) = rho*prim(hi(1)+i,j,k,3)
+!             cons(hi(1)+i,j,k,4) = rho*prim(hi(1)+i,j,k,4)
+!
+!             ! must be last BC enforced: depends on rho, vel, & temp
+!             cons(hi(1)+i,j,k,5) = rho*intenergy + 0.5*rho*(prim(hi(1)+i,j,k,2)**2 + & 
+!                  prim(hi(1)+i,j,k,3)**2 + prim(hi(1)+i,j,k,4)**2)
+!
+!          enddo
+!          enddo
+!          enddo
 
        endif
 
@@ -1046,7 +1044,10 @@ contains
 
   end subroutine setup_bc
 
-  subroutine setup_cwall() bind(C,name="setup_cwall")
+  subroutine setup_cwall(bc_Yk_in,bc_Xk_in) bind(C,name="setup_cwall")
+
+    double precision, intent(inout) :: bc_Yk_in(AMREX_SPACEDIM,LOHI,MAX_SPECIES)
+    double precision, intent(inout) :: bc_Xk_in(AMREX_SPACEDIM,LOHI,MAX_SPECIES)
 
     integer :: ns, d
     integer :: index, nsx, dx
@@ -1097,6 +1098,9 @@ contains
        endif
 
     enddo
+
+    bc_Yk_in = bc_Yk
+    bc_Xk_in = bc_Xk
 
   end subroutine setup_cwall
 

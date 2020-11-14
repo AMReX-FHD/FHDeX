@@ -5,7 +5,7 @@ void MagVort(const std::array< MultiFab, AMREX_SPACEDIM >& umac,
              const Geometry& geom,
              int outcomp) {
 
-    BL_PROFILE_VAR("Vorticity()",Vorticity)
+    BL_PROFILE_VAR("Vorticity()",Vorticity);
 
     const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
 

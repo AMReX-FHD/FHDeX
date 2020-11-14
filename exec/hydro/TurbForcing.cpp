@@ -2,7 +2,7 @@
 
 // initialize n_rngs, geom
 // build MultiFabs to hold random numbers
-TurbForcing::TurbForcing(BoxArray ba_in, DistributionMapping dmap_in, Geometry geom_in,
+TurbForcing::TurbForcing(BoxArray ba_in, DistributionMapping dmap_in,
                          const Real& a_in, const Real& b_in)
 {
 
@@ -19,6 +19,9 @@ TurbForcing::TurbForcing(BoxArray ba_in, DistributionMapping dmap_in, Geometry g
         sines  [i].define(convert(ba_in,nodal_flag_dir[i]), dmap_in, 22, 0);
         cosines[i].define(convert(ba_in,nodal_flag_dir[i]), dmap_in, 22, 0);
     }
+}
+
+void TurbForcing::Initialize(Geometry geom_in) {
 
     Real pi = 3.1415926535897932;
     Real L = prob_hi[0] - prob_lo[0];

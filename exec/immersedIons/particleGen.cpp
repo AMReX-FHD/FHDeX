@@ -29,6 +29,8 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
         if(ParallelDescriptor::MyProc() == 0 && mfi.LocalTileIndex() == 0 && proc0_enter) {
 
             proc0_enter = false;
+
+            std::ifstream particleFile("particles.dat");
             
             for(int i_spec=0; i_spec < nspecies; i_spec++) {
                 for (int i_part=0; i_part<particleInfo[i_spec].total;i_part++) {
@@ -37,23 +39,27 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
                     //Print() << "ID: " << p.id() << "\n";
                     p.cpu() = ParallelDescriptor::MyProc();
                     p.idata(FHD_intData::sorted) = 0;
-                
-                    p.pos(0) = prob_lo[0] + get_uniform_func()*(prob_hi[0]-prob_lo[0]);
-                    if (sr_tog == 4) {
-                        p.pos(1) = (prob_lo[1]+1.122*(particleInfo[i_spec].sigma/4.0)) + 1.0*get_uniform_func()*(prob_hi[1]-prob_lo[1]-(2*1.122*(particleInfo[i_spec].sigma/4.0)));
-                    }
-                    else {
-                        p.pos(1) = prob_lo[1] + 0.00*(prob_hi[1]-prob_lo[1]) + 1.0*get_uniform_func()*(prob_hi[1]-prob_lo[1]);
-                    }
-#if (BL_SPACEDIM == 3)
-                    p.pos(2) = prob_lo[2] + get_uniform_func()*(prob_hi[2]-prob_lo[2]);
-#endif
 
-//                    p.pos(0) = prob_lo[0] + 0.25*(prob_hi[0]-prob_lo[0]);
-//                    p.pos(1) = prob_lo[1] + 0.25*(prob_hi[1]-prob_lo[1]);
-//#if (BL_SPACEDIM == 3)
-//                    p.pos(2) = prob_lo[2] + 0.25*(prob_hi[2]-prob_lo[2]);
-//#endif
+                    if(particle_placement == 1)
+                    {
+                        particleFile >> p.pos(0);                       
+                        particleFile >> p.pos(1);
+                        particleFile >> p.pos(2);
+                    }else
+                    {
+
+                        p.pos(0) = prob_lo[0] + get_uniform_func()*(prob_hi[0]-prob_lo[0]);
+                        if (sr_tog == 4) {
+                            p.pos(1) = (prob_lo[1]+1.122*(particleInfo[i_spec].sigma/4.0)) + 1.0*get_uniform_func()*(prob_hi[1]-prob_lo[1]-(2*1.122*(particleInfo[i_spec].sigma/4.0)));
+                        }
+                        else {
+                            p.pos(1) = prob_lo[1] + 0.00*(prob_hi[1]-prob_lo[1]) + 1.0*get_uniform_func()*(prob_hi[1]-prob_lo[1]);
+                        }
+                        p.pos(2) = prob_lo[2] + get_uniform_func()*(prob_hi[2]-prob_lo[2]);
+
+                    }
+
+
                     p.rdata(FHD_realData::q) = particleInfo[i_spec].q;
 
  //                    std::cout << "proc " << ParallelDescriptor::MyProc() << " Pos: " << p.pos(0) << ", " << p.pos(1) << ", " << p.pos(2)
@@ -134,6 +140,8 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
                     pcount++;
                 }
             }
+
+            particleFile.close();
         }
     }
 

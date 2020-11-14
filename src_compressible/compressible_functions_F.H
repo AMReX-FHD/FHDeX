@@ -58,7 +58,7 @@ extern "C"
 
     void setup_bc();
 
-    void setup_cwall();
+    void setup_cwall(amrex::Real* bc_Yk, amrex::Real* bc_Xk);
 
     void get_energy(amrex::Real* energy, amrex::Real* massvec, const amrex::Real* temp);
 
