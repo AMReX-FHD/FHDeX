@@ -103,7 +103,8 @@ void main_driver(const char* argv)
     /////////////////////////////////////////
 
     // object for turbulent forcing
-    TurbForcing tf(ba,dmap,geom,turb_a,turb_b);
+    TurbForcing tf(ba,dmap,turb_a,turb_b);
+    tf.Initialize(geom);
 
     ///////////////////////////////////////////
     // rho, alpha, beta, gamma:
