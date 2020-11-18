@@ -129,3 +129,6 @@ endif
 
 #DEFINES	+= -DDSMC=$(DSMC)				
 
+ifeq ($(findstring cgpu, $(HOST)), cgpu)
+CXXFLAGS += $(FFTW)
+endif
