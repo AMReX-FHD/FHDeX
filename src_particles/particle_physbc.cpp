@@ -1,10 +1,12 @@
 #include "particle_functions.H"
 
-// positive-fold-add or negative-fold-add charge from ghost cells ghost cells into valid region
-// for Dirichlet potential (bc_es==1), negative-fold-add
-// for Neumann potential (bc_es==2), positive-fold-add
-// charge is cell-centered with 1 component
-// note for wall-wall corners, the folding is also done in ghost cells so we get corner charges back in
+// Folding routine.
+// Positive-fold-add or negative-fold-add charge from ghost cells into valid region.
+// For Dirichlet potential (bc_es==1), negative-fold-add.
+// For Neumann potential (bc_es==2), positive-fold-add.
+// Charge is cell-centered with 1 component.
+// Note for wall-wall corners, the folding is also done in ghost cells so we get
+// corner charges back in.
 void MultiFabPhysBCCharge(MultiFab& charge, const Geometry& geom) {
     
     BL_PROFILE_VAR("MultiFabPhysBCCharge()",MultiFabPhysBCCharge);
@@ -100,8 +102,9 @@ void MultiFabPhysBCCharge(MultiFab& charge, const Geometry& geom) {
     } // end MFIter
 }
 
-// Fill all ghost cells for a component of the normal stress
-// note "stress" is face-centered with direction "dim"
+// Folding routine.
+// Modifies normal fields on the boundary and the interior.
+// Note "stress" is face-centered with direction "dim".
 // We test on bc_vel_lo/hi
 // 1 =    slip -> leave value on wall alone, add in force from ghost
 // 2 = no slip -> set value on wall to zero, add in negative force from ghost cells
@@ -233,6 +236,12 @@ void MultiFabPhysBCDomainStress(MultiFab& stress, const Geometry& geom, int dim)
     } // end MFIter
 }
 
+// Folding routine.
+// Modifies transverse fields in the interior.
+// Note "stress" is face-centered with direction "dim".
+// We test on bc_vel_lo/hi
+// 1 =    slip -> add in force from ghost
+// 2 = no slip -> add in negative force from ghost cells
 void MultiFabPhysBCMacStress(MultiFab& stress, const Geometry& geom, int dim) {
     
     BL_PROFILE_VAR("ultiFabPhysBCMacStress()",ultiFabPhysBCMacStress);

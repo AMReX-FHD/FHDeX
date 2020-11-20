@@ -1,6 +1,6 @@
 #include "common_functions.H"
 
-
+// Ghost cell filling routine.
 // Fills in all ghost cells to the same value, which is the value AT the boundary.
 // FOEXTRAP uses boundary conditions (Neumann) and 1 interior points.
 // EXT_DIR copies the supplied Dirichlet condition into the ghost cells.
@@ -175,10 +175,11 @@ void MultiFabPhysBC(MultiFab& phi, const Geometry& geom, int scomp, int ncomp, i
     } // end MFIter
 }
 
-// Set the value of normal velocity on walls to zero
-// Set the value of normal ghost cells to the inverse reflection of the interior
+// Boundary and ghost cell filling routine for normal velocities.
+// Set the value of normal velocity on walls to zero.
+// Set the value of normal ghost cells to the inverse reflection of the interior.
 // We fill all the ghost cells - they are needed for Perskin kernels and
-// to avoid intermediate NaN propagation in BDS
+// to avoid intermediate NaN propagation in BDS.
 void MultiFabPhysBCDomainVel(MultiFab& vel, const Geometry& geom, int dim) {
 
     BL_PROFILE_VAR("MultiFabPhysBCDomainVel()",MultiFabPhysBCDomainVel);
@@ -304,9 +305,10 @@ void MultiFabPhysBCDomainVel(MultiFab& vel, const Geometry& geom, int dim) {
     } // end MFIter
 }
 
+// Ghost cell filling routine for transverse velocities.
 // Set the value of tranverse ghost cells to +/- the reflection of the interior
-// (+ for slip walls, - for no-slip)
-// We fill all the ghost cells - they are needed for Perskin kernels
+// (+ for slip walls, - for no-slip).
+// We fill all the ghost cells - they are needed for Perskin kernels.
 void MultiFabPhysBCMacVel(MultiFab& vel, const Geometry& geom, int dim) {
 
     BL_PROFILE_VAR("MultiFabPhysBCMacVel()",MultiFabPhysBCMacVel);
@@ -403,7 +405,9 @@ void MultiFabPhysBCMacVel(MultiFab& vel, const Geometry& geom, int dim) {
     } // end MFIter
 }
 
-// Set the value on walls to zero
+// Boundary filling routine for normal velocity.
+// Set the value of normal velocity on walls to zero.
+// Works for slip and no-slip (bc_vel_lo/hi = 1 or 2).
 void ZeroEdgevalWalls(std::array<MultiFab, AMREX_SPACEDIM>& edge, const Geometry& geom, int scomp, int ncomp) {
 
     BL_PROFILE_VAR("ZeroEdgevalWalls()",ZeroEdgevalWalls);
@@ -522,7 +526,9 @@ void ZeroEdgevalWalls(std::array<MultiFab, AMREX_SPACEDIM>& edge, const Geometry
 #endif
 }
 
-// Set the value on all physical boundaries (non periodic) to zero
+// Boundary filling routine for normal velocity.
+// Set the value of normal velocity on all physical (i.e. non-periodic) walls to zero.
+// Checks that bc_vel_lo/hi != -1
 void ZeroEdgevalPhysical(std::array<MultiFab, AMREX_SPACEDIM>& edge, const Geometry& geom, int scomp, int ncomp) {
 
     BL_PROFILE_VAR("ZeroEdgevalPhysical()",ZeroEdgevalPhysical);
@@ -641,15 +647,15 @@ void ZeroEdgevalPhysical(std::array<MultiFab, AMREX_SPACEDIM>& edge, const Geome
 #endif
 }
 
+// Ghost cell filling routine.
 // Fill all ghost cells for a component of the electric field
-// (note efieldCC is cell-centerd with only 1 component,
+// by extrapolating values to the ghost cell-centers (useful for Perskin kernels)
+// Note this is not the same as extrapolating values to the boundary.
+// (note the input MultiFab is cell-centerd with only 1 component,
 //  so this needs to be called in a loop over all directions)
 // We test on bc_es_lo/hi, which are bc's for phi (not E)
 // 1 = Dirichlet phi -> reflect interior values of E
 // 2 = Neumann phi -> reflect and invert interior values of E
-// this is different from the generic PhysBC routines since it computes
-// values extrapolted to the boundary (useful for Perskin kernel interpolation)
-// rather than fill ghost cells with values ON the boundary
 void MultiFabElectricBC(MultiFab& efieldCC, const Geometry& geom) {
     
     BL_PROFILE_VAR("MultiFabElectricBC()",MultiFabElectricBC);
@@ -745,16 +751,17 @@ void MultiFabElectricBC(MultiFab& efieldCC, const Geometry& geom) {
     } // end MFIter
 }
 
-// Fill one ghost cell for a component of the electric potential
-// we test on bc_es_lo/hi
-// 2 point stencil involving boundary value and interior value
+// Ghost cell filling routine.
+// This routine fills ghost cells for electric potential with the value
+// extrapolated TO the ghost cell-center; we test on bc_es_lo/hi.
 // 1 = Dirichlet
 // 2 = Neumann
-// This routine fills ghost cells with the value extrapolated TO the ghost cell-center
-// This is NOT the same as filling the ghost cell with the value on the boundary
-// The Poisson solver needs a separate routine to fill ghost cells with the value ON
-// the boundary for inhomogeneous Neumann and inhomogeneous Dirichlet; for this we
-// use MultiFabPotentialBC_solver
+// Uses a 2 point stencil involving boundary value and interior value.
+// This is NOT the same as filling the ghost cell with the value on the boundary.
+// (not implemented yet)
+// This is NOT the same as filling the ghost cell with the Dirichlet or
+// Neumann value on the boundary.
+// (the Poisson solver needs this; MultifFabPotentialBC_solver())
 void MultiFabPotentialBC(MultiFab& phi, const Geometry& geom) {
     
     BL_PROFILE_VAR("MultiFabPotentialBC()",MultiFabPotentialBC);
@@ -922,12 +929,15 @@ void MultiFabPotentialBC(MultiFab& phi, const Geometry& geom) {
     } // end MFIter
 }
 
-// Fill one ghost cell for a component of the electric potential
-// This routine fills the ghost cell with the value on the boundary, whether it is Dirichlet or Neumann
-// It works for inhomogeneous Neumann and inhomogeneous Dirichlet
-// This is what the Poisson solver expects
-// This routine is not to be confused with MultiFabPotentialBC, which fill ghost
-// values extrapolated TO the ghost cell-center
+// Ghost cell filling routine.
+// Fill one ghost cell for a component of the electric potential.
+// This routine fills the ghost cell with the numerical value of the
+// (possibly inhomogeneous) Dirichlet or Neumann value on the boundary.
+// This is what the Poisson solver expects.
+// This is NOT the same as filling the ghost cell with the value on the boundary.
+// (not implemented yet)
+// This is NOT the same as filling the ghost cell with the value extrapolated to the ghost cell-center
+// (implemented in MultiFabPotentialBC())
 void MultiFabPotentialBC_solver(MultiFab& phi, const Geometry& geom) {
 
     BL_PROFILE_VAR("MultiFabPotentialBC_solver()",MultiFabPotentialBC_solver);

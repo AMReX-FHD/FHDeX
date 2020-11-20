@@ -82,7 +82,11 @@ void FillRhoRhototGhost(MultiFab& rho, MultiFab& rhotot, const Geometry& geom) {
     ConvertRhoCToC(rho,rhotot,conc,0);    
 }
 
-
+// Ghost cell filling routine.
+// Specific for the low Mach multispecies mixing EOS that enforces no
+// volume change upon mixing.
+// Assuming the input concentration ghost cells are filled.
+// Computes rho = [sum(c_i/rhobar_i)]^{-1} in all ghost cells.
 void FillRhototGhost(MultiFab& rhotot_in, const MultiFab& conc_in, const Geometry& geom) {
 
     BL_PROFILE_VAR("FillRhototGhost()",FillRhototGhost);
