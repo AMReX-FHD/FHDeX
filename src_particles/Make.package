@@ -3,6 +3,7 @@ CEXE_headers   += DsmcParticleContainer.H
 CEXE_headers   += particle_functions.H
 CEXE_headers   += kernel_functions_K.H
 CEXE_headers   += particle_functions_K.H
+CEXE_sources   += FindCoords.cpp
 CEXE_sources   += FhdParticleContainer.cpp
 CEXE_sources   += DsmcParticleContainer.cpp
 CEXE_sources   += particle_mobility.cpp

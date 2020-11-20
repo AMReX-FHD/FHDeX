@@ -81,16 +81,6 @@ void outputMFAscii(const MultiFab& output, std::string filename);
 // in SqrtMF.cpp
 void SqrtMF(MultiFab& MF);
 
-///////////////////////////
-// in FindCoords.cpp
-
-void FindFaceCoords(std::array<MultiFab, AMREX_SPACEDIM> & RealFaceCoords,
-                    const Geometry & geom);
-
-void FindCenterCoords(MultiFab & RealCenterCoords, const Geometry & geom);
-
-void FindNodalValues(const MultiFab & inFab, MultiFab & outFab, const MultiFab & ccFab);
-
 
 ///////////////////////////
 // in ComputeBasicStats.cpp

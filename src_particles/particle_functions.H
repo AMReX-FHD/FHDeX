@@ -18,4 +18,14 @@ void MultiFabPhysBCDomainStress(MultiFab& stress, const amrex::Geometry& geom, i
 
 void MultiFabPhysBCMacStress(MultiFab& stress, const Geometry& geom, int dim);
 
+///////////////////////////
+// in FindCoords.cpp
+
+void FindFaceCoords(std::array<MultiFab, AMREX_SPACEDIM> & RealFaceCoords,
+                    const Geometry & geom);
+
+void FindCenterCoords(MultiFab & RealCenterCoords, const Geometry & geom);
+
+void FindNodalValues(const MultiFab & inFab, MultiFab & outFab, const MultiFab & ccFab);
+
 #endif
