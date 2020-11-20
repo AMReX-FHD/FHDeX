@@ -73,7 +73,7 @@ void FillRhoRhototGhost(MultiFab& rho, MultiFab& rhotot, const Geometry& geom) {
 
     // fill conc ghost cells
     conc.FillBoundary(geom.periodicity());
-    MultiFabPhysBC(conc,geom,0,nspecies,1);
+    MultiFabPhysBC(conc,geom,0,nspecies,SPEC_BC_COMP);
 
     // fill rhotot ghost cells
     FillRhototGhost(rhotot,conc,geom);
@@ -98,7 +98,7 @@ void FillRhototGhost(MultiFab& rhotot_in, const MultiFab& conc_in, const Geometr
     }
 
     if (algorithm_type == 6) {
-        MultiFabPhysBC(rhotot_in,geom,0,1,-1);
+        MultiFabPhysBC(rhotot_in,geom,0,1,RHO_BC_COMP);
         return;
     }    
 
@@ -123,7 +123,7 @@ void FillRhototGhost(MultiFab& rhotot_in, const MultiFab& conc_in, const Geometr
     }
    
     // compute mathematical boundary conditions
-    BCPhysToMath(1,bc_lo,bc_hi);
+    BCPhysToMath(SPEC_BC_COMP,bc_lo,bc_hi);
 
     for (MFIter mfi(rhotot_in, TilingIfNotGPU()); mfi.isValid(); ++mfi) {
 

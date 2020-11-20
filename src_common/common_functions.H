@@ -9,6 +9,12 @@
 #define NUM_EDGE 3
 #endif
 
+#define PRES_BC_COMP 0
+#define RHO_BC_COMP  -1
+#define SPEC_BC_COMP 1
+#define TEMP_BC_COMP 2
+#define EPOT_BC_COMP 3
+
 #include <AMReX.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_ArrayLim.H>
@@ -37,17 +43,17 @@ void AverageFaceToCC(const std::array<MultiFab, AMREX_SPACEDIM>& face_in,
 
 void AverageCCToFace(const MultiFab& cc_in,
                      std::array<MultiFab, AMREX_SPACEDIM>& face_in,
-                     int scomp, int ncomp, int varType, const Geometry& geom);
+                     int scomp, int ncomp, int bccomp, const Geometry& geom);
 
 void ShiftFaceToCC(const MultiFab& face_in, int face_in_comp,
                    MultiFab& cc_in, int cc_in_comp,
                    int ncomp);
 
 void AverageCCToNode(const MultiFab& cc_in, MultiFab& node_in,
-                     int scomp, int ncomp, int varType, const Geometry& geom);
+                     int scomp, int ncomp, int bccomp, const Geometry& geom);
 
 void AverageCCToEdge(const MultiFab& cc_in, std::array<MultiFab, NUM_EDGE>& edge_in,
-                     int scomp, int ncomp, int varType, const Geometry& geom);
+                     int scomp, int ncomp, int bccomp, const Geometry& geom);
 
 ///////////////////////////
 // in ComputeDivAndGrad.cpp
@@ -57,7 +63,7 @@ void ComputeDiv(MultiFab & div, const std::array<MultiFab, AMREX_SPACEDIM> & phi
                 const Geometry & geom, int increment);
 
 void ComputeGrad(const MultiFab & phi_in, std::array<MultiFab, AMREX_SPACEDIM> & gphi, 
-                 int start_incomp, int start_outcomp, int ncomp, int varType, const Geometry & geom,
+                 int start_incomp, int start_outcomp, int ncomp, int bccomp, const Geometry & geom,
                  int increment=0);
 
 void ComputeCentredGrad(const MultiFab& phi, std::array<MultiFab, AMREX_SPACEDIM>& gphi,
@@ -108,7 +114,7 @@ void ComputeVerticalAverage(const MultiFab & mf, MultiFab & mf_avg, const Geomet
 // in MultiFabPhysBC.cpp
 // see comments in C++ files for descriptions
 
-void MultiFabPhysBC(MultiFab& data, const Geometry& geom, int scomp, int ncomp, int varType);
+void MultiFabPhysBC(MultiFab& data, const Geometry& geom, int scomp, int ncomp, int bccomp);
 
 void MultiFabPhysBCDomainVel(MultiFab& vel, const Geometry& geom, int dim);
 

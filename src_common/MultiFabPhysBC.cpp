@@ -4,11 +4,11 @@
 // Fills in all ghost cells to the same value, which is the value AT the boundary.
 // FOEXTRAP uses boundary conditions (Neumann) and 1 interior points.
 // EXT_DIR copies the supplied Dirichlet condition into the ghost cells.
-void MultiFabPhysBC(MultiFab& phi, const Geometry& geom, int scomp, int ncomp, int varType) {
+void MultiFabPhysBC(MultiFab& phi, const Geometry& geom, int scomp, int ncomp, int bccomp) {
 
     BL_PROFILE_VAR("MultiFabPhysBC()",MultiFabPhysBC);
     
-    // varType definitions are in BCPhysToMath.cpp
+    // bccomp definitions are in BCPhysToMath.cpp
     
     if (geom.isAllPeriodic()) {
         return;
@@ -23,7 +23,7 @@ void MultiFabPhysBC(MultiFab& phi, const Geometry& geom, int scomp, int ncomp, i
     Vector<int> bc_hi(AMREX_SPACEDIM);
 
     // compute mathematical boundary conditions
-    BCPhysToMath(varType,bc_lo,bc_hi);
+    BCPhysToMath(bccomp,bc_lo,bc_hi);
 
     for (MFIter mfi(phi, TilingIfNotGPU()); mfi.isValid(); ++mfi) {
 

@@ -96,7 +96,7 @@ void ElectroDiffusiveMassFlux(const MultiFab& rho,
     if (any_shift) {
         Abort("ShiftCCToBoundaryFace not written yet");        
     } else {
-        AverageCCToFace(rhoWchi,rhoWchi_fc,0,nspecies*nspecies,1,geom);
+        AverageCCToFace(rhoWchi,rhoWchi_fc,0,nspecies*nspecies,SPEC_BC_COMP,geom);
     }
     
     // solve poisson equation for phi (the electric potential)
@@ -106,7 +106,7 @@ void ElectroDiffusiveMassFlux(const MultiFab& rho,
     }
 
     // fill ghost cells for Epot at walls using Dirichlet value
-    MultiFabPhysBC(Epot,geom,0,1,3);
+    MultiFabPhysBC(Epot,geom,0,1,EPOT_BC_COMP);
 
     // set alpha=0
     alpha.setVal(0.);
@@ -116,7 +116,7 @@ void ElectroDiffusiveMassFlux(const MultiFab& rho,
         if (any_shift) {
             Abort("ShiftCCToBoundaryFace not written yet");
         } else {
-            AverageCCToFace(permittivity,permittivity_fc,0,1,1,geom);            
+            AverageCCToFace(permittivity,permittivity_fc,0,1,SPEC_BC_COMP,geom);
         }
     }
 
@@ -258,7 +258,7 @@ void ElectroDiffusiveMassFlux(const MultiFab& rho,
 //    MultiFabPotentialBC_solver(Epot,geom);
 
     // compute the gradient of the electric potential
-    ComputeGrad(Epot,grad_Epot,0,0,1,3,geom,0);
+    ComputeGrad(Epot,grad_Epot,0,0,1,EPOT_BC_COMP,geom,0);
     
     if (E_ext_type != 0) {
         // add external electric field

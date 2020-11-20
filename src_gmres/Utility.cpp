@@ -15,7 +15,7 @@ void SubtractWeightedGradP(std::array<MultiFab, AMREX_SPACEDIM>& x_u,
     BoxArray ba = phi.boxArray();
     DistributionMapping dmap = phi.DistributionMap();
 
-    ComputeGrad(phi,gradp,0,0,1,0,geom);
+    ComputeGrad(phi,gradp,0,0,1,PRES_BC_COMP,geom);
 
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
         MultiFab::Multiply(gradp[i],alphainv_fc[i],0,0,1,0);

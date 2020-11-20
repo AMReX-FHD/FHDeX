@@ -193,7 +193,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     // Compute tracer:
     tracer.FillBoundary(geom.periodicity());
-    MultiFabPhysBC(tracer, geom, 0, 1, 1);
+    MultiFabPhysBC(tracer, geom, 0, 1, SPEC_BC_COMP);
 
     MkAdvSFluxdiv_cc(umac, tracer, advFluxdivS, geom, 0, 1, 0);
     advFluxdivS.mult(dt, 1);
@@ -203,7 +203,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     MultiFab::Add(tracerPred, advFluxdivS, 0, 0, 1, 0);
 
     tracerPred.FillBoundary(geom.periodicity());
-    MultiFabPhysBC(tracerPred, geom, 0, 1, 1);
+    MultiFabPhysBC(tracerPred, geom, 0, 1, SPEC_BC_COMP);
 
     MkAdvSFluxdiv_cc(umac, tracerPred, advFluxdivS, geom, 0, 1, 0);
     advFluxdivS.mult(dt, 1);
@@ -358,7 +358,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     pres.setVal(0.);  // initial guess
     SetPressureBC(pres, geom);
     for (int d=0; d<AMREX_SPACEDIM; ++d) pg[d].setVal(0);
-    ComputeGrad(pres, pg, 0, 0, 1, 0, geom);
+    ComputeGrad(pres, pg, 0, 0, 1, PRES_BC_COMP, geom);
 
     for (int i=0; i<AMREX_SPACEDIM; i++) {
         pg[i].FillBoundary(geom.periodicity());

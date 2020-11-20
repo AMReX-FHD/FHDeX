@@ -44,7 +44,7 @@ void ComputeDiv(MultiFab& div,
 
 // Computes gradient at cell faces of cell centred scalar
 void ComputeGrad(const MultiFab & phi_in, std::array<MultiFab, AMREX_SPACEDIM> & gphi,
-                 int start_incomp, int start_outcomp, int ncomp, int varType, const Geometry & geom,
+                 int start_incomp, int start_outcomp, int ncomp, int bccomp, const Geometry & geom,
                  int increment)
 {
     BL_PROFILE_VAR("ComputeGrad()",ComputeGrad);
@@ -56,7 +56,7 @@ void ComputeGrad(const MultiFab & phi_in, std::array<MultiFab, AMREX_SPACEDIM> &
     Vector<int> bc_hi(AMREX_SPACEDIM);
 
     // compute mathematical boundary conditions
-    BCPhysToMath(varType,bc_lo,bc_hi);
+    BCPhysToMath(bccomp,bc_lo,bc_hi);
 
     const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
 
