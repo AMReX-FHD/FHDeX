@@ -1,39 +1,10 @@
-#include <AMReX.H>
-#include <AMReX_AmrParGDB.H>
-#include <AMReX_ParmParse.H>
-#include <AMReX_Particles.H>
-#include <AMReX_NeighborParticles.H>
+#include "FhdParticleContainer.H"
 
-#include <AMReX_VisMF.H>  // amrex::VisMF::Write(MultiFab)
-
-#include <common_functions.H>
-
-#include <FhdParticleContainer.H>
-#include <ib_functions_F.H>
-
-#include <particle_functions_K.H>
-#include <paramplane_functions_K.H>
-
-#include <iostream>
-
-#include <AMReX_Geometry.H>
-#include <AMReX_BoxArray.H>
-#include <AMReX_DistributionMapping.H>
-#include <AMReX_Utility.H>
-#include <AMReX_MultiFab.H>
-#include <AMReX_Box.H>
-#include <iostream>
-#include <fstream>
-
-#include <cstdio>
-
-
-using namespace amrex;
-
+#include "particle_functions_K.H"
+#include "paramplane_functions_K.H"
 
 bool FhdParticleContainer::use_neighbor_list  {true};
 bool FhdParticleContainer::sort_neighbor_list {false};
-
 
 FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
                                            const DistributionMapping & dmap,

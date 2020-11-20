@@ -1,10 +1,4 @@
-#include <AMReX_Geometry.H>
-
 #include "particle_functions.H"
-#include "particle_functions_F.H"
-
-//using namespace amrex;
-
 
 void ComputeDryMobility(MultiFab & dryMobility, species* particleInfo, const Geometry & Geom)
 {

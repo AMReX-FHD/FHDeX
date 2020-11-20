@@ -140,13 +140,6 @@ void MultiFabPotentialBC(MultiFab& potential, const Geometry& geom);
 
 void MultiFabPotentialBC_solver(MultiFab& potential, const Geometry& geom);
 
-void MultiFabPhysBCCharge(MultiFab& charge, const Geometry& geom);
-
-void MultiFabPhysBCMacStress(MultiFab& stress, const Geometry& geom, int dim);
-
-void MultiFabPhysBCDomainStress(MultiFab& stress, const amrex::Geometry& geom, int dim);
-
-
 ///////////////////////////
 // in NormInnerProduct.cpp
 
