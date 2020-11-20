@@ -3,6 +3,11 @@
 
 #define MAX_SPECIES 4
 #define LOHI 2
+#if (AMREX_SPACEDIM == 2)
+#define NUM_EDGE 1
+#else
+#define NUM_EDGE 3
+#endif
 
 #include <AMReX.H>
 #include <AMReX_MultiFab.H>
@@ -14,15 +19,6 @@
 
 using namespace common;
 using namespace amrex;
-
-#ifndef _num_edge_
-#define _num_edge_
-#if (AMREX_SPACEDIM == 2)
-    const int NUM_EDGE = 1;
-#elif (AMREX_SPACEDIM == 3)
-    const int NUM_EDGE = 3;
-#endif
-#endif
 
 // copy contents of common_params_module to C++ common namespace
 void InitializeCommonNamespace();
