@@ -10,10 +10,11 @@
 #endif
 
 #define PRES_BC_COMP 0
-#define RHO_BC_COMP  -1
-#define SPEC_BC_COMP 1
+#define RHO_BC_COMP  1
 #define TEMP_BC_COMP 2
 #define EPOT_BC_COMP 3
+#define SPEC_BC_COMP 10
+#define SPEC_END_BC_COMP 19
 
 #include <AMReX.H>
 #include <AMReX_MultiFab.H>
