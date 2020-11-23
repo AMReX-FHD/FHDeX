@@ -1,7 +1,6 @@
 #ifndef _common_functions_H_
 #define _common_functions_H_
 
-#define MAX_SPECIES 4
 #define LOHI 2
 #if (AMREX_SPACEDIM == 2)
 #define NUM_EDGE 1
