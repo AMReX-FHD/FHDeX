@@ -1,7 +1,7 @@
 #include "common_functions.H"
 
 // Ghost cell filling routine.
-// Fills in all ghost cells to the same value, which is the value AT the boundary.
+// Fills in ONE ghost cells to the value ON the boundary.
 // FOEXTRAP uses boundary conditions (Neumann) and 1 interior points.
 // EXT_DIR copies the supplied Dirichlet condition into the ghost cells.
 void MultiFabPhysBC(MultiFab& phi, const Geometry& geom, int scomp, int ncomp, int bccomp) {
@@ -28,7 +28,7 @@ void MultiFabPhysBC(MultiFab& phi, const Geometry& geom, int scomp, int ncomp, i
     for (MFIter mfi(phi, TilingIfNotGPU()); mfi.isValid(); ++mfi) {
 
         // one ghost cell
-        Box bx = mfi.growntilebox(ng);
+        Box bx = mfi.growntilebox(1);
 
         const Array4<Real>& data = phi.array(mfi);
 
@@ -774,8 +774,7 @@ void MultiFabPotentialBC(MultiFab& phi, const Geometry& geom) {
 
     Box dom(geom.Domain());
 
-    const Real* dx_vec  = geom.CellSize();
-    GpuArray<Real,AMREX_SPACEDIM> dx{AMREX_D_DECL(dx_vec[0], dx_vec[1], dx_vec[2])};
+    GpuArray<Real,AMREX_SPACEDIM> dx = geom.CellSizeArray();
 
     for (MFIter mfi(phi); mfi.isValid(); ++mfi) {
 

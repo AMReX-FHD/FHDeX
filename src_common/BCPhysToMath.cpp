@@ -8,12 +8,6 @@ void BCPhysToMath(int bccomp, amrex::Vector<int>& bc_lo, amrex::Vector<int>& bc_
     
     BL_PROFILE_VAR("BCPhysToMath()",BCPhysToMath);
 
-    // bc_comp -1: density
-    // bc_comp  0: pressure
-    // bc_comp  1: species
-    // bc_comp  2: temperature
-    // bc_comp  3: electric potential
-
     // set to interior/periodic by default; overwrite below
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
         bc_lo[i] = bc_hi[i] = INT_DIR;

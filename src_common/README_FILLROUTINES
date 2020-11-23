@@ -7,7 +7,7 @@ Cell-Centered Data
 MultiFabPhysBC
 /*
 Ghost cell filling routine.
-Fills in all ghost cells to the same value, which is the value AT the boundary.
+Fills in ONE ghost cells to the value ON the boundary.
 FOEXTRAP uses boundary conditions (Neumann) and 1 interior point.
 EXT_DIR copies the supplied Dirichlet condition into the ghost cells.
 */
