@@ -1,28 +1,28 @@
 #include "common_functions.H"
+#include "InhomogeneousBCVal.H"
 
 // Ghost cell filling routine.
 // Fills in ONE ghost cells to the value ON the boundary.
 // FOEXTRAP uses boundary conditions (Neumann) and 1 interior points.
 // EXT_DIR copies the supplied Dirichlet condition into the ghost cells.
-void MultiFabPhysBC(MultiFab& phi, const Geometry& geom, int scomp, int ncomp, int bccomp) {
+void MultiFabPhysBC(MultiFab& phi, const Geometry& geom, int scomp, int ncomp, int bccomp, const Real& time) {
 
     BL_PROFILE_VAR("MultiFabPhysBC()",MultiFabPhysBC);
     
     // bccomp definitions are in BCPhysToMath.cpp
     
-    if (geom.isAllPeriodic()) {
+    if (geom.isAllPeriodic() || phi.nGrow() == 0) {
         return;
     }
 
     // Physical Domain
     Box dom(geom.Domain());
 
-    int ng = phi.nGrow();
-    
-    Vector<int> bc_lo(AMREX_SPACEDIM);
-    Vector<int> bc_hi(AMREX_SPACEDIM);
+    GpuArray<Real,AMREX_SPACEDIM> dx = geom.CellSizeArray();
 
     // compute mathematical boundary conditions
+    Vector<int> bc_lo(AMREX_SPACEDIM);
+    Vector<int> bc_hi(AMREX_SPACEDIM);
     BCPhysToMath(bccomp,bc_lo,bc_hi);
 
     for (MFIter mfi(phi, TilingIfNotGPU()); mfi.isValid(); ++mfi) {
@@ -43,11 +43,18 @@ void MultiFabPhysBC(MultiFab& phi, const Geometry& geom, int scomp, int ncomp, i
         int hi = dom.bigEnd(0);
         
         if (bx.smallEnd(0) < lo) {
+            Real x = prob_lo[0];
             if (bc_lo[0] == FOEXTRAP) {
                 amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (i < lo) {
-                        data(i,j,k,scomp+n) = data(lo,j,k,scomp+n);
+                        Real y = prob_lo[1] + (j+0.5)*dx[1];
+#if (AMREX_SPACEDIM == 2)
+                        data(i,j,k,scomp+n) = data(lo,j,k,scomp+n) - 0.5*dx[0]*InhomogeneousBCVal(bccomp+n,x,y,time);
+#elif (AMREX_SPACEDIM == 3)
+                        Real z = prob_lo[2] + (k+0.5)*dx[2];
+                        data(i,j,k,scomp+n) = data(lo,j,k,scomp+n) - 0.5*dx[0]*InhomogeneousBCVal(bccomp+n,x,y,z,time);
+#endif
                     }
                 });
             }
@@ -62,6 +69,7 @@ void MultiFabPhysBC(MultiFab& phi, const Geometry& geom, int scomp, int ncomp, i
         }
         
         if (bx.bigEnd(0) > hi) {
+            Real x = prob_hi[0];
             if (bc_hi[0] == FOEXTRAP) {
                 amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
@@ -88,6 +96,7 @@ void MultiFabPhysBC(MultiFab& phi, const Geometry& geom, int scomp, int ncomp, i
         hi = dom.bigEnd(1);
         
         if (bx.smallEnd(1) < lo) {
+            Real y = prob_lo[1];
             if (bc_lo[1] == FOEXTRAP) {
                 amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
@@ -107,6 +116,7 @@ void MultiFabPhysBC(MultiFab& phi, const Geometry& geom, int scomp, int ncomp, i
         }
 
         if (bx.bigEnd(1) > hi) {
+            Real y = prob_hi[1];
             if (bc_hi[1] == FOEXTRAP) {
                 amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {

@@ -115,7 +115,7 @@ void ComputeVerticalAverage(const MultiFab & mf, MultiFab & mf_avg, const Geomet
 // in MultiFabPhysBC.cpp
 // see comments in C++ files for descriptions
 
-void MultiFabPhysBC(MultiFab& data, const Geometry& geom, int scomp, int ncomp, int bccomp);
+void MultiFabPhysBC(MultiFab& data, const Geometry& geom, int scomp, int ncomp, int bccomp, const Real& time=0.);
 
 void MultiFabPhysBCDomainVel(MultiFab& vel, const Geometry& geom, int dim);
 

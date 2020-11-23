@@ -56,19 +56,19 @@ namespace common {
     // Physical parameters
     extern amrex::Vector<amrex::Real> grav;
     extern AMREX_GPU_DEVICE_MANAGED int nspecies;
-    extern amrex::Vector<amrex::Real> molmass;
+    extern AMREX_GPU_DEVICE_MANAGED amrex::Vector<amrex::Real> molmass;
     extern amrex::Vector<amrex::Real> rhobar;
     extern amrex::Real                rho0;
-    extern amrex::Vector<amrex::Real> diameter;
+    extern AMREX_GPU_DEVICE_MANAGED amrex::Vector<amrex::Real> diameter;
     extern amrex::Vector<int>         dof;
-    extern amrex::Vector<amrex::Real> hcv;
-    extern amrex::Vector<amrex::Real> hcp;
+    extern AMREX_GPU_DEVICE_MANAGED amrex::Vector<amrex::Real> hcv;
+    extern AMREX_GPU_DEVICE_MANAGED amrex::Vector<amrex::Real> hcp;
 
     // stochastic forcing amplitudes (1 for physical values, 0 to run them off)
     extern amrex::Real                variance_coef_mom;
     extern amrex::Real                variance_coef_mass;
-    extern amrex::Real                k_B;
-    extern amrex::Real                Runiv;
+    extern AMREX_GPU_DEVICE_MANAGED amrex::Real k_B;
+    extern AMREX_GPU_DEVICE_MANAGED amrex::Real Runiv;
     extern amrex::Vector<amrex::Real> T_init;
 
     // Algorithm control / selection
