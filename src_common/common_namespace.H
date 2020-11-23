@@ -23,7 +23,7 @@ namespace common {
 
     extern amrex::IntVect             ngc;           //number of chost cells
     extern int                        nvars;         //number of conserved variables
-    extern int                        nprimvars;     //number of primitive variables
+    extern AMREX_GPU_MANAGED int      nprimvars;     //number of primitive variables
 
     extern int                        membrane_cell; //cell to locate membrane
     extern int                        cross_cell;    //cell to compute spatial correlation
@@ -55,20 +55,20 @@ namespace common {
 
     // Physical parameters
     extern amrex::Vector<amrex::Real> grav;
-    extern AMREX_GPU_DEVICE_MANAGED int nspecies;
-    extern AMREX_GPU_DEVICE_MANAGED amrex::Vector<amrex::Real> molmass;
-    extern amrex::Vector<amrex::Real> rhobar;
+    extern AMREX_GPU_MANAGED int nspecies;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> molmass;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> rhobar;
     extern amrex::Real                rho0;
-    extern AMREX_GPU_DEVICE_MANAGED amrex::Vector<amrex::Real> diameter;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> diameter;
     extern amrex::Vector<int>         dof;
-    extern AMREX_GPU_DEVICE_MANAGED amrex::Vector<amrex::Real> hcv;
-    extern AMREX_GPU_DEVICE_MANAGED amrex::Vector<amrex::Real> hcp;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> hcv;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> hcp;
 
     // stochastic forcing amplitudes (1 for physical values, 0 to run them off)
     extern amrex::Real                variance_coef_mom;
     extern amrex::Real                variance_coef_mass;
-    extern AMREX_GPU_DEVICE_MANAGED amrex::Real k_B;
-    extern AMREX_GPU_DEVICE_MANAGED amrex::Real Runiv;
+    extern AMREX_GPU_MANAGED amrex::Real k_B;
+    extern AMREX_GPU_MANAGED amrex::Real Runiv;
     extern amrex::Vector<amrex::Real> T_init;
 
     // Algorithm control / selection
@@ -171,8 +171,8 @@ namespace common {
     extern int                        radialdist_int;
     extern int                        cartdist_int;
     extern int                        n_steps_skip;
-    extern AMREX_GPU_DEVICE_MANAGED amrex::Real binSize;
-    extern AMREX_GPU_DEVICE_MANAGED amrex::Real searchDist;    
+    extern AMREX_GPU_MANAGED amrex::Real binSize;
+    extern AMREX_GPU_MANAGED amrex::Real searchDist;    
 
     // projection 
     extern int                        project_dir;
