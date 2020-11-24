@@ -63,7 +63,8 @@ struct FHD_realData {
         sigma,
         eepsilon,
         potential,
-	    p3m_radius,
+	p3m_radius,
+        spring,
         count    // Awesome little trick! (only works if first field is 0)
     };
 
@@ -99,6 +100,7 @@ struct FHD_intData {
         j,
         k,
         species,
+        pinned,
         count
     };
 
@@ -172,7 +174,7 @@ public:
 
     void WriteParticlesAscii(string asciiName);
 
-    void potentialFunction(Real* origin);
+    void forceFunction(Real* origin);
     void potentialDistribution(long totalParticles, const int step, const species* particleInfo);
 
     void DoRFD(const Real dt, const Real* dxFluid, const Real* dxE, const Geometry geomF,

@@ -115,13 +115,13 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
 }
 
 
-void FhdParticleContainer::potentialFunction(Real* origin)
+void FhdParticleContainer::forceFunction(Real* origin)
 {
 
 
    const int lev = 0;
 
-   Real k = 5e2;
+   //Real k = 5e2;
    Real maxU = 0;
    Real maxD = 0;
 
@@ -133,6 +133,8 @@ void FhdParticleContainer::potentialFunction(Real* origin)
 
         const Box& tile_box  = pti.tilebox();
 
+        Real maxUtile;
+        Real maxDtile;
 
          for (int i = 0; i < np; ++i) {
 
@@ -143,31 +145,36 @@ void FhdParticleContainer::potentialFunction(Real* origin)
             radVec[1] = part.pos(1)-origin[1];
             radVec[2] = part.pos(2)-origin[2];
 
-            part.rdata(FHD_realData::forcex) = part.rdata(FHD_realData::forcex) - k*radVec[0];
-            part.rdata(FHD_realData::forcey) = part.rdata(FHD_realData::forcey) - k*radVec[1];
-            part.rdata(FHD_realData::forcez) = part.rdata(FHD_realData::forcez) - k*radVec[2];
+            part.rdata(FHD_realData::forcex) = part.rdata(FHD_realData::forcex) - part.rdata(FHD_realData::spring)*radVec[0];
+            part.rdata(FHD_realData::forcey) = part.rdata(FHD_realData::forcey) - part.rdata(FHD_realData::spring)*radVec[1];
+            part.rdata(FHD_realData::forcez) = part.rdata(FHD_realData::forcez) - part.rdata(FHD_realData::spring)*radVec[2];
 
             Real dSqr = (pow(radVec[0],2) + pow(radVec[1],2) + pow(radVec[2],2));
 
-            part.rdata(FHD_realData::potential) = 0.5*k*dSqr;
+            part.rdata(FHD_realData::potential) = 0.5*part.rdata(FHD_realData::spring)*dSqr;
 
-            if(part.rdata(FHD_realData::potential) > maxU)
+            if(part.rdata(FHD_realData::potential) > maxUtile)
             {
-                maxU = part.rdata(FHD_realData::potential);
+                maxUtile = part.rdata(FHD_realData::potential);
             }
 
-            if(dSqr > maxD)
+            if((dSqr/part.rdata(FHD_realData::radius)) > maxDtile)
             {
-                maxD = dSqr;
+                maxDtile = dSqr/part.rdata(FHD_realData::radius);
             }
 
          }
+        maxU = amrex::max(maxUtile, maxU);
+        maxD = amrex::max(maxDtile, maxD);
     }
+
+    
 
     ParallelDescriptor::ReduceRealMax(maxU);
     ParallelDescriptor::ReduceRealMax(maxD);
-    Print() << "Max potential: " << maxU << std::endl;
-    Print() << "Max displacement: " << sqrt(maxD) << std::endl;
+    //Print() << "Max potential: " << maxU << std::endl;
+    Print() << "Maximum observed pinned particle displacement (fraction of radius): " << sqrt(maxD) << std::endl;
+
 }
 
 void FhdParticleContainer::DoRFD(const Real dt, const Real* dxFluid, const Real* dxE, const Geometry geomF,

@@ -45,6 +45,8 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
                         particleFile >> p.pos(0);                       
                         particleFile >> p.pos(1);
                         particleFile >> p.pos(2);
+
+                        particleFile >> p.rdata(FHD_realData::spring);
                     }else
                     {
 
@@ -56,6 +58,8 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
                             p.pos(1) = prob_lo[1] + 0.00*(prob_hi[1]-prob_lo[1]) + 1.0*get_uniform_func()*(prob_hi[1]-prob_lo[1]);
                         }
                         p.pos(2) = prob_lo[2] + get_uniform_func()*(prob_hi[2]-prob_lo[2]);
+
+                        p.rdata(FHD_realData::spring) = 0;
 
                     }
 
