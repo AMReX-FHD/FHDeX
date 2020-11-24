@@ -100,7 +100,6 @@ struct FHD_intData {
         j,
         k,
         species,
-        pinned,
         count
     };
 

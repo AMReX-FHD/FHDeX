@@ -267,7 +267,7 @@ void WritePlotFile(int step,
     real_comp_names.push_back("eepsilon");
     real_comp_names.push_back("potential");
     real_comp_names.push_back("p3m_radius");
-//    real_comp_names.push_back("count");
+    real_comp_names.push_back("spring");
     int_comp_names.push_back("sorted");
     int_comp_names.push_back("i");
     int_comp_names.push_back("j");
@@ -322,7 +322,8 @@ void WritePlotFile(int step,
         0, // sigma
         0, // eepsilon
         0, // potential
-        0  // p3m_radius
+        0,  // p3m_radius
+        0  // spring
     };
 
     Vector<int> write_int_comp = {

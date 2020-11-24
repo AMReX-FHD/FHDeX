@@ -52,7 +52,6 @@ module cell_sorted_particle_module
      integer(c_int)            :: j
      integer(c_int)            :: k
      integer(c_int)            :: species
-     integer(c_int)            :: pinned
   end type particle_t
 
   type, bind(C) :: dsmc_particle_t

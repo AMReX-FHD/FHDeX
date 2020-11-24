@@ -150,6 +150,7 @@ void FhdParticleContainer::forceFunction()
             part.rdata(FHD_realData::forcez) = part.rdata(FHD_realData::forcez) - part.rdata(FHD_realData::spring)*radVec[2];
 
             Real dSqr = (pow(radVec[0],2) + pow(radVec[1],2) + pow(radVec[2],2));
+        
 
             part.rdata(FHD_realData::potential) = 0.5*part.rdata(FHD_realData::spring)*dSqr;
 
