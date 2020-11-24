@@ -57,7 +57,7 @@
   ! 1 = spread evenly per cell (not implemented yet), 2 = spread randomly over domain
   particle_placement = 2
   ! -1 = calculate based on n0
-  particle_count = -100 -100
+  particle_count = 128 128
   ! real particles per simulator particle
   particle_neff = 1
   ! ignore if particle_count is positive
@@ -74,7 +74,7 @@
   ! diff = 1.17e-05 1.33e-05
 
   ! there are the values from the Peraud 2016 paper - saltwater!
-  diff = 1.33e-05 2.03e-05
+  diff = 2.03e-05 2.03e-05
 
   ! If diameter is negative, this value will be used. If diameter is positive, it will be ignored.
   ! This is the total wet+dry diffusion. The wet component arises from the grid size and peskin kernel,

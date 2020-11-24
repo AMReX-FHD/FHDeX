@@ -115,7 +115,7 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
 }
 
 
-void FhdParticleContainer::forceFunction(Real* origin)
+void FhdParticleContainer::forceFunction()
 {
 
 
@@ -141,9 +141,9 @@ void FhdParticleContainer::forceFunction(Real* origin)
             ParticleType & part = particles[i];
 
             Real radVec[3];
-            radVec[0] = part.pos(0)-origin[0];
-            radVec[1] = part.pos(1)-origin[1];
-            radVec[2] = part.pos(2)-origin[2];
+            radVec[0] = part.pos(0)-part.rdata(FHD_realData::ox);
+            radVec[1] = part.pos(1)-part.rdata(FHD_realData::oy);
+            radVec[2] = part.pos(2)-part.rdata(FHD_realData::oz);
 
             part.rdata(FHD_realData::forcex) = part.rdata(FHD_realData::forcex) - part.rdata(FHD_realData::spring)*radVec[0];
             part.rdata(FHD_realData::forcey) = part.rdata(FHD_realData::forcey) - part.rdata(FHD_realData::spring)*radVec[1];

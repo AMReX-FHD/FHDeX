@@ -889,7 +889,7 @@ void main_driver(const char* argv)
 //        origin[1] = prob_hi[1]/2.0;
 //        origin[2] = prob_hi[2]/2.0;
 
-//        particles.potentialFunction(origin);
+        particles.forceFunction();
 
         // sr_tog is short range forces
         // es_tog is electrostatic solve (0=off, 1=Poisson, 2=Pairwise, 3=P3M)
