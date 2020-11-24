@@ -177,7 +177,7 @@ void main_driver(const char* argv)
 
     // pressure ghost cells
     pi.FillBoundary(geom.periodicity());
-    MultiFabPhysBC(pi,geom,0,1,0);
+    MultiFabPhysBC(pi,geom,0,1,PRES_BC_COMP);
 
     //=======================================================
     // Build multifabs for all the variables
@@ -250,10 +250,10 @@ void main_driver(const char* argv)
     // initial Temp and Temp_ed
     Temp.setVal(T_init[0]); // replace with more general initialization routine
     if (AMREX_SPACEDIM == 2) {
-        AverageCCToNode(Temp,Temp_ed[0],0,1,2,geom);
+        AverageCCToNode(Temp,Temp_ed[0],0,1,TEMP_BC_COMP,geom);
     }
     else {
-        AverageCCToEdge(Temp,Temp_ed,0,1,2,geom);
+        AverageCCToEdge(Temp,Temp_ed,0,1,TEMP_BC_COMP,geom);
     }
 
     /*
@@ -269,10 +269,10 @@ void main_driver(const char* argv)
     //
     //
     if (AMREX_SPACEDIM == 2) {
-        AverageCCToNode(eta,eta_ed[0],0,1,1,geom);
+        AverageCCToNode(eta,eta_ed[0],0,1,SPEC_BC_COMP,geom);
     }
     else {
-        AverageCCToEdge(eta,eta_ed,0,1,1,geom);
+        AverageCCToEdge(eta,eta_ed,0,1,SPEC_BC_COMP,geom);
     }
 
     // now that we have eta, we can initialize the inhomogeneous velocity bc's

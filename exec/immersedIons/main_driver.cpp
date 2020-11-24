@@ -675,7 +675,12 @@ void main_driver(const char* argv)
 
     if (restart < 0 && particle_restart < 0) {
         // create particles
-        particles.InitParticles(ionParticle, dxp);
+        if (sr_tog == 4) {
+            particles.InitParticlesFromFile(ionParticle, dxp);
+        }
+        else {
+            particles.InitParticles(ionParticle, dxp);
+        }
     }
     else {
         ReadCheckPointParticles(particles, ionParticle, dxp);
@@ -818,32 +823,32 @@ void main_driver(const char* argv)
         // timer for time step
         Real time1 = ParallelDescriptor::second();
 
-        if(istep == 200)
+        if(istep == 20)
         {
                 dt = dt*10;
                 Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
         }
 
 
-        if(istep == 400)
+        if(istep == 40)
         {
                 dt = dt*10;
                 Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
         }
 
-        if(istep == 600)
+        if(istep == 60)
         {
                 dt = dt*10;
                 Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
         }
 
-        if(istep == 800)
+        if(istep == 80)
         {
                 dt = dt*10;
                 Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
         }
 
-        if(istep == 1000)
+        if(istep == 100)
         {
                 dt = dt*10;
                 Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
@@ -884,7 +889,7 @@ void main_driver(const char* argv)
 //        origin[1] = prob_hi[1]/2.0;
 //        origin[2] = prob_hi[2]/2.0;
 
-//        particles.potentialFunction(origin);
+        particles.forceFunction();
 
         // sr_tog is short range forces
         // es_tog is electrostatic solve (0=off, 1=Poisson, 2=Pairwise, 3=P3M)

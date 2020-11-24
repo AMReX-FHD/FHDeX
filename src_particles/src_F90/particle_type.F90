@@ -43,6 +43,7 @@ module cell_sorted_particle_module
      real(amrex_particle_real) :: eepsilon
      real(amrex_particle_real) :: potential
      real(amrex_particle_real) :: p3m_radius
+     real(amrex_particle_real) :: spring
 
      integer(c_int)            :: id         
      integer(c_int)            :: cpu        

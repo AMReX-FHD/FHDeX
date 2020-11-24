@@ -1,39 +1,10 @@
-#include <AMReX.H>
-#include <AMReX_AmrParGDB.H>
-#include <AMReX_ParmParse.H>
-#include <AMReX_Particles.H>
-#include <AMReX_NeighborParticles.H>
+#include "FhdParticleContainer.H"
 
-#include <AMReX_VisMF.H>  // amrex::VisMF::Write(MultiFab)
-
-#include <common_functions.H>
-
-#include <FhdParticleContainer.H>
-#include <ib_functions_F.H>
-
-#include <particle_functions_K.H>
-#include <paramplane_functions_K.H>
-
-#include <iostream>
-
-#include <AMReX_Geometry.H>
-#include <AMReX_BoxArray.H>
-#include <AMReX_DistributionMapping.H>
-#include <AMReX_Utility.H>
-#include <AMReX_MultiFab.H>
-#include <AMReX_Box.H>
-#include <iostream>
-#include <fstream>
-
-#include <cstdio>
-
-
-using namespace amrex;
-
+#include "particle_functions_K.H"
+#include "paramplane_functions_K.H"
 
 bool FhdParticleContainer::use_neighbor_list  {true};
 bool FhdParticleContainer::sort_neighbor_list {false};
-
 
 FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
                                            const DistributionMapping & dmap,
@@ -144,13 +115,13 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
 }
 
 
-void FhdParticleContainer::potentialFunction(Real* origin)
+void FhdParticleContainer::forceFunction()
 {
 
 
    const int lev = 0;
 
-   Real k = 5e2;
+   //Real k = 5e2;
    Real maxU = 0;
    Real maxD = 0;
 
@@ -162,41 +133,49 @@ void FhdParticleContainer::potentialFunction(Real* origin)
 
         const Box& tile_box  = pti.tilebox();
 
+        Real maxUtile;
+        Real maxDtile;
 
          for (int i = 0; i < np; ++i) {
 
             ParticleType & part = particles[i];
 
             Real radVec[3];
-            radVec[0] = part.pos(0)-origin[0];
-            radVec[1] = part.pos(1)-origin[1];
-            radVec[2] = part.pos(2)-origin[2];
+            radVec[0] = part.pos(0)-part.rdata(FHD_realData::ox);
+            radVec[1] = part.pos(1)-part.rdata(FHD_realData::oy);
+            radVec[2] = part.pos(2)-part.rdata(FHD_realData::oz);
 
-            part.rdata(FHD_realData::forcex) = part.rdata(FHD_realData::forcex) - k*radVec[0];
-            part.rdata(FHD_realData::forcey) = part.rdata(FHD_realData::forcey) - k*radVec[1];
-            part.rdata(FHD_realData::forcez) = part.rdata(FHD_realData::forcez) - k*radVec[2];
+            part.rdata(FHD_realData::forcex) = part.rdata(FHD_realData::forcex) - part.rdata(FHD_realData::spring)*radVec[0];
+            part.rdata(FHD_realData::forcey) = part.rdata(FHD_realData::forcey) - part.rdata(FHD_realData::spring)*radVec[1];
+            part.rdata(FHD_realData::forcez) = part.rdata(FHD_realData::forcez) - part.rdata(FHD_realData::spring)*radVec[2];
 
             Real dSqr = (pow(radVec[0],2) + pow(radVec[1],2) + pow(radVec[2],2));
+        
 
-            part.rdata(FHD_realData::potential) = 0.5*k*dSqr;
+            part.rdata(FHD_realData::potential) = 0.5*part.rdata(FHD_realData::spring)*dSqr;
 
-            if(part.rdata(FHD_realData::potential) > maxU)
+            if(part.rdata(FHD_realData::potential) > maxUtile)
             {
-                maxU = part.rdata(FHD_realData::potential);
+                maxUtile = part.rdata(FHD_realData::potential);
             }
 
-            if(dSqr > maxD)
+            if((dSqr/part.rdata(FHD_realData::radius)) > maxDtile)
             {
-                maxD = dSqr;
+                maxDtile = dSqr/part.rdata(FHD_realData::radius);
             }
 
          }
+        maxU = amrex::max(maxUtile, maxU);
+        maxD = amrex::max(maxDtile, maxD);
     }
+
+    
 
     ParallelDescriptor::ReduceRealMax(maxU);
     ParallelDescriptor::ReduceRealMax(maxD);
-    Print() << "Max potential: " << maxU << std::endl;
-    Print() << "Max displacement: " << sqrt(maxD) << std::endl;
+    //Print() << "Max potential: " << maxU << std::endl;
+    Print() << "Maximum observed pinned particle displacement (fraction of radius): " << sqrt(maxD) << std::endl;
+
 }
 
 void FhdParticleContainer::DoRFD(const Real dt, const Real* dxFluid, const Real* dxE, const Geometry geomF,

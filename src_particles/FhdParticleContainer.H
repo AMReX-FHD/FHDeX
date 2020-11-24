@@ -1,23 +1,16 @@
 #ifndef _FhdParticleContainer_H_
 #define _FhdParticleContainer_H_
 
-#include <AMReX.H>
-#include <AMReX_Vector.H>
-#include <AMReX_RealVect.H>
-#include <AMReX_AmrParGDB.H>
-#include <AMReX_Particles.H>
-#include <AMReX_Periodicity.H>
-#include <AMReX_NeighborParticles.H>
-#include <IBParticleInfo.H>
-#include <common_namespace.H>
-#include <IBMarkerContainerBase.H>
-#include <species.H>
-#include "rng_functions.H"
+#include "IBParticleInfo.H"
+#include "IBMarkerContainerBase.H"
+#include "species.H"
+
 #include "paramPlane.H"
 #include "paramplane_functions_F.H"
-#include "particle_functions_F.H"
 
-using namespace amrex;
+#include "particle_functions_F.H"
+#include "particle_functions.H"
+
 using namespace std;
 
 // IBM => Immmersed Boundary Marker
@@ -70,7 +63,8 @@ struct FHD_realData {
         sigma,
         eepsilon,
         potential,
-	    p3m_radius,
+	p3m_radius,
+        spring,
         count    // Awesome little trick! (only works if first field is 0)
     };
 
@@ -171,13 +165,15 @@ public:
 
     void InitParticles(species* particleInfo, const Real* dxp);
 
+    void InitParticlesFromFile(species* particleInfo, const Real* dxp);
+
     void ReInitParticles(species* particleInfo, const Real* dxp, Real * posX, Real * posY, Real * posZ, Real * charge, Real * sigma, Real * epsilon, int * speciesV, Real * diffdry, Real * diffwet, Real * difftotal);
 
     void PostRestart();
 
     void WriteParticlesAscii(string asciiName);
 
-    void potentialFunction(Real* origin);
+    void forceFunction();
     void potentialDistribution(long totalParticles, const int step, const species* particleInfo);
 
     void DoRFD(const Real dt, const Real* dxFluid, const Real* dxE, const Geometry geomF,

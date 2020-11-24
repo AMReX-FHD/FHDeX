@@ -1,23 +1,31 @@
 #ifndef _particle_functions_H_
 #define _particle_functions_H_
 
-#include <AMReX.H>
 #include <AMReX_Particles.H>
-#include <AMReX_MultiFab.H>
-#include <AMReX_MultiFabUtil.H>
-#include "AMReX_NeighborParticles.H"
-#include <AMReX_ArrayLim.H>
-#include <AMReX_BoxArray.H>
-#include <AMReX_DistributionMapping.H>
-#include <AMReX_Utility.H>
+
 #include "species.H"
-
-
-//#include <AMReX_ParticleInit.H>
+#include "particle_functions_F.H"
+#include "common_namespace.H"
 
 using namespace amrex;
-
+using namespace common;
 
 void ComputeDryMobility(MultiFab & dryMobility, species* particleInfo, const Geometry & geom);
+
+void MultiFabPhysBCCharge(MultiFab& charge, const Geometry& geom);
+
+void MultiFabPhysBCDomainStress(MultiFab& stress, const amrex::Geometry& geom, int dim);
+
+void MultiFabPhysBCMacStress(MultiFab& stress, const Geometry& geom, int dim);
+
+///////////////////////////
+// in FindCoords.cpp
+
+void FindFaceCoords(std::array<MultiFab, AMREX_SPACEDIM> & RealFaceCoords,
+                    const Geometry & geom);
+
+void FindCenterCoords(MultiFab & RealCenterCoords, const Geometry & geom);
+
+void FindNodalValues(const MultiFab & inFab, MultiFab & outFab, const MultiFab & ccFab);
 
 #endif

@@ -43,12 +43,7 @@ void InitializeCommonNamespace() {
     max_grid_size.resize(AMREX_SPACEDIM);
     max_particle_tile_size.resize(AMREX_SPACEDIM);
     grav.resize(AMREX_SPACEDIM);
-    molmass.resize(MAX_SPECIES);
-    diameter.resize(MAX_SPECIES);
     dof.resize(MAX_SPECIES);
-    hcv.resize(MAX_SPECIES);
-    hcp.resize(MAX_SPECIES);
-    rhobar.resize(MAX_SPECIES);
     u_init.resize(2);
     T_init.resize(2);
     //domega.resize(AMREX_SPACEDIM);
@@ -87,7 +82,7 @@ void InitializeCommonNamespace() {
     particle_count.resize(MAX_SPECIES);
     p_move_tog.resize(MAX_SPECIES);
     p_force_tog.resize(MAX_SPECIES);
-    p_int_tog.resize(MAX_SPECIES);
+    p_int_tog.resize(MAX_SPECIES*MAX_SPECIES);
     particle_n0.resize(MAX_SPECIES);
 
     eepsilon.resize(MAX_SPECIES);
@@ -112,9 +107,9 @@ void InitializeCommonNamespace() {
                                 &plot_int, &plot_stag, temp_plot_base_name, 128,
                                 &chk_int, temp_chk_base_name, 128,
                                 &prob_type, &restart, &particle_restart, &print_int, &project_eos_int,
-                                grav.dataPtr(), &nspecies, molmass.dataPtr(), diameter.dataPtr(),
-                                dof.dataPtr(), hcv.dataPtr(), hcp.dataPtr(),
-                                rhobar.dataPtr(),
+                                grav.dataPtr(), &nspecies, molmass.data(), diameter.data(),
+                                dof.dataPtr(), hcv.data(), hcp.data(),
+                                rhobar.data(),
                                 &rho0, &variance_coef_mom, &variance_coef_mass, &k_B, &Runiv,
                                 T_init.dataPtr(),
                                 &algorithm_type,  &advection_type,
@@ -151,7 +146,7 @@ void InitializeCommonNamespace() {
                                 &images, eamp.dataPtr(), efreq.dataPtr(), ephase.dataPtr(),
                                 &plot_ascii, &solve_chem, &diffcoeff, &scaling_factor,
                                 &source_strength, &regrid_int, &do_reflux, &particle_motion,
-                                &turb_a, &turb_b);
+                                &turb_a, &turb_b, &turbForcing);
 
     plot_base_name = temp_plot_base_name;
     chk_base_name = temp_chk_base_name;

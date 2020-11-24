@@ -19,6 +19,8 @@
 
 #include "kernel_functions_K.H"
 
+#include "particle_functions.H"
+
 #include <iostream>
 
 using namespace amrex;

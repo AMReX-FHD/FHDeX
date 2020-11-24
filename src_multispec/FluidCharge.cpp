@@ -141,7 +141,7 @@ void ComputeLorentzForce(std::array< MultiFab, AMREX_SPACEDIM >& Lorentz_force,
 
     if (use_qE_Lorentz) {
         
-        AverageCCToFace(charge,Lorentz_force,0,1,1,geom);
+        AverageCCToFace(charge,Lorentz_force,0,1,SPEC_BC_COMP,geom);
 
         for (int i=0; i<AMREX_SPACEDIM; ++i) {
             Lorentz_force[i].mult(-1.,0,1);
@@ -164,7 +164,7 @@ void ComputeLorentzForce(std::array< MultiFab, AMREX_SPACEDIM >& Lorentz_force,
             Lorentz_force[i].setVal(dielectric_const);
         }
     } else {
-        AverageCCToFace(permittivity,Lorentz_force,0,1,1,geom);
+        AverageCCToFace(permittivity,Lorentz_force,0,1,SPEC_BC_COMP,geom);
         if (zero_eps_on_wall_type > 0) {
             // set beta to set to zero on certain boundary faces
             ZeroEpsOnWall(Lorentz_force);
@@ -181,10 +181,10 @@ void ComputeLorentzForce(std::array< MultiFab, AMREX_SPACEDIM >& Lorentz_force,
 
     // fill ghost cells for eps*E
     temp_cc.FillBoundary(geom.periodicity());
-    MultiFabPhysBC(temp_cc,geom,0,1,1);
+    MultiFabPhysBC(temp_cc,geom,0,1,SPEC_BC_COMP);
 
     // average div(eps*E) to faces, store in Lorentz_force
-    AverageCCToFace(temp_cc,Lorentz_force,0,1,1,geom);
+    AverageCCToFace(temp_cc,Lorentz_force,0,1,SPEC_BC_COMP,geom);
 
     // multiply by E to get E*div(eps*E) on faces
     for (int i=0; i<AMREX_SPACEDIM; ++i) {

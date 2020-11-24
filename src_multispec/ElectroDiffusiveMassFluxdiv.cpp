@@ -96,7 +96,7 @@ void ElectroDiffusiveMassFlux(const MultiFab& rho,
     if (any_shift) {
         Abort("ShiftCCToBoundaryFace not written yet");        
     } else {
-        AverageCCToFace(rhoWchi,rhoWchi_fc,0,nspecies*nspecies,1,geom);
+        AverageCCToFace(rhoWchi,rhoWchi_fc,0,nspecies*nspecies,SPEC_BC_COMP,geom);
     }
     
     // solve poisson equation for phi (the electric potential)
@@ -106,7 +106,7 @@ void ElectroDiffusiveMassFlux(const MultiFab& rho,
     }
 
     // fill ghost cells for Epot at walls using Dirichlet value
-    MultiFabPhysBC(Epot,geom,0,1,3);
+    MultiFabPhysBC(Epot,geom,0,1,EPOT_BC_COMP);
 
     // set alpha=0
     alpha.setVal(0.);
@@ -116,7 +116,7 @@ void ElectroDiffusiveMassFlux(const MultiFab& rho,
         if (any_shift) {
             Abort("ShiftCCToBoundaryFace not written yet");
         } else {
-            AverageCCToFace(permittivity,permittivity_fc,0,1,1,geom);            
+            AverageCCToFace(permittivity,permittivity_fc,0,1,SPEC_BC_COMP,geom);
         }
     }
 
@@ -252,22 +252,78 @@ void ElectroDiffusiveMassFlux(const MultiFab& rho,
 
     Epot.FillBoundary(geom.periodicity());
 
-    // call ghost cell filling routine that computes values of Epot ON the boundary
-    //
-    //
-    //
 
-/*
+    // CHECK THIS - FIXME
+    
+//    MultiFabPotentialBC_solver(Epot,geom);
+
     // compute the gradient of the electric potential
-    call compute_grad(mla,Epot,grad_Epot,dx,1,Epot_bc_comp,1,1,the_bc_tower%bc_tower_array);
-
+    ComputeGrad(Epot,grad_Epot,0,0,1,EPOT_BC_COMP,geom,0);
+    
     if (E_ext_type != 0) {
         // add external electric field
         // since E = -grad(Epot), we have to subtract the external field from grad_Epot
-        do i=1,dm
-               call multifab_sub_sub_c(grad_Epot(n,i),1,E_ext(n,i),1,1,0)
-        end do
+        for (int i=0; i<AMREX_SPACEDIM; ++i) {
+            MultiFab::Subtract(grad_Epot[i],E_ext[i],0,0,1,0);
+        }
+    }
+
+    
+/*
+    if (zero_eps_on_wall_type .gt. 0) then
+       ! Set E-field ie grad_Epot to be zero on certain boundary faces.
+       ! This enforces dphi/dn = 0 on the parts of the (Dirichlet) wall we want. 
+       call zero_eps_on_wall(mla,grad_Epot,dx)
     end if
+
+    do n=1,nlevs
+       do i=1,dm
+          call multifab_fill_boundary(grad_Epot(n,i))
+       end do
+    end do
+
+    ! compute the charge flux coefficient
+    call compute_charge_coef(mla,rho,Temp,charge_coef)
+
+    ! average charge flux coefficient to faces, store in flux
+    if (any(shift_cc_to_boundary(:,:) .eq. 1)) then
+       call shift_cc_to_boundary_face(nlevs,charge_coef,electro_mass_flux,1,c_bc_comp,nspecies, &
+                                      the_bc_tower%bc_tower_array,.true.)
+    else
+       call average_cc_to_face(nlevs,charge_coef,electro_mass_flux,1,c_bc_comp,nspecies, &
+                               the_bc_tower%bc_tower_array,.true.)
+    end if
+
+    ! multiply flux coefficient by gradient of electric potential
+    do n=1,nlevs
+       do i=1,dm
+          do comp=1,nspecies
+             call multifab_mult_mult_c(electro_mass_flux(n,i), comp, grad_Epot(n,i), 1, 1)
+          end do
+       end do
+    end do
+
+    if (use_multiphase) then
+       call limit_emf(rho, electro_mass_flux, grad_Epot)
+    end if
+
+    ! compute -rhoWchi * (... ) on faces
+    do n=1,nlevs
+       do i=1,dm
+          call matvec_mul(mla, electro_mass_flux(n,i), rhoWchi_face(n,i), nspecies)
+       end do
+    end do
+    end if
+
+    ! for walls we need to zero the electro_mass_flux since we have already zero'd the diff and stoch
+    ! mass fluxes.  For inhomogeneous Neumann conditions on Epot, the physically correct thing would
+    ! have been to compute species gradients to exactly counterbalance the Neumann conditions on Epot
+    ! so the total mass flux (diff + stoch + Epot) is zero, but the numerical remedy here is to simply
+    ! zero them individually.
+    do n=1,nlevs
+       call zero_edgeval_walls(electro_mass_flux(n,:),1,nspecies, the_bc_tower%bc_tower_array(n))
+    end do
+
 */
         
     

@@ -112,8 +112,7 @@ void InitConsVar(MultiFab& cons, const MultiFab& prim,
                 }
 
                 Real pamb;
-                GetPressureGas(pamb, massvec, cu(i,j,k,0), pu(i,j,k,4),
-                               nspecies_gpu, Runiv_gpu, molmass_gpu);
+                GetPressureGas(pamb, massvec, cu(i,j,k,0), pu(i,j,k,4));
                 
                 Real molmix = 0.;
 

@@ -16,7 +16,7 @@ amrex::Vector<int>         common::max_particle_tile_size;
 amrex::Real                common::cell_depth;
 amrex::IntVect             common::ngc;
 int                        common::nvars;
-int                        common::nprimvars;
+AMREX_GPU_MANAGED int      common::nprimvars;
 
 int                        common::membrane_cell;
 int                        common::cross_cell;
@@ -42,19 +42,18 @@ int                        common::print_int;
 int                        common::project_eos_int;
 amrex::Vector<amrex::Real> common::grav;
 AMREX_GPU_MANAGED int      common::nspecies;
-amrex::Vector<amrex::Real> common::molmass;
-amrex::Vector<amrex::Real> common::rhobar;
-amrex::Vector<amrex::Real> common::diameter;
-amrex::Vector<int>         common::dof;
-amrex::Vector<amrex::Real> common::hcv;
-amrex::Vector<amrex::Real> common::hcp;
-
-
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::molmass;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::rhobar;
 amrex::Real                common::rho0;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::diameter;
+amrex::Vector<int>         common::dof;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::hcv;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::hcp;
+
 amrex::Real                common::variance_coef_mom;
 amrex::Real                common::variance_coef_mass;
-amrex::Real                common::k_B;
-amrex::Real                common::Runiv;
+AMREX_GPU_MANAGED amrex::Real common::k_B;
+AMREX_GPU_MANAGED amrex::Real common::Runiv;
 amrex::Vector<Real>        common::T_init;
 int                        common::algorithm_type;
 int                        common::barodiffusion_type;
@@ -167,3 +166,4 @@ int                        common::do_reflux;
 
 amrex::Real                common::turb_a;
 amrex::Real                common::turb_b;
+int                        common::turbForcing;

@@ -1,6 +1,9 @@
 #include "INS_functions.H"
 #include "common_functions.H"
 #include "FhdParticleContainer.H"
+#include <sstream>
+#include <string>
+#include <fstream>
 
 void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
 {
@@ -26,6 +29,8 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
         if(ParallelDescriptor::MyProc() == 0 && mfi.LocalTileIndex() == 0 && proc0_enter) {
 
             proc0_enter = false;
+
+            std::ifstream particleFile("particles.dat");
             
             for(int i_spec=0; i_spec < nspecies; i_spec++) {
                 for (int i_part=0; i_part<particleInfo[i_spec].total;i_part++) {
@@ -34,23 +39,31 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
                     //Print() << "ID: " << p.id() << "\n";
                     p.cpu() = ParallelDescriptor::MyProc();
                     p.idata(FHD_intData::sorted) = 0;
-                
-                    p.pos(0) = prob_lo[0] + get_uniform_func()*(prob_hi[0]-prob_lo[0]);
-                    if (sr_tog == 4) {
-                        p.pos(1) = (prob_lo[1]+1.122*(particleInfo[i_spec].sigma/4.0)) + 1.0*get_uniform_func()*(prob_hi[1]-prob_lo[1]-(2*1.122*(particleInfo[i_spec].sigma/4.0)));
-                    }
-                    else {
-                        p.pos(1) = prob_lo[1] + 0.00*(prob_hi[1]-prob_lo[1]) + 1.0*get_uniform_func()*(prob_hi[1]-prob_lo[1]);
-                    }
-#if (BL_SPACEDIM == 3)
-                    p.pos(2) = prob_lo[2] + get_uniform_func()*(prob_hi[2]-prob_lo[2]);
-#endif
 
-//                    p.pos(0) = prob_lo[0] + 0.25*(prob_hi[0]-prob_lo[0]);
-//                    p.pos(1) = prob_lo[1] + 0.25*(prob_hi[1]-prob_lo[1]);
-//#if (BL_SPACEDIM == 3)
-//                    p.pos(2) = prob_lo[2] + 0.25*(prob_hi[2]-prob_lo[2]);
-//#endif
+                    if(particle_placement == 1)
+                    {
+                        particleFile >> p.pos(0);                       
+                        particleFile >> p.pos(1);
+                        particleFile >> p.pos(2);
+
+                        particleFile >> p.rdata(FHD_realData::spring);
+                    }else
+                    {
+
+                        p.pos(0) = prob_lo[0] + get_uniform_func()*(prob_hi[0]-prob_lo[0]);
+                        if (sr_tog == 4) {
+                            p.pos(1) = (prob_lo[1]+1.122*(particleInfo[i_spec].sigma/4.0)) + 1.0*get_uniform_func()*(prob_hi[1]-prob_lo[1]-(2*1.122*(particleInfo[i_spec].sigma/4.0)));
+                        }
+                        else {
+                            p.pos(1) = prob_lo[1] + 0.00*(prob_hi[1]-prob_lo[1]) + 1.0*get_uniform_func()*(prob_hi[1]-prob_lo[1]);
+                        }
+                        p.pos(2) = prob_lo[2] + get_uniform_func()*(prob_hi[2]-prob_lo[2]);
+
+                        p.rdata(FHD_realData::spring) = 0;
+
+                    }
+
+
                     p.rdata(FHD_realData::q) = particleInfo[i_spec].q;
 
  //                    std::cout << "proc " << ParallelDescriptor::MyProc() << " Pos: " << p.pos(0) << ", " << p.pos(1) << ", " << p.pos(2)
@@ -130,6 +143,153 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
 
                     pcount++;
                 }
+            }
+
+            particleFile.close();
+        }
+    }
+
+    Redistribute();
+    UpdateCellVectors();
+    ReBin();
+    clearNeighbors();
+    fillNeighbors();
+
+}
+
+void FhdParticleContainer::InitParticlesFromFile(species* particleInfo, const Real* dxp)
+{
+    const int lev = 0;
+    const Geometry& geom = Geom(lev);
+
+    int pcount = 0;
+
+    bool proc0_enter = true;
+
+    amrex::Vector<amrex::Real> x;
+    amrex::Vector<amrex::Real> y;
+    amrex::Vector<amrex::Real> z;
+    amrex::Vector<int> spec;
+
+    std::string line;
+    std::ifstream infile("particles.xyz");
+    while (std::getline(infile,line)) {
+        std::istringstream iss(line);
+        Real xi, yi, zi; 
+        int speci;
+        if (!(iss >> xi >> yi >> zi >> speci)) { Abort("File Read Error"); }
+        x.push_back(xi); y.push_back(yi); z.push_back(zi); spec.push_back(speci);
+    }
+    const int npart = x.size();
+    
+    for (MFIter mfi = MakeMFIter(lev, true); mfi.isValid(); ++mfi) {
+        
+        const Box& tile_box  = mfi.tilebox();
+        const RealBox tile_realbox{tile_box, geom.CellSize(), geom.ProbLo()};
+        const int grid_id = mfi.index();
+        const int tile_id = mfi.LocalTileIndex();
+        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+
+        //Assuming tile=box for now, i.e. no tiling.
+        IntVect smallEnd = tile_box.smallEnd();
+        IntVect bigEnd = tile_box.bigEnd();       
+
+        if(ParallelDescriptor::MyProc() == 0 && mfi.LocalTileIndex() == 0 && proc0_enter) {
+
+            proc0_enter = false;
+
+            for (int i_part; i_part<npart; i_part++) {
+                int i_spec = spec[i_part];
+                ParticleType p;
+                p.id()  = ParticleType::NextID();
+                p.cpu() = ParallelDescriptor::MyProc();
+                p.idata(FHD_intData::sorted) = 0;
+                
+                p.pos(0) = x[i_part];
+                p.pos(1) = y[i_part];
+#if (BL_SPACEDIM == 3)
+                p.pos(2) = z[i_part]; 
+#endif
+                p.rdata(FHD_realData::q) = particleInfo[i_spec].q;
+//                Print() << p.id() << " " << p.pos(0) << " " << p.pos(1) << " " << p.pos(2) << " " << p.rdata(FHD_realData::q) << "\n";
+
+                std::cout << "proc " << ParallelDescriptor::MyProc() << " Pos: " << p.pos(0) << ", " << p.pos(1) << ", " << p.pos(2)
+                         << ", " << p.rdata(FHD_realData::q) << ", " << p.id() << "\n" ;
+
+                //original position stored for MSD calculations
+                p.rdata(FHD_realData::ox) = p.pos(0);
+                p.rdata(FHD_realData::oy) = p.pos(1);
+#if (BL_SPACEDIM == 3)
+                p.rdata(FHD_realData::oz) = p.pos(2);
+#endif
+
+                //p.rdata(FHD_realData::vx) = sqrt(particleInfo.R*particleInfo.T)*get_particle_normal_func();
+                //p.rdata(FHD_realData::vy) = sqrt(particleInfo.R*particleInfo.T)*get_particle_normal_func();
+                //p.rdata(FHD_realData::vz) = sqrt(particleInfo.R*particleInfo.T)*get_particle_normal_func();
+
+                p.rdata(FHD_realData::pred_posx) = 0;
+                p.rdata(FHD_realData::pred_posy) = 0;
+                p.rdata(FHD_realData::pred_posz) = 0;
+
+                p.rdata(FHD_realData::pred_velx) = 0;
+                p.rdata(FHD_realData::pred_vely) = 0;
+                p.rdata(FHD_realData::pred_velz) = 0;
+
+                p.rdata(FHD_realData::pred_forcex) = 0;
+                p.rdata(FHD_realData::pred_forcey) = 0;
+                p.rdata(FHD_realData::pred_forcez) = 0;
+
+                p.rdata(FHD_realData::fx) = 0;
+                p.rdata(FHD_realData::fy) = 0;
+                p.rdata(FHD_realData::fz) = 0;
+
+                p.rdata(FHD_realData::vx) = 0;
+                p.rdata(FHD_realData::vy) = 0;
+                p.rdata(FHD_realData::vz) = 0;
+
+                p.rdata(FHD_realData::ux) = 0;
+                p.rdata(FHD_realData::uy) = 0;
+                p.rdata(FHD_realData::uz) = 0;
+
+                p.rdata(FHD_realData::ax) = 0;
+                p.rdata(FHD_realData::ay) = 0;
+                p.rdata(FHD_realData::az) = 0;
+
+                p.rdata(FHD_realData::fx) = 0;
+                p.rdata(FHD_realData::fy) = 0;
+                p.rdata(FHD_realData::fz) = 0;
+
+                p.rdata(FHD_realData::travelTime) = 0;
+                p.rdata(FHD_realData::diffAv) = 0;
+                p.rdata(FHD_realData::stepCount) = 0;
+
+                p.rdata(FHD_realData::mass) = particleInfo[i_spec].m; //mass
+                p.rdata(FHD_realData::R) = particleInfo[i_spec].R; //R
+                p.rdata(FHD_realData::radius) = particleInfo[i_spec].d/2.0; //radius
+                p.rdata(FHD_realData::accelFactor) = -6*3.14159265359*p.rdata(FHD_realData::radius)/p.rdata(FHD_realData::mass); //acceleration factor (replace with amrex c++ constant for pi...)
+                p.rdata(FHD_realData::dragFactor) = 6*3.14159265359*p.rdata(FHD_realData::radius); //drag factor
+                //p.rdata(FHD_realData::dragFactor) = 0; //drag factor
+                //p.rdata(FHD_realData::dragFactor) = 6*3.14159265359*dx[0]*1.322; //drag factor
+
+                p.rdata(FHD_realData::wetDiff) = particleInfo[i_spec].wetDiff;
+                p.rdata(FHD_realData::dryDiff) = particleInfo[i_spec].dryDiff;
+                p.rdata(FHD_realData::totalDiff) = particleInfo[i_spec].totalDiff;
+
+                p.rdata(FHD_realData::sigma) = particleInfo[i_spec].sigma;
+                p.rdata(FHD_realData::eepsilon) = particleInfo[i_spec].eepsilon;
+
+                p.idata(FHD_intData::species) = i_spec +1;
+                p.rdata(FHD_realData::potential) = 0;                 
+
+                // set distance for which we do direct, short range coulomb force calculation
+                // in p3m to be 6.5*dx_poisson_grid
+
+                p.rdata(FHD_realData::p3m_radius) = (pkernel_es + 0.5)*dxp[0];
+
+                particle_tile.push_back(p);
+
+                pcount++;
+               
             }
         }
     }

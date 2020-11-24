@@ -103,7 +103,8 @@ void main_driver(const char* argv)
     /////////////////////////////////////////
 
     // object for turbulent forcing
-    TurbForcing tf(ba,dmap,geom,turb_a,turb_b);
+    TurbForcing tf(ba,dmap,turb_a,turb_b);
+    tf.Initialize(geom);
 
     ///////////////////////////////////////////
     // rho, alpha, beta, gamma:
@@ -249,6 +250,11 @@ void main_driver(const char* argv)
     } else if (AMREX_SPACEDIM == 3) {
 	dVol *= dx[2];
     }
+    Real dProb = n_cells[0]*n_cells[1];
+    if (AMREX_SPACEDIM == 3) {
+	    dProb *= n_cells[2];
+    }
+    dProb = 1./dProb;
     
     Vector<Real> var_scaling(structVars*(structVars+1)/2);
     for (int d=0; d<var_scaling.size(); ++d) {
@@ -388,7 +394,7 @@ void main_driver(const char* argv)
         // write out initial state
         // write out umac, tracer, pres, and divergence to a plotfile
         if (plot_int > 0) {
-            WritePlotFile(step_start,time,geom,umac,tracer,pres);
+            WritePlotFile(0,time,geom,umac,tracer,pres);
             if (n_steps_skip == 0 && struct_fact_int > 0) {
                 structFact.WritePlotFile(0,0.,geom,"plt_SF");
             }
@@ -429,29 +435,6 @@ void main_driver(const char* argv)
             }
             structFact.FortStructure(structFactMF,geom);
         }
-
-        // snapshot of instantaneous energy spectra
-        bool compute_energy_spectra = true;
-        if (compute_energy_spectra) {
-
-            // copy velocities into structFactMF
-            for(int d=0; d<AMREX_SPACEDIM; d++) {
-                ShiftFaceToCC(umac[d], 0, structFactMF, d, 1);
-            }
-            // reset and compute structure factor
-            turbStructFact.FortStructure(structFactMF,geom,1);
-
-            // writing the plotfiles does the shifting and coopying into cov_mag
-            structFact.WritePlotFile(0,0.,geom,"plt_Turb");
-                
-            // turb contains U dot U* in Fourier space
-            // copy cov_mag into turb
-            MultiFab turb(ba,dmap,AMREX_SPACEDIM,0);
-            turbStructFact.StructOut(turb);
-
-            VisMF::Write(turb,"a_turb");
-            
-        }
                 
         Real step_stop_time = ParallelDescriptor::second() - step_strt_time;
         ParallelDescriptor::ReduceRealMax(step_stop_time);
@@ -463,8 +446,27 @@ void main_driver(const char* argv)
         if (plot_int > 0 && step%plot_int == 0) {
             // write out umac, tracer, pres, and divergence to a plotfile
             WritePlotFile(step,time,geom,umac,tracer,pres);
+
+            // write out structure factor to plotfile
             if (step > n_steps_skip && struct_fact_int > 0) {
                 structFact.WritePlotFile(step,time,geom,"plt_SF");
+            }
+
+            // snapshot of instantaneous energy spectra
+            if (turbForcing == 1) {
+
+                // copy velocities into structFactMF
+                for(int d=0; d<AMREX_SPACEDIM; d++) {
+                    ShiftFaceToCC(umac[d], 0, structFactMF, d, 1);
+                }
+                // reset and compute structure factor
+                turbStructFact.FortStructure(structFactMF,geom,1);
+
+                // writing the plotfiles does the shifting and copying into cov_mag
+                turbStructFact.WritePlotFile(step,time,geom,"plt_Turb");
+
+                // integrate cov_mag over shells in k and write to file
+                turbStructFact.IntegratekShells(step,geom);
             }
         }
 
@@ -478,6 +480,7 @@ void main_driver(const char* argv)
         Vector<Real> udotu(3);
         StagInnerProd(geom,umac,0,umac,0,umacTemp,udotu);
         Print() << "Kinetic energy "
+		<< time << " "
                 << 0.5*dVol*( udotu[0] + udotu[1] + udotu[2] )
                 << std::endl;
 
@@ -487,8 +490,10 @@ void main_driver(const char* argv)
             CCInnerProd(gradU,d,gradU,d,ccTemp,udotu[d]);
         }
         Print() << "Energy dissipation "
-                << visc_coef*dVol*( udotu[0] + udotu[1] + udotu[2] )
+		<< time << " "
+                << visc_coef*dProb*( udotu[0] + udotu[1] + udotu[2] )
                 << std::endl;
+        //      << visc_coef*dVol*( udotu[0] + udotu[1] + udotu[2] )
 
         // MultiFab memory usage
         const int IOProc = ParallelDescriptor::IOProcessorNumber();

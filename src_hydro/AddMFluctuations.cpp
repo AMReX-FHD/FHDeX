@@ -21,8 +21,8 @@ void addMomFluctuations(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     }
 
     // NOTE: these only operate on valid cells
-    AverageCCToFace(rhotot, rhotot_fc, 0, 1, -1, geom);
-    AverageCCToFace(Temp,   Temp_fc,   0, 1, 2, geom);
+    AverageCCToFace(rhotot, rhotot_fc, 0, 1, RHO_BC_COMP, geom);
+    AverageCCToFace(Temp,   Temp_fc,   0, 1, TEMP_BC_COMP, geom);
 
     // Convert umac to momenta, rho*umac
     ConvertMToUmac(rhotot_fc,umac,m_old,0);
