@@ -873,6 +873,8 @@ void IdealMixtureTransport ( int iloc, int jloc, int kloc,
                              const Array4<Real>& chitil)
 {
 
+    BL_PROFILE_VAR("IdealMixtureTransport()",IdealMixtureTransport);
+
     GpuArray<Real,MAX_SPECIES*MAX_SPECIES> Dbin;
     GpuArray<Real,MAX_SPECIES*MAX_SPECIES> omega11;
     GpuArray<Real,MAX_SPECIES*MAX_SPECIES> sigma11;

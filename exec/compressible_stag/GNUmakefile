@@ -5,6 +5,7 @@ AMREX_HOME ?= ../../../amrex/
 DEBUG         = FALSE
 USE_MPI       = TRUE
 USE_OMP       = FALSE
+USE_CUDA      = TRUE
 COMP          = gnu
 DIM           = 3
 TINY_PROFILE  = FALSE
@@ -16,7 +17,7 @@ include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 VPATH_LOCATIONS   += .
 INCLUDE_LOCATIONS += .
 
-include ../../src_compressible/Make.package
+include ../../src_compressible_stag/Make.package
 VPATH_LOCATIONS   += ../../src_compressible_stag/
 INCLUDE_LOCATIONS += ../../src_compressible_stag/
 

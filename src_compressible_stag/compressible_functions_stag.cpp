@@ -1,19 +1,8 @@
 #include "compressible_functions.H"
+#include "compressible_functions_stag.H"
 
-
-void InitializeCompressibleNamespace() {
-
-    BL_PROFILE_VAR("InitializeCompressibleNamespace()",InitializeCompressibleNamespace);
-
-    bc_Yk.resize(MAX_SPECIES*LOHI*AMREX_SPACEDIM);
-    bc_Xk.resize(MAX_SPECIES*LOHI*AMREX_SPACEDIM);
-
-    initialize_compressible_namespace(bc_Yk.dataPtr(), bc_Xk.dataPtr(), &plot_means, &plot_vars);
-}
-
-
-void InitConsVar(MultiFab& cons, const MultiFab& prim,
-                 const amrex::Geometry geom) {
+void InitConsVarStag(MultiFab& cons, std::array< MultiFab, AMREX_SPACEDIM >& momStag, 
+                     const MultiFab& prim, const amrex::Geometry geom) {
 
     const Real* dx_host = geom.CellSize();
     const RealBox& realDomain = geom.ProbDomain();
@@ -112,7 +101,8 @@ void InitConsVar(MultiFab& cons, const MultiFab& prim,
                 }
 
                 Real pamb;
-                GetPressureGas(pamb, massvec, cu(i,j,k,0), pu(i,j,k,4));
+                GetPressureGas(pamb, massvec, cu(i,j,k,0), pu(i,j,k,4),
+                               nspecies_gpu, Runiv_gpu, molmass_gpu);
                 
                 Real molmix = 0.;
 
@@ -201,7 +191,7 @@ void InitConsVar(MultiFab& cons, const MultiFab& prim,
             } else if (prob_type_gpu == 100) { // sinusoidal density variation
 
                    Real y = itVec[1];
-                   Real Ly = realhi[1] - reallo[0];
+                   Real Ly = realhi[1] - reallo[1];
                    for (int l=0;l<nspecies_gpu;l++) {
                      Yk[l] = cu(i,j,k,5+l)/cu(i,j,k,0);
                    }

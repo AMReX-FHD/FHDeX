@@ -40,7 +40,7 @@ c    1            vmsqt(1:ndim,4,4)
       double precision weight,dorand,gamma,factor,spdmx,time
       double precision toteng,totmass,totmom,totspe
 
-      double precision conc,cvmix,eint,keng,rho,T,rmix
+      double precision conc,cvmix,eint,keng,rho,T
 
       character*15 rhoustarfile,rhotstarfile,ttstarfile
       character*10 label
@@ -61,7 +61,7 @@ c    1            vmsqt(1:ndim,4,4)
 
 c   
        mass1 = 6.63d-23
-       mass0 = mass1*1.d0
+       mass0 = mass1*3.d0
        d0=3.66d-8
        d1=3.66d-8
        seed = 632489
@@ -78,14 +78,10 @@ c
 
        pi = 4.d0*atan2(1.d0,1.d0)
  
-       cv0 = 1.5d0*rgas0
-       cv1 = 1.5d0*rgas1
-
-       rmix =  (rgas1*camb+(1.d0-camb)*rgas0)
-       cvmix = (cv1*camb+(1.d0-camb)*cv0)
-
+       cv0 = 1.5*rgas0
+       cv1 = 1.5*rgas1
  
-       pamb = .5d0*rhoamb*T0*(rgas0+rgas1)
+       pamb = .5*rhoamb*T0*(rgas0+rgas1)
  
        etaC0 = 5.d0/(16.d0*d0**2)*sqrt(mass0*kboltz/pi)
        kappaC0 = 15.d0*kboltz/(4.d0*mass0)*etaC0
@@ -137,12 +133,10 @@ c   set up stuff to gather statistics
 
         
            do  i=1,npts
-             rho = rhoamb + .1d0*rhoamb*sin(2.d0*pi*x(i)/xlen)
-c            con(i,1) = rhoamb
-             con(i,1) = rho
+             con(i,1) = rhoamb
              con(i,2) = 0.d0
              con(i,3) = rhoamb*T0*(cv1*camb+cv0*(1.d0-camb))
-             con(i,4) = rho*camb
+             con(i,4) = rhoamb*camb
            enddo
              con(npts+1,2) = 0.d0
 
@@ -402,15 +396,13 @@ c     if(n.gt.ntherm)dorand = 0.d0
       end
 
       subroutine output(x,xl,con,jmax,n,time,ndim)
-      implicit none
       integer ndim,n
       double precision time
       double precision con (-5:ndim,4)
       double precision x(1:jmax)
       double precision xl(1:jmax+1)
-      double precision rho,conc,keng,eint,T,p,rhoeint,palt,cvmix
+      double precision rho,comp,keng,eing,T,p
 
-      integer jmax,j
 
       double precision  mass0,mass1,d0,d1,cv0,cv1,rgas0,rgas1,kboltz,
      1   etaC0,etaC1,kappaC0, kappaC1,Tleft,Tright,pi
@@ -424,8 +416,6 @@ c     if(n.gt.ntherm)dorand = 0.d0
       character*15 presfile
       character*15 xmomfile
       character*10 step
-
-      write(6,*)" ndim", ndim
     
       write(step,'(i10.10)') n
       rhofile = "rho_" // step
@@ -448,12 +438,10 @@ c     if(n.gt.ntherm)dorand = 0.d0
           rho = con(j,1)
           conc = con(j,4)/con(j,1)
           keng = 0.125d0*(con(j,2)+con(j+1,2))**2/con(j,1)
-          rhoeint = (con(j,3)-keng)
           eint = (con(j,3)-keng)/con(j,1)
           cvmix = cv1*conc+cv0*(1.d0-conc)
           T = eint/cvmix
           p = rho*T*(rgas1*conc+rgas0*(1.d0-conc))
-          palt = rhoeint*(rgas1*conc+rgas0*(1.d0-conc))/cvmix
 
       write(6,101)x(j),rho,p,T,conc,con(j,2)
       write(20,102)x(j),rho
