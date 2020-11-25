@@ -6,7 +6,13 @@ Real InhomogeneousBCVal ( int comp,
                           Real z,
                           Real time)
 {
-    if (comp == RHO_BC_COMP) {
+    if (comp == PRES_BC_COMP) {
+
+        // only the correct thing for homogeneous Neumann
+        // need to fix to support Dirichlet or inhomogeneous conditions
+        return 0.;
+        
+    } else if (comp == RHO_BC_COMP) {
 
         // only the correct thing for homogeneous Neumann
         // need to fix to support Dirichlet or inhomogeneous conditions
