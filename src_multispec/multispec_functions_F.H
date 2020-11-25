@@ -29,6 +29,7 @@ extern "C"
                                          const int* is_nonisothermal,
                                          const int* is_ideal_mixture,
                                          const int* use_lapack,
+                                         const int* use_multiphase,
                                          const amrex_real* c_init,
                                          const amrex_real* c_bc,
                                          const int* midpoint_stoch_mass_flux_type,

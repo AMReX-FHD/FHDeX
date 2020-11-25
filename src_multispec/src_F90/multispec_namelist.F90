@@ -22,6 +22,7 @@ module multispec_namelist_module
   integer,            save :: is_nonisothermal
   integer,            save :: is_ideal_mixture
   integer,            save :: use_lapack
+  integer,            save :: use_multiphase
   double precision,   save :: c_init(2,MAX_SPECIES)
   double precision,   save :: c_bc(AMREX_SPACEDIM,2,MAX_SPECIES)
   
@@ -62,6 +63,7 @@ module multispec_namelist_module
   namelist /multispec/ is_ideal_mixture   ! If T assume Gamma=I (H=0) and simplify
   namelist /multispec/ is_nonisothermal   ! If T Soret effect will be included
   namelist /multispec/ use_lapack         ! Use LAPACK or iterative method for diffusion matrix (recommend False)
+  namelist /multispec/ use_multiphase     ! for RTIL
   namelist /multispec/ chi_iterations     ! number of iterations used in Dbar2chi_iterative
 
   ! Initial and boundary conditions 
@@ -154,6 +156,7 @@ contains
     is_ideal_mixture   = 1
     is_nonisothermal   = 0
     use_lapack         = 0
+    use_multiphase     = 0
     chi_iterations     = 10
     temp_type          = 0
     c_init(:,:)        = 1.0d0
@@ -209,7 +212,7 @@ contains
                                              Dbar_in, Dtherm_in, H_offdiag_in, H_diag_in, &
                                              fraction_tolerance_in, correct_flux_in, print_error_norms_in, &
                                              is_nonisothermal_in, is_ideal_mixture_in, &
-                                             use_lapack_in, c_init_in, c_bc_in, &
+                                             use_lapack_in, use_multiphase_in, c_init_in, c_bc_in, &
                                              midpoint_stoch_mass_flux_type_in, &
                                              avg_type_in, mixture_type_in, &
                                              use_charged_fluid_in, print_debye_len_in, dielectric_const_in, &
@@ -237,6 +240,7 @@ contains
     integer,            intent(inout) :: is_nonisothermal_in
     integer,            intent(inout) :: is_ideal_mixture_in
     integer,            intent(inout) :: use_lapack_in
+    integer,            intent(inout) :: use_multiphase_in
     double precision,   intent(inout) :: c_init_in(2,MAX_SPECIES)
     double precision,   intent(inout) :: c_bc_in(AMREX_SPACEDIM,2,MAX_SPECIES)
 
@@ -286,6 +290,7 @@ contains
     is_nonisothermal_in = is_nonisothermal
     is_ideal_mixture_in = is_ideal_mixture
     use_lapack_in = use_lapack
+    use_multiphase_in = use_multiphase
     c_init_in = c_init
     c_bc_in = c_bc
     midpoint_stoch_mass_flux_type_in = midpoint_stoch_mass_flux_type

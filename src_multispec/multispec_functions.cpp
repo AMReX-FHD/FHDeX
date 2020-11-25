@@ -22,7 +22,7 @@ void InitializeMultispecNamespace() {
 				    &fraction_tolerance, &correct_flux, 
 				    &print_error_norms,
 				    &is_nonisothermal, &is_ideal_mixture,
-				    &use_lapack, 
+				    &use_lapack, &use_multiphase,
 				    c_init.dataPtr(), 
 				    c_bc.dataPtr(),
 				    &midpoint_stoch_mass_flux_type, 

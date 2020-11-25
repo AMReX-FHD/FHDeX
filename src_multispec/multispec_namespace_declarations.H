@@ -12,6 +12,7 @@ int                        multispec::print_error_norms;
 int                        multispec::is_nonisothermal;
 int                        multispec::is_ideal_mixture;
 int                        multispec::use_lapack;
+int                        multispec::use_multiphase;
 amrex::Vector<amrex::Real> multispec::c_init;
 amrex::Vector<amrex::Real> multispec::c_bc;
   

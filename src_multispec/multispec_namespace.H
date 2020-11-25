@@ -16,6 +16,7 @@ namespace multispec {
     extern int                        is_nonisothermal;
     extern int                        is_ideal_mixture;
     extern int                        use_lapack;
+    extern int                        use_multiphase;
     extern amrex::Vector<amrex::Real> c_init;
     extern amrex::Vector<amrex::Real> c_bc;
   

@@ -288,44 +288,24 @@ void ElectroDiffusiveMassFlux(const MultiFab& rho,
 
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
         for (int comp=0; comp<nspecies; ++comp) {
-
+            MultiFab::Multiply(electro_mass_flux[i], grad_Epot[i], 0, comp, 1, 1);
         }
     }
-    
-/*
 
-    ! multiply flux coefficient by gradient of electric potential
-    do n=1,nlevs
-       do i=1,dm
-          do comp=1,nspecies
-             call multifab_mult_mult_c(electro_mass_flux(n,i), comp, grad_Epot(n,i), 1, 1)
-          end do
-       end do
-    end do
+    if (use_multiphase == 1) {
+        Abort("ElectroDiffusiveMassFluxdiv.cpp: limit_emf not written yet");
+        // call limit_emf(rho, electro_mass_flux, grad_Epot)
+    }
 
-    if (use_multiphase) then
-       call limit_emf(rho, electro_mass_flux, grad_Epot)
-    end if
+    // compute -rhoWchi * (... ) on faces
+    for (int i=0; i<AMREX_SPACEDIM; ++i) {
+        MatvecMul(electro_mass_flux[i],rhoWchi_fc[i]);
+    }
 
-    ! compute -rhoWchi * (... ) on faces
-    do n=1,nlevs
-       do i=1,dm
-          call matvec_mul(mla, electro_mass_flux(n,i), rhoWchi_face(n,i), nspecies)
-       end do
-    end do
-    end if
-
-    ! for walls we need to zero the electro_mass_flux since we have already zero'd the diff and stoch
-    ! mass fluxes.  For inhomogeneous Neumann conditions on Epot, the physically correct thing would
-    ! have been to compute species gradients to exactly counterbalance the Neumann conditions on Epot
-    ! so the total mass flux (diff + stoch + Epot) is zero, but the numerical remedy here is to simply
-    ! zero them individually.
-    do n=1,nlevs
-       call zero_edgeval_walls(electro_mass_flux(n,:),1,nspecies, the_bc_tower%bc_tower_array(n))
-    end do
-
-*/
-        
-    
-
+    // for walls we need to zero the electro_mass_flux since we have already zero'd the diff and stoch
+    // mass fluxes.  For inhomogeneous Neumann conditions on Epot, the physically correct thing would
+    // have been to compute species gradients to exactly counterbalance the Neumann conditions on Epot
+    // so the total mass flux (diff + stoch + Epot) is zero, but the numerical remedy here is to simply
+    // zero them individually.
+    ZeroEdgevalWalls(electro_mass_flux, geom, 0, nspecies);
 }
