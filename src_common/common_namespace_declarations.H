@@ -89,14 +89,14 @@ amrex::Vector<int>         common::bc_therm_hi;
 amrex::Vector<amrex::Real> common::p_lo;
 amrex::Vector<amrex::Real> common::p_hi;
 
-amrex::Vector<amrex::Real> common::t_lo;
-amrex::Vector<amrex::Real> common::t_hi;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::t_lo;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::t_hi;
 
 amrex::Vector<amrex::Real> common::wallspeed_lo;
 amrex::Vector<amrex::Real> common::wallspeed_hi;
 
-amrex::Vector<amrex::Real> common::potential_lo;
-amrex::Vector<amrex::Real> common::potential_hi;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::potential_lo;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::potential_hi;
 
 int                        common::struct_fact_int;
 int                        common::radialdist_int;

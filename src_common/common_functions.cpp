@@ -58,19 +58,12 @@ void InitializeCommonNamespace() {
     bc_therm_lo.resize(AMREX_SPACEDIM);
     bc_therm_hi.resize(AMREX_SPACEDIM);
 
-    // bcs: wall temperatures
-    t_lo.resize(AMREX_SPACEDIM);
-    t_hi.resize(AMREX_SPACEDIM);
-
     // bcs: inflow/outflow pressure
     p_lo.resize(AMREX_SPACEDIM);
     p_hi.resize(AMREX_SPACEDIM);
 
     wallspeed_lo.resize((AMREX_SPACEDIM-1)*AMREX_SPACEDIM);
     wallspeed_hi.resize((AMREX_SPACEDIM-1)*AMREX_SPACEDIM);
-
-    potential_lo.resize(AMREX_SPACEDIM);
-    potential_hi.resize(AMREX_SPACEDIM);
 
     max_grid_projection.resize(AMREX_SPACEDIM-1);
 
@@ -125,9 +118,9 @@ void InitializeCommonNamespace() {
                                 bc_mass_lo.dataPtr(), bc_mass_hi.dataPtr(),
                                 bc_therm_lo.dataPtr(), bc_therm_hi.dataPtr(),
                                 p_lo.dataPtr(), p_hi.dataPtr(),
-                                t_lo.dataPtr(), t_hi.dataPtr(),
+                                t_lo.data(), t_hi.data(),
                                 wallspeed_lo.dataPtr(), wallspeed_hi.dataPtr(),
-                                potential_lo.dataPtr(), potential_hi.dataPtr(),
+                                potential_lo.data(), potential_hi.data(),
                                 &struct_fact_int, &radialdist_int, &cartdist_int,
                                 &n_steps_skip, &binSize, &searchDist,
 				&project_dir, max_grid_projection.dataPtr(),

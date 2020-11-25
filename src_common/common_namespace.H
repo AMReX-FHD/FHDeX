@@ -149,8 +149,8 @@ namespace common {
     extern amrex::Vector<amrex::Real>  p_lo;
     extern amrex::Vector<amrex::Real>  p_hi;
 
-    extern amrex::Vector<amrex::Real>  t_lo;
-    extern amrex::Vector<amrex::Real>  t_hi;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> t_lo;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> t_hi;
 
     // Each no-slip wall may be moving with a specified tangential
     // velocity along the tangential directions
@@ -165,8 +165,8 @@ namespace common {
     extern amrex::Vector<amrex::Real> wallspeed_hi;
 
     // specify the Dirichlet or Neumann BC value
-    extern amrex::Vector<amrex::Real> potential_lo;
-    extern amrex::Vector<amrex::Real> potential_hi;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> potential_lo;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> potential_hi;
 
     // structure factor and radial/cartesian pair correlation function analysis
     extern int                        struct_fact_int;

@@ -18,7 +18,13 @@ void MultiFabPhysBC(MultiFab& phi, const Geometry& geom, int scomp, int ncomp, i
     // Physical Domain
     Box dom(geom.Domain());
 
-    GpuArray<Real,AMREX_SPACEDIM> dx = geom.CellSizeArray();
+    GpuArray<Real,3> dx;
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        dx[d] = geom.CellSize(d);
+    }
+    if (AMREX_SPACEDIM == 2) {
+        dx[2] = cell_depth;
+    }
 
     // compute mathematical boundary conditions
     Vector<int> bc_lo(AMREX_SPACEDIM);
@@ -49,12 +55,8 @@ void MultiFabPhysBC(MultiFab& phi, const Geometry& geom, int scomp, int ncomp, i
                 {
                     if (i < lo) {
                         Real y = prob_lo[1] + (j+0.5)*dx[1];
-#if (AMREX_SPACEDIM == 2)
-                        data(i,j,k,scomp+n) = data(lo,j,k,scomp+n) - 0.5*dx[0]*InhomogeneousBCVal(bccomp+n,x,y,time);
-#elif (AMREX_SPACEDIM == 3)
                         Real z = prob_lo[2] + (k+0.5)*dx[2];
                         data(i,j,k,scomp+n) = data(lo,j,k,scomp+n) - 0.5*dx[0]*InhomogeneousBCVal(bccomp+n,x,y,z,time);
-#endif
                     }
                 });
             }
@@ -62,7 +64,9 @@ void MultiFabPhysBC(MultiFab& phi, const Geometry& geom, int scomp, int ncomp, i
                 amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (i < lo) {
-                        data(i,j,k,scomp+n) = 0.;
+                        Real y = prob_lo[1] + (j+0.5)*dx[1];
+                        Real z = prob_lo[2] + (k+0.5)*dx[2];
+                        data(i,j,k,scomp+n) = InhomogeneousBCVal(bccomp+n,x,y,z,time);
                     }
                 });
             }
@@ -74,7 +78,9 @@ void MultiFabPhysBC(MultiFab& phi, const Geometry& geom, int scomp, int ncomp, i
                 amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (i > hi) {
-                        data(i,j,k,scomp+n) = data(hi,j,k,scomp+n);
+                        Real y = prob_lo[1] + (j+0.5)*dx[1];
+                        Real z = prob_lo[2] + (k+0.5)*dx[2];
+                        data(i,j,k,scomp+n) = data(hi,j,k,scomp+n) - 0.5*dx[0]*InhomogeneousBCVal(bccomp+n,x,y,z,time);
                     }
                 });
             }
@@ -82,7 +88,9 @@ void MultiFabPhysBC(MultiFab& phi, const Geometry& geom, int scomp, int ncomp, i
                 amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (i > hi) {
-                        data(i,j,k,scomp+n) = 0.;
+                        Real y = prob_lo[1] + (j+0.5)*dx[1];
+                        Real z = prob_lo[2] + (k+0.5)*dx[2];
+                        data(i,j,k,scomp+n) = InhomogeneousBCVal(bccomp+n,x,y,z,time);
                     }
                 });
             }
@@ -101,7 +109,9 @@ void MultiFabPhysBC(MultiFab& phi, const Geometry& geom, int scomp, int ncomp, i
                 amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (j < lo) {
-                        data(i,j,k,scomp+n) = data(i,lo,k,scomp+n);
+                        Real x = prob_lo[0] + (i+0.5)*dx[0];
+                        Real z = prob_lo[2] + (k+0.5)*dx[2];
+                        data(i,j,k,scomp+n) = data(i,lo,k,scomp+n) - 0.5*dx[1]*InhomogeneousBCVal(bccomp+n,x,y,z,time);;
                     }
                 });
             }
@@ -109,7 +119,9 @@ void MultiFabPhysBC(MultiFab& phi, const Geometry& geom, int scomp, int ncomp, i
                 amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (j < lo) {
-                        data(i,j,k,scomp+n) = 0.;
+                        Real x = prob_lo[0] + (i+0.5)*dx[0];
+                        Real z = prob_lo[2] + (k+0.5)*dx[2];
+                        data(i,j,k,scomp+n) = InhomogeneousBCVal(bccomp+n,x,y,z,time);
                     }
                 });
             }
@@ -121,7 +133,9 @@ void MultiFabPhysBC(MultiFab& phi, const Geometry& geom, int scomp, int ncomp, i
                 amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (j > hi) {
-                        data(i,j,k,scomp+n) = data(i,hi,k,scomp+n);
+                        Real x = prob_lo[0] + (i+0.5)*dx[0];
+                        Real z = prob_lo[2] + (k+0.5)*dx[2];
+                        data(i,j,k,scomp+n) = data(i,hi,k,scomp+n) - 0.5*dx[1]*InhomogeneousBCVal(bccomp+n,x,y,z,time);
                     }
                 });
             }
@@ -129,7 +143,9 @@ void MultiFabPhysBC(MultiFab& phi, const Geometry& geom, int scomp, int ncomp, i
                 amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (j > hi) {
-                        data(i,j,k,scomp+n) = 0.;
+                        Real x = prob_lo[0] + (i+0.5)*dx[0];
+                        Real z = prob_lo[2] + (k+0.5)*dx[2];
+                        data(i,j,k,scomp+n) = InhomogeneousBCVal(bccomp+n,x,y,z,time);
                     }
                 });
             }
@@ -144,11 +160,14 @@ void MultiFabPhysBC(MultiFab& phi, const Geometry& geom, int scomp, int ncomp, i
         hi = dom.bigEnd(2);
         
         if (bx.smallEnd(2) < lo) {
+            Real z = prob_lo[2];
             if (bc_lo[2] == FOEXTRAP) {
                 amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (k < lo) {
-                        data(i,j,k,scomp+n) = data(i,j,lo,scomp+n);
+                        Real x = prob_lo[0] + (i+0.5)*dx[0];
+                        Real y = prob_lo[1] + (j+0.5)*dx[1];
+                        data(i,j,k,scomp+n) = data(i,j,lo,scomp+n) - 0.5*dx[2]*InhomogeneousBCVal(bccomp+n,x,y,z,time);;
                     }
                 });
             }
@@ -156,18 +175,23 @@ void MultiFabPhysBC(MultiFab& phi, const Geometry& geom, int scomp, int ncomp, i
                 amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (k < lo) {
-                        data(i,j,k,scomp+n) = 0.;
+                        Real x = prob_lo[0] + (i+0.5)*dx[0];
+                        Real y = prob_lo[1] + (j+0.5)*dx[1];
+                        data(i,j,k,scomp+n) = InhomogeneousBCVal(bccomp+n,x,y,z,time);
                     }
                 });
             }
         }
 
         if (bx.bigEnd(2) > hi) {
+            Real z= prob_hi[2];
             if (bc_hi[2] == FOEXTRAP) {
                 amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (k > hi) {
-                        data(i,j,k,scomp+n) = data(i,j,hi,scomp+n);
+                        Real x = prob_lo[0] + (i+0.5)*dx[0];
+                        Real y = prob_lo[1] + (j+0.5)*dx[1];
+                        data(i,j,k,scomp+n) = data(i,j,hi,scomp+n) - 0.5*dx[2]*InhomogeneousBCVal(bccomp+n,x,y,z,time);
                     }
                 });
             }
@@ -175,7 +199,9 @@ void MultiFabPhysBC(MultiFab& phi, const Geometry& geom, int scomp, int ncomp, i
                 amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (k > hi) {
-                        data(i,j,k,scomp+n) = 0.;
+                        Real x = prob_lo[0] + (i+0.5)*dx[0];
+                        Real y = prob_lo[1] + (j+0.5)*dx[1];
+                        data(i,j,k,scomp+n) = InhomogeneousBCVal(bccomp+n,x,y,z,time);
                     }
                 });
             }
