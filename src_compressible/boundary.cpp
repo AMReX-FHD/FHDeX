@@ -395,12 +395,12 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                 {
                     if (j < 0) {
 
-                        cons(i,j,k,1) = -cons(i,2*lo-j-1,k,1);
-                        cons(i,j,k,2) = cons(i,2*lo-j-1,k,2);
+                        cons(i,j,k,1) = cons(i,2*lo-j-1,k,1);
+                        cons(i,j,k,2) = -cons(i,2*lo-j-1,k,2);
                         cons(i,j,k,3) = cons(i,2*lo-j-1,k,3);
 
-                        prim(i,j,k,1) = -prim(i,2*lo-j-1,k,1);
-                        prim(i,j,k,2) = prim(i,2*lo-j-1,k,2);
+                        prim(i,j,k,1) = prim(i,2*lo-j-1,k,1);
+                        prim(i,j,k,2) = -prim(i,2*lo-j-1,k,2);
                         prim(i,j,k,3) = prim(i,2*lo-j-1,k,3);
 
                         // thermal & species (+pressure) BCs must be enforced first
@@ -532,12 +532,12 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                 {
                     if (j > n_cells[1]-1) {
 
-                        cons(i,j,k,1) = -cons(i,2*hi-j+1,k,1);
-                        cons(i,j,k,2) = cons(i,2*hi-j+1,k,2);
+                        cons(i,j,k,1) = cons(i,2*hi-j+1,k,1);
+                        cons(i,j,k,2) = -cons(i,2*hi-j+1,k,2);
                         cons(i,j,k,3) = cons(i,2*hi-j+1,k,3);
 
-                        prim(i,j,k,1) = -prim(i,2*hi-j+1,k,1);
-                        prim(i,j,k,2) = prim(i,2*hi-j+1,k,2);
+                        prim(i,j,k,1) = prim(i,2*hi-j+1,k,1);
+                        prim(i,j,k,2) = -prim(i,2*hi-j+1,k,2);
                         prim(i,j,k,3) = prim(i,2*hi-j+1,k,3);
 
                         // thermal & species (+pressure) BCs must be enforced first
@@ -668,13 +668,13 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                 {
                     if (k < 0) {
 
-                        cons(i,j,k,1) = -cons(i,j,2*lo-k-1,1);
+                        cons(i,j,k,1) = cons(i,j,2*lo-k-1,1);
                         cons(i,j,k,2) = cons(i,j,2*lo-k-1,2);
-                        cons(i,j,k,3) = cons(i,j,2*lo-k-1,3);
+                        cons(i,j,k,3) = -cons(i,j,2*lo-k-1,3);
 
-                        prim(i,j,k,1) = -prim(i,j,2*lo-k-1,1);
+                        prim(i,j,k,1) = prim(i,j,2*lo-k-1,1);
                         prim(i,j,k,2) = prim(i,j,2*lo-k-1,2);
-                        prim(i,j,k,3) = prim(i,j,2*lo-k-1,3);
+                        prim(i,j,k,3) = -prim(i,j,2*lo-k-1,3);
 
                         // thermal & species (+pressure) BCs must be enforced first
                         GpuArray<Real,MAX_SPECIES> fracvec;
@@ -805,13 +805,13 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                 {
                     if (k > n_cells[2]-1) {
 
-                        cons(i,j,k,1) = -cons(i,j,2*hi-k+1,1);
+                        cons(i,j,k,1) = cons(i,j,2*hi-k+1,1);
                         cons(i,j,k,2) = cons(i,j,2*hi-k+1,2);
-                        cons(i,j,k,3) = cons(i,j,2*hi-k+1,3);
+                        cons(i,j,k,3) = -cons(i,j,2*hi-k+1,3);
 
-                        prim(i,j,k,1) = -prim(i,j,2*hi-k+1,1);
+                        prim(i,j,k,1) = prim(i,j,2*hi-k+1,1);
                         prim(i,j,k,2) = prim(i,j,2*hi-k+1,2);
-                        prim(i,j,k,3) = prim(i,j,2*hi-k+1,3);
+                        prim(i,j,k,3) = -prim(i,j,2*hi-k+1,3);
 
                         // thermal & species (+pressure) BCs must be enforced first
                         GpuArray<Real,MAX_SPECIES> fracvec;
