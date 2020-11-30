@@ -14,12 +14,12 @@ int                        multispec::is_ideal_mixture;
 int                        multispec::use_lapack;
 int                        multispec::use_multiphase;
 amrex::Vector<amrex::Real> multispec::c_init;
-amrex::Vector<amrex::Real> multispec::c_bc_x_lo;
-amrex::Vector<amrex::Real> multispec::c_bc_x_hi;
-amrex::Vector<amrex::Real> multispec::c_bc_y_lo;
-amrex::Vector<amrex::Real> multispec::c_bc_y_hi;
-amrex::Vector<amrex::Real> multispec::c_bc_z_lo;
-amrex::Vector<amrex::Real> multispec::c_bc_z_hi;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> multispec::c_bc_x_lo;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> multispec::c_bc_x_hi;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> multispec::c_bc_y_lo;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> multispec::c_bc_y_hi;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> multispec::c_bc_z_lo;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> multispec::c_bc_z_hi;
   
 int                        multispec::midpoint_stoch_mass_flux_type;
 int                        multispec::avg_type;
