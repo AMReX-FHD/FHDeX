@@ -92,6 +92,13 @@ amrex::Vector<amrex::Real> common::p_hi;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::t_lo;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::t_hi;
 
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::c_bc_x_lo;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::c_bc_x_hi;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::c_bc_y_lo;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::c_bc_y_hi;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::c_bc_z_lo;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::c_bc_z_hi;
+
 amrex::Vector<amrex::Real> common::wallspeed_lo;
 amrex::Vector<amrex::Real> common::wallspeed_hi;
 
