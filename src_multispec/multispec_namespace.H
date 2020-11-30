@@ -18,7 +18,12 @@ namespace multispec {
     extern int                        use_lapack;
     extern int                        use_multiphase;
     extern amrex::Vector<amrex::Real> c_init;
-    extern amrex::Vector<amrex::Real> c_bc;
+    extern amrex::Vector<amrex::Real> c_bc_x_lo;
+    extern amrex::Vector<amrex::Real> c_bc_x_hi;
+    extern amrex::Vector<amrex::Real> c_bc_y_lo;
+    extern amrex::Vector<amrex::Real> c_bc_y_hi;
+    extern amrex::Vector<amrex::Real> c_bc_z_lo;
+    extern amrex::Vector<amrex::Real> c_bc_z_hi;
   
     extern int                        midpoint_stoch_mass_flux_type;
     extern int                        avg_type;
