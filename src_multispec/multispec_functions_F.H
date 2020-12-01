@@ -31,7 +31,6 @@ extern "C"
                                          const int* use_lapack,
                                          const int* use_multiphase,
                                          const amrex_real* c_init,
-                                         const amrex_real* c_bc,
                                          const int* midpoint_stoch_mass_flux_type,
                                          const int* avg_type,
                                          const int* mixture_type,

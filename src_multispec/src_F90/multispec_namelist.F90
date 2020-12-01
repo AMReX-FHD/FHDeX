@@ -24,7 +24,6 @@ module multispec_namelist_module
   integer,            save :: use_lapack
   integer,            save :: use_multiphase
   double precision,   save :: c_init(2,MAX_SPECIES)
-  double precision,   save :: c_bc(AMREX_SPACEDIM,2,MAX_SPECIES)
   
   integer,            save :: midpoint_stoch_mass_flux_type
   integer,            save :: avg_type
@@ -71,7 +70,6 @@ module multispec_namelist_module
 
   namelist /multispec/ temp_type  ! for initializing temperature
   namelist /multispec/ c_init     ! initial values for c
-  namelist /multispec/ c_bc       ! c_i boundary conditions (dir,lohi,species)
   
   ! Thermodynamic and transport properties:
   !----------------------
@@ -160,7 +158,6 @@ contains
     chi_iterations     = 10
     temp_type          = 0
     c_init(:,:)        = 1.0d0
-    c_bc(:,:,:)        = 0.d0
     Dbar(:)            = 1.0d0
     Dtherm(:)          = 0.0d0
     H_offdiag(:)       = 0.0d0
@@ -212,7 +209,7 @@ contains
                                              Dbar_in, Dtherm_in, H_offdiag_in, H_diag_in, &
                                              fraction_tolerance_in, correct_flux_in, print_error_norms_in, &
                                              is_nonisothermal_in, is_ideal_mixture_in, &
-                                             use_lapack_in, use_multiphase_in, c_init_in, c_bc_in, &
+                                             use_lapack_in, use_multiphase_in, c_init_in, &
                                              midpoint_stoch_mass_flux_type_in, &
                                              avg_type_in, mixture_type_in, &
                                              use_charged_fluid_in, print_debye_len_in, dielectric_const_in, &
@@ -221,7 +218,7 @@ contains
                                              relxn_param_charge_in, E_ext_type_in, E_ext_value_in, &
                                              electroneutral_in, induced_charge_eo_in, &
                                              zero_eps_on_wall_type_in, zero_charge_on_wall_type_in, &
-                                             zero_eps_on_wall_left_end_in,   zero_eps_on_wall_right_start_in, &
+                                             zero_eps_on_wall_left_end_in, zero_eps_on_wall_right_start_in, &
                                              epot_mg_verbose_in, epot_mg_abs_tol_in, epot_mg_rel_tol_in, &
                                              bc_function_type_in, L_pos_in, L_trans_in, L_zero_in) &
                                              bind(C, name="initialize_multispec_namespace")
@@ -242,7 +239,6 @@ contains
     integer,            intent(inout) :: use_lapack_in
     integer,            intent(inout) :: use_multiphase_in
     double precision,   intent(inout) :: c_init_in(2,MAX_SPECIES)
-    double precision,   intent(inout) :: c_bc_in(AMREX_SPACEDIM,2,MAX_SPECIES)
 
     integer,            intent(inout) :: midpoint_stoch_mass_flux_type_in
     integer,            intent(inout) :: avg_type_in
@@ -292,7 +288,6 @@ contains
     use_lapack_in = use_lapack
     use_multiphase_in = use_multiphase
     c_init_in = c_init
-    c_bc_in = c_bc
     midpoint_stoch_mass_flux_type_in = midpoint_stoch_mass_flux_type
     avg_type_in = avg_type
     mixture_type_in = mixture_type
