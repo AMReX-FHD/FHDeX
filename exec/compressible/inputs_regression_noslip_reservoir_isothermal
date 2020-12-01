@@ -92,17 +92,17 @@
   hcv = -1 -1 -1 -1
   hcp = -1 -1 -1 -1
 
+  ! Xk and Yk at the wall for Dirichlet (concentrations) - set one to zero
+  bc_Yk_x_lo(1:4) = 0.25 0.25 0.25 0.25     ! lo BC
+  bc_Yk_x_hi(1:4) = 0.25 0.25 0.25 0.25     ! hi BC
+  bc_Yk_y_lo(1:4) = 0.25 0.25 0.25 0.25     ! lo BC
+  bc_Yk_y_hi(1:4) = 0.25 0.25 0.25 0.25     ! hi BC
+  bc_Yk_z_lo(1:4) = 0.25 0.25 0.25 0.25     ! lo BC
+  bc_Yk_z_hi(1:4) = 0.25 0.25 0.25 0.25     ! hi BC
+
 /
 
 &compressible
-
-  ! Xk and Yk at the wall for Dirichlet (concentrations) - set one to zero
-  ! Ordering: (species 1, x-dir), (species 2, x-dir), ... (species 1, y-dir), ...
-  bc_Yk(1,1,1:4) = 0.25 0.25 0.25 0.25     ! lo BC
-  bc_Yk(1,2,1:4) = 0.25 0.25 0.25 0.25     ! hi BC
-  bc_Yk(2,1,1:4) = 0.25 0.25 0.25 0.25     ! lo BC
-  bc_Yk(2,2,1:4) = 0.25 0.25 0.25 0.25     ! hi BC
-  bc_Yk(3,1,1:4) = 0.25 0.25 0.25 0.25     ! lo BC
-  bc_Yk(3,2,1:4) = 0.25 0.25 0.25 0.25     ! hi BC
   
 /
+

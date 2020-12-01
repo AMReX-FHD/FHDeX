@@ -8,14 +8,10 @@ module compressible_namelist_module
 
   integer, parameter :: LOHI = 2
 
-  double precision,   save :: bc_Yk(AMREX_SPACEDIM,LOHI,MAX_SPECIES)
-  double precision,   save :: bc_Xk(AMREX_SPACEDIM,LOHI,MAX_SPECIES)
   integer         ,   save :: plot_means
   integer         ,   save :: plot_vars
 
   ! Boundary conditions
-  namelist /compressible/ bc_Yk       ! mass fraction wall boundary value
-  namelist /compressible/ bc_Xk       ! mole fraction wall boundary value
   namelist /compressible/ plot_means  ! write out means to plotfile
   namelist /compressible/ plot_vars   ! write out variances to plotfile
 
@@ -28,9 +24,6 @@ contains
     character(kind=c_char), intent(in   ) :: inputs_file(length)
 
     ! default values
-    bc_Yk(:,:,:) = 0.d0
-    bc_Xk(:,:,:) = 0.d0
-
     plot_means = 0
     plot_vars = 0
 
@@ -42,17 +35,12 @@ contains
   end subroutine read_compressible_namelist
 
   ! copy contents of compressible_params_module to C++ compressible namespace
-  subroutine initialize_compressible_namespace(bc_Yk_in, bc_Xk_in, plot_means_in, plot_vars_in) &
-                                                bind(C, name="initialize_compressible_namespace")
+  subroutine initialize_compressible_namespace(plot_means_in, plot_vars_in) &
+                                               bind(C, name="initialize_compressible_namespace")
 
-    double precision, intent(inout) :: bc_Yk_in(AMREX_SPACEDIM,LOHI,MAX_SPECIES)
-    double precision, intent(inout) :: bc_Xk_in(AMREX_SPACEDIM,LOHI,MAX_SPECIES)
     integer         , intent(inout) :: plot_means_in
     integer         , intent(inout) :: plot_vars_in
     
-    bc_Yk_in = bc_Yk
-    bc_Xk_in = bc_Xk
-
     plot_means_in = plot_means
     plot_vars_in = plot_vars
 
