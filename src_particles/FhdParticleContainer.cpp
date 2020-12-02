@@ -124,6 +124,7 @@ void FhdParticleContainer::forceFunction()
    //Real k = 5e2;
    Real maxU = 0;
    Real maxD = 0;
+   int pinCheck = 0;
 
    for (FhdParIter pti(*this, lev, MFItInfo().SetDynamic(false)); pti.isValid(); ++pti) {
       
@@ -140,28 +141,32 @@ void FhdParticleContainer::forceFunction()
 
             ParticleType & part = particles[i];
 
-            Real radVec[3];
-            radVec[0] = part.pos(0)-part.rdata(FHD_realData::ox);
-            radVec[1] = part.pos(1)-part.rdata(FHD_realData::oy);
-            radVec[2] = part.pos(2)-part.rdata(FHD_realData::oz);
-
-            part.rdata(FHD_realData::forcex) = part.rdata(FHD_realData::forcex) - part.rdata(FHD_realData::spring)*radVec[0];
-            part.rdata(FHD_realData::forcey) = part.rdata(FHD_realData::forcey) - part.rdata(FHD_realData::spring)*radVec[1];
-            part.rdata(FHD_realData::forcez) = part.rdata(FHD_realData::forcez) - part.rdata(FHD_realData::spring)*radVec[2];
-
-            Real dSqr = (pow(radVec[0],2) + pow(radVec[1],2) + pow(radVec[2],2));
-        
-
-            part.rdata(FHD_realData::potential) = 0.5*part.rdata(FHD_realData::spring)*dSqr;
-
-            if(part.rdata(FHD_realData::potential) > maxUtile)
+            if(part.rdata(FHD_realData::spring) != 0)
             {
-                maxUtile = part.rdata(FHD_realData::potential);
-            }
+                Real radVec[3];
+                radVec[0] = part.pos(0)-part.rdata(FHD_realData::ox);
+                radVec[1] = part.pos(1)-part.rdata(FHD_realData::oy);
+                radVec[2] = part.pos(2)-part.rdata(FHD_realData::oz);
 
-            if((dSqr/part.rdata(FHD_realData::radius)) > maxDtile)
-            {
-                maxDtile = dSqr/part.rdata(FHD_realData::radius);
+                part.rdata(FHD_realData::forcex) = part.rdata(FHD_realData::forcex) - part.rdata(FHD_realData::spring)*radVec[0];
+                part.rdata(FHD_realData::forcey) = part.rdata(FHD_realData::forcey) - part.rdata(FHD_realData::spring)*radVec[1];
+                part.rdata(FHD_realData::forcez) = part.rdata(FHD_realData::forcez) - part.rdata(FHD_realData::spring)*radVec[2];
+
+                Real dSqr = (pow(radVec[0],2) + pow(radVec[1],2) + pow(radVec[2],2));
+            
+
+                part.rdata(FHD_realData::potential) = 0.5*part.rdata(FHD_realData::spring)*dSqr;
+
+                if(part.rdata(FHD_realData::potential) > maxUtile)
+                {
+                    maxUtile = part.rdata(FHD_realData::potential);
+                }
+
+                if((dSqr/part.rdata(FHD_realData::radius)) > maxDtile)
+                {
+                    maxDtile = dSqr/part.rdata(FHD_realData::radius);
+                }
+                pinCheck = 1;
             }
 
          }
@@ -173,8 +178,12 @@ void FhdParticleContainer::forceFunction()
 
     ParallelDescriptor::ReduceRealMax(maxU);
     ParallelDescriptor::ReduceRealMax(maxD);
+    ParallelDescriptor::ReduceIntMax(pinCheck);
     //Print() << "Max potential: " << maxU << std::endl;
-    Print() << "Maximum observed pinned particle displacement (fraction of radius): " << sqrt(maxD) << std::endl;
+    if(pinCheck != 0)
+    {
+        Print() << "Maximum observed pinned particle displacement (fraction of radius): " << sqrt(maxD) << std::endl;
+    }
 
 }
 

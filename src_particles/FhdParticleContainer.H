@@ -100,6 +100,7 @@ struct FHD_intData {
         j,
         k,
         species,
+        visible,
         count
     };
 

@@ -273,6 +273,7 @@ void WritePlotFile(int step,
     int_comp_names.push_back("j");
     int_comp_names.push_back("k");
     int_comp_names.push_back("species");
+    int_comp_names.push_back("visible");
 //    int_comp_names.push_back("count");
 
     Vector<int> write_real_comp = {
@@ -331,7 +332,8 @@ void WritePlotFile(int step,
         0, // i
         0, // j
         0, // k
-        1  // species
+        1,  // species
+        1  // visible
     };
 
     particles.WritePlotFile(cplotfilename, "particles",

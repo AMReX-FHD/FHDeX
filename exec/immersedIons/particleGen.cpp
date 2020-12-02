@@ -63,6 +63,7 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
 
                     }
 
+                    p.idata(FHD_intData::visible) = 1;
 
                     p.rdata(FHD_realData::q) = particleInfo[i_spec].q;
 
@@ -156,6 +157,7 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
     fillNeighbors();
 
 }
+
 
 void FhdParticleContainer::InitParticlesFromFile(species* particleInfo, const Real* dxp)
 {
@@ -301,7 +303,7 @@ void FhdParticleContainer::InitParticlesFromFile(species* particleInfo, const Re
     fillNeighbors();
 
 }
-
+//THIS NEEDS TO BE UPDATED TO HANDLE MORE PARTICLE INFO
 void FhdParticleContainer::ReInitParticles(species* particleInfo, const Real* dxp, Real * posX, Real * posY, Real * posZ, Real * charge, Real * sigma, Real * epsilon, int * speciesV, Real * diffdry, Real * diffwet, Real * difftotal)
 {
     const int lev = 0;
