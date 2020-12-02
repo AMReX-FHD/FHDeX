@@ -23,13 +23,13 @@ Real InhomogeneousBCVal ( int comp,
         } else if (x == prob_hi[0]) {
             return bc_Yk_x_hi[comp-SPEC_BC_COMP];
         } else if (y == prob_lo[1]) {
-            return bc_Yk_x_lo[comp-SPEC_BC_COMP];
+            return bc_Yk_y_lo[comp-SPEC_BC_COMP];
         } else if (y == prob_hi[1]) {
-            return bc_Yk_x_lo[comp-SPEC_BC_COMP];
+            return bc_Yk_y_hi[comp-SPEC_BC_COMP];
         } else if (z == prob_lo[2]) {
-            return bc_Yk_x_lo[comp-SPEC_BC_COMP];
+            return bc_Yk_z_lo[comp-SPEC_BC_COMP];
         } else if (z == prob_hi[2]) {
-            return bc_Yk_x_lo[comp-SPEC_BC_COMP];
+            return bc_Yk_z_hi[comp-SPEC_BC_COMP];
         }
         
     } else if (comp == TEMP_BC_COMP) {
