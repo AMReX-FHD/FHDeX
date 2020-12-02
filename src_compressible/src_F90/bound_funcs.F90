@@ -1050,8 +1050,33 @@ contains
   end subroutine setup_bc
 
   !subroutine setup_cwall(bc_Yk_in,bc_Xk_in) bind(C,name="setup_cwall")
-  subroutine setup_cwall() bind(C,name="setup_cwall")
+  subroutine setup_cwall(bc_Yk_x_lo_in, &
+                         bc_Yk_x_hi_in, &
+                         bc_Yk_y_lo_in, &
+                         bc_Yk_y_hi_in, &
+                         bc_Yk_z_lo_in, &
+                         bc_Yk_z_hi_in, &
+                         bc_Xk_x_lo_in, &
+                         bc_Xk_x_hi_in, &
+                         bc_Xk_y_lo_in, &
+                         bc_Xk_y_hi_in, &
+                         bc_Xk_z_lo_in, &
+                         bc_Xk_z_hi_in) bind(C,name="setup_cwall")
 
+    double precision, intent(inout) :: bc_Yk_x_lo_in(MAX_SPECIES)
+    double precision, intent(inout) :: bc_Yk_x_hi_in(MAX_SPECIES)
+    double precision, intent(inout) :: bc_Yk_y_lo_in(MAX_SPECIES)
+    double precision, intent(inout) :: bc_Yk_y_hi_in(MAX_SPECIES)
+    double precision, intent(inout) :: bc_Yk_z_lo_in(MAX_SPECIES)
+    double precision, intent(inout) :: bc_Yk_z_hi_in(MAX_SPECIES)
+    double precision, intent(inout) :: bc_Xk_x_lo_in(MAX_SPECIES)
+    double precision, intent(inout) :: bc_Xk_x_hi_in(MAX_SPECIES)
+    double precision, intent(inout) :: bc_Xk_y_lo_in(MAX_SPECIES)
+    double precision, intent(inout) :: bc_Xk_y_hi_in(MAX_SPECIES)
+    double precision, intent(inout) :: bc_Xk_z_lo_in(MAX_SPECIES)
+    double precision, intent(inout) :: bc_Xk_z_hi_in(MAX_SPECIES)
+    
+    
     integer :: ns
 
     real(amrex_real) :: sumx, sumy
@@ -1144,6 +1169,12 @@ contains
        endif
     endif
 
+    bc_Yk_x_lo_in = bc_Yk_x_lo
+    bc_Yk_x_hi_in = bc_Yk_x_hi
+    bc_Yk_y_lo_in = bc_Yk_y_lo
+    bc_Yk_y_hi_in = bc_Yk_y_hi
+    bc_Yk_z_lo_in = bc_Yk_z_lo
+    bc_Yk_z_hi_in = bc_Yk_z_hi
 
   end subroutine setup_cwall
 
