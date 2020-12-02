@@ -1176,6 +1176,13 @@ contains
     bc_Yk_z_lo_in = bc_Yk_z_lo
     bc_Yk_z_hi_in = bc_Yk_z_hi
 
+    bc_Xk_x_lo_in = bc_Xk_x_lo
+    bc_Xk_x_hi_in = bc_Xk_x_hi
+    bc_Xk_y_lo_in = bc_Xk_y_lo
+    bc_Xk_y_hi_in = bc_Xk_y_hi
+    bc_Xk_z_lo_in = bc_Xk_z_lo
+    bc_Xk_z_hi_in = bc_Xk_z_hi
+
   end subroutine setup_cwall
 
 end module bound_module
