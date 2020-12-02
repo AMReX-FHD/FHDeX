@@ -14,15 +14,23 @@ Real InhomogeneousBCVal ( int comp,
         
     } else if (comp == RHO_BC_COMP) {
 
-        // only the correct thing for homogeneous Neumann
-        // need to fix to support Dirichlet or inhomogeneous conditions
-        return 0;
+        Abort("Need to write InhomogeneousBCVal for density; make a custom copy");
         
     } else if (comp >= SPEC_BC_COMP && comp <= SPEC_END_BC_COMP) {
 
-        // only the correct thing for homogeneous Neumann
-        // need to fix to support Dirichlet or inhomogeneous conditions
-        return 0;
+        if (x == prob_lo[0]) {
+            return bc_Yk_x_lo[comp-SPEC_BC_COMP];
+        } else if (x == prob_hi[0]) {
+            return bc_Yk_x_hi[comp-SPEC_BC_COMP];
+        } else if (y == prob_lo[1]) {
+            return bc_Yk_y_lo[comp-SPEC_BC_COMP];
+        } else if (y == prob_hi[1]) {
+            return bc_Yk_y_hi[comp-SPEC_BC_COMP];
+        } else if (z == prob_lo[2]) {
+            return bc_Yk_z_lo[comp-SPEC_BC_COMP];
+        } else if (z == prob_hi[2]) {
+            return bc_Yk_z_hi[comp-SPEC_BC_COMP];
+        }
         
     } else if (comp == TEMP_BC_COMP) {
         
@@ -62,7 +70,6 @@ Real InhomogeneousBCVal ( int comp,
         Abort("InhomogeneousBCVal: invalid comp");
 
     }
-
     
     return 0.;
 };

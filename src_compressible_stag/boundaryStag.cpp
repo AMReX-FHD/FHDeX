@@ -1,6 +1,8 @@
 #include "compressible_functions.H"
 
-void setBC(MultiFab& prim_in, MultiFab& cons_in)
+void setBCStag(MultiFab& prim_in, MultiFab& cons_in,
+                 std::array< MultiFab, AMREX_SPACEDIM >& cumom,
+                 std::array< MultiFab, AMREX_SPACEDIM >& vel)
 {
     BL_PROFILE_VAR("setBC()",setBC);
 
@@ -11,6 +13,38 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
     }
 
     int nprimvars_gpu = nprimvars;
+
+    GpuArray<Real,MAX_SPECIES> bc_Yk_x_lo_gpu;
+    GpuArray<Real,MAX_SPECIES> bc_Yk_x_hi_gpu;
+    GpuArray<Real,MAX_SPECIES> bc_Yk_y_lo_gpu;
+    GpuArray<Real,MAX_SPECIES> bc_Yk_y_hi_gpu;
+    GpuArray<Real,MAX_SPECIES> bc_Yk_z_lo_gpu;
+    GpuArray<Real,MAX_SPECIES> bc_Yk_z_hi_gpu;
+
+    for (int n=0; n<nspecies; ++n) {
+        bc_Yk_x_lo_gpu[n] = bc_Yk[0 + n*LOHI*AMREX_SPACEDIM];
+        bc_Yk_x_hi_gpu[n] = bc_Yk[0 + AMREX_SPACEDIM + n*LOHI*AMREX_SPACEDIM];
+        bc_Yk_y_lo_gpu[n] = bc_Yk[1 + n*LOHI*AMREX_SPACEDIM];
+        bc_Yk_y_hi_gpu[n] = bc_Yk[1 + AMREX_SPACEDIM + n*LOHI*AMREX_SPACEDIM];
+        bc_Yk_z_lo_gpu[n] = bc_Yk[2 + n*LOHI*AMREX_SPACEDIM];
+        bc_Yk_z_hi_gpu[n] = bc_Yk[2 + AMREX_SPACEDIM + n*LOHI*AMREX_SPACEDIM];
+    }
+
+    GpuArray<Real,MAX_SPECIES> bc_Xk_x_lo_gpu;
+    GpuArray<Real,MAX_SPECIES> bc_Xk_x_hi_gpu;
+    GpuArray<Real,MAX_SPECIES> bc_Xk_y_lo_gpu;
+    GpuArray<Real,MAX_SPECIES> bc_Xk_y_hi_gpu;
+    GpuArray<Real,MAX_SPECIES> bc_Xk_z_lo_gpu;
+    GpuArray<Real,MAX_SPECIES> bc_Xk_z_hi_gpu;
+
+    for (int n=0; n<nspecies; ++n) {
+        bc_Xk_x_lo_gpu[n] = bc_Xk[0 + n*LOHI*AMREX_SPACEDIM];
+        bc_Xk_x_hi_gpu[n] = bc_Xk[0 + AMREX_SPACEDIM + n*LOHI*AMREX_SPACEDIM];
+        bc_Xk_y_lo_gpu[n] = bc_Xk[1 + n*LOHI*AMREX_SPACEDIM];
+        bc_Xk_y_hi_gpu[n] = bc_Xk[1 + AMREX_SPACEDIM + n*LOHI*AMREX_SPACEDIM];
+        bc_Xk_z_lo_gpu[n] = bc_Xk[2 + n*LOHI*AMREX_SPACEDIM];
+        bc_Xk_z_hi_gpu[n] = bc_Xk[2 + AMREX_SPACEDIM + n*LOHI*AMREX_SPACEDIM];
+    }
     
     GpuArray<Real,MAX_SPECIES> molmass_gpu;
     for (int n=0; n<nspecies; ++n) {
@@ -51,14 +85,14 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                 });
             }
 
-            // mass fracations, reservoir
+            // mass fractions, reservoir
             if (bc_mass_lo[0] == 2 && algorithm_type == 2) {
                 amrex::ParallelFor(gbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (i < 0) {
                         for (int n=0; n<nspecies_gpu; ++n) {
-                            prim(i,j,k,6+n)          = 2.*bc_Yk_x_lo[n] - prim(2*lo-i-1,j,k,6+n);
-                            prim(i,j,k,6+nspecies+n) = 2.*bc_Xk_x_lo[n] - prim(2*lo-i-1,j,k,6+nspecies+n);
+                            prim(i,j,k,6+n)          = 2.*bc_Yk_x_lo_gpu[n] - prim(2*lo-i-1,j,k,6+n);
+                            prim(i,j,k,6+nspecies+n) = 2.*bc_Xk_x_lo_gpu[n] - prim(2*lo-i-1,j,k,6+nspecies+n);
                         }
                     }
                 });
@@ -194,8 +228,8 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                 {
                     if (i > n_cells[0]-1) {
                         for (int n=0; n<nspecies_gpu; ++n) {
-                            prim(i,j,k,6+n)          = 2.*bc_Yk_x_hi[n] - prim(2*hi-i+1,j,k,6+n);
-                            prim(i,j,k,6+nspecies+n) = 2.*bc_Xk_x_hi[n] - prim(2*hi-i+1,j,k,6+nspecies+n);
+                            prim(i,j,k,6+n)          = 2.*bc_Yk_x_hi_gpu[n] - prim(2*hi-i+1,j,k,6+n);
+                            prim(i,j,k,6+nspecies+n) = 2.*bc_Xk_x_hi_gpu[n] - prim(2*hi-i+1,j,k,6+nspecies+n);
                         }
                     }
                 });
@@ -330,8 +364,8 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                 {
                     if (j < 0) {
                         for (int n=0; n<nspecies_gpu; ++n) {
-                            prim(i,j,k,6+n)          = 2.*bc_Yk_y_lo[n] - prim(i,2*lo-j-1,k,6+n);
-                            prim(i,j,k,6+nspecies+n) = 2.*bc_Xk_y_lo[n] - prim(i,2*lo-j-1,k,6+nspecies+n);
+                            prim(i,j,k,6+n)          = 2.*bc_Yk_y_lo_gpu[n] - prim(i,2*lo-j-1,k,6+n);
+                            prim(i,j,k,6+nspecies+n) = 2.*bc_Xk_y_lo_gpu[n] - prim(i,2*lo-j-1,k,6+nspecies+n);
                         }
                     }
                 });
@@ -467,8 +501,8 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                 {
                     if (j > n_cells[1]-1) {
                         for (int n=0; n<nspecies_gpu; ++n) {
-                            prim(i,j,k,6+n)          = 2.*bc_Yk_y_hi[n] - prim(i,2*hi-j+1,k,6+n);
-                            prim(i,j,k,6+nspecies+n) = 2.*bc_Xk_y_hi[n] - prim(i,2*hi-j+1,k,6+nspecies+n);
+                            prim(i,j,k,6+n)          = 2.*bc_Yk_y_hi_gpu[n] - prim(i,2*hi-j+1,k,6+n);
+                            prim(i,j,k,6+nspecies+n) = 2.*bc_Xk_y_hi_gpu[n] - prim(i,2*hi-j+1,k,6+nspecies+n);
                         }
                     }
                 });
@@ -603,8 +637,8 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                 {
                     if (k < 0) {
                         for (int n=0; n<nspecies_gpu; ++n) {
-                            prim(i,j,k,6+n)          = 2.*bc_Yk_z_lo[n] - prim(i,j,2*lo-k-1,6+n);
-                            prim(i,j,k,6+nspecies+n) = 2.*bc_Xk_z_lo[n] - prim(i,j,2*lo-k-1,6+nspecies+n);
+                            prim(i,j,k,6+n)          = 2.*bc_Yk_z_lo_gpu[n] - prim(i,j,2*lo-k-1,6+n);
+                            prim(i,j,k,6+nspecies+n) = 2.*bc_Xk_z_lo_gpu[n] - prim(i,j,2*lo-k-1,6+nspecies+n);
                         }
                     }
                 });
@@ -740,8 +774,8 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                 {
                     if (k > n_cells[2]-1) {
                         for (int n=0; n<nspecies_gpu; ++n) {
-                            prim(i,j,k,6+n)          = 2.*bc_Yk_z_hi[n] - prim(i,j,2*hi-k+1,6+n);
-                            prim(i,j,k,6+nspecies+n) = 2.*bc_Xk_z_hi[n] - prim(i,j,2*hi-k+1,6+nspecies+n);
+                            prim(i,j,k,6+n)          = 2.*bc_Yk_z_hi_gpu[n] - prim(i,j,2*hi-k+1,6+n);
+                            prim(i,j,k,6+nspecies+n) = 2.*bc_Xk_z_hi_gpu[n] - prim(i,j,2*hi-k+1,6+nspecies+n);
                         }
                     }
                 });

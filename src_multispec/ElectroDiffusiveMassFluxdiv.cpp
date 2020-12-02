@@ -216,7 +216,7 @@ void ElectroDiffusiveMassFlux(const MultiFab& rho,
     // this forces the solver to NOT enforce solvability
     // thus if there are Neumann conditions on phi they must
     // be correct or the Poisson solver won't converge
-//        linop.setEnforceSingularSolvable(false);
+    linop.setEnforceSingularSolvable(false);
 
     //Multi Level Multi Grid
     MLMG mlmg(linop);
@@ -250,12 +250,9 @@ void ElectroDiffusiveMassFlux(const MultiFab& rho,
         Abort("ElectroDiffusiveMassFluxdiv.cpp: electroneutral not written yet");
     }
 
+
+    MultiFabPhysBC(Epot,geom,0,1,EPOT_BC_COMP);
     Epot.FillBoundary(geom.periodicity());
-
-
-    // CHECK THIS - FIXME
-    
-//    MultiFabPotentialBC_solver(Epot,geom);
 
     // compute the gradient of the electric potential
     ComputeGrad(Epot,grad_Epot,0,0,1,EPOT_BC_COMP,geom,0);
@@ -268,64 +265,47 @@ void ElectroDiffusiveMassFlux(const MultiFab& rho,
         }
     }
 
+    if (zero_eps_on_wall_type > 0) {
+        // Set E-field ie grad_Epot to be zero on certain boundary faces.
+        // This enforces dphi/dn = 0 on the parts of the (Dirichlet) wall we want. 
+        Abort("ElectroDiffusiveMassFluxdiv.cpp: zero_eps_on_wall_type > 0 not written yet");
+    }
+
+    for (int i=0; i<AMREX_SPACEDIM; ++i) {
+        grad_Epot[i].FillBoundary(geom.periodicity());
+    }
     
-/*
-    if (zero_eps_on_wall_type .gt. 0) then
-       ! Set E-field ie grad_Epot to be zero on certain boundary faces.
-       ! This enforces dphi/dn = 0 on the parts of the (Dirichlet) wall we want. 
-       call zero_eps_on_wall(mla,grad_Epot,dx)
-    end if
+    // compute the charge flux coefficient
+    ComputeChargeCoef(rho,Temp,charge_coef);
 
-    do n=1,nlevs
-       do i=1,dm
-          call multifab_fill_boundary(grad_Epot(n,i))
-       end do
-    end do
+    // average charge flux coefficient to faces, store in flux
+    for (int i=0; i<shift_cc_to_boundary.size(); ++i) {
+        if (shift_cc_to_boundary[i] == 1) {
+            Abort("ElectroDiffusiveMassFluxdiv.cpp: shift_cc_to_boundary not implemented");
+        }
+    }
+    AverageCCToFace(charge_coef, electro_mass_flux, 0, nspecies, SPEC_BC_COMP, geom);
 
-    ! compute the charge flux coefficient
-    call compute_charge_coef(mla,rho,Temp,charge_coef)
+    for (int i=0; i<AMREX_SPACEDIM; ++i) {
+        for (int comp=0; comp<nspecies; ++comp) {
+            MultiFab::Multiply(electro_mass_flux[i], grad_Epot[i], 0, comp, 1, 1);
+        }
+    }
 
-    ! average charge flux coefficient to faces, store in flux
-    if (any(shift_cc_to_boundary(:,:) .eq. 1)) then
-       call shift_cc_to_boundary_face(nlevs,charge_coef,electro_mass_flux,1,c_bc_comp,nspecies, &
-                                      the_bc_tower%bc_tower_array,.true.)
-    else
-       call average_cc_to_face(nlevs,charge_coef,electro_mass_flux,1,c_bc_comp,nspecies, &
-                               the_bc_tower%bc_tower_array,.true.)
-    end if
+    if (use_multiphase == 1) {
+        Abort("ElectroDiffusiveMassFluxdiv.cpp: limit_emf not written yet");
+        // call limit_emf(rho, electro_mass_flux, grad_Epot)
+    }
 
-    ! multiply flux coefficient by gradient of electric potential
-    do n=1,nlevs
-       do i=1,dm
-          do comp=1,nspecies
-             call multifab_mult_mult_c(electro_mass_flux(n,i), comp, grad_Epot(n,i), 1, 1)
-          end do
-       end do
-    end do
+    // compute -rhoWchi * (... ) on faces
+    for (int i=0; i<AMREX_SPACEDIM; ++i) {
+        MatvecMul(electro_mass_flux[i],rhoWchi_fc[i]);
+    }
 
-    if (use_multiphase) then
-       call limit_emf(rho, electro_mass_flux, grad_Epot)
-    end if
-
-    ! compute -rhoWchi * (... ) on faces
-    do n=1,nlevs
-       do i=1,dm
-          call matvec_mul(mla, electro_mass_flux(n,i), rhoWchi_face(n,i), nspecies)
-       end do
-    end do
-    end if
-
-    ! for walls we need to zero the electro_mass_flux since we have already zero'd the diff and stoch
-    ! mass fluxes.  For inhomogeneous Neumann conditions on Epot, the physically correct thing would
-    ! have been to compute species gradients to exactly counterbalance the Neumann conditions on Epot
-    ! so the total mass flux (diff + stoch + Epot) is zero, but the numerical remedy here is to simply
-    ! zero them individually.
-    do n=1,nlevs
-       call zero_edgeval_walls(electro_mass_flux(n,:),1,nspecies, the_bc_tower%bc_tower_array(n))
-    end do
-
-*/
-        
-    
-
+    // for walls we need to zero the electro_mass_flux since we have already zero'd the diff and stoch
+    // mass fluxes.  For inhomogeneous Neumann conditions on Epot, the physically correct thing would
+    // have been to compute species gradients to exactly counterbalance the Neumann conditions on Epot
+    // so the total mass flux (diff + stoch + Epot) is zero, but the numerical remedy here is to simply
+    // zero them individually.
+    ZeroEdgevalWalls(electro_mass_flux, geom, 0, nspecies);
 }
