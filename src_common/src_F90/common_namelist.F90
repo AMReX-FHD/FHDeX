@@ -114,12 +114,19 @@ module common_namelist_module
   double precision,   save :: t_lo(AMREX_SPACEDIM)
   double precision,   save :: t_hi(AMREX_SPACEDIM)
   
-  double precision,   save :: c_bc_x_lo(MAX_SPECIES)
-  double precision,   save :: c_bc_x_hi(MAX_SPECIES)
-  double precision,   save :: c_bc_y_lo(MAX_SPECIES)
-  double precision,   save :: c_bc_y_hi(MAX_SPECIES)
-  double precision,   save :: c_bc_z_lo(MAX_SPECIES)
-  double precision,   save :: c_bc_z_hi(MAX_SPECIES)
+  double precision,   save :: bc_Yk_x_lo(MAX_SPECIES)
+  double precision,   save :: bc_Yk_x_hi(MAX_SPECIES)
+  double precision,   save :: bc_Yk_y_lo(MAX_SPECIES)
+  double precision,   save :: bc_Yk_y_hi(MAX_SPECIES)
+  double precision,   save :: bc_Yk_z_lo(MAX_SPECIES)
+  double precision,   save :: bc_Yk_z_hi(MAX_SPECIES)
+  
+  double precision,   save :: bc_Xk_x_lo(MAX_SPECIES)
+  double precision,   save :: bc_Xk_x_hi(MAX_SPECIES)
+  double precision,   save :: bc_Xk_y_lo(MAX_SPECIES)
+  double precision,   save :: bc_Xk_y_hi(MAX_SPECIES)
+  double precision,   save :: bc_Xk_z_lo(MAX_SPECIES)
+  double precision,   save :: bc_Xk_z_hi(MAX_SPECIES)
 
   double precision,   save :: wallspeed_lo(AMREX_SPACEDIM-1,AMREX_SPACEDIM)
   double precision,   save :: wallspeed_hi(AMREX_SPACEDIM-1,AMREX_SPACEDIM)
@@ -319,12 +326,19 @@ module common_namelist_module
   namelist /common/ t_hi
 
   ! c_i boundary conditions
-  namelist /multispec/ c_bc_x_lo
-  namelist /multispec/ c_bc_x_hi
-  namelist /multispec/ c_bc_y_lo
-  namelist /multispec/ c_bc_y_hi
-  namelist /multispec/ c_bc_z_lo
-  namelist /multispec/ c_bc_z_hi
+  namelist /common/ bc_Yk_x_lo
+  namelist /common/ bc_Yk_x_hi
+  namelist /common/ bc_Yk_y_lo
+  namelist /common/ bc_Yk_y_hi
+  namelist /common/ bc_Yk_z_lo
+  namelist /common/ bc_Yk_z_hi
+
+  namelist /common/ bc_Xk_x_lo
+  namelist /common/ bc_Xk_x_hi
+  namelist /common/ bc_Xk_y_lo
+  namelist /common/ bc_Xk_y_hi
+  namelist /common/ bc_Xk_z_lo
+  namelist /common/ bc_Xk_z_hi
 
   ! Each no-slip wall may be moving with a specified tangential
 
@@ -487,12 +501,18 @@ contains
 
     t_lo(:) = 0
     t_hi(:) = 0
-    c_bc_x_lo(:) = 0.d0
-    c_bc_x_hi(:) = 0.d0
-    c_bc_y_lo(:) = 0.d0
-    c_bc_y_hi(:) = 0.d0
-    c_bc_z_lo(:) = 0.d0
-    c_bc_z_hi(:) = 0.d0
+    bc_Yk_x_lo(:) = 0.d0
+    bc_Yk_x_hi(:) = 0.d0
+    bc_Yk_y_lo(:) = 0.d0
+    bc_Yk_y_hi(:) = 0.d0
+    bc_Yk_z_lo(:) = 0.d0
+    bc_Yk_z_hi(:) = 0.d0
+    bc_Xk_x_lo(:) = 0.d0
+    bc_Xk_x_hi(:) = 0.d0
+    bc_Xk_y_lo(:) = 0.d0
+    bc_Xk_y_hi(:) = 0.d0
+    bc_Xk_z_lo(:) = 0.d0
+    bc_Xk_z_hi(:) = 0.d0
     p_lo(:) = 0
     p_hi(:) = 0
     wallspeed_lo(:,:) = 0
@@ -588,9 +608,12 @@ contains
                                          bc_therm_lo_in, bc_therm_hi_in,  &
                                          p_lo_in, p_hi_in, &
                                          t_lo_in, t_hi_in, &
-                                         c_bc_x_lo_in, c_bc_x_hi_in, &
-                                         c_bc_y_lo_in, c_bc_y_hi_in, &
-                                         c_bc_z_lo_in, c_bc_z_hi_in, &
+                                         bc_Yk_x_lo_in, bc_Yk_x_hi_in, &
+                                         bc_Yk_y_lo_in, bc_Yk_y_hi_in, &
+                                         bc_Yk_z_lo_in, bc_Yk_z_hi_in, &
+                                         bc_Xk_x_lo_in, bc_Xk_x_hi_in, &
+                                         bc_Xk_y_lo_in, bc_Xk_y_hi_in, &
+                                         bc_Xk_z_lo_in, bc_Xk_z_hi_in, &
                                          wallspeed_lo_in, wallspeed_hi_in, &
                                          potential_lo_in, potential_hi_in, &
                                          struct_fact_int_in, radialdist_int_in, &
@@ -707,12 +730,18 @@ contains
     double precision,       intent(inout) :: p_hi_in(AMREX_SPACEDIM)
     double precision,       intent(inout) :: t_lo_in(AMREX_SPACEDIM)
     double precision,       intent(inout) :: t_hi_in(AMREX_SPACEDIM)
-    double precision,       intent(inout) :: c_bc_x_lo_in(MAX_SPECIES)
-    double precision,       intent(inout) :: c_bc_x_hi_in(MAX_SPECIES)
-    double precision,       intent(inout) :: c_bc_y_lo_in(MAX_SPECIES)
-    double precision,       intent(inout) :: c_bc_y_hi_in(MAX_SPECIES)
-    double precision,       intent(inout) :: c_bc_z_lo_in(MAX_SPECIES)
-    double precision,       intent(inout) :: c_bc_z_hi_in(MAX_SPECIES)
+    double precision,       intent(inout) :: bc_Yk_x_lo_in(MAX_SPECIES)
+    double precision,       intent(inout) :: bc_Yk_x_hi_in(MAX_SPECIES)
+    double precision,       intent(inout) :: bc_Yk_y_lo_in(MAX_SPECIES)
+    double precision,       intent(inout) :: bc_Yk_y_hi_in(MAX_SPECIES)
+    double precision,       intent(inout) :: bc_Yk_z_lo_in(MAX_SPECIES)
+    double precision,       intent(inout) :: bc_Yk_z_hi_in(MAX_SPECIES)
+    double precision,       intent(inout) :: bc_Xk_x_lo_in(MAX_SPECIES)
+    double precision,       intent(inout) :: bc_Xk_x_hi_in(MAX_SPECIES)
+    double precision,       intent(inout) :: bc_Xk_y_lo_in(MAX_SPECIES)
+    double precision,       intent(inout) :: bc_Xk_y_hi_in(MAX_SPECIES)
+    double precision,       intent(inout) :: bc_Xk_z_lo_in(MAX_SPECIES)
+    double precision,       intent(inout) :: bc_Xk_z_hi_in(MAX_SPECIES)
     double precision,       intent(inout) :: wallspeed_lo_in(AMREX_SPACEDIM-1,AMREX_SPACEDIM)
     double precision,       intent(inout) :: wallspeed_hi_in(AMREX_SPACEDIM-1,AMREX_SPACEDIM)
 
@@ -855,12 +884,18 @@ contains
     p_hi_in = p_hi
     t_lo_in = t_lo
     t_hi_in = t_hi
-    c_bc_x_lo_in = c_bc_x_lo
-    c_bc_x_hi_in = c_bc_x_hi
-    c_bc_y_lo_in = c_bc_y_lo
-    c_bc_y_hi_in = c_bc_y_hi
-    c_bc_z_lo_in = c_bc_z_lo
-    c_bc_z_hi_in = c_bc_z_hi
+    bc_Yk_x_lo_in = bc_Yk_x_lo
+    bc_Yk_x_hi_in = bc_Yk_x_hi
+    bc_Yk_y_lo_in = bc_Yk_y_lo
+    bc_Yk_y_hi_in = bc_Yk_y_hi
+    bc_Yk_z_lo_in = bc_Yk_z_lo
+    bc_Yk_z_hi_in = bc_Yk_z_hi
+    bc_Xk_x_lo_in = bc_Xk_x_lo
+    bc_Xk_x_hi_in = bc_Xk_x_hi
+    bc_Xk_y_lo_in = bc_Xk_y_lo
+    bc_Xk_y_hi_in = bc_Xk_y_hi
+    bc_Xk_z_lo_in = bc_Xk_z_lo
+    bc_Xk_z_hi_in = bc_Xk_z_hi
     wallspeed_lo_in = wallspeed_lo
     wallspeed_hi_in = wallspeed_hi
 
