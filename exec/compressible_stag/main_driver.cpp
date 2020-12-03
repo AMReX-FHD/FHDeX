@@ -477,7 +477,7 @@ void main_driver(const char* argv)
         cumom[d].FillBoundary(geom.periodicity());
         vel[d].FillBoundary(geom.periodicity());
     }
-    setBC(prim, cu);
+    setBCStag(prim, cu, cumom, vel, geom);
     
     if (plot_int > 0) {
 	    WritePlotFileStag(0, 0.0, geom, cu, cuMeans, cuVars, cumom, 
@@ -509,7 +509,9 @@ void main_driver(const char* argv)
         
         // compute mean and variances
         if (step > n_steps_skip) {
-            evaluateStatsStag(cu, cuMeans, cuVars, prim, primMeans, primVars,
+            //evaluateStatsStag(cu, cuMeans, cuVars, prim, primMeans, primVars, vel, cumom,
+            //              spatialCross, miscStats, miscVals, statsCount, dx);
+            evaluateStats(cu, cuMeans, cuVars, prim, primMeans, primVars,
                           spatialCross, miscStats, miscVals, statsCount, dx);
             statsCount++;
         }

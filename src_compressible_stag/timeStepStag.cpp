@@ -327,7 +327,7 @@ void RK3stepStag(MultiFab& cu,
         vel[d].FillBoundary(geom.periodicity());
     }
     prim.FillBoundary(geom.periodicity());
-    setBC(prim, cup);
+    setBCStag(prim, cup, cupmom, vel, geom);
 
     // Compute transport coefs after setting BCs
     calculateTransportCoeffs(prim, eta, zeta, kappa, chi, D);
@@ -487,7 +487,7 @@ void RK3stepStag(MultiFab& cu,
         vel[d].FillBoundary(geom.periodicity());
     }
     prim.FillBoundary(geom.periodicity());
-    setBC(prim, cup2);
+    setBCStag(prim, cup2, cup2mom, vel, geom);
 
     // Compute transport coefs after setting BCs
     calculateTransportCoeffs(prim, eta, zeta, kappa, chi, D);
@@ -643,5 +643,5 @@ void RK3stepStag(MultiFab& cu,
         vel[d].FillBoundary(geom.periodicity());
     }
     prim.FillBoundary(geom.periodicity());
-    setBC(prim, cu);
+    setBCStag(prim, cu, cumom, vel, geom);
 }

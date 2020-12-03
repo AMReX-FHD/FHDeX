@@ -36,7 +36,25 @@ void conservedToPrimitiveStag(MultiFab& prim_in, std::array<MultiFab, AMREX_SPAC
 void InitConsVarStag(MultiFab& cons, std::array< MultiFab, AMREX_SPACEDIM >& momStag, 
                      const MultiFab& prim, const amrex::Geometry geom);
 
-// advance one timestep
+void setBCStag(MultiFab& prim_in, MultiFab& cons_in,
+                 std::array< MultiFab, AMREX_SPACEDIM >& cumom_in,
+                 std::array< MultiFab, AMREX_SPACEDIM >& vel_in,
+                 const amrex::Geometry geom);
+
+void BCMassTempPress(MultiFab& prim_in,const amrex::Geometry geom,int dim);
+
+void BCMomNormal(MultiFab& mom_in, MultiFab& vel_in,
+                 const amrex::Geometry geom, int dim);
+
+void BCMomTrans(MultiFab& mom_in, MultiFab& vel_in,
+                 const amrex::Geometry geom, int dim);
+
+
+void BCRhoRhoE(MultiFab& cons_in, MultiFab& prim_in, 
+               std::array< MultiFab, AMREX_SPACEDIM >& cumom_in, 
+               const amrex::Geometry geom);
+
+
 void RK3stepStag(MultiFab& cu, 
                  std::array< MultiFab, AMREX_SPACEDIM >& cumom,
                  MultiFab& prim, std::array< MultiFab, AMREX_SPACEDIM >& facevel,

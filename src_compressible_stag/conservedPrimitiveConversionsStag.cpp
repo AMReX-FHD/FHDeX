@@ -11,9 +11,6 @@ void conservedToPrimitiveStag(MultiFab& prim_in, std::array<MultiFab, AMREX_SPAC
     int nspecies_gpu = nspecies;
 
     // from namelist
-    Real Runiv_gpu = Runiv;
-
-    // from namelist
     /* 
     // method 1 to create a thread shared array
     // must use if the size of the array is not known at compile time
@@ -29,19 +26,6 @@ void conservedToPrimitiveStag(MultiFab& prim_in, std::array<MultiFab, AMREX_SPAC
               molmass_vect.begin());
     Real const * const AMREX_RESTRICT molmass_gpu = molmass_vect.dataPtr();  // pointer to data
     */
-
-    // method 2 to create a thread shared array
-    // can use when the size of the array is known at compile-time
-    GpuArray<Real,MAX_SPECIES> molmass_gpu;
-    for (int n=0; n<nspecies; ++n) {
-        molmass_gpu[n] = molmass[n];
-    }
-    
-    // from namelist
-    GpuArray<Real,MAX_SPECIES> hcv_gpu;
-    for (int n=0; n<nspecies; ++n) {
-        hcv_gpu[n] = hcv[n];
-    }
     
     // Loop over boxes
     for ( MFIter mfi(prim_in,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
@@ -128,10 +112,10 @@ void conservedToPrimitiveStag(MultiFab& prim_in, std::array<MultiFab, AMREX_SPAC
             }
 
             // update temperature in-place using internal energy
-            GetTemperature(intenergy, Yk_fixed, prim(i,j,k,4), nspecies_gpu, hcv_gpu);
+            GetTemperature(intenergy, Yk_fixed, prim(i,j,k,4));
 
             // compute mole fractions from mass fractions
-            GetMolfrac(i,j,k, Yk, Xk, nspecies_gpu, molmass_gpu);
+            GetMolfrac(i, j, k, Yk, Xk);
 
             // mass fractions
             for (int n=0; n<nspecies_gpu; ++n) {
@@ -139,8 +123,7 @@ void conservedToPrimitiveStag(MultiFab& prim_in, std::array<MultiFab, AMREX_SPAC
                 prim(i,j,k,6+nspecies_gpu+n) = Xk[n];
             }
 
-            GetPressureGas(prim(i,j,k,5), Yk, cons(i,j,k,0), prim(i,j,k,4),
-                           nspecies_gpu, Runiv_gpu, molmass_gpu);
+            GetPressureGas(prim(i,j,k,5), Yk, cons(i,j,k,0), prim(i,j,k,4));
         });
         
     } // end MFIter
