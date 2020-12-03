@@ -212,6 +212,71 @@ void main_driver(const char* argv)
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
       stoch_mass_flux[d].define(convert(ba,nodal_flag_dir[d]), dmap, nspecies, 0);
     }
+
+    std::array< MultiFab, AMREX_SPACEDIM > grad_Epot_old;
+    std::array< MultiFab, AMREX_SPACEDIM > grad_Epot_new;
+    MultiFab charge_old;
+    MultiFab charge_new;
+    MultiFab Epot;
+    MultiFab permittivity;
+    if (use_charged_fluid) {
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            grad_Epot_old[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
+            grad_Epot_new[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
+        }
+        charge_old.define(ba, dmap, 1, 1);
+        charge_new.define(ba, dmap, 1, 1);
+        Epot.define(ba, dmap, 1, 1);
+        permittivity.define(ba, dmap, 1, 1);
+
+        // set these to zero
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            grad_Epot_old[d].setVal(0.);
+            grad_Epot_new[d].setVal(0.);
+        }
+        charge_old.setVal(0.);
+        charge_new.setVal(0.);
+        Epot.setVal(0.);
+
+        if (electroneutral) {
+            Abort("main_driver.cpp: Electroneutral not implemented");
+        }
+
+        // compute total charge
+        //
+        //
+
+        // multiply by total volume (all 3 dimensions, even for 2D problems)
+
+        // NOTE: we are using rho = 1 here,
+        // so the below is a close approximation to debye lenth
+        /*
+        debye_len =sqrt(dielectric_const*k_B*T_init(1)/ &
+           (rho0*sum(c_init(1,1:nspecies)*molmass(1:nspecies)*charge_per_mass(1:nspecies)**2))) 
+        if (parallel_IOprocessor()) then 
+           print*, 'Debye length $\lambda_D$ is approx: ', debye_len
+        endif
+        */
+
+        /*
+     total_charge = multifab_sum_c(charge_old(1),1,1)*product(dx(1,1:3))    
+     if (parallel_IOProcessor().and.electroneutral) then
+        print*,'Initial total charge',total_charge
+        print*," Rel max charge=", max_charge/max_charge_abs
+     else if (parallel_IOProcessor()) then
+        print*,'Initial total charge',total_charge          
+     end if
+        */
+
+        // compute permittivity
+        if (dielectric_type == 0) {
+            permittivity.setVal(dielectric_const);
+        }
+        else {
+            Abort("main_driver.cpp: dielectric_type != 0 not supported");
+        }
+    }
+    
     
     // allocate and build MultiFabs that will contain random numbers
     // by declaring StochMassFlux and StochMomFlux objects
@@ -453,6 +518,8 @@ void main_driver(const char* argv)
             AdvanceTimestepInertial(umac,rho_old,rho_new,rhotot_old,rhotot_new,
                                     pi,eta,eta_ed,kappa,Temp,Temp_ed,
                                     diff_mass_fluxdiv,stoch_mass_fluxdiv,stoch_mass_flux,
+                                    grad_Epot_old,grad_Epot_new,
+                                    charge_old,charge_new,Epot,permittivity,
                                     sMassFlux,sMomFlux,
                                     dt,time,istep,geom);
         }

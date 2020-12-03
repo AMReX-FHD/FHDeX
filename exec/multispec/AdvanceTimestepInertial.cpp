@@ -13,18 +13,29 @@
 
 // argv contains the name of the inputs file entered at the command line
 void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
-                             MultiFab& rho_old, MultiFab& rho_new,
-                             MultiFab& rhotot_old, MultiFab& rhotot_new,
-                             MultiFab& pi, MultiFab& eta, 
+                             MultiFab& rho_old,
+                             MultiFab& rho_new,
+                             MultiFab& rhotot_old,
+                             MultiFab& rhotot_new,
+                             MultiFab& pi,
+                             MultiFab& eta, 
                              std::array< MultiFab, NUM_EDGE >&  eta_ed,
                              MultiFab& kappa, MultiFab& Temp,
                              std::array< MultiFab, NUM_EDGE >& Temp_ed,
                              MultiFab& diff_mass_fluxdiv,
                              MultiFab& stoch_mass_fluxdiv,
                              std::array< MultiFab, AMREX_SPACEDIM >& stoch_mass_flux,
+                             std::array< MultiFab, AMREX_SPACEDIM >& grad_Epot_old,
+                             std::array< MultiFab, AMREX_SPACEDIM >& grad_Epot_new,
+                             MultiFab& charge_old,
+                             MultiFab& charge_new,
+                             MultiFab& Epot,
+                             MultiFab& permittivity,
                              StochMassFlux& sMassFlux,
                              StochMomFlux& sMomFlux,
-                             const Real& dt, const Real& time, const int& istep,
+                             const Real& dt,
+                             const Real& time,
+                             const int& istep,
                              const Geometry& geom)
 {
   
@@ -74,6 +85,18 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         total_mass_flux[d]  .define(convert(ba,nodal_flag_dir[d]), dmap, nspecies, 0);
         stoch_mom_fluxdiv[d].define(convert(ba,nodal_flag_dir[d]), dmap, nspecies, 0);
     }
+    
+    // only used when use_charged_fluid=T
+    std::array< MultiFab, AMREX_SPACEDIM > Lorentz_force_old;
+    std::array< MultiFab, AMREX_SPACEDIM > Lorentz_force_new;
+
+    if (use_charged_fluid) {
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            Lorentz_force_old[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 0);
+            Lorentz_force_new[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 0);
+        }
+    }
+    
 
     // make copies of old quantities
     // copy umac into umac_tmp if using bds
@@ -89,11 +112,10 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // Step 2 - Predictor Euler Step
     //////////////////////////////////////////////
 
-    /*
     if (use_charged_fluid) {
         // compute old Lorentz force
+//      ComputeLorentzForce(Lorentz_force_old,grad_Epot_old,permittivity,charge,geom);
     }
-    */
 
     // average rho_old and rhotot_old to faces
     AverageCCToFace(rho_old,rho_fc,0,nspecies,SPEC_BC_COMP,geom);
