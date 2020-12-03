@@ -243,19 +243,16 @@ void main_driver(const char* argv)
         }
 
         // compute total charge
-        //
-        //
+        DotWithZ(rho_old,charge_old);
 
         // multiply by total volume (all 3 dimensions, even for 2D problems)
 
+        /*
         // NOTE: we are using rho = 1 here,
         // so the below is a close approximation to debye lenth
-        /*
-        debye_len =sqrt(dielectric_const*k_B*T_init(1)/ &
-           (rho0*sum(c_init(1,1:nspecies)*molmass(1:nspecies)*charge_per_mass(1:nspecies)**2))) 
-        if (parallel_IOprocessor()) then 
-           print*, 'Debye length $\lambda_D$ is approx: ', debye_len
-        endif
+        Real debye_len =sqrt(dielectric_const*k_B*T_init[0]/
+                             (rho0*sum(c_init_1(1:nspecies)*molmass(1:nspecies)*charge_per_mass(1:nspecies)**2)));
+        Print() << "Debye length $\lambda_D$ is approx: " << debye_len << std::endl;
         */
 
         /*
@@ -577,6 +574,13 @@ void main_driver(const char* argv)
         MultiFab::Copy(rho_old   ,rho_new   ,0,0,nspecies,ng_s);
         MultiFab::Copy(rhotot_old,rhotot_new,0,0,       1,ng_s);
 
+        if (use_charged_fluid) {
+            MultiFab::Copy(charge_old, charge_new, 0, 0, 1, charge_old.nGrow());
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                MultiFab::Copy(grad_Epot_old[d], grad_Epot_new[d], 0, 0, 1, grad_Epot_old[d].nGrow());
+            }
+        }
+        
         // MultiFab memory usage
         const int IOProc = ParallelDescriptor::IOProcessorNumber();
 

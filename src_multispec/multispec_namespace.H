@@ -1,5 +1,7 @@
 namespace multispec {
 
+#define MAX_SPECIES 4
+    
     // Below are items that are read in from the multispec namelist
 
     extern int                        inverse_type;
@@ -17,7 +19,8 @@ namespace multispec {
     extern int                        is_ideal_mixture;
     extern int                        use_lapack;
     extern int                        use_multiphase;
-    extern amrex::Vector<amrex::Real> c_init;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> c_init_1;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> c_init_2;
   
     extern int                        midpoint_stoch_mass_flux_type;
     extern int                        avg_type;

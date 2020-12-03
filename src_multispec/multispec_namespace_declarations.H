@@ -13,7 +13,8 @@ int                        multispec::is_nonisothermal;
 int                        multispec::is_ideal_mixture;
 int                        multispec::use_lapack;
 int                        multispec::use_multiphase;
-amrex::Vector<amrex::Real> multispec::c_init;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> multispec::c_init_1;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> multispec::c_init_2;
   
 int                        multispec::midpoint_stoch_mass_flux_type;
 int                        multispec::avg_type;
