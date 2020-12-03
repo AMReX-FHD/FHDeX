@@ -247,23 +247,18 @@ void main_driver(const char* argv)
 
         // multiply by total volume (all 3 dimensions, even for 2D problems)
 
-        /*
         // NOTE: we are using rho = 1 here,
         // so the below is a close approximation to debye lenth
-        Real debye_len =sqrt(dielectric_const*k_B*T_init[0]/
-                             (rho0*sum(c_init_1(1:nspecies)*molmass(1:nspecies)*charge_per_mass(1:nspecies)**2)));
-        Print() << "Debye length $\lambda_D$ is approx: " << debye_len << std::endl;
-        */
+        Real sum_temp = 0.;
+        for (int d=0; d<nspecies; ++d) {
+            sum_temp += c_init_1[0] * molmass[d] * charge_per_mass[d] * charge_per_mass[d];
+        }
+        Real debye_len =sqrt(dielectric_const*k_B*T_init[0]/(rho0*sum_temp));
+        Print() << "Debye length lambda_D is approx: " << debye_len << std::endl;
 
-        /*
-     total_charge = multifab_sum_c(charge_old(1),1,1)*product(dx(1,1:3))    
-     if (parallel_IOProcessor().and.electroneutral) then
-        print*,'Initial total charge',total_charge
-        print*," Rel max charge=", max_charge/max_charge_abs
-     else if (parallel_IOProcessor()) then
-        print*,'Initial total charge',total_charge          
-     end if
-        */
+        Real total_charge = (AMREX_SPACEDIM == 2) ? charge_old.sum() * dx[0] * dx[1] * cell_depth
+                                                  : charge_old.sum() * dx[0] * dx[1] * dx[2];
+        Print() << "Initial total charge " << total_charge;
 
         // compute permittivity
         if (dielectric_type == 0) {

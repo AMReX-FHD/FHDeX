@@ -114,7 +114,7 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     if (use_charged_fluid) {
         // compute old Lorentz force
-//      ComputeLorentzForce(Lorentz_force_old,grad_Epot_old,permittivity,charge,geom);
+        ComputeLorentzForce(Lorentz_force_old,grad_Epot_old,permittivity,charge_old,geom);
     }
 
     // average rho_old and rhotot_old to faces

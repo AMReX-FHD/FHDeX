@@ -132,7 +132,7 @@ void ModifyS();
 void ComputePermittivity();
 
 void ComputeLorentzForce(std::array< MultiFab, AMREX_SPACEDIM >& Lorentz_force,
-                         std::array< const MultiFab, AMREX_SPACEDIM >& grad_Epot,
+                         std::array< MultiFab, AMREX_SPACEDIM >& grad_Epot,
                          const MultiFab& permittivity,
                          const MultiFab& charge,
                          const Geometry& geom);
