@@ -555,32 +555,8 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
         } // end MFIter
 
 
-        // Loop over boxes to enforce flux boundary conditions
-        for ( MFIter mfi(cons_in); mfi.isValid(); ++mfi) {
-            
-            const Box& bx = mfi.tilebox();
-
-            stoch_flux(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
-                       cons_in[mfi].dataPtr(),  
-                       prim_in[mfi].dataPtr(),    
-                       faceflux_in[0][mfi].dataPtr(),
-                       faceflux_in[1][mfi].dataPtr(),
-#if (AMREX_SPACEDIM == 3)
-                       faceflux_in[2][mfi].dataPtr(),
-#endif
-                       stochface_in[0][mfi].dataPtr(),
-                       stochface_in[1][mfi].dataPtr(),
-#if (AMREX_SPACEDIM == 3)
-                       stochface_in[2][mfi].dataPtr(),
-#endif
-                       stochedge_x_in[0][mfi].dataPtr(), // originally rancorn[mfi] (ask Andy)
-                       eta_in[mfi].dataPtr(),  
-                       zeta_in[mfi].dataPtr(),  
-                       kappa_in[mfi].dataPtr(),
-                       chi_in[mfi].dataPtr(),  
-                       D_in[mfi].dataPtr(),  
-                       ZFILL(dx), &dt);
-        }
+        // Enforce flux boundary conditions
+        StochFluxStag(faceflux_in,edgeflux_x_in,edgeflux_y_in,edgeflux_z_in,geom);
     }
         
     ////////////////////

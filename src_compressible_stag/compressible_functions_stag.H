@@ -54,6 +54,9 @@ void BCRhoRhoE(MultiFab& cons_in, MultiFab& prim_in,
                std::array< MultiFab, AMREX_SPACEDIM >& cumom_in, 
                const amrex::Geometry geom);
 
+void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array< MultiFab, 2 >& edgeflux_x_in,
+                   std::array< MultiFab, 2 >& edgeflux_y_in, std::array< MultiFab, 2 >& edgeflux_z_in,
+                   const amrex::Geometry geom);
 
 void RK3stepStag(MultiFab& cu, 
                  std::array< MultiFab, AMREX_SPACEDIM >& cumom,
