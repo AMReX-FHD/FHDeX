@@ -35,7 +35,11 @@ void ComputeMassFluxdiv(MultiFab& rho,
                         std::array<MultiFab,AMREX_SPACEDIM>& stoch_mass_flux,
                         StochMassFlux& sMassFlux,
 			const Real& dt, const Real& stage_time, const Geometry& geom,
-                        Vector<Real>& weights);
+                        Vector<Real>& weights,
+                        MultiFab& charge,
+                        std::array<MultiFab,AMREX_SPACEDIM>& grad_Epot,
+                        MultiFab& Epot,
+                        MultiFab& permittivity);
 
 /////////////////////////////////////////////////////////////////////////////////
 // in DiffusiveMassFlux.cpp
@@ -85,7 +89,7 @@ void ElectroDiffusiveMassFluxdiv(const MultiFab& rho,
                                  const MultiFab& rhoWchi,
                                  std::array< MultiFab, AMREX_SPACEDIM >& diff_mass_flux,
                                  MultiFab& diff_mass_fluxdiv,
-                                 std::array< const MultiFab, AMREX_SPACEDIM >& stoch_mass_flux,
+                                 std::array< MultiFab, AMREX_SPACEDIM >& stoch_mass_flux,
                                  MultiFab& charge,
                                  std::array< MultiFab, AMREX_SPACEDIM >& grad_Epot,
                                  MultiFab& Epot,
@@ -99,7 +103,7 @@ void ElectroDiffusiveMassFlux(const MultiFab& rho,
                               const MultiFab& rhoWchi,
                               std::array< MultiFab, AMREX_SPACEDIM >& electro_mass_flux,
                               std::array< MultiFab, AMREX_SPACEDIM >& diff_mass_flux,
-                              std::array< const MultiFab, AMREX_SPACEDIM >& stoch_mass_flux,
+                              std::array< MultiFab, AMREX_SPACEDIM >& stoch_mass_flux,
                               MultiFab& charge,
                               std::array< MultiFab, AMREX_SPACEDIM >& grad_Epot,
                               MultiFab& Epot,
@@ -152,7 +156,11 @@ void InitialProjection(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                        StochMassFlux& sMassFlux,
                        const MultiFab& Temp, const MultiFab& eta,
                        const std::array< MultiFab, NUM_EDGE >& eta_ed,
-                       const Real& dt, const Real& time, const Geometry& geom);
+                       const Real& dt, const Real& time, const Geometry& geom,
+                       MultiFab& charge_old,
+                       std::array<MultiFab,AMREX_SPACEDIM>& grad_Epot_old,
+                       MultiFab& Epot,
+                       MultiFab& permittivity);
 
 /////////////////////////////////////////////////////////////////////////////////
 // in MassFluxUtil.cpp

@@ -148,12 +148,15 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     AverageCCToFace(rho_new,rho_fc,0,nspecies,SPEC_BC_COMP,geom);
     AverageCCToFace(rhotot_new,rhotot_fc_new,0,1,RHO_BC_COMP,geom);
     
-    /*
     if (use_charged_fluid) {
         // compute total charge
-        // compute permittivity
+        DotWithZ(rho_new,charge_new);
+
+        if (dielectric_type != 0) {
+            // compute permittivity
+            Abort("AdvanceTimestepInertial dielectric_type != 0");
+        }
     }
-    */
 
     //////////////////////////////////////////////
     // Step 3 - Calculate Corrector Diffusive and Stochastic Fluxes
@@ -239,7 +242,8 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // with barodiffusion and thermodiffusion
     // this computes "-F = rho W chi [Gamma grad x... ]"
     ComputeMassFluxdiv(rho_new,rhotot_new,Temp,diff_mass_fluxdiv,stoch_mass_fluxdiv,
-                       diff_mass_flux,stoch_mass_flux,sMassFlux,dt,time,geom,weights);
+                       diff_mass_flux,stoch_mass_flux,sMassFlux,dt,time,geom,weights,
+                       charge_new,grad_Epot_new,Epot,permittivity);
     
     // assemble total fluxes to be used in reservoirs
     //
@@ -250,11 +254,17 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     //
     //
 
-    /*
     if (use_charged_fluid == 1) {
 
+        // compute new Lorentz force
+        ComputeLorentzForce(Lorentz_force_new,grad_Epot_new,permittivity,charge_new,geom);
+
+        // add (1/2) old and (1/2) new to gmres_rhs_v
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            MultiFab::Saxpy(gmres_rhs_v[d],0.5,Lorentz_force_old[d],0,0,1,0);
+            MultiFab::Saxpy(gmres_rhs_v[d],0.5,Lorentz_force_new[d],0,0,1,0);            
+        }        
     }
-    */
           
     // compute gmres_rhs_p
     // put "-S = div(F_i/rho_i)" into gmres_rhs_p (we will later add divu)
@@ -495,7 +505,8 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // with barodiffusion and thermodiffusion
     // this computes "-F = rho W chi [Gamma grad x... ]"
     ComputeMassFluxdiv(rho_new,rhotot_new,Temp,diff_mass_fluxdiv,stoch_mass_fluxdiv,
-                       diff_mass_flux,stoch_mass_flux,sMassFlux,dt,time,geom,weights);
+                       diff_mass_flux,stoch_mass_flux,sMassFlux,dt,time,geom,weights,
+                       charge_new,grad_Epot_new,Epot,permittivity);
     
     // assemble total fluxes to be used in reservoirs
     //

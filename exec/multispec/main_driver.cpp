@@ -452,7 +452,8 @@ void main_driver(const char* argv)
     */
     if (algorithm_type != 2) {
         InitialProjection(umac,rho_old,rhotot_old,diff_mass_fluxdiv,stoch_mass_fluxdiv,
-                          stoch_mass_flux,sMassFlux,Temp,eta,eta_ed,dt,time,geom);
+                          stoch_mass_flux,sMassFlux,Temp,eta,eta_ed,dt,time,geom,
+                          charge_old,grad_Epot_old,Epot,permittivity);
     }
 
     if (restart < 0) {
