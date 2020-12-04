@@ -267,6 +267,26 @@ void force_function2 (      FhdParticleContainer::ParticleType& part1,
     }
 }
 
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void repulsive_force_lj_full (      FhdParticleContainer::ParticleType& part1,
+                              const FhdParticleContainer::ParticleType& part2,
+                              amrex::Real dx, amrex::Real dy, amrex::Real dz, amrex::Real dr2)
+{
+    using namespace amrex;
+
+    const Real eps1 = part1.rdata(FHD_realData::eepsilon);
+    const Real sig1 = part1.rdata(FHD_realData::sigma);
+    const Real sig2 = part2.rdata(FHD_realData::sigma);
+    const Real fac1 = std::pow((sig1 + sig2)/4.0, 12);
+    const Real fac2 = std::pow((sig1 + sig2)/4.0, 6);
+    const Real ff = eps1*4*(1./(dr2*dr2*dr2*dr2))*(-12*fac1/(dr2*dr2*dr2) + 6*fac2);
+    
+    part1.rdata(FHD_realData::forcex) -= dx*ff;
+    part1.rdata(FHD_realData::forcey) -= dy*ff;
+    part1.rdata(FHD_realData::forcez) -= dz*ff;
+}
+
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void repulsive_force (      FhdParticleContainer::ParticleType& part1,
                       const FhdParticleContainer::ParticleType& part2,
@@ -734,8 +754,12 @@ void compute_forces_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
                 const Real r2 = dx*dx + dy*dy + dz*dz;
                 const Real r2min = amrex::max(r2, rmin*rmin);
                 const Real r = sqrt(r2);
-                
-                if (r < (1.122*(p1.rdata(FHD_realData::sigma)+p2.rdata(FHD_realData::sigma))/4.0))
+                if (r <= (2.5*(p1.rdata(FHD_realData::sigma)+p2.rdata(FHD_realData::sigma))/4.0) && (sr_tog==6))
+                {
+                    Gpu::Atomic::Add(prcount_d, 1.0);
+                    repulsive_force_lj_full(p1, p2, dx, dy, dz, r2);
+                }
+                else if (r < (1.122*(p1.rdata(FHD_realData::sigma)+p2.rdata(FHD_realData::sigma))/4.0))
                 {
                     if (sr_tog <= 2) {
                         Gpu::Atomic::Add(prcount_d, 1.0);
