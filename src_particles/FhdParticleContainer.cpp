@@ -134,8 +134,8 @@ void FhdParticleContainer::forceFunction()
 
         const Box& tile_box  = pti.tilebox();
 
-        Real maxUtile;
-        Real maxDtile;
+        Real maxUtile = 0;
+        Real maxDtile = 0;
 
          for (int i = 0; i < np; ++i) {
 
@@ -167,6 +167,7 @@ void FhdParticleContainer::forceFunction()
                     maxDtile = dSqr/part.rdata(FHD_realData::radius);
                 }
                 pinCheck = 1;
+                //Print() << radVec[0] << endl;
             }
 
          }

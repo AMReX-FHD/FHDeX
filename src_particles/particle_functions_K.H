@@ -730,6 +730,8 @@ void compute_forces_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
 //    Gpu::DeviceVector<Real> prob_hi_d = getDeviceVector(prob_hi);    
 //    auto p_prob_lo_d = prob_lo_d.data();
 //    auto p_prob_hi_d = prob_hi_d.data();
+
+
     
     AMREX_FOR_1D( Np, i, 
     {
@@ -743,9 +745,22 @@ void compute_forces_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
             int spec2 = p2.idata(FHD_intData::species)-1;
             int p_matrix_val = spec1*nspecies + spec2;
 
-//            if ( (pp_int_tog_d[p1.idata(FHD_intData::species)-1] != 0) || 
-//                 (pp_int_tog_d[p2.idata(FHD_intData::species)-1] != 0) )
+            //Make this more efficient later
+            int mat[nspecies][nspecies];
+            int kk = 0;
+            for(int ii=0;ii<nspecies;ii++)
+            {
+                for(int jj=0;jj<nspecies;jj++)
+                {
+                    mat[ii][jj] = pp_int_tog_d[kk];
+                    //Print() << ii << ", " << jj << ", " << mat[ii][jj] << std::endl;
+                    kk++;
+                }
+            }
+
+//            if ( mat[spec1][spec2] != 0)
             if ( pp_int_tog_d[p_matrix_val] != 0)
+            //if (true)
             {
                 const Real dx = p1.pos(0) - p2.pos(0);
                 const Real dy = p1.pos(1) - p2.pos(1);
@@ -754,6 +769,8 @@ void compute_forces_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
                 const Real r2 = dx*dx + dy*dy + dz*dz;
                 const Real r2min = amrex::max(r2, rmin*rmin);
                 const Real r = sqrt(r2);
+                //Print() << spec1+1 << ", " << spec2+1 << std::endl;
+
                 if (r <= (2.5*(p1.rdata(FHD_realData::sigma)+p2.rdata(FHD_realData::sigma))/4.0) && (sr_tog==6))
                 {
                     Gpu::Atomic::Add(prcount_d, 1.0);

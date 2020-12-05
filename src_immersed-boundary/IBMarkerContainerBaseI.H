@@ -844,7 +844,8 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateMarkersGpu(
         }
 
         //Print() << "Here1!\n";
-        InterpolateKernelGpu(particles, tile_box, f_in_fab, f_weights_fab, coords_fab, dx, 0, check);
+        int gs = 0;
+        InterpolateKernelGpu(particles, tile_box, f_in_fab, f_weights_fab, coords_fab, dx, &gs, check);
 
         //Print() << "Here2!" << check << "\n";
         rejected_proc += check;
