@@ -144,9 +144,13 @@ void FhdParticleContainer::forceFunction()
             if(part.rdata(FHD_realData::spring) != 0)
             {
                 Real radVec[3];
-                radVec[0] = part.pos(0)-part.rdata(FHD_realData::ox);
-                radVec[1] = part.pos(1)-part.rdata(FHD_realData::oy);
-                radVec[2] = part.pos(2)-part.rdata(FHD_realData::oz);
+//                radVec[0] = part.pos(0)-part.rdata(FHD_realData::ox);
+//                radVec[1] = part.pos(1)-part.rdata(FHD_realData::oy);
+//                radVec[2] = part.pos(2)-part.rdata(FHD_realData::oz);
+
+                radVec[0] = part.rdata(FHD_realData::ax);
+                radVec[1] = part.rdata(FHD_realData::ay);
+                radVec[2] = part.rdata(FHD_realData::az);
 
                 part.rdata(FHD_realData::forcex) = part.rdata(FHD_realData::forcex) - part.rdata(FHD_realData::spring)*radVec[0];
                 part.rdata(FHD_realData::forcey) = part.rdata(FHD_realData::forcey) - part.rdata(FHD_realData::spring)*radVec[1];
@@ -162,9 +166,9 @@ void FhdParticleContainer::forceFunction()
                     maxUtile = part.rdata(FHD_realData::potential);
                 }
 
-                if((dSqr/part.rdata(FHD_realData::radius)) > maxDtile)
+                if((dSqr/(0.5*part.rdata(FHD_realData::sigma))) > maxDtile)
                 {
-                    maxDtile = dSqr/part.rdata(FHD_realData::radius);
+                    maxDtile = dSqr/(0.5*part.rdata(FHD_realData::sigma));
                 }
                 pinCheck = 1;
                 //Print() << radVec[0] << endl;
@@ -302,6 +306,7 @@ void FhdParticleContainer::computeForcesNL(const MultiFab& charge, const MultiFa
 
         if(sr_tog==1) 
         {
+
                 amrex_compute_forces_nl(particles.data(), &Np, 
                                         neighbors[lev][index].dataPtr(), &Nn,
                                         neighbor_list[lev][index].dataPtr(), &size, &rcount);
@@ -351,8 +356,10 @@ void FhdParticleContainer::computeForcesNLGPU(const MultiFab& charge, const Mult
 
         if (sr_tog!= 0)
         {
+                //Print() << "rPre: " << rcount << std::endl;
             compute_forces_nl_gpu(particles, Np, Nn,
-                              m_neighbor_list[lev][index], rcount, rdcount);            
+                              m_neighbor_list[lev][index], rcount, rdcount);
+               // Print() << "rPost: " << rcount << std::endl;            
         }
 
         if (es_tog==3)

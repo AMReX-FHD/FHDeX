@@ -275,7 +275,12 @@ void repulsive_force_lj_full (      FhdParticleContainer::ParticleType& part1,
 {
     using namespace amrex;
 
-    const Real eps1 = part1.rdata(FHD_realData::eepsilon);
+    const int spec1 = part1.idata(FHD_intData::species)-1;
+    const int spec2 = part2.idata(FHD_intData::species)-1;
+    const int p_matrix_val = spec1*nspecies + spec2;
+     
+    //const Real eps1 = part1.rdata(FHD_realData::eepsilon);
+    const Real eps1 = eepsilon[p_matrix_val];
     const Real sig1 = part1.rdata(FHD_realData::sigma);
     const Real sig2 = part2.rdata(FHD_realData::sigma);
     const Real fac1 = std::pow((sig1 + sig2)/4.0, 12);
@@ -538,7 +543,7 @@ void compute_p3m_sr_correction_nl_gpu (FhdParticleContainer::AoS& aos, int Np, i
         {
             Real q2 = p2.rdata(FHD_realData::q);
 
-            spec2 = p1.idata(FHD_intData::species)-1;
+            spec2 = p2.idata(FHD_intData::species)-1;
             p_matrix_val = spec1*nspecies + spec2;
 
             dr[0] = p1.pos(0) - p2.pos(0);
@@ -753,7 +758,7 @@ void compute_forces_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
                 for(int jj=0;jj<nspecies;jj++)
                 {
                     mat[ii][jj] = pp_int_tog_d[kk];
-                    //Print() << ii << ", " << jj << ", " << mat[ii][jj] << std::endl;
+                    
                     kk++;
                 }
             }
@@ -774,6 +779,11 @@ void compute_forces_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
                 if (r <= (2.5*(p1.rdata(FHD_realData::sigma)+p2.rdata(FHD_realData::sigma))/4.0) && (sr_tog==6))
                 {
                     Gpu::Atomic::Add(prcount_d, 1.0);
+
+                    
+                   // Print() << p1.id() << ", " << p1.pos(0) << ", " << p1.pos(1) << ", " << p1.pos(2)  << ", " << r << ", " << (2.5*(p1.rdata(FHD_realData::sigma)+p2.rdata(FHD_realData::sigma))/4.0) << std::endl;
+                 //   Print() << p2.id() << ", " << p2.pos(0) << ", " << p2.pos(1) << ", " << p2.pos(2)  << ", " << r << ", " << (2.5*(p1.rdata(FHD_realData::sigma)+p2.rdata(FHD_realData::sigma))/4.0) << std::endl;
+
                     repulsive_force_lj_full(p1, p2, dx, dy, dz, r2);
                 }
                 else if (r < (1.122*(p1.rdata(FHD_realData::sigma)+p2.rdata(FHD_realData::sigma))/4.0))
@@ -1151,19 +1161,23 @@ void emf_gpu (FhdParticleContainer::AoS& aos, F f,
     amrex::ParallelFor(Np, [=] AMREX_GPU_HOST_DEVICE (int ip) noexcept
     {
         FhdParticleContainer::ParticleType& p = pstruct[ip];
-        
-        Real w[3][2*ks];
-        int indices[3][2*ks];
-        
-        //E field is cell centered so we can use the same weights/indicies for each component
-        get_weights(p, f, Exflag, w, indices, plo, dx, dxi);
-        p.rdata(FHD_realData::forcex) += p.rdata(FHD_realData::q)*inter_op(Exarr, f, w, indices);
+        //Print() << p.idata(FHD_intData::species) << "\n";
+                
+        //if(p.idata(FHD_intData::species) == 1)
+        {
+            Real w[3][2*ks];
+            int indices[3][2*ks];
+            //Print() << "Here!\n";
+            //E field is cell centered so we can use the same weights/indicies for each component
+            get_weights(p, f, Exflag, w, indices, plo, dx, dxi);
+            p.rdata(FHD_realData::forcex) += p.rdata(FHD_realData::q)*inter_op(Exarr, f, w, indices);
 
-        //get_weights(p, f, Eyflag, w, indices, plo, dx, dxi);
-        p.rdata(FHD_realData::forcey) += p.rdata(FHD_realData::q)*inter_op(Eyarr, f, w, indices);
+            //get_weights(p, f, Eyflag, w, indices, plo, dx, dxi);
+            p.rdata(FHD_realData::forcey) += p.rdata(FHD_realData::q)*inter_op(Eyarr, f, w, indices);
 
-        //get_weights(p, f, Ezflag, w, indices, plo, dx, dxi);
-        p.rdata(FHD_realData::forcez) += p.rdata(FHD_realData::q)*inter_op(Ezarr, f, w, indices);
+            //get_weights(p, f, Ezflag, w, indices, plo, dx, dxi);
+            p.rdata(FHD_realData::forcez) += p.rdata(FHD_realData::q)*inter_op(Ezarr, f, w, indices);
+        }
        
     });
     

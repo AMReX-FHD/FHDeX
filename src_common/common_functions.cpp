@@ -78,7 +78,7 @@ void InitializeCommonNamespace() {
     p_int_tog.resize(MAX_SPECIES*MAX_SPECIES);
     particle_n0.resize(MAX_SPECIES);
 
-    eepsilon.resize(MAX_SPECIES);
+    eepsilon.resize(MAX_SPECIES*MAX_SPECIES);
     sigma.resize(MAX_SPECIES);
     qval.resize(MAX_SPECIES);
 
