@@ -131,7 +131,7 @@ void InitialProjection(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         MultiFab::Add(mac_rhs,divu,0,0,1,0);
 
         // average rhotot on faces
-        AverageCCToFace(rhotot,rhotot_fc,0,1,-1,geom);
+        AverageCCToFace(rhotot,rhotot_fc,0,1,RHO_BC_COMP,geom);
 
         // compute (1/rhotot on faces)
         for (int i=0; i<AMREX_SPACEDIM; ++i) {

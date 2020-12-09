@@ -13,7 +13,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                    MultiFab& rancorn_in,
                    const amrex::Geometry geom,
 		   const amrex::Vector< amrex::Real >& stoch_weights,
-		   const amrex::Real* dx, const amrex::Real dt)
+                   const amrex::Real dt)
 {
     BL_PROFILE_VAR("calculateFlux()",calculateFlux);
     
@@ -43,10 +43,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
         molmass_gpu[n] = molmass[n];
     }
 
-    GpuArray<Real,AMREX_SPACEDIM> dx_gpu;
-    for (int n=0; n<AMREX_SPACEDIM; ++n) {
-        dx_gpu[n] = dx[n];
-    }
+    GpuArray<Real,AMREX_SPACEDIM> dx = geom.CellSizeArray();
     
     AMREX_D_TERM(flux_in[0].setVal(0);,
                  flux_in[1].setVal(0);,
@@ -650,6 +647,8 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
             
             const Box& bx = mfi.tilebox();
 
+            const Real* dx_temp = geom.CellSize();
+    
             // call this to enforce flux boundary conditions
             stoch_flux(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
                        cons_in[mfi].dataPtr(),  
@@ -670,7 +669,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                        kappa_in[mfi].dataPtr(),
                        chi_in[mfi].dataPtr(),  
                        D_in[mfi].dataPtr(),  
-                       ZFILL(dx), &dt);
+                       ZFILL(dx_temp), &dt);
         }
     }
         
@@ -727,9 +726,9 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
             Real muxp = half*(eta(i,j,k) + eta(i-1,j,k));
             Real kxp = half*(kappa(i,j,k) + kappa(i-1,j,k));
 
-            Real tauxxp = muxp*(prim(i,j,k,1) - prim(i-1,j,k,1))/dx_gpu[0];
-            Real tauyxp = muxp*(prim(i,j,k,2) - prim(i-1,j,k,2))/dx_gpu[0];
-            Real tauzxp = muxp*(prim(i,j,k,3) - prim(i-1,j,k,3))/dx_gpu[0];
+            Real tauxxp = muxp*(prim(i,j,k,1) - prim(i-1,j,k,1))/dx[0];
+            Real tauyxp = muxp*(prim(i,j,k,2) - prim(i-1,j,k,2))/dx[0];
+            Real tauzxp = muxp*(prim(i,j,k,3) - prim(i-1,j,k,3))/dx[0];
 
             Real divxp = 0.;
 
@@ -741,7 +740,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
             fluxx(i,j,k,1) = fluxx(i,j,k,1) - (tauxxp+divxp);
             fluxx(i,j,k,2) = fluxx(i,j,k,2) - tauyxp;
             fluxx(i,j,k,3) = fluxx(i,j,k,3) - tauzxp;
-            fluxx(i,j,k,4) = fluxx(i,j,k,4) - (half*phiflx + kxp*(prim(i,j,k,4)-prim(i-1,j,k,4))/dx_gpu[0]);
+            fluxx(i,j,k,4) = fluxx(i,j,k,4) - (half*phiflx + kxp*(prim(i,j,k,4)-prim(i-1,j,k,4))/dx[0]);
 
             Real meanT = 0.5*(prim(i-1,j,k,4)+prim(i,j,k,4));
             Real meanP = 0.5*(prim(i-1,j,k,5)+prim(i,j,k,5));
@@ -750,13 +749,13 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 
                 // compute dk
                 for (int ns=0; ns<nspecies_gpu; ++ns) {
-                    Real term1 = (prim(i,j,k,6+nspecies_gpu+ns)-prim(i-1,j,k,6+nspecies_gpu+ns))/dx_gpu[0];
+                    Real term1 = (prim(i,j,k,6+nspecies_gpu+ns)-prim(i-1,j,k,6+nspecies_gpu+ns))/dx[0];
                     meanXk[ns] = 0.5*(prim(i-1,j,k,6+nspecies_gpu+ns)+prim(i,j,k,6+nspecies_gpu+ns));
                     meanYk[ns] = 0.5*(prim(i-1,j,k,6+ns)+prim(i,j,k,6+ns));
-                    Real term2 = (meanXk[ns]-meanYk[ns])*(prim(i,j,k,5)-prim(i-1,j,k,5))/dx_gpu[0]/meanP;
+                    Real term2 = (meanXk[ns]-meanYk[ns])*(prim(i,j,k,5)-prim(i-1,j,k,5))/dx[0]/meanP;
                     dk[ns] = term1 + term2;
                     soret[ns] = 0.5*(chi(i-1,j,k,ns)*prim(i-1,j,k,6+nspecies_gpu+ns)+chi(i,j,k,ns)*prim(i,j,k,6+nspecies_gpu+ns))
-                        *(prim(i,j,k,4)-prim(i-1,j,k,4))/dx_gpu[0]/meanT;
+                        *(prim(i,j,k,4)-prim(i-1,j,k,4))/dx[0]/meanT;
                 }
 
                 // compute Fk (based on Eqn. 2.5.24, Giovangigli's book)
@@ -796,9 +795,9 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
             Real muyp = half*(eta(i,j,k) + eta(i,j-1,k));
             Real kyp = half*(kappa(i,j,k) + kappa(i,j-1,k));
 
-            Real tauxyp =  muyp*(prim(i,j,k,1) - prim(i,j-1,k,1))/dx_gpu[1];
-            Real tauyyp =  muyp*(prim(i,j,k,2) - prim(i,j-1,k,2))/dx_gpu[1];
-            Real tauzyp =  muyp*(prim(i,j,k,3) - prim(i,j-1,k,3))/dx_gpu[1];
+            Real tauxyp =  muyp*(prim(i,j,k,1) - prim(i,j-1,k,1))/dx[1];
+            Real tauyyp =  muyp*(prim(i,j,k,2) - prim(i,j-1,k,2))/dx[1];
+            Real tauzyp =  muyp*(prim(i,j,k,3) - prim(i,j-1,k,3))/dx[1];
             Real divyp = 0.;
 
             Real phiflx = tauxyp*(prim(i,j,k,1)+prim(i,j-1,k,1))
@@ -809,7 +808,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
             fluxy(i,j,k,1) = fluxy(i,j,k,1) - tauxyp;
             fluxy(i,j,k,2) = fluxy(i,j,k,2) - (tauyyp+divyp);
             fluxy(i,j,k,3) = fluxy(i,j,k,3) - tauzyp;
-            fluxy(i,j,k,4) = fluxy(i,j,k,4) - (half*phiflx + kyp*(prim(i,j,k,4)-prim(i,j-1,k,4))/dx_gpu[1]);
+            fluxy(i,j,k,4) = fluxy(i,j,k,4) - (half*phiflx + kyp*(prim(i,j,k,4)-prim(i,j-1,k,4))/dx[1]);
 
             Real meanT = 0.5*(prim(i,j-1,k,4)+prim(i,j,k,4));
             Real meanP = 0.5*(prim(i,j-1,k,5)+prim(i,j,k,5));
@@ -817,13 +816,13 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
             if (algorithm_type_gpu == 2) {
                 // compute dk
                 for (int ns=0; ns<nspecies_gpu; ++ns) {
-                    Real term1 = (prim(i,j,k,6+nspecies_gpu+ns)-prim(i,j-1,k,6+nspecies_gpu+ns))/dx_gpu[1];
+                    Real term1 = (prim(i,j,k,6+nspecies_gpu+ns)-prim(i,j-1,k,6+nspecies_gpu+ns))/dx[1];
                     meanXk[ns] = 0.5*(prim(i,j-1,k,6+nspecies_gpu+ns)+prim(i,j,k,6+nspecies_gpu+ns));
                     meanYk[ns] = 0.5*(prim(i,j-1,k,6+ns)+prim(i,j,k,6+ns));
-                    Real term2 = (meanXk[ns]-meanYk[ns])*(prim(i,j,k,5)-prim(i,j-1,k,5))/dx_gpu[1]/meanP;
+                    Real term2 = (meanXk[ns]-meanYk[ns])*(prim(i,j,k,5)-prim(i,j-1,k,5))/dx[1]/meanP;
                     dk[ns] = term1 + term2;
                     soret[ns] = 0.5*(chi(i,j-1,k,ns)*prim(i,j-1,k,6+nspecies_gpu+ns)+chi(i,j,k,ns)*prim(i,j,k,6+nspecies_gpu+ns))
-                        *(prim(i,j,k,4)-prim(i,j-1,k,4))/dx_gpu[1]/meanT;
+                        *(prim(i,j,k,4)-prim(i,j-1,k,4))/dx[1]/meanT;
                 }
 
                 // compute Fk (based on Eqn. 2.5.24, Giovangigli's book)
@@ -866,9 +865,9 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
             Real muzp = half*(eta(i,j,k) + eta(i,j,k-1));
             Real kzp = half*(kappa(i,j,k) + kappa(i,j,k-1));
 
-            Real tauxzp =  muzp*(prim(i,j,k,1) - prim(i,j,k-1,1))/dx_gpu[2];
-            Real tauyzp =  muzp*(prim(i,j,k,2) - prim(i,j,k-1,2))/dx_gpu[2];
-            Real tauzzp =  muzp*(prim(i,j,k,3) - prim(i,j,k-1,3))/dx_gpu[2];
+            Real tauxzp =  muzp*(prim(i,j,k,1) - prim(i,j,k-1,1))/dx[2];
+            Real tauyzp =  muzp*(prim(i,j,k,2) - prim(i,j,k-1,2))/dx[2];
+            Real tauzzp =  muzp*(prim(i,j,k,3) - prim(i,j,k-1,3))/dx[2];
             Real divzp = 0.;
 
             Real phiflx = tauxzp*(prim(i,j,k-1,1)+prim(i,j,k,1))
@@ -879,7 +878,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
             fluxz(i,j,k,1) = fluxz(i,j,k,1) - tauxzp;
             fluxz(i,j,k,2) = fluxz(i,j,k,2) - tauyzp;
             fluxz(i,j,k,3) = fluxz(i,j,k,3) - (tauzzp+divzp);
-            fluxz(i,j,k,4) = fluxz(i,j,k,4) - (half*phiflx + kzp*(prim(i,j,k,4)-prim(i,j,k-1,4))/dx_gpu[2]);
+            fluxz(i,j,k,4) = fluxz(i,j,k,4) - (half*phiflx + kzp*(prim(i,j,k,4)-prim(i,j,k-1,4))/dx[2]);
 
             Real meanT = 0.5*(prim(i,j,k-1,4)+prim(i,j,k,4));
             Real meanP = 0.5*(prim(i,j,k-1,5)+prim(i,j,k,5));
@@ -888,13 +887,13 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 
                 // compute dk
                 for (int ns=0; ns<nspecies_gpu; ++ns) {
-                    Real term1 = (prim(i,j,k,6+nspecies_gpu+ns)-prim(i,j,k-1,6+nspecies_gpu+ns))/dx_gpu[2];
+                    Real term1 = (prim(i,j,k,6+nspecies_gpu+ns)-prim(i,j,k-1,6+nspecies_gpu+ns))/dx[2];
                     meanXk[ns] = 0.5*(prim(i,j,k-1,6+nspecies_gpu+ns)+prim(i,j,k,6+nspecies_gpu+ns));
                     meanYk[ns] = 0.5*(prim(i,j,k-1,6+ns)+prim(i,j,k,6+ns));
-                    Real term2 = (meanXk[ns]-meanYk[ns])*(prim(i,j,k,5)-prim(i,j,k-1,5))/dx_gpu[2]/meanP;
+                    Real term2 = (meanXk[ns]-meanYk[ns])*(prim(i,j,k,5)-prim(i,j,k-1,5))/dx[2]/meanP;
                     dk[ns] = term1 + term2;
                     soret[ns] = 0.5*(chi(i,j,k,ns)*prim(i,j,k-1,6+nspecies_gpu+ns)+chi(i,j,k+1,ns)*prim(i,j,k,6+nspecies_gpu+ns))
-                        *(prim(i,j,k,4)-prim(i,j,k-1,4))/dx_gpu[2]/meanT;
+                        *(prim(i,j,k,4)-prim(i,j,k-1,4))/dx[2]/meanT;
                 }
 
                 // compute Fk (based on Eqn. 2.5.24, Giovangigli's book)
@@ -942,33 +941,33 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
             }
 
             cornux(i,j,k) = 0.25*muxp*(prim(i,j-1,k-1,1)-prim(i-1,j-1,k-1,1) + prim(i,j,k-1,1)-prim(i-1,j,k-1,1)+
-                                         prim(i,j-1,k,1)-prim(i-1,j-1,k,1) + prim(i,j,k,1)-prim(i-1,j,k,1))/dx_gpu[0];
+                                         prim(i,j-1,k,1)-prim(i-1,j-1,k,1) + prim(i,j,k,1)-prim(i-1,j,k,1))/dx[0];
             cornvx(i,j,k) = 0.25*muxp*(prim(i,j-1,k-1,2)-prim(i-1,j-1,k-1,2) + prim(i,j,k-1,2)-prim(i-1,j,k-1,2)+
-                                         prim(i,j-1,k,2)-prim(i-1,j-1,k,2) + prim(i,j,k,2)-prim(i-1,j,k,2))/dx_gpu[0];
+                                         prim(i,j-1,k,2)-prim(i-1,j-1,k,2) + prim(i,j,k,2)-prim(i-1,j,k,2))/dx[0];
             cornwx(i,j,k) = 0.25*muxp*(prim(i,j-1,k-1,3)-prim(i-1,j-1,k-1,3) + prim(i,j,k-1,3)-prim(i-1,j,k-1,3)+
-                                         prim(i,j-1,k,3)-prim(i-1,j-1,k,3) + prim(i,j,k,3)-prim(i-1,j,k,3))/dx_gpu[0];
+                                         prim(i,j-1,k,3)-prim(i-1,j-1,k,3) + prim(i,j,k,3)-prim(i-1,j,k,3))/dx[0];
 
             cornuy(i,j,k) = 0.25*muxp* (prim(i-1,j,k-1,1)-prim(i-1,j-1,k-1,1) + prim(i,j,k-1,1)-prim(i,j-1,k-1,1) +
-                                          prim(i-1,j,k,1)-prim(i-1,j-1,k,1) + prim(i,j,k,1)-prim(i,j-1,k,1))/dx_gpu[1];
+                                          prim(i-1,j,k,1)-prim(i-1,j-1,k,1) + prim(i,j,k,1)-prim(i,j-1,k,1))/dx[1];
             cornvy(i,j,k) = 0.25*muxp* (prim(i-1,j,k-1,2)-prim(i-1,j-1,k-1,2) + prim(i,j,k-1,2)-prim(i,j-1,k-1,2) +
-                                          prim(i-1,j,k,2)-prim(i-1,j-1,k,2) + prim(i,j,k,2)-prim(i,j-1,k,2))/dx_gpu[1];
+                                          prim(i-1,j,k,2)-prim(i-1,j-1,k,2) + prim(i,j,k,2)-prim(i,j-1,k,2))/dx[1];
             cornwy(i,j,k) = 0.25*muxp* (prim(i-1,j,k-1,3)-prim(i-1,j-1,k-1,3) + prim(i,j,k-1,3)-prim(i,j-1,k-1,3) +
-                                          prim(i-1,j,k,3)-prim(i-1,j-1,k,3) + prim(i,j,k,3)-prim(i,j-1,k,3))/dx_gpu[1];
+                                          prim(i-1,j,k,3)-prim(i-1,j-1,k,3) + prim(i,j,k,3)-prim(i,j-1,k,3))/dx[1];
 
             cornuz(i,j,k) = 0.25*muxp*(prim(i-1,j-1,k,1)-prim(i-1,j-1,k-1,1) + prim(i,j-1,k,1)-prim(i,j-1,k-1,1) +
-                                         prim(i-1,j,k,1)-prim(i-1,j,k-1,1) + prim(i,j,k,1)-prim(i,j,k-1,1))/dx_gpu[2];
+                                         prim(i-1,j,k,1)-prim(i-1,j,k-1,1) + prim(i,j,k,1)-prim(i,j,k-1,1))/dx[2];
             cornvz(i,j,k) = 0.25*muxp*(prim(i-1,j-1,k,2)-prim(i-1,j-1,k-1,2) + prim(i,j-1,k,2)-prim(i,j-1,k-1,2) +
-                                         prim(i-1,j,k,2)-prim(i-1,j,k-1,2) + prim(i,j,k,2)-prim(i,j,k-1,2))/dx_gpu[2];
+                                         prim(i-1,j,k,2)-prim(i-1,j,k-1,2) + prim(i,j,k,2)-prim(i,j,k-1,2))/dx[2];
             cornwz(i,j,k) = 0.25*muxp*(prim(i-1,j-1,k,3)-prim(i-1,j-1,k-1,3) + prim(i,j-1,k,3)-prim(i,j-1,k-1,3) +
-                                         prim(i-1,j,k,3)-prim(i-1,j,k-1,3) + prim(i,j,k,3)-prim(i,j,k-1,3))/dx_gpu[2];
+                                         prim(i-1,j,k,3)-prim(i-1,j,k-1,3) + prim(i,j,k,3)-prim(i,j,k-1,3))/dx[2];
 
             visccorn(i,j,k) =  (muxp/12.+zetaxp/4.)*( // Divergence stress
-                (prim(i,  j-1,k-1,1)-prim(i-1,j-1,k-1,1))/dx_gpu[0] + (prim(i,j,  k-1,1)-prim(i-1,j  ,k-1,1))/dx_gpu[0] +
-                (prim(i,  j-1,k  ,1)-prim(i-1,j-1,k,  1))/dx_gpu[0] + (prim(i,j,  k,  1)-prim(i-1,j  ,k,  1))/dx_gpu[0] +
-                (prim(i-1,j  ,k-1,2)-prim(i-1,j-1,k-1,2))/dx_gpu[1] + (prim(i,j,  k-1,2)-prim(i  ,j-1,k-1,2))/dx_gpu[1] +
-                (prim(i-1,j  ,k  ,2)-prim(i-1,j-1,k  ,2))/dx_gpu[1] + (prim(i,j,  k,  2)-prim(i  ,j-1,k,  2))/dx_gpu[1] +
-                (prim(i-1,j-1,k  ,3)-prim(i-1,j-1,k-1,3))/dx_gpu[2] + (prim(i,j-1,k,  3)-prim(i  ,j-1,k-1,3))/dx_gpu[2] +
-                (prim(i-1,j  ,k  ,3)-prim(i-1,j  ,k-1,3))/dx_gpu[2] + (prim(i,j,  k,  3)-prim(i  ,j  ,k-1,3))/dx_gpu[2]);
+                (prim(i,  j-1,k-1,1)-prim(i-1,j-1,k-1,1))/dx[0] + (prim(i,j,  k-1,1)-prim(i-1,j  ,k-1,1))/dx[0] +
+                (prim(i,  j-1,k  ,1)-prim(i-1,j-1,k,  1))/dx[0] + (prim(i,j,  k,  1)-prim(i-1,j  ,k,  1))/dx[0] +
+                (prim(i-1,j  ,k-1,2)-prim(i-1,j-1,k-1,2))/dx[1] + (prim(i,j,  k-1,2)-prim(i  ,j-1,k-1,2))/dx[1] +
+                (prim(i-1,j  ,k  ,2)-prim(i-1,j-1,k  ,2))/dx[1] + (prim(i,j,  k,  2)-prim(i  ,j-1,k,  2))/dx[1] +
+                (prim(i-1,j-1,k  ,3)-prim(i-1,j-1,k-1,3))/dx[2] + (prim(i,j-1,k,  3)-prim(i  ,j-1,k-1,3))/dx[2] +
+                (prim(i-1,j  ,k  ,3)-prim(i-1,j  ,k-1,3))/dx[2] + (prim(i,j,  k,  3)-prim(i  ,j  ,k-1,3))/dx[2]);
                                
         });
 
@@ -1304,10 +1303,10 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 // compute temperature
                 Real vsqr = primitive[1]*primitive[1] + primitive[2]*primitive[2] + primitive[3]*primitive[3];
                 Real intenergy = conserved[4]/conserved[0] - 0.5*vsqr;
-                GetTemperature(intenergy, Yk, primitive[4], nspecies_gpu, hcv_gpu);
+                GetTemperature(intenergy, Yk, primitive[4]);
 
                 // compute pressure
-                GetPressureGas(primitive[5], Yk, conserved[0], primitive[4], nspecies_gpu, Runiv_gpu, molmass_gpu);
+                GetPressureGas(primitive[5], Yk, conserved[0], primitive[4]);
 
                 xflux(i,j,k,0) += conserved[0]*primitive[1];
                 xflux(i,j,k,1) += conserved[0]*(primitive[1]*primitive[1])+primitive[5];
@@ -1347,10 +1346,10 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 // compute temperature
                 Real vsqr = primitive[1]*primitive[1] + primitive[2]*primitive[2] + primitive[3]*primitive[3];
                 Real intenergy = conserved[4]/conserved[0] - 0.5*vsqr;
-                GetTemperature(intenergy, Yk, primitive[4], nspecies_gpu, hcv_gpu);
+                GetTemperature(intenergy, Yk, primitive[4]);
 
                 // compute pressure
-                GetPressureGas(primitive[5], Yk, conserved[0], primitive[4], nspecies_gpu, Runiv_gpu, molmass_gpu);
+                GetPressureGas(primitive[5], Yk, conserved[0], primitive[4]);
 
                 yflux(i,j,k,0) += conserved[0]*primitive[2];
                 yflux(i,j,k,1) += conserved[0]*primitive[1]*primitive[2];
@@ -1390,10 +1389,10 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 // compute temperature
                 Real vsqr = primitive[1]*primitive[1] + primitive[2]*primitive[2] + primitive[3]*primitive[3];
                 Real intenergy = conserved[4]/conserved[0] - 0.5*vsqr;
-                GetTemperature(intenergy, Yk, primitive[4], nspecies_gpu, hcv_gpu);
+                GetTemperature(intenergy, Yk, primitive[4]);
 
                 // compute pressure
-                GetPressureGas(primitive[5], Yk, conserved[0], primitive[4], nspecies_gpu, Runiv_gpu, molmass_gpu);
+                GetPressureGas(primitive[5], Yk, conserved[0], primitive[4]);
 
 
                 zflux(i,j,k,0) += conserved[0]*primitive[3];

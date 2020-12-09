@@ -73,7 +73,7 @@ void FillRhoRhototGhost(MultiFab& rho, MultiFab& rhotot, const Geometry& geom) {
 
     // fill conc ghost cells
     conc.FillBoundary(geom.periodicity());
-    MultiFabPhysBC(conc,geom,0,nspecies,1);
+    MultiFabPhysBC(conc,geom,0,nspecies,SPEC_BC_COMP);
 
     // fill rhotot ghost cells
     FillRhototGhost(rhotot,conc,geom);
@@ -82,7 +82,11 @@ void FillRhoRhototGhost(MultiFab& rho, MultiFab& rhotot, const Geometry& geom) {
     ConvertRhoCToC(rho,rhotot,conc,0);    
 }
 
-
+// Ghost cell filling routine.
+// Specific for the low Mach multispecies mixing EOS that enforces no
+// volume change upon mixing.
+// Assuming the input concentration ghost cells are filled.
+// Computes rho = [sum(c_i/rhobar_i)]^{-1} in all ghost cells.
 void FillRhototGhost(MultiFab& rhotot_in, const MultiFab& conc_in, const Geometry& geom) {
 
     BL_PROFILE_VAR("FillRhototGhost()",FillRhototGhost);
@@ -94,7 +98,7 @@ void FillRhototGhost(MultiFab& rhotot_in, const MultiFab& conc_in, const Geometr
     }
 
     if (algorithm_type == 6) {
-        MultiFabPhysBC(rhotot_in,geom,0,1,-1);
+        MultiFabPhysBC(rhotot_in,geom,0,1,RHO_BC_COMP);
         return;
     }    
 
@@ -119,7 +123,7 @@ void FillRhototGhost(MultiFab& rhotot_in, const MultiFab& conc_in, const Geometr
     }
    
     // compute mathematical boundary conditions
-    BCPhysToMath(1,bc_lo,bc_hi);
+    BCPhysToMath(SPEC_BC_COMP,bc_lo,bc_hi);
 
     for (MFIter mfi(rhotot_in, TilingIfNotGPU()); mfi.isValid(); ++mfi) {
 

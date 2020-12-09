@@ -96,8 +96,8 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     */
 
     // average rho_old and rhotot_old to faces
-    AverageCCToFace(rho_old,rho_fc,0,nspecies,1,geom);
-    AverageCCToFace(rhotot_old,rhotot_fc_old,0,1,-1,geom);
+    AverageCCToFace(rho_old,rho_fc,0,nspecies,SPEC_BC_COMP,geom);
+    AverageCCToFace(rhotot_old,rhotot_fc_old,0,1,RHO_BC_COMP,geom);
 
     // add D^n and St^n to rho_update
     MultiFab::Copy(rho_update,diff_mass_fluxdiv,0,0,nspecies,0);
@@ -123,8 +123,8 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     FillRhoRhototGhost(rho_new,rhotot_new,geom);
 
     // average rho_new and rhotot_new to faces
-    AverageCCToFace(rho_new,rho_fc,0,nspecies,1,geom);
-    AverageCCToFace(rhotot_new,rhotot_fc_new,0,1,-1,geom);
+    AverageCCToFace(rho_new,rho_fc,0,nspecies,SPEC_BC_COMP,geom);
+    AverageCCToFace(rhotot_new,rhotot_fc_new,0,1,RHO_BC_COMP,geom);
     
     /*
     if (use_charged_fluid) {
@@ -148,7 +148,7 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     }
         
     // compute grad pi^n
-    ComputeGrad(pi,gradpi,0,0,1,0,geom);
+    ComputeGrad(pi,gradpi,0,0,1,PRES_BC_COMP,geom);
 
     /*
     if (barodiffusion_type == 2) {
@@ -329,7 +329,7 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     // pressure ghost cells
     pi.FillBoundary(geom.periodicity());
-    MultiFabPhysBC(pi,geom,0,1,0);    
+    MultiFabPhysBC(pi,geom,0,1,PRES_BC_COMP);
     
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
         // set normal velocity of physical domain boundaries
@@ -378,8 +378,8 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     FillRhoRhototGhost(rho_new,rhotot_new,geom);
 
     // average rho_new and rhotot_new to faces
-    AverageCCToFace(rho_new,rho_fc,0,nspecies,1,geom);
-    AverageCCToFace(rhotot_new,rhotot_fc_new,0,1,-1,geom);
+    AverageCCToFace(rho_new,rho_fc,0,nspecies,SPEC_BC_COMP,geom);
+    AverageCCToFace(rhotot_new,rhotot_fc_new,0,1,RHO_BC_COMP,geom);
     
     /*
     if (use_charged_fluid) {
@@ -404,7 +404,7 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     }
     
     // compute grad pi^{*,n+1}
-    ComputeGrad(pi,gradpi,0,0,1,0,geom);
+    ComputeGrad(pi,gradpi,0,0,1,PRES_BC_COMP,geom);
 
     /*
     if (barodiffusion_type == 2) {
@@ -573,7 +573,7 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     // pressure ghost cells
     pi.FillBoundary(geom.periodicity());
-    MultiFabPhysBC(pi,geom,0,1,0);    
+    MultiFabPhysBC(pi,geom,0,1,PRES_BC_COMP);
     
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
         // set normal velocity of physical domain boundaries

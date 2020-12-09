@@ -196,7 +196,7 @@ void main_driver(const char* argv)
         // (11) Cx
         // (12) Cy
         // (13) Cz
-        particleMeans.define(bc, dmap, 14, 0);
+        particleMeans.define(bc, dmap, 14+nspecies, 0);
         particleMeans.setVal(0.);
         
         // Variables (C++ index)
@@ -218,7 +218,7 @@ void main_driver(const char* argv)
         // (15) Cx
         // (16) Cy
         // (17) Cz 
-        particleVars.define(bc, dmap, 18, 0);
+        particleVars.define(bc, dmap, 18+nspecies, 0);
         particleVars.setVal(0.);
 
         //Cell centred es potential
@@ -437,7 +437,7 @@ void main_driver(const char* argv)
             // if particle count is negative, we instead compute the number of particles based on particle density and particle_neff
             ionParticle[i].total = (int)amrex::Math::ceil(particle_n0[i]*domainVol/particle_neff);
             // adjust number of particles up so there is the same number per box  
-            ionParticle[i].ppb = (int)amrex::Math::ceil((double)ionParticle[i].total/(double)ba.size());
+            ionParticle[i].ppb = (double)ionParticle[i].total/(double)ba.size();
             //ionParticle[i].total = ionParticle[i].ppb*ba.size();
             ionParticle[i].n0 = ionParticle[i].total/domainVol;
 
@@ -459,7 +459,7 @@ void main_driver(const char* argv)
     Print() << "Sim particles per cell: " << simParticles/totalCollisionCells << "\n";
 
     // see the variable list used above above for particleMeans
-    MultiFab particleInstant(bc, dmap, 14, 0);
+    MultiFab particleInstant(bc, dmap, 14+nspecies, 0);
     
     //-----------------------------
     //  Hydro setup
@@ -675,7 +675,12 @@ void main_driver(const char* argv)
 
     if (restart < 0 && particle_restart < 0) {
         // create particles
-        particles.InitParticles(ionParticle, dxp);
+        if (sr_tog == 4) {
+            particles.InitParticlesFromFile(ionParticle, dxp);
+        }
+        else {
+            particles.InitParticles(ionParticle, dxp);
+        }
     }
     else {
         ReadCheckPointParticles(particles, ionParticle, dxp);
@@ -810,7 +815,9 @@ void main_driver(const char* argv)
     remove("bulkFlowEst");
     //Time stepping loop
 
+
     dt = dt*1e-5;
+
     for (int istep=step; istep<=max_step; ++istep) {
 
         // timer for time step
@@ -849,7 +856,7 @@ void main_driver(const char* argv)
 
         if(istep == 1)
         {
-            //particles.SetPosition(1, prob_hi[0]*0.4, prob_hi[1]*0.5, prob_hi[2]*0.4);
+            //particles.SetPosition(1, prob_hi[0]*0.42, prob_hi[1]*(1.0/128.0), prob_hi[2]*0.42);
             //particles.SetPosition(2, prob_hi[0]*0.1, prob_hi[1]*0.5, prob_hi[2]*0.5);
            
         }
@@ -876,6 +883,13 @@ void main_driver(const char* argv)
             // set velx/y/z and forcex/y/z for each particle to zero
             particles.ResetMarkers(0);
         }
+
+//        Real origin[3];
+//        origin[0] = prob_hi[0]/2.0;
+//        origin[1] = prob_hi[1]/2.0;
+//        origin[2] = prob_hi[2]/2.0;
+
+        particles.forceFunction();
 
         // sr_tog is short range forces
         // es_tog is electrostatic solve (0=off, 1=Poisson, 2=Pairwise, 3=P3M)
@@ -987,6 +1001,7 @@ void main_driver(const char* argv)
 
             // compute g(r)
             particles.RadialDistribution(simParticles, istep, ionParticle);
+            //particles.potentialDistribution(simParticles, istep, ionParticle);
 
             // timer
             Real time_PC2 = ParallelDescriptor::second() - time_PC1;
@@ -1104,8 +1119,6 @@ void main_driver(const char* argv)
 
         amrex::Print() << "Curent     FAB megabyte spread across MPI nodes: ["
                        << min_fab_megabytes << " ... " << max_fab_megabytes << "]\n";
-
-        //particles.PrintParticles(); 
         
     }
     ///////////////////////////////////////////

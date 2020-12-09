@@ -1,34 +1,40 @@
 #include "common_functions.H"
+#include "InhomogeneousBCVal.H"
 
-
-// Fills in all ghost cells to the same value, which is the value AT the boundary.
+// Ghost cell filling routine.
+// Fills in ONE ghost cells to the value ON the boundary.
 // FOEXTRAP uses boundary conditions (Neumann) and 1 interior points.
 // EXT_DIR copies the supplied Dirichlet condition into the ghost cells.
-void MultiFabPhysBC(MultiFab& phi, const Geometry& geom, int scomp, int ncomp, int varType) {
+void MultiFabPhysBC(MultiFab& phi, const Geometry& geom, int scomp, int ncomp, int bccomp, const Real& time) {
 
     BL_PROFILE_VAR("MultiFabPhysBC()",MultiFabPhysBC);
     
-    // varType definitions are in BCPhysToMath.cpp
+    // bccomp definitions are in BCPhysToMath.cpp
     
-    if (geom.isAllPeriodic()) {
+    if (geom.isAllPeriodic() || phi.nGrow() == 0) {
         return;
     }
 
     // Physical Domain
     Box dom(geom.Domain());
 
-    int ng = phi.nGrow();
-    
-    Vector<int> bc_lo(AMREX_SPACEDIM);
-    Vector<int> bc_hi(AMREX_SPACEDIM);
+    GpuArray<Real,3> dx;
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        dx[d] = geom.CellSize(d);
+    }
+    if (AMREX_SPACEDIM == 2) {
+        dx[2] = cell_depth;
+    }
 
     // compute mathematical boundary conditions
-    BCPhysToMath(varType,bc_lo,bc_hi);
+    Vector<int> bc_lo(AMREX_SPACEDIM);
+    Vector<int> bc_hi(AMREX_SPACEDIM);
+    BCPhysToMath(bccomp,bc_lo,bc_hi);
 
     for (MFIter mfi(phi, TilingIfNotGPU()); mfi.isValid(); ++mfi) {
 
         // one ghost cell
-        Box bx = mfi.growntilebox(ng);
+        Box bx = mfi.growntilebox(1);
 
         const Array4<Real>& data = phi.array(mfi);
 
@@ -43,11 +49,14 @@ void MultiFabPhysBC(MultiFab& phi, const Geometry& geom, int scomp, int ncomp, i
         int hi = dom.bigEnd(0);
         
         if (bx.smallEnd(0) < lo) {
+            Real x = prob_lo[0];
             if (bc_lo[0] == FOEXTRAP) {
                 amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (i < lo) {
-                        data(i,j,k,scomp+n) = data(lo,j,k,scomp+n);
+                        Real y = prob_lo[1] + (j+0.5)*dx[1];
+                        Real z = prob_lo[2] + (k+0.5)*dx[2];
+                        data(i,j,k,scomp+n) = data(lo,j,k,scomp+n) - 0.5*dx[0]*InhomogeneousBCVal(bccomp+n,x,y,z,time);
                     }
                 });
             }
@@ -55,18 +64,23 @@ void MultiFabPhysBC(MultiFab& phi, const Geometry& geom, int scomp, int ncomp, i
                 amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (i < lo) {
-                        data(i,j,k,scomp+n) = 0.;
+                        Real y = prob_lo[1] + (j+0.5)*dx[1];
+                        Real z = prob_lo[2] + (k+0.5)*dx[2];
+                        data(i,j,k,scomp+n) = InhomogeneousBCVal(bccomp+n,x,y,z,time);
                     }
                 });
             }
         }
         
         if (bx.bigEnd(0) > hi) {
+            Real x = prob_hi[0];
             if (bc_hi[0] == FOEXTRAP) {
                 amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (i > hi) {
-                        data(i,j,k,scomp+n) = data(hi,j,k,scomp+n);
+                        Real y = prob_lo[1] + (j+0.5)*dx[1];
+                        Real z = prob_lo[2] + (k+0.5)*dx[2];
+                        data(i,j,k,scomp+n) = data(hi,j,k,scomp+n) - 0.5*dx[0]*InhomogeneousBCVal(bccomp+n,x,y,z,time);
                     }
                 });
             }
@@ -74,7 +88,9 @@ void MultiFabPhysBC(MultiFab& phi, const Geometry& geom, int scomp, int ncomp, i
                 amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (i > hi) {
-                        data(i,j,k,scomp+n) = 0.;
+                        Real y = prob_lo[1] + (j+0.5)*dx[1];
+                        Real z = prob_lo[2] + (k+0.5)*dx[2];
+                        data(i,j,k,scomp+n) = InhomogeneousBCVal(bccomp+n,x,y,z,time);
                     }
                 });
             }
@@ -88,11 +104,14 @@ void MultiFabPhysBC(MultiFab& phi, const Geometry& geom, int scomp, int ncomp, i
         hi = dom.bigEnd(1);
         
         if (bx.smallEnd(1) < lo) {
+            Real y = prob_lo[1];
             if (bc_lo[1] == FOEXTRAP) {
                 amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (j < lo) {
-                        data(i,j,k,scomp+n) = data(i,lo,k,scomp+n);
+                        Real x = prob_lo[0] + (i+0.5)*dx[0];
+                        Real z = prob_lo[2] + (k+0.5)*dx[2];
+                        data(i,j,k,scomp+n) = data(i,lo,k,scomp+n) - 0.5*dx[1]*InhomogeneousBCVal(bccomp+n,x,y,z,time);;
                     }
                 });
             }
@@ -100,18 +119,23 @@ void MultiFabPhysBC(MultiFab& phi, const Geometry& geom, int scomp, int ncomp, i
                 amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (j < lo) {
-                        data(i,j,k,scomp+n) = 0.;
+                        Real x = prob_lo[0] + (i+0.5)*dx[0];
+                        Real z = prob_lo[2] + (k+0.5)*dx[2];
+                        data(i,j,k,scomp+n) = InhomogeneousBCVal(bccomp+n,x,y,z,time);
                     }
                 });
             }
         }
 
         if (bx.bigEnd(1) > hi) {
+            Real y = prob_hi[1];
             if (bc_hi[1] == FOEXTRAP) {
                 amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (j > hi) {
-                        data(i,j,k,scomp+n) = data(i,hi,k,scomp+n);
+                        Real x = prob_lo[0] + (i+0.5)*dx[0];
+                        Real z = prob_lo[2] + (k+0.5)*dx[2];
+                        data(i,j,k,scomp+n) = data(i,hi,k,scomp+n) - 0.5*dx[1]*InhomogeneousBCVal(bccomp+n,x,y,z,time);
                     }
                 });
             }
@@ -119,7 +143,9 @@ void MultiFabPhysBC(MultiFab& phi, const Geometry& geom, int scomp, int ncomp, i
                 amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (j > hi) {
-                        data(i,j,k,scomp+n) = 0.;
+                        Real x = prob_lo[0] + (i+0.5)*dx[0];
+                        Real z = prob_lo[2] + (k+0.5)*dx[2];
+                        data(i,j,k,scomp+n) = InhomogeneousBCVal(bccomp+n,x,y,z,time);
                     }
                 });
             }
@@ -134,11 +160,14 @@ void MultiFabPhysBC(MultiFab& phi, const Geometry& geom, int scomp, int ncomp, i
         hi = dom.bigEnd(2);
         
         if (bx.smallEnd(2) < lo) {
+            Real z = prob_lo[2];
             if (bc_lo[2] == FOEXTRAP) {
                 amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (k < lo) {
-                        data(i,j,k,scomp+n) = data(i,j,lo,scomp+n);
+                        Real x = prob_lo[0] + (i+0.5)*dx[0];
+                        Real y = prob_lo[1] + (j+0.5)*dx[1];
+                        data(i,j,k,scomp+n) = data(i,j,lo,scomp+n) - 0.5*dx[2]*InhomogeneousBCVal(bccomp+n,x,y,z,time);;
                     }
                 });
             }
@@ -146,18 +175,23 @@ void MultiFabPhysBC(MultiFab& phi, const Geometry& geom, int scomp, int ncomp, i
                 amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (k < lo) {
-                        data(i,j,k,scomp+n) = 0.;
+                        Real x = prob_lo[0] + (i+0.5)*dx[0];
+                        Real y = prob_lo[1] + (j+0.5)*dx[1];
+                        data(i,j,k,scomp+n) = InhomogeneousBCVal(bccomp+n,x,y,z,time);
                     }
                 });
             }
         }
 
         if (bx.bigEnd(2) > hi) {
+            Real z= prob_hi[2];
             if (bc_hi[2] == FOEXTRAP) {
                 amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (k > hi) {
-                        data(i,j,k,scomp+n) = data(i,j,hi,scomp+n);
+                        Real x = prob_lo[0] + (i+0.5)*dx[0];
+                        Real y = prob_lo[1] + (j+0.5)*dx[1];
+                        data(i,j,k,scomp+n) = data(i,j,hi,scomp+n) - 0.5*dx[2]*InhomogeneousBCVal(bccomp+n,x,y,z,time);
                     }
                 });
             }
@@ -165,7 +199,9 @@ void MultiFabPhysBC(MultiFab& phi, const Geometry& geom, int scomp, int ncomp, i
                 amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (k > hi) {
-                        data(i,j,k,scomp+n) = 0.;
+                        Real x = prob_lo[0] + (i+0.5)*dx[0];
+                        Real y = prob_lo[1] + (j+0.5)*dx[1];
+                        data(i,j,k,scomp+n) = InhomogeneousBCVal(bccomp+n,x,y,z,time);
                     }
                 });
             }
@@ -175,10 +211,11 @@ void MultiFabPhysBC(MultiFab& phi, const Geometry& geom, int scomp, int ncomp, i
     } // end MFIter
 }
 
-// Set the value of normal velocity on walls to zero
-// Set the value of normal ghost cells to the inverse reflection of the interior
+// Boundary and ghost cell filling routine for normal velocities.
+// Set the value of normal velocity on walls to zero.
+// Set the value of normal ghost cells to the inverse reflection of the interior.
 // We fill all the ghost cells - they are needed for Perskin kernels and
-// to avoid intermediate NaN propagation in BDS
+// to avoid intermediate NaN propagation in BDS.
 void MultiFabPhysBCDomainVel(MultiFab& vel, const Geometry& geom, int dim) {
 
     BL_PROFILE_VAR("MultiFabPhysBCDomainVel()",MultiFabPhysBCDomainVel);
@@ -304,9 +341,10 @@ void MultiFabPhysBCDomainVel(MultiFab& vel, const Geometry& geom, int dim) {
     } // end MFIter
 }
 
+// Ghost cell filling routine for transverse velocities.
 // Set the value of tranverse ghost cells to +/- the reflection of the interior
-// (+ for slip walls, - for no-slip)
-// We fill all the ghost cells - they are needed for Perskin kernels
+// (+ for slip walls, - for no-slip).
+// We fill all the ghost cells - they are needed for Perskin kernels.
 void MultiFabPhysBCMacVel(MultiFab& vel, const Geometry& geom, int dim) {
 
     BL_PROFILE_VAR("MultiFabPhysBCMacVel()",MultiFabPhysBCMacVel);
@@ -403,7 +441,9 @@ void MultiFabPhysBCMacVel(MultiFab& vel, const Geometry& geom, int dim) {
     } // end MFIter
 }
 
-// Set the value on walls to zero
+// Boundary filling routine for normal velocity.
+// Set the value of normal velocity on walls to zero.
+// Works for slip and no-slip (bc_vel_lo/hi = 1 or 2).
 void ZeroEdgevalWalls(std::array<MultiFab, AMREX_SPACEDIM>& edge, const Geometry& geom, int scomp, int ncomp) {
 
     BL_PROFILE_VAR("ZeroEdgevalWalls()",ZeroEdgevalWalls);
@@ -522,7 +562,9 @@ void ZeroEdgevalWalls(std::array<MultiFab, AMREX_SPACEDIM>& edge, const Geometry
 #endif
 }
 
-// Set the value on all physical boundaries (non periodic) to zero
+// Boundary filling routine for normal velocity.
+// Set the value of normal velocity on all physical (i.e. non-periodic) walls to zero.
+// Checks that bc_vel_lo/hi != -1
 void ZeroEdgevalPhysical(std::array<MultiFab, AMREX_SPACEDIM>& edge, const Geometry& geom, int scomp, int ncomp) {
 
     BL_PROFILE_VAR("ZeroEdgevalPhysical()",ZeroEdgevalPhysical);
@@ -641,15 +683,15 @@ void ZeroEdgevalPhysical(std::array<MultiFab, AMREX_SPACEDIM>& edge, const Geome
 #endif
 }
 
+// Ghost cell filling routine.
 // Fill all ghost cells for a component of the electric field
-// (note efieldCC is cell-centerd with only 1 component,
+// by extrapolating values to the ghost cell-centers (useful for Perskin kernels)
+// Note this is not the same as extrapolating values to the boundary.
+// (note the input MultiFab is cell-centerd with only 1 component,
 //  so this needs to be called in a loop over all directions)
 // We test on bc_es_lo/hi, which are bc's for phi (not E)
 // 1 = Dirichlet phi -> reflect interior values of E
 // 2 = Neumann phi -> reflect and invert interior values of E
-// this is different from the generic PhysBC routines since it computes
-// values extrapolted to the boundary (useful for Perskin kernel interpolation)
-// rather than fill ghost cells with values ON the boundary
 void MultiFabElectricBC(MultiFab& efieldCC, const Geometry& geom) {
     
     BL_PROFILE_VAR("MultiFabElectricBC()",MultiFabElectricBC);
@@ -745,16 +787,17 @@ void MultiFabElectricBC(MultiFab& efieldCC, const Geometry& geom) {
     } // end MFIter
 }
 
-// Fill one ghost cell for a component of the electric potential
-// we test on bc_es_lo/hi
-// 2 point stencil involving boundary value and interior value
+// Ghost cell filling routine.
+// This routine fills ghost cells for electric potential with the value
+// extrapolated TO the ghost cell-center; we test on bc_es_lo/hi.
 // 1 = Dirichlet
 // 2 = Neumann
-// This routine fills ghost cells with the value extrapolated TO the ghost cell-center
-// This is NOT the same as filling the ghost cell with the value on the boundary
-// The Poisson solver needs a separate routine to fill ghost cells with the value ON
-// the boundary for inhomogeneous Neumann and inhomogeneous Dirichlet; for this we
-// use MultiFabPotentialBC_solver
+// Uses a 2 point stencil involving boundary value and interior value.
+// This is NOT the same as filling the ghost cell with the value on the boundary.
+// (not implemented yet)
+// This is NOT the same as filling the ghost cell with the Dirichlet or
+// Neumann value on the boundary.
+// (the Poisson solver needs this; MultifFabPotentialBC_solver())
 void MultiFabPotentialBC(MultiFab& phi, const Geometry& geom) {
     
     BL_PROFILE_VAR("MultiFabPotentialBC()",MultiFabPotentialBC);
@@ -767,8 +810,7 @@ void MultiFabPotentialBC(MultiFab& phi, const Geometry& geom) {
 
     Box dom(geom.Domain());
 
-    const Real* dx_vec  = geom.CellSize();
-    GpuArray<Real,AMREX_SPACEDIM> dx{AMREX_D_DECL(dx_vec[0], dx_vec[1], dx_vec[2])};
+    GpuArray<Real,AMREX_SPACEDIM> dx = geom.CellSizeArray();
 
     for (MFIter mfi(phi); mfi.isValid(); ++mfi) {
 
@@ -922,12 +964,15 @@ void MultiFabPotentialBC(MultiFab& phi, const Geometry& geom) {
     } // end MFIter
 }
 
-// Fill one ghost cell for a component of the electric potential
-// This routine fills the ghost cell with the value on the boundary, whether it is Dirichlet or Neumann
-// It works for inhomogeneous Neumann and inhomogeneous Dirichlet
-// This is what the Poisson solver expects
-// This routine is not to be confused with MultiFabPotentialBC, which fill ghost
-// values extrapolated TO the ghost cell-center
+// Ghost cell filling routine.
+// Fill one ghost cell for a component of the electric potential.
+// This routine fills the ghost cell with the numerical value of the
+// (possibly inhomogeneous) Dirichlet or Neumann value on the boundary.
+// This is what the Poisson solver expects.
+// This is NOT the same as filling the ghost cell with the value on the boundary.
+// (not implemented yet)
+// This is NOT the same as filling the ghost cell with the value extrapolated to the ghost cell-center
+// (implemented in MultiFabPotentialBC())
 void MultiFabPotentialBC_solver(MultiFab& phi, const Geometry& geom) {
 
     BL_PROFILE_VAR("MultiFabPotentialBC_solver()",MultiFabPotentialBC_solver);
@@ -1038,346 +1083,3 @@ void MultiFabPotentialBC_solver(MultiFab& phi, const Geometry& geom) {
     } // end MFIter
 }
 
-// positive-fold-add or negative-fold-add charge from ghost cells ghost cells into valid region
-// for Dirichlet potential (bc_es==1), negative-fold-add
-// for Neumann potential (bc_es==2), positive-fold-add
-// charge is cell-centered with 1 component
-// note for wall-wall corners, the folding is also done in ghost cells so we get corner charges back in
-void MultiFabPhysBCCharge(MultiFab& charge, const Geometry& geom) {
-    
-    BL_PROFILE_VAR("MultiFabPhysBCCharge()",MultiFabPhysBCCharge);
-    
-#if (AMREX_SPACEDIM >= 2)
-    
-    if (geom.isAllPeriodic()) {
-        return;
-    }
-
-    Box dom(geom.Domain());
-
-    int ng = charge.nGrow();
-
-    for (MFIter mfi(charge); mfi.isValid(); ++mfi) {
-
-        Box bx = mfi.growntilebox(ng);
-
-        const Array4<Real>& data = charge.array(mfi);
-
-        //___________________________________________________________________________
-        // Apply x-physbc to data
-        
-        // bc_es check is to see if we have a physical boundary condition
-        // bx/dom comparison is to see if the grid touches a wall 
-        if ((bc_es_lo[0] == 1 || bc_es_lo[0] == 2) && (bx.smallEnd(0) <= dom.smallEnd(0))) {
-            const Real fac = (bc_es_lo[0] == 1) ? -1. : 1.;
-            amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-            {
-                if (i >= 0 && i < ng) {
-                    data(i,j,k) = data(i,j,k) + fac*data(-i-1,j,k);
-                }
-            });
-        }
-
-        if ((bc_es_lo[0] == 1 || bc_es_hi[0] == 2) && (bx.bigEnd(0) >= dom.bigEnd(0))) {
-            const Real fac = (bc_es_hi[0] == 1) ? -1. : 1.;
-            amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-            {
-                if (i <= dom.bigEnd(0) && i > dom.bigEnd(0)-ng) {
-                    data(i,j,k) = data(i,j,k) + fac*data(2*dom.bigEnd(0)-i+1,j,k);
-                }
-            });
-        }
-
-        //___________________________________________________________________________
-        // Apply y-physbc to data
-        if ((bc_es_lo[1] == 1 || bc_es_lo[1] == 2) && (bx.smallEnd(1) <= dom.smallEnd(1))) {
-            const Real fac = (bc_es_lo[1] == 1) ? -1. : 1.;
-            amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-            {
-                if (j >= 0 && j < ng) {
-                    data(i,j,k) = data(i,j,k) + fac*data(i,-j-1,k);
-                }
-            });
-        }
-
-        if ((bc_es_hi[1] == 1 || bc_es_hi[1] == 2) && (bx.bigEnd(1) >= dom.bigEnd(1))) {
-            const Real fac = (bc_es_hi[1] == 1) ? -1. : 1.;
-            amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-            {
-                if (j <= dom.bigEnd(1) && j > dom.bigEnd(1)-ng) {
-                    data(i,j,k) = data(i,j,k) + fac*data(i,2*dom.bigEnd(1)-j+1,k);
-                }
-            });
-        }
-#endif
-
-        //___________________________________________________________________________
-        // Apply z-physbc to data
-#if (AMREX_SPACEDIM >= 3)
-        if ((bc_es_lo[2] == 1 || bc_es_lo[2] == 2) && (bx.smallEnd(2) <= dom.smallEnd(2))) {
-            const Real fac = (bc_es_lo[2] == 1) ? -1. : 1.;
-            amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-            {
-                if (k >= 0 && k < ng) {
-                    data(i,j,k) = data(i,j,k) + fac*data(i,j,-k-1);
-                }
-            });
-        }
-
-        if ((bc_es_hi[2] == 1 || bc_es_hi[2] == 2) && (bx.bigEnd(2) >= dom.bigEnd(2))) {
-            const Real fac = (bc_es_hi[2] == 1) ? -1. : 1.;
-            amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-            {
-                if (k <= dom.bigEnd(2) && k > dom.bigEnd(2)-ng) {
-                    data(i,j,k) = data(i,j,k) + fac*data(i,j,2*dom.bigEnd(2)-k+1);
-                }
-            });
-        }
-#endif
-        
-    } // end MFIter
-}
-
-// Fill all ghost cells for a component of the normal stress
-// note "stress" is face-centered with direction "dim"
-// We test on bc_vel_lo/hi
-// 1 =    slip -> leave value on wall alone, add in force from ghost
-// 2 = no slip -> set value on wall to zero, add in negative force from ghost cells
-void MultiFabPhysBCDomainStress(MultiFab& stress, const Geometry& geom, int dim) {
-    
-    BL_PROFILE_VAR("ultiFabPhysBCDomainStress()",ultiFabPhysBCDomainStress);
-    
-#if (AMREX_SPACEDIM >= 2)
-    
-    if (geom.isAllPeriodic()) {
-        return;
-    }
-
-    Box dom(geom.Domain());
-
-    int ng = stress.nGrow();
-
-    for (MFIter mfi(stress); mfi.isValid(); ++mfi) {
-
-        Box bx = mfi.growntilebox(ng);
-
-        const Array4<Real>& data = stress.array(mfi);
-
-        //___________________________________________________________________________
-        // Apply x-physbc to data
-        
-        if (dim == 0) {
-        
-            // dim == 0 means we are doing x-stress on x-faces
-            // bc_vel check is to see if we have a wall bc
-            // bx/dom comparison is to see if the grid touches a wall
-            if ((bc_vel_lo[0] == 1 || bc_vel_lo[0] == 2) && (bx.smallEnd(0) <= dom.smallEnd(0))) {
-                const Real fac = (bc_vel_lo[0] == 1) ? 1. : -1.;
-                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-                {
-                    if (i == dom.smallEnd(0)) {
-                        data(i,j,k) = 0.5*(1.+fac)*data(i,j,k);
-                    }
-                    else if (i > 0 && i <= ng) {
-                        data(i,j,k) += fac*data(-i,j,k);
-                    }
-                });
-            }
-            
-            if ((bc_vel_lo[0] == 1 || bc_vel_hi[0] == 2) && (bx.bigEnd(0) >= dom.bigEnd(0)+1)) {
-                const Real fac = (bc_vel_hi[0] == 1) ? 1. : -1.;
-                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-                {
-                    if (i == dom.bigEnd(0)+1) {
-                        data(i,j,k) = 0.5*(1.+fac)*data(i,j,k);
-                    }
-                    else if (i < dom.bigEnd(0)+1 && i >= dom.bigEnd(0)+1-ng) {
-                        data(i,j,k) += fac*data(2*dom.bigEnd(0)+2-i,j,k);
-                    }
-                });
-            }
-
-        }
-
-        //___________________________________________________________________________
-        // Apply y-physbc to data
-
-        if (dim == 1) {
-            
-            if ((bc_vel_lo[1] == 1 || bc_vel_lo[1] == 2) && (bx.smallEnd(1) <= dom.smallEnd(1))) {
-                const Real fac = (bc_vel_lo[1] == 1) ? 1. : -1.;
-                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-                {
-                    if (j == dom.smallEnd(1)) {
-                        data(i,j,k) = 0.5*(1.+fac)*data(i,j,k);
-                    }
-                    else if (j > 0 && j <= ng) {
-                        data(i,j,k) += fac*data(i,-j,k);
-                    }
-                });
-            }
-
-            if ((bc_vel_hi[1] == 1 || bc_vel_hi[1] == 2) && (bx.bigEnd(1) >= dom.bigEnd(1)+1)) {
-                const Real fac = (bc_vel_hi[1] == 1) ? 1. : -1.;
-                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-                {
-                    if (j == dom.bigEnd(1)+1) {
-                        data(i,j,k) = 0.5*(1.+fac)*data(i,j,k);
-                    }
-                    else if (j < dom.bigEnd(1)+1 && j >= dom.bigEnd(1)+1-ng) {
-                        data(i,j,k) += fac*data(i,2*dom.bigEnd(1)+2-j,k);
-                    }
-                });
-            }
-            
-        }
-#endif
-        
-        //___________________________________________________________________________
-        // Apply z-physbc to data
-#if (AMREX_SPACEDIM >= 3)
-
-        if (dim == 2) {
-        
-            if ((bc_vel_lo[2] == 1 || bc_vel_lo[2] == 2) && (bx.smallEnd(2) <= dom.smallEnd(2))) {
-                const Real fac = (bc_vel_lo[2] == 1) ? 1. : -1.;
-                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-                {
-                    if (k == dom.smallEnd(2)) {
-                        data(i,j,k) = 0.5*(1.+fac)*data(i,j,k);
-                    }
-                    else if (k > 0 && k <= ng) {
-                        data(i,j,k) += fac*data(i,j,-k);
-                    }
-                });
-            }
-            
-            if ((bc_vel_hi[2] == 1 || bc_vel_hi[2] == 2) && (bx.bigEnd(2) >= dom.bigEnd(2)+1)) {
-                const Real fac = (bc_vel_hi[2] == 1) ? 1. : -1.;
-                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-                {
-                    if (k == dom.bigEnd(2)+1) {
-                        data(i,j,k) = 0.5*(1.+fac)*data(i,j,k);
-                    }
-                    else if (k < dom.bigEnd(2)+1 && k >= dom.bigEnd(2)+1-ng) {
-                        data(i,j,k) += fac*data(i,j,2*dom.bigEnd(2)+2-k);
-                    }
-                });
-            }
-
-        }
-#endif
-        
-    } // end MFIter
-}
-
-void MultiFabPhysBCMacStress(MultiFab& stress, const Geometry& geom, int dim) {
-    
-    BL_PROFILE_VAR("ultiFabPhysBCMacStress()",ultiFabPhysBCMacStress);
-    
-#if (AMREX_SPACEDIM >= 2)
-    
-    if (geom.isAllPeriodic()) {
-        return;
-    }
-
-    Box dom(geom.Domain());
-
-    int ng = stress.nGrow();
-
-    for (MFIter mfi(stress); mfi.isValid(); ++mfi) {
-
-        Box bx = mfi.growntilebox(ng);
-
-        const Array4<Real>& data = stress.array(mfi);
-
-        //___________________________________________________________________________
-        // Apply x-physbc to data
-        
-        if (dim != 0) {
-        
-            // dim != 0 means we are either y- or z-stress on x-faces
-            // bc_vel check is to see if we have a wall bc
-            // bx/dom comparison is to see if the grid touches a wall
-            if ((bc_vel_lo[0] == 1 || bc_vel_lo[0] == 2) && (bx.smallEnd(0) <= dom.smallEnd(0))) {
-                const Real fac = (bc_vel_lo[0] == 1) ? 1. : -1.;
-                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-                {
-                    if (i >= 0 && i < ng) {
-                        data(i,j,k) += fac*data(-1-i,j,k);
-                    }
-                });
-            }
-            
-            if ((bc_vel_lo[0] == 1 || bc_vel_hi[0] == 2) && (bx.bigEnd(0) >= dom.bigEnd(0))) {
-                const Real fac = (bc_vel_hi[0] == 1) ? 1. : -1.;
-                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-                {
-                    if (i <= dom.bigEnd(0) && i > dom.bigEnd(0)-ng) {
-                        data(i,j,k) += fac*data(2*dom.bigEnd(0)+1-i,j,k);
-                    }
-                });
-            }
-
-        }
-
-        //___________________________________________________________________________
-        // Apply y-physbc to data
-
-        if (dim != 1) {
-            
-            if ((bc_vel_lo[1] == 1 || bc_vel_lo[1] == 2) && (bx.smallEnd(1) <= dom.smallEnd(1))) {
-                const Real fac = (bc_vel_lo[1] == 1) ? 1. : -1.;
-                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-                {
-                    if (j >= 0 && j < ng) {
-                        data(i,j,k) += fac*data(i,-1-j,k);
-                    }
-                });
-            }
-
-            if ((bc_vel_hi[1] == 1 || bc_vel_hi[1] == 2) && (bx.bigEnd(1) >= dom.bigEnd(1))) {
-                const Real fac = (bc_vel_hi[1] == 1) ? 1. : -1.;
-                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-                {
-                    if (j <= dom.bigEnd(1) && j > dom.bigEnd(1)-ng) {
-                        data(i,j,k) += fac*data(i,2*dom.bigEnd(1)+1-j,k);
-                    }
-                });
-            }
-            
-        }
-#endif
-        
-        //___________________________________________________________________________
-        // Apply z-physbc to data
-#if (AMREX_SPACEDIM >= 3)
-
-        if (dim != 2) {
-        
-            if ((bc_vel_lo[2] == 1 || bc_vel_lo[2] == 2) && (bx.smallEnd(2) <= dom.smallEnd(2))) {
-
-                const Real fac = (bc_vel_lo[2] == 1) ? 1. : -1.;
-                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-                {
-                    if (k >= 0 && k < ng) {
-                        data(i,j,k) += fac*data(i,j,-1-k);
-                    }
-                });
-            }
-            
-            if ((bc_vel_hi[2] == 1 || bc_vel_hi[2] == 2) && (bx.bigEnd(2) >= dom.bigEnd(2))) {
-                const Real fac = (bc_vel_hi[2] == 1) ? 1. : -1.;                
-                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-                {
-                    if (k <= dom.bigEnd(2) && k > dom.bigEnd(2)-ng) {
-                        data(i,j,k) += fac*data(i,j,2*dom.bigEnd(2)+1-k);
-                    }
-                });
-            }
-
-        }
-#endif
-        
-    } // end MFIter
-}

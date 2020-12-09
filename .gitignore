@@ -18,9 +18,9 @@ GRTAGS
 **/Backtrace.*
 
 ## All compiled programs
-*.gnu.*.ex
-*.ex
-dist
+**/*.gnu.*.ex
+**/*.o
+**/*.ex
 
 ## MacOS creates dynamic linker symbol files
 *.dSym
@@ -51,6 +51,5 @@ exec/**/*_H
 
 exec/**/*.png
 
-
-## Rendered videos
-*.mpeg
+## Output data
+exec/**/out

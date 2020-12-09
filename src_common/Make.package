@@ -6,6 +6,7 @@ CEXE_headers += common_functions.H
 CEXE_headers += common_functions_F.H
 CEXE_headers += common_namespace.H
 CEXE_headers += common_namespace_declarations.H
+CEXE_headers += InhomogeneousBCVal.H
 CEXE_headers += species.H
 
 CEXE_sources += BCPhysToMath.cpp
@@ -14,9 +15,9 @@ CEXE_sources += ComputeAverages.cpp
 CEXE_sources += ComputeBasicStats.cpp
 CEXE_sources += ComputeDivAndGrad.cpp
 CEXE_sources += Debug.cpp
-CEXE_sources += FindCoords.cpp
 CEXE_sources += FindNodalValues.cpp
 CEXE_sources += MultiFabPhysBC.cpp
+CEXE_sources += NormInnerProduct.cpp
 CEXE_sources += SqrtMF.cpp
 
 

@@ -125,8 +125,8 @@ all_dry = 0   ! set this to 1, and fluid_tog=0 for a dry simulation (use L=2e-6)
   ! for Neumann, the value is -/+ qtot/(eps*A)
   ! qtot is total charge in domain (qval*#ions)
   ! A is total surface area
-  potential_lo(1:3) = 0 -3433809121470.64 0
-  potential_hi(1:3) = 0  3433809121470.64 0
+  potential_lo(1:3) = 0 -6867618242941.29 0
+  potential_hi(1:3) = 0  6867618242941.29 0
   
 /
 

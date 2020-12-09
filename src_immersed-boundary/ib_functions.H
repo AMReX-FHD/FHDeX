@@ -8,18 +8,6 @@
 
 #include <IBParticleContainer.H>
 
-
-#ifndef _num_edge_
-#define _num_edge_
-#if (AMREX_SPACEDIM == 2)
-    const int NUM_EDGE = 1;
-#elif (AMREX_SPACEDIM == 3)
-    const int NUM_EDGE = 3;
-#endif
-#endif
-
-
-
 void InitializeImmbdyNamespace();
 void InitializeIBFlagellumNamespace();
 void InitializeIBColloidNamespace();

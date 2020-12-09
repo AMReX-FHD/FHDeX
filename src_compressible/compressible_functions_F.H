@@ -17,8 +17,7 @@ extern "C"
     void read_compressible_namelist (const char* inputs_file, const int length);
 
     // copy contents of compressible_params_module to C++ compressible namespace
-    void initialize_compressible_namespace(amrex::Real* bc_Yk, amrex::Real* bc_Xk,
-                                           int* plot_means, int* plot_vars);
+    void initialize_compressible_namespace(int* plot_means, int* plot_vars);
 
 ///////////////////////////
 
@@ -58,7 +57,18 @@ extern "C"
 
     void setup_bc();
 
-    void setup_cwall();
+    void setup_cwall(amrex::Real* bc_Yk_x_lo_in,
+                     amrex::Real* bc_Yk_x_hi_in,
+                     amrex::Real* bc_Yk_y_lo_in,
+                     amrex::Real* bc_Yk_y_hi_in,
+                     amrex::Real* bc_Yk_z_lo_in,
+                     amrex::Real* bc_Yk_z_hi_in,
+                     amrex::Real* bc_Xk_x_lo_in,
+                     amrex::Real* bc_Xk_x_hi_in,
+                     amrex::Real* bc_Xk_y_lo_in,
+                     amrex::Real* bc_Xk_y_hi_in,
+                     amrex::Real* bc_Xk_z_lo_in,
+                     amrex::Real* bc_Xk_z_hi_in);
 
     void get_energy(amrex::Real* energy, amrex::Real* massvec, const amrex::Real* temp);
 

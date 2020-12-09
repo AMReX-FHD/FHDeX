@@ -44,7 +44,7 @@ void ComputeDiv(MultiFab& div,
 
 // Computes gradient at cell faces of cell centred scalar
 void ComputeGrad(const MultiFab & phi_in, std::array<MultiFab, AMREX_SPACEDIM> & gphi,
-                 int start_incomp, int start_outcomp, int ncomp, int varType, const Geometry & geom,
+                 int start_incomp, int start_outcomp, int ncomp, int bccomp, const Geometry & geom,
                  int increment)
 {
     BL_PROFILE_VAR("ComputeGrad()",ComputeGrad);
@@ -56,7 +56,7 @@ void ComputeGrad(const MultiFab & phi_in, std::array<MultiFab, AMREX_SPACEDIM> &
     Vector<int> bc_hi(AMREX_SPACEDIM);
 
     // compute mathematical boundary conditions
-    BCPhysToMath(varType,bc_lo,bc_hi);
+    BCPhysToMath(bccomp,bc_lo,bc_hi);
 
     const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
 
@@ -100,7 +100,7 @@ void ComputeGrad(const MultiFab & phi_in, std::array<MultiFab, AMREX_SPACEDIM> &
                     amrex::ParallelFor(bx_x, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                     {
                         if (i == lo) {
-                            gphix(i,j,k,start_outcomp+n) = (phi(i,j,k,start_incomp+n)-phi(i-1,j,k,start_incomp+n)) / (2.*dx[0]);
+                            gphix(i,j,k,start_outcomp+n) = (phi(i,j,k,start_incomp+n)-phi(i-1,j,k,start_incomp+n)) / (0.5*dx[0]);
                         }
                     });
                 }
@@ -112,7 +112,7 @@ void ComputeGrad(const MultiFab & phi_in, std::array<MultiFab, AMREX_SPACEDIM> &
                     amrex::ParallelFor(bx_x, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                     {
                         if (i == hi) {
-                            gphix(i,j,k,start_outcomp+n) = (phi(i,j,k,start_incomp+n)-phi(i-1,j,k,start_incomp+n)) / (2.*dx[0]);
+                            gphix(i,j,k,start_outcomp+n) = (phi(i,j,k,start_incomp+n)-phi(i-1,j,k,start_incomp+n)) / (0.5*dx[0]);
                         }
                     });
                 }
@@ -124,7 +124,7 @@ void ComputeGrad(const MultiFab & phi_in, std::array<MultiFab, AMREX_SPACEDIM> &
                     amrex::ParallelFor(bx_y, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                     {
                         if (j == lo) {
-                            gphiy(i,j,k,start_outcomp+n) = (phi(i,j,k,start_incomp+n)-phi(i,j-1,k,start_incomp+n)) / (2.*dx[1]);
+                            gphiy(i,j,k,start_outcomp+n) = (phi(i,j,k,start_incomp+n)-phi(i,j-1,k,start_incomp+n)) / (0.5*dx[1]);
                         }
                     });
                 }
@@ -136,7 +136,7 @@ void ComputeGrad(const MultiFab & phi_in, std::array<MultiFab, AMREX_SPACEDIM> &
                     amrex::ParallelFor(bx_y, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                     {
                         if (j == hi) {
-                            gphiy(i,j,k,start_outcomp+n) = (phi(i,j,k,start_incomp+n)-phi(i,j-1,k,start_incomp+n)) / (2.*dx[1]);
+                            gphiy(i,j,k,start_outcomp+n) = (phi(i,j,k,start_incomp+n)-phi(i,j-1,k,start_incomp+n)) / (0.5*dx[1]);
                         }
                     });
                 }
@@ -149,7 +149,7 @@ void ComputeGrad(const MultiFab & phi_in, std::array<MultiFab, AMREX_SPACEDIM> &
                     amrex::ParallelFor(bx_z, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                     {
                         if (k == lo) {
-                            gphiz(i,j,k,start_outcomp+n) = (phi(i,j,k,start_incomp+n)-phi(i,j,k-1,start_incomp+n)) / (2.*dx[2]);
+                            gphiz(i,j,k,start_outcomp+n) = (phi(i,j,k,start_incomp+n)-phi(i,j,k-1,start_incomp+n)) / (0.5*dx[2]);
                         }
                     });
                 }
@@ -161,7 +161,7 @@ void ComputeGrad(const MultiFab & phi_in, std::array<MultiFab, AMREX_SPACEDIM> &
                     amrex::ParallelFor(bx_z, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                     {
                         if (k == hi) {
-                            gphiz(i,j,k,start_outcomp+n) = (phi(i,j,k,start_incomp+n)-phi(i,j,k-1,start_incomp+n)) / (2.*dx[2]);
+                            gphiz(i,j,k,start_outcomp+n) = (phi(i,j,k,start_incomp+n)-phi(i,j,k-1,start_incomp+n)) / (0.5*dx[2]);
                         }
                     });
                 }
@@ -195,7 +195,7 @@ void ComputeGrad(const MultiFab & phi_in, std::array<MultiFab, AMREX_SPACEDIM> &
                     amrex::ParallelFor(bx_x, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                     {
                         if (i == lo) {
-                            gphix(i,j,k,start_outcomp+n) += (phi(i,j,k,start_incomp+n)-phi(i-1,j,k,start_incomp+n)) / (2.*dx[0]);
+                            gphix(i,j,k,start_outcomp+n) += (phi(i,j,k,start_incomp+n)-phi(i-1,j,k,start_incomp+n)) / (0.5*dx[0]);
                         }
                     });
                 }
@@ -207,7 +207,7 @@ void ComputeGrad(const MultiFab & phi_in, std::array<MultiFab, AMREX_SPACEDIM> &
                     amrex::ParallelFor(bx_x, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                     {
                         if (i == hi) {
-                            gphix(i,j,k,start_outcomp+n) += (phi(i,j,k,start_incomp+n)-phi(i-1,j,k,start_incomp+n)) / (2.*dx[0]);
+                            gphix(i,j,k,start_outcomp+n) += (phi(i,j,k,start_incomp+n)-phi(i-1,j,k,start_incomp+n)) / (0.5*dx[0]);
                         }
                     });
                 }
@@ -219,7 +219,7 @@ void ComputeGrad(const MultiFab & phi_in, std::array<MultiFab, AMREX_SPACEDIM> &
                     amrex::ParallelFor(bx_y, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                     {
                         if (j == lo) {
-                            gphiy(i,j,k,start_outcomp+n) += (phi(i,j,k,start_incomp+n)-phi(i,j-1,k,start_incomp+n)) / (2.*dx[1]);
+                            gphiy(i,j,k,start_outcomp+n) += (phi(i,j,k,start_incomp+n)-phi(i,j-1,k,start_incomp+n)) / (0.5*dx[1]);
                         }
                     });
                 }
@@ -231,7 +231,7 @@ void ComputeGrad(const MultiFab & phi_in, std::array<MultiFab, AMREX_SPACEDIM> &
                     amrex::ParallelFor(bx_y, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                     {
                         if (j == hi) {
-                            gphiy(i,j,k,start_outcomp+n) += (phi(i,j,k,start_incomp+n)-phi(i,j-1,k,start_incomp+n)) / (2.*dx[1]);
+                            gphiy(i,j,k,start_outcomp+n) += (phi(i,j,k,start_incomp+n)-phi(i,j-1,k,start_incomp+n)) / (0.5*dx[1]);
                         }
                     });
                 }
@@ -244,7 +244,7 @@ void ComputeGrad(const MultiFab & phi_in, std::array<MultiFab, AMREX_SPACEDIM> &
                     amrex::ParallelFor(bx_z, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                     {
                         if (k == lo) {
-                            gphiz(i,j,k,start_outcomp+n) += (phi(i,j,k,start_incomp+n)-phi(i,j,k-1,start_incomp+n)) / (2.*dx[2]);
+                            gphiz(i,j,k,start_outcomp+n) += (phi(i,j,k,start_incomp+n)-phi(i,j,k-1,start_incomp+n)) / (0.5*dx[2]);
                         }
                     });
                 }
@@ -256,7 +256,7 @@ void ComputeGrad(const MultiFab & phi_in, std::array<MultiFab, AMREX_SPACEDIM> &
                     amrex::ParallelFor(bx_z, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                     {
                         if (k == hi) {
-                            gphiz(i,j,k,start_outcomp+n) += (phi(i,j,k,start_incomp+n)-phi(i,j,k-1,start_incomp+n)) / (2.*dx[2]);
+                            gphiz(i,j,k,start_outcomp+n) += (phi(i,j,k,start_incomp+n)-phi(i,j,k-1,start_incomp+n)) / (0.5*dx[2]);
                         }
                     });
                 }
@@ -290,6 +290,35 @@ void ComputeCentredGrad(const MultiFab & phi,
             AMREX_D_TERM(gphix_fab(i,j,k) = (phi_fab(i+1,j,k) - phi_fab(i-1,j,k) ) / (2.*dx[0]);,
                          gphiy_fab(i,j,k) = (phi_fab(i,j+1,k) - phi_fab(i,j-1,k) ) / (2.*dx[1]);,
                          gphiz_fab(i,j,k) = (phi_fab(i,j,k+1) - phi_fab(i,j,k-1) ) / (2.*dx[2]););
+        });
+    }
+}
+
+// Computes gradient at cell centres from face centred data
+// Outputs to 3 different components in a cell-centered MultiFab
+void ComputeCentredGradFC(std::array<MultiFab, AMREX_SPACEDIM> & phi,
+                          MultiFab & gphi,
+                          const Geometry & geom)
+{
+    BL_PROFILE_VAR("ComputeCentredGradFC()",ComputeCentredGradFC);
+
+    const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
+
+    for ( MFIter mfi(gphi,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
+
+        const Box& bx = mfi.tilebox();
+
+        Array4<Real> const& gphi_fab = gphi.array(mfi);
+
+        AMREX_D_TERM(Array4<Real const> const& phix_fab = phi[0].array(mfi);,
+                     Array4<Real const> const& phiy_fab = phi[1].array(mfi);,
+                     Array4<Real const> const& phiz_fab = phi[2].array(mfi););
+
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            AMREX_D_TERM(gphi_fab(i,j,k,0) = (phix_fab(i+1,j,k) - phix_fab(i,j,k) ) / dx[0];,
+                         gphi_fab(i,j,k,1) = (phiy_fab(i,j+1,k) - phiy_fab(i,j,k) ) / dx[1];,
+                         gphi_fab(i,j,k,2) = (phiz_fab(i,j,k+1) - phiz_fab(i,j,k) ) / dx[2];);
         });
     }
 }

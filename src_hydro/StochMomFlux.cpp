@@ -61,6 +61,18 @@ StochMomFlux::StochMomFlux(BoxArray ba_in, DistributionMapping dmap_in, Geometry
 }
 
 // fill mflux_cc and mflux_ed with random numbers
+// we need these to hold Z = (W + W^T) / sqrt(2)
+// For the symmetric case, the diagonal terms (stored at cell-centers)
+// look like (W_11 + W_11) / sqrt(2)
+// W_11 + W_11 has variance 4, and can be obtained by generating an RNG
+// and multiplying by 2.  Then you have to divide by sqrt(2), so the net
+// effect is an RNG multiplied by sqrt(2).  So we fill Z_11 with an
+// RNG with variance 2.
+// The off-diagnoal terms look like (W_12 + W_21) / sqrt(2)
+// W_12 + W_21 has variance 2, and can be obtained by generating an RNG
+// and multiplfying by sqrt(2).  Then you have to divide by sqrt(2), so the net
+// effect is an RNG multiplied by 1.  So we will Z_12 with a unit-variance RNG
+// Z is symmetric so we only store the lower-diagonal terms
 void StochMomFlux::fillMomStochastic() {
     
     BL_PROFILE_VAR("fillMomStochastic()",StochMomFlux);

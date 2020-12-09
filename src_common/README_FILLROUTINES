@@ -1,0 +1,129 @@
+List of ghost-fill/boundary-setting/folding routines and what they do:
+
+------------------
+Cell-Centered Data
+------------------
+
+MultiFabPhysBC
+/*
+Ghost cell filling routine.
+Fills in ONE ghost cells to the value ON the boundary.
+FOEXTRAP uses boundary conditions (Neumann) and 1 interior point.
+EXT_DIR copies the supplied Dirichlet condition into the ghost cells.
+*/
+
+MultiFabPhysBCCharge
+/*
+Folding routine.
+Positive-fold-add or negative-fold-add charge from ghost cells into valid region.
+For Dirichlet potential (bc_es==1), negative-fold-add.
+For Neumann potential (bc_es==2), positive-fold-add.
+Charge is cell-centered with 1 component.
+Note for wall-wall corners, the folding is also done in ghost cells so we get
+corner charges back in.
+*/
+
+MultiFabElectricBC
+/*
+Ghost cell filling routine.
+Fill all ghost cells for a component of the electric field
+by extrapolating values to the ghost cell-centers (useful for Perskin kernels)
+Note this is not the same as extrapolating values to the boundary.
+(note the input MultiFab is cell-centerd with only 1 component,
+so this needs to be called in a loop over all directions)
+We test on bc_es_lo/hi, which are bc's for phi (not E)
+1 = Dirichlet phi -> reflect interior values of E
+2 = Neumann phi -> reflect and invert interior values of E
+*/
+
+MultiFabPotentialBC
+/*
+Ghost cell filling routine.
+This routine fills ghost cells for electric potential with the value
+extrapolated TO the ghost cell-center; we test on bc_es_lo/hi.
+1 = Dirichlet
+2 = Neumann
+Uses a 2 point stencil involving boundary value and interior value.
+This is NOT the same as filling the ghost cell with the value on the boundary.
+(not implemented yet)
+This is NOT the same as filling the ghost cell with the Dirichlet or
+Neumann value on the boundary.
+(the Poisson solver needs this; MultifFabPotentialBC_solver())
+*/
+
+MultiFabPotentialBC_solver
+/*
+Ghost cell filling routine.
+Fill one ghost cell for a component of the electric potential.
+This routine fills the ghost cell with the numerical value of the
+(possibly inhomogeneous) Dirichlet or Neumann value on the boundary.
+This is what the Poisson solver expects.
+This is NOT the same as filling the ghost cell with the value on the boundary.
+(not implemented yet)
+This is NOT the same as filling the ghost cell with the value extrapolated to the ghost cell-center
+(implemented in MultiFabPotentialBC())
+*/
+
+FillRhototGhost
+/*
+Ghost cell filling routine.
+Specific for the low Mach multispecies mixing EOS that enforces no
+volume change upon mixing.
+Assuming the input concentration ghost cells are filled.
+Computes rho = [sum(c_i/rhobar_i)]^{-1} in all ghost cells.
+*/
+
+-------------------
+Staggered Grid Data
+-------------------
+
+MultiFabPhysBCDomainVel
+/*
+Boundary and ghost cell filling routine for normal velocities.
+Set the value of normal velocity on walls to zero.
+Set the value of normal ghost cells to the inverse reflection of the interior.
+We fill all the ghost cells - they are needed for Perskin kernels and
+to avoid intermediate NaN propagation in BDS.
+*/
+
+MultiFabPhysBCMacVel
+/*
+Ghost cell filling routine for transverse velocities.
+Set the value of tranverse ghost cells to +/- the reflection of the interior
+(+ for slip walls, - for no-slip).
+We fill all the ghost cells - they are needed for Perskin kernels.
+*/
+
+ZeroEdgevalWalls
+/*
+Boundary filling routine for normal velocity.
+Set the value of normal velocity on walls to zero.
+Works for slip and no-slip (bc_vel_lo/hi = 1 or 2).
+*/
+
+ZeroEdgevalPhysical
+/*
+Boundary filling routine for normal velocity.
+Set the value of normal velocity on all physical (i.e. non-periodic) walls to zero.
+Checks that bc_vel_lo/hi != -1
+*/
+
+MultiFabPhysBCDomainStress
+/*
+Folding routine.
+Modifies normal fields on the boundary and the interior.
+Note "stress" is face-centered with direction "dim".
+We test on bc_vel_lo/hi
+1 =    slip -> leave value on wall alone, add in force from ghost
+2 = no slip -> set value on wall to zero, add in negative force from ghost cells
+*/
+
+MultiFabPhysBCMacStress
+/*
+Folding routine.
+Modifies transverse fields in the interior.
+Note "stress" is face-centered with direction "dim".
+We test on bc_vel_lo/hi
+1 =    slip -> add in force from ghost
+2 = no slip -> add in negative force from ghost cells
+*/

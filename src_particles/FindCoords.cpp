@@ -1,5 +1,4 @@
-#include "common_functions.H"
-
+#include "ib_functions.H"
 
 void FindFaceCoords(std::array<MultiFab, AMREX_SPACEDIM> & RealFaceCoords,
                     const Geometry & geom)
