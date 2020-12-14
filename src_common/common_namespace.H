@@ -18,7 +18,7 @@ namespace common {
     // Problem specification
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, 3> prob_lo; // physical lo coordinate
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, 3> prob_hi; // physical hi coordinate
-    extern amrex::Vector<int>         n_cells;              // number of cells in domain
+    extern AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM> n_cells;              // number of cells in domain
     extern amrex::Vector<int>         max_grid_size;        // max number of cells in a box
     extern amrex::Vector<int>         max_particle_tile_size;        // max number of cells in a box
     extern amrex::Real                cell_depth;
@@ -74,7 +74,7 @@ namespace common {
     extern amrex::Vector<amrex::Real> T_init;
 
     // Algorithm control / selection
-    extern int                        algorithm_type;
+    extern AMREX_GPU_MANAGED int      algorithm_type;
     extern int                        advection_type;
     extern int                        barodiffusion_type;
     extern int                        use_bl_rng;

@@ -10,7 +10,7 @@ amrex::IntVect                common::nodal_flag_yz;
 
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, 3> common::prob_lo;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, 3> common::prob_hi;
-amrex::Vector<int>         common::n_cells;
+AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM> common::n_cells;
 amrex::Vector<int>         common::max_grid_size;
 amrex::Vector<int>         common::max_particle_tile_size;
 amrex::Real                common::cell_depth;
@@ -55,7 +55,7 @@ amrex::Real                common::variance_coef_mass;
 AMREX_GPU_MANAGED amrex::Real common::k_B;
 AMREX_GPU_MANAGED amrex::Real common::Runiv;
 amrex::Vector<Real>        common::T_init;
-int                        common::algorithm_type;
+AMREX_GPU_MANAGED int      common::algorithm_type;
 int                        common::barodiffusion_type;
 int                        common::use_bl_rng;
 int                        common::seed;
