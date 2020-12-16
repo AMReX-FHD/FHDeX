@@ -44,7 +44,7 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                 amrex::ParallelFor(gbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (i < 0) {
-                        for (int n=5; n<nprimvars; ++n) {
+                        for (int n=6; n<nprimvars; ++n) {
                             prim(i,j,k,n) = prim(2*lo-i-1,j,k,n);
                         }
                     }
@@ -180,7 +180,7 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                 amrex::ParallelFor(gbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (i >= n_cells[0]) {
-                        for (int n=5; n<nprimvars; ++n) {
+                        for (int n=6; n<nprimvars; ++n) {
                             prim(i,j,k,n) = prim(2*hi-i+1,j,k,n);
 
                         }
@@ -317,7 +317,7 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                 amrex::ParallelFor(gbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (j < 0) {
-                        for (int n=5; n<nprimvars; ++n) {
+                        for (int n=6; n<nprimvars; ++n) {
                             prim(i,j,k,n) = prim(i,2*lo-j-1,k,n);
                         }
                     }
@@ -453,7 +453,7 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                 amrex::ParallelFor(gbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (j >= n_cells[1]) {
-                        for (int n=5; n<nprimvars; ++n) {
+                        for (int n=6; n<nprimvars; ++n) {
                             prim(i,j,k,n) = prim(i,2*hi-j+1,k,n);
 
                         }
@@ -590,7 +590,7 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                 amrex::ParallelFor(gbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (k < 0) {
-                        for (int n=5; n<nprimvars; ++n) {
+                        for (int n=6; n<nprimvars; ++n) {
                             prim(i,j,k,n) = prim(i,j,2*lo-k-1,n);
                         }
                     }
@@ -726,7 +726,7 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                 amrex::ParallelFor(gbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (k >= n_cells[2]) {
-                        for (int n=5; n<nprimvars; ++n) {
+                        for (int n=6; n<nprimvars; ++n) {
                             prim(i,j,k,n) = prim(i,j,2*hi-k+1,n);
 
                         }

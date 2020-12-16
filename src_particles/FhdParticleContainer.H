@@ -288,7 +288,7 @@ public:
     };
 
     ParticleType * get_neighbors(int lev, const PairIndex & index) const {
-        return (ParticleType *) neighbors[lev].at(index).dataPtr();
+        return (ParticleType *) neighbors[lev].at(index).GetArrayOfStructs().dataPtr();;
     };
 
     int numWrongCell();

@@ -267,6 +267,31 @@ void force_function2 (      FhdParticleContainer::ParticleType& part1,
     }
 }
 
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void repulsive_force_lj_full (      FhdParticleContainer::ParticleType& part1,
+                              const FhdParticleContainer::ParticleType& part2,
+                              amrex::Real dx, amrex::Real dy, amrex::Real dz, amrex::Real dr2)
+{
+    using namespace amrex;
+
+    const int spec1 = part1.idata(FHD_intData::species)-1;
+    const int spec2 = part2.idata(FHD_intData::species)-1;
+    const int p_matrix_val = spec1*nspecies + spec2;
+     
+    //const Real eps1 = part1.rdata(FHD_realData::eepsilon);
+    const Real eps1 = eepsilon[p_matrix_val];
+    const Real sig1 = part1.rdata(FHD_realData::sigma);
+    const Real sig2 = part2.rdata(FHD_realData::sigma);
+    const Real fac1 = std::pow((sig1 + sig2)/4.0, 12);
+    const Real fac2 = std::pow((sig1 + sig2)/4.0, 6);
+    const Real ff = eps1*4*(1./(dr2*dr2*dr2*dr2))*(-12*fac1/(dr2*dr2*dr2) + 6*fac2);
+    
+    part1.rdata(FHD_realData::forcex) -= dx*ff;
+    part1.rdata(FHD_realData::forcey) -= dy*ff;
+    part1.rdata(FHD_realData::forcez) -= dz*ff;
+}
+
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void repulsive_force (      FhdParticleContainer::ParticleType& part1,
                       const FhdParticleContainer::ParticleType& part2,
@@ -518,7 +543,7 @@ void compute_p3m_sr_correction_nl_gpu (FhdParticleContainer::AoS& aos, int Np, i
         {
             Real q2 = p2.rdata(FHD_realData::q);
 
-            spec2 = p1.idata(FHD_intData::species)-1;
+            spec2 = p2.idata(FHD_intData::species)-1;
             p_matrix_val = spec1*nspecies + spec2;
 
             dr[0] = p1.pos(0) - p2.pos(0);
@@ -710,6 +735,8 @@ void compute_forces_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
 //    Gpu::DeviceVector<Real> prob_hi_d = getDeviceVector(prob_hi);    
 //    auto p_prob_lo_d = prob_lo_d.data();
 //    auto p_prob_hi_d = prob_hi_d.data();
+
+
     
     AMREX_FOR_1D( Np, i, 
     {
@@ -723,9 +750,22 @@ void compute_forces_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
             int spec2 = p2.idata(FHD_intData::species)-1;
             int p_matrix_val = spec1*nspecies + spec2;
 
-//            if ( (pp_int_tog_d[p1.idata(FHD_intData::species)-1] != 0) || 
-//                 (pp_int_tog_d[p2.idata(FHD_intData::species)-1] != 0) )
+            //Make this more efficient later
+            int mat[nspecies][nspecies];
+            int kk = 0;
+            for(int ii=0;ii<nspecies;ii++)
+            {
+                for(int jj=0;jj<nspecies;jj++)
+                {
+                    mat[ii][jj] = pp_int_tog_d[kk];
+                    
+                    kk++;
+                }
+            }
+
+//            if ( mat[spec1][spec2] != 0)
             if ( pp_int_tog_d[p_matrix_val] != 0)
+            //if (true)
             {
                 const Real dx = p1.pos(0) - p2.pos(0);
                 const Real dy = p1.pos(1) - p2.pos(1);
@@ -734,8 +774,19 @@ void compute_forces_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
                 const Real r2 = dx*dx + dy*dy + dz*dz;
                 const Real r2min = amrex::max(r2, rmin*rmin);
                 const Real r = sqrt(r2);
-                
-                if (r < (1.122*(p1.rdata(FHD_realData::sigma)+p2.rdata(FHD_realData::sigma))/4.0))
+                //Print() << spec1+1 << ", " << spec2+1 << std::endl;
+
+                if (r <= (2.5*(p1.rdata(FHD_realData::sigma)+p2.rdata(FHD_realData::sigma))/4.0) && (sr_tog==6))
+                {
+                    Gpu::Atomic::Add(prcount_d, 1.0);
+
+                    
+                   // Print() << p1.id() << ", " << p1.pos(0) << ", " << p1.pos(1) << ", " << p1.pos(2)  << ", " << r << ", " << (2.5*(p1.rdata(FHD_realData::sigma)+p2.rdata(FHD_realData::sigma))/4.0) << std::endl;
+                 //   Print() << p2.id() << ", " << p2.pos(0) << ", " << p2.pos(1) << ", " << p2.pos(2)  << ", " << r << ", " << (2.5*(p1.rdata(FHD_realData::sigma)+p2.rdata(FHD_realData::sigma))/4.0) << std::endl;
+
+                    repulsive_force_lj_full(p1, p2, dx, dy, dz, r2);
+                }
+                else if (r < (1.122*(p1.rdata(FHD_realData::sigma)+p2.rdata(FHD_realData::sigma))/4.0))
                 {
                     if (sr_tog <= 2) {
                         Gpu::Atomic::Add(prcount_d, 1.0);
@@ -1110,19 +1161,23 @@ void emf_gpu (FhdParticleContainer::AoS& aos, F f,
     amrex::ParallelFor(Np, [=] AMREX_GPU_HOST_DEVICE (int ip) noexcept
     {
         FhdParticleContainer::ParticleType& p = pstruct[ip];
-        
-        Real w[3][2*ks];
-        int indices[3][2*ks];
-        
-        //E field is cell centered so we can use the same weights/indicies for each component
-        get_weights(p, f, Exflag, w, indices, plo, dx, dxi);
-        p.rdata(FHD_realData::forcex) += p.rdata(FHD_realData::q)*inter_op(Exarr, f, w, indices);
+        //Print() << p.idata(FHD_intData::species) << "\n";
+                
+        //if(p.idata(FHD_intData::species) == 1)
+        {
+            Real w[3][2*ks];
+            int indices[3][2*ks];
+            //Print() << "Here!\n";
+            //E field is cell centered so we can use the same weights/indicies for each component
+            get_weights(p, f, Exflag, w, indices, plo, dx, dxi);
+            p.rdata(FHD_realData::forcex) += p.rdata(FHD_realData::q)*inter_op(Exarr, f, w, indices);
 
-        //get_weights(p, f, Eyflag, w, indices, plo, dx, dxi);
-        p.rdata(FHD_realData::forcey) += p.rdata(FHD_realData::q)*inter_op(Eyarr, f, w, indices);
+            //get_weights(p, f, Eyflag, w, indices, plo, dx, dxi);
+            p.rdata(FHD_realData::forcey) += p.rdata(FHD_realData::q)*inter_op(Eyarr, f, w, indices);
 
-        //get_weights(p, f, Ezflag, w, indices, plo, dx, dxi);
-        p.rdata(FHD_realData::forcez) += p.rdata(FHD_realData::q)*inter_op(Ezarr, f, w, indices);
+            //get_weights(p, f, Ezflag, w, indices, plo, dx, dxi);
+            p.rdata(FHD_realData::forcez) += p.rdata(FHD_realData::q)*inter_op(Ezarr, f, w, indices);
+        }
        
     });
     
