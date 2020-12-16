@@ -34,8 +34,6 @@ void BCMassTempPress(MultiFab& prim_in,const amrex::Geometry geom,int dim)
 {
     BL_PROFILE_VAR("BCMassTempPress()",BCMassTempPress);
 
-    int nspecies_gpu = nspecies;
-
     Box dom(geom.Domain());
     int ng_p = prim_in.nGrow();
 
@@ -67,7 +65,7 @@ void BCMassTempPress(MultiFab& prim_in,const amrex::Geometry geom,int dim)
                 amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (i < dom.smallEnd(0)) {
-                        for (int n=0; n<nspecies_gpu; ++n) {
+                        for (int n=0; n<nspecies; ++n) {
                             prim(i,j,k,6+n)          = 2.*bc_Yk_x_lo[n] - prim(2*lo-i-1,j,k,6+n);
                             prim(i,j,k,6+nspecies+n) = 2.*bc_Xk_x_lo[n] - prim(2*lo-i-1,j,k,6+nspecies+n);
                         }
@@ -120,7 +118,7 @@ void BCMassTempPress(MultiFab& prim_in,const amrex::Geometry geom,int dim)
                 amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (i > dom.bigEnd(0)) {
-                        for (int n=0; n<nspecies_gpu; ++n) {
+                        for (int n=0; n<nspecies; ++n) {
                             prim(i,j,k,6+n)          = 2.*bc_Yk_x_hi[n] - prim(2*hi-i+1,j,k,6+n);
                             prim(i,j,k,6+nspecies+n) = 2.*bc_Xk_x_hi[n] - prim(2*hi-i+1,j,k,6+nspecies+n);
                         }
@@ -172,7 +170,7 @@ void BCMassTempPress(MultiFab& prim_in,const amrex::Geometry geom,int dim)
                 amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (j < dom.smallEnd(1)) {
-                        for (int n=0; n<nspecies_gpu; ++n) {
+                        for (int n=0; n<nspecies; ++n) {
                             prim(i,j,k,6+n)          = 2.*bc_Yk_y_lo[n] - prim(i,2*lo-j-1,k,6+n);
                             prim(i,j,k,6+nspecies+n) = 2.*bc_Xk_y_lo[n] - prim(i,2*lo-j-1,k,6+nspecies+n);
                         }
@@ -226,7 +224,7 @@ void BCMassTempPress(MultiFab& prim_in,const amrex::Geometry geom,int dim)
                 amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (j > dom.bigEnd(1)) {
-                        for (int n=0; n<nspecies_gpu; ++n) {
+                        for (int n=0; n<nspecies; ++n) {
                             prim(i,j,k,6+n)          = 2.*bc_Yk_y_hi[n] - prim(i,2*hi-j+1,k,6+n);
                             prim(i,j,k,6+nspecies+n) = 2.*bc_Xk_y_hi[n] - prim(i,2*hi-j+1,k,6+nspecies+n);
                         }
@@ -278,7 +276,7 @@ void BCMassTempPress(MultiFab& prim_in,const amrex::Geometry geom,int dim)
                 amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (k < dom.smallEnd(2)) {
-                        for (int n=0; n<nspecies_gpu; ++n) {
+                        for (int n=0; n<nspecies; ++n) {
                             prim(i,j,k,6+n)          = 2.*bc_Yk_z_lo[n] - prim(i,j,2*lo-k-1,6+n);
                             prim(i,j,k,6+nspecies+n) = 2.*bc_Xk_z_lo[n] - prim(i,j,2*lo-k-1,6+nspecies+n);
                         }
@@ -332,7 +330,7 @@ void BCMassTempPress(MultiFab& prim_in,const amrex::Geometry geom,int dim)
                 amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (k > dom.bigEnd(2)) {
-                        for (int n=0; n<nspecies_gpu; ++n) {
+                        for (int n=0; n<nspecies; ++n) {
                             prim(i,j,k,6+n)          = 2.*bc_Yk_z_hi[n] - prim(i,j,2*hi-k+1,6+n);
                             prim(i,j,k,6+nspecies+n) = 2.*bc_Xk_z_hi[n] - prim(i,j,2*hi-k+1,6+nspecies+n);
                         }
@@ -595,18 +593,6 @@ void BCRhoRhoE(MultiFab& cons_in, MultiFab& prim_in,
 {
     BL_PROFILE_VAR("BCRhoRhoE()",BCRhoRhoE);
 
-    int nprimvars_gpu = nprimvars;
-    GpuArray<Real,MAX_SPECIES> molmass_gpu;
-    for (int n=0; n<nspecies; ++n) {
-        molmass_gpu[n] = molmass[n];
-    }
-    GpuArray<Real,MAX_SPECIES> hcv_gpu;
-    for (int n=0; n<nspecies; ++n) {
-        hcv_gpu[n] = hcv[n];
-    }
-    Real Runiv_gpu = Runiv;
-    int nspecies_gpu = nspecies;
-
     Box dom(geom.Domain());
     int ng_p = prim_in.nGrow();
 
@@ -628,7 +614,7 @@ void BCRhoRhoE(MultiFab& cons_in, MultiFab& prim_in,
                 if (i < dom.smallEnd(0)) {
                     
                     GpuArray<Real,MAX_SPECIES> fracvec;
-                    for (int n=0; n<nspecies_gpu; ++n) {
+                    for (int n=0; n<nspecies; ++n) {
                         fracvec[n] = prim(i,j,k,6+n);
                     }
                     
@@ -637,13 +623,13 @@ void BCRhoRhoE(MultiFab& cons_in, MultiFab& prim_in,
                     Real rho;
                     Real intenergy;
 
-                    GetDensity(pt,rho,temp,fracvec,molmass_gpu,Runiv_gpu,nspecies_gpu);
-                    GetEnergy(intenergy,fracvec,temp,hcv_gpu,nspecies_gpu);
+                    GetDensity(pt,rho,temp,fracvec);
+                    GetEnergy(intenergy,fracvec,temp);
 
                     prim(i,j,k,0) = rho;
                     cons(i,j,k,0) = rho;
                     if (algorithm_type == 2) {
-                        for (int n=0; n<nspecies_gpu; ++n) {
+                        for (int n=0; n<nspecies; ++n) {
                             cons(i,j,k,5+n) = rho*prim(i,j,k,6+n);
                         }
                     }
@@ -667,7 +653,7 @@ void BCRhoRhoE(MultiFab& cons_in, MultiFab& prim_in,
                 if (i > dom.bigEnd(0)) {
                     
                     GpuArray<Real,MAX_SPECIES> fracvec;
-                    for (int n=0; n<nspecies_gpu; ++n) {
+                    for (int n=0; n<nspecies; ++n) {
                         fracvec[n] = prim(i,j,k,6+n);
                     }
                     
@@ -676,13 +662,13 @@ void BCRhoRhoE(MultiFab& cons_in, MultiFab& prim_in,
                     Real rho;
                     Real intenergy;
 
-                    GetDensity(pt,rho,temp,fracvec,molmass_gpu,Runiv_gpu,nspecies_gpu);
-                    GetEnergy(intenergy,fracvec,temp,hcv_gpu,nspecies_gpu);
+                    GetDensity(pt,rho,temp,fracvec);
+                    GetEnergy(intenergy,fracvec,temp);
 
                     prim(i,j,k,0) = rho;
                     cons(i,j,k,0) = rho;
                     if (algorithm_type == 2) {
-                        for (int n=0; n<nspecies_gpu; ++n) {
+                        for (int n=0; n<nspecies; ++n) {
                             cons(i,j,k,5+n) = rho*prim(i,j,k,6+n);
                         }
                     }
@@ -706,7 +692,7 @@ void BCRhoRhoE(MultiFab& cons_in, MultiFab& prim_in,
                 if (j < dom.smallEnd(1)) {
                     
                     GpuArray<Real,MAX_SPECIES> fracvec;
-                    for (int n=0; n<nspecies_gpu; ++n) {
+                    for (int n=0; n<nspecies; ++n) {
                         fracvec[n] = prim(i,j,k,6+n);
                     }
                     
@@ -715,13 +701,13 @@ void BCRhoRhoE(MultiFab& cons_in, MultiFab& prim_in,
                     Real rho;
                     Real intenergy;
 
-                    GetDensity(pt,rho,temp,fracvec,molmass_gpu,Runiv_gpu,nspecies_gpu);
-                    GetEnergy(intenergy,fracvec,temp,hcv_gpu,nspecies_gpu);
+                    GetDensity(pt,rho,temp,fracvec);
+                    GetEnergy(intenergy,fracvec,temp);
 
                     prim(i,j,k,0) = rho;
                     cons(i,j,k,0) = rho;
                     if (algorithm_type == 2) {
-                        for (int n=0; n<nspecies_gpu; ++n) {
+                        for (int n=0; n<nspecies; ++n) {
                             cons(i,j,k,5+n) = rho*prim(i,j,k,6+n);
                         }
                     }
@@ -745,7 +731,7 @@ void BCRhoRhoE(MultiFab& cons_in, MultiFab& prim_in,
                 if (j > dom.bigEnd(1)) {
                     
                     GpuArray<Real,MAX_SPECIES> fracvec;
-                    for (int n=0; n<nspecies_gpu; ++n) {
+                    for (int n=0; n<nspecies; ++n) {
                         fracvec[n] = prim(i,j,k,6+n);
                     }
                     
@@ -754,13 +740,13 @@ void BCRhoRhoE(MultiFab& cons_in, MultiFab& prim_in,
                     Real rho;
                     Real intenergy;
 
-                    GetDensity(pt,rho,temp,fracvec,molmass_gpu,Runiv_gpu,nspecies_gpu);
-                    GetEnergy(intenergy,fracvec,temp,hcv_gpu,nspecies_gpu);
+                    GetDensity(pt,rho,temp,fracvec);
+                    GetEnergy(intenergy,fracvec,temp);
 
                     prim(i,j,k,0) = rho;
                     cons(i,j,k,0) = rho;
                     if (algorithm_type == 2) {
-                        for (int n=0; n<nspecies_gpu; ++n) {
+                        for (int n=0; n<nspecies; ++n) {
                             cons(i,j,k,5+n) = rho*prim(i,j,k,6+n);
                         }
                     }
@@ -784,7 +770,7 @@ void BCRhoRhoE(MultiFab& cons_in, MultiFab& prim_in,
                 if (k < dom.smallEnd(2)) {
                     
                     GpuArray<Real,MAX_SPECIES> fracvec;
-                    for (int n=0; n<nspecies_gpu; ++n) {
+                    for (int n=0; n<nspecies; ++n) {
                         fracvec[n] = prim(i,j,k,6+n);
                     }
                     
@@ -793,13 +779,13 @@ void BCRhoRhoE(MultiFab& cons_in, MultiFab& prim_in,
                     Real rho;
                     Real intenergy;
 
-                    GetDensity(pt,rho,temp,fracvec,molmass_gpu,Runiv_gpu,nspecies_gpu);
-                    GetEnergy(intenergy,fracvec,temp,hcv_gpu,nspecies_gpu);
+                    GetDensity(pt,rho,temp,fracvec);
+                    GetEnergy(intenergy,fracvec,temp);
 
                     prim(i,j,k,0) = rho;
                     cons(i,j,k,0) = rho;
                     if (algorithm_type == 2) {
-                        for (int n=0; n<nspecies_gpu; ++n) {
+                        for (int n=0; n<nspecies; ++n) {
                             cons(i,j,k,5+n) = rho*prim(i,j,k,6+n);
                         }
                     }
@@ -823,7 +809,7 @@ void BCRhoRhoE(MultiFab& cons_in, MultiFab& prim_in,
                 if (k > dom.bigEnd(2)) {
                     
                     GpuArray<Real,MAX_SPECIES> fracvec;
-                    for (int n=0; n<nspecies_gpu; ++n) {
+                    for (int n=0; n<nspecies; ++n) {
                         fracvec[n] = prim(i,j,k,6+n);
                     }
                     
@@ -832,13 +818,13 @@ void BCRhoRhoE(MultiFab& cons_in, MultiFab& prim_in,
                     Real rho;
                     Real intenergy;
 
-                    GetDensity(pt,rho,temp,fracvec,molmass_gpu,Runiv_gpu,nspecies_gpu);
-                    GetEnergy(intenergy,fracvec,temp,hcv_gpu,nspecies_gpu);
+                    GetDensity(pt,rho,temp,fracvec);
+                    GetEnergy(intenergy,fracvec,temp);
 
                     prim(i,j,k,0) = rho;
                     cons(i,j,k,0) = rho;
                     if (algorithm_type == 2) {
-                        for (int n=0; n<nspecies_gpu; ++n) {
+                        for (int n=0; n<nspecies; ++n) {
                             cons(i,j,k,5+n) = rho*prim(i,j,k,6+n);
                         }
                     }

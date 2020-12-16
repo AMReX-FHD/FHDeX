@@ -8,7 +8,6 @@ void conservedToPrimitiveStag(MultiFab& prim_in, std::array<MultiFab, AMREX_SPAC
     BL_PROFILE_VAR("conservedToPrimitiveStag()",conservedToPrimitiveStag);
 
     // from namelist
-    int nspecies_gpu = nspecies;
 
     // from namelist
     /* 
@@ -101,13 +100,13 @@ void conservedToPrimitiveStag(MultiFab& prim_in, std::array<MultiFab, AMREX_SPAC
             Real intenergy = (cons(i,j,k,4)-kinenergy)/cons(i,j,k,0);
 
             Real sumYk = 0.;
-            for (int n=0; n<nspecies_gpu; ++n) {
+            for (int n=0; n<nspecies; ++n) {
                 Yk[n] = cons(i,j,k,5+n)/cons(i,j,k,0);
                 Yk_fixed[n] = amrex::max(0.,amrex::min(1.,Yk[n]));
                 sumYk += Yk_fixed[n];
             }
             
-            for (int n=0; n<nspecies_gpu; ++n) {
+            for (int n=0; n<nspecies; ++n) {
                 Yk_fixed[n] /= sumYk;
             }
 
@@ -115,12 +114,12 @@ void conservedToPrimitiveStag(MultiFab& prim_in, std::array<MultiFab, AMREX_SPAC
             GetTemperature(intenergy, Yk_fixed, prim(i,j,k,4));
 
             // compute mole fractions from mass fractions
-            GetMolfrac(i, j, k, Yk, Xk);
+            GetMolfrac(Yk, Xk);
 
             // mass fractions
-            for (int n=0; n<nspecies_gpu; ++n) {
+            for (int n=0; n<nspecies; ++n) {
                 prim(i,j,k,6+n) = Yk[n];
-                prim(i,j,k,6+nspecies_gpu+n) = Xk[n];
+                prim(i,j,k,6+nspecies+n) = Xk[n];
             }
 
             GetPressureGas(prim(i,j,k,5), Yk, cons(i,j,k,0), prim(i,j,k,4));

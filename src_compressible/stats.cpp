@@ -36,16 +36,6 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
       16 = instant temperature
     */
     
-    // from namelist
-    GpuArray<Real,MAX_SPECIES> molmass_gpu;
-    for (int n=0; n<nspecies; ++n) {
-        molmass_gpu[n] = molmass[n];
-    }
-    GpuArray<Real,MAX_SPECIES> hcv_gpu;
-    for (int n=0; n<nspecies; ++n) {
-        hcv_gpu[n] = hcv[n];
-    }
-    
     //////////////////
     // evaluate_means
     //////////////////
@@ -60,9 +50,9 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
 
         const Array4<const Real> cu        = cons.array(mfi);
         const Array4<      Real> cumeans   = consMean.array(mfi);
-        const Array4<const Real> prim      = prim_in.array(mfi);
+        //const Array4<const Real> prim      = prim_in.array(mfi);
         const Array4<      Real> primmeans = primMean.array(mfi);
-        const Array4<      Real> miscstats = miscStats.array(mfi);
+        //const Array4<      Real> miscstats = miscStats.array(mfi);
 
         // on host, not gpu
         for (auto k = lo.z; k <= hi.z; ++k) {
@@ -73,9 +63,9 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
                 cumeans(i,j,k,l) = (cumeans(i,j,k,l)*stepsminusone + cu(i,j,k,l))*stepsinv;
             }
 
-            for (int l=5; l<nvars; ++l) {
-                fracvec[l-5] = cumeans(i,j,k,l)/cumeans(i,j,k,0);
-                massvec[l-5] = cumeans(i,j,k,l);;
+            for (int l=0; l<nspecies; ++l) {
+                fracvec[l] = cumeans(i,j,k,5+l)/cumeans(i,j,k,0);
+                massvec[l] = cumeans(i,j,k,5+l);;
             }
 
             Real densitymeaninv = 1.0/cumeans(i,j,k,0);

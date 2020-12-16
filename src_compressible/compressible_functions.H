@@ -120,9 +120,8 @@ void ReadCheckPoint(int& step,
                      MultiFab& kappa);
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void GetMolfrac ( int i, int j, int k,
-                  const GpuArray<Real,MAX_SPECIES>& Yk,
-                  GpuArray<Real,MAX_SPECIES>& Xk)
+void GetMolfrac (const GpuArray<Real,MAX_SPECIES>& Yk,
+                 GpuArray<Real,MAX_SPECIES>& Xk)
 {
     Real molmix = 0.;
 
@@ -134,7 +133,7 @@ void GetMolfrac ( int i, int j, int k,
         Xk[n] = Yk[n]*molmix/molmass[n];
     }
 
-};
+}
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void GetTemperature ( Real const energy,
@@ -149,7 +148,7 @@ void GetTemperature ( Real const energy,
     }
 
     temp = (energy-e0)/cvmix;
-};
+}
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void GetPressureGas ( Real& pressure,
@@ -165,7 +164,7 @@ void GetPressureGas ( Real& pressure,
     molmix = 1./molmix;
 
     pressure = density*(Runiv/molmix)*temp;
-};
+}
 
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -971,10 +970,7 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void GetDensity ( const Real pressure,
                   Real& density,
                   const Real temp,
-                  const GpuArray<Real,MAX_SPECIES>& massfrac,
-                  const GpuArray<Real,MAX_SPECIES>& molmass,
-                  const Real Runiv,
-                  const int nspecies)
+                  const GpuArray<Real,MAX_SPECIES>& massfrac)
 {
     Real molmix = 0.;
     for (int i=0; i<nspecies; ++i) {
@@ -990,9 +986,7 @@ void GetDensity ( const Real pressure,
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void GetEnergy ( Real& energy,
                  const GpuArray<Real,MAX_SPECIES>& massvec,
-                 const Real temp,
-                 const GpuArray<Real,MAX_SPECIES>& hcv,
-                 const int nspecies)
+                 const Real temp)
 {
     Real cvmix = 0.;
     Real e0 = 0.;
@@ -1006,9 +1000,7 @@ void GetEnergy ( Real& energy,
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void GetEnthalpies (const Real& T,
-                    GpuArray<Real,MAX_SPECIES>& hk,
-                    const GpuArray<Real,MAX_SPECIES>& hcp,
-                    const int nspecies)
+                    GpuArray<Real,MAX_SPECIES>& hk)
 {
     for (int i=0; i<nspecies; ++i) {
         hk[i] = hcp[i]*T;

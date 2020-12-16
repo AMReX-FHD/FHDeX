@@ -69,7 +69,7 @@ void RK3stepStag(MultiFab& cu,
                  std::array< MultiFab, 2 >& edgeflux_y,
                  std::array< MultiFab, 2 >& edgeflux_z,
                  std::array< MultiFab, AMREX_SPACEDIM>& cenflux,
-                 const amrex::Geometry geom, const amrex::Real* dxp, const amrex::Real dt);
+                 const amrex::Geometry geom, const amrex::Real dt);
 
 void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMREX_SPACEDIM >& momStag_in, 
                        const MultiFab& prim_in, const std::array< MultiFab, AMREX_SPACEDIM >& velStag_in,
@@ -87,15 +87,18 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                        std::array< MultiFab, AMREX_SPACEDIM>& stochcen_in,
                        const amrex::Geometry geom,
 		                   const amrex::Vector< amrex::Real >& stoch_weights,
-		                   const amrex::Real* dx, const amrex::Real dt);
-
+		                   const amrex::Real dt);
 
 void evaluateStatsStag(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
-                       const MultiFab& prim, MultiFab& primMean, MultiFab& primVar,
+                       const MultiFab& prim_in, MultiFab& primMean, MultiFab& primVar,
                        const std::array<MultiFab, AMREX_SPACEDIM>& vel, 
+                       const std::array<MultiFab, AMREX_SPACEDIM>& velMean, 
+                       const std::array<MultiFab, AMREX_SPACEDIM>& velVar, 
                        const std::array<MultiFab, AMREX_SPACEDIM>& cumom,
+                       const std::array<MultiFab, AMREX_SPACEDIM>& cumomMean,
+                       const std::array<MultiFab, AMREX_SPACEDIM>& cumomVar,
                        MultiFab& spatialCross, MultiFab& miscStats, Real* miscVals,
-                       const int steps, const Real* dx);
+                       const int steps, const amrex::Real* dx);
 
 void yzAverageStag(const MultiFab& consMean, 
                    const MultiFab& consVar, 

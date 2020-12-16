@@ -200,25 +200,43 @@ void main_driver(const char* argv)
     MultiFab prim(ba,dmap,nprimvars,ngc);
 
     //statistics    
-    // we stack 3 towards the end
-    // corresponding to jx, jy, jz (shifted to CC)
-    // indices (1,2,3) correspond to averaged jx, jy, jz on CC
-    MultiFab cuMeans  (ba,dmap,nvars+3,ngc);
-    MultiFab cuVars   (ba,dmap,nvars+3,ngc);
-    MultiFab cuMeansAv(ba,dmap,nvars+3,ngc);
-    MultiFab cuVarsAv (ba,dmap,nvars+3,ngc);
+    MultiFab cuMeans  (ba,dmap,nvars,ngc);
+    MultiFab cuVars   (ba,dmap,nvars,ngc);
+    MultiFab cuMeansAv(ba,dmap,nvars,ngc);
+    MultiFab cuVarsAv (ba,dmap,nvars,ngc);
 
     cuMeans.setVal(0.0);
     cuVars.setVal(0.0);
     
     MultiFab primVertAvg;  // flattened multifab defined below
 
-    MultiFab primMeans  (ba,dmap,nprimvars+3,ngc);
-    MultiFab primVars   (ba,dmap,nprimvars+5+3,ngc);
-    MultiFab primMeansAv(ba,dmap,nprimvars+3,ngc);
-    MultiFab primVarsAv (ba,dmap,nprimvars+5+3,ngc);
+    MultiFab primMeans  (ba,dmap,nprimvars,ngc);
+    MultiFab primVars   (ba,dmap,nprimvars+5,ngc);
+    MultiFab primMeansAv(ba,dmap,nprimvars,ngc);
+    MultiFab primVarsAv (ba,dmap,nprimvars+5,ngc);
     primMeans.setVal(0.0);
     primVars.setVal(0.0);
+
+    // staggered momentum
+    std::array< MultiFab, AMREX_SPACEDIM > velMeans;
+    std::array< MultiFab, AMREX_SPACEDIM > velVars;
+    std::array< MultiFab, AMREX_SPACEDIM > velMeansAv;
+    std::array< MultiFab, AMREX_SPACEDIM > velVarsAv;
+    std::array< MultiFab, AMREX_SPACEDIM > cumomMeans;
+    std::array< MultiFab, AMREX_SPACEDIM > cumomVars;
+    std::array< MultiFab, AMREX_SPACEDIM > cumomMeansAv;
+    std::array< MultiFab, AMREX_SPACEDIM > cumomVarsAv;
+    for (int d=0; d<AMREX_SPACEDIM; d++) {
+        velMeans[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ngc);
+        cumomMeans[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ngc);
+        velVars[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ngc);
+        cumomVars[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ngc);
+        velMeans[d].setVal(0.);
+        velVars[d].setVal(0.);
+        cumomMeans[d].setVal(0.);
+        cumomVars[d].setVal(0.);
+    }
+
    
     //Miscstats
     // 0        time averaged kinetic energy density
@@ -497,7 +515,7 @@ void main_driver(const char* argv)
         Real ts1 = ParallelDescriptor::second();
     
         RK3stepStag(cu, cumom, prim, vel, source, eta, zeta, kappa, chi, D, 
-            faceflux, edgeflux_x, edgeflux_y, edgeflux_z, cenflux, geom, dx, dt);
+            faceflux, edgeflux_x, edgeflux_y, edgeflux_z, cenflux, geom, dt);
 
         // timer
         Real ts2 = ParallelDescriptor::second() - ts1;
@@ -509,8 +527,9 @@ void main_driver(const char* argv)
         
         // compute mean and variances
         if (step > n_steps_skip) {
-            //evaluateStatsStag(cu, cuMeans, cuVars, prim, primMeans, primVars, vel, cumom,
-            //              spatialCross, miscStats, miscVals, statsCount, dx);
+            //evaluateStatsStag(cu, cuMeans, cuVars, prim, primMeans, primVars, vel, 
+            //                  velMeans, velVars, cumom, cumomMeans, cumomVars,
+            //                  spatialCross, miscStats, miscVals, statsCount, dx);
             evaluateStats(cu, cuMeans, cuVars, prim, primMeans, primVars,
                           spatialCross, miscStats, miscVals, statsCount, dx);
             statsCount++;
