@@ -58,6 +58,12 @@
   bc_mass_lo(1:2) = -1 -1
   bc_mass_hi(1:2) = -1 -1
 
+  ! -1 = periodic
+  !  1 = Dirichlet
+  !  2 = Neumann
+  bc_es_lo(1:2) = -1 -1
+  bc_es_hi(1:2) = -1 -1
+
   ! Thermodynamic and transport properties:
   !----------------------
   nspecies = 3
