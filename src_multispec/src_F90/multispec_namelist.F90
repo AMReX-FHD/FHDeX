@@ -48,8 +48,6 @@ module multispec_namelist_module
   integer,            save :: zero_eps_on_wall_type
   integer,            save :: zero_charge_on_wall_type
   double precision,   save :: zero_eps_on_wall_left_end, zero_eps_on_wall_right_start
-  integer,            save :: epot_mg_verbose
-  double precision,   save :: epot_mg_abs_tol, epot_mg_rel_tol
   integer,            save :: bc_function_type
   double precision,   save :: L_pos, L_trans, L_zero
 
@@ -135,9 +133,6 @@ module multispec_namelist_module
                                                     ! phi for part of a Dirichlet wall
   namelist /multispec/ zero_eps_on_wall_left_end    ! eg if set to 0.25, then eps will be set to 0 on the wall from 0*Lx --> 0.25*Lx
   namelist /multispec/ zero_eps_on_wall_right_start ! eg if set to 0.75, then eps will be set to 0 on the wall from 0.75*Lx --> 1.*Lx
-  namelist /multispec/ epot_mg_verbose              ! verbosity for poisson solve
-  namelist /multispec/ epot_mg_abs_tol              ! absolute tolerance for poisson solve
-  namelist /multispec/ epot_mg_rel_tol              ! relative tolerance for poisson solve
 
 contains
 
@@ -188,9 +183,6 @@ contains
     dpdt_factor            = 0.d0
     E_ext_type             = 0
     E_ext_value(:)         = 0.d0
-    epot_mg_verbose        = 0
-    epot_mg_abs_tol        = 0.d0
-    epot_mg_rel_tol        = 1.d-10
 
     electroneutral = 0
     induced_charge_eo = 0
@@ -222,7 +214,6 @@ contains
                                              electroneutral_in, induced_charge_eo_in, &
                                              zero_eps_on_wall_type_in, zero_charge_on_wall_type_in, &
                                              zero_eps_on_wall_left_end_in, zero_eps_on_wall_right_start_in, &
-                                             epot_mg_verbose_in, epot_mg_abs_tol_in, epot_mg_rel_tol_in, &
                                              bc_function_type_in, L_pos_in, L_trans_in, L_zero_in) &
                                              bind(C, name="initialize_multispec_namespace")
 
@@ -267,9 +258,6 @@ contains
     integer,            intent(inout) :: zero_charge_on_wall_type_in
     double precision,   intent(inout) :: zero_eps_on_wall_left_end_in
     double precision,   intent(inout) :: zero_eps_on_wall_right_start_in
-    integer,            intent(inout) :: epot_mg_verbose_in
-    double precision,   intent(inout) :: epot_mg_abs_tol_in
-    double precision,   intent(inout) :: epot_mg_rel_tol_in
     integer,            intent(inout) :: bc_function_type_in
     double precision,   intent(inout) :: L_pos_in
     double precision,   intent(inout) :: L_trans_in
@@ -316,9 +304,6 @@ contains
     zero_charge_on_wall_type_in = zero_charge_on_wall_type
     zero_eps_on_wall_left_end_in = zero_eps_on_wall_left_end
     zero_eps_on_wall_right_start_in = zero_eps_on_wall_right_start
-    epot_mg_verbose_in = epot_mg_verbose
-    epot_mg_abs_tol_in = epot_mg_abs_tol
-    epot_mg_rel_tol_in = epot_mg_rel_tol
     bc_function_type_in = bc_function_type
     L_pos_in = L_pos
     L_trans_in = L_trans

@@ -46,9 +46,6 @@ namespace multispec {
     extern int                        zero_charge_on_wall_type;
     extern amrex::Real                zero_eps_on_wall_left_end;
     extern amrex::Real                zero_eps_on_wall_right_start;
-    extern int                        epot_mg_verbose;
-    extern amrex::Real                epot_mg_abs_tol;
-    extern amrex::Real                epot_mg_rel_tol;
     extern int                        bc_function_type;
     extern amrex::Real                L_pos;
     extern amrex::Real                L_trans;
