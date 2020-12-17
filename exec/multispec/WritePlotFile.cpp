@@ -115,10 +115,12 @@ void WritePlotFile(int step,
     cnt++;
 
     // copy charge and Epot into plotfile
-    MultiFab::Copy(plotfile, charge, 0, cnt, 1, 0);
-    cnt++;
-    MultiFab::Copy(plotfile, Epot, 0, cnt, 1, 0);
-    cnt++;
+    if (use_charged_fluid) {
+        MultiFab::Copy(plotfile, charge, 0, cnt, 1, 0);
+        cnt++;
+        MultiFab::Copy(plotfile, Epot, 0, cnt, 1, 0);
+        cnt++;
+    }
 
     // write a plotfile
     WriteSingleLevelPlotfile(plotfilename,plotfile,varNames,geom,time,step);
