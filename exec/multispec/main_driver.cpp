@@ -258,7 +258,7 @@ void main_driver(const char* argv)
 
         Real total_charge = (AMREX_SPACEDIM == 2) ? charge_old.sum() * dx[0] * dx[1] * cell_depth
                                                   : charge_old.sum() * dx[0] * dx[1] * dx[2];
-        Print() << "Initial total charge " << total_charge;
+        Print() << "Initial total charge " << total_charge << std::endl;
 
         // compute permittivity
         if (dielectric_type == 0) {
