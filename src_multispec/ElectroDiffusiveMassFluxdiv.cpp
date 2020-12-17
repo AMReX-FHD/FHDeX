@@ -288,7 +288,7 @@ void ElectroDiffusiveMassFlux(const MultiFab& rho,
 
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
         for (int comp=0; comp<nspecies; ++comp) {
-            MultiFab::Multiply(electro_mass_flux[i], grad_Epot[i], 0, comp, 1, 1);
+            MultiFab::Multiply(electro_mass_flux[i], grad_Epot[i], 0, comp, 1, 0);
         }
     }
 
