@@ -477,7 +477,7 @@ void main_driver(const char* argv)
         
         // write initial plotfile and structure factor
         if (plot_int > 0) {
-            WritePlotFile(0,0.,geom,umac,rhotot_old,rho_old,pi);
+            WritePlotFile(0,0.,geom,umac,rhotot_old,rho_old,pi,charge_old,Epot);
             if (n_steps_skip == 0 && struct_fact_int > 0) {
                 structFact.WritePlotFile(0,0.,geom,"plt_SF");
             }
@@ -553,7 +553,7 @@ void main_driver(const char* argv)
 
         // write plotfile at specific intervals
         if (plot_int > 0 && istep%plot_int == 0) {
-            WritePlotFile(istep,time,geom,umac,rhotot_new,rho_new,pi);
+            WritePlotFile(istep,time,geom,umac,rhotot_new,rho_new,pi,charge_new,Epot);
             if (istep > n_steps_skip && struct_fact_int > 0) {
                 structFact.WritePlotFile(istep,time,geom,"plt_SF");
             }
