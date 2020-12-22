@@ -1692,7 +1692,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::PrintMarkerData(int lev) cons
         // Also we stride the neighbors[index] array in units of
         // sizeof(ParticleData). All of this is a little too dangerous for my
         // taste: never hide what you're doing from your compiler!!!
-        const ParticleType * nbhd_data = (ParticleType *) this->neighbors[lev].at(index).dataPtr();
+        const ParticleType * nbhd_data = (ParticleType *) this->neighbors[lev].at(index).GetArrayOfStructs().dataPtr();
         for(int i = 0; i < ng; i++){
             const ParticleType & part = nbhd_data[i];
 

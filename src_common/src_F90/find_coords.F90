@@ -1,3 +1,5 @@
+#include <AMReX_Config.H>
+
 
 subroutine find_face_coords(real_lo, real_hi, xface, xfacelo, xfacehi, yface, yfacelo, yfacehi, &
 #if (BL_SPACEDIM == 3)

@@ -843,7 +843,7 @@ IBMultiBlobContainer::GetParticleDict(int lev, const TileIndex & index) {
 
     std::map<MarkerIndex, ParticleType *> particle_dict;
 
-    ParticleVector & nbhd_data = GetNeighbors(lev, index.first, index.second);
+    ParticleVector & nbhd_data = GetNeighbors(lev, index.first, index.second).GetArrayOfStructs()();
     long nn = nbhd_data.size();
     for (int j=0; j<nn; ++j) {
 
@@ -1057,7 +1057,7 @@ void IBMultiBlobContainer::PrintMarkerData(int lev) const {
         // Also we stride the neighbors[index] array in units of
         // sizeof(ParticleData). All of this is a little too dangerous for my
         // taste: never hide what you're doing from your compiler!!!
-        const ParticleType * nbhd_data = (ParticleType *) this->neighbors[lev].at(index).dataPtr();
+        const ParticleType * nbhd_data = (ParticleType *) this->neighbors[lev].at(index).GetArrayOfStructs().dataPtr();
         for(int i = 0; i < ng; i++){
             const ParticleType & part = nbhd_data[i];
 
