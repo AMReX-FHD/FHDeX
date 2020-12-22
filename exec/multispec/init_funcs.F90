@@ -25,7 +25,7 @@ subroutine init_rho_and_umac(lo,hi, &
   use common_namelist_module, only: prob_type, algorithm_type, T_init, &
                                     rho0, rhobar, initial_variance_mass, &
                                     smoothing_width
-  use multispec_namelist_module, only: Dbar, Dtherm, &
+  use multispec_namelist_module, only: Dbar, Dtherm, charge_per_mass, &
                                        c_init_1, c_init_2, temp_type, is_ideal_mixture
 
   implicit none
@@ -45,11 +45,13 @@ subroutine init_rho_and_umac(lo,hi, &
 
   ! local variables
   integer          :: i,j,n
-  double precision :: half,x,y,rad,L(2),sumtot,c_loc,y1,r,r1,r2,m_e,l1,l2
+  double precision :: half,x,y,rad,L(2),sumtot,c_loc,r,r1,r2,m_e,l1,l2
 
   double precision :: random
 
   double precision :: rho_total, sinx, sinz
+
+  double precision :: x1, x2, y1, y2, coeff
 
   half = 0.5d0
 
@@ -191,6 +193,61 @@ subroutine init_rho_and_umac(lo,hi, &
 
           enddo
        enddo
+
+  case (15)
+
+     
+
+  !=========================================================
+  ! case +/-15: Supported only in 2D for now, mostly for testing electrodiffusion
+  ! Discontinuous band in central 1/2 (case 15)
+  ! c=c_init_1(:) inside; c=c_init_2(:) outside
+  !=========================================================
+
+     u = 0.d0
+     v = 0.d0
+     
+     ! first quarter of domain
+     y1 = (3*prob_lo(2) + prob_hi(2)) / 4.d0
+     x1 = (3*prob_lo(1) + prob_hi(1)) / 4.d0
+        
+     ! last quarter of domain
+     y2 = (prob_lo(2) + 3*prob_hi(2)) / 4.d0
+     x2 = (prob_lo(1) + 3*prob_hi(1)) / 4.d0
+
+     if (smoothing_width .gt. 0.d0) then
+
+          ! smoothed version
+          do j=lo(2),hi(2)
+             y = prob_lo(2) + dx(2)*(dble(j)+0.5d0) - y1
+             do i=lo(1),hi(1)
+                x = prob_lo(1) + (dble(i)+0.5d0)*dx(1) - x1
+                do n=1,nspecies
+
+                   ! tanh smoothing in y
+                   coeff=0.5d0*(tanh(y/(smoothing_width*dx(2)))+1.d0)*0.5d0*(tanh((-y+y2-y1)/(smoothing_width*dx(2)))+1.d0)
+
+                   ! Donev: prob_type = -15: a special case for doing ternary diffusion NaCl + KCl
+                   ! Here the last two species have a tanh profile in both x and y (species are Na+,Cl-,K+,water)
+                   ! Aadd a tanh smoothing for central 50% of domain in x for second-to-last species
+                   if( (prob_type==-15) .and. (n==nspecies-1) ) then 
+                      coeff=0.5d0*(tanh(x/(smoothing_width*dx(1)))+1.d0)*0.5d0*(tanh((-x+x2-x1)/(smoothing_width*dx(1)))+1.d0)*coeff
+                   end if  
+ 
+                   ! smooth between c_init_1(:) and c_init_2(:)
+                   c_loc = c_init_2(n) + (c_init_1(n)-c_init_2(n))*coeff
+                   c(i,j,n) = c_loc
+
+                   ! for 4-species test, need to add Cl to central square to balance the K
+                   if ( (prob_type==-15) .and. (nspecies .eq. 4) .and. (n .eq. nspecies-1) ) then
+                      c(i,j,2) = c(i,j,2) - charge_per_mass(3)/charge_per_mass(2)*c_loc
+                   end if
+
+                end do
+             end do
+          end do
+
+       end if
      
   case default
 
