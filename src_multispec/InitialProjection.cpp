@@ -124,7 +124,7 @@ void InitialProjection(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         }
 
         // set divu = div(v^init)
-        ComputeDiv(divu,umac,0,0,1,geom,1);
+        ComputeDiv(divu,umac,0,0,1,geom);
 
         // add div(v^init) to mac_rhs
         // now mac_rhs = div(v^init - S)
