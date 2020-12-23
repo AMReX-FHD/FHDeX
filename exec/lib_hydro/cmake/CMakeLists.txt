@@ -7,7 +7,7 @@ project(lib_hydro)
 enable_language(Fortran)
 
 # Include AMReX
-find_package(AMReX)
+find_package(AMReX REQUIRED)
 
 # Enable OpenMP
 find_package(OpenMP)
@@ -18,21 +18,21 @@ if (OPENMP_FOUND)
     set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
 endif()
 
-get_target_property(amrex_compile_defs AMReX::amrex  INTERFACE_COMPILE_DEFINITIONS)
-string(REPLACE       "$"     ""    amrex_compile_defs "${amrex_compile_defs}")
-string(REGEX REPLACE "<.*>;" ""    amrex_compile_defs "${amrex_compile_defs}")
-string(REPLACE       ";"     " -D" amrex_compile_defs "-D${amrex_compile_defs}")
+# get_target_property(amrex_compile_defs AMReX::amrex  INTERFACE_COMPILE_DEFINITIONS)
+# string(REPLACE       "$"     ""    amrex_compile_defs "${amrex_compile_defs}")
+# string(REGEX REPLACE "<.*>;" ""    amrex_compile_defs "${amrex_compile_defs}")
+# string(REPLACE       ";"     " -D" amrex_compile_defs "-D${amrex_compile_defs}")
 
-list(APPEND CMAKE_CXX_FLAGS "${amrex_compile_defs}")
+# list(APPEND CMAKE_CXX_FLAGS "${amrex_compile_defs}")
 list(APPEND CMAKE_CXX_FLAGS "-O3 -DNDEBUG -Werror=return-type")
 
-string(REPLACE ";" " " CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+# string(REPLACE ";" " " CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 message(" *** CMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}")
 
-list(APPEND CMAKE_Fortran_FLAGS "${amrex_compile_defs}")
+# list(APPEND CMAKE_Fortran_FLAGS "${amrex_compile_defs}")
 list(APPEND CMAKE_Fortran_FLAGS "-O3 -DNDEBUG -O3 -fimplicit-none -ffixed-line-length-none -ffree-line-length-none")
 
-string(REPLACE ";" " " CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS}")
+# string(REPLACE ";" " " CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS}")
 message(" *** CMAKE_Fortran_FLAGS=${CMAKE_Fortran_FLAGS}")
 
 
@@ -47,6 +47,7 @@ include_directories(
     ../../../src_hydro/src_F90
     ../../../src_immersed-boundary
     ../../../src_immersed-boundary/src_F90
+    ../../../src_particles/
     )
 
 set(CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_INSTALL_PREFIX}/modules)
@@ -61,13 +62,13 @@ add_library(
     ../../../src_common/ComputeDivAndGrad.cpp
     ../../../src_common/ConvertStag.cpp
     ../../../src_common/Debug.cpp
-    ../../../src_common/FindCoords.cpp
     ../../../src_common/FindNodalValues.cpp
     ../../../src_common/MultiFabPhysBC.cpp
     ../../../src_common/SqrtMF.cpp
     ../../../src_common/common_functions.cpp
     ../../../src_common/main.cpp
     ../../../src_common/main_driver.cpp
+    ../../../src_common/NormInnerProduct.cpp
 
     ../../../src_common/src_F90/common_namelist.F90
     ../../../src_common/src_F90/compute_averages.F90
@@ -89,7 +90,6 @@ add_library(
     ../../../src_gmres/ApplyMatrix.cpp
     ../../../src_gmres/GMRES.cpp
     ../../../src_gmres/MacProj.cpp
-    ../../../src_gmres/NormInnerProduct.cpp
     ../../../src_gmres/Precon.cpp
     ../../../src_gmres/StagApplyOp.cpp
     ../../../src_gmres/StagMGSolver.cpp
@@ -120,6 +120,8 @@ add_library(
     ../../../src_immersed-boundary/src_F90/immbdy_namelist.F90
     ../../../src_immersed-boundary/src_F90/param_mod.F90
     ../../../src_immersed-boundary/src_F90/set_particle_properties.F90
+
+    ../../../src_particles/FindCoords.cpp
     )
 
 target_link_libraries(
@@ -165,6 +167,9 @@ set(HEADERS
     ../../../src_immersed-boundary/immbdy_namespace.H
     ../../../src_immersed-boundary/immbdy_namespace_declarations.H
     ../../../src_immersed-boundary/kernel_functions_K.H
+
+    ../../../src_particles/particle_functions.H
+    ../../../src_particles/particle_functions_F.H
     )
 
 message("HEADERS = ${HEADERS}")

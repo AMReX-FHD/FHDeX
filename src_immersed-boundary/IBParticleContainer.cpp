@@ -306,7 +306,7 @@ void IBParticleContainer::FillMarkerPositions(int lev, int n_marker) {
         long ng = neighbors[lev][index].size();
 
         // Iterate over neighbor particle data
-        ParticleType * nbhd_data = (ParticleType *) neighbors[lev][index].dataPtr();
+        ParticleType * nbhd_data = (ParticleType *) neighbors[lev][index].GetArrayOfStructs().dataPtr();
         for (int i = 0; i < ng; ++i) {
             ParticleType & part = nbhd_data[i];
             ParticleIndex pindex(part.id(), part.cpu());
@@ -1006,7 +1006,8 @@ void IBParticleContainer::InterpolateParticleForces(int lev,
         long ng = neighbors[lev][index].size();
 
         // Iterate over neighbor particle data
-        ParticleType * nbhd_data = (ParticleType *) neighbors[lev][index].dataPtr();
+        // ParticleType * nbhd_data = (ParticleType *) neighbors[lev][index].dataPtr();
+        ParticleVector & nbhd_data = GetNeighbors(lev, pti.index(), pti.LocalTileIndex()).GetArrayOfStructs()();
         for (int i = 0; i < ng; ++i) {
             ParticleType & part = nbhd_data[i];
             ParticleIndex pindex(part.id(), part.cpu());
@@ -1221,7 +1222,7 @@ void IBParticleContainer::PrintParticleData(int lev) {
         // Also we stride the neighbors[index] array in units of
         // sizeof(ParticleData). All of this is a little too dangerous for my
         // taste: never hide what you're doing from your compiler!!!
-        ParticleType * nbhd_data = (ParticleType *) neighbors[lev][index].dataPtr();
+        ParticleType * nbhd_data = (ParticleType *) neighbors[lev][index].GetArrayOfStructs().dataPtr();
         for(int i = 0; i < ng; i++){
             ParticleType & part = nbhd_data[i];
             Real r              = part.rdata(IBP_realData::radius);
@@ -1388,7 +1389,7 @@ void IBParticleContainer::NeighborIBParticleInfo(Vector<IBP_info> & info,
     // neighbors[index] array in units of sizeof(ParticleData). All of this is a
     // little too dangerous for my taste: never hide what you're doing from your
     // compiler!!!
-    const ParticleType * nbhd_data = (ParticleType *) neighbors[lev].at(index).dataPtr();
+    const ParticleType * nbhd_data = (ParticleType *) neighbors[lev].at(index).GetArrayOfStructs().dataPtr();
     for(int i = 0; i < ng; i++){
         const ParticleType & part = nbhd_data[i];
 

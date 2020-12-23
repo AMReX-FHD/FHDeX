@@ -1,3 +1,6 @@
+#include <AMReX_Config.H>
+
+
 module immbdy_namelist_module
 
     use iso_c_binding,       only: c_int, c_char, c_null_char

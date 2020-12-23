@@ -26,21 +26,21 @@ find_library(
 
 message("LIBHYDRO = ${LIBHYDRO}")
 
-get_target_property(amrex_compile_defs AMReX::amrex  INTERFACE_COMPILE_DEFINITIONS)
-string(REPLACE       "$"     ""    amrex_compile_defs "${amrex_compile_defs}")
-string(REGEX REPLACE "<.*>;" ""    amrex_compile_defs "${amrex_compile_defs}")
-string(REPLACE       ";"     " -D" amrex_compile_defs "-D${amrex_compile_defs}")
+# get_target_property(amrex_compile_defs AMReX::amrex  INTERFACE_COMPILE_DEFINITIONS)
+# string(REPLACE       "$"     ""    amrex_compile_defs "${amrex_compile_defs}")
+# string(REGEX REPLACE "<.*>;" ""    amrex_compile_defs "${amrex_compile_defs}")
+# string(REPLACE       ";"     " -D" amrex_compile_defs "-D${amrex_compile_defs}")
 
-list(APPEND CMAKE_CXX_FLAGS "${amrex_compile_defs}")
+# list(APPEND CMAKE_CXX_FLAGS "${amrex_compile_defs}")
 list(APPEND CMAKE_CXX_FLAGS "-O3 -DNDEBUG -Werror=return-type")
 
-string(REPLACE ";" " " CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+# string(REPLACE ";" " " CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 message(" *** CMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}")
 
-list(APPEND CMAKE_Fortran_FLAGS "${amrex_compile_defs}")
+# list(APPEND CMAKE_Fortran_FLAGS "${amrex_compile_defs}")
 list(APPEND CMAKE_Fortran_FLAGS "-O3 -DNDEBUG -O3 -fimplicit-none -ffixed-line-length-none -ffree-line-length-none")
 
-string(REPLACE ";" " " CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS}")
+# string(REPLACE ";" " " CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS}")
 message(" *** CMAKE_Fortran_FLAGS=${CMAKE_Fortran_FLAGS}")
 
 
