@@ -244,6 +244,8 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     ComputeMassFluxdiv(rho_new,rhotot_new,Temp,diff_mass_fluxdiv,stoch_mass_fluxdiv,
                        diff_mass_flux,stoch_mass_flux,sMassFlux,dt,time,geom,weights,
                        charge_new,grad_Epot_new,Epot,permittivity);
+
+    Abort("HERE");
     
     // assemble total fluxes to be used in reservoirs
     //
@@ -274,7 +276,7 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         if (variance_coef_mass != 0.) {
             MultiFab::Saxpy(gmres_rhs_p,-1/rhobar[i],stoch_mass_fluxdiv,i,0,1,0);
         }
-    }
+    }    
 
     // modify umac to respect the boundary conditions we want after the next gmres solve
     // thus when we add A_0^n vbar^n to gmres_rhs_v and add div vbar^n to gmres_rhs_p we
@@ -334,6 +336,12 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     // This relies entirely on relative tolerance and can fail if the rhs is roundoff error only:
     // gmres_abs_tol = 0.d0 ! It is better to set gmres_abs_tol in namelist to a sensible value
+
+    VisMF::Write(gmres_rhs_v[0],"a_gmres_rhs_u");
+    VisMF::Write(gmres_rhs_v[1],"a_gmres_rhs_v");
+    VisMF::Write(gmres_rhs_p,"a_gmres_rhs_p");
+
+    Abort("HERE");
     
     // call gmres to compute delta v and delta pi
     GMRES gmres(ba,dmap,geom);

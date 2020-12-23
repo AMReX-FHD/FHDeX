@@ -39,7 +39,8 @@ void ComputeMassFluxdiv(MultiFab& rho,
                         MultiFab& charge,
                         std::array<MultiFab,AMREX_SPACEDIM>& grad_Epot,
                         MultiFab& Epot,
-                        MultiFab& permittivity);
+                        MultiFab& permittivity,
+                        const int& zero_initial_Epot=1);
 
 /////////////////////////////////////////////////////////////////////////////////
 // in DiffusiveMassFlux.cpp
