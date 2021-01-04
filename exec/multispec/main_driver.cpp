@@ -251,7 +251,7 @@ void main_driver(const char* argv)
         // so the below is a close approximation to debye lenth
         Real sum_temp = 0.;
         for (int d=0; d<nspecies; ++d) {
-            sum_temp += c_init_1[0] * molmass[d] * charge_per_mass[d] * charge_per_mass[d];
+            sum_temp += c_init_1[d] * molmass[d] * charge_per_mass[d] * charge_per_mass[d];
         }
         Real debye_len =sqrt(dielectric_const*k_B*T_init[0]/(rho0*sum_temp));
         Print() << "Debye length lambda_D is approx: " << debye_len << std::endl;
