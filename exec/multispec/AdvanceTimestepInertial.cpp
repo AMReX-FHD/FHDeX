@@ -244,8 +244,6 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     ComputeMassFluxdiv(rho_new,rhotot_new,Temp,diff_mass_fluxdiv,stoch_mass_fluxdiv,
                        diff_mass_flux,stoch_mass_flux,sMassFlux,dt,time,geom,weights,
                        charge_new,grad_Epot_new,Epot,permittivity);
-
-    Abort("HERE");
     
     // assemble total fluxes to be used in reservoirs
     //
@@ -341,8 +339,6 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     VisMF::Write(gmres_rhs_v[1],"a_gmres_rhs_v");
     VisMF::Write(gmres_rhs_p,"a_gmres_rhs_p");
 
-    Abort("HERE");
-    
     // call gmres to compute delta v and delta pi
     GMRES gmres(ba,dmap,geom);
     gmres.Solve(gmres_rhs_v, gmres_rhs_p, dumac, dpi, rhotot_fc_new, eta, eta_ed,
