@@ -1026,7 +1026,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
             [=] AMREX_GPU_DEVICE (int i, int j, int k) {
             
                 xflux(i,j,k,0) += momx(i,j,k);
-                xflux(i,j,k,4) += 0.5*(cons(i-1,j,k,4)+cons(i,j,k,4))*velx(i,j,k) + 0.25*(prim(i-1,j,k,5)+prim(i,j,k,5))*velx(i,j,k)*(cons(i-1,j,k,0)+cons(i,j,k,0));
+                xflux(i,j,k,4) += 0.5*(cons(i-1,j,k,4)+cons(i,j,k,4))*velx(i,j,k) + 0.5*(prim(i-1,j,k,5)+prim(i,j,k,5))*velx(i,j,k);
 
                 if (algorithm_type == 2) { // Add advection of concentration
                     for (int n=0; n<nspecies; ++n) {
@@ -1038,7 +1038,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
             [=] AMREX_GPU_DEVICE (int i, int j, int k) {
             
                 yflux(i,j,k,0) += momy(i,j,k);
-                yflux(i,j,k,4) += 0.5*(cons(i,j-1,k,4)+cons(i,j,k,4))*vely(i,j,k) + 0.25*(prim(i,j-1,k,5)+prim(i,j,k,5))*vely(i,j,k)*(cons(i,j-1,k,0)+cons(i,j,k,0));
+                yflux(i,j,k,4) += 0.5*(cons(i,j-1,k,4)+cons(i,j,k,4))*vely(i,j,k) + 0.5*(prim(i,j-1,k,5)+prim(i,j,k,5))*vely(i,j,k);
 
                 if (algorithm_type == 2) { // Add advection of concentration
                     for (int n=0; n<nspecies; ++n) {
@@ -1050,7 +1050,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
             [=] AMREX_GPU_DEVICE (int i, int j, int k) {
 
                 zflux(i,j,k,0) += momz(i,j,k);
-                zflux(i,j,k,4) += 0.5*(cons(i,j,k-1,4)+cons(i,j,k,4))*velz(i,j,k) + 0.25*(prim(i,j,k-1,5)+prim(i,j,k,5))*velz(i,j,k)*(cons(i,j,k-1,0)+cons(i,j,k,0));
+                zflux(i,j,k,4) += 0.5*(cons(i,j,k-1,4)+cons(i,j,k,4))*velz(i,j,k) + 0.5*(prim(i,j,k-1,5)+prim(i,j,k,5))*velz(i,j,k);
 
                 if (algorithm_type == 2) { // Add advection of concentration
                     for (int n=0; n<nspecies; ++n) {
