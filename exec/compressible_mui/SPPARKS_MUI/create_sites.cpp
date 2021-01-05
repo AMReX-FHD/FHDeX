@@ -1193,7 +1193,7 @@ void CreateSites::offsets_2d(int ibasis, double **basis,
 	delx = (i+basis[m][0])*xlattice - x0;
 	dely = (j+basis[m][1])*ylattice - y0;
 	r = sqrt(delx*delx + dely*dely);
-	if (r > cutlo-EPSILON && r < cuthi+EPSILON) {
+    if (r > cutlo*(1-EPSILON) && r < cuthi*(1+EPSILON)) {
 	  if (n == ntarget) error->all(FLERR,"Incorrect lattice neighbor count");
 	  cmapone[n][0] = i;
 	  cmapone[n][1] = j;
