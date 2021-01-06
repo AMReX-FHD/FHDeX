@@ -4,10 +4,8 @@ seed        ${SEED}
 dimension   2
 boundary    p p p
 
-variable    lat_const       equal 2.8e-8 
+variable    lat_const       equal 2.8e-8
 variable    lat_const_sqrt3 equal sqrt(3)*${lat_const}
-variable    lat_off_x       equal ${lat_const}/4
-variable    lat_off_y       equal ${lat_const_sqrt3}/4
 
 lattice     tri ${lat_const}
 
@@ -25,15 +23,17 @@ create_sites    box
 sector      yes tstop 1.e-13 
 solve_style tree
 
-temperature 300. 
+temperature 1000.
 
-variable    dxFHD equal ${n1x}*${lat_const}
-variable    dyFHD equal ${n1y}*${lat_const_sqrt3} 
+variable    dxFHD 	equal ${n1x}*${lat_const}
+variable    dyFHD 	equal ${n1y}*${lat_const_sqrt3}
+variable    lat_off_x	equal ${lat_const}/4
+variable    lat_off_y   equal ${lat_const_sqrt3}/4
 
-print 1
-
-mui_fhd_lattice_size ${dxFHD} ${dyFHD} 
+mui_fhd_lattice_size   ${dxFHD}     ${dyFHD}
 mui_kmc_lattice_offset ${lat_off_x} ${lat_off_y}
+
+###########################
 
 # i1:       1 (siteA) 2 (siteB) 3 (siteC)
 # i2:       0 (vac) 1 (spec1) 2 (spec2) 3 (spec3) 4 (spec4) 5 (spec5)
@@ -42,28 +42,49 @@ mui_kmc_lattice_offset ${lat_off_x} ${lat_off_y}
 # d1 - d5:  density1-5 = number density of the fluid cell right above the site 
 # d6:       temperature
 
-set         i1 value 1                  # all siteA 
-set         i2 value 0                  # all vac
+set         i1 value 1                           # all siteA
+set         i2 value 0                           # all vac
+set         i2 value 1 fraction 1.519198e-01     # equilibrium coverage
 
-event       4 siteA vac   4.031128e-09 spec1     # adsorption of spec1
-event       5 siteA spec1 6.592305e+11 vac       # desorption of spec1
+event       4 siteA vac   5.242861e+06 spec1     # adsorption of spec1
+event       5 siteA spec1 2.926784e+07 vac       # desorption of spec1
 
-variable    Trun   equal 1.e-12 
-variable    Tstat  equal 1.e-12
-variable    Timage equal 1.e-12
+###########################
 
+variable    Trun     equal 1.e-12
+variable    nstep    equal 1000
+
+#variable    imagfreq equal 10          # dump image frequency
+variable    imagfreq equal ${nstep}    # only final configuration
+#variable    imagfreq equal ${nstep}+1  # no dump image
+
+variable    Tstat  equal ${nstep}*${Trun}
 stats       ${Tstat}
 diag_style  surfchemtest stats yes list vac spec1
 
-dump        3 image ${Timage} dump.*.jpg i2 site shape cube crange 0 2 drange 1 4 sdiam 6e-7 shape cube view 0 0 box no 0 size 1000 1000
-dump_modify 3 scolor 0 gray scolor 1 red scolor 2 green pad 3
-
-variable    nstep equal 10
-
 variable ts loop ${nstep}
 label ts_loop
-    mui_fetch   ${ts} density1 density2 temp
+    # MPI_FETCH
+    mui_fetch   ${ts} density1
+
+    ##### if imagefreq
+    variable reminder equal ${ts}-${imagfreq}*floor(${ts}/${imagfreq})
+    if ${reminder} != 0 then "jump in.kmc jump_label1"
+    dump        3 image 1000. dump.${ts}.*.jpg i2 site shape cube crange 0 2 drange 1 4 sdiam ${lat_const} shape sphere &
+                  view 0 0 box no 0 size 1000 1000 zoom 80
+                  # zfactor/(2*n2x) is actual factor for one FHD cell along x-axis
+    dump_modify 3  scolor 0 gray  scolor 1 red  scolor 2 green
+
+    # RUN KMC
+    label jump_label1
     run ${Trun}
-    mui_push    ${ts} ac1 dc1 ac2 dc2
+
+    ##### if imagefreq
+    if ${reminder} != 0 then "jump in.kmc jump_label2"
+    undump      3
+
+    # MPI_PUSH
+    label jump_label2
+    mui_push    ${ts} ac1 dc1
 next ts 
 jump in.kmc ts_loop
