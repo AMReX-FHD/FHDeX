@@ -202,8 +202,6 @@ void main_driver(const char* argv)
     cuMeans.setVal(0.0);
     cuVars.setVal(0.0);
     
-    MultiFab primVertAvg;  // flattened multifab defined below
-
     MultiFab primMeans  (ba,dmap,nprimvars  ,ngc);
     MultiFab primVars   (ba,dmap,nprimvars+5,ngc);
     MultiFab primMeansAv(ba,dmap,nprimvars  ,ngc);
@@ -386,6 +384,7 @@ void main_driver(const char* argv)
     Geometry geom_flat;
 
     if(project_dir >= 0){
+      MultiFab primVertAvg;  // flattened multifab defined below
       prim.setVal(0.0);
       ComputeVerticalAverage(prim, primVertAvg, geom, project_dir, 0, structVarsPrim);
       BoxArray ba_flat = primVertAvg.boxArray();
@@ -523,6 +522,7 @@ void main_driver(const char* argv)
             structFactPrim.FortStructure(structFactPrimMF,geom);
             structFactCons.FortStructure(structFactConsMF,geom);
             if(project_dir >= 0) {
+                MultiFab primVertAvg;  // flattened multifab defined below
                 ComputeVerticalAverage(prim, primVertAvg, geom, project_dir, 0, structVarsPrim);
                 structFactPrimVerticalAverage.FortStructure(primVertAvg,geom_flat);
             }

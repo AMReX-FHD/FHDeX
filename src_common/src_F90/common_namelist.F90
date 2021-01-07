@@ -1,3 +1,6 @@
+#include <AMReX_Config.H>
+
+
 module common_namelist_module
 
   use iso_c_binding, only: c_char
