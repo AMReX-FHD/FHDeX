@@ -52,11 +52,11 @@ event       5 siteA spec1 2.926784e+07 vac       # desorption of spec1
 ###########################
 
 variable    Trun     equal 1.e-12
-variable    nstep    equal 1000
+variable    nstep    equal 2000
 
 #variable    imagfreq equal 10          # dump image frequency
-variable    imagfreq equal ${nstep}    # only final configuration
-#variable    imagfreq equal ${nstep}+1  # no dump image
+#variable    imagfreq equal ${nstep}    # only final configuration
+variable    imagfreq equal ${nstep}+1  # no dump image
 
 variable    Tstat  equal ${nstep}*${Trun}
 stats       ${Tstat}

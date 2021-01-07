@@ -115,8 +115,25 @@ dt = 1e-12
 
 print "- dt (FHD) = %e" % dt
 print "- max mean number of ads events per dxFHD*dyFHD per dt = %e" % (n1s*k1ads*dt)
-print "- max mean number of des events per dxFHD*dyFHD per dt = %e" % (n1s*k1des*dt)
+print "- max mean number of des events per dxFHD*dyFHD per dt = %e\n" % (n1s*k1des*dt)
 
+##########
 
+rho1 = n1*m1
+rho2 = n2*m2
 
+drho1sq = rho1**2/N1
+drho2sq = rho2**2/N2
 
+drhosq = drho1sq+drho2sq
+djasq = rho*kB*temp/dV
+
+print "drhosq = %e" % drhosq
+print "drho1sq = %e" % drho1sq
+print "drho2sq = %e" % drho2sq
+print "djasq = %e\n" % djasq
+
+print "drhosq*dV  = %e\t%e\t%e\t%e" % (drhosq*dV,2*drhosq*dV,0.5*drhosq*dV,1.5*drhosq*dV)
+print "drho1sq*dV = %e\t%e\t%e\t%e" % (drho1sq*dV,2*drho1sq*dV,0.5*drho1sq*dV,1.5*drho1sq*dV)
+print "drho2sq*dV = %e\t%e\t%e\t%e" % (drho2sq*dV,2*drho2sq*dV,0.5*drho2sq*dV,1.5*drho2sq*dV)
+print "djasq*dV   = %e\t%e\t%e\t%e" % (djasq*dV,2*djasq*dV,0.5*djasq*dV,1.5*djasq*dV)
