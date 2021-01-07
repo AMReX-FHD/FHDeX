@@ -864,8 +864,8 @@ void main_driver(const char* argv)
 
         if(istep == 1)
         {
-            //particles.SetPosition(1, prob_hi[0]*0.42, prob_hi[1]*(1.0/128.0), prob_hi[2]*0.42);
-            //particles.SetPosition(2, prob_hi[0]*0.1, prob_hi[1]*0.5, prob_hi[2]*0.5);
+            particles.SetPosition(1, prob_hi[0]*0.45, prob_hi[1]*0.45, prob_hi[2]*0.45);
+            particles.SetPosition(2, prob_hi[0]*0.45 + 1.29182e-8, prob_hi[1]*0.45, prob_hi[2]*0.45);
            
         }
 
@@ -945,7 +945,7 @@ void main_driver(const char* argv)
         // AJN - should this be an if/else fluid_tog==2?
         if (fluid_tog == 1) {
 
-            if(particles.getTotalPinnedMarkers() == 0)
+            if(particles.getTotalPinnedMarkers() != 0)
             {         
 
                 Real check;
@@ -1174,7 +1174,7 @@ void main_driver(const char* argv)
                             potential, potentialM, potentialV);
         }
 
-        //particles.PrintParticles();
+        particles.PrintParticles();
 
         // timer for time step
         Real time2 = ParallelDescriptor::second() - time1;
