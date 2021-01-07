@@ -45,7 +45,7 @@ void InitializeCommonNamespace() {
     grav.resize(AMREX_SPACEDIM);
     dof.resize(MAX_SPECIES);
     u_init.resize(2);
-    T_init.resize(2);
+    //T_init.resize(2);
     //domega.resize(AMREX_SPACEDIM);
 
     // boundary condition flags
@@ -75,10 +75,9 @@ void InitializeCommonNamespace() {
     particle_count.resize(MAX_SPECIES);
     p_move_tog.resize(MAX_SPECIES);
     p_force_tog.resize(MAX_SPECIES);
-    p_int_tog.resize(MAX_SPECIES*MAX_SPECIES);
+    //p_int_tog.resize(MAX_SPECIES*MAX_SPECIES);
     particle_n0.resize(MAX_SPECIES);
 
-    eepsilon.resize(MAX_SPECIES*MAX_SPECIES);
     sigma.resize(MAX_SPECIES);
     qval.resize(MAX_SPECIES);
 
@@ -104,7 +103,7 @@ void InitializeCommonNamespace() {
                                 dof.dataPtr(), hcv.data(), hcp.data(),
                                 rhobar.data(),
                                 &rho0, &variance_coef_mom, &variance_coef_mass, &k_B, &Runiv,
-                                T_init.dataPtr(),
+                                T_init.begin(),
                                 &algorithm_type,  &advection_type,
                                 &barodiffusion_type, &use_bl_rng, &seed,
                                 &seed_momentum, &seed_diffusion, &seed_reaction,
@@ -134,10 +133,10 @@ void InitializeCommonNamespace() {
                                 density_weights.dataPtr(), shift_cc_to_boundary.dataPtr(),
                                 &particle_placement, particle_count.dataPtr(),
                                 p_move_tog.dataPtr(), p_force_tog.dataPtr(),
-                                p_int_tog.dataPtr(), &particle_neff,
+                                p_int_tog.begin(), &particle_neff,
                                 particle_n0.dataPtr(), mass.dataPtr(), nfrac.dataPtr(),
                                 &permittivity,
-                                &cut_off,&rmin, eepsilon.dataPtr(), sigma.dataPtr(),
+                                &cut_off,&rmin, eepsilon.begin(), sigma.dataPtr(),
                                 &poisson_verbose, &poisson_bottom_verbose, &poisson_max_iter,
                                 &poisson_rel_tol, &particle_grid_refine, &es_grid_refine,
                                 diff.dataPtr(), &all_dry, &fluid_tog, &es_tog, &drag_tog, &move_tog, &rfd_tog,
