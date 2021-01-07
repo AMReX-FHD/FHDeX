@@ -71,7 +71,7 @@ namespace common {
     extern amrex::Real                variance_coef_mass;
     extern AMREX_GPU_MANAGED amrex::Real k_B;
     extern AMREX_GPU_MANAGED amrex::Real Runiv;
-    extern amrex::Vector<amrex::Real> T_init;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> T_init;
 
     // Algorithm control / selection
     extern int                        algorithm_type;
@@ -210,7 +210,7 @@ namespace common {
     extern amrex::Vector<int>         particle_count;
     extern amrex::Vector<int>         p_move_tog;
     extern amrex::Vector<int>         p_force_tog;
-    extern amrex::Vector<int>         p_int_tog;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_SPECIES*MAX_SPECIES>         p_int_tog;
     extern amrex::Real                particle_neff;
     extern amrex::Vector<amrex::Real> particle_n0;
     extern amrex::Vector<amrex::Real> mass;
@@ -219,7 +219,7 @@ namespace common {
     extern AMREX_GPU_MANAGED amrex::Real permittivity;
     extern amrex::Real                cut_off;
     extern amrex::Real                rmin;
-    extern amrex::Vector<amrex::Real> eepsilon;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES*MAX_SPECIES> eepsilon;
     extern amrex::Vector<amrex::Real> sigma;
 
     extern int                        poisson_verbose;
@@ -240,7 +240,7 @@ namespace common {
     extern int                        move_tog;
     extern int                        rfd_tog;
     extern int                        dry_move_tog;
-    extern int                        sr_tog;
+    extern AMREX_GPU_MANAGED int      sr_tog;
     extern int                        graphene_tog;
     extern int                        crange;
     extern int                        thermostat_tog;

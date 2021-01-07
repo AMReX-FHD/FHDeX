@@ -75,14 +75,21 @@ public:
         return pti.GetArrayOfStructs().numParticles();
     };
 
-
-
+    // Get total number of markers accross all ranks.
+    int getTotalMarkers(){
+        return totalMarkers;
+    };
     /****************************************************************************
      *                                                                          *
      * Marker Spreading and Interpolation                                       *
      *                                                                          *
      ***************************************************************************/
 
+    void initRankLists(int totalM);
+    void loadPinMatrix(int totalP, char* filename);
+    void pinnedParticleInversion();
+
+    int getTotalPinnedMarkers();
 
     //___________________________________________________________________________
     // Static spreading operators applied to raw data arrays
@@ -268,10 +275,27 @@ protected:
 
     AmrCore * m_amr_core;
 
+    Gpu::ManagedDeviceVector<int> ranksIdSorted;
+    Gpu::ManagedDeviceVector<int> idsRankSorted;
+    Gpu::ManagedDeviceVector<int> rankTotals;
+
+    Gpu::ManagedDeviceVector<amrex::Real> pinMatrix;
+
+    int totalMarkers;
+    int totalPinnedMarkers;
+
 private:
 
     // Positions on faces
     Vector<std::array<MultiFab, AMREX_SPACEDIM>> face_coords;
+
+
+
+//    Vector<int> ranksIdSorted;
+//    Vector<int> idsRankSorted;
+//    Vector<int> rankTotals;
+//    int totalMarkers;
+
 };
 
 
