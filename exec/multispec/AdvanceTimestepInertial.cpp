@@ -335,15 +335,11 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // This relies entirely on relative tolerance and can fail if the rhs is roundoff error only:
     // gmres_abs_tol = 0.d0 ! It is better to set gmres_abs_tol in namelist to a sensible value
 
-    VisMF::Write(gmres_rhs_v[0],"a_gmres_rhs_u");
-    VisMF::Write(gmres_rhs_v[1],"a_gmres_rhs_v");
-    VisMF::Write(gmres_rhs_p,"a_gmres_rhs_p");
-
     // call gmres to compute delta v and delta pi
     GMRES gmres(ba,dmap,geom);
     gmres.Solve(gmres_rhs_v, gmres_rhs_p, dumac, dpi, rhotot_fc_new, eta, eta_ed,
                 kappa, theta_alpha, geom, norm_pre_rhs);
-    
+
     // for the corrector gmres solve we want the stopping criteria based on the
     // norm of the preconditioned rhs from the predictor gmres solve.  otherwise
     // for cases where du in the corrector should be small the gmres stalls
