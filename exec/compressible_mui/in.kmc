@@ -11,8 +11,8 @@ lattice     tri ${lat_const}
 
 variable    n1x equal 300
 variable    n1y equal 150
-variable    n2x equal 4
-variable    n2y equal 4
+variable    n2x equal 8
+variable    n2y equal 8
 variable    Nx equal ${n1x}*${n2x}
 variable    Ny equal ${n1y}*${n2y}
 
@@ -71,7 +71,7 @@ label ts_loop
     variable reminder equal ${ts}-${imagfreq}*floor(${ts}/${imagfreq})
     if ${reminder} != 0 then "jump in.kmc jump_label1"
     dump        3 image 1000. dump.${ts}.*.jpg i2 site shape cube crange 0 2 drange 1 4 sdiam ${lat_const} shape sphere &
-                  view 0 0 box no 0 size 1000 1000 zoom 80
+                  view 0 0 box no 0 size 1000 1000 zoom 160
                   # zfactor/(2*n2x) is actual factor for one FHD cell along x-axis
     dump_modify 3  scolor 0 gray  scolor 1 red  scolor 2 green
 
