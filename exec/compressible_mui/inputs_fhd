@@ -54,7 +54,7 @@
   k_B = 1.38064852e-16	! [units: cm2*g*s-2*K-1]
   runiv = 8.314462175e7
   T_init(1) = 1000
-  rho0 = 5.335077e-05
+  rho0 = 5.886949e-05
 
   struct_fact_int = 1
   n_steps_skip = 1000
@@ -88,7 +88,7 @@
 
   molmass = 28.01 4.0026
   diameter = 3.76e-8 2.18e-8
-  rhobar =  0.1 0.9
+  rhobar =  0.2 0.8
 
   ! Enter negative dof to use hcv & hcp values
   dof =  5, 3
