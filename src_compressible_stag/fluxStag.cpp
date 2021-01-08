@@ -894,7 +894,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
 
         const Box& bx = mfi.tilebox();
 
-        if (advection_type == 1) { // interpolate primitive quantities (fix this later for staggered grid -- Ishan)
+        if (advection_type == 2) { // interpolate primitive quantities (fix this later for staggered grid -- Ishan)
             
             // Loop over the cells and compute fluxes
             amrex::ParallelFor(tbx, tby, tbz,
@@ -1019,7 +1019,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
 
             });
             
-        } else if (advection_type == 2) { // interpolate conserved quantitites
+        } else if (advection_type == 1) { // interpolate conserved quantitites
 
             // 1. Loop over the face cells and compute fluxes (all conserved qtys. except momentum; i.e.,[0,4,5-nspecies])
             amrex::ParallelFor(tbx, tby, tbz,
