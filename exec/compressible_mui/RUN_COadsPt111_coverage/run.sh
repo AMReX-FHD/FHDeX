@@ -50,7 +50,8 @@ then
 fi
 
 # run the two executables simultaneously
-echo "mpirun -np 16 $exec1 -var SEED 100 -screen none < $SPKSCR : -np 8 $exec2 $FHDSCR > log.fhd &"
-mpirun -np 16 $exec1 -var SEED 100 -screen none < $SPKSCR : -np 8 $exec2 $FHDSCR > log.fhd &
+echo "mpirun -np 30 $exec1 -var SEED 100 -screen none < $SPKSCR : -np 1 $exec2 $FHDSCR > log.fhd &"
+mpirun -np 30 $exec1 -var SEED 100 -screen none < $SPKSCR : -np 1 $exec2 $FHDSCR > log.fhd &
 
 echo "try \"tail -f log.fhd\""
+echo "try \"./coverage.sh"
