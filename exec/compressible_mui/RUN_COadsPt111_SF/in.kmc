@@ -52,7 +52,7 @@ event       5 siteA spec1 2.926784e+07 vac       # desorption of spec1
 ###########################
 
 variable    Trun     equal 5.e-13
-variable    nstep    equal 2000
+variable    nstep    equal 200
 
 #variable    imagfreq equal 10          # dump image frequency
 #variable    imagfreq equal ${nstep}    # only final configuration
@@ -60,7 +60,7 @@ variable    imagfreq equal ${nstep}+1  # no dump image
 
 variable    Tstat  equal ${nstep}*${Trun}
 stats       ${Tstat}
-diag_style  surfchemtest stats yes list vac spec1
+diag_style  surfchemtest stats yes list vac spec1 spec2
 
 variable ts loop ${nstep}
 label ts_loop
@@ -85,6 +85,6 @@ label ts_loop
 
     # MPI_PUSH
     label jump_label2
-    mui_push    ${ts} ac1 dc1
+    mui_push    ${ts} ac1 dc1 ac2 dc2
 next ts 
 jump in.kmc ts_loop
