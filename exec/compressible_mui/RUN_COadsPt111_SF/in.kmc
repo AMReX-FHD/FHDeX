@@ -11,8 +11,8 @@ lattice     tri ${lat_const}
 
 variable    n1x equal 300
 variable    n1y equal 150
-variable    n2x equal 4
-variable    n2y equal 4
+variable    n2x equal 8
+variable    n2y equal 8
 variable    Nx equal ${n1x}*${n2x}
 variable    Ny equal ${n1y}*${n2y}
 
@@ -44,7 +44,7 @@ mui_kmc_lattice_offset ${lat_off_x} ${lat_off_y}
 
 set         i1 value 1                           # all siteA
 set         i2 value 0                           # all vac
-#set         i2 value 1 fraction 1.519198e-01     # equilibrium coverage
+set         i2 value 1 fraction 1.519198e-01     # equilibrium coverage
 
 event       4 siteA vac   5.242861e+06 spec1     # adsorption of spec1
 event       5 siteA spec1 2.926784e+07 vac       # desorption of spec1
@@ -52,7 +52,7 @@ event       5 siteA spec1 2.926784e+07 vac       # desorption of spec1
 ###########################
 
 variable    Trun     equal 5.e-13
-variable    nstep    equal 200
+variable    nstep    equal 2000
 
 #variable    imagfreq equal 10          # dump image frequency
 #variable    imagfreq equal ${nstep}    # only final configuration
