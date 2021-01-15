@@ -3192,8 +3192,9 @@ FhdParticleContainer::SetPosition(int id, Real x, Real y, Real z)
                 part.pos(0) = x;
                 part.pos(1) = y;
                 part.pos(2) = z;
+
+                std::cout << "Rank " << ParallelDescriptor::MyProc() << " particle " << id << " moving to " << x << ", " << y << ", " << z << std::endl;
             }
-            std::cout << "Rank " << ParallelDescriptor::MyProc() << " particle " << id << " moving to " << x << ", " << y << ", " << z << std::endl;
         }
     }
     
