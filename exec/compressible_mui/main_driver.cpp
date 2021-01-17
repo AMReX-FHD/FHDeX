@@ -14,6 +14,8 @@ using namespace amrex;
 #include <mui.h>
 using namespace mui;
 
+#define NADSDESSPEC 1
+
 // this routine pushes the following information to MUI
 // - species number densities and temperature of FHD cells contacting the interface
 void mui_push(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface2d &uniface, const int step)
@@ -41,7 +43,8 @@ void mui_push(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface2
 
                 std::string channel;
 
-                for (int n = 0; n < nspecies; ++n) {
+                //for (int n = 0; n < nspecies; ++n) {
+                for (int n = 0; n < NADSDESSPEC; ++n) {
 
                     channel = "CH_density";
                     channel += '0'+(n+1);   // assuming nspecies<10
@@ -103,7 +106,8 @@ void mui_fetch(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface
                 double dV = dx[0]*dx[1]*dx[2];
                 double temp = prim_fab(i,j,k,4);
 
-                for (int n = 0; n < nspecies; ++n) {
+                //for (int n = 0; n < nspecies; ++n) {
+                for (int n = 0; n < NADSDESSPEC; ++n) {
                 
                     std::string channel;
                     int ac,dc;
