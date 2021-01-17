@@ -15,16 +15,11 @@ if ! set -q AMREX_SOURCE
 end
 
 
-# # Default to clang compiler
-# if ! set -q CC && ! set -q CXX
-#     set -gx CC (which mpicc)
-#     set -gx CXX (which mpic++)
-# end
-# 
-# 
-# if ! set -q FC
-#     set -gx FC (which mpifort)
-# end
+# Default to clang compiler
+if ! set -q CC && ! set -q CXX
+    set -gx CC (which clang)
+    set -gx CXX (which clang++)
+end
 
 
 mkdir -p amrex
