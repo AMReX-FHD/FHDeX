@@ -31,6 +31,9 @@ fi
 # copy main driver file 
 cp ../main_driver.cpp .
 
+# copy spparks app file
+cp ../SPPARKS_MUI/app_surfchemtest.* .
+
 # check number of steps
 N1=`grep nstep $SPKSCR | head -1 | awk '{print $4}'`
 N2=`grep max_step $FHDSCR | awk '{print $3}'`

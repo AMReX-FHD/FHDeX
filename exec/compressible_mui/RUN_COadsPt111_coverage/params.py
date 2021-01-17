@@ -110,6 +110,8 @@ theta1 = k1ads/(k1ads+k1des)
 print "- eq coverage of spec1: %e" % theta1
 print "- theta(t) = %e*(1-exp(-%e*t))  for theta(0)=0\n" % (theta1,k1ads+k1des)
 
+print "- adsrate = %e\n" % (k1ads/n1)
+
 ##########
 
 dt = 1e-12
