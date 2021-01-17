@@ -64,8 +64,8 @@
   diff = 1.33e-05 1.33e-05
  !If diameter is negative, this value will be used. If diameter is positive, it will be ignored. This is the total wet+dry diffusion. The wet component arises from the grid size and peskin kernel, the dry component is set to recover the value entered here.
  
-  p_int_tog = 1 1 ! If zero, LJ/WCA forces will not be computed for this species with itself (different species always interact)
-  eepsilon = 1e-16 1e-16 !WCA potential---note that Aleks uses 10^-3 but we're not sure of the units in BDWoGF
+  p_int_tog = 1 1 1 1! If zero, LJ/WCA forces will not be computed for this species with itself (different species always interact)
+  eepsilon = 1e-16 1e-16 1e-16 1e-16 !WCA potential---note that Aleks uses 10^-3 but we're not sure of the units in BDWoGF
   sigma = 8e-8 8e-8   !Close range repulsion diameter
   rmin = 1e-8     !Minimum range to prevent blow up of force.  NOTE, THIS IS A RADIUS, THE OTHER VALUES ARE DIAMETER. YES THIS IS STUPID.
 
