@@ -912,7 +912,8 @@ void main_driver(const char* argv)
 
             // compute short range forces (if sr_tog=1)
             // compute P3M short range correction (if es_tog=3)
-            particles.computeForcesNLGPU(charge, RealCenteredCoords, dxp);
+            //particles.computeForcesNLGPU(charge, RealCenteredCoords, dxp);
+            particles.computeForcesNLGPU(RealCenteredCoords, dxp);
         }
 
         if (es_tog==1 || es_tog==3) {

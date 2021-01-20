@@ -152,6 +152,10 @@ module common_namelist_module
   integer,            save :: shift_cc_to_boundary(AMREX_SPACEDIM,LOHI)
 
   double precision,   save :: permittivity
+  integer,            save :: induced_charge_eo
+  integer,            save :: zero_eps_on_wall_type
+  double precision,   save :: zero_eps_wall_left_end
+  double precision,   save :: zero_eps_wall_right_start
   double precision,   save :: cut_off
   double precision,   save :: rmin
   double precision,   save :: eepsilon(MAX_SPECIES*MAX_SPECIES)
@@ -369,6 +373,10 @@ module common_namelist_module
   namelist /common/ shift_cc_to_boundary
 
   namelist /common/ permittivity
+  namelist /common/ induced_charge_eo
+  namelist /common/ zero_eps_on_wall_type
+  namelist /common/ zero_eps_wall_left_end
+  namelist /common/ zero_eps_wall_right_start
   namelist /common/ cut_off
   namelist /common/ rmin
   namelist /common/ eepsilon
@@ -563,6 +571,8 @@ contains
     eamp(:) =  0
     efreq(:) = 0
     ephase(:) = 0
+    induced_charge_eo = 0
+    zero_eps_on_wall_type = 0
 
     qval(:) = 0
 
@@ -628,6 +638,8 @@ contains
                                          particle_placement_in, particle_count_in, p_move_tog_in, &
                                          p_force_tog_in, p_int_tog_in, particle_neff_in,&
                                          particle_n0_in, mass_in, nfrac_in, permittivity_in, &
+                                         induced_charge_eo_in, zero_eps_on_wall_type_in, zero_eps_wall_left_end_in, &
+                                         zero_eps_wall_right_start_in, &
                                          cut_off_in, rmin_in, eepsilon_in, sigma_in, poisson_verbose_in, &
                                          poisson_bottom_verbose_in, poisson_max_iter_in, poisson_rel_tol_in, &
                                          particle_grid_refine_in, es_grid_refine_in, diff_in, all_dry_in, &
@@ -766,6 +778,10 @@ contains
     double precision,       intent(inout) :: eepsilon_in(MAX_SPECIES*MAX_SPECIES)
     double precision,       intent(inout) :: sigma_in(MAX_SPECIES)
     double precision,       intent(inout) :: permittivity_in
+    integer,                intent(inout) :: induced_charge_eo_in
+    integer,                intent(inout) :: zero_eps_on_wall_type_in
+    double precision,       intent(inout) :: zero_eps_wall_left_end_in
+    double precision,       intent(inout) :: zero_eps_wall_right_start_in
     double precision,       intent(inout) :: cut_off_in
     double precision,       intent(inout) :: rmin_in
     double precision,       intent(inout) :: poisson_rel_tol_in
@@ -932,6 +948,10 @@ contains
     poisson_max_iter_in = poisson_max_iter
     poisson_rel_tol_in = poisson_rel_tol
     permittivity_in = permittivity
+    induced_charge_eo_in = induced_charge_eo
+    zero_eps_on_wall_type_in = zero_eps_on_wall_type
+    zero_eps_wall_left_end_in = zero_eps_wall_left_end
+    zero_eps_wall_right_start_in = zero_eps_wall_right_start
     cut_off_in = cut_off
     rmin_in = rmin
     eepsilon_in = eepsilon

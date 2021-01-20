@@ -217,6 +217,10 @@ namespace common {
     extern amrex::Vector<amrex::Real> nfrac;
 
     extern AMREX_GPU_MANAGED amrex::Real permittivity;
+    extern int                        induced_charge_eo;
+    extern int                        zero_eps_on_wall_type;
+    extern AMREX_GPU_MANAGED amrex::Real zero_eps_wall_left_end;
+    extern AMREX_GPU_MANAGED amrex::Real zero_eps_wall_right_start;
     extern amrex::Real                cut_off;
     extern amrex::Real                rmin;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES*MAX_SPECIES> eepsilon;

@@ -143,6 +143,10 @@ int                        common::poisson_max_iter;
 
 amrex::Real                common::poisson_rel_tol;
 AMREX_GPU_MANAGED amrex::Real common::permittivity;
+int                        common::induced_charge_eo;
+int                        common::zero_eps_on_wall_type;
+AMREX_GPU_MANAGED amrex::Real common::zero_eps_wall_left_end;
+AMREX_GPU_MANAGED amrex::Real common::zero_eps_wall_right_start;
 amrex::Real                common::cut_off;
 amrex::Real                common::rmin;
 

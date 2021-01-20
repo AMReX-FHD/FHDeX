@@ -1,6 +1,7 @@
 #include "electrostatic.H"
 #include "common_functions.H"
 #include <AMReX_MLMG.H>
+#include <AMReX_MLABecLaplacian.H>
 
 using namespace amrex;
 
@@ -14,6 +15,20 @@ void esSolve(MultiFab& potential, MultiFab& charge,
 
     if(es_tog==1 || es_tog==3)
     {
+
+        const BoxArray& ba = charge.boxArray();
+        const DistributionMapping& dmap = charge.DistributionMap();
+
+        std::array< MultiFab, AMREX_SPACEDIM > beta;
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            beta[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 0);
+        }
+
+        if (zero_eps_on_wall_type == 0) { // homogeneous BC
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                beta[d].setVal(permittivity);
+            }
+        }
 
         LinOpBCType lo_linop_bc[3];
         LinOpBCType hi_linop_bc[3];
@@ -43,11 +58,9 @@ void esSolve(MultiFab& potential, MultiFab& charge,
             }
         }
 
-        const BoxArray& ba = charge.boxArray();
-        const DistributionMapping& dmap = charge.DistributionMap();
-
         //create solver opject
-        MLPoisson linop({geom}, {ba}, {dmap});
+        MLABecLaplacian linop({geom}, {ba}, {dmap});
+        //MLPoisson linop({geom}, {ba}, {dmap});
  
         //set BCs
         linop.setDomainBC({AMREX_D_DECL(lo_linop_bc[0],
@@ -68,6 +81,12 @@ void esSolve(MultiFab& potential, MultiFab& charge,
         // thus if there are Neumann conditions on phi they must
         // be correct or the Poisson solver won't converge
         linop.setEnforceSingularSolvable(false);
+
+        // set alpha=0, beta=1 (will overwrite beta with epsilon next)
+        linop.setScalars(0.0, 1.0);
+
+        // set beta=epsilon
+        linop.setBCoeffs(0, amrex::GetArrOfConstPtrs(beta));
 
         //Multi Level Multi Grid
         MLMG mlmg(linop);

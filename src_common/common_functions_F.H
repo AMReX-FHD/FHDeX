@@ -69,6 +69,8 @@ extern "C"
                                      int* particle_placement, int* particle_count, int* p_move_tog, int* p_force_tog, int* p_int_tog,
                                      amrex::Real* particle_neff, amrex::Real* particle_n0,
                                      amrex::Real* mass, amrex::Real* nfrac, amrex::Real* permittivity,
+                                     int* induced_charge_eo, int* zero_eps_on_wall_type,
+                                     amrex::Real* zero_eps_wall_left_end, amrex::Real* zero_eps_wall_right_start, 
                                      amrex::Real* cut_off, amrex::Real* rmin,
                                      amrex::Real* eepsilon, amrex::Real* sigma, int* poisson_verbose,
                                      int* poisson_bottom_verbose,

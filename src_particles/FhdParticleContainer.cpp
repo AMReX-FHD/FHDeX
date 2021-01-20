@@ -430,7 +430,8 @@ void FhdParticleContainer::DoRFD(const Real dt, const Real* dxFluid, const Real*
 //}
 
 
-void FhdParticleContainer::computeForcesNLGPU(const MultiFab& charge, const MultiFab& coords, const Real* dx) {
+//void FhdParticleContainer::computeForcesNLGPU(const MultiFab& charge, const MultiFab& coords, const Real* dx) {
+void FhdParticleContainer::computeForcesNLGPU(const MultiFab& coords, const Real* dx) {
 
     BL_PROFILE_VAR("computeForcesNL()",computeForcesNL);
 
