@@ -377,8 +377,8 @@ void main_driver(const char* argv)
     // Initialize structure factor object for analysis
     ///////////////////////////////////////////
 
-    // variables are velocity and concentrations
-    int structVars = AMREX_SPACEDIM+nspecies;
+    // variables are density, velocity and concentrations
+    int structVars = AMREX_SPACEDIM+nspecies+1;
     
     Vector< std::string > var_names;
     var_names.resize(structVars);
@@ -386,6 +386,10 @@ void main_driver(const char* argv)
     int cnt = 0;
     std::string x;
 
+    // density
+    x = "rho";
+    var_names[cnt++] = x;
+    
     // velx, vely, velz
     for (int d=0; d<AMREX_SPACEDIM; d++) {
       x = "vel";
@@ -463,14 +467,17 @@ void main_driver(const char* argv)
 
             // add this snapshot to the average in the structure factor
 
+            // copy density into structFactMF
+            MultiFab::Copy(structFactMF,rhotot_old,0,0,1,0);
+            
             // copy velocities into structFactMF
             for(int d=0; d<AMREX_SPACEDIM; d++) {
-                ShiftFaceToCC(umac[d], 0, structFactMF, d, 1);
+                ShiftFaceToCC(umac[d], 0, structFactMF, d+1, 1);
             }
             // copy concentrations into structFactMF
-            MultiFab::Copy(structFactMF,rho_old,0,AMREX_SPACEDIM,nspecies,0);
+            MultiFab::Copy(structFactMF,rho_old,0,AMREX_SPACEDIM+1,nspecies,0);
             for(int d=0; d<nspecies; d++) {
-                MultiFab::Divide(structFactMF,rhotot_old,0,AMREX_SPACEDIM+d,1,0);
+                MultiFab::Divide(structFactMF,rhotot_old,0,AMREX_SPACEDIM+d+1,1,0);
             }
             structFact.FortStructure(structFactMF,geom);
         }
@@ -531,14 +538,17 @@ void main_driver(const char* argv)
 
             // add this snapshot to the average in the structure factor
 
+            // copy density into structFactMF
+            MultiFab::Copy(structFactMF,rhotot_new,0,0,1,0);
+            
             // copy velocities into structFactMF
             for(int d=0; d<AMREX_SPACEDIM; d++) {
-                ShiftFaceToCC(umac[d], 0, structFactMF, d, 1);
+                ShiftFaceToCC(umac[d], 0, structFactMF, d+1, 1);
             }
             // copy concentrations into structFactMF
-            MultiFab::Copy(structFactMF,rho_new,0,AMREX_SPACEDIM,nspecies,0);
+            MultiFab::Copy(structFactMF,rho_new,0,AMREX_SPACEDIM+1,nspecies,0);
             for(int d=0; d<nspecies; d++) {
-                MultiFab::Divide(structFactMF,rhotot_new,0,AMREX_SPACEDIM+d,1,0);
+                MultiFab::Divide(structFactMF,rhotot_new,0,AMREX_SPACEDIM+d+1,1,0);
             }
             structFact.FortStructure(structFactMF,geom);
         }
