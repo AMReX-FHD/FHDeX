@@ -53,3 +53,8 @@ exec/**/*.png
 
 ## Output data
 exec/**/out
+
+
+exec/lib_hydro/amrex
+exec/lib_hydro/cmake/dist
+exec/lib_hydro/demo/dist
