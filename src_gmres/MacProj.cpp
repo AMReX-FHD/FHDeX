@@ -56,6 +56,9 @@ void MacProj::Solve(const std::array<MultiFab, AMREX_SPACEDIM>& alphainv_fc,
         if (mg_bottom_solver == 0) {
             mlmg.setBottomSolver(amrex::MLMG::BottomSolver::smoother);
         }
+        else if (mg_bottom_solver == 1) {
+            mlmg.setBottomSolver(amrex::MLMG::BottomSolver::bicgstab);
+        }
         else {
             Abort("MacProj.cpp: only mg_bottom_solver=0");
         }

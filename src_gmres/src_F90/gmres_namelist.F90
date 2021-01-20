@@ -67,9 +67,7 @@ module gmres_namelist_module
   namelist /gmres/ mg_minwidth           ! length of box at coarsest multigrid level
   namelist /gmres/ mg_bottom_solver      ! bottom solver type
   ! 0 = smooths only, controlled by mg_nsmooths_bottom
-  ! 1 = BiCGStab
-  ! 4 = Fancy bottom solve that coarsens down additionally
-  !     and then applies mg_nsmooths_bottom smooths
+  ! 1 = BiCGStab with agglomeration
   namelist /gmres/ mg_nsmooths_down      ! number of smooths at each level on the way down
   namelist /gmres/ mg_nsmooths_up        ! number of smooths at each level on the way up
   namelist /gmres/ mg_nsmooths_bottom    ! number of smooths at the bottom (only if mg_bottom_solver=0)
@@ -83,8 +81,6 @@ module gmres_namelist_module
   namelist /gmres/ stag_mg_minwidth           ! length of box at coarsest multigrid level
   namelist /gmres/ stag_mg_bottom_solver      ! bottom solver type
   ! 0 = smooths only, controlled by mg_nsmooths_bottom
-  ! 4 = Fancy bottom solve that coarsens additionally
-  !     and then applies stag_mg_nsmooths_bottom smooths
   namelist /gmres/ stag_mg_nsmooths_down      ! number of smooths at each level on the way down
   namelist /gmres/ stag_mg_nsmooths_up        ! number of smooths at each level on the way up
   namelist /gmres/ stag_mg_nsmooths_bottom    ! number of smooths at the bottom
