@@ -13,18 +13,29 @@
 
 // argv contains the name of the inputs file entered at the command line
 void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
-                             MultiFab& rho_old, MultiFab& rho_new,
-                             MultiFab& rhotot_old, MultiFab& rhotot_new,
-                             MultiFab& pi, MultiFab& eta, 
+                             MultiFab& rho_old,
+                             MultiFab& rho_new,
+                             MultiFab& rhotot_old,
+                             MultiFab& rhotot_new,
+                             MultiFab& pi,
+                             MultiFab& eta, 
                              std::array< MultiFab, NUM_EDGE >&  eta_ed,
                              MultiFab& kappa, MultiFab& Temp,
                              std::array< MultiFab, NUM_EDGE >& Temp_ed,
                              MultiFab& diff_mass_fluxdiv,
                              MultiFab& stoch_mass_fluxdiv,
                              std::array< MultiFab, AMREX_SPACEDIM >& stoch_mass_flux,
+                             std::array< MultiFab, AMREX_SPACEDIM >& grad_Epot_old,
+                             std::array< MultiFab, AMREX_SPACEDIM >& grad_Epot_new,
+                             MultiFab& charge_old,
+                             MultiFab& charge_new,
+                             MultiFab& Epot,
+                             MultiFab& permittivity,
                              StochMassFlux& sMassFlux,
                              StochMomFlux& sMomFlux,
-                             const Real& dt, const Real& time, const int& istep,
+                             const Real& dt,
+                             const Real& time,
+                             const int& istep,
                              const Geometry& geom)
 {
   
@@ -74,6 +85,18 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         total_mass_flux[d]  .define(convert(ba,nodal_flag_dir[d]), dmap, nspecies, 0);
         stoch_mom_fluxdiv[d].define(convert(ba,nodal_flag_dir[d]), dmap, nspecies, 0);
     }
+    
+    // only used when use_charged_fluid=T
+    std::array< MultiFab, AMREX_SPACEDIM > Lorentz_force_old;
+    std::array< MultiFab, AMREX_SPACEDIM > Lorentz_force_new;
+
+    if (use_charged_fluid) {
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            Lorentz_force_old[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 0);
+            Lorentz_force_new[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 0);
+        }
+    }
+    
 
     // make copies of old quantities
     // copy umac into umac_tmp if using bds
@@ -89,11 +112,10 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // Step 2 - Predictor Euler Step
     //////////////////////////////////////////////
 
-    /*
     if (use_charged_fluid) {
         // compute old Lorentz force
+        ComputeLorentzForce(Lorentz_force_old,grad_Epot_old,permittivity,charge_old,geom);
     }
-    */
 
     // average rho_old and rhotot_old to faces
     AverageCCToFace(rho_old,rho_fc,0,nspecies,SPEC_BC_COMP,geom);
@@ -126,12 +148,15 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     AverageCCToFace(rho_new,rho_fc,0,nspecies,SPEC_BC_COMP,geom);
     AverageCCToFace(rhotot_new,rhotot_fc_new,0,1,RHO_BC_COMP,geom);
     
-    /*
     if (use_charged_fluid) {
         // compute total charge
-        // compute permittivity
+        DotWithZ(rho_new,charge_new);
+
+        if (dielectric_type != 0) {
+            // compute permittivity
+            Abort("AdvanceTimestepInertial dielectric_type != 0");
+        }
     }
-    */
 
     //////////////////////////////////////////////
     // Step 3 - Calculate Corrector Diffusive and Stochastic Fluxes
@@ -217,7 +242,8 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // with barodiffusion and thermodiffusion
     // this computes "-F = rho W chi [Gamma grad x... ]"
     ComputeMassFluxdiv(rho_new,rhotot_new,Temp,diff_mass_fluxdiv,stoch_mass_fluxdiv,
-                       diff_mass_flux,stoch_mass_flux,sMassFlux,dt,time,geom,weights);
+                       diff_mass_flux,stoch_mass_flux,sMassFlux,dt,time,geom,weights,
+                       charge_new,grad_Epot_new,Epot,permittivity);
     
     // assemble total fluxes to be used in reservoirs
     //
@@ -228,11 +254,17 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     //
     //
 
-    /*
     if (use_charged_fluid == 1) {
 
+        // compute new Lorentz force
+        ComputeLorentzForce(Lorentz_force_new,grad_Epot_new,permittivity,charge_new,geom);
+
+        // add (1/2) old and (1/2) new to gmres_rhs_v
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            MultiFab::Saxpy(gmres_rhs_v[d],0.5,Lorentz_force_old[d],0,0,1,0);
+            MultiFab::Saxpy(gmres_rhs_v[d],0.5,Lorentz_force_new[d],0,0,1,0);            
+        }        
     }
-    */
           
     // compute gmres_rhs_p
     // put "-S = div(F_i/rho_i)" into gmres_rhs_p (we will later add divu)
@@ -242,7 +274,7 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         if (variance_coef_mass != 0.) {
             MultiFab::Saxpy(gmres_rhs_p,-1/rhobar[i],stoch_mass_fluxdiv,i,0,1,0);
         }
-    }
+    }    
 
     // modify umac to respect the boundary conditions we want after the next gmres solve
     // thus when we add A_0^n vbar^n to gmres_rhs_v and add div vbar^n to gmres_rhs_p we
@@ -302,12 +334,12 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     // This relies entirely on relative tolerance and can fail if the rhs is roundoff error only:
     // gmres_abs_tol = 0.d0 ! It is better to set gmres_abs_tol in namelist to a sensible value
-    
+
     // call gmres to compute delta v and delta pi
     GMRES gmres(ba,dmap,geom);
     gmres.Solve(gmres_rhs_v, gmres_rhs_p, dumac, dpi, rhotot_fc_new, eta, eta_ed,
                 kappa, theta_alpha, geom, norm_pre_rhs);
-    
+
     // for the corrector gmres solve we want the stopping criteria based on the
     // norm of the preconditioned rhs from the predictor gmres solve.  otherwise
     // for cases where du in the corrector should be small the gmres stalls
@@ -473,7 +505,8 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // with barodiffusion and thermodiffusion
     // this computes "-F = rho W chi [Gamma grad x... ]"
     ComputeMassFluxdiv(rho_new,rhotot_new,Temp,diff_mass_fluxdiv,stoch_mass_fluxdiv,
-                       diff_mass_flux,stoch_mass_flux,sMassFlux,dt,time,geom,weights);
+                       diff_mass_flux,stoch_mass_flux,sMassFlux,dt,time,geom,weights,
+                       charge_new,grad_Epot_new,Epot,permittivity);
     
     // assemble total fluxes to be used in reservoirs
     //

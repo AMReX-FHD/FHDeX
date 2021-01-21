@@ -534,6 +534,11 @@ contains
     density_weights(:) = 0.d0
     shift_cc_to_boundary(:,:) = 0
 
+    poisson_verbose = 1
+    poisson_bottom_verbose = 0
+    poisson_max_iter = 100
+    poisson_rel_tol = 1.d-10
+
     p_move_tog(:) = 1
     p_force_tog(:) = 1
     p_int_tog(:) = 1
