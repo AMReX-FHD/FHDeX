@@ -310,7 +310,9 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // set rho_update to F^{*,n+1} = div(rho*chi grad c)^{*,n+1} + div(Psi^n)
     // it is used in Step 5 below
     MultiFab::Copy(rho_update,diff_mass_fluxdiv,0,0,nspecies,0);
-    MultiFab::Add(rho_update,stoch_mass_fluxdiv,0,0,nspecies,0);
+    if (variance_coef_mass != 0.) {
+        MultiFab::Add(rho_update,stoch_mass_fluxdiv,0,0,nspecies,0);
+    }
 
     // compute div vbar^n and add to gmres_rhs_p
     // now gmres_rhs_p = div vbar^n - S^{*,n+1}
