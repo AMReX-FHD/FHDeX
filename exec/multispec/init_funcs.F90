@@ -196,10 +196,8 @@ subroutine init_rho_and_umac(lo,hi, &
 
   case (15)
 
-     
-
   !=========================================================
-  ! case +/-15: Supported only in 2D for now, mostly for testing electrodiffusion
+  ! case +/-15: mostly for testing electrodiffusion
   ! Discontinuous band in central 1/2 (case 15)
   ! c=c_init_1(:) inside; c=c_init_2(:) outside
   !=========================================================
@@ -321,9 +319,9 @@ subroutine init_rho_and_umac(lo,hi, &
 
   ! local variables
   integer          :: i,j,k,n
-  double precision :: half,x,y,z,rad,L(3),sumtot,c_loc,y1,r,r1,r2,m_e
+  double precision :: half,x,y,z,rad,L(3),sumtot,c_loc,y1,z1,z2,r,r1,r2,m_e
 
-  double precision :: random
+  double precision :: random, coeff
 
   double precision :: rho_total, sinx, sinz
 
@@ -435,6 +433,47 @@ subroutine init_rho_and_umac(lo,hi, &
            enddo
         enddo
      enddo
+
+  case (15)
+
+     !=========================================================
+     ! case +/-15: mostly for testing electrodiffusion
+     ! Discontinuous band in central 1/2 (case 15)
+     ! c=c_init_1(:) inside; c=c_init_2(:) outside
+     !=========================================================
+
+     u = 0.d0
+     v = 0.d0
+     w = 0.d0
+     
+     ! first quarter of domain
+     z1 = (3*prob_lo(3) + prob_hi(3)) / 4.d0
+        
+     ! last quarter of domain
+     z2 = (prob_lo(3) + 3*prob_hi(3)) / 4.d0
+
+     if (smoothing_width .gt. 0.d0) then
+
+        ! smoothed version
+        do k=lo(3),hi(3)
+             z = prob_lo(3) + dx(3)*(dble(k)+0.5d0) - z1
+             do j=lo(2),hi(2)
+                do i=lo(1),hi(1)
+                   do n=1,nspecies
+
+                      ! tanh smoothing in z
+                      coeff=0.5d0*(tanh(z/(smoothing_width*dx(2)))+1.d0)*0.5d0*(tanh((-z+z2-z1)/(smoothing_width*dx(3)))+1.d0)
+ 
+                      ! smooth between c_init_1(:) and c_init_2(:)
+                      c_loc = c_init_2(n) + (c_init_1(n)-c_init_2(n))*coeff
+                      c(i,j,k,n) = c_loc
+
+                   end do
+                end do
+             end do
+          end do
+
+       end if
      
   case default
 
