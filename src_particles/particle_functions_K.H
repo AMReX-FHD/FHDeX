@@ -8,6 +8,41 @@
 #include <math.h>
 
 /**
+   Check if particle near the boundary lies on Neumann dielectric for ICEO
+   
+   Inputs : Particle part
+
+   Returns: 
+            int neumann: 0: particle is on Dirichlet boundary (eps = infinity); 1: particle is on Neumann boundary (eps = 0)
+ */
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+int check_zero_eps (const FhdParticleContainer::ParticleType& part)
+{
+    using namespace amrex;
+    using common::prob_hi;
+    using common::prob_lo;
+
+    int neumann = 0;
+    
+    Real Lx = prob_hi[0] - prob_lo[0];
+    Real Lz = prob_hi[2] - prob_lo[2];
+
+    if ((part.pos(0) > prob_lo[0]) and (part.pos(0) <= prob_lo[0] + Lx*zero_eps_wall_left_end)) {
+        if ((part.pos(2) > prob_lo[2]) and (part.pos(2) <= prob_lo[2] + Lz*zero_eps_wall_left_end)) {
+            neumann = 1;
+        }
+    }
+
+    if ((part.pos(0) < prob_hi[0]) and (part.pos(0) >= prob_lo[0] + Lx*zero_eps_wall_right_start)) {
+        if ((part.pos(2) < prob_hi[2]) and (part.pos(2) >= prob_lo[2] + Lz*zero_eps_wall_right_start)) {
+            neumann = 1;
+        }
+    }
+
+    return neumann; 
+}
+
+/**
    Check if particle is near a boundary. Assumes boundary is parallel to either xy, zx, yz, plane
    
    Inputs : Particle part
@@ -425,7 +460,11 @@ void compute_p3m_sr_correction_nl_gpu (FhdParticleContainer::AoS& aos, int Np, i
             Real q = p1.rdata(FHD_realData::q);
 
             int near_wall_below = 0;
-            if (p_bc_es_lo_d[1] != -1) near_wall_below = near_wall_check(p1, -2, 0.5*p3m_radius);
+            int neumann = 0;
+            if (p_bc_es_lo_d[1] != -1) {
+                near_wall_below = near_wall_check(p1, -2, 0.5*p3m_radius);
+                if (zero_eps_on_wall_type) neumann = check_zero_eps(p1); // ICEO inhomogeneous
+            }
 
             int near_wall_above = 0;
             if (p_bc_es_hi_d[1] != -1) near_wall_above = near_wall_check(p1,  2, 0.5*p3m_radius);
@@ -446,25 +485,49 @@ void compute_p3m_sr_correction_nl_gpu (FhdParticleContainer::AoS& aos, int Np, i
                 // perform coulomb and p3m interaction with image charge
                 if ((p_bc_es_lo_d[1] == 1) and (r < p3m_radius))
                 {
-                    // hom. dirichlet--image charge opposite that of particle
+                    if (neumann == 0) {
+                        // hom. dirichlet--image charge opposite that of particle
                     
-                    // coloumb
-                    if(p_int_tog[p_matrix_val] != 0)
-                    {
-                        p1.rdata(FHD_realData::forcex) += ee*(dr[0]/r)*q*(-q)/r2;
-                        p1.rdata(FHD_realData::forcey) += ee*(dr[1]/r)*q*(-q)/r2;
-                        p1.rdata(FHD_realData::forcez) += ee*(dr[2]/r)*q*(-q)/r2;
+                        // coloumb
+                        if(p_int_tog[p_matrix_val] != 0)
+                        {
+                            p1.rdata(FHD_realData::forcex) += ee*(dr[0]/r)*q*(-q)/r2;
+                            p1.rdata(FHD_realData::forcey) += ee*(dr[1]/r)*q*(-q)/r2;
+                            p1.rdata(FHD_realData::forcez) += ee*(dr[2]/r)*q*(-q)/r2;
+                        }
+                        // p3m
+                        Real correction_force_mag = compute_p3m_force_mag(r, dx[0], dx[1], dx[2]);
+                        Gpu::Atomic::Add(prcount_di, 1.0);
+                        p1.rdata(FHD_realData::forcex) -= ee*(dr[0]/r)*q*(-q)*correction_force_mag*dx2_inv;
+                        p1.rdata(FHD_realData::forcey) -= ee*(dr[1]/r)*q*(-q)*correction_force_mag*dx2_inv;
+                        p1.rdata(FHD_realData::forcez) -= ee*(dr[2]/r)*q*(-q)*correction_force_mag*dx2_inv;
+
+                        //Print() << "Below!\n";
+
+                        //Print() << p1.id() << ": " << setprecision(15) << correction_force_mag << "\n";
                     }
-                    // p3m
-                    Real correction_force_mag = compute_p3m_force_mag(r, dx[0], dx[1], dx[2]);
-                    Gpu::Atomic::Add(prcount_di, 1.0);
-                    p1.rdata(FHD_realData::forcex) -= ee*(dr[0]/r)*q*(-q)*correction_force_mag*dx2_inv;
-                    p1.rdata(FHD_realData::forcey) -= ee*(dr[1]/r)*q*(-q)*correction_force_mag*dx2_inv;
-                    p1.rdata(FHD_realData::forcez) -= ee*(dr[2]/r)*q*(-q)*correction_force_mag*dx2_inv;
+                    else {
+                        // Neumann dielectric embedded within a Dirichlet boundary -- image charge equal to the particle
 
-                    //Print() << "Below!\n";
+                        // coloumb
+                        if(p_int_tog[p_matrix_val] != 0)
+                        {
+                            p1.rdata(FHD_realData::forcex) += ee*(dr[0]/r)*q*q/r2;
+                            p1.rdata(FHD_realData::forcey) += ee*(dr[1]/r)*q*q/r2;
+                            p1.rdata(FHD_realData::forcez) += ee*(dr[2]/r)*q*q/r2;
+                        }
+                        // p3m
+                        Real correction_force_mag = compute_p3m_force_mag(r, dx[0], dx[1], dx[2]);
+                        Gpu::Atomic::Add(prcount_di, 1.0);
+                        p1.rdata(FHD_realData::forcex) -= ee*(dr[0]/r)*q*q*correction_force_mag*dx2_inv;
+                        p1.rdata(FHD_realData::forcey) -= ee*(dr[1]/r)*q*q*correction_force_mag*dx2_inv;
+                        p1.rdata(FHD_realData::forcez) -= ee*(dr[2]/r)*q*q*correction_force_mag*dx2_inv;
 
-                    //Print() << p1.id() << ": " << setprecision(15) << correction_force_mag << "\n";
+                        //Print() << "Below!\n";
+
+                        //Print() << p1.id() << ": " << setprecision(15) << correction_force_mag << "\n";
+                    }
+
                 }
                 else if ((p_bc_es_lo_d[1] == 2) and (r < p3m_radius))
                 {
@@ -584,6 +647,9 @@ void compute_p3m_sr_correction_nl_gpu (FhdParticleContainer::AoS& aos, int Np, i
                         {
                             RealVect im_charge_pos = calc_im_charge_loc(p2, -2);
 
+                            int neumann_nl = 0;
+                            if (zero_eps_on_wall_type) neumann_nl = check_zero_eps(p2); // ICEO inhomogeneous
+
                             // compute sep vector btwn charge and NL's image
                             dr[0] = p1.pos(0) - im_charge_pos[0];
                             dr[1] = p1.pos(1) - im_charge_pos[1];
@@ -595,27 +661,53 @@ void compute_p3m_sr_correction_nl_gpu (FhdParticleContainer::AoS& aos, int Np, i
                             // perform coulomb and p3m interaction with NL particle's image charge
                             if ((p_bc_es_lo_d[1] == 1) and (r < p3m_radius))
                             {
-                                // hom. dirichlet--image charge opposite that of particle
+                                if (neumann_nl == 0) {
+                                    // hom. dirichlet--image charge opposite that of particle
 
-                                //Print() << "Pre force: " << setprecision(17) << p1.rdata(FHD_realData::forcex) << ", " << p1.rdata(FHD_realData::forcey) << ", " << p1.rdata(FHD_realData::forcez) << "\n";
+                                    //Print() << "Pre force: " << setprecision(17) << p1.rdata(FHD_realData::forcex) << ", " << p1.rdata(FHD_realData::forcey) << ", " << p1.rdata(FHD_realData::forcez) << "\n";
 
-                                // coloumb
-                                if(p_int_tog[p_matrix_val] != 0)
-                                {
-                                    p1.rdata(FHD_realData::forcex) += ee*(dr[0]/r)*q*(-q2)/r2;
-                                    p1.rdata(FHD_realData::forcey) += ee*(dr[1]/r)*q*(-q2)/r2;
-                                    p1.rdata(FHD_realData::forcez) += ee*(dr[2]/r)*q*(-q2)/r2;
+                                    // coloumb
+                                    if(p_int_tog[p_matrix_val] != 0)
+                                    {
+                                        p1.rdata(FHD_realData::forcex) += ee*(dr[0]/r)*q*(-q2)/r2;
+                                        p1.rdata(FHD_realData::forcey) += ee*(dr[1]/r)*q*(-q2)/r2;
+                                        p1.rdata(FHD_realData::forcez) += ee*(dr[2]/r)*q*(-q2)/r2;
+                                    }
+                                      // Print() << "Coulomb: " << setprecision(17) << ee*(dr[0]/r)*q*(-q2)/r2 << ", " << ee*(dr[1]/r)*q*(-q2)/r2 << ", " << ee*(dr[2]/r)*q*(-q2)/r2 << "\n";
+
+                                    // p3m
+                                    Real correction_force_mag = compute_p3m_force_mag(r, dx[0], dx[1], dx[2]);
+                                    Gpu::Atomic::Add(prcount_di, 1.0);
+                                    p1.rdata(FHD_realData::forcex) -= ee*(dr[0]/r)*q*(-q2)*correction_force_mag*dx2_inv;
+                                    p1.rdata(FHD_realData::forcey) -= ee*(dr[1]/r)*q*(-q2)*correction_force_mag*dx2_inv;
+                                    p1.rdata(FHD_realData::forcez) -= ee*(dr[2]/r)*q*(-q2)*correction_force_mag*dx2_inv;
+
+                                    //Print() << "Below: " << p1.id() << ": " << setprecision(17) << correction_force_mag << ", " << p1.rdata(FHD_realData::forcex) << ", " << p1.rdata(FHD_realData::forcey) << ", " << p1.rdata(FHD_realData::forcez) << "\n";
                                 }
-                                   // Print() << "Coulomb: " << setprecision(17) << ee*(dr[0]/r)*q*(-q2)/r2 << ", " << ee*(dr[1]/r)*q*(-q2)/r2 << ", " << ee*(dr[2]/r)*q*(-q2)/r2 << "\n";
+                                else {
+                                    // Neumann dielectric embedded within a Dirichlet boundary -- image charge equal to the particle
 
-                                // p3m
-                                Real correction_force_mag = compute_p3m_force_mag(r, dx[0], dx[1], dx[2]);
-                                Gpu::Atomic::Add(prcount_di, 1.0);
-                                p1.rdata(FHD_realData::forcex) -= ee*(dr[0]/r)*q*(-q2)*correction_force_mag*dx2_inv;
-                                p1.rdata(FHD_realData::forcey) -= ee*(dr[1]/r)*q*(-q2)*correction_force_mag*dx2_inv;
-                                p1.rdata(FHD_realData::forcez) -= ee*(dr[2]/r)*q*(-q2)*correction_force_mag*dx2_inv;
+                                    //Print() << "Pre force: " << setprecision(17) << p1.rdata(FHD_realData::forcex) << ", " << p1.rdata(FHD_realData::forcey) << ", " << p1.rdata(FHD_realData::forcez) << "\n";
 
-                                //Print() << "Below: " << p1.id() << ": " << setprecision(17) << correction_force_mag << ", " << p1.rdata(FHD_realData::forcex) << ", " << p1.rdata(FHD_realData::forcey) << ", " << p1.rdata(FHD_realData::forcez) << "\n";
+                                    // coloumb
+                                    if(p_int_tog[p_matrix_val] != 0)
+                                    {
+                                        p1.rdata(FHD_realData::forcex) += ee*(dr[0]/r)*q*q2/r2;
+                                        p1.rdata(FHD_realData::forcey) += ee*(dr[1]/r)*q*q2/r2;
+                                        p1.rdata(FHD_realData::forcez) += ee*(dr[2]/r)*q*q2/r2;
+                                    }
+                                      // Print() << "Coulomb: " << setprecision(17) << ee*(dr[0]/r)*q*(-q2)/r2 << ", " << ee*(dr[1]/r)*q*(-q2)/r2 << ", " << ee*(dr[2]/r)*q*(-q2)/r2 << "\n";
+
+                                    // p3m
+                                    Real correction_force_mag = compute_p3m_force_mag(r, dx[0], dx[1], dx[2]);
+                                    Gpu::Atomic::Add(prcount_di, 1.0);
+                                    p1.rdata(FHD_realData::forcex) -= ee*(dr[0]/r)*q*q2*correction_force_mag*dx2_inv;
+                                    p1.rdata(FHD_realData::forcey) -= ee*(dr[1]/r)*q*q2*correction_force_mag*dx2_inv;
+                                    p1.rdata(FHD_realData::forcez) -= ee*(dr[2]/r)*q*q2*correction_force_mag*dx2_inv;
+
+                                    //Print() << "Below: " << p1.id() << ": " << setprecision(17) << correction_force_mag << ", " << p1.rdata(FHD_realData::forcex) << ", " << p1.rdata(FHD_realData::forcey) << ", " << p1.rdata(FHD_realData::forcez) << "\n";
+                                }
+
                             }
                             else if ((p_bc_es_lo_d[1] == 2) and (r < p3m_radius))
                             {

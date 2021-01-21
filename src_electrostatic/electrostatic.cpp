@@ -18,16 +18,48 @@ void esSolve(MultiFab& potential, MultiFab& charge,
 
         const BoxArray& ba = charge.boxArray();
         const DistributionMapping& dmap = charge.DistributionMap();
+        Box dom(geom.Domain());
 
         std::array< MultiFab, AMREX_SPACEDIM > beta;
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             beta[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 0);
         }
 
-        if (zero_eps_on_wall_type == 0) { // homogeneous BC
-            for (int d=0; d<AMREX_SPACEDIM; ++d) {
-                beta[d].setVal(permittivity);
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            beta[d].setVal(permittivity);
+        }
+
+        if (zero_eps_on_wall_type) { // inhomogeneous permittivity on lower y-wall
+            
+            for (MFIter mfi(beta[1]); mfi.isValid(); ++mfi) {
+
+                Box bx = mfi.tilebox();
+
+                const Array4<Real>& data = beta[1].array(mfi);
+
+                if (bx.smallEnd(1) <= dom.smallEnd(1)) {
+
+                    amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                    {   
+
+                        if (j == dom.smallEnd(1)) {
+                            if ((i <= (int)Math::floor(zero_eps_wall_left_end*(dom.bigEnd(0)+1))) and (k <= (int)Math::floor(zero_eps_wall_left_end*(dom.bigEnd(2)+1)))) { // left side (low x/z)
+                                data(i,j,k) = 0.;
+                            }
+                        }
+
+                        if (j == dom.smallEnd(1)) {
+                            if ((i >= (int)Math::floor(zero_eps_wall_right_start*(dom.bigEnd(0)+1))) and (k >= (int)Math::floor(zero_eps_wall_right_start*(dom.bigEnd(2)+1)))) { // right side (high x/z)
+                                data(i,j,k) = 0.;
+                            }
+                        }
+
+                    });
+
+                }
+
             }
+
         }
 
         LinOpBCType lo_linop_bc[3];
