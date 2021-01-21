@@ -249,13 +249,13 @@ end subroutine init_vel
   !=============================================================
   ! case 1:
   ! bubble with radius = 1/4 of domain in x
-  ! c=c_init(1,:) inside, c=c_init(2,:) outside
+  ! c=c_init_1(:) inside, c=c_init_2(:) outside
   ! can be discontinous or smooth depending on smoothing_width
 
   !=========================================================
   ! case 2:
   ! constant concentration gradient along y
-  ! c=c_init(1,:) on bottom, c=c_init(2,:) on top
+  ! c=c_init_1(:) on bottom, c=c_init_2(:) on top
 
 
 #if(AMREX_SPACEDIM == 2)
@@ -308,7 +308,7 @@ subroutine init_rho_and_umac(lo,hi, &
 
      !=============================================================
      ! bubble with radius = 1/4 of domain in x
-     ! c=c_init(1,:) inside, c=c_init(2,:) outside
+     ! c=c_init_1(:) inside, c=c_init_2(:) outside
      ! can be discontinous or smooth depending on smoothing_width
      !=============================================================
 
@@ -320,8 +320,8 @@ subroutine init_rho_and_umac(lo,hi, &
      ! print *, "Hack: smoothing width = ", smoothing_width
      ! print *, "Hack: nspecies = ", nspecies
      ! print *, "Hack: dx = ", dx(1), " dy = ", dx(2)
-     ! print *, "Hack: c_init 1 = ", c_init(1,1:nspecies)
-     ! print *, "Hack: c_init 2 = ", c_init(2,1:nspecies)
+     ! print *, "Hack: c_init 1 = ", c_init_1(1:nspecies)
+     ! print *, "Hack: c_init 2 = ", c_init_2(1:nspecies)
 
      !$omp parallel do private(i,j,k,x,y,z,r)
      do j=lo(2),hi(2)
@@ -337,9 +337,9 @@ subroutine init_rho_and_umac(lo,hi, &
 
               ! discontinuous interface
               if (r .lt. rad) then
-                 c(i,j,1:nspecies) = c_init(1,1:nspecies)
+                 c(i,j,1:nspecies) = c_init_1(1:nspecies)
               else
-                 c(i,j,1:nspecies) = c_init(2,1:nspecies)
+                 c(i,j,1:nspecies) = c_init_2(1:nspecies)
               end if
 
               ! print *, "Hack: c = ", c(i,j,1:nspecies)
@@ -348,8 +348,8 @@ subroutine init_rho_and_umac(lo,hi, &
            else
 
               ! smooth interface
-              c(i,j,1:nspecies-1) = c_init(1,1:nspecies-1) + &
-                   (c_init(2,1:nspecies-1) - c_init(1,1:nspecies-1))* &
+              c(i,j,1:nspecies-1) = c_init_1(1:nspecies-1) + &
+                   (c_init_2(1:nspecies-1) - c_init_1(1:nspecies-1))* &
                    0.5d0*(1.d0 + tanh((r-rad)/(smoothing_width*dx(1))))
 
               ! print *, "Hack: c = ", c(i,j,1:nspecies-1)
@@ -364,7 +364,7 @@ subroutine init_rho_and_umac(lo,hi, &
 
      !=============================================================
      ! bubble with radius = 1/4 of domain in x
-     ! c=c_init(1,:) inside, c=c_init(2,:) outside
+     ! c=c_init_1(:) inside, c=c_init_2(:) outside
      ! can be discontinous or smooth depending on smoothing_width
      !=============================================================
 
@@ -377,8 +377,8 @@ subroutine init_rho_and_umac(lo,hi, &
      ! print *, "Hack: smoothing width = ", smoothing_width
      ! print *, "Hack: nspecies = ", nspecies
      ! print *, "Hack: dx = ", dx(1), " dy = ", dx(2)
-     ! print *, "Hack: c_init 1 = ", c_init(1,1:nspecies)
-     ! print *, "Hack: c_init 2 = ", c_init(2,1:nspecies)
+     ! print *, "Hack: c_init 1 = ", c_init_1(1:nspecies)
+     ! print *, "Hack: c_init 2 = ", c_init_2(1:nspecies)
 
      !$omp parallel do private(i,j,k,x,y,z,r)
      do j=lo(2),hi(2)
@@ -395,11 +395,11 @@ subroutine init_rho_and_umac(lo,hi, &
 
               ! discontinuous interface
               if (y .lt. l1) then
-                 c(i,j,1:nspecies) = c_init(1,1:nspecies)
+                 c(i,j,1:nspecies) = c_init_1(1:nspecies)
               elseif(y .lt. l2) then
-                 c(i,j,1:nspecies) = c_init(2,1:nspecies)
+                 c(i,j,1:nspecies) = c_init_2(1:nspecies)
               else
-                 c(i,j,1:nspecies) = c_init(1,1:nspecies)
+                 c(i,j,1:nspecies) = c_init_1(1:nspecies)
               endif
 
               ! print *, "Hack: c = ", c(i,j,1:nspecies)
@@ -408,12 +408,12 @@ subroutine init_rho_and_umac(lo,hi, &
            else
 
               ! smooth interface
-              c(i,j,1:nspecies-1) = c_init(1,1:nspecies-1) + &
-                   (c_init(2,1:nspecies-1) - c_init(1,1:nspecies-1))* &
+              c(i,j,1:nspecies-1) = c_init_1(1:nspecies-1) + &
+                   (c_init_2(1:nspecies-1) - c_init_1(1:nspecies-1))* &
                    (1/(1+Exp(-smoothing_width*(y-l1))) - 1/(1+Exp(-smoothing_width*(y-l2))))
 
 !              if((j .lt. 16) .or. (j .gt. n_cells(2)-17) ) then
-!                c(i,j,1:nspecies-1) = c_init(1,1:nspecies-1)
+!                c(i,j,1:nspecies-1) = c_init_1(1:nspecies-1)
 !              endif
               ! print *, "Hack: c = ", c(i,j,1:nspecies-1)
 
@@ -428,7 +428,7 @@ subroutine init_rho_and_umac(lo,hi, &
 
      !=========================================================
      ! constant concentration gradient along y
-     ! c=c_init(1,:) on bottom, c=c_init(2,:) on top
+     ! c=c_init_1(:) on bottom, c=c_init_2(:) on top
      !=========================================================
 
      u = 0.d0
@@ -440,8 +440,8 @@ subroutine init_rho_and_umac(lo,hi, &
         do i=lo(1),hi(1)
            x = prob_lo(1) + (dble(i)+half)*dx(1)
 
-           c(i,j,1:nspecies) = c_init(1,1:nspecies) + &
-                (c_init(2,1:nspecies) - c_init(1,1:nspecies))*(y-prob_lo(2))/L(2)
+           c(i,j,1:nspecies) = c_init_1(1:nspecies) + &
+                (c_init_2(1:nspecies) - c_init_1(1:nspecies))*(y-prob_lo(2))/L(2)
 
         end do
      end do
@@ -537,7 +537,7 @@ subroutine init_rho_and_umac(lo,hi, &
 
      !=============================================================
      ! bubble with radius = 1/4 of domain in x
-     ! c=c_init(1,:) inside, c=c_init(2,:) outside
+     ! c=c_init_1(:) inside, c=c_init_2(:) outside
      ! can be discontinous or smooth depending on smoothing_width
      !=============================================================
 
@@ -561,16 +561,16 @@ subroutine init_rho_and_umac(lo,hi, &
 
                  ! discontinuous interface
                  if (r .lt. rad) then
-                    c(i,j,k,1:nspecies) = c_init(1,1:nspecies)
+                    c(i,j,k,1:nspecies) = c_init_1(1:nspecies)
                  else
-                    c(i,j,k,1:nspecies) = c_init(2,1:nspecies)
+                    c(i,j,k,1:nspecies) = c_init_2(1:nspecies)
                  end if
 
               else
 
                  ! smooth interface
-                 c(i,j,k,1:nspecies-1) = c_init(1,1:nspecies-1) + &
-                      (c_init(2,1:nspecies-1) - c_init(1,1:nspecies-1))* &
+                 c(i,j,k,1:nspecies-1) = c_init_1(1:nspecies-1) + &
+                      (c_init_2(1:nspecies-1) - c_init_1(1:nspecies-1))* &
                       0.5d0*(1.d0 + tanh((r-rad)/(smoothing_width*dx(1))))
 
               end if
@@ -584,7 +584,7 @@ subroutine init_rho_and_umac(lo,hi, &
 
      !=========================================================
      ! constant concentration gradient along y
-     ! c=c_init(1,:) on bottom, c=c_init(2,:) on top
+     ! c=c_init_1(:) on bottom, c=c_init_2(:) on top
      !=========================================================
 
      u = 0.d0
@@ -599,8 +599,8 @@ subroutine init_rho_and_umac(lo,hi, &
            do i=lo(1),hi(1)
               x = prob_lo(1) + (dble(i)+half)*dx(1)
 
-              c(i,j,k,1:nspecies) = c_init(1,1:nspecies) + &
-                   (c_init(2,1:nspecies) - c_init(1,1:nspecies))*(y-prob_lo(2))/L(2)
+              c(i,j,k,1:nspecies) = c_init_1(1:nspecies) + &
+                   (c_init_2(1:nspecies) - c_init_1(1:nspecies))*(y-prob_lo(2))/L(2)
 
            end do
         end do

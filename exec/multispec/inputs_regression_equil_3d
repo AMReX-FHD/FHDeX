@@ -79,8 +79,8 @@
 &multispec
 
   ! initial values for c
-  c_init(1,1:3) = 0.2d0 0.35d0 0.45d0
-  c_init(2,1:3) = 0.2d0 0.35d0 0.45d0
+  c_init_1(1:3) = 0.2d0 0.35d0 0.45d0
+  c_init_2(1:3) = 0.2d0 0.35d0 0.45d0
 
   ! These are lower-triangules of symmetric matrices represented as vectors
   ! Number of elements is (nspecies*(nspecies-1)/2)

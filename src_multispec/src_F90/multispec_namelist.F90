@@ -23,7 +23,8 @@ module multispec_namelist_module
   integer,            save :: is_ideal_mixture
   integer,            save :: use_lapack
   integer,            save :: use_multiphase
-  double precision,   save :: c_init(2,MAX_SPECIES)
+  double precision,   save :: c_init_1(MAX_SPECIES)
+  double precision,   save :: c_init_2(MAX_SPECIES)
   
   integer,            save :: midpoint_stoch_mass_flux_type
   integer,            save :: avg_type
@@ -47,8 +48,6 @@ module multispec_namelist_module
   integer,            save :: zero_eps_on_wall_type
   integer,            save :: zero_charge_on_wall_type
   double precision,   save :: zero_eps_on_wall_left_end, zero_eps_on_wall_right_start
-  integer,            save :: epot_mg_verbose
-  double precision,   save :: epot_mg_abs_tol, epot_mg_rel_tol
   integer,            save :: bc_function_type
   double precision,   save :: L_pos, L_trans, L_zero
 
@@ -69,7 +68,8 @@ module multispec_namelist_module
   !----------------------
 
   namelist /multispec/ temp_type  ! for initializing temperature
-  namelist /multispec/ c_init     ! initial values for c
+  namelist /multispec/ c_init_1   ! initial values for c
+  namelist /multispec/ c_init_2
   
   ! Thermodynamic and transport properties:
   !----------------------
@@ -133,9 +133,6 @@ module multispec_namelist_module
                                                     ! phi for part of a Dirichlet wall
   namelist /multispec/ zero_eps_on_wall_left_end    ! eg if set to 0.25, then eps will be set to 0 on the wall from 0*Lx --> 0.25*Lx
   namelist /multispec/ zero_eps_on_wall_right_start ! eg if set to 0.75, then eps will be set to 0 on the wall from 0.75*Lx --> 1.*Lx
-  namelist /multispec/ epot_mg_verbose              ! verbosity for poisson solve
-  namelist /multispec/ epot_mg_abs_tol              ! absolute tolerance for poisson solve
-  namelist /multispec/ epot_mg_rel_tol              ! relative tolerance for poisson solve
 
 contains
 
@@ -157,7 +154,8 @@ contains
     use_multiphase     = 0
     chi_iterations     = 10
     temp_type          = 0
-    c_init(:,:)        = 1.0d0
+    c_init_1(:)        = 1.0d0
+    c_init_2(:)        = 1.0d0
     Dbar(:)            = 1.0d0
     Dtherm(:)          = 0.0d0
     H_offdiag(:)       = 0.0d0
@@ -185,9 +183,6 @@ contains
     dpdt_factor            = 0.d0
     E_ext_type             = 0
     E_ext_value(:)         = 0.d0
-    epot_mg_verbose        = 0
-    epot_mg_abs_tol        = 0.d0
-    epot_mg_rel_tol        = 1.d-10
 
     electroneutral = 0
     induced_charge_eo = 0
@@ -209,7 +204,7 @@ contains
                                              Dbar_in, Dtherm_in, H_offdiag_in, H_diag_in, &
                                              fraction_tolerance_in, correct_flux_in, print_error_norms_in, &
                                              is_nonisothermal_in, is_ideal_mixture_in, &
-                                             use_lapack_in, use_multiphase_in, c_init_in, &
+                                             use_lapack_in, use_multiphase_in, c_init_1_in, c_init_2_in, &
                                              midpoint_stoch_mass_flux_type_in, &
                                              avg_type_in, mixture_type_in, &
                                              use_charged_fluid_in, print_debye_len_in, dielectric_const_in, &
@@ -219,7 +214,6 @@ contains
                                              electroneutral_in, induced_charge_eo_in, &
                                              zero_eps_on_wall_type_in, zero_charge_on_wall_type_in, &
                                              zero_eps_on_wall_left_end_in, zero_eps_on_wall_right_start_in, &
-                                             epot_mg_verbose_in, epot_mg_abs_tol_in, epot_mg_rel_tol_in, &
                                              bc_function_type_in, L_pos_in, L_trans_in, L_zero_in) &
                                              bind(C, name="initialize_multispec_namespace")
 
@@ -238,7 +232,8 @@ contains
     integer,            intent(inout) :: is_ideal_mixture_in
     integer,            intent(inout) :: use_lapack_in
     integer,            intent(inout) :: use_multiphase_in
-    double precision,   intent(inout) :: c_init_in(2,MAX_SPECIES)
+    double precision,   intent(inout) :: c_init_1_in(MAX_SPECIES)
+    double precision,   intent(inout) :: c_init_2_in(MAX_SPECIES)
 
     integer,            intent(inout) :: midpoint_stoch_mass_flux_type_in
     integer,            intent(inout) :: avg_type_in
@@ -263,9 +258,6 @@ contains
     integer,            intent(inout) :: zero_charge_on_wall_type_in
     double precision,   intent(inout) :: zero_eps_on_wall_left_end_in
     double precision,   intent(inout) :: zero_eps_on_wall_right_start_in
-    integer,            intent(inout) :: epot_mg_verbose_in
-    double precision,   intent(inout) :: epot_mg_abs_tol_in
-    double precision,   intent(inout) :: epot_mg_rel_tol_in
     integer,            intent(inout) :: bc_function_type_in
     double precision,   intent(inout) :: L_pos_in
     double precision,   intent(inout) :: L_trans_in
@@ -287,7 +279,8 @@ contains
     is_ideal_mixture_in = is_ideal_mixture
     use_lapack_in = use_lapack
     use_multiphase_in = use_multiphase
-    c_init_in = c_init
+    c_init_1_in = c_init_1
+    c_init_2_in = c_init_2
     midpoint_stoch_mass_flux_type_in = midpoint_stoch_mass_flux_type
     avg_type_in = avg_type
     mixture_type_in = mixture_type
@@ -311,9 +304,6 @@ contains
     zero_charge_on_wall_type_in = zero_charge_on_wall_type
     zero_eps_on_wall_left_end_in = zero_eps_on_wall_left_end
     zero_eps_on_wall_right_start_in = zero_eps_on_wall_right_start
-    epot_mg_verbose_in = epot_mg_verbose
-    epot_mg_abs_tol_in = epot_mg_abs_tol
-    epot_mg_rel_tol_in = epot_mg_rel_tol
     bc_function_type_in = bc_function_type
     L_pos_in = L_pos
     L_trans_in = L_trans
