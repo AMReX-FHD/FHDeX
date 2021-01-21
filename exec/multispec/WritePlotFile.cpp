@@ -4,13 +4,19 @@
 
 #include "common_functions.H"
 
+#include "multispec_namespace.H"
+
+using namespace multispec;
+
 void WritePlotFile(int step,
                    const amrex::Real time,
                    const amrex::Geometry geom,
                    std::array< MultiFab, AMREX_SPACEDIM >& umac,
 		   const MultiFab& rhotot,
 		   const MultiFab& rho,
-		   const MultiFab& pres)
+		   const MultiFab& pres,
+                   const MultiFab& charge,
+                   const MultiFab& Epot)
 {
     
     BL_PROFILE_VAR("WritePlotFile()",WritePlotFile);
@@ -28,6 +34,12 @@ void WritePlotFile(int step,
     // pres          1
     int nPlot = 2*AMREX_SPACEDIM + 2*nspecies + 2;
 
+    if (use_charged_fluid) {
+        // charge
+        // Epot
+        nPlot += 2;
+    }
+    
     MultiFab plotfile(ba, dmap, nPlot, 0);
 
     Vector<std::string> varNames(nPlot);
@@ -63,6 +75,11 @@ void WritePlotFile(int step,
 
     varNames[cnt++] = "pres";
 
+    if (use_charged_fluid) {
+        varNames[cnt++] = "charge";
+        varNames[cnt++] = "Epot";
+    }
+
     // reset plotfile variable counter
     cnt = 0;
 
@@ -96,6 +113,14 @@ void WritePlotFile(int step,
     // copy pressure into plotfile
     MultiFab::Copy(plotfile, pres, 0, cnt, 1, 0);
     cnt++;
+
+    // copy charge and Epot into plotfile
+    if (use_charged_fluid) {
+        MultiFab::Copy(plotfile, charge, 0, cnt, 1, 0);
+        cnt++;
+        MultiFab::Copy(plotfile, Epot, 0, cnt, 1, 0);
+        cnt++;
+    }
 
     // write a plotfile
     WriteSingleLevelPlotfile(plotfilename,plotfile,varNames,geom,time,step);

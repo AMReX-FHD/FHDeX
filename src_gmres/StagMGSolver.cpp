@@ -1478,7 +1478,7 @@ void stag_mg_update_visc_p2 (Box const& tbx,
 	}
         AMREX_PRAGMA_SIMD
         for (int i = xlo.x+ioff; i <= xhi.x; i+=offset) {
-            fac = alphax(i,j,k) + 8.*b * dxsqinv;
+            fac = alphax(i,j,k) + 2.*(1.+AMREX_SPACEDIM)*b * dxsqinv;
             phix(i,j,k) = phix(i,j,k) + stag_mg_omega*(rhsx(i,j,k)-Lpx(i,j,k)) / fac;
         }
         }
@@ -1495,7 +1495,7 @@ void stag_mg_update_visc_p2 (Box const& tbx,
 	}
         AMREX_PRAGMA_SIMD
         for (int i = ylo.x+ioff; i <= yhi.x; i+=offset) {
-            fac = alphay(i,j,k) + 8.*b * dxsqinv;
+            fac = alphay(i,j,k) + 2.*(1.+AMREX_SPACEDIM)*b * dxsqinv;
             phiy(i,j,k) = phiy(i,j,k) + stag_mg_omega*(rhsy(i,j,k)-Lpy(i,j,k)) / fac  ;
         }
         }
@@ -1513,7 +1513,7 @@ void stag_mg_update_visc_p2 (Box const& tbx,
 	}
         AMREX_PRAGMA_SIMD
         for (int i = zlo.x+ioff; i <= zhi.x; i+=offset) {
-            fac = alphaz(i,j,k) + 8.*b * dxsqinv;
+            fac = alphaz(i,j,k) + 2.*(1.+AMREX_SPACEDIM)*b * dxsqinv;
             phiz(i,j,k) = phiz(i,j,k) + stag_mg_omega*(rhsz(i,j,k)-Lpz(i,j,k)) / fac;
         }
         }
@@ -1708,7 +1708,7 @@ void stag_mg_update_visc_p3 (Box const& tbx,
     int ioff;
     Real fac;
     Real dxsqinv = 1./(dx[0]*dx[0]);
-    Real twentythirds = 20./3.;
+    Real fac2 = (AMREX_SPACEDIM == 2) ? 14./3. : 20./3.;
 
     if (do_x) {
 
@@ -1720,7 +1720,7 @@ void stag_mg_update_visc_p3 (Box const& tbx,
 	}
         AMREX_PRAGMA_SIMD
         for (int i = xlo.x+ioff; i <= xhi.x; i+=offset) {
-            fac = alphax(i,j,k)+(twentythirds*b+2.*c) * dxsqinv;
+            fac = alphax(i,j,k)+(fac2*b+2.*c) * dxsqinv;
             phix(i,j,k) = phix(i,j,k) + stag_mg_omega*(rhsx(i,j,k)-Lpx(i,j,k)) / fac;
         }
         }
@@ -1737,7 +1737,7 @@ void stag_mg_update_visc_p3 (Box const& tbx,
 	}
         AMREX_PRAGMA_SIMD
         for (int i = ylo.x+ioff; i <= yhi.x; i+=offset) {
-            fac = alphay(i,j,k)+(twentythirds*b+2.*c) * dxsqinv;
+            fac = alphay(i,j,k)+(fac2*b+2.*c) * dxsqinv;
             phiy(i,j,k) = phiy(i,j,k) + stag_mg_omega*(rhsy(i,j,k)-Lpy(i,j,k)) / fac;
         }
         }
@@ -1755,7 +1755,7 @@ void stag_mg_update_visc_p3 (Box const& tbx,
 	}
         AMREX_PRAGMA_SIMD
         for (int i = zlo.x+ioff; i <= zhi.x; i+=offset) {
-            fac = alphaz(i,j,k)+(twentythirds*b+2.*c) * dxsqinv;
+            fac = alphaz(i,j,k)+(fac2*b+2.*c) * dxsqinv;
             phiz(i,j,k) = phiz(i,j,k) + stag_mg_omega*(rhsz(i,j,k)-Lpz(i,j,k)) / fac;
         }
         }

@@ -28,7 +28,11 @@ void InitialProjection(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                        StochMassFlux& sMassFlux,
                        const MultiFab& Temp, const MultiFab& eta,
                        const std::array< MultiFab, NUM_EDGE >& eta_ed,
-                       const Real& dt, const Real& time, const Geometry& geom)
+                       const Real& dt, const Real& time, const Geometry& geom,
+                       MultiFab& charge_old,
+                       std::array<MultiFab,AMREX_SPACEDIM>& grad_Epot_old,
+                       MultiFab& Epot,
+                       MultiFab& permittivity)
 {
     BL_PROFILE_VAR("InitialProjection()",InitialProjection);
 
@@ -79,7 +83,8 @@ void InitialProjection(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     }
         
     ComputeMassFluxdiv(rho,rhotot,Temp,diff_mass_fluxdiv,stoch_mass_fluxdiv,
-                       diff_mass_flux,stoch_mass_flux,sMassFlux,dt,time,geom,weights);
+                       diff_mass_flux,stoch_mass_flux,sMassFlux,dt,time,geom,weights,
+                       charge_old,grad_Epot_old,Epot,permittivity);
 
     // assumble total fluxes to be used in reservoirs
     //

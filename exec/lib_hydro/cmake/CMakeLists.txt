@@ -26,13 +26,14 @@ endif()
 # list(APPEND CMAKE_CXX_FLAGS "${amrex_compile_defs}")
 list(APPEND CMAKE_CXX_FLAGS "-O3 -DNDEBUG -Werror=return-type")
 
-# string(REPLACE ";" " " CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+# ODD -- semicolons can creep into these CXX_FLAGS
+string(REPLACE ";" " " CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 message(" *** CMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}")
 
 # list(APPEND CMAKE_Fortran_FLAGS "${amrex_compile_defs}")
 list(APPEND CMAKE_Fortran_FLAGS "-O3 -DNDEBUG -O3 -fimplicit-none -ffixed-line-length-none -ffree-line-length-none")
 
-# string(REPLACE ";" " " CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS}")
+string(REPLACE ";" " " CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS}")
 message(" *** CMAKE_Fortran_FLAGS=${CMAKE_Fortran_FLAGS}")
 
 
