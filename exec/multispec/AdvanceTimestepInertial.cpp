@@ -402,7 +402,7 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // they were derived from and the Poisson solver has tolerance
     // convergence issues
     if (project_eos_int > 0 && istep%project_eos_int == 0) {
-        Abort("AdvanceTimestepInertial: need to wrote project_onto_eos");
+        ProjectOntoEOS(rho_new);
     }
 
     // compute rhotot from rho in VALID REGION
