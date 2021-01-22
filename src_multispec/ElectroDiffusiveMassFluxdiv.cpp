@@ -290,6 +290,7 @@ void ElectroDiffusiveMassFlux(const MultiFab& rho,
     }
     AverageCCToFace(charge_coef, electro_mass_flux, 0, nspecies, SPEC_BC_COMP, geom);
 
+    // multiply flux coefficient by gradient of electric potential
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
         for (int comp=0; comp<nspecies; ++comp) {
             MultiFab::Multiply(electro_mass_flux[i], grad_Epot[i], 0, comp, 1, 0);
