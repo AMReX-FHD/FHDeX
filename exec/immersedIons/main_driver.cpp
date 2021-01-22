@@ -923,7 +923,7 @@ void main_driver(const char* argv)
         
         // do Poisson solve using 'charge' for RHS, and put potential in 'potential'.
         // Then calculate gradient and put in 'efieldCC', then add 'external'.
-        esSolve(potential, charge, efieldCC, external, geomP);
+        esSolve(potential, charge, efieldCC, external, geomP, time);
 
         // compute other forces and spread to grid
         particles.SpreadIonsGPU(dx, dxp, geom, umac, efieldCC, source, sourceTemp);
