@@ -130,7 +130,7 @@ void MultiFabElectricBC(MultiFab& efieldCC, const Geometry& geom);
 
 void MultiFabPotentialBC(MultiFab& potential, const Geometry& geom);
 
-void MultiFabPotentialBC_solver(MultiFab& potential, const Geometry& geom);
+void MultiFabPotentialBC_solver(MultiFab& potential, const Geometry& geom, const Real& time=0.);
 
 ///////////////////////////
 // in NormInnerProduct.cpp

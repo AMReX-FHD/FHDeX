@@ -973,7 +973,7 @@ void MultiFabPotentialBC(MultiFab& phi, const Geometry& geom) {
 // (not implemented yet)
 // This is NOT the same as filling the ghost cell with the value extrapolated to the ghost cell-center
 // (implemented in MultiFabPotentialBC())
-void MultiFabPotentialBC_solver(MultiFab& phi, const Geometry& geom) {
+void MultiFabPotentialBC_solver(MultiFab& phi, const Geometry& geom, const Real& time) {
 
     BL_PROFILE_VAR("MultiFabPotentialBC_solver()",MultiFabPotentialBC_solver);
 
@@ -984,6 +984,14 @@ void MultiFabPotentialBC_solver(MultiFab& phi, const Geometry& geom) {
     }
 
     Box dom(geom.Domain());
+
+    GpuArray<Real,3> dx;
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        dx[d] = geom.CellSize(d);
+    }
+    if (AMREX_SPACEDIM == 2) {
+        dx[2] = cell_depth;
+    }
 
     for (MFIter mfi(phi); mfi.isValid(); ++mfi) {
 
@@ -1025,12 +1033,22 @@ void MultiFabPotentialBC_solver(MultiFab& phi, const Geometry& geom) {
         // Apply y-physbc to data
 
         if (bx.smallEnd(1) < dom.smallEnd(1)) {
-            if (bc_es_lo[1] == 1 || bc_es_lo[1] == 2) {
+            if ((bc_es_lo[1] == 1 || bc_es_lo[1] == 2) and (induced_charge_eo == 0)) {
                 const Real pot = potential_lo[1];
                 amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (j < dom.smallEnd(1)) {
                         data(i,j,k) = pot;
+                    }
+                });
+            }
+            else if (induced_charge_eo == 1) { // Dirichlet BC in the presence of electric field (currently supports only x Efield and ylo boundary)
+                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    if (j < dom.smallEnd(1)) {
+                        Real x = prob_lo[0] + (i+0.5)*dx[0];
+                        Real z = prob_lo[2] + (k+0.5)*dx[2];
+                        data(i,j,k) = (x-(prob_lo[0]+prob_hi[0])/2.0)*(eamp[0]*cos(efreq[0]*time + ephase[0]));
                     }
                 });
             }

@@ -10,7 +10,7 @@
 using namespace amrex;
 
 void esSolve(MultiFab& potential, MultiFab& charge, std::array< MultiFab, AMREX_SPACEDIM >& efieldCC,
-             const std::array< MultiFab, AMREX_SPACEDIM >& external, const Geometry geom);
+             const std::array< MultiFab, AMREX_SPACEDIM >& external, const Geometry geom, const Real time);
 
 void calculateField(MultiFab& potential, const Geometry geom);
 

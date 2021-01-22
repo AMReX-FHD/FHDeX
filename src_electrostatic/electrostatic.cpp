@@ -7,7 +7,7 @@ using namespace amrex;
 
 void esSolve(MultiFab& potential, MultiFab& charge,
              std::array< MultiFab, AMREX_SPACEDIM >& efieldCC,
-             const std::array< MultiFab, AMREX_SPACEDIM >& external, const Geometry geom)
+             const std::array< MultiFab, AMREX_SPACEDIM >& external, const Geometry geom, const Real time)
 {
     AMREX_D_TERM(efieldCC[0].setVal(0);,
                  efieldCC[1].setVal(0);,
@@ -104,7 +104,8 @@ void esSolve(MultiFab& potential, MultiFab& charge,
 
         // fill in ghost cells with Dirichlet/Neumann values
         // the ghost cells will hold the value ON the boundary
-        MultiFabPotentialBC_solver(potential,geom);
+        if (induced_charge_eo) MultiFabPotentialBC_solver(potential,geom,time);
+        else MultiFabPotentialBC_solver(potential,geom);
 
         // tell MLPoisson about these potentially inhomogeneous BC values
         linop.setLevelBC(0, &potential);
