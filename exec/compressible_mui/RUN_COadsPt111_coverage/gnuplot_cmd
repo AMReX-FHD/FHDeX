@@ -1,0 +1,1 @@
+cat havg* > a; gnuplot -persist -e 'ncz=100;nfreq=200;plot "a" u (($0/ncz)*nfreq):($2) w l'
