@@ -157,8 +157,9 @@ void ElectroDiffusiveMassFlux(const MultiFab& rho,
             MultiFab::Multiply(permittivity_fc[i],E_ext[i],0,0,1,0);
         }
 
-        // compute div (epsilon*E_ext) and add it to solver rhs
-        ComputeDiv(rhs,permittivity_fc,0,0,1,geom,1);
+        // compute div (epsilon*E_ext) and SUBTRACT it to solver rhs
+        // this needs to be tested with spatially-varying E_ext OR epsilon
+        ComputeDiv(rhs,permittivity_fc,0,0,1,geom,-1.);
     }
 
     // solve (alpha - del dot beta grad) Epot = charge (for electro-explicit)
