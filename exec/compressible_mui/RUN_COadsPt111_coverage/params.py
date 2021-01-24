@@ -66,7 +66,7 @@ dV = dx*dy*dz
 
 n2x = 4
 n2y = 4
-n2z = 4
+n2z = 400
 
 Lx = n2x*dx
 Ly = n2y*dy

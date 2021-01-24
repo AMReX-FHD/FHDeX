@@ -32,7 +32,8 @@ fi
 cp ../main_driver.cpp .
 
 # copy spparks app file
-cp ../SPPARKS_MUI/app_surfchemtest.* .
+cp ../SPPARKS_MUI/app_surfchemtest.cpp .
+cp ../SPPARKS_MUI/app_surfchemtest.h .
 
 # check number of steps
 N1=`grep nstep $SPKSCR | head -1 | awk '{print $4}'`
