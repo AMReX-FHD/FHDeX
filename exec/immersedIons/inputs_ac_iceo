@@ -108,14 +108,14 @@
   bc_vel_lo(1:3) = -1 -1 -1
   bc_vel_hi(1:3) = -1 -1 -1
 
-  induced_charge_eo = 1 ! (1 = setup induced charge iceo --> set boundary potential when applied Efield is on for Dirichlet BC)
+  !induced_charge_eo = 1 ! (1 = setup induced charge iceo --> set boundary potential when applied Efield is on for Dirichlet BC)
 
   zero_eps_on_wall_type = 1 ! (1 = setup 0 permittivity on the part of a Dirichlet wall that requires homogeneous Neumann BC)
   zero_eps_wall_left_end = 0.4 ! (sets zero permittivity from [x,z] = [0*Lx,0*Lz] to [x,z] = [zero_eps_wall_left_end*Lx,zero_eps_wall_left_end*Lz] for homogeneous Neumann BC on a Dirichlet wall)
   zero_eps_wall_right_start = 0.6 ! (sets zero permittivity from [x,z] = [zero_eps_wall_right_start*Lx,zero_eps_wall_right_start*Lz] to [x,z] = [Lx,Lz] for homogeneous Neumann BC on a Dirichlet wall)
   
   ! -1 = periodic, 1 = dirichlet, 2 = neumann
-  bc_es_lo(1:3) = -1 2 -1
+  bc_es_lo(1:3) = -1 1 -1
   bc_es_hi(1:3) = -1 2 -1
   
   potential_lo(1:3) = 0 0 0

@@ -67,7 +67,7 @@ void ComputeGrad(const MultiFab & phi_in, std::array<MultiFab, AMREX_SPACEDIM> &
                  int increment=0);
 
 void ComputeCentredGrad(const MultiFab& phi, std::array<MultiFab, AMREX_SPACEDIM>& gphi,
-                        const Geometry& geom);
+                        const Geometry& geom, Real factor);
 
 void ComputeCentredGradFC(std::array<MultiFab, AMREX_SPACEDIM> & phi,
                           MultiFab & gphi,
@@ -130,7 +130,7 @@ void MultiFabElectricBC(MultiFab& efieldCC, const Geometry& geom);
 
 void MultiFabPotentialBC(MultiFab& potential, const Geometry& geom);
 
-void MultiFabPotentialBC_solver(MultiFab& potential, const Geometry& geom, const Real& time=0.);
+void MultiFabPotentialBC_solver(MultiFab& potential, const Geometry& geom);
 
 ///////////////////////////
 // in NormInnerProduct.cpp

@@ -39,6 +39,22 @@ void main_driver(const char* argv)
     Real time = 0.;
     int statsCount = 1;
 
+    if ((zero_eps_on_wall_type == 1) and (bc_es_lo[1] != 1)) {
+        Abort("Abort: zero_eps_on_wall_type=1 requires a Dirichlet lower-y boundary");
+    }
+    if ((zero_eps_on_wall_type == 1) and (potential_lo[1] != 0.0)) {
+        Abort("Abort: zero_eps_on_wall_type=1 currently requires a 0 potential lower-y boundary (need not be)");
+    }
+    if ((zero_eps_wall_left_end < 0.0) or (zero_eps_wall_right_start < 0.0)) {
+        Abort("Abort: zero_eps_wall_left_end and zero_eps_wall_left_end should be > 0.0");
+    }
+    if ((zero_eps_wall_left_end > 1.0) or (zero_eps_wall_right_start > 1.0)) {
+        Abort("Abort: zero_eps_wall_left_end and zero_eps_wall_left_end should be < 1.0");
+    }
+    if (zero_eps_wall_left_end > zero_eps_wall_right_start) {
+        Abort("Abort: Set the y coordinate of right edge of the left dielectric lesser than or equal to the left edge of right dielectric");
+    }
+
     /*
       Terms prepended with a 'C' are related to the particle grid; only used for finding neighbor lists
       Those with 'P' are for the electostatic grid.
@@ -923,7 +939,7 @@ void main_driver(const char* argv)
         
         // do Poisson solve using 'charge' for RHS, and put potential in 'potential'.
         // Then calculate gradient and put in 'efieldCC', then add 'external'.
-        esSolve(potential, charge, efieldCC, external, geomP, time);
+        esSolve(potential, charge, efieldCC, external, geomP);
 
         // compute other forces and spread to grid
         particles.SpreadIonsGPU(dx, dxp, geom, umac, efieldCC, source, sourceTemp);

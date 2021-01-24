@@ -7,7 +7,7 @@ using namespace amrex;
 
 void esSolve(MultiFab& potential, MultiFab& charge,
              std::array< MultiFab, AMREX_SPACEDIM >& efieldCC,
-             const std::array< MultiFab, AMREX_SPACEDIM >& external, const Geometry geom, const Real time)
+             const std::array< MultiFab, AMREX_SPACEDIM >& external, const Geometry geom)
 {
     AMREX_D_TERM(efieldCC[0].setVal(0);,
                  efieldCC[1].setVal(0);,
@@ -19,17 +19,26 @@ void esSolve(MultiFab& potential, MultiFab& charge,
         const BoxArray& ba = charge.boxArray();
         const DistributionMapping& dmap = charge.DistributionMap();
         Box dom(geom.Domain());
-
+        
+        // Set beta and permittivity_fc equal to permittivity
         std::array< MultiFab, AMREX_SPACEDIM > beta;
+        std::array< MultiFab, AMREX_SPACEDIM > permittivity_fc;
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             beta[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 0);
+            permittivity_fc[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 0);
         }
 
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             beta[d].setVal(permittivity);
+            permittivity_fc[d].setVal(permittivity);
         }
 
-        if (zero_eps_on_wall_type) { // inhomogeneous permittivity on lower y-wall
+        // Copy charge in the RHS of Poisson Solver
+        MultiFab rhs(ba,dmap,1,0);
+        MultiFab::Copy(rhs,charge,0,0,1,0);
+
+        // inhomogeneous permittivity on lower y-wall (eps = 0 on dielectric Dirichlet wall) -- set beta = 0
+        if (zero_eps_on_wall_type) {
             
             for (MFIter mfi(beta[1]); mfi.isValid(); ++mfi) {
 
@@ -61,6 +70,15 @@ void esSolve(MultiFab& potential, MultiFab& charge,
             }
 
         }
+
+        // compute epsilon*external (where epsilon is stored in permittivity_fc)
+        for (int i=0; i<AMREX_SPACEDIM; ++i) {
+            MultiFab::Multiply(permittivity_fc[i],external[i],0,0,1,0);
+        }
+
+        // compute div (epsilon*E_ext) and subtract it from the solver rhs
+        // only needed for spatially varying epsilon or external field
+        ComputeDiv(rhs,permittivity_fc,0,0,1,geom,-1.);
 
         LinOpBCType lo_linop_bc[3];
         LinOpBCType hi_linop_bc[3];
@@ -104,8 +122,7 @@ void esSolve(MultiFab& potential, MultiFab& charge,
 
         // fill in ghost cells with Dirichlet/Neumann values
         // the ghost cells will hold the value ON the boundary
-        if (induced_charge_eo) MultiFabPotentialBC_solver(potential,geom,time);
-        else MultiFabPotentialBC_solver(potential,geom);
+        MultiFabPotentialBC_solver(potential,geom);
 
         // tell MLPoisson about these potentially inhomogeneous BC values
         linop.setLevelBC(0, &potential);
@@ -129,8 +146,8 @@ void esSolve(MultiFab& potential, MultiFab& charge,
         mlmg.setVerbose(poisson_verbose);
         mlmg.setBottomVerbose(poisson_bottom_verbose);
         
-        //Do solve
-        mlmg.solve({&potential}, {&charge}, poisson_rel_tol, 0.0);
+        //Do solve -- this give us \phi (as oppowed to -\phi using MLPoisson)
+        mlmg.solve({&potential}, {&rhs}, poisson_rel_tol, 0.0);
             
         potential.FillBoundary(geom.periodicity());
         // set ghost cell values so electric field is calculated properly
@@ -138,7 +155,9 @@ void esSolve(MultiFab& potential, MultiFab& charge,
         MultiFabPotentialBC(potential, geom); 
 
         //Find e field, gradient from cell centers to faces
-        ComputeCentredGrad(potential, efieldCC, geom);
+        //This routine calculates \nabla\phi; we need -\nabla\phi
+        //This is done by setting factor to -1
+        ComputeCentredGrad(potential, efieldCC, geom, -1);
     }
 
     //Add external field on top, then fill boundaries, then setup BCs for peskin interpolation
