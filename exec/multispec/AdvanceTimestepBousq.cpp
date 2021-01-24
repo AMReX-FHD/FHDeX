@@ -12,34 +12,34 @@
 
 
 // argv contains the name of the inputs file entered at the command line
-void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
-                             MultiFab& rho_old,
-                             MultiFab& rho_new,
-                             MultiFab& rhotot_old,
-                             MultiFab& rhotot_new,
-                             MultiFab& pi,
-                             MultiFab& eta, 
-                             std::array< MultiFab, NUM_EDGE >&  eta_ed,
-                             MultiFab& kappa, MultiFab& Temp,
-                             std::array< MultiFab, NUM_EDGE >& Temp_ed,
-                             MultiFab& diff_mass_fluxdiv,
-                             MultiFab& stoch_mass_fluxdiv,
-                             std::array< MultiFab, AMREX_SPACEDIM >& stoch_mass_flux,
-                             std::array< MultiFab, AMREX_SPACEDIM >& grad_Epot_old,
-                             std::array< MultiFab, AMREX_SPACEDIM >& grad_Epot_new,
-                             MultiFab& charge_old,
-                             MultiFab& charge_new,
-                             MultiFab& Epot,
-                             MultiFab& permittivity,
-                             StochMassFlux& sMassFlux,
-                             StochMomFlux& sMomFlux,
-                             const Real& dt,
-                             const Real& time,
-                             const int& istep,
-                             const Geometry& geom)
+void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
+                          MultiFab& rho_old,
+                          MultiFab& rho_new,
+                          MultiFab& rhotot_old,
+                          MultiFab& rhotot_new,
+                          MultiFab& pi,
+                          MultiFab& eta, 
+                          std::array< MultiFab, NUM_EDGE >&  eta_ed,
+                          MultiFab& kappa, MultiFab& Temp,
+                          std::array< MultiFab, NUM_EDGE >& Temp_ed,
+                          MultiFab& diff_mass_fluxdiv,
+                          MultiFab& stoch_mass_fluxdiv,
+                          std::array< MultiFab, AMREX_SPACEDIM >& stoch_mass_flux,
+                          std::array< MultiFab, AMREX_SPACEDIM >& grad_Epot_old,
+                          std::array< MultiFab, AMREX_SPACEDIM >& grad_Epot_new,
+                          MultiFab& charge_old,
+                          MultiFab& charge_new,
+                          MultiFab& Epot,
+                          MultiFab& permittivity,
+                          StochMassFlux& sMassFlux,
+                          StochMomFlux& sMomFlux,
+                          const Real& dt,
+                          const Real& time,
+                          const int& istep,
+                          const Geometry& geom)
 {
   
-    BL_PROFILE_VAR("AdvanceTimestepInertial()",AdvanceTimestepInertial);
+    BL_PROFILE_VAR("AdvanceTimestepBousq()",AdvanceTimestepBousq);
 
     BoxArray ba = rho_old.boxArray();
     DistributionMapping dmap = rho_old.DistributionMap();
@@ -154,7 +154,7 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
         if (dielectric_type != 0) {
             // compute permittivity
-            Abort("AdvanceTimestepInertial dielectric_type != 0");
+            Abort("AdvanceTimestepBousq dielectric_type != 0");
         }
     }
 

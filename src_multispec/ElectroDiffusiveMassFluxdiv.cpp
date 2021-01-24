@@ -157,8 +157,9 @@ void ElectroDiffusiveMassFlux(const MultiFab& rho,
             MultiFab::Multiply(permittivity_fc[i],E_ext[i],0,0,1,0);
         }
 
-        // compute div (epsilon*E_ext) and add it to solver rhs
-        ComputeDiv(rhs,permittivity_fc,0,0,1,geom,1);
+        // compute div (epsilon*E_ext) and SUBTRACT it to solver rhs
+        // this needs to be tested with spatially-varying E_ext OR epsilon
+        ComputeDiv(rhs,permittivity_fc,0,0,1,geom,-1.);
     }
 
     // solve (alpha - del dot beta grad) Epot = charge (for electro-explicit)
@@ -290,6 +291,7 @@ void ElectroDiffusiveMassFlux(const MultiFab& rho,
     }
     AverageCCToFace(charge_coef, electro_mass_flux, 0, nspecies, SPEC_BC_COMP, geom);
 
+    // multiply flux coefficient by gradient of electric potential
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
         for (int comp=0; comp<nspecies; ++comp) {
             MultiFab::Multiply(electro_mass_flux[i], grad_Epot[i], 0, comp, 1, 0);

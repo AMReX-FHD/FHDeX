@@ -198,7 +198,6 @@ void ComputeSqrtLonsagerFC(const MultiFab& rho,
 void MatvecMul(MultiFab& x,
 	       const MultiFab& A);
 
-
 /////////////////////////////////////////////////////////////////////////////////
 // in MkDiffusiveMFluxdiv.cpp
 
@@ -210,6 +209,11 @@ void MkDiffusiveMFluxdiv(std::array<MultiFab, AMREX_SPACEDIM> & m_update,
                          const Geometry& geom,
                          const Real* dx,
                          const int& increment);
+
+/////////////////////////////////////////////////////////////////////////////////
+// in ProjectOntoEOS.cpp
+
+void ProjectOntoEOS(MultiFab& rho);
 
 /////////////////////////////////////////////////////////////////////////////////
 // in RhoUtil.cpp

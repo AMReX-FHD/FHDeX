@@ -60,7 +60,7 @@ void AverageCCToEdge(const MultiFab& cc_in, std::array<MultiFab, NUM_EDGE>& edge
 
 void ComputeDiv(MultiFab & div, const std::array<MultiFab, AMREX_SPACEDIM> & phi_fc, 
                 int start_incomp, int start_outcomp, int ncomp, 
-                const Geometry & geom, int increment);
+                const Geometry & geom, Real increment);
 
 void ComputeGrad(const MultiFab & phi_in, std::array<MultiFab, AMREX_SPACEDIM> & gphi, 
                  int start_incomp, int start_outcomp, int ncomp, int bccomp, const Geometry & geom,

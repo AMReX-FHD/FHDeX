@@ -53,8 +53,19 @@ void InitialProjection(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     }
     else {
         weights = {1.};
+        // predictor integrates over full time step
         dt_eff = dt;
     }
+
+    /*
+    if (nreactions > 0) {
+        if (algorithm_type != 5 && algorithm_type != 6) {
+            Abort("Error: only algorithm_type=(5 or 6) allowed for nreactions>0");
+        } else if (use_Poisson_rng == 2) {
+            Abort("Error: currently use_Poisson_rng=2 not allowed for algorithm_type=(5 or 6) and nreactions>0");
+        }        
+    }
+    */
 
     MultiFab mac_rhs(ba,dmap,1,0);
     MultiFab divu   (ba,dmap,1,0);
@@ -97,8 +108,12 @@ void InitialProjection(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     //
 
     // set the Dirichlet velocity value on reservoir faces
-    //
-    //
+    if (algorithm_type != 6) {
+        // call reservoir_bc_fill
+        //
+        //
+    }
+
 
     if (restart < 0) {
 
