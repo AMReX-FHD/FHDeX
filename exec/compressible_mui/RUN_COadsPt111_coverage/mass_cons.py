@@ -7,6 +7,10 @@ dV = 5.132967e-16
 nx = 4
 ny = 4
 
+print("** plot_int=%d" % plot_int)
+print("** nx=%d" % nx)
+print("** ny=%d" % ny)
+
 Nsurf = np.loadtxt("res.coverage",unpack=True,usecols=(2,))
 npts = len(Nsurf)/plot_int
 
