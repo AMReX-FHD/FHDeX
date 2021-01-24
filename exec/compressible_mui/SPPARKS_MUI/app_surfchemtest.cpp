@@ -23,6 +23,8 @@
 #include "domain.h"
 #include "mui.h"
 
+using namespace mui;
+
 using namespace SPPARKS_NS;
 
 enum{NOOP,SITEA,SITEB,SITEC};
@@ -400,6 +402,34 @@ void AppSurfchemtest::init_app()
     }
 
     if (domain->me == 0 && screen) fprintf(screen,"** DEBUG: ac1-ac5, dc1-dc5 initialized to zero\n");
+
+    // announce span
+
+    double tmp[2];
+
+    tmp[0] = domain->subxlo;
+    tmp[1] = domain->subylo;
+    point<double,2> send_span_lo(tmp);
+
+    tmp[0] = domain->subxhi;
+    tmp[1] = domain->subyhi;
+    point<double,2> send_span_hi(tmp);
+
+    mui::geometry::box<config_2d> send_span(send_span_lo,send_span_hi);
+
+    spk->uniface->announce_send_span(0.,1.e10,send_span);
+
+    tmp[0] = domain->subxlo - 0.5*mui_fhd_lattice_size_x;
+    tmp[1] = domain->subylo - 0.5*mui_fhd_lattice_size_y;
+    point<double,2> recv_span_lo(tmp);
+
+    tmp[0] = domain->subxhi + 0.5*mui_fhd_lattice_size_x;
+    tmp[1] = domain->subyhi + 0.5*mui_fhd_lattice_size_y;
+    point<double,2> recv_span_hi(tmp);
+
+    mui::geometry::box<config_2d> recv_span(recv_span_lo,recv_span_hi);
+
+    spk->uniface->announce_recv_span(0.,1.e10,recv_span);
   }
 
   // site validity

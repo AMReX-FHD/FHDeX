@@ -12,13 +12,15 @@ using namespace amrex;
 
 // mui
 #include <mui.h>
+
 using namespace mui;
 
 #define NADSDESSPEC 1
 
 // this routine pushes the following information to MUI
 // - species number densities and temperature of FHD cells contacting the interface
-void mui_push(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface2d &uniface, const int step)
+void mui_push(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface2d &uniface, const int step,
+              int lox,int loy,int loz,int hix,int hiy,int hiz)
 {
     // assuming the interface is perpendicular to the z-axis 
     // and includes cells with the smallest value of z (i.e. k=0)
@@ -30,6 +32,13 @@ void mui_push(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface2
         Dim3 hi = ubound(bx);
         const Array4<Real> & cu_fab = cu.array(mfi);
         const Array4<Real> & prim_fab = prim.array(mfi);
+
+	if (lox>lo.x) Abort("ERROR: lox>lo.x");
+	if (loy>lo.y) Abort("ERROR: loy>lo.y");
+	if (loz>lo.z) Abort("ERROR: loz>lo.z");
+	if (hix<hi.x) Abort("ERROR: hix<hi.x");
+	if (hiy<hi.y) Abort("ERROR: hiy<hi.y");
+	if (hiz<hi.z) Abort("ERROR: hiz<hi.z");
 
         // unless bx contains cells at the interface, skip 
         int k = 0;
@@ -69,7 +78,8 @@ void mui_push(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface2
 
 // this routine fetches the following information from MUI:
 // - adsoprtion and desoprtion counts of each species between time points
-void mui_fetch(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface2d &uniface, const int step)
+void mui_fetch(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface2d &uniface, const int step,
+               int lox,int loy,int loz,int hix,int hiy,int hiz)
 {
     // assuming the interface is perpendicular to the z-axis 
     // and includes cells with the smallest value of z (i.e. k=0)
@@ -85,6 +95,13 @@ void mui_fetch(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface
         const Array4<Real> & cu_fab = cu.array(mfi);
         const Array4<Real> & prim_fab = prim.array(mfi);
 
+	if (lox>lo.x) Abort("ERROR: lox>lo.x");
+	if (loy>lo.y) Abort("ERROR: loy>lo.y");
+	if (loz>lo.z) Abort("ERROR: loz>lo.z");
+	if (hix<hi.x) Abort("ERROR: hix<hi.x");
+	if (hiy<hi.y) Abort("ERROR: hiy<hi.y");
+	if (hiz<hi.z) Abort("ERROR: hiz<hi.z");
+
         // unless bx contains cells at the interface, skip 
         // ad-hoc fix to avoid memory leakage
         int k = 0;
@@ -93,7 +110,7 @@ void mui_fetch(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface
             double x = prob_lo[0]+(lo.x+0.5)*dx[0];
             double y = prob_lo[1]+(lo.y+0.5)*dx[1];
 
-            uniface.fetch("CH_ac1",{x,y},step,s,t);
+            //uniface.fetch("CH_ac1",{x,y},step,s,t);
 
             continue;
         }
@@ -622,7 +639,75 @@ void main_driver(const char* argv)
                       prim, primMeans, primVars, spatialCross, eta, kappa);
     }
 
+    // MUI setting
     mui::uniface2d uniface( "mpi://FHD-side/FHD-KMC-coupling" );
+
+    int lox,loy,loz,hix,hiy,hiz;
+    bool isfirst = true;
+
+    for (MFIter mfi(cu,false); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.tilebox();
+        Dim3 lo = lbound(bx);
+        Dim3 hi = ubound(bx);
+
+        if (isfirst)
+        {
+            lox = lo.x;
+            loy = lo.y;
+            loz = lo.z;
+            hix = hi.x;
+            hiy = hi.y;
+            hiz = hi.z;
+
+	    isfirst = false;
+	}
+        else
+        {
+            lox = (lox<lo.x) ? lox : lo.x;
+            loy = (loy<lo.y) ? loy : lo.y;
+            loz = (loz<lo.z) ? loz : lo.z;
+            hix = (hix>hi.x) ? hix : hi.x;
+            hiy = (hiy>hi.y) ? hiy : hi.y;
+            hiz = (hiz>hi.z) ? hiz : hi.z;
+        }
+    }
+
+    int k = 0;
+    if (k>=loz && k<=hiz)
+    {
+        double tmp[2];
+
+        tmp[0] = prob_lo[0] + lox*dx[0];
+        tmp[1] = prob_lo[1] + loy*dx[1];
+        point<double,2> span_lo(tmp);
+
+        tmp[0] = prob_lo[0] + (hix+1)*dx[0];
+        tmp[1] = prob_lo[1] + (hiy+1)*dx[1];
+        point<double,2> span_hi(tmp);
+
+        mui::geometry::box<config_2d> span(span_lo,span_hi);
+
+        uniface.announce_send_span(0.,(double)max_step,span);
+        uniface.announce_recv_span(0.,(double)max_step,span);
+    }
+    else
+    {
+        double tmp[2];
+
+        tmp[0] = -1.;
+        tmp[1] = -1.;
+        point<double,2> span_lo(tmp);
+
+        tmp[0] = -0.9;
+        tmp[1] = -0.9;
+        point<double,2> span_hi(tmp);
+
+        mui::geometry::box<config_2d> span(span_lo,span_hi);
+
+        uniface.announce_send_span(0.,(double)max_step,span);
+        uniface.announce_recv_span(0.,(double)max_step,span);
+    }
 
     //Time stepping loop
     for(step=1;step<=max_step;++step) {
@@ -635,7 +720,7 @@ void main_driver(const char* argv)
         // timer
         Real ts1 = ParallelDescriptor::second();
 
-        mui_push(cu, prim, dx, uniface, step);
+        mui_push(cu, prim, dx, uniface, step,lox,loy,loz,hix,hiy,hiz);
 
         Real ts3 = ParallelDescriptor::second();
         Real ts_mp = ts3-ts1;
@@ -650,7 +735,7 @@ void main_driver(const char* argv)
         ParallelDescriptor::ReduceRealMax(ts_rk);
         amrex::Print() << "RK3 step " << step << " in " << ts_rk << " seconds\n";
 
-        mui_fetch(cu, prim, dx, uniface, step);
+        mui_fetch(cu, prim, dx, uniface, step,lox,loy,loz,hix,hiy,hiz);
 
         Real ts5 = ParallelDescriptor::second();
         Real ts_mf = ts5-ts4;
