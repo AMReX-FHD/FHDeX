@@ -8,16 +8,16 @@ nx = 4
 ny = 4
 
 Nsurf = np.loadtxt("res.coverage",unpack=True,usecols=(2,))
-npts = len(Nsurf)
+npts = len(Nsurf)/plot_int
 
 M1 = np.zeros(npts)
 M2 = np.zeros(npts)
 
-for i in range(len(Nsurf)):
+for i in range(npts):
     a = "%d" % (plot_int*(i+1))
     filename = "havg"+a.zfill(9)
     rhoY1z = np.loadtxt(filename,unpack=True,usecols=(6,))
-    M1[i] = mCO*Nsurf[i]
-    M2[i] = nx*ny*dV*sum(rhoY1z)
+    M1[i] = int(Nsurf[plot_int*(i+1)-1])
+    M2[i] = int(nx*ny*dV*sum(rhoY1z)/mCO)
 
 np.savetxt("res.mass_cons",np.transpose([M1,M2,M1+M2]))

@@ -1,6 +1,7 @@
 #!/bin/bash
 
 COMPDIR=../RUN
+#COMPDIR=../RUN_COadsPt111_coverage
 
 FILES=`ls`
 
