@@ -301,10 +301,11 @@ void main_driver(const char* argv)
 
     // "primitive" variable structure factor will contain
     // rho
-    // vel
+    // vel (shifted)
     // T
     // Yk
-    int structVarsPrim = AMREX_SPACEDIM+nspecies+2;
+    // vel (averaged)
+    int structVarsPrim = 2*AMREX_SPACEDIM+nspecies+2;
 
     Vector< std::string > prim_var_names;
     prim_var_names.resize(structVarsPrim);
@@ -317,7 +318,7 @@ void main_driver(const char* argv)
 
     // velx, vely, velz
     for (int d=0; d<AMREX_SPACEDIM; d++) {
-        x = "vel";
+        x = "vel_averaged";
         x += (120+d);
         prim_var_names[cnt++] = x;
     }
@@ -329,6 +330,13 @@ void main_driver(const char* argv)
     for (int d=0; d<nspecies; d++) {
         x = "Y";
         x += (49+d);
+        prim_var_names[cnt++] = x;
+    }
+
+    // velx, vely, velz
+    for (int d=0; d<AMREX_SPACEDIM; d++) {
+        x = "vel_shifted";
+        x += (120+d);
         prim_var_names[cnt++] = x;
     }
 
@@ -366,7 +374,7 @@ void main_driver(const char* argv)
     // rho*E
     // rho*Yk
     // Temperature (not in the conserved array; will have to copy it in)
-    int structVarsCons = AMREX_SPACEDIM+nspecies+3;
+    int structVarsCons = 2*AMREX_SPACEDIM+nspecies+3;
 
     Vector< std::string > cons_var_names;
     cons_var_names.resize(structVarsCons);
@@ -376,9 +384,9 @@ void main_driver(const char* argv)
     // rho
     cons_var_names[cnt++] = "rho";
 
-    // velx, vely, velz
+    // jx, jy, jz
     for (int d=0; d<AMREX_SPACEDIM; d++) {
-        x = "j";
+        x = "j_averaged";
         x += (120+d);
         cons_var_names[cnt++] = x;
     }
@@ -396,6 +404,13 @@ void main_driver(const char* argv)
     // Temp
     cons_var_names[cnt++] = "Temp";
 
+    // jx, jy, jz
+    for (int d=0; d<AMREX_SPACEDIM; d++) {
+        x = "j_shifted";
+        x += (120+d);
+        cons_var_names[cnt++] = x;
+    }
+    
     MultiFab structFactConsMF;
     structFactConsMF.define(ba, dmap, structVarsCons, 0);
 
@@ -550,16 +565,17 @@ void main_driver(const char* argv)
 
         // collect a snapshot for structure factor
         if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip)%struct_fact_int == 0) {
-            MultiFab::Copy(structFactPrimMF, prim, 0,                0,                structVarsPrim,   0);
-            MultiFab::Copy(structFactConsMF, cu,   0,                0,                structVarsCons-1, 0);
-            MultiFab::Copy(structFactConsMF, prim, AMREX_SPACEDIM+1, structVarsCons-1, 1,                0); // temperature too
+            MultiFab::Copy(structFactPrimMF, prim, 0, 0, structVarsPrim-AMREX_SPACEDIM  , 0);
+            MultiFab::Copy(structFactConsMF, cu,   0, 0, structVarsCons-AMREX_SPACEDIM-1, 0);
+            // temperature too
+            MultiFab::Copy(structFactConsMF, prim, AMREX_SPACEDIM+1, structVarsCons-1-AMREX_SPACEDIM, 1, 0);
 
-            // overwrites the momentum & velocity by shifting in the face-centered arrays into the cell-centered arrays
+            // append the shifted momentum and velocities to the end
             for (int d=0; d<AMREX_SPACEDIM; ++d) {
-                ShiftFaceToCC(cumom[d],0,structFactConsMF,d+1,1);
-                ShiftFaceToCC(vel[d],0,structFactPrimMF,d+1,1);
+                ShiftFaceToCC(vel[d]  ,0,structFactPrimMF,d+structVarsPrim-AMREX_SPACEDIM,1);
+                ShiftFaceToCC(cumom[d],0,structFactConsMF,d+structVarsCons-AMREX_SPACEDIM,1);
             }
-
+            
             structFactPrim.FortStructure(structFactPrimMF,geom);
             structFactCons.FortStructure(structFactConsMF,geom);
             if(project_dir >= 0) {
