@@ -50,9 +50,7 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
 
         const Array4<const Real> cu        = cons.array(mfi);
         const Array4<      Real> cumeans   = consMean.array(mfi);
-        //const Array4<const Real> prim      = prim_in.array(mfi);
         const Array4<      Real> primmeans = primMean.array(mfi);
-        //const Array4<      Real> miscstats = miscStats.array(mfi);
 
         // on host, not gpu
         for (auto k = lo.z; k <= hi.z; ++k) {

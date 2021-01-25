@@ -202,8 +202,8 @@ void main_driver(const char* argv)
     //statistics    
     MultiFab cuMeans  (ba,dmap,nvars,ngc);
     MultiFab cuVars   (ba,dmap,nvars,ngc);
-    MultiFab cuMeansAv(ba,dmap,nvars,ngc);
-    MultiFab cuVarsAv (ba,dmap,nvars,ngc);
+    //MultiFab cuMeansAv(ba,dmap,nvars,ngc);
+    //MultiFab cuVarsAv (ba,dmap,nvars,ngc);
 
     cuMeans.setVal(0.0);
     cuVars.setVal(0.0);
@@ -212,20 +212,20 @@ void main_driver(const char* argv)
 
     MultiFab primMeans  (ba,dmap,nprimvars,ngc);
     MultiFab primVars   (ba,dmap,nprimvars+5,ngc);
-    MultiFab primMeansAv(ba,dmap,nprimvars,ngc);
-    MultiFab primVarsAv (ba,dmap,nprimvars+5,ngc);
+    //MultiFab primMeansAv(ba,dmap,nprimvars,ngc);
+    //MultiFab primVarsAv (ba,dmap,nprimvars+5,ngc);
     primMeans.setVal(0.0);
     primVars.setVal(0.0);
 
     // staggered momentum
     std::array< MultiFab, AMREX_SPACEDIM > velMeans;
     std::array< MultiFab, AMREX_SPACEDIM > velVars;
-    std::array< MultiFab, AMREX_SPACEDIM > velMeansAv;
-    std::array< MultiFab, AMREX_SPACEDIM > velVarsAv;
+    //std::array< MultiFab, AMREX_SPACEDIM > velMeansAv;
+    //std::array< MultiFab, AMREX_SPACEDIM > velVarsAv;
     std::array< MultiFab, AMREX_SPACEDIM > cumomMeans;
     std::array< MultiFab, AMREX_SPACEDIM > cumomVars;
-    std::array< MultiFab, AMREX_SPACEDIM > cumomMeansAv;
-    std::array< MultiFab, AMREX_SPACEDIM > cumomVarsAv;
+    //std::array< MultiFab, AMREX_SPACEDIM > cumomMeansAv;
+    //std::array< MultiFab, AMREX_SPACEDIM > cumomVarsAv;
     for (int d=0; d<AMREX_SPACEDIM; d++) {
         velMeans[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ngc);
         cumomMeans[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ngc);
@@ -498,8 +498,8 @@ void main_driver(const char* argv)
     setBCStag(prim, cu, cumom, vel, geom);
     
     if (plot_int > 0) {
-	    WritePlotFileStag(0, 0.0, geom, cu, cuMeans, cuVars, cumom, 
-                      prim, primMeans, primVars, vel, spatialCross, eta, kappa);
+	    WritePlotFileStag(0, 0.0, geom, cu, cuMeans, cuVars, cumom, cumomMeans, cumomVars, 
+                      prim, primMeans, primVars, vel, velMeans, velVars, eta, kappa);
     }
 
 
@@ -527,20 +527,18 @@ void main_driver(const char* argv)
         
         // compute mean and variances
         if (step > n_steps_skip) {
-            //evaluateStatsStag(cu, cuMeans, cuVars, prim, primMeans, primVars, vel, 
-            //                  velMeans, velVars, cumom, cumomMeans, cumomVars,
-            //                  spatialCross, miscStats, miscVals, statsCount, dx);
-            evaluateStats(cu, cuMeans, cuVars, prim, primMeans, primVars,
-                          spatialCross, miscStats, miscVals, statsCount, dx);
+            evaluateStatsStag(cu, cuMeans, cuVars, prim, primMeans, primVars, vel, 
+                              velMeans, velVars, cumom, cumomMeans, cumomVars,
+                              statsCount, dx);
             statsCount++;
         }
 
         // write a plotfile
         if (plot_int > 0 && step > 0 && step%plot_int == 0) {
-             yzAverage(cuMeans, cuVars, primMeans, primVars, spatialCross,
-                       cuMeansAv, cuVarsAv, primMeansAv, primVarsAv, spatialCrossAv);
-             WritePlotFileStag(step, time, geom, cu, cuMeansAv, cuVarsAv, cumom,
-                           prim, primMeansAv, primVarsAv, vel, spatialCrossAv, eta, kappa);
+             //yzAverage(cuMeans, cuVars, primMeans, primVars, spatialCross,
+             //          cuMeansAv, cuVarsAv, primMeansAv, primVarsAv, spatialCrossAv);
+             WritePlotFileStag(step, time, geom, cu, cuMeans, cuVars, cumom, cumomMeans, cumomVars,
+                           prim, primMeans, primVars, vel, velMeans, velVars, eta, kappa);
 
         }
 
