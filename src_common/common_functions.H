@@ -161,6 +161,12 @@ void CCInnerProd(const MultiFab & m1,
                  amrex::MultiFab& mscr,
 		 Real & prod_val);
 
+void CCMoments(const MultiFab & m1,
+		 const int & comp1,
+                 amrex::MultiFab& mscr,
+		 const int & power,
+		 Real & prod_val);
+
 void StagL2Norm(const Geometry& geom,
                 const std::array<MultiFab, AMREX_SPACEDIM> & m1,
 		const int & comp,

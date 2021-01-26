@@ -6,12 +6,6 @@ void conservedToPrimitive(MultiFab& prim_in, const MultiFab& cons_in)
     BL_PROFILE_VAR("conservedToPrimitive()",conservedToPrimitive);
 
     // from namelist
-    int nspecies_gpu = nspecies;
-
-    // from namelist
-    Real Runiv_gpu = Runiv;
-
-    // from namelist
     /* 
     // method 1 to create a thread shared array
     // must use if the size of the array is not known at compile time
@@ -30,16 +24,6 @@ void conservedToPrimitive(MultiFab& prim_in, const MultiFab& cons_in)
 
     // method 2 to create a thread shared array
     // can use when the size of the array is known at compile-time
-    GpuArray<Real,MAX_SPECIES> molmass_gpu;
-    for (int n=0; n<nspecies; ++n) {
-        molmass_gpu[n] = molmass[n];
-    }
-    
-    // from namelist
-    GpuArray<Real,MAX_SPECIES> hcv_gpu;
-    for (int n=0; n<nspecies; ++n) {
-        hcv_gpu[n] = hcv[n];
-    }
     
     // Loop over boxes
     for ( MFIter mfi(prim_in); mfi.isValid(); ++mfi) {
@@ -79,13 +63,13 @@ void conservedToPrimitive(MultiFab& prim_in, const MultiFab& cons_in)
             Real intenergy = cons(i,j,k,4)/cons(i,j,k,0) - 0.5*vsqr;
 
             Real sumYk = 0.;
-            for (int n=0; n<nspecies_gpu; ++n) {
+            for (int n=0; n<nspecies; ++n) {
                 Yk[n] = cons(i,j,k,5+n)/cons(i,j,k,0);
                 Yk_fixed[n] = amrex::max(0.,amrex::min(1.,Yk[n]));
                 sumYk += Yk_fixed[n];
             }
             
-            for (int n=0; n<nspecies_gpu; ++n) {
+            for (int n=0; n<nspecies; ++n) {
                 Yk_fixed[n] /= sumYk;
             }
 
@@ -93,12 +77,12 @@ void conservedToPrimitive(MultiFab& prim_in, const MultiFab& cons_in)
             GetTemperature(intenergy, Yk_fixed, prim(i,j,k,4));
 
             // compute mole fractions from mass fractions
-            GetMolfrac(i,j,k, Yk, Xk);
+            GetMolfrac(Yk, Xk);
 
             // mass fractions
-            for (int n=0; n<nspecies_gpu; ++n) {
+            for (int n=0; n<nspecies; ++n) {
                 prim(i,j,k,6+n) = Yk[n];
-                prim(i,j,k,6+nspecies_gpu+n) = Xk[n];
+                prim(i,j,k,6+nspecies+n) = Xk[n];
             }
 
             GetPressureGas(prim(i,j,k,5), Yk, prim(i,j,k,0), prim(i,j,k,4));

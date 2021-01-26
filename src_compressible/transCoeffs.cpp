@@ -46,7 +46,7 @@ void calculateTransportCoeffs(const MultiFab& prim_in,
             }
 
             // compute mole fractions from mass fractions
-            GetMolfrac(i,j,k, Yk_fixed, Xk_fixed);
+            GetMolfrac(Yk_fixed, Xk_fixed);
 
             IdealMixtureTransport(i,j,k, prim(i,j,k,0), prim(i,j,k,4), prim(i,j,k,5),
                                   Yk_fixed, Xk_fixed, eta(i,j,k), kappa(i,j,k), zeta(i,j,k),
