@@ -249,7 +249,18 @@ void main_driver(const char* argv)
     // if multispecies
     if (algorithm_type == 2) {
         // compute wall concentrations if BCs call for it
-        setup_cwall();
+         setup_cwall(bc_Yk_x_lo.data(),
+                     bc_Yk_x_hi.data(),
+                     bc_Yk_y_lo.data(),
+                     bc_Yk_y_hi.data(),
+                     bc_Yk_z_lo.data(),
+                     bc_Yk_z_hi.data(),
+                     bc_Xk_x_lo.data(),
+                     bc_Xk_x_hi.data(),
+                     bc_Xk_y_lo.data(),
+                     bc_Xk_y_hi.data(),
+                     bc_Xk_z_lo.data(),
+                     bc_Xk_z_hi.data());
     }
 
     // make BoxArray and Geometry
@@ -728,7 +739,7 @@ void main_driver(const char* argv)
         amrex::Print() << "MUI-PUSH step " << step << " in " << ts_mp << " seconds\n";
 
         RK3step(cu, cup, cup2, cup3, prim, source, eta, zeta, kappa, chi, D, flux,
-                stochFlux, cornx, corny, cornz, visccorn, rancorn, geom, dx, dt);
+                stochFlux, cornx, corny, cornz, visccorn, rancorn, geom, dt);
 
         Real ts4 = ParallelDescriptor::second();
         Real ts_rk = ts4-ts3;
