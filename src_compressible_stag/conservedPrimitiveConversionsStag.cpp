@@ -8,10 +8,6 @@ void conservedToPrimitiveStag(MultiFab& prim_in, std::array<MultiFab, AMREX_SPAC
     BL_PROFILE_VAR("conservedToPrimitiveStag()",conservedToPrimitiveStag);
 
     // from namelist
-    int nspecies_gpu = nspecies;
-
-    // from namelist
-    Real Runiv_gpu = Runiv;
 
     // from namelist
     /* 
@@ -29,19 +25,6 @@ void conservedToPrimitiveStag(MultiFab& prim_in, std::array<MultiFab, AMREX_SPAC
               molmass_vect.begin());
     Real const * const AMREX_RESTRICT molmass_gpu = molmass_vect.dataPtr();  // pointer to data
     */
-
-    // method 2 to create a thread shared array
-    // can use when the size of the array is known at compile-time
-    GpuArray<Real,MAX_SPECIES> molmass_gpu;
-    for (int n=0; n<nspecies; ++n) {
-        molmass_gpu[n] = molmass[n];
-    }
-    
-    // from namelist
-    GpuArray<Real,MAX_SPECIES> hcv_gpu;
-    for (int n=0; n<nspecies; ++n) {
-        hcv_gpu[n] = hcv[n];
-    }
     
     // Loop over boxes
     for ( MFIter mfi(prim_in,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
@@ -117,30 +100,29 @@ void conservedToPrimitiveStag(MultiFab& prim_in, std::array<MultiFab, AMREX_SPAC
             Real intenergy = (cons(i,j,k,4)-kinenergy)/cons(i,j,k,0);
 
             Real sumYk = 0.;
-            for (int n=0; n<nspecies_gpu; ++n) {
+            for (int n=0; n<nspecies; ++n) {
                 Yk[n] = cons(i,j,k,5+n)/cons(i,j,k,0);
                 Yk_fixed[n] = amrex::max(0.,amrex::min(1.,Yk[n]));
                 sumYk += Yk_fixed[n];
             }
             
-            for (int n=0; n<nspecies_gpu; ++n) {
+            for (int n=0; n<nspecies; ++n) {
                 Yk_fixed[n] /= sumYk;
             }
 
             // update temperature in-place using internal energy
-            GetTemperature(intenergy, Yk_fixed, prim(i,j,k,4), nspecies_gpu, hcv_gpu);
+            GetTemperature(intenergy, Yk_fixed, prim(i,j,k,4));
 
             // compute mole fractions from mass fractions
-            GetMolfrac(i,j,k, Yk, Xk, nspecies_gpu, molmass_gpu);
+            GetMolfrac(Yk, Xk);
 
             // mass fractions
-            for (int n=0; n<nspecies_gpu; ++n) {
+            for (int n=0; n<nspecies; ++n) {
                 prim(i,j,k,6+n) = Yk[n];
-                prim(i,j,k,6+nspecies_gpu+n) = Xk[n];
+                prim(i,j,k,6+nspecies+n) = Xk[n];
             }
 
-            GetPressureGas(prim(i,j,k,5), Yk, cons(i,j,k,0), prim(i,j,k,4),
-                           nspecies_gpu, Runiv_gpu, molmass_gpu);
+            GetPressureGas(prim(i,j,k,5), Yk, cons(i,j,k,0), prim(i,j,k,4));
         });
         
     } // end MFIter

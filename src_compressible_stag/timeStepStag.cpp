@@ -17,7 +17,7 @@ void RK3stepStag(MultiFab& cu,
                  std::array< MultiFab, 2 >& edgeflux_y,
                  std::array< MultiFab, 2 >& edgeflux_z,
                  std::array< MultiFab, AMREX_SPACEDIM>& cenflux,
-                 const amrex::Geometry geom, const amrex::Real* dxp, const amrex::Real dt)
+                 const amrex::Geometry geom, const amrex::Real dt)
 {
     BL_PROFILE_VAR("RK3stepStag()",RK3stepStag);
 
@@ -30,13 +30,13 @@ void RK3stepStag(MultiFab& cu,
 
     std::array< MultiFab, AMREX_SPACEDIM > cupmom;
     std::array< MultiFab, AMREX_SPACEDIM > cup2mom;
-    AMREX_D_TERM(cupmom[0].define(convert(cu.boxArray(),nodal_flag_x), cu.DistributionMap(), 1, 1);,
-                 cupmom[1].define(convert(cu.boxArray(),nodal_flag_y), cu.DistributionMap(), 1, 1);,
-                 cupmom[2].define(convert(cu.boxArray(),nodal_flag_z), cu.DistributionMap(), 1, 1););
+    AMREX_D_TERM(cupmom[0].define(convert(cu.boxArray(),nodal_flag_x), cu.DistributionMap(), 1, ngc);,
+                 cupmom[1].define(convert(cu.boxArray(),nodal_flag_y), cu.DistributionMap(), 1, ngc);,
+                 cupmom[2].define(convert(cu.boxArray(),nodal_flag_z), cu.DistributionMap(), 1, ngc););
 
-    AMREX_D_TERM(cup2mom[0].define(convert(cu.boxArray(),nodal_flag_x), cu.DistributionMap(), 1, 1);,
-                 cup2mom[1].define(convert(cu.boxArray(),nodal_flag_y), cu.DistributionMap(), 1, 1);,
-                 cup2mom[2].define(convert(cu.boxArray(),nodal_flag_z), cu.DistributionMap(), 1, 1););
+    AMREX_D_TERM(cup2mom[0].define(convert(cu.boxArray(),nodal_flag_x), cu.DistributionMap(), 1, ngc);,
+                 cup2mom[1].define(convert(cu.boxArray(),nodal_flag_y), cu.DistributionMap(), 1, ngc);,
+                 cup2mom[2].define(convert(cu.boxArray(),nodal_flag_z), cu.DistributionMap(), 1, ngc););
     
     AMREX_D_TERM(cupmom[0].setVal(0.0);,
                  cupmom[1].setVal(0.0);,
@@ -48,8 +48,6 @@ void RK3stepStag(MultiFab& cu,
 
     const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
     
-    const GpuArray<Real,AMREX_SPACEDIM> grav_gpu{AMREX_D_DECL(grav[0], grav[1], grav[2])};
-
     /////////////////////////////////////////////////////
     // Setup stochastic flux MultiFabs
     std::array< MultiFab, AMREX_SPACEDIM > stochface;
@@ -229,7 +227,7 @@ void RK3stepStag(MultiFab& cu,
     calculateFluxStag(cu, cumom, prim, vel, eta, zeta, kappa, chi, D, 
         faceflux, edgeflux_x, edgeflux_y, edgeflux_z, cenflux, 
         stochface, stochedge_x, stochedge_y, stochedge_z, stochcen, 
-        geom, stoch_weights, dxp, dt);
+        geom, stoch_weights,dt);
 
     for (int d=0; d<AMREX_SPACEDIM; d++) {
         cenflux[d].FillBoundary(geom.periodicity());
@@ -293,28 +291,28 @@ void RK3stepStag(MultiFab& cu,
                     -dt*(cenx_u(i,j,k) - cenx_u(i-1,j,k))/dx[0]
                     -dt*(edgey_u(i,j+1,k) - edgey_u(i,j,k))/dx[1]
                     -dt*(edgez_u(i,j,k+1) - edgez_u(i,j,k))/dx[2]
-                    +0.5*dt*grav_gpu[0]*(cu_fab(i-1,j,k,0)+cu_fab(i,j,k,0));
+                    +0.5*dt*grav[0]*(cu_fab(i-1,j,k,0)+cu_fab(i,j,k,0));
         },
         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
             mompy(i,j,k) = momy(i,j,k)
                     -dt*(edgex_v(i+1,j,k) - edgex_v(i,j,k))/dx[0]
                     -dt*(ceny_v(i,j,k) - ceny_v(i,j-1,k))/dx[1]
                     -dt*(edgez_v(i,j,k+1) - edgez_v(i,j,k))/dx[2]
-                    +0.5*dt*grav_gpu[1]*(cu_fab(i,j-1,k,0)+cu_fab(i,j,k,0));
+                    +0.5*dt*grav[1]*(cu_fab(i,j-1,k,0)+cu_fab(i,j,k,0));
         },
         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
             mompz(i,j,k) = momz(i,j,k)
                     -dt*(edgex_w(i+1,j,k) - edgex_w(i,j,k))/dx[0]
                     -dt*(edgey_w(i,j+1,k) - edgey_w(i,j,k))/dx[1]
                     -dt*(cenz_w(i,j,k) - cenz_w(i,j,k-1))/dx[2]
-                    +0.5*dt*grav_gpu[2]*(cu_fab(i,j,k-1,0)+cu_fab(i,j,k,0));
+                    +0.5*dt*grav[2]*(cu_fab(i,j,k-1,0)+cu_fab(i,j,k,0));
         });
         
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            cup_fab(i,j,k,4) += 0.5 * dt * (  grav_gpu[0]*(momx(i+1,j,k)+momx(i,j,k))
-                                            + grav_gpu[1]*(momy(i,j+1,k)+momy(i,j,k))
-                                            + grav_gpu[2]*(momz(i,j,k+1)+momz(i,j,k)) );
+            cup_fab(i,j,k,4) += 0.5 * dt * (  grav[0]*(momx(i+1,j,k)+momx(i,j,k))
+                                            + grav[1]*(momy(i,j+1,k)+momy(i,j,k))
+                                            + grav[2]*(momz(i,j,k+1)+momz(i,j,k)) );
         });
     }
 
@@ -327,7 +325,7 @@ void RK3stepStag(MultiFab& cu,
         vel[d].FillBoundary(geom.periodicity());
     }
     prim.FillBoundary(geom.periodicity());
-    setBC(prim, cup);
+    setBCStag(prim, cup, cupmom, vel, geom);
 
     // Compute transport coefs after setting BCs
     calculateTransportCoeffs(prim, eta, zeta, kappa, chi, D);
@@ -383,7 +381,7 @@ void RK3stepStag(MultiFab& cu,
     calculateFluxStag(cup, cupmom, prim, vel, eta, zeta, kappa, chi, D, 
         faceflux, edgeflux_x, edgeflux_y, edgeflux_z, cenflux, 
         stochface, stochedge_x, stochedge_y, stochedge_z, stochcen, 
-        geom, stoch_weights, dxp, dt);
+        geom, stoch_weights,dt);
 
 
     for (int d=0; d<AMREX_SPACEDIM; d++) {
@@ -453,28 +451,28 @@ void RK3stepStag(MultiFab& cu,
                     -0.25*dt*(cenx_u(i,j,k) - cenx_u(i-1,j,k))/dx[0]
                     -0.25*dt*(edgey_u(i,j+1,k) - edgey_u(i,j,k))/dx[1]
                     -0.25*dt*(edgez_u(i,j,k+1) - edgez_u(i,j,k))/dx[2]
-                    +0.5*0.25*dt*grav_gpu[0]*(cup_fab(i-1,j,k,0)+cup_fab(i,j,k,0));
+                    +0.5*0.25*dt*grav[0]*(cup_fab(i-1,j,k,0)+cup_fab(i,j,k,0));
         },
         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
             momp2y(i,j,k) = 0.25*3.0*momy(i,j,k) + 0.25*mompy(i,j,k)
                     -0.25*dt*(edgex_v(i+1,j,k) - edgex_v(i,j,k))/dx[0]
                     -0.25*dt*(ceny_v(i,j,k) - ceny_v(i,j-1,k))/dx[1]
                     -0.25*dt*(edgez_v(i,j,k+1) - edgez_v(i,j,k))/dx[2]
-                    +0.5*0.25*dt*grav_gpu[1]*(cup_fab(i,j-1,k,0)+cup_fab(i,j,k,0));
+                    +0.5*0.25*dt*grav[1]*(cup_fab(i,j-1,k,0)+cup_fab(i,j,k,0));
         },
         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
             momp2z(i,j,k) = 0.25*3.0*momz(i,j,k) + 0.25*mompz(i,j,k)
                     -0.25*dt*(edgex_w(i+1,j,k) - edgex_w(i,j,k))/dx[0]
                     -0.25*dt*(edgey_w(i,j+1,k) - edgey_w(i,j,k))/dx[1]
                     -0.25*dt*(cenz_w(i,j,k) - cenz_w(i,j,k-1))/dx[2]
-                    +0.5*0.25*dt*grav_gpu[2]*(cup_fab(i,j,k-1,0)+cup_fab(i,j,k,0));
+                    +0.5*0.25*dt*grav[2]*(cup_fab(i,j,k-1,0)+cup_fab(i,j,k,0));
         });
         
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            cup2_fab(i,j,k,4) += 0.5 * 0.25 * dt * (  grav_gpu[0]*(mompx(i+1,j,k)+mompx(i,j,k))
-                                                    + grav_gpu[1]*(mompy(i,j+1,k)+mompy(i,j,k))
-                                                    + grav_gpu[2]*(mompz(i,j,k+1)+mompz(i,j,k)) );
+            cup2_fab(i,j,k,4) += 0.5 * 0.25 * dt * (  grav[0]*(mompx(i+1,j,k)+mompx(i,j,k))
+                                                    + grav[1]*(mompy(i,j+1,k)+mompy(i,j,k))
+                                                    + grav[2]*(mompz(i,j,k+1)+mompz(i,j,k)) );
         });
     }
         
@@ -487,7 +485,7 @@ void RK3stepStag(MultiFab& cu,
         vel[d].FillBoundary(geom.periodicity());
     }
     prim.FillBoundary(geom.periodicity());
-    setBC(prim, cup2);
+    setBCStag(prim, cup2, cup2mom, vel, geom);
 
     // Compute transport coefs after setting BCs
     calculateTransportCoeffs(prim, eta, zeta, kappa, chi, D);
@@ -543,7 +541,7 @@ void RK3stepStag(MultiFab& cu,
     calculateFluxStag(cup2, cup2mom, prim, vel, eta, zeta, kappa, chi, D, 
         faceflux, edgeflux_x, edgeflux_y, edgeflux_z, cenflux, 
         stochface, stochedge_x, stochedge_y, stochedge_z, stochcen, 
-        geom, stoch_weights, dxp, dt);
+        geom, stoch_weights,dt);
 
 
     for (int d=0; d<AMREX_SPACEDIM; d++) {
@@ -609,28 +607,28 @@ void RK3stepStag(MultiFab& cu,
                   -(2./3.)*dt*(cenx_u(i,j,k) - cenx_u(i-1,j,k))/dx[0]
                   -(2./3.)*dt*(edgey_u(i,j+1,k) - edgey_u(i,j,k))/dx[1]
                   -(2./3.)*dt*(edgez_u(i,j,k+1) - edgez_u(i,j,k))/dx[2]
-                  +0.5*(2./3.)*dt*grav_gpu[0]*(cup2_fab(i-1,j,k,0)+cup2_fab(i,j,k,0));
+                  +0.5*(2./3.)*dt*grav[0]*(cup2_fab(i-1,j,k,0)+cup2_fab(i,j,k,0));
         },
         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
             momy(i,j,k) = (2./3.)*(0.5*momy(i,j,k) + momp2y(i,j,k))
                   -(2./3.)*dt*(edgex_v(i+1,j,k) - edgex_v(i,j,k))/dx[0]
                   -(2./3.)*dt*(ceny_v(i,j,k) - ceny_v(i,j-1,k))/dx[1]
                   -(2./3.)*dt*(edgez_v(i,j,k+1) - edgez_v(i,j,k))/dx[2]
-                  +0.5*(2/3.)*dt*grav_gpu[1]*(cup2_fab(i,j-1,k,0)+cup2_fab(i,j,k,0));
+                  +0.5*(2/3.)*dt*grav[1]*(cup2_fab(i,j-1,k,0)+cup2_fab(i,j,k,0));
         },
         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
             momz(i,j,k) = (2./3.)*(0.5*momz(i,j,k) + momp2z(i,j,k))
                   -(2./3.)*dt*(edgex_w(i+1,j,k) - edgex_w(i,j,k))/dx[0]
                   -(2./3.)*dt*(edgey_w(i,j+1,k) - edgey_w(i,j,k))/dx[1]
                   -(2./3.)*dt*(cenz_w(i,j,k) - cenz_w(i,j,k-1))/dx[2]
-                  +0.5*(2./3.)*dt*grav_gpu[2]*(cup2_fab(i,j,k-1,0)+cup2_fab(i,j,k,0));
+                  +0.5*(2./3.)*dt*grav[2]*(cup2_fab(i,j,k-1,0)+cup2_fab(i,j,k,0));
         });
         
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            cu_fab(i,j,k,4) += 0.5 * (2./3.) * dt * (  grav_gpu[0]*(momp2x(i+1,j,k)+momp2x(i,j,k))
-                                                    + grav_gpu[1]*(momp2y(i,j+1,k)+momp2y(i,j,k))
-                                                    + grav_gpu[2]*(momp2z(i,j,k+1)+momp2z(i,j,k)) );
+            cu_fab(i,j,k,4) += 0.5 * (2./3.) * dt * (  grav[0]*(momp2x(i+1,j,k)+momp2x(i,j,k))
+                                                    + grav[1]*(momp2y(i,j+1,k)+momp2y(i,j,k))
+                                                    + grav[2]*(momp2z(i,j,k+1)+momp2z(i,j,k)) );
         });
     }
 
@@ -643,5 +641,5 @@ void RK3stepStag(MultiFab& cu,
         vel[d].FillBoundary(geom.periodicity());
     }
     prim.FillBoundary(geom.periodicity());
-    setBC(prim, cu);
+    setBCStag(prim, cu, cumom, vel, geom);
 }

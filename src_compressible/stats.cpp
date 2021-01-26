@@ -35,16 +35,6 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
       16 = instant temperature
     */
     
-    // from namelist
-    GpuArray<Real,MAX_SPECIES> molmass_gpu;
-    for (int n=0; n<nspecies; ++n) {
-        molmass_gpu[n] = molmass[n];
-    }
-    GpuArray<Real,MAX_SPECIES> hcv_gpu;
-    for (int n=0; n<nspecies; ++n) {
-        hcv_gpu[n] = hcv[n];
-    }
-    
     //////////////////
     // evaluate_means
     //////////////////
@@ -59,9 +49,7 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
 
         const Array4<const Real> cu        = cons.array(mfi);
         const Array4<      Real> cumeans   = consMean.array(mfi);
-        const Array4<const Real> prim      = prim_in.array(mfi);
         const Array4<      Real> primmeans = primMean.array(mfi);
-        const Array4<      Real> miscstats = miscStats.array(mfi);
 
         // on host, not gpu
         for (auto k = lo.z; k <= hi.z; ++k) {
