@@ -14,7 +14,6 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
     double stepsinv = 1./steps;
 
     GpuArray<Real,MAX_SPECIES> fracvec;
-    GpuArray<Real,MAX_SPECIES> massvec;
 
     /* miscVals
       0  = mean xmom
