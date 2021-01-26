@@ -478,6 +478,8 @@ void main_driver(const char* argv)
         // compute kinetic energy integral( (1/2) * rho * U dot U dV)
         Real dVol = (AMREX_SPACEDIM==2) ? dx[0]*dx[1]*cell_depth : dx[0]*dx[1]*dx[2];
         Vector<Real> udotu(3);
+        Vector<Real> skew(3);
+        Vector<Real> kurt(3);
         StagInnerProd(geom,umac,0,umac,0,umacTemp,udotu);
         Print() << "Kinetic energy "
 		<< time << " "
@@ -494,6 +496,29 @@ void main_driver(const char* argv)
                 << visc_coef*dProb*( udotu[0] + udotu[1] + udotu[2] )
                 << std::endl;
         //      << visc_coef*dVol*( udotu[0] + udotu[1] + udotu[2] )
+	//
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            CCMoments(gradU,d,ccTemp,3,skew[d]);
+        }
+
+        Print() << "Skewness "
+		<< time << " "
+                << dProb*skew[0]/(pow(dProb*udotu[0],1.5)) << " "
+                << dProb*skew[1]/(pow(dProb*udotu[1],1.5)) << " "
+                << dProb*skew[2]/(pow(dProb*udotu[2],1.5))
+                << std::endl;
+
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            CCMoments(gradU,d,ccTemp,4,kurt[d]);
+        }
+
+        Print() << "Kurtosis "
+		<< time << " "
+                << dProb*kurt[0]/(pow(dProb*udotu[0],2.)) << " "
+                << dProb*kurt[1]/(pow(dProb*udotu[1],2.)) << " "
+                << dProb*kurt[2]/(pow(dProb*udotu[2],2.))
+                << std::endl;
+
 
         // MultiFab memory usage
         const int IOProc = ParallelDescriptor::IOProcessorNumber();
