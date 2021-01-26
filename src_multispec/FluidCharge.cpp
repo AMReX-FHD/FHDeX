@@ -130,7 +130,7 @@ void ComputePermittivity()
 }
 
 void ComputeLorentzForce(std::array< MultiFab, AMREX_SPACEDIM >& Lorentz_force,
-                         std::array< const MultiFab, AMREX_SPACEDIM >& grad_Epot,
+                         std::array< MultiFab, AMREX_SPACEDIM >& grad_Epot,
                          const MultiFab& permittivity,
                          const MultiFab& charge,
                          const Geometry& geom)
@@ -151,7 +151,7 @@ void ComputeLorentzForce(std::array< MultiFab, AMREX_SPACEDIM >& Lorentz_force,
         return;
     }
 
-    // temporary multifab to hold div(eps*E)
+    // temporary multifab to hold div(-eps*E)
     MultiFab temp_cc(permittivity.boxArray(),permittivity.DistributionMap(),1,1);
            
     // Lorentz force = E div (eps*E) - (1/2) E^2 grad(eps)
@@ -171,22 +171,22 @@ void ComputeLorentzForce(std::array< MultiFab, AMREX_SPACEDIM >& Lorentz_force,
         }
     }
 
-    // multiply by E to get eps*E on faces
+    // multiply by grad_Epot = -E to get -eps*E on faces
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
         MultiFab::Multiply(Lorentz_force[i],grad_Epot[i],0,0,1,0);
     }
 
-    // take divergence of eps*E and put it in cc_temp
+    // take divergence of -eps*E and put it in temp_cc
     ComputeDiv(temp_cc,Lorentz_force,0,0,1,geom,0);
 
-    // fill ghost cells for eps*E
+    // fill ghost cells for div(-eps*E)
     temp_cc.FillBoundary(geom.periodicity());
     MultiFabPhysBC(temp_cc,geom,0,1,SPEC_BC_COMP);
 
-    // average div(eps*E) to faces, store in Lorentz_force
+    // average div(-eps*E) to faces, store in Lorentz_force
     AverageCCToFace(temp_cc,Lorentz_force,0,1,SPEC_BC_COMP,geom);
 
-    // multiply by E to get E*div(eps*E) on faces
+    // multiply by -E to get E*div(eps*E) on faces
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
         MultiFab::Multiply(Lorentz_force[i],grad_Epot[i],0,0,1,0);
     }

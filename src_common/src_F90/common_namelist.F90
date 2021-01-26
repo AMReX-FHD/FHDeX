@@ -1,3 +1,6 @@
+#include <AMReX_Config.H>
+
+
 module common_namelist_module
 
   use iso_c_binding, only: c_char
@@ -34,7 +37,7 @@ module common_namelist_module
   integer,            save :: particle_count(MAX_SPECIES)
   integer,            save :: p_move_tog(MAX_SPECIES)
   integer,            save :: p_force_tog(MAX_SPECIES)
-  integer,            save :: p_int_tog(MAX_SPECIES)
+  integer,            save :: p_int_tog(MAX_SPECIES*MAX_SPECIES)
   double precision,   save :: particle_n0(MAX_SPECIES)
   double precision,   save :: particle_neff
   
@@ -151,7 +154,7 @@ module common_namelist_module
   double precision,   save :: permittivity
   double precision,   save :: cut_off
   double precision,   save :: rmin
-  double precision,   save :: eepsilon(MAX_SPECIES)
+  double precision,   save :: eepsilon(MAX_SPECIES*MAX_SPECIES)
   double precision,   save :: sigma(MAX_SPECIES)
   
   integer,            save :: poisson_verbose
@@ -531,6 +534,11 @@ contains
     density_weights(:) = 0.d0
     shift_cc_to_boundary(:,:) = 0
 
+    poisson_verbose = 1
+    poisson_bottom_verbose = 0
+    poisson_max_iter = 100
+    poisson_rel_tol = 1.d-10
+
     p_move_tog(:) = 1
     p_force_tog(:) = 1
     p_int_tog(:) = 1
@@ -650,7 +658,7 @@ contains
     integer,                intent(inout) :: particle_count_in(MAX_SPECIES)
     integer,                intent(inout) :: p_move_tog_in(MAX_SPECIES)
     integer,                intent(inout) :: p_force_tog_in(MAX_SPECIES)
-    integer,                intent(inout) :: p_int_tog_in(MAX_SPECIES)
+    integer,                intent(inout) :: p_int_tog_in(MAX_SPECIES*MAX_SPECIES)
     integer,                intent(inout) :: particle_placement_in
     
     double precision,       intent(inout) :: fixed_dt_in
@@ -760,7 +768,7 @@ contains
     double precision,       intent(inout) :: density_weights_in(MAX_SPECIES)
     integer,                intent(inout) :: shift_cc_to_boundary_in(AMREX_SPACEDIM,LOHI)
 
-    double precision,       intent(inout) :: eepsilon_in(MAX_SPECIES)
+    double precision,       intent(inout) :: eepsilon_in(MAX_SPECIES*MAX_SPECIES)
     double precision,       intent(inout) :: sigma_in(MAX_SPECIES)
     double precision,       intent(inout) :: permittivity_in
     double precision,       intent(inout) :: cut_off_in

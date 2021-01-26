@@ -164,7 +164,7 @@ void IBMarkerContainer::InitList(int lev,
         AoS & markers = GetParticles(lev).at(index).GetArrayOfStructs();
 
         // Get neighbor marker data (from neighboring threads)
-        ParticleVector & nbhd_data = GetNeighbors(lev, pti.index(), pti.LocalTileIndex());
+        ParticleVector & nbhd_data = GetNeighbors(lev, pti.index(), pti.LocalTileIndex()).GetArrayOfStructs()();
 
         long np = pti.numParticles();
         long nn = nbhd_data.size();
@@ -379,7 +379,7 @@ int IBMarkerContainer::ConnectedMarkers(
     long np = GetParticles(lev).at(tile).numParticles();
 
     // Get neighbor marker data (from neighboring threads)
-    ParticleVector & nbhd_data = GetNeighbors(lev, tile.first, tile.second);
+    ParticleVector & nbhd_data = GetNeighbors(lev, tile.first, tile.second).GetArrayOfStructs()();
 
     // Get neighbor list (for collision checking)
     std::pair<int, int> index = std::make_pair(tile.first, tile.second);
@@ -567,7 +567,7 @@ void IBMarkerContainer::NeighborIBMarkerInfo(Vector<IBM_info> & info,
     // neighbors[index] array in units of sizeof(ParticleData). All of this is a
     // little too dangerous for my taste: never hide what you're doing from your
     // compiler!!!
-    const ParticleType * nbhd_data = (ParticleType *) neighbors[lev].at(index).dataPtr();
+    const ParticleType * nbhd_data = (ParticleType *) neighbors[lev].at(index).GetArrayOfStructs().dataPtr();
     for(int i = 0; i < ng; i++){
         const ParticleType & part = nbhd_data[i];
 

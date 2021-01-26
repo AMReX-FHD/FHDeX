@@ -16,6 +16,7 @@ CEXE_sources   += InitialProjection.cpp
 CEXE_sources   += MassFluxUtil.cpp
 CEXE_sources   += MatvecMul.cpp
 CEXE_sources   += MkDiffusiveMFluxdiv.cpp
+CEXE_sources   += ProjectOntoEOS.cpp
 CEXE_sources   += multispec_functions.cpp
 CEXE_sources   += RhoUtil.cpp
 CEXE_sources   += StochMassFlux.cpp

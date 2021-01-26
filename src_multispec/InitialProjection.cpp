@@ -28,7 +28,11 @@ void InitialProjection(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                        StochMassFlux& sMassFlux,
                        const MultiFab& Temp, const MultiFab& eta,
                        const std::array< MultiFab, NUM_EDGE >& eta_ed,
-                       const Real& dt, const Real& time, const Geometry& geom)
+                       const Real& dt, const Real& time, const Geometry& geom,
+                       MultiFab& charge_old,
+                       std::array<MultiFab,AMREX_SPACEDIM>& grad_Epot_old,
+                       MultiFab& Epot,
+                       MultiFab& permittivity)
 {
     BL_PROFILE_VAR("InitialProjection()",InitialProjection);
 
@@ -49,8 +53,19 @@ void InitialProjection(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     }
     else {
         weights = {1.};
+        // predictor integrates over full time step
         dt_eff = dt;
     }
+
+    /*
+    if (nreactions > 0) {
+        if (algorithm_type != 5 && algorithm_type != 6) {
+            Abort("Error: only algorithm_type=(5 or 6) allowed for nreactions>0");
+        } else if (use_Poisson_rng == 2) {
+            Abort("Error: currently use_Poisson_rng=2 not allowed for algorithm_type=(5 or 6) and nreactions>0");
+        }        
+    }
+    */
 
     MultiFab mac_rhs(ba,dmap,1,0);
     MultiFab divu   (ba,dmap,1,0);
@@ -79,7 +94,8 @@ void InitialProjection(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     }
         
     ComputeMassFluxdiv(rho,rhotot,Temp,diff_mass_fluxdiv,stoch_mass_fluxdiv,
-                       diff_mass_flux,stoch_mass_flux,sMassFlux,dt,time,geom,weights);
+                       diff_mass_flux,stoch_mass_flux,sMassFlux,dt,time,geom,weights,
+                       charge_old,grad_Epot_old,Epot,permittivity);
 
     // assumble total fluxes to be used in reservoirs
     //
@@ -92,8 +108,12 @@ void InitialProjection(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     //
 
     // set the Dirichlet velocity value on reservoir faces
-    //
-    //
+    if (algorithm_type != 6) {
+        // call reservoir_bc_fill
+        //
+        //
+    }
+
 
     if (restart < 0) {
 
@@ -124,7 +144,7 @@ void InitialProjection(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         }
 
         // set divu = div(v^init)
-        ComputeDiv(divu,umac,0,0,1,geom,1);
+        ComputeDiv(divu,umac,0,0,1,geom,0);
 
         // add div(v^init) to mac_rhs
         // now mac_rhs = div(v^init - S)

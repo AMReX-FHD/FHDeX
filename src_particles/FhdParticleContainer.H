@@ -101,6 +101,7 @@ struct FHD_intData {
         k,
         species,
         visible,
+        pinned,
         count
     };
 
@@ -174,8 +175,14 @@ public:
 
     void WriteParticlesAscii(string asciiName);
 
-    void forceFunction();
+    void forceFunction(Real dt);
+    void velNorm();
+    void pinForce();
     void potentialDistribution(long totalParticles, const int step, const species* particleInfo);
+
+    void fillMobilityMatrix(int id, int comp);
+    void clearMobilityMatrix();
+    void writeMat();
 
     void DoRFD(const Real dt, const Real* dxFluid, const Real* dxE, const Geometry geomF,
                const std::array<MultiFab, AMREX_SPACEDIM>& umac, const std::array<MultiFab, AMREX_SPACEDIM>& efield,
@@ -188,6 +195,8 @@ public:
     void PrintParticles();
     void SetPosition(int id, Real x, Real y, Real z);
     void SetVel(int id, Real x, Real y, Real z);
+    void SetForce(int id, Real x, Real y, Real z);
+    void writeVel(int id);
 
     void MeanSqrCalc(int lev, int reset);
 
@@ -241,14 +250,15 @@ public:
                     std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
                     const paramPlane* paramPlaneList, const int paramPlaneCount, int sw);
 
-    void SpreadIonsGPU(const Real dt, const Real* dxFluid, const Real* dxE, const Geometry geomF,
+    void SpreadIonsGPU(const Real* dxFluid, const Real* dxE, const Geometry geomF,
                     const std::array<MultiFab, AMREX_SPACEDIM>& umac, std::array<MultiFab, AMREX_SPACEDIM>& efield,
-                    const MultiFab& charge,
-                    const std::array<MultiFab, AMREX_SPACEDIM>& RealFaceCoords,
-                    const MultiFab& cellCenters,
                     std::array<MultiFab, AMREX_SPACEDIM>& source,
-                    std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
-                    const paramPlane* paramPlaneList, const int paramPlaneCount, int sw);
+                    std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp);
+
+    void SpreadIonsGPU(const Real* dxFluid, const Geometry geomF,
+                    const std::array<MultiFab, AMREX_SPACEDIM>& umac,
+                    std::array<MultiFab, AMREX_SPACEDIM>& source,
+                    std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp);
     
     //void SyncMembrane(double* spec3xPos, double* spec3yPos, double* spec3zPos, double* spec3xForce, double* spec3yForce, double* spec3zForce, int length, int step, const species* particleInfo);
 
@@ -288,7 +298,7 @@ public:
     };
 
     ParticleType * get_neighbors(int lev, const PairIndex & index) const {
-        return (ParticleType *) neighbors[lev].at(index).dataPtr();
+        return (ParticleType *) neighbors[lev].at(index).GetArrayOfStructs().dataPtr();;
     };
 
     int numWrongCell();

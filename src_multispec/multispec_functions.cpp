@@ -6,7 +6,6 @@ void InitializeMultispecNamespace() {
     Dtherm.resize(MAX_SPECIES);
     H_offdiag.resize(MAX_ELEMENT);
     H_diag.resize(MAX_SPECIES);
-    c_init.resize(2*MAX_SPECIES);
 
     charge_per_mass.resize(MAX_SPECIES);
     Epot_wall_bc_type.resize(2*AMREX_SPACEDIM);
@@ -21,7 +20,8 @@ void InitializeMultispecNamespace() {
 				    &print_error_norms,
 				    &is_nonisothermal, &is_ideal_mixture,
 				    &use_lapack, &use_multiphase,
-				    c_init.dataPtr(),
+				    c_init_1.data(),
+                                    c_init_2.data(),
 				    &midpoint_stoch_mass_flux_type, 
 				    &avg_type, &mixture_type,
                                     &use_charged_fluid,
@@ -43,9 +43,6 @@ void InitializeMultispecNamespace() {
                                     &zero_charge_on_wall_type,
                                     &zero_eps_on_wall_left_end,
                                     &zero_eps_on_wall_right_start,
-                                    &epot_mg_verbose,
-                                    &epot_mg_abs_tol,
-                                    &epot_mg_rel_tol,
                                     &bc_function_type,
                                     &L_pos,
                                     &L_trans,
