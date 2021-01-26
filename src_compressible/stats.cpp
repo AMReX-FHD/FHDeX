@@ -366,7 +366,12 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
 
             spatialcross(i,j,k,3) = miscstats(i,j,k,2) - slices(i,j,k,18)*miscVals[13];
             spatialcross(i,j,k,4) = miscstats(i,j,k,3) - slices(i,j,k,1)*miscVals[13];
-            spatialcross(i,j,k,5) = (delpdelrho - miscVals[2]*miscstats(i,j,k,1))/miscVals[3];
+
+            if (miscVals[3] == 0.) {
+                spatialcross(i,j,k,5) = 0.;
+            } else {
+                spatialcross(i,j,k,5) = (delpdelrho - miscVals[2]*miscstats(i,j,k,1))/miscVals[3];
+            }
         }
         }
         }
