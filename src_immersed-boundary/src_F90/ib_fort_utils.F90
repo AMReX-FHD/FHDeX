@@ -1,3 +1,6 @@
+#include <AMReX_Config.H>
+
+
     module ib_fort_utils
 
     use amrex_fort_module,      only: amrex_real, amrex_particle_real

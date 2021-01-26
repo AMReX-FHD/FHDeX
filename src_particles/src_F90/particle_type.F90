@@ -43,6 +43,7 @@ module cell_sorted_particle_module
      real(amrex_particle_real) :: eepsilon
      real(amrex_particle_real) :: potential
      real(amrex_particle_real) :: p3m_radius
+     real(amrex_particle_real) :: spring
 
      integer(c_int)            :: id         
      integer(c_int)            :: cpu        
@@ -51,6 +52,8 @@ module cell_sorted_particle_module
      integer(c_int)            :: j
      integer(c_int)            :: k
      integer(c_int)            :: species
+     integer(c_int)            :: visible
+     integer(c_int)            :: pinned
   end type particle_t
 
   type, bind(C) :: dsmc_particle_t

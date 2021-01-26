@@ -195,8 +195,9 @@ public:
     };
 
     ParticleType * get_neighbors(int lev, const PairIndex & index) const {
-        return (ParticleType *) neighbors[lev].at(index).dataPtr();
+        return (ParticleType *) neighbors[lev].at(index).GetArrayOfStructs().dataPtr();
     };
+
 
     int ConnectedMarkers(int lev, const TileIndex & tile, MarkerListIndex & part,
                          ParticleType *& prev_marker, ParticleType *& next_marker);

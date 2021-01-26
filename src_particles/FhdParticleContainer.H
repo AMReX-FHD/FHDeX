@@ -1,23 +1,16 @@
 #ifndef _FhdParticleContainer_H_
 #define _FhdParticleContainer_H_
 
-#include <AMReX.H>
-#include <AMReX_Vector.H>
-#include <AMReX_RealVect.H>
-#include <AMReX_AmrParGDB.H>
-#include <AMReX_Particles.H>
-#include <AMReX_Periodicity.H>
-#include <AMReX_NeighborParticles.H>
-#include <IBParticleInfo.H>
-#include <common_namespace.H>
-#include <IBMarkerContainerBase.H>
-#include <species.H>
-#include "rng_functions.H"
+#include "IBParticleInfo.H"
+#include "IBMarkerContainerBase.H"
+#include "species.H"
+
 #include "paramPlane.H"
 #include "paramplane_functions_F.H"
-#include "particle_functions_F.H"
 
-using namespace amrex;
+#include "particle_functions_F.H"
+#include "particle_functions.H"
+
 using namespace std;
 
 // IBM => Immmersed Boundary Marker
@@ -70,7 +63,8 @@ struct FHD_realData {
         sigma,
         eepsilon,
         potential,
-	    p3m_radius,
+	p3m_radius,
+        spring,
         count    // Awesome little trick! (only works if first field is 0)
     };
 
@@ -106,6 +100,8 @@ struct FHD_intData {
         j,
         k,
         species,
+        visible,
+        pinned,
         count
     };
 
@@ -171,14 +167,22 @@ public:
 
     void InitParticles(species* particleInfo, const Real* dxp);
 
+    void InitParticlesFromFile(species* particleInfo, const Real* dxp);
+
     void ReInitParticles(species* particleInfo, const Real* dxp, Real * posX, Real * posY, Real * posZ, Real * charge, Real * sigma, Real * epsilon, int * speciesV, Real * diffdry, Real * diffwet, Real * difftotal);
 
     void PostRestart();
 
     void WriteParticlesAscii(string asciiName);
 
-    void potentialFunction(Real* origin);
+    void forceFunction(Real dt);
+    void velNorm();
+    void pinForce();
     void potentialDistribution(long totalParticles, const int step, const species* particleInfo);
+
+    void fillMobilityMatrix(int id, int comp);
+    void clearMobilityMatrix();
+    void writeMat();
 
     void DoRFD(const Real dt, const Real* dxFluid, const Real* dxE, const Geometry geomF,
                const std::array<MultiFab, AMREX_SPACEDIM>& umac, const std::array<MultiFab, AMREX_SPACEDIM>& efield,
@@ -191,6 +195,8 @@ public:
     void PrintParticles();
     void SetPosition(int id, Real x, Real y, Real z);
     void SetVel(int id, Real x, Real y, Real z);
+    void SetForce(int id, Real x, Real y, Real z);
+    void writeVel(int id);
 
     void MeanSqrCalc(int lev, int reset);
 
@@ -244,14 +250,15 @@ public:
                     std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
                     const paramPlane* paramPlaneList, const int paramPlaneCount, int sw);
 
-    void SpreadIonsGPU(const Real dt, const Real* dxFluid, const Real* dxE, const Geometry geomF,
+    void SpreadIonsGPU(const Real* dxFluid, const Real* dxE, const Geometry geomF,
                     const std::array<MultiFab, AMREX_SPACEDIM>& umac, std::array<MultiFab, AMREX_SPACEDIM>& efield,
-                    const MultiFab& charge,
-                    const std::array<MultiFab, AMREX_SPACEDIM>& RealFaceCoords,
-                    const MultiFab& cellCenters,
                     std::array<MultiFab, AMREX_SPACEDIM>& source,
-                    std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
-                    const paramPlane* paramPlaneList, const int paramPlaneCount, int sw);
+                    std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp);
+
+    void SpreadIonsGPU(const Real* dxFluid, const Geometry geomF,
+                    const std::array<MultiFab, AMREX_SPACEDIM>& umac,
+                    std::array<MultiFab, AMREX_SPACEDIM>& source,
+                    std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp);
     
     //void SyncMembrane(double* spec3xPos, double* spec3yPos, double* spec3zPos, double* spec3xForce, double* spec3yForce, double* spec3zForce, int length, int step, const species* particleInfo);
 
@@ -291,7 +298,7 @@ public:
     };
 
     ParticleType * get_neighbors(int lev, const PairIndex & index) const {
-        return (ParticleType *) neighbors[lev].at(index).dataPtr();
+        return (ParticleType *) neighbors[lev].at(index).GetArrayOfStructs().dataPtr();;
     };
 
     int numWrongCell();

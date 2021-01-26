@@ -1,5 +1,7 @@
 namespace common {
 
+#define MAX_SPECIES 4
+    
     // misc global variables
     extern amrex::IntVect nodal_flag;
     extern amrex::Vector<amrex::IntVect> nodal_flag_dir;
@@ -23,7 +25,7 @@ namespace common {
 
     extern amrex::IntVect             ngc;           //number of chost cells
     extern int                        nvars;         //number of conserved variables
-    extern int                        nprimvars;     //number of primitive variables
+    extern AMREX_GPU_MANAGED int      nprimvars;     //number of primitive variables
 
     extern int                        membrane_cell; //cell to locate membrane
     extern int                        cross_cell;    //cell to compute spatial correlation
@@ -55,21 +57,21 @@ namespace common {
 
     // Physical parameters
     extern amrex::Vector<amrex::Real> grav;
-    extern AMREX_GPU_DEVICE_MANAGED int nspecies;
-    extern amrex::Vector<amrex::Real> molmass;
-    extern amrex::Vector<amrex::Real> rhobar;
+    extern AMREX_GPU_MANAGED int nspecies;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> molmass;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> rhobar;
     extern amrex::Real                rho0;
-    extern amrex::Vector<amrex::Real> diameter;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> diameter;
     extern amrex::Vector<int>         dof;
-    extern amrex::Vector<amrex::Real> hcv;
-    extern amrex::Vector<amrex::Real> hcp;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> hcv;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> hcp;
 
     // stochastic forcing amplitudes (1 for physical values, 0 to run them off)
     extern amrex::Real                variance_coef_mom;
     extern amrex::Real                variance_coef_mass;
-    extern amrex::Real                k_B;
-    extern amrex::Real                Runiv;
-    extern amrex::Vector<amrex::Real> T_init;
+    extern AMREX_GPU_MANAGED amrex::Real k_B;
+    extern AMREX_GPU_MANAGED amrex::Real Runiv;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> T_init;
 
     // Algorithm control / selection
     extern int                        algorithm_type;
@@ -147,8 +149,22 @@ namespace common {
     extern amrex::Vector<amrex::Real>  p_lo;
     extern amrex::Vector<amrex::Real>  p_hi;
 
-    extern amrex::Vector<amrex::Real>  t_lo;
-    extern amrex::Vector<amrex::Real>  t_hi;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> t_lo;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> t_hi;
+    
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> bc_Yk_x_lo;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> bc_Yk_x_hi;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> bc_Yk_y_lo;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> bc_Yk_y_hi;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> bc_Yk_z_lo;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> bc_Yk_z_hi;
+    
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> bc_Xk_x_lo;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> bc_Xk_x_hi;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> bc_Xk_y_lo;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> bc_Xk_y_hi;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> bc_Xk_z_lo;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> bc_Xk_z_hi;
 
     // Each no-slip wall may be moving with a specified tangential
     // velocity along the tangential directions
@@ -163,16 +179,16 @@ namespace common {
     extern amrex::Vector<amrex::Real> wallspeed_hi;
 
     // specify the Dirichlet or Neumann BC value
-    extern amrex::Vector<amrex::Real> potential_lo;
-    extern amrex::Vector<amrex::Real> potential_hi;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> potential_lo;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> potential_hi;
 
     // structure factor and radial/cartesian pair correlation function analysis
     extern int                        struct_fact_int;
     extern int                        radialdist_int;
     extern int                        cartdist_int;
     extern int                        n_steps_skip;
-    extern AMREX_GPU_DEVICE_MANAGED amrex::Real binSize;
-    extern AMREX_GPU_DEVICE_MANAGED amrex::Real searchDist;    
+    extern AMREX_GPU_MANAGED amrex::Real binSize;
+    extern AMREX_GPU_MANAGED amrex::Real searchDist;    
 
     // projection 
     extern int                        project_dir;
@@ -194,7 +210,7 @@ namespace common {
     extern amrex::Vector<int>         particle_count;
     extern amrex::Vector<int>         p_move_tog;
     extern amrex::Vector<int>         p_force_tog;
-    extern amrex::Vector<int>         p_int_tog;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_SPECIES*MAX_SPECIES>         p_int_tog;
     extern amrex::Real                particle_neff;
     extern amrex::Vector<amrex::Real> particle_n0;
     extern amrex::Vector<amrex::Real> mass;
@@ -203,7 +219,7 @@ namespace common {
     extern AMREX_GPU_MANAGED amrex::Real permittivity;
     extern amrex::Real                cut_off;
     extern amrex::Real                rmin;
-    extern amrex::Vector<amrex::Real> eepsilon;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES*MAX_SPECIES> eepsilon;
     extern amrex::Vector<amrex::Real> sigma;
 
     extern int                        poisson_verbose;
@@ -224,7 +240,7 @@ namespace common {
     extern int                        move_tog;
     extern int                        rfd_tog;
     extern int                        dry_move_tog;
-    extern int                        sr_tog;
+    extern AMREX_GPU_MANAGED int      sr_tog;
     extern int                        graphene_tog;
     extern int                        crange;
     extern int                        thermostat_tog;
@@ -249,5 +265,6 @@ namespace common {
     // parameters for turbulent forcing example
     extern amrex::Real                turb_a;
     extern amrex::Real                turb_b;
+    extern int                        turbForcing;
 
 }

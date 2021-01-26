@@ -1,6 +1,9 @@
 #include "INS_functions.H"
 #include "common_functions.H"
 #include "FhdParticleContainer.H"
+#include <sstream>
+#include <string>
+#include <fstream>
 
 void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
 {
@@ -10,6 +13,7 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
     int pcount = 0;
 
     bool proc0_enter = true;
+    int pinnedParticles = 0;
         
     for (MFIter mfi = MakeMFIter(lev, true); mfi.isValid(); ++mfi) {
         
@@ -26,6 +30,8 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
         if(ParallelDescriptor::MyProc() == 0 && mfi.LocalTileIndex() == 0 && proc0_enter) {
 
             proc0_enter = false;
+
+            std::ifstream particleFile("particles.dat");
             
             for(int i_spec=0; i_spec < nspecies; i_spec++) {
                 for (int i_part=0; i_part<particleInfo[i_spec].total;i_part++) {
@@ -34,22 +40,38 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
                     //Print() << "ID: " << p.id() << "\n";
                     p.cpu() = ParallelDescriptor::MyProc();
                     p.idata(FHD_intData::sorted) = 0;
-                
-                    p.pos(0) = prob_lo[0] + get_uniform_func()*(prob_hi[0]-prob_lo[0]);
-                    p.pos(1) = prob_lo[1] + get_uniform_func()*(prob_hi[1]-prob_lo[1]);
-#if (BL_SPACEDIM == 3)
-                    p.pos(2) = prob_lo[2] + get_uniform_func()*(prob_hi[2]-prob_lo[2]);
-#endif
 
-//                    p.pos(0) = prob_lo[0] + 0.25*(prob_hi[0]-prob_lo[0]);
-//                    p.pos(1) = prob_lo[1] + 0.25*(prob_hi[1]-prob_lo[1]);
-//#if (BL_SPACEDIM == 3)
-//                    p.pos(2) = prob_lo[2] + 0.25*(prob_hi[2]-prob_lo[2]);
-//#endif
+                    if(particle_placement == 1)
+                    {
+                        particleFile >> p.pos(0);                       
+                        particleFile >> p.pos(1);
+                        particleFile >> p.pos(2);
+
+                        particleFile >> p.idata(FHD_intData::pinned);
+
+                        if(p.idata(FHD_intData::pinned) != 0)
+                        {
+                                pinnedParticles++;
+                        }
+                    }else
+                    {
+
+                        p.pos(0) = prob_lo[0] + get_uniform_func()*(prob_hi[0]-prob_lo[0]);
+                        p.pos(1) = prob_lo[1] + get_uniform_func()*(prob_hi[1]-prob_lo[1]);
+                        p.pos(2) = prob_lo[2] + get_uniform_func()*(prob_hi[2]-prob_lo[2]);
+
+                        p.idata(FHD_intData::pinned) = 0;
+
+                    }
+
+                    p.rdata(FHD_realData::spring) = 0;
+
+                    p.idata(FHD_intData::visible) = 1;
+
                     p.rdata(FHD_realData::q) = particleInfo[i_spec].q;
 
- //                    std::cout << "proc " << ParallelDescriptor::MyProc() << " Pos: " << p.pos(0) << ", " << p.pos(1) << ", " << p.pos(2)
-  //                             << ", " << p.rdata(FHD_realData::q) << ", " << p.id() << "\n" ;
+//                     std::cout << "proc " << ParallelDescriptor::MyProc() << " Pos: " << p.pos(0) << ", " << p.pos(1) << ", " << p.pos(2)
+//                               << ", " << p.rdata(FHD_realData::q) << ", " << p.id() << "\n" ;
 
                     //original position stored for MSD calculations
                     p.rdata(FHD_realData::ox) = p.pos(0);
@@ -126,8 +148,19 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
                     pcount++;
                 }
             }
+
+            particleFile.close();
         }
     }
+
+
+    ParallelDescriptor::ReduceIntSum(pinnedParticles);
+
+    Print() << "Loaded " << pinnedParticles << " pinned particles." << std::endl;
+
+    loadPinMatrix(pinnedParticles, "matrixInv.dat");
+
+    totalPinnedMarkers = pinnedParticles;
 
     Redistribute();
     UpdateCellVectors();
@@ -137,6 +170,9 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
 
 }
 
+
+
+//THIS NEEDS TO BE UPDATED TO HANDLE MORE PARTICLE INFO
 void FhdParticleContainer::ReInitParticles(species* particleInfo, const Real* dxp, Real * posX, Real * posY, Real * posZ, Real * charge, Real * sigma, Real * epsilon, int * speciesV, Real * diffdry, Real * diffwet, Real * difftotal)
 {
     const int lev = 0;

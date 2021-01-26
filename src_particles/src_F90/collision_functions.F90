@@ -349,7 +349,7 @@ contains
     double precision, intent(in      ) :: neff, dx(3)
 
     double precision, intent(inout   ) :: cellvols(cvlo(1):cvhi(1),cvlo(2):cvhi(2),cvlo(3):cvhi(3))
-    double precision, intent(inout   ) :: instant(ilo(1):ihi(1),ilo(2):ihi(2),ilo(3):ihi(3),14)
+    double precision, intent(inout   ) :: instant(ilo(1):ihi(1),ilo(2):ihi(2),ilo(3):ihi(3),14+nspecies)
 
     type(c_ptr), intent(inout)      :: cell_part_ids(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
     integer(c_int), intent(inout)   :: cell_part_cnt(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
@@ -363,7 +363,7 @@ contains
     !Go through this and optimise later
 
     !double precision fac1, fac2, fac3, test, pairfrac
-    integer i,j,k,p,cell_np, ti, tj, tk, totalparticles
+    integer i,j,k,p,cell_np, ti, tj, tk, totalparticles, l
     double precision membersinv, nrg, totalpx, totalpy, totalpz, rmean, dxinv(3)
 
     totalpx = 0
@@ -412,6 +412,8 @@ contains
       totalpx = totalpx +  part%vel(1)
       totalpy = totalpy +  part%vel(2)
       totalpz = totalpz +  part%vel(3)
+
+      instant(i,j,k,14+part%species) = instant(i,j,k,14+part%species) + part%mass
         
     enddo
 
@@ -440,6 +442,10 @@ contains
           instant(i,j,k,6) = instant(i,j,k,6)*membersinv*0.33333333333333333
 
           instant(i,j,k,11) = instant(i,j,k,11)*instant(i,j,k,2)*instant(i,j,k,5)*membersinv
+
+          do l = 1, nspecies
+            instant(i,j,k,14+l) = instant(i,j,k,14+l)*neff/cellvols(i,j,k)
+          enddo
 
         enddo
       enddo
@@ -480,14 +486,14 @@ contains
     double precision, intent(in      ) :: delt, n0, T0
 
     double precision, intent(inout   ) :: cellvols(cvlo(1):cvhi(1),cvlo(2):cvhi(2),cvlo(3):cvhi(3))
-    double precision, intent(inout   ) :: instant(ilo(1):ihi(1),ilo(2):ihi(2),ilo(3):ihi(3),14)
-    double precision, intent(inout   ) :: means(mlo(1):mhi(1),mlo(2):mhi(2),mlo(3):mhi(3),14)
-    double precision, intent(inout   ) :: vars(vlo(1):vhi(1),vlo(2):vhi(2),vlo(3):vhi(3),18)
+    double precision, intent(inout   ) :: instant(ilo(1):ihi(1),ilo(2):ihi(2),ilo(3):ihi(3),14+nspecies)
+    double precision, intent(inout   ) :: means(mlo(1):mhi(1),mlo(2):mhi(2),mlo(3):mhi(3),14+nspecies)
+    double precision, intent(inout   ) :: vars(vlo(1):vhi(1),vlo(2):vhi(2),vlo(3):vhi(3),18+nspecies)
 
     double precision, intent(inout) :: avcurrent(1:3)
 
     !double precision fac1, fac2, fac3, test, pairfrac
-    integer i,j,k, ti, tj, tk, kc, jc
+    integer i,j,k, ti, tj, tk, kc, jc, l
     double precision stepsminusone, stepsinv, cv, cvinv, delg, qmean, delpx, delpy, delpz, delrho, delvelx, delvely, delvelz, delenergy, densitymeaninv
 
     stepsminusone = steps - 1
@@ -504,6 +510,10 @@ contains
 
           means(i,j,k,1) = (means(i,j,k,1)*stepsminusone + instant(i,j,k,1))*stepsinv !member density
           means(i,j,k,2) = (means(i,j,k,2)*stepsminusone + instant(i,j,k,2))*stepsinv !mass density
+
+          do l = 1, nspecies
+            means(i,j,k,14+l) = (means(i,j,k,14+l)*stepsminusone + instant(i,j,k,14+l))*stepsinv
+          enddo
 
 !          if(means(i,j,k,1) .ne. 0) then
 !            print *, i, j, k, means(i,j,k,1)
@@ -577,9 +587,9 @@ contains
     double precision, intent(in      ) :: neff, delt, n0, T0
 
     double precision, intent(inout   ) :: cellvols(cvlo(1):cvhi(1),cvlo(2):cvhi(2),cvlo(3):cvhi(3))
-    double precision, intent(inout   ) :: instant(ilo(1):ihi(1),ilo(2):ihi(2),ilo(3):ihi(3),14)
-    double precision, intent(inout   ) :: means(mlo(1):mhi(1),mlo(2):mhi(2),mlo(3):mhi(3),14)
-    double precision, intent(inout   ) :: vars(vlo(1):vhi(1),vlo(2):vhi(2),vlo(3):vhi(3),18)
+    double precision, intent(inout   ) :: instant(ilo(1):ihi(1),ilo(2):ihi(2),ilo(3):ihi(3),14+nspecies)
+    double precision, intent(inout   ) :: means(mlo(1):mhi(1),mlo(2):mhi(2),mlo(3):mhi(3),14+nspecies)
+    double precision, intent(inout   ) :: vars(vlo(1):vhi(1),vlo(2):vhi(2),vlo(3):vhi(3),18+nspecies)
 
     type(c_ptr), intent(inout)      :: cell_part_ids(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
     integer(c_int), intent(inout)   :: cell_part_cnt(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))

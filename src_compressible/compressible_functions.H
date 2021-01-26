@@ -33,7 +33,7 @@ void calculateFlux(const MultiFab& cons, const MultiFab& prim,
                    MultiFab& rancorn,
                    const Geometry geom,
 		   const Vector< Real >& stoch_weights,
-	           const Real* dx, const Real dt);
+	           const Real dt);
 
 void calculateTransportCoeffs(const MultiFab& prim_in,
 			      MultiFab& eta_in, MultiFab& zeta_in, MultiFab& kappa_in,
@@ -49,7 +49,7 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
              std::array<MultiFab, AMREX_SPACEDIM>& corny,
              std::array<MultiFab, AMREX_SPACEDIM>& cornz,
              MultiFab& visccorn, MultiFab& rancorn,
-             const Geometry geom, const Real* dx, const Real dt);
+             const Geometry geom, const Real dt);
 
 void conservedToPrimitive(MultiFab& prim_in, const MultiFab& cons_in);
 
@@ -122,9 +122,7 @@ void ReadCheckPoint(int& step,
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void GetMolfrac ( int i, int j, int k,
                   const GpuArray<Real,MAX_SPECIES>& Yk,
-                  GpuArray<Real,MAX_SPECIES>& Xk,
-                  int const nspecies,
-                  const GpuArray<Real,MAX_SPECIES>& molmass)
+                  GpuArray<Real,MAX_SPECIES>& Xk)
 {
     Real molmix = 0.;
 
@@ -141,9 +139,7 @@ void GetMolfrac ( int i, int j, int k,
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void GetTemperature ( Real const energy,
                       const GpuArray<Real,MAX_SPECIES>& Yk,
-                      Real& temp,
-                      int const nspecies,
-                      const GpuArray<Real,MAX_SPECIES>& hcv)
+                      Real& temp)
 {
     Real cvmix = 0.;
     Real e0 = 0.;
@@ -159,10 +155,7 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void GetPressureGas ( Real& pressure,
                       const GpuArray<Real,MAX_SPECIES>& Yk,
                       Real const density,
-                      Real const temp,
-                      int const nspecies,
-                      Real const Runiv,
-                      const GpuArray<Real,MAX_SPECIES>& molmass)
+                      Real const temp)
 {
     Real molmix = 0.;
 
@@ -877,13 +870,10 @@ void IdealMixtureTransport ( int iloc, int jloc, int kloc,
                              Real& kappa,
                              Real& zeta,
                              const Array4<Real>& diff_ij,
-                             const Array4<Real>& chitil,
-                             int const nspecies,
-                             const GpuArray<Real,MAX_SPECIES>& molmass,
-                             const GpuArray<Real,MAX_SPECIES>& diameter,
-                             Real const k_B,
-                             Real const Runiv)
+                             const Array4<Real>& chitil)
 {
+
+    BL_PROFILE_VAR("IdealMixtureTransport()",IdealMixtureTransport);
 
     GpuArray<Real,MAX_SPECIES*MAX_SPECIES> Dbin;
     GpuArray<Real,MAX_SPECIES*MAX_SPECIES> omega11;
@@ -976,6 +966,26 @@ void IdealMixtureTransport ( int iloc, int jloc, int kloc,
     // chitil = 0.0d0
 }
 
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void GetDensity ( const Real pressure,
+                  Real& density,
+                  const Real temp,
+                  const GpuArray<Real,MAX_SPECIES>& massfrac,
+                  const GpuArray<Real,MAX_SPECIES>& molmass,
+                  const Real Runiv,
+                  const int nspecies)
+{
+    Real molmix = 0.;
+    for (int i=0; i<nspecies; ++i) {
+        molmix += massfrac[i]/molmass[i];
+    }
+
+    molmix = 1./molmix;
+
+    density = pressure/(Runiv/molmix)/temp;
+    
+}
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void GetEnergy ( Real& energy,

@@ -177,7 +177,7 @@ void main_driver(const char* argv)
 
     // pressure ghost cells
     pi.FillBoundary(geom.periodicity());
-    MultiFabPhysBC(pi,geom,0,1,0);
+    MultiFabPhysBC(pi,geom,0,1,PRES_BC_COMP);
 
     //=======================================================
     // Build multifabs for all the variables
@@ -212,6 +212,63 @@ void main_driver(const char* argv)
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
       stoch_mass_flux[d].define(convert(ba,nodal_flag_dir[d]), dmap, nspecies, 0);
     }
+
+    std::array< MultiFab, AMREX_SPACEDIM > grad_Epot_old;
+    std::array< MultiFab, AMREX_SPACEDIM > grad_Epot_new;
+    MultiFab charge_old;
+    MultiFab charge_new;
+    MultiFab Epot;
+    MultiFab permittivity;
+    if (use_charged_fluid) {
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            grad_Epot_old[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
+            grad_Epot_new[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
+        }
+        charge_old.define(ba, dmap, 1, 1);
+        charge_new.define(ba, dmap, 1, 1);
+        Epot.define(ba, dmap, 1, 1);
+        permittivity.define(ba, dmap, 1, 1);
+
+        // set these to zero
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            grad_Epot_old[d].setVal(0.);
+            grad_Epot_new[d].setVal(0.);
+        }
+        charge_old.setVal(0.);
+        charge_new.setVal(0.);
+        Epot.setVal(0.);
+
+        if (electroneutral) {
+            Abort("main_driver.cpp: Electroneutral not implemented");
+        }
+
+        // compute total charge
+        DotWithZ(rho_old,charge_old);
+
+        // multiply by total volume (all 3 dimensions, even for 2D problems)
+
+        // NOTE: we are using rho = 1 here,
+        // so the below is a close approximation to debye lenth
+        Real sum_temp = 0.;
+        for (int d=0; d<nspecies; ++d) {
+            sum_temp += c_init_1[d] * molmass[d] * charge_per_mass[d] * charge_per_mass[d];
+        }
+        Real debye_len =sqrt(dielectric_const*k_B*T_init[0]/(rho0*sum_temp));
+        Print() << "Debye length lambda_D is approx: " << debye_len << std::endl;
+
+        Real total_charge = (AMREX_SPACEDIM == 2) ? charge_old.sum() * dx[0] * dx[1] * cell_depth
+                                                  : charge_old.sum() * dx[0] * dx[1] * dx[2];
+        Print() << "Initial total charge " << total_charge << std::endl;
+
+        // compute permittivity
+        if (dielectric_type == 0) {
+            permittivity.setVal(dielectric_const);
+        }
+        else {
+            Abort("main_driver.cpp: dielectric_type != 0 not supported");
+        }
+    }
+    
     
     // allocate and build MultiFabs that will contain random numbers
     // by declaring StochMassFlux and StochMomFlux objects
@@ -250,10 +307,10 @@ void main_driver(const char* argv)
     // initial Temp and Temp_ed
     Temp.setVal(T_init[0]); // replace with more general initialization routine
     if (AMREX_SPACEDIM == 2) {
-        AverageCCToNode(Temp,Temp_ed[0],0,1,2,geom);
+        AverageCCToNode(Temp,Temp_ed[0],0,1,TEMP_BC_COMP,geom);
     }
     else {
-        AverageCCToEdge(Temp,Temp_ed,0,1,2,geom);
+        AverageCCToEdge(Temp,Temp_ed,0,1,TEMP_BC_COMP,geom);
     }
 
     /*
@@ -269,10 +326,10 @@ void main_driver(const char* argv)
     //
     //
     if (AMREX_SPACEDIM == 2) {
-        AverageCCToNode(eta,eta_ed[0],0,1,1,geom);
+        AverageCCToNode(eta,eta_ed[0],0,1,SPEC_BC_COMP,geom);
     }
     else {
-        AverageCCToEdge(eta,eta_ed,0,1,1,geom);
+        AverageCCToEdge(eta,eta_ed,0,1,SPEC_BC_COMP,geom);
     }
 
     // now that we have eta, we can initialize the inhomogeneous velocity bc's
@@ -320,8 +377,8 @@ void main_driver(const char* argv)
     // Initialize structure factor object for analysis
     ///////////////////////////////////////////
 
-    // variables are velocity and concentrations
-    int structVars = AMREX_SPACEDIM+nspecies;
+    // variables are density, velocity and concentrations
+    int structVars = AMREX_SPACEDIM+nspecies+1;
     
     Vector< std::string > var_names;
     var_names.resize(structVars);
@@ -329,6 +386,10 @@ void main_driver(const char* argv)
     int cnt = 0;
     std::string x;
 
+    // density
+    x = "rho";
+    var_names[cnt++] = x;
+    
     // velx, vely, velz
     for (int d=0; d<AMREX_SPACEDIM; d++) {
       x = "vel";
@@ -393,9 +454,10 @@ void main_driver(const char* argv)
       From this perspective it may be useful to keep initial_projection even in overdamped
       because different gmres tolerances may be needed in the first step than in the rest
     */
-    if (algorithm_type != 2) {
+    if (algorithm_type != 2 && algorithm_type != 6) {
         InitialProjection(umac,rho_old,rhotot_old,diff_mass_fluxdiv,stoch_mass_fluxdiv,
-                          stoch_mass_flux,sMassFlux,Temp,eta,eta_ed,dt,time,geom);
+                          stoch_mass_flux,sMassFlux,Temp,eta,eta_ed,dt,time,geom,
+                          charge_old,grad_Epot_old,Epot,permittivity);
     }
 
     if (restart < 0) {
@@ -405,21 +467,24 @@ void main_driver(const char* argv)
 
             // add this snapshot to the average in the structure factor
 
+            // copy density into structFactMF
+            MultiFab::Copy(structFactMF,rhotot_old,0,0,1,0);
+            
             // copy velocities into structFactMF
             for(int d=0; d<AMREX_SPACEDIM; d++) {
-                ShiftFaceToCC(umac[d], 0, structFactMF, d, 1);
+                ShiftFaceToCC(umac[d], 0, structFactMF, d+1, 1);
             }
             // copy concentrations into structFactMF
-            MultiFab::Copy(structFactMF,rho_old,0,AMREX_SPACEDIM,nspecies,0);
+            MultiFab::Copy(structFactMF,rho_old,0,AMREX_SPACEDIM+1,nspecies,0);
             for(int d=0; d<nspecies; d++) {
-                MultiFab::Divide(structFactMF,rhotot_old,0,AMREX_SPACEDIM+d,1,0);
+                MultiFab::Divide(structFactMF,rhotot_old,0,AMREX_SPACEDIM+d+1,1,0);
             }
             structFact.FortStructure(structFactMF,geom);
         }
         
         // write initial plotfile and structure factor
         if (plot_int > 0) {
-            WritePlotFile(0,0.,geom,umac,rhotot_old,rho_old,pi);
+            WritePlotFile(0,0.,geom,umac,rhotot_old,rho_old,pi,charge_old,Epot);
             if (n_steps_skip == 0 && struct_fact_int > 0) {
                 structFact.WritePlotFile(0,0.,geom,"plt_SF");
             }
@@ -453,13 +518,20 @@ void main_driver(const char* argv)
             AdvanceTimestepInertial(umac,rho_old,rho_new,rhotot_old,rhotot_new,
                                     pi,eta,eta_ed,kappa,Temp,Temp_ed,
                                     diff_mass_fluxdiv,stoch_mass_fluxdiv,stoch_mass_flux,
+                                    grad_Epot_old,grad_Epot_new,
+                                    charge_old,charge_new,Epot,permittivity,
                                     sMassFlux,sMomFlux,
                                     dt,time,istep,geom);
         }
         else if (algorithm_type == 6) {
             // boussinesq
-            Print() << "algorithm_type " << algorithm_type << std::endl;
-            Abort("algorithm_type not supported");
+            AdvanceTimestepBousq(umac,rho_old,rho_new,rhotot_old,rhotot_new,
+                                 pi,eta,eta_ed,kappa,Temp,Temp_ed,
+                                 diff_mass_fluxdiv,stoch_mass_fluxdiv,stoch_mass_flux,
+                                 grad_Epot_old,grad_Epot_new,
+                                 charge_old,charge_new,Epot,permittivity,
+                                 sMassFlux,sMomFlux,
+                                 dt,time,istep,geom);
         }
         else {
             Print() << "algorithm_type " << algorithm_type << std::endl;
@@ -471,14 +543,17 @@ void main_driver(const char* argv)
 
             // add this snapshot to the average in the structure factor
 
+            // copy density into structFactMF
+            MultiFab::Copy(structFactMF,rhotot_new,0,0,1,0);
+            
             // copy velocities into structFactMF
             for(int d=0; d<AMREX_SPACEDIM; d++) {
-                ShiftFaceToCC(umac[d], 0, structFactMF, d, 1);
+                ShiftFaceToCC(umac[d], 0, structFactMF, d+1, 1);
             }
             // copy concentrations into structFactMF
-            MultiFab::Copy(structFactMF,rho_new,0,AMREX_SPACEDIM,nspecies,0);
+            MultiFab::Copy(structFactMF,rho_new,0,AMREX_SPACEDIM+1,nspecies,0);
             for(int d=0; d<nspecies; d++) {
-                MultiFab::Divide(structFactMF,rhotot_new,0,AMREX_SPACEDIM+d,1,0);
+                MultiFab::Divide(structFactMF,rhotot_new,0,AMREX_SPACEDIM+d+1,1,0);
             }
             structFact.FortStructure(structFactMF,geom);
         }
@@ -493,7 +568,7 @@ void main_driver(const char* argv)
 
         // write plotfile at specific intervals
         if (plot_int > 0 && istep%plot_int == 0) {
-            WritePlotFile(istep,time,geom,umac,rhotot_new,rho_new,pi);
+            WritePlotFile(istep,time,geom,umac,rhotot_new,rho_new,pi,charge_new,Epot);
             if (istep > n_steps_skip && struct_fact_int > 0) {
                 structFact.WritePlotFile(istep,time,geom,"plt_SF");
             }
@@ -510,6 +585,13 @@ void main_driver(const char* argv)
         MultiFab::Copy(rho_old   ,rho_new   ,0,0,nspecies,ng_s);
         MultiFab::Copy(rhotot_old,rhotot_new,0,0,       1,ng_s);
 
+        if (use_charged_fluid) {
+            MultiFab::Copy(charge_old, charge_new, 0, 0, 1, charge_old.nGrow());
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                MultiFab::Copy(grad_Epot_old[d], grad_Epot_new[d], 0, 0, 1, grad_Epot_old[d].nGrow());
+            }
+        }
+        
         // MultiFab memory usage
         const int IOProc = ParallelDescriptor::IOProcessorNumber();
 

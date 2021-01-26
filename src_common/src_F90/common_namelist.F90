@@ -1,3 +1,6 @@
+#include <AMReX_Config.H>
+
+
 module common_namelist_module
 
   use iso_c_binding, only: c_char
@@ -34,7 +37,7 @@ module common_namelist_module
   integer,            save :: particle_count(MAX_SPECIES)
   integer,            save :: p_move_tog(MAX_SPECIES)
   integer,            save :: p_force_tog(MAX_SPECIES)
-  integer,            save :: p_int_tog(MAX_SPECIES)
+  integer,            save :: p_int_tog(MAX_SPECIES*MAX_SPECIES)
   double precision,   save :: particle_n0(MAX_SPECIES)
   double precision,   save :: particle_neff
   
@@ -113,6 +116,20 @@ module common_namelist_module
   
   double precision,   save :: t_lo(AMREX_SPACEDIM)
   double precision,   save :: t_hi(AMREX_SPACEDIM)
+  
+  double precision,   save :: bc_Yk_x_lo(MAX_SPECIES)
+  double precision,   save :: bc_Yk_x_hi(MAX_SPECIES)
+  double precision,   save :: bc_Yk_y_lo(MAX_SPECIES)
+  double precision,   save :: bc_Yk_y_hi(MAX_SPECIES)
+  double precision,   save :: bc_Yk_z_lo(MAX_SPECIES)
+  double precision,   save :: bc_Yk_z_hi(MAX_SPECIES)
+  
+  double precision,   save :: bc_Xk_x_lo(MAX_SPECIES)
+  double precision,   save :: bc_Xk_x_hi(MAX_SPECIES)
+  double precision,   save :: bc_Xk_y_lo(MAX_SPECIES)
+  double precision,   save :: bc_Xk_y_hi(MAX_SPECIES)
+  double precision,   save :: bc_Xk_z_lo(MAX_SPECIES)
+  double precision,   save :: bc_Xk_z_hi(MAX_SPECIES)
 
   double precision,   save :: wallspeed_lo(AMREX_SPACEDIM-1,AMREX_SPACEDIM)
   double precision,   save :: wallspeed_hi(AMREX_SPACEDIM-1,AMREX_SPACEDIM)
@@ -137,7 +154,7 @@ module common_namelist_module
   double precision,   save :: permittivity
   double precision,   save :: cut_off
   double precision,   save :: rmin
-  double precision,   save :: eepsilon(MAX_SPECIES)
+  double precision,   save :: eepsilon(MAX_SPECIES*MAX_SPECIES)
   double precision,   save :: sigma(MAX_SPECIES)
   
   integer,            save :: poisson_verbose
@@ -179,6 +196,7 @@ module common_namelist_module
 
   double precision,   save :: turb_a
   double precision,   save :: turb_b
+  integer,            save :: turbForcing
 
   ! Problem specification
   namelist /common/ prob_lo       ! physical lo coordinate
@@ -310,6 +328,21 @@ module common_namelist_module
   namelist /common/ t_lo
   namelist /common/ t_hi
 
+  ! c_i boundary conditions
+  namelist /common/ bc_Yk_x_lo
+  namelist /common/ bc_Yk_x_hi
+  namelist /common/ bc_Yk_y_lo
+  namelist /common/ bc_Yk_y_hi
+  namelist /common/ bc_Yk_z_lo
+  namelist /common/ bc_Yk_z_hi
+
+  namelist /common/ bc_Xk_x_lo
+  namelist /common/ bc_Xk_x_hi
+  namelist /common/ bc_Xk_y_lo
+  namelist /common/ bc_Xk_y_hi
+  namelist /common/ bc_Xk_z_lo
+  namelist /common/ bc_Xk_z_hi
+
   ! Each no-slip wall may be moving with a specified tangential
 
   namelist /common/ wallspeed_lo
@@ -383,6 +416,7 @@ module common_namelist_module
   ! turblent forcing parameters
   namelist /common/ turb_a
   namelist /common/ turb_b
+  namelist /common/ turbForcing
 
 contains
 
@@ -470,6 +504,18 @@ contains
 
     t_lo(:) = 0
     t_hi(:) = 0
+    bc_Yk_x_lo(:) = 0.d0
+    bc_Yk_x_hi(:) = 0.d0
+    bc_Yk_y_lo(:) = 0.d0
+    bc_Yk_y_hi(:) = 0.d0
+    bc_Yk_z_lo(:) = 0.d0
+    bc_Yk_z_hi(:) = 0.d0
+    bc_Xk_x_lo(:) = 0.d0
+    bc_Xk_x_hi(:) = 0.d0
+    bc_Xk_y_lo(:) = 0.d0
+    bc_Xk_y_hi(:) = 0.d0
+    bc_Xk_z_lo(:) = 0.d0
+    bc_Xk_z_hi(:) = 0.d0
     p_lo(:) = 0
     p_hi(:) = 0
     wallspeed_lo(:,:) = 0
@@ -488,6 +534,11 @@ contains
     density_weights(:) = 0.d0
     shift_cc_to_boundary(:,:) = 0
 
+    poisson_verbose = 1
+    poisson_bottom_verbose = 0
+    poisson_max_iter = 100
+    poisson_rel_tol = 1.d-10
+
     p_move_tog(:) = 1
     p_force_tog(:) = 1
     p_int_tog(:) = 1
@@ -503,6 +554,7 @@ contains
 
     turb_a = 1.d0
     turb_b = 1.d0
+    turbForcing = 0
 
     particle_motion = 0
 
@@ -564,6 +616,12 @@ contains
                                          bc_therm_lo_in, bc_therm_hi_in,  &
                                          p_lo_in, p_hi_in, &
                                          t_lo_in, t_hi_in, &
+                                         bc_Yk_x_lo_in, bc_Yk_x_hi_in, &
+                                         bc_Yk_y_lo_in, bc_Yk_y_hi_in, &
+                                         bc_Yk_z_lo_in, bc_Yk_z_hi_in, &
+                                         bc_Xk_x_lo_in, bc_Xk_x_hi_in, &
+                                         bc_Xk_y_lo_in, bc_Xk_y_hi_in, &
+                                         bc_Xk_z_lo_in, bc_Xk_z_hi_in, &
                                          wallspeed_lo_in, wallspeed_hi_in, &
                                          potential_lo_in, potential_hi_in, &
                                          struct_fact_int_in, radialdist_int_in, &
@@ -583,7 +641,7 @@ contains
                                          thermostat_tog_in, zero_net_force_in, images_in, eamp_in, efreq_in, ephase_in, &
                                          plot_ascii_in, solve_chem_in, diffcoeff_in, scaling_factor_in, &
                                          source_strength_in, regrid_int_in, do_reflux_in, particle_motion_in, &
-                                         turb_a_in, turb_b_in) &
+                                         turb_a_in, turb_b_in, turbForcing_in) &
                                          bind(C, name="initialize_common_namespace")
 
     double precision,       intent(inout) :: prob_lo_in(AMREX_SPACEDIM)
@@ -600,7 +658,7 @@ contains
     integer,                intent(inout) :: particle_count_in(MAX_SPECIES)
     integer,                intent(inout) :: p_move_tog_in(MAX_SPECIES)
     integer,                intent(inout) :: p_force_tog_in(MAX_SPECIES)
-    integer,                intent(inout) :: p_int_tog_in(MAX_SPECIES)
+    integer,                intent(inout) :: p_int_tog_in(MAX_SPECIES*MAX_SPECIES)
     integer,                intent(inout) :: particle_placement_in
     
     double precision,       intent(inout) :: fixed_dt_in
@@ -680,6 +738,18 @@ contains
     double precision,       intent(inout) :: p_hi_in(AMREX_SPACEDIM)
     double precision,       intent(inout) :: t_lo_in(AMREX_SPACEDIM)
     double precision,       intent(inout) :: t_hi_in(AMREX_SPACEDIM)
+    double precision,       intent(inout) :: bc_Yk_x_lo_in(MAX_SPECIES)
+    double precision,       intent(inout) :: bc_Yk_x_hi_in(MAX_SPECIES)
+    double precision,       intent(inout) :: bc_Yk_y_lo_in(MAX_SPECIES)
+    double precision,       intent(inout) :: bc_Yk_y_hi_in(MAX_SPECIES)
+    double precision,       intent(inout) :: bc_Yk_z_lo_in(MAX_SPECIES)
+    double precision,       intent(inout) :: bc_Yk_z_hi_in(MAX_SPECIES)
+    double precision,       intent(inout) :: bc_Xk_x_lo_in(MAX_SPECIES)
+    double precision,       intent(inout) :: bc_Xk_x_hi_in(MAX_SPECIES)
+    double precision,       intent(inout) :: bc_Xk_y_lo_in(MAX_SPECIES)
+    double precision,       intent(inout) :: bc_Xk_y_hi_in(MAX_SPECIES)
+    double precision,       intent(inout) :: bc_Xk_z_lo_in(MAX_SPECIES)
+    double precision,       intent(inout) :: bc_Xk_z_hi_in(MAX_SPECIES)
     double precision,       intent(inout) :: wallspeed_lo_in(AMREX_SPACEDIM-1,AMREX_SPACEDIM)
     double precision,       intent(inout) :: wallspeed_hi_in(AMREX_SPACEDIM-1,AMREX_SPACEDIM)
 
@@ -698,7 +768,7 @@ contains
     double precision,       intent(inout) :: density_weights_in(MAX_SPECIES)
     integer,                intent(inout) :: shift_cc_to_boundary_in(AMREX_SPACEDIM,LOHI)
 
-    double precision,       intent(inout) :: eepsilon_in(MAX_SPECIES)
+    double precision,       intent(inout) :: eepsilon_in(MAX_SPECIES*MAX_SPECIES)
     double precision,       intent(inout) :: sigma_in(MAX_SPECIES)
     double precision,       intent(inout) :: permittivity_in
     double precision,       intent(inout) :: cut_off_in
@@ -742,6 +812,7 @@ contains
 
     double precision,       intent(inout) :: turb_a_in
     double precision,       intent(inout) :: turb_b_in
+    integer,                intent(inout) :: turbForcing_in
 
     prob_lo_in = prob_lo
     prob_hi_in = prob_hi
@@ -821,6 +892,18 @@ contains
     p_hi_in = p_hi
     t_lo_in = t_lo
     t_hi_in = t_hi
+    bc_Yk_x_lo_in = bc_Yk_x_lo
+    bc_Yk_x_hi_in = bc_Yk_x_hi
+    bc_Yk_y_lo_in = bc_Yk_y_lo
+    bc_Yk_y_hi_in = bc_Yk_y_hi
+    bc_Yk_z_lo_in = bc_Yk_z_lo
+    bc_Yk_z_hi_in = bc_Yk_z_hi
+    bc_Xk_x_lo_in = bc_Xk_x_lo
+    bc_Xk_x_hi_in = bc_Xk_x_hi
+    bc_Xk_y_lo_in = bc_Xk_y_lo
+    bc_Xk_y_hi_in = bc_Xk_y_hi
+    bc_Xk_z_lo_in = bc_Xk_z_lo
+    bc_Xk_z_hi_in = bc_Xk_z_hi
     wallspeed_lo_in = wallspeed_lo
     wallspeed_hi_in = wallspeed_hi
 
@@ -893,6 +976,7 @@ contains
 
     turb_a_in = turb_a
     turb_b_in = turb_b
+    turbForcing_in = turbForcing
 
   end subroutine initialize_common_namespace
 

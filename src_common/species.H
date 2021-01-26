@@ -5,7 +5,7 @@ typedef struct {
 
   int type;
   int total;
-  int ppb;
+  double ppb;
   double m;
   double d;
   double T;

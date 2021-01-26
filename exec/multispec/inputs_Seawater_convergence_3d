@@ -1,0 +1,129 @@
+&common
+
+  ! Problem specification
+  prob_lo(1:3) = 0.       0.       0.     ! physical lo coordinate
+  prob_hi(1:3) = 1.125d-6 1.125d-6 3.6d-5 ! physical hi coordinate
+
+  cell_depth = 1.
+
+  ! refer to init_funcs.F90
+  prob_type = 15
+
+  n_cells(1:3) = 4 4 128
+  max_grid_size(1:3) = 4 4 32
+  fixed_dt = 1.e-10
+  max_step = 100
+  plot_int = 100
+  smoothing_width = 2.d0
+
+  ! Viscous friction L phi operator
+  ! if abs(visc_type) = 1, L = div beta grad
+  ! if abs(visc_type) = 2, L = div [ beta (grad + grad^T) ]
+  ! if abs(visc_type) = 3, L = div [ beta (grad + grad^T) + I (gamma - (2/3)*beta) div ]
+  ! positive = assume constant coefficients
+  ! negative = assume spatially-varying coefficients
+  visc_coef = 1.05e-2		! [units: g*cm-1*s-1] dynamic (shear) viscosity of water
+  visc_type = 2
+  
+  ! Stochastic parameters
+  seed = 1
+  variance_coef_mom = 0.
+  variance_coef_mass = 0.
+  initial_variance_mom = 0.
+
+  k_B = 1.3806488d-16   ! Boltzmann's constant [units: cm2*g*s-2*K-1]
+  T_init(1) = 300. 	! [units: K]
+
+  struct_fact_int = -1
+  n_steps_skip = 0
+
+  ! Boundary conditions
+  ! ----------------------
+  ! BC specifications:
+  ! -1 = periodic
+  !  1 = slip
+  !  2 = no-slip
+  bc_vel_lo(1:3) = -1 -1 -1
+  bc_vel_hi(1:3) = -1 -1 -1
+
+  ! -1 = periodic
+  !  1 = wall
+  !  2 = reservoir (Dirichlet values must be suppled by other means)
+  bc_mass_lo(1:3) = -1 -1 -1
+  bc_mass_hi(1:3) = -1 -1 -1
+
+  ! -1 = periodic
+  !  1 = Dirichlet
+  !  2 = Neumann
+  bc_es_lo(1:3) = -1 -1 -1
+  bc_es_hi(1:3) = -1 -1 -1
+
+  ! Thermodynamic and transport properties:
+  !----------------------
+  nspecies = 3
+  molmass(1:3) = 3.82d-23 5.89d-23 3.35d-23  ! molecular masses for nspecies (mass per molecule, *not* molar mass)
+                                             ! sodium: 3.82e-23 g, Cl: 5.89e-23 g
+  rhobar(1:3) = 3.17d0 3.17d0 1.d0     ! pure component densities for all species
+
+/
+
+&multispec
+
+  ! initial values for c
+  c_init_1(1:3) = 0.01088d0  0.0168d0  0.97232d0  ! those values because 2720*0.168 = 4200*0.0108
+  c_init_2(1:3) = 0.001088d0 0.00168d0 0.997232d0
+
+  ! These are lower-triangules of symmetric matrices represented as vectors
+  ! Number of elements is (nspecies*(nspecies-1)/2)
+  ! The values are red row by row starting from top going down
+  ! (this allows easy addition/deletion of new species/rows)
+  ! So D_12; D_13, D_23; D_14, D_24, D_34; ...
+  Dbar(1:3) = 1.17d-5 1.33d-5 2.03d-5 ! Maxwell-Stefan diffusion constant  
+  Dtherm(1:3) = 1.d0 1.d0 -2.d0 ! thermo-diffusion coefficients, only differences among elements matter
+  H_offdiag(1:3) = 1.5d0 2.5d0 0.5d0    ! Off diagonal elements of H=d^2F/dx^2  
+  H_diag(1:3) = 4.d0 3.d0 2.d0          ! Diagonal of H=d^2F/dx^2, these are vectors of length nspecies
+
+  use_charged_fluid = 1
+  dielectric_const = 6.91e-19    ! relative permitivity ~ 78, vacuum permitivity ~ 8.854e-21
+  charge_per_mass(1:3) = 4.2e3 -2.72e3 0.d0
+
+/
+
+&gmres
+
+  mg_verbose = 0         ! multigrid verbosity
+  cg_verbose = 0         ! BiCGStab (mg_bottom_solver=1) verbosity
+  mg_max_vcycles = 1     ! maximum number of V-cycles
+  mg_minwidth = 2        ! length of box at coarsest multigrid level
+  mg_bottom_solver = 1   ! bottom solver type
+                         ! 0 = smooths only, controlled by mg_nsmooths_bottom
+                         ! 1 = BiCGStab with agglomeration
+  mg_nsmooths_down = 2   ! number of smooths at each level on the way down
+  mg_nsmooths_up = 2     ! number of smooths at each level on the way up
+  mg_nsmooths_bottom = 8 ! number of smooths at the bottom (only if mg_bottom_solver=0)
+  mg_rel_tol = 1.d-12    ! relative tolerance stopping criteria for full mac projections
+
+  ! Staggered multigrid solver parameters
+  stag_mg_verbosity = 0           ! verbosity
+  stag_mg_max_vcycles = 1         ! max number of v-cycles
+  stag_mg_minwidth = 2            ! length of box at coarsest multigrid level
+  stag_mg_bottom_solver = 0       ! bottom solver type
+                                  ! 0 = smooths only, controlled by mg_nsmooths_bottom
+  stag_mg_nsmooths_down = 2       ! number of smooths at each level on the way down
+  stag_mg_nsmooths_up = 2         ! number of smooths at each level on the way up
+  stag_mg_nsmooths_bottom = 8     ! number of smooths at the bottom
+  stag_mg_max_bottom_nlevels = 10 ! for stag_mg_bottom_solver=4, number of additional levels of multigrid
+  stag_mg_omega = 1.d0            ! weighted-jacobi omega coefficient
+  stag_mg_smoother = 1            ! 0 = jacobi; 1 = 2*dm-color Gauss-Seidel
+  stag_mg_rel_tol = 1.d-10        ! relative tolerance stopping criteria
+
+  ! GMRES solver parameters
+  gmres_rel_tol = 1.e-12                ! relative tolerance stopping criteria
+  gmres_abs_tol = 0                     ! absolute tolerance stopping criteria
+  gmres_verbose = 1                     ! gmres verbosity; if greater than 1, more residuals will be printed out
+  gmres_max_outer = 20                  ! max number of outer iterations
+  gmres_max_inner = 5                   ! max number of inner iterations, or restart number
+  gmres_max_iter = 100                  ! max number of gmres iterations
+  gmres_min_iter = 1                    ! min number of gmres iterations
+
+/

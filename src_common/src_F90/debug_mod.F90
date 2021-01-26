@@ -1,3 +1,6 @@
+#include <AMReX_Config.H>
+
+
 module debug_module
 
   implicit none

@@ -49,11 +49,15 @@ void MacProj::Solve(const std::array<MultiFab, AMREX_SPACEDIM>& alphainv_fc,
     MLMG mlmg(mlabec);
 
     mlmg.setVerbose(mg_verbose);
+    mlmg.setBottomVerbose(cg_verbose);
 
     // for the preconditioner, we do 1 v-cycle and the bottom solver is smooths
     if (!full_solve) {
         if (mg_bottom_solver == 0) {
             mlmg.setBottomSolver(amrex::MLMG::BottomSolver::smoother);
+        }
+        else if (mg_bottom_solver == 1) {
+            mlmg.setBottomSolver(amrex::MLMG::BottomSolver::bicgstab);
         }
         else {
             Abort("MacProj.cpp: only mg_bottom_solver=0");

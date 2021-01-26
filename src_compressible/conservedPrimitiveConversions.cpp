@@ -90,10 +90,10 @@ void conservedToPrimitive(MultiFab& prim_in, const MultiFab& cons_in)
             }
 
             // update temperature in-place using internal energy
-            GetTemperature(intenergy, Yk_fixed, prim(i,j,k,4), nspecies_gpu, hcv_gpu);
+            GetTemperature(intenergy, Yk_fixed, prim(i,j,k,4));
 
             // compute mole fractions from mass fractions
-            GetMolfrac(i,j,k, Yk, Xk, nspecies_gpu, molmass_gpu);
+            GetMolfrac(i,j,k, Yk, Xk);
 
             // mass fractions
             for (int n=0; n<nspecies_gpu; ++n) {
@@ -101,8 +101,7 @@ void conservedToPrimitive(MultiFab& prim_in, const MultiFab& cons_in)
                 prim(i,j,k,6+nspecies_gpu+n) = Xk[n];
             }
 
-            GetPressureGas(prim(i,j,k,5), Yk, prim(i,j,k,0), prim(i,j,k,4),
-                           nspecies_gpu, Runiv_gpu, molmass_gpu);
+            GetPressureGas(prim(i,j,k,5), Yk, prim(i,j,k,0), prim(i,j,k,4));
         });
         
     } // end MFIter

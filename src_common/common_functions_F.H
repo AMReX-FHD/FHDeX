@@ -52,6 +52,12 @@ extern "C"
                                      int* bc_therm_lo, int* bc_therm_hi,
                                      amrex::Real * p_lo, amrex::Real * p_hi,
                                      amrex::Real* t_lo, amrex::Real* t_hi,
+                                     amrex::Real* bc_Yk_x_lo, amrex::Real* bc_Yk_x_hi,
+                                     amrex::Real* bc_Yk_y_lo, amrex::Real* bc_Yk_y_hi,
+                                     amrex::Real* bc_Yk_z_lo, amrex::Real* bc_Yk_z_hi,
+                                     amrex::Real* bc_Xk_x_lo, amrex::Real* bc_Xk_x_hi,
+                                     amrex::Real* bc_Xk_y_lo, amrex::Real* bc_Xk_y_hi,
+                                     amrex::Real* bc_Xk_z_lo, amrex::Real* bc_Xk_z_hi,
                                      amrex::Real* wallspeed_lo, amrex::Real* wallspeed_hi,
                                      amrex::Real* potential_lo, amrex::Real* potential_hi,
                                      int* struct_fact_int, int* radialdist_int,
@@ -76,7 +82,7 @@ extern "C"
                                      int* plot_ascii, int* solve_chem, amrex::Real* diffcoeff,
                                      amrex::Real* scaling_factor, amrex::Real* source_strength,
                                      int* regrid_int, int* do_reflux, int* particle_motion,
-                                     amrex::Real* turb_a, amrex::Real* turb_b);
+                                     amrex::Real* turb_a, amrex::Real* turb_b, int* turbForcing);
 
     void set_max_step(int* max_step);
     void set_domega(amrex::Real* domega);

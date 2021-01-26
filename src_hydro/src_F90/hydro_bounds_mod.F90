@@ -1,3 +1,6 @@
+#include <AMReX_Config.H>
+
+
 module hydro_bounds_module
 
   use amrex_fort_module,      only : amrex_real
