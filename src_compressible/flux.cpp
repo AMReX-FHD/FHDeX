@@ -1136,7 +1136,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 GpuArray<Real,MAX_SPECIES+6> primitive;
                 GpuArray<Real,MAX_SPECIES  > Yk;
                     
-                for (int l=0; l<2*nspecies+6; ++l) {
+                for (int l=0; l<nspecies+6; ++l) {
                     primitive[l] = wgt1*(prim(i,j,k,l)+prim(i-1,j,k,l)) - wgt2*(prim(i-2,j,k,l)+prim(i+1,j,k,l));
                 }
 
@@ -1176,7 +1176,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 GpuArray<Real,MAX_SPECIES+6> primitive;
                 GpuArray<Real,MAX_SPECIES  > Yk;
                     
-                for (int l=0; l<2*nspecies+6; ++l) {
+                for (int l=0; l<nspecies+6; ++l) {
                     primitive[l] = wgt1*(prim(i,j,k,l)+prim(i,j-1,k,l)) - wgt2*(prim(i,j-2,k,l)+prim(i,j+1,k,l));
                 }
 
@@ -1216,7 +1216,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 GpuArray<Real,MAX_SPECIES+6> primitive;
                 GpuArray<Real,MAX_SPECIES  > Yk;
                     
-                for (int l=0; l<2*nspecies+6; ++l) {
+                for (int l=0; l<nspecies+6; ++l) {
                     primitive[l] = wgt1*(prim(i,j,k,l)+prim(i,j,k-1,l)) - wgt2*(prim(i,j,k-2,l)+prim(i,j,k+1,l));
                 }
 
