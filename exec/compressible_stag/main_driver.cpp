@@ -1,5 +1,6 @@
 #include "common_functions.H"
 #include "compressible_functions.H"
+#include "compressible_functions_stag.H"
 
 #include "common_namespace_declarations.H"
 #include "compressible_namespace_declarations.H"
@@ -71,7 +72,18 @@ void main_driver(const char* argv)
     // if multispecies
     if (algorithm_type == 2) {
         // compute wall concentrations if BCs call for it
-        setup_cwall();
+        setup_cwall(bc_Yk_x_lo.data(),
+                    bc_Yk_x_hi.data(),
+                    bc_Yk_y_lo.data(),
+                    bc_Yk_y_hi.data(),
+                    bc_Yk_z_lo.data(),
+                    bc_Yk_z_hi.data(),
+                    bc_Xk_x_lo.data(),
+                    bc_Xk_x_hi.data(),
+                    bc_Xk_y_lo.data(),
+                    bc_Xk_y_hi.data(),
+                    bc_Xk_z_lo.data(),
+                    bc_Xk_z_hi.data());
     }
 
     // make BoxArray and Geometry
@@ -168,10 +180,15 @@ void main_driver(const char* argv)
     // 4        (rho*E;   total energy)
     // 5:5+ns-1 (rho*Yk;  mass densities)
     MultiFab cu  (ba,dmap,nvars,ngc);
-    MultiFab cup (ba,dmap,nvars,ngc);
-    MultiFab cup2(ba,dmap,nvars,ngc);
-    MultiFab cup3(ba,dmap,nvars,ngc);
 
+    // staggered momentum
+    std::array< MultiFab, AMREX_SPACEDIM > vel;
+    std::array< MultiFab, AMREX_SPACEDIM > cumom;
+    for (int d=0; d<AMREX_SPACEDIM; d++) {
+        vel[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ngc);
+        cumom[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ngc);
+    }
+  
     //primative quantaties
     // in C++ indexing (add +1 for F90)
     // 0            (rho; density)
@@ -183,20 +200,21 @@ void main_driver(const char* argv)
     MultiFab prim(ba,dmap,nprimvars,ngc);
 
     //statistics    
-    MultiFab cuMeans  (ba,dmap,nvars,ngc);
-    MultiFab cuVars   (ba,dmap,nvars,ngc);
-    MultiFab cuMeansAv(ba,dmap,nvars,ngc);
-    MultiFab cuVarsAv (ba,dmap,nvars,ngc);
+    // we stack 3 towards the end
+    // corresponding to jx, jy, jz (shifted to CC)
+    // indices (1,2,3) correspond to averaged jx, jy, jz on CC
+    MultiFab cuMeans  (ba,dmap,nvars+3,ngc);
+    MultiFab cuVars   (ba,dmap,nvars+3,ngc);
+    MultiFab cuMeansAv(ba,dmap,nvars+3,ngc);
+    MultiFab cuVarsAv (ba,dmap,nvars+3,ngc);
 
     cuMeans.setVal(0.0);
     cuVars.setVal(0.0);
     
-    MultiFab primVertAvg;  // flattened multifab defined below
-
-    MultiFab primMeans  (ba,dmap,nprimvars  ,ngc);
-    MultiFab primVars   (ba,dmap,nprimvars+5,ngc);
-    MultiFab primMeansAv(ba,dmap,nprimvars  ,ngc);
-    MultiFab primVarsAv (ba,dmap,nprimvars+5,ngc);
+    MultiFab primMeans  (ba,dmap,nprimvars+3,ngc);
+    MultiFab primVars   (ba,dmap,nprimvars+5+3,ngc);
+    MultiFab primMeansAv(ba,dmap,nprimvars+3,ngc);
+    MultiFab primVarsAv (ba,dmap,nprimvars+5+3,ngc);
     primMeans.setVal(0.0);
     primVars.setVal(0.0);
    
@@ -222,44 +240,36 @@ void main_driver(const char* argv)
 
     T0 = T_init[0];
 
-    //fluxes
-    std::array< MultiFab, AMREX_SPACEDIM > flux;
-    AMREX_D_TERM(flux[0].define(convert(ba,nodal_flag_x), dmap, nvars, 0);,
-                 flux[1].define(convert(ba,nodal_flag_y), dmap, nvars, 0);,
-                 flux[2].define(convert(ba,nodal_flag_z), dmap, nvars, 0););
+    //fluxes (except momentum) at faces
+    std::array< MultiFab, AMREX_SPACEDIM > faceflux;
+    AMREX_D_TERM(faceflux[0].define(convert(ba,nodal_flag_x), dmap, nvars, 0);,
+                 faceflux[1].define(convert(ba,nodal_flag_y), dmap, nvars, 0);,
+                 faceflux[2].define(convert(ba,nodal_flag_z), dmap, nvars, 0););
 
-    //stochastic fluxes
-    std::array< MultiFab, AMREX_SPACEDIM > stochFlux;
-    AMREX_D_TERM(stochFlux[0].define(convert(ba,nodal_flag_x), dmap, nvars, 0);,
-                 stochFlux[1].define(convert(ba,nodal_flag_y), dmap, nvars, 0);,
-                 stochFlux[2].define(convert(ba,nodal_flag_z), dmap, nvars, 0););
+    //momentum flux (edge + center)
+#if (AMREX_SPACEDIM == 3)
+    std::array< MultiFab, 2 > edgeflux_x; // divide by dx
+    std::array< MultiFab, 2 > edgeflux_y; // divide by dy
+    std::array< MultiFab, 2 > edgeflux_z; // divide by dz
 
-    AMREX_D_TERM(stochFlux[0].setVal(0.0);,
-                 stochFlux[1].setVal(0.0);,
-                 stochFlux[2].setVal(0.0););
+    edgeflux_x[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0); // 0-2: rhoU, rhoV, rhoW
+    edgeflux_x[1].define(convert(ba,nodal_flag_xz), dmap, 1, 0);
+                 
+    edgeflux_y[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
+    edgeflux_y[1].define(convert(ba,nodal_flag_yz), dmap, 1, 0);
 
-    MultiFab rancorn;
-    rancorn.define(convert(ba,nodal_flag), dmap, 1, 0);
-    rancorn.setVal(0.0);
+    edgeflux_z[0].define(convert(ba,nodal_flag_xz), dmap, 1, 0);
+    edgeflux_z[1].define(convert(ba,nodal_flag_yz), dmap, 1, 0);
 
-    //nodal arrays used for calculating viscous stress
-    std::array< MultiFab, AMREX_SPACEDIM > cornx;
-    AMREX_D_TERM(cornx[0].define(convert(ba,nodal_flag), dmap, 1, 0);,
-                 cornx[1].define(convert(ba,nodal_flag), dmap, 1, 0);,
-                 cornx[2].define(convert(ba,nodal_flag), dmap, 1, 0););
+#elif (AMREX_SPACEDIM == 2)
+    Abort("Currently requires AMREX_SPACEDIM=3");
+#endif
 
-    std::array< MultiFab, AMREX_SPACEDIM > corny;
-    AMREX_D_TERM(corny[0].define(convert(ba,nodal_flag), dmap, 1, 0);,
-                 corny[1].define(convert(ba,nodal_flag), dmap, 1, 0);,
-                 corny[2].define(convert(ba,nodal_flag), dmap, 1, 0););
-
-    std::array< MultiFab, AMREX_SPACEDIM > cornz;
-    AMREX_D_TERM(cornz[0].define(convert(ba,nodal_flag), dmap, 1, 0);,
-                 cornz[1].define(convert(ba,nodal_flag), dmap, 1, 0);,
-                 cornz[2].define(convert(ba,nodal_flag), dmap, 1, 0););
-
-    MultiFab visccorn;
-    visccorn.define(convert(ba,nodal_flag), dmap, 1, 0);
+    std::array< MultiFab, AMREX_SPACEDIM > cenflux;
+    AMREX_D_TERM(cenflux[0].define(ba,dmap,1,1);, // 0-2: rhoU, rhoV, rhoW
+                 cenflux[1].define(ba,dmap,1,1);,
+                 cenflux[2].define(ba,dmap,1,1););
+                
 
     Real time = 0;
 
@@ -287,9 +297,9 @@ void main_driver(const char* argv)
 
     // velx, vely, velz
     for (int d=0; d<AMREX_SPACEDIM; d++) {
-      x = "vel";
-      x += (120+d);
-      prim_var_names[cnt++] = x;
+        x = "vel";
+        x += (120+d);
+        prim_var_names[cnt++] = x;
     }
 
     // Temp
@@ -297,9 +307,9 @@ void main_driver(const char* argv)
 
     // Yk
     for (int d=0; d<nspecies; d++) {
-      x = "Y";
-      x += (49+d);
-      prim_var_names[cnt++] = x;
+        x = "Y";
+        x += (49+d);
+        prim_var_names[cnt++] = x;
     }
 
     MultiFab structFactPrimMF;
@@ -312,9 +322,21 @@ void main_driver(const char* argv)
         var_scaling[d] = 1./(dx[0]*dx[1]*dx[2]);
     }
 
+    /* TEST SELECTED PAIRS
+    Vector<int> xxx;
+    xxx.resize(1);
+
+    Vector<int> yyy;
+    yyy.resize(1);
+
+    xxx[0] = 0;
+    yyy[0] = 0;
+    */
+
     // compute all pairs
     // note: StructFactPrim option to compute only speicified pairs not written yet
     StructFact structFactPrim(ba,dmap,prim_var_names,var_scaling);
+//    StructFact structFactPrim(ba,dmap,prim_var_names,xxx,yyy,var_scaling);
     
     //////////////////////////////////////////////
 
@@ -336,9 +358,9 @@ void main_driver(const char* argv)
 
     // velx, vely, velz
     for (int d=0; d<AMREX_SPACEDIM; d++) {
-      x = "j";
-      x += (120+d);
-      cons_var_names[cnt++] = x;
+        x = "j";
+        x += (120+d);
+        cons_var_names[cnt++] = x;
     }
 
     // rho*E
@@ -346,9 +368,9 @@ void main_driver(const char* argv)
 
     // rho*Yk
     for (int d=0; d<nspecies; d++) {
-      x = "rhoY";
-      x += (49+d);
-      cons_var_names[cnt++] = x;
+        x = "rhoY";
+        x += (49+d);
+        cons_var_names[cnt++] = x;
     }
 
     // Temp
@@ -375,31 +397,32 @@ void main_driver(const char* argv)
     Geometry geom_flat;
 
     if(project_dir >= 0){
-      prim.setVal(0.0);
-      ComputeVerticalAverage(prim, primVertAvg, geom, project_dir, 0, structVarsPrim);
-      BoxArray ba_flat = primVertAvg.boxArray();
-      const DistributionMapping& dmap_flat = primVertAvg.DistributionMap();
-      {
-        IntVect dom_lo(AMREX_D_DECL(           0,            0,            0));
-        IntVect dom_hi(AMREX_D_DECL(n_cells[0]-1, n_cells[1]-1, n_cells[2]-1));
-    	dom_hi[project_dir] = 0;
-        Box domain(dom_lo, dom_hi);
+        MultiFab primVertAvg;  // flattened multifab defined below
+        prim.setVal(0.0);
+        ComputeVerticalAverage(prim, primVertAvg, geom, project_dir, 0, structVarsPrim);
+        BoxArray ba_flat = primVertAvg.boxArray();
+        const DistributionMapping& dmap_flat = primVertAvg.DistributionMap();
+        {
+            IntVect dom_lo(AMREX_D_DECL(           0,            0,            0));
+            IntVect dom_hi(AMREX_D_DECL(n_cells[0]-1, n_cells[1]-1, n_cells[2]-1));
+              dom_hi[project_dir] = 0;
+            Box domain(dom_lo, dom_hi);
 	
-    	// This defines the physical box
-    	Vector<Real> projected_hi(AMREX_SPACEDIM);
-    	for (int d=0; d<AMREX_SPACEDIM; d++) {
-    	  projected_hi[d] = prob_hi[d];
-    	}
-    	projected_hi[project_dir] = prob_hi[project_dir]/n_cells[project_dir];
-        RealBox real_box({AMREX_D_DECL(     prob_lo[0],     prob_lo[1],     prob_lo[2])},
-                         {AMREX_D_DECL(projected_hi[0],projected_hi[1],projected_hi[2])});
+            // This defines the physical box
+            Vector<Real> projected_hi(AMREX_SPACEDIM);
+            for (int d=0; d<AMREX_SPACEDIM; d++) {
+                projected_hi[d] = prob_hi[d];
+            }
+            projected_hi[project_dir] = prob_hi[project_dir]/n_cells[project_dir];
+            RealBox real_box({AMREX_D_DECL(     prob_lo[0],     prob_lo[1],     prob_lo[2])},
+                             {AMREX_D_DECL(projected_hi[0],projected_hi[1],projected_hi[2])});
 
-        // This defines a Geometry object
-        geom_flat.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
-      }
+            // This defines a Geometry object
+            geom_flat.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
+        }
 
-      structFactPrimVerticalAverage.~StructFact(); // destruct
-      new(&structFactPrimVerticalAverage) StructFact(ba_flat,dmap_flat,prim_var_names,var_scaling); // reconstruct
+        structFactPrimVerticalAverage.~StructFact(); // destruct
+        new(&structFactPrimVerticalAverage) StructFact(ba_flat,dmap_flat,prim_var_names,var_scaling); // reconstruct
     
     }
 
@@ -431,38 +454,38 @@ void main_driver(const char* argv)
         cu.setVal(rho0*rhobar[i],5+i,1,ngc); // mass densities
     }
 
-    // RK stage storage
-    cup.setVal(0.0,0,nvars,ngc);
-    cup2.setVal(0.0,0,nvars,ngc);
-    cup3.setVal(0.0,0,nvars,ngc);
-
-    // set density
-    cup.setVal(rho0,0,1,ngc);
-    cup2.setVal(rho0,0,1,ngc);
-    cup3.setVal(rho0,0,1,ngc);
+    for (int d=0; d<AMREX_SPACEDIM; d++) { // staggered momentum & velocities
+      cumom[d].setVal(0.);
+      vel[d].setVal(0.);
+    }
 
     // initialize conserved variables
     if (prob_type > 1) {
-        InitConsVar(cu,prim,geom);
+        InitConsVarStag(cu,cumom,prim,geom); // Need to add for staggered -- Ishan
     }
 
     statsCount = 1;
 
     // Write initial plotfile
-    conservedToPrimitive(prim, cu);
+    conservedToPrimitiveStag(prim, vel, cu, cumom);
 
-    // Set BC: 1) fill boundary 2) physical
+    // Set BC: 1) fill boundary 2) physical (How to do for staggered? -- Ishan)
     cu.FillBoundary(geom.periodicity());
     prim.FillBoundary(geom.periodicity());
+    for (int d=0; d<AMREX_SPACEDIM; d++) {
+        cumom[d].FillBoundary(geom.periodicity());
+        vel[d].FillBoundary(geom.periodicity());
+    }
     setBC(prim, cu);
     
     if (plot_int > 0) {
-	WritePlotFile(0, 0.0, geom, cu, cuMeans, cuVars,
-                      prim, primMeans, primVars, spatialCross, eta, kappa);
+	    WritePlotFileStag(0, 0.0, geom, cu, cuMeans, cuVars, cumom, 
+                      prim, primMeans, primVars, vel, spatialCross, eta, kappa);
     }
 
+
     //Time stepping loop
-    for(step=1;step<=max_step;++step) {
+    for (step=1;step<=max_step;++step) {
 
         if (restart > 0 && step==1) {
             ReadCheckPoint(step, time, statsCount, geom, cu, cuMeans, cuVars, prim,
@@ -472,46 +495,55 @@ void main_driver(const char* argv)
         // timer
         Real ts1 = ParallelDescriptor::second();
     
-        RK3step(cu, cup, cup2, cup3, prim, source, eta, zeta, kappa, chi, D, flux,
-                stochFlux, cornx, corny, cornz, visccorn, rancorn, geom, dx, dt);
+        RK3stepStag(cu, cumom, prim, vel, source, eta, zeta, kappa, chi, D, 
+            faceflux, edgeflux_x, edgeflux_y, edgeflux_z, cenflux, geom, dx, dt);
 
         // timer
         Real ts2 = ParallelDescriptor::second() - ts1;
         ParallelDescriptor::ReduceRealMax(ts2);
-    	amrex::Print() << "Advanced step " << step << " in " << ts2 << " seconds\n";
+        amrex::Print() << "Advanced step " << step << " in " << ts2 << " seconds\n";
 
         // timer
         Real aux1 = ParallelDescriptor::second();
         
         // compute mean and variances
-	if (step > n_steps_skip) {
-            evaluateStats(cu, cuMeans, cuVars, prim, primMeans, primVars,
+        if (step > n_steps_skip) {
+            evaluateStatsStag(cu, cuMeans, cuVars, prim, primMeans, primVars,
                           spatialCross, miscStats, miscVals, statsCount, dx);
             statsCount++;
-	}
+        }
 
         // write a plotfile
         if (plot_int > 0 && step > 0 && step%plot_int == 0) {
-           yzAverage(cuMeans, cuVars, primMeans, primVars, spatialCross,
-                     cuMeansAv, cuVarsAv, primMeansAv, primVarsAv, spatialCrossAv);
-           WritePlotFile(step, time, geom, cu, cuMeansAv, cuVarsAv,
-                         prim, primMeansAv, primVarsAv, spatialCrossAv, eta, kappa);
+             yzAverage(cuMeans, cuVars, primMeans, primVars, spatialCross,
+                       cuMeansAv, cuVarsAv, primMeansAv, primVarsAv, spatialCrossAv);
+             WritePlotFileStag(step, time, geom, cu, cuMeansAv, cuVarsAv, cumom,
+                           prim, primMeansAv, primVarsAv, vel, spatialCrossAv, eta, kappa);
+
         }
 
         if (chk_int > 0 && step > 0 && step%chk_int == 0)
         {
-           WriteCheckPoint(step, time, statsCount, geom, cu, cuMeans,
+             WriteCheckPoint(step, time, statsCount, geom, cu, cuMeans,
                            cuVars, prim, primMeans, primVars, spatialCross, miscStats, eta, kappa);
         }
 
-	// collect a snapshot for structure factor
-	if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip)%struct_fact_int == 0) {
+        // collect a snapshot for structure factor
+        if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip)%struct_fact_int == 0) {
             MultiFab::Copy(structFactPrimMF, prim, 0,                0,                structVarsPrim,   0);
             MultiFab::Copy(structFactConsMF, cu,   0,                0,                structVarsCons-1, 0);
             MultiFab::Copy(structFactConsMF, prim, AMREX_SPACEDIM+1, structVarsCons-1, 1,                0); // temperature too
+
+            // overwrites the momentum & velocity by shifting in the face-centered arrays into the cell-centered arrays
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                ShiftFaceToCC(cumom[d],0,structFactConsMF,d+1,1);
+                ShiftFaceToCC(vel[d],0,structFactPrimMF,d+1,1);
+            }
+
             structFactPrim.FortStructure(structFactPrimMF,geom);
             structFactCons.FortStructure(structFactConsMF,geom);
             if(project_dir >= 0) {
+                MultiFab primVertAvg;  // flattened multifab defined below
                 ComputeVerticalAverage(prim, primVertAvg, geom, project_dir, 0, structVarsPrim);
                 structFactPrimVerticalAverage.FortStructure(primVertAvg,geom_flat);
             }
@@ -552,7 +584,7 @@ void main_driver(const char* argv)
         ParallelDescriptor::ReduceLongMax(max_fab_megabytes, IOProc);
 
         amrex::Print() << "Curent     FAB megabyte spread across MPI nodes: ["
-                       << min_fab_megabytes << " ... " << max_fab_megabytes << "]\n";
+                     << min_fab_megabytes << " ... " << max_fab_megabytes << "]\n";
     }
 
     // timer

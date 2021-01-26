@@ -349,7 +349,7 @@ contains
     double precision, intent(in      ) :: neff, dx(3)
 
     double precision, intent(inout   ) :: cellvols(cvlo(1):cvhi(1),cvlo(2):cvhi(2),cvlo(3):cvhi(3))
-    double precision, intent(inout   ) :: instant(ilo(1):ihi(1),ilo(2):ihi(2),ilo(3):ihi(3),14)
+    double precision, intent(inout   ) :: instant(ilo(1):ihi(1),ilo(2):ihi(2),ilo(3):ihi(3),14+nspecies)
 
     type(c_ptr), intent(inout)      :: cell_part_ids(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
     integer(c_int), intent(inout)   :: cell_part_cnt(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
@@ -486,9 +486,9 @@ contains
     double precision, intent(in      ) :: delt, n0, T0
 
     double precision, intent(inout   ) :: cellvols(cvlo(1):cvhi(1),cvlo(2):cvhi(2),cvlo(3):cvhi(3))
-    double precision, intent(inout   ) :: instant(ilo(1):ihi(1),ilo(2):ihi(2),ilo(3):ihi(3),14)
-    double precision, intent(inout   ) :: means(mlo(1):mhi(1),mlo(2):mhi(2),mlo(3):mhi(3),14)
-    double precision, intent(inout   ) :: vars(vlo(1):vhi(1),vlo(2):vhi(2),vlo(3):vhi(3),18)
+    double precision, intent(inout   ) :: instant(ilo(1):ihi(1),ilo(2):ihi(2),ilo(3):ihi(3),14+nspecies)
+    double precision, intent(inout   ) :: means(mlo(1):mhi(1),mlo(2):mhi(2),mlo(3):mhi(3),14+nspecies)
+    double precision, intent(inout   ) :: vars(vlo(1):vhi(1),vlo(2):vhi(2),vlo(3):vhi(3),18+nspecies)
 
     double precision, intent(inout) :: avcurrent(1:3)
 
@@ -587,9 +587,9 @@ contains
     double precision, intent(in      ) :: neff, delt, n0, T0
 
     double precision, intent(inout   ) :: cellvols(cvlo(1):cvhi(1),cvlo(2):cvhi(2),cvlo(3):cvhi(3))
-    double precision, intent(inout   ) :: instant(ilo(1):ihi(1),ilo(2):ihi(2),ilo(3):ihi(3),14)
-    double precision, intent(inout   ) :: means(mlo(1):mhi(1),mlo(2):mhi(2),mlo(3):mhi(3),14)
-    double precision, intent(inout   ) :: vars(vlo(1):vhi(1),vlo(2):vhi(2),vlo(3):vhi(3),18)
+    double precision, intent(inout   ) :: instant(ilo(1):ihi(1),ilo(2):ihi(2),ilo(3):ihi(3),14+nspecies)
+    double precision, intent(inout   ) :: means(mlo(1):mhi(1),mlo(2):mhi(2),mlo(3):mhi(3),14+nspecies)
+    double precision, intent(inout   ) :: vars(vlo(1):vhi(1),vlo(2):vhi(2),vlo(3):vhi(3),18+nspecies)
 
     type(c_ptr), intent(inout)      :: cell_part_ids(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
     integer(c_int), intent(inout)   :: cell_part_cnt(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))

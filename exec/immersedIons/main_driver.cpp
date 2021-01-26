@@ -631,9 +631,15 @@ void main_driver(const char* argv)
                  sourceTemp[1].define(convert(ba,nodal_flag_y), dmap, 1, ang);,
                  sourceTemp[2].define(convert(ba,nodal_flag_z), dmap, 1, ang););
 
+    std::array< MultiFab, AMREX_SPACEDIM > sourceRFD;
+    AMREX_D_TERM(sourceRFD[0].define(convert(ba,nodal_flag_x), dmap, 1, ang);,
+                 sourceRFD[1].define(convert(ba,nodal_flag_y), dmap, 1, ang);,
+                 sourceRFD[2].define(convert(ba,nodal_flag_z), dmap, 1, ang););
+
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         source    [d].setVal(0.0);
         sourceTemp[d].setVal(0.0);
+        sourceRFD[d].setVal(0.0);
     }
 
     //Define parametric paramplanes for particle interaction - declare array for paramplanes and then define properties in BuildParamplanes
@@ -676,7 +682,7 @@ void main_driver(const char* argv)
     if (restart < 0 && particle_restart < 0) {
         // create particles
         if (sr_tog == 4) {
-            particles.InitParticlesFromFile(ionParticle, dxp);
+            //particles.InitParticlesFromFile(ionParticle, dxp);
         }
         else {
             particles.InitParticles(ionParticle, dxp);
@@ -816,48 +822,50 @@ void main_driver(const char* argv)
     //Time stepping loop
 
 
-    dt = dt*1e-5;
+    dt = dt*1e-4;
+
+    particles.initRankLists(simParticles);
 
     for (int istep=step; istep<=max_step; ++istep) {
 
         // timer for time step
         Real time1 = ParallelDescriptor::second();
 
-        if(istep == 200)
+        if(istep == 20)
         {
                 dt = dt*10;
                 Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
         }
 
 
-        if(istep == 400)
+        if(istep == 40)
         {
                 dt = dt*10;
                 Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
         }
 
-        if(istep == 600)
+        if(istep == 60)
         {
                 dt = dt*10;
                 Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
         }
 
-        if(istep == 800)
+        if(istep == 80)
         {
                 dt = dt*10;
                 Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
         }
 
-        if(istep == 1000)
-        {
-                dt = dt*10;
-                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
-        }
+//        if(istep == 100)
+//        {
+//                dt = dt*10;
+//                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+//        }
 
         if(istep == 1)
         {
-            //particles.SetPosition(1, prob_hi[0]*0.42, prob_hi[1]*(1.0/128.0), prob_hi[2]*0.42);
-            //particles.SetPosition(2, prob_hi[0]*0.1, prob_hi[1]*0.5, prob_hi[2]*0.5);
+            particles.SetPosition(1, prob_hi[0]*0.45, prob_hi[1]*0.45, prob_hi[2]*0.45);
+            particles.SetPosition(2, prob_hi[0]*0.45 + 1.29182e-8, prob_hi[1]*0.45, prob_hi[2]*0.45);
            
         }
 
@@ -868,13 +876,15 @@ void main_driver(const char* argv)
             external[d].setVal(eamp[d]*cos(efreq[d]*time + ephase[d]));  // external field
             source    [d].setVal(0.0);      // reset source terms
             sourceTemp[d].setVal(0.0);      // reset source terms
+            sourceRFD[d].setVal(0.0);      // reset source terms
+            particles.ResetMarkers(0);
         }
 
         //particles.BuildCorrectionTable(dxp,0);
 
         if (rfd_tog==1) {
             // Apply RFD force to fluid
-            particles.RFD(0, dx, sourceTemp, RealFaceCoords);
+            particles.RFD(0, dx, sourceRFD, RealFaceCoords);
             particles.ResetMarkers(0);
 //            particles.DoRFD(dt, dx, dxp, geom, umac, efieldCC, RealFaceCoords, RealCenteredCoords,
 //                            source, sourceTemp, paramPlaneList, paramPlaneCount, 3 /*this number currently does nothing, but we will use it later*/);
@@ -889,7 +899,7 @@ void main_driver(const char* argv)
 //        origin[1] = prob_hi[1]/2.0;
 //        origin[2] = prob_hi[2]/2.0;
 
-//        particles.potentialFunction(origin);
+       // particles.forceFunction(dt);
 
         // sr_tog is short range forces
         // es_tog is electrostatic solve (0=off, 1=Poisson, 2=Pairwise, 3=P3M)
@@ -915,8 +925,7 @@ void main_driver(const char* argv)
         esSolve(potential, charge, efieldCC, external, geomP);
 
         // compute other forces and spread to grid
-        particles.SpreadIonsGPU(dt, dx, dxp, geom, umac, efieldCC, charge, RealFaceCoords, RealCenteredCoords, source, sourceTemp, paramPlaneList,
-                             paramPlaneCount, 3 /*this number currently does nothing, but we will use it later*/);
+        particles.SpreadIonsGPU(dx, dxp, geom, umac, efieldCC, source, sourceTemp);
 
         //particles.BuildCorrectionTable(dxp,1);
 
@@ -935,7 +944,81 @@ void main_driver(const char* argv)
 
         // AJN - should this be an if/else fluid_tog==2?
         if (fluid_tog == 1) {
-            advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
+
+            if(particles.getTotalPinnedMarkers() != 0)
+            {         
+
+                Real check;
+    //            particles.clearMobilityMatrix();
+    //            for(int ii=88;ii<=1687;ii++)
+    //            {
+    //                particles.SetForce(ii,1,0,0);
+    //                for (int d=0; d<AMREX_SPACEDIM; ++d) {
+    //                    source    [d].setVal(0.0);      // reset source terms
+    //                    sourceTemp[d].setVal(0.0);      // reset source terms
+    //                }
+    //                particles.SpreadIonsGPU(dx, dxp, geom, umac, efieldCC, source, sourceTemp);                
+    //                advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
+    //                particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
+    //                particles.fillMobilityMatrix(ii,0);
+
+    //                particles.SetForce(ii,0,1,0);
+    //                for (int d=0; d<AMREX_SPACEDIM; ++d) {
+    //                    source    [d].setVal(0.0);      // reset source terms
+    //                    sourceTemp[d].setVal(0.0);      // reset source terms
+    //                }
+    //                particles.SpreadIonsGPU(dx, dxp, geom, umac, efieldCC, source, sourceTemp);                
+    //                advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
+    //                particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
+    //                particles.fillMobilityMatrix(ii,1);
+
+    //                particles.SetForce(ii,0,0,1);
+    //                for (int d=0; d<AMREX_SPACEDIM; ++d) {
+    //                    source    [d].setVal(0.0);      // reset source terms
+    //                    sourceTemp[d].setVal(0.0);      // reset source terms
+    //                }
+    //                particles.SpreadIonsGPU(dx, dxp, geom, umac, efieldCC, source, sourceTemp);                
+    //                advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
+    //                particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
+    //                particles.fillMobilityMatrix(ii,2);
+
+
+    //            }
+    //            particles.writeMat();
+
+
+                MultiFab::Add(source[0],sourceRFD[0],0,0,sourceRFD[0].nComp(),sourceRFD[0].nGrow());
+                MultiFab::Add(source[1],sourceRFD[1],0,0,sourceRFD[1].nComp(),sourceRFD[1].nGrow());
+                MultiFab::Add(source[2],sourceRFD[2],0,0,sourceRFD[2].nComp(),sourceRFD[2].nGrow());
+
+                advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
+                particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
+                particles.velNorm();
+
+                particles.pinnedParticleInversion();
+                //particles.pinForce();
+
+                for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                        source    [d].setVal(0.0);      // reset source terms
+                        sourceTemp[d].setVal(0.0);      // reset source terms
+                    }
+
+                particles.SpreadIonsGPU(dx, dxp, geom, umac, efieldCC, source, sourceTemp);
+
+                MultiFab::Add(source[0],sourceRFD[0],0,0,sourceRFD[0].nComp(),sourceRFD[0].nGrow());
+                MultiFab::Add(source[1],sourceRFD[1],0,0,sourceRFD[1].nComp(),sourceRFD[1].nGrow());
+                MultiFab::Add(source[2],sourceRFD[2],0,0,sourceRFD[2].nComp(),sourceRFD[2].nGrow());
+
+                advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
+                particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
+                particles.velNorm();
+
+            }else
+            {
+                advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
+
+            }
+
         }
         else if (fluid_tog == 2) {
             Abort("Don't use fluid_tog=2 (inertial Low Mach solver)");
@@ -1091,7 +1174,7 @@ void main_driver(const char* argv)
                             potential, potentialM, potentialV);
         }
 
-        //particles.PrintParticles();
+        particles.PrintParticles();
 
         // timer for time step
         Real time2 = ParallelDescriptor::second() - time1;

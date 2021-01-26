@@ -2,7 +2,7 @@
  
 #include "common_functions.H"
 
-#include "compressible_functions.H"
+#include "compressible_functions_stag.H"
 
 void WritePlotFileStag(int step,
                        const amrex::Real time,
@@ -10,9 +10,11 @@ void WritePlotFileStag(int step,
                        const amrex::MultiFab& cu,
                        const amrex::MultiFab& cuMeans,
                        const amrex::MultiFab& cuVars,
+                       const std::array<MultiFab, AMREX_SPACEDIM>& cumom,
                        const amrex::MultiFab& prim,
                        const amrex::MultiFab& primMeans,
                        const amrex::MultiFab& primVars,
+                       const std::array<MultiFab, AMREX_SPACEDIM>& vel,
                        const amrex::MultiFab& spatialCross,
                        const amrex::MultiFab& eta,
                        const amrex::MultiFab& kappa)
@@ -22,10 +24,10 @@ void WritePlotFileStag(int step,
     int cnt, numvars, i = 0;
 
     // instantaneous values
-    // 5 + nspecies (conserved)
-    // 6 + 2*nspecies (primitive)
+    // 5 + nspecies (conserved) + 3 shifted momentum
+    // 6 + 2*nspecies (primitive) + 3 shifted velocities
     // 2 (eta and kappa)
-    int nplot = (5+nspecies) + (6+2*nspecies) + 2;
+    int nplot = (5+nspecies+3) + (6+2*nspecies+3) + 2;
 
     if (plot_means == 1) {
         nplot += 11;
@@ -56,11 +58,24 @@ void WritePlotFileStag(int step,
     amrex::MultiFab::Copy(plotfile,cu,0,cnt,numvars,0);
     cnt+=numvars;
 
+    // shifted momentum: jx_shifted, jy_shifted, jz_shifted
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        ShiftFaceToCC(cumom[d],0,plotfile,cnt,1);
+        ++cnt;
+    }
+    
+
     // instantaneous values of primitive variables
     // rho, ux, uy, uz, temp, pres, Yk, Xk
     numvars = 6+2*nspecies;
     amrex::MultiFab::Copy(plotfile,prim,0,cnt,numvars,0);
     cnt+=numvars;
+
+    // shifted momentum: velx_shifted, vely_shifted, velz_shifted
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        ShiftFaceToCC(vel[d],0,plotfile,cnt,1);
+        ++cnt;
+    }
 
     if (plot_means == 1) {
     
@@ -110,20 +125,23 @@ void WritePlotFileStag(int step,
     cnt = 0;
 
     varNames[cnt++] = "rhoInstant";
-    varNames[cnt++] = "jxInstant";
-    varNames[cnt++] = "jyInstant";
-    varNames[cnt++] = "jzInstant";
+    varNames[cnt++] = "jx_avg_Instant"; 
+    varNames[cnt++] = "jy_avg_Instant";
+    varNames[cnt++] = "jz_avg_Instant";
     varNames[cnt++] = "rhoEInstant";
     x = "rhoYkInstant_";
     for (i=0; i<nspecies; i++) {
         varNames[cnt] = x;
         varNames[cnt++] += 48+i;
     }
+    varNames[cnt++] = "jx_shifted_Instant";  
+    varNames[cnt++] = "jy_shifted_Instant";  
+    varNames[cnt++] = "jz_shifted_Instant";  
 
     varNames[cnt++] = "rhoInstant";
-    varNames[cnt++] = "uxInstant";
-    varNames[cnt++] = "uyInstant";
-    varNames[cnt++] = "uzInstant";
+    varNames[cnt++] = "ux_avg_Instant";
+    varNames[cnt++] = "uy_avg_Instant";
+    varNames[cnt++] = "uz_avg_Instant";
     varNames[cnt++] = "tInstant";
     varNames[cnt++] = "pInstant";
     x = "YkInstant_";
@@ -136,6 +154,9 @@ void WritePlotFileStag(int step,
         varNames[cnt] = x;
         varNames[cnt++] += 48+i;
     }
+    varNames[cnt++] = "ux_shifted_Instant";  
+    varNames[cnt++] = "uy_shifted_Instant";  
+    varNames[cnt++] = "uz_shifted_Instant";  
 
     if (plot_means == 1) {
         varNames[cnt++] = "rhoMean";

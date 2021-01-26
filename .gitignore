@@ -18,9 +18,9 @@ GRTAGS
 **/Backtrace.*
 
 ## All compiled programs
-*.gnu.*.ex
-*.ex
-dist
+**/*.gnu.*.ex
+**/*.o
+**/*.ex
 
 ## MacOS creates dynamic linker symbol files
 *.dSym
@@ -51,6 +51,10 @@ exec/**/*_H
 
 exec/**/*.png
 
+## Output data
+exec/**/out
 
-## Rendered videos
-*.mpeg
+
+exec/lib_hydro/amrex
+exec/lib_hydro/cmake/dist
+exec/lib_hydro/demo/dist

@@ -267,12 +267,14 @@ void WritePlotFile(int step,
     real_comp_names.push_back("eepsilon");
     real_comp_names.push_back("potential");
     real_comp_names.push_back("p3m_radius");
-//    real_comp_names.push_back("count");
+    real_comp_names.push_back("spring");
     int_comp_names.push_back("sorted");
     int_comp_names.push_back("i");
     int_comp_names.push_back("j");
     int_comp_names.push_back("k");
     int_comp_names.push_back("species");
+    int_comp_names.push_back("visible");
+    int_comp_names.push_back("pinned");
 //    int_comp_names.push_back("count");
 
     Vector<int> write_real_comp = {
@@ -322,7 +324,8 @@ void WritePlotFile(int step,
         0, // sigma
         0, // eepsilon
         0, // potential
-        0  // p3m_radius
+        0,  // p3m_radius
+        0  // spring
     };
 
     Vector<int> write_int_comp = {
@@ -330,7 +333,9 @@ void WritePlotFile(int step,
         0, // i
         0, // j
         0, // k
-        1  // species
+        1,  // species
+        1,  // visible
+        1  // pinned
     };
 
     particles.WritePlotFile(cplotfilename, "particles",

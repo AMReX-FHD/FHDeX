@@ -19,10 +19,34 @@
 
 #include "kernel_functions_K.H"
 
+#include "particle_functions.H"
+
 #include <iostream>
+#include <fstream>
 
 using namespace amrex;
 
+
+
+#include <type_traits>
+
+//Returns true or false depending on whether the particle has an integer member called 'visible'
+template <typename T1, typename = void>
+struct has_visible : std::false_type{};
+
+template <typename T1>
+struct has_visible<T1, decltype((void)T1::visible, void())> : std::true_type {};
+
+#define HAS_VISIBLE has_visible<StructInt>::value
+
+//Returns true or false depending on whether the particle has an integer member called 'visible'
+template <typename T2, typename = void>
+struct has_pinned : std::false_type{};
+
+template <typename T2>
+struct has_pinned<T2, decltype((void)T2::pinned, void())> : std::true_type {};
+
+#define HAS_PINNED has_pinned<StructInt>::value
 
 
 // Needs to be specified once a concrete class is created
@@ -80,7 +104,11 @@ void IBMarkerContainerBase<StructReal, StructInt>::MoveMarkers(int lev, Real dt)
     }
 }
 
+template <typename StructReal, typename StructInt>
+int IBMarkerContainerBase<StructReal, StructInt>::getTotalPinnedMarkers() {
 
+    return totalPinnedMarkers;
+}
 
 template <typename StructReal, typename StructInt>
 void IBMarkerContainerBase<StructReal, StructInt>::RFD(
@@ -98,7 +126,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::RFD(
     for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
 
 	PairIndex index(pti.index(), pti.LocalTileIndex());
-	const int np = this->GetParticles(lev)[index].numRealParticles();
+    const int np = this->GetParticles(lev)[index].numRealParticles();
 	auto& plev = this->GetParticles(lev);
 	auto& ptile = plev[index];
 	auto& aos   = ptile.GetArrayOfStructs();
@@ -107,24 +135,30 @@ void IBMarkerContainerBase<StructReal, StructInt>::RFD(
         AMREX_FOR_1D( np, i,
         {
             ParticleType & part = particles[i];
-
-            for (int d=0; d<AMREX_SPACEDIM; ++d) {
-                // using pred_pos to temporarily store the random direction -
-                // hopefully this doesn't cause problems elsewhere
-//                part.rdata(StructReal::pred_posx + d) =  get_particle_normal_func();
-                part.rdata(StructReal::pred_posx + d) = amrex::RandomNormal(0.,1.);
-
-                // move particle to q^n + (dt/2) * Wtilde
-                part.pos(d) += deltaover2 * part.rdata(StructReal::pred_posx + d);
-                // scale by k_B*T/delta
-                // NOTE: this assumed that the pred_pos* fields are
-                // displacement vectors wrt pos(*)
-
-                part.rdata(StructReal::forcex + d) =
-                    force * part.rdata(StructReal::pred_posx + d);
-
+            int pinned = 0;
+            if(HAS_PINNED)
+            {
+                pinned = part.idata(StructInt::pinned);        
             }
+            if(pinned==0)
+            {
+                for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                    // using pred_pos to temporarily store the random direction -
+                    // hopefully this doesn't cause problems elsewhere
+    //                part.rdata(StructReal::pred_posx + d) =  get_particle_normal_func();
+                    part.rdata(StructReal::pred_posx + d) = amrex::RandomNormal(0.,1.);
 
+                    // move particle to q^n + (dt/2) * Wtilde
+                    part.pos(d) += deltaover2 * part.rdata(StructReal::pred_posx + d);
+                    // scale by k_B*T/delta
+                    // NOTE: this assumed that the pred_pos* fields are
+                    // displacement vectors wrt pos(*)
+
+                    part.rdata(StructReal::forcex + d) =
+                        force * part.rdata(StructReal::pred_posx + d);
+
+                }
+            }
         });
     }
 
@@ -143,7 +177,13 @@ void IBMarkerContainerBase<StructReal, StructInt>::RFD(
         AMREX_FOR_1D( np, i,
         {
             ParticleType & part = particles[i];
-
+            int pinned = 0;
+            if(HAS_PINNED)
+            {
+                pinned = part.idata(StructInt::pinned);        
+            }
+            if(pinned==0)
+            {
             for (int d=0; d<AMREX_SPACEDIM; ++d) {
                 // move particle to q^n - (dt/2) * Wtilde (by subtracting dt *
                 // Wtilde)
@@ -156,6 +196,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::RFD(
                     -force * part.rdata(StructReal::pred_posx + d);
 
             }
+            }
         });
     }
 
@@ -174,7 +215,13 @@ void IBMarkerContainerBase<StructReal, StructInt>::RFD(
         AMREX_FOR_1D( np, i,
         {
             ParticleType & part = particles[i];
-
+            int pinned = 0;
+            if(HAS_PINNED)
+            {
+                pinned = part.idata(StructInt::pinned);        
+            }
+            if(pinned==0)
+            {
             for (int d=0; d<AMREX_SPACEDIM; ++d) {
                 // move particle back to original position q^n (by adding dt/2
                 // * Wtilde)
@@ -182,12 +229,88 @@ void IBMarkerContainerBase<StructReal, StructInt>::RFD(
                 // scale by 0
                 part.rdata(StructReal::forcex + d) = 0;
             }
+            }
         });
 
     }
 }
 
 
+template <typename StructReal, typename StructInt>
+void IBMarkerContainerBase<StructReal, StructInt>::initRankLists(int totalM) 
+{
+    // timer for profiling
+    BL_PROFILE_VAR("initRankLists()",initRankLists);
+
+    totalMarkers = totalM; 
+
+    ranksIdSorted.resize(totalMarkers,0);
+    idsRankSorted.resize(totalMarkers,0);
+    rankTotals.resize(ParallelDescriptor::NProcs(),0);
+    
+    const int lev = 0;
+
+    for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
+
+	PairIndex index(pti.index(), pti.LocalTileIndex());
+	const int np = this->GetParticles(lev)[index].numRealParticles();
+	auto& plev = this->GetParticles(lev);
+	auto& ptile = plev[index];
+	auto& aos   = ptile.GetArrayOfStructs();
+	ParticleType* particles = aos().dataPtr();
+
+        //THIS DOES NOT COMPILE WITH CUDA?
+
+        AMREX_FOR_1D( np, i,
+        {
+            ParticleType & part = particles[i];
+
+            ranksIdSorted[part.id()-1] = part.cpu();
+            rankTotals[ParallelDescriptor::MyProc()]++;
+        });
+    }
+
+//    ParallelDescriptor::ReduceIntSum(idsRankSorted);
+//    ParallelDescriptor::ReduceIntSum(rankTotals);
+
+    for (int i=0; i<totalMarkers; ++i) {
+        int temp = idsRankSorted[i];
+        ParallelDescriptor::ReduceIntSum(temp);
+        idsRankSorted[i] = temp;
+    }
+
+    for (int i=0; i<ParallelDescriptor::NProcs(); ++i) {
+        int temp = rankTotals[i];
+        ParallelDescriptor::ReduceIntSum(temp);
+        rankTotals[i] = temp;
+    }
+
+}
+
+template <typename StructReal, typename StructInt>
+void IBMarkerContainerBase<StructReal, StructInt>::loadPinMatrix(int totalP, char* filename) 
+{
+    // timer for profiling
+    BL_PROFILE_VAR("initRankLists()",initRankLists);
+
+    totalPinnedMarkers = totalP; 
+
+    pinMatrix.resize(pow(3*totalP,2),0);
+
+    std::ifstream ifs(filename, std::ios::binary);
+
+    for(int i=0; i<pow(3*totalP,2); i++)
+    {
+        double read;
+        ifs.read(reinterpret_cast<char*>( &read ), sizeof read);
+        pinMatrix[i] = read;
+        //Print() << i << " of " << pow(3*totalP,2) << ": " << read << std::endl;
+
+    }
+
+    ifs.close();
+
+}
 
 template <typename StructReal, typename StructInt>
 void IBMarkerContainerBase<StructReal, StructInt>::MovePredictor(int lev, Real dt) {
@@ -209,6 +332,99 @@ void IBMarkerContainerBase<StructReal, StructInt>::MovePredictor(int lev, Real d
     }
 }
 
+//Find a more efficient way to do this...
+template <typename StructReal, typename StructInt>
+void IBMarkerContainerBase<StructReal, StructInt>::pinnedParticleInversion() 
+{
+   // Print() << "inv1, " << totalMarkers;
+    Real velx[totalMarkers];
+    Real vely[totalMarkers];
+    Real velz[totalMarkers];
+    int  pinned[totalMarkers];
+    Real  forcex[totalMarkers];
+    Real  forcey[totalMarkers];
+    Real  forcez[totalMarkers];
+
+    PullDown(0, velx, StructReal::velx, totalMarkers);
+    PullDown(0, vely, StructReal::vely, totalMarkers);
+    PullDown(0, velz, StructReal::velz, totalMarkers);
+    PullDownInt(0, pinned, StructInt::pinned, totalMarkers);
+  //  Print() << "inv2\n";
+    
+    Real rhs[totalPinnedMarkers*3];
+    Real lhs[totalPinnedMarkers*3];
+    int k = 0;
+    Real rhsNorm = 0;
+    for(int i=0;i<totalMarkers;i++)
+    {
+        if(pinned[i] == 1)
+        {
+            rhs[k] = -velx[i];
+            rhs[k+1] = -vely[i];
+            rhs[k+2] = -velz[i];
+
+           // Print() << velx[i] << ", " << vely[i] << ", " << velz[i] << std::endl;
+          //  Print() << rhs[k] << ", " << rhs[k+1] << ", " << rhs[k+2] << std::endl;
+            rhsNorm = rhsNorm + rhs[k]*rhs[k] + rhs[k+1]*rhs[k+1] + rhs[k+2]*rhs[k+2];
+
+            k = k+3;
+        }
+    }
+    //Print() << "rhsNorm: " << sqrt(rhsNorm) << std::endl;
+    //Print() << 3*totalPinnedMarkers << std::endl;
+    for(int i=0;i<(3*totalPinnedMarkers);i++)
+    {
+        lhs[i]=0;
+        for(int j=0;j<(3*totalPinnedMarkers);j++)
+        {
+            lhs[i] = lhs[i] + pinMatrix[i*3*totalPinnedMarkers + j]*rhs[j];
+            //Print() << i << ", " << j << ", " << i*3*totalPinnedMarkers + j << ", " << pinMatrix[i*totalPinnedMarkers + j] << std::endl;
+
+        }
+    }
+
+    k=0;
+    for(int i=0;i<totalMarkers;i++)
+    {
+        if(pinned[i] == 1)
+        {
+            forcex[i] = lhs[k];
+            forcey[i] = lhs[k+1];
+            forcez[i] = lhs[k+2];
+
+            k = k+3;
+
+            //Print() << forcex[i] << ", " << forcey[i] << ", " << forcez[i] << std::endl;
+        }
+
+    }
+
+    int lev=0;
+    for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
+
+        PairIndex index(pti.index(), pti.LocalTileIndex());
+        const int np = this->GetParticles(lev)[index].numRealParticles();
+        auto& plev = this->GetParticles(lev);
+        auto& ptile = plev[index];
+        auto& aos   = ptile.GetArrayOfStructs();
+        ParticleType* particles = aos().dataPtr();
+
+            AMREX_FOR_1D( np, i,
+            {
+                ParticleType & part = particles[i];
+                if(part.idata(StructInt::pinned) == 1)
+                {
+                    part.rdata(StructReal::forcex) = forcex[part.id()-1];
+                    part.rdata(StructReal::forcey) = forcey[part.id()-1];
+                    part.rdata(StructReal::forcez) = forcez[part.id()-1];
+
+                    //Print() << part.id() << ", " << part.rdata(StructReal::forcex) << ", " << part.rdata(StructReal::forcey) << ", " << part.rdata(StructReal::forcez) << std::endl;
+                }
+
+            });
+
+    }
+}
 
 
 template <typename StructReal, typename StructInt>
@@ -312,7 +528,16 @@ void IBMarkerContainerBase<StructReal, StructInt>::PullDownInt(
                 list[id-1] = particles[i].idata(StructInt::sorted + element);
             });
 
-        } 
+        }else
+        {
+            AMREX_FOR_1D( np, i,
+            {
+                ParticleType & part = particles[i];
+                int id = part.id();
+                //std::cout << id << " of " << totalParticles << std::endl;
+                list[id-1] = particles[i].cpu();
+            });
+        }
     }
 
     //I'm sure there is an array version of this but this will do for now.
@@ -642,95 +867,108 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadKernelGpu(const AoS& ao
             hi_dim[2] = static_cast<int>(p.pos(2) * invdx[2] + gs);
         }
 
+        int vis = 1;
+        if(HAS_VISIBLE)
+        {
+            //Print() << "Has visible, "<< p.idata(StructInt::visible) << std::endl;
+            if(p.idata(StructInt::visible) != 1)
+            {
+                vis = 0;
+            }
+        }
+
         // x-components
-        for (int k = lo_dim[2] ; k < hi_dim[2]; ++k) {
-            for (int j = lo_dim[1] ; j < hi_dim[1]; ++j) {
-                for (int i = lo_dim[0] ; i < hi_dim[0]+1; ++i) {
-                  Real pos_grid[3];
-                  pos_grid[0]=(p.pos(0)-coords_x(i,j,k,0))*invdx[0];
-                  pos_grid[1]=(p.pos(1)-coords_x(i,j,k,1))*invdx[1];
-                  pos_grid[2]=(p.pos(2)-coords_x(i,j,k,2))*invdx[2];
+        if(vis == 1)
+        {
+            for (int k = lo_dim[2] ; k < hi_dim[2]; ++k) {
+                for (int j = lo_dim[1] ; j < hi_dim[1]; ++j) {
+                    for (int i = lo_dim[0] ; i < hi_dim[0]+1; ++i) {
+                      Real pos_grid[3];
+                      pos_grid[0]=(p.pos(0)-coords_x(i,j,k,0))*invdx[0];
+                      pos_grid[1]=(p.pos(1)-coords_x(i,j,k,1))*invdx[1];
+                      pos_grid[2]=(p.pos(2)-coords_x(i,j,k,2))*invdx[2];
 
-                  Real weight = 1.0;
-                  for (int ii=0; ii<spaceDim; ++ii)
-                  {
-                     if(pkernel_fluid == 3)
-                     {
-                        weight*=Kernel3P()(pos_grid[ii]);
-                     }
-                     else if (pkernel_fluid == 4)
-                     {
-                        weight*=Kernel4P()(pos_grid[ii]);
-                     }
-                     else
-                     {
-                        weight*=Kernel6P()(pos_grid[ii]);
-                     }
-                  }
-                  amrex::Gpu::Atomic::Add(&fout_x(i,j,k), p.rdata(StructReal::forcex + 0)*weight*invvol);
-                  amrex::Gpu::Atomic::Add(&fweights_x(i,j,k), weight);
+                      Real weight = 1.0;
+                      for (int ii=0; ii<spaceDim; ++ii)
+                      {
+                         if(pkernel_fluid == 3)
+                         {
+                            weight*=Kernel3P()(pos_grid[ii]);
+                         }
+                         else if (pkernel_fluid == 4)
+                         {
+                            weight*=Kernel4P()(pos_grid[ii]);
+                         }
+                         else
+                         {
+                            weight*=Kernel6P()(pos_grid[ii]);
+                         }
+                      }
+                      amrex::Gpu::Atomic::Add(&fout_x(i,j,k), p.rdata(StructReal::forcex + 0)*weight*invvol);
+                      amrex::Gpu::Atomic::Add(&fweights_x(i,j,k), weight);
+                    }
                 }
             }
-        }
 
-        // y-components
-        for (int k = lo_dim[2] ; k < hi_dim[2]; ++k) {
-            for (int j = lo_dim[1] ; j < hi_dim[1]+1; ++j) {
-                for (int i = lo_dim[0] ; i < hi_dim[0]; ++i) {
-                  Real pos_grid[3];
-                  pos_grid[0]=(p.pos(0)-coords_y(i,j,k,0))*invdx[0];
-                  pos_grid[1]=(p.pos(1)-coords_y(i,j,k,1))*invdx[1];
-                  pos_grid[2]=(p.pos(2)-coords_y(i,j,k,2))*invdx[2];
+            // y-components
+            for (int k = lo_dim[2] ; k < hi_dim[2]; ++k) {
+                for (int j = lo_dim[1] ; j < hi_dim[1]+1; ++j) {
+                    for (int i = lo_dim[0] ; i < hi_dim[0]; ++i) {
+                      Real pos_grid[3];
+                      pos_grid[0]=(p.pos(0)-coords_y(i,j,k,0))*invdx[0];
+                      pos_grid[1]=(p.pos(1)-coords_y(i,j,k,1))*invdx[1];
+                      pos_grid[2]=(p.pos(2)-coords_y(i,j,k,2))*invdx[2];
 
-                  Real weight = 1.0;
-                  for (int ii=0; ii<spaceDim; ++ii)
-                  {
-                     if(pkernel_fluid == 3)
-                     {
-                        weight*=Kernel3P()(pos_grid[ii]);
-                     }
-                     else if (pkernel_fluid == 4)
-                     {
-                        weight*=Kernel4P()(pos_grid[ii]);
-                     }
-                     else
-                     {
-                        weight*=Kernel6P()(pos_grid[ii]);
-                     }
-                  }
-                  amrex::Gpu::Atomic::Add(&fout_y(i,j,k), p.rdata(StructReal::forcex + 1)*weight*invvol);
-                  amrex::Gpu::Atomic::Add(&fweights_y(i,j,k), weight);
+                      Real weight = 1.0;
+                      for (int ii=0; ii<spaceDim; ++ii)
+                      {
+                         if(pkernel_fluid == 3)
+                         {
+                            weight*=Kernel3P()(pos_grid[ii]);
+                         }
+                         else if (pkernel_fluid == 4)
+                         {
+                            weight*=Kernel4P()(pos_grid[ii]);
+                         }
+                         else
+                         {
+                            weight*=Kernel6P()(pos_grid[ii]);
+                         }
+                      }
+                      amrex::Gpu::Atomic::Add(&fout_y(i,j,k), p.rdata(StructReal::forcex + 1)*weight*invvol);
+                      amrex::Gpu::Atomic::Add(&fweights_y(i,j,k), weight);
+                    }
                 }
             }
-        }
 
-        // z-components
-        for (int k = lo_dim[2] ; k < hi_dim[2]+1; ++k) {
-            for (int j = lo_dim[1] ; j < hi_dim[1]; ++j) {
-                for (int i = lo_dim[0] ; i < hi_dim[0]; ++i) {
-                  Real pos_grid[3];
-                  pos_grid[0]=(p.pos(0)-coords_z(i,j,k,0))*invdx[0];
-                  pos_grid[1]=(p.pos(1)-coords_z(i,j,k,1))*invdx[1];
-                  pos_grid[2]=(p.pos(2)-coords_z(i,j,k,2))*invdx[2];
+            // z-components
+            for (int k = lo_dim[2] ; k < hi_dim[2]+1; ++k) {
+                for (int j = lo_dim[1] ; j < hi_dim[1]; ++j) {
+                    for (int i = lo_dim[0] ; i < hi_dim[0]; ++i) {
+                      Real pos_grid[3];
+                      pos_grid[0]=(p.pos(0)-coords_z(i,j,k,0))*invdx[0];
+                      pos_grid[1]=(p.pos(1)-coords_z(i,j,k,1))*invdx[1];
+                      pos_grid[2]=(p.pos(2)-coords_z(i,j,k,2))*invdx[2];
 
-                  Real weight = 1.0;
-                  for (int ii=0; ii<spaceDim; ++ii)
-                  {
-                     if(pkernel_fluid == 3)
-                     {
-                        weight*=Kernel3P()(pos_grid[ii]);
-                     }
-                     else if (pkernel_fluid == 4)
-                     {
-                        weight*=Kernel4P()(pos_grid[ii]);
-                     }
-                     else
-                     {
-                        weight*=Kernel6P()(pos_grid[ii]);
-                     }
-                  }
-                  amrex::Gpu::Atomic::Add(&fout_z(i,j,k), p.rdata(StructReal::forcex + 2)*weight*invvol);
-                  amrex::Gpu::Atomic::Add(&fweights_z(i,j,k), weight);
+                      Real weight = 1.0;
+                      for (int ii=0; ii<spaceDim; ++ii)
+                      {
+                         if(pkernel_fluid == 3)
+                         {
+                            weight*=Kernel3P()(pos_grid[ii]);
+                         }
+                         else if (pkernel_fluid == 4)
+                         {
+                            weight*=Kernel4P()(pos_grid[ii]);
+                         }
+                         else
+                         {
+                            weight*=Kernel6P()(pos_grid[ii]);
+                         }
+                      }
+                      amrex::Gpu::Atomic::Add(&fout_z(i,j,k), p.rdata(StructReal::forcex + 2)*weight*invvol);
+                      amrex::Gpu::Atomic::Add(&fweights_z(i,j,k), weight);
+                    }
                 }
             }
         }
@@ -817,7 +1055,8 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateMarkersGpu(
         }
 
         //Print() << "Here1!\n";
-        InterpolateKernelGpu(particles, tile_box, f_in_fab, f_weights_fab, coords_fab, dx, 0, check);
+        int gs = 0;
+        InterpolateKernelGpu(particles, tile_box, f_in_fab, f_weights_fab, coords_fab, dx, &gs, check);
 
         //Print() << "Here2!" << check << "\n";
         rejected_proc += check;
@@ -1124,13 +1363,28 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateKernelGpu(AoS& aos
     int ng = nghost[0];
 
     check = 0;
+    int vcheck = 0;
 
     Gpu::DeviceScalar<Real> check_gpu(check);
     Real* pcheck = check_gpu.dataPtr();
 
+    Gpu::DeviceScalar<Real> vcheck_gpu(vcheck);
+    Real* pvcheck = vcheck_gpu.dataPtr();
+
     AMREX_FOR_1D( Np, ip,
     {
         ParticleType& p = pstruct[ip];
+
+        int vis = 1;
+
+        if(HAS_VISIBLE)
+        {
+            //Print() << "Has visible, "<< p.idata(StructInt::visible) << std::endl;
+            if(p.idata(StructInt::visible) != 1)
+            {
+                vis = 0;
+            }
+        }
 
         int lo_dim[3];
         int hi_dim[3];
@@ -1194,12 +1448,8 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateKernelGpu(AoS& aos
             hi_dim[2] = static_cast<int>(p.pos(2) * invdx[2] + gs);
             if (hi_dim[2]>bx_hi[2]) checkg = 1;
         }
-        //Print() << "dx: " << dx[0] << ", " << invdx[0] << "\n"; 
-        //Print() << "Pos: " << p.pos(0) << ", " << p.pos(1) << ", " << p.pos(2) << "\n";
-        //Print() << "Dims: " << lo_dim[0] << ", " << lo_dim[1] << ", " << lo_dim[2] << ", "  << hi_dim[0] << ", "  << hi_dim[1] << ", "  << hi_dim[2] << "\n";
-        //Print() << "Box : " << bx_lo[0] << ", " << bx_lo[1] << ", " << bx_lo[2] << ", "  << bx_hi[0] << ", "  << bx_hi[1] << ", "  << bx_hi[2] << "\n";
 
-        if(checkg == 0)
+        if(checkg == 0 && vis == 1)
         //if(true)
         {
 
@@ -1335,14 +1585,19 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateKernelGpu(AoS& aos
                 }
             }
         }
-        }else
+        }else if(checkg == 1)
         {
            pcheck[0]++;
            //std::cout << "Fail\n";
+        }else
+        {
+           pvcheck[0]++;
+           //Print() << "Ignoring invisible!\n";
         }
     });
 
     check = check_gpu.dataValue();
+    vcheck = vcheck_gpu.dataValue();
     //std::cout << "HERE! " << check << std::endl;
 
 }
@@ -1648,7 +1903,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::PrintMarkerData(int lev) cons
         // Also we stride the neighbors[index] array in units of
         // sizeof(ParticleData). All of this is a little too dangerous for my
         // taste: never hide what you're doing from your compiler!!!
-        const ParticleType * nbhd_data = (ParticleType *) this->neighbors[lev].at(index).dataPtr();
+        const ParticleType * nbhd_data = (ParticleType *) this->neighbors[lev].at(index).GetArrayOfStructs().dataPtr();
         for(int i = 0; i < ng; i++){
             const ParticleType & part = nbhd_data[i];
 

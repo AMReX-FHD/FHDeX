@@ -5,10 +5,7 @@ void InitializeCompressibleNamespace() {
 
     BL_PROFILE_VAR("InitializeCompressibleNamespace()",InitializeCompressibleNamespace);
 
-    bc_Yk.resize(MAX_SPECIES*LOHI*AMREX_SPACEDIM);
-    bc_Xk.resize(MAX_SPECIES*LOHI*AMREX_SPACEDIM);
-
-    initialize_compressible_namespace(bc_Yk.dataPtr(), bc_Xk.dataPtr(), &plot_means, &plot_vars);
+    initialize_compressible_namespace(&plot_means, &plot_vars);
 }
 
 
@@ -50,17 +47,6 @@ void InitConsVar(MultiFab& cons, const MultiFab& prim,
     for (int n=0; n<nspecies; ++n) {
         grav_gpu[n] = grav[n];
     }
-    GpuArray<Real,MAX_SPECIES> bc_Yk_x_lo_gpu;
-    GpuArray<Real,MAX_SPECIES> bc_Yk_x_hi_gpu;
-    GpuArray<Real,MAX_SPECIES> bc_Yk_y_lo_gpu;
-    GpuArray<Real,MAX_SPECIES> bc_Yk_y_hi_gpu;
-
-    for (int n=0; n<nspecies; ++n) {
-        bc_Yk_x_lo_gpu[n] = bc_Yk[n*LOHI*AMREX_SPACEDIM];
-        bc_Yk_x_hi_gpu[n] = bc_Yk[AMREX_SPACEDIM + n*LOHI*AMREX_SPACEDIM];
-        bc_Yk_y_lo_gpu[n] = bc_Yk[1 + n*LOHI*AMREX_SPACEDIM];
-        bc_Yk_y_hi_gpu[n] = bc_Yk[1 + AMREX_SPACEDIM + n*LOHI*AMREX_SPACEDIM];
-    }
 
     // local variables
     Real mach = 0.3;
@@ -84,6 +70,7 @@ void InitConsVar(MultiFab& cons, const MultiFab& prim,
             GpuArray<Real,AMREX_SPACEDIM> relpos;
 
             GpuArray<Real,MAX_SPECIES> massvec;
+            GpuArray<Real,MAX_SPECIES> Yk;
 
             AMREX_D_TERM(itVec[0] = (i+0.5)*dx[0]; ,
                          itVec[1] = (j+0.5)*dx[1]; ,
@@ -111,8 +98,7 @@ void InitConsVar(MultiFab& cons, const MultiFab& prim,
                 }
 
                 Real pamb;
-                GetPressureGas(pamb, massvec, cu(i,j,k,0), pu(i,j,k,4),
-                               nspecies_gpu, Runiv_gpu, molmass_gpu);
+                GetPressureGas(pamb, massvec, cu(i,j,k,0), pu(i,j,k,4));
                 
                 Real molmix = 0.;
 
@@ -141,8 +127,8 @@ void InitConsVar(MultiFab& cons, const MultiFab& prim,
             } else if (prob_type_gpu == 3) { // diffusion barrier
 
                 for (int l=0; l<nspecies_gpu; ++l) {
-                    Real Ygrad = (bc_Yk_y_hi_gpu[l] - bc_Yk_y_lo_gpu[l])/(realhi[1] - reallo[1]);
-                    massvec[l] = Ygrad*pos[1] + bc_Yk_y_lo_gpu[l];
+                    Real Ygrad = (bc_Yk_y_hi[l] - bc_Yk_y_lo[l])/(realhi[1] - reallo[1]);
+                    massvec[l] = Ygrad*pos[1] + bc_Yk_y_lo[l];
                     cu(i,j,k,5+l) = cu(i,j,k,0)*massvec[l];
                 }
 
@@ -177,28 +163,40 @@ void InitConsVar(MultiFab& cons, const MultiFab& prim,
                 cu(i,j,k,2) = 0;
                 cu(i,j,k,3) = 0;
                 if((prob_lo[1] + itVec[1]) < hy) {
-                    massvec[0] = bc_Yk_x_lo_gpu[0];
-                    massvec[1] = bc_Yk_x_lo_gpu[1];
+                    massvec[0] = bc_Yk_x_lo[0];
+                    massvec[1] = bc_Yk_x_lo[1];
                     GetEnergy(intEnergy, massvec, t_lo_y, hcv_gpu, nspecies_gpu);
                     cu(i,j,k,4) = cu(i,j,k,0)*intEnergy;
-                    cu(i,j,k,5) = cu(i,j,k,0)*bc_Yk_x_lo_gpu[0];
-                    cu(i,j,k,6) = cu(i,j,k,0)*bc_Yk_x_lo_gpu[1];
+                    cu(i,j,k,5) = cu(i,j,k,0)*bc_Yk_x_lo[0];
+                    cu(i,j,k,6) = cu(i,j,k,0)*bc_Yk_x_lo[1];
                 } else if ((prob_lo[1] + itVec[1]) < 2*hy) {
-                    massvec[0] = bc_Yk_x_hi_gpu[0];
-                    massvec[1] = bc_Yk_x_hi_gpu[1];
+                    massvec[0] = bc_Yk_x_hi[0];
+                    massvec[1] = bc_Yk_x_hi[1];
                     GetEnergy(intEnergy, massvec, t_hi_y, hcv_gpu, nspecies_gpu);
                     cu(i,j,k,4) = cu(i,j,k,0)*intEnergy;
-                    cu(i,j,k,5) = cu(i,j,k,0)*bc_Yk_x_hi_gpu[0];
-                    cu(i,j,k,6) = cu(i,j,k,0)*bc_Yk_x_hi_gpu[1];
+                    cu(i,j,k,5) = cu(i,j,k,0)*bc_Yk_x_hi[0];
+                    cu(i,j,k,6) = cu(i,j,k,0)*bc_Yk_x_hi[1];
                 } else {
-                    massvec[0] = bc_Yk_x_lo_gpu[0];
-                    massvec[1] = bc_Yk_x_lo_gpu[1];
+                    massvec[0] = bc_Yk_x_lo[0];
+                    massvec[1] = bc_Yk_x_lo[1];
                     GetEnergy(intEnergy, massvec, t_lo_y, hcv_gpu, nspecies_gpu);
                     cu(i,j,k,4) = cu(i,j,k,0)*intEnergy;
-                    cu(i,j,k,5) = cu(i,j,k,0)*bc_Yk_x_lo_gpu[0];
-                    cu(i,j,k,6) = cu(i,j,k,0)*bc_Yk_x_lo_gpu[1];
+                    cu(i,j,k,5) = cu(i,j,k,0)*bc_Yk_x_lo[0];
+                    cu(i,j,k,6) = cu(i,j,k,0)*bc_Yk_x_lo[1];
                 }
-            } // prob_type
+            } else if (prob_type_gpu == 100) { // sinusoidal density variation
+
+                   Real y = itVec[1];
+                   Real Ly = realhi[1] - reallo[0];
+                   for (int l=0;l<nspecies_gpu;l++) {
+                     Yk[l] = cu(i,j,k,5+l)/cu(i,j,k,0);
+                   }
+                   cu(i,j,k,0) = rho0_gpu + 0.1*rho0_gpu*sin(2.*pi*y/Ly);
+                   for (int l=0;l<nspecies_gpu;l++) {
+                     cu(i,j,k,5+l) = cu(i,j,k,0)*Yk[l];
+                   }
+            } // prob type
+
         });
     } // end MFIter
 

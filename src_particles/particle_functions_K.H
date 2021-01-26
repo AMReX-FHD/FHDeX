@@ -267,12 +267,38 @@ void force_function2 (      FhdParticleContainer::ParticleType& part1,
     }
 }
 
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void repulsive_force_lj_full (      FhdParticleContainer::ParticleType& part1,
+                              const FhdParticleContainer::ParticleType& part2,
+                              amrex::Real dx, amrex::Real dy, amrex::Real dz, amrex::Real dr2)
+{
+    using namespace amrex;
+
+    const int spec1 = part1.idata(FHD_intData::species)-1;
+    const int spec2 = part2.idata(FHD_intData::species)-1;
+    const int p_matrix_val = spec1*nspecies + spec2;
+     
+    //const Real eps1 = part1.rdata(FHD_realData::eepsilon);
+    const Real eps1 = 1;
+    //const Real eps1 = eepsilon[p_matrix_val];
+    const Real sig1 = part1.rdata(FHD_realData::sigma);
+    const Real sig2 = part2.rdata(FHD_realData::sigma);
+    const Real fac1 = std::pow((sig1 + sig2)/4.0, 12);
+    const Real fac2 = std::pow((sig1 + sig2)/4.0, 6);
+    const Real ff = eps1*4*(1./(dr2*dr2*dr2*dr2))*(-12*fac1/(dr2*dr2*dr2) + 6*fac2);
+    
+    part1.rdata(FHD_realData::forcex) -= dx*ff;
+    part1.rdata(FHD_realData::forcey) -= dy*ff;
+    part1.rdata(FHD_realData::forcez) -= dz*ff;
+}
+
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void repulsive_force (      FhdParticleContainer::ParticleType& part1,
                       const FhdParticleContainer::ParticleType& part2,
                       amrex::Real dx, amrex::Real dy, amrex::Real dz, amrex::Real dr2)
 {
-    using namespace amrex;
+//    using namespace amrex;
 
     const Real eps1 = part1.rdata(FHD_realData::eepsilon);
     const Real sig1 = part1.rdata(FHD_realData::sigma);
@@ -375,278 +401,308 @@ void compute_p3m_sr_correction_nl_gpu (FhdParticleContainer::AoS& aos, int Np, i
     // clearly we don't want to do this every time...
     Gpu::DeviceVector<int> bc_es_lo_d = getDeviceVector(bc_es_lo);
     Gpu::DeviceVector<int> bc_es_hi_d = getDeviceVector(bc_es_hi);    
+    //Gpu::DeviceVector<int> p_int_tog_d = getDeviceVector(p_int_tog);
 
     auto p_bc_es_lo_d = bc_es_lo_d.data();
     auto p_bc_es_hi_d = bc_es_hi_d.data();
+    //auto p_p_int_tog_d = p_int_tog_d.data();
 
     AMREX_FOR_1D( Np, i, 
     {
         FhdParticleContainer::ParticleType& p1 = pstruct[i];
-
-        //
-
-        Real r = 0.0;
-        Real r2 = 0.0;
-        RealVect dr(0., 0., 0.);
-
-        Real correction_force_mag = 0.0;
-        Real p3m_radius = p1.rdata(FHD_realData::p3m_radius);
-        Real q = p1.rdata(FHD_realData::q);
-
-        int near_wall_below = 0;
-        if (p_bc_es_lo_d[1] != -1) near_wall_below = near_wall_check(p1, -2, 0.5*p3m_radius);
-
-        int near_wall_above = 0;
-        if (p_bc_es_hi_d[1] != -1) near_wall_above = near_wall_check(p1,  2, 0.5*p3m_radius);
-
-        // image charge interactions for wall below
-        if (near_wall_below)
+        if(p1.idata(FHD_intData::pinned) != 0)
         {
-            RealVect im_charge_pos = calc_im_charge_loc(p1, -2);
+            int spec1 = p1.idata(FHD_intData::species)-1;
+            int spec2 = p1.idata(FHD_intData::species)-1;
+            int p_matrix_val = spec1*nspecies + spec2;
 
-            // compute sep vector btwn charge and its image
-            dr[0] = p1.pos(0) - im_charge_pos[0];
-            dr[1] = p1.pos(1) - im_charge_pos[1];
-            dr[2] = p1.pos(2) - im_charge_pos[2];
+            Real r = 0.0;
+            Real r2 = 0.0;
+            RealVect dr(0., 0., 0.);
 
-            r2 = dr.dotProduct(dr);
-            r = std::sqrt(r2);      // separation dist
+            Real correction_force_mag = 0.0;
+            Real p3m_radius = p1.rdata(FHD_realData::p3m_radius);
+            Real q = p1.rdata(FHD_realData::q);
 
-            // perform coulomb and p3m interaction with image charge
-            if ((p_bc_es_lo_d[1] == 1) and (r < p3m_radius))
+            int near_wall_below = 0;
+            if (p_bc_es_lo_d[1] != -1) near_wall_below = near_wall_check(p1, -2, 0.5*p3m_radius);
+
+            int near_wall_above = 0;
+            if (p_bc_es_hi_d[1] != -1) near_wall_above = near_wall_check(p1,  2, 0.5*p3m_radius);
+
+            // image charge interactions for wall below
+            if (near_wall_below)
             {
-                // hom. dirichlet--image charge opposite that of particle
-                
-                // coloumb
-                p1.rdata(FHD_realData::forcex) += ee*(dr[0]/r)*q*(-q)/r2;
-                p1.rdata(FHD_realData::forcey) += ee*(dr[1]/r)*q*(-q)/r2;
-                p1.rdata(FHD_realData::forcez) += ee*(dr[2]/r)*q*(-q)/r2;
+                RealVect im_charge_pos = calc_im_charge_loc(p1, -2);
 
-                // p3m
-                Real correction_force_mag = compute_p3m_force_mag(r, dx[0], dx[1], dx[2]);
-                Gpu::Atomic::Add(prcount_di, 1.0);
-                p1.rdata(FHD_realData::forcex) -= ee*(dr[0]/r)*q*(-q)*correction_force_mag*dx2_inv;
-                p1.rdata(FHD_realData::forcey) -= ee*(dr[1]/r)*q*(-q)*correction_force_mag*dx2_inv;
-                p1.rdata(FHD_realData::forcez) -= ee*(dr[2]/r)*q*(-q)*correction_force_mag*dx2_inv;
+                // compute sep vector btwn charge and its image
+                dr[0] = p1.pos(0) - im_charge_pos[0];
+                dr[1] = p1.pos(1) - im_charge_pos[1];
+                dr[2] = p1.pos(2) - im_charge_pos[2];
 
-                //Print() << "Below!\n";
+                r2 = dr.dotProduct(dr);
+                r = std::sqrt(r2);      // separation dist
 
-                //Print() << p1.id() << ": " << setprecision(15) << correction_force_mag << "\n";
-            }
-            else if ((p_bc_es_lo_d[1] == 2) and (r < p3m_radius))
-            {
-                // hom. neumann  --image charge equal that of particle
-
-                // coloumb
-                p1.rdata(FHD_realData::forcex) += ee*(dr[0]/r)*q*q/r2;
-                p1.rdata(FHD_realData::forcey) += ee*(dr[1]/r)*q*q/r2;
-                p1.rdata(FHD_realData::forcez) += ee*(dr[2]/r)*q*q/r2;
-
-                // p3m
-                Real correction_force_mag = compute_p3m_force_mag(r, dx[0], dx[1], dx[2]);
-                Gpu::Atomic::Add(prcount_di, 1.0);
-                p1.rdata(FHD_realData::forcex) -= ee*(dr[0]/r)*q*q*correction_force_mag*dx2_inv;
-                p1.rdata(FHD_realData::forcey) -= ee*(dr[1]/r)*q*q*correction_force_mag*dx2_inv;
-                p1.rdata(FHD_realData::forcez) -= ee*(dr[2]/r)*q*q*correction_force_mag*dx2_inv;
-            }
-        }
-
-        // image charge interactions for wall above
-        if (near_wall_above)
-        {
-            RealVect im_charge_pos = calc_im_charge_loc(p1, 2);
-
-            // compute sep vector btwn charge and its image
-            dr[0] = p1.pos(0) - im_charge_pos[0];
-            dr[1] = p1.pos(1) - im_charge_pos[1];
-            dr[2] = p1.pos(2) - im_charge_pos[2];
-
-            r2 = dr.dotProduct(dr);
-            r = std::sqrt(r2);      // separation dist
-
-            // perform coulomb and p3m interaction with image charge
-            if ((p_bc_es_hi_d[1] == 1) and (r < p3m_radius))
-            {
-                // hom. dirichlet--image charge opposite that of particle
-                
-                // coloumb
-                p1.rdata(FHD_realData::forcex) += ee*(dr[0]/r)*q*(-q)/r2;
-                p1.rdata(FHD_realData::forcey) += ee*(dr[1]/r)*q*(-q)/r2;
-                p1.rdata(FHD_realData::forcez) += ee*(dr[2]/r)*q*(-q)/r2;
-
-                // p3m
-                Real correction_force_mag = compute_p3m_force_mag(r, dx[0], dx[1], dx[2]);
-                Gpu::Atomic::Add(prcount_di, 1.0);
-                p1.rdata(FHD_realData::forcex) -= ee*(dr[0]/r)*q*(-q)*correction_force_mag*dx2_inv;
-                p1.rdata(FHD_realData::forcey) -= ee*(dr[1]/r)*q*(-q)*correction_force_mag*dx2_inv;
-                p1.rdata(FHD_realData::forcez) -= ee*(dr[2]/r)*q*(-q)*correction_force_mag*dx2_inv;
-            }
-            else if ((p_bc_es_hi_d[1] == 2) and (r < p3m_radius))
-            {
-                // hom. neumann  --image charge equal that of particle
-
-                // coloumb
-                p1.rdata(FHD_realData::forcex) += ee*(dr[0]/r)*q*q/r2;
-                p1.rdata(FHD_realData::forcey) += ee*(dr[1]/r)*q*q/r2;
-                p1.rdata(FHD_realData::forcez) += ee*(dr[2]/r)*q*q/r2;
-
-                // p3m
-                Real correction_force_mag = compute_p3m_force_mag(r, dx[0], dx[1], dx[2]);
-                Gpu::Atomic::Add(prcount_di, 1.0);
-                p1.rdata(FHD_realData::forcex) -= ee*(dr[0]/r)*q*q*correction_force_mag*dx2_inv;
-                p1.rdata(FHD_realData::forcey) -= ee*(dr[1]/r)*q*q*correction_force_mag*dx2_inv;
-                p1.rdata(FHD_realData::forcez) -= ee*(dr[2]/r)*q*q*correction_force_mag*dx2_inv;
-
-            }
-
-        }
-
-        // loop through neighbor list
-        for (const auto& p2 : nbor_data.getNeighbors(i))
-        {
-            Real q2 = p2.rdata(FHD_realData::q);
-
-            dr[0] = p1.pos(0) - p2.pos(0);
-            dr[1] = p1.pos(1) - p2.pos(1);
-            dr[2] = p1.pos(2) - p2.pos(2);
-
-            r2 = dr.dotProduct(dr);
-            r = std::sqrt(r2);      // separation dist
-
-            if (r < p3m_radius)
-            {
-                // coloumb
-                p1.rdata(FHD_realData::forcex) += ee*(dr[0]/r)*q*q2/r2;
-                p1.rdata(FHD_realData::forcey) += ee*(dr[1]/r)*q*q2/r2;
-                p1.rdata(FHD_realData::forcez) += ee*(dr[2]/r)*q*q2/r2;
-
-                //p3m
-                Real correction_force_mag = compute_p3m_force_mag(r, dx[0], dx[1], dx[2]);
-                Gpu::Atomic::Add(prcount_d, 1.0);
-                p1.rdata(FHD_realData::forcex) -= ee*(dr[0]/r)*q*q2*correction_force_mag*dx2_inv;
-                p1.rdata(FHD_realData::forcey) -= ee*(dr[1]/r)*q*q2*correction_force_mag*dx2_inv;
-                p1.rdata(FHD_realData::forcez) -= ee*(dr[2]/r)*q*q2*correction_force_mag*dx2_inv;
-
-                //Print() << scientific << setprecision(15) << correction_force_mag << ", " << r << ", " << dx[0] << std::endl;
-
-                // If part near wall, check if NL part also near wall
-                if (near_wall_below)
+                // perform coulomb and p3m interaction with image charge
+                if ((p_bc_es_lo_d[1] == 1) and (r < p3m_radius))
                 {
-                    int near_wall_below_nl_part = near_wall_check(p2, -2, 0.5*p3m_radius);
-                    if (near_wall_below_nl_part)
+                    // hom. dirichlet--image charge opposite that of particle
+                    
+                    // coloumb
+                    if(p_int_tog[p_matrix_val] != 0)
                     {
-                        RealVect im_charge_pos = calc_im_charge_loc(p2, -2);
-
-                        // compute sep vector btwn charge and NL's image
-                        dr[0] = p1.pos(0) - im_charge_pos[0];
-                        dr[1] = p1.pos(1) - im_charge_pos[1];
-                        dr[2] = p1.pos(2) - im_charge_pos[2];
-
-                        r2 = dr.dotProduct(dr);
-                        r = std::sqrt(r2);      // separation dist
-
-                        // perform coulomb and p3m interaction with NL particle's image charge
-                        if ((p_bc_es_lo_d[1] == 1) and (r < p3m_radius))
-                        {
-                            // hom. dirichlet--image charge opposite that of particle
-
-                            //Print() << "Pre force: " << setprecision(17) << p1.rdata(FHD_realData::forcex) << ", " << p1.rdata(FHD_realData::forcey) << ", " << p1.rdata(FHD_realData::forcez) << "\n";
-
-                            // coloumb
-                            p1.rdata(FHD_realData::forcex) += ee*(dr[0]/r)*q*(-q2)/r2;
-                            p1.rdata(FHD_realData::forcey) += ee*(dr[1]/r)*q*(-q2)/r2;
-                            p1.rdata(FHD_realData::forcez) += ee*(dr[2]/r)*q*(-q2)/r2;
-
-                           // Print() << "Coulomb: " << setprecision(17) << ee*(dr[0]/r)*q*(-q2)/r2 << ", " << ee*(dr[1]/r)*q*(-q2)/r2 << ", " << ee*(dr[2]/r)*q*(-q2)/r2 << "\n";
-
-                            // p3m
-                            Real correction_force_mag = compute_p3m_force_mag(r, dx[0], dx[1], dx[2]);
-                            Gpu::Atomic::Add(prcount_di, 1.0);
-                            p1.rdata(FHD_realData::forcex) -= ee*(dr[0]/r)*q*(-q2)*correction_force_mag*dx2_inv;
-                            p1.rdata(FHD_realData::forcey) -= ee*(dr[1]/r)*q*(-q2)*correction_force_mag*dx2_inv;
-                            p1.rdata(FHD_realData::forcez) -= ee*(dr[2]/r)*q*(-q2)*correction_force_mag*dx2_inv;
-
-                            //Print() << "Below: " << p1.id() << ": " << setprecision(17) << correction_force_mag << ", " << p1.rdata(FHD_realData::forcex) << ", " << p1.rdata(FHD_realData::forcey) << ", " << p1.rdata(FHD_realData::forcez) << "\n";
-                        }
-                        else if ((p_bc_es_lo_d[1] == 2) and (r < p3m_radius))
-                        {
-                            // hom. neumann  --image charge equal that of particle
-                            
-                            // coloumb
-                            p1.rdata(FHD_realData::forcex) += ee*(dr[0]/r)*q*q2/r2;
-                            p1.rdata(FHD_realData::forcey) += ee*(dr[1]/r)*q*q2/r2;
-                            p1.rdata(FHD_realData::forcez) += ee*(dr[2]/r)*q*q2/r2;
-                            
-                            // p3m
-                            Real correction_force_mag = compute_p3m_force_mag(r, dx[0], dx[1], dx[2]);
-                            Gpu::Atomic::Add(prcount_di, 1.0);
-                            p1.rdata(FHD_realData::forcex) -= ee*(dr[0]/r)*q*q2*correction_force_mag*dx2_inv;
-                            p1.rdata(FHD_realData::forcey) -= ee*(dr[1]/r)*q*q2*correction_force_mag*dx2_inv;
-                            p1.rdata(FHD_realData::forcez) -= ee*(dr[2]/r)*q*q2*correction_force_mag*dx2_inv;
-                        }
+                        p1.rdata(FHD_realData::forcex) += ee*(dr[0]/r)*q*(-q)/r2;
+                        p1.rdata(FHD_realData::forcey) += ee*(dr[1]/r)*q*(-q)/r2;
+                        p1.rdata(FHD_realData::forcez) += ee*(dr[2]/r)*q*(-q)/r2;
                     }
+                    // p3m
+                    Real correction_force_mag = compute_p3m_force_mag(r, dx[0], dx[1], dx[2]);
+                    Gpu::Atomic::Add(prcount_di, 1.0);
+                    p1.rdata(FHD_realData::forcex) -= ee*(dr[0]/r)*q*(-q)*correction_force_mag*dx2_inv;
+                    p1.rdata(FHD_realData::forcey) -= ee*(dr[1]/r)*q*(-q)*correction_force_mag*dx2_inv;
+                    p1.rdata(FHD_realData::forcez) -= ee*(dr[2]/r)*q*(-q)*correction_force_mag*dx2_inv;
+
+                    //Print() << "Below!\n";
+
+                    //Print() << p1.id() << ": " << setprecision(15) << correction_force_mag << "\n";
+                }
+                else if ((p_bc_es_lo_d[1] == 2) and (r < p3m_radius))
+                {
+                    // hom. neumann  --image charge equal that of particle
+
+                    // coloumb
+                    if(p_int_tog[p_matrix_val] != 0)
+                    {
+                        p1.rdata(FHD_realData::forcex) += ee*(dr[0]/r)*q*q/r2;
+                        p1.rdata(FHD_realData::forcey) += ee*(dr[1]/r)*q*q/r2;
+                        p1.rdata(FHD_realData::forcez) += ee*(dr[2]/r)*q*q/r2;
+                    }
+
+                    // p3m
+                    Real correction_force_mag = compute_p3m_force_mag(r, dx[0], dx[1], dx[2]);
+                    Gpu::Atomic::Add(prcount_di, 1.0);
+                    p1.rdata(FHD_realData::forcex) -= ee*(dr[0]/r)*q*q*correction_force_mag*dx2_inv;
+                    p1.rdata(FHD_realData::forcey) -= ee*(dr[1]/r)*q*q*correction_force_mag*dx2_inv;
+                    p1.rdata(FHD_realData::forcez) -= ee*(dr[2]/r)*q*q*correction_force_mag*dx2_inv;
+                }
+            }
+
+            // image charge interactions for wall above
+            if (near_wall_above)
+            {
+                RealVect im_charge_pos = calc_im_charge_loc(p1, 2);
+
+                // compute sep vector btwn charge and its image
+                dr[0] = p1.pos(0) - im_charge_pos[0];
+                dr[1] = p1.pos(1) - im_charge_pos[1];
+                dr[2] = p1.pos(2) - im_charge_pos[2];
+
+                r2 = dr.dotProduct(dr);
+                r = std::sqrt(r2);      // separation dist
+
+                // perform coulomb and p3m interaction with image charge
+                if ((p_bc_es_hi_d[1] == 1) and (r < p3m_radius))
+                {
+                    // hom. dirichlet--image charge opposite that of particle
+                    
+                    // coloumb
+                    if(p_int_tog[p_matrix_val] != 0)
+                    {
+                        p1.rdata(FHD_realData::forcex) += ee*(dr[0]/r)*q*(-q)/r2;
+                        p1.rdata(FHD_realData::forcey) += ee*(dr[1]/r)*q*(-q)/r2;
+                        p1.rdata(FHD_realData::forcez) += ee*(dr[2]/r)*q*(-q)/r2;
+                    }
+                    // p3m
+                    Real correction_force_mag = compute_p3m_force_mag(r, dx[0], dx[1], dx[2]);
+                    Gpu::Atomic::Add(prcount_di, 1.0);
+                    p1.rdata(FHD_realData::forcex) -= ee*(dr[0]/r)*q*(-q)*correction_force_mag*dx2_inv;
+                    p1.rdata(FHD_realData::forcey) -= ee*(dr[1]/r)*q*(-q)*correction_force_mag*dx2_inv;
+                    p1.rdata(FHD_realData::forcez) -= ee*(dr[2]/r)*q*(-q)*correction_force_mag*dx2_inv;
+                }
+                else if ((p_bc_es_hi_d[1] == 2) and (r < p3m_radius))
+                {
+                    // hom. neumann  --image charge equal that of particle
+
+                    // coloumb
+                    if(p_int_tog[p_matrix_val] != 0)
+                    {
+                        p1.rdata(FHD_realData::forcex) += ee*(dr[0]/r)*q*q/r2;
+                        p1.rdata(FHD_realData::forcey) += ee*(dr[1]/r)*q*q/r2;
+                        p1.rdata(FHD_realData::forcez) += ee*(dr[2]/r)*q*q/r2;
+                    }
+
+                    // p3m
+                    Real correction_force_mag = compute_p3m_force_mag(r, dx[0], dx[1], dx[2]);
+                    Gpu::Atomic::Add(prcount_di, 1.0);
+                    p1.rdata(FHD_realData::forcex) -= ee*(dr[0]/r)*q*q*correction_force_mag*dx2_inv;
+                    p1.rdata(FHD_realData::forcey) -= ee*(dr[1]/r)*q*q*correction_force_mag*dx2_inv;
+                    p1.rdata(FHD_realData::forcez) -= ee*(dr[2]/r)*q*q*correction_force_mag*dx2_inv;
+
                 }
 
-               if (near_wall_above)
-               {
-                    int near_wall_above_nl_part = near_wall_check(p2, 2, 0.5*p3m_radius);
-                    if (near_wall_above_nl_part)
-                    {
-                        RealVect im_charge_pos = calc_im_charge_loc(p2, 2);
-
-                        // compute sep vector btwn charge and NL's image
-                        dr[0] = p1.pos(0) - im_charge_pos[0];
-                        dr[1] = p1.pos(1) - im_charge_pos[1];
-                        dr[2] = p1.pos(2) - im_charge_pos[2];
-
-                        r2 = dr.dotProduct(dr);
-                        r = std::sqrt(r2);      // separation dist
-                    
-                        // perform coulomb and p3m interaction with image charge
-                        if ((p_bc_es_hi_d[1] == 1) and (r < p3m_radius))
-                        {
-                            // hom. dirichlet--image charge opposite that of particle
-                            
-                            // coloumb
-                            p1.rdata(FHD_realData::forcex) += ee*(dr[0]/r)*q*(-q2)/r2;
-                            p1.rdata(FHD_realData::forcey) += ee*(dr[1]/r)*q*(-q2)/r2;
-                            p1.rdata(FHD_realData::forcez) += ee*(dr[2]/r)*q*(-q2)/r2;
-
-                            // p3m
-                            Real correction_force_mag = compute_p3m_force_mag(r, dx[0], dx[1], dx[2]);
-                            Gpu::Atomic::Add(prcount_di, 1.0);
-                            p1.rdata(FHD_realData::forcex) -= ee*(dr[0]/r)*q*(-q2)*correction_force_mag*dx2_inv;
-                            p1.rdata(FHD_realData::forcey) -= ee*(dr[1]/r)*q*(-q2)*correction_force_mag*dx2_inv;
-                            p1.rdata(FHD_realData::forcez) -= ee*(dr[2]/r)*q*(-q2)*correction_force_mag*dx2_inv;
-
-                           // Print() << "Above: " << p1.id() << ": " << setprecision(15) << correction_force_mag << "\n";
-                        }
-                        else if ((p_bc_es_hi_d[1] == 2) and (r < p3m_radius))
-                        {
-                            // hom. neumann  --image charge equal that of particle
-
-                            // coloumb
-                            p1.rdata(FHD_realData::forcex) += ee*(dr[0]/r)*q*q2/r2;
-                            p1.rdata(FHD_realData::forcey) += ee*(dr[1]/r)*q*q2/r2;
-                            p1.rdata(FHD_realData::forcez) += ee*(dr[2]/r)*q*q2/r2;
-
-
-                            // p3m
-                            Real correction_force_mag = compute_p3m_force_mag(r, dx[0], dx[1], dx[2]);
-                            Gpu::Atomic::Add(prcount_di, 1.0);
-                            p1.rdata(FHD_realData::forcex) -= ee*(dr[0]/r)*q*q2*correction_force_mag*dx2_inv;
-                            p1.rdata(FHD_realData::forcey) -= ee*(dr[1]/r)*q*q2*correction_force_mag*dx2_inv;
-                            p1.rdata(FHD_realData::forcez) -= ee*(dr[2]/r)*q*q2*correction_force_mag*dx2_inv;
-
-
-                        }
-                    }
-                }                
             }
 
+            // loop through neighbor list
+            for (const auto& p2 : nbor_data.getNeighbors(i))
+            {
+                Real q2 = p2.rdata(FHD_realData::q);
 
+                spec2 = p2.idata(FHD_intData::species)-1;
+                p_matrix_val = spec1*nspecies + spec2;
+
+                dr[0] = p1.pos(0) - p2.pos(0);
+                dr[1] = p1.pos(1) - p2.pos(1);
+                dr[2] = p1.pos(2) - p2.pos(2);
+
+                r2 = dr.dotProduct(dr);
+                r = std::sqrt(r2);      // separation dist
+
+                if (r < p3m_radius)
+                {
+                    // coloumb
+                    if(p_int_tog[p_matrix_val] != 0)
+                    {
+                        p1.rdata(FHD_realData::forcex) += ee*(dr[0]/r)*q*q2/r2;
+                        p1.rdata(FHD_realData::forcey) += ee*(dr[1]/r)*q*q2/r2;
+                        p1.rdata(FHD_realData::forcez) += ee*(dr[2]/r)*q*q2/r2;
+                    }
+
+                    //p3m
+                    Real correction_force_mag = compute_p3m_force_mag(r, dx[0], dx[1], dx[2]);
+                    Gpu::Atomic::Add(prcount_d, 1.0);
+                    p1.rdata(FHD_realData::forcex) -= ee*(dr[0]/r)*q*q2*correction_force_mag*dx2_inv;
+                    p1.rdata(FHD_realData::forcey) -= ee*(dr[1]/r)*q*q2*correction_force_mag*dx2_inv;
+                    p1.rdata(FHD_realData::forcez) -= ee*(dr[2]/r)*q*q2*correction_force_mag*dx2_inv;
+
+                    //Print() << scientific << setprecision(15) << correction_force_mag << ", " << r << ", " << dx[0] << std::endl;
+
+                    // If part near wall, check if NL part also near wall
+                    if (near_wall_below)
+                    {
+                        int near_wall_below_nl_part = near_wall_check(p2, -2, 0.5*p3m_radius);
+                        if (near_wall_below_nl_part)
+                        {
+                            RealVect im_charge_pos = calc_im_charge_loc(p2, -2);
+
+                            // compute sep vector btwn charge and NL's image
+                            dr[0] = p1.pos(0) - im_charge_pos[0];
+                            dr[1] = p1.pos(1) - im_charge_pos[1];
+                            dr[2] = p1.pos(2) - im_charge_pos[2];
+
+                            r2 = dr.dotProduct(dr);
+                            r = std::sqrt(r2);      // separation dist
+
+                            // perform coulomb and p3m interaction with NL particle's image charge
+                            if ((p_bc_es_lo_d[1] == 1) and (r < p3m_radius))
+                            {
+                                // hom. dirichlet--image charge opposite that of particle
+
+                                //Print() << "Pre force: " << setprecision(17) << p1.rdata(FHD_realData::forcex) << ", " << p1.rdata(FHD_realData::forcey) << ", " << p1.rdata(FHD_realData::forcez) << "\n";
+
+                                // coloumb
+                                if(p_int_tog[p_matrix_val] != 0)
+                                {
+                                    p1.rdata(FHD_realData::forcex) += ee*(dr[0]/r)*q*(-q2)/r2;
+                                    p1.rdata(FHD_realData::forcey) += ee*(dr[1]/r)*q*(-q2)/r2;
+                                    p1.rdata(FHD_realData::forcez) += ee*(dr[2]/r)*q*(-q2)/r2;
+                                }
+                                   // Print() << "Coulomb: " << setprecision(17) << ee*(dr[0]/r)*q*(-q2)/r2 << ", " << ee*(dr[1]/r)*q*(-q2)/r2 << ", " << ee*(dr[2]/r)*q*(-q2)/r2 << "\n";
+
+                                // p3m
+                                Real correction_force_mag = compute_p3m_force_mag(r, dx[0], dx[1], dx[2]);
+                                Gpu::Atomic::Add(prcount_di, 1.0);
+                                p1.rdata(FHD_realData::forcex) -= ee*(dr[0]/r)*q*(-q2)*correction_force_mag*dx2_inv;
+                                p1.rdata(FHD_realData::forcey) -= ee*(dr[1]/r)*q*(-q2)*correction_force_mag*dx2_inv;
+                                p1.rdata(FHD_realData::forcez) -= ee*(dr[2]/r)*q*(-q2)*correction_force_mag*dx2_inv;
+
+                                //Print() << "Below: " << p1.id() << ": " << setprecision(17) << correction_force_mag << ", " << p1.rdata(FHD_realData::forcex) << ", " << p1.rdata(FHD_realData::forcey) << ", " << p1.rdata(FHD_realData::forcez) << "\n";
+                            }
+                            else if ((p_bc_es_lo_d[1] == 2) and (r < p3m_radius))
+                            {
+                                // hom. neumann  --image charge equal that of particle
+                                
+                                // coloumb
+                                if(p_int_tog[p_matrix_val] != 0)
+                                {
+                                    p1.rdata(FHD_realData::forcex) += ee*(dr[0]/r)*q*q2/r2;
+                                    p1.rdata(FHD_realData::forcey) += ee*(dr[1]/r)*q*q2/r2;
+                                    p1.rdata(FHD_realData::forcez) += ee*(dr[2]/r)*q*q2/r2;
+                                }
+                                
+                                // p3m
+                                Real correction_force_mag = compute_p3m_force_mag(r, dx[0], dx[1], dx[2]);
+                                Gpu::Atomic::Add(prcount_di, 1.0);
+                                p1.rdata(FHD_realData::forcex) -= ee*(dr[0]/r)*q*q2*correction_force_mag*dx2_inv;
+                                p1.rdata(FHD_realData::forcey) -= ee*(dr[1]/r)*q*q2*correction_force_mag*dx2_inv;
+                                p1.rdata(FHD_realData::forcez) -= ee*(dr[2]/r)*q*q2*correction_force_mag*dx2_inv;
+                            }
+                        }
+                    }
+
+                   if (near_wall_above)
+                   {
+                        int near_wall_above_nl_part = near_wall_check(p2, 2, 0.5*p3m_radius);
+                        if (near_wall_above_nl_part)
+                        {
+                            RealVect im_charge_pos = calc_im_charge_loc(p2, 2);
+
+                            // compute sep vector btwn charge and NL's image
+                            dr[0] = p1.pos(0) - im_charge_pos[0];
+                            dr[1] = p1.pos(1) - im_charge_pos[1];
+                            dr[2] = p1.pos(2) - im_charge_pos[2];
+
+                            r2 = dr.dotProduct(dr);
+                            r = std::sqrt(r2);      // separation dist
+                        
+                            // perform coulomb and p3m interaction with image charge
+                            if ((p_bc_es_hi_d[1] == 1) and (r < p3m_radius))
+                            {
+                                // hom. dirichlet--image charge opposite that of particle
+                                
+                                // coloumb
+                                if(p_int_tog[p_matrix_val] != 0)
+                                {
+                                    p1.rdata(FHD_realData::forcex) += ee*(dr[0]/r)*q*(-q2)/r2;
+                                    p1.rdata(FHD_realData::forcey) += ee*(dr[1]/r)*q*(-q2)/r2;
+                                    p1.rdata(FHD_realData::forcez) += ee*(dr[2]/r)*q*(-q2)/r2;
+                                }
+                                // p3m
+                                Real correction_force_mag = compute_p3m_force_mag(r, dx[0], dx[1], dx[2]);
+                                Gpu::Atomic::Add(prcount_di, 1.0);
+                                p1.rdata(FHD_realData::forcex) -= ee*(dr[0]/r)*q*(-q2)*correction_force_mag*dx2_inv;
+                                p1.rdata(FHD_realData::forcey) -= ee*(dr[1]/r)*q*(-q2)*correction_force_mag*dx2_inv;
+                                p1.rdata(FHD_realData::forcez) -= ee*(dr[2]/r)*q*(-q2)*correction_force_mag*dx2_inv;
+
+                               // Print() << "Above: " << p1.id() << ": " << setprecision(15) << correction_force_mag << "\n";
+                            }
+                            else if ((p_bc_es_hi_d[1] == 2) and (r < p3m_radius))
+                            {
+                                // hom. neumann  --image charge equal that of particle
+
+                                // coloumb
+                                if(p_int_tog[p_matrix_val] != 0)
+                                {
+                                    p1.rdata(FHD_realData::forcex) += ee*(dr[0]/r)*q*q2/r2;
+                                    p1.rdata(FHD_realData::forcey) += ee*(dr[1]/r)*q*q2/r2;
+                                    p1.rdata(FHD_realData::forcez) += ee*(dr[2]/r)*q*q2/r2;
+                                }
+
+                                // p3m
+                                Real correction_force_mag = compute_p3m_force_mag(r, dx[0], dx[1], dx[2]);
+                                Gpu::Atomic::Add(prcount_di, 1.0);
+                                p1.rdata(FHD_realData::forcex) -= ee*(dr[0]/r)*q*q2*correction_force_mag*dx2_inv;
+                                p1.rdata(FHD_realData::forcey) -= ee*(dr[1]/r)*q*q2*correction_force_mag*dx2_inv;
+                                p1.rdata(FHD_realData::forcez) -= ee*(dr[2]/r)*q*q2*correction_force_mag*dx2_inv;
+
+
+                            }
+                        }
+                    }                
+                }
+
+
+            }
         }
-
     });
 
     rcount = rcount_d.dataValue();
@@ -668,8 +724,8 @@ void compute_forces_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
     FhdParticleContainer::ParticleType* pstruct = aos().dataPtr();
     
     // clearly we don't want to do this every time...
-    Gpu::DeviceVector<int> p_int_tog_d = getDeviceVector(p_int_tog);
-    auto pp_int_tog_d = p_int_tog_d.data();
+    //Gpu::DeviceVector<int> p_int_tog_d = getDeviceVector(p_int_tog);
+   // auto pp_int_tog_d = p_int_tog_d.data();
 
     auto rmin = common::rmin;
 
@@ -683,37 +739,72 @@ void compute_forces_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
 //    Gpu::DeviceVector<Real> prob_hi_d = getDeviceVector(prob_hi);    
 //    auto p_prob_lo_d = prob_lo_d.data();
 //    auto p_prob_hi_d = prob_hi_d.data();
+
+
     
     AMREX_FOR_1D( Np, i, 
     {
         FhdParticleContainer::ParticleType& p1 = pstruct[i];
+        if(p1.idata(FHD_intData::pinned) != 0)
+        {
+            int spec1 = p1.idata(FHD_intData::species)-1;
 
-        for (const auto& p2 : nbor_data.getNeighbors(i))
-        {       
-            if ( (pp_int_tog_d[p1.idata(FHD_intData::species)] != 0) and 
-                 (pp_int_tog_d[p2.idata(FHD_intData::species)] != 0) )
-            {
-                const Real dx = p1.pos(0) - p2.pos(0);
-                const Real dy = p1.pos(1) - p2.pos(1);
-                const Real dz = p1.pos(2) - p2.pos(2);
+            for (const auto& p2 : nbor_data.getNeighbors(i))
+            {       
 
-                const Real r2 = dx*dx + dy*dy + dz*dz;
-                const Real r2min = amrex::max(r2, rmin*rmin);
-                const Real r = sqrt(r2);
-                
-                if (r < (1.122*(p1.rdata(FHD_realData::sigma)+p2.rdata(FHD_realData::sigma))/4.0))
+                int spec2 = p2.idata(FHD_intData::species)-1;
+                int p_matrix_val = spec1*nspecies + spec2;
+
+                //Make this more efficient later
+    //            int mat[nspecies][nspecies];
+    //            int kk = 0;
+    //            for(int ii=0;ii<nspecies;ii++)
+    //            {
+    //                for(int jj=0;jj<nspecies;jj++)
+    //                {
+    //                    Print() << ii << "," << jj << ", " << kk << ", " << mat[ii][jj] << "\n";
+    //                    mat[ii][jj] = pp_int_tog_d[kk];                    
+    //                    kk++;
+    //                }
+    //            }
+
+                //if ( mat[spec1][spec2] != 0)
+                if ( p_int_tog[p_matrix_val] != 0)
+                //if (true)
                 {
-                    if (sr_tog <= 2) {
+                    const Real dx = p1.pos(0) - p2.pos(0);
+                    const Real dy = p1.pos(1) - p2.pos(1);
+                    const Real dz = p1.pos(2) - p2.pos(2);
+
+                    const Real r2 = dx*dx + dy*dy + dz*dz;
+                    const Real r2min = amrex::max(r2, rmin*rmin);
+                    const Real r = sqrt(r2);
+                    //Print() << spec1+1 << ", " << spec2+1 << ", " << p_matrix_val << std::endl;
+
+                    if (r <= (2.5*(p1.rdata(FHD_realData::sigma)+p2.rdata(FHD_realData::sigma))/4.0) && (sr_tog==6))
+                    {
                         Gpu::Atomic::Add(prcount_d, 1.0);
-                        repulsive_force(p1, p2, dx, dy, dz, r2min);
+
+                        
+                       // Print() << p1.id() << ", " << p1.pos(0) << ", " << p1.pos(1) << ", " << p1.pos(2)  << ", " << r << ", " << (2.5*(p1.rdata(FHD_realData::sigma)+p2.rdata(FHD_realData::sigma))/4.0) << std::endl;
+                     //   Print() << p2.id() << ", " << p2.pos(0) << ", " << p2.pos(1) << ", " << p2.pos(2)  << ", " << r << ", " << (2.5*(p1.rdata(FHD_realData::sigma)+p2.rdata(FHD_realData::sigma))/4.0) << std::endl;
+
+                        repulsive_force_lj_full(p1, p2, dx, dy, dz, r2);
                     }
-                    else {
-                        Gpu::Atomic::Add(prcount_d, 1.0);
-                        repulsive_force_lj(p1, p2, dx, dy, dz, r2);
+                    else if (r < (1.122*(p1.rdata(FHD_realData::sigma)+p2.rdata(FHD_realData::sigma))/4.0))
+                    {
+                        if (sr_tog <= 2) {
+                            Gpu::Atomic::Add(prcount_d, 1.0);
+                            repulsive_force(p1, p2, dx, dy, dz, r2min);
+                        }
+                        else {
+                            Gpu::Atomic::Add(prcount_d, 1.0);
+                            repulsive_force_lj(p1, p2, dx, dy, dz, r2);
+                        }
                     }
-                }
+                }    
             }    
-        }    
+        }
     });
 
     if ((sr_tog == 2) || (sr_tog == 4))
@@ -727,25 +818,28 @@ void compute_forces_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
             {
                 FhdParticleContainer::ParticleType& p1 = pstruct[i];
 
-                const Real dx = p1.pos(0) - plo[0];
-                const Real dy = 0;
-                const Real dz = 0;
-
-                const Real r2 = dx*dx;
-                const Real r2min = amrex::max(r2, rmin*rmin);
-                const Real r = sqrt(r2);
-                
-                if ( (r < (1.20094*p1.rdata(FHD_realData::sigma)/4.0)) && (sr_tog == 2) ) 
+                if(p1.idata(FHD_intData::pinned) != 0)
                 {
-                    Gpu::Atomic::Add(prdcount_d, 1.0);
-                    repulsive_force_wall(p1, dx, dy, dz, r2min);
-                }
-                else if (  (r < (1.122*p1.rdata(FHD_realData::sigma)/4.0)) && (sr_tog == 4) )
-                {
-                    Gpu::Atomic::Add(prdcount_d, 1.0);
-                    repulsive_force_wall_lj(p1, dx, dy, dz, r2);
-                }
 
+                    const Real dx = p1.pos(0) - plo[0];
+                    const Real dy = 0;
+                    const Real dz = 0;
+
+                    const Real r2 = dx*dx;
+                    const Real r2min = amrex::max(r2, rmin*rmin);
+                    const Real r = sqrt(r2);
+                    
+                    if ( (r < (1.20094*p1.rdata(FHD_realData::sigma)/4.0)) && (sr_tog == 2) ) 
+                    {
+                        Gpu::Atomic::Add(prdcount_d, 1.0);
+                        repulsive_force_wall(p1, dx, dy, dz, r2min);
+                    }
+                    else if (  (r < (1.122*p1.rdata(FHD_realData::sigma)/4.0)) && (sr_tog == 4) )
+                    {
+                        Gpu::Atomic::Add(prdcount_d, 1.0);
+                        repulsive_force_wall_lj(p1, dx, dy, dz, r2);
+                    }
+                }
             });
         }
 
@@ -755,25 +849,28 @@ void compute_forces_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
             {
                 FhdParticleContainer::ParticleType& p1 = pstruct[i];
 
-                const Real dx = p1.pos(0) - phi[0];
-                const Real dy = 0;
-                const Real dz = 0;
-
-                const Real r2 = dx*dx;
-                const Real r2min = amrex::max(r2, rmin*rmin);
-                const Real r = sqrt(r2);
-                
-                if ( (r < (1.20094*p1.rdata(FHD_realData::sigma)/4.0)) && (sr_tog == 2) ) 
+                if(p1.idata(FHD_intData::pinned) != 0)
                 {
-                    Gpu::Atomic::Add(prdcount_d, 1.0);
-                    repulsive_force_wall(p1, dx, dy, dz, r2min);
-                }
-                else if (  (r < (1.122*p1.rdata(FHD_realData::sigma)/4.0)) && (sr_tog == 4) )
-                {
-                    Gpu::Atomic::Add(prdcount_d, 1.0);
-                    repulsive_force_wall_lj(p1, dx, dy, dz, r2);
-                }
 
+                    const Real dx = p1.pos(0) - phi[0];
+                    const Real dy = 0;
+                    const Real dz = 0;
+
+                    const Real r2 = dx*dx;
+                    const Real r2min = amrex::max(r2, rmin*rmin);
+                    const Real r = sqrt(r2);
+                    
+                    if ( (r < (1.20094*p1.rdata(FHD_realData::sigma)/4.0)) && (sr_tog == 2) ) 
+                    {
+                        Gpu::Atomic::Add(prdcount_d, 1.0);
+                        repulsive_force_wall(p1, dx, dy, dz, r2min);
+                    }
+                    else if (  (r < (1.122*p1.rdata(FHD_realData::sigma)/4.0)) && (sr_tog == 4) )
+                    {
+                        Gpu::Atomic::Add(prdcount_d, 1.0);
+                        repulsive_force_wall_lj(p1, dx, dy, dz, r2);
+                    }
+                }
             });
         }
 
@@ -782,6 +879,8 @@ void compute_forces_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
             AMREX_FOR_1D( Np, i, 
             {
                 FhdParticleContainer::ParticleType& p1 = pstruct[i];
+                if(p1.idata(FHD_intData::pinned) != 0)
+                {
 
                 const Real dx = 0;
                 const Real dy = p1.pos(1) - plo[1];
@@ -801,6 +900,7 @@ void compute_forces_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
                     Gpu::Atomic::Add(prdcount_d, 1.0);
                     repulsive_force_wall_lj(p1, dx, dy, dz, r2);
                 }
+                }
                 
             });
         }
@@ -810,6 +910,8 @@ void compute_forces_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
             AMREX_FOR_1D( Np, i, 
             {
                 FhdParticleContainer::ParticleType& p1 = pstruct[i];
+                if(p1.idata(FHD_intData::pinned) != 0)
+                {
 
                 const Real dx = 0;
                 const Real dy = p1.pos(1) - phi[1];
@@ -829,6 +931,7 @@ void compute_forces_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
                     Gpu::Atomic::Add(prdcount_d, 1.0);
                     repulsive_force_wall_lj(p1, dx, dy, dz, r2);
                 }
+                }
 
             });
         }
@@ -838,6 +941,8 @@ void compute_forces_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
             AMREX_FOR_1D( Np, i, 
             {
                 FhdParticleContainer::ParticleType& p1 = pstruct[i];
+                if(p1.idata(FHD_intData::pinned) != 0)
+                {
 
                 const Real dx = 0;
                 const Real dy = 0;
@@ -857,6 +962,7 @@ void compute_forces_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
                     Gpu::Atomic::Add(prdcount_d, 1.0);
                     repulsive_force_wall_lj(p1, dx, dy, dz, r2);
                 }
+                }
 
             });
         }
@@ -866,7 +972,8 @@ void compute_forces_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
             AMREX_FOR_1D( Np, i, 
             {
                 FhdParticleContainer::ParticleType& p1 = pstruct[i];
-
+                if(p1.idata(FHD_intData::pinned) != 0)
+                {
                 const Real dx = 0;
                 const Real dy = 0;
                 const Real dz = p1.pos(2) - phi[2];
@@ -884,6 +991,7 @@ void compute_forces_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
                 {
                     Gpu::Atomic::Add(prdcount_d, 1.0);
                     repulsive_force_wall_lj(p1, dx, dy, dz, r2);
+                }
                 }
 
             });
@@ -1076,19 +1184,23 @@ void emf_gpu (FhdParticleContainer::AoS& aos, F f,
     amrex::ParallelFor(Np, [=] AMREX_GPU_HOST_DEVICE (int ip) noexcept
     {
         FhdParticleContainer::ParticleType& p = pstruct[ip];
-        
-        Real w[3][2*ks];
-        int indices[3][2*ks];
-        
-        //E field is cell centered so we can use the same weights/indicies for each component
-        get_weights(p, f, Exflag, w, indices, plo, dx, dxi);
-        p.rdata(FHD_realData::forcex) += p.rdata(FHD_realData::q)*inter_op(Exarr, f, w, indices);
+        //Print() << p.idata(FHD_intData::species) << "\n";
+                
+        if(p.idata(FHD_intData::pinned) == 0)
+        {
+            Real w[3][2*ks];
+            int indices[3][2*ks];
+            //Print() << "Here!\n";
+            //E field is cell centered so we can use the same weights/indicies for each component
+            get_weights(p, f, Exflag, w, indices, plo, dx, dxi);
+            p.rdata(FHD_realData::forcex) += p.rdata(FHD_realData::q)*inter_op(Exarr, f, w, indices);
 
-        //get_weights(p, f, Eyflag, w, indices, plo, dx, dxi);
-        p.rdata(FHD_realData::forcey) += p.rdata(FHD_realData::q)*inter_op(Eyarr, f, w, indices);
+            //get_weights(p, f, Eyflag, w, indices, plo, dx, dxi);
+            p.rdata(FHD_realData::forcey) += p.rdata(FHD_realData::q)*inter_op(Eyarr, f, w, indices);
 
-        //get_weights(p, f, Ezflag, w, indices, plo, dx, dxi);
-        p.rdata(FHD_realData::forcez) += p.rdata(FHD_realData::q)*inter_op(Ezarr, f, w, indices);
+            //get_weights(p, f, Ezflag, w, indices, plo, dx, dxi);
+            p.rdata(FHD_realData::forcez) += p.rdata(FHD_realData::q)*inter_op(Ezarr, f, w, indices);
+        }
        
     });
     
@@ -1395,9 +1507,9 @@ void dry_gpu(Real dt, FhdParticleContainer::ParticleType& part, Real* dry_terms,
 
     if(dry_move_tog == 2)
     {
-        dry_terms[0] = dry_terms[0] + mobDir[0]*part.rdata(FHD_realData::dryDiff);
-        dry_terms[1] = dry_terms[1] + mobDir[1]*part.rdata(FHD_realData::dryDiff);
-        dry_terms[2] = dry_terms[2] + mobDir[2]*part.rdata(FHD_realData::dryDiff);
+        dry_terms[0] = dry_terms[0] + variance_coef_mom*mobDir[0]*part.rdata(FHD_realData::dryDiff);
+        dry_terms[1] = dry_terms[1] + variance_coef_mom*mobDir[1]*part.rdata(FHD_realData::dryDiff);
+        dry_terms[2] = dry_terms[2] + variance_coef_mom*mobDir[2]*part.rdata(FHD_realData::dryDiff);
     }
 
 }

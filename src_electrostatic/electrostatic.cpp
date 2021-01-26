@@ -64,11 +64,10 @@ void esSolve(MultiFab& potential, MultiFab& charge,
         // tell MLPoisson about these potentially inhomogeneous BC values
         linop.setLevelBC(0, &potential);
 
-        // uncomment this once AMReX PR #1471 is merged
         // this forces the solver to NOT enforce solvability
         // thus if there are Neumann conditions on phi they must
         // be correct or the Poisson solver won't converge
-//        linop.setEnforceSingularSolvable(false);
+        linop.setEnforceSingularSolvable(false);
 
         //Multi Level Multi Grid
         MLMG mlmg(linop);

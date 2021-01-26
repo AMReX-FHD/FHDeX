@@ -25,8 +25,8 @@ subroutine init_rho_and_umac(lo,hi, &
   use common_namelist_module, only: prob_type, algorithm_type, T_init, &
                                     rho0, rhobar, initial_variance_mass, &
                                     smoothing_width
-  use multispec_namelist_module, only: Dbar, Dtherm, &
-                                       c_init, temp_type, is_ideal_mixture
+  use multispec_namelist_module, only: Dbar, Dtherm, charge_per_mass, &
+                                       c_init_1, c_init_2, temp_type, is_ideal_mixture
 
   implicit none
 
@@ -45,11 +45,13 @@ subroutine init_rho_and_umac(lo,hi, &
 
   ! local variables
   integer          :: i,j,n
-  double precision :: half,x,y,rad,L(2),sumtot,c_loc,y1,r,r1,r2,m_e,l1,l2
+  double precision :: half,x,y,rad,L(2),sumtot,c_loc,r,r1,r2,m_e,l1,l2
 
   double precision :: random
 
   double precision :: rho_total, sinx, sinz
+
+  double precision :: x1, x2, y1, y2, coeff
 
   half = 0.5d0
 
@@ -61,7 +63,7 @@ subroutine init_rho_and_umac(lo,hi, &
 
      !=============================================================
      ! bubble with radius = 1/4 of domain in x
-     ! c=c_init(1,:) inside, c=c_init(2,:) outside
+     ! c=c_init_1(:) inside, c=c_init_2(:) outside
      ! can be discontinous or smooth depending on smoothing_width
      !=============================================================
 
@@ -82,16 +84,16 @@ subroutine init_rho_and_umac(lo,hi, &
 
               ! discontinuous interface
               if (r .lt. rad) then
-                 c(i,j,1:nspecies) = c_init(1,1:nspecies)
+                 c(i,j,1:nspecies) = c_init_1(1:nspecies)
               else
-                 c(i,j,1:nspecies) = c_init(2,1:nspecies)
+                 c(i,j,1:nspecies) = c_init_2(1:nspecies)
               end if
 
            else
 
               ! smooth interface
-              c(i,j,1:nspecies-1) = c_init(1,1:nspecies-1) + &
-                   (c_init(2,1:nspecies-1) - c_init(1,1:nspecies-1))* &
+              c(i,j,1:nspecies-1) = c_init_1(1:nspecies-1) + &
+                   (c_init_2(1:nspecies-1) - c_init_1(1:nspecies-1))* &
                    0.5d0*(1.d0 + tanh((r-rad)/(smoothing_width*dx(1))))
 
            end if
@@ -104,7 +106,7 @@ subroutine init_rho_and_umac(lo,hi, &
 
      !=============================================================
      ! bubble with radius = 1/4 of domain in x
-     ! c=c_init(1,:) inside, c=c_init(2,:) outside
+     ! c=c_init_1(:) inside, c=c_init_2(:) outside
      ! can be discontinous or smooth depending on smoothing_width
      !=============================================================
 
@@ -125,18 +127,18 @@ subroutine init_rho_and_umac(lo,hi, &
 
               ! discontinuous interface
               if (y .lt. l1) then
-                 c(i,j,1:nspecies) = c_init(1,1:nspecies)
+                 c(i,j,1:nspecies) = c_init_1(1:nspecies)
               elseif(y .lt. l2) then
-                 c(i,j,1:nspecies) = c_init(2,1:nspecies)
+                 c(i,j,1:nspecies) = c_init_2(1:nspecies)
               else
-                 c(i,j,1:nspecies) = c_init(1,1:nspecies)
+                 c(i,j,1:nspecies) = c_init_1(1:nspecies)
               endif
 
            else
 
               ! smooth interface
-              c(i,j,1:nspecies-1) = c_init(1,1:nspecies-1) + &
-                   (c_init(2,1:nspecies-1) - c_init(1,1:nspecies-1))* &
+              c(i,j,1:nspecies-1) = c_init_1(1:nspecies-1) + &
+                   (c_init_2(1:nspecies-1) - c_init_1(1:nspecies-1))* &
                    (1/(1+Exp(-smoothing_width*(y-l1))) - 1/(1+Exp(-smoothing_width*(y-l2))))
 
            end if           
@@ -148,7 +150,7 @@ subroutine init_rho_and_umac(lo,hi, &
 
      !=========================================================
      ! constant concentration gradient along y
-     ! c=c_init(1,:) on bottom, c=c_init(2,:) on top
+     ! c=c_init_1(:) on bottom, c=c_init_2(:) on top
      !=========================================================
 
      u = 0.d0
@@ -160,8 +162,8 @@ subroutine init_rho_and_umac(lo,hi, &
         do i=lo(1),hi(1)
            x = prob_lo(1) + (dble(i)+half)*dx(1)
 
-           c(i,j,1:nspecies) = c_init(1,1:nspecies) + &
-                (c_init(2,1:nspecies) - c_init(1,1:nspecies))*(y-prob_lo(2))/L(2)
+           c(i,j,1:nspecies) = c_init_1(1:nspecies) + &
+                (c_init_2(1:nspecies) - c_init_1(1:nspecies))*(y-prob_lo(2))/L(2)
 
         end do
      end do
@@ -171,7 +173,7 @@ subroutine init_rho_and_umac(lo,hi, &
 
        !=============================================================
        ! Gaussian bubble centered in domain
-       ! c=c_init(1,:) inside; c=c_init(2,:) outside
+       ! c=c_init_1(:) inside; c=c_init_2(:) outside
        ! lo- and hi-y walls move with prescribed velocity,
        ! see inhomogeneous_bc_val.f90
        !=============================================================
@@ -187,10 +189,63 @@ subroutine init_rho_and_umac(lo,hi, &
              r = sqrt (x**2 + y**2)
 
              ! set c using Gaussian bump
-             c(i,j,1:nspecies-1) = c_init(1,1:nspecies-1)*exp(-75.d0*r**2)
+             c(i,j,1:nspecies-1) = c_init_1(1:nspecies-1)*exp(-75.d0*r**2)
 
           enddo
        enddo
+
+  case (15)
+
+  !=========================================================
+  ! case +/-15: mostly for testing electrodiffusion
+  ! Discontinuous band in central 1/2 (case 15)
+  ! c=c_init_1(:) inside; c=c_init_2(:) outside
+  !=========================================================
+
+     u = 0.d0
+     v = 0.d0
+     
+     ! first quarter of domain
+     y1 = (3*prob_lo(2) + prob_hi(2)) / 4.d0
+     x1 = (3*prob_lo(1) + prob_hi(1)) / 4.d0
+        
+     ! last quarter of domain
+     y2 = (prob_lo(2) + 3*prob_hi(2)) / 4.d0
+     x2 = (prob_lo(1) + 3*prob_hi(1)) / 4.d0
+
+     if (smoothing_width .gt. 0.d0) then
+
+          ! smoothed version
+          do j=lo(2),hi(2)
+             y = prob_lo(2) + dx(2)*(dble(j)+0.5d0) - y1
+             do i=lo(1),hi(1)
+                x = prob_lo(1) + (dble(i)+0.5d0)*dx(1) - x1
+                do n=1,nspecies
+
+                   ! tanh smoothing in y
+                   coeff=0.5d0*(tanh(y/(smoothing_width*dx(2)))+1.d0)*0.5d0*(tanh((-y+y2-y1)/(smoothing_width*dx(2)))+1.d0)
+
+                   ! Donev: prob_type = -15: a special case for doing ternary diffusion NaCl + KCl
+                   ! Here the last two species have a tanh profile in both x and y (species are Na+,Cl-,K+,water)
+                   ! Aadd a tanh smoothing for central 50% of domain in x for second-to-last species
+                   if( (prob_type==-15) .and. (n==nspecies-1) ) then 
+                      coeff=0.5d0*(tanh(x/(smoothing_width*dx(1)))+1.d0)*0.5d0*(tanh((-x+x2-x1)/(smoothing_width*dx(1)))+1.d0)*coeff
+                   end if  
+ 
+                   ! smooth between c_init_1(:) and c_init_2(:)
+                   c_loc = c_init_2(n) + (c_init_1(n)-c_init_2(n))*coeff
+                   c(i,j,n) = c_loc
+
+                   ! for 4-species test, need to add Cl to central square to balance the K
+                   if ( (prob_type==-15) .and. (nspecies .eq. 4) .and. (n .eq. nspecies-1) ) then
+                      c(i,j,2) = c(i,j,2) - charge_per_mass(3)/charge_per_mass(2)*c_loc
+                   end if
+
+                end do
+             end do
+          end do
+
+       end if
      
   case default
 
@@ -244,7 +299,7 @@ subroutine init_rho_and_umac(lo,hi, &
                                     rho0, rhobar, initial_variance_mass, &
                                     smoothing_width
   use multispec_namelist_module, only: Dbar, Dtherm, &
-                                       c_init, temp_type, is_ideal_mixture
+                                       c_init_1, c_init_2, temp_type, is_ideal_mixture
 
   implicit none
 
@@ -264,9 +319,9 @@ subroutine init_rho_and_umac(lo,hi, &
 
   ! local variables
   integer          :: i,j,k,n
-  double precision :: half,x,y,z,rad,L(3),sumtot,c_loc,y1,r,r1,r2,m_e
+  double precision :: half,x,y,z,rad,L(3),sumtot,c_loc,y1,z1,z2,r,r1,r2,m_e
 
-  double precision :: random
+  double precision :: random, coeff
 
   double precision :: rho_total, sinx, sinz
 
@@ -280,7 +335,7 @@ subroutine init_rho_and_umac(lo,hi, &
 
      !=============================================================
      ! bubble with radius = 1/4 of domain in x
-     ! c=c_init(1,:) inside, c=c_init(2,:) outside
+     ! c=c_init_1(:) inside, c=c_init_2(:) outside
      ! can be discontinous or smooth depending on smoothing_width
      !=============================================================
 
@@ -304,16 +359,16 @@ subroutine init_rho_and_umac(lo,hi, &
 
                  ! discontinuous interface
                  if (r .lt. rad) then
-                    c(i,j,k,1:nspecies) = c_init(1,1:nspecies)
+                    c(i,j,k,1:nspecies) = c_init_1(1:nspecies)
                  else
-                    c(i,j,k,1:nspecies) = c_init(2,1:nspecies)
+                    c(i,j,k,1:nspecies) = c_init_2(1:nspecies)
                  end if
 
               else
 
                  ! smooth interface
-                 c(i,j,k,1:nspecies-1) = c_init(1,1:nspecies-1) + &
-                      (c_init(2,1:nspecies-1) - c_init(1,1:nspecies-1))* &
+                 c(i,j,k,1:nspecies-1) = c_init_1(1:nspecies-1) + &
+                      (c_init_2(1:nspecies-1) - c_init_1(1:nspecies-1))* &
                       0.5d0*(1.d0 + tanh((r-rad)/(smoothing_width*dx(1))))
 
               end if
@@ -327,7 +382,7 @@ subroutine init_rho_and_umac(lo,hi, &
 
      !=========================================================
      ! constant concentration gradient along y
-     ! c=c_init(1,:) on bottom, c=c_init(2,:) on top
+     ! c=c_init_1(:) on bottom, c=c_init_2(:) on top
      !=========================================================
 
      u = 0.d0
@@ -342,8 +397,8 @@ subroutine init_rho_and_umac(lo,hi, &
            do i=lo(1),hi(1)
               x = prob_lo(1) + (dble(i)+half)*dx(1)
 
-              c(i,j,k,1:nspecies) = c_init(1,1:nspecies) + &
-                   (c_init(2,1:nspecies) - c_init(1,1:nspecies))*(y-prob_lo(2))/L(2)
+              c(i,j,k,1:nspecies) = c_init_1(1:nspecies) + &
+                   (c_init_2(1:nspecies) - c_init_1(1:nspecies))*(y-prob_lo(2))/L(2)
 
            end do
         end do
@@ -354,7 +409,7 @@ subroutine init_rho_and_umac(lo,hi, &
      
      !=============================================================
      ! Gaussian bubble centered in domain
-     ! c=c_init(1,:) inside; c=c_init(2,:) outside
+     ! c=c_init_1(:) inside; c=c_init_2(:) outside
      ! lo- and hi-y walls move with prescribed velocity,
      ! see inhomogeneous_bc_val.f90
      !=============================================================
@@ -373,11 +428,52 @@ subroutine init_rho_and_umac(lo,hi, &
               r = sqrt (x**2 + y**2 + z**2)
 
               ! set c using Gaussian bump
-              c(i,j,k,1:nspecies-1) = c_init(1,1:nspecies-1)*exp(-75.d0*r**2)
+              c(i,j,k,1:nspecies-1) = c_init_1(1:nspecies-1)*exp(-75.d0*r**2)
 
            enddo
         enddo
      enddo
+
+  case (15)
+
+     !=========================================================
+     ! case +/-15: mostly for testing electrodiffusion
+     ! Discontinuous band in central 1/2 (case 15)
+     ! c=c_init_1(:) inside; c=c_init_2(:) outside
+     !=========================================================
+
+     u = 0.d0
+     v = 0.d0
+     w = 0.d0
+     
+     ! first quarter of domain
+     z1 = (3*prob_lo(3) + prob_hi(3)) / 4.d0
+        
+     ! last quarter of domain
+     z2 = (prob_lo(3) + 3*prob_hi(3)) / 4.d0
+
+     if (smoothing_width .gt. 0.d0) then
+
+        ! smoothed version
+        do k=lo(3),hi(3)
+             z = prob_lo(3) + dx(3)*(dble(k)+0.5d0) - z1
+             do j=lo(2),hi(2)
+                do i=lo(1),hi(1)
+                   do n=1,nspecies
+
+                      ! tanh smoothing in z
+                      coeff=0.5d0*(tanh(z/(smoothing_width*dx(2)))+1.d0)*0.5d0*(tanh((-z+z2-z1)/(smoothing_width*dx(3)))+1.d0)
+ 
+                      ! smooth between c_init_1(:) and c_init_2(:)
+                      c_loc = c_init_2(n) + (c_init_1(n)-c_init_2(n))*coeff
+                      c(i,j,k,n) = c_loc
+
+                   end do
+                end do
+             end do
+          end do
+
+       end if
      
   case default
 

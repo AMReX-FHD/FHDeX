@@ -20,8 +20,8 @@
 
   ! Controls for number of steps between actions
 
-  max_step = 500000
-  plot_int = 50000
+  max_step = 5000
+  plot_int = 1000
 
   ! Multispecies toggle
   ! if algorithm_type = 1, single component

@@ -1,5 +1,6 @@
 #!/usr/bin/env fish
 
+
 # Parse input arguments
 argparse "d/delete" -- $argv
 
@@ -7,9 +8,10 @@ if test -n "$_flag_d"
     rm -r dist
 end
 
+
 # Assume location of the AMReX Executable
 if ! set -q AMREX_ROOT
-    set -gx AMREX_ROOT (realpath  ../../../../amrex/dist)
+    set -gx AMREX_ROOT (realpath  ../amrex)
 end
 
 # Default to clang compiler

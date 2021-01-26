@@ -27,7 +27,7 @@ void AverageFaceToCC(const std::array<MultiFab, AMREX_SPACEDIM>& face_in,
 }
 
 void AverageCCToFace(const MultiFab& cc_in, std::array<MultiFab, AMREX_SPACEDIM>& face_in, 
-                     int scomp, int ncomp, int varType, const Geometry& geom)
+                     int scomp, int ncomp, int bccomp, const Geometry& geom)
 {
     BL_PROFILE_VAR("AverageCCToFace()",AverageCCToFace);
 
@@ -45,7 +45,7 @@ void AverageCCToFace(const MultiFab& cc_in, std::array<MultiFab, AMREX_SPACEDIM>
     Vector<int> bc_hi(AMREX_SPACEDIM);
 
     // compute mathematical boundary conditions
-    BCPhysToMath(varType,bc_lo,bc_hi);
+    BCPhysToMath(bccomp,bc_lo,bc_hi);
 
     // Loop over boxes (note that mfi takes a cell-centered multifab as an argument)
     for (MFIter mfi(cc_in,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
@@ -185,7 +185,7 @@ void ShiftFaceToCC(const MultiFab& face_in, int face_comp,
     }
 }
 
-void AverageCCToNode(const MultiFab& cc_in, MultiFab& node_in, int scomp, int ncomp, int varType,
+void AverageCCToNode(const MultiFab& cc_in, MultiFab& node_in, int scomp, int ncomp, int bccomp,
                      const Geometry& geom)
 {
 
@@ -205,7 +205,7 @@ void AverageCCToNode(const MultiFab& cc_in, MultiFab& node_in, int scomp, int nc
     Vector<int> bc_hi(AMREX_SPACEDIM);
 
     // compute mathematical boundary conditions
-    BCPhysToMath(varType,bc_lo,bc_hi);
+    BCPhysToMath(bccomp,bc_lo,bc_hi);
 
     // Loop over boxes
     for (MFIter mfi(node_in,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
@@ -325,7 +325,7 @@ void AverageCCToNode(const MultiFab& cc_in, MultiFab& node_in, int scomp, int nc
 }
 
 
-void AverageCCToEdge(const MultiFab& cc_in, std::array<MultiFab, NUM_EDGE>& edge_in, int scomp, int ncomp, int varType,
+void AverageCCToEdge(const MultiFab& cc_in, std::array<MultiFab, NUM_EDGE>& edge_in, int scomp, int ncomp, int bccomp,
                      const Geometry& geom)
 {
 
@@ -352,7 +352,7 @@ void AverageCCToEdge(const MultiFab& cc_in, std::array<MultiFab, NUM_EDGE>& edge
     Vector<int> bc_hi(AMREX_SPACEDIM);
 
     // compute mathematical boundary conditions
-    BCPhysToMath(varType,bc_lo,bc_hi);
+    BCPhysToMath(bccomp,bc_lo,bc_hi);
     
     // Loop over boxes (note that mfi takes a cell-centered multifab as an argument)
     for (MFIter mfi(cc_in,TilingIfNotGPU()); mfi.isValid(); ++mfi) {

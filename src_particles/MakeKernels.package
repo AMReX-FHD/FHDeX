@@ -1,1 +1,2 @@
 CEXE_headers   += kernel_functions_K.H
+CEXE_sources   += FindCoords.cpp

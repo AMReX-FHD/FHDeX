@@ -15,15 +15,6 @@
 using namespace gmres;
 using namespace amrex;
 
-#ifndef _num_edge_
-#define _num_edge_
-#if (AMREX_SPACEDIM == 2)
-    const int NUM_EDGE = 1;
-#elif (AMREX_SPACEDIM == 3)
-    const int NUM_EDGE = 3;
-#endif
-#endif
-
 // copy contents of gmres_params_module to C++ gmres namespace
 void InitializeGmresNamespace();
 

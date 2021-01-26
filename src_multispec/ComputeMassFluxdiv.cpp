@@ -10,7 +10,12 @@ void ComputeMassFluxdiv(MultiFab& rho,
                         std::array<MultiFab,AMREX_SPACEDIM>& stoch_mass_flux,
                         StochMassFlux& sMassFlux,
 			const Real& dt, const Real& stage_time, const Geometry& geom,
-                        Vector<Real>& weights)  
+                        Vector<Real>& weights,
+                        MultiFab& charge,
+                        std::array<MultiFab,AMREX_SPACEDIM>& grad_Epot,
+                        MultiFab& Epot,
+                        MultiFab& permittivity,
+                        const int& zero_initial_Epot)
 {
 
   BL_PROFILE_VAR("ComputeMassFluxdiv()",ComputeMassFluxdiv);
@@ -75,5 +80,11 @@ void ComputeMassFluxdiv(MultiFab& rho,
                                  dt,weights);
 
   }
-
+  
+  if (use_charged_fluid) {
+      ElectroDiffusiveMassFluxdiv(rho,Temp,rhoWchi,diff_mass_flux,diff_mass_fluxdiv,
+                                  stoch_mass_flux,charge,grad_Epot,Epot,permittivity,
+                                  dt,1,geom);
+  }
+  
 }

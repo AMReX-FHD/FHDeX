@@ -4,22 +4,16 @@
 // it converts "physical" boundary descriptions to "mathematical" descriptions used
 // to fill ghost cells in PhysBC routines
 
-void BCPhysToMath(int varType, amrex::Vector<int>& bc_lo, amrex::Vector<int>& bc_hi) {
+void BCPhysToMath(int bccomp, amrex::Vector<int>& bc_lo, amrex::Vector<int>& bc_hi) {
     
     BL_PROFILE_VAR("BCPhysToMath()",BCPhysToMath);
-
-    // varType -1: density
-    // varType  0: pressure
-    // varType  1: species
-    // varType  2: temperature
-    // varType  3: electric potential
 
     // set to interior/periodic by default; overwrite below
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
         bc_lo[i] = bc_hi[i] = INT_DIR;
     }
     
-    if (varType == 0) { // PRESSURE
+    if (bccomp == PRES_BC_COMP) { // PRESSURE
         for (int i=0; i<AMREX_SPACEDIM; ++i) {
             if (bc_vel_lo[i] == 1 || bc_vel_lo[i] == 2) {
                 // wall -> first-order extrapolation
@@ -31,7 +25,7 @@ void BCPhysToMath(int varType, amrex::Vector<int>& bc_lo, amrex::Vector<int>& bc
             }
         }
     }
-    else if (varType == -1 || varType == 1) { // density or species
+    else if (bccomp == RHO_BC_COMP || bccomp == SPEC_BC_COMP) { // density or species
         for (int i=0; i<AMREX_SPACEDIM; ++i) {
             if (bc_mass_lo[i] == 1) {
                 // wall -> first-order extrapolation
@@ -51,7 +45,7 @@ void BCPhysToMath(int varType, amrex::Vector<int>& bc_lo, amrex::Vector<int>& bc
             }
         }
     }
-    else if (varType == 2) { // TEMPERATURE
+    else if (bccomp == TEMP_BC_COMP) { // TEMPERATURE
         for (int i=0; i<AMREX_SPACEDIM; ++i) {
             if (bc_therm_lo[i] == 1) {
                 // adiabtic -> first-order extrapolation
@@ -71,7 +65,7 @@ void BCPhysToMath(int varType, amrex::Vector<int>& bc_lo, amrex::Vector<int>& bc
             }
         }
     }
-    else if (varType == 3) { // ELECTRIC POTENTIAL
+    else if (bccomp == EPOT_BC_COMP) { // ELECTRIC POTENTIAL
         for (int i=0; i<AMREX_SPACEDIM; ++i) {
             if (bc_es_lo[i] == 1) {
                 // dirichlet

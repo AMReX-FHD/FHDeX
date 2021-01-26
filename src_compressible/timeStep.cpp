@@ -16,7 +16,7 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
              std::array<MultiFab, AMREX_SPACEDIM>& corny,
              std::array<MultiFab, AMREX_SPACEDIM>& cornz,
              MultiFab& visccorn, MultiFab& rancorn,
-             const amrex::Geometry geom, const amrex::Real* dxp, const amrex::Real dt)
+             const amrex::Geometry geom, const amrex::Real dt)
 {
     BL_PROFILE_VAR("RK3step()",RK3step);
     
@@ -106,7 +106,7 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
     ///////////////////////////////////////////////////////////
 
     calculateFlux(cu, prim, eta, zeta, kappa, chi, D, flux, stochFlux, cornx, corny, cornz,
-                  visccorn, rancorn, geom, stoch_weights, dxp, dt);
+                  visccorn, rancorn, geom, stoch_weights, dt);
 
     for ( MFIter mfi(cu,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
         
@@ -200,7 +200,7 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
     ///////////////////////////////////////////////////////////
 
     calculateFlux(cup, prim, eta, zeta, kappa, chi, D, flux, stochFlux, cornx, corny, cornz,
-                  visccorn, rancorn, geom, stoch_weights, dxp, dt);
+                  visccorn, rancorn, geom, stoch_weights, dt);
 
     for ( MFIter mfi(cu,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
         
@@ -294,7 +294,7 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
     ///////////////////////////////////////////////////////////
 
     calculateFlux(cup2, prim, eta, zeta, kappa, chi, D, flux, stochFlux, cornx, corny, cornz,
-                  visccorn, rancorn, geom, stoch_weights, dxp, dt);
+                  visccorn, rancorn, geom, stoch_weights, dt);
 
     for ( MFIter mfi(cu,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
         
