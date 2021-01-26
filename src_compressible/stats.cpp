@@ -73,20 +73,25 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
                 cumeans(i,j,k,l) = (cumeans(i,j,k,l)*stepsminusone + cu(i,j,k,l))*stepsinv;
             }
 
-            for (int l=5; l<nvars; ++l) {
-                fracvec[l-5] = cumeans(i,j,k,l)/cumeans(i,j,k,0);
-                massvec[l-5] = cumeans(i,j,k,l);;
-            }
-
             Real densitymeaninv = 1.0/cumeans(i,j,k,0);
+            
+            for (int l=5; l<nvars; ++l) {
+                fracvec[l-5] = cumeans(i,j,k,l) * densitymeaninv;
+            }
 
             primmeans(i,j,k,0) = cumeans(i,j,k,0);
             primmeans(i,j,k,1) = cumeans(i,j,k,1)*densitymeaninv;
             primmeans(i,j,k,2) = cumeans(i,j,k,2)*densitymeaninv;
             primmeans(i,j,k,3) = cumeans(i,j,k,3)*densitymeaninv;
 
-            GetTemperature(cumeans(i,j,k,4), massvec, primmeans(i,j,k,4));
-            GetPressureGas(primmeans(i,j,k,5), fracvec, cumeans(i,j,k,0), cumeans(i,j,k,4));
+            Real vsqr = primmeans(i,j,k,1)*primmeans(i,j,k,1) +
+                        primmeans(i,j,k,2)*primmeans(i,j,k,2) +
+                        primmeans(i,j,k,3)*primmeans(i,j,k,3);
+
+            Real intenergy = cumeans(i,j,k,4)/cumeans(i,j,k,0) - 0.5*vsqr;
+
+            GetTemperature(intenergy, fracvec, primmeans(i,j,k,4));
+            GetPressureGas(primmeans(i,j,k,5), fracvec, cumeans(i,j,k,0), primmeans(i,j,k,4));
 
             totalMass = totalMass + cu(i,j,k,0);
                     
