@@ -73,8 +73,8 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
             primmeans(i,j,k,2) = cumeans(i,j,k,2)*densitymeaninv;
             primmeans(i,j,k,3) = cumeans(i,j,k,3)*densitymeaninv;
 
-            GetTemperature(cumeans(i,j,k,4), massvec, primmeans(i,j,k,4));
-            GetPressureGas(primmeans(i,j,k,5), fracvec, cumeans(i,j,k,0), cumeans(i,j,k,4));
+            GetTemperature(cumeans(i,j,k,4), massvec, primmeans(i,j,k,4)); // CHECK -- IS
+            GetPressureGas(primmeans(i,j,k,5), fracvec, cumeans(i,j,k,0), cumeans(i,j,k,4)); // CHECK --IS
 
             totalMass = totalMass + cu(i,j,k,0);
                     

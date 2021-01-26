@@ -318,7 +318,7 @@ void main_driver(const char* argv)
 
     // velx, vely, velz
     for (int d=0; d<AMREX_SPACEDIM; d++) {
-        x = "vel_averaged";
+        x = "velCC";
         x += (120+d);
         prim_var_names[cnt++] = x;
     }
@@ -335,7 +335,7 @@ void main_driver(const char* argv)
 
     // velx, vely, velz
     for (int d=0; d<AMREX_SPACEDIM; d++) {
-        x = "vel_shifted";
+        x = "velFACE";
         x += (120+d);
         prim_var_names[cnt++] = x;
     }
@@ -370,10 +370,11 @@ void main_driver(const char* argv)
 
     // "conserved" variable structure factor will contain
     // rho
-    // j
+    // j (averaged)
     // rho*E
     // rho*Yk
     // Temperature (not in the conserved array; will have to copy it in)
+    // j (shifted)
     int structVarsCons = 2*AMREX_SPACEDIM+nspecies+3;
 
     Vector< std::string > cons_var_names;
@@ -386,7 +387,7 @@ void main_driver(const char* argv)
 
     // jx, jy, jz
     for (int d=0; d<AMREX_SPACEDIM; d++) {
-        x = "j_averaged";
+        x = "jCC";
         x += (120+d);
         cons_var_names[cnt++] = x;
     }
@@ -406,7 +407,7 @@ void main_driver(const char* argv)
 
     // jx, jy, jz
     for (int d=0; d<AMREX_SPACEDIM; d++) {
-        x = "j_shifted";
+        x = "jFACE";
         x += (120+d);
         cons_var_names[cnt++] = x;
     }
