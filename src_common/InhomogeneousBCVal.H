@@ -14,7 +14,19 @@ Real InhomogeneousBCVal ( int comp,
         
     } else if (comp == RHO_BC_COMP) {
 
-        Abort("Need to write InhomogeneousBCVal for density; make a custom copy");
+        if (x == prob_lo[0]) {
+            return bc_rhotot_x_lo;
+        } else if (x == prob_hi[0]) {
+            return bc_rhotot_x_hi;
+        } else if (y == prob_lo[1]) {
+            return bc_rhotot_y_lo;
+        } else if (y == prob_hi[1]) {
+            return bc_rhotot_y_hi;
+        } else if (z == prob_lo[2]) {
+            return bc_rhotot_z_lo;
+        } else if (z == prob_hi[2]) {
+            return bc_rhotot_z_hi;
+        }
         
     } else if (comp >= SPEC_BC_COMP && comp <= SPEC_END_BC_COMP) {
 

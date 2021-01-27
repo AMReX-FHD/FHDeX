@@ -54,7 +54,7 @@ amrex::Real                common::variance_coef_mom;
 amrex::Real                common::variance_coef_mass;
 AMREX_GPU_MANAGED amrex::Real common::k_B;
 AMREX_GPU_MANAGED amrex::Real common::Runiv;
-AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES>        common::T_init;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::T_init;
 AMREX_GPU_MANAGED int      common::algorithm_type;
 int                        common::barodiffusion_type;
 int                        common::use_bl_rng;
@@ -105,6 +105,13 @@ AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::bc_Xk_y_lo;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::bc_Xk_y_hi;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::bc_Xk_z_lo;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::bc_Xk_z_hi;
+
+AMREX_GPU_MANAGED amrex::Real common::bc_rhotot_x_lo;
+AMREX_GPU_MANAGED amrex::Real common::bc_rhotot_x_hi;
+AMREX_GPU_MANAGED amrex::Real common::bc_rhotot_y_lo;
+AMREX_GPU_MANAGED amrex::Real common::bc_rhotot_y_hi;
+AMREX_GPU_MANAGED amrex::Real common::bc_rhotot_z_lo;
+AMREX_GPU_MANAGED amrex::Real common::bc_rhotot_z_hi;
 
 amrex::Vector<amrex::Real> common::wallspeed_lo;
 amrex::Vector<amrex::Real> common::wallspeed_hi;
