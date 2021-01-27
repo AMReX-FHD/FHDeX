@@ -60,6 +60,7 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     std::array< MultiFab, AMREX_SPACEDIM > mtemp;
     std::array< MultiFab, AMREX_SPACEDIM > adv_mom_fluxdiv;
     std::array< MultiFab, AMREX_SPACEDIM > diff_mom_fluxdiv;
+    std::array< MultiFab, AMREX_SPACEDIM > stoch_mom_fluxdiv;
     std::array< MultiFab, AMREX_SPACEDIM > gmres_rhs_v;
     std::array< MultiFab, AMREX_SPACEDIM > dumac;
     std::array< MultiFab, AMREX_SPACEDIM > gradpi;
@@ -68,13 +69,13 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     std::array< MultiFab, AMREX_SPACEDIM > rho_fc;
     std::array< MultiFab, AMREX_SPACEDIM > diff_mass_flux;
     std::array< MultiFab, AMREX_SPACEDIM > total_mass_flux;
-    std::array< MultiFab, AMREX_SPACEDIM > stoch_mom_fluxdiv;
 
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         mold[d]             .define(convert(ba,nodal_flag_dir[d]), dmap,        1, 1);
         mtemp[d]            .define(convert(ba,nodal_flag_dir[d]), dmap,        1, 1);
         adv_mom_fluxdiv[d]  .define(convert(ba,nodal_flag_dir[d]), dmap,        1, 0);
         diff_mom_fluxdiv[d] .define(convert(ba,nodal_flag_dir[d]), dmap,        1, 0);
+        stoch_mom_fluxdiv[d].define(convert(ba,nodal_flag_dir[d]), dmap,        1, 0);
         gmres_rhs_v[d]      .define(convert(ba,nodal_flag_dir[d]), dmap,        1, 0);
         dumac[d]            .define(convert(ba,nodal_flag_dir[d]), dmap,        1, 1);
         gradpi[d]           .define(convert(ba,nodal_flag_dir[d]), dmap,        1, 0);
@@ -83,7 +84,6 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         rho_fc[d]           .define(convert(ba,nodal_flag_dir[d]), dmap, nspecies, 0);
         diff_mass_flux[d]   .define(convert(ba,nodal_flag_dir[d]), dmap, nspecies, 0);
         total_mass_flux[d]  .define(convert(ba,nodal_flag_dir[d]), dmap, nspecies, 0);
-        stoch_mom_fluxdiv[d].define(convert(ba,nodal_flag_dir[d]), dmap, nspecies, 0);
     }
     
     // only used when use_charged_fluid=T
