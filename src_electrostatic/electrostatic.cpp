@@ -2,12 +2,15 @@
 #include "common_functions.H"
 #include <AMReX_MLMG.H>
 #include <AMReX_MLABecLaplacian.H>
+#include <AMReX_VisMF.H>
 
 using namespace amrex;
 
 void esSolve(MultiFab& potential, MultiFab& charge,
              std::array< MultiFab, AMREX_SPACEDIM >& efieldCC,
-             const std::array< MultiFab, AMREX_SPACEDIM >& external, const Geometry geom)
+             const std::array< MultiFab, AMREX_SPACEDIM >& externalCC, 
+             const std::array< MultiFab, AMREX_SPACEDIM >& externalFC,
+             const Geometry geom)
 {
     AMREX_D_TERM(efieldCC[0].setVal(0);,
                  efieldCC[1].setVal(0);,
@@ -16,6 +19,7 @@ void esSolve(MultiFab& potential, MultiFab& charge,
     if(es_tog==1 || es_tog==3)
     {
 
+        potential.setVal(0.);
         const BoxArray& ba = charge.boxArray();
         const DistributionMapping& dmap = charge.DistributionMap();
         Box dom(geom.Domain());
@@ -71,10 +75,22 @@ void esSolve(MultiFab& potential, MultiFab& charge,
 
         }
 
+        //AMREX_D_TERM( VisMF::Write(permittivity_fc[0], std::string("pltfiles/permx"));,
+        //              VisMF::Write(permittivity_fc[1], std::string("pltfiles/permy"));,
+        //              VisMF::Write(permittivity_fc[2], std::string("pltfiles/permz"));  );
+
+        //AMREX_D_TERM( VisMF::Write(externalFC[0], std::string("pltfiles/extx"));,
+        //              VisMF::Write(externalFC[1], std::string("pltfiles/exty"));,
+        //              VisMF::Write(externalFC[2], std::string("pltfiles/extz"));  );
+
         // compute epsilon*external (where epsilon is stored in permittivity_fc)
         for (int i=0; i<AMREX_SPACEDIM; ++i) {
-            MultiFab::Multiply(permittivity_fc[i],external[i],0,0,1,0);
+            MultiFab::Multiply(permittivity_fc[i],externalFC[i],0,0,1,0);
         }
+
+        //AMREX_D_TERM( VisMF::Write(permittivity_fc[0], std::string("pltfiles/perm_newx"));,
+        //              VisMF::Write(permittivity_fc[1], std::string("pltfiles/perm_newy"));,
+        //              VisMF::Write(permittivity_fc[2], std::string("pltfiles/perm_newz"));  );
 
         // compute div (epsilon*E_ext) and subtract it from the solver rhs
         // only needed for spatially varying epsilon or external field
@@ -162,7 +178,7 @@ void esSolve(MultiFab& potential, MultiFab& charge,
 
     //Add external field on top, then fill boundaries, then setup BCs for peskin interpolation
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        MultiFab::Add(efieldCC[d], external[d], 0, 0, 1, efieldCC[d].nGrow());
+        MultiFab::Add(efieldCC[d], externalCC[d], 0, 0, 1, efieldCC[d].nGrow());
         efieldCC[d].FillBoundary(geom.periodicity());
         MultiFabElectricBC(efieldCC[d], geom);
     }

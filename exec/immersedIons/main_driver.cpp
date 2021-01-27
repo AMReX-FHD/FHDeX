@@ -749,9 +749,15 @@ void main_driver(const char* argv)
     }
 
     // external field
-    std::array< MultiFab, AMREX_SPACEDIM > external;
+    std::array< MultiFab, AMREX_SPACEDIM > externalCC;
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        external[d].define(bp, dmap, 1, ngp);
+        externalCC[d].define(bp, dmap, 1, ngp);
+    }
+
+    // staggered external field
+    std::array< MultiFab, AMREX_SPACEDIM > externalFC;
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        externalFC[d].define(convert(bp,nodal_flag_dir[d]), dmap, 1, ngp);
     }
     
     MultiFab dryMobility(ba, dmap, nspecies*AMREX_SPACEDIM, ang);
@@ -889,7 +895,8 @@ void main_driver(const char* argv)
         //Most of these functions are sensitive to the order of execution. We can fix this, but for now leave them in this order.
 
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
-            external[d].setVal(eamp[d]*cos(efreq[d]*time + ephase[d]));  // external field
+            externalCC[d].setVal(eamp[d]*cos(efreq[d]*time + ephase[d]));  // external field
+            externalFC[d].setVal(eamp[d]*cos(efreq[d]*time + ephase[d]));  // staggered external field
             source    [d].setVal(0.0);      // reset source terms
             sourceTemp[d].setVal(0.0);      // reset source terms
             sourceRFD[d].setVal(0.0);      // reset source terms
@@ -939,7 +946,7 @@ void main_driver(const char* argv)
         
         // do Poisson solve using 'charge' for RHS, and put potential in 'potential'.
         // Then calculate gradient and put in 'efieldCC', then add 'external'.
-        esSolve(potential, charge, efieldCC, external, geomP);
+        esSolve(potential, charge, efieldCC, externalCC, externalFC, geomP);
 
         // compute other forces and spread to grid
         particles.SpreadIonsGPU(dx, dxp, geom, umac, efieldCC, source, sourceTemp);
