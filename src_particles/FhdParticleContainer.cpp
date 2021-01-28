@@ -467,6 +467,7 @@ void FhdParticleContainer::computeForcesNLGPU(const MultiFab& coords, const Real
 
         if (es_tog==3)
         {
+            Print() << "Beginning SR P3M \n";
             compute_p3m_sr_correction_nl_gpu(particles, Np, Nn,
                                         m_neighbor_list[lev][index], dx, recount, recountI);
 
@@ -3158,11 +3159,11 @@ FhdParticleContainer::PrintParticles()
 
             double bigM  = part.rdata(FHD_realData::wetDiff)/(T_init[0]*k_B);
 
-            std::cout << scientific << setprecision(15) << "Particle " << ParallelDescriptor::MyProc() << ", " << part.id() << ", force: " << part.rdata(FHD_realData::forcex) << ", " << part.rdata(FHD_realData::forcey) << ", " << part.rdata(FHD_realData::forcez) << std::endl;
-            std::cout << scientific << setprecision(15) << "Particle " << ParallelDescriptor::MyProc() << ", " << part.id() << ", position/q: " << part.pos(0) << ", " << part.pos(1) << ", " << part.pos(2) << ", " << part.rdata(FHD_realData::q) << std::endl;
-            std::cout << scientific << setprecision(15) << "Particle " << ParallelDescriptor::MyProc() << ", " << part.id() << ", vel: " << part.rdata(FHD_realData::velx) << ", " << part.rdata(FHD_realData::vely) << ", " << part.rdata(FHD_realData::velz) << std::endl;
-            std::cout << scientific << setprecision(15) << "Particle " << ParallelDescriptor::MyProc() << ", " << part.id() << ", normalised mobility: " << (part.rdata(FHD_realData::velx)/part.rdata(FHD_realData::forcex))/bigM << ", " << (part.rdata(FHD_realData::vely)/part.rdata(FHD_realData::forcey))/bigM
-                                                                                                                                                                         << ", " << (part.rdata(FHD_realData::velz)/part.rdata(FHD_realData::forcez))/bigM << std::endl;
+            //std::cout << scientific << setprecision(15) << "Particle " << ParallelDescriptor::MyProc() << ", " << part.id() << ", force: " << part.rdata(FHD_realData::forcex) << ", " << part.rdata(FHD_realData::forcey) << ", " << part.rdata(FHD_realData::forcez) << std::endl;
+            //std::cout << scientific << setprecision(15) << "Particle " << ParallelDescriptor::MyProc() << ", " << part.id() << ", position/q: " << part.pos(0) << ", " << part.pos(1) << ", " << part.pos(2) << ", " << part.rdata(FHD_realData::q) << std::endl;
+            //std::cout << scientific << setprecision(15) << "Particle " << ParallelDescriptor::MyProc() << ", " << part.id() << ", vel: " << part.rdata(FHD_realData::velx) << ", " << part.rdata(FHD_realData::vely) << ", " << part.rdata(FHD_realData::velz) << std::endl;
+            //std::cout << scientific << setprecision(15) << "Particle " << ParallelDescriptor::MyProc() << ", " << part.id() << ", normalised mobility: " << (part.rdata(FHD_realData::velx)/part.rdata(FHD_realData::forcex))/bigM << ", " << (part.rdata(FHD_realData::vely)/part.rdata(FHD_realData::forcey))/bigM
+            //                                                                                                                                                             << ", " << (part.rdata(FHD_realData::velz)/part.rdata(FHD_realData::forcez))/bigM << std::endl;
 
         }
     }

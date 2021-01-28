@@ -59,6 +59,13 @@ int near_wall_check (const FhdParticleContainer::ParticleType& part, int dir, Re
     const int index = abs_dir - 1;
 
     int near_wall = 0;
+
+    if (abs_dir == 2) {
+        Real ylo = part.pos(1) - prob_lo[1];
+        Real yhi = prob_hi[1] - part.pos(1);
+        Print() << ylo << " " << dist << "\n"; 
+        Print() << yhi << " " << dist << "\n"; 
+    }
     
     if ((abs_dir == 1) or (abs_dir == 2) or (abs_dir == 3))
     {
@@ -440,9 +447,12 @@ void compute_p3m_sr_correction_nl_gpu (FhdParticleContainer::AoS& aos, int Np, i
 
     AMREX_FOR_1D( Np, i, 
     {
+        Print() << "Np " << Np << "\n";
         FhdParticleContainer::ParticleType& p1 = pstruct[i];
-        if(p1.idata(FHD_intData::pinned) != 0)
+        Print() << "pinned " << p1.idata(FHD_intData::pinned) << "\n";
+        if(p1.idata(FHD_intData::pinned) == 0)
         {
+            Print() << "Loop2 \n";
             int spec1 = p1.idata(FHD_intData::species)-1;
             int spec2 = p1.idata(FHD_intData::species)-1;
             int p_matrix_val = spec1*nspecies + spec2;
@@ -457,7 +467,9 @@ void compute_p3m_sr_correction_nl_gpu (FhdParticleContainer::AoS& aos, int Np, i
 
             int near_wall_below = 0;
             int neumann = 0;
+            Print() << "p_bc_es_lo_d "<< p_bc_es_lo_d[1] << "\n";
             if (p_bc_es_lo_d[1] != -1) {
+                Print() << "Checking near wall \n";
                 near_wall_below = near_wall_check(p1, -2, 0.5*p3m_radius);
                 if (zero_eps_on_wall_type) neumann = check_zero_eps(p1); // ICEO inhomogeneous
             }
@@ -833,7 +845,7 @@ void compute_forces_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
     AMREX_FOR_1D( Np, i, 
     {
         FhdParticleContainer::ParticleType& p1 = pstruct[i];
-        if(p1.idata(FHD_intData::pinned) != 0)
+        if(p1.idata(FHD_intData::pinned) == 0)
         {
             int spec1 = p1.idata(FHD_intData::species)-1;
 
@@ -906,7 +918,7 @@ void compute_forces_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
             {
                 FhdParticleContainer::ParticleType& p1 = pstruct[i];
 
-                if(p1.idata(FHD_intData::pinned) != 0)
+                if(p1.idata(FHD_intData::pinned) == 0)
                 {
 
                     const Real dx = p1.pos(0) - plo[0];
@@ -937,7 +949,7 @@ void compute_forces_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
             {
                 FhdParticleContainer::ParticleType& p1 = pstruct[i];
 
-                if(p1.idata(FHD_intData::pinned) != 0)
+                if(p1.idata(FHD_intData::pinned) == 0)
                 {
 
                     const Real dx = p1.pos(0) - phi[0];
@@ -967,7 +979,7 @@ void compute_forces_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
             AMREX_FOR_1D( Np, i, 
             {
                 FhdParticleContainer::ParticleType& p1 = pstruct[i];
-                if(p1.idata(FHD_intData::pinned) != 0)
+                if(p1.idata(FHD_intData::pinned) == 0)
                 {
 
                 const Real dx = 0;
@@ -998,7 +1010,7 @@ void compute_forces_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
             AMREX_FOR_1D( Np, i, 
             {
                 FhdParticleContainer::ParticleType& p1 = pstruct[i];
-                if(p1.idata(FHD_intData::pinned) != 0)
+                if(p1.idata(FHD_intData::pinned) == 0)
                 {
 
                 const Real dx = 0;
@@ -1029,7 +1041,7 @@ void compute_forces_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
             AMREX_FOR_1D( Np, i, 
             {
                 FhdParticleContainer::ParticleType& p1 = pstruct[i];
-                if(p1.idata(FHD_intData::pinned) != 0)
+                if(p1.idata(FHD_intData::pinned) == 0)
                 {
 
                 const Real dx = 0;
@@ -1060,7 +1072,7 @@ void compute_forces_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
             AMREX_FOR_1D( Np, i, 
             {
                 FhdParticleContainer::ParticleType& p1 = pstruct[i];
-                if(p1.idata(FHD_intData::pinned) != 0)
+                if(p1.idata(FHD_intData::pinned) == 0)
                 {
                 const Real dx = 0;
                 const Real dy = 0;
