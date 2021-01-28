@@ -63,6 +63,9 @@ public:
     IBMarkerContainerBase(const Geometry & geom, const DistributionMapping & dmap,
                           const BoxArray & ba, int n_nbhd);
 
+    IBMarkerContainerBase(const Geometry & geom, const Geometry & geomF, const DistributionMapping & dmap,
+                          const BoxArray & ba, const BoxArray & baF, int n_nbhd, int ngF);
+
     virtual ~IBMarkerContainerBase() {};
 
 
@@ -145,7 +148,7 @@ public:
     void SpreadMarkersGpu(int lev,
             std::array<MultiFab, AMREX_SPACEDIM> & f_out,
             const std::array<MultiFab, AMREX_SPACEDIM> & coords,
-            const Real * dx, int ghost) const;
+            const Real * dx, int ghost);
 
     void SpreadPredictor(int lev,
                          std::array<MultiFab, AMREX_SPACEDIM> & f_out) const;
@@ -265,6 +268,7 @@ public:
         return  face_coords[lev];
     }
 
+    std::array<MultiFab, AMREX_SPACEDIM> f_weights;
 
 protected:
 
@@ -272,6 +276,8 @@ protected:
 
     void InitInternals(int ngrow);
     void ReadStaticParameters();
+
+    
 
     AmrCore * m_amr_core;
 
@@ -288,6 +294,7 @@ private:
 
     // Positions on faces
     Vector<std::array<MultiFab, AMREX_SPACEDIM>> face_coords;
+    
 
 
 
