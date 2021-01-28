@@ -156,8 +156,8 @@ public:
         ::MyConstIBMarIter;
 
     FhdParticleContainer(AmrCore * amr_core, int n_nbhd);
-    FhdParticleContainer(const Geometry & geom, const DistributionMapping & dmap,
-                      const BoxArray & ba, int n_nbhd);
+    FhdParticleContainer(const Geometry & geom, const Geometry & geomF, const DistributionMapping & dmap,
+                      const BoxArray & ba, const BoxArray & bc, int n_nbhd, int ngF);
 
     virtual ~FhdParticleContainer() {};
 

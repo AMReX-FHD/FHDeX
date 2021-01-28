@@ -18,13 +18,13 @@ namespace common {
     // Problem specification
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, 3> prob_lo; // physical lo coordinate
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, 3> prob_hi; // physical hi coordinate
-    extern amrex::Vector<int>         n_cells;              // number of cells in domain
+    extern AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM> n_cells;              // number of cells in domain
     extern amrex::Vector<int>         max_grid_size;        // max number of cells in a box
     extern amrex::Vector<int>         max_particle_tile_size;        // max number of cells in a box
     extern amrex::Real                cell_depth;
 
     extern amrex::IntVect             ngc;           //number of chost cells
-    extern int                        nvars;         //number of conserved variables
+    extern AMREX_GPU_MANAGED int      nvars;         //number of conserved variables
     extern AMREX_GPU_MANAGED int      nprimvars;     //number of primitive variables
 
     extern int                        membrane_cell; //cell to locate membrane
@@ -49,18 +49,18 @@ namespace common {
     extern std::string                plot_base_name;
     extern int                        chk_int;
     extern std::string                chk_base_name;
-    extern int                        prob_type;
+    extern AMREX_GPU_MANAGED int      prob_type;
     extern int                        restart;
     extern int                        particle_restart;
     extern int                        print_int;
     extern int                        project_eos_int;
 
     // Physical parameters
-    extern amrex::Vector<amrex::Real> grav;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> grav;
     extern AMREX_GPU_MANAGED int nspecies;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> molmass;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> rhobar;
-    extern amrex::Real                rho0;
+    extern AMREX_GPU_MANAGED amrex::Real rho0;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> diameter;
     extern amrex::Vector<int>         dof;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> hcv;
@@ -74,7 +74,7 @@ namespace common {
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> T_init;
 
     // Algorithm control / selection
-    extern int                        algorithm_type;
+    extern AMREX_GPU_MANAGED int      algorithm_type;
     extern int                        advection_type;
     extern int                        barodiffusion_type;
     extern int                        use_bl_rng;
@@ -101,7 +101,7 @@ namespace common {
     // positive = assume constant coefficients
     // negative = assume spatially-varying coefficients
     extern amrex::Real                visc_coef;
-    extern int                        visc_type;
+    extern AMREX_GPU_MANAGED int      visc_type;
 
     // Stochastic momentum flux controls:
     extern int                        filtering_width;

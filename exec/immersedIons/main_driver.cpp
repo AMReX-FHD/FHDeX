@@ -117,6 +117,8 @@ void main_driver(const char* argv)
     std::array< MultiFab, AMREX_SPACEDIM > umacM;    // mean
     std::array< MultiFab, AMREX_SPACEDIM > umacV;    // variance
 
+    std::array< MultiFab, AMREX_SPACEDIM > touched;
+
     // pressure for GMRES solve; 1 ghost cell
     MultiFab pres;
 
@@ -170,6 +172,7 @@ void main_driver(const char* argv)
         
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             umac [d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ang);
+            touched[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ang);
             umacM[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
             umacV[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
             umac [d].setVal(0.);
@@ -662,6 +665,7 @@ void main_driver(const char* argv)
         source    [d].setVal(0.0);
         sourceTemp[d].setVal(0.0);
         sourceRFD[d].setVal(0.0);
+        touched[d].setVal(0.0);
     }
 
     //Define parametric paramplanes for particle interaction - declare array for paramplanes and then define properties in BuildParamplanes
@@ -699,7 +703,7 @@ void main_driver(const char* argv)
 
     //int num_neighbor_cells = 4; replaced by input var
     //Particles! Build on geom & box array for collision cells/ poisson grid?
-    FhdParticleContainer particles(geomC, dmap, bc, crange);
+    FhdParticleContainer particles(geomC, geom, dmap, bc, ba, crange, ang);
 
     if (restart < 0 && particle_restart < 0) {
         // create particles
@@ -850,7 +854,7 @@ void main_driver(const char* argv)
     //Time stepping loop
 
 
-    dt = dt*1e-4;
+    dt = dt*1e-5;
 
     particles.initRankLists(simParticles);
 
@@ -884,20 +888,12 @@ void main_driver(const char* argv)
                 Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
         }
 
-//        if(istep == 100)
-//        {
-//                dt = dt*10;
-//                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
-//        }
+        if(istep == 100)
+        {
+                dt = dt*10;
+                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+        }
 
-        //if(istep == 1)
-        //{
-        //    particles.SetPosition(1, prob_hi[0]*0.45, prob_hi[1]*0.45, prob_hi[2]*0.45);
-        //    particles.SetPosition(2, prob_hi[0]*0.45 + 1.29182e-8, prob_hi[1]*0.45, prob_hi[2]*0.45);
-        //   
-        //}
-
-    
         //Most of these functions are sensitive to the order of execution. We can fix this, but for now leave them in this order.
 
         for (int d=0; d<AMREX_SPACEDIM; ++d) {

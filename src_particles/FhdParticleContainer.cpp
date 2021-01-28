@@ -8,10 +8,13 @@ bool FhdParticleContainer::use_neighbor_list  {true};
 bool FhdParticleContainer::sort_neighbor_list {false};
 
 FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
+                                           const Geometry & geomF,
                                            const DistributionMapping & dmap,
                                            const BoxArray & ba,
-                                           int n_nbhd)
-    : IBMarkerContainerBase<FHD_realData, FHD_intData>(geom, dmap, ba, n_nbhd), n_list(0)
+                                           const BoxArray & baF,
+                                           int n_nbhd,
+                                           int ngF)
+    : IBMarkerContainerBase<FHD_realData, FHD_intData>(geom, geomF, dmap, ba, baF, n_nbhd, ngF), n_list(0)
 {
     BL_PROFILE_VAR("FhdParticleContainer()",FhdParticleContainer);
     

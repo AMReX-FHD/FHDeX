@@ -60,13 +60,6 @@ int near_wall_check (const FhdParticleContainer::ParticleType& part, int dir, Re
 
     int near_wall = 0;
 
-    if (abs_dir == 2) {
-        Real ylo = part.pos(1) - prob_lo[1];
-        Real yhi = prob_hi[1] - part.pos(1);
-        Print() << ylo << " " << dist << "\n"; 
-        Print() << yhi << " " << dist << "\n"; 
-    }
-    
     if ((abs_dir == 1) or (abs_dir == 2) or (abs_dir == 3))
     {
         if (dir > 0)
@@ -447,12 +440,9 @@ void compute_p3m_sr_correction_nl_gpu (FhdParticleContainer::AoS& aos, int Np, i
 
     AMREX_FOR_1D( Np, i, 
     {
-        Print() << "Np " << Np << "\n";
         FhdParticleContainer::ParticleType& p1 = pstruct[i];
-        Print() << "pinned " << p1.idata(FHD_intData::pinned) << "\n";
         if(p1.idata(FHD_intData::pinned) == 0)
         {
-            Print() << "Loop2 \n";
             int spec1 = p1.idata(FHD_intData::species)-1;
             int spec2 = p1.idata(FHD_intData::species)-1;
             int p_matrix_val = spec1*nspecies + spec2;
@@ -466,12 +456,8 @@ void compute_p3m_sr_correction_nl_gpu (FhdParticleContainer::AoS& aos, int Np, i
             Real q = p1.rdata(FHD_realData::q);
 
             int near_wall_below = 0;
-            int neumann = 0;
-            Print() << "p_bc_es_lo_d "<< p_bc_es_lo_d[1] << "\n";
             if (p_bc_es_lo_d[1] != -1) {
-                Print() << "Checking near wall \n";
                 near_wall_below = near_wall_check(p1, -2, 0.5*p3m_radius);
-                if (zero_eps_on_wall_type) neumann = check_zero_eps(p1); // ICEO inhomogeneous
             }
 
             int near_wall_above = 0;
@@ -493,6 +479,9 @@ void compute_p3m_sr_correction_nl_gpu (FhdParticleContainer::AoS& aos, int Np, i
                 // perform coulomb and p3m interaction with image charge
                 if ((p_bc_es_lo_d[1] == 1) and (r < p3m_radius))
                 {
+                    int neumann = 0;
+                    if (zero_eps_on_wall_type) neumann = check_zero_eps(p1); // ICEO inhomogeneous
+
                     if (neumann == 0) {
                         // hom. dirichlet--image charge opposite that of particle
                     
@@ -655,8 +644,6 @@ void compute_p3m_sr_correction_nl_gpu (FhdParticleContainer::AoS& aos, int Np, i
                         {
                             RealVect im_charge_pos = calc_im_charge_loc(p2, -2);
 
-                            int neumann_nl = 0;
-                            if (zero_eps_on_wall_type) neumann_nl = check_zero_eps(p2); // ICEO inhomogeneous
 
                             // compute sep vector btwn charge and NL's image
                             dr[0] = p1.pos(0) - im_charge_pos[0];
@@ -669,6 +656,9 @@ void compute_p3m_sr_correction_nl_gpu (FhdParticleContainer::AoS& aos, int Np, i
                             // perform coulomb and p3m interaction with NL particle's image charge
                             if ((p_bc_es_lo_d[1] == 1) and (r < p3m_radius))
                             {
+                                int neumann_nl = 0;
+                                if (zero_eps_on_wall_type) neumann_nl = check_zero_eps(p2); // ICEO inhomogeneous
+                                
                                 if (neumann_nl == 0) {
                                     // hom. dirichlet--image charge opposite that of particle
 

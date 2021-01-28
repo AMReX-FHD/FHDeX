@@ -67,6 +67,35 @@ IBMarkerContainerBase<StructReal, StructInt>::IBMarkerContainerBase(
     nghost(n_nbhd)
 {
     InitInternals(n_nbhd);
+
+
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        f_weights[d].define(ba, dmap, 1, n_nbhd);
+        f_weights[d].setVal(-1.0);
+    }
+
+}
+
+template <typename StructReal, typename StructInt>
+IBMarkerContainerBase<StructReal, StructInt>::IBMarkerContainerBase(
+            const Geometry & geom,
+            const Geometry & geomF,
+            const DistributionMapping & dmap,
+            const BoxArray & ba,
+            const BoxArray & baF,
+            int n_nbhd,
+            int ngF
+        ) : NeighborParticleContainer<StructReal::count, StructInt::count>(
+            geom, dmap, ba, n_nbhd
+        ),
+    nghost(n_nbhd)
+{
+    InitInternals(n_nbhd);
+
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        f_weights[d].define(baF, dmap, 1, ngF);
+        f_weights[d].setVal(-1.0);
+    }
 }
 
 
@@ -980,18 +1009,10 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadMarkersGpu(
             int lev,
             std::array<MultiFab, AMREX_SPACEDIM> & f_out,
             const std::array<MultiFab, AMREX_SPACEDIM> & coords,
-            const Real * dx, int ghost) const 
+            const Real * dx, int ghost)
 {
     // timer for profiling
     BL_PROFILE_VAR("SpreadMarkersGpu()",SpreadMarkersGpu);
-
-    std::array<MultiFab, AMREX_SPACEDIM> f_weights;
-    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        f_weights[d].define(f_out[d].boxArray(), f_out[d].DistributionMap(),
-                            1, f_out[d].nGrow());
-        f_weights[d].setVal(0.);
-    }
-
 
     for (MyConstIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
 
