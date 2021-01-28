@@ -862,12 +862,12 @@ void main_driver(const char* argv)
 //                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
 //        }
 
-        if(istep == 1)
-        {
-            particles.SetPosition(1, prob_hi[0]*0.45, prob_hi[1]*0.45, prob_hi[2]*0.45);
-            particles.SetPosition(2, prob_hi[0]*0.45 + 1.29182e-8, prob_hi[1]*0.45, prob_hi[2]*0.45);
-           
-        }
+//        if(istep == 1)
+//        {
+//            particles.SetPosition(1, prob_hi[0]*0.45, prob_hi[1]*0.45, prob_hi[2]*0.45);
+//            particles.SetPosition(2, prob_hi[0]*0.45 + 1.29182e-8, prob_hi[1]*0.45, prob_hi[2]*0.45);
+//           
+//        }
 
     
         //Most of these functions are sensitive to the order of execution. We can fix this, but for now leave them in this order.
@@ -1174,7 +1174,7 @@ void main_driver(const char* argv)
                             potential, potentialM, potentialV);
         }
 
-        particles.PrintParticles();
+        //particles.PrintParticles();
 
         // timer for time step
         Real time2 = ParallelDescriptor::second() - time1;
