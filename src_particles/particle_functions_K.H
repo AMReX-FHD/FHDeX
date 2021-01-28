@@ -28,15 +28,11 @@ int check_zero_eps (const FhdParticleContainer::ParticleType& part)
     Real Lz = prob_hi[2] - prob_lo[2];
 
     if ((part.pos(0) > prob_lo[0]) and (part.pos(0) <= prob_lo[0] + Lx*zero_eps_wall_left_end)) {
-        if ((part.pos(2) > prob_lo[2]) and (part.pos(2) <= prob_lo[2] + Lz*zero_eps_wall_left_end)) {
-            neumann = 1;
-        }
+        neumann = 1;
     }
 
     if ((part.pos(0) < prob_hi[0]) and (part.pos(0) >= prob_lo[0] + Lx*zero_eps_wall_right_start)) {
-        if ((part.pos(2) < prob_hi[2]) and (part.pos(2) >= prob_lo[2] + Lz*zero_eps_wall_right_start)) {
-            neumann = 1;
-        }
+        neumann = 1;
     }
 
     return neumann; 

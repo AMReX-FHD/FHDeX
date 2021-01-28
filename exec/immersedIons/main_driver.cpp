@@ -45,14 +45,20 @@ void main_driver(const char* argv)
     if ((zero_eps_on_wall_type == 1) and (potential_lo[1] != 0.0)) {
         Abort("Abort: zero_eps_on_wall_type=1 currently requires a 0 potential lower-y boundary (need not be)");
     }
-    if ((zero_eps_wall_left_end < 0.0) or (zero_eps_wall_right_start < 0.0)) {
-        Abort("Abort: zero_eps_wall_left_end and zero_eps_wall_left_end should be > 0.0");
+    if (zero_eps_on_wall_type == 1) {
+        if ((zero_eps_wall_left_end < 0.0) or (zero_eps_wall_right_start < 0.0)) {
+            Abort("Abort: zero_eps_wall_left_end and zero_eps_wall_left_end should be > 0.0");
+        }
     }
-    if ((zero_eps_wall_left_end > 1.0) or (zero_eps_wall_right_start > 1.0)) {
-        Abort("Abort: zero_eps_wall_left_end and zero_eps_wall_left_end should be < 1.0");
+    if (zero_eps_on_wall_type == 1) {
+        if ((zero_eps_wall_left_end > 1.0) or (zero_eps_wall_right_start > 1.0)) {
+            Abort("Abort: zero_eps_wall_left_end and zero_eps_wall_left_end should be < 1.0");
+        }
     }
-    if (zero_eps_wall_left_end > zero_eps_wall_right_start) {
-        Abort("Abort: Set the y coordinate of right edge of the left dielectric lesser than or equal to the left edge of right dielectric");
+    if (zero_eps_on_wall_type == 1) {
+        if (zero_eps_wall_left_end > zero_eps_wall_right_start) {
+            Abort("Abort: Set the y coordinate of right edge of the left dielectric lesser than or equal to the left edge of right dielectric");
+        }
     }
 
     /*

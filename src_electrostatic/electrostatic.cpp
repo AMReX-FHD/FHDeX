@@ -58,13 +58,13 @@ void esSolve(MultiFab& potential, MultiFab& charge,
                     {   
 
                         if (j == dom.smallEnd(1)) {
-                            if ((i <= (int)Math::floor(zero_eps_wall_left_end*(dom.bigEnd(0)+1))) and (k <= (int)Math::floor(zero_eps_wall_left_end*(dom.bigEnd(2)+1)))) { // left side (low x/z)
+                            if (i <= (int)Math::floor(zero_eps_wall_left_end*(dom.bigEnd(0)+1))) { // left side (low x/z)
                                 data(i,j,k) = 0.;
                             }
                         }
 
                         if (j == dom.smallEnd(1)) {
-                            if ((i >= (int)Math::floor(zero_eps_wall_right_start*(dom.bigEnd(0)+1))) and (k >= (int)Math::floor(zero_eps_wall_right_start*(dom.bigEnd(2)+1)))) { // right side (high x/z)
+                            if (i >= (int)Math::floor(zero_eps_wall_right_start*(dom.bigEnd(0)+1))) { // right side (high x/z)
                                 data(i,j,k) = 0.;
                             }
                         }
