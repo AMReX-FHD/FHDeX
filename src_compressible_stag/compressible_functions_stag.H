@@ -22,11 +22,15 @@ void WritePlotFileStag(int step,
                        const MultiFab& cuMeans,
                        const MultiFab& cuVars,
                        const std::array<MultiFab, AMREX_SPACEDIM>& cumom,
+                       const std::array<MultiFab, AMREX_SPACEDIM>& cumomMeans,
+                       const std::array<MultiFab, AMREX_SPACEDIM>& cumomVars,
                        const MultiFab& prim,
                        const MultiFab& primMeans,
                        const MultiFab& primVars,
                        const std::array<MultiFab, AMREX_SPACEDIM>& vel,
-                       const MultiFab& spatialCross,
+                       const std::array<MultiFab, AMREX_SPACEDIM>& velMeans,
+                       const std::array<MultiFab, AMREX_SPACEDIM>& velVars,
+//                       const MultiFab& spatialCross,
                        const MultiFab& eta, 
                        const MultiFab& kappa);
 
@@ -36,7 +40,28 @@ void conservedToPrimitiveStag(MultiFab& prim_in, std::array<MultiFab, AMREX_SPAC
 void InitConsVarStag(MultiFab& cons, std::array< MultiFab, AMREX_SPACEDIM >& momStag, 
                      const MultiFab& prim, const amrex::Geometry geom);
 
-// advance one timestep
+void setBCStag(MultiFab& prim_in, MultiFab& cons_in,
+                 std::array< MultiFab, AMREX_SPACEDIM >& cumom_in,
+                 std::array< MultiFab, AMREX_SPACEDIM >& vel_in,
+                 const amrex::Geometry geom);
+
+void BCMassTempPress(MultiFab& prim_in,const amrex::Geometry geom,int dim);
+
+void BCMomNormal(MultiFab& mom_in, MultiFab& vel_in,
+                 const amrex::Geometry geom, int dim);
+
+void BCMomTrans(MultiFab& mom_in, MultiFab& vel_in,
+                 const amrex::Geometry geom, int dim);
+
+
+void BCRhoRhoE(MultiFab& cons_in, MultiFab& prim_in, 
+               std::array< MultiFab, AMREX_SPACEDIM >& cumom_in, 
+               const amrex::Geometry geom);
+
+void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array< MultiFab, 2 >& edgeflux_x_in,
+                   std::array< MultiFab, 2 >& edgeflux_y_in, std::array< MultiFab, 2 >& edgeflux_z_in,
+                   const amrex::Geometry geom);
+
 void RK3stepStag(MultiFab& cu, 
                  std::array< MultiFab, AMREX_SPACEDIM >& cumom,
                  MultiFab& prim, std::array< MultiFab, AMREX_SPACEDIM >& facevel,
@@ -48,7 +73,7 @@ void RK3stepStag(MultiFab& cu,
                  std::array< MultiFab, 2 >& edgeflux_y,
                  std::array< MultiFab, 2 >& edgeflux_z,
                  std::array< MultiFab, AMREX_SPACEDIM>& cenflux,
-                 const amrex::Geometry geom, const amrex::Real* dxp, const amrex::Real dt);
+                 const amrex::Geometry geom, const amrex::Real dt);
 
 void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMREX_SPACEDIM >& momStag_in, 
                        const MultiFab& prim_in, const std::array< MultiFab, AMREX_SPACEDIM >& velStag_in,
@@ -66,24 +91,26 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                        std::array< MultiFab, AMREX_SPACEDIM>& stochcen_in,
                        const amrex::Geometry geom,
 		                   const amrex::Vector< amrex::Real >& stoch_weights,
-		                   const amrex::Real* dx, const amrex::Real dt);
-
+		                   const amrex::Real dt);
 
 void evaluateStatsStag(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
-                       const MultiFab& prim, MultiFab& primMean, MultiFab& primVar,
+                       const MultiFab& prim_in, MultiFab& primMean, MultiFab& primVar,
                        const std::array<MultiFab, AMREX_SPACEDIM>& vel, 
+                       std::array<MultiFab, AMREX_SPACEDIM>& velMean, 
+                       std::array<MultiFab, AMREX_SPACEDIM>& velVar, 
                        const std::array<MultiFab, AMREX_SPACEDIM>& cumom,
-                       MultiFab& spatialCross, MultiFab& miscStats, Real* miscVals,
-                       const int steps, const Real* dx);
+                       std::array<MultiFab, AMREX_SPACEDIM>& cumomMean,
+                       std::array<MultiFab, AMREX_SPACEDIM>& cumomVar,
+                       const int steps, const amrex::Real* dx);
 
-void yzAverageStag(const MultiFab& consMean, 
-                   const MultiFab& consVar, 
-                   const MultiFab& primMean, 
-                   const MultiFab& primVar, 
-                   const MultiFab& spatialCross, 
-                   MultiFab& consMeanAv, 
-                   MultiFab& consVarAv, 
-                   MultiFab& primMeanAv, 
-                   MultiFab& primVarAv, 
-                   MultiFab& spatialCrossAv);
+//void yzAverageStag(const MultiFab& consMean, 
+//                   const MultiFab& consVar, 
+//                   const MultiFab& primMean, 
+//                   const MultiFab& primVar, 
+//                   const MultiFab& spatialCross, 
+//                   MultiFab& consMeanAv, 
+//                   MultiFab& consVarAv, 
+//                   MultiFab& primMeanAv, 
+//                   MultiFab& primVarAv, 
+//                   MultiFab& spatialCrossAv);
 #endif

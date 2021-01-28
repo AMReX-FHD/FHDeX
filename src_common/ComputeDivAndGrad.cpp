@@ -5,7 +5,7 @@
 void ComputeDiv(MultiFab& div,
                 const std::array<MultiFab, AMREX_SPACEDIM>& phi_fc,
                 int start_incomp, int start_outcomp, int ncomp,
-                const Geometry& geom, int increment)
+                const Geometry& geom, Real increment)
 {
     BL_PROFILE_VAR("ComputeDiv()",ComputeDiv);
 
@@ -20,7 +20,7 @@ void ComputeDiv(MultiFab& div,
                      Array4<Real const> const& phiy_fab = phi_fc[1].array(mfi);,
                      Array4<Real const> const& phiz_fab = phi_fc[2].array(mfi););
 
-        if (increment == 0) {
+        if (increment == 0.) {
             amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
             {
                 div_fab(i,j,k,start_outcomp+n) =
@@ -33,10 +33,12 @@ void ComputeDiv(MultiFab& div,
         {
             amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
             {
-                div_fab(i,j,k,start_outcomp+n) +=
+                Real temp = 
                     AMREX_D_TERM(  (phix_fab(i+1,j,k,start_incomp+n) - phix_fab(i,j,k,start_incomp+n)) / dx[0],
                                  + (phiy_fab(i,j+1,k,start_incomp+n) - phiy_fab(i,j,k,start_incomp+n)) / dx[1],
                                  + (phiz_fab(i,j,k+1,start_incomp+n) - phiz_fab(i,j,k,start_incomp+n)) / dx[2]);;
+                
+                div_fab(i,j,k,start_outcomp+n) += increment * temp;
             });
         }
     }

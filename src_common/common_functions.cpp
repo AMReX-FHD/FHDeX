@@ -39,10 +39,10 @@ void InitializeCommonNamespace() {
                      nodal_flag_edge[2][i] = nodal_flag_yz[i];);
     }
 
-    n_cells.resize(AMREX_SPACEDIM);
+    //n_cells.resize(AMREX_SPACEDIM);
     max_grid_size.resize(AMREX_SPACEDIM);
     max_particle_tile_size.resize(AMREX_SPACEDIM);
-    grav.resize(AMREX_SPACEDIM);
+    //grav.resize(AMREX_SPACEDIM);
     dof.resize(MAX_SPECIES);
     u_init.resize(2);
     //T_init.resize(2);
@@ -90,7 +90,7 @@ void InitializeCommonNamespace() {
     char temp_plot_base_name[128];
     char temp_chk_base_name[128];
 
-    initialize_common_namespace(prob_lo.begin(), prob_hi.begin(), n_cells.dataPtr(),
+    initialize_common_namespace(prob_lo.begin(), prob_hi.begin(), n_cells.data(),
                                 max_grid_size.dataPtr(), max_particle_tile_size.dataPtr(), &cell_depth, ngc.getVect(),
                                 &nvars, &nprimvars,
                                 &membrane_cell, &cross_cell, &transmission,
@@ -99,7 +99,7 @@ void InitializeCommonNamespace() {
                                 &plot_int, &plot_stag, temp_plot_base_name, 128,
                                 &chk_int, temp_chk_base_name, 128,
                                 &prob_type, &restart, &particle_restart, &print_int, &project_eos_int,
-                                grav.dataPtr(), &nspecies, molmass.data(), diameter.data(),
+                                grav.data(), &nspecies, molmass.data(), diameter.data(),
                                 dof.dataPtr(), hcv.data(), hcp.data(),
                                 rhobar.data(),
                                 &rho0, &variance_coef_mom, &variance_coef_mass, &k_B, &Runiv,

@@ -17,32 +17,8 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 {
     BL_PROFILE_VAR("calculateFlux()",calculateFlux);
     
-    // from namelist
-    int nspecies_gpu = nspecies;
-    int algorithm_type_gpu = algorithm_type;
-    int nvars_gpu = nvars;
-    int nprimvars_gpu = nprimvars;
-    Real Runiv_gpu = Runiv;
-    int visc_type_gpu = visc_type;
     int n_cells_z = n_cells[2];
-    Real k_B_gpu = k_B;
     
-    // from namelist
-    GpuArray<Real,MAX_SPECIES> hcv_gpu;
-    for (int n=0; n<nspecies; ++n) {
-        hcv_gpu[n] = hcv[n];
-    }
-    
-    GpuArray<Real,MAX_SPECIES> hcp_gpu;
-    for (int n=0; n<nspecies; ++n) {
-        hcp_gpu[n] = hcp[n];
-    }
-    
-    GpuArray<Real,MAX_SPECIES> molmass_gpu;
-    for (int n=0; n<nspecies; ++n) {
-        molmass_gpu[n] = molmass[n];
-    }
-
     GpuArray<Real,AMREX_SPACEDIM> dx = geom.CellSizeArray();
     
     AMREX_D_TERM(flux_in[0].setVal(0);,
@@ -104,17 +80,17 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 
                 // Weights for facial fluxes:
                 fweights[0] = 0; // No mass flux;
-                fweights[1]=sqrt(k_B_gpu*muxp*volinv*dtinv);
+                fweights[1]=sqrt(k_B*muxp*volinv*dtinv);
                 fweights[2]=fweights[1];
                 fweights[3]=fweights[1];
-                fweights[4]=sqrt(k_B_gpu*kxp*volinv*dtinv);
+                fweights[4]=sqrt(k_B*kxp*volinv*dtinv);
 
                 // Construct the random increments
                 for (int n=0; n<5; ++n) {
                     weiner[n] = fweights[n]*ranfluxx(i,j,k,n);
                 }
                 
-                Real nweight=sqrt(k_B_gpu*volinv*dtinv);
+                Real nweight=sqrt(k_B*volinv*dtinv);
                                 
                 if (n_cells_z > 1) {
 
@@ -139,7 +115,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                                         eta(i,j-1,k)*prim(i,j-1,k,4) + eta(i-1,j-1,k)*prim(i-1,j-1,k,4) +
                                         eta(i,j,k)*prim(i,j,k,4) + eta(i-1,j,k)*prim(i-1,j,k,4) )/3.;
 
-                    if (amrex::Math::abs(visc_type_gpu) == 3) {
+                    if (amrex::Math::abs(visc_type) == 3) {
 
                         muzepp = muzepp + 0.25*(zeta(i,j,k)*prim(i,j,k,4) + zeta(i-1,j,k)*prim(i-1,j,k,4) +
                                                 zeta(i,j+1,k)*prim(i,j+1,k,4) + zeta(i-1,j+1,k)*prim(i-1,j+1,k,4) +
@@ -203,13 +179,13 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 
                 fluxx(i,j,k,4) = fluxx(i,j,k,4) - phiflx;
 
-                if (algorithm_type_gpu == 2) {
+                if (algorithm_type == 2) {
 
-                    for (int n=5; n<5+nspecies_gpu; ++n) {
+                    for (int n=5; n<5+nspecies; ++n) {
                         weiner[n] = 0.;
                     }
 
-                    for (int ns=0; ns<nspecies_gpu; ++ns) {
+                    for (int ns=0; ns<nspecies; ++ns) {
                         yy[ns] = amrex::max(0.,amrex::min(1.,prim(i-1,j,k,6+ns)));
                         yyp[ns] = amrex::max(0.,amrex::min(1.,prim(i,j,k,6+ns)));
                     }
@@ -217,58 +193,58 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                     Real sumy = 0.;
                     Real sumyp = 0.;
 
-                    for (int n=0; n<nspecies_gpu; ++n) {
+                    for (int n=0; n<nspecies; ++n) {
                         sumy += yy[n];
                         sumyp += yyp[n];
                     }
 
-                    for (int n=0; n<nspecies_gpu; ++n) {
+                    for (int n=0; n<nspecies; ++n) {
                         yy[n] /= sumy;
                         yyp[n] /= sumyp;
                     }
 
                     Real MWmix = 0.;
 
-                    for (int ns=0; ns<nspecies_gpu; ++ns) {
+                    for (int ns=0; ns<nspecies; ++ns) {
 
-                        MWmix = MWmix + 0.5*(yy[ns]+yyp[ns])/molmass_gpu[ns];
+                        MWmix = MWmix + 0.5*(yy[ns]+yyp[ns])/molmass[ns];
 
-                        for (int ll=0; ll<nspecies_gpu; ++ll) {
-                            DijY_edge[ns*nspecies_gpu+ll] = 0.5*(Dij(i-1,j,k,ll*nspecies_gpu+ns)*yy[ll] +
-                                                                 Dij(i,j,k,ll*nspecies_gpu+ns)*yyp[ll] +
-                                                                (Dij(i-1,j,k,ns*nspecies_gpu+ll)*yy[ns] +
-                                                                 Dij(i,j,k,ns*nspecies_gpu+ll)*yyp[ns] ));
+                        for (int ll=0; ll<nspecies; ++ll) {
+                            DijY_edge[ns*nspecies+ll] = 0.5*(Dij(i-1,j,k,ll*nspecies+ns)*yy[ll] +
+                                                                 Dij(i,j,k,ll*nspecies+ns)*yyp[ll] +
+                                                                (Dij(i-1,j,k,ns*nspecies+ll)*yy[ns] +
+                                                                 Dij(i,j,k,ns*nspecies+ll)*yyp[ns] ));
 
                         }
                     }
                     
-                    for (int ns=0; ns<nspecies_gpu; ++ns) {
+                    for (int ns=0; ns<nspecies; ++ns) {
                         if (amrex::Math::abs(yy[ns]) + amrex::Math::abs(yyp[ns]) <= 1.e-12) {
-                            for (int n=0; n<nspecies_gpu; ++n) {
-                                DijY_edge[ns*nspecies_gpu+n]=0.;
-                                DijY_edge[n*nspecies_gpu+ns]=0.;
+                            for (int n=0; n<nspecies; ++n) {
+                                DijY_edge[ns*nspecies+n]=0.;
+                                DijY_edge[n*nspecies+ns]=0.;
                             }
                         }
                     }
 
                     MWmix = 1. / MWmix;
 
-                    CholeskyDecomp(DijY_edge,nspecies_gpu,sqD);
+                    CholeskyDecomp(DijY_edge,nspecies,sqD);
 
-                    for (int ns=0; ns<nspecies_gpu; ++ns) {
+                    for (int ns=0; ns<nspecies; ++ns) {
                         for (int ll=0; ll<=ns; ++ll) {
-                            fweights[5+ll]=sqrt(k_B_gpu*MWmix*volinv/(Runiv_gpu*dt))*sqD[ns*nspecies_gpu+ll];
+                            fweights[5+ll]=sqrt(k_B*MWmix*volinv/(Runiv*dt))*sqD[ns*nspecies+ll];
                             weiner[5+ns] = weiner[5+ns] + fweights[5+ll]*ranfluxx(i,j,k,5+ll);
                         }
                         fluxx(i,j,k,5+ns) = weiner[5+ns];
                     }
 
-                    GetEnthalpies(meanT, hk, hcp_gpu, nspecies_gpu);
+                    GetEnthalpies(meanT, hk);
 
                     Real soret = 0.;
 
-                    for (int ns=0; ns<nspecies_gpu; ++ns) {
-                        soret = soret + (hk[ns] + Runiv_gpu*meanT/molmass_gpu[ns]
+                    for (int ns=0; ns<nspecies; ++ns) {
+                        soret = soret + (hk[ns] + Runiv*meanT/molmass[ns]
                                          *0.5*(chi(i-1,j,k,ns)+chi(i,j,k,ns)))*weiner[5+ns];
                     }
                     fluxx(i,j,k,4) = fluxx(i,j,k,4) + soret;
@@ -296,17 +272,17 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 
                 // Weights for facial fluxes:
                 fweights[0] = 0; // No mass flux
-                fweights[1] = sqrt(k_B_gpu*muyp*volinv*dtinv);
-                fweights[2] = sqrt(k_B_gpu*muyp*volinv*dtinv);
-                fweights[3] = sqrt(k_B_gpu*muyp*volinv*dtinv);
-                fweights[4] = sqrt(k_B_gpu*kyp*volinv*dtinv);
+                fweights[1] = sqrt(k_B*muyp*volinv*dtinv);
+                fweights[2] = sqrt(k_B*muyp*volinv*dtinv);
+                fweights[3] = sqrt(k_B*muyp*volinv*dtinv);
+                fweights[4] = sqrt(k_B*kyp*volinv*dtinv);
 
                 // Construct the random increments
                 for (int n=0; n<5; ++n) {
                     weiner[n] = fweights[n]*ranfluxy(i,j,k,n);
                 }
 
-                Real nweight=sqrt(k_B_gpu*volinv*dtinv);
+                Real nweight=sqrt(k_B*volinv*dtinv);
                                 
                 if (n_cells_z > 1) {
 
@@ -331,7 +307,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                                         eta(i-1,j,k)*prim(i-1,j,k,4) + eta(i,j,k)*prim(i,j,k,4) +
                                         eta(i-1,j-1,k)*prim(i-1,j-1,k,4) + eta(i,j-1,k)*prim(i,j-1,k,4) )/3.;
 
-                    if (amrex::Math::abs(visc_type_gpu) == 3) {
+                    if (amrex::Math::abs(visc_type) == 3) {
 
                         muzepp = muzepp + 0.25*(zeta(i+1,j-1,k)*prim(i+1,j-1,k,4) + zeta(i,j-1,k)*prim(i,j-1,k,4) +
                                                 zeta(i+1,j,k)*prim(i+1,j,k,4) + zeta(i,j,k)*prim(i,j,k,4) +
@@ -396,13 +372,13 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 
                 fluxy(i,j,k,4) = fluxy(i,j,k,4) - phiflx;
 
-                if (algorithm_type_gpu == 2) {
+                if (algorithm_type == 2) {
 
-                    for (int n=5; n<5+nspecies_gpu; ++n) {
+                    for (int n=5; n<5+nspecies; ++n) {
                         weiner[n] = 0.;
                     }
 
-                    for (int ns=0; ns<nspecies_gpu; ++ns) {
+                    for (int ns=0; ns<nspecies; ++ns) {
                         yy[ns] = amrex::max(0.,amrex::min(1.,prim(i,j-1,k,6+ns)));
                         yyp[ns] = amrex::max(0.,amrex::min(1.,prim(i,j,k,6+ns)));
                     }
@@ -410,58 +386,58 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                     Real sumy = 0.;
                     Real sumyp = 0.;
 
-                    for (int n=0; n<nspecies_gpu; ++n) {
+                    for (int n=0; n<nspecies; ++n) {
                         sumy += yy[n];
                         sumyp += yyp[n];
                     }
 
-                    for (int n=0; n<nspecies_gpu; ++n) {
+                    for (int n=0; n<nspecies; ++n) {
                         yy[n] /= sumy;
                         yyp[n] /= sumyp;
                     }
 
                     Real MWmix = 0.;
 
-                    for (int ns=0; ns<nspecies_gpu; ++ns) {
+                    for (int ns=0; ns<nspecies; ++ns) {
 
-                        MWmix = MWmix + 0.5*(yy[ns]+yyp[ns])/molmass_gpu[ns];
+                        MWmix = MWmix + 0.5*(yy[ns]+yyp[ns])/molmass[ns];
 
-                        for (int ll=0; ll<nspecies_gpu; ++ll) {
-                            DijY_edge[ns*nspecies_gpu+ll] = 0.5*(Dij(i,j-1,k,ll*nspecies_gpu+ns)*yy[ll] +
-                                                                 Dij(i,j,k,ll*nspecies_gpu+ns)*yyp[ll] +
-                                                                (Dij(i,j-1,k,ns*nspecies_gpu+ll)*yy[ns] +
-                                                                 Dij(i,j,k,ns*nspecies_gpu+ll)*yyp[ns] ));
+                        for (int ll=0; ll<nspecies; ++ll) {
+                            DijY_edge[ns*nspecies+ll] = 0.5*(Dij(i,j-1,k,ll*nspecies+ns)*yy[ll] +
+                                                                 Dij(i,j,k,ll*nspecies+ns)*yyp[ll] +
+                                                                (Dij(i,j-1,k,ns*nspecies+ll)*yy[ns] +
+                                                                 Dij(i,j,k,ns*nspecies+ll)*yyp[ns] ));
 
                         }
                     }
                     
-                    for (int ns=0; ns<nspecies_gpu; ++ns) {
+                    for (int ns=0; ns<nspecies; ++ns) {
                         if (amrex::Math::abs(yy[ns]) + amrex::Math::abs(yyp[ns]) <= 1.e-12) {
-                            for (int n=0; n<nspecies_gpu; ++n) {
-                                DijY_edge[ns*nspecies_gpu+n]=0.;
-                                DijY_edge[n*nspecies_gpu+ns]=0.;
+                            for (int n=0; n<nspecies; ++n) {
+                                DijY_edge[ns*nspecies+n]=0.;
+                                DijY_edge[n*nspecies+ns]=0.;
                             }
                         }
                     }
 
                     MWmix = 1. / MWmix;
 
-                    CholeskyDecomp(DijY_edge,nspecies_gpu,sqD);
+                    CholeskyDecomp(DijY_edge,nspecies,sqD);
 
-                    for (int ns=0; ns<nspecies_gpu; ++ns) {
+                    for (int ns=0; ns<nspecies; ++ns) {
                         for (int ll=0; ll<=ns; ++ll) {
-                            fweights[5+ll]=sqrt(k_B_gpu*MWmix*volinv/(Runiv_gpu*dt))*sqD[ns*nspecies_gpu+ll];
+                            fweights[5+ll]=sqrt(k_B*MWmix*volinv/(Runiv*dt))*sqD[ns*nspecies+ll];
                             weiner[5+ns] = weiner[5+ns] + fweights[5+ll]*ranfluxy(i,j,k,5+ll);
                         }
                         fluxy(i,j,k,5+ns) = weiner[5+ns];
                     }
 
-                    GetEnthalpies(meanT, hk, hcp_gpu, nspecies_gpu);
+                    GetEnthalpies(meanT, hk);
 
                     Real soret = 0.;
 
-                    for (int ns=0; ns<nspecies_gpu; ++ns) {
-                        soret = soret + (hk[ns] + Runiv_gpu*meanT/molmass_gpu[ns]
+                    for (int ns=0; ns<nspecies; ++ns) {
+                        soret = soret + (hk[ns] + Runiv*meanT/molmass[ns]
                                          *0.5*(chi(i,j-1,k,ns)+chi(i,j,k,ns)))*weiner[5+ns];
                     }
                     fluxy(i,j,k,4) = fluxy(i,j,k,4) + soret;
@@ -489,17 +465,17 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 
                     // Weights for facial fluxes:
                     fweights[0] = 0; // No mass flux
-                    fweights[1] = sqrt(k_B_gpu*muzp*volinv*dtinv);
-                    fweights[2] = sqrt(k_B_gpu*muzp*volinv*dtinv);
-                    fweights[3] = sqrt(k_B_gpu*muzp*volinv*dtinv);
-                    fweights[4] = sqrt(k_B_gpu*kzp*volinv*dtinv);
+                    fweights[1] = sqrt(k_B*muzp*volinv*dtinv);
+                    fweights[2] = sqrt(k_B*muzp*volinv*dtinv);
+                    fweights[3] = sqrt(k_B*muzp*volinv*dtinv);
+                    fweights[4] = sqrt(k_B*kzp*volinv*dtinv);
 
                     // Construct the random increments
                     for (int n=0; n<5; ++n) {
                         weiner[n] = fweights[n]*ranfluxz(i,j,k,n);
                     }
                 
-                    Real nweight=sqrt(k_B_gpu*volinv*dtinv);
+                    Real nweight=sqrt(k_B*volinv*dtinv);
 
                     // Corner viscosity coefficients
                     Real muzepp = 0.25*(eta(i+1,j,k-1)*prim(i+1,j,k-1,4) + eta(i,j,k-1)*prim(i,j,k-1,4) +
@@ -522,7 +498,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                                         eta(i-1,j-1,k-1)*prim(i-1,j-1,k-1,4) + eta(i,j-1,k-1)*prim(i,j-1,k-1,4) +
                                         eta(i-1,j,k-1)*prim(i-1,j,k-1,4) + eta(i,j,k-1)*prim(i,j,k-1,4) )/3.;
 
-                    if (amrex::Math::abs(visc_type_gpu) == 3) {
+                    if (amrex::Math::abs(visc_type) == 3) {
 
                         muzepp = muzepp+ 0.25*(zeta(i+1,j,k-1)*prim(i+1,j,k-1,4) + zeta(i,j,k-1)*prim(i,j,k-1,4) +
                                                zeta(i+1,j+1,k-1)*prim(i+1,j+1,k-1,4) + zeta(i,j+1,k-1)*prim(i,j+1,k-1,4) +
@@ -564,13 +540,13 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 
                     fluxz(i,j,k,4) = fluxz(i,j,k,4) - phiflx;
 
-                    if (algorithm_type_gpu == 2) {
+                    if (algorithm_type == 2) {
 
-                    for (int n=5; n<5+nspecies_gpu; ++n) {
+                    for (int n=5; n<5+nspecies; ++n) {
                         weiner[n] = 0.;
                     }
 
-                    for (int ns=0; ns<nspecies_gpu; ++ns) {
+                    for (int ns=0; ns<nspecies; ++ns) {
                         yy[ns] = amrex::max(0.,amrex::min(1.,prim(i,j,k-1,6+ns)));
                         yyp[ns] = amrex::max(0.,amrex::min(1.,prim(i,j,k,6+ns)));
                     }
@@ -578,59 +554,59 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                     Real sumy = 0.;
                     Real sumyp = 0.;
 
-                    for (int n=0; n<nspecies_gpu; ++n) {
+                    for (int n=0; n<nspecies; ++n) {
                         sumy += yy[n];
                         sumyp += yyp[n];
                     }
 
-                    for (int n=0; n<nspecies_gpu; ++n) {
+                    for (int n=0; n<nspecies; ++n) {
                         yy[n] /= sumy;
                         yyp[n] /= sumyp;
                     }
 
                     Real MWmix = 0.;
 
-                    for (int ns=0; ns<nspecies_gpu; ++ns) {
+                    for (int ns=0; ns<nspecies; ++ns) {
 
-                        MWmix = MWmix + 0.5*(yy[ns]+yyp[ns])/molmass_gpu[ns];
+                        MWmix = MWmix + 0.5*(yy[ns]+yyp[ns])/molmass[ns];
 
-                        for (int ll=0; ll<nspecies_gpu; ++ll) {
-                            DijY_edge[ns*nspecies_gpu+ll] = 0.5*(Dij(i,j,k-1,ll*nspecies_gpu+ns)*yy[ll] +
-                                                                 Dij(i,j,k,ll*nspecies_gpu+ns)*yyp[ll] +
-                                                                (Dij(i,j,k-1,ns*nspecies_gpu+ll)*yy[ns] +
-                                                                 Dij(i,j,k,ns*nspecies_gpu+ll)*yyp[ns] ));
+                        for (int ll=0; ll<nspecies; ++ll) {
+                            DijY_edge[ns*nspecies+ll] = 0.5*(Dij(i,j,k-1,ll*nspecies+ns)*yy[ll] +
+                                                                 Dij(i,j,k,ll*nspecies+ns)*yyp[ll] +
+                                                                (Dij(i,j,k-1,ns*nspecies+ll)*yy[ns] +
+                                                                 Dij(i,j,k,ns*nspecies+ll)*yyp[ns] ));
 
                         }
                     }
 
 
-                    for (int ns=0; ns<nspecies_gpu; ++ns) {
+                    for (int ns=0; ns<nspecies; ++ns) {
                         if (amrex::Math::abs(yy[ns]) + amrex::Math::abs(yyp[ns]) <= 1.e-12) {
-                            for (int n=0; n<nspecies_gpu; ++n) {
-                                DijY_edge[ns*nspecies_gpu+n]=0.;
-                                DijY_edge[n*nspecies_gpu+ns]=0.;
+                            for (int n=0; n<nspecies; ++n) {
+                                DijY_edge[ns*nspecies+n]=0.;
+                                DijY_edge[n*nspecies+ns]=0.;
                             }
                         }
                     }
 
                     MWmix = 1. / MWmix;
 
-                    CholeskyDecomp(DijY_edge,nspecies_gpu,sqD);
+                    CholeskyDecomp(DijY_edge,nspecies,sqD);
 
-                    for (int ns=0; ns<nspecies_gpu; ++ns) {
+                    for (int ns=0; ns<nspecies; ++ns) {
                         for (int ll=0; ll<=ns; ++ll) {
-                            fweights[5+ll]=sqrt(k_B_gpu*MWmix*volinv/(Runiv_gpu*dt))*sqD[ns*nspecies_gpu+ll];
+                            fweights[5+ll]=sqrt(k_B*MWmix*volinv/(Runiv*dt))*sqD[ns*nspecies+ll];
                             weiner[5+ns] = weiner[5+ns] + fweights[5+ll]*ranfluxz(i,j,k,5+ll);
                         }
                         fluxz(i,j,k,5+ns) = weiner[5+ns];
                     }
 
-                    GetEnthalpies(meanT, hk, hcp_gpu, nspecies_gpu);
+                    GetEnthalpies(meanT, hk);
 
                     Real soret = 0.;
 
-                    for (int ns=0; ns<nspecies_gpu; ++ns) {
-                        soret = soret + (hk[ns] + Runiv_gpu*meanT/molmass_gpu[ns]
+                    for (int ns=0; ns<nspecies; ++ns) {
+                        soret = soret + (hk[ns] + Runiv*meanT/molmass[ns]
                                          *0.5*(chi(i,j,k-1,ns)+chi(i,j,k,ns)))*weiner[5+ns];
                     }
                     fluxz(i,j,k,4) = fluxz(i,j,k,4) + soret;
@@ -745,39 +721,39 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
             Real meanT = 0.5*(prim(i-1,j,k,4)+prim(i,j,k,4));
             Real meanP = 0.5*(prim(i-1,j,k,5)+prim(i,j,k,5));
 
-            if (algorithm_type_gpu == 2) {
+            if (algorithm_type == 2) {
 
                 // compute dk
-                for (int ns=0; ns<nspecies_gpu; ++ns) {
-                    Real term1 = (prim(i,j,k,6+nspecies_gpu+ns)-prim(i-1,j,k,6+nspecies_gpu+ns))/dx[0];
-                    meanXk[ns] = 0.5*(prim(i-1,j,k,6+nspecies_gpu+ns)+prim(i,j,k,6+nspecies_gpu+ns));
+                for (int ns=0; ns<nspecies; ++ns) {
+                    Real term1 = (prim(i,j,k,6+nspecies+ns)-prim(i-1,j,k,6+nspecies+ns))/dx[0];
+                    meanXk[ns] = 0.5*(prim(i-1,j,k,6+nspecies+ns)+prim(i,j,k,6+nspecies+ns));
                     meanYk[ns] = 0.5*(prim(i-1,j,k,6+ns)+prim(i,j,k,6+ns));
                     Real term2 = (meanXk[ns]-meanYk[ns])*(prim(i,j,k,5)-prim(i-1,j,k,5))/dx[0]/meanP;
                     dk[ns] = term1 + term2;
-                    soret[ns] = 0.5*(chi(i-1,j,k,ns)*prim(i-1,j,k,6+nspecies_gpu+ns)+chi(i,j,k,ns)*prim(i,j,k,6+nspecies_gpu+ns))
+                    soret[ns] = 0.5*(chi(i-1,j,k,ns)*prim(i-1,j,k,6+nspecies+ns)+chi(i,j,k,ns)*prim(i,j,k,6+nspecies+ns))
                         *(prim(i,j,k,4)-prim(i-1,j,k,4))/dx[0]/meanT;
                 }
 
                 // compute Fk (based on Eqn. 2.5.24, Giovangigli's book)
-                for (int kk=0; kk<nspecies_gpu; ++kk) {
+                for (int kk=0; kk<nspecies; ++kk) {
                     Fk[kk] = 0.;
-                    for (int ll=0; ll<nspecies_gpu; ++ll) {
-                        Fk[kk] = Fk[kk] - half*(Dij(i-1,j,k,ll*nspecies_gpu+kk)+Dij(i,j,k,ll*nspecies_gpu+kk))*( dk[ll] +soret[ll]);
+                    for (int ll=0; ll<nspecies; ++ll) {
+                        Fk[kk] = Fk[kk] - half*(Dij(i-1,j,k,ll*nspecies+kk)+Dij(i,j,k,ll*nspecies+kk))*( dk[ll] +soret[ll]);
                     }
                 }
 
                 // compute Q (based on Eqn. 2.5.25, Giovangigli's book)
-                GetEnthalpies(meanT,hk,hcp_gpu,nspecies_gpu);
+                GetEnthalpies(meanT,hk);
 
                 Real Q5 = 0.;
-                for (int ns=0; ns<nspecies_gpu; ++ns) {
-                    Q5 = Q5 + (hk[ns] + 0.5 * Runiv_gpu*meanT*(chi(i-1,j,k,ns)+chi(i,j,k,ns))/molmass_gpu[ns])*Fk[ns];
+                for (int ns=0; ns<nspecies; ++ns) {
+                    Q5 = Q5 + (hk[ns] + 0.5 * Runiv*meanT*(chi(i-1,j,k,ns)+chi(i,j,k,ns))/molmass[ns])*Fk[ns];
                 }
                 // heat conduction already included in flux(5)       
 
                 fluxx(i,j,k,4) = fluxx(i,j,k,4) + Q5;
 
-                for (int ns=0; ns<nspecies_gpu; ++ns) {
+                for (int ns=0; ns<nspecies; ++ns) {
                     fluxx(i,j,k,5+ns) = fluxx(i,j,k,5+ns) + Fk[ns];
                 }
             }
@@ -813,39 +789,39 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
             Real meanT = 0.5*(prim(i,j-1,k,4)+prim(i,j,k,4));
             Real meanP = 0.5*(prim(i,j-1,k,5)+prim(i,j,k,5));
 
-            if (algorithm_type_gpu == 2) {
+            if (algorithm_type == 2) {
                 // compute dk
-                for (int ns=0; ns<nspecies_gpu; ++ns) {
-                    Real term1 = (prim(i,j,k,6+nspecies_gpu+ns)-prim(i,j-1,k,6+nspecies_gpu+ns))/dx[1];
-                    meanXk[ns] = 0.5*(prim(i,j-1,k,6+nspecies_gpu+ns)+prim(i,j,k,6+nspecies_gpu+ns));
+                for (int ns=0; ns<nspecies; ++ns) {
+                    Real term1 = (prim(i,j,k,6+nspecies+ns)-prim(i,j-1,k,6+nspecies+ns))/dx[1];
+                    meanXk[ns] = 0.5*(prim(i,j-1,k,6+nspecies+ns)+prim(i,j,k,6+nspecies+ns));
                     meanYk[ns] = 0.5*(prim(i,j-1,k,6+ns)+prim(i,j,k,6+ns));
                     Real term2 = (meanXk[ns]-meanYk[ns])*(prim(i,j,k,5)-prim(i,j-1,k,5))/dx[1]/meanP;
                     dk[ns] = term1 + term2;
-                    soret[ns] = 0.5*(chi(i,j-1,k,ns)*prim(i,j-1,k,6+nspecies_gpu+ns)+chi(i,j,k,ns)*prim(i,j,k,6+nspecies_gpu+ns))
+                    soret[ns] = 0.5*(chi(i,j-1,k,ns)*prim(i,j-1,k,6+nspecies+ns)+chi(i,j,k,ns)*prim(i,j,k,6+nspecies+ns))
                         *(prim(i,j,k,4)-prim(i,j-1,k,4))/dx[1]/meanT;
                 }
 
                 // compute Fk (based on Eqn. 2.5.24, Giovangigli's book)
-                for (int kk=0; kk<nspecies_gpu; ++kk) {
+                for (int kk=0; kk<nspecies; ++kk) {
                     Fk[kk] = 0.;
-                    for (int ll=0; ll<nspecies_gpu; ++ll) {
-                        Fk[kk] = Fk[kk] - half*(Dij(i,j-1,k,ll*nspecies_gpu+kk)+Dij(i,j,k,ll*nspecies_gpu+kk))*( dk[ll] +soret[ll]);
+                    for (int ll=0; ll<nspecies; ++ll) {
+                        Fk[kk] = Fk[kk] - half*(Dij(i,j-1,k,ll*nspecies+kk)+Dij(i,j,k,ll*nspecies+kk))*( dk[ll] +soret[ll]);
                     }
                 }
 
                 // compute Q (based on Eqn. 2.5.25, Giovangigli's book)
-                GetEnthalpies(meanT,hk,hcp_gpu,nspecies_gpu);
+                GetEnthalpies(meanT,hk);
 
                 Real Q5 = 0.0;
-                for (int ns=0; ns<nspecies_gpu; ++ns) {
-                    Q5 = Q5 + (hk[ns] + 0.5 * Runiv_gpu*meanT*(chi(i,j-1,k,ns)+chi(i,j,k,ns))/molmass_gpu[ns])*Fk[ns];
+                for (int ns=0; ns<nspecies; ++ns) {
+                    Q5 = Q5 + (hk[ns] + 0.5 * Runiv*meanT*(chi(i,j-1,k,ns)+chi(i,j,k,ns))/molmass[ns])*Fk[ns];
                 }
 
                 // heat conduction already included in flux(5)
 
                 fluxy(i,j,k,4) = fluxy(i,j,k,4) + Q5;
 
-                for (int ns=0; ns<nspecies_gpu; ++ns) {
+                for (int ns=0; ns<nspecies; ++ns) {
                     fluxy(i,j,k,5+ns) = fluxy(i,j,k,5+ns) + Fk[ns];
                 }
             }
@@ -883,39 +859,39 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
             Real meanT = 0.5*(prim(i,j,k-1,4)+prim(i,j,k,4));
             Real meanP = 0.5*(prim(i,j,k-1,5)+prim(i,j,k,5));
 
-            if (algorithm_type_gpu == 2) {
+            if (algorithm_type == 2) {
 
                 // compute dk
-                for (int ns=0; ns<nspecies_gpu; ++ns) {
-                    Real term1 = (prim(i,j,k,6+nspecies_gpu+ns)-prim(i,j,k-1,6+nspecies_gpu+ns))/dx[2];
-                    meanXk[ns] = 0.5*(prim(i,j,k-1,6+nspecies_gpu+ns)+prim(i,j,k,6+nspecies_gpu+ns));
+                for (int ns=0; ns<nspecies; ++ns) {
+                    Real term1 = (prim(i,j,k,6+nspecies+ns)-prim(i,j,k-1,6+nspecies+ns))/dx[2];
+                    meanXk[ns] = 0.5*(prim(i,j,k-1,6+nspecies+ns)+prim(i,j,k,6+nspecies+ns));
                     meanYk[ns] = 0.5*(prim(i,j,k-1,6+ns)+prim(i,j,k,6+ns));
                     Real term2 = (meanXk[ns]-meanYk[ns])*(prim(i,j,k,5)-prim(i,j,k-1,5))/dx[2]/meanP;
                     dk[ns] = term1 + term2;
-                    soret[ns] = 0.5*(chi(i,j,k,ns)*prim(i,j,k-1,6+nspecies_gpu+ns)+chi(i,j,k+1,ns)*prim(i,j,k,6+nspecies_gpu+ns))
+                    soret[ns] = 0.5*(chi(i,j,k,ns)*prim(i,j,k-1,6+nspecies+ns)+chi(i,j,k+1,ns)*prim(i,j,k,6+nspecies+ns))
                         *(prim(i,j,k,4)-prim(i,j,k-1,4))/dx[2]/meanT;
                 }
 
                 // compute Fk (based on Eqn. 2.5.24, Giovangigli's book)
-                for (int kk=0; kk<nspecies_gpu; ++kk) {
+                for (int kk=0; kk<nspecies; ++kk) {
                     Fk[kk] = 0.;
-                    for (int ll=0; ll<nspecies_gpu; ++ll) {
-                        Fk[kk] = Fk[kk] - half*(Dij(i,j,k-1,ll*nspecies_gpu+kk)+Dij(i,j,k,ll*nspecies_gpu+kk))*( dk[ll] +soret[ll]);
+                    for (int ll=0; ll<nspecies; ++ll) {
+                        Fk[kk] = Fk[kk] - half*(Dij(i,j,k-1,ll*nspecies+kk)+Dij(i,j,k,ll*nspecies+kk))*( dk[ll] +soret[ll]);
                     }
                 }
 
                 // compute Q (based on Eqn. 2.5.25, Giovangigli's book)
-                GetEnthalpies(meanT,hk,hcp_gpu,nspecies_gpu);
+                GetEnthalpies(meanT,hk);
 
                 Real Q5 = 0.0;
-                for (int ns=0; ns<nspecies_gpu; ++ns) {
-                    Q5 = Q5 + (hk[ns] + 0.5 * Runiv_gpu*meanT*(chi(i,j,k,ns)+chi(i,j,k,ns))/molmass_gpu[ns])*Fk[ns];
+                for (int ns=0; ns<nspecies; ++ns) {
+                    Q5 = Q5 + (hk[ns] + 0.5 * Runiv*meanT*(chi(i,j,k,ns)+chi(i,j,k,ns))/molmass[ns])*Fk[ns];
                 }
 
                 // heat conduction already included in flux(5)
                 fluxz(i,j,k,4) = fluxz(i,j,k,4) + Q5;
 
-                for (int ns=0; ns<nspecies_gpu; ++ns) {
+                for (int ns=0; ns<nspecies; ++ns) {
                     fluxz(i,j,k,5+ns) = fluxz(i,j,k,5+ns) + Fk[ns];
                 }
             }
@@ -933,7 +909,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                                + eta(i,j-1,k) + eta(i-1,j-1,k) + eta(i,j,k) + eta(i-1,j,k));
 
             Real zetaxp;
-            if (amrex::Math::abs(visc_type_gpu) == 3) {
+            if (amrex::Math::abs(visc_type) == 3) {
                 zetaxp = 0.125*(zeta(i,j-1,k-1) + zeta(i-1,j-1,k-1) + zeta(i,j,k-1) + zeta(i-1,j,k-1)+
                                 zeta(i,j-1,k) + zeta(i-1,j-1,k) + zeta(i,j,k) + zeta(i-1,j,k));
             } else {
@@ -1160,7 +1136,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 GpuArray<Real,MAX_SPECIES+6> primitive;
                 GpuArray<Real,MAX_SPECIES  > Yk;
                     
-                for (int l=0; l<nprimvars_gpu; ++l) {
+                for (int l=0; l<nspecies+6; ++l) {
                     primitive[l] = wgt1*(prim(i,j,k,l)+prim(i-1,j,k,l)) - wgt2*(prim(i-2,j,k,l)+prim(i+1,j,k,l));
                 }
 
@@ -1169,12 +1145,12 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 conserved[0] = rho;
 
                 // want sum of specden == rho
-                for (int n=0; n<nspecies_gpu; ++n) {
+                for (int n=0; n<nspecies; ++n) {
                     Yk[n] = primitive[6+n];
                 }
 
                 Real intenergy;
-                GetEnergy(intenergy, Yk, temp, hcv_gpu, nspecies_gpu);
+                GetEnergy(intenergy, Yk, temp);
 
                 Real vsqr = primitive[1]*primitive[1] + primitive[2]*primitive[2] + primitive[3]*primitive[3];
 
@@ -1187,8 +1163,8 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 
                 xflux(i,j,k,4) += primitive[1]*conserved[4] + primitive[5]*primitive[1];
 
-                if (algorithm_type_gpu == 2) { // Add advection of concentration
-                    for (int n=0; n<nspecies_gpu; ++n) {
+                if (algorithm_type == 2) { // Add advection of concentration
+                    for (int n=0; n<nspecies; ++n) {
                         xflux(i,j,k,5+n) += rho*primitive[6+n]*primitive[1];
                     }
                 }
@@ -1200,7 +1176,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 GpuArray<Real,MAX_SPECIES+6> primitive;
                 GpuArray<Real,MAX_SPECIES  > Yk;
                     
-                for (int l=0; l<nprimvars_gpu; ++l) {
+                for (int l=0; l<nspecies+6; ++l) {
                     primitive[l] = wgt1*(prim(i,j,k,l)+prim(i,j-1,k,l)) - wgt2*(prim(i,j-2,k,l)+prim(i,j+1,k,l));
                 }
 
@@ -1209,12 +1185,12 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 conserved[0] = rho;
 
                 // want sum of specden == rho
-                for (int n=0; n<nspecies_gpu; ++n) {
+                for (int n=0; n<nspecies; ++n) {
                     Yk[n] = primitive[6+n];
                 }
 
                 Real intenergy;
-                GetEnergy(intenergy, Yk, temp, hcv_gpu, nspecies_gpu);
+                GetEnergy(intenergy, Yk, temp);
 
                 Real vsqr = primitive[1]*primitive[1] + primitive[2]*primitive[2] + primitive[3]*primitive[3];
 
@@ -1227,8 +1203,8 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 
                 yflux(i,j,k,4) += primitive[2]*conserved[4] + primitive[5]*primitive[2];
 
-                if (algorithm_type_gpu == 2) { // Add advection of concentration
-                    for (int n=0; n<nspecies_gpu; ++n) {
+                if (algorithm_type == 2) { // Add advection of concentration
+                    for (int n=0; n<nspecies; ++n) {
                         yflux(i,j,k,5+n) += rho*primitive[6+n]*primitive[2];
                     }
                 }
@@ -1240,7 +1216,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 GpuArray<Real,MAX_SPECIES+6> primitive;
                 GpuArray<Real,MAX_SPECIES  > Yk;
                     
-                for (int l=0; l<nprimvars_gpu; ++l) {
+                for (int l=0; l<nspecies+6; ++l) {
                     primitive[l] = wgt1*(prim(i,j,k,l)+prim(i,j,k-1,l)) - wgt2*(prim(i,j,k-2,l)+prim(i,j,k+1,l));
                 }
 
@@ -1249,12 +1225,12 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 conserved[0] = rho;
 
                 // want sum of specden == rho
-                for (int n=0; n<nspecies_gpu; ++n) {
+                for (int n=0; n<nspecies; ++n) {
                     Yk[n] = primitive[6+n];
                 }
 
                 Real intenergy;
-                GetEnergy(intenergy, Yk, temp, hcv_gpu, nspecies_gpu);
+                GetEnergy(intenergy, Yk, temp);
 
                 Real vsqr = primitive[1]*primitive[1] + primitive[2]*primitive[2] + primitive[3]*primitive[3];
 
@@ -1267,8 +1243,8 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 
                 zflux(i,j,k,4) += primitive[3]*conserved[4] + primitive[5]*primitive[3];
 
-                if (algorithm_type_gpu == 2) { // Add advection of concentration
-                    for (int n=0; n<nspecies_gpu; ++n) {
+                if (algorithm_type == 2) { // Add advection of concentration
+                    for (int n=0; n<nspecies; ++n) {
                         zflux(i,j,k,5+n) += rho*primitive[6+n]*primitive[3];
                     }
                 }
@@ -1286,7 +1262,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 GpuArray<Real,MAX_SPECIES  > Yk;
     
                 // interpolate conserved quantities to faces
-                for (int l=0; l<nvars_gpu; ++l) {
+                for (int l=0; l<nspecies+5; ++l) {
                     conserved[l] = wgt1*(cons(i,j,k,l)+cons(i-1,j,k,l)) - wgt2*(cons(i-2,j,k,l)+cons(i+1,j,k,l));
                 }
 
@@ -1296,7 +1272,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 }
 
                 // want sum of specden == rho
-                for (int n=0; n<nspecies_gpu; ++n) {
+                for (int n=0; n<nspecies; ++n) {
                     Yk[n] = conserved[5+n]/conserved[0];
                 }
 
@@ -1315,8 +1291,8 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 
                 xflux(i,j,k,4) += primitive[1]*conserved[4] + primitive[5]*primitive[1];
 
-                if (algorithm_type_gpu == 2) { // Add advection of concentration
-                    for (int n=0; n<nspecies_gpu; ++n) {
+                if (algorithm_type == 2) { // Add advection of concentration
+                    for (int n=0; n<nspecies; ++n) {
                         xflux(i,j,k,5+n) += conserved[5+n]*primitive[1];
                     }
                 }
@@ -1329,7 +1305,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 GpuArray<Real,MAX_SPECIES  > Yk;
     
                 // interpolate conserved quantities to faces
-                for (int l=0; l<nvars_gpu; ++l) {
+                for (int l=0; l<nspecies+5; ++l) {
                     conserved[l] = wgt1*(cons(i,j,k,l)+cons(i,j-1,k,l)) - wgt2*(cons(i,j-2,k,l)+cons(i,j+1,k,l));
                 }
 
@@ -1339,7 +1315,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 }
 
                 // want sum of specden == rho
-                for (int n=0; n<nspecies_gpu; ++n) {
+                for (int n=0; n<nspecies; ++n) {
                     Yk[n] = conserved[5+n]/conserved[0];
                 }
 
@@ -1358,8 +1334,8 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
            
                 yflux(i,j,k,4) += primitive[2]*conserved[4] + primitive[5]*primitive[2];
 
-                if (algorithm_type_gpu == 2) { // Add advection of concentration
-                    for (int n=0; n<nspecies_gpu; ++n) {
+                if (algorithm_type == 2) { // Add advection of concentration
+                    for (int n=0; n<nspecies; ++n) {
                         yflux(i,j,k,5+n) += conserved[5+n]*primitive[2];
                     }
                 }
@@ -1372,7 +1348,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 GpuArray<Real,MAX_SPECIES  > Yk;
     
                 // interpolate conserved quantities to faces
-                for (int l=0; l<nvars_gpu; ++l) {
+                for (int l=0; l<nspecies+5; ++l) {
                     conserved[l] = wgt1*(cons(i,j,k,l)+cons(i,j,k-1,l)) - wgt2*(cons(i,j,k-2,l)+cons(i,j,k+1,l));
                 }
 
@@ -1382,7 +1358,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 }
 
                 // want sum of specden == rho
-                for (int n=0; n<nspecies_gpu; ++n) {
+                for (int n=0; n<nspecies; ++n) {
                     Yk[n] = conserved[5+n]/conserved[0];
                 }
 
@@ -1402,8 +1378,8 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 
                 zflux(i,j,k,4) += primitive[3]*conserved[4] + primitive[5]*primitive[3];
 
-                if (algorithm_type_gpu == 2) { // Add advection of concentration
-                    for (int n=0; n<nspecies_gpu; ++n) {
+                if (algorithm_type == 2) { // Add advection of concentration
+                    for (int n=0; n<nspecies; ++n) {
                         zflux(i,j,k,5+n) += conserved[5+n]*primitive[3];
                     }
                 }

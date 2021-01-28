@@ -14,7 +14,6 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
     double stepsinv = 1./steps;
 
     GpuArray<Real,MAX_SPECIES> fracvec;
-    GpuArray<Real,MAX_SPECIES> massvec;
 
     /* miscVals
       0  = mean xmom
@@ -36,16 +35,6 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
       16 = instant temperature
     */
     
-    // from namelist
-    GpuArray<Real,MAX_SPECIES> molmass_gpu;
-    for (int n=0; n<nspecies; ++n) {
-        molmass_gpu[n] = molmass[n];
-    }
-    GpuArray<Real,MAX_SPECIES> hcv_gpu;
-    for (int n=0; n<nspecies; ++n) {
-        hcv_gpu[n] = hcv[n];
-    }
-    
     //////////////////
     // evaluate_means
     //////////////////
@@ -60,9 +49,7 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
 
         const Array4<const Real> cu        = cons.array(mfi);
         const Array4<      Real> cumeans   = consMean.array(mfi);
-        const Array4<const Real> prim      = prim_in.array(mfi);
         const Array4<      Real> primmeans = primMean.array(mfi);
-        const Array4<      Real> miscstats = miscStats.array(mfi);
 
         // on host, not gpu
         for (auto k = lo.z; k <= hi.z; ++k) {
@@ -73,20 +60,25 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
                 cumeans(i,j,k,l) = (cumeans(i,j,k,l)*stepsminusone + cu(i,j,k,l))*stepsinv;
             }
 
-            for (int l=5; l<nvars; ++l) {
-                fracvec[l-5] = cumeans(i,j,k,l)/cumeans(i,j,k,0);
-                massvec[l-5] = cumeans(i,j,k,l);;
-            }
-
             Real densitymeaninv = 1.0/cumeans(i,j,k,0);
+            
+            for (int l=5; l<nvars; ++l) {
+                fracvec[l-5] = cumeans(i,j,k,l) * densitymeaninv;
+            }
 
             primmeans(i,j,k,0) = cumeans(i,j,k,0);
             primmeans(i,j,k,1) = cumeans(i,j,k,1)*densitymeaninv;
             primmeans(i,j,k,2) = cumeans(i,j,k,2)*densitymeaninv;
             primmeans(i,j,k,3) = cumeans(i,j,k,3)*densitymeaninv;
 
-            GetTemperature(cumeans(i,j,k,4), massvec, primmeans(i,j,k,4));
-            GetPressureGas(primmeans(i,j,k,5), fracvec, cumeans(i,j,k,0), cumeans(i,j,k,4));
+            Real vsqr = primmeans(i,j,k,1)*primmeans(i,j,k,1) +
+                        primmeans(i,j,k,2)*primmeans(i,j,k,2) +
+                        primmeans(i,j,k,3)*primmeans(i,j,k,3);
+
+            Real intenergy = cumeans(i,j,k,4)/cumeans(i,j,k,0) - 0.5*vsqr;
+
+            GetTemperature(intenergy, fracvec, primmeans(i,j,k,4));
+            GetPressureGas(primmeans(i,j,k,5), fracvec, cumeans(i,j,k,0), primmeans(i,j,k,4));
 
             totalMass = totalMass + cu(i,j,k,0);
                     
@@ -374,7 +366,12 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
 
             spatialcross(i,j,k,3) = miscstats(i,j,k,2) - slices(i,j,k,18)*miscVals[13];
             spatialcross(i,j,k,4) = miscstats(i,j,k,3) - slices(i,j,k,1)*miscVals[13];
-            spatialcross(i,j,k,5) = (delpdelrho - miscVals[2]*miscstats(i,j,k,1))/miscVals[3];
+
+            if (miscVals[3] == 0.) {
+                spatialcross(i,j,k,5) = 0.;
+            } else {
+                spatialcross(i,j,k,5) = (delpdelrho - miscVals[2]*miscstats(i,j,k,1))/miscVals[3];
+            }
         }
         }
         }
