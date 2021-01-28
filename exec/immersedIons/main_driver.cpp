@@ -826,7 +826,7 @@ void main_driver(const char* argv)
     //Time stepping loop
 
 
-    dt = dt*1e-4;
+    dt = dt*1e-5;
 
     particles.initRankLists(simParticles);
 
@@ -860,11 +860,12 @@ void main_driver(const char* argv)
                 Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
         }
 
-//        if(istep == 100)
-//        {
-//                dt = dt*10;
-//                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
-//        }
+
+        if(istep == 100)
+        {
+                dt = dt*10;
+                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+        }
 
 
 //        if(istep == 1)
