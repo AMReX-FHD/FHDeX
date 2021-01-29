@@ -426,215 +426,78 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // For electroneutral, enable charge correction in the corrector
     relxn_param_charge=relxn_param_charge_in; // Default value is 1
 
-#if 0
-    if (midpoint_stoch_mass_flux_type .eq. 1) then
-       ! strato
+    if (midpoint_stoch_mass_flux_type == 1) {
+        // strato
 
-       ! compute diffusive, stochastic, potential mass fluxes
-       ! with barodiffusion and thermodiffusion
-       ! this computes "-F = rho W chi [Gamma grad x... ]"
-       weights(:) = 1.d0/sqrt(2.d0)
-       call compute_mass_fluxdiv(mla,rho_new,rhotot_new,gradp_baro,Temp, &
-                                 diff_mass_fluxdiv,stoch_mass_fluxdiv, &
-                                 diff_mass_flux,stoch_mass_flux, &
-                                 dt,time,dx,weights,the_bc_tower, &
-                                 charge_new,grad_Epot_new,Epot, &
-                                 permittivity,zero_initial_Epot_in=.false.)
+        // compute diffusive, stochastic, potential mass fluxes
+        // with barodiffusion and thermodiffusion
+        // this computes "-F = rho W chi [Gamma grad x... ]"
+        weights_mass[0] = 1./std::sqrt(2.);
+        weights_mass[1] = 1./std::sqrt(2.);
+        ComputeMassFluxdiv(rho_new,rhotot_new,Temp,diff_mass_fluxdiv,stoch_mass_fluxdiv,
+                           diff_mass_flux,stoch_mass_flux,sMassFlux,dt,time,geom,weights_mass,
+                           charge_new,grad_Epot_new,Epot,permittivity,0);
 
-       ! begin to assemble total fluxes (diffusive plus stochastic);
-       ! we still need to add add advective flux later
-       if(present(total_mass_flux)) then
-          do n=1,nlevs
-             do i=1,dm
-                call multifab_copy_c(total_mass_flux(n,i),1,diff_mass_flux(n,i),1,nspecies,0)
-                if (variance_coef_mass .ne. 0.d0) then
-                   call multifab_plus_plus_c(total_mass_flux(n,i),1,stoch_mass_flux(n,i),1,nspecies,0)
-                end if
-             end do
-          end do
-       end if
+    } else if (midpoint_stoch_mass_flux_type == 2) {
 
-    else if (midpoint_stoch_mass_flux_type .eq. 2) then
-       ! ito
+        // ito
+        if (variance_coef_mass != 0.) {
+            // for ito interpretation we need to save stoch_mass_fluxdiv_old here
+            // then later add it to stoch_mass_fluxdiv and multiply by 1/2
+            MultiFab::Copy(stoch_mass_fluxdiv_old,stoch_mass_fluxdiv,0,0,nspecies,0);
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                MultiFab::Copy(stoch_mass_flux_old[d],stoch_mass_flux[d],0,0,nspecies,0);
+            }
+        }
 
-       if(present(total_mass_flux)) then
-          call bl_error('Code cannot presently return total_mass_flux if midpoint_stoch_mass_flux_type!=1')
-       end if
+        // compute diffusive, stochastic, potential mass fluxes
+        // with barodiffusion and thermodiffusion
+        // this computes "-F = rho W chi [Gamma grad x... ]"
+        weights_mass[0] = 0.;
+        weights_mass[1] = 1.;
+        ComputeMassFluxdiv(rho_new,rhotot_new,Temp,diff_mass_fluxdiv,stoch_mass_fluxdiv,
+                           diff_mass_flux,stoch_mass_flux,sMassFlux,0.5*dt,time,geom,weights_mass,
+                           charge_new,grad_Epot_new,Epot,permittivity,0);
 
-       if (variance_coef_mass .ne. 0.d0) then
-          ! for ito interpretation we need to save stoch_mass_fluxdiv_old here
-          ! then later add it to stoch_mass_fluxdiv and multiply by 1/2
-          do n=1,nlevs
-             call multifab_copy_c(stoch_mass_fluxdiv_old(n),1,stoch_mass_fluxdiv(n),1,nspecies,0)
-             do i=1,dm
-                call multifab_copy_c(stoch_mass_flux_old(n,i),1,stoch_mass_flux(n,i),1,nspecies,0)
-             end do
-          end do
-       end if
+        if (variance_coef_mass != 0.) {
+            // add stoch_mass_fluxdiv_old to stoch_mass_fluxdiv and multiply by 1/2
+            MultiFab::Add(stoch_mass_fluxdiv,stoch_mass_fluxdiv_old,0,0,nspecies,0);
+            stoch_mass_fluxdiv.mult(0.5,0,nspecies,0);
+        }
+    }
 
-       ! compute diffusive, stochastic, potential mass fluxes
-       ! with barodiffusion and thermodiffusion
-       ! this computes "-F = rho W chi [Gamma grad x... ]"
-       weights(1) = 0.d0
-       weights(2) = 1.d0
-       call compute_mass_fluxdiv(mla,rho_new,rhotot_new,gradp_baro,Temp, &
-                                 diff_mass_fluxdiv,stoch_mass_fluxdiv, &
-                                 diff_mass_flux,stoch_mass_flux, &
-                                 0.5d0*dt,time,dx,weights,the_bc_tower, &
-                                 charge_new,grad_Epot_new,Epot, &
-                                 permittivity,zero_initial_Epot_in=.false.)
+    if (use_multiphase) {
 
-       if (variance_coef_mass .ne. 0.d0) then
-          ! add stoch_mass_fluxdiv_old to stoch_mass_fluxdiv and multiply by 1/2
-          do n=1,nlevs
-             call multifab_plus_plus_c(stoch_mass_fluxdiv(n),1,stoch_mass_fluxdiv_old(n),1,nspecies,0)
-             call multifab_mult_mult_s_c(stoch_mass_fluxdiv(n),1,0.5d0,nspecies,0)
-          end do
-       end if
+        // compute reversible stress tensor ---added term (will add to gmres_rhs_v later)
+        // call compute_div_reversible_stress(mla,div_reversible_stress,rhotot_new,rho_new,dx,the_bc_tower)
+        Abort("AdvanceTimestepBousq.cpp write ComputeDivReversibleStress()");
 
-    end if
-    
-    if(use_multiphase) then
+    }
 
-       !compute reversible stress tensor ---added term (will add to gmres_rhs_v later)
-       call compute_div_reversible_stress(mla,div_reversible_stress,rhotot_new,rho_new,dx,the_bc_tower)
+    if (use_charged_fluid) {
 
-    end if
+        // compute Lorentz force (using midpoint value not trapezoidal, will add to gmres_rhs_v later)
+        ComputeLorentzForce(Lorentz_force,grad_Epot_new,permittivity,charge_new,geom);
 
-    if (use_charged_fluid) then
+    }
 
-       ! compute Lorentz force (using midpoint value not trapezoidal, will add to gmres_rhs_v later)
-       call compute_Lorentz_force(mla,Lorentz_force,grad_Epot_new,permittivity, &
-                                  charge_new,dx,the_bc_tower)
-
-    end if
-
-    ! compute chemical rates m_i*R^{n+1/2}_i
+    // compute chemical rates m_i*R^{n+1/2}_i
+    /*
     if (nreactions > 0) then
-       ! convert rho_old (at n) and rho_new (at n+1/2) (mass densities rho_i)
-       ! into n_old and n_new (number densities n_i=rho_i/m_i)
-       do n=1,nlevs
-          call multifab_copy_c(n_old(n),1,rho_old(n),1,nspecies,0)
-          call multifab_copy_c(n_new(n),1,rho_new(n),1,nspecies,0)
-          do i=1,nspecies
-             call multifab_div_div_s_c(n_old(n),i,molmass(i),1,0)
-             call multifab_div_div_s_c(n_new(n),i,molmass(i),1,0)
-          end do
-       end do
-
-       ! compute chemical rates R_i (units=[number density]/[time]) for the second half step
-       call chemical_rates(mla,n_old,chem_rate_temp,dx,0.5d0*dt,n_new,mattingly_lin_comb_coef)
-
-       ! convert chemical rates R_i into m_i*R_i (units=[mass density]/[time])
-       do n=1,nlevs
-          do i=1,nspecies
-             call multifab_mult_mult_s_c(chem_rate_temp(n),i,molmass(i),1,0)
-          end do
-       end do
-
-       ! compute chemical rates m_i*R^{n+1/2}_i for the full step
-       do n=1,nlevs
-          call multifab_plus_plus_c(chem_rate(n),1,chem_rate_temp(n),1,nspecies,0)
-          call multifab_mult_mult_s_c(chem_rate(n),1,0.5d0,nspecies,0)
-       end do
-
-       if (use_bl_rng) then
-          ! save random state for restart
-          call bl_rng_copy_engine(rng_eng_reaction_chk,rng_eng_reaction)
-       end if
 
     end if
+    */
 
-    if (advection_type .ge. 1) then
+    if (advection_type >= 1) {
 
-       if(present(total_mass_flux)) then
-          call bl_error('Code cannot presently return total_mass_flux if using BDS advection')
-       end if
+    } else {
+        // compute adv_mass_fluxdiv = -rho_i^{n+1/2} * v^n and
+        // increment adv_mass_fluxdiv by -rho_i^{n+1/2} * v^{n+1,*}
+        MkAdvSFluxdiv(umac_old,rho_fc,adv_mass_fluxdiv,geom,0,nspecies,false);
+        MkAdvSFluxdiv(umac    ,rho_fc,adv_mass_fluxdiv,geom,0,nspecies,true);
+    }
 
-       ! add the diff/stoch/react terms to rho_update
-       do n=1,nlevs
-          call multifab_copy_c(rho_update(n),1,diff_mass_fluxdiv(n),1,nspecies)
-          if (variance_coef_mass .ne. 0.d0) then
-             call multifab_plus_plus_c(rho_update(n),1,stoch_mass_fluxdiv(n),1,nspecies)
-          end if
-          if (nreactions > 0) then
-             call multifab_plus_plus_c(rho_update(n),1,chem_rate(n),1,nspecies,0)
-          end if
-       end do
-
-       do n=1,nlevs
-          ! set to zero to make sure ghost cells behind physical boundaries don't have NaNs
-          call setval(bds_force(n),0.d0,all=.true.)
-          call multifab_copy_c(bds_force(n),1,rho_update(n),1,nspecies,0)
-          call multifab_fill_boundary(bds_force(n))
-       end do
-
-       if (advection_type .eq. 1 .or. advection_type .eq. 2) then
-          ! bds increments rho_update with the advection term
-          call bds(mla,umac_tmp,rho_tmp,rho_update,bds_force,rho_fc,rho_nd,dx,dt,1, &
-                   nspecies,c_bc_comp,the_bc_tower,proj_type_in=proj_type)
-
-       else if (advection_type .eq. 3 .or. advection_type .eq. 4) then
-          call bds_quad(mla,umac_tmp,rho_old,rho_update,bds_force,rho_fc,dx,dt,1,nspecies, &
-                        c_bc_comp,the_bc_tower,proj_type_in=proj_type)
-       end if
-
-       do n=1,nlevs
-          call multifab_destroy(rho_tmp(n))
-          call multifab_destroy(bds_force(n))
-          call multifab_destroy(rho_nd(n))
-          do i=1,dm
-             call multifab_destroy(umac_tmp(n,i))
-          end do
-       end do
-
-    else
-
-       ! compute adv_mass_fluxdiv = -rho_i^{n+1/2} * v^n and
-       ! increment adv_mass_fluxdiv by -rho_i^{n+1/2} * v^{n+1,*}
-       call mk_advective_s_fluxdiv(mla,umac_old,rho_fc,adv_mass_fluxdiv,.false.,dx,1,nspecies)
-       call mk_advective_s_fluxdiv(mla,umac    ,rho_fc,adv_mass_fluxdiv,.true. ,dx,1,nspecies)
-
-       ! Add advective fluxes to total fluxes and fix sign for fluxes to be actual fluxes not negative of flux ;-)
-       if(present(total_mass_flux)) then
-
-          do n=1,nlevs
-             do i=1,dm
-
-                ! compute advective mass flux contribution, rho_i^{n+1/2} * v^n
-                do comp=1,nspecies
-                   call multifab_copy_c(adv_mass_flux(n,i),comp,umac_old(n,i),1,1,0)
-                end do
-                call multifab_mult_mult_c(adv_mass_flux(n,i),1,rho_fc(n,i),1,nspecies,0)
-
-                ! now *subtract* off half of these advective fluxes from total_mass_flux
-                call multifab_saxpy_3_cc(total_mass_flux(n,i),1,-0.5d0,adv_mass_flux(n,i),1,nspecies)
-
-                ! compute advective mass flux contribution, rho_i^{n+1/2} * v^{n+1,*}
-                do comp=1,nspecies
-                   call multifab_copy_c(adv_mass_flux(n,i),comp,umac(n,i),1,1,0)
-                end do
-                call multifab_mult_mult_c(adv_mass_flux(n,i),1,rho_fc(n,i),1,nspecies,0)
-
-                ! now *subtract* off half of these advective fluxes from total_mass_flux
-                call multifab_saxpy_3_cc(total_mass_flux(n,i),1,-0.5d0,adv_mass_flux(n,i),1,nspecies)
-                
-                ! multiply the total mass flux w adv by -1, so that we take the 
-                ! standard convention that the mass flux has the same sign as the fluid flow 
-                call multifab_mult_mult_s_c(total_mass_flux(n,i),1,-1.d0,nspecies,0)
-
-             enddo
-          end do
-
-       do n=1,nlevs
-          do i=1,dm
-                
-          enddo
-       enddo        
-
-       end if
-
-    end if
+#if 0
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ! Step 5: density integration to t^{n+1}
