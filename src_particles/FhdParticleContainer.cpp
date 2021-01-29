@@ -470,7 +470,6 @@ void FhdParticleContainer::computeForcesNLGPU(const MultiFab& coords, const Real
 
         if (es_tog==3)
         {
-            Print() << "Beginning SR P3M \n";
             compute_p3m_sr_correction_nl_gpu(particles, Np, Nn,
                                         m_neighbor_list[lev][index], dx, recount, recountI);
 
