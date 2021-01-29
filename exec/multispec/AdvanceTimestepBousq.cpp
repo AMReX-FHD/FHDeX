@@ -49,7 +49,6 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     Vector<Real> weights_mom(1);
     Vector<Real> weights_mass(2);
 
-
     if (barodiffusion_type != 0) {
         Abort("AdvanceTimestepBousq: barodiffusion not supported yet");
     }
@@ -155,8 +154,222 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         MultiFab::Add(gmres_rhs_v[d],adv_mom_fluxdiv_old[d],0,0,1,0);
     }
+    
+    // compute diff_mom_fluxdiv_old = L_0^n v^n
+    // save this for use in the corrector GMRES solve
+    MkDiffusiveMFluxdiv(diff_mom_fluxdiv_old,umac,eta,eta_ed,kappa,geom,dx,0);
 
 
+    // add (1/2)*diff_mom_fluxdiv_old to gmres_rhs_v
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        MultiFab::Saxpy(gmres_rhs_v[d],0.5,diff_mom_fluxdiv_old[d],0,0,1,0);
+    }
+
+    if (variance_coef_mom != 0.) {
+
+        // fill the stochastic momentum multifabs with new sets of random numbers
+        sMomFlux.fillMomStochastic();
+
+        // compute stoch_mom_fluxdiv = div (sqrt(eta^n...) Wbar^n)
+        // save this for use in the corrector GMRES solve
+        weights_mom[0] = 1.;
+        sMomFlux.StochMomFluxDiv(stoch_mom_fluxdiv,0,eta,eta_ed,Temp,Temp_ed,weights_mom,dt);
+
+        // add stochastic momentum fluxes to gmres_rhs_v
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            MultiFab::Saxpy(gmres_rhs_v[d],1.,stoch_mom_fluxdiv[d],0,0,1,0);
+        }
+
+    }
+
+    // gravity
+    bool any_grav = false;
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        if (grav[d] != 0.) any_grav = true;
+    }
+    if (any_grav) {
+        Abort("AdvanceTimestepBousq.cpp gravity not implemented");
+    }
+
+    if (variance_coef_mass != 0.) {
+        sMassFlux.fillMassStochastic();
+        if (chk_int > 0) {
+            Abort("AdvanceTimestepBousq.cpp checkpointing not implemented");
+        }
+    }
+
+    // compute diffusive, stochastic, potential mass fluxes
+    // with barodiffusion and thermodiffusion
+    // this computes "-F = rho W chi [Gamma grad x... ]"
+    weights_mass[0] = 1.;
+    weights_mass[1] = 0.;
+    ComputeMassFluxdiv(rho_old,rhotot_old,Temp,diff_mass_fluxdiv,stoch_mass_fluxdiv,
+                       diff_mass_flux,stoch_mass_flux,sMassFlux,0.5*dt,time,geom,weights_mass,
+                       charge_old,grad_Epot_old,Epot,permittivity);
+    
+    // here is a reasonable place to call something to compute in reversible stress term
+    // in this case want to get divergence so it looks like a add to rhs for stokes solver
+    if (use_multiphase) {
+
+        // compute reversible stress tensor ---added term
+        // call compute_div_reversible_stress(mla,div_reversible_stress,rhotot_old,rho_old,dx,the_bc_tower)
+        Abort("AdvanceTimestepBousq.cpp write ComputeDIvReversibleStress()");
+
+        // add divergence of reversible stress to gmres_rhs_v
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            MultiFab::Saxpy(gmres_rhs_v[d],1.,div_reversible_stress[d],0,0,1,0);
+        }
+
+    }
+
+    if (use_charged_fluid) {
+
+        // compute old Lorentz force
+        ComputeLorentzForce(Lorentz_force,grad_Epot_old,permittivity,charge_old,geom);
+
+        // add Lorentz force to gmres_rhs_v
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            MultiFab::Saxpy(gmres_rhs_v[d],1.0,Lorentz_force[d],0,0,1,0);
+        }
+
+    }
+
+    // compute grad pi^{n-1/2}
+    ComputeGrad(pi,gradpi,0,0,1,PRES_BC_COMP,geom);
+    
+    // subtract grad pi^{n-1/2} from gmres_rhs_v
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        MultiFab::Subtract(gmres_rhs_v[d],gradpi[d],0,0,1,0);
+    }
+
+    // set inhomogeneous velocity bc's to values supplied in inhomogeneous_bc_val
+    //
+    //
+    //
+
+    // modify umac to respect the boundary conditions we want after the next gmres solve
+    // thus when we add L_0^n vbar^n to gmres_rhs_v and add div vbar^n to gmres_rhs_p we
+    // are automatically putting the system in delta form WITH homogeneous boundary conditions
+    for (int i=0; i<AMREX_SPACEDIM; ++i) {
+        // set normal velocity of physical domain boundaries
+        MultiFabPhysBCDomainVel(umac[i],geom,i);
+        // set transverse velocity behind physical boundaries
+        MultiFabPhysBCMacVel(umac[i],geom,i);
+        // fill periodic and interior ghost cells
+        umac[i].FillBoundary(geom.periodicity());
+    }
+    
+
+
+
+
+
+
+
+
+    
+
+#if 0
+
+    ! compute mtemp = (rho*vbar)^n
+    call convert_m_to_umac(mla,rhotot_fc_old,mtemp,umac,.false.)
+
+    ! add -(mtemp/dt) to gmres_rhs_v
+    do n=1,nlevs
+       do i=1,dm
+          call multifab_saxpy_3_cc(gmres_rhs_v(n,i),1,-1.d0/dt,mtemp(n,i),1,1)
+       end do
+    end do
+
+    ! compute diff_mom_fluxdiv_new = L_0^n vbar^n
+    call diffusive_m_fluxdiv(mla,diff_mom_fluxdiv_new,.false.,umac,eta,eta_ed,kappa,dx, &
+                             the_bc_tower%bc_tower_array)
+
+    ! add (1/2)*diff_mom_fluxdiv_new to gmres_rhs_v
+    do n=1,nlevs
+       do i=1,dm
+          call multifab_saxpy_3_cc(gmres_rhs_v(n,i),1,0.5d0,diff_mom_fluxdiv_new(n,i),1,1)
+       end do
+    end do
+
+    ! compute div(vbar^n) and store in gmres_rhs_p
+    ! the sign convention is correct since we solve -div(delta v) = div(vbar^n)
+    call compute_div(mla,umac,gmres_rhs_p,dx,1,1,1)
+
+    ! multiply eta and kappa by 1/2 to put in proper form for gmres solve
+    do n=1,nlevs
+       call multifab_mult_mult_s_c(eta(n)  ,1,0.5d0,1,eta(n)%ng)
+       call multifab_mult_mult_s_c(kappa(n),1,0.5d0,1,kappa(n)%ng)
+       do i=1,size(eta_ed,dim=2)
+          call multifab_mult_mult_s_c(eta_ed(n,i),1,0.5d0,1,eta_ed(n,i)%ng)
+       end do
+    end do
+
+    ! set the initial guess to zero
+    do n=1,nlevs
+       do i=1,dm
+          call multifab_setval(dumac(n,i),0.d0,all=.true.)
+       end do
+       call multifab_setval(dpi(n),0.d0,all=.true.)
+    end do
+
+    ! zero gmres_rhs_v on physical boundaries
+    do n=1,nlevs
+       call zero_edgeval_physical(gmres_rhs_v(n,:),1,1,the_bc_tower%bc_tower_array(n))
+    end do
+
+    gmres_abs_tol_in = gmres_abs_tol ! Save this 
+
+    ! This relies entirely on relative tolerance and can fail if the rhs is roundoff error only:
+    ! gmres_abs_tol = 0.d0 ! It is better to set gmres_abs_tol in namelist to a sensible value
+
+    ! call gmres to compute delta v and delta pi
+    call gmres(mla,the_bc_tower,dx,gmres_rhs_v,gmres_rhs_p,dumac,dpi,rhotot_fc_old, &
+               eta,eta_ed,kappa,theta_alpha,norm_pre_rhs)    
+
+    ! for the corrector gmres solve we want the stopping criteria based on the
+    ! norm of the preconditioned rhs from the predictor gmres solve.  otherwise
+    ! for cases where du in the corrector should be small the gmres stalls
+    gmres_abs_tol = max(gmres_abs_tol_in, norm_pre_rhs*gmres_rel_tol)
+       
+    ! compute v^{n+1,*} = vbar^n + dumac
+    ! compute pi^{n+1/2,*} = pi^{n-1/2} + dpi
+    do n=1,nlevs
+       do i=1,dm
+          call multifab_plus_plus_c(umac(n,i),1,dumac(n,i),1,1,0)
+       end do
+       call multifab_plus_plus_c(pi(n),1,dpi(n),1,1,0)
+    end do
+       
+    do n=1,nlevs
+       ! presure ghost cells
+       call multifab_fill_boundary(pi(n))
+       call multifab_physbc(pi(n),1,pres_bc_comp,1,the_bc_tower%bc_tower_array(n), &
+                            dx_in=dx(n,:))
+       do i=1,dm
+          ! set normal velocity on physical domain boundaries
+          call multifab_physbc_domainvel(umac(n,i),vel_bc_comp+i-1, &
+                                         the_bc_tower%bc_tower_array(n), &
+                                         dx(n,:),vel_bc_n(n,:))
+          ! set transverse velocity behind physical boundaries
+          call multifab_physbc_macvel(umac(n,i),vel_bc_comp+i-1, &
+                                      the_bc_tower%bc_tower_array(n), &
+                                      dx(n,:),vel_bc_t(n,:))
+          ! fill periodic and interior ghost cells
+          call multifab_fill_boundary(umac(n,i))
+       end do
+    end do
+
+    ! restore eta and kappa
+    do n=1,nlevs
+       call multifab_mult_mult_s_c(eta(n)  ,1,2.d0,1,eta(n)%ng)
+       call multifab_mult_mult_s_c(kappa(n),1,2.d0,1,kappa(n)%ng)
+       do i=1,size(eta_ed,dim=2)
+          call multifab_mult_mult_s_c(eta_ed(n,i),1,2.d0,1,eta_ed(n,i)%ng)
+       end do
+    end do
+
+#endif
 
 
 
