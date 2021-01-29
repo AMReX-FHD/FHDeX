@@ -46,41 +46,144 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     const Real* dx = geom.CellSize();
     
-    Vector<Real> weights;
-    weights = {1.0};
+    Vector<Real> weights_mom(1);
+    Vector<Real> weights_mass(2);
+
+
+    if (barodiffusion_type != 0) {
+        Abort("AdvanceTimestepBousq: barodiffusion not supported yet");
+    }
+
+    // For BDS we need to project edge states onto constraints
+    int proj_type = (use_charged_fluid && electroneutral) ? 4 : 3;
     
     Real theta_alpha = 1./dt;
-    Real norm_pre_rhs;
 
-    MultiFab rho_update (ba,dmap,nspecies,0);
-    MultiFab gmres_rhs_p(ba,dmap,       1,0);
-    MultiFab dpi        (ba,dmap,       1,1);
-
-    std::array< MultiFab, AMREX_SPACEDIM > mold;
+    MultiFab adv_mass_fluxdiv(ba,dmap,nspecies,0);
+    MultiFab gmres_rhs_p     (ba,dmap,       1,0);
+    MultiFab dpi             (ba,dmap,       1,1);
+    
+    std::array< MultiFab, AMREX_SPACEDIM > umac_old;
     std::array< MultiFab, AMREX_SPACEDIM > mtemp;
-    std::array< MultiFab, AMREX_SPACEDIM > adv_mom_fluxdiv;
-    std::array< MultiFab, AMREX_SPACEDIM > diff_mom_fluxdiv;
+    std::array< MultiFab, AMREX_SPACEDIM > adv_mom_fluxdiv_old;
+    std::array< MultiFab, AMREX_SPACEDIM > adv_mom_fluxdiv_new;
+    std::array< MultiFab, AMREX_SPACEDIM > diff_mom_fluxdiv_old;
+    std::array< MultiFab, AMREX_SPACEDIM > diff_mom_fluxdiv_new;
+    std::array< MultiFab, AMREX_SPACEDIM > stoch_mom_fluxdiv;
     std::array< MultiFab, AMREX_SPACEDIM > gmres_rhs_v;
     std::array< MultiFab, AMREX_SPACEDIM > dumac;
     std::array< MultiFab, AMREX_SPACEDIM > gradpi;
+    std::array< MultiFab, AMREX_SPACEDIM > rho_fc;
     std::array< MultiFab, AMREX_SPACEDIM > rhotot_fc_old;
     std::array< MultiFab, AMREX_SPACEDIM > rhotot_fc_new;
-    std::array< MultiFab, AMREX_SPACEDIM > rho_fc;
     std::array< MultiFab, AMREX_SPACEDIM > diff_mass_flux;
+
+    // only used when variance_coef_mass>0 and midpoint_stoch_mass_flux_type=2
+    MultiFab stoch_mass_fluxdiv_old;
+    std::array< MultiFab, AMREX_SPACEDIM > stoch_mass_flux_old;
+
+    // only used when use_charged_fluid=1
+    std::array< MultiFab, AMREX_SPACEDIM > Lorentz_force;
+
+    // only used when use_multiphase=1
+    std::array< MultiFab, AMREX_SPACEDIM > div_reversible_stress;
+
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        umac_old[d]            .define(convert(ba,nodal_flag_dir[d]), dmap,        1, 1);
+        mtemp[d]               .define(convert(ba,nodal_flag_dir[d]), dmap,        1, 1);
+        adv_mom_fluxdiv_old[d] .define(convert(ba,nodal_flag_dir[d]), dmap,        1, 0);
+        adv_mom_fluxdiv_new[d] .define(convert(ba,nodal_flag_dir[d]), dmap,        1, 0);
+        diff_mom_fluxdiv_old[d].define(convert(ba,nodal_flag_dir[d]), dmap,        1, 0);
+        diff_mom_fluxdiv_new[d].define(convert(ba,nodal_flag_dir[d]), dmap,        1, 0);
+        stoch_mom_fluxdiv[d]   .define(convert(ba,nodal_flag_dir[d]), dmap,        1, 0);
+        gmres_rhs_v[d]         .define(convert(ba,nodal_flag_dir[d]), dmap,        1, 0);
+        dumac[d]               .define(convert(ba,nodal_flag_dir[d]), dmap,        1, 1);
+        gradpi[d]              .define(convert(ba,nodal_flag_dir[d]), dmap,        1, 0);
+        rho_fc[d]              .define(convert(ba,nodal_flag_dir[d]), dmap, nspecies, 0);
+        rhotot_fc_old[d]       .define(convert(ba,nodal_flag_dir[d]), dmap,        1, 1);
+        rhotot_fc_new[d]       .define(convert(ba,nodal_flag_dir[d]), dmap,        1, 1);
+
+    }
+
+    // for ito interpretation we need to save stoch_mass_fluxdiv_old 
+    if (variance_coef_mass != 0. && midpoint_stoch_mass_flux_type == 2) {
+        stoch_mass_fluxdiv_old.define(ba,dmap,nspecies,0);
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            stoch_mass_flux_old[d].define(convert(ba,nodal_flag_dir[d]), dmap, nspecies, 0);
+        }
+    }
+
+    if (use_charged_fluid) {
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            Lorentz_force[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 0);
+        }
+    }
+    
+    if (use_multiphase) {
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            div_reversible_stress[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 0);
+        }
+    }
+
+    // make a copy of umac at t^n
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        MultiFab::Copy(umac_old[d],umac[d],0,0,1,1);
+    }
+
+    //////////////////////////////////////////////
+    // Step 1: solve for v^{n+1,*} and pi^{n+1/2,*} using GMRES
+    //////////////////////////////////////////////
+
+    //  average rho_i^n and rho^n to faces
+    AverageCCToFace(   rho_old,   rho_fc    ,0,nspecies,SPEC_BC_COMP,geom);
+    AverageCCToFace(rhotot_old,rhotot_fc_old,0,1       , RHO_BC_COMP,geom);
+
+    // compute mtemp = (rho*v)^n
+    ConvertMToUmac(rhotot_fc_old,umac,mtemp,0);
+
+    // set gmres_rhs_v = mtemp / dt
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        MultiFab::Copy(gmres_rhs_v[d],mtemp[d],0,0,1,0);
+        gmres_rhs_v[d].mult(1./dt,0);
+    }
+
+    // compute adv_mom_fluxdiv_old = -rho*v^n*v^n
+    // save this for use in the corrector GMRES solve
+    MkAdvMFluxdiv(umac,mtemp,adv_mom_fluxdiv_old,dx,0);
+
+    // add -rho*v^n,v^n to gmres_rhs_v
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        MultiFab::Add(gmres_rhs_v[d],adv_mom_fluxdiv_old[d],0,0,1,0);
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
+    
+#if 0
+    
+    Real norm_pre_rhs;
+
+    MultiFab rho_update (ba,dmap,nspecies,0);
+
+    std::array< MultiFab, AMREX_SPACEDIM > mold;
     std::array< MultiFab, AMREX_SPACEDIM > total_mass_flux;
-    std::array< MultiFab, AMREX_SPACEDIM > stoch_mom_fluxdiv;
 
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         mold[d]             .define(convert(ba,nodal_flag_dir[d]), dmap,        1, 1);
-        mtemp[d]            .define(convert(ba,nodal_flag_dir[d]), dmap,        1, 1);
-        adv_mom_fluxdiv[d]  .define(convert(ba,nodal_flag_dir[d]), dmap,        1, 0);
-        diff_mom_fluxdiv[d] .define(convert(ba,nodal_flag_dir[d]), dmap,        1, 0);
-        gmres_rhs_v[d]      .define(convert(ba,nodal_flag_dir[d]), dmap,        1, 0);
-        dumac[d]            .define(convert(ba,nodal_flag_dir[d]), dmap,        1, 1);
-        gradpi[d]           .define(convert(ba,nodal_flag_dir[d]), dmap,        1, 0);
-        rhotot_fc_old[d]    .define(convert(ba,nodal_flag_dir[d]), dmap,        1, 1);
-        rhotot_fc_new[d]    .define(convert(ba,nodal_flag_dir[d]), dmap,        1, 1);
-        rho_fc[d]           .define(convert(ba,nodal_flag_dir[d]), dmap, nspecies, 0);
         diff_mass_flux[d]   .define(convert(ba,nodal_flag_dir[d]), dmap, nspecies, 0);
         total_mass_flux[d]  .define(convert(ba,nodal_flag_dir[d]), dmap, nspecies, 0);
         stoch_mom_fluxdiv[d].define(convert(ba,nodal_flag_dir[d]), dmap, nspecies, 0);
@@ -169,7 +272,7 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // build up rhs_v for gmres solve: first set gmres_rhs_v to mold/dt
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         MultiFab::Copy(gmres_rhs_v[d],mold[d],0,0,1,0);
-        gmres_rhs_v[d].mult(1/dt,0);
+        gmres_rhs_v[d].mult(1./dt,0);
     }
         
     // compute grad pi^n
@@ -434,7 +537,7 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // build up rhs_v for gmres solve: first set gmres_rhs_v to mold/dt
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         MultiFab::Copy(gmres_rhs_v[d],mold[d],0,0,1,0);
-        gmres_rhs_v[d].mult(1/dt,0);
+        gmres_rhs_v[d].mult(1./dt,0);
     }
     
     // compute grad pi^{*,n+1}
@@ -622,4 +725,5 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     //////////////////////////////////////////////
     // End Time-Advancement
     //////////////////////////////////////////////
+#endif
 }

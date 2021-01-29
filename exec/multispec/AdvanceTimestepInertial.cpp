@@ -169,7 +169,7 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // build up rhs_v for gmres solve: first set gmres_rhs_v to mold/dt
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         MultiFab::Copy(gmres_rhs_v[d],mold[d],0,0,1,0);
-        gmres_rhs_v[d].mult(1/dt,0);
+        gmres_rhs_v[d].mult(1./dt,0);
     }
         
     // compute grad pi^n
@@ -434,7 +434,7 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // build up rhs_v for gmres solve: first set gmres_rhs_v to mold/dt
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         MultiFab::Copy(gmres_rhs_v[d],mold[d],0,0,1,0);
-        gmres_rhs_v[d].mult(1/dt,0);
+        gmres_rhs_v[d].mult(1./dt,0);
     }
     
     // compute grad pi^{*,n+1}
