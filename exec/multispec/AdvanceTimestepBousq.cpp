@@ -497,55 +497,52 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         MkAdvSFluxdiv(umac    ,rho_fc,adv_mass_fluxdiv,geom,0,nspecies,true);
     }
 
+    //////////////////////////////////////////////
+    // Step 5: density integration to t^{n+1}
+    //////////////////////////////////////////////
+
+    if (advection_type >= 1) {
+
+        /*
+        do n=1,nlevs
+           call multifab_saxpy_4(rho_new(n),rho_old(n),dt,rho_update(n))
+        end do
+        */
+
+    } else {
+
+        // compute rho_i^{n+1}
+        // multiply adv_mass_fluxdiv by (1/2) since it contains -rho_i^{n+1/2} * (v^n + v^{n+1,*})
+        MultiFab::Copy(rho_new,rho_old,0,0,nspecies,0);
+        MultiFab::Saxpy(rho_new,0.5*dt, adv_mass_fluxdiv,0,0,nspecies,0);
+        MultiFab::Saxpy(rho_new,    dt,diff_mass_fluxdiv,0,0,nspecies,0);
+        if (variance_coef_mass != 0.) {
+            MultiFab::Saxpy(rho_new,dt,stoch_mass_fluxdiv,0,0,nspecies,0);
+        }
+        /*                                       
+        if (nreactions > 0) then
+           call multifab_saxpy_3_cc(rho_new(n),1,dt,chem_rate(n),1,nspecies)
+        end if
+        */
+    }
+
+    if ( project_eos_int > 0 && istep%project_eos_int == 0) {
+        ProjectOntoEOS(rho_new);
+    }
+
+    // compute rhotot^{n+1} from rho^{n+1} in VALID REGION
+    ComputeRhotot(rho_new,rhotot_new);
+
+    // fill rho and rhotot ghost cells at t^{n+1}
+    FillRhoRhototGhost(rho_new,rhotot_new,geom);
+
+    // average rho^{n+1} to faces
+    AverageCCToFace(rhotot_new,rhotot_fc_new,0,1,RHO_BC_COMP,geom);
+
 #if 0
-
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    ! Step 5: density integration to t^{n+1}
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-    if (advection_type .ge. 1) then
-
-       do n=1,nlevs
-          call multifab_saxpy_4(rho_new(n),rho_old(n),dt,rho_update(n))
-       end do
-
-       do n=1,nlevs
-          call multifab_destroy(rho_update(n))
-       end do
-
-    else
-
-       ! compute rho_i^{n+1}
-       ! multiply adv_mass_fluxdiv by (1/2) since it contains -rho_i^{n+1/2} * (v^n + v^{n+1,*})
-       do n=1,nlevs
-          call multifab_copy_c(rho_new(n),1,rho_old(n),1,nspecies,0)
-          call multifab_saxpy_3_cc(rho_new(n),1,0.5d0*dt, adv_mass_fluxdiv(n),1,nspecies)
-          call multifab_saxpy_3_cc(rho_new(n),1,      dt,diff_mass_fluxdiv(n),1,nspecies)
-          if (variance_coef_mass .ne. 0.d0) then
-             call multifab_saxpy_3_cc(rho_new(n),1,dt,stoch_mass_fluxdiv(n),1,nspecies)
-          end if
-          if (nreactions > 0) then
-             call multifab_saxpy_3_cc(rho_new(n),1,dt,chem_rate(n),1,nspecies)
-          end if
-       end do
-
-    end if
-
-    if ( project_eos_int .gt. 0 .and. mod(istep,project_eos_int) .eq. 0) then
-       call project_onto_eos(mla,rho_new)
-    end if
-
-    ! compute rhotot^{n+1} from rho^{n+1} in VALID REGION
-    call compute_rhotot(mla,rho_new,rhotot_new)
-
-    ! fill rho and rhotot ghost cells at t^{n+1}
-    call fill_rho_rhotot_ghost(mla,rho_new,rhotot_new,dx,the_bc_tower)
-
-    ! average rho^{n+1} to faces
-    call average_cc_to_face(nlevs,rhotot_new,rhotot_fc_new,1,scal_bc_comp,1,the_bc_tower%bc_tower_array)
-
-    if (use_charged_fluid) then
-       ! compute total charge at t^{n+1}
+    
+    if (use_charged_fluid) {
+        // compute total charge at t^{n+1}
        call dot_with_z(mla,rho_new,charge_new)
        ! compute permittivity at t^{n+1}
        call compute_permittivity(mla,permittivity,rho_new,rhotot_new,the_bc_tower)
