@@ -539,239 +539,200 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // average rho^{n+1} to faces
     AverageCCToFace(rhotot_new,rhotot_fc_new,0,1,RHO_BC_COMP,geom);
 
-#if 0
-    
     if (use_charged_fluid) {
         // compute total charge at t^{n+1}
-       call dot_with_z(mla,rho_new,charge_new)
-       ! compute permittivity at t^{n+1}
-       call compute_permittivity(mla,permittivity,rho_new,rhotot_new,the_bc_tower)
-    end if
+        DotWithZ(rho_new,charge_new);
 
-    ! compute (eta,kappa)^{n+1}
+        // compute permittivity at t^{n+1}
+        if (dielectric_type != 0) {
+            Abort("AdvanceTimestepInertial dielectric_type != 0");
+        }
+    }
+
+    /*
+    // compute (eta,kappa)^{n+1}
     call compute_eta_kappa(mla,eta,eta_ed,kappa,rho_new,rhotot_new,Temp,dx, &
                            the_bc_tower%bc_tower_array)
+    */
 
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    ! Step 6: solve for v^{n+1} and pi^{n+1/2} using GMRES
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    //////////////////////////////////////////////
+    // Step 6: solve for v^{n+1} and pi^{n+1/2} using GMRES
+    //////////////////////////////////////////////
 
-    ! compute mtemp = (rho*v)^n
-    call convert_m_to_umac(mla,rhotot_fc_old,mtemp,umac_old,.false.)
+    // compute mtemp = (rho*v)^n
+    ConvertMToUmac(rhotot_fc_old,umac_old,mtemp,0);
+    
+    // set gmres_rhs_v = mtemp / dt
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        MultiFab::Copy(gmres_rhs_v[d],mtemp[d],0,0,1,0);
+        gmres_rhs_v[d].mult(1./dt,0);
+    }
 
-    ! set gmres_rhs_v = mtemp / dt
-    do n=1,nlevs
-       do i=1,dm
-          call multifab_copy_c(gmres_rhs_v(n,i),1,mtemp(n,i),1,1,0)
-          call multifab_mult_mult_s_c(gmres_rhs_v(n,i),1,1.d0/dt,1,0)
-       end do
-    end do
+    // compute mtemp = rho^{n+1}*v^{n+1,*} for adv_mom_fluxdiv computation
+    ConvertMToUmac(rhotot_fc_new,umac,mtemp,0);
 
-    ! compute mtemp = rho^{n+1}*v^{n+1,*} for adv_mom_fluxdiv computation
-    call convert_m_to_umac(mla,rhotot_fc_new,mtemp,umac,.false.)
+    // compute adv_mom_fluxdiv_new = -rho^{n+1}*v^{n+1,*}*v^{n+1,*}
+    MkAdvMFluxdiv(umac,mtemp,adv_mom_fluxdiv_new,dx,0);
 
-    ! compute adv_mom_fluxdiv_new = -rho^{n+1}*v^{n+1,*}*v^{n+1,*}
-    call mk_advective_m_fluxdiv(mla,umac,mtemp,adv_mom_fluxdiv_new,.false., &
-                                dx,the_bc_tower%bc_tower_array)
+    // add (1/2) (-rho^n*v^n*v^n -rho^{n+1}*v^{n+1,*}*v^{n+1,*}) to gmres_rhs_v
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        MultiFab::Saxpy(gmres_rhs_v[d],0.5,adv_mom_fluxdiv_old[d],0,0,1,0);
+        MultiFab::Saxpy(gmres_rhs_v[d],0.5,adv_mom_fluxdiv_new[d],0,0,1,0);
+    }
 
-    ! add (1/2) (-rho^n*v^n*v^n -rho^{n+1}*v^{n+1,*}*v^{n+1,*}) to gmres_rhs_v
-    do n=1,nlevs
-       do i=1,dm
-          call multifab_saxpy_3_cc(gmres_rhs_v(n,i),1,0.5d0,adv_mom_fluxdiv_old(n,i),1,1)
-          call multifab_saxpy_3_cc(gmres_rhs_v(n,i),1,0.5d0,adv_mom_fluxdiv_new(n,i),1,1)
-       end do
-    end do
+    // add (1/2)*diff_mom_fluxdiv_old to gmres_rhs_v
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        MultiFab::Saxpy(gmres_rhs_v[d],0.5,diff_mom_fluxdiv_old[d],0,0,1,0);
+    }
 
-    ! add (1/2)*diff_mom_fluxdiv_old to gmres_rhs_v
-    do n=1,nlevs
-       do i=1,dm
-          call multifab_saxpy_3_cc(gmres_rhs_v(n,i),1,0.5d0,diff_mom_fluxdiv_old(n,i),1,1)
-       end do
-    end do
+    if (variance_coef_mom != 0.) {
 
-    if (variance_coef_mom .ne. 0.d0) then
+        // increment stoch_mom_fluxdiv by = div (sqrt(eta^{n+1}...) Wbar^n)
+        weights_mom[0] = 1.;
+        sMomFlux.StochMomFluxDiv(stoch_mom_fluxdiv,1,eta,eta_ed,Temp,Temp_ed,weights_mom,dt);
+        
+        // add stochastic momentum fluxes to gmres_rhs_v
+        // note the factor of (1/2) since stoch_mom_fluxdiv contains
+        // div (sqrt(eta^{n+1}...) Wbar^n) + div (sqrt(eta^n...) Wbar^n)
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            MultiFab::Saxpy(gmres_rhs_v[d],0.5,stoch_mom_fluxdiv[d],0,0,1,0);
+        }
 
-       ! increment stoch_mom_fluxdiv by = div (sqrt(eta^{n+1}...) Wbar^n)
-       weights(1) = 1.d0
-       call stochastic_m_fluxdiv(mla,the_bc_tower%bc_tower_array,stoch_mom_fluxdiv,.true., &
-                                 eta,eta_ed,Temp,Temp_ed,dx,dt,weights)
+    }
 
-       ! add stochastic momentum fluxes to gmres_rhs_v
-       ! note the factor of (1/2) since stoch_mom_fluxdiv contains
-       ! div (sqrt(eta^{n+1}...) Wbar^n) + div (sqrt(eta^n...) Wbar^n)
-       do n=1,nlevs
-          do i=1,dm
-             call multifab_saxpy_3_cc(gmres_rhs_v(n,i),1,0.5d0,stoch_mom_fluxdiv(n,i),1,1)
-          end do
-       end do
-
-    end if
-
-    ! gravity
+    // gravity
+    /*
     if (any(grav(1:dm) .ne. 0.d0)) then
        call mk_grav_force_bousq(mla,gmres_rhs_v,.true.,rho_fc,the_bc_tower)
     end if
+    */
 
-    if(use_multiphase) then
+    if (use_multiphase) {
+        Abort("AdvanceTimestepBousq.cpp fix us_multiphase");
+        /*
+        ! add divergence of reversible stress to gmres_rhs_v
+        do n=1,nlevs
+           do i=1,dm
+              call multifab_saxpy_3(gmres_rhs_v(n,i),1.d0,div_reversible_stress(n,i))
+           end do
+        end do
+        */
+    }   
 
-      ! add divergence of reversible stress to gmres_rhs_v
-      do n=1,nlevs
-         do i=1,dm
-            call multifab_saxpy_3(gmres_rhs_v(n,i),1.d0,div_reversible_stress(n,i))
-         end do
-      end do
+    if (use_charged_fluid) {
 
-    end if
-   
+        // add Lorentz force to gmres_rhs_v
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            MultiFab::Saxpy(gmres_rhs_v[d],1.,Lorentz_force[d],0,0,1,0);
+        }
 
-    if (use_charged_fluid) then
+    }
 
-       ! add Lorentz force to gmres_rhs_v
-       do n=1,nlevs
-          do i=1,dm
-             call multifab_saxpy_3(gmres_rhs_v(n,i),1.d0,Lorentz_force(n,i))
-          end do
-       end do
+    // compute grad pi^{n+1/2,*}
+    ComputeGrad(pi,gradpi,0,0,1,PRES_BC_COMP,geom);
 
-    end if
+    // subtract grad pi^{n+1/2,*} from gmres_rhs_v
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        MultiFab::Subtract(gmres_rhs_v[d],gradpi[d],0,0,1,0);
+    }
 
-    ! compute grad pi^{n+1/2,*}
-    call compute_grad(mla,pi,gradpi,dx,1,pres_bc_comp,1,1,the_bc_tower%bc_tower_array)
+    // modify umac to respect the boundary conditions we want after the next gmres solve
+    // thus when we add L_0^{n+1} vbar^{n+1,*} to gmres_rhs_v and add div vbar^{n+1,*} to gmres_rhs_p we
+    // are automatically putting the system in delta form WITH homogeneous boundary conditions
+    for (int i=0; i<AMREX_SPACEDIM; ++i) {
+        // set normal velocity of physical domain boundaries
+        MultiFabPhysBCDomainVel(umac[i],geom,i);
+        // set transverse velocity behind physical boundaries
+        MultiFabPhysBCMacVel(umac[i],geom,i);
+        // fill periodic and interior ghost cells
+        umac[i].FillBoundary(geom.periodicity());
+    }
 
-    ! subtract grad pi^{n+1/2,*} from gmres_rhs_v
-    do n=1,nlevs
-       do i=1,dm
-          call multifab_sub_sub_c(gmres_rhs_v(n,i),1,gradpi(n,i),1,1,0)
-       end do
-    end do
+    // compute mtemp = rho^{n+1}*vbar^{n+1,*}
+    ConvertMToUmac(rhotot_fc_new,umac,mtemp,0);
 
-    ! modify umac to respect the boundary conditions we want after the next gmres solve
-    ! thus when we add L_0^{n+1} vbar^{n+1,*} to gmres_rhs_v and add div vbar^{n+1,*} to gmres_rhs_p we
-    ! are automatically putting the system in delta form WITH homogeneous boundary conditions
-    do n=1,nlevs
-       do i=1,dm
-          ! set normal velocity on physical domain boundaries
-          call multifab_physbc_domainvel(umac(n,i),vel_bc_comp+i-1, &
-                                         the_bc_tower%bc_tower_array(n), &
-                                         dx(n,:),vel_bc_n(n,:))
-          ! set transverse velocity behind physical boundaries
-          call multifab_physbc_macvel(umac(n,i),vel_bc_comp+i-1, &
-                                      the_bc_tower%bc_tower_array(n), &
-                                      dx(n,:),vel_bc_t(n,:))
-          ! fill periodic and interior ghost cells
-          call multifab_fill_boundary(umac(n,i))
-       end do
-    end do
+    // add -(mtemp/dt) to gmres_rhs_v
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        MultiFab::Saxpy(gmres_rhs_v[d],-1./dt,mtemp[d],0,0,1,0);
+    }
 
-    ! compute mtemp = rho^{n+1}*vbar^{n+1,*}
-    call convert_m_to_umac(mla,rhotot_fc_new,mtemp,umac,.false.)
+    // compute diff_mom_fluxdiv_new = L_0^{n+1} vbar^{n+1,*}
+    MkDiffusiveMFluxdiv(diff_mom_fluxdiv_new,umac,eta,eta_ed,kappa,geom,dx,0);
 
-    ! add -(mtemp/dt) to gmres_rhs_v
-    do n=1,nlevs
-       do i=1,dm
-          call multifab_saxpy_3_cc(gmres_rhs_v(n,i),1,-1.d0/dt,mtemp(n,i),1,1)
-       end do
-    end do
+    // add (1/2)*diff_mom_fluxdiv_new to gmres_rhs_v
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        MultiFab::Saxpy(gmres_rhs_v[d],0.5,diff_mom_fluxdiv_new[d],0,0,1,0);
+    }
 
-    ! compute diff_mom_fluxdiv_new = L_0^{n+1} vbar^{n+1,*}
-    call diffusive_m_fluxdiv(mla,diff_mom_fluxdiv_new,.false.,umac,eta,eta_ed,kappa,dx, &
-                             the_bc_tower%bc_tower_array)
+    // compute div(vbar^{n+1,*}) and store in gmres_rhs_p
+    // the sign convention is correct since we solve -div(delta v) = div(vbar^{n+1,*})
+    ComputeDiv(gmres_rhs_p,umac,0,0,1,geom,0);
 
-    ! add (1/2)*diff_mom_fluxdiv_new to gmres_rhs_v
-    do n=1,nlevs
-       do i=1,dm
-          call multifab_saxpy_3_cc(gmres_rhs_v(n,i),1,0.5d0,diff_mom_fluxdiv_new(n,i),1,1)
-       end do
-    end do
+    // multiply eta and kappa by 1/2 to put in proper form for gmres solve
+    eta.mult  (0.5,0,1,1);
+    kappa.mult(0.5,0,1,1);
+    for (int d=0; d<NUM_EDGE; ++d) {
+        eta_ed[d].mult(0.5,0,1,0);
+    }
 
-    ! compute div(vbar^{n+1,*}) and store in gmres_rhs_p
-    ! the sign convention is correct since we solve -div(delta v) = div(vbar^{n+1,*})
-    call compute_div(mla,umac,gmres_rhs_p,dx,1,1,1)
+    // set the initial guess to zero
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        dumac[d].setVal(0.);
+    }
+    dpi.setVal(0.);
 
-    ! multiply eta and kappa by 1/2 to put in proper form for gmres solve
-    do n=1,nlevs
-       call multifab_mult_mult_s_c(eta(n)  ,1,0.5d0,1,eta(n)%ng)
-       call multifab_mult_mult_s_c(kappa(n),1,0.5d0,1,kappa(n)%ng)
-       do i=1,size(eta_ed,dim=2)
-          call multifab_mult_mult_s_c(eta_ed(n,i),1,0.5d0,1,eta_ed(n,i)%ng)
-       end do
-    end do
+    // zero gmres_rhs_v on physical boundaries
+    ZeroEdgevalPhysical(gmres_rhs_v, geom, 0, 1);
 
-    ! set the initial guess to zero
-    do n=1,nlevs
-       do i=1,dm
-          call multifab_setval(dumac(n,i),0.d0,all=.true.)
-       end do
-       call multifab_setval(dpi(n),0.d0,all=.true.)
-    end do
+    // call gmres to compute delta v and delta pi
+    gmres.Solve(gmres_rhs_v, gmres_rhs_p, dumac, dpi, rhotot_fc_new, eta, eta_ed,
+                kappa, theta_alpha, geom, norm_pre_rhs);
 
-    ! zero gmres_rhs_v on physical boundaries
-    do n=1,nlevs
-       call zero_edgeval_physical(gmres_rhs_v(n,:),1,1,the_bc_tower%bc_tower_array(n))
-    end do
-
-    ! call gmres to compute delta v and delta pi
-    call gmres(mla,the_bc_tower,dx,gmres_rhs_v,gmres_rhs_p,dumac,dpi,rhotot_fc_new, &
-               eta,eta_ed,kappa,theta_alpha,norm_pre_rhs)
-
-    gmres_abs_tol = gmres_abs_tol_in ! Restore the desired tolerance   
+    gmres_abs_tol = gmres_abs_tol_in; // Restore the desired tolerance   
        
-    ! compute v^{n+1} = vbar^{n+1,*} + dumac
-    ! compute pi^{n+1/2}= pi^{n+1/2,*} + dpi
-    do n=1,nlevs
-       do i=1,dm
-          call multifab_plus_plus_c(umac(n,i),1,dumac(n,i),1,1,0)
-       end do
-       call multifab_plus_plus_c(pi(n),1,dpi(n),1,1,0)
-    end do
-       
-    do n=1,nlevs
-       ! presure ghost cells
-       call multifab_fill_boundary(pi(n))
-       call multifab_physbc(pi(n),1,pres_bc_comp,1,the_bc_tower%bc_tower_array(n), &
-                            dx_in=dx(n,:))
-       do i=1,dm
-          ! set normal velocity on physical domain boundaries
-          call multifab_physbc_domainvel(umac(n,i),vel_bc_comp+i-1, &
-                                         the_bc_tower%bc_tower_array(n), &
-                                         dx(n,:),vel_bc_n(n,:))
-          ! set transverse velocity behind physical boundaries
-          call multifab_physbc_macvel(umac(n,i),vel_bc_comp+i-1, &
-                                      the_bc_tower%bc_tower_array(n), &
-                                      dx(n,:),vel_bc_t(n,:))
-          ! fill periodic and interior ghost cells
-          call multifab_fill_boundary(umac(n,i))
-       end do
-    end do
+    // compute v^{n+1} = vbar^{n+1,*} + dumac
+    // compute pi^{n+1/2}= pi^{n+1/2,*} + dpi
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        MultiFab::Add(umac[d],dumac[d],0,0,1,0);
+    }
+    MultiFab::Add(pi,dpi,0,0,1,0);
 
-    ! restore eta and kappa
-    do n=1,nlevs
-       call multifab_mult_mult_s_c(eta(n)  ,1,2.d0,1,eta(n)%ng)
-       call multifab_mult_mult_s_c(kappa(n),1,2.d0,1,kappa(n)%ng)
-       do i=1,size(eta_ed,dim=2)
-          call multifab_mult_mult_s_c(eta_ed(n,i),1,2.d0,1,eta_ed(n,i)%ng)
-       end do
-    end do
+    // pressure ghost cells
+    pi.FillBoundary(geom.periodicity());
+    MultiFabPhysBC(pi,geom,0,1,PRES_BC_COMP);
+    
+    for (int i=0; i<AMREX_SPACEDIM; ++i) {
+        // set normal velocity of physical domain boundaries
+        MultiFabPhysBCDomainVel(umac[i],geom,i);
+        // set transverse velocity behind physical boundaries
+        MultiFabPhysBCMacVel(umac[i],geom,i);
+        // fill periodic and interior ghost cells
+        umac[i].FillBoundary(geom.periodicity());
+    }
 
-    ! if writing a plotfile for electro-explicit option, compute Epot using new densities
-    ! use existing machinery to compute all mass fluxes - yes this is overkill
-    ! but better than writing a separate routine for now
-    ! diff/stoch_mass_flux and fluxdiv are not persistent so changing values doesn't
-    ! matter.  grad_Epot is persistent so we overwrite the old values,
-    ! which are thrown away
-    if (use_charged_fluid .and. (.not. electroneutral) ) then
-    if (plot_int.gt.0 .and. ( (mod(istep,plot_int).eq.0) .or. (istep.eq.max_step)) ) then
-       ! compute the new charge and store it in charge_old (it could get modified to
-       ! subtract off the average in compute_mass_fluxdiv)
-       call dot_with_z(mla,rho_new,charge_old)
-       call compute_mass_fluxdiv(mla,rho_new,rhotot_new,gradp_baro,Temp, &
-                                 diff_mass_fluxdiv,stoch_mass_fluxdiv, &
-                                 diff_mass_flux,stoch_mass_flux, &
-                                 dt,time,dx,weights,the_bc_tower, &
-                                 charge_old,grad_Epot_old,Epot, &
-                                 permittivity)
-    end if
-    end if
-#endif
+    // restore eta and kappa
+    eta.mult  (2.,0,1,1);
+    kappa.mult(2.,0,1,1);
+    for (int d=0; d<NUM_EDGE; ++d) {
+        eta_ed[d].mult(2.,0,1,0);
+    }
 
+    // if writing a plotfile for electro-explicit option, compute Epot using new densities
+    // use existing machinery to compute all mass fluxes - yes this is overkill
+    // but better than writing a separate routine for now
+    // diff/stoch_mass_flux and fluxdiv are not persistent so changing values doesn't
+    // matter.  grad_Epot is persistent so we overwrite the old values,
+    // which are thrown away
+    if (use_charged_fluid && (electroneutral == 0) ) {
+        if (plot_int >  0 && ( (istep%plot_int == 0) || (istep == max_step)) ) {
+            // compute the new charge and store it in charge_old (it could get modified to
+            // subtract off the average in compute_mass_fluxdiv)
+            DotWithZ(rho_new,charge_old);
+
+            ComputeMassFluxdiv(rho_new,rhotot_new,Temp,diff_mass_fluxdiv,stoch_mass_fluxdiv,
+                               diff_mass_flux,stoch_mass_flux,sMassFlux,dt,time,geom,weights_mass,
+                               charge_old,grad_Epot_old,Epot,permittivity,0);
+        }
+    }
+    
 }
