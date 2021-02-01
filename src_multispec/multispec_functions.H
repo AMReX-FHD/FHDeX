@@ -113,6 +113,9 @@ void ElectroDiffusiveMassFlux(const MultiFab& rho,
                               int zero_initial_Epot,
                               const Geometry& geom);
 
+void LimitEMF(const MultiFab& rho_in,
+              std::array< MultiFab, AMREX_SPACEDIM >& electro_mass_flux);
+
 /////////////////////////////////////////////////////////////////////////////////
 // in FluicCharge.cpp
 
