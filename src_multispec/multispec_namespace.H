@@ -19,6 +19,9 @@ namespace multispec {
     extern int                        is_ideal_mixture;
     extern int                        use_lapack;
     extern int                        use_multiphase;
+    extern amrex::Real                kc_tension;
+    extern amrex::Real                alpha_gex;
+    extern int                        n_gex;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> c_init_1;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> c_init_2;
   

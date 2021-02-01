@@ -20,6 +20,7 @@ void InitializeMultispecNamespace() {
 				    &print_error_norms,
 				    &is_nonisothermal, &is_ideal_mixture,
 				    &use_lapack, &use_multiphase,
+                                    &kc_tension, &alpha_gex, &n_gex,
 				    c_init_1.data(),
                                     c_init_2.data(),
 				    &midpoint_stoch_mass_flux_type, 

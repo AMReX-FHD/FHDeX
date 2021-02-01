@@ -23,6 +23,9 @@ module multispec_namelist_module
   integer,            save :: is_ideal_mixture
   integer,            save :: use_lapack
   integer,            save :: use_multiphase
+  double precision,   save :: kc_tension
+  double precision,   save :: alpha_gex
+  integer,            save :: n_gex
   double precision,   save :: c_init_1(MAX_SPECIES)
   double precision,   save :: c_init_2(MAX_SPECIES)
   
@@ -62,6 +65,9 @@ module multispec_namelist_module
   namelist /multispec/ is_nonisothermal   ! If T Soret effect will be included
   namelist /multispec/ use_lapack         ! Use LAPACK or iterative method for diffusion matrix (recommend False)
   namelist /multispec/ use_multiphase     ! for RTIL
+  namelist /multispec/ kc_tension         ! for RTIL
+  namelist /multispec/ alpha_gex          ! for RTIL
+  namelist /multispec/ n_gex              ! for RTIL
   namelist /multispec/ chi_iterations     ! number of iterations used in Dbar2chi_iterative
 
   ! Initial and boundary conditions 
@@ -152,6 +158,9 @@ contains
     is_nonisothermal   = 0
     use_lapack         = 0
     use_multiphase     = 0
+    kc_tension         = 0.d0
+    alpha_gex          = 0.d0
+    n_gex              = 1
     chi_iterations     = 10
     temp_type          = 0
     c_init_1(:)        = 1.0d0
@@ -204,7 +213,9 @@ contains
                                              Dbar_in, Dtherm_in, H_offdiag_in, H_diag_in, &
                                              fraction_tolerance_in, correct_flux_in, print_error_norms_in, &
                                              is_nonisothermal_in, is_ideal_mixture_in, &
-                                             use_lapack_in, use_multiphase_in, c_init_1_in, c_init_2_in, &
+                                             use_lapack_in, use_multiphase_in, &
+                                             kc_tension_in, alpha_gex_in, n_gex_in, &
+                                             c_init_1_in, c_init_2_in, &
                                              midpoint_stoch_mass_flux_type_in, &
                                              avg_type_in, mixture_type_in, &
                                              use_charged_fluid_in, print_debye_len_in, dielectric_const_in, &
@@ -232,6 +243,9 @@ contains
     integer,            intent(inout) :: is_ideal_mixture_in
     integer,            intent(inout) :: use_lapack_in
     integer,            intent(inout) :: use_multiphase_in
+    double precision,   intent(inout) :: kc_tension_in
+    double precision,   intent(inout) :: alpha_gex_in
+    integer,            intent(inout) :: n_gex_in
     double precision,   intent(inout) :: c_init_1_in(MAX_SPECIES)
     double precision,   intent(inout) :: c_init_2_in(MAX_SPECIES)
 
@@ -279,6 +293,9 @@ contains
     is_ideal_mixture_in = is_ideal_mixture
     use_lapack_in = use_lapack
     use_multiphase_in = use_multiphase
+    kc_tension_in = kc_tension
+    alpha_gex_in = alpha_gex
+    n_gex_in = n_gex
     c_init_1_in = c_init_1
     c_init_2_in = c_init_2
     midpoint_stoch_mass_flux_type_in = midpoint_stoch_mass_flux_type
