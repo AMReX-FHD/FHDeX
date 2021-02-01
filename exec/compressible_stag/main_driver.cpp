@@ -215,6 +215,31 @@ void main_driver(const char* argv)
     primMeans.setVal(0.0);
     primVars.setVal(0.0);
 
+    MultiFab coVars (ba,dmap,21,ngc);
+    coVars.setVal(0.0);
+    // List of covariances (all cell centered)
+    // 0: <rho jx>
+    // 1: <rho jy>
+    // 2: <rho jz>
+    // 3: <jx jy>
+    // 4: <jy jz>
+    // 5: <jx jz>
+    // 6: <rho rhoE>
+    // 7: <rhoE jx>
+    // 8: <rhoE jy>
+    // 9: <rhoE jz>
+    // 10: <rhoYk1 rhoYk4>
+    // 11: <rho vx>
+    // 12: <rho vy>
+    // 13: <rho vz>
+    // 14: <vx vy>
+    // 15: <vy vz>
+    // 16: <vx vz>
+    // 17: <rho T>
+    // 18: <vx T>
+    // 19: <vy T>
+    // 20: <vz T>
+
     // staggered momentum
     std::array< MultiFab, AMREX_SPACEDIM > velMeans;
     std::array< MultiFab, AMREX_SPACEDIM > velVars;
@@ -514,7 +539,7 @@ void main_driver(const char* argv)
     
     if (plot_int > 0) {
 	    WritePlotFileStag(0, 0.0, geom, cu, cuMeans, cuVars, cumom, cumomMeans, cumomVars, 
-                      prim, primMeans, primVars, vel, velMeans, velVars, eta, kappa);
+                      prim, primMeans, primVars, vel, velMeans, velVars, coVars, eta, kappa);
     }
 
 
@@ -543,7 +568,7 @@ void main_driver(const char* argv)
         // compute mean and variances
         if (step > n_steps_skip) {
             evaluateStatsStag(cu, cuMeans, cuVars, prim, primMeans, primVars, vel, 
-                              velMeans, velVars, cumom, cumomMeans, cumomVars,
+                              velMeans, velVars, cumom, cumomMeans, cumomVars, coVars,
                               statsCount, dx);
             statsCount++;
         }
@@ -553,7 +578,7 @@ void main_driver(const char* argv)
              //yzAverage(cuMeans, cuVars, primMeans, primVars, spatialCross,
              //          cuMeansAv, cuVarsAv, primMeansAv, primVarsAv, spatialCrossAv);
              WritePlotFileStag(step, time, geom, cu, cuMeans, cuVars, cumom, cumomMeans, cumomVars,
-                           prim, primMeans, primVars, vel, velMeans, velVars, eta, kappa);
+                           prim, primMeans, primVars, vel, velMeans, velVars, coVars, eta, kappa);
 
         }
 

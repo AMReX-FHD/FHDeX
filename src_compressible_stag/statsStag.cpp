@@ -11,6 +11,7 @@ void evaluateStatsStag(const MultiFab& cons, MultiFab& consMean, MultiFab& consV
                        const std::array<MultiFab, AMREX_SPACEDIM>& cumom,
                        std::array<MultiFab, AMREX_SPACEDIM>& cumomMean,
                        std::array<MultiFab, AMREX_SPACEDIM>& cumomVar,
+                       MultiFab& coVar,
                        const int steps, const amrex::Real* dx)
 {
     BL_PROFILE_VAR("evaluateStatsStag()",evaluateStatsStag);
@@ -193,6 +194,8 @@ void evaluateStatsStag(const MultiFab& cons, MultiFab& consMean, MultiFab& consV
         const Array4<      Real> primmeans = primMean.array(mfi);
         const Array4<      Real> primvars  = primVar.array(mfi);
 
+        const Array4<      Real> covars    = coVar.array(mfi);
+
         const Array4<const Real> velx      = vel[0].array(mfi);
         const Array4<const Real> vely      = vel[1].array(mfi);
         const Array4<const Real> velz      = vel[2].array(mfi);
@@ -281,6 +284,8 @@ void evaluateStatsStag(const MultiFab& cons, MultiFab& consMean, MultiFab& consV
                 Real delmassvec = cu(i,j,k,l) - cumeans(i,j,k,l);
                 cuvars(i,j,k,l) = (cuvars(i,j,k,l)*stepsminusone + delmassvec*delmassvec)*stepsinv; // <rhoYk rhoYk>
             }
+            Real delrho1 = cu(i,j,k,5) - cumeans(i,j,k,5); 
+            Real delrho4 = cu(i,j,k,nvars-1) - cumeans(i,j,k,nvars-1);
             
             // primitive variable variances (rho)
             primvars(i,j,k,0) = cuvars(i,j,k,0);
@@ -325,6 +330,30 @@ void evaluateStatsStag(const MultiFab& cons, MultiFab& consMean, MultiFab& consV
             primvars(i,j,k,4) = (primvars(i,j,k,4)*stepsminusone + cvinv*cvinv*densitymeaninv*densitymeaninv*
                                  (cuvars(i,j,k,4) + primvars(i,j,k,nprimvars) - 2*primvars(i,j,k,nprimvars+1)
                                   + qmean*(qmean*cuvars(i,j,k,0) - 2*primvars(i,j,k,nprimvars+2) + 2*primvars(i,j,k,nprimvars+3))))*stepsinv; // <T T> 
+
+            Real deltemp = (delenergy - delg - qmean*delrho)*cvinv*densitymeaninv;
+
+            covars(i,j,k,0)  = (covars(i,j,k,0)*stepsminusone + delrho*deljx)*stepsinv; // <rho jx>
+            covars(i,j,k,1)  = (covars(i,j,k,1)*stepsminusone + delrho*deljy)*stepsinv; // <rho jy>
+            covars(i,j,k,2)  = (covars(i,j,k,2)*stepsminusone + delrho*deljz)*stepsinv; // <rho jz>
+            covars(i,j,k,3)  = (covars(i,j,k,3)*stepsminusone + deljx*deljy)*stepsinv; // <jx jy>
+            covars(i,j,k,4)  = (covars(i,j,k,4)*stepsminusone + deljy*deljz)*stepsinv; // <jy jz>
+            covars(i,j,k,5)  = (covars(i,j,k,5)*stepsminusone + deljx*deljz)*stepsinv; // <jx jz>
+            covars(i,j,k,6)  = (covars(i,j,k,6)*stepsminusone + delrho*delenergy)*stepsinv; // <rho rhoE>
+            covars(i,j,k,7)  = (covars(i,j,k,7)*stepsminusone + deljx*delenergy)*stepsinv; // <jx rhoE>
+            covars(i,j,k,8)  = (covars(i,j,k,8)*stepsminusone + deljy*delenergy)*stepsinv; // <jy rhoE>
+            covars(i,j,k,9)  = (covars(i,j,k,9)*stepsminusone + deljz*delenergy)*stepsinv; // <jz rhoE>
+            covars(i,j,k,10) = (covars(i,j,k,10)*stepsminusone + delrho1*delrho4)*stepsinv; // <rhoYk1 rhoYk4>
+            covars(i,j,k,11) = (covars(i,j,k,11)*stepsminusone + delrho*delvelx)*stepsinv; // <rho vx>
+            covars(i,j,k,12) = (covars(i,j,k,12)*stepsminusone + delrho*delvely)*stepsinv; // <rho vy>
+            covars(i,j,k,13) = (covars(i,j,k,13)*stepsminusone + delrho*delvelz)*stepsinv; // <rho vz>
+            covars(i,j,k,14) = (covars(i,j,k,14)*stepsminusone + delvelx*delvely)*stepsinv; // <vx vy>
+            covars(i,j,k,15) = (covars(i,j,k,15)*stepsminusone + delvely*delvelz)*stepsinv; // <vy vz>
+            covars(i,j,k,16) = (covars(i,j,k,16)*stepsminusone + delvelx*delvelz)*stepsinv; // <vx vz>
+            covars(i,j,k,17) = (covars(i,j,k,17)*stepsminusone + delrho*deltemp)*stepsinv; // <rho T>
+            covars(i,j,k,18) = (covars(i,j,k,18)*stepsminusone + delvelx*deltemp)*stepsinv; // <vx T>
+            covars(i,j,k,19) = (covars(i,j,k,19)*stepsminusone + delvely*deltemp)*stepsinv; // <vy T>
+            covars(i,j,k,20) = (covars(i,j,k,20)*stepsminusone + delvelz*deltemp)*stepsinv; // <vz T>
         }
         }
         }

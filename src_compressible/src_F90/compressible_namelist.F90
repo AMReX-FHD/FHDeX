@@ -10,10 +10,12 @@ module compressible_namelist_module
 
   integer         ,   save :: plot_means
   integer         ,   save :: plot_vars
+  integer         ,   save :: plot_covars
 
   ! Boundary conditions
   namelist /compressible/ plot_means  ! write out means to plotfile
   namelist /compressible/ plot_vars   ! write out variances to plotfile
+  namelist /compressible/ plot_covars   ! write out covariances to plotfile
 
 contains
 
@@ -26,6 +28,7 @@ contains
     ! default values
     plot_means = 0
     plot_vars = 0
+    plot_covars = 0
 
     ! read in compressible namelist
     open(unit=100, file=amrex_string_c_to_f(inputs_file), status='old', action='read')
@@ -35,14 +38,16 @@ contains
   end subroutine read_compressible_namelist
 
   ! copy contents of compressible_params_module to C++ compressible namespace
-  subroutine initialize_compressible_namespace(plot_means_in, plot_vars_in) &
+  subroutine initialize_compressible_namespace(plot_means_in, plot_vars_in, plot_covars_in) &
                                                bind(C, name="initialize_compressible_namespace")
 
     integer         , intent(inout) :: plot_means_in
     integer         , intent(inout) :: plot_vars_in
+    integer         , intent(inout) :: plot_covars_in
     
     plot_means_in = plot_means
     plot_vars_in = plot_vars
+    plot_covars_in = plot_covars
 
   end subroutine initialize_compressible_namespace
 

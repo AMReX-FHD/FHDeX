@@ -19,7 +19,7 @@ void WritePlotFileStag(int step,
                        const std::array<MultiFab, AMREX_SPACEDIM>& vel,
                        const std::array<MultiFab, AMREX_SPACEDIM>& velMeans,
                        const std::array<MultiFab, AMREX_SPACEDIM>& velVars,
-//                       const amrex::MultiFab& spatialCross,
+                       const amrex::MultiFab& coVars,
                        const amrex::MultiFab& eta,
                        const amrex::MultiFab& kappa)
 {
@@ -34,11 +34,15 @@ void WritePlotFileStag(int step,
     int nplot = (5+nspecies+3) + (6+2*nspecies+3) + 2;
 
     if (plot_means == 1) {
-        nplot += 17;
+        nplot += 21;
     }
     
     if (plot_vars == 1) {
-        nplot += 16;
+        nplot += 20;
+    }
+    
+    if (plot_covars == 1) {
+        nplot += 21;
     }
    
     //nplot += 6; //spatial correl
@@ -85,8 +89,8 @@ void WritePlotFileStag(int step,
     if (plot_means == 1) {
     
         // mean values of conserved variables
-        // rho, jx (avgd), jy (avgd), jz (avgd), e
-        numvars = 5;
+        // rho, jx (avgd), jy (avgd), jz (avgd), e, rho1, rho2, rho3, rho4
+        numvars = 9;
         amrex::MultiFab::Copy(plotfile,cuMeans,0,cnt,numvars,0);
         cnt+=numvars;
 
@@ -114,12 +118,12 @@ void WritePlotFileStag(int step,
     if (plot_vars == 1) {
     
         // variance of conserved variables
-        // rho, jx (avgd), jy (avgd), jz (avgd), e
-        numvars = 5;
+        // rho, jx (avgd), jy (avgd), jz (avgd), e, rho1, rho2, rho3, rho4
+        numvars = 9;
         amrex::MultiFab::Copy(plotfile,cuVars,0,cnt,numvars,0);
         cnt+=numvars;
 
-        // variance of shifted momentum: 
+        // variance of shifted momentum:
         // jx , jy , jz
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             ShiftFaceToCC(cumomVars[d],0,plotfile,cnt,1);
@@ -138,6 +142,14 @@ void WritePlotFileStag(int step,
             ShiftFaceToCC(velVars[d],0,plotfile,cnt,1);
             ++cnt;
         }
+    }
+
+    if (plot_covars == 1) {
+
+        // covariances of various primitive and hydrodynamic qtys (see main_driver for list)
+        numvars = 21;
+        amrex::MultiFab::Copy(plotfile,coVars,0,cnt,numvars,0);
+        cnt+=numvars;
     }
 
     //numvars = 6;
@@ -197,6 +209,11 @@ void WritePlotFileStag(int step,
         varNames[cnt++] = "jyMeanCC";
         varNames[cnt++] = "jzMeanCC";
         varNames[cnt++] = "rhoEMean";
+        varNames[cnt++] = "rho1Mean";
+        varNames[cnt++] = "rho2Mean";
+        varNames[cnt++] = "rho3Mean";
+        varNames[cnt++] = "rho4Mean";
+
         varNames[cnt++] = "jxMeanFACE";
         varNames[cnt++] = "jyMeanFACE";
         varNames[cnt++] = "jzMeanFACE";
@@ -207,6 +224,7 @@ void WritePlotFileStag(int step,
         varNames[cnt++] = "uzMeanCC";
         varNames[cnt++] = "tMean";
         varNames[cnt++] = "pMean";
+
         varNames[cnt++] = "uxMeanFACE";
         varNames[cnt++] = "uyMeanFACE";
         varNames[cnt++] = "uzMeanFACE";
@@ -218,6 +236,11 @@ void WritePlotFileStag(int step,
         varNames[cnt++] = "jyVarCC";
         varNames[cnt++] = "jzVarCC";
         varNames[cnt++] = "rhoEVar";
+        varNames[cnt++] = "rho1Var";
+        varNames[cnt++] = "rho2Var";
+        varNames[cnt++] = "rho3Var";
+        varNames[cnt++] = "rho4Var";
+
         varNames[cnt++] = "jxVarFACE";
         varNames[cnt++] = "jyVarFACE";
         varNames[cnt++] = "jzVarFACE";
@@ -227,9 +250,34 @@ void WritePlotFileStag(int step,
         varNames[cnt++] = "uyVarCC";
         varNames[cnt++] = "uzVarCC";
         varNames[cnt++] = "tVar";
+
         varNames[cnt++] = "uxVarFACE";
         varNames[cnt++] = "uyVarFACE";
         varNames[cnt++] = "uzVarFACE";
+    }
+
+    if (plot_covars == 1) {
+        varNames[cnt++] = "rho-jx";
+        varNames[cnt++] = "rho-jy";
+        varNames[cnt++] = "rho-jz";
+        varNames[cnt++] = "jx-jy";
+        varNames[cnt++] = "jy-jz";
+        varNames[cnt++] = "jx-jz";
+        varNames[cnt++] = "rho-rhoE";
+        varNames[cnt++] = "rhoE-jx";
+        varNames[cnt++] = "rhoE-jy";
+        varNames[cnt++] = "rhoE-jz";
+        varNames[cnt++] = "rho1-rho4";
+        varNames[cnt++] = "rho-vx";
+        varNames[cnt++] = "rho-vy";
+        varNames[cnt++] = "rho-vz";
+        varNames[cnt++] = "vx-vy";
+        varNames[cnt++] = "vy-vz";
+        varNames[cnt++] = "vx-vz";
+        varNames[cnt++] = "rho-T";
+        varNames[cnt++] = "vx-T";
+        varNames[cnt++] = "vy-T";
+        varNames[cnt++] = "vz-T";
     }
 
     //varNames[cnt++] = "Energy-densityCross";

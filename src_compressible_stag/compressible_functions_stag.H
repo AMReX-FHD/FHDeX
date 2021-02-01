@@ -30,7 +30,7 @@ void WritePlotFileStag(int step,
                        const std::array<MultiFab, AMREX_SPACEDIM>& vel,
                        const std::array<MultiFab, AMREX_SPACEDIM>& velMeans,
                        const std::array<MultiFab, AMREX_SPACEDIM>& velVars,
-//                       const MultiFab& spatialCross,
+                       const MultiFab& coVars,
                        const MultiFab& eta, 
                        const MultiFab& kappa);
 
@@ -101,6 +101,7 @@ void evaluateStatsStag(const MultiFab& cons, MultiFab& consMean, MultiFab& consV
                        const std::array<MultiFab, AMREX_SPACEDIM>& cumom,
                        std::array<MultiFab, AMREX_SPACEDIM>& cumomMean,
                        std::array<MultiFab, AMREX_SPACEDIM>& cumomVar,
+                       MultiFab& coVar,
                        const int steps, const amrex::Real* dx);
 
 //void yzAverageStag(const MultiFab& consMean, 
