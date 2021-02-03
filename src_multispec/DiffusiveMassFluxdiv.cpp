@@ -113,12 +113,22 @@ void ComputeHigherOrderTerm(const MultiFab& molarconc,
         Abort("ComputeHigherOrderTerm needs dx=dy=dz");
     }
 #endif
+    
+    Vector<int> bc_lo(AMREX_SPACEDIM);
+    Vector<int> bc_hi(AMREX_SPACEDIM);
 
+    // compute mathematical boundary conditions
+    BCPhysToMath(SPEC_BC_COMP,bc_lo,bc_hi); // fix for mole fractions
+    
+    // Physical Domain
+    Box dom(geom.Domain());
+    
     MultiFab laplacian(ba, dmap, nspecies, 1);
 
     Real dxinv = 1./dx[0];
     Real twodxinv = 2.*dxinv;
     Real sixth = 1./6.;
+    Real twelveinv = 1./12.;
     
     for ( MFIter mfi(laplacian,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
         
@@ -135,7 +145,12 @@ void ComputeHigherOrderTerm(const MultiFab& molarconc,
                 + 4.*( phi(i+1,j,k,n)-2.*phi(i,j,k,n)+phi(i-1,j,k,n) + phi(i,j+1,k,n)-2.*phi(i,j,k,n)+phi(i,j-1,k,n) ) * (sixth*dxinv*dxinv)
                 + ( phi(i+1,j+1,k,n)-2.*phi(i,j+1,k,n)+phi(i-1,j+1,k,n) + phi(i+1,j+1,k,n)-2.*phi(i+1,j,k,n)+phi(i+1,j-1,k,n) ) * (sixth*dxinv*dxinv);
 #elif (AMREX_SPACEDIM == 3)
-
+            lap(i,j,k,n) = ( phi(i-1,j+1,k+1,n)+ phi(i+1,j+1,k+1,n) + phi(i+1,j-1,k+1,n) + phi(i-1,j-1,k+1,n) +
+                 2.*phi(i,j+1,k+1,n)+ 2.*phi(i-1,j,k+1,n)+2.*phi(i+1,j,k+1,n) + 2.*phi(i,j-1,k+1,n) + 
+                  2.*phi(i-1,j+1,k,n)+2.*phi(i+1,j+1,k,n)-32.*phi(i,j,k,n)+2.*phi(i-1,j-1,k,n)+2.*phi(i+1,j-1,k,n)
+                  + phi(i-1,j+1,k-1,n)+ phi(i+1,j+1,k-1,n) + phi(i+1,j-1,k-1,n) + phi(i-1,j-1,k-1,n) +
+                 2.*phi(i,j+1,k-1,n)+ 2.*phi(i-1,j,k-1,n)+2.*phi(i+1,j,k-1,n) + 2.*phi(i,j-1,k-1,n))
+                * (twelveinv*dxinv*dxinv);
 #endif
         });
     }
@@ -172,19 +187,95 @@ for ( MFIter mfi(molarconc,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
         
         amrex::ParallelFor(bx_x, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-            
+            Real phiavg = 0.5*(amrex::max(amrex::min(phi(i,j,k,n),1.),0.) + amrex::max(amrex::min(phi(i-1,j,k,n),1.),0.));
+            fluxx(i,j,k,n) = fluxx(i,j,k,n) - 0.5* kc_tension*phiavg*( lap(i,j,k,n)-lap(i-1,j,k,n) ) * dxinv;
         },
                            bx_y, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-            
+            Real phiavg = 0.5*(amrex::max(amrex::min(phi(i,j,k,n),1.),0.) + amrex::max(amrex::min(phi(i,j-1,k,n),1.),0.));
+            fluxy(i,j,k,n) = fluxy(i,j,k,n) - 0.5*kc_tension*phiavg*( lap(i,j,k,n)-lap(i,j-1,k,n) ) * dxinv;
         },
                            bx_z, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-            
+            Real phiavg = 0.5*(amrex::max(amrex::min(phi(i,j,k,n),1.),0.) + amrex::max(amrex::min(phi(i,j,k-1,n),1.),0.));
+            fluxz(i,j,k,n) = fluxz(i,j,k,n) -0.5* kc_tension * phiavg*( lap(i,j,k,n)-lap(i,j,k-1,n) ) * dxinv;
         });
                            
 #endif
+
+        // boundary conditions
+        if (bc_lo[0] == FOEXTRAP || bc_lo[0] == EXT_DIR) {
+            if (bx_x.smallEnd(0) <= dom.smallEnd(0)) {
+                int lo = dom.smallEnd(0);
+                amrex::ParallelFor(bx_x, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    if (i == lo) {
+                        fluxx(i,j,k,n) = 0.;
+                    }
+                });
+            }
+        }
+            
+        if (bc_hi[0] == FOEXTRAP || bc_hi[0] == EXT_DIR) {
+            if (bx_x.bigEnd(0) >= dom.bigEnd(0)+1) {
+                int hi = dom.bigEnd(0)+1;
+                amrex::ParallelFor(bx_x, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    if (i == hi) {
+                        fluxx(i,j,k,n) = 0.;
+                    }
+                });
+            }
+        }
+        
+        if (bc_lo[1] == FOEXTRAP || bc_lo[1] == EXT_DIR) {
+            if (bx_y.smallEnd(1) <= dom.smallEnd(1)) {
+                int lo = dom.smallEnd(1);
+                amrex::ParallelFor(bx_y, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    if (j == lo) {
+                        fluxy(i,j,k,n) = 0.;
+                    }
+                });
+            }
+        }
+            
+        if (bc_hi[1] == FOEXTRAP || bc_hi[1] == EXT_DIR) {
+            if (bx_y.bigEnd(1) >= dom.bigEnd(1)+1) {
+                int hi = dom.bigEnd(1)+1;
+                amrex::ParallelFor(bx_y, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    if (j == hi) {
+                        fluxy(i,j,k,n) = 0.;
+                    }
+                });
+            }
+        }
+
+#if (AMREX_SPACEDIM == 3)
+        if (bc_lo[2] == FOEXTRAP || bc_lo[2] == EXT_DIR) {
+            if (bx_z.smallEnd(2) <= dom.smallEnd(2)) {
+                int lo = dom.smallEnd(2);
+                amrex::ParallelFor(bx_z, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    if (k == lo) {
+                        fluxz(i,j,k,n) = 0.;
+                    }
+                });
+            }
+        }
+            
+        if (bc_hi[2] == FOEXTRAP || bc_hi[2] == EXT_DIR) {
+            if (bx_z.bigEnd(2) >= dom.bigEnd(2)+1) {
+                int hi = dom.bigEnd(2)+1;
+                amrex::ParallelFor(bx_z, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    if (k == hi) {
+                        fluxz(i,j,k,n) = 0.;
+                    }
+                });
+            }
+        }
+#endif        
     }
-
-
 }

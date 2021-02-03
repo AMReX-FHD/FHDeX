@@ -28,6 +28,22 @@ Real InhomogeneousBCVal ( int comp,
             return bc_rhotot_z_hi;
         }
         
+    } else if (comp == TRAN_BC_COMP) {
+
+        if (x == prob_lo[0]) {
+            return 0.;
+        } else if (x == prob_hi[0]) {
+            return 0.;
+        } else if (y == prob_lo[1]) {
+            return 0.;
+        } else if (y == prob_hi[1]) {
+            return 0.;
+        } else if (z == prob_lo[2]) {
+            return 0.;
+        } else if (z == prob_hi[2]) {
+            return 0.;
+        }
+        
     } else if (comp >= SPEC_BC_COMP && comp <= SPEC_END_BC_COMP) {
 
         if (x == prob_lo[0]) {
@@ -42,6 +58,22 @@ Real InhomogeneousBCVal ( int comp,
             return bc_Yk_z_lo[comp-SPEC_BC_COMP];
         } else if (z == prob_hi[2]) {
             return bc_Yk_z_hi[comp-SPEC_BC_COMP];
+        }
+        
+    } else if (comp >= MOLFRAC_BC_COMP && comp <= MOLFRAC_END_BC_COMP) {
+
+        if (x == prob_lo[0]) {
+            return bc_Xk_x_lo[comp-MOLFRAC_BC_COMP];
+        } else if (x == prob_hi[0]) {
+            return bc_Xk_x_hi[comp-MOLFRAC_BC_COMP];
+        } else if (y == prob_lo[1]) {
+            return bc_Xk_y_lo[comp-MOLFRAC_BC_COMP];
+        } else if (y == prob_hi[1]) {
+            return bc_Xk_y_hi[comp-MOLFRAC_BC_COMP];
+        } else if (z == prob_lo[2]) {
+            return bc_Xk_z_lo[comp-MOLFRAC_BC_COMP];
+        } else if (z == prob_hi[2]) {
+            return bc_Xk_z_hi[comp-MOLFRAC_BC_COMP];
         }
         
     } else if (comp == TEMP_BC_COMP) {
