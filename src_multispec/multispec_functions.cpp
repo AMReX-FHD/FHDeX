@@ -8,8 +8,6 @@ void InitializeMultispecNamespace() {
     H_diag.resize(MAX_SPECIES);
 
     charge_per_mass.resize(MAX_SPECIES);
-    Epot_wall_bc_type.resize(2*AMREX_SPACEDIM);
-    Epot_wall.resize(2*AMREX_SPACEDIM);
     E_ext_value.resize(3);
     
     initialize_multispec_namespace( &inverse_type, &temp_type, 
@@ -30,8 +28,6 @@ void InitializeMultispecNamespace() {
                                     &dielectric_const,
                                     &dielectric_type,
                                     charge_per_mass.dataPtr(),
-                                    Epot_wall_bc_type.dataPtr(),
-                                    Epot_wall.dataPtr(),
                                     &theta_pot,
                                     &num_pot_iters,
                                     &dpdt_factor,

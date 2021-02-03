@@ -35,8 +35,6 @@ namespace multispec {
     extern amrex::Real                dielectric_const;
     extern int                        dielectric_type;
     extern amrex::Vector<amrex::Real> charge_per_mass;
-    extern amrex::Vector<amrex::Real> Epot_wall_bc_type;
-    extern amrex::Vector<amrex::Real> Epot_wall;
     extern amrex::Real                theta_pot;
     extern int                        num_pot_iters;
     extern amrex::Real                dpdt_factor;

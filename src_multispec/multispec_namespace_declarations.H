@@ -29,8 +29,6 @@ int                        multispec::print_debye_len;
 amrex::Real                multispec::dielectric_const;
 int                        multispec::dielectric_type;
 amrex::Vector<amrex::Real> multispec::charge_per_mass;
-amrex::Vector<amrex::Real> multispec::Epot_wall_bc_type;
-amrex::Vector<amrex::Real> multispec::Epot_wall;
 amrex::Real                multispec::theta_pot;
 int                        multispec::num_pot_iters;
 amrex::Real                multispec::dpdt_factor;

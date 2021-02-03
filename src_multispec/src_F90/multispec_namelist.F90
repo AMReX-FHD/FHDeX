@@ -38,8 +38,6 @@ module multispec_namelist_module
   double precision,   save :: dielectric_const
   integer,            save :: dielectric_type
   double precision,   save :: charge_per_mass(MAX_SPECIES)
-  double precision,   save :: Epot_wall_bc_type(1:2,AMREX_SPACEDIM)
-  double precision,   save :: Epot_wall(1:2,AMREX_SPACEDIM)
   double precision,   save :: theta_pot
   integer,            save :: num_pot_iters
   double precision,   save :: dpdt_factor
@@ -110,9 +108,6 @@ module multispec_namelist_module
   namelist /multispec/ dielectric_const
   namelist /multispec/ dielectric_type
   namelist /multispec/ charge_per_mass
-  namelist /multispec/ Epot_wall_bc_type  ! 1 = Dirichlet (fixed potential)
-                                          ! 2 = Neumann (fixed charge density)
-
   namelist /multispec/ bc_function_type   ! 0 = constant 
                                           ! 1 = cubic, see description below
 
@@ -120,7 +115,6 @@ module multispec_namelist_module
   namelist /multispec/ L_trans            ! length of transition part of boundary, where the value varies like a cubic
   namelist /multispec/ L_zero             ! length of part of boundary where there is zero charge flux, if cubic function is imposed
 
-  namelist /multispec/ Epot_wall          ! Dirichlet or Neumann condition
   namelist /multispec/ theta_pot          ! for implicit algorithm_type=3, controls
                                                ! temporal discretization for potential term
   namelist /multispec/ num_pot_iters
@@ -181,12 +175,10 @@ contains
                                 ! 1 = (1+c1)*dielectric_const
                                 ! see fluid_charge.f90:compute_permittivity()
     charge_per_mass(:)     = 0.d0
-    Epot_wall_bc_type(:,:) = 1
     bc_function_type       = 0 
     L_pos                  = 0.d0
     L_trans                = 0.d0
     L_zero                 = 0.d0
-    Epot_wall(:,:)         = 0.d0
     theta_pot              = 0.5d0
     num_pot_iters          = 2
     dpdt_factor            = 0.d0
@@ -219,8 +211,8 @@ contains
                                              midpoint_stoch_mass_flux_type_in, &
                                              avg_type_in, mixture_type_in, &
                                              use_charged_fluid_in, print_debye_len_in, dielectric_const_in, &
-                                             dielectric_type_in, charge_per_mass_in, Epot_wall_bc_type_in, &
-                                             Epot_wall_in, theta_pot_in, num_pot_iters_in, dpdt_factor_in, &
+                                             dielectric_type_in, charge_per_mass_in, &
+                                             theta_pot_in, num_pot_iters_in, dpdt_factor_in, &
                                              relxn_param_charge_in, E_ext_type_in, E_ext_value_in, &
                                              electroneutral_in, induced_charge_eo_in, &
                                              zero_eps_on_wall_type_in, zero_charge_on_wall_type_in, &
@@ -258,8 +250,6 @@ contains
     double precision,   intent(inout) :: dielectric_const_in
     integer,            intent(inout) :: dielectric_type_in
     double precision,   intent(inout) :: charge_per_mass_in(MAX_SPECIES)
-    double precision,   intent(inout) :: Epot_wall_bc_type_in(1:2,AMREX_SPACEDIM)
-    double precision,   intent(inout) :: Epot_wall_in(1:2,AMREX_SPACEDIM)
     double precision,   intent(inout) :: theta_pot_in
     integer,            intent(inout) :: num_pot_iters_in
     double precision,   intent(inout) :: dpdt_factor_in
@@ -307,8 +297,6 @@ contains
     dielectric_const_in = dielectric_const
     dielectric_type_in = dielectric_type
     charge_per_mass_in = charge_per_mass
-    Epot_wall_bc_type_in = Epot_wall_bc_type
-    Epot_wall_in = Epot_wall
     theta_pot_in = theta_pot
     num_pot_iters_in = num_pot_iters
     dpdt_factor_in = dpdt_factor

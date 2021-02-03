@@ -43,8 +43,6 @@ extern "C"
                                          const amrex_real* dielectric_const,
                                          const int* dielectric_type,
                                          const amrex_real* charge_per_mass,
-                                         const amrex_real* Epot_wall_bc_type,
-                                         const amrex_real* Epot_wall,
                                          const amrex_real* theta_pot,
                                          const int* num_pot_iters,
                                          const amrex_real* dpdt_factor,
