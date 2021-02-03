@@ -95,3 +95,96 @@ void DiffusiveMassFlux(const MultiFab& rho,
     }
 
 }
+
+void ComputeHigherOrderTerm(const MultiFab& molarconc,
+                            std::array<MultiFab,AMREX_SPACEDIM>& diff_mass_flux,
+                            const Geometry& geom)
+{
+    
+    BoxArray ba = molarconc.boxArray();
+    DistributionMapping dmap = molarconc.DistributionMap();
+    const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
+
+    if (dx[0] != dx[1]) {
+        Abort("ComputeHigherOrderTerm needs dx=dy=dz");
+    }
+#if (AMREX_SPACEDIM == 3)
+    if (dx[0] != dx[2]) {
+        Abort("ComputeHigherOrderTerm needs dx=dy=dz");
+    }
+#endif
+
+    MultiFab laplacian(ba, dmap, nspecies, 1);
+
+    Real dxinv = 1./dx[0];
+    Real twodxinv = 2.*dxinv;
+    Real sixth = 1./6.;
+    
+    for ( MFIter mfi(laplacian,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
+        
+        const Box& bx = mfi.growntilebox(1);
+
+        const Array4<Real>& lap = laplacian.array(mfi);
+        
+        const Array4<Real const>& phi = molarconc.array(mfi);
+
+        amrex::ParallelFor(bx, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+        {
+#if (AMREX_SPACEDIM == 2)
+            lap(i,j,k,n) = ( phi(i+1,j-1,k,n)-2.*phi(i,j-1,k,n)+phi(i-1,j-1,k,n) + phi(i-1,j+1,k,n)-2.*phi(i-1,j,k,n)+phi(i-1,j-1,k,n) ) * (sixth*dxinv*dxinv)
+                + 4.*( phi(i+1,j,k,n)-2.*phi(i,j,k,n)+phi(i-1,j,k,n) + phi(i,j+1,k,n)-2.*phi(i,j,k,n)+phi(i,j-1,k,n) ) * (sixth*dxinv*dxinv)
+                + ( phi(i+1,j+1,k,n)-2.*phi(i,j+1,k,n)+phi(i-1,j+1,k,n) + phi(i+1,j+1,k,n)-2.*phi(i+1,j,k,n)+phi(i+1,j-1,k,n) ) * (sixth*dxinv*dxinv);
+#elif (AMREX_SPACEDIM == 3)
+
+#endif
+        });
+    }
+
+for ( MFIter mfi(molarconc,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
+
+        AMREX_D_TERM(const Array4<Real> & fluxx = diff_mass_flux[0].array(mfi);,
+                     const Array4<Real> & fluxy = diff_mass_flux[1].array(mfi);,
+                     const Array4<Real> & fluxz = diff_mass_flux[2].array(mfi););
+
+        const Array4<Real const>& phi = molarconc.array(mfi);
+        
+        const Array4<Real>& lap = laplacian.array(mfi);
+        
+        AMREX_D_TERM(const Box & bx_x = mfi.nodaltilebox(0);,
+                     const Box & bx_y = mfi.nodaltilebox(1);,
+                     const Box & bx_z = mfi.nodaltilebox(2););
+
+#if (AMREX_SPACEDIM == 2)
+        
+        amrex::ParallelFor(bx_x, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+        {
+            Real phiavg = 0.5*(amrex::max(amrex::min(phi(i,j,k,n),1.),0.) + amrex::max(amrex::min(phi(i-1,j,k,n),1.),0.));
+            fluxx(i,j,k,n) = fluxx(i,j,k,n) - 0.5* kc_tension*phiavg*( lap(i,j,k,n)-lap(i-1,j,k,n) ) * dxinv;
+        },
+                           bx_y, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+        {
+            Real phiavg = 0.5*(amrex::max(amrex::min(phi(i,j,k,n),1.),0.) + amrex::max(amrex::min(phi(i,j-1,k,n),1.),0.));
+            fluxy(i,j,k,n) = fluxy(i,j,k,n) - 0.5* kc_tension*phiavg*( lap(i,j,k,n)-lap(i,j-1,k,n) ) * dxinv;
+        });
+        
+#elif (AMREX_SPACEDIM == 3)
+        
+        
+        amrex::ParallelFor(bx_x, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+        {
+            
+        },
+                           bx_y, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+        {
+            
+        },
+                           bx_z, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+        {
+            
+        });
+                           
+#endif
+    }
+
+
+}

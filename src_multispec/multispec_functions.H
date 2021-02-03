@@ -49,6 +49,10 @@ void ComputeMassFluxdiv(MultiFab& rho,
                         MultiFab& permittivity,
                         const int& zero_initial_Epot=1);
 
+void ComputeHigherOrderTerm(const MultiFab& molarconc,
+                            std::array<MultiFab,AMREX_SPACEDIM>& diff_mass_flux,
+                            const Geometry& geom);
+
 /////////////////////////////////////////////////////////////////////////////////
 // in DiffusiveMassFlux.cpp
 
