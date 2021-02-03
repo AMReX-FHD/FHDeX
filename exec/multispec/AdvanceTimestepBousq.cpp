@@ -599,22 +599,16 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     }
 
     // gravity
-    /*
-    if (any(grav(1:dm) .ne. 0.d0)) then
-       call mk_grav_force_bousq(mla,gmres_rhs_v,.true.,rho_fc,the_bc_tower)
-    end if
-    */
+    if (any_grav) {
+        Abort("AdvanceTimestepBousq.cpp gravity not implemented");
+        // call mk_grav_force_bousq(mla,gmres_rhs_v,.true.,rho_fc,the_bc_tower)
+    }
 
     if (use_multiphase) {
-        Abort("AdvanceTimestepBousq.cpp fix us_multiphase");
-        /*
-        ! add divergence of reversible stress to gmres_rhs_v
-        do n=1,nlevs
-           do i=1,dm
-              call multifab_saxpy_3(gmres_rhs_v(n,i),1.d0,div_reversible_stress(n,i))
-           end do
-        end do
-        */
+        // add divergence of reversible stress to gmres_rhs_v
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            MultiFab::Saxpy(gmres_rhs_v[d],1.,div_reversible_stress[d],0,0,1,0);
+        }
     }   
 
     if (use_charged_fluid) {
