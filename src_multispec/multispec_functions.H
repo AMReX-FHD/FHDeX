@@ -24,6 +24,13 @@ using namespace amrex;
 void InitializeMultispecNamespace();
 
 /////////////////////////////////////////////////////////////////////////////////
+// in ComputeDivReversibleStress.cpp
+void ComputeDivReversibleStress(std::array<MultiFab,AMREX_SPACEDIM>& div_reversible_stress,
+                                const MultiFab& rhotot_in,
+                                MultiFab& rho_in,
+                                const Geometry& geom);
+
+/////////////////////////////////////////////////////////////////////////////////
 // in ComputeMassFluxdiv.cpp
 
 void ComputeMassFluxdiv(MultiFab& rho,

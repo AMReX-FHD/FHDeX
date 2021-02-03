@@ -219,8 +219,7 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     if (use_multiphase) {
 
         // compute reversible stress tensor ---added term
-        // call compute_div_reversible_stress(mla,div_reversible_stress,rhotot_old,rho_old,dx,the_bc_tower)
-        Abort("AdvanceTimestepBousq.cpp write ComputeDivReversibleStress()");
+        ComputeDivReversibleStress(div_reversible_stress,rhotot_old,rho_old,geom);
 
         // add divergence of reversible stress to gmres_rhs_v
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
@@ -469,8 +468,7 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     if (use_multiphase) {
 
         // compute reversible stress tensor ---added term (will add to gmres_rhs_v later)
-        // call compute_div_reversible_stress(mla,div_reversible_stress,rhotot_new,rho_new,dx,the_bc_tower)
-        Abort("AdvanceTimestepBousq.cpp write ComputeDivReversibleStress()");
+        ComputeDivReversibleStress(div_reversible_stress,rhotot_new,rho_new,geom);
 
     }
 
