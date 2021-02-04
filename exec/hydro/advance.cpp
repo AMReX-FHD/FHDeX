@@ -27,8 +27,9 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
   const Real* dx = geom.CellSize();
   const Real dtinv = 1.0/dt;
-  Real theta_alpha = 1.;
   Real norm_pre_rhs;
+
+  Real theta_alpha = (algorithm_type == 0) ? 1. : 0.;
 
   const BoxArray& ba = beta.boxArray();
   const DistributionMapping& dmap = beta.DistributionMap();
