@@ -126,6 +126,8 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
       // account for the negative viscous operator
       MultiFab::Subtract(gmres_rhs_u[d], Lumac[d], 0, 0, 1, 0);
   }
+  
+  ExternalForce(gmres_rhs_u,gmres_rhs_p);
 
   // turbulence forcing
   if (turbForcing == 1) {
@@ -208,6 +210,8 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
       // account for the negative viscous operator
       MultiFab::Subtract(gmres_rhs_u[d], Lumac[d], 0, 0, 1, 0);
   }
+
+  ExternalForce(gmres_rhs_u,gmres_rhs_p);
 
   // turbulence forcing
   if (turbForcing == 1) {
