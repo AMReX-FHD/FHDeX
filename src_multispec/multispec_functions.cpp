@@ -8,8 +8,6 @@ void InitializeMultispecNamespace() {
     H_diag.resize(MAX_SPECIES);
 
     charge_per_mass.resize(MAX_SPECIES);
-    Epot_wall_bc_type.resize(2*AMREX_SPACEDIM);
-    Epot_wall.resize(2*AMREX_SPACEDIM);
     E_ext_value.resize(3);
     
     initialize_multispec_namespace( &inverse_type, &temp_type, 
@@ -20,6 +18,7 @@ void InitializeMultispecNamespace() {
 				    &print_error_norms,
 				    &is_nonisothermal, &is_ideal_mixture,
 				    &use_lapack, &use_multiphase,
+                                    &kc_tension, &alpha_gex, &n_gex,
 				    c_init_1.data(),
                                     c_init_2.data(),
 				    &midpoint_stoch_mass_flux_type, 
@@ -29,8 +28,6 @@ void InitializeMultispecNamespace() {
                                     &dielectric_const,
                                     &dielectric_type,
                                     charge_per_mass.dataPtr(),
-                                    Epot_wall_bc_type.dataPtr(),
-                                    Epot_wall.dataPtr(),
                                     &theta_pot,
                                     &num_pot_iters,
                                     &dpdt_factor,
