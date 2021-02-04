@@ -109,23 +109,24 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
       MkAdvMFluxdiv(umac,umac,advFluxdiv,dx,0);
   }
 
-  // compute t^n viscous operator, (1/2) L(u)
-  // passing in theta_alpha=0 so alpha_fc doesn't matter
-  // beta's contain (1/2)*mu
-  // this computes the NEGATIVE operator, "(alpha - L_beta)u" so we have to multiply by -1 below
-  StagApplyOp(geom,beta,gamma,beta_ed,umac,Lumac,alpha_fc,dx,0.);
-
   for (int d=0; d<AMREX_SPACEDIM; d++) {
       if (algorithm_type == 0) {
+
+          // compute t^n viscous operator, (1/2) L(u)
+          // passing in theta_alpha=0 so alpha_fc doesn't matter
+          // beta's contain (1/2)*mu
+          // this computes the NEGATIVE operator, "(alpha - L_beta)u" so we have to multiply by -1 below
+          StagApplyOp(geom,beta,gamma,beta_ed,umac,Lumac,alpha_fc,dx,0.);
+
           MultiFab::Copy(gmres_rhs_u[d], umac[d], 0, 0, 1, 0);
           gmres_rhs_u[d].mult(dtinv, 0);
           MultiFab::Add(gmres_rhs_u[d], advFluxdiv[d], 0, 0, 1, 0);
+          // account for the negative viscous operator
+          MultiFab::Subtract(gmres_rhs_u[d], Lumac[d], 0, 0, 1, 0);
       } else if (algorithm_type == 1) {
           gmres_rhs_u[d].setVal(0.);
       }
       MultiFab::Add(gmres_rhs_u[d], mfluxdiv_stoch[d], 0, 0, 1, 0);
-      // account for the negative viscous operator
-      MultiFab::Subtract(gmres_rhs_u[d], Lumac[d], 0, 0, 1, 0);
   }
   
   ExternalForce(gmres_rhs_u,gmres_rhs_p);
@@ -149,6 +150,14 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
               alpha_fc,beta,beta_ed,gamma,
               theta_alpha,geom,norm_pre_rhs);
 
+  // for deterministic overdamped, we are done with the time step
+  if (algorithm_type == 1 && variance_coef_mom == 0.) {
+      for (int d=0; d<AMREX_SPACEDIM; d++) {
+          MultiFab::Copy(umac[d], umacNew[d], 0, 0, 1, 0);
+      }
+      return;
+  }
+  
   // for the corrector gmres solve we want the stopping criteria based on the
   // norm of the preconditioned rhs from the predictor gmres solve.  otherwise
   // for cases where du in the corrector should be small the gmres stalls
@@ -204,12 +213,13 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
           MultiFab::Copy(gmres_rhs_u[d], umac[d], 0, 0, 1, 0);
           gmres_rhs_u[d].mult(dtinv);
           MultiFab::Add(gmres_rhs_u[d], advFluxdiv[d], 0, 0, 1, 0);
+          // account for the negative viscous operator
+          MultiFab::Subtract(gmres_rhs_u[d], Lumac[d], 0, 0, 1, 0);
+
       } else if (algorithm_type == 1) {
           gmres_rhs_u[d].setVal(0.);
       }
       MultiFab::Add(gmres_rhs_u[d], mfluxdiv_stoch[d], 0, 0, 1, 0);
-      // account for the negative viscous operator
-      MultiFab::Subtract(gmres_rhs_u[d], Lumac[d], 0, 0, 1, 0);
   }
 
   ExternalForce(gmres_rhs_u,gmres_rhs_p);

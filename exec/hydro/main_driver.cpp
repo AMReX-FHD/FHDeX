@@ -122,9 +122,14 @@ void main_driver(const char* argv)
                  alpha_fc[1].setVal(dtinv);,
                  alpha_fc[2].setVal(dtinv););
 
+
+    // 0 = inertial
+    // 1 = overdamped
+    Real factor = (algorithm_type == 0) ? 0.5 : 1.0;
+    
     // beta cell centred
     MultiFab beta(ba, dmap, 1, 1);
-    beta.setVal(0.5*visc_coef); // multiply by 0.5 here
+    beta.setVal(factor*visc_coef); // multiply by factor here
 
     // beta on nodes in 2d
     // beta on edges in 3d
@@ -137,7 +142,7 @@ void main_driver(const char* argv)
     beta_ed[2].define(convert(ba,nodal_flag_yz), dmap, 1, 0);
 #endif
     for (int d=0; d<NUM_EDGE; ++d) {
-        beta_ed[d].setVal(0.5*visc_coef); // multiply by 0.5 here
+        beta_ed[d].setVal(factor*visc_coef); // multiply by factor here
     }    
 
     // cell-centered gamma
