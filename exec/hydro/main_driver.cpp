@@ -123,8 +123,9 @@ void main_driver(const char* argv)
                  alpha_fc[2].setVal(dtinv););
 
 
-    // 0 = inertial
-    // 1 = overdamped
+    // -1 = inertial backward Euler
+    //  0 = inertial
+    //  1 = overdamped
     Real factor = (algorithm_type == 0) ? 0.5 : 1.0;
     
     // beta cell centred

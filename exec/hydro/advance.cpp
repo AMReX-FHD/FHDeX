@@ -29,7 +29,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
   const Real dtinv = 1.0/dt;
   Real norm_pre_rhs;
 
-  Real theta_alpha = (algorithm_type == 0) ? 1. : 0.;
+  Real theta_alpha = (algorithm_type == 1) ? 0. : 1.;
 
   const BoxArray& ba = beta.boxArray();
   const DistributionMapping& dmap = beta.DistributionMap();
@@ -90,7 +90,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
   /*
      Predictor
 
-     Inertial (algorithm_type = 0)
+     Inertial (algorithm_type = 0) - note algorithm_type = -1 is backward Euler
 
      (u^{n+1,*} - u^n) / dt + grad(p) = A^n + (1/2)(div eta grad)(u^n + u^{n+1,*}) + F
 
@@ -104,25 +104,29 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
   */
 
-  if (algorithm_type == 0) {
+  if (algorithm_type == -1 || algorithm_type == 0) {
       // compute advFluxdiv
       MkAdvMFluxdiv(umac,umac,advFluxdiv,dx,0);
   }
 
   for (int d=0; d<AMREX_SPACEDIM; d++) {
-      if (algorithm_type == 0) {
-
-          // compute t^n viscous operator, (1/2) L(u)
-          // passing in theta_alpha=0 so alpha_fc doesn't matter
-          // beta's contain (1/2)*mu
-          // this computes the NEGATIVE operator, "(alpha - L_beta)u" so we have to multiply by -1 below
-          StagApplyOp(geom,beta,gamma,beta_ed,umac,Lumac,alpha_fc,dx,0.);
+      if (algorithm_type == -1 || algorithm_type == 0) {
 
           MultiFab::Copy(gmres_rhs_u[d], umac[d], 0, 0, 1, 0);
           gmres_rhs_u[d].mult(dtinv, 0);
           MultiFab::Add(gmres_rhs_u[d], advFluxdiv[d], 0, 0, 1, 0);
-          // account for the negative viscous operator
-          MultiFab::Subtract(gmres_rhs_u[d], Lumac[d], 0, 0, 1, 0);
+
+          if (algorithm_type == 0) {
+
+              // compute t^n viscous operator, (1/2) L(u)
+              // passing in theta_alpha=0 so alpha_fc doesn't matter
+              // beta's contain (1/2)*mu
+              // this computes the NEGATIVE operator, "(alpha - L_beta)u" so we have to multiply by -1 below
+              StagApplyOp(geom,beta,gamma,beta_ed,umac,Lumac,alpha_fc,dx,0.);
+              // account for the negative viscous operator
+              MultiFab::Subtract(gmres_rhs_u[d], Lumac[d], 0, 0, 1, 0);
+          }
+          
       } else if (algorithm_type == 1) {
           gmres_rhs_u[d].setVal(0.);
       }
@@ -183,7 +187,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
   /*
     Corrector
 
-    Inertial (algorithm_type = 0)
+    Inertial (algorithm_type = 0) - note algorithm_type = -1 is backward Euler
 
     (u^{n+1} - u^n) / dt + grad(p) = (1/2)(A^n + A^{n+1}) + (1/2)(div eta grad)(u^n + u^{n+1}) + F
 
@@ -197,7 +201,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
   */
 
-  if (algorithm_type == 0) {
+  if (algorithm_type == -1 || algorithm_type == 0) {
       // increment advFluxdiv
       MkAdvMFluxdiv(umacNew,umacNew,advFluxdiv,dx,1);
 
@@ -209,12 +213,15 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
   // Compute gmres_rhs
   for (int d=0; d<AMREX_SPACEDIM; d++) {
-      if (algorithm_type == 0) {
+      if (algorithm_type == -1 || algorithm_type == 0) {
           MultiFab::Copy(gmres_rhs_u[d], umac[d], 0, 0, 1, 0);
           gmres_rhs_u[d].mult(dtinv);
           MultiFab::Add(gmres_rhs_u[d], advFluxdiv[d], 0, 0, 1, 0);
-          // account for the negative viscous operator
-          MultiFab::Subtract(gmres_rhs_u[d], Lumac[d], 0, 0, 1, 0);
+
+          if (algorithm_type == 0) {
+              // account for the negative viscous operator
+              MultiFab::Subtract(gmres_rhs_u[d], Lumac[d], 0, 0, 1, 0);
+          }
 
       } else if (algorithm_type == 1) {
           gmres_rhs_u[d].setVal(0.);
