@@ -54,7 +54,7 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     }
 
     // For BDS we need to project edge states onto constraints
-    int proj_type = (use_charged_fluid && electroneutral) ? 4 : 3;
+    // int proj_type = (use_charged_fluid && electroneutral) ? 4 : 3;
     
     Real theta_alpha = 1./dt;
 
@@ -104,6 +104,7 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         rho_fc[d]              .define(convert(ba,nodal_flag_dir[d]), dmap, nspecies, 0);
         rhotot_fc_old[d]       .define(convert(ba,nodal_flag_dir[d]), dmap,        1, 1);
         rhotot_fc_new[d]       .define(convert(ba,nodal_flag_dir[d]), dmap,        1, 1);
+        diff_mass_flux[d]      .define(convert(ba,nodal_flag_dir[d]), dmap, nspecies, 0);
     }
 
     // for ito interpretation we need to save stoch_mass_fluxdiv_old 
