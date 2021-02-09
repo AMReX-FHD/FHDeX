@@ -264,15 +264,30 @@ void main_driver(const char* argv)
     //Miscstats
     // 0        time averaged kinetic energy density
 
-    MultiFab miscStats(ba,dmap,10,ngc);
-    Real miscVals[20]; 
-    MultiFab spatialCross(ba,dmap,6,ngc);
-    MultiFab spatialCrossAv(ba,dmap,6,ngc);
+    //MultiFab miscStats(ba,dmap,10,ngc);
+    //Real miscVals[20]; 
+    //MultiFab spatialCross(ba,dmap,6,ngc);
+    //MultiFab spatialCrossAv(ba,dmap,6,ngc);
+    
+    // contains yz-averaged running averages of conserved variables at every x. +1 because we store x-coordinate at 0th index
+    Vector<Real>  cuyzAvMeans(n_cells[0]*(nvars+1), 0.0);
 
-    miscStats.setVal(0.0);
-    spatialCross.setVal(0.0);
-    spatialCrossAv.setVal(0.0);
+    // contains yz-averaged running averages of conserved variables at cross cell 
+    Vector<Real> cuyzAvMeans_cross(nvars, 0.0); 
+    
+    // <delA(x)delB(x')> for all pairs of A,B conserved variables and for x' = crosscell
+    int ncomp_cross = nvars*nvars;
+    Vector<Real> spatialCross(n_cells[0]*(1+ncomp_cross), 0.0); 
 
+    for (auto i=0; i<n_cells[0]; ++i) {
+        cuyzAvMeans[i*(nvars+1)] = prob_lo[0] + (i+0.5)*dx[0];
+        spatialCross[i*(ncomp_cross+1)] = prob_lo[0] + (i+0.5)*dx[0];
+    }
+
+    if ((plot_cross) and ((cross_cell <= 0) or (cross_cell >= n_cells[0]-1))) {
+        Abort("Cross cell needs to be within the domain: 0 < cross_cell < n_cells[0] - 1");
+    }
+    
     // external source term - possibly for later
     MultiFab source(ba,dmap,nprimvars,ngc);
     source.setVal(0.0);
@@ -540,6 +555,8 @@ void main_driver(const char* argv)
     if (plot_int > 0) {
 	    WritePlotFileStag(0, 0.0, geom, cu, cuMeans, cuVars, cumom, cumomMeans, cumomVars, 
                       prim, primMeans, primVars, vel, velMeans, velVars, coVars, eta, kappa);
+
+      if (plot_cross) WriteSpatialCross(spatialCross, 0);
     }
 
 
@@ -547,8 +564,8 @@ void main_driver(const char* argv)
     for (step=1;step<=max_step;++step) {
 
         if (restart > 0 && step==1) {
-            ReadCheckPoint(step, time, statsCount, geom, cu, cuMeans, cuVars, prim,
-                           primMeans, primVars, spatialCross, miscStats, eta, kappa);
+            //ReadCheckPoint(step, time, statsCount, geom, cu, cuMeans, cuVars, prim,
+            //               primMeans, primVars, spatialCross, miscStats, eta, kappa);
         }
 
         // timer
@@ -569,7 +586,7 @@ void main_driver(const char* argv)
         if (step > n_steps_skip) {
             evaluateStatsStag(cu, cuMeans, cuVars, prim, primMeans, primVars, vel, 
                               velMeans, velVars, cumom, cumomMeans, cumomVars, coVars,
-                              statsCount, dx);
+                              cuyzAvMeans, cuyzAvMeans_cross, spatialCross, statsCount, dx);
             statsCount++;
         }
 
@@ -580,12 +597,13 @@ void main_driver(const char* argv)
              WritePlotFileStag(step, time, geom, cu, cuMeans, cuVars, cumom, cumomMeans, cumomVars,
                            prim, primMeans, primVars, vel, velMeans, velVars, coVars, eta, kappa);
 
+             if (plot_cross) WriteSpatialCross(spatialCross, step);
         }
 
         if (chk_int > 0 && step > 0 && step%chk_int == 0)
         {
-             WriteCheckPoint(step, time, statsCount, geom, cu, cuMeans,
-                           cuVars, prim, primMeans, primVars, spatialCross, miscStats, eta, kappa);
+             //WriteCheckPoint(step, time, statsCount, geom, cu, cuMeans,
+             //              cuVars, prim, primMeans, primVars, spatialCross, miscStats, eta, kappa);
         }
 
         // collect a snapshot for structure factor

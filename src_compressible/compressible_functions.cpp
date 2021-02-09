@@ -5,7 +5,7 @@ void InitializeCompressibleNamespace() {
 
     BL_PROFILE_VAR("InitializeCompressibleNamespace()",InitializeCompressibleNamespace);
 
-    initialize_compressible_namespace(&plot_means, &plot_vars, &plot_covars);
+    initialize_compressible_namespace(&plot_means, &plot_vars, &plot_covars, &plot_cross);
 }
 
 

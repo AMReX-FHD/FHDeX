@@ -11,7 +11,9 @@ void evaluateStatsStag(const MultiFab& cons, MultiFab& consMean, MultiFab& consV
                        const std::array<MultiFab, AMREX_SPACEDIM>& cumom,
                        std::array<MultiFab, AMREX_SPACEDIM>& cumomMean,
                        std::array<MultiFab, AMREX_SPACEDIM>& cumomVar,
-                       MultiFab& coVar,
+                       MultiFab& coVar, 
+                       Vector<Real>& cuyzAvMeans, Vector<Real>& cuyzAvMeans_cross,
+                       Vector<Real>& spatialCross,
                        const int steps, const amrex::Real* dx)
 {
     BL_PROFILE_VAR("evaluateStatsStag()",evaluateStatsStag);
@@ -20,7 +22,7 @@ void evaluateStatsStag(const MultiFab& cons, MultiFab& consMean, MultiFab& consV
     double stepsinv = 1./steps;
 
     GpuArray<Real,MAX_SPECIES> fracvec;
-    GpuArray<Real,MAX_SPECIES> massvec;
+    //GpuArray<Real,MAX_SPECIES> massvec;
 
     //////////////////
     // evaluate_means
@@ -165,6 +167,100 @@ void evaluateStatsStag(const MultiFab& cons, MultiFab& consMean, MultiFab& consV
         }
         }
     }
+
+    /////////////////////////////////////////////
+    // evaluate yz average of conserved variables
+    /////////////////////////////////////////////
+
+    Vector<Real> cuyzAv(n_cells[0]*(nvars+1),0.); // yz-average of conserved variable at current snapshot (1st index reserved)
+    Vector<Real> cuyzAv_cross(nvars,0.); // yz-averaged of conserved variable at current snapshot at the cross cell
+
+    for (MFIter mfi(cons, false); mfi.isValid(); ++mfi) {
+
+        const Box& bx = mfi.validbox();
+        const auto lo = amrex::lbound(bx);
+        const auto hi = amrex::ubound(bx);
+
+        const Array4<const Real> cu = cons.array(mfi);
+
+        for (auto k = lo.z; k <= hi.z; ++k) {
+        for (auto j = lo.y; j <= hi.y; ++j) {
+        for (auto i = lo.x; i <= hi.x; ++i) {
+
+            cuyzAv[i*(nvars+1) + 0 + 1] += cu(i,j,k,0); // density
+            cuyzAv[i*(nvars+1) + 1 + 1] += cu(i,j,k,1); // jx (already CC averaged from RK3 routine)
+            cuyzAv[i*(nvars+1) + 2 + 1] += cu(i,j,k,2); // jy (already CC averaged from RK3 routine)
+            cuyzAv[i*(nvars+1) + 3 + 1] += cu(i,j,k,3); // jz (already CC averaged from RK3 routine)
+            cuyzAv[i*(nvars+1) + 4 + 1] += cu(i,j,k,4); // rhoE
+
+            for (int l=5; l<nvars; ++l) {
+                cuyzAv[i*(nvars+1) + l + 1] += cu(i,j,k,l); // rhoYk
+            }
+
+        }
+        }
+        }
+
+    } // end MFiter
+
+    // sum over all processors
+    ParallelDescriptor::ReduceRealSum(cuyzAv.dataPtr(),n_cells[0]*(nvars+1));
+
+    // divide by the number of yz-face cells
+    int navg = n_cells[1]*n_cells[2];
+    for (auto i=0; i<n_cells[0]; ++i) {
+        for (auto n=1; n<nvars+1; ++n) {
+            cuyzAv[i*(nvars+1) + n] /= navg;
+        }
+    }
+
+    // copy the cross_cell yz-averaged value in the vector
+    for (auto i=0; i<n_cells[0]; ++i) {
+        if (i == cross_cell) {
+            for (auto n=0; n<nvars; ++n) {
+                cuyzAv_cross[n] = cuyzAv[i*(nvars+1) + n + 1];
+            }
+        }
+    }
+
+    ///////////////////////////////////////////////
+    // increment yz average of conserved variables
+    // to the running mean and compute fluctuation
+    ///////////////////////////////////////////////
+    
+    Vector<Real> delcuyzAv(n_cells[0]*(nvars+1),0.); // yz-average of conserved variable at current snapshot (1st index reserved)
+    Vector<Real> delcuyzAv_cross(nvars,0.); // yz-averaged of conserved variable at current snapshot at the cross cell
+
+    for (auto i=0; i<n_cells[0]; ++i) {
+        for (auto n=1; n<nvars+1; ++n) {
+            cuyzAvMeans[i*(nvars+1) + n] = (cuyzAvMeans[i*(nvars+1) + n]*stepsminusone + cuyzAv[i*(nvars+1) + n])*stepsinv;
+            delcuyzAv[i*(nvars+1) + n] = cuyzAv[i*(nvars+1) + n] - cuyzAvMeans[i*(nvars+1) + n];
+        }
+    }
+
+    for (auto n=0; n<nvars; ++n) {
+        cuyzAvMeans_cross[n] = (cuyzAvMeans_cross[n]*stepsminusone + cuyzAv_cross[n])*stepsinv;
+        delcuyzAv_cross[n] = cuyzAv_cross[n] - cuyzAvMeans_cross[n];
+    }
+
+    ///////////////////////////////////////////////
+    // increment yz running average of spatial
+    // correlation of fluctuations of conserved
+    // variables, i.e., <delA(x)delB(x*)>, where
+    // x* is the cross_cell, and A and B are all
+    // combinations of two conserved variables
+    ///////////////////////////////////////////////
+    
+    for (auto i=0; i<n_cells[0]; ++i) {
+        for (auto n=0; n<nvars; ++n) {
+            for (auto m=0; m<nvars; ++m) {
+
+                spatialCross[i*(nvars*nvars+1) + 1 + n*m] = (spatialCross[i*(nvars*nvars+1) + 1 + n*m]*stepsminusone + 
+                                                             delcuyzAv[i*(nvars+1) + n + 1]*delcuyzAv_cross[m])*stepsinv;
+            }
+        }
+    }
+                
     
     /////////////////////////////////////
     // evaluate variances and covariances

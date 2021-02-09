@@ -34,6 +34,9 @@ void WritePlotFileStag(int step,
                        const MultiFab& eta, 
                        const MultiFab& kappa);
 
+void WriteSpatialCross(const Vector<Real>& spatialCross, int step); 
+
+
 void conservedToPrimitiveStag(MultiFab& prim_in, std::array<MultiFab, AMREX_SPACEDIM>& velStag_in,
                               MultiFab& cons_in, const std::array<MultiFab, AMREX_SPACEDIM>& momStag_in);
 
@@ -102,6 +105,8 @@ void evaluateStatsStag(const MultiFab& cons, MultiFab& consMean, MultiFab& consV
                        std::array<MultiFab, AMREX_SPACEDIM>& cumomMean,
                        std::array<MultiFab, AMREX_SPACEDIM>& cumomVar,
                        MultiFab& coVar,
+                       Vector<Real>& cuyzAvMeans, Vector<Real>& cuyzAvMeans_cross,
+                       Vector<Real>& spatialCross,
                        const int steps, const amrex::Real* dx);
 
 //void yzAverageStag(const MultiFab& consMean, 

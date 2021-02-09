@@ -17,7 +17,7 @@ extern "C"
     void read_compressible_namelist (const char* inputs_file, const int length);
 
     // copy contents of compressible_params_module to C++ compressible namespace
-    void initialize_compressible_namespace(int* plot_means, int* plot_vars, int* plot_covars);
+    void initialize_compressible_namespace(int* plot_means, int* plot_vars, int* plot_covars, int* plot_cross);
 
 ///////////////////////////
 

@@ -38,7 +38,7 @@ void WritePlotFileStag(int step,
     }
     
     if (plot_vars == 1) {
-        nplot += 20;
+        nplot += 23;
     }
     
     if (plot_covars == 1) {
@@ -135,6 +135,15 @@ void WritePlotFileStag(int step,
         numvars = 5;
         amrex::MultiFab::Copy(plotfile,primVars,0,cnt,numvars,0);
         cnt+=numvars;
+
+        // cross-variances for energy and temperature variances (diagnostic purposes)
+        // <delg delg>, <delg delenergy>, <delrho delg>
+        amrex::MultiFab::Copy(plotfile,primVars,nprimvars,cnt,1,0);
+        ++cnt;
+        amrex::MultiFab::Copy(plotfile,primVars,nprimvars+1,cnt,1,0);
+        ++cnt;
+        amrex::MultiFab::Copy(plotfile,primVars,nprimvars+3,cnt,1,0);
+        ++cnt;
 
         // variance of shifted velocities: 
         // velx, vely, velz
@@ -251,6 +260,10 @@ void WritePlotFileStag(int step,
         varNames[cnt++] = "uzVarCC";
         varNames[cnt++] = "tVar";
 
+        varNames[cnt++] = "g-g";
+        varNames[cnt++] = "g-energy";
+        varNames[cnt++] = "g-rho";
+
         varNames[cnt++] = "uxVarFACE";
         varNames[cnt++] = "uyVarFACE";
         varNames[cnt++] = "uzVarFACE";
@@ -295,3 +308,24 @@ void WritePlotFileStag(int step,
     WriteSingleLevelPlotfile(plotfilename,plotfile,varNames,geom,time,step);
 
 }
+
+
+void WriteSpatialCross(const Vector<Real>& spatialCross, int step) 
+{
+    if (ParallelDescriptor::IOProcessor()) {
+        std::string filename = amrex::Concatenate("spatialCross",step,9);
+        std::ofstream outfile;
+        outfile.open(filename);
+    
+        // write out result
+        for (auto i=0; i<n_cells[0]; ++i) {
+            for (auto n=0; n<nvars*nvars+1; ++n) {
+                outfile << spatialCross[i*(nvars*nvars+1) + n] << " ";
+            }
+            outfile << std::endl;
+        }
+
+        outfile.close();
+    }
+}
+    
