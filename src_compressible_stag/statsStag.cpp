@@ -172,7 +172,7 @@ void evaluateStatsStag(const MultiFab& cons, MultiFab& consMean, MultiFab& consV
     // evaluate yz average of conserved variables
     /////////////////////////////////////////////
 
-    Vector<Real> cuyzAv(n_cells[0]*(nvars+1),0.); // yz-average of conserved variable at current snapshot (1st index reserved)
+    Vector<Real> cuyzAv(n_cells[0]*nvars,0.); // yz-average of conserved variable at current snapshot
     Vector<Real> cuyzAv_cross(nvars,0.); // yz-averaged of conserved variable at current snapshot at the cross cell
 
     for (MFIter mfi(cons, false); mfi.isValid(); ++mfi) {
@@ -186,17 +186,9 @@ void evaluateStatsStag(const MultiFab& cons, MultiFab& consMean, MultiFab& consV
         for (auto k = lo.z; k <= hi.z; ++k) {
         for (auto j = lo.y; j <= hi.y; ++j) {
         for (auto i = lo.x; i <= hi.x; ++i) {
-
-            cuyzAv[i*(nvars+1) + 0 + 1] += cu(i,j,k,0); // density
-            cuyzAv[i*(nvars+1) + 1 + 1] += cu(i,j,k,1); // jx (already CC averaged from RK3 routine)
-            cuyzAv[i*(nvars+1) + 2 + 1] += cu(i,j,k,2); // jy (already CC averaged from RK3 routine)
-            cuyzAv[i*(nvars+1) + 3 + 1] += cu(i,j,k,3); // jz (already CC averaged from RK3 routine)
-            cuyzAv[i*(nvars+1) + 4 + 1] += cu(i,j,k,4); // rhoE
-
-            for (int l=5; l<nvars; ++l) {
-                cuyzAv[i*(nvars+1) + l + 1] += cu(i,j,k,l); // rhoYk
-            }
-
+        for (auto l = 0;    l < nvars; ++l) {
+            cuyzAv[i*nvars + l] += cu(i,j,k,l); 
+        }
         }
         }
         }
@@ -204,21 +196,21 @@ void evaluateStatsStag(const MultiFab& cons, MultiFab& consMean, MultiFab& consV
     } // end MFiter
 
     // sum over all processors
-    ParallelDescriptor::ReduceRealSum(cuyzAv.dataPtr(),n_cells[0]*(nvars+1));
+    ParallelDescriptor::ReduceRealSum(cuyzAv.dataPtr(),n_cells[0]*nvars);
 
     // divide by the number of yz-face cells
-    int navg = n_cells[1]*n_cells[2];
+    int n_face_cells = n_cells[1]*n_cells[2];
     for (auto i=0; i<n_cells[0]; ++i) {
-        for (auto n=1; n<nvars+1; ++n) {
-            cuyzAv[i*(nvars+1) + n] /= navg;
+        for (auto l=0; l<nvars; ++l) {
+            cuyzAv[i*nvars + l] /= n_face_cells;
         }
     }
 
     // copy the cross_cell yz-averaged value in the vector
     for (auto i=0; i<n_cells[0]; ++i) {
         if (i == cross_cell) {
-            for (auto n=0; n<nvars; ++n) {
-                cuyzAv_cross[n] = cuyzAv[i*(nvars+1) + n + 1];
+            for (auto l=0; l<nvars; ++l) {
+                cuyzAv_cross[l] = cuyzAv[i*nvars + l];
             }
         }
     }
@@ -228,19 +220,19 @@ void evaluateStatsStag(const MultiFab& cons, MultiFab& consMean, MultiFab& consV
     // to the running mean and compute fluctuation
     ///////////////////////////////////////////////
     
-    Vector<Real> delcuyzAv(n_cells[0]*(nvars+1),0.); // yz-average of conserved variable at current snapshot (1st index reserved)
+    Vector<Real> delcuyzAv(n_cells[0]*nvars,0.); // yz-average of conserved variable at current snapshot 
     Vector<Real> delcuyzAv_cross(nvars,0.); // yz-averaged of conserved variable at current snapshot at the cross cell
 
     for (auto i=0; i<n_cells[0]; ++i) {
-        for (auto n=1; n<nvars+1; ++n) {
-            cuyzAvMeans[i*(nvars+1) + n] = (cuyzAvMeans[i*(nvars+1) + n]*stepsminusone + cuyzAv[i*(nvars+1) + n])*stepsinv;
-            delcuyzAv[i*(nvars+1) + n] = cuyzAv[i*(nvars+1) + n] - cuyzAvMeans[i*(nvars+1) + n];
+        for (auto l=0; l<nvars; ++l) {
+            cuyzAvMeans[i*nvars + l] = (cuyzAvMeans[i*nvars + l]*stepsminusone + cuyzAv[i*nvars + l])*stepsinv;
+            delcuyzAv[i*nvars + l] = cuyzAv[i*nvars + l] - cuyzAvMeans[i*nvars + l];
         }
     }
 
-    for (auto n=0; n<nvars; ++n) {
-        cuyzAvMeans_cross[n] = (cuyzAvMeans_cross[n]*stepsminusone + cuyzAv_cross[n])*stepsinv;
-        delcuyzAv_cross[n] = cuyzAv_cross[n] - cuyzAvMeans_cross[n];
+    for (auto l=0; l<nvars; ++l) {
+        cuyzAvMeans_cross[l] = (cuyzAvMeans_cross[l]*stepsminusone + cuyzAv_cross[l])*stepsinv;
+        delcuyzAv_cross[l] = cuyzAv_cross[l] - cuyzAvMeans_cross[l];
     }
 
     ///////////////////////////////////////////////
@@ -255,8 +247,8 @@ void evaluateStatsStag(const MultiFab& cons, MultiFab& consMean, MultiFab& consV
         for (auto n=0; n<nvars; ++n) {
             for (auto m=0; m<nvars; ++m) {
 
-                spatialCross[i*(nvars*nvars+1) + 1 + n*m] = (spatialCross[i*(nvars*nvars+1) + 1 + n*m]*stepsminusone + 
-                                                             delcuyzAv[i*(nvars+1) + n + 1]*delcuyzAv_cross[m])*stepsinv;
+                spatialCross[i*nvars*nvars + n*m] = (spatialCross[i*nvars*nvars + n*m]*stepsminusone + 
+                                                             delcuyzAv[i*nvars + n]*delcuyzAv_cross[m])*stepsinv;
             }
         }
     }

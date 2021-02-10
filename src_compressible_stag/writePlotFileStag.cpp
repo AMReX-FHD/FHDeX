@@ -310,21 +310,24 @@ void WritePlotFileStag(int step,
 }
 
 
-void WriteSpatialCross(const Vector<Real>& spatialCross, int step) 
+void WriteSpatialCross(const Vector<Real>& spatialCross, int step, const amrex::Real* dx) 
 {
     if (ParallelDescriptor::IOProcessor()) {
+
+        // write out spatial correlation
         std::string filename = amrex::Concatenate("spatialCross",step,9);
         std::ofstream outfile;
         outfile.open(filename);
     
-        // write out result
         for (auto i=0; i<n_cells[0]; ++i) {
-            for (auto n=0; n<nvars*nvars+1; ++n) {
-                outfile << spatialCross[i*(nvars*nvars+1) + n] << " ";
+            outfile << prob_lo[0] + (i+0.5)*dx[0] << " "; 
+            for (auto n=0; n<nvars; ++n) {
+                for (auto m=0; m<nvars; ++m) {
+                    outfile << spatialCross[i*nvars*nvars + n*m] << " ";
+                }
             }
             outfile << std::endl;
         }
-
         outfile.close();
     }
 }

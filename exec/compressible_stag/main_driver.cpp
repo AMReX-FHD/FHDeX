@@ -269,24 +269,27 @@ void main_driver(const char* argv)
     //MultiFab spatialCross(ba,dmap,6,ngc);
     //MultiFab spatialCrossAv(ba,dmap,6,ngc);
     
-    // contains yz-averaged running averages of conserved variables at every x. +1 because we store x-coordinate at 0th index
-    Vector<Real>  cuyzAvMeans(n_cells[0]*(nvars+1), 0.0);
+    // contains yz-averaged running averages of conserved variables at every x
+    Vector<Real>  cuyzAvMeans(n_cells[0]*nvars, 0.0);
 
     // contains yz-averaged running averages of conserved variables at cross cell 
     Vector<Real> cuyzAvMeans_cross(nvars, 0.0); 
     
     // <delA(x)delB(x')> for all pairs of A,B conserved variables and for x' = crosscell
-    int ncomp_cross = nvars*nvars;
-    Vector<Real> spatialCross(n_cells[0]*(1+ncomp_cross), 0.0); 
+    Vector<Real> spatialCross(n_cells[0]*nvars*nvars, 0.0); 
 
-    for (auto i=0; i<n_cells[0]; ++i) {
-        cuyzAvMeans[i*(nvars+1)] = prob_lo[0] + (i+0.5)*dx[0];
-        spatialCross[i*(ncomp_cross+1)] = prob_lo[0] + (i+0.5)*dx[0];
-    }
+    //for (auto i=0; i<n_cells[0]; ++i) {
+    //    cuyzAvMeans[i*(nvars+1)] = prob_lo[0] + (i+0.5)*dx[0];
+    //    spatialCross[i*(ncomp_cross+1)] = prob_lo[0] + (i+0.5)*dx[0];
+    //}
 
     if ((plot_cross) and ((cross_cell <= 0) or (cross_cell >= n_cells[0]-1))) {
         Abort("Cross cell needs to be within the domain: 0 < cross_cell < n_cells[0] - 1");
     }
+    std::string filename = "crossMeans";
+    std::ofstream outfile;
+    if ((plot_cross) and (ParallelDescriptor::IOProcessor())) outfile.open(filename); 
+
     
     // external source term - possibly for later
     MultiFab source(ba,dmap,nprimvars,ngc);
@@ -556,7 +559,7 @@ void main_driver(const char* argv)
 	    WritePlotFileStag(0, 0.0, geom, cu, cuMeans, cuVars, cumom, cumomMeans, cumomVars, 
                       prim, primMeans, primVars, vel, velMeans, velVars, coVars, eta, kappa);
 
-      if (plot_cross) WriteSpatialCross(spatialCross, 0);
+      if (plot_cross) WriteSpatialCross(spatialCross, 0, dx);
     }
 
 
@@ -594,10 +597,19 @@ void main_driver(const char* argv)
         if (plot_int > 0 && step > 0 && step%plot_int == 0) {
              //yzAverage(cuMeans, cuVars, primMeans, primVars, spatialCross,
              //          cuMeansAv, cuVarsAv, primMeansAv, primVarsAv, spatialCrossAv);
-             WritePlotFileStag(step, time, geom, cu, cuMeans, cuVars, cumom, cumomMeans, cumomVars,
-                           prim, primMeans, primVars, vel, velMeans, velVars, coVars, eta, kappa);
+            WritePlotFileStag(step, time, geom, cu, cuMeans, cuVars, cumom, cumomMeans, cumomVars,
+                          prim, primMeans, primVars, vel, velMeans, velVars, coVars, eta, kappa);
 
-             if (plot_cross) WriteSpatialCross(spatialCross, step);
+            if (plot_cross) {
+                WriteSpatialCross(spatialCross, step, dx);
+                if (ParallelDescriptor::IOProcessor()) {
+                    outfile << step << " ";
+                    for (auto l=0; l<nvars; ++l) {
+                        outfile << cuyzAvMeans_cross[l] << " ";
+                    }
+                    outfile << std::endl;
+                }
+            }
         }
 
         if (chk_int > 0 && step > 0 && step%chk_int == 0)
@@ -665,6 +677,8 @@ void main_driver(const char* argv)
         amrex::Print() << "Curent     FAB megabyte spread across MPI nodes: ["
                      << min_fab_megabytes << " ... " << max_fab_megabytes << "]\n";
     }
+
+    if (ParallelDescriptor::IOProcessor()) outfile.close();
 
     // timer
     Real stop_time = ParallelDescriptor::second() - strt_time;

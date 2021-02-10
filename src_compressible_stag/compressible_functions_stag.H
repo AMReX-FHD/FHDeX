@@ -34,7 +34,7 @@ void WritePlotFileStag(int step,
                        const MultiFab& eta, 
                        const MultiFab& kappa);
 
-void WriteSpatialCross(const Vector<Real>& spatialCross, int step); 
+void WriteSpatialCross(const Vector<Real>& spatialCross, int step, const amrex::Real* dx); 
 
 
 void conservedToPrimitiveStag(MultiFab& prim_in, std::array<MultiFab, AMREX_SPACEDIM>& velStag_in,
