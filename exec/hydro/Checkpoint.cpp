@@ -69,6 +69,9 @@ void WriteCheckPoint(int step,
         // write out time
         HeaderFile << time << "\n";
 
+        // C++ random number engine
+        amrex::SaveRandomState(HeaderFile);
+
         // write turbulent forcing U's
         for (int i=0; i<132; ++i) {
             HeaderFile << tf.getU(i) << '\n';
@@ -118,7 +121,7 @@ void WriteCheckPoint(int step,
     strcat (str,"/rng_eng_general");
     check = mkdir(str,0777);
     
-    // random number engines
+    // random number engines (fortran interface)
     int n_digits = 7;
     rng_checkpoint(& step, & n_digits);
     
@@ -161,6 +164,9 @@ void ReadCheckPoint(int& step,
         is >> time;
         GotoNextLine(is);
 
+        // C++ random number engine
+        amrex::RestoreRandomState(is, 1, 0);
+
         // read in turbulent forcing U's
         Real utemp;
         for (int i=0; i<132; ++i) {
@@ -197,7 +203,7 @@ void ReadCheckPoint(int& step,
     VisMF::Read(tracer,
                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "tracer"));
     
-    // random number engines
+    // random number engines (fortran interface)
     int digits = 7;
     rng_restart(&restart,&digits);
 }
