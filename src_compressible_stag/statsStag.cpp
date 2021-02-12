@@ -183,10 +183,10 @@ void evaluateStatsStag(const MultiFab& cons, MultiFab& consMean, MultiFab& consV
 
         const Array4<const Real> cu = cons.array(mfi);
 
-        for (auto k = lo.z; k <= hi.z; ++k) {
-        for (auto j = lo.y; j <= hi.y; ++j) {
         for (auto i = lo.x; i <= hi.x; ++i) {
         for (auto l = 0;    l < nvars; ++l) {
+        for (auto k = lo.z; k <= hi.z; ++k) {
+        for (auto j = lo.y; j <= hi.y; ++j) {
             cuyzAv[i*nvars + l] += cu(i,j,k,l); 
         }
         }
@@ -243,12 +243,15 @@ void evaluateStatsStag(const MultiFab& cons, MultiFab& consMean, MultiFab& consV
     // combinations of two conserved variables
     ///////////////////////////////////////////////
     
+    int flag;
     for (auto i=0; i<n_cells[0]; ++i) {
+        flag = 0;
         for (auto n=0; n<nvars; ++n) {
             for (auto m=0; m<nvars; ++m) {
 
-                spatialCross[i*nvars*nvars + n*m] = (spatialCross[i*nvars*nvars + n*m]*stepsminusone + 
+                spatialCross[i*nvars*nvars + flag] = (spatialCross[i*nvars*nvars + flag]*stepsminusone + 
                                                              delcuyzAv[i*nvars + n]*delcuyzAv_cross[m])*stepsinv;
+                flag += 1;
             }
         }
     }
