@@ -12,8 +12,11 @@
 #define RHO_BC_COMP  1
 #define TEMP_BC_COMP 2
 #define EPOT_BC_COMP 3
+#define TRAN_BC_COMP 4
 #define SPEC_BC_COMP 10
 #define SPEC_END_BC_COMP 19
+#define MOLFRAC_BC_COMP 20
+#define MOLFRAC_END_BC_COMP 29
 
 #include <AMReX.H>
 #include <AMReX_MultiFab.H>
@@ -60,7 +63,7 @@ void AverageCCToEdge(const MultiFab& cc_in, std::array<MultiFab, NUM_EDGE>& edge
 
 void ComputeDiv(MultiFab & div, const std::array<MultiFab, AMREX_SPACEDIM> & phi_fc, 
                 int start_incomp, int start_outcomp, int ncomp, 
-                const Geometry & geom, int increment);
+                const Geometry & geom, Real increment);
 
 void ComputeGrad(const MultiFab & phi_in, std::array<MultiFab, AMREX_SPACEDIM> & gphi, 
                  int start_incomp, int start_outcomp, int ncomp, int bccomp, const Geometry & geom,
@@ -159,6 +162,12 @@ void CCInnerProd(const MultiFab & m1,
 		 const MultiFab & m2,
 		 const int & comp2,
                  amrex::MultiFab& mscr,
+		 Real & prod_val);
+
+void CCMoments(const MultiFab & m1,
+		 const int & comp1,
+                 amrex::MultiFab& mscr,
+		 const int & power,
 		 Real & prod_val);
 
 void StagL2Norm(const Geometry& geom,

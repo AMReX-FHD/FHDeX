@@ -156,6 +156,24 @@ void CCInnerProd(const amrex::MultiFab& m1,
   SumCC(mscr,0,prod_val,false);
 }
 
+void CCMoments(const amrex::MultiFab& m1,
+		 const int& comp1,
+                 amrex::MultiFab& mscr,
+		 const int& power,
+		 amrex::Real& prod_val)
+{
+
+  BL_PROFILE_VAR("CCMoments()",CCMoments);
+
+  MultiFab::Copy(mscr,m1,comp1,0,1,0);
+  for(int i=1; i<power; i++){
+  MultiFab::Multiply(mscr,m1,comp1,0,1,0);
+  }
+
+  prod_val = 0.;
+  SumCC(mscr,0,prod_val,false);
+}
+
 void StagL2Norm(const Geometry& geom,
                 const std::array<MultiFab, AMREX_SPACEDIM>& m1,
 		const int& comp,

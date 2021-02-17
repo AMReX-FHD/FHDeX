@@ -25,7 +25,9 @@ void BCPhysToMath(int bccomp, amrex::Vector<int>& bc_lo, amrex::Vector<int>& bc_
             }
         }
     }
-    else if (bccomp == RHO_BC_COMP || bccomp == SPEC_BC_COMP) { // density or species
+    else if (bccomp == RHO_BC_COMP ||
+             bccomp == SPEC_BC_COMP ||
+             bccomp == MOLFRAC_BC_COMP) { // density, species, or mole fraction
         for (int i=0; i<AMREX_SPACEDIM; ++i) {
             if (bc_mass_lo[i] == 1) {
                 // wall -> first-order extrapolation

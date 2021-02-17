@@ -24,6 +24,13 @@ using namespace amrex;
 void InitializeMultispecNamespace();
 
 /////////////////////////////////////////////////////////////////////////////////
+// in ComputeDivReversibleStress.cpp
+void ComputeDivReversibleStress(std::array<MultiFab,AMREX_SPACEDIM>& div_reversible_stress,
+                                const MultiFab& rhotot_in,
+                                MultiFab& rho_in,
+                                const Geometry& geom);
+
+/////////////////////////////////////////////////////////////////////////////////
 // in ComputeMassFluxdiv.cpp
 
 void ComputeMassFluxdiv(MultiFab& rho,
@@ -41,6 +48,10 @@ void ComputeMassFluxdiv(MultiFab& rho,
                         MultiFab& Epot,
                         MultiFab& permittivity,
                         const int& zero_initial_Epot=1);
+
+void ComputeHigherOrderTerm(const MultiFab& molarconc,
+                            std::array<MultiFab,AMREX_SPACEDIM>& diff_mass_flux,
+                            const Geometry& geom);
 
 /////////////////////////////////////////////////////////////////////////////////
 // in DiffusiveMassFlux.cpp
@@ -112,6 +123,9 @@ void ElectroDiffusiveMassFlux(const MultiFab& rho,
                               Real dt,
                               int zero_initial_Epot,
                               const Geometry& geom);
+
+void LimitEMF(const MultiFab& rho_in,
+              std::array< MultiFab, AMREX_SPACEDIM >& electro_mass_flux);
 
 /////////////////////////////////////////////////////////////////////////////////
 // in FluicCharge.cpp
@@ -198,7 +212,6 @@ void ComputeSqrtLonsagerFC(const MultiFab& rho,
 void MatvecMul(MultiFab& x,
 	       const MultiFab& A);
 
-
 /////////////////////////////////////////////////////////////////////////////////
 // in MkDiffusiveMFluxdiv.cpp
 
@@ -212,7 +225,14 @@ void MkDiffusiveMFluxdiv(std::array<MultiFab, AMREX_SPACEDIM> & m_update,
                          const int& increment);
 
 /////////////////////////////////////////////////////////////////////////////////
+// in ProjectOntoEOS.cpp
+
+void ProjectOntoEOS(MultiFab& rho_in);
+
+/////////////////////////////////////////////////////////////////////////////////
 // in RhoUtil.cpp
+
+void RhototBCInit();
 
 void ComputeRhotot(const MultiFab& rho, MultiFab& rhotot, int include_ghost=0);
 

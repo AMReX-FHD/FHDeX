@@ -49,6 +49,10 @@ void main_driver(const char* argv)
     InitializeMultispecNamespace();
     InitializeGmresNamespace();
 
+    if (algorithm_type == 6) {
+        RhototBCInit();
+    }
+
     // for reservoirs, make sure the Dirichlet conditions for concentration sum to 1
     //
     //
@@ -454,7 +458,7 @@ void main_driver(const char* argv)
       From this perspective it may be useful to keep initial_projection even in overdamped
       because different gmres tolerances may be needed in the first step than in the rest
     */
-    if (algorithm_type != 2) {
+    if (algorithm_type != 2 && algorithm_type != 6) {
         InitialProjection(umac,rho_old,rhotot_old,diff_mass_fluxdiv,stoch_mass_fluxdiv,
                           stoch_mass_flux,sMassFlux,Temp,eta,eta_ed,dt,time,geom,
                           charge_old,grad_Epot_old,Epot,permittivity);
@@ -525,8 +529,13 @@ void main_driver(const char* argv)
         }
         else if (algorithm_type == 6) {
             // boussinesq
-            Print() << "algorithm_type " << algorithm_type << std::endl;
-            Abort("algorithm_type not supported");
+            AdvanceTimestepBousq(umac,rho_old,rho_new,rhotot_old,rhotot_new,
+                                 pi,eta,eta_ed,kappa,Temp,Temp_ed,
+                                 diff_mass_fluxdiv,stoch_mass_fluxdiv,stoch_mass_flux,
+                                 grad_Epot_old,grad_Epot_new,
+                                 charge_old,charge_new,Epot,permittivity,
+                                 sMassFlux,sMomFlux,
+                                 dt,time,istep,geom);
         }
         else {
             Print() << "algorithm_type " << algorithm_type << std::endl;

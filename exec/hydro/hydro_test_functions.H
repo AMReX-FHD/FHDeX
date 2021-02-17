@@ -47,4 +47,10 @@ void ReadCheckPoint(int& step,
 
 ///////////////////////////
 
+///////////////////////////
+// in ExternalForce.cpp
+
+void ExternalForce(std::array< MultiFab, AMREX_SPACEDIM >& gmres_rhs_u,
+                   MultiFab& gmres_rhs_p);
+
 #endif

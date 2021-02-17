@@ -122,9 +122,15 @@ void main_driver(const char* argv)
                  alpha_fc[1].setVal(dtinv);,
                  alpha_fc[2].setVal(dtinv););
 
+
+    // -1 = inertial backward Euler
+    //  0 = inertial
+    //  1 = overdamped
+    Real factor = (algorithm_type == 0) ? 0.5 : 1.0;
+    
     // beta cell centred
     MultiFab beta(ba, dmap, 1, 1);
-    beta.setVal(0.5*visc_coef); // multiply by 0.5 here
+    beta.setVal(factor*visc_coef); // multiply by factor here
 
     // beta on nodes in 2d
     // beta on edges in 3d
@@ -137,7 +143,7 @@ void main_driver(const char* argv)
     beta_ed[2].define(convert(ba,nodal_flag_yz), dmap, 1, 0);
 #endif
     for (int d=0; d<NUM_EDGE; ++d) {
-        beta_ed[d].setVal(0.5*visc_coef); // multiply by 0.5 here
+        beta_ed[d].setVal(factor*visc_coef); // multiply by factor here
     }    
 
     // cell-centered gamma
@@ -160,7 +166,7 @@ void main_driver(const char* argv)
     std::array< MultiFab, NUM_EDGE >   eta_ed;
     std::array< MultiFab, NUM_EDGE >  temp_ed;
     // eta cell-centered
-    eta_cc.define(ba, dmap, 1, 0);
+    eta_cc.define(ba, dmap, 1, 1);
     // temperature cell-centered
     temp_cc.define(ba, dmap, 1, 1);
 #if (AMREX_SPACEDIM == 2)
@@ -244,16 +250,9 @@ void main_driver(const char* argv)
     MultiFab structFactMF(ba, dmap, structVars, 0);
 
     // need to use dVol for scaling
-    Real dVol = dx[0]*dx[1];
-    if (AMREX_SPACEDIM == 2) {
-	dVol *= cell_depth;
-    } else if (AMREX_SPACEDIM == 3) {
-	dVol *= dx[2];
-    }
-    Real dProb = n_cells[0]*n_cells[1];
-    if (AMREX_SPACEDIM == 3) {
-	    dProb *= n_cells[2];
-    }
+    Real dVol = (AMREX_SPACEDIM==2) ? dx[0]*dx[1]*cell_depth : dx[0]*dx[1]*dx[2];
+    
+    Real dProb = (AMREX_SPACEDIM==2) ? n_cells[0]*n_cells[1] : n_cells[0]*n_cells[1]*n_cells[2];
     dProb = 1./dProb;
     
     Vector<Real> var_scaling(structVars*(structVars+1)/2);
@@ -322,7 +321,7 @@ void main_driver(const char* argv)
     std::array< MultiFab, AMREX_SPACEDIM > umac;
 
     // storage for grad(U) for energy dissipation calculation
-    MultiFab gradU(ba,dmap,3,0);
+    MultiFab gradU(ba,dmap,AMREX_SPACEDIM,0);
     MultiFab ccTemp(ba,dmap,1,0);
     
     if (restart > 0) {
@@ -476,8 +475,9 @@ void main_driver(const char* argv)
         }
 
         // compute kinetic energy integral( (1/2) * rho * U dot U dV)
-        Real dVol = (AMREX_SPACEDIM==2) ? dx[0]*dx[1]*cell_depth : dx[0]*dx[1]*dx[2];
         Vector<Real> udotu(3);
+        Vector<Real> skew(3);
+        Vector<Real> kurt(3);
         StagInnerProd(geom,umac,0,umac,0,umacTemp,udotu);
         Print() << "Kinetic energy "
 		<< time << " "
@@ -494,7 +494,40 @@ void main_driver(const char* argv)
                 << visc_coef*dProb*( udotu[0] + udotu[1] + udotu[2] )
                 << std::endl;
         //      << visc_coef*dVol*( udotu[0] + udotu[1] + udotu[2] )
+	//
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            CCMoments(gradU,d,ccTemp,3,skew[d]);
+        }
 
+        Print() << "Skewness "
+		<< time << " "
+                << dProb*skew[0]/(pow(dProb*udotu[0],1.5)) << " "
+                << dProb*skew[1]/(pow(dProb*udotu[1],1.5)) << " "
+#if (AMREX_SPACEDIM == 3)
+                << dProb*skew[2]/(pow(dProb*udotu[2],1.5))
+#endif
+                << std::endl;
+
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            CCMoments(gradU,d,ccTemp,4,kurt[d]);
+        }
+
+        Print() << "Kurtosis "
+		<< time << " "
+                << dProb*kurt[0]/(pow(dProb*udotu[0],2.)) << " "
+                << dProb*kurt[1]/(pow(dProb*udotu[1],2.)) << " "
+#if (AMREX_SPACEDIM == 3)
+                << dProb*kurt[2]/(pow(dProb*udotu[2],2.))
+#endif
+                << std::endl;
+
+        // use gradU as a temporary to store averaged velocities
+        AverageFaceToCC(umac,gradU,0);
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            Print() << "Sum of umac in direction " << d << "= "
+                    << gradU.sum(d) << std::endl;          
+        }
+        
         // MultiFab memory usage
         const int IOProc = ParallelDescriptor::IOProcessorNumber();
 

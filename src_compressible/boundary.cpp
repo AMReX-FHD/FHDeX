@@ -10,22 +10,6 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
         Abort("setBC: prim and cons need the same number of ghost cells");
     }
 
-    int nprimvars_gpu = nprimvars;
-    
-    GpuArray<Real,MAX_SPECIES> molmass_gpu;
-    for (int n=0; n<nspecies; ++n) {
-        molmass_gpu[n] = molmass[n];
-    }
-    
-    GpuArray<Real,MAX_SPECIES> hcv_gpu;
-    for (int n=0; n<nspecies; ++n) {
-        hcv_gpu[n] = hcv[n];
-    }
-    
-    Real Runiv_gpu = Runiv;
-
-    int nspecies_gpu = nspecies;
-    
     // Loop over boxes
     for ( MFIter mfi(prim_in); mfi.isValid(); ++mfi) {
 
@@ -56,7 +40,7 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                 amrex::ParallelFor(gbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (i < 0) {
-                        for (int n=0; n<nspecies_gpu; ++n) {
+                        for (int n=0; n<nspecies; ++n) {
                             prim(i,j,k,6+n)          = 2.*bc_Yk_x_lo[n] - prim(2*lo-i-1,j,k,6+n);
                             prim(i,j,k,6+nspecies+n) = 2.*bc_Xk_x_lo[n] - prim(2*lo-i-1,j,k,6+nspecies+n);
                         }
@@ -100,7 +84,7 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
 
                         // thermal & species (+pressure) BCs must be enforced first
                         GpuArray<Real,MAX_SPECIES> fracvec;
-                        for (int n=0; n<nspecies_gpu; ++n) {
+                        for (int n=0; n<nspecies; ++n) {
                             fracvec[n] = prim(i,j,k,6+n);
                         }
                         Real temp = prim(i,j,k,4);
@@ -108,14 +92,14 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                         Real rho;
                         Real intenergy;
 
-                        GetDensity(pt,rho,temp,fracvec,molmass_gpu,Runiv_gpu,nspecies_gpu);
-                        GetEnergy(intenergy,fracvec,temp,hcv_gpu,nspecies_gpu);
+                        GetDensity(pt,rho,temp,fracvec);
+                        GetEnergy(intenergy,fracvec,temp);
 
                         // total density depends on temperature
                         prim(i,j,k,0) = rho;
                         cons(i,j,k,0) = rho;
                         if (algorithm_type == 2) {
-                            for (int n=0; n<nspecies_gpu; ++n) {
+                            for (int n=0; n<nspecies; ++n) {
                                 cons(i,j,k,5+n) = rho*prim(i,j,k,6+n);
                             }
                         }
@@ -137,7 +121,7 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                    
                         // thermal & species (+pressure) BCs must be enforced first
                         GpuArray<Real,MAX_SPECIES> fracvec;
-                        for (int n=0; n<nspecies_gpu; ++n) {
+                        for (int n=0; n<nspecies; ++n) {
                             fracvec[n] = prim(i,j,k,6+n);
                         }
                         Real temp = prim(i,j,k,4);
@@ -145,13 +129,13 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                         Real rho;
                         Real intenergy;
 
-                        GetDensity(pt,rho,temp,fracvec,molmass_gpu,Runiv_gpu,nspecies_gpu);
-                        GetEnergy(intenergy,fracvec,temp,hcv_gpu,nspecies_gpu);
+                        GetDensity(pt,rho,temp,fracvec);
+                        GetEnergy(intenergy,fracvec,temp);
 
                         prim(i,j,k,0) = rho;
                         cons(i,j,k,0) = rho;
                         if (algorithm_type == 2) {
-                            for (int n=0; n<nspecies_gpu; ++n) {
+                            for (int n=0; n<nspecies; ++n) {
                                 cons(i,j,k,5+n) = rho*prim(i,j,k,6+n);
                             }
                         }
@@ -193,7 +177,7 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                 amrex::ParallelFor(gbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (i > n_cells[0]-1) {
-                        for (int n=0; n<nspecies_gpu; ++n) {
+                        for (int n=0; n<nspecies; ++n) {
                             prim(i,j,k,6+n)          = 2.*bc_Yk_x_hi[n] - prim(2*hi-i+1,j,k,6+n);
                             prim(i,j,k,6+nspecies+n) = 2.*bc_Xk_x_hi[n] - prim(2*hi-i+1,j,k,6+nspecies+n);
                         }
@@ -237,7 +221,7 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
 
                         // thermal & species (+pressure) BCs must be enforced first
                         GpuArray<Real,MAX_SPECIES> fracvec;
-                        for (int n=0; n<nspecies_gpu; ++n) {
+                        for (int n=0; n<nspecies; ++n) {
                             fracvec[n] = prim(i,j,k,6+n);
                         }
                         Real temp = prim(i,j,k,4);
@@ -245,14 +229,14 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                         Real rho;
                         Real intenergy;
 
-                        GetDensity(pt,rho,temp,fracvec,molmass_gpu,Runiv_gpu,nspecies_gpu);
-                        GetEnergy(intenergy,fracvec,temp,hcv_gpu,nspecies_gpu);
+                        GetDensity(pt,rho,temp,fracvec);
+                        GetEnergy(intenergy,fracvec,temp);
 
                         // total density depends on temperature
                         prim(i,j,k,0) = rho;
                         cons(i,j,k,0) = rho;
                         if (algorithm_type == 2) {
-                            for (int n=0; n<nspecies_gpu; ++n) {
+                            for (int n=0; n<nspecies; ++n) {
                                 cons(i,j,k,5+n) = rho*prim(i,j,k,6+n);
                             }
                         }
@@ -275,7 +259,7 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                    
                         // thermal & species (+pressure) BCs must be enforced first
                         GpuArray<Real,MAX_SPECIES> fracvec;
-                        for (int n=0; n<nspecies_gpu; ++n) {
+                        for (int n=0; n<nspecies; ++n) {
                             fracvec[n] = prim(i,j,k,6+n);
                         }
                         Real temp = prim(i,j,k,4);
@@ -283,13 +267,13 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                         Real rho;
                         Real intenergy;
 
-                        GetDensity(pt,rho,temp,fracvec,molmass_gpu,Runiv_gpu,nspecies_gpu);
-                        GetEnergy(intenergy,fracvec,temp,hcv_gpu,nspecies_gpu);
+                        GetDensity(pt,rho,temp,fracvec);
+                        GetEnergy(intenergy,fracvec,temp);
 
                         prim(i,j,k,0) = rho;
                         cons(i,j,k,0) = rho;
                         if (algorithm_type == 2) {
-                            for (int n=0; n<nspecies_gpu; ++n) {
+                            for (int n=0; n<nspecies; ++n) {
                                 cons(i,j,k,5+n) = rho*prim(i,j,k,6+n);
                             }
                         }
@@ -329,7 +313,7 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                 amrex::ParallelFor(gbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (j < 0) {
-                        for (int n=0; n<nspecies_gpu; ++n) {
+                        for (int n=0; n<nspecies; ++n) {
                             prim(i,j,k,6+n)          = 2.*bc_Yk_y_lo[n] - prim(i,2*lo-j-1,k,6+n);
                             prim(i,j,k,6+nspecies+n) = 2.*bc_Xk_y_lo[n] - prim(i,2*lo-j-1,k,6+nspecies+n);
                         }
@@ -373,7 +357,7 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
 
                         // thermal & species (+pressure) BCs must be enforced first
                         GpuArray<Real,MAX_SPECIES> fracvec;
-                        for (int n=0; n<nspecies_gpu; ++n) {
+                        for (int n=0; n<nspecies; ++n) {
                             fracvec[n] = prim(i,j,k,6+n);
                         }
                         Real temp = prim(i,j,k,4);
@@ -381,14 +365,14 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                         Real rho;
                         Real intenergy;
 
-                        GetDensity(pt,rho,temp,fracvec,molmass_gpu,Runiv_gpu,nspecies_gpu);
-                        GetEnergy(intenergy,fracvec,temp,hcv_gpu,nspecies_gpu);
+                        GetDensity(pt,rho,temp,fracvec);
+                        GetEnergy(intenergy,fracvec,temp);
 
                         // total density depends on temperature
                         prim(i,j,k,0) = rho;
                         cons(i,j,k,0) = rho;
                         if (algorithm_type == 2) {
-                            for (int n=0; n<nspecies_gpu; ++n) {
+                            for (int n=0; n<nspecies; ++n) {
                                 cons(i,j,k,5+n) = rho*prim(i,j,k,6+n);
                             }
                         }
@@ -410,7 +394,7 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                    
                         // thermal & species (+pressure) BCs must be enforced first
                         GpuArray<Real,MAX_SPECIES> fracvec;
-                        for (int n=0; n<nspecies_gpu; ++n) {
+                        for (int n=0; n<nspecies; ++n) {
                             fracvec[n] = prim(i,j,k,6+n);
                         }
                         Real temp = prim(i,j,k,4);
@@ -418,13 +402,13 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                         Real rho;
                         Real intenergy;
 
-                        GetDensity(pt,rho,temp,fracvec,molmass_gpu,Runiv_gpu,nspecies_gpu);
-                        GetEnergy(intenergy,fracvec,temp,hcv_gpu,nspecies_gpu);
+                        GetDensity(pt,rho,temp,fracvec);
+                        GetEnergy(intenergy,fracvec,temp);
 
                         prim(i,j,k,0) = rho;
                         cons(i,j,k,0) = rho;
                         if (algorithm_type == 2) {
-                            for (int n=0; n<nspecies_gpu; ++n) {
+                            for (int n=0; n<nspecies; ++n) {
                                 cons(i,j,k,5+n) = rho*prim(i,j,k,6+n);
                             }
                         }
@@ -466,7 +450,7 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                 amrex::ParallelFor(gbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (j > n_cells[1]-1) {
-                        for (int n=0; n<nspecies_gpu; ++n) {
+                        for (int n=0; n<nspecies; ++n) {
                             prim(i,j,k,6+n)          = 2.*bc_Yk_y_hi[n] - prim(i,2*hi-j+1,k,6+n);
                             prim(i,j,k,6+nspecies+n) = 2.*bc_Xk_y_hi[n] - prim(i,2*hi-j+1,k,6+nspecies+n);
                         }
@@ -510,7 +494,7 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
 
                         // thermal & species (+pressure) BCs must be enforced first
                         GpuArray<Real,MAX_SPECIES> fracvec;
-                        for (int n=0; n<nspecies_gpu; ++n) {
+                        for (int n=0; n<nspecies; ++n) {
                             fracvec[n] = prim(i,j,k,6+n);
                         }
                         Real temp = prim(i,j,k,4);
@@ -518,14 +502,14 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                         Real rho;
                         Real intenergy;
 
-                        GetDensity(pt,rho,temp,fracvec,molmass_gpu,Runiv_gpu,nspecies_gpu);
-                        GetEnergy(intenergy,fracvec,temp,hcv_gpu,nspecies_gpu);
+                        GetDensity(pt,rho,temp,fracvec);
+                        GetEnergy(intenergy,fracvec,temp);
 
                         // total density depends on temperature
                         prim(i,j,k,0) = rho;
                         cons(i,j,k,0) = rho;
                         if (algorithm_type == 2) {
-                            for (int n=0; n<nspecies_gpu; ++n) {
+                            for (int n=0; n<nspecies; ++n) {
                                 cons(i,j,k,5+n) = rho*prim(i,j,k,6+n);
                             }
                         }
@@ -548,7 +532,7 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                    
                         // thermal & species (+pressure) BCs must be enforced first
                         GpuArray<Real,MAX_SPECIES> fracvec;
-                        for (int n=0; n<nspecies_gpu; ++n) {
+                        for (int n=0; n<nspecies; ++n) {
                             fracvec[n] = prim(i,j,k,6+n);
                         }
                         Real temp = prim(i,j,k,4);
@@ -556,13 +540,13 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                         Real rho;
                         Real intenergy;
 
-                        GetDensity(pt,rho,temp,fracvec,molmass_gpu,Runiv_gpu,nspecies_gpu);
-                        GetEnergy(intenergy,fracvec,temp,hcv_gpu,nspecies_gpu);
+                        GetDensity(pt,rho,temp,fracvec);
+                        GetEnergy(intenergy,fracvec,temp);
 
                         prim(i,j,k,0) = rho;
                         cons(i,j,k,0) = rho;
                         if (algorithm_type == 2) {
-                            for (int n=0; n<nspecies_gpu; ++n) {
+                            for (int n=0; n<nspecies; ++n) {
                                 cons(i,j,k,5+n) = rho*prim(i,j,k,6+n);
                             }
                         }
@@ -602,7 +586,7 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                 amrex::ParallelFor(gbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (k < 0) {
-                        for (int n=0; n<nspecies_gpu; ++n) {
+                        for (int n=0; n<nspecies; ++n) {
                             prim(i,j,k,6+n)          = 2.*bc_Yk_z_lo[n] - prim(i,j,2*lo-k-1,6+n);
                             prim(i,j,k,6+nspecies+n) = 2.*bc_Xk_z_lo[n] - prim(i,j,2*lo-k-1,6+nspecies+n);
                         }
@@ -646,7 +630,7 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
 
                         // thermal & species (+pressure) BCs must be enforced first
                         GpuArray<Real,MAX_SPECIES> fracvec;
-                        for (int n=0; n<nspecies_gpu; ++n) {
+                        for (int n=0; n<nspecies; ++n) {
                             fracvec[n] = prim(i,j,k,6+n);
                         }
                         Real temp = prim(i,j,k,4);
@@ -654,14 +638,14 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                         Real rho;
                         Real intenergy;
 
-                        GetDensity(pt,rho,temp,fracvec,molmass_gpu,Runiv_gpu,nspecies_gpu);
-                        GetEnergy(intenergy,fracvec,temp,hcv_gpu,nspecies_gpu);
+                        GetDensity(pt,rho,temp,fracvec);
+                        GetEnergy(intenergy,fracvec,temp);
 
                         // total density depends on temperature
                         prim(i,j,k,0) = rho;
                         cons(i,j,k,0) = rho;
                         if (algorithm_type == 2) {
-                            for (int n=0; n<nspecies_gpu; ++n) {
+                            for (int n=0; n<nspecies; ++n) {
                                 cons(i,j,k,5+n) = rho*prim(i,j,k,6+n);
                             }
                         }
@@ -683,7 +667,7 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                    
                         // thermal & species (+pressure) BCs must be enforced first
                         GpuArray<Real,MAX_SPECIES> fracvec;
-                        for (int n=0; n<nspecies_gpu; ++n) {
+                        for (int n=0; n<nspecies; ++n) {
                             fracvec[n] = prim(i,j,k,6+n);
                         }
                         Real temp = prim(i,j,k,4);
@@ -691,13 +675,13 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                         Real rho;
                         Real intenergy;
 
-                        GetDensity(pt,rho,temp,fracvec,molmass_gpu,Runiv_gpu,nspecies_gpu);
-                        GetEnergy(intenergy,fracvec,temp,hcv_gpu,nspecies_gpu);
+                        GetDensity(pt,rho,temp,fracvec);
+                        GetEnergy(intenergy,fracvec,temp);
 
                         prim(i,j,k,0) = rho;
                         cons(i,j,k,0) = rho;
                         if (algorithm_type == 2) {
-                            for (int n=0; n<nspecies_gpu; ++n) {
+                            for (int n=0; n<nspecies; ++n) {
                                 cons(i,j,k,5+n) = rho*prim(i,j,k,6+n);
                             }
                         }
@@ -739,7 +723,7 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                 amrex::ParallelFor(gbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (k > n_cells[2]-1) {
-                        for (int n=0; n<nspecies_gpu; ++n) {
+                        for (int n=0; n<nspecies; ++n) {
                             prim(i,j,k,6+n)          = 2.*bc_Yk_z_hi[n] - prim(i,j,2*hi-k+1,6+n);
                             prim(i,j,k,6+nspecies+n) = 2.*bc_Xk_z_hi[n] - prim(i,j,2*hi-k+1,6+nspecies+n);
                         }
@@ -783,7 +767,7 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
 
                         // thermal & species (+pressure) BCs must be enforced first
                         GpuArray<Real,MAX_SPECIES> fracvec;
-                        for (int n=0; n<nspecies_gpu; ++n) {
+                        for (int n=0; n<nspecies; ++n) {
                             fracvec[n] = prim(i,j,k,6+n);
                         }
                         Real temp = prim(i,j,k,4);
@@ -791,14 +775,14 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                         Real rho;
                         Real intenergy;
 
-                        GetDensity(pt,rho,temp,fracvec,molmass_gpu,Runiv_gpu,nspecies_gpu);
-                        GetEnergy(intenergy,fracvec,temp,hcv_gpu,nspecies_gpu);
+                        GetDensity(pt,rho,temp,fracvec);
+                        GetEnergy(intenergy,fracvec,temp);
 
                         // total density depends on temperature
                         prim(i,j,k,0) = rho;
                         cons(i,j,k,0) = rho;
                         if (algorithm_type == 2) {
-                            for (int n=0; n<nspecies_gpu; ++n) {
+                            for (int n=0; n<nspecies; ++n) {
                                 cons(i,j,k,5+n) = rho*prim(i,j,k,6+n);
                             }
                         }
@@ -821,7 +805,7 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                    
                         // thermal & species (+pressure) BCs must be enforced first
                         GpuArray<Real,MAX_SPECIES> fracvec;
-                        for (int n=0; n<nspecies_gpu; ++n) {
+                        for (int n=0; n<nspecies; ++n) {
                             fracvec[n] = prim(i,j,k,6+n);
                         }
                         Real temp = prim(i,j,k,4);
@@ -829,13 +813,13 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                         Real rho;
                         Real intenergy;
 
-                        GetDensity(pt,rho,temp,fracvec,molmass_gpu,Runiv_gpu,nspecies_gpu);
-                        GetEnergy(intenergy,fracvec,temp,hcv_gpu,nspecies_gpu);
+                        GetDensity(pt,rho,temp,fracvec);
+                        GetEnergy(intenergy,fracvec,temp);
 
                         prim(i,j,k,0) = rho;
                         cons(i,j,k,0) = rho;
                         if (algorithm_type == 2) {
-                            for (int n=0; n<nspecies_gpu; ++n) {
+                            for (int n=0; n<nspecies; ++n) {
                                 cons(i,j,k,5+n) = rho*prim(i,j,k,6+n);
                             }
                         }

@@ -23,6 +23,9 @@ module multispec_namelist_module
   integer,            save :: is_ideal_mixture
   integer,            save :: use_lapack
   integer,            save :: use_multiphase
+  double precision,   save :: kc_tension
+  double precision,   save :: alpha_gex
+  integer,            save :: n_gex
   double precision,   save :: c_init_1(MAX_SPECIES)
   double precision,   save :: c_init_2(MAX_SPECIES)
   
@@ -35,8 +38,6 @@ module multispec_namelist_module
   double precision,   save :: dielectric_const
   integer,            save :: dielectric_type
   double precision,   save :: charge_per_mass(MAX_SPECIES)
-  double precision,   save :: Epot_wall_bc_type(1:2,AMREX_SPACEDIM)
-  double precision,   save :: Epot_wall(1:2,AMREX_SPACEDIM)
   double precision,   save :: theta_pot
   integer,            save :: num_pot_iters
   double precision,   save :: dpdt_factor
@@ -62,6 +63,9 @@ module multispec_namelist_module
   namelist /multispec/ is_nonisothermal   ! If T Soret effect will be included
   namelist /multispec/ use_lapack         ! Use LAPACK or iterative method for diffusion matrix (recommend False)
   namelist /multispec/ use_multiphase     ! for RTIL
+  namelist /multispec/ kc_tension         ! for RTIL
+  namelist /multispec/ alpha_gex          ! for RTIL
+  namelist /multispec/ n_gex              ! for RTIL
   namelist /multispec/ chi_iterations     ! number of iterations used in Dbar2chi_iterative
 
   ! Initial and boundary conditions 
@@ -104,9 +108,6 @@ module multispec_namelist_module
   namelist /multispec/ dielectric_const
   namelist /multispec/ dielectric_type
   namelist /multispec/ charge_per_mass
-  namelist /multispec/ Epot_wall_bc_type  ! 1 = Dirichlet (fixed potential)
-                                          ! 2 = Neumann (fixed charge density)
-
   namelist /multispec/ bc_function_type   ! 0 = constant 
                                           ! 1 = cubic, see description below
 
@@ -114,7 +115,6 @@ module multispec_namelist_module
   namelist /multispec/ L_trans            ! length of transition part of boundary, where the value varies like a cubic
   namelist /multispec/ L_zero             ! length of part of boundary where there is zero charge flux, if cubic function is imposed
 
-  namelist /multispec/ Epot_wall          ! Dirichlet or Neumann condition
   namelist /multispec/ theta_pot          ! for implicit algorithm_type=3, controls
                                                ! temporal discretization for potential term
   namelist /multispec/ num_pot_iters
@@ -152,6 +152,9 @@ contains
     is_nonisothermal   = 0
     use_lapack         = 0
     use_multiphase     = 0
+    kc_tension         = 0.d0
+    alpha_gex          = 0.d0
+    n_gex              = 1
     chi_iterations     = 10
     temp_type          = 0
     c_init_1(:)        = 1.0d0
@@ -172,12 +175,10 @@ contains
                                 ! 1 = (1+c1)*dielectric_const
                                 ! see fluid_charge.f90:compute_permittivity()
     charge_per_mass(:)     = 0.d0
-    Epot_wall_bc_type(:,:) = 1
     bc_function_type       = 0 
     L_pos                  = 0.d0
     L_trans                = 0.d0
     L_zero                 = 0.d0
-    Epot_wall(:,:)         = 0.d0
     theta_pot              = 0.5d0
     num_pot_iters          = 2
     dpdt_factor            = 0.d0
@@ -204,12 +205,14 @@ contains
                                              Dbar_in, Dtherm_in, H_offdiag_in, H_diag_in, &
                                              fraction_tolerance_in, correct_flux_in, print_error_norms_in, &
                                              is_nonisothermal_in, is_ideal_mixture_in, &
-                                             use_lapack_in, use_multiphase_in, c_init_1_in, c_init_2_in, &
+                                             use_lapack_in, use_multiphase_in, &
+                                             kc_tension_in, alpha_gex_in, n_gex_in, &
+                                             c_init_1_in, c_init_2_in, &
                                              midpoint_stoch_mass_flux_type_in, &
                                              avg_type_in, mixture_type_in, &
                                              use_charged_fluid_in, print_debye_len_in, dielectric_const_in, &
-                                             dielectric_type_in, charge_per_mass_in, Epot_wall_bc_type_in, &
-                                             Epot_wall_in, theta_pot_in, num_pot_iters_in, dpdt_factor_in, &
+                                             dielectric_type_in, charge_per_mass_in, &
+                                             theta_pot_in, num_pot_iters_in, dpdt_factor_in, &
                                              relxn_param_charge_in, E_ext_type_in, E_ext_value_in, &
                                              electroneutral_in, induced_charge_eo_in, &
                                              zero_eps_on_wall_type_in, zero_charge_on_wall_type_in, &
@@ -232,6 +235,9 @@ contains
     integer,            intent(inout) :: is_ideal_mixture_in
     integer,            intent(inout) :: use_lapack_in
     integer,            intent(inout) :: use_multiphase_in
+    double precision,   intent(inout) :: kc_tension_in
+    double precision,   intent(inout) :: alpha_gex_in
+    integer,            intent(inout) :: n_gex_in
     double precision,   intent(inout) :: c_init_1_in(MAX_SPECIES)
     double precision,   intent(inout) :: c_init_2_in(MAX_SPECIES)
 
@@ -244,8 +250,6 @@ contains
     double precision,   intent(inout) :: dielectric_const_in
     integer,            intent(inout) :: dielectric_type_in
     double precision,   intent(inout) :: charge_per_mass_in(MAX_SPECIES)
-    double precision,   intent(inout) :: Epot_wall_bc_type_in(1:2,AMREX_SPACEDIM)
-    double precision,   intent(inout) :: Epot_wall_in(1:2,AMREX_SPACEDIM)
     double precision,   intent(inout) :: theta_pot_in
     integer,            intent(inout) :: num_pot_iters_in
     double precision,   intent(inout) :: dpdt_factor_in
@@ -279,6 +283,9 @@ contains
     is_ideal_mixture_in = is_ideal_mixture
     use_lapack_in = use_lapack
     use_multiphase_in = use_multiphase
+    kc_tension_in = kc_tension
+    alpha_gex_in = alpha_gex
+    n_gex_in = n_gex
     c_init_1_in = c_init_1
     c_init_2_in = c_init_2
     midpoint_stoch_mass_flux_type_in = midpoint_stoch_mass_flux_type
@@ -290,8 +297,6 @@ contains
     dielectric_const_in = dielectric_const
     dielectric_type_in = dielectric_type
     charge_per_mass_in = charge_per_mass
-    Epot_wall_bc_type_in = Epot_wall_bc_type
-    Epot_wall_in = Epot_wall
     theta_pot_in = theta_pot
     num_pot_iters_in = num_pot_iters
     dpdt_factor_in = dpdt_factor

@@ -157,8 +157,9 @@ void ElectroDiffusiveMassFlux(const MultiFab& rho,
             MultiFab::Multiply(permittivity_fc[i],E_ext[i],0,0,1,0);
         }
 
-        // compute div (epsilon*E_ext) and add it to solver rhs
-        ComputeDiv(rhs,permittivity_fc,0,0,1,geom,1);
+        // compute div (epsilon*E_ext) and SUBTRACT it to solver rhs
+        // this needs to be tested with spatially-varying E_ext OR epsilon
+        ComputeDiv(rhs,permittivity_fc,0,0,1,geom,-1.);
     }
 
     // solve (alpha - del dot beta grad) Epot = charge (for electro-explicit)
@@ -290,6 +291,7 @@ void ElectroDiffusiveMassFlux(const MultiFab& rho,
     }
     AverageCCToFace(charge_coef, electro_mass_flux, 0, nspecies, SPEC_BC_COMP, geom);
 
+    // multiply flux coefficient by gradient of electric potential
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
         for (int comp=0; comp<nspecies; ++comp) {
             MultiFab::Multiply(electro_mass_flux[i], grad_Epot[i], 0, comp, 1, 0);
@@ -297,8 +299,7 @@ void ElectroDiffusiveMassFlux(const MultiFab& rho,
     }
 
     if (use_multiphase == 1) {
-        Abort("ElectroDiffusiveMassFluxdiv.cpp: limit_emf not written yet");
-        // call limit_emf(rho, electro_mass_flux, grad_Epot)
+        LimitEMF(rho,electro_mass_flux);
     }
 
     // compute -rhoWchi * (... ) on faces
@@ -312,4 +313,60 @@ void ElectroDiffusiveMassFlux(const MultiFab& rho,
     // so the total mass flux (diff + stoch + Epot) is zero, but the numerical remedy here is to simply
     // zero them individually.
     ZeroEdgevalWalls(electro_mass_flux, geom, 0, nspecies);
+}
+
+
+void LimitEMF(const MultiFab& rho_in,
+              std::array< MultiFab, AMREX_SPACEDIM >& electro_mass_flux) {
+
+
+    for ( MFIter mfi(rho_in,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
+        const Box& bx = mfi.tilebox();
+
+        const Array4<Real const>& rho = rho_in.array(mfi);
+        
+        AMREX_D_TERM(const Array4<Real>& emfx = electro_mass_flux[0].array(mfi);,
+                     const Array4<Real>& emfy = electro_mass_flux[1].array(mfi);,
+                     const Array4<Real>& emfz = electro_mass_flux[2].array(mfi););
+
+        amrex::ParallelFor(bx, nspecies,  [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+        {
+            if (rho(i,j,k,n) <= 0.) {
+
+                if (emfx(i,j,k,n) > 0.) {
+                    for (int m=0; m<nspecies; ++m) {
+                        emfx(i,j,k,m) = 0.;
+                    }
+                }
+                if (emfx(i+1,j,k,n) < 0.) {
+                    for (int m=0; m<nspecies; ++m) {
+                        emfx(i+1,j,k,m) = 0.;
+                    }
+                }
+
+                if (emfy(i,j,k,n) > 0.) {
+                    for (int m=0; m<nspecies; ++m) {
+                        emfy(i,j,k,m) = 0.;
+                    }
+                }
+                if (emfy(i,j+1,k,n) < 0.) {
+                    for (int m=0; m<nspecies; ++m) {
+                        emfy(i,j+1,k,m) = 0.;
+                    }
+                }
+#if (AMREX_SPACEDIM == 3)
+                if (emfz(i,j,k,n) > 0.) {
+                    for (int m=0; m<nspecies; ++m) {
+                        emfz(i,j,k,m) = 0.;
+                    }
+                }
+                if (emfz(i,j,k+1,n) < 0.) {
+                    for (int m=0; m<nspecies; ++m) {
+                        emfz(i,j,k+1,m) = 0.;
+                    }
+                }
+#endif                
+            }
+        });
+    } // end MFIter
 }

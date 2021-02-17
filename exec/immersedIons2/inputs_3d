@@ -89,7 +89,7 @@
 
   ! Poisson solver parameters -- there are more options which we can add to the namespace later
   !-------------------
-  poisson_rel_tol = 1.e8                ! relative tolerance stopping criteria
+  poisson_rel_tol = 1.e-8                ! relative tolerance stopping criteria
   poisson_verbose =  1                   ! multigrid verbosity
   poisson_bottom_verbose =  0           ! base solver verbosity
   poisson_max_iter = 100                 

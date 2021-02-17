@@ -21,8 +21,8 @@
   fixed_dt = 1.d-10
 
   ! Controls for number of steps between actions
-  max_step = 100000
-  plot_int = 100
+  max_step = 1
+  plot_int = 1
   chk_int = 1000
   restart = -1
 
@@ -39,7 +39,7 @@
   visc_type = 1
 
   ! Stochastic parameters
-  variance_coef_mom = 1.
+  variance_coef_mom = 0.
   initial_variance_mom = 0.
 
   turb_a = 1.d7
