@@ -860,7 +860,6 @@ void main_driver(const char* argv)
                 Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
         }
 
-
         if(istep == 100)
         {
                 dt = dt*10;
@@ -870,9 +869,8 @@ void main_driver(const char* argv)
 
 //        if(istep == 1)
 //        {
-//            particles.SetPosition(1, prob_hi[0]*0.45, prob_hi[1]*0.45, prob_hi[2]*0.45);
-//            particles.SetPosition(2, prob_hi[0]*0.45 + 1.29182e-8, prob_hi[1]*0.45, prob_hi[2]*0.45);
-//           
+//            particles.SetPosition(1, prob_hi[0]*0.25, prob_hi[1]*0.25, prob_hi[2]*0.5);
+//            particles.SetPosition(2, prob_hi[0]*0.25, prob_hi[1]*0.25+2*dx[0], prob_hi[2]*0.5);
 //        }
 
     
