@@ -22,8 +22,8 @@ int                        common::membrane_cell;
 int                        common::cross_cell;
 amrex::Real                common::transmission;
 
-AMREX_GPU_MANAGED int      common::pkernel_fluid;
-AMREX_GPU_MANAGED int      common::pkernel_es;
+AMREX_GPU_MANAGED amrex::Vector<int>      common::pkernel_fluid; // GALEN - FLUID KERNEL
+AMREX_GPU_MANAGED amrex::Vector<int>      common::pkernel_es;
 amrex::Vector<amrex::Real> common::qval;
 
 amrex::Real                common::fixed_dt;

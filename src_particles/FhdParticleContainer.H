@@ -6,9 +6,9 @@
 #include "species.H"
 
 #include "paramPlane.H"
-#include "paramplane_functions_F.H"
+//#include "paramplane_functions_F.H"
 
-#include "particle_functions_F.H"
+//#include "particle_functions_F.H"
 #include "particle_functions.H"
 
 using namespace std;

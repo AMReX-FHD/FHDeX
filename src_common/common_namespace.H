@@ -32,8 +32,8 @@ namespace common {
     extern amrex::Real                transmission;
 
     extern amrex::Vector<amrex::Real> qval;
-    extern AMREX_GPU_MANAGED int      pkernel_fluid;
-    extern AMREX_GPU_MANAGED int      pkernel_es;
+    extern AMREX_GPU_MANAGED amrex::Vector<int>      pkernel_fluid;
+    extern AMREX_GPU_MANAGED amrex::Vector<int>      pkernel_es;
 
     // Time-step control
     extern amrex::Real                fixed_dt;

@@ -193,14 +193,14 @@ amrex::Real compute_p3m_force_mag (amrex::Real r, amrex::Real dx, amrex::Real dy
 
     //Print() << "RCELLFRAC: " << r_cell_frac << ", " << r_norm << "\n";
 
-    if (pkernel_es == 6)
+    if (pkernel_es[0] == 6)
     {
         // do linear interpolation of force between vals(i+1) and val(i) 
         m = (vals6[r_cell+1]-vals6[r_cell])/(points6[r_cell+1]-points6[r_cell]);
         
         mag  = m*r_cell_frac + vals6[r_cell];
     }
-    else if (pkernel_es == 4)
+    else if (pkernel_es[0] == 4)
     {
         // do linear interpolation of force between vals(i+1) and val(i) 
         m = (vals4[r_cell+1]-vals4[r_cell])/(points4[r_cell+1]-points4[r_cell]);
@@ -1145,15 +1145,15 @@ void collect_charge_gpu (FhdParticleContainer::AoS& aos, FArrayBox& charge, F f,
 void collect_charge_gpu (FhdParticleContainer::AoS& aos, FArrayBox& charge,
                      const amrex::Real* plo, const amrex::Real* dx)
 {
-    if (common::pkernel_es == 3)
+    if (common::pkernel_es[0] == 3)
     {
         collect_charge_gpu (aos, charge, Kernel3P(), plo, dx);
     }
-    else if (common::pkernel_es == 4)
+    else if (common::pkernel_es[0] == 4)
     {
         collect_charge_gpu(aos, charge, Kernel4P(), plo, dx);
     }
-    else if (common::pkernel_es == 6)
+    else if (common::pkernel_es[0] == 6)
     {
         collect_charge_gpu(aos, charge, Kernel6P(), plo, dx);
     }
@@ -1210,15 +1210,15 @@ void emf_gpu(FhdParticleContainer::AoS& aos,
                       FArrayBox& Ex, FArrayBox& Ey, FArrayBox& Ez,
                       const amrex::Real* plo_in, const amrex::Real* dx_in)
 {
-    if (common::pkernel_es == 3)
+    if (common::pkernel_es[0] == 3)
     {
         emf_gpu(aos, Kernel4P(), Ex, Ey, Ez, plo_in, dx_in);
     }
-    else if (common::pkernel_es == 4)
+    else if (common::pkernel_es[0] == 4)
     {
         emf_gpu(aos, Kernel4P(), Ex, Ey, Ez, plo_in, dx_in);
     }
-    else if (common::pkernel_es == 6)
+    else if (common::pkernel_es[0] == 6)
     {
         emf_gpu(aos, Kernel6P(), Ex, Ey, Ez, plo_in, dx_in);
     }
@@ -1282,15 +1282,15 @@ void spread_ions_fhd_gpu(FhdParticleContainer::AoS& aos,
                       const amrex::Real* plo_in,
                       const amrex::Real* dx_in)
 {
-    if (common::pkernel_es == 3)
+    if (common::pkernel_es[0] == 3)
     {
         spread_ions_fhd_gpu(aos, Kernel4P(), sourcex, sourcey, sourcez, plo_in, dx_in);
     }
-    else if (common::pkernel_es == 4)
+    else if (common::pkernel_es[0] == 4)
     {
         spread_ions_fhd_gpu(aos, Kernel4P(), sourcex, sourcey, sourcez, plo_in, dx_in);
     }
-    else if (common::pkernel_es == 6)
+    else if (common::pkernel_es[0] == 6)
     {
         spread_ions_fhd_gpu(aos, Kernel6P(), sourcex, sourcey, sourcez, plo_in, dx_in);
     }
