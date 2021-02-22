@@ -23,15 +23,22 @@
   plot_ascii = 0
   struct_fact_int = -1
   n_steps_skip = 1
+  chk_int  = -1
+
+  radialdist_int = 0
+  cartdist_int = 0
+  binsize = 0.5e-8
+  searchDist = 4.e-7
 
   ! Toggles 0=off, 1=on
+  all_dry = 0
   fluid_tog = 1 ! 0=Do nothing, 1=Do stokes solve, 2=Do low Mach solve
   es_tog = 3 ! Do electrostatic solve 0=off, 1=Poisson, 2=Pairwise Coulomb (Doesn't work in parallel), 3=PPPM
   drag_tog = 0 ! Apply drag force to fluid
   rfd_tog = 1 ! Apply RFD force to fluid
   move_tog = 2 ! ! Total particle move. 0 = off, 1 = single step, 2 = midpoint
   dry_move_tog = 1 ! Dry particle move
-  sr_tog = 1 ! Short range forces
+  sr_tog = 1 ! 1=Short range LJ forces without walls, 2= with walls, 3=Wall with alternative model
  
 
   ! Fluid info
@@ -64,16 +71,21 @@
   diff = 1.33e-05 1.33e-05
  !If diameter is negative, this value will be used. If diameter is positive, it will be ignored. This is the total wet+dry diffusion. The wet component arises from the grid size and peskin kernel, the dry component is set to recover the value entered here.
  
-  p_int_tog = 1 1 1 1! If zero, LJ/WCA forces will not be computed for this species with itself (different species always interact)
-  eepsilon = 1e-16 1e-16 1e-16 1e-16 !WCA potential---note that Aleks uses 10^-3 but we're not sure of the units in BDWoGF
-  sigma = 8e-8 8e-8   !Close range repulsion diameter
-  rmin = 1e-8     !Minimum range to prevent blow up of force.  NOTE, THIS IS A RADIUS, THE OTHER VALUES ARE DIAMETER. YES THIS IS STUPID.
+  p_int_tog = 1 1 1 0        ! 1 - species pair does interact, 0 it doesn't. Non self interacting particles also ignore walls for coulomb, the see walls for short range though.
+  eepsilon = 8.16e-15 7.95e-14 0 7.95e-14 0  ! LJ parameter (not the value is in ergs; taken from Freund JCP 2002)
+  sigma = 8.84e-8 8.84e-8 8.84e-8 8.84e-8 !Close range repulsion diameter*2 (from Freund JCP 2002)
+  rmin = 0.25 0.25 0.25 0.25   !Minimum range to prevent blow up of force. Fraction of sigma
+  rmax = 1.22 1.22 1.22 1.22   !Maximum range
+  
+  eepsilon_wall = 8.16e-15 7.95e-14
+  sigma_wall = 8.84e-8 8.84e-8
+  rmin_wall = 0.25 0.25
+  rmax_wall = 1.22 1.22
 
   !Interaction parameters
   !------------
   permittivity = 692.96e-21
 
-  crange = 16       !cell depth when building neighbour lists USING PARTICLE GRID CELL SIZE
   images = 0    !if pairwise Coulomb interactions have been selected, this is the number of periodic images to use
 
   eamp = 1.e10 0 0  !external electric field properties

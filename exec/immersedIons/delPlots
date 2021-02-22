@@ -10,3 +10,11 @@ rm -r eplt*
 rm -r stag*
 rm -r chk*
 rm *ascii*
+rm particleout.*
+rm currentEst
+rm bulkFlowEst
+rm volEst
+rm diffusionEst
+rm conductivityEst
+rm Backtrace.*
+rm threepm*
