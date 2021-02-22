@@ -217,7 +217,6 @@ namespace common {
     extern amrex::Vector<int>         particle_count;
     extern amrex::Vector<int>         p_move_tog;
     extern amrex::Vector<int>         p_force_tog;
-    extern AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_SPECIES*MAX_SPECIES>         p_int_tog;
     extern amrex::Real                particle_neff;
     extern amrex::Vector<amrex::Real> particle_n0;
     extern amrex::Vector<amrex::Real> mass;
@@ -225,9 +224,18 @@ namespace common {
 
     extern AMREX_GPU_MANAGED amrex::Real permittivity;
     extern amrex::Real                cut_off;
-    extern amrex::Real                rmin;
+
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES*MAX_SPECIES> rmin;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES*MAX_SPECIES> rmax;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES*MAX_SPECIES> eepsilon;
-    extern amrex::Vector<amrex::Real> sigma;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES*MAX_SPECIES> sigma;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_SPECIES*MAX_SPECIES>         p_int_tog;
+
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> rmin_wall;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> rmax_wall;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> eepsilon_wall;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> sigma_wall;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_SPECIES> p_int_tog_wall;
 
     extern int                        poisson_verbose;
     extern int                        poisson_bottom_verbose;

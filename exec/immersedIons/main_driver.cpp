@@ -750,8 +750,6 @@ void main_driver(const char* argv)
     
     MultiFab dryMobility(ba, dmap, nspecies*AMREX_SPACEDIM, ang);
 
-    ComputeDryMobility(dryMobility, ionParticle, geom);
-
     ///////////////////////////////////////////
     // structure factor for charge-charge
     ///////////////////////////////////////////

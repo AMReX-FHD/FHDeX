@@ -135,14 +135,23 @@ int                        common::particle_placement;
 amrex::Vector<int>         common::particle_count;
 amrex::Vector<int>         common::p_move_tog;
 amrex::Vector<int>         common::p_force_tog;
-AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_SPECIES*MAX_SPECIES> common::p_int_tog;
+
 amrex::Real                common::particle_neff;
 amrex::Vector<amrex::Real> common::particle_n0;
 amrex::Vector<amrex::Real> common::mass;
 amrex::Vector<amrex::Real> common::nfrac;
 
+AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_SPECIES*MAX_SPECIES> common::p_int_tog;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES*MAX_SPECIES> common::eepsilon;
-amrex::Vector<amrex::Real> common::sigma;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES*MAX_SPECIES> common::sigma;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES*MAX_SPECIES> common::rmin;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES*MAX_SPECIES> common::rmax;
+
+AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_SPECIES> common::p_int_tog_wall;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::eepsilon_wall;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::sigma_wall;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::rmin_wall;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::rmax_wall;
 
 int                        common::poisson_verbose;
 int                        common::poisson_bottom_verbose;
@@ -151,7 +160,7 @@ int                        common::poisson_max_iter;
 amrex::Real                common::poisson_rel_tol;
 AMREX_GPU_MANAGED amrex::Real common::permittivity;
 amrex::Real                common::cut_off;
-amrex::Real                common::rmin;
+
 
 amrex::Real                common::particle_grid_refine;
 amrex::Real                common::es_grid_refine;
