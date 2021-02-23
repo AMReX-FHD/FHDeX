@@ -15,48 +15,20 @@ void doMembraneStag(MultiFab& cons,
     
     // const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
 
-    // there is probably a more elegant way to do this than setting the whole x-domain flux to zero
-    faceflux[0].mult(0.0,0,1); // set mass flux to zero
-    faceflux[0].mult(0.0,4,1); // set energy flux to zero
-    faceflux[0].mult(0.0,5,nspecies); // set species flux to zero
-    //for (int l=0;l<nspecies;++l) {
-    //    faceflux[0].setVal(0.0,5+l); // set species flux to zero
-    //}
+    faceflux[0].setVal(0.0); // set mass flux to zero
     
     doLangevin(cons,prim,faceflux,geom,dt);
 
-    //// Loop over boxes
-    //for ( MFIter mfi(cons); mfi.isValid(); ++mfi) {
-    //    
-    //    const Box& bx = mfi.validbox();
-
-    //    /*
-    //    do_ssa(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
-    //           cons[mfi].dataPtr(),
-    //           prim[mfi].dataPtr(), flux[0][mfi].dataPtr(), dx, &dt);
-    //    */
-
-    //    do_langevin(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
-    //                cons[mfi].dataPtr(),
-    //                prim[mfi].dataPtr(), flux[0][mfi].dataPtr(), dx, &dt);
-    //}
-
-    // flux[0].OverrideSync(geom.periodicity()); -- ask AJN about this
-
-    //for ( MFIter mfi(cons); mfi.isValid(); ++mfi) {
-    //    
-    //    const Box& bx = mfi.validbox();
-
-    //    apply_effusion(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
-    //                   cons[mfi].dataPtr(),
-    //                   flux[0][mfi].dataPtr(), dx, &dt);
-    //}
-    //
+    faceflux[0].OverrideSync(geom.periodicity());
 
     applyEffusion(faceflux,cons);
 
+    cons.FillBoundary(geom.periodicity()); // need correct periodicity for density to calculate velocities below 
     conservedToPrimitiveStag(prim, vel, cons, cumom);
-    cons.FillBoundary(geom.periodicity());
+    cons.FillBoundary(geom.periodicity()); // cell-centered momentum is filled in the line above 
+    for (int d=0; d<AMREX_SPACEDIM; d++) {
+        vel[d].FillBoundary(geom.periodicity());
+    }
     prim.FillBoundary(geom.periodicity());
 }
 
