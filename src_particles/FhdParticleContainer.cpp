@@ -1025,7 +1025,7 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
                         Real dry_terms[3];
 
                         get_explicit_mobility_gpu(mb, mbDer, part, plo, phi);
-
+                        
                         dry_gpu(dt, part,dry_terms, mb, mbDer);
 
                         for (int d=0; d<AMREX_SPACEDIM; ++d)

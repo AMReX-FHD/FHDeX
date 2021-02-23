@@ -138,7 +138,7 @@ void InitializeCommonNamespace() {
                                 p_int_tog.begin(),p_int_tog_wall.begin(), &particle_neff,
                                 particle_n0.dataPtr(), mass.dataPtr(), nfrac.dataPtr(),
                                 &permittivity,
-                                &cut_off,rmin.begin(),rmax.begin(), eepsilon.begin(), sigma.begin(),rmin_wall.begin(),rmax_wall.begin(), eepsilon_wall.begin(), sigma_wall.begin(),
+                                &wall_mob,rmin.begin(),rmax.begin(), eepsilon.begin(), sigma.begin(),rmin_wall.begin(),rmax_wall.begin(), eepsilon_wall.begin(), sigma_wall.begin(),
                                 &poisson_verbose, &poisson_bottom_verbose, &poisson_max_iter,
                                 &poisson_rel_tol, &particle_grid_refine, &es_grid_refine,
                                 diff.dataPtr(), &all_dry, &fluid_tog, &es_tog, &drag_tog, &move_tog, &rfd_tog,

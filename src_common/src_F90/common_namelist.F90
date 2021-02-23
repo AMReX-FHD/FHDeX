@@ -153,7 +153,7 @@ module common_namelist_module
   integer,            save :: shift_cc_to_boundary(AMREX_SPACEDIM,LOHI)
 
   double precision,   save :: permittivity
-  double precision,   save :: cut_off
+  integer,            save :: wall_mob
   double precision,   save :: rmin(MAX_SPECIES*MAX_SPECIES)
   double precision,   save :: rmax(MAX_SPECIES*MAX_SPECIES)
   double precision,   save :: eepsilon(MAX_SPECIES*MAX_SPECIES)
@@ -377,7 +377,7 @@ module common_namelist_module
   namelist /common/ shift_cc_to_boundary
 
   namelist /common/ permittivity
-  namelist /common/ cut_off
+  namelist /common/ wall_mob
   namelist /common/ rmin
   namelist /common/ rmax
   namelist /common/ eepsilon
@@ -579,6 +579,8 @@ contains
     all_dry = 0
     particle_neff = 1
 
+    wall_mob = 1
+
     eamp(:) =  0
     efreq(:) = 0
     ephase(:) = 0
@@ -647,7 +649,7 @@ contains
                                          particle_placement_in, particle_count_in, p_move_tog_in, &
                                          p_force_tog_in, p_int_tog_in, p_int_tog_wall_in, particle_neff_in,&
                                          particle_n0_in, mass_in, nfrac_in, permittivity_in, &
-                                         cut_off_in, rmin_in, rmax_in, eepsilon_in, sigma_in, rmin_wall_in, rmax_wall_in, eepsilon_wall_in, sigma_wall_in, poisson_verbose_in, &
+                                         wall_mob_in, rmin_in, rmax_in, eepsilon_in, sigma_in, rmin_wall_in, rmax_wall_in, eepsilon_wall_in, sigma_wall_in, poisson_verbose_in, &
                                          poisson_bottom_verbose_in, poisson_max_iter_in, poisson_rel_tol_in, &
                                          particle_grid_refine_in, es_grid_refine_in, diff_in, all_dry_in, &
                                          fluid_tog_in, es_tog_in, drag_tog_in, move_tog_in, rfd_tog_in, &
@@ -789,7 +791,7 @@ contains
     double precision,       intent(inout) :: sigma_wall_in(MAX_SPECIES)
 
     double precision,       intent(inout) :: permittivity_in
-    double precision,       intent(inout) :: cut_off_in
+    integer,                intent(inout) :: wall_mob_in
     double precision,       intent(inout) :: rmin_in(MAX_SPECIES*MAX_SPECIES)
     double precision,       intent(inout) :: rmax_in(MAX_SPECIES*MAX_SPECIES)
     double precision,       intent(inout) :: rmin_wall_in(MAX_SPECIES)
@@ -959,7 +961,7 @@ contains
     poisson_max_iter_in = poisson_max_iter
     poisson_rel_tol_in = poisson_rel_tol
     permittivity_in = permittivity
-    cut_off_in = cut_off
+    wall_mob_in = wall_mob
     rmin_in = rmin
     rmax_in = rmax
     eepsilon_in = eepsilon

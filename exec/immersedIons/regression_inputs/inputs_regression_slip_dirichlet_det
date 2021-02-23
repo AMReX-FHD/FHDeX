@@ -43,6 +43,7 @@
   rfd_tog = 0 ! Apply RFD force to fluid
   move_tog = 2 ! ! Total particle move. 0 = off, 1 = single step, 2 = midpoint
   dry_move_tog = 1 ! Dry particle move
+  wall_mob = 1 !0= no dry adjustment to mobility due to walls, 1=Infinte plane, 2=other model
   sr_tog = 1 ! Short range forces
  
 

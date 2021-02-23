@@ -223,7 +223,7 @@ namespace common {
     extern amrex::Vector<amrex::Real> nfrac;
 
     extern AMREX_GPU_MANAGED amrex::Real permittivity;
-    extern amrex::Real                cut_off;
+    extern int                        wall_mob;
 
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES*MAX_SPECIES> rmin;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES*MAX_SPECIES> rmax;

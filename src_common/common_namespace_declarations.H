@@ -159,7 +159,7 @@ int                        common::poisson_max_iter;
 
 amrex::Real                common::poisson_rel_tol;
 AMREX_GPU_MANAGED amrex::Real common::permittivity;
-amrex::Real                common::cut_off;
+int                        common::wall_mob;
 
 
 amrex::Real                common::particle_grid_refine;
