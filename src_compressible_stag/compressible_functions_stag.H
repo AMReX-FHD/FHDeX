@@ -118,10 +118,6 @@ void doMembraneStag(MultiFab& cons,
                     MultiFab& prim, 
                     std::array< MultiFab, AMREX_SPACEDIM >& vel,
                     std::array<MultiFab, AMREX_SPACEDIM>& faceflux,
-                    std::array< MultiFab, 2 >& edgeflux_x,
-                    std::array< MultiFab, 2 >& edgeflux_y,
-                    std::array< MultiFab, 2 >& edgeflux_z,
-                    std::array< MultiFab, AMREX_SPACEDIM>& cenflux,
                     const amrex::Geometry geom, const amrex::Real dt);
 
 void doLangevin(MultiFab& cons_in, MultiFab& prim_in,

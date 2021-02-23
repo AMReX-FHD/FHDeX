@@ -243,7 +243,6 @@ void BCMem(MultiFab& prim_in, MultiFab& cons_in,
         // membrane at the right end (cell to the left of the membrane) 
         else if (bx.bigEnd(0) == membrane_cell - 1) {
 
-            int hi = bx.bigEnd(0);
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 if (i > bx.bigEnd(0)) {
@@ -1214,7 +1213,7 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
         for (MFIter mfi(edgeflux_x_in[1]); mfi.isValid(); ++mfi) {
 
             const Box& bx = mfi.validbox();
-            const Array4<Real>& edgex_w = edgeflux_x_in[0].array(mfi);
+            const Array4<Real>& edgex_w = edgeflux_x_in[1].array(mfi);
 
             if (bx.smallEnd(0) == membrane_cell) {
                   amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept

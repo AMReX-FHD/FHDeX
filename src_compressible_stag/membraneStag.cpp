@@ -9,10 +9,6 @@ void doMembraneStag(MultiFab& cons,
                     MultiFab& prim, 
                     std::array< MultiFab, AMREX_SPACEDIM >& vel,
                     std::array<MultiFab, AMREX_SPACEDIM>& faceflux,
-                    std::array< MultiFab, 2 >& edgeflux_x,
-                    std::array< MultiFab, 2 >& edgeflux_y,
-                    std::array< MultiFab, 2 >& edgeflux_z,
-                    std::array< MultiFab, AMREX_SPACEDIM>& cenflux,
                     const amrex::Geometry geom, const amrex::Real dt)
 {
     BL_PROFILE_VAR("doMembraneStag()",doMembraneStag);
@@ -20,11 +16,12 @@ void doMembraneStag(MultiFab& cons,
     // const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
 
     // there is probably a more elegant way to do this than setting the whole x-domain flux to zero
-    faceflux[0].setVal(0.0,0); // set mass flux to zero
-    faceflux[0].setVal(0.0,4); // set energy flux to zer0
-    for (int l=0;l<nspecies;++l) {
-        faceflux[0].setVal(0.0,5+l); // set species flux to zero
-    }
+    faceflux[0].mult(0.0,0,1); // set mass flux to zero
+    faceflux[0].mult(0.0,4,1); // set energy flux to zero
+    faceflux[0].mult(0.0,5,nspecies); // set species flux to zero
+    //for (int l=0;l<nspecies;++l) {
+    //    faceflux[0].setVal(0.0,5+l); // set species flux to zero
+    //}
     
     doLangevin(cons,prim,faceflux,geom,dt);
 

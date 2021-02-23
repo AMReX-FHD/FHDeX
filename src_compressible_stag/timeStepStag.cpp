@@ -642,7 +642,7 @@ void RK3stepStag(MultiFab& cu,
     }
     prim.FillBoundary(geom.periodicity());
 
-    if (membrane_cell >= 0) doMembraneStag(cu,cumom,prim,vel,faceflux,edgeflux_x,edgeflux_y,edgeflux_z,cenflux,geom,dt);
+    if (membrane_cell >= 0) doMembraneStag(cu,cumom,prim,vel,faceflux,geom,dt);
 
     setBCStag(prim, cu, cumom, vel, geom);
 }
