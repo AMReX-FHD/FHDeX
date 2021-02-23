@@ -1025,6 +1025,12 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
                         Real dry_terms[3];
 
                         get_explicit_mobility_gpu(mb, mbDer, part, plo, phi);
+                        if(dry_move_tog == 2)
+                        {
+                            mbDer[0] = 0;
+                            mbDer[1] = 1;
+                            mbDer[2] = 2;
+                        }
                         
                         dry_gpu(dt, part,dry_terms, mb, mbDer);
 

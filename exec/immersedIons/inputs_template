@@ -36,7 +36,7 @@
   drag_tog = 0 ! Apply drag force to fluid
   rfd_tog = 1 ! Apply RFD force to fluid
   move_tog = 2 ! ! Total particle move. 0 = off, 1 = single step, 2 = midpoint
-  dry_move_tog = 1 ! Dry particle move
+  dry_move_tog = 1 ! Dry particle move 0 = off, 1 = on, 2 = on but without dry stochastic drift correction
   wall_mob = 1 !0= no dry adjustment to mobility due to walls, 1=Infinte plane, 2=other model
   sr_tog = 0 ! 0=No short range forces, 1=Short range LJ forces without walls, 2= with walls, 3=Wall with alternative model
  
