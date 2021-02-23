@@ -20,7 +20,7 @@ AMREX_GPU_MANAGED int      common::nprimvars;
 
 int                        common::membrane_cell;
 int                        common::cross_cell;
-amrex::Real                common::transmission;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::transmission;
 
 AMREX_GPU_MANAGED int      common::pkernel_fluid;
 AMREX_GPU_MANAGED int      common::pkernel_es;

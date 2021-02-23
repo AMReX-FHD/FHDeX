@@ -24,7 +24,7 @@ module common_namelist_module
   integer,            save :: nprimvars
   integer,            save :: membrane_cell
   integer,            save :: cross_cell
-  double precision,   save :: transmission
+  double precision,   save :: transmission(MAX_SPECIES)
 
   double precision,   save :: qval(MAX_SPECIES)
   integer,            save :: pkernel_fluid
@@ -671,7 +671,7 @@ contains
 
     integer,                intent(inout) :: membrane_cell_in
     integer,                intent(inout) :: cross_cell_in
-    double precision,       intent(inout) :: transmission_in
+    double precision,       intent(inout) :: transmission_in(MAX_SPECIES)
 
     double precision,       intent(inout) :: qval_in(MAX_SPECIES)
     integer,                intent(inout) :: pkernel_fluid_in

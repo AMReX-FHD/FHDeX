@@ -48,6 +48,11 @@ void setBCStag(MultiFab& prim_in, MultiFab& cons_in,
                  std::array< MultiFab, AMREX_SPACEDIM >& vel_in,
                  const amrex::Geometry geom);
 
+void BCMem(MultiFab& prim_in, MultiFab& cons_in,
+           std::array< MultiFab, AMREX_SPACEDIM >& cumom_in,
+           std::array< MultiFab, AMREX_SPACEDIM >& vel_in,
+           const amrex::Geometry geom);
+
 void BCMassTempPress(MultiFab& prim_in,const amrex::Geometry geom,int dim);
 
 void BCMomNormal(MultiFab& mom_in, MultiFab& vel_in,
@@ -55,7 +60,6 @@ void BCMomNormal(MultiFab& mom_in, MultiFab& vel_in,
 
 void BCMomTrans(MultiFab& mom_in, MultiFab& vel_in,
                  const amrex::Geometry geom, int dim);
-
 
 void BCRhoRhoE(MultiFab& cons_in, MultiFab& prim_in, 
                std::array< MultiFab, AMREX_SPACEDIM >& cumom_in, 
@@ -108,6 +112,25 @@ void evaluateStatsStag(const MultiFab& cons, MultiFab& consMean, MultiFab& consV
                        Vector<Real>& cuyzAvMeans, Vector<Real>& cuyzAvMeans_cross,
                        Vector<Real>& spatialCross,
                        const int steps, const amrex::Real* dx);
+
+void doMembraneStag(MultiFab& cons, 
+                    std::array< MultiFab, AMREX_SPACEDIM >& cumom,
+                    MultiFab& prim, 
+                    std::array< MultiFab, AMREX_SPACEDIM >& vel,
+                    std::array<MultiFab, AMREX_SPACEDIM>& faceflux,
+                    std::array< MultiFab, 2 >& edgeflux_x,
+                    std::array< MultiFab, 2 >& edgeflux_y,
+                    std::array< MultiFab, 2 >& edgeflux_z,
+                    std::array< MultiFab, AMREX_SPACEDIM>& cenflux,
+                    const amrex::Geometry geom, const amrex::Real dt);
+
+void doLangevin(MultiFab& cons_in, MultiFab& prim_in,
+                std::array<MultiFab, AMREX_SPACEDIM>& faceflux,
+                const amrex::Geometry geom,
+                const amrex::Real dt);
+
+void applyEffusion(std::array<MultiFab, AMREX_SPACEDIM>& faceflux, MultiFab& cons);
+
 
 //void yzAverageStag(const MultiFab& consMean, 
 //                   const MultiFab& consVar, 

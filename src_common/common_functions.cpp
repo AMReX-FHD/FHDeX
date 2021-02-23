@@ -93,7 +93,7 @@ void InitializeCommonNamespace() {
     initialize_common_namespace(prob_lo.begin(), prob_hi.begin(), n_cells.data(),
                                 max_grid_size.dataPtr(), max_particle_tile_size.dataPtr(), &cell_depth, ngc.getVect(),
                                 &nvars, &nprimvars,
-                                &membrane_cell, &cross_cell, &transmission,
+                                &membrane_cell, &cross_cell, transmission.data(),
                                 qval.dataPtr(), &pkernel_fluid, &pkernel_es,
                                 &fixed_dt, &cfl, &rfd_delta, &max_step,
                                 &plot_int, &plot_stag, temp_plot_base_name, 128,
