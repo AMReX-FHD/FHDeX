@@ -79,6 +79,8 @@
 
 &multispec
 
+  is_ideal_mixture = 0
+
   ! initial values for c
   c_init_1(1:2) = 0.5 0.5
   c_init_2(1:2) = 0.5 0.5
