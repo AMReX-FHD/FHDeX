@@ -42,7 +42,7 @@ void ComputeDivReversibleStress(std::array<MultiFab,AMREX_SPACEDIM>& div_reversi
 
             node_grad_c(i,j,k,0) = (c(i,j,k)-c(i-1,j,k)+c(i,j-1,k)-c(i-1,j-1,k)
                                     +c(i,j,k-1)-c(i-1,j,k-1)+c(i,j-1,k-1)-c(i-1,j-1,k-1))/(4*dx[0]);
-            node_grad_c(i,j,k,2) = (c(i,j,k)-c(i,j-1,k)+c(i-1,j,k)-c(i-1,j-1,k)
+            node_grad_c(i,j,k,1) = (c(i,j,k)-c(i,j-1,k)+c(i-1,j,k)-c(i-1,j-1,k)
                                     +c(i,j,k-1)-c(i,j-1,k-1)+c(i-1,j,k-1)-c(i-1,j-1,k-1))/(4*dx[1]);
             node_grad_c(i,j,k,2) = (c(i,j,k)-c(i,j,k-1)+c(i-1,j,k)-c(i-1,j,k-1)
                                     +c(i,j-1,k)-c(i,j-1,k-1)+c(i-1,j-1,k)-c(i-1,j-1,k-1))/(4*dx[2]);
