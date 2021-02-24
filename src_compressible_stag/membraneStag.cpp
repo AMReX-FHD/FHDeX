@@ -72,8 +72,8 @@ void doLangevin(MultiFab& cons_in, MultiFab& prim_in,
             for (auto k = lo.z; k <= hi.z; ++k) {
             for (auto j = lo.y; j <= hi.y; ++j) {
 
-                Real TL = prim(membrane_cell-1,j,k,5);
-                Real TR = prim(membrane_cell,j,k,5); 
+                Real TL = prim(membrane_cell-1,j,k,4);
+                Real TR = prim(membrane_cell,j,k,4); 
                 Real sqrtTL = sqrt(TL);
                 Real sqrtTR = sqrt(TR);
 
@@ -104,8 +104,10 @@ void doLangevin(MultiFab& cons_in, MultiFab& prim_in,
                     double rn2 = get_fhd_normal_func();
                     double rn3 = rn1*corr[l] + sqrt(1-(corr[l]*corr[l]))*rn2;
 
+
+
                     xflux(membrane_cell,j,k,5+l) = (dt*area*delNmean[l] + sqrt(dt*area*mass[l]*delNvar[l])*rn1)/vol;
-                    xflux(membrane_cell,j,k,0) += xflux(membrane_cell,j,k,5+l);
+                    xflux(membrane_cell,j,k,0) +=  xflux(membrane_cell,j,k,5+l);
                     xflux(membrane_cell,j,k,4) +=  (dt*area*delUmean[l] + sqrt(dt*area*mass[l]*delUvar[l])*rn3)/(vol*mass[l]);
 
                 }
