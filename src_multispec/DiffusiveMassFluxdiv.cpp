@@ -67,6 +67,10 @@ void DiffusiveMassFlux(const MultiFab& rho,
       MatvecMul(diff_mass_flux[i], Gamma_face[i]);
     }
 
+    if (use_multiphase == 1) {
+        ComputeHigherOrderTerm(molarconc,diff_mass_flux,geom);
+    }
+
     if (is_nonisothermal) {
         //
         //
@@ -155,7 +159,7 @@ void ComputeHigherOrderTerm(const MultiFab& molarconc,
         });
     }
 
-for ( MFIter mfi(molarconc,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
+    for ( MFIter mfi(molarconc,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
 
         AMREX_D_TERM(const Array4<Real> & fluxx = diff_mass_flux[0].array(mfi);,
                      const Array4<Real> & fluxy = diff_mass_flux[1].array(mfi);,
