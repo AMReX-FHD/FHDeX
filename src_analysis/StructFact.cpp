@@ -487,6 +487,7 @@ void StructFact::WritePlotFile(const int step, const Real time, const Geometry& 
   // Write out structure factor magnitude to plot file
   //////////////////////////////////////////////////////////////////////////////////
 
+#if 0
   std::string name = plotfile_base;
   name += "_mag";
   
@@ -555,6 +556,7 @@ void StructFact::WritePlotFile(const int step, const Real time, const Geometry& 
 
   // write a plotfile
   WriteSingleLevelPlotfile(plotfilename2,plotfile,varNames,geom2,time,step);
+#endif
 }
 
 void StructFact::StructOut(MultiFab& struct_out) {
@@ -640,24 +642,24 @@ void StructFact::IntegratekShells(const int& step, const Geometry& geom) {
     Gpu::DeviceVector<Real> phisum_vect(npts);
     Gpu::DeviceVector<int>  phicnt_vect(npts);
 
-    Gpu::DeviceVector<Real> phisum_vect_large(npts_sq);
-    Gpu::DeviceVector<int>  phicnt_vect_large(npts_sq);
+//    Gpu::DeviceVector<Real> phisum_vect_large(npts_sq);
+//    Gpu::DeviceVector<int>  phicnt_vect_large(npts_sq);
 
     for (int d=0; d<npts; ++d) {
         phisum_vect[d] = 0.;
         phicnt_vect[d] = 0;
     }
 
-    for (int d=0; d<npts_sq; ++d) {
-        phisum_vect_large[d] = 0.;
-        phicnt_vect_large[d] = 0;
-    }
+//    for (int d=0; d<npts_sq; ++d) {
+//        phisum_vect_large[d] = 0.;
+//        phicnt_vect_large[d] = 0;
+//    }
     
     Real* phisum_gpu = phisum_vect.dataPtr();  // pointer to data
     int*  phicnt_gpu = phicnt_vect.dataPtr();  // pointer to data
     
-    Real* phisum_large_gpu = phisum_vect_large.dataPtr();  // pointer to data
-    int*  phicnt_large_gpu = phicnt_vect_large.dataPtr();  // pointer to data
+  //  Real* phisum_large_gpu = phisum_vect_large.dataPtr();  // pointer to data
+ //   int*  phicnt_large_gpu = phicnt_vect_large.dataPtr();  // pointer to data
 
     // only consider cells that are within 15k of the center point
     
@@ -674,7 +676,7 @@ void StructFact::IntegratekShells(const int& step, const Geometry& geom) {
             int klen = (AMREX_SPACEDIM == 3) ? amrex::Math::abs(k-center[2]) : 0;
 
             Real dist = (ilen*ilen + jlen*jlen + klen*klen);
-            int idist = (ilen*ilen + jlen*jlen + klen*klen);
+ //           int idist = (ilen*ilen + jlen*jlen + klen*klen);
             dist = std::sqrt(dist);
             
             if ( dist <= center[0]-0.5) {
@@ -682,10 +684,10 @@ void StructFact::IntegratekShells(const int& step, const Geometry& geom) {
                 int cell = int(dist);
                 for (int d=0; d<AMREX_SPACEDIM; ++d) {
                     phisum_gpu[cell] += cov(i,j,k,d);
-		    phisum_large_gpu[idist]  += cov(i,j,k,d);
+//		    phisum_large_gpu[idist]  += cov(i,j,k,d);
                 }
                 ++phicnt_gpu[cell];
-                ++phicnt_large_gpu[idist];
+ //               ++phicnt_large_gpu[idist];
             }
         });
     }
@@ -695,10 +697,14 @@ void StructFact::IntegratekShells(const int& step, const Geometry& geom) {
         ParallelDescriptor::ReduceIntSum(phicnt_vect[d]);
     }
         
+#if 0
     for (int d=1; d<npts_sq; ++d) {
         ParallelDescriptor::ReduceRealSum(phisum_vect_large[d]);
         ParallelDescriptor::ReduceIntSum(phicnt_vect_large[d]);
     }
+#endif
+
+#if 0
 
     if (ParallelDescriptor::IOProcessor()) {
         std::ofstream turb_disc;
@@ -727,6 +733,8 @@ void StructFact::IntegratekShells(const int& step, const Geometry& geom) {
             turb_alt << d << " " << phisum_vect[d] << std::endl;
         }
     }
+#endif
+    Real dk = 1.;
     
 #if (AMREX_SPACEDIM == 2)
     for (int d=1; d<npts; ++d) {
@@ -742,8 +750,9 @@ void StructFact::IntegratekShells(const int& step, const Geometry& geom) {
 #endif
     if (ParallelDescriptor::IOProcessor()) {
         std::ofstream turb;
-        std::string turbName = "turb";
-        turbName += std::to_string(step);
+        std::string turbBaseName = "turb";
+        //turbName += std::to_string(step);
+        std::string turbName = Concatenate(turbBaseName,step,7);
         turbName += ".txt";
         
         turb.open(turbName);
