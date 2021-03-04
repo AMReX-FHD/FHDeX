@@ -90,7 +90,7 @@ void WritePlotFileStag(int step,
     
         // mean values of conserved variables
         // rho, jx (avgd), jy (avgd), jz (avgd), e, rho1, rho2, rho3, rho4
-        numvars = 9;
+        numvars = 5+nspecies;
         amrex::MultiFab::Copy(plotfile,cuMeans,0,cnt,numvars,0);
         cnt+=numvars;
 
@@ -119,7 +119,7 @@ void WritePlotFileStag(int step,
     
         // variance of conserved variables
         // rho, jx (avgd), jy (avgd), jz (avgd), e, rho1, rho2, rho3, rho4
-        numvars = 9;
+        numvars = 5+nspecies;
         amrex::MultiFab::Copy(plotfile,cuVars,0,cnt,numvars,0);
         cnt+=numvars;
 

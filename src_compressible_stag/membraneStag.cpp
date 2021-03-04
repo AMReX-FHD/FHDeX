@@ -100,11 +100,17 @@ void doLangevin(MultiFab& cons_in, MultiFab& prim_in,
                     cross[l] = fac3[l]*(sqrtTL*TL*rhoL[l] + sqrtTR*TR*rhoR[l]);
                     corr[l] = cross[l]/(sqrt(delUvar[l])*sqrt(delNvar[l]));
 
-                    double rn1 = get_fhd_normal_func();
-                    double rn2 = get_fhd_normal_func();
-                    double rn3 = rn1*corr[l] + sqrt(1-(corr[l]*corr[l]))*rn2;
-
-
+                    double rn1, rn2, rn3;
+                    if (stoch_stress_form == 1) {
+                        rn1 = get_fhd_normal_func();
+                        rn2 = get_fhd_normal_func();
+                        rn3 = rn1*corr[l] + sqrt(1-(corr[l]*corr[l]))*rn2;
+                    }
+                    else {
+                        rn1 = 0.;
+                        rn2 = 0.;
+                        rn3 = 0.;
+                    }
 
                     xflux(membrane_cell,j,k,5+l) = (dt*area*delNmean[l] + sqrt(dt*area*mass[l]*delNvar[l])*rn1)/vol;
                     xflux(membrane_cell,j,k,0) +=  xflux(membrane_cell,j,k,5+l);
