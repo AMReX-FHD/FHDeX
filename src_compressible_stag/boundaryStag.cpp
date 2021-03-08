@@ -48,16 +48,17 @@ void BCMem(MultiFab& prim_in, MultiFab& cons_in,
     for ( MFIter mfi(prim_in); mfi.isValid(); ++mfi) {
 
         const Box& bx = mfi.growntilebox(ng_p);
+        int lo = bx.smallEnd(0) + ng_p;
+        int hi = bx.bigEnd(0) - ng_p ;
 
         const Array4<Real>& prim = prim_in.array(mfi);
 
         // membrane at the left end (cell to the right of the membrane) 
-        if (bx.smallEnd(0) == membrane_cell) {
+        if (lo == membrane_cell) {
 
-            int lo = bx.smallEnd(0);
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
-                if (i < bx.smallEnd(0)) {
+                if (i < lo) {
                     prim(i,j,k,4) = prim(2*lo-i-1,j,k,4);
                     prim(i,j,k,5) = prim(2*lo-i-1,j,k,5);
                 }
@@ -65,12 +66,11 @@ void BCMem(MultiFab& prim_in, MultiFab& cons_in,
         }
 
         // membrane at the right end (cell to the left of the membrane) 
-        else if (bx.bigEnd(0) == membrane_cell - 1) {
+        else if (hi == membrane_cell - 1) {
 
-            int hi = bx.bigEnd(0);
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
-                if (i > bx.bigEnd(0)) {
+                if (i > hi) {
                     prim(i,j,k,4) = prim(2*hi-i+1,j,k,4);
                     prim(i,j,k,5) = prim(2*hi-i+1,j,k,5);
                 }
@@ -81,21 +81,24 @@ void BCMem(MultiFab& prim_in, MultiFab& cons_in,
     // next set normal velocity and momentum (for zero normal flux)
     for ( MFIter mfi(vel_in[0]); mfi.isValid(); ++mfi) {
 
-        const Box& bx = mfi.growntilebox(vel_in[0].nGrow());
+        int ngv = vel_in[0].nGrow();
+        const Box& bx = mfi.growntilebox(ngv);
+        int lo = bx.smallEnd(0) + ngv;
+        int hi = bx.bigEnd(0) - ngv;
         
         const Array4<Real>& vel = vel_in[0].array(mfi);
         const Array4<Real>& mom = cumom_in[0].array(mfi);
 
         // membrane at the left end (cell to the right of the membrane) 
-        if (bx.smallEnd(0) == membrane_cell) {
-
+        if (lo == membrane_cell) {
+            
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept 
             {
-                if (i < bx.smallEnd(0)) {
-                    vel(i,j,k) = -vel(2*bx.smallEnd(0)-i,j,k);
-                    mom(i,j,k) = -mom(2*bx.smallEnd(0)-i,j,k);
+                if (i < lo) {
+                    vel(i,j,k) = -vel(2*lo-i,j,k);
+                    mom(i,j,k) = -mom(2*lo-i,j,k);
                 }
-                else if (i == bx.smallEnd(0)) {
+                else if (i == lo) {
                     vel(i,j,k) = 0.;
                     mom(i,j,k) = 0.;
                 }
@@ -103,15 +106,15 @@ void BCMem(MultiFab& prim_in, MultiFab& cons_in,
         }
 
         // membrane at the right end (cell to the left of the membrane) 
-        if (bx.bigEnd(0) == membrane_cell) {
+        if (hi == membrane_cell) {
 
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept 
             {
-                if (i > bx.bigEnd(0)) {
-                    vel(i,j,k) = -vel(2*bx.bigEnd(0)-i,j,k);
-                    mom(i,j,k) = -mom(2*bx.bigEnd(0)-i,j,k);
+                if (i > hi) {
+                    vel(i,j,k) = -vel(2*hi-i,j,k);
+                    mom(i,j,k) = -mom(2*hi-i,j,k);
                 }
-                else if (i == bx.bigEnd(0)) {
+                else if (i == hi) {
                     vel(i,j,k) = 0.;
                     mom(i,j,k) = 0.;
                 }
@@ -193,6 +196,8 @@ void BCMem(MultiFab& prim_in, MultiFab& cons_in,
     for ( MFIter mfi(prim_in); mfi.isValid(); ++mfi) {
 
         const Box& bx = mfi.growntilebox(ng_p);
+        int lo = bx.smallEnd(0) + ng_p;
+        int hi = bx.bigEnd(0) - ng_p ;
 
         const Array4<Real>& prim = prim_in.array(mfi);
         const Array4<Real>& cons = cons_in.array(mfi);
@@ -202,11 +207,11 @@ void BCMem(MultiFab& prim_in, MultiFab& cons_in,
         
 
         // membrane at the left end (cell to the right of the membrane) 
-        if (bx.smallEnd(0) == membrane_cell) {
+        if (lo == membrane_cell) {
 
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
-                if (i < bx.smallEnd(0)) {
+                if (i < lo) {
 
                     GpuArray<Real,MAX_SPECIES> fracvec;
                     for (int n=0; n<nspecies; ++n) {
@@ -241,11 +246,11 @@ void BCMem(MultiFab& prim_in, MultiFab& cons_in,
         }
 
         // membrane at the right end (cell to the left of the membrane) 
-        else if (bx.bigEnd(0) == membrane_cell - 1) {
+        else if (hi == membrane_cell - 1) {
 
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
-                if (i > bx.bigEnd(0)) {
+                if (i > hi) {
                     
                     GpuArray<Real,MAX_SPECIES> fracvec;
                     for (int n=0; n<nspecies; ++n) {

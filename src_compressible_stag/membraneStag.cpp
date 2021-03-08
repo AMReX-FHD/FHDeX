@@ -12,7 +12,7 @@ void doMembraneStag(MultiFab& cons,
                     const amrex::Geometry geom, const amrex::Real dt)
 {
     BL_PROFILE_VAR("doMembraneStag()",doMembraneStag);
-    
+
     // const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
 
     faceflux[0].setVal(0.0); // set mass flux to zero
@@ -90,7 +90,7 @@ void doLangevin(MultiFab& cons_in, MultiFab& prim_in,
                     
                     rhoL[l] = cons(membrane_cell-1,j,k,5+l);
                     rhoR[l] = cons(membrane_cell,j,k,5+l);
-
+                    
                     delUmean[l] = fac3[l]*(sqrtTL*TL*rhoL[l] - sqrtTR*TR*rhoR[l]);
                     delNmean[l] = fac1[l]*(sqrtTL*rhoL[l] - sqrtTR*rhoR[l]);
 
@@ -115,7 +115,7 @@ void doLangevin(MultiFab& cons_in, MultiFab& prim_in,
                     xflux(membrane_cell,j,k,5+l) = (dt*area*delNmean[l] + sqrt(dt*area*mass[l]*delNvar[l])*rn1)/vol;
                     xflux(membrane_cell,j,k,0) +=  xflux(membrane_cell,j,k,5+l);
                     xflux(membrane_cell,j,k,4) +=  (dt*area*delUmean[l] + sqrt(dt*area*mass[l]*delUvar[l])*rn3)/(vol*mass[l]);
-
+                    
                 }
 
             }

@@ -18,8 +18,8 @@ amrex::IntVect             common::ngc;
 AMREX_GPU_MANAGED int      common::nvars;
 AMREX_GPU_MANAGED int      common::nprimvars;
 
-int                        common::membrane_cell;
-int                        common::cross_cell;
+AMREX_GPU_MANAGED int      common::membrane_cell;
+AMREX_GPU_MANAGED int      common::cross_cell;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::transmission;
 
 AMREX_GPU_MANAGED int      common::pkernel_fluid;
