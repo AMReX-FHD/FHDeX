@@ -316,7 +316,6 @@ void RK3stepStag(MultiFab& cu,
         });
     }
 
-    setBCStag(prim, cup, cupmom, vel, geom);
     for (int d=0; d<AMREX_SPACEDIM; d++) {
         cupmom[d].FillBoundary(geom.periodicity());
     }
@@ -327,6 +326,7 @@ void RK3stepStag(MultiFab& cu,
         vel[d].FillBoundary(geom.periodicity());
     }
     prim.FillBoundary(geom.periodicity());
+    setBCStag(prim, cup, cupmom, vel, geom);
 
     // Compute transport coefs after setting BCs
     calculateTransportCoeffs(prim, eta, zeta, kappa, chi, D);
@@ -477,7 +477,6 @@ void RK3stepStag(MultiFab& cu,
         });
     }
         
-    setBCStag(prim, cup2, cup2mom, vel, geom);
     for (int d=0; d<AMREX_SPACEDIM; d++) {
         cup2mom[d].FillBoundary(geom.periodicity());
     }
@@ -488,6 +487,7 @@ void RK3stepStag(MultiFab& cu,
         vel[d].FillBoundary(geom.periodicity());
     }
     prim.FillBoundary(geom.periodicity());
+    setBCStag(prim, cup2, cup2mom, vel, geom);
 
     // Compute transport coefs after setting BCs
     calculateTransportCoeffs(prim, eta, zeta, kappa, chi, D);
@@ -634,7 +634,6 @@ void RK3stepStag(MultiFab& cu,
         });
     }
 
-    setBCStag(prim, cu, cumom, vel, geom);
     for (int d=0; d<AMREX_SPACEDIM; d++) {
         cumom[d].FillBoundary(geom.periodicity());
     }
@@ -649,5 +648,7 @@ void RK3stepStag(MultiFab& cu,
     if (membrane_cell >= 0) {
         doMembraneStag(cu,cumom,prim,vel,faceflux,geom,dt);
     }
+
+    setBCStag(prim, cu, cumom, vel, geom);
 
 }

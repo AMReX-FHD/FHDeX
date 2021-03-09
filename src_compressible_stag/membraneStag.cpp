@@ -13,8 +13,6 @@ void doMembraneStag(MultiFab& cons,
 {
     BL_PROFILE_VAR("doMembraneStag()",doMembraneStag);
 
-    // const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
-
     faceflux[0].setVal(0.0); // set mass flux to zero
     
     doLangevin(cons,prim,faceflux,geom,dt);
