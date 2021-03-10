@@ -487,74 +487,77 @@ void StructFact::WritePlotFile(const int step, const Real time, const Geometry& 
   // Write out structure factor magnitude to plot file
   //////////////////////////////////////////////////////////////////////////////////
 
-  std::string name = plotfile_base;
-  name += "_mag";
+  if (turbForcing != 1) {
+      std::string name = plotfile_base;
+      name += "_mag";
   
-  const std::string plotfilename1 = amrex::Concatenate(name,step,9);
-  nPlot = NCOV;
-  plotfile.define(cov_mag.boxArray(), cov_mag.DistributionMap(), nPlot, 0);
-  varNames.resize(nPlot);
+      const std::string plotfilename1 = amrex::Concatenate(name,step,9);
+      nPlot = NCOV;
+      plotfile.define(cov_mag.boxArray(), cov_mag.DistributionMap(), nPlot, 0);
+      varNames.resize(nPlot);
 
-  for (int n=0; n<NCOV; n++) {
-    varNames[n] = cov_names[n];
-  }
+      for (int n=0; n<NCOV; n++) {
+          varNames[n] = cov_names[n];
+      }
   
-  MultiFab::Copy(plotfile, cov_mag, 0, 0, NCOV, 0); // copy structure factor into plotfile
+      MultiFab::Copy(plotfile, cov_mag, 0, 0, NCOV, 0); // copy structure factor into plotfile
 
-  Real dx = geom.CellSize(0);
-  Real pi = 3.1415926535897932;
+      Real dx = geom.CellSize(0);
+      Real pi = 3.1415926535897932;
 
-  IntVect dom_lo(AMREX_D_DECL(           0,            0,            0));
-  IntVect dom_hi(AMREX_D_DECL(n_cells[0]-1, n_cells[1]-1, n_cells[2]-1));
-  Box domain(dom_lo, dom_hi);
+      IntVect dom_lo(AMREX_D_DECL(           0,            0,            0));
+      IntVect dom_hi(AMREX_D_DECL(n_cells[0]-1, n_cells[1]-1, n_cells[2]-1));
+      Box domain(dom_lo, dom_hi);
 
-  RealBox real_box({AMREX_D_DECL(-pi/dx,-pi/dx,-pi/dx)},
-                   {AMREX_D_DECL( pi/dx, pi/dx, pi/dx)});
+      RealBox real_box({AMREX_D_DECL(-pi/dx,-pi/dx,-pi/dx)},
+                       {AMREX_D_DECL( pi/dx, pi/dx, pi/dx)});
   
-  // check bc_vel_lo/hi to determine the periodicity
-  Vector<int> is_periodic(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
-  for (int i=0; i<AMREX_SPACEDIM; ++i) {
-      is_periodic[i] = geom.isPeriodic(i);
-  }
+      // check bc_vel_lo/hi to determine the periodicity
+      Vector<int> is_periodic(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
+      for (int i=0; i<AMREX_SPACEDIM; ++i) {
+          is_periodic[i] = geom.isPeriodic(i);
+      }
 
-  Geometry geom2;
-  geom2.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
+      Geometry geom2;
+      geom2.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
     
-  // write a plotfile
-  WriteSingleLevelPlotfile(plotfilename1,plotfile,varNames,geom2,time,step);
+      // write a plotfile
+      WriteSingleLevelPlotfile(plotfilename1,plotfile,varNames,geom2,time,step);
   
-  //////////////////////////////////////////////////////////////////////////////////
-  // Write out real and imaginary components of structure factor to plot file
-  //////////////////////////////////////////////////////////////////////////////////
+      //////////////////////////////////////////////////////////////////////////////////
+      // Write out real and imaginary components of structure factor to plot file
+      //////////////////////////////////////////////////////////////////////////////////
 
-  name = plotfile_base;
-  name += "_real_imag";
+      name = plotfile_base;
+      name += "_real_imag";
   
-  const std::string plotfilename2 = amrex::Concatenate(name,step,9);
-  nPlot = 2*NCOV;
-  plotfile.define(cov_mag.boxArray(), cov_mag.DistributionMap(), nPlot, 0);
-  varNames.resize(nPlot);
+      const std::string plotfilename2 = amrex::Concatenate(name,step,9);
+      nPlot = 2*NCOV;
+      plotfile.define(cov_mag.boxArray(), cov_mag.DistributionMap(), nPlot, 0);
+      varNames.resize(nPlot);
 
-  int cnt = 0; // keep a counter for plotfile variables
-  for (int n=0; n<NCOV; n++) {
-    varNames[cnt] = cov_names[cnt];
-    varNames[cnt] += "_real";
-    cnt++;
+      int cnt = 0; // keep a counter for plotfile variables
+      for (int n=0; n<NCOV; n++) {
+          varNames[cnt] = cov_names[cnt];
+          varNames[cnt] += "_real";
+          cnt++;
+      }
+
+      int index = 0;
+      for (int n=0; n<NCOV; n++) {
+          varNames[cnt] = cov_names[index];
+          varNames[cnt] += "_imag";
+          index++;
+          cnt++;
+      }
+
+      MultiFab::Copy(plotfile,cov_real_temp,0,0,   NCOV,0);
+      MultiFab::Copy(plotfile,cov_imag_temp,0,NCOV,NCOV,0);
+
+      // write a plotfile
+      WriteSingleLevelPlotfile(plotfilename2,plotfile,varNames,geom2,time,step);
   }
-
-  int index = 0;
-  for (int n=0; n<NCOV; n++) {
-    varNames[cnt] = cov_names[index];
-    varNames[cnt] += "_imag";
-    index++;
-    cnt++;
-  }
-
-  MultiFab::Copy(plotfile,cov_real_temp,0,0,   NCOV,0);
-  MultiFab::Copy(plotfile,cov_imag_temp,0,NCOV,NCOV,0);
-
-  // write a plotfile
-  WriteSingleLevelPlotfile(plotfilename2,plotfile,varNames,geom2,time,step);
+  
 }
 
 void StructFact::StructOut(MultiFab& struct_out) {
@@ -640,24 +643,24 @@ void StructFact::IntegratekShells(const int& step, const Geometry& geom) {
     Gpu::DeviceVector<Real> phisum_vect(npts);
     Gpu::DeviceVector<int>  phicnt_vect(npts);
 
-    Gpu::DeviceVector<Real> phisum_vect_large(npts_sq);
-    Gpu::DeviceVector<int>  phicnt_vect_large(npts_sq);
+//    Gpu::DeviceVector<Real> phisum_vect_large(npts_sq);
+//    Gpu::DeviceVector<int>  phicnt_vect_large(npts_sq);
 
     for (int d=0; d<npts; ++d) {
         phisum_vect[d] = 0.;
         phicnt_vect[d] = 0;
     }
 
-    for (int d=0; d<npts_sq; ++d) {
-        phisum_vect_large[d] = 0.;
-        phicnt_vect_large[d] = 0;
-    }
+//    for (int d=0; d<npts_sq; ++d) {
+//        phisum_vect_large[d] = 0.;
+//        phicnt_vect_large[d] = 0;
+//    }
     
     Real* phisum_gpu = phisum_vect.dataPtr();  // pointer to data
     int*  phicnt_gpu = phicnt_vect.dataPtr();  // pointer to data
     
-    Real* phisum_large_gpu = phisum_vect_large.dataPtr();  // pointer to data
-    int*  phicnt_large_gpu = phicnt_vect_large.dataPtr();  // pointer to data
+  //  Real* phisum_large_gpu = phisum_vect_large.dataPtr();  // pointer to data
+ //   int*  phicnt_large_gpu = phicnt_vect_large.dataPtr();  // pointer to data
 
     // only consider cells that are within 15k of the center point
     
@@ -674,7 +677,7 @@ void StructFact::IntegratekShells(const int& step, const Geometry& geom) {
             int klen = (AMREX_SPACEDIM == 3) ? amrex::Math::abs(k-center[2]) : 0;
 
             Real dist = (ilen*ilen + jlen*jlen + klen*klen);
-            int idist = (ilen*ilen + jlen*jlen + klen*klen);
+ //           int idist = (ilen*ilen + jlen*jlen + klen*klen);
             dist = std::sqrt(dist);
             
             if ( dist <= center[0]-0.5) {
@@ -682,10 +685,10 @@ void StructFact::IntegratekShells(const int& step, const Geometry& geom) {
                 int cell = int(dist);
                 for (int d=0; d<AMREX_SPACEDIM; ++d) {
                     phisum_gpu[cell] += cov(i,j,k,d);
-		    phisum_large_gpu[idist]  += cov(i,j,k,d);
+//		    phisum_large_gpu[idist]  += cov(i,j,k,d);
                 }
                 ++phicnt_gpu[cell];
-                ++phicnt_large_gpu[idist];
+ //               ++phicnt_large_gpu[idist];
             }
         });
     }
@@ -695,6 +698,7 @@ void StructFact::IntegratekShells(const int& step, const Geometry& geom) {
         ParallelDescriptor::ReduceIntSum(phicnt_vect[d]);
     }
         
+#if 0
     for (int d=1; d<npts_sq; ++d) {
         ParallelDescriptor::ReduceRealSum(phisum_vect_large[d]);
         ParallelDescriptor::ReduceIntSum(phicnt_vect_large[d]);
@@ -727,6 +731,9 @@ void StructFact::IntegratekShells(const int& step, const Geometry& geom) {
             turb_alt << d << " " << phisum_vect[d] << std::endl;
         }
     }
+#endif
+
+    Real dk = 1.;
     
 #if (AMREX_SPACEDIM == 2)
     for (int d=1; d<npts; ++d) {
@@ -742,8 +749,9 @@ void StructFact::IntegratekShells(const int& step, const Geometry& geom) {
 #endif
     if (ParallelDescriptor::IOProcessor()) {
         std::ofstream turb;
-        std::string turbName = "turb";
-        turbName += std::to_string(step);
+        std::string turbBaseName = "turb";
+        //turbName += std::to_string(step);
+        std::string turbName = Concatenate(turbBaseName,step,7);
         turbName += ".txt";
         
         turb.open(turbName);

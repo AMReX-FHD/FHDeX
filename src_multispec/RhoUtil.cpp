@@ -1,6 +1,49 @@
 #include "common_functions.H"
 #include "multispec_functions.H"
 
+void RhototBCInit() {
+
+    // the Boussinesq algorithm_type=6 requires bc_rhotot=rho0 on reservoir faces (Dirichlet)
+    // and bc_rhotot=0 on walls (Neumann)
+
+    if (algorithm_type != 6) {
+        return;
+    }
+
+    bc_rhotot_x_lo = 0.;
+    bc_rhotot_x_hi = 0.;
+    bc_rhotot_y_lo = 0.;
+    bc_rhotot_y_hi = 0.;
+    bc_rhotot_z_lo = 0.;
+    bc_rhotot_z_hi = 0.;
+
+    if (bc_mass_lo[0] == 2) {
+        bc_rhotot_x_lo = rho0;
+    }
+    if (bc_mass_hi[0] == 2) {
+        bc_rhotot_x_hi = rho0;
+    }
+
+    if (bc_mass_lo[1] == 2) {
+        bc_rhotot_y_lo = rho0;
+    }
+    if (bc_mass_hi[1] == 2) {
+        bc_rhotot_y_hi = rho0;
+    }
+
+#if (AMREX_SPACEDIM == 3)
+
+    if (bc_mass_lo[2] == 2) {
+        bc_rhotot_z_lo = rho0;
+    }
+    if (bc_mass_hi[2] == 2) {
+        bc_rhotot_z_hi = rho0;
+    }
+
+#endif
+
+}
+
 // compute rhotot from rho in VALID REGION
 void ComputeRhotot(const MultiFab& rho,
 		   MultiFab& rhotot,

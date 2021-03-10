@@ -32,8 +32,8 @@ namespace common {
     extern amrex::Real                transmission;
 
     extern amrex::Vector<amrex::Real> qval;
-    extern AMREX_GPU_MANAGED int      pkernel_fluid;
-    extern AMREX_GPU_MANAGED int      pkernel_es;
+    extern AMREX_GPU_MANAGED amrex::Vector<int>      pkernel_fluid;
+    extern AMREX_GPU_MANAGED amrex::Vector<int>      pkernel_es;
 
     // Time-step control
     extern amrex::Real                fixed_dt;
@@ -166,6 +166,13 @@ namespace common {
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> bc_Xk_z_lo;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> bc_Xk_z_hi;
 
+    extern AMREX_GPU_MANAGED amrex::Real bc_rhotot_x_lo;
+    extern AMREX_GPU_MANAGED amrex::Real bc_rhotot_x_hi;
+    extern AMREX_GPU_MANAGED amrex::Real bc_rhotot_y_lo;
+    extern AMREX_GPU_MANAGED amrex::Real bc_rhotot_y_hi;
+    extern AMREX_GPU_MANAGED amrex::Real bc_rhotot_z_lo;
+    extern AMREX_GPU_MANAGED amrex::Real bc_rhotot_z_hi;
+
     // Each no-slip wall may be moving with a specified tangential
     // velocity along the tangential directions
     // In 2D:
@@ -210,7 +217,6 @@ namespace common {
     extern amrex::Vector<int>         particle_count;
     extern amrex::Vector<int>         p_move_tog;
     extern amrex::Vector<int>         p_force_tog;
-    extern AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_SPECIES*MAX_SPECIES>         p_int_tog;
     extern amrex::Real                particle_neff;
     extern amrex::Vector<amrex::Real> particle_n0;
     extern amrex::Vector<amrex::Real> mass;
@@ -221,10 +227,18 @@ namespace common {
     extern int                        zero_eps_on_wall_type;
     extern AMREX_GPU_MANAGED amrex::Real zero_eps_wall_left_end;
     extern AMREX_GPU_MANAGED amrex::Real zero_eps_wall_right_start;
-    extern amrex::Real                cut_off;
-    extern amrex::Real                rmin;
+    extern int                        wall_mob;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES*MAX_SPECIES> rmin;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES*MAX_SPECIES> rmax;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES*MAX_SPECIES> eepsilon;
-    extern amrex::Vector<amrex::Real> sigma;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES*MAX_SPECIES> sigma;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_SPECIES*MAX_SPECIES>         p_int_tog;
+
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> rmin_wall;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> rmax_wall;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> eepsilon_wall;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> sigma_wall;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_SPECIES> p_int_tog_wall;
 
     extern int                        poisson_verbose;
     extern int                        poisson_bottom_verbose;

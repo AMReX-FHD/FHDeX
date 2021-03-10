@@ -258,14 +258,14 @@ contains
     !print *, "r: ", r_cell_frac
     !print *, "cr: ", r_cell, r
     !print *, "r_cell_frac: ", r_cell_frac
-    if (pkernel_es .eq. 6) then 
+    if (pkernel_es(1) .eq. 6) then 
 
        ! do linear interpolation of force between vals(i+1) and val(i) 
        m = (vals6(r_cell+1)-vals6(r_cell))/(points6(r_cell+1)-points6(r_cell))
 
        mag  = m*r_cell_frac + vals6(r_cell)
 
-    elseif (pkernel_es .eq. 4) then 
+    elseif (pkernel_es(1) .eq. 4) then 
 
        ! do linear interpolation of force between vals(i+1) and val(i) 
        m = (vals4(r_cell+1)-vals4(r_cell))/(points4(r_cell+1)-points4(r_cell))
@@ -1517,15 +1517,15 @@ contains
                yy = part%pos(2) - coordsu(fi(1)+i,fi(2)+j+fn(2),fi(3)+k+fn(3),2)
                zz = part%pos(3) - coordsu(fi(1)+i,fi(2)+j+fn(2),fi(3)+k+fn(3),3)
 
-               if(pkernel_fluid .eq. 3) then
+               if(pkernel_fluid(1) .eq. 3) then
                   call peskin_3pt(xx*dxfinv(1),w1)
                   call peskin_3pt(yy*dxfinv(2),w2)
                   call peskin_3pt(zz*dxfinv(3),w3)
-               elseif(pkernel_fluid .eq. 4) then
+               elseif(pkernel_fluid(1) .eq. 4) then
                   call peskin_4pt(xx*dxfinv(1),w1)
                   call peskin_4pt(yy*dxfinv(2),w2)
                   call peskin_4pt(zz*dxfinv(3),w3)
-               elseif(pkernel_fluid .eq. 6) then
+               elseif(pkernel_fluid(1) .eq. 6) then
                   call peskin_6pt(xx*dxfinv(1),w1)
                   call peskin_6pt(yy*dxfinv(2),w2)
                   call peskin_6pt(zz*dxfinv(3),w3)
@@ -1551,15 +1551,15 @@ contains
                yy = part%pos(2) - coordsv(fi(1)+i+fn(1),fi(2)+j,fi(3)+k+fn(3),2)
                zz = part%pos(3) - coordsv(fi(1)+i+fn(1),fi(2)+j,fi(3)+k+fn(3),3)
 
-               if(pkernel_fluid .eq. 3) then
+               if(pkernel_fluid(1) .eq. 3) then
                   call peskin_3pt(xx*dxfinv(1),w1)
                   call peskin_3pt(yy*dxfinv(2),w2)
                   call peskin_3pt(zz*dxfinv(3),w3)
-               elseif(pkernel_fluid .eq. 4) then
+               elseif(pkernel_fluid(1) .eq. 4) then
                   call peskin_4pt(xx*dxfinv(1),w1)
                   call peskin_4pt(yy*dxfinv(2),w2)
                   call peskin_4pt(zz*dxfinv(3),w3)
-               elseif(pkernel_fluid .eq. 6) then
+               elseif(pkernel_fluid(1) .eq. 6) then
                   call peskin_6pt(xx*dxfinv(1),w1)
                   call peskin_6pt(yy*dxfinv(2),w2)
                   call peskin_6pt(zz*dxfinv(3),w3)
@@ -1578,15 +1578,15 @@ contains
                yy = part%pos(2) - coordsw(fi(1)+i+fn(1),fi(2)+j+fn(2),fi(3)+k,2)
                zz = part%pos(3) - coordsw(fi(1)+i+fn(1),fi(2)+j+fn(2),fi(3)+k,3)
 
-               if(pkernel_fluid .eq. 3) then
+               if(pkernel_fluid(1) .eq. 3) then
                   call peskin_3pt(xx*dxfinv(1),w1)
                   call peskin_3pt(yy*dxfinv(2),w2)
                   call peskin_3pt(zz*dxfinv(3),w3)
-               elseif(pkernel_fluid .eq. 4) then
+               elseif(pkernel_fluid(1) .eq. 4) then
                   call peskin_4pt(xx*dxfinv(1),w1)
                   call peskin_4pt(yy*dxfinv(2),w2)
                   call peskin_4pt(zz*dxfinv(3),w3)
-               elseif(pkernel_fluid .eq. 6) then
+               elseif(pkernel_fluid(1) .eq. 6) then
                   call peskin_6pt(xx*dxfinv(1),w1)
                   call peskin_6pt(yy*dxfinv(2),w2)
                   call peskin_6pt(zz*dxfinv(3),w3)
@@ -1679,15 +1679,15 @@ contains
              !        print *, "coords: ", fi(1)+i+fn(1), fi(2)+j+fn(2), fi(3)+k+fn(3)
              !        print *, "Realcoords: ", coords(fi(1)+i+fn(1),fi(2)+j+fn(2),fi(3)+k+fn(3),1), coords(fi(1)+i+fn(1),fi(2)+j+fn(2),fi(3)+k+fn(3),2), coords(fi(1)+i+fn(1),fi(2)+j+fn(2),fi(3)+k+fn(3),3)
 
-             if(pkernel_es .eq. 3) then
+             if(pkernel_es(1) .eq. 3) then
                 call peskin_3pt(xx*dxinv(1),w1)
                 call peskin_3pt(yy*dxinv(2),w2)
                 call peskin_3pt(zz*dxinv(3),w3)
-             elseif(pkernel_es .eq. 4) then
+             elseif(pkernel_es(1) .eq. 4) then
                 call peskin_4pt(xx*dxinv(1),w1)
                 call peskin_4pt(yy*dxinv(2),w2)
                 call peskin_4pt(zz*dxinv(3),w3)
-             elseif(pkernel_es .eq. 6) then
+             elseif(pkernel_es(1) .eq. 6) then
                 call peskin_6pt(xx*dxinv(1),w1)
                 call peskin_6pt(yy*dxinv(2),w2)
                 call peskin_6pt(zz*dxinv(3),w3)
@@ -1822,12 +1822,12 @@ contains
 
     volinv = 1/(dx(1)*dx(2)*dx(3))
 
-    if(pkernel_es .eq. 3) then 
+    if(pkernel_es(1) .eq. 3) then 
        !pvol = 6.28319
        pvol = 1
-    elseif(pkernel_es .eq. 4) then  
+    elseif(pkernel_es(1) .eq. 4) then  
        pvol = 1
-    elseif(pkernel_es .eq. 6) then  
+    elseif(pkernel_es(1) .eq. 6) then  
        pvol = 1
     endif
 
@@ -2301,11 +2301,11 @@ contains
     double precision, allocatable :: weights(:,:,:,:)
     integer, allocatable :: indicies(:,:,:,:,:)
 
-    if(pkernel_fluid .eq. 3) then
+    if(pkernel_fluid(1) .eq. 3) then
        ks = 2
-    elseif(pkernel_fluid .eq. 4) then
+    elseif(pkernel_fluid(1) .eq. 4) then
        ks = 3
-    elseif(pkernel_fluid .eq. 6) then
+    elseif(pkernel_fluid(1) .eq. 6) then
        ks = 4
     endif
 
@@ -2712,20 +2712,20 @@ contains
     integer, allocatable :: indicies(:,:,:,:,:)
     real(amrex_real) poisson_force(3)
 
-    if(pkernel_fluid .gt. pkernel_es) then
-       if(pkernel_fluid .eq. 3) then
+    if(pkernel_fluid(1) .gt. pkernel_es(1)) then
+       if(pkernel_fluid(1) .eq. 3) then
           ks = 2
-       elseif(pkernel_fluid .eq. 4) then
+       elseif(pkernel_fluid(1) .eq. 4) then
           ks = 3
-       elseif(pkernel_fluid .eq. 6) then
+       elseif(pkernel_fluid(1) .eq. 6) then
           ks = 4
        endif
     else
-       if(pkernel_es .eq. 3) then
+       if(pkernel_es(1) .eq. 3) then
           ks = 2
-       elseif(pkernel_es .eq. 4) then
+       elseif(pkernel_es(1) .eq. 4) then
           ks = 3
-       elseif(pkernel_es .eq. 6) then
+       elseif(pkernel_es(1) .eq. 6) then
           ks = 4
        endif
     endif
@@ -2993,20 +2993,20 @@ contains
     double precision, allocatable :: weights(:,:,:,:)
     integer, allocatable :: indicies(:,:,:,:,:)
 
-    if(pkernel_fluid .gt. pkernel_es) then
-       if(pkernel_fluid .eq. 3) then
+    if(pkernel_fluid(1) .gt. pkernel_es(1)) then
+       if(pkernel_fluid(1) .eq. 3) then
           ks = 2
-       elseif(pkernel_fluid .eq. 4) then
+       elseif(pkernel_fluid(1) .eq. 4) then
           ks = 3
-       elseif(pkernel_fluid .eq. 6) then
+       elseif(pkernel_fluid(1) .eq. 6) then
           ks = 3
        endif
     else
-       if(pkernel_es .eq. 3) then
+       if(pkernel_es(1) .eq. 3) then
           ks = 2
-       elseif(pkernel_es .eq. 4) then
+       elseif(pkernel_es(1) .eq. 4) then
           ks = 3
-       elseif(pkernel_es .eq. 6) then
+       elseif(pkernel_es(1) .eq. 6) then
           ks = 3
        endif
     endif
@@ -3097,11 +3097,11 @@ contains
     double precision, allocatable :: weights(:,:,:,:)
     integer, allocatable :: indicies(:,:,:,:,:)
 
-    if(pkernel_es .eq. 3) then
+    if(pkernel_es(1) .eq. 3) then
        ks = 2
-    elseif(pkernel_es .eq. 4) then
+    elseif(pkernel_es(1) .eq. 4) then
        ks = 3
-    elseif(pkernel_es .eq. 6) then
+    elseif(pkernel_es(1) .eq. 6) then
        ks = 4
     endif
 

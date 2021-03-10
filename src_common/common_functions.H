@@ -12,8 +12,11 @@
 #define RHO_BC_COMP  1
 #define TEMP_BC_COMP 2
 #define EPOT_BC_COMP 3
+#define TRAN_BC_COMP 4
 #define SPEC_BC_COMP 10
 #define SPEC_END_BC_COMP 19
+#define MOLFRAC_BC_COMP 20
+#define MOLFRAC_END_BC_COMP 29
 
 #include <AMReX.H>
 #include <AMReX_MultiFab.H>

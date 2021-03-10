@@ -49,6 +49,10 @@ void main_driver(const char* argv)
     InitializeMultispecNamespace();
     InitializeGmresNamespace();
 
+    if (algorithm_type == 6) {
+        RhototBCInit();
+    }
+
     // for reservoirs, make sure the Dirichlet conditions for concentration sum to 1
     //
     //

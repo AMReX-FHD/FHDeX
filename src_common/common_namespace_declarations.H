@@ -22,8 +22,8 @@ int                        common::membrane_cell;
 int                        common::cross_cell;
 amrex::Real                common::transmission;
 
-AMREX_GPU_MANAGED int      common::pkernel_fluid;
-AMREX_GPU_MANAGED int      common::pkernel_es;
+AMREX_GPU_MANAGED amrex::Vector<int>      common::pkernel_fluid; // GALEN - FLUID KERNEL
+AMREX_GPU_MANAGED amrex::Vector<int>      common::pkernel_es;
 amrex::Vector<amrex::Real> common::qval;
 
 amrex::Real                common::fixed_dt;
@@ -54,7 +54,7 @@ amrex::Real                common::variance_coef_mom;
 amrex::Real                common::variance_coef_mass;
 AMREX_GPU_MANAGED amrex::Real common::k_B;
 AMREX_GPU_MANAGED amrex::Real common::Runiv;
-AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES>        common::T_init;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::T_init;
 AMREX_GPU_MANAGED int      common::algorithm_type;
 int                        common::barodiffusion_type;
 int                        common::use_bl_rng;
@@ -106,6 +106,13 @@ AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::bc_Xk_y_hi;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::bc_Xk_z_lo;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::bc_Xk_z_hi;
 
+AMREX_GPU_MANAGED amrex::Real common::bc_rhotot_x_lo;
+AMREX_GPU_MANAGED amrex::Real common::bc_rhotot_x_hi;
+AMREX_GPU_MANAGED amrex::Real common::bc_rhotot_y_lo;
+AMREX_GPU_MANAGED amrex::Real common::bc_rhotot_y_hi;
+AMREX_GPU_MANAGED amrex::Real common::bc_rhotot_z_lo;
+AMREX_GPU_MANAGED amrex::Real common::bc_rhotot_z_hi;
+
 amrex::Vector<amrex::Real> common::wallspeed_lo;
 amrex::Vector<amrex::Real> common::wallspeed_hi;
 
@@ -128,14 +135,23 @@ int                        common::particle_placement;
 amrex::Vector<int>         common::particle_count;
 amrex::Vector<int>         common::p_move_tog;
 amrex::Vector<int>         common::p_force_tog;
-AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_SPECIES*MAX_SPECIES> common::p_int_tog;
+
 amrex::Real                common::particle_neff;
 amrex::Vector<amrex::Real> common::particle_n0;
 amrex::Vector<amrex::Real> common::mass;
 amrex::Vector<amrex::Real> common::nfrac;
 
+AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_SPECIES*MAX_SPECIES> common::p_int_tog;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES*MAX_SPECIES> common::eepsilon;
-amrex::Vector<amrex::Real> common::sigma;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES*MAX_SPECIES> common::sigma;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES*MAX_SPECIES> common::rmin;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES*MAX_SPECIES> common::rmax;
+
+AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_SPECIES> common::p_int_tog_wall;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::eepsilon_wall;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::sigma_wall;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::rmin_wall;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::rmax_wall;
 
 int                        common::poisson_verbose;
 int                        common::poisson_bottom_verbose;
@@ -147,8 +163,7 @@ int                        common::induced_charge_eo;
 int                        common::zero_eps_on_wall_type;
 AMREX_GPU_MANAGED amrex::Real common::zero_eps_wall_left_end;
 AMREX_GPU_MANAGED amrex::Real common::zero_eps_wall_right_start;
-amrex::Real                common::cut_off;
-amrex::Real                common::rmin;
+int                        common::wall_mob;
 
 amrex::Real                common::particle_grid_refine;
 amrex::Real                common::es_grid_refine;
