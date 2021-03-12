@@ -54,35 +54,33 @@ void main_driver(const char* argv)
         }
     }
 
-    // make BoxArray and Geometry
-    BoxArray ba;
-    Geometry geom;
-    {
-        IntVect dom_lo(AMREX_D_DECL(           0,            0,            0));
-        IntVect dom_hi(AMREX_D_DECL(n_cells[0]-1, n_cells[1]-1, n_cells[2]-1));
-        Box domain(dom_lo, dom_hi);
+    // This defines the physical box, [-1,1] in each direction.
+    RealBox real_box({AMREX_D_DECL(prob_lo[0],prob_lo[1],prob_lo[2])},
+                     {AMREX_D_DECL(prob_hi[0],prob_hi[1],prob_hi[2])});
+    
+    IntVect dom_lo(AMREX_D_DECL(           0,            0,            0));
+    IntVect dom_hi(AMREX_D_DECL(n_cells[0]-1, n_cells[1]-1, n_cells[2]-1));
+    Box domain(dom_lo, dom_hi);
 
+    Geometry geom(domain,&real_box,CoordSys::cartesian,is_periodic.data());
+    
+    // make BoxArray
+    BoxArray ba;
+    {
         // Initialize the boxarray "ba" from the single box "bx"
         ba.define(domain);
 
         // Break up boxarray "ba" into chunks no larger than "max_grid_size" along a direction
         // note we are converting "Vector<int> max_grid_size" to an IntVect
         ba.maxSize(IntVect(max_grid_size));
-
-       // This defines the physical box, [-1,1] in each direction.
-        RealBox real_box({AMREX_D_DECL(prob_lo[0],prob_lo[1],prob_lo[2])},
-                         {AMREX_D_DECL(prob_hi[0],prob_hi[1],prob_hi[2])});
-
-        // This defines a Geometry object
-        geom.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
     }
+
+    // how boxes are distrubuted among MPI processes
+    DistributionMapping dmap(ba);
 
     Real dt = fixed_dt;
     Real dtinv = 1.0/dt;
     const Real* dx = geom.CellSize();
-
-    // how boxes are distrubuted among MPI processes
-    DistributionMapping dmap(ba);
 
     /////////////////////////////////////////
     //Initialise rngs
@@ -103,8 +101,9 @@ void main_driver(const char* argv)
     /////////////////////////////////////////
 
     // object for turbulent forcing
-    TurbForcing tf(ba,dmap,turb_a,turb_b);
-    tf.Initialize(geom);
+    TurbForcing turbforce;
+    turbforce.define(ba,dmap,turb_a,turb_b);
+    turbforce.Initialize(geom);
 
     ///////////////////////////////////////////
     // rho, alpha, beta, gamma:
@@ -325,7 +324,7 @@ void main_driver(const char* argv)
     MultiFab ccTemp(ba,dmap,1,0);
     
     if (restart > 0) {
-        ReadCheckPoint(step_start,time,umac,tracer,tf);
+        ReadCheckPoint(step_start,time,umac,tracer,turbforce);
     }
     else {
 
@@ -419,7 +418,7 @@ void main_driver(const char* argv)
 
 	// Advance umac
         advance(umac,umacTemp,pres,tracer,mfluxdiv_stoch,
-                alpha_fc,beta,gamma,beta_ed,geom,dt,tf);
+                alpha_fc,beta,gamma,beta_ed,geom,dt,turbforce);
 
 	//////////////////////////////////////////////////
 
@@ -471,7 +470,7 @@ void main_driver(const char* argv)
 
         if (chk_int > 0 && step%chk_int == 0) {
             // write out umac and tracer to a checkpoint file
-            WriteCheckPoint(step,time,umac,tracer,tf);
+            WriteCheckPoint(step,time,umac,tracer,turbforce);
         }
 
         // compute kinetic energy integral( (1/2) * rho * U dot U dV)

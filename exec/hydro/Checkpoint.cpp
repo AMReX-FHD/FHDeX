@@ -19,7 +19,7 @@ namespace {
 void WriteCheckPoint(int step,
                      const amrex::Real time,
                      std::array< MultiFab, AMREX_SPACEDIM >& umac,
-                     const MultiFab& tracer, TurbForcing& tf)
+                     const MultiFab& tracer, TurbForcing& turbforce)
 {
     // timer for profiling
     BL_PROFILE_VAR("WriteCheckPoint()",WriteCheckPoint);
@@ -74,7 +74,7 @@ void WriteCheckPoint(int step,
 
         // write turbulent forcing U's
         for (int i=0; i<132; ++i) {
-            HeaderFile << tf.getU(i) << '\n';
+            HeaderFile << turbforce.getU(i) << '\n';
         }
 
         // write the BoxArray
@@ -130,7 +130,7 @@ void WriteCheckPoint(int step,
 void ReadCheckPoint(int& step,
                     amrex::Real& time,
                     std::array< MultiFab, AMREX_SPACEDIM >& umac,
-                    MultiFab& tracer, TurbForcing& tf)
+                    MultiFab& tracer, TurbForcing& turbforce)
 {
     // timer for profiling
     BL_PROFILE_VAR("ReadCheckPoint()",ReadCheckPoint);
@@ -171,7 +171,7 @@ void ReadCheckPoint(int& step,
         Real utemp;
         for (int i=0; i<132; ++i) {
             is >> utemp;
-            tf.setU(i,utemp);
+            turbforce.setU(i,utemp);
         }
 
         // read in level 'lev' BoxArray from Header
