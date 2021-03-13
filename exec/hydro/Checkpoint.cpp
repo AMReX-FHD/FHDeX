@@ -72,14 +72,14 @@ void WriteCheckPoint(int step,
         // C++ random number engine
         amrex::SaveRandomState(HeaderFile);
 
+        // write the BoxArray
+        ba.writeOn(HeaderFile);
+        HeaderFile << '\n';
+
         // write turbulent forcing U's
         for (int i=0; i<132; ++i) {
             HeaderFile << turbforce.getU(i) << '\n';
         }
-
-        // write the BoxArray
-        ba.writeOn(HeaderFile);
-        HeaderFile << '\n';
     }
 
     // write the MultiFab data to, e.g., chk00010/Level_0/
@@ -167,13 +167,6 @@ void ReadCheckPoint(int& step,
         // C++ random number engine
         amrex::RestoreRandomState(is, 1, 0);
 
-        // read in turbulent forcing U's
-        Real utemp;
-        for (int i=0; i<132; ++i) {
-            is >> utemp;
-            turbforce.setU(i,utemp);
-        }
-
         // read in level 'lev' BoxArray from Header
         BoxArray ba;
         ba.readFrom(is);
@@ -181,6 +174,15 @@ void ReadCheckPoint(int& step,
 
         // create a distribution mapping
         DistributionMapping dm { ba, ParallelDescriptor::NProcs() };
+
+        turbforce.define(ba,dm,turb_a,turb_b);
+
+        // read in turbulent forcing U's
+        Real utemp;
+        for (int i=0; i<132; ++i) {
+            is >> utemp;
+            turbforce.setU(i,utemp);
+        }
 
         // build MultiFab data
         umac[0].define(convert(ba,nodal_flag_x), dm, 1, 1);

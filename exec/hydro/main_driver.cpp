@@ -100,11 +100,6 @@ void main_driver(const char* argv)
     }
     /////////////////////////////////////////
 
-    // object for turbulent forcing
-    TurbForcing turbforce;
-    turbforce.define(ba,dmap,turb_a,turb_b);
-    turbforce.Initialize(geom);
-
     ///////////////////////////////////////////
     // rho, alpha, beta, gamma:
     ///////////////////////////////////////////
@@ -313,6 +308,9 @@ void main_driver(const char* argv)
     int step_start;
     amrex::Real time;
 
+    // object for turbulent forcing
+    TurbForcing turbforce;
+
     // tracer
     MultiFab tracer(ba,dmap,1,1);
     
@@ -327,6 +325,8 @@ void main_driver(const char* argv)
         ReadCheckPoint(step_start,time,umac,tracer,turbforce);
     }
     else {
+
+        turbforce.define(ba,dmap,turb_a,turb_b);
 
         tracer.setVal(0.);
 
@@ -399,6 +399,8 @@ void main_driver(const char* argv)
         }
 
     }
+
+    turbforce.Initialize(geom);
 
     ///////////////////////////////////////////
 
