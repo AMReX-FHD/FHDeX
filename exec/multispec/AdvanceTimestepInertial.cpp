@@ -500,7 +500,7 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     if (variance_coef_mass != 0.) {
         // keep this random number engine state for checkpointing
         if (chk_int > 0) {
-            Abort("AdvanceTimestepBousq.cpp checkpointing not implemented");
+            Abort("AdvanceTimestepInertial.cpp checkpointing not implemented");
         }
         sMassFlux.fillMassStochastic();
     }

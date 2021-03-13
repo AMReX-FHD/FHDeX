@@ -86,7 +86,9 @@ void ReadCheckPoint(int& step,
                     MultiFab& pi,
                     std::array< MultiFab, AMREX_SPACEDIM >& umac,
                     MultiFab& Epot,
-                    std::array< MultiFab, AMREX_SPACEDIM >& grad_Epot);
+                    std::array< MultiFab, AMREX_SPACEDIM >& grad_Epot,
+                    BoxArray& ba,
+                    DistributionMapping& dmap);
 
 ///////////////////////////
 // in WritePlotFile.cpp

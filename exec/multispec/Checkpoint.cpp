@@ -160,7 +160,9 @@ void ReadCheckPoint(int& step,
                     MultiFab& pi,
                     std::array< MultiFab, AMREX_SPACEDIM >& umac,
                     MultiFab& Epot,
-                    std::array< MultiFab, AMREX_SPACEDIM >& grad_Epot)
+                    std::array< MultiFab, AMREX_SPACEDIM >& grad_Epot,
+                    BoxArray& ba,
+                    DistributionMapping& dmap)
 {
     // timer for profiling
     BL_PROFILE_VAR("ReadCheckPoint()",ReadCheckPoint);
@@ -213,34 +215,33 @@ void ReadCheckPoint(int& step,
         amrex::RestoreRandomState(is, 1, 0);
 
         // read in level 'lev' BoxArray from Header
-        BoxArray ba;
         ba.readFrom(is);
         GotoNextLine(is);
 
         // create a distribution mapping
-        DistributionMapping dm { ba, ParallelDescriptor::NProcs() };
+        dmap.define(ba, ParallelDescriptor::NProcs());
 
         // build MultiFab data
-        umac[0].define(convert(ba,nodal_flag_x), dm, 1, 1);
-        umac[1].define(convert(ba,nodal_flag_y), dm, 1, 1);
+        umac[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);
+        umac[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);
 #if (AMREX_SPACEDIM == 3)
-        umac[2].define(convert(ba,nodal_flag_z), dm, 1, 1);
+        umac[2].define(convert(ba,nodal_flag_z), dmap, 1, 1);
 #endif
 
         if (use_charged_fluid) {
-            grad_Epot[0].define(convert(ba,nodal_flag_x), dm, 1, 1);
-            grad_Epot[1].define(convert(ba,nodal_flag_y), dm, 1, 1);
+            grad_Epot[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);
+            grad_Epot[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);
 #if (AMREX_SPACEDIM == 3)
-            grad_Epot[2].define(convert(ba,nodal_flag_z), dm, 1, 1);
+            grad_Epot[2].define(convert(ba,nodal_flag_z), dmap, 1, 1);
 #endif
         }
         
-        rho   .define(ba, dm, nspecies, ng_s);
-        rhotot.define(ba, dm,        1, 1);
-        pi    .define(ba, dm,        1, 1);
+        rho   .define(ba, dmap, nspecies, ng_s);
+        rhotot.define(ba, dmap,        1, ng_s);
+        pi    .define(ba, dmap,        1, 1);
 
         if (use_charged_fluid) {
-            Epot.define(ba, dm, 1, 1);
+            Epot.define(ba, dmap, 1, 1);
         }
     }
 
