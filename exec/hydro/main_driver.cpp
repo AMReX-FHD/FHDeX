@@ -64,19 +64,11 @@ void main_driver(const char* argv)
 
     Geometry geom(domain,&real_box,CoordSys::cartesian,is_periodic.data());
     
-    // make BoxArray
+    // BoxArray
     BoxArray ba;
-    {
-        // Initialize the boxarray "ba" from the single box "bx"
-        ba.define(domain);
-
-        // Break up boxarray "ba" into chunks no larger than "max_grid_size" along a direction
-        // note we are converting "Vector<int> max_grid_size" to an IntVect
-        ba.maxSize(IntVect(max_grid_size));
-    }
 
     // how boxes are distrubuted among MPI processes
-    DistributionMapping dmap(ba);
+    DistributionMapping dmap;
 
     Real dt = fixed_dt;
     Real dtinv = 1.0/dt;
@@ -99,13 +91,102 @@ void main_driver(const char* argv)
         rng_initialize(&fhdSeed,&particleSeed,&selectorSeed,&thetaSeed,&phiSeed,&generalSeed);
     }
     /////////////////////////////////////////
+    
+    int step_start;
+    amrex::Real time;
 
-    ///////////////////////////////////////////
-    // rho, alpha, beta, gamma:
-    ///////////////////////////////////////////
+    // object for turbulent forcing
+    TurbForcing turbforce;
 
-    MultiFab rho(ba, dmap, 1, 1);
-    rho.setVal(1.);
+    // tracer
+    MultiFab tracer;
+    
+    // staggered velocities
+    std::array< MultiFab, AMREX_SPACEDIM > umac;
+    
+    if (restart > 0) {
+        ReadCheckPoint(step_start,time,umac,tracer,turbforce,ba,dmap);
+    }
+    else {
+
+        // Initialize the boxarray "ba" from the single box "bx"
+        ba.define(domain);
+
+        // Break up boxarray "ba" into chunks no larger than "max_grid_size" along a direction
+        // note we are converting "Vector<int> max_grid_size" to an IntVect
+        ba.maxSize(IntVect(max_grid_size));
+
+        dmap.define(ba);
+    
+        turbforce.define(ba,dmap,turb_a,turb_b);
+
+        const RealBox& realDomain = geom.ProbDomain();
+        int dm;
+        
+        AMREX_D_TERM(umac[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
+                     umac[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
+                     umac[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
+    
+        tracer.define(ba,dmap,1,1);
+        tracer.setVal(0.);
+        
+        for ( MFIter mfi(tracer); mfi.isValid(); ++mfi ) {
+            const Box& bx = mfi.validbox();
+
+            AMREX_D_TERM(dm=0; init_vel(BL_TO_FORTRAN_BOX(bx),
+                                        BL_TO_FORTRAN_ANYD(umac[0][mfi]), geom.CellSize(),
+                                        geom.ProbLo(), geom.ProbHi() ,&dm,
+                                        ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));,
+                         dm=1; init_vel(BL_TO_FORTRAN_BOX(bx),
+                                        BL_TO_FORTRAN_ANYD(umac[1][mfi]), geom.CellSize(),
+                                        geom.ProbLo(), geom.ProbHi() ,&dm,
+                                        ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));,
+                         dm=2; init_vel(BL_TO_FORTRAN_BOX(bx),
+                                        BL_TO_FORTRAN_ANYD(umac[2][mfi]), geom.CellSize(),
+                                        geom.ProbLo(), geom.ProbHi() ,&dm,
+                                        ZFILL(realDomain.lo()), ZFILL(realDomain.hi())););
+
+    	// initialize tracer
+        init_s_vel(BL_TO_FORTRAN_BOX(bx),
+    		   BL_TO_FORTRAN_ANYD(tracer[mfi]),
+    		   dx, ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
+
+        }
+
+        // temporary for addMomfluctuations and MacProj_hydro
+        MultiFab rho(ba, dmap, 1, 1);
+        rho.setVal(1.);
+        MultiFab temp_cc(ba, dmap, 1, 1);
+        temp_cc.setVal(T_init[0]);
+    
+        // Add initial equilibrium fluctuations
+        if(initial_variance_mom != 0.0) {
+            addMomFluctuations(umac, rho, temp_cc, initial_variance_mom,geom);
+        }
+
+        // Project umac onto divergence free field
+        {
+            // macrhs only used once at beginning of simulaton
+            // put this in braces so it goes out of scope immediately
+            MultiFab macrhs(ba,dmap,1,1);
+            macrhs.setVal(0.0);
+            MacProj_hydro(umac,rho,geom,true);
+        }
+
+        step_start = 1;
+        time = 0.;
+
+    }
+
+    turbforce.Initialize(geom);
+
+    // pressure for GMRES solve
+    MultiFab pres(ba,dmap,1,1);
+    pres.setVal(0.);  // initial guess
+    
+    ///////////////////////////////////////////
+    // alpha, beta, gamma:
+    ///////////////////////////////////////////
 
     // alpha_fc arrays
     std::array< MultiFab, AMREX_SPACEDIM > alpha_fc;
@@ -151,7 +232,6 @@ void main_driver(const char* argv)
     ///////////////////////////////////////////
     // eta & temperature
     const Real eta_const = visc_coef;
-    const Real temp_const = T_init[0];      // [units: K]
 
     // eta & temperature cell centered
     MultiFab  eta_cc;
@@ -183,21 +263,21 @@ void main_driver(const char* argv)
     // eta cell-centered
     eta_cc.setVal(eta_const);
     // temperature cell-centered
-    temp_cc.setVal(temp_const);
+    temp_cc.setVal(T_init[0]);
 #if (AMREX_SPACEDIM == 2)
     // eta nodal
     eta_ed[0].setVal(eta_const);
     // temperature nodal
-    temp_ed[0].setVal(temp_const);
+    temp_ed[0].setVal(T_init[0]);
 #elif (AMREX_SPACEDIM == 3)
     // eta nodal
     eta_ed[0].setVal(eta_const);
     eta_ed[1].setVal(eta_const);
     eta_ed[2].setVal(eta_const);
     // temperature nodal
-    temp_ed[0].setVal(temp_const);
-    temp_ed[1].setVal(temp_const);
-    temp_ed[2].setVal(temp_const);
+    temp_ed[0].setVal(T_init[0]);
+    temp_ed[1].setVal(T_init[0]);
+    temp_ed[2].setVal(T_init[0]);
 #endif
     ///////////////////////////////////////////
 
@@ -293,89 +373,8 @@ void main_driver(const char* argv)
     StructFact turbStructFact(ba,dmap,var_names,var_scaling,s_pairA,s_pairB);
     
     ///////////////////////////////////////////
-    
-    // FIXME need to fill physical boundary condition ghost cells for tracer
 
-    // pressure for GMRES solve
-    MultiFab pres(ba,dmap,1,1);
-    pres.setVal(0.);  // initial guess
-
-    std::array< MultiFab, AMREX_SPACEDIM > umacTemp;
-    AMREX_D_TERM(umacTemp[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
-                 umacTemp[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
-                 umacTemp[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););   
-    
-    int step_start;
-    amrex::Real time;
-
-    // object for turbulent forcing
-    TurbForcing turbforce;
-
-    // tracer
-    MultiFab tracer(ba,dmap,1,1);
-    
-    // staggered velocities
-    std::array< MultiFab, AMREX_SPACEDIM > umac;
-
-    // storage for grad(U) for energy dissipation calculation
-    MultiFab gradU(ba,dmap,AMREX_SPACEDIM,0);
-    MultiFab ccTemp(ba,dmap,1,0);
-    
-    if (restart > 0) {
-        ReadCheckPoint(step_start,time,umac,tracer,turbforce);
-    }
-    else {
-
-        turbforce.define(ba,dmap,turb_a,turb_b);
-
-        tracer.setVal(0.);
-
-        AMREX_D_TERM(umac[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
-                     umac[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
-                     umac[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
-    
-        const RealBox& realDomain = geom.ProbDomain();
-        int dm;
-
-        for ( MFIter mfi(beta); mfi.isValid(); ++mfi ) {
-            const Box& bx = mfi.validbox();
-
-            AMREX_D_TERM(dm=0; init_vel(BL_TO_FORTRAN_BOX(bx),
-                                        BL_TO_FORTRAN_ANYD(umac[0][mfi]), geom.CellSize(),
-                                        geom.ProbLo(), geom.ProbHi() ,&dm,
-                                        ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));,
-                         dm=1; init_vel(BL_TO_FORTRAN_BOX(bx),
-                                        BL_TO_FORTRAN_ANYD(umac[1][mfi]), geom.CellSize(),
-                                        geom.ProbLo(), geom.ProbHi() ,&dm,
-                                        ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));,
-                         dm=2; init_vel(BL_TO_FORTRAN_BOX(bx),
-                                        BL_TO_FORTRAN_ANYD(umac[2][mfi]), geom.CellSize(),
-                                        geom.ProbLo(), geom.ProbHi() ,&dm,
-                                        ZFILL(realDomain.lo()), ZFILL(realDomain.hi())););
-
-    	// initialize tracer
-        init_s_vel(BL_TO_FORTRAN_BOX(bx),
-    		   BL_TO_FORTRAN_ANYD(tracer[mfi]),
-    		   dx, ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
-
-        }
-    
-        // Add initial equilibrium fluctuations
-        if(initial_variance_mom != 0.0) {
-            addMomFluctuations(umac, rho, temp_cc, initial_variance_mom,geom);
-        }
-
-        // Project umac onto divergence free field
-        {
-            // macrhs only used once at beginning of simulaton
-            // put this in braces so it goes out of scope immediately
-            MultiFab macrhs(ba,dmap,1,1);
-            macrhs.setVal(0.0);
-            MacProj_hydro(umac,rho,geom,true);
-        }
-
-        step_start = 1;
-        time = 0.;
+    if (restart < 0) {
 
         // We do the analysis first so we include the initial condition in the files if n_steps_skip=0
         if (n_steps_skip == 0 && struct_fact_int > 0) {
@@ -397,11 +396,19 @@ void main_driver(const char* argv)
                 structFact.WritePlotFile(0,0.,geom,"plt_SF");
             }
         }
-
     }
+    
+    // FIXME need to fill physical boundary condition ghost cells for tracer
 
-    turbforce.Initialize(geom);
+    std::array< MultiFab, AMREX_SPACEDIM > umacTemp;
+    AMREX_D_TERM(umacTemp[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
+                 umacTemp[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
+                 umacTemp[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););   
 
+    // storage for grad(U) for energy dissipation calculation
+    MultiFab gradU(ba,dmap,AMREX_SPACEDIM,0);
+    MultiFab ccTemp(ba,dmap,1,0);
+    
     ///////////////////////////////////////////
 
     //Time stepping loop

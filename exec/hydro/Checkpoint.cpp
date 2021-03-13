@@ -130,7 +130,8 @@ void WriteCheckPoint(int step,
 void ReadCheckPoint(int& step,
                     amrex::Real& time,
                     std::array< MultiFab, AMREX_SPACEDIM >& umac,
-                    MultiFab& tracer, TurbForcing& turbforce)
+                    MultiFab& tracer, TurbForcing& turbforce,
+                    BoxArray& ba, DistributionMapping& dmap)
 {
     // timer for profiling
     BL_PROFILE_VAR("ReadCheckPoint()",ReadCheckPoint);
@@ -168,14 +169,13 @@ void ReadCheckPoint(int& step,
         amrex::RestoreRandomState(is, 1, 0);
 
         // read in level 'lev' BoxArray from Header
-        BoxArray ba;
         ba.readFrom(is);
         GotoNextLine(is);
 
         // create a distribution mapping
-        DistributionMapping dm { ba, ParallelDescriptor::NProcs() };
+        dmap.define(ba, ParallelDescriptor::NProcs());
 
-        turbforce.define(ba,dm,turb_a,turb_b);
+        turbforce.define(ba,dmap,turb_a,turb_b);
 
         // read in turbulent forcing U's
         Real utemp;
@@ -185,12 +185,12 @@ void ReadCheckPoint(int& step,
         }
 
         // build MultiFab data
-        umac[0].define(convert(ba,nodal_flag_x), dm, 1, 1);
-        umac[1].define(convert(ba,nodal_flag_y), dm, 1, 1);
+        umac[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);
+        umac[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);
 #if (AMREX_SPACEDIM == 3)
-        umac[2].define(convert(ba,nodal_flag_z), dm, 1, 1);
+        umac[2].define(convert(ba,nodal_flag_z), dmap, 1, 1);
 #endif
-        tracer.define(ba, dm, 1, 1);
+        tracer.define(ba, dmap, 1, 1);
     }
 
     // read in the MultiFab data

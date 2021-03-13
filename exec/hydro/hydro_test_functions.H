@@ -43,7 +43,8 @@ void WriteCheckPoint(const int step,
 void ReadCheckPoint(int& step,
                     amrex::Real& time,
                     std::array< MultiFab, AMREX_SPACEDIM >& umac,
-                    MultiFab& tracer, TurbForcing& turbforce);
+                    MultiFab& tracer, TurbForcing& turbforce,
+                    BoxArray& ba, DistributionMapping& dmap);
 
 ///////////////////////////
 
