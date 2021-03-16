@@ -197,4 +197,45 @@ struct Kernel6P
     }
 };
 
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
+Real integral(Real beta, int w)
+{
+    int nbin = 100;
+    Real dxi = w/nbin;
+    Real integral = 0.0; 
+
+    // mid-point rule for integration
+    for (int i = 0; i < nbin; i++) {
+        integral += dxi*std::exp(beta*(std::sqrt(1 - 4*(-w*0.5+i*dxi+0.5*dxi)*(-w*0.5+i*dxi+0.5*dxi)/w/w) - 1));
+    }
+    return integral;
+}
+
+struct KernelES
+{
+    KernelES(Real beta_in, int w_in) : beta(beta_in), w(w_in) {}
+
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    Real operator() (Real r_in) const noexcept
+    {
+        Real kernel_es;
+        Real r = r_in;
+
+        if (r >= -w/2.0 && r <= w/2.0)
+        {
+            kernel_es = std::exp(beta*(std::sqrt(1 - 4*r*r/w/w) - 1))/integral(beta, w);
+        }
+        else
+        {
+            kernel_es = 0.0;
+        }
+
+        return kernel_es;
+    }
+
+    private:
+        Real beta;
+        int w;
+
+};
 #endif
