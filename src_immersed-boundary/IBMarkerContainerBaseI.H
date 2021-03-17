@@ -866,9 +866,13 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadKernelGpu(const AoS& ao
         {
             gs = 3;
         }
-        else
+        else if (pkernel_fluid[p.idata(StructInt::species)-1] == 6)
         {
             gs = 4;
+        }
+        else if (eskernel_fluid[p.idata(StructInt::species)-1] > 0)
+        {
+            gs = floor(eskernel_fluid[p.idata(StructInt::species)-1]*0.5)+1;
         }
 
         if (ng == 0)
@@ -928,9 +932,13 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadKernelGpu(const AoS& ao
                          {
                             weight*=Kernel4P()(pos_grid[ii]);
                          }
-                         else
+                         else if (pkernel_fluid[p.idata(StructInt::species)-1] == 6)
                          {
                             weight*=Kernel6P()(pos_grid[ii]);
+                         }
+                         else if (eskernel_fluid[p.idata(StructInt::species)-1] > 0)
+                         {
+                            weight*=KernelES(eskernel_beta[p.idata(StructInt::species)-1], eskernel_fluid[p.idata(StructInt::species)-1])(pos_grid[ii]);
                          }
                       }
                       amrex::Gpu::Atomic::Add(&fout_x(i,j,k), p.rdata(StructReal::forcex + 0)*weight*invvol);
@@ -959,9 +967,13 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadKernelGpu(const AoS& ao
                          {
                             weight*=Kernel4P()(pos_grid[ii]);
                          }
-                         else
+                         else if (pkernel_fluid[p.idata(StructInt::species)-1] == 6)
                          {
                             weight*=Kernel6P()(pos_grid[ii]);
+                         }
+                         else if (eskernel_fluid[p.idata(StructInt::species)-1] > 0)
+                         {
+                            weight*=KernelES(eskernel_beta[p.idata(StructInt::species)-1], eskernel_fluid[p.idata(StructInt::species)-1])(pos_grid[ii]);
                          }
                       }
                       amrex::Gpu::Atomic::Add(&fout_y(i,j,k), p.rdata(StructReal::forcex + 1)*weight*invvol);
@@ -990,9 +1002,13 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadKernelGpu(const AoS& ao
                          {
                             weight*=Kernel4P()(pos_grid[ii]);
                          }
-                         else
+                         else if (pkernel_fluid[p.idata(StructInt::species)-1] == 6)
                          {
                             weight*=Kernel6P()(pos_grid[ii]);
+                         }
+                         else if (eskernel_fluid[p.idata(StructInt::species)-1] > 0)
+                         {
+                            weight*=KernelES(eskernel_beta[p.idata(StructInt::species)-1], eskernel_fluid[p.idata(StructInt::species)-1])(pos_grid[ii]);
                          }
                       }
                       amrex::Gpu::Atomic::Add(&fout_z(i,j,k), p.rdata(StructReal::forcex + 2)*weight*invvol);
@@ -1420,9 +1436,13 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateKernelGpu(AoS& aos
         {
             gs = 3;
         }
-        else
+        else if (pkernel_fluid[p.idata(StructInt::species)-1] == 6)
         {
             gs = 4;
+        }
+        else if (eskernel_fluid[p.idata(StructInt::species)-1] > 0)
+        {
+            gs = floor(eskernel_fluid[p.idata(StructInt::species)-1]*0.5)+1;
         }
 
 //        if (ng == 0) //this condition isn't in the Fortan version? -DRL
@@ -1500,9 +1520,13 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateKernelGpu(AoS& aos
                      {
                         weight*=Kernel4P()(pos_grid[ii]);
                      }
-                     else
+                     else if (pkernel_fluid[p.idata(StructInt::species)-1] == 6)
                      {
                         weight*=Kernel6P()(pos_grid[ii]);
+                     }
+                     else if (eskernel_fluid[p.idata(StructInt::species)-1] > 0)
+                     {
+                        weight*=KernelES(eskernel_beta[p.idata(StructInt::species)-1], eskernel_fluid[p.idata(StructInt::species)-1])(pos_grid[ii]);
                      }
                   }
 
@@ -1545,9 +1569,13 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateKernelGpu(AoS& aos
                      {
                         weight*=Kernel4P()(pos_grid[ii]);
                      }
-                     else
+                     else if (pkernel_fluid[p.idata(StructInt::species)-1] == 6)
                      {
                         weight*=Kernel6P()(pos_grid[ii]);
+                     }
+                     else if (eskernel_fluid[p.idata(StructInt::species)-1] > 0)
+                     {
+                        weight*=KernelES(eskernel_beta[p.idata(StructInt::species)-1], eskernel_fluid[p.idata(StructInt::species)-1])(pos_grid[ii]);
                      }
                   }
 
@@ -1586,10 +1614,14 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateKernelGpu(AoS& aos
                      {
                         weight*=Kernel4P()(pos_grid[ii]);
                      }
-                     else
+                     else if (pkernel_fluid[p.idata(StructInt::species)-1] == 6)
                      {
                         weight*=Kernel6P()(pos_grid[ii]);
                      }
+                     else if (eskernel_fluid[p.idata(StructInt::species)-1] > 0)
+                     {
+                        weight*=KernelES(eskernel_beta[p.idata(StructInt::species)-1], eskernel_fluid[p.idata(StructInt::species)-1])(pos_grid[ii]);
+                     } 
                   }
 
                   Real wfrac = 1.0;

@@ -29,6 +29,8 @@ module common_namelist_module
   double precision,   save :: qval(MAX_SPECIES)
   integer,            save :: pkernel_fluid(MAX_SPECIES) ! GALEN - FLUID KERNEL
   integer,            save :: pkernel_es(MAX_SPECIES)
+  integer,            save :: eskernel_fluid(MAX_SPECIES) ! ES KERNEL
+  double precision,   save :: eskernel_beta(MAX_SPECIES) ! ES KERNEL: beta
 
   double precision,   save :: mass(MAX_SPECIES)
   double precision,   save :: nfrac(MAX_SPECIES)
@@ -223,6 +225,8 @@ module common_namelist_module
   namelist /common/ qval                ! charge on an ion
   namelist /common/ pkernel_fluid       ! peskin kernel for fluid
   namelist /common/ pkernel_es          ! peskin kernel for es
+  namelist /common/ eskernel_fluid      ! ES kernel for fluid
+  namelist /common/ eskernel_beta       ! ES kernel for fluid: beta
 
   namelist /common/ mass
   namelist /common/ nfrac
@@ -559,6 +563,8 @@ contains
 
     pkernel_fluid(:) = 4
     pkernel_es(:) = 4
+    eskernel_fluid(:) = -1
+    eskernel_beta(:) = -1
     solve_chem = 0
     diffcoeff  = 0.001
     scaling_factor = 0.1
@@ -607,6 +613,7 @@ contains
                                          nvars_in, nprimvars_in, &
                                          membrane_cell_in, cross_cell_in, transmission_in, &
                                          qval_in, pkernel_fluid_in, pkernel_es_in,&
+                                         eskernel_fluid_in, eskernel_beta_in,&
                                          fixed_dt_in, cfl_in, rfd_delta_in, max_step_in, plot_int_in, plot_stag_in, &
                                          plot_base_name_in, plot_base_name_len, chk_int_in, &
                                          chk_base_name_in, chk_base_name_len, prob_type_in, &
@@ -693,6 +700,8 @@ contains
     double precision,       intent(inout) :: qval_in(MAX_SPECIES)
     integer,                intent(inout) :: pkernel_fluid_in(MAX_SPECIES)
     integer,                intent(inout) :: pkernel_es_in(MAX_SPECIES)
+    integer,                intent(inout) :: eskernel_fluid_in(MAX_SPECIES)
+    double precision,       intent(inout) :: eskernel_beta_in(MAX_SPECIES)
 
     integer,                intent(inout) :: max_step_in
     integer,                intent(inout) :: plot_int_in
@@ -853,6 +862,8 @@ contains
     qval_in = qval
     pkernel_fluid_in = pkernel_fluid
     pkernel_es_in = pkernel_es
+    eskernel_fluid_in = eskernel_fluid
+    eskernel_beta_in = eskernel_beta
 
     fixed_dt_in = fixed_dt
     cfl_in = cfl

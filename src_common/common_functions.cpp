@@ -84,6 +84,8 @@ void InitializeCommonNamespace() {
 
     pkernel_fluid.resize(MAX_SPECIES);
     pkernel_es.resize(MAX_SPECIES);
+    eskernel_fluid.resize(MAX_SPECIES);
+    eskernel_beta.resize(MAX_SPECIES);
 
     eamp.resize(3);    
     efreq.resize(3);
@@ -97,6 +99,7 @@ void InitializeCommonNamespace() {
                                 &nvars, &nprimvars,
                                 &membrane_cell, &cross_cell, &transmission,
                                 qval.dataPtr(), pkernel_fluid.dataPtr(), pkernel_es.dataPtr(),
+                                eskernel_fluid.dataPtr(), eskernel_beta.dataPtr(),
                                 &fixed_dt, &cfl, &rfd_delta, &max_step,
                                 &plot_int, &plot_stag, temp_plot_base_name, 128,
                                 &chk_int, temp_chk_base_name, 128,
