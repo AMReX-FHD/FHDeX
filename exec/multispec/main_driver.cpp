@@ -70,6 +70,9 @@ void main_driver(const char* argv)
 
     //Initialise rngs
     rng_initialize(&fhdSeed,&particleSeed,&selectorSeed,&thetaSeed,&phiSeed,&generalSeed);
+
+    // initializes the seed for C++ random number calls
+    InitRandom(seed+ParallelDescriptor::MyProc());
     
     // is the problem periodic?
     Vector<int> is_periodic(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
