@@ -46,6 +46,9 @@ void ReadCheckPoint(int& step,
                     MultiFab& tracer, TurbForcing& turbforce,
                     BoxArray& ba, DistributionMapping& dmap);
 
+void ReadFile(const std::string& filename, Vector<char>& charBuf,
+              bool bExitOnError=true);
+    
 ///////////////////////////
 
 ///////////////////////////
