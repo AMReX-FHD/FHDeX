@@ -949,7 +949,9 @@ void main_driver(const char* argv)
                 sMflux.StochMomFluxDiv(stochMfluxdivC,0,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
             }
         }
-
+        //stochMfluxdiv[0].setVal(0.0);
+        //stochMfluxdiv[1].setVal(0.0);
+        //stochMfluxdiv[2].setVal(0.0);
         // AJN - should this be an if/else fluid_tog==2?
         if (fluid_tog == 1) {
 
@@ -957,42 +959,42 @@ void main_driver(const char* argv)
             {         
 
                 Real check;
-    //            particles.clearMobilityMatrix();
-    //            for(int ii=88;ii<=1687;ii++)
-    //            {
-    //                particles.SetForce(ii,1,0,0);
-    //                for (int d=0; d<AMREX_SPACEDIM; ++d) {
-    //                    source    [d].setVal(0.0);      // reset source terms
-    //                    sourceTemp[d].setVal(0.0);      // reset source terms
-    //                }
-    //                particles.SpreadIonsGPU(dx, dxp, geom, umac, efieldCC, source, sourceTemp);                
-    //                advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
-    //                particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
-    //                particles.fillMobilityMatrix(ii,0);
+//                particles.clearMobilityMatrix();
+//                for(int ii=88;ii<=1687;ii++)
+//                {
+//                    particles.SetForce(ii,1,0,0);
+//                    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+//                        source    [d].setVal(0.0);      // reset source terms
+//                        sourceTemp[d].setVal(0.0);      // reset source terms
+//                    }
+//                    particles.SpreadIonsGPU(dx, dxp, geom, umac, efieldCC, source, sourceTemp);                
+//                    advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
+//                    particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
+//                    particles.fillMobilityMatrix(ii,0);
 
-    //                particles.SetForce(ii,0,1,0);
-    //                for (int d=0; d<AMREX_SPACEDIM; ++d) {
-    //                    source    [d].setVal(0.0);      // reset source terms
-    //                    sourceTemp[d].setVal(0.0);      // reset source terms
-    //                }
-    //                particles.SpreadIonsGPU(dx, dxp, geom, umac, efieldCC, source, sourceTemp);                
-    //                advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
-    //                particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
-    //                particles.fillMobilityMatrix(ii,1);
+//                    particles.SetForce(ii,0,1,0);
+//                    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+//                        source    [d].setVal(0.0);      // reset source terms
+//                        sourceTemp[d].setVal(0.0);      // reset source terms
+//                    }
+//                    particles.SpreadIonsGPU(dx, dxp, geom, umac, efieldCC, source, sourceTemp);                
+//                    advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
+//                    particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
+//                    particles.fillMobilityMatrix(ii,1);
 
-    //                particles.SetForce(ii,0,0,1);
-    //                for (int d=0; d<AMREX_SPACEDIM; ++d) {
-    //                    source    [d].setVal(0.0);      // reset source terms
-    //                    sourceTemp[d].setVal(0.0);      // reset source terms
-    //                }
-    //                particles.SpreadIonsGPU(dx, dxp, geom, umac, efieldCC, source, sourceTemp);                
-    //                advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
-    //                particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
-    //                particles.fillMobilityMatrix(ii,2);
+//                    particles.SetForce(ii,0,0,1);
+//                    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+//                        source    [d].setVal(0.0);      // reset source terms
+//                        sourceTemp[d].setVal(0.0);      // reset source terms
+//                    }
+//                    particles.SpreadIonsGPU(dx, dxp, geom, umac, efieldCC, source, sourceTemp);                
+//                    advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
+//                    particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
+//                    particles.fillMobilityMatrix(ii,2);
 
 
-    //            }
-    //            particles.writeMat();
+//                }
+//                particles.writeMat();
 
 
                 MultiFab::Add(source[0],sourceRFD[0],0,0,sourceRFD[0].nComp(),sourceRFD[0].nGrow());
@@ -1003,6 +1005,8 @@ void main_driver(const char* argv)
                 particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
                 particles.velNorm();
 
+                //particles.ResetMarkers(0);
+
                 particles.pinnedParticleInversion();
                 //particles.pinForce();
 
@@ -1011,7 +1015,7 @@ void main_driver(const char* argv)
                         sourceTemp[d].setVal(0.0);      // reset source terms
                     }
 
-                particles.SpreadIonsGPU(dx, dxp, geom, umac, efieldCC, source, sourceTemp);
+                particles.SpreadIonsGPU(dx, geom, umac, source, sourceTemp);
 
                 MultiFab::Add(source[0],sourceRFD[0],0,0,sourceRFD[0].nComp(),sourceRFD[0].nGrow());
                 MultiFab::Add(source[1],sourceRFD[1],0,0,sourceRFD[1].nComp(),sourceRFD[1].nGrow());
