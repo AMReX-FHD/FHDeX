@@ -553,18 +553,31 @@ double AppSurfchemtest::site_propensity(int i)
   for (m = 0; m < nads; m++) {
     if (type[i] != adstype[m] || element[i] != adsinput[m]) continue;
 
+/*    
     // propensity for adsorption = adsrate * num_dens * sqrt(site_temp/sys_temp)
     if (adsoutput[m]==SPEC1) adspropensity = adsrate[m]*density1[i]*sqrt(temp[i]/temperature);
     else if (adsoutput[m]==SPEC2) adspropensity = adsrate[m]*density2[i]*sqrt(temp[i]/temperature);
     else if (adsoutput[m]==SPEC3) adspropensity = adsrate[m]*density3[i]*sqrt(temp[i]/temperature);
     else if (adsoutput[m]==SPEC4) adspropensity = adsrate[m]*density4[i]*sqrt(temp[i]/temperature);
-    else if (adsoutput[m]==SPEC5) adspropensity = adsrate[m]*density5[i]*sqrt(temp[i]/temperature);;
+    else if (adsoutput[m]==SPEC5) adspropensity = adsrate[m]*density5[i]*sqrt(temp[i]/temperature);
+    add_event(i,4,m,adspropensity,-1,-1);
+    proball += adspropensity;
+*/
+
+    // propensity for adsorption = adsrate * num_dens 
+    if (adsoutput[m]==SPEC1) adspropensity = adsrate[m]*density1[i];
+    else if (adsoutput[m]==SPEC2) adspropensity = adsrate[m]*density2[i];
+    else if (adsoutput[m]==SPEC3) adspropensity = adsrate[m]*density3[i];
+    else if (adsoutput[m]==SPEC4) adspropensity = adsrate[m]*density4[i];
+    else if (adsoutput[m]==SPEC5) adspropensity = adsrate[m]*density5[i];
     add_event(i,4,m,adspropensity,-1,-1);
     proball += adspropensity;
 
+/*
     // simpler rate
-    //add_event(i,4,m,adsrate[m],-1,-1);
-    //proball += adsrate[m];
+    add_event(i,4,m,adsrate[m],-1,-1);
+    proball += adsrate[m];
+*/
   }
 
   // desorption events
