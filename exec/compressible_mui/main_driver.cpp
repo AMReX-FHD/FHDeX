@@ -16,6 +16,7 @@ using namespace amrex;
 using namespace mui;
 
 #define NADSDESSPEC 1
+#define MOMOFINERCO 1.456061e-39
 
 // this routine pushes the following information to MUI
 // - species number densities and temperature of FHD cells contacting the interface
@@ -143,6 +144,10 @@ void mui_fetch(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface
                     double vx,vy,vz;
                     double dmomx,dmomy,dmomz,derg;
 
+		    double kBTI = k_B*temp/MOMOFINERCO;
+		    double sqrtkBTI = sqrt(kBTI);
+		    double omegax,omegay;
+
                     dmomx = dmomy = dmomz = derg = 0.;
 
                     for (int l=0;l<ac;l++)
@@ -156,6 +161,11 @@ void mui_fetch(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface
                         dmomy -= mass*vy;
                         dmomz += mass*vz;
                         derg  -= 0.5*mass*(vx*vx+vy*vy+vz*vz);
+
+			// angular velocity (diatomic)
+			omegax = RandomNormal(0.,sqrtkBTI);
+			omegay = RandomNormal(0.,sqrtkBTI);
+			derg -= 0.5*MOMOFINERCO*(omegax*omegax+omegay*omegay);
                     }
 
                     for (int l=0;l<dc;l++)
@@ -169,6 +179,11 @@ void mui_fetch(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface
                         dmomy += mass*vy;
                         dmomz += mass*vz;
                         derg  += 0.5*mass*(vx*vx+vy*vy+vz*vz);
+
+			// angular velocity (diatomic)
+			omegax = RandomNormal(0.,sqrtkBTI);
+			omegay = RandomNormal(0.,sqrtkBTI);
+			derg += 0.5*MOMOFINERCO*(omegax*omegax+omegay*omegay);
                     }
 
                     cu_fab(i,j,k,0) += (dc-ac)*mass/dV;
