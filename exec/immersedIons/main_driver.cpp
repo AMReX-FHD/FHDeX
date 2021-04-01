@@ -76,6 +76,9 @@ void main_driver(const char* argv)
     else if (*(std::max_element(pkernel_fluid.begin(),pkernel_fluid.begin()+nspecies)) == 6) {
         ang = 4;
     }
+    else if (*(std::max_element(eskernel_fluid.begin(),eskernel_fluid.begin()+nspecies)) > 0) {
+	ang = static_cast<int>(floor(*(std::max_element(eskernel_fluid.begin(),eskernel_fluid.begin()+nspecies)))/2+1);
+    }
 
     int ngp = 1;
     // using maximum number of peskin kernel points to determine the ghost cells for the whole grid.
@@ -89,7 +92,10 @@ void main_driver(const char* argv)
     else if (*(std::max_element(pkernel_es.begin(),pkernel_es.begin()+nspecies)) == 6) {
         ngp = 4;
     }
-        
+    else if (*(std::max_element(eskernel_fluid.begin(),eskernel_fluid.begin()+nspecies)) > 0) {
+	ngp = static_cast<int>(floor(*(std::max_element(eskernel_fluid.begin(),eskernel_fluid.begin()+nspecies)))/2+1);
+    }   
+
     // staggered velocities
     // umac needs extra ghost cells for Peskin kernels
     // note if we are restarting, these are defined and initialized to the checkpoint data
@@ -355,6 +361,13 @@ void main_driver(const char* argv)
        else if (pkernel_fluid[j] == 6) {
            wetRad[j] = 1.481*dxAv;
        }
+       else if (eskernel_fluid[j] == 4) { // With beta = 5.22
+           wetRad[j] = 1.300*dxAv;
+       }
+       else if (eskernel_fluid[j] == 6) { // With beta = 8.64
+           wetRad[j] = 1.478*dxAv;
+       }
+
     }
 
     for(int i=0;i<nspecies;i++) {
@@ -420,10 +433,10 @@ void main_driver(const char* argv)
                 << " wet radius: " << wetRad[i] << "\n"
                 << " dry radius: " << (k_B*T_init[0])/(6*3.14159265359*(ionParticle[i].dryDiff)*visc_coef) << "\n";
 
-        //if (ionParticle[i].dryDiff < 0) {
-        //    Print() << "Negative dry diffusion in species " << i << "\n";
-        //    Abort();
-        //}
+        if (ionParticle[i].dryDiff < 0) {
+            Print() << "Negative dry diffusion in species " << i << "\n";
+            Abort();
+        }
 
         ionParticle[i].Neff = particle_neff; // From DSMC, this will be set to 1 for electolyte calcs
         ionParticle[i].R = k_B/ionParticle[i].m; //used a lot in kinetic stats cals, bu not otherwise necessary for electrolytes
@@ -686,7 +699,7 @@ void main_driver(const char* argv)
     //int num_neighbor_cells = 4; replaced by input var
     //Particles! Build on geom & box array for collision cells/ poisson grid?
     double relRefine = particle_grid_refine/es_grid_refine;
-    int cRange = (int)ceil((*(std::max_element(pkernel_es.begin(),pkernel_es.begin()+nspecies)))/relRefine);
+    int cRange = (int)ceil(std::max(*(std::max_element(pkernel_es.begin(),pkernel_es.begin()+nspecies)), *(std::max_element(eskernel_fluid.begin(),eskernel_fluid.begin()+nspecies)))/relRefine);
     FhdParticleContainer particles(geomC, geom, dmap, bc, ba, cRange, ang);
 
     if (restart < 0 && particle_restart < 0) {
@@ -871,11 +884,11 @@ void main_driver(const char* argv)
         }
 
 
-        if(istep == 1)
-        {
-            particles.SetPosition(1, prob_hi[0]*0.25, prob_hi[1]*0.25, prob_hi[2]*0.5);
-            particles.SetPosition(2, prob_hi[0]*0.25, prob_hi[1]*0.25+2*dx[1], prob_hi[2]*0.5);
-        }
+        //if(istep == 1)
+        //{
+        //    particles.SetPosition(1, prob_hi[0]*0.5, prob_hi[1]*0.5, prob_hi[2]*0.5);
+        //    particles.SetPosition(2, prob_hi[0]*0.5, prob_hi[1]*0.5+64*dx[1], prob_hi[2]*0.5);
+        //}
 
     
         //Most of these functions are sensitive to the order of execution. We can fix this, but for now leave them in this order.
@@ -1182,7 +1195,7 @@ void main_driver(const char* argv)
                             potential, potentialM, potentialV);
         }
 
-        particles.PrintParticles();
+        //particles.PrintParticles();
 
         // timer for time step
         Real time2 = ParallelDescriptor::second() - time1;

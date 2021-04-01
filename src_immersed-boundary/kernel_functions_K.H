@@ -198,8 +198,10 @@ struct Kernel6P
 };
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
-Real integral(Real beta, int w)
+Real integral(Real beta_in, int w_in) 
 {
+    Real beta = beta_in;
+    Real w = static_cast<Real>(w_in);
     int nbin = 100;
     Real dxi = w/nbin;
     Real integral = 0.0; 
@@ -208,38 +210,38 @@ Real integral(Real beta, int w)
     for (int i = 0; i < nbin; i++) {
         integral += dxi*std::exp(beta*(std::sqrt(1 - 4*(-w*0.5+i*dxi+0.5*dxi)*(-w*0.5+i*dxi+0.5*dxi)/w/w) - 1));
     }
-    std::cout << "denominator is " << integral << std::endl;
+    //std::cout << "denominator is " << integral << std::endl;
     return integral;
 }
 
 struct KernelES
 {
-    //KernelES(Real beta_in, int w_in) : beta(beta_in), w(w_in) {}
+    KernelES(Real beta_in, int w_in) : beta(beta_in), w(w_in) {}
 
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
-    Real operator() (Real beta_in, int w_in, Real r_in) const noexcept
+    Real operator() (Real r_in) const noexcept
     {
         Real kernel_es;
         Real r = r_in;
-        Real beta = beta_in;
-        int w = w_in;
+        //Real beta = beta_in;
+        //Real w = static_cast<Real>(w_in);
 
         if (r >= -w/2.0 && r <= w/2.0)
         {
-            kernel_es = std::exp(beta*(std::sqrt(1 - 4*r*r/w/w) - 1))/integral(beta, w);
+            kernel_es = std::exp(beta*(std::sqrt(1 - 4*r*r/w/w) - 1));
         }
         else
         {
             kernel_es = 0.0;
         }
 
-	std::cout << "kernel_es is " << kernel_es << std::endl;
+	//std::cout << "kernel_es is " << kernel_es << std::endl;
         return kernel_es;
     }
 
-    //private:
-    //    Real beta;
-    //    int w;
+    private:
+        Real beta;
+        int w;
 
 };
 #endif
