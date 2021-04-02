@@ -72,14 +72,7 @@ IBMarkerContainerBase<StructReal, StructInt>::IBMarkerContainerBase(
         f_weights[d].setVal(-1.0);
     }
 
-    //// Calculate the normalization factor for ES kernel
-    //Vector<Real> IBMarkerContainerBase::integral_es;
-    //IBMarkerContainerBase::integral_es.resize(common::nspecies);
-    //for (int i=0; i<common::nspecies; ++i) {
-    //    IBMarkerContainerBase::integral_es[i] = integral(common::eskernel_beta[i], common::eskernel_fluid[i]);
-    //    //std::cout << "normalization factor " << i << " are " << integral_es[i] << std::endl;
-    //}
-
+    
 }
 
 template <typename StructReal, typename StructInt>
@@ -103,14 +96,7 @@ IBMarkerContainerBase<StructReal, StructInt>::IBMarkerContainerBase(
         f_weights[d].setVal(-1.0);
     }
 
-    //// Calculate the normalization factor for ES kernel
-    //Vector<Real> IBMarkerContainerBase::integral_es;
-    //IBMarkerContainerBase::integral_es.resize(common::nspecies);
-    //for (int i=0; i<common::nspecies; ++i) {
-    //    IBMarkerContainerBase::integral_es[i] = integral(common::eskernel_beta[i], common::eskernel_fluid[i]);
-    //    //std::cout << "normalization factor " << i << " are " << integral_es[i] << std::endl;
-    //}
-
+   
 }
 
 
@@ -868,7 +854,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadKernelGpu(const AoS& ao
     AMREX_FOR_1D( Np, ip,
     {
         const ParticleType& p = pstruct[ip];
-        //Real integral_es = integral(eskernel_beta[p.idata(StructInt::species)-1], eskernel_fluid[p.idata(StructInt::species)-1]);
+        //Real norm_es = integral(eskernel_beta[p.idata(StructInt::species)-1], eskernel_fluid[p.idata(StructInt::species)-1]);
 
         int lo_dim[3];
         int hi_dim[3];
@@ -927,8 +913,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadKernelGpu(const AoS& ao
             }
         }
 
-	//Vector<Real> integral_es(common::nspecies);
-        //std::cout << "normalization factor " << 1 << " are " << integral_es[1] << std::endl;
+        //std::cout << "normalization factor " << 1 << " are " << norm_es[1] << std::endl;
         // x-components
         if(vis == 1)
         {
@@ -958,7 +943,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadKernelGpu(const AoS& ao
                          }
 			 else if (eskernel_fluid[p.idata(StructInt::species)-1] > 0)
                          {
-                            weight*=KernelES(eskernel_beta[p.idata(StructInt::species)-1], eskernel_fluid[p.idata(StructInt::species)-1])(pos_grid[ii])/integral_es[p.idata(StructInt::species)-1];
+                            weight*=KernelES(eskernel_beta[p.idata(StructInt::species)-1], eskernel_fluid[p.idata(StructInt::species)-1])(pos_grid[ii])/norm_es[p.idata(StructInt::species)-1];
                          }
    
                       }
@@ -997,7 +982,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadKernelGpu(const AoS& ao
                          }
 			 else if (eskernel_fluid[p.idata(StructInt::species)-1] > 0)
                          {
-                            weight*=KernelES(eskernel_beta[p.idata(StructInt::species)-1], eskernel_fluid[p.idata(StructInt::species)-1])(pos_grid[ii])/integral_es[p.idata(StructInt::species)-1];
+                            weight*=KernelES(eskernel_beta[p.idata(StructInt::species)-1], eskernel_fluid[p.idata(StructInt::species)-1])(pos_grid[ii])/norm_es[p.idata(StructInt::species)-1];
                          }
                       }
 
@@ -1036,7 +1021,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadKernelGpu(const AoS& ao
                          }
 			 else if (eskernel_fluid[p.idata(StructInt::species)-1] > 0)
                          {
-                            weight*=KernelES(eskernel_beta[p.idata(StructInt::species)-1], eskernel_fluid[p.idata(StructInt::species)-1])(pos_grid[ii])/integral_es[p.idata(StructInt::species)-1];
+                            weight*=KernelES(eskernel_beta[p.idata(StructInt::species)-1], eskernel_fluid[p.idata(StructInt::species)-1])(pos_grid[ii])/norm_es[p.idata(StructInt::species)-1];
                          }
 		      }
 
@@ -1442,7 +1427,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateKernelGpu(AoS& aos
     AMREX_FOR_1D( Np, ip,
     {
         ParticleType& p = pstruct[ip];
-        //Real integral_es = integral(eskernel_beta[p.idata(StructInt::species)-1], eskernel_fluid[p.idata(StructInt::species)-1]);
+        //Real norm_es = integral(eskernel_beta[p.idata(StructInt::species)-1], eskernel_fluid[p.idata(StructInt::species)-1]);
 
         int vis = 1;
 
@@ -1532,8 +1517,8 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateKernelGpu(AoS& aos
         p.rdata(StructReal::velx + 2) = 0;
         //std::cout << "SUCCESS\n";
         double wSum = 0;
-	//Vector<Real> integral_es(common::nspecies);
-        //std::cout << "normalization factor " << 1 << " are " << integral_es[1] << std::endl;
+        
+	//std::cout << "normalization factor " << 1 << " are " << norm_es[1] << std::endl;
         // x-components
         for (int k = lo_dim[2] ; k < hi_dim[2]; ++k) {
             for (int j = lo_dim[1] ; j < hi_dim[1]; ++j) {
@@ -1562,7 +1547,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateKernelGpu(AoS& aos
                      }
 		     else if (eskernel_fluid[p.idata(StructInt::species)-1] > 0)
                      {
-                        weight*=KernelES(eskernel_beta[p.idata(StructInt::species)-1], eskernel_fluid[p.idata(StructInt::species)-1])(pos_grid[ii])/integral_es[p.idata(StructInt::species)-1];
+                        weight*=KernelES(eskernel_beta[p.idata(StructInt::species)-1], eskernel_fluid[p.idata(StructInt::species)-1])(pos_grid[ii])/norm_es[p.idata(StructInt::species)-1];
 		        //Print() << "weight is " << weight << "\n";
                      }
 		  }
@@ -1614,7 +1599,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateKernelGpu(AoS& aos
                      }
 		     else if (eskernel_fluid[p.idata(StructInt::species)-1] > 0)
                      {
-                        weight*=KernelES(eskernel_beta[p.idata(StructInt::species)-1], eskernel_fluid[p.idata(StructInt::species)-1])(pos_grid[ii])/integral_es[p.idata(StructInt::species)-1];
+                        weight*=KernelES(eskernel_beta[p.idata(StructInt::species)-1], eskernel_fluid[p.idata(StructInt::species)-1])(pos_grid[ii])/norm_es[p.idata(StructInt::species)-1];
                      }
                   }
 
@@ -1661,7 +1646,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateKernelGpu(AoS& aos
                      }
 		     else if (eskernel_fluid[p.idata(StructInt::species)-1] > 0)
                      {
-                        weight*=KernelES(eskernel_beta[p.idata(StructInt::species)-1], eskernel_fluid[p.idata(StructInt::species)-1])(pos_grid[ii])/integral_es[p.idata(StructInt::species)-1];
+                        weight*=KernelES(eskernel_beta[p.idata(StructInt::species)-1], eskernel_fluid[p.idata(StructInt::species)-1])(pos_grid[ii])/norm_es[p.idata(StructInt::species)-1];
                      } 
                   }
 
@@ -2072,11 +2057,11 @@ void IBMarkerContainerBase<StructReal, StructInt>::InitInternals(int ngrow) {
     const Geometry & geom = this->Geom(lev);
     FindFaceCoords(face_coords[lev], geom);
    
-    Vector<Real> IBMarkerContainerBase<StructReal, StructInt>::integral_es;
-    IBMarkerContainerBase::integral_es.resize(common::nspecies);
+    //Vector<Real> IBMarkerContainerBase<StructReal, StructInt>::norm_es;
+    IBMarkerContainerBase::norm_es.resize(common::nspecies);
     for (int i=0; i<common::nspecies; ++i) {
-        IBMarkerContainerBase::integral_es[i] = integral(common::eskernel_beta[i], common::eskernel_fluid[i]);
-        //std::cout << "normalization factor " << i << " are " << integral_es[i] << std::endl;
+        IBMarkerContainerBase::norm_es[i] = integrate_es(common::eskernel_beta[i], common::eskernel_fluid[i]);
+        //std::cout << "normalization factor " << i << " are " << IBMarkerContainerBase::norm_es[i] << std::endl;
     }
 
 }
@@ -2118,7 +2103,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::ReadStaticParameters() {
 }
 
 template <typename StructReal, typename StructInt>
-Real IBMarkerContainerBase<StructReal, StructInt>::integral(Real beta_in, int w_in) {
+Real IBMarkerContainerBase<StructReal, StructInt>::integrate_es(Real beta_in, int w_in) {
     Real beta = beta_in;
     Real w = static_cast<Real>(w_in);
     int nbin = 100;

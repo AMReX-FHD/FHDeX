@@ -278,7 +278,7 @@ protected:
     void InitInternals(int ngrow);
     void ReadStaticParameters();
 
-    Real integral(Real beta_in, int w_in);
+    Real integrate_es(Real beta_in, int w_in);
    
 
     AmrCore * m_amr_core;
@@ -292,7 +292,7 @@ protected:
     int totalMarkers;
     int totalPinnedMarkers;
 
-    static Vector<Real> integral_es;
+    static inline Vector<Real> norm_es;
     
 
 private:
