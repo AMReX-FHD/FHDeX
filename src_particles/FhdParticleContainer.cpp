@@ -272,7 +272,7 @@ void FhdParticleContainer::velNorm()
                 Real velSqr = (pow(part.rdata(FHD_realData::velx),2) + pow(part.rdata(FHD_realData::vely),2) + pow(part.rdata(FHD_realData::velz),2));
             
                 velNtile += velSqr;
-                //Print() << velNtile << std::endl;
+                //Print() << "actual vel: " << part.rdata(FHD_realData::velx) << ", " << part.rdata(FHD_realData::vely) << ", " << part.rdata(FHD_realData::velz) << std::endl;
 
                 if(velSqr > maxStile)
                 {
@@ -292,7 +292,7 @@ void FhdParticleContainer::velNorm()
 
     if(pinCheck != 0)
     {
-        Print() << "Pinned particle velocity norm: " << sqrt(velN) << ", max speed: " << sqrt(maxS) << std::endl;
+        Print() << setprecision(15) << "Pinned particle velocity norm: " << sqrt(velN) << ", max speed: " << sqrt(maxS) << std::endl;
     }
 
 }
@@ -1028,8 +1028,8 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
                         if(dry_move_tog == 2)
                         {
                             mbDer[0] = 0;
-                            mbDer[1] = 1;
-                            mbDer[2] = 2;
+                            mbDer[1] = 0;
+                            mbDer[2] = 0;
                         }
                         
                         dry_gpu(dt, part,dry_terms, mb, mbDer);
@@ -2830,7 +2830,7 @@ FhdParticleContainer::writeMat()
         {
             for(int j=0;j<matrixSize;j++)
             {
-                ofs << pinMatrix[i*matrixSize +j] << std::endl;
+                ofs << setprecision(15) << pinMatrix[i*matrixSize +j] << std::endl;
 
             }
         }

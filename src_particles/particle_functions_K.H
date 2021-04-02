@@ -834,10 +834,10 @@ void compute_forces_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
                         const Real rMinMax = amrex::max(r, rmin_wall[spec1]*sigma_wall[spec1]);
                         if(sr_tog == 2)
                         {
-                            repulsive_force_wall(p1, dx, dy, dz, rMinMax, sigma[spec1], eepsilon[spec1]);
+                            repulsive_force_wall(p1, dx, dy, dz, rMinMax, sigma_wall[spec1], eepsilon_wall[spec1]);
                         }else
                         {
-                            repulsive_force_lj(p1, dx, dy, dz, rMinMax, sigma[spec1], eepsilon[spec1]);
+                            repulsive_force_lj(p1, dx, dy, dz, rMinMax, sigma_wall[spec1], eepsilon_wall[spec1]);
                         }
                     }
                 }
@@ -870,10 +870,10 @@ void compute_forces_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
                         const Real rMinMax = amrex::max(r, rmin_wall[spec1]*sigma_wall[spec1]);
                         if(sr_tog == 2)
                         {
-                            repulsive_force_wall(p1, dx, dy, dz, rMinMax, sigma[spec1], eepsilon[spec1]);
+                            repulsive_force_wall(p1, dx, dy, dz, rMinMax, sigma_wall[spec1], eepsilon_wall[spec1]);
                         }else
                         {
-                            repulsive_force_lj(p1, dx, dy, dz, rMinMax, sigma[spec1], eepsilon[spec1]);
+                            repulsive_force_lj(p1, dx, dy, dz, rMinMax, sigma_wall[spec1], eepsilon_wall[spec1]);
                         }
                     }
                 }
