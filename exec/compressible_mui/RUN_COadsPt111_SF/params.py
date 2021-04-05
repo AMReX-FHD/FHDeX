@@ -107,10 +107,7 @@ print "- temp in K = %e" % temp
 print "- k1des = %e" % k1des
 
 theta1 = k1ads/(k1ads+k1des)
-print "- eq coverage of spec1: %e" % theta1
-print "- theta(t) = %e*(1-exp(-%e*t))  for theta(0)=0\n" % (theta1,k1ads+k1des)
-
-print "- adsrate = %e\n" % (k1ads/n1)
+print "- eq coverage of spec1: %e\n" % theta1
 
 ##########
 
@@ -131,6 +128,9 @@ drho2sq = rho2**2/N2
 drhosq = drho1sq+drho2sq
 djasq = rho*kB*temp/dV
 
+dEsq = (kB*temp)**2/dV*(2.5*3.5*rho1/m1+1.5*2.5*rho2/m2)
+dTsq = temp**2/dV/(2.5*n1+1.5*n2)
+
 print "drhosq = %e" % drhosq
 print "drho1sq = %e" % drho1sq
 print "drho2sq = %e" % drho2sq
@@ -140,3 +140,6 @@ print "drhosq*dV  = %e\t%e\t%e\t%e" % (drhosq*dV,2*drhosq*dV,0.5*drhosq*dV,1.5*d
 print "drho1sq*dV = %e\t%e\t%e\t%e" % (drho1sq*dV,2*drho1sq*dV,0.5*drho1sq*dV,1.5*drho1sq*dV)
 print "drho2sq*dV = %e\t%e\t%e\t%e" % (drho2sq*dV,2*drho2sq*dV,0.5*drho2sq*dV,1.5*drho2sq*dV)
 print "djasq*dV   = %e\t%e\t%e\t%e" % (djasq*dV,2*djasq*dV,0.5*djasq*dV,1.5*djasq*dV)
+
+print "dEsq*dV    = %e\t%e\t%e\t%e" % (dEsq*dV,2*dEsq*dV,0.5*dEsq*dV,1.5*dEsq*dV)
+print "dTsq*dV    = %e\t%e\t%e\t%e" % (dTsq*dV,2*dTsq*dV,0.5*dTsq*dV,1.5*dTsq*dV)
