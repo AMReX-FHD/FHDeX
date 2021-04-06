@@ -1,4 +1,5 @@
-#include "hydro_test_functions.H"
+#include "multispec_test_functions.H"
+#include "multispec_functions.H"
 
 #include "rng_functions_F.H"
 
@@ -18,8 +19,13 @@ namespace {
 
 void WriteCheckPoint(int step,
                      const amrex::Real time,
+                     const amrex::Real dt,
+                     const MultiFab& rho,
+                     const MultiFab& rhotot,
+                     const MultiFab& pi,
                      std::array< MultiFab, AMREX_SPACEDIM >& umac,
-                     const MultiFab& tracer, TurbForcing& turbforce)
+                     const MultiFab& Epot,
+                     std::array< MultiFab, AMREX_SPACEDIM >& grad_Epot)
 {
     // timer for profiling
     BL_PROFILE_VAR("WriteCheckPoint()",WriteCheckPoint);
@@ -29,7 +35,7 @@ void WriteCheckPoint(int step,
 
     amrex::Print() << "Writing checkpoint " << checkpointname << "\n";
 
-    BoxArray ba = tracer.boxArray();
+    BoxArray ba = rho.boxArray();
 
     // single level problem
     int nlevels = 1;
@@ -61,7 +67,7 @@ void WriteCheckPoint(int step,
         HeaderFile.precision(17);
 
         // write out title line
-        HeaderFile << "Checkpoint file for FHDeX/hydro\n";
+        HeaderFile << "Checkpoint file for FHDeX/multispecies\n";
 
         // write out the time step number
         HeaderFile << step << "\n";
@@ -69,52 +75,17 @@ void WriteCheckPoint(int step,
         // write out time
         HeaderFile << time << "\n";
 
+        // write out dt
+        HeaderFile << dt << "\n";
+
+        // C++ random number engine
+        amrex::SaveRandomState(HeaderFile);
+
         // write the BoxArray
         ba.writeOn(HeaderFile);
         HeaderFile << '\n';
-
-        // write turbulent forcing U's
-        for (int i=0; i<132; ++i) {
-            HeaderFile << turbforce.getU(i) << '\n';
-        }
     }
 
-    // C++ random number engine
-    // have each MPI process write its random number state to a different file
-    int comm_rank;
-    MPI_Comm_rank(MPI_COMM_WORLD, &comm_rank);
-
-    int n_ranks;
-    MPI_Comm_size(MPI_COMM_WORLD, &n_ranks);
-
-    // don't write out all the rng states at once (overload filesystem)
-    // one at a time write out the rng states to different files, one for each MPI rank
-    for (int rank=0; rank<n_ranks; ++rank) {
-
-        if (comm_rank == rank) {
-
-            std::ofstream rngFile;
-            rngFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
-
-            // create filename, e.g. chk0000005/rng0000002
-            const std::string& rngFileNameBase = (checkpointname + "/rng");
-            const std::string& rngFileName = amrex::Concatenate(rngFileNameBase,comm_rank,7);
-        
-            rngFile.open(rngFileName.c_str(), std::ofstream::out   |
-                         std::ofstream::trunc |
-                         std::ofstream::binary);
-
-            if( !rngFile.good()) {
-                amrex::FileOpenFailed(rngFileName);
-            }
-    
-            amrex::SaveRandomState(rngFile);
-
-        }
-
-        ParallelDescriptor::Barrier();
-    }
-    
     // write the MultiFab data to, e.g., chk00010/Level_0/
     VisMF::Write(umac[0],
                  amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "umac"));
@@ -124,8 +95,29 @@ void WriteCheckPoint(int step,
     VisMF::Write(umac[2],
                  amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "wmac"));
 #endif
-    VisMF::Write(tracer,
-                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "tracer"));
+
+    if (use_charged_fluid) {
+        VisMF::Write(grad_Epot[0],
+                     amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "grad_Epotx"));
+        VisMF::Write(grad_Epot[1],
+                     amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "grad_Epoty"));
+#if (AMREX_SPACEDIM == 3)
+        VisMF::Write(grad_Epot[2],
+                     amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "grad_Epotz"));
+#endif
+    }
+    
+    VisMF::Write(rho,
+                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "rho"));
+    VisMF::Write(rhotot,
+                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "rhotot"));
+    VisMF::Write(pi,
+                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "pi"));
+
+    if (use_charged_fluid) {
+        VisMF::Write(Epot,
+                     amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "Epot"));
+    }
 
     int check;
     char str[80];
@@ -162,9 +154,15 @@ void WriteCheckPoint(int step,
 
 void ReadCheckPoint(int& step,
                     amrex::Real& time,
+                    amrex::Real& dt,
+                    MultiFab& rho,
+                    MultiFab& rhotot,
+                    MultiFab& pi,
                     std::array< MultiFab, AMREX_SPACEDIM >& umac,
-                    MultiFab& tracer, TurbForcing& turbforce,
-                    BoxArray& ba, DistributionMapping& dmap)
+                    MultiFab& Epot,
+                    std::array< MultiFab, AMREX_SPACEDIM >& grad_Epot,
+                    BoxArray& ba,
+                    DistributionMapping& dmap)
 {
     // timer for profiling
     BL_PROFILE_VAR("ReadCheckPoint()",ReadCheckPoint);
@@ -178,6 +176,17 @@ void ReadCheckPoint(int& step,
 
     std::string line, word;
 
+    int ng_s; // ghost cells for density MultiFabs
+    if (advection_type == 0) {
+        ng_s = 2; // centered advection
+    }
+    else if (advection_type <= 3) {
+        ng_s = 3; // bilinear limited, biliniear unlimited, or unlimited quad bds
+    }
+    else if (advection_type == 4) {
+        ng_s = 4; // limited quad bds
+    }
+    
     // Header
     {
         std::string File(checkpointname + "/Header");
@@ -198,6 +207,13 @@ void ReadCheckPoint(int& step,
         is >> time;
         GotoNextLine(is);
 
+        // read in dt
+        is >> dt;
+        GotoNextLine(is);
+
+        // C++ random number engine
+        amrex::RestoreRandomState(is, 1, 0);
+
         // read in level 'lev' BoxArray from Header
         ba.readFrom(is);
         GotoNextLine(is);
@@ -205,55 +221,28 @@ void ReadCheckPoint(int& step,
         // create a distribution mapping
         dmap.define(ba, ParallelDescriptor::NProcs());
 
-        turbforce.define(ba,dmap,turb_a,turb_b);
-
-        // read in turbulent forcing U's
-        Real utemp;
-        for (int i=0; i<132; ++i) {
-            is >> utemp;
-            turbforce.setU(i,utemp);
-        }        
-
         // build MultiFab data
         umac[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);
         umac[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);
 #if (AMREX_SPACEDIM == 3)
         umac[2].define(convert(ba,nodal_flag_z), dmap, 1, 1);
 #endif
-        tracer.define(ba, dmap, 1, 1);
-    }
 
-    // C++ random number engine
-    // each MPI process reads in its own file
-    int comm_rank;
-    MPI_Comm_rank(MPI_COMM_WORLD, &comm_rank);
-
-    int n_ranks;
-    MPI_Comm_size(MPI_COMM_WORLD, &n_ranks);
-
-    // don't read in all the rng states at once (overload filesystem)
-    // one at a time write out the rng states to different files, one for each MPI rank
-    for (int rank=0; rank<n_ranks; ++rank) {
-
-        if (comm_rank == rank) {
-    
-            // create filename, e.g. chk0000005/rng0000002
-            std::string FileBase(checkpointname + "/rng");
-            std::string File = amrex::Concatenate(FileBase,comm_rank,7);
-
-            // read in contents
-            Vector<char> fileCharPtr;
-            ReadFile(File, fileCharPtr);
-            std::string fileCharPtrString(fileCharPtr.dataPtr());
-            std::istringstream is(fileCharPtrString, std::istringstream::in);
-
-            // restore random state
-            amrex::RestoreRandomState(is, 1, 0);
-
+        if (use_charged_fluid) {
+            grad_Epot[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);
+            grad_Epot[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);
+#if (AMREX_SPACEDIM == 3)
+            grad_Epot[2].define(convert(ba,nodal_flag_z), dmap, 1, 1);
+#endif
         }
+        
+        rho   .define(ba, dmap, nspecies, ng_s);
+        rhotot.define(ba, dmap,        1, ng_s);
+        pi    .define(ba, dmap,        1, 1);
 
-        ParallelDescriptor::Barrier();
-
+        if (use_charged_fluid) {
+            Epot.define(ba, dmap, 1, 1);
+        }
     }
 
     // read in the MultiFab data
@@ -265,56 +254,33 @@ void ReadCheckPoint(int& step,
     VisMF::Read(umac[2],
                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "wmac"));
 #endif
-    VisMF::Read(tracer,
-                amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "tracer"));
+
+    if (use_charged_fluid) {
+        VisMF::Read(grad_Epot[0],
+                    amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "grad_Epotx"));
+        VisMF::Read(grad_Epot[1],
+                    amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "grad_Epoty"));
+#if (AMREX_SPACEDIM == 3)
+        VisMF::Read(grad_Epot[2],
+                    amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "grad_Epotz"));
+#endif
+    }
+    
+    VisMF::Read(rho,
+                amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "rho"));
+    VisMF::Read(rhotot,
+                amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "rhotot"));
+    VisMF::Read(pi,
+                amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "pi"));
+
+    if (use_charged_fluid) {
+        VisMF::Read(Epot,
+                    amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "Epot"));
+    }
     
     // random number engines (fortran interface)
     int digits = 7;
     rng_restart(&restart,&digits);
 }
 
-void
-ReadFile (const std::string& filename, Vector<char>& charBuf,
-          bool bExitOnError)
-{
-    enum { IO_Buffer_Size = 262144 * 8 };
 
-#ifdef BL_SETBUF_SIGNED_CHAR
-    typedef signed char Setbuf_Char_Type;
-#else
-    typedef char Setbuf_Char_Type;
-#endif
-
-    Vector<Setbuf_Char_Type> io_buffer(IO_Buffer_Size);
-
-    Long fileLength(0), fileLengthPadded(0);
-
-    std::ifstream iss;
-
-    iss.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
-    iss.open(filename.c_str(), std::ios::in);
-    if ( ! iss.good()) {
-        if(bExitOnError) {
-            amrex::FileOpenFailed(filename);
-        } else {
-            fileLength = -1;
-        }
-    } else {
-        iss.seekg(0, std::ios::end);
-        fileLength = static_cast<std::streamoff>(iss.tellg());
-        iss.seekg(0, std::ios::beg);
-    }
-
-    if(fileLength == -1) {
-      return;
-    }
-
-    fileLengthPadded = fileLength + 1;
-//    fileLengthPadded += fileLengthPadded % 8;
-    charBuf.resize(fileLengthPadded);
-
-    iss.read(charBuf.dataPtr(), fileLength);
-    iss.close();
-
-    charBuf[fileLength] = '\0';
-}

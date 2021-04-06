@@ -196,9 +196,6 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     if (variance_coef_mass != 0.) {
         sMassFlux.fillMassStochastic();
-        if (chk_int > 0) {
-            Abort("AdvanceTimestepBousq.cpp checkpointing not implemented");
-        }
     }
 
     // compute diffusive, stochastic, potential mass fluxes

@@ -20,7 +20,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
              MultiFab& beta, MultiFab& gamma,
              std::array< MultiFab, NUM_EDGE >& beta_ed,
              const Geometry geom, const Real& dt,
-             TurbForcing& tf)
+             TurbForcing& turbforce)
 {
 
   BL_PROFILE_VAR("advance()",advance);
@@ -137,7 +137,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
   // turbulence forcing
   if (turbForcing == 1) {
-      tf.AddTurbForcing(gmres_rhs_u,dt,1);
+      turbforce.AddTurbForcing(gmres_rhs_u,dt,1);
   }
 
   // initial guess for new solution
@@ -233,7 +233,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
   // turbulence forcing
   if (turbForcing == 1) {
-      tf.AddTurbForcing(gmres_rhs_u,dt,0);
+      turbforce.AddTurbForcing(gmres_rhs_u,dt,0);
   }
 
   // initial guess for new solution
