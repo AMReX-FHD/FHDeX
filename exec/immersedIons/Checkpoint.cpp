@@ -481,6 +481,7 @@ void ReadCheckPointParticles(FhdParticleContainer& particles, species* particleI
     Real sigma[np];
     Real epsilon[np];
     int speciesV[np];
+    int pinnedV[np];
 
     Real diffwet[np];
     Real diffdry[np];
@@ -514,9 +515,10 @@ void ReadCheckPointParticles(FhdParticleContainer& particles, species* particleI
 
     particlesTemp.PullDownInt(0, speciesV, 4, np);
 
+    particlesTemp.PullDownInt(0, pinnedV, 6, np);
 
 
-    particles.ReInitParticles(particleInfo, dxp, posx, posy, posz, charge, sigma, epsilon, speciesV, diffdry, diffwet, difftot);
+    particles.ReInitParticles(particleInfo, dxp, posx, posy, posz, charge, sigma, epsilon, speciesV, pinnedV, diffdry, diffwet, difftot);
 
 
     //particles.PostRestart();

@@ -173,7 +173,7 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
 
 
 //THIS NEEDS TO BE UPDATED TO HANDLE MORE PARTICLE INFO
-void FhdParticleContainer::ReInitParticles(species* particleInfo, const Real* dxp, Real * posX, Real * posY, Real * posZ, Real * charge, Real * sigma, Real * epsilon, int * speciesV, Real * diffdry, Real * diffwet, Real * difftotal)
+void FhdParticleContainer::ReInitParticles(species* particleInfo, const Real* dxp, Real * posX, Real * posY, Real * posZ, Real * charge, Real * sigma, Real * epsilon, int * speciesV, int * pinnedV, Real * diffdry, Real * diffwet, Real * difftotal)
 {
     const int lev = 0;
     const Geometry& geom = Geom(lev);
@@ -181,6 +181,7 @@ void FhdParticleContainer::ReInitParticles(species* particleInfo, const Real* dx
     int pcount = 0;
 
     bool proc0_enter = true;
+    int pinnedParticles = 0;
 
    //Note we are resetting the particle ID count here, this is only valid if one rank is doing the generating.
    ParticleType::NextID(1);
@@ -270,6 +271,11 @@ void FhdParticleContainer::ReInitParticles(species* particleInfo, const Real* dx
                     p.rdata(FHD_realData::stepCount) = 0;
 
                     p.idata(FHD_intData::species) = speciesV[pcount];
+                    p.idata(FHD_intData::pinned) = pinnedV[pcount];
+                    if(p.idata(FHD_intData::pinned) != 0)
+                    {
+                            pinnedParticles++;
+                    }
 
                     p.rdata(FHD_realData::mass) = particleInfo[speciesV[pcount]-1].m; //mass
                     p.rdata(FHD_realData::R) = particleInfo[speciesV[pcount]-1].R; //R
@@ -304,6 +310,12 @@ void FhdParticleContainer::ReInitParticles(species* particleInfo, const Real* dx
             }
         }
     }
+
+    ParallelDescriptor::ReduceIntSum(pinnedParticles);
+
+    Print() << "Loaded " << pinnedParticles << " pinned particles." << std::endl;
+
+    totalPinnedMarkers = pinnedParticles;
 
     Redistribute();
     UpdateCellVectors();

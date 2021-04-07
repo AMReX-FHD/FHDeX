@@ -169,7 +169,7 @@ public:
 
     void InitParticlesFromFile(species* particleInfo, const Real* dxp);
 
-    void ReInitParticles(species* particleInfo, const Real* dxp, Real * posX, Real * posY, Real * posZ, Real * charge, Real * sigma, Real * epsilon, int * speciesV, Real * diffdry, Real * diffwet, Real * difftotal);
+    void ReInitParticles(species* particleInfo, const Real* dxp, Real * posX, Real * posY, Real * posZ, Real * charge, Real * sigma, Real * epsilon, int * speciesV, int * pinnedV, Real * diffdry, Real * diffwet, Real * difftotal);
 
     void PostRestart();
 
