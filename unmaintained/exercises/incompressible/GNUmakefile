@@ -18,10 +18,6 @@ include ./Make.package
 VPATH_LOCATIONS   += .
 INCLUDE_LOCATIONS += .
 
-include $(FHDEX_HOME)/src_hydro/src_F90/Make.package
-VPATH_LOCATIONS   += $(FHDEX_HOME)/src_hydro/src_F90
-INCLUDE_LOCATIONS += $(FHDEX_HOME)/src_hydro/src_F90
-
 include $(FHDEX_HOME)/src_hydro/Make.package
 VPATH_LOCATIONS   += $(FHDEX_HOME)/src_hydro/
 INCLUDE_LOCATIONS += $(FHDEX_HOME)/src_hydro/
