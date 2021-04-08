@@ -18,10 +18,16 @@ void BCPhysToMath(int bccomp, amrex::Vector<int>& bc_lo, amrex::Vector<int>& bc_
             if (bc_vel_lo[i] == 1 || bc_vel_lo[i] == 2) {
                 // wall -> first-order extrapolation
                 bc_lo[i] = FOEXTRAP;
+            } else if (bc_vel_lo[i] == -2) {
+                // pressure inflow
+                bc_lo[i] = EXT_DIR;
             }
             if (bc_vel_hi[i] == 1 || bc_vel_hi[i] == 2) {
                 // wall -> first-order extrapolation
                 bc_hi[i] = FOEXTRAP;
+            } else if (bc_vel_hi[i] == -2) {
+                // pressure inflow
+                bc_hi[i] = EXT_DIR;
             }
         }
     }
