@@ -27,11 +27,6 @@ include ./Make.package
 VPATH_LOCATIONS   += .
 INCLUDE_LOCATIONS += .
 
-
-include ../../../src_hydro/src_F90/Make.package
-VPATH_LOCATIONS   += ../../../src_hydro/src_F90
-INCLUDE_LOCATIONS += ../../../src_hydro/src_F90
-
 include ../../../src_hydro/Make.package
 VPATH_LOCATIONS   += ../../../src_hydro/
 INCLUDE_LOCATIONS += ../../../src_hydro/

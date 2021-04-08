@@ -402,7 +402,7 @@ void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
     // Pressure term boundary conditions
 
     pres.setVal(0.);
-    SetPressureBC(pres, geom);
+    MultiFabPhysBC(pres, geom, 0, 1, PRES_BC_COMP, 0);
     ComputeGrad(pres, pg, 0, 0, 1, PRES_BC_COMP, geom);
 
 
