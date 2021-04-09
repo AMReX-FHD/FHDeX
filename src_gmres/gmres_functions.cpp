@@ -37,7 +37,7 @@ void InitializeGmresNamespace() {
     mg_nsmooths_down = 2;       // number of smooths at each level on the way down
     mg_nsmooths_up = 2;         // number of smooths at each level on the way up
     mg_nsmooths_bottom = 8;     // number of smooths at the bottom (only if mg_bottom_solver=0)
-    mg_max_bottom_nlevels = 10; // for mg_bottom_solver=4, number of additional levels of multigrid
+    mg_max_bottom_nlevels = 10; // for mg_bottom_solver 4, number of additional levels of multigrid
     mg_rel_tol = 1.e-9;         // rel_tol for Poisson solve
     mg_abs_tol = 1.e-14;        // abs_tol for Poisson solve
 

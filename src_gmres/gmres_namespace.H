@@ -31,7 +31,7 @@ namespace gmres {
     extern int         mg_nsmooths_down;      // number of smooths at each level on the way down
     extern int         mg_nsmooths_up;        // number of smooths at each level on the way up
     extern int         mg_nsmooths_bottom;    // number of smooths at the bottom (only if mg_bottom_solver=0)
-    extern int         mg_max_bottom_nlevels; // for mg_bottom_solver=4, number of additional levels of multigrid
+    extern int         mg_max_bottom_nlevels; // for mg_bottom_solver 4, number of additional levels of multigrid
     extern amrex::Real mg_rel_tol;            // rel_tol for Poisson solve
     extern amrex::Real mg_abs_tol;            // abs_tol for Poisson solve
 
