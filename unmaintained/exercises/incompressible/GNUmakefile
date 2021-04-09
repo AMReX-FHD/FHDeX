@@ -46,10 +46,6 @@ include $(FHDEX_HOME)/src_rng/Make.package
 VPATH_LOCATIONS   += $(FHDEX_HOME)/src_rng/
 INCLUDE_LOCATIONS += $(FHDEX_HOME)/src_rng/
 
-include $(FHDEX_HOME)/src_gmres/src_F90/Make.package
-VPATH_LOCATIONS   += $(FHDEX_HOME)/src_gmres/src_F90
-INCLUDE_LOCATIONS += $(FHDEX_HOME)/src_gmres/src_F90
-
 include $(FHDEX_HOME)/src_gmres/Make.package
 VPATH_LOCATIONS   += $(FHDEX_HOME)/src_gmres/
 INCLUDE_LOCATIONS += $(FHDEX_HOME)/src_gmres/

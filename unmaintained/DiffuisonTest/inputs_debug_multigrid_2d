@@ -37,16 +37,9 @@
 
 /
 
-&gmres
-
   ! Staggered multigrid solver parameters
-<<<<<<< HEAD
-  stag_mg_verbosity = 3           ! verbosity
-  stag_mg_max_vcycles = 50        ! max number of v-cycles
-=======
   stag_mg_verbosity = 4           ! verbosity
   stag_mg_max_vcycles = 10        ! max number of v-cycles
->>>>>>> f1112450e5a4e1422e99f4865edf5b84288c78ac
   stag_mg_minwidth = 2            ! length of box at coarsest multigrid level
   stag_mg_bottom_solver = 0       ! bottom solver type
   ! 0 = smooths only, controlled by mg_nsmooths_bottom
@@ -55,9 +48,8 @@
   stag_mg_nsmooths_down = 3  ! number of smooths at each level on the way down
   stag_mg_nsmooths_up = 3    ! number of smooths at each level on the way up
   stag_mg_nsmooths_bottom = 8     ! number of smooths at the bottom
-  stag_mg_max_bottom_nlevels = 1 ! for stag_mg_bottom_solver=4, number of additional levels of multigrid
-  stag_mg_omega = 1.d0            ! weighted-jacobi omega coefficient
+  stag_mg_max_bottom_nlevels = 1 ! for stag_mg_bottom_solver 4, number of additional levels of multigrid
+  stag_mg_omega = 1.e0            ! weighted-jacobi omega coefficient
   stag_mg_smoother = 0            ! 0 = jacobi; 1 = 2*dm-color Gauss-Seidel
-  stag_mg_rel_tol = 1.d-9         ! relative tolerance stopping criteria
+  stag_mg_rel_tol = 1.e-9         ! relative tolerance stopping criteria
 
-/
