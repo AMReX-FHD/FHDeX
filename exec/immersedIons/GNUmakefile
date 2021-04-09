@@ -48,10 +48,6 @@ include $(FHDeX)/src_gmres/Make.package
 VPATH_LOCATIONS   += $(FHDeX)/src_gmres/
 INCLUDE_LOCATIONS += $(FHDeX)/src_gmres/
 
-include $(FHDeX)/src_gmres/src_F90/Make.package
-VPATH_LOCATIONS   += $(FHDeX)/src_gmres/src_F90
-INCLUDE_LOCATIONS += $(FHDeX)/src_gmres/src_F90
-
 include $(FHDeX)/src_common/Make.package
 VPATH_LOCATIONS   += $(FHDeX)/src_common/
 INCLUDE_LOCATIONS += $(FHDeX)/src_common/
