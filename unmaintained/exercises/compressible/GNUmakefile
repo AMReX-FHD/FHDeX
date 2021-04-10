@@ -23,9 +23,6 @@ include $(FHDEX_HOME)/src_compressible/Make.package
 VPATH_LOCATIONS   += $(FHDEX_HOME)/src_compressible/
 INCLUDE_LOCATIONS += $(FHDEX_HOME)/src_compressible/
 
-include $(FHDEX_HOME)/src_analysis/src_F90/Make.package
-VPATH_LOCATIONS   += $(FHDEX_HOME)/src_analysis/src_F90
-INCLUDE_LOCATIONS += $(FHDEX_HOME)/src_analysis/src_F90
 
 include $(FHDEX_HOME)/src_analysis/Make.package
 VPATH_LOCATIONS   += $(FHDEX_HOME)/src_analysis/
