@@ -2,7 +2,7 @@
 #include "InhomogeneousBCVal.H"
 
 // Ghost cell filling routine.
-// Fills in ONE ghost cells to the value ON the boundary.
+// Fills in ALL ghost cells to the value ON the boundary.
 // FOEXTRAP uses boundary conditions (Neumann) and 1 interior points.
 // EXT_DIR copies the supplied Dirichlet condition into the ghost cells.
 void MultiFabPhysBC(MultiFab& phi, const Geometry& geom, int scomp, int ncomp, int bccomp, const Real& time) {
@@ -26,6 +26,8 @@ void MultiFabPhysBC(MultiFab& phi, const Geometry& geom, int scomp, int ncomp, i
         dx[2] = cell_depth;
     }
 
+    int nghost = phi.nGrow();
+
     // compute mathematical boundary conditions
     Vector<int> bc_lo(AMREX_SPACEDIM);
     Vector<int> bc_hi(AMREX_SPACEDIM);
@@ -34,7 +36,7 @@ void MultiFabPhysBC(MultiFab& phi, const Geometry& geom, int scomp, int ncomp, i
     for (MFIter mfi(phi, TilingIfNotGPU()); mfi.isValid(); ++mfi) {
 
         // one ghost cell
-        Box bx = mfi.growntilebox(1);
+        Box bx = mfi.growntilebox(nghost);
 
         const Array4<Real>& data = phi.array(mfi);
 

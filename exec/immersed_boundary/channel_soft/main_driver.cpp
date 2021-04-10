@@ -86,7 +86,6 @@ void main_driver(const char * argv) {
     // read in parameters from inputs file into F90 modules NOTE: we use "+1"
     // because of amrex_string_c_to_f expects a null char termination
     read_common_namelist(inputs_file.c_str(), inputs_file.size()+1);
-    read_gmres_namelist(inputs_file.c_str(), inputs_file.size()+1);
 
     // copy contents of F90 modules to C++ namespaces NOTE: any changes to
     // global settings in fortran/c++ after this point need to be synchronized

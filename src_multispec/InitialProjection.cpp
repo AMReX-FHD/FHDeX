@@ -40,13 +40,17 @@ void InitialProjection(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         Abort("InitialProjection.cpp: should not call initial_projection for overdamped scheme");
     }
 
+    if (algorithm_type == 6) {
+        Abort("InitialProjection.cpp: should not call initial_projection for Boussinesq algorithm 6");
+    }
+    
     BoxArray ba = rho.boxArray();
     DistributionMapping dmap = rho.DistributionMap();
     
     Real dt_eff;
     
     Vector<Real> weights;
-    if (algorithm_type == 5 || algorithm_type == 6) {
+    if (algorithm_type == 5) {
         weights = {1., 0.};
         // for midpoint scheme where predictor goes to t^{n+1/2}
         dt_eff = 0.5*dt;
@@ -59,10 +63,10 @@ void InitialProjection(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     /*
     if (nreactions > 0) {
-        if (algorithm_type != 5 && algorithm_type != 6) {
-            Abort("Error: only algorithm_type=(5 or 6) allowed for nreactions>0");
+        if (algorithm_type != 5) {
+            Abort("Error: only algorithm_type=5 allowed for nreactions>0");
         } else if (use_Poisson_rng == 2) {
-            Abort("Error: currently use_Poisson_rng=2 not allowed for algorithm_type=(5 or 6) and nreactions>0");
+            Abort("Error: currently use_Poisson_rng=2 not allowed for algorithm_type=5 and nreactions>0");
         }        
     }
     */
@@ -108,12 +112,9 @@ void InitialProjection(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     //
 
     // set the Dirichlet velocity value on reservoir faces
-    if (algorithm_type != 6) {
-        // call reservoir_bc_fill
-        //
-        //
-    }
-
+    // call reservoir_bc_fill
+    //
+    //
 
     if (restart < 0) {
 
@@ -121,16 +122,13 @@ void InitialProjection(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         // only for non-restarting runs
         mac_rhs.setVal(0.);
 
-        if (algorithm_type != 6) {
-
-            // set mac_rhs to -S = sum_i div(F_i)/rhobar_i
-            for (int i=0; i<nspecies; ++i) {
-                MultiFab::Saxpy(mac_rhs,-1./rhobar[i],diff_mass_fluxdiv,i,0,1,0);
-                if (variance_coef_mass != 0.) {
-                    MultiFab::Saxpy(mac_rhs,-1./rhobar[i],stoch_mass_fluxdiv,i,0,1,0);
-                }
-                // if nreactions>0, also add sum_i -(m_i*R_i)/rhobar_i
+        // set mac_rhs to -S = sum_i div(F_i)/rhobar_i
+        for (int i=0; i<nspecies; ++i) {
+            MultiFab::Saxpy(mac_rhs,-1./rhobar[i],diff_mass_fluxdiv,i,0,1,0);
+            if (variance_coef_mass != 0.) {
+                MultiFab::Saxpy(mac_rhs,-1./rhobar[i],stoch_mass_fluxdiv,i,0,1,0);
             }
+            // if nreactions>0, also add sum_i -(m_i*R_i)/rhobar_i
         }
 
         // build rhs = div(v^init) - S^0

@@ -2,11 +2,13 @@
 
 // initialize n_rngs, geom
 // build MultiFabs to hold random numbers
-TurbForcing::TurbForcing(BoxArray ba_in, DistributionMapping dmap_in,
-                         const Real& a_in, const Real& b_in)
-{
+TurbForcing::TurbForcing()
+{}
 
-    BL_PROFILE_VAR("TurbForcing()",TurbForcing);
+void TurbForcing::define(BoxArray ba_in, DistributionMapping dmap_in,
+                    const Real& a_in, const Real& b_in)
+{
+    BL_PROFILE_VAR("TurbForcing::define()",TurbForcingDefine);
 
     for (int i=0; i<132; ++i) {
         forcing_U[i] = 0.;

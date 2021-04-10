@@ -1,9 +1,9 @@
 CEXE_sources += fluxStag.cpp
-#CEXE_sources += stats.cpp
+CEXE_sources += statsStag.cpp
 #CEXE_sources += transCoeffs.cpp
 CEXE_sources += timeStepStag.cpp
 CEXE_sources += conservedPrimitiveConversionsStag.cpp
-#CEXE_sources += boundary.cpp
+CEXE_sources += boundaryStag.cpp
 #CEXE_sources += membrane.cpp
 CEXE_sources += writePlotFileStag.cpp
 #CEXE_sources += checkpoint.cpp

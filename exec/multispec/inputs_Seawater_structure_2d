@@ -85,17 +85,12 @@
   ! (this allows easy addition/deletion of new species/rows)
   ! So D_12; D_13, D_23; D_14, D_24, D_34; ...
   Dbar(1:3) = 1.17d-5 1.33d-5 2.03d-5 ! Maxwell-Stefan diffusion constant  
-  Dtherm(1:3) = 1.d0 1.d0 -2.d0 ! thermo-diffusion coefficients, only differences among elements matter
-  H_offdiag(1:3) = 1.5d0 2.5d0 0.5d0    ! Off diagonal elements of H=d^2F/dx^2  
-  H_diag(1:3) = 4.d0 3.d0 2.d0          ! Diagonal of H=d^2F/dx^2, these are vectors of length nspecies
 
   use_charged_fluid = 1
   dielectric_const = 6.91e-19    ! relative permitivity ~ 78, vacuum permitivity ~ 8.854e-21
   charge_per_mass(1:3) = 4.2e3 -2.72e3 0.d0
 
 /
-
-&gmres
 
   mg_verbose = 0                  ! multigrid verbosity
 
@@ -110,13 +105,13 @@
   stag_mg_nsmooths_down = 2  ! number of smooths at each level on the way down
   stag_mg_nsmooths_up = 2    ! number of smooths at each level on the way up
   stag_mg_nsmooths_bottom = 8     ! number of smooths at the bottom
-  stag_mg_max_bottom_nlevels = 10 ! for stag_mg_bottom_solver=4, number of additional levels of multigrid
-  stag_mg_omega = 1.d0            ! weighted-jacobi omega coefficient
+  stag_mg_max_bottom_nlevels = 10 ! for stag_mg_bottom_solver 4, number of additional levels of multigrid
+  stag_mg_omega = 1.e0            ! weighted-jacobi omega coefficient
   stag_mg_smoother = 1            ! 0 = jacobi; 1 = 2*dm-color Gauss-Seidel
-  stag_mg_rel_tol = 1.d-9         ! relative tolerance stopping criteria
+  stag_mg_rel_tol = 1.e-9         ! relative tolerance stopping criteria
 
 
-  ! GMRES solver parameters
+  # GMRES solver parameters
   gmres_rel_tol = 1.e-12                ! relative tolerance stopping criteria
   gmres_abs_tol = 0                     ! absolute tolerance stopping criteria
   gmres_verbose = 1                     ! gmres verbosity; if greater than 1, more residuals will be printed out
@@ -125,4 +120,3 @@
   gmres_max_iter = 100                  ! max number of gmres iterations
   gmres_min_iter = 1                    ! min number of gmres iterations
 
-/

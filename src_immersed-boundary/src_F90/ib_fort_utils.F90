@@ -740,7 +740,7 @@ contains
         ! pkernel_fluid value is set => we save ourselves the followint IF
         ! branch point. JPB.
 
-        if(pkernel_fluid .eq. 3) then
+        if(pkernel_fluid(1) .eq. 3) then
           kernel_ptr => kernel_3p
           gs = 2
         else
@@ -919,7 +919,7 @@ contains
         ! pkernel_fluid value is set => we save ourselves the followint IF
         ! branch point. JPB.
 
-        if(pkernel_fluid .eq. 3) then
+        if(pkernel_fluid(1) .eq. 3) then
           kernel_ptr => kernel_3p
           gs = 2
         else
@@ -1211,7 +1211,7 @@ contains
         ! pkernel_fluid value is set => we save ourselves the followint IF
         ! branch point. JPB.
 
-        if(pkernel_fluid .eq. 3) then
+        if(pkernel_fluid(1) .eq. 3) then
           kernel_ptr => kernel_3p
           gs = 2
         else
@@ -1534,7 +1534,7 @@ contains
         ! pkernel_fluid value is set => we save ourselves the followint IF
         ! branch point. JPB.
 
-        if(pkernel_fluid .eq. 3) then
+        if(pkernel_fluid(1) .eq. 3) then
           kernel_ptr => kernel_3p
           gs = 2
         else
@@ -1883,7 +1883,7 @@ contains
         ! pkernel_fluid value is set => we save ourselves the followint IF
         ! branch point. JPB.
 
-        if(pkernel_fluid .eq. 3) then
+        if(pkernel_fluid(1) .eq. 3) then
           kernel_ptr => kernel_3p
           gs = 2
         else

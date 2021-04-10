@@ -13,6 +13,9 @@ int                        multispec::is_nonisothermal;
 int                        multispec::is_ideal_mixture;
 int                        multispec::use_lapack;
 int                        multispec::use_multiphase;
+amrex::Real                multispec::kc_tension;
+amrex::Real                multispec::alpha_gex;
+int                        multispec::n_gex;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> multispec::c_init_1;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> multispec::c_init_2;
   
@@ -26,8 +29,6 @@ int                        multispec::print_debye_len;
 amrex::Real                multispec::dielectric_const;
 int                        multispec::dielectric_type;
 amrex::Vector<amrex::Real> multispec::charge_per_mass;
-amrex::Vector<amrex::Real> multispec::Epot_wall_bc_type;
-amrex::Vector<amrex::Real> multispec::Epot_wall;
 amrex::Real                multispec::theta_pot;
 int                        multispec::num_pot_iters;
 amrex::Real                multispec::dpdt_factor;

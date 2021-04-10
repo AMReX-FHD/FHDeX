@@ -1,5 +1,6 @@
 CEXE_sources   += advance.cpp
 CEXE_sources   += Checkpoint.cpp
+CEXE_sources   += ExternalForce.cpp
 CEXE_sources   += TurbForcing.cpp
 CEXE_sources   += WritePlotFile.cpp
 

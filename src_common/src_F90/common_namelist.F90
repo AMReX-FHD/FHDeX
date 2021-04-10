@@ -27,8 +27,8 @@ module common_namelist_module
   double precision,   save :: transmission
 
   double precision,   save :: qval(MAX_SPECIES)
-  integer,            save :: pkernel_fluid
-  integer,            save :: pkernel_es
+  integer,            save :: pkernel_fluid(MAX_SPECIES) ! GALEN - FLUID KERNEL
+  integer,            save :: pkernel_es(MAX_SPECIES)
 
   double precision,   save :: mass(MAX_SPECIES)
   double precision,   save :: nfrac(MAX_SPECIES)
@@ -38,6 +38,7 @@ module common_namelist_module
   integer,            save :: p_move_tog(MAX_SPECIES)
   integer,            save :: p_force_tog(MAX_SPECIES)
   integer,            save :: p_int_tog(MAX_SPECIES*MAX_SPECIES)
+  integer,            save :: p_int_tog_wall(MAX_SPECIES)
   double precision,   save :: particle_n0(MAX_SPECIES)
   double precision,   save :: particle_neff
   
@@ -152,10 +153,16 @@ module common_namelist_module
   integer,            save :: shift_cc_to_boundary(AMREX_SPACEDIM,LOHI)
 
   double precision,   save :: permittivity
-  double precision,   save :: cut_off
-  double precision,   save :: rmin
+  integer,            save :: wall_mob
+  double precision,   save :: rmin(MAX_SPECIES*MAX_SPECIES)
+  double precision,   save :: rmax(MAX_SPECIES*MAX_SPECIES)
   double precision,   save :: eepsilon(MAX_SPECIES*MAX_SPECIES)
-  double precision,   save :: sigma(MAX_SPECIES)
+  double precision,   save :: sigma(MAX_SPECIES*MAX_SPECIES)
+
+  double precision,   save :: rmin_wall(MAX_SPECIES)
+  double precision,   save :: rmax_wall(MAX_SPECIES)
+  double precision,   save :: eepsilon_wall(MAX_SPECIES)
+  double precision,   save :: sigma_wall(MAX_SPECIES)
   
   integer,            save :: poisson_verbose
   integer,            save :: poisson_bottom_verbose
@@ -225,6 +232,7 @@ module common_namelist_module
   namelist /common/ p_move_tog
   namelist /common/ p_force_tog
   namelist /common/ p_int_tog
+  namelist /common/ p_int_tog_wall
   namelist /common/ particle_n0
   namelist /common/ particle_neff
 
@@ -369,10 +377,16 @@ module common_namelist_module
   namelist /common/ shift_cc_to_boundary
 
   namelist /common/ permittivity
-  namelist /common/ cut_off
+  namelist /common/ wall_mob
   namelist /common/ rmin
+  namelist /common/ rmax
   namelist /common/ eepsilon
   namelist /common/ sigma
+
+  namelist /common/ rmin_wall
+  namelist /common/ rmax_wall
+  namelist /common/ eepsilon_wall
+  namelist /common/ sigma_wall
   
   namelist /common/ poisson_verbose
   namelist /common/ poisson_bottom_verbose
@@ -543,8 +557,8 @@ contains
     p_force_tog(:) = 1
     p_int_tog(:) = 1
 
-    pkernel_fluid = 4
-    pkernel_es = 4
+    pkernel_fluid(:) = 4
+    pkernel_es(:) = 4
     solve_chem = 0
     diffcoeff  = 0.001
     scaling_factor = 0.1
@@ -565,13 +579,15 @@ contains
     all_dry = 0
     particle_neff = 1
 
+    wall_mob = 1
+
     eamp(:) =  0
     efreq(:) = 0
     ephase(:) = 0
 
     qval(:) = 0
 
-    crange = pkernel_es + 1
+    crange = maxval(pkernel_es) + 1
 
     ! read in common namelist
     open(unit=100, file=amrex_string_c_to_f(inputs_file), status='old', action='read')
@@ -631,9 +647,9 @@ contains
                                          histogram_unit_in, density_weights_in, &
                                          shift_cc_to_boundary_in, &
                                          particle_placement_in, particle_count_in, p_move_tog_in, &
-                                         p_force_tog_in, p_int_tog_in, particle_neff_in,&
+                                         p_force_tog_in, p_int_tog_in, p_int_tog_wall_in, particle_neff_in,&
                                          particle_n0_in, mass_in, nfrac_in, permittivity_in, &
-                                         cut_off_in, rmin_in, eepsilon_in, sigma_in, poisson_verbose_in, &
+                                         wall_mob_in, rmin_in, rmax_in, eepsilon_in, sigma_in, rmin_wall_in, rmax_wall_in, eepsilon_wall_in, sigma_wall_in, poisson_verbose_in, &
                                          poisson_bottom_verbose_in, poisson_max_iter_in, poisson_rel_tol_in, &
                                          particle_grid_refine_in, es_grid_refine_in, diff_in, all_dry_in, &
                                          fluid_tog_in, es_tog_in, drag_tog_in, move_tog_in, rfd_tog_in, &
@@ -659,6 +675,7 @@ contains
     integer,                intent(inout) :: p_move_tog_in(MAX_SPECIES)
     integer,                intent(inout) :: p_force_tog_in(MAX_SPECIES)
     integer,                intent(inout) :: p_int_tog_in(MAX_SPECIES*MAX_SPECIES)
+    integer,                intent(inout) :: p_int_tog_wall_in(MAX_SPECIES)
     integer,                intent(inout) :: particle_placement_in
     
     double precision,       intent(inout) :: fixed_dt_in
@@ -674,8 +691,8 @@ contains
     double precision,       intent(inout) :: transmission_in
 
     double precision,       intent(inout) :: qval_in(MAX_SPECIES)
-    integer,                intent(inout) :: pkernel_fluid_in
-    integer,                intent(inout) :: pkernel_es_in
+    integer,                intent(inout) :: pkernel_fluid_in(MAX_SPECIES)
+    integer,                intent(inout) :: pkernel_es_in(MAX_SPECIES)
 
     integer,                intent(inout) :: max_step_in
     integer,                intent(inout) :: plot_int_in
@@ -769,10 +786,16 @@ contains
     integer,                intent(inout) :: shift_cc_to_boundary_in(AMREX_SPACEDIM,LOHI)
 
     double precision,       intent(inout) :: eepsilon_in(MAX_SPECIES*MAX_SPECIES)
-    double precision,       intent(inout) :: sigma_in(MAX_SPECIES)
+    double precision,       intent(inout) :: sigma_in(MAX_SPECIES*MAX_SPECIES)
+    double precision,       intent(inout) :: eepsilon_wall_in(MAX_SPECIES)
+    double precision,       intent(inout) :: sigma_wall_in(MAX_SPECIES)
+
     double precision,       intent(inout) :: permittivity_in
-    double precision,       intent(inout) :: cut_off_in
-    double precision,       intent(inout) :: rmin_in
+    integer,                intent(inout) :: wall_mob_in
+    double precision,       intent(inout) :: rmin_in(MAX_SPECIES*MAX_SPECIES)
+    double precision,       intent(inout) :: rmax_in(MAX_SPECIES*MAX_SPECIES)
+    double precision,       intent(inout) :: rmin_wall_in(MAX_SPECIES)
+    double precision,       intent(inout) :: rmax_wall_in(MAX_SPECIES)
     double precision,       intent(inout) :: poisson_rel_tol_in
 
     integer,                intent(inout) :: poisson_max_iter_in
@@ -930,6 +953,7 @@ contains
     p_move_tog_in = p_move_tog
     p_force_tog_in = p_force_tog
     p_int_tog_in = p_int_tog
+    p_int_tog_wall_in = p_int_tog_wall
     particle_placement_in = particle_placement
 
     poisson_verbose_in = poisson_verbose
@@ -937,10 +961,16 @@ contains
     poisson_max_iter_in = poisson_max_iter
     poisson_rel_tol_in = poisson_rel_tol
     permittivity_in = permittivity
-    cut_off_in = cut_off
+    wall_mob_in = wall_mob
     rmin_in = rmin
+    rmax_in = rmax
     eepsilon_in = eepsilon
     sigma_in = sigma
+
+    rmin_wall_in = rmin_wall
+    rmax_wall_in = rmax_wall
+    eepsilon_wall_in = eepsilon_wall
+    sigma_wall_in = sigma_wall
 
     particle_grid_refine_in = particle_grid_refine
     es_grid_refine_in = es_grid_refine

@@ -256,13 +256,13 @@ void ReadCheckPoint(int& step,
         
         //set number of ghost cells to fit whole peskin kernel
         int ang = 1;
-        if(pkernel_fluid == 3) {
+        if(*(std::max_element(pkernel_fluid.begin(),pkernel_fluid.begin()+nspecies)) == 3) {
             ang = 2;
         }
-        else if(pkernel_fluid == 4) {
+        else if(*(std::max_element(pkernel_fluid.begin(),pkernel_fluid.begin()+nspecies)) == 4) {
             ang = 3;
         }
-        else if(pkernel_fluid == 6) {
+        else if(*(std::max_element(pkernel_fluid.begin(),pkernel_fluid.begin()+nspecies)) == 6) {
             ang = 4;
         }
     
@@ -283,13 +283,15 @@ void ReadCheckPoint(int& step,
         
         // cell centred es potential
         int ngp = 1;
-        if (pkernel_es == 3) {
+        // using maximum number of peskin kernel points to determine the ghost cells for the whole grid.
+        //     not sure if it will cause problem for BCs.
+        if (*(std::max_element(pkernel_es.begin(),pkernel_es.begin()+nspecies)) == 3) {
             ngp = 2;
         }
-        else if (pkernel_es == 4) {
+        else if (*(std::max_element(pkernel_es.begin(),pkernel_es.begin()+nspecies)) == 4) {
             ngp = 3;
         }
-        else if (pkernel_es == 6) {
+        else if (*(std::max_element(pkernel_es.begin(),pkernel_es.begin()+nspecies)) == 6) {
             ngp = 4;
         }
 
@@ -421,13 +423,13 @@ void ReadCheckPointParticles(FhdParticleContainer& particles, species* particleI
         
         //set number of ghost cells to fit whole peskin kernel
         int ang = 1;
-        if(pkernel_fluid == 3) {
+        if(*(std::max_element(pkernel_fluid.begin(),pkernel_fluid.begin()+nspecies)) == 3) {
             ang = 2;
         }
-        else if(pkernel_fluid == 4) {
+        else if(*(std::max_element(pkernel_fluid.begin(),pkernel_fluid.begin()+nspecies)) == 4) {
             ang = 3;
         }
-        else if(pkernel_fluid == 6) {
+        else if(*(std::max_element(pkernel_fluid.begin(),pkernel_fluid.begin()+nspecies)) == 6) {
             ang = 4;
         }
 
