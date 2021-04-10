@@ -611,7 +611,9 @@ void StructFact::ShiftFFT(MultiFab& dft_out, const int& zero_avg) {
   DistributionMapping dmap_onegrid(ba_onegrid);
 
   MultiFab dft_onegrid;
-  dft_onegrid.define(ba_onegrid, dmap_onegrid, 1, 0);
+  MultiFab dft_onegrid_temp;
+  dft_onegrid     .define(ba_onegrid, dmap_onegrid, 1, 0);
+  dft_onegrid_temp.define(ba_onegrid, dmap_onegrid, 1, 0);
 
   for (int d=0; d<NCOV; d++) {
     dft_onegrid.ParallelCopy(dft_out, d, 0, 1);
@@ -621,7 +623,11 @@ void StructFact::ShiftFFT(MultiFab& dft_out, const int& zero_avg) {
       // Note: Make sure that multifab is cell-centered
       const Box& validBox = mfi.validbox();
       fft_shift(ARLIM_3D(validBox.loVect()), ARLIM_3D(validBox.hiVect()),
-		BL_TO_FORTRAN_FAB(dft_onegrid[mfi]), &zero_avg);
+		BL_TO_FORTRAN_3D(dft_onegrid[mfi]),
+                BL_TO_FORTRAN_3D(dft_onegrid_temp[mfi]),
+
+
+                &zero_avg);
     }
 
     dft_out.ParallelCopy(dft_onegrid, 0, d, 1);
