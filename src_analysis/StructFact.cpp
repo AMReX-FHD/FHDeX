@@ -1,6 +1,5 @@
 
 #include "common_functions.H"
-#include "StructFact_F.H"
 #include "StructFact.H"
 
 #include <AMReX_MultiFabUtil.H>
@@ -392,8 +391,8 @@ void StructFact::ComputeFFT(const MultiFab& variables,
     if(comp_fft) {
    
       for (MFIter mfi(variables_dft_real,false); mfi.isValid(); ++mfi) {
-   
-	std::vector<complex_t, hacc::AlignedAllocator<complex_t, ALIGN> > a;
+
+        std::vector<complex_t, hacc::AlignedAllocator<complex_t, ALIGN> > a;
 	std::vector<complex_t, hacc::AlignedAllocator<complex_t, ALIGN> > b;
 
 	a.resize(nx*ny*nz);
@@ -616,18 +615,43 @@ void StructFact::ShiftFFT(MultiFab& dft_out, const int& zero_avg) {
   dft_onegrid_temp.define(ba_onegrid, dmap_onegrid, 1, 0);
 
   for (int d=0; d<NCOV; d++) {
-    dft_onegrid.ParallelCopy(dft_out, d, 0, 1);
+    dft_onegrid_temp.ParallelCopy(dft_out, d, 0, 1);
 
     // Shift DFT by N/2+1 (pi)
     for (MFIter mfi(dft_onegrid); mfi.isValid(); ++mfi) {
-      // Note: Make sure that multifab is cell-centered
-      const Box& validBox = mfi.validbox();
-      fft_shift(ARLIM_3D(validBox.loVect()), ARLIM_3D(validBox.hiVect()),
-		BL_TO_FORTRAN_3D(dft_onegrid[mfi]),
-                BL_TO_FORTRAN_3D(dft_onegrid_temp[mfi]),
 
+        const Box& bx = mfi.tilebox();
 
-                &zero_avg);
+        const Array4<Real>& dft = dft_onegrid.array(mfi);
+        const Array4<Real>& dft_temp = dft_onegrid_temp.array(mfi);
+
+        if (zero_avg == 1) {
+#if (AMREX_SPACEDIM == 2)
+            dft_temp(bx.smallEnd(0),bx.smallEnd(1),0) = 0.;
+#elif (AMREX_SPACEDIM == 3)
+            dft_temp(bx.smallEnd(0),bx.smallEnd(1),bx.smallEnd(2)) = 0.;
+#endif
+        }
+
+        int nx = bx.length(0);
+        int nxh = (nx+1)/2;
+        int ny = bx.length(1);
+        int nyh = (ny+1)/2;
+#if (AMREX_SPACEDIM == 3)
+        int nz = bx.length(2);
+        int nzh = (nz+1)/2;
+#endif
+
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            int ip = (i+nxh)%nx;
+            int jp = (j+nyh)%ny;
+            int kp = 0;
+#if (AMREX_SPACEDIM == 3)
+            kp = (k+nzh)%nz;
+#endif
+            dft(ip,jp,kp) = dft_temp(i,j,k);
+        });
     }
 
     dft_out.ParallelCopy(dft_onegrid, 0, d, 1);

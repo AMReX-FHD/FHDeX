@@ -40,9 +40,6 @@ include $(FHDeX)/src_analysis/Make.package
 VPATH_LOCATIONS   += $(FHDeX)/src_analysis/
 INCLUDE_LOCATIONS += $(FHDeX)/src_analysis/
 
-include $(FHDeX)/src_analysis/src_F90/Make.package
-VPATH_LOCATIONS   += $(FHDeX)/src_analysis/src_F90
-INCLUDE_LOCATIONS += $(FHDeX)/src_analysis/src_F90
 
 include $(FHDeX)/src_gmres/Make.package
 VPATH_LOCATIONS   += $(FHDeX)/src_gmres/

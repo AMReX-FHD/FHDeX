@@ -7,7 +7,6 @@
 #include "species.H"
 #include "paramPlane.H"
 
-#include "StructFact_F.H"
 #include "StructFact.H"
 
 #include "StochMomFlux.H"

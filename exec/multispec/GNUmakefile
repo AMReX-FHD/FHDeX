@@ -30,9 +30,6 @@ include ../../src_multispec/Make.package
 VPATH_LOCATIONS   += ../../src_multispec/
 INCLUDE_LOCATIONS += ../../src_multispec/
 
-include ../../src_analysis/src_F90/Make.package
-VPATH_LOCATIONS   += ../../src_analysis/src_F90
-INCLUDE_LOCATIONS += ../../src_analysis/src_F90
 
 include ../../src_analysis/Make.package
 VPATH_LOCATIONS   += ../../src_analysis/
