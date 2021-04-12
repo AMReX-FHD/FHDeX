@@ -86,8 +86,8 @@ amrex::Vector<int>         common::bc_mass_hi;
 amrex::Vector<int>         common::bc_therm_lo;
 amrex::Vector<int>         common::bc_therm_hi;
 
-amrex::Vector<amrex::Real> common::p_lo;
-amrex::Vector<amrex::Real> common::p_hi;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::p_lo;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::p_hi;
 
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::t_lo;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::t_hi;

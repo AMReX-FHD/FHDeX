@@ -58,10 +58,6 @@ void InitializeCommonNamespace() {
     bc_therm_lo.resize(AMREX_SPACEDIM);
     bc_therm_hi.resize(AMREX_SPACEDIM);
 
-    // bcs: inflow/outflow pressure
-    p_lo.resize(AMREX_SPACEDIM);
-    p_hi.resize(AMREX_SPACEDIM);
-
     wallspeed_lo.resize((AMREX_SPACEDIM-1)*AMREX_SPACEDIM);
     wallspeed_hi.resize((AMREX_SPACEDIM-1)*AMREX_SPACEDIM);
 
@@ -115,7 +111,7 @@ void InitializeCommonNamespace() {
                                 bc_es_lo.dataPtr(), bc_es_hi.dataPtr(),
                                 bc_mass_lo.dataPtr(), bc_mass_hi.dataPtr(),
                                 bc_therm_lo.dataPtr(), bc_therm_hi.dataPtr(),
-                                p_lo.dataPtr(), p_hi.dataPtr(),
+                                p_lo.data(), p_hi.data(),
                                 t_lo.data(), t_hi.data(),
                                 bc_Yk_x_lo.data(), bc_Yk_x_hi.data(),
                                 bc_Yk_y_lo.data(), bc_Yk_y_hi.data(),

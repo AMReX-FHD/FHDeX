@@ -146,8 +146,8 @@ namespace common {
     extern amrex::Vector<int>          bc_therm_hi;
 
     // Pressure drop are periodic inflow/outflow walls (bc_[hi,lo]=-2).
-    extern amrex::Vector<amrex::Real>  p_lo;
-    extern amrex::Vector<amrex::Real>  p_hi;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> p_lo;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> p_hi;
 
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> t_lo;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> t_hi;
