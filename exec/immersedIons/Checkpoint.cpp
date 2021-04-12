@@ -234,9 +234,7 @@ void ReadCheckPoint(int& step,
         GotoNextLine(is);
 
         // read in statsCount
-        is >> statsCount;
-        GotoNextLine(is);
-
+        is >> statsCount; GotoNextLine(is); 
         // read in BoxArray (fluid) from Header
         BoxArray ba;
         ba.readFrom(is);
@@ -462,66 +460,67 @@ void ReadCheckPointParticles(FhdParticleContainer& particles, species* particleI
 //    Print() <<  "Box Array: " << bc << std::endl;
 //    Print() <<  "Dist Map: " << dm << std::endl;
 
-    FhdParticleContainer particlesTemp(geomC, dm, bc, 1);
+    //FhdParticleContainer particlesTemp(geomC, dm, bc, 1);
     
     // restore particles
 
     //cout << "Restoring!\n";
-    particlesTemp.Restart(checkpointname,"particle");
+    particles.Restart(checkpointname,"particle");
     //cout << "Restored!\n";
-    int np = particlesTemp.TotalNumberOfParticles();
+    int np = particles.TotalNumberOfParticles();
     //particlesTemp.Checkpoint("testcheck","particle");
     Print() << "Checkpoint contains " << np << " particles." <<std::endl;
+    
+//    Real posx[np];
+//    Real posy[np];
+//    Real posz[np];
+//    Real charge[np];
+//
+//    Real sigma[np];
+//    Real epsilon[np];
+//    int speciesV[np];
+//    int pinnedV[np];
+//
+//    Real diffwet[np];
+//    Real diffdry[np];
+//    Real difftot[np];
+//
+//    //std::cout << "Proc " << ParallelDescriptor::MyProc() << " pull down 1 started." <<std::endl;
+//
+//    particlesTemp.PullDown(0, posx, -1, np);
+//    //std::cout << "Proc " << ParallelDescriptor::MyProc() << " pull down 1 finished." <<std::endl;
+//
+//    //std::cout << "Proc " << ParallelDescriptor::MyProc() << " particle 5 xPos: " << posx[4] << std:: endl;
+//
+//    //ParallelDescriptor::Barrier();
+//
+//    //std::cout << "Proc " << ParallelDescriptor::MyProc() << " through barrier." << std:: endl;
+//
+//    //std::cout << "Proc " << ParallelDescriptor::MyProc() << " pull down 2 started." <<std::endl;
+//    particlesTemp.PullDown(0, posy, -2, np);
+//    //std::cout << "Proc " << ParallelDescriptor::MyProc() << " pull down 2 finished." <<std::endl;
+//
+//    particlesTemp.PullDown(0, posz, -3, np);
+//
+//    particlesTemp.PullDown(0, charge, 27, np);
+//
+//    particlesTemp.PullDown(0, sigma, 43, np);
+//    particlesTemp.PullDown(0, epsilon, 44, np);
+//
+//    particlesTemp.PullDown(0, diffdry, 40, np);
+//    particlesTemp.PullDown(0, diffwet, 41, np);
+//    particlesTemp.PullDown(0, difftot, 42, np);
+//
+//    particlesTemp.PullDownInt(0, speciesV, 4, np);
+//
+//    particlesTemp.PullDownInt(0, pinnedV, 6, np);
+//
+//
+//    particles.ReInitParticles(particleInfo, dxp, posx, posy, posz, charge, sigma, epsilon, speciesV, diffdry, diffwet, difftot);
 
-    Real posx[np];
-    Real posy[np];
-    Real posz[np];
-    Real charge[np];
+    particles.ReInitParticles();
 
-    Real sigma[np];
-    Real epsilon[np];
-    int speciesV[np];
-    int pinnedV[np];
-
-    Real diffwet[np];
-    Real diffdry[np];
-    Real difftot[np];
-
-    //std::cout << "Proc " << ParallelDescriptor::MyProc() << " pull down 1 started." <<std::endl;
-
-    particlesTemp.PullDown(0, posx, -1, np);
-    //std::cout << "Proc " << ParallelDescriptor::MyProc() << " pull down 1 finished." <<std::endl;
-
-    //std::cout << "Proc " << ParallelDescriptor::MyProc() << " particle 5 xPos: " << posx[4] << std:: endl;
-
-    //ParallelDescriptor::Barrier();
-
-    //std::cout << "Proc " << ParallelDescriptor::MyProc() << " through barrier." << std:: endl;
-
-    //std::cout << "Proc " << ParallelDescriptor::MyProc() << " pull down 2 started." <<std::endl;
-    particlesTemp.PullDown(0, posy, -2, np);
-    //std::cout << "Proc " << ParallelDescriptor::MyProc() << " pull down 2 finished." <<std::endl;
-
-    particlesTemp.PullDown(0, posz, -3, np);
-
-    particlesTemp.PullDown(0, charge, 27, np);
-
-    particlesTemp.PullDown(0, sigma, 43, np);
-    particlesTemp.PullDown(0, epsilon, 44, np);
-
-    particlesTemp.PullDown(0, diffdry, 40, np);
-    particlesTemp.PullDown(0, diffwet, 41, np);
-    particlesTemp.PullDown(0, difftot, 42, np);
-
-    particlesTemp.PullDownInt(0, speciesV, 4, np);
-
-    particlesTemp.PullDownInt(0, pinnedV, 6, np);
-
-
-    particles.ReInitParticles(particleInfo, dxp, posx, posy, posz, charge, sigma, epsilon, speciesV, pinnedV, diffdry, diffwet, difftot);
-
-
-    //particles.PostRestart();
+    particles.PostRestart();
 }
 
 
