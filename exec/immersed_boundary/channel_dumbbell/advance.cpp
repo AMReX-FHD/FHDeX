@@ -356,7 +356,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         pg[i].define(convert(ba, nodal_flag_dir[i]), dmap, 1, 1);
 
     pres.setVal(0.);  // initial guess
-    SetPressureBC(pres, geom);
+    MultiFabPhysBC(pres, geom, 0, 1, PRES_BC_COMP, 0);
     for (int d=0; d<AMREX_SPACEDIM; ++d) pg[d].setVal(0);
     ComputeGrad(pres, pg, 0, 0, 1, PRES_BC_COMP, geom);
 
@@ -517,7 +517,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     }
 
     pres.setVal(0.);  // initial guess
-    SetPressureBC(pres, geom);
+    MultiFabPhysBC(pres, geom, 0, 1, PRES_BC_COMP, 0);
 
     // call GMRES here
     gmres.Solve(gmres_rhs_u, gmres_rhs_p, umacNew, pres, alpha_fc, beta_wtd,

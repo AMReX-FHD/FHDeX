@@ -105,9 +105,6 @@
 
 /
 
-&gmres
-
-  
   ! preconditioner type
   ! 1 = projection preconditioner
   !-1 = projection preconditioner with expensive pressure update
@@ -123,10 +120,10 @@
   visc_schur_approx = 0
 
   ! weighting of pressure when computing norms and inner products
-  p_norm_weight = 1.d0
+  p_norm_weight = 1.e0
 
   ! scale theta_alpha, beta, gamma, and b_u by this, and then scale x_p by the inverse
-  scale_factor = 1.d0
+  scale_factor = 1.e0
 
   ! MAC projection solver parameters:
   mg_verbose = 0            ! multigrid verbosity
@@ -141,9 +138,9 @@
   mg_nsmooths_down = 2         ! number of smooths at each level on the way down
   mg_nsmooths_up = 2           ! number of smooths at each level on the way up
   mg_nsmooths_bottom = 8       ! number of smooths at the bottom (only if mg_bottom_solver=0)
-  mg_max_bottom_nlevels = 10   ! for mg_bottom_solver=4, number of additional levels of multigrid
-  mg_rel_tol = 1.d-9           ! rel_tol for Poisson solve
-  mg_abs_tol = 1.d-14          ! abs_tol for Poisson solve
+  mg_max_bottom_nlevels = 10   ! for mg_bottom_solver 4, number of additional levels of multigrid
+  mg_rel_tol = 1.e-9           ! rel_tol for Poisson solve
+  mg_abs_tol = 1.e-14          ! abs_tol for Poisson solve
 
   ! Staggered multigrid solver parameters
   stag_mg_verbosity = 0           ! verbosity
@@ -156,14 +153,14 @@
   stag_mg_nsmooths_down = 2       ! number of smooths at each level on the way down
   stag_mg_nsmooths_up = 2         ! number of smooths at each level on the way up
   stag_mg_nsmooths_bottom = 8     ! number of smooths at the bottom
-  stag_mg_max_bottom_nlevels = 10 ! for stag_mg_bottom_solver=4, number of additional levels of multigrid
-  stag_mg_omega = 1.d0            ! weighted-jacobi omega coefficient
+  stag_mg_max_bottom_nlevels = 10 ! for stag_mg_bottom_solver 4, number of additional levels of multigrid
+  stag_mg_omega = 1.e0            ! weighted-jacobi omega coefficient
   stag_mg_smoother = 1            ! 0 = jacobi; 1 = 2*dm-color Gauss-Seidel
-  stag_mg_rel_tol = 1.d-9         ! relative tolerance stopping criteria
+  stag_mg_rel_tol = 1.e-9         ! relative tolerance stopping criteria
 
-  ! GMRES solver parameters
-  gmres_rel_tol = 1.d-9     ! relative tolerance stopping criteria
-  gmres_abs_tol = 0.d0      ! absolute tolerance stopping criteria
+  # GMRES solver parameters
+  gmres_rel_tol = 1.e-9     ! relative tolerance stopping criteria
+  gmres_abs_tol = 0.e0      ! absolute tolerance stopping criteria
   gmres_verbose = 1         ! gmres verbosity; if greater than 1, more residuals will be printed out
   gmres_max_outer = 20      ! max number of outer iterations
   gmres_max_inner = 5       ! max number of inner iterations, or restart number
@@ -172,4 +169,3 @@
 
   gmres_spatial_order = 2   ! spatial order of viscous and gradient operators in matrix "A"
 
-/

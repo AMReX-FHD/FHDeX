@@ -5,7 +5,6 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_Vector.H>
 
-#include "gmres_functions_F.H"
 #include "gmres_namespace.H"
 #include "GMRES.H"
 #include "MacProj.H"

@@ -20,9 +20,7 @@ INCLUDE_LOCATIONS += $(src)/src_hydro/
 INCLUDE_LOCATIONS += $(src)/src_hydro/src_F90/
 
 include $(src)/src_gmres/Make.package
-include $(src)/src_gmres/src_F90/Make.package
 INCLUDE_LOCATIONS += $(src)/src_gmres/
-INCLUDE_LOCATIONS += $(src)/src_gmres/src_F90/
 
 include $(src)/src_common/Make.package
 include $(src)/src_common/src_F90/Make.package
@@ -67,9 +65,6 @@ all: $(TARGET)
 
 %.o: $(src)/src_gmres/%.cpp
 	$(CXX) $(CXXFLAGS) -c $(INCLUDES) -o $@ $<
-
-%.o %.mod %_module.mod: $(src)/src_gmres/src_F90/%.F90
-	$(FC) $(INCLUDES) -o $@ $<
 
 %.o: $(src)/src_rng/%.cpp
 	$(CXX) $(CXXFLAGS) -c $(INCLUDES) -o $@ $<
