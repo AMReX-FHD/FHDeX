@@ -684,7 +684,45 @@ void main_driver(const char* argv)
     //int num_neighbor_cells = 4; replaced by input var
     //Particles! Build on geom & box array for collision cells/ poisson grid?
     double relRefine = particle_grid_refine/es_grid_refine;
-    int cRange = (int)ceil((*(std::max_element(pkernel_es.begin(),pkernel_es.begin()+nspecies)))/relRefine);
+    Real max_es_range = 0;
+    Real max_sr_range = 0;
+    Real max_range = 0;
+
+    for(int i=0;i<nspecies;i++) {
+        Real range = (pkernel_es[i] + 0.5)*dxp[0];
+        if(range > max_es_range)
+        {
+           max_es_range = range ;
+        }
+    }
+
+    for(int i=0;i<(nspecies*nspecies);i++) {
+        Real range = sigma[i]*rmax[i];
+
+        if(range > max_sr_range)
+        {
+           max_sr_range = range ;
+        }
+    }
+    for(int i=0;i<nspecies;i++) {
+        Real range = sigma_wall[i]*rmax_wall[i];
+
+        if(range > max_sr_range)
+        {
+           max_sr_range = range ;
+        }
+    }
+    
+    if(max_sr_range > max_es_range)
+    {
+        max_range = max_sr_range;
+    }else
+    {
+        max_range = max_es_range;
+    }
+
+    int cRange = (int)ceil(max_range/dxc[0]);
+
     FhdParticleContainer particles(geomC, geom, dmap, bc, ba, cRange, ang);
 
     if (restart < 0 && particle_restart < 0) {

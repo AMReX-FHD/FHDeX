@@ -682,6 +682,7 @@ void compute_forces_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
     AMREX_FOR_1D( Np, i, 
     {
         FhdParticleContainer::ParticleType& p1 = pstruct[i];
+
         if(p1.idata(FHD_intData::pinned) == 0)
         {
             int spec1 = p1.idata(FHD_intData::species)-1;
@@ -700,7 +701,7 @@ void compute_forces_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
 
                     const Real r = sqrt(dx*dx + dy*dy + dz*dz);
 
-                    const Real rMax = rmax[p_matrix_val]*sigma[p_matrix_val];
+                    const Real rMax = rmax[p_matrix_val]*sigma[p_matrix_val];       
 
                     if (r <= rMax)
                     {
