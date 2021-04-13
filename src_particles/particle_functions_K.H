@@ -1126,6 +1126,13 @@ void mob_interp_gpu(Real z, Real a, Real* tmob, Real* nmob)
         *nmob = std::max(1.0 - 9.0/(8.0*(h+cn)) + 1.0/(2.0*pow(h+cn,3.0)) - 1.0/(8.0*pow(h+cn,5)) ,0.0);
         *tmob = std::max(1.0 - 9.0/(16.0*(h+ct)) + 2.0/(16.0*pow((h+ct),3.0)) -1.0/(16.0*pow((h+ct),5)),0.0);
 
+    }else if(wall_mob==5)
+    {
+        Real h = (z-3.265E-7)/a;
+//  for freund problem
+        *tmob = std::max(0.98557 + 13.9508/pow(1.82653  + h,5) - 6.83735/pow(1.82653   + h,3) - 1.00616/(1.82653  + h),0.0);
+        *nmob = std::min(0.969255 + 163.299/pow(2.70459  + h,5) - 36.2912/pow(2.70459   + h,3) - 0.706417/(2.70459  + h),0.0);
+
     }
 }
 
@@ -1163,7 +1170,16 @@ void mob_interp_der_gpu(Real z, Real a, Real* tmobDer, Real* nmobDer)
 
         *nmobDer = 5.0/(8.*a*pow(cn + h,6)) - 3/(2.*a*pow(cn + h,4)) + 9/(8.*a*pow(cn + h,2));
         *tmobDer = 5/(16.*a*pow(ct + h,6)) - 3/(8.*a*pow(ct + h,4)) + 9/(16.*a*pow(ct + h,2));
+    }else if(wall_mob==5)
+    {
+//  for freund problem
+        Real h = (z-3.265E-7)/a;
+
+        *tmobDer = std::max(-69.754/(a*pow(1.82653 + h , 6)) + 20.5121/(a*pow(1.82653 + h , 4)) + 1.00616/(a*pow(1.82653 + h , 2)),0.0);
+        *nmobDer = std::max(-816.495/(a*pow(2.70459 + h,6)) + 108.874/(a*pow(2.70459  + h,4)) + 0.706417/(a*pow(2.70459 + h,2)),0.0);
     }
+
+
 }
 
 void get_mobility_diff_gpu(Real* nmob, Real* tmob, Real* nmobDer, Real* tmobDer, FhdParticleContainer::ParticleType& part, Real z)
