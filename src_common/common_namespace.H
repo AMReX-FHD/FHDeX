@@ -32,8 +32,8 @@ namespace common {
     extern amrex::Real                transmission;
 
     extern amrex::Vector<amrex::Real> qval;
-    extern AMREX_GPU_MANAGED amrex::Vector<int>      pkernel_fluid;
-    extern AMREX_GPU_MANAGED amrex::Vector<int>      pkernel_es;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_SPECIES> pkernel_fluid; // GALEN - FLUID KERNEL
+    extern AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_SPECIES> pkernel_es;
 
     // Time-step control
     extern amrex::Real                fixed_dt;
@@ -146,8 +146,8 @@ namespace common {
     extern amrex::Vector<int>          bc_therm_hi;
 
     // Pressure drop are periodic inflow/outflow walls (bc_[hi,lo]=-2).
-    extern amrex::Vector<amrex::Real>  p_lo;
-    extern amrex::Vector<amrex::Real>  p_hi;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> p_lo;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> p_hi;
 
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> t_lo;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> t_hi;

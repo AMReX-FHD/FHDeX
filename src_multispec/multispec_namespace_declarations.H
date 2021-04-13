@@ -13,7 +13,7 @@ int                        multispec::is_nonisothermal;
 int                        multispec::is_ideal_mixture;
 int                        multispec::use_lapack;
 int                        multispec::use_multiphase;
-amrex::Real                multispec::kc_tension;
+AMREX_GPU_MANAGED amrex::Real multispec::kc_tension;
 amrex::Real                multispec::alpha_gex;
 int                        multispec::n_gex;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> multispec::c_init_1;
