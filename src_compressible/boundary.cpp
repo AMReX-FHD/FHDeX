@@ -836,13 +836,6 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                 });
             }
         } // end HI Z
-        
-        //const Box& vbx = mfi.tilebox();
-        //
-        //set_bc(ARLIM_3D(vbx.loVect()), ARLIM_3D(vbx.hiVect()),
-        //               cons_in[mfi].dataPtr(),
-        //               prim_in[mfi].dataPtr());
-
     }
 }
 
