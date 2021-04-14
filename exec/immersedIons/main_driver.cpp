@@ -82,10 +82,10 @@ void main_driver(const char* argv)
         ngp = 2;
     }
     else if (*(std::max_element(pkernel_es.begin(),pkernel_es.begin()+nspecies)) == 4) {
-        ngp = 3;
+        ngp = 2;
     }
     else if (*(std::max_element(pkernel_es.begin(),pkernel_es.begin()+nspecies)) == 6) {
-        ngp = 4;
+        ngp = 3;
     }
         
     // staggered velocities
@@ -113,6 +113,7 @@ void main_driver(const char* argv)
     // MF for charge mean and variance
     MultiFab chargeM;
     MultiFab chargeV;
+
     
     if (restart < 0) {
         
@@ -123,6 +124,7 @@ void main_driver(const char* argv)
         int thetaSeed    = 0;
         int phiSeed      = 0;
         int generalSeed  = 0;
+        int cppSeed = 0;
 
         // "seed" controls all of them and gives distinct seeds to each physical process over each MPI process
         // this should be fixed so each physical process has its own seed control
@@ -133,10 +135,17 @@ void main_driver(const char* argv)
             thetaSeed    = 6*ParallelDescriptor::MyProc() + seed + 3;
             phiSeed      = 6*ParallelDescriptor::MyProc() + seed + 4;
             generalSeed  = 6*ParallelDescriptor::MyProc() + seed + 5;
+            cppSeed  = 6*ParallelDescriptor::MyProc() + seed + 6;
+        }else
+        {
+
+                //generate cppSeed from clock time or something.
         }
 
         //Initialise rngs
         rng_initialize(&fhdSeed,&particleSeed,&selectorSeed,&thetaSeed,&phiSeed,&generalSeed);
+
+        InitRandom(cppSeed*ParallelDescriptor::MyProc()+cppSeed);
 
         // Initialize the boxarray "ba" from the single box "bx"
         ba.define(domain);
@@ -996,7 +1005,7 @@ void main_driver(const char* argv)
 
                 Real check;
 //                particles.clearMobilityMatrix();
-//                for(int ii=88;ii<=1687;ii++)
+//                for(int ii=101;ii<=1700;ii++)
 //                {
 //                    particles.SetForce(ii,1,0,0);
 //                    for (int d=0; d<AMREX_SPACEDIM; ++d) {

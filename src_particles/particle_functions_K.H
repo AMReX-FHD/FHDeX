@@ -1134,6 +1134,13 @@ void mob_interp_gpu(Real z, Real a, Real* tmob, Real* nmob)
         *tmob = std::max(0.98557 + 13.9508/pow(1.82653  + h,5) - 6.83735/pow(1.82653   + h,3) - 1.00616/(1.82653  + h),0.0);
         *nmob = std::min(0.969255 + 163.299/pow(2.70459  + h,5) - 36.2912/pow(2.70459   + h,3) - 0.706417/(2.70459  + h),0.0);
 
+    }else if(wall_mob==6)
+    {
+        Real h = (z-3.294E-7)/a;
+//  for freund problem
+        *tmob = std::max(0.98557 + 13.9508/pow(1.82653  + h,5) - 6.83735/pow(1.82653   + h,3) - 1.00616/(1.82653  + h),0.0);
+        *nmob = std::min(0.969255 + 163.299/pow(2.70459  + h,5) - 36.2912/pow(2.70459   + h,3) - 0.706417/(2.70459  + h),0.0);
+
     }
 }
 
@@ -1175,6 +1182,13 @@ void mob_interp_der_gpu(Real z, Real a, Real* tmobDer, Real* nmobDer)
     {
 //  for freund problem
         Real h = (z-3.265E-7)/a;
+
+        *tmobDer = std::max(-69.754/(a*pow(1.82653 + h , 6)) + 20.5121/(a*pow(1.82653 + h , 4)) + 1.00616/(a*pow(1.82653 + h , 2)),0.0);
+        *nmobDer = std::max(-816.495/(a*pow(2.70459 + h,6)) + 108.874/(a*pow(2.70459  + h,4)) + 0.706417/(a*pow(2.70459 + h,2)),0.0);
+    }else if(wall_mob==6)
+    {
+//  for freund problem
+        Real h = (z-3.294E-7)/a;
 
         *tmobDer = std::max(-69.754/(a*pow(1.82653 + h , 6)) + 20.5121/(a*pow(1.82653 + h , 4)) + 1.00616/(a*pow(1.82653 + h , 2)),0.0);
         *nmobDer = std::max(-816.495/(a*pow(2.70459 + h,6)) + 108.874/(a*pow(2.70459  + h,4)) + 0.706417/(a*pow(2.70459 + h,2)),0.0);
