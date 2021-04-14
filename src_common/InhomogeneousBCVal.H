@@ -8,9 +8,19 @@ Real InhomogeneousBCVal ( int comp,
 {
     if (comp == PRES_BC_COMP) {
 
-        // only the correct thing for homogeneous Neumann
-        // need to fix to support Dirichlet or inhomogeneous conditions
-        return 0.;
+        if (x == prob_lo[0]) {
+            return p_lo[0];
+        } else if (x == prob_hi[0]) {
+            return p_hi[0];
+        } else if (y == prob_lo[1]) {
+            return p_lo[1];
+        } else if (y == prob_hi[1]) {
+            return p_hi[1];
+        } else if (z == prob_lo[2]) {
+            return p_lo[2];
+        } else if (z == prob_hi[2]) {
+            return p_hi[2];
+        }        
         
     } else if (comp == RHO_BC_COMP) {
 

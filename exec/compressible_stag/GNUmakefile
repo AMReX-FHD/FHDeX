@@ -48,9 +48,6 @@ INCLUDE_LOCATIONS += ../../src_common/
 include $(AMREX_HOME)/Src/Base/Make.package
 
 # structure factor and SWFFT stuff
-include ../../src_analysis/src_F90/Make.package
-VPATH_LOCATIONS   += ../../src_analysis/src_F90
-INCLUDE_LOCATIONS += ../../src_analysis/src_F90
 
 include ../../src_analysis/Make.package
 VPATH_LOCATIONS   += ../../src_analysis/

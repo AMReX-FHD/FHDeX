@@ -192,7 +192,7 @@ void advance_stokes(std::array<MultiFab, AMREX_SPACEDIM >& umac,
     // Compute pressure, and pressure gradient due to the BC: gp = Gp
     // Note that the pressure gradient due to the BC is left unchanged
     pres.setVal(0.);           // Initial guess for pressure
-    SetPressureBC(pres, geom); // Apply pressure boundary conditions
+    MultiFabPhysBC(pres, geom, 0, 1, PRES_BC_COMP, 0); // Apply pressure boundary conditions
 
     // Initial guess for new solution
     for (int d=0; d<AMREX_SPACEDIM; ++d)

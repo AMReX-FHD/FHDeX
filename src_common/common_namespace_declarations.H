@@ -22,10 +22,10 @@ int                        common::membrane_cell;
 int                        common::cross_cell;
 amrex::Real                common::transmission;
 
-AMREX_GPU_MANAGED amrex::Vector<int>      common::pkernel_fluid; // GALEN - FLUID KERNEL
-AMREX_GPU_MANAGED amrex::Vector<int>      common::pkernel_es;
-AMREX_GPU_MANAGED amrex::Vector<int>      common::eskernel_fluid; // EXPONENTIAL OF SEMICIRCLE KERNEL; use this as w
-AMREX_GPU_MANAGED amrex::Vector<amrex::Real>     common::eskernel_beta; // EXPONENTIAL OF SEMICIRCLE KERNEL
+AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_SPECIES> common::pkernel_fluid; // GALEN - FLUID KERNEL
+AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_SPECIES> common::pkernel_es;
+AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_SPECIES> common::eskernel_fluid; // EXPONENTIAL OF SEMICIRCLE KERNEL; use this as w
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::eskernel_beta; // EXPONENTIAL OF SEMICIRCLE KERNEL
 amrex::Vector<amrex::Real> common::qval;
 
 amrex::Real                common::fixed_dt;
@@ -88,8 +88,8 @@ amrex::Vector<int>         common::bc_mass_hi;
 amrex::Vector<int>         common::bc_therm_lo;
 amrex::Vector<int>         common::bc_therm_hi;
 
-amrex::Vector<amrex::Real> common::p_lo;
-amrex::Vector<amrex::Real> common::p_hi;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::p_lo;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::p_hi;
 
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::t_lo;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::t_hi;

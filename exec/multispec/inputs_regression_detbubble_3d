@@ -95,8 +95,6 @@
 
 /
 
-&gmres
-
   mg_verbose = 0                  ! multigrid verbosity
 
   ! Staggered multigrid solver parameters
@@ -110,13 +108,13 @@
   stag_mg_nsmooths_down = 2  ! number of smooths at each level on the way down
   stag_mg_nsmooths_up = 2    ! number of smooths at each level on the way up
   stag_mg_nsmooths_bottom = 8     ! number of smooths at the bottom
-  stag_mg_max_bottom_nlevels = 10 ! for stag_mg_bottom_solver=4, number of additional levels of multigrid
-  stag_mg_omega = 1.d0            ! weighted-jacobi omega coefficient
+  stag_mg_max_bottom_nlevels = 10 ! for stag_mg_bottom_solver 4, number of additional levels of multigrid
+  stag_mg_omega = 1.e0            ! weighted-jacobi omega coefficient
   stag_mg_smoother = 1            ! 0 = jacobi; 1 = 2*dm-color Gauss-Seidel
-  stag_mg_rel_tol = 1.d-9         ! relative tolerance stopping criteria
+  stag_mg_rel_tol = 1.e-9         ! relative tolerance stopping criteria
 
 
-  ! GMRES solver parameters
+  # GMRES solver parameters
   gmres_rel_tol = 1.e-12                ! relative tolerance stopping criteria
   gmres_abs_tol = 0                     ! absolute tolerance stopping criteria
   gmres_verbose = 1                     ! gmres verbosity; if greater than 1, more residuals will be printed out
@@ -125,4 +123,3 @@
   gmres_max_iter = 100                  ! max number of gmres iterations
   gmres_min_iter = 1                    ! min number of gmres iterations
 
-/
