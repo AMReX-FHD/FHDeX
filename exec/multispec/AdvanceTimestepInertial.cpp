@@ -60,6 +60,7 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     std::array< MultiFab, AMREX_SPACEDIM > mtemp;
     std::array< MultiFab, AMREX_SPACEDIM > adv_mom_fluxdiv;
     std::array< MultiFab, AMREX_SPACEDIM > diff_mom_fluxdiv;
+    std::array< MultiFab, AMREX_SPACEDIM > stoch_mom_fluxdiv;
     std::array< MultiFab, AMREX_SPACEDIM > gmres_rhs_v;
     std::array< MultiFab, AMREX_SPACEDIM > dumac;
     std::array< MultiFab, AMREX_SPACEDIM > gradpi;
@@ -68,13 +69,13 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     std::array< MultiFab, AMREX_SPACEDIM > rho_fc;
     std::array< MultiFab, AMREX_SPACEDIM > diff_mass_flux;
     std::array< MultiFab, AMREX_SPACEDIM > total_mass_flux;
-    std::array< MultiFab, AMREX_SPACEDIM > stoch_mom_fluxdiv;
 
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         mold[d]             .define(convert(ba,nodal_flag_dir[d]), dmap,        1, 1);
         mtemp[d]            .define(convert(ba,nodal_flag_dir[d]), dmap,        1, 1);
         adv_mom_fluxdiv[d]  .define(convert(ba,nodal_flag_dir[d]), dmap,        1, 0);
         diff_mom_fluxdiv[d] .define(convert(ba,nodal_flag_dir[d]), dmap,        1, 0);
+        stoch_mom_fluxdiv[d].define(convert(ba,nodal_flag_dir[d]), dmap,        1, 0);
         gmres_rhs_v[d]      .define(convert(ba,nodal_flag_dir[d]), dmap,        1, 0);
         dumac[d]            .define(convert(ba,nodal_flag_dir[d]), dmap,        1, 1);
         gradpi[d]           .define(convert(ba,nodal_flag_dir[d]), dmap,        1, 0);
@@ -83,7 +84,6 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         rho_fc[d]           .define(convert(ba,nodal_flag_dir[d]), dmap, nspecies, 0);
         diff_mass_flux[d]   .define(convert(ba,nodal_flag_dir[d]), dmap, nspecies, 0);
         total_mass_flux[d]  .define(convert(ba,nodal_flag_dir[d]), dmap, nspecies, 0);
-        stoch_mom_fluxdiv[d].define(convert(ba,nodal_flag_dir[d]), dmap, nspecies, 0);
     }
     
     // only used when use_charged_fluid=T
@@ -169,7 +169,7 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // build up rhs_v for gmres solve: first set gmres_rhs_v to mold/dt
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         MultiFab::Copy(gmres_rhs_v[d],mold[d],0,0,1,0);
-        gmres_rhs_v[d].mult(1/dt,0);
+        gmres_rhs_v[d].mult(1./dt,0);
     }
         
     // compute grad pi^n
@@ -415,12 +415,15 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     AverageCCToFace(rho_new,rho_fc,0,nspecies,SPEC_BC_COMP,geom);
     AverageCCToFace(rhotot_new,rhotot_fc_new,0,1,RHO_BC_COMP,geom);
     
-    /*
     if (use_charged_fluid) {
         // compute total charge
-        // compute permittivity
+        DotWithZ(rho_new,charge_new);
+
+        if (dielectric_type != 0) {
+            // compute permittivity
+            Abort("AdvanceTimestepInertial dielectric_type != 0");
+        }
     }
-    */
 
     // compute (eta,kappa)^{n+1}
     //
@@ -434,7 +437,7 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // build up rhs_v for gmres solve: first set gmres_rhs_v to mold/dt
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         MultiFab::Copy(gmres_rhs_v[d],mold[d],0,0,1,0);
-        gmres_rhs_v[d].mult(1/dt,0);
+        gmres_rhs_v[d].mult(1./dt,0);
     }
     
     // compute grad pi^{*,n+1}
@@ -496,10 +499,9 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // fill the stochastic multifabs with a new set of random numbers
     if (variance_coef_mass != 0.) {
         // keep this random number engine state for checkpointing
-        //
-        //
-        //
-        
+        if (chk_int > 0) {
+            Abort("AdvanceTimestepInertial.cpp checkpointing not implemented");
+        }
         sMassFlux.fillMassStochastic();
     }
     
@@ -519,12 +521,16 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     //
     //
 
-    /*
     if (use_charged_fluid == 1) {
         // compute new Lorentz force
+        ComputeLorentzForce(Lorentz_force_new,grad_Epot_new,permittivity,charge_new,geom);
+
         // add (1/2) old and (1/2) new to gmres_rhs_v
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            MultiFab::Saxpy(gmres_rhs_v[d],0.5,Lorentz_force_old[d],0,0,1,0);
+            MultiFab::Saxpy(gmres_rhs_v[d],0.5,Lorentz_force_new[d],0,0,1,0);
+        }
     }
-    */
 
     // compute gmres_rhs_p
     // put "-S = div(F_i/rho_i)" into gmres_rhs_p (we will later add divu)
@@ -555,7 +561,6 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         MultiFab::Saxpy(gmres_rhs_v[d],-1./dt,mtemp[d],0,0,1,0);
     }
-
 
     // set diff_mom_fluxdiv = A_0^{n+1} vbar^{n+1,*}
     MkDiffusiveMFluxdiv(diff_mom_fluxdiv,umac,eta,eta_ed,kappa,geom,dx,0);

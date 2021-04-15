@@ -39,14 +39,11 @@ void InitializeCommonNamespace() {
                      nodal_flag_edge[2][i] = nodal_flag_yz[i];);
     }
 
-    //n_cells.resize(AMREX_SPACEDIM);
     max_grid_size.resize(AMREX_SPACEDIM);
+    max_grid_size_structfact.resize(AMREX_SPACEDIM);
     max_particle_tile_size.resize(AMREX_SPACEDIM);
-    //grav.resize(AMREX_SPACEDIM);
     dof.resize(MAX_SPECIES);
     u_init.resize(2);
-    //T_init.resize(2);
-    //domega.resize(AMREX_SPACEDIM);
 
     // boundary condition flags
     bc_vel_lo.resize(AMREX_SPACEDIM);
@@ -57,10 +54,6 @@ void InitializeCommonNamespace() {
     bc_mass_hi.resize(AMREX_SPACEDIM);
     bc_therm_lo.resize(AMREX_SPACEDIM);
     bc_therm_hi.resize(AMREX_SPACEDIM);
-
-    // bcs: inflow/outflow pressure
-    p_lo.resize(AMREX_SPACEDIM);
-    p_hi.resize(AMREX_SPACEDIM);
 
     wallspeed_lo.resize((AMREX_SPACEDIM-1)*AMREX_SPACEDIM);
     wallspeed_hi.resize((AMREX_SPACEDIM-1)*AMREX_SPACEDIM);
@@ -75,10 +68,8 @@ void InitializeCommonNamespace() {
     particle_count.resize(MAX_SPECIES);
     p_move_tog.resize(MAX_SPECIES);
     p_force_tog.resize(MAX_SPECIES);
-    //p_int_tog.resize(MAX_SPECIES*MAX_SPECIES);
     particle_n0.resize(MAX_SPECIES);
 
-    sigma.resize(MAX_SPECIES);
     qval.resize(MAX_SPECIES);
 
     diff.resize(MAX_SPECIES);
@@ -91,10 +82,11 @@ void InitializeCommonNamespace() {
     char temp_chk_base_name[128];
 
     initialize_common_namespace(prob_lo.begin(), prob_hi.begin(), n_cells.data(),
-                                max_grid_size.dataPtr(), max_particle_tile_size.dataPtr(), &cell_depth, ngc.getVect(),
+                                max_grid_size.dataPtr(), max_grid_size_structfact.dataPtr(),
+                                max_particle_tile_size.dataPtr(), &cell_depth, ngc.getVect(),
                                 &nvars, &nprimvars,
-                                &membrane_cell, &cross_cell, transmission.data(),
-                                qval.dataPtr(), &pkernel_fluid, &pkernel_es,
+                                &membrane_cell, &cross_cell, &transmission.data(),
+                                qval.dataPtr(), pkernel_fluid.begin(), pkernel_es.begin(),
                                 &fixed_dt, &cfl, &rfd_delta, &max_step,
                                 &plot_int, &plot_stag, temp_plot_base_name, 128,
                                 &chk_int, temp_chk_base_name, 128,
@@ -116,7 +108,7 @@ void InitializeCommonNamespace() {
                                 bc_es_lo.dataPtr(), bc_es_hi.dataPtr(),
                                 bc_mass_lo.dataPtr(), bc_mass_hi.dataPtr(),
                                 bc_therm_lo.dataPtr(), bc_therm_hi.dataPtr(),
-                                p_lo.dataPtr(), p_hi.dataPtr(),
+                                p_lo.data(), p_hi.data(),
                                 t_lo.data(), t_hi.data(),
                                 bc_Yk_x_lo.data(), bc_Yk_x_hi.data(),
                                 bc_Yk_y_lo.data(), bc_Yk_y_hi.data(),
@@ -133,10 +125,10 @@ void InitializeCommonNamespace() {
                                 density_weights.dataPtr(), shift_cc_to_boundary.dataPtr(),
                                 &particle_placement, particle_count.dataPtr(),
                                 p_move_tog.dataPtr(), p_force_tog.dataPtr(),
-                                p_int_tog.begin(), &particle_neff,
+                                p_int_tog.begin(),p_int_tog_wall.begin(), &particle_neff,
                                 particle_n0.dataPtr(), mass.dataPtr(), nfrac.dataPtr(),
                                 &permittivity,
-                                &cut_off,&rmin, eepsilon.begin(), sigma.dataPtr(),
+                                &wall_mob,rmin.begin(),rmax.begin(), eepsilon.begin(), sigma.begin(),rmin_wall.begin(),rmax_wall.begin(), eepsilon_wall.begin(), sigma_wall.begin(),
                                 &poisson_verbose, &poisson_bottom_verbose, &poisson_max_iter,
                                 &poisson_rel_tol, &particle_grid_refine, &es_grid_refine,
                                 diff.dataPtr(), &all_dry, &fluid_tog, &es_tog, &drag_tog, &move_tog, &rfd_tog,

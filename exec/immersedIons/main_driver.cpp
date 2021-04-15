@@ -7,7 +7,6 @@
 #include "species.H"
 #include "paramPlane.H"
 
-#include "StructFact_F.H"
 #include "StructFact.H"
 
 #include "StochMomFlux.H"
@@ -29,7 +28,6 @@ void main_driver(const char* argv)
     // read in parameters from inputs file into F90 modules
     // we use "+1" because of amrex_string_c_to_f expects a null char termination
     read_common_namelist(inputs_file.c_str(),inputs_file.size()+1);
-    read_gmres_namelist(inputs_file.c_str(),inputs_file.size()+1);
 
     // copy contents of F90 modules to C++ namespaces
     InitializeCommonNamespace();
@@ -67,25 +65,27 @@ void main_driver(const char* argv)
     // AJN - for perdictor/corrector do we need one more ghost cell if the predictor pushes
     //       a particle into a ghost region?
     int ang = 1;
-    if (pkernel_fluid == 3) {
+    if (*(std::max_element(pkernel_fluid.begin(),pkernel_fluid.begin()+nspecies)) == 3) {
         ang = 2;
     }
-    else if (pkernel_fluid == 4) {
+    else if (*(std::max_element(pkernel_fluid.begin(),pkernel_fluid.begin()+nspecies)) == 4) {
         ang = 3;
     }
-    else if (pkernel_fluid == 6) {
+    else if (*(std::max_element(pkernel_fluid.begin(),pkernel_fluid.begin()+nspecies)) == 6) {
         ang = 4;
     }
 
     int ngp = 1;
-    if (pkernel_es == 3) {
+    // using maximum number of peskin kernel points to determine the ghost cells for the whole grid.
+    //     not sure if it will cause problem for BCs.
+    if (*(std::max_element(pkernel_es.begin(),pkernel_es.begin()+nspecies)) == 3) {
         ngp = 2;
     }
-    else if (pkernel_es == 4) {
-        ngp = 3;
+    else if (*(std::max_element(pkernel_es.begin(),pkernel_es.begin()+nspecies)) == 4) {
+        ngp = 2;
     }
-    else if (pkernel_es == 6) {
-        ngp = 4;
+    else if (*(std::max_element(pkernel_es.begin(),pkernel_es.begin()+nspecies)) == 6) {
+        ngp = 3;
     }
         
     // staggered velocities
@@ -94,6 +94,8 @@ void main_driver(const char* argv)
     std::array< MultiFab, AMREX_SPACEDIM > umac;
     std::array< MultiFab, AMREX_SPACEDIM > umacM;    // mean
     std::array< MultiFab, AMREX_SPACEDIM > umacV;    // variance
+
+    std::array< MultiFab, AMREX_SPACEDIM > touched;
 
     // pressure for GMRES solve; 1 ghost cell
     MultiFab pres;
@@ -111,6 +113,7 @@ void main_driver(const char* argv)
     // MF for charge mean and variance
     MultiFab chargeM;
     MultiFab chargeV;
+
     
     if (restart < 0) {
         
@@ -121,6 +124,7 @@ void main_driver(const char* argv)
         int thetaSeed    = 0;
         int phiSeed      = 0;
         int generalSeed  = 0;
+        int cppSeed = 0;
 
         // "seed" controls all of them and gives distinct seeds to each physical process over each MPI process
         // this should be fixed so each physical process has its own seed control
@@ -131,10 +135,17 @@ void main_driver(const char* argv)
             thetaSeed    = 6*ParallelDescriptor::MyProc() + seed + 3;
             phiSeed      = 6*ParallelDescriptor::MyProc() + seed + 4;
             generalSeed  = 6*ParallelDescriptor::MyProc() + seed + 5;
+            cppSeed  = 6*ParallelDescriptor::MyProc() + seed + 6;
+        }else
+        {
+
+                //generate cppSeed from clock time or something.
         }
 
         //Initialise rngs
         rng_initialize(&fhdSeed,&particleSeed,&selectorSeed,&thetaSeed,&phiSeed,&generalSeed);
+
+        InitRandom(cppSeed*ParallelDescriptor::MyProc()+cppSeed);
 
         // Initialize the boxarray "ba" from the single box "bx"
         ba.define(domain);
@@ -148,6 +159,7 @@ void main_driver(const char* argv)
         
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             umac [d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ang);
+            touched[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ang);
             umacM[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
             umacV[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
             umac [d].setVal(0.);
@@ -337,17 +349,19 @@ void main_driver(const char* argv)
 
     double realParticles = 0;
     double simParticles = 0;
-    double wetRad;
+    double wetRad[nspecies];
     double dxAv = (dx[0] + dx[1] + dx[2])/3.0; //This is probably the wrong way to do this.
 
-    if (pkernel_fluid == 3) {
-        wetRad = 0.91*dxAv;
-    }
-    else if (pkernel_fluid == 4) {
-        wetRad = 1.255*dxAv;
-    }
-    else if (pkernel_fluid == 6) {
-        wetRad = 1.481*dxAv;
+    for(int j=0;j<nspecies;j++) {
+       if (pkernel_fluid[j] == 3) {
+           wetRad[j] = 0.91*dxAv;
+       }
+       else if (pkernel_fluid[j] == 4) {
+           wetRad[j] = 1.255*dxAv;
+       }
+       else if (pkernel_fluid[j] == 6) {
+           wetRad[j] = 1.481*dxAv;
+       }
     }
 
     for(int i=0;i<nspecies;i++) {
@@ -361,10 +375,10 @@ void main_driver(const char* argv)
             ionParticle[i].d = diameter[i];
 
             // compute total diffusion from input diameter
-            ionParticle[i].totalDiff = (k_B*T_init[0])/(6*3.14159265359*(diameter[i]/2.0)*visc_coef);
+            ionParticle[i].totalDiff = (k_B*T_init[0])/(6*M_PI*(diameter[i]/2.0)*visc_coef);
 
             // compute wet diffusion from wetRad
-            ionParticle[i].wetDiff = (k_B*T_init[0])/(6*3.14159265359*wetRad*visc_coef);
+            ionParticle[i].wetDiff = (k_B*T_init[0])/(6*M_PI*wetRad[i]*visc_coef);
 
             if (all_dry == 1) {
                 ionParticle[i].dryDiff = ionParticle[i].totalDiff;
@@ -382,12 +396,12 @@ void main_driver(const char* argv)
             ionParticle[i].totalDiff = diff[i];            
 
             // set diameter from total diffusion (Stokes Einsten)
-            ionParticle[i].d = 2.0*(k_B*T_init[0])/(6*3.14159265359*(ionParticle[i].totalDiff)*visc_coef);
+            ionParticle[i].d = 2.0*(k_B*T_init[0])/(6*M_PI*(ionParticle[i].totalDiff)*visc_coef);
 
                // std::cout << "Species " << i << " radius: " << ionParticle[i].d << std::endl;
 
             // compute wet diffusion from wetRad
-            ionParticle[i].wetDiff = (k_B*T_init[0])/(6*3.14159265359*wetRad*visc_coef);
+            ionParticle[i].wetDiff = (k_B*T_init[0])/(6*M_PI*wetRad[i]*visc_coef);
 
             if (all_dry == 1) {
                 ionParticle[i].dryDiff = ionParticle[i].totalDiff;
@@ -410,7 +424,7 @@ void main_driver(const char* argv)
                 << " dry diffusion: " << ionParticle[i].dryDiff
                 << " percent dry: " << 100.*ionParticle[i].dryDiff/ionParticle[i].totalDiff << "\n"
                 << " total radius: " << ionParticle[i].d/2.0 << "\n"
-                << " wet radius: " << wetRad << "\n"
+                << " wet radius: " << wetRad[i] << "\n"
                 << " dry radius: " << (k_B*T_init[0])/(6*3.14159265359*(ionParticle[i].dryDiff)*visc_coef) << "\n";
 
         if (ionParticle[i].dryDiff < 0) {
@@ -640,6 +654,7 @@ void main_driver(const char* argv)
         source    [d].setVal(0.0);
         sourceTemp[d].setVal(0.0);
         sourceRFD[d].setVal(0.0);
+        touched[d].setVal(0.0);
     }
 
     //Define parametric paramplanes for particle interaction - declare array for paramplanes and then define properties in BuildParamplanes
@@ -677,7 +692,47 @@ void main_driver(const char* argv)
 
     //int num_neighbor_cells = 4; replaced by input var
     //Particles! Build on geom & box array for collision cells/ poisson grid?
-    FhdParticleContainer particles(geomC, dmap, bc, crange);
+    double relRefine = particle_grid_refine/es_grid_refine;
+    Real max_es_range = 0;
+    Real max_sr_range = 0;
+    Real max_range = 0;
+
+    for(int i=0;i<nspecies;i++) {
+        Real range = (pkernel_es[i] + 0.5)*dxp[0];
+        if(range > max_es_range)
+        {
+           max_es_range = range ;
+        }
+    }
+
+    for(int i=0;i<(nspecies*nspecies);i++) {
+        Real range = sigma[i]*rmax[i];
+
+        if(range > max_sr_range)
+        {
+           max_sr_range = range ;
+        }
+    }
+    for(int i=0;i<nspecies;i++) {
+        Real range = sigma_wall[i]*rmax_wall[i];
+
+        if(range > max_sr_range)
+        {
+           max_sr_range = range ;
+        }
+    }
+    
+    if(max_sr_range > max_es_range)
+    {
+        max_range = max_sr_range;
+    }else
+    {
+        max_range = max_es_range;
+    }
+
+    int cRange = (int)ceil(max_range/dxc[0]);
+
+    FhdParticleContainer particles(geomC, geom, dmap, bc, ba, cRange, ang);
 
     if (restart < 0 && particle_restart < 0) {
         // create particles
@@ -739,8 +794,6 @@ void main_driver(const char* argv)
     }
     
     MultiFab dryMobility(ba, dmap, nspecies*AMREX_SPACEDIM, ang);
-
-    ComputeDryMobility(dryMobility, ionParticle, geom);
 
     ///////////////////////////////////////////
     // structure factor for charge-charge
@@ -822,7 +875,7 @@ void main_driver(const char* argv)
     //Time stepping loop
 
 
-    dt = dt*1e-4;
+    dt = dt*1e-5;
 
     particles.initRankLists(simParticles);
 
@@ -856,18 +909,18 @@ void main_driver(const char* argv)
                 Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
         }
 
-//        if(istep == 100)
-//        {
-//                dt = dt*10;
-//                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
-//        }
-
-        if(istep == 1)
+        if(istep == 100)
         {
-            particles.SetPosition(1, prob_hi[0]*0.45, prob_hi[1]*0.45, prob_hi[2]*0.45);
-            particles.SetPosition(2, prob_hi[0]*0.45 + 1.29182e-8, prob_hi[1]*0.45, prob_hi[2]*0.45);
-           
+                dt = dt*10;
+                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
         }
+
+
+//        if(istep == 1)
+//        {
+//            particles.SetPosition(1, prob_hi[0]*0.25, prob_hi[1]*0.25, prob_hi[2]*0.5);
+//            particles.SetPosition(2, prob_hi[0]*0.25, prob_hi[1]*0.25+2*dx[0], prob_hi[2]*0.5);
+//        }
 
     
         //Most of these functions are sensitive to the order of execution. We can fix this, but for now leave them in this order.
@@ -941,7 +994,9 @@ void main_driver(const char* argv)
                 sMflux.StochMomFluxDiv(stochMfluxdivC,0,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
             }
         }
-
+        //stochMfluxdiv[0].setVal(0.0);
+        //stochMfluxdiv[1].setVal(0.0);
+        //stochMfluxdiv[2].setVal(0.0);
         // AJN - should this be an if/else fluid_tog==2?
         if (fluid_tog == 1) {
 
@@ -949,42 +1004,42 @@ void main_driver(const char* argv)
             {         
 
                 Real check;
-    //            particles.clearMobilityMatrix();
-    //            for(int ii=88;ii<=1687;ii++)
-    //            {
-    //                particles.SetForce(ii,1,0,0);
-    //                for (int d=0; d<AMREX_SPACEDIM; ++d) {
-    //                    source    [d].setVal(0.0);      // reset source terms
-    //                    sourceTemp[d].setVal(0.0);      // reset source terms
-    //                }
-    //                particles.SpreadIonsGPU(dx, dxp, geom, umac, efieldCC, source, sourceTemp);                
-    //                advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
-    //                particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
-    //                particles.fillMobilityMatrix(ii,0);
+//                particles.clearMobilityMatrix();
+//                for(int ii=101;ii<=3300;ii++)
+//                {
+//                    particles.SetForce(ii,1,0,0);
+//                    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+//                        source    [d].setVal(0.0);      // reset source terms
+//                        sourceTemp[d].setVal(0.0);      // reset source terms
+//                    }
+//                    particles.SpreadIonsGPU(dx, dxp, geom, umac, efieldCC, source, sourceTemp);                
+//                    advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
+//                    particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
+//                    particles.fillMobilityMatrix(ii,0);
 
-    //                particles.SetForce(ii,0,1,0);
-    //                for (int d=0; d<AMREX_SPACEDIM; ++d) {
-    //                    source    [d].setVal(0.0);      // reset source terms
-    //                    sourceTemp[d].setVal(0.0);      // reset source terms
-    //                }
-    //                particles.SpreadIonsGPU(dx, dxp, geom, umac, efieldCC, source, sourceTemp);                
-    //                advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
-    //                particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
-    //                particles.fillMobilityMatrix(ii,1);
+//                    particles.SetForce(ii,0,1,0);
+//                    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+//                        source    [d].setVal(0.0);      // reset source terms
+//                        sourceTemp[d].setVal(0.0);      // reset source terms
+//                    }
+//                    particles.SpreadIonsGPU(dx, dxp, geom, umac, efieldCC, source, sourceTemp);                
+//                    advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
+//                    particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
+//                    particles.fillMobilityMatrix(ii,1);
 
-    //                particles.SetForce(ii,0,0,1);
-    //                for (int d=0; d<AMREX_SPACEDIM; ++d) {
-    //                    source    [d].setVal(0.0);      // reset source terms
-    //                    sourceTemp[d].setVal(0.0);      // reset source terms
-    //                }
-    //                particles.SpreadIonsGPU(dx, dxp, geom, umac, efieldCC, source, sourceTemp);                
-    //                advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
-    //                particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
-    //                particles.fillMobilityMatrix(ii,2);
+//                    particles.SetForce(ii,0,0,1);
+//                    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+//                        source    [d].setVal(0.0);      // reset source terms
+//                        sourceTemp[d].setVal(0.0);      // reset source terms
+//                    }
+//                    particles.SpreadIonsGPU(dx, dxp, geom, umac, efieldCC, source, sourceTemp);                
+//                    advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
+//                    particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
+//                    particles.fillMobilityMatrix(ii,2);
 
 
-    //            }
-    //            particles.writeMat();
+//                }
+//                particles.writeMat();
 
 
                 MultiFab::Add(source[0],sourceRFD[0],0,0,sourceRFD[0].nComp(),sourceRFD[0].nGrow());
@@ -995,6 +1050,8 @@ void main_driver(const char* argv)
                 particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
                 particles.velNorm();
 
+                //particles.ResetMarkers(0);
+
                 particles.pinnedParticleInversion();
                 //particles.pinForce();
 
@@ -1003,7 +1060,7 @@ void main_driver(const char* argv)
                         sourceTemp[d].setVal(0.0);      // reset source terms
                     }
 
-                particles.SpreadIonsGPU(dx, dxp, geom, umac, efieldCC, source, sourceTemp);
+                particles.SpreadIonsGPU(dx, geom, umac, source, sourceTemp);
 
                 MultiFab::Add(source[0],sourceRFD[0],0,0,sourceRFD[0].nComp(),sourceRFD[0].nGrow());
                 MultiFab::Add(source[1],sourceRFD[1],0,0,sourceRFD[1].nComp(),sourceRFD[1].nGrow());
@@ -1174,7 +1231,7 @@ void main_driver(const char* argv)
                             potential, potentialM, potentialV);
         }
 
-        particles.PrintParticles();
+        //particles.PrintParticles();
 
         // timer for time step
         Real time2 = ParallelDescriptor::second() - time1;

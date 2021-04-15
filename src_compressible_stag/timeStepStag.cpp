@@ -17,7 +17,7 @@ void RK3stepStag(MultiFab& cu,
                  std::array< MultiFab, 2 >& edgeflux_y,
                  std::array< MultiFab, 2 >& edgeflux_z,
                  std::array< MultiFab, AMREX_SPACEDIM>& cenflux,
-                 const amrex::Geometry geom, const amrex::Real dt)
+                 const amrex::Geometry geom, const amrex::Real dt, const int step)
 {
     BL_PROFILE_VAR("RK3stepStag()",RK3stepStag);
 
@@ -224,10 +224,21 @@ void RK3stepStag(MultiFab& cu,
     // Compute transport coefs after setting BCs    
     calculateTransportCoeffs(prim, eta, zeta, kappa, chi, D);
 
+    { 
+        std::string filename = Concatenate("prim_0_",step,9);
+        outputMFAscii(prim, filename);
+    }
+    { 
+        std::string filename = Concatenate("cons_0_",step,9);
+        outputMFAscii(cu, filename);
+    }
     calculateFluxStag(cu, cumom, prim, vel, eta, zeta, kappa, chi, D, 
         faceflux, edgeflux_x, edgeflux_y, edgeflux_z, cenflux, 
         stochface, stochedge_x, stochedge_y, stochedge_z, stochcen, 
         geom, stoch_weights,dt);
+
+    // Set species flux to zero at the walls
+    BCWallSpeciesFlux(faceflux,geom);
 
     for (int d=0; d<AMREX_SPACEDIM; d++) {
         cenflux[d].FillBoundary(geom.periodicity());
@@ -238,6 +249,10 @@ void RK3stepStag(MultiFab& cu,
         edgeflux_x[d].FillBoundary(geom.periodicity());
         edgeflux_y[d].FillBoundary(geom.periodicity());
         edgeflux_z[d].FillBoundary(geom.periodicity());
+    }
+    { 
+        std::string filename = Concatenate("flux_0_",step,9);
+        outputMFAscii(faceflux[0], filename);
     }
 
     for ( MFIter mfi(cu,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
@@ -327,6 +342,14 @@ void RK3stepStag(MultiFab& cu,
     }
     prim.FillBoundary(geom.periodicity());
     setBCStag(prim, cup, cupmom, vel, geom);
+    { 
+        std::string filename = Concatenate("cons_1_",step,9);
+        outputMFAscii(cup, filename);
+    }
+    { 
+        std::string filename = Concatenate("prim_1_",step,9);
+        outputMFAscii(prim, filename);
+    }
 
     // Compute transport coefs after setting BCs
     calculateTransportCoeffs(prim, eta, zeta, kappa, chi, D);
@@ -384,6 +407,8 @@ void RK3stepStag(MultiFab& cu,
         stochface, stochedge_x, stochedge_y, stochedge_z, stochcen, 
         geom, stoch_weights,dt);
 
+    // Set species flux to zero at the walls
+    BCWallSpeciesFlux(faceflux,geom);
 
     for (int d=0; d<AMREX_SPACEDIM; d++) {
         cenflux[d].FillBoundary(geom.periodicity());
@@ -394,6 +419,10 @@ void RK3stepStag(MultiFab& cu,
         edgeflux_x[d].FillBoundary(geom.periodicity());
         edgeflux_y[d].FillBoundary(geom.periodicity());
         edgeflux_z[d].FillBoundary(geom.periodicity());
+    }
+    { 
+        std::string filename = Concatenate("flux_1_",step,9);
+        outputMFAscii(faceflux[0], filename);
     }
 
     for ( MFIter mfi(cu,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
@@ -545,6 +574,8 @@ void RK3stepStag(MultiFab& cu,
         stochface, stochedge_x, stochedge_y, stochedge_z, stochcen, 
         geom, stoch_weights,dt);
 
+    // Set species flux to zero at the walls
+    BCWallSpeciesFlux(faceflux,geom);
 
     for (int d=0; d<AMREX_SPACEDIM; d++) {
         cenflux[d].FillBoundary(geom.periodicity());

@@ -48,6 +48,9 @@ void setBCStag(MultiFab& prim_in, MultiFab& cons_in,
                  std::array< MultiFab, AMREX_SPACEDIM >& vel_in,
                  const amrex::Geometry geom);
 
+void BCWallSpeciesFlux(std::array< MultiFab, AMREX_SPACEDIM >& faceflux, 
+                       const amrex::Geometry geom);
+
 void BCMem(MultiFab& prim_in, MultiFab& cons_in,
            std::array< MultiFab, AMREX_SPACEDIM >& cumom_in,
            std::array< MultiFab, AMREX_SPACEDIM >& vel_in,
@@ -80,7 +83,7 @@ void RK3stepStag(MultiFab& cu,
                  std::array< MultiFab, 2 >& edgeflux_y,
                  std::array< MultiFab, 2 >& edgeflux_z,
                  std::array< MultiFab, AMREX_SPACEDIM>& cenflux,
-                 const amrex::Geometry geom, const amrex::Real dt);
+                 const amrex::Geometry geom, const amrex::Real dt, const int step);
 
 void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMREX_SPACEDIM >& momStag_in, 
                        const MultiFab& prim_in, const std::array< MultiFab, AMREX_SPACEDIM >& velStag_in,

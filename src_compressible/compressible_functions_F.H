@@ -51,10 +51,6 @@ extern "C"
                       amrex::Real* zeta,
                       amrex::Real* kappa);
 
-    void set_bc(const int* lo, const int* hi,
-                amrex::Real* cons,
-                amrex::Real* prim);
-
     void setup_bc();
 
     void setup_cwall(amrex::Real* bc_Yk_x_lo_in,

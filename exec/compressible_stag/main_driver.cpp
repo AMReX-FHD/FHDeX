@@ -575,7 +575,7 @@ void main_driver(const char* argv)
         Real ts1 = ParallelDescriptor::second();
     
         RK3stepStag(cu, cumom, prim, vel, source, eta, zeta, kappa, chi, D, 
-            faceflux, edgeflux_x, edgeflux_y, edgeflux_z, cenflux, geom, dt);
+            faceflux, edgeflux_x, edgeflux_y, edgeflux_z, cenflux, geom, dt, step);
 
         // timer
         Real ts2 = ParallelDescriptor::second() - ts1;
