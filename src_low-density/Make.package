@@ -1,7 +1,0 @@
-CEXE_sources += flux.cpp
-CEXE_sources += stats.cpp
-CEXE_sources += timeStep.cpp
-CEXE_sources += boundary.cpp
-
-CEXE_headers += compressible_functions.H
-CEXE_headers += compressible_functions_F.H

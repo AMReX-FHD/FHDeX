@@ -7,7 +7,6 @@ void MultiFabFillRandom(MultiFab& mf, const int& comp, const amrex::Real& varian
 {
     BL_PROFILE_VAR("MultiFabFillRandom()",MultiFabFillRandom);
 
-    // generate on GPU
     for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
         const Box& bx = mfi.validbox();
         const Array4<Real>& mf_fab = mf.array(mfi);

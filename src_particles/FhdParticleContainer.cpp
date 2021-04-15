@@ -882,7 +882,7 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
 
     if(all_dry != 1)
     {
-    InterpolateMarkersGpu(0, dxFluid, umac, RealFaceCoords, check);
+    InterpolateMarkersGpu(0, dxFluid, umac, RealFaceCoords,check);
 
     if(move_tog == 2)
     {
@@ -978,7 +978,6 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
 
         //Need to add midpoint rejecting feature here.
         InterpolateMarkersGpu(0, dxFluid, umac, RealFaceCoords, check);
-        //std::cout << "check: " << check << "\n";
  
         for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
 
@@ -2704,7 +2703,8 @@ FhdParticleContainer::fillMobilityMatrix(int id, int comp)
         AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
         long np = this->GetParticles(lev).at(index).numParticles();
 
-        AMREX_FOR_1D( np, i,
+//        AMREX_FOR_1D( np, i,
+        for(int i=0;i<np;i++)
         {
             ParticleType & part = particles[i];
 
@@ -2712,7 +2712,8 @@ FhdParticleContainer::fillMobilityMatrix(int id, int comp)
             vely[part.id()-1] = part.rdata(FHD_realData::vely);
             velz[part.id()-1] = part.rdata(FHD_realData::velz);
 
-        });
+        }
+//        );
 
     }
     
