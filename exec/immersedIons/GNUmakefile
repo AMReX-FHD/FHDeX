@@ -1,10 +1,10 @@
 # AMREX_HOME defines the directory in which we will find all the AMReX code.
 # If you set AMREX_HOME as an environment variable, this line will be ignored
-AMREX_HOME ?= ../../../../programs/amrex/
+AMREX_HOME ?= ../../../../AMReX/amrex/
 FHDeX ?= ../../
 FIONS = $(FHDeX)/exec/immersedIons
 
-DEBUG     = FALSE
+DEBUG     = TRUE
 PROFILE   = FALSE
 USE_MPI   = TRUE
 USE_OMP   = FALSE
