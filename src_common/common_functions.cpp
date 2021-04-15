@@ -39,14 +39,11 @@ void InitializeCommonNamespace() {
                      nodal_flag_edge[2][i] = nodal_flag_yz[i];);
     }
 
-    //n_cells.resize(AMREX_SPACEDIM);
     max_grid_size.resize(AMREX_SPACEDIM);
+    max_grid_size_structfact.resize(AMREX_SPACEDIM);
     max_particle_tile_size.resize(AMREX_SPACEDIM);
-    //grav.resize(AMREX_SPACEDIM);
     dof.resize(MAX_SPECIES);
     u_init.resize(2);
-    //T_init.resize(2);
-    //domega.resize(AMREX_SPACEDIM);
 
     // boundary condition flags
     bc_vel_lo.resize(AMREX_SPACEDIM);
@@ -73,7 +70,6 @@ void InitializeCommonNamespace() {
     p_force_tog.resize(MAX_SPECIES);
     particle_n0.resize(MAX_SPECIES);
 
-   // sigma.resize(MAX_SPECIES);
     qval.resize(MAX_SPECIES);
 
     diff.resize(MAX_SPECIES);
@@ -86,7 +82,8 @@ void InitializeCommonNamespace() {
     char temp_chk_base_name[128];
 
     initialize_common_namespace(prob_lo.begin(), prob_hi.begin(), n_cells.data(),
-                                max_grid_size.dataPtr(), max_particle_tile_size.dataPtr(), &cell_depth, ngc.getVect(),
+                                max_grid_size.dataPtr(), max_grid_size_structfact.dataPtr(),
+                                max_particle_tile_size.dataPtr(), &cell_depth, ngc.getVect(),
                                 &nvars, &nprimvars,
                                 &membrane_cell, &cross_cell, &transmission,
                                 qval.dataPtr(), pkernel_fluid.begin(), pkernel_es.begin(),
