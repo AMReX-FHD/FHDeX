@@ -17,6 +17,10 @@
 
 #include "particle_functions.H"
 
+#include "chrono"
+
+using namespace std::chrono;
+
 // argv contains the name of the inputs file entered at the command line
 void main_driver(const char* argv)
 {
@@ -138,14 +142,17 @@ void main_driver(const char* argv)
             cppSeed  = 6*ParallelDescriptor::MyProc() + seed + 6;
         }else
         {
-
-                //generate cppSeed from clock time or something.
+            // initializes the seed for C++ random number calls based on the clock
+            auto now = time_point_cast<nanoseconds>(system_clock::now());
+            int randSeed = now.time_since_epoch().count();
+            // broadcase the same root seed to all processors
+            ParallelDescriptor::Bcast(&randSeed,1,ParallelDescriptor::IOProcessorNumber());
+            
+            InitRandom(randSeed+ParallelDescriptor::MyProc());
         }
 
         //Initialise rngs
         rng_initialize(&fhdSeed,&particleSeed,&selectorSeed,&thetaSeed,&phiSeed,&generalSeed);
-
-        InitRandom(cppSeed*ParallelDescriptor::MyProc()+cppSeed);
 
         // Initialize the boxarray "ba" from the single box "bx"
         ba.define(domain);
