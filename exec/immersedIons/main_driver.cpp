@@ -150,6 +150,8 @@ void main_driver(const char* argv)
             ParallelDescriptor::Bcast(&randSeed,1,ParallelDescriptor::IOProcessorNumber());
             
             InitRandom(randSeed+ParallelDescriptor::MyProc());
+        } else {
+        Abort("Must supply non-negative seed");
         }
 
         //Initialise rngs
