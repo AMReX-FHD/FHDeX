@@ -145,7 +145,7 @@ void main_driver(const char* argv)
             // initializes the seed for C++ random number calls based on the clock
             auto now = time_point_cast<nanoseconds>(system_clock::now());
             int randSeed = now.time_since_epoch().count();
-            // broadcase the same root seed to all processors
+            // broadcast the same root seed to all processors
             ParallelDescriptor::Bcast(&randSeed,1,ParallelDescriptor::IOProcessorNumber());
             
             InitRandom(randSeed+ParallelDescriptor::MyProc());
