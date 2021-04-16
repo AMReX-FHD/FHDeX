@@ -347,42 +347,49 @@ void ReadCheckPoint(int& step,
     int n_ranks;
     MPI_Comm_size(MPI_COMM_WORLD, &n_ranks);
 
-    // don't read in all the rng states at once (overload filesystem)
-    // one at a time write out the rng states to different files, one for each MPI rank
-    for (int rank=0; rank<n_ranks; ++rank) {
+    if (seed < 0) {
 
-        if (comm_rank == rank) {
+        // read in rng state from checkpoint
+        // don't read in all the rng states at once (overload filesystem)
+        // one at a time write out the rng states to different files, one for each MPI rank
+        for (int rank=0; rank<n_ranks; ++rank) {
+
+            if (comm_rank == rank) {
     
-            if (seed < 0) {
-               // create filename, e.g. chk0000005/rng0000002
-               std::string FileBase(checkpointname + "/rng");
-               std::string File = amrex::Concatenate(FileBase,comm_rank,7);
-
-               // read in contents
-               Vector<char> fileCharPtr;
-               ReadFile(File, fileCharPtr);
-               std::string fileCharPtrString(fileCharPtr.dataPtr());
-               std::istringstream is(fileCharPtrString, std::istringstream::in);
-
-               // restore random state
-               amrex::RestoreRandomState(is, 1, 0);
-	    }
-	    else if (seed == 0) {
-	       auto now = time_point_cast<nanoseconds>(system_clock::now());
-	       // initializes the seed for C++ random number calls
-               //Print() <<  "Now in nanoseconds:" << now.time_since_epoch().count() << std::endl;
-               InitRandom(now.time_since_epoch().count()+ParallelDescriptor::MyProc());
+                if (seed < 0) {
+                    // create filename, e.g. chk0000005/rng0000002
+                    std::string FileBase(checkpointname + "/rng");
+                    std::string File = amrex::Concatenate(FileBase,comm_rank,7);
+                    
+                    // read in contents
+                    Vector<char> fileCharPtr;
+                    ReadFile(File, fileCharPtr);
+                    std::string fileCharPtrString(fileCharPtr.dataPtr());
+                    std::istringstream is(fileCharPtrString, std::istringstream::in);
+                    
+                    // restore random state
+                    amrex::RestoreRandomState(is, 1, 0);
+                }
             }
-	    else
-	    {
-	       // initializes the seed for C++ random number calls
-               InitRandom(seed+ParallelDescriptor::MyProc());
-	    }
+
+            ParallelDescriptor::Barrier();
 
         }
 
-        ParallelDescriptor::Barrier();
-
+    }
+    else if (seed == 0) {
+                
+        // initializes the seed for C++ random number calls based on the clock
+        auto now = time_point_cast<nanoseconds>(system_clock::now());
+        int randSeed = now.time_since_epoch().count();
+        // broadcase the same root seed to all processors
+        ParallelDescriptor::Bcast(&randSeed,1,ParallelDescriptor::IOProcessorNumber());
+        
+        InitRandom(randSeed+ParallelDescriptor::MyProc());
+    }
+    else {
+        // initializes the seed for C++ random number calls
+        InitRandom(seed+ParallelDescriptor::MyProc());
     }
 
     // read in the MultiFab data
