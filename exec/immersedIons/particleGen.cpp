@@ -173,7 +173,7 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
 
 
 //THIS NEEDS TO BE UPDATED TO HANDLE MORE PARTICLE INFO
-void FhdParticleContainer::ReInitParticles(species* particleInfo, const Real* dxp, Real * posX, Real * posY, Real * posZ, Real * charge, Real * sigma, Real * epsilon, int * speciesV, Real * diffdry, Real * diffwet, Real * difftotal)
+void FhdParticleContainer::ReInitParticles()
 {
     const int lev = 0;
     const Geometry& geom = Geom(lev);
@@ -181,9 +181,10 @@ void FhdParticleContainer::ReInitParticles(species* particleInfo, const Real* dx
     int pcount = 0;
 
     bool proc0_enter = true;
+    int pinnedParticles = 0;
 
-   //Note we are resetting the particle ID count here, this is only valid if one rank is doing the generating.
-   ParticleType::NextID(1);
+    //Note we are resetting the particle ID count here, this is only valid if one rank is doing the generating.
+    ParticleType::NextID(1);
         
     for (MFIter mfi = MakeMFIter(lev, true); mfi.isValid(); ++mfi) {
         
@@ -192,6 +193,9 @@ void FhdParticleContainer::ReInitParticles(species* particleInfo, const Real* dx
         const int grid_id = mfi.index();
         const int tile_id = mfi.LocalTileIndex();
         auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+        auto& aos = particle_tile.GetArrayOfStructs();
+	int np = aos.numParticles();
+        auto* pstruct = aos().dataPtr();
 
         //Assuming tile=box for now, i.e. no tiling.
         IntVect smallEnd = tile_box.smallEnd();
@@ -200,110 +204,22 @@ void FhdParticleContainer::ReInitParticles(species* particleInfo, const Real* dx
         if(ParallelDescriptor::MyProc() == 0 && mfi.LocalTileIndex() == 0 && proc0_enter) {
 
             proc0_enter = false;
-            
-            for(int i_spec=0; i_spec < nspecies; i_spec++) {
-                for (int i_part=0; i_part<particleInfo[i_spec].total;i_part++) {
-
-                    ParticleType p;
-
-                    p.id()  = ParticleType::NextID();
-                    p.cpu() = ParallelDescriptor::MyProc();
-                    p.idata(FHD_intData::sorted) = 0;
-
-                    p.pos(0) = posX[pcount];
-                    p.pos(1) = posY[pcount];
-#if (BL_SPACEDIM == 3)
-                    p.pos(2) = posZ[pcount];
-#endif
-                
- 
-                    p.rdata(FHD_realData::q) = charge[pcount];
-
-                    // std::cout << "proc " << ParallelDescriptor::MyProc() << " Pos: " << p.pos(0) << ", " << p.pos(1) << ", " << p.pos(2)
-                    //           << ", " << p.rdata(FHD_realData::q) << ", " << p.id() << "\n" ;
-
-                    //original position stored for MSD calculations
-                    p.rdata(FHD_realData::ox) = p.pos(0);
-                    p.rdata(FHD_realData::oy) = p.pos(1);
-#if (BL_SPACEDIM == 3)
-                    p.rdata(FHD_realData::oz) = p.pos(2);
-#endif
-
-                    //p.rdata(FHD_realData::vx) = sqrt(particleInfo.R*particleInfo.T)*get_particle_normal_func();
-                    //p.rdata(FHD_realData::vy) = sqrt(particleInfo.R*particleInfo.T)*get_particle_normal_func();
-                    //p.rdata(FHD_realData::vz) = sqrt(particleInfo.R*particleInfo.T)*get_particle_normal_func();
-
-                    p.rdata(FHD_realData::pred_posx) = 0;
-                    p.rdata(FHD_realData::pred_posy) = 0;
-                    p.rdata(FHD_realData::pred_posz) = 0;
-
-                    p.rdata(FHD_realData::pred_velx) = 0;
-                    p.rdata(FHD_realData::pred_vely) = 0;
-                    p.rdata(FHD_realData::pred_velz) = 0;
-
-                    p.rdata(FHD_realData::pred_forcex) = 0;
-                    p.rdata(FHD_realData::pred_forcey) = 0;
-                    p.rdata(FHD_realData::pred_forcez) = 0;
-
-                    p.rdata(FHD_realData::fx) = 0;
-                    p.rdata(FHD_realData::fy) = 0;
-                    p.rdata(FHD_realData::fz) = 0;
-
-                    p.rdata(FHD_realData::vx) = 0;
-                    p.rdata(FHD_realData::vy) = 0;
-                    p.rdata(FHD_realData::vz) = 0;
-
-                    p.rdata(FHD_realData::ux) = 0;
-                    p.rdata(FHD_realData::uy) = 0;
-                    p.rdata(FHD_realData::uz) = 0;
-
-                    p.rdata(FHD_realData::ax) = 0;
-                    p.rdata(FHD_realData::ay) = 0;
-                    p.rdata(FHD_realData::az) = 0;
-
-                    p.rdata(FHD_realData::fx) = 0;
-                    p.rdata(FHD_realData::fy) = 0;
-                    p.rdata(FHD_realData::fz) = 0;
-
-                    p.rdata(FHD_realData::travelTime) = 0;
-                    p.rdata(FHD_realData::diffAv) = 0;
-                    p.rdata(FHD_realData::stepCount) = 0;
-
-                    p.idata(FHD_intData::species) = speciesV[pcount];
-
-                    p.rdata(FHD_realData::mass) = particleInfo[speciesV[pcount]-1].m; //mass
-                    p.rdata(FHD_realData::R) = particleInfo[speciesV[pcount]-1].R; //R
-                    p.rdata(FHD_realData::radius) = particleInfo[speciesV[pcount]-1].d/2.0; //radius
-                    p.rdata(FHD_realData::accelFactor) = -6*3.14159265359*p.rdata(FHD_realData::radius)/p.rdata(FHD_realData::mass); //acceleration factor (replace with amrex c++ constant for pi...)
-                    p.rdata(FHD_realData::dragFactor) = 6*3.14159265359*p.rdata(FHD_realData::radius); //drag factor
-                    //p.rdata(FHD_realData::dragFactor) = 0; //drag factor
-                    //p.rdata(FHD_realData::dragFactor) = 6*3.14159265359*dx[0]*1.322; //drag factor
-
-                    p.rdata(FHD_realData::wetDiff) = particleInfo[speciesV[pcount]-1].wetDiff;
-                    p.rdata(FHD_realData::dryDiff) = particleInfo[speciesV[pcount]-1].dryDiff;
-                    p.rdata(FHD_realData::totalDiff) = particleInfo[speciesV[pcount]-1].totalDiff;
-
-                    p.rdata(FHD_realData::sigma) = particleInfo[speciesV[pcount]-1].sigma;
-                    p.rdata(FHD_realData::eepsilon) = particleInfo[speciesV[pcount]-1].eepsilon;
-
-
-                    p.rdata(FHD_realData::potential) = 0;                 
-
-                    // set distance for which we do direct, short range coulomb force calculation
-                    // in p3m to be 6.5*dx_poisson_grid
-
-                    p.rdata(FHD_realData::p3m_radius) = (pkernel_es[p.idata(FHD_intData::species)-1] + 0.5)*dxp[0];
-
-                    particle_tile.push_back(p);
-
-
-                    Print() << "Generating radius " << speciesV[pcount]-1 << ", " << particleInfo[speciesV[pcount]-1].d/2.0 << std::endl;
-
-                    pcount++;
+             AMREX_FOR_1D (np, i,
+            {
+                auto& p = pstruct[i];
+                if(p.idata(FHD_intData::pinned) != 0)
+                {
+                    pinnedParticles++;
                 }
-            }
+            });
         }
     }
+
+    ParallelDescriptor::ReduceIntSum(pinnedParticles);
+
+    Print() << "Loaded " << pinnedParticles << " pinned particles." << std::endl;
+
+    totalPinnedMarkers = pinnedParticles;
 
     Redistribute();
     UpdateCellVectors();
