@@ -141,8 +141,7 @@ void main_driver(const char* argv)
             generalSeed  = 6*ParallelDescriptor::MyProc() + seed + 5;
             cppSeed  = 6*ParallelDescriptor::MyProc() + seed + 6;
             InitRandom(cppSeed+ParallelDescriptor::MyProc());
-        }else
-        {
+        } else if (seed == 0) {
             // initializes the seed for C++ random number calls based on the clock
             auto now = time_point_cast<nanoseconds>(system_clock::now());
             int randSeed = now.time_since_epoch().count();
