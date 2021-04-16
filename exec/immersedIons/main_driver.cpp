@@ -82,10 +82,10 @@ void main_driver(const char* argv)
         ngp = 2;
     }
     else if (*(std::max_element(pkernel_es.begin(),pkernel_es.begin()+nspecies)) == 4) {
-        ngp = 2;
+        ngp = 3;
     }
     else if (*(std::max_element(pkernel_es.begin(),pkernel_es.begin()+nspecies)) == 6) {
-        ngp = 3;
+        ngp = 4;
     }
         
     // staggered velocities
