@@ -2703,7 +2703,8 @@ FhdParticleContainer::fillMobilityMatrix(int id, int comp)
         AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
         long np = this->GetParticles(lev).at(index).numParticles();
 
-        AMREX_FOR_1D( np, i,
+//        AMREX_FOR_1D( np, i,
+        for(int i=0;i<np;i++)
         {
             ParticleType & part = particles[i];
 
@@ -2711,7 +2712,8 @@ FhdParticleContainer::fillMobilityMatrix(int id, int comp)
             vely[part.id()-1] = part.rdata(FHD_realData::vely);
             velz[part.id()-1] = part.rdata(FHD_realData::velz);
 
-        });
+        }
+//        );
 
     }
     
