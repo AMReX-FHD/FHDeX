@@ -224,14 +224,6 @@ void RK3stepStag(MultiFab& cu,
     // Compute transport coefs after setting BCs    
     calculateTransportCoeffs(prim, eta, zeta, kappa, chi, D);
 
-    { 
-        std::string filename = Concatenate("prim_0_",step,9);
-        outputMFAscii(prim, filename);
-    }
-    { 
-        std::string filename = Concatenate("cons_0_",step,9);
-        outputMFAscii(cu, filename);
-    }
     calculateFluxStag(cu, cumom, prim, vel, eta, zeta, kappa, chi, D, 
         faceflux, edgeflux_x, edgeflux_y, edgeflux_z, cenflux, 
         stochface, stochedge_x, stochedge_y, stochedge_z, stochcen, 
@@ -249,10 +241,6 @@ void RK3stepStag(MultiFab& cu,
         edgeflux_x[d].FillBoundary(geom.periodicity());
         edgeflux_y[d].FillBoundary(geom.periodicity());
         edgeflux_z[d].FillBoundary(geom.periodicity());
-    }
-    { 
-        std::string filename = Concatenate("flux_0_",step,9);
-        outputMFAscii(faceflux[0], filename);
     }
 
     for ( MFIter mfi(cu,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
@@ -342,14 +330,6 @@ void RK3stepStag(MultiFab& cu,
     }
     prim.FillBoundary(geom.periodicity());
     setBCStag(prim, cup, cupmom, vel, geom);
-    { 
-        std::string filename = Concatenate("cons_1_",step,9);
-        outputMFAscii(cup, filename);
-    }
-    { 
-        std::string filename = Concatenate("prim_1_",step,9);
-        outputMFAscii(prim, filename);
-    }
 
     // Compute transport coefs after setting BCs
     calculateTransportCoeffs(prim, eta, zeta, kappa, chi, D);
@@ -419,10 +399,6 @@ void RK3stepStag(MultiFab& cu,
         edgeflux_x[d].FillBoundary(geom.periodicity());
         edgeflux_y[d].FillBoundary(geom.periodicity());
         edgeflux_z[d].FillBoundary(geom.periodicity());
-    }
-    { 
-        std::string filename = Concatenate("flux_1_",step,9);
-        outputMFAscii(faceflux[0], filename);
     }
 
     for ( MFIter mfi(cu,TilingIfNotGPU()); mfi.isValid(); ++mfi) {

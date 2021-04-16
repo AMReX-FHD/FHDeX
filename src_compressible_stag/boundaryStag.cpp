@@ -33,10 +33,10 @@ void setBCStag(MultiFab& prim_in, MultiFab& cons_in,
     BCRhoRhoE(cons_in, prim_in, cumom_in, geom);
 }
 
-// set species flux to zero for wall boundary conditions
+// set species and total density flux to zero for wall boundary conditions
 void BCWallSpeciesFlux(std::array< MultiFab, AMREX_SPACEDIM >& faceflux, const amrex::Geometry geom)
 {
-    BL_PROFILE_VAR("setWallFluxBC()",setWallFluxBC);
+    BL_PROFILE_VAR("BCWallSpeciesFlux()",BCWallSpeciesFlux);
 
     // LO X
     if (bc_mass_lo[0] == 1) {
@@ -56,6 +56,7 @@ void BCWallSpeciesFlux(std::array< MultiFab, AMREX_SPACEDIM >& faceflux, const a
                 amrex::ParallelFor(b, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     flux(i,j,k,n+5) = 0.;
+                    if (n==0) flux(i,j,k,n) = 0.;
                 });
             }
         }
@@ -78,6 +79,7 @@ void BCWallSpeciesFlux(std::array< MultiFab, AMREX_SPACEDIM >& faceflux, const a
                 amrex::ParallelFor(b, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     flux(i,j,k,n+5) = 0.;
+                    if (n==0) flux(i,j,k,n) = 0.;
                 });
             }
         }
@@ -100,6 +102,7 @@ void BCWallSpeciesFlux(std::array< MultiFab, AMREX_SPACEDIM >& faceflux, const a
                 amrex::ParallelFor(b, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     flux(i,j,k,n+5) = 0.;
+                    if (n==0) flux(i,j,k,n) = 0.;
                 });
             }
         }
@@ -122,6 +125,7 @@ void BCWallSpeciesFlux(std::array< MultiFab, AMREX_SPACEDIM >& faceflux, const a
                 amrex::ParallelFor(b, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     flux(i,j,k,n+5) = 0.;
+                    if (n==0) flux(i,j,k,n) = 0.;
                 });
             }
         }
@@ -144,6 +148,7 @@ void BCWallSpeciesFlux(std::array< MultiFab, AMREX_SPACEDIM >& faceflux, const a
                 amrex::ParallelFor(b, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     flux(i,j,k,n+5) = 0.;
+                    if (n==0) flux(i,j,k,n) = 0.;
                 });
             }
         }
@@ -166,6 +171,7 @@ void BCWallSpeciesFlux(std::array< MultiFab, AMREX_SPACEDIM >& faceflux, const a
                 amrex::ParallelFor(b, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     flux(i,j,k,n+5) = 0.;
+                    if (n==0) flux(i,j,k,n) = 0.;
                 });
             }
         }

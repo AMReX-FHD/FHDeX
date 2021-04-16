@@ -553,6 +553,7 @@ void main_driver(const char* argv)
         cumom[d].FillBoundary(geom.periodicity());
         vel[d].FillBoundary(geom.periodicity());
     }
+
     setBCStag(prim, cu, cumom, vel, geom);
     
     if (plot_int > 0) {
