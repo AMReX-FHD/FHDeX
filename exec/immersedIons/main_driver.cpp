@@ -17,6 +17,10 @@
 
 #include "particle_functions.H"
 
+#include "chrono"
+
+using namespace std::chrono;
+
 // argv contains the name of the inputs file entered at the command line
 void main_driver(const char* argv)
 {
@@ -113,6 +117,7 @@ void main_driver(const char* argv)
     // MF for charge mean and variance
     MultiFab chargeM;
     MultiFab chargeV;
+
     
     if (restart < 0) {
         
@@ -123,6 +128,7 @@ void main_driver(const char* argv)
         int thetaSeed    = 0;
         int phiSeed      = 0;
         int generalSeed  = 0;
+        int cppSeed = 0;
 
         // "seed" controls all of them and gives distinct seeds to each physical process over each MPI process
         // this should be fixed so each physical process has its own seed control
@@ -133,6 +139,18 @@ void main_driver(const char* argv)
             thetaSeed    = 6*ParallelDescriptor::MyProc() + seed + 3;
             phiSeed      = 6*ParallelDescriptor::MyProc() + seed + 4;
             generalSeed  = 6*ParallelDescriptor::MyProc() + seed + 5;
+            cppSeed  = 6*ParallelDescriptor::MyProc() + seed + 6;
+            InitRandom(cppSeed+ParallelDescriptor::MyProc());
+        } else if (seed == 0) {
+            // initializes the seed for C++ random number calls based on the clock
+            auto now = time_point_cast<nanoseconds>(system_clock::now());
+            int randSeed = now.time_since_epoch().count();
+            // broadcast the same root seed to all processors
+            ParallelDescriptor::Bcast(&randSeed,1,ParallelDescriptor::IOProcessorNumber());
+            
+            InitRandom(randSeed+ParallelDescriptor::MyProc());
+        } else {
+        Abort("Must supply non-negative seed");
         }
 
         //Initialise rngs
@@ -684,7 +702,45 @@ void main_driver(const char* argv)
     //int num_neighbor_cells = 4; replaced by input var
     //Particles! Build on geom & box array for collision cells/ poisson grid?
     double relRefine = particle_grid_refine/es_grid_refine;
-    int cRange = (int)ceil((*(std::max_element(pkernel_es.begin(),pkernel_es.begin()+nspecies)))/relRefine);
+    Real max_es_range = 0;
+    Real max_sr_range = 0;
+    Real max_range = 0;
+
+    for(int i=0;i<nspecies;i++) {
+        Real range = (pkernel_es[i] + 0.5)*dxp[0];
+        if(range > max_es_range)
+        {
+           max_es_range = range ;
+        }
+    }
+
+    for(int i=0;i<(nspecies*nspecies);i++) {
+        Real range = sigma[i]*rmax[i];
+
+        if(range > max_sr_range)
+        {
+           max_sr_range = range ;
+        }
+    }
+    for(int i=0;i<nspecies;i++) {
+        Real range = sigma_wall[i]*rmax_wall[i];
+
+        if(range > max_sr_range)
+        {
+           max_sr_range = range ;
+        }
+    }
+    
+    if(max_sr_range > max_es_range)
+    {
+        max_range = max_sr_range;
+    }else
+    {
+        max_range = max_es_range;
+    }
+
+    int cRange = (int)ceil(max_range/dxc[0]);
+
     FhdParticleContainer particles(geomC, geom, dmap, bc, ba, cRange, ang);
 
     if (restart < 0 && particle_restart < 0) {
@@ -958,7 +1014,7 @@ void main_driver(const char* argv)
 
                 Real check;
 //                particles.clearMobilityMatrix();
-//                for(int ii=88;ii<=1687;ii++)
+//                for(int ii=101;ii<=3300;ii++)
 //                {
 //                    particles.SetForce(ii,1,0,0);
 //                    for (int d=0; d<AMREX_SPACEDIM; ++d) {

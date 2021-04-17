@@ -217,16 +217,48 @@ void StructFact::FortStructure(const MultiFab& variables, const Geometry& geom, 
   const BoxArray& ba = variables.boxArray();
   const DistributionMapping& dm = variables.DistributionMap();
 
-  if (ba.size() != ParallelDescriptor::NProcs()) {
-    Abort("StructFact::FortStructure - Need same number of MPI processes as grids");
-    exit(0);
+  if (ba.size()%ParallelDescriptor::NProcs() != 0) {
+      Abort("StructFact::FortStructure - n_boxes%n_mpi_ranks must be zero");
+      exit(0);
   }
 
   MultiFab variables_dft_real, variables_dft_imag;
   variables_dft_real.define(ba, dm, NVAR, 0);
   variables_dft_imag.define(ba, dm, NVAR, 0);
 
-  ComputeFFT(variables, variables_dft_real, variables_dft_imag, geom);
+  if (ba.size() == ParallelDescriptor::NProcs()) {
+      ComputeFFT(variables, variables_dft_real, variables_dft_imag, geom);
+  }
+  else {
+
+      BoxArray ba_temp(geom.Domain());
+
+      ba_temp.maxSize(IntVect(max_grid_size_structfact));
+
+      if (ba_temp.size() != ParallelDescriptor::NProcs()) {
+          Abort("StructFact::FortStructure - number of MPI ranks needs to match the number of grids; define max_grid_size_structfact");
+          exit(0);
+      }
+
+      DistributionMapping dm_temp(ba_temp);
+
+      // create variables_temp, variables_dft_real_temp and variables_dft_imag
+      // these will have the same number of grids as MPI ranks so they need a different
+      // BoxArray and DistributionMapping
+      MultiFab variables_temp         (ba_temp, dm_temp, variables.nComp(), 0);
+      MultiFab variables_dft_real_temp(ba_temp, dm_temp, NVAR, 0);
+      MultiFab variables_dft_imag_temp(ba_temp, dm_temp, NVAR, 0);
+
+      // ParallelCopy variables into variables_temp
+      variables_temp.ParallelCopy(variables, 0, 0, variables.nComp());
+
+      ComputeFFT(variables_temp, variables_dft_real_temp, variables_dft_imag_temp, geom);
+
+      // ParallelCopy variables_dft_real_temp into variables_dft_real
+      // ParallelCopy variables_dft_imag_temp into variables_dft_imag
+      variables_dft_real.copy(variables_dft_real_temp, 0, 0, NVAR);
+      variables_dft_imag.copy(variables_dft_imag_temp, 0, 0, NVAR);
+  }
 
   MultiFab cov_temp;
   cov_temp.define(ba, dm, 1, 0);
