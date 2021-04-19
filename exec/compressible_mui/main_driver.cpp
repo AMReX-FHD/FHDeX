@@ -65,9 +65,9 @@ void mui_push(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface2
                     uniface.push(channel,{x,y},dens);
                 }
 
-                channel = "CH_temp";
+                //channel = "CH_temp";
 
-                uniface.push(channel,{x,y},prim_fab(i,j,k,4));
+                //uniface.push(channel,{x,y},prim_fab(i,j,k,4));
             }
         }
     }
@@ -111,7 +111,7 @@ void mui_fetch(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface
             double x = prob_lo[0]+(lo.x+0.5)*dx[0];
             double y = prob_lo[1]+(lo.y+0.5)*dx[1];
 
-            //uniface.fetch("CH_ac1",{x,y},step,s,t);
+            uniface.fetch("CH_ac1",{x,y},step,s,t);
 
             continue;
         }
@@ -714,8 +714,8 @@ void main_driver(const char* argv)
 
         mui::geometry::box<config_2d> span(span_lo,span_hi);
 
-        uniface.announce_send_span(0.,(double)max_step,span);
-        uniface.announce_recv_span(0.,(double)max_step,span);
+        //uniface.announce_send_span(0.,(double)max_step,span);
+        //uniface.announce_recv_span(0.,(double)max_step,span);
     }
     else
     {
@@ -731,8 +731,8 @@ void main_driver(const char* argv)
 
         mui::geometry::box<config_2d> span(span_lo,span_hi);
 
-        uniface.announce_send_span(0.,(double)max_step,span);
-        uniface.announce_recv_span(0.,(double)max_step,span);
+        //uniface.announce_send_span(0.,(double)max_step,span);
+        //uniface.announce_recv_span(0.,(double)max_step,span);
     }
 
     //Time stepping loop
