@@ -80,12 +80,22 @@ class AppSurfchemtest : public AppLattice {
   void add_event(int, int, int, double, int, int);
   void grow_reactions(int);
 
+  void mui_init_agg();
   void mui_push(int,char **);
   void mui_fetch(int,char **);
+  void mui_push_agg(int,char **);
+  void mui_fetch_agg(int,char **);
   double mui_fhd_lattice_size_x;
   double mui_fhd_lattice_size_y;
   double mui_kmc_lattice_offset_x;
   double mui_kmc_lattice_offset_y;
+
+  int nlocalFHDcell;        // number of FHD cells overlapping with local domain
+  double *xFHD;             // x-coord of COM of each overlapping FHD cell region
+  double *yFHD;             // y-coord of COM of each overlapping FHD cell region
+  int *MUIintval;           // temp int array for MUI push/fetch
+  double *MUIdblval;        // temp double array for MUI push/fetch
+  int *localFHDcell;        // map from local KMC site to FHD cell
 };
 
 }

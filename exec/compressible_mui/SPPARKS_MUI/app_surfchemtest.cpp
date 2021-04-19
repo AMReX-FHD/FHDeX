@@ -22,10 +22,13 @@
 #include "error.h"
 #include "domain.h"
 #include "mui.h"
+#include <vector>
 
 using namespace mui;
 
 using namespace SPPARKS_NS;
+
+using namespace std;
 
 enum{NOOP,SITEA,SITEB,SITEC};
 enum{VACANCY,SPEC1,SPEC2,SPEC3,SPEC4,SPEC5}; // removed ZERO and moved VACANCY to first item // same as DiagSurfchemtest
@@ -69,6 +72,12 @@ AppSurfchemtest::AppSurfchemtest(SPPARKS *spk, int narg, char **arg) :
 
   mui_fhd_lattice_size_x = mui_fhd_lattice_size_y = -1.;
   mui_kmc_lattice_offset_x = mui_kmc_lattice_offset_y = 0.;
+
+  xFHD = NULL;
+  yFHD = NULL;
+  MUIintval = NULL;
+  MUIdblval = NULL;
+  localFHDcell = NULL;
 }
 
 /* ---------------------------------------------------------------------- */
@@ -109,6 +118,12 @@ AppSurfchemtest::~AppSurfchemtest()
   memory->destroy(tcount);
   memory->destroy(adscount);
   memory->destroy(descount);
+
+  delete [] xFHD;
+  delete [] yFHD;
+  delete [] MUIintval;
+  delete [] MUIdblval;
+  delete [] localFHDcell;
 }
 
 /* ---------------------------------------------------------------------- */
@@ -326,12 +341,21 @@ void AppSurfchemtest::input_app(char *command, int narg, char **arg)
       ndes++;
       
     } else error->all(FLERR,"Illegal event command");
+  } else if (strcmp(command,"mui_init_agg") == 0) {
+    if (narg != 0) error->all(FLERR,"Illegal mui_init_agg command");
+    mui_init_agg();
   } else if (strcmp(command,"mui_push") == 0) {
     if (narg < 2) error->all(FLERR,"Illegal mui_push command");
     mui_push(narg,arg);
   } else if (strcmp(command,"mui_fetch") == 0) {
     if (narg < 2) error->all(FLERR,"Illegal mui_fetch command");
     mui_fetch(narg,arg);
+  } else if (strcmp(command,"mui_push_agg") == 0) {
+    if (narg < 2) error->all(FLERR,"Illegal mui_push_agg command");
+    mui_push_agg(narg,arg);
+  } else if (strcmp(command,"mui_fetch_agg") == 0) {
+    if (narg < 2) error->all(FLERR,"Illegal mui_fetch_agg command");
+    mui_fetch_agg(narg,arg);
   } else if (strcmp(command,"mui_fhd_lattice_size") == 0) {
     if (narg != 2) error->all(FLERR,"Illegal mul_fhd_lattice_size command");
     mui_fhd_lattice_size_x = atof(arg[0]);
@@ -401,35 +425,10 @@ void AppSurfchemtest::init_app()
       dc5[i] = 0;
     }
 
-    if (domain->me == 0 && screen) fprintf(screen,"** DEBUG: ac1-ac5, dc1-dc5 initialized to zero\n");
-
-    // announce span
-
-    double tmp[2];
-
-    tmp[0] = domain->subxlo;
-    tmp[1] = domain->subylo;
-    point<double,2> send_span_lo(tmp);
-
-    tmp[0] = domain->subxhi;
-    tmp[1] = domain->subyhi;
-    point<double,2> send_span_hi(tmp);
-
-    mui::geometry::box<config_2d> send_span(send_span_lo,send_span_hi);
-
-    spk->uniface->announce_send_span(0.,1.e10,send_span);
-
-    tmp[0] = domain->subxlo - 0.5*mui_fhd_lattice_size_x;
-    tmp[1] = domain->subylo - 0.5*mui_fhd_lattice_size_y;
-    point<double,2> recv_span_lo(tmp);
-
-    tmp[0] = domain->subxhi + 0.5*mui_fhd_lattice_size_x;
-    tmp[1] = domain->subyhi + 0.5*mui_fhd_lattice_size_y;
-    point<double,2> recv_span_hi(tmp);
-
-    mui::geometry::box<config_2d> recv_span(recv_span_lo,recv_span_hi);
-
-    spk->uniface->announce_recv_span(0.,1.e10,recv_span);
+    if (domain->me == 0 && screen) {
+      fprintf(screen,"** DEBUG: ac1-ac5, dc1-dc5 initialized to zero\n");
+      fflush(screen);
+    }
   }
 
   // site validity
@@ -807,10 +806,106 @@ void AppSurfchemtest::grow_reactions(int rstyle)
    MUI routines 
 ------------------------------------------------------------------------- */
 
+void AppSurfchemtest::mui_init_agg()
+{
+  assert(nlocal>0);
+  assert(mui_fhd_lattice_size_x>0);
+  assert(mui_fhd_lattice_size_y>0);
+/*
+    // announce span
+
+    double tmp[2];
+
+    tmp[0] = domain->subxlo;
+    tmp[1] = domain->subylo;
+    point<double,2> send_span_lo(tmp);
+
+    tmp[0] = domain->subxhi;
+    tmp[1] = domain->subyhi;
+    point<double,2> send_span_hi(tmp);
+
+    mui::geometry::box<config_2d> send_span(send_span_lo,send_span_hi);
+
+    spk->uniface->announce_send_span(0.,1.e10,send_span);
+
+    tmp[0] = domain->subxlo - 0.5*mui_fhd_lattice_size_x;
+    tmp[1] = domain->subylo - 0.5*mui_fhd_lattice_size_y;
+    point<double,2> recv_span_lo(tmp);
+
+    tmp[0] = domain->subxhi + 0.5*mui_fhd_lattice_size_x;
+    tmp[1] = domain->subyhi + 0.5*mui_fhd_lattice_size_y;
+    point<double,2> recv_span_hi(tmp);
+
+    mui::geometry::box<config_2d> recv_span(recv_span_lo,recv_span_hi);
+
+    spk->uniface->announce_recv_span(0.,1.e10,recv_span);
+*/
+    // create maps between KMC sites and FHD cells
+
+    // 1. collect info
+
+    int nFHDcellx = rint((domain->boxxhi-domain->boxxlo)/mui_fhd_lattice_size_x);
+    int nFHDcelly = rint((domain->boxyhi-domain->boxylo)/mui_fhd_lattice_size_y);
+
+    vector<vector<int>> cntKMCsite(nFHDcellx,vector<int>(nFHDcelly,0));
+    vector<vector<double>> sum1(nFHDcellx,vector<double>(nFHDcelly,0.));
+    vector<vector<double>> sum2(nFHDcellx,vector<double>(nFHDcelly,0.));
+
+    for (int i = 0; i < nlocal; i++) {
+      int nx = floor((xyz[i][0]+mui_kmc_lattice_offset_x)/mui_fhd_lattice_size_x);
+      int ny = floor((xyz[i][1]+mui_kmc_lattice_offset_y)/mui_fhd_lattice_size_y);
+      assert(nx>=0 && nx<nFHDcellx && ny>=0 && ny<nFHDcelly);
+      cntKMCsite[nx][ny]++;
+      sum1[nx][ny] += xyz[i][0]+mui_kmc_lattice_offset_x;
+      sum2[nx][ny] += xyz[i][1]+mui_kmc_lattice_offset_y;
+    }
+
+    int cntFHDcell = 0;
+    for (int nx = 0; nx < nFHDcellx; nx++)
+      for (int ny = 0; ny < nFHDcelly; ny++)
+        if (cntKMCsite[nx][ny] > 0)
+          cntFHDcell++;
+    nlocalFHDcell = cntFHDcell;
+
+    // 2. xFHD/yFHD/MUIintval/MUIdblval/localFHDcell
+
+    xFHD = new double[nlocalFHDcell];
+    yFHD = new double[nlocalFHDcell];
+    MUIintval = new int[nlocalFHDcell];
+    MUIdblval = new double[nlocalFHDcell];
+    localFHDcell = new int [nlocal];
+
+    vector<vector<int>> FHDcell(nFHDcellx,vector<int>(nFHDcelly,-1));
+
+    cntFHDcell = 0;
+    for (int nx = 0; nx < nFHDcellx; nx++) {
+      for (int ny = 0; ny < nFHDcelly; ny++) {
+        if (cntKMCsite[nx][ny] > 0) {
+          FHDcell[nx][ny] = cntFHDcell;
+          xFHD[cntFHDcell] = sum1[nx][ny]/cntKMCsite[nx][ny];
+          yFHD[cntFHDcell] = sum2[nx][ny]/cntKMCsite[nx][ny];
+          cntFHDcell++;
+        }
+      }
+    }
+    assert(cntFHDcell==nlocalFHDcell);
+
+    for (int i = 0; i < nlocal; i++) {
+      int nx = floor((xyz[i][0]+mui_kmc_lattice_offset_x)/mui_fhd_lattice_size_x);
+      int ny = floor((xyz[i][1]+mui_kmc_lattice_offset_y)/mui_fhd_lattice_size_y);
+      assert(nx>=0 && nx<nFHDcellx && ny>=0 && ny<nFHDcelly);
+      localFHDcell[i] = FHDcell[nx][ny];
+    }
+}
+
 void AppSurfchemtest::mui_push(int narg, char **arg)
 {
   int timestamp = atoi(arg[0]);
-  if (domain->me == 0 && screen) fprintf(screen,"** DEBUG: MUI push at timestamp %d\n",timestamp);
+
+  if (domain->me == 0 && screen) {
+    fprintf(screen,"** DEBUG: MUI push at timestamp %d\n",timestamp);
+    fflush(screen);
+  }
 
   for (int k=1;k<narg;k++)
   {
@@ -901,7 +996,56 @@ void AppSurfchemtest::mui_push(int narg, char **arg)
       error->all(FLERR,"Illegal mui_push command");
     }
     
-    if (domain->me == 0 && screen) fprintf(screen,"** DEBUG: %s pushed\n",arg[k]);
+    if (domain->me == 0 && screen) {
+      fprintf(screen,"** DEBUG: %s pushed\n",arg[k]);
+      fflush(screen);
+    }
+  }
+
+  spk->uniface->commit(timestamp);
+
+  return;
+}
+
+void AppSurfchemtest::mui_push_agg(int narg, char **arg)
+{
+  int timestamp = atoi(arg[0]);
+
+  if (domain->me == 0 && screen) {
+    fprintf(screen,"** DEBUG: mui_push_agg at timestamp %d\n",timestamp);
+    fflush(screen);
+  }
+
+  for (int k=1;k<narg;k++)
+  {
+    if (strcmp(arg[k],"ac1") == 0) {
+      // compute the sum over each FHD domain
+      for (int n=0;n<nlocalFHDcell;n++) MUIintval[n] = 0;
+      for (int i=0;i<nlocal;i++) {
+        MUIintval[localFHDcell[i]] += ac1[i];
+        ac1[i] = 0;
+      }
+      // push for each FHD domain
+      for (int n=0;n<nlocalFHDcell;n++)
+        spk->uniface->push("CH_ac1",{xFHD[n],yFHD[n]},MUIintval[n]);
+    } else if (strcmp(arg[k],"dc1") == 0) {
+      // compute the sum over each FHD domain
+      for (int n=0;n<nlocalFHDcell;n++) MUIintval[n] = 0;
+      for (int i=0;i<nlocal;i++) {
+        MUIintval[localFHDcell[i]] += dc1[i];
+        dc1[i] = 0;
+      }
+      // push for each FHD domain
+      for (int n=0;n<nlocalFHDcell;n++)
+        spk->uniface->push("CH_dc1",{xFHD[n],yFHD[n]},MUIintval[n]);
+    } else {
+      error->all(FLERR,"Illegal mui_push_agg command");
+    }
+
+    if (domain->me == 0 && screen) {
+      fprintf(screen,"** DEBUG: %s pushed\n",arg[k]);
+      fflush(screen);
+    }
   }
 
   spk->uniface->commit(timestamp);
@@ -912,7 +1056,11 @@ void AppSurfchemtest::mui_push(int narg, char **arg)
 void AppSurfchemtest::mui_fetch(int narg, char **arg)
 {
   int timestamp = atoi(arg[0]);
-  if (domain->me == 0 && screen) fprintf(screen,"** DEBUG: MUI fetch at timestamp %d\n",timestamp);
+
+  if (domain->me == 0 && screen) {
+    fprintf(screen,"** DEBUG: MUI fetch at timestamp %d\n",timestamp);
+    fflush(screen);
+  }
 
   if (mui_fhd_lattice_size_x <= 0. || mui_fhd_lattice_size_y <= 0.)
     error->all(FLERR,"mui_fhd_lattice_size must be set as two positive numbers");
@@ -950,7 +1098,49 @@ void AppSurfchemtest::mui_fetch(int narg, char **arg)
       error->all(FLERR,"Illegal mui_fetch command");
     }
 
-    if (domain->me == 0 && screen) fprintf(screen,"** DEBUG: %s fetched\n",arg[k]);
+    if (domain->me == 0 && screen) {
+      fprintf(screen,"** DEBUG: %s fetched\n",arg[k]);
+      fflush(screen);
+    }
+  }
+
+  spk->uniface->forget(timestamp);
+
+  return;
+}
+
+void AppSurfchemtest::mui_fetch_agg(int narg, char **arg)
+{
+  int timestamp = atoi(arg[0]);
+
+  if (domain->me == 0 && screen) {
+    fprintf(screen,"** DEBUG: mui_fetch_agg at timestamp %d\n",timestamp);
+    fflush(screen);
+  }
+
+  if (mui_fhd_lattice_size_x <= 0. || mui_fhd_lattice_size_y <= 0.)
+    error->all(FLERR,"mui_fhd_lattice_size must be set as two positive numbers");
+
+  mui::sampler_kmc_fhd2d<double> s({mui_fhd_lattice_size_x,mui_fhd_lattice_size_y});
+  mui::chrono_sampler_exact2d t;
+
+  for (int k=1;k<narg;k++)
+  {
+    if (strcmp(arg[k],"density1") == 0) {
+      // get info for each FHD cell
+      for (int n=0;n<nlocalFHDcell;n++)
+        MUIdblval[n] = spk->uniface->fetch("CH_density1",{xFHD[n],yFHD[n]},timestamp,s,t);
+      // distribute info to each KMC site
+      for (int i=0;i<nlocal;i++)
+        density1[i] = MUIdblval[localFHDcell[i]];
+    } else {
+      error->all(FLERR,"Illegal mui_fetch_agg command");
+    }
+
+    if (domain->me == 0 && screen) {
+      fprintf(screen,"** DEBUG: %s fetched\n",arg[k]);
+      fflush(screen);
+    }
   }
 
   spk->uniface->forget(timestamp);
