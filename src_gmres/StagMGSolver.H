@@ -81,8 +81,8 @@ public:
     void EdgeRestriction(std::array<MultiFab, NUM_EDGE> & phi_c,
                          const std::array<MultiFab, NUM_EDGE> & phi_f);
 
-    void StagProlongation(const std::array<MultiFab, AMREX_SPACEDIM> & phi_c,
-                          std::array<MultiFab, AMREX_SPACEDIM> & phi_f);
+    void StagProlongation(const std::array<MultiFab, AMREX_SPACEDIM> & phi_c_in,
+                          std::array<MultiFab, AMREX_SPACEDIM> & phi_f_in);
 
     void StagMGUpdate(std::array<MultiFab, AMREX_SPACEDIM> & phi_fc,
                       const std::array<MultiFab, AMREX_SPACEDIM> & rhs_fc,
