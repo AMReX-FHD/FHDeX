@@ -351,7 +351,7 @@ void ReadCheckPoint(int& step,
 
         // read in rng state from checkpoint
         // don't read in all the rng states at once (overload filesystem)
-        // one at a time write out the rng states to different files, one for each MPI rank
+        // one at a time read the rng states to different files, one for each MPI rank
         for (int rank=0; rank<n_ranks; ++rank) {
 
             if (comm_rank == rank) {
@@ -382,7 +382,7 @@ void ReadCheckPoint(int& step,
         // initializes the seed for C++ random number calls based on the clock
         auto now = time_point_cast<nanoseconds>(system_clock::now());
         int randSeed = now.time_since_epoch().count();
-        // broadcase the same root seed to all processors
+        // broadcast the same root seed to all processors
         ParallelDescriptor::Bcast(&randSeed,1,ParallelDescriptor::IOProcessorNumber());
         
         InitRandom(randSeed+ParallelDescriptor::MyProc());

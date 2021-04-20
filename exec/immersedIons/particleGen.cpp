@@ -201,17 +201,15 @@ void FhdParticleContainer::ReInitParticles()
         IntVect smallEnd = tile_box.smallEnd();
         IntVect bigEnd = tile_box.bigEnd();
 
-        if(ParallelDescriptor::MyProc() == 0 && mfi.LocalTileIndex() == 0 && proc0_enter) {
+        if (ParallelDescriptor::MyProc() == 0 && mfi.LocalTileIndex() == 0 && proc0_enter) {
 
             proc0_enter = false;
-             AMREX_FOR_1D (np, i,
-            {
-                auto& p = pstruct[i];
-                if(p.idata(FHD_intData::pinned) != 0)
-                {
+	    for (int i=0; i<np; ++i) {
+	        auto& p = pstruct[i];
+                if(p.idata(FHD_intData::pinned) != 0) {
                     pinnedParticles++;
                 }
-            });
+            }
         }
     }
 
