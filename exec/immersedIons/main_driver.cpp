@@ -865,9 +865,9 @@ void main_driver(const char* argv)
     StructFact structFact_vel(ba,dmap,var_names_vel,scaling_vel,
                               s_pairA_vel,s_pairB_vel);
 
-//    WritePlotFile(0, time, geom, geomC, geomP,
-//                  particleInstant, particleMeans, particleVars, particles,
-//                  charge, chargeM, chargeV, potential, potentialM, potentialV, efieldCC, dryMobility);
+//            WritePlotFile(0, time, geom, geomC, geomP,
+//                          particleInstant, particleMeans, particleVars, particles,
+//                          charge, chargeM, chargeV, potential, potentialM, potentialV, efieldCC, dryMobility);
 
 //    // Writes instantaneous flow field and some other stuff? Check with Guy.
 //    WritePlotFileHydro(0, time, geom, umac, pres, umacM, umacV);
@@ -998,6 +998,7 @@ void main_driver(const char* argv)
         //stochMfluxdiv[1].setVal(0.0);
         //stochMfluxdiv[2].setVal(0.0);
         // AJN - should this be an if/else fluid_tog==2?
+
         if (fluid_tog == 1) {
 
             if(particles.getTotalPinnedMarkers() != 0)
@@ -1005,7 +1006,7 @@ void main_driver(const char* argv)
 
                 Real check;
 //                particles.clearMobilityMatrix();
-//                for(int ii=101;ii<=3300;ii++)
+//                for(int ii=101;ii<=2100;ii++)
 //                {
 //                    particles.SetForce(ii,1,0,0);
 //                    for (int d=0; d<AMREX_SPACEDIM; ++d) {
