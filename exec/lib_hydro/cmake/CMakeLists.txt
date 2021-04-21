@@ -147,7 +147,6 @@ set(HEADERS
     ../../../src_gmres/Precon.H
     ../../../src_gmres/StagMGSolver.H
     ../../../src_gmres/gmres_functions.H
-    ../../../src_gmres/gmres_functions_F.H
     ../../../src_gmres/gmres_namespace.H
     ../../../src_gmres/gmres_namespace_declarations.H
 

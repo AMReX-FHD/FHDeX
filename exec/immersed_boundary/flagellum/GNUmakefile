@@ -34,9 +34,6 @@ include ../../../src_hydro/Make.package
 VPATH_LOCATIONS   += ../../../src_hydro/
 INCLUDE_LOCATIONS += ../../../src_hydro/
 
-include ../../../src_analysis/src_F90/Make.package
-VPATH_LOCATIONS   += ../../../src_analysis/src_F90
-INCLUDE_LOCATIONS += ../../../src_analysis/src_F90
 
 include ../../../src_rng/src_F90/Make.package
 VPATH_LOCATIONS   += ../../../src_rng/src_F90
@@ -45,10 +42,6 @@ INCLUDE_LOCATIONS += ../../../src_rng/src_F90
 include ../../../src_rng/Make.package
 VPATH_LOCATIONS   += ../../../src_rng/
 INCLUDE_LOCATIONS += ../../../src_rng/
-
-include ../../../src_gmres/src_F90/Make.package
-VPATH_LOCATIONS   += ../../../src_gmres/src_F90
-INCLUDE_LOCATIONS += ../../../src_gmres/src_F90
 
 include ../../../src_gmres/Make.package
 VPATH_LOCATIONS   += ../../../src_gmres/

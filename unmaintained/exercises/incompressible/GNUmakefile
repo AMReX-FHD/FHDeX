@@ -30,9 +30,6 @@ include $(FHDEX_HOME)/src_multispec/Make.package
 VPATH_LOCATIONS   += $(FHDEX_HOME)/src_multispec/
 INCLUDE_LOCATIONS += $(FHDEX_HOME)/src_multispec/
 
-include $(FHDEX_HOME)/src_analysis/src_F90/Make.package
-VPATH_LOCATIONS   += $(FHDEX_HOME)/src_analysis/src_F90
-INCLUDE_LOCATIONS += $(FHDEX_HOME)/src_analysis/src_F90
 
 include $(FHDEX_HOME)/src_analysis/Make.package
 VPATH_LOCATIONS   += $(FHDEX_HOME)/src_analysis/
@@ -45,10 +42,6 @@ INCLUDE_LOCATIONS += $(FHDEX_HOME)/src_rng/src_F90
 include $(FHDEX_HOME)/src_rng/Make.package
 VPATH_LOCATIONS   += $(FHDEX_HOME)/src_rng/
 INCLUDE_LOCATIONS += $(FHDEX_HOME)/src_rng/
-
-include $(FHDEX_HOME)/src_gmres/src_F90/Make.package
-VPATH_LOCATIONS   += $(FHDEX_HOME)/src_gmres/src_F90
-INCLUDE_LOCATIONS += $(FHDEX_HOME)/src_gmres/src_F90
 
 include $(FHDEX_HOME)/src_gmres/Make.package
 VPATH_LOCATIONS   += $(FHDEX_HOME)/src_gmres/
