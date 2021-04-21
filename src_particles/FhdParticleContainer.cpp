@@ -1761,6 +1761,14 @@ void FhdParticleContainer::EvaluateStats(MultiFab& particleInstant,
 
         tp = tp + Np;
 
+
+        AMREX_FOR_1D( Np, ip,
+        {
+
+
+
+        )};
+
         evaluate_fields_pp(parts.data(),
                          ARLIM_3D(tile_box.loVect()),
                          ARLIM_3D(tile_box.hiVect()),
