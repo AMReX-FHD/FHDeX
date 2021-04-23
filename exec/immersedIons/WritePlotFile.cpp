@@ -19,6 +19,7 @@ void WritePlotFile(int step,
                    const MultiFab& potentialV,
                    const std::array< MultiFab, AMREX_SPACEDIM >& efield) 
 {
+    BL_PROFILE_VAR("WritePlotFile()",WritePlotFile);
 
     std::string cplotfilename = Concatenate("cplt",step,9);
     std::string eplotfilename = Concatenate("eplt",step,9);
@@ -121,9 +122,22 @@ void WritePlotFile(int step,
         cvarNames[ccount+i]= specname;
     }
 
+    // timer
+    Real t1 = ParallelDescriptor::second();
+    
     WriteSingleLevelPlotfile(cplotfilename,cplotfile,cvarNames,cgeom,time,step);
-
+    
+    Real t2 = ParallelDescriptor::second() - t1;
+    ParallelDescriptor::ReduceRealMax(t2);
+    amrex::Print() << "Time spent writing plotfile cplt " << t2 << std::endl;
+    
+    t1 = ParallelDescriptor::second();
+    
     WriteSingleLevelPlotfile(eplotfilename,eplotfile,evarNames,egeom,time,step);
+    
+    t2 = ParallelDescriptor::second() - t1;
+    ParallelDescriptor::ReduceRealMax(t2);
+    amrex::Print() << "Time spent writing plotfile eplt " << t2 << std::endl;
 
     //particles.Checkpoint(pplotfilename, "particle0");
 
@@ -296,7 +310,13 @@ void WritePlotFile(int step,
         1  // pinned
     };
 
+    t1 = ParallelDescriptor::second();
+    
     particles.WritePlotFile(cplotfilename, "particles",
                             write_real_comp, write_int_comp, real_comp_names, int_comp_names);
+    
+    t2 = ParallelDescriptor::second() - t1;
+    ParallelDescriptor::ReduceRealMax(t2);
+    amrex::Print() << "Time spent writing particle plotfile " << t2 << std::endl;
 
 }
