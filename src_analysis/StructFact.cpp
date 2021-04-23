@@ -1,6 +1,5 @@
 
 #include "common_functions.H"
-#include "StructFact_F.H"
 #include "StructFact.H"
 
 #include <AMReX_MultiFabUtil.H>
@@ -218,16 +217,48 @@ void StructFact::FortStructure(const MultiFab& variables, const Geometry& geom, 
   const BoxArray& ba = variables.boxArray();
   const DistributionMapping& dm = variables.DistributionMap();
 
-  if (ba.size() != ParallelDescriptor::NProcs()) {
-    Abort("StructFact::FortStructure - Need same number of MPI processes as grids");
-    exit(0);
+  if (ba.size()%ParallelDescriptor::NProcs() != 0) {
+      Abort("StructFact::FortStructure - n_boxes%n_mpi_ranks must be zero");
+      exit(0);
   }
 
   MultiFab variables_dft_real, variables_dft_imag;
   variables_dft_real.define(ba, dm, NVAR, 0);
   variables_dft_imag.define(ba, dm, NVAR, 0);
 
-  ComputeFFT(variables, variables_dft_real, variables_dft_imag, geom);
+  if (ba.size() == ParallelDescriptor::NProcs()) {
+      ComputeFFT(variables, variables_dft_real, variables_dft_imag, geom);
+  }
+  else {
+
+      BoxArray ba_temp(geom.Domain());
+
+      ba_temp.maxSize(IntVect(max_grid_size_structfact));
+
+      if (ba_temp.size() != ParallelDescriptor::NProcs()) {
+          Abort("StructFact::FortStructure - number of MPI ranks needs to match the number of grids; define max_grid_size_structfact");
+          exit(0);
+      }
+
+      DistributionMapping dm_temp(ba_temp);
+
+      // create variables_temp, variables_dft_real_temp and variables_dft_imag
+      // these will have the same number of grids as MPI ranks so they need a different
+      // BoxArray and DistributionMapping
+      MultiFab variables_temp         (ba_temp, dm_temp, variables.nComp(), 0);
+      MultiFab variables_dft_real_temp(ba_temp, dm_temp, NVAR, 0);
+      MultiFab variables_dft_imag_temp(ba_temp, dm_temp, NVAR, 0);
+
+      // ParallelCopy variables into variables_temp
+      variables_temp.ParallelCopy(variables, 0, 0, variables.nComp());
+
+      ComputeFFT(variables_temp, variables_dft_real_temp, variables_dft_imag_temp, geom);
+
+      // ParallelCopy variables_dft_real_temp into variables_dft_real
+      // ParallelCopy variables_dft_imag_temp into variables_dft_imag
+      variables_dft_real.copy(variables_dft_real_temp, 0, 0, NVAR);
+      variables_dft_imag.copy(variables_dft_imag_temp, 0, 0, NVAR);
+  }
 
   MultiFab cov_temp;
   cov_temp.define(ba, dm, 1, 0);
@@ -392,8 +423,8 @@ void StructFact::ComputeFFT(const MultiFab& variables,
     if(comp_fft) {
    
       for (MFIter mfi(variables_dft_real,false); mfi.isValid(); ++mfi) {
-   
-	std::vector<complex_t, hacc::AlignedAllocator<complex_t, ALIGN> > a;
+
+        std::vector<complex_t, hacc::AlignedAllocator<complex_t, ALIGN> > a;
 	std::vector<complex_t, hacc::AlignedAllocator<complex_t, ALIGN> > b;
 
 	a.resize(nx*ny*nz);
@@ -611,17 +642,48 @@ void StructFact::ShiftFFT(MultiFab& dft_out, const int& zero_avg) {
   DistributionMapping dmap_onegrid(ba_onegrid);
 
   MultiFab dft_onegrid;
-  dft_onegrid.define(ba_onegrid, dmap_onegrid, 1, 0);
+  MultiFab dft_onegrid_temp;
+  dft_onegrid     .define(ba_onegrid, dmap_onegrid, 1, 0);
+  dft_onegrid_temp.define(ba_onegrid, dmap_onegrid, 1, 0);
 
   for (int d=0; d<NCOV; d++) {
-    dft_onegrid.ParallelCopy(dft_out, d, 0, 1);
+    dft_onegrid_temp.ParallelCopy(dft_out, d, 0, 1);
 
     // Shift DFT by N/2+1 (pi)
     for (MFIter mfi(dft_onegrid); mfi.isValid(); ++mfi) {
-      // Note: Make sure that multifab is cell-centered
-      const Box& validBox = mfi.validbox();
-      fft_shift(ARLIM_3D(validBox.loVect()), ARLIM_3D(validBox.hiVect()),
-		BL_TO_FORTRAN_FAB(dft_onegrid[mfi]), &zero_avg);
+
+        const Box& bx = mfi.tilebox();
+
+        const Array4<Real>& dft = dft_onegrid.array(mfi);
+        const Array4<Real>& dft_temp = dft_onegrid_temp.array(mfi);
+
+        if (zero_avg == 1) {
+#if (AMREX_SPACEDIM == 2)
+            dft_temp(bx.smallEnd(0),bx.smallEnd(1),0) = 0.;
+#elif (AMREX_SPACEDIM == 3)
+            dft_temp(bx.smallEnd(0),bx.smallEnd(1),bx.smallEnd(2)) = 0.;
+#endif
+        }
+
+        int nx = bx.length(0);
+        int nxh = (nx+1)/2;
+        int ny = bx.length(1);
+        int nyh = (ny+1)/2;
+#if (AMREX_SPACEDIM == 3)
+        int nz = bx.length(2);
+        int nzh = (nz+1)/2;
+#endif
+
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            int ip = (i+nxh)%nx;
+            int jp = (j+nyh)%ny;
+            int kp = 0;
+#if (AMREX_SPACEDIM == 3)
+            kp = (k+nzh)%nz;
+#endif
+            dft(ip,jp,kp) = dft_temp(i,j,k);
+        });
     }
 
     dft_out.ParallelCopy(dft_onegrid, 0, d, 1);

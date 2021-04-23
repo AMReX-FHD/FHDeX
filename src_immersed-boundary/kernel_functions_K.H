@@ -3,6 +3,31 @@
 
 #include <AMReX.H>
 
+struct Kernel1P
+{
+    static constexpr int ks = 2;
+    
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE    
+    Real operator() (Real r_in) const noexcept
+    {
+        Real kernel_1p;
+
+        Real r1 = std::abs(r_in);
+        Real r2 = r1*r1;
+        
+        if (r1 <= 0.5)
+        {
+            kernel_1p = 1;
+        }else
+       {
+           kernel_1p = 0.0;
+       }
+
+        return kernel_1p;
+    }
+};
+
+
 struct Kernel3P
 {
     static constexpr int ks = 2;

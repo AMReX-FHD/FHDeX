@@ -155,7 +155,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::RFD(
     for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
 
 	PairIndex index(pti.index(), pti.LocalTileIndex());
-    const int np = this->GetParticles(lev)[index].numRealParticles();
+        const int np = this->GetParticles(lev)[index].numRealParticles();
 	auto& plev = this->GetParticles(lev);
 	auto& ptile = plev[index];
 	auto& aos   = ptile.GetArrayOfStructs();
@@ -289,14 +289,13 @@ void IBMarkerContainerBase<StructReal, StructInt>::initRankLists(int totalM)
 	ParticleType* particles = aos().dataPtr();
 
         //THIS DOES NOT COMPILE WITH CUDA?
-
-        AMREX_FOR_1D( np, i,
+        for(int i=0; i<np;i++)
         {
             ParticleType & part = particles[i];
 
             ranksIdSorted[part.id()-1] = part.cpu();
             rankTotals[ParallelDescriptor::MyProc()]++;
-        });
+        }
     }
 
 //    ParallelDescriptor::ReduceIntSum(idsRankSorted);
@@ -438,7 +437,8 @@ void IBMarkerContainerBase<StructReal, StructInt>::pinnedParticleInversion()
         auto& aos   = ptile.GetArrayOfStructs();
         ParticleType* particles = aos().dataPtr();
 
-            AMREX_FOR_1D( np, i,
+//            AMREX_FOR_1D( np, i,
+            for(int i=0; i<np; i++)
             {
                 ParticleType & part = particles[i];
                 if(part.idata(StructInt::pinned) == 1)
@@ -450,7 +450,8 @@ void IBMarkerContainerBase<StructReal, StructInt>::pinnedParticleInversion()
                     //Print() << part.id() << ", " << part.rdata(StructReal::forcex) << ", " << part.rdata(StructReal::forcey) << ", " << part.rdata(StructReal::forcez) << std::endl;
                 }
 
-            });
+            }
+//            );
 
     }
 }

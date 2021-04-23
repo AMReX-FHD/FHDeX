@@ -12,6 +12,7 @@ AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, 3> common::prob_lo;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, 3> common::prob_hi;
 AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM> common::n_cells;
 amrex::Vector<int>         common::max_grid_size;
+amrex::Vector<int>         common::max_grid_size_structfact;
 amrex::Vector<int>         common::max_particle_tile_size;
 amrex::Real                common::cell_depth;
 amrex::IntVect             common::ngc;
@@ -22,8 +23,8 @@ int                        common::membrane_cell;
 int                        common::cross_cell;
 amrex::Real                common::transmission;
 
-AMREX_GPU_MANAGED amrex::Vector<int>      common::pkernel_fluid; // GALEN - FLUID KERNEL
-AMREX_GPU_MANAGED amrex::Vector<int>      common::pkernel_es;
+AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_SPECIES> common::pkernel_fluid; // GALEN - FLUID KERNEL
+AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_SPECIES> common::pkernel_es;
 amrex::Vector<amrex::Real> common::qval;
 
 amrex::Real                common::fixed_dt;
@@ -86,8 +87,8 @@ amrex::Vector<int>         common::bc_mass_hi;
 amrex::Vector<int>         common::bc_therm_lo;
 amrex::Vector<int>         common::bc_therm_hi;
 
-amrex::Vector<amrex::Real> common::p_lo;
-amrex::Vector<amrex::Real> common::p_hi;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::p_lo;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::p_hi;
 
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::t_lo;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::t_hi;

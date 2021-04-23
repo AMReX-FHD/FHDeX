@@ -14,6 +14,4 @@ using namespace amrex;
 
 void MultiFabFillRandom(MultiFab& mf, const int& comp, const Real& variance, const Geometry& geom);
 
-void MultiFabFillRandomHack(MultiFab& mf, const int& comp, const Real& variance, const Geometry& geom);
-
 #endif

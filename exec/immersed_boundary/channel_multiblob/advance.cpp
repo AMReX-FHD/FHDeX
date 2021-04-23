@@ -325,7 +325,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     //___________________________________________________________________________
     // Compute pressure gradient due to the BC: gp = Gp
     pres.setVal(0.); // Initial guess for pressure
-    SetPressureBC(pres, geom); // Apply pressure boundary conditions
+    MultiFabPhysBC(pres, geom, 0, 1, PRES_BC_COMP, 0); // Apply pressure boundary conditions
     for (int d=0; d<AMREX_SPACEDIM; ++d) pg[d].setVal(0);
     ComputeGrad(pres, pg, 0, 0, 1, PRES_BC_COMP, geom);
 
@@ -532,7 +532,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // Compute pressure, and pressure gradient due to the BC: gp = Gp
     // Note that the pressure gradient due to the BC is left unchanged
     pres.setVal(0.); // Initial guess for pressure
-    SetPressureBC(pres, geom); // Apply pressure boundary conditions
+    MultiFabPhysBC(pres, geom, 0, 1, PRES_BC_COMP, 0); // Apply pressure boundary conditions
 
     // Construct RHS of Navier Stokes Equation
     for (int d=0; d<AMREX_SPACEDIM; d++) {
