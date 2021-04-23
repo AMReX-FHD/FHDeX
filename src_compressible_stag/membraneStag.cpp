@@ -100,8 +100,10 @@ void doLangevin(MultiFab& cons_in, MultiFab& prim_in,
 
                     double rn1, rn2, rn3;
                     if (stoch_stress_form == 1) {
-                        rn1 = get_fhd_normal_func();
-                        rn2 = get_fhd_normal_func();
+                        //rn1 = get_fhd_normal_func();
+                        //rn2 = get_fhd_normal_func();
+                        rn1 = amrex::RandomNormal(0.,1.);
+                        rn2 = amrex::RandomNormal(0.,1.);
                         rn3 = rn1*corr[l] + sqrt(1-(corr[l]*corr[l]))*rn2;
                     }
                     else {
