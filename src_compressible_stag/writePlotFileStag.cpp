@@ -23,7 +23,7 @@ void WritePlotFileStag(int step,
                        const amrex::MultiFab& eta,
                        const amrex::MultiFab& kappa)
 {
-    BL_PROFILE_VAR("writePlotFile()",writePlotFile);
+    BL_PROFILE_VAR("writePlotFileStag()",writePlotFileStag);
     
     int cnt, numvars, i = 0;
 

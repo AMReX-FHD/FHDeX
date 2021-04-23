@@ -15,7 +15,7 @@ void WritePlotFileHydro(int step,
                    std::array< MultiFab, AMREX_SPACEDIM >& umacV)
 {
     
-    BL_PROFILE_VAR("WritePlotFile()",WritePlotFile);
+    BL_PROFILE_VAR("WritePlotFileHydro()",WritePlotFileHydro);
     
     const std::string plotfilename = Concatenate("plt",step,9);
 

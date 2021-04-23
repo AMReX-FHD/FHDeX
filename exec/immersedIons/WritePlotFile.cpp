@@ -19,6 +19,7 @@ void WritePlotFile(int step,
                    const MultiFab& potentialV,
                    const std::array< MultiFab, AMREX_SPACEDIM >& efield) 
 {
+    BL_PROFILE_VAR("WritePlotFile()",WritePlotFile);
 
     std::string cplotfilename = Concatenate("cplt",step,9);
     std::string eplotfilename = Concatenate("eplt",step,9);
