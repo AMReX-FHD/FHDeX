@@ -123,7 +123,14 @@ void WritePlotFile(int step,
     }
 
     // write a plotfile
+    // timer
+    Real t1 = ParallelDescriptor::second();
+    
     WriteSingleLevelPlotfile(plotfilename,plotfile,varNames,geom,time,step);
+    
+    Real t2 = ParallelDescriptor::second() - t1;
+    ParallelDescriptor::ReduceRealMax(t2);
+    amrex::Print() << "Time spent writing plotfile " << t2 << std::endl;
 
     // staggered velocity
     if (plot_stag == 1) {
