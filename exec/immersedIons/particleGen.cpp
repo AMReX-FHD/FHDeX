@@ -163,8 +163,8 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
     totalPinnedMarkers = pinnedParticles;
 
     Redistribute();
-    clearNeighbors();
-    fillNeighbors();
+    //clearNeighbors();
+    //fillNeighbors();
 
 }
 

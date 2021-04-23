@@ -306,9 +306,7 @@ void FhdParticleContainer::computeForcesNLGPU(const MultiFab& charge, const Mult
     Real recount = 0;
     Real recountI = 0;
     const int lev = 0;
-   
-    buildNeighborList(CHECK_PAIR{});
-    
+       
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -667,9 +665,6 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
 
         diffinst_proc += diffinst;
     }
-
-    clearNeighbors();
-    Redistribute();
 
     // gather statistics
     ParallelDescriptor::ReduceIntSum(np_proc);
