@@ -15,7 +15,6 @@ void WritePlotFile(int step,
                    const amrex::Geometry egeom,
                    const MultiFab& particleInstant,
                    const MultiFab& particleMeans,
-                   const MultiFab& particleVars,
                    FhdParticleContainer& particles,
                    const MultiFab& charge,
                    const MultiFab& chargeM,
@@ -23,8 +22,7 @@ void WritePlotFile(int step,
                    const MultiFab& potential,
                    const MultiFab& potentialM,
                    const MultiFab& potentialV,
-                   const std::array< MultiFab, AMREX_SPACEDIM >& efield,
-                   const MultiFab& mobility);
+                   const std::array< MultiFab, AMREX_SPACEDIM >& efield);
 
 ///////////////////////////
 
@@ -76,6 +74,9 @@ void ReadCheckPoint(int& step,
                     MultiFab& potentialV);
 
 void ReadCheckPointParticles(FhdParticleContainer& particles, species* particleInfo, const Real* dxp);
+
+void ReadFile(const std::string& filename, Vector<char>& charBuf, 
+	      bool bExitOnError=true);
 
 ///////////////////////////
 

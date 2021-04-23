@@ -17,6 +17,10 @@
 
 #include "particle_functions.H"
 
+#include "chrono"
+
+using namespace std::chrono;
+
 // argv contains the name of the inputs file entered at the command line
 void main_driver(const char* argv)
 {
@@ -82,10 +86,10 @@ void main_driver(const char* argv)
         ngp = 2;
     }
     else if (*(std::max_element(pkernel_es.begin(),pkernel_es.begin()+nspecies)) == 4) {
-        ngp = 2;
+        ngp = 3;
     }
     else if (*(std::max_element(pkernel_es.begin(),pkernel_es.begin()+nspecies)) == 6) {
-        ngp = 3;
+        ngp = 4;
     }
         
     // staggered velocities
@@ -136,16 +140,21 @@ void main_driver(const char* argv)
             phiSeed      = 6*ParallelDescriptor::MyProc() + seed + 4;
             generalSeed  = 6*ParallelDescriptor::MyProc() + seed + 5;
             cppSeed  = 6*ParallelDescriptor::MyProc() + seed + 6;
-        }else
-        {
-
-                //generate cppSeed from clock time or something.
+            InitRandom(cppSeed+ParallelDescriptor::MyProc());
+        } else if (seed == 0) {
+            // initializes the seed for C++ random number calls based on the clock
+            auto now = time_point_cast<nanoseconds>(system_clock::now());
+            int randSeed = now.time_since_epoch().count();
+            // broadcast the same root seed to all processors
+            ParallelDescriptor::Bcast(&randSeed,1,ParallelDescriptor::IOProcessorNumber());
+            
+            InitRandom(randSeed+ParallelDescriptor::MyProc());
+        } else {
+        Abort("Must supply non-negative seed");
         }
 
         //Initialise rngs
         rng_initialize(&fhdSeed,&particleSeed,&selectorSeed,&thetaSeed,&phiSeed,&generalSeed);
-
-        InitRandom(cppSeed*ParallelDescriptor::MyProc()+cppSeed);
 
         // Initialize the boxarray "ba" from the single box "bx"
         ba.define(domain);
@@ -208,7 +217,7 @@ void main_driver(const char* argv)
         // (11) Cx
         // (12) Cy
         // (13) Cz
-        particleMeans.define(bc, dmap, 14+nspecies, 0);
+        particleMeans.define(bc, dmap, 8+nspecies, 0);
         particleMeans.setVal(0.);
         
         // Variables (C++ index)
@@ -230,8 +239,6 @@ void main_driver(const char* argv)
         // (15) Cx
         // (16) Cy
         // (17) Cz 
-        particleVars.define(bc, dmap, 18+nspecies, 0);
-        particleVars.setVal(0.);
 
         //Cell centred es potential
         potential.define(bp, dmap, 1, ngp);
@@ -317,14 +324,6 @@ void main_driver(const char* argv)
     const Real* dxc = geomC.CellSize();
     const Real* dxp = geomP.CellSize();
 
-    // AJN - does cellVols have to be a MultiFab (could it just a Real?)
-    MultiFab cellVols(bc, dmap, 1, 0);
-
-#if (AMREX_SPACEDIM == 2)
-    cellVols.setVal(dxc[0]*dxc[1]*cell_depth);
-#elif (AMREX_SPACEDIM == 3)
-    cellVols.setVal(dxc[0]*dxc[1]*dxc[2]);
-#endif
 
     Real dt = fixed_dt;
     Real dtinv = 1.0/dt;
@@ -473,7 +472,7 @@ void main_driver(const char* argv)
     Print() << "Sim particles per cell: " << simParticles/totalCollisionCells << "\n";
 
     // see the variable list used above above for particleMeans
-    MultiFab particleInstant(bc, dmap, 14+nspecies, 0);
+    MultiFab particleInstant(bc, dmap, 8+nspecies, 0);
     
     //-----------------------------
     //  Hydro setup
@@ -793,8 +792,6 @@ void main_driver(const char* argv)
         external[d].define(bp, dmap, 1, ngp);
     }
     
-    MultiFab dryMobility(ba, dmap, nspecies*AMREX_SPACEDIM, ang);
-
     ///////////////////////////////////////////
     // structure factor for charge-charge
     ///////////////////////////////////////////
@@ -865,9 +862,7 @@ void main_driver(const char* argv)
     StructFact structFact_vel(ba,dmap,var_names_vel,scaling_vel,
                               s_pairA_vel,s_pairB_vel);
 
-//    WritePlotFile(0, time, geom, geomC, geomP,
-//                  particleInstant, particleMeans, particleVars, particles,
-//                  charge, chargeM, chargeV, potential, potentialM, potentialV, efieldCC, dryMobility);
+
 
 //    // Writes instantaneous flow field and some other stuff? Check with Guy.
 //    WritePlotFileHydro(0, time, geom, umac, pres, umacM, umacV);
@@ -998,6 +993,7 @@ void main_driver(const char* argv)
         //stochMfluxdiv[1].setVal(0.0);
         //stochMfluxdiv[2].setVal(0.0);
         // AJN - should this be an if/else fluid_tog==2?
+
         if (fluid_tog == 1) {
 
             if(particles.getTotalPinnedMarkers() != 0)
@@ -1005,7 +1001,7 @@ void main_driver(const char* argv)
 
                 Real check;
 //                particles.clearMobilityMatrix();
-//                for(int ii=101;ii<=3300;ii++)
+//                for(int ii=101;ii<=2100;ii++)
 //                {
 //                    particles.SetForce(ii,1,0,0);
 //                    for (int d=0; d<AMREX_SPACEDIM; ++d) {
@@ -1086,7 +1082,7 @@ void main_driver(const char* argv)
         {
             //Calls wet ion interpolation and movement.
 
-            particles.MoveIonsCPP(dt, dx, dxp, geom, umac, efield, RealFaceCoords, source, sourceTemp, dryMobility, paramPlaneList,
+            particles.MoveIonsCPP(dt, dx, dxp, geom, umac, efield, RealFaceCoords, source, sourceTemp, paramPlaneList,
                                paramPlaneCount, 3 /*this number currently does nothing, but we will use it later*/);
 
             // reset statistics after step n_steps_skip
@@ -1166,7 +1162,7 @@ void main_driver(const char* argv)
 
         // compute particle fields, means, anv variances
         // also write out time-averaged current to currentEst
-        particles.EvaluateStats(particleInstant, particleMeans, particleVars, cellVols, ionParticle[0], dt,statsCount);
+        particles.EvaluateStats(particleInstant, particleMeans, ionParticle[0], dt,statsCount);
 
         // compute the mean and variance of umac
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
@@ -1218,8 +1214,8 @@ void main_driver(const char* argv)
         if (writePlt) {
             // This write particle data and associated fields and electrostatic fields
             WritePlotFile(istep, time, geom, geomC, geomP,
-                          particleInstant, particleMeans, particleVars, particles,
-                          charge, chargeM, chargeV, potential, potentialM, potentialV, efieldCC, dryMobility);
+                          particleInstant, particleMeans, particles,
+                          charge, chargeM, chargeV, potential, potentialM, potentialV, efieldCC);
 
             // Writes instantaneous flow field and some other stuff? Check with Guy.
             WritePlotFileHydro(istep, time, geom, umac, pres, umacM, umacV);
