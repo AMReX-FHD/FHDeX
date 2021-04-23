@@ -364,7 +364,6 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
                                     const std::array<MultiFab, AMREX_SPACEDIM>& RealFaceCoords,
                                     std::array<MultiFab, AMREX_SPACEDIM>& source,
                                     std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
-                                    const MultiFab& mobility,
                                     const paramPlane* paramPlaneList, const int paramPlaneCount, int sw)
 {
     BL_PROFILE_VAR("MoveIons()",MoveIons);
@@ -1716,9 +1715,7 @@ void FhdParticleContainer::InitializeFields(MultiFab& particleInstant,
 }
 
 void FhdParticleContainer::EvaluateStats(MultiFab& particleInstant,
-                                         MultiFab& particleMeans,
-                                         MultiFab& particleVars,
-                                         MultiFab& cellVols, species particleInfo, const Real delt, int steps)
+                                         MultiFab& particleMeans, species particleInfo, const Real delt, int steps)
 {
     BL_PROFILE_VAR("EvaluateStats()",EvaluateStats);
     
@@ -1733,112 +1730,127 @@ void FhdParticleContainer::EvaluateStats(MultiFab& particleInstant,
 
     double totalMass;
 
-    RealVector avcurrent_tile(3), avcurrent_proc(3);
-    RealVector varcurrent_tile(3), varcurrent_proc(3);
+    Gpu::DeviceVector<Real> avcurrent_tile (3);
 
-    std::fill(avcurrent_tile.begin(), avcurrent_tile.end(), 0.);
+//    GpuArray<int, 3> avcurrent_tile = {0,0,0};
+    RealVector avcurrent_proc(3);
+
     std::fill(avcurrent_proc.begin(), avcurrent_proc.end(), 0.);
-    std::fill(varcurrent_tile.begin(), varcurrent_tile.end(), 0.);
-    std::fill(varcurrent_proc.begin(), varcurrent_proc.end(), 0.);
+    std::fill(avcurrent_tile.begin(), avcurrent_tile.end(), 0.);
+
+    Real* avc_tile = avcurrent_tile.dataPtr();
     
     BoxArray ba = particleMeans.boxArray();
     long cellcount = ba.numPts();
 
     const Real* dx = Geom(lev).CellSize();
+    const Real dxInv = 1.0/dx[0];
+    const Real cellVolInv = 1.0/(dx[0]*dx[0]*dx[0]);
+
+    const Real stepsInv = 1.0/steps;
+    const int stepsMinusOne = steps-1;
 
     // zero instantaneous values
     particleInstant.setVal(0.);
     
     for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) 
     {
-        const int grid_id = pti.index();
-        const int tile_id = pti.LocalTileIndex();
+
+	    PairIndex index(pti.index(), pti.LocalTileIndex());
+        const int np = this->GetParticles(lev)[index].numRealParticles();
+	    auto& plev = this->GetParticles(lev);
+	    auto& ptile = plev[index];
+	    auto& aos   = ptile.GetArrayOfStructs();
         const Box& tile_box  = pti.tilebox();
+	    ParticleType* particles = aos().dataPtr();
 
-        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
-        auto& parts = particle_tile.GetArrayOfStructs();
-        const int Np = parts.numParticles();
+        tp = tp + np;
 
-        tp = tp + Np;
+        GpuArray<int, 3> bx_lo = {tile_box.loVect()[0], tile_box.loVect()[1], tile_box.loVect()[2]};
+        GpuArray<int, 3> bx_hi = {tile_box.hiVect()[0], tile_box.hiVect()[1], tile_box.hiVect()[2]};
 
+//        Array4<Real> part_inst = (&particleInstant[pti])->array();
 
-        AMREX_FOR_1D( Np, ip,
+        Array4<Real> part_inst = particleInstant[pti].array();
+        Array4<Real> part_mean = particleMeans[pti].array();
+
+        //const Array4<Real>& data = charge.array(mfi);
+
+        AMREX_FOR_1D( np, ni,
+        {
+            ParticleType & part = particles[ni];
+
+            int i = floor(part.pos(0)*dxInv);
+            int j = floor(part.pos(1)*dxInv);
+            int k = floor(part.pos(2)*dxInv);
+            
+            amrex::Gpu::Atomic::Add(&part_inst(i,j,k,0), 1.0);
+            amrex::Gpu::Atomic::Add(&part_inst(i,j,k,1), part.rdata(FHD_realData::mass));
+
+            amrex::Gpu::Atomic::Add(&part_inst(i,j,k,2), part.rdata(FHD_realData::velx));
+            amrex::Gpu::Atomic::Add(&part_inst(i,j,k,3), part.rdata(FHD_realData::vely));
+            amrex::Gpu::Atomic::Add(&part_inst(i,j,k,4), part.rdata(FHD_realData::velz));
+
+            amrex::Gpu::Atomic::Add(&part_inst(i,j,k,5), part.rdata(FHD_realData::velx)*part.rdata(FHD_realData::q));
+            amrex::Gpu::Atomic::Add(&part_inst(i,j,k,6), part.rdata(FHD_realData::vely)*part.rdata(FHD_realData::q));
+            amrex::Gpu::Atomic::Add(&part_inst(i,j,k,7), part.rdata(FHD_realData::velz)*part.rdata(FHD_realData::q));
+
+            amrex::Gpu::Atomic::Add(&part_inst(i,j,k,7+part.idata(FHD_intData::species)), part.rdata(FHD_realData::q));
+
+        });
+
+        amrex::ParallelFor(tile_box,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            Real membersInv = 1.0/part_inst(i,j,k,0);
+
+            part_inst(i,j,k,1) = part_inst(i,j,k,1)*cellVolInv;
+
+            part_inst(i,j,k,2) = part_inst(i,j,k,2)*membersInv;
+            part_inst(i,j,k,3) = part_inst(i,j,k,3)*membersInv;
+            part_inst(i,j,k,4) = part_inst(i,j,k,4)*membersInv;
+
+            part_inst(i,j,k,5) = part_inst(i,j,k,5)*cellVolInv;
+            part_inst(i,j,k,6) = part_inst(i,j,k,6)*cellVolInv;
+            part_inst(i,j,k,7) = part_inst(i,j,k,7)*cellVolInv;
+
+            for(int l=0;l<nspecies;l++)
+            {
+                part_inst(i,j,k,8 + l) = part_inst(i,j,k,8 + l)*cellVolInv;
+            }          
+             
+        });
+
+        amrex::ParallelFor(tile_box,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
 
+            part_mean(i,j,k,1)  = (part_mean(i,j,k,1)*stepsMinusOne + part_inst(i,j,k,1))*stepsInv;
+            part_mean(i,j,k,2)  = (part_mean(i,j,k,2)*stepsMinusOne + part_inst(i,j,k,2))*stepsInv;
+            part_mean(i,j,k,3)  = (part_mean(i,j,k,3)*stepsMinusOne + part_inst(i,j,k,3))*stepsInv;
+            part_mean(i,j,k,4)  = (part_mean(i,j,k,4)*stepsMinusOne + part_inst(i,j,k,4))*stepsInv;
+            part_mean(i,j,k,5)  = (part_mean(i,j,k,5)*stepsMinusOne + part_inst(i,j,k,5))*stepsInv;
+            part_mean(i,j,k,6)  = (part_mean(i,j,k,6)*stepsMinusOne + part_inst(i,j,k,6))*stepsInv;
+            part_mean(i,j,k,7)  = (part_mean(i,j,k,7)*stepsMinusOne + part_inst(i,j,k,7))*stepsInv;
 
+            for(int l=0;l<nspecies;l++)
+            {
+                part_mean(i,j,k,8)  = (part_mean(i,j,k,8)*stepsMinusOne + part_inst(i,j,k,8))*stepsInv;
+            }
+            
+            avc_tile[0] = avc_tile[0] + part_mean(i,j,k,5);           
+            avc_tile[1] = avc_tile[1] + part_mean(i,j,k,6);
+            avc_tile[2] = avc_tile[2] + part_mean(i,j,k,7);
+             
+        });
 
-        )};
-
-        evaluate_fields_pp(parts.data(),
-                         ARLIM_3D(tile_box.loVect()),
-                         ARLIM_3D(tile_box.hiVect()),
-                         m_vector_ptrs[grid_id].dataPtr(),
-                         m_vector_size[grid_id].dataPtr(),
-                         ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
-                         ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),   
-                         BL_TO_FORTRAN_3D(particleInstant[pti]),
-                         BL_TO_FORTRAN_3D(cellVols[pti]),&Neff, &Np, dx
-                        );
-    }
-
-    // FIXME - tiling doesn't work
-    for (MFIter mfi(particleInstant,false); mfi.isValid(); ++mfi )
-    {
-        const Box& tile_box  = mfi.tilebox();
-
-        evaluate_means(ARLIM_3D(tile_box.loVect()),
-                       ARLIM_3D(tile_box.hiVect()),
-                       BL_TO_FORTRAN_3D(particleInstant[mfi]),
-                       BL_TO_FORTRAN_3D(particleMeans[mfi]),
-                       BL_TO_FORTRAN_3D(particleVars[mfi]),
-                       BL_TO_FORTRAN_3D(cellVols[mfi]),
-                       &n0,&T0,&delt,&steps,
-                       avcurrent_tile.dataPtr());
-
-        // gather statistics
         for (int i=0; i<3; ++i) {
             avcurrent_proc[i] += avcurrent_tile[i];
         }
+
     }
     
     // gather statistics
     ParallelDescriptor::ReduceRealSum(avcurrent_proc.dataPtr(),3);
 
-    // FIXME - this needs to be converted to an MFIter so it works (like evaluate_means)    
-    for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) 
-    {
-        const int grid_id = pti.index();
-        const int tile_id = pti.LocalTileIndex();
-        const Box& tile_box  = pti.tilebox();
-
-        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
-        auto& parts = particle_tile.GetArrayOfStructs();
-        const int Np = parts.numParticles();
-
-        evaluate_corrs(parts.data(),
-                       ARLIM_3D(tile_box.loVect()),
-                       ARLIM_3D(tile_box.hiVect()),
-                       m_vector_ptrs[grid_id].dataPtr(),
-                       m_vector_size[grid_id].dataPtr(),
-                       ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
-                       ARLIM_3D(m_vector_ptrs[grid_id].hiVect()), 
-                       BL_TO_FORTRAN_3D(particleInstant[pti]),
-                       BL_TO_FORTRAN_3D(particleMeans[pti]),
-                       BL_TO_FORTRAN_3D(particleVars[pti]),
-                       BL_TO_FORTRAN_3D(cellVols[pti]), &Np,&Neff,&n0,&T0,&delt, &steps,
-                       varcurrent_tile.dataPtr()
-            );
-
-        // gather statistics
-        for (int i=0; i<3; ++i) {
-            varcurrent_proc[i] += varcurrent_tile[i];
-        }
-
-
-    }
-
-    // gather statistics
-    ParallelDescriptor::ReduceRealSum(varcurrent_proc.dataPtr(),3);
 
     // write out current mean and variance to file
     if(ParallelDescriptor::MyProc() == 0) {
@@ -1846,10 +1858,7 @@ void FhdParticleContainer::EvaluateStats(MultiFab& particleInstant,
         std::ofstream ofs(filename, std::ofstream::app);
         ofs << avcurrent_proc[0]/cellcount << "  "
             << avcurrent_proc[1]/cellcount << "  "
-            << avcurrent_proc[2]/cellcount << "  "
-            << varcurrent_proc[0]/cellcount << "  "
-            << varcurrent_proc[1]/cellcount << "  "
-            << varcurrent_proc[2]/cellcount << "\n";
+            << avcurrent_proc[2]/cellcount <<  "\n";
         ofs.close();
     }
 }
