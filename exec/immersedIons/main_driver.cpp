@@ -874,6 +874,10 @@ void main_driver(const char* argv)
 
     particles.initRankLists(simParticles);
 
+    Real init_time = ParallelDescriptor::second() - strt_time;
+    ParallelDescriptor::ReduceRealMax(init_time);
+    amrex::Print() << "Initialization time = " << init_time << " seconds " << std::endl;
+
     for (int istep=step; istep<=max_step; ++istep) {
 
         // timer for time step
@@ -1142,7 +1146,7 @@ void main_driver(const char* argv)
             // timer
             Real time_PC2 = ParallelDescriptor::second() - time_PC1;
             ParallelDescriptor::ReduceRealMax(time_PC2);
-            amrex::Print() << "Time spend computing radial distribution = " << time_PC2 << std::endl;
+            amrex::Print() << "Time spend computing radial distribution = " << time_PC2 << " seconds" << std::endl;
         }
 
         // g(x), g(y), g(z)
@@ -1157,7 +1161,7 @@ void main_driver(const char* argv)
             // timer
             Real time_PC2 = ParallelDescriptor::second() - time_PC1;
             ParallelDescriptor::ReduceRealMax(time_PC2);
-            amrex::Print() << "Time spend computing Cartesian distribution = " << time_PC2 << std::endl;
+            amrex::Print() << "Time spend computing Cartesian distribution = " << time_PC2 << " seconds" << std::endl;
         }
 
         // compute particle fields, means, anv variances
@@ -1262,6 +1266,6 @@ void main_driver(const char* argv)
     // timer for total simulation time
     Real stop_time = ParallelDescriptor::second() - strt_time;
     ParallelDescriptor::ReduceRealMax(stop_time);
-    amrex::Print() << "Run time = " << stop_time << std::endl;
+    amrex::Print() << "Run time = " << stop_time << " seconds" << std::endl;
 
 }
