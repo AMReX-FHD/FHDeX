@@ -956,11 +956,14 @@ void main_driver(const char* argv)
         // sr_tog is short range forces
         // es_tog is electrostatic solve (0=off, 1=Poisson, 2=Pairwise, 3=P3M)
         if (sr_tog != 0 || es_tog==3) {
-            // each tile clears its neighbors
-            particles.clearNeighbors();
+
             
             // fill the neighbor buffers for each tile with the proper data
             particles.fillNeighbors();
+
+            particles.buildNeighborList(FhdParticleContainer::CHECK_PAIR{});
+
+ //  updateNeighbors();
 
             // compute short range forces (if sr_tog=1)
             // compute P3M short range correction (if es_tog=3)
@@ -993,10 +996,7 @@ void main_driver(const char* argv)
                 sMflux.StochMomFluxDiv(stochMfluxdivC,0,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
             }
         }
-        //stochMfluxdiv[0].setVal(0.0);
-        //stochMfluxdiv[1].setVal(0.0);
-        //stochMfluxdiv[2].setVal(0.0);
-        // AJN - should this be an if/else fluid_tog==2?
+
 
         if (fluid_tog == 1) {
 
@@ -1100,9 +1100,7 @@ void main_driver(const char* argv)
                 particles.MeanSqrCalc(0, 0);
             }
 
-            //particles.clearNeighbors();
-            //particles.Redistribute();
-            //particles.ReBin();
+            particles.Redistribute();
 
             Print() << "Finish move.\n";
         }
