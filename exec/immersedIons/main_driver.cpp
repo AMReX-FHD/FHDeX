@@ -1164,10 +1164,10 @@ void main_driver(const char* argv)
 
         // compute the mean and variance of umac
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
-            ComputeBasicStats(umac[d], umacM[d], umacV[d], 1, 1, statsCount);
+            ComputeBasicStats(umac[d], umacM[d], umacV[d], 0, 0, statsCount);
         }
-        ComputeBasicStats(potential, potentialM, potentialV, 1, 1, statsCount);
-        ComputeBasicStats(charge   , chargeM   , chargeV   , 1, 1, statsCount);
+        ComputeBasicStats(potential, potentialM, potentialV, 0, 0, statsCount);
+        ComputeBasicStats(charge   , chargeM   , chargeV   , 0, 0, statsCount);
 
         //Don't forget to add a remove(filename) so it doesn't append to old data
         OutputVolumeMean(umac[0], 0, domainVol, "bulkFlowEst", geom);
