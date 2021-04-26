@@ -119,15 +119,6 @@ extern "C"
 ///////////////////////////
 
 ///////////////////////////
-// in time_step.F90
-
-    void euler_step_stag(const int* lo, const int* hi,
-                    amrex_real* old, const int* oldlo, const int* oldhi,
-                    amrex_real* stagop, const int* stagoplo, const int* stagophi,
-                    amrex_real* newdata, const int* newdatahi, const int* newdatalo,
-                    const int* offset, const amrex_real* dt);
-
-///////////////////////////
 // in find_coords.F90
 
     void find_face_coords(const amrex_real* real_lo, const amrex_real* real_hi,
