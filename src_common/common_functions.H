@@ -90,7 +90,7 @@ void SqrtMF(MultiFab& MF);
 ///////////////////////////
 // in ComputeBasicStats.cpp
 
-void ComputeBasicStats(const MultiFab & instant, MultiFab & means, MultiFab & vars,
+void ComputeBasicStats(MultiFab & instant, MultiFab & means, MultiFab & vars,
                 const int incomp, const int outcomp, const int steps);
 
 void OutputVolumeMean(const MultiFab & instant, const int comp, const Real domainVol, std::string filename, const Geometry geom);

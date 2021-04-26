@@ -23,7 +23,7 @@
 //}
 
 
-void ComputeBasicStats(const MultiFab & instant, MultiFab & means, MultiFab & vars,
+void ComputeBasicStats(MultiFab & instant, MultiFab & means, MultiFab & vars,
                        const int incomp, const int outcomp, const int steps)
 {
     BL_PROFILE_VAR("ComputeBasicStats()",ComputeBasicStats);
@@ -31,11 +31,20 @@ void ComputeBasicStats(const MultiFab & instant, MultiFab & means, MultiFab & va
     const Real stepsInv = 1.0/steps;
     const int stepsMinusOne = steps-1;
 
-    amrex::ParallelFor(tile_box,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-    {
+    for ( MFIter mfi(instant); mfi.isValid(); ++mfi ) {
 
-        means(i,j,k,outcomp)  = (means(i,j,k,outcomp)*stepsMinusOne + instant(i,j,k,incomp))*stepsInv;        
-    });
+        Box tile_box  = mfi.tilebox();
+
+        Array4<Real> means_data = means.array(mfi);
+        Array4<Real> instant_data = instant.array(mfi);
+        Array4<Real> vars_data = vars.array(mfi);
+
+        amrex::ParallelFor(tile_box,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            means_data(i,j,k,outcomp) = (means_data(i,j,k,outcomp)*stepsMinusOne + instant_data(i,j,k,incomp))*stepsInv;        
+        });
+
+    }
 }
 
 void OutputVolumeMean(const MultiFab & instant, const int comp, const Real domainVol, std::string filename, const Geometry geom)
