@@ -79,7 +79,6 @@ add_library(
     ../../../src_common/src_F90/find_nodal_values.F90
     ../../../src_common/src_F90/init_funcs.F90
     ../../../src_common/src_F90/species_type.F90
-    ../../../src_common/src_F90/time_step.F90
 
     ../../../src_rng/MultiFabFillRandom.cpp
     ../../../src_rng/bl_random_c.cpp
