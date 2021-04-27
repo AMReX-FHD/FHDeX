@@ -32,12 +32,12 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
             proc0_enter = false;
 
             std::ifstream particleFile("particles.dat");
-            
+ //           Print() << "SPEC TOTAL: " << particleInfo[0].total << "\n";
             for(int i_spec=0; i_spec < nspecies; i_spec++) {
                 for (int i_part=0; i_part<particleInfo[i_spec].total;i_part++) {
                     ParticleType p;
                     p.id()  = ParticleType::NextID();
-                    //Print() << "ID: " << p.id() << "\n";
+ //                   std::cout << "ID: " << p.id() << "\n";
                     p.cpu() = ParallelDescriptor::MyProc();
                     p.idata(FHD_intData::sorted) = 0;
 
@@ -70,8 +70,8 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
 
                     p.rdata(FHD_realData::q) = particleInfo[i_spec].q;
 
-//                     std::cout << "proc " << ParallelDescriptor::MyProc() << " Pos: " << p.pos(0) << ", " << p.pos(1) << ", " << p.pos(2)
-//                               << ", " << p.rdata(FHD_realData::q) << ", " << p.id() << "\n" ;
+ //                    std::cout << "proc " << ParallelDescriptor::MyProc() << " Pos: " << p.pos(0) << ", " << p.pos(1) << ", " << p.pos(2)
+ //                              << ", " << p.rdata(FHD_realData::q) << ", " << p.id() << "\n" ;
 
                     //original position stored for MSD calculations
                     p.rdata(FHD_realData::ox) = p.pos(0);
@@ -163,10 +163,8 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
     totalPinnedMarkers = pinnedParticles;
 
     Redistribute();
-    UpdateCellVectors();
-    ReBin();
-    clearNeighbors();
-    fillNeighbors();
+    //clearNeighbors();
+    //fillNeighbors();
 
 }
 
@@ -220,8 +218,6 @@ void FhdParticleContainer::ReInitParticles()
     totalPinnedMarkers = pinnedParticles;
 
     Redistribute();
-    UpdateCellVectors();
-    ReBin();
     clearNeighbors();
     fillNeighbors();
 

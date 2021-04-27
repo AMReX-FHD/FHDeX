@@ -155,7 +155,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::RFD(
     for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
 
 	PairIndex index(pti.index(), pti.LocalTileIndex());
-    const int np = this->GetParticles(lev)[index].numRealParticles();
+        const int np = this->GetParticles(lev)[index].numRealParticles();
 	auto& plev = this->GetParticles(lev);
 	auto& ptile = plev[index];
 	auto& aos   = ptile.GetArrayOfStructs();

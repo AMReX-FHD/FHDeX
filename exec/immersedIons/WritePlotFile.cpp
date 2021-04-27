@@ -10,7 +10,6 @@ void WritePlotFile(int step,
                    const amrex::Geometry egeom,
                    const MultiFab& particleInstant,
                    const MultiFab& particleMeans,
-                   const MultiFab& particleVars,
                    FhdParticleContainer& particles,
                    const MultiFab& charge,
                    const MultiFab& chargeM,
@@ -18,14 +17,13 @@ void WritePlotFile(int step,
                    const MultiFab& potential,
                    const MultiFab& potentialM,
                    const MultiFab& potentialV,
-                   const std::array< MultiFab, AMREX_SPACEDIM >& efield,
-                   const MultiFab& mobility) 
+                   const std::array< MultiFab, AMREX_SPACEDIM >& efield) 
 {
+    BL_PROFILE_VAR("WritePlotFile()",WritePlotFile);
 
     std::string cplotfilename = Concatenate("cplt",step,9);
     std::string eplotfilename = Concatenate("eplt",step,9);
     std::string pplotfilename = Concatenate("parplt",step,9);
-    std::string mplotfilename = Concatenate("mplt",step,9);
 
     BoxArray cba = particleInstant.boxArray();
     DistributionMapping cdmap = particleInstant.DistributionMap();
@@ -35,7 +33,7 @@ void WritePlotFile(int step,
 
  
 //    int cnPlot = 40;
-    int cnPlot = 46+3*nspecies;
+    int cnPlot = 16+2*nspecies;
 
     // charge, chargeM, chargeV
     // pot, potM, potV
@@ -63,9 +61,9 @@ void WritePlotFile(int step,
     amrex::MultiFab::Copy(eplotfile,efield[1] ,0,7,1,0);
     amrex::MultiFab::Copy(eplotfile,efield[2] ,0,8,1,0);
 
-    amrex::MultiFab::Copy(cplotfile,particleInstant,0,0 ,14+nspecies,0);
-    amrex::MultiFab::Copy(cplotfile,particleMeans  ,0,14+nspecies,14+nspecies,0);
-    amrex::MultiFab::Copy(cplotfile,particleVars   ,0,28+2*nspecies,18+nspecies,0);
+    amrex::MultiFab::Copy(cplotfile,particleInstant,0,0 ,8+nspecies,0);
+    amrex::MultiFab::Copy(cplotfile,particleMeans  ,0,8+nspecies,8+nspecies,0);
+
 
     for (int l=0; l<nspecies; ++l)
     {
@@ -95,77 +93,51 @@ void WritePlotFile(int step,
     cvarNames[2] = "velxInstant";
     cvarNames[3] = "velyInstant";
     cvarNames[4] = "velzInstant";
-    cvarNames[5] = "temperatureInstant";
-    cvarNames[6] = "jxInstant";
-    cvarNames[7] = "jyInstant";
-    cvarNames[8] = "jzInstant";
-    cvarNames[9] = "energyInstant";
-    cvarNames[10] = "pressureInstant";
-    cvarNames[11] = "ixInstant";
-    cvarNames[12] = "iyInstant";
-    cvarNames[13] = "izInstant";
+    cvarNames[5] = "ixInstant";
+    cvarNames[6] = "iyInstant";
+    cvarNames[7] = "izInstant";
 
-    int ccount = 14;
+    int ccount = 8;
+
     for(int i=0;i<nspecies;i++)
     {
-        std::string specname = Concatenate("densityInstantSpecies",i);
+        std::string specname = Concatenate("chargeDensityInstantSpecies",i);
         cvarNames[ccount+i]= specname;
     }
 
-    cvarNames[14+nspecies] = "membersMean";
-    cvarNames[15+nspecies] = "densityMean";
-    cvarNames[16+nspecies] = "velxMean";
-    cvarNames[17+nspecies] = "velyMean";
-    cvarNames[18+nspecies] = "velzMean";
-    cvarNames[19+nspecies] = "temperatureMean";
-    cvarNames[20+nspecies] = "jxMean";
-    cvarNames[21+nspecies] = "jyMean";
-    cvarNames[22+nspecies] = "jzMean";
-    cvarNames[23+nspecies] = "energyMean";
-    cvarNames[24+nspecies] = "pressureMean";
-    cvarNames[25+nspecies] = "ixMean";
-    cvarNames[26+nspecies] = "iyMean";
-    cvarNames[27+nspecies] = "izMean";
+    cvarNames[8+nspecies] = "membersMean";
+    cvarNames[9+nspecies] = "densityMean";
+    cvarNames[10+nspecies] = "velxMean";
+    cvarNames[11+nspecies] = "velyMean";
+    cvarNames[12+nspecies] = "velzMean";
+    cvarNames[13+nspecies] = "ixMean";
+    cvarNames[14+nspecies] = "iyMean";
+    cvarNames[15+nspecies] = "izMean";
 
-    ccount = 28+nspecies;
+    ccount = 16;
+
     for(int i=0;i<nspecies;i++)
     {
-        std::string specname = Concatenate("densityMeanSpecies",i);
+        std::string specname = Concatenate("chargeDensityMeanSpecies",i);
         cvarNames[ccount+i]= specname;
     }
 
-    cvarNames[28+2*nspecies] = "membersVar";
-    cvarNames[29+2*nspecies] = "densityVar";
-    cvarNames[30+2*nspecies] = "velxVar";
-    cvarNames[31+2*nspecies] = "velyVar";
-    cvarNames[32+2*nspecies] = "velzVar";
-    cvarNames[33+2*nspecies] = "temperatureVar";
-    cvarNames[34+2*nspecies] = "jxVar";
-    cvarNames[35+2*nspecies] = "jyVar";
-    cvarNames[36+2*nspecies] = "jzVar";
-    cvarNames[37+2*nspecies] = "energyVar";
-    cvarNames[38+2*nspecies] = "pressureVar";
-    cvarNames[39+2*nspecies] = "GVar";
-    cvarNames[40+2*nspecies] = "KGCross";
-    cvarNames[41+2*nspecies] = "KRhoCross";
-    cvarNames[42+2*nspecies] = "RhoGCross";
-    cvarNames[43+2*nspecies] = "ixVar";
-    cvarNames[44+2*nspecies] = "iyVar";
-    cvarNames[45+2*nspecies] = "izVar";
-
-    ccount = 46+2*nspecies;
-    for(int i=0;i<nspecies;i++)
-    {
-        std::string specname = Concatenate("densityMeanSpecies",i);
-        cvarNames[ccount+i]= specname;
-    }
-
-
+    // timer
+    Real t1 = ParallelDescriptor::second();
+    
     WriteSingleLevelPlotfile(cplotfilename,cplotfile,cvarNames,cgeom,time,step);
-
-    WriteSingleLevelPlotfile(mplotfilename,mobility,fvarNames,geom,time,step);
-
+    
+    Real t2 = ParallelDescriptor::second() - t1;
+    ParallelDescriptor::ReduceRealMax(t2);
+    amrex::Print() << "Time spent writing plotfile cplt " << t2 << std::endl;
+    
+    t1 = ParallelDescriptor::second();
+    
     WriteSingleLevelPlotfile(eplotfilename,eplotfile,evarNames,egeom,time,step);
+    
+    t2 = ParallelDescriptor::second() - t1;
+    ParallelDescriptor::ReduceRealMax(t2);
+    amrex::Print() << "Time spent writing plotfile eplt " << t2 << std::endl;
 
     //particles.Checkpoint(pplotfilename, "particle0");
 
@@ -338,7 +310,13 @@ void WritePlotFile(int step,
         1  // pinned
     };
 
+    t1 = ParallelDescriptor::second();
+    
     particles.WritePlotFile(cplotfilename, "particles",
                             write_real_comp, write_int_comp, real_comp_names, int_comp_names);
+    
+    t2 = ParallelDescriptor::second() - t1;
+    ParallelDescriptor::ReduceRealMax(t2);
+    amrex::Print() << "Time spent writing particle plotfile " << t2 << std::endl;
 
 }

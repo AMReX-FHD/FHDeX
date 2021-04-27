@@ -120,7 +120,9 @@ void main_driver(const char* argv)
 
         dmap.define(ba);
     
-        turbforce.define(ba,dmap,turb_a,turb_b);
+	if (turbForcing == 1) {
+	  turbforce.define(ba,dmap,turb_a,turb_b);
+	}
 
         const RealBox& realDomain = geom.ProbDomain();
         int dm;
@@ -180,7 +182,9 @@ void main_driver(const char* argv)
 
     }
 
-    turbforce.Initialize(geom);
+    if (turbForcing == 1) {
+      turbforce.Initialize(geom);
+    }
 
     // pressure for GMRES solve
     MultiFab pres(ba,dmap,1,1);

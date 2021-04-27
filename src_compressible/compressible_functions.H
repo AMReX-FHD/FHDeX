@@ -57,6 +57,9 @@ void primitiveToConserved(const MultiFab& prim, MultiFab& cons);
 
 void setBC(MultiFab& prim, MultiFab& cons);
 
+void BCWallSpeciesFlux(std::array< MultiFab, AMREX_SPACEDIM >& flux,
+                       const amrex::Geometry geom);
+
 void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
                    const MultiFab& prim, MultiFab& primMean, MultiFab& primVar,
                    MultiFab& spatialCross, MultiFab& miscStats, Real* miscVals,

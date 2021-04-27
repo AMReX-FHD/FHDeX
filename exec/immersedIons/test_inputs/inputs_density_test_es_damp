@@ -102,10 +102,10 @@
 /
 
   # GMRES solver parameters
-  gmres_rel_tol = 1.e-7                ! relative tolerance stopping criteria
-  gmres_abs_tol = 0                     ! absolute tolerance stopping criteria
-  gmres_verbose =  1                    ! gmres verbosity; if greater than 1, more residuals will be printed out
-  gmres_max_outer = 20                  ! max number of outer iterations
-  gmres_max_inner = 20                   ! max number of inner iterations, or restart number
-  gmres_max_iter = 100                  ! max number of gmres iterations
-  gmres_min_iter = 1                    ! min number of gmres iterations
+  gmres_rel_tol = 1.e-7                # relative tolerance stopping criteria
+  gmres_abs_tol = 0                     # absolute tolerance stopping criteria
+  gmres_verbose =  1                    # gmres verbosity; if greater than 1, more residuals will be printed out
+  gmres_max_outer = 20                  # max number of outer iterations
+  gmres_max_inner = 20                   # max number of inner iterations, or restart number
+  gmres_max_iter = 100                  # max number of gmres iterations
+  gmres_min_iter = 1                    # min number of gmres iterations
