@@ -839,3 +839,148 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
     }
 }
 
+// set species and total density flux to zero for wall boundary conditions
+void BCWallSpeciesFlux(std::array< MultiFab, AMREX_SPACEDIM >& faceflux, const amrex::Geometry geom)
+{
+    BL_PROFILE_VAR("BCWallSpeciesFlux()",BCWallSpeciesFlux);
+
+    // LO X
+    if (bc_mass_lo[0] == 1) {
+
+        // domain grown nodally based on faceflux[0] nodality (x)
+        const Box& dom_x = amrex::convert(geom.Domain(), faceflux[0].ixType());
+
+        // this is the x-lo domain boundary box (x nodality)
+        // Orientation(dir,Orientation)  -- Orientation can be ::low or ::high
+        const Box& dom_xlo = amrex::bdryNode(dom_x, Orientation(0, Orientation::low));
+
+        for (MFIter mfi(faceflux[0]); mfi.isValid(); ++mfi) {
+            const Box& bx = mfi.fabbox();
+            const Box& b = bx & dom_xlo;
+            Array4<Real> const& flux = (faceflux[0]).array(mfi);
+            if (b.ok()) {
+                amrex::ParallelFor(b, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    flux(i,j,k,n+5) = 0.;
+                    if (n==0) flux(i,j,k,n) = 0.;
+                });
+            }
+        }
+    }
+    // HI X
+    if (bc_mass_hi[0] == 1) {
+
+        // domain grown nodally based on faceflux[0] nodality (x)
+        const Box& dom_x = amrex::convert(geom.Domain(), faceflux[0].ixType());
+
+        // this is the x-hi domain boundary box (x nodality)
+        // Orientation(dir,Orientation)  -- Orientation can be ::low or ::high
+        const Box& dom_xhi = amrex::bdryNode(dom_x, Orientation(0, Orientation::high));
+
+        for (MFIter mfi(faceflux[0]); mfi.isValid(); ++mfi) {
+            const Box& bx = mfi.fabbox();
+            const Box& b = bx & dom_xhi;
+            Array4<Real> const& flux = (faceflux[0]).array(mfi);
+            if (b.ok()) {
+                amrex::ParallelFor(b, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    flux(i,j,k,n+5) = 0.;
+                    if (n==0) flux(i,j,k,n) = 0.;
+                });
+            }
+        }
+    }
+    // LO Y
+    if (bc_mass_lo[1] == 1) {
+
+        // domain grown nodally based on faceflux[1] nodality (y)
+        const Box& dom_y = amrex::convert(geom.Domain(), faceflux[1].ixType());
+
+        // this is the y-lo domain boundary box (y nodality)
+        // Orientation(dir,Orientation)  -- Orientation can be ::low or ::high
+        const Box& dom_ylo = amrex::bdryNode(dom_y, Orientation(1, Orientation::low));
+
+        for (MFIter mfi(faceflux[1]); mfi.isValid(); ++mfi) {
+            const Box& bx = mfi.fabbox();
+            const Box& b = bx & dom_ylo;
+            Array4<Real> const& flux = (faceflux[1]).array(mfi);
+            if (b.ok()) {
+                amrex::ParallelFor(b, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    flux(i,j,k,n+5) = 0.;
+                    if (n==0) flux(i,j,k,n) = 0.;
+                });
+            }
+        }
+    }
+    // HI Y 
+    if (bc_mass_hi[1] == 1) {
+
+        // domain grown nodally based on faceflux[1] nodality (y)
+        const Box& dom_y = amrex::convert(geom.Domain(), faceflux[1].ixType());
+
+        // this is the y-hi domain boundary box (y nodality)
+        // Orientation(dir,Orientation)  -- Orientation can be ::low or ::high
+        const Box& dom_yhi = amrex::bdryNode(dom_y, Orientation(1, Orientation::high));
+
+        for (MFIter mfi(faceflux[1]); mfi.isValid(); ++mfi) {
+            const Box& bx = mfi.fabbox();
+            const Box& b = bx & dom_yhi;
+            Array4<Real> const& flux = (faceflux[1]).array(mfi);
+            if (b.ok()) {
+                amrex::ParallelFor(b, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    flux(i,j,k,n+5) = 0.;
+                    if (n==0) flux(i,j,k,n) = 0.;
+                });
+            }
+        }
+    }
+    // LO Z
+    if (bc_mass_lo[2] == 1) {
+
+        // domain grown nodally based on faceflux[2] nodality (z)
+        const Box& dom_z = amrex::convert(geom.Domain(), faceflux[2].ixType());
+
+        // this is the z-lo domain boundary box (z nodality)
+        // Orientation(dir,Orientation)  -- Orientation can be ::low or ::high
+        const Box& dom_zlo = amrex::bdryNode(dom_z, Orientation(2, Orientation::low));
+
+        for (MFIter mfi(faceflux[2]); mfi.isValid(); ++mfi) {
+            const Box& bx = mfi.fabbox();
+            const Box& b = bx & dom_zlo;
+            Array4<Real> const& flux = (faceflux[2]).array(mfi);
+            if (b.ok()) {
+                amrex::ParallelFor(b, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    flux(i,j,k,n+5) = 0.;
+                    if (n==0) flux(i,j,k,n) = 0.;
+                });
+            }
+        }
+    }
+    // HI Z
+    if (bc_mass_hi[2] == 1) {
+
+        // domain grown nodally based on faceflux[2] nodality (z)
+        const Box& dom_z = amrex::convert(geom.Domain(), faceflux[2].ixType());
+
+        // this is the z-hi domain boundary box (z nodality)
+        // Orientation(dir,Orientation)  -- Orientation can be ::low or ::high
+        const Box& dom_zhi = amrex::bdryNode(dom_z, Orientation(2, Orientation::high));
+
+        for (MFIter mfi(faceflux[2]); mfi.isValid(); ++mfi) {
+            const Box& bx = mfi.fabbox();
+            const Box& b = bx & dom_zhi;
+            Array4<Real> const& flux = (faceflux[2]).array(mfi);
+            if (b.ok()) {
+                amrex::ParallelFor(b, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    flux(i,j,k,n+5) = 0.;
+                    if (n==0) flux(i,j,k,n) = 0.;
+                });
+            }
+        }
+    }
+}
+

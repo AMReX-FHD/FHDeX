@@ -5,4 +5,3 @@ F90EXE_sources += debug_mod.F90
 F90EXE_sources += find_coords.F90
 F90EXE_sources += find_nodal_values.F90
 F90EXE_sources += init_funcs.F90
-F90EXE_sources += species_type.F90

@@ -956,14 +956,6 @@ void main_driver(const char* argv)
         // es_tog is electrostatic solve (0=off, 1=Poisson, 2=Pairwise, 3=P3M)
         if (sr_tog != 0 || es_tog==3) {
 
-            
-            // fill the neighbor buffers for each tile with the proper data
-            particles.fillNeighbors();
-
-            particles.buildNeighborList(FhdParticleContainer::CHECK_PAIR{});
-
- //  updateNeighbors();
-
             // compute short range forces (if sr_tog=1)
             // compute P3M short range correction (if es_tog=3)
             particles.computeForcesNLGPU(charge, RealCenteredCoords, dxp);
@@ -1098,8 +1090,6 @@ void main_driver(const char* argv)
             else {
                 particles.MeanSqrCalc(0, 0);
             }
-
-            particles.Redistribute();
 
             Print() << "Finish move.\n";
         }

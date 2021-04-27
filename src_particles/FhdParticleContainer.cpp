@@ -118,6 +118,8 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
        threepmMin[i] = 10000000;
     }
 
+    doRedist = 1;
+
 }
 
 
@@ -311,6 +313,13 @@ void FhdParticleContainer::computeForcesNLGPU(const MultiFab& charge, const Mult
 #pragma omp parallel
 #endif
 
+    if(doRedist != 0)
+    {
+        fillNeighbors();
+
+        buildNeighborList(CHECK_PAIR{});
+    }
+
    for (FhdParIter pti(*this, lev, MFItInfo().SetDynamic(false)); pti.isValid(); ++pti)
    {     
         PairIndex index(pti.index(), pti.LocalTileIndex());
@@ -379,6 +388,8 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
     }
 
     double kinetic = 0;
+
+    doRedist = 0;
 
     int        np_tile = 0 ,       np_proc = 0 ; // particle count
     Real rejected_tile = 0., rejected_proc = 0.; // rejected moves in midpoint scheme
@@ -563,13 +574,20 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
     Real totaldist, diffest;
     Real diffinst = 0;
     int moves = 0;
+    int reDist = 0;
 
     for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
 
         TileIndex index(pti.index(), pti.LocalTileIndex());
 
+        Box bx  = pti.tilebox();
+        IntVect myLo = bx.smallEnd();
+        IntVect myHi = bx.bigEnd();
+
         AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
         long np = this->GetParticles(lev).at(index).numParticles();
+
+        np_proc += np;
 
         for (int i = 0; i < np; ++ i) {
             ParticleType & part = particles[i];
@@ -657,6 +675,16 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
 
                 diffinst += diffest;
             }
+
+            int cell[3];
+            cell[0] = (int)floor((part.pos(0)-plo[0])/dx[0]);
+            cell[1] = (int)floor((part.pos(1)-plo[1])/dx[1]);
+            cell[2] = (int)floor((part.pos(2)-plo[2])/dx[2]);
+
+            if((cell[0] < myLo[0]) || (cell[1] < myLo[1]) || (cell[2] < myLo[2]) || (cell[0] > myHi[0]) || (cell[1] > myHi[1]) || (cell[2] > myHi[2]))
+            {
+                reDist++;
+            }    
         }
 
         maxspeed_proc = amrex::max(maxspeed_proc, maxspeed);
@@ -673,6 +701,7 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
     ParallelDescriptor::ReduceRealMax(maxspeed_proc);
     ParallelDescriptor::ReduceRealMax(maxdist_proc);
     ParallelDescriptor::ReduceRealSum(diffinst_proc);
+    ParallelDescriptor::ReduceIntSum(reDist);
 
     // write out global diagnostics
     if (ParallelDescriptor::IOProcessor()) {
@@ -680,9 +709,15 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
         if (move_tog == 2) {
             Print() << "Fraction of midpoint moves rejected: " << check/moves_proc << "\n";
         }
+        Print() << reDist << " particles to be redistributed.\n";
         Print() <<"Maximum observed speed: " << sqrt(maxspeed_proc) << "\n";
         Print() <<"Maximum observed displacement (fraction of radius): " << maxdist_proc << "\n";
-        Print() <<"Average diffusion coefficient: " << diffinst_proc/np_proc << "\n";
+        //Print() <<"Average diffusion coefficient: " << diffinst_proc/np_proc << "\n";
+    }
+    if(reDist != 0)
+    {
+        Redistribute();
+        doRedist = 1;
     }
 }
 
