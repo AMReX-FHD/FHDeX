@@ -730,8 +730,8 @@ void compute_forces_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
                 if(p1.idata(FHD_intData::pinned) == 0)
                 {
 
-                    const Real dx = p1.pos(0) - plo[0];
-                    const Real dy = 0;
+                    const Real dx = 0;
+                    const Real dy = p1.pos(1) - plo[1];
                     const Real dz = 0;
 
                     const Real r = sqrt(dx*dx + dy*dy + dz*dz);
@@ -766,8 +766,8 @@ void compute_forces_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
                 if(p1.idata(FHD_intData::pinned) == 0)
                 {
 
-                    const Real dx = p1.pos(0) - phi[0];
-                    const Real dy = 0;
+                    const Real dx = 0;
+                    const Real dy = p1.pos(1) - phi[1];
                     const Real dz = 0;
 
                     const Real r = sqrt(dx*dx + dy*dy + dz*dz);

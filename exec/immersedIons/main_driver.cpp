@@ -917,8 +917,7 @@ void main_driver(const char* argv)
 
 //        if(istep == 1)
 //        {
-//            particles.SetPosition(1, prob_hi[0]*0.25, prob_hi[1]*0.25, prob_hi[2]*0.5);
-//            particles.SetPosition(2, prob_hi[0]*0.25, prob_hi[1]*0.25+2*dx[0], prob_hi[2]*0.5);
+//            particles.SetPosition(1, prob_hi[0]*0.5, prob_hi[1]*0.5, prob_hi[2]*0.5);
 //        }
 
     
