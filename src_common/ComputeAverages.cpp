@@ -103,9 +103,6 @@ void ComputeVerticalAverage(const MultiFab& mf, MultiFab& mf_avg,
     bool write_data = false;
     std::string plotname;
 
-    int outcomp = 0;
-    int inputcomp = 0;
-
     MultiFab mf_pencil;
 
     BoxArray ba_in = mf.boxArray();
@@ -189,6 +186,7 @@ void ComputeVerticalAverage(const MultiFab& mf, MultiFab& mf_avg,
     ba_flat.define(domain_flat);
     ba_flat.maxSize(IntVect(max_grid_size_flat));
     mf_avg.define(ba_flat,dmap_pencil,ncomp,0);
+    mf_avg.setVal(0.);
 
     // copy/redistrubute to pencils
 
@@ -199,12 +197,56 @@ void ComputeVerticalAverage(const MultiFab& mf, MultiFab& mf_avg,
         VisMF::Write(mf_pencil,plotname);
     }
 
-    inputcomp = 0;
+    int outcomp = 0;
+    int inputcomp = 0;
+
+    Real ninv = 1./(domain.length(dir));
+    
     for ( MFIter mfi(mf_pencil); mfi.isValid(); ++mfi ) {
         const Box& bx = mfi.validbox();
-        compute_vert_average(BL_TO_FORTRAN_BOX(bx),
-                             BL_TO_FORTRAN_FAB(mf_pencil[mfi]),BL_TO_FORTRAN_FAB(mf_avg[mfi]),
-                             &dir, &inputcomp, &outcomp, &ncomp);
+
+        const auto lo = amrex::lbound(bx);
+        const auto hi = amrex::ubound(bx);
+
+        const Array4<Real> meanfab = mf_avg.array(mfi);
+        const Array4<Real> inputfab = mf_pencil.array(mfi);
+
+        if (dir == 0) {
+        
+            for (auto n=0; n<ncomp; ++n) {
+            for (auto k = lo.z; k <= hi.z; ++k) {
+            for (auto j = lo.y; j <= hi.y; ++j) {
+            for (auto i = lo.x; i <= hi.x; ++i) {
+                meanfab(0,j,k,outcomp+n) = meanfab(0,j,k,outcomp+n) + ninv*inputfab(i,j,k,inputcomp+n);
+            }
+            }
+            }
+            }
+            
+        } else if (dir == 1) {
+        
+            for (auto n=0; n<ncomp; ++n) {
+            for (auto k = lo.z; k <= hi.z; ++k) {
+            for (auto j = lo.y; j <= hi.y; ++j) {
+            for (auto i = lo.x; i <= hi.x; ++i) {
+                meanfab(i,0,k,outcomp+n) = meanfab(i,0,k,outcomp+n) + ninv*inputfab(i,j,k,inputcomp+n);
+            }
+            }
+            }
+            }
+
+        } else if (dir == 2) {
+        
+            for (auto n=0; n<ncomp; ++n) {
+            for (auto k = lo.z; k <= hi.z; ++k) {
+            for (auto j = lo.y; j <= hi.y; ++j) {
+            for (auto i = lo.x; i <= hi.x; ++i) {
+                meanfab(i,j,0,outcomp+n) = meanfab(i,j,0,outcomp+n) + ninv*inputfab(i,j,k,inputcomp+n);
+            }
+            }
+            }
+            }
+        }
     }
 
     if (write_data) {

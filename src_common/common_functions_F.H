@@ -179,16 +179,6 @@ extern "C"
 ///////////////////////////
 
 ///////////////////////////
-// in compute_averages.F90
-
-  void compute_vert_average(const int* lo, const int* hi,
-			    const amrex_real* inputfab, const int* inlo, const int* inhi, const int* insize,
-			    amrex_real* meanfab, const int* mlo, const int* mhi, const int* msize, 
-			    const int* dir, const int* incomp, const int* mcomp, const int* ncomp);
-
-///////////////////////////
-
-///////////////////////////
 // in sqrt_mf.F90
     
   void sqrt_mf(const int* lo, const int* hi,
