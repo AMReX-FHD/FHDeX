@@ -27,26 +27,49 @@ void WritePlotFileStag(int step,
     
     int cnt, numvars, i = 0;
 
-    // instantaneous values
-    // 5 + nspecies (conserved) + 3 shifted momentum
-    // 6 + 2*nspecies (primitive) + 3 shifted velocities
-    // 2 (eta and kappa)
-    int nplot = (5+nspecies+3) + (6+2*nspecies+3) + 2;
+    int nplot = 0; 
 
+    // instantaneous values
+    // cu: [rho, jx, jy, jz, rhoE, rhoYk] -- nvars
+    // shifted [jx, jy, jz] -- 3
+    // prim: [vx, vy, vz, T, p, Yk, Xk] -- 5 + 2*nspecies
+    // shifted [vx, vy, vz] -- 3
+    // eta, kappa -- 2
+    nplot += nvars;
+    nplot += 3;
+    nplot += 5 + 2*nspecies;
+    nplot += 3;
+    nplot += 2;
+
+    // mean values
+    // cu: [rho, jx, jy, jz, rhoE, rhoYk] -- nvars
+    // shifted [jx, jy, jz] -- 3
+    // prim: [vx, vy, vz, T, p] -- 5
+    // shifted [vx, vy, vz] -- 3
     if (plot_means == 1) {
-        nplot += 21;
+        nplot += nvars;
+        nplot += 3;
+        nplot += 5;
+        nplot += 3;
     }
     
+    // variances
+    // cu: [rho, jx, jy, jz, rhoE, rhoYk] -- nvars
+    // shifted [jx, jy, jz] -- 3
+    // prim: [vx, vy, vz, T, gvar, kgcross, krcorss, rgcross] -- 8
+    // shifted: [vx, vy, vz] -- 3
     if (plot_vars == 1) {
-        nplot += 23;
+        nplot += nvars;
+        nplot += 3;
+        nplot += 8;
+        nplot += 3;
     }
-    
+   
+    // co-variances -- see the list in main_driver
     if (plot_covars == 1) {
         nplot += 21;
     }
    
-    //nplot += 6; //spatial correl
-
     amrex::BoxArray ba = cuMeans.boxArray();
     amrex::DistributionMapping dmap = cuMeans.DistributionMap();
 
@@ -57,58 +80,65 @@ void WritePlotFileStag(int step,
     amrex::Vector<std::string> varNames(nplot);
 
     // Load into plotfile MF
-    
     cnt = 0;
 
-    // instantaneous values of conserved variables
-    // rho, jx (avgd), jy (avgd), jz (avgd), e, rhoYk
-    numvars = 5+nspecies;
+    // instantaneous 
+    // cu: [rho, jx, jy, jz, rhoE, rhoYk] -- nvars
+    numvars = nvars;
     amrex::MultiFab::Copy(plotfile,cu,0,cnt,numvars,0);
     cnt+=numvars;
 
-    // shifted momentum: 
-    // jx , jy , jz
+    // instantaneous 
+    // shifted [jx, jy, jz] -- 3
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         ShiftFaceToCC(cumom[d],0,plotfile,cnt,1);
         ++cnt;
     }
 
-    // instantaneous values of primitive variables
-    // rho, ux (avgd), uy (avgd), uz (avgd), temp, pres, Yk, Xk
-    numvars = 6+2*nspecies;
-    amrex::MultiFab::Copy(plotfile,prim,0,cnt,numvars,0);
+    // instantaneous 
+    // prim: [vx, vy, vz, T, p, Yk, Xk] -- 5 + 2*nspecies
+    numvars = 5+2*nspecies;
+    amrex::MultiFab::Copy(plotfile,prim,1,cnt,numvars,0);
     cnt+=numvars;
 
-    // shifted velocities: 
-    // velx, vely, velz
+    // instantaneous 
+    // shifted [vx, vy, vz] -- 3
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         ShiftFaceToCC(vel[d],0,plotfile,cnt,1);
         ++cnt;
     }
 
+    // instantaneous 
+    // eta -- 1
+    numvars = 1;
+    amrex::MultiFab::Copy(plotfile,eta,0,cnt,numvars,0);
+    cnt+=numvars;
+
+    // instantaneous 
+    // kappa -- 1
+    numvars = 1;
+    amrex::MultiFab::Copy(plotfile,kappa,0,cnt,numvars,0);
+    cnt+=numvars;
+
     if (plot_means == 1) {
     
-        // mean values of conserved variables
-        // rho, jx (avgd), jy (avgd), jz (avgd), e, rho1, rho2, rho3, rho4
-        numvars = 5+nspecies;
+        // cu: [rho, jx, jy, jz, rhoE, rhoYk] -- nvars
+        numvars = nvars;
         amrex::MultiFab::Copy(plotfile,cuMeans,0,cnt,numvars,0);
         cnt+=numvars;
 
-        // mean shifted momentum: 
-        // jx , jy , jz
+        // shifted [jx, jy, jz] -- 3
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             ShiftFaceToCC(cumomMeans[d],0,plotfile,cnt,1);
             ++cnt;
         }
     
-        // mean values of primitive variables
-        // rho, ux (avgd), uy (avgd), uz (avgd), temp, pres
-        numvars = 6;
-        amrex::MultiFab::Copy(plotfile,primMeans,0,cnt,numvars,0);
+        // prim: [vx, vy, vz, T, p] -- 5
+        numvars = 5;
+        amrex::MultiFab::Copy(plotfile,primMeans,1,cnt,numvars,0);
         cnt+=numvars;
 
-        // mean shifted velocities: 
-        // velx, vely, velz
+        // shifted [vx, vy, vz] -- 3
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             ShiftFaceToCC(velMeans[d],0,plotfile,cnt,1);
             ++cnt;
@@ -117,36 +147,36 @@ void WritePlotFileStag(int step,
 
     if (plot_vars == 1) {
     
-        // variance of conserved variables
-        // rho, jx (avgd), jy (avgd), jz (avgd), e, rho1, rho2, rho3, rho4
-        numvars = 5+nspecies;
+        // cu: [rho, jx, jy, jz, rhoE, rhoYk] -- nvars
+        numvars = nvars;
         amrex::MultiFab::Copy(plotfile,cuVars,0,cnt,numvars,0);
         cnt+=numvars;
 
-        // variance of shifted momentum:
-        // jx , jy , jz
+        // shifted [jx, jy, jz] -- 3
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             ShiftFaceToCC(cumomVars[d],0,plotfile,cnt,1);
             ++cnt;
         }
     
-        // variances of primitive variables
-        // rho, ux, uy, uz, temp
-        numvars = 5;
-        amrex::MultiFab::Copy(plotfile,primVars,0,cnt,numvars,0);
+        // prim: [vx, vy, vz, T] -- 4 
+        numvars = 4;
+        amrex::MultiFab::Copy(plotfile,primVars,1,cnt,numvars,0);
         cnt+=numvars;
 
-        // cross-variances for energy and temperature variances (diagnostic purposes)
-        // <delg delg>, <delg delenergy>, <delrho delg>
-        amrex::MultiFab::Copy(plotfile,primVars,nprimvars,cnt,1,0);
+        // <delg delg> 
+        amrex::MultiFab::Copy(plotfile,primVars,nprimvars+0,cnt,1,0);
         ++cnt;
+        // <delg delenergy>
         amrex::MultiFab::Copy(plotfile,primVars,nprimvars+1,cnt,1,0);
         ++cnt;
+        // <delrho delenergy>
+        amrex::MultiFab::Copy(plotfile,primVars,nprimvars+2,cnt,1,0);
+        ++cnt;
+        // <delrho delg>
         amrex::MultiFab::Copy(plotfile,primVars,nprimvars+3,cnt,1,0);
         ++cnt;
 
-        // variance of shifted velocities: 
-        // velx, vely, velz
+        // shifted: [vx, vy, vz] -- 3
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             ShiftFaceToCC(velVars[d],0,plotfile,cnt,1);
             ++cnt;
@@ -154,26 +184,11 @@ void WritePlotFileStag(int step,
     }
 
     if (plot_covars == 1) {
-
-        // covariances of various primitive and hydrodynamic qtys (see main_driver for list)
+        // co-variances -- see the list in main_driver
         numvars = 21;
         amrex::MultiFab::Copy(plotfile,coVars,0,cnt,numvars,0);
         cnt+=numvars;
     }
-
-    //numvars = 6;
-    //amrex::MultiFab::Copy(plotfile,spatialCross,0,cnt,numvars,0);
-    //cnt+=numvars;
-
-    // eta
-    numvars = 1;
-    amrex::MultiFab::Copy(plotfile,eta,0,cnt,numvars,0);
-    cnt+=numvars;
-
-    // kappa
-    numvars = 1;
-    amrex::MultiFab::Copy(plotfile,kappa,0,cnt,numvars,0);
-    cnt+=numvars;
 
     // Set variable names
     cnt = 0;
@@ -188,11 +203,11 @@ void WritePlotFileStag(int step,
         varNames[cnt] = x;
         varNames[cnt++] += 48+i;
     }
+
     varNames[cnt++] = "jxInstantFACE";  
     varNames[cnt++] = "jyInstantFACE";  
     varNames[cnt++] = "jzInstantFACE";  
 
-    varNames[cnt++] = "rhoInstant";
     varNames[cnt++] = "uxInstantCC";
     varNames[cnt++] = "uyInstantCC";
     varNames[cnt++] = "uzInstantCC";
@@ -208,9 +223,13 @@ void WritePlotFileStag(int step,
         varNames[cnt] = x;
         varNames[cnt++] += 48+i;
     }
+
     varNames[cnt++] = "uxInstantFACE";  
     varNames[cnt++] = "uyInstantFACE";  
     varNames[cnt++] = "uzInstantFACE";  
+
+    varNames[cnt++] = "eta";
+    varNames[cnt++] = "kappa";
 
     if (plot_means == 1) {
         varNames[cnt++] = "rhoMean";
@@ -218,16 +237,16 @@ void WritePlotFileStag(int step,
         varNames[cnt++] = "jyMeanCC";
         varNames[cnt++] = "jzMeanCC";
         varNames[cnt++] = "rhoEMean";
-        varNames[cnt++] = "rho1Mean";
-        varNames[cnt++] = "rho2Mean";
-        varNames[cnt++] = "rho3Mean";
-        varNames[cnt++] = "rho4Mean";
+        x = "rhoYkMean_";
+        for (i=0; i<nspecies; i++) {
+            varNames[cnt] = x;
+            varNames[cnt++] += 48+i;
+        }
 
         varNames[cnt++] = "jxMeanFACE";
         varNames[cnt++] = "jyMeanFACE";
         varNames[cnt++] = "jzMeanFACE";
 
-        varNames[cnt++] = "rhoMean";
         varNames[cnt++] = "uxMeanCC";
         varNames[cnt++] = "uyMeanCC";
         varNames[cnt++] = "uzMeanCC";
@@ -245,24 +264,25 @@ void WritePlotFileStag(int step,
         varNames[cnt++] = "jyVarCC";
         varNames[cnt++] = "jzVarCC";
         varNames[cnt++] = "rhoEVar";
-        varNames[cnt++] = "rho1Var";
-        varNames[cnt++] = "rho2Var";
-        varNames[cnt++] = "rho3Var";
-        varNames[cnt++] = "rho4Var";
+        x = "rhoYkVar_";
+        for (i=0; i<nspecies; i++) {
+            varNames[cnt] = x;
+            varNames[cnt++] += 48+i;
+        }
 
         varNames[cnt++] = "jxVarFACE";
         varNames[cnt++] = "jyVarFACE";
         varNames[cnt++] = "jzVarFACE";
 
-        varNames[cnt++] = "rhoVar";
         varNames[cnt++] = "uxVarCC";
         varNames[cnt++] = "uyVarCC";
         varNames[cnt++] = "uzVarCC";
-        varNames[cnt++] = "tVar";
+        varNames[cnt++] = "TVar";
 
         varNames[cnt++] = "g-g";
         varNames[cnt++] = "g-energy";
-        varNames[cnt++] = "g-rho";
+        varNames[cnt++] = "rho-energy";
+        varNames[cnt++] = "rho-g";
 
         varNames[cnt++] = "uxVarFACE";
         varNames[cnt++] = "uyVarFACE";
@@ -280,7 +300,7 @@ void WritePlotFileStag(int step,
         varNames[cnt++] = "rhoE-jx";
         varNames[cnt++] = "rhoE-jy";
         varNames[cnt++] = "rhoE-jz";
-        varNames[cnt++] = "rho1-rho4";
+        varNames[cnt++] = "rhoL-rhoH";
         varNames[cnt++] = "rho-vx";
         varNames[cnt++] = "rho-vy";
         varNames[cnt++] = "rho-vz";
@@ -293,22 +313,10 @@ void WritePlotFileStag(int step,
         varNames[cnt++] = "vz-T";
     }
 
-    //varNames[cnt++] = "Energy-densityCross";
-    //varNames[cnt++] = "Energy-energyCross";
-    //varNames[cnt++] = "Momentum-densityCross";
-
-    //varNames[cnt++] = "Temperature-temperatureCross";
-    //varNames[cnt++] = "Temperature-densityCross";
-    //varNames[cnt++] = "Velocity-densityCross";
-
-    varNames[cnt++] = "eta";
-    varNames[cnt++] = "kappa";
-
     // write a plotfile
     WriteSingleLevelPlotfile(plotfilename,plotfile,varNames,geom,time,step);
 
 }
-
 
 void WriteSpatialCross(const Vector<Real>& spatialCross, int step, const amrex::Real* dx) 
 {
