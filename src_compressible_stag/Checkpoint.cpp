@@ -310,6 +310,32 @@ void ReadCheckPoint(int& step,
         ba.readFrom(is);
         GotoNextLine(is);
 
+        // Read all the vectors associated with cross averages from the Header file
+        if (plot_cross) {
+
+            Real val;
+            // cuyzAvMeans
+            for (int i=0; i<n_cells[0]*nvars; i++) {
+                is >> val;
+                GotoNextLine(is);
+                cuyzAvMeans[i] = val;
+            }
+
+            // cuyzAvMeans_cross
+            for (int i=0; i<nvars; i++) {
+                is >> val;
+                GotoNextLine(is);
+                cuyzAvMeans_cross[i] = val;
+            }
+
+            // spatialCross
+            for (int i=0; i<n_cells[0]*nvars*nvars; i++) {
+                is >> val;
+                GotoNextLine(is);
+                spatialCross[i] = val;
+            }
+        }
+
         // create a distribution mapping
         dmap.define(ba, ParallelDescriptor::NProcs());
         
@@ -327,37 +353,15 @@ void ReadCheckPoint(int& step,
         for (int d=0; d<AMREX_SPACEDIM; d++) {
             vel[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ngc);
             cumom[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ngc);
-            velMeans[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ngc);
-            cumomMeans[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ngc);
-            velVars[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ngc);
-            cumomVars[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ngc);
+            velMeans[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 0);
+            cumomMeans[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 0);
+            velVars[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 0);
+            cumomVars[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 0);
         }
 
         // coVars
-        coVars.define(ba,dmap,21,ngc);
+        coVars.define(ba,dmap,21,0);
 
-        // Read all the vectors associated with cross averages from the Header file
-        if (plot_cross) {
-
-            Real val;
-            // cuyzAvMeans
-            for (int i=0; i<n_cells[0]*nvars; i++) {
-                is >> val;
-                cuyzAvMeans[i] = val;
-            }
-
-            // cuyzAvMeans_cross
-            for (int i=0; i<nvars; i++) {
-                is >> val;
-                cuyzAvMeans_cross[i] = val;
-            }
-
-            // spatialCross
-            for (int i=0; i<n_cells[0]*nvars*nvars; i++) {
-                is >> val;
-                spatialCross[i] = val;
-            }
-        }
     }
 
     // C++ random number engine

@@ -97,11 +97,19 @@ void evaluateStatsStag(const MultiFab& cons, MultiFab& consMean, MultiFab& consV
         // cell centers (mean rho, rhoE, rhoYk, Yk, P, T) 
         // also jx, velx, jy, vely, jz, velz on CC
         // on host, not gpu
+        for (auto k = lo.z-ngc[2]; k <= hi.z+ngc[2]; ++k) {
+        for (auto j = lo.y-ngc[1]; j <= hi.y+ngc[1]; ++j) {
+        for (auto i = lo.x-ngc[0]; i <= hi.x+ngc[0]; ++i) {
+            cumeans(i,j,k,0) = (cumeans(i,j,k,0)*stepsminusone + cu(i,j,k,0))*stepsinv; //rhomeans
+        }
+        }
+        }
+
         for (auto k = lo.z; k <= hi.z; ++k) {
         for (auto j = lo.y; j <= hi.y; ++j) {
         for (auto i = lo.x; i <= hi.x; ++i) {
             
-            cumeans(i,j,k,0) = (cumeans(i,j,k,0)*stepsminusone + cu(i,j,k,0))*stepsinv; //rhomeans
+        //    cumeans(i,j,k,0) = (cumeans(i,j,k,0)*stepsminusone + cu(i,j,k,0))*stepsinv; //rhomeans
             cumeans(i,j,k,1) = 0.5*(momxmeans(i,j,k) + momxmeans(i+1,j,k)); // jxmeans on CC
             cumeans(i,j,k,2) = 0.5*(momymeans(i,j,k) + momymeans(i,j+1,k)); // jymeans on CC
             cumeans(i,j,k,3) = 0.5*(momzmeans(i,j,k) + momzmeans(i,j,k+1)); // jzmeans on CC
@@ -333,10 +341,11 @@ void evaluateStatsStag(const MultiFab& cons, MultiFab& consMean, MultiFab& consV
             Real deljy = momy(i,j,k) - momymeans(i,j,k);
             momyvars(i,j,k) = (momyvars(i,j,k)*stepsminusone + deljy*deljy)*stepsinv; // <jy jy>
 
-            Real densitymeaninv = 2.0/(cumeans(i-1,j,k,0)+cumeans(i,j,k,0));
+            Real densitymeaninv = 2.0/(cumeans(i,j-1,k,0)+cumeans(i,j,k,0));
             Real delrho = 0.5*(cu(i,j-1,k,0) + cu(i,j,k,0)) - 0.5*(cumeans(i,j-1,k,0) + cumeans(i,j,k,0));
             Real delvely = (deljy - velymeans(i,j,k)*delrho)*densitymeaninv;
             velyvars(i,j,k) = (velyvars(i,j,k)*stepsminusone + delvely*delvely)*stepsinv; // <vx vx>
+            std::cout << i << " " << j << " " << k << " " <<  stepsinv << " " << velyvars(i,j,k) << "\n";
         }
         }
         }
@@ -350,7 +359,7 @@ void evaluateStatsStag(const MultiFab& cons, MultiFab& consMean, MultiFab& consV
             Real deljz = momz(i,j,k) - momzmeans(i,j,k);
             momzvars(i,j,k) = (momzvars(i,j,k)*stepsminusone + deljz*deljz)*stepsinv; // <jz jz>
 
-            Real densitymeaninv = 2.0/(cumeans(i-1,j,k,0)+cumeans(i,j,k,0));
+            Real densitymeaninv = 2.0/(cumeans(i,j,k-1,0)+cumeans(i,j,k,0));
             Real delrho = 0.5*(cu(i,j,k-1,0) + cu(i,j,k,0)) - 0.5*(cumeans(i,j,k-1,0) + cumeans(i,j,k,0));
             Real delvelz = (deljz - velzmeans(i,j,k)*delrho)*densitymeaninv;
             velzvars(i,j,k) = (velzvars(i,j,k)*stepsminusone + delvelz*delvelz)*stepsinv; // <vz vz>

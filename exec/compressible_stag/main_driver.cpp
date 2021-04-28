@@ -306,14 +306,14 @@ void main_driver(const char* argv)
         // 18: <vx T>
         // 19: <vy T>
         // 20: <vz T>
-        coVars.define(ba,dmap,21,ngc);
+        coVars.define(ba,dmap,21,0);
         coVars.setVal(0.0);
 
         for (int d=0; d<AMREX_SPACEDIM; d++) {
-            velMeans[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ngc);
-            cumomMeans[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ngc);
-            velVars[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ngc);
-            cumomVars[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ngc);
+            velMeans[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 0);
+            cumomMeans[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 0);
+            velVars[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 0);
+            cumomVars[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 0);
             velMeans[d].setVal(0.);
             velVars[d].setVal(0.);
             cumomMeans[d].setVal(0.);
