@@ -610,16 +610,53 @@ void main_driver(const char* argv)
         // timer
         Real aux1 = ParallelDescriptor::second();
         
-        // compute mean and variances
-        if (step > n_steps_skip) {
-            evaluateStatsStag(cu, cuMeans, cuVars, prim, primMeans, primVars, vel, 
-                              velMeans, velVars, cumom, cumomMeans, cumomVars, coVars,
-                              cuyzAvMeans, cuyzAvMeans_cross, spatialCross, statsCount, dx);
-            statsCount++;
+        // reset statistics after n_steps_skip
+        // if n_steps_skip is negative, we use it as an interval
+        if ((n_steps_skip > 0 && step == n_steps_skip) ||
+            (n_steps_skip < 0 && step%n_steps_skip == 0) ) {
+
+            cuMeans.setVal(0.0);
+            cuVars.setVal(0.0);
+            primMeans.setVal(0.0);
+            primVars.setVal(0.0);
+
+            for (int d=0; d<AMREX_SPACEDIM; d++) {
+                velMeans[d].setVal(0.0);
+                velVars[d].setVal(0.0);
+                cumomMeans[d].setVal(0.0);
+                cumomVars[d].setVal(0.0);
+            }
+
+            coVars.setVal(0.0);
+
+            cuyzAvMeans.assign(cuyzAvMeans.size(), 0.0);
+            cuyzAvMeans_cross.assign(cuyzAvMeans_cross.size(), 0.0);
+            spatialCross.assign(spatialCross.size(), 0.0);
+
+            std::printf("Resetting stat collection.\n");
+
+            statsCount = 1;
+
         }
 
+        // Evaluate Statistics
+        evaluateStatsStag(cu, cuMeans, cuVars, prim, primMeans, primVars, vel, 
+                          velMeans, velVars, cumom, cumomMeans, cumomVars, coVars,
+                          cuyzAvMeans, cuyzAvMeans_cross, spatialCross, statsCount, dx);
+        statsCount++;
+
         // write a plotfile
-        if (plot_int > 0 && step > 0 && step%plot_int == 0) {
+        bool writePlt = false;
+        if (plot_int > 0) {
+            if (n_steps_skip >= 0) { // for positive n_steps_skip, write out at plot_int
+                writePlt = (step%plot_int == 0);
+            }
+            else if (n_steps_skip < 0) { // for negative n_steps_skip, write out at plot_int-1
+                writePlt = ((step+1)%plot_int == 0);
+            }
+        }
+
+        if (writePlt) {
              //yzAverage(cuMeans, cuVars, primMeans, primVars, spatialCross,
              //          cuMeansAv, cuVarsAv, primMeansAv, primVarsAv, spatialCrossAv);
             WritePlotFileStag(step, time, geom, cu, cuMeans, cuVars, cumom, cumomMeans, cumomVars,
@@ -637,15 +674,11 @@ void main_driver(const char* argv)
             }
         }
 
-        if (chk_int > 0 && step > 0 && step%chk_int == 0)
-        {
-            WriteCheckPoint(step, time, statsCount, geom, cu, cuMeans, cuVars, prim,
-                           primMeans, primVars, cumom, cumomMeans, cumomVars, 
-                           vel, velMeans, velVars, coVars, cuyzAvMeans, cuyzAvMeans_cross, spatialCross);
-        }
-
         // collect a snapshot for structure factor
-        if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip)%struct_fact_int == 0) {
+        if (step > amrex::Math::abs(n_steps_skip) && 
+            struct_fact_int > 0 && 
+            (step-amrex::Math::abs(n_steps_skip)-1)%struct_fact_int == 0) {
+
             MultiFab::Copy(structFactPrimMF, prim, 0, 0, structVarsPrim-AMREX_SPACEDIM  , 0);
             MultiFab::Copy(structFactConsMF, cu,   0, 0, structVarsCons-AMREX_SPACEDIM-1, 0);
             // temperature too
@@ -664,17 +697,25 @@ void main_driver(const char* argv)
                 ComputeVerticalAverage(prim, primVertAvg, geom, project_dir, 0, structVarsPrim);
                 structFactPrimVerticalAverage.FortStructure(primVertAvg,geom_flat);
             }
-        }
 
-        // write out structure factor
-        if (step > n_steps_skip && struct_fact_int > 0 && plot_int > 0 && step%plot_int == 0) {
-            structFactPrim.WritePlotFile(step,time,geom,"plt_SF_prim");
-            structFactCons.WritePlotFile(step,time,geom,"plt_SF_cons");
-            if(project_dir >= 0) {
-                structFactPrimVerticalAverage.WritePlotFile(step,time,geom_flat,"plt_SF_prim_VerticalAverage");
+            // write out structure factor
+            if (step%plot_int == 0) {
+                structFactPrim.WritePlotFile(step,time,geom,"plt_SF_prim");
+                structFactCons.WritePlotFile(step,time,geom,"plt_SF_cons");
+                if(project_dir >= 0) {
+                    structFactPrimVerticalAverage.WritePlotFile(step,time,geom_flat,"plt_SF_prim_VerticalAverage");
+                }
             }
         }
-        
+
+        // write checkpoint file
+        if (chk_int > 0 && step > 0 && step%chk_int == 0)
+        {
+            WriteCheckPoint(step, time, statsCount, geom, cu, cuMeans, cuVars, prim,
+                           primMeans, primVars, cumom, cumomMeans, cumomVars, 
+                           vel, velMeans, velVars, coVars, cuyzAvMeans, cuyzAvMeans_cross, spatialCross);
+        }
+
         // timer
         Real aux2 = ParallelDescriptor::second() - aux1;
         ParallelDescriptor::ReduceRealMax(aux2);
