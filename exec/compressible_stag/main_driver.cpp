@@ -295,7 +295,7 @@ void main_driver(const char* argv)
         // 7: <rhoE jx>
         // 8: <rhoE jy>
         // 9: <rhoE jz>
-        // 10: <rhoYk1 rhoYk4>
+        // 10: <rhoYklightest rhoYkheaviest>
         // 11: <rho vx>
         // 12: <rho vy>
         // 13: <rho vz>
