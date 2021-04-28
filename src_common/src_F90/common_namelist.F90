@@ -9,7 +9,7 @@ module common_namelist_module
   
   implicit none
 
-  integer, parameter :: MAX_SPECIES = 2
+  integer, parameter :: MAX_SPECIES = 4
   integer, parameter :: LOHI = 2
 
   double precision,   save :: prob_lo(AMREX_SPACEDIM)
