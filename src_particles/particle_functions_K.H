@@ -1134,6 +1134,8 @@ void mob_interp_gpu(Real z, Real a, Real* tmob, Real* nmob)
         *tmob = std::max(0.98557 + 13.9508/pow(1.82653  + h,5) - 6.83735/pow(1.82653   + h,3) - 1.00616/(1.82653  + h),0.0);
         *nmob = std::min(0.969255 + 163.299/pow(2.70459  + h,5) - 36.2912/pow(2.70459   + h,3) - 0.706417/(2.70459  + h),0.0);
 
+        std::cout << "transverse: " << *tmob << "\n";
+
     }else if(wall_mob==6)
     {
         Real h = (z-3.294E-7)/a;
@@ -1386,7 +1388,7 @@ void dry_gpu(Real dt, FhdParticleContainer::ParticleType& part, Real* dry_terms,
 
     //std::cout << "terms: " << dry_terms[1] << ", " << mobDir[1]*part.rdata(FHD_realData::dryDiff) << std::endl;
 
-    if(dry_move_tog == 2)
+    if(dry_move_tog == 1)
     {
         dry_terms[0] = dry_terms[0] + variance_coef_mom*mobDir[0]*part.rdata(FHD_realData::dryDiff);
         dry_terms[1] = dry_terms[1] + variance_coef_mom*mobDir[1]*part.rdata(FHD_realData::dryDiff);
