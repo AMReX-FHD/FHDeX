@@ -553,8 +553,6 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
                         
                         dry_gpu(dt, part,dry_terms, mb, mbDer);
 
-                        std::cout << "dry: " << mb[0] << ", " << mb[1] << ", " << mb[2] << std::endl;
-
                         for (int d=0; d<AMREX_SPACEDIM; ++d)
                         {                   
                             part.rdata(FHD_realData::velx + d) += dry_terms[d];
@@ -1735,7 +1733,7 @@ FhdParticleContainer::PrintParticles()
             if(part.idata(FHD_intData::pinned) == 0)
             {
 
-            double bigM  = part.rdata(FHD_realData::wetDiff)/(T_init[0]*k_B);
+            double bigM  = part.rdata(FHD_realData::totalDiff)/(T_init[0]*k_B);
 
             std::cout << scientific << setprecision(15) << "Particle " << ParallelDescriptor::MyProc() << ", " << part.id() << ", force: " << part.rdata(FHD_realData::forcex) << ", " << part.rdata(FHD_realData::forcey) << ", " << part.rdata(FHD_realData::forcez) << std::endl;
             std::cout << scientific << setprecision(15) << "Particle " << ParallelDescriptor::MyProc() << ", " << part.id() << ", position/q: " << part.pos(0) << ", " << part.pos(1) << ", " << part.pos(2) << ", " << part.rdata(FHD_realData::q) << std::endl;
