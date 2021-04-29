@@ -1,7 +1,8 @@
+
+#include "common_namespace.H" // included so we get MAX_SPECIES
+
 namespace multispec {
 
-#define MAX_SPECIES 4
-    
     // Below are items that are read in from the multispec namelist
 
     extern int                        inverse_type;
