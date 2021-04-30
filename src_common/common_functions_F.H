@@ -112,15 +112,6 @@ extern "C"
 ///////////////////////////
 // in find_coords.F90
 
-    void find_face_coords(const amrex_real* real_lo, const amrex_real* real_hi,
-                    amrex_real* xface, const int* xfacelo, const int* xfacehi,
-                    amrex_real* yface, const int* yfacelo, const int* yfacehi,
-#if (AMREX_SPACEDIM == 3)
-                    amrex_real* zface, const int* zfacelo, const int* zfacehi,
-#endif
-                    const amrex_real* dx);
-
-
     void find_center_coords(const amrex_real* real_lo, const amrex_real* real_hi,
                     amrex_real* centers, const int* lo, const int* hi,
                     const amrex_real* dx);
