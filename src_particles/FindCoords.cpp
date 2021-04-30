@@ -56,14 +56,22 @@ void FindCenterCoords(MultiFab & RealCenterCoords, const Geometry & geom)
 {
     BL_PROFILE_VAR("FindCenterCoords()", FindCenterCoords);
 
-    const RealBox & realDomain = geom.ProbDomain();
-    const Real * dx            = geom.CellSize();
+    const Real * dx  = geom.CellSize();
 
     for (MFIter mfi(RealCenterCoords); mfi.isValid(); ++mfi) {
 
-        find_center_coords(ZFILL(realDomain.lo()), ZFILL(realDomain.hi()),
-                           BL_TO_FORTRAN_3D(RealCenterCoords[mfi]),
-                           ZFILL(dx) );
+        const Array4<Real> & centers = RealCenterCoords.array(mfi);
+
+        Box bx = mfi.growntilebox(RealCenterCoords.nGrowVect());
+
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            centers(i,j,k,0) = (i+0.5)*dx[0]+prob_lo[0];
+            centers(i,j,k,1) = (j+0.5)*dx[1]+prob_lo[1];
+#if (AMREX_SPACEDIM == 3)            
+            centers(i,j,k,2) = (k+0.5)*dx[2]+prob_lo[2];
+#endif
+        });
 
     }
 

@@ -110,17 +110,6 @@ extern "C"
 ///////////////////////////
 
 ///////////////////////////
-// in find_coords.F90
-
-    void find_center_coords(const amrex_real* real_lo, const amrex_real* real_hi,
-                    amrex_real* centers, const int* lo, const int* hi,
-                    const amrex_real* dx);
-///////////////////////////
-
-
-
-
-///////////////////////////
 // in find_nodal_values.F90
 
     void find_nodal_values(const int* lo, const int* hi,
