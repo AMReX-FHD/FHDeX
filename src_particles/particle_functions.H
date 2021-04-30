@@ -26,6 +26,4 @@ void FindFaceCoords(std::array<MultiFab, AMREX_SPACEDIM> & RealFaceCoords,
 
 void FindCenterCoords(MultiFab & RealCenterCoords, const Geometry & geom);
 
-void FindNodalValues(const MultiFab & inFab, MultiFab & outFab, const MultiFab & ccFab);
-
 #endif

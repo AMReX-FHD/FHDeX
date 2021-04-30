@@ -94,28 +94,10 @@ extern "C"
 ///////////////////////////
 // in init_funcs.F90
 
-    void init_rho_2d(const int* lo, const int* hi,
-                     amrex_real* data, const int* dlo, const int* dhi,
-                     const amrex_real* dx, const amrex_real* prob_lo, const amrex_real* prob_hi);
-
-
-    void init_vel_2d(const int* lo, const int* hi,
-                     amrex_real* data, const int* dlo, const int* dhi,
-                     const amrex_real* dx, const amrex_real* prob_lo, const amrex_real* prob_hi, const int* di);
-
     void init_vel(const int* lo, const int* hi,
                   amrex_real* data, const int* dlo, const int* dhi,
                   const amrex_real* dx, const amrex_real* prob_lo, const amrex_real* prob_hi, const int* di, const amrex::Real* real_lo, const amrex::Real* real_hi);
 
-///////////////////////////
-
-///////////////////////////
-// in find_nodal_values.F90
-
-    void find_nodal_values(const int* lo, const int* hi,
-                    const amrex_real* fabIn, const int* inlo, const int* inhi,
-                    amrex_real* fabOut, const int* outlo, const int* outhi,
-                    const int* xCheck, const int* yCheck, const int* zCheck);
 ///////////////////////////
 
 ///////////////////////////
