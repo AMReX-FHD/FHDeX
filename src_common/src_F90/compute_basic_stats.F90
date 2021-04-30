@@ -5,7 +5,7 @@ module compute_basic_stats_module
 
   private
 
-  public :: compute_means, compute_vars, sum_fab
+  public :: compute_means, compute_vars
 
 contains
 
@@ -61,116 +61,5 @@ subroutine compute_vars(instfab, inlo, inhi, insize, meanfab, mlo, mhi, msize, v
   end do
 
 end subroutine compute_vars
-
-subroutine sum_fab(lo, hi, infab, inlo, inhi, insize, gs, total, comp) bind(C, name="sum_fab")
-
-  integer         , intent(in   ) :: inlo(3), inhi(3), lo(3), hi(3), insize, gs, comp
-  real(amrex_real), intent(inout) :: total
-
-  double precision, intent(in   ) :: infab(inlo(1):inhi(1),inlo(2):inhi(2),inlo(3):inhi(3), 1:insize)
-
-  ! local variables
-  integer i,j, k
-  
-  total = 0
-
-  !print *, lo, hi, gs
-
-  do k = lo(3) - gs, hi(3) + gs
-    do j = lo(2) - gs, hi(2) + gs
-      do i = lo(1) - gs, hi(1) + gs
-
-        total = total + infab(i,j,k,comp)
-       
-      end do
-    end do
-  end do
-
-end subroutine sum_fab
-
-subroutine x_mean_fab(lo, hi, infab, inlo, inhi, insize, outfab, outlo, outhi, outsize, gs) bind(C, name="x_mean_fab")
-
-  integer         , intent(in   ) :: outlo(3), outhi(3), inlo(3), inhi(3), lo(3), hi(3), insize, outsize, gs
-
-  double precision, intent(in   ) :: infab(inlo(1):inhi(1),inlo(2):inhi(2),inlo(3):inhi(3), 1:insize)
-  double precision, intent(inout) :: outfab(outlo(1):outhi(1),outlo(2):outhi(2),outlo(3):outhi(3), 1:outsize)
-
-  ! local variables
-  integer i,j, k, l, cellcount
-  double precision xmean
-
-  do l = 1, insize
-    do k = lo(3) - gs, hi(3) + gs
-      do j = lo(2) - gs, hi(2) + gs
-
-        xmean = 0
-        cellcount = 0
-        do i = lo(1) - gs, hi(1) + gs
-
-          xmean = xmean + infab(i,j,k,l)
-          
-          cellcount = cellcount + 1
-         
-        end do
-
-        do i = lo(1) - gs, hi(1) + gs
-
-          outfab(i,j,k,l) = xmean/cellcount
-         
-        end do
-      end do
-    end do
-  end do
-
-end subroutine x_mean_fab
-
-
-subroutine max_speed(lo, hi, ux, uxlo, uxhi, uy, uylo, uyhi, &
-#if(AMREX_SPACEDIM == 3)
-                      uz, uzlo, uzhi, &
-#endif
-                    maxspeed) bind(C, name="max_speed")
-
-  integer         , intent(in   ) :: lo(3), hi(3), uxlo(3), uxhi(3), uylo(3), uyhi(3)
-#if(AMREX_SPACEDIM == 3)
-  integer         , intent(in   ) :: uzlo(3), uzhi(3)
-#endif
-
-  double precision, intent(inout) :: maxspeed
-
-  double precision, intent(in   ) :: ux(uxlo(1):uxhi(1),uxlo(2):uxhi(2),uxlo(3):uxhi(3))
-  double precision, intent(in   ) :: uy(uylo(1):uyhi(1),uylo(2):uyhi(2),uylo(3):uyhi(3))
-#if(AMREX_SPACEDIM == 3)
-  double precision, intent(in   ) :: uz(uzlo(1):uzhi(1),uzlo(2):uzhi(2),uzlo(3):uzhi(3))
-#endif
-  ! local variables
-  integer i,j, k
-  double precision speed
-
-  maxspeed = 0
-
-
-  do k = lo(3), hi(3)
-    do j = lo(2), hi(2)
-      do i = lo(1), hi(1)
-
-#if(AMREX_SPACEDIM == 3)
-        speed = sqrt(ux(i,j,k)**2 + uy(i,j,k)**2 + uz(i,j,k)**2)
-#endif
-#if(AMREX_SPACEDIM == 2)
-        speed = sqrt(ux(i,j,k)**2 + uy(i,j,k)**2)
-#endif
-
-        if(speed .gt. maxspeed) then
-          maxspeed = speed
-        endif
-
-      end do
-    end do
-  end do
-
-end subroutine max_speed
-
-
 
 end module compute_basic_stats_module

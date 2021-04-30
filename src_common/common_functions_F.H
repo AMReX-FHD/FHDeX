@@ -111,24 +111,6 @@ extern "C"
 		                const amrex_real* meanfab, const int* mlo, const int* mhi, const int* msize,
 		                amrex_real* varfab, const int* vlo, const int* vhi, const int* vsize,
 			            const int* incomp, const int* mcomp, const int* vcomp, const int* steps);
-
-    void sum_fab(const int* lo, const int* hi, const amrex_real* in, const int* inlo, const int* inhi, const int* insize,
-		                const int* gs, const amrex_real* total, const int* incomp);
-
-    void x_mean_fab(const int* lo, const int* hi, const amrex_real* infab, const int* inlo, const int* inhi, const int* insize,
-                                amrex_real* outfab, const int* outlo, const int* outhi, const int* outsize,
-		                const int* gs);
-#if (AMREX_SPACEDIM == 3)
-    void max_speed(const int* lo, const int* hi, const amrex_real* ux, const int* uxlo, const int* uxhi,
-                                const amrex_real* uy, const int* uylo, const int* uyhi,
-                                const amrex_real* uz, const int* uzlo, const int* uzhi,
-                                amrex_real* maxspeed);
-#endif
-#if (AMREX_SPACEDIM == 2)
-    void max_speed(const int* lo, const int* hi, const amrex_real* ux, const int* uxlo, const int* uxhi,
-                                const amrex_real* uy, const int* uylo, const int* uyhi,
-                                amrex_real* maxspeed);
-#endif
 ///////////////////////////
 
 ///////////////////////////
