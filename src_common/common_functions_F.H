@@ -110,15 +110,6 @@ extern "C"
 ///////////////////////////
 
 ///////////////////////////
-// in debug.F90
-
-    void print_mf(const int* lo, const int* hi,
-                  const amrex::Real* mf,
-                  const int* m_lo, const int* m_hi, const int* nc_m);
-
-///////////////////////////
-
-///////////////////////////
 // in find_coords.F90
 
     void find_face_coords(const amrex_real* real_lo, const amrex_real* real_hi,
