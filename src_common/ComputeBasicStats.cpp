@@ -1,29 +1,6 @@
 #include "common_functions.H"
 
-
-
-//void ComputeBasicStats(const MultiFab & instant, MultiFab & means, MultiFab & vars,
-//                       const int incomp, const int outcomp, const int steps)
-//{
-//    BL_PROFILE_VAR("ComputeBasicStats()",ComputeBasicStats);
-
-//    for ( MFIter mfi(instant); mfi.isValid(); ++mfi ) {
-//        const Box& bx = mfi.validbox();
-
-//        compute_means(BL_TO_FORTRAN_FAB(instant[mfi]),
-//                      BL_TO_FORTRAN_FAB(means[mfi]),
-//                      &incomp, &outcomp, &steps);
-
-//        compute_vars(BL_TO_FORTRAN_FAB(instant[mfi]),
-//                     BL_TO_FORTRAN_FAB(means[mfi]),
-//                     BL_TO_FORTRAN_FAB(vars[mfi]),
-//                     &incomp, &outcomp, &outcomp, &steps);
-
-//    }
-//}
-
-
-void ComputeBasicStats(MultiFab & instant, MultiFab & means, MultiFab & vars,
+void ComputeBasicStats(MultiFab & instant, MultiFab & means,
                        const int incomp, const int outcomp, const int steps)
 {
     BL_PROFILE_VAR("ComputeBasicStats()",ComputeBasicStats);
@@ -37,7 +14,6 @@ void ComputeBasicStats(MultiFab & instant, MultiFab & means, MultiFab & vars,
 
         Array4<Real> means_data = means.array(mfi);
         Array4<Real> instant_data = instant.array(mfi);
-        Array4<Real> vars_data = vars.array(mfi);
 
         amrex::ParallelFor(tile_box,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {

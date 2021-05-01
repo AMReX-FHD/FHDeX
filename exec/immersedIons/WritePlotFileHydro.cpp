@@ -11,8 +11,7 @@ void WritePlotFileHydro(int step,
                    const amrex::Geometry geom,
                    std::array< MultiFab, AMREX_SPACEDIM >& umac,
 		   const MultiFab& pres,
-                   std::array< MultiFab, AMREX_SPACEDIM >& umacM,
-                   std::array< MultiFab, AMREX_SPACEDIM >& umacV)
+                   std::array< MultiFab, AMREX_SPACEDIM >& umacM)
 {
     
     BL_PROFILE_VAR("WritePlotFileHydro()",WritePlotFileHydro);
@@ -26,10 +25,11 @@ void WritePlotFileHydro(int step,
     // plot all the velocity variables (shifted)
     // plot pressure
     // plot divergence
-    int nPlot = 4*AMREX_SPACEDIM+2;
+    // staggered velocity means
+    int nPlot = 3*AMREX_SPACEDIM+2;
 
     MultiFab plotfile(ba, dmap, nPlot, 0);
-
+    
     Vector<std::string> varNames(nPlot);
 
     // keep a counter for plotfile variables
@@ -55,13 +55,7 @@ void WritePlotFileHydro(int step,
         x += (120+i);
         varNames[cnt++] = x;
     }
-
-    for (int i=0; i<AMREX_SPACEDIM; ++i) {
-        std::string x = "averaged_var";
-        x += (120+i);
-        varNames[cnt++] = x;
-    }
-
+    
     // reset plotfile variable counter
     cnt = 0;
 
@@ -75,7 +69,6 @@ void WritePlotFileHydro(int step,
         cnt++;
     }
 
-
     // copy pressure into plotfile
     MultiFab::Copy(plotfile, pres, 0, cnt, 1, 0);
     cnt++;
@@ -86,10 +79,6 @@ void WritePlotFileHydro(int step,
 
     // average staggered means to cell-centers and copy into plotfile
     AverageFaceToCC(umacM,plotfile,cnt);
-    cnt+=AMREX_SPACEDIM;
-
-    // average staggered vars to cell-centers and copy into plotfile
-    AverageFaceToCC(umacV,plotfile,cnt);
     cnt+=AMREX_SPACEDIM;
 
     // write a plotfile
@@ -127,11 +116,4 @@ void WritePlotFileHydro(int step,
         outputMFAscii(umacM[2], asciiName5);
 
     }
-
-
-   // std::string asciiName1 = Concatenate("asciiVelx",step,9);
-
-
-    //outputMFAscii(umac[0], asciiName1);
-
 }
