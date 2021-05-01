@@ -582,36 +582,6 @@ void main_driver(const char* argv)
     weights = {1.0};
 
     ///////////////////////////////////////////
-
-/*    
-    // Setting the intial velocities can be useful for debugging, to get a known velocity field.
-    // Note that we don't need to initialize velocities for the overdamped case.
-    // They only matter as an initial guess to GMRES.
-    // The first GMRES solve will compute the velocities as long as they start out with non-NaN values.
-    int dm = 0;
-    for ( MFIter mfi(beta); mfi.isValid(); ++mfi ) {
-        const Box& bx = mfi.validbox();
-
-        AMREX_D_TERM(dm=0; init_vel(BL_TO_FORTRAN_BOX(bx),
-                                    BL_TO_FORTRAN_ANYD(umac[0][mfi]), geom.CellSize(),
-                                    geom.ProbLo(), geom.ProbHi() ,&dm,
-                                    ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));,
-                     dm=1; init_vel(BL_TO_FORTRAN_BOX(bx),
-                                    BL_TO_FORTRAN_ANYD(umac[1][mfi]), geom.CellSize(),
-                                    geom.ProbLo(), geom.ProbHi() ,&dm,
-                                    ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));,
-                     dm=2; init_vel(BL_TO_FORTRAN_BOX(bx),
-                                    BL_TO_FORTRAN_ANYD(umac[2][mfi]), geom.CellSize(),
-                                    geom.ProbLo(), geom.ProbHi() ,&dm,
-                                    ZFILL(realDomain.lo()), ZFILL(realDomain.hi())););
-
-    }
-
-    if (initial_variance_mom != 0.0) {
-        // sMflux.addMomFluctuations(umac, rho, temp_cc, initial_variance_mom);
-        Abort("Initial momentum fluctuations not implemented; if you are overdamped they don't make sense anyway.");
-    }
-*/
         
     // additional staggered velocity MultiFabs
     std::array< MultiFab, AMREX_SPACEDIM > umacNew;
@@ -858,7 +828,7 @@ void main_driver(const char* argv)
 
 
 //    // Writes instantaneous flow field and some other stuff? Check with Guy.
-//    WritePlotFileHydro(0, time, geom, umac, pres, umacM);
+    WritePlotFileHydro(0, time, geom, umac, pres, umacM);
     remove("bulkFlowEst");
     //Time stepping loop
 
