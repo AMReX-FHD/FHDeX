@@ -360,7 +360,10 @@ void main_driver(const char* argv)
        }
        else if (pkernel_fluid[j] == 6) {
            wetRad[j] = 1.481*dxAv;
-       }
+       }else
+        {
+           wetRad[j] = 1.255*dxAv;
+        }
     }
 
     for(int i=0;i<nspecies;i++) {
@@ -991,12 +994,12 @@ void main_driver(const char* argv)
 
         if (fluid_tog == 1) {
 
-            if(particles.getTotalPinnedMarkers() != 0)
-            {         
+//            if(particles.getTotalPinnedMarkers() != 0)
+//            {         
 
-                Real check;
+//                Real check;
 //                particles.clearMobilityMatrix();
-//                for(int ii=101;ii<=2100;ii++)
+//                for(int ii=51;ii<=4946;ii++)
 //                {
 //                    particles.SetForce(ii,1,0,0);
 //                    for (int d=0; d<AMREX_SPACEDIM; ++d) {
@@ -1108,7 +1111,6 @@ void main_driver(const char* argv)
             (n_steps_skip < 0 && istep%n_steps_skip == 0) ) {
             
             particleMeans.setVal(0.0);
-            particleVars.setVal(0);
 
             for (int d=0; d<AMREX_SPACEDIM; ++d) {
                 umacM[d].setVal(0.);

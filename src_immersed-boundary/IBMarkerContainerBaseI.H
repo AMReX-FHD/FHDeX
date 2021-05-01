@@ -867,6 +867,10 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadKernelGpu(const AoS& ao
         {
             gs = 3;
         }
+        else if (pkernel_fluid[p.idata(StructInt::species)-1] == 1)
+        {
+            gs = 1;
+        }
         else
         {
             gs = 4;
@@ -929,6 +933,10 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadKernelGpu(const AoS& ao
                          {
                             weight*=Kernel4P()(pos_grid[ii]);
                          }
+                         else if (pkernel_fluid[p.idata(StructInt::species)-1] == 1)
+                         {
+                            weight*=Kernel1P()(pos_grid[ii]);
+                         }
                          else
                          {
                             weight*=Kernel6P()(pos_grid[ii]);
@@ -960,6 +968,10 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadKernelGpu(const AoS& ao
                          {
                             weight*=Kernel4P()(pos_grid[ii]);
                          }
+                         else if (pkernel_fluid[p.idata(StructInt::species)-1] == 1)
+                         {
+                            weight*=Kernel1P()(pos_grid[ii]);
+                         }
                          else
                          {
                             weight*=Kernel6P()(pos_grid[ii]);
@@ -990,6 +1002,10 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadKernelGpu(const AoS& ao
                          else if (pkernel_fluid[p.idata(StructInt::species)-1] == 4)
                          {
                             weight*=Kernel4P()(pos_grid[ii]);
+                         }
+                         else if (pkernel_fluid[p.idata(StructInt::species)-1] == 1)
+                         {
+                            weight*=Kernel1P()(pos_grid[ii]);
                          }
                          else
                          {
@@ -1421,6 +1437,10 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateKernelGpu(AoS& aos
         {
             gs = 3;
         }
+        else if (pkernel_fluid[p.idata(StructInt::species)-1] == 1)
+        {
+            gs = 1;
+        }
         else
         {
             gs = 4;
@@ -1501,6 +1521,10 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateKernelGpu(AoS& aos
                      {
                         weight*=Kernel4P()(pos_grid[ii]);
                      }
+                     else if (pkernel_fluid[p.idata(StructInt::species)-1] == 1)
+                     {
+                        weight*=Kernel1P()(pos_grid[ii]);
+                     }
                      else
                      {
                         weight*=Kernel6P()(pos_grid[ii]);
@@ -1546,6 +1570,10 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateKernelGpu(AoS& aos
                      {
                         weight*=Kernel4P()(pos_grid[ii]);
                      }
+                     else if (pkernel_fluid[p.idata(StructInt::species)-1] == 1)
+                     {
+                        weight*=Kernel1P()(pos_grid[ii]);
+                     }
                      else
                      {
                         weight*=Kernel6P()(pos_grid[ii]);
@@ -1586,6 +1614,10 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateKernelGpu(AoS& aos
                      else if (pkernel_fluid[p.idata(StructInt::species)-1] == 4)
                      {
                         weight*=Kernel4P()(pos_grid[ii]);
+                     }
+                     else if (pkernel_fluid[p.idata(StructInt::species)-1] == 1)
+                     {
+                        weight*=Kernel1P()(pos_grid[ii]);
                      }
                      else
                      {
