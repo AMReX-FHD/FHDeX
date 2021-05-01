@@ -90,18 +90,12 @@ void SqrtMF(MultiFab& MF);
 ///////////////////////////
 // in ComputeBasicStats.cpp
 
-void ComputeBasicStats(MultiFab & instant, MultiFab & means, MultiFab & vars,
+void ComputeBasicStats(MultiFab & instant, MultiFab & means, 
                 const int incomp, const int outcomp, const int steps);
 
 void OutputVolumeMean(const MultiFab & instant, const int comp, const Real domainVol, std::string filename, const Geometry geom);
 
 Real MaskedSum (const MultiFab & inFab,int comp, const Periodicity& period);
-
-Real SumFab(const MultiFab & in, const int ng, const int comp);
-
-void XMeanFab(const MultiFab & in, MultiFab & out, const int ng);
-
-void MaxSpeed(std::array< MultiFab, AMREX_SPACEDIM >& umac);
 
 ///////////////////////////
 // in ComputeAverages.cpp

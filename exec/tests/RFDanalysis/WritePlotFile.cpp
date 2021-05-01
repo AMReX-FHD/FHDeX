@@ -14,10 +14,8 @@ void WritePlotFile(int step,
                    FhdParticleContainer& particles,
                    const MultiFab& charge,
                    const MultiFab& chargeM,
-                   const MultiFab& chargeV,
                    const MultiFab& potential,
                    const MultiFab& potentialM,
-                   const MultiFab& potentialV,
                    const std::array< MultiFab, AMREX_SPACEDIM >& efield,
                    const MultiFab& mobility) 
 {
@@ -37,10 +35,10 @@ void WritePlotFile(int step,
 //    int cnPlot = 40;
     int cnPlot = 46;
 
-    // charge, chargeM, chargeV
-    // pot, potM, potV
+    // charge, chargeM
+    // pot, potM
     // Ex, Ey, Ez
-    int enPlot = 6+AMREX_SPACEDIM;
+    int enPlot = 4+AMREX_SPACEDIM;
 
     int fnPlot = nspecies*AMREX_SPACEDIM;
 
@@ -55,13 +53,11 @@ void WritePlotFile(int step,
 
     amrex::MultiFab::Copy(eplotfile,charge    ,0,0,1,0);
     amrex::MultiFab::Copy(eplotfile,chargeM   ,0,1,1,0);
-    amrex::MultiFab::Copy(eplotfile,chargeV   ,0,2,1,0);
-    amrex::MultiFab::Copy(eplotfile,potential ,0,3,1,0);
-    amrex::MultiFab::Copy(eplotfile,potentialM,0,4,1,0);
-    amrex::MultiFab::Copy(eplotfile,potentialV,0,5,1,0);
-    amrex::MultiFab::Copy(eplotfile,efield[0] ,0,6,1,0);
-    amrex::MultiFab::Copy(eplotfile,efield[1] ,0,7,1,0);
-    amrex::MultiFab::Copy(eplotfile,efield[2] ,0,8,1,0);
+    amrex::MultiFab::Copy(eplotfile,potential ,0,2,1,0);
+    amrex::MultiFab::Copy(eplotfile,potentialM,0,3,1,0);
+    amrex::MultiFab::Copy(eplotfile,efield[0] ,0,4,1,0);
+    amrex::MultiFab::Copy(eplotfile,efield[1] ,0,5,1,0);
+    amrex::MultiFab::Copy(eplotfile,efield[2] ,0,6,1,0);
 
     amrex::MultiFab::Copy(cplotfile,particleInstant,0,0 ,14,0);
     amrex::MultiFab::Copy(cplotfile,particleMeans  ,0,14,14,0);
@@ -79,10 +75,8 @@ void WritePlotFile(int step,
 
     evarNames[0] = "chargeInstant";
     evarNames[1] = "chargeMean";
-    evarNames[2] = "chargeVar";
     evarNames[3] = "potentialInstant";
     evarNames[4] = "potentialMean";
-    evarNames[5] = "potentialVar";
     evarNames[6] = "ExInstant";
     evarNames[7] = "EyInstant";
 

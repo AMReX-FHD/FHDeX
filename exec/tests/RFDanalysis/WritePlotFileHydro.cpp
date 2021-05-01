@@ -11,8 +11,7 @@ void WritePlotFileHydro(int step,
                    const amrex::Geometry geom,
                    std::array< MultiFab, AMREX_SPACEDIM >& umac,
 		   const MultiFab& pres,
-                   std::array< MultiFab, AMREX_SPACEDIM >& umacM,
-                   std::array< MultiFab, AMREX_SPACEDIM >& umacV)
+                   std::array< MultiFab, AMREX_SPACEDIM >& umacM)
 {
     
     BL_PROFILE_VAR("WritePlotFile()",WritePlotFile);
@@ -26,7 +25,8 @@ void WritePlotFileHydro(int step,
     // plot all the velocity variables (shifted)
     // plot pressure
     // plot divergence
-    int nPlot = 4*AMREX_SPACEDIM+2;
+    // umacM
+    int nPlot = 3*AMREX_SPACEDIM+2;
 
     MultiFab plotfile(ba, dmap, nPlot, 0);
 
@@ -75,7 +75,6 @@ void WritePlotFileHydro(int step,
         cnt++;
     }
 
-
     // copy pressure into plotfile
     MultiFab::Copy(plotfile, pres, 0, cnt, 1, 0);
     cnt++;
@@ -86,10 +85,6 @@ void WritePlotFileHydro(int step,
 
     // average staggered means to cell-centers and copy into plotfile
     AverageFaceToCC(umacM,plotfile,cnt);
-    cnt+=AMREX_SPACEDIM;
-
-    // average staggered vars to cell-centers and copy into plotfile
-    AverageFaceToCC(umacV,plotfile,cnt);
     cnt+=AMREX_SPACEDIM;
 
     // write a plotfile
