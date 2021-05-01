@@ -984,10 +984,10 @@ void main_driver(const char* argv)
 
         if (fluid_tog == 1) {
 
-//            if(particles.getTotalPinnedMarkers() != 0)
-//            {         
+            if(particles.getTotalPinnedMarkers() != 0)
+            {         
 
-//                Real check;
+                Real check;
 //                particles.clearMobilityMatrix();
 //                for(int ii=51;ii<=4946;ii++)
 //                {
