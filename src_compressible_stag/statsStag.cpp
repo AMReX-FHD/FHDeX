@@ -12,7 +12,7 @@ void evaluateStatsStag(const MultiFab& cons, MultiFab& consMean, MultiFab& consV
                        std::array<MultiFab, AMREX_SPACEDIM>& cumomMean,
                        std::array<MultiFab, AMREX_SPACEDIM>& cumomVar,
                        MultiFab& coVar, 
-                       Vector<Real>& cuyzAvMeans, Vector<Real>& cuyzAvMeans_cross,
+                       Vector<Real>& yzAvMeans_cross,
                        Vector<Real>& spatialCross,
                        const int steps, const amrex::Real* dx)
 {
@@ -132,6 +132,7 @@ void evaluateStatsStag(const MultiFab& cons, MultiFab& consMean, MultiFab& consV
     /////////////////////////////////////
     
     // Loop over boxes
+
     for ( MFIter mfi(prim_in,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
         
         const Box& bx = mfi.tilebox();
@@ -295,93 +296,243 @@ void evaluateStatsStag(const MultiFab& cons, MultiFab& consMean, MultiFab& consV
 
     } // end MFIter
 
-    /////////////////////////////////////////////
-    // evaluate yz average of conserved variables
-    /////////////////////////////////////////////
+    /////////////////////////////////////////////////////////////
+    // evaluate slice average at the cross cell and at every cell
+    /////////////////////////////////////////////////////////////
 
-    Vector<Real> cuyzAv(n_cells[0]*nvars,0.); // yz-average of conserved variable at current snapshot
-    Vector<Real> cuyzAv_cross(nvars,0.); // yz-averaged of conserved variable at current snapshot at the cross cell
+    // contains yz-averaged running & instantaneous averages of conserved variables at every x + four primitive variables [vx, vy, vz, T]: 2*nvars + 2*4
+    Vector<Real>  yzAvMeans(n_cells[0]*(2*nvars+8), 0.0); // yz-average at all x
 
-    for (MFIter mfi(cons, false); mfi.isValid(); ++mfi) {
+    for ( MFIter mfi(prim_in); mfi.isValid(); ++mfi) {
 
         const Box& bx = mfi.validbox();
+
         const auto lo = amrex::lbound(bx);
         const auto hi = amrex::ubound(bx);
 
-        const Array4<const Real> cu = cons.array(mfi);
+        const Array4<const Real> cumeans   = consMean.array(mfi);
+        const Array4<const Real> primmeans = primMean.array(mfi);
+        const Array4<const Real> prim      = prim_in.array(mfi);
+        const Array4<const Real> cu        = cons.array(mfi);
 
-        for (auto i = lo.x; i <= hi.x; ++i) {
-        for (auto l = 0;    l < nvars; ++l) {
+        const Array4<const Real> velx      = vel[0].array(mfi);
+        const Array4<const Real> vely      = vel[1].array(mfi);
+        const Array4<const Real> velz      = vel[2].array(mfi);
+        const Array4<      Real> velxmeans = velMean[0].array(mfi);
+        const Array4<      Real> velymeans = velMean[1].array(mfi);
+        const Array4<      Real> velzmeans = velMean[2].array(mfi);
+
+        const Array4<const Real> momx      = cumom[0].array(mfi);
+        const Array4<const Real> momy      = cumom[1].array(mfi);
+        const Array4<const Real> momz      = cumom[2].array(mfi);
+        const Array4<      Real> momxmeans = cumomMean[0].array(mfi);
+        const Array4<      Real> momymeans = cumomMean[1].array(mfi);
+        const Array4<      Real> momzmeans = cumomMean[2].array(mfi);
+
+        for (int i=0; i<(2*nvars+8); ++i) {
+            yzAvMeans_cross[i] = 0.;
+        }
+        
+        int counter = 0; // number of y * number of z cells
+        
         for (auto k = lo.z; k <= hi.z; ++k) {
         for (auto j = lo.y; j <= hi.y; ++j) {
-            cuyzAv[i*nvars + l] += cu(i,j,k,l); 
-        }
-        }
-        }
-        }
-
-    } // end MFiter
-
-    // sum over all processors
-    ParallelDescriptor::ReduceRealSum(cuyzAv.dataPtr(),n_cells[0]*nvars);
-
-    // divide by the number of yz-face cells
-    int n_face_cells = n_cells[1]*n_cells[2];
-    for (auto i=0; i<n_cells[0]; ++i) {
-        for (auto l=0; l<nvars; ++l) {
-            cuyzAv[i*nvars + l] /= n_face_cells;
-        }
-    }
-
-    // copy the cross_cell yz-averaged value in the vector
-    for (auto i=0; i<n_cells[0]; ++i) {
-        if (i == cross_cell) {
-            for (auto l=0; l<nvars; ++l) {
-                cuyzAv_cross[l] = cuyzAv[i*nvars + l];
+        for (auto i = lo.x; i <= hi.x; ++i) {
+            if (i==cross_cell) {
+                yzAvMeans_cross[0]  += cu(i,j,k,0);                                 // rho-instant
+                yzAvMeans_cross[1]  += cumeans(i,j,k,0);                            // rho-mean
+                yzAvMeans_cross[2]  += cu(i,j,k,4);                                 // energy-instant
+                yzAvMeans_cross[3]  += cumeans(i,j,k,4);                            // energy-mean
+                yzAvMeans_cross[4]  += 0.5*(momx(i,j,k) + momx(i+1,j,k));           // jx-instant
+                yzAvMeans_cross[5]  += 0.5*(momxmeans(i,j,k) + momxmeans(i+1,j,k)); // jx-mean
+                yzAvMeans_cross[6]  += 0.5*(momy(i,j,k) + momy(i,j+1,k));           // jy-instant
+                yzAvMeans_cross[7]  += 0.5*(momymeans(i,j,k) + momymeans(i,j+1,k)); // jy-mean
+                yzAvMeans_cross[8]  += 0.5*(momz(i,j,k) + momz(i,j,k+1));           // jz-instant
+                yzAvMeans_cross[9]  += 0.5*(momzmeans(i,j,k) + momzmeans(i,j,k+1)); // jz-mean
+                yzAvMeans_cross[10] += 0.5*(velx(i,j,k) + velx(i+1,j,k));           // velx-instant
+                yzAvMeans_cross[11] += 0.5*(velxmeans(i,j,k) + velxmeans(i+1,j,k)); // velx-mean
+                yzAvMeans_cross[12] += 0.5*(vely(i,j,k) + vely(i,j+1,k));           // vely-instant
+                yzAvMeans_cross[13] += 0.5*(velymeans(i,j,k) + velymeans(i,j+1,k)); // vely-mean
+                yzAvMeans_cross[14] += 0.5*(velz(i,j,k) + velz(i,j,k+1));           // velz-instant
+                yzAvMeans_cross[15] += 0.5*(velzmeans(i,j,k) + velzmeans(i,j,k+1)); // velz-mean
+                yzAvMeans_cross[16] += prim(i,j,k,4);                               // T-instant
+                yzAvMeans_cross[17] += primmeans(i,j,k,0);                          // T-mean
+                for (int ns=0; ns<nspecies; ++ns) {
+                    yzAvMeans_cross[18+2*ns+0]   += cu(i,j,k,5+ns);                 // rhoYk-instant
+                    yzAvMeans_cross[18+2*ns+1]   += cumeans(i,j,k,5+ns);            // rhoYk-mean
+                }
+                counter = counter + 1;
+            }
+            yzAvMeans[i*(2*nvars+8)+0]  += cu(i,j,k,0);                                 // rho-instant
+            yzAvMeans[i*(2*nvars+8)+1]  += cumeans(i,j,k,0);                            // rho-mean
+            yzAvMeans[i*(2*nvars+8)+2]  += cu(i,j,k,4);                                 // energy-instant
+            yzAvMeans[i*(2*nvars+8)+3]  += cumeans(i,j,k,4);                            // energy-mean
+            yzAvMeans[i*(2*nvars+8)+4]  += 0.5*(momx(i,j,k) + momx(i+1,j,k));           // jx-instant
+            yzAvMeans[i*(2*nvars+8)+5]  += 0.5*(momxmeans(i,j,k) + momxmeans(i+1,j,k)); // jx-mean
+            yzAvMeans[i*(2*nvars+8)+6]  += 0.5*(momy(i,j,k) + momy(i,j+1,k));           // jy-instant
+            yzAvMeans[i*(2*nvars+8)+7]  += 0.5*(momymeans(i,j,k) + momymeans(i,j+1,k)); // jy-mean
+            yzAvMeans[i*(2*nvars+8)+8]  += 0.5*(momz(i,j,k) + momz(i,j,k+1));           // jz-instant
+            yzAvMeans[i*(2*nvars+8)+9]  += 0.5*(momzmeans(i,j,k) + momzmeans(i,j,k+1)); // jz-mean
+            yzAvMeans[i*(2*nvars+8)+10] += 0.5*(velx(i,j,k) + velx(i+1,j,k));           // velx-instant
+            yzAvMeans[i*(2*nvars+8)+11] += 0.5*(velxmeans(i,j,k) + velxmeans(i+1,j,k)); // velx-mean
+            yzAvMeans[i*(2*nvars+8)+12] += 0.5*(vely(i,j,k) + vely(i,j+1,k));           // vely-instant
+            yzAvMeans[i*(2*nvars+8)+13] += 0.5*(velymeans(i,j,k) + velymeans(i,j+1,k)); // vely-mean
+            yzAvMeans[i*(2*nvars+8)+14] += 0.5*(velz(i,j,k) + velz(i,j,k+1));           // velz-instant
+            yzAvMeans[i*(2*nvars+8)+15] += 0.5*(velzmeans(i,j,k) + velzmeans(i,j,k+1)); // velz-mean
+            yzAvMeans[i*(2*nvars+8)+16] += prim(i,j,k,4);                               // T-instant
+            yzAvMeans[i*(2*nvars+8)+17] += primmeans(i,j,k,0);                          // T-mean
+            for (int ns=0; ns<nspecies; ++ns) {
+                yzAvMeans[i*(2*nvars+8)+18+2*ns+0]   += cu(i,j,k,5+ns);                 // rhoYk-instant
+                yzAvMeans[i*(2*nvars+8)+18+2*ns+1]   += cumeans(i,j,k,5+ns);            // rhoYk-mean
             }
         }
-    }
+        }
+        }
 
-    ///////////////////////////////////////////////
-    // increment yz average of conserved variables
-    // to the running mean and compute fluctuation
-    ///////////////////////////////////////////////
-    
-    Vector<Real> delcuyzAv(n_cells[0]*nvars,0.); // yz-average of conserved variable at current snapshot 
-    Vector<Real> delcuyzAv_cross(nvars,0.); // yz-averaged of conserved variable at current snapshot at the cross cell
+        for (int i=0; i<n_cells[0]*(2*nvars+8); ++i) {
+            yzAvMeans[i] /= counter;
+        }
+        for (int i=0; i<(2*nvars+8); ++i) {
+            yzAvMeans_cross[i] /= counter;
+        }
 
-    for (auto i=0; i<n_cells[0]; ++i) {
-        for (auto l=0; l<nvars; ++l) {
-            cuyzAvMeans[i*nvars + l] = (cuyzAvMeans[i*nvars + l]*stepsminusone + cuyzAv[i*nvars + l])*stepsinv;
-            delcuyzAv[i*nvars + l] = cuyzAv[i*nvars + l] - cuyzAvMeans[i*nvars + l];
+    } // end MFITer
+
+    // parallel reduce sum yzAvMeans and yzAvMeans_cross
+    ParallelDescriptor::ReduceRealSum(yzAvMeans.dataPtr(),n_cells[0]*(2*nvars+8));
+    ParallelDescriptor::ReduceRealSum(yzAvMeans_cross.dataPtr(),2*nvars+8);
+
+    /////////////////////////////////////////////////////////////
+    // evaluate x-spatial correlations
+    /////////////////////////////////////////////////////////////
+    int ncross = 11+nspecies;
+    for (int i=0; i<n_cells[0]; ++i) {
+
+        spatialCross[i*ncross+0] = (spatialCross[i*ncross+0]*stepsminusone + yzAvMeans_cross[16]*yzAvMeans[i*(2*nvars+8)+16])*stepsinv; // <T(x*)T(x)>
+        spatialCross[i*ncross+1] = spatialCross[i*ncross+0] - yzAvMeans_cross[17]*yzAvMeans[i*(2*nvars+8)+17]; // <T(x*)T(x)> - <T(x*)><T(x)>
+        spatialCross[i*ncross+2] = (spatialCross[i*ncross+2]*stepsminusone + yzAvMeans_cross[16]*yzAvMeans[i*(2*nvars+8)+0])*stepsinv; // <T(x*)rho(x)>
+        spatialCross[i*ncross+3] = spatialCross[i*ncross+2] - yzAvMeans_cross[17]*yzAvMeans[i*(2*nvars+8)+1]; // <T(x*)rho(x)> - <T(x*)><rho(x)>
+        
+        Real delrhostar = yzAvMeans_cross[0] - yzAvMeans_cross[1]; // <rho(x*) - <rho(x*)>>
+        Real delrho     = yzAvMeans[i*(2*nvars+8)+0] - yzAvMeans[i*(2*nvars+8)+1]; // <rho(x) - <rho(x)>>
+        spatialCross[i*ncross+4] = (spatialCross[i*ncross+4]*stepsminusone + delrhostar*delrho)*stepsinv; // <delrho(x*) delrho(x)>
+        spatialCross[i*ncross+5] = (spatialCross[i*ncross+5]*stepsminusone + yzAvMeans_cross[6]*yzAvMeans[i*(2*nvars+8)+0])*stepsinv; // <jx(x*)rho(x)>
+        
+        Real deljxdelrho = spatialCross[i*ncross+5] - yzAvMeans_cross[5]*yzAvMeans[i*(2*nvars+8)+1]; // <jx(x*)rho(x)> - <jx(x*)><rho(x)> = <deljx(x*)delrho(x)>
+        // <delu(x*)delrho> = (<deljx(x*)delrho(x)> - <u(x*)><<delrho(x*) delrho(x)>)/<rho(x*)> -- see Garcia 2007
+        spatialCross[i*ncross+6] = (deljxdelrho - yzAvMeans_cross[11]*spatialCross[i*ncross+4])/yzAvMeans_cross[1];  
+        
+        Real delrhoEstar = yzAvMeans_cross[2] - yzAvMeans_cross[3]; // <rhoE(x*) - <rhoE(x*)>>
+        Real delrhoE     = yzAvMeans[i*(2*nvars+8)+2] - yzAvMeans[i*(2*nvars+8)+3]; // <rhoE(x) - <rhoE(x)>>
+        spatialCross[i*ncross+7] = (spatialCross[i*ncross+7]*stepsminusone + delrhoEstar*delrhoE)*stepsinv; // <delrhoE(x*) delrhoE(x)>
+        
+        Real deljxstar = yzAvMeans_cross[4] - yzAvMeans_cross[5]; // <jx(x*) - <jx(x*)>>
+        Real deljx     = yzAvMeans[i*(2*nvars+8)+4] - yzAvMeans[i*(2*nvars+8)+5]; // <jx(x) - <jx(x)>>
+        spatialCross[i*ncross+8] = (spatialCross[i*ncross+8]*stepsminusone + deljxstar*deljx)*stepsinv; // <deljx(x*) deljx(x)>
+        
+        Real deljystar = yzAvMeans_cross[6] - yzAvMeans_cross[7]; // <jy(x*) - <jy(x*)>>
+        Real deljy     = yzAvMeans[i*(2*nvars+8)+6] - yzAvMeans[i*(2*nvars+8)+7]; // <jy(x) - <jy(x)>>
+        spatialCross[i*ncross+9] = (spatialCross[i*ncross+9]*stepsminusone + deljystar*deljy)*stepsinv; // <deljy(x*) deljy(x)>
+        
+        Real deljzstar = yzAvMeans_cross[8] - yzAvMeans_cross[9]; // <jz(x*) - <jz(x*)>>
+        Real deljz     = yzAvMeans[i*(2*nvars+8)+8] - yzAvMeans[i*(2*nvars+8)+9]; // <jz(x) - <jz(x)>>
+        spatialCross[i*ncross+10] = (spatialCross[i*ncross+10]*stepsminusone + deljzstar*deljz)*stepsinv; // <deljz(x*) deljz(x)>
+
+        for (int ns=0; ns<nspecies; ++ns) {
+            Real delrhoykstar = yzAvMeans_cross[18+2*ns+0] - yzAvMeans_cross[18+2*ns+1]; // <rhoyk(x*) - <rhoyk(x*)>>
+            Real delrhoyk     = yzAvMeans[i*(2*nvars+8)+18+2*ns+0] - yzAvMeans[i*(2*nvars+8)+18+2*ns+1]; // <rhoyk(x) - <rhoyk(x)>>
+            spatialCross[i*ncross+11+ns] = (spatialCross[i*ncross+11+ns]*stepsminusone + delrhoykstar*delrhoyk)*stepsinv; // <delrhoyk(x*) delrhoyk(x)>
         }
     }
-
-    for (auto l=0; l<nvars; ++l) {
-        cuyzAvMeans_cross[l] = (cuyzAvMeans_cross[l]*stepsminusone + cuyzAv_cross[l])*stepsinv;
-        delcuyzAv_cross[l] = cuyzAv_cross[l] - cuyzAvMeans_cross[l];
-    }
-
-    ///////////////////////////////////////////////
-    // increment yz running average of spatial
-    // correlation of fluctuations of conserved
-    // variables, i.e., <delA(x)delB(x*)>, where
-    // x* is the cross_cell, and A and B are all
-    // combinations of two conserved variables
-    ///////////////////////////////////////////////
     
-    int flag;
-    for (auto i=0; i<n_cells[0]; ++i) {
-        flag = 0;
-        for (auto n=0; n<nvars; ++n) {
-            for (auto m=0; m<nvars; ++m) {
+    //Vector<Real> yzAv(n_cells[0]*(nvars+2),0.); 
+    //Vector<Real> yzAvCross(n_cells[0]*(nvars+2)*(nvars+2),0.); 
+    //Vector<Real> yzAv_cross(nvars+2,0.); 
 
-                spatialCross[i*nvars*nvars + flag] = (spatialCross[i*nvars*nvars + flag]*stepsminusone + 
-                                                             delcuyzAv[i*nvars + n]*delcuyzAv_cross[m])*stepsinv;
-                flag += 1;
-            }
-        }
-    }
+    //for (MFIter mfi(cons, false); mfi.isValid(); ++mfi) {
+
+    //    const Box& bx = mfi.validbox();
+    //    const auto lo = amrex::lbound(bx);
+    //    const auto hi = amrex::ubound(bx);
+
+    //    const Array4<const Real> primmeans = primMean.array(mfi);
+    //    const Array4<const Real> cumeans   = consMean.array(mfi);
+
+    //    for (auto i = lo.x; i <= hi.x; ++i) {
+    //    for (auto k = lo.z; k <= hi.z; ++k) {
+    //    for (auto j = lo.y; j <= hi.y; ++j) {
+    //        for (auto l = 0; l < nvars; ++l) {
+    //            yzAv[i*(nvars+2) + l] += cumeans(i,j,k,l); 
+    //        }
+    //        yzAv[i*(nvars+2) + nvars + 0] += primmeans(i,j,k,1); // <vx>
+    //        yzAv[i*(nvars+2) + nvars + 1] += primmeans(i,j,k,4); // <T>
+    //        for (auto n = 0; 
+    //    }
+    //    }
+    //    }
+
+    //} // end MFiter
+
+    //// sum over all processors
+    //ParallelDescriptor::ReduceRealSum(yzAv.dataPtr(),n_cells[0]*(nvars+2));
+
+    //// divide by the number of yz-face cells
+    //int n_face_cells = n_cells[1]*n_cells[2];
+    //for (auto i=0; i<n_cells[0]; ++i) {
+    //    for (auto l=0; l<nvars+2; ++l) {
+    //        yzAv[i*(nvars+2) + l] /= n_face_cells;
+    //    }
+    //}
+
+    //// copy the cross_cell yz-averaged value in the vector
+    //for (auto i=0; i<n_cells[0]; ++i) {
+    //    if (i == cross_cell) {
+    //        for (auto l=0; l<nvars+2; ++l) {
+    //            yzAv_cross[l] = yzAv[i*(nvars+2) + l];
+    //        }
+    //    }
+    //}
+
+    /////////////////////////////////////////////////
+    //// increment yz average of conserved variables
+    //// to the running mean and compute fluctuation
+    /////////////////////////////////////////////////
+    //
+    //Vector<Real> delyzAv(n_cells[0]*(nvars+2),0.); // yz-average of the variance of conserved variables at current snapshot + two primitive variables [vx, T]
+    //Vector<Real> delyzAv_cross(nvars+2,0.); // yz-averaged of the variance conserved variable at current snapshot at the cross cell + two primitive variables [vx, T]
+
+    //for (auto i=0; i<n_cells[0]; ++i) {
+    //    for (auto l=0; l<nvars; ++l) {
+    //        yzAvMeans[i*nvars + l] = (yzAvMeans[i*nvars + l]*stepsminusone + yzAv[i*nvars + l])*stepsinv;
+    //        delyzAv[i*nvars + l] = yzAv[i*nvars + l] - yzAvMeans[i*nvars + l];
+    //    }
+    //}
+
+    //for (auto l=0; l<nvars; ++l) {
+    //    yzAvMeans_cross[l] = (yzAvMeans_cross[l]*stepsminusone + yzAv_cross[l])*stepsinv;
+    //    delyzAv_cross[l] = yzAv_cross[l] - yzAvMeans_cross[l];
+    //}
+
+    /////////////////////////////////////////////////
+    //// increment yz running average of spatial
+    //// correlation of fluctuations of conserved
+    //// variables, i.e., <delA(x)delB(x*)>, where
+    //// x* is the cross_cell, and A and B are all
+    //// combinations of two conserved variables
+    /////////////////////////////////////////////////
+    //
+    //int flag;
+    //for (auto i=0; i<n_cells[0]; ++i) {
+    //    flag = 0;
+    //    for (auto n=0; n<nvars; ++n) {
+    //        for (auto m=0; m<nvars; ++m) {
+
+    //            spatialCross[i*nvars*nvars + flag] = (spatialCross[i*nvars*nvars + flag]*stepsminusone + 
+    //                                                         delyzAv[i*nvars + n]*delyzAv_cross[m])*stepsinv;
+    //            flag += 1;
+    //        }
+    //    }
+    //}
                 
 }
 

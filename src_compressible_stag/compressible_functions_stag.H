@@ -112,7 +112,7 @@ void evaluateStatsStag(const MultiFab& cons, MultiFab& consMean, MultiFab& consV
                        std::array<MultiFab, AMREX_SPACEDIM>& cumomMean,
                        std::array<MultiFab, AMREX_SPACEDIM>& cumomVar,
                        MultiFab& coVar,
-                       Vector<Real>& cuyzAvMeans, Vector<Real>& cuyzAvMeans_cross,
+                       Vector<Real>& yzAvMeans_cross,
                        Vector<Real>& spatialCross,
                        const int steps, const amrex::Real* dx);
 
@@ -147,8 +147,6 @@ void WriteCheckPoint(int step,
                      const std::array<MultiFab, AMREX_SPACEDIM>& velMeans,
                      const std::array<MultiFab, AMREX_SPACEDIM>& velVars,
                      const amrex::MultiFab& coVars,
-                     const Vector<Real>& cuyzAvMeans,
-                     const Vector<Real>& cuyzAvMeans_cross,
                      const Vector<Real>& spatialCross);
 
 void ReadCheckPoint(int& step,
@@ -168,8 +166,6 @@ void ReadCheckPoint(int& step,
                      std::array<MultiFab, AMREX_SPACEDIM>& velMeans,
                      std::array<MultiFab, AMREX_SPACEDIM>& velVars,
                      amrex::MultiFab& coVars,
-                     Vector<Real>& cuyzAvMeans,
-                     Vector<Real>& cuyzAvMeans_cross,
                      Vector<Real>& spatialCross,
                      BoxArray& ba, DistributionMapping& dmap);
 

@@ -170,14 +170,23 @@ void main_driver(const char* argv)
         Abort("Cross cell needs to be within the domain: 0 < cross_cell < n_cells[0] - 1");
     }
 
-    // contains yz-averaged running averages of conserved variables at every x
-    Vector<Real>  cuyzAvMeans(n_cells[0]*nvars, 0.0);
-
-    // contains yz-averaged running averages of conserved variables at cross cell 
-    Vector<Real> cuyzAvMeans_cross(nvars, 0.0); 
+    // contains yz-averaged running & instantaneous averages of conserved variables at cross cell + four primitive variables [vx, vy, vz, T]: 2*nvars + 2*4
+    Vector<Real> yzAvMeans_cross(2*nvars+8, 0.0); 
     
-    // <delA(x)delB(x')> for all pairs of A,B conserved variables and for x' = crosscell
-    Vector<Real> spatialCross(n_cells[0]*nvars*nvars, 0.0); 
+    // 0: <T* T>
+    // 1: <delT* delT>
+    // 2: <T* rho>
+    // 3: <delT* delrho>
+    // 4: <delrho* delrho>
+    // 5: <jx* rho>
+    // 6: <delu* delrho>
+    // 7: <delrhoE* delrhoE>
+    // 8: <deljx* deljx>
+    // 9: <deljy* deljy>
+    // 10: <deljz* deljz>
+    // 11:11+nspecies-1: <delrhoYk* delrhoYk>
+    // can add more -- change main_driver, statsStag, writeplotfilestag, and Checkpoint
+    Vector<Real> spatialCross(n_cells[0]*(11+nspecies), 0.0); 
     
     // make BoxArray and Geometry
     BoxArray ba;
@@ -205,7 +214,7 @@ void main_driver(const char* argv)
     if (restart > 0) {
         ReadCheckPoint(step_start, time, statsCount, geom, cu, cuMeans, cuVars, prim,
                        primMeans, primVars, cumom, cumomMeans, cumomVars, 
-                       vel, velMeans, velVars, coVars, cuyzAvMeans, cuyzAvMeans_cross, spatialCross,
+                       vel, velMeans, velVars, coVars, spatialCross,
                        ba, dmap);
 
         // transport properties
@@ -628,9 +637,6 @@ void main_driver(const char* argv)
             }
 
             coVars.setVal(0.0);
-
-            cuyzAvMeans.assign(cuyzAvMeans.size(), 0.0);
-            cuyzAvMeans_cross.assign(cuyzAvMeans_cross.size(), 0.0);
             spatialCross.assign(spatialCross.size(), 0.0);
 
             std::printf("Resetting stat collection.\n");
@@ -642,7 +648,7 @@ void main_driver(const char* argv)
         // Evaluate Statistics
         evaluateStatsStag(cu, cuMeans, cuVars, prim, primMeans, primVars, vel, 
                           velMeans, velVars, cumom, cumomMeans, cumomVars, coVars,
-                          cuyzAvMeans, cuyzAvMeans_cross, spatialCross, statsCount, dx);
+                          yzAvMeans_cross, spatialCross, statsCount, dx);
         statsCount++;
 
         // write a plotfile
@@ -666,8 +672,8 @@ void main_driver(const char* argv)
                 WriteSpatialCross(spatialCross, step, dx);
                 if (ParallelDescriptor::IOProcessor()) {
                     outfile << step << " ";
-                    for (auto l=0; l<nvars; ++l) {
-                        outfile << cuyzAvMeans_cross[l] << " ";
+                    for (auto l=0; l<2*nvars+8; ++l) {
+                        outfile << yzAvMeans_cross[l] << " ";
                     }
                     outfile << std::endl;
                 }
@@ -713,7 +719,7 @@ void main_driver(const char* argv)
         {
             WriteCheckPoint(step, time, statsCount, geom, cu, cuMeans, cuVars, prim,
                            primMeans, primVars, cumom, cumomMeans, cumomVars, 
-                           vel, velMeans, velVars, coVars, cuyzAvMeans, cuyzAvMeans_cross, spatialCross);
+                           vel, velMeans, velVars, coVars, spatialCross);
         }
 
         // timer

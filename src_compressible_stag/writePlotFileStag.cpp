@@ -328,14 +328,11 @@ void WriteSpatialCross(const Vector<Real>& spatialCross, int step, const amrex::
         outfile.open(filename);
     
         int flag;
+        int ncross = 11+nspecies;
         for (auto i=0; i<n_cells[0]; ++i) {
-            flag = 0;
             outfile << prob_lo[0] + (i+0.5)*dx[0] << " "; 
-            for (auto n=0; n<nvars; ++n) {
-                for (auto m=0; m<nvars; ++m) {
-                    outfile << spatialCross[i*nvars*nvars + flag] << " ";
-                    flag += 1;
-                }
+            for (auto n=0; n<ncross; ++n) {
+                outfile << spatialCross[i*ncross+n] << " ";
             }
             outfile << std::endl;
         }

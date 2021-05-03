@@ -38,8 +38,6 @@ void WriteCheckPoint(int step,
                      const std::array<MultiFab, AMREX_SPACEDIM>& velMeans,
                      const std::array<MultiFab, AMREX_SPACEDIM>& velVars,
                      const amrex::MultiFab& coVars,
-                     const Vector<Real>& cuyzAvMeans,
-                     const Vector<Real>& cuyzAvMeans_cross,
                      const Vector<Real>& spatialCross)
 {
     // timer for profiling
@@ -100,18 +98,8 @@ void WriteCheckPoint(int step,
         // Write all the vectors associated with cross averages into the Header file
         if (plot_cross) {
 
-            // cuyzAvMeans
-            for (int i=0; i<n_cells[0]*nvars; i++) {
-                HeaderFile << std::setprecision(16) << cuyzAvMeans[i] << "\n";
-            }
-
-            // cuyzAvMeans_cross
-            for (int i=0; i<nvars; i++) {
-                HeaderFile << std::setprecision(16) << cuyzAvMeans_cross[i] << "\n";
-            }
-
             // spatialCross
-            for (int i=0; i<n_cells[0]*nvars*nvars; i++) {
+            for (int i=0; i<n_cells[0]*(11+nspecies); i++) {
                 HeaderFile << std::setprecision(16) << spatialCross[i] << "\n";
             }
         }
@@ -265,8 +253,6 @@ void ReadCheckPoint(int& step,
                      std::array<MultiFab, AMREX_SPACEDIM>& velMeans,
                      std::array<MultiFab, AMREX_SPACEDIM>& velVars,
                      amrex::MultiFab& coVars,
-                     Vector<Real>& cuyzAvMeans,
-                     Vector<Real>& cuyzAvMeans_cross,
                      Vector<Real>& spatialCross,
                      BoxArray& ba, DistributionMapping& dmap)
 {
@@ -314,22 +300,8 @@ void ReadCheckPoint(int& step,
         if (plot_cross) {
 
             Real val;
-            // cuyzAvMeans
-            for (int i=0; i<n_cells[0]*nvars; i++) {
-                is >> val;
-                GotoNextLine(is);
-                cuyzAvMeans[i] = val;
-            }
-
-            // cuyzAvMeans_cross
-            for (int i=0; i<nvars; i++) {
-                is >> val;
-                GotoNextLine(is);
-                cuyzAvMeans_cross[i] = val;
-            }
-
             // spatialCross
-            for (int i=0; i<n_cells[0]*nvars*nvars; i++) {
+            for (int i=0; i<n_cells[0]*(11+nspecies); i++) {
                 is >> val;
                 GotoNextLine(is);
                 spatialCross[i] = val;
