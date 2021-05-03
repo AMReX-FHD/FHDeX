@@ -34,9 +34,9 @@ void setBCStag(MultiFab& prim_in, MultiFab& cons_in,
 }
 
 // set species and total density flux to zero for wall boundary conditions
-void BCWallSpeciesFlux(std::array< MultiFab, AMREX_SPACEDIM >& faceflux, const amrex::Geometry geom)
+void BCWallSpeciesFluxStag(std::array< MultiFab, AMREX_SPACEDIM >& faceflux, const amrex::Geometry geom)
 {
-    BL_PROFILE_VAR("BCWallSpeciesFlux()",BCWallSpeciesFlux);
+    BL_PROFILE_VAR("BCWallSpeciesFluxStag()",BCWallSpeciesFluxStag);
 
     // LO X
     if (bc_mass_lo[0] == 1) {

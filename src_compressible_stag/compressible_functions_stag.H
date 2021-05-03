@@ -48,8 +48,8 @@ void setBCStag(MultiFab& prim_in, MultiFab& cons_in,
                  std::array< MultiFab, AMREX_SPACEDIM >& vel_in,
                  const amrex::Geometry geom);
 
-void BCWallSpeciesFlux(std::array< MultiFab, AMREX_SPACEDIM >& faceflux, 
-                       const amrex::Geometry geom);
+void BCWallSpeciesFluxStag(std::array< MultiFab, AMREX_SPACEDIM >& faceflux, 
+                           const amrex::Geometry geom);
 
 void BCMem(MultiFab& prim_in, MultiFab& cons_in,
            std::array< MultiFab, AMREX_SPACEDIM >& cumom_in,
