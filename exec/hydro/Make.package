@@ -1,11 +1,9 @@
 CEXE_sources   += advance.cpp
 CEXE_sources   += Checkpoint.cpp
 CEXE_sources   += ExternalForce.cpp
+CEXE_sources   += Init.cpp
 CEXE_sources   += TurbForcing.cpp
 CEXE_sources   += WritePlotFile.cpp
 
 CEXE_headers   += hydro_test_functions.H
-CEXE_headers   += hydro_test_functions_F.H
 CEXE_headers   += TurbForcing.H
-
-F90EXE_sources += init_s_funcs.F90

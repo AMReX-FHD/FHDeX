@@ -292,6 +292,8 @@ public:
 
     int totalBins;
 
+    int doRedist;
+
     Real *nearestN;
 
     Real *meanRadialDistribution   ;
@@ -331,10 +333,6 @@ public:
     Real threepmRange = 5; 
 
   //protected:
-
-    void UpdateFortranStructures();
-
-    void UpdateCellVectors();
 
     // used to store vectors of particle indices on a cell-by-cell basis
 //    std::map<int, amrex::BaseFab<std::vector<int> > > m_cell_vectors;

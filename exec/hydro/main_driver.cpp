@@ -1,6 +1,5 @@
 
 #include "hydro_test_functions.H"
-#include "hydro_test_functions_F.H"
 
 #include "hydro_functions.H"
 
@@ -150,12 +149,9 @@ void main_driver(const char* argv)
                                         geom.ProbLo(), geom.ProbHi() ,&dm,
                                         ZFILL(realDomain.lo()), ZFILL(realDomain.hi())););
 
-    	// initialize tracer
-        init_s_vel(BL_TO_FORTRAN_BOX(bx),
-    		   BL_TO_FORTRAN_ANYD(tracer[mfi]),
-    		   dx, ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
-
         }
+
+        InitTracer(tracer,geom);
 
         // temporary for addMomfluctuations and MacProj_hydro
         MultiFab rho(ba, dmap, 1, 1);

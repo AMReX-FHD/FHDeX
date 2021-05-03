@@ -23,7 +23,7 @@ void WritePlotFileStag(int step,
                        const amrex::MultiFab& eta,
                        const amrex::MultiFab& kappa)
 {
-    BL_PROFILE_VAR("writePlotFile()",writePlotFile);
+    BL_PROFILE_VAR("writePlotFileStag()",writePlotFileStag);
     
     int cnt, numvars, i = 0;
 
@@ -314,8 +314,14 @@ void WritePlotFileStag(int step,
     }
 
     // write a plotfile
+    // timer
+    Real t1 = ParallelDescriptor::second();
+    
     WriteSingleLevelPlotfile(plotfilename,plotfile,varNames,geom,time,step);
-
+    
+    Real t2 = ParallelDescriptor::second() - t1;
+    ParallelDescriptor::ReduceRealMax(t2);
+    amrex::Print() << "Time spent writing plotfile " << t2 << std::endl;
 }
 
 void WriteSpatialCross(const Vector<Real>& spatialCross, int step, const amrex::Real* dx) 
