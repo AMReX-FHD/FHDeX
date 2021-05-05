@@ -1,4 +1,2 @@
 F90EXE_sources += common_namelist.F90
-F90EXE_sources += compute_basic_stats.F90
-F90EXE_sources += find_nodal_values.F90
 F90EXE_sources += init_funcs.F90

@@ -97,7 +97,6 @@ void main_driver(const char* argv)
     // note if we are restarting, these are defined and initialized to the checkpoint data
     std::array< MultiFab, AMREX_SPACEDIM > umac;
     std::array< MultiFab, AMREX_SPACEDIM > umacM;    // mean
-    std::array< MultiFab, AMREX_SPACEDIM > umacV;    // variance
 
     std::array< MultiFab, AMREX_SPACEDIM > touched;
 
@@ -112,12 +111,9 @@ void main_driver(const char* argv)
     // MF for electric potential
     MultiFab potential;
     MultiFab potentialM;
-    MultiFab potentialV;
 
     // MF for charge mean and variance
     MultiFab chargeM;
-    MultiFab chargeV;
-
     
     if (restart < 0) {
         
@@ -170,10 +166,8 @@ void main_driver(const char* argv)
             umac [d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ang);
             touched[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ang);
             umacM[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
-            umacV[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
             umac [d].setVal(0.);
             umacM[d].setVal(0.);
-            umacV[d].setVal(0.);
         }
 
         pres.define(ba,dmap,1,1);
@@ -243,22 +237,18 @@ void main_driver(const char* argv)
         //Cell centred es potential
         potential.define(bp, dmap, 1, ngp);
         potentialM.define(bp, dmap, 1, 1);
-        potentialV.define(bp, dmap, 1, 1);
         potential.setVal(0.);
         potentialM.setVal(0.);
-        potentialV.setVal(0.);
         
         chargeM.define(bp, dmap, 1, 1);  // mean
-        chargeV.define(bp, dmap, 1, 1);  // variance
         chargeM.setVal(0);
-        chargeV.setVal(0);
     }
     else {
         
         // restart from checkpoint
-        ReadCheckPoint(step,time,statsCount,umac,umacM,umacV,pres,
-                       particleMeans,particleVars,chargeM,chargeV,
-                       potential,potentialM,potentialV);
+        ReadCheckPoint(step,time,statsCount,umac,umacM,pres,
+                       particleMeans,particleVars,chargeM,
+                       potential,potentialM);
 
         // grab DistributionMap from umac
         dmap = umac[0].DistributionMap();
@@ -360,7 +350,10 @@ void main_driver(const char* argv)
        }
        else if (pkernel_fluid[j] == 6) {
            wetRad[j] = 1.481*dxAv;
-       }
+       }else
+        {
+           wetRad[j] = 1.255*dxAv;
+        }
     }
 
     for(int i=0;i<nspecies;i++) {
@@ -589,36 +582,6 @@ void main_driver(const char* argv)
     weights = {1.0};
 
     ///////////////////////////////////////////
-
-/*    
-    // Setting the intial velocities can be useful for debugging, to get a known velocity field.
-    // Note that we don't need to initialize velocities for the overdamped case.
-    // They only matter as an initial guess to GMRES.
-    // The first GMRES solve will compute the velocities as long as they start out with non-NaN values.
-    int dm = 0;
-    for ( MFIter mfi(beta); mfi.isValid(); ++mfi ) {
-        const Box& bx = mfi.validbox();
-
-        AMREX_D_TERM(dm=0; init_vel(BL_TO_FORTRAN_BOX(bx),
-                                    BL_TO_FORTRAN_ANYD(umac[0][mfi]), geom.CellSize(),
-                                    geom.ProbLo(), geom.ProbHi() ,&dm,
-                                    ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));,
-                     dm=1; init_vel(BL_TO_FORTRAN_BOX(bx),
-                                    BL_TO_FORTRAN_ANYD(umac[1][mfi]), geom.CellSize(),
-                                    geom.ProbLo(), geom.ProbHi() ,&dm,
-                                    ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));,
-                     dm=2; init_vel(BL_TO_FORTRAN_BOX(bx),
-                                    BL_TO_FORTRAN_ANYD(umac[2][mfi]), geom.CellSize(),
-                                    geom.ProbLo(), geom.ProbHi() ,&dm,
-                                    ZFILL(realDomain.lo()), ZFILL(realDomain.hi())););
-
-    }
-
-    if (initial_variance_mom != 0.0) {
-        // sMflux.addMomFluctuations(umac, rho, temp_cc, initial_variance_mom);
-        Abort("Initial momentum fluctuations not implemented; if you are overdamped they don't make sense anyway.");
-    }
-*/
         
     // additional staggered velocity MultiFabs
     std::array< MultiFab, AMREX_SPACEDIM > umacNew;
@@ -865,7 +828,7 @@ void main_driver(const char* argv)
 
 
 //    // Writes instantaneous flow field and some other stuff? Check with Guy.
-//    WritePlotFileHydro(0, time, geom, umac, pres, umacM, umacV);
+    WritePlotFileHydro(0, time, geom, umac, pres, umacM);
     remove("bulkFlowEst");
     //Time stepping loop
 
@@ -996,7 +959,7 @@ void main_driver(const char* argv)
 
                 Real check;
 //                particles.clearMobilityMatrix();
-//                for(int ii=101;ii<=2100;ii++)
+//                for(int ii=51;ii<=4946;ii++)
 //                {
 //                    particles.SetForce(ii,1,0,0);
 //                    for (int d=0; d<AMREX_SPACEDIM; ++d) {
@@ -1108,11 +1071,9 @@ void main_driver(const char* argv)
             (n_steps_skip < 0 && istep%n_steps_skip == 0) ) {
             
             particleMeans.setVal(0.0);
-            particleVars.setVal(0);
 
             for (int d=0; d<AMREX_SPACEDIM; ++d) {
                 umacM[d].setVal(0.);
-                umacV[d].setVal(0.);
             }
                 
             Print() << "Resetting stat collection.\n";
@@ -1157,10 +1118,10 @@ void main_driver(const char* argv)
 
         // compute the mean and variance of umac
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
-            ComputeBasicStats(umac[d], umacM[d], umacV[d], 0, 0, statsCount);
+            ComputeBasicStats(umac[d], umacM[d], 0, 0, statsCount);
         }
-        ComputeBasicStats(potential, potentialM, potentialV, 0, 0, statsCount);
-        ComputeBasicStats(charge   , chargeM   , chargeV   , 0, 0, statsCount);
+        ComputeBasicStats(potential, potentialM, 0, 0, statsCount);
+        ComputeBasicStats(charge   , chargeM   , 0, 0, statsCount);
 
         //Don't forget to add a remove(filename) so it doesn't append to old data
         OutputVolumeMean(umac[0], 0, domainVol, "bulkFlowEst", geom);
@@ -1206,16 +1167,16 @@ void main_driver(const char* argv)
             // This write particle data and associated fields and electrostatic fields
             WritePlotFile(istep, time, geom, geomC, geomP,
                           particleInstant, particleMeans, particles,
-                          charge, chargeM, chargeV, potential, potentialM, potentialV, efieldCC);
+                          charge, chargeM, potential, potentialM, efieldCC);
 
             // Writes instantaneous flow field and some other stuff? Check with Guy.
-            WritePlotFileHydro(istep, time, geom, umac, pres, umacM, umacV);
+            WritePlotFileHydro(istep, time, geom, umac, pres, umacM);
         }
 
         if (chk_int > 0 && istep%chk_int == 0) {
-            WriteCheckPoint(istep, time, statsCount, umac, umacM, umacV, pres,
-                            particles, particleMeans, particleVars, chargeM, chargeV,
-                            potential, potentialM, potentialV);
+            WriteCheckPoint(istep, time, statsCount, umac, umacM, pres,
+                            particles, particleMeans, particleVars, chargeM,
+                            potential, potentialM);
         }
 
         //particles.PrintParticles();
