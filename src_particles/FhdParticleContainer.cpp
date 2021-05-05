@@ -1674,7 +1674,7 @@ void FhdParticleContainer::EvaluateStats(MultiFab& particleInstant,
 
             for(int l=0;l<nspecies;l++)
             {
-                part_mean(i,j,k,8)  = (part_mean(i,j,k,8)*stepsMinusOne + part_inst(i,j,k,8))*stepsInv;
+                part_mean(i,j,k,8 + l)  = (part_mean(i,j,k,8 + l)*stepsMinusOne + part_inst(i,j,k,8 + l))*stepsInv;
             }
             
             avc_tile[0] = avc_tile[0] + part_mean(i,j,k,5);           
