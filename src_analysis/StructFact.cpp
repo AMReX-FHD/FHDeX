@@ -603,6 +603,8 @@ void StructFact::StructOut(MultiFab& struct_out) {
 }
 
 void StructFact::Finalize(MultiFab& cov_real_in, MultiFab& cov_imag_in, const int& zero_avg) {
+
+  BL_PROFILE_VAR("StructFact::Finalize()",Finalize);
   
   Real nsamples_inv = 1.0/(Real)nsamples;
   
@@ -628,6 +630,8 @@ void StructFact::Finalize(MultiFab& cov_real_in, MultiFab& cov_imag_in, const in
 }
 
 void StructFact::ShiftFFT(MultiFab& dft_out, const int& zero_avg) {
+
+  BL_PROFILE_VAR("StructFact::ShiftFFT()",ShiftFFT);
 
   BoxArray ba_onegrid;
   {
@@ -693,6 +697,8 @@ void StructFact::ShiftFFT(MultiFab& dft_out, const int& zero_avg) {
 
 // integrate cov_mag over k shells
 void StructFact::IntegratekShells(const int& step, const Geometry& geom) {
+
+    BL_PROFILE_VAR("StructFact::IntegratekShells",IntegratekShells);
 
     GpuArray<int,AMREX_SPACEDIM> center;
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
