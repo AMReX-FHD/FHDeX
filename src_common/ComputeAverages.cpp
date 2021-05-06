@@ -92,6 +92,100 @@ void WriteHorizontalAverage(const MultiFab& mf_in, const int& dir, const int& in
     }
 }
 
+void WriteHorizontalAverageToMF(const MultiFab& mf_in, MultiFab& mf_out,
+                                const int& dir, const int& incomp,
+                                const int& ncomp)
+{
+    // number of points in the averaging direction
+    int npts = n_cells[dir];
+
+    Vector<Real> average(npts*(ncomp),0.);
+
+    // dummy variables
+    int r;
+    int comp;
+
+    // no tiling or GPU to easily avoid race conditions
+    for (MFIter mfi(mf_in, false); mfi.isValid(); ++mfi) {
+
+        // valid box and the lo/hi coordinates; no ghost cells needed
+        const Box& bx = mfi.validbox();
+        const auto lo = amrex::lbound(bx);
+        const auto hi = amrex::ubound(bx);
+
+        const Array4<const Real> mf = mf_in.array(mfi);
+
+        for (auto n=0; n<ncomp; ++n) {
+            comp = incomp+n;
+            for (auto k = lo.z; k <= hi.z; ++k) {
+            for (auto j = lo.y; j <= hi.y; ++j) {
+            for (auto i = lo.x; i <= hi.x; ++i) {
+                if (dir == 0) {
+                    r=i;
+                } else if (dir == 1) {
+                    r=j;
+                } else if (dir == 2) {
+                    r=k;
+                }
+                // sum up the data
+                average[ r*(ncomp) + n] += mf(i,j,k,comp);
+            }
+            }
+            }
+        }
+
+    } // end MFiter
+
+    // sum over all processors
+    ParallelDescriptor::ReduceRealSum(average.dataPtr(),npts*(ncomp));
+
+    // divide by the number of cells
+    int navg;
+    if (dir == 0) {
+        navg = n_cells[1]*n_cells[2];
+    } else if (dir == 1) {
+        navg = n_cells[0]*n_cells[2];
+    } else if (dir == 2) {
+        navg = n_cells[0]*n_cells[1];
+    }
+    for (r=0; r<npts; ++r) {
+        for (auto n=0; n<ncomp; ++n) {
+            average[r*(ncomp) + n] /= navg;
+        }
+    }
+
+    // no tiling or GPU to easily avoid race conditions
+    for (MFIter mfi(mf_out, false); mfi.isValid(); ++mfi) {
+
+        // valid box and the lo/hi coordinates; no ghost cells needed
+        const Box& bx = mfi.validbox();
+        const auto lo = amrex::lbound(bx);
+        const auto hi = amrex::ubound(bx);
+
+        const Array4<Real> mf = mf_out.array(mfi);
+
+        for (auto n=0; n<ncomp; ++n) {
+            comp = incomp+n;
+            for (auto k = lo.z; k <= hi.z; ++k) {
+            for (auto j = lo.y; j <= hi.y; ++j) {
+            for (auto i = lo.x; i <= hi.x; ++i) {
+                if (dir == 0) {
+                    r=i;
+                } else if (dir == 1) {
+                    r=j;
+                } else if (dir == 2) {
+                    r=k;
+                }
+                // sum up the data
+                mf(i,j,k,comp) = average[ r*(ncomp) + n];
+            }
+            }
+            }
+        }
+
+    } // end MFiter
+}
+
 
 void ComputeVerticalAverage(const MultiFab& mf, MultiFab& mf_avg,
 			    const Geometry& geom, const int dir,

@@ -70,8 +70,6 @@ extern "C"
 
     void get_hc_gas();
 
-    void multifab_yzav(const int* lo, const int* hi, const amrex::Real* fabin, amrex::Real* fabout, const int* comps);
-
     void do_ssa(const int* lo, const int* hi,
                 const amrex::Real* cu,
                 const amrex::Real* prim,
