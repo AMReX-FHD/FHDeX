@@ -597,7 +597,7 @@ void IBParticleContainer::SpreadKernel(const Box& bx, std::array<MultiFab, AMREX
 
     int i, j, k, ilo, ihi, jlo, jhi, klo, khi, gs;
     Real (*kernel_ptr) (Real );
-    if(pkernel_fluid == 3) {
+    if(pkernel_fluid[0] == 3) {
         kernel_ptr = &kernel_3p;
         gs = 2;
     }
