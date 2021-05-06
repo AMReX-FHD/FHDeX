@@ -18,6 +18,9 @@ using namespace amrex;
 // copy contents of compressible_params_module to C++ compressible namespace
 void InitializeCompressibleNamespace();
 
+// if gas heat capacities in the namelist are negative, calculate them using using dofs
+void GetHcGas();
+
 void InitConsVar(MultiFab& cons, const MultiFab& prim,
                  const amrex::Geometry geom);
 
