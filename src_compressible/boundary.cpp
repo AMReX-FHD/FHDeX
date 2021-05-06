@@ -1,5 +1,98 @@
 #include "compressible_functions.H"
 
+void SetupCWall() {
+
+    Real sumx, sumy;
+
+    // Compute Xk or Yk at the wall, depending on which is defined
+    // X walls
+    if (bc_mass_lo[0] == 2) {
+       sumx = 0.;
+       sumy = 0.;
+       for (int ns=0; ns<nspecies; ++ns) {
+          sumx = sumx + bc_Xk_x_lo[ns];
+          sumy = sumy + bc_Yk_x_lo[ns];
+       }
+       if (amrex::Math::abs(sumx-1) < 1.e-10) {
+           GetMassfrac(bc_Xk_x_lo,bc_Yk_x_lo);;
+       } else if (amrex::Math::abs(sumy-1) < 1.e-10) {
+          GetMolfrac(bc_Yk_x_lo,bc_Xk_x_lo);
+       }
+    }
+
+    if (bc_mass_hi[0] == 2) {
+       sumx = 0.;
+       sumy = 0.;
+       for (int ns=0; ns<nspecies; ++ns) {
+          sumx = sumx + bc_Xk_x_hi[ns];
+          sumy = sumy + bc_Yk_x_hi[ns];
+       }
+       if (amrex::Math::abs(sumx-1) < 1.e-10) {
+          GetMassfrac(bc_Xk_x_hi,bc_Yk_x_hi);
+       } else if (amrex::Math::abs(sumy-1) < 1.e-10) {
+          GetMolfrac(bc_Yk_x_hi,bc_Xk_x_hi);
+       }
+    }
+
+    // Y walls
+    if (bc_mass_lo[1] == 2) {
+       sumx = 0.;
+       sumy = 0.;
+       for (int ns=0; ns<nspecies; ++ns) {
+          sumx = sumx + bc_Xk_y_lo[ns];
+          sumy = sumy + bc_Yk_y_lo[ns];
+       }
+       if (amrex::Math::abs(sumx-1) < 1.e-10) {
+          GetMassfrac(bc_Xk_y_lo,bc_Yk_y_lo);
+       } else if (amrex::Math::abs(sumy-1) < 1.e-10) {
+          GetMolfrac(bc_Yk_y_lo,bc_Xk_y_lo);
+       }
+    }
+
+    if (bc_mass_hi[1] == 2) {
+       sumx = 0.;
+       sumy = 0.;
+       for (int ns=0; ns<nspecies; ++ns) {
+          sumx = sumx + bc_Xk_y_hi[ns];
+          sumy = sumy + bc_Yk_y_hi[ns];
+       }
+       if (amrex::Math::abs(sumx-1) < 1.e-10) {
+          GetMassfrac(bc_Xk_y_hi,bc_Yk_y_hi);
+       } else if (amrex::Math::abs(sumy-1) < 1.e-10) {
+          GetMolfrac(bc_Yk_y_hi,bc_Xk_y_hi);
+       }
+    }
+
+    // Z walls
+    if (bc_mass_lo[2] == 2) {
+       sumx = 0.;
+       sumy = 0.;
+       for (int ns=0; ns<nspecies; ++ns) {
+          sumx = sumx + bc_Xk_z_lo[ns];
+          sumy = sumy + bc_Yk_z_lo[ns];
+       }
+       if (amrex::Math::abs(sumx-1) < 1.e-10) {
+          GetMassfrac(bc_Xk_z_lo,bc_Yk_z_lo);
+       } else if (amrex::Math::abs(sumy-1) < 1.e-10) {
+          GetMolfrac(bc_Yk_z_lo,bc_Xk_z_lo);
+       }
+    }
+
+    if (bc_mass_hi[2] == 2) {
+       sumx = 0.;
+       sumy = 0.;
+       for (int ns=0; ns<nspecies; ++ns) {
+          sumx = sumx + bc_Xk_z_hi[ns];
+          sumy = sumy + bc_Yk_z_hi[ns];
+       }
+       if (amrex::Math::abs(sumx-1) < 1.e-10) {
+          GetMassfrac(bc_Xk_z_hi,bc_Yk_z_hi);
+       } else if (amrex::Math::abs(sumy-1) < 1.e-10) {
+          GetMolfrac(bc_Yk_z_hi,bc_Xk_z_hi);
+       }
+    }
+}
+
 void setBC(MultiFab& prim_in, MultiFab& cons_in)
 {
     BL_PROFILE_VAR("setBC()",setBC);
