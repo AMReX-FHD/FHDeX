@@ -34,14 +34,7 @@ void main_driver(const char* argv)
     // This will only update the Fortran values.
     get_hc_gas();
     // now update C++ values
-    for (int i=0; i<nspecies; ++i) {
-        if (hcv[i] < 0.) {
-            hcv[i] = 0.5*dof[i]*Runiv/molmass[i];
-        }
-        if (hcp[i] < 0.) {
-            hcp[i] = 0.5*(2.+dof[i])*Runiv/molmass[i];
-        }
-    }
+    GetHcGas();
   
     // check bc_vel_lo/hi to determine the periodicity
     Vector<int> is_periodic(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
