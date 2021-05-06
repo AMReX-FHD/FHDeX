@@ -59,14 +59,7 @@ void main_driver(const char* argv)
 
     // for each direction, if bc_vel_lo/hi is periodic, then
     // set the corresponding bc_mass_lo/hi and bc_therm_lo/hi to periodic
-    for (int i=0; i<AMREX_SPACEDIM; ++i) {
-        if (bc_vel_lo[i] == -1) {
-            bc_mass_lo[i] = -1;
-            bc_mass_hi[i] = -1;
-            bc_therm_lo[i] = -1;
-            bc_therm_hi[i] = -1;
-        }
-    }
+    SetupBC();
     setup_bc(); // do the same in the fortran namelist
 
     // if multispecies

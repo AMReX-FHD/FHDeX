@@ -1,5 +1,16 @@
 #include "compressible_functions.H"
 
+void SetupBC() {
+    for (int i=0; i<AMREX_SPACEDIM; ++i) {
+        if (bc_vel_lo[i] == -1) {
+            bc_mass_lo[i] = -1;
+            bc_mass_hi[i] = -1;
+            bc_therm_lo[i] = -1;
+            bc_therm_hi[i] = -1;
+        }
+    }
+}
+
 void SetupCWall() {
 
     Real sumx, sumy;

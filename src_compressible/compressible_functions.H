@@ -58,6 +58,8 @@ void primitiveToConserved(const MultiFab& prim, MultiFab& cons);
 /////////////////////////////////////
 // in boundary.cpp
 
+void SetupBC();
+
 void SetupCWall();
 
 void setBC(MultiFab& prim, MultiFab& cons);
