@@ -36,12 +36,8 @@ void evaluateStatsStag(const MultiFab& cons, MultiFab& consMean, MultiFab& consV
 
         const Array4<const Real> cu        = cons.array(mfi);
         const Array4<      Real> cumeans   = consMean.array(mfi);
-        const Array4<const Real> prim      = prim_in.array(mfi);
         const Array4<      Real> primmeans = primMean.array(mfi);
 
-        const Array4<const Real> velx      = vel[0].array(mfi);
-        const Array4<const Real> vely      = vel[1].array(mfi);
-        const Array4<const Real> velz      = vel[2].array(mfi);
         const Array4<      Real> velxmeans = velMean[0].array(mfi);
         const Array4<      Real> velymeans = velMean[1].array(mfi);
         const Array4<      Real> velzmeans = velMean[2].array(mfi);
@@ -143,15 +139,11 @@ void evaluateStatsStag(const MultiFab& cons, MultiFab& consMean, MultiFab& consV
         const Array4<const Real> cu        = cons.array(mfi);
         const Array4<      Real> cumeans   = consMean.array(mfi);
         const Array4<      Real> cuvars    = consVar.array(mfi);
-        const Array4<const Real> prim      = prim_in.array(mfi);
         const Array4<      Real> primmeans = primMean.array(mfi);
         const Array4<      Real> primvars  = primVar.array(mfi);
 
         const Array4<      Real> covars    = coVar.array(mfi);
 
-        const Array4<const Real> velx      = vel[0].array(mfi);
-        const Array4<const Real> vely      = vel[1].array(mfi);
-        const Array4<const Real> velz      = vel[2].array(mfi);
         const Array4<      Real> velxmeans = velMean[0].array(mfi);
         const Array4<      Real> velymeans = velMean[1].array(mfi);
         const Array4<      Real> velzmeans = velMean[2].array(mfi);
@@ -400,47 +392,90 @@ void evaluateStatsStag(const MultiFab& cons, MultiFab& consMean, MultiFab& consV
     ParallelDescriptor::ReduceRealSum(yzAvMeans.dataPtr(),n_cells[0]*nstats);
     ParallelDescriptor::ReduceRealSum(yzAvMeans_cross.dataPtr(),nstats);
 
+    // Get fluctuations of the conserved variables at the cross cell
+    Real delrhostar = yzAvMeans_cross[0] - yzAvMeans_cross[1];
+    Real delKstar   = yzAvMeans_cross[2] - yzAvMeans_cross[3];
+    Real deljxstar  = yzAvMeans_cross[4] - yzAvMeans_cross[5];
+    Real deljystar  = yzAvMeans_cross[6] - yzAvMeans_cross[7];
+    Real deljzstar  = yzAvMeans_cross[8] - yzAvMeans_cross[9];
+    Vector<Real>  delrhoYkstar(nspecies, 0.0);
+    for (int ns=0; ns<nspecies; ++ns) {
+        delrhoYkstar[ns] =  yzAvMeans_cross[18+2*ns+0] - yzAvMeans_cross[18+2*ns+1];
+    }
+    
+    // evaluate heat stuff at the cross cell
+    Real cv = 0.;
+    for (int l=0; l<nspecies; ++l) {
+        cv = cv + hcv[l]*yzAvMeans_cross[18+2*l+1]/yzAvMeans_cross[0];
+    }
+    Real cvinv = 1.0/cv;
+    Real qmeanstar = cv*yzAvMeans_cross[17] - 
+                     0.5*(yzAvMeans_cross[11]*yzAvMeans_cross[11] + yzAvMeans_cross[13]*yzAvMeans_cross[13] + yzAvMeans_cross[15]*yzAvMeans_cross[15]);
+
+    // Get fluctuations of derived hydrodynamic quantities at the cross cell
+    // delG = \vec{v}\cdot\vec{\deltaj}
+    Real delGstar = yzAvMeans_cross[11]*(yzAvMeans_cross[4]-yzAvMeans_cross[5]) + yzAvMeans_cross[13]*(yzAvMeans_cross[6]-yzAvMeans_cross[7]) + 
+                    yzAvMeans_cross[15]*(yzAvMeans_cross[8]-yzAvMeans_cross[9]);
+
     /////////////////////////////////////////////////////////////
     // evaluate x-spatial correlations
     /////////////////////////////////////////////////////////////
-    int ncross = 11+nspecies;
+    int ncross = 16+nspecies;
     for (int i=0; i<n_cells[0]; ++i) {
 
-        spatialCross[i*ncross+0] = (spatialCross[i*ncross+0]*stepsminusone + yzAvMeans_cross[16]*yzAvMeans[i*nstats+16])*stepsinv; // <T(x*)T(x)>
-        spatialCross[i*ncross+1] = spatialCross[i*ncross+0] - yzAvMeans_cross[17]*yzAvMeans[i*nstats+17]; // <T(x*)T(x)> - <T(x*)><T(x)>
-        spatialCross[i*ncross+2] = (spatialCross[i*ncross+2]*stepsminusone + yzAvMeans_cross[16]*yzAvMeans[i*nstats+0])*stepsinv; // <T(x*)rho(x)>
-        spatialCross[i*ncross+3] = spatialCross[i*ncross+2] - yzAvMeans_cross[17]*yzAvMeans[i*nstats+1]; // <T(x*)rho(x)> - <T(x*)><rho(x)>
-        
-        Real delrhostar = yzAvMeans_cross[0] - yzAvMeans_cross[1]; // <rho(x*) - <rho(x*)>>
-        Real delrho     = yzAvMeans[i*nstats+0] - yzAvMeans[i*nstats+1]; // <rho(x) - <rho(x)>>
-        spatialCross[i*ncross+4] = (spatialCross[i*ncross+4]*stepsminusone + delrhostar*delrho)*stepsinv; // <delrho(x*) delrho(x)>
-        spatialCross[i*ncross+5] = (spatialCross[i*ncross+5]*stepsminusone + yzAvMeans_cross[6]*yzAvMeans[i*nstats+0])*stepsinv; // <jx(x*)rho(x)>
-        
-        Real deljxdelrho = spatialCross[i*ncross+5] - yzAvMeans_cross[5]*yzAvMeans[i*nstats+1]; // <jx(x*)rho(x)> - <jx(x*)><rho(x)> = <deljx(x*)delrho(x)>
-
-        // <delu(x*)delrho> = (<deljx(x*)delrho(x)> - <u(x*)><<delrho(x*) delrho(x)>)/<rho(x*)> -- see Garcia 2007
-        spatialCross[i*ncross+6] = (deljxdelrho - yzAvMeans_cross[11]*spatialCross[i*ncross+4])/yzAvMeans_cross[1];  
-        
-        Real delrhoEstar = yzAvMeans_cross[2] - yzAvMeans_cross[3]; // <rhoE(x*) - <rhoE(x*)>>
-        Real delrhoE     = yzAvMeans[i*nstats+2] - yzAvMeans[i*nstats+3]; // <rhoE(x) - <rhoE(x)>>
-        spatialCross[i*ncross+7] = (spatialCross[i*ncross+7]*stepsminusone + delrhoEstar*delrhoE)*stepsinv; // <delrhoE(x*) delrhoE(x)>
-        
-        Real deljxstar = yzAvMeans_cross[4] - yzAvMeans_cross[5]; // <jx(x*) - <jx(x*)>>
-        Real deljx     = yzAvMeans[i*nstats+4] - yzAvMeans[i*nstats+5]; // <jx(x) - <jx(x)>>
-        spatialCross[i*ncross+8] = (spatialCross[i*ncross+8]*stepsminusone + deljxstar*deljx)*stepsinv; // <deljx(x*) deljx(x)>
-        
-        Real deljystar = yzAvMeans_cross[6] - yzAvMeans_cross[7]; // <jy(x*) - <jy(x*)>>
-        Real deljy     = yzAvMeans[i*nstats+6] - yzAvMeans[i*nstats+7]; // <jy(x) - <jy(x)>>
-        spatialCross[i*ncross+9] = (spatialCross[i*ncross+9]*stepsminusone + deljystar*deljy)*stepsinv; // <deljy(x*) deljy(x)>
-        
-        Real deljzstar = yzAvMeans_cross[8] - yzAvMeans_cross[9]; // <jz(x*) - <jz(x*)>>
-        Real deljz     = yzAvMeans[i*nstats+8] - yzAvMeans[i*nstats+9]; // <jz(x) - <jz(x)>>
-        spatialCross[i*ncross+10] = (spatialCross[i*ncross+10]*stepsminusone + deljzstar*deljz)*stepsinv; // <deljz(x*) deljz(x)>
-
+        // Get fluctuations of the conserved variables
+        Real delrho = yzAvMeans[i*nstats+0] - yzAvMeans[i*nstats+1];
+        Real delK   = yzAvMeans[i*nstats+2] - yzAvMeans[i*nstats+3];
+        Real deljx  = yzAvMeans[i*nstats+4] - yzAvMeans[i*nstats+5];
+        Real deljy  = yzAvMeans[i*nstats+6] - yzAvMeans[i*nstats+7];
+        Real deljz  = yzAvMeans[i*nstats+8] - yzAvMeans[i*nstats+9];
+        Vector<Real>  delrhoYk(nspecies, 0.0);
         for (int ns=0; ns<nspecies; ++ns) {
-            Real delrhoykstar = yzAvMeans_cross[18+2*ns+0] - yzAvMeans_cross[18+2*ns+1]; // <rhoyk(x*) - <rhoyk(x*)>>
-            Real delrhoyk     = yzAvMeans[i*nstats+18+2*ns+0] - yzAvMeans[i*nstats+18+2*ns+1]; // <rhoyk(x) - <rhoyk(x)>>
-            spatialCross[i*ncross+11+ns] = (spatialCross[i*ncross+11+ns]*stepsminusone + delrhoykstar*delrhoyk)*stepsinv; // <delrhoyk(x*) delrhoyk(x)>
+            delrhoYk[ns] = yzAvMeans[i*nstats+18+2*ns+0] - yzAvMeans[i*nstats+18+2*ns+1];
+        }
+    
+        Real qmean = cv*yzAvMeans[i*nstats+17] - 
+                         0.5*(yzAvMeans[i*nstats+11]*yzAvMeans[i*nstats+11] + yzAvMeans[i*nstats+13]*yzAvMeans[i*nstats+13] + yzAvMeans[i*nstats+15]*yzAvMeans[i*nstats+15]);
+
+        // Get fluctuations of derived hydrodynamic quantities
+        // delG = \vec{v}\cdot\vec{\deltaj}
+        Real delG = yzAvMeans[i*nstats+11]*(yzAvMeans[i*nstats+4] - yzAvMeans[i*nstats+5]) + yzAvMeans[i*nstats+13]*(yzAvMeans[i*nstats+6] - yzAvMeans[i*nstats+7]) +
+                    yzAvMeans[i*nstats+15]*(yzAvMeans[i*nstats+8] - yzAvMeans[i*nstats+9]);
+    
+        // First update correlations of conserved quantities (we will do rhoYk later)
+        spatialCross[i*ncross+0] = (spatialCross[i*ncross+0]*stepsminusone + delrhostar*delrho)*stepsinv; // <delrho(x*)delrho(x)>
+        spatialCross[i*ncross+1] = (spatialCross[i*ncross+1]*stepsminusone + delKstar*delK)*stepsinv;     // <delK(x*)delK(x)>
+        spatialCross[i*ncross+2] = (spatialCross[i*ncross+2]*stepsminusone + deljxstar*deljx)*stepsinv;   // <deljx(x*)deljx(x)>
+        spatialCross[i*ncross+3] = (spatialCross[i*ncross+3]*stepsminusone + deljystar*deljy)*stepsinv;   // <deljy(x*)deljy(x)>
+        spatialCross[i*ncross+4] = (spatialCross[i*ncross+4]*stepsminusone + deljzstar*deljz)*stepsinv;   // <deljz(x*)deljz(x)>
+        spatialCross[i*ncross+5]  = (spatialCross[i*ncross+5]*stepsminusone + deljxstar*delrho)*stepsinv;  // <deljx(x*)delrho(x)>
+        
+        // Some more cross-correlations for hydrodynamical variables later
+        spatialCross[i*ncross+6]  = (spatialCross[i*ncross+6]*stepsminusone + delGstar*delG)*stepsinv; // <delG(x*)delG(x)>
+        spatialCross[i*ncross+7]  = (spatialCross[i*ncross+7]*stepsminusone + delGstar*delK)*stepsinv; // <delG(x*)delK(x)>
+        spatialCross[i*ncross+8]  = (spatialCross[i*ncross+8]*stepsminusone + delKstar*delG)*stepsinv; // <delK(x*)delG(x)>
+        spatialCross[i*ncross+9]  = (spatialCross[i*ncross+9]*stepsminusone + delrhostar*delK)*stepsinv; // <delrho(x*)delK(x)>
+        spatialCross[i*ncross+10] = (spatialCross[i*ncross+10]*stepsminusone + delKstar*delrho)*stepsinv; // <delK(x*)delrho(x)>
+        spatialCross[i*ncross+11] = (spatialCross[i*ncross+11]*stepsminusone + delrhostar*delG)*stepsinv; // <delrho(x*)delG(x)>
+        spatialCross[i*ncross+12] = (spatialCross[i*ncross+12]*stepsminusone + delGstar*delrho)*stepsinv; // <delG(x*)delrho(x)>
+
+        // Next we do cross-correlations with and between hydrodynamical variables
+        // <delT(x*)delT(x)> = (1/cv*/cv/<rho(x)>/<rho(x*)>)(<delK*delK> + <delG*delG> - <delG*delK> - <delK*delG> 
+        //                      + <Q><Q*><delrho*delrho> - <Q*><delrho*delK> - <Q><delK*delrho> + <Q*><delrho*delG> + <Q><delG*delrho>)
+        spatialCross[i*ncross+13] = cvinv*cvinv/(yzAvMeans_cross[1]*yzAvMeans[i*nstats+1])*
+                                    (spatialCross[i*ncross+1] + spatialCross[i*ncross+6] - spatialCross[i*ncross+7] - spatialCross[i*ncross+8]
+                                     + qmean*qmeanstar*spatialCross[i*ncross+0] - qmeanstar*spatialCross[i*ncross+9] - qmean*spatialCross[i*ncross+10]
+                                     + qmeanstar*spatialCross[i*ncross+11] + qmean*spatialCross[i*ncross+12]);
+
+        // <delT(x*)delrho(x)> = (1/cv/<rho(x*)>)*(<delK*delrho> - <delG*delrho> - <Q*><delrhodelrho*>)
+        spatialCross[i*ncross+14] = (cvinv/yzAvMeans_cross[1])*(spatialCross[i*ncross+10] - spatialCross[i*ncross+12] - qmeanstar*spatialCross[i*ncross+0]);
+
+        // <delu(x*)delrho> = (1/<rho(x*)>)*(<deljx(x*)delrho(x)> - <u(x*)><<delrho(x*)delrho(x)>) 
+        spatialCross[i*ncross+15] = (1.0/yzAvMeans_cross[1])*(spatialCross[i*ncross+5] - yzAvMeans_cross[11]*spatialCross[i*ncross+0]);  
+
+        // Last we rhoYk for species
+        for (int ns=0; ns<nspecies; ++ns) {
+            spatialCross[i*ncross+16+ns] = (spatialCross[i*ncross+16+ns]*stepsminusone + delrhoYkstar[ns]*delrhoYk[ns])*stepsinv; // <delrhoYk(x*)delrhoYk(x)>
         }
     }
     

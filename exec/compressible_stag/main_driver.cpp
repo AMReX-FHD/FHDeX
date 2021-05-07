@@ -173,20 +173,26 @@ void main_driver(const char* argv)
     // contains yz-averaged running & instantaneous averages of conserved variables at cross cell + four primitive variables [vx, vy, vz, T]: 2*nvars + 2*4
     Vector<Real> yzAvMeans_cross(2*nvars+8, 0.0); 
     
-    // 0: <T* T>
-    // 1: <delT* delT>
-    // 2: <T* rho>
-    // 3: <delT* delrho>
-    // 4: <delrho* delrho>
-    // 5: <jx* rho>
-    // 6: <delu* delrho>
-    // 7: <delrhoE* delrhoE>
-    // 8: <deljx* deljx>
-    // 9: <deljy* deljy>
-    // 10: <deljz* deljz>
-    // 11:11+nspecies-1: <delrhoYk* delrhoYk>
+    // 1: <delrho*delrho>
+    // 2: <delrhoE*delrhoE>
+    // 3: <deljx*deljx>
+    // 4: <deljy*deljy>
+    // 5: <deljz*deljz>
+    // 6: <deljx*delrho>
+    // 7: <delG*delG>
+    // 8: <delG*delK>
+    // 9: <delK*delG>
+    // 10: <delrho*delK>
+    // 11: <delK*delrho>
+    // 12: <delrho*delG>
+    // 13: <delG*delrho>
+    // 14: <delT*delT>
+    // 15: <delT*delrho>
+    // 16: <delux*delrho>
+    // nspecies: <delrhoYk*delrhoYk>
     // can add more -- change main_driver, statsStag, writeplotfilestag, and Checkpoint
-    Vector<Real> spatialCross(n_cells[0]*(11+nspecies), 0.0); 
+    int ncross = 16+nspecies;
+    Vector<Real> spatialCross(n_cells[0]*ncross, 0.0); 
     
     // make BoxArray and Geometry
     BoxArray ba;
@@ -382,7 +388,7 @@ void main_driver(const char* argv)
         }
 
         setBCStag(prim, cu, cumom, vel, geom);
-    
+        
         if (plot_int > 0) {
           WritePlotFileStag(0, 0.0, geom, cu, cuMeans, cuVars, cumom, cumomMeans, cumomVars, 
                           prim, primMeans, primVars, vel, velMeans, velVars, coVars, eta, kappa);

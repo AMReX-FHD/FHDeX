@@ -63,6 +63,8 @@ void WriteCheckPoint(int step,
     
     VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
 
+    int ncross = 16+nspecies;
+
     // write Header file
     if (ParallelDescriptor::IOProcessor()) {
 
@@ -99,7 +101,7 @@ void WriteCheckPoint(int step,
         if (plot_cross) {
 
             // spatialCross
-            for (int i=0; i<n_cells[0]*(11+nspecies); i++) {
+            for (int i=0; i<n_cells[0]*ncross; i++) {
                 HeaderFile << std::setprecision(16) << spatialCross[i] << "\n";
             }
         }
@@ -268,6 +270,8 @@ void ReadCheckPoint(int& step,
 
     std::string line, word;
 
+    int ncross = 16+nspecies;
+
     // Header
     {
         std::string File(checkpointname + "/Header");
@@ -301,7 +305,7 @@ void ReadCheckPoint(int& step,
 
             Real val;
             // spatialCross
-            for (int i=0; i<n_cells[0]*(11+nspecies); i++) {
+            for (int i=0; i<n_cells[0]*ncross; i++) {
                 is >> val;
                 GotoNextLine(is);
                 spatialCross[i] = val;

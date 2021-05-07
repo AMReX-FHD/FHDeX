@@ -25,8 +25,8 @@ void RK3stepStag(MultiFab& cu,
     MultiFab cup2(cu.boxArray(),cu.DistributionMap(),nvars,ngc);
     cup.setVal(0.0,0,nvars,ngc);
     cup2.setVal(0.0,0,nvars,ngc);
-    cup.setVal(rho0,0,1,ngc);
-    cup2.setVal(rho0,0,1,ngc);
+    //cup.setVal(rho0,0,1,ngc);
+    //cup2.setVal(rho0,0,1,ngc);
 
     std::array< MultiFab, AMREX_SPACEDIM > cupmom;
     std::array< MultiFab, AMREX_SPACEDIM > cup2mom;
