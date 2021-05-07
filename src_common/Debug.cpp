@@ -70,3 +70,81 @@ void outputMFAscii(const MultiFab& output, std::string filename)
     ofs.close();
 
 }
+
+void PrintVars(const MultiFab& cons, const std::array< MultiFab, AMREX_SPACEDIM >& cumom,
+               const MultiFab& prim, const std::array< MultiFab, AMREX_SPACEDIM >& vel,
+               std::string index, const int step)
+{
+    
+    {
+        std::string froot = "cons" + index;
+        std::string file = amrex::Concatenate(froot,step,9);
+        outputMFAscii(cons, file);
+    }
+    {
+        std::string froot = "prim" + index;
+        std::string file = amrex::Concatenate(froot,step,9);
+        outputMFAscii(prim, file);
+    }
+    {
+        std::string froot = "momx" + index;
+        std::string file = amrex::Concatenate(froot,step,9);
+        outputMFAscii(cumom[0], file);
+    }
+    {
+        std::string froot = "momy" + index;
+        std::string file = amrex::Concatenate(froot,step,9);
+        outputMFAscii(cumom[1], file);
+    }
+    {
+        std::string froot = "momz" + index;
+        std::string file = amrex::Concatenate(froot,step,9);
+        outputMFAscii(cumom[2], file);
+    }
+    {
+        std::string froot = "velx" + index;
+        std::string file = amrex::Concatenate(froot,step,9);
+        outputMFAscii(vel[0], file);
+    }
+    {
+        std::string froot = "vely" + index;
+        std::string file = amrex::Concatenate(froot,step,9);
+        outputMFAscii(vel[1], file);
+    }
+    {
+        std::string froot = "velz" + index;
+        std::string file = amrex::Concatenate(froot,step,9);
+        outputMFAscii(vel[2], file);
+    }
+}
+
+void PrintFlux(const std::array< MultiFab, AMREX_SPACEDIM >& faceflux,
+               std::string index, const int step)
+{
+    {
+        std::string froot = "fluxx" + index;
+        std::string file = amrex::Concatenate(froot,step,9);
+        outputMFAscii(faceflux[0], file);
+    }
+    {
+        std::string froot = "fluxy" + index;
+        std::string file = amrex::Concatenate(froot,step,9);
+        outputMFAscii(faceflux[1], file);
+    }
+    {
+        std::string froot = "fluxz" + index;
+        std::string file = amrex::Concatenate(froot,step,9);
+        outputMFAscii(faceflux[2], file);
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
