@@ -1,8 +1,7 @@
 module conv_module
 
   use amrex_fort_module, only : amrex_real
-  use common_namelist_module, only : ngc, nvars, nprimvars, diameter, max_species, &
-                                     molmass, k_b, nspecies, hcv, hcp, runiv, dof
+  use common_namelist_module, only : molmass, nspecies, hcv, hcp, runiv, dof
   implicit none
 
   private
