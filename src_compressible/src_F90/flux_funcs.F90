@@ -77,7 +77,7 @@ contains
 
     integer :: i,j,k,l
 
-    sqrtTwo = sqrt(2.0)
+    sqrtTwo = sqrt(2.d0)
     
     ! Set index ranges
 
