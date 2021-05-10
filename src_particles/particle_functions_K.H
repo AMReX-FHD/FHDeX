@@ -297,7 +297,7 @@ void repulsive_force_wall (      FhdParticleContainer::ParticleType& part1,
     const Real dr2 = dr*dr;
     const Real fac1 = std::pow((sig), 9);
     const Real fac2 = std::pow((sig), 3);
-    const Real ff = eps*1.5*sqrt(3)*(1./(dr2*dr2))*(-9*fac1/(dr2*dr2*dr2) + 3*fac2);
+    const Real ff = eps*1.5*sqrt(3)*(1./(dr2*dr2*dr))*(-9*fac1/(dr2*dr2*dr2) + 3*fac2);
     
     part1.rdata(FHD_realData::forcex) -= dx*ff;
     part1.rdata(FHD_realData::forcey) -= dy*ff;

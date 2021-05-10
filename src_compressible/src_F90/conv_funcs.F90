@@ -1,35 +1,14 @@
 module conv_module
 
   use amrex_fort_module, only : amrex_real
-  use common_namelist_module, only : ngc, nvars, nprimvars, diameter, max_species, &
-                                     molmass, k_b, nspecies, hcv, hcp, runiv, dof
+  use common_namelist_module, only : molmass, nspecies, hcv, hcp, runiv, dof
   implicit none
 
   private
 
-  public :: get_density, get_energy, get_molfrac, &
-       get_massfrac, get_hc_gas, get_density_gas, &
-       get_energy_gas
+  public :: get_molfrac, get_massfrac, get_hc_gas
 
 contains
-
-  subroutine get_density(pressure, density, temp, massfrac)  bind(C,name="get_density")    
-
-    real(amrex_real), intent(in   ) :: temp, pressure, massfrac(nspecies)
-    real(amrex_real), intent(inout) :: density
-
-    integer :: i
-    real(amrex_real) :: molmix
-
-    molmix = 0.0d0
-    do i = 1, nspecies
-       molmix = molmix + massfrac(i)/molmass(i)
-    enddo
-    molmix = 1.0d0/molmix
-
-    density = pressure/(runiv/molmix)/temp
-
-  end subroutine get_density
 
   subroutine get_energy(energy, massvec, temp)  bind(C,name="get_energy")    
 
@@ -51,7 +30,7 @@ contains
     energy = e0 + temp*cvmix 
 
   end subroutine get_energy
-
+  
   subroutine get_molfrac(Yk, Xk)
 
     real(amrex_real), intent(inout) :: Xk(nspecies)
@@ -88,37 +67,6 @@ contains
     enddo
 
   end subroutine get_massfrac
-
-  subroutine get_energy_gas(pressure, intenergy)  bind(C,name="get_energy_gas")    
-
-    real(amrex_real), intent(in   ) :: pressure
-    real(amrex_real), intent(inout) :: intenergy
-
-    ! FIXME: this energy not scaled by density
-    intenergy = pressure*3d0/2d0
-    write(6,*) "called get_energy_gas, which is wrong"
-    stop
-
-  end subroutine get_energy_gas
-
-  subroutine get_density_gas(pressure, density, temp)  bind(C,name="get_density_gas")    
-
-    real(amrex_real), intent(in   ) :: temp, pressure
-    real(amrex_real), intent(inout) :: density
-
-    integer :: i
-    real(amrex_real) :: avm
-
-    avm = 0.0d0
-
-    do i = 1, nspecies
-       avm = avm + (1d0/nspecies)*molmass(i)
-
-    enddo
-
-    density = avm*pressure/(temp*runiv)
-
-  end subroutine get_density_gas
 
   subroutine get_hc_gas() bind(C,name="get_hc_gas")
 

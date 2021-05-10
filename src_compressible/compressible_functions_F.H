@@ -53,24 +53,11 @@ extern "C"
 
     void setup_bc();
 
-    void setup_cwall(amrex::Real* bc_Yk_x_lo_in,
-                     amrex::Real* bc_Yk_x_hi_in,
-                     amrex::Real* bc_Yk_y_lo_in,
-                     amrex::Real* bc_Yk_y_hi_in,
-                     amrex::Real* bc_Yk_z_lo_in,
-                     amrex::Real* bc_Yk_z_hi_in,
-                     amrex::Real* bc_Xk_x_lo_in,
-                     amrex::Real* bc_Xk_x_hi_in,
-                     amrex::Real* bc_Xk_y_lo_in,
-                     amrex::Real* bc_Xk_y_hi_in,
-                     amrex::Real* bc_Xk_z_lo_in,
-                     amrex::Real* bc_Xk_z_hi_in);
+    void setup_cwall();
 
     void get_energy(amrex::Real* energy, amrex::Real* massvec, const amrex::Real* temp);
 
     void get_hc_gas();
-
-    void multifab_yzav(const int* lo, const int* hi, const amrex::Real* fabin, amrex::Real* fabout, const int* comps);
 
     void do_ssa(const int* lo, const int* hi,
                 const amrex::Real* cu,

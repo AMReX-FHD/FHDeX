@@ -8,6 +8,17 @@ void InitializeCompressibleNamespace() {
     initialize_compressible_namespace(&plot_means, &plot_vars, &plot_covars, &plot_cross);
 }
 
+void GetHcGas() {
+    for (int i=0; i<nspecies; ++i) {
+        if (hcv[i] < 0.) {
+            hcv[i] = 0.5*dof[i]*Runiv/molmass[i];
+        }
+        if (hcp[i] < 0.) {
+            hcp[i] = 0.5*(2.+dof[i])*Runiv/molmass[i];
+        }
+    }
+}
+
 
 void InitConsVar(MultiFab& cons, const MultiFab& prim,
                  const amrex::Geometry geom) {

@@ -33,14 +33,7 @@ void main_driver(const char* argv)
     // This will only update the Fortran values.
     get_hc_gas();
     // now update C++ values
-    for (int i=0; i<nspecies; ++i) {
-        if (hcv[i] < 0.) {
-            hcv[i] = 0.5*dof[i]*Runiv/molmass[i];
-        }
-        if (hcp[i] < 0.) {
-            hcp[i] = 0.5*(2.+dof[i])*Runiv/molmass[i];
-        }
-    }
+    GetHcGas();
   
     // check bc_vel_lo/hi to determine the periodicity
     Vector<int> is_periodic(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
@@ -58,32 +51,16 @@ void main_driver(const char* argv)
 
     // for each direction, if bc_vel_lo/hi is periodic, then
     // set the corresponding bc_mass_lo/hi and bc_therm_lo/hi to periodic
-    for (int i=0; i<AMREX_SPACEDIM; ++i) {
-        if (bc_vel_lo[i] == -1) {
-            bc_mass_lo[i] = -1;
-            bc_mass_hi[i] = -1;
-            bc_therm_lo[i] = -1;
-            bc_therm_hi[i] = -1;
-        }
-    }
+    SetupBC();
     setup_bc(); // do the same in the fortran namelist
 
     // if multispecies
     if (algorithm_type == 2) {
         // compute wall concentrations if BCs call for it
-        setup_cwall(bc_Yk_x_lo.data(),
-                    bc_Yk_x_hi.data(),
-                    bc_Yk_y_lo.data(),
-                    bc_Yk_y_hi.data(),
-                    bc_Yk_z_lo.data(),
-                    bc_Yk_z_hi.data(),
-                    bc_Xk_x_lo.data(),
-                    bc_Xk_x_hi.data(),
-                    bc_Xk_y_lo.data(),
-                    bc_Xk_y_hi.data(),
-                    bc_Xk_z_lo.data(),
-                    bc_Xk_z_hi.data());
+        setup_cwall();
+        SetupCWall();
     }
+    
 
     // make BoxArray and Geometry
     BoxArray ba;

@@ -106,7 +106,7 @@ void WritePlotFile(int step,
     cvarNames[14+nspecies] = "iyMean";
     cvarNames[15+nspecies] = "izMean";
 
-    ccount = 16;
+    ccount = 16+nspecies;
 
     for(int i=0;i<nspecies;i++)
     {
