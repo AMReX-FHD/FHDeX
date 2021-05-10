@@ -406,7 +406,7 @@ void evaluateStatsStag(const MultiFab& cons, MultiFab& consMean, MultiFab& consV
     // evaluate heat stuff at the cross cell
     Real cv = 0.;
     for (int l=0; l<nspecies; ++l) {
-        cv = cv + hcv[l]*yzAvMeans_cross[18+2*l+1]/yzAvMeans_cross[0];
+        cv = cv + hcv[l]*yzAvMeans_cross[18+2*l+1]/yzAvMeans_cross[1];
     }
     Real cvinv = 1.0/cv;
     Real qmeanstar = cv*yzAvMeans_cross[17] - 
@@ -462,7 +462,7 @@ void evaluateStatsStag(const MultiFab& cons, MultiFab& consMean, MultiFab& consV
         // Next we do cross-correlations with and between hydrodynamical variables
         // <delT(x*)delT(x)> = (1/cv*/cv/<rho(x)>/<rho(x*)>)(<delK*delK> + <delG*delG> - <delG*delK> - <delK*delG> 
         //                      + <Q><Q*><delrho*delrho> - <Q*><delrho*delK> - <Q><delK*delrho> + <Q*><delrho*delG> + <Q><delG*delrho>)
-        spatialCross[i*ncross+13] = cvinv*cvinv/(yzAvMeans_cross[1]*yzAvMeans[i*nstats+1])*
+        spatialCross[i*ncross+13] = (cvinv*cvinv/(yzAvMeans_cross[1]*yzAvMeans[i*nstats+1]))*
                                     (spatialCross[i*ncross+1] + spatialCross[i*ncross+6] - spatialCross[i*ncross+7] - spatialCross[i*ncross+8]
                                      + qmean*qmeanstar*spatialCross[i*ncross+0] - qmeanstar*spatialCross[i*ncross+9] - qmean*spatialCross[i*ncross+10]
                                      + qmeanstar*spatialCross[i*ncross+11] + qmean*spatialCross[i*ncross+12]);
