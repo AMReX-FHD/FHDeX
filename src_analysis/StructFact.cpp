@@ -29,7 +29,7 @@ StructFact::StructFact(const BoxArray& ba_in, const DistributionMapping& dmap_in
   NCOV = s_pairA_in.size();
 
   if ( NCOV != var_scaling_in.size() )
-      amrex::Error("StructFact::StructFact() Constructor 1 - Structure factor scaling dimension mismatch");
+      amrex::Error("StructFact::StructFact() Constructor 1 - NCOV != var_scaling_in.size()");
 
   scaling.resize(NCOV);
   for (int n=0; n<NCOV; n++) {
@@ -159,7 +159,7 @@ StructFact::StructFact(const BoxArray& ba_in, const DistributionMapping& dmap_in
   NCOV = NVAR*(NVAR+1)/2;
 
   if ( NCOV != var_scaling_in.size() )
-      amrex::Error("StructFact::StructFact() Constructor 2 - Structure factor scaling dimension mismatch");
+      amrex::Error("StructFact::StructFact() Constructor 2 -  NCOV != var_scaling_in.size()");
 
   scaling.resize(NCOV);
   for (int n=0; n<NCOV; n++) {
@@ -221,7 +221,7 @@ void StructFact::define(const BoxArray& ba_in, const DistributionMapping& dmap_i
   NCOV = NVAR*(NVAR+1)/2;
 
   if ( NCOV != var_scaling_in.size() )
-      amrex::Error("StructFact::StructFact() Constructor 2 - Structure factor scaling dimension mismatch");
+      amrex::Error("StructFact::define() -  NCOV != var_scaling_in.size()");
 
   scaling.resize(NCOV);
   for (int n=0; n<NCOV; n++) {
@@ -278,12 +278,6 @@ void StructFact::FortStructure(const MultiFab& variables, const Geometry& geom, 
 
   const BoxArray& ba = variables.boxArray();
   const DistributionMapping& dm = variables.DistributionMap();
-
-  if (ba.size()%ParallelDescriptor::NProcs() != 0) {
-      Abort("StructFact::FortStructure - n_boxes%n_mpi_ranks must be zero");
-      exit(0);
-  }
-
   MultiFab variables_dft_real, variables_dft_imag;
   variables_dft_real.define(ba, dm, NVAR, 0);
   variables_dft_imag.define(ba, dm, NVAR, 0);
