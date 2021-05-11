@@ -224,8 +224,31 @@ void ComputeVerticalAverage(const MultiFab& mf, MultiFab& mf_avg,
     if (nbx[0]*nbx[1]*nbx[2] != ba_in.size())
         amrex::Error("ALL GRIDS DO NOT HAVE SAME SIZE");
 
-    indlo = (dir-1+AMREX_SPACEDIM)%AMREX_SPACEDIM;
-    indhi = (dir+1+AMREX_SPACEDIM)%AMREX_SPACEDIM;
+#if (AMREX_SPACEDIM == 2)
+
+    Abort("Fix ComputeAverages for 2D");
+
+    if (dir == 0) {
+        indlo = 1;
+    } else if (dir == 1) {
+        indlo = 0;
+    } else {
+        Abort("ComputeVerticalAverage: invalid dir");
+    }
+#elif (AMREX_SPACEDIM == 3)
+    if (dir == 0) {
+        indlo = 1;
+        indhi = 2;
+    } else if (dir == 1) {
+        indlo = 0;
+        indhi = 2;
+    } else if (dir == 2) {
+        indlo = 0;
+        indhi = 1;
+    } else {
+        Abort("ComputeVerticalAverage: invalid dir");
+    }
+#endif
 
     IntVect dom_lo(domain.loVect());
     IntVect dom_hi(domain.hiVect());
