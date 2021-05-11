@@ -298,7 +298,10 @@ void StructFact::FortStructure(const MultiFab& variables, const Geometry& geom, 
       ba_temp.maxSize(IntVect(max_grid_size_structfact));
 
       if (ba_temp.size() != ParallelDescriptor::NProcs()) {
-          Abort("StructFact::FortStructure - number of MPI ranks needs to match the number of grids; define max_grid_size_structfact");
+          Print() << "StructFact::FortStructure - number of MPI ranks needs to match the number of grids;\n"
+                  << "If this is a full-dimensional dataset, use max_grid_size_structfact;\n"
+                  << "If this is a vertically-averaged dataset, use max_grid_projection.\n";
+          Abort("");
           exit(0);
       }
 
