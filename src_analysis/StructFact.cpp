@@ -210,6 +210,68 @@ StructFact::StructFact(const BoxArray& ba_in, const DistributionMapping& dmap_in
   }
 }
 
+void StructFact::define(const BoxArray& ba_in, const DistributionMapping& dmap_in,
+                        const Vector< std::string >& var_names,
+                        const Vector< Real >& var_scaling_in,
+                        const int& verbosity_in) {
+  
+  BL_PROFILE_VAR("StructFact::define()",StructFactDefine);
+
+  NVAR = var_names.size();
+  NCOV = NVAR*(NVAR+1)/2;
+
+  if ( NCOV != var_scaling_in.size() )
+      amrex::Error("StructFact::StructFact() Constructor 2 - Structure factor scaling dimension mismatch");
+
+  scaling.resize(NCOV);
+  for (int n=0; n<NCOV; n++) {
+      scaling[n] = 1.0/var_scaling_in[n];
+  }
+  
+  s_pairA.resize(NCOV);
+  s_pairB.resize(NCOV);
+  
+  // all variables are selected in this constructor
+  NVARU = NVAR;
+  var_u.resize(NVARU);
+  for (int n=0; n<NVARU; n++) {
+    var_u[n] = n;
+  }
+  
+  int index = 0;
+  for (int j=0; j<NVAR; j++) {
+    for (int i=j; i<NVAR; i++) {
+      s_pairA[index] = i;
+      s_pairB[index] = j;
+      index++;
+    }
+  }
+
+  verbosity = verbosity_in;
+
+  // Note that we are defining with NO ghost cells
+
+  cov_real.define(ba_in, dmap_in, NCOV, 0);
+  cov_imag.define(ba_in, dmap_in, NCOV, 0);
+  cov_mag.define( ba_in, dmap_in, NCOV, 0);
+  cov_real.setVal(0.0);
+  cov_imag.setVal(0.0);
+  cov_mag.setVal( 0.0);
+
+  cov_names.resize(NCOV);
+  std::string x;
+  int cnt = 0;
+  for (int n=0; n<NCOV; n++) {
+    x = "struct_fact";
+    x += '_';
+    x += var_names[s_pairB[n]];
+    x += '_';
+    x += var_names[s_pairA[n]];
+    cov_names[cnt] = x;
+    cnt++;
+  }
+}
+
 void StructFact::FortStructure(const MultiFab& variables, const Geometry& geom, const int& reset) {
 
   BL_PROFILE_VAR("StructFact::FortStructure()",FortStructure);
