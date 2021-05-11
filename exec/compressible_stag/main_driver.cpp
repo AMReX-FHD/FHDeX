@@ -665,7 +665,7 @@ void main_driver(const char* argv)
         // collect a snapshot for structure factor
         if (step > amrex::Math::abs(n_steps_skip) && 
             struct_fact_int > 0 && 
-            (step-amrex::Math::abs(n_steps_skip)-1)%struct_fact_int == 0) {
+            (step-amrex::Math::abs(n_steps_skip))%struct_fact_int == 0) {
 
             MultiFab::Copy(structFactPrimMF, prim, 0, 0, structVarsPrim-AMREX_SPACEDIM  , 0);
             MultiFab::Copy(structFactConsMF, cu,   0, 0, structVarsCons-AMREX_SPACEDIM-1, 0);
@@ -685,16 +685,20 @@ void main_driver(const char* argv)
                 ComputeVerticalAverage(prim, primVertAvg, geom, project_dir, 0, structVarsPrim);
                 structFactPrimVerticalAverage.FortStructure(primVertAvg,geom_flat);
             }
+        }
 
-            // write out structure factor
-            if (step%plot_int == 0) {
-                structFactPrim.WritePlotFile(step,time,geom,"plt_SF_prim");
-                structFactCons.WritePlotFile(step,time,geom,"plt_SF_cons");
-                if(project_dir >= 0) {
-                    structFactPrimVerticalAverage.WritePlotFile(step,time,geom_flat,"plt_SF_prim_VerticalAverage");
-                }
+        // write out structure factor
+        if (step > amrex::Math::abs(n_steps_skip) && 
+            struct_fact_int > 0 && plot_int > 0 && 
+            step%plot_int == 0) {
+
+            structFactPrim.WritePlotFile(step,time,geom,"plt_SF_prim");
+            structFactCons.WritePlotFile(step,time,geom,"plt_SF_cons");
+            if(project_dir >= 0) {
+                structFactPrimVerticalAverage.WritePlotFile(step,time,geom_flat,"plt_SF_prim_VerticalAverage");
             }
         }
+        
 
         // write checkpoint file
         if (chk_int > 0 && step > 0 && step%chk_int == 0)
