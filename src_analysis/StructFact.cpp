@@ -318,8 +318,8 @@ void StructFact::FortStructure(const MultiFab& variables, const Geometry& geom, 
 
       // ParallelCopy variables_dft_real_temp into variables_dft_real
       // ParallelCopy variables_dft_imag_temp into variables_dft_imag
-      variables_dft_real.copy(variables_dft_real_temp, 0, 0, NVAR);
-      variables_dft_imag.copy(variables_dft_imag_temp, 0, 0, NVAR);
+      variables_dft_real.ParallelCopy(variables_dft_real_temp, 0, 0, NVAR);
+      variables_dft_imag.ParallelCopy(variables_dft_imag_temp, 0, 0, NVAR);
   }
 
   MultiFab cov_temp;
