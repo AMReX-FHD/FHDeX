@@ -317,11 +317,15 @@ void main_driver(const char* argv)
       BoxArray ba_flat = primVertAvgRot.boxArray();
       const DistributionMapping& dmap_flat = primVertAvgRot.DistributionMap();
       {
-        IntVect dom_lo(AMREX_D_DECL(           0,            0,            0));
-        IntVect dom_hi(AMREX_D_DECL(n_cells[0]-1, n_cells[1]-1, n_cells[2]-1));
+        IntVect dom_lo(AMREX_D_DECL(0,0,0));
+        IntVect dom_hi;
 #if (AMREX_SPACEDIM == 2)
         if (project_dir == 0) {
             dom_hi[0] = n_cells[1]-1;
+            dom_hi[1] = 0;
+        }
+        else if (project_dir == 1) {
+            dom_hi[0] = n_cells[0]-1;
             dom_hi[1] = 0;
         }
 #elif (AMREX_SPACEDIM == 3)
@@ -332,6 +336,10 @@ void main_driver(const char* argv)
         } else if (project_dir == 1) {
             dom_hi[0] = n_cells[0]-1;
             dom_hi[1] = n_cells[2]-1;
+            dom_hi[2] = 0;
+        } else if (project_dir == 2) {
+            dom_hi[0] = n_cells[0]-1;
+            dom_hi[1] = n_cells[1]-1;
             dom_hi[2] = 0;
         }
 #endif
