@@ -313,12 +313,28 @@ void main_driver(const char* argv)
       MultiFab primVertAvg;  // flattened multifab defined below
       prim.setVal(0.0);
       ComputeVerticalAverage(prim, primVertAvg, geom, project_dir, 0, structVarsPrim);
-      BoxArray ba_flat = primVertAvg.boxArray();
-      const DistributionMapping& dmap_flat = primVertAvg.DistributionMap();
+      MultiFab primVertAvgRot = RotateFlattenedMF(primVertAvg);
+      BoxArray ba_flat = primVertAvgRot.boxArray();
+      const DistributionMapping& dmap_flat = primVertAvgRot.DistributionMap();
       {
         IntVect dom_lo(AMREX_D_DECL(           0,            0,            0));
         IntVect dom_hi(AMREX_D_DECL(n_cells[0]-1, n_cells[1]-1, n_cells[2]-1));
-        dom_hi[project_dir] = 0;
+#if (AMREX_SPACEDIM == 2)
+        if (project_dir == 0) {
+            dom_hi[0] = n_cells[1]-1;
+            dom_hi[1] = 0;
+        }
+#elif (AMREX_SPACEDIM == 3)
+        if (project_dir == 0) {
+            dom_hi[0] = n_cells[1]-1;
+            dom_hi[1] = n_cells[2]-1;
+            dom_hi[2] = 0;
+        } else if (project_dir == 1) {
+            dom_hi[0] = n_cells[0]-1;
+            dom_hi[1] = n_cells[2]-1;
+            dom_hi[2] = 0;
+        }
+#endif
         Box domain(dom_lo, dom_hi);
 
         // This defines the physical box
@@ -326,10 +342,24 @@ void main_driver(const char* argv)
         for (int d=0; d<AMREX_SPACEDIM; d++) {
             projected_hi[d] = prob_hi[d];
         }
-        projected_hi[project_dir] = prob_hi[project_dir]/n_cells[project_dir];
+#if (AMREX_SPACEDIM == 2)
+        if (project_dir == 0) {
+            projected_hi[0] = prob_hi[1];
+        }
+#elif (AMREX_SPACEDIM == 3)
+        if (project_dir == 0) {
+            projected_hi[0] = prob_hi[1];
+            projected_hi[1] = prob_hi[2];
+        } else if (project_dir == 1) {
+            projected_hi[1] = prob_hi[2];
+        }
+#endif
+        
+        projected_hi[AMREX_SPACEDIM-1] = prob_hi[project_dir] / n_cells[project_dir];
+
         RealBox real_box({AMREX_D_DECL(     prob_lo[0],     prob_lo[1],     prob_lo[2])},
                          {AMREX_D_DECL(projected_hi[0],projected_hi[1],projected_hi[2])});
-
+        
         // This defines a Geometry object
         geom_flat.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
       }
@@ -499,7 +529,8 @@ void main_driver(const char* argv)
             if(project_dir >= 0) {
                 MultiFab primVertAvg;  // flattened multifab defined below
                 ComputeVerticalAverage(prim, primVertAvg, geom, project_dir, 0, structVarsPrim);
-                structFactPrimVerticalAverage.FortStructure(primVertAvg,geom_flat);
+                MultiFab primVertAvgRot = RotateFlattenedMF(primVertAvg);
+                structFactPrimVerticalAverage.FortStructure(primVertAvgRot,geom_flat);
             }
         }
 
