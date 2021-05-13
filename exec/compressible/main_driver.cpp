@@ -304,22 +304,24 @@ void main_driver(const char* argv)
 
     ///////////////////////////////////////////
 
-    // structure factor class for vertically-averaged dataset
-    StructFact structFactPrimVerticalAverage;
+    // structure factor class for flattened dataset
+    StructFact structFactPrimFlattened;
 
     Geometry geom_flat;
 
     if(project_dir >= 0){
-      MultiFab primVertAvg;  // flattened multifab defined below
+      MultiFab primFlattened;  // flattened multifab defined below
       prim.setVal(0.0);
       if (slicepoint < 0) {
-          ComputeVerticalAverage(prim, primVertAvg, geom, project_dir, 0, structVarsPrim);
+          ComputeVerticalAverage(prim, primFlattened, geom, project_dir, 0, structVarsPrim);
       } else {
-          ExtractSlice(prim, primVertAvg, geom, project_dir, 0, structVarsPrim);
+          ExtractSlice(prim, primFlattened, geom, project_dir, 0, structVarsPrim);
       }
-      MultiFab primVertAvgRot = RotateFlattenedMF(primVertAvg);
-      BoxArray ba_flat = primVertAvgRot.boxArray();
-      const DistributionMapping& dmap_flat = primVertAvgRot.DistributionMap();
+      // we rotate this flattened MultiFab to have normal in the z-direction since
+      // SWFFT only presently supports flattened MultiFabs with z-normal.
+      MultiFab primFlattenedRot = RotateFlattenedMF(primFlattened);
+      BoxArray ba_flat = primFlattenedRot.boxArray();
+      const DistributionMapping& dmap_flat = primFlattenedRot.DistributionMap();
       {
         IntVect dom_lo(AMREX_D_DECL(0,0,0));
         IntVect dom_hi;
@@ -386,7 +388,7 @@ void main_driver(const char* argv)
         geom_flat.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
       }
 
-      structFactPrimVerticalAverage.define(ba_flat,dmap_flat,prim_var_names,var_scaling);
+      structFactPrimFlattened.define(ba_flat,dmap_flat,prim_var_names,var_scaling);
     }
     
     //////////////////////////////////////////////
@@ -549,14 +551,16 @@ void main_driver(const char* argv)
             structFactPrim.FortStructure(structFactPrimMF,geom);
             structFactCons.FortStructure(structFactConsMF,geom);
             if(project_dir >= 0) {
-                MultiFab primVertAvg;  // flattened multifab defined below
+                MultiFab primFlattened;  // flattened multifab defined below
                 if (slicepoint < 0) {
-                    ComputeVerticalAverage(prim, primVertAvg, geom, project_dir, 0, structVarsPrim);
+                    ComputeVerticalAverage(prim, primFlattened, geom, project_dir, 0, structVarsPrim);
                 } else {
-                    ExtractSlice(prim, primVertAvg, geom, project_dir, 0, structVarsPrim);
+                    ExtractSlice(prim, primFlattened, geom, project_dir, 0, structVarsPrim);
                 }
-                MultiFab primVertAvgRot = RotateFlattenedMF(primVertAvg);
-                structFactPrimVerticalAverage.FortStructure(primVertAvgRot,geom_flat);
+                // we rotate this flattened MultiFab to have normal in the z-direction since
+                // SWFFT only presently supports flattened MultiFabs with z-normal.
+                MultiFab primFlattenedRot = RotateFlattenedMF(primFlattened);
+                structFactPrimFlattened.FortStructure(primFlattenedRot,geom_flat);
             }
         }
 
@@ -565,7 +569,7 @@ void main_driver(const char* argv)
             structFactPrim.WritePlotFile(step,time,geom,"plt_SF_prim");
             structFactCons.WritePlotFile(step,time,geom,"plt_SF_cons");
             if(project_dir >= 0) {
-                structFactPrimVerticalAverage.WritePlotFile(step,time,geom_flat,"plt_SF_prim_VerticalAverage");
+                structFactPrimFlattened.WritePlotFile(step,time,geom_flat,"plt_SF_prim_Flattened");
             }
         }
         
