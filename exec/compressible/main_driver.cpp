@@ -311,7 +311,10 @@ void main_driver(const char* argv)
 
     if(project_dir >= 0){
       MultiFab primFlattened;  // flattened multifab defined below
-      prim.setVal(0.0);
+      
+      // we are only calling ComputeVerticalAverage or ExtractSlice here to obtain
+      // a built version of primFlattened so can obtain what we need to build the
+      // structure factor and geometry objects for flattened data
       if (slicepoint < 0) {
           ComputeVerticalAverage(prim, primFlattened, geom, project_dir, 0, structVarsPrim);
       } else {
