@@ -108,8 +108,7 @@ void WriteHorizontalAverageToMF(const MultiFab& mf_in, MultiFab& mf_out,
                                 const int& ncomp);
     
 void ComputeVerticalAverage(const MultiFab & mf, MultiFab & mf_avg, const Geometry & geom,
-                            const int dir, const int incomp, const int ncomp,
-                            const int findredist=0);
+                            const int dir, const int incomp, const int ncomp);
 
 ///////////////////////////
 // in MultiFabPhysBC.cpp

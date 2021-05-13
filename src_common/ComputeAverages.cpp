@@ -189,8 +189,7 @@ void WriteHorizontalAverageToMF(const MultiFab& mf_in, MultiFab& mf_out,
 
 void ComputeVerticalAverage(const MultiFab& mf, MultiFab& mf_avg,
 			    const Geometry& geom, const int dir,
-			    const int incomp, const int ncomp,
-			    const int findredist)
+			    const int incomp, const int ncomp)
 {
     BL_PROFILE_VAR("ComputVerticalAverage()",ComputeVerticalAverage);
   
@@ -255,32 +254,8 @@ void ComputeVerticalAverage(const MultiFab& mf, MultiFab& mf_avg,
     dom_hi[dir] = 0;
     Box domain_flat(dom_lo, dom_hi);
 
-    if (findredist == 1) {
-
-        nxprod = nx[0]*nx[1]*nx[2]/nx[dir];
-        if (nxprod%nbx[dir] != 0) {
-            amrex::Error("CURRENT PENCIL REFACTORING DOESN'T WORK");
-        } else {
-            nxprod /= nbx[dir];
-        }
-
-        // Find a,b,&c such that (a*b)/c = (nx*ny)/pz, with c as a common factor to a & b
-        a = greatest_common_factor( nxprod,domain.length(indlo) );
-        b = greatest_common_factor( nxprod,domain.length(indhi) );
-        c = (a*b)/nxprod; // c is a factor of both a & b
-        factor(c, mx, 2); // factor c into two numbers
-        mx[0] = a/mx[0];
-        mx[1] = b/mx[1];
-
-        if (mx[0]*mx[1] != nxprod)
-            amrex::Error("FACTORING NOT POSSIBLE DUE TO UNCOMMON PRIME FACTOR");
-
-    } else {
-
-        mx[0] = max_grid_projection[0];
-        mx[1] = max_grid_projection[1];
-
-    }
+    mx[0] = max_grid_projection[0];
+    mx[1] = max_grid_projection[1];
 
     mbx[0] = domain.length(indlo)/mx[0];
     mbx[1] = domain.length(indhi)/mx[1];
