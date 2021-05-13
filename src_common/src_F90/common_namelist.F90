@@ -147,6 +147,7 @@ module common_namelist_module
   double precision,   save :: searchdist
 
   integer,            save :: project_dir
+  integer,            save :: slicepoint
   integer,            save :: max_grid_projection(AMREX_SPACEDIM-1)
 
   integer,            save :: histogram_unit
@@ -371,6 +372,7 @@ module common_namelist_module
 
   ! projection
   namelist /common/ project_dir
+  namelist /common/ slicepoint
   namelist /common/ max_grid_projection
 
   ! These are mostly used for reaction-diffusion:
@@ -546,6 +548,7 @@ contains
     binsize = 0.
     searchDist = 0.
     project_dir = -1
+    slicepoint = -1
     max_grid_projection(:) = 1
     histogram_unit = 0
     density_weights(:) = 0.d0
@@ -647,7 +650,7 @@ contains
                                          struct_fact_int_in, radialdist_int_in, &
                                          cartdist_int_in, n_steps_skip_in, &
                                          binsize_in, searchdist_in, &
-                                         project_dir_in, max_grid_projection_in, &
+                                         project_dir_in, slicepoint_in, max_grid_projection_in, &
                                          histogram_unit_in, density_weights_in, &
                                          shift_cc_to_boundary_in, &
                                          particle_placement_in, particle_count_in, p_move_tog_in, &
@@ -785,6 +788,7 @@ contains
     double precision,       intent(inout) :: binsize_in
     double precision,       intent(inout) :: searchdist_in
     integer,                intent(inout) :: project_dir_in
+    integer,                intent(inout) :: slicepoint_in
     integer,                intent(inout) :: max_grid_projection_in(AMREX_SPACEDIM-1)
     integer,                intent(inout) :: histogram_unit_in
     double precision,       intent(inout) :: density_weights_in(MAX_SPECIES)
@@ -946,6 +950,7 @@ contains
     binsize_in = binsize
     searchdist_in = searchdist
     project_dir_in = project_dir
+    slicepoint_in = slicepoint
     max_grid_projection_in = max_grid_projection
     histogram_unit_in = histogram_unit
     density_weights_in = density_weights

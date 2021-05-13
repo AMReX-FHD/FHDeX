@@ -110,6 +110,9 @@ void WriteHorizontalAverageToMF(const MultiFab& mf_in, MultiFab& mf_out,
 void ComputeVerticalAverage(const MultiFab & mf, MultiFab & mf_avg, const Geometry & geom,
                             const int dir, const int incomp, const int ncomp);
 
+void ExtractSlice(const MultiFab & mf, MultiFab & mf_slice, const Geometry & geom,
+                  const int dir, const int incomp, const int ncomp);
+
 ///////////////////////////
 // in MultiFabPhysBC.cpp
 // see comments in C++ files for descriptions

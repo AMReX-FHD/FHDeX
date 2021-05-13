@@ -312,7 +312,11 @@ void main_driver(const char* argv)
     if(project_dir >= 0){
       MultiFab primVertAvg;  // flattened multifab defined below
       prim.setVal(0.0);
-      ComputeVerticalAverage(prim, primVertAvg, geom, project_dir, 0, structVarsPrim);
+      if (slicepoint < 0) {
+          ComputeVerticalAverage(prim, primVertAvg, geom, project_dir, 0, structVarsPrim);
+      } else {
+          ExtractSlice(prim, primVertAvg, geom, project_dir, 0, structVarsPrim);
+      }
       MultiFab primVertAvgRot = RotateFlattenedMF(primVertAvg);
       BoxArray ba_flat = primVertAvgRot.boxArray();
       const DistributionMapping& dmap_flat = primVertAvgRot.DistributionMap();
@@ -546,7 +550,11 @@ void main_driver(const char* argv)
             structFactCons.FortStructure(structFactConsMF,geom);
             if(project_dir >= 0) {
                 MultiFab primVertAvg;  // flattened multifab defined below
-                ComputeVerticalAverage(prim, primVertAvg, geom, project_dir, 0, structVarsPrim);
+                if (slicepoint < 0) {
+                    ComputeVerticalAverage(prim, primVertAvg, geom, project_dir, 0, structVarsPrim);
+                } else {
+                    ExtractSlice(prim, primVertAvg, geom, project_dir, 0, structVarsPrim);
+                }
                 MultiFab primVertAvgRot = RotateFlattenedMF(primVertAvg);
                 structFactPrimVerticalAverage.FortStructure(primVertAvgRot,geom_flat);
             }
