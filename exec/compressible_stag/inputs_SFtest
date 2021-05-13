@@ -20,9 +20,9 @@
 
   ! Controls for number of steps between actions
 
-  max_step = 100
-  plot_int = 20
-  n_steps_skip = 20
+  max_step = 50
+  plot_int = 25
+  n_steps_skip = 10
   struct_fact_int = 1
   project_dir = 2
   max_grid_projection = 32 32
