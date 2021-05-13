@@ -618,6 +618,8 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 
         } // end MFIter
 
+        StochFlux(flux_in,geom);
+
         // Loop over boxes
         for ( MFIter mfi(cons_in); mfi.isValid(); ++mfi) {
             

@@ -193,6 +193,122 @@ void main_driver(const char* argv)
     std::string filename = "crossMeans";
     std::ofstream outfile;
 
+    /////////////////////////////////////////////
+    // Setup Structure factor variables & scaling
+    /////////////////////////////////////////////
+    MultiFab structFactPrimMF;
+    MultiFab structFactConsMF;
+
+    StructFact structFactPrim;
+    StructFact structFactCons;
+    StructFact structFactPrimVerticalAverage;
+    StructFact structFactConsVerticalAverage;
+    
+    Geometry geom_flat;
+
+    // "primitive" variable structure factor will contain
+    // rho
+    // vel (shifted)
+    // T
+    // Yk
+    // vel (averaged)
+    int structVarsPrim = 2*AMREX_SPACEDIM+nspecies+2;
+
+    Vector< std::string > prim_var_names;
+    prim_var_names.resize(structVarsPrim);
+
+    int cnt = 0;
+    std::string x;
+
+    // rho
+    prim_var_names[cnt++] = "rho";
+
+    // velx, vely, velz
+    for (int d=0; d<AMREX_SPACEDIM; d++) {
+        x = "velCC";
+        x += (120+d);
+        prim_var_names[cnt++] = x;
+    }
+
+    // Temp
+    prim_var_names[cnt++] = "Temp";
+
+    // Yk
+    for (int d=0; d<nspecies; d++) {
+        x = "Y";
+        x += (49+d);
+        prim_var_names[cnt++] = x;
+    }
+
+    // velx, vely, velz
+    for (int d=0; d<AMREX_SPACEDIM; d++) {
+        x = "velFACE";
+        x += (120+d);
+        prim_var_names[cnt++] = x;
+    }
+
+    // "conserved" variable structure factor will contain
+    // rho
+    // j (averaged)
+    // rho*E
+    // rho*Yk
+    // Temperature (not in the conserved array; will have to copy it in)
+    // j (shifted)
+    int structVarsCons = 2*AMREX_SPACEDIM+nspecies+3;
+
+    Vector< std::string > cons_var_names;
+    cons_var_names.resize(structVarsCons);
+
+    cnt = 0;
+
+    // rho
+    cons_var_names[cnt++] = "rho";
+
+    // jx, jy, jz
+    for (int d=0; d<AMREX_SPACEDIM; d++) {
+        x = "jCC";
+        x += (120+d);
+        cons_var_names[cnt++] = x;
+    }
+
+    // rho*E
+    cons_var_names[cnt++] = "rhoE";
+
+    // rho*Yk
+    for (int d=0; d<nspecies; d++) {
+        x = "rhoY";
+        x += (49+d);
+        cons_var_names[cnt++] = x;
+    }
+
+    // Temp
+    cons_var_names[cnt++] = "Temp";
+
+    // jx, jy, jz
+    for (int d=0; d<AMREX_SPACEDIM; d++) {
+        x = "jFACE";
+        x += (120+d);
+        cons_var_names[cnt++] = x;
+    }
+
+    // scale SF results by inverse cell volume
+    Vector<Real> var_scaling_prim;
+    var_scaling_prim.resize(structVarsPrim*(structVarsPrim+1)/2);
+    for (int d=0; d<var_scaling_prim.size(); ++d) {
+        var_scaling_prim[d] = 1./(dx[0]*dx[1]*dx[2]);
+    }
+    Vector<Real> var_scaling_cons;
+    // scale SF results by inverse cell volume
+    var_scaling_cons.resize(structVarsCons*(structVarsCons+1)/2);
+    for (int d=0; d<var_scaling_cons.size(); ++d) {
+        var_scaling_cons[d] = 1./(dx[0]*dx[1]*dx[2]);
+    }
+
+
+    /////////////////////////////////////////////
+    // Initialize based on fresh start or restart
+    /////////////////////////////////////////////
+
     if (restart > 0) {
         ReadCheckPoint(step_start, time, statsCount, geom, cu, cuMeans, cuVars, prim,
                        primMeans, primVars, cumom, cumomMeans, cumomVars, 
@@ -216,8 +332,106 @@ void main_driver(const char* argv)
             if (ParallelDescriptor::IOProcessor()) outfile.open(filename, std::ios::app);
         }
 
+        ///////////////////////////////////////////
+        // Setup Structure factor
+        ///////////////////////////////////////////
+
+        structFactPrimMF.define(ba, dmap, structVarsPrim, 0);
+
+        // compute all pairs
+        // note: StructFactPrim option to compute only speicified pairs not written yet
+        structFactPrim.define(ba,dmap,prim_var_names,var_scaling_prim);
+        
+        //////////////////////////////////////////////
+        structFactConsMF.define(ba, dmap, structVarsCons, 0);
+
+        // compute all pairs
+        // note: StructFactCons option to compute only speicified pairs not written yet
+        structFactCons.define(ba,dmap,cons_var_names,var_scaling_cons);
+        
+        //////////////////////////////////////////////
+        
+        // structure factor class for vertically-averaged dataset
+        if(project_dir >= 0){
+            // need a more elegant way of doing this
+            MultiFab primVertAvg;  // flattened multifab defined below
+            MultiFab prim_temp;
+            prim_temp.define(ba,dmap,nprimvars,ngc);
+            prim_temp.setVal(0.0);
+            ComputeVerticalAverage(prim_temp, primVertAvg, geom, project_dir, 0, structVarsPrim);
+            MultiFab primVertAvgRot = RotateFlattenedMF(primVertAvg);
+            BoxArray ba_flat = primVertAvgRot.boxArray();
+            const DistributionMapping& dmap_flat = primVertAvg.DistributionMap();
+            {
+                IntVect dom_lo(AMREX_D_DECL(0,0,0));
+                IntVect dom_hi;
+#if (AMREX_SPACEDIM == 2)
+                if (project_dir == 0) {
+                    dom_hi[0] = n_cells[1]-1;
+                    dom_hi[1] = 0;
+                }
+                else if (project_dir == 1) {
+                    dom_hi[0] = n_cells[0]-1;
+                    dom_hi[1] = 0;
+                }
+#elif (AMREX_SPACEDIM == 3)
+                if (project_dir == 0) {
+                    dom_hi[0] = n_cells[1]-1;
+                    dom_hi[1] = n_cells[2]-1;
+                    dom_hi[2] = 0;
+                } else if (project_dir == 1) {
+                    dom_hi[0] = n_cells[0]-1;
+                    dom_hi[1] = n_cells[2]-1;
+                    dom_hi[2] = 0;
+                } else if (project_dir == 2) {
+                    dom_hi[0] = n_cells[0]-1;
+                    dom_hi[1] = n_cells[1]-1;
+                    dom_hi[2] = 0;
+                }
+#endif
+                Box domain(dom_lo, dom_hi);
+
+                // This defines the physical box
+                Vector<Real> projected_hi(AMREX_SPACEDIM);
+                for (int d=0; d<AMREX_SPACEDIM; d++) {
+                    projected_hi[d] = prob_hi[d];
+                }
+#if (AMREX_SPACEDIM == 2)
+                if (project_dir == 0) {
+                    projected_hi[0] = prob_hi[1];
+                }
+#elif (AMREX_SPACEDIM == 3)
+                if (project_dir == 0) {
+                    projected_hi[0] = prob_hi[1];
+                    projected_hi[1] = prob_hi[2];
+                } else if (project_dir == 1) {
+                    projected_hi[1] = prob_hi[2];
+                }
+#endif
+        
+                projected_hi[AMREX_SPACEDIM-1] = prob_hi[project_dir] / n_cells[project_dir];
+
+                RealBox real_box({AMREX_D_DECL(     prob_lo[0],     prob_lo[1],     prob_lo[2])},
+                                 {AMREX_D_DECL(projected_hi[0],projected_hi[1],projected_hi[2])});
+          
+                // This defines a Geometry object
+                geom_flat.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
+            }
+
+            structFactPrimVerticalAverage.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim);
+            structFactConsVerticalAverage.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons);
+            //structFactPrimVerticalAverage.~StructFact(); // destruct
+            //new(&structFactPrimVerticalAverage) StructFact(ba_flat,dmap_flat,prim_var_names,var_scaling); // reconstruct
+    
+        }
+
     }
+
     else {
+
+        ///////////////////////////////////////////
+        // Define geometry, box arrays and MFs
+        ///////////////////////////////////////////
 
         // Initialize the boxarray "ba" from the single box "bx"
         ba.define(domain);
@@ -312,7 +526,98 @@ void main_driver(const char* argv)
         }
 
         ///////////////////////////////////////////
+        // Setup Structure factor
+        ///////////////////////////////////////////
+
+        structFactPrimMF.define(ba, dmap, structVarsPrim, 0);
+
+        // compute all pairs
+        // note: StructFactPrim option to compute only speicified pairs not written yet
+        structFactPrim.define(ba,dmap,prim_var_names,var_scaling_prim);
+        
+        //////////////////////////////////////////////
+        structFactConsMF.define(ba, dmap, structVarsCons, 0);
+
+        // compute all pairs
+        // note: StructFactCons option to compute only speicified pairs not written yet
+        structFactCons.define(ba,dmap,cons_var_names,var_scaling_cons);
+        
+        //////////////////////////////////////////////
+        
+        // structure factor class for vertically-averaged dataset
+        if(project_dir >= 0){
+            MultiFab primVertAvg;  // flattened multifab defined below
+            prim.setVal(0.0);
+            ComputeVerticalAverage(prim, primVertAvg, geom, project_dir, 0, structVarsPrim);
+            MultiFab primVertAvgRot = RotateFlattenedMF(primVertAvg);
+            BoxArray ba_flat = primVertAvgRot.boxArray();
+            const DistributionMapping& dmap_flat = primVertAvg.DistributionMap();
+            {
+                IntVect dom_lo(AMREX_D_DECL(0,0,0));
+                IntVect dom_hi;
+#if (AMREX_SPACEDIM == 2)
+                if (project_dir == 0) {
+                    dom_hi[0] = n_cells[1]-1;
+                    dom_hi[1] = 0;
+                }
+                else if (project_dir == 1) {
+                    dom_hi[0] = n_cells[0]-1;
+                    dom_hi[1] = 0;
+                }
+#elif (AMREX_SPACEDIM == 3)
+                if (project_dir == 0) {
+                    dom_hi[0] = n_cells[1]-1;
+                    dom_hi[1] = n_cells[2]-1;
+                    dom_hi[2] = 0;
+                } else if (project_dir == 1) {
+                    dom_hi[0] = n_cells[0]-1;
+                    dom_hi[1] = n_cells[2]-1;
+                    dom_hi[2] = 0;
+                } else if (project_dir == 2) {
+                    dom_hi[0] = n_cells[0]-1;
+                    dom_hi[1] = n_cells[1]-1;
+                    dom_hi[2] = 0;
+                }
+#endif
+                Box domain(dom_lo, dom_hi);
+
+                // This defines the physical box
+                Vector<Real> projected_hi(AMREX_SPACEDIM);
+                for (int d=0; d<AMREX_SPACEDIM; d++) {
+                    projected_hi[d] = prob_hi[d];
+                }
+#if (AMREX_SPACEDIM == 2)
+                if (project_dir == 0) {
+                    projected_hi[0] = prob_hi[1];
+                }
+#elif (AMREX_SPACEDIM == 3)
+                if (project_dir == 0) {
+                    projected_hi[0] = prob_hi[1];
+                    projected_hi[1] = prob_hi[2];
+                } else if (project_dir == 1) {
+                    projected_hi[1] = prob_hi[2];
+                }
+#endif
+        
+                projected_hi[AMREX_SPACEDIM-1] = prob_hi[project_dir] / n_cells[project_dir];
+
+                RealBox real_box({AMREX_D_DECL(     prob_lo[0],     prob_lo[1],     prob_lo[2])},
+                                 {AMREX_D_DECL(projected_hi[0],projected_hi[1],projected_hi[2])});
+          
+                // This defines a Geometry object
+                geom_flat.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
+            }
+
+            structFactPrimVerticalAverage.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim);
+            structFactConsVerticalAverage.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons);
+            //structFactPrimVerticalAverage.~StructFact(); // destruct
+            //new(&structFactPrimVerticalAverage) StructFact(ba_flat,dmap_flat,prim_var_names,var_scaling); // reconstruct
+    
+        }
+
+        ///////////////////////////////////////////
         // Initialize everything
+        ///////////////////////////////////////////
         
         prim.setVal(0.0,0,nprimvars,ngc);
         prim.setVal(rho0,0,1,ngc);      // density
@@ -380,12 +685,15 @@ void main_driver(const char* argv)
         time = 0.;
         statsCount = 1;
 
-    }
+    } // end t=0 setup
+
+    /////////////////////////////////////////////////
+    // Initialize Fluxes and Sources
+    /////////////////////////////////////////////////
     
     // external source term - possibly for later
     MultiFab source(ba,dmap,nprimvars,ngc);
     source.setVal(0.0);
-
 
     //fluxes (except momentum) at faces
     std::array< MultiFab, AMREX_SPACEDIM > faceflux;
@@ -417,174 +725,10 @@ void main_driver(const char* argv)
                  cenflux[1].define(ba,dmap,1,1);,
                  cenflux[2].define(ba,dmap,1,1););
                 
-    ///////////////////////////////////////////
-    // Structure factor:
-    ///////////////////////////////////////////
-
-    // "primitive" variable structure factor will contain
-    // rho
-    // vel (shifted)
-    // T
-    // Yk
-    // vel (averaged)
-    int structVarsPrim = 2*AMREX_SPACEDIM+nspecies+2;
-
-    Vector< std::string > prim_var_names;
-    prim_var_names.resize(structVarsPrim);
-
-    int cnt = 0;
-    std::string x;
-
-    // rho
-    prim_var_names[cnt++] = "rho";
-
-    // velx, vely, velz
-    for (int d=0; d<AMREX_SPACEDIM; d++) {
-        x = "velCC";
-        x += (120+d);
-        prim_var_names[cnt++] = x;
-    }
-
-    // Temp
-    prim_var_names[cnt++] = "Temp";
-
-    // Yk
-    for (int d=0; d<nspecies; d++) {
-        x = "Y";
-        x += (49+d);
-        prim_var_names[cnt++] = x;
-    }
-
-    // velx, vely, velz
-    for (int d=0; d<AMREX_SPACEDIM; d++) {
-        x = "velFACE";
-        x += (120+d);
-        prim_var_names[cnt++] = x;
-    }
-
-    MultiFab structFactPrimMF;
-    structFactPrimMF.define(ba, dmap, structVarsPrim, 0);
-
-    // scale SF results by inverse cell volume
-    Vector<Real> var_scaling;
-    var_scaling.resize(structVarsPrim*(structVarsPrim+1)/2);
-    for (int d=0; d<var_scaling.size(); ++d) {
-        var_scaling[d] = 1./(dx[0]*dx[1]*dx[2]);
-    }
-
-    /* TEST SELECTED PAIRS
-    Vector<int> xxx;
-    xxx.resize(1);
-
-    Vector<int> yyy;
-    yyy.resize(1);
-
-    xxx[0] = 0;
-    yyy[0] = 0;
-    */
-
-    // compute all pairs
-    // note: StructFactPrim option to compute only speicified pairs not written yet
-    StructFact structFactPrim(ba,dmap,prim_var_names,var_scaling);
-//    StructFact structFactPrim(ba,dmap,prim_var_names,xxx,yyy,var_scaling);
-    
-    //////////////////////////////////////////////
-
-    // "conserved" variable structure factor will contain
-    // rho
-    // j (averaged)
-    // rho*E
-    // rho*Yk
-    // Temperature (not in the conserved array; will have to copy it in)
-    // j (shifted)
-    int structVarsCons = 2*AMREX_SPACEDIM+nspecies+3;
-
-    Vector< std::string > cons_var_names;
-    cons_var_names.resize(structVarsCons);
-
-    cnt = 0;
-
-    // rho
-    cons_var_names[cnt++] = "rho";
-
-    // jx, jy, jz
-    for (int d=0; d<AMREX_SPACEDIM; d++) {
-        x = "jCC";
-        x += (120+d);
-        cons_var_names[cnt++] = x;
-    }
-
-    // rho*E
-    cons_var_names[cnt++] = "rhoE";
-
-    // rho*Yk
-    for (int d=0; d<nspecies; d++) {
-        x = "rhoY";
-        x += (49+d);
-        cons_var_names[cnt++] = x;
-    }
-
-    // Temp
-    cons_var_names[cnt++] = "Temp";
-
-    // jx, jy, jz
-    for (int d=0; d<AMREX_SPACEDIM; d++) {
-        x = "jFACE";
-        x += (120+d);
-        cons_var_names[cnt++] = x;
-    }
-    
-    MultiFab structFactConsMF;
-    structFactConsMF.define(ba, dmap, structVarsCons, 0);
-
-    // scale SF results by inverse cell volume
-    var_scaling.resize(structVarsCons*(structVarsCons+1)/2);
-    for (int d=0; d<var_scaling.size(); ++d) {
-        var_scaling[d] = 1./(dx[0]*dx[1]*dx[2]);
-    }
-
-    // compute all pairs
-    // note: StructFactCons option to compute only speicified pairs not written yet
-    StructFact structFactCons(ba,dmap,cons_var_names,var_scaling);
-    
-    //////////////////////////////////////////////
-    
-    // structure factor class for vertically-averaged dataset
-    StructFact structFactPrimVerticalAverage;
-    
-    Geometry geom_flat;
-
-    if(project_dir >= 0){
-        MultiFab primVertAvg;  // flattened multifab defined below
-        prim.setVal(0.0);
-        ComputeVerticalAverage(prim, primVertAvg, geom, project_dir, 0, structVarsPrim);
-        BoxArray ba_flat = primVertAvg.boxArray();
-        const DistributionMapping& dmap_flat = primVertAvg.DistributionMap();
-        {
-            IntVect dom_lo_flat(AMREX_D_DECL(           0,            0,            0));
-            IntVect dom_hi_flat(AMREX_D_DECL(n_cells[0]-1, n_cells[1]-1, n_cells[2]-1));
-            dom_hi_flat[project_dir] = 0;
-            Box domain_flat(dom_lo_flat, dom_hi_flat);
-	
-            // This defines the physical box
-            Vector<Real> projected_hi(AMREX_SPACEDIM);
-            for (int d=0; d<AMREX_SPACEDIM; d++) {
-                projected_hi[d] = prob_hi[d];
-            }
-            projected_hi[project_dir] = prob_hi[project_dir]/n_cells[project_dir];
-            RealBox real_box_flat({AMREX_D_DECL(     prob_lo[0],     prob_lo[1],     prob_lo[2])},
-                             {AMREX_D_DECL(projected_hi[0],projected_hi[1],projected_hi[2])});
-
-            // This defines a Geometry object
-            geom_flat.define(domain_flat,&real_box_flat,CoordSys::cartesian,is_periodic.data());
-        }
-
-        structFactPrimVerticalAverage.~StructFact(); // destruct
-        new(&structFactPrimVerticalAverage) StructFact(ba_flat,dmap_flat,prim_var_names,var_scaling); // reconstruct
-    
-    }
-
+    /////////////////////////////////////////////////
     //Time stepping loop
+    /////////////////////////////////////////////////
+    
     for (int step=step_start;step<=max_step;++step) {
 
         // timer
@@ -680,10 +824,16 @@ void main_driver(const char* argv)
             
             structFactPrim.FortStructure(structFactPrimMF,geom);
             structFactCons.FortStructure(structFactConsMF,geom);
+
             if(project_dir >= 0) {
                 MultiFab primVertAvg;  // flattened multifab defined below
-                ComputeVerticalAverage(prim, primVertAvg, geom, project_dir, 0, structVarsPrim);
+                MultiFab consVertAvg;  // flattened multifab defined below
+                ComputeVerticalAverage(structFactPrimMF, primVertAvg, geom, project_dir, 0, structVarsPrim);
+                ComputeVerticalAverage(structFactConsMF, consVertAvg, geom, project_dir, 0, structVarsCons);
+                MultiFab primVertAvgRot = RotateFlattenedMF(primVertAvg);
+                MultiFab consVertAvgRot = RotateFlattenedMF(consVertAvg);
                 structFactPrimVerticalAverage.FortStructure(primVertAvg,geom_flat);
+                structFactConsVerticalAverage.FortStructure(consVertAvg,geom_flat);
             }
         }
 
@@ -696,6 +846,7 @@ void main_driver(const char* argv)
             structFactCons.WritePlotFile(step,time,geom,"plt_SF_cons");
             if(project_dir >= 0) {
                 structFactPrimVerticalAverage.WritePlotFile(step,time,geom_flat,"plt_SF_prim_VerticalAverage");
+                structFactConsVerticalAverage.WritePlotFile(step,time,geom_flat,"plt_SF_cons_VerticalAverage");
             }
         }
         

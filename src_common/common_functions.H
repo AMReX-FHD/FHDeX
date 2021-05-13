@@ -186,5 +186,9 @@ void CCL2Norm(const MultiFab & m1,
               amrex::MultiFab& mscr,
 	      Real & norm_l2);
 
+///////////////////////////
+// in RotateFlattenedMF.cpp
+
+MultiFab RotateFlattenedMF(MultiFab const& mf);
 
 #endif
