@@ -565,13 +565,14 @@ void StructFact::WritePlotFile(const int step, const Real time, const Geometry& 
   // Build temp real & imag components
   const BoxArray& ba = cov_mag.boxArray();
   const DistributionMapping& dm = cov_mag.DistributionMap();
+
   MultiFab cov_real_temp(ba, dm, NCOV, 0);
   MultiFab cov_imag_temp(ba, dm, NCOV, 0);
   MultiFab::Copy(cov_real_temp, cov_real, 0, 0, NCOV, 0);
   MultiFab::Copy(cov_imag_temp, cov_imag, 0, 0, NCOV, 0);
 
   // Finalize covariances - scale & compute magnitude
-  Finalize(cov_real_temp, cov_imag_temp, zero_avg);
+  Finalize(cov_real_temp, cov_imag_temp, geom, zero_avg);
 
   //////////////////////////////////////////////////////////////////////////////////
   // Write out structure factor magnitude to plot file
@@ -594,10 +595,7 @@ void StructFact::WritePlotFile(const int step, const Real time, const Geometry& 
 
       Real dx = geom.CellSize(0);
       Real pi = 3.1415926535897932;
-
-      IntVect dom_lo(AMREX_D_DECL(           0,            0,            0));
-      IntVect dom_hi(AMREX_D_DECL(n_cells[0]-1, n_cells[1]-1, n_cells[2]-1));
-      Box domain(dom_lo, dom_hi);
+      Box domain = geom.Domain();
 
       RealBox real_box({AMREX_D_DECL(-pi/dx,-pi/dx,-pi/dx)},
                        {AMREX_D_DECL( pi/dx, pi/dx, pi/dx)});
@@ -661,14 +659,15 @@ void StructFact::StructOut(MultiFab& struct_out) {
   }
 }
 
-void StructFact::Finalize(MultiFab& cov_real_in, MultiFab& cov_imag_in, const int& zero_avg) {
+void StructFact::Finalize(MultiFab& cov_real_in, MultiFab& cov_imag_in,
+                          const Geometry& geom, const int& zero_avg) {
 
   BL_PROFILE_VAR("StructFact::Finalize()",Finalize);
   
   Real nsamples_inv = 1.0/(Real)nsamples;
   
-  ShiftFFT(cov_real_in,zero_avg);
-  ShiftFFT(cov_imag_in,zero_avg);
+  ShiftFFT(cov_real_in,geom,zero_avg);
+  ShiftFFT(cov_imag_in,geom,zero_avg);
 
   cov_real_in.mult(nsamples_inv);
   for (int d=0; d<NCOV; d++) {
@@ -688,15 +687,13 @@ void StructFact::Finalize(MultiFab& cov_real_in, MultiFab& cov_imag_in, const in
 
 }
 
-void StructFact::ShiftFFT(MultiFab& dft_out, const int& zero_avg) {
+void StructFact::ShiftFFT(MultiFab& dft_out, const Geometry& geom, const int& zero_avg) {
 
   BL_PROFILE_VAR("StructFact::ShiftFFT()",ShiftFFT);
 
   BoxArray ba_onegrid;
   {
-      IntVect dom_lo(AMREX_D_DECL(           0,            0,            0));
-      IntVect dom_hi(AMREX_D_DECL(n_cells[0]-1, n_cells[1]-1, n_cells[2]-1));
-      Box domain(dom_lo, dom_hi);
+      Box domain = geom.Domain();
       
       // Initialize the boxarray "ba" from the single box "bx"
       ba_onegrid.define(domain);
