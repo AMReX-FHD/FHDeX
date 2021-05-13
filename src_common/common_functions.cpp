@@ -120,7 +120,7 @@ void InitializeCommonNamespace() {
                                 potential_lo.data(), potential_hi.data(),
                                 &struct_fact_int, &radialdist_int, &cartdist_int,
                                 &n_steps_skip, &binSize, &searchDist,
-				&project_dir, max_grid_projection.dataPtr(),
+				&project_dir, &slicepoint, max_grid_projection.dataPtr(),
                                 &histogram_unit,
                                 density_weights.dataPtr(), shift_cc_to_boundary.dataPtr(),
                                 &particle_placement, particle_count.dataPtr(),

@@ -304,66 +304,85 @@ void main_driver(const char* argv)
 
     ///////////////////////////////////////////
 
-    // structure factor class for vertically-averaged dataset
-    StructFact structFactPrimVerticalAverage;
+    // structure factor class for flattened dataset
+    StructFact structFactPrimFlattened;
 
     Geometry geom_flat;
 
     if(project_dir >= 0){
-      MultiFab primVertAvg;  // flattened multifab defined below
-      prim.setVal(0.0);
-      ComputeVerticalAverage(prim, primVertAvg, geom, project_dir, 0, structVarsPrim);
-      MultiFab primVertAvgRot = RotateFlattenedMF(primVertAvg);
-      BoxArray ba_flat = primVertAvgRot.boxArray();
-      const DistributionMapping& dmap_flat = primVertAvgRot.DistributionMap();
+      MultiFab primFlattened;  // flattened multifab defined below
+      
+      // we are only calling ComputeVerticalAverage or ExtractSlice here to obtain
+      // a built version of primFlattened so can obtain what we need to build the
+      // structure factor and geometry objects for flattened data
+      if (slicepoint < 0) {
+          ComputeVerticalAverage(prim, primFlattened, geom, project_dir, 0, structVarsPrim);
+      } else {
+          ExtractSlice(prim, primFlattened, geom, project_dir, 0, structVarsPrim);
+      }
+      // we rotate this flattened MultiFab to have normal in the z-direction since
+      // SWFFT only presently supports flattened MultiFabs with z-normal.
+      MultiFab primFlattenedRot = RotateFlattenedMF(primFlattened);
+      BoxArray ba_flat = primFlattenedRot.boxArray();
+      const DistributionMapping& dmap_flat = primFlattenedRot.DistributionMap();
       {
         IntVect dom_lo(AMREX_D_DECL(0,0,0));
         IntVect dom_hi;
+
+        // yes you could simplify this code but for now
+        // these are written out fully to better understand what is happening
+        // we wanted dom_hi[AMREX_SPACEDIM-1] to be equal to 0
+        // and need to transmute the other indices depending on project_dir
 #if (AMREX_SPACEDIM == 2)
         if (project_dir == 0) {
             dom_hi[0] = n_cells[1]-1;
-            dom_hi[1] = 0;
         }
         else if (project_dir == 1) {
             dom_hi[0] = n_cells[0]-1;
-            dom_hi[1] = 0;
         }
+        dom_hi[1] = 0;
 #elif (AMREX_SPACEDIM == 3)
         if (project_dir == 0) {
             dom_hi[0] = n_cells[1]-1;
             dom_hi[1] = n_cells[2]-1;
-            dom_hi[2] = 0;
         } else if (project_dir == 1) {
             dom_hi[0] = n_cells[0]-1;
             dom_hi[1] = n_cells[2]-1;
-            dom_hi[2] = 0;
         } else if (project_dir == 2) {
             dom_hi[0] = n_cells[0]-1;
             dom_hi[1] = n_cells[1]-1;
-            dom_hi[2] = 0;
         }
+        dom_hi[2] = 0;
 #endif
         Box domain(dom_lo, dom_hi);
 
         // This defines the physical box
         Vector<Real> projected_hi(AMREX_SPACEDIM);
-        for (int d=0; d<AMREX_SPACEDIM; d++) {
-            projected_hi[d] = prob_hi[d];
-        }
+
+        // yes you could simplify this code but for now
+        // these are written out fully to better understand what is happening
+        // we wanted projected_hi[AMREX_SPACEDIM-1] to be equal to dx[projected_dir]
+        // and need to transmute the other indices depending on project_dir
 #if (AMREX_SPACEDIM == 2)
         if (project_dir == 0) {
             projected_hi[0] = prob_hi[1];
+        } else if (project_dir == 1) {
+            projected_hi[0] = prob_hi[0];
         }
+        projected_hi[1] = prob_hi[project_dir] / n_cells[project_dir];
 #elif (AMREX_SPACEDIM == 3)
         if (project_dir == 0) {
             projected_hi[0] = prob_hi[1];
             projected_hi[1] = prob_hi[2];
         } else if (project_dir == 1) {
+            projected_hi[0] = prob_hi[0];
             projected_hi[1] = prob_hi[2];
+        } else if (project_dir == 2) {
+            projected_hi[0] = prob_hi[0];
+            projected_hi[1] = prob_hi[1];
         }
+        projected_hi[2] = prob_hi[project_dir] / n_cells[project_dir];
 #endif
-        
-        projected_hi[AMREX_SPACEDIM-1] = prob_hi[project_dir] / n_cells[project_dir];
 
         RealBox real_box({AMREX_D_DECL(     prob_lo[0],     prob_lo[1],     prob_lo[2])},
                          {AMREX_D_DECL(projected_hi[0],projected_hi[1],projected_hi[2])});
@@ -372,7 +391,7 @@ void main_driver(const char* argv)
         geom_flat.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
       }
 
-      structFactPrimVerticalAverage.define(ba_flat,dmap_flat,prim_var_names,var_scaling);
+      structFactPrimFlattened.define(ba_flat,dmap_flat,prim_var_names,var_scaling);
     }
     
     //////////////////////////////////////////////
@@ -535,10 +554,16 @@ void main_driver(const char* argv)
             structFactPrim.FortStructure(structFactPrimMF,geom);
             structFactCons.FortStructure(structFactConsMF,geom);
             if(project_dir >= 0) {
-                MultiFab primVertAvg;  // flattened multifab defined below
-                ComputeVerticalAverage(prim, primVertAvg, geom, project_dir, 0, structVarsPrim);
-                MultiFab primVertAvgRot = RotateFlattenedMF(primVertAvg);
-                structFactPrimVerticalAverage.FortStructure(primVertAvgRot,geom_flat);
+                MultiFab primFlattened;  // flattened multifab defined below
+                if (slicepoint < 0) {
+                    ComputeVerticalAverage(prim, primFlattened, geom, project_dir, 0, structVarsPrim);
+                } else {
+                    ExtractSlice(prim, primFlattened, geom, project_dir, 0, structVarsPrim);
+                }
+                // we rotate this flattened MultiFab to have normal in the z-direction since
+                // SWFFT only presently supports flattened MultiFabs with z-normal.
+                MultiFab primFlattenedRot = RotateFlattenedMF(primFlattened);
+                structFactPrimFlattened.FortStructure(primFlattenedRot,geom_flat);
             }
         }
 
@@ -547,7 +572,7 @@ void main_driver(const char* argv)
             structFactPrim.WritePlotFile(step,time,geom,"plt_SF_prim");
             structFactCons.WritePlotFile(step,time,geom,"plt_SF_cons");
             if(project_dir >= 0) {
-                structFactPrimVerticalAverage.WritePlotFile(step,time,geom_flat,"plt_SF_prim_VerticalAverage");
+                structFactPrimFlattened.WritePlotFile(step,time,geom_flat,"plt_SF_prim_Flattened");
             }
         }
         

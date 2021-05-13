@@ -200,6 +200,7 @@ namespace common {
 
     // projection 
     extern int                        project_dir;
+    extern int                        slicepoint;
     extern amrex::Vector<int>         max_grid_projection;
 
   /*

@@ -64,7 +64,7 @@ extern "C"
                                      int* struct_fact_int, int* radialdist_int,
                                      int* cartdist_int, int* n_steps_skip,
                                      amrex::Real* binSize, amrex::Real* searchDist,
-				     int* project_dir, int* max_grid_projection,
+				     int* project_dir, int* slicepoint, int* max_grid_projection,
                                      int* histogram_unit, amrex::Real* density_weights,
                                      int* shift_cc_to_boundary,
                                      int* particle_placement, int* particle_count, int* p_move_tog, int* p_force_tog, int* p_int_tog, int* p_int_tog_wall,
