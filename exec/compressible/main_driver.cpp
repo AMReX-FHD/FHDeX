@@ -459,11 +459,11 @@ void main_driver(const char* argv)
     }
 
     // compute internal energy
-    double massvec[nspecies];
+    GpuArray<Real,MAX_SPECIES> massvec;
     for(int i=0;i<nspecies;i++) {
         massvec[i] = rhobar[i];
     }
-    get_energy(&intEnergy, massvec, &T0);
+    GetEnergy(intEnergy, massvec, T0);
 
     cu.setVal(0.0,0,nvars,ngc);
     cu.setVal(rho0,0,1,ngc);           // density

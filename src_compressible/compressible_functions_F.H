@@ -34,8 +34,6 @@ extern "C"
 
     void setup_cwall();
 
-    void get_energy(amrex::Real* energy, amrex::Real* massvec, const amrex::Real* temp);
-
     void get_hc_gas();
 
     void do_ssa(const int* lo, const int* hi,

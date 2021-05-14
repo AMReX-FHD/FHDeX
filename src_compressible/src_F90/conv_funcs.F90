@@ -9,27 +9,6 @@ module conv_module
   public :: get_molfrac, get_massfrac, get_hc_gas
 
 contains
-
-  subroutine get_energy(energy, massvec, temp)  bind(C,name="get_energy")    
-
-    !This function originaly had a reference to e0 - check this.
-
-    real(amrex_real), intent(in   ) :: temp
-    real(amrex_real), intent(inout) :: energy, massvec(nspecies)
-
-    integer :: i
-    real(amrex_real) :: cvmix, e0
-
-    cvmix = 0.0d0; e0 = 0.0d0
-
-    do i = 1, nspecies
-       cvmix = cvmix + massvec(i)*hcv(i)
-       ! e0 = e0 + massvec(i)*e0ref(i)
-    enddo
-
-    energy = e0 + temp*cvmix 
-
-  end subroutine get_energy
   
   subroutine get_molfrac(Yk, Xk)
 
