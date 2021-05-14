@@ -19,7 +19,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
              std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
              MultiFab& beta, MultiFab& gamma,
              std::array< MultiFab, NUM_EDGE >& beta_ed,
-             const Geometry geom, const Real& dt,
+             const Geometry& geom, const Real& dt,
              TurbForcing& turbforce)
 {
 

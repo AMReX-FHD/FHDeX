@@ -87,6 +87,7 @@ void InitializeCommonNamespace() {
                                 &nvars, &nprimvars,
                                 &membrane_cell, &cross_cell, &transmission,
                                 qval.dataPtr(), pkernel_fluid.begin(), pkernel_es.begin(),
+                                eskernel_fluid.begin(), eskernel_beta.begin(),
                                 &fixed_dt, &cfl, &rfd_delta, &max_step,
                                 &plot_int, &plot_stag, temp_plot_base_name, 128,
                                 &chk_int, temp_chk_base_name, 128,

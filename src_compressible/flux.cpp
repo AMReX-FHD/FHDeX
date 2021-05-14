@@ -618,35 +618,8 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 
         } // end MFIter
 
-        // Loop over boxes
-        for ( MFIter mfi(cons_in); mfi.isValid(); ++mfi) {
-            
-            const Box& bx = mfi.tilebox();
-
-            const Real* dx_temp = geom.CellSize();
-    
-            // call this to enforce flux boundary conditions
-            stoch_flux(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
-                       cons_in[mfi].dataPtr(),  
-                       prim_in[mfi].dataPtr(),    
-                       flux_in[0][mfi].dataPtr(),
-                       flux_in[1][mfi].dataPtr(),
-#if (AMREX_SPACEDIM == 3)
-                       flux_in[2][mfi].dataPtr(),
-#endif
-                       stochFlux_in[0][mfi].dataPtr(),
-                       stochFlux_in[1][mfi].dataPtr(),
-#if (AMREX_SPACEDIM == 3)
-                       stochFlux_in[2][mfi].dataPtr(),
-#endif
-                       rancorn_in[mfi].dataPtr(),
-                       eta_in[mfi].dataPtr(),  
-                       zeta_in[mfi].dataPtr(),  
-                       kappa_in[mfi].dataPtr(),
-                       chi_in[mfi].dataPtr(),  
-                       D_in[mfi].dataPtr(),  
-                       ZFILL(dx_temp), &dt);
-        }
+        StochFlux(flux_in,geom);
+        MembraneFlux(flux_in,geom);
     }
         
     ////////////////////

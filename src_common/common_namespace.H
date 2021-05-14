@@ -35,6 +35,8 @@ namespace common {
     extern amrex::Vector<amrex::Real> qval;
     extern AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_SPECIES> pkernel_fluid; // GALEN - FLUID KERNEL
     extern AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_SPECIES> pkernel_es;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_SPECIES> eskernel_fluid;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> eskernel_beta;
 
     // Time-step control
     extern amrex::Real                fixed_dt;
