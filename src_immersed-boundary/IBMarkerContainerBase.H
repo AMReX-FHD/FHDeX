@@ -270,6 +270,7 @@ public:
 
     std::array<MultiFab, AMREX_SPACEDIM> f_weights;
 
+
 protected:
 
     int nghost;
@@ -277,7 +278,8 @@ protected:
     void InitInternals(int ngrow);
     void ReadStaticParameters();
 
-    
+    Real integrate_es(Real beta_in, int w_in);
+   
 
     AmrCore * m_amr_core;
 
@@ -289,6 +291,9 @@ protected:
 
     int totalMarkers;
     int totalPinnedMarkers;
+
+    static inline Vector<Real> norm_es;
+    
 
 private:
 

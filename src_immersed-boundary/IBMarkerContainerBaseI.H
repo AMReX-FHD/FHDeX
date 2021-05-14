@@ -26,8 +26,6 @@
 
 using namespace amrex;
 
-
-
 #include <type_traits>
 
 //Returns true or false depending on whether the particle has an integer member called 'visible'
@@ -74,6 +72,7 @@ IBMarkerContainerBase<StructReal, StructInt>::IBMarkerContainerBase(
         f_weights[d].setVal(-1.0);
     }
 
+    
 }
 
 template <typename StructReal, typename StructInt>
@@ -96,6 +95,8 @@ IBMarkerContainerBase<StructReal, StructInt>::IBMarkerContainerBase(
         f_weights[d].define(baF, dmap, 1, ngF);
         f_weights[d].setVal(-1.0);
     }
+
+   
 }
 
 
@@ -854,6 +855,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadKernelGpu(const AoS& ao
     AMREX_FOR_1D( Np, ip,
     {
         const ParticleType& p = pstruct[ip];
+        //Real norm_es = integral(eskernel_beta[p.idata(StructInt::species)-1], eskernel_fluid[p.idata(StructInt::species)-1]);
 
         int lo_dim[3];
         int hi_dim[3];
@@ -871,10 +873,15 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadKernelGpu(const AoS& ao
         {
             gs = 1;
         }
-        else
+        else if (pkernel_fluid[p.idata(StructInt::species)-1] == 6)
         {
             gs = 4;
         }
+        else if (eskernel_fluid[p.idata(StructInt::species)-1] > 0)
+        {
+            gs = static_cast<int>(floor(eskernel_fluid[p.idata(StructInt::species)-1]*0.5)+1);
+        }
+	//Print() << "gs for spreading is " << gs << "\n";
 
         if (ng == 0)
         {
@@ -911,6 +918,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadKernelGpu(const AoS& ao
             }
         }
 
+        //std::cout << "normalization factor " << 1 << " are " << norm_es[1] << std::endl;
         // x-components
         if(vis == 1)
         {
@@ -921,6 +929,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadKernelGpu(const AoS& ao
                       pos_grid[0]=(p.pos(0)-coords_x(i,j,k,0))*invdx[0];
                       pos_grid[1]=(p.pos(1)-coords_x(i,j,k,1))*invdx[1];
                       pos_grid[2]=(p.pos(2)-coords_x(i,j,k,2))*invdx[2];
+		      Real pos_grid_norm = std::sqrt(pos_grid[0]*pos_grid[0]+pos_grid[1]*pos_grid[1]+pos_grid[2]*pos_grid[2]);
 
                       Real weight = 1.0;
                       for (int ii=0; ii<spaceDim; ++ii)
@@ -937,11 +946,18 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadKernelGpu(const AoS& ao
                          {
                             weight*=Kernel1P()(pos_grid[ii]);
                          }
-                         else
+                         else if (pkernel_fluid[p.idata(StructInt::species)-1] == 6)
                          {
                             weight*=Kernel6P()(pos_grid[ii]);
                          }
+			 else if (eskernel_fluid[p.idata(StructInt::species)-1] > 0)
+                         {
+                            weight*=KernelES(eskernel_beta[p.idata(StructInt::species)-1], eskernel_fluid[p.idata(StructInt::species)-1])(pos_grid[ii])/norm_es[p.idata(StructInt::species)-1];
+                         }
+   
                       }
+
+                      
                       amrex::Gpu::Atomic::Add(&fout_x(i,j,k), p.rdata(StructReal::forcex + 0)*weight*invvol);
                       amrex::Gpu::Atomic::Add(&fweights_x(i,j,k), weight);
                     }
@@ -956,6 +972,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadKernelGpu(const AoS& ao
                       pos_grid[0]=(p.pos(0)-coords_y(i,j,k,0))*invdx[0];
                       pos_grid[1]=(p.pos(1)-coords_y(i,j,k,1))*invdx[1];
                       pos_grid[2]=(p.pos(2)-coords_y(i,j,k,2))*invdx[2];
+		      Real pos_grid_norm = std::sqrt(pos_grid[0]*pos_grid[0]+pos_grid[1]*pos_grid[1]+pos_grid[2]*pos_grid[2]);
 
                       Real weight = 1.0;
                       for (int ii=0; ii<spaceDim; ++ii)
@@ -972,12 +989,19 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadKernelGpu(const AoS& ao
                          {
                             weight*=Kernel1P()(pos_grid[ii]);
                          }
-                         else
+                         else if (pkernel_fluid[p.idata(StructInt::species)-1] == 6)
                          {
                             weight*=Kernel6P()(pos_grid[ii]);
                          }
+			 else if (eskernel_fluid[p.idata(StructInt::species)-1] > 0)
+                         {
+                            weight*=KernelES(eskernel_beta[p.idata(StructInt::species)-1], eskernel_fluid[p.idata(StructInt::species)-1])(pos_grid[ii])/norm_es[p.idata(StructInt::species)-1];
+                         }
                       }
-                      amrex::Gpu::Atomic::Add(&fout_y(i,j,k), p.rdata(StructReal::forcex + 1)*weight*invvol);
+
+                      
+
+                     amrex::Gpu::Atomic::Add(&fout_y(i,j,k), p.rdata(StructReal::forcex + 1)*weight*invvol);
                       amrex::Gpu::Atomic::Add(&fweights_y(i,j,k), weight);
                     }
                 }
@@ -991,6 +1015,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadKernelGpu(const AoS& ao
                       pos_grid[0]=(p.pos(0)-coords_z(i,j,k,0))*invdx[0];
                       pos_grid[1]=(p.pos(1)-coords_z(i,j,k,1))*invdx[1];
                       pos_grid[2]=(p.pos(2)-coords_z(i,j,k,2))*invdx[2];
+		      Real pos_grid_norm = std::sqrt(pos_grid[0]*pos_grid[0]+pos_grid[1]*pos_grid[1]+pos_grid[2]*pos_grid[2]);
 
                       Real weight = 1.0;
                       for (int ii=0; ii<spaceDim; ++ii)
@@ -1007,12 +1032,19 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadKernelGpu(const AoS& ao
                          {
                             weight*=Kernel1P()(pos_grid[ii]);
                          }
-                         else
+                         else if (pkernel_fluid[p.idata(StructInt::species)-1] == 6)
                          {
                             weight*=Kernel6P()(pos_grid[ii]);
                          }
-                      }
-                      amrex::Gpu::Atomic::Add(&fout_z(i,j,k), p.rdata(StructReal::forcex + 2)*weight*invvol);
+			 else if (eskernel_fluid[p.idata(StructInt::species)-1] > 0)
+                         {
+                            weight*=KernelES(eskernel_beta[p.idata(StructInt::species)-1], eskernel_fluid[p.idata(StructInt::species)-1])(pos_grid[ii])/norm_es[p.idata(StructInt::species)-1];
+                         }
+		      }
+
+                      
+
+                     amrex::Gpu::Atomic::Add(&fout_z(i,j,k), p.rdata(StructReal::forcex + 2)*weight*invvol);
                       amrex::Gpu::Atomic::Add(&fweights_z(i,j,k), weight);
                     }
                 }
@@ -1412,6 +1444,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateKernelGpu(AoS& aos
     AMREX_FOR_1D( Np, ip,
     {
         ParticleType& p = pstruct[ip];
+        //Real norm_es = integral(eskernel_beta[p.idata(StructInt::species)-1], eskernel_fluid[p.idata(StructInt::species)-1]);
 
         int vis = 1;
 
@@ -1441,10 +1474,15 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateKernelGpu(AoS& aos
         {
             gs = 1;
         }
-        else
+        else if (pkernel_fluid[p.idata(StructInt::species)-1] == 6)
         {
             gs = 4;
         }
+        else if (eskernel_fluid[p.idata(StructInt::species)-1] > 0)
+        {
+            gs = static_cast<int>(floor(eskernel_fluid[p.idata(StructInt::species)-1]*0.5)+1);
+        }
+	//Print() << "gs for interpolating is " << gs << "\n";
 
 //        if (ng == 0) //this condition isn't in the Fortan version? -DRL
 //        {
@@ -1500,6 +1538,8 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateKernelGpu(AoS& aos
         p.rdata(StructReal::velx + 2) = 0;
         //std::cout << "SUCCESS\n";
         double wSum = 0;
+        
+	//std::cout << "normalization factor " << 1 << " are " << norm_es[1] << std::endl;
         // x-components
         for (int k = lo_dim[2] ; k < hi_dim[2]; ++k) {
             for (int j = lo_dim[1] ; j < hi_dim[1]; ++j) {
@@ -1509,6 +1549,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateKernelGpu(AoS& aos
                   pos_grid[0]=(p.pos(0)-coords_x(i,j,k,0))*invdx[0];
                   pos_grid[1]=(p.pos(1)-coords_x(i,j,k,1))*invdx[1];
                   pos_grid[2]=(p.pos(2)-coords_x(i,j,k,2))*invdx[2];
+		  Real pos_grid_norm = std::sqrt(pos_grid[0]*pos_grid[0]+pos_grid[1]*pos_grid[1]+pos_grid[2]*pos_grid[2]);
 
                   Real weight = 1.0;
                   for (int ii=0; ii<spaceDim; ++ii)
@@ -1525,11 +1566,16 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateKernelGpu(AoS& aos
                      {
                         weight*=Kernel1P()(pos_grid[ii]);
                      }
-                     else
+                     else if (pkernel_fluid[p.idata(StructInt::species)-1] == 6)
                      {
                         weight*=Kernel6P()(pos_grid[ii]);
                      }
-                  }
+		     else if (eskernel_fluid[p.idata(StructInt::species)-1] > 0)
+                     {
+                        weight*=KernelES(eskernel_beta[p.idata(StructInt::species)-1], eskernel_fluid[p.idata(StructInt::species)-1])(pos_grid[ii])/norm_es[p.idata(StructInt::species)-1];
+		        //Print() << "weight is " << weight << "\n";
+                     }
+		  }
 
                   Real wfrac = 1.0;
                   if (fweights_x(i,j,k) > 0)
@@ -1542,6 +1588,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateKernelGpu(AoS& aos
                   }
                   
                   wSum += weight;
+
                   p.rdata(StructReal::velx + 0) += fin_x(i,j,k)*wfrac*weight;
 
                  // Print() << i << ", " << j << ", " << k << ", " << coords_x(i,j,k,0) << ", "<< coords_x(i,j,k,1) << ", "<< coords_x(i,j,k,2) << ", " << fin_x(i,j,k) << ", " << weight << "\n";
@@ -1557,7 +1604,8 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateKernelGpu(AoS& aos
                   Real pos_grid[3];
                   pos_grid[0]=(p.pos(0)-coords_y(i,j,k,0))*invdx[0];
                   pos_grid[1]=(p.pos(1)-coords_y(i,j,k,1))*invdx[1];
-                  pos_grid[2]=(p.pos(2)-coords_y(i,j,k,2))*invdx[2];
+                  pos_grid[2]=(p.pos(2)-coords_y(i,j,k,2))*invdx[2];  
+		  Real pos_grid_norm = std::sqrt(pos_grid[0]*pos_grid[0]+pos_grid[1]*pos_grid[1]+pos_grid[2]*pos_grid[2]);
 
                   Real weight = 1.0;
                   for (int ii=0; ii<spaceDim; ++ii)
@@ -1574,9 +1622,13 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateKernelGpu(AoS& aos
                      {
                         weight*=Kernel1P()(pos_grid[ii]);
                      }
-                     else
+                     else if (pkernel_fluid[p.idata(StructInt::species)-1] == 6)
                      {
                         weight*=Kernel6P()(pos_grid[ii]);
+                     }
+		     else if (eskernel_fluid[p.idata(StructInt::species)-1] > 0)
+                     {
+                        weight*=KernelES(eskernel_beta[p.idata(StructInt::species)-1], eskernel_fluid[p.idata(StructInt::species)-1])(pos_grid[ii])/norm_es[p.idata(StructInt::species)-1];
                      }
                   }
 
@@ -1589,7 +1641,8 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateKernelGpu(AoS& aos
                   {
                      wfrac = 1.0;
                   }
-                 
+                  
+		  
                   p.rdata(StructReal::velx + 1) += fin_y(i,j,k)*wfrac*weight; 
                 }
             }
@@ -1603,6 +1656,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateKernelGpu(AoS& aos
                   pos_grid[0]=(p.pos(0)-coords_z(i,j,k,0))*invdx[0];
                   pos_grid[1]=(p.pos(1)-coords_z(i,j,k,1))*invdx[1];
                   pos_grid[2]=(p.pos(2)-coords_z(i,j,k,2))*invdx[2];
+		  Real pos_grid_norm = std::sqrt(pos_grid[0]*pos_grid[0]+pos_grid[1]*pos_grid[1]+pos_grid[2]*pos_grid[2]);
 
                   Real weight = 1.0;
                   for (int ii=0; ii<spaceDim; ++ii)
@@ -1619,10 +1673,14 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateKernelGpu(AoS& aos
                      {
                         weight*=Kernel1P()(pos_grid[ii]);
                      }
-                     else
+                     else if (pkernel_fluid[p.idata(StructInt::species)-1] == 6)
                      {
                         weight*=Kernel6P()(pos_grid[ii]);
                      }
+		     else if (eskernel_fluid[p.idata(StructInt::species)-1] > 0)
+                     {
+                        weight*=KernelES(eskernel_beta[p.idata(StructInt::species)-1], eskernel_fluid[p.idata(StructInt::species)-1])(pos_grid[ii])/norm_es[p.idata(StructInt::species)-1];
+                     } 
                   }
 
                   Real wfrac = 1.0;
@@ -1634,7 +1692,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateKernelGpu(AoS& aos
                   {
                      wfrac = 1.0;
                   }
-                 
+
                   p.rdata(StructReal::velx + 2) += fin_z(i,j,k)*wfrac*weight; 
                 }
             }
@@ -2031,6 +2089,14 @@ void IBMarkerContainerBase<StructReal, StructInt>::InitInternals(int ngrow) {
 
     const Geometry & geom = this->Geom(lev);
     FindFaceCoords(face_coords[lev], geom);
+   
+    //Vector<Real> IBMarkerContainerBase<StructReal, StructInt>::norm_es;
+    IBMarkerContainerBase::norm_es.resize(common::nspecies);
+    for (int i=0; i<common::nspecies; ++i) {
+        IBMarkerContainerBase::norm_es[i] = integrate_es(common::eskernel_beta[i], common::eskernel_fluid[i]);
+        //std::cout << "normalization factor " << i << " are " << IBMarkerContainerBase::norm_es[i] << std::endl;
+    }
+
 }
 
 
@@ -2067,6 +2133,22 @@ void IBMarkerContainerBase<StructReal, StructInt>::ReadStaticParameters() {
 
         initialized = true;
     }
+}
+
+template <typename StructReal, typename StructInt>
+Real IBMarkerContainerBase<StructReal, StructInt>::integrate_es(Real beta_in, int w_in) {
+    Real beta = beta_in;
+    Real w = static_cast<Real>(w_in);
+    int nbin = 100;
+    Real dxi = w/nbin;
+    Real integral = 0.0; 
+
+    // mid-point rule for integration
+    for (int i = 0; i < nbin; i++) {
+        integral += dxi*std::exp(beta*(std::sqrt(1 - 4*(-w*0.5+i*dxi+0.5*dxi)*(-w*0.5+i*dxi+0.5*dxi)/w/w) - 1));
+    }
+    //std::cout << "denominator is " << integral << std::endl;
+    return integral;
 }
 
 
