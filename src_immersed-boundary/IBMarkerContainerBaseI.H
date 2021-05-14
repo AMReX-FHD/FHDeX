@@ -325,18 +325,26 @@ void IBMarkerContainerBase<StructReal, StructInt>::loadPinMatrix(int totalP, cha
 
     pinMatrix.resize(pow(3*totalP,2),0);
 
-    std::ifstream ifs(filename, std::ios::binary);
+    std::ifstream ifs("invOut", std::ios::binary);
+
+    //std::ifstream matFile("invOut");
 
     for(int i=0; i<pow(3*totalP,2); i++)
     {
         double read;
         ifs.read(reinterpret_cast<char*>( &read ), sizeof read);
         pinMatrix[i] = read;
-        //Print() << i << " of " << pow(3*totalP,2) << ": " << read << std::endl;
+
+        //matFile >> pinMatrix[i];
+        if(i%1000000==0)
+        {
+            Print() << i << " of " << pow(3*totalP,2) << ": " << pinMatrix[i] << std::endl;
+        }
 
     }
 
     ifs.close();
+    //matFile.close();
 
 }
 

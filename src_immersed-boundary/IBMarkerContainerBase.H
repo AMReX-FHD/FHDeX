@@ -288,13 +288,14 @@ protected:
     Gpu::ManagedDeviceVector<amrex::Real> pinMatrix;
 
     int totalMarkers;
-    int totalPinnedMarkers;
+    int totalPinnedMarkers; 
+
 
 private:
 
     // Positions on faces
     Vector<std::array<MultiFab, AMREX_SPACEDIM>> face_coords;
-    
+   
 
 
 
