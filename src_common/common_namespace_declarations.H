@@ -129,6 +129,7 @@ int                        common::n_steps_skip;
 AMREX_GPU_MANAGED amrex::Real common::binSize;
 AMREX_GPU_MANAGED amrex::Real common::searchDist;
 int                        common::project_dir;
+int                        common::slicepoint;
 amrex::Vector<int>         common::max_grid_projection;
 int                        common::histogram_unit;
 amrex::Vector<amrex::Real> common::density_weights;
