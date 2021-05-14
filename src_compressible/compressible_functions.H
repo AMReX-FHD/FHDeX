@@ -72,6 +72,9 @@ void BCWallSpeciesFlux(std::array< MultiFab, AMREX_SPACEDIM >& flux,
 
 void StochFlux(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in,
                const amrex::Geometry geom);
+
+void MembraneFlux(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in,
+                  const amrex::Geometry geom);
 /////////////////////////////////////
 
 void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
