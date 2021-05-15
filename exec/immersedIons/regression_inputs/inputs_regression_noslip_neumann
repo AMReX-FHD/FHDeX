@@ -4,7 +4,6 @@
   prob_lo(1:3) = 0.0 0.0 0.0      ! physical lo coordinate
   prob_hi(1:3) = 1.0043e-6 1.0043e-6 1.0043e-6   ! physical hi coordinate - (would be 44% wet)
 
-
   n_cells(1:3) = 32 32 32
   ! max number of cells in a box
   max_grid_size(1:3) = 16 16 16
@@ -142,10 +141,10 @@
 /
 
   # GMRES solver parameters
-  gmres_rel_tol = 1.e-12                 ! relative tolerance stopping criteria
-  gmres_abs_tol = 0                     ! absolute tolerance stopping criteria
-  gmres_verbose =  1                    ! gmres verbosity; if greater than 1, more residuals will be printed out
-  gmres_max_outer = 20                  ! max number of outer iterations
-  gmres_max_inner = 5                   ! max number of inner iterations, or restart number
-  gmres_max_iter = 100                  ! max number of gmres iterations
-  gmres_min_iter = 1                    ! min number of gmres iterations
+  gmres_rel_tol = 1.e-12                 # relative tolerance stopping criteria
+  gmres_abs_tol = 0                     # absolute tolerance stopping criteria
+  gmres_verbose =  1                    # gmres verbosity; if greater than 1, more residuals will be printed out
+  gmres_max_outer = 20                  # max number of outer iterations
+  gmres_max_inner = 5                   # max number of inner iterations, or restart number
+  gmres_max_iter = 100                  # max number of gmres iterations
+  gmres_min_iter = 1                    # min number of gmres iterations

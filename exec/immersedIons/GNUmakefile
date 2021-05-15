@@ -8,7 +8,7 @@ DEBUG     = FALSE
 PROFILE   = FALSE
 USE_MPI   = TRUE
 USE_OMP   = FALSE
-USE_CUDA  = TRUE
+USE_CUDA  = FALSE
 COMP      = gnu
 DIM       = 3
 DSMC      = FALSE
@@ -78,7 +78,6 @@ VPATH_LOCATIONS   += $(FHDeX)src_immersed-boundary
 INCLUDE_LOCATIONS += $(FHDeX)src_immersed-boundary
 
 include $(FIONS)/Make.package
-include $(FIONS)/Make_precheck.package
 
 include $(AMREX_HOME)/Src/Base/Make.package
 include $(AMREX_HOME)/Src/Boundary/Make.package

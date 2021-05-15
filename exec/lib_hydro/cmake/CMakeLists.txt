@@ -63,7 +63,6 @@ add_library(
     ../../../src_common/ComputeDivAndGrad.cpp
     ../../../src_common/ConvertStag.cpp
     ../../../src_common/Debug.cpp
-    ../../../src_common/FindNodalValues.cpp
     ../../../src_common/MultiFabPhysBC.cpp
     ../../../src_common/SqrtMF.cpp
     ../../../src_common/common_functions.cpp
@@ -74,12 +73,7 @@ add_library(
     ../../../src_common/src_F90/common_namelist.F90
     ../../../src_common/src_F90/compute_averages.F90
     ../../../src_common/src_F90/compute_basic_stats.F90
-    ../../../src_common/src_F90/debug_mod.F90
-    ../../../src_common/src_F90/find_coords.F90
-    ../../../src_common/src_F90/find_nodal_values.F90
     ../../../src_common/src_F90/init_funcs.F90
-    ../../../src_common/src_F90/species_type.F90
-    ../../../src_common/src_F90/time_step.F90
 
     ../../../src_rng/MultiFabFillRandom.cpp
     ../../../src_rng/bl_random_c.cpp
@@ -123,6 +117,11 @@ add_library(
     ../../../src_immersed-boundary/src_F90/set_particle_properties.F90
 
     ../../../src_particles/FindCoords.cpp
+
+    ../../../src_particles/src_F90/collision_functions.F90
+    ../../../src_particles/src_F90/particle_functions.F90
+    ../../../src_particles/src_F90/particle_type.F90
+    ../../../src_particles/src_F90/species_type.F90
     )
 
 target_link_libraries(

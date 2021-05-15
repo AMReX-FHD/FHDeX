@@ -90,18 +90,12 @@ void SqrtMF(MultiFab& MF);
 ///////////////////////////
 // in ComputeBasicStats.cpp
 
-void ComputeBasicStats(const MultiFab & instant, MultiFab & means, MultiFab & vars,
+void ComputeBasicStats(MultiFab & instant, MultiFab & means, 
                 const int incomp, const int outcomp, const int steps);
 
 void OutputVolumeMean(const MultiFab & instant, const int comp, const Real domainVol, std::string filename, const Geometry geom);
 
 Real MaskedSum (const MultiFab & inFab,int comp, const Periodicity& period);
-
-Real SumFab(const MultiFab & in, const int ng, const int comp);
-
-void XMeanFab(const MultiFab & in, MultiFab & out, const int ng);
-
-void MaxSpeed(std::array< MultiFab, AMREX_SPACEDIM >& umac);
 
 ///////////////////////////
 // in ComputeAverages.cpp
@@ -109,9 +103,15 @@ void MaxSpeed(std::array< MultiFab, AMREX_SPACEDIM >& umac);
 void WriteHorizontalAverage(const MultiFab& mf_in, const int& dir, const int& incomp,
                             const int& ncomp, const int& step, const Geometry& geom);
 
+void WriteHorizontalAverageToMF(const MultiFab& mf_in, MultiFab& mf_out,
+                                const int& dir, const int& incomp,
+                                const int& ncomp);
+    
 void ComputeVerticalAverage(const MultiFab & mf, MultiFab & mf_avg, const Geometry & geom,
-                            const int dir, const int incomp, const int ncomp,
-                            const int findredist=0);
+                            const int dir, const int incomp, const int ncomp);
+
+void ExtractSlice(const MultiFab & mf, MultiFab & mf_slice, const Geometry & geom,
+                  const int dir, const int incomp, const int ncomp);
 
 ///////////////////////////
 // in MultiFabPhysBC.cpp
@@ -181,5 +181,9 @@ void CCL2Norm(const MultiFab & m1,
               amrex::MultiFab& mscr,
 	      Real & norm_l2);
 
+///////////////////////////
+// in RotateFlattenedMF.cpp
+
+MultiFab RotateFlattenedMF(MultiFab const& mf);
 
 #endif

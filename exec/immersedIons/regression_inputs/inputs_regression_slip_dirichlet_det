@@ -40,7 +40,7 @@
   fluid_tog = 1 ! 0=Do nothing, 1=Do stokes solve, 2=Do low Mach solve
   es_tog = 3 ! Do electrostatic solve 0=off, 1=Poisson, 2=Pairwise Coulomb (Doesn't work in parallel), 3=PPPM
   drag_tog = 0 ! Apply drag force to fluid
-  rfd_tog = 0 ! Apply RFD force to fluid
+  rfd_tog = 1 ! Apply RFD force to fluid
   move_tog = 2 ! ! Total particle move. 0 = off, 1 = single step, 2 = midpoint
   dry_move_tog = 1 ! Dry particle move
   wall_mob = 1 !0= no dry adjustment to mobility due to walls, 1=Infinte plane, 2=other model
@@ -141,10 +141,10 @@
 /
 
   # GMRES solver parameters
-  gmres_rel_tol = 1.e-12                 ! relative tolerance stopping criteria
-  gmres_abs_tol = 0                     ! absolute tolerance stopping criteria
-  gmres_verbose =  1                    ! gmres verbosity; if greater than 1, more residuals will be printed out
-  gmres_max_outer = 20                  ! max number of outer iterations
-  gmres_max_inner = 5                   ! max number of inner iterations, or restart number
-  gmres_max_iter = 100                  ! max number of gmres iterations
-  gmres_min_iter = 1                    ! min number of gmres iterations
+  gmres_rel_tol = 1.e-12                 # relative tolerance stopping criteria
+  gmres_abs_tol = 0                     # absolute tolerance stopping criteria
+  gmres_verbose =  1                    # gmres verbosity; if greater than 1, more residuals will be printed out
+  gmres_max_outer = 20                  # max number of outer iterations
+  gmres_max_inner = 5                   # max number of inner iterations, or restart number
+  gmres_max_iter = 100                  # max number of gmres iterations
+  gmres_min_iter = 1                    # min number of gmres iterations

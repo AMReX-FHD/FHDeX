@@ -18,6 +18,9 @@ using namespace amrex;
 // copy contents of compressible_params_module to C++ compressible namespace
 void InitializeCompressibleNamespace();
 
+// if gas heat capacities in the namelist are negative, calculate them using using dofs
+void GetHcGas();
+
 void InitConsVar(MultiFab& cons, const MultiFab& prim,
                  const amrex::Geometry geom);
 
@@ -55,7 +58,24 @@ void conservedToPrimitive(MultiFab& prim_in, const MultiFab& cons_in);
 
 void primitiveToConserved(const MultiFab& prim, MultiFab& cons);
 
+/////////////////////////////////////
+// in boundary.cpp
+
+void SetupBC();
+
+void SetupCWall();
+
 void setBC(MultiFab& prim, MultiFab& cons);
+
+void BCWallSpeciesFlux(std::array< MultiFab, AMREX_SPACEDIM >& flux,
+                       const amrex::Geometry geom);
+
+void StochFlux(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in,
+               const amrex::Geometry geom);
+
+void MembraneFlux(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in,
+                  const amrex::Geometry geom);
+/////////////////////////////////////
 
 void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
                    const MultiFab& prim, MultiFab& primMean, MultiFab& primVar,
@@ -131,6 +151,21 @@ void GetMolfrac (const GpuArray<Real,MAX_SPECIES>& Yk,
     molmix = 1./molmix;
     for (int n=0; n<nspecies; ++n) {
         Xk[n] = Yk[n]*molmix/molmass[n];
+    }
+
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void GetMassfrac (const GpuArray<Real,MAX_SPECIES>& Xk,
+                 GpuArray<Real,MAX_SPECIES>& Yk)
+{
+    Real molmix = 0.;
+
+    for (int n=0; n<nspecies; ++n) {
+        molmix += Xk[n]*molmass[n];
+    }
+    for (int n=0; n<nspecies; ++n) {
+        Yk[n] = Xk[n]*molmass[n]/molmix;
     }
 
 }
