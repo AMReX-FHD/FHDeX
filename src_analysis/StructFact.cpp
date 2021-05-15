@@ -29,7 +29,7 @@ StructFact::StructFact(const BoxArray& ba_in, const DistributionMapping& dmap_in
   NCOV = s_pairA_in.size();
 
   if ( NCOV != var_scaling_in.size() )
-      amrex::Error("StructFact::StructFact() Constructor 1 - Structure factor scaling dimension mismatch");
+      amrex::Error("StructFact::StructFact() Constructor 1 - NCOV != var_scaling_in.size()");
 
   scaling.resize(NCOV);
   for (int n=0; n<NCOV; n++) {
@@ -159,7 +159,69 @@ StructFact::StructFact(const BoxArray& ba_in, const DistributionMapping& dmap_in
   NCOV = NVAR*(NVAR+1)/2;
 
   if ( NCOV != var_scaling_in.size() )
-      amrex::Error("StructFact::StructFact() Constructor 2 - Structure factor scaling dimension mismatch");
+      amrex::Error("StructFact::StructFact() Constructor 2 -  NCOV != var_scaling_in.size()");
+
+  scaling.resize(NCOV);
+  for (int n=0; n<NCOV; n++) {
+      scaling[n] = 1.0/var_scaling_in[n];
+  }
+  
+  s_pairA.resize(NCOV);
+  s_pairB.resize(NCOV);
+  
+  // all variables are selected in this constructor
+  NVARU = NVAR;
+  var_u.resize(NVARU);
+  for (int n=0; n<NVARU; n++) {
+    var_u[n] = n;
+  }
+  
+  int index = 0;
+  for (int j=0; j<NVAR; j++) {
+    for (int i=j; i<NVAR; i++) {
+      s_pairA[index] = i;
+      s_pairB[index] = j;
+      index++;
+    }
+  }
+
+  verbosity = verbosity_in;
+
+  // Note that we are defining with NO ghost cells
+
+  cov_real.define(ba_in, dmap_in, NCOV, 0);
+  cov_imag.define(ba_in, dmap_in, NCOV, 0);
+  cov_mag.define( ba_in, dmap_in, NCOV, 0);
+  cov_real.setVal(0.0);
+  cov_imag.setVal(0.0);
+  cov_mag.setVal( 0.0);
+
+  cov_names.resize(NCOV);
+  std::string x;
+  int cnt = 0;
+  for (int n=0; n<NCOV; n++) {
+    x = "struct_fact";
+    x += '_';
+    x += var_names[s_pairB[n]];
+    x += '_';
+    x += var_names[s_pairA[n]];
+    cov_names[cnt] = x;
+    cnt++;
+  }
+}
+
+void StructFact::define(const BoxArray& ba_in, const DistributionMapping& dmap_in,
+                        const Vector< std::string >& var_names,
+                        const Vector< Real >& var_scaling_in,
+                        const int& verbosity_in) {
+  
+  BL_PROFILE_VAR("StructFact::define()",StructFactDefine);
+
+  NVAR = var_names.size();
+  NCOV = NVAR*(NVAR+1)/2;
+
+  if ( NCOV != var_scaling_in.size() )
+      amrex::Error("StructFact::define() -  NCOV != var_scaling_in.size()");
 
   scaling.resize(NCOV);
   for (int n=0; n<NCOV; n++) {
@@ -216,12 +278,6 @@ void StructFact::FortStructure(const MultiFab& variables, const Geometry& geom, 
 
   const BoxArray& ba = variables.boxArray();
   const DistributionMapping& dm = variables.DistributionMap();
-
-  if (ba.size()%ParallelDescriptor::NProcs() != 0) {
-      Abort("StructFact::FortStructure - n_boxes%n_mpi_ranks must be zero");
-      exit(0);
-  }
-
   MultiFab variables_dft_real, variables_dft_imag;
   variables_dft_real.define(ba, dm, NVAR, 0);
   variables_dft_imag.define(ba, dm, NVAR, 0);
@@ -236,7 +292,10 @@ void StructFact::FortStructure(const MultiFab& variables, const Geometry& geom, 
       ba_temp.maxSize(IntVect(max_grid_size_structfact));
 
       if (ba_temp.size() != ParallelDescriptor::NProcs()) {
-          Abort("StructFact::FortStructure - number of MPI ranks needs to match the number of grids; define max_grid_size_structfact");
+          Print() << "StructFact::FortStructure - number of MPI ranks needs to match the number of grids;\n"
+                  << "If this is a full-dimensional dataset, use max_grid_size_structfact;\n"
+                  << "If this is a vertically-averaged dataset, use max_grid_projection.\n";
+          Abort("");
           exit(0);
       }
 
@@ -256,8 +315,8 @@ void StructFact::FortStructure(const MultiFab& variables, const Geometry& geom, 
 
       // ParallelCopy variables_dft_real_temp into variables_dft_real
       // ParallelCopy variables_dft_imag_temp into variables_dft_imag
-      variables_dft_real.copy(variables_dft_real_temp, 0, 0, NVAR);
-      variables_dft_imag.copy(variables_dft_imag_temp, 0, 0, NVAR);
+      variables_dft_real.ParallelCopy(variables_dft_real_temp, 0, 0, NVAR);
+      variables_dft_imag.ParallelCopy(variables_dft_imag_temp, 0, 0, NVAR);
   }
 
   MultiFab cov_temp;
@@ -506,13 +565,14 @@ void StructFact::WritePlotFile(const int step, const Real time, const Geometry& 
   // Build temp real & imag components
   const BoxArray& ba = cov_mag.boxArray();
   const DistributionMapping& dm = cov_mag.DistributionMap();
+
   MultiFab cov_real_temp(ba, dm, NCOV, 0);
   MultiFab cov_imag_temp(ba, dm, NCOV, 0);
   MultiFab::Copy(cov_real_temp, cov_real, 0, 0, NCOV, 0);
   MultiFab::Copy(cov_imag_temp, cov_imag, 0, 0, NCOV, 0);
 
   // Finalize covariances - scale & compute magnitude
-  Finalize(cov_real_temp, cov_imag_temp, zero_avg);
+  Finalize(cov_real_temp, cov_imag_temp, geom, zero_avg);
 
   //////////////////////////////////////////////////////////////////////////////////
   // Write out structure factor magnitude to plot file
@@ -535,10 +595,7 @@ void StructFact::WritePlotFile(const int step, const Real time, const Geometry& 
 
       Real dx = geom.CellSize(0);
       Real pi = 3.1415926535897932;
-
-      IntVect dom_lo(AMREX_D_DECL(           0,            0,            0));
-      IntVect dom_hi(AMREX_D_DECL(n_cells[0]-1, n_cells[1]-1, n_cells[2]-1));
-      Box domain(dom_lo, dom_hi);
+      Box domain = geom.Domain();
 
       RealBox real_box({AMREX_D_DECL(-pi/dx,-pi/dx,-pi/dx)},
                        {AMREX_D_DECL( pi/dx, pi/dx, pi/dx)});
@@ -602,14 +659,15 @@ void StructFact::StructOut(MultiFab& struct_out) {
   }
 }
 
-void StructFact::Finalize(MultiFab& cov_real_in, MultiFab& cov_imag_in, const int& zero_avg) {
+void StructFact::Finalize(MultiFab& cov_real_in, MultiFab& cov_imag_in,
+                          const Geometry& geom, const int& zero_avg) {
 
   BL_PROFILE_VAR("StructFact::Finalize()",Finalize);
   
   Real nsamples_inv = 1.0/(Real)nsamples;
   
-  ShiftFFT(cov_real_in,zero_avg);
-  ShiftFFT(cov_imag_in,zero_avg);
+  ShiftFFT(cov_real_in,geom,zero_avg);
+  ShiftFFT(cov_imag_in,geom,zero_avg);
 
   cov_real_in.mult(nsamples_inv);
   for (int d=0; d<NCOV; d++) {
@@ -629,15 +687,13 @@ void StructFact::Finalize(MultiFab& cov_real_in, MultiFab& cov_imag_in, const in
 
 }
 
-void StructFact::ShiftFFT(MultiFab& dft_out, const int& zero_avg) {
+void StructFact::ShiftFFT(MultiFab& dft_out, const Geometry& geom, const int& zero_avg) {
 
   BL_PROFILE_VAR("StructFact::ShiftFFT()",ShiftFFT);
 
   BoxArray ba_onegrid;
   {
-      IntVect dom_lo(AMREX_D_DECL(           0,            0,            0));
-      IntVect dom_hi(AMREX_D_DECL(n_cells[0]-1, n_cells[1]-1, n_cells[2]-1));
-      Box domain(dom_lo, dom_hi);
+      Box domain = geom.Domain();
       
       // Initialize the boxarray "ba" from the single box "bx"
       ba_onegrid.define(domain);

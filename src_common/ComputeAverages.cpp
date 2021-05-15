@@ -189,8 +189,7 @@ void WriteHorizontalAverageToMF(const MultiFab& mf_in, MultiFab& mf_out,
 
 void ComputeVerticalAverage(const MultiFab& mf, MultiFab& mf_avg,
 			    const Geometry& geom, const int dir,
-			    const int incomp, const int ncomp,
-			    const int findredist)
+			    const int incomp, const int ncomp)
 {
     BL_PROFILE_VAR("ComputVerticalAverage()",ComputeVerticalAverage);
   
@@ -224,40 +223,39 @@ void ComputeVerticalAverage(const MultiFab& mf, MultiFab& mf_avg,
     if (nbx[0]*nbx[1]*nbx[2] != ba_in.size())
         amrex::Error("ALL GRIDS DO NOT HAVE SAME SIZE");
 
-    indlo = (dir-1+AMREX_SPACEDIM)%AMREX_SPACEDIM;
-    indhi = (dir+1+AMREX_SPACEDIM)%AMREX_SPACEDIM;
+#if (AMREX_SPACEDIM == 2)
+
+    Abort("Fix ComputeAverages for 2D");
+
+    if (dir == 0) {
+        indlo = 1;
+    } else if (dir == 1) {
+        indlo = 0;
+    } else {
+        Abort("ComputeVerticalAverage: invalid dir");
+    }
+#elif (AMREX_SPACEDIM == 3)
+    if (dir == 0) {
+        indlo = 1;
+        indhi = 2;
+    } else if (dir == 1) {
+        indlo = 0;
+        indhi = 2;
+    } else if (dir == 2) {
+        indlo = 0;
+        indhi = 1;
+    } else {
+        Abort("ComputeVerticalAverage: invalid dir");
+    }
+#endif
 
     IntVect dom_lo(domain.loVect());
     IntVect dom_hi(domain.hiVect());
     dom_hi[dir] = 0;
     Box domain_flat(dom_lo, dom_hi);
 
-    if (findredist == 1) {
-
-        nxprod = nx[0]*nx[1]*nx[2]/nx[dir];
-        if (nxprod%nbx[dir] != 0) {
-            amrex::Error("CURRENT PENCIL REFACTORING DOESN'T WORK");
-        } else {
-            nxprod /= nbx[dir];
-        }
-
-        // Find a,b,&c such that (a*b)/c = (nx*ny)/pz, with c as a common factor to a & b
-        a = greatest_common_factor( nxprod,domain.length(indlo) );
-        b = greatest_common_factor( nxprod,domain.length(indhi) );
-        c = (a*b)/nxprod; // c is a factor of both a & b
-        factor(c, mx, 2); // factor c into two numbers
-        mx[0] = a/mx[0];
-        mx[1] = b/mx[1];
-
-        if (mx[0]*mx[1] != nxprod)
-            amrex::Error("FACTORING NOT POSSIBLE DUE TO UNCOMMON PRIME FACTOR");
-
-    } else {
-
-        mx[0] = max_grid_projection[0];
-        mx[1] = max_grid_projection[1];
-
-    }
+    mx[0] = max_grid_projection[0];
+    mx[1] = max_grid_projection[1];
 
     mbx[0] = domain.length(indlo)/mx[0];
     mbx[1] = domain.length(indhi)/mx[1];
@@ -350,41 +348,46 @@ void ComputeVerticalAverage(const MultiFab& mf, MultiFab& mf_avg,
 
 }
 
-// Functions for computing automatic refactorization of 3D -> 2D grids
+void ExtractSlice(const MultiFab& mf, MultiFab& mf_slice,
+                  const Geometry& geom, const int dir,
+                  const int incomp, const int ncomp)
+{
+    BL_PROFILE_VAR("ExtractSlice()",ExtractSlice);
 
-int greatest_common_factor(int a, int b) {
-    return b == 0 ? a : greatest_common_factor(b, a % b);
-}
+    Box domain(geom.Domain());
 
-void factor(int num, int* factors, int nf) {
-    int n = num;
-    int cnt = 0;
+    // create BoxArray
+    IntVect dom_lo(domain.loVect());
+    IntVect dom_hi(domain.hiVect());
+    dom_lo[dir] = slicepoint;
+    dom_hi[dir] = slicepoint;
 
-    for (int i=0; i<nf; i++)
-        factors[i]=1;
+    Box domain_slice(dom_lo, dom_hi);
 
-    while (n%2 == 0) { // factor out powers of 2
-        n /= 2;
-        factors[cnt%nf]*=2;
-        cnt++;
+    Vector<int> max_grid_slice(AMREX_SPACEDIM);
+#if (AMREX_SPACEDIM == 2)
+    max_grid_slice[  dir] = 1;
+    max_grid_slice[1-dir] = max_grid_projection[0];
+#elif (AMREX_SPACEDIM == 3)
+    max_grid_slice[dir] = 1;
+    if (dir == 0) {
+        max_grid_slice[1] = max_grid_projection[0];
+        max_grid_slice[2] = max_grid_projection[1];
+    } else if (dir == 1) {
+        max_grid_slice[0] = max_grid_projection[0];
+        max_grid_slice[2] = max_grid_projection[1];
+    } else {
+        max_grid_slice[0] = max_grid_projection[0];
+        max_grid_slice[1] = max_grid_projection[1];
     }
-    for (int i=3; i<=sqrt(n); i+=2) { // find other odd factors
-        while (n % i == 0) {
-            n /= i;
-            factors[cnt%nf]*=i;
-            cnt++;
-        }
-    }
-    if (n > 2)  { // check if n is a prime number greater than 2
-        amrex::Error("CANNOT FACTOR PRIME NUMBER");
-    }
+#endif
 
-    // check:
-    n = 1;
-    for (int i=0; i<nf; i++)
-        n *= factors[i];
+    BoxArray ba_slice(domain_slice);
+    ba_slice.maxSize(IntVect(max_grid_slice));
 
-    if (n != num)  {
-        amrex::Error("ERROR IN FACTORING");
-    }
+    DistributionMapping dmap_slice(ba_slice);
+
+    mf_slice.define(ba_slice,dmap_slice,ncomp,0);
+
+    mf_slice.ParallelCopy(mf, incomp, 0, ncomp);
 }

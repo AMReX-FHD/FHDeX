@@ -24,27 +24,6 @@ extern "C"
 ///////////////////////////
 // in diff_flux.F90
 
-    void stoch_flux(const int* lo, const int* hi,
-		    const amrex::Real* cons,
-		    const amrex::Real* prim,
-		    amrex::Real* xflux,
-		    amrex::Real* yfluz,
-#if (AMREX_SPACEDIM == 3)
-		    amrex::Real* zflux,
-#endif
-		    amrex::Real* xsflux,
-		    amrex::Real* ysfluz,
-#if (AMREX_SPACEDIM == 3)
-		    amrex::Real* zsflux,
-#endif
-		    const amrex::Real* rancorn,
-		    const amrex::Real* eta,
-		    const amrex::Real* zeta,
-		    const amrex::Real* zappa,
-		    const amrex::Real* chi,
-		    const amrex::Real* Dij,
-		    const amrex::Real* dx, const amrex::Real* dt);
-
     void trans_coeffs(const int* lo, const int* hi,
                       const amrex::Real* prim,
                       amrex::Real* eta,
@@ -54,8 +33,6 @@ extern "C"
     void setup_bc();
 
     void setup_cwall();
-
-    void get_energy(amrex::Real* energy, amrex::Real* massvec, const amrex::Real* temp);
 
     void get_hc_gas();
 
