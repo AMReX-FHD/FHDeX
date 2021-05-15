@@ -220,8 +220,11 @@ void FhdParticleContainer::ReInitParticles()
 
     totalPinnedMarkers = pinnedParticles;
 
+    if(pinnedParticles > 0)
+    {
+        loadPinMatrix(pinnedParticles, "matrixInv.dat");
+    }
+
     Redistribute();
-    clearNeighbors();
-    fillNeighbors();
 
 }

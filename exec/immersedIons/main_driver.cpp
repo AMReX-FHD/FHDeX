@@ -1019,70 +1019,70 @@ void main_driver(const char* argv)
 
                 Real check;
 
-                particles.clearMobilityMatrix();
-                for(int ii=115;ii<=2194;ii++)
-                {
-                    particles.SetForce(ii,1,0,0);
-                    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-                        source    [d].setVal(0.0);      // reset source terms
-                        sourceTemp[d].setVal(0.0);      // reset source terms
-                    }
-                    particles.SpreadIonsGPU(dx, dxp, geom, umac, efieldCC, source, sourceTemp);                
-                    advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
-                    particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
-                    particles.fillMobilityMatrix(ii,0);
-
-                    particles.SetForce(ii,0,1,0);
-                    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-                        source    [d].setVal(0.0);      // reset source terms
-                        sourceTemp[d].setVal(0.0);      // reset source terms
-                    }
-                    particles.SpreadIonsGPU(dx, dxp, geom, umac, efieldCC, source, sourceTemp);                
-                    advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
-                    particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
-                    particles.fillMobilityMatrix(ii,1);
-
-                    particles.SetForce(ii,0,0,1);
-                    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-                        source    [d].setVal(0.0);      // reset source terms
-                        sourceTemp[d].setVal(0.0);      // reset source terms
-                    }
-                    particles.SpreadIonsGPU(dx, dxp, geom, umac, efieldCC, source, sourceTemp);                
-                    advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
-                    particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
-                    particles.fillMobilityMatrix(ii,2);
-
-
-                }
-                particles.writeMat();
-
-                particles.invertMatrix();
-
-
-//                MultiFab::Add(source[0],sourceRFD[0],0,0,sourceRFD[0].nComp(),sourceRFD[0].nGrow());
-//                MultiFab::Add(source[1],sourceRFD[1],0,0,sourceRFD[1].nComp(),sourceRFD[1].nGrow());
-//                MultiFab::Add(source[2],sourceRFD[2],0,0,sourceRFD[2].nComp(),sourceRFD[2].nGrow());
-
-//                advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
-//                particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
-//                particles.velNorm();
-
-//                particles.pinnedParticleInversion();
-
-//                for (int d=0; d<AMREX_SPACEDIM; ++d) {
+//                particles.clearMobilityMatrix();
+//                for(int ii=115;ii<=2194;ii++)
+//                {
+//                    particles.SetForce(ii,1,0,0);
+//                    for (int d=0; d<AMREX_SPACEDIM; ++d) {
 //                        source    [d].setVal(0.0);      // reset source terms
 //                        sourceTemp[d].setVal(0.0);      // reset source terms
 //                    }
+//                    particles.SpreadIonsGPU(dx, dxp, geom, umac, efieldCC, source, sourceTemp);                
+//                    advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
+//                    particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
+//                    particles.fillMobilityMatrix(ii,0);
 
-//                particles.SpreadIonsGPU(dx, geom, umac, source, sourceTemp);
+//                    particles.SetForce(ii,0,1,0);
+//                    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+//                        source    [d].setVal(0.0);      // reset source terms
+//                        sourceTemp[d].setVal(0.0);      // reset source terms
+//                    }
+//                    particles.SpreadIonsGPU(dx, dxp, geom, umac, efieldCC, source, sourceTemp);                
+//                    advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
+//                    particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
+//                    particles.fillMobilityMatrix(ii,1);
 
-//                MultiFab::Add(source[0],sourceRFD[0],0,0,sourceRFD[0].nComp(),sourceRFD[0].nGrow());
-//                MultiFab::Add(source[1],sourceRFD[1],0,0,sourceRFD[1].nComp(),sourceRFD[1].nGrow());
-//                MultiFab::Add(source[2],sourceRFD[2],0,0,sourceRFD[2].nComp(),sourceRFD[2].nGrow());
+//                    particles.SetForce(ii,0,0,1);
+//                    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+//                        source    [d].setVal(0.0);      // reset source terms
+//                        sourceTemp[d].setVal(0.0);      // reset source terms
+//                    }
+//                    particles.SpreadIonsGPU(dx, dxp, geom, umac, efieldCC, source, sourceTemp);                
+//                    advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
+//                    particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
+//                    particles.fillMobilityMatrix(ii,2);
 
-//                advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
-//                particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
-//                particles.velNorm();
+
+//                }
+//                particles.writeMat();
+
+//                particles.invertMatrix();
+
+
+                MultiFab::Add(source[0],sourceRFD[0],0,0,sourceRFD[0].nComp(),sourceRFD[0].nGrow());
+                MultiFab::Add(source[1],sourceRFD[1],0,0,sourceRFD[1].nComp(),sourceRFD[1].nGrow());
+                MultiFab::Add(source[2],sourceRFD[2],0,0,sourceRFD[2].nComp(),sourceRFD[2].nGrow());
+
+                advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
+                particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
+                particles.velNorm();
+
+                particles.pinnedParticleInversion();
+
+                for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                        source    [d].setVal(0.0);      // reset source terms
+                        sourceTemp[d].setVal(0.0);      // reset source terms
+                    }
+
+                particles.SpreadIonsGPU(dx, geom, umac, source, sourceTemp);
+
+                MultiFab::Add(source[0],sourceRFD[0],0,0,sourceRFD[0].nComp(),sourceRFD[0].nGrow());
+                MultiFab::Add(source[1],sourceRFD[1],0,0,sourceRFD[1].nComp(),sourceRFD[1].nGrow());
+                MultiFab::Add(source[2],sourceRFD[2],0,0,sourceRFD[2].nComp(),sourceRFD[2].nGrow());
+
+                advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
+                particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
+                particles.velNorm();
 
             }else
             {
