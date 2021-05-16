@@ -43,6 +43,10 @@ void conservedToPrimitiveStag(MultiFab& prim_in, std::array<MultiFab, AMREX_SPAC
 void InitConsVarStag(MultiFab& cons, std::array< MultiFab, AMREX_SPACEDIM >& momStag, 
                      const MultiFab& prim, const amrex::Geometry geom);
 
+void SetupBCStag();
+
+void SetupCWallStag();
+
 void setBCStag(MultiFab& prim_in, MultiFab& cons_in,
                  std::array< MultiFab, AMREX_SPACEDIM >& cumom_in,
                  std::array< MultiFab, AMREX_SPACEDIM >& vel_in,

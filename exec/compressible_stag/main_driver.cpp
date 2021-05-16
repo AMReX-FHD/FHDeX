@@ -55,14 +55,14 @@ void main_driver(const char* argv)
 
     // for each direction, if bc_vel_lo/hi is periodic, then
     // set the corresponding bc_mass_lo/hi and bc_therm_lo/hi to periodic
-    SetupBC();
+    SetupBCStag();
     setup_bc(); // do the same in the fortran namelist
 
     // if multispecies
     if (algorithm_type == 2) {
         // compute wall concentrations if BCs call for it
         setup_cwall();
-        SetupCWall();
+        SetupCWallStag();
     }
 
     /////////////////////////////////////////
@@ -629,15 +629,15 @@ void main_driver(const char* argv)
         }
 
         //Initialize physical parameters from input vals
-        double intEnergy, T0;
+        Real intEnergy, T0;
         T0 = T_init[0];
 
         // compute internal energy
-        double massvec[nspecies];
+        GpuArray<Real,MAX_SPECIES  > massvec;
         for(int i=0;i<nspecies;i++) {
             massvec[i] = rhobar[i];
         }
-        get_energy(&intEnergy, massvec, &T0);
+        GetEnergy(intEnergy, massvec, T0);
 
         cu.setVal(0.0,0,nvars,ngc);
         cu.setVal(rho0,0,1,ngc);           // density
@@ -842,11 +842,11 @@ void main_driver(const char* argv)
             struct_fact_int > 0 && plot_int > 0 && 
             step%plot_int == 0) {
 
-            structFactPrim.WritePlotFile(step,time,geom,"plt_SF_prim");
-            structFactCons.WritePlotFile(step,time,geom,"plt_SF_cons");
+            structFactPrim.WritePlotFile(step,time,geom,"plt_SF_prim",0);
+            structFactCons.WritePlotFile(step,time,geom,"plt_SF_cons",0);
             if(project_dir >= 0) {
-                structFactPrimVerticalAverage.WritePlotFile(step,time,geom_flat,"plt_SF_prim_VerticalAverage");
-                structFactConsVerticalAverage.WritePlotFile(step,time,geom_flat,"plt_SF_cons_VerticalAverage");
+                structFactPrimVerticalAverage.WritePlotFile(step,time,geom_flat,"plt_SF_prim_VerticalAverage",0);
+                structFactConsVerticalAverage.WritePlotFile(step,time,geom_flat,"plt_SF_cons_VerticalAverage",0);
             }
         }
         
