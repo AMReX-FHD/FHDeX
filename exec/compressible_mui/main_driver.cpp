@@ -478,8 +478,9 @@ void main_driver(const char* argv)
     // rho
     // vel
     // T
+    // pressure
     // Yk
-    int structVarsPrim = AMREX_SPACEDIM+nspecies+2;
+    int structVarsPrim = AMREX_SPACEDIM+nspecies+3;
 
     Vector< std::string > prim_var_names;
     prim_var_names.resize(structVarsPrim);
@@ -499,6 +500,9 @@ void main_driver(const char* argv)
 
     // Temp
     prim_var_names[cnt++] = "Temp";
+
+    // Pressure
+    prim_var_names[cnt++] = "Pressure";
 
     // Yk
     for (int d=0; d<nspecies; d++) {
