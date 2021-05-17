@@ -212,39 +212,54 @@ void main_driver(const char* argv)
     // T
     // Yk
     // vel (averaged)
-    int structVarsPrim = 2*AMREX_SPACEDIM+nspecies+2;
+    // rhoYk (copy from cons)
+    int structVarsPrim = 2*AMREX_SPACEDIM+2*nspecies+2;
 
     Vector< std::string > prim_var_names;
     prim_var_names.resize(structVarsPrim);
 
     int cnt = 0;
+    int numvars;
     std::string x;
 
     // rho
-    prim_var_names[cnt++] = "rho";
+    prim_var_names[cnt] = "rho";
+    ++cnt;
 
     // velx, vely, velz
     for (int d=0; d<AMREX_SPACEDIM; d++) {
         x = "velCC";
         x += (120+d);
-        prim_var_names[cnt++] = x;
+        prim_var_names[cnt] = x;
+        ++cnt;
     }
 
     // Temp
-    prim_var_names[cnt++] = "Temp";
+    prim_var_names[cnt] = "Temp";
+    ++cnt;
 
     // Yk
     for (int d=0; d<nspecies; d++) {
         x = "Y";
         x += (49+d);
-        prim_var_names[cnt++] = x;
+        prim_var_names[cnt] = x;
+        ++cnt;
     }
 
     // velx, vely, velz
     for (int d=0; d<AMREX_SPACEDIM; d++) {
         x = "velFACE";
         x += (120+d);
-        prim_var_names[cnt++] = x;
+        prim_var_names[cnt] = x;
+        ++cnt;
+    }
+
+    // rho*Yk
+    for (int d=0; d<nspecies; d++) {
+        x = "rhoY";
+        x += (49+d);
+        prim_var_names[cnt] = x;
+        ++cnt;
     }
 
     // "conserved" variable structure factor will contain
@@ -262,33 +277,39 @@ void main_driver(const char* argv)
     cnt = 0;
 
     // rho
-    cons_var_names[cnt++] = "rho";
+    cons_var_names[cnt] = "rho";
+    ++cnt;
 
     // jx, jy, jz
     for (int d=0; d<AMREX_SPACEDIM; d++) {
         x = "jCC";
         x += (120+d);
-        cons_var_names[cnt++] = x;
+        cons_var_names[cnt] = x;
+        ++cnt;
     }
 
     // rho*E
-    cons_var_names[cnt++] = "rhoE";
+    cons_var_names[cnt] = "rhoE";
+    ++cnt;
 
     // rho*Yk
     for (int d=0; d<nspecies; d++) {
         x = "rhoY";
         x += (49+d);
-        cons_var_names[cnt++] = x;
+        cons_var_names[cnt] = x;
+        ++cnt;
     }
 
     // Temp
-    cons_var_names[cnt++] = "Temp";
+    cons_var_names[cnt] = "Temp";
+    ++cnt;
 
     // jx, jy, jz
     for (int d=0; d<AMREX_SPACEDIM; d++) {
         x = "jFACE";
         x += (120+d);
-        cons_var_names[cnt++] = x;
+        cons_var_names[cnt] = x;
+        ++cnt;
     }
 
     // scale SF results by inverse cell volume
@@ -810,18 +831,51 @@ void main_driver(const char* argv)
         if (step > amrex::Math::abs(n_steps_skip) && 
             struct_fact_int > 0 && 
             (step-amrex::Math::abs(n_steps_skip))%struct_fact_int == 0) {
-
-            MultiFab::Copy(structFactPrimMF, prim, 0, 0, structVarsPrim-AMREX_SPACEDIM  , 0);
-            MultiFab::Copy(structFactConsMF, cu,   0, 0, structVarsCons-AMREX_SPACEDIM-1, 0);
-            // temperature too
-            MultiFab::Copy(structFactConsMF, prim, AMREX_SPACEDIM+1, structVarsCons-1-AMREX_SPACEDIM, 1, 0);
-
-            // append the shifted momentum and velocities to the end
-            for (int d=0; d<AMREX_SPACEDIM; ++d) {
-                ShiftFaceToCC(vel[d]  ,0,structFactPrimMF,d+structVarsPrim-AMREX_SPACEDIM,1);
-                ShiftFaceToCC(cumom[d],0,structFactConsMF,d+structVarsCons-AMREX_SPACEDIM,1);
-            }
             
+            /////////// First structFactPrimMF ////////////////
+            cnt = 0;
+            
+            // copy [rho, vx, vy, vz, T]
+            numvars = 5;
+            MultiFab::Copy(structFactPrimMF, prim, 0, cnt, numvars, 0);
+            cnt+=numvars;
+
+            // copy Yk
+            numvars = nspecies;
+            MultiFab::Copy(structFactPrimMF, prim, AMREX_SPACEDIM+3, cnt, numvars, 0);
+            cnt+=numvars;
+
+            // copy velFACE
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                ShiftFaceToCC(vel[d],0,structFactPrimMF,cnt,1);
+                ++cnt;
+            }
+
+            // copy rhoYk
+            numvars = nspecies;
+            MultiFab::Copy(structFactPrimMF, cu, AMREX_SPACEDIM+2, cnt, numvars, 0);
+            ////////////////////////////////////////////////////
+
+            ////////////// Second structFactConsMF /////////////
+            cnt = 0;
+
+            // copy [rho, jx, jy, jz, rhoE, rhoYk]
+            numvars = nvars;
+            MultiFab::Copy(structFactConsMF, cu, 0, cnt, numvars, 0);
+            cnt+=numvars;
+
+            // T
+            numvars = 1;
+            MultiFab::Copy(structFactConsMF, prim, AMREX_SPACEDIM+1, cnt, numvars, 0);
+            cnt+=numvars;
+
+            // copy jxFACE
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                ShiftFaceToCC(cumom[d],0,structFactConsMF,cnt,1);
+                ++cnt;
+            }
+            ////////////////////////////////////////////////////
+
             structFactPrim.FortStructure(structFactPrimMF,geom);
             structFactCons.FortStructure(structFactConsMF,geom);
 
