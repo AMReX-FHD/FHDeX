@@ -91,7 +91,6 @@ void main_driver(const char* argv)
     // note if we are restarting, these are defined and initialized to the checkpoint data
     std::array< MultiFab, AMREX_SPACEDIM > umac;
     std::array< MultiFab, AMREX_SPACEDIM > umacM;    // mean
-    std::array< MultiFab, AMREX_SPACEDIM > umacV;    // variance
 
     // pressure for GMRES solve; 1 ghost cell
     MultiFab pres;
@@ -104,11 +103,9 @@ void main_driver(const char* argv)
     // MF for electric potential
     MultiFab potential;
     MultiFab potentialM;
-    MultiFab potentialV;
 
     // MF for charge mean and variance
     MultiFab chargeM;
-    MultiFab chargeV;
     
     if (restart < 0) {
         
@@ -147,10 +144,8 @@ void main_driver(const char* argv)
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             umac [d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ang);
             umacM[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
-            umacV[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
             umac [d].setVal(0.);
             umacM[d].setVal(0.);
-            umacV[d].setVal(0.);
         }
 
         pres.define(ba,dmap,1,1);
@@ -222,22 +217,18 @@ void main_driver(const char* argv)
         //Cell centred es potential
         potential.define(bp, dmap, 1, ngp);
         potentialM.define(bp, dmap, 1, 1);
-        potentialV.define(bp, dmap, 1, 1);
         potential.setVal(0.);
         potentialM.setVal(0.);
-        potentialV.setVal(0.);
         
         chargeM.define(bp, dmap, 1, 1);  // mean
-        chargeV.define(bp, dmap, 1, 1);  // variance
         chargeM.setVal(0);
-        chargeV.setVal(0);
     }
     else {
         
         // restart from checkpoint
-        ReadCheckPoint(step,time,statsCount,umac,umacM,umacV,pres,
-                       particleMeans,particleVars,chargeM,chargeV,
-                       potential,potentialM,potentialV);
+        ReadCheckPoint(step,time,statsCount,umac,umacM,pres,
+                       particleMeans,particleVars,chargeM,
+                       potential,potentialM);
 
         // grab DistributionMap from umac
         dmap = umac[0].DistributionMap();
@@ -801,10 +792,10 @@ void main_driver(const char* argv)
 
 //    WritePlotFile(0, time, geom, geomC, geomP,
 //                  particleInstant, particleMeans, particleVars, particles,
-//                  charge, chargeM, chargeV, potential, potentialM, potentialV, efieldCC, dryMobility);
+//                  charge, chargeM, potential, potentialM, efieldCC, dryMobility);
 
 //    // Writes instantaneous flow field and some other stuff? Check with Guy.
-//    WritePlotFileHydro(0, time, geom, umac, pres, umacM, umacV);
+//    WritePlotFileHydro(0, time, geom, umac, pres, umacM);
     remove("bulkFlowEst");
     //Time stepping loop
     for (int istep=step; istep<=max_step; ++istep) {
@@ -934,7 +925,6 @@ void main_driver(const char* argv)
 
             for (int d=0; d<AMREX_SPACEDIM; ++d) {
                 umacM[d].setVal(0.);
-                umacV[d].setVal(0.);
             }
                 
             Print() << "Resetting stat collection.\n";
@@ -978,10 +968,10 @@ void main_driver(const char* argv)
 
         // compute the mean and variance of umac
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
-            ComputeBasicStats(umac[d], umacM[d], umacV[d], 1, 1, statsCount);
+            ComputeBasicStats(umac[d], umacM[d], 1, 1, statsCount);
         }
-        ComputeBasicStats(potential, potentialM, potentialV, 1, 1, statsCount);
-        ComputeBasicStats(charge   , chargeM   , chargeV   , 1, 1, statsCount);
+        ComputeBasicStats(potential, potentialM, 1, 1, statsCount);
+        ComputeBasicStats(charge   , chargeM   , 1, 1, statsCount);
 
         //Don't forget to add a remove(filename) so it doesn't append to old data
         OutputVolumeMean(umac[0], 0, domainVol, "bulkFlowEst", geom);
@@ -1027,16 +1017,16 @@ void main_driver(const char* argv)
             // This write particle data and associated fields and electrostatic fields
             WritePlotFile(istep, time, geom, geomC, geomP,
                           particleInstant, particleMeans, particleVars, particles,
-                          charge, chargeM, chargeV, potential, potentialM, potentialV, efieldCC, dryMobility);
+                          charge, chargeM, potential, potentialM, efieldCC, dryMobility);
 
             // Writes instantaneous flow field and some other stuff? Check with Guy.
-            WritePlotFileHydro(istep, time, geom, umac, pres, umacM, umacV);
+            WritePlotFileHydro(istep, time, geom, umac, pres, umacM);
         }
 
         if (chk_int > 0 && istep%chk_int == 0) {
-            WriteCheckPoint(istep, time, statsCount, umac, umacM, umacV, pres,
-                            particles, particleMeans, particleVars, chargeM, chargeV,
-                            potential, potentialM, potentialV);
+            WriteCheckPoint(istep, time, statsCount, umac, umacM, pres,
+                            particles, particleMeans, particleVars, chargeM,
+                            potential, potentialM);
         }
 
         //particles.PrintParticles();

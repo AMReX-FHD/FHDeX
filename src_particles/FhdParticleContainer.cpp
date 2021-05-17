@@ -550,12 +550,6 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
                         Real dry_terms[3];
 
                         get_explicit_mobility_gpu(mb, mbDer, part, plo, phi);
-                        if(dry_move_tog == 2)
-                        {
-                            mbDer[0] = 0;
-                            mbDer[1] = 0;
-                            mbDer[2] = 0;
-                        }
                         
                         dry_gpu(dt, part,dry_terms, mb, mbDer);
 
@@ -1680,7 +1674,7 @@ void FhdParticleContainer::EvaluateStats(MultiFab& particleInstant,
 
             for(int l=0;l<nspecies;l++)
             {
-                part_mean(i,j,k,8)  = (part_mean(i,j,k,8)*stepsMinusOne + part_inst(i,j,k,8))*stepsInv;
+                part_mean(i,j,k,8 + l)  = (part_mean(i,j,k,8 + l)*stepsMinusOne + part_inst(i,j,k,8 + l))*stepsInv;
             }
             
             avc_tile[0] = avc_tile[0] + part_mean(i,j,k,5);           
@@ -1739,7 +1733,7 @@ FhdParticleContainer::PrintParticles()
             if(part.idata(FHD_intData::pinned) == 0)
             {
 
-            double bigM  = part.rdata(FHD_realData::wetDiff)/(T_init[0]*k_B);
+            double bigM  = part.rdata(FHD_realData::totalDiff)/(T_init[0]*k_B);
 
             std::cout << scientific << setprecision(15) << "Particle " << ParallelDescriptor::MyProc() << ", " << part.id() << ", force: " << part.rdata(FHD_realData::forcex) << ", " << part.rdata(FHD_realData::forcey) << ", " << part.rdata(FHD_realData::forcez) << std::endl;
             std::cout << scientific << setprecision(15) << "Particle " << ParallelDescriptor::MyProc() << ", " << part.id() << ", position/q: " << part.pos(0) << ", " << part.pos(1) << ", " << part.pos(2) << ", " << part.rdata(FHD_realData::q) << std::endl;
@@ -2014,6 +2008,127 @@ FhdParticleContainer::writeVel(int id)
     }
 }
 
+
+
+void
+FhdParticleContainer::invertMatrix() 
+{
+    // timer for profiling
+    BL_PROFILE_VAR("invertMatrix()",initRankLists);
+
+
+    if(ParallelDescriptor::MyProc() == 0) {             
+
+        int N = 3*totalPinnedMarkers;
+        
+        Real* inv = new Real[N*N];
+        Real* A = new Real[N*N];
+
+        Real time1 = ParallelDescriptor::second();
+
+        for(int i=0;i<N;i++)
+        {
+            for(int j=0;j<N;j++)
+            {
+                A[i*N + j] = pinMatrix[i*N + j];
+            }
+        }
+
+        for(int i = 0; i < N; i++){
+            for(int j = 0; j < N; j++){
+                if(i==j)
+                    inv[i*N + j] = 1.0;
+                else
+                    inv[i*N + j] = 0.0;
+            }
+        }
+
+        for(int i = 0; i < N; i++){
+            for(int j = 0; j < N; j++){
+                if(i!=j){
+                    Real ratio = A[j*N + i]/A[i*N + i];
+                    for(int k = 0; k < N; k++){
+                        A[j*N + k] -= ratio * A[i*N + k];
+                        inv[j*N + k] -= ratio * inv[i*N + k];
+                    }
+                }            
+            }
+        }
+
+        for(int i = 0; i < N; i++){
+            Real a = A[i*N + i];
+            for(int j = 0; j < N; j++){
+                A[i*N + j] /= a;
+                inv[i*N + j] /= a;
+            }
+        }
+
+
+//        std::string filename1 = "matOut";
+//        std::ofstream ofs1(filename1, std::ofstream::app);
+
+//        int matrixSize = 3*totalPinnedMarkers;
+//    
+//        for(int i=0;i<matrixSize;i++)
+//        {
+//            for(int j=0;j<matrixSize;j++)
+//            {
+//                ofs1 << setprecision(15) << pinMatrix[i*matrixSize +j] << std::endl;
+
+//            }
+//        }
+//        
+//        ofs1.close();
+
+        Real time2 = ParallelDescriptor::second() - time1;
+
+        Print() << "Inverse matrix calculated in " << time2 << " seconds.\n";
+
+//        std::string filename1 = "permOut";
+//        remove("permOut");
+//        std::ofstream ofs1(filename1, std::ofstream::app);
+
+//    
+//        for(int i=0;i<N;i++)
+//        {
+//            for(int j=0;j<N;j++)
+//            {
+//                ofs1 << setprecision(15) << A[i*N + j] << std::endl;
+
+//            }
+//        }
+//        
+//        ofs1.close();
+
+
+        std::string filename = "invOut";
+        remove("invOut");
+        //std::ofstream ofs2(filename2, std::ofstream::app);
+        ofstream ofs( filename, ios::binary );
+    
+        for(int i=0;i<N;i++)
+        {
+            for(int j=0;j<N;j++)
+            {
+                //ofs2 << setprecision(15) << inv[i*N + j] << std::endl;
+                Real element = inv[i*N + j];
+                ofs.write( reinterpret_cast<char*>( &element ), sizeof element );
+
+            }
+        }
+        
+//        ofs2.close();
+        ofs.close();
+        Print() << "Inverse matrix written\n";
+
+
+        delete inv;
+        delete A;
+    }
+    
+}
+
+
 void
 FhdParticleContainer::writeMat()
 {
@@ -2021,7 +2136,10 @@ FhdParticleContainer::writeMat()
     if(ParallelDescriptor::MyProc() == 0) {
 
         std::string filename = "matOut";
-        std::ofstream ofs(filename, std::ofstream::app);
+
+        remove("matOut");
+        //std::ofstream ofs(filename, std::ofstream::app);
+        ofstream ofs( filename, ios::binary );
 
         int matrixSize = 3*totalPinnedMarkers;
     
@@ -2029,7 +2147,10 @@ FhdParticleContainer::writeMat()
         {
             for(int j=0;j<matrixSize;j++)
             {
-                ofs << setprecision(15) << pinMatrix[i*matrixSize +j] << std::endl;
+                //ofs << setprecision(15) << pinMatrix[i*matrixSize +j] << std::endl;
+
+                Real element = pinMatrix[i*matrixSize +j];
+                ofs.write( reinterpret_cast<char*>( &element ), sizeof element );
 
             }
         }

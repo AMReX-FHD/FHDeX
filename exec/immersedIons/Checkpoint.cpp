@@ -21,16 +21,13 @@ void WriteCheckPoint(int step,
                      int statsCount,                     
                      const std::array< MultiFab, AMREX_SPACEDIM >& umac,
                      const std::array< MultiFab, AMREX_SPACEDIM >& umacM,
-                     const std::array< MultiFab, AMREX_SPACEDIM >& umacV,
                      const MultiFab& pres,
                      const FhdParticleContainer& particles,
                      const MultiFab& particleMeans,
                      const MultiFab& particleVars,
                      const MultiFab& chargeM,
-                     const MultiFab& chargeV,
                      const MultiFab& potential,
-                     const MultiFab& potentialM,
-                     const MultiFab& potentialV)
+                     const MultiFab& potentialM)
 {
     // timer for profiling
     BL_PROFILE_VAR("WriteCheckPoint()",WriteCheckPoint);
@@ -156,16 +153,6 @@ void WriteCheckPoint(int step,
                  amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "wmacM"));
 #endif
 
-    // umacV (variance)
-    VisMF::Write(umacV[0],
-                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "umacV"));
-    VisMF::Write(umacV[1],
-                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "vmacV"));
-#if (AMREX_SPACEDIM == 3)
-    VisMF::Write(umacV[2],
-                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "wmacV"));
-#endif
-
     // pressure
     VisMF::Write(pres,
                  amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "pressure"));
@@ -179,16 +166,12 @@ void WriteCheckPoint(int step,
     // charge
     VisMF::Write(chargeM,
                  amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "chargeM"));
-    VisMF::Write(chargeV,
-                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "chargeV"));
     
     // electrostatic potential
     VisMF::Write(potential,
                  amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "potential"));
     VisMF::Write(potentialM,
                  amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "potentialM"));
-    VisMF::Write(potentialV,
-                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "potentialV"));
 
     int check;
     char str[80];
@@ -230,15 +213,12 @@ void ReadCheckPoint(int& step,
                     int& statsCount,
                     std::array< MultiFab, AMREX_SPACEDIM >& umac,
                     std::array< MultiFab, AMREX_SPACEDIM >& umacM,
-                    std::array< MultiFab, AMREX_SPACEDIM >& umacV,
                     MultiFab& pres,
                     MultiFab& particleMeans,
                     MultiFab& particleVars,
                     MultiFab& chargeM,
-                    MultiFab& chargeV,
                     MultiFab& potential,
-                    MultiFab& potentialM,
-                    MultiFab& potentialV)
+                    MultiFab& potentialM)
 {
     // timer for profiling
     BL_PROFILE_VAR("ReadCheckPoint()",ReadCheckPoint);
@@ -308,7 +288,6 @@ void ReadCheckPoint(int& step,
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             umac [d].define(convert(ba,nodal_flag_dir[d]), dm, 1, ang);
             umacM[d].define(convert(ba,nodal_flag_dir[d]), dm, 1, 1);
-            umacV[d].define(convert(ba,nodal_flag_dir[d]), dm, 1, 1);
         }
 
         // pressure
@@ -333,10 +312,8 @@ void ReadCheckPoint(int& step,
         }
 
         chargeM.define(bp,dm,1,1);
-        chargeV.define(bp,dm,1,1);
         potential.define(bp,dm,1,ngp);
         potentialM.define(bp,dm,1,1);
-        potentialV.define(bp,dm,1,1);
     }
     
     // C++ random number engine
@@ -414,16 +391,6 @@ void ReadCheckPoint(int& step,
                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "wmacM"));
 #endif
 
-    // umacV
-    VisMF::Read(umacV[0],
-                amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "umacV"));
-    VisMF::Read(umacV[1],
-                amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "vmacV"));
-#if (AMREX_SPACEDIM == 3)
-    VisMF::Read(umacV[2],
-                amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "wmacV"));
-#endif
-
     // pressure
     VisMF::Read(pres,
                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "pressure"));
@@ -437,16 +404,12 @@ void ReadCheckPoint(int& step,
     // charge
     VisMF::Read(chargeM,
                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "chargeM"));
-    VisMF::Read(chargeV,
-                amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "chargeV"));
     
     // electrostatic potential
     VisMF::Read(potential,
                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "potential"));
     VisMF::Read(potentialM,
                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "potentialM"));
-    VisMF::Read(potentialV,
-                amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "potentialV"));
     
     // random number engines
     int digits = 9;

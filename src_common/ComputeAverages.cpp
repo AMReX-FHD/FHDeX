@@ -92,19 +92,109 @@ void WriteHorizontalAverage(const MultiFab& mf_in, const int& dir, const int& in
     }
 }
 
+void WriteHorizontalAverageToMF(const MultiFab& mf_in, MultiFab& mf_out,
+                                const int& dir, const int& incomp,
+                                const int& ncomp)
+{
+    // number of points in the averaging direction
+    int npts = n_cells[dir];
+
+    Vector<Real> average(npts*(ncomp),0.);
+
+    // dummy variables
+    int r;
+    int comp;
+
+    // no tiling or GPU to easily avoid race conditions
+    for (MFIter mfi(mf_in, false); mfi.isValid(); ++mfi) {
+
+        // valid box and the lo/hi coordinates; no ghost cells needed
+        const Box& bx = mfi.validbox();
+        const auto lo = amrex::lbound(bx);
+        const auto hi = amrex::ubound(bx);
+
+        const Array4<const Real> mf = mf_in.array(mfi);
+
+        for (auto n=0; n<ncomp; ++n) {
+            comp = incomp+n;
+            for (auto k = lo.z; k <= hi.z; ++k) {
+            for (auto j = lo.y; j <= hi.y; ++j) {
+            for (auto i = lo.x; i <= hi.x; ++i) {
+                if (dir == 0) {
+                    r=i;
+                } else if (dir == 1) {
+                    r=j;
+                } else if (dir == 2) {
+                    r=k;
+                }
+                // sum up the data
+                average[ r*(ncomp) + n] += mf(i,j,k,comp);
+            }
+            }
+            }
+        }
+
+    } // end MFiter
+
+    // sum over all processors
+    ParallelDescriptor::ReduceRealSum(average.dataPtr(),npts*(ncomp));
+
+    // divide by the number of cells
+    int navg;
+    if (dir == 0) {
+        navg = n_cells[1]*n_cells[2];
+    } else if (dir == 1) {
+        navg = n_cells[0]*n_cells[2];
+    } else if (dir == 2) {
+        navg = n_cells[0]*n_cells[1];
+    }
+    for (r=0; r<npts; ++r) {
+        for (auto n=0; n<ncomp; ++n) {
+            average[r*(ncomp) + n] /= navg;
+        }
+    }
+
+    // no tiling or GPU to easily avoid race conditions
+    for (MFIter mfi(mf_out, false); mfi.isValid(); ++mfi) {
+
+        // valid box and the lo/hi coordinates; no ghost cells needed
+        const Box& bx = mfi.validbox();
+        const auto lo = amrex::lbound(bx);
+        const auto hi = amrex::ubound(bx);
+
+        const Array4<Real> mf = mf_out.array(mfi);
+
+        for (auto n=0; n<ncomp; ++n) {
+            comp = incomp+n;
+            for (auto k = lo.z; k <= hi.z; ++k) {
+            for (auto j = lo.y; j <= hi.y; ++j) {
+            for (auto i = lo.x; i <= hi.x; ++i) {
+                if (dir == 0) {
+                    r=i;
+                } else if (dir == 1) {
+                    r=j;
+                } else if (dir == 2) {
+                    r=k;
+                }
+                // sum up the data
+                mf(i,j,k,comp) = average[ r*(ncomp) + n];
+            }
+            }
+            }
+        }
+
+    } // end MFiter
+}
+
 
 void ComputeVerticalAverage(const MultiFab& mf, MultiFab& mf_avg,
 			    const Geometry& geom, const int dir,
-			    const int incomp, const int ncomp,
-			    const int findredist)
+			    const int incomp, const int ncomp)
 {
     BL_PROFILE_VAR("ComputVerticalAverage()",ComputeVerticalAverage);
   
     bool write_data = false;
     std::string plotname;
-
-    int outcomp = 0;
-    int inputcomp = 0;
 
     MultiFab mf_pencil;
 
@@ -133,40 +223,39 @@ void ComputeVerticalAverage(const MultiFab& mf, MultiFab& mf_avg,
     if (nbx[0]*nbx[1]*nbx[2] != ba_in.size())
         amrex::Error("ALL GRIDS DO NOT HAVE SAME SIZE");
 
-    indlo = (dir-1+AMREX_SPACEDIM)%AMREX_SPACEDIM;
-    indhi = (dir+1+AMREX_SPACEDIM)%AMREX_SPACEDIM;
+#if (AMREX_SPACEDIM == 2)
+
+    Abort("Fix ComputeAverages for 2D");
+
+    if (dir == 0) {
+        indlo = 1;
+    } else if (dir == 1) {
+        indlo = 0;
+    } else {
+        Abort("ComputeVerticalAverage: invalid dir");
+    }
+#elif (AMREX_SPACEDIM == 3)
+    if (dir == 0) {
+        indlo = 1;
+        indhi = 2;
+    } else if (dir == 1) {
+        indlo = 0;
+        indhi = 2;
+    } else if (dir == 2) {
+        indlo = 0;
+        indhi = 1;
+    } else {
+        Abort("ComputeVerticalAverage: invalid dir");
+    }
+#endif
 
     IntVect dom_lo(domain.loVect());
     IntVect dom_hi(domain.hiVect());
     dom_hi[dir] = 0;
     Box domain_flat(dom_lo, dom_hi);
 
-    if (findredist == 1) {
-
-        nxprod = nx[0]*nx[1]*nx[2]/nx[dir];
-        if (nxprod%nbx[dir] != 0) {
-            amrex::Error("CURRENT PENCIL REFACTORING DOESN'T WORK");
-        } else {
-            nxprod /= nbx[dir];
-        }
-
-        // Find a,b,&c such that (a*b)/c = (nx*ny)/pz, with c as a common factor to a & b
-        a = greatest_common_factor( nxprod,domain.length(indlo) );
-        b = greatest_common_factor( nxprod,domain.length(indhi) );
-        c = (a*b)/nxprod; // c is a factor of both a & b
-        factor(c, mx, 2); // factor c into two numbers
-        mx[0] = a/mx[0];
-        mx[1] = b/mx[1];
-
-        if (mx[0]*mx[1] != nxprod)
-            amrex::Error("FACTORING NOT POSSIBLE DUE TO UNCOMMON PRIME FACTOR");
-
-    } else {
-
-        mx[0] = max_grid_projection[0];
-        mx[1] = max_grid_projection[1];
-
-    }
+    mx[0] = max_grid_projection[0];
+    mx[1] = max_grid_projection[1];
 
     mbx[0] = domain.length(indlo)/mx[0];
     mbx[1] = domain.length(indhi)/mx[1];
@@ -189,6 +278,7 @@ void ComputeVerticalAverage(const MultiFab& mf, MultiFab& mf_avg,
     ba_flat.define(domain_flat);
     ba_flat.maxSize(IntVect(max_grid_size_flat));
     mf_avg.define(ba_flat,dmap_pencil,ncomp,0);
+    mf_avg.setVal(0.);
 
     // copy/redistrubute to pencils
 
@@ -199,12 +289,56 @@ void ComputeVerticalAverage(const MultiFab& mf, MultiFab& mf_avg,
         VisMF::Write(mf_pencil,plotname);
     }
 
-    inputcomp = 0;
+    int outcomp = 0;
+    int inputcomp = 0;
+
+    Real ninv = 1./(domain.length(dir));
+    
     for ( MFIter mfi(mf_pencil); mfi.isValid(); ++mfi ) {
         const Box& bx = mfi.validbox();
-        compute_vert_average(BL_TO_FORTRAN_BOX(bx),
-                             BL_TO_FORTRAN_FAB(mf_pencil[mfi]),BL_TO_FORTRAN_FAB(mf_avg[mfi]),
-                             &dir, &inputcomp, &outcomp, &ncomp);
+
+        const auto lo = amrex::lbound(bx);
+        const auto hi = amrex::ubound(bx);
+
+        const Array4<Real> meanfab = mf_avg.array(mfi);
+        const Array4<Real> inputfab = mf_pencil.array(mfi);
+
+        if (dir == 0) {
+        
+            for (auto n=0; n<ncomp; ++n) {
+            for (auto k = lo.z; k <= hi.z; ++k) {
+            for (auto j = lo.y; j <= hi.y; ++j) {
+            for (auto i = lo.x; i <= hi.x; ++i) {
+                meanfab(0,j,k,outcomp+n) = meanfab(0,j,k,outcomp+n) + ninv*inputfab(i,j,k,inputcomp+n);
+            }
+            }
+            }
+            }
+            
+        } else if (dir == 1) {
+        
+            for (auto n=0; n<ncomp; ++n) {
+            for (auto k = lo.z; k <= hi.z; ++k) {
+            for (auto j = lo.y; j <= hi.y; ++j) {
+            for (auto i = lo.x; i <= hi.x; ++i) {
+                meanfab(i,0,k,outcomp+n) = meanfab(i,0,k,outcomp+n) + ninv*inputfab(i,j,k,inputcomp+n);
+            }
+            }
+            }
+            }
+
+        } else if (dir == 2) {
+        
+            for (auto n=0; n<ncomp; ++n) {
+            for (auto k = lo.z; k <= hi.z; ++k) {
+            for (auto j = lo.y; j <= hi.y; ++j) {
+            for (auto i = lo.x; i <= hi.x; ++i) {
+                meanfab(i,j,0,outcomp+n) = meanfab(i,j,0,outcomp+n) + ninv*inputfab(i,j,k,inputcomp+n);
+            }
+            }
+            }
+            }
+        }
     }
 
     if (write_data) {
@@ -214,41 +348,46 @@ void ComputeVerticalAverage(const MultiFab& mf, MultiFab& mf_avg,
 
 }
 
-// Functions for computing automatic refactorization of 3D -> 2D grids
+void ExtractSlice(const MultiFab& mf, MultiFab& mf_slice,
+                  const Geometry& geom, const int dir,
+                  const int incomp, const int ncomp)
+{
+    BL_PROFILE_VAR("ExtractSlice()",ExtractSlice);
 
-int greatest_common_factor(int a, int b) {
-    return b == 0 ? a : greatest_common_factor(b, a % b);
-}
+    Box domain(geom.Domain());
 
-void factor(int num, int* factors, int nf) {
-    int n = num;
-    int cnt = 0;
+    // create BoxArray
+    IntVect dom_lo(domain.loVect());
+    IntVect dom_hi(domain.hiVect());
+    dom_lo[dir] = slicepoint;
+    dom_hi[dir] = slicepoint;
 
-    for (int i=0; i<nf; i++)
-        factors[i]=1;
+    Box domain_slice(dom_lo, dom_hi);
 
-    while (n%2 == 0) { // factor out powers of 2
-        n /= 2;
-        factors[cnt%nf]*=2;
-        cnt++;
+    Vector<int> max_grid_slice(AMREX_SPACEDIM);
+#if (AMREX_SPACEDIM == 2)
+    max_grid_slice[  dir] = 1;
+    max_grid_slice[1-dir] = max_grid_projection[0];
+#elif (AMREX_SPACEDIM == 3)
+    max_grid_slice[dir] = 1;
+    if (dir == 0) {
+        max_grid_slice[1] = max_grid_projection[0];
+        max_grid_slice[2] = max_grid_projection[1];
+    } else if (dir == 1) {
+        max_grid_slice[0] = max_grid_projection[0];
+        max_grid_slice[2] = max_grid_projection[1];
+    } else {
+        max_grid_slice[0] = max_grid_projection[0];
+        max_grid_slice[1] = max_grid_projection[1];
     }
-    for (int i=3; i<=sqrt(n); i+=2) { // find other odd factors
-        while (n % i == 0) {
-            n /= i;
-            factors[cnt%nf]*=i;
-            cnt++;
-        }
-    }
-    if (n > 2)  { // check if n is a prime number greater than 2
-        amrex::Error("CANNOT FACTOR PRIME NUMBER");
-    }
+#endif
 
-    // check:
-    n = 1;
-    for (int i=0; i<nf; i++)
-        n *= factors[i];
+    BoxArray ba_slice(domain_slice);
+    ba_slice.maxSize(IntVect(max_grid_slice));
 
-    if (n != num)  {
-        amrex::Error("ERROR IN FACTORING");
-    }
+    DistributionMapping dmap_slice(ba_slice);
+
+    mf_slice.define(ba_slice,dmap_slice,ncomp,0);
+
+    mf_slice.ParallelCopy(mf, incomp, 0, ncomp);
 }

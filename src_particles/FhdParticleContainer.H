@@ -267,6 +267,10 @@ public:
     void EvaluateStats(MultiFab& particleInstant,
                        MultiFab& particleMeans, species particleInfo, const Real delt, int steps);
 
+
+    void invertMatrix();
+
+
     /****************************************************************************
      *                                                                          *
      * Access marker (amrex particle) data                                      *

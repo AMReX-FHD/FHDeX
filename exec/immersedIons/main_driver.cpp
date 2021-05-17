@@ -78,6 +78,9 @@ void main_driver(const char* argv)
     else if (*(std::max_element(pkernel_fluid.begin(),pkernel_fluid.begin()+nspecies)) == 6) {
         ang = 4;
     }
+    else if (*(std::max_element(eskernel_fluid.begin(),eskernel_fluid.begin()+nspecies)) > 0) {
+	ang = static_cast<int>(floor(*(std::max_element(eskernel_fluid.begin(),eskernel_fluid.begin()+nspecies)))/2+1);
+    }
 
     int ngp = 1;
     // using maximum number of peskin kernel points to determine the ghost cells for the whole grid.
@@ -91,13 +94,15 @@ void main_driver(const char* argv)
     else if (*(std::max_element(pkernel_es.begin(),pkernel_es.begin()+nspecies)) == 6) {
         ngp = 4;
     }
-        
+    else if (*(std::max_element(eskernel_fluid.begin(),eskernel_fluid.begin()+nspecies)) > 0) {
+	ngp = static_cast<int>(floor(*(std::max_element(eskernel_fluid.begin(),eskernel_fluid.begin()+nspecies)))/2+1);
+    }   
+
     // staggered velocities
     // umac needs extra ghost cells for Peskin kernels
     // note if we are restarting, these are defined and initialized to the checkpoint data
     std::array< MultiFab, AMREX_SPACEDIM > umac;
     std::array< MultiFab, AMREX_SPACEDIM > umacM;    // mean
-    std::array< MultiFab, AMREX_SPACEDIM > umacV;    // variance
 
     std::array< MultiFab, AMREX_SPACEDIM > touched;
 
@@ -112,12 +117,9 @@ void main_driver(const char* argv)
     // MF for electric potential
     MultiFab potential;
     MultiFab potentialM;
-    MultiFab potentialV;
 
     // MF for charge mean and variance
     MultiFab chargeM;
-    MultiFab chargeV;
-
     
     if (restart < 0) {
         
@@ -170,10 +172,8 @@ void main_driver(const char* argv)
             umac [d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ang);
             touched[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ang);
             umacM[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
-            umacV[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
             umac [d].setVal(0.);
             umacM[d].setVal(0.);
-            umacV[d].setVal(0.);
         }
 
         pres.define(ba,dmap,1,1);
@@ -243,22 +243,18 @@ void main_driver(const char* argv)
         //Cell centred es potential
         potential.define(bp, dmap, 1, ngp);
         potentialM.define(bp, dmap, 1, 1);
-        potentialV.define(bp, dmap, 1, 1);
         potential.setVal(0.);
         potentialM.setVal(0.);
-        potentialV.setVal(0.);
         
         chargeM.define(bp, dmap, 1, 1);  // mean
-        chargeV.define(bp, dmap, 1, 1);  // variance
         chargeM.setVal(0);
-        chargeV.setVal(0);
     }
     else {
         
         // restart from checkpoint
-        ReadCheckPoint(step,time,statsCount,umac,umacM,umacV,pres,
-                       particleMeans,particleVars,chargeM,chargeV,
-                       potential,potentialM,potentialV);
+        ReadCheckPoint(step,time,statsCount,umac,umacM,pres,
+                       particleMeans,particleVars,chargeM,
+                       potential,potentialM);
 
         // grab DistributionMap from umac
         dmap = umac[0].DistributionMap();
@@ -350,6 +346,7 @@ void main_driver(const char* argv)
     double simParticles = 0;
     double wetRad[nspecies];
     double dxAv = (dx[0] + dx[1] + dx[2])/3.0; //This is probably the wrong way to do this.
+    std::string line;
 
     for(int j=0;j<nspecies;j++) {
        if (pkernel_fluid[j] == 3) {
@@ -360,6 +357,62 @@ void main_driver(const char* argv)
        }
        else if (pkernel_fluid[j] == 6) {
            wetRad[j] = 1.481*dxAv;
+       }
+       else if (pkernel_fluid[j] == 1) {
+	   wetRad[j] = 1.255*dxAv;
+       }
+       else if (eskernel_fluid[j] == 4) {
+	   if (eskernel_beta[j] < 4 || eskernel_beta[j] > 12) {
+	      Abort("Please provide eskernel_beta within the range [1,3]*eskernel_fluid.");
+	   }
+
+	   int targetLine = (eskernel_beta[j]-eskernel_fluid[j])*10+1;
+	   //Print() << targetLine << std::endl;
+	   std::ifstream wetRad_w4("wetRad_w4.dat");
+	   for (int lineCount=0; lineCount < targetLine-1; lineCount++) {
+	       wetRad_w4.ignore(100000, '\n');
+	   }
+	   wetRad_w4 >> wetRad[j];
+	   Print() << "wetRad read from file is " << wetRad[j] << std::endl;
+	   wetRad[j] *= dxAv;
+	   wetRad_w4.close();
+	   //wetRad[j] = 1.300*dxAv; // With beta = 5.22
+       }
+       else if (eskernel_fluid[j] == 5) {
+	   if (eskernel_beta[j] < 5 || eskernel_beta[j] > 15) {
+	      Abort("Please provide eskernel_beta within the range [1,3]*eskernel_fluid.");
+	   }
+
+           int targetLine = (eskernel_beta[j]-eskernel_fluid[j])*10+1;
+	   //Print() << targetLine << std::endl;
+	   std::ifstream wetRad_w5("wetRad_w5.dat");
+	   for (int lineCount=0; lineCount < targetLine-1; lineCount++) {
+	       wetRad_w5.ignore(100000, '\n');
+	   }
+	   wetRad_w5 >> wetRad[j];
+	   Print() << "wetRad read from file is " << wetRad[j] << std::endl;
+	   wetRad[j] *= dxAv;
+	   wetRad_w5.close();
+       }
+       else if (eskernel_fluid[j] == 6) {
+	   if (eskernel_beta[j] < 6 || eskernel_beta[j] > 18) {
+	      Abort("Please provide eskernel_beta within the range [1,3]*eskernel_fluid.");
+	   }
+
+           int targetLine = (eskernel_beta[j]-eskernel_fluid[j])*10+1;
+	   //Print() << targetLine << std::endl;
+	   std::ifstream wetRad_w6("wetRad_w6.dat");
+	   for (int lineCount=0; lineCount < targetLine-1; lineCount++) {
+	       wetRad_w6.ignore(100000, '\n');
+	   }
+	   wetRad_w6 >> wetRad[j];
+	   Print() << "wetRad read from file is " << wetRad[j] << std::endl;
+	   wetRad[j] *= dxAv;
+	   wetRad_w6.close();
+           //wetRad[j] = 1.478*dxAv; // With beta = 8.64
+       }
+       else {
+	   Abort("Currently the code only supports pkernel_fluid = 1,3,4,6 or eskernel_fluid = 4,5,6.");
        }
     }
 
@@ -589,36 +642,6 @@ void main_driver(const char* argv)
     weights = {1.0};
 
     ///////////////////////////////////////////
-
-/*    
-    // Setting the intial velocities can be useful for debugging, to get a known velocity field.
-    // Note that we don't need to initialize velocities for the overdamped case.
-    // They only matter as an initial guess to GMRES.
-    // The first GMRES solve will compute the velocities as long as they start out with non-NaN values.
-    int dm = 0;
-    for ( MFIter mfi(beta); mfi.isValid(); ++mfi ) {
-        const Box& bx = mfi.validbox();
-
-        AMREX_D_TERM(dm=0; init_vel(BL_TO_FORTRAN_BOX(bx),
-                                    BL_TO_FORTRAN_ANYD(umac[0][mfi]), geom.CellSize(),
-                                    geom.ProbLo(), geom.ProbHi() ,&dm,
-                                    ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));,
-                     dm=1; init_vel(BL_TO_FORTRAN_BOX(bx),
-                                    BL_TO_FORTRAN_ANYD(umac[1][mfi]), geom.CellSize(),
-                                    geom.ProbLo(), geom.ProbHi() ,&dm,
-                                    ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));,
-                     dm=2; init_vel(BL_TO_FORTRAN_BOX(bx),
-                                    BL_TO_FORTRAN_ANYD(umac[2][mfi]), geom.CellSize(),
-                                    geom.ProbLo(), geom.ProbHi() ,&dm,
-                                    ZFILL(realDomain.lo()), ZFILL(realDomain.hi())););
-
-    }
-
-    if (initial_variance_mom != 0.0) {
-        // sMflux.addMomFluctuations(umac, rho, temp_cc, initial_variance_mom);
-        Abort("Initial momentum fluctuations not implemented; if you are overdamped they don't make sense anyway.");
-    }
-*/
         
     // additional staggered velocity MultiFabs
     std::array< MultiFab, AMREX_SPACEDIM > umacNew;
@@ -865,7 +888,7 @@ void main_driver(const char* argv)
 
 
 //    // Writes instantaneous flow field and some other stuff? Check with Guy.
-//    WritePlotFileHydro(0, time, geom, umac, pres, umacM, umacV);
+    WritePlotFileHydro(0, time, geom, umac, pres, umacM);
     remove("bulkFlowEst");
     //Time stepping loop
 
@@ -995,8 +1018,9 @@ void main_driver(const char* argv)
             {         
 
                 Real check;
+
 //                particles.clearMobilityMatrix();
-//                for(int ii=101;ii<=2100;ii++)
+//                for(int ii=115;ii<=2194;ii++)
 //                {
 //                    particles.SetForce(ii,1,0,0);
 //                    for (int d=0; d<AMREX_SPACEDIM; ++d) {
@@ -1032,6 +1056,8 @@ void main_driver(const char* argv)
 //                }
 //                particles.writeMat();
 
+//                particles.invertMatrix();
+
 
                 MultiFab::Add(source[0],sourceRFD[0],0,0,sourceRFD[0].nComp(),sourceRFD[0].nGrow());
                 MultiFab::Add(source[1],sourceRFD[1],0,0,sourceRFD[1].nComp(),sourceRFD[1].nGrow());
@@ -1041,10 +1067,7 @@ void main_driver(const char* argv)
                 particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
                 particles.velNorm();
 
-                //particles.ResetMarkers(0);
-
                 particles.pinnedParticleInversion();
-                //particles.pinForce();
 
                 for (int d=0; d<AMREX_SPACEDIM; ++d) {
                         source    [d].setVal(0.0);      // reset source terms
@@ -1108,11 +1131,9 @@ void main_driver(const char* argv)
             (n_steps_skip < 0 && istep%n_steps_skip == 0) ) {
             
             particleMeans.setVal(0.0);
-            particleVars.setVal(0);
 
             for (int d=0; d<AMREX_SPACEDIM; ++d) {
                 umacM[d].setVal(0.);
-                umacV[d].setVal(0.);
             }
                 
             Print() << "Resetting stat collection.\n";
@@ -1157,10 +1178,10 @@ void main_driver(const char* argv)
 
         // compute the mean and variance of umac
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
-            ComputeBasicStats(umac[d], umacM[d], umacV[d], 0, 0, statsCount);
+            ComputeBasicStats(umac[d], umacM[d], 0, 0, statsCount);
         }
-        ComputeBasicStats(potential, potentialM, potentialV, 0, 0, statsCount);
-        ComputeBasicStats(charge   , chargeM   , chargeV   , 0, 0, statsCount);
+        ComputeBasicStats(potential, potentialM, 0, 0, statsCount);
+        ComputeBasicStats(charge   , chargeM   , 0, 0, statsCount);
 
         //Don't forget to add a remove(filename) so it doesn't append to old data
         OutputVolumeMean(umac[0], 0, domainVol, "bulkFlowEst", geom);
@@ -1206,16 +1227,16 @@ void main_driver(const char* argv)
             // This write particle data and associated fields and electrostatic fields
             WritePlotFile(istep, time, geom, geomC, geomP,
                           particleInstant, particleMeans, particles,
-                          charge, chargeM, chargeV, potential, potentialM, potentialV, efieldCC);
+                          charge, chargeM, potential, potentialM, efieldCC);
 
             // Writes instantaneous flow field and some other stuff? Check with Guy.
-            WritePlotFileHydro(istep, time, geom, umac, pres, umacM, umacV);
+            WritePlotFileHydro(istep, time, geom, umac, pres, umacM);
         }
 
         if (chk_int > 0 && istep%chk_int == 0) {
-            WriteCheckPoint(istep, time, statsCount, umac, umacM, umacV, pres,
-                            particles, particleMeans, particleVars, chargeM, chargeV,
-                            potential, potentialM, potentialV);
+            WriteCheckPoint(istep, time, statsCount, umac, umacM, pres,
+                            particles, particleMeans, particleVars, chargeM,
+                            potential, potentialM);
         }
 
         //particles.PrintParticles();

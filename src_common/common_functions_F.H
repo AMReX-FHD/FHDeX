@@ -21,6 +21,7 @@ extern "C"
                                      int* nvars, int* nprimvars,
                                      int* membrane_cell, int* cross_cell, amrex::Real* transmission,
                                      amrex::Real* qval, int* pkernel_fluid, int* pkernel_es,
+                                     int* eskernel_fluid, amrex::Real* eskernel_beta,
                                      amrex::Real* fixed_dt,
                                      amrex::Real* cfl, amrex::Real* rfd_delta, int* max_step, int* plot_int, int* plot_stag,
                                      const char* plot_base_name,
@@ -64,7 +65,7 @@ extern "C"
                                      int* struct_fact_int, int* radialdist_int,
                                      int* cartdist_int, int* n_steps_skip,
                                      amrex::Real* binSize, amrex::Real* searchDist,
-				     int* project_dir, int* max_grid_projection,
+				     int* project_dir, int* slicepoint, int* max_grid_projection,
                                      int* histogram_unit, amrex::Real* density_weights,
                                      int* shift_cc_to_boundary,
                                      int* particle_placement, int* particle_count, int* p_move_tog, int* p_force_tog, int* p_int_tog, int* p_int_tog_wall,
@@ -94,97 +95,9 @@ extern "C"
 ///////////////////////////
 // in init_funcs.F90
 
-    void init_rho_2d(const int* lo, const int* hi,
-                     amrex_real* data, const int* dlo, const int* dhi,
-                     const amrex_real* dx, const amrex_real* prob_lo, const amrex_real* prob_hi);
-
-
-    void init_vel_2d(const int* lo, const int* hi,
-                     amrex_real* data, const int* dlo, const int* dhi,
-                     const amrex_real* dx, const amrex_real* prob_lo, const amrex_real* prob_hi, const int* di);
-
     void init_vel(const int* lo, const int* hi,
                   amrex_real* data, const int* dlo, const int* dhi,
                   const amrex_real* dx, const amrex_real* prob_lo, const amrex_real* prob_hi, const int* di, const amrex::Real* real_lo, const amrex::Real* real_hi);
-
-///////////////////////////
-
-///////////////////////////
-// in debug.F90
-
-    void print_mf(const int* lo, const int* hi,
-                  const amrex::Real* mf,
-                  const int* m_lo, const int* m_hi, const int* nc_m);
-
-///////////////////////////
-
-///////////////////////////
-// in find_coords.F90
-
-    void find_face_coords(const amrex_real* real_lo, const amrex_real* real_hi,
-                    amrex_real* xface, const int* xfacelo, const int* xfacehi,
-                    amrex_real* yface, const int* yfacelo, const int* yfacehi,
-#if (AMREX_SPACEDIM == 3)
-                    amrex_real* zface, const int* zfacelo, const int* zfacehi,
-#endif
-                    const amrex_real* dx);
-
-
-    void find_center_coords(const amrex_real* real_lo, const amrex_real* real_hi,
-                    amrex_real* centers, const int* lo, const int* hi,
-                    const amrex_real* dx);
-///////////////////////////
-
-
-
-
-///////////////////////////
-// in find_nodal_values.F90
-
-    void find_nodal_values(const int* lo, const int* hi,
-                    const amrex_real* fabIn, const int* inlo, const int* inhi,
-                    amrex_real* fabOut, const int* outlo, const int* outhi,
-                    const int* xCheck, const int* yCheck, const int* zCheck);
-///////////////////////////
-
-///////////////////////////
-// in compute_basic_stats.F90
-
-    void compute_means(const amrex_real* inst, const int* inlo, const int* inhi, const int* insize,
-		                amrex_real* meanfab, const int* mlo, const int* mhi, const int* msize,
-			            const int* incomp, const int* mcomp, const int* steps);
-
-    void compute_vars(const amrex_real* inst, const int* inlo, const int* inhi, const int* insize,
-		                const amrex_real* meanfab, const int* mlo, const int* mhi, const int* msize,
-		                amrex_real* varfab, const int* vlo, const int* vhi, const int* vsize,
-			            const int* incomp, const int* mcomp, const int* vcomp, const int* steps);
-
-    void sum_fab(const int* lo, const int* hi, const amrex_real* in, const int* inlo, const int* inhi, const int* insize,
-		                const int* gs, const amrex_real* total, const int* incomp);
-
-    void x_mean_fab(const int* lo, const int* hi, const amrex_real* infab, const int* inlo, const int* inhi, const int* insize,
-                                amrex_real* outfab, const int* outlo, const int* outhi, const int* outsize,
-		                const int* gs);
-#if (AMREX_SPACEDIM == 3)
-    void max_speed(const int* lo, const int* hi, const amrex_real* ux, const int* uxlo, const int* uxhi,
-                                const amrex_real* uy, const int* uylo, const int* uyhi,
-                                const amrex_real* uz, const int* uzlo, const int* uzhi,
-                                amrex_real* maxspeed);
-#endif
-#if (AMREX_SPACEDIM == 2)
-    void max_speed(const int* lo, const int* hi, const amrex_real* ux, const int* uxlo, const int* uxhi,
-                                const amrex_real* uy, const int* uylo, const int* uyhi,
-                                amrex_real* maxspeed);
-#endif
-///////////////////////////
-
-///////////////////////////
-// in compute_averages.F90
-
-  void compute_vert_average(const int* lo, const int* hi,
-			    const amrex_real* inputfab, const int* inlo, const int* inhi, const int* insize,
-			    amrex_real* meanfab, const int* mlo, const int* mhi, const int* msize, 
-			    const int* dir, const int* incomp, const int* mcomp, const int* ncomp);
 
 ///////////////////////////
 

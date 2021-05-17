@@ -270,6 +270,7 @@ public:
 
     std::array<MultiFab, AMREX_SPACEDIM> f_weights;
 
+
 protected:
 
     int nghost;
@@ -277,7 +278,8 @@ protected:
     void InitInternals(int ngrow);
     void ReadStaticParameters();
 
-    
+    Real integrate_es(Real beta_in, int w_in);
+   
 
     AmrCore * m_amr_core;
 
@@ -288,13 +290,17 @@ protected:
     Gpu::ManagedDeviceVector<amrex::Real> pinMatrix;
 
     int totalMarkers;
-    int totalPinnedMarkers;
+    int totalPinnedMarkers; 
+
+
+    static inline Vector<Real> norm_es;
+    
 
 private:
 
     // Positions on faces
     Vector<std::array<MultiFab, AMREX_SPACEDIM>> face_coords;
-    
+   
 
 
 

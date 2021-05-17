@@ -13,10 +13,8 @@ void WritePlotFile(int step,
                    FhdParticleContainer& particles,
                    const MultiFab& charge,
                    const MultiFab& chargeM,
-                   const MultiFab& chargeV,
                    const MultiFab& potential,
                    const MultiFab& potentialM,
-                   const MultiFab& potentialV,
                    const std::array< MultiFab, AMREX_SPACEDIM >& efield) 
 {
     BL_PROFILE_VAR("WritePlotFile()",WritePlotFile);
@@ -31,12 +29,10 @@ void WritePlotFile(int step,
     BoxArray eba = charge.boxArray();
     DistributionMapping edmap = charge.DistributionMap();
 
- 
-//    int cnPlot = 40;
-    int cnPlot = 16+2*nspecies;
+     int cnPlot = 16+2*nspecies;
 
-    // charge, chargeM, chargeV
-    // pot, potM, potV
+    // charge, chargeM
+    // pot, potM
     // Ex, Ey, Ez
     int enPlot = 6+AMREX_SPACEDIM;
 
@@ -53,13 +49,11 @@ void WritePlotFile(int step,
 
     amrex::MultiFab::Copy(eplotfile,charge    ,0,0,1,0);
     amrex::MultiFab::Copy(eplotfile,chargeM   ,0,1,1,0);
-    amrex::MultiFab::Copy(eplotfile,chargeV   ,0,2,1,0);
-    amrex::MultiFab::Copy(eplotfile,potential ,0,3,1,0);
-    amrex::MultiFab::Copy(eplotfile,potentialM,0,4,1,0);
-    amrex::MultiFab::Copy(eplotfile,potentialV,0,5,1,0);
-    amrex::MultiFab::Copy(eplotfile,efield[0] ,0,6,1,0);
-    amrex::MultiFab::Copy(eplotfile,efield[1] ,0,7,1,0);
-    amrex::MultiFab::Copy(eplotfile,efield[2] ,0,8,1,0);
+    amrex::MultiFab::Copy(eplotfile,potential ,0,2,1,0);
+    amrex::MultiFab::Copy(eplotfile,potentialM,0,3,1,0);
+    amrex::MultiFab::Copy(eplotfile,efield[0] ,0,4,1,0);
+    amrex::MultiFab::Copy(eplotfile,efield[1] ,0,5,1,0);
+    amrex::MultiFab::Copy(eplotfile,efield[2] ,0,6,1,0);
 
     amrex::MultiFab::Copy(cplotfile,particleInstant,0,0 ,8+nspecies,0);
     amrex::MultiFab::Copy(cplotfile,particleMeans  ,0,8+nspecies,8+nspecies,0);
@@ -77,15 +71,13 @@ void WritePlotFile(int step,
 
     evarNames[0] = "chargeInstant";
     evarNames[1] = "chargeMean";
-    evarNames[2] = "chargeVar";
-    evarNames[3] = "potentialInstant";
-    evarNames[4] = "potentialMean";
-    evarNames[5] = "potentialVar";
-    evarNames[6] = "ExInstant";
-    evarNames[7] = "EyInstant";
+    evarNames[2] = "potentialInstant";
+    evarNames[3] = "potentialMean";
+    evarNames[4] = "ExInstant";
+    evarNames[5] = "EyInstant";
 
 #if (AMREX_SPACEDIM==3)
-    evarNames[8] = "EzInstant";
+    evarNames[6] = "EzInstant";
 #endif
 
     cvarNames[0] = "membersInstant";
@@ -114,7 +106,7 @@ void WritePlotFile(int step,
     cvarNames[14+nspecies] = "iyMean";
     cvarNames[15+nspecies] = "izMean";
 
-    ccount = 16;
+    ccount = 16+nspecies;
 
     for(int i=0;i<nspecies;i++)
     {
