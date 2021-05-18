@@ -90,7 +90,7 @@ void InitializeCommonNamespace() {
                                 &fixed_dt, &cfl, &rfd_delta, &max_step,
                                 &plot_int, &plot_stag, temp_plot_base_name, 128,
                                 &chk_int, temp_chk_base_name, 128,
-                                &prob_type, &restart, &particle_restart, &print_int, &project_eos_int,
+                                &prob_type, &restart, &reset_stats, &particle_restart, &print_int, &project_eos_int,
                                 grav.data(), &nspecies, molmass.data(), diameter.data(),
                                 dof.dataPtr(), hcv.data(), hcp.data(),
                                 rhobar.data(),

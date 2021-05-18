@@ -336,6 +336,24 @@ void main_driver(const char* argv)
                        vel, velMeans, velVars, coVars, spatialCross,
                        ba, dmap);
 
+        if (reset_stats) {
+    
+            cuMeans.setVal(0.0);
+            cuVars.setVal(0.0);
+            primMeans.setVal(0.0);
+            primVars.setVal(0.0);
+            for (int d=0; d<AMREX_SPACEDIM; d++) {
+                velMeans[d].setVal(0.);
+                velVars[d].setVal(0.);
+                cumomMeans[d].setVal(0.);
+                cumomVars[d].setVal(0.);
+            }
+            coVars.setVal(0.0);
+            spatialCross.assign(spatialCross.size(), 0.0);
+            
+            statsCount = 1;
+        }
+
         // transport properties
         eta.define(ba,dmap,1,ngc);
         zeta.define(ba,dmap,1,ngc);
@@ -692,10 +710,10 @@ void main_driver(const char* argv)
         setBCStag(prim, cu, cumom, vel, geom);
         
         if (plot_int > 0) {
-          WritePlotFileStag(0, 0.0, geom, cu, cuMeans, cuVars, cumom, cumomMeans, cumomVars, 
+            WritePlotFileStag(0, 0.0, geom, cu, cuMeans, cuVars, cumom, cumomMeans, cumomVars, 
                           prim, primMeans, primVars, vel, velMeans, velVars, coVars, eta, kappa);
 
-          if (plot_cross) WriteSpatialCross(spatialCross, 0, dx);
+            if (plot_cross) WriteSpatialCross(spatialCross, 0, dx);
         }
 
         if (plot_cross) {
@@ -769,7 +787,7 @@ void main_driver(const char* argv)
         // reset statistics after n_steps_skip
         // if n_steps_skip is negative, we use it as an interval
         if ((n_steps_skip > 0 && step == n_steps_skip) ||
-            (n_steps_skip < 0 && step%n_steps_skip == 0) ) {
+            (n_steps_skip < 0 && step%amrex::Math::abs(n_steps_skip == 0)) ) {
 
             cuMeans.setVal(0.0);
             cuVars.setVal(0.0);

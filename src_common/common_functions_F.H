@@ -27,7 +27,7 @@ extern "C"
                                      const int plot_base_name_len,
                                      int* chk_int,
                                      const char* chk_base_name, const int chk_base_name_len,
-                                     int* prob_type, int* restart, int* particle_restart, int* print_int,
+                                     int* prob_type, int* restart, int* reset_stats, int* particle_restart, int* print_int,
                                      int* project_eos_int, amrex::Real* grav, int* nspecies,
                                      amrex::Real* molmass,amrex::Real* diameter,
                                      int* dof,amrex::Real* hcv,amrex::Real* hcp, amrex::Real* rhobar,

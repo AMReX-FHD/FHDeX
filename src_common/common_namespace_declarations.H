@@ -38,6 +38,7 @@ int                        common::chk_int;
 std::string                common::chk_base_name;
 AMREX_GPU_MANAGED int      common::prob_type;
 int                        common::restart;
+int                        common::reset_stats;
 int                        common::particle_restart;
 int                        common::print_int;
 int                        common::project_eos_int;
