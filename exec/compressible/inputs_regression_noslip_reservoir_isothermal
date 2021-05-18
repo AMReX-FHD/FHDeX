@@ -101,8 +101,3 @@
   bc_Yk_z_hi(1:4) = 0.1 0.2 0.3 0.4     ! hi BC
 
 /
-
-&compressible
-
-/
-

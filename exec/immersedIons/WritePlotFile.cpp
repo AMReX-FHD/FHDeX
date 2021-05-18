@@ -167,6 +167,7 @@ void WritePlotFile(int step,
 
        // amrex::MultiFab::Copy(ix,particleMeans,0,0,14,0);
 
+
         std::string asciiName = Concatenate("ascii_means",step,9);
         outputMFAscii(particleMeans, asciiName);
 
@@ -176,13 +177,16 @@ void WritePlotFile(int step,
         std::string asciiName2 = Concatenate("ascii_potential_mean",step,9);
         outputMFAscii(potentialM, asciiName2);
 
-        std::string asciiPName = Concatenate("asciiParticles",step,9);
-        particles.WriteParticlesAscii(asciiPName);
+        //std::string asciiPName = Concatenate("asciiParticles",step,9);
+        //particles.WriteParticlesAscii(asciiPName);
+
     }
 
     // particle in cplt file
     Vector<std::string> real_comp_names;
     Vector<std::string>  int_comp_names;
+
+
 
     real_comp_names.push_back("radius");
     real_comp_names.push_back("velx");

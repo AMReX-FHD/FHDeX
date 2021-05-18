@@ -196,6 +196,8 @@ module common_namelist_module
   double precision,   save :: ephase(3)
 
   integer,            save :: plot_ascii
+  integer,            save :: plot_means
+  integer,            save :: plot_vars
   integer,            save :: particle_motion
 
   integer,            save :: solve_chem
@@ -425,6 +427,8 @@ module common_namelist_module
   namelist /common/ ephase
 
   namelist /common/ plot_ascii
+  namelist /common/ plot_means
+  namelist /common/ plot_vars
   namelist /common/ particle_motion
 
   ! chemistry
@@ -582,6 +586,8 @@ contains
     turb_b = 1.d0
     turbForcing = 0
 
+    plot_means = 0
+    plot_vars = 0    
     particle_motion = 0
 
     graphene_tog = 0
@@ -669,7 +675,8 @@ contains
                                          fluid_tog_in, es_tog_in, drag_tog_in, move_tog_in, rfd_tog_in, &
                                          dry_move_tog_in, sr_tog_in, graphene_tog_in, crange_in, &
                                          thermostat_tog_in, zero_net_force_in, images_in, eamp_in, efreq_in, ephase_in, &
-                                         plot_ascii_in, solve_chem_in, diffcoeff_in, scaling_factor_in, &
+                                         plot_ascii_in, plot_means_in, plot_vars_in, &
+                                         solve_chem_in, diffcoeff_in, scaling_factor_in, &
                                          source_strength_in, regrid_int_in, do_reflux_in, particle_motion_in, &
                                          turb_a_in, turb_b_in, turbForcing_in) &
                                          bind(C, name="initialize_common_namespace")
@@ -843,6 +850,9 @@ contains
     double precision,       intent(inout) :: ephase_in(3)
 
     integer,                intent(inout) :: plot_ascii_in
+    integer,                intent(inout) :: plot_means_in
+    integer,                intent(inout) :: plot_vars_in
+    
     integer,                intent(inout) :: solve_chem_in
     double precision,       intent(inout) :: diffcoeff_in
     double precision,       intent(inout) :: scaling_factor_in
@@ -1017,6 +1027,9 @@ contains
     ephase_in = ephase
 
     plot_ascii_in = plot_ascii
+    plot_means_in = plot_means
+    plot_vars_in = plot_vars
+    
     solve_chem_in = solve_chem
     diffcoeff_in  = diffcoeff
     scaling_factor_in  = scaling_factor

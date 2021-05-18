@@ -94,12 +94,8 @@
 
   grav(1:3) = 0.0 0.0 -4.0e12
 
-/
-
-&compressible
-
   ! write out means and variances to plotfile
   plot_means = 1
   plot_vars = 1
-  
+
 /

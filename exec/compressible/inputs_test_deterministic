@@ -97,7 +97,3 @@
   struct_fact_int = 1
 
 /
-
-&compressible
-  
-/
