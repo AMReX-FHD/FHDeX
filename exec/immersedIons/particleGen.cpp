@@ -226,5 +226,6 @@ void FhdParticleContainer::ReInitParticles()
     }
 
     Redistribute();
+    doRedist = 1;
 
 }
