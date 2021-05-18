@@ -22,19 +22,7 @@ extern "C"
 ///////////////////////////
 
 ///////////////////////////
-// in diff_flux.F90
-
-    void trans_coeffs(const int* lo, const int* hi,
-                      const amrex::Real* prim,
-                      amrex::Real* eta,
-                      amrex::Real* zeta,
-                      amrex::Real* kappa);
-
-    void setup_bc();
-
-    void setup_cwall();
-
-    void get_hc_gas();
+// in membrane_funcs.F90
 
     void do_ssa(const int* lo, const int* hi,
                 const amrex::Real* cu,

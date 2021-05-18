@@ -31,8 +31,6 @@ void main_driver(const char* argv)
 
     // if gas heat capacities in the namelist are negative, calculate them using using dofs.
     // This will only update the Fortran values.
-    get_hc_gas();
-    // now update C++ values
     GetHcGas();
   
     // check bc_vel_lo/hi to determine the periodicity
@@ -52,12 +50,10 @@ void main_driver(const char* argv)
     // for each direction, if bc_vel_lo/hi is periodic, then
     // set the corresponding bc_mass_lo/hi and bc_therm_lo/hi to periodic
     SetupBC();
-    setup_bc(); // do the same in the fortran namelist
 
     // if multispecies
     if (algorithm_type == 2) {
         // compute wall concentrations if BCs call for it
-        setup_cwall();
         SetupCWall();
     }
     
