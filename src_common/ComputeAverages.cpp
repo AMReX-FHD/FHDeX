@@ -209,8 +209,8 @@ void ComputeVerticalAverage(const MultiFab& mf, MultiFab& mf_avg,
     Vector<int> max_grid_size_pencil(AMREX_SPACEDIM);
     Vector<int> max_grid_size_flat(AMREX_SPACEDIM);
 
-    int nx[3], nbx[3];
-    int mx[2], mbx[2];
+    int nx[AMREX_SPACEDIM  ], nbx[AMREX_SPACEDIM  ];
+    int mx[AMREX_SPACEDIM-1], mbx[AMREX_SPACEDIM-1];
 
     int nxprod, indlo, indhi, a, b, c;
 
@@ -220,13 +220,15 @@ void ComputeVerticalAverage(const MultiFab& mf, MultiFab& mf_avg,
         nx[d]  = ba_in[0].size()[d];
         nbx[d] = domain.length(d) / nx[d];
     }
+#if (AMREX_SPACEDIM == 2)
+    if (nbx[0]*nbx[1] != ba_in.size())
+        amrex::Error("ALL GRIDS DO NOT HAVE SAME SIZE");
+#elif (AMREX_SPACEDIM == 3)
     if (nbx[0]*nbx[1]*nbx[2] != ba_in.size())
         amrex::Error("ALL GRIDS DO NOT HAVE SAME SIZE");
+#endif
 
 #if (AMREX_SPACEDIM == 2)
-
-    Abort("Fix ComputeAverages for 2D");
-
     if (dir == 0) {
         indlo = 1;
     } else if (dir == 1) {
@@ -254,6 +256,13 @@ void ComputeVerticalAverage(const MultiFab& mf, MultiFab& mf_avg,
     dom_hi[dir] = 0;
     Box domain_flat(dom_lo, dom_hi);
 
+#if (AMREX_SPACEDIM == 2)
+    mx[0] = max_grid_projection[0];
+
+    mbx[0] = domain.length(indlo)/mx[0];
+
+    Print() << "1D redist: " << mbx[0] << ", grids: " << mx[0] << std::endl;
+#elif (AMREX_SPACEDIM == 3)
     mx[0] = max_grid_projection[0];
     mx[1] = max_grid_projection[1];
 
@@ -262,11 +271,12 @@ void ComputeVerticalAverage(const MultiFab& mf, MultiFab& mf_avg,
 
     Print() << "2D redist: " << mbx[0] << "x" << mbx[1] << ", grids: " << mx[0]
             << "x" << mx[1] << std::endl;
-
-    // Print() << "HACK: dmap = " << dmap << std::endl;
+#endif
 
     max_grid_size_pencil[indlo] = mx[0];
+#if (AMREX_SPACEDIM == 3)
     max_grid_size_pencil[indhi] = mx[1];
+#endif
     max_grid_size_pencil[dir]   = domain.length(dir);
     ba_pencil.define(domain);
     ba_pencil.maxSize(IntVect(max_grid_size_pencil));
