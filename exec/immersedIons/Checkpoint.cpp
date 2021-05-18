@@ -160,8 +160,8 @@ void WriteCheckPoint(int step,
     // particle mean and variance
     VisMF::Write(particleMeans,
                  amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "particleMeans"));
-    VisMF::Write(particleVars,
-                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "particleVars"));
+    //VisMF::Write(particleVars,
+    //             amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "particleVars"));
 
     // charge
     VisMF::Write(chargeM,
@@ -282,7 +282,10 @@ void ReadCheckPoint(int& step,
         else if(*(std::max_element(pkernel_fluid.begin(),pkernel_fluid.begin()+nspecies)) == 6) {
             ang = 4;
         }
-    
+        else if (*(std::max_element(eskernel_fluid.begin(),eskernel_fluid.begin()+nspecies)) > 0) {
+            ang = static_cast<int>(floor(*(std::max_element(eskernel_fluid.begin(),eskernel_fluid.begin()+nspecies)))/2+1);
+        }
+
         // build MultiFab data
         
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
@@ -309,6 +312,9 @@ void ReadCheckPoint(int& step,
         }
         else if (*(std::max_element(pkernel_es.begin(),pkernel_es.begin()+nspecies)) == 6) {
             ngp = 4;
+        }
+        else if (*(std::max_element(eskernel_fluid.begin(),eskernel_fluid.begin()+nspecies)) > 0) {
+            ngp = static_cast<int>(floor(*(std::max_element(eskernel_fluid.begin(),eskernel_fluid.begin()+nspecies)))/2+1);
         }
 
         chargeM.define(bp,dm,1,1);
@@ -398,8 +404,8 @@ void ReadCheckPoint(int& step,
     // particle means and variances
     VisMF::Read(particleMeans,
                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "particleMeans"));
-    VisMF::Read(particleVars,
-                amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "particleVars"));
+    //VisMF::Read(particleVars,
+    //            amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "particleVars"));
 
     // charge
     VisMF::Read(chargeM,
@@ -510,6 +516,9 @@ void ReadCheckPointParticles(FhdParticleContainer& particles, species* particleI
         }
         else if(*(std::max_element(pkernel_fluid.begin(),pkernel_fluid.begin()+nspecies)) == 6) {
             ang = 4;
+        }
+        else if (*(std::max_element(eskernel_fluid.begin(),eskernel_fluid.begin()+nspecies)) > 0) {
+            ang = static_cast<int>(floor(*(std::max_element(eskernel_fluid.begin(),eskernel_fluid.begin()+nspecies)))/2+1);
         }
 
     Box minBox = bc.minimalBox();
