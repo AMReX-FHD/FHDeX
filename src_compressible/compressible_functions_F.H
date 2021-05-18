@@ -11,17 +11,6 @@ extern "C"
     // these are interfaces to fortran subroutines
 
 ///////////////////////////
-// in compressible_namelist.F90
-
-    // read in fortran namelist into compressible_namelist_module
-    void read_compressible_namelist (const char* inputs_file, const int length);
-
-    // copy contents of compressible_params_module to C++ compressible namespace
-    void initialize_compressible_namespace(int* plot_means, int* plot_vars);
-
-///////////////////////////
-
-///////////////////////////
 // in membrane_funcs.F90
 
     void do_ssa(const int* lo, const int* hi,

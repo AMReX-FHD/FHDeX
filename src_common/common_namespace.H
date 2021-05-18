@@ -271,6 +271,8 @@ namespace common {
     extern amrex::Vector<amrex::Real> ephase;
 
     extern int                        plot_ascii;
+    extern int                        plot_means;
+    extern int                        plot_vars;
     extern int                        particle_motion;
     
     // parameters neccesary for chemical reactions

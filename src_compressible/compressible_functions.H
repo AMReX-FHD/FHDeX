@@ -8,11 +8,9 @@
 #include <AMReX_ArrayLim.H>
 
 #include "compressible_functions_F.H"
-#include "compressible_namespace.H"
 
 #include "common_functions.H"
 
-using namespace compressible;
 using namespace amrex;
 
 // copy contents of compressible_params_module to C++ compressible namespace

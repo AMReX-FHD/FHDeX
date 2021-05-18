@@ -3,7 +3,6 @@
 #include "compressible_functions_stag.H"
 
 #include "common_namespace_declarations.H"
-#include "compressible_namespace_declarations.H"
 
 #include "rng_functions.H"
 
@@ -24,11 +23,9 @@ void main_driver(const char* argv)
     // read in parameters from inputs file into F90 modules
     // we use "+1" because of amrex_string_c_to_f expects a null char termination
     read_common_namelist(inputs_file.c_str(),inputs_file.size()+1);
-    read_compressible_namelist(inputs_file.c_str(),inputs_file.size()+1);
     
     // copy contents of F90 modules to C++ namespaces
     InitializeCommonNamespace();
-    InitializeCompressibleNamespace();
 
     // if gas heat capacities in the namelist are negative, calculate them using using dofs.
     // This will only update the Fortran values.
