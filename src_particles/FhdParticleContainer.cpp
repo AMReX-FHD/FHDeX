@@ -365,6 +365,101 @@ void FhdParticleContainer::computeForcesNLGPU(const MultiFab& charge, const Mult
     }
 }
 
+void FhdParticleContainer::computeForcesCoulombGPU(long totalParticles) {
+
+    BL_PROFILE_VAR("computeForcesCoulomb()",computeForcesCoulomb);
+
+    using namespace amrex;
+    using common::permittivity;
+    using common::images;
+
+    Real ee = (1.0/(permittivity*4*3.14159265));
+
+    GpuArray<Real, 3> plo = {prob_lo[0], prob_lo[1], prob_lo[2]};
+    GpuArray<Real, 3> phi = {prob_hi[0], prob_hi[1], prob_hi[2]};
+
+    const int lev = 0;
+    double domx, domy, domz;
+
+    domx = (phi[0] - plo[0]);
+    domy = (phi[1] - plo[1]);
+    domz = (phi[2] - plo[2]);
+
+    Real posx[totalParticles];
+    Real posy[totalParticles];
+    Real posz[totalParticles];
+    int  species[totalParticles];
+
+    Real charge[totalParticles];
+
+    Print() << "Calculating Coulomb force for each particle pair\n";
+
+    // collect particle positions onto one processor
+    PullDown(0, posx, -1, totalParticles);
+    PullDown(0, posy, -2, totalParticles);
+    PullDown(0, posz, -3, totalParticles);
+    PullDown(0, charge, FHD_realData::q , totalParticles);
+    
+    int imag = (images == 0) ? 1 : images;
+
+    Real maxdist = 0.99*amrex::min(imag * domx,
+                                   //imag * domy,
+                                   imag * domz);
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) {
+
+        const int grid_id = pti.index();
+        const int tile_id = pti.LocalTileIndex();
+
+        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+        auto& particles = particle_tile.GetArrayOfStructs();
+        const int np = particles.numParticles();
+
+        // loop over particles
+        for(int i = 0; i < np; i++){
+
+            ParticleType & part = particles[i];
+
+            double dr2, rtdr2, dx, dy, dz;
+
+	    Real q1 = part.rdata(FHD_realData::q);
+
+            // loop over other particles
+            for(int j = 0; j < totalParticles; j++) {
+
+		Real q2 = charge[j];
+
+                // assume triply periodic, check the domain and the 8 periodic images
+		// (currently hard-coded for y-wall)
+                for(int ii = -images; ii <= images; ii++) {
+                    //for(int jj = -images; jj <= images; jj++) {
+                       for(int kk = -images; kk <= images; kk++) {
+
+                          // get distance between particles
+                          dx = part.pos(0)-posx[j] - ii*domx;
+                          dy = part.pos(1)-posy[j];// - jj*domy;
+                          dz = part.pos(2)-posz[j] - kk*domz;
+
+			  dr2 = dx*dx + dy*dy + dz*dz;
+                          rtdr2 = sqrt(dr2);
+
+              	          if (rtdr2 < maxdist && rtdr2 > 0.)
+                          {
+                              part.rdata(FHD_realData::forcex) += ee*(dx/rtdr2)*q1*q2/dr2;
+                              part.rdata(FHD_realData::forcey) += ee*(dy/rtdr2)*q1*q2/dr2;
+                              part.rdata(FHD_realData::forcez) += ee*(dz/rtdr2)*q1*q2/dr2;
+                          }
+		       }
+		    //}
+		}
+	    }
+	}
+    }
+}
+
 
 void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const Real* dxE, const Geometry geomF,
                                     const std::array<MultiFab, AMREX_SPACEDIM>& umac, const std::array<MultiFab, AMREX_SPACEDIM>& efield,
