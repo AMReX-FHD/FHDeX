@@ -16,10 +16,6 @@ include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 VPATH_LOCATIONS   += .
 INCLUDE_LOCATIONS += .
 
-include ../../src_compressible/src_F90/Make.package
-VPATH_LOCATIONS   += ../../src_compressible/src_F90
-INCLUDE_LOCATIONS += ../../src_compressible/src_F90
-
 include ../../src_compressible/Make.package
 VPATH_LOCATIONS   += ../../src_compressible/
 INCLUDE_LOCATIONS += ../../src_compressible/
