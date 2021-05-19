@@ -87,6 +87,7 @@ void InitializeCommonNamespace() {
                                 &nvars, &nprimvars,
                                 &membrane_cell, &cross_cell, &do_slab_sf, transmission.data(),
                                 qval.dataPtr(), pkernel_fluid.begin(), pkernel_es.begin(),
+                                eskernel_fluid.begin(), eskernel_beta.begin(),
                                 &fixed_dt, &cfl, &rfd_delta, &max_step,
                                 &plot_int, &plot_stag, temp_plot_base_name, 128,
                                 &chk_int, temp_chk_base_name, 128,
@@ -134,7 +135,8 @@ void InitializeCommonNamespace() {
                                 diff.dataPtr(), &all_dry, &fluid_tog, &es_tog, &drag_tog, &move_tog, &rfd_tog,
                                 &dry_move_tog, &sr_tog, &graphene_tog, &crange, &thermostat_tog, &zero_net_force,
                                 &images, eamp.dataPtr(), efreq.dataPtr(), ephase.dataPtr(),
-                                &plot_ascii, &solve_chem, &diffcoeff, &scaling_factor,
+                                &plot_ascii, &plot_means, &plot_vars, &plot_covars, &plot_cross,
+                                &solve_chem, &diffcoeff, &scaling_factor,
                                 &source_strength, &regrid_int, &do_reflux, &particle_motion,
                                 &turb_a, &turb_b, &turbForcing);
 

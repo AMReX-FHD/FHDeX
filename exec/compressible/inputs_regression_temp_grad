@@ -93,12 +93,8 @@
   hcv = -1 -1 -1 -1
   hcp = -1 -1 -1 -1
 
-/
-
-&compressible
-
   ! write out means and variances to plotfile
   plot_means = 1
   plot_vars = 1
-  
+
 /

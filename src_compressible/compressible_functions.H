@@ -8,11 +8,9 @@
 #include <AMReX_ArrayLim.H>
 
 #include "compressible_functions_F.H"
-#include "compressible_namespace.H"
 
 #include "common_functions.H"
 
-using namespace compressible;
 using namespace amrex;
 
 // copy contents of compressible_params_module to C++ compressible namespace
@@ -72,6 +70,9 @@ void BCWallSpeciesFlux(std::array< MultiFab, AMREX_SPACEDIM >& flux,
 
 void StochFlux(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in,
                const amrex::Geometry geom);
+
+void MembraneFlux(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in,
+                  const amrex::Geometry geom);
 /////////////////////////////////////
 
 void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,

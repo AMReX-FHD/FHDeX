@@ -21,6 +21,7 @@ extern "C"
                                      int* nvars, int* nprimvars,
                                      int* membrane_cell, int* cross_cell, int* do_slab_sf, amrex::Real* transmission,
                                      amrex::Real* qval, int* pkernel_fluid, int* pkernel_es,
+                                     int* eskernel_fluid, amrex::Real* eskernel_beta,
                                      amrex::Real* fixed_dt,
                                      amrex::Real* cfl, amrex::Real* rfd_delta, int* max_step, int* plot_int, int* plot_stag,
                                      const char* plot_base_name,
@@ -81,7 +82,8 @@ extern "C"
                                      int* move_tog, int* rfd_tog, int* dry_move_tog, int* sr_tog,
                                      int* graphene_tog, int* crange, int* thermostat_tog, int* zero_net_force, int* images,
                                      amrex::Real* eamp, amrex::Real* efreq, amrex::Real* ephase,
-                                     int* plot_ascii, int* solve_chem, amrex::Real* diffcoeff,
+                                     int* plot_ascii, int* plot_means, int* plot_vars, int* plot_covars, int* plot_cross,
+                                     int* solve_chem, amrex::Real* diffcoeff,
                                      amrex::Real* scaling_factor, amrex::Real* source_strength,
                                      int* regrid_int, int* do_reflux, int* particle_motion,
                                      amrex::Real* turb_a, amrex::Real* turb_b, int* turbForcing);

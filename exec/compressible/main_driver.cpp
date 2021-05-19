@@ -2,7 +2,6 @@
 #include "compressible_functions.H"
 
 #include "common_namespace_declarations.H"
-#include "compressible_namespace_declarations.H"
 
 #include "rng_functions.H"
 
@@ -23,16 +22,12 @@ void main_driver(const char* argv)
     // read in parameters from inputs file into F90 modules
     // we use "+1" because of amrex_string_c_to_f expects a null char termination
     read_common_namelist(inputs_file.c_str(),inputs_file.size()+1);
-    read_compressible_namelist(inputs_file.c_str(),inputs_file.size()+1);
     
     // copy contents of F90 modules to C++ namespaces
     InitializeCommonNamespace();
-    InitializeCompressibleNamespace();
 
     // if gas heat capacities in the namelist are negative, calculate them using using dofs.
     // This will only update the Fortran values.
-    get_hc_gas();
-    // now update C++ values
     GetHcGas();
   
     // check bc_vel_lo/hi to determine the periodicity
@@ -52,12 +47,10 @@ void main_driver(const char* argv)
     // for each direction, if bc_vel_lo/hi is periodic, then
     // set the corresponding bc_mass_lo/hi and bc_therm_lo/hi to periodic
     SetupBC();
-    setup_bc(); // do the same in the fortran namelist
 
     // if multispecies
     if (algorithm_type == 2) {
         // compute wall concentrations if BCs call for it
-        setup_cwall();
         SetupCWall();
     }
     
@@ -459,11 +452,11 @@ void main_driver(const char* argv)
     }
 
     // compute internal energy
-    double massvec[nspecies];
+    GpuArray<Real,MAX_SPECIES> massvec;
     for(int i=0;i<nspecies;i++) {
         massvec[i] = rhobar[i];
     }
-    get_energy(&intEnergy, massvec, &T0);
+    GetEnergy(intEnergy, massvec, T0);
 
     cu.setVal(0.0,0,nvars,ngc);
     cu.setVal(rho0,0,1,ngc);           // density

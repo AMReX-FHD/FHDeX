@@ -1,13 +1,6 @@
 #include "compressible_functions.H"
 
 
-void InitializeCompressibleNamespace() {
-
-    BL_PROFILE_VAR("InitializeCompressibleNamespace()",InitializeCompressibleNamespace);
-
-    initialize_compressible_namespace(&plot_means, &plot_vars, &plot_covars, &plot_cross);
-}
-
 void GetHcGas() {
     for (int i=0; i<nspecies; ++i) {
         if (hcv[i] < 0.) {

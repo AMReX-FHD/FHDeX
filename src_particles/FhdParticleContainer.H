@@ -214,6 +214,8 @@ public:
 
     void computeForcesNLGPU(const MultiFab& charge, const MultiFab& coords, const Real* dx);
 
+    void computeForcesCoulombGPU(long totalParticles);
+
     void MoveParticlesDSMC(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount,Real time, int* flux);
 
     void MoveIonsCPP(const Real dt, const Real* dxFluid, const Real* dxE, const Geometry geomF,
@@ -266,6 +268,10 @@ public:
 
     void EvaluateStats(MultiFab& particleInstant,
                        MultiFab& particleMeans, species particleInfo, const Real delt, int steps);
+
+
+    void invertMatrix();
+
 
     /****************************************************************************
      *                                                                          *

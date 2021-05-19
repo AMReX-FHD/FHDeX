@@ -26,6 +26,8 @@ AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::transmission
 
 AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_SPECIES> common::pkernel_fluid; // GALEN - FLUID KERNEL
 AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_SPECIES> common::pkernel_es;
+AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_SPECIES> common::eskernel_fluid; // EXPONENTIAL OF SEMICIRCLE KERNEL; use this as w
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::eskernel_beta; // EXPONENTIAL OF SEMICIRCLE KERNEL
 amrex::Vector<amrex::Real> common::qval;
 
 amrex::Real                common::fixed_dt;
@@ -190,6 +192,10 @@ amrex::Vector<amrex::Real> common::efreq;
 amrex::Vector<amrex::Real> common::ephase;
 
 int                        common::plot_ascii;
+int                        common::plot_means;
+int                        common::plot_vars;
+int                        common::plot_covars;
+int                        common::plot_cross;
 int                        common::particle_motion;
 int                        common::solve_chem;
 amrex::Real                common::diffcoeff;

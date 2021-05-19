@@ -1,15 +1,12 @@
 module membrane_module
 
-  use amrex_fort_module, only : amrex_real
-  use common_namelist_module, only : ngc, nvars, nprimvars, nspecies, cell_depth, k_b, &
-       n_cells, hcv, membrane_cell, molmass,transmission
-  use conv_module
+  use common_namelist_module, only : ngc, nvars, nprimvars, cell_depth, k_b, &
+                                     membrane_cell, molmass, transmission
   use rng_functions_module
+
   implicit none
 
   private
-
-  public :: do_ssa
 
 contains
 

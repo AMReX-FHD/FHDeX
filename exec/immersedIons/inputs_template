@@ -103,6 +103,9 @@
   !--------
   pkernel_fluid = 4 6  
   pkernel_es = 4    
+  !ES kernel (To use ES kernel, set pkernel_fluid = -1)
+  eskernel_fluid = 4 4 ! eskernel_fluid uses 4,5 or 6 for now
+  eskernel_beta = 8 8 ! beta is [1,3]*eskernel_fluid with 0.1 increment
   
   ! Stochastic parameters
   seed = 0
