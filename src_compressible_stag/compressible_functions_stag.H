@@ -7,8 +7,6 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_ArrayLim.H>
 
-#include "compressible_functions_F.H"
-
 #include "common_functions.H"
 
 using namespace amrex;
