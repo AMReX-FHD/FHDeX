@@ -977,6 +977,8 @@ void main_driver(const char* argv)
 
         // sr_tog is short range forces
         // es_tog is electrostatic solve (0=off, 1=Poisson, 2=Pairwise, 3=P3M)
+	
+
         if (sr_tog != 0 || es_tog==3) {
 
             // compute short range forces (if sr_tog=1)
@@ -992,6 +994,11 @@ void main_driver(const char* argv)
         // do Poisson solve using 'charge' for RHS, and put potential in 'potential'.
         // Then calculate gradient and put in 'efieldCC', then add 'external'.
         esSolve(potential, charge, efieldCC, external, geomP);
+
+        if (es_tog==2) {
+            // compute pairwise Coulomb force (currently hard-coded to work with y-wall).
+	    particles.computeForcesCoulombGPU(simParticles);
+	}
 
         // compute other forces and spread to grid
         particles.SpreadIonsGPU(dx, dxp, geom, umac, efieldCC, source, sourceTemp);
