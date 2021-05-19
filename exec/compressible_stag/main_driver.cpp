@@ -145,8 +145,8 @@ void main_driver(const char* argv)
     if ((plot_cross) and ((cross_cell <= 0) or (cross_cell >= n_cells[0]-1))) {
         Abort("Cross cell needs to be within the domain: 0 < cross_cell < n_cells[0] - 1");
     }
-    if ((do_slab_sf) and ((cross_cell <= 0) or (cross_cell >= n_cells[0]-1))) {
-        Abort("Slab structure factor needs a cross cell within the domain: 0 < cross_cell < n_cells[0] - 1");
+    if ((do_slab_sf) and ((membrane_cell <= 0) or (membrane_cell >= n_cells[0]-1))) {
+        Abort("Slab structure factor needs a membrane cell within the domain: 0 < cross_cell < n_cells[0] - 1");
     }
 
     // contains yz-averaged running & instantaneous averages of conserved variables at cross cell + four primitive variables [vx, vy, vz, T]: 2*nvars + 2*4
@@ -938,10 +938,10 @@ void main_driver(const char* argv)
                     MultiFab primVertAvg1;  // flattened multifab defined below
                     MultiFab consVertAvg0;  // flattened multifab defined below
                     MultiFab consVertAvg1;  // flattened multifab defined below
-                    ComputeVerticalAverageSlab(structFactPrimMF, primVertAvg0, geom, project_dir, 0, structVarsPrim, 0, cross_cell-1);
-                    ComputeVerticalAverageSlab(structFactPrimMF, primVertAvg1, geom, project_dir, 0, structVarsPrim, cross_cell, n_cells[project_dir]-1);
-                    ComputeVerticalAverageSlab(structFactConsMF, consVertAvg0, geom, project_dir, 0, structVarsCons, 0, cross_cell-1);
-                    ComputeVerticalAverageSlab(structFactConsMF, consVertAvg1, geom, project_dir, 0, structVarsCons, cross_cell, n_cells[project_dir]-1);
+                    ComputeVerticalAverageSlab(structFactPrimMF, primVertAvg0, geom, project_dir, 0, structVarsPrim, 0, membrane_cell-1);
+                    ComputeVerticalAverageSlab(structFactPrimMF, primVertAvg1, geom, project_dir, 0, structVarsPrim, membrane_cell, n_cells[project_dir]-1);
+                    ComputeVerticalAverageSlab(structFactConsMF, consVertAvg0, geom, project_dir, 0, structVarsCons, 0, membrane_cell-1);
+                    ComputeVerticalAverageSlab(structFactConsMF, consVertAvg1, geom, project_dir, 0, structVarsCons, membrane_cell, n_cells[project_dir]-1);
                     MultiFab primVertAvgRot0 = RotateFlattenedMF(primVertAvg0);
                     MultiFab primVertAvgRot1 = RotateFlattenedMF(primVertAvg1);
                     MultiFab consVertAvgRot0 = RotateFlattenedMF(consVertAvg0);
