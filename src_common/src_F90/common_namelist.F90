@@ -25,6 +25,7 @@ module common_namelist_module
   integer,            save :: nprimvars
   integer,            save :: membrane_cell
   integer,            save :: cross_cell
+  integer,            save :: do_slab_sf
   double precision,   save :: transmission(MAX_SPECIES)
 
   double precision,   save :: qval(MAX_SPECIES)
@@ -222,6 +223,7 @@ module common_namelist_module
   namelist /common/ nprimvars     ! number of primative variables
   namelist /common/ membrane_cell ! location of membrane
   namelist /common/ cross_cell    ! cell to compute spatial correlation
+  namelist /common/ do_slab_sf    ! whether to compute SF in two slabs separated by cross_cell
   namelist /common/ transmission
 
   namelist /common/ qval                ! charge on an ion
@@ -463,6 +465,7 @@ contains
 
     membrane_cell = -1
     cross_cell = 0
+    do_slab_sf = 0
     ! transmission (no default)
     
     fixed_dt = 1.
@@ -615,7 +618,7 @@ contains
                                          max_grid_size_in, max_grid_size_structfact_in, &
                                          max_particle_tile_size_in, cell_depth_in, ngc_in, &
                                          nvars_in, nprimvars_in, &
-                                         membrane_cell_in, cross_cell_in, transmission_in, &
+                                         membrane_cell_in, cross_cell_in, do_slab_sf_in, transmission_in, &
                                          qval_in, pkernel_fluid_in, pkernel_es_in,&
                                          fixed_dt_in, cfl_in, rfd_delta_in, max_step_in, plot_int_in, plot_stag_in, &
                                          plot_base_name_in, plot_base_name_len, chk_int_in, &
@@ -699,6 +702,7 @@ contains
 
     integer,                intent(inout) :: membrane_cell_in
     integer,                intent(inout) :: cross_cell_in
+    integer,                intent(inout) :: do_slab_sf_in
     double precision,       intent(inout) :: transmission_in(MAX_SPECIES)
 
     double precision,       intent(inout) :: qval_in(MAX_SPECIES)
@@ -862,6 +866,7 @@ contains
     nprimvars_in = nprimvars
     membrane_cell_in = membrane_cell
     cross_cell_in = cross_cell
+    do_slab_sf_in = do_slab_sf
     transmission_in = transmission
 
     qval_in = qval

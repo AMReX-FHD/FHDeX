@@ -19,7 +19,7 @@ extern "C"
                                      int* max_grid_size, int* max_grid_size_structfact,
                                      int* max_particle_tile_size,amrex::Real* cell_depth, int* ngc,
                                      int* nvars, int* nprimvars,
-                                     int* membrane_cell, int* cross_cell, amrex::Real* transmission,
+                                     int* membrane_cell, int* cross_cell, int* do_slab_sf, amrex::Real* transmission,
                                      amrex::Real* qval, int* pkernel_fluid, int* pkernel_es,
                                      amrex::Real* fixed_dt,
                                      amrex::Real* cfl, amrex::Real* rfd_delta, int* max_step, int* plot_int, int* plot_stag,

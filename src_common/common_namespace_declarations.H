@@ -21,6 +21,7 @@ AMREX_GPU_MANAGED int      common::nprimvars;
 
 AMREX_GPU_MANAGED int      common::membrane_cell;
 AMREX_GPU_MANAGED int      common::cross_cell;
+AMREX_GPU_MANAGED int      common::do_slab_sf;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::transmission;
 
 AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_SPECIES> common::pkernel_fluid; // GALEN - FLUID KERNEL

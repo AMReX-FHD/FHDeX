@@ -348,6 +348,173 @@ void ComputeVerticalAverage(const MultiFab& mf, MultiFab& mf_avg,
 
 }
 
+void ComputeVerticalAverageSlab(const MultiFab& mf, MultiFab& mf_avg,
+			    const Geometry& geom, const int dir,
+			    const int incomp, const int ncomp, const int slablo, const int slabhi)
+{
+    BL_PROFILE_VAR("ComputVerticalAverageSlab()",ComputeVerticalAverageSlab);
+  
+    bool write_data = false;
+    std::string plotname;
+
+    MultiFab mf_pencil;
+
+    BoxArray ba_in = mf.boxArray();
+    BoxArray ba_pencil;
+    BoxArray ba_flat;
+
+    int nbox = ba_in.size();
+    Box domain(geom.Domain());
+    const DistributionMapping& dmap = mf.DistributionMap();
+
+    Vector<int> max_grid_size_pencil(AMREX_SPACEDIM);
+    Vector<int> max_grid_size_flat(AMREX_SPACEDIM);
+
+    int nx[3], nbx[3];
+    int mx[2], mbx[2];
+
+    int nxprod, indlo, indhi, a, b, c;
+
+    // We assume that all grids have the same size hence
+    // we have the same nx,ny,nz on all ranks
+    for (int d=0; d<AMREX_SPACEDIM; d++) {
+        nx[d]  = ba_in[0].size()[d];
+        nbx[d] = domain.length(d) / nx[d];
+    }
+    if (nbx[0]*nbx[1]*nbx[2] != ba_in.size())
+        amrex::Error("ALL GRIDS DO NOT HAVE SAME SIZE");
+
+#if (AMREX_SPACEDIM == 2)
+
+    Abort("Fix ComputeAverages for 2D");
+
+    if (dir == 0) {
+        indlo = 1;
+    } else if (dir == 1) {
+        indlo = 0;
+    } else {
+        Abort("ComputeVerticalAverage: invalid dir");
+    }
+#elif (AMREX_SPACEDIM == 3)
+    if (dir == 0) {
+        indlo = 1;
+        indhi = 2;
+    } else if (dir == 1) {
+        indlo = 0;
+        indhi = 2;
+    } else if (dir == 2) {
+        indlo = 0;
+        indhi = 1;
+    } else {
+        Abort("ComputeVerticalAverage: invalid dir");
+    }
+#endif
+
+    IntVect dom_lo(domain.loVect());
+    IntVect dom_hi(domain.hiVect());
+    dom_hi[dir] = 0;
+    Box domain_flat(dom_lo, dom_hi);
+
+    mx[0] = max_grid_projection[0];
+    mx[1] = max_grid_projection[1];
+
+    mbx[0] = domain.length(indlo)/mx[0];
+    mbx[1] = domain.length(indhi)/mx[1];
+
+    Print() << "2D redist: " << mbx[0] << "x" << mbx[1] << ", grids: " << mx[0]
+            << "x" << mx[1] << std::endl;
+
+    // Print() << "HACK: dmap = " << dmap << std::endl;
+
+    max_grid_size_pencil[indlo] = mx[0];
+    max_grid_size_pencil[indhi] = mx[1];
+    max_grid_size_pencil[dir]   = domain.length(dir);
+    ba_pencil.define(domain);
+    ba_pencil.maxSize(IntVect(max_grid_size_pencil));
+    DistributionMapping dmap_pencil(ba_pencil);
+    mf_pencil.define(ba_pencil,dmap_pencil,ncomp,0);
+
+    max_grid_size_flat      = max_grid_size_pencil;
+    max_grid_size_flat[dir] = 1;
+    ba_flat.define(domain_flat);
+    ba_flat.maxSize(IntVect(max_grid_size_flat));
+    mf_avg.define(ba_flat,dmap_pencil,ncomp,0);
+    mf_avg.setVal(0.);
+
+    // copy/redistrubute to pencils
+
+    mf_pencil.ParallelCopy(mf, incomp, 0, ncomp);
+
+    if (write_data) {
+        plotname = "mf_pencil";
+        VisMF::Write(mf_pencil,plotname);
+    }
+
+    int outcomp = 0;
+    int inputcomp = 0;
+
+    Real ninv = 1./(slabhi-slablo+1);
+    
+    for ( MFIter mfi(mf_pencil); mfi.isValid(); ++mfi ) {
+        const Box& bx = mfi.validbox();
+
+        const auto lo = amrex::lbound(bx);
+        const auto hi = amrex::ubound(bx);
+
+        const Array4<Real> meanfab = mf_avg.array(mfi);
+        const Array4<Real> inputfab = mf_pencil.array(mfi);
+
+        if (dir == 0) {
+        
+            for (auto n=0; n<ncomp; ++n) {
+            for (auto k = lo.z; k <= hi.z; ++k) {
+            for (auto j = lo.y; j <= hi.y; ++j) {
+            for (auto i = lo.x; i <= hi.x; ++i) {
+                if ((i >= slablo) and (i <= slabhi)) {
+                    meanfab(0,j,k,outcomp+n) = meanfab(0,j,k,outcomp+n) + ninv*inputfab(i,j,k,inputcomp+n);
+                }
+            }
+            }
+            }
+            }
+            
+        } else if (dir == 1) {
+        
+            for (auto n=0; n<ncomp; ++n) {
+            for (auto k = lo.z; k <= hi.z; ++k) {
+            for (auto j = lo.y; j <= hi.y; ++j) {
+            for (auto i = lo.x; i <= hi.x; ++i) {
+                if ((j >= slablo) and (j <= slabhi)) {
+                    meanfab(i,0,k,outcomp+n) = meanfab(i,0,k,outcomp+n) + ninv*inputfab(i,j,k,inputcomp+n);
+                }
+            }
+            }
+            }
+            }
+
+        } else if (dir == 2) {
+        
+            for (auto n=0; n<ncomp; ++n) {
+            for (auto k = lo.z; k <= hi.z; ++k) {
+            for (auto j = lo.y; j <= hi.y; ++j) {
+            for (auto i = lo.x; i <= hi.x; ++i) {
+                if ((k >= slablo) and (k <= slabhi)) {
+                  meanfab(i,j,0,outcomp+n) = meanfab(i,j,0,outcomp+n) + ninv*inputfab(i,j,k,inputcomp+n);
+                }
+            }
+            }
+            }
+            }
+        }
+    }
+
+    if (write_data) {
+        plotname = "mf_avg_slab";
+        VisMF::Write(mf_avg,plotname);
+    }
+
+}
+
 void ExtractSlice(const MultiFab& mf, MultiFab& mf_slice,
                   const Geometry& geom, const int dir,
                   const int incomp, const int ncomp)

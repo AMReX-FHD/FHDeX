@@ -30,6 +30,7 @@ namespace common {
 
     extern AMREX_GPU_MANAGED int      membrane_cell; //cell to locate membrane
     extern AMREX_GPU_MANAGED int      cross_cell;    //cell to compute spatial correlation
+    extern AMREX_GPU_MANAGED int      do_slab_sf;    //whether to compute SF for two slabs separated by cross_cell
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> transmission;
 
     extern amrex::Vector<amrex::Real> qval;

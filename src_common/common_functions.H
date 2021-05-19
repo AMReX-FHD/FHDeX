@@ -117,6 +117,9 @@ void WriteHorizontalAverageToMF(const MultiFab& mf_in, MultiFab& mf_out,
 void ComputeVerticalAverage(const MultiFab & mf, MultiFab & mf_avg, const Geometry & geom,
                             const int dir, const int incomp, const int ncomp);
 
+void ComputeVerticalAverageSlab(const MultiFab & mf, MultiFab & mf_avg, const Geometry & geom,
+                                const int dir, const int incomp, const int ncomp, const int slablo, const int slabhi);
+
 void ExtractSlice(const MultiFab & mf, MultiFab & mf_slice, const Geometry & geom,
                   const int dir, const int incomp, const int ncomp);
 

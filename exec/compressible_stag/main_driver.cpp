@@ -145,6 +145,9 @@ void main_driver(const char* argv)
     if ((plot_cross) and ((cross_cell <= 0) or (cross_cell >= n_cells[0]-1))) {
         Abort("Cross cell needs to be within the domain: 0 < cross_cell < n_cells[0] - 1");
     }
+    if ((do_slab_sf) and ((cross_cell <= 0) or (cross_cell >= n_cells[0]-1))) {
+        Abort("Slab structure factor needs a cross cell within the domain: 0 < cross_cell < n_cells[0] - 1");
+    }
 
     // contains yz-averaged running & instantaneous averages of conserved variables at cross cell + four primitive variables [vx, vy, vz, T]: 2*nvars + 2*4
     Vector<Real> yzAvMeans_cross(2*nvars+8, 0.0); 
@@ -201,8 +204,13 @@ void main_driver(const char* argv)
 
     StructFact structFactPrim;
     StructFact structFactCons;
+
     StructFact structFactPrimVerticalAverage;
     StructFact structFactConsVerticalAverage;
+    StructFact structFactPrimVerticalAverage0;
+    StructFact structFactPrimVerticalAverage1;
+    StructFact structFactConsVerticalAverage0;
+    StructFact structFactConsVerticalAverage1;
     
     Geometry geom_flat;
 
@@ -457,8 +465,17 @@ void main_driver(const char* argv)
                 geom_flat.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
             }
 
-            structFactPrimVerticalAverage.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim);
-            structFactConsVerticalAverage.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons);
+            if (do_slab_sf == 0) {
+                structFactPrimVerticalAverage.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim);
+                structFactConsVerticalAverage.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons);
+            }
+            else {
+                structFactPrimVerticalAverage0.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim);
+                structFactPrimVerticalAverage1.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim);
+                structFactConsVerticalAverage0.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons);
+                structFactConsVerticalAverage1.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons);
+            }
+
             //structFactPrimVerticalAverage.~StructFact(); // destruct
             //new(&structFactPrimVerticalAverage) StructFact(ba_flat,dmap_flat,prim_var_names,var_scaling); // reconstruct
     
@@ -647,8 +664,16 @@ void main_driver(const char* argv)
                 geom_flat.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
             }
 
-            structFactPrimVerticalAverage.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim);
-            structFactConsVerticalAverage.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons);
+            if (do_slab_sf == 0) {
+                structFactPrimVerticalAverage.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim);
+                structFactConsVerticalAverage.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons);
+            }
+            else {
+                structFactPrimVerticalAverage0.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim);
+                structFactPrimVerticalAverage1.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim);
+                structFactConsVerticalAverage0.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons);
+                structFactConsVerticalAverage1.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons);
+            }
             //structFactPrimVerticalAverage.~StructFact(); // destruct
             //new(&structFactPrimVerticalAverage) StructFact(ba_flat,dmap_flat,prim_var_names,var_scaling); // reconstruct
     
@@ -898,14 +923,34 @@ void main_driver(const char* argv)
             structFactCons.FortStructure(structFactConsMF,geom);
 
             if(project_dir >= 0) {
-                MultiFab primVertAvg;  // flattened multifab defined below
-                MultiFab consVertAvg;  // flattened multifab defined below
-                ComputeVerticalAverage(structFactPrimMF, primVertAvg, geom, project_dir, 0, structVarsPrim);
-                ComputeVerticalAverage(structFactConsMF, consVertAvg, geom, project_dir, 0, structVarsCons);
-                MultiFab primVertAvgRot = RotateFlattenedMF(primVertAvg);
-                MultiFab consVertAvgRot = RotateFlattenedMF(consVertAvg);
-                structFactPrimVerticalAverage.FortStructure(primVertAvg,geom_flat);
-                structFactConsVerticalAverage.FortStructure(consVertAvg,geom_flat);
+                if (do_slab_sf == 0) {
+                    MultiFab primVertAvg;  // flattened multifab defined below
+                    MultiFab consVertAvg;  // flattened multifab defined below
+                    ComputeVerticalAverage(structFactPrimMF, primVertAvg, geom, project_dir, 0, structVarsPrim);
+                    ComputeVerticalAverage(structFactConsMF, consVertAvg, geom, project_dir, 0, structVarsCons);
+                    MultiFab primVertAvgRot = RotateFlattenedMF(primVertAvg);
+                    MultiFab consVertAvgRot = RotateFlattenedMF(consVertAvg);
+                    structFactPrimVerticalAverage.FortStructure(primVertAvg,geom_flat);
+                    structFactConsVerticalAverage.FortStructure(consVertAvg,geom_flat);
+                }
+                else {
+                    MultiFab primVertAvg0;  // flattened multifab defined below
+                    MultiFab primVertAvg1;  // flattened multifab defined below
+                    MultiFab consVertAvg0;  // flattened multifab defined below
+                    MultiFab consVertAvg1;  // flattened multifab defined below
+                    ComputeVerticalAverageSlab(structFactPrimMF, primVertAvg0, geom, project_dir, 0, structVarsPrim, 0, cross_cell-1);
+                    ComputeVerticalAverageSlab(structFactPrimMF, primVertAvg1, geom, project_dir, 0, structVarsPrim, cross_cell, n_cells[project_dir]-1);
+                    ComputeVerticalAverageSlab(structFactConsMF, consVertAvg0, geom, project_dir, 0, structVarsCons, 0, cross_cell-1);
+                    ComputeVerticalAverageSlab(structFactConsMF, consVertAvg1, geom, project_dir, 0, structVarsCons, cross_cell, n_cells[project_dir]-1);
+                    MultiFab primVertAvgRot0 = RotateFlattenedMF(primVertAvg0);
+                    MultiFab primVertAvgRot1 = RotateFlattenedMF(primVertAvg1);
+                    MultiFab consVertAvgRot0 = RotateFlattenedMF(consVertAvg0);
+                    MultiFab consVertAvgRot1 = RotateFlattenedMF(consVertAvg1);
+                    structFactPrimVerticalAverage0.FortStructure(primVertAvg0,geom_flat);
+                    structFactPrimVerticalAverage1.FortStructure(primVertAvg1,geom_flat);
+                    structFactConsVerticalAverage0.FortStructure(consVertAvg0,geom_flat);
+                    structFactConsVerticalAverage1.FortStructure(consVertAvg1,geom_flat);
+                }
             }
         }
 
@@ -917,8 +962,16 @@ void main_driver(const char* argv)
             structFactPrim.WritePlotFile(step,time,geom,"plt_SF_prim",0);
             structFactCons.WritePlotFile(step,time,geom,"plt_SF_cons",0);
             if(project_dir >= 0) {
-                structFactPrimVerticalAverage.WritePlotFile(step,time,geom_flat,"plt_SF_prim_VerticalAverage",0);
-                structFactConsVerticalAverage.WritePlotFile(step,time,geom_flat,"plt_SF_cons_VerticalAverage",0);
+                if (do_slab_sf == 0) {
+                    structFactPrimVerticalAverage.WritePlotFile(step,time,geom_flat,"plt_SF_prim_VerticalAverage",0);
+                    structFactConsVerticalAverage.WritePlotFile(step,time,geom_flat,"plt_SF_cons_VerticalAverage",0);
+                }
+                else {
+                    structFactPrimVerticalAverage0.WritePlotFile(step,time,geom_flat,"plt_SF_prim_VerticalAverageSlab0",0);
+                    structFactPrimVerticalAverage1.WritePlotFile(step,time,geom_flat,"plt_SF_prim_VerticalAverageSlab1",0);
+                    structFactConsVerticalAverage0.WritePlotFile(step,time,geom_flat,"plt_SF_cons_VerticalAverageSlab0",0);
+                    structFactConsVerticalAverage1.WritePlotFile(step,time,geom_flat,"plt_SF_cons_VerticalAverageSlab1",0);
+                }
             }
         }
         

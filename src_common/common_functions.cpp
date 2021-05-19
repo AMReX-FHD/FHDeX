@@ -85,7 +85,7 @@ void InitializeCommonNamespace() {
                                 max_grid_size.dataPtr(), max_grid_size_structfact.dataPtr(),
                                 max_particle_tile_size.dataPtr(), &cell_depth, ngc.getVect(),
                                 &nvars, &nprimvars,
-                                &membrane_cell, &cross_cell, transmission.data(),
+                                &membrane_cell, &cross_cell, &do_slab_sf, transmission.data(),
                                 qval.dataPtr(), pkernel_fluid.begin(), pkernel_es.begin(),
                                 &fixed_dt, &cfl, &rfd_delta, &max_step,
                                 &plot_int, &plot_stag, temp_plot_base_name, 128,
