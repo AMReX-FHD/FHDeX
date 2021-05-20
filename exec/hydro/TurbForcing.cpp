@@ -23,7 +23,7 @@ void TurbForcing::define(BoxArray ba_in, DistributionMapping dmap_in,
     }
 }
 
-void TurbForcing::Initialize(Geometry geom_in) {
+void TurbForcing::Initialize(const Geometry& geom_in) {
 
     GpuArray<int,22> kx{1, 0, 0, 1, 1, 0, 1, 2, 0, 0, 2, 2, 1, 0, 1, 0, 2, 1, 1, 2, 2, 0};
     GpuArray<int,22> ky{0, 1, 0, 1, 0, 1, 1, 0, 2, 0, 1, 0, 2, 2, 0, 1, 1, 2, 1, 2, 0, 2};

@@ -158,15 +158,16 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
 
     Print() << "Loaded " << pinnedParticles << " pinned particles." << std::endl;
 
-    loadPinMatrix(pinnedParticles, "matrixInv.dat");
+    if(pinnedParticles > 0)
+    {
+        loadPinMatrix(pinnedParticles, "matrixInv.dat");
+    }
 
     totalPinnedMarkers = pinnedParticles;
 
     Redistribute();
-    UpdateCellVectors();
-    ReBin();
-    clearNeighbors();
-    fillNeighbors();
+    //clearNeighbors();
+    //fillNeighbors();
 
 }
 
@@ -219,10 +220,12 @@ void FhdParticleContainer::ReInitParticles()
 
     totalPinnedMarkers = pinnedParticles;
 
+    if(pinnedParticles > 0)
+    {
+        loadPinMatrix(pinnedParticles, "matrixInv.dat");
+    }
+
     Redistribute();
-    UpdateCellVectors();
-    ReBin();
-    clearNeighbors();
-    fillNeighbors();
+    doRedist = 1;
 
 }

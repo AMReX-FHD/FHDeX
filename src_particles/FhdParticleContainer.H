@@ -215,6 +215,8 @@ public:
     //void computeForcesNLGPU(const MultiFab& charge, const MultiFab& coords, const Real* dx);
     void computeForcesNLGPU(const MultiFab& coords, const Real* dx);
 
+    void computeForcesCoulombGPU(long totalParticles);
+
     void MoveParticlesDSMC(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount,Real time, int* flux);
 
     void MoveIonsCPP(const Real dt, const Real* dxFluid, const Real* dxE, const Geometry geomF,
@@ -268,6 +270,10 @@ public:
     void EvaluateStats(MultiFab& particleInstant,
                        MultiFab& particleMeans, species particleInfo, const Real delt, int steps);
 
+
+    void invertMatrix();
+
+
     /****************************************************************************
      *                                                                          *
      * Access marker (amrex particle) data                                      *
@@ -292,6 +298,8 @@ public:
     static bool sort_neighbor_list;
 
     int totalBins;
+
+    int doRedist;
 
     Real *nearestN;
 
@@ -332,10 +340,6 @@ public:
     Real threepmRange = 5; 
 
   //protected:
-
-    void UpdateFortranStructures();
-
-    void UpdateCellVectors();
 
     // used to store vectors of particle indices on a cell-by-cell basis
 //    std::map<int, amrex::BaseFab<std::vector<int> > > m_cell_vectors;

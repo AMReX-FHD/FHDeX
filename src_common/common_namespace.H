@@ -35,6 +35,8 @@ namespace common {
     extern amrex::Vector<amrex::Real> qval;
     extern AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_SPECIES> pkernel_fluid; // GALEN - FLUID KERNEL
     extern AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_SPECIES> pkernel_es;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_SPECIES> eskernel_fluid;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> eskernel_beta;
 
     // Time-step control
     extern amrex::Real                fixed_dt;
@@ -200,6 +202,7 @@ namespace common {
 
     // projection 
     extern int                        project_dir;
+    extern int                        slicepoint;
     extern amrex::Vector<int>         max_grid_projection;
 
   /*
@@ -271,6 +274,8 @@ namespace common {
     extern amrex::Vector<amrex::Real> ephase;
 
     extern int                        plot_ascii;
+    extern int                        plot_means;
+    extern int                        plot_vars;
     extern int                        particle_motion;
     
     // parameters neccesary for chemical reactions

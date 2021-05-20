@@ -3,7 +3,6 @@
 #include "compressible_functions_stag.H"
 
 #include "common_namespace_declarations.H"
-#include "compressible_namespace_declarations.H"
 
 #include "rng_functions.H"
 
@@ -24,24 +23,13 @@ void main_driver(const char* argv)
     // read in parameters from inputs file into F90 modules
     // we use "+1" because of amrex_string_c_to_f expects a null char termination
     read_common_namelist(inputs_file.c_str(),inputs_file.size()+1);
-    read_compressible_namelist(inputs_file.c_str(),inputs_file.size()+1);
     
     // copy contents of F90 modules to C++ namespaces
     InitializeCommonNamespace();
-    InitializeCompressibleNamespace();
 
     // if gas heat capacities in the namelist are negative, calculate them using using dofs.
     // This will only update the Fortran values.
-    get_hc_gas();
-    // now update C++ values
-    for (int i=0; i<nspecies; ++i) {
-        if (hcv[i] < 0.) {
-            hcv[i] = 0.5*dof[i]*Runiv/molmass[i];
-        }
-        if (hcp[i] < 0.) {
-            hcp[i] = 0.5*(2.+dof[i])*Runiv/molmass[i];
-        }
-    }
+    GetHcGas();
   
     // check bc_vel_lo/hi to determine the periodicity
     Vector<int> is_periodic(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
@@ -59,31 +47,12 @@ void main_driver(const char* argv)
 
     // for each direction, if bc_vel_lo/hi is periodic, then
     // set the corresponding bc_mass_lo/hi and bc_therm_lo/hi to periodic
-    for (int i=0; i<AMREX_SPACEDIM; ++i) {
-        if (bc_vel_lo[i] == -1) {
-            bc_mass_lo[i] = -1;
-            bc_mass_hi[i] = -1;
-            bc_therm_lo[i] = -1;
-            bc_therm_hi[i] = -1;
-        }
-    }
-    setup_bc(); // do the same in the fortran namelist
+    SetupBC();
 
     // if multispecies
     if (algorithm_type == 2) {
         // compute wall concentrations if BCs call for it
-        setup_cwall(bc_Yk_x_lo.data(),
-                    bc_Yk_x_hi.data(),
-                    bc_Yk_y_lo.data(),
-                    bc_Yk_y_hi.data(),
-                    bc_Yk_z_lo.data(),
-                    bc_Yk_z_hi.data(),
-                    bc_Xk_x_lo.data(),
-                    bc_Xk_x_hi.data(),
-                    bc_Xk_y_lo.data(),
-                    bc_Xk_y_hi.data(),
-                    bc_Xk_z_lo.data(),
-                    bc_Xk_z_hi.data());
+        SetupCWall();
     }
 
     // make BoxArray and Geometry
@@ -474,11 +443,11 @@ void main_driver(const char* argv)
     }
 
     // compute internal energy
-    double massvec[nspecies];
+    GpuArray<Real,MAX_SPECIES> massvec;
     for(int i=0;i<nspecies;i++) {
         massvec[i] = rhobar[i];
     }
-    get_energy(&intEnergy, massvec, &T0);
+    GetEnergy(intEnergy, massvec, T0);
 
     cu.setVal(0.0,0,nvars,ngc);
     cu.setVal(rho0,0,1,ngc);           // density

@@ -87,6 +87,7 @@ void InitializeCommonNamespace() {
                                 &nvars, &nprimvars,
                                 &membrane_cell, &cross_cell, &transmission,
                                 qval.dataPtr(), pkernel_fluid.begin(), pkernel_es.begin(),
+                                eskernel_fluid.begin(), eskernel_beta.begin(),
                                 &fixed_dt, &cfl, &rfd_delta, &max_step,
                                 &plot_int, &plot_stag, temp_plot_base_name, 128,
                                 &chk_int, temp_chk_base_name, 128,
@@ -120,7 +121,7 @@ void InitializeCommonNamespace() {
                                 potential_lo.data(), potential_hi.data(),
                                 &struct_fact_int, &radialdist_int, &cartdist_int,
                                 &n_steps_skip, &binSize, &searchDist,
-				&project_dir, max_grid_projection.dataPtr(),
+				&project_dir, &slicepoint, max_grid_projection.dataPtr(),
                                 &histogram_unit,
                                 density_weights.dataPtr(), shift_cc_to_boundary.dataPtr(),
                                 &particle_placement, particle_count.dataPtr(),
@@ -135,7 +136,8 @@ void InitializeCommonNamespace() {
                                 diff.dataPtr(), &all_dry, &fluid_tog, &es_tog, &drag_tog, &move_tog, &rfd_tog,
                                 &dry_move_tog, &sr_tog, &graphene_tog, &crange, &thermostat_tog, &zero_net_force,
                                 &images, eamp.dataPtr(), efreq.dataPtr(), ephase.dataPtr(),
-                                &plot_ascii, &solve_chem, &diffcoeff, &scaling_factor,
+                                &plot_ascii, &plot_means, &plot_vars,
+                                &solve_chem, &diffcoeff, &scaling_factor,
                                 &source_strength, &regrid_int, &do_reflux, &particle_motion,
                                 &turb_a, &turb_b, &turbForcing);
 
