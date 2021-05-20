@@ -242,6 +242,7 @@ void ReadCheckPoint(int& step,
                      amrex::Real& time,
                      int& statsCount,
                      amrex::Geometry geom,
+                     const amrex::Box& domain,
                      amrex::MultiFab& cu,
                      amrex::MultiFab& cuMeans,
                      amrex::MultiFab& cuVars,
@@ -271,6 +272,15 @@ void ReadCheckPoint(int& step,
     std::string line, word;
 
     int ncross = 16+nspecies;
+    
+    // read in old boxarray, and create old distribution map (this is to read in MFabs)
+    BoxArray ba_old;
+    DistributionMapping dmap_old;
+
+    // initialize new boxarray
+    ba.define(domain);
+    ba.maxSize(IntVect(max_grid_size));
+    dmap.define(ba, ParallelDescriptor::NProcs());
 
     // Header
     {
@@ -297,7 +307,7 @@ void ReadCheckPoint(int& step,
         GotoNextLine(is);
 
         // read in BoxArray (fluid) from Header
-        ba.readFrom(is);
+        ba_old.readFrom(is);
         GotoNextLine(is);
 
         // Read all the vectors associated with cross averages from the Header file
@@ -312,9 +322,10 @@ void ReadCheckPoint(int& step,
             }
         }
 
-        // create a distribution mapping
-        dmap.define(ba, ParallelDescriptor::NProcs());
-        
+        // create old distribution mapping
+        dmap_old.define(ba_old, ParallelDescriptor::NProcs());
+
+        // Define these multifabs using new ba and dmap
         // cu, cuMeans, cuVars
         cu.define(ba,dmap,nvars,ngc);
         cuMeans.define(ba,dmap,nvars,ngc);
@@ -350,88 +361,83 @@ void ReadCheckPoint(int& step,
 
     // don't read in all the rng states at once (overload filesystem)
     // one at a time write out the rng states to different files, one for each MPI rank
-    for (int rank=0; rank<n_ranks; ++rank) {
+    // Need to add guard for restarting with more MPI ranks than the previous checkpointing run
+    if (seed == -1) {
+        for (int rank=0; rank<n_ranks; ++rank) {
 
-        if (comm_rank == rank) {
+            if (comm_rank == rank) {
     
-            // create filename, e.g. chk0000005/rng0000002
-            std::string FileBase(checkpointname + "/rng");
-            std::string File = amrex::Concatenate(FileBase,comm_rank,7);
+                // create filename, e.g. chk0000005/rng0000002
+                std::string FileBase(checkpointname + "/rng");
+                std::string File = amrex::Concatenate(FileBase,comm_rank,7);
 
-            // read in contents
-            Vector<char> fileCharPtr;
-            ReadFile(File, fileCharPtr);
-            std::string fileCharPtrString(fileCharPtr.dataPtr());
-            std::istringstream is(fileCharPtrString, std::istringstream::in);
+                // read in contents
+                Vector<char> fileCharPtr;
+                ReadFile(File, fileCharPtr);
+                std::string fileCharPtrString(fileCharPtr.dataPtr());
+                std::istringstream is(fileCharPtrString, std::istringstream::in);
 
-            // restore random state
-            amrex::RestoreRandomState(is, 1, 0);
+                // restore random state
+                amrex::RestoreRandomState(is, 1, 0);
+
+            }
+
+            ParallelDescriptor::Barrier();
 
         }
-
-        ParallelDescriptor::Barrier();
-
     }
 
     // read in the MultiFab data
     // cu, cuMeans, cuVars
-    VisMF::Read(cu,
-                amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cu"));
-    VisMF::Read(cuMeans,
-                amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cuMeans"));
-    VisMF::Read(cuVars,
-                amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cuVars"));
+    Read_Copy_MF_Checkpoint(cu,"cu",checkpointname,ba_old,dmap_old,nvars,1);
+    cu.FillBoundary(geom.periodicity());
+    Read_Copy_MF_Checkpoint(cuMeans,"cuMeans",checkpointname,ba_old,dmap_old,nvars,1);
+    cuMeans.FillBoundary(geom.periodicity());
+    Read_Copy_MF_Checkpoint(cuVars,"cuVars",checkpointname,ba_old,dmap_old,nvars,1);
+    cuVars.FillBoundary(geom.periodicity());
 
     // prim, primMeans, primVars
-    VisMF::Read(prim,
-                amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "prim"));
-    VisMF::Read(primMeans,
-                amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "primMeans"));
-    VisMF::Read(primVars,
-                amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "primVars"));
-
-    // velocity and momentum (instantaneous, means, variances)
-    VisMF::Read(vel[0],
-                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "velx"));
-    VisMF::Read(vel[1],
-                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "vely"));
-    VisMF::Read(vel[2],
-                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "velz"));
-    VisMF::Read(velMeans[0],
-                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "velmeanx"));
-    VisMF::Read(velMeans[1],
-                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "velmeany"));
-    VisMF::Read(velMeans[2],
-                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "velmeanz"));
-    VisMF::Read(velVars[0],
-                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "velvarx"));
-    VisMF::Read(velVars[1],
-                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "velvary"));
-    VisMF::Read(velVars[2],
-                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "velvarz"));
-
-    VisMF::Read(cumom[0],
-                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cumomx"));
-    VisMF::Read(cumom[1],
-                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cumomy"));
-    VisMF::Read(cumom[2],
-                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cumomz"));
-    VisMF::Read(cumomMeans[0],
-                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cumommeanx"));
-    VisMF::Read(cumomMeans[1],
-                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cumommeany"));
-    VisMF::Read(cumomMeans[2],
-                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cumommeanz"));
-    VisMF::Read(cumomVars[0],
-                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cumomvarx"));
-    VisMF::Read(cumomVars[1],
-                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cumomvary"));
-    VisMF::Read(cumomVars[2],
-                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cumomvarz"));
+    Read_Copy_MF_Checkpoint(prim,"prim",checkpointname,ba_old,dmap_old,nprimvars,1);
+    cu.FillBoundary(geom.periodicity());
+    Read_Copy_MF_Checkpoint(primMeans,"primMeans",checkpointname,ba_old,dmap_old,nprimvars,1);
+    primMeans.FillBoundary(geom.periodicity());
+    Read_Copy_MF_Checkpoint(primVars,"primVars",checkpointname,ba_old,dmap_old,nprimvars+5,1);
+    primVars.FillBoundary(geom.periodicity());
 
     // coVars
-    VisMF::Read(coVars,
-                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "coVars"));
+    Read_Copy_MF_Checkpoint(coVars,"coVars",checkpointname,ba_old,dmap_old,21,0);
+
+    // velocity (instantaneous, means, variances)
+    Read_Copy_MF_Checkpoint(vel[0],"velx",checkpointname,ba_old,dmap_old,1,1,0);
+    vel[0].FillBoundary(geom.periodicity());
+    Read_Copy_MF_Checkpoint(vel[1],"vely",checkpointname,ba_old,dmap_old,1,1,1);
+    vel[1].FillBoundary(geom.periodicity());
+    Read_Copy_MF_Checkpoint(vel[2],"velz",checkpointname,ba_old,dmap_old,1,1,2);
+    vel[2].FillBoundary(geom.periodicity());
+
+    Read_Copy_MF_Checkpoint(velMeans[0],"velmeanx",checkpointname,ba_old,dmap_old,1,0,0);
+    Read_Copy_MF_Checkpoint(velMeans[1],"velmeany",checkpointname,ba_old,dmap_old,1,0,1);
+    Read_Copy_MF_Checkpoint(velMeans[2],"velmeanz",checkpointname,ba_old,dmap_old,1,0,2);
+    
+    Read_Copy_MF_Checkpoint(velVars[0],"velvarx",checkpointname,ba_old,dmap_old,1,0,0);
+    Read_Copy_MF_Checkpoint(velVars[1],"velvary",checkpointname,ba_old,dmap_old,1,0,1);
+    Read_Copy_MF_Checkpoint(velVars[2],"velvarz",checkpointname,ba_old,dmap_old,1,0,2);
+
+    // momentum (instantaneous, means, variances)
+    Read_Copy_MF_Checkpoint(cumom[0],"cumomx",checkpointname,ba_old,dmap_old,1,1,0);
+    cumom[0].FillBoundary(geom.periodicity());
+    Read_Copy_MF_Checkpoint(cumom[1],"cumomy",checkpointname,ba_old,dmap_old,1,1,1);
+    cumom[1].FillBoundary(geom.periodicity());
+    Read_Copy_MF_Checkpoint(cumom[2],"cumomz",checkpointname,ba_old,dmap_old,1,1,2);
+    cumom[2].FillBoundary(geom.periodicity());
+
+    Read_Copy_MF_Checkpoint(cumomMeans[0],"cumommeanx",checkpointname,ba_old,dmap_old,1,0,0);
+    Read_Copy_MF_Checkpoint(cumomMeans[1],"cumommeany",checkpointname,ba_old,dmap_old,1,0,1);
+    Read_Copy_MF_Checkpoint(cumomMeans[2],"cumommeanz",checkpointname,ba_old,dmap_old,1,0,2);
+    
+    Read_Copy_MF_Checkpoint(cumomVars[0],"cumomvarx",checkpointname,ba_old,dmap_old,1,0,0);
+    Read_Copy_MF_Checkpoint(cumomVars[1],"cumomvary",checkpointname,ba_old,dmap_old,1,0,1);
+    Read_Copy_MF_Checkpoint(cumomVars[2],"cumomvarz",checkpointname,ba_old,dmap_old,1,0,2);
 
     // random number engines
     int digits = 7;
@@ -481,4 +487,41 @@ void ReadFile (const std::string& filename, Vector<char>& charBuf,
     iss.close();
 
     charBuf[fileLength] = '\0';
+}
+
+void Read_Copy_MF_Checkpoint(amrex::MultiFab& mf, std::string mf_name, const std::string& checkpointname, 
+                             BoxArray& ba_old, DistributionMapping& dmap_old,
+                             int NVARS, int ghost, int nodal_flag)
+{
+    // define temporary MF
+    MultiFab mf_temp;
+    if (nodal_flag < 0) {
+        if (ghost) {
+            mf_temp.define(ba_old,dmap_old,NVARS,ngc);
+        }
+        else {
+            mf_temp.define(ba_old,dmap_old,NVARS,0);
+        }
+
+    }
+    else {
+        if (ghost) {
+            mf_temp.define(convert(ba_old,nodal_flag_dir[nodal_flag]),dmap_old,NVARS,ngc);
+        }
+        else {
+            mf_temp.define(convert(ba_old,nodal_flag_dir[nodal_flag]),dmap_old,NVARS,0);
+        }
+
+    }
+    
+    // Read into temporary MF from file
+    VisMF::Read(mf_temp,amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", mf_name));
+
+    // Copy temporary MF into the new MF
+    if (ghost) {
+        mf.ParallelCopy(mf_temp, 0, 0, NVARS, ngc, ngc);
+    }
+    else {
+        mf.ParallelCopy(mf_temp, 0, 0, NVARS, 0, 0);
+    }
 }

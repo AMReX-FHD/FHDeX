@@ -155,6 +155,7 @@ void ReadCheckPoint(int& step,
                      amrex::Real& time,
                      int& statsCount,
                      amrex::Geometry geom,
+                     const amrex::Box& domain,
                      amrex::MultiFab& cu,
                      amrex::MultiFab& cuMeans,
                      amrex::MultiFab& cuVars,
@@ -173,6 +174,10 @@ void ReadCheckPoint(int& step,
 
 void ReadFile(const std::string& filename, Vector<char>& charBuf,
               bool bExitOnError=true);
+
+void Read_Copy_MF_Checkpoint(amrex::MultiFab& mf, std::string mf_name, const std::string& checkpointname, 
+                             BoxArray& ba_old, DistributionMapping& dmap_old,
+                             int NVARS, int NGC, int nodal_flag=-1);
 
 //void yzAverageStag(const MultiFab& consMean, 
 //                   const MultiFab& consVar, 

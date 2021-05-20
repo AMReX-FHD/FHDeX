@@ -332,7 +332,7 @@ void main_driver(const char* argv)
     /////////////////////////////////////////////
 
     if (restart > 0) {
-        ReadCheckPoint(step_start, time, statsCount, geom, cu, cuMeans, cuVars, prim,
+        ReadCheckPoint(step_start, time, statsCount, geom, domain, cu, cuMeans, cuVars, prim,
                        primMeans, primVars, cumom, cumomMeans, cumomVars, 
                        vel, velMeans, velVars, coVars, spatialCross,
                        ba, dmap);
