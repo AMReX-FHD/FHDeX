@@ -57,6 +57,4 @@ LIBRARIES += -L$(FFTW_DIR) -lfftw3_mpi -lfftw3
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.rules
 
-ifeq ($(findstring cgpu, $(HOST)), cgpu)
 CXXFLAGS += $(FFTW)
-endif

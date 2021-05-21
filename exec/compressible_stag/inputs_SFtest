@@ -20,8 +20,12 @@
 
   ! Controls for number of steps between actions
 
-  max_step = 5000
-  plot_int = 1000
+  max_step = 50
+  plot_int = 25
+  n_steps_skip = 10
+  struct_fact_int = 1
+  project_dir = 2
+  max_grid_projection = 32 32
 
   ! Multispecies toggle
   ! if algorithm_type = 1, single component
@@ -37,7 +41,7 @@
   ! Advection method
   ! if advection_type = 1, interpolate primitive quantities
   ! if advection_type = 2, interpolate conserved quantities
-  advection_type = 2
+  advection_type = 1
 
   ! Problem specification
   ! if prob_type = 1, constant species concentration
@@ -51,7 +55,6 @@
   T_init(1) = 300
   rho0 = 4.83e-4
 
-  
   ! Boundary conditions:
   ! NOTE: setting bc_vel to periodic sets all the other bc's to periodic)
   ! bc_vel:   -1 = periodic  
@@ -86,12 +89,6 @@
   dof =  3, 3, 3, 3
   hcv = -1 -1 -1 -1
   hcp = -1 -1 -1 -1
-
-  ! how many steps to skip before taking structure factor snapshots
-  n_steps_skip = 40000
-
-  ! how often to take structure factor snapshots
-  struct_fact_int = 1
 
 /
 

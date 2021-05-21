@@ -17,7 +17,7 @@ void RK3stepStag(MultiFab& cu,
                  std::array< MultiFab, 2 >& edgeflux_y,
                  std::array< MultiFab, 2 >& edgeflux_z,
                  std::array< MultiFab, AMREX_SPACEDIM>& cenflux,
-                 const amrex::Geometry geom, const amrex::Real dt)
+                 const amrex::Geometry geom, const amrex::Real dt, const int step)
 {
     BL_PROFILE_VAR("RK3stepStag()",RK3stepStag);
 
@@ -25,8 +25,8 @@ void RK3stepStag(MultiFab& cu,
     MultiFab cup2(cu.boxArray(),cu.DistributionMap(),nvars,ngc);
     cup.setVal(0.0,0,nvars,ngc);
     cup2.setVal(0.0,0,nvars,ngc);
-    cup.setVal(rho0,0,1,ngc);
-    cup2.setVal(rho0,0,1,ngc);
+    //cup.setVal(rho0,0,1,ngc);
+    //cup2.setVal(rho0,0,1,ngc);
 
     std::array< MultiFab, AMREX_SPACEDIM > cupmom;
     std::array< MultiFab, AMREX_SPACEDIM > cup2mom;
@@ -229,6 +229,9 @@ void RK3stepStag(MultiFab& cu,
         stochface, stochedge_x, stochedge_y, stochedge_z, stochcen, 
         geom, stoch_weights,dt);
 
+    // Set species flux to zero at the walls
+    BCWallSpeciesFluxStag(faceflux,geom);
+
     for (int d=0; d<AMREX_SPACEDIM; d++) {
         cenflux[d].FillBoundary(geom.periodicity());
         faceflux[d].FillBoundary(geom.periodicity());
@@ -319,8 +322,9 @@ void RK3stepStag(MultiFab& cu,
     for (int d=0; d<AMREX_SPACEDIM; d++) {
         cupmom[d].FillBoundary(geom.periodicity());
     }
-    cup.FillBoundary(geom.periodicity());
+    cup.FillBoundary(geom.periodicity()); // need correct periodicity for density to calculate velocities below
     conservedToPrimitiveStag(prim, vel, cup, cupmom);
+    cup.FillBoundary(geom.periodicity()); // cell-centered momentum is filled in the line above 
     for (int d=0; d<AMREX_SPACEDIM; d++) {
         vel[d].FillBoundary(geom.periodicity());
     }
@@ -383,6 +387,8 @@ void RK3stepStag(MultiFab& cu,
         stochface, stochedge_x, stochedge_y, stochedge_z, stochcen, 
         geom, stoch_weights,dt);
 
+    // Set species flux to zero at the walls
+    BCWallSpeciesFluxStag(faceflux,geom);
 
     for (int d=0; d<AMREX_SPACEDIM; d++) {
         cenflux[d].FillBoundary(geom.periodicity());
@@ -479,8 +485,9 @@ void RK3stepStag(MultiFab& cu,
     for (int d=0; d<AMREX_SPACEDIM; d++) {
         cup2mom[d].FillBoundary(geom.periodicity());
     }
-    cup2.FillBoundary(geom.periodicity());
+    cup2.FillBoundary(geom.periodicity()); // need correct periodicity for density to calculate velocities below
     conservedToPrimitiveStag(prim, vel, cup2, cup2mom);
+    cup2.FillBoundary(geom.periodicity()); // cell-centered momentum is filled in the line above 
     for (int d=0; d<AMREX_SPACEDIM; d++) {
         vel[d].FillBoundary(geom.periodicity());
     }
@@ -543,6 +550,8 @@ void RK3stepStag(MultiFab& cu,
         stochface, stochedge_x, stochedge_y, stochedge_z, stochcen, 
         geom, stoch_weights,dt);
 
+    // Set species flux to zero at the walls
+    BCWallSpeciesFluxStag(faceflux,geom);
 
     for (int d=0; d<AMREX_SPACEDIM; d++) {
         cenflux[d].FillBoundary(geom.periodicity());
@@ -635,11 +644,18 @@ void RK3stepStag(MultiFab& cu,
     for (int d=0; d<AMREX_SPACEDIM; d++) {
         cumom[d].FillBoundary(geom.periodicity());
     }
-    cu.FillBoundary(geom.periodicity());
+    cu.FillBoundary(geom.periodicity()); // need correct periodicity for density to calculate velocities below
     conservedToPrimitiveStag(prim, vel, cu, cumom);
+    cu.FillBoundary(geom.periodicity()); // cell-centered momentum is filled in the line above 
     for (int d=0; d<AMREX_SPACEDIM; d++) {
         vel[d].FillBoundary(geom.periodicity());
     }
     prim.FillBoundary(geom.periodicity());
+
+    if (membrane_cell >= 0) {
+        doMembraneStag(cu,cumom,prim,vel,faceflux,geom,dt);
+    }
+
     setBCStag(prim, cu, cumom, vel, geom);
+
 }

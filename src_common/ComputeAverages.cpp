@@ -188,8 +188,9 @@ void WriteHorizontalAverageToMF(const MultiFab& mf_in, MultiFab& mf_out,
 
 
 void ComputeVerticalAverage(const MultiFab& mf, MultiFab& mf_avg,
-			    const Geometry& geom, const int dir,
-			    const int incomp, const int ncomp)
+			    const Geometry& geom, const int& dir,
+			    const int& incomp, const int& ncomp,
+                            const int& slablo, const int& slabhi)
 {
     BL_PROFILE_VAR("ComputVerticalAverage()",ComputeVerticalAverage);
   
@@ -299,10 +300,12 @@ void ComputeVerticalAverage(const MultiFab& mf, MultiFab& mf_avg,
         VisMF::Write(mf_pencil,plotname);
     }
 
-    int outcomp = 0;
-    int inputcomp = 0;
-
-    Real ninv = 1./(domain.length(dir));
+    Real ninv;
+    if (slablo != -1 && slabhi != 99999) {
+        ninv = 1./(slabhi-slablo+1);
+    } else {
+        ninv = 1./(domain.length(dir));
+    }
     
     for ( MFIter mfi(mf_pencil); mfi.isValid(); ++mfi ) {
         const Box& bx = mfi.validbox();
@@ -315,11 +318,13 @@ void ComputeVerticalAverage(const MultiFab& mf, MultiFab& mf_avg,
 
         if (dir == 0) {
         
-            for (auto n=0; n<ncomp; ++n) {
+            for (auto n = incomp; n<incomp+ncomp-1; ++n) {
             for (auto k = lo.z; k <= hi.z; ++k) {
             for (auto j = lo.y; j <= hi.y; ++j) {
             for (auto i = lo.x; i <= hi.x; ++i) {
-                meanfab(0,j,k,outcomp+n) = meanfab(0,j,k,outcomp+n) + ninv*inputfab(i,j,k,inputcomp+n);
+                if ((i >= slablo) and (i <= slabhi)) {
+                    meanfab(0,j,k,n) = meanfab(0,j,k,n) + ninv*inputfab(i,j,k,n);
+                }
             }
             }
             }
@@ -327,11 +332,13 @@ void ComputeVerticalAverage(const MultiFab& mf, MultiFab& mf_avg,
             
         } else if (dir == 1) {
         
-            for (auto n=0; n<ncomp; ++n) {
+            for (auto n = incomp; n<incomp+ncomp-1; ++n) {
             for (auto k = lo.z; k <= hi.z; ++k) {
             for (auto j = lo.y; j <= hi.y; ++j) {
             for (auto i = lo.x; i <= hi.x; ++i) {
-                meanfab(i,0,k,outcomp+n) = meanfab(i,0,k,outcomp+n) + ninv*inputfab(i,j,k,inputcomp+n);
+                if ((j >= slablo) and (j <= slabhi)) {
+                    meanfab(i,0,k,n) = meanfab(i,0,k,n) + ninv*inputfab(i,j,k,n);
+                }
             }
             }
             }
@@ -339,11 +346,13 @@ void ComputeVerticalAverage(const MultiFab& mf, MultiFab& mf_avg,
 
         } else if (dir == 2) {
         
-            for (auto n=0; n<ncomp; ++n) {
+            for (auto n = incomp; n<incomp+ncomp-1; ++n) {
             for (auto k = lo.z; k <= hi.z; ++k) {
             for (auto j = lo.y; j <= hi.y; ++j) {
             for (auto i = lo.x; i <= hi.x; ++i) {
-                meanfab(i,j,0,outcomp+n) = meanfab(i,j,0,outcomp+n) + ninv*inputfab(i,j,k,inputcomp+n);
+                if ((k >= slablo) and (k <= slabhi)) {
+                    meanfab(i,j,0,n) = meanfab(i,j,0,n) + ninv*inputfab(i,j,k,n);
+                }
             }
             }
             }
@@ -352,7 +361,11 @@ void ComputeVerticalAverage(const MultiFab& mf, MultiFab& mf_avg,
     }
 
     if (write_data) {
-        plotname = "mf_avg";
+        if (slablo != -1 && slabhi != 99999) {
+            plotname = "mf_avg_slab";
+        } else {
+            plotname = "mf_avg";
+        }
         VisMF::Write(mf_avg,plotname);
     }
 
