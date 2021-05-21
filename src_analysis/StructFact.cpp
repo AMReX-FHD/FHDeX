@@ -375,6 +375,14 @@ void StructFact::FortStructure(const MultiFab& variables, const Geometry& geom, 
   
 }
 
+void StructFact::Reset() {
+
+    cov_real.setVal(0.);
+    cov_imag.setVal(0.);
+    nsamples = 0;
+    
+}
+
 void StructFact::ComputeFFT(const MultiFab& variables,
 			    MultiFab& variables_dft_real, 
 			    MultiFab& variables_dft_imag,
