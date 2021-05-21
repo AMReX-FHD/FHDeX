@@ -7,6 +7,9 @@
 
 #include "StructFact.H"
 
+#include "chrono"
+
+using namespace std::chrono;
 using namespace amrex;
 
 // argv contains the name of the inputs file entered at the command line
@@ -88,9 +91,24 @@ void main_driver(const char* argv)
     /////////////////////////////////////////
     //Initialise rngs
     /////////////////////////////////////////
+    
+    if (restart < 0) {
 
-    // initializes the seed for C++ random number calls
-    InitRandom(seed+ParallelDescriptor::MyProc());
+        if (seed > 0) {
+            // initializes the seed for C++ random number calls
+            InitRandom(seed+ParallelDescriptor::MyProc());
+        } else if (seed == 0) {
+            // initializes the seed for C++ random number calls based on the clock
+            auto now = time_point_cast<nanoseconds>(system_clock::now());
+            int randSeed = now.time_since_epoch().count();
+            // broadcast the same root seed to all processors
+            ParallelDescriptor::Bcast(&randSeed,1,ParallelDescriptor::IOProcessorNumber());
+            InitRandom(randSeed+ParallelDescriptor::MyProc());
+        } else {
+            Abort("Must supply non-negative seed");
+        }
+
+    }
 
     /////////////////////////////////////////
 
