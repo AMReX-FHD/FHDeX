@@ -44,30 +44,30 @@ void WritePlotFileStag(int step,
     // mean values
     // cu: [rho, jx, jy, jz, rhoE, rhoYk] -- nvars
     // shifted [jx, jy, jz] -- 3
-    // prim: [vx, vy, vz, T, p] -- 5
+    // prim: [vx, vy, vz, T, p, Yk] -- 5 + nspecies
     // shifted [vx, vy, vz] -- 3
     if (plot_means == 1) {
         nplot += nvars;
         nplot += 3;
-        nplot += 5;
+        nplot += 5 + nspecies;
         nplot += 3;
     }
     
     // variances
     // cu: [rho, jx, jy, jz, rhoE, rhoYk] -- nvars
     // shifted [jx, jy, jz] -- 3
-    // prim: [vx, vy, vz, T, gvar, kgcross, krcorss, rgcross] -- 8
+    // prim: [vx, vy, vz, T, Yk, gvar, kgcross, krcorss, rgcross] -- 8 + nspecies
     // shifted: [vx, vy, vz] -- 3
     if (plot_vars == 1) {
         nplot += nvars;
         nplot += 3;
-        nplot += 8;
+        nplot += 8 + nspecies;
         nplot += 3;
     }
    
     // co-variances -- see the list in main_driver
     if (plot_covars == 1) {
-        nplot += 21;
+        nplot += 26;
     }
    
     amrex::BoxArray ba = cuMeans.boxArray();
@@ -133,8 +133,8 @@ void WritePlotFileStag(int step,
             ++cnt;
         }
     
-        // prim: [vx, vy, vz, T, p] -- 5
-        numvars = 5;
+        // prim: [vx, vy, vz, T, p, Yk] -- 5 + nspecies
+        numvars = 5 + nspecies;
         amrex::MultiFab::Copy(plotfile,primMeans,1,cnt,numvars,0);
         cnt+=numvars;
 
@@ -163,6 +163,11 @@ void WritePlotFileStag(int step,
         amrex::MultiFab::Copy(plotfile,primVars,1,cnt,numvars,0);
         cnt+=numvars;
 
+        // prim: Yk -- nspecies
+        numvars = nspecies;
+        amrex::MultiFab::Copy(plotfile,primVars,6,cnt,numvars,0);
+        cnt+=numvars;
+
         // <delg delg> 
         amrex::MultiFab::Copy(plotfile,primVars,nprimvars+0,cnt,1,0);
         ++cnt;
@@ -185,7 +190,7 @@ void WritePlotFileStag(int step,
 
     if (plot_covars == 1) {
         // co-variances -- see the list in main_driver
-        numvars = 21;
+        numvars = 26;
         amrex::MultiFab::Copy(plotfile,coVars,0,cnt,numvars,0);
         cnt+=numvars;
     }
@@ -253,6 +258,12 @@ void WritePlotFileStag(int step,
         varNames[cnt++] = "tMean";
         varNames[cnt++] = "pMean";
 
+        x = "YkMean_";
+        for (i=0; i<nspecies; i++) {
+            varNames[cnt] = x;
+            varNames[cnt++] += 48+i;
+        }
+
         varNames[cnt++] = "uxMeanFACE";
         varNames[cnt++] = "uyMeanFACE";
         varNames[cnt++] = "uzMeanFACE";
@@ -278,6 +289,12 @@ void WritePlotFileStag(int step,
         varNames[cnt++] = "uyVarCC";
         varNames[cnt++] = "uzVarCC";
         varNames[cnt++] = "TVar";
+
+        x = "YkVar_";
+        for (i=0; i<nspecies; i++) {
+            varNames[cnt] = x;
+            varNames[cnt++] += 48+i;
+        }
 
         varNames[cnt++] = "g-g";
         varNames[cnt++] = "g-energy";
@@ -311,6 +328,11 @@ void WritePlotFileStag(int step,
         varNames[cnt++] = "vx-T";
         varNames[cnt++] = "vy-T";
         varNames[cnt++] = "vz-T";
+        varNames[cnt++] = "YkL-YkH";
+        varNames[cnt++] = "YkL-vx";
+        varNames[cnt++] = "YkH-vx";
+        varNames[cnt++] = "rhoYkL-vx";
+        varNames[cnt++] = "rhoYkH-vx";
     }
 
     // write a plotfile
@@ -334,7 +356,7 @@ void WriteSpatialCross(const Vector<Real>& spatialCross, int step, const amrex::
         outfile.open(filename);
     
         int flag;
-        int ncross = 16+nspecies;
+        int ncross = 28+nspecies;
         for (auto i=0; i<n_cells[0]; ++i) {
             outfile << prob_lo[0] + (i+0.5)*dx[0] << " "; 
             for (auto n=0; n<ncross; ++n) {
@@ -345,4 +367,3 @@ void WriteSpatialCross(const Vector<Real>& spatialCross, int step, const amrex::
         outfile.close();
     }
 }
-    

@@ -63,7 +63,7 @@ void WriteCheckPoint(int step,
     
     VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
 
-    int ncross = 16+nspecies;
+    int ncross = 28+nspecies;
 
     // write Header file
     if (ParallelDescriptor::IOProcessor()) {
@@ -271,7 +271,7 @@ void ReadCheckPoint(int& step,
 
     std::string line, word;
 
-    int ncross = 16+nspecies;
+    int ncross = 28+nspecies;
     
     // read in old boxarray, and create old distribution map (this is to read in MFabs)
     BoxArray ba_old;
@@ -312,13 +312,17 @@ void ReadCheckPoint(int& step,
 
         // Read all the vectors associated with cross averages from the Header file
         if (plot_cross) {
-
-            Real val;
-            // spatialCross
-            for (int i=0; i<n_cells[0]*ncross; i++) {
-                is >> val;
-                GotoNextLine(is);
-                spatialCross[i] = val;
+            if (reset_stats == 1) {
+                spatialCross.assign(spatialCross.size(), 0.0);
+            }
+            else {
+                Real val;
+                // spatialCross
+                for (int i=0; i<n_cells[0]*ncross; i++) {
+                    is >> val;
+                    GotoNextLine(is);
+                    spatialCross[i] = val;
+                }
             }
         }
 
@@ -347,7 +351,7 @@ void ReadCheckPoint(int& step,
         }
 
         // coVars
-        coVars.define(ba,dmap,21,0);
+        coVars.define(ba,dmap,26,0);
 
     }
 
@@ -388,56 +392,68 @@ void ReadCheckPoint(int& step,
     }
 
     // read in the MultiFab data
-    // cu, cuMeans, cuVars
     Read_Copy_MF_Checkpoint(cu,"cu",checkpointname,ba_old,dmap_old,nvars,1);
-    cu.FillBoundary(geom.periodicity());
-    Read_Copy_MF_Checkpoint(cuMeans,"cuMeans",checkpointname,ba_old,dmap_old,nvars,1);
-    cuMeans.FillBoundary(geom.periodicity());
-    Read_Copy_MF_Checkpoint(cuVars,"cuVars",checkpointname,ba_old,dmap_old,nvars,1);
-    cuVars.FillBoundary(geom.periodicity());
-
-    // prim, primMeans, primVars
     Read_Copy_MF_Checkpoint(prim,"prim",checkpointname,ba_old,dmap_old,nprimvars,1);
-    cu.FillBoundary(geom.periodicity());
-    Read_Copy_MF_Checkpoint(primMeans,"primMeans",checkpointname,ba_old,dmap_old,nprimvars,1);
-    primMeans.FillBoundary(geom.periodicity());
-    Read_Copy_MF_Checkpoint(primVars,"primVars",checkpointname,ba_old,dmap_old,nprimvars+5,1);
-    primVars.FillBoundary(geom.periodicity());
 
-    // coVars
-    Read_Copy_MF_Checkpoint(coVars,"coVars",checkpointname,ba_old,dmap_old,21,0);
-
-    // velocity (instantaneous, means, variances)
     Read_Copy_MF_Checkpoint(vel[0],"velx",checkpointname,ba_old,dmap_old,1,1,0);
-    vel[0].FillBoundary(geom.periodicity());
     Read_Copy_MF_Checkpoint(vel[1],"vely",checkpointname,ba_old,dmap_old,1,1,1);
-    vel[1].FillBoundary(geom.periodicity());
     Read_Copy_MF_Checkpoint(vel[2],"velz",checkpointname,ba_old,dmap_old,1,1,2);
-    vel[2].FillBoundary(geom.periodicity());
 
-    Read_Copy_MF_Checkpoint(velMeans[0],"velmeanx",checkpointname,ba_old,dmap_old,1,0,0);
-    Read_Copy_MF_Checkpoint(velMeans[1],"velmeany",checkpointname,ba_old,dmap_old,1,0,1);
-    Read_Copy_MF_Checkpoint(velMeans[2],"velmeanz",checkpointname,ba_old,dmap_old,1,0,2);
-    
-    Read_Copy_MF_Checkpoint(velVars[0],"velvarx",checkpointname,ba_old,dmap_old,1,0,0);
-    Read_Copy_MF_Checkpoint(velVars[1],"velvary",checkpointname,ba_old,dmap_old,1,0,1);
-    Read_Copy_MF_Checkpoint(velVars[2],"velvarz",checkpointname,ba_old,dmap_old,1,0,2);
-
-    // momentum (instantaneous, means, variances)
     Read_Copy_MF_Checkpoint(cumom[0],"cumomx",checkpointname,ba_old,dmap_old,1,1,0);
-    cumom[0].FillBoundary(geom.periodicity());
     Read_Copy_MF_Checkpoint(cumom[1],"cumomy",checkpointname,ba_old,dmap_old,1,1,1);
-    cumom[1].FillBoundary(geom.periodicity());
     Read_Copy_MF_Checkpoint(cumom[2],"cumomz",checkpointname,ba_old,dmap_old,1,1,2);
-    cumom[2].FillBoundary(geom.periodicity());
 
-    Read_Copy_MF_Checkpoint(cumomMeans[0],"cumommeanx",checkpointname,ba_old,dmap_old,1,0,0);
-    Read_Copy_MF_Checkpoint(cumomMeans[1],"cumommeany",checkpointname,ba_old,dmap_old,1,0,1);
-    Read_Copy_MF_Checkpoint(cumomMeans[2],"cumommeanz",checkpointname,ba_old,dmap_old,1,0,2);
-    
-    Read_Copy_MF_Checkpoint(cumomVars[0],"cumomvarx",checkpointname,ba_old,dmap_old,1,0,0);
-    Read_Copy_MF_Checkpoint(cumomVars[1],"cumomvary",checkpointname,ba_old,dmap_old,1,0,1);
-    Read_Copy_MF_Checkpoint(cumomVars[2],"cumomvarz",checkpointname,ba_old,dmap_old,1,0,2);
+    // Set all stats to zero if reset stats, else read
+    if (reset_stats == 1) {
+        cuMeans.setVal(0.0);
+        cuVars.setVal(0.0);
+        primMeans.setVal(0.0);
+        primVars.setVal(0.0);
+        for (int d=0; d<AMREX_SPACEDIM; d++) {
+            velMeans[d].setVal(0.);
+            velVars[d].setVal(0.);
+            cumomMeans[d].setVal(0.);
+            cumomVars[d].setVal(0.);
+        }
+        coVars.setVal(0.0);
+    }
+    else {
+        Read_Copy_MF_Checkpoint(cuMeans,"cuMeans",checkpointname,ba_old,dmap_old,nvars,1);
+        Read_Copy_MF_Checkpoint(cuVars,"cuVars",checkpointname,ba_old,dmap_old,nvars,1);
+
+        Read_Copy_MF_Checkpoint(primMeans,"primMeans",checkpointname,ba_old,dmap_old,nprimvars,1);
+        Read_Copy_MF_Checkpoint(primVars,"primVars",checkpointname,ba_old,dmap_old,nprimvars+5,1);
+
+        Read_Copy_MF_Checkpoint(coVars,"coVars",checkpointname,ba_old,dmap_old,26,0);
+
+        Read_Copy_MF_Checkpoint(velMeans[0],"velmeanx",checkpointname,ba_old,dmap_old,1,0,0);
+        Read_Copy_MF_Checkpoint(velMeans[1],"velmeany",checkpointname,ba_old,dmap_old,1,0,1);
+        Read_Copy_MF_Checkpoint(velMeans[2],"velmeanz",checkpointname,ba_old,dmap_old,1,0,2);
+        Read_Copy_MF_Checkpoint(velVars[0],"velvarx",checkpointname,ba_old,dmap_old,1,0,0);
+        Read_Copy_MF_Checkpoint(velVars[1],"velvary",checkpointname,ba_old,dmap_old,1,0,1);
+        Read_Copy_MF_Checkpoint(velVars[2],"velvarz",checkpointname,ba_old,dmap_old,1,0,2);
+
+        Read_Copy_MF_Checkpoint(cumomMeans[0],"cumommeanx",checkpointname,ba_old,dmap_old,1,0,0);
+        Read_Copy_MF_Checkpoint(cumomMeans[1],"cumommeany",checkpointname,ba_old,dmap_old,1,0,1);
+        Read_Copy_MF_Checkpoint(cumomMeans[2],"cumommeanz",checkpointname,ba_old,dmap_old,1,0,2);
+        Read_Copy_MF_Checkpoint(cumomVars[0],"cumomvarx",checkpointname,ba_old,dmap_old,1,0,0);
+        Read_Copy_MF_Checkpoint(cumomVars[1],"cumomvary",checkpointname,ba_old,dmap_old,1,0,1);
+        Read_Copy_MF_Checkpoint(cumomVars[2],"cumomvarz",checkpointname,ba_old,dmap_old,1,0,2);
+    }
+
+    // FillBoundaries
+    cu.FillBoundary(geom.periodicity());
+    cuMeans.FillBoundary(geom.periodicity());
+    cuVars.FillBoundary(geom.periodicity());
+    prim.FillBoundary(geom.periodicity());
+    primMeans.FillBoundary(geom.periodicity());
+    primVars.FillBoundary(geom.periodicity());
+    vel[0].FillBoundary(geom.periodicity());
+    vel[1].FillBoundary(geom.periodicity());
+    vel[2].FillBoundary(geom.periodicity());
+    cumom[0].FillBoundary(geom.periodicity());
+    cumom[1].FillBoundary(geom.periodicity());
+    cumom[2].FillBoundary(geom.periodicity());
 
     // random number engines
     int digits = 7;

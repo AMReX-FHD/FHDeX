@@ -142,8 +142,8 @@ void main_driver(const char* argv)
         Abort("Slab structure factor needs a membrane cell within the domain: 0 < cross_cell < n_cells[0] - 1");
     }
 
-    // contains yz-averaged running & instantaneous averages of conserved variables at cross cell + four primitive variables [vx, vy, vz, T]: 2*nvars + 2*4
-    Vector<Real> yzAvMeans_cross(2*nvars+8, 0.0); 
+    // contains yz-averaged running & instantaneous averages of conserved variables (2*nvars) + primitive variables [vx, vy, vz, T, Yk]: 2*4 + 2*nspecies 
+    Vector<Real> yzAvMeans_cross(2*nvars+8+2*nspecies, 0.0); 
     
     // 1: <delrho*delrho>
     // 2: <delrhoE*delrhoE>
@@ -161,9 +161,16 @@ void main_driver(const char* argv)
     // 14: <delT*delT>
     // 15: <delT*delrho>
     // 16: <delux*delrho>
+    // 17: <delux*delrhoYkL>
+    // 18: <delux*delrhoYkH>
+    // 19: <delux*delYkL>
+    // 20: <delux*delYkH>
+    // 21: <delYkL*delYkL>
+    // 22: <delYkH*delYkH>
+    // 23: <delYkL*delYkH>
     // nspecies: <delrhoYk*delrhoYk>
     // can add more -- change main_driver, statsStag, writeplotfilestag, and Checkpoint
-    int ncross = 16+nspecies;
+    int ncross = 28+nspecies;
     Vector<Real> spatialCross(n_cells[0]*ncross, 0.0); 
     
     // make BoxArray and Geometry
@@ -337,23 +344,7 @@ void main_driver(const char* argv)
                        vel, velMeans, velVars, coVars, spatialCross,
                        ba, dmap);
 
-        if (reset_stats) {
-    
-            cuMeans.setVal(0.0);
-            cuVars.setVal(0.0);
-            primMeans.setVal(0.0);
-            primVars.setVal(0.0);
-            for (int d=0; d<AMREX_SPACEDIM; d++) {
-                velMeans[d].setVal(0.);
-                velVars[d].setVal(0.);
-                cumomMeans[d].setVal(0.);
-                cumomVars[d].setVal(0.);
-            }
-            coVars.setVal(0.0);
-            spatialCross.assign(spatialCross.size(), 0.0);
-            
-            statsCount = 1;
-        }
+        if (reset_stats == 1) statsCount = 1;
 
         // transport properties
         eta.define(ba,dmap,1,ngc);
@@ -552,7 +543,7 @@ void main_driver(const char* argv)
         // 7: <rhoE jx>
         // 8: <rhoE jy>
         // 9: <rhoE jz>
-        // 10: <rhoYklightest rhoYkheaviest>
+        // 10: <rhoYkL rhoYkH>
         // 11: <rho vx>
         // 12: <rho vy>
         // 13: <rho vz>
@@ -563,7 +554,12 @@ void main_driver(const char* argv)
         // 18: <vx T>
         // 19: <vy T>
         // 20: <vz T>
-        coVars.define(ba,dmap,21,0);
+        // 21: <YkH YkL>
+        // 22: <YkL velx>
+        // 23: <YkH velx>
+        // 24: <rhoYkL velx>
+        // 25: <rhoYkH velx>
+        coVars.define(ba,dmap,26,0);
         coVars.setVal(0.0);
 
         for (int d=0; d<AMREX_SPACEDIM; d++) {
@@ -858,7 +854,7 @@ void main_driver(const char* argv)
                 WriteSpatialCross(spatialCross, step, dx);
                 if (ParallelDescriptor::IOProcessor()) {
                     outfile << step << " ";
-                    for (auto l=0; l<2*nvars+8; ++l) {
+                    for (auto l=0; l<2*nvars+8+2*nspecies; ++l) {
                         outfile << yzAvMeans_cross[l] << " ";
                     }
                     outfile << std::endl;
