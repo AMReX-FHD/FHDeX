@@ -57,19 +57,6 @@ void main_driver(const char* argv)
     //
     //
 
-    // one common seed; not split by process yet like the original code
-    int fhdSeed = seed;
-    
-    // these are unused
-    int particleSeed = 2;
-    int selectorSeed = 3;
-    int thetaSeed = 4;
-    int phiSeed = 5;
-    int generalSeed = 6;
-
-    //Initialise rngs
-    rng_initialize(&fhdSeed,&particleSeed,&selectorSeed,&thetaSeed,&phiSeed,&generalSeed);
-
     // initializes the seed for C++ random number calls
     InitRandom(seed+ParallelDescriptor::MyProc());
     

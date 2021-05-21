@@ -117,39 +117,7 @@ void WriteCheckPoint(int step,
     if (use_charged_fluid) {
         VisMF::Write(Epot,
                      amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "Epot"));
-    }
-
-    int check;
-    char str[80];
-    
-    strcpy (str,checkpointname.c_str());
-    strcat (str,"/rng_eng_fhd");
-    check = mkdir(str,0777);
-    
-    strcpy (str,checkpointname.c_str());
-    strcat (str,"/rng_eng_particle");
-    check = mkdir(str,0777);
-    
-    strcpy (str,checkpointname.c_str());
-    strcat (str,"/rng_eng_select");
-    check = mkdir(str,0777);
-    
-    strcpy (str,checkpointname.c_str());
-    strcat (str,"/rng_eng_scatter_theta");
-    check = mkdir(str,0777);
-    
-    strcpy (str,checkpointname.c_str());
-    strcat (str,"/rng_eng_scatter_phi");
-    check = mkdir(str,0777);
-    
-    strcpy (str,checkpointname.c_str());
-    strcat (str,"/rng_eng_general");
-    check = mkdir(str,0777);
-    
-    // random number engines (fortran interface)
-    int n_digits = 7;
-    rng_checkpoint(& step, & n_digits);
-    
+    }    
 }
 
 void ReadCheckPoint(int& step,
@@ -277,10 +245,6 @@ void ReadCheckPoint(int& step,
         VisMF::Read(Epot,
                     amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "Epot"));
     }
-    
-    // random number engines (fortran interface)
-    int digits = 7;
-    rng_restart(&restart,&digits);
 }
 
 
