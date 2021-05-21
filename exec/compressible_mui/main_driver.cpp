@@ -7,6 +7,9 @@
 
 #include "StructFact.H"
 
+#include "chrono"
+
+using namespace std::chrono;
 using namespace amrex;
 
 // mui
@@ -283,28 +286,23 @@ void main_driver(const char* argv)
     //Initialise rngs
     /////////////////////////////////////////
 
-    // NOTE: only fhdSeed is used currently
-    // zero is a clock-based seed
-    int fhdSeed      = seed;
-    int particleSeed = seed;
-    int selectorSeed = seed;
-    int thetaSeed    = seed;
-    int phiSeed      = seed;
-    int generalSeed  = seed;
+    if (restart < 0) {
 
-    // "seed" controls all of them and gives distinct seeds to each physical process over each MPI process
-    // this should be fixed so each physical process has its own seed control
-    if (seed > 0) {
-        fhdSeed      = 6*ParallelDescriptor::MyProc() + seed;
-        particleSeed = 6*ParallelDescriptor::MyProc() + seed + 1;
-        selectorSeed = 6*ParallelDescriptor::MyProc() + seed + 2;
-        thetaSeed    = 6*ParallelDescriptor::MyProc() + seed + 3;
-        phiSeed      = 6*ParallelDescriptor::MyProc() + seed + 4;
-        generalSeed  = 6*ParallelDescriptor::MyProc() + seed + 5;
+        if (seed > 0) {
+            // initializes the seed for C++ random number calls
+            InitRandom(seed+ParallelDescriptor::MyProc());
+        } else if (seed == 0) {
+            // initializes the seed for C++ random number calls based on the clock
+            auto now = time_point_cast<nanoseconds>(system_clock::now());
+            int randSeed = now.time_since_epoch().count();
+            // broadcast the same root seed to all processors
+            ParallelDescriptor::Bcast(&randSeed,1,ParallelDescriptor::IOProcessorNumber());
+            InitRandom(randSeed+ParallelDescriptor::MyProc());
+        } else {
+            Abort("Must supply non-negative seed");
+        }
+
     }
-
-    // Initialise rngs
-    rng_initialize(&fhdSeed,&particleSeed,&selectorSeed,&thetaSeed,&phiSeed,&generalSeed);
 
     // initializes the seed for C++ random number calls
     InitRandom(seed+ParallelDescriptor::MyProc());
