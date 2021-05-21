@@ -82,13 +82,6 @@ void PrintMF(const MultiFab& MF);
 
 void outputMFAscii(const MultiFab& output, std::string filename);
 
-void PrintFlux(const std::array< MultiFab, AMREX_SPACEDIM >& faceflux,
-               std::string index, const int step);
-
-void PrintVars(const MultiFab& cons, const std::array< MultiFab, AMREX_SPACEDIM >& cumom,
-               const MultiFab& prim, const std::array< MultiFab, AMREX_SPACEDIM >& vel,
-               std::string index, const int step);
-
 ///////////////////////////
 // in SqrtMF.cpp
 void SqrtMF(MultiFab& MF);
