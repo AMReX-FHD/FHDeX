@@ -21,10 +21,6 @@ include ../../src_compressible_stag/Make.package
 VPATH_LOCATIONS   += ../../src_compressible_stag/
 INCLUDE_LOCATIONS += ../../src_compressible_stag/
 
-include ../../src_compressible/src_F90/Make.package
-VPATH_LOCATIONS   += ../../src_compressible/src_F90
-INCLUDE_LOCATIONS += ../../src_compressible/src_F90
-
 include ../../src_compressible/Make.package
 VPATH_LOCATIONS   += ../../src_compressible/
 INCLUDE_LOCATIONS += ../../src_compressible/
