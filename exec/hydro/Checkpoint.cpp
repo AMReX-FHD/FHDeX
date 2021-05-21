@@ -127,39 +127,7 @@ void WriteCheckPoint(int step,
                  amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "wmac"));
 #endif
     VisMF::Write(tracer,
-                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "tracer"));
-
-    int check;
-    char str[80];
-    
-    strcpy (str,checkpointname.c_str());
-    strcat (str,"/rng_eng_fhd");
-    check = mkdir(str,0777);
-    
-    strcpy (str,checkpointname.c_str());
-    strcat (str,"/rng_eng_particle");
-    check = mkdir(str,0777);
-    
-    strcpy (str,checkpointname.c_str());
-    strcat (str,"/rng_eng_select");
-    check = mkdir(str,0777);
-    
-    strcpy (str,checkpointname.c_str());
-    strcat (str,"/rng_eng_scatter_theta");
-    check = mkdir(str,0777);
-    
-    strcpy (str,checkpointname.c_str());
-    strcat (str,"/rng_eng_scatter_phi");
-    check = mkdir(str,0777);
-    
-    strcpy (str,checkpointname.c_str());
-    strcat (str,"/rng_eng_general");
-    check = mkdir(str,0777);
-    
-    // random number engines (fortran interface)
-    int n_digits = 7;
-    rng_checkpoint(& step, & n_digits);
-    
+                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "tracer"));    
 }
 
 void ReadCheckPoint(int& step,
@@ -273,10 +241,6 @@ void ReadCheckPoint(int& step,
 #endif
     VisMF::Read(tracer,
                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "tracer"));
-    
-    // random number engines (fortran interface)
-    int digits = 7;
-    rng_restart(&restart,&digits);
 }
 
 void

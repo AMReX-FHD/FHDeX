@@ -19,9 +19,10 @@ amrex::IntVect             common::ngc;
 AMREX_GPU_MANAGED int      common::nvars;
 AMREX_GPU_MANAGED int      common::nprimvars;
 
-int                        common::membrane_cell;
-int                        common::cross_cell;
-amrex::Real                common::transmission;
+AMREX_GPU_MANAGED int      common::membrane_cell;
+AMREX_GPU_MANAGED int      common::cross_cell;
+AMREX_GPU_MANAGED int      common::do_slab_sf;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::transmission;
 
 AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_SPECIES> common::pkernel_fluid; // GALEN - FLUID KERNEL
 AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_SPECIES> common::pkernel_es;
@@ -40,6 +41,7 @@ int                        common::chk_int;
 std::string                common::chk_base_name;
 AMREX_GPU_MANAGED int      common::prob_type;
 int                        common::restart;
+int                        common::reset_stats;
 int                        common::particle_restart;
 int                        common::print_int;
 int                        common::project_eos_int;
@@ -192,6 +194,8 @@ amrex::Vector<amrex::Real> common::ephase;
 int                        common::plot_ascii;
 int                        common::plot_means;
 int                        common::plot_vars;
+int                        common::plot_covars;
+int                        common::plot_cross;
 int                        common::particle_motion;
 int                        common::solve_chem;
 amrex::Real                common::diffcoeff;

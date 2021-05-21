@@ -22,6 +22,10 @@
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_MultiFabUtil.H>
 
+#include "chrono"
+
+using namespace std::chrono;
+
 
 // argv contains the name of the inputs file entered at the command line
 void main_driver(const char* argv)
@@ -57,21 +61,27 @@ void main_driver(const char* argv)
     //
     //
 
-    // one common seed; not split by process yet like the original code
-    int fhdSeed = seed;
-    
-    // these are unused
-    int particleSeed = 2;
-    int selectorSeed = 3;
-    int thetaSeed = 4;
-    int phiSeed = 5;
-    int generalSeed = 6;
-
+    /////////////////////////////////////////
     //Initialise rngs
-    rng_initialize(&fhdSeed,&particleSeed,&selectorSeed,&thetaSeed,&phiSeed,&generalSeed);
+    /////////////////////////////////////////
+    if (restart < 0) {
 
-    // initializes the seed for C++ random number calls
-    InitRandom(seed+ParallelDescriptor::MyProc());
+        if (seed > 0) {
+            // initializes the seed for C++ random number calls
+            InitRandom(seed+ParallelDescriptor::MyProc());
+        } else if (seed == 0) {
+            // initializes the seed for C++ random number calls based on the clock
+            auto now = time_point_cast<nanoseconds>(system_clock::now());
+            int randSeed = now.time_since_epoch().count();
+            // broadcast the same root seed to all processors
+            ParallelDescriptor::Bcast(&randSeed,1,ParallelDescriptor::IOProcessorNumber());
+            InitRandom(randSeed+ParallelDescriptor::MyProc());
+        } else {
+            Abort("Must supply non-negative seed");
+        }
+
+    }
+    /////////////////////////////////////////
     
     // is the problem periodic?
     Vector<int> is_periodic(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
