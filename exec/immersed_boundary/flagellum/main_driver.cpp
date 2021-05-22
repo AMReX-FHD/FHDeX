@@ -525,7 +525,8 @@ void main_driver(const char * argv) {
              init_vel(BL_TO_FORTRAN_BOX(bx),
                       BL_TO_FORTRAN_ANYD(umac[d][mfi]), geom.CellSize(),
                       geom.ProbLo(), geom.ProbHi(), & d,
-                      ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
+                      ZFILL(realDomain.lo()), ZFILL(realDomain.hi()),
+                      &prob_type);
     }
 
     BL_PROFILE_VAR_STOP(initfv);

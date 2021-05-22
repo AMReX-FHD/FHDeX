@@ -5,8 +5,6 @@
 
 #include "common_functions.H"
 
-#include "rng_functions_F.H"
-
 #include "compressible_functions_stag.H"
 
 #include "common_namespace.H"

@@ -4,3 +4,4 @@ CEXE_sources   += Checkpoint.cpp
 CEXE_sources   += particleGen.cpp
 CEXE_sources   += WritePlotFile.cpp
 CEXE_sources   += WritePlotFileHydro.cpp
+F90EXE_sources += init_funcs.F90
