@@ -60,10 +60,6 @@ include $(FHDeX)/src_electrostatic/Make.package
 VPATH_LOCATIONS   += $(FHDeX)/src_electrostatic
 INCLUDE_LOCATIONS += $(FHDeX)/src_electrostatic
 
-include $(FHDeX)/src_immersed-boundary/src_F90/Make.package
-VPATH_LOCATIONS   += $(FHDeX)src_immersed-boundary/src_F90
-INCLUDE_LOCATIONS += $(FHDeX)src_immersed-boundary/src_F90
-
 include $(FHDeX)/src_immersed-boundary/MakeBase.package
 VPATH_LOCATIONS   += $(FHDeX)src_immersed-boundary
 INCLUDE_LOCATIONS += $(FHDeX)src_immersed-boundary
