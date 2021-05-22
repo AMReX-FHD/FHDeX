@@ -56,9 +56,9 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
                     }else
                     {
 
-                        p.pos(0) = prob_lo[0] + get_uniform_func()*(prob_hi[0]-prob_lo[0]);
-                        p.pos(1) = prob_lo[1] + get_uniform_func()*(prob_hi[1]-prob_lo[1]);
-                        p.pos(2) = prob_lo[2] + get_uniform_func()*(prob_hi[2]-prob_lo[2]);
+                        p.pos(0) = prob_lo[0] + amrex::Random()*(prob_hi[0]-prob_lo[0]);
+                        p.pos(1) = prob_lo[1] + amrex::Random()*(prob_hi[1]-prob_lo[1]);
+                        p.pos(2) = prob_lo[2] + amrex::Random()*(prob_hi[2]-prob_lo[2]);
 
                         p.idata(FHD_intData::pinned) = 0;
 
