@@ -52,10 +52,6 @@ INCLUDE_LOCATIONS += ../../src_geometry
 
 include ./Make_precheck.package
 
-include ../../src_geometry/src_F90/Make.package
-VPATH_LOCATIONS   += ../../src_geometry/src_F90
-INCLUDE_LOCATIONS += ../../src_geometry/src_F90
-
 include $(AMREX_HOME)/Src/Base/Make.package
 include $(AMREX_HOME)/Src/Boundary/Make.package
 include $(AMREX_HOME)/Src/AmrCore/Make.package

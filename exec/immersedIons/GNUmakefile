@@ -40,7 +40,6 @@ include $(FHDeX)/src_analysis/Make.package
 VPATH_LOCATIONS   += $(FHDeX)/src_analysis/
 INCLUDE_LOCATIONS += $(FHDeX)/src_analysis/
 
-
 include $(FHDeX)/src_gmres/Make.package
 VPATH_LOCATIONS   += $(FHDeX)/src_gmres/
 INCLUDE_LOCATIONS += $(FHDeX)/src_gmres/
@@ -64,10 +63,6 @@ INCLUDE_LOCATIONS += $(FHDeX)/src_particles/src_F90
 include $(FHDeX)/src_geometry/Make.package
 VPATH_LOCATIONS   += $(FHDeX)/src_geometry
 INCLUDE_LOCATIONS += $(FHDeX)/src_geometry
-
-include $(FHDeX)/src_geometry/src_F90/Make.package
-VPATH_LOCATIONS   += $(FHDeX)/src_geometry/src_F90
-INCLUDE_LOCATIONS += $(FHDeX)/src_geometry/src_F90
 
 include $(FHDeX)/src_electrostatic/Make.package
 VPATH_LOCATIONS   += $(FHDeX)/src_electrostatic

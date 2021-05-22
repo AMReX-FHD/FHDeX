@@ -56,10 +56,6 @@ include ../../src_immersed-boundary/MakeBase.package
 VPATH_LOCATIONS   += ../../src_immersed-boundary
 INCLUDE_LOCATIONS += ../../src_immersed-boundary
 
-include ../../src_geometry/src_F90/Make.package
-VPATH_LOCATIONS   += ../../src_geometry/src_F90
-INCLUDE_LOCATIONS += ../../src_geometry/src_F90
-
 include $(AMREX_HOME)/Src/Base/Make.package
 include $(AMREX_HOME)/Src/Boundary/Make.package
 include $(AMREX_HOME)/Src/AmrCore/Make.package

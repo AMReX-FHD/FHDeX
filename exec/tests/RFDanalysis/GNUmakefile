@@ -65,10 +65,6 @@ include $(FHDeX)/src_geometry/Make.package
 VPATH_LOCATIONS   += $(FHDeX)/src_geometry
 INCLUDE_LOCATIONS += $(FHDeX)/src_geometry
 
-include $(FHDeX)/src_geometry/src_F90/Make.package
-VPATH_LOCATIONS   += $(FHDeX)/src_geometry/src_F90
-INCLUDE_LOCATIONS += $(FHDeX)/src_geometry/src_F90
-
 include $(FHDeX)/src_electrostatic/Make.package
 VPATH_LOCATIONS   += $(FHDeX)/src_electrostatic
 INCLUDE_LOCATIONS += $(FHDeX)/src_electrostatic
