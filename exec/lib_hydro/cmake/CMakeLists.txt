@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.17)
+make_minimum_required(VERSION 3.17)
 
 # Define Project
 project(lib_hydro)
@@ -117,11 +117,6 @@ add_library(
     ../../../src_immersed-boundary/src_F90/set_particle_properties.F90
 
     ../../../src_particles/FindCoords.cpp
-
-    ../../../src_particles/src_F90/collision_functions.F90
-    ../../../src_particles/src_F90/particle_functions.F90
-    ../../../src_particles/src_F90/particle_type.F90
-    ../../../src_particles/src_F90/species_type.F90
     )
 
 target_link_libraries(

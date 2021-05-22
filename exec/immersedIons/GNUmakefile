@@ -56,10 +56,6 @@ include $(FHDeX)/src_particles/Make.package
 VPATH_LOCATIONS   += $(FHDeX)/src_particles/
 INCLUDE_LOCATIONS += $(FHDeX)/src_particles/
 
-include $(FHDeX)/src_particles/src_F90/Make.package
-VPATH_LOCATIONS   += $(FHDeX)/src_particles/src_F90
-INCLUDE_LOCATIONS += $(FHDeX)/src_particles/src_F90
-
 include $(FHDeX)/src_geometry/Make.package
 VPATH_LOCATIONS   += $(FHDeX)/src_geometry
 INCLUDE_LOCATIONS += $(FHDeX)/src_geometry

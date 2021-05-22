@@ -34,10 +34,6 @@ include ../../src_particles/MakeDSMC.package
 VPATH_LOCATIONS   += ../../src_particles/
 INCLUDE_LOCATIONS += ../../src_particles/
 
-include ../../src_particles/src_F90/Make.package
-VPATH_LOCATIONS   += ../../src_particles/src_F90
-INCLUDE_LOCATIONS += ../../src_particles/src_F90
-
 include ../../src_rng/Make.package
 VPATH_LOCATIONS   += ../../src_rng
 INCLUDE_LOCATIONS += ../../src_rng
