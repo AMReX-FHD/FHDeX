@@ -187,18 +187,7 @@ void main_driver(const char* argv)
     if (restart < 0) {
     
         // initialize rho and umac in valid region only
-        for ( MFIter mfi(rho_old); mfi.isValid(); ++mfi ) {
-            const Box& bx = mfi.validbox();
-
-            init_rho_and_umac(BL_TO_FORTRAN_BOX(bx),
-                              BL_TO_FORTRAN_FAB(rho_old[mfi]),
-                              BL_TO_FORTRAN_ANYD(umac[0][mfi]),
-                              BL_TO_FORTRAN_ANYD(umac[1][mfi]),
-#if (AMREX_SPACEDIM == 3)
-                              BL_TO_FORTRAN_ANYD(umac[2][mfi]),
-#endif
-                              dx, geom.ProbLo(), geom.ProbHi());
-        }
+        InitRhoUmac(umac,rho_old,geom);
 
         // initialize pi, including ghost cells
         pi.setVal(0.);

@@ -1,6 +1,9 @@
 #include "multispec_test_functions.H"
 
+#include "multispec_namespace.H"
+
 using namespace amrex;
+using namespace multispec;
 
 void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                  MultiFab& rho_in,
@@ -10,8 +13,11 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     GpuArray<Real,AMREX_SPACEDIM> dx = geom.CellSizeArray();
 
     GpuArray<Real,AMREX_SPACEDIM> center;
+    GpuArray<Real,AMREX_SPACEDIM> L; // domain length
+    
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        center[d] = 0.5*(prob_hi[d]-prob_lo[d]);
+        center[d] = 0.5*(prob_hi[d]+prob_lo[d]);
+        L[d] = prob_hi[d] - prob_lo[d];
     }
 
     BoxArray ba = rho_in.boxArray();
@@ -31,15 +37,65 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         const Array4<Real>& c = conc.array(mfi);
 
         if (prob_type == 1) {
+            /*
+              bubble with radius = 1/4 of domain in x
+              c=c_init_1(:) inside, c=c_init_2(:) outside
+              can be discontinous or smooth depending on smoothing_width
+            */
 
+    
+            Real rad = L[0] / 4.;
+            
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
-            
+                Real x,y,z;
+                AMREX_D_TERM(x = prob_lo[0] + (i+0.5)*dx[0] - center[0];,
+                             y = prob_lo[1] + (j+0.5)*dx[1] - center[1];,
+                             z = prob_lo[2] + (k+0.5)*dx[2] - center[2];);
+
+                Real r = (AMREX_SPACEDIM == 2) ? std::sqrt(x*x+y*y) : std::sqrt(x*x+y*y+z*z);
+
+                if (smoothing_width == 0.) {
+
+                    // discontinuous interface
+                    if (r < rad) {
+                        for (int n=0; n<nspecies; ++n) {
+                            c(i,j,k,n) = c_init_1[n];
+                        }
+                    } else {
+                        for (int n=0; n<nspecies; ++n) {
+                            c(i,j,k,n) = c_init_2[n];
+                        }
+                    }
+                    
+                } else {
+                    // smooth interface
+                    for (int n=0; n<nspecies; ++n) {
+                        c(i,j,k,n) = c_init_1[n] + (c_init_2[n]-c_init_1[n]) *
+                            0.5*(1. + std::tanh((r-rad)/smoothing_width*dx[0]));
+                    }
+                }
+                
             });
         } else if (prob_type == 2) {
 
+            /*
+              constant concentration gradient along y
+              c=c_init_1(:) on bottom, c=c_init_2(:) on top
+            */
+            
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
+                Real x,y,z;
+                AMREX_D_TERM(x = prob_lo[0] + (i+0.5)*dx[0];,
+                             y = prob_lo[1] + (j+0.5)*dx[1];,
+                             z = prob_lo[2] + (k+0.5)*dx[2];);
+                
+                for (int n=0; n<nspecies; ++n) {
+                    c(i,j,k,n) = c_init_1[n] + (c_init_2[n]-c_init_1[n]) *
+                        (y-prob_lo[1]) / L[1];
+                }
+                
             
             });
         } else if (prob_type == 4) {
@@ -52,8 +108,24 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
-            
+                /*
+                  Gaussian bubble centered in domain
+                  c=c_init_1(:) inside; c=c_init_2(:) outside
+                  lo- and hi-y walls move with prescribed velocity,
+                  see inhomogeneous_bc_val.f90
+                */
+                Real x,y,z;
+                AMREX_D_TERM(x = prob_lo[0] + (i+0.5)*dx[0] - center[0];,
+                             y = prob_lo[1] + (j+0.5)*dx[1] - center[1];,
+                             z = prob_lo[2] + (k+0.5)*dx[2] - center[2];);
+
+                Real r = (AMREX_SPACEDIM == 2) ? std::sqrt(x*x+y*y) : std::sqrt(x*x+y*y+z*z);
+
+                for (int n=0; n<nspecies; ++n) {
+                    c(i,j,k,n) = c_init_1[n]*std::exp(-75.*r*r);
+                }                
             });
+            
         } else if (prob_type == 15) {
 
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
