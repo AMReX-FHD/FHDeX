@@ -1,6 +1,9 @@
 CEXE_sources   += AdvanceTimestepBousq.cpp
 CEXE_sources   += AdvanceTimestepInertial.cpp
 CEXE_sources   += Checkpoint.cpp
+CEXE_sources   += Init.cpp
 CEXE_sources   += WritePlotFile.cpp
 CEXE_headers   += multispec_test_functions.H
 CEXE_headers   += multispec_test_functions_F.H
+
+F90EXE_sources += init_funcs.F90

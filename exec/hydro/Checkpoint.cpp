@@ -1,7 +1,5 @@
 #include "hydro_test_functions.H"
 
-#include "rng_functions_F.H"
-
 #include "AMReX_PlotFileUtil.H"
 #include "AMReX_PlotFileDataImpl.H"
 

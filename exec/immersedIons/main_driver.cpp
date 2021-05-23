@@ -122,41 +122,20 @@ void main_driver(const char* argv)
     MultiFab chargeM;
     
     if (restart < 0) {
-        
-        // zero is a clock-based seed
-        int fhdSeed      = 0;
-        int particleSeed = 0;
-        int selectorSeed = 0;
-        int thetaSeed    = 0;
-        int phiSeed      = 0;
-        int generalSeed  = 0;
-        int cppSeed = 0;
 
-        // "seed" controls all of them and gives distinct seeds to each physical process over each MPI process
-        // this should be fixed so each physical process has its own seed control
         if (seed > 0) {
-            fhdSeed      = 6*ParallelDescriptor::MyProc() + seed;
-            particleSeed = 6*ParallelDescriptor::MyProc() + seed + 1;
-            selectorSeed = 6*ParallelDescriptor::MyProc() + seed + 2;
-            thetaSeed    = 6*ParallelDescriptor::MyProc() + seed + 3;
-            phiSeed      = 6*ParallelDescriptor::MyProc() + seed + 4;
-            generalSeed  = 6*ParallelDescriptor::MyProc() + seed + 5;
-            cppSeed  = 6*ParallelDescriptor::MyProc() + seed + 6;
-            InitRandom(cppSeed+ParallelDescriptor::MyProc());
+            // initializes the seed for C++ random number calls
+            InitRandom(seed+ParallelDescriptor::MyProc());
         } else if (seed == 0) {
             // initializes the seed for C++ random number calls based on the clock
             auto now = time_point_cast<nanoseconds>(system_clock::now());
             int randSeed = now.time_since_epoch().count();
             // broadcast the same root seed to all processors
             ParallelDescriptor::Bcast(&randSeed,1,ParallelDescriptor::IOProcessorNumber());
-            
             InitRandom(randSeed+ParallelDescriptor::MyProc());
         } else {
-        Abort("Must supply non-negative seed");
+            Abort("Must supply non-negative seed");
         }
-
-        //Initialise rngs
-        rng_initialize(&fhdSeed,&particleSeed,&selectorSeed,&thetaSeed,&phiSeed,&generalSeed);
 
         // Initialize the boxarray "ba" from the single box "bx"
         ba.define(domain);

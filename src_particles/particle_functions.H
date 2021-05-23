@@ -4,7 +4,6 @@
 #include <AMReX_Particles.H>
 
 #include "species.H"
-#include "particle_functions_F.H"
 #include "common_namespace.H"
 
 using namespace amrex;

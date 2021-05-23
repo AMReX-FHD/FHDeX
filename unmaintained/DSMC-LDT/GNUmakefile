@@ -34,10 +34,6 @@ include ../../src_particles/Make.package
 VPATH_LOCATIONS   += ../../src_particles/
 INCLUDE_LOCATIONS += ../../src_particles/
 
-include ../../src_particles/src_F90/Make.package
-VPATH_LOCATIONS   += ../../src_particles/src_F90
-INCLUDE_LOCATIONS += ../../src_particles/src_F90
-
 include ../../src_rng/Make.package
 VPATH_LOCATIONS   += ../../src_rng
 INCLUDE_LOCATIONS += ../../src_rng
@@ -51,10 +47,6 @@ VPATH_LOCATIONS   += ../../src_geometry
 INCLUDE_LOCATIONS += ../../src_geometry
 
 include ./Make_precheck.package
-
-include ../../src_geometry/src_F90/Make.package
-VPATH_LOCATIONS   += ../../src_geometry/src_F90
-INCLUDE_LOCATIONS += ../../src_geometry/src_F90
 
 include $(AMREX_HOME)/Src/Base/Make.package
 include $(AMREX_HOME)/Src/Boundary/Make.package
