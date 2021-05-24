@@ -56,7 +56,6 @@ void main_driver(const char* argv)
         // compute wall concentrations if BCs call for it
         SetupCWall();
     }
-    
 
     // make BoxArray and Geometry
     BoxArray ba;
@@ -91,7 +90,7 @@ void main_driver(const char* argv)
     /////////////////////////////////////////
     //Initialise rngs
     /////////////////////////////////////////
-    
+
     if (restart < 0) {
 
         if (seed > 0) {
@@ -247,8 +246,9 @@ void main_driver(const char* argv)
     // rho
     // vel
     // T
+    // pressure
     // Yk
-    int structVarsPrim = AMREX_SPACEDIM+nspecies+2;
+    int structVarsPrim = AMREX_SPACEDIM+nspecies+3;
 
     Vector< std::string > prim_var_names;
     prim_var_names.resize(structVarsPrim);
@@ -268,6 +268,9 @@ void main_driver(const char* argv)
 
     // Temp
     prim_var_names[cnt++] = "Temp";
+
+    // Pressure
+    prim_var_names[cnt++] = "Pressure";
 
     // Yk
     for (int d=0; d<nspecies; d++) {
@@ -487,7 +490,7 @@ void main_driver(const char* argv)
     setBC(prim, cu);
     
     if (plot_int > 0) {
-	WritePlotFile(0, 0.0, geom, cu, cuMeans, cuVars,
+        WritePlotFile(0, 0.0, geom, cu, cuMeans, cuVars,
                       prim, primMeans, primVars, spatialCross, eta, kappa);
     }
 
@@ -514,11 +517,11 @@ void main_driver(const char* argv)
         Real aux1 = ParallelDescriptor::second();
         
         // compute mean and variances
-	if (step > n_steps_skip) {
+        if (step > n_steps_skip) {
             evaluateStats(cu, cuMeans, cuVars, prim, primMeans, primVars,
                           spatialCross, miscStats, miscVals, statsCount, dx);
             statsCount++;
-	}
+        }
 
         // write a plotfile
         if (plot_int > 0 && step > 0 && step%plot_int == 0) {
