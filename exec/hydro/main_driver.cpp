@@ -8,8 +8,6 @@
 #include "StructFact.H"
 #include "TurbForcing.H"
 
-#include "rng_functions_F.H"
-
 #include "common_functions.H"
 
 #include "gmres_functions.H"
@@ -23,6 +21,9 @@
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_MultiFabUtil.H>
 
+#include "chrono"
+
+using namespace std::chrono;
 using namespace amrex;
 
 // argv contains the name of the inputs file entered at the command line
@@ -77,19 +78,22 @@ void main_driver(const char* argv)
     /////////////////////////////////////////
     const int n_rngs = 1;
 
-    if (restart <= 0) {
-        int fhdSeed = 1;
-        int particleSeed = 2;
-        int selectorSeed = 3;
-        int thetaSeed = 4;
-        int phiSeed = 5;
-        int generalSeed = 6;
+    if (restart < 0) {
 
-        //Initialise rngs
-        rng_initialize(&fhdSeed,&particleSeed,&selectorSeed,&thetaSeed,&phiSeed,&generalSeed);
+        if (seed > 0) {
+            // initializes the seed for C++ random number calls
+            InitRandom(seed+ParallelDescriptor::MyProc());
+        } else if (seed == 0) {
+            // initializes the seed for C++ random number calls based on the clock
+            auto now = time_point_cast<nanoseconds>(system_clock::now());
+            int randSeed = now.time_since_epoch().count();
+            // broadcast the same root seed to all processors
+            ParallelDescriptor::Bcast(&randSeed,1,ParallelDescriptor::IOProcessorNumber());
+            InitRandom(randSeed+ParallelDescriptor::MyProc());
+        } else {
+            Abort("Must supply non-negative seed");
+        }
 
-        // initializes the seed for C++ random number calls
-        InitRandom(seed+ParallelDescriptor::MyProc());
     }
     /////////////////////////////////////////
     

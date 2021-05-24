@@ -25,10 +25,6 @@ include ../../src_compressible/Make.package
 VPATH_LOCATIONS   += ../../src_compressible/
 INCLUDE_LOCATIONS += ../../src_compressible/
 
-include ../../src_rng/src_F90/Make.package
-VPATH_LOCATIONS   += ../../src_rng/src_F90
-INCLUDE_LOCATIONS += ../../src_rng/src_F90
-
 include ../../src_rng/Make.package
 VPATH_LOCATIONS   += ../../src_rng/
 INCLUDE_LOCATIONS += ../../src_rng/
@@ -57,6 +53,4 @@ LIBRARIES += -L$(FFTW_DIR) -lfftw3_mpi -lfftw3
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.rules
 
-ifeq ($(findstring cgpu, $(HOST)), cgpu)
 CXXFLAGS += $(FFTW)
-endif

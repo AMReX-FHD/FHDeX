@@ -1,8 +1,7 @@
-subroutine init_vel(lo, hi, vel, vello, velhi, dx, prob_lo, prob_hi, di, reallo, realhi) &
+subroutine init_vel(lo, hi, vel, vello, velhi, dx, prob_lo, prob_hi, di, reallo, realhi, prob_type) &
      &     bind(C, name="init_vel")
 
   use amrex_fort_module,      only: amrex_real
-  use common_namelist_module, only: prob_type
 
   implicit none
 
@@ -12,6 +11,7 @@ subroutine init_vel(lo, hi, vel, vello, velhi, dx, prob_lo, prob_hi, di, reallo,
   real(amrex_real), intent(in   ) :: prob_lo(3)
   real(amrex_real), intent(in   ) :: prob_hi(3)
   real(amrex_real), intent(in   ) :: dx(3)
+  integer         , intent(in   ) :: prob_type
 
   integer          :: i,j,k
   double precision :: pos(3),center(3),partdom,itVec(3),relpos(3),rad,rad2,zshft

@@ -28,10 +28,6 @@ include $(FHDeX)/src_rng/Make.package
 VPATH_LOCATIONS   += $(FHDeX)/src_rng
 INCLUDE_LOCATIONS += $(FHDeX)/src_rng
 
-include $(FHDeX)/src_rng/src_F90/Make.package
-VPATH_LOCATIONS   += $(FHDeX)/src_rng/src_F90
-INCLUDE_LOCATIONS += $(FHDeX)/src_rng/src_F90
-
 include $(FHDeX)/src_hydro/Make.package
 VPATH_LOCATIONS   += $(FHDeX)/src_hydro/
 INCLUDE_LOCATIONS += $(FHDeX)/src_hydro/
@@ -39,7 +35,6 @@ INCLUDE_LOCATIONS += $(FHDeX)/src_hydro/
 include $(FHDeX)/src_analysis/Make.package
 VPATH_LOCATIONS   += $(FHDeX)/src_analysis/
 INCLUDE_LOCATIONS += $(FHDeX)/src_analysis/
-
 
 include $(FHDeX)/src_gmres/Make.package
 VPATH_LOCATIONS   += $(FHDeX)/src_gmres/
@@ -57,25 +52,13 @@ include $(FHDeX)/src_particles/Make.package
 VPATH_LOCATIONS   += $(FHDeX)/src_particles/
 INCLUDE_LOCATIONS += $(FHDeX)/src_particles/
 
-include $(FHDeX)/src_particles/src_F90/Make.package
-VPATH_LOCATIONS   += $(FHDeX)/src_particles/src_F90
-INCLUDE_LOCATIONS += $(FHDeX)/src_particles/src_F90
-
 include $(FHDeX)/src_geometry/Make.package
 VPATH_LOCATIONS   += $(FHDeX)/src_geometry
 INCLUDE_LOCATIONS += $(FHDeX)/src_geometry
 
-include $(FHDeX)/src_geometry/src_F90/Make.package
-VPATH_LOCATIONS   += $(FHDeX)/src_geometry/src_F90
-INCLUDE_LOCATIONS += $(FHDeX)/src_geometry/src_F90
-
 include $(FHDeX)/src_electrostatic/Make.package
 VPATH_LOCATIONS   += $(FHDeX)/src_electrostatic
 INCLUDE_LOCATIONS += $(FHDeX)/src_electrostatic
-
-include $(FHDeX)/src_immersed-boundary/src_F90/Make.package
-VPATH_LOCATIONS   += $(FHDeX)src_immersed-boundary/src_F90
-INCLUDE_LOCATIONS += $(FHDeX)src_immersed-boundary/src_F90
 
 include $(FHDeX)/src_immersed-boundary/MakeBase.package
 VPATH_LOCATIONS   += $(FHDeX)src_immersed-boundary

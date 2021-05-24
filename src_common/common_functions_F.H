@@ -19,7 +19,7 @@ extern "C"
                                      int* max_grid_size, int* max_grid_size_structfact,
                                      int* max_particle_tile_size,amrex::Real* cell_depth, int* ngc,
                                      int* nvars, int* nprimvars,
-                                     int* membrane_cell, int* cross_cell, amrex::Real* transmission,
+                                     int* membrane_cell, int* cross_cell, int* do_slab_sf, amrex::Real* transmission,
                                      amrex::Real* qval, int* pkernel_fluid, int* pkernel_es,
                                      int* eskernel_fluid, amrex::Real* eskernel_beta,
                                      amrex::Real* fixed_dt,
@@ -28,7 +28,7 @@ extern "C"
                                      const int plot_base_name_len,
                                      int* chk_int,
                                      const char* chk_base_name, const int chk_base_name_len,
-                                     int* prob_type, int* restart, int* particle_restart, int* print_int,
+                                     int* prob_type, int* restart, int* reset_stats, int* particle_restart, int* print_int,
                                      int* project_eos_int, amrex::Real* grav, int* nspecies,
                                      amrex::Real* molmass,amrex::Real* diameter,
                                      int* dof,amrex::Real* hcv,amrex::Real* hcp, amrex::Real* rhobar,
@@ -82,7 +82,7 @@ extern "C"
                                      int* move_tog, int* rfd_tog, int* dry_move_tog, int* sr_tog,
                                      int* graphene_tog, int* crange, int* thermostat_tog, int* zero_net_force, int* images,
                                      amrex::Real* eamp, amrex::Real* efreq, amrex::Real* ephase,
-                                     int* plot_ascii, int* plot_means, int* plot_vars,
+                                     int* plot_ascii, int* plot_means, int* plot_vars, int* plot_covars, int* plot_cross,
                                      int* solve_chem, amrex::Real* diffcoeff,
                                      amrex::Real* scaling_factor, amrex::Real* source_strength,
                                      int* regrid_int, int* do_reflux, int* particle_motion,
@@ -92,21 +92,6 @@ extern "C"
     void set_domega(amrex::Real* domega);
     
 ///////////////////////////
-
-///////////////////////////
-// in init_funcs.F90
-
-    void init_vel(const int* lo, const int* hi,
-                  amrex_real* data, const int* dlo, const int* dhi,
-                  const amrex_real* dx, const amrex_real* prob_lo, const amrex_real* prob_hi, const int* di, const amrex::Real* real_lo, const amrex::Real* real_hi);
-
-///////////////////////////
-
-///////////////////////////
-// in sqrt_mf.F90
-    
-  void sqrt_mf(const int* lo, const int* hi,
-	       const amrex_real* mf, const int* mflo, const int* mfhi, const int* ncomp);
 
 #ifdef __cplusplus
 }

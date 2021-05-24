@@ -91,6 +91,13 @@ void ReadCheckPoint(int& step,
                     DistributionMapping& dmap);
 
 ///////////////////////////
+// in Init.cpp
+
+void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
+                 MultiFab& rho_in,
+                 const Geometry& geom);
+
+///////////////////////////
 // in WritePlotFile.cpp
 
 void WritePlotFile(const int step,
