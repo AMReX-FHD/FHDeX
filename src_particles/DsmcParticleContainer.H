@@ -3,7 +3,7 @@
 
 #include "paramPlane.H"
 #include <AMReX_NeighborParticles.H>
-
+#include <AMReX_MultiFab.H>
 #include <common_namespace.H>
 
 using namespace std;
@@ -74,21 +74,10 @@ typedef struct {
   double mass;
   double radius;
   double R;
-  double T;
-  double q;
-  double n0;
-  double mfp;
-  double P;
   double Neff;
-  double cp;
-  double sigma;
-  // Simulated particle volume for evaluating radial distribution function
-  double partVol
-  // Wall interactions
-  // Add to common (to be read as inputs)
-  // Perhaps these already accoutned for
-  double alpha_wall // resitution with wall
-  double beta_wall // friction with wall (for later)
+  double partVol;
+  double alpha_wall; // resitution with wall
+  double beta_wall; // friction with wall (for later)
   
 } dsmcSpecies;
 
@@ -96,8 +85,11 @@ typedef struct {
 // Includes same species
 typedef struct {
 
-	double alpha_pp
-	double csx
+	double csx;
+	double alpha_pp;
+	double alpha_pw;
+	double beta_pp;
+	double beta_pw;
 	
 } dsmcInterSpecies;
 
@@ -113,36 +105,35 @@ public:
                                   const BoxArray            & ba,
                                   int ncells);
 
-    void InitParticles();
-	 // Initialize Collision cells here?
+    void InitParticles(MultiFab & vrmax);
+
 	 void InitCollisionCells();
 
-	 // Some clarity here for myself would be good
-	 // maybe do not want to combine with realData because variable with runs
+    void SortParticles();
+
+    void MoveParticlesCPP(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount);
+    
+    void CollideParticles(MultiFab & mfselect, MultiFab & mfphi, MultiFab & mfvrmax);
+
     dsmcSpecies properties[MAX_SPECIES];
-    dsmcInterSpecies propBetweenSpecies[MAX_SPECIES*(MAX_SPECIES+1)*0.5]
-    // ma
-    // Why are these not all ints?
-    // use long in case there's a lot of particles
-    long realParticles; // likely unneeded
+    dsmcInterSpecies propBetweenSpecies[(long)std::ceil(MAX_SPECIES*(MAX_SPECIES+1)*0.5)];
+
+    long realParticles;
     long simParticles;
     long totalCollisionCells;
     Real domainVol;
+    Real domSize[3];
+    Real dx[3];
 
 	 int getSpeciesIndex(int species1, int species2);
 	 
 	 // Evaluating radial distribution functino
-	 Real g0_Ma_Ahmadi(Real solidFrac);
+	 Real g0_Ma_Ahmadi(int species1, int species2);
 	 const Real chi_max = 1000.0; // value is arbitrary (change as needed or maybe as input?)
-	 
-	 
-
+	
 protected:
-    // used to store vectors of particle indices on a cell-by-cell basis
-//    std::map<int, amrex::BaseFab<std::vector<int> > > m_cell_vectors;
-    std::map<int, std::vector<std::vector<int> > > m_cell_vectors;
-    // map< ???, 2D array of particles in each cell>
-    //
+	std::map<int, std::vector<std::vector<int> > > m_cell_vectors; //[MAX_SPECIES];
+	MultiFab max_relative_velocity_each_cell;
 
 
 };

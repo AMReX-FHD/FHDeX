@@ -8,14 +8,10 @@ using namespace amrex;
 double getTheta(double nx, double ny, double nz)
 {
 
-#if (BL_SPACEDIM == 3)
     double r = sqrt(nx*nx+ny*ny+nz*nz);
     return acos(nz/r);
-#endif
-#if (BL_SPACEDIM == 2)
-    double r = sqrt(nx*nx+ny*ny+nz*nz);
-    return acos(nx/r);
-#endif
+
+
 }
 
 double getPhi(double nx, double ny, double nz)
@@ -25,7 +21,6 @@ double getPhi(double nx, double ny, double nz)
 
 void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const Real* domainLo, const Real* domainHi)
 {
-#if (BL_SPACEDIM == 3)
 
     double theta, phi;
 //Domain boundaries
@@ -545,199 +540,7 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
     paramPlaneList[5].fyRightAv = 0;
     paramPlaneList[5].fzRightAv = 0;
 
-#endif
-
-#if (BL_SPACEDIM == 2)
-
-    double theta;
-
-//Domain boundaries
-
-//domainLo x
-    paramPlaneList[0].x0 = domainLo[0];
-    paramPlaneList[0].y0 = domainLo[1];
-
-    paramPlaneList[0].ux = 0;
-    paramPlaneList[0].uy = 1;
-
-    paramPlaneList[0].uTop = domainHi[1] - domainLo[1];
-
-    paramPlaneList[0].lnx = 1;
-    paramPlaneList[0].lny = 0;
-    
-    paramPlaneList[0].rnx = -1;
-    paramPlaneList[0].rny = 0;
-
-    paramPlaneList[0].porosityLeft = 0;
-    paramPlaneList[0].specularityLeft = 0;
-    paramPlaneList[0].temperatureLeft = T_init[0];
-    paramPlaneList[0].momentumConsLeft = 1;
-
-    paramPlaneList[0].porosityRight = 0;
-    paramPlaneList[0].specularityRight = 0;
-    paramPlaneList[0].temperatureRight = T_init[0];
-    paramPlaneList[0].momentumConsRight = 1;
-
-    paramPlaneList[0].periodicity = 0;
-    paramPlaneList[0].boundary = 1;
-
-    theta = getTheta(paramPlaneList[0].lnx, paramPlaneList[0].lny, 0);
-
-    paramPlaneList[0].cosThetaLeft = cos(theta);
-    paramPlaneList[0].sinThetaLeft = sin(theta);
-
-    theta = getTheta(paramPlaneList[0].rnx, paramPlaneList[0].rny, 0);
-
-    paramPlaneList[0].cosThetaRight = cos(theta);
-    paramPlaneList[0].sinThetaRight = sin(theta);
-
-    paramPlaneList[0].fxLeftAv = 0;
-    paramPlaneList[0].fyLeftAv = 0;
-    paramPlaneList[0].fzLeftAv = 0;
-
-    paramPlaneList[0].fxRightAv = 0;
-    paramPlaneList[0].fyRightAv = 0;
-    paramPlaneList[0].fzRightAv = 0;
 
 
-//domianHi x plane
-    paramPlaneList[1].x0 = domainHi[0];
-    paramPlaneList[1].y0 = domainLo[1];
-
-    paramPlaneList[1].ux = 0;
-    paramPlaneList[1].uy = 1;
-
-    paramPlaneList[1].uTop = domainHi[1] - domainLo[1];
-
-    paramPlaneList[1].lnx = 1;
-    paramPlaneList[1].lny = 0;
-    
-    paramPlaneList[1].rnx = -1;
-    paramPlaneList[1].rny = 0;
-
-    paramPlaneList[1].porosityLeft = 0;
-    paramPlaneList[1].specularityLeft = 0;
-    paramPlaneList[1].temperatureLeft = T_init[0];
-    paramPlaneList[1].momentumConsLeft = 1;
-
-    paramPlaneList[1].porosityRight = 0;
-    paramPlaneList[1].specularityRight = 0;
-    paramPlaneList[1].temperatureRight = T_init[0];
-    paramPlaneList[1].momentumConsRight = 1;
-
-    paramPlaneList[1].periodicity = 0;
-    paramPlaneList[1].boundary = 2;
-
-    theta = getTheta(paramPlaneList[1].lnx, paramPlaneList[1].lny, 0);
-
-    paramPlaneList[1].cosThetaLeft = cos(theta);
-    paramPlaneList[1].sinThetaLeft = sin(theta);
-
-    theta = getTheta(paramPlaneList[1].rnx, paramPlaneList[1].rny, 0);
-
-    paramPlaneList[1].cosThetaRight = cos(theta);
-    paramPlaneList[1].sinThetaRight = sin(theta);
-
-    paramPlaneList[1].fxLeftAv = 0;
-    paramPlaneList[1].fyLeftAv = 0;
-    paramPlaneList[1].fzLeftAv = 0;
-
-    paramPlaneList[1].fxRightAv = 0;
-    paramPlaneList[1].fyRightAv = 0;
-    paramPlaneList[1].fzRightAv = 0;
-
-//domainLo y plane
-    paramPlaneList[2].x0 = domainLo[0];
-    paramPlaneList[2].y0 = domainLo[1];
-
-    paramPlaneList[2].ux = 1;
-    paramPlaneList[2].uy = 0;
-
-    paramPlaneList[2].uTop = domainHi[0] - domainLo[0];
-
-    paramPlaneList[2].lnx = 0;
-    paramPlaneList[2].lny = 1;
-    
-    paramPlaneList[2].rnx = 0;
-    paramPlaneList[2].rny = -1;
-
-    paramPlaneList[2].porosityLeft = 1;
-    paramPlaneList[2].specularityLeft = 1;
-    paramPlaneList[2].temperatureLeft = T_init[0];
-    paramPlaneList[2].momentumConsLeft = 1;
-
-    paramPlaneList[2].porosityRight = 1;
-    paramPlaneList[2].specularityRight = 1;
-    paramPlaneList[2].temperatureRight = T_init[0];
-    paramPlaneList[2].momentumConsRight = 1;
-
-    paramPlaneList[2].periodicity = 1;
-    paramPlaneList[2].boundary = 3;
-
-    theta = getTheta(paramPlaneList[2].lnx, paramPlaneList[2].lny, 0);
-
-    paramPlaneList[2].cosThetaLeft = cos(theta);
-    paramPlaneList[2].sinThetaLeft = sin(theta);
-
-    theta = getTheta(paramPlaneList[2].rnx, paramPlaneList[2].rny, 0);
-
-    paramPlaneList[2].cosThetaRight = cos(theta);
-    paramPlaneList[2].sinThetaRight = sin(theta);
-
-    paramPlaneList[2].fxLeftAv = 0;
-    paramPlaneList[2].fyLeftAv = 0;
-    paramPlaneList[2].fzLeftAv = 0;
-
-    paramPlaneList[2].fxRightAv = 0;
-    paramPlaneList[2].fyRightAv = 0;
-    paramPlaneList[2].fzRightAv = 0;
-
-//domianHi y plane
-    paramPlaneList[3].x0 = domainLo[0];
-    paramPlaneList[3].y0 = domainHi[1];
-
-    paramPlaneList[3].ux = 1;
-    paramPlaneList[3].uy = 0;
-
-    paramPlaneList[3].uTop = domainHi[0] - domainLo[0];
-
-    paramPlaneList[3].lnx = 0;
-    paramPlaneList[3].lny = 1;
-    
-    paramPlaneList[3].rnx = 0;
-    paramPlaneList[3].rny = -1;
-
-    paramPlaneList[3].porosityLeft = 1;
-    paramPlaneList[3].specularityLeft = 1;
-    paramPlaneList[3].temperatureLeft = T_init[0];
-    paramPlaneList[3].momentumConsLeft = 1;
-
-    paramPlaneList[3].porosityRight = 1;
-    paramPlaneList[3].specularityRight = 1;
-    paramPlaneList[3].temperatureRight = T_init[0];
-    paramPlaneList[3].momentumConsRight = 1;
-
-    paramPlaneList[3].periodicity = 1;
-    paramPlaneList[3].boundary = 4;
-
-    theta = getTheta(paramPlaneList[3].lnx, paramPlaneList[3].lny, 0);
-
-    paramPlaneList[3].cosThetaLeft = cos(theta);
-    paramPlaneList[3].sinThetaLeft = sin(theta);
-
-    theta = getTheta(paramPlaneList[3].rnx, paramPlaneList[3].rny, 0);
-
-    paramPlaneList[3].cosThetaRight = cos(theta);
-    paramPlaneList[3].sinThetaRight = sin(theta);
-
-    paramPlaneList[3].fxLeftAv = 0;
-    paramPlaneList[3].fyLeftAv = 0;
-    paramPlaneList[3].fzLeftAv = 0;
-
-    paramPlaneList[3].fxRightAv = 0;
-    paramPlaneList[3].fyRightAv = 0;
-    paramPlaneList[3].fzRightAv = 0;
-
-#endif
 
 }

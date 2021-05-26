@@ -119,8 +119,12 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
                      Array4<Real const> const& yflux_fab = flux[1].array(mfi);,
                      Array4<Real const> const& zflux_fab = flux[2].array(mfi););
 
-        amrex::ParallelFor(bx, nvars, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+		  // for the box, 
+		  // for loop for GPUS
+        amrex::ParallelFor(bx, nvars, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept // <- just leave it
         {
+        		// nth component of cell i,j,k
+        		// nvars -> nspecies*nspecies
             cup_fab(i,j,k,n) = cu_fab(i,j,k,n) - dt *
                 ( AMREX_D_TERM(  (xflux_fab(i+1,j,k,n) - xflux_fab(i,j,k,n)) / dx[0],
                                + (yflux_fab(i,j+1,k,n) - yflux_fab(i,j,k,n)) / dx[1],

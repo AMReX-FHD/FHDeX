@@ -1692,7 +1692,7 @@ void FhdParticleContainer::EvaluateStats(MultiFab& particleInstant,
     for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) 
     {
 
-	    PairIndex index(pti.index(), pti.LocalTileIndex());
+	    PairIndex index(pti.index(), pti.LocalTileIndex()); /
         const int np = this->GetParticles(lev)[index].numRealParticles();
 	    auto& plev = this->GetParticles(lev);
 	    auto& ptile = plev[index];
@@ -1711,7 +1711,7 @@ void FhdParticleContainer::EvaluateStats(MultiFab& particleInstant,
         Array4<Real> part_mean = particleMeans[pti].array();
 
         //const Array4<Real>& data = charge.array(mfi);
-
+		  // Updates multfab
         AMREX_FOR_1D( np, ni,
         {
             ParticleType & part = particles[ni];

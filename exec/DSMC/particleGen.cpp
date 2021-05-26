@@ -5,7 +5,7 @@
 #include <string>
 #include <fstream>
 
-void FhdParticleContainer::InitParticles()
+void FhdParticleContainer::InitParticles(Real T_init, MultiFab* vrmax)
 {
     const int lev = 0;
     const Geometry& geom = Geom(lev);
@@ -13,6 +13,12 @@ void FhdParticleContainer::InitParticles()
     int pcount = 0;
 
     bool proc0_enter = true;
+    
+    // Search for max relative speed
+    // ... estimate as double the mag of a single particle speed
+    std::array<Real, 3> vmax = {0., 0., 0.};
+    Real spdmax = 0.;
+    Real spd;
         
     for (MFIter mfi = MakeMFIter(lev, true); mfi.isValid(); ++mfi) {
         
@@ -24,12 +30,10 @@ void FhdParticleContainer::InitParticles()
 
         //Assuming tile=box for now, i.e. no tiling.
         IntVect smallEnd = tile_box.smallEnd();
-        IntVect bigEnd = tile_box.bigEnd();       
+        IntVect bigEnd = tile_box.bigEnd();
 
         if(ParallelDescriptor::MyProc() == 0 && mfi.LocalTileIndex() == 0 && proc0_enter) {
-
             proc0_enter = false;
-
             std::ifstream particleFile("particles.dat");
  //           Print() << "SPEC TOTAL: " << particleInfo[0].total << "\n";
             for(int i_spec=0; i_spec < nspecies; i_spec++) {
@@ -38,7 +42,7 @@ void FhdParticleContainer::InitParticles()
                     p.id()  = ParticleType::NextID();
  //                   std::cout << "ID: " << p.id() << "\n";
                     p.cpu() = ParallelDescriptor::MyProc();
-                    p.idata(FHD_intData::sorted) = 0;
+                    p.idata(FHD_intData::sorted) = -1;
 
                     if(particle_placement == 1)
                     {
@@ -55,7 +59,16 @@ void FhdParticleContainer::InitParticles()
 
                     }
 
-                    p.rdata(FHD_realData::velx) = sqrt(properties[i_spec].R*properties[i_spec].T)*amrex::RandomNormal(0.,1.);
+						  // Determine max velocity
+						  vmax[1] = sqrt(T_init[i_spec]/3)*amrex::RandomNormal(0.,1.);
+						  vmax[2] = sqrt(T_init[i_spec]/3)*amrex::RandomNormal(0.,1.);
+						  vmax[3] = sqrt(T_init[i_spec]/3)*amrex::RandomNormal(0.,1.);
+						  spd = std::norm(vmax);
+						  if(spd>spdmax){
+						      spdmax = spd;
+						  }
+						  
+                    p.rdata(FHD_realData::velx) = vmax[1];
                     p.rdata(FHD_realData::vely) = sqrt(properties[i_spec].R*properties[i_spec].T)*amrex::RandomNormal(0.,1.);
                     p.rdata(FHD_realData::velz) = sqrt(properties[i_spec].R*properties[i_spec].T)*amrex::RandomNormal(0.,1.);
 
@@ -70,12 +83,13 @@ void FhdParticleContainer::InitParticles()
                     pcount++;
                 }
             }
-
             particleFile.close();
         }
     }
+	 vrmax.setVal(spdmax);
 
     Redistribute();
+    SortParticles();
 }
 
 

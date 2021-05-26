@@ -73,6 +73,10 @@ extern "C"
                                      amrex::Real* mass, amrex::Real* nfrac, amrex::Real* permittivity,
                                      int* wall_mob, amrex::Real* rmin, amrex::Real* rmax, amrex::Real* eepsilon, amrex::Real* sigma,
                                      amrex::Real* rmin_wall, amrex::Real* rmax_wall, amrex::Real* eepsilon_wall, amrex::Real* sigma_wall,
+                                     // DSMCGran
+                                     amrex::Real* restitution_pp, amrex::Real* restitution_pw,
+                                     amrex::Real* friction_pp, amrex::Real* friction_pw,
+                                     
                                      int* poisson_verbose,
                                      int* poisson_bottom_verbose,
                                      int* poisson_max_iter, amrex::Real* poisson_rel_tol,

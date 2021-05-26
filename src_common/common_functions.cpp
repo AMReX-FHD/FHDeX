@@ -121,7 +121,7 @@ void InitializeCommonNamespace() {
                                 potential_lo.data(), potential_hi.data(),
                                 &struct_fact_int, &radialdist_int, &cartdist_int,
                                 &n_steps_skip, &binSize, &searchDist,
-				&project_dir, &slicepoint, max_grid_projection.dataPtr(),
+										  &project_dir, &slicepoint, max_grid_projection.dataPtr(),
                                 &histogram_unit,
                                 density_weights.dataPtr(), shift_cc_to_boundary.dataPtr(),
                                 &particle_placement, particle_count.dataPtr(),
@@ -129,7 +129,11 @@ void InitializeCommonNamespace() {
                                 p_int_tog.begin(),p_int_tog_wall.begin(), &particle_neff,
                                 particle_n0.dataPtr(), mass.dataPtr(), nfrac.dataPtr(),
                                 &permittivity,
-                                &wall_mob,rmin.begin(),rmax.begin(), eepsilon.begin(), sigma.begin(),rmin_wall.begin(),rmax_wall.begin(), eepsilon_wall.begin(), sigma_wall.begin(),
+                                &wall_mob,rmin.begin(),rmax.begin(), eepsilon.begin(), 
+                                sigma.begin(),rmin_wall.begin(),rmax_wall.begin(),
+                                eepsilon_wall.begin(), sigma_wall.begin(),
+                                restitution_pp.begin(), restitution_pw.begin(), // DSMCGran
+                                friction_pp.begin(), friction_pw.begin(),
                                 &poisson_verbose, &poisson_bottom_verbose, &poisson_max_iter,
                                 &poisson_rel_tol, &particle_grid_refine, &es_grid_refine,
                                 diff.dataPtr(), &all_dry, &fluid_tog, &es_tog, &drag_tog, &move_tog, &rfd_tog,
@@ -138,7 +142,8 @@ void InitializeCommonNamespace() {
                                 &plot_ascii, &plot_means, &plot_vars, &plot_covars, &plot_cross,
                                 &solve_chem, &diffcoeff, &scaling_factor,
                                 &source_strength, &regrid_int, &do_reflux, &particle_motion,
-                                &turb_a, &turb_b, &turbForcing);
+                                &turb_a, &turb_b, &turbForcing
+                                );
 
     plot_base_name = temp_plot_base_name;
     chk_base_name = temp_chk_base_name;

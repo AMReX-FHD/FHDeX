@@ -164,6 +164,11 @@ module common_namelist_module
   double precision,   save :: rmax(MAX_SPECIES*MAX_SPECIES)
   double precision,   save :: eepsilon(MAX_SPECIES*MAX_SPECIES)
   double precision,   save :: sigma(MAX_SPECIES*MAX_SPECIES)
+  ! DSMCGran
+  double precision,   save :: restitution_pp(MAX_SPECIES*MAX_SPECIES)
+  double precision,   save :: restitution_pw(MAX_SPECIES*MAX_SPECIES)
+  double precision,   save :: friction_pp(MAX_SPECIES*MAX_SPECIES)
+  double precision,   save :: friction_pw(MAX_SPECIES*MAX_SPECIES)
 
   double precision,   save :: rmin_wall(MAX_SPECIES)
   double precision,   save :: rmax_wall(MAX_SPECIES)
