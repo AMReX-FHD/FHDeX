@@ -196,7 +196,8 @@ void main_driver(const char* argv)
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Collide Particles
 		//if (collide_tog != 0) {
-		//	particles.CollideParticles(MultiFab& selectionsCell, dt);
+		// particles.CalcCollisionCells(dt);
+		//	particles.CollideParticles();
 		//}
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Move Particles

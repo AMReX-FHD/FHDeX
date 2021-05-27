@@ -76,27 +76,21 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
 }
 
 // Use to approximate pair correlation fuunc with radial distr. func
-Real FhdParticleContainer::g0_Ma_Ahmadi(int species1, int species2){
+Real FhdParticleContainer::g0_Ma_Ahmadi(int species1, int species2, Real phi1, Real phi2){
 	const double C1 = 2.5, C2 = 4.5904;
 	const double C3 = 4.515439, CPOW = 0.67802;
-   // CHANGE: Divide by collision cell volume
-   // Should be stored in the boxes of BoxArray
-   // Don't think it has been set up quite yet
-//	Real phi1 = properties[species1].partVol*properties[species1].Neff*properties[species1].
-//	Real phi2 = properties[speices2].partVol
-//	if(*species1==*species2) {
-//		int indx = getSpecIndx(int i, int j)
-//		// ADD: Solid fraction by combination of species in each collision cell
-//		// double phi = (PartoCellVol[i])*np[i+NSpecies*(i-1)] // auto-type casted
-//		double numer = 1 + C1*PoCVol + C2*pow(PoCVol,2) + C3*pow(PoCVol,3)
-//		numer = numer * 4.0*PoCVol
-//		// Declare phi
-//		double phiRatio = phi/phi_max
-//		double denom = pow(1.0 - pow(phiRatio,3),CPOW)
-//		return std::min(1+numer/denom,chi_max)
-//	} else {
-//	 // add Lebowitz RDF here
-//	}
+
+	if(species1==species2) {
+		int indx = getSpecIndx(int i, int j)
+		Real phiTotal = phi1 + phi2;
+		Real numer = 1 + C1*phiTotal + C2*pow(phiTotal,2) + C3*pow(phiTotal,3)
+		numer = numer * 4.0*phiTotal
+		Real phiRatio = phiTotal/phi_max
+		Real denom = pow(1.0 - pow(phiRatio,3),CPOW)
+		return std::min(1+numer/denom,chi_max)
+	} else {
+	 // add Lebowitz RDF here
+	}
 	return 0;
 }
 
@@ -340,7 +334,7 @@ void FhdParticleContainer::EvaluateStats(MultiFab& particleInstant, MultiFab& pa
 	}
 
 }
-// Compute selections here?
+
 void FhdParticleContainer::InitCollisionCells() {
 
 	//for(int i=0;i<nspecies;i++) {
@@ -369,245 +363,150 @@ void FhdParticleContainer::InitCollisionCells() {
 		const Array4<Real> & arrphi = mfphi.array(mfi);
 		const Array4<Real> & arrselect = mfselect.array(mfi);
 		const Array4<Real> & arrnspec = mfnspec.array(mfi);
-		//Print() << arrvrmax << "\n";
+		
+				int i,j,k;
+		// Assume only one tile per box
+		i=0;
+		j=0;
+		k=0;
+		const IntVect& iv = {i,j,k};
+		long imap = tile_box.index(iv);
+		
 	}
-
-//	for (FhdParIter pti(* this, lev); pti.isValid(); ++pti) {
-//		const int grid_id = pti.index();
-//		// Print() << "Grid ID: " << grid_id << " \n";
-//		
-//		const int tile_id = pti.LocalTileIndex();
-//		const Box& tile_box  = pti.tilebox();
-//		// const long ptindex = pti.index();
-//		
-//		auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
-//		auto& particles = particle_tile.GetArrayOfStructs();
-//		
-//		// Shorter/cleaner way?
-//		//PairIndex index(pti.index(), pti.LocalTileIndex());
-//		//AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
-//		
-//		const long np = particles.numParticles();
-//		// Track number of particles in each tile per species
-//		int numberParticleSpecies[nspecies];
-//		
-//		// ADD: Flag for 2D vs 3D (likely unneeded)
-//		// Loop over collision cells (each tile_box)
-//		// initially check if I can grab particles
-//		
-//		// Problem while using ParallelFor: forgets where pti is pointing
-//		
-//		// Because each box has one tile, only one index in imap
-//		const long imap = 0;
-//		
-//		
-//		//amrex::ParallelFor(tile_box,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
-
-			// Need imap to access m_cell_vectors
-			// const IntVect& iv = {i,j,k};
-			// long imap = tile_box.index(iv);
-			// Print() << "ParallelFor: " << imap << " \n";
-			
-			// first calculate number of selections
-//			for (int i_spec = 0; i_spec<nspecies; i_spec++) {
-//				for (int j_spec = 0; j_spec<nspecies, j_spec++) { 
-//					spec_pair_index
-//					arr_select(i,j,k,l) = arr_select(i,j,k,l	
-			
-			// test that can extract the particles
-//			long np = m_cell_vectors[pti.index()][imap].size();
-//			long np = m_cell_vectors[ptindex][imap].size();
-//			for(int i_select = 0; i_select < 5; i_select++) {
-				// search through particles to find particle that matches chosen id
-//				int rand_indx = std::ceil(amrex::Random()*np)-1;
-//				int pindx = m_cell_vectors[ptindex][imap][rand_indx];
-//				for (int i_part = 0; i_part < np; i_part++) {
-//					ParticleType & part = particles[i_part];
-//	            if(part.id() == pindx) {
-//	            	Print() << "Part ID: " << part.id() << "Random ID: " << pindx << "\n";	
-//	            }
-//	         }
-//	      }
-//      });
-//	}
 }
 
 
-// Compute selections here?
-void FhdParticleContainer::CalcCollisionCells(MultiFab & mfvrmax, MultiFab & mfphi, MultiFab & mfselect) {
+// Compute selections here
+void FhdParticleContainer::CalcCollisionCells(Real dt) {
 	int lev = 0;
-	for (FhdParIter pti(* this, lev); pti.isValid(); ++pti) {
-		const int grid_id = pti.index();
-		Print() << "Grid ID: " << grid_id << " \n";
-		
-		const int tile_id = pti.LocalTileIndex();
-		const Box& tile_box  = pti.tilebox();
-		// const long ptindex = pti.index();
-		
+	for(MFIter mfi(mfvrmax); mfi.isValid(); ++mfi) {
+		const Box& tile_box  = mfi.tilebox();
+		const int grid_id = mfi.index();
+		const int tile_id = mfi.LocalTileIndex();
 		auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
-		auto& particles = particle_tile.GetArrayOfStructs();
-		
-		// Shorter/cleaner way?
-		//PairIndex index(pti.index(), pti.LocalTileIndex());
-		//AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
-		
-		const long np = particles.numParticles();
-		// Track number of particles in each tile per species
-		int numberParticleSpecies[nspecies];
-		
-		// ADD: Flag for 2D vs 3D (likely unneeded)
-		// Loop over collision cells (each tile_box)
-		// initially check if I can grab particles
-		
-		// Problem while using ParallelFor: forgets where pti is pointing
-		
-		// Because each box has one tile, only one index in imap
-		const long imap = 0;
-		
-		
-		//amrex::ParallelFor(tile_box,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
 
-			// Need imap to access m_cell_vectors
-			// const IntVect& iv = {i,j,k};
-			// long imap = tile_box.index(iv);
-			// Print() << "ParallelFor: " << imap << " \n";
-			
-			// first calculate number of selections
-//			for (int i_spec = 0; i_spec<nspecies; i_spec++) {
-//				for (int j_spec = 0; j_spec<nspecies, j_spec++) { 
-//					spec_pair_index
-//					arr_select(i,j,k,l) = arr_select(i,j,k,l	
-			
-			// test that can extract the particles
-//			long np = m_cell_vectors[pti.index()][imap].size();
-//			long np = m_cell_vectors[ptindex][imap].size();
-//			for(int i_select = 0; i_select < 5; i_select++) {
-				// search through particles to find particle that matches chosen id
-//				int rand_indx = std::ceil(amrex::Random()*np)-1;
-//				int pindx = m_cell_vectors[ptindex][imap][rand_indx];
-//				for (int i_part = 0; i_part < np; i_part++) {
-//					ParticleType & part = particles[i_part];
-//	            if(part.id() == pindx) {
-//	            	Print() << "Part ID: " << part.id() << "Random ID: " << pindx << "\n";	
-//	            }
-//	         }
-//	      }
-//      });
+		// Convert MultiFabs -> arrays
+		const Array4<Real> & arrvrmax = mfvrmax.array(mfi);
+		const Array4<Real> & arrphi = mfphi.array(mfi);
+		const Array4<Real> & arrselect = mfselect.array(mfi);
+		const Array4<Real> & arrnspec = mfnspec.array(mfi);
+		
+		int spec_indx;
+		Real NSel; // Number of selections this time step
+		Reak phi1, phi2, chi0; // radial distribution function (enhance collision frequency)
+		Real crossSection;
+		int np_i, np_j; // number of particles in collision cell for species i and j
+		
+		int i,j,k;
+		// Assume only one tile per box
+		i=0;
+		j=0;
+		k=0;
+
+		Real vrmag, vrmax;
+		// Update number of selections
+		for (int i_spec = 0; i_spec < nspecies; i_spec++) {
+			for (int j_spec = 0; j_spec < nspecies; j_spec++) {
+				spec_indx = getSpeciesIndex(i_spec,j_spec);
+				np_i = arrnspec(i,j,k,spec_indx);
+				np_j = arrnspec(i,j,k,spec_indx);
+				phi1 = arrphi(i,j,k,i_spec);
+				phi2 = arrphi(i,h,k,j_spec);
+				chi0 = g0_Ma_Ahmadi(i_spec,j_spec, phi1, phi2);
+				vrmax = arrvrmax(i,j,k,spec_indx);
+				crossSection = interproperties[spec_indx].csx;
+				NSel = 0.5*np_i*np_j*csx*vrmax*oCollisionCellVol*chi0*dt;
+				arrselect(i,j,k,spec_indx) = arrselect(i,j,k,spec_indx) + NSel;
+		}
+	}
 	}
 }
 
-void FhdParticleContainer::CollideParticles(MultiFab & mfselect, MultiFab & mfphi, MultiFab & mfvrmax) {
-//	int lev = 0;
-//	for (FhdParIter pti(* this, lev); pti.isValid(); ++pti) {
-//		const int grid_id = pti.index();
-//		const int tile_id = pti.LocalTileIndex();
-//		const Box& tile_box  = pti.tilebox();
+void FhdParticleContainer::CollideParticles() {
+	int lev = 0;
+	for(MFIter mfi(mfvrmax); mfi.isValid(); ++mfi) {
+		const Box& tile_box  = mfi.tilebox();
+		const int grid_id = mfi.index();
+		const int tile_id = mfi.LocalTileIndex();
+		auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
 
-//	   // make_pair(grid_id,tile_id) -> indicates where tile is where each tile is a collision cell
-//	   // tile has both grid and particle info so grab particle info (GetParticles)
-//		auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
-//		// Actual particle data
-//		auto& particles = particle_tile.GetArrayOfStructs();
-
-//		// Convert Multifabs to arrays
-//		Array4<Real> & arr_select = mfselect.array(pti);
-//      const Array4<Real> & arr_phi = mfphi.array(pti);
-//      const Array4<Real> & arr_vrmax = mfvrmax.array(pti);
-//      
-//      // Dummy Vars
-//      ParticleType & part;
-//		
-//		// ADD: Flag for 2D vs 3D (likely unneeded)
-//		// Loop over collision cells (each tile_box)
-//		// initially check if I can grab particles
-//		
-//		
-//		amrex::ParallelFor(tile_box,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
-
-//			// Need imap to access m_cell_vectors
-//			IntVect iv = {i,j,k};
-//			long imap = tile_box.index(iv);
-//			
-//			// first calculate number of selections
-//			for (int i_spec = 0; i_spec<nspecies; i_spec++) {
-//				for (int j_spec = 0; j_spec<nspecies, j_spec++) { 
-//					spec_pair_index
-//					arr_select(i,j,k,l) = arr_select(i,j,k,l	
-//			
-//			// test that can extract the particles
-//			long np = m_cell_vectors[pti.index()][imap].size();
-//			for (int l = 0; l < np; l++) {
-//	         part = m_cell_vectors[pti.index()][imap]
-//            		[std::ceil(amrex::Random()*np)-1];
-//            Print() << "Part ID: " << part.id() << "\n";
-//         }
-//      });
-//	}
+		// Convert MultiFabs -> arrays
+		const Array4<Real> & arrvrmax = mfvrmax.array(mfi);
+		const Array4<Real> & arrphi = mfphi.array(mfi);
+		const Array4<Real> & arrselect = mfselect.array(mfi);
+		const Array4<Real> & arrnspec = mfnspec.array(mfi);
+		//Print() << arrvrmax << "\n";
+		
+		int spec_indx;
+		int NSel; // Number of selections this time step
+		int p1, p2; // index of randomly sampled particles
+		int p1_spec, p2_spec; // species of random particles
+		int np_i, np_j, np_total; // number of particles in collision cell for species i and j
+		int i,j,k;
+		// Assume only one tile per box
+		i=0;
+		j=0;
+		k=0;
+		
+		const IntVect& iv = {i,j,k};
+		long imap = tile_box.index(iv);
+		bool pairFound;
+		
+		Real eij[3], vreij[3];
+		Real vel1[3], vel2[3], vr[3];
+		Real vrmag, vrmax;
+		// Loops through species pairs
+		for (int i_spec = 0; i_spec < nspecies; i_spec++) {
+			for (int j_spec = 0; j_spec < nspecies; j_spec++) {
+				spec_indx = getSpeciesIndex(i_spec,j_spec);
+				NSel = floor(arrselect(i,j,k,spec_indx));
+				arrselect(i,j,k,spec_indx) = arrselect(i,j,k,spec_indx) - NSel;
+				np_i = arrnspec(i,j,k,spec_indx);
+				np_j = arrnspec(i,j,k,spec_indx);
+				np_total = np_i + np_j; // initially sample from all particles
+				vrmax = arrvrmax(i,j,k,spec_indx);
+				// Loop through selections
+				for (int isel = 0; isel < NSel; isel++) {
+					pairFound = FALSE;
+					while(!= pairFound) {
+						// p1 = floor(amrex::Random()*np_i);
+						// p2 = floor(amrex::Random()*np_j);
+						p1 = floor(amrex::Random()*np_total);
+						p2 = floor(amrex::Random()*np_total);
+						// p1 = m_cell_vectors[i_spec][grid_id][imap][p1];
+						// p2 = m_cell_vectors[j_spec][grid_id][imap][p2];
+						p1 = m_cell_vectors[grid_id][imap][p1];
+						p2 = m_cell_vectors[grid_id][imap][p2];
+						p1_spec = particles[p1].idata(FHD_intData::species);
+						p2_spec = particles[p2].idata(FHD_intData::species);
+						if(p1_spec == i_spec && p2_spec == j_spec) {
+							pairFound = TRUE;
+						}
+					}
+					vel1 = {particle[p1].rdata(FHD_realData::velx),
+							  particle[p1].rdata(FHD_realData::vely),
+							  particle[p2].rdata(FHD_realData::velz)};
+					vel2 = {particle[p2].rdata(FHD_realData::velx),
+						     particle[p2].rdata(FHD_realData::vely),
+						     particle[p2].rdata(FHD_realData::velz)};
+					vr = vel2-vel1;
+					vrmag = sqrt(vr.dotProduct(vr));
+					// If relative speed greater than max relative speed, replace
+					if(vrmag>vrmax) {
+						vrmax = vrmag*1.2;
+						arrvrmax(i,j,k,spec_indx) = vrmax;
+					}
+					// later want to reject non-approaching
+					if(vrmag>vrmax*amrex::Random()) {
+						eij = {amrex::Random(),
+								 amrex::Random(),
+								 amrex::Random()};
+						vreij = vr.dotProduct(eij) * eij * interproperties[spec_indx].inel;;
+						vel2 = vel2 + vreij;
+						vel1 = vel1 - vreij;
+						// add boosted velocity calculations here
+				}
+			}
+		}
+	}
 }
-         
-//		// for MultiFab mfselect, grab array at pti and store in arr_select
-//		// We will be updating the selections
-//	   Array4<Real> & arr_select = mfselect.array(pti);
-//      const Array4<Real> & arr_phi = mfphi.array(pti);
-//      const Array4<Real> & arr_vrmax = mfvrmax.array(pti);
-
-//		for (int i = 0; i < np; ++ i) {
-//			ParticleType & part = particles[i];
-//			if(part.idata(FHD_intData::sorted) == -1) { // only sort those that have a new cell
-//				const IntVect& iv = this->Index(part, lev);
-
-//				part.idata(FHD_intData::i) = iv[0]; // where does i start and end
-//				part.idata(FHD_intData::j) = iv[1];
-//				part.idata(FHD_intData::k) = iv[2];
-
-//				long imap = tile_box.index(iv);
-
-//				part.idata(FHD_intData::sorted) = m_cell_vectors[pti.index()][imap].size();
-//				m_cell_vectors[pti.index()][imap].push_back(i);
-//				
-//			}
-//		}
-			
-
-			// for each collision cell, loop over the species and then selections
-//			for (int l = 0; l < nspecies; l++) {
-//				for (int m = 0; m < nspecies; m++) {
-//					
-//				Real membersInv = 1.0/part_inst(i,j,k,0);
-
-//            part_inst(i,j,k,1) = part_inst(i,j,k,1)*cellVolInv;
-
-//            part_inst(i,j,k,2) = part_inst(i,j,k,2)*membersInv;
-//            part_inst(i,j,k,3) = part_inst(i,j,k,3)*membersInv;
-//            part_inst(i,j,k,4) = part_inst(i,j,k,4)*membersInv;
-
-//            part_inst(i,j,k,5) = part_inst(i,j,k,5)*cellVolInv;
-//            part_inst(i,j,k,6) = part_inst(i,j,k,6)*cellVolInv;
-//            part_inst(i,j,k,7) = part_inst(i,j,k,7)*cellVolInv;
-
-//            for(int l=0;l<nspecies;l++)
-//            {
-//                part_inst(i,j,k,8 + l) = part_inst(i,j,k,8 + l)*cellVolInv;
-//            }
-//			}
-//		});
-
-//            ParticleType & part = 
-//            	m_cell_vectors[pti.index()][imap][std::ceil(rand()*m_cell_vectors[pti.index()][imap].size())-1]
-//		for (int i = 0; i < np; ++ i) {
-//			ParticleType & part = particles[i];
-//			if(part.idata(FHD_intData::sorted) == -1) { // only sort those that have a new cell
-//				const IntVect& iv = this->Index(part, lev);
-
-//				part.idata(FHD_intData::i) = iv[0]; // where does i start and end
-//				part.idata(FHD_intData::j) = iv[1];
-//				part.idata(FHD_intData::k) = iv[2];
-
-//				long imap = tile_box.index(iv);
-
-//				part.idata(FHD_intData::sorted) = m_cell_vectors[pti.index()][imap].size();
-//				m_cell_vectors[pti.index()][imap].push_back(i);
-//				
-//			}
-//		}
-//	}

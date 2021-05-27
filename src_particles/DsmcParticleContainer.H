@@ -82,6 +82,13 @@ typedef struct {
   
 } dsmcSpecies;
 
+typedef struct {
+
+  double inel;
+  double csx;
+  
+} dsmcInterSpecies;
+
 class FhdParticleContainer
     : public amrex::NeighborParticleContainer<FHD_realData::count, FHD_intData::count>
 {
@@ -104,8 +111,8 @@ public:
 	// Main DSMC routines
 	void SortParticles();
 
-	void CalcCollisionCells(MultiFab & mfvrmax, MultiFab & mfphi, MultiFab & mfselect); // not implemented yet
-	void CollideParticles(MultiFab & mfselect, MultiFab & mfphi, MultiFab & mfvrmax);
+	void CalcCollisionCells(Real dt);
+	void CollideParticles();
 
 	void MoveParticlesCPP(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount);
     
@@ -120,6 +127,7 @@ public:
 	// Particle geometry and material
 	// Note dissipation and friction for species defined in common (alpha/restitution, beta/friction)
 	dsmcSpecies properties[MAX_SPECIES];
+	dsmcInterSpecies interproperties[MAX_SPECIES*MAX_SPECIES];
 
 	// Replace these by MultiFab mfnspec which seperates by species
 	long realParticles;
@@ -135,7 +143,7 @@ public:
 	int getSpeciesIndex(int species1, int species2);
 	
 	// Evaluating radial distribution function
-	Real g0_Ma_Ahmadi(int species1, int species2);
+	Real g0_Ma_Ahmadi(int species1, int species2, Real phi1, Real phi2);
 	const Real chi_max = 1000.0; // value is arbitrary (change as needed or maybe as input?)
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
