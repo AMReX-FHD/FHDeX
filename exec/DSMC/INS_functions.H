@@ -2,25 +2,19 @@
 #define _INS_functions_H_
 
 #include "common_functions.H"
-#include "gmres_functions.H"
 #include "DsmcParticleContainer.H"
 
 ///////////////////////////
 // in WritePlotFile.cpp
 
-/*void WritePlotFile(int step,*/
-/*                   const amrex::Real time,*/
-/*                   const amrex::Geometry geom,*/
-/*                   const amrex::Geometry cgeom,*/
-/*                   const amrex::Geometry egeom,*/
-/*                   const MultiFab& particleInstant,*/
-/*                   const MultiFab& particleMeans,*/
-/*                   FhdParticleContainer& particles,*/
-/*                   const MultiFab& charge,*/
-/*                   const MultiFab& chargeM,*/
-/*                   const MultiFab& potential,*/
-/*                   const MultiFab& potentialM,*/
-/*                   const std::array< MultiFab, AMREX_SPACEDIM >& efield);*/
+void WritePlotFile(int step,
+                   const amrex::Real time,
+                   const amrex::Geometry cgeom,
+                   const MultiFab& particleInstant,
+                   const MultiFab& particleMeans,
+                   const MultiFab& particleVars,
+                   FhdParticleContainer& particles);
+
 
 ///////////////////////////
 

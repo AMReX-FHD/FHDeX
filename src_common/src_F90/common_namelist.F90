@@ -80,7 +80,7 @@ module common_namelist_module
   double precision,   save :: variance_coef_mass
   double precision,   save :: k_B
   double precision,   save :: Runiv
-  double precision,   save :: T_init(2)
+  double precision,   save :: T_init(MAX_SPECIES)
 
   integer,            save :: algorithm_type
   integer,            save :: advection_type
@@ -164,12 +164,7 @@ module common_namelist_module
   double precision,   save :: rmax(MAX_SPECIES*MAX_SPECIES)
   double precision,   save :: eepsilon(MAX_SPECIES*MAX_SPECIES)
   double precision,   save :: sigma(MAX_SPECIES*MAX_SPECIES)
-  ! DSMCGran
-  double precision,   save :: restitution_pp(MAX_SPECIES*MAX_SPECIES)
-  double precision,   save :: restitution_pw(MAX_SPECIES*MAX_SPECIES)
-  double precision,   save :: friction_pp(MAX_SPECIES*MAX_SPECIES)
-  double precision,   save :: friction_pw(MAX_SPECIES*MAX_SPECIES)
-
+  
   double precision,   save :: rmin_wall(MAX_SPECIES)
   double precision,   save :: rmax_wall(MAX_SPECIES)
   double precision,   save :: eepsilon_wall(MAX_SPECIES)
@@ -219,6 +214,13 @@ module common_namelist_module
   double precision,   save :: turb_a
   double precision,   save :: turb_b
   integer,            save :: turbForcing
+  
+  double precision,   save :: alpha_pp(MAX_SPECIES*MAX_SPECIES)
+  double precision,   save :: alpha_pw(MAX_SPECIES*MAX_SPECIES)
+  double precision,   save :: friction_pp(MAX_SPECIES*MAX_SPECIES)
+  double precision,   save :: friction_pw(MAX_SPECIES*MAX_SPECIES)
+  
+  double precision,   save :: phi_domain(MAX_SPECIES)
 
   ! Problem specification
   namelist /common/ prob_lo       ! physical lo coordinate
@@ -457,6 +459,14 @@ module common_namelist_module
   namelist /common/ turb_b
   namelist /common/ turbForcing
 
+  ! DSMC Granular
+  namelist /common/ alpha_pp
+  namelist /common/ alpha_pw
+  namelist /common/ friction_pp
+  namelist /common/ friction_pw
+  
+  namelist /common/ phi_domain
+
 contains
 
   ! read in fortran namelist into common_params_module
@@ -600,6 +610,14 @@ contains
     turb_a = 1.d0
     turb_b = 1.d0
     turbForcing = 0
+    
+    ! DSMC Granular
+    alpha_pp(:) = 1.d0
+    alpha_pw(:) = 1.d0
+    friction_pp(:) = 0.d0
+    friction_pw(:) = 0.d0
+  
+    phi_domain(:) = 0.d0
 
     plot_means = 0
     plot_vars = 0    
@@ -695,7 +713,9 @@ contains
                                          plot_ascii_in, plot_means_in, plot_vars_in, plot_covars_in, plot_cross_in, &
                                          solve_chem_in, diffcoeff_in, scaling_factor_in, &
                                          source_strength_in, regrid_int_in, do_reflux_in, particle_motion_in, &
-                                         turb_a_in, turb_b_in, turbForcing_in) &
+                                         turb_a_in, turb_b_in, turbForcing_in, &
+                                         alpha_pp_in, alpha_pw_in, &
+                                         friction_pp_in, friction_pw_in, phi_domain_in) &
                                          bind(C, name="initialize_common_namespace")
 
     double precision,       intent(inout) :: prob_lo_in(AMREX_SPACEDIM)
@@ -764,7 +784,7 @@ contains
     double precision,       intent(inout) :: variance_coef_mass_in
     double precision,       intent(inout) :: k_B_in
     double precision,       intent(inout) :: Runiv_in
-    double precision,       intent(inout) :: T_init_in(2)
+    double precision,       intent(inout) :: T_init_in(MAX_SPECIES)
     integer,                intent(inout) :: algorithm_type_in
     integer,                intent(inout) :: advection_type_in
     integer,                intent(inout) :: barodiffusion_type_in
@@ -885,6 +905,13 @@ contains
     double precision,       intent(inout) :: turb_a_in
     double precision,       intent(inout) :: turb_b_in
     integer,                intent(inout) :: turbForcing_in
+    
+    double precision,       intent(inout) :: alpha_pp_in(MAX_SPECIES*MAX_SPECIES)
+    double precision,       intent(inout) :: alpha_pw_in(MAX_SPECIES*MAX_SPECIES)
+    double precision,       intent(inout) :: friction_pp_in(MAX_SPECIES*MAX_SPECIES)
+    double precision,       intent(inout) :: friction_pw_in(MAX_SPECIES*MAX_SPECIES)
+  
+    double precision,       intent(inout) :: phi_domain_in(MAX_SPECIES)
 
     prob_lo_in = prob_lo
     prob_hi_in = prob_hi
@@ -1067,6 +1094,12 @@ contains
     turb_a_in = turb_a
     turb_b_in = turb_b
     turbForcing_in = turbForcing
+    
+    alpha_pp_in = alpha_pp
+    alpha_pw_in = alpha_pw
+    friction_pp_in = friction_pp
+    friction_pw_in = friction_pw
+    phi_domain_in = phi_domain
 
   end subroutine initialize_common_namespace
 

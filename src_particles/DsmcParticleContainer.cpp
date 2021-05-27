@@ -4,7 +4,7 @@
 #include "paramplane_functions_K.H"
 #include <math.h>
 
-// Likely excessive
+// Lifkely excessive
 // Relates lower diagonal matrix indices to those of 1D array
 int FhdParticleContainer::getSpeciesIndex(int species1, int species2) {
 	if(species1<species2){
@@ -28,15 +28,21 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
 	 // in AMREX_Math (I think)
 	 Real pi_usr = 4.0*atan(1.0);
 	 
-    totalCollisionCells = n_cells[0]*n_cells[1]*n_cells[2];
+    totalCollisionCells = n_cells[0]*n_cells[1]*n_cells[2]; // only correct if tile and box same
     domainVol = (prob_hi[0] - prob_lo[0])*(prob_hi[1] - prob_lo[1])*(prob_hi[2] - prob_lo[2]);
-
+    // Print() << "Limits: " << prob_hi[0] << " " << prob_hi[1] << " " << prob_hi[2] << " \n";
+    
+	 collisionCellVol = domainVol/totalCollisionCells;
+	 ocollisionCellVol = 1/collisionCellVol;
+	 //Print() << phi_domain << "\n";
     for(int i=0;i<nspecies;i++) {
-        
         properties[i].mass = mass[i];
         properties[i].radius = diameter[i]/2.0;
-        properties[i].partVol = pow(diameter[i],3)*pi_usr*particle_neff/6;
-        properties[i].Neff = particle_neff;
+        properties[i].partVol = pow(diameter[i],3)*pi_usr/6;
+        //properties[i].part2cellVol = properties[i].partVol*ocollisionCellVol;
+        //properties[i].Neff = phi_domain[i]*(domainVol/properties[i].partVol); // number of real particles
+        //properties[i].Neff = properties[i].Neff/properties[i].total;
+        //Print() << "Neff: " << properties[i].Neff << ", phi" << phi_domain[i] << "\n";
 
         if (particle_count[i] >= 0) {
             properties[i].total = particle_count[i];
@@ -45,31 +51,19 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
         else {
             properties[i].total = (int)amrex::Math::ceil(particle_n0[i]*domainVol/particle_neff);
         }
-        realParticles = realParticles + properties[i].total*particle_neff;
-        simParticles = simParticles + properties[i].total;
-
-    }
-    
-    int indx;
-    for(int i=0;i<nspecies;i++) {
-    	for(int j=0;j<nspecies;j++) {
-    		indx = getSpeciesIndex(i,j);
-    		propBetweenSpecies[indx].csx = pow(properties[i].radius + properties[j].radius,2);
-    		propBetweenSpecies[indx].csx = propBetweenSpecies[indx].csx*pi_usr;
-    	}
+        //realParticles = realParticles + properties[i].total*properties[i].Neff;
+        //simParticles = simParticles + properties[i].total;  
     }
 
-    for (int d=0; d<AMREX_SPACEDIM; ++d)
-    {
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
         domSize[d] = prob_hi[d] - prob_lo[d];
     }
 
-    Print() << "Total real particles: " << realParticles << "\n";
-    Print() << "Total sim particles: " << simParticles << "\n";
+    // Print() << "Total real particles: " << realParticles << "\n";
+    // Print() << "Total sim particles: " << simParticles << "\n";
 
-    Print() << "Collision cells: " << totalCollisionCells << "\n";
-    Print() << "Sim particles per cell: " << simParticles/totalCollisionCells << "\n";
-
+    // Print() << "Collision cells: " << totalCollisionCells << "\n";
+    // Print() << "Sim particles per cell: " << simParticles/totalCollisionCells << "\n";
 
     int lev=0;
     for(MFIter mfi = MakeMFIter(lev, false); mfi.isValid(); ++mfi) {
@@ -237,7 +231,6 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
 
     Redistribute();
     SortParticles();
-
 }
 
 void FhdParticleContainer::SortParticles() {
@@ -256,7 +249,8 @@ void FhdParticleContainer::SortParticles() {
 			if(part.idata(FHD_intData::sorted) == -1) {
 				const IntVect& iv = this->Index(part, lev);
 
-				part.idata(FHD_intData::i) = iv[0]; // where does i start and end
+				// i,j,k starts at 0 to numTiles-1
+				part.idata(FHD_intData::i) = iv[0];
 				part.idata(FHD_intData::j) = iv[1];
 				part.idata(FHD_intData::k) = iv[2];
 
@@ -267,6 +261,238 @@ void FhdParticleContainer::SortParticles() {
 				m_cell_vectors[pti.index()][imap].push_back(i);
 			}
 		}
+	}
+}
+
+void FhdParticleContainer::EvaluateStats(MultiFab& particleInstant, MultiFab& particleMeans,
+                                         MultiFab& particleVars, const Real delt, int steps) {
+	BL_PROFILE_VAR("EvaluateStats()",EvaluateStats);
+    
+	const int lev = 0;
+    
+	BoxArray ba = particleMeans.boxArray();
+	long cellcount = ba.numPts();
+
+	const Real* dx = Geom(lev).CellSize();
+	const Real dxInv = 1.0/dx[0];
+	const Real cellVolInv = 1.0/(dx[0]*dx[0]*dx[0]);
+
+	const Real stepsInv = 1.0/steps;
+	const int stepsMinusOne = steps-1;
+
+	// zero instantaneous values
+	particleInstant.setVal(0.);
+    
+	for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) {
+		PairIndex index(pti.index(), pti.LocalTileIndex());
+		const int np = this->GetParticles(lev)[index].numRealParticles();
+		auto& plev = this->GetParticles(lev);
+		auto& ptile = plev[index];
+		auto& aos   = ptile.GetArrayOfStructs();
+		const Box& tile_box  = pti.tilebox();
+		ParticleType* particles = aos().dataPtr();
+
+		GpuArray<int, 3> bx_lo = {tile_box.loVect()[0], tile_box.loVect()[1], tile_box.loVect()[2]};
+		GpuArray<int, 3> bx_hi = {tile_box.hiVect()[0], tile_box.hiVect()[1], tile_box.hiVect()[2]};
+
+		Array4<Real> part_inst = particleInstant[pti].array();
+		Array4<Real> part_mean = particleMeans[pti].array();
+		Array4<Real> part_var = particleVars[pti].array();
+
+		AMREX_FOR_1D( np, ni,
+		{
+			ParticleType & part = particles[ni];
+
+			int i = floor(part.pos(0)*dxInv);
+			int j = floor(part.pos(1)*dxInv);
+			int k = floor(part.pos(2)*dxInv);
+            
+			amrex::Gpu::Atomic::Add(&part_inst(i,j,k,0), 1.0);
+
+			for(int l=0;l<nspecies;l++) {
+
+			}
+
+		});
+
+		amrex::ParallelFor(tile_box,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
+			part_inst(i,j,k,1) = part_inst(i,j,k,1)*cellVolInv;         
+		});
+
+		amrex::ParallelFor(tile_box,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
+
+			part_mean(i,j,k,1)  = (part_mean(i,j,k,1)*stepsMinusOne + part_inst(i,j,k,1))*stepsInv;
+
+			for(int l=0;l<nspecies;l++)
+			{
+
+			}
+             
+		});
+
+		amrex::ParallelFor(tile_box,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
+
+            Real del1 = part_inst(i,j,k,1) - part_mean(i,j,k,1);
+
+            part_var(i,j,k,1)  = (part_var(i,j,k,1)*stepsMinusOne + del1*del1)*stepsInv;            
+		});
+
+	}
+
+}
+// Compute selections here?
+void FhdParticleContainer::InitCollisionCells() {
+
+	//for(int i=0;i<nspecies;i++) {
+	//	properties[i].mass = mass[i];
+	//	properties[i].radius = diameter[i]/2.0;
+	//	properties[i].partVol = pow(diameter[i],3)*pi_usr*particle_neff/6;
+	//	properties[i].Neff = particle_neff;
+	//	if (particle_count[i] >= 0) {
+	//		properties[i].total = particle_count[i];
+	//	} else {
+	//		properties[i].total = (int)amrex::Math::ceil(particle_n0[i]*domainVol/particle_neff);
+	//	}
+	//	realParticles = realParticles + properties[i].total*particle_neff;
+	//	simParticles = simParticles + properties[i].total;
+	//}
+	
+	int lev = 0;
+	for(MFIter mfi(mfvrmax); mfi.isValid(); ++mfi) {
+		//const Box& tile_box  = mfi.tilebox();
+		//const int grid_id = mfi.index();
+		//const int tile_id = mfi.LocalTileIndex();
+		//auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+
+		// Convert MultiFabs -> arrays
+		const Array4<Real> & arrvrmax = mfvrmax.array(mfi);
+		const Array4<Real> & arrphi = mfphi.array(mfi);
+		const Array4<Real> & arrselect = mfselect.array(mfi);
+		const Array4<Real> & arrnspec = mfnspec.array(mfi);
+		//Print() << arrvrmax << "\n";
+	}
+
+//	for (FhdParIter pti(* this, lev); pti.isValid(); ++pti) {
+//		const int grid_id = pti.index();
+//		// Print() << "Grid ID: " << grid_id << " \n";
+//		
+//		const int tile_id = pti.LocalTileIndex();
+//		const Box& tile_box  = pti.tilebox();
+//		// const long ptindex = pti.index();
+//		
+//		auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+//		auto& particles = particle_tile.GetArrayOfStructs();
+//		
+//		// Shorter/cleaner way?
+//		//PairIndex index(pti.index(), pti.LocalTileIndex());
+//		//AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
+//		
+//		const long np = particles.numParticles();
+//		// Track number of particles in each tile per species
+//		int numberParticleSpecies[nspecies];
+//		
+//		// ADD: Flag for 2D vs 3D (likely unneeded)
+//		// Loop over collision cells (each tile_box)
+//		// initially check if I can grab particles
+//		
+//		// Problem while using ParallelFor: forgets where pti is pointing
+//		
+//		// Because each box has one tile, only one index in imap
+//		const long imap = 0;
+//		
+//		
+//		//amrex::ParallelFor(tile_box,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
+
+			// Need imap to access m_cell_vectors
+			// const IntVect& iv = {i,j,k};
+			// long imap = tile_box.index(iv);
+			// Print() << "ParallelFor: " << imap << " \n";
+			
+			// first calculate number of selections
+//			for (int i_spec = 0; i_spec<nspecies; i_spec++) {
+//				for (int j_spec = 0; j_spec<nspecies, j_spec++) { 
+//					spec_pair_index
+//					arr_select(i,j,k,l) = arr_select(i,j,k,l	
+			
+			// test that can extract the particles
+//			long np = m_cell_vectors[pti.index()][imap].size();
+//			long np = m_cell_vectors[ptindex][imap].size();
+//			for(int i_select = 0; i_select < 5; i_select++) {
+				// search through particles to find particle that matches chosen id
+//				int rand_indx = std::ceil(amrex::Random()*np)-1;
+//				int pindx = m_cell_vectors[ptindex][imap][rand_indx];
+//				for (int i_part = 0; i_part < np; i_part++) {
+//					ParticleType & part = particles[i_part];
+//	            if(part.id() == pindx) {
+//	            	Print() << "Part ID: " << part.id() << "Random ID: " << pindx << "\n";	
+//	            }
+//	         }
+//	      }
+//      });
+//	}
+}
+
+
+// Compute selections here?
+void FhdParticleContainer::CalcCollisionCells(MultiFab & mfvrmax, MultiFab & mfphi, MultiFab & mfselect) {
+	int lev = 0;
+	for (FhdParIter pti(* this, lev); pti.isValid(); ++pti) {
+		const int grid_id = pti.index();
+		Print() << "Grid ID: " << grid_id << " \n";
+		
+		const int tile_id = pti.LocalTileIndex();
+		const Box& tile_box  = pti.tilebox();
+		// const long ptindex = pti.index();
+		
+		auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+		auto& particles = particle_tile.GetArrayOfStructs();
+		
+		// Shorter/cleaner way?
+		//PairIndex index(pti.index(), pti.LocalTileIndex());
+		//AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
+		
+		const long np = particles.numParticles();
+		// Track number of particles in each tile per species
+		int numberParticleSpecies[nspecies];
+		
+		// ADD: Flag for 2D vs 3D (likely unneeded)
+		// Loop over collision cells (each tile_box)
+		// initially check if I can grab particles
+		
+		// Problem while using ParallelFor: forgets where pti is pointing
+		
+		// Because each box has one tile, only one index in imap
+		const long imap = 0;
+		
+		
+		//amrex::ParallelFor(tile_box,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
+
+			// Need imap to access m_cell_vectors
+			// const IntVect& iv = {i,j,k};
+			// long imap = tile_box.index(iv);
+			// Print() << "ParallelFor: " << imap << " \n";
+			
+			// first calculate number of selections
+//			for (int i_spec = 0; i_spec<nspecies; i_spec++) {
+//				for (int j_spec = 0; j_spec<nspecies, j_spec++) { 
+//					spec_pair_index
+//					arr_select(i,j,k,l) = arr_select(i,j,k,l	
+			
+			// test that can extract the particles
+//			long np = m_cell_vectors[pti.index()][imap].size();
+//			long np = m_cell_vectors[ptindex][imap].size();
+//			for(int i_select = 0; i_select < 5; i_select++) {
+				// search through particles to find particle that matches chosen id
+//				int rand_indx = std::ceil(amrex::Random()*np)-1;
+//				int pindx = m_cell_vectors[ptindex][imap][rand_indx];
+//				for (int i_part = 0; i_part < np; i_part++) {
+//					ParticleType & part = particles[i_part];
+//	            if(part.id() == pindx) {
+//	            	Print() << "Part ID: " << part.id() << "Random ID: " << pindx << "\n";	
+//	            }
+//	         }
+//	      }
+//      });
 	}
 }
 
@@ -282,24 +508,68 @@ void FhdParticleContainer::CollideParticles(MultiFab & mfselect, MultiFab & mfph
 //		auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
 //		// Actual particle data
 //		auto& particles = particle_tile.GetArrayOfStructs();
-//		// get just particle ID
-//		// const long np = particles.numParticles();
 
+//		// Convert Multifabs to arrays
+//		Array4<Real> & arr_select = mfselect.array(pti);
+//      const Array4<Real> & arr_phi = mfphi.array(pti);
+//      const Array4<Real> & arr_vrmax = mfvrmax.array(pti);
+//      
+//      // Dummy Vars
+//      ParticleType & part;
+//		
+//		// ADD: Flag for 2D vs 3D (likely unneeded)
+//		// Loop over collision cells (each tile_box)
+//		// initially check if I can grab particles
+//		
+//		
+//		amrex::ParallelFor(tile_box,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
+
+//			// Need imap to access m_cell_vectors
+//			IntVect iv = {i,j,k};
+//			long imap = tile_box.index(iv);
+//			
+//			// first calculate number of selections
+//			for (int i_spec = 0; i_spec<nspecies; i_spec++) {
+//				for (int j_spec = 0; j_spec<nspecies, j_spec++) { 
+//					spec_pair_index
+//					arr_select(i,j,k,l) = arr_select(i,j,k,l	
+//			
+//			// test that can extract the particles
+//			long np = m_cell_vectors[pti.index()][imap].size();
+//			for (int l = 0; l < np; l++) {
+//	         part = m_cell_vectors[pti.index()][imap]
+//            		[std::ceil(amrex::Random()*np)-1];
+//            Print() << "Part ID: " << part.id() << "\n";
+//         }
+//      });
+//	}
+}
+         
 //		// for MultiFab mfselect, grab array at pti and store in arr_select
 //		// We will be updating the selections
 //	   Array4<Real> & arr_select = mfselect.array(pti);
 //      const Array4<Real> & arr_phi = mfphi.array(pti);
 //      const Array4<Real> & arr_vrmax = mfvrmax.array(pti);
 
-//		// ADD: Flag for 2D vs 3D
-//		// Loop over collision cells (each tile_box)
-//		amrex::ParallelFor(tile_box,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
+//		for (int i = 0; i < np; ++ i) {
+//			ParticleType & part = particles[i];
+//			if(part.idata(FHD_intData::sorted) == -1) { // only sort those that have a new cell
+//				const IntVect& iv = this->Index(part, lev);
 
-//			// Need imap to access m_cell_vectors
-//			IntVect iv = {i,j,k};
-//			long imap = tile_box.index(iv);
+//				part.idata(FHD_intData::i) = iv[0]; // where does i start and end
+//				part.idata(FHD_intData::j) = iv[1];
+//				part.idata(FHD_intData::k) = iv[2];
 
-//			// for each collision cell, loop over the species and then selections
+//				long imap = tile_box.index(iv);
+
+//				part.idata(FHD_intData::sorted) = m_cell_vectors[pti.index()][imap].size();
+//				m_cell_vectors[pti.index()][imap].push_back(i);
+//				
+//			}
+//		}
+			
+
+			// for each collision cell, loop over the species and then selections
 //			for (int l = 0; l < nspecies; l++) {
 //				for (int m = 0; m < nspecies; m++) {
 //					
@@ -319,10 +589,11 @@ void FhdParticleContainer::CollideParticles(MultiFab & mfselect, MultiFab & mfph
 //            {
 //                part_inst(i,j,k,8 + l) = part_inst(i,j,k,8 + l)*cellVolInv;
 //            }
-//            ParticleType & part = 
-//            	m_cell_vectors[pti.index()][imap][std::ceil(rand()*m_cell_vectors[pti.index()][imap].size())-1]
 //			}
 //		});
+
+//            ParticleType & part = 
+//            	m_cell_vectors[pti.index()][imap][std::ceil(rand()*m_cell_vectors[pti.index()][imap].size())-1]
 //		for (int i = 0; i < np; ++ i) {
 //			ParticleType & part = particles[i];
 //			if(part.idata(FHD_intData::sorted) == -1) { // only sort those that have a new cell
@@ -340,29 +611,3 @@ void FhdParticleContainer::CollideParticles(MultiFab & mfselect, MultiFab & mfph
 //			}
 //		}
 //	}
-}
-
-//    for ( MFIter mfi(cu,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
-//        
-//        const Box& bx = mfi.tilebox();
-
-//        const Array4<Real> & cu_fab = cu.array(mfi);
-//        const Array4<Real> & cup_fab = cup.array(mfi);
-//        const Array4<Real> & source_fab = source.array(mfi);
-//        AMREX_D_TERM(Array4<Real const> const& xflux_fab = flux[0].array(mfi);,
-//                     Array4<Real const> const& yflux_fab = flux[1].array(mfi);,
-//                     Array4<Real const> const& zflux_fab = flux[2].array(mfi););
-
-//		  // for the box, 
-//		  // for loop for GPUS
-//        amrex::ParallelFor(bx, nvars, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept // <- just leave it
-//        {
-//        		// nth component of cell i,j,k
-//        		// nvars -> nspecies*nspecies
-//            cup_fab(i,j,k,n) = cu_fab(i,j,k,n) - dt *
-//                ( AMREX_D_TERM(  (xflux_fab(i+1,j,k,n) - xflux_fab(i,j,k,n)) / dx[0],
-//                               + (yflux_fab(i,j+1,k,n) - yflux_fab(i,j,k,n)) / dx[1],
-//                               + (zflux_fab(i,j,k+1,n) - zflux_fab(i,j,k,n)) / dx[2])
-//                                                                                       )
-//                + dt*source_fab(i,j,k,n);
-//        });

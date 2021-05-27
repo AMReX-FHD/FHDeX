@@ -237,11 +237,12 @@ namespace common {
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES*MAX_SPECIES> sigma;
     extern AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_SPECIES*MAX_SPECIES>         p_int_tog;
     
-    // DSMCGran
-    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES*MAX_SPECIES> restitution_pp;
-    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES*MAX_SPECIES> restitution_pw;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES*MAX_SPECIES> alpha_pp;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES*MAX_SPECIES> alpha_pw;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES*MAX_SPECIES> friction_pp;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES*MAX_SPECIES> friction_pw;
+    
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> phi_domain;
 
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> rmin_wall;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> rmax_wall;

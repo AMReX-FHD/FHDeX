@@ -2,18 +2,10 @@
 
 #include "common_namespace_declarations.H"
 
-#include "gmres_namespace_declarations.H"
-
 #include "species.H"
 #include "paramPlane.H"
 
 #include "StructFact.H"
-
-#include "StochMomFlux.H"
-
-#include "hydro_functions.H"
-
-#include "electrostatic.H"
 
 #include "particle_functions.H"
 
@@ -33,10 +25,11 @@ void main_driver(const char* argv)
 	// we use "+1" because of amrex_string_c_to_f expects a null char termination
 	read_common_namelist(inputs_file.c_str(),inputs_file.size()+1);
 
+
 	// copy contents of F90 modules to C++ namespaces
 	InitializeCommonNamespace();
 	InitializeGmresNamespace();
-    
+
 	int step = 1;
 	Real time = 0.;
 	int statsCount = 1;
@@ -133,9 +126,17 @@ void main_driver(const char* argv)
 	Real dt = fixed_dt;
 	// we will want to define a variable timestep based on the max granular temperature
  
-	int paramPlaneCount = 6;
-	paramPlane paramPlaneList[paramPlaneCount];
-	BuildParamplanes(paramPlaneList,paramPlaneCount,realDomain.lo(),realDomain.hi());
+    std::ifstream planeFile("paramplanes.dat");
+    int fileCount;
+    planeFile >> fileCount;
+    planeFile.close();
+
+    int paramPlaneCount = fileCount+6;
+    paramPlane paramPlaneList[paramPlaneCount];
+    BuildParamplanes(paramPlaneList,paramPlaneCount,realDomain.lo(),realDomain.hi());
+
+   // IBMarkerContainerBase default behaviour is to do tiling. Turn off here:
+
 
 	// Particle tile size
 	Vector<int> ts(BL_SPACEDIM);
@@ -205,8 +206,14 @@ void main_driver(const char* argv)
             Print() << "Finish move.\n";
         }
 
-        //particles.EvaluateStats(particleInstant, particleMeans, ionParticle[0], dt,statsCount);
+        particles.EvaluateStats(particleInstant, particleMeans, particleVars, dt,statsCount);
         statsCount++;
+
+        if (istep%plot_int == 0) {
+            
+            WritePlotFile(istep, time, geom, particleInstant, particleMeans, particleVars, particles);
+
+        }
  
         if ((n_steps_skip > 0 && istep == n_steps_skip) ||
             (n_steps_skip < 0 && istep%n_steps_skip == 0) ) {

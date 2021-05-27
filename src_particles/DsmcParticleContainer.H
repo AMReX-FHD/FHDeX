@@ -76,65 +76,79 @@ typedef struct {
   double R;
   double Neff;
   double partVol;
-  double alpha_wall; // resitution with wall
-  double beta_wall; // friction with wall (for later)
+  double part2cellVol;
+  // double alpha_wall; // resitution with wall
+  // double beta_wall; // friction with wall (for later)
   
 } dsmcSpecies;
-
-// Properties between species
-// Includes same species
-typedef struct {
-
-	double csx;
-	double alpha_pp;
-	double alpha_pw;
-	double beta_pp;
-	double beta_pw;
-	
-} dsmcInterSpecies;
 
 class FhdParticleContainer
     : public amrex::NeighborParticleContainer<FHD_realData::count, FHD_intData::count>
 {
 public:
 
-    using FhdParIter = ParIter<FHD_realData::count, FHD_intData::count>;
+	using FhdParIter = ParIter<FHD_realData::count, FHD_intData::count>;
 
-    FhdParticleContainer(const Geometry            & geom, 
+	FhdParticleContainer(const Geometry            & geom, 
                                   const DistributionMapping & dmap,
                                   const BoxArray            & ba,
                                   int ncells);
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	// Functions
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	// Initialize particles and cells
+	void InitParticles();
+	void InitCollisionCells(); // not implemented yet
 
-    void InitParticles(MultiFab & vrmax);
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	// Main DSMC routines
+	void SortParticles();
 
-	 void InitCollisionCells();
+	void CalcCollisionCells(MultiFab & mfvrmax, MultiFab & mfphi, MultiFab & mfselect); // not implemented yet
+	void CollideParticles(MultiFab & mfselect, MultiFab & mfphi, MultiFab & mfvrmax);
 
-    void SortParticles();
-
-    void MoveParticlesCPP(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount);
+	void MoveParticlesCPP(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount);
     
-    void CollideParticles(MultiFab & mfselect, MultiFab & mfphi, MultiFab & mfvrmax);
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	// Outputs
+	void EvaluateStats(MultiFab& particleInstant, MultiFab& particleMeans,
+                                         MultiFab& particleVars, const Real delt, int steps);
 
-    dsmcSpecies properties[MAX_SPECIES];
-    dsmcInterSpecies propBetweenSpecies[(long)std::ceil(MAX_SPECIES*(MAX_SPECIES+1)*0.5)];
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	// Scalars
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	// Particle geometry and material
+	// Note dissipation and friction for species defined in common (alpha/restitution, beta/friction)
+	dsmcSpecies properties[MAX_SPECIES];
 
-    long realParticles;
-    long simParticles;
-    long totalCollisionCells;
-    Real domainVol;
-    Real domSize[3];
-    Real dx[3];
+	// Replace these by MultiFab mfnspec which seperates by species
+	long realParticles;
+	long simParticles;
+	
+	long totalCollisionCells; // might only be helpful for statistics
+	Real collisionCellVol; // assumed constant for all collision cells
+	Real ocollisionCellVol;
+	Real domainVol;
+	Real domSize[3];
+	Real dx[3];
 
-	 int getSpeciesIndex(int species1, int species2);
-	 
-	 // Evaluating radial distribution functino
-	 Real g0_Ma_Ahmadi(int species1, int species2);
-	 const Real chi_max = 1000.0; // value is arbitrary (change as needed or maybe as input?)
+	int getSpeciesIndex(int species1, int species2);
+	
+	// Evaluating radial distribution function
+	Real g0_Ma_Ahmadi(int species1, int species2);
+	const Real chi_max = 1000.0; // value is arbitrary (change as needed or maybe as input?)
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	// MFs for DSMC
+	// Move within particle container to avoid continuously passing as input
+	MultiFab mfselect; // needed to determine how many collisions
+   MultiFab mfvrmax; // needed for calculating selections
+   // currently a single constant but updates over time
+   MultiFab mfnspec; // needed for calculating selections
+   MultiFab mfphi; // needed for evaluating radial distribution function
 	
 protected:
 	std::map<int, std::vector<std::vector<int> > > m_cell_vectors; //[MAX_SPECIES];
-	MultiFab max_relative_velocity_each_cell;
-
 
 };
 

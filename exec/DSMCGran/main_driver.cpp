@@ -31,13 +31,12 @@ void main_driver(const char* argv)
 
 	// read in parameters from inputs file into F90 modules
 	// we use "+1" because of amrex_string_c_to_f expects a null char termination
-	amrex::Print() << "HERE \n";
 	read_common_namelist(inputs_file.c_str(),inputs_file.size()+1);
 
-	amrex::Print() << "HERE \n";
+	// amrex::Print() << "HERE \n";
 	// copy contents of F90 modules to C++ namespaces
 	InitializeCommonNamespace();
-	// InitializeGmresNamespace();
+	InitializeGmresNamespace();
     
 	int step = 1;
 	Real time = 0.;
@@ -58,6 +57,13 @@ void main_driver(const char* argv)
 	IntVect dom_lo(AMREX_D_DECL(           0,            0,            0));
 	IntVect dom_hi(AMREX_D_DECL(n_cells[0]-1, n_cells[1]-1, n_cells[2]-1));
 	Box domain(dom_lo, dom_hi);
+	
+	// Box for collision cells (if different)
+	// not yet implemented
+	// normally would use tiles
+	// IntVect dom_lo(AMREX_D_DECL(           0,            0,            0));
+	// IntVect dom_hi(AMREX_D_DECL(n_cells[0]*-1, n_cells[1]-1, n_cells[2]-1));
+	// Box domain(dom_lo, dom_hi);
     
 	// how boxes are distrubuted among MPI processes
 	DistributionMapping dmap;
@@ -67,12 +73,7 @@ void main_driver(const char* argv)
 	MultiFab particleMeans;
 	MultiFab particleVars;
 	MultiFab particleInstant;
-	
-	// MFs for DSMC
-	MultiFab selectionsCell; // define(..,..,max_species*max_species)
-   MultiFab vrmax; // currently using a single vrmax, will want to vary this cell by cell
-   MultiFab phiSpecies;
-    
+   
 	if (restart < 0) {
 		if (seed > 0) {
 			// initializes the seed for C++ random number calls
@@ -107,18 +108,6 @@ void main_driver(const char* argv)
 
 		particleInstant.define(ba, dmap, 8+nspecies, 0);
 		particleInstant.setVal(0.);
-		
-		// Collision Cell Vars
-		// Overestimate so getSpecies retrieves correct index
-		// Want to sync with the particle props between species (alpha, beta)
-		selectionsCell.define(ba, dmap, nspecies*nspecies, 0);
-		selectionsCell.setVal(0.);
-		
-		vrmax.define(ba, dmap, nspecies, 0);
-		vrmax.setVal(0.); // we will reset this later in initParticles
-		
-		phiSpecies.define(ba, dmap, nspecies, 0);
-		phiSpecies.setVal(0.);
 	}
 	else {
 		// restart from checkpoint
@@ -164,13 +153,29 @@ void main_driver(const char* argv)
 	//Particles! Build on geom & box array for collision cells/ poisson grid?
 
 	int cRange = 0;
+   Print() << "Phi: " << alpha_pp[0] << "\n";
+   Print() << "Phi: " << alpha_pp[1] << "\n";
+   Print() << "Phi: " << phi_domain[0] << "\n";
+   Print() << "Phi: " << phi_domain[1] << "\n";
 
-	FhdParticleContainer particles(geom, dmap, ba, cRange);
-
+	//FhdParticleContainer particles(geom, dmap, ba, cRange);
 	if (restart < 0 && particle_restart < 0) {
-		// Pass Multifab to set vrmax
-		particles.InitParticles(vrmax);
-		// particles.InitParticles();
+		// Collision Cell Vars
+		//particles.mfselect.define(ba, dmap, nspecies*nspecies, 0); // will not use all the indices
+		//particles.mfselect.setVal(0.);
+		
+		//particles.mfvrmax.define(ba, dmap, nspecies, 0);
+		//particles.mfvrmax.setVal(0.); // we will reset this later in initParticles
+		
+		//particles.mfphi.define(ba, dmap, nspecies, 0);
+		//particles.mfphi.setVal(0.);
+		
+		//particles.mfnspec.define(ba, dmap, nspecies, 0);
+		//particles.mfnspec.setVal(0.);
+		
+		//particles.InitParticles(); // vrmax is also set here
+		
+		//particles.InitCollisionCells();
 	}
 	else {
         //load from checkpoint
@@ -197,7 +202,8 @@ void main_driver(const char* argv)
 // Move Particles
 		// total particle move (1=single step, 2=midpoint)
 		if (move_tog != 0) {
-			particles.MoveParticlesCPP(dt, paramPlaneList, paramPlaneCount);
+			//particles.MoveParticlesCPP(dt, paramPlaneList, paramPlaneCount);
+			// particles.UpdateCollisionCells();
 
             // reset statistics after step n_steps_skip
             // if n_steps_skip is negative, we use it as an interval

@@ -141,6 +141,7 @@ void evaluateStatsStag(const MultiFab& cons, MultiFab& consMean, MultiFab& consV
         const Array4<const Real> cu        = cons.array(mfi);
         const Array4<      Real> cumeans   = consMean.array(mfi);
         const Array4<      Real> cuvars    = consVar.array(mfi);
+        const Array4<const Real> prim      = prim_in.array(mfi);
         const Array4<      Real> primmeans = primMean.array(mfi);
         const Array4<      Real> primvars  = primVar.array(mfi);
 
@@ -263,9 +264,11 @@ void evaluateStatsStag(const MultiFab& cons, MultiFab& consMean, MultiFab& consV
             primvars(i,j,k,nprimvars+2) = (primvars(i,j,k,nprimvars+2)*stepsminusone + delrho*delenergy)*stepsinv; // krcross
             primvars(i,j,k,nprimvars+3) = (primvars(i,j,k,nprimvars+3)*stepsminusone + delrho*delg)*stepsinv; // rgcross
 
-            primvars(i,j,k,4) = (primvars(i,j,k,4)*stepsminusone + cvinv*cvinv*densitymeaninv*densitymeaninv*
-                                 (cuvars(i,j,k,4) + primvars(i,j,k,nprimvars) - 2*primvars(i,j,k,nprimvars+1)
-                                  + qmean*(qmean*cuvars(i,j,k,0) - 2*primvars(i,j,k,nprimvars+2) + 2*primvars(i,j,k,nprimvars+3))))*stepsinv; // <T T> 
+            //primvars(i,j,k,4) = (primvars(i,j,k,4)*stepsminusone + cvinv*cvinv*densitymeaninv*densitymeaninv*
+            //                     (cuvars(i,j,k,4) + primvars(i,j,k,nprimvars) - 2*primvars(i,j,k,nprimvars+1)
+            //                      + qmean*(qmean*cuvars(i,j,k,0) - 2*primvars(i,j,k,nprimvars+2) + 2*primvars(i,j,k,nprimvars+3))))*stepsinv; // <T T> 
+            Real delT = prim(i,j,k,4) - primmeans(i,j,k,4);
+            primvars(i,j,k,4)   = (primvars(i,j,k,4)*stepsminusone + delT*delT)*stepsinv;
 
             Real deltemp = (delenergy - delg - qmean*delrho)*cvinv*densitymeaninv;
 

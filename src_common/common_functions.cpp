@@ -132,8 +132,9 @@ void InitializeCommonNamespace() {
                                 &wall_mob,rmin.begin(),rmax.begin(), eepsilon.begin(), 
                                 sigma.begin(),rmin_wall.begin(),rmax_wall.begin(),
                                 eepsilon_wall.begin(), sigma_wall.begin(),
-                                restitution_pp.begin(), restitution_pw.begin(), // DSMCGran
-                                friction_pp.begin(), friction_pw.begin(),
+                                alpha_pp.data(), alpha_pw.data(),
+                                friction_pp.data(), friction_pw.data(),
+                                phi_domain.data(),
                                 &poisson_verbose, &poisson_bottom_verbose, &poisson_max_iter,
                                 &poisson_rel_tol, &particle_grid_refine, &es_grid_refine,
                                 diff.dataPtr(), &all_dry, &fluid_tog, &es_tog, &drag_tog, &move_tog, &rfd_tog,

@@ -7,7 +7,7 @@
 
 using namespace std;
 
-void FhdParticleContainer::InitParticles(MultiFab & vrmax) {
+void FhdParticleContainer::InitParticles() {
 	const int lev = 0;
 	const Geometry& geom = Geom(lev);
 
@@ -17,17 +17,18 @@ void FhdParticleContainer::InitParticles(MultiFab & vrmax) {
     
 	// Search for max relative speed
 	// ... estimate as double the mag of a single particle speed
-	std::array<Real, 3> vmax = {0., 0., 0.};
+	std::array<Real, 3> vpart = {0., 0., 0.};
 	Real spdmax = 0.;
 	Real spd;
-        
-	for (MFIter mfi = MakeMFIter(lev, true); mfi.isValid(); ++mfi) {
+   
+   for (MFIter mfi = MakeMFIter(lev, true); mfi.isValid(); ++mfi) {
+		// take tile/box
 		const Box& tile_box  = mfi.tilebox();
 		const RealBox tile_realbox{tile_box, geom.CellSize(), geom.ProbLo()};
 		const int grid_id = mfi.index();
 		const int tile_id = mfi.LocalTileIndex();
 		auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
-
+		
 		//Assuming tile=box for now, i.e. no tiling.
 		IntVect smallEnd = tile_box.smallEnd();
 		IntVect bigEnd = tile_box.bigEnd();
@@ -35,8 +36,9 @@ void FhdParticleContainer::InitParticles(MultiFab & vrmax) {
 		if(ParallelDescriptor::MyProc() == 0 && mfi.LocalTileIndex() == 0 && proc0_enter) {
 			proc0_enter = false;
 			std::ifstream particleFile("particles.dat");
- //           Print() << "SPEC TOTAL: " << particleInfo[0].total << "\n";
+ 			amrex::Print() << "Max Speed: " << spdmax << "\n";
 			for(int i_spec=0; i_spec < nspecies; i_spec++) {
+				//amrex::Print() << "Initial Temp: " << T_init[i_spec] << "\n";
 				for (int i_part=0; i_part<properties[i_spec].total;i_part++) {
 					ParticleType p;
 					p.id()  = ParticleType::NextID();
@@ -55,17 +57,18 @@ void FhdParticleContainer::InitParticles(MultiFab & vrmax) {
 					}
 
 					// Determine max velocity
-					vmax[1] = sqrt(T_init[i_spec]/3)*amrex::RandomNormal(0.,1.);
-					vmax[2] = sqrt(T_init[i_spec]/3)*amrex::RandomNormal(0.,1.);
-					vmax[3] = sqrt(T_init[i_spec]/3)*amrex::RandomNormal(0.,1.);
-					spd = sqrt(vmax[1]*vmax[1]+vmax[2]*vmax[2]+vmax[3]*vmax[3]);
+					vpart[0] = sqrt(T_init[i_spec]/3)*amrex::RandomNormal(0.,1.);
+					vpart[1] = sqrt(T_init[i_spec]/3)*amrex::RandomNormal(0.,1.);
+					vpart[2] = sqrt(T_init[i_spec]/3)*amrex::RandomNormal(0.,1.);
+					spd = sqrt(vpart[0]*vpart[0]+vpart[1]*vpart[1]+vpart[2]*vpart[2]);
+					// amrex::Print() << spd << "\n";
 					if(spd>spdmax){
                	spdmax = spd;
 					}
 						  
-					p.rdata(FHD_realData::velx) = vmax[1];
-					p.rdata(FHD_realData::vely) = vmax[2];
-					p.rdata(FHD_realData::velz) = vmax[3];
+					p.rdata(FHD_realData::velx) = vpart[0];
+					p.rdata(FHD_realData::vely) = vpart[1];
+					p.rdata(FHD_realData::velz) = vpart[2];
 
 					p.rdata(FHD_realData::boostx) = 0;
 					p.rdata(FHD_realData::boosty) = 0;
@@ -73,16 +76,30 @@ void FhdParticleContainer::InitParticles(MultiFab & vrmax) {
                     
 					// keep track of species
 					p.idata(FHD_intData::species) = i_spec;
-					std::cout << "ID: " << p.id() << "\n";
+					// std::cout << "Spec: " << p.idata(FHD_intData::species) << "\n";
 					particle_tile.push_back(p);
 
 					pcount++;
 				}
 			}
+			
+			
+			// move to another function called initCollision cells in future
+			// ok for now (sets same max spd to each)
+			// here all particles initialized in one place and then redistributed
+			// amrex::Print() << "Max Speed: " << spdmax << "\n";
 			particleFile.close();
 		}
+		// Print() << "HERE \n";
+		
+		// Convert MultiFabs -> arrays
+		//const Array4<Real> & arr_vrmax = mfvrmax.array(mfi);
+		// If not tiling, can just loop over species
+		//for (int i_spec; i_spec < nspecies; i_spec++) {
+		//	arr_vrmax(0,0,0,i_spec) = spdmax; 
+		//}
 	}
-//	vrmax.setVal(spdmax);
+	mfvrmax.setVal(spdmax); // set same spdmax to all
 
 	Redistribute();
 	SortParticles();

@@ -76,6 +76,7 @@ extern "C"
                                      // DSMCGran
                                      amrex::Real* restitution_pp, amrex::Real* restitution_pw,
                                      amrex::Real* friction_pp, amrex::Real* friction_pw,
+                                     amrex::Real* phi_domain,
                                      
                                      int* poisson_verbose,
                                      int* poisson_bottom_verbose,
