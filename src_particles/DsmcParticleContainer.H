@@ -145,6 +145,7 @@ public:
 	// Evaluating radial distribution function
 	Real g0_Ma_Ahmadi(int species1, int species2, Real phi1, Real phi2);
 	const Real chi_max = 1000.0; // value is arbitrary (change as needed or maybe as input?)
+	const Real phi_max = 0.643;
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	// MFs for DSMC

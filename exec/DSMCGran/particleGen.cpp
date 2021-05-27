@@ -76,21 +76,15 @@ void FhdParticleContainer::InitParticles() {
                     
 					// keep track of species
 					p.idata(FHD_intData::species) = i_spec;
-					// std::cout << "Spec: " << p.idata(FHD_intData::species) << "\n";
 					particle_tile.push_back(p);
 
 					pcount++;
 				}
 			}
-			
-			
-			// move to another function called initCollision cells in future
-			// ok for now (sets same max spd to each)
-			// here all particles initialized in one place and then redistributed
+
 			// amrex::Print() << "Max Speed: " << spdmax << "\n";
 			particleFile.close();
 		}
-		// Print() << "HERE \n";
 		
 		// Convert MultiFabs -> arrays
 		//const Array4<Real> & arr_vrmax = mfvrmax.array(mfi);

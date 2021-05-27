@@ -1,18 +1,8 @@
 #include "DsmcParticleContainer.H"
 
-//#include "particle_functions_K.H"
+// #include "particle_functions_K.H"
 #include "paramplane_functions_K.H"
 #include <math.h>
-
-// Lifkely excessive
-// Relates lower diagonal matrix indices to those of 1D array
-int FhdParticleContainer::getSpeciesIndex(int species1, int species2) {
-	if(species1<species2){
-		return species1+nspecies*(species2-1);
-	} else {
-		return species2+nspecies*(species1-1);
-	}
-}
 
 // Same as FhdParticleContainer.H?
 FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
@@ -39,10 +29,18 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
         properties[i].mass = mass[i];
         properties[i].radius = diameter[i]/2.0;
         properties[i].partVol = pow(diameter[i],3)*pi_usr/6;
+        properties[i].Neff = particle_neff;
+        
         //properties[i].part2cellVol = properties[i].partVol*ocollisionCellVol;
         //properties[i].Neff = phi_domain[i]*(domainVol/properties[i].partVol); // number of real particles
         //properties[i].Neff = properties[i].Neff/properties[i].total;
         //Print() << "Neff: " << properties[i].Neff << ", phi" << phi_domain[i] << "\n";
+
+		  if(phi_domain[i]>=0) {
+		  
+		  } else if(particle_neff>0) {
+		  
+		  }
 
         if (particle_count[i] >= 0) {
             properties[i].total = particle_count[i];
@@ -75,19 +73,28 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
 
 }
 
+// Likely excessive
+// Relates lower diagonal matrix indices to those of 1D array
+int FhdParticleContainer::getSpeciesIndex(int species1, int species2) {
+	if(species1<species2){
+		return species1+nspecies*(species2-1);
+	} else {
+		return species2+nspecies*(species1-1);
+	}
+}
+
 // Use to approximate pair correlation fuunc with radial distr. func
 Real FhdParticleContainer::g0_Ma_Ahmadi(int species1, int species2, Real phi1, Real phi2){
 	const double C1 = 2.5, C2 = 4.5904;
 	const double C3 = 4.515439, CPOW = 0.67802;
 
 	if(species1==species2) {
-		int indx = getSpecIndx(int i, int j)
 		Real phiTotal = phi1 + phi2;
-		Real numer = 1 + C1*phiTotal + C2*pow(phiTotal,2) + C3*pow(phiTotal,3)
-		numer = numer * 4.0*phiTotal
-		Real phiRatio = phiTotal/phi_max
-		Real denom = pow(1.0 - pow(phiRatio,3),CPOW)
-		return std::min(1+numer/denom,chi_max)
+		Real numer = 1 + C1*phiTotal + C2*pow(phiTotal,2) + C3*pow(phiTotal,3);
+		numer = numer * 4.0*phiTotal;
+		Real phiRatio = phiTotal/phi_max;
+		Real denom = pow(1.0 - pow(phiRatio,3),CPOW);
+		return std::min(1+numer/denom,chi_max);
 	} else {
 	 // add Lebowitz RDF here
 	}
@@ -370,7 +377,7 @@ void FhdParticleContainer::InitCollisionCells() {
 		j=0;
 		k=0;
 		const IntVect& iv = {i,j,k};
-		long imap = tile_box.index(iv);
+		//long imap = tile_box.index(iv);
 		
 	}
 }
@@ -393,7 +400,7 @@ void FhdParticleContainer::CalcCollisionCells(Real dt) {
 		
 		int spec_indx;
 		Real NSel; // Number of selections this time step
-		Reak phi1, phi2, chi0; // radial distribution function (enhance collision frequency)
+		Real phi1, phi2, chi0; // radial distribution function (enhance collision frequency)
 		Real crossSection;
 		int np_i, np_j; // number of particles in collision cell for species i and j
 		
@@ -411,11 +418,11 @@ void FhdParticleContainer::CalcCollisionCells(Real dt) {
 				np_i = arrnspec(i,j,k,spec_indx);
 				np_j = arrnspec(i,j,k,spec_indx);
 				phi1 = arrphi(i,j,k,i_spec);
-				phi2 = arrphi(i,h,k,j_spec);
+				phi2 = arrphi(i,j,k,j_spec);
 				chi0 = g0_Ma_Ahmadi(i_spec,j_spec, phi1, phi2);
 				vrmax = arrvrmax(i,j,k,spec_indx);
 				crossSection = interproperties[spec_indx].csx;
-				NSel = 0.5*np_i*np_j*csx*vrmax*oCollisionCellVol*chi0*dt;
+				NSel = 0.5*np_i*np_j*crossSection*vrmax*ocollisionCellVol*chi0*dt;
 				arrselect(i,j,k,spec_indx) = arrselect(i,j,k,spec_indx) + NSel;
 		}
 	}
@@ -429,6 +436,7 @@ void FhdParticleContainer::CollideParticles() {
 		const int grid_id = mfi.index();
 		const int tile_id = mfi.LocalTileIndex();
 		auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+		auto& particles = particle_tile.GetArrayOfStructs();
 
 		// Convert MultiFabs -> arrays
 		const Array4<Real> & arrvrmax = mfvrmax.array(mfi);
@@ -452,9 +460,9 @@ void FhdParticleContainer::CollideParticles() {
 		long imap = tile_box.index(iv);
 		bool pairFound;
 		
-		Real eij[3], vreij[3];
-		Real vel1[3], vel2[3], vr[3];
-		Real vrmag, vrmax;
+		RealVect eij, vreij;
+		RealVect vel1, vel2, vr;
+		Real vrmag, vrmax, vreijmag;
 		// Loops through species pairs
 		for (int i_spec = 0; i_spec < nspecies; i_spec++) {
 			for (int j_spec = 0; j_spec < nspecies; j_spec++) {
@@ -467,8 +475,8 @@ void FhdParticleContainer::CollideParticles() {
 				vrmax = arrvrmax(i,j,k,spec_indx);
 				// Loop through selections
 				for (int isel = 0; isel < NSel; isel++) {
-					pairFound = FALSE;
-					while(!= pairFound) {
+					pairFound = false;
+					while(!pairFound) {
 						// p1 = floor(amrex::Random()*np_i);
 						// p2 = floor(amrex::Random()*np_j);
 						p1 = floor(amrex::Random()*np_total);
@@ -480,17 +488,20 @@ void FhdParticleContainer::CollideParticles() {
 						p1_spec = particles[p1].idata(FHD_intData::species);
 						p2_spec = particles[p2].idata(FHD_intData::species);
 						if(p1_spec == i_spec && p2_spec == j_spec) {
-							pairFound = TRUE;
+							pairFound = true;
 						}
 					}
-					vel1 = {particle[p1].rdata(FHD_realData::velx),
-							  particle[p1].rdata(FHD_realData::vely),
-							  particle[p2].rdata(FHD_realData::velz)};
-					vel2 = {particle[p2].rdata(FHD_realData::velx),
-						     particle[p2].rdata(FHD_realData::vely),
-						     particle[p2].rdata(FHD_realData::velz)};
-					vr = vel2-vel1;
-					vrmag = sqrt(vr.dotProduct(vr));
+					vel1[0] = particles[p1].rdata(FHD_realData::velx);
+					vel1[1] = particles[p1].rdata(FHD_realData::vely);
+					vel1[2] = particles[p1].rdata(FHD_realData::velz);
+					vel2[0] = particles[p2].rdata(FHD_realData::velx);
+					vel2[1] = particles[p2].rdata(FHD_realData::vely);
+					vel2[2] = particles[p2].rdata(FHD_realData::velz);
+					vr[0] = vel2[0]-vel1[0];
+					vr[1] = vel2[1]-vel1[1];
+					vr[2] = vel2[2]-vel1[2];
+					// vrmag = sqrt(vr.dotProduct(vr));
+					vrmag = sqrt(vr[0]*vr[0]+vr[1]*vr[1]+vr[2]*vr[2]);
 					// If relative speed greater than max relative speed, replace
 					if(vrmag>vrmax) {
 						vrmax = vrmag*1.2;
@@ -498,13 +509,18 @@ void FhdParticleContainer::CollideParticles() {
 					}
 					// later want to reject non-approaching
 					if(vrmag>vrmax*amrex::Random()) {
-						eij = {amrex::Random(),
-								 amrex::Random(),
-								 amrex::Random()};
-						vreij = vr.dotProduct(eij) * eij * interproperties[spec_indx].inel;;
+						// sample random unit vector at impact
+						for (int dir = 0; dir < 3; dir++) {
+							eij[dir] = amrex::Random();
+						}
+						vreijmag = vr[0]*eij[0]+vr[1]*eij[1]+vr[2]*eij[2]; // dot_product
+						vreijmag = vreijmag*interproperties[spec_indx].inel;
+						//vreij = vr.dotProduct(eij) * eij * interproperties[spec_indx].inel;;
+						vreij = vreijmag*eij;
 						vel2 = vel2 + vreij;
 						vel1 = vel1 - vreij;
 						// add boosted velocity calculations here
+					}
 				}
 			}
 		}
