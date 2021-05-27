@@ -15,6 +15,8 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
 
     GpuArray<Real,MAX_SPECIES> fracvec;
 
+    int n_cells_yz = n_cells[1]*n_cells[2];
+
     /* miscVals
       0  = mean xmom
       1  = instant xmom
@@ -86,9 +88,15 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
         }
         }
     }
-    
+
+    // parallel reduce sum totalMass
+    ParallelDescriptor::ReduceRealSum(totalMass);
+
+    for (int i=0; i<20; ++i) {
+        miscVals[i] = 0.;
+    }
+
     // Loop over boxes
-    // FIXME: this routine assumes that there is only 1 box spanning the entire lo-x domain face
     for ( MFIter mfi(prim_in); mfi.isValid(); ++mfi) {
 
         const Box& bx = mfi.validbox();
@@ -100,12 +108,6 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
         const Array4<      Real> cumeans   = consMean.array(mfi);
         const Array4<const Real> prim      = prim_in.array(mfi);
         const Array4<      Real> primmeans = primMean.array(mfi);
-
-        for (int i=0; i<20; ++i) {
-            miscVals[i] = 0.;
-        }
-        
-        int counter = 0;
         
         if (cross_cell >= lo.x && cross_cell <= hi.x) {
             for (auto k = lo.z; k <= hi.z; ++k) {
@@ -139,22 +141,18 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
                 miscVals[15] = miscVals[15] + primmeans(cross_cell,j,k,3); //slice average of mean z velocity
                 
                 miscVals[16] = miscVals[16] + prim(cross_cell,j,k,4);      //slice average of instant temperature
-
-                counter = counter + 1;
             }
-            }
-
-            for (int i=0; i<17; ++i) {
-                miscVals[i] /= counter;
             }
         }
     }
-    
+
     // parallel reduce sum miscVals
     ParallelDescriptor::ReduceRealSum(miscVals,20);
 
-    // parallel reduce sum totalMass
-    ParallelDescriptor::ReduceRealSum(totalMass);
+    // compute the mean value of miscVals at the cross_cell slice
+    for (int i=0; i<20; ++i) {
+        miscVals[i] /= n_cells_yz;
+    }
 
     //////////////////
     // evaluate_corrs
@@ -163,7 +161,9 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
     MultiFab slices_mf(prim_in.boxArray(),prim_in.DistributionMap(),20,0);
 
     slices_mf.setVal(0.);
-    
+
+    // FIXME - needs to work with multiple grids for a given yz-plane
+
     for ( MFIter mfi(prim_in); mfi.isValid(); ++mfi) {
 
         const Box& bx = mfi.validbox();
