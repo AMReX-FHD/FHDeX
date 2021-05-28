@@ -525,10 +525,14 @@ void main_driver(const char* argv)
 
         // write a plotfile
         if (plot_int > 0 && step > 0 && step%plot_int == 0) {
+        /*
            yzAverage(cuMeans, cuVars, primMeans, primVars, spatialCross,
                      cuMeansAv, cuVarsAv, primMeansAv, primVarsAv, spatialCrossAv);
            WritePlotFile(step, time, geom, cu, cuMeansAv, cuVarsAv,
                          prim, primMeansAv, primVarsAv, spatialCrossAv, eta, kappa);
+        */
+           WritePlotFile(step, time, geom, cu, cuMeans, cuVars,
+                         prim, primMeans, primVars, spatialCross, eta, kappa);
         }
 
         if (chk_int > 0 && step > 0 && step%chk_int == 0)

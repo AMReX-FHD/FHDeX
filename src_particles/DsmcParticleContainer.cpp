@@ -70,7 +70,9 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
 	for(MFIter mfi = MakeMFIter(lev, false); mfi.isValid(); ++mfi) {
 		const Box& box = mfi.validbox();
 		const int grid_id = mfi.index();
-		m_cell_vectors[grid_id].resize(box.numPts());
+		for(int i=0;i<nspecies;i++){
+			m_cell_vectors[i][grid_id].resize(box.numPts());
+		}
 	}
 }
 
@@ -104,116 +106,138 @@ Real FhdParticleContainer::g0_Ma_Ahmadi(int species1, int species2, Real phi1, R
 
 void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount)
 {
-	BL_PROFILE_VAR("MoveParticlesCPP()", MoveParticlesCPP);
+    BL_PROFILE_VAR("MoveParticlesCPP()", MoveParticlesCPP);
 
-	const int lev = 0;
-	const Real* dx = Geom(lev).CellSize();
-	const Real* plo = Geom(lev).ProbLo();
-	const Real* phi = Geom(lev).ProbHi();
+    const int lev = 0;
+    const Real* dx = Geom(lev).CellSize();
+    const Real* plo = Geom(lev).ProbLo();
+    const Real* phi = Geom(lev).ProbHi();
 
-	int        np_tile = 0 ,       np_proc = 0 ; // particle count
-	Real    moves_tile = 0.,    moves_proc = 0.; // total moves
-	Real  maxspeed_proc = 0.; // max speed
-	Real  maxdist_proc = 0.; // max displacement (fraction of radius)
+    int        np_tile = 0 ,       np_proc = 0 ; // particle count
+    Real    moves_tile = 0.,    moves_proc = 0.; // total moves
+    Real  maxspeed_proc = 0.; // max speed
+    Real  maxdist_proc = 0.; // max displacement (fraction of radius)
 
-	Real adj = 0.99999;
-	Real adjalt = 2.0*(1.0-0.99999);
-	Real runtime, inttime;
-	int intsurf, intside, push;
+    Real adj = 0.99999;
+    Real adjalt = 2.0*(1.0-0.99999);
+    Real runtime, inttime;
+    int intsurf, intside, push;
 
-	Real maxspeed = 0;
-	Real maxdist = 0;
+    Real maxspeed = 0;
+    Real maxdist = 0;
 
-	long moves = 0;
-	int reDist = 0;
+    long moves = 0;
+    int reDist = 0;
 
-	for (FhdParIter pti(* this, lev); pti.isValid(); ++pti) {
+    for (FhdParIter pti(* this, lev); pti.isValid(); ++pti) {
 
-		const int grid_id = pti.index();
-		const int tile_id = pti.LocalTileIndex();
-		const Box& tile_box  = pti.tilebox();
+        const int grid_id = pti.index();
+        const int tile_id = pti.LocalTileIndex();
+        const Box& tile_box  = pti.tilebox();
 
-		auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
-		auto& particles = particle_tile.GetArrayOfStructs();
-		const long np = particles.numParticles();
+        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+        auto& particles = particle_tile.GetArrayOfStructs();
+        const long np = particles.numParticles();
 
-		Box bx  = pti.tilebox();
-		IntVect myLo = bx.smallEnd();
-		IntVect myHi = bx.bigEnd();
+        Box bx  = pti.tilebox();
+        IntVect myLo = bx.smallEnd();
+        IntVect myHi = bx.bigEnd();
 
-		np_proc += np;
+        np_proc += np;
 
-		for (int i = 0; i < np; ++ i) {
-			ParticleType & part = particles[i];
-			Real speed = 0;
+        for (int i = 0; i < np; ++ i) {
+              ParticleType & part = particles[i];
 
-			for (int d=0; d<AMREX_SPACEDIM; ++d) {                   
-				speed += part.rdata(FHD_realData::velx + d)*part.rdata(FHD_realData::velx + d);
-			}
+              Real speed = 0;
 
-			if(speed > maxspeed) {
-				maxspeed = speed;
-			}
+              for (int d=0; d<AMREX_SPACEDIM; ++d)
+              {                   
+                  speed += part.rdata(FHD_realData::velx + d)*part.rdata(FHD_realData::velx + d);
+              }
 
-			moves++;
-			runtime = dt;
+              if(speed > maxspeed)
+              {
+                  maxspeed = speed;
+              }
 
-			while(runtime > 0) {
-				find_inter_gpu(part, runtime, paramPlaneList, paramPlaneCount, &intsurf, &inttime, &intside, ZFILL(plo), ZFILL(phi));
+              moves++;
 
-				for (int d=0; d<AMREX_SPACEDIM; ++d) {
-					part.pos(d) += inttime * part.rdata(FHD_realData::velx + d)*adj;
-				}
-				runtime = runtime - inttime;
+              runtime = dt;
 
-				if(intsurf > 0) {
-					const paramPlane& surf = paramPlaneList[intsurf-1];
-					Real posAlt[3];
-					for (int d=0; d<AMREX_SPACEDIM; ++d) {
-						posAlt[d] = inttime * part.rdata(FHD_realData::velx + d)*adjalt;
-					}
-					Real dummy = 1;
-					app_bc_gpu(&surf, part, intside, domSize, &push, dummy, dummy);
-					if(push == 1) {
-						for (int d=0; d<AMREX_SPACEDIM; ++d) {
-							part.pos(d) += part.pos(d) + posAlt[d];
-						}
-					}
-				}
-			}
+              while(runtime > 0)
+              {
+
+                  find_inter_gpu(part, runtime, paramPlaneList, paramPlaneCount, &intsurf, &inttime, &intside, ZFILL(plo), ZFILL(phi));
+
+                  for (int d=0; d<AMREX_SPACEDIM; ++d)
+                  {
+                      part.pos(d) += inttime * part.rdata(FHD_realData::velx + d)*adj;
+                  }
+
+                  runtime = runtime - inttime;
+
+                  if(intsurf > 0)
+                  {
+                      const paramPlane& surf = paramPlaneList[intsurf-1];//find_inter indexes from 1 to maintain compatablity with fortran version
+      
+                      Real posAlt[3];
+
+                      for (int d=0; d<AMREX_SPACEDIM; ++d)
+                      {
+                          posAlt[d] = inttime * part.rdata(FHD_realData::velx + d)*adjalt;
+                      }
+
+                      Real dummy = 1;
+
+                      app_bc_gpu(&surf, part, intside, domSize, &push, dummy, dummy);
+
+                      if(push == 1)
+                      {
+                          for (int d=0; d<AMREX_SPACEDIM; ++d)
+                          {
+                              part.pos(d) += part.pos(d) + posAlt[d];
+                          }
+                      }
+                  }
+
+              }
 
 
-			int cell[3];
-			cell[0] = (int)floor((part.pos(0)-plo[0])/dx[0]);
-			cell[1] = (int)floor((part.pos(1)-plo[1])/dx[1]);
-			cell[2] = (int)floor((part.pos(2)-plo[2])/dx[2]);
+            int cell[3];
+            cell[0] = (int)floor((part.pos(0)-plo[0])/dx[0]);
+            cell[1] = (int)floor((part.pos(1)-plo[1])/dx[1]);
+            cell[2] = (int)floor((part.pos(2)-plo[2])/dx[2]);
 
-			//cout << "current cell: " << cell[0] << ", " << cell[1] << ", " << cell[2] << "\cout";
-			//n << "current pos: " << part.pos(0) << ", " << part.pos(1) << ", " << part.pos(2) << "\n";
+            //cout << "current cell: " << cell[0] << ", " << cell[1] << ", " << cell[2] << "\cout";
+            //n << "current pos: " << part.pos(0) << ", " << part.pos(1) << ", " << part.pos(2) << "\n";
 
-			if((cell[0] < myLo[0]) || (cell[1] < myLo[1]) || (cell[2] < myLo[2])) {
-				reDist++;
-			} 
-			else if((cell[0] > myHi[0]) || (cell[1] > myHi[1]) || (cell[2] > myHi[2])) {
-				reDist++;
-			}
+            if((cell[0] < myLo[0]) || (cell[1] < myLo[1]) || (cell[2] < myLo[2]) || (cell[0] > myHi[0]) || (cell[1] > myHi[1]) || (cell[2] > myHi[2]))
+            {
+                reDist++;
+            }
 
-			if((part.idata(FHD_intData::i) != cell[0]) || (part.idata(FHD_intData::j) != cell[1]) || (part.idata(FHD_intData::k) != cell[2])) {
-				//remove particle from old cell
-				IntVect iv(part.idata(FHD_intData::i), part.idata(FHD_intData::j), part.idata(FHD_intData::k));
-				long imap = tile_box.index(iv);
-				int lastIndex = m_cell_vectors[pti.index()][imap].size() - 1;
-				int lastPart = m_cell_vectors[pti.index()][imap][lastIndex];
-				int newIndex = part.idata(FHD_intData::sorted);
+            if((part.idata(FHD_intData::i) != cell[0]) || (part.idata(FHD_intData::j) != cell[1]) || (part.idata(FHD_intData::k) != cell[2]))
+            {
+                //remove particle from old cell
+                IntVect iv(part.idata(FHD_intData::i), part.idata(FHD_intData::j), part.idata(FHD_intData::k));
+                long imap = tile_box.index(iv);
 
-				m_cell_vectors[pti.index()][imap][newIndex] = m_cell_vectors[pti.index()][imap][lastIndex];
-				m_cell_vectors[pti.index()][imap].pop_back();
-            part.idata(FHD_intData::sorted) = -1; // indicates need to be sorted
-			}
-		}
+                int lastIndex = m_cell_vectors[part.idata(FHD_intData::species)][pti.index()][imap].size() - 1;
 
-		maxspeed_proc = amrex::max(maxspeed_proc, maxspeed);
-		maxdist_proc  = amrex::max(maxdist_proc, maxdist);
+                int lastPart = m_cell_vectors[part.idata(FHD_intData::species)][pti.index()][imap][lastIndex];
+                int newIndex = part.idata(FHD_intData::sorted);
+
+                m_cell_vectors[part.idata(FHD_intData::species)][pti.index()][imap][newIndex] = lastPart;
+                m_cell_vectors[part.idata(FHD_intData::species)][pti.index()][imap].pop_back();
+
+                particles[lastPart].idata(FHD_intData::sorted) = newIndex;
+
+                part.idata(FHD_intData::sorted) = -1;
+            }
+        }
+
+        maxspeed_proc = amrex::max(maxspeed_proc, maxspeed);
+        maxdist_proc  = amrex::max(maxdist_proc, maxdist);
     }
 
     // gather statistics
@@ -256,10 +280,11 @@ void FhdParticleContainer::SortParticles() {
 				part.idata(FHD_intData::k) = iv[2];
 
 				long imap = tile_box.index(iv);
+				//cout << "part " << i << " is in cell " << iv[0] << ", " << iv[1] << ", " << iv[2] << ", adding to element " << m_cell_vectors[part.idata(FHD_intData::species)][pti.index()][imap].size() << "\n";
 
-			   // size gives num of particles in the coll cell
-				part.idata(FHD_intData::sorted) = m_cell_vectors[pti.index()][imap].size();
-				m_cell_vectors[pti.index()][imap].push_back(i);
+				part.idata(FHD_intData::sorted) = m_cell_vectors[part.idata(FHD_intData::species)][pti.index()][imap].size();
+
+				m_cell_vectors[part.idata(FHD_intData::species)][pti.index()][imap].push_back(i);
 			}
 		}
 	}
@@ -577,6 +602,5 @@ void FhdParticleContainer::EvaluateStats(MultiFab& particleInstant, MultiFab& pa
 
             part_var(i,j,k,1)  = (part_var(i,j,k,1)*stepsMinusOne + del1*del1)*stepsInv;            
 		});
-
 	}
 }

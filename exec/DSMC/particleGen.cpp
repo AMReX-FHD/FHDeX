@@ -44,6 +44,8 @@ void FhdParticleContainer::InitParticles(Real T_init, MultiFab* vrmax)
                     p.cpu() = ParallelDescriptor::MyProc();
                     p.idata(FHD_intData::sorted) = -1;
 
+                    p.idata(FHD_intData::species) = i_spec;
+
                     if(particle_placement == 1)
                     {
                         particleFile >> p.pos(0);                       

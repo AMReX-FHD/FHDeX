@@ -10,7 +10,6 @@ using namespace amrex;
 
 typedef struct {
 
-#if (BL_SPACEDIM == 3)
     double x0;
     double y0;
     double z0;
@@ -59,41 +58,23 @@ typedef struct {
     double besslist[100];
     double dbesslist[100];
 
-#endif
-
-#if (BL_SPACEDIM == 2)
-    double x0;
-    double y0;
-
-    double ux;
-    double uy;
-
-    double lnx;
-    double lny;
-
-    double rnx;
-    double rny;
-
-    double uTop;
-
-    double cosThetaLeft;
-    double sinThetaLeft;
-
-    double cosThetaRight;
-    double sinThetaRight;
-#endif
-
     double porosityLeft;
     double specularityLeft;
     double temperatureLeft;
     double momentumConsLeft;
+    double densityLeft;
 
     double porosityRight;
     double specularityRight;
     double temperatureRight;
     double momentumConsRight;
+    double densityRight;
+
+    double sourceLeft;
+    double sourceRight;
 
     double periodicity;
+    double area;
 
     double fxLeft;
     double fyLeft;

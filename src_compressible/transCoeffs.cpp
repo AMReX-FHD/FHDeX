@@ -38,8 +38,8 @@ void calculateTransportCoeffs(const MultiFab& prim_in,
             Real sumYk = 0.;
             for (int n=0; n<nspecies; ++n) {
                 //if (prim(i,j,k,6+n) <= 0.0) Abort("Negative mass fraction encountered"); 
-                //if (prim(i,j,k,6+n) <= 0.0) amrex::Print() << "Negative mass fraction encountered" << "\n"; 
-                //if (prim(i,j,k,6+n) >= 1.0) amrex::Print() << "Greater than unity mass fraction encountered" << "\n"; 
+                if (prim(i,j,k,6+n) <= 0.0) amrex::Print() << "Negative mass fraction encountered" << "\n"; 
+                if (prim(i,j,k,6+n) >= 1.0) amrex::Print() << "Greater than unity mass fraction encountered" << "\n"; 
                 Yk_fixed[n] = amrex::max(0.,amrex::min(1.,prim(i,j,k,6+n)));
                 sumYk += Yk_fixed[n];
             }

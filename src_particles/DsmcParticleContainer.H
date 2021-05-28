@@ -162,7 +162,8 @@ public:
 	// Constants	
 	Real pi_usr = 4.0*atan(1.0);
 protected:
-	std::map<int, std::vector<std::vector<int> > > m_cell_vectors; //[MAX_SPECIES];
+    // used to store vectors of particle indices on a cell-by-cell basis
+    std::map<int, std::vector<std::vector<int> > > m_cell_vectors[MAX_SPECIES];
 
 };
 
