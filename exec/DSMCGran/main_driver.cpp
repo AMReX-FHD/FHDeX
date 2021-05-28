@@ -153,29 +153,24 @@ void main_driver(const char* argv)
 	//Particles! Build on geom & box array for collision cells/ poisson grid?
 
 	int cRange = 0;
-   Print() << "Phi: " << alpha_pp[0] << "\n";
-   Print() << "Phi: " << alpha_pp[1] << "\n";
-   Print() << "Phi: " << phi_domain[0] << "\n";
-   Print() << "Phi: " << phi_domain[1] << "\n";
-
-	//FhdParticleContainer particles(geom, dmap, ba, cRange);
+	FhdParticleContainer particles(geom, dmap, ba, cRange);
 	if (restart < 0 && particle_restart < 0) {
 		// Collision Cell Vars
-		//particles.mfselect.define(ba, dmap, nspecies*nspecies, 0); // will not use all the indices
-		//particles.mfselect.setVal(0.);
+		particles.mfselect.define(ba, dmap, nspecies*nspecies, 0);
+		particles.mfselect.setVal(0.);
 		
-		//particles.mfvrmax.define(ba, dmap, nspecies, 0);
-		//particles.mfvrmax.setVal(0.); // we will reset this later in initParticles
+		particles.mfvrmax.define(ba, dmap, nspecies, 0);
+		particles.mfvrmax.setVal(0.);
 		
-		//particles.mfphi.define(ba, dmap, nspecies, 0);
-		//particles.mfphi.setVal(0.);
+		particles.mfphi.define(ba, dmap, nspecies, 0);
+		particles.mfphi.setVal(0.);
 		
-		//particles.mfnspec.define(ba, dmap, nspecies, 0);
-		//particles.mfnspec.setVal(0.);
+		particles.mfnspec.define(ba, dmap, nspecies, 0);
+		particles.mfnspec.setVal(0.);
 		
-		//particles.InitParticles(); // vrmax is also set here
+		particles.InitParticles(); // vrmax is also set here
 		
-		//particles.InitCollisionCells();
+		particles.InitCollisionCells();
 	}
 	else {
         //load from checkpoint

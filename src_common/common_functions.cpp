@@ -132,9 +132,6 @@ void InitializeCommonNamespace() {
                                 &wall_mob,rmin.begin(),rmax.begin(), eepsilon.begin(), 
                                 sigma.begin(),rmin_wall.begin(),rmax_wall.begin(),
                                 eepsilon_wall.begin(), sigma_wall.begin(),
-                                alpha_pp.data(), alpha_pw.data(),
-                                friction_pp.data(), friction_pw.data(),
-                                phi_domain.data(),
                                 &poisson_verbose, &poisson_bottom_verbose, &poisson_max_iter,
                                 &poisson_rel_tol, &particle_grid_refine, &es_grid_refine,
                                 diff.dataPtr(), &all_dry, &fluid_tog, &es_tog, &drag_tog, &move_tog, &rfd_tog,
@@ -143,7 +140,10 @@ void InitializeCommonNamespace() {
                                 &plot_ascii, &plot_means, &plot_vars, &plot_covars, &plot_cross,
                                 &solve_chem, &diffcoeff, &scaling_factor,
                                 &source_strength, &regrid_int, &do_reflux, &particle_motion,
-                                &turb_a, &turb_b, &turbForcing
+                                &turb_a, &turb_b, &turbForcing,
+                                alpha_pp.begin(), alpha_pw.begin(),
+                                friction_pp.begin(), friction_pw.begin(),
+                                phi_domain.begin()
                                 );
 
     plot_base_name = temp_plot_base_name;

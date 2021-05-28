@@ -139,6 +139,8 @@ public:
 	Real domainVol;
 	Real domSize[3];
 	Real dx[3];
+	int NSel_spec[MAX_SPECIES*MAX_SPECIES];
+	int totalNSel;
 
 	int getSpeciesIndex(int species1, int species2);
 	
@@ -150,12 +152,15 @@ public:
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	// MFs for DSMC
 	// Move within particle container to avoid continuously passing as input
-	MultiFab mfselect; // needed to determine how many collisions
-   MultiFab mfvrmax; // needed for calculating selections
+	MultiFab mfselect; // store number of selections
+   MultiFab mfvrmax; // store max relative speed found
    // currently a single constant but updates over time
-   MultiFab mfnspec; // needed for calculating selections
+   MultiFab mfnspec; // 
    MultiFab mfphi; // needed for evaluating radial distribution function
 	
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	// Constants	
+	Real pi_usr = 4.0*atan(1.0);
 protected:
 	std::map<int, std::vector<std::vector<int> > > m_cell_vectors; //[MAX_SPECIES];
 

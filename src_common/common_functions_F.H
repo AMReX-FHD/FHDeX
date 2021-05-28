@@ -72,12 +72,7 @@ extern "C"
                                      amrex::Real* particle_neff, amrex::Real* particle_n0,
                                      amrex::Real* mass, amrex::Real* nfrac, amrex::Real* permittivity,
                                      int* wall_mob, amrex::Real* rmin, amrex::Real* rmax, amrex::Real* eepsilon, amrex::Real* sigma,
-                                     amrex::Real* rmin_wall, amrex::Real* rmax_wall, amrex::Real* eepsilon_wall, amrex::Real* sigma_wall,
-                                     // DSMCGran
-                                     amrex::Real* restitution_pp, amrex::Real* restitution_pw,
-                                     amrex::Real* friction_pp, amrex::Real* friction_pw,
-                                     amrex::Real* phi_domain,
-                                     
+                                     amrex::Real* rmin_wall, amrex::Real* rmax_wall, amrex::Real* eepsilon_wall, amrex::Real* sigma_wall,                                    
                                      int* poisson_verbose,
                                      int* poisson_bottom_verbose,
                                      int* poisson_max_iter, amrex::Real* poisson_rel_tol,
@@ -91,7 +86,10 @@ extern "C"
                                      int* solve_chem, amrex::Real* diffcoeff,
                                      amrex::Real* scaling_factor, amrex::Real* source_strength,
                                      int* regrid_int, int* do_reflux, int* particle_motion,
-                                     amrex::Real* turb_a, amrex::Real* turb_b, int* turbForcing);
+                                     amrex::Real* turb_a, amrex::Real* turb_b, int* turbForcing,
+                                     amrex::Real* alpha_pp, amrex::Real* alpha_pw,
+                                     amrex::Real* friction_pp, amrex::Real* friction_pw,
+                                     amrex::Real* phi_domain);
 
     void set_max_step(int* max_step);
     void set_domega(amrex::Real* domega);
