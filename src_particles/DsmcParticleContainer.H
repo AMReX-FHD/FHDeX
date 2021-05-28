@@ -92,11 +92,15 @@ public:
 
     void InitParticles();
 
+    void MoveParticlesCPP(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount);
+
     dsmcSpecies properties[MAX_SPECIES];
     long realParticles;
     long simParticles;
     long totalCollisionCells;
     Real domainVol;
+    Real domSize[3];
+    Real dx[3];
 
 
 protected:

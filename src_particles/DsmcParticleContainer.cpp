@@ -52,12 +52,153 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
     totalCollisionCells = n_cells[0]*n_cells[1]*n_cells[2];
     domainVol = (prob_hi[0] - prob_lo[0])*(prob_hi[1] - prob_lo[1])*(prob_hi[2] - prob_lo[2]);
 
+    for (int d=0; d<AMREX_SPACEDIM; ++d)
+    {
+        domSize[d] = prob_hi[d] - prob_lo[d];
+    }
+
     Print() << "Total real particles: " << realParticles << "\n";
     Print() << "Total sim particles: " << simParticles << "\n";
 
     Print() << "Collision cells: " << totalCollisionCells << "\n";
     Print() << "Sim particles per cell: " << simParticles/totalCollisionCells << "\n";
 
+
+}
+
+void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount)
+{
+    BL_PROFILE_VAR("MoveParticlesCPP()", MoveParticlesCPP);
+
+    const int lev = 0;
+    const Real* dx = Geom(lev).CellSize();
+    const Real* plo = Geom(lev).ProbLo();
+    const Real* phi = Geom(lev).ProbHi();
+
+    int        np_tile = 0 ,       np_proc = 0 ; // particle count
+    Real    moves_tile = 0.,    moves_proc = 0.; // total moves
+    Real  maxspeed_proc = 0.; // max speed
+    Real  maxdist_proc = 0.; // max displacement (fraction of radius)
+
+    Real adj = 0.99999;
+    Real adjalt = 2.0*(1.0-0.99999);
+    Real runtime, inttime;
+    int intsurf, intside, push;
+
+    Real maxspeed = 0;
+    Real maxdist = 0;
+
+    long moves = 0;
+    int reDist = 0;
+
+    for (FhdParIter pti(* this, lev); pti.isValid(); ++pti) {
+
+        const int grid_id = pti.index();
+        const int tile_id = pti.LocalTileIndex();
+
+        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+        auto& particles = particle_tile.GetArrayOfStructs();
+        const long np = particles.numParticles();
+
+        Box bx  = pti.tilebox();
+        IntVect myLo = bx.smallEnd();
+        IntVect myHi = bx.bigEnd();
+
+        np_proc += np;
+
+        for (int i = 0; i < np; ++ i) {
+            ParticleType & part = particles[i];
+
+              Real speed = 0;
+
+              for (int d=0; d<AMREX_SPACEDIM; ++d)
+              {                   
+                  speed += part.rdata(FHD_realData::velx + d)*part.rdata(FHD_realData::velx + d);
+              }
+
+              if(speed > maxspeed)
+              {
+                  maxspeed = speed;
+              }
+
+              moves++;
+
+              runtime = dt;
+
+              while(runtime > 0)
+              {
+
+                  find_inter_gpu(part, runtime, paramPlaneList, paramPlaneCount, &intsurf, &inttime, &intside, ZFILL(plo), ZFILL(phi));
+
+                  for (int d=0; d<AMREX_SPACEDIM; ++d)
+                  {
+                      part.pos(d) += inttime * part.rdata(FHD_realData::velx + d)*adj;
+                  }
+
+                  runtime = runtime - inttime;
+
+                  if(intsurf > 0)
+                  {
+                      const paramPlane& surf = paramPlaneList[intsurf-1];//find_inter indexes from 1 to maintain compatablity with fortran version
+      
+                      Real posAlt[3];
+
+                      for (int d=0; d<AMREX_SPACEDIM; ++d)
+                      {
+                          posAlt[d] = inttime * part.rdata(FHD_realData::velx + d)*adjalt;
+                      }
+
+                      Real dummy = 1;
+
+                      app_bc_gpu(&surf, part, intside, domSize, &push, dummy, dummy);
+
+                      if(push == 1)
+                      {
+                          for (int d=0; d<AMREX_SPACEDIM; ++d)
+                          {
+                              part.pos(d) += part.pos(d) + posAlt[d];
+                          }
+                      }
+                  }
+
+              }
+
+
+            int cell[3];
+            cell[0] = (int)floor((part.pos(0)-plo[0])/dx[0]);
+            cell[1] = (int)floor((part.pos(1)-plo[1])/dx[1]);
+            cell[2] = (int)floor((part.pos(2)-plo[2])/dx[2]);
+
+            if((cell[0] < myLo[0]) || (cell[1] < myLo[1]) || (cell[2] < myLo[2]) || (cell[0] > myHi[0]) || (cell[1] > myHi[1]) || (cell[2] > myHi[2]))
+            {
+                reDist++;
+            }    
+        }
+
+        maxspeed_proc = amrex::max(maxspeed_proc, maxspeed);
+        maxdist_proc  = amrex::max(maxdist_proc, maxdist);
+
+    }
+
+    // gather statistics
+    ParallelDescriptor::ReduceIntSum(np_proc);
+    ParallelDescriptor::ReduceRealSum(moves_proc);
+    ParallelDescriptor::ReduceRealMax(maxspeed_proc);
+    ParallelDescriptor::ReduceRealMax(maxdist_proc);
+    ParallelDescriptor::ReduceIntSum(reDist);
+
+    // write out global diagnostics
+    if (ParallelDescriptor::IOProcessor()) {
+        Print() << "I see " << np_proc << " particles\n";
+
+        Print() << reDist << " particles to be redistributed.\n";
+        Print() <<"Maximum observed speed: " << sqrt(maxspeed_proc) << "\n";
+        Print() <<"Maximum observed displacement (fraction of radius): " << maxdist_proc << "\n";
+    }
+
+    Redistribute();
+
+    //CODE TO UPDATE CELL LISTS HERE
 
 }
 

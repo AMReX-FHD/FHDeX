@@ -187,7 +187,7 @@ void main_driver(const char* argv)
         if (move_tog != 0)
         {
 
-            //particles.MoveParticles(dt, paramPlaneList, paramPlaneCount);
+            particles.MoveParticlesCPP(dt, paramPlaneList, paramPlaneCount);
 
             // reset statistics after step n_steps_skip
             // if n_steps_skip is negative, we use it as an interval
