@@ -706,6 +706,8 @@ void MultiFabElectricBC(MultiFab& efieldCC, const Geometry& geom) {
 
     Box dom(geom.Domain());
 
+    GpuArray<Real,AMREX_SPACEDIM> dx = geom.CellSizeArray();
+
     int ng = efieldCC.nGrow();
 
     for (MFIter mfi(efieldCC); mfi.isValid(); ++mfi) {
@@ -729,7 +731,7 @@ void MultiFabElectricBC(MultiFab& efieldCC, const Geometry& geom) {
             });
         }
 
-        if ((bc_es_lo[0] == 1 || bc_es_hi[0] == 2) && (bx.bigEnd(0) > dom.bigEnd(0))) {
+        if ((bc_es_hi[0] == 1 || bc_es_hi[0] == 2) && (bx.bigEnd(0) > dom.bigEnd(0))) {
             const Real fac = (bc_es_hi[0] == 1) ? 1. : -1.;
             amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
@@ -746,8 +748,18 @@ void MultiFabElectricBC(MultiFab& efieldCC, const Geometry& geom) {
             amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 if (j < dom.smallEnd(1)) {
-                    data(i,j,k) = fac*data(i,-j-1,k);
-                }
+		    Real x = (i+0.5)*dx[0];
+                    Real Lx = prob_hi[0] - prob_lo[0];
+                    if ((zero_eps_on_wall_type) and (x < zero_eps_wall_left_end*Lx)) { // zero eps Neumann part of the Dirichlet boundary
+                        data(i,j,k) = -1.*data(i,-j-1,k);
+                    }
+                    else if ((zero_eps_on_wall_type) and (x > zero_eps_wall_right_start*Lx)) { // zero eps Neumann part of the Dirichlet boundary
+                        data(i,j,k) = -1.*data(i,-j-1,k);
+                    }
+                    else { // Dirichlet
+                        data(i,j,k) = fac*data(i,-j-1,k);
+                    }
+		}
             });
         }
 
