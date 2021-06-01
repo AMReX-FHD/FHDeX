@@ -319,16 +319,29 @@ void RK3stepStag(MultiFab& cu,
         });
     }
 
+    // Set the correct momentum at the walls -- this is spurious after RK3 update beacuse of the \nabla P term 
+    for (int i=0; i<AMREX_SPACEDIM; i++) {
+        BCMomNormal(cupmom[i], vel[i], geom, i);
+        BCMomTrans(cupmom[i], vel[i], geom, i);
+    }
+
+    // Fill periodic boundaries for conserved variables
     for (int d=0; d<AMREX_SPACEDIM; d++) {
         cupmom[d].FillBoundary(geom.periodicity());
     }
-    cup.FillBoundary(geom.periodicity()); // need correct periodicity for density to calculate velocities below
+    cup.FillBoundary(geom.periodicity());
+
+    // Conserved to primitive conversion (also writes momemtun at cell centers as averages of neighboring faces)
     conservedToPrimitiveStag(prim, vel, cup, cupmom);
-    cup.FillBoundary(geom.periodicity()); // cell-centered momentum is filled in the line above 
+
+    // Fill periodic boundaries for primitive variables (also do for conserved, since cell-centered momentum is written above)
     for (int d=0; d<AMREX_SPACEDIM; d++) {
         vel[d].FillBoundary(geom.periodicity());
     }
     prim.FillBoundary(geom.periodicity());
+    cup.FillBoundary(geom.periodicity());
+
+    // Correctly set momentum and velocity at the walls & temperature, pressure, density & mass/mole fractions in ghost cells
     setBCStag(prim, cup, cupmom, vel, geom);
 
     // Compute transport coefs after setting BCs
@@ -482,16 +495,29 @@ void RK3stepStag(MultiFab& cu,
         });
     }
         
+    // Set the correct momentum at the walls -- this is spurious after RK3 update beacuse of the \nabla P term 
+    for (int i=0; i<AMREX_SPACEDIM; i++) {
+        BCMomNormal(cup2mom[i], vel[i], geom, i);
+        BCMomTrans(cup2mom[i], vel[i], geom, i);
+    }
+
+    // Fill periodic boundaries for conserved variables
     for (int d=0; d<AMREX_SPACEDIM; d++) {
         cup2mom[d].FillBoundary(geom.periodicity());
     }
-    cup2.FillBoundary(geom.periodicity()); // need correct periodicity for density to calculate velocities below
+    cup2.FillBoundary(geom.periodicity()); 
+
+    // Conserved to primitive conversion (also writes momemtun at cell centers as averages of neighboring faces)
     conservedToPrimitiveStag(prim, vel, cup2, cup2mom);
-    cup2.FillBoundary(geom.periodicity()); // cell-centered momentum is filled in the line above 
+
+    // Fill periodic boundaries for primitive variables (also do for conserved, since cell-centered momentum is written above)
     for (int d=0; d<AMREX_SPACEDIM; d++) {
         vel[d].FillBoundary(geom.periodicity());
     }
     prim.FillBoundary(geom.periodicity());
+    cup2.FillBoundary(geom.periodicity());  
+
+    // Correctly set momentum and velocity at the walls & temperature, pressure, density & mass/mole fractions in ghost cells
     setBCStag(prim, cup2, cup2mom, vel, geom);
 
     // Compute transport coefs after setting BCs
@@ -641,21 +667,34 @@ void RK3stepStag(MultiFab& cu,
         });
     }
 
+    // Set the correct momentum at the walls -- this is spurious after RK3 update beacuse of the \nabla P term 
+    for (int i=0; i<AMREX_SPACEDIM; i++) {
+        BCMomNormal(cumom[i], vel[i], geom, i);
+        BCMomTrans(cumom[i], vel[i], geom, i);
+    }
+
+    // Fill periodic boundaries for conserved variables
     for (int d=0; d<AMREX_SPACEDIM; d++) {
         cumom[d].FillBoundary(geom.periodicity());
     }
-    cu.FillBoundary(geom.periodicity()); // need correct periodicity for density to calculate velocities below
+    cu.FillBoundary(geom.periodicity());
+
+    // Conserved to primitive conversion (also writes momemtun at cell centers as averages of neighboring faces)
     conservedToPrimitiveStag(prim, vel, cu, cumom);
-    cu.FillBoundary(geom.periodicity()); // cell-centered momentum is filled in the line above 
+
+    // Fill periodic boundaries for primitive variables (also do for conserved, since cell-centered momentum is written above)
     for (int d=0; d<AMREX_SPACEDIM; d++) {
         vel[d].FillBoundary(geom.periodicity());
     }
     prim.FillBoundary(geom.periodicity());
+    cu.FillBoundary(geom.periodicity()); 
 
+    // Correctly set momentum and velocity at the walls & temperature, pressure, density & mass/mole fractions in ghost cells
+    setBCStag(prim, cu, cumom, vel, geom);
+
+    // Membrane setup
     if (membrane_cell >= 0) {
         doMembraneStag(cu,cumom,prim,vel,faceflux,geom,dt);
     }
-
-    setBCStag(prim, cu, cumom, vel, geom);
 
 }
