@@ -15,6 +15,8 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
 
     GpuArray<Real,MAX_SPECIES> fracvec;
 
+    int n_cells_yz = n_cells[1]*n_cells[2];
+
     /* miscVals
       0  = mean xmom
       1  = instant xmom
@@ -86,9 +88,15 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
         }
         }
     }
-    
+
+    // parallel reduce sum totalMass
+    ParallelDescriptor::ReduceRealSum(totalMass);
+
+    for (int i=0; i<20; ++i) {
+        miscVals[i] = 0.;
+    }
+
     // Loop over boxes
-    // FIXME: this routine assumes that there is only 1 box spanning the entire lo-x domain face
     for ( MFIter mfi(prim_in); mfi.isValid(); ++mfi) {
 
         const Box& bx = mfi.validbox();
@@ -100,12 +108,6 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
         const Array4<      Real> cumeans   = consMean.array(mfi);
         const Array4<const Real> prim      = prim_in.array(mfi);
         const Array4<      Real> primmeans = primMean.array(mfi);
-
-        for (int i=0; i<20; ++i) {
-            miscVals[i] = 0.;
-        }
-        
-        int counter = 0;
         
         if (cross_cell >= lo.x && cross_cell <= hi.x) {
             for (auto k = lo.z; k <= hi.z; ++k) {
@@ -139,30 +141,85 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
                 miscVals[15] = miscVals[15] + primmeans(cross_cell,j,k,3); //slice average of mean z velocity
                 
                 miscVals[16] = miscVals[16] + prim(cross_cell,j,k,4);      //slice average of instant temperature
-
-                counter = counter + 1;
             }
-            }
-
-            for (int i=0; i<17; ++i) {
-                miscVals[i] /= counter;
             }
         }
     }
-    
+
     // parallel reduce sum miscVals
     ParallelDescriptor::ReduceRealSum(miscVals,20);
 
-    // parallel reduce sum totalMass
-    ParallelDescriptor::ReduceRealSum(totalMass);
+    // compute the mean value of miscVals at the cross_cell slice
+    for (int i=0; i<20; ++i) {
+        miscVals[i] /= n_cells_yz;
+    }
 
     //////////////////
     // evaluate_corrs
     //////////////////
-    
-    MultiFab slices_mf(prim_in.boxArray(),prim_in.DistributionMap(),20,0);
 
-    slices_mf.setVal(0.);
+    int nstats = 19;
+    Vector<Real>  yzAvMeans(n_cells[0]*nstats, 0.0); // yz-average at all x
+    
+    for ( MFIter mfi(prim_in); mfi.isValid(); ++mfi) {
+
+        const Box& bx = mfi.validbox();
+
+        const auto lo = amrex::lbound(bx);
+        const auto hi = amrex::ubound(bx);
+
+        const Array4<const Real> cu        = cons.array(mfi);
+        const Array4<const Real> cumeans   = consMean.array(mfi);
+        const Array4<const Real> prim      = prim_in.array(mfi);
+        const Array4<const Real> primmeans = primMean.array(mfi);
+        
+        for (auto k = lo.z; k <= hi.z; ++k) {
+        for (auto j = lo.y; j <= hi.y; ++j) {
+        for (auto i = lo.x; i <= hi.x; ++i) {
+
+            yzAvMeans[i*nstats+0] += cu(i,j,k,0); // rho instant slices
+            yzAvMeans[i*nstats+1] += cumeans(i,j,k,0); // rho mean slices
+            yzAvMeans[i*nstats+2] += cu(i,j,k,4); // energy instant slices
+            yzAvMeans[i*nstats+3] += cumeans(i,j,k,4); // energy mean slices
+
+            yzAvMeans[i*nstats+4] += cu(i,j,k,1); // x momentum instant slices
+            yzAvMeans[i*nstats+5] += cumeans(i,j,k,1); // x momentum mean slices
+
+            yzAvMeans[i*nstats+6] += cu(i,j,k,2); // y momentum instant slices
+            yzAvMeans[i*nstats+7] += cumeans(i,j,k,2); // y momentum mean slices
+
+            yzAvMeans[i*nstats+8] += cu(i,j,k,3); // z momentum instant slices
+            yzAvMeans[i*nstats+9] += cumeans(i,j,k,3); // z momentum mean slices
+
+            yzAvMeans[i*nstats+10] += prim(i,j,k,1); // x vel instant slices
+            yzAvMeans[i*nstats+11] += primmeans(i,j,k,1); // x vel mean slices
+
+            yzAvMeans[i*nstats+12] += prim(i,j,k,2); // y vel instant slices
+            yzAvMeans[i*nstats+13] += primmeans(i,j,k,2); // y vel mean slices
+
+            yzAvMeans[i*nstats+14] +=  prim(i,j,k,3); // z vel instant slices
+            yzAvMeans[i*nstats+15] += primmeans(i,j,k,3); // z vel mean slices
+
+            Real cv = 0;
+            for (int l=0; l<nspecies; ++l) {
+                cv = cv + hcv[l]*cumeans(i,j,k,5+l)/cumeans(i,j,k,0);
+            }
+    
+            yzAvMeans[i*nstats+16] += cv; // cv mean slices
+            yzAvMeans[i*nstats+17] += prim(i,j,k,4); // temperature instant slices
+            yzAvMeans[i*nstats+18] += primmeans(i,j,k,4); // temperature mean slices
+        }
+        }
+        }
+    }
+
+    // parallel reduce yzAvMeans
+    ParallelDescriptor::ReduceRealSum(yzAvMeans.dataPtr(),n_cells[0]*nstats);
+
+    // compute mean over each slice in i for each variable
+    for (auto n = 0; n<n_cells[0]*nstats; ++n) {
+        yzAvMeans[n] /= n_cells_yz;
+    }
     
     for ( MFIter mfi(prim_in); mfi.isValid(); ++mfi) {
 
@@ -179,92 +236,6 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
         const Array4<      Real> primvars  = primVar.array(mfi);
         const Array4<      Real> spatialcross = spatialCross.array(mfi);
         const Array4<      Real> miscstats = miscStats.array(mfi);
-        const Array4<      Real> slices    = slices_mf.array(mfi);
-
-        int counter = 0;
-        
-        for (auto k = lo.z; k <= hi.z; ++k) {
-        for (auto j = lo.y; j <= hi.y; ++j) {
-            counter++;
-        }
-        }
-        
-        for (auto k = lo.z; k <= hi.z; ++k) {
-        for (auto j = lo.y; j <= hi.y; ++j) {
-        for (auto i = lo.x; i <= hi.x; ++i) {
-
-            slices(i,lo.y,lo.z,0) = slices(i,lo.y,lo.z,0) + cu(i,j,k,0); // rho instant slices
-            slices(i,lo.y,lo.z,1) = slices(i,lo.y,lo.z,1) + cumeans(i,j,k,0); // rho mean slices
-            slices(i,lo.y,lo.z,2) = slices(i,lo.y,lo.z,2) + cu(i,j,k,4); // energy instant slices
-            slices(i,lo.y,lo.z,3) = slices(i,lo.y,lo.z,3) + cumeans(i,j,k,4); // energy mean slices
-
-            slices(i,lo.y,lo.z,4) = slices(i,lo.y,lo.z,4) + cu(i,j,k,1); // x momentum instant slices
-            slices(i,lo.y,lo.z,5) = slices(i,lo.y,lo.z,5) + cumeans(i,j,k,1); // x momentum mean slices
-
-            slices(i,lo.y,lo.z,6) = slices(i,lo.y,lo.z,6) + cu(i,j,k,2); // y momentum instant slices
-            slices(i,lo.y,lo.z,7) = slices(i,lo.y,lo.z,7) + cumeans(i,j,k,2); // y momentum mean slices
-
-            slices(i,lo.y,lo.z,8) = slices(i,lo.y,lo.z,8) + cu(i,j,k,3); // z momentum instant slices
-            slices(i,lo.y,lo.z,9) = slices(i,lo.y,lo.z,9) + cumeans(i,j,k,3); // z momentum mean slices
-
-            slices(i,lo.y,lo.z,10) = slices(i,lo.y,lo.z,10) + prim(i,j,k,1); // x vel instant slices
-            slices(i,lo.y,lo.z,11) = slices(i,lo.y,lo.z,11) + primmeans(i,j,k,1); // x vel mean slices
-
-            slices(i,lo.y,lo.z,12) = slices(i,lo.y,lo.z,12) + prim(i,j,k,2); // y vel instant slices
-            slices(i,lo.y,lo.z,13) = slices(i,lo.y,lo.z,13) + primmeans(i,j,k,2); // y vel mean slices
-
-            slices(i,lo.y,lo.z,14) = slices(i,lo.y,lo.z,14) + prim(i,j,k,3); // z vel instant slices
-            slices(i,lo.y,lo.z,15) = slices(i,lo.y,lo.z,15) + primmeans(i,j,k,3); // z vel mean slices
-
-            Real cv = 0;
-            for (int l=0; l<nspecies; ++l) {
-                cv = cv + hcv[l]*cumeans(i,j,k,5+l)/cumeans(i,j,k,0);
-            }
-    
-            slices(i,lo.y,lo.z,16) = slices(i,lo.y,lo.z,16) + cv; // cv mean slices
-            slices(i,lo.y,lo.z,17) = slices(i,lo.y,lo.z,17) + prim(i,j,k,4); // temperature instant slices
-            slices(i,lo.y,lo.z,18) = slices(i,lo.y,lo.z,18) + primmeans(i,j,k,4); // temperature mean slices
-        }
-        }
-        }
-
-        for (auto n = 0; n<20; ++n) {
-        for (auto k = lo.z; k <= hi.z; ++k) {
-        for (auto j = lo.y; j <= hi.y; ++j) {
-        for (auto i = lo.x; i <= hi.x; ++i) {
-            slices(i,j,k,n) /= counter;
-        }
-        }
-        }
-        }
-        
-        for (auto k = lo.z; k <= hi.z; ++k) {
-        for (auto j = lo.y; j <= hi.y; ++j) {
-        for (auto i = lo.x; i <= hi.x; ++i) {
-
-            slices(i,j,k,0) = slices(i,lo.y,lo.z,0);
-            slices(i,j,k,1) = slices(i,lo.y,lo.z,1);
-            slices(i,j,k,2) = slices(i,lo.y,lo.z,2);
-            slices(i,j,k,3) = slices(i,lo.y,lo.z,3);
-            slices(i,j,k,4) = slices(i,lo.y,lo.z,4);
-            slices(i,j,k,5) = slices(i,lo.y,lo.z,5);
-            slices(i,j,k,6) = slices(i,lo.y,lo.z,6);
-            slices(i,j,k,7) = slices(i,lo.y,lo.z,7);
-            slices(i,j,k,8) = slices(i,lo.y,lo.z,8);
-            slices(i,j,k,9) = slices(i,lo.y,lo.z,9);
-            slices(i,j,k,10) = slices(i,lo.y,lo.z,10);
-            slices(i,j,k,11) = slices(i,lo.y,lo.z,11);
-            slices(i,j,k,12) = slices(i,lo.y,lo.z,12);
-            slices(i,j,k,13) = slices(i,lo.y,lo.z,13);
-            slices(i,j,k,14) = slices(i,lo.y,lo.z,14);
-            slices(i,j,k,15) = slices(i,lo.y,lo.z,15);
-            slices(i,j,k,16) = slices(i,lo.y,lo.z,16);
-            slices(i,j,k,17) = slices(i,lo.y,lo.z,17);
-            slices(i,j,k,18) = slices(i,lo.y,lo.z,18);
-            slices(i,j,k,19) = slices(i,lo.y,lo.z,19);
-        }
-        }
-        }
         
         for (auto k = lo.z; k <= hi.z; ++k) {
         for (auto j = lo.y; j <= hi.y; ++j) {
@@ -276,7 +247,7 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
             }
 
             Real cvinv = 1.0/cv;
-            Real cvinvS = 1.0/slices(i,j,k,16);
+            Real cvinvS = 1.0/yzAvMeans[i*nstats+16];
             Real cvinvSstar = 1.0/miscVals[12];
 
             // Vars
@@ -284,16 +255,16 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
                                                     + primmeans(i,j,k,2)*primmeans(i,j,k,2)
                                                     + primmeans(i,j,k,3)*primmeans(i,j,k,3));
             
-            Real qmeanS = slices(i,j,k,16)*slices(i,j,k,18)-0.5*(  slices(i,j,k,11)*slices(i,j,k,11)
-                                                                 + slices(i,j,k,13)*slices(i,j,k,13)
-                                                                 + slices(i,j,k,15)*slices(i,j,k,15));
+            Real qmeanS = yzAvMeans[i*nstats+16]*yzAvMeans[i*nstats+18]-0.5*(  yzAvMeans[i*nstats+11]*yzAvMeans[i*nstats+11]
+                                                                 + yzAvMeans[i*nstats+13]*yzAvMeans[i*nstats+13]
+                                                                 + yzAvMeans[i*nstats+15]*yzAvMeans[i*nstats+15]);
             
-            Real qmeanSstar =  miscVals[12]*slices(i,lo.y,lo.z,18)-0.5*(  miscVals[2]*miscVals[2]
+            Real qmeanSstar =  miscVals[12]*yzAvMeans[i*nstats+18]-0.5*(  miscVals[2]*miscVals[2]
                                                                           + miscVals[14]*miscVals[14]
                                                                           + miscVals[15]*miscVals[15]);
 
             Real densitymeaninv = 1.0/cumeans(i,j,k,0);
-            Real densitymeaninvS = 1.0/slices(i,j,k,1);
+            Real densitymeaninvS = 1.0/yzAvMeans[i*nstats+1];
             Real densitymeaninvSstar = 1.0/miscVals[3];
 
             Real delrho = cu(i,j,k,0) - cumeans(i,j,k,0);
@@ -302,11 +273,11 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
             Real delpz = cu(i,j,k,3) - cumeans(i,j,k,3);
             Real delenergy = cu(i,j,k,4) - cumeans(i,j,k,4);
 
-            Real delrhoS = slices(i,j,k,0) - slices(i,j,k,1); // rho(x) - <rho(x)>, sliced
-            Real delES = slices(i,j,k,3) - slices(i,j,k,2); // E(x) - <E(x)>, sliced
-            Real delpxS = slices(i,j,k,5) - slices(i,j,k,4);
-            Real delpyS = slices(i,j,k,7) - slices(i,j,k,6);
-            Real delpzS = slices(i,j,k,9) - slices(i,j,k,8);
+            Real delrhoS = yzAvMeans[i*nstats+0] - yzAvMeans[i*nstats+1]; // rho(x) - <rho(x)>, sliced
+            Real delES = yzAvMeans[i*nstats+3] - yzAvMeans[i*nstats+2]; // E(x) - <E(x)>, sliced
+            Real delpxS = yzAvMeans[i*nstats+5] - yzAvMeans[i*nstats+4];
+            Real delpyS = yzAvMeans[i*nstats+7] - yzAvMeans[i*nstats+6];
+            Real delpzS = yzAvMeans[i*nstats+9] - yzAvMeans[i*nstats+8];
 
             Real delrhoSstar = miscVals[4] - miscVals[3];
             Real delESstar = miscVals[6] - miscVals[7];
@@ -331,7 +302,7 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
       
             Real delg = primmeans(i,j,k,1)*delpx + primmeans(i,j,k,2)*delpy + primmeans(i,j,k,3)*delpz;
 
-            Real delgS = slices(i,j,k,11)*delpxS + slices(i,j,k,13)*delpyS + slices(i,j,k,15)*delpzS;
+            Real delgS = yzAvMeans[i*nstats+11]*delpxS + yzAvMeans[i*nstats+13]*delpyS + yzAvMeans[i*nstats+15]*delpzS;
 
             Real delgSstar = miscVals[2]*delpxSstar + miscVals[14]*delpySstar + miscVals[15]*delpzSstar;
 
@@ -351,21 +322,21 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
 
             Real deltempSstar = (delESstar - delgSstar - qmeanSstar*delrhoSstar)*cvinvSstar*densitymeaninvSstar;
 
-            miscstats(i,j,k,0) = (miscstats(i,j,k,0)*stepsminusone + miscVals[1]*slices(i,j,k,0))*stepsinv; // <p(x*)rho(x)>, sliced
+            miscstats(i,j,k,0) = (miscstats(i,j,k,0)*stepsminusone + miscVals[1]*yzAvMeans[i*nstats+0])*stepsinv; // <p(x*)rho(x)>, sliced
 
             Real delpdelrho = miscstats(i,j,k,0) - miscVals[0]*cumeans(i,j,k,0); // <p(x*)rho(x)> - <p(x*)><rho(x)>, sliced
 
             miscstats(i,j,k,1) = (miscstats(i,j,k,1)*stepsminusone + delrhoS*delrhoSstar)*stepsinv; // <(rho(x*)-<rho(x*)>)(rho(x)-<rho(x)>)>, sliced
 
-            miscstats(i,j,k,2) = (miscstats(i,j,k,2)*stepsminusone + miscVals[16]*slices(i,j,k,17))*stepsinv; // <(T(x*)T(x))>
-            miscstats(i,j,k,3) = (miscstats(i,j,k,3)*stepsminusone + miscVals[16]*slices(i,j,k,0))*stepsinv; // <(T(x*)rho(x))>
+            miscstats(i,j,k,2) = (miscstats(i,j,k,2)*stepsminusone + miscVals[16]*yzAvMeans[i*nstats+17])*stepsinv; // <(T(x*)T(x))>
+            miscstats(i,j,k,3) = (miscstats(i,j,k,3)*stepsminusone + miscVals[16]*yzAvMeans[i*nstats+0])*stepsinv; // <(T(x*)rho(x))>
                  
             spatialcross(i,j,k,0) = miscVals[13];
-            spatialcross(i,j,k,1) = slices(i,j,k,18);
+            spatialcross(i,j,k,1) = yzAvMeans[i*nstats+18];
             spatialcross(i,j,k,2) = miscstats(i,j,k,2);
 
-            spatialcross(i,j,k,3) = miscstats(i,j,k,2) - slices(i,j,k,18)*miscVals[13];
-            spatialcross(i,j,k,4) = miscstats(i,j,k,3) - slices(i,j,k,1)*miscVals[13];
+            spatialcross(i,j,k,3) = miscstats(i,j,k,2) - yzAvMeans[i*nstats+18]*miscVals[13];
+            spatialcross(i,j,k,4) = miscstats(i,j,k,3) - yzAvMeans[i*nstats+1]*miscVals[13];
 
             if (miscVals[3] == 0.) {
                 spatialcross(i,j,k,5) = 0.;

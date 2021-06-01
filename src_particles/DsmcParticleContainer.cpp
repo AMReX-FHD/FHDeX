@@ -1,518 +1,273 @@
-#include <AMReX.H>
-#include <AMReX_AmrParGDB.H>
-#include <AMReX_ParmParse.H>
-#include <AMReX_Particles.H>
-#include <AMReX_NeighborParticles.H>
+#include "DsmcParticleContainer.H"
 
-#include <AMReX_VisMF.H>  // amrex::VisMF::Write(MultiFab)
-
-#include <common_functions.H>
-
-#include <DsmcParticleContainer.H>
-#include <ib_functions_F.H>
-
-#include <iostream>
-
-#include <AMReX_Geometry.H>
-#include <AMReX_BoxArray.H>
-#include <AMReX_DistributionMapping.H>
-#include <AMReX_Utility.H>
-#include <AMReX_MultiFab.H>
-#include <AMReX_Box.H>
-#include <iostream>
-#include <fstream>
+//#include "particle_functions_K.H"
+#include "paramplane_functions_K.H"
+#include <math.h>
 
 
-using namespace amrex;
-
-
-DsmcParticleContainer::DsmcParticleContainer(const Geometry & geom,
+FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
                               const DistributionMapping & dmap,
                               const BoxArray            & ba,
                               int ncells)
-    : NeighborParticleContainer<DSMC_realData::count, DSMC_intData::count> (geom, dmap, ba, ncells)
+    : NeighborParticleContainer<FHD_realData::count, FHD_intData::count> (geom, dmap, ba, ncells)
 {
-    BL_PROFILE_VAR("DsmcParticleContainer()",DsmcParticleContainer);
-}
+    BL_PROFILE_VAR("FhdParticleContainer()",FhdParticleContainer);
 
-void DsmcParticleContainer::MoveParticlesDSMC(const Real dt, const paramPlane* paramPlaneList,
-                                              const int paramPlaneCount, Real time, int* flux)
-{
-    BL_PROFILE_VAR("MoveParticlesDSMC()",MoveParticlesDSMC);
+    realParticles = 0;
+    simParticles = 0;
 
-  // Print() << "HERE MoveParticlesDSMC" << std::endline
-  
-    UpdateCellVectors();
-    int i; int lFlux = 0; int rFlux = 0;
-    const int  lev = 0;
-    const Real* dx = Geom(lev).CellSize();
-    const Real* plo = Geom(lev).ProbLo();
-    const Real* phi = Geom(lev).ProbHi();
-
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
- 
-    for (FhdParIter pti(*this, lev); pti.isValid(); ++pti)
-    {
-        const int grid_id = pti.index();
-        const int tile_id = pti.LocalTileIndex();
-        const Box& tile_box  = pti.tilebox();
+    for(int i=0;i<nspecies;i++) {
         
-        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
-        auto& particles = particle_tile.GetArrayOfStructs();
-        const int np = particles.numParticles();
+        properties[i].mass = mass[i];
+        properties[i].radius = diameter[i]/2.0;
+        properties[i].Neff = particle_neff; // From DSMC, this will be set to 1 for electolyte calcs
+        properties[i].R = k_B/properties[i].mass; //used a lot in kinetic stats cals, bu not otherwise necessary for electrolytes
+        properties[i].T = T_init[i];
 
-	// Print() << "FHD\n";
+        if (particle_count[i] >= 0) {
 
-        move_particles_dsmc(particles.data(), &np,
-                       ARLIM_3D(tile_box.loVect()), 
-                       ARLIM_3D(tile_box.hiVect()),
-                       m_vector_ptrs[grid_id].dataPtr(),
-                       m_vector_size[grid_id].dataPtr(),
-                       ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
-                       ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),
-                       ZFILL(plo),ZFILL(phi),ZFILL(dx), &dt,
-                       paramPlaneList, &paramPlaneCount, &time, flux);
-
-        lFlux += flux[0]; rFlux += flux[1];
-
-        // resize particle vectors after call to move_particles
-        for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv))
-        {
-            const auto new_size = m_vector_size[grid_id](iv);
-            long imap = tile_box.index(iv);
-            auto& pvec = m_cell_vectors[grid_id][imap];
-            pvec.resize(new_size);
+            properties[i].total = particle_count[i];
+            properties[i].n0 = particle_neff*properties[i].total/domainVol;
+            
+            Print() << "Species " << i << " count " << properties[i].total << "\n";
+            Print() << "Species " << i << " n0 " << properties[i].total << "\n";
         }
-    }
+        else {
+            properties[i].total = (int)amrex::Math::ceil(particle_n0[i]*domainVol/particle_neff);
+            properties[i].n0 = properties[i].total/domainVol;
 
-    //reduce flux
-    ParallelDescriptor::ReduceIntSum(lFlux);
-    ParallelDescriptor::ReduceIntSum(rFlux);
-
-    //reset flux
-    flux[0] = lFlux; flux[1] = rFlux;
-
-    std::ofstream outfile;
-    
-    if(graphene_tog==1)
-      {
-		char num[21];
-		std::string txt=".txt";
-		std::string text="test";
-		sprintf(num, "%f", domega);
-		outfile.open(text+num + txt, std::ios_base::app);
-        //      outfile.open("out.csv", std::ios_base::app);
-  for (i=0;i<1;i++)
-	  {
-	    outfile << paramPlaneList[5].dbesslist[i] << ", ";
-	  }
-	outfile<<"\n";
-	  outfile.close();
-      }
-	    
-}
-
-
-void DsmcParticleContainer::InitCollisionCells(MultiFab& collisionPairs,
-                                               MultiFab& collisionFactor, 
-                                               MultiFab& cellVols, const species particleInfo, const Real delt)
-{
-    BL_PROFILE_VAR("InitCollisionCells()",InitCollisionCells);
-
-    UpdateCellVectors();
-    const int lev = 0;
-
-    for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) 
-    {
-        const int grid_id = pti.index();
-        const int tile_id = pti.LocalTileIndex();
-        const Box& tile_box  = pti.tilebox();
-        
-        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
-        auto& particles = particle_tile.GetArrayOfStructs();
-        const int Np = particles.numParticles();
-
-        init_cells(particles.data(),
-                         ARLIM_3D(tile_box.loVect()), 
-                         ARLIM_3D(tile_box.hiVect()),
-                         m_vector_ptrs[grid_id].dataPtr(),
-                         m_vector_size[grid_id].dataPtr(),
-                         ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
-                         ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),
-                         BL_TO_FORTRAN_3D(collisionPairs[pti]),
-                         BL_TO_FORTRAN_3D(collisionFactor[pti]),
-                         BL_TO_FORTRAN_3D(cellVols[pti]),&Np,&particleInfo.Neff,&particleInfo.cp,&particleInfo.d,&delt
-                        );
-    }
-}
-
-void DsmcParticleContainer::CollideParticles(MultiFab& collisionPairs,
-                                             MultiFab& collisionFactor, 
-                                             MultiFab& cellVols, const species particleInfo, const Real delt)
-{
-    BL_PROFILE_VAR("CollideParticles()",CollideParticles);
-    
-    const int lev = 0;
-
-    for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) 
-    {
-        const int grid_id = pti.index();
-        const int tile_id = pti.LocalTileIndex();
-        const Box& tile_box  = pti.tilebox();
-        
-        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
-        auto& particles = particle_tile.GetArrayOfStructs();
-        const int Np = particles.numParticles();
-
-        collide_cells(particles.data(),
-                         ARLIM_3D(tile_box.loVect()), 
-                         ARLIM_3D(tile_box.hiVect()),
-                         m_vector_ptrs[grid_id].dataPtr(),
-                         m_vector_size[grid_id].dataPtr(),
-                         ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
-                         ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),
-                         BL_TO_FORTRAN_3D(collisionPairs[pti]),
-                         BL_TO_FORTRAN_3D(collisionFactor[pti]),
-                         BL_TO_FORTRAN_3D(cellVols[pti]),&Np,&particleInfo.Neff,&particleInfo.cp,&particleInfo.d,&delt
-                        );
-    }
-}
-
-void DsmcParticleContainer::InitializeFields(MultiFab& particleInstant,
-                                             MultiFab& cellVols, const species particleInfo)
-{
-    BL_PROFILE_VAR("InitializeFields()",InitializeFields);  
-
-    UpdateCellVectors();
-    const int lev = 0;
-
-    for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) 
-    {
-        const int grid_id = pti.index();
-        const int tile_id = pti.LocalTileIndex();
-        const Box& tile_box  = pti.tilebox();
-
-        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
-        auto& parts = particle_tile.GetArrayOfStructs();
-        const int Np = parts.numParticles();
-
-        initialize_fields(parts.data(),
-                         ARLIM_3D(tile_box.loVect()),
-                         ARLIM_3D(tile_box.hiVect()),
-                         m_vector_ptrs[grid_id].dataPtr(),
-                         m_vector_size[grid_id].dataPtr(),
-                         ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
-                         ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),   
-                         BL_TO_FORTRAN_3D(particleInstant[pti]),
-                         BL_TO_FORTRAN_3D(cellVols[pti]),&particleInfo.Neff, &Np, &particleInfo.R, &particleInfo.T
-                        );
-
-    }
-}
-
-void DsmcParticleContainer::EvaluateStats(MultiFab& particleInstant,
-                                          MultiFab& particleMeans,
-                                          MultiFab& particleVars,
-                                          MultiFab& cellVols, species particleInfo,
-                                          const Real delt, int steps)
-{
-    BL_PROFILE_VAR("EvaluateStats()",EvaluateStats);
-    
-    const int lev = 0;
-    const double Neff = particleInfo.Neff;
-    const double n0 = particleInfo.n0;
-    const double T0 = particleInfo.T;
-
-    double tp = 0;
-    double te = 0;
-    double tm = 0;
-
-    double totalMass;
-
-    RealVector avcurrent_tile(3), avcurrent_proc(3);
-    RealVector varcurrent_tile(3), varcurrent_proc(3);
-    
-    BoxArray ba = particleMeans.boxArray();
-    long cellcount = ba.numPts();
-
-    std::fill(avcurrent_tile.begin(), avcurrent_tile.end(), 0.);
-    std::fill(avcurrent_proc.begin(), avcurrent_proc.end(), 0.);
-    std::fill(varcurrent_tile.begin(), varcurrent_tile.end(), 0.);
-    std::fill(varcurrent_proc.begin(), varcurrent_proc.end(), 0.);
-
-    for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) {
-        const int grid_id = pti.index();
-        const int tile_id = pti.LocalTileIndex();
-        const Box& tile_box  = pti.tilebox();
-
-        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
-        auto& parts = particle_tile.GetArrayOfStructs();
-        const int Np = parts.numParticles();
-
-        tp = tp + Np;
-
-        evaluate_fields(parts.data(),
-                         ARLIM_3D(tile_box.loVect()),
-                         ARLIM_3D(tile_box.hiVect()),
-                         m_vector_ptrs[grid_id].dataPtr(),
-                         m_vector_size[grid_id].dataPtr(),
-                         ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
-                         ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),   
-                         BL_TO_FORTRAN_3D(particleInstant[pti]),
-                         BL_TO_FORTRAN_3D(cellVols[pti]),&Neff, &Np);
-    }
-
-    // FIXME - tiling doesn't work
-    for (MFIter mfi(particleInstant,false); mfi.isValid(); ++mfi ) {
-        
-        const Box& tile_box  = mfi.tilebox();
-
-        evaluate_means(ARLIM_3D(tile_box.loVect()),
-                       ARLIM_3D(tile_box.hiVect()),
-                       BL_TO_FORTRAN_3D(particleInstant[mfi]),
-                       BL_TO_FORTRAN_3D(particleMeans[mfi]),
-                       BL_TO_FORTRAN_3D(particleVars[mfi]),
-                       BL_TO_FORTRAN_3D(cellVols[mfi]),
-                       &n0,&T0,&delt,&steps,
-                       avcurrent_tile.dataPtr());
-
-        // gather statistics
-        for (int i=0; i<3; ++i) {
-            avcurrent_proc[i] += avcurrent_tile[i];
+            Print() << "Species " << i << " count " << properties[i].total << "\n";
+            Print() << "Species " << i << " n0 adjusted to " << properties[i].n0 << "\n";
         }
+
+        Print() << "Species " << i << "\n";
+        Print() << "Mass " << properties[i].mass << "\n";
+        Print() << "Radius " << properties[i].radius << "\n";
+
+        realParticles = realParticles + properties[i].total*particle_neff;
+        simParticles = simParticles + properties[i].total;
+
     }
 
-    // gather statistics
-    ParallelDescriptor::ReduceRealSum(avcurrent_proc.dataPtr(),3);
+    totalCollisionCells = n_cells[0]*n_cells[1]*n_cells[2];
+    domainVol = (prob_hi[0] - prob_lo[0])*(prob_hi[1] - prob_lo[1])*(prob_hi[2] - prob_lo[2]);
 
-    // print statistics
-    Print() << "Current density mean: "
-            << avcurrent_proc[0]/cellcount << "  "
-            << avcurrent_proc[1]/cellcount << "  "
-            << avcurrent_proc[2]/cellcount << "\n";
-
-    for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) 
+    for (int d=0; d<AMREX_SPACEDIM; ++d)
     {
-        const int grid_id = pti.index();
-        const int tile_id = pti.LocalTileIndex();
-        const Box& tile_box  = pti.tilebox();
-
-        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
-        auto& parts = particle_tile.GetArrayOfStructs();
-        const int Np = parts.numParticles();
-
-        evaluate_corrs(parts.data(),
-                       ARLIM_3D(tile_box.loVect()),
-                       ARLIM_3D(tile_box.hiVect()),
-                       m_vector_ptrs[grid_id].dataPtr(),
-                       m_vector_size[grid_id].dataPtr(),
-                       ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
-                       ARLIM_3D(m_vector_ptrs[grid_id].hiVect()), 
-                       BL_TO_FORTRAN_3D(particleInstant[pti]),
-                       BL_TO_FORTRAN_3D(particleMeans[pti]),
-                       BL_TO_FORTRAN_3D(particleVars[pti]),
-                       BL_TO_FORTRAN_3D(cellVols[pti]), &Np,&Neff,&n0,&T0,&delt, &steps,
-                       varcurrent_tile.dataPtr()
-            );
-
-        // gather statistics
-        for (int i=0; i<3; ++i) {
-            varcurrent_proc[i] += varcurrent_tile[i];
-        }
+        domSize[d] = prob_hi[d] - prob_lo[d];
     }
 
-    // gather statistics
-    ParallelDescriptor::ReduceRealSum(varcurrent_proc.dataPtr(),3);
+    Print() << "Total real particles: " << realParticles << "\n";
+    Print() << "Total sim particles: " << simParticles << "\n";
 
-    // print statistics
-    Print() << "Current density variance: "
-            << varcurrent_proc[0]/cellcount << "  "
-            << varcurrent_proc[1]/cellcount << "  "
-            << varcurrent_proc[2]/cellcount << "\n";
-}
+    Print() << "Collision cells: " << totalCollisionCells << "\n";
+    Print() << "Sim particles per cell: " << simParticles/totalCollisionCells << "\n";
 
-void DsmcParticleContainer::WriteParticlesAscii(std::string asciiName)
-{
-    BL_PROFILE_VAR("WriteParticlesAscii()",WriteParticlesAscii);
-    
-    WriteAsciiFile(asciiName);
-}
 
-void
-DsmcParticleContainer::UpdateCellVectors()
-{
-    BL_PROFILE_VAR("UpdateCellVectors()",UpdateCellVectors);
-    
-    const int lev = 0;
-
-    bool needs_update = true;
-    if (not m_vectors_initialized)
-    {
-        // this is the first call, so we must update
-        m_vectors_initialized = true;
-        needs_update = true;
-    }
-    else if ((m_BARef != this->ParticleBoxArray(lev).getRefID()) or 
-             (m_DMRef != this->ParticleDistributionMap(lev).getRefID()))
-    {
-        // the grids have changed, so we must update
-        m_BARef = this->ParticleBoxArray(lev).getRefID();
-        m_DMRef = this->ParticleDistributionMap(lev).getRefID();
-        needs_update = true;
-    }
-    
-    if (not needs_update) return;
-
-    // clear old data
-    m_cell_vectors.clear();
-    m_vector_size.clear();
-    m_vector_ptrs.clear();
-    
-    // allocate storage for cell vectors. NOTE - do not tile this loop
+    int lev=0;
     for(MFIter mfi = MakeMFIter(lev, false); mfi.isValid(); ++mfi)
     {
         const Box& box = mfi.validbox();
         const int grid_id = mfi.index();
         m_cell_vectors[grid_id].resize(box.numPts());
-        m_vector_size[grid_id].resize(box);
-        m_vector_ptrs[grid_id].resize(box);
     }
 
-    // insert particles into vectors - this can be tiled
-#ifdef _OPENMP
-#pragma omp parallel
-#endif    
-    for (FhdParIter pti(*this, lev); pti.isValid(); ++pti)
-    {
-        auto& particles = pti.GetArrayOfStructs();
-        const int np    = pti.numParticles();
-        const Box& tile_box  = pti.tilebox();
-        
-        for(int pindex = 0; pindex < np; ++pindex) {
-            ParticleType& p = particles[pindex];
-            const IntVect& iv = this->Index(p, lev);
-            p.idata(DSMC_intData::sorted) = 1;
-            p.idata(DSMC_intData::i) = iv[0];
-            p.idata(DSMC_intData::j) = iv[1];
-            p.idata(DSMC_intData::k) = iv[2];
-            // note - use 1-based indexing for convenience with Fortran
-            //m_cell_vectors[pti.index()](iv).push_back(pindex + 1);
 
-            long imap = tile_box.index(iv);
-            m_cell_vectors[pti.index()][imap].push_back(pindex + 1);
-        }
-    }
-    
-    UpdateFortranStructures();
 }
 
-
-void
-DsmcParticleContainer::UpdateFortranStructures()
+void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount)
 {
-    BL_PROFILE_VAR("UpdateFortranStructures()",UpdateFortranStructures);
-    
+    BL_PROFILE_VAR("MoveParticlesCPP()", MoveParticlesCPP);
+
     const int lev = 0;
+    const Real* dx = Geom(lev).CellSize();
+    const Real* plo = Geom(lev).ProbLo();
+    const Real* phi = Geom(lev).ProbHi();
 
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-    for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
-    {
-        const Box& tile_box  = mfi.tilebox();
-        const int grid_id = mfi.index();
-        for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv))
-        {
-            long imap = tile_box.index(iv);
-            m_vector_size[grid_id](iv) = m_cell_vectors[grid_id][imap].size();
-            m_vector_ptrs[grid_id](iv) = m_cell_vectors[grid_id][imap].data();
-        }
-    }
-}
+    int        np_tile = 0 ,       np_proc = 0 ; // particle count
+    Real    moves_tile = 0.,    moves_proc = 0.; // total moves
+    Real  maxspeed_proc = 0.; // max speed
+    Real  maxdist_proc = 0.; // max displacement (fraction of radius)
 
-void
-DsmcParticleContainer::ReBin()
-{
-    BL_PROFILE_VAR("ReBin()",ReBin);
-    
-    const int lev = 0;
+    Real adj = 0.99999;
+    Real adjalt = 2.0*(1.0-0.99999);
+    Real runtime, inttime;
+    int intsurf, intside, push;
 
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-    for (FhdParIter pti(*this, lev); pti.isValid(); ++pti)
-    {
+    Real maxspeed = 0;
+    Real maxdist = 0;
+
+    long moves = 0;
+    int reDist = 0;
+
+    for (FhdParIter pti(* this, lev); pti.isValid(); ++pti) {
+
         const int grid_id = pti.index();
         const int tile_id = pti.LocalTileIndex();
         const Box& tile_box  = pti.tilebox();
 
         auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
         auto& particles = particle_tile.GetArrayOfStructs();
-        const int np = particles.numParticles();
-        for(int pindex = 0; pindex < np; ++pindex)
-        {
-	    ParticleType& p = particles[pindex];
-	    if (p.idata(DSMC_intData::sorted)) continue;
-            const IntVect& iv = this->Index(p, lev);
-            p.idata(DSMC_intData::sorted) = 1;
-            p.idata(DSMC_intData::i) = iv[0];
-            p.idata(DSMC_intData::j) = iv[1];
-            p.idata(DSMC_intData::k) = iv[2];
-            
-            long imap = tile_box.index(iv);
-            // note - use 1-based indexing for convenience with Fortran
-            m_cell_vectors[pti.index()][imap].push_back(pindex + 1);
-        }
-    }
+        const long np = particles.numParticles();
 
-    UpdateFortranStructures();
-}
+        Box bx  = pti.tilebox();
+        IntVect myLo = bx.smallEnd();
+        IntVect myHi = bx.bigEnd();
 
-//void
-//DsmcParticleContainer::correctCellVectors(int old_index, int new_index, 
-//						int grid, const ParticleType& p)
-//{
-//    if (not p.idata(DSMC_intData::sorted)) return;
-//    IntVect iv(p.idata(DSMC_intData::i), p.idata(DSMC_intData::j), p.idata(DSMC_intData::k));
-//    //IntVect iv(AMREX_D_DECL(p.idata(IntData::i), p.idata(IntData::j), p.idata(IntData::k)));
-//    auto& cell_vector = m_cell_vectors[grid](iv);
-//    for (int i = 0; i < static_cast<int>(cell_vector.size()); ++i) {
-//        if (cell_vector[i] == old_index + 1) {
-//            cell_vector[i] = new_index + 1;
-//            return;
-//        }
-//    }
-//}
+        np_proc += np;
 
-int
-DsmcParticleContainer::numWrongCell()
-{
-    BL_PROFILE_VAR("numWrongCell()",numWrongCell);
-    
-    const int lev = 0;
-    int num_wrong = 0;
-    
-#ifdef _OPENMP
-#pragma omp parallel reduction(+:num_wrong)
-#endif    
-    for (FhdParIter pti(*this, lev); pti.isValid(); ++pti)
-    {
-        auto& particles = pti.GetArrayOfStructs();
-        const int np    = pti.numParticles();
-        for(int pindex = 0; pindex < np; ++pindex) {
-            const ParticleType& p = particles[pindex];
-            const IntVect& iv = this->Index(p, lev);
-            if ((iv[0] != p.idata(DSMC_intData::i)) or (iv[1] != p.idata(DSMC_intData::j)) or (iv[2] != p.idata(DSMC_intData::k))) {
-                num_wrong += 1;
+        for (int i = 0; i < np; ++ i) {
+            ParticleType & part = particles[i];
+
+              Real speed = 0;
+
+              for (int d=0; d<AMREX_SPACEDIM; ++d)
+              {                   
+                  speed += part.rdata(FHD_realData::velx + d)*part.rdata(FHD_realData::velx + d);
+              }
+
+              if(speed > maxspeed)
+              {
+                  maxspeed = speed;
+              }
+
+              moves++;
+
+              runtime = dt;
+
+              while(runtime > 0)
+              {
+
+                  find_inter_gpu(part, runtime, paramPlaneList, paramPlaneCount, &intsurf, &inttime, &intside, ZFILL(plo), ZFILL(phi));
+
+                  for (int d=0; d<AMREX_SPACEDIM; ++d)
+                  {
+                      part.pos(d) += inttime * part.rdata(FHD_realData::velx + d)*adj;
+                  }
+
+                  runtime = runtime - inttime;
+
+                  if(intsurf > 0)
+                  {
+                      const paramPlane& surf = paramPlaneList[intsurf-1];//find_inter indexes from 1 to maintain compatablity with fortran version
+      
+                      Real posAlt[3];
+
+                      for (int d=0; d<AMREX_SPACEDIM; ++d)
+                      {
+                          posAlt[d] = inttime * part.rdata(FHD_realData::velx + d)*adjalt;
+                      }
+
+                      Real dummy = 1;
+
+                      app_bc_gpu(&surf, part, intside, domSize, &push, dummy, dummy);
+
+                      if(push == 1)
+                      {
+                          for (int d=0; d<AMREX_SPACEDIM; ++d)
+                          {
+                              part.pos(d) += part.pos(d) + posAlt[d];
+                          }
+                      }
+                  }
+
+              }
+
+
+            int cell[3];
+            cell[0] = (int)floor((part.pos(0)-plo[0])/dx[0]);
+            cell[1] = (int)floor((part.pos(1)-plo[1])/dx[1]);
+            cell[2] = (int)floor((part.pos(2)-plo[2])/dx[2]);
+
+            //cout << "current cell: " << cell[0] << ", " << cell[1] << ", " << cell[2] << "\cout";
+            //n << "current pos: " << part.pos(0) << ", " << part.pos(1) << ", " << part.pos(2) << "\n";
+
+            if((cell[0] < myLo[0]) || (cell[1] < myLo[1]) || (cell[2] < myLo[2]) || (cell[0] > myHi[0]) || (cell[1] > myHi[1]) || (cell[2] > myHi[2]))
+            {
+                reDist++;
+            }
+
+            if((part.idata(FHD_intData::i) != cell[0]) || (part.idata(FHD_intData::j) != cell[1]) || (part.idata(FHD_intData::k) != cell[2]))
+            {
+                //remove particle from old cell
+                IntVect iv(part.idata(FHD_intData::i), part.idata(FHD_intData::j), part.idata(FHD_intData::k));
+                long imap = tile_box.index(iv);
+
+                int lastIndex = m_cell_vectors[pti.index()][imap].size() - 1;
+                int lastPart = m_cell_vectors[pti.index()][imap][lastIndex];
+                int newIndex = part.idata(FHD_intData::sorted);
+
+                m_cell_vectors[pti.index()][imap][newIndex] = m_cell_vectors[pti.index()][imap][lastIndex];
+
+                m_cell_vectors[pti.index()][imap].pop_back();
+
+                //cout << "Removed " << i << " from " << iv[0] << ", " << iv[1] << ", " << iv[2] << ", now contains " << m_cell_vectors[pti.index()][imap].size() << " particles\n";
+
+                part.idata(FHD_intData::sorted) = -1;
             }
         }
+
+        maxspeed_proc = amrex::max(maxspeed_proc, maxspeed);
+        maxdist_proc  = amrex::max(maxdist_proc, maxdist);
+
     }
-    
-    ParallelDescriptor::ReduceIntSum(num_wrong, ParallelDescriptor::IOProcessorNumber());
-    return num_wrong;
+
+    // gather statistics
+    ParallelDescriptor::ReduceIntSum(np_proc);
+    ParallelDescriptor::ReduceRealSum(moves_proc);
+    ParallelDescriptor::ReduceRealMax(maxspeed_proc);
+    ParallelDescriptor::ReduceRealMax(maxdist_proc);
+    ParallelDescriptor::ReduceIntSum(reDist);
+
+    // write out global diagnostics
+    if (ParallelDescriptor::IOProcessor()) {
+        Print() << "I see " << np_proc << " particles\n";
+
+        Print() << reDist << " particles to be redistributed.\n";
+        Print() <<"Maximum observed speed: " << sqrt(maxspeed_proc) << "\n";
+        Print() <<"Maximum observed displacement (fraction of radius): " << maxdist_proc << "\n";
+    }
+
+    Redistribute();
+    SortParticles();
+
 }
 
+void FhdParticleContainer::SortParticles()
+{
+    int lev = 0;
+    for (FhdParIter pti(* this, lev); pti.isValid(); ++pti) {
 
+        const int grid_id = pti.index();
+        const int tile_id = pti.LocalTileIndex();
+        const Box& tile_box  = pti.tilebox();
+
+        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+        auto& particles = particle_tile.GetArrayOfStructs();
+        const long np = particles.numParticles();
+
+        for (int i = 0; i < np; ++ i)
+        {
+            ParticleType & part = particles[i];
+            if(part.idata(FHD_intData::sorted) == -1)
+            {
+                const IntVect& iv = this->Index(part, lev);
+
+                part.idata(FHD_intData::i) = iv[0];
+                part.idata(FHD_intData::j) = iv[1];
+                part.idata(FHD_intData::k) = iv[2];
+
+                long imap = tile_box.index(iv);
+                //cout << "part " << i << " is in cell " << iv[0] << ", " << iv[1] << ", " << iv[2] << ", adding to element " << m_cell_vectors[pti.index()][imap].size() << "\n";
+
+
+                part.idata(FHD_intData::sorted) = m_cell_vectors[pti.index()][imap].size();
+
+                m_cell_vectors[pti.index()][imap].push_back(i);
+
+            }
+
+        }
+    }
+}
 
