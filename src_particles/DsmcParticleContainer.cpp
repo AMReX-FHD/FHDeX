@@ -258,8 +258,8 @@ void FhdParticleContainer::SortParticles()
                 part.idata(FHD_intData::k) = iv[2];
 
                 long imap = tile_box.index(iv);
-
                 //cout << "part " << i << " is in cell " << iv[0] << ", " << iv[1] << ", " << iv[2] << ", adding to element " << m_cell_vectors[pti.index()][imap].size() << "\n";
+
 
                 part.idata(FHD_intData::sorted) = m_cell_vectors[pti.index()][imap].size();
 
