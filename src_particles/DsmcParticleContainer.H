@@ -91,6 +91,7 @@ public:
                                   int ncells);
 
     void InitParticles();
+    void SortParticles();
 
     void MoveParticlesCPP(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount);
 
@@ -105,7 +106,7 @@ public:
 
 protected:
     // used to store vectors of particle indices on a cell-by-cell basis
-//    std::map<int, amrex::BaseFab<std::vector<int> > > m_cell_vectors;
+
     std::map<int, std::vector<std::vector<int> > > m_cell_vectors;
 
 

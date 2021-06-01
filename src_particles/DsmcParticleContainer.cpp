@@ -64,6 +64,15 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
     Print() << "Sim particles per cell: " << simParticles/totalCollisionCells << "\n";
 
 
+    int lev=0;
+    for(MFIter mfi = MakeMFIter(lev, false); mfi.isValid(); ++mfi)
+    {
+        const Box& box = mfi.validbox();
+        const int grid_id = mfi.index();
+        m_cell_vectors[grid_id].resize(box.numPts());
+    }
+
+
 }
 
 void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount)
@@ -95,6 +104,7 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
 
         const int grid_id = pti.index();
         const int tile_id = pti.LocalTileIndex();
+        const Box& tile_box  = pti.tilebox();
 
         auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
         auto& particles = particle_tile.GetArrayOfStructs();
@@ -169,10 +179,32 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
             cell[1] = (int)floor((part.pos(1)-plo[1])/dx[1]);
             cell[2] = (int)floor((part.pos(2)-plo[2])/dx[2]);
 
+            //cout << "current cell: " << cell[0] << ", " << cell[1] << ", " << cell[2] << "\cout";
+            //n << "current pos: " << part.pos(0) << ", " << part.pos(1) << ", " << part.pos(2) << "\n";
+
             if((cell[0] < myLo[0]) || (cell[1] < myLo[1]) || (cell[2] < myLo[2]) || (cell[0] > myHi[0]) || (cell[1] > myHi[1]) || (cell[2] > myHi[2]))
             {
                 reDist++;
-            }    
+            }
+
+            if((part.idata(FHD_intData::i) != cell[0]) || (part.idata(FHD_intData::j) != cell[1]) || (part.idata(FHD_intData::k) != cell[2]))
+            {
+                //remove particle from old cell
+                IntVect iv(part.idata(FHD_intData::i), part.idata(FHD_intData::j), part.idata(FHD_intData::k));
+                long imap = tile_box.index(iv);
+
+                int lastIndex = m_cell_vectors[pti.index()][imap].size() - 1;
+                int lastPart = m_cell_vectors[pti.index()][imap][lastIndex];
+                int newIndex = part.idata(FHD_intData::sorted);
+
+                m_cell_vectors[pti.index()][imap][newIndex] = m_cell_vectors[pti.index()][imap][lastIndex];
+
+                m_cell_vectors[pti.index()][imap].pop_back();
+
+                //cout << "Removed " << i << " from " << iv[0] << ", " << iv[1] << ", " << iv[2] << ", now contains " << m_cell_vectors[pti.index()][imap].size() << " particles\n";
+
+                part.idata(FHD_intData::sorted) = -1;
+            }
         }
 
         maxspeed_proc = amrex::max(maxspeed_proc, maxspeed);
@@ -197,9 +229,45 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
     }
 
     Redistribute();
-
-    //CODE TO UPDATE CELL LISTS HERE
+    SortParticles();
 
 }
 
+void FhdParticleContainer::SortParticles()
+{
+    int lev = 0;
+    for (FhdParIter pti(* this, lev); pti.isValid(); ++pti) {
+
+        const int grid_id = pti.index();
+        const int tile_id = pti.LocalTileIndex();
+        const Box& tile_box  = pti.tilebox();
+
+        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+        auto& particles = particle_tile.GetArrayOfStructs();
+        const long np = particles.numParticles();
+
+        for (int i = 0; i < np; ++ i)
+        {
+            ParticleType & part = particles[i];
+            if(part.idata(FHD_intData::sorted) == -1)
+            {
+                const IntVect& iv = this->Index(part, lev);
+
+                part.idata(FHD_intData::i) = iv[0];
+                part.idata(FHD_intData::j) = iv[1];
+                part.idata(FHD_intData::k) = iv[2];
+
+                long imap = tile_box.index(iv);
+
+                //cout << "part " << i << " is in cell " << iv[0] << ", " << iv[1] << ", " << iv[2] << ", adding to element " << m_cell_vectors[pti.index()][imap].size() << "\n";
+
+                part.idata(FHD_intData::sorted) = m_cell_vectors[pti.index()][imap].size();
+
+                m_cell_vectors[pti.index()][imap].push_back(i);
+
+            }
+
+        }
+    }
+}
 

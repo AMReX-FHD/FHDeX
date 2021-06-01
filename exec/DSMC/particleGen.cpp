@@ -38,7 +38,7 @@ void FhdParticleContainer::InitParticles()
                     p.id()  = ParticleType::NextID();
  //                   std::cout << "ID: " << p.id() << "\n";
                     p.cpu() = ParallelDescriptor::MyProc();
-                    p.idata(FHD_intData::sorted) = 0;
+                    p.idata(FHD_intData::sorted) = -1;
 
                     if(particle_placement == 1)
                     {
@@ -76,6 +76,7 @@ void FhdParticleContainer::InitParticles()
     }
 
     Redistribute();
+    SortParticles();
 }
 
 
