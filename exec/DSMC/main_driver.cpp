@@ -2,18 +2,10 @@
 
 #include "common_namespace_declarations.H"
 
-#include "gmres_namespace_declarations.H"
-
 #include "species.H"
 #include "paramPlane.H"
 
 #include "StructFact.H"
-
-#include "StochMomFlux.H"
-
-#include "hydro_functions.H"
-
-#include "electrostatic.H"
 
 #include "particle_functions.H"
 
@@ -35,7 +27,6 @@ void main_driver(const char* argv)
 
     // copy contents of F90 modules to C++ namespaces
     InitializeCommonNamespace();
-    InitializeGmresNamespace();
     
     int step = 1;
     Real time = 0.;
@@ -201,6 +192,12 @@ void main_driver(const char* argv)
             }
 
             Print() << "Finish move.\n";
+        }
+
+        if (istep%plot_int == 0) {
+            
+            WritePlotFile(istep, time, geom, particleInstant, particleMeans, particleVars, particles);
+
         }
 
         //particles.EvaluateStats(particleInstant, particleMeans, ionParticle[0], dt,statsCount);
