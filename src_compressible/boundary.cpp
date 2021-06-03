@@ -29,6 +29,9 @@ void SetupCWall() {
        } else if (amrex::Math::abs(sumy-1) < 1.e-10) {
           GetMolfrac(bc_Yk_x_lo,bc_Xk_x_lo);
        }
+       else {
+           Abort("SetupCWall: lo-x; mass or mole fractions do not sum to 1");
+       }
     }
 
     if (bc_mass_hi[0] == 2) {
@@ -42,6 +45,8 @@ void SetupCWall() {
           GetMassfrac(bc_Xk_x_hi,bc_Yk_x_hi);
        } else if (amrex::Math::abs(sumy-1) < 1.e-10) {
           GetMolfrac(bc_Yk_x_hi,bc_Xk_x_hi);
+       } else {
+           Abort("SetupCWall: hi-x; mass or mole fractions do not sum to 1");
        }
     }
 
@@ -57,6 +62,8 @@ void SetupCWall() {
           GetMassfrac(bc_Xk_y_lo,bc_Yk_y_lo);
        } else if (amrex::Math::abs(sumy-1) < 1.e-10) {
           GetMolfrac(bc_Yk_y_lo,bc_Xk_y_lo);
+       } else {
+           Abort("SetupCWall: lo-y; mass or mole fractions do not sum to 1");
        }
     }
 
@@ -71,6 +78,8 @@ void SetupCWall() {
           GetMassfrac(bc_Xk_y_hi,bc_Yk_y_hi);
        } else if (amrex::Math::abs(sumy-1) < 1.e-10) {
           GetMolfrac(bc_Yk_y_hi,bc_Xk_y_hi);
+       } else {
+           Abort("SetupCWall: hi-y; mass or mole fractions do not sum to 1");
        }
     }
 
@@ -86,6 +95,8 @@ void SetupCWall() {
           GetMassfrac(bc_Xk_z_lo,bc_Yk_z_lo);
        } else if (amrex::Math::abs(sumy-1) < 1.e-10) {
           GetMolfrac(bc_Yk_z_lo,bc_Xk_z_lo);
+       } else {
+           Abort("SetupCWall: lo-z; mass or mole fractions do not sum to 1");
        }
     }
 
@@ -100,6 +111,8 @@ void SetupCWall() {
           GetMassfrac(bc_Xk_z_hi,bc_Yk_z_hi);
        } else if (amrex::Math::abs(sumy-1) < 1.e-10) {
           GetMolfrac(bc_Yk_z_hi,bc_Xk_z_hi);
+       } else {
+           Abort("SetupCWall: hi-z; mass or mole fractions do not sum to 1");
        }
     }
 }
