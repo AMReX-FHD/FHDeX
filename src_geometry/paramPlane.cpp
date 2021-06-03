@@ -540,7 +540,80 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
     paramPlaneList[5].fyRightAv = 0;
     paramPlaneList[5].fzRightAv = 0;
 
+    std::ifstream planeFile("paramplanes.dat");
+    int fileCount;
+    planeFile >> fileCount;
+    
+    int totalCount = 6+fileCount;
 
+    for(int i=6; i<totalCount; i++)
+    {
 
+        planeFile >> paramPlaneList[i].x0;
 
+        Print() << "surface " << i << " xo " << paramPlaneList[i].x0 << "\n";
+
+        planeFile >> paramPlaneList[i].y0;
+        planeFile >> paramPlaneList[i].z0;
+
+        planeFile >> paramPlaneList[i].ux;
+        planeFile >> paramPlaneList[i].uy;
+        planeFile >> paramPlaneList[i].uz;
+
+        planeFile >> paramPlaneList[i].vx;
+        planeFile >> paramPlaneList[i].vy;
+        planeFile >> paramPlaneList[i].vz;
+
+        planeFile >> paramPlaneList[i].uTop;
+        planeFile >> paramPlaneList[i].vTop;
+
+        planeFile >> paramPlaneList[i].rnx;
+        planeFile >> paramPlaneList[i].rny;
+        planeFile >> paramPlaneList[i].rnz;
+
+        planeFile >> paramPlaneList[i].lnx;
+        planeFile >> paramPlaneList[i].lny;
+        planeFile >> paramPlaneList[i].lnz;
+        
+        planeFile >> paramPlaneList[i].porosityRight;
+        planeFile >> paramPlaneList[i].specularityRight;
+        planeFile >> paramPlaneList[i].temperatureRight;
+        planeFile >> paramPlaneList[i].momentumConsRight;
+
+        planeFile >> paramPlaneList[i].porosityLeft;
+        planeFile >> paramPlaneList[i].specularityLeft;
+        planeFile >> paramPlaneList[i].temperatureLeft;
+        planeFile >> paramPlaneList[i].momentumConsLeft;
+
+        planeFile >> paramPlaneList[i].periodicity;
+
+        paramPlaneList[i].boundary = i+1;
+            
+        theta = getTheta(paramPlaneList[i].lnx, paramPlaneList[i].lny, paramPlaneList[i].lnz);
+        phi   = getPhi(paramPlaneList[i].lnx, paramPlaneList[i].lny, paramPlaneList[i].lnz);
+
+        paramPlaneList[i].cosThetaLeft = cos(theta);
+        paramPlaneList[i].sinThetaLeft = sin(theta);
+        paramPlaneList[i].cosPhiLeft = cos(phi);
+        paramPlaneList[i].sinPhiLeft = sin(phi);
+
+        theta = getTheta(paramPlaneList[i].rnx, paramPlaneList[i].rny, paramPlaneList[i].rnz);
+        phi   = getPhi(paramPlaneList[i].rnx, paramPlaneList[i].rny, paramPlaneList[i].rnz);
+
+        paramPlaneList[i].cosThetaRight = cos(theta);
+        paramPlaneList[i].sinThetaRight = sin(theta);
+        paramPlaneList[i].cosPhiRight = cos(phi);
+        paramPlaneList[i].sinPhiRight = sin(phi);
+
+        paramPlaneList[i].fxLeftAv = 0;
+        paramPlaneList[i].fyLeftAv = 0;
+        paramPlaneList[i].fzLeftAv = 0;
+
+        paramPlaneList[i].fxRightAv = 0;
+        paramPlaneList[i].fyRightAv = 0;
+        paramPlaneList[i].fzRightAv = 0;        
+
+    }
+
+    planeFile.close();
 }

@@ -116,7 +116,12 @@ void main_driver(const char* argv)
 
     Real dt = fixed_dt;
  
-    int paramPlaneCount = 6;
+    std::ifstream planeFile("paramplanes.dat");
+    int fileCount;
+    planeFile >> fileCount;
+    planeFile.close();
+
+    int paramPlaneCount = fileCount+6;
     paramPlane paramPlaneList[paramPlaneCount];
     BuildParamplanes(paramPlaneList,paramPlaneCount,realDomain.lo(),realDomain.hi());
 

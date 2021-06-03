@@ -18,7 +18,7 @@ void WritePlotFile(int step,
     BoxArray cba = particleInstant.boxArray();
     DistributionMapping cdmap = particleInstant.DistributionMap();
 
-     int cnPlot = 16+2*nspecies;
+    int cnPlot = 16+2*nspecies;
 
     MultiFab cplotfile(cba, cdmap, cnPlot, 0);
 
@@ -54,6 +54,12 @@ void WritePlotFile(int step,
     cvarNames[15+nspecies] = "pzMean";
 
     ccount = 16+nspecies;
+
+    for(int i=0;i<nspecies;i++)
+    {
+        std::string specname = Concatenate("densityMeanSpecies",i);
+        cvarNames[ccount+i]= specname;
+    }
 
     // timer
     Real t1 = ParallelDescriptor::second();
