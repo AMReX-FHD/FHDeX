@@ -1206,6 +1206,20 @@ void MultiFabPotentialBC_solver(MultiFab& phi, const Geometry& geom) {
             }
         }
 
+        if ((bx.smallEnd(1) < dom.smallEnd(1)) and (zero_eps_on_wall_type) and (bc_es_lo[1] == 1)) {
+            const Real pot = potential_lo[1];
+            amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                if (j < dom.smallEnd(1)) {
+                    Real x = (i+0.5)*dx[0];
+                    Real Lx = prob_hi[0] - prob_lo[0];
+                    if ((x > zero_eps_wall_left_end*Lx) or (x < zero_eps_wall_right_start*Lx)) {
+                        data(i,j,k) = pot + x*eamp[0] - Lx*eamp[0]*0.5;
+                    }
+                }
+            });
+        }
+
         if (bx.bigEnd(1) > dom.bigEnd(1)) {
             if (bc_es_hi[1] == 1 || bc_es_hi[1] == 2) {
                 const Real pot = potential_hi[1];
