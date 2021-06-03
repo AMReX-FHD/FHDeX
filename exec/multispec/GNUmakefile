@@ -18,10 +18,6 @@ include ./Make.package
 VPATH_LOCATIONS   += .
 INCLUDE_LOCATIONS += .
 
-include ../../src_hydro/src_F90/Make.package
-VPATH_LOCATIONS   += ../../src_hydro/src_F90
-INCLUDE_LOCATIONS += ../../src_hydro/src_F90
-
 include ../../src_hydro/Make.package
 VPATH_LOCATIONS   += ../../src_hydro/
 INCLUDE_LOCATIONS += ../../src_hydro/
@@ -34,25 +30,13 @@ include ../../src_multispec/Make.package
 VPATH_LOCATIONS   += ../../src_multispec/
 INCLUDE_LOCATIONS += ../../src_multispec/
 
-include ../../src_analysis/src_F90/Make.package
-VPATH_LOCATIONS   += ../../src_analysis/src_F90
-INCLUDE_LOCATIONS += ../../src_analysis/src_F90
-
 include ../../src_analysis/Make.package
 VPATH_LOCATIONS   += ../../src_analysis/
 INCLUDE_LOCATIONS += ../../src_analysis/
 
-include ../../src_rng/src_F90/Make.package
-VPATH_LOCATIONS   += ../../src_rng/src_F90
-INCLUDE_LOCATIONS += ../../src_rng/src_F90
-
 include ../../src_rng/Make.package
 VPATH_LOCATIONS   += ../../src_rng/
 INCLUDE_LOCATIONS += ../../src_rng/
-
-include ../../src_gmres/src_F90/Make.package
-VPATH_LOCATIONS   += ../../src_gmres/src_F90
-INCLUDE_LOCATIONS += ../../src_gmres/src_F90
 
 include ../../src_gmres/Make.package
 VPATH_LOCATIONS   += ../../src_gmres/

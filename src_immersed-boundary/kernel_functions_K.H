@@ -3,6 +3,31 @@
 
 #include <AMReX.H>
 
+struct Kernel1P
+{
+    static constexpr int ks = 2;
+    
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE    
+    Real operator() (Real r_in) const noexcept
+    {
+        Real kernel_1p;
+
+        Real r1 = std::abs(r_in);
+        Real r2 = r1*r1;
+        
+        if (r1 <= 0.5)
+        {
+            kernel_1p = 1;
+        }else
+       {
+           kernel_1p = 0.0;
+       }
+
+        return kernel_1p;
+    }
+};
+
+
 struct Kernel3P
 {
     static constexpr int ks = 2;
@@ -197,4 +222,51 @@ struct Kernel6P
     }
 };
 
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
+Real integral(Real beta_in, int w_in) 
+{
+    Real beta = beta_in;
+    Real w = static_cast<Real>(w_in);
+    int nbin = 100;
+    Real dxi = w/nbin;
+    Real integral = 0.0; 
+
+    // mid-point rule for integration
+    for (int i = 0; i < nbin; i++) {
+        integral += dxi*std::exp(beta*(std::sqrt(1 - 4*(-w*0.5+i*dxi+0.5*dxi)*(-w*0.5+i*dxi+0.5*dxi)/w/w) - 1));
+    }
+    //std::cout << "denominator is " << integral << std::endl;
+    return integral;
+}
+
+struct KernelES
+{
+    KernelES(Real beta_in, int w_in) : beta(beta_in), w(w_in) {}
+
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    Real operator() (Real r_in) const noexcept
+    {
+        Real kernel_es;
+        Real r = r_in;
+        //Real beta = beta_in;
+        //Real w = static_cast<Real>(w_in);
+
+        if (r >= -w/2.0 && r <= w/2.0)
+        {
+            kernel_es = std::exp(beta*(std::sqrt(1 - 4*r*r/w/w) - 1));
+        }
+        else
+        {
+            kernel_es = 0.0;
+        }
+
+	//std::cout << "kernel_es is " << kernel_es << std::endl;
+        return kernel_es;
+    }
+
+    private:
+        Real beta;
+        int w;
+
+};
 #endif

@@ -1,6 +1,6 @@
 namespace common {
 
-#define MAX_SPECIES 4
+#define MAX_SPECIES 8
     
     // misc global variables
     extern amrex::IntVect nodal_flag;
@@ -19,7 +19,8 @@ namespace common {
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, 3> prob_lo; // physical lo coordinate
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, 3> prob_hi; // physical hi coordinate
     extern AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM> n_cells;              // number of cells in domain
-    extern amrex::Vector<int>         max_grid_size;        // max number of cells in a box
+    extern amrex::Vector<int>         max_grid_size;            // max number of cells in a box
+    extern amrex::Vector<int>         max_grid_size_structfact; // max number of cells in a box for structure factor
     extern amrex::Vector<int>         max_particle_tile_size;        // max number of cells in a box
     extern amrex::Real                cell_depth;
 
@@ -27,13 +28,16 @@ namespace common {
     extern AMREX_GPU_MANAGED int      nvars;         //number of conserved variables
     extern AMREX_GPU_MANAGED int      nprimvars;     //number of primitive variables
 
-    extern int                        membrane_cell; //cell to locate membrane
-    extern int                        cross_cell;    //cell to compute spatial correlation
-    extern amrex::Real                transmission;
+    extern AMREX_GPU_MANAGED int      membrane_cell; //cell to locate membrane
+    extern AMREX_GPU_MANAGED int      cross_cell;    //cell to compute spatial correlation
+    extern AMREX_GPU_MANAGED int      do_slab_sf;    //whether to compute SF for two slabs separated by cross_cell
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> transmission;
 
     extern amrex::Vector<amrex::Real> qval;
-    extern AMREX_GPU_MANAGED int      pkernel_fluid;
-    extern AMREX_GPU_MANAGED int      pkernel_es;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_SPECIES> pkernel_fluid; // GALEN - FLUID KERNEL
+    extern AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_SPECIES> pkernel_es;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_SPECIES> eskernel_fluid;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> eskernel_beta;
 
     // Time-step control
     extern amrex::Real                fixed_dt;
@@ -51,6 +55,7 @@ namespace common {
     extern std::string                chk_base_name;
     extern AMREX_GPU_MANAGED int      prob_type;
     extern int                        restart;
+    extern int                        reset_stats;
     extern int                        particle_restart;
     extern int                        print_int;
     extern int                        project_eos_int;
@@ -146,8 +151,8 @@ namespace common {
     extern amrex::Vector<int>          bc_therm_hi;
 
     // Pressure drop are periodic inflow/outflow walls (bc_[hi,lo]=-2).
-    extern amrex::Vector<amrex::Real>  p_lo;
-    extern amrex::Vector<amrex::Real>  p_hi;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> p_lo;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> p_hi;
 
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> t_lo;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> t_hi;
@@ -165,6 +170,13 @@ namespace common {
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> bc_Xk_y_hi;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> bc_Xk_z_lo;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> bc_Xk_z_hi;
+
+    extern AMREX_GPU_MANAGED amrex::Real bc_rhotot_x_lo;
+    extern AMREX_GPU_MANAGED amrex::Real bc_rhotot_x_hi;
+    extern AMREX_GPU_MANAGED amrex::Real bc_rhotot_y_lo;
+    extern AMREX_GPU_MANAGED amrex::Real bc_rhotot_y_hi;
+    extern AMREX_GPU_MANAGED amrex::Real bc_rhotot_z_lo;
+    extern AMREX_GPU_MANAGED amrex::Real bc_rhotot_z_hi;
 
     // Each no-slip wall may be moving with a specified tangential
     // velocity along the tangential directions
@@ -192,6 +204,7 @@ namespace common {
 
     // projection 
     extern int                        project_dir;
+    extern int                        slicepoint;
     extern amrex::Vector<int>         max_grid_projection;
 
   /*
@@ -210,17 +223,25 @@ namespace common {
     extern amrex::Vector<int>         particle_count;
     extern amrex::Vector<int>         p_move_tog;
     extern amrex::Vector<int>         p_force_tog;
-    extern AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_SPECIES*MAX_SPECIES>         p_int_tog;
     extern amrex::Real                particle_neff;
     extern amrex::Vector<amrex::Real> particle_n0;
     extern amrex::Vector<amrex::Real> mass;
     extern amrex::Vector<amrex::Real> nfrac;
 
     extern AMREX_GPU_MANAGED amrex::Real permittivity;
-    extern amrex::Real                cut_off;
-    extern amrex::Real                rmin;
+    extern int                        wall_mob;
+
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES*MAX_SPECIES> rmin;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES*MAX_SPECIES> rmax;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES*MAX_SPECIES> eepsilon;
-    extern amrex::Vector<amrex::Real> sigma;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES*MAX_SPECIES> sigma;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_SPECIES*MAX_SPECIES>         p_int_tog;
+
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> rmin_wall;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> rmax_wall;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> eepsilon_wall;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> sigma_wall;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_SPECIES> p_int_tog_wall;
 
     extern int                        poisson_verbose;
     extern int                        poisson_bottom_verbose;
@@ -252,6 +273,10 @@ namespace common {
     extern amrex::Vector<amrex::Real> ephase;
 
     extern int                        plot_ascii;
+    extern int                        plot_means;
+    extern int                        plot_vars;
+    extern int                        plot_covars;
+    extern int                        plot_cross;
     extern int                        particle_motion;
     
     // parameters neccesary for chemical reactions

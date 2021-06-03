@@ -66,6 +66,38 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                           const Geometry& geom);
 
 ///////////////////////////
+// in Checkpoint.cpp
+
+void WriteCheckPoint(int step,
+                     const amrex::Real time,
+                     const amrex::Real dt,
+                     const MultiFab& rho,
+                     const MultiFab& rhotot,
+                     const MultiFab& pi,
+                     std::array< MultiFab, AMREX_SPACEDIM >& umac,
+                     const MultiFab& Epot,
+                     std::array< MultiFab, AMREX_SPACEDIM >& grad_Epot);
+
+void ReadCheckPoint(int& step,
+                    amrex::Real& time,
+                    amrex::Real& dt,
+                    MultiFab& rho,
+                    MultiFab& rhotot,
+                    MultiFab& pi,
+                    std::array< MultiFab, AMREX_SPACEDIM >& umac,
+                    MultiFab& Epot,
+                    std::array< MultiFab, AMREX_SPACEDIM >& grad_Epot,
+                    BoxArray& ba,
+                    DistributionMapping& dmap);
+
+///////////////////////////
+// in Init.cpp
+
+void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
+                 MultiFab& rho_in,
+                 const Geometry& geom);
+
+///////////////////////////
 // in WritePlotFile.cpp
 
 void WritePlotFile(const int step,

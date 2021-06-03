@@ -1,6 +1,5 @@
 
 #include "multispec_test_functions.H"
-#include "multispec_test_functions_F.H"
 
 #include "StochMomFlux.H"
 
@@ -22,6 +21,10 @@
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_MultiFabUtil.H>
 
+#include "chrono"
+
+using namespace std::chrono;
+
 
 // argv contains the name of the inputs file entered at the command line
 void main_driver(const char* argv)
@@ -42,30 +45,42 @@ void main_driver(const char* argv)
     // we use "+1" because of amrex_string_c_to_f expects a null char termination
     read_common_namelist   (inputs_file.c_str(),inputs_file.size()+1);
     read_multispec_namelist(inputs_file.c_str(),inputs_file.size()+1);
-    read_gmres_namelist    (inputs_file.c_str(),inputs_file.size()+1);
 
     // copy contents of F90 modules to C++ namespaces
     InitializeCommonNamespace();
     InitializeMultispecNamespace();
     InitializeGmresNamespace();
 
+    if (algorithm_type == 6) {
+        RhototBCInit();
+    }
+
     // for reservoirs, make sure the Dirichlet conditions for concentration sum to 1
     //
     //
     //
 
-    // one common seed; not split by process yet like the original code
-    int fhdSeed = seed;
-    
-    // these are unused
-    int particleSeed = 2;
-    int selectorSeed = 3;
-    int thetaSeed = 4;
-    int phiSeed = 5;
-    int generalSeed = 6;
-
+    /////////////////////////////////////////
     //Initialise rngs
-    rng_initialize(&fhdSeed,&particleSeed,&selectorSeed,&thetaSeed,&phiSeed,&generalSeed);
+    /////////////////////////////////////////
+    if (restart < 0) {
+
+        if (seed > 0) {
+            // initializes the seed for C++ random number calls
+            InitRandom(seed+ParallelDescriptor::MyProc());
+        } else if (seed == 0) {
+            // initializes the seed for C++ random number calls based on the clock
+            auto now = time_point_cast<nanoseconds>(system_clock::now());
+            int randSeed = now.time_since_epoch().count();
+            // broadcast the same root seed to all processors
+            ParallelDescriptor::Bcast(&randSeed,1,ParallelDescriptor::IOProcessorNumber());
+            InitRandom(randSeed+ParallelDescriptor::MyProc());
+        } else {
+            Abort("Must supply non-negative seed");
+        }
+
+    }
+    /////////////////////////////////////////
     
     // is the problem periodic?
     Vector<int> is_periodic(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
@@ -74,7 +89,17 @@ void main_driver(const char* argv)
             is_periodic[i] = 1;
         }
     }
+        
+    // This defines the physical box, [-1,1] in each direction.
+    RealBox real_box({AMREX_D_DECL(prob_lo[0],prob_lo[1],prob_lo[2])},
+                     {AMREX_D_DECL(prob_hi[0],prob_hi[1],prob_hi[2])});
+        
+    IntVect dom_lo(AMREX_D_DECL(           0,            0,            0));
+    IntVect dom_hi(AMREX_D_DECL(n_cells[0]-1, n_cells[1]-1, n_cells[2]-1));
+    Box domain(dom_lo, dom_hi);
 
+    Geometry geom(domain,&real_box,CoordSys::cartesian,is_periodic.data());
+    
     int ng_s; // ghost cells for density MultiFabs
     if (advection_type == 0) {
         ng_s = 2; // centered advection
@@ -92,19 +117,30 @@ void main_driver(const char* argv)
 
     // make BoxArray and Geometry
     BoxArray ba;
-    Geometry geom;
+
+    // how boxes are distrubuted among MPI processes
+    DistributionMapping dmap;
+
+    MultiFab rho_old;
+    MultiFab rhotot_old;
+    MultiFab pi;
+    std::array< MultiFab, AMREX_SPACEDIM > umac;
+    MultiFab Epot;
+    std::array< MultiFab, AMREX_SPACEDIM > grad_Epot_old;
     
-    if (restart >= 0) {
-        Abort("restart not implemented yet");
+    if (restart > 0) {
+        ReadCheckPoint(init_step,time,dt,
+                       rho_old,rhotot_old,pi,umac,Epot,grad_Epot_old,
+                       ba,dmap);
     }
     else {
 
         init_step = 1;
         time = start_time;
-        
-        IntVect dom_lo(AMREX_D_DECL(           0,            0,            0));
-        IntVect dom_hi(AMREX_D_DECL(n_cells[0]-1, n_cells[1]-1, n_cells[2]-1));
-        Box domain(dom_lo, dom_hi);
+        if (fixed_dt <= 0.) {
+            Abort("main_driver.cpp: only fixed_dt > 0 supported");
+        }
+        dt = fixed_dt;
 
         // Initialize the boxarray "ba" from the single box "bx"
         ba.define(domain);
@@ -113,29 +149,27 @@ void main_driver(const char* argv)
         // note we are converting "Vector<int> max_grid_size" to an IntVect
         ba.maxSize(IntVect(max_grid_size));
 
-       // This defines the physical box, [-1,1] in each direction.
-        RealBox real_box({AMREX_D_DECL(prob_lo[0],prob_lo[1],prob_lo[2])},
-                         {AMREX_D_DECL(prob_hi[0],prob_hi[1],prob_hi[2])});
+        // define DistributionMapping
+        dmap.define(ba);
+        
+        // staggered velocities
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            umac[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
+            umac[d].setVal(0.);
 
-        // This defines a Geometry object
-        geom.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
+            if (use_charged_fluid) {
+                grad_Epot_old[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
+            }
+        }
 
+        rho_old.define   (ba, dmap, nspecies, ng_s);
+        rhotot_old.define(ba, dmap, 1       , ng_s);
+        pi.define        (ba, dmap, 1       , 1);
+        if (use_charged_fluid) {
+            Epot.define(ba, dmap, 1, 1);
+        }
     }
-
-    // how boxes are distrubuted among MPI processes
-    DistributionMapping dmap(ba);
     
-    MultiFab rho_old   (ba, dmap, nspecies, ng_s);
-    MultiFab rhotot_old(ba, dmap, 1       , ng_s);
-    MultiFab pi        (ba, dmap, 1       , 1);
-
-    // staggered velocities
-    std::array< MultiFab, AMREX_SPACEDIM > umac;
-    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        umac[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
-        umac[d].setVal(0.);
-    }
-
     // data structures to help with reservoirs
     // 
     //
@@ -152,18 +186,7 @@ void main_driver(const char* argv)
     if (restart < 0) {
     
         // initialize rho and umac in valid region only
-        for ( MFIter mfi(rho_old); mfi.isValid(); ++mfi ) {
-            const Box& bx = mfi.validbox();
-
-            init_rho_and_umac(BL_TO_FORTRAN_BOX(bx),
-                              BL_TO_FORTRAN_FAB(rho_old[mfi]),
-                              BL_TO_FORTRAN_ANYD(umac[0][mfi]),
-                              BL_TO_FORTRAN_ANYD(umac[1][mfi]),
-#if (AMREX_SPACEDIM == 3)
-                              BL_TO_FORTRAN_ANYD(umac[2][mfi]),
-#endif
-                              dx, geom.ProbLo(), geom.ProbHi());
-        }
+        InitRhoUmac(umac,rho_old,geom);
 
         // initialize pi, including ghost cells
         pi.setVal(0.);
@@ -213,20 +236,16 @@ void main_driver(const char* argv)
       stoch_mass_flux[d].define(convert(ba,nodal_flag_dir[d]), dmap, nspecies, 0);
     }
 
-    std::array< MultiFab, AMREX_SPACEDIM > grad_Epot_old;
     std::array< MultiFab, AMREX_SPACEDIM > grad_Epot_new;
     MultiFab charge_old;
     MultiFab charge_new;
-    MultiFab Epot;
     MultiFab permittivity;
     if (use_charged_fluid) {
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
-            grad_Epot_old[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
             grad_Epot_new[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
         }
         charge_old.define(ba, dmap, 1, 1);
         charge_new.define(ba, dmap, 1, 1);
-        Epot.define(ba, dmap, 1, 1);
         permittivity.define(ba, dmap, 1, 1);
 
         // set these to zero
@@ -367,11 +386,6 @@ void main_driver(const char* argv)
             }
         }
     }
-
-    if (fixed_dt <= 0.) {
-        Abort("main_driver.cpp: only fixed_dt > 0 supported");
-    }
-    dt = fixed_dt;
 
     ///////////////////////////////////////////
     // Initialize structure factor object for analysis
@@ -576,9 +590,7 @@ void main_driver(const char* argv)
 
         // write checkpoint at specific intervals
         if (chk_int > 0 && istep%chk_int == 0) {
-            //
-            //
-            //            
+            WriteCheckPoint(istep,time,dt,rho_new,rhotot_new,pi,umac,Epot,grad_Epot_new);
         }
 
         // set old state to new state

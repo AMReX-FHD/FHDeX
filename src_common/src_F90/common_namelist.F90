@@ -16,6 +16,7 @@ module common_namelist_module
   double precision,   save :: prob_hi(AMREX_SPACEDIM)
   integer,            save :: n_cells(AMREX_SPACEDIM)
   integer,            save :: max_grid_size(AMREX_SPACEDIM)
+  integer,            save :: max_grid_size_structfact(AMREX_SPACEDIM)
   integer,            save :: max_particle_tile_size(AMREX_SPACEDIM)
   double precision,   save :: cell_depth
 
@@ -24,11 +25,14 @@ module common_namelist_module
   integer,            save :: nprimvars
   integer,            save :: membrane_cell
   integer,            save :: cross_cell
-  double precision,   save :: transmission
+  integer,            save :: do_slab_sf
+  double precision,   save :: transmission(MAX_SPECIES)
 
   double precision,   save :: qval(MAX_SPECIES)
-  integer,            save :: pkernel_fluid
-  integer,            save :: pkernel_es
+  integer,            save :: pkernel_fluid(MAX_SPECIES) ! GALEN - FLUID KERNEL
+  integer,            save :: pkernel_es(MAX_SPECIES)
+  integer,            save :: eskernel_fluid(MAX_SPECIES) ! ES KERNEL
+  double precision,   save :: eskernel_beta(MAX_SPECIES) ! ES KERNEL: beta
 
   double precision,   save :: mass(MAX_SPECIES)
   double precision,   save :: nfrac(MAX_SPECIES)
@@ -38,6 +42,7 @@ module common_namelist_module
   integer,            save :: p_move_tog(MAX_SPECIES)
   integer,            save :: p_force_tog(MAX_SPECIES)
   integer,            save :: p_int_tog(MAX_SPECIES*MAX_SPECIES)
+  integer,            save :: p_int_tog_wall(MAX_SPECIES)
   double precision,   save :: particle_n0(MAX_SPECIES)
   double precision,   save :: particle_neff
   
@@ -54,6 +59,7 @@ module common_namelist_module
   character(len=128), save :: chk_base_name
   integer,            save :: prob_type
   integer,            save :: restart
+  integer,            save :: reset_stats
   integer,            save :: particle_restart
   integer,            save :: print_int
   integer,            save :: project_eos_int
@@ -145,6 +151,7 @@ module common_namelist_module
   double precision,   save :: searchdist
 
   integer,            save :: project_dir
+  integer,            save :: slicepoint
   integer,            save :: max_grid_projection(AMREX_SPACEDIM-1)
 
   integer,            save :: histogram_unit
@@ -152,10 +159,16 @@ module common_namelist_module
   integer,            save :: shift_cc_to_boundary(AMREX_SPACEDIM,LOHI)
 
   double precision,   save :: permittivity
-  double precision,   save :: cut_off
-  double precision,   save :: rmin
+  integer,            save :: wall_mob
+  double precision,   save :: rmin(MAX_SPECIES*MAX_SPECIES)
+  double precision,   save :: rmax(MAX_SPECIES*MAX_SPECIES)
   double precision,   save :: eepsilon(MAX_SPECIES*MAX_SPECIES)
-  double precision,   save :: sigma(MAX_SPECIES)
+  double precision,   save :: sigma(MAX_SPECIES*MAX_SPECIES)
+
+  double precision,   save :: rmin_wall(MAX_SPECIES)
+  double precision,   save :: rmax_wall(MAX_SPECIES)
+  double precision,   save :: eepsilon_wall(MAX_SPECIES)
+  double precision,   save :: sigma_wall(MAX_SPECIES)
   
   integer,            save :: poisson_verbose
   integer,            save :: poisson_bottom_verbose
@@ -185,6 +198,10 @@ module common_namelist_module
   double precision,   save :: ephase(3)
 
   integer,            save :: plot_ascii
+  integer,            save :: plot_means
+  integer,            save :: plot_vars
+  integer,            save :: plot_covars
+  integer,            save :: plot_cross
   integer,            save :: particle_motion
 
   integer,            save :: solve_chem
@@ -203,6 +220,7 @@ module common_namelist_module
   namelist /common/ prob_hi       ! physical hi coordinate
   namelist /common/ n_cells       ! number of cells in domain
   namelist /common/ max_grid_size ! max number of cells in a box
+  namelist /common/ max_grid_size_structfact ! max number of cells in a box for structure factor
   namelist /common/ max_particle_tile_size ! max number of cells in a box
   namelist /common/ cell_depth
 
@@ -211,11 +229,14 @@ module common_namelist_module
   namelist /common/ nprimvars     ! number of primative variables
   namelist /common/ membrane_cell ! location of membrane
   namelist /common/ cross_cell    ! cell to compute spatial correlation
+  namelist /common/ do_slab_sf    ! whether to compute SF in two slabs separated by cross_cell
   namelist /common/ transmission
 
   namelist /common/ qval                ! charge on an ion
   namelist /common/ pkernel_fluid       ! peskin kernel for fluid
   namelist /common/ pkernel_es          ! peskin kernel for es
+  namelist /common/ eskernel_fluid      ! ES kernel for fluid
+  namelist /common/ eskernel_beta       ! ES kernel for fluid: beta
 
   namelist /common/ mass
   namelist /common/ nfrac
@@ -225,6 +246,7 @@ module common_namelist_module
   namelist /common/ p_move_tog
   namelist /common/ p_force_tog
   namelist /common/ p_int_tog
+  namelist /common/ p_int_tog_wall
   namelist /common/ particle_n0
   namelist /common/ particle_neff
 
@@ -244,6 +266,7 @@ module common_namelist_module
   namelist /common/ chk_base_name
   namelist /common/ prob_type
   namelist /common/ restart
+  namelist /common/ reset_stats
   namelist /common/ particle_restart
   namelist /common/ print_int
   namelist /common/ project_eos_int
@@ -361,6 +384,7 @@ module common_namelist_module
 
   ! projection
   namelist /common/ project_dir
+  namelist /common/ slicepoint
   namelist /common/ max_grid_projection
 
   ! These are mostly used for reaction-diffusion:
@@ -369,10 +393,16 @@ module common_namelist_module
   namelist /common/ shift_cc_to_boundary
 
   namelist /common/ permittivity
-  namelist /common/ cut_off
+  namelist /common/ wall_mob
   namelist /common/ rmin
+  namelist /common/ rmax
   namelist /common/ eepsilon
   namelist /common/ sigma
+
+  namelist /common/ rmin_wall
+  namelist /common/ rmax_wall
+  namelist /common/ eepsilon_wall
+  namelist /common/ sigma_wall
   
   namelist /common/ poisson_verbose
   namelist /common/ poisson_bottom_verbose
@@ -403,6 +433,10 @@ module common_namelist_module
   namelist /common/ ephase
 
   namelist /common/ plot_ascii
+  namelist /common/ plot_means
+  namelist /common/ plot_vars
+  namelist /common/ plot_covars
+  namelist /common/ plot_cross
   namelist /common/ particle_motion
 
   ! chemistry
@@ -433,6 +467,7 @@ contains
     prob_hi(:) = 1.d0
     n_cells(:) = 1
     max_grid_size(:) = 1
+    max_grid_size_structfact(:) = 1
     max_particle_tile_size(:) = 0
     cell_depth = 1.d0
 
@@ -442,6 +477,7 @@ contains
 
     membrane_cell = -1
     cross_cell = 0
+    do_slab_sf = 0
     ! transmission (no default)
     
     fixed_dt = 1.
@@ -455,6 +491,7 @@ contains
     chk_base_name = "chk"
     prob_type = 1
     restart = -1
+    reset_stats = 0
     particle_restart = -1
     print_int = 0
     project_eos_int = -1
@@ -529,6 +566,7 @@ contains
     binsize = 0.
     searchDist = 0.
     project_dir = -1
+    slicepoint = -1
     max_grid_projection(:) = 1
     histogram_unit = 0
     density_weights(:) = 0.d0
@@ -543,8 +581,10 @@ contains
     p_force_tog(:) = 1
     p_int_tog(:) = 1
 
-    pkernel_fluid = 4
-    pkernel_es = 4
+    pkernel_fluid(:) = 4
+    pkernel_es(:) = 4
+    eskernel_fluid(:) = -1
+    eskernel_beta(:) = -1
     solve_chem = 0
     diffcoeff  = 0.001
     scaling_factor = 0.1
@@ -556,6 +596,10 @@ contains
     turb_b = 1.d0
     turbForcing = 0
 
+    plot_means = 0
+    plot_vars = 0    
+    plot_covars = 0    
+    plot_cross = 0    
     particle_motion = 0
 
     graphene_tog = 0
@@ -565,13 +609,15 @@ contains
     all_dry = 0
     particle_neff = 1
 
+    wall_mob = 1
+
     eamp(:) =  0
     efreq(:) = 0
     ephase(:) = 0
 
     qval(:) = 0
 
-    crange = pkernel_es + 1
+    crange = maxval(pkernel_es) + 1
 
     ! read in common namelist
     open(unit=100, file=amrex_string_c_to_f(inputs_file), status='old', action='read')
@@ -587,14 +633,16 @@ contains
 
   ! copy contents of common_params_module to C++ common namespace
   subroutine initialize_common_namespace(prob_lo_in, prob_hi_in, n_cells_in, &
-                                         max_grid_size_in, max_particle_tile_size_in, cell_depth_in, ngc_in, &
+                                         max_grid_size_in, max_grid_size_structfact_in, &
+                                         max_particle_tile_size_in, cell_depth_in, ngc_in, &
                                          nvars_in, nprimvars_in, &
-                                         membrane_cell_in, cross_cell_in, transmission_in, &
+                                         membrane_cell_in, cross_cell_in, do_slab_sf_in, transmission_in, &
                                          qval_in, pkernel_fluid_in, pkernel_es_in,&
+                                         eskernel_fluid_in, eskernel_beta_in,&
                                          fixed_dt_in, cfl_in, rfd_delta_in, max_step_in, plot_int_in, plot_stag_in, &
                                          plot_base_name_in, plot_base_name_len, chk_int_in, &
                                          chk_base_name_in, chk_base_name_len, prob_type_in, &
-                                         restart_in, particle_restart_in, &
+                                         restart_in, reset_stats_in, particle_restart_in, &
                                          print_int_in, project_eos_int_in, &
                                          grav_in, nspecies_in, molmass_in, diameter_in, &
                                          dof_in, hcv_in, hcp_in, rhobar_in, &
@@ -627,19 +675,20 @@ contains
                                          struct_fact_int_in, radialdist_int_in, &
                                          cartdist_int_in, n_steps_skip_in, &
                                          binsize_in, searchdist_in, &
-                                         project_dir_in, max_grid_projection_in, &
+                                         project_dir_in, slicepoint_in, max_grid_projection_in, &
                                          histogram_unit_in, density_weights_in, &
                                          shift_cc_to_boundary_in, &
                                          particle_placement_in, particle_count_in, p_move_tog_in, &
-                                         p_force_tog_in, p_int_tog_in, particle_neff_in,&
+                                         p_force_tog_in, p_int_tog_in, p_int_tog_wall_in, particle_neff_in,&
                                          particle_n0_in, mass_in, nfrac_in, permittivity_in, &
-                                         cut_off_in, rmin_in, eepsilon_in, sigma_in, poisson_verbose_in, &
+                                         wall_mob_in, rmin_in, rmax_in, eepsilon_in, sigma_in, rmin_wall_in, rmax_wall_in, eepsilon_wall_in, sigma_wall_in, poisson_verbose_in, &
                                          poisson_bottom_verbose_in, poisson_max_iter_in, poisson_rel_tol_in, &
                                          particle_grid_refine_in, es_grid_refine_in, diff_in, all_dry_in, &
                                          fluid_tog_in, es_tog_in, drag_tog_in, move_tog_in, rfd_tog_in, &
                                          dry_move_tog_in, sr_tog_in, graphene_tog_in, crange_in, &
                                          thermostat_tog_in, zero_net_force_in, images_in, eamp_in, efreq_in, ephase_in, &
-                                         plot_ascii_in, solve_chem_in, diffcoeff_in, scaling_factor_in, &
+                                         plot_ascii_in, plot_means_in, plot_vars_in, plot_covars_in, plot_cross_in, &
+                                         solve_chem_in, diffcoeff_in, scaling_factor_in, &
                                          source_strength_in, regrid_int_in, do_reflux_in, particle_motion_in, &
                                          turb_a_in, turb_b_in, turbForcing_in) &
                                          bind(C, name="initialize_common_namespace")
@@ -648,6 +697,7 @@ contains
     double precision,       intent(inout) :: prob_hi_in(AMREX_SPACEDIM)
     integer,                intent(inout) :: n_cells_in(AMREX_SPACEDIM)
     integer,                intent(inout) :: max_grid_size_in(AMREX_SPACEDIM)
+    integer,                intent(inout) :: max_grid_size_structfact_in(AMREX_SPACEDIM)
     integer,                intent(inout) :: max_particle_tile_size_in(AMREX_SPACEDIM)
     double precision,       intent(inout) :: cell_depth_in
 
@@ -659,6 +709,7 @@ contains
     integer,                intent(inout) :: p_move_tog_in(MAX_SPECIES)
     integer,                intent(inout) :: p_force_tog_in(MAX_SPECIES)
     integer,                intent(inout) :: p_int_tog_in(MAX_SPECIES*MAX_SPECIES)
+    integer,                intent(inout) :: p_int_tog_wall_in(MAX_SPECIES)
     integer,                intent(inout) :: particle_placement_in
     
     double precision,       intent(inout) :: fixed_dt_in
@@ -671,11 +722,14 @@ contains
 
     integer,                intent(inout) :: membrane_cell_in
     integer,                intent(inout) :: cross_cell_in
-    double precision,       intent(inout) :: transmission_in
+    integer,                intent(inout) :: do_slab_sf_in
+    double precision,       intent(inout) :: transmission_in(MAX_SPECIES)
 
     double precision,       intent(inout) :: qval_in(MAX_SPECIES)
-    integer,                intent(inout) :: pkernel_fluid_in
-    integer,                intent(inout) :: pkernel_es_in
+    integer,                intent(inout) :: pkernel_fluid_in(MAX_SPECIES)
+    integer,                intent(inout) :: pkernel_es_in(MAX_SPECIES)
+    integer,                intent(inout) :: eskernel_fluid_in(MAX_SPECIES)
+    double precision,       intent(inout) :: eskernel_beta_in(MAX_SPECIES)
 
     integer,                intent(inout) :: max_step_in
     integer,                intent(inout) :: plot_int_in
@@ -687,6 +741,7 @@ contains
     character(kind=c_char), intent(inout) :: chk_base_name_in(chk_base_name_len)
     integer,                intent(inout) :: prob_type_in
     integer,                intent(inout) :: restart_in
+    integer,                intent(inout) :: reset_stats_in
     integer,                intent(inout) :: particle_restart_in
     integer,                intent(inout) :: print_int_in
     integer,                intent(inout) :: project_eos_int_in
@@ -763,16 +818,23 @@ contains
     double precision,       intent(inout) :: binsize_in
     double precision,       intent(inout) :: searchdist_in
     integer,                intent(inout) :: project_dir_in
+    integer,                intent(inout) :: slicepoint_in
     integer,                intent(inout) :: max_grid_projection_in(AMREX_SPACEDIM-1)
     integer,                intent(inout) :: histogram_unit_in
     double precision,       intent(inout) :: density_weights_in(MAX_SPECIES)
     integer,                intent(inout) :: shift_cc_to_boundary_in(AMREX_SPACEDIM,LOHI)
 
     double precision,       intent(inout) :: eepsilon_in(MAX_SPECIES*MAX_SPECIES)
-    double precision,       intent(inout) :: sigma_in(MAX_SPECIES)
+    double precision,       intent(inout) :: sigma_in(MAX_SPECIES*MAX_SPECIES)
+    double precision,       intent(inout) :: eepsilon_wall_in(MAX_SPECIES)
+    double precision,       intent(inout) :: sigma_wall_in(MAX_SPECIES)
+
     double precision,       intent(inout) :: permittivity_in
-    double precision,       intent(inout) :: cut_off_in
-    double precision,       intent(inout) :: rmin_in
+    integer,                intent(inout) :: wall_mob_in
+    double precision,       intent(inout) :: rmin_in(MAX_SPECIES*MAX_SPECIES)
+    double precision,       intent(inout) :: rmax_in(MAX_SPECIES*MAX_SPECIES)
+    double precision,       intent(inout) :: rmin_wall_in(MAX_SPECIES)
+    double precision,       intent(inout) :: rmax_wall_in(MAX_SPECIES)
     double precision,       intent(inout) :: poisson_rel_tol_in
 
     integer,                intent(inout) :: poisson_max_iter_in
@@ -802,6 +864,11 @@ contains
     double precision,       intent(inout) :: ephase_in(3)
 
     integer,                intent(inout) :: plot_ascii_in
+    integer,                intent(inout) :: plot_means_in
+    integer,                intent(inout) :: plot_vars_in
+    integer,                intent(inout) :: plot_covars_in
+    integer,                intent(inout) :: plot_cross_in
+    
     integer,                intent(inout) :: solve_chem_in
     double precision,       intent(inout) :: diffcoeff_in
     double precision,       intent(inout) :: scaling_factor_in
@@ -818,6 +885,7 @@ contains
     prob_hi_in = prob_hi
     n_cells_in = n_cells
     max_grid_size_in = max_grid_size
+    max_grid_size_structfact_in = max_grid_size_structfact
     max_particle_tile_size_in = max_particle_tile_size
     cell_depth_in = cell_depth
     ngc_in = ngc
@@ -825,11 +893,14 @@ contains
     nprimvars_in = nprimvars
     membrane_cell_in = membrane_cell
     cross_cell_in = cross_cell
+    do_slab_sf_in = do_slab_sf
     transmission_in = transmission
 
     qval_in = qval
     pkernel_fluid_in = pkernel_fluid
     pkernel_es_in = pkernel_es
+    eskernel_fluid_in = eskernel_fluid
+    eskernel_beta_in = eskernel_beta
 
     fixed_dt_in = fixed_dt
     cfl_in = cfl
@@ -842,6 +913,7 @@ contains
     chk_base_name_in = amrex_string_f_to_c(chk_base_name)
     prob_type_in = prob_type
     restart_in = restart
+    reset_stats_in = reset_stats
     particle_restart_in = particle_restart
     print_int_in = print_int
     project_eos_int_in = project_eos_int
@@ -917,6 +989,7 @@ contains
     binsize_in = binsize
     searchdist_in = searchdist
     project_dir_in = project_dir
+    slicepoint_in = slicepoint
     max_grid_projection_in = max_grid_projection
     histogram_unit_in = histogram_unit
     density_weights_in = density_weights
@@ -930,6 +1003,7 @@ contains
     p_move_tog_in = p_move_tog
     p_force_tog_in = p_force_tog
     p_int_tog_in = p_int_tog
+    p_int_tog_wall_in = p_int_tog_wall
     particle_placement_in = particle_placement
 
     poisson_verbose_in = poisson_verbose
@@ -937,10 +1011,16 @@ contains
     poisson_max_iter_in = poisson_max_iter
     poisson_rel_tol_in = poisson_rel_tol
     permittivity_in = permittivity
-    cut_off_in = cut_off
+    wall_mob_in = wall_mob
     rmin_in = rmin
+    rmax_in = rmax
     eepsilon_in = eepsilon
     sigma_in = sigma
+
+    rmin_wall_in = rmin_wall
+    rmax_wall_in = rmax_wall
+    eepsilon_wall_in = eepsilon_wall
+    sigma_wall_in = sigma_wall
 
     particle_grid_refine_in = particle_grid_refine
     es_grid_refine_in = es_grid_refine
@@ -965,6 +1045,11 @@ contains
     ephase_in = ephase
 
     plot_ascii_in = plot_ascii
+    plot_means_in = plot_means
+    plot_vars_in = plot_vars
+    plot_covars_in = plot_covars
+    plot_cross_in = plot_cross
+    
     solve_chem_in = solve_chem
     diffcoeff_in  = diffcoeff
     scaling_factor_in  = scaling_factor

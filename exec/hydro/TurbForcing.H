@@ -15,11 +15,12 @@ class TurbForcing {
 
 public:
 
-
-    TurbForcing(BoxArray ba_in, DistributionMapping dmap_in,
+    TurbForcing();
+    
+    void define(BoxArray ba_in, DistributionMapping dmap_in,
                 const Real& a_in, const Real& b_in);
 
-    void Initialize(Geometry geom_in);
+    void Initialize(const Geometry& geom_in);
 
     void AddTurbForcing(std::array< MultiFab, AMREX_SPACEDIM >& gmres_rhs_u,
                         const Real& dt,

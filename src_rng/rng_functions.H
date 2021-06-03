@@ -5,15 +5,11 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_ArrayLim.H>
 
-#include "rng_functions_F.H"
-
 using namespace amrex;
 
 ///////////////////////////
 // in MultiFabFillRandom.cpp
 
 void MultiFabFillRandom(MultiFab& mf, const int& comp, const Real& variance, const Geometry& geom);
-
-void MultiFabFillRandomHack(MultiFab& mf, const int& comp, const Real& variance, const Geometry& geom);
 
 #endif

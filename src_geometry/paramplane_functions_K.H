@@ -3,7 +3,7 @@
 
 #include <AMReX.H>
 #include <common_namespace.H>
-#include <FhdParticleContainer.H>
+//#include <FhdParticleContainer.H>
 #include <math.h>
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
@@ -72,7 +72,7 @@ void find_inter_gpu(FhdParticleContainer::ParticleType& part, const Real delt, c
 
     //dummy(inttime);
     //printf("delt post1 %e\n",*inttime);
-    pre_check_gpu(part, delt, paramplanes, ns, &flag, phi, plo, inttime);
+    //pre_check_gpu(part, delt, paramplanes, ns, &flag, phi, plo, inttime);
        // printf("delt post2 %e\n",*inttime);
 
     if(flag == 0)
@@ -111,7 +111,7 @@ void find_inter_gpu(FhdParticleContainer::ParticleType& part, const Real delt, c
                 *intside = 0; //0 for lhs
               }
 
-              //std::cout << "Intersection! " << s << " part " << part.id() << ", " << part.rdata(FHD_realData::velx) << ", " << part.rdata(FHD_realData::vely) << ", " << part.rdata(FHD_realData::velz) << ", " << *intside << "\n";
+//              std::cout << "Intersection! " << s << " part " << part.id() << ", " << part.rdata(FHD_realData::velx) << ", " << part.rdata(FHD_realData::vely) << ", " << part.rdata(FHD_realData::velz) << ", " << *intside << "\n";
 
             }
         }

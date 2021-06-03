@@ -2,12 +2,14 @@
 #include "compressible_functions.H"
 
 #include "common_namespace_declarations.H"
-#include "compressible_namespace_declarations.H"
 
 #include "rng_functions.H"
 
 #include "StructFact.H"
 
+#include "chrono"
+
+using namespace std::chrono;
 using namespace amrex;
 
 // argv contains the name of the inputs file entered at the command line
@@ -23,24 +25,13 @@ void main_driver(const char* argv)
     // read in parameters from inputs file into F90 modules
     // we use "+1" because of amrex_string_c_to_f expects a null char termination
     read_common_namelist(inputs_file.c_str(),inputs_file.size()+1);
-    read_compressible_namelist(inputs_file.c_str(),inputs_file.size()+1);
     
     // copy contents of F90 modules to C++ namespaces
     InitializeCommonNamespace();
-    InitializeCompressibleNamespace();
 
     // if gas heat capacities in the namelist are negative, calculate them using using dofs.
     // This will only update the Fortran values.
-    get_hc_gas();
-    // now update C++ values
-    for (int i=0; i<nspecies; ++i) {
-        if (hcv[i] < 0.) {
-            hcv[i] = 0.5*dof[i]*Runiv/molmass[i];
-        }
-        if (hcp[i] < 0.) {
-            hcp[i] = 0.5*(2.+dof[i])*Runiv/molmass[i];
-        }
-    }
+    GetHcGas();
   
     // check bc_vel_lo/hi to determine the periodicity
     Vector<int> is_periodic(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
@@ -58,31 +49,12 @@ void main_driver(const char* argv)
 
     // for each direction, if bc_vel_lo/hi is periodic, then
     // set the corresponding bc_mass_lo/hi and bc_therm_lo/hi to periodic
-    for (int i=0; i<AMREX_SPACEDIM; ++i) {
-        if (bc_vel_lo[i] == -1) {
-            bc_mass_lo[i] = -1;
-            bc_mass_hi[i] = -1;
-            bc_therm_lo[i] = -1;
-            bc_therm_hi[i] = -1;
-        }
-    }
-    setup_bc(); // do the same in the fortran namelist
+    SetupBC();
 
     // if multispecies
     if (algorithm_type == 2) {
         // compute wall concentrations if BCs call for it
-        setup_cwall(bc_Yk_x_lo.data(),
-                    bc_Yk_x_hi.data(),
-                    bc_Yk_y_lo.data(),
-                    bc_Yk_y_hi.data(),
-                    bc_Yk_z_lo.data(),
-                    bc_Yk_z_hi.data(),
-                    bc_Xk_x_lo.data(),
-                    bc_Xk_x_hi.data(),
-                    bc_Xk_y_lo.data(),
-                    bc_Xk_y_hi.data(),
-                    bc_Xk_z_lo.data(),
-                    bc_Xk_z_hi.data());
+        SetupCWall();
     }
 
     // make BoxArray and Geometry
@@ -119,31 +91,23 @@ void main_driver(const char* argv)
     //Initialise rngs
     /////////////////////////////////////////
 
-    // NOTE: only fhdSeed is used currently
-    // zero is a clock-based seed
-    int fhdSeed      = seed;
-    int particleSeed = seed;
-    int selectorSeed = seed;
-    int thetaSeed    = seed;
-    int phiSeed      = seed;
-    int generalSeed  = seed;
+    if (restart < 0) {
 
-    // "seed" controls all of them and gives distinct seeds to each physical process over each MPI process
-    // this should be fixed so each physical process has its own seed control
-    if (seed > 0) {
-        fhdSeed      = 6*ParallelDescriptor::MyProc() + seed;
-        particleSeed = 6*ParallelDescriptor::MyProc() + seed + 1;
-        selectorSeed = 6*ParallelDescriptor::MyProc() + seed + 2;
-        thetaSeed    = 6*ParallelDescriptor::MyProc() + seed + 3;
-        phiSeed      = 6*ParallelDescriptor::MyProc() + seed + 4;
-        generalSeed  = 6*ParallelDescriptor::MyProc() + seed + 5;
+        if (seed > 0) {
+            // initializes the seed for C++ random number calls
+            InitRandom(seed+ParallelDescriptor::MyProc());
+        } else if (seed == 0) {
+            // initializes the seed for C++ random number calls based on the clock
+            auto now = time_point_cast<nanoseconds>(system_clock::now());
+            int randSeed = now.time_since_epoch().count();
+            // broadcast the same root seed to all processors
+            ParallelDescriptor::Bcast(&randSeed,1,ParallelDescriptor::IOProcessorNumber());
+            InitRandom(randSeed+ParallelDescriptor::MyProc());
+        } else {
+            Abort("Must supply non-negative seed");
+        }
+
     }
-
-    // Initialise rngs
-    rng_initialize(&fhdSeed,&particleSeed,&selectorSeed,&thetaSeed,&phiSeed,&generalSeed);
-
-    // initializes the seed for C++ random number calls
-    InitRandom(seed+ParallelDescriptor::MyProc());
 
     /////////////////////////////////////////
 
@@ -282,8 +246,9 @@ void main_driver(const char* argv)
     // rho
     // vel
     // T
+    // pressure
     // Yk
-    int structVarsPrim = AMREX_SPACEDIM+nspecies+2;
+    int structVarsPrim = AMREX_SPACEDIM+nspecies+3;
 
     Vector< std::string > prim_var_names;
     prim_var_names.resize(structVarsPrim);
@@ -303,6 +268,9 @@ void main_driver(const char* argv)
 
     // Temp
     prim_var_names[cnt++] = "Temp";
+
+    // Pressure
+    prim_var_names[cnt++] = "Pressure";
 
     // Yk
     for (int d=0; d<nspecies; d++) {
@@ -324,6 +292,98 @@ void main_driver(const char* argv)
     // compute all pairs
     // note: StructFactPrim option to compute only speicified pairs not written yet
     StructFact structFactPrim(ba,dmap,prim_var_names,var_scaling);
+
+    ///////////////////////////////////////////
+
+    // structure factor class for flattened dataset
+    StructFact structFactPrimFlattened;
+
+    Geometry geom_flat;
+
+    if(project_dir >= 0){
+      MultiFab primFlattened;  // flattened multifab defined below
+      
+      // we are only calling ComputeVerticalAverage or ExtractSlice here to obtain
+      // a built version of primFlattened so can obtain what we need to build the
+      // structure factor and geometry objects for flattened data
+      if (slicepoint < 0) {
+          ComputeVerticalAverage(prim, primFlattened, geom, project_dir, 0, structVarsPrim);
+      } else {
+          ExtractSlice(prim, primFlattened, geom, project_dir, 0, structVarsPrim);
+      }
+      // we rotate this flattened MultiFab to have normal in the z-direction since
+      // SWFFT only presently supports flattened MultiFabs with z-normal.
+      MultiFab primFlattenedRot = RotateFlattenedMF(primFlattened);
+      BoxArray ba_flat = primFlattenedRot.boxArray();
+      const DistributionMapping& dmap_flat = primFlattenedRot.DistributionMap();
+      {
+        IntVect dom_lo(AMREX_D_DECL(0,0,0));
+        IntVect dom_hi;
+
+        // yes you could simplify this code but for now
+        // these are written out fully to better understand what is happening
+        // we wanted dom_hi[AMREX_SPACEDIM-1] to be equal to 0
+        // and need to transmute the other indices depending on project_dir
+#if (AMREX_SPACEDIM == 2)
+        if (project_dir == 0) {
+            dom_hi[0] = n_cells[1]-1;
+        }
+        else if (project_dir == 1) {
+            dom_hi[0] = n_cells[0]-1;
+        }
+        dom_hi[1] = 0;
+#elif (AMREX_SPACEDIM == 3)
+        if (project_dir == 0) {
+            dom_hi[0] = n_cells[1]-1;
+            dom_hi[1] = n_cells[2]-1;
+        } else if (project_dir == 1) {
+            dom_hi[0] = n_cells[0]-1;
+            dom_hi[1] = n_cells[2]-1;
+        } else if (project_dir == 2) {
+            dom_hi[0] = n_cells[0]-1;
+            dom_hi[1] = n_cells[1]-1;
+        }
+        dom_hi[2] = 0;
+#endif
+        Box domain(dom_lo, dom_hi);
+
+        // This defines the physical box
+        Vector<Real> projected_hi(AMREX_SPACEDIM);
+
+        // yes you could simplify this code but for now
+        // these are written out fully to better understand what is happening
+        // we wanted projected_hi[AMREX_SPACEDIM-1] to be equal to dx[projected_dir]
+        // and need to transmute the other indices depending on project_dir
+#if (AMREX_SPACEDIM == 2)
+        if (project_dir == 0) {
+            projected_hi[0] = prob_hi[1];
+        } else if (project_dir == 1) {
+            projected_hi[0] = prob_hi[0];
+        }
+        projected_hi[1] = prob_hi[project_dir] / n_cells[project_dir];
+#elif (AMREX_SPACEDIM == 3)
+        if (project_dir == 0) {
+            projected_hi[0] = prob_hi[1];
+            projected_hi[1] = prob_hi[2];
+        } else if (project_dir == 1) {
+            projected_hi[0] = prob_hi[0];
+            projected_hi[1] = prob_hi[2];
+        } else if (project_dir == 2) {
+            projected_hi[0] = prob_hi[0];
+            projected_hi[1] = prob_hi[1];
+        }
+        projected_hi[2] = prob_hi[project_dir] / n_cells[project_dir];
+#endif
+
+        RealBox real_box({AMREX_D_DECL(     prob_lo[0],     prob_lo[1],     prob_lo[2])},
+                         {AMREX_D_DECL(projected_hi[0],projected_hi[1],projected_hi[2])});
+        
+        // This defines a Geometry object
+        geom_flat.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
+      }
+
+      structFactPrimFlattened.define(ba_flat,dmap_flat,prim_var_names,var_scaling);
+    }
     
     //////////////////////////////////////////////
 
@@ -377,43 +437,6 @@ void main_driver(const char* argv)
     StructFact structFactCons(ba,dmap,cons_var_names,var_scaling);
     
     //////////////////////////////////////////////
-    
-    // structure factor class for vertically-averaged dataset
-    StructFact structFactPrimVerticalAverage;
-    
-    Geometry geom_flat;
-
-    if(project_dir >= 0){
-      MultiFab primVertAvg;  // flattened multifab defined below
-      prim.setVal(0.0);
-      ComputeVerticalAverage(prim, primVertAvg, geom, project_dir, 0, structVarsPrim);
-      BoxArray ba_flat = primVertAvg.boxArray();
-      const DistributionMapping& dmap_flat = primVertAvg.DistributionMap();
-      {
-        IntVect dom_lo(AMREX_D_DECL(           0,            0,            0));
-        IntVect dom_hi(AMREX_D_DECL(n_cells[0]-1, n_cells[1]-1, n_cells[2]-1));
-    	dom_hi[project_dir] = 0;
-        Box domain(dom_lo, dom_hi);
-	
-    	// This defines the physical box
-    	Vector<Real> projected_hi(AMREX_SPACEDIM);
-    	for (int d=0; d<AMREX_SPACEDIM; d++) {
-    	  projected_hi[d] = prob_hi[d];
-    	}
-    	projected_hi[project_dir] = prob_hi[project_dir]/n_cells[project_dir];
-        RealBox real_box({AMREX_D_DECL(     prob_lo[0],     prob_lo[1],     prob_lo[2])},
-                         {AMREX_D_DECL(projected_hi[0],projected_hi[1],projected_hi[2])});
-
-        // This defines a Geometry object
-        geom_flat.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
-      }
-
-      structFactPrimVerticalAverage.~StructFact(); // destruct
-      new(&structFactPrimVerticalAverage) StructFact(ba_flat,dmap_flat,prim_var_names,var_scaling); // reconstruct
-    
-    }
-
-    ///////////////////////////////////////////
 
     // Initialize everything
     
@@ -427,11 +450,11 @@ void main_driver(const char* argv)
     }
 
     // compute internal energy
-    double massvec[nspecies];
+    GpuArray<Real,MAX_SPECIES> massvec;
     for(int i=0;i<nspecies;i++) {
         massvec[i] = rhobar[i];
     }
-    get_energy(&intEnergy, massvec, &T0);
+    GetEnergy(intEnergy, massvec, T0);
 
     cu.setVal(0.0,0,nvars,ngc);
     cu.setVal(rho0,0,1,ngc);           // density
@@ -467,7 +490,7 @@ void main_driver(const char* argv)
     setBC(prim, cu);
     
     if (plot_int > 0) {
-	WritePlotFile(0, 0.0, geom, cu, cuMeans, cuVars,
+        WritePlotFile(0, 0.0, geom, cu, cuMeans, cuVars,
                       prim, primMeans, primVars, spatialCross, eta, kappa);
     }
 
@@ -494,18 +517,22 @@ void main_driver(const char* argv)
         Real aux1 = ParallelDescriptor::second();
         
         // compute mean and variances
-	if (step > n_steps_skip) {
+        if (step > n_steps_skip) {
             evaluateStats(cu, cuMeans, cuVars, prim, primMeans, primVars,
                           spatialCross, miscStats, miscVals, statsCount, dx);
             statsCount++;
-	}
+        }
 
         // write a plotfile
         if (plot_int > 0 && step > 0 && step%plot_int == 0) {
+        /*
            yzAverage(cuMeans, cuVars, primMeans, primVars, spatialCross,
                      cuMeansAv, cuVarsAv, primMeansAv, primVarsAv, spatialCrossAv);
            WritePlotFile(step, time, geom, cu, cuMeansAv, cuVarsAv,
                          prim, primMeansAv, primVarsAv, spatialCrossAv, eta, kappa);
+        */
+           WritePlotFile(step, time, geom, cu, cuMeans, cuVars,
+                         prim, primMeans, primVars, spatialCross, eta, kappa);
         }
 
         if (chk_int > 0 && step > 0 && step%chk_int == 0)
@@ -522,9 +549,16 @@ void main_driver(const char* argv)
             structFactPrim.FortStructure(structFactPrimMF,geom);
             structFactCons.FortStructure(structFactConsMF,geom);
             if(project_dir >= 0) {
-                MultiFab primVertAvg;  // flattened multifab defined below
-                ComputeVerticalAverage(prim, primVertAvg, geom, project_dir, 0, structVarsPrim);
-                structFactPrimVerticalAverage.FortStructure(primVertAvg,geom_flat);
+                MultiFab primFlattened;  // flattened multifab defined below
+                if (slicepoint < 0) {
+                    ComputeVerticalAverage(prim, primFlattened, geom, project_dir, 0, structVarsPrim);
+                } else {
+                    ExtractSlice(prim, primFlattened, geom, project_dir, 0, structVarsPrim);
+                }
+                // we rotate this flattened MultiFab to have normal in the z-direction since
+                // SWFFT only presently supports flattened MultiFabs with z-normal.
+                MultiFab primFlattenedRot = RotateFlattenedMF(primFlattened);
+                structFactPrimFlattened.FortStructure(primFlattenedRot,geom_flat);
             }
         }
 
@@ -533,7 +567,7 @@ void main_driver(const char* argv)
             structFactPrim.WritePlotFile(step,time,geom,"plt_SF_prim");
             structFactCons.WritePlotFile(step,time,geom,"plt_SF_cons");
             if(project_dir >= 0) {
-                structFactPrimVerticalAverage.WritePlotFile(step,time,geom_flat,"plt_SF_prim_VerticalAverage");
+                structFactPrimFlattened.WritePlotFile(step,time,geom_flat,"plt_SF_prim_Flattened");
             }
         }
         

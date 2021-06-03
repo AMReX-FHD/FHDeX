@@ -21,17 +21,9 @@ include ../../src_compressible_stag/Make.package
 VPATH_LOCATIONS   += ../../src_compressible_stag/
 INCLUDE_LOCATIONS += ../../src_compressible_stag/
 
-include ../../src_compressible/src_F90/Make.package
-VPATH_LOCATIONS   += ../../src_compressible/src_F90
-INCLUDE_LOCATIONS += ../../src_compressible/src_F90
-
 include ../../src_compressible/Make.package
 VPATH_LOCATIONS   += ../../src_compressible/
 INCLUDE_LOCATIONS += ../../src_compressible/
-
-include ../../src_rng/src_F90/Make.package
-VPATH_LOCATIONS   += ../../src_rng/src_F90
-INCLUDE_LOCATIONS += ../../src_rng/src_F90
 
 include ../../src_rng/Make.package
 VPATH_LOCATIONS   += ../../src_rng/
@@ -48,9 +40,6 @@ INCLUDE_LOCATIONS += ../../src_common/
 include $(AMREX_HOME)/Src/Base/Make.package
 
 # structure factor and SWFFT stuff
-include ../../src_analysis/src_F90/Make.package
-VPATH_LOCATIONS   += ../../src_analysis/src_F90
-INCLUDE_LOCATIONS += ../../src_analysis/src_F90
 
 include ../../src_analysis/Make.package
 VPATH_LOCATIONS   += ../../src_analysis/
@@ -63,3 +52,5 @@ VPATH_LOCATIONS	+= $(AMREX_HOME)/Src/Extern/SWFFT
 LIBRARIES += -L$(FFTW_DIR) -lfftw3_mpi -lfftw3
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.rules
+
+CXXFLAGS += $(FFTW)

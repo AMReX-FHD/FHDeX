@@ -4,7 +4,6 @@
 #include <AMReX_Particles.H>
 
 #include "species.H"
-#include "particle_functions_F.H"
 #include "common_namespace.H"
 
 using namespace amrex;
@@ -25,7 +24,5 @@ void FindFaceCoords(std::array<MultiFab, AMREX_SPACEDIM> & RealFaceCoords,
                     const Geometry & geom);
 
 void FindCenterCoords(MultiFab & RealCenterCoords, const Geometry & geom);
-
-void FindNodalValues(const MultiFab & inFab, MultiFab & outFab, const MultiFab & ccFab);
 
 #endif

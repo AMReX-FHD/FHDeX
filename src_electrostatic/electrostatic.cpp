@@ -8,6 +8,8 @@ void esSolve(MultiFab& potential, MultiFab& charge,
              std::array< MultiFab, AMREX_SPACEDIM >& efieldCC,
              const std::array< MultiFab, AMREX_SPACEDIM >& external, const Geometry geom)
 {
+    BL_PROFILE_VAR("esSolve()",esSolve);
+
     AMREX_D_TERM(efieldCC[0].setVal(0);,
                  efieldCC[1].setVal(0);,
                  efieldCC[2].setVal(0););

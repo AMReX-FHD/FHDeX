@@ -15,16 +15,12 @@ void WritePlotFile(int step,
                    const amrex::Geometry egeom,
                    const MultiFab& particleInstant,
                    const MultiFab& particleMeans,
-                   const MultiFab& particleVars,
                    FhdParticleContainer& particles,
                    const MultiFab& charge,
                    const MultiFab& chargeM,
-                   const MultiFab& chargeV,
                    const MultiFab& potential,
                    const MultiFab& potentialM,
-                   const MultiFab& potentialV,
-                   const std::array< MultiFab, AMREX_SPACEDIM >& efield,
-                   const MultiFab& mobility);
+                   const std::array< MultiFab, AMREX_SPACEDIM >& efield);
 
 ///////////////////////////
 
@@ -36,8 +32,7 @@ void WritePlotFileHydro(int step,
                         const amrex::Geometry geom,
                         std::array< MultiFab, AMREX_SPACEDIM >& umac,
                         const MultiFab& pres,
-                        std::array< MultiFab, AMREX_SPACEDIM >& umacM,
-                        std::array< MultiFab, AMREX_SPACEDIM >& umacV);
+                        std::array< MultiFab, AMREX_SPACEDIM >& umacM);
 
 ///////////////////////////
 
@@ -49,33 +44,30 @@ void WriteCheckPoint(int step,
                      int statsCount,
                      const std::array< MultiFab, AMREX_SPACEDIM >& umac,
                      const std::array< MultiFab, AMREX_SPACEDIM >& umacM,
-                     const std::array< MultiFab, AMREX_SPACEDIM >& umacV,
                      const MultiFab& pres,
                      const FhdParticleContainer& particles,
                      const MultiFab& particleMeans,
                      const MultiFab& particleVars,
                      const MultiFab& chargeM,
-                     const MultiFab& chargeV,
                      const MultiFab& potential,
-                     const MultiFab& potentialM,
-                     const MultiFab& potentialV);
+                     const MultiFab& potentialM);
 
 void ReadCheckPoint(int& step,
                     amrex::Real& time,
                     int& statsCount,
                     std::array< MultiFab, AMREX_SPACEDIM >& umac,
                     std::array< MultiFab, AMREX_SPACEDIM >& umacM,
-                    std::array< MultiFab, AMREX_SPACEDIM >& umacV,
                     MultiFab& pres,
                     MultiFab& particleMeans,
                     MultiFab& particleVars,
                     MultiFab& chargeM,
-                    MultiFab& chargeV,
                     MultiFab& potential,
-                    MultiFab& potentialM,
-                    MultiFab& potentialV);
+                    MultiFab& potentialM);
 
 void ReadCheckPointParticles(FhdParticleContainer& particles, species* particleInfo, const Real* dxp);
+
+void ReadFile(const std::string& filename, Vector<char>& charBuf, 
+	      bool bExitOnError=true);
 
 ///////////////////////////
 

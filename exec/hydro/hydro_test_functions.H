@@ -15,8 +15,20 @@ void advance(std::array< amrex::MultiFab, AMREX_SPACEDIM >& umac,
 	     std::array< amrex::MultiFab, AMREX_SPACEDIM >& alpha_fc,
 	     amrex::MultiFab& beta, amrex::MultiFab& gamma,
 	     std::array< amrex::MultiFab, NUM_EDGE >& beta_ed,
-	     const amrex::Geometry geom, const amrex::Real& dt,
-             TurbForcing& tf);
+	     const amrex::Geometry& geom, const amrex::Real& dt,
+             TurbForcing& turbforce);
+
+///////////////////////////
+
+///////////////////////////
+// in Init.cpp
+
+void InitVel(std::array< MultiFab, AMREX_SPACEDIM >& umac,
+             const Geometry& geom);
+
+void InitTracer(MultiFab& tracer,
+                const Geometry& geom);
+
 
 ///////////////////////////
 
@@ -25,7 +37,7 @@ void advance(std::array< amrex::MultiFab, AMREX_SPACEDIM >& umac,
 
 void WritePlotFile(const int step,
                    const amrex::Real time,
-                   const amrex::Geometry geom,
+                   const amrex::Geometry& geom,
                    std::array< MultiFab, AMREX_SPACEDIM >& umac,
 		   const MultiFab& tracer,
                    const MultiFab& pres);
@@ -38,13 +50,23 @@ void WritePlotFile(const int step,
 void WriteCheckPoint(const int step,
                      const amrex::Real time,
                      std::array< MultiFab, AMREX_SPACEDIM >& umac,
-                     const MultiFab& tracer, TurbForcing& tf);
+                     const MultiFab& tracer, TurbForcing& turbforce);
 
 void ReadCheckPoint(int& step,
                     amrex::Real& time,
                     std::array< MultiFab, AMREX_SPACEDIM >& umac,
-                    MultiFab& tracer, TurbForcing& tf);
+                    MultiFab& tracer, TurbForcing& turbforce,
+                    BoxArray& ba, DistributionMapping& dmap);
+
+void ReadFile(const std::string& filename, Vector<char>& charBuf,
+              bool bExitOnError=true);
+    
+///////////////////////////
 
 ///////////////////////////
+// in ExternalForce.cpp
+
+void ExternalForce(std::array< MultiFab, AMREX_SPACEDIM >& gmres_rhs_u,
+                   MultiFab& gmres_rhs_p);
 
 #endif

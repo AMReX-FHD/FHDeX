@@ -1,6 +1,5 @@
 
 #include "hydro_test_functions.H"
-#include "hydro_test_functions_F.H"
 
 #include "hydro_functions.H"
 
@@ -8,8 +7,6 @@
 
 #include "StructFact.H"
 #include "TurbForcing.H"
-
-#include "rng_functions_F.H"
 
 #include "common_functions.H"
 
@@ -24,6 +21,9 @@
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_MultiFabUtil.H>
 
+#include "chrono"
+
+using namespace std::chrono;
 using namespace amrex;
 
 // argv contains the name of the inputs file entered at the command line
@@ -40,7 +40,6 @@ void main_driver(const char* argv)
     // read in parameters from inputs file into F90 modules
     // we use "+1" because of amrex_string_c_to_f expects a null char termination
     read_common_namelist(inputs_file.c_str(),inputs_file.size()+1);
-    read_gmres_namelist(inputs_file.c_str(),inputs_file.size()+1);
 
     // copy contents of F90 modules to C++ namespaces
     InitializeCommonNamespace();
@@ -54,13 +53,66 @@ void main_driver(const char* argv)
         }
     }
 
-    // make BoxArray and Geometry
+    // This defines the physical box, [-1,1] in each direction.
+    RealBox real_box({AMREX_D_DECL(prob_lo[0],prob_lo[1],prob_lo[2])},
+                     {AMREX_D_DECL(prob_hi[0],prob_hi[1],prob_hi[2])});
+    
+    IntVect dom_lo(AMREX_D_DECL(           0,            0,            0));
+    IntVect dom_hi(AMREX_D_DECL(n_cells[0]-1, n_cells[1]-1, n_cells[2]-1));
+    Box domain(dom_lo, dom_hi);
+
+    Geometry geom(domain,&real_box,CoordSys::cartesian,is_periodic.data());
+    
+    // BoxArray
     BoxArray ba;
-    Geometry geom;
-    {
-        IntVect dom_lo(AMREX_D_DECL(           0,            0,            0));
-        IntVect dom_hi(AMREX_D_DECL(n_cells[0]-1, n_cells[1]-1, n_cells[2]-1));
-        Box domain(dom_lo, dom_hi);
+
+    // how boxes are distrubuted among MPI processes
+    DistributionMapping dmap;
+
+    Real dt = fixed_dt;
+    Real dtinv = 1.0/dt;
+    const Real* dx = geom.CellSize();
+
+    /////////////////////////////////////////
+    //Initialise rngs
+    /////////////////////////////////////////
+    const int n_rngs = 1;
+
+    if (restart < 0) {
+
+        if (seed > 0) {
+            // initializes the seed for C++ random number calls
+            InitRandom(seed+ParallelDescriptor::MyProc());
+        } else if (seed == 0) {
+            // initializes the seed for C++ random number calls based on the clock
+            auto now = time_point_cast<nanoseconds>(system_clock::now());
+            int randSeed = now.time_since_epoch().count();
+            // broadcast the same root seed to all processors
+            ParallelDescriptor::Bcast(&randSeed,1,ParallelDescriptor::IOProcessorNumber());
+            InitRandom(randSeed+ParallelDescriptor::MyProc());
+        } else {
+            Abort("Must supply non-negative seed");
+        }
+
+    }
+    /////////////////////////////////////////
+    
+    int step_start;
+    amrex::Real time;
+
+    // object for turbulent forcing
+    TurbForcing turbforce;
+
+    // tracer
+    MultiFab tracer;
+    
+    // staggered velocities
+    std::array< MultiFab, AMREX_SPACEDIM > umac;
+    
+    if (restart > 0) {
+        ReadCheckPoint(step_start,time,umac,tracer,turbforce,ba,dmap);
+    }
+    else {
 
         // Initialize the boxarray "ba" from the single box "bx"
         ba.define(domain);
@@ -69,49 +121,62 @@ void main_driver(const char* argv)
         // note we are converting "Vector<int> max_grid_size" to an IntVect
         ba.maxSize(IntVect(max_grid_size));
 
-       // This defines the physical box, [-1,1] in each direction.
-        RealBox real_box({AMREX_D_DECL(prob_lo[0],prob_lo[1],prob_lo[2])},
-                         {AMREX_D_DECL(prob_hi[0],prob_hi[1],prob_hi[2])});
+        dmap.define(ba);
+    
+	if (turbForcing == 1) {
+	  turbforce.define(ba,dmap,turb_a,turb_b);
+	}
 
-        // This defines a Geometry object
-        geom.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
+        const RealBox& realDomain = geom.ProbDomain();
+        int dm;
+        
+        AMREX_D_TERM(umac[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
+                     umac[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
+                     umac[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
+    
+        tracer.define(ba,dmap,1,1);
+        tracer.setVal(0.);
+
+        InitVel(umac,geom);
+
+        InitTracer(tracer,geom);
+
+        // temporary for addMomfluctuations and MacProj_hydro
+        MultiFab rho(ba, dmap, 1, 1);
+        rho.setVal(1.);
+        MultiFab temp_cc(ba, dmap, 1, 1);
+        temp_cc.setVal(T_init[0]);
+    
+        // Add initial equilibrium fluctuations
+        if(initial_variance_mom != 0.0) {
+            addMomFluctuations(umac, rho, temp_cc, initial_variance_mom,geom);
+        }
+
+        // Project umac onto divergence free field
+        {
+            // macrhs only used once at beginning of simulaton
+            // put this in braces so it goes out of scope immediately
+            MultiFab macrhs(ba,dmap,1,1);
+            macrhs.setVal(0.0);
+            MacProj_hydro(umac,rho,geom,true);
+        }
+
+        step_start = 1;
+        time = 0.;
+
     }
 
-    Real dt = fixed_dt;
-    Real dtinv = 1.0/dt;
-    const Real* dx = geom.CellSize();
-
-    // how boxes are distrubuted among MPI processes
-    DistributionMapping dmap(ba);
-
-    /////////////////////////////////////////
-    //Initialise rngs
-    /////////////////////////////////////////
-    const int n_rngs = 1;
-
-    if (restart <= 0) {
-        int fhdSeed = 1;
-        int particleSeed = 2;
-        int selectorSeed = 3;
-        int thetaSeed = 4;
-        int phiSeed = 5;
-        int generalSeed = 6;
-
-        //Initialise rngs
-        rng_initialize(&fhdSeed,&particleSeed,&selectorSeed,&thetaSeed,&phiSeed,&generalSeed);
+    if (turbForcing == 1) {
+      turbforce.Initialize(geom);
     }
-    /////////////////////////////////////////
 
-    // object for turbulent forcing
-    TurbForcing tf(ba,dmap,turb_a,turb_b);
-    tf.Initialize(geom);
-
+    // pressure for GMRES solve
+    MultiFab pres(ba,dmap,1,1);
+    pres.setVal(0.);  // initial guess
+    
     ///////////////////////////////////////////
-    // rho, alpha, beta, gamma:
+    // alpha, beta, gamma:
     ///////////////////////////////////////////
-
-    MultiFab rho(ba, dmap, 1, 1);
-    rho.setVal(1.);
 
     // alpha_fc arrays
     std::array< MultiFab, AMREX_SPACEDIM > alpha_fc;
@@ -122,9 +187,15 @@ void main_driver(const char* argv)
                  alpha_fc[1].setVal(dtinv);,
                  alpha_fc[2].setVal(dtinv););
 
+
+    // -1 = inertial backward Euler
+    //  0 = inertial
+    //  1 = overdamped
+    Real factor = (algorithm_type == 0) ? 0.5 : 1.0;
+    
     // beta cell centred
     MultiFab beta(ba, dmap, 1, 1);
-    beta.setVal(0.5*visc_coef); // multiply by 0.5 here
+    beta.setVal(factor*visc_coef); // multiply by factor here
 
     // beta on nodes in 2d
     // beta on edges in 3d
@@ -137,7 +208,7 @@ void main_driver(const char* argv)
     beta_ed[2].define(convert(ba,nodal_flag_yz), dmap, 1, 0);
 #endif
     for (int d=0; d<NUM_EDGE; ++d) {
-        beta_ed[d].setVal(0.5*visc_coef); // multiply by 0.5 here
+        beta_ed[d].setVal(factor*visc_coef); // multiply by factor here
     }    
 
     // cell-centered gamma
@@ -151,7 +222,6 @@ void main_driver(const char* argv)
     ///////////////////////////////////////////
     // eta & temperature
     const Real eta_const = visc_coef;
-    const Real temp_const = T_init[0];      // [units: K]
 
     // eta & temperature cell centered
     MultiFab  eta_cc;
@@ -160,7 +230,7 @@ void main_driver(const char* argv)
     std::array< MultiFab, NUM_EDGE >   eta_ed;
     std::array< MultiFab, NUM_EDGE >  temp_ed;
     // eta cell-centered
-    eta_cc.define(ba, dmap, 1, 0);
+    eta_cc.define(ba, dmap, 1, 1);
     // temperature cell-centered
     temp_cc.define(ba, dmap, 1, 1);
 #if (AMREX_SPACEDIM == 2)
@@ -183,21 +253,21 @@ void main_driver(const char* argv)
     // eta cell-centered
     eta_cc.setVal(eta_const);
     // temperature cell-centered
-    temp_cc.setVal(temp_const);
+    temp_cc.setVal(T_init[0]);
 #if (AMREX_SPACEDIM == 2)
     // eta nodal
     eta_ed[0].setVal(eta_const);
     // temperature nodal
-    temp_ed[0].setVal(temp_const);
+    temp_ed[0].setVal(T_init[0]);
 #elif (AMREX_SPACEDIM == 3)
     // eta nodal
     eta_ed[0].setVal(eta_const);
     eta_ed[1].setVal(eta_const);
     eta_ed[2].setVal(eta_const);
     // temperature nodal
-    temp_ed[0].setVal(temp_const);
-    temp_ed[1].setVal(temp_const);
-    temp_ed[2].setVal(temp_const);
+    temp_ed[0].setVal(T_init[0]);
+    temp_ed[1].setVal(T_init[0]);
+    temp_ed[2].setVal(T_init[0]);
 #endif
     ///////////////////////////////////////////
 
@@ -244,16 +314,9 @@ void main_driver(const char* argv)
     MultiFab structFactMF(ba, dmap, structVars, 0);
 
     // need to use dVol for scaling
-    Real dVol = dx[0]*dx[1];
-    if (AMREX_SPACEDIM == 2) {
-	dVol *= cell_depth;
-    } else if (AMREX_SPACEDIM == 3) {
-	dVol *= dx[2];
-    }
-    Real dProb = n_cells[0]*n_cells[1];
-    if (AMREX_SPACEDIM == 3) {
-	    dProb *= n_cells[2];
-    }
+    Real dVol = (AMREX_SPACEDIM==2) ? dx[0]*dx[1]*cell_depth : dx[0]*dx[1]*dx[2];
+    
+    Real dProb = (AMREX_SPACEDIM==2) ? n_cells[0]*n_cells[1] : n_cells[0]*n_cells[1]*n_cells[2];
     dProb = 1./dProb;
     
     Vector<Real> var_scaling(structVars*(structVars+1)/2);
@@ -278,6 +341,104 @@ void main_driver(const char* argv)
     
     StructFact structFact(ba,dmap,var_names,var_scaling,s_pairA,s_pairB);
 #endif
+
+    ///////////////////////////////////////////
+    // structure factor class for flattened dataset
+    ///////////////////////////////////////////
+
+    StructFact structFactFlattened;
+
+    Geometry geom_flat;
+
+    if(project_dir >= 0){
+      MultiFab Flattened;  // flattened multifab defined below
+
+      // copy velocities into structFactMF
+      for(int d=0; d<AMREX_SPACEDIM; d++) {
+          ShiftFaceToCC(umac[d], 0, structFactMF, d, 1);
+      }
+
+      // we are only calling ComputeVerticalAverage or ExtractSlice here to obtain
+      // a built version of Flattened so can obtain what we need to build the
+      // structure factor and geometry objects for flattened data
+      if (slicepoint < 0) {
+          ComputeVerticalAverage(structFactMF, Flattened, geom, project_dir, 0, structVars);
+      } else {
+          ExtractSlice(structFactMF, Flattened, geom, project_dir, 0, structVars);
+      }
+      // we rotate this flattened MultiFab to have normal in the z-direction since
+      // SWFFT only presently supports flattened MultiFabs with z-normal.
+      MultiFab FlattenedRot = RotateFlattenedMF(Flattened);
+      BoxArray ba_flat = FlattenedRot.boxArray();
+      const DistributionMapping& dmap_flat = FlattenedRot.DistributionMap();
+      {
+        IntVect dom_lo(AMREX_D_DECL(0,0,0));
+        IntVect dom_hi;
+
+        // yes you could simplify this code but for now
+        // these are written out fully to better understand what is happening
+        // we wanted dom_hi[AMREX_SPACEDIM-1] to be equal to 0
+        // and need to transmute the other indices depending on project_dir
+#if (AMREX_SPACEDIM == 2)
+        if (project_dir == 0) {
+            dom_hi[0] = n_cells[1]-1;
+        }
+        else if (project_dir == 1) {
+            dom_hi[0] = n_cells[0]-1;
+        }
+        dom_hi[1] = 0;
+#elif (AMREX_SPACEDIM == 3)
+        if (project_dir == 0) {
+            dom_hi[0] = n_cells[1]-1;
+            dom_hi[1] = n_cells[2]-1;
+        } else if (project_dir == 1) {
+            dom_hi[0] = n_cells[0]-1;
+            dom_hi[1] = n_cells[2]-1;
+        } else if (project_dir == 2) {
+            dom_hi[0] = n_cells[0]-1;
+            dom_hi[1] = n_cells[1]-1;
+        }
+        dom_hi[2] = 0;
+#endif
+        Box domain(dom_lo, dom_hi);
+
+        // This defines the physical box
+        Vector<Real> projected_hi(AMREX_SPACEDIM);
+
+        // yes you could simplify this code but for now
+        // these are written out fully to better understand what is happening
+        // we wanted projected_hi[AMREX_SPACEDIM-1] to be equal to dx[projected_dir]
+        // and need to transmute the other indices depending on project_dir
+#if (AMREX_SPACEDIM == 2)
+        if (project_dir == 0) {
+            projected_hi[0] = prob_hi[1];
+        } else if (project_dir == 1) {
+            projected_hi[0] = prob_hi[0];
+        }
+        projected_hi[1] = prob_hi[project_dir] / n_cells[project_dir];
+#elif (AMREX_SPACEDIM == 3)
+        if (project_dir == 0) {
+            projected_hi[0] = prob_hi[1];
+            projected_hi[1] = prob_hi[2];
+        } else if (project_dir == 1) {
+            projected_hi[0] = prob_hi[0];
+            projected_hi[1] = prob_hi[2];
+        } else if (project_dir == 2) {
+            projected_hi[0] = prob_hi[0];
+            projected_hi[1] = prob_hi[1];
+        }
+        projected_hi[2] = prob_hi[project_dir] / n_cells[project_dir];
+#endif
+
+        RealBox real_box({AMREX_D_DECL(     prob_lo[0],     prob_lo[1],     prob_lo[2])},
+                         {AMREX_D_DECL(projected_hi[0],projected_hi[1],projected_hi[2])});
+        
+        // This defines a Geometry object
+        geom_flat.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
+      }
+
+      structFactFlattened.define(ba_flat,dmap_flat,var_names,var_scaling);
+    }
     
     ///////////////////////////////////////////
     // Structure factor object to help compute tubulent energy spectra
@@ -300,84 +461,8 @@ void main_driver(const char* argv)
     StructFact turbStructFact(ba,dmap,var_names,var_scaling,s_pairA,s_pairB);
     
     ///////////////////////////////////////////
-    
-    // FIXME need to fill physical boundary condition ghost cells for tracer
 
-    // pressure for GMRES solve
-    MultiFab pres(ba,dmap,1,1);
-    pres.setVal(0.);  // initial guess
-
-    std::array< MultiFab, AMREX_SPACEDIM > umacTemp;
-    AMREX_D_TERM(umacTemp[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
-                 umacTemp[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
-                 umacTemp[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););   
-    
-    int step_start;
-    amrex::Real time;
-
-    // tracer
-    MultiFab tracer(ba,dmap,1,1);
-    
-    // staggered velocities
-    std::array< MultiFab, AMREX_SPACEDIM > umac;
-
-    // storage for grad(U) for energy dissipation calculation
-    MultiFab gradU(ba,dmap,3,0);
-    MultiFab ccTemp(ba,dmap,1,0);
-    
-    if (restart > 0) {
-        ReadCheckPoint(step_start,time,umac,tracer,tf);
-    }
-    else {
-
-        tracer.setVal(0.);
-
-        AMREX_D_TERM(umac[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
-                     umac[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
-                     umac[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
-    
-        const RealBox& realDomain = geom.ProbDomain();
-        int dm;
-
-        for ( MFIter mfi(beta); mfi.isValid(); ++mfi ) {
-            const Box& bx = mfi.validbox();
-
-            AMREX_D_TERM(dm=0; init_vel(BL_TO_FORTRAN_BOX(bx),
-                                        BL_TO_FORTRAN_ANYD(umac[0][mfi]), geom.CellSize(),
-                                        geom.ProbLo(), geom.ProbHi() ,&dm,
-                                        ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));,
-                         dm=1; init_vel(BL_TO_FORTRAN_BOX(bx),
-                                        BL_TO_FORTRAN_ANYD(umac[1][mfi]), geom.CellSize(),
-                                        geom.ProbLo(), geom.ProbHi() ,&dm,
-                                        ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));,
-                         dm=2; init_vel(BL_TO_FORTRAN_BOX(bx),
-                                        BL_TO_FORTRAN_ANYD(umac[2][mfi]), geom.CellSize(),
-                                        geom.ProbLo(), geom.ProbHi() ,&dm,
-                                        ZFILL(realDomain.lo()), ZFILL(realDomain.hi())););
-
-    	// initialize tracer
-        init_s_vel(BL_TO_FORTRAN_BOX(bx),
-    		   BL_TO_FORTRAN_ANYD(tracer[mfi]),
-    		   dx, ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
-
-        }
-    
-        // Add initial equilibrium fluctuations
-        if(initial_variance_mom != 0.0) {
-            addMomFluctuations(umac, rho, temp_cc, initial_variance_mom,geom);
-        }
-
-        // Project umac onto divergence free field
-        {
-            // macrhs only used once at beginning of simulaton
-            // put this in braces so it goes out of scope immediately
-            MultiFab macrhs(ba,dmap,1,1);
-            macrhs.setVal(0.0);
-            MacProj_hydro(umac,rho,geom,true);
-        }
-
-        step_start = 1;
-        time = 0.;
+    if (restart < 0) {
 
         // We do the analysis first so we include the initial condition in the files if n_steps_skip=0
         if (n_steps_skip == 0 && struct_fact_int > 0) {
@@ -389,6 +474,18 @@ void main_driver(const char* argv)
                 ShiftFaceToCC(umac[d], 0, structFactMF, d, 1);
             }
             structFact.FortStructure(structFactMF,geom);
+            if(project_dir >= 0) {
+                MultiFab Flattened;  // flattened multifab defined below
+                if (slicepoint < 0) {
+                    ComputeVerticalAverage(structFactMF, Flattened, geom, project_dir, 0, structVars);
+                } else {
+                    ExtractSlice(structFactMF, Flattened, geom, project_dir, 0, structVars);
+                }
+                // we rotate this flattened MultiFab to have normal in the z-direction since
+                // SWFFT only presently supports flattened MultiFabs with z-normal.
+                MultiFab FlattenedRot = RotateFlattenedMF(Flattened);
+                structFactFlattened.FortStructure(FlattenedRot,geom_flat);
+            }
         }
 
         // write out initial state
@@ -397,11 +494,24 @@ void main_driver(const char* argv)
             WritePlotFile(0,time,geom,umac,tracer,pres);
             if (n_steps_skip == 0 && struct_fact_int > 0) {
                 structFact.WritePlotFile(0,0.,geom,"plt_SF");
+                if(project_dir >= 0) {
+                    structFactFlattened.WritePlotFile(0,time,geom_flat,"plt_SF_Flattened");
+                }
             }
         }
-
     }
+    
+    // FIXME need to fill physical boundary condition ghost cells for tracer
 
+    std::array< MultiFab, AMREX_SPACEDIM > umacTemp;
+    AMREX_D_TERM(umacTemp[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
+                 umacTemp[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
+                 umacTemp[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););   
+
+    // storage for grad(U) for energy dissipation calculation
+    MultiFab gradU(ba,dmap,AMREX_SPACEDIM,0);
+    MultiFab ccTemp(ba,dmap,1,0);
+    
     ///////////////////////////////////////////
 
     //Time stepping loop
@@ -420,7 +530,7 @@ void main_driver(const char* argv)
 
 	// Advance umac
         advance(umac,umacTemp,pres,tracer,mfluxdiv_stoch,
-                alpha_fc,beta,gamma,beta_ed,geom,dt,tf);
+                alpha_fc,beta,gamma,beta_ed,geom,dt,turbforce);
 
 	//////////////////////////////////////////////////
 
@@ -434,6 +544,18 @@ void main_driver(const char* argv)
                 ShiftFaceToCC(umac[d], 0, structFactMF, d, 1);
             }
             structFact.FortStructure(structFactMF,geom);
+            if(project_dir >= 0) {
+                MultiFab Flattened;  // flattened multifab defined below
+                if (slicepoint < 0) {
+                    ComputeVerticalAverage(structFactMF, Flattened, geom, project_dir, 0, structVars);
+                } else {
+                    ExtractSlice(structFactMF, Flattened, geom, project_dir, 0, structVars);
+                }
+                // we rotate this flattened MultiFab to have normal in the z-direction since
+                // SWFFT only presently supports flattened MultiFabs with z-normal.
+                MultiFab FlattenedRot = RotateFlattenedMF(Flattened);
+                structFactFlattened.FortStructure(FlattenedRot,geom_flat);
+            }
         }
                 
         Real step_stop_time = ParallelDescriptor::second() - step_strt_time;
@@ -450,6 +572,9 @@ void main_driver(const char* argv)
             // write out structure factor to plotfile
             if (step > n_steps_skip && struct_fact_int > 0) {
                 structFact.WritePlotFile(step,time,geom,"plt_SF");
+                if(project_dir >= 0) {
+                    structFactFlattened.WritePlotFile(step,time,geom_flat,"plt_SF_Flattened");
+                }
             }
 
             // snapshot of instantaneous energy spectra
@@ -472,11 +597,10 @@ void main_driver(const char* argv)
 
         if (chk_int > 0 && step%chk_int == 0) {
             // write out umac and tracer to a checkpoint file
-            WriteCheckPoint(step,time,umac,tracer,tf);
+            WriteCheckPoint(step,time,umac,tracer,turbforce);
         }
 
         // compute kinetic energy integral( (1/2) * rho * U dot U dV)
-        Real dVol = (AMREX_SPACEDIM==2) ? dx[0]*dx[1]*cell_depth : dx[0]*dx[1]*dx[2];
         Vector<Real> udotu(3);
         Vector<Real> skew(3);
         Vector<Real> kurt(3);
@@ -505,7 +629,9 @@ void main_driver(const char* argv)
 		<< time << " "
                 << dProb*skew[0]/(pow(dProb*udotu[0],1.5)) << " "
                 << dProb*skew[1]/(pow(dProb*udotu[1],1.5)) << " "
+#if (AMREX_SPACEDIM == 3)
                 << dProb*skew[2]/(pow(dProb*udotu[2],1.5))
+#endif
                 << std::endl;
 
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
@@ -516,10 +642,18 @@ void main_driver(const char* argv)
 		<< time << " "
                 << dProb*kurt[0]/(pow(dProb*udotu[0],2.)) << " "
                 << dProb*kurt[1]/(pow(dProb*udotu[1],2.)) << " "
+#if (AMREX_SPACEDIM == 3)
                 << dProb*kurt[2]/(pow(dProb*udotu[2],2.))
+#endif
                 << std::endl;
 
-
+        // use gradU as a temporary to store averaged velocities
+        AverageFaceToCC(umac,gradU,0);
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            Print() << "Sum of umac in direction " << d << "= "
+                    << gradU.sum(d) << std::endl;          
+        }
+        
         // MultiFab memory usage
         const int IOProc = ParallelDescriptor::IOProcessorNumber();
 

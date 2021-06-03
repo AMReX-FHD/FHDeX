@@ -163,7 +163,7 @@ void CCMoments(const amrex::MultiFab& m1,
 		 amrex::Real& prod_val)
 {
 
-  BL_PROFILE_VAR("CCInnerProd()",CCInnerProd);
+  BL_PROFILE_VAR("CCMoments()",CCMoments);
 
   MultiFab::Copy(mscr,m1,comp1,0,1,0);
   for(int i=1; i<power; i++){

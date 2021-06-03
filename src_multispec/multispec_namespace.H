@@ -1,7 +1,8 @@
+
+#include "common_namespace.H" // included so we get MAX_SPECIES
+
 namespace multispec {
 
-#define MAX_SPECIES 4
-    
     // Below are items that are read in from the multispec namelist
 
     extern int                        inverse_type;
@@ -19,6 +20,9 @@ namespace multispec {
     extern int                        is_ideal_mixture;
     extern int                        use_lapack;
     extern int                        use_multiphase;
+    extern AMREX_GPU_MANAGED amrex::Real kc_tension;
+    extern amrex::Real                alpha_gex;
+    extern int                        n_gex;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> c_init_1;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> c_init_2;
   
@@ -32,8 +36,6 @@ namespace multispec {
     extern amrex::Real                dielectric_const;
     extern int                        dielectric_type;
     extern amrex::Vector<amrex::Real> charge_per_mass;
-    extern amrex::Vector<amrex::Real> Epot_wall_bc_type;
-    extern amrex::Vector<amrex::Real> Epot_wall;
     extern amrex::Real                theta_pot;
     extern int                        num_pot_iters;
     extern amrex::Real                dpdt_factor;

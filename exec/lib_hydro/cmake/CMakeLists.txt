@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.17)
+make_minimum_required(VERSION 3.17)
 
 # Define Project
 project(lib_hydro)
@@ -63,7 +63,6 @@ add_library(
     ../../../src_common/ComputeDivAndGrad.cpp
     ../../../src_common/ConvertStag.cpp
     ../../../src_common/Debug.cpp
-    ../../../src_common/FindNodalValues.cpp
     ../../../src_common/MultiFabPhysBC.cpp
     ../../../src_common/SqrtMF.cpp
     ../../../src_common/common_functions.cpp
@@ -74,12 +73,7 @@ add_library(
     ../../../src_common/src_F90/common_namelist.F90
     ../../../src_common/src_F90/compute_averages.F90
     ../../../src_common/src_F90/compute_basic_stats.F90
-    ../../../src_common/src_F90/debug_mod.F90
-    ../../../src_common/src_F90/find_coords.F90
-    ../../../src_common/src_F90/find_nodal_values.F90
     ../../../src_common/src_F90/init_funcs.F90
-    ../../../src_common/src_F90/species_type.F90
-    ../../../src_common/src_F90/time_step.F90
 
     ../../../src_rng/MultiFabFillRandom.cpp
     ../../../src_rng/bl_random_c.cpp
@@ -147,7 +141,6 @@ set(HEADERS
     ../../../src_gmres/Precon.H
     ../../../src_gmres/StagMGSolver.H
     ../../../src_gmres/gmres_functions.H
-    ../../../src_gmres/gmres_functions_F.H
     ../../../src_gmres/gmres_namespace.H
     ../../../src_gmres/gmres_namespace_declarations.H
 
