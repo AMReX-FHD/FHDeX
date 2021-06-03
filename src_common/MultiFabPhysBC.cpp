@@ -834,7 +834,7 @@ void MultiFabElectricBC(MultiFab& efieldCC, const Geometry& geom, int dim) {
                 });
             }
             else if ((zero_eps_on_wall_type) and (bc_es_lo[1] == 2)) {
-                Abort("ICEO requires Dirichlet electrostatic boundary condition")
+                Abort("ICEO requires Dirichlet electrostatic boundary condition");
             }
         }
 
