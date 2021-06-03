@@ -694,7 +694,7 @@ void ZeroEdgevalPhysical(std::array<MultiFab, AMREX_SPACEDIM>& edge, const Geome
 // We test on bc_es_lo/hi, which are bc's for phi (not E)
 // 1 = Dirichlet phi -> reflect interior values of E
 // 2 = Neumann phi -> reflect and invert interior values of E
-void MultiFabElectricBC(MultiFab& efieldCC, const Geometry& geom) {
+void MultiFabElectricBC(MultiFab& efieldCC, const Geometry& geom, int dim) {
     
     BL_PROFILE_VAR("MultiFabElectricBC()",MultiFabElectricBC);
     
@@ -721,80 +721,196 @@ void MultiFabElectricBC(MultiFab& efieldCC, const Geometry& geom) {
         
         // bc_es check is to see if we have a physical boundary condition
         // bx/dom comparison is to see if the grid touches a wall 
+        // low x
         if ((bc_es_lo[0] == 1 || bc_es_lo[0] == 2) && (bx.smallEnd(0) < dom.smallEnd(0))) {
-            const Real fac = (bc_es_lo[0] == 1) ? 1. : -1.;
-            amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-            {
-                if (i < dom.smallEnd(0)) {
-                    data(i,j,k) = fac*data(-i-1,j,k);
-                }
-            });
+            if (bc_es_lo[0] == 1) { // Dirichlet
+                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    if (i < dom.smallEnd(0)) { 
+                        if (dim == 0) { // normal (even reflection)
+                            data(i,j,k) = data(-i-1,j,k);
+                        }
+                        else { // transverse (odd reflection)
+                            data(i,j,k) = -1.*data(-i-1,j,k);
+                        }
+                    }
+                });
+            }
+            else if (bc_es_lo[0] == 2) { // Neumann
+                const Real pot = potential_lo[0];
+                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    if (i < dom.smallEnd(0)) { 
+                        if (dim == 0) { // normal (odd reflection & correct surface charge)
+                            data(i,j,k) = -data(-i-1,j,k) + 2.*pot;
+                        }
+                        else { // transverse (even reflection)
+                            data(i,j,k) = data(-i-1,j,k);
+                        }
+                    }
+                });
+            }
         }
 
+        // high x
         if ((bc_es_hi[0] == 1 || bc_es_hi[0] == 2) && (bx.bigEnd(0) > dom.bigEnd(0))) {
-            const Real fac = (bc_es_hi[0] == 1) ? 1. : -1.;
-            amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-            {
-                if (i > dom.bigEnd(0)) {
-                    data(i,j,k) = fac*data(2*dom.bigEnd(0)-i+1,j,k);
-                }
-            });
+            if (bc_es_hi[0] == 1) { // Dirichlet
+                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    if (i > dom.bigEnd(0)) {
+                        if (dim == 0) { // normal (even reflection)
+                            data(i,j,k) = data(2*dom.bigEnd(0)-i+1,j,k);
+                        }
+                        else { // transverse (odd reflection)
+                            data(i,j,k) = -1.*data(2*dom.bigEnd(0)-i+1,j,k);
+                        }
+                    }
+                });
+            }
+            else if (bc_es_hi[0] == 2) { // Neumann
+                const Real pot = potential_hi[0];
+                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    if (i > dom.bigEnd(0)) { 
+                        if (dim == 0) { // normal (odd reflection & correct surface charge)
+                            data(i,j,k) = -data(2*dom.bigEnd(0)-i+1,j,k) + 2.*pot;
+                        }
+                        else { // transverse (even reflection)
+                            data(i,j,k) = data(2*dom.bigEnd(0)-i+1,j,k);
+                        }
+                    }
+                });
+            }
         }
 
         //___________________________________________________________________________
         // Apply y-physbc to data
+        // low y
         if ((bc_es_lo[1] == 1 || bc_es_lo[1] == 2) && (bx.smallEnd(1) < dom.smallEnd(1))) {
-            const Real fac = (bc_es_lo[1] == 1) ? 1. : -1.;
-            amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-            {
-                if (j < dom.smallEnd(1)) {
-		    Real x = (i+0.5)*dx[0];
-                    Real Lx = prob_hi[0] - prob_lo[0];
-                    if ((zero_eps_on_wall_type) and (x < zero_eps_wall_left_end*Lx)) { // zero eps Neumann part of the Dirichlet boundary
-                        data(i,j,k) = -1.*data(i,-j-1,k);
+            if (bc_es_lo[1] == 1) { // Dirichlet
+                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    if (j < dom.smallEnd(1)) { 
+                        if (dim == 1) { // normal (even reflection)
+                            data(i,j,k) = data(i,-j-1,k);
+                        }
+                        else { // transverse (odd reflection)
+                            data(i,j,k) = -1.*data(i,-j-1,k);
+                        }
                     }
-                    else if ((zero_eps_on_wall_type) and (x > zero_eps_wall_right_start*Lx)) { // zero eps Neumann part of the Dirichlet boundary
-                        data(i,j,k) = -1.*data(i,-j-1,k);
+                });
+            }
+            else if (bc_es_lo[1] == 2) { // Neumann
+                const Real pot = potential_lo[1];
+                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    if (j < dom.smallEnd(1)) { 
+                        if (dim == 1) { // normal (odd reflection & correct surface charge)
+                            data(i,j,k) = -data(i,-j-1,k) + 2.*pot;
+                        }
+                        else { // transverse (even reflection)
+                            data(i,j,k) = data(i,-j-1,k);
+                        }
                     }
-                    else { // Dirichlet
-                        data(i,j,k) = fac*data(i,-j-1,k);
-                    }
-		}
-            });
+                });
+            }
         }
 
+        // high y
         if ((bc_es_hi[1] == 1 || bc_es_hi[1] == 2) && (bx.bigEnd(1) > dom.bigEnd(1))) {
-            const Real fac = (bc_es_hi[1] == 1) ? 1. : -1.;
-            amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-            {
-                if (j > dom.bigEnd(1)) {
-                    data(i,j,k) = fac*data(i,2*dom.bigEnd(1)-j+1,k);
-                }
-            });
+            if (bc_es_hi[1] == 1) { // Dirichlet
+                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    if (j > dom.bigEnd(1)) {
+                        if (dim == 1) { // normal (even reflection)
+                            data(i,j,k) = data(i,2*dom.bigEnd(1)-j+1,k);
+                        }
+                        else { // transverse (odd reflection)
+                            data(i,j,k) = -1.*data(i,2*dom.bigEnd(1)-j+1,k);
+                        }
+                    }
+                });
+            }
+            else if (bc_es_hi[1] == 2) { // Neumann
+                const Real pot = potential_hi[1];
+                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    if (j > dom.bigEnd(1)) { 
+                        if (dim == 1) { // normal (odd reflection & correct surface charge)
+                            data(i,j,k) = -data(i,2*dom.bigEnd(1)-j+1,k) + 2.*pot;
+                        }
+                        else { // transverse (even reflection)
+                            data(i,j,k) = data(i,2*dom.bigEnd(1)-j+1,k);
+                        }
+                    }
+                });
+            }
         }
 #endif
 
         //___________________________________________________________________________
         // Apply z-physbc to data
 #if (AMREX_SPACEDIM >= 3)
+        // low z
         if ((bc_es_lo[2] == 1 || bc_es_lo[2] == 2) && (bx.smallEnd(2) < dom.smallEnd(2))) {
-            const Real fac = (bc_es_lo[2] == 1) ? 1. : -1.;
-            amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-            {
-                if (k < dom.smallEnd(2)) {
-                    data(i,j,k) = fac*data(i,j,-k-1);
-                }
-            });
+            if (bc_es_lo[2] == 1) { // Dirichlet
+                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    if (k < dom.smallEnd(2)) { 
+                        if (dim == 2) { // normal (even reflection)
+                            data(i,j,k) = data(i,j,-k-1);
+                        }
+                        else { // transverse (odd reflection)
+                            data(i,j,k) = -1.*data(i,j,-k-1);
+                        }
+                    }
+                });
+            }
+            else if (bc_es_lo[2] == 2) { // Neumann
+                const Real pot = potential_lo[2];
+                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    if (k < dom.smallEnd(2)) { 
+                        if (dim == 2) { // normal (odd reflection & correct surface charge)
+                            data(i,j,k) = -data(i,j,-k-1) + 2.*pot;
+                        }
+                        else { // transverse (even reflection)
+                            data(i,j,k) = data(i,j,-k-1);
+                        }
+                    }
+                });
+            }
         }
 
+        // high z
         if ((bc_es_hi[2] == 1 || bc_es_hi[2] == 2) && (bx.bigEnd(2) > dom.bigEnd(2))) {
-            const Real fac = (bc_es_hi[2] == 1) ? 1. : -1.;
-            amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-            {
-                if (k > dom.bigEnd(2)) {
-                    data(i,j,k) = fac*data(i,j,2*dom.bigEnd(2)-k+1);
-                }
-            });
+            if (bc_es_hi[2] == 1) { // Dirichlet
+                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    if (k > dom.bigEnd(2)) {
+                        if (dim == 2) { // normal (even reflection)
+                            data(i,j,k) = data(i,j,2*dom.bigEnd(2)-k+1);
+                        }
+                        else { // transverse (odd reflection)
+                            data(i,j,k) = -1.*data(i,j,2*dom.bigEnd(2)-k+1);
+                        }
+                    }
+                });
+            }
+            else if (bc_es_hi[2] == 2) { // Neumann
+                const Real pot = potential_hi[2];
+                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    if (k > dom.bigEnd(2)) { 
+                        if (dim == 2) { // normal (odd reflection & correct surface charge)
+                            data(i,j,k) = -data(i,j,2*dom.bigEnd(2)-k+1) + 2.*pot;
+                        }
+                        else { // transverse (even reflection)
+                            data(i,j,k) = data(i,j,2*dom.bigEnd(2)-k+1);
+                        }
+                    }
+                });
+            }
         }
 #endif
         
