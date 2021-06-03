@@ -814,6 +814,28 @@ void MultiFabElectricBC(MultiFab& efieldCC, const Geometry& geom, int dim) {
                     }
                 });
             }
+
+            if ((zero_eps_on_wall_type) and (bc_es_lo[1] == 1)) { // ICEO
+                const Real pot = potential_lo[1];
+                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    if (j < dom.smallEnd(1)) {
+                        Real x = (i+0.5)*dx[0];
+                        Real Lx = prob_hi[0] - prob_lo[0];
+                        if ((x < zero_eps_wall_left_end*Lx) or (x > zero_eps_wall_right_start*Lx)) { // Setup Neumann here
+                            if (dim == 1) { // normal (odd reflection & correct surface charge)
+                                data(i,j,k) = -data(i,-j-1,k) + 2.*pot;
+                            }
+                            else { // transverse (even reflection)
+                                data(i,j,k) = data(i,-j-1,k);
+                            }
+                        }
+                    }
+                });
+            }
+            else if ((zero_eps_on_wall_type) and (bc_es_lo[1] == 2)) {
+                Abort("ICEO requires Dirichlet electrostatic boundary condition")
+            }
         }
 
         // high y
