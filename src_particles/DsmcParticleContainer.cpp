@@ -69,9 +69,11 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
     {
         const Box& box = mfi.validbox();
         const int grid_id = mfi.index();
-        m_cell_vectors[grid_id].resize(box.numPts());
+        for(int i=0;i<nspecies;i++)
+        {
+            m_cell_vectors[i][grid_id].resize(box.numPts());
+        }
     }
-
 
 }
 
@@ -117,7 +119,7 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
         np_proc += np;
 
         for (int i = 0; i < np; ++ i) {
-            ParticleType & part = particles[i];
+              ParticleType & part = particles[i];
 
               Real speed = 0;
 
@@ -193,15 +195,15 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
                 IntVect iv(part.idata(FHD_intData::i), part.idata(FHD_intData::j), part.idata(FHD_intData::k));
                 long imap = tile_box.index(iv);
 
-                int lastIndex = m_cell_vectors[pti.index()][imap].size() - 1;
-                int lastPart = m_cell_vectors[pti.index()][imap][lastIndex];
+                int lastIndex = m_cell_vectors[part.idata(FHD_intData::species)][pti.index()][imap].size() - 1;
+
+                int lastPart = m_cell_vectors[part.idata(FHD_intData::species)][pti.index()][imap][lastIndex];
                 int newIndex = part.idata(FHD_intData::sorted);
 
-                m_cell_vectors[pti.index()][imap][newIndex] = m_cell_vectors[pti.index()][imap][lastIndex];
+                m_cell_vectors[part.idata(FHD_intData::species)][pti.index()][imap][newIndex] = lastPart;
+                m_cell_vectors[part.idata(FHD_intData::species)][pti.index()][imap].pop_back();
 
-                m_cell_vectors[pti.index()][imap].pop_back();
-
-                //cout << "Removed " << i << " from " << iv[0] << ", " << iv[1] << ", " << iv[2] << ", now contains " << m_cell_vectors[pti.index()][imap].size() << " particles\n";
+                particles[lastPart].idata(FHD_intData::sorted) = newIndex;
 
                 part.idata(FHD_intData::sorted) = -1;
             }
@@ -344,12 +346,12 @@ void FhdParticleContainer::SortParticles()
                 part.idata(FHD_intData::k) = iv[2];
 
                 long imap = tile_box.index(iv);
-                //cout << "part " << i << " is in cell " << iv[0] << ", " << iv[1] << ", " << iv[2] << ", adding to element " << m_cell_vectors[pti.index()][imap].size() << "\n";
+                //cout << "part " << i << " is in cell " << iv[0] << ", " << iv[1] << ", " << iv[2] << ", adding to element " << m_cell_vectors[part.idata(FHD_intData::species)][pti.index()][imap].size() << "\n";
 
+                part.idata(FHD_intData::sorted) = m_cell_vectors[part.idata(FHD_intData::species)][pti.index()][imap].size();
 
-                part.idata(FHD_intData::sorted) = m_cell_vectors[pti.index()][imap].size();
+                m_cell_vectors[part.idata(FHD_intData::species)][pti.index()][imap].push_back(i);
 
-                m_cell_vectors[pti.index()][imap].push_back(i);
 
             }
 
