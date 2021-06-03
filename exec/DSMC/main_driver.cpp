@@ -199,14 +199,14 @@ void main_driver(const char* argv)
             Print() << "Finish move.\n";
         }
 
+        particles.EvaluateStats(particleInstant, particleMeans, particleVars, dt,statsCount);
+        statsCount++;
+
         if (istep%plot_int == 0) {
             
             WritePlotFile(istep, time, geom, particleInstant, particleMeans, particleVars, particles);
 
         }
-
-        //particles.EvaluateStats(particleInstant, particleMeans, ionParticle[0], dt,statsCount);
-        statsCount++;
  
         if ((n_steps_skip > 0 && istep == n_steps_skip) ||
             (n_steps_skip < 0 && istep%n_steps_skip == 0) ) {

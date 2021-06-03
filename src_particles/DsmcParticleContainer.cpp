@@ -233,6 +233,92 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
 
 }
 
+void FhdParticleContainer::EvaluateStats(MultiFab& particleInstant, MultiFab& particleMeans,
+                                         MultiFab& particleVars, const Real delt, int steps)
+{
+    BL_PROFILE_VAR("EvaluateStats()",EvaluateStats);
+    
+    const int lev = 0;
+    
+    BoxArray ba = particleMeans.boxArray();
+    long cellcount = ba.numPts();
+
+    const Real* dx = Geom(lev).CellSize();
+    const Real dxInv = 1.0/dx[0];
+    const Real cellVolInv = 1.0/(dx[0]*dx[0]*dx[0]);
+
+    const Real stepsInv = 1.0/steps;
+    const int stepsMinusOne = steps-1;
+
+    // zero instantaneous values
+    particleInstant.setVal(0.);
+    
+    for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) 
+    {
+
+	PairIndex index(pti.index(), pti.LocalTileIndex());
+        const int np = this->GetParticles(lev)[index].numRealParticles();
+	auto& plev = this->GetParticles(lev);
+	auto& ptile = plev[index];
+	auto& aos   = ptile.GetArrayOfStructs();
+        const Box& tile_box  = pti.tilebox();
+        ParticleType* particles = aos().dataPtr();
+
+        GpuArray<int, 3> bx_lo = {tile_box.loVect()[0], tile_box.loVect()[1], tile_box.loVect()[2]};
+        GpuArray<int, 3> bx_hi = {tile_box.hiVect()[0], tile_box.hiVect()[1], tile_box.hiVect()[2]};
+
+        Array4<Real> part_inst = particleInstant[pti].array();
+        Array4<Real> part_mean = particleMeans[pti].array();
+        Array4<Real> part_var = particleVars[pti].array();
+
+        AMREX_FOR_1D( np, ni,
+        {
+            ParticleType & part = particles[ni];
+
+            int i = floor(part.pos(0)*dxInv);
+            int j = floor(part.pos(1)*dxInv);
+            int k = floor(part.pos(2)*dxInv);
+            
+            amrex::Gpu::Atomic::Add(&part_inst(i,j,k,0), 1.0);
+
+            for(int l=0;l<nspecies;l++)
+            {
+
+            }
+
+        });
+
+        amrex::ParallelFor(tile_box,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+
+            part_inst(i,j,k,1) = part_inst(i,j,k,1)*cellVolInv;
+             
+        });
+
+        amrex::ParallelFor(tile_box,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+
+            part_mean(i,j,k,1)  = (part_mean(i,j,k,1)*stepsMinusOne + part_inst(i,j,k,1))*stepsInv;
+
+            for(int l=0;l<nspecies;l++)
+            {
+
+            }
+             
+        });
+
+        amrex::ParallelFor(tile_box,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+
+            Real del1 = part_inst(i,j,k,1) - part_mean(i,j,k,1);
+
+            part_var(i,j,k,1)  = (part_var(i,j,k,1)*stepsMinusOne + del1*del1)*stepsInv;            
+        });
+
+    }
+
+}
+
 void FhdParticleContainer::SortParticles()
 {
     int lev = 0;

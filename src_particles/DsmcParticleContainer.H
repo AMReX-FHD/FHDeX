@@ -95,6 +95,9 @@ public:
 
     void MoveParticlesCPP(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount);
 
+    void EvaluateStats(MultiFab& particleInstant, MultiFab& particleMeans,
+                                         MultiFab& particleVars, const Real delt, int steps);
+
     dsmcSpecies properties[MAX_SPECIES];
     long realParticles;
     long simParticles;
