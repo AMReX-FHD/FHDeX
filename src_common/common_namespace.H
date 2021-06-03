@@ -1,6 +1,6 @@
 namespace common {
 
-#define MAX_SPECIES 4
+#define MAX_SPECIES 8
     
     // misc global variables
     extern amrex::IntVect nodal_flag;

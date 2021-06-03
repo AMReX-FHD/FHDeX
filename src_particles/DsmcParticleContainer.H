@@ -1,51 +1,44 @@
 #ifndef _DSMCParticleContainer_H_
 #define _DSMCParticleContainer_H_
 
-//#include "IBParticleInfo.H"
-//#include "IBMarkerContainerBase.H"
-//#include "species.H"
-
 #include "paramPlane.H"
 #include <AMReX_NeighborParticles.H>
-//#include "paramplane_functions_F.H"
 
-//#include "particle_functions_F.H"
-//#include "particle_functions.H"
+#include <common_namespace.H>
 
 using namespace std;
+using namespace common;
 
 // IBM => Immmersed Boundary Marker
-struct Dsmc_realData {
+struct FHD_realData {
     //Analogous to particle realData (p.m_data)
     enum {
-        radius = 0,
-        velx,
+        velx = 0,
         vely,
         velz,
         boostx,
         boosty,
         boostz,
-        mass,
+        R,
         count    // Awesome little trick! (only works if first field is 0)
     };
 
     static Vector<std::string> names() {
         return Vector<std::string> {
-            "radius",
             "velx",
             "vely",
             "velz",
             "boostx",
             "boosty",
             "boostz",
-            "mass"
+            "R"
         };
     };
 };
 
 
 
-struct Dsmc_intData {
+struct FHD_intData {
     //Analogous to particle intData (p.m_data)
     enum {
         sorted,
@@ -58,29 +51,65 @@ struct Dsmc_intData {
 
     static Vector<std::string> names() {
         return Vector<std::string> {
-            "id_0",
-            "cpu_0",
-            "id_1",
-            "cpu_1",
+            "sorted",
+            "i",
+            "j",
+            "k",
+            "species"
         };
     };
 };
 
-class DsmcParticleContainer
-    : public amrex::NeighborParticleContainer<Dsmc_realData::count, Dsmc_intData::count>
+typedef struct {
+
+  int type;
+  int total;
+  double mass;
+  double radius;
+  double R;
+  double T;
+  double q;
+  double n0;
+  double mfp;
+  double P;
+  double Neff;
+  double cp;
+  double sigma;
+
+} dsmcSpecies;
+
+class FhdParticleContainer
+    : public amrex::NeighborParticleContainer<FHD_realData::count, FHD_intData::count>
 {
 public:
 
-    using DsmcParIter = ParIter<Dsmc_realData::count, Dsmc_intData::count>;
+    using FhdParIter = ParIter<FHD_realData::count, FHD_intData::count>;
 
-    DsmcParticleContainer(const Geometry            & geom, 
+    FhdParticleContainer(const Geometry            & geom, 
                                   const DistributionMapping & dmap,
                                   const BoxArray            & ba,
                                   int ncells);
 
+    void InitParticles();
+    void SortParticles();
+
+    void MoveParticlesCPP(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount);
+
+    void EvaluateStats(MultiFab& particleInstant, MultiFab& particleMeans,
+                                         MultiFab& particleVars, const Real delt, int steps);
+
+    dsmcSpecies properties[MAX_SPECIES];
+    long realParticles;
+    long simParticles;
+    long totalCollisionCells;
+    Real domainVol;
+    Real domSize[3];
+    Real dx[3];
+
+
 protected:
     // used to store vectors of particle indices on a cell-by-cell basis
-//    std::map<int, amrex::BaseFab<std::vector<int> > > m_cell_vectors;
+
     std::map<int, std::vector<std::vector<int> > > m_cell_vectors;
 
 

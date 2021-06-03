@@ -2,7 +2,7 @@
 # If you set AMREX_HOME as an environment variable, this line will be ignored
 AMREX_HOME ?= ../../../../programs/amrex/
 FHDeX ?= ../../
-FIONS = $(FHDeX)/exec/immersedIons
+FDSMC = $(FHDeX)/exec/DSMC
 
 DEBUG     = FALSE
 PROFILE   = FALSE
@@ -11,7 +11,6 @@ USE_OMP   = FALSE
 USE_CUDA  = FALSE
 COMP      = gnu
 DIM       = 3
-DSMC      = FALSE
 
 TINY_PROFILE  = FALSE
 USE_PARTICLES = TRUE
@@ -28,22 +27,9 @@ include $(FHDeX)/src_rng/Make.package
 VPATH_LOCATIONS   += $(FHDeX)/src_rng
 INCLUDE_LOCATIONS += $(FHDeX)/src_rng
 
-include $(FHDeX)/src_rng/src_F90/Make.package
-VPATH_LOCATIONS   += $(FHDeX)/src_rng/src_F90
-INCLUDE_LOCATIONS += $(FHDeX)/src_rng/src_F90
-
-include $(FHDeX)/src_hydro/Make.package
-VPATH_LOCATIONS   += $(FHDeX)/src_hydro/
-INCLUDE_LOCATIONS += $(FHDeX)/src_hydro/
-
 include $(FHDeX)/src_analysis/Make.package
 VPATH_LOCATIONS   += $(FHDeX)/src_analysis/
 INCLUDE_LOCATIONS += $(FHDeX)/src_analysis/
-
-
-include $(FHDeX)/src_gmres/Make.package
-VPATH_LOCATIONS   += $(FHDeX)/src_gmres/
-INCLUDE_LOCATIONS += $(FHDeX)/src_gmres/
 
 include $(FHDeX)/src_common/Make.package
 VPATH_LOCATIONS   += $(FHDeX)/src_common/
@@ -53,35 +39,16 @@ include $(FHDeX)/src_common/src_F90/Make.package
 VPATH_LOCATIONS   += $(FHDeX)/src_common/src_F90
 INCLUDE_LOCATIONS += $(FHDeX)/src_common/src_F90
 
-include $(FHDeX)/src_particles/Make.package
+include $(FHDeX)/src_particles/MakeDSMC.package
 VPATH_LOCATIONS   += $(FHDeX)/src_particles/
 INCLUDE_LOCATIONS += $(FHDeX)/src_particles/
-
-include $(FHDeX)/src_particles/src_F90/Make.package
-VPATH_LOCATIONS   += $(FHDeX)/src_particles/src_F90
-INCLUDE_LOCATIONS += $(FHDeX)/src_particles/src_F90
 
 include $(FHDeX)/src_geometry/Make.package
 VPATH_LOCATIONS   += $(FHDeX)/src_geometry
 INCLUDE_LOCATIONS += $(FHDeX)/src_geometry
 
-include $(FHDeX)/src_geometry/src_F90/Make.package
-VPATH_LOCATIONS   += $(FHDeX)/src_geometry/src_F90
-INCLUDE_LOCATIONS += $(FHDeX)/src_geometry/src_F90
 
-include $(FHDeX)/src_electrostatic/Make.package
-VPATH_LOCATIONS   += $(FHDeX)/src_electrostatic
-INCLUDE_LOCATIONS += $(FHDeX)/src_electrostatic
-
-include $(FHDeX)/src_immersed-boundary/src_F90/Make.package
-VPATH_LOCATIONS   += $(FHDeX)src_immersed-boundary/src_F90
-INCLUDE_LOCATIONS += $(FHDeX)src_immersed-boundary/src_F90
-
-include $(FHDeX)/src_immersed-boundary/MakeBase.package
-VPATH_LOCATIONS   += $(FHDeX)src_immersed-boundary
-INCLUDE_LOCATIONS += $(FHDeX)src_immersed-boundary
-
-include $(FIONS)/Make.package
+include $(FDSMC)/Make.package
 
 include $(AMREX_HOME)/Src/Base/Make.package
 include $(AMREX_HOME)/Src/Boundary/Make.package
@@ -109,10 +76,6 @@ LIBRARIES += -L$(FFTW_DIR) -lfftw3_mpi -lfftw3_omp -lfftw3 -lgomp
 #LIBRARIES += -L$(FFTW_DIR) -lfftw3
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.rules
-
-ifeq ($(DSMC), TRUE)
-  DEFINES += -DDSMC
-endif
 
 #DEFINES	+= -DDSMC=$(DSMC)				
 

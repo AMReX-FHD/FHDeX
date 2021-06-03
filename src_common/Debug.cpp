@@ -64,7 +64,7 @@ void outputMFAscii(const MultiFab& output, std::string filename)
     std::ofstream ofs(plotfilename, std::ofstream::out);
     
     for (MFIter mfi(output); mfi.isValid(); ++mfi) {
-        ofs<<(output[mfi])<<std::endl;                                              
+        ofs<<std::setprecision(16)<< (output[mfi])<<std::endl;                                              
     }
 
     ofs.close();
