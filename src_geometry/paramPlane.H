@@ -73,8 +73,8 @@ typedef struct {
     double sourceLeft;
     double sourceRight;
 
-
     double periodicity;
+    double area;
 
     double fxLeft;
     double fyLeft;

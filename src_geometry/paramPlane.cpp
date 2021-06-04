@@ -616,6 +616,8 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 
         planeFile >> paramPlaneList[i].periodicity;
 
+        planeFile >> paramPlaneList[i].area;
+
         paramPlaneList[i].boundary = i+1;
             
         theta = getTheta(paramPlaneList[i].lnx, paramPlaneList[i].lny, paramPlaneList[i].lnz);
