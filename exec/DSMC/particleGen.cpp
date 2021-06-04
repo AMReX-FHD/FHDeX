@@ -40,6 +40,8 @@ void FhdParticleContainer::InitParticles()
                     p.cpu() = ParallelDescriptor::MyProc();
                     p.idata(FHD_intData::sorted) = -1;
 
+                    p.idata(FHD_intData::species) = i_spec;
+
                     if(particle_placement == 1)
                     {
                         particleFile >> p.pos(0);                       

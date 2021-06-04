@@ -69,9 +69,11 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
     {
         const Box& box = mfi.validbox();
         const int grid_id = mfi.index();
-        m_cell_vectors[grid_id].resize(box.numPts());
+        for(int i=0;i<nspecies;i++)
+        {
+            m_cell_vectors[i][grid_id].resize(box.numPts());
+        }
     }
-
 
 }
 
@@ -117,7 +119,7 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
         np_proc += np;
 
         for (int i = 0; i < np; ++ i) {
-            ParticleType & part = particles[i];
+              ParticleType & part = particles[i];
 
               Real speed = 0;
 
@@ -193,15 +195,15 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
                 IntVect iv(part.idata(FHD_intData::i), part.idata(FHD_intData::j), part.idata(FHD_intData::k));
                 long imap = tile_box.index(iv);
 
-                int lastIndex = m_cell_vectors[pti.index()][imap].size() - 1;
-                int lastPart = m_cell_vectors[pti.index()][imap][lastIndex];
+                int lastIndex = m_cell_vectors[part.idata(FHD_intData::species)][pti.index()][imap].size() - 1;
+
+                int lastPart = m_cell_vectors[part.idata(FHD_intData::species)][pti.index()][imap][lastIndex];
                 int newIndex = part.idata(FHD_intData::sorted);
 
-                m_cell_vectors[pti.index()][imap][newIndex] = m_cell_vectors[pti.index()][imap][lastIndex];
+                m_cell_vectors[part.idata(FHD_intData::species)][pti.index()][imap][newIndex] = lastPart;
+                m_cell_vectors[part.idata(FHD_intData::species)][pti.index()][imap].pop_back();
 
-                m_cell_vectors[pti.index()][imap].pop_back();
-
-                //cout << "Removed " << i << " from " << iv[0] << ", " << iv[1] << ", " << iv[2] << ", now contains " << m_cell_vectors[pti.index()][imap].size() << " particles\n";
+                particles[lastPart].idata(FHD_intData::sorted) = newIndex;
 
                 part.idata(FHD_intData::sorted) = -1;
             }
@@ -233,6 +235,92 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
 
 }
 
+void FhdParticleContainer::EvaluateStats(MultiFab& particleInstant, MultiFab& particleMeans,
+                                         MultiFab& particleVars, const Real delt, int steps)
+{
+    BL_PROFILE_VAR("EvaluateStats()",EvaluateStats);
+    
+    const int lev = 0;
+    
+    BoxArray ba = particleMeans.boxArray();
+    long cellcount = ba.numPts();
+
+    const Real* dx = Geom(lev).CellSize();
+    const Real dxInv = 1.0/dx[0];
+    const Real cellVolInv = 1.0/(dx[0]*dx[0]*dx[0]);
+
+    const Real stepsInv = 1.0/steps;
+    const int stepsMinusOne = steps-1;
+
+    // zero instantaneous values
+    particleInstant.setVal(0.);
+    
+    for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) 
+    {
+
+	PairIndex index(pti.index(), pti.LocalTileIndex());
+        const int np = this->GetParticles(lev)[index].numRealParticles();
+	auto& plev = this->GetParticles(lev);
+	auto& ptile = plev[index];
+	auto& aos   = ptile.GetArrayOfStructs();
+        const Box& tile_box  = pti.tilebox();
+        ParticleType* particles = aos().dataPtr();
+
+        GpuArray<int, 3> bx_lo = {tile_box.loVect()[0], tile_box.loVect()[1], tile_box.loVect()[2]};
+        GpuArray<int, 3> bx_hi = {tile_box.hiVect()[0], tile_box.hiVect()[1], tile_box.hiVect()[2]};
+
+        Array4<Real> part_inst = particleInstant[pti].array();
+        Array4<Real> part_mean = particleMeans[pti].array();
+        Array4<Real> part_var = particleVars[pti].array();
+
+        AMREX_FOR_1D( np, ni,
+        {
+            ParticleType & part = particles[ni];
+
+            int i = floor(part.pos(0)*dxInv);
+            int j = floor(part.pos(1)*dxInv);
+            int k = floor(part.pos(2)*dxInv);
+            
+            amrex::Gpu::Atomic::Add(&part_inst(i,j,k,0), 1.0);
+
+            for(int l=0;l<nspecies;l++)
+            {
+
+            }
+
+        });
+
+        amrex::ParallelFor(tile_box,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+
+            part_inst(i,j,k,1) = part_inst(i,j,k,1)*cellVolInv;
+             
+        });
+
+        amrex::ParallelFor(tile_box,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+
+            part_mean(i,j,k,1)  = (part_mean(i,j,k,1)*stepsMinusOne + part_inst(i,j,k,1))*stepsInv;
+
+            for(int l=0;l<nspecies;l++)
+            {
+
+            }
+             
+        });
+
+        amrex::ParallelFor(tile_box,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+
+            Real del1 = part_inst(i,j,k,1) - part_mean(i,j,k,1);
+
+            part_var(i,j,k,1)  = (part_var(i,j,k,1)*stepsMinusOne + del1*del1)*stepsInv;            
+        });
+
+    }
+
+}
+
 void FhdParticleContainer::SortParticles()
 {
     int lev = 0;
@@ -258,12 +346,12 @@ void FhdParticleContainer::SortParticles()
                 part.idata(FHD_intData::k) = iv[2];
 
                 long imap = tile_box.index(iv);
-                //cout << "part " << i << " is in cell " << iv[0] << ", " << iv[1] << ", " << iv[2] << ", adding to element " << m_cell_vectors[pti.index()][imap].size() << "\n";
+                //cout << "part " << i << " is in cell " << iv[0] << ", " << iv[1] << ", " << iv[2] << ", adding to element " << m_cell_vectors[part.idata(FHD_intData::species)][pti.index()][imap].size() << "\n";
 
+                part.idata(FHD_intData::sorted) = m_cell_vectors[part.idata(FHD_intData::species)][pti.index()][imap].size();
 
-                part.idata(FHD_intData::sorted) = m_cell_vectors[pti.index()][imap].size();
+                m_cell_vectors[part.idata(FHD_intData::species)][pti.index()][imap].push_back(i);
 
-                m_cell_vectors[pti.index()][imap].push_back(i);
 
             }
 
