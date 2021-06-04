@@ -1035,6 +1035,9 @@ void MultiFabPotentialBC(MultiFab& phi, const Geometry& geom) {
                         else if ((zero_eps_on_wall_type) and (x > zero_eps_wall_right_start*Lx)) { // zero eps Neumann part of the Dirichlet boundary
                             data(i,j,k) = data(i,j+1,k) - dx[1]*pot;
                         }
+			else if ((zero_eps_on_wall_type) and (x < zero_eps_wall_right_start*Lx and x > zero_eps_wall_left_end*Lx)) { // Dirichlet for a modified BC on the metal part (set up in MultiFabPotentialBC_solver)
+			    data(i,j,k) = -data(i,j+1,k) + 2.*(pot + x*eamp[0]);
+			}
                         else { // Dirichlet
                             data(i,j,k) = -data(i,j+1,k) + 2.*pot;
                         }
@@ -1213,8 +1216,11 @@ void MultiFabPotentialBC_solver(MultiFab& phi, const Geometry& geom) {
                 if (j < dom.smallEnd(1)) {
                     Real x = (i+0.5)*dx[0];
                     Real Lx = prob_hi[0] - prob_lo[0];
-                    if ((x > zero_eps_wall_left_end*Lx) or (x < zero_eps_wall_right_start*Lx)) {
-                        data(i,j,k) = pot + x*eamp[0] - Lx*eamp[0]*0.5;
+		    // adding a counter potential 
+		    //   so that the potential right above the metal surface is zero 
+		    //   under the influence of external field.
+                    if ((x > zero_eps_wall_left_end*Lx) and (x < zero_eps_wall_right_start*Lx)) {
+                        data(i,j,k) = pot + x*eamp[0];
                     }
                 }
             });
