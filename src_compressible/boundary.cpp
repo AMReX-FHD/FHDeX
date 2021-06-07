@@ -978,10 +978,13 @@ void BCWallSpeciesFlux(std::array< MultiFab, AMREX_SPACEDIM >& faceflux, const a
             if (b.ok()) {
                 amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
+                    // species
                     for (int n=0;n<nspecies;++n) {
                         flux(i,j,k,n+5) = 0.;
                     }
+                    // density
                     flux(i,j,k,0) = 0.;
+                    // Dufour
                     flux(i,j,k,nvars+3) = 0.;
                 });
             }
@@ -1004,10 +1007,13 @@ void BCWallSpeciesFlux(std::array< MultiFab, AMREX_SPACEDIM >& faceflux, const a
             if (b.ok()) {
                 amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
+                    // species
                     for (int n=0;n<nspecies;++n) {
                         flux(i,j,k,n+5) = 0.;
                     }
+                    // density
                     flux(i,j,k,0) = 0.;
+                    // Dufour
                     flux(i,j,k,nvars+3) = 0.;
                 });
             }
@@ -1030,10 +1036,13 @@ void BCWallSpeciesFlux(std::array< MultiFab, AMREX_SPACEDIM >& faceflux, const a
             if (b.ok()) {
                 amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
+                    // species
                     for (int n=0;n<nspecies;++n) {
                         flux(i,j,k,n+5) = 0.;
                     }
+                    // density
                     flux(i,j,k,0) = 0.;
+                    // Dufour
                     flux(i,j,k,nvars+3) = 0.;
                 });
             }
@@ -1056,10 +1065,13 @@ void BCWallSpeciesFlux(std::array< MultiFab, AMREX_SPACEDIM >& faceflux, const a
             if (b.ok()) {
                 amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
+                    // species
                     for (int n=0;n<nspecies;++n) {
                         flux(i,j,k,n+5) = 0.;
                     }
+                    // density
                     flux(i,j,k,0) = 0.;
+                    // Dufour
                     flux(i,j,k,nvars+3) = 0.;
                 });
             }
@@ -1082,10 +1094,13 @@ void BCWallSpeciesFlux(std::array< MultiFab, AMREX_SPACEDIM >& faceflux, const a
             if (b.ok()) {
                 amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
+                    // species
                     for (int n=0;n<nspecies;++n) {
                         flux(i,j,k,n+5) = 0.;
                     }
+                    // density
                     flux(i,j,k,0) = 0.;
+                    // Dufour
                     flux(i,j,k,nvars+3) = 0.;
                 });
             }
@@ -1108,10 +1123,13 @@ void BCWallSpeciesFlux(std::array< MultiFab, AMREX_SPACEDIM >& faceflux, const a
             if (b.ok()) {
                 amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
+                    // species
                     for (int n=0;n<nspecies;++n) {
                         flux(i,j,k,n+5) = 0.;
                     }
+                    // density
                     flux(i,j,k,0) = 0.;
+                    // Dufour
                     flux(i,j,k,nvars+3) = 0.;
                 });
             }
@@ -1147,6 +1165,7 @@ void StochFlux(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in,
             if (b.ok()) {
                 amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
+                    // species
                     for (int n=0;n<nspecies;++n) {
                         flux(i,j,k,n+5) *= factor;
                     }
@@ -1177,6 +1196,7 @@ void StochFlux(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in,
             if (b.ok()) {
                 amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
+                    // species
                     for (int n=0;n<nspecies;++n) {
                         flux(i,j,k,n+5) *= factor;
                     }
@@ -1207,6 +1227,7 @@ void StochFlux(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in,
             if (b.ok()) {
                 amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
+                    // species
                     for (int n=0;n<nspecies;++n) {
                         flux(i,j,k,n+5) *= factor;
                     }
@@ -1237,6 +1258,7 @@ void StochFlux(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in,
             if (b.ok()) {
                 amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
+                    // species
                     for (int n=0;n<nspecies;++n) {
                         flux(i,j,k,n+5) *= factor;
                     }
@@ -1267,6 +1289,7 @@ void StochFlux(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in,
             if (b.ok()) {
                 amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
+                    // species
                     for (int n=0;n<nspecies;++n) {
                         flux(i,j,k,n+5) *= factor;
                     }
@@ -1297,6 +1320,7 @@ void StochFlux(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in,
             if (b.ok()) {
                 amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
+                    // species
                     for (int n=0;n<nspecies;++n) {
                         flux(i,j,k,n+5) *= factor;
                     }
@@ -1329,6 +1353,7 @@ void StochFlux(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in,
             if (b.ok()) {
                 amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
+                    // heat flux
                     flux(i,j,k,nvars) *= factor;
                 });
             }
@@ -1355,6 +1380,7 @@ void StochFlux(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in,
             if (b.ok()) {
                 amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
+                    // heat flux
                     flux(i,j,k,nvars) *= factor;
                 });
             }
@@ -1381,6 +1407,7 @@ void StochFlux(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in,
             if (b.ok()) {
                 amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
+                    // heat flux
                     flux(i,j,k,nvars) *= factor;
                 });
             }
@@ -1407,6 +1434,7 @@ void StochFlux(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in,
             if (b.ok()) {
                 amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
+                    // heat flux
                     flux(i,j,k,nvars) *= factor;
                 });
             }
@@ -1433,6 +1461,7 @@ void StochFlux(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in,
             if (b.ok()) {
                 amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
+                    // heat flux
                     flux(i,j,k,nvars) *= factor;
                 });
             }
@@ -1492,9 +1521,11 @@ void StochFlux(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in,
                 amrex::ParallelFor(b, AMREX_SPACEDIM, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (n == 0) {
+                        // normal velocity and viscous heating (diagonal)
                         flux(i,j,k,1+n) *= sqrtTwo;
                         flux(i,j,k,nvars+1) *= sqrtTwo;
                     } else {
+                        // transverse velocity and viscous heating (shear)
                         flux(i,j,k,1+n) *= factor;
                         flux(i,j,k,nvars+2) *= factor;
                     }
@@ -1525,9 +1556,11 @@ void StochFlux(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in,
                 amrex::ParallelFor(b, AMREX_SPACEDIM, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (n == 0) {
+                        // normal velocity and viscous heating (diagonal)
                         flux(i,j,k,1+n) *= sqrtTwo;
                         flux(i,j,k,nvars+1) *= sqrtTwo;
                     } else {
+                        // transverse velocity and viscous heating (shear)
                         flux(i,j,k,1+n) *= factor;
                         flux(i,j,k,nvars+2) *= factor;
                     }
@@ -1558,9 +1591,11 @@ void StochFlux(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in,
                 amrex::ParallelFor(b, AMREX_SPACEDIM, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (n == 1) {
+                        // normal velocity and viscous heating (diagonal)
                         flux(i,j,k,1+n) *= sqrtTwo;
                         flux(i,j,k,nvars+1) *= sqrtTwo;
                     } else {
+                        // transverse velocity and viscous heating (shear)
                         flux(i,j,k,1+n) *= factor;
                         flux(i,j,k,nvars+2) *= factor;
                     }
@@ -1591,9 +1626,11 @@ void StochFlux(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in,
                 amrex::ParallelFor(b, AMREX_SPACEDIM, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (n == 1) {
+                        // normal velocity and viscous heating (diagonal)
                         flux(i,j,k,1+n) *= sqrtTwo;
                         flux(i,j,k,nvars+1) *= sqrtTwo;
                     } else {
+                        // transverse velocity and viscous heating (shear)
                         flux(i,j,k,1+n) *= factor;
                         flux(i,j,k,nvars+2) *= factor;
                     }
@@ -1624,9 +1661,11 @@ void StochFlux(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in,
                 amrex::ParallelFor(b, AMREX_SPACEDIM, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (n == 2) {
+                        // normal velocity and viscous heating (diagonal)
                         flux(i,j,k,1+n) *= sqrtTwo;
                         flux(i,j,k,nvars+1) *= sqrtTwo;
                     } else {
+                        // transverse velocity and viscous heating (shear)
                         flux(i,j,k,1+n) *= factor;
                         flux(i,j,k,nvars+2) *= factor;
                     }
@@ -1654,9 +1693,11 @@ void StochFlux(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in,
                 amrex::ParallelFor(b, AMREX_SPACEDIM, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (n == 2) {
+                        // normal velocity and viscous heating (diagonal)
                         flux(i,j,k,1+n) *= sqrtTwo;
                         flux(i,j,k,nvars+1) *= sqrtTwo;
                     } else {
+                        // transverse velocity and viscous heating (shear)
                         flux(i,j,k,1+n) *= factor;
                         flux(i,j,k,nvars+2) *= factor;
                     }

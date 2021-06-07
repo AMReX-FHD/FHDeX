@@ -378,7 +378,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 
                 Real phiflxshear =  wiener[1]*(prim(i,j-1,k,1)+prim(i,j,k,1)) +
                     wiener[3]*(prim(i,j-1,k,3)+prim(i,j,k,3));
-                
+
                 phiflxdiag =  - 0.5*phiflxdiag;
                 phiflxshear =  - 0.5*phiflxshear;
 
@@ -535,7 +535,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 
                     }
 
-                    wiener[3] = wiener[3] + 0.25*nweight*   
+                    wiener[3] = wiener[3] + 0.25*nweight*
                         (sqrt(muzepp)*rancorn(i+1,j+1,k)+ sqrt(muzemp)*rancorn(i,j+1,k) + 
                          sqrt(muzepm)* rancorn(i+1,j,k)+ sqrt(muzemm)*rancorn(i,j,k)); // Random "divergence" stress
 
@@ -550,9 +550,9 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                     // Viscous heating:
                     Real phiflxdiag = wiener[3]*(prim(i,j,k-1,3)+prim(i,j,k,3));
                     
-                    Real phiflxshear =  wiener[1]*(prim(i,j,k-1,1)+prim(i,j,k,1)) +         
+                    Real phiflxshear =  wiener[1]*(prim(i,j,k-1,1)+prim(i,j,k,1)) +
                         wiener[2]*(prim(i,j,k-1,2)+prim(i,j,k,2));
-                    
+
                     phiflxdiag =  - 0.5*phiflxdiag;
                     phiflxshear =  - 0.5*phiflxshear;
 
@@ -708,7 +708,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
             fluxx(i,j,k,1) = fluxx(i,j,k,1) - (tauxxp+divxp);
             fluxx(i,j,k,2) = fluxx(i,j,k,2) - tauyxp;
             fluxx(i,j,k,3) = fluxx(i,j,k,3) - tauzxp;
-            
+
             // heat flux
             fluxx(i,j,k,nvars) = fluxx(i,j,k,nvars) - (kxp*(prim(i,j,k,4)-prim(i-1,j,k,4))/dx[0]);
 
