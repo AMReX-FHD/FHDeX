@@ -1521,14 +1521,15 @@ void StochFlux(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in,
                 amrex::ParallelFor(b, AMREX_SPACEDIM, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (n == 0) {
-                        // normal velocity and viscous heating (diagonal)
+                        // normal velocity
                         flux(i,j,k,1+n) *= sqrtTwo;
-                        flux(i,j,k,nvars+1) *= sqrtTwo;
                     } else {
-                        // transverse velocity and viscous heating (shear)
+                        // transverse velocity
                         flux(i,j,k,1+n) *= factor;
-                        flux(i,j,k,nvars+2) *= factor;
                     }
+                    // viscous heating (shear & diagonal)
+                    flux(i,j,k,nvars+2) *= factor;
+                    flux(i,j,k,nvars+1) *= sqrtTwo;
                 });
             }
         }
@@ -1556,14 +1557,15 @@ void StochFlux(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in,
                 amrex::ParallelFor(b, AMREX_SPACEDIM, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (n == 0) {
-                        // normal velocity and viscous heating (diagonal)
+                        // normal velocity
                         flux(i,j,k,1+n) *= sqrtTwo;
-                        flux(i,j,k,nvars+1) *= sqrtTwo;
                     } else {
-                        // transverse velocity and viscous heating (shear)
+                        // transverse velocity
                         flux(i,j,k,1+n) *= factor;
-                        flux(i,j,k,nvars+2) *= factor;
                     }
+                    // viscous heating (shear & diagonal)
+                    flux(i,j,k,nvars+2) *= factor;
+                    flux(i,j,k,nvars+1) *= sqrtTwo;
                 });
             }
         }
@@ -1591,14 +1593,15 @@ void StochFlux(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in,
                 amrex::ParallelFor(b, AMREX_SPACEDIM, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (n == 1) {
-                        // normal velocity and viscous heating (diagonal)
+                        // normal velocity
                         flux(i,j,k,1+n) *= sqrtTwo;
-                        flux(i,j,k,nvars+1) *= sqrtTwo;
                     } else {
-                        // transverse velocity and viscous heating (shear)
+                        // transverse velocity
                         flux(i,j,k,1+n) *= factor;
-                        flux(i,j,k,nvars+2) *= factor;
                     }
+                    // viscous heating (shear & diagonal)
+                    flux(i,j,k,nvars+2) *= factor;
+                    flux(i,j,k,nvars+1) *= sqrtTwo;
                 });
             }
         }
@@ -1626,14 +1629,15 @@ void StochFlux(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in,
                 amrex::ParallelFor(b, AMREX_SPACEDIM, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (n == 1) {
-                        // normal velocity and viscous heating (diagonal)
+                        // normal velocity
                         flux(i,j,k,1+n) *= sqrtTwo;
-                        flux(i,j,k,nvars+1) *= sqrtTwo;
                     } else {
-                        // transverse velocity and viscous heating (shear)
+                        // transverse velocity
                         flux(i,j,k,1+n) *= factor;
-                        flux(i,j,k,nvars+2) *= factor;
                     }
+                    // viscous heating (shear & diagonal)
+                    flux(i,j,k,nvars+2) *= factor;
+                    flux(i,j,k,nvars+1) *= sqrtTwo;
                 });
             }
         }
@@ -1661,14 +1665,15 @@ void StochFlux(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in,
                 amrex::ParallelFor(b, AMREX_SPACEDIM, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (n == 2) {
-                        // normal velocity and viscous heating (diagonal)
+                        // normal velocity
                         flux(i,j,k,1+n) *= sqrtTwo;
-                        flux(i,j,k,nvars+1) *= sqrtTwo;
                     } else {
-                        // transverse velocity and viscous heating (shear)
+                        // transverse velocity
                         flux(i,j,k,1+n) *= factor;
-                        flux(i,j,k,nvars+2) *= factor;
                     }
+                    // viscous heating (shear & diagonal)
+                    flux(i,j,k,nvars+2) *= factor;
+                    flux(i,j,k,nvars+1) *= sqrtTwo;
                 });
             }
         }
@@ -1693,14 +1698,15 @@ void StochFlux(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in,
                 amrex::ParallelFor(b, AMREX_SPACEDIM, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (n == 2) {
-                        // normal velocity and viscous heating (diagonal)
+                        // normal velocity
                         flux(i,j,k,1+n) *= sqrtTwo;
-                        flux(i,j,k,nvars+1) *= sqrtTwo;
                     } else {
-                        // transverse velocity and viscous heating (shear)
+                        // transverse velocity
                         flux(i,j,k,1+n) *= factor;
-                        flux(i,j,k,nvars+2) *= factor;
                     }
+                    // viscous heating (shear & diagonal)
+                    flux(i,j,k,nvars+2) *= factor;
+                    flux(i,j,k,nvars+1) *= sqrtTwo;
                 });
             }
         }
