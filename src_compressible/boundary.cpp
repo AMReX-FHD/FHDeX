@@ -1523,13 +1523,13 @@ void StochFlux(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in,
                     if (n == 0) {
                         // normal velocity
                         flux(i,j,k,1+n) *= sqrtTwo;
+                        // viscous heating (diagonal & shear)
+                        flux(i,j,k,nvars+1) *= sqrtTwo;
+                        flux(i,j,k,nvars+2) *= factor;
                     } else {
                         // transverse velocity
                         flux(i,j,k,1+n) *= factor;
                     }
-                    // viscous heating (shear & diagonal)
-                    flux(i,j,k,nvars+2) *= factor;
-                    flux(i,j,k,nvars+1) *= sqrtTwo;
                 });
             }
         }
@@ -1559,13 +1559,13 @@ void StochFlux(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in,
                     if (n == 0) {
                         // normal velocity
                         flux(i,j,k,1+n) *= sqrtTwo;
+                        // viscous heating (diagonal & shear)
+                        flux(i,j,k,nvars+1) *= sqrtTwo;
+                        flux(i,j,k,nvars+2) *= factor;
                     } else {
                         // transverse velocity
                         flux(i,j,k,1+n) *= factor;
                     }
-                    // viscous heating (shear & diagonal)
-                    flux(i,j,k,nvars+2) *= factor;
-                    flux(i,j,k,nvars+1) *= sqrtTwo;
                 });
             }
         }
@@ -1595,13 +1595,13 @@ void StochFlux(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in,
                     if (n == 1) {
                         // normal velocity
                         flux(i,j,k,1+n) *= sqrtTwo;
+                        // viscous heating (diagonal & shear)
+                        flux(i,j,k,nvars+1) *= sqrtTwo;
+                        flux(i,j,k,nvars+2) *= factor;
                     } else {
                         // transverse velocity
                         flux(i,j,k,1+n) *= factor;
                     }
-                    // viscous heating (shear & diagonal)
-                    flux(i,j,k,nvars+2) *= factor;
-                    flux(i,j,k,nvars+1) *= sqrtTwo;
                 });
             }
         }
@@ -1631,13 +1631,13 @@ void StochFlux(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in,
                     if (n == 1) {
                         // normal velocity
                         flux(i,j,k,1+n) *= sqrtTwo;
+                        // viscous heating (diagonal & shear)
+                        flux(i,j,k,nvars+1) *= sqrtTwo;
+                        flux(i,j,k,nvars+2) *= factor;
                     } else {
                         // transverse velocity
                         flux(i,j,k,1+n) *= factor;
                     }
-                    // viscous heating (shear & diagonal)
-                    flux(i,j,k,nvars+2) *= factor;
-                    flux(i,j,k,nvars+1) *= sqrtTwo;
                 });
             }
         }
@@ -1667,13 +1667,13 @@ void StochFlux(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in,
                     if (n == 2) {
                         // normal velocity
                         flux(i,j,k,1+n) *= sqrtTwo;
+                        // viscous heating (diagonal & shear)
+                        flux(i,j,k,nvars+1) *= sqrtTwo;
+                        flux(i,j,k,nvars+2) *= factor;
                     } else {
                         // transverse velocity
                         flux(i,j,k,1+n) *= factor;
                     }
-                    // viscous heating (shear & diagonal)
-                    flux(i,j,k,nvars+2) *= factor;
-                    flux(i,j,k,nvars+1) *= sqrtTwo;
                 });
             }
         }
@@ -1700,13 +1700,13 @@ void StochFlux(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in,
                     if (n == 2) {
                         // normal velocity
                         flux(i,j,k,1+n) *= sqrtTwo;
+                        // viscous heating (diagonal & shear)
+                        flux(i,j,k,nvars+1) *= sqrtTwo;
+                        flux(i,j,k,nvars+2) *= factor;
                     } else {
                         // transverse velocity
                         flux(i,j,k,1+n) *= factor;
                     }
-                    // viscous heating (shear & diagonal)
-                    flux(i,j,k,nvars+2) *= factor;
-                    flux(i,j,k,nvars+1) *= sqrtTwo;
                 });
             }
         }
