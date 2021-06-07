@@ -321,6 +321,23 @@ void FhdParticleContainer::EvaluateStats(MultiFab& particleInstant, MultiFab& pa
 
 }
 
+void FhdParticleContainer::Source(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount)
+{
+
+    AMREX_FOR_1D( paramPlaneCount, i,
+    {
+        if(paramPlaneList[i].sourceLeft == 1)
+        {
+
+
+        }
+
+
+    });
+
+
+}
+
 void FhdParticleContainer::SortParticles()
 {
     int lev = 0;
