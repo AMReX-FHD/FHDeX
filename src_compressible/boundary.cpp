@@ -981,7 +981,7 @@ void BCWallSpeciesFlux(std::array< MultiFab, AMREX_SPACEDIM >& faceflux, const a
                     for (int n=0;n<nspecies;++n) {
                         flux(i,j,k,n+5) = 0.;
                     }
-                    flux(i,j,k,n) = 0.;
+                    flux(i,j,k,0) = 0.;
                     flux(i,j,k,nvars+3) = 0.;
                 });
             }
@@ -1007,7 +1007,7 @@ void BCWallSpeciesFlux(std::array< MultiFab, AMREX_SPACEDIM >& faceflux, const a
                     for (int n=0;n<nspecies;++n) {
                         flux(i,j,k,n+5) = 0.;
                     }
-                    flux(i,j,k,n) = 0.;
+                    flux(i,j,k,0) = 0.;
                     flux(i,j,k,nvars+3) = 0.;
                 });
             }
@@ -1033,7 +1033,7 @@ void BCWallSpeciesFlux(std::array< MultiFab, AMREX_SPACEDIM >& faceflux, const a
                     for (int n=0;n<nspecies;++n) {
                         flux(i,j,k,n+5) = 0.;
                     }
-                    flux(i,j,k,n) = 0.;
+                    flux(i,j,k,0) = 0.;
                     flux(i,j,k,nvars+3) = 0.;
                 });
             }
@@ -1059,7 +1059,7 @@ void BCWallSpeciesFlux(std::array< MultiFab, AMREX_SPACEDIM >& faceflux, const a
                     for (int n=0;n<nspecies;++n) {
                         flux(i,j,k,n+5) = 0.;
                     }
-                    flux(i,j,k,n) = 0.;
+                    flux(i,j,k,0) = 0.;
                     flux(i,j,k,nvars+3) = 0.;
                 });
             }
@@ -1085,7 +1085,7 @@ void BCWallSpeciesFlux(std::array< MultiFab, AMREX_SPACEDIM >& faceflux, const a
                     for (int n=0;n<nspecies;++n) {
                         flux(i,j,k,n+5) = 0.;
                     }
-                    flux(i,j,k,n) = 0.;
+                    flux(i,j,k,0) = 0.;
                     flux(i,j,k,nvars+3) = 0.;
                 });
             }
@@ -1111,7 +1111,7 @@ void BCWallSpeciesFlux(std::array< MultiFab, AMREX_SPACEDIM >& faceflux, const a
                     for (int n=0;n<nspecies;++n) {
                         flux(i,j,k,n+5) = 0.;
                     }
-                    flux(i,j,k,n) = 0.;
+                    flux(i,j,k,0) = 0.;
                     flux(i,j,k,nvars+3) = 0.;
                 });
             }

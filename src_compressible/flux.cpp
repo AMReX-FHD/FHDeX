@@ -783,7 +783,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
             fluxy(i,j,k,3) = fluxy(i,j,k,3) - tauzyp;
 
             // heat flux
-            fluxy(i,j,k,nvars) = fluxy(i,j,k,nars) - (kyp*(prim(i,j,k,4)-prim(i,j-1,k,4))/dx[1]);
+            fluxy(i,j,k,nvars) = fluxy(i,j,k,nvars) - (kyp*(prim(i,j,k,4)-prim(i,j-1,k,4))/dx[1]);
 
             // viscous heating
             fluxy(i,j,k,nvars+1) = fluxy(i,j,k,nvars+1) - (half*phiflx);
