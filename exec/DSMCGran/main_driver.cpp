@@ -159,18 +159,17 @@ void main_driver(const char* argv)
 		particles.mfselect.define(ba, dmap, nspecies*nspecies, 0);
 		particles.mfselect.setVal(0.);
 		
-		particles.mfvrmax.define(ba, dmap, nspecies, 0);
-		particles.mfvrmax.setVal(0.);
-		
 		particles.mfphi.define(ba, dmap, nspecies, 0);
 		particles.mfphi.setVal(0.);
 		
-		particles.mfnspec.define(ba, dmap, nspecies, 0);
-		particles.mfnspec.setVal(0.);
+		particles.mfvrmax.define(ba, dmap, nspecies*nspecies, 0);
+		particles.mfvrmax.setVal(0.);
 		
 		particles.InitParticles(); // vrmax is also set here
+
+		//particles.InitCollisionCells();
 		
-		particles.InitCollisionCells();
+		//particles.CalcSelections(dt);
 	}
 	else {
         //load from checkpoint
@@ -184,22 +183,24 @@ void main_driver(const char* argv)
 	Real init_time = ParallelDescriptor::second() - strt_time;
 	ParallelDescriptor::ReduceRealMax(init_time);
 	amrex::Print() << "Initialization time = " << init_time << " seconds " << std::endl;
-	if(false){
+
+	// if(false) {
+	max_step = 100;
 	for (int istep=step; istep<=max_step; ++istep) {
 		// timer for time step
 		Real time1 = ParallelDescriptor::second();
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Collide Particles
 		//if (collide_tog != 0) {
-		// particles.CalcCollisionCells(dt);
-		//	particles.CollideParticles();
+		amrex::Print() << "Time step: " << istep << "\n";
+		//particles.CalcSelections(dt);
+		//particles.CollideParticles();
 		//}
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Move Particles
 		// total particle move (1=single step, 2=midpoint)
 		if (move_tog != 0) {
-			//particles.MoveParticlesCPP(dt, paramPlaneList, paramPlaneCount);
-			// particles.UpdateCollisionCells();
+			particles.MoveParticlesCPP(dt, paramPlaneList, paramPlaneCount);
 
             // reset statistics after step n_steps_skip
             // if n_steps_skip is negative, we use it as an interval
@@ -212,7 +213,7 @@ void main_driver(const char* argv)
                 
             }
 
-            Print() << "Finish move.\n";
+            // Print() << "Finish move.\n";
         }
 
         //particles.EvaluateStats(particleInstant, particleMeans, ionParticle[0], dt,statsCount);
@@ -224,7 +225,7 @@ void main_driver(const char* argv)
             particleMeans.setVal(0.0);
             particleVars.setVal(0.0);
 
-            Print() << "Resetting stat collection.\n";
+            // Print() << "Resetting stat collection.\n";
 
             statsCount = 1;
         }
@@ -232,10 +233,11 @@ void main_driver(const char* argv)
         // timer for time step
         Real time2 = ParallelDescriptor::second() - time1;
         ParallelDescriptor::ReduceRealMax(time2);
-        amrex::Print() << "Advanced step " << istep << " in " << time2 << " seconds\n";
+        // amrex::Print() << "Advanced step " << istep << " in " << time2 << " seconds\n";
         
         time = time + dt;
         // MultiFab memory usage
+        /*
         const int IOProc = ParallelDescriptor::IOProcessorNumber();
 
         amrex::Long min_fab_megabytes  = amrex::TotalBytesAllocatedInFabsHWM()/1048576;
@@ -253,11 +255,12 @@ void main_driver(const char* argv)
         ParallelDescriptor::ReduceLongMin(min_fab_megabytes, IOProc);
         ParallelDescriptor::ReduceLongMax(max_fab_megabytes, IOProc);
 
-        amrex::Print() << "Curent     FAB megabyte spread across MPI nodes: ["
+        amrex::Print() << "Current     FAB megabyte spread across MPI nodes: ["
                        << min_fab_megabytes << " ... " << max_fab_megabytes << "]\n";
-        
+        */        
     }
-    }
+    // } // omit time advancing
+
     ///////////////////////////////////////////
         //test change
     // timer for total simulation time

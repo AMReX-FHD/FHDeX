@@ -111,7 +111,7 @@ public:
 	// Main DSMC routines
 	void SortParticles();
 
-	void CalcCollisionCells(Real dt);
+	void CalcSelections(Real dt);
 	void CollideParticles();
 
 	void MoveParticlesCPP(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount);
@@ -146,7 +146,7 @@ public:
 	
 	// Evaluating radial distribution function
 	Real g0_Ma_Ahmadi(int species1, int species2, Real phi1, Real phi2);
-	const Real chi_max = 1000.0; // value is arbitrary (change as needed or maybe as input?)
+	const Real chi_max = 500.0; // value is arbitrary (change as needed or maybe as input?)
 	const Real phi_max = 0.643;
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -155,7 +155,6 @@ public:
 	MultiFab mfselect; // store number of selections
    MultiFab mfvrmax; // store max relative speed found
    // currently a single constant but updates over time
-   MultiFab mfnspec; // 
    MultiFab mfphi; // needed for evaluating radial distribution function
 	
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

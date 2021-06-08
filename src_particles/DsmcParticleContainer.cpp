@@ -26,38 +26,28 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
 		properties[i].mass = mass[i];
 		properties[i].radius = diameter[i]/2.0;
 		properties[i].partVol = pow(diameter[i],3)*pi_usr/6;
-		amrex::Print() << "Particle Volume:" << properties[i].partVol << "\n";
+		//amrex::Print() << "Particle Volume:" << properties[i].partVol << "\n";
       properties[i].part2cellVol = properties[i].partVol*ocollisionCellVol;
 		properties[i].Neff = particle_neff; // assume F_n is same for each
       
       // Overwrite particle_count
       properties[i].total = (phi_domain[i]*domainVol)/properties[i].partVol;
-		//amrex::Print() << "Phi: " << phi_domain[i] << "\n";
-		//amrex::Print() << "Part Vol: " << properties[i].partVol << "\n";
-		//amrex::Print() << "Domain Vol: " << domainVol << "\n";
-		//amrex::Print() << "Np: " << properties[i].total << "\n";
-		//amrex::Print() << "Phi: " << phi_domain[i] << "\n";
-      //amrex::Print() << "\n";
       realParticles = realParticles + properties[i].total*properties[i].Neff;
       //amrex::Print() << "Measured Phi: " << properties[i].total*properties[i].partVol/domainVol << "\n";
       properties[i].total = properties[i].total/properties[i].Neff;
       //amrex::Print() << "Measured Phi: " << properties[i].total*properties[i].partVol/domainVol << "\n";
       simParticles = simParticles + properties[i].total;
-      amrex::Print() << "Npi: " << properties[i].total << "\n";
+      //amrex::Print() << "Npi: " << properties[i].total << "\n";
 	}
    
    int indx;
+   int ij_spec;
    int cnt = 0;
 	for(int i_spec=0;i_spec<nspecies;i_spec++) {
 		for(int j_spec=i_spec;j_spec<nspecies;j_spec++) {
-			indx = getSpeciesIndex(i_spec,j_spec);
-    		interproperties[indx].inel = (1+alpha_pp[cnt])/6.0;
-    		// amrex::Print() << "Alpha: " << alpha_pp[cnt] << "\n";
-    		interproperties[indx].csx = (diameter[i_spec] + diameter[j_spec])*0.5*pi_usr;
-    		// amrex::Print() << "i: " << i_spec << " j: " << j_spec << "\n";
-    		// amrex::Print() << "InElastic: " << interproperties[indx].inel << "\n";
-    		// amrex::Print() << "CSX: " << interproperties[indx].csx << "\n";
-    		// amrex::Print() << "\n";
+			ij_spec = getSpeciesIndex(i_spec,j_spec);
+    		interproperties[ij_spec].inel = (1+alpha_pp[cnt])/6.0; // need to find better way to input this
+    		interproperties[ij_spec].csx = pow(properties[i_spec].radius+properties[j_spec].radius,2)*pi_usr;
     		cnt++;
 		}
 	}
@@ -78,30 +68,46 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
 
 // Likely excessive
 // Relates lower diagonal matrix indices to those of 1D array
+// Problematic when nspecies = max_species (last index will cause seg fault)
 int FhdParticleContainer::getSpeciesIndex(int species1, int species2) {
 	if(species1<species2){
-		return species1+(nspecies-1)*species2;
-	} else {
 		return species2+(nspecies-1)*species1;
+	} else {
+		return species1+(nspecies-1)*species2;
 	}
 }
 
-// Use to approximate pair correlation fuunc with radial distr. func
-Real FhdParticleContainer::g0_Ma_Ahmadi(int species1, int species2, Real phi1, Real phi2){
-	const double C1 = 2.5, C2 = 4.5904;
-	const double C3 = 4.515439, CPOW = 0.67802;
-
-	if(species1==species2) {
-		Real phiTotal = phi1 + phi2;
-		Real numer = 1 + C1*phiTotal + C2*pow(phiTotal,2) + C3*pow(phiTotal,3);
-		numer = numer * 4.0*phiTotal;
-		Real phiRatio = phiTotal/phi_max;
+// Use to approximate pair correlation func with radial distr. func
+Real FhdParticleContainer::g0_Ma_Ahmadi(int ispec, int jspec, Real iphi, Real jphi){
+	const Real C1 = 2.5, C2 = 4.5904;
+	const Real C3 = 4.515439, CPOW = 0.67802;
+	Real chi;
+	if(ispec==jspec) {
+		// Ma Ahmadi 1990s ish
+		Real numer = 1 + C1*iphi + C2*pow(iphi,2) + C3*pow(iphi,3);
+		numer = numer * 4.0*iphi;
+		Real phiRatio = iphi/phi_max;
 		Real denom = pow(1.0 - pow(phiRatio,3),CPOW);
-		return std::min(1+numer/denom,chi_max);
+		chi = 1+numer/denom;
+		return std::min(chi,chi_max);
 	} else {
-	 // add Lebowitz RDF here
+		// Mansoori et al (1971) Equ. Thermo. Prop. of the Mix. of HS
+		// Agreement looks good up to 0.50 solid fraction from paper
+		// Will likely underestimate near packing
+		// Also allows packing fractions past the max packing fraction
+		const Real phiTotal = iphi + jphi;
+		const Real irad = properties[ispec].radius;
+		const Real jrad = properties[jspec].radius;
+		Real a1 = 1.0/(1.0-phiTotal);
+		Real a2 = 3.0*irad*jrad/(irad+jrad);
+		Real eta2 = (iphi/irad) + (jphi/jrad);
+		eta2 = eta2/pow(1.0-phiTotal,2);
+		a2 = a2 * eta2;
+		Real a3 = 2.0 * pow((irad*jrad)/(irad+jrad),2);
+		a3 = a3 * pow(eta2,2) / pow(1.0-phiTotal,3);
+		chi = a1 + a2 + a3;
+		return std::min(chi,chi_max);
 	}
-	return 0;
 }
 
 void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount)
@@ -128,6 +134,7 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
 
     long moves = 0;
     int reDist = 0;
+    
 
     for (FhdParIter pti(* this, lev); pti.isValid(); ++pti) {
 
@@ -138,6 +145,9 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
         auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
         auto& particles = particle_tile.GetArrayOfStructs();
         const long np = particles.numParticles();
+        
+        // Update solid fraction here ( and at sort_particles() )
+        const Array4<Real> & arrphi = mfphi.array(pti);
 
         Box bx  = pti.tilebox();
         IntVect myLo = bx.smallEnd();
@@ -233,6 +243,12 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
                 particles[lastPart].idata(FHD_intData::sorted) = newIndex;
 
                 part.idata(FHD_intData::sorted) = -1;
+                
+                // reduce solid fraction
+                //int ispec = part.idata(FHD_intData::species);
+                //arrphi(iv[0],iv[1],iv[2],ispec) =
+                //	arrphi(iv[0],iv[1],iv[2],ispec) - properties[ispec].partVol*properties[ispec].Neff*ocollisionCellVol;
+                
             }
         }
 
@@ -269,6 +285,9 @@ void FhdParticleContainer::SortParticles() {
 		auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
 		auto& particles = particle_tile.GetArrayOfStructs();
 		const long np = particles.numParticles();
+		
+      // Update solid fraction here ( and at MoveParticlesCPP() )
+      const Array4<Real> & arrphi = mfphi.array(pti);
 
 		for (int i = 0; i < np; ++ i) {
 			ParticleType & part = particles[i];
@@ -285,12 +304,17 @@ void FhdParticleContainer::SortParticles() {
 				part.idata(FHD_intData::sorted) = m_cell_vectors[part.idata(FHD_intData::species)][pti.index()][imap].size();
 
 				m_cell_vectors[part.idata(FHD_intData::species)][pti.index()][imap].push_back(i);
+				
+				// increase solid fraction in cell
+				//int ispec = part.idata(FHD_intData::species);
+				//arrphi(iv[0],iv[1],iv[2],ispec) =
+				//	arrphi(iv[0],iv[1],iv[2],ispec) + properties[ispec].partVol*properties[ispec].Neff*ocollisionCellVol;
 			}
 		}
 	}
 }
 
-void FhdParticleContainer::InitCollisionCells() {
+void FhdParticleContainer::InitCollisionCells() {	
 	const int lev = 0;
 	for (FhdParIter pti(* this, lev); pti.isValid(); ++pti) {
 		const int grid_id = pti.index();
@@ -299,55 +323,40 @@ void FhdParticleContainer::InitCollisionCells() {
 		
 		auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
 		auto& particles = particle_tile.GetArrayOfStructs();
-		// const long np = particles.numParticles();
 		
 		// Convert MultiFabs -> arrays
 		const Array4<Real> & arrvrmax = mfvrmax.array(pti);
 		const Array4<Real> & arrphi = mfphi.array(pti);
 		const Array4<Real> & arrselect = mfselect.array(pti);
-		const Array4<Real> & arrnspec = mfnspec.array(pti);
 		
 		// if we have scalar in the particle container, can update and keep track
 		amrex::ParallelFor(tile_box,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
 
+			
 			// Initialize mfs
 			int ij_spec;
 			for (int i_spec=0; i_spec<nspecies; i_spec++) {
-				arrnspec(i,j,k,i_spec) = 0.0;	
 				for (int j_spec = i_spec; j_spec < nspecies; j_spec++) {
 					ij_spec = getSpeciesIndex(i_spec,j_spec);
-					// Print() << ij_spec << "\n";
 					arrselect(i,j,k,ij_spec) = 0.0;
 				}
 			}
-			
-			ParticleType p;
-			int p_spec, pindx;
-			
+					
 			const IntVect& iv = {i,j,k};
 			long imap = tile_box.index(iv);
-			const long np = m_cell_vectors[grid_id][imap].size();
-			for (int l=0; l<np; l++) {
-				pindx = m_cell_vectors[grid_id][imap][l];
-				ParticleType p = particles[pindx];
-				p_spec = p.idata(FHD_intData::species);
-				arrnspec(i,j,k,p_spec) = arrnspec(i,j,k,p_spec) + 1; // merge daniel's
-			}
-			// amrex::Print() << "Np: " << arrnspec(i,j,k,0) << "\n";
+
 			for (int i_spec=0; i_spec<nspecies; i_spec++) {
 				// phi = np * particle volume * collision cell volume * Neff
-				arrphi(i,j,k,i_spec) = arrnspec(i,j,k,i_spec)
+				arrphi(i,j,k,i_spec) = m_cell_vectors[i_spec][grid_id][imap].size()
 					*properties[i_spec].partVol*ocollisionCellVol*properties[i_spec].Neff;
-				// amrex::Print() << "Phi: " << arrphi(i,j,k,i_spec) << "\n";
 			}
 		});
-		
 	}
 }
 
 
 // Compute selections here
-void FhdParticleContainer::CalcCollisionCells(Real dt) {
+void FhdParticleContainer::CalcSelections(Real dt) {
 	int lev = 0;
 	for(MFIter mfi(mfvrmax); mfi.isValid(); ++mfi) {
 		const Box& tile_box  = mfi.tilebox();
@@ -356,48 +365,64 @@ void FhdParticleContainer::CalcCollisionCells(Real dt) {
 		auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
 		auto& particles = particle_tile.GetArrayOfStructs();
 
-
 		// Convert MultiFabs -> arrays
 		const Array4<Real> & arrvrmax = mfvrmax.array(mfi);
 		const Array4<Real> & arrphi = mfphi.array(mfi);
 		const Array4<Real> & arrselect = mfselect.array(mfi);
-		const Array4<Real> & arrnspec = mfnspec.array(mfi);
 		
-		int spec_indx;
-		Real NSel; // Number of selections this time step
-		Real phi1, phi2, chi0; // radial distribution function (enhance collision frequency)
-		Real crossSection;
-		int np_i, np_j; // number of particles in collision cell for species i and j
-		
+		// anything defined outside of parallelfor is read-only
 		amrex::ParallelFor(tile_box,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {       
 		
+			int ij_spec;
+			long np_i, np_j;
+			
+			const IntVect& iv = {i,j,k};
+			long imap = tile_box.index(iv);		
+
 			Real vrmax;
+			Real NSel;
+			Real phi1, phi2, chi0;
+			Real crossSection;
+			
 			// Update number of selections
 			// Note that the inner loop goes from 0 to nspecies but the selections calculated
-			// ... are stored in the same index.
+			// ... for same species pair are stored in the same index.
+			// i.e. 1-2 and 2-1 both calculated and stored at same index ij_spec
 			for (int i_spec = 0; i_spec < nspecies; i_spec++) {
 				for (int j_spec = 0; j_spec < nspecies; j_spec++) {
-					spec_indx = getSpeciesIndex(i_spec,j_spec);
-					np_i = arrnspec(i,j,k,spec_indx);
-					np_j = arrnspec(i,j,k,spec_indx);
+					ij_spec = getSpeciesIndex(i_spec,j_spec);
+					np_i = m_cell_vectors[i_spec][grid_id][imap].size();
+					np_j = m_cell_vectors[j_spec][grid_id][imap].size();
 					phi1 = arrphi(i,j,k,i_spec);
 					phi2 = arrphi(i,j,k,j_spec);
 					// comment out if expecting dilute
 					chi0 = g0_Ma_Ahmadi(i_spec,j_spec, phi1, phi2);
-					vrmax = arrvrmax(i,j,k,spec_indx);
-					crossSection = interproperties[spec_indx].csx;
+					vrmax = arrvrmax(i,j,k,i_spec);
+					crossSection = interproperties[ij_spec].csx;
+					
+					//amrex::Print() << "Old Selections: " << arrselect(i,j,k,ij_spec) << "\n";
 					NSel = 0.5*np_i*np_j*crossSection*vrmax*ocollisionCellVol*chi0*dt;
-					arrselect(i,j,k,spec_indx) = arrselect(i,j,k,spec_indx) + NSel;
+					// Currently running total
+					arrselect(i,j,k,ij_spec) = arrselect(i,j,k,ij_spec) + NSel;
+					//amrex::Print() << "New Selections: " << arrselect(i,j,k,ij_spec) << "\n";
 					// Needs to be tested!
 					// NSel = std::floor(Nsel + amrex::random());
 					// arrselect(i,j,k,spec_indx) = NSel;
 				}
 			}
+			// check that solid fractions are being updated over time
+			//for (int i_spec = 0; i_spec < nspecies; i_spec++) {
+			//	Real phimf = arrphi(i,j,k,i_spec);
+			//	Real phinp = m_cell_vectors[i_spec][grid_id][imap].size()
+			//		*properties[i_spec].partVol*properties[i_spec].Neff*ocollisionCellVol;
+			//	amrex::Print() << "Phi MF: " << phimf << " Phi MCell: " << phinp << "\n";
+			//}
 		});
 	}
 }
 
 void FhdParticleContainer::CollideParticles() {
+	/*
 	int lev = 0;
 	for(MFIter mfi(mfvrmax); mfi.isValid(); ++mfi) {
 		const Box& tile_box  = mfi.tilebox();
@@ -418,12 +443,9 @@ void FhdParticleContainer::CollideParticles() {
 			const IntVect& iv = {i,j,k};
 			long imap = tile_box.index(iv);
 			bool pairFound;
-		
-			RealVect eij, vreij;
-			RealVect vel1, vel2, vr;
-			Real vrmag, vrmax, vreijmag;
 
-			// Garic: Random selections - no species order
+			// Garcia: Random selections - no species order
+			/*
 			int spec_indx;
 			int totalSel = 0;
 			int Nsel_spec[nspecies][3];
@@ -455,54 +477,47 @@ void FhdParticleContainer::CollideParticles() {
 				
 				
 			}
+			//
 			
 			
 			
 			
 			int NSel; // Number of selections this time step
-			int pindx1, pindx2; // index of randomly sampled particles
-			int p1_spec, p2_spec; // species of random particles
-			ParticleType p1, p2;
-			int np_i, np_j, np_total; // number of particles in collision cell for species i and j
+			int pindxi, pindxj; // index of randomly sampled particles
+			ParticleType pi, pj;
+			int np_i, np_j; // number of particles in collision cell for species i and j
+			
+			RealVect eij, vreij;
+			RealVect vi, vj, vij;
+			Real vrmag, vrmax, vreijmag;
 			// Loops through species pairs
 			for (int i_spec = 0; i_spec < nspecies; i_spec++) {
 				for (int j_spec = i_spec; j_spec < nspecies; j_spec++) {
 				spec_indx = getSpeciesIndex(i_spec,j_spec);
 				NSel = floor(arrselect(i,j,k,spec_indx));
 				arrselect(i,j,k,spec_indx) = arrselect(i,j,k,spec_indx) - NSel;
-				np_i = arrnspec(i,j,k,spec_indx);
-				np_j = arrnspec(i,j,k,spec_indx);
+				np_i = m_cell_vectors[i_spec][grid_id][imap].size();
+				np_j = m_cell_vectors[j_spec][grid_id][imap].size();
 				np_total = np_i + np_j; // initially sample from all particles
 				vrmax = arrvrmax(i,j,k,spec_indx);
 				// Loop through selections
 				for (int isel = 0; isel < NSel; isel++) {
-					pairFound = false;
-					while(!pairFound) {
-						// p1 = floor(amrex::Random()*np_i);
-						// p2 = floor(amrex::Random()*np_j);
-						pindx1 = floor(amrex::Random()*np_total);
-						pindx2 = floor(amrex::Random()*np_total);
-						// p1 = m_cell_vectors[i_spec][grid_id][imap][p1];
-						// p2 = m_cell_vectors[j_spec][grid_id][imap][p2];
-						pindx1 = m_cell_vectors[grid_id][imap][pindx1];
-						pindx2 = m_cell_vectors[grid_id][imap][pindx2];
-						p1 = particles[pindx1];
-						p2 = particles[pindx2];
-						p1_spec = p1.idata(FHD_intData::species);
-						p2_spec = p2.idata(FHD_intData::species);
-						if(p1_spec == i_spec && p2_spec == j_spec) {
-							pairFound = true;
-						}
-					}
-					vel1[0] = p1.rdata(FHD_realData::velx);
-					vel1[1] = p1.rdata(FHD_realData::vely);
-					vel1[2] = p1.rdata(FHD_realData::velz);
-					vel2[0] = p2.rdata(FHD_realData::velx);
-					vel2[1] = p2.rdata(FHD_realData::vely);
-					vel2[2] = p2.rdata(FHD_realData::velz);
-					vr[0] = vel2[0]-vel1[0];
-					vr[1] = vel2[1]-vel1[1];
-					vr[2] = vel2[2]-vel1[2];
+					pindxi = floor(amrex::Random()*np_i);
+					pindxj = floor(amrex::Random()*np_j);
+					pindxi = m_cell_vectors[i_spec][grid_id][imap][pindxi];
+					pindxj = m_cell_vectors[j_spec][grid_id][imap][pindxj];
+					pi = particles[pindx1];
+					pj = particles[pindx2];
+
+					vi[0] = pi.rdata(FHD_realData::velx);
+					vi[1] = pi.rdata(FHD_realData::vely);
+					vi[2] = pi.rdata(FHD_realData::velz);
+					vj[0] = pj.rdata(FHD_realData::velx);
+					vj[1] = pj.rdata(FHD_realData::vely);
+					vj[2] = pj.rdata(FHD_realData::velz);
+					vij[0] = vj[0]-vi[0];
+					vij[1] = vj[1]-vi[1];
+					vij[2] = vj[2]-vi[2];
 					// vrmag = sqrt(vr.dotProduct(vr));
 					vrmag = sqrt(vr[0]*vr[0]+vr[1]*vr[1]+vr[2]*vr[2]);
 					// If relative speed greater than max relative speed, replace
@@ -528,6 +543,7 @@ void FhdParticleContainer::CollideParticles() {
 			}
 		}
 	}
+	*/
 }
 
 void FhdParticleContainer::EvaluateStats(MultiFab& particleInstant, MultiFab& particleMeans,

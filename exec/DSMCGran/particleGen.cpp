@@ -36,7 +36,6 @@ void FhdParticleContainer::InitParticles() {
 		if(ParallelDescriptor::MyProc() == 0 && mfi.LocalTileIndex() == 0 && proc0_enter) {
 			proc0_enter = false;
 			std::ifstream particleFile("particles.dat");
- 			amrex::Print() << "Max Speed: " << spdmax << "\n";
 			for(int i_spec=0; i_spec < nspecies; i_spec++) {
 				//amrex::Print() << "Initial Temp: " << T_init[i_spec] << "\n";
 				for (int i_part=0; i_part<properties[i_spec].total;i_part++) {
@@ -45,6 +44,7 @@ void FhdParticleContainer::InitParticles() {
 //					std::cout << "ID: " << p.id() << "\n";
 					p.cpu() = ParallelDescriptor::MyProc();
 					p.idata(FHD_intData::sorted) = -1;
+					p.idata(FHD_intData::species) = i_spec;
 
 					if(particle_placement == 1) {
                	particleFile >> p.pos(0);                       
@@ -60,6 +60,8 @@ void FhdParticleContainer::InitParticles() {
 					vpart[0] = sqrt(T_init[i_spec]/3)*amrex::RandomNormal(0.,1.);
 					vpart[1] = sqrt(T_init[i_spec]/3)*amrex::RandomNormal(0.,1.);
 					vpart[2] = sqrt(T_init[i_spec]/3)*amrex::RandomNormal(0.,1.);
+					//amrex::Print() << "Velocity: " << vpart[0] << "," << vpart[1] <<
+					//	"," << vpart[2] << "\n"; 
 					spd = sqrt(vpart[0]*vpart[0]+vpart[1]*vpart[1]+vpart[2]*vpart[2]);
 					// amrex::Print() << spd << "\n";
 					if(spd>spdmax){
@@ -74,8 +76,6 @@ void FhdParticleContainer::InitParticles() {
 					p.rdata(FHD_realData::boosty) = 0;
 					p.rdata(FHD_realData::boostz) = 0;
                     
-					// keep track of species
-					p.idata(FHD_intData::species) = i_spec;
 					particle_tile.push_back(p);
 
 					pcount++;
@@ -93,7 +93,8 @@ void FhdParticleContainer::InitParticles() {
 		//	arr_vrmax(0,0,0,i_spec) = spdmax; 
 		//}
 	}
-	mfvrmax.setVal(spdmax); // set same spdmax to all
+	
+	mfvrmax.setVal(spdmax);
 
 	Redistribute();
 	SortParticles();
