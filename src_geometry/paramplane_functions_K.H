@@ -134,7 +134,9 @@ void rotation(Real costheta, Real sintheta, Real cosphi, Real sinphi, Real *cx, 
 
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+// uncomment this once this routine is on a GPU device
+// then the amrex::Random() calls will need to be fixed
+//AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void randomhemisphere(Real costheta, Real sintheta, Real cosphi, Real sinphi, Real *cx, Real *cy, Real *cz)
 {
     Real mag, costhetanew, sinthetanew, cosphinew, sinphinew, phi;
@@ -159,7 +161,9 @@ void randomhemisphere(Real costheta, Real sintheta, Real cosphi, Real sinphi, Re
 
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+// uncomment this once this routine is on a GPU device
+// then the amrex::Random() calls will need to be fixed
+//AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void app_bc_gpu(const paramPlane* surf, FhdParticleContainer::ParticleType& part, int intside, Real* domsize, int *push, Real time, Real inttime)
 {
     
