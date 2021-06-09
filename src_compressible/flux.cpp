@@ -178,10 +178,10 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 Real phiflxdiag =  wiener[1]*(prim(i-1,j,k,1)+prim(i,j,k,1));
 
                 Real phiflxshear = wiener[2]*(prim(i-1,j,k,2)+prim(i,j,k,2)) +
-                    wiener[3]*(prim(i-1,j,k,3)+prim(i,j,k,3));
+                                   wiener[3]*(prim(i-1,j,k,3)+prim(i,j,k,3));
 
-                phiflxdiag =  - 0.5*phiflxdiag;
-                phiflxshear =  - 0.5*phiflxshear;
+                phiflxdiag = -0.5*phiflxdiag;
+                phiflxshear = -0.5*phiflxshear;
 
                 fluxx(i,j,k,nvars+1) = fluxx(i,j,k,nvars+1) - phiflxdiag;
                 fluxx(i,j,k,nvars+2) = fluxx(i,j,k,nvars+2) - phiflxshear;
@@ -376,11 +376,11 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 // Viscous heating:
                 Real phiflxdiag = wiener[2]*(prim(i,j-1,k,2)+prim(i,j,k,2));
                 
-                Real phiflxshear =  wiener[1]*(prim(i,j-1,k,1)+prim(i,j,k,1)) +
-                    wiener[3]*(prim(i,j-1,k,3)+prim(i,j,k,3));
+                Real phiflxshear = wiener[1]*(prim(i,j-1,k,1)+prim(i,j,k,1)) +
+                                   wiener[3]*(prim(i,j-1,k,3)+prim(i,j,k,3));
 
-                phiflxdiag =  - 0.5*phiflxdiag;
-                phiflxshear =  - 0.5*phiflxshear;
+                phiflxdiag = -0.5*phiflxdiag;
+                phiflxshear = -0.5*phiflxshear;
 
                 fluxy(i,j,k,nvars+1) = fluxy(i,j,k,nvars+1) - phiflxdiag;
                 fluxy(i,j,k,nvars+2) = fluxy(i,j,k,nvars+2) - phiflxshear;
@@ -550,11 +550,11 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                     // Viscous heating:
                     Real phiflxdiag = wiener[3]*(prim(i,j,k-1,3)+prim(i,j,k,3));
                     
-                    Real phiflxshear =  wiener[1]*(prim(i,j,k-1,1)+prim(i,j,k,1)) +
-                        wiener[2]*(prim(i,j,k-1,2)+prim(i,j,k,2));
+                    Real phiflxshear = wiener[1]*(prim(i,j,k-1,1)+prim(i,j,k,1)) +
+                                       wiener[2]*(prim(i,j,k-1,2)+prim(i,j,k,2));
 
-                    phiflxdiag =  - 0.5*phiflxdiag;
-                    phiflxshear =  - 0.5*phiflxshear;
+                    phiflxdiag = -0.5*phiflxdiag;
+                    phiflxshear = -0.5*phiflxshear;
 
                     fluxz(i,j,k,nvars+1) = fluxz(i,j,k,nvars+1) - phiflxdiag;
                     fluxz(i,j,k,nvars+2) = fluxz(i,j,k,nvars+2) - phiflxshear;
