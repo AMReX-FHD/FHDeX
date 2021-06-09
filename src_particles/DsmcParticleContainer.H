@@ -120,6 +120,8 @@ public:
 	// Outputs
 	void EvaluateStats(MultiFab& particleInstant, MultiFab& particleMeans,
                                          MultiFab& particleVars, const Real delt, int steps);
+                                         
+   Real grantemp;
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	// Scalars

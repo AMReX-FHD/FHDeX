@@ -17,7 +17,6 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
 	simParticles = 0;
 	 
 	totalCollisionCells = n_cells[0]*n_cells[1]*n_cells[2];
-	// amrex::Print() << "Max Grid Size: " << max_grid_size[0]*max_grid_size[1]*max_grid_size[2] << "\n";
 	domainVol = (prob_hi[0] - prob_lo[0])*(prob_hi[1] - prob_lo[1])*(prob_hi[2] - prob_lo[2]);
 
 	collisionCellVol = domainVol/totalCollisionCells;
@@ -26,8 +25,6 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
 		properties[i].mass = mass[i];
 		properties[i].radius = diameter[i]/2.0;
 		properties[i].partVol = pow(diameter[i],3)*pi_usr/6;
-		//amrex::Print() << "Diameter:" << diameter[i] << "\n";
-		//amrex::Print() << "Particle Volume:" << properties[i].partVol << "\n";
       properties[i].part2cellVol = properties[i].partVol*ocollisionCellVol;
 		properties[i].Neff = particle_neff; // assume F_n is same for each
       
@@ -36,11 +33,6 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
       	(phi_domain[i]*domainVol)/(properties[i].partVol*properties[i].Neff) );
       simParticles = simParticles + properties[i].total;
       realParticles = realParticles + properties[i].total*properties[i].Neff;
-      //amrex::Print() << "Measured Phi: " << properties[i].total*properties[i].partVol*properties[i].Neff/domainVol << "\n";
-      //amrex::Print() << "Measured Phi: " << phi_domain[i] << "\n";
-      //amrex::Print() << "Domain volume: " << domainVol << "\n";
-      //amrex::Print() << "Neff: " << properties[i].Neff << "\n";
-      //amrex::Print() << "Npi: " << properties[i].total << "\n";
 	}
    
    int indx;
@@ -332,10 +324,8 @@ void FhdParticleContainer::InitCollisionCells() {
 		const Array4<Real> & arrphi = mfphi.array(pti);
 		const Array4<Real> & arrselect = mfselect.array(pti);
 		
-		// if we have scalar in the particle container, can update and keep track
 		amrex::ParallelFor(tile_box,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
 
-			
 			// Initialize mfs
 			int ij_spec;
 			for (int i_spec=0; i_spec<nspecies; i_spec++) {
@@ -669,7 +659,9 @@ void FhdParticleContainer::EvaluateStats(MultiFab& particleInstant, MultiFab& pa
 
 	// zero instantaneous values
 	particleInstant.setVal(0.);
-    
+   
+   grantemp = 0.0;
+   
 	for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) {
 		PairIndex index(pti.index(), pti.LocalTileIndex());
 		const int np = this->GetParticles(lev)[index].numRealParticles();
@@ -723,5 +715,29 @@ void FhdParticleContainer::EvaluateStats(MultiFab& particleInstant, MultiFab& pa
 
             part_var(i,j,k,1)  = (part_var(i,j,k,1)*stepsMinusOne + del1*del1)*stepsInv;            
 		});
+		
+		const long grid_id = pti.index();
+		amrex::ParallelFor(tile_box,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
+					
+			const IntVect& iv = {i,j,k};
+			long imap = tile_box.index(iv);
+			Real spdsq;
+			ParticleType ptemp;
+			long pindx;
+
+			for (int i_spec=0; i_spec<nspecies; i_spec++) {
+				// phi = np * particle volume * collision cell volume * Neff
+				long npcell = m_cell_vectors[i_spec][grid_id][imap].size();
+				for (int i_part=0; i_part<npcell; i_part++) {
+					pindx = m_cell_vectors[i_spec][grid_id][imap][i_part];
+					ptemp =  particles[pindx];
+					ParticleType & p = ptemp;
+					spdsq = sqrt(pow(p.rdata(FHD_realData::velx),2)+
+						pow(p.rdata(FHD_realData::vely),2)+pow(p.rdata(FHD_realData::velz),2));
+					grantemp = grantemp + properties[i_spec].mass*spdsq;
+				}
+			}
+		});
 	}
+	amrex::Print() << "GranTemp: " << grantemp << "\n";
 }

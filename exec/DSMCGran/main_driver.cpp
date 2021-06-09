@@ -169,7 +169,6 @@ void main_driver(const char* argv)
 
 		particles.InitCollisionCells();
 		
-		//particles.CalcSelections(dt);
 	}
 	else {
         //load from checkpoint
@@ -184,7 +183,6 @@ void main_driver(const char* argv)
 	ParallelDescriptor::ReduceRealMax(init_time);
 	amrex::Print() << "Initialization time = " << init_time << " seconds " << std::endl;
 
-	//if(false) {
 	for (int istep=step; istep<=max_step; ++istep) {
 		// timer for time step
 		Real time1 = ParallelDescriptor::second();
@@ -215,7 +213,7 @@ void main_driver(const char* argv)
             // Print() << "Finish move.\n";
         }
 
-        //particles.EvaluateStats(particleInstant, particleMeans, ionParticle[0], dt,statsCount);
+        particles.EvaluateStats(particleInstant, particleMeans, particleVars, dt,statsCount);
         statsCount++;
  
         if ((n_steps_skip > 0 && istep == n_steps_skip) ||
@@ -258,7 +256,6 @@ void main_driver(const char* argv)
                        << min_fab_megabytes << " ... " << max_fab_megabytes << "]\n";
         */        
     }
-    //} // omit time advancing
 
     ///////////////////////////////////////////
         //test change
