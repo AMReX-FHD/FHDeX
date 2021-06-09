@@ -1311,7 +1311,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 xflux(i,j,k,4) += primitive[1]*conserved[4] + primitive[5]*primitive[1];
 
                 // also add the diffusive + stochastic contributions from heat flux, viscous heating and Dufour effects
-                xflux(i,j,k,4) += xflux(i,j,k,nvars) + xflux(i,j,k,nvars+1) + xflux(i,j,k,nvars+3) + xflux(i,j,k,nvars+3);
+                xflux(i,j,k,4) += xflux(i,j,k,nvars) + xflux(i,j,k,nvars+1) + xflux(i,j,k,nvars+2) + xflux(i,j,k,nvars+3);
 
                 if (algorithm_type == 2) { // Add advection of concentration
                     for (int n=0; n<nspecies; ++n) {
