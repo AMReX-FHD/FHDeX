@@ -93,6 +93,8 @@ public:
     void InitParticles();
     void SortParticles();
 
+    void Source(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount);
+
     void MoveParticlesCPP(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount);
 
     void EvaluateStats(MultiFab& particleInstant, MultiFab& particleMeans,
