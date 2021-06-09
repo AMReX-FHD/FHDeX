@@ -922,6 +922,11 @@ void main_driver(const char* argv)
 
 
     dt = dt*1e-5;
+    if(step < 40 && step > 20) dt = dt*10;
+    if(step < 60 && step > 40) dt = dt*100;
+    if(step < 80 && step > 60) dt = dt*1000;
+    if(step < 100 && step > 80) dt = dt*10000;
+    if(step > 100) dt = dt*100000;
 
     particles.initRankLists(simParticles);
 
@@ -966,11 +971,11 @@ void main_driver(const char* argv)
         }
 
 
-        if(istep == 1)
-        {
-            particles.SetPosition(1, prob_hi[0]*0.8, prob_lo[1]+2*dx[1], prob_hi[2]*0.5);
-            particles.SetPosition(2, prob_hi[0]*0.8, prob_hi[1]-2*dx[1], prob_hi[2]*0.5);
-        }
+        //if(istep == 1)
+        //{
+        //    particles.SetPosition(1, prob_hi[0]*0.2, prob_hi[1]-2*dx[1], prob_hi[2]*0.5);
+        //    particles.SetPosition(2, prob_hi[0]*0.8, prob_hi[1]-2*dx[1], prob_hi[2]*0.5);
+        //}
 
     
         //Most of these functions are sensitive to the order of execution. We can fix this, but for now leave them in this order.
@@ -1277,7 +1282,7 @@ void main_driver(const char* argv)
                             potential, potentialM);
         }
 
-        particles.PrintParticles();
+        //particles.PrintParticles();
 
         // timer for time step
         Real time2 = ParallelDescriptor::second() - time1;

@@ -167,25 +167,25 @@ void esSolve(MultiFab& potential, MultiFab& charge,
         //This routine calculates \nabla\phi; we need -\nabla\phi
         //This is done by setting factor to -1
         ComputeCentredGrad(potential, efieldCC, geom, -1);
-        {
-            std::string filename = "Ey0";
-            outputMFAscii(efieldCC[1],filename);
-        }
+//        {
+//            std::string filename = "Ey0";
+//            outputMFAscii(efieldCC[1],filename);
+//        }
     }
 
     //Add external field on top, then fill boundaries, then setup BCs for peskin interpolation
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         efieldCC[d].FillBoundary(geom.periodicity());
         MultiFabElectricBC(efieldCC[d], geom, d);
-        {
-            std::string filename = "Ey1";
-            outputMFAscii(efieldCC[1],filename);
-        }
+//        {
+//            std::string filename = "Ey1";
+//            outputMFAscii(efieldCC[1],filename);
+//        }
         MultiFab::Add(efieldCC[d], externalCC[d], 0, 0, 1, efieldCC[d].nGrow());
-        {
-            std::string filename = "Ey2";
-            outputMFAscii(efieldCC[1],filename);
-        }
+//        {
+//            std::string filename = "Ey2";
+//            outputMFAscii(efieldCC[1],filename);
+//        }
     }
 
 }
