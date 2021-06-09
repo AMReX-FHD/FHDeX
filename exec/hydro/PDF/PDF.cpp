@@ -33,22 +33,20 @@ main (int   argc,
         PrintUsage(argv[0]);
     }
 
-    // plotfile name
-    std::string iFile;
-
-    // how many 2nd-derivatives to take
-    int nderivs;
-
     // read in parameters from inputs file or command line
     ParmParse pp;
 
-    // MultiFab
+    // plotfile name
+    std::string iFile;
     pp.get("infile", iFile);
 
-    // how many 2nd derivatives
+    // how many 2nd-derivatives to take
+    int nderivs;
     pp.get("nderivs", nderivs);
 
-    // single-level only
+    // how many bins
+    int nbins;
+    pp.get("nbins", nbins);
 
     // for the Header
     std::string iFile2 = iFile;
@@ -141,7 +139,7 @@ main (int   argc,
     // fill ghost cells of mf_grown
     mf_grown.FillBoundary(geom.periodicity());
 
-    for (int i=0; i<nderivs; ++i) {    
+    for (int m=0; m<nderivs; ++m) {
     
         for ( MFIter mfi(mf_grown,false); mfi.isValid(); ++mfi ) {
 
@@ -179,11 +177,11 @@ main (int   argc,
     } // end loop over nderivs
         
     // store sum of velocity components
-    MultiFab sum_laplacian(ba,dmap,0,0);
+    MultiFab sum_laplacian(ba,dmap,1,0);
     sum_laplacian.setVal(0.);
 
     // compute sum over velocity components
-    for ( MFIter mfi(mf_grown,false); mfi.isValid(); ++mfi ) {
+    for ( MFIter mfi(sum_laplacian,false); mfi.isValid(); ++mfi ) {
 
         const Box& bx = mfi.validbox();
         const auto lo = amrex::lbound(bx);
@@ -197,7 +195,7 @@ main (int   argc,
         for (auto j = lo.y; j <= hi.y; ++j) {
         for (auto i = lo.x; i <= hi.x; ++i) {
 
-                sum_lap(i,j,k) += lap(i,j,k,n);
+            sum_lap(i,j,k) += lap(i,j,k,n);
                 
         }
         }
@@ -206,12 +204,10 @@ main (int   argc,
 
     } // end MFIter
 
-    int nbins = 100;
-
     Vector<Real> bins(nbins,0.);
 
     // compute sum over velocity components
-    for ( MFIter mfi(mf_grown,false); mfi.isValid(); ++mfi ) {
+    for ( MFIter mfi(sum_laplacian,false); mfi.isValid(); ++mfi ) {
 
         const Box& bx = mfi.validbox();
         const auto lo = amrex::lbound(bx);
@@ -223,8 +219,15 @@ main (int   argc,
         for (auto j = lo.y; j <= hi.y; ++j) {
         for (auto i = lo.x; i <= hi.x; ++i) {
 
-            // how to fill in the bins?
+            // bin index
+            int index = sum_lap(i,j,k) / 5.e-8;
+            index += 50;
+
+            index = std::max(index,0);
+            index = std::min(index,99);
             
+            bins[index] += sum_lap(i,j,k);
+
                 
         }
         }
@@ -236,7 +239,7 @@ main (int   argc,
 
     // print out contents of bins to the screen
     for (int i=0; i<nbins; ++i) {
-        Print() << i << " " << bins[i] << std::endl;
+        Print() << "HACK " << i << " " << bins[i] << std::endl;
     }
 
     
