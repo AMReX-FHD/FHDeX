@@ -422,7 +422,8 @@ void FhdParticleContainer::CollideParticles(Real dt) {
 		const Array4<Real> & arrselect = mfselect.array(mfi);
 
 		// need to update with ParallelForRNG
-		amrex::ParallelFor(tile_box,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
+		amrex::ParallelForRNG(tile_box,
+			[=] AMREX_GPU_DEVICE (int i, int j, int k, amrex::RandomEngine const& engine) noexcept {
 		
 			const IntVect& iv = {i,j,k};
 			long imap = tile_box.index(iv);
@@ -462,8 +463,8 @@ void FhdParticleContainer::CollideParticles(Real dt) {
 					massij = massi/(massi+massj);
 					// Loop through selections
 					for (int isel = 0; isel < NSel; isel++) {
-						pindxi = floor(amrex::Random()*np_i);
-						pindxj = floor(amrex::Random()*np_j);
+						pindxi = floor(amrex::Random(engine)*np_i);
+						pindxj = floor(amrex::Random(engine)*np_j);
 						pindxi = m_cell_vectors[i_spec][grid_id][imap][pindxi];
 						pindxj = m_cell_vectors[j_spec][grid_id][imap][pindxj];
 						//ParticleType & parti = particles[pindxi];
@@ -502,12 +503,12 @@ void FhdParticleContainer::CollideParticles(Real dt) {
 
 						// later want to reject non-approaching
 						//csxvr = vrmag*interproperties[spec_indx].csx;
-						if(vrmag>vrmax*amrex::Random()) {
+						if(vrmag>vrmax*amrex::Random(engine)) {
 
 							// sample random unit vector at impact from i to j
 							// useful when calculating collisional stresses later
-							theta = 2.0*pi_usr*amrex::Random();
-							phi = std::acos(1.0-2.0*amrex::Random());
+							theta = 2.0*pi_usr*amrex::Random(engine);
+							phi = std::acos(1.0-2.0*amrex::Random(engine));
 							
 							eij[0] = std::sin(phi)*std::cos(theta);
 							eij[1] = std::sin(phi)*std::sin(theta);
