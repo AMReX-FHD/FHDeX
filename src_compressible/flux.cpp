@@ -166,18 +166,25 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 */
                 }
 
-                for (int n=1; n<5; ++n) {
+                // increment momentum fluxes
+                for (int n=1; n<4; ++n) {
                     fluxx(i,j,k,n) = fluxx(i,j,k,n) + wiener[n];
                 }
 
+                // heat flux
+                fluxx(i,j,k,nvars) = fluxx(i,j,k,nvars) + wiener[4];
+
                 // Viscous heating:
-                Real phiflx =  wiener[1]*(prim(i-1,j,k,1)+prim(i,j,k,1)) +
-                    wiener[2]*(prim(i-1,j,k,2)+prim(i,j,k,2)) +
-                    wiener[3]*(prim(i-1,j,k,3)+prim(i,j,k,3));
+                Real phiflxdiag =  wiener[1]*(prim(i-1,j,k,1)+prim(i,j,k,1));
 
-                phiflx =  - 0.5*phiflx;
+                Real phiflxshear = wiener[2]*(prim(i-1,j,k,2)+prim(i,j,k,2)) +
+                                   wiener[3]*(prim(i-1,j,k,3)+prim(i,j,k,3));
 
-                fluxx(i,j,k,4) = fluxx(i,j,k,4) - phiflx;
+                phiflxdiag = -0.5*phiflxdiag;
+                phiflxshear = -0.5*phiflxshear;
+
+                fluxx(i,j,k,nvars+1) = fluxx(i,j,k,nvars+1) - phiflxdiag;
+                fluxx(i,j,k,nvars+2) = fluxx(i,j,k,nvars+2) - phiflxshear;
 
                 if (algorithm_type == 2) {
 
@@ -247,7 +254,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                         soret = soret + (hk[ns] + Runiv*meanT/molmass[ns]
                                          *0.5*(chi(i-1,j,k,ns)+chi(i,j,k,ns)))*wiener[5+ns];
                     }
-                    fluxx(i,j,k,4) = fluxx(i,j,k,4) + soret;
+                    fluxx(i,j,k,nvars+3) = fluxx(i,j,k,nvars+3) + soret;
                 }
 
             },
@@ -359,18 +366,24 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 */
                 }
 
-                for (int n=1; n<5; ++n) {
+                for (int n=1; n<4; ++n) {
                     fluxy(i,j,k,n) = fluxy(i,j,k,n) + wiener[n];
                 }
+
+                // heat flux
+                fluxy(i,j,k,nvars) = fluxy(i,j,k,nvars) + wiener[4];
             
                 // Viscous heating:
-                Real phiflx =  wiener[1]*(prim(i,j-1,k,1)+prim(i,j,k,1)) +
-                    wiener[2]*(prim(i,j-1,k,2)+prim(i,j,k,2)) +
-                    wiener[3]*(prim(i,j-1,k,3)+prim(i,j,k,3));
+                Real phiflxdiag = wiener[2]*(prim(i,j-1,k,2)+prim(i,j,k,2));
                 
-                phiflx =  - 0.5*phiflx;
+                Real phiflxshear = wiener[1]*(prim(i,j-1,k,1)+prim(i,j,k,1)) +
+                                   wiener[3]*(prim(i,j-1,k,3)+prim(i,j,k,3));
 
-                fluxy(i,j,k,4) = fluxy(i,j,k,4) - phiflx;
+                phiflxdiag = -0.5*phiflxdiag;
+                phiflxshear = -0.5*phiflxshear;
+
+                fluxy(i,j,k,nvars+1) = fluxy(i,j,k,nvars+1) - phiflxdiag;
+                fluxy(i,j,k,nvars+2) = fluxy(i,j,k,nvars+2) - phiflxshear;
 
                 if (algorithm_type == 2) {
 
@@ -440,7 +453,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                         soret = soret + (hk[ns] + Runiv*meanT/molmass[ns]
                                          *0.5*(chi(i,j-1,k,ns)+chi(i,j,k,ns)))*wiener[5+ns];
                     }
-                    fluxy(i,j,k,4) = fluxy(i,j,k,4) + soret;
+                    fluxy(i,j,k,nvars+3) = fluxy(i,j,k,nvars+3) + soret;
                 }
             },
 
@@ -522,23 +535,29 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 
                     }
 
-                    wiener[3] = wiener[3] + 0.25*nweight*   
+                    wiener[3] = wiener[3] + 0.25*nweight*
                         (sqrt(muzepp)*rancorn(i+1,j+1,k)+ sqrt(muzemp)*rancorn(i,j+1,k) + 
                          sqrt(muzepm)* rancorn(i+1,j,k)+ sqrt(muzemm)*rancorn(i,j,k)); // Random "divergence" stress
 
 
-                    for (int n=1; n<5; ++n) {
+                    for (int n=1; n<4; ++n) {
                         fluxz(i,j,k,n) = fluxz(i,j,k,n) + wiener[n];
                     }
+
+                    // heat flux
+                    fluxz(i,j,k,nvars) = fluxz(i,j,k,nvars) + wiener[4];
                     
                     // Viscous heating:
-                    Real phiflx =  wiener[1]*(prim(i,j,k-1,1)+prim(i,j,k,1)) +         
-                        wiener[2]*(prim(i,j,k-1,2)+prim(i,j,k,2)) +
-                        wiener[3]*(prim(i,j,k-1,3)+prim(i,j,k,3));
+                    Real phiflxdiag = wiener[3]*(prim(i,j,k-1,3)+prim(i,j,k,3));
                     
-                    phiflx =  - 0.5*phiflx;
+                    Real phiflxshear = wiener[1]*(prim(i,j,k-1,1)+prim(i,j,k,1)) +
+                                       wiener[2]*(prim(i,j,k-1,2)+prim(i,j,k,2));
 
-                    fluxz(i,j,k,4) = fluxz(i,j,k,4) - phiflx;
+                    phiflxdiag = -0.5*phiflxdiag;
+                    phiflxshear = -0.5*phiflxshear;
+
+                    fluxz(i,j,k,nvars+1) = fluxz(i,j,k,nvars+1) - phiflxdiag;
+                    fluxz(i,j,k,nvars+2) = fluxz(i,j,k,nvars+2) - phiflxshear;
 
                     if (algorithm_type == 2) {
 
@@ -609,7 +628,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                         soret = soret + (hk[ns] + Runiv*meanT/molmass[ns]
                                          *0.5*(chi(i,j,k-1,ns)+chi(i,j,k,ns)))*wiener[5+ns];
                     }
-                    fluxz(i,j,k,4) = fluxz(i,j,k,4) + soret;
+                    fluxz(i,j,k,nvars+3) = fluxz(i,j,k,nvars+3) + soret;
                     
                     }
                 }
@@ -689,7 +708,12 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
             fluxx(i,j,k,1) = fluxx(i,j,k,1) - (tauxxp+divxp);
             fluxx(i,j,k,2) = fluxx(i,j,k,2) - tauyxp;
             fluxx(i,j,k,3) = fluxx(i,j,k,3) - tauzxp;
-            fluxx(i,j,k,4) = fluxx(i,j,k,4) - (half*phiflx + kxp*(prim(i,j,k,4)-prim(i-1,j,k,4))/dx[0]);
+
+            // heat flux
+            fluxx(i,j,k,nvars) = fluxx(i,j,k,nvars) - (kxp*(prim(i,j,k,4)-prim(i-1,j,k,4))/dx[0]);
+
+            // viscous heating
+            fluxx(i,j,k,nvars+1) = fluxx(i,j,k,nvars+1) - (half*phiflx);
 
             Real meanT = 0.5*(prim(i-1,j,k,4)+prim(i,j,k,4));
             Real meanP = 0.5*(prim(i-1,j,k,5)+prim(i,j,k,5));
@@ -724,7 +748,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 }
                 // heat conduction already included in flux(5)       
 
-                fluxx(i,j,k,4) = fluxx(i,j,k,4) + Q5;
+                fluxx(i,j,k,nvars+3) = fluxx(i,j,k,nvars+3) + Q5;
 
                 for (int ns=0; ns<nspecies; ++ns) {
                     fluxx(i,j,k,5+ns) = fluxx(i,j,k,5+ns) + Fk[ns];
@@ -757,7 +781,12 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
             fluxy(i,j,k,1) = fluxy(i,j,k,1) - tauxyp;
             fluxy(i,j,k,2) = fluxy(i,j,k,2) - (tauyyp+divyp);
             fluxy(i,j,k,3) = fluxy(i,j,k,3) - tauzyp;
-            fluxy(i,j,k,4) = fluxy(i,j,k,4) - (half*phiflx + kyp*(prim(i,j,k,4)-prim(i,j-1,k,4))/dx[1]);
+
+            // heat flux
+            fluxy(i,j,k,nvars) = fluxy(i,j,k,nvars) - (kyp*(prim(i,j,k,4)-prim(i,j-1,k,4))/dx[1]);
+
+            // viscous heating
+            fluxy(i,j,k,nvars+1) = fluxy(i,j,k,nvars+1) - (half*phiflx);
 
             Real meanT = 0.5*(prim(i,j-1,k,4)+prim(i,j,k,4));
             Real meanP = 0.5*(prim(i,j-1,k,5)+prim(i,j,k,5));
@@ -792,7 +821,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 
                 // heat conduction already included in flux(5)
 
-                fluxy(i,j,k,4) = fluxy(i,j,k,4) + Q5;
+                fluxy(i,j,k,nvars+3) = fluxy(i,j,k,nvars+3) + Q5;
 
                 for (int ns=0; ns<nspecies; ++ns) {
                     fluxy(i,j,k,5+ns) = fluxy(i,j,k,5+ns) + Fk[ns];
@@ -827,7 +856,12 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
             fluxz(i,j,k,1) = fluxz(i,j,k,1) - tauxzp;
             fluxz(i,j,k,2) = fluxz(i,j,k,2) - tauyzp;
             fluxz(i,j,k,3) = fluxz(i,j,k,3) - (tauzzp+divzp);
-            fluxz(i,j,k,4) = fluxz(i,j,k,4) - (half*phiflx + kzp*(prim(i,j,k,4)-prim(i,j,k-1,4))/dx[2]);
+
+            // heat flux
+            fluxz(i,j,k,nvars) = fluxz(i,j,k,nvars) - (kzp*(prim(i,j,k,4)-prim(i,j,k-1,4))/dx[2]);
+
+            // viscous heating
+            fluxz(i,j,k,nvars+1) = fluxz(i,j,k,nvars+1) - (half*phiflx);
 
             Real meanT = 0.5*(prim(i,j,k-1,4)+prim(i,j,k,4));
             Real meanP = 0.5*(prim(i,j,k-1,5)+prim(i,j,k,5));
@@ -862,7 +896,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 }
 
                 // heat conduction already included in flux(5)
-                fluxz(i,j,k,4) = fluxz(i,j,k,4) + Q5;
+                fluxz(i,j,k,nvars+3) = fluxz(i,j,k,nvars+3) + Q5;
 
                 for (int ns=0; ns<nspecies; ++ns) {
                     fluxz(i,j,k,5+ns) = fluxz(i,j,k,5+ns) + Fk[ns];
@@ -1005,7 +1039,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 (cornuz(i,j+1,k+1)+cornuz(i,j,k+1)+cornuz(i,j+1,k)+cornuz(i,j,k)) *
                 (prim(i-1,j,k,3)+prim(i,j,k,3));
 
-            fluxx(i,j,k,4) = fluxx(i,j,k,4)-0.5*phiflx;
+            fluxx(i,j,k,nvars+1) = fluxx(i,j,k,nvars+1)-0.5*phiflx;
         },
 
         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
@@ -1036,7 +1070,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 (cornvz(i+1,j,k+1)+cornvz(i,j,k+1)+cornvz(i+1,j,k)+cornvz(i,j,k)) *
                 (prim(i,j-1,k,3)+prim(i,j,k,3));
 
-            fluxy(i,j,k,4) = fluxy(i,j,k,4)-0.5*phiflx;
+            fluxy(i,j,k,nvars+1) = fluxy(i,j,k,nvars+1)-0.5*phiflx;
             
         },
 
@@ -1070,13 +1104,16 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 (cornwy(i+1,j+1,k)+cornwy(i+1,j,k)+cornwy(i,j+1,k)+cornwy(i,j,k)) *
                 (prim(i,j,k-1,2)+prim(i,j,k,2));
 
-            fluxz(i,j,k,4) = fluxz(i,j,k,4)-0.5*phiflx;
+            fluxz(i,j,k,nvars+1) = fluxz(i,j,k,nvars+1)-0.5*phiflx;
 
             }
             
         });
         
     }
+
+    // Set species flux to zero at the walls (also Dufour)
+    BCWallSpeciesFlux(flux_in,geom);
 
     ////////////////////
     // hyperbolic fluxes
@@ -1136,6 +1173,9 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 
                 xflux(i,j,k,4) += primitive[1]*conserved[4] + primitive[5]*primitive[1];
 
+                // also add the diffusive + stochastic contributions from heat flux, viscous heating and Dufour effects
+                xflux(i,j,k,4) += xflux(i,j,k,nvars) + xflux(i,j,k,nvars+1) + xflux(i,j,k,nvars+2) + xflux(i,j,k,nvars+3);
+
                 if (algorithm_type == 2) { // Add advection of concentration
                     for (int n=0; n<nspecies; ++n) {
                         xflux(i,j,k,5+n) += rho*primitive[6+n]*primitive[1];
@@ -1176,6 +1216,9 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 
                 yflux(i,j,k,4) += primitive[2]*conserved[4] + primitive[5]*primitive[2];
 
+                // also add the diffusive + stochastic contributions from heat flux, viscous heating and Dufour effects
+                yflux(i,j,k,4) += yflux(i,j,k,nvars) + yflux(i,j,k,nvars+1) + yflux(i,j,k,nvars+2) + yflux(i,j,k,nvars+3);
+
                 if (algorithm_type == 2) { // Add advection of concentration
                     for (int n=0; n<nspecies; ++n) {
                         yflux(i,j,k,5+n) += rho*primitive[6+n]*primitive[2];
@@ -1215,6 +1258,9 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 zflux(i,j,k,3) += conserved[0]*primitive[3]*primitive[3]+primitive[5];
 
                 zflux(i,j,k,4) += primitive[3]*conserved[4] + primitive[5]*primitive[3];
+
+                // also add the diffusive + stochastic contributions from heat flux, viscous heating and Dufour effects
+                zflux(i,j,k,4) += zflux(i,j,k,nvars) + zflux(i,j,k,nvars+1) + zflux(i,j,k,nvars+2) + zflux(i,j,k,nvars+3);
 
                 if (algorithm_type == 2) { // Add advection of concentration
                     for (int n=0; n<nspecies; ++n) {
@@ -1264,6 +1310,9 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 
                 xflux(i,j,k,4) += primitive[1]*conserved[4] + primitive[5]*primitive[1];
 
+                // also add the diffusive + stochastic contributions from heat flux, viscous heating and Dufour effects
+                xflux(i,j,k,4) += xflux(i,j,k,nvars) + xflux(i,j,k,nvars+1) + xflux(i,j,k,nvars+2) + xflux(i,j,k,nvars+3);
+
                 if (algorithm_type == 2) { // Add advection of concentration
                     for (int n=0; n<nspecies; ++n) {
                         xflux(i,j,k,5+n) += conserved[5+n]*primitive[1];
@@ -1306,6 +1355,9 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 yflux(i,j,k,3) += conserved[0]*primitive[3]*primitive[2]  ;
            
                 yflux(i,j,k,4) += primitive[2]*conserved[4] + primitive[5]*primitive[2];
+
+                // also add the diffusive + stochastic contributions from heat flux, viscous heating and Dufour effects
+                yflux(i,j,k,4) += yflux(i,j,k,nvars) + yflux(i,j,k,nvars+1) + yflux(i,j,k,nvars+2) + yflux(i,j,k,nvars+3);
 
                 if (algorithm_type == 2) { // Add advection of concentration
                     for (int n=0; n<nspecies; ++n) {
@@ -1350,6 +1402,9 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 zflux(i,j,k,3) += conserved[0]*primitive[3]*primitive[3]+primitive[5];
 
                 zflux(i,j,k,4) += primitive[3]*conserved[4] + primitive[5]*primitive[3];
+
+                // also add the diffusive + stochastic contributions from heat flux, viscous heating and Dufour effects
+                zflux(i,j,k,4) += zflux(i,j,k,nvars) + zflux(i,j,k,nvars+1) + zflux(i,j,k,nvars+2) + zflux(i,j,k,nvars+3);
 
                 if (algorithm_type == 2) { // Add advection of concentration
                     for (int n=0; n<nspecies; ++n) {
