@@ -167,7 +167,7 @@ void main_driver(const char* argv)
 		
 		particles.InitParticles(); // vrmax is also set here
 
-		//particles.InitCollisionCells();
+		particles.InitCollisionCells();
 		
 		//particles.CalcSelections(dt);
 	}
@@ -184,8 +184,7 @@ void main_driver(const char* argv)
 	ParallelDescriptor::ReduceRealMax(init_time);
 	amrex::Print() << "Initialization time = " << init_time << " seconds " << std::endl;
 
-	// if(false) {
-	max_step = 100;
+	//if(false) {
 	for (int istep=step; istep<=max_step; ++istep) {
 		// timer for time step
 		Real time1 = ParallelDescriptor::second();
@@ -193,8 +192,8 @@ void main_driver(const char* argv)
 // Collide Particles
 		//if (collide_tog != 0) {
 		amrex::Print() << "Time step: " << istep << "\n";
-		//particles.CalcSelections(dt);
-		//particles.CollideParticles();
+		particles.CalcSelections(dt);
+		particles.CollideParticles();
 		//}
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Move Particles
@@ -259,7 +258,7 @@ void main_driver(const char* argv)
                        << min_fab_megabytes << " ... " << max_fab_megabytes << "]\n";
         */        
     }
-    // } // omit time advancing
+    //} // omit time advancing
 
     ///////////////////////////////////////////
         //test change
