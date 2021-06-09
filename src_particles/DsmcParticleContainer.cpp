@@ -321,6 +321,38 @@ void FhdParticleContainer::EvaluateStats(MultiFab& particleInstant, MultiFab& pa
 
 }
 
+void FhdParticleContainer::Source(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount)
+{
+
+
+    //Do this all on rank 0 for now
+    if(ParallelDescriptor::MyProc() == 0)
+    {
+        for(int i = 0; i< nspecies; i++)
+        {
+            if(paramPlaneList[i].sourceLeft == 1)
+            {
+                for(int j = 0; j< nspecies; j++)
+                {
+                    Real density = paramPlaneList[i].densityLeft[j];
+                    Real temp = paramPlaneList[i].temperatureLeft;
+                    Real area = paramPlaneList[i].area;
+
+                    Real fluxMean = density*area*sqrt(properties[j].R*temp/(2.0*M_PI));
+                    Real fluxVar = properties[j].mass*density*area*sqrt(properties[j].R*temp/(2.0*M_PI));
+
+                    Real totalFlux = fluxMean + sqrt(fluxVar)*amrex::RandomNormal(0.,1.);
+
+
+                }
+
+            }
+
+        }
+    }
+
+}
+
 void FhdParticleContainer::SortParticles()
 {
     int lev = 0;
