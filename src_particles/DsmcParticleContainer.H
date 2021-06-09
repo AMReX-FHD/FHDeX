@@ -84,7 +84,7 @@ typedef struct {
 
 typedef struct {
 
-  double inel;
+  double alpha;
   double csx;
   
 } dsmcInterSpecies;

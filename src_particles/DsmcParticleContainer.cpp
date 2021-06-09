@@ -49,7 +49,7 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
 	for(int i_spec=0;i_spec<nspecies;i_spec++) {
 		for(int j_spec=i_spec;j_spec<nspecies;j_spec++) {
 			ij_spec = getSpeciesIndex(i_spec,j_spec);
-    		interproperties[ij_spec].inel = (1+alpha_pp[cnt])/6.0; // need to find better way to input this
+    		interproperties[ij_spec].alpha = alpha_pp[cnt]; // need to find better way to input this
     		interproperties[ij_spec].csx = pow(properties[i_spec].radius+properties[j_spec].radius,2)*pi_usr;
     		cnt++;
 		}
@@ -456,10 +456,14 @@ void FhdParticleContainer::CollideParticles() {
 			int pindxi, pindxj; // index of randomly sampled particles
 			int spec_indx;
 			int np_i, np_j; // number of particles in collision cell for species i and j
+			ParticleType pitemp, pjtemp;
 			
 			RealVect eij, vreij;
+			Real phi, theta, eijmag;
 			RealVect vi, vj, vij;
+			Real massi, massj, massij;
 			Real vrmag, vrmax, vreijmag;
+			Real csxvr, csxvrmax; // unneeded for granular
 			// Loops through species pairs
 			
 			for (int i_spec = 0; i_spec < nspecies; i_spec++) {
@@ -473,67 +477,96 @@ void FhdParticleContainer::CollideParticles() {
 					np_i = m_cell_vectors[i_spec][grid_id][imap].size();
 					np_j = m_cell_vectors[j_spec][grid_id][imap].size();
 					vrmax = arrvrmax(i,j,k,spec_indx);
+					//csxvrmax = vrmax*interproperties[spec_indx].csx;
+					massi = properties[i_spec].mass;
+					massj = properties[j_spec].mass;
+					massij = massi/(massi+massj);
 					// Loop through selections
 					for (int isel = 0; isel < NSel; isel++) {
 						pindxi = floor(amrex::Random()*np_i);
 						pindxj = floor(amrex::Random()*np_j);
 						pindxi = m_cell_vectors[i_spec][grid_id][imap][pindxi];
 						pindxj = m_cell_vectors[j_spec][grid_id][imap][pindxj];
-						ParticleType & parti = particles[pindxi];
-						ParticleType & partj = particles[pindxj];
+						//ParticleType & parti = particles[pindxi];
+						//ParticleType & partj = particles[pindxj];
+						
+						// Not sure why this is needed
+						pitemp = particles[pindxi];
+						pjtemp = particles[pindxj];
+						ParticleType & parti = pitemp;
+						ParticleType & partj = pjtemp;
 					
+						//vi = {parti.rdata(FHD_realData::velx),
+						//		parti.rdata(FHD_realData::velx),
+						//		parti.rdata(FHD_realData::velx)};
+						
 						vi[0] = parti.rdata(FHD_realData::velx);
 						vi[1] = parti.rdata(FHD_realData::vely);
 						vi[2] = parti.rdata(FHD_realData::velz);
 						
-						//vi = {parti.rdata(FHD_realData::velx),
-						//		parti.rdata(FHD_realData::velx),
-						//		parti.rdata(FHD_realData::velx)};
 
 						vj[0] = partj.rdata(FHD_realData::velx);
 						vj[1] = partj.rdata(FHD_realData::vely);
 						vj[2] = partj.rdata(FHD_realData::velz);
-						vij[0] = vj[0]-vi[0];
-						vij[1] = vj[1]-vi[1];
-						vij[2] = vj[2]-vi[2];
+						vij[0] = vi[0]-vj[0];
+						vij[1] = vi[1]-vj[1];
+						vij[2] = vi[2]-vj[2];
 
 						// replace with dot_product later (or norm)
 						vrmag = sqrt(vij[0]*vij[0]+vij[1]*vij[1]+vij[2]*vij[2]);
 						// If relative speed greater than max relative speed, replace
 						if(vrmag>vrmax) {
 							vrmax = vrmag*1.05; //arbitrary
+							//csxvrmax = csvrmax*1.05;
 							arrvrmax(i,j,k,spec_indx) = vrmax;
 						}
-					
+
 						// later want to reject non-approaching
+						//csxvr = vrmag*interproperties[spec_indx].csx;
 						if(vrmag>vrmax*amrex::Random()) {
-							// amrex::Print() << "Hit \n";
-							
-							// sample random unit vector at impact
+
+							// sample random unit vector at impact from i to j
 							// useful when calculating collisional stresses later
-							for (int dir = 0; dir < 3; dir++) {
-								eij[dir] = amrex::Random();
-							}
+							theta = 2.0*pi_usr*amrex::Random();
+							phi = std::acos(1.0-2.0*amrex::Random());
+							
+							eij[0] = std::sin(phi)*std::cos(theta);
+							eij[1] = std::sin(phi)*std::sin(theta);
+							eij[2] = std::cos(phi);
+							
+							/*
+							eijmag = sqrt(eij[0]*eij[0]+eij[1]*eij[1]+eij[2]*eij[2]);
+							eij[0] = eij[0]/eijmag;
+							eij[1] = eij[1]/eijmag;
+							eij[2] = eij[2]/eijmag;
+							*/
+							
 							vreijmag = vij[0]*eij[0]+vij[1]*eij[1]+vij[2]*eij[2]; // dot_product
 							//dissipation
-							vreijmag = vreijmag;//*interproperties[spec_indx].inel;
-							//vreij = vr.dotProduct(eij) * eij * interproperties[spec_indx].inel;;
+							vreijmag = vreijmag*massij;//*(1+1/interproperties[spec_indx].alpha);
 							vreij[0] = vreijmag*eij[0];
 							vreij[1] = vreijmag*eij[1];
 							vreij[2] = vreijmag*eij[2];
 							
 							// check momentum of center of mass conserved for elastic
+							/*
 							RealVect ivcom, fvcom;
-							RealVect ienergy, fenergy;
-							ivcom[0] = (vi[0]+vj[0])*0.5;
-							ivcom[1] = (vi[1]+vj[1])*0.5;
-							ivcom[2] = (vi[2]+vj[2])*0.5;
+							Real ienergy, fenergy;
 							
-							ienergy[0] = (pow(vi[0],2)+pow(vj[0],2))*0.5;
-							ienergy[1] = (pow(vi[1],2)+pow(vj[1],2))*0.5;
-							ienergy[2] = (pow(vi[2],2)+pow(vj[2],2))*0.5;
-										
-							amrex::Print() << "ivel_i: " << vi[0] << ", " << vi[1] << ", " << vi[2] << "\n";		
+							ivcom[0] = (massi*vi[0]+massj*vj[0])*0.5;
+							ivcom[1] = (massi*vi[1]+massj*vj[1])*0.5;
+							ivcom[2] = (massi*vi[2]+massj*vj[2])*0.5;
+							
+							ienergy = massi*(vi[0]*vi[0]+vi[1]*vi[1]+vi[2]*vi[2]) +
+								massj*(vj[0]*vj[0]+vj[1]*vj[1]+vj[2]*vj[2]);
+							//ienergy = (massi+massj)*(pow(ivcom[0],2)+pow(ivcom[1],2)+pow(ivcom[2],2));								
+														
+							
+							amrex::Print() << "ivel_i: " << parti.rdata(FHD_realData::velx) << ", "
+								 << parti.rdata(FHD_realData::vely) << ", "
+								 << parti.rdata(FHD_realData::velz) << "\n";
+							*/
+							
 							// Update velocities
 							vi[0] = vi[0] - vreij[0];
 							vi[1] = vi[1] - vreij[1];
@@ -549,26 +582,32 @@ void FhdParticleContainer::CollideParticles() {
 							partj.rdata(FHD_realData::vely) = vj[1];
 							partj.rdata(FHD_realData::velz) = vj[2];
 							
-							amrex::Print() << "fvel_i: " << vi[0] << ", " << vi[1] << ", " << vi[2] << "\n";
+							/*							
+							amrex::Print() << "fvel_i: " << parti.rdata(FHD_realData::velx) << ", "
+								 << parti.rdata(FHD_realData::vely) << ", "
+								 << parti.rdata(FHD_realData::velz) << "\n";
+							amrex::Print() << "fvel_i: " << vi[0] << ", "
+								 << vi[1] << ", "
+								 << vi[2] << "\n";
 							
-							fvcom[0] = (parti.rdata(FHD_realData::velx)+partj.rdata(FHD_realData::velx))*0.5;
-							fvcom[1] = (parti.rdata(FHD_realData::vely)+partj.rdata(FHD_realData::vely))*0.5;
-							fvcom[2] = (parti.rdata(FHD_realData::velz)+partj.rdata(FHD_realData::velz))*0.5;
 							
-							fenergy[0] = (pow(parti.rdata(FHD_realData::velx),2)
-								+pow(partj.rdata(FHD_realData::velx),2))*0.5;
-							fenergy[1] = (pow(parti.rdata(FHD_realData::vely),2)
-								+pow(partj.rdata(FHD_realData::vely),2))*0.5;
-							fenergy[2] = (pow(parti.rdata(FHD_realData::velz),2)
-								+pow(partj.rdata(FHD_realData::velz),2))*0.5;
+							fvcom[0] = (massi*vi[0]+massj*vj[0])*0.5;
+							fvcom[1] = (massi*vi[1]+massj*vj[1])*0.5;
+							fvcom[2] = (massi*vi[2]+massj*vj[2])*0.5;
+							
+							fenergy = massi*(vi[0]*vi[0]+vi[1]*vi[1]+vi[2]*vi[2]) +
+								massj*(vj[0]*vj[0]+vj[1]*vj[1]+vj[2]*vj[2]);
+							*/
+							//fenergy = (massi+massj)*(pow(fvcom[0],2)+pow(fvcom[1],2)+pow(fvcom[2],2));
 								
-							amrex::Print() << "Init VCOM: " << ivcom[0] << ", " << ivcom[1] << ", " << ivcom[2] << "\n";
-							amrex::Print() << "Final VCOM: " << fvcom[0] << ", " << fvcom[1] << ", " << fvcom[2] << "\n";
+							//amrex::Print() << "Init VCOM:  " << ivcom[0] << ", " << ivcom[1] << ", " << ivcom[2] << "\n";
+							//amrex::Print() << "Final VCOM: " << fvcom[0] << ", " << fvcom[1] << ", " << fvcom[2] << "\n";
 							//amrex::Print() << "Delta Energy: " <<
-							//	fenergy[0] + fenergy[1] + fenergy[2] - (ienergy[0] + ienergy[1] + ienergy[2]) << "\n";
+							//	fenergy-ienergy << "\n";
 							// add boosted velocity calculations here
 							
 						}
+						
 					}
 				}
 			}
