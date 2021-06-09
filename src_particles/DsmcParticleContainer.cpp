@@ -39,9 +39,11 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
    int ij_spec;
    int cnt = 0;
 	for(int i_spec=0;i_spec<nspecies;i_spec++) {
-		for(int j_spec=i_spec;j_spec<nspecies;j_spec++) {
+		for(int j_spec=0;j_spec<nspecies;j_spec++) {
 			ij_spec = getSpeciesIndex(i_spec,j_spec);
     		interproperties[ij_spec].alpha = alpha_pp[cnt]; // need to find better way to input this
+    		//amrex::Print() << "i: " << i_spec << " j: " << j_spec << " ij: " << ij_spec 
+    		//	<< " alpha: " << interproperties[ij_spec].alpha << "\n";
     		interproperties[ij_spec].csx = pow(properties[i_spec].radius+properties[j_spec].radius,2)*pi_usr;
     		cnt++;
 		}
@@ -393,14 +395,6 @@ void FhdParticleContainer::CalcSelections(Real dt) {
 					vrmax = arrvrmax(i,j,k,i_spec);
 					crossSection = interproperties[ij_spec].csx;
 					
-					//amrex::Print() << "Old Selections: " << arrselect(i,j,k,ij_spec) << "\n";
-					//amrex::Print() << "crossSection: " << crossSection << "\n";
-					//amrex::Print() << "vrmax: " << vrmax << "\n";
-					//amrex::Print() << "chi0: " << chi0 << "\n";
-					//amrex::Print() << "dt: " << dt << "\n";
-					//amrex::Print() << "np_i: " << np_i << "\n";
-					//amrex::Print() << "np_j: " << np_j << "\n";
-					//amrex::Print() << "volume: " << ocollisionCellVol << "\n";
 					NSel = 0.5*np_i*np_j*crossSection*vrmax*ocollisionCellVol*chi0*dt;
 					// Currently running total
 					arrselect(i,j,k,ij_spec) = arrselect(i,j,k,ij_spec) + NSel;
@@ -410,18 +404,11 @@ void FhdParticleContainer::CalcSelections(Real dt) {
 					// arrselect(i,j,k,spec_indx) = NSel;
 				}
 			}
-			// check that solid fractions are being updated over time
-			//for (int i_spec = 0; i_spec < nspecies; i_spec++) {
-			//	Real phimf = arrphi(i,j,k,i_spec);
-			//	Real phinp = m_cell_vectors[i_spec][grid_id][imap].size()
-			//		*properties[i_spec].part2cellVol*properties[i_spec].Neff;
-			//	amrex::Print() << "Phi MF: " << phimf << " Phi MCell: " << phinp << "\n";
-			//}
 		});
 	}
 }
 
-void FhdParticleContainer::CollideParticles() {
+void FhdParticleContainer::CollideParticles(Real dt) {
 	int lev = 0;
 	for(MFIter mfi(mfvrmax); mfi.isValid(); ++mfi) {
 		const Box& tile_box  = mfi.tilebox();
@@ -451,6 +438,8 @@ void FhdParticleContainer::CollideParticles() {
 			RealVect eij, vreij;
 			Real phi, theta, eijmag;
 			RealVect vi, vj, vij;
+			RealVect vijpost, boost;
+			Real oboostmag;
 			Real massi, massj, massij;
 			Real vrmag, vrmax, vreijmag;
 			Real csxvr, csxvrmax; // unneeded for granular
@@ -533,13 +522,17 @@ void FhdParticleContainer::CollideParticles() {
 							
 							vreijmag = vij[0]*eij[0]+vij[1]*eij[1]+vij[2]*eij[2]; // dot_product
 							//dissipation
-							vreijmag = vreijmag*massij;//*(1+1/interproperties[spec_indx].alpha);
+							vreijmag = vreijmag*massij*(1.0+interproperties[spec_indx].alpha);
+							//amrex::Print() << "vreijmag: " << vreijmag << "\n";
+							//vreijmag = vreijmag*(1+1/interproperties[spec_indx].alpha);
+							//amrex::Print() << "vreijmag: " << vreijmag << "\n";
+							//amrex::Print() << "alpha: " << interproperties[spec_indx].alpha << "\n";
 							vreij[0] = vreijmag*eij[0];
 							vreij[1] = vreijmag*eij[1];
 							vreij[2] = vreijmag*eij[2];
 							
 							// check momentum of center of mass conserved for elastic
-							/*
+							
 							RealVect ivcom, fvcom;
 							Real ienergy, fenergy;
 							
@@ -550,11 +543,14 @@ void FhdParticleContainer::CollideParticles() {
 							ienergy = massi*(vi[0]*vi[0]+vi[1]*vi[1]+vi[2]*vi[2]) +
 								massj*(vj[0]*vj[0]+vj[1]*vj[1]+vj[2]*vj[2]);
 							//ienergy = (massi+massj)*(pow(ivcom[0],2)+pow(ivcom[1],2)+pow(ivcom[2],2));								
-														
-							
+						
+							/*
 							amrex::Print() << "ivel_i: " << parti.rdata(FHD_realData::velx) << ", "
 								 << parti.rdata(FHD_realData::vely) << ", "
 								 << parti.rdata(FHD_realData::velz) << "\n";
+							amrex::Print() << "ivel_i: " << vi[0] << ", "
+								 << vi[1] << ", "
+								 << vi[2] << "\n";
 							*/
 							
 							// Update velocities
@@ -572,14 +568,14 @@ void FhdParticleContainer::CollideParticles() {
 							partj.rdata(FHD_realData::vely) = vj[1];
 							partj.rdata(FHD_realData::velz) = vj[2];
 							
-							/*							
+							/*
 							amrex::Print() << "fvel_i: " << parti.rdata(FHD_realData::velx) << ", "
 								 << parti.rdata(FHD_realData::vely) << ", "
 								 << parti.rdata(FHD_realData::velz) << "\n";
 							amrex::Print() << "fvel_i: " << vi[0] << ", "
 								 << vi[1] << ", "
 								 << vi[2] << "\n";
-							
+							*/
 							
 							fvcom[0] = (massi*vi[0]+massj*vj[0])*0.5;
 							fvcom[1] = (massi*vi[1]+massj*vj[1])*0.5;
@@ -587,15 +583,42 @@ void FhdParticleContainer::CollideParticles() {
 							
 							fenergy = massi*(vi[0]*vi[0]+vi[1]*vi[1]+vi[2]*vi[2]) +
 								massj*(vj[0]*vj[0]+vj[1]*vj[1]+vj[2]*vj[2]);
-							*/
 							//fenergy = (massi+massj)*(pow(fvcom[0],2)+pow(fvcom[1],2)+pow(fvcom[2],2));
 								
 							//amrex::Print() << "Init VCOM:  " << ivcom[0] << ", " << ivcom[1] << ", " << ivcom[2] << "\n";
 							//amrex::Print() << "Final VCOM: " << fvcom[0] << ", " << fvcom[1] << ", " << fvcom[2] << "\n";
 							//amrex::Print() << "Delta Energy: " <<
 							//	fenergy-ienergy << "\n";
-							// add boosted velocity calculations here
 							
+							
+							// Boosted Velocities
+							vijpost[0] = vi[0]-vj[0];
+							vijpost[1] = vi[1]-vj[1];
+							vijpost[2] = vi[2]-vj[2];
+							// Note from here the scattering angle may also be found
+							
+							boost[0] = vijpost[0]-vij[0];
+							boost[1] = vijpost[1]-vij[1];
+							boost[2] = vijpost[2]-vij[2];
+							oboostmag = (properties[i_spec].radius+properties[j_spec].radius)/
+								(sqrt(pow(boost[0],2)+pow(boost[1],2)+pow(boost[2],2))*dt);
+							boost[0] = boost[0]*oboostmag;
+							boost[1] = boost[1]*oboostmag;
+							boost[2] = boost[2]*oboostmag;
+						
+							//amrex::Print() << "dt Boost: " << boost[0] << ", " << boost[1] << ", " << boost[2] << "\n";
+							parti.rdata(FHD_realData::boostx) = boost[0];
+							parti.rdata(FHD_realData::boosty) = boost[1];
+							parti.rdata(FHD_realData::boostz) = boost[2];
+							partj.rdata(FHD_realData::boostx) = -boost[0];
+							partj.rdata(FHD_realData::boosty) = -boost[1];
+							partj.rdata(FHD_realData::boostz) = -boost[2];
+							//amrex::Print() << "Boost: " << parti.rdata(FHD_realData::boostx)*dt << ", " 
+							//	<< parti.rdata(FHD_realData::boosty)*dt << ", "
+							//	<< parti.rdata(FHD_realData::boostz)*dt << "\n";
+							//amrex::Print() << "Boost: " << partj.rdata(FHD_realData::boostx)*dt << ", " 
+							//	<< partj.rdata(FHD_realData::boosty)*dt << ", "
+							//	<< partj.rdata(FHD_realData::boostz)*dt << "\n";
 						}
 						
 					}
@@ -716,9 +739,10 @@ void FhdParticleContainer::EvaluateStats(MultiFab& particleInstant, MultiFab& pa
             part_var(i,j,k,1)  = (part_var(i,j,k,1)*stepsMinusOne + del1*del1)*stepsInv;            
 		});
 		
+		// Granular Temperature
 		const long grid_id = pti.index();
 		amrex::ParallelFor(tile_box,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
-					
+		/*			
 			const IntVect& iv = {i,j,k};
 			long imap = tile_box.index(iv);
 			Real spdsq;
@@ -737,7 +761,8 @@ void FhdParticleContainer::EvaluateStats(MultiFab& particleInstant, MultiFab& pa
 					grantemp = grantemp + properties[i_spec].mass*spdsq;
 				}
 			}
+		*/
 		});
 	}
-	amrex::Print() << "GranTemp: " << grantemp << "\n";
+	//amrex::Print() << "GranTemp: " << grantemp << "\n";
 }

@@ -165,6 +165,9 @@ void main_driver(const char* argv)
 		particles.mfvrmax.define(ba, dmap, nspecies*nspecies, 0);
 		particles.mfvrmax.setVal(0.);
 		
+		particles.mfgranTemp.define(ba,dmap,nspecies,0);
+		particles.mfgranTemp.setVal(0.);
+		
 		particles.InitParticles(); // vrmax is also set here
 
 		particles.InitCollisionCells();
@@ -191,7 +194,7 @@ void main_driver(const char* argv)
 		//if (collide_tog != 0) {
 		amrex::Print() << "Time step: " << istep << "\n";
 		particles.CalcSelections(dt);
-		particles.CollideParticles();
+		particles.CollideParticles(dt);
 		//}
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Move Particles

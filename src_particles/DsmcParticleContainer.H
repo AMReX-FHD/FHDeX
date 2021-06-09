@@ -112,7 +112,7 @@ public:
 	void SortParticles();
 
 	void CalcSelections(Real dt);
-	void CollideParticles();
+	void CollideParticles(Real dt);
 
 	void MoveParticlesCPP(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount);
     
@@ -158,6 +158,7 @@ public:
    MultiFab mfvrmax; // store max relative speed found
    // currently a single constant but updates over time
    MultiFab mfphi; // needed for evaluating radial distribution function
+   MultiFab mfgranTemp;
 	
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	// Constants	
