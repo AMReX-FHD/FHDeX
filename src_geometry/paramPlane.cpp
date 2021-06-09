@@ -3,6 +3,7 @@
 
 #include "common_functions.H"
 
+
 using namespace amrex;
 
 double getTheta(double nx, double ny, double nz)
@@ -52,13 +53,13 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
     paramPlaneList[0].specularityLeft = 0;
     paramPlaneList[0].temperatureLeft = T_init[0];
     paramPlaneList[0].momentumConsLeft = 1;
-    paramPlaneList[0].densityLeft = 0;
+    paramPlaneList[0].densityLeft[0] = 0;
     paramPlaneList[0].sourceLeft = 0;
 
     paramPlaneList[0].specularityRight = 0;
     paramPlaneList[0].temperatureRight = T_init[0];
     paramPlaneList[0].momentumConsRight = 1;
-    paramPlaneList[0].densityRight = 0;
+    paramPlaneList[0].densityRight[0] = 0;
     paramPlaneList[0].sourceRight = 0;
 
     if(bc_vel_lo[0] == -1)
@@ -138,14 +139,14 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 
     paramPlaneList[1].specularityLeft = 0;
     paramPlaneList[1].temperatureLeft = T_init[0];
-    paramPlaneList[1].densityLeft = 0;
+    paramPlaneList[1].densityLeft[0] = 0;
     paramPlaneList[1].momentumConsLeft = 1;
     paramPlaneList[1].sourceLeft = 0;
 
     paramPlaneList[1].specularityRight = 0;
     paramPlaneList[1].temperatureRight = T_init[0];
     paramPlaneList[1].momentumConsRight = 1;
-    paramPlaneList[1].densityRight = 0;
+    paramPlaneList[1].densityRight[0] = 0;
     paramPlaneList[1].sourceRight = 0;
 
     if(bc_vel_hi[0] == -1)
@@ -226,14 +227,14 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
     paramPlaneList[2].specularityLeft = 0;
     paramPlaneList[2].temperatureLeft = T_init[0];
     paramPlaneList[2].momentumConsLeft = 1;
-    paramPlaneList[2].densityLeft = 0;
+    paramPlaneList[2].densityLeft[0] = 0;
     paramPlaneList[2].sourceLeft = 0;
 
 
     paramPlaneList[2].specularityRight = 0;
     paramPlaneList[2].temperatureRight = T_init[0];
     paramPlaneList[2].momentumConsRight = 1;
-    paramPlaneList[2].densityRight = 0;
+    paramPlaneList[2].densityRight[0] = 0;
     paramPlaneList[2].sourceRight = 0;
 
     if(bc_vel_lo[1] == -1)
@@ -313,13 +314,13 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
     paramPlaneList[3].specularityLeft = 0;
     paramPlaneList[3].temperatureLeft = T_init[0];
     paramPlaneList[3].momentumConsLeft = 1;
-    paramPlaneList[3].densityLeft = 0;
+    paramPlaneList[3].densityLeft[0] = 0;
     paramPlaneList[3].sourceLeft = 0;
 
     paramPlaneList[3].specularityRight = 0;
     paramPlaneList[3].temperatureRight = T_init[0];
     paramPlaneList[3].momentumConsRight = 1;
-    paramPlaneList[3].densityRight = 0;
+    paramPlaneList[3].densityRight[0] = 0;
     paramPlaneList[3].sourceRight = 0;
 
 
@@ -402,12 +403,12 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
     paramPlaneList[4].temperatureLeft = T_init[0];
     paramPlaneList[4].momentumConsLeft = 1;
     paramPlaneList[4].sourceLeft = 0;
-    paramPlaneList[4].densityLeft = 0;
+    paramPlaneList[4].densityLeft[0] = 0;
 
     paramPlaneList[4].specularityRight = 0;
     paramPlaneList[4].temperatureRight = T_init[0];
     paramPlaneList[4].momentumConsRight = 1;
-    paramPlaneList[4].densityRight = 0;
+    paramPlaneList[4].densityRight[0] = 0;
     paramPlaneList[4].sourceRight = 0;
 
     if(bc_vel_lo[2] == -1)
@@ -489,13 +490,13 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
     paramPlaneList[5].specularityLeft = 0;
     paramPlaneList[5].temperatureLeft = T_init[0];
     paramPlaneList[5].momentumConsLeft = 1;
-    paramPlaneList[5].densityLeft = 0;
+    paramPlaneList[5].densityLeft[0] = 0;
     paramPlaneList[5].sourceLeft = 0;
 
     paramPlaneList[5].specularityRight = 0;
     paramPlaneList[5].temperatureRight = T_init[0];
     paramPlaneList[5].momentumConsRight = 1;
-    paramPlaneList[5].densityRight = 0;
+    paramPlaneList[5].densityRight[0] = 0;
     paramPlaneList[5].sourceRight = 0;
 
 
@@ -603,14 +604,20 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
         planeFile >> paramPlaneList[i].porosityRight;
         planeFile >> paramPlaneList[i].specularityRight;
         planeFile >> paramPlaneList[i].temperatureRight;
-        planeFile >> paramPlaneList[i].densityRight;
+        for(int j=0; j < nspecies; j++)
+        {
+            planeFile >> paramPlaneList[i].densityRight[j];
+        }
         planeFile >> paramPlaneList[i].sourceRight;
         planeFile >> paramPlaneList[i].momentumConsRight;
 
         planeFile >> paramPlaneList[i].porosityLeft;
         planeFile >> paramPlaneList[i].specularityLeft;
         planeFile >> paramPlaneList[i].temperatureLeft;
-        planeFile >> paramPlaneList[i].densityLeft;
+        for(int j=0; j < nspecies; j++)
+        {
+           planeFile >> paramPlaneList[i].densityLeft[j];
+        }
         planeFile >> paramPlaneList[i].sourceLeft;
         planeFile >> paramPlaneList[i].momentumConsLeft;
 
