@@ -13,12 +13,19 @@ void
 PrintUsage (const char* progName)
 {
     Print() << std::endl
-            << "This utility computes... " << std::endl << std::endl;
+            << "This utility computes a PDF of the differentiated velocity field," << std::endl
+            << "Lap^n(u)" << std::endl << std::endl;
 
     Print() << "Usage:" << '\n';
     Print() << progName << " <inputs>" << std::endl
             << "OR" << std::endl
-            << progName << " infile=plotFileName ..." << '\n' << '\n';
+            << progName << std::endl
+            << " infile=<plotFileName>" << std::endl
+            << " outfile=<base_output_filename> " << std::endl
+            << " nderivs=<# of 2nd-derivatives> " << std::endl
+            << " nbins=<number of bins> " << std::endl
+            << " range=<lo/hi end of range> " << std::endl
+            << std::endl;
 
     exit(1);
 }
@@ -268,7 +275,6 @@ main (int   argc,
             }
 
             count++;
-
                 
         }
         }
@@ -277,14 +283,14 @@ main (int   argc,
 
     } // end MFIter
 
-    ParallelDescriptor::ReduceRealSum(bins.dataPtr(),nbins);
+    ParallelDescriptor::ReduceRealSum(bins.dataPtr(),nbins+1);
     ParallelDescriptor::ReduceLongSum(count);
     ParallelDescriptor::ReduceLongSum(totbin);
-    Print() << "Points outside of range "<< count - totbin << std::endl;
+    Print() << "Points outside of range "<< count - totbin << " " << (double)(count-totbin)/count << std::endl;
 
     // print out contents of bins to the screen
     for (int i=0; i<nbins+1; ++i) {
-        Print() << "For  m="<< nderivs<< " " <<  (i-halfbin)*binwidth << " " << bins[i]/count << std::endl;
+        Print() << "For  m="<< nderivs<< " " <<  (i-halfbin)*binwidth << " " << bins[i]/(count*binwidth) << std::endl;
     }
     if (ParallelDescriptor::IOProcessor()) {
         std::ofstream outfile;
@@ -294,7 +300,7 @@ main (int   argc,
 
         outfile.open(oFile);
         for (int i=0; i<nbins+1; ++i) {
-            outfile << (i-halfbin)*binwidth << " " << bins[i]/count << std::endl;
+            outfile << (i-halfbin)*binwidth << " " << bins[i]/(count*binwidth) << std::endl;
         }
     }
 
