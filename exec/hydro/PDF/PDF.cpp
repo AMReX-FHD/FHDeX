@@ -280,7 +280,7 @@ main (int   argc,
     ParallelDescriptor::ReduceRealSum(bins.dataPtr(),nbins);
     ParallelDescriptor::ReduceLongSum(count);
     ParallelDescriptor::ReduceLongSum(totbin);
-    Print() << "Points outside of range "<< count - totbin << std::endl;
+    Print() << "Points outside of range "<< count - totbin << " " << (double)(count-totbin)/count << std::endl;
 
     // print out contents of bins to the screen
     for (int i=0; i<nbins+1; ++i) {
