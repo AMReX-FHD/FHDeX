@@ -165,8 +165,8 @@ void main_driver(const char* argv)
 		particles.mfvrmax.define(ba, dmap, nspecies*nspecies, 0);
 		particles.mfvrmax.setVal(0.);
 		
-		particles.mfgranTemp.define(ba,dmap,nspecies,0);
-		particles.mfgranTemp.setVal(0.);
+		//particles.mfgrantemp.define(ba,dmap,nspecies,0);
+		//particles.mfgrantemp.setVal(0.);
 		
 		particles.InitParticles(); // vrmax is also set here
 
@@ -191,11 +191,9 @@ void main_driver(const char* argv)
 		Real time1 = ParallelDescriptor::second();
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Collide Particles
-		//if (collide_tog != 0) {
 		amrex::Print() << "Time step: " << istep << "\n";
 		particles.CalcSelections(dt);
 		particles.CollideParticles(dt);
-		//}
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Move Particles
 		// total particle move (1=single step, 2=midpoint)

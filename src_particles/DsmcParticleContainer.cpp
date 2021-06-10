@@ -29,10 +29,35 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
 		properties[i].Neff = particle_neff; // assume F_n is same for each
       
       // Overwrite particle_count
-      properties[i].total = std::ceil(
-      	(phi_domain[i]*domainVol)/(properties[i].partVol*properties[i].Neff) );
+      if( particle_count[i] >= 0 ) {
+      	
+      	properties[i].total = particle_count[i];
+      	properties[i].n0 = particle_neff*properties[i].total/domainVol;
+      	// phi is calculated in initCollisionCells
+      	
+      	amrex::Print() <<  "Species "<< i << " count " << properties[i].total << "\n";
+      	amrex::Print() <<  "Species "<< i << " n0 " << properties[i].total << "\n";
+      	
+      } else if( phi_domain[i] >= 0 ) {
+      
+			properties[i].total = (int)amrex::Math::ceil(
+      		(phi_domain[i]*domainVol)/(properties[i].partVol*properties[i].Neff) );
+      	properties[i].n0 = properties[i].total/domainVol;
+
+      	amrex::Print() <<  "Species "<< i << " count " << properties[i].total << "\n";
+      	amrex::Print() <<  "Species "<< i << " n0 " << properties[i].total << "\n";
+
+      } else {
+      
+      	properties[i].total = (int)amrex::Math::ceil(particle_n0[i]*domainVol/particle_neff);
+      	properties[i].n0 = properties[i].total/domainVol;
+      
+      	amrex::Print() <<  "Species "<< i << " count " << properties[i].total << "\n";
+      	amrex::Print() <<  "Species "<< i << " n0 " << properties[i].total << "\n";
+      }
+      
+      realParticles = realParticles + properties[i].total*particle_neff;
       simParticles = simParticles + properties[i].total;
-      realParticles = realParticles + properties[i].total*properties[i].Neff;
 	}
    
    int indx;
@@ -60,50 +85,6 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
 		for(int i=0;i<nspecies;i++){
 			m_cell_vectors[i][grid_id].resize(box.numPts());
 		}
-	}
-}
-
-// Likely excessive
-// Relates lower diagonal matrix indices to those of 1D array
-// Problematic when nspecies = max_species (last index will cause seg fault)
-int FhdParticleContainer::getSpeciesIndex(int species1, int species2) {
-	if(species1<species2){
-		return species2+(nspecies-1)*species1;
-	} else {
-		return species1+(nspecies-1)*species2;
-	}
-}
-
-// Use to approximate pair correlation func with radial distr. func
-Real FhdParticleContainer::g0_Ma_Ahmadi(int ispec, int jspec, Real iphi, Real jphi){
-	const Real C1 = 2.5, C2 = 4.5904;
-	const Real C3 = 4.515439, CPOW = 0.67802;
-	Real chi;
-	if(ispec==jspec) {
-		// Ma Ahmadi 1990s ish
-		Real numer = 1 + C1*iphi + C2*pow(iphi,2) + C3*pow(iphi,3);
-		numer = numer * 4.0*iphi;
-		Real phiRatio = iphi/phi_max;
-		Real denom = pow(1.0 - pow(phiRatio,3),CPOW);
-		chi = 1+numer/denom;
-		return std::min(chi,chi_max);
-	} else {
-		// Mansoori et al (1971) Equ. Thermo. Prop. of the Mix. of HS
-		// Agreement looks good up to 0.50 solid fraction from paper
-		// Will likely underestimate near packing
-		// Also allows packing fractions past the max packing fraction
-		const Real phiTotal = iphi + jphi;
-		const Real irad = properties[ispec].radius;
-		const Real jrad = properties[jspec].radius;
-		Real a1 = 1.0/(1.0-phiTotal);
-		Real a2 = 3.0*irad*jrad/(irad+jrad);
-		Real eta2 = (iphi/irad) + (jphi/jrad);
-		eta2 = eta2/pow(1.0-phiTotal,2);
-		a2 = a2 * eta2;
-		Real a3 = 2.0 * pow((irad*jrad)/(irad+jrad),2);
-		a3 = a3 * pow(eta2,2) / pow(1.0-phiTotal,3);
-		chi = a1 + a2 + a3;
-		return std::min(chi,chi_max);
 	}
 }
 
@@ -421,7 +402,17 @@ void FhdParticleContainer::CollideParticles(Real dt) {
 		const Array4<Real> & arrvrmax = mfvrmax.array(mfi);
 		const Array4<Real> & arrselect = mfselect.array(mfi);
 
-		// need to update with ParallelForRNG
+		const long np = particles.numParticles();
+		Real gtemp = 0;
+		for (int i = 0; i < np; ++ i) {
+			ParticleType & part = particles[i];
+			//amrex::Print() << "id: " << part.id() << " vx: " << part.rdata(FHD_realData::velx) << "\n";
+			gtemp = sqrt(pow(part.rdata(FHD_realData::velx),2) + pow(part.rdata(FHD_realData::vely),2) +
+							pow(part.rdata(FHD_realData::velz),2)) + gtemp;
+		}
+		amrex::Print() << gtemp << "\n";
+
+		// may be better if written with AMREX_FOR_1D
 		amrex::ParallelForRNG(tile_box,
 			[=] AMREX_GPU_DEVICE (int i, int j, int k, amrex::RandomEngine const& engine) noexcept {
 		
@@ -460,7 +451,7 @@ void FhdParticleContainer::CollideParticles(Real dt) {
 					//csxvrmax = vrmax*interproperties[spec_indx].csx;
 					massi = properties[i_spec].mass;
 					massj = properties[j_spec].mass;
-					massij = massi/(massi+massj);
+					massij = properties[i_spec].mass + properties[j_spec].mass;
 					// Loop through selections
 					for (int isel = 0; isel < NSel; isel++) {
 						pindxi = floor(amrex::Random(engine)*np_i);
@@ -480,10 +471,18 @@ void FhdParticleContainer::CollideParticles(Real dt) {
 						//		parti.rdata(FHD_realData::velx),
 						//		parti.rdata(FHD_realData::velx)};
 						
+						/*
+						vi[0] = particles[pindxi].rdata(FHD_realData::velx);
+						vi[1] = particles[pindxi].rdata(FHD_realData::vely);
+						vi[2] = particles[pindxi].rdata(FHD_realData::velz);
+						
+						vj[0] = particles[pindxj].rdata(FHD_realData::velx);
+						vj[1] = particles[pindxj].rdata(FHD_realData::vely);
+						vj[2] = particles[pindxj].rdata(FHD_realData::velz);*/
+						
 						vi[0] = parti.rdata(FHD_realData::velx);
 						vi[1] = parti.rdata(FHD_realData::vely);
 						vi[2] = parti.rdata(FHD_realData::velz);
-						
 
 						vj[0] = partj.rdata(FHD_realData::velx);
 						vj[1] = partj.rdata(FHD_realData::vely);
@@ -505,69 +504,64 @@ void FhdParticleContainer::CollideParticles(Real dt) {
 						//csxvr = vrmag*interproperties[spec_indx].csx;
 						if(vrmag>vrmax*amrex::Random(engine)) {
 
-							// sample random unit vector at impact from i to j
-							// useful when calculating collisional stresses later
-							theta = 2.0*pi_usr*amrex::Random(engine);
-							phi = std::acos(1.0-2.0*amrex::Random(engine));
-							
-							eij[0] = std::sin(phi)*std::cos(theta);
-							eij[1] = std::sin(phi)*std::sin(theta);
-							eij[2] = std::cos(phi);
-							
-							/*
-							eijmag = sqrt(eij[0]*eij[0]+eij[1]*eij[1]+eij[2]*eij[2]);
-							eij[0] = eij[0]/eijmag;
-							eij[1] = eij[1]/eijmag;
-							eij[2] = eij[2]/eijmag;
-							*/
-							
-							vreijmag = vij[0]*eij[0]+vij[1]*eij[1]+vij[2]*eij[2]; // dot_product
-							//dissipation
-							vreijmag = vreijmag*massij*(1.0+interproperties[spec_indx].alpha);
-							//amrex::Print() << "vreijmag: " << vreijmag << "\n";
-							//vreijmag = vreijmag*(1+1/interproperties[spec_indx].alpha);
-							//amrex::Print() << "vreijmag: " << vreijmag << "\n";
-							//amrex::Print() << "alpha: " << interproperties[spec_indx].alpha << "\n";
-							vreij[0] = vreijmag*eij[0];
-							vreij[1] = vreijmag*eij[1];
-							vreij[2] = vreijmag*eij[2];
-							
 							// check momentum of center of mass conserved for elastic
-							
 							RealVect ivcom, fvcom;
 							Real ienergy, fenergy;
 							
 							ivcom[0] = (massi*vi[0]+massj*vj[0])*0.5;
 							ivcom[1] = (massi*vi[1]+massj*vj[1])*0.5;
 							ivcom[2] = (massi*vi[2]+massj*vj[2])*0.5;
+							/*ienergy = massi*(pow(particles[pindxi].rdata(FHD_realData::velx),2)+
+												  pow(particles[pindxi].rdata(FHD_realData::vely),2)+
+												  pow(particles[pindxi].rdata(FHD_realData::velz),2)) +
+										 massj*(pow(particles[pindxj].rdata(FHD_realData::velx),2)+
+												  pow(particles[pindxj].rdata(FHD_realData::vely),2)+
+												  pow(particles[pindxj].rdata(FHD_realData::velz),2));*/
 							
-							ienergy = massi*(vi[0]*vi[0]+vi[1]*vi[1]+vi[2]*vi[2]) +
-								massj*(vj[0]*vj[0]+vj[1]*vj[1]+vj[2]*vj[2]);
-							//ienergy = (massi+massj)*(pow(ivcom[0],2)+pow(ivcom[1],2)+pow(ivcom[2],2));								
-						
-							/*
-							amrex::Print() << "ivel_i: " << parti.rdata(FHD_realData::velx) << ", "
-								 << parti.rdata(FHD_realData::vely) << ", "
-								 << parti.rdata(FHD_realData::velz) << "\n";
-							amrex::Print() << "ivel_i: " << vi[0] << ", "
-								 << vi[1] << ", "
-								 << vi[2] << "\n";
-							*/
+							// sample random unit vector at impact from i to j
+							// useful when calculating collisional stresses later
+							theta = 2.0*pi_usr*amrex::Random(engine);
+							phi = std::acos(1.0-2.0*amrex::Random(engine));
+							
+							// this is really eji
+							eij[0] = std::sin(phi)*std::cos(theta);
+							eij[1] = std::sin(phi)*std::sin(theta);
+							eij[2] = std::cos(phi);		
+							
+							vreijmag = vij[0]*eij[0]+vij[1]*eij[1]+vij[2]*eij[2]; // dot_product
+							vreijmag = vreijmag*(1.0+interproperties[spec_indx].alpha)/massij;
+							vreij[0] = vreijmag*eij[0];
+							vreij[1] = vreijmag*eij[1];
+							vreij[2] = vreijmag*eij[2];							
 							
 							// Update velocities
-							vi[0] = vi[0] - vreij[0];
-							vi[1] = vi[1] - vreij[1];
-							vi[2] = vi[2] - vreij[2];
-							vj[0] = vj[0] + vreij[0];
-							vj[1] = vj[1] + vreij[1];
-							vj[2] = vj[2] + vreij[2];
+							vi[0] = vi[0] - vreij[0]*massj;
+							vi[1] = vi[1] - vreij[1]*massj;
+							vi[2] = vi[2] - vreij[2]*massj;
+							vj[0] = vj[0] + vreij[0]*massi;
+							vj[1] = vj[1] + vreij[1]*massi;
+							vj[2] = vj[2] + vreij[2]*massi;
 
+							
 							parti.rdata(FHD_realData::velx) = vi[0];
 							parti.rdata(FHD_realData::vely) = vi[1];
 							parti.rdata(FHD_realData::velz) = vi[2];
 							partj.rdata(FHD_realData::velx) = vj[0];
 							partj.rdata(FHD_realData::vely) = vj[1];
 							partj.rdata(FHD_realData::velz) = vj[2];
+							
+							/*
+							particles[pindxi].rdata(FHD_realData::velx) = vi[0];
+							particles[pindxi].rdata(FHD_realData::vely) = vi[1];
+							particles[pindxi].rdata(FHD_realData::velz) = vi[2];
+						
+							particles[pindxj].rdata(FHD_realData::velx) = vj[0];
+							particles[pindxj].rdata(FHD_realData::vely) = vj[1];
+							particles[pindxj].rdata(FHD_realData::velz) = vj[2];*/
+							
+							//amrex::Print() << "hit\n";
+							//amrex::Print() << "id: " << parti.id() << " vx: " << parti.rdata(FHD_realData::velx) << "\n";
+							//amrex::Print() << "id: " << partj.id() << " vx: " << partj.rdata(FHD_realData::velx) << "\n";
 							
 							/*
 							amrex::Print() << "fvel_i: " << parti.rdata(FHD_realData::velx) << ", "
@@ -582,14 +576,16 @@ void FhdParticleContainer::CollideParticles(Real dt) {
 							fvcom[1] = (massi*vi[1]+massj*vj[1])*0.5;
 							fvcom[2] = (massi*vi[2]+massj*vj[2])*0.5;
 							
-							fenergy = massi*(vi[0]*vi[0]+vi[1]*vi[1]+vi[2]*vi[2]) +
-								massj*(vj[0]*vj[0]+vj[1]*vj[1]+vj[2]*vj[2]);
-							//fenergy = (massi+massj)*(pow(fvcom[0],2)+pow(fvcom[1],2)+pow(fvcom[2],2));
+							/*fenergy = massi*(pow(particles[pindxi].rdata(FHD_realData::velx),2)+
+												  pow(particles[pindxi].rdata(FHD_realData::vely),2)+
+												  pow(particles[pindxi].rdata(FHD_realData::velz),2)) +
+										 massj*(pow(particles[pindxj].rdata(FHD_realData::velx),2)+
+												  pow(particles[pindxj].rdata(FHD_realData::vely),2)+
+												  pow(particles[pindxj].rdata(FHD_realData::velz),2));*/
 								
 							//amrex::Print() << "Init VCOM:  " << ivcom[0] << ", " << ivcom[1] << ", " << ivcom[2] << "\n";
 							//amrex::Print() << "Final VCOM: " << fvcom[0] << ", " << fvcom[1] << ", " << fvcom[2] << "\n";
-							//amrex::Print() << "Delta Energy: " <<
-							//	fenergy-ienergy << "\n";
+							//amrex::Print() << "Delta Energy: " << (fenergy-ienergy)/ienergy << "\n";
 							
 							
 							// Boosted Velocities
@@ -608,6 +604,7 @@ void FhdParticleContainer::CollideParticles(Real dt) {
 							boost[2] = boost[2]*oboostmag;
 						
 							//amrex::Print() << "dt Boost: " << boost[0] << ", " << boost[1] << ", " << boost[2] << "\n";
+							
 							parti.rdata(FHD_realData::boostx) = boost[0];
 							parti.rdata(FHD_realData::boosty) = boost[1];
 							parti.rdata(FHD_realData::boostz) = boost[2];
@@ -626,6 +623,14 @@ void FhdParticleContainer::CollideParticles(Real dt) {
 				}
 			}
 		});
+		//gtemp = 0;
+		for (int i = 0; i < np; ++ i) {
+			ParticleType & part = particles[i];
+			//amrex::Print() << "id: " << part.id() << " vx: " << part.rdata(FHD_realData::velx) << "\n";
+			//gtemp = sqrt(pow(part.rdata(FHD_realData::velx),2) + pow(part.rdata(FHD_realData::vely),2) +
+			//				pow(part.rdata(FHD_realData::velz),2)) + gtemp;
+		}
+		//amrex::Print() << gtemp << "\n";
 	}
 	
 		// Garcia: Random selections - no species order
@@ -676,7 +681,7 @@ void FhdParticleContainer::EvaluateStats(MultiFab& particleInstant, MultiFab& pa
 
 	const Real* dx = Geom(lev).CellSize();
 	const Real dxInv = 1.0/dx[0];
-	const Real cellVolInv = 1.0/(dx[0]*dx[0]*dx[0]);
+	const Real cellVolInv = 1.0/(dx[0]*dx[0]*dx[0]); // this is recorded in ocollisionCellVol
 
 	const Real stepsInv = 1.0/steps;
 	const int stepsMinusOne = steps-1;
@@ -685,7 +690,6 @@ void FhdParticleContainer::EvaluateStats(MultiFab& particleInstant, MultiFab& pa
 	particleInstant.setVal(0.);
    
    grantemp = 0.0;
-   
 	for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) {
 		PairIndex index(pti.index(), pti.LocalTileIndex());
 		const int np = this->GetParticles(lev)[index].numRealParticles();
@@ -743,7 +747,7 @@ void FhdParticleContainer::EvaluateStats(MultiFab& particleInstant, MultiFab& pa
 		// Granular Temperature
 		const long grid_id = pti.index();
 		amrex::ParallelFor(tile_box,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
-		/*			
+					
 			const IntVect& iv = {i,j,k};
 			long imap = tile_box.index(iv);
 			Real spdsq;
@@ -762,8 +766,70 @@ void FhdParticleContainer::EvaluateStats(MultiFab& particleInstant, MultiFab& pa
 					grantemp = grantemp + properties[i_spec].mass*spdsq;
 				}
 			}
-		*/
+		
 		});
+		
+		/*
+		AMREX_FOR_1D( np, ni, {
+			ParticleType & part = particles[ni];
+			grantemp = grantemp + 
+				(part.rdata(FHD_realData::velx)*part.rdata(FHD_realData::velx) + 
+				part.rdata(FHD_realData::vely)*part.rdata(FHD_realData::vely) +
+				part.rdata(FHD_realData::velz)*part.rdata(FHD_realData::velz))/3.0;
+            
+			//amrex::Gpu::Atomic::Add(&part_inst(i,j,k,0), 1.0);
+
+			for(int l=0;l<nspecies;l++) {
+				
+			}
+
+		});*/
 	}
-	//amrex::Print() << "GranTemp: " << grantemp << "\n";
+	amrex::Print() << "GranTemp: " << grantemp << "\n";
+   ParallelDescriptor::ReduceRealSum(grantemp);
+}
+
+
+// Likely excessive
+// Relates lower diagonal matrix indices to those of 1D array
+// Problematic when nspecies = max_species (last index will cause seg fault)
+int FhdParticleContainer::getSpeciesIndex(int species1, int species2) {
+	if(species1<species2){
+		return species2+(nspecies-1)*species1;
+	} else {
+		return species1+(nspecies-1)*species2;
+	}
+}
+
+// Use to approximate pair correlation func with radial distr. func
+Real FhdParticleContainer::g0_Ma_Ahmadi(int ispec, int jspec, Real iphi, Real jphi){
+	const Real C1 = 2.5, C2 = 4.5904;
+	const Real C3 = 4.515439, CPOW = 0.67802;
+	Real chi;
+	if(ispec==jspec) {
+		// Ma Ahmadi 1990s ish
+		Real numer = 1 + C1*iphi + C2*pow(iphi,2) + C3*pow(iphi,3);
+		numer = numer * 4.0*iphi;
+		Real phiRatio = iphi/phi_max;
+		Real denom = pow(1.0 - pow(phiRatio,3),CPOW);
+		chi = 1+numer/denom;
+		return std::min(chi,chi_max);
+	} else {
+		// Mansoori et al (1971) Equ. Thermo. Prop. of the Mix. of HS
+		// Agreement looks good up to 0.50 solid fraction from paper
+		// Will likely underestimate near packing
+		// Also allows packing fractions past the max packing fraction
+		const Real phiTotal = iphi + jphi;
+		const Real irad = properties[ispec].radius;
+		const Real jrad = properties[jspec].radius;
+		Real a1 = 1.0/(1.0-phiTotal);
+		Real a2 = 3.0*irad*jrad/(irad+jrad);
+		Real eta2 = (iphi/irad) + (jphi/jrad);
+		eta2 = eta2/pow(1.0-phiTotal,2);
+		a2 = a2 * eta2;
+		Real a3 = 2.0 * pow((irad*jrad)/(irad+jrad),2);
+		a3 = a3 * pow(eta2,2) / pow(1.0-phiTotal,3);
+		chi = a1 + a2 + a3;
+		return std::min(chi,chi_max);
+	}
 }

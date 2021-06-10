@@ -73,6 +73,7 @@ typedef struct {
   int total;
   double mass;
   double radius;
+  double n0;
   double R;
   double Neff;
   double partVol;
@@ -122,6 +123,8 @@ public:
                                          MultiFab& particleVars, const Real delt, int steps);
                                          
    Real grantemp;
+   Real initgrantemp;
+   
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	// Scalars
@@ -152,13 +155,17 @@ public:
 	const Real phi_max = 0.643;
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	// MFs for DSMC
+	// MFs for DSMC and directly related quantities
+	// May condense MFs in the future
 	// Move within particle container to avoid continuously passing as input
 	MultiFab mfselect; // store number of selections
    MultiFab mfvrmax; // store max relative speed found
    // currently a single constant but updates over time
    MultiFab mfphi; // needed for evaluating radial distribution function
-   MultiFab mfgranTemp;
+   //MultiFab mfgrantemp;
+
+   MultiFab mfCollisions; // keep track to ensure correct collision frequency
+	Real expectedCollisions;
 	
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	// Constants	
