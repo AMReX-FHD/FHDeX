@@ -182,7 +182,30 @@ void InitConsVar(MultiFab& cons, const MultiFab& prim,
                    for (int l=0;l<nspecies;l++) {
                      cu(i,j,k,5+l) = cu(i,j,k,0)*Yk[l];
                    }
-            } // prob type
+            } 
+
+            else if (prob_type == 101) { // sinusoidal temperature variation (constant pressure)
+
+                   Real y = itVec[1];
+                   Real Ly = realhi[1] - reallo[0];
+
+                   for (int ns=0;ns<nspecies;++ns) massvec[ns] = rhobar[ns];
+
+                   Real pressure;
+                   GetPressureGas(pressure,massvec,rho0,T_init[0]);
+                    
+                   Real temperature;
+                   temperature = T_init[0] + 0.1*T_init[0]*sin(2.*pi*y/Ly);
+
+                   Real density;
+                   GetDensity(pressure,density,temperature,massvec);
+                   cu(i,j,k,0) = density;
+                   for (int ns=0;ns<nspecies;++ns) cu(i,j,k,5+ns) = density*massvec[ns];
+
+                   Real intEnergy;
+                   GetEnergy(intEnergy, massvec, temperature);
+                   cu(i,j,k,4) = density*intEnergy;
+            } 
 
         });
     } // end MFIter
