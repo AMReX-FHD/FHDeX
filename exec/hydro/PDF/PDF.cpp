@@ -290,7 +290,7 @@ main (int   argc,
 
     // print out contents of bins to the screen
     for (int i=0; i<nbins+1; ++i) {
-        Print() << "For  m="<< nderivs<< " " <<  (i-halfbin)*binwidth << " " << bins[i]/count << std::endl;
+        Print() << "For  m="<< nderivs<< " " <<  (i-halfbin)*binwidth << " " << bins[i]/(count*binwidth) << std::endl;
     }
     if (ParallelDescriptor::IOProcessor()) {
         std::ofstream outfile;
@@ -300,7 +300,7 @@ main (int   argc,
 
         outfile.open(oFile);
         for (int i=0; i<nbins+1; ++i) {
-            outfile << (i-halfbin)*binwidth << " " << bins[i]/count << std::endl;
+            outfile << (i-halfbin)*binwidth << " " << bins[i]/(count*binwidth) << std::endl;
         }
     }
 
