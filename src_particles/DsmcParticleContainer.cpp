@@ -135,7 +135,7 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
 
               moves++;
 
-              runtime = dt;
+              runtime = dt*part.rdata(FHD_realData::timeFrac);
 
               while(runtime > 0)
               {
@@ -175,6 +175,8 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
 
               }
 
+              part.rdata(FHD_realData::timeFrac) = 1;
+
 
             int cell[3];
             cell[0] = (int)floor((part.pos(0)-plo[0])/dx[0]);
@@ -184,10 +186,10 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
             //cout << "current cell: " << cell[0] << ", " << cell[1] << ", " << cell[2] << "\cout";
             //n << "current pos: " << part.pos(0) << ", " << part.pos(1) << ", " << part.pos(2) << "\n";
 
-            if((cell[0] < myLo[0]) || (cell[1] < myLo[1]) || (cell[2] < myLo[2]) || (cell[0] > myHi[0]) || (cell[1] > myHi[1]) || (cell[2] > myHi[2]))
-            {
-                reDist++;
-            }
+//            if((cell[0] < myLo[0]) || (cell[1] < myLo[1]) || (cell[2] < myLo[2]) || (cell[0] > myHi[0]) || (cell[1] > myHi[1]) || (cell[2] > myHi[2]))
+//            {
+//                reDist++;
+//            }
 
             if((part.idata(FHD_intData::i) != cell[0]) || (part.idata(FHD_intData::j) != cell[1]) || (part.idata(FHD_intData::k) != cell[2]))
             {
@@ -349,7 +351,7 @@ void FhdParticleContainer::Source(const Real dt, const paramPlane* paramPlaneLis
                         Real area = paramPlaneList[i].area;
 
                         Real fluxMean = density*area*sqrt(properties[j].R*temp/(2.0*M_PI));
-                        Real fluxVar = properties[j].mass*density*area*sqrt(properties[j].R*temp/(2.0*M_PI));
+                        Real fluxVar = 0.5*density*area*properties[j].R*temp;
 
                         Real totalFlux = dt*fluxMean + sqrt(dt*fluxVar)*amrex::RandomNormal(0.,1.);
 
@@ -374,13 +376,13 @@ void FhdParticleContainer::Source(const Real dt, const paramPlane* paramPlaneLis
                             p.cpu() = ParallelDescriptor::MyProc();
                             p.idata(FHD_intData::sorted) = -1;
 
-                            p.idata(FHD_intData::species) = i;
+                            p.idata(FHD_intData::species) = j;
 
                             p.pos(0) = paramPlaneList[i].x0 + paramPlaneList[i].ux*uCoord + paramPlaneList[i].vx*vCoord;
                             p.pos(1) = paramPlaneList[i].y0 + paramPlaneList[i].uy*uCoord + paramPlaneList[i].vy*vCoord;
                             p.pos(2) = paramPlaneList[i].z0 + paramPlaneList[i].uz*uCoord + paramPlaneList[i].vz*vCoord;
 
-                            Print() << "origin: " << paramPlaneList[i].x0 << ", " << paramPlaneList[i].y0 << ", " << paramPlaneList[i].z0 << ", uCoord: " << uCoord << "\n";
+                            //Print() << "origin: " << paramPlaneList[i].x0 << ", " << paramPlaneList[i].y0 << ", " << paramPlaneList[i].z0 << ", uCoord: " << uCoord << "\n";
 
                             //move the particle slightly off the surface so it doesn't intersect it when it moves
                             p.pos(0) = p.pos(0) + uCoord*0.00000001*paramPlaneList[i].lnx;
@@ -391,7 +393,12 @@ void FhdParticleContainer::Source(const Real dt, const paramPlane* paramPlaneLis
                             p.rdata(FHD_realData::boosty) = 0;
                             p.rdata(FHD_realData::boostz) = 0;
 
+                            p.idata(FHD_intData::i) = -100;
+                            p.idata(FHD_intData::j) = -100;
+                            p.idata(FHD_intData::k) = -100;
+
                             p.rdata(FHD_realData::R) = properties[j].R;
+                            p.rdata(FHD_realData::timeFrac) = amrex::Random();
 
                             Real srt = sqrt(p.rdata(FHD_realData::R)*temp);
 
@@ -403,8 +410,8 @@ void FhdParticleContainer::Source(const Real dt, const paramPlane* paramPlaneLis
 
                             rotation(surf.cosThetaLeft, surf.sinThetaLeft, surf.cosPhiLeft, surf.sinPhiLeft, &p.rdata(FHD_realData::velx), &p.rdata(FHD_realData::vely), &p.rdata(FHD_realData::velz));
 
-                            Print() << "Pushing back " << p.id() << ", pos: " << p.pos(0) << ", " << p.pos(1) << ", " << p.pos(2) << "\n";
-                            Print() << "Pushing back " << p.id() << ", vel: " << p.rdata(FHD_realData::velx) << ", " << p.rdata(FHD_realData::vely) << ", " << p.rdata(FHD_realData::velz) << "\n";
+                            //Print() << "Pushing back " << p.id() << ", pos: " << p.pos(0) << ", " << p.pos(1) << ", " << p.pos(2) << "\n";
+                            //Print() << "Pushing back " << p.id() << ", vel: " << p.rdata(FHD_realData::velx) << ", " << p.rdata(FHD_realData::vely) << ", " << p.rdata(FHD_realData::velz) << "\n";
 
                             particle_tile.push_back(p);
 
@@ -428,7 +435,7 @@ void FhdParticleContainer::Source(const Real dt, const paramPlane* paramPlaneLis
 void FhdParticleContainer::SortParticles()
 {
 
-    Print() << "SORTING\n";
+   // Print() << "SORTING\n";
     int lev = 0;
     for (FhdParIter pti(* this, lev); pti.isValid(); ++pti) {
 
@@ -447,20 +454,23 @@ void FhdParticleContainer::SortParticles()
             {
                 const IntVect& iv = this->Index(part, lev);
 
-                cout << "part " << i << " is in cell " << iv[0] << ", " << iv[1] << ", " << iv[2] << "\n";
+               // cout << "part " << i << " is in cell " << iv[0] << ", " << iv[1] << ", " << iv[2] << "\n";
 
                 part.idata(FHD_intData::i) = iv[0];
                 part.idata(FHD_intData::j) = iv[1];
                 part.idata(FHD_intData::k) = iv[2];
 
-                Print() << "cell recorded\n";
+                //Print() << "cell recorded\n";
 
                 long imap = tile_box.index(iv);
 
-                Print() << "map built\n";
-
+                //Print() << "map built\n";
+               // Print() << "pti is: " << pti.index() << "\n";
+               // Print() << "spec is: " << part.idata(FHD_intData::species) << "\n";
 
                 part.idata(FHD_intData::sorted) = m_cell_vectors[part.idata(FHD_intData::species)][pti.index()][imap].size();
+
+               // Print() << "size is: " << part.idata(FHD_intData::sorted) << "\n";
 
                 m_cell_vectors[part.idata(FHD_intData::species)][pti.index()][imap].push_back(i);
 
