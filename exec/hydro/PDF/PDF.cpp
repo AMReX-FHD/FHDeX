@@ -28,6 +28,7 @@ main (int   argc,
       char* argv[])
 {
     amrex::Initialize(argc,argv);
+{
 
     if (argc == 1) {
         PrintUsage(argv[0]);
@@ -40,6 +41,10 @@ main (int   argc,
     std::string iFile;
     pp.get("infile", iFile);
 
+    // plotfile name
+    std::string oFile;
+    pp.get("outfile", oFile);
+
     // how many 2nd-derivatives to take
     int nderivs;
     pp.get("nderivs", nderivs);
@@ -47,6 +52,9 @@ main (int   argc,
     // how many bins
     int nbins;
     pp.get("nbins", nbins);
+
+    Real range;
+    pp.get("range",range);
 
     // for the Header
     std::string iFile2 = iFile;
@@ -135,6 +143,7 @@ main (int   argc,
 
     // copy shifted velocity components from mf into mf_grown
     Copy(mf_grown,mf,AMREX_SPACEDIM,0,AMREX_SPACEDIM,0);
+    if(nderivs ==0) Copy(laplacian,mf,AMREX_SPACEDIM,0,AMREX_SPACEDIM,0);
 
     // fill ghost cells of mf_grown
     mf_grown.FillBoundary(geom.periodicity());
@@ -176,26 +185,22 @@ main (int   argc,
         
     } // end loop over nderivs
         
-    // store sum of velocity components
-    MultiFab sum_laplacian(ba,dmap,1,0);
-    sum_laplacian.setVal(0.);
+    Vector<Real> L2(AMREX_SPACEDIM,0.);
 
-    // compute sum over velocity components
-    for ( MFIter mfi(sum_laplacian,false); mfi.isValid(); ++mfi ) {
+    for ( MFIter mfi(laplacian,false); mfi.isValid(); ++mfi ) {
 
         const Box& bx = mfi.validbox();
         const auto lo = amrex::lbound(bx);
         const auto hi = amrex::ubound(bx);
         
         const Array4<Real>& lap = laplacian.array(mfi);
-        const Array4<Real>& sum_lap = sum_laplacian.array(mfi);
 
         for (auto n=0; n<AMREX_SPACEDIM; ++n) {
         for (auto k = lo.z; k <= hi.z; ++k) {
         for (auto j = lo.y; j <= hi.y; ++j) {
         for (auto i = lo.x; i <= hi.x; ++i) {
 
-            sum_lap(i,j,k) += lap(i,j,k,n);
+            L2[n] += lap(i,j,k,n)*lap(i,j,k,n);
                 
         }
         }
@@ -204,31 +209,68 @@ main (int   argc,
 
     } // end MFIter
 
-    Vector<Real> bins(nbins,0.);
+    ParallelDescriptor::ReduceRealSum(L2.dataPtr(),AMREX_SPACEDIM);
+    amrex::Long totpts =  domain.numPts();
+    L2[0] = sqrt(L2[0]/totpts);
+    L2[1] = sqrt(L2[1]/totpts);
+    L2[2] = sqrt(L2[2]/totpts);
+    Print() << "L2 norm of Laplacian to power " << nderivs << " is " << L2[0] << " "  << L2[1] << " "  << L2[2] << " " << std::endl;
 
-    // compute sum over velocity components
-    for ( MFIter mfi(sum_laplacian,false); mfi.isValid(); ++mfi ) {
+        for ( MFIter mfi(laplacian,false); mfi.isValid(); ++mfi ) {
+
+            const Box& bx = mfi.validbox();
+            const auto lo = amrex::lbound(bx);
+            const auto hi = amrex::ubound(bx);
+
+            const Array4<Real>& lap = laplacian.array(mfi);
+
+            for (auto n=0; n<AMREX_SPACEDIM; ++n) {
+            for (auto k = lo.z; k <= hi.z; ++k) {
+            for (auto j = lo.y; j <= hi.y; ++j) {
+            for (auto i = lo.x; i <= hi.x; ++i) {
+
+                lap(i,j,k,n) = lap(i,j,k,n)/L2[n];
+
+            }
+            }
+            }
+            }
+
+        } // end MFIter
+
+    Vector<Real> bins(nbins+1,0.);
+
+    int halfbin = nbins/2;
+    Real hbinwidth = range/nbins;
+    Real binwidth = 2.*range/nbins;
+    amrex::Long count=0;
+    amrex::Long totbin=0;
+
+    for ( MFIter mfi(laplacian,false); mfi.isValid(); ++mfi ) {
 
         const Box& bx = mfi.validbox();
         const auto lo = amrex::lbound(bx);
         const auto hi = amrex::ubound(bx);
         
-        const Array4<Real>& sum_lap = sum_laplacian.array(mfi);
+        const Array4<Real>& lap = laplacian.array(mfi);
 
+        for (auto n=0; n<AMREX_SPACEDIM; ++n) {
         for (auto k = lo.z; k <= hi.z; ++k) {
         for (auto j = lo.y; j <= hi.y; ++j) {
         for (auto i = lo.x; i <= hi.x; ++i) {
 
-            // bin index
-            int index = sum_lap(i,j,k) / 5.e-8;
-            index += 50;
-
-            index = std::max(index,0);
-            index = std::min(index,99);
+            int index = (lap(i,j,k,n) - hbinwidth)/binwidth;
+            index += halfbin;
             
-            bins[index] += sum_lap(i,j,k);
+            if( index >=0 && index <= nbins) {
+                bins[index] += 1;
+                totbin++;
+            }
+
+            count++;
 
                 
+        }
         }
         }
         }
@@ -236,12 +278,29 @@ main (int   argc,
     } // end MFIter
 
     ParallelDescriptor::ReduceRealSum(bins.dataPtr(),nbins);
+    ParallelDescriptor::ReduceLongSum(count);
+    ParallelDescriptor::ReduceLongSum(totbin);
+    Print() << "Points outside of range "<< count - totbin << std::endl;
 
     // print out contents of bins to the screen
-    for (int i=0; i<nbins; ++i) {
-        Print() << "HACK " << i << " " << bins[i] << std::endl;
+    for (int i=0; i<nbins+1; ++i) {
+        Print() << "For  m="<< nderivs<< " " <<  (i-halfbin)*binwidth << " " << bins[i]/count << std::endl;
+    }
+    if (ParallelDescriptor::IOProcessor()) {
+        std::ofstream outfile;
+        oFile +="_";
+        oFile += std::to_string(nderivs);
+        oFile += ".dat";
+
+        outfile.open(oFile);
+        for (int i=0; i<nbins+1; ++i) {
+            outfile << (i-halfbin)*binwidth << " " << bins[i]/count << std::endl;
+        }
     }
 
+
+}
+    amrex::Finalize();
     
                  
 }
