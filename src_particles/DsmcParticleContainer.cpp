@@ -142,7 +142,7 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
 
                 if(part.id() == 332)
                 {
-                       Print() << "stated moving particle " << i << "\n";
+                       //Print() << "stated moving particle " << i << "\n";
                 }
 
 
@@ -202,7 +202,7 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
               }
                 if(part.id() == 332)
                 {
-              Print() << "finished move particle " << i << "\n";
+              //Print() << "finished move particle " << i << "\n";
 }
               part.rdata(FHD_realData::timeFrac) = 1;
 
@@ -228,21 +228,24 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
                 long imap = tile_box.index(iv);
                                 if(part.id() == 332)
                 {
-                Print() << "removing " << i << ", " << part.id() << " from cell " << iv[0] << ", " << iv[1] << ", " << iv[2] << "\n";}
+                //Print() << "removing " << i << ", " << part.id() << " from cell " << iv[0] << ", " << iv[1] << ", " << iv[2] << "\n";
+                }
 
                 int lastIndex = m_cell_vectors[part.idata(FHD_intData::species)][pti.index()][imap].size() - 1;
-                if(part.id() == 332)
-                {
-                Print() << "last index is " << lastIndex << "\n";}
+                if(part.id() == 332) {
+                //Print() << "last index is " << lastIndex << "\n";
+                }
 
                 int lastPart = m_cell_vectors[part.idata(FHD_intData::species)][pti.index()][imap][lastIndex];
                 if(part.id() == 332)
                 {
-                Print() << "last part is " << lastPart << "\n";}
+                //Print() << "last part is " << lastPart << "\n";
+                }
                 int newIndex = part.idata(FHD_intData::sorted);
                 if(part.id() == 332)
                 {
-                Print() << "found new index\n";}
+                //Print() << "found new index\n";
+                }
 
                 m_cell_vectors[part.idata(FHD_intData::species)][pti.index()][imap][newIndex] = lastPart;
                 m_cell_vectors[part.idata(FHD_intData::species)][pti.index()][imap].pop_back();
@@ -372,6 +375,7 @@ void FhdParticleContainer::CalcSelections(Real dt) {
 					crossSection = interproperties[ij_spec].csx;
 
 					NSel = 0.5*particle_neff*np_i*np_j*crossSection*vrmax*ocollisionCellVol*chi0*dt;
+					NSel = NSel * 2.0; // directionally dependent probability
 					//amrex::Print() << "NSel: " << NSel << "\n";
 					// Currently running total
 					arrselect(i,j,k,ij_spec) = arrselect(i,j,k,ij_spec) + NSel;
@@ -497,17 +501,28 @@ void FhdParticleContainer::CollideParticles(Real dt) {
 
 						// later want to reject non-approaching
 						//csxvr = vrmag*interproperties[spec_indx].csx;
-						if(vrmag>vrmax*amrex::Random()) {
+						
+						theta = 2.0*pi_usr*amrex::Random();
+						phi = std::acos(2.0*amrex::Random()-1.0);
+						
+						eij[0] = std::sin(theta)*std::cos(phi);
+						eij[1] = std::sin(theta)*std::sin(phi);
+						eij[2] = std::cos(theta);
+						
+						vreijmag = vij[0]*eij[0]+vij[1]*eij[1]+vij[2]*eij[2];
+						
+						// if(vrmag>vrmax*amrex::Random()) {
+						if(vreijmag>vrmax*amrex::Random()) {
 							countedCollisions+= 2;
 							
-							theta = 2.0*pi_usr*amrex::Random();
-							phi = std::acos(1.0-2.0*amrex::Random());
+							//theta = 2.0*pi_usr*amrex::Random();
+							//phi = std::acos(2.0*amrex::Random()-1.0);
 							
-							eij[0] = std::sin(phi)*std::cos(theta);
-							eij[1] = std::sin(phi)*std::sin(theta);
-							eij[2] = std::cos(phi);
+							//eij[0] = std::sin(theta)*std::cos(phi);
+							//eij[1] = std::sin(theta)*std::sin(phi);
+							//eij[2] = std::cos(theta);
 							
-							vreijmag = vij[0]*eij[0]+vij[1]*eij[1]+vij[2]*eij[2]; // dot_product
+							//vreijmag = vij[0]*eij[0]+vij[1]*eij[1]+vij[2]*eij[2]; // dot_product
 							//vreijmag = vreijmag*(1.0+interproperties[ij_spec].alpha)/massij;
 							vreijmag = vreijmag*(1.0+interproperties[ij_spec].alpha)*0.5;
 							// amrex::Print() << "Alpha: " << (1.0+interproperties[ij_spec].alpha)*0.5 << "\n";
@@ -558,7 +573,7 @@ void FhdParticleContainer::CollideParticles(Real dt) {
 		}
 	}
 	tTg = tTg/(3.0*properties[0].total);
-	amrex::Print() << tTg << "\n";
+	//amrex::Print() << tTg << "\n";
 	if (initTg<0) { initTg = tTg; }
 	//amrex::Print() << "NColl/NSel: " << (double)lNColl/lNSel << "\n";
 	amrex::Print() << "Cumulative Collisions: " << (Real)countedCollisions/simParticles
@@ -868,7 +883,7 @@ void FhdParticleContainer::SortParticles() {
 
                 if(part.id() == 332)
                 {
-                    Print() << "Adding to " << iv[0] << ", " << iv[1] << ", " << iv[2] << "\n";
+                    //Print() << "Adding to " << iv[0] << ", " << iv[1] << ", " << iv[2] << "\n";
                 }
 
             }
