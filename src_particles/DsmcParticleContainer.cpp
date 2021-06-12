@@ -378,9 +378,9 @@ void FhdParticleContainer::CalcSelections(Real dt) {
 					NSel = NSel * 2.0; // directionally dependent probability
 					//amrex::Print() << "NSel: " << NSel << "\n";
 					// Currently running total
-					arrselect(i,j,k,ij_spec) = arrselect(i,j,k,ij_spec) + NSel;
+					//arrselect(i,j,k,ij_spec) = arrselect(i,j,k,ij_spec) + NSel;
 
-					// Needs to be tested!
+					// Better if using restart (less to remember)
 					NSel = std::floor(NSel + amrex::Random());
 					totalNSel += NSel;
 					arrselect(i,j,k,ij_spec) = NSel;
@@ -511,32 +511,30 @@ void FhdParticleContainer::CollideParticles(Real dt) {
 						
 						vreijmag = vij[0]*eij[0]+vij[1]*eij[1]+vij[2]*eij[2];
 						
-						// if(vrmag>vrmax*amrex::Random()) {
-						if(vreijmag>vrmax*amrex::Random()) {
+						//if(vrmag>vrmax*amrex::Random()) {
+						if(amrex::Math::abs(vreijmag)>vrmax*amrex::Random()) {
 							countedCollisions+= 2;
 							
-							//theta = 2.0*pi_usr*amrex::Random();
-							//phi = std::acos(2.0*amrex::Random()-1.0);
+							/*theta = 2.0*pi_usr*amrex::Random();
+							phi = std::acos(2.0*amrex::Random()-1.0);
 							
-							//eij[0] = std::sin(theta)*std::cos(phi);
-							//eij[1] = std::sin(theta)*std::sin(phi);
-							//eij[2] = std::cos(theta);
+							eij[0] = std::sin(theta)*std::cos(phi);
+							eij[1] = std::sin(theta)*std::sin(phi);
+							eij[2] = std::cos(theta);
 							
-							//vreijmag = vij[0]*eij[0]+vij[1]*eij[1]+vij[2]*eij[2]; // dot_product
-							//vreijmag = vreijmag*(1.0+interproperties[ij_spec].alpha)/massij;
-							vreijmag = vreijmag*(1.0+interproperties[ij_spec].alpha)*0.5;
-							// amrex::Print() << "Alpha: " << (1.0+interproperties[ij_spec].alpha)*0.5 << "\n";
+							vreijmag = vij[0]*eij[0]+vij[1]*eij[1]+vij[2]*eij[2];*/
+							vreijmag = vreijmag*(1.0+interproperties[ij_spec].alpha)/massij;
 							vreij[0] = vreijmag*eij[0];
 							vreij[1] = vreijmag*eij[1];
 							vreij[2] = vreijmag*eij[2];							
 							
 							// Update velocities
-							parti.rdata(FHD_realData::velx) = vi[0] - vreij[0];//*massj;
-							parti.rdata(FHD_realData::vely) = vi[1] - vreij[1];//*massj;
-							parti.rdata(FHD_realData::velz) = vi[2] - vreij[2];//*massj;
-							partj.rdata(FHD_realData::velx) = vj[0] + vreij[0];//*massi;
-							partj.rdata(FHD_realData::vely) = vj[1] + vreij[1];//*massi;
-							partj.rdata(FHD_realData::velz) = vj[2] + vreij[2];//*massi;
+							parti.rdata(FHD_realData::velx) = vi[0] - vreij[0]*massj;
+							parti.rdata(FHD_realData::vely) = vi[1] - vreij[1]*massj;
+							parti.rdata(FHD_realData::velz) = vi[2] - vreij[2]*massj;
+							partj.rdata(FHD_realData::velx) = vj[0] + vreij[0]*massi;
+							partj.rdata(FHD_realData::vely) = vj[1] + vreij[1]*massi;
+							partj.rdata(FHD_realData::velz) = vj[2] + vreij[2]*massi;
 							
 							// Boosted Velocities
 							vijpost[0] = vi[0]-vj[0];

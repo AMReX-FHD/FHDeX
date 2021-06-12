@@ -154,9 +154,9 @@ void main_driver(const char* argv)
 
 	//int num_neighbor_cells = 4; replaced by input var
 	//Particles! Build on geom & box array for collision cells/ poisson grid?
-	/*string tTgFile = "GranularTemp.txt";
+	string tTgFile = "GranularTemp.txt";
 	ofstream myfile;
-	myfile.open(tTgFile);*/
+	myfile.open(tTgFile);
 	int cRange = 0;
 	FhdParticleContainer particles(geom, dmap, ba, cRange);
 	if (restart < 0 && particle_restart < 0) {
@@ -261,7 +261,8 @@ void main_driver(const char* argv)
         amrex::Print() << "Current     FAB megabyte spread across MPI nodes: ["
                        << min_fab_megabytes << " ... " << max_fab_megabytes << "]\n";
         */
-        // myfile << particles.tTg/(particles.countedCollisions) << "\n";
+        myfile << (Real) particles.countedCollisions/particles.simParticles << " "
+           << particles.tTg << "\n";
     }
 
     ///////////////////////////////////////////
