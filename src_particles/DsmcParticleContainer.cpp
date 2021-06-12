@@ -121,6 +121,12 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
         for (int i = 0; i < np; ++ i) {
               ParticleType & part = particles[i];
 
+                if(part.id() == 332)
+                {
+                       Print() << "stated moving particle " << i << "\n";
+                }
+
+
               Real speed = 0;
 
               for (int d=0; d<AMREX_SPACEDIM; ++d)
@@ -161,8 +167,9 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
                       }
 
                       Real dummy = 1;
-
-                      app_bc_gpu(&surf, part, intside, domSize, &push, dummy, dummy);
+                       //Print() << "surf: " << intsurf-1 << "\n";
+                      app_bc_gpu(&surf, part, intside, domSize, &push, &runtime, dummy);
+                       //Print() << "rt: " << runtime << "\n";
 
                       if(push == 1)
                       {
@@ -174,7 +181,10 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
                   }
 
               }
-
+                if(part.id() == 332)
+                {
+              Print() << "finished move particle " << i << "\n";
+}
               part.rdata(FHD_realData::timeFrac) = 1;
 
 
@@ -183,7 +193,6 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
             cell[1] = (int)floor((part.pos(1)-plo[1])/dx[1]);
             cell[2] = (int)floor((part.pos(2)-plo[2])/dx[2]);
 
-            //cout << "current cell: " << cell[0] << ", " << cell[1] << ", " << cell[2] << "\cout";
             //n << "current pos: " << part.pos(0) << ", " << part.pos(1) << ", " << part.pos(2) << "\n";
 
 //            if((cell[0] < myLo[0]) || (cell[1] < myLo[1]) || (cell[2] < myLo[2]) || (cell[0] > myHi[0]) || (cell[1] > myHi[1]) || (cell[2] > myHi[2]))
@@ -191,16 +200,30 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
 //                reDist++;
 //            }
 
-            if((part.idata(FHD_intData::i) != cell[0]) || (part.idata(FHD_intData::j) != cell[1]) || (part.idata(FHD_intData::k) != cell[2]))
+            if((part.idata(FHD_intData::i) != cell[0]) || (part.idata(FHD_intData::j) != cell[1]) || (part.idata(FHD_intData::k) != cell[2]) || part.id() < 0)
             {
                 //remove particle from old cell
+
+
                 IntVect iv(part.idata(FHD_intData::i), part.idata(FHD_intData::j), part.idata(FHD_intData::k));
                 long imap = tile_box.index(iv);
+                                if(part.id() == 332)
+                {
+                Print() << "removing " << i << ", " << part.id() << " from cell " << iv[0] << ", " << iv[1] << ", " << iv[2] << "\n";}
 
                 int lastIndex = m_cell_vectors[part.idata(FHD_intData::species)][pti.index()][imap].size() - 1;
+                if(part.id() == 332)
+                {
+                Print() << "last index is " << lastIndex << "\n";}
 
                 int lastPart = m_cell_vectors[part.idata(FHD_intData::species)][pti.index()][imap][lastIndex];
+                if(part.id() == 332)
+                {
+                Print() << "last part is " << lastPart << "\n";}
                 int newIndex = part.idata(FHD_intData::sorted);
+                if(part.id() == 332)
+                {
+                Print() << "found new index\n";}
 
                 m_cell_vectors[part.idata(FHD_intData::species)][pti.index()][imap][newIndex] = lastPart;
                 m_cell_vectors[part.idata(FHD_intData::species)][pti.index()][imap].pop_back();
@@ -208,11 +231,25 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
                 particles[lastPart].idata(FHD_intData::sorted) = newIndex;
 
                 part.idata(FHD_intData::sorted) = -1;
+
+                if(part.id() == 332)
+                {
+                Print() << "sorted is " << part.idata(FHD_intData::sorted) << "\n";
+                Print() << "vel is " << part.rdata(FHD_realData::velx) << "\n";}
+
+                if(part.id() == 332)
+                {
+                Print() << "cpu is " << part.cpu() << "\n";}
+                //Print() << "Removed\n";
             }
+
+              //Print() << "finished sorting particle " << i << "\n";
         }
 
         maxspeed_proc = amrex::max(maxspeed_proc, maxspeed);
         maxdist_proc  = amrex::max(maxdist_proc, maxdist);
+
+
 
     }
 
@@ -350,10 +387,12 @@ void FhdParticleContainer::Source(const Real dt, const paramPlane* paramPlaneLis
                         Real temp = paramPlaneList[i].temperatureLeft;
                         Real area = paramPlaneList[i].area;
 
-                        Real fluxMean = density*area*sqrt(properties[j].R*temp/(2.0*M_PI));
-                        Real fluxVar = 0.5*density*area*properties[j].R*temp;
+                        Real fluxMean = density*area*sqrt(properties[j].R*temp/(2.0*M_PI))/particle_neff;
+                        Real fluxVar = density*area*sqrt(properties[j].R*temp/(2.0*M_PI))/particle_neff;
 
                         Real totalFlux = dt*fluxMean + sqrt(dt*fluxVar)*amrex::RandomNormal(0.,1.);
+
+                        //Print() << "Flux mean " << dt*fluxMean << ", flux sd " << sqrt(dt*fluxVar) << "\n";
 
                         int totalFluxInt =  (int)floor(totalFlux);
                         Real totalFluxLeftOver = totalFlux - totalFluxInt;
@@ -415,6 +454,11 @@ void FhdParticleContainer::Source(const Real dt, const paramPlane* paramPlaneLis
 
                             particle_tile.push_back(p);
 
+                            if(p.id() == 332)
+                            {
+                                Print() << "Generated particle!\n";
+                            }
+
                         }
 
 
@@ -450,6 +494,9 @@ void FhdParticleContainer::SortParticles()
         for (int i = 0; i < np; ++ i)
         {
             ParticleType & part = particles[i];
+
+            Print() << "Checking " << i << ", " << part.id() << ", " << part.idata(FHD_intData::sorted) << "\n";
+            Print() << "vel is " << part.rdata(FHD_realData::velx) << "\n";
             if(part.idata(FHD_intData::sorted) == -1)
             {
                 const IntVect& iv = this->Index(part, lev);
@@ -474,6 +521,10 @@ void FhdParticleContainer::SortParticles()
 
                 m_cell_vectors[part.idata(FHD_intData::species)][pti.index()][imap].push_back(i);
 
+                if(part.id() == 332)
+                {
+                    Print() << "Adding to " << iv[0] << ", " << iv[1] << ", " << iv[2] << "\n";
+                }
 
             }
 

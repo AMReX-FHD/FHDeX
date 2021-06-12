@@ -164,13 +164,19 @@ void randomhemisphere(Real costheta, Real sintheta, Real cosphi, Real sinphi, Re
 // uncomment this once this routine is on a GPU device
 // then the amrex::Random() calls will need to be fixed
 //AMREX_GPU_HOST_DEVICE AMREX_INLINE
-void app_bc_gpu(const paramPlane* surf, FhdParticleContainer::ParticleType& part, int intside, Real* domsize, int *push, Real time, Real inttime)
+void app_bc_gpu(const paramPlane* surf, FhdParticleContainer::ParticleType& part, int intside, Real* domsize, int *push, Real *runtime, Real inttime)
 {
     
     
     if(intside == 1)
     {
-      if(amrex::Random() > surf->porosityRight)
+      if(amrex::Random() < surf->sinkRight)
+      {
+        *runtime = 0;
+
+        part.id() = -1;
+      }
+      else if(amrex::Random() > surf->porosityRight)
       {
         *push = 0;
 
@@ -240,8 +246,13 @@ void app_bc_gpu(const paramPlane* surf, FhdParticleContainer::ParticleType& part
 
     }else
     {
+      if(amrex::Random() < surf->sinkLeft)
+      {
+        *runtime = 0;
 
-      if(amrex::Random() > surf->porosityLeft)
+        part.id() = -1;
+      }
+      else if(amrex::Random() > surf->porosityLeft)
       {
         *push = 0;
 
