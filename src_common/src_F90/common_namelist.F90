@@ -38,6 +38,7 @@ module common_namelist_module
   double precision,   save :: nfrac(MAX_SPECIES)
   
   integer,            save :: particle_placement
+  integer,				 save :: particle_input
   integer,            save :: particle_count(MAX_SPECIES)
   integer,            save :: p_move_tog(MAX_SPECIES)
   integer,            save :: p_force_tog(MAX_SPECIES)
@@ -249,6 +250,7 @@ module common_namelist_module
   namelist /common/ nfrac
 
   namelist /common/ particle_placement
+  namelist /common/ particle_input
   namelist /common/ particle_count
   namelist /common/ p_move_tog
   namelist /common/ p_force_tog
@@ -701,7 +703,7 @@ contains
                                          project_dir_in, slicepoint_in, max_grid_projection_in, &
                                          histogram_unit_in, density_weights_in, &
                                          shift_cc_to_boundary_in, &
-                                         particle_placement_in, particle_count_in, p_move_tog_in, &
+                                         particle_placement_in, particle_input_in, particle_count_in, p_move_tog_in, &
                                          p_force_tog_in, p_int_tog_in, p_int_tog_wall_in, particle_neff_in,&
                                          particle_n0_in, mass_in, nfrac_in, permittivity_in, &
                                          wall_mob_in, rmin_in, rmax_in, eepsilon_in, sigma_in, rmin_wall_in, rmax_wall_in, eepsilon_wall_in, sigma_wall_in, poisson_verbose_in, &
@@ -736,6 +738,7 @@ contains
     integer,                intent(inout) :: p_int_tog_in(MAX_SPECIES*MAX_SPECIES)
     integer,                intent(inout) :: p_int_tog_wall_in(MAX_SPECIES)
     integer,                intent(inout) :: particle_placement_in
+    integer, 					 intent(inout) :: particle_input_in
     
     double precision,       intent(inout) :: fixed_dt_in
     double precision,       intent(inout) :: cfl_in
@@ -1037,6 +1040,7 @@ contains
     p_int_tog_in = p_int_tog
     p_int_tog_wall_in = p_int_tog_wall
     particle_placement_in = particle_placement
+	 particle_input_in = particle_input
 
     poisson_verbose_in = poisson_verbose
     poisson_bottom_verbose_in = poisson_bottom_verbose

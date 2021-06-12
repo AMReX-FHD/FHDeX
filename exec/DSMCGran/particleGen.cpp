@@ -20,7 +20,10 @@ void FhdParticleContainer::InitParticles() {
 	std::array<Real, 3> vpart = {0., 0., 0.};
 	Real spdmax = 0.;
 	Real spd;
-   
+	Real stdev;
+	Real u,v,w;
+	
+	tTg = 0;
    for (MFIter mfi = MakeMFIter(lev, true); mfi.isValid(); ++mfi) {
 		// take tile/box
 		const Box& tile_box  = mfi.tilebox();
@@ -28,6 +31,7 @@ void FhdParticleContainer::InitParticles() {
 		const int grid_id = mfi.index();
 		const int tile_id = mfi.LocalTileIndex();
 		auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+		auto& particles = particle_tile.GetArrayOfStructs();
 		
 		//Assuming tile=box for now, i.e. no tiling.
 		IntVect smallEnd = tile_box.smallEnd();
@@ -37,40 +41,44 @@ void FhdParticleContainer::InitParticles() {
 			proc0_enter = false;
 			std::ifstream particleFile("particles.dat");
 			for(int i_spec=0; i_spec < nspecies; i_spec++) {
-				//amrex::Print() << "Initial Temp: " << T_init[i_spec] << "\n";
+				u = 0; v = 0; w = 0;
 				for (int i_part=0; i_part<properties[i_spec].total;i_part++) {
 					ParticleType p;
 					p.id()  = ParticleType::NextID();
-//					std::cout << "ID: " << p.id() << "\n";
 					p.cpu() = ParallelDescriptor::MyProc();
 					p.idata(FHD_intData::sorted) = -1;
 					p.idata(FHD_intData::species) = i_spec;
 
-					if(particle_placement == 1) {
+					stdev = sqrt(T_init[i_spec]);
+					vpart[0] = amrex::RandomNormal(0.,stdev);
+					vpart[1] = amrex::RandomNormal(0.,stdev);
+					vpart[2] = amrex::RandomNormal(0.,stdev);
+					
+					if(particle_input > 0) {
+               	particleFile >> p.pos(0);
+               	particleFile >> p.pos(1);
+               	particleFile >> p.pos(2);
+               	// Overwrite velocities if provided
+               	particleFile >> vpart[0];
+               	particleFile >> vpart[1];
+               	particleFile >> vpart[2];
+               	particleFile >> p.idata(FHD_intData::species);
+					} else if(particle_placement == 1) {
                	particleFile >> p.pos(0);                       
                	particleFile >> p.pos(1);
                	particleFile >> p.pos(2);
-					} else {
+               } else {
                	p.pos(0) = prob_lo[0] + amrex::Random()*(prob_hi[0]-prob_lo[0]);
                	p.pos(1) = prob_lo[1] + amrex::Random()*(prob_hi[1]-prob_lo[1]);
                	p.pos(2) = prob_lo[2] + amrex::Random()*(prob_hi[2]-prob_lo[2]);
 					}
 
-					// Determine max velocity
-					vpart[0] = sqrt(T_init[i_spec]/3)*amrex::RandomNormal(0.,1.);
-					vpart[1] = sqrt(T_init[i_spec]/3)*amrex::RandomNormal(0.,1.);
-					vpart[2] = sqrt(T_init[i_spec]/3)*amrex::RandomNormal(0.,1.);
-					//amrex::Print() << "Velocity: " << vpart[0] << "," << vpart[1] <<
-					//	"," << vpart[2] << "\n"; 
 					spd = sqrt(vpart[0]*vpart[0]+vpart[1]*vpart[1]+vpart[2]*vpart[2]);
-					// amrex::Print() << spd << "\n";
-					if(spd>spdmax){
-               	spdmax = spd;
-					}
-						  
-					p.rdata(FHD_realData::velx) = vpart[0];
-					p.rdata(FHD_realData::vely) = vpart[1];
-					p.rdata(FHD_realData::velz) = vpart[2];
+					if(spd>spdmax){ spdmax = spd; }
+					
+					p.rdata(FHD_realData::velx) = vpart[0]; u += vpart[0];
+					p.rdata(FHD_realData::vely) = vpart[1]; v += vpart[1];
+					p.rdata(FHD_realData::velz) = vpart[2]; w += vpart[2];
 
 					p.rdata(FHD_realData::boostx) = 0;
 					p.rdata(FHD_realData::boosty) = 0;
@@ -80,20 +88,25 @@ void FhdParticleContainer::InitParticles() {
 
 					pcount++;
 				}
+				// Zero out the bulk velocities
+				u = u/properties[i_spec].total;
+				v = v/properties[i_spec].total;
+				w = w/properties[i_spec].total;
+				for (int i_part=0; i_part<properties[i_spec].total;i_part++) {
+					ParticleType p = particles[i_part];
+					p.rdata(FHD_realData::velx) = p.rdata(FHD_realData::velx) - u;
+					p.rdata(FHD_realData::vely) = p.rdata(FHD_realData::vely) - v;
+					p.rdata(FHD_realData::velz) = p.rdata(FHD_realData::velz) - w;
+					tTg = tTg + pow(p.rdata(FHD_realData::velx),2) + pow(p.rdata(FHD_realData::vely),2)
+						+ pow(p.rdata(FHD_realData::velz),2);
+				}
 			}
-
+			
 			// amrex::Print() << "Max Speed: " << spdmax << "\n";
 			particleFile.close();
 		}
-		
-		// Convert MultiFabs -> arrays
-		//const Array4<Real> & arr_vrmax = mfvrmax.array(mfi);
-		// If not tiling, can just loop over species
-		//for (int i_spec; i_spec < nspecies; i_spec++) {
-		//	arr_vrmax(0,0,0,i_spec) = spdmax; 
-		//}
 	}
-	
+	amrex::Print() << tTg/(3.0*properties[0].total) << "\n";
 	mfvrmax.setVal(spdmax);
 
 	Redistribute();

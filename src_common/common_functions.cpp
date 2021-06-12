@@ -124,7 +124,7 @@ void InitializeCommonNamespace() {
 										  &project_dir, &slicepoint, max_grid_projection.dataPtr(),
                                 &histogram_unit,
                                 density_weights.dataPtr(), shift_cc_to_boundary.dataPtr(),
-                                &particle_placement, particle_count.dataPtr(),
+                                &particle_placement, &particle_input, particle_count.dataPtr(),
                                 p_move_tog.dataPtr(), p_force_tog.dataPtr(),
                                 p_int_tog.begin(),p_int_tog_wall.begin(), &particle_neff,
                                 particle_n0.dataPtr(), mass.dataPtr(), nfrac.dataPtr(),

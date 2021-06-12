@@ -138,6 +138,7 @@ amrex::Vector<amrex::Real> common::density_weights;
 amrex::Vector<int>         common::shift_cc_to_boundary;
 
 int                        common::particle_placement;
+int								common::particle_input;
 amrex::Vector<int>         common::particle_count;
 amrex::Vector<int>         common::p_move_tog;
 amrex::Vector<int>         common::p_force_tog;

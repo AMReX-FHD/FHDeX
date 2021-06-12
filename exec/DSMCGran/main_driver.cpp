@@ -19,8 +19,11 @@
 
 #include "chrono"
 
-using namespace std::chrono;
+#include "iostream"
+#include "fstream"
 
+using namespace std::chrono;
+using namespace std;
 // argv contains the name of the inputs file entered at the command line
 void main_driver(const char* argv)
 {
@@ -151,7 +154,9 @@ void main_driver(const char* argv)
 
 	//int num_neighbor_cells = 4; replaced by input var
 	//Particles! Build on geom & box array for collision cells/ poisson grid?
-
+	/*string tTgFile = "GranularTemp.txt";
+	ofstream myfile;
+	myfile.open(tTgFile);*/
 	int cRange = 0;
 	FhdParticleContainer particles(geom, dmap, ba, cRange);
 	if (restart < 0 && particle_restart < 0) {
@@ -255,7 +260,8 @@ void main_driver(const char* argv)
 
         amrex::Print() << "Current     FAB megabyte spread across MPI nodes: ["
                        << min_fab_megabytes << " ... " << max_fab_megabytes << "]\n";
-        */        
+        */
+        // myfile << particles.tTg/(particles.countedCollisions) << "\n";
     }
 
     ///////////////////////////////////////////
@@ -265,5 +271,16 @@ void main_driver(const char* argv)
     Real stop_time = ParallelDescriptor::second() - strt_time;
     ParallelDescriptor::ReduceRealMax(stop_time);
     amrex::Print() << "Run time = " << stop_time << " seconds" << std::endl;
+	 Real gmean = 4.0*sqrt(particles.tTg/particles.pi_usr);
+    Real phiDom = particles.realParticles*particles.pi_usr*pow(diameter[0],3)/(6.0*particles.domainVol);
+    amrex::Print() << "tTg : " << particles.tTg << "\n";
+    Real g0 = particles.g0_Ma_Ahmadi(0,0,phiDom,phiDom);
+	 particles.expectedCollisions = particles.simParticles*particle_neff*particles.pi_usr*pow(diameter[0],2)*g0
+	 	*gmean/particles.domainVol;
+    
+    amrex::Print() << "Simulated/Theoretical collision rate: " 
+    	<< particles.countedCollisions/(particles.expectedCollisions*time*particles.simParticles) << "\n";
+    //amrex::Print() << "Particle Neff: " << particle_neff << "\n"; 
 
+	 if(particle_input<0) {particles.OutputParticles();} // initial condition
 }

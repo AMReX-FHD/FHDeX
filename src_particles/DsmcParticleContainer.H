@@ -102,9 +102,8 @@ public:
                                   const BoxArray            & ba,
                                   int ncells);
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	// Functions
+// DSMC Routines
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	// Initialize particles and cells
 	void InitParticles();
 	void InitCollisionCells(); // not implemented yet
 
@@ -116,18 +115,33 @@ public:
 	void CollideParticles(Real dt);
 
 	void MoveParticlesCPP(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount);
-    
+	
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	// Outputs
+	// MFs for DSMC and directly related quantities
+	// May condense MFs in the future
+	MultiFab mfselect; // store number of selections
+   MultiFab mfvrmax; // store max relative speed found
+   // currently a single constant but updates over time
+   MultiFab mfphi; // needed for evaluating radial distribution function
+   //MultiFab mfgrantemp;
+
+   MultiFab mfCollisions; // keep track to ensure correct collision frequency
+	int expectedCollisions, countedCollisions;
+
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// Outputs
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	void EvaluateStats(MultiFab& particleInstant, MultiFab& particleMeans,
                                          MultiFab& particleVars, const Real delt, int steps);
                                          
-   Real grantemp;
-   Real initgrantemp;
+   void OutputParticles();
+                    
+   Real tTg;
+   Real initTg;
    
-
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	// Scalars
+// Scalars
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	// Particle geometry and material
 	// Note dissipation and friction for species defined in common (alpha/restitution, beta/friction)
@@ -155,17 +169,7 @@ public:
 	const Real phi_max = 0.643;
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	// MFs for DSMC and directly related quantities
-	// May condense MFs in the future
-	// Move within particle container to avoid continuously passing as input
-	MultiFab mfselect; // store number of selections
-   MultiFab mfvrmax; // store max relative speed found
-   // currently a single constant but updates over time
-   MultiFab mfphi; // needed for evaluating radial distribution function
-   //MultiFab mfgrantemp;
 
-   MultiFab mfCollisions; // keep track to ensure correct collision frequency
-	Real expectedCollisions;
 	
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	// Constants	
