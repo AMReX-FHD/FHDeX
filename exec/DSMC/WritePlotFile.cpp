@@ -93,7 +93,8 @@ void WritePlotFile(int step,
         0, // boostx
         0, // boosty
         0, // boostz
-        0 // R
+        0, // R
+        0 // timeFrac
     };
 
     Vector<int> write_int_comp = {

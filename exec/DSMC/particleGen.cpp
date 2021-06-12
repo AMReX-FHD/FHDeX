@@ -46,6 +46,10 @@ void FhdParticleContainer::InitParticles(Real T_init, MultiFab* vrmax)
 
                     p.idata(FHD_intData::species) = i_spec;
 
+                    p.idata(FHD_intData::i) = -100;
+                    p.idata(FHD_intData::j) = -100;
+                    p.idata(FHD_intData::k) = -100;
+
                     if(particle_placement == 1)
                     {
                         particleFile >> p.pos(0);                       
@@ -77,6 +81,8 @@ void FhdParticleContainer::InitParticles(Real T_init, MultiFab* vrmax)
                     p.rdata(FHD_realData::boostx) = 0;
                     p.rdata(FHD_realData::boosty) = 0;
                     p.rdata(FHD_realData::boostz) = 0;
+
+                    p.rdata(FHD_realData::timeFrac) = 1;
 
                     p.rdata(FHD_realData::R) = properties[i_spec].R;
 

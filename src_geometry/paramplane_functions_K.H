@@ -134,7 +134,9 @@ void rotation(Real costheta, Real sintheta, Real cosphi, Real sinphi, Real *cx, 
 
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+// uncomment this once this routine is on a GPU device
+// then the amrex::Random() calls will need to be fixed
+//AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void randomhemisphere(Real costheta, Real sintheta, Real cosphi, Real sinphi, Real *cx, Real *cy, Real *cz)
 {
     Real mag, costhetanew, sinthetanew, cosphinew, sinphinew, phi;
@@ -159,14 +161,22 @@ void randomhemisphere(Real costheta, Real sintheta, Real cosphi, Real sinphi, Re
 
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
-void app_bc_gpu(const paramPlane* surf, FhdParticleContainer::ParticleType& part, int intside, Real* domsize, int *push, Real time, Real inttime)
+// uncomment this once this routine is on a GPU device
+// then the amrex::Random() calls will need to be fixed
+//AMREX_GPU_HOST_DEVICE AMREX_INLINE
+void app_bc_gpu(const paramPlane* surf, FhdParticleContainer::ParticleType& part, int intside, Real* domsize, int *push, Real *runtime, Real inttime)
 {
     
     
     if(intside == 1)
     {
-      if(amrex::Random() > surf->porosityRight)
+      if(amrex::Random() < surf->sinkRight)
+      {
+        *runtime = 0;
+
+        part.id() = -1;
+      }
+      else if(amrex::Random() > surf->porosityRight)
       {
         *push = 0;
 
@@ -236,8 +246,13 @@ void app_bc_gpu(const paramPlane* surf, FhdParticleContainer::ParticleType& part
 
     }else
     {
+      if(amrex::Random() < surf->sinkLeft)
+      {
+        *runtime = 0;
 
-      if(amrex::Random() > surf->porosityLeft)
+        part.id() = -1;
+      }
+      else if(amrex::Random() > surf->porosityLeft)
       {
         *push = 0;
 
@@ -259,7 +274,7 @@ void app_bc_gpu(const paramPlane* surf, FhdParticleContainer::ParticleType& part
 
           part.rdata(FHD_realData::velx) = srt*amrex::RandomNormal(0.,1.);
           part.rdata(FHD_realData::vely) = srt*amrex::RandomNormal(0.,1.);
-          part.rdata(FHD_realData::velz) = 1.414213562*srt*sqrt(-log(amrex::Random()));
+          part.rdata(FHD_realData::velz) = sqrt(2)*srt*sqrt(-log(amrex::Random()));
 
           rotation(surf->cosThetaLeft, surf->sinThetaLeft, surf->cosPhiLeft, surf->sinPhiLeft, &part.rdata(FHD_realData::velx), &part.rdata(FHD_realData::vely), &part.rdata(FHD_realData::velz));
         }

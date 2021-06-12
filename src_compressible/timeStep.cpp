@@ -105,9 +105,6 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
     calculateFlux(cu, prim, eta, zeta, kappa, chi, D, flux, stochFlux, cornx, corny, cornz,
                   visccorn, rancorn, geom, stoch_weights, dt);
 
-    // Set species flux to zero at the walls
-    BCWallSpeciesFlux(flux,geom);
-
     for ( MFIter mfi(cu,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
         
         const Box& bx = mfi.tilebox();
@@ -206,9 +203,6 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
     calculateFlux(cup, prim, eta, zeta, kappa, chi, D, flux, stochFlux, cornx, corny, cornz,
                   visccorn, rancorn, geom, stoch_weights, dt);
 
-    // Set species flux to zero at the walls
-    BCWallSpeciesFlux(flux,geom);
-
     for ( MFIter mfi(cu,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
         
         const Box& bx = mfi.tilebox();
@@ -302,9 +296,6 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
 
     calculateFlux(cup2, prim, eta, zeta, kappa, chi, D, flux, stochFlux, cornx, corny, cornz,
                   visccorn, rancorn, geom, stoch_weights, dt);
-
-    // Set species flux to zero at the walls
-    BCWallSpeciesFlux(flux,geom);
 
     for ( MFIter mfi(cu,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
         

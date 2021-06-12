@@ -27,7 +27,8 @@ struct FHD_realData {
         boosty,
         boostz,
         R,
-        count
+        timeFrac,
+        count    // Awesome little trick! (only works if first field is 0)
     };
 
     static Vector<std::string> names() {
@@ -38,7 +39,8 @@ struct FHD_realData {
             "boostx",
             "boosty",
             "boostz",
-            "R"
+            "R",
+            "timeFrac"
         };
     };
 };
@@ -106,6 +108,8 @@ public:
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	void InitParticles();
 	void InitCollisionCells(); // not implemented yet
+
+   void Source(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount);
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	// Main DSMC routines

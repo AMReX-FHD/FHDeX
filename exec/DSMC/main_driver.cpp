@@ -137,10 +137,47 @@ void main_driver(const char* argv)
 
    // IBMarkerContainerBase default behaviour is to do tiling. Turn off here:
 
-
-	// Particle tile size
-	Vector<int> ts(BL_SPACEDIM);
+    //----------------------    
+    // Particle tile size
+    //----------------------
+    Vector<int> ts(BL_SPACEDIM);
     
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {        
+        if (max_particle_tile_size[d] > 0) {
+            ts[d] = max_particle_tile_size[d];
+        }
+        else {
+            ts[d] = max_grid_size[d];
+        }
+    }
+
+    ParmParse pp ("particles");
+    pp.addarr("tile_size", ts);
+
+    //int num_neighbor_cells = 4; replaced by input var
+    //Particles! Build on geom & box array for collision cells/ poisson grid?
+
+    int cRange = 0;
+
+    FhdParticleContainer particles(geom, dmap, ba, cRange);
+
+    if (restart < 0 && particle_restart < 0) {
+        
+
+       particles.InitParticles();
+
+    }
+    else {
+        //load from checkpoint
+    }
+
+    // cell centered real coordinates - es grid
+    MultiFab RealCenteredCoords;
+    RealCenteredCoords.define(ba, dmap, AMREX_SPACEDIM, 0);
+
+    //FindCenterCoords(RealCenteredCoords, geom);
+    
+<<<<<<< HEAD
 	for (int d=0; d<AMREX_SPACEDIM; ++d) {        
 		if (max_particle_tile_size[d] > 0) {
 			ts[d] = max_particle_tile_size[d];
@@ -191,6 +228,14 @@ void main_driver(const char* argv)
 		// total particle move (1=single step, 2=midpoint)
 		if (move_tog != 0) {
 			particles.MoveParticlesCPP(dt, paramPlaneList, paramPlaneCount);
+=======
+        // total particle move (1=single step, 2=midpoint)
+        if (move_tog != 0)
+        {
+            particles.Source(dt, paramPlaneList, paramPlaneCount);
+            particles.MoveParticlesCPP(dt, paramPlaneList, paramPlaneCount);
+>>>>>>> main
+
 
             // reset statistics after step n_steps_skip
             // if n_steps_skip is negative, we use it as an interval
