@@ -266,7 +266,7 @@ main (int   argc,
         for (auto j = lo.y; j <= hi.y; ++j) {
         for (auto i = lo.x; i <= hi.x; ++i) {
 
-            int index = (lap(i,j,k,n) - hbinwidth)/binwidth;
+            int index = floor((lap(i,j,k,n) + hbinwidth)/binwidth);
             index += halfbin;
             
             if( index >=0 && index <= nbins) {
