@@ -433,6 +433,7 @@ void FhdParticleContainer::CollideParticles(Real dt) {
 				massi = properties[speci].mass;
 				massj = properties[specj].mass;
 				massij = properties[speci].mass + properties[specj].mass;
+				vrmax = arrvrmax(i,j,k,specij);
 				pindxi = floor(amrex::Random()*np[speci]);
 				pindxj = floor(amrex::Random()*np[specj]);
 				pindxi = m_cell_vectors[speci][grid_id][imap][pindxi];
