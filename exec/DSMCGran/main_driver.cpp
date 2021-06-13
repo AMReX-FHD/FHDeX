@@ -76,7 +76,21 @@ void main_driver(const char* argv)
 	MultiFab particleMeans;
 	MultiFab particleVars;
 	MultiFab particleInstant;
-   
+	// For Mean
+	MultiFab rhomean;
+	MultiFab Jmean;
+	MultiFab Tmean;
+	// For Instant
+	MultiFab rhoinstant;
+	MultiFab Jinstant;
+	MultiFab Tinstant;
+	// For Fluctuations
+	MultiFab rhorho;
+	MultiFab rhoJ;
+	MultiFab rhoT;
+   MultiFab JJ;
+   MultiFab JT;
+   MultiFab TT;
 	if (restart < 0) {
 		if (seed > 0) {
 			// initializes the seed for C++ random number calls
@@ -111,6 +125,27 @@ void main_driver(const char* argv)
 
 		particleInstant.define(ba, dmap, 8+nspecies, 0);
 		particleInstant.setVal(0.);
+		
+		// Mechanical Vars 
+		rhoinstant.define(ba, dmap, nspecies, 0);	rhoinstant.setVal(0.);
+		Jinstant.define(ba, dmap, nspecies, 0);	Jinstant.setVal(0.);
+		Tinstant.define(ba, dmap, nspecies, 0);	Tinstant.setVal(0.);
+		
+		rhomean.define(ba, dmap, nspecies, 0);		rhomean.setVal(0.);
+		Jmean.define(ba, dmap, nspecies, 0);		Jmean.setVal(0.);
+		Tmean.define(ba, dmap, nspecies, 0);		Tmean.setVal(0.);
+		
+		/* Variances
+		
+		*/
+		int nspecsize = ceil((double)nspecies*(nspecies+1)*0.5);
+		rhorho.define(ba, dmap, nspecsize, 0);	rhorho.setVal(0.);
+		rhoJ.define(ba, dmap, nspecsize, 0);	rhoJ.setVal(0.);
+		rhoT.define(ba, dmap, nspecsize, 0);	rhoT.setVal(0.);
+		JJ.define(ba, dmap, nspecsize, 0);		JT.setVal(0.);
+		JT.define(ba, dmap, nspecsize, 0);		JT.setVal(0.);
+		TT.define(ba, dmap, nspecsize, 0);		TT.setVal(0.);
+		// will leave FFT to Ishan
 	}
 	else {
 		// restart from checkpoint
@@ -260,11 +295,18 @@ void main_driver(const char* argv)
 
         amrex::Print() << "Current     FAB megabyte spread across MPI nodes: ["
                        << min_fab_megabytes << " ... " << max_fab_megabytes << "]\n";
-        */
+        
         myfile << (Real) particles.countedCollisions/particles.simParticles << " "
-           << particles.tTg << "\n";
+           << particles.tTg << "\n";*/
     }
-
+    /*
+    ofstream virialfile;
+	 virialfile.open("virial.txt");
+    int virial_size = particles.virial.size();
+    for (int i = 0; i < virial_size; i++) {
+    	virialfile << particles.virial[i] << "\n";
+    }
+	 */
     ///////////////////////////////////////////
         //test change
     // timer for total simulation time
@@ -272,16 +314,26 @@ void main_driver(const char* argv)
     Real stop_time = ParallelDescriptor::second() - strt_time;
     ParallelDescriptor::ReduceRealMax(stop_time);
     amrex::Print() << "Run time = " << stop_time << " seconds" << std::endl;
-	 Real gmean = 4.0*sqrt(particles.tTg/particles.pi_usr);
+	 /*Real gmean = 4.0*sqrt(particles.tTg/particles.pi_usr);
     Real phiDom = particles.realParticles*particles.pi_usr*pow(diameter[0],3)/(6.0*particles.domainVol);
     amrex::Print() << "tTg : " << particles.tTg << "\n";
     Real g0 = particles.g0_Ma_Ahmadi(0,0,phiDom,phiDom);
-	 particles.expectedCollisions = particles.simParticles*particle_neff*particles.pi_usr*pow(diameter[0],2)*g0
-	 	*gmean/particles.domainVol;
+	 //particles.expectedCollisions = particles.simParticles*particle_neff*particles.pi_usr*pow(diameter[0],2)*g0
+	 //	*gmean/particles.domainVol;
     
-    amrex::Print() << "Simulated/Theoretical collision rate: " 
-    	<< particles.countedCollisions/(particles.expectedCollisions*time*particles.simParticles) << "\n";
-    //amrex::Print() << "Particle Neff: " << particle_neff << "\n"; 
+    //amrex::Print() << "Simulated/Theoretical collision rate: " 
+    //	<< particles.countedCollisions/(particles.expectedCollisions*time*particles.simParticles) << "\n";
+    //amrex::Print() << "Particle Neff: " << particle_neff << "\n"; */
+    
+    for (int i_spec=0; i_spec<nspecies; i_spec++) {
+    	for (int j_spec=i_spec; j_spec<nspecies; j_spec++) {
+    		int ij_spec = particles.getSpeciesIndex(i_spec,j_spec);
+    		amrex::Print() << "Collisions between species pair: " << ij_spec
+    		<< " is " << particles.countedCollisions[ij_spec] << " with selections: "
+    		<< particles.NSel_spec[ij_spec] << "\n";
+    	}
+    }
 
 	 if(particle_input<0) {particles.OutputParticles();} // initial condition
+	 //particles.OutputParticles();
 }

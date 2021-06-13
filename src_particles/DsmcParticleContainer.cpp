@@ -69,6 +69,9 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
     		//amrex::Print() << "i: " << i_spec << " j: " << j_spec << " ij: " << ij_spec 
     		//	<< " alpha: " << interproperties[ij_spec].alpha << "\n";
     		interproperties[ij_spec].csx = pow(properties[i_spec].radius+properties[j_spec].radius,2)*pi_usr;
+    		countedCollisions[ij_spec] = 0;
+    		expectedCollisions[ij_spec] = 0;
+    		NSel_spec[ij_spec] = 0;
     		cnt++;
 		}
 	}
@@ -85,11 +88,9 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
 			m_cell_vectors[i][grid_id].resize(box.numPts());
 		}
 	}
-	
-	countedCollisions = 0;
-	expectedCollisions = 0;
-	initTg = -1;
-	tTg = 0;
+
+	//initTg = -1;
+	//tTg = 0;
 }
 
 void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount)
@@ -226,26 +227,9 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
 
                 IntVect iv(part.idata(FHD_intData::i), part.idata(FHD_intData::j), part.idata(FHD_intData::k));
                 long imap = tile_box.index(iv);
-                                if(part.id() == 332)
-                {
-                //Print() << "removing " << i << ", " << part.id() << " from cell " << iv[0] << ", " << iv[1] << ", " << iv[2] << "\n";
-                }
-
                 int lastIndex = m_cell_vectors[part.idata(FHD_intData::species)][pti.index()][imap].size() - 1;
-                if(part.id() == 332) {
-                //Print() << "last index is " << lastIndex << "\n";
-                }
-
                 int lastPart = m_cell_vectors[part.idata(FHD_intData::species)][pti.index()][imap][lastIndex];
-                if(part.id() == 332)
-                {
-                //Print() << "last part is " << lastPart << "\n";
-                }
                 int newIndex = part.idata(FHD_intData::sorted);
-                if(part.id() == 332)
-                {
-                //Print() << "found new index\n";
-                }
 
                 m_cell_vectors[part.idata(FHD_intData::species)][pti.index()][imap][newIndex] = lastPart;
                 m_cell_vectors[part.idata(FHD_intData::species)][pti.index()][imap].pop_back();
@@ -259,14 +243,6 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
                 arrphi(iv[0],iv[1],iv[2],ispec) =
                 	arrphi(iv[0],iv[1],iv[2],ispec) - properties[ispec].part2cellVol*properties[ispec].Neff;
 
-                if(part.id() == 332)
-                {
-                Print() << "sorted is " << part.idata(FHD_intData::sorted) << "\n";
-                Print() << "vel is " << part.rdata(FHD_realData::velx) << "\n";}
-
-                if(part.id() == 332)
-                {
-                Print() << "cpu is " << part.cpu() << "\n";}
                 //Print() << "Removed\n";
             }
 
@@ -313,7 +289,6 @@ void FhdParticleContainer::InitCollisionCells() {
 		
 		amrex::ParallelFor(tile_box,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
 
-			// Initialize mfs
 			int ij_spec;
 			for (int i_spec=0; i_spec<nspecies; i_spec++) {
 				for (int j_spec = i_spec; j_spec < nspecies; j_spec++) {
@@ -327,7 +302,7 @@ void FhdParticleContainer::InitCollisionCells() {
 
 			for (int i_spec=0; i_spec<nspecies; i_spec++) {
 				arrphi(i,j,k,i_spec) = m_cell_vectors[i_spec][grid_id][imap].size()
-					*properties[i_spec].partVol*ocollisionCellVol*properties[i_spec].Neff;
+					*properties[i_spec].part2cellVol*properties[i_spec].Neff;
 			}
 		});
 	}
@@ -337,7 +312,7 @@ void FhdParticleContainer::InitCollisionCells() {
 // Compute selections here
 void FhdParticleContainer::CalcSelections(Real dt) {
 	int lev = 0;
-	totalNSel = 0;
+	mfselect.setVal(0.0);
 	for(MFIter mfi(mfvrmax); mfi.isValid(); ++mfi) {
 		const Box& tile_box  = mfi.tilebox();
 		const int grid_id = mfi.index();
@@ -363,7 +338,7 @@ void FhdParticleContainer::CalcSelections(Real dt) {
 			Real crossSection;
 
 			for (int i_spec = 0; i_spec < nspecies; i_spec++) {
-				for (int j_spec = 0; j_spec < nspecies; j_spec++) {
+				for (int j_spec = i_spec; j_spec < nspecies; j_spec++) {
 					ij_spec = getSpeciesIndex(i_spec,j_spec);
 					np_i = m_cell_vectors[i_spec][grid_id][imap].size();
 					np_j = m_cell_vectors[j_spec][grid_id][imap].size();
@@ -373,17 +348,11 @@ void FhdParticleContainer::CalcSelections(Real dt) {
 					chi0 = g0_Ma_Ahmadi(i_spec,j_spec, phi1, phi2);
 					vrmax = arrvrmax(i,j,k,i_spec);
 					crossSection = interproperties[ij_spec].csx;
-
-					NSel = 0.5*particle_neff*np_i*np_j*crossSection*vrmax*ocollisionCellVol*chi0*dt;
-					NSel = NSel * 2.0; // directionally dependent probability
-					//amrex::Print() << "NSel: " << NSel << "\n";
-					// Currently running total
-					//arrselect(i,j,k,ij_spec) = arrselect(i,j,k,ij_spec) + NSel;
-
-					// Better if using restart (less to remember)
-					NSel = std::floor(NSel + amrex::Random());
-					totalNSel += NSel;
-					arrselect(i,j,k,ij_spec) = NSel;
+					
+					NSel = 2.0*particle_neff*np_i*np_j*crossSection*vrmax*ocollisionCellVol*chi0*dt;
+					if(i_spec==j_spec) {NSel = NSel*0.5;}
+					arrselect(i,j,k,ij_spec) = std::floor(NSel + amrex::Random());
+					NSel_spec[ij_spec] += arrselect(i,j,k,ij_spec);
 				}
 			}
 		});
@@ -394,7 +363,7 @@ void FhdParticleContainer::CalcSelections(Real dt) {
 
 void FhdParticleContainer::CollideParticles(Real dt) {
 	int lev = 0;
-	tTg = 0.0;
+	//tTg = 0.0;
 	for(MFIter mfi(mfvrmax); mfi.isValid(); ++mfi) {
 		const Box& tile_box  = mfi.tilebox();
 		const int grid_id = mfi.index();
@@ -413,19 +382,17 @@ void FhdParticleContainer::CollideParticles(Real dt) {
 		
 		IntVect smallEnd = tile_box.smallEnd();
 		IntVect bigEnd = tile_box.bigEnd();
-
+		
 		for (int i = smallEnd[0]; i <= bigEnd[0]; i++) {
 		for (int j = smallEnd[1]; j <= bigEnd[1]; j++) {
 		for (int k = smallEnd[2]; k <= bigEnd[2]; k++) {
 			const IntVect& iv = {i,j,k};
 			long imap = tile_box.index(iv);
 
-			int NSel; // Number of selections this time step
+			Real NSel[nspecies*nspecies], totalSel, selrun;
+			int np[nspecies];
 			int pindxi, pindxj; // index of randomly sampled particles
 			int ij_spec;
-			int np_i, np_j; // number of particles in collision cell for species i and j
-
-			ParticleType pitemp, pjtemp;
 			
 			RealVect eij, vreij;
 			Real phi, theta, eijmag;
@@ -434,149 +401,106 @@ void FhdParticleContainer::CollideParticles(Real dt) {
 			Real oboostmag;
 			Real massi, massj, massij;
 			Real vrmag, vrmax, vreijmag;
-			// Real csxvr, csxvrmax; // unneeded for granular
-			// Loops through species pairs
 			
-			for (int i_spec = 0; i_spec < nspecies; i_spec++) {
+			totalSel = 0;
+			for (int i_spec = 0; i_spec<nspecies; i_spec++) {
+				np[i_spec] = m_cell_vectors[i_spec][grid_id][imap].size();
 				for (int j_spec = i_spec; j_spec < nspecies; j_spec++) {
 					ij_spec = getSpeciesIndex(i_spec,j_spec);
-					//NSel = floor(arrselect(i,j,k,ij_spec));
-					//arrselect(i,j,k,ij_spec) = arrselect(i,j,k,ij_spec) - NSel;
-					NSel = arrselect(i,j,k,ij_spec);
-					//lNSel += NSel;
-					np_i = m_cell_vectors[i_spec][grid_id][imap].size();
-					np_j = m_cell_vectors[j_spec][grid_id][imap].size();
-					vrmax = arrvrmax(i,j,k,ij_spec);
-					//csxvrmax = vrmax*interproperties[spec_indx].csx;
-					massi = properties[i_spec].mass;
-					massj = properties[j_spec].mass;
-					massij = properties[i_spec].mass + properties[j_spec].mass;
-					// Loop through selections
-					for (int isel = 0; isel < NSel; isel++) {
-						//pindxi = floor(amrex::Random(engine)*np_i);
-						//pindxj = floor(amrex::Random(engine)*np_j);
-						pindxi = floor(amrex::Random()*np_i);
-						pindxj = floor(amrex::Random()*np_j);
-						pindxi = m_cell_vectors[i_spec][grid_id][imap][pindxi];
-						pindxj = m_cell_vectors[j_spec][grid_id][imap][pindxj];
-						ParticleType &	parti = particles[pindxi];
-						ParticleType & partj = particles[pindxj];
-						
-						// Not sure why this is needed
-						//pitemp = particles[pindxi];
-						//pjtemp = particles[pindxj];
-						//ParticleType & parti = pitemp;
-						//ParticleType & partj = pjtemp;
-					
-						//vi = {parti.rdata(FHD_realData::velx),
-						//		parti.rdata(FHD_realData::velx),
-						//		parti.rdata(FHD_realData::velx)};
-						
-						/*
-						vi[0] = particles[pindxi].rdata(FHD_realData::velx);
-						vi[1] = particles[pindxi].rdata(FHD_realData::vely);
-						vi[2] = particles[pindxi].rdata(FHD_realData::velz);
-						
-						vj[0] = particles[pindxj].rdata(FHD_realData::velx);
-						vj[1] = particles[pindxj].rdata(FHD_realData::vely);
-						vj[2] = particles[pindxj].rdata(FHD_realData::velz);*/
-						
-						vi[0] = parti.rdata(FHD_realData::velx);
-						vi[1] = parti.rdata(FHD_realData::vely);
-						vi[2] = parti.rdata(FHD_realData::velz);
-
-						vj[0] = partj.rdata(FHD_realData::velx);
-						vj[1] = partj.rdata(FHD_realData::vely);
-						vj[2] = partj.rdata(FHD_realData::velz);
-						
-						vij[0] = vi[0]-vj[0]; vij[1] = vi[1]-vj[1]; vij[2] = vi[2]-vj[2];
-
-						// replace with dot_product later (or norm)
-						vrmag = sqrt(pow(vij[0],2)+pow(vij[1],2)+pow(vij[2],2)); // std
-						// If relative speed greater than max relative speed, replace
-						if(vrmag>vrmax) {
-							vrmax = vrmag*1.05; 
-							arrvrmax(i,j,k,ij_spec) = vrmax;
-						}
-
-						// later want to reject non-approaching
-						//csxvr = vrmag*interproperties[spec_indx].csx;
-						
-						theta = 2.0*pi_usr*amrex::Random();
-						phi = std::acos(2.0*amrex::Random()-1.0);
-						
-						eij[0] = std::sin(theta)*std::cos(phi);
-						eij[1] = std::sin(theta)*std::sin(phi);
-						eij[2] = std::cos(theta);
-						
-						vreijmag = vij[0]*eij[0]+vij[1]*eij[1]+vij[2]*eij[2];
-						
-						//if(vrmag>vrmax*amrex::Random()) {
-						if(amrex::Math::abs(vreijmag)>vrmax*amrex::Random()) {
-							countedCollisions+= 2;
-							
-							/*theta = 2.0*pi_usr*amrex::Random();
-							phi = std::acos(2.0*amrex::Random()-1.0);
-							
-							eij[0] = std::sin(theta)*std::cos(phi);
-							eij[1] = std::sin(theta)*std::sin(phi);
-							eij[2] = std::cos(theta);
-							
-							vreijmag = vij[0]*eij[0]+vij[1]*eij[1]+vij[2]*eij[2];*/
-							vreijmag = vreijmag*(1.0+interproperties[ij_spec].alpha)/massij;
-							vreij[0] = vreijmag*eij[0];
-							vreij[1] = vreijmag*eij[1];
-							vreij[2] = vreijmag*eij[2];							
-							
-							// Update velocities
-							parti.rdata(FHD_realData::velx) = vi[0] - vreij[0]*massj;
-							parti.rdata(FHD_realData::vely) = vi[1] - vreij[1]*massj;
-							parti.rdata(FHD_realData::velz) = vi[2] - vreij[2]*massj;
-							partj.rdata(FHD_realData::velx) = vj[0] + vreij[0]*massi;
-							partj.rdata(FHD_realData::vely) = vj[1] + vreij[1]*massi;
-							partj.rdata(FHD_realData::velz) = vj[2] + vreij[2]*massi;
-							
-							// Boosted Velocities
-							vijpost[0] = vi[0]-vj[0];
-							vijpost[1] = vi[1]-vj[1];
-							vijpost[2] = vi[2]-vj[2];
-							
-							boost[0] = vijpost[0]-vij[0];
-							boost[1] = vijpost[1]-vij[1];
-							boost[2] = vijpost[2]-vij[2];
-							oboostmag = (properties[i_spec].radius+properties[j_spec].radius)/
-								(sqrt(pow(boost[0],2)+pow(boost[1],2)+pow(boost[2],2))*dt);
-							boost[0] = boost[0]*oboostmag;
-							boost[1] = boost[1]*oboostmag;
-							boost[2] = boost[2]*oboostmag;
-							
-							parti.rdata(FHD_realData::boostx) = boost[0];
-							parti.rdata(FHD_realData::boosty) = boost[1];
-							parti.rdata(FHD_realData::boostz) = boost[2];
-							partj.rdata(FHD_realData::boostx) = -boost[0];
-							partj.rdata(FHD_realData::boosty) = -boost[1];
-							partj.rdata(FHD_realData::boostz) = -boost[2];
+					NSel[ij_spec] = (int)arrselect(i,j,k,ij_spec);
+					totalSel += NSel[ij_spec];
+				}
+			}
+			int speci, specj, specij;
+			while (totalSel>0) {
+				Real RR = amrex::Random();
+				bool spec_select = false;
+				selrun = 0;
+				speci = -1; specj = -1; specij = -1;
+				for(int i_spec=0;i_spec<nspecies;i_spec++) { 
+					for(int j_spec=i_spec;j_spec<nspecies;j_spec++) { 
+						int ij_spec = getSpeciesIndex(i_spec,j_spec);
+						selrun += NSel[ij_spec];
+						if(selrun/totalSel>RR && !spec_select) {
+							spec_select = true;
+							specij = ij_spec;
+							speci = i_spec; specj = j_spec;
+							NSel[ij_spec] -= 1;
 						}
 					}
 				}
+				totalSel--;
+				massi = properties[speci].mass;
+				massj = properties[specj].mass;
+				massij = properties[speci].mass + properties[specj].mass;
+				pindxi = floor(amrex::Random()*np[speci]);
+				pindxj = floor(amrex::Random()*np[specj]);
+				pindxi = m_cell_vectors[speci][grid_id][imap][pindxi];
+				pindxj = m_cell_vectors[specj][grid_id][imap][pindxj];
+				ParticleType &	parti = particles[pindxi];
+				ParticleType & partj = particles[pindxj];
+						
+				vi[0] = parti.rdata(FHD_realData::velx);
+				vi[1] = parti.rdata(FHD_realData::vely);
+				vi[2] = parti.rdata(FHD_realData::velz);
+
+				vj[0] = partj.rdata(FHD_realData::velx);
+				vj[1] = partj.rdata(FHD_realData::vely);
+				vj[2] = partj.rdata(FHD_realData::velz);
+						
+				vij[0] = vi[0]-vj[0]; vij[1] = vi[1]-vj[1]; vij[2] = vi[2]-vj[2];
+				vrmag = sqrt(pow(vij[0],2)+pow(vij[1],2)+pow(vij[2],2));
+				if(vrmag>vrmax) {vrmax = vrmag*1.05; arrvrmax(i,j,k,ij_spec) = vrmax;}
+
+				theta = 2.0*pi_usr*amrex::Random();
+				phi = std::acos(2.0*amrex::Random()-1.0);
+				eij[0] = std::sin(theta)*std::cos(phi);
+				eij[1] = std::sin(theta)*std::sin(phi);
+				eij[2] = std::cos(theta);
+				vreijmag = vij[0]*eij[0]+vij[1]*eij[1]+vij[2]*eij[2];					
+				if(amrex::Math::abs(vreijmag)>vrmax*amrex::Random()) {
+					countedCollisions[specij] += 2;
+
+					//virial.push_back(vreijmag);
+					vreijmag = vreijmag*(1.0+interproperties[specij].alpha)/massij;
+					vreij[0] = vreijmag*eij[0];
+					vreij[1] = vreijmag*eij[1];
+					vreij[2] = vreijmag*eij[2];							
+							
+					// Update velocities
+					parti.rdata(FHD_realData::velx) = vi[0] - vreij[0]*massj;
+					parti.rdata(FHD_realData::vely) = vi[1] - vreij[1]*massj;
+					parti.rdata(FHD_realData::velz) = vi[2] - vreij[2]*massj;
+					partj.rdata(FHD_realData::velx) = vj[0] + vreij[0]*massi;
+					partj.rdata(FHD_realData::vely) = vj[1] + vreij[1]*massi;
+					partj.rdata(FHD_realData::velz) = vj[2] + vreij[2]*massi;
+							
+					// Boosted Velocities
+					vijpost[0] = vi[0]-vj[0];
+					vijpost[1] = vi[1]-vj[1];
+					vijpost[2] = vi[2]-vj[2];
+							
+					boost[0] = vijpost[0]-vij[0];
+					boost[1] = vijpost[1]-vij[1];
+					boost[2] = vijpost[2]-vij[2];
+					oboostmag = (properties[speci].radius+properties[specj].radius)/
+						(sqrt(pow(boost[0],2)+pow(boost[1],2)+pow(boost[2],2))*dt);
+					boost[0] = boost[0]*oboostmag;
+					boost[1] = boost[1]*oboostmag;
+					boost[2] = boost[2]*oboostmag;
+							
+					parti.rdata(FHD_realData::boostx) = boost[0];
+					parti.rdata(FHD_realData::boosty) = boost[1];
+					parti.rdata(FHD_realData::boostz) = boost[2];
+					partj.rdata(FHD_realData::boostx) = -boost[0];
+					partj.rdata(FHD_realData::boosty) = -boost[1];
+					partj.rdata(FHD_realData::boostz) = -boost[2];
+				}		
 			}
 		}
 		}
 		}
-		for (int i = 0; i < np; i++) {
-			ParticleType & part = particles[i];
-			//amrex::Print() << "id: " << part.id() << " vx: " << part.rdata(FHD_realData::velx) << "\n";
-			tTg = pow(part.rdata(FHD_realData::velx),2) + pow(part.rdata(FHD_realData::vely),2) +
-				pow(part.rdata(FHD_realData::velz),2) + tTg;
-		}
 	}
-	tTg = tTg/(3.0*properties[0].total);
-	//amrex::Print() << tTg << "\n";
-	if (initTg<0) { initTg = tTg; }
-	//amrex::Print() << "NColl/NSel: " << (double)lNColl/lNSel << "\n";
-	amrex::Print() << "Cumulative Collisions: " << (Real)countedCollisions/simParticles
-	//myfile << "Cumulative Collisions: " << countedCollisions/(2.0*simParticles)
-		<< " with T(t)/T(0): " << tTg/initTg << "\n";
 }
 
 void FhdParticleContainer::OutputParticles() {
@@ -592,6 +516,7 @@ void FhdParticleContainer::OutputParticles() {
 		auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
 		auto& particles = particle_tile.GetArrayOfStructs();
 		const long np = particles.numParticles();
+
 		for (int i = 0; i < np; ++i) {
 			ParticleType & part = particles[i];
 			myfile << fixed << setprecision(5) << part.pos(0) << "  " << part.pos(1) << "  " << part.pos(2) << " "

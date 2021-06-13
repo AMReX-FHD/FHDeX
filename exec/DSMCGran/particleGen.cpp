@@ -23,7 +23,7 @@ void FhdParticleContainer::InitParticles() {
 	Real stdev;
 	Real u,v,w;
 	
-	tTg = 0;
+	//tTg = 0;
    for (MFIter mfi = MakeMFIter(lev, true); mfi.isValid(); ++mfi) {
 		// take tile/box
 		const Box& tile_box  = mfi.tilebox();
@@ -36,12 +36,14 @@ void FhdParticleContainer::InitParticles() {
 		//Assuming tile=box for now, i.e. no tiling.
 		IntVect smallEnd = tile_box.smallEnd();
 		IntVect bigEnd = tile_box.bigEnd();
-
+		
 		if(ParallelDescriptor::MyProc() == 0 && mfi.LocalTileIndex() == 0 && proc0_enter) {
 			proc0_enter = false;
 			std::ifstream particleFile("particles.dat");
+			Real vmean;
 			for(int i_spec=0; i_spec < nspecies; i_spec++) {
 				u = 0; v = 0; w = 0;
+				stdev = sqrt(T_init[i_spec]);
 				for (int i_part=0; i_part<properties[i_spec].total;i_part++) {
 					ParticleType p;
 					p.id()  = ParticleType::NextID();
@@ -49,10 +51,9 @@ void FhdParticleContainer::InitParticles() {
 					p.idata(FHD_intData::sorted) = -1;
 					p.idata(FHD_intData::species) = i_spec;
 
-					stdev = sqrt(T_init[i_spec]);
-					vpart[0] = amrex::RandomNormal(0.,stdev);
-					vpart[1] = amrex::RandomNormal(0.,stdev);
-					vpart[2] = amrex::RandomNormal(0.,stdev);
+					vpart[0] = stdev*amrex::RandomNormal(0.,1.);
+					vpart[1] = stdev*amrex::RandomNormal(0.,1.);
+					vpart[2] = stdev*amrex::RandomNormal(0.,1.);
 					
 					if(particle_input > 0) {
                	particleFile >> p.pos(0);
@@ -63,7 +64,7 @@ void FhdParticleContainer::InitParticles() {
                	particleFile >> vpart[1];
                	particleFile >> vpart[2];
                	particleFile >> p.idata(FHD_intData::species);
-					} else if(particle_placement == 1) {
+					} else if(particle_placement > 0) {
                	particleFile >> p.pos(0);                       
                	particleFile >> p.pos(1);
                	particleFile >> p.pos(2);
@@ -97,16 +98,11 @@ void FhdParticleContainer::InitParticles() {
 					p.rdata(FHD_realData::velx) = p.rdata(FHD_realData::velx) - u;
 					p.rdata(FHD_realData::vely) = p.rdata(FHD_realData::vely) - v;
 					p.rdata(FHD_realData::velz) = p.rdata(FHD_realData::velz) - w;
-					tTg = tTg + pow(p.rdata(FHD_realData::velx),2) + pow(p.rdata(FHD_realData::vely),2)
-						+ pow(p.rdata(FHD_realData::velz),2);
 				}
 			}
-			
-			// amrex::Print() << "Max Speed: " << spdmax << "\n";
 			particleFile.close();
 		}
 	}
-	amrex::Print() << tTg/(3.0*properties[0].total) << "\n";
 	mfvrmax.setVal(spdmax);
 
 	Redistribute();

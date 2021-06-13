@@ -130,7 +130,7 @@ public:
    //MultiFab mfgrantemp;
 
    MultiFab mfCollisions; // keep track to ensure correct collision frequency
-	int expectedCollisions, countedCollisions;
+	int expectedCollisions[MAX_SPECIES], countedCollisions[MAX_SPECIES];
 
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -141,8 +141,9 @@ public:
                                          
    void OutputParticles();
                     
-   Real tTg;
-   Real initTg;
+   Real tTg[MAX_SPECIES];
+   Real initTg[MAX_SPECIES];
+   std::vector<Real> virial;
    
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Scalars
