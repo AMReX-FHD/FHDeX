@@ -76,21 +76,8 @@ void main_driver(const char* argv)
 	MultiFab particleMeans;
 	MultiFab particleVars;
 	MultiFab particleInstant;
-	// For Mean
-	MultiFab rhomean;
-	MultiFab Jmean;
-	MultiFab Tmean;
-	// For Instant
-	MultiFab rhoinstant;
-	MultiFab Jinstant;
-	MultiFab Tinstant;
-	// For Fluctuations
-	MultiFab rhorho;
-	MultiFab rhoJ;
-	MultiFab rhoT;
-   MultiFab JJ;
-   MultiFab JT;
-   MultiFab TT;
+	MultiFab particleFluct;
+	
 	if (restart < 0) {
 		if (seed > 0) {
 			// initializes the seed for C++ random number calls
@@ -117,37 +104,41 @@ void main_driver(const char* argv)
 		dmap.define(ba);
   
 		// Statistics
-		particleMeans.define(ba, dmap, 8+nspecies, 0);
-		particleMeans.setVal(0.);
-
-		particleVars.define(ba, dmap, 8+nspecies, 0);
-		particleVars.setVal(0.);
-
-		particleInstant.define(ba, dmap, 8+nspecies, 0);
-		particleInstant.setVal(0.);
-		
-		// Mechanical Vars 
-		rhoinstant.define(ba, dmap, nspecies, 0);	rhoinstant.setVal(0.);
-		Jinstant.define(ba, dmap, nspecies, 0);	Jinstant.setVal(0.);
-		Tinstant.define(ba, dmap, nspecies, 0);	Tinstant.setVal(0.);
-		
-		rhomean.define(ba, dmap, nspecies, 0);		rhomean.setVal(0.);
-		Jmean.define(ba, dmap, nspecies, 0);		Jmean.setVal(0.);
-		Tmean.define(ba, dmap, nspecies, 0);		Tmean.setVal(0.);
-		
-		/* Variances
-		
+		/*
+		1 - rho
+		2 - Jx
+		3 - Jy
+		4 - Jz
+		5 - E
 		*/
-		int nspecsize = ceil((double)nspecies*(nspecies+1)*0.5);
-		rhorho.define(ba, dmap, nspecsize, 0);	rhorho.setVal(0.);
-		rhoJ.define(ba, dmap, nspecsize, 0);	rhoJ.setVal(0.);
-		rhoT.define(ba, dmap, nspecsize, 0);	rhoT.setVal(0.);
-		JJ.define(ba, dmap, nspecsize, 0);		JT.setVal(0.);
-		JT.define(ba, dmap, nspecsize, 0);		JT.setVal(0.);
-		TT.define(ba, dmap, nspecsize, 0);		TT.setVal(0.);
+		particleMeans.define(ba, dmap, 5*nspecies, 0); particleMeans.setVal(0.);
+
+		particleInstant.define(ba, dmap, 5*nspecies, 0); particleInstant.setVal(0.);
+		
+		particleFluct.define(ba, dmap, 5*nspecies, 0); particleFluct.setVal(0.);
+		
+		// Variances
+		/*
+		1 	- drho/drho
+		2	- drho/dJx
+		3 	- drho/dJy
+		4 	- drho/dJz
+		5 	- drho/dE
+		6 	- dJx/dJx
+		7 	- dJx/dJy
+		8 	- dJx/dJz
+		9 	- dJx/dE
+		10 - dJy/dJy
+		11 - dJy/dJz
+		12 - dJy/dE
+		13 - dJz/dJz
+		14 - dJz/dE
+		15 - dE/dE
+		*/
+		// Temperature not relevant to granular
+		particleVars.define(ba, dmap, 15*nspecies*nspecies, 0);	particleVars.setVal(0.);
 		// will leave FFT to Ishan
-	}
-	else {
+	} else {
 		// restart from checkpoint
 	}
 
@@ -254,7 +245,7 @@ void main_driver(const char* argv)
             // Print() << "Finish move.\n";
         }
 
-        particles.EvaluateStats(particleInstant, particleMeans, particleVars, dt,statsCount);
+        particles.EvaluateStats(particleInstant, particleMeans, particleVars, particleFluct, dt, statsCount);
         statsCount++;
  
         if ((n_steps_skip > 0 && istep == n_steps_skip) ||
@@ -325,14 +316,14 @@ void main_driver(const char* argv)
     //	<< particles.countedCollisions/(particles.expectedCollisions*time*particles.simParticles) << "\n";
     //amrex::Print() << "Particle Neff: " << particle_neff << "\n"; */
     
-    for (int i_spec=0; i_spec<nspecies; i_spec++) {
+    /*for (int i_spec=0; i_spec<nspecies; i_spec++) {
     	for (int j_spec=i_spec; j_spec<nspecies; j_spec++) {
     		int ij_spec = particles.getSpeciesIndex(i_spec,j_spec);
     		amrex::Print() << "Collisions between species pair: " << ij_spec
     		<< " is " << particles.countedCollisions[ij_spec] << " with selections: "
     		<< particles.NSel_spec[ij_spec] << "\n";
     	}
-    }
+    }*/
 
 	 if(particle_input<0) {particles.OutputParticles();} // initial condition
 	 //particles.OutputParticles();

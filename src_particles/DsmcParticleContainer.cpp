@@ -411,6 +411,7 @@ void FhdParticleContainer::CollideParticles(Real dt) {
 					totalSel += NSel[ij_spec];
 				}
 			}
+			
 			int speci, specj, specij;
 			while (totalSel>0) {
 				Real RR = amrex::Random();
@@ -451,7 +452,7 @@ void FhdParticleContainer::CollideParticles(Real dt) {
 						
 				vij[0] = vi[0]-vj[0]; vij[1] = vi[1]-vj[1]; vij[2] = vi[2]-vj[2];
 				vrmag = sqrt(pow(vij[0],2)+pow(vij[1],2)+pow(vij[2],2));
-				if(vrmag>vrmax) {vrmax = vrmag*1.05; arrvrmax(i,j,k,ij_spec) = vrmax;}
+				if(vrmag>vrmax) {vrmax = vrmag; arrvrmax(i,j,k,ij_spec) = vrmax;}
 
 				theta = 2.0*pi_usr*amrex::Random();
 				phi = std::acos(2.0*amrex::Random()-1.0);
@@ -529,104 +530,84 @@ void FhdParticleContainer::OutputParticles() {
 }
 
 void FhdParticleContainer::EvaluateStats(MultiFab& particleInstant, MultiFab& particleMeans,
-                                         MultiFab& particleVars, const Real delt, int steps) {
+                                         MultiFab& particleVars, MultiFab& particleFluct,
+                                         const Real delt, int steps) {
 	BL_PROFILE_VAR("EvaluateStats()",EvaluateStats);
-    
-	const int lev = 0;
-    
-	BoxArray ba = particleMeans.boxArray();
-	long cellcount = ba.numPts();
-
-	const Real* dx = Geom(lev).CellSize();
-	const Real dxInv = 1.0/dx[0];
-	const Real cellVolInv = 1.0/(dx[0]*dx[0]*dx[0]); // this is recorded in ocollisionCellVol
 
 	const Real stepsInv = 1.0/steps;
 	const int stepsMinusOne = steps-1;
 
-	// zero instantaneous values
-	particleInstant.setVal(0.);
-   
-	for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) {
-		PairIndex index(pti.index(), pti.LocalTileIndex());
-		const int np = this->GetParticles(lev)[index].numRealParticles();
-		auto& plev = this->GetParticles(lev);
-		auto& ptile = plev[index];
-		auto& aos   = ptile.GetArrayOfStructs();
+	/*
+		1 - rho
+		2 - Jx
+		3 - Jy
+		4 - Jz
+		5 - E
+	*/
+   const int lev = 0;
+  	particleInstant.setVal(0.);
+	for (FhdParIter pti(* this, lev); pti.isValid(); ++pti) {
+		const int grid_id = pti.index();
+		const int tile_id = pti.LocalTileIndex();
 		const Box& tile_box  = pti.tilebox();
-		ParticleType* particles = aos().dataPtr();
-
-		GpuArray<int, 3> bx_lo = {tile_box.loVect()[0], tile_box.loVect()[1], tile_box.loVect()[2]};
-		GpuArray<int, 3> bx_hi = {tile_box.hiVect()[0], tile_box.hiVect()[1], tile_box.hiVect()[2]};
-
+		
+		auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+		auto& particles = particle_tile.GetArrayOfStructs();
+		
 		Array4<Real> part_inst = particleInstant[pti].array();
 		Array4<Real> part_mean = particleMeans[pti].array();
+		Array4<Real> part_fluct = particleFluct[pti].array();
 		Array4<Real> part_var = particleVars[pti].array();
-
-		AMREX_FOR_1D( np, ni,
-		{
-			ParticleType & part = particles[ni];
-
-			int i = floor(part.pos(0)*dxInv);
-			int j = floor(part.pos(1)*dxInv);
-			int k = floor(part.pos(2)*dxInv);
-            
-			amrex::Gpu::Atomic::Add(&part_inst(i,j,k,0), 1.0);
-
-			for(int l=0;l<nspecies;l++) {
-
-			}
-
-		});
-
-		amrex::ParallelFor(tile_box,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
-			part_inst(i,j,k,1) = part_inst(i,j,k,1)*cellVolInv;         
-		});
-
-		amrex::ParallelFor(tile_box,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
-
-			part_mean(i,j,k,1)  = (part_mean(i,j,k,1)*stepsMinusOne + part_inst(i,j,k,1))*stepsInv;
-
-			for(int l=0;l<nspecies;l++)
-			{
-
-			}
-             
-		});
-
-		amrex::ParallelFor(tile_box,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
-
-            Real del1 = part_inst(i,j,k,1) - part_mean(i,j,k,1);
-
-            part_var(i,j,k,1)  = (part_var(i,j,k,1)*stepsMinusOne + del1*del1)*stepsInv;            
-		});
 		
-		// Granular Temperature
-		/*
-		const long grid_id = pti.index();
-		amrex::ParallelFor(tile_box,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
-					
+		// temporary fix
+		IntVect smallEnd = tile_box.smallEnd();
+		IntVect bigEnd = tile_box.bigEnd();
+		
+		for (int i = smallEnd[0]; i <= bigEnd[0]; i++) {
+		for (int j = smallEnd[1]; j <= bigEnd[1]; j++) {
+		for (int k = smallEnd[2]; k <= bigEnd[2]; k++) {
 			const IntVect& iv = {i,j,k};
 			long imap = tile_box.index(iv);
-			Real spdsq;
-			ParticleType ptemp;
-			long pindx;
-
-			for (int i_spec=0; i_spec<nspecies; i_spec++) {
-				// phi = np * particle volume * collision cell volume * Neff
-				long npcell = m_cell_vectors[i_spec][grid_id][imap].size();
-				for (int i_part=0; i_part<npcell; i_part++) {
-					pindx = m_cell_vectors[i_spec][grid_id][imap][i_part];
-					ptemp =  particles[pindx];
-					ParticleType & p = ptemp;
-					spdsq = sqrt(pow(p.rdata(FHD_realData::velx),2)+
-						pow(p.rdata(FHD_realData::vely),2)+pow(p.rdata(FHD_realData::velz),2));
-					tTg = tTg + properties[i_spec].mass*spdsq;
+			for (int l=0; l<nspecies; l++) {
+				const int np = m_cell_vectors[l][grid_id][imap].size();
+				part_inst(i,j,k,l*nspecies+0) = np;
+				// Sum over all particle velocities/energies
+				for (int m=0; m<np; m++) {
+					int pind = m_cell_vectors[l][grid_id][imap][m];
+					ParticleType & p = particles[pind];
+					part_inst(i,j,k,l*nspecies+1) = part_inst(i,j,k,l*nspecies+1) + p.rdata(FHD_realData::velx);
+					part_inst(i,j,k,l*nspecies+2) = part_inst(i,j,k,l*nspecies+2) + p.rdata(FHD_realData::vely);
+					part_inst(i,j,k,l*nspecies+3) = part_inst(i,j,k,l*nspecies+3) + p.rdata(FHD_realData::velz);
+					part_inst(i,j,k,l*nspecies+4) = part_inst(i,j,k,l*nspecies+4) + pow(p.rdata(FHD_realData::velx),2)
+						+ pow(p.rdata(FHD_realData::vely),2) + pow(p.rdata(FHD_realData::velz),2);
+				}
+				// Divide J and E by number of particles
+				for (int m=1; m<5; m++) {
+					part_inst(i,j,k,l*nspecies+m) = part_inst(i,j,k,l*nspecies+m)/part_inst(i,j,k,l*nspecies+0); 
+				}
+			}	
+		}
+		}
+		}
+			
+		amrex::ParallelFor(tile_box,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
+			for (int l=0; l<nspecies; l++) {
+				for (int m=0; m<5; m++) {
+					part_inst(i,j,k,l*nspecies+m) = part_inst(i,j,k,l*nspecies+m)*ocollisionCellVol;
+					part_mean(i,j,k,l*nspecies+m) = (part_mean(i,j,k,l*nspecies+m)*stepsMinusOne
+						+ part_inst(i,j,k,l*nspecies+m))*stepsInv;
+					part_fluct(i,j,k,l*nspecies+m) = part_inst(i,j,k,l*nspecies+m) - part_mean(i,j,k,l*nspecies+m);
 				}
 			}
-		
-		});*/
-		
+			
+			/*
+			int ind = 0;
+			for (int l=0; l<nspecies; l++) {
+				for(int m=l; m<nspecies; m++) {
+					part_var(i,j,k,lm) = (part_var(i,j,k,lm)*stepsMinusOne + part_fluct(i,j,k,l)*part_fluct(i,j,k,m))*stepsInv;
+				}
+			}*/
+		});
 	}
 }
 
@@ -637,9 +618,9 @@ void FhdParticleContainer::EvaluateStats(MultiFab& particleInstant, MultiFab& pa
 // Problematic when nspecies = max_species (last index will cause seg fault)
 int FhdParticleContainer::getSpeciesIndex(int species1, int species2) {
 	if(species1<species2){
-		return species2+(nspecies-1)*species1;
+		return species2+nspecies*species1;
 	} else {
-		return species1+(nspecies-1)*species2;
+		return species1+nspecies*species2;
 	}
 }
 

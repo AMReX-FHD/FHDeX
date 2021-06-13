@@ -137,7 +137,8 @@ public:
 // Outputs
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	void EvaluateStats(MultiFab& particleInstant, MultiFab& particleMeans,
-                                         MultiFab& particleVars, const Real delt, int steps);
+                      MultiFab& particleVars, MultiFab& particleFluct,
+                      const Real delt, int steps);
                                          
    void OutputParticles();
                     
