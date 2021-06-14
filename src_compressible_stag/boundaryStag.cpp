@@ -1903,7 +1903,7 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
                 amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     edgex_v(i,j,k) *= factor;
-                    edgey_u(i,j,k) *= 0.0;
+                    edgey_u(i,j,k) *= factor;
                 });
             }
         }
@@ -1925,13 +1925,13 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
                 amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     edgex_w(i,j,k) *= factor;
-                    edgez_u(i,j,k) *= 0.0;
+                    edgez_u(i,j,k) *= factor;
                 });
             }
         }
 
         ////////////////////////////////////////////////
-        // set Dufour to zero
+        // set Dufour
         // domain grown nodally based on faceflux_in[0] nodality (x)
         const Box& dom_x = amrex::convert(geom.Domain(), faceflux_in[0].ixType());
 
@@ -1946,7 +1946,7 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
             if (b.ok()) {
                 amrex::ParallelFor(b, AMREX_SPACEDIM, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
-                    if (bc_vel_lo[0] == 1) flux(i,j,k,nvars+1) *= 0.0; // slip BC
+                    flux(i,j,k,nvars+2) *= factor; 
                 });
             }
         }
@@ -1976,7 +1976,7 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
                 amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     edgex_v(i,j,k) *= factor;
-                    edgey_u(i,j,k) *= 0.0;
+                    edgey_u(i,j,k) *= factor;
                 });
             }
         }
@@ -1998,13 +1998,13 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
                 amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     edgex_w(i,j,k) *= factor;
-                    edgez_u(i,j,k) *= 0.0;
+                    edgez_u(i,j,k) *= factor;
                 });
             }
         }
 
         ////////////////////////////////////////////////
-        // set Dufour to zero
+        // set Dufour
         // domain grown nodally based on faceflux_in[0] nodality (x)
         const Box& dom_x = amrex::convert(geom.Domain(), faceflux_in[0].ixType());
 
@@ -2019,7 +2019,7 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
             if (b.ok()) {
                 amrex::ParallelFor(b, AMREX_SPACEDIM, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
-                    if (bc_vel_hi[0] == 1) flux(i,j,k,nvars+1) *= 0.0; // slip BC
+                    flux(i,j,k,nvars+2) *= factor; 
                 });
             }
         }
@@ -2049,7 +2049,7 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
                 amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     edgey_u(i,j,k) *= factor;
-                    edgex_v(i,j,k) *= 0.0;
+                    edgex_v(i,j,k) *= factor;
                 });
             }
         }
@@ -2071,13 +2071,13 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
                 amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     edgey_w(i,j,k) *= factor;
-                    edgez_v(i,j,k) *= 0.0;
+                    edgez_v(i,j,k) *= factor;
                 });
             }
         }
 
         ////////////////////////////////////////////////
-        // set Dufour to zero
+        // set Dufour
         // domain grown nodally based on faceflux_in[1] nodality (y)
         const Box& dom_y = amrex::convert(geom.Domain(), faceflux_in[1].ixType());
 
@@ -2092,7 +2092,7 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
             if (b.ok()) {
                 amrex::ParallelFor(b, AMREX_SPACEDIM, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
-                    if (bc_vel_lo[1] == 1) flux(i,j,k,nvars+1) *= 0.0; // slip BC
+                    flux(i,j,k,nvars+2) *= factor; 
                 });
             }
         }
@@ -2122,7 +2122,7 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
                 amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     edgey_u(i,j,k) *= factor;
-                    edgex_v(i,j,k) *= 0.0;
+                    edgex_v(i,j,k) *= factor;
                 });
             }
         }
@@ -2144,13 +2144,13 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
                 amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     edgey_w(i,j,k) *= factor;
-                    edgez_v(i,j,k) *= 0.0;
+                    edgez_v(i,j,k) *= factor;
                 });
             }
         }
 
         ////////////////////////////////////////////////
-        // set Dufour to zero
+        // set Dufour
         // domain grown nodally based on faceflux_in[1] nodality (y)
         const Box& dom_y = amrex::convert(geom.Domain(), faceflux_in[1].ixType());
 
@@ -2165,7 +2165,7 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
             if (b.ok()) {
                 amrex::ParallelFor(b, AMREX_SPACEDIM, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
-                    if (bc_vel_hi[1] == 1) flux(i,j,k,nvars+1) *= 0.0; // slip BC
+                    flux(i,j,k,nvars+2) *= factor; 
                 });
             }
         }
@@ -2195,7 +2195,7 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
                 amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     edgez_u(i,j,k) *= factor;
-                    edgex_w(i,j,k) *= 0.0;
+                    edgex_w(i,j,k) *= factor;
                 });
             }
         }
@@ -2217,13 +2217,13 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
                 amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     edgez_v(i,j,k) *= factor;
-                    edgey_w(i,j,k) *= 0.0;
+                    edgey_w(i,j,k) *= factor;
                 });
             }
         }
 
         ////////////////////////////////////////////////
-        // set Dufour to zero
+        // set Dufour
         // domain grown nodally based on faceflux_in[2] nodality (z)
         const Box& dom_z = amrex::convert(geom.Domain(), faceflux_in[2].ixType());
 
@@ -2238,7 +2238,7 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
             if (b.ok()) {
                 amrex::ParallelFor(b, AMREX_SPACEDIM, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
-                    if (bc_vel_lo[2] == 1) flux(i,j,k,nvars+1) *= 0.0; // slip BC
+                    flux(i,j,k,nvars+2) *= factor; 
                 });
             }
         }
@@ -2268,7 +2268,7 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
                 amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     edgez_u(i,j,k) *= factor;
-                    edgex_w(i,j,k) *= 0.0;
+                    edgex_w(i,j,k) *= factor;
                 });
             }
         }
@@ -2290,13 +2290,13 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
                 amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     edgez_v(i,j,k) *= factor;
-                    edgey_w(i,j,k) *= 0.0;
+                    edgey_w(i,j,k) *= factor;
                 });
             }
         }
 
         ////////////////////////////////////////////////
-        // set Dufour to zero
+        // set Dufour
         // domain grown nodally based on faceflux_in[2] nodality (z)
         const Box& dom_z = amrex::convert(geom.Domain(), faceflux_in[2].ixType());
 
@@ -2311,7 +2311,7 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
             if (b.ok()) {
                 amrex::ParallelFor(b, AMREX_SPACEDIM, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
-                    if (bc_vel_hi[2] == 1) flux(i,j,k,nvars+1) *= 0.0; // slip BC
+                    flux(i,j,k,nvars+2) *= factor; 
                 });
             }
         }
