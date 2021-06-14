@@ -20,6 +20,7 @@ struct FHD_realData {
         boosty,
         boostz,
         R,
+        timeFrac,
         count    // Awesome little trick! (only works if first field is 0)
     };
 
@@ -31,7 +32,8 @@ struct FHD_realData {
             "boostx",
             "boosty",
             "boostz",
-            "R"
+            "R",
+            "timeFrac"
         };
     };
 };

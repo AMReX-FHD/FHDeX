@@ -80,6 +80,7 @@ c
  
        cv0 = 1.5d0*rgas0
        cv1 = 1.5d0*rgas1
+       cv1 = 2.5d0*rgas1
 
        rmix =  (rgas1*camb+(1.d0-camb)*rgas0)
        cvmix = (cv1*camb+(1.d0-camb)*cv0)
@@ -300,6 +301,7 @@ c     if(n.gt.ntherm)dorand = 0.d0
 
             vmean(j,1) = vmean(j,1)+rho
             vmean(j,2) = vmean(j,2)+T
+            vmean(j,3) = vmean(j,3)+T*T
             vcor(j,1) = vcor(j,1)+rho*ustar
             vcor(j,2) = vcor(j,2)+rho*Tstar
             vcor(j,3) = vcor(j,3)+T*Tstar
@@ -318,10 +320,14 @@ c     if(n.gt.ntherm)dorand = 0.d0
 
         if(n.gt.ntherm .and. istat .gt.0)then
         factor = dfloat(istat)
-        do k=1,2
+        do k=1,3
         do j=1,npts
             vmeant(j,k) = vmean(j,k)/factor
         enddo
+        enddo
+        do j=1,npts
+            vmeant(j,3) = vmeant(j,3)-vmeant(j,2)**2
+            write(6,*)j, vmeant(j,2),vmeant(j,3)
         enddo
             ustar = ustarbar/factor
             Tstar = Tstarbar/factor
