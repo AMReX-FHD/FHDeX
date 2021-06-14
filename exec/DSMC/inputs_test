@@ -16,7 +16,7 @@
   fixed_dt = 1e-8                         ! 1e-13 is too large 
 
   ! Controls for number of steps between actions
-  max_step = 200
+  max_step = 5
   plot_int = 1
   plot_ascii = 1
   struct_fact_int = -1
@@ -35,7 +35,7 @@
   ! 1 = read from particles.dat, 2 = spread randomly over domain
   particle_placement = 1
   ! -1 = calculate based on n0
-  particle_count = 1000 1000
+  particle_count = 50 50
   ! real particles per simulator particle
   particle_neff = 1
   ! ignore if particle_count is positive
@@ -48,7 +48,7 @@
   diameter = 2.488e-8 2.488e-8
   
   ! Stochastic parameters
-  seed = 0
+  seed = 2
   k_B = 1.38064852e-16
   T_init = 300.00 300.00
   variance_coef_mom = 1

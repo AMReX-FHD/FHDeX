@@ -61,14 +61,13 @@ c    1            vmsqt(1:ndim,4,4)
 
 c   
        mass1 = 6.63d-23
-       mass0 = mass1*3.d0
+       mass0 = mass1*1.d0
        d0=3.66d-8
        d1=3.66d-8
        seed = 632489
        ustarbar=0.d0
        Tstarbar=0.d0
        nstat = -1
-       nsamples = 0
 
        read(5,input_param)
        write(6,input_param)
@@ -81,6 +80,7 @@ c
  
        cv0 = 1.5d0*rgas0
        cv1 = 1.5d0*rgas1
+       cv1 = 2.5d0*rgas1
 
        rmix =  (rgas1*camb+(1.d0-camb)*rgas0)
        cvmix = (cv1*camb+(1.d0-camb)*cv0)
@@ -327,7 +327,7 @@ c     if(n.gt.ntherm)dorand = 0.d0
         enddo
         do j=1,npts
             vmeant(j,3) = vmeant(j,3)-vmeant(j,2)**2
-            write(6,*)j,vmeant(j,2),vmeant(j,3)
+            write(6,*)j, vmeant(j,2),vmeant(j,3)
         enddo
             ustar = ustarbar/factor
             Tstar = Tstarbar/factor

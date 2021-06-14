@@ -162,6 +162,8 @@ void main_driver(const char* argv)
     }
 
 
+            particles.Source(dt, paramPlaneList, paramPlaneCount);
+
     // cell centered real coordinates - es grid
     MultiFab RealCenteredCoords;
     RealCenteredCoords.define(ba, dmap, AMREX_SPACEDIM, 0);
@@ -182,8 +184,8 @@ void main_driver(const char* argv)
         // total particle move (1=single step, 2=midpoint)
         if (move_tog != 0)
         {
-
             particles.MoveParticlesCPP(dt, paramPlaneList, paramPlaneCount);
+
 
             // reset statistics after step n_steps_skip
             // if n_steps_skip is negative, we use it as an interval
