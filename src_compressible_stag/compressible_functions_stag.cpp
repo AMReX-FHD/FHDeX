@@ -187,3 +187,38 @@ void InitConsVarStag(MultiFab& cons, std::array< MultiFab, AMREX_SPACEDIM >& mom
         });
     } // end MFIter
 }
+
+void PrintFluxes(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array< MultiFab, 2 >& edgeflux_x_in,
+                 std::array< MultiFab, 2 >& edgeflux_y_in, std::array< MultiFab, 2 >& edgeflux_z_in,
+                 std::array< MultiFab, AMREX_SPACEDIM>& cenflux_in, std::string prefix)
+{
+    std::string xflux = prefix + "xface";
+    std::string yflux = prefix + "yface";
+    std::string zflux = prefix + "zface";
+
+    std::string edgex_v = prefix + "edgexv";
+    std::string edgex_w = prefix + "edgexw";
+    std::string edgey_u = prefix + "edgeyu";
+    std::string edgey_w = prefix + "edgeyw";
+    std::string edgez_u = prefix + "edgezu";
+    std::string edgez_v = prefix + "edgezv";
+
+    std::string cenx = prefix + "cenx";
+    std::string ceny = prefix + "ceny";
+    std::string cenz = prefix + "cenz";
+
+    outputMFAscii(faceflux_in[0],xflux);
+    outputMFAscii(faceflux_in[1],yflux);
+    outputMFAscii(faceflux_in[2],zflux);
+
+    outputMFAscii(edgeflux_x_in[0],edgex_v);
+    outputMFAscii(edgeflux_x_in[1],edgex_w);
+    outputMFAscii(edgeflux_y_in[0],edgey_u);
+    outputMFAscii(edgeflux_y_in[1],edgey_w);
+    outputMFAscii(edgeflux_z_in[0],edgez_u);
+    outputMFAscii(edgeflux_z_in[1],edgez_v);
+
+    outputMFAscii(cenflux_in[0],cenx);
+    outputMFAscii(cenflux_in[1],ceny);
+    outputMFAscii(cenflux_in[2],cenz);
+}
