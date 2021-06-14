@@ -181,6 +181,8 @@ void GetTemperature ( Real const energy,
     temp = (energy-e0)/cvmix;
 }
 
+//EP
+//corresponding example to look at
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void GetPressureGas ( Real& pressure,
                       const GpuArray<Real,MAX_SPECIES>& Yk,

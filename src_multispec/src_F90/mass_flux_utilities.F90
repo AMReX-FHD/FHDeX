@@ -27,11 +27,24 @@ contains
     
     ! local variables
     integer          :: i,j,k
-    
+
+! EP
+! Write a cpp version of this loop using the example from the other file
+! First start by trying to write an empty routine and seeing if that compiles
+! also write script to run all 4 regression tests to spot unwanted changes
+! one way to check if a routine is affecting output is multiply some
+! part by 2 and make it fail the regression test
+
+
     ! for specific box, now start loops over alloted cells    
     do k=tlo(3), thi(3)
        do j=tlo(2), thi(2)
           do i=tlo(1), thi(1)
+
+! EP 
+! you will need to write a loop to load up the vector for each
+! part in the code where you see a : in the fortan
+! in fortran : indicates an entire matrix's dimension as an array
 
              call compute_molconc_molmtot_local(nspecies,molmass,rho(i,j,k,:),rhotot(i,j,k),&
                                                 molarconc(i,j,k,:),molmtot(i,j,k))
@@ -43,6 +56,10 @@ contains
   end subroutine compute_molconc_molmtot
   
   subroutine compute_molconc_molmtot_local(nspecies_in,molmass_in,rho,rhotot,molarconc,molmtot)
+
+! EP
+! This is the part that will go it the GPU kernel
+
 
     integer,          intent(in)   :: nspecies_in
     double precision, intent(in)   :: molmass_in(nspecies_in)

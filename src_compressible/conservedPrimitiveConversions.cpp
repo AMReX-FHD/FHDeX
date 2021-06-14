@@ -44,7 +44,11 @@ void conservedToPrimitive(MultiFab& prim_in, const MultiFab& cons_in)
         // make sure Xk_fab doesn't go out of scope once the CPU finishes and GPU isn't done
         auto Xk_eli = Xk_fab.elixir();
         */
-        
+
+// EP
+// Use this as an example for the fortran to cpp conversion
+
+
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             // method 2 to create a thread private array
