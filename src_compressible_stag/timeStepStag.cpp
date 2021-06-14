@@ -229,9 +229,6 @@ void RK3stepStag(MultiFab& cu,
         stochface, stochedge_x, stochedge_y, stochedge_z, stochcen, 
         geom, stoch_weights,dt);
 
-    // Set species flux to zero at the walls
-    BCWallSpeciesFluxStag(faceflux,geom);
-
     for (int d=0; d<AMREX_SPACEDIM; d++) {
         cenflux[d].FillBoundary(geom.periodicity());
         faceflux[d].FillBoundary(geom.periodicity());
@@ -399,9 +396,6 @@ void RK3stepStag(MultiFab& cu,
         faceflux, edgeflux_x, edgeflux_y, edgeflux_z, cenflux, 
         stochface, stochedge_x, stochedge_y, stochedge_z, stochcen, 
         geom, stoch_weights,dt);
-
-    // Set species flux to zero at the walls
-    BCWallSpeciesFluxStag(faceflux,geom);
 
     for (int d=0; d<AMREX_SPACEDIM; d++) {
         cenflux[d].FillBoundary(geom.periodicity());
@@ -575,9 +569,6 @@ void RK3stepStag(MultiFab& cu,
         faceflux, edgeflux_x, edgeflux_y, edgeflux_z, cenflux, 
         stochface, stochedge_x, stochedge_y, stochedge_z, stochcen, 
         geom, stoch_weights,dt);
-
-    // Set species flux to zero at the walls
-    BCWallSpeciesFluxStag(faceflux,geom);
 
     for (int d=0; d<AMREX_SPACEDIM; d++) {
         cenflux[d].FillBoundary(geom.periodicity());

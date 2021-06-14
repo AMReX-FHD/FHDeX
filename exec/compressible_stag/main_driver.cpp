@@ -744,16 +744,29 @@ void main_driver(const char* argv)
     source.setVal(0.0);
 
     //fluxes (except momentum) at faces
+    // need +4 to separate out heat, viscous heating (diagonal vs shear)  and Dufour contributions to the energy flux
+    // stacked at the end (see below)
+    // index: flux term
+    // 0: density
+    // 1: x-momentum
+    // 2: y-momentum
+    // 3: z-momentum
+    // 4: total energy
+    // 5:nvars-1: species flux (nvars = nspecies+5)
+    // nvars: heat flux
+    // nvars + 1: viscous heating (diagonal)
+    // nvars + 2: viscous heating (shear)
+    // nvars + 3: Dufour effect
     std::array< MultiFab, AMREX_SPACEDIM > faceflux;
-    AMREX_D_TERM(faceflux[0].define(convert(ba,nodal_flag_x), dmap, nvars, 0);,
-                 faceflux[1].define(convert(ba,nodal_flag_y), dmap, nvars, 0);,
-                 faceflux[2].define(convert(ba,nodal_flag_z), dmap, nvars, 0););
+    AMREX_D_TERM(faceflux[0].define(convert(ba,nodal_flag_x), dmap, nvars+4, 0);,
+                 faceflux[1].define(convert(ba,nodal_flag_y), dmap, nvars+4, 0);,
+                 faceflux[2].define(convert(ba,nodal_flag_z), dmap, nvars+4, 0););
 
     //momentum flux (edge + center)
 #if (AMREX_SPACEDIM == 3)
-    std::array< MultiFab, 2 > edgeflux_x; // divide by dx
-    std::array< MultiFab, 2 > edgeflux_y; // divide by dy
-    std::array< MultiFab, 2 > edgeflux_z; // divide by dz
+    std::array< MultiFab, 2 > edgeflux_x;
+    std::array< MultiFab, 2 > edgeflux_y;
+    std::array< MultiFab, 2 > edgeflux_z;
 
     edgeflux_x[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0); // 0-2: rhoU, rhoV, rhoW
     edgeflux_x[1].define(convert(ba,nodal_flag_xz), dmap, 1, 0);

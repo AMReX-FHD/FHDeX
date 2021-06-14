@@ -157,10 +157,16 @@ void BCWallSpeciesFluxStag(std::array< MultiFab, AMREX_SPACEDIM >& faceflux, con
             const Box& b = bx & dom_xlo;
             Array4<Real> const& flux = (faceflux[0]).array(mfi);
             if (b.ok()) {
-                amrex::ParallelFor(b, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
-                    flux(i,j,k,n+5) = 0.;
-                    if (n==0) flux(i,j,k,n) = 0.;
+                    // species
+                    for (int n=0;n<nspecies;++n) {
+                        flux(i,j,k,n+5) = 0.;
+                    }
+                    // density
+                    flux(i,j,k,0) = 0.;
+                    // Dufour
+                    flux(i,j,k,nvars+3) = 0.;
                 });
             }
         }
@@ -180,10 +186,16 @@ void BCWallSpeciesFluxStag(std::array< MultiFab, AMREX_SPACEDIM >& faceflux, con
             const Box& b = bx & dom_xhi;
             Array4<Real> const& flux = (faceflux[0]).array(mfi);
             if (b.ok()) {
-                amrex::ParallelFor(b, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
-                    flux(i,j,k,n+5) = 0.;
-                    if (n==0) flux(i,j,k,n) = 0.;
+                    // species
+                    for (int n=0;n<nspecies;++n) {
+                        flux(i,j,k,n+5) = 0.;
+                    }
+                    // density
+                    flux(i,j,k,0) = 0.;
+                    // Dufour
+                    flux(i,j,k,nvars+3) = 0.;
                 });
             }
         }
@@ -203,10 +215,16 @@ void BCWallSpeciesFluxStag(std::array< MultiFab, AMREX_SPACEDIM >& faceflux, con
             const Box& b = bx & dom_ylo;
             Array4<Real> const& flux = (faceflux[1]).array(mfi);
             if (b.ok()) {
-                amrex::ParallelFor(b, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
-                    flux(i,j,k,n+5) = 0.;
-                    if (n==0) flux(i,j,k,n) = 0.;
+                    // species
+                    for (int n=0;n<nspecies;++n) {
+                        flux(i,j,k,n+5) = 0.;
+                    }
+                    // density
+                    flux(i,j,k,0) = 0.;
+                    // Dufour
+                    flux(i,j,k,nvars+3) = 0.;
                 });
             }
         }
@@ -226,10 +244,16 @@ void BCWallSpeciesFluxStag(std::array< MultiFab, AMREX_SPACEDIM >& faceflux, con
             const Box& b = bx & dom_yhi;
             Array4<Real> const& flux = (faceflux[1]).array(mfi);
             if (b.ok()) {
-                amrex::ParallelFor(b, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
-                    flux(i,j,k,n+5) = 0.;
-                    if (n==0) flux(i,j,k,n) = 0.;
+                    // species
+                    for (int n=0;n<nspecies;++n) {
+                        flux(i,j,k,n+5) = 0.;
+                    }
+                    // density
+                    flux(i,j,k,0) = 0.;
+                    // Dufour
+                    flux(i,j,k,nvars+3) = 0.;
                 });
             }
         }
@@ -249,10 +273,16 @@ void BCWallSpeciesFluxStag(std::array< MultiFab, AMREX_SPACEDIM >& faceflux, con
             const Box& b = bx & dom_zlo;
             Array4<Real> const& flux = (faceflux[2]).array(mfi);
             if (b.ok()) {
-                amrex::ParallelFor(b, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
-                    flux(i,j,k,n+5) = 0.;
-                    if (n==0) flux(i,j,k,n) = 0.;
+                    // species
+                    for (int n=0;n<nspecies;++n) {
+                        flux(i,j,k,n+5) = 0.;
+                    }
+                    // density
+                    flux(i,j,k,0) = 0.;
+                    // Dufour
+                    flux(i,j,k,nvars+3) = 0.;
                 });
             }
         }
@@ -272,10 +302,16 @@ void BCWallSpeciesFluxStag(std::array< MultiFab, AMREX_SPACEDIM >& faceflux, con
             const Box& b = bx & dom_zhi;
             Array4<Real> const& flux = (faceflux[2]).array(mfi);
             if (b.ok()) {
-                amrex::ParallelFor(b, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
-                    flux(i,j,k,n+5) = 0.;
-                    if (n==0) flux(i,j,k,n) = 0.;
+                    // species
+                    for (int n=0;n<nspecies;++n) {
+                        flux(i,j,k,n+5) = 0.;
+                    }
+                    // density
+                    flux(i,j,k,0) = 0.;
+                    // Dufour
+                    flux(i,j,k,nvars+3) = 0.;
                 });
             }
         }
@@ -1509,9 +1545,14 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
             const Box& b = bx & dom_xlo;
             Array4<Real> const& flux = (faceflux_in[0]).array(mfi);
             if (b.ok()) {
-                amrex::ParallelFor(b, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
-                    flux(i,j,k,n+5) *= factor;
+                    // species
+                    for (int n=0;n<nspecies;++n) {
+                        flux(i,j,k,n+5) *= factor;
+                    }
+                    // Set Dufour as well
+                    flux(i,j,k,nvars+3) *= factor;
                 });
             }
         }
@@ -1535,9 +1576,14 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
             const Box& b = bx & dom_xhi;
             Array4<Real> const& flux = (faceflux_in[0]).array(mfi);
             if (b.ok()) {
-                amrex::ParallelFor(b, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
-                    flux(i,j,k,n+5) *= factor;
+                    // species
+                    for (int n=0;n<nspecies;++n) {
+                        flux(i,j,k,n+5) *= factor;
+                    }
+                    // Set Dufour as well
+                    flux(i,j,k,nvars+3) *= factor;
                 });
             }
         }
@@ -1562,9 +1608,14 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
             const Box& b = bx & dom_ylo;
             Array4<Real> const& flux = (faceflux_in[1]).array(mfi);
             if (b.ok()) {
-                amrex::ParallelFor(b, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
-                    flux(i,j,k,n+5) *= factor;
+                    // species
+                    for (int n=0;n<nspecies;++n) {
+                        flux(i,j,k,n+5) *= factor;
+                    }
+                    // Set Dufour as well
+                    flux(i,j,k,nvars+3) *= factor;
                 });
             }
         }
@@ -1588,9 +1639,14 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
             const Box& b = bx & dom_yhi;
             Array4<Real> const& flux = (faceflux_in[1]).array(mfi);
             if (b.ok()) {
-                amrex::ParallelFor(b, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
-                    flux(i,j,k,n+5) *= factor;
+                    // species
+                    for (int n=0;n<nspecies;++n) {
+                        flux(i,j,k,n+5) *= factor;
+                    }
+                    // Set Dufour as well
+                    flux(i,j,k,nvars+3) *= factor;
                 });
             }
         }
@@ -1615,9 +1671,14 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
             const Box& b = bx & dom_zlo;
             Array4<Real> const& flux = (faceflux_in[2]).array(mfi);
             if (b.ok()) {
-                amrex::ParallelFor(b, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
-                    flux(i,j,k,n+5) *= factor;
+                    // species
+                    for (int n=0;n<nspecies;++n) {
+                        flux(i,j,k,n+5) *= factor;
+                    }
+                    // Set Dufour as well
+                    flux(i,j,k,nvars+3) *= factor;
                 });
             }
         }
@@ -1641,9 +1702,14 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
             const Box& b = bx & dom_zhi;
             Array4<Real> const& flux = (faceflux_in[2]).array(mfi);
             if (b.ok()) {
-                amrex::ParallelFor(b, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
-                    flux(i,j,k,n+5) *= factor;
+                    // species
+                    for (int n=0;n<nspecies;++n) {
+                        flux(i,j,k,n+5) *= factor;
+                    }
+                    // Set Dufour as well
+                    flux(i,j,k,nvars+3) *= factor;
                 });
             }
         }
@@ -1672,7 +1738,7 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
             if (b.ok()) {
                 amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
-                    flux(i,j,k,4) *= factor;
+                    flux(i,j,k,nvars) *= factor;
                 });
             }
         }
@@ -1698,7 +1764,7 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
             if (b.ok()) {
                 amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
-                    flux(i,j,k,4) *= factor;
+                    flux(i,j,k,nvars) *= factor;
                 });
             }
         }
@@ -1725,7 +1791,7 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
             if (b.ok()) {
                 amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
-                    flux(i,j,k,4) *= factor;
+                    flux(i,j,k,nvars) *= factor;
                 });
             }
         }
@@ -1751,7 +1817,7 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
             if (b.ok()) {
                 amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
-                    flux(i,j,k,4) *= factor;
+                    flux(i,j,k,nvars) *= factor;
                 });
             }
         }
@@ -1778,7 +1844,7 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
             if (b.ok()) {
                 amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
-                    flux(i,j,k,4) *= factor;
+                    flux(i,j,k,nvars) *= factor;
                 });
             }
         }
@@ -1804,7 +1870,7 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
             if (b.ok()) {
                 amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
-                    flux(i,j,k,4) *= factor;
+                    flux(i,j,k,nvars) *= factor;
                 });
             }
         }
@@ -1821,7 +1887,6 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
         Real factor = (bc_vel_lo[0] == 1) ? 0. : sqrt(2.);
 
         ////////////////////////////////////////////////
-
         // domain grown nodally based on edgeflux_x_in[0] nodality (xy)
         const Box& dom_xy = amrex::convert(geom.Domain(), edgeflux_x_in[0].ixType());
 
@@ -1833,16 +1898,17 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
             const Box& bx = mfi.fabbox();
             const Box& b = bx & dom_xy_xlo;
             Array4<Real> const& edgex_v = (edgeflux_x_in[0]).array(mfi);
+            Array4<Real> const& edgey_u = (edgeflux_y_in[0]).array(mfi);
             if (b.ok()) {
                 amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     edgex_v(i,j,k) *= factor;
+                    edgey_u(i,j,k) *= 0.0;
                 });
             }
         }
 
         ////////////////////////////////////////////////
-
         // domain grown nodally based on edgeflux_x_in[1] nodality (xz)
         const Box& dom_xz = amrex::convert(geom.Domain(), edgeflux_x_in[1].ixType());
 
@@ -1854,16 +1920,38 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
             const Box& bx = mfi.fabbox();
             const Box& b = bx & dom_xz_xlo;
             Array4<Real> const& edgex_w = (edgeflux_x_in[1]).array(mfi);
+            Array4<Real> const& edgez_u = (edgeflux_z_in[0]).array(mfi);
             if (b.ok()) {
                 amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     edgex_w(i,j,k) *= factor;
+                    edgez_u(i,j,k) *= 0.0;
                 });
             }
         }
 
         ////////////////////////////////////////////////
+        // set Dufour to zero
+        // domain grown nodally based on faceflux_in[0] nodality (x)
+        const Box& dom_x = amrex::convert(geom.Domain(), faceflux_in[0].ixType());
+
+        // this is the x-lo domain boundary box (x nodality)
+        // Orientation(dir,Orientation)  -- Orientation can be ::low or ::high
+        const Box& dom_xlo = amrex::bdryNode(dom_x, Orientation(0, Orientation::low));
+
+        for (MFIter mfi(faceflux_in[0]); mfi.isValid(); ++mfi) {
+            const Box& bx = mfi.fabbox();
+            const Box& b = bx & dom_xlo;
+            Array4<Real> const& flux = (faceflux_in[0]).array(mfi);
+            if (b.ok()) {
+                amrex::ParallelFor(b, AMREX_SPACEDIM, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    if (bc_vel_lo[0] == 1) flux(i,j,k,nvars+1) *= 0.0; // slip BC
+                });
+            }
+        }
     }
+
     // HI X edge, Y- and Z- momentum fluxes
     if (bc_vel_hi[0] == 1 || bc_vel_hi[0] == 2) {
 
@@ -1872,7 +1960,6 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
         Real factor = (bc_vel_hi[0] == 1) ? 0. : sqrt(2.);
 
         ////////////////////////////////////////////////
-
         // domain grown nodally based on edgeflux_x_in[0] nodality (xy)
         const Box& dom_xy = amrex::convert(geom.Domain(), edgeflux_x_in[0].ixType());
 
@@ -1884,16 +1971,17 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
             const Box& bx = mfi.fabbox();
             const Box& b = bx & dom_xy_xhi;
             Array4<Real> const& edgex_v = (edgeflux_x_in[0]).array(mfi);
+            Array4<Real> const& edgey_u = (edgeflux_y_in[0]).array(mfi);
             if (b.ok()) {
                 amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     edgex_v(i,j,k) *= factor;
+                    edgey_u(i,j,k) *= 0.0;
                 });
             }
         }
 
         ////////////////////////////////////////////////
-
         // domain grown nodally based on edgeflux_x_in[1] nodality (xz)
         const Box& dom_xz = amrex::convert(geom.Domain(), edgeflux_x_in[1].ixType());
 
@@ -1905,16 +1993,38 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
             const Box& bx = mfi.fabbox();
             const Box& b = bx & dom_xz_xhi;
             Array4<Real> const& edgex_w = (edgeflux_x_in[1]).array(mfi);
+            Array4<Real> const& edgez_u = (edgeflux_z_in[0]).array(mfi);
             if (b.ok()) {
                 amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     edgex_w(i,j,k) *= factor;
+                    edgez_u(i,j,k) *= 0.0;
                 });
             }
         }
 
         ////////////////////////////////////////////////
+        // set Dufour to zero
+        // domain grown nodally based on faceflux_in[0] nodality (x)
+        const Box& dom_x = amrex::convert(geom.Domain(), faceflux_in[0].ixType());
+
+        // this is the x-hi domain boundary box (x nodality)
+        // Orientation(dir,Orientation)  -- Orientation can be ::low or ::high
+        const Box& dom_xhi = amrex::bdryNode(dom_x, Orientation(0, Orientation::high));
+
+        for (MFIter mfi(faceflux_in[0]); mfi.isValid(); ++mfi) {
+            const Box& bx = mfi.fabbox();
+            const Box& b = bx & dom_xhi;
+            Array4<Real> const& flux = (faceflux_in[0]).array(mfi);
+            if (b.ok()) {
+                amrex::ParallelFor(b, AMREX_SPACEDIM, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    if (bc_vel_hi[0] == 1) flux(i,j,k,nvars+1) *= 0.0; // slip BC
+                });
+            }
+        }
     }
+
     // LO Y edge, X- and Z- momentum fluxes
     if (bc_vel_lo[1] == 1 || bc_vel_lo[1] == 2) {
 
@@ -1923,7 +2033,6 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
         Real factor = (bc_vel_lo[1] == 1) ? 0. : sqrt(2.);
 
         ////////////////////////////////////////////////
-
         // domain grown nodally based on edgeflux_y_in[0] nodality (xy)
         const Box& dom_xy = amrex::convert(geom.Domain(), edgeflux_y_in[0].ixType());
 
@@ -1935,16 +2044,17 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
             const Box& bx = mfi.fabbox();
             const Box& b = bx & dom_xy_ylo;
             Array4<Real> const& edgey_u = (edgeflux_y_in[0]).array(mfi);
+            Array4<Real> const& edgex_v = (edgeflux_x_in[0]).array(mfi);
             if (b.ok()) {
                 amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     edgey_u(i,j,k) *= factor;
+                    edgex_v(i,j,k) *= 0.0;
                 });
             }
         }
 
         ////////////////////////////////////////////////
-
         // domain grown nodally based on edgeflux_y_in[2] nodality (yz)
         const Box& dom_yz = amrex::convert(geom.Domain(), edgeflux_y_in[1].ixType());
 
@@ -1956,14 +2066,38 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
             const Box& bx = mfi.fabbox();
             const Box& b = bx & dom_yz_ylo;
             Array4<Real> const& edgey_w = (edgeflux_y_in[1]).array(mfi);
+            Array4<Real> const& edgez_v = (edgeflux_z_in[1]).array(mfi);
             if (b.ok()) {
                 amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     edgey_w(i,j,k) *= factor;
+                    edgez_v(i,j,k) *= 0.0;
+                });
+            }
+        }
+
+        ////////////////////////////////////////////////
+        // set Dufour to zero
+        // domain grown nodally based on faceflux_in[1] nodality (y)
+        const Box& dom_y = amrex::convert(geom.Domain(), faceflux_in[1].ixType());
+
+        // this is the y-lo domain boundary box (y nodality)
+        // Orientation(dir,Orientation)  -- Orientation can be ::low or ::high
+        const Box& dom_ylo = amrex::bdryNode(dom_y, Orientation(1, Orientation::low));
+
+        for (MFIter mfi(faceflux_in[1]); mfi.isValid(); ++mfi) {
+            const Box& bx = mfi.fabbox();
+            const Box& b = bx & dom_ylo;
+            Array4<Real> const& flux = (faceflux_in[1]).array(mfi);
+            if (b.ok()) {
+                amrex::ParallelFor(b, AMREX_SPACEDIM, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    if (bc_vel_lo[1] == 1) flux(i,j,k,nvars+1) *= 0.0; // slip BC
                 });
             }
         }
     }
+
     // HI Y edge, X- and Z- momentum fluxes
     if (bc_vel_hi[1] == 1 || bc_vel_hi[1] == 2) {
 
@@ -1972,7 +2106,6 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
         Real factor = (bc_vel_hi[1] == 1) ? 0. : sqrt(2.);
 
         ////////////////////////////////////////////////
-
         // domain grown nodally based on edgeflux_y_in[0] nodality (xy)
         const Box& dom_xy = amrex::convert(geom.Domain(), edgeflux_y_in[0].ixType());
 
@@ -1984,16 +2117,17 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
             const Box& bx = mfi.fabbox();
             const Box& b = bx & dom_xy_yhi;
             Array4<Real> const& edgey_u = (edgeflux_y_in[0]).array(mfi);
+            Array4<Real> const& edgex_v = (edgeflux_x_in[0]).array(mfi);
             if (b.ok()) {
                 amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     edgey_u(i,j,k) *= factor;
+                    edgex_v(i,j,k) *= 0.0;
                 });
             }
         }
 
         ////////////////////////////////////////////////
-
         // domain grown nodally based on edgeflux_y_in[2] nodality (yz)
         const Box& dom_yz = amrex::convert(geom.Domain(), edgeflux_y_in[1].ixType());
 
@@ -2005,14 +2139,38 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
             const Box& bx = mfi.fabbox();
             const Box& b = bx & dom_yz_yhi;
             Array4<Real> const& edgey_w = (edgeflux_y_in[1]).array(mfi);
+            Array4<Real> const& edgez_v = (edgeflux_z_in[1]).array(mfi);
             if (b.ok()) {
                 amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     edgey_w(i,j,k) *= factor;
+                    edgez_v(i,j,k) *= 0.0;
+                });
+            }
+        }
+
+        ////////////////////////////////////////////////
+        // set Dufour to zero
+        // domain grown nodally based on faceflux_in[1] nodality (y)
+        const Box& dom_y = amrex::convert(geom.Domain(), faceflux_in[1].ixType());
+
+        // this is the y-hi domain boundary box (y nodality)
+        // Orientation(dir,Orientation)  -- Orientation can be ::low or ::high
+        const Box& dom_yhi = amrex::bdryNode(dom_y, Orientation(1, Orientation::high));
+
+        for (MFIter mfi(faceflux_in[1]); mfi.isValid(); ++mfi) {
+            const Box& bx = mfi.fabbox();
+            const Box& b = bx & dom_yhi;
+            Array4<Real> const& flux = (faceflux_in[1]).array(mfi);
+            if (b.ok()) {
+                amrex::ParallelFor(b, AMREX_SPACEDIM, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    if (bc_vel_hi[1] == 1) flux(i,j,k,nvars+1) *= 0.0; // slip BC
                 });
             }
         }
     }
+
     // LO Z edge, X- and Y- momentum fluxes
     if (bc_vel_lo[2] == 1 || bc_vel_lo[2] == 2) {
 
@@ -2021,7 +2179,6 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
         Real factor = (bc_vel_lo[2] == 1) ? 0. : sqrt(2.);
 
         ////////////////////////////////////////////////
-
         // domain grown nodally based on edgeflux_z_in[1] nodality (xz)
         const Box& dom_xz = amrex::convert(geom.Domain(), edgeflux_z_in[0].ixType());
 
@@ -2033,16 +2190,17 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
             const Box& bx = mfi.fabbox();
             const Box& b = bx & dom_xz_zlo;
             Array4<Real> const& edgez_u = (edgeflux_z_in[0]).array(mfi);
+            Array4<Real> const& edgex_w = (edgeflux_x_in[1]).array(mfi);
             if (b.ok()) {
                 amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     edgez_u(i,j,k) *= factor;
+                    edgex_w(i,j,k) *= 0.0;
                 });
             }
         }
 
         ////////////////////////////////////////////////
-
         // domain grown nodally based on edgeflux_z_in[2] nodality (yz)
         const Box& dom_yz = amrex::convert(geom.Domain(), edgeflux_z_in[1].ixType());
 
@@ -2054,16 +2212,38 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
             const Box& bx = mfi.fabbox();
             const Box& b = bx & dom_yz_zlo;
             Array4<Real> const& edgez_v = (edgeflux_z_in[1]).array(mfi);
+            Array4<Real> const& edgey_w = (edgeflux_y_in[1]).array(mfi);
             if (b.ok()) {
                 amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     edgez_v(i,j,k) *= factor;
+                    edgey_w(i,j,k) *= 0.0;
                 });
             }
         }
 
         ////////////////////////////////////////////////
+        // set Dufour to zero
+        // domain grown nodally based on faceflux_in[2] nodality (z)
+        const Box& dom_z = amrex::convert(geom.Domain(), faceflux_in[2].ixType());
+
+        // this is the z-lo domain boundary box (z nodality)
+        // Orientation(dir,Orientation)  -- Orientation can be ::low or ::high
+        const Box& dom_zlo = amrex::bdryNode(dom_z, Orientation(2, Orientation::low));
+
+        for (MFIter mfi(faceflux_in[2]); mfi.isValid(); ++mfi) {
+            const Box& bx = mfi.fabbox();
+            const Box& b = bx & dom_zlo;
+            Array4<Real> const& flux = (faceflux_in[2]).array(mfi);
+            if (b.ok()) {
+                amrex::ParallelFor(b, AMREX_SPACEDIM, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    if (bc_vel_lo[2] == 1) flux(i,j,k,nvars+1) *= 0.0; // slip BC
+                });
+            }
+        }
     }
+
     // HI Z edge, X- and Y- momentum fluxes
     if (bc_vel_hi[2] == 1 || bc_vel_hi[2] == 2) {
 
@@ -2072,7 +2252,6 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
         Real factor = (bc_vel_hi[2] == 1) ? 0. : sqrt(2.);
 
         ////////////////////////////////////////////////
-
         // domain grown nodally based on edgeflux_z_in[1] nodality (xz)
         const Box& dom_xz = amrex::convert(geom.Domain(), edgeflux_z_in[0].ixType());
 
@@ -2084,16 +2263,17 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
             const Box& bx = mfi.fabbox();
             const Box& b = bx & dom_xz_zhi;
             Array4<Real> const& edgez_u = (edgeflux_z_in[0]).array(mfi);
+            Array4<Real> const& edgex_w = (edgeflux_x_in[1]).array(mfi);
             if (b.ok()) {
                 amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     edgez_u(i,j,k) *= factor;
+                    edgex_w(i,j,k) *= 0.0;
                 });
             }
         }
 
         ////////////////////////////////////////////////
-
         // domain grown nodally based on edgeflux_z_in[2] nodality (yz)
         const Box& dom_yz = amrex::convert(geom.Domain(), edgeflux_z_in[1].ixType());
 
@@ -2105,14 +2285,35 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
             const Box& bx = mfi.fabbox();
             const Box& b = bx & dom_yz_zhi;
             Array4<Real> const& edgez_v = (edgeflux_z_in[1]).array(mfi);
+            Array4<Real> const& edgey_w = (edgeflux_y_in[1]).array(mfi);
             if (b.ok()) {
                 amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     edgez_v(i,j,k) *= factor;
+                    edgey_w(i,j,k) *= 0.0;
                 });
             }
         }
 
         ////////////////////////////////////////////////
+        // set Dufour to zero
+        // domain grown nodally based on faceflux_in[2] nodality (z)
+        const Box& dom_z = amrex::convert(geom.Domain(), faceflux_in[2].ixType());
+
+        // this is the z-hi domain boundary box (z nodality)
+        // Orientation(dir,Orientation)  -- Orientation can be ::low or ::high
+        const Box& dom_zhi = amrex::bdryNode(dom_z, Orientation(2, Orientation::high));
+
+        for (MFIter mfi(faceflux_in[2]); mfi.isValid(); ++mfi) {
+            const Box& bx = mfi.fabbox();
+            const Box& b = bx & dom_zhi;
+            Array4<Real> const& flux = (faceflux_in[2]).array(mfi);
+            if (b.ok()) {
+                amrex::ParallelFor(b, AMREX_SPACEDIM, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    if (bc_vel_hi[2] == 1) flux(i,j,k,nvars+1) *= 0.0; // slip BC
+                });
+            }
+        }
     }
 }
