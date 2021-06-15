@@ -155,7 +155,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
             const Box & bx_yz = mfi.tilebox(nodal_flag_yz);
             #endif
 
-            const Box& bx = mfi.tilebox();
+            const Box& bx = mfi.growntilebox(1);
 
             // Populate diagonal stochastic stress
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) {
@@ -604,7 +604,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
         const Box & bx_yz = mfi.tilebox(nodal_flag_yz);
         #endif
 
-        const Box& bx = mfi.tilebox();
+        const Box& bx = mfi.growntilebox(1);
 
         Real half = 0.5;
 
@@ -918,7 +918,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
         const Box & bx_yz = mfi.tilebox(nodal_flag_yz);
         #endif
 
-        const Box& bx = mfi.tilebox();
+        const Box& bx = mfi.growntilebox(1);
 
         if (advection_type == 2) { // interpolate primitive quantities (fix this later for staggered grid -- Ishan)
             
