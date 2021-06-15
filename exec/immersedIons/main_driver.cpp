@@ -821,7 +821,7 @@ void main_driver(const char* argv)
     }
 
     StructFact structFact_charge(bp,dmap,var_names_charge,scaling_charge,
-                                 s_pairA_charge,s_pairB_charge);
+                                 s_pairA_charge,s_pairB_charge,false);
 
     ///////////////////////////////////////////
     // structure factor for vel-vel
@@ -862,7 +862,7 @@ void main_driver(const char* argv)
     }
 
     StructFact structFact_vel(ba,dmap,var_names_vel,scaling_vel,
-                              s_pairA_vel,s_pairB_vel);
+                              s_pairA_vel,s_pairB_vel,false);
 
 
 

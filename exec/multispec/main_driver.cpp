@@ -435,7 +435,7 @@ void main_driver(const char* argv)
 
 #if 1
     // option to compute all pairs
-    StructFact structFact(ba,dmap,var_names,var_scaling);
+    StructFact structFact(ba,dmap,var_names,var_scaling,false);
 #else
     // option to compute only specified pairs
     int nPairs = 2;
@@ -448,7 +448,7 @@ void main_driver(const char* argv)
     s_pairA[1] = 1;
     s_pairB[1] = 1;
     
-    StructFact structFact(ba,dmap,var_names,var_scaling,s_pairA,s_pairB);
+    StructFact structFact(ba,dmap,var_names,var_scaling,s_pairA,s_pairB,false);
 #endif
     
     /*

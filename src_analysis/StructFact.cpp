@@ -14,10 +14,14 @@ StructFact::StructFact(const BoxArray& ba_in, const DistributionMapping& dmap_in
 		       const Vector< Real >& var_scaling_in,
 		       const Vector< int >& s_pairA_in,
 		       const Vector< int >& s_pairB_in,
+                       const bool& use_fftw_in,
 		       const int& verbosity_in) {
 
   BL_PROFILE_VAR("StructFact::StructFact()",StructFact);
 
+  verbosity = verbosity_in;
+  use_fftw = use_fftw_in;
+  
   if (s_pairA_in.size() != s_pairA_in.size())
         amrex::Error("StructFact::StructFact() - Must have an equal number of components");
 
@@ -123,8 +127,6 @@ StructFact::StructFact(const BoxArray& ba_in, const DistributionMapping& dmap_in
   }
   //////////////////////////////////////////////////////
 
-  verbosity = verbosity_in;
-
   // Note that we are defining with NO ghost cells
 
   cov_real.define(ba_in, dmap_in, NCOV, 0);
@@ -151,10 +153,14 @@ StructFact::StructFact(const BoxArray& ba_in, const DistributionMapping& dmap_in
 StructFact::StructFact(const BoxArray& ba_in, const DistributionMapping& dmap_in,
 		       const Vector< std::string >& var_names,
 		       const Vector< Real >& var_scaling_in,
+                       const bool& use_fftw_in,
 		       const int& verbosity_in) {
   
   BL_PROFILE_VAR("StructFact::StructFact()",StructFact);
 
+  verbosity = verbosity_in;
+  use_fftw = use_fftw_in;
+  
   NVAR = var_names.size();
   NCOV = NVAR*(NVAR+1)/2;
 
@@ -185,8 +191,6 @@ StructFact::StructFact(const BoxArray& ba_in, const DistributionMapping& dmap_in
     }
   }
 
-  verbosity = verbosity_in;
-
   // Note that we are defining with NO ghost cells
 
   cov_real.define(ba_in, dmap_in, NCOV, 0);
@@ -213,10 +217,14 @@ StructFact::StructFact(const BoxArray& ba_in, const DistributionMapping& dmap_in
 void StructFact::define(const BoxArray& ba_in, const DistributionMapping& dmap_in,
                         const Vector< std::string >& var_names,
                         const Vector< Real >& var_scaling_in,
+                        const bool& use_fftw_in,
                         const int& verbosity_in) {
   
   BL_PROFILE_VAR("StructFact::define()",StructFactDefine);
 
+  verbosity = verbosity_in;
+  use_fftw = use_fftw_in;
+  
   NVAR = var_names.size();
   NCOV = NVAR*(NVAR+1)/2;
 
@@ -246,8 +254,6 @@ void StructFact::define(const BoxArray& ba_in, const DistributionMapping& dmap_i
       index++;
     }
   }
-
-  verbosity = verbosity_in;
 
   // Note that we are defining with NO ghost cells
 
@@ -282,8 +288,14 @@ void StructFact::FortStructure(const MultiFab& variables, const Geometry& geom, 
   variables_dft_real.define(ba, dm, NVAR, 0);
   variables_dft_imag.define(ba, dm, NVAR, 0);
 
-  if (ba.size() == ParallelDescriptor::NProcs()) {
-      ComputeFFT(variables, variables_dft_real, variables_dft_imag, geom);
+  bool use_fftw = true;
+  
+  if (use_fftw) {
+      ComputeFFTW(variables, variables_dft_real, variables_dft_imag, geom);
+      
+  }
+  else if (ba.size() == ParallelDescriptor::NProcs()) {
+      ComputeSWFFT(variables, variables_dft_real, variables_dft_imag, geom);
   }
   else {
 
@@ -311,7 +323,7 @@ void StructFact::FortStructure(const MultiFab& variables, const Geometry& geom, 
       // ParallelCopy variables into variables_temp
       variables_temp.ParallelCopy(variables, 0, 0, variables.nComp());
 
-      ComputeFFT(variables_temp, variables_dft_real_temp, variables_dft_imag_temp, geom);
+      ComputeSWFFT(variables_temp, variables_dft_real_temp, variables_dft_imag_temp, geom);
 
       // ParallelCopy variables_dft_real_temp into variables_dft_real
       // ParallelCopy variables_dft_imag_temp into variables_dft_imag
@@ -383,12 +395,12 @@ void StructFact::Reset() {
     
 }
 
-void StructFact::ComputeFFT(const MultiFab& variables,
-			    MultiFab& variables_dft_real, 
-			    MultiFab& variables_dft_imag,
-			    const Geometry& geom) {
+void StructFact::ComputeSWFFT(const MultiFab& variables,
+                              MultiFab& variables_dft_real, 
+                              MultiFab& variables_dft_imag,
+                              const Geometry& geom) {
 
-  BL_PROFILE_VAR("StructFact::ComputeFFT()", ComputeFFT);
+  BL_PROFILE_VAR("StructFact::ComputeSWFFT()", ComputeSWFFT);
 
   Box domain(geom.Domain());
   const BoxArray& ba = variables.boxArray();
@@ -399,7 +411,7 @@ void StructFact::ComputeFFT(const MultiFab& variables,
   }
 
   if (variables_dft_real.nGrow() != 0 || variables.nGrow() != 0) {
-    amrex::Error("StructFact::ComputeFFT() - Current implementation requires that both variables_temp[0] and variables_dft_real[0] have no ghost cells");
+    amrex::Error("StructFact::ComputeSWFFT() - Current implementation requires that both variables_temp[0] and variables_dft_real[0] have no ghost cells");
   }
 
   // We assume that all grids have the same size hence 
@@ -425,7 +437,7 @@ void StructFact::ComputeFFT(const MultiFab& variables,
     amrex::Print() << "Number of boxes:\t" << nboxes << "\tBA size:\t" << ba.size() << std::endl;
   }
   if (nboxes != ba.size())
-    amrex::Error("StructFact::ComputeFFT() - NBOXES NOT COMPUTED CORRECTLY");
+    amrex::Error("StructFact::ComputeSWFFT() - NBOXES NOT COMPUTED CORRECTLY");
 
   Vector<int> rank_mapping;
   rank_mapping.resize(nboxes);
@@ -558,6 +570,30 @@ void StructFact::ComputeFFT(const MultiFab& variables,
     std::string plotname = "a_DFT_REAL";
     VisMF::Write(variables_dft_real,plotname);
   }
+}
+
+
+void StructFact::ComputeFFTW(const MultiFab& variables,
+                             MultiFab& variables_dft_real, 
+                             MultiFab& variables_dft_imag,
+                             const Geometry& geom) {
+
+    
+
+    
+    for (int dim=0; dim<NVAR; dim++) {
+
+        bool comp_fft = false;
+        for (int i=0; i<NVARU; i++) {
+            if (dim == var_u[i]) {
+                comp_fft = true;
+                break;
+            }
+        }
+
+
+
+    }
 }
 
 void StructFact::WritePlotFile(const int step, const Real time, const Geometry& geom,
