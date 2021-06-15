@@ -687,8 +687,8 @@ void StructFact::ComputeFFTW(const MultiFab& variables,
 
             Array4< GpuComplex<Real> > spectral = (*spectral_field[0]).array();
 
-            Array4<Real> const& realpart = variables_dft_real.array(mfi);
-            Array4<Real> const& imagpart = variables_dft_imag.array(mfi);
+            Array4<Real> const& realpart = variables_dft_real_onegrid.array(mfi);
+            Array4<Real> const& imagpart = variables_dft_imag_onegrid.array(mfi);
 
             Box bx = mfi.fabbox();
 
@@ -930,6 +930,15 @@ void StructFact::ShiftFFT(MultiFab& dft_out, const Geometry& geom, const int& ze
 #endif
             dft(ip,jp,kp) = dft_temp(i,j,k);
         });
+
+        /*
+        amrex::ParallelFor(bx,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            std::cout << "HACKFFTSHIFT " << i << " " << j << " " << k << " "
+                      << dft(i,j,k) << std::endl;
+        });
+        */
     }
 
     dft_out.ParallelCopy(dft_onegrid, 0, d, 1);
