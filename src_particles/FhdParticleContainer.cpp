@@ -313,7 +313,8 @@ void FhdParticleContainer::computeForcesNLGPU(const MultiFab& coords, const Real
 #pragma omp parallel
 #endif
 
-    if(doRedist != 0)
+    //if(doRedist != 0)
+    if(true)
     {
         fillNeighbors();
 

@@ -1,6 +1,6 @@
 # AMREX_HOME defines the directory in which we will find all the AMReX code.
 # If you set AMREX_HOME as an environment variable, this line will be ignored
-AMREX_HOME ?= ../../../amrex/
+AMREX_HOME ?= ../../../../programs/amrex/
 FHDeX ?= ../../
 FIONS = $(FHDeX)/exec/immersedIons
 
@@ -24,62 +24,51 @@ INCLUDE_LOCATIONS += .
 VPATH_LOCATIONS   += $(FIONS)
 INCLUDE_LOCATIONS += $(FIONS)
 
+VPATH_LOCATIONS   += $(FIONS)
+INCLUDE_LOCATIONS += $(FIONS)
 include $(FHDeX)/src_rng/Make.package
 VPATH_LOCATIONS   += $(FHDeX)/src_rng
 INCLUDE_LOCATIONS += $(FHDeX)/src_rng
-
 include $(FHDeX)/src_rng/src_F90/Make.package
 VPATH_LOCATIONS   += $(FHDeX)/src_rng/src_F90
 INCLUDE_LOCATIONS += $(FHDeX)/src_rng/src_F90
-
 include $(FHDeX)/src_hydro/Make.package
 VPATH_LOCATIONS   += $(FHDeX)/src_hydro/
 INCLUDE_LOCATIONS += $(FHDeX)/src_hydro/
-
 include $(FHDeX)/src_analysis/Make.package
 VPATH_LOCATIONS   += $(FHDeX)/src_analysis/
 INCLUDE_LOCATIONS += $(FHDeX)/src_analysis/
-
-
 include $(FHDeX)/src_gmres/Make.package
 VPATH_LOCATIONS   += $(FHDeX)/src_gmres/
 INCLUDE_LOCATIONS += $(FHDeX)/src_gmres/
-
 include $(FHDeX)/src_common/Make.package
 VPATH_LOCATIONS   += $(FHDeX)/src_common/
 INCLUDE_LOCATIONS += $(FHDeX)/src_common/
-
 include $(FHDeX)/src_common/src_F90/Make.package
 VPATH_LOCATIONS   += $(FHDeX)/src_common/src_F90
 INCLUDE_LOCATIONS += $(FHDeX)/src_common/src_F90
-
 include $(FHDeX)/src_particles/Make.package
 VPATH_LOCATIONS   += $(FHDeX)/src_particles/
 INCLUDE_LOCATIONS += $(FHDeX)/src_particles/
-
 include $(FHDeX)/src_particles/src_F90/Make.package
 VPATH_LOCATIONS   += $(FHDeX)/src_particles/src_F90
 INCLUDE_LOCATIONS += $(FHDeX)/src_particles/src_F90
-
 include $(FHDeX)/src_geometry/Make.package
 VPATH_LOCATIONS   += $(FHDeX)/src_geometry
 INCLUDE_LOCATIONS += $(FHDeX)/src_geometry
-
 include $(FHDeX)/src_geometry/src_F90/Make.package
 VPATH_LOCATIONS   += $(FHDeX)/src_geometry/src_F90
 INCLUDE_LOCATIONS += $(FHDeX)/src_geometry/src_F90
-
 include $(FHDeX)/src_electrostatic/Make.package
 VPATH_LOCATIONS   += $(FHDeX)/src_electrostatic
 INCLUDE_LOCATIONS += $(FHDeX)/src_electrostatic
-
 include $(FHDeX)/src_immersed-boundary/src_F90/Make.package
 VPATH_LOCATIONS   += $(FHDeX)src_immersed-boundary/src_F90
 INCLUDE_LOCATIONS += $(FHDeX)src_immersed-boundary/src_F90
-
 include $(FHDeX)/src_immersed-boundary/MakeBase.package
 VPATH_LOCATIONS   += $(FHDeX)src_immersed-boundary
 INCLUDE_LOCATIONS += $(FHDeX)src_immersed-boundary
+
 
 include $(FIONS)/Make.package
 

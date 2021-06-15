@@ -797,6 +797,8 @@ void compute_forces_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
                     {
                         const Real rMinMax = amrex::max(r, rmin[p_matrix_val]*sigma[p_matrix_val]);
 
+                        //cout << p1.id() << " " << p2.id() << std::endl;
+
                         repulsive_force_lj(p1, dx, dy, dz, rMinMax, sigma[p_matrix_val], eepsilon[p_matrix_val]);
                         Gpu::Atomic::Add(prcount_d, 1.0);
                     }
