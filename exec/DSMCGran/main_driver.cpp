@@ -9,6 +9,7 @@
 #include "iostream"
 #include "fstream"
 #include "DsmcParticleContainer.H"
+#include <AMReX_PlotFileUtil.H>
 
 using namespace std::chrono;
 using namespace std;
@@ -27,26 +28,20 @@ void main_driver(const char* argv)
 	InitializeCommonNamespace();
 	InitializeGmresNamespace();
 
-	// BoxArray for the particles (collision grid)
 	BoxArray ba;
-
 	IntVect dom_lo(AMREX_D_DECL(           0,            0,            0));
 	IntVect dom_hi(AMREX_D_DECL(n_cells[0]-1, n_cells[1]-1, n_cells[2]-1));
 	Box domain(dom_lo, dom_hi);
 	
-	// how boxes are distrubuted among MPI processes
 	DistributionMapping dmap;
 	
-	MultiFab cuInst;
-	MultiFab cuMean;
-	MultiFab cuDel;
-	MultiFab covar;
+	MultiFab cuInst, cuMean, cuDel, covar;
+	int nnspec, statsz;
+	// Will likely need to redo this
 	if (restart < 0) {
 		if (seed > 0) {
-			// initializes the seed for C++ random number calls
 			InitRandom(seed+ParallelDescriptor::MyProc());
 		} else if (seed == 0) {
-			// initializes the seed for C++ random number calls based on the clock
 			auto now = time_point_cast<nanoseconds>(system_clock::now());
 			int randSeed = now.time_since_epoch().count();
 			// broadcast the same root seed to all processors
@@ -56,15 +51,10 @@ void main_driver(const char* argv)
 			Abort("Must supply non-negative seed");
 		}
 
-		// Initialize the boxarray "ba" from the single box "bx"
 		ba.define(domain);
-
-		// Break up boxarray "ba" into chunks no larger than "max_grid_size" along a direction
-		// note we are converting "Vector<int> max_grid_size" to an IntVect
 		ba.maxSize(IntVect(max_grid_size));
-
-		// how boxes are distrubuted among MPI processes
 		dmap.define(ba);
+		
 		/*
 		0 	- n - number density
 		1	- rho - mass density
@@ -90,10 +80,11 @@ void main_driver(const char* argv)
 		21 - vv_i
 		22 - vw_i
 		23 - ww_i
-		24 - T_gran_i
+		24 - E_i
+		25 - T_g_i
 		... (repeat for each add. species)
 		*/
-		int statsz = (nspecies+1)*13;
+		statsz = (nspecies+1)*13;
 		cuInst.define(ba, dmap, statsz, 0); cuInst.setVal(0.);
 		cuMean.define(ba, dmap, statsz, 0); cuMean.setVal(0.);
 		cuDel.define(ba, dmap, statsz, 0);  cuDel.setVal(0.);
@@ -118,10 +109,9 @@ void main_driver(const char* argv)
 		14 - dE.dE
 		*/
 		// Add multifabs for variances
-		int nnspec = std::ceil((double)nspecies*(nspecies-1)*0.5);
+		nnspec = std::ceil((double)nspecies*(nspecies-1)*0.5);
 		//MultiFab covar(ba, dmap, (nnspec+1)*15, 0);
 		covar.define(ba, dmap, 15, 0);
-		
 		// just track ones you want
 	} else {
 		// restart from checkpoint
@@ -181,6 +171,7 @@ void main_driver(const char* argv)
 
 		particles.InitCollisionCells(dt);
 	}
+	
 	else {
 
 	}
@@ -194,13 +185,13 @@ void main_driver(const char* argv)
 	//int check_step = 10;
 	Real time = 0.;
 	int statsCount = 1;
+	int step_stat = 5;
 	for (int istep=1; istep<=max_step; ++istep) {
-		// timer for time step
-		Real time1 = ParallelDescriptor::second();
+		Real begin = ParallelDescriptor::second();
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Checkpoints
 		//if (plot_int > 0 && istep > 0 && istep%plot_step == 0) {
-           particles.WritePlotFile(covar, cuMean, geom, time, istep);
+           
 		//}
 
 		//if (istep==1 && restart > 0) {
@@ -214,24 +205,19 @@ void main_driver(const char* argv)
 		particles.CalcSelections(dt);
 		particles.CollideParticles(dt);
 
-
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Move Particles
 		particles.MoveParticlesCPP(dt, paramPlaneList, paramPlaneCount);
 
-
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Stats
-		//if ((n_steps_skip > 0 && istep == n_steps_skip) ||
-      //      (n_steps_skip < 0 && istep%n_steps_skip == 0) ) {
-
+		if (istep%step_stat == 0) {
 			cuInst.setVal(0.);
-			particles.EvaluateStats(cuInst, cuMean, cuDel, covar, statsCount);
-			statsCount++;
-		//}
+			particles.EvaluateStats(cuInst, cuMean, cuDel, covar,   statsCount);
+			particles.writePlotFile(covar,  cuMean,  geom,  time, statsCount++);
+		}
  
-		// timer for time step
-		Real time2 = ParallelDescriptor::second() - time1;
+		Real end = ParallelDescriptor::second() - time1;
 		ParallelDescriptor::ReduceRealMax(time2);
 		amrex::Print() << "Advanced step " << istep << " in " << time2 << " seconds\n";
 	}

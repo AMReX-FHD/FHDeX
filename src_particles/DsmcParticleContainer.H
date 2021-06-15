@@ -141,7 +141,7 @@ public:
                       int steps);
                                          
    void OutputParticles();
-   void WritePlotFile(const MultiFab& covar, const MultiFab& cuMean,
+   void writePlotFile(const MultiFab& covar, const MultiFab& cuMean,
                const Geometry& geom, Real time, int step);
    
    Real tTg[MAX_SPECIES];

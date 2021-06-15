@@ -1,28 +1,27 @@
-#include <AMReX_MultiFabUtil.H>
-#include <AMReX_PlotFileUtil.H>
+#include "common_functions.H"
+#include "species.H"
 #include "DsmcParticleContainer.H"
-#include "INS_functions.H"
+#include "AMReX_PlotFileUtil.H"
+
 using namespace amrex;
 using namespace std;
 
-void FhdParticleContainer::WritePlotFile(const MultiFab& covar, const MultiFab& cuMean,
-               const Geometry& geom, Real time, int step){
+void FhdParticleContainer::writePlotFile(const MultiFab& covar, const MultiFab& cuMean,
+               const Geometry& geom, Real time, int statCount){
 	BL_PROFILE("WritePlotFile()");
-
-	BoxArray ba = covar.boxArray();
-
-	const DistributionMapping& dmap = covar.DistributionMap();
-	const std::string& plotfilename = amrex::Concatenate("plt",step,6);
-
-	amrex::Print() << "  Writing plotfile " << plotfilename << "\n";
-
-	Vector<std::string> varnames;
-
-	int ncovar = 15;     // covar 
+	
+	int ncovar = 15;     			  // covar 
 	int nmeanvar = (nspecies+1)*13; // cuMean
-	int nPlotvar = ncovar;// + nmeanvar;
-	MultiFab mfplot(ba, dmap, nPlotvar, 0);
-	Vector<std::string> varNames(nPlotvar);
+	int npltvar = ncovar + nmeanvar;
+
+	amrex::BoxArray ba = cuMean.boxArray();
+	amrex::DistributionMapping dmap = cuMean.DistributionMap();
+
+	std::string pltfname = amrex::Concatenate("plt",statCount,9);
+	amrex::Print() << " Writing plotfile " << pltfname << "\n";
+	
+	amrex::MultiFab mfplot(ba, dmap, npltvar, 0);
+	amrex::Vector<std::string> varNames(npltvar);
 	// Co/variances
 	/*
 		0  - drho.drho
@@ -41,6 +40,7 @@ void FhdParticleContainer::WritePlotFile(const MultiFab& covar, const MultiFab& 
 		13 - dJz.dE
 		14 - dE.dE
 	*/
+	
 	int cnt = 0;
 	varNames[cnt++] = "rhorho";
 	varNames[cnt++] = "rhoJx";
@@ -57,6 +57,9 @@ void FhdParticleContainer::WritePlotFile(const MultiFab& covar, const MultiFab& 
 	varNames[cnt++] = "JzJz";
 	varNames[cnt++] = "JzE";
 	varNames[cnt++] = "EE";
+	int pltbegin=0;
+	MultiFab::Copy(mfplot, covar, 0, pltbegin, ncovar, 0);
+	pltbegin += ncovar;
 	/*
 		0 	- n - number density
 		1	- rho - mass density
@@ -86,41 +89,37 @@ void FhdParticleContainer::WritePlotFile(const MultiFab& covar, const MultiFab& 
 		25 - T_g_i
 		... (repeat for each add. species)
 	*/
-	/*
-	varNames[cnt++] = "n_m";
-	varNames[cnt++] = "rho_m";
-	varNames[cnt++] = "Jx_m";
-	varNames[cnt++] = "Jy_m";
-	varNames[cnt++] = "Jz_m";
-	varNames[cnt++] = "tau_xx_m";
-	varNames[cnt++] = "tau_xy_m";
-	varNames[cnt++] = "tau_xz_m";
-	varNames[cnt++] = "tau_yy_m";
-	varNames[cnt++] = "tau_yz_m";
-	varNames[cnt++] = "tau_zz_m";
-	varNames[cnt++] = "E_m";
-	varNames[cnt++] = "Tg_m";
+	
+	varNames[cnt++] = "nm";
+	varNames[cnt++] = "rhom";
+	varNames[cnt++] = "Jxm";
+	varNames[cnt++] = "Jym";
+	varNames[cnt++] = "Jzm";
+	varNames[cnt++] = "txxm";
+	varNames[cnt++] = "txym";
+	varNames[cnt++] = "txzm";
+	varNames[cnt++] = "tyym";
+	varNames[cnt++] = "tyzm";
+	varNames[cnt++] = "tzzm";
+	varNames[cnt++] = "Em";
+	varNames[cnt++] = "Tgm";
 
 	for(int ispec=0;ispec<nspecies;ispec++) {
-		varNames[cnt++] = Concatenate("X_",ispec);;
-		varNames[cnt++] = "Y_";// + std::to_string(ispec);
-		varNames[cnt++] = "u_";// + std::to_string(ispec);
-		varNames[cnt++] = "v_";// + std::to_string(ispec);
-		varNames[cnt++] = "w_";// + std::to_string(ispec);
-		varNames[cnt++] = "uu_";// + std::to_string(ispec);
-		varNames[cnt++] = "uv_";// + std::to_string(ispec);
-		varNames[cnt++] = "uw_";// + std::to_string(ispec);
-		varNames[cnt++] = "vv_";// + std::to_string(ispec);
-		varNames[cnt++] = "vw_";// + std::to_string(ispec);
-		varNames[cnt++] = "ww_";// + std::to_string(ispec);
-		varNames[cnt++] = "E_";// + std::to_string(ispec);
-		varNames[cnt++] = "Tg_";// + std::to_string(ispec);
+		varNames[cnt++] = amrex::Concatenate("X",ispec,2);
+		varNames[cnt++] = amrex::Concatenate("Y",ispec,2);
+		varNames[cnt++] = amrex::Concatenate("u",ispec,2);
+		varNames[cnt++] = amrex::Concatenate("v",ispec,2);
+		varNames[cnt++] = amrex::Concatenate("w",ispec,2);
+		varNames[cnt++] = amrex::Concatenate("uu",ispec,2);
+		varNames[cnt++] = amrex::Concatenate("uv",ispec,2);
+		varNames[cnt++] = amrex::Concatenate("uw",ispec,2);
+		varNames[cnt++] = amrex::Concatenate("vv",ispec,2);
+		varNames[cnt++] = amrex::Concatenate("vw",ispec,2);
+		varNames[cnt++] = amrex::Concatenate("ww",ispec,2);
+		varNames[cnt++] = amrex::Concatenate("E",ispec,2);
+		varNames[cnt++] = amrex::Concatenate("Tg",ispec,2);
 	}
-	*/
-	//int plotstart = 0;
-	//MultiFab::Copy(mfplot, covar, 0, plotstart, ncovar, 0);
-	//plotstart += ncovar; // can add more Multifabs here
-	//MultiFab::Copy(mfplot, cuMean, 0, plotstart, nmeanvar, 0);
-	//amrex::WriteSingleLevelPlotfile(plotfilename, mfplot, varnames, geom, time, step);
-	amrex::WriteSingleLevelPlotfile(plotfilename, covar, varnames, geom, time, step);
+	MultiFab::Copy(mfplot, cuMean, 0, pltbegin, nmeanvar, 0);
+	pltbegin += nmeanvar;
+	WriteSingleLevelPlotfile(pltfname, mfplot, varNames, geom, time, statCount);
 }

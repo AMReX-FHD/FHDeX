@@ -120,18 +120,6 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,    MultiFab& mfcuMe
 		}
 		}
 		
-		for (int i = smallEnd[0]; i <= bigEnd[0]; i++) {
-		for (int j = smallEnd[1]; j <= bigEnd[1]; j++) {
-		for (int k = smallEnd[2]; k <= bigEnd[2]; k++) {
-			amrex::Print() << "n: "   << cuInst(i,j,k,0) << "\n";
-			amrex::Print() << "rho: " << cuInst(i,j,k,1) << "\n";
-		
-		
-		}
-		}
-		}
-		
-		
 	   // Mean Values
 		Array4<Real> cuMean = mfcuMean[pti].array();
 		Array4<Real> cuDel = mfcuDel[pti].array();
