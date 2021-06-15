@@ -70,14 +70,11 @@ void main_driver(const char* argv)
     
 	// how boxes are distrubuted among MPI processes
 	DistributionMapping dmap;
-
-	// MFs for storing particle statistics
-	// A lot of these relate to gas kinetics, but many are still useful so leave in for now.
-	MultiFab particleMeans;
-	MultiFab particleVars;
-	MultiFab particleInstant;
-	MultiFab particleFluct;
 	
+	MultiFab cuInst;
+	MultiFab cuMean;
+	MultiFab cuDel;
+	MultiFab covar;
 	if (restart < 0) {
 		if (seed > 0) {
 			// initializes the seed for C++ random number calls
@@ -102,42 +99,81 @@ void main_driver(const char* argv)
 
 		// how boxes are distrubuted among MPI processes
 		dmap.define(ba);
-  
-		// Statistics
 		/*
-		1 - rho
-		2 - Jx
-		3 - Jy
-		4 - Jz
-		5 - E
+		0 	- n - number density
+		1	- rho - mass density
+		2 	- Jx - x-mom density
+		3 	- Jy - y-mom density
+		4 	- Jz - z-mom density
+		5 	- tau_xx - xx shear stress
+		6 	- tau_xy - xy shear stress
+		7 	- tau_xz - xz shear stress
+		8 	- tau_yy - yy shear stress
+		9  - tau_yz - yz shear stress
+		10 - tau_zz - zz shear stress
+		11 - T_gran - granular temperature
+		12 - X_i - mole fraction for spec. i
+		13 - Y_i - mass fraction for spec. i
+		14 - u_i - x-vel for spec. i
+		15 - v_i - y-vel for spec. i
+		16 - w_i - z-vel for spec. i
+		17 - uu_i 
+		18 - uv_i
+		19 - uw_i
+		20 - vv_i
+		21 - vw_i
+		22 - ww_i
+		23 - T_gran_i
+		... (repeat for each add. species)
 		*/
-		particleMeans.define(ba, dmap, 5*nspecies, 0); particleMeans.setVal(0.);
-
-		particleInstant.define(ba, dmap, 5*nspecies, 0); particleInstant.setVal(0.);
-		
-		particleFluct.define(ba, dmap, 5*nspecies, 0); particleFluct.setVal(0.);
+		int statsz = (nspecies+1)*12;
+		cuInst.define(ba, dmap, statsz, 0); cuInst.setVal(0.);
+		cuMean.define(ba, dmap, statsz, 0); cuMean.setVal(0.);
+		cuDel.define(ba, dmap, statsz, 0);  cuDel.setVal(0.);
 		
 		// Variances
+		// Each has (nspecies)(nspecies+1)*0.5 data points
 		/*
-		1 	- drho/drho
-		2	- drho/dJx
-		3 	- drho/dJy
-		4 	- drho/dJz
-		5 	- drho/dE
-		6 	- dJx/dJx
-		7 	- dJx/dJy
-		8 	- dJx/dJz
-		9 	- dJx/dE
-		10 - dJy/dJy
-		11 - dJy/dJz
-		12 - dJy/dE
-		13 - dJz/dJz
-		14 - dJz/dE
-		15 - dE/dE
+		0  - drho.drho
+		1  - drho.dJx
+		2  - drho.dJy
+		3  - drho.dJz
+		4  - drho.dE
+		5  - dJx.dJx
+		6  - dJx.dJy
+		7  - dJx.dJz
+		8  - dJy.dJy
+		9  - dJy.dJz
+		10 - dJz.dJz
+		11 - dJx.dE
+		12 - dJy.dE
+		13 - dJz.dE
+		14 - dE.dE
 		*/
-		// Temperature not relevant to granular
-		particleVars.define(ba, dmap, 15*nspecies*nspecies, 0);	particleVars.setVal(0.);
-		// will leave FFT to Ishan
+
+		/*
+		0 	- drho.drho
+		1	- drho.du
+		2 	- drho.dv
+		3 	- drho.dw
+		4 	- drho.dTg
+		5 	- du.du
+		6 	- du.dv
+		7 	- du.dw
+		8 	- dv.dv
+		9  - dv.dw
+		10 - dw.dw
+		11 - du.dTg
+		12 - dv.dTg
+		13 - dw.dTg
+		14 - dTg.dTg
+		*/
+		// Add multifabs for variances
+		int nnspec = std::ceil((double)nspecies*(nspecies-1)*0.5);
+		//MultiFab covar(ba, dmap, (nnspec+1)*15, 0);
+		covar.define(ba, dmap, 15, 0);
+		
+		// just track ones you want
 	} else {
 		// restart from checkpoint
 	}
@@ -178,11 +214,7 @@ void main_driver(const char* argv)
 	ParmParse pp ("particles");
 	pp.addarr("tile_size", ts);
 
-	//int num_neighbor_cells = 4; replaced by input var
-	//Particles! Build on geom & box array for collision cells/ poisson grid?
-	string tTgFile = "GranularTemp.txt";
-	ofstream myfile;
-	myfile.open(tTgFile);
+
 	int cRange = 0;
 	FhdParticleContainer particles(geom, dmap, ba, cRange);
 	if (restart < 0 && particle_restart < 0) {
@@ -199,7 +231,7 @@ void main_driver(const char* argv)
 		//particles.mfgrantemp.define(ba,dmap,nspecies,0);
 		//particles.mfgrantemp.setVal(0.);
 		
-		particles.InitParticles(); // vrmax is also set here
+		particles.InitParticles();
 
 		particles.InitCollisionCells();
 		
@@ -241,18 +273,17 @@ void main_driver(const char* argv)
             else {
                 
             }
-
-            // Print() << "Finish move.\n";
         }
 
-        particles.EvaluateStats(particleInstant, particleMeans, particleVars, particleFluct, dt, statsCount);
+		  cuInst.setVal(0.);
+        particles.EvaluateStats(cuInst, cuMean, cuDel, covar, statsCount);
         statsCount++;
  
         if ((n_steps_skip > 0 && istep == n_steps_skip) ||
             (n_steps_skip < 0 && istep%n_steps_skip == 0) ) {
             
-            particleMeans.setVal(0.0);
-            particleVars.setVal(0.0);
+            //particleMeans.setVal(0.0);
+            //particleVars.setVal(0.0);
 
             // Print() << "Resetting stat collection.\n";
 
@@ -260,70 +291,16 @@ void main_driver(const char* argv)
         }
  
         // timer for time step
-        Real time2 = ParallelDescriptor::second() - time1;
+        /*Real time2 = ParallelDescriptor::second() - time1;
         ParallelDescriptor::ReduceRealMax(time2);
-        // amrex::Print() << "Advanced step " << istep << " in " << time2 << " seconds\n";
-        
-        time = time + dt;
-        // MultiFab memory usage
-        /*
-        const int IOProc = ParallelDescriptor::IOProcessorNumber();
-
-        amrex::Long min_fab_megabytes  = amrex::TotalBytesAllocatedInFabsHWM()/1048576;
-        amrex::Long max_fab_megabytes  = min_fab_megabytes;
-
-        ParallelDescriptor::ReduceLongMin(min_fab_megabytes, IOProc);
-        ParallelDescriptor::ReduceLongMax(max_fab_megabytes, IOProc);
-
-        amrex::Print() << "High-water FAB megabyte spread across MPI nodes: ["
-                       << min_fab_megabytes << " ... " << max_fab_megabytes << "]\n";
-
-        min_fab_megabytes  = amrex::TotalBytesAllocatedInFabs()/1048576;
-        max_fab_megabytes  = min_fab_megabytes;
-
-        ParallelDescriptor::ReduceLongMin(min_fab_megabytes, IOProc);
-        ParallelDescriptor::ReduceLongMax(max_fab_megabytes, IOProc);
-
-        amrex::Print() << "Current     FAB megabyte spread across MPI nodes: ["
-                       << min_fab_megabytes << " ... " << max_fab_megabytes << "]\n";
-        
-        myfile << (Real) particles.countedCollisions/particles.simParticles << " "
-           << particles.tTg << "\n";*/
+        amrex::Print() << "Advanced step " << istep << " in " << time2 << " seconds\n";*/
     }
-    /*
-    ofstream virialfile;
-	 virialfile.open("virial.txt");
-    int virial_size = particles.virial.size();
-    for (int i = 0; i < virial_size; i++) {
-    	virialfile << particles.virial[i] << "\n";
-    }
-	 */
-    ///////////////////////////////////////////
-        //test change
-    // timer for total simulation time
+
 
     Real stop_time = ParallelDescriptor::second() - strt_time;
     ParallelDescriptor::ReduceRealMax(stop_time);
     amrex::Print() << "Run time = " << stop_time << " seconds" << std::endl;
-	 /*Real gmean = 4.0*sqrt(particles.tTg/particles.pi_usr);
-    Real phiDom = particles.realParticles*particles.pi_usr*pow(diameter[0],3)/(6.0*particles.domainVol);
-    amrex::Print() << "tTg : " << particles.tTg << "\n";
-    Real g0 = particles.g0_Ma_Ahmadi(0,0,phiDom,phiDom);
-	 //particles.expectedCollisions = particles.simParticles*particle_neff*particles.pi_usr*pow(diameter[0],2)*g0
-	 //	*gmean/particles.domainVol;
-    
-    //amrex::Print() << "Simulated/Theoretical collision rate: " 
-    //	<< particles.countedCollisions/(particles.expectedCollisions*time*particles.simParticles) << "\n";
-    //amrex::Print() << "Particle Neff: " << particle_neff << "\n"; */
-    
-    /*for (int i_spec=0; i_spec<nspecies; i_spec++) {
-    	for (int j_spec=i_spec; j_spec<nspecies; j_spec++) {
-    		int ij_spec = particles.getSpeciesIndex(i_spec,j_spec);
-    		amrex::Print() << "Collisions between species pair: " << ij_spec
-    		<< " is " << particles.countedCollisions[ij_spec] << " with selections: "
-    		<< particles.NSel_spec[ij_spec] << "\n";
-    	}
-    }*/
+
 
 	 if(particle_input<0) {particles.OutputParticles();} // initial condition
 	 //particles.OutputParticles();

@@ -19,7 +19,7 @@
   fixed_dt = 1e-3                        ! dt = dx/(10*sqrt(kT/m))
 
   ! Controls for number of steps between actions
-  max_step = 200
+  max_step = 2000
   plot_int = 50
   plot_ascii = 1
   struct_fact_int = -1
@@ -41,7 +41,7 @@
   
   !Species info
   !--------------
-  nspecies = 4
+  nspecies = 3
 
   mass = 0.1 0.1 0.1 0.1
   diameter = 1.0e-2 1.0e-2 1.0e-2 1.0e-2

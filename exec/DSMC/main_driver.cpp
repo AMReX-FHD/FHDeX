@@ -177,39 +177,6 @@ void main_driver(const char* argv)
 
     //FindCenterCoords(RealCenteredCoords, geom);
     
-<<<<<<< HEAD
-	for (int d=0; d<AMREX_SPACEDIM; ++d) {        
-		if (max_particle_tile_size[d] > 0) {
-			ts[d] = max_particle_tile_size[d];
-		}
-		else {
-			ts[d] = max_grid_size[d];
-		}
-	}
-
-	ParmParse pp ("particles");
-	pp.addarr("tile_size", ts);
-
-	//int num_neighbor_cells = 4; replaced by input var
-	//Particles! Build on geom & box array for collision cells/ poisson grid?
-
-	int cRange = 0;
-
-	FhdParticleContainer particles(geom, dmap, ba, cRange);
-
-	if (restart < 0 && particle_restart < 0) {
-		// Pass Multifab to set vrmax
-		particles.InitParticles(Real T_init, MutliFab& vrmax);
-		
-	}
-	else {
-        //load from checkpoint
-	}
-
-	// cell centered real coordinates - es grid
-	MultiFab RealCenteredCoords;
-	RealCenteredCoords.define(ba, dmap, AMREX_SPACEDIM, 0);
-
 	//FindCenterCoords(RealCenteredCoords, geom);
 	Real init_time = ParallelDescriptor::second() - strt_time;
 	ParallelDescriptor::ReduceRealMax(init_time);
@@ -225,16 +192,11 @@ void main_driver(const char* argv)
 		}
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Move Particles
-		// total particle move (1=single step, 2=midpoint)
-		if (move_tog != 0) {
-			particles.MoveParticlesCPP(dt, paramPlaneList, paramPlaneCount);
-=======
         // total particle move (1=single step, 2=midpoint)
         if (move_tog != 0)
         {
             particles.Source(dt, paramPlaneList, paramPlaneCount);
             particles.MoveParticlesCPP(dt, paramPlaneList, paramPlaneCount);
->>>>>>> main
 
 
             // reset statistics after step n_steps_skip

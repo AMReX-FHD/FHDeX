@@ -1,0 +1,42 @@
+	 // Collision rate check (main_driver.cpp)
+	 /*Real gmean = 4.0*sqrt(particles.tTg/particles.pi_usr);
+    Real phiDom = particles.realParticles*particles.pi_usr*pow(diameter[0],3)/(6.0*particles.domainVol);
+    amrex::Print() << "tTg : " << particles.tTg << "\n";
+    Real g0 = particles.g0_Ma_Ahmadi(0,0,phiDom,phiDom);
+	 //particles.expectedCollisions = particles.simParticles*particle_neff*particles.pi_usr*pow(diameter[0],2)*g0
+	 //	*gmean/particles.domainVol;
+    
+    //amrex::Print() << "Simulated/Theoretical collision rate: " 
+    //	<< particles.countedCollisions/(particles.expectedCollisions*time*particles.simParticles) << "\n";
+    //amrex::Print() << "Particle Neff: " << particle_neff << "\n"; */
+    
+    /*for (int i_spec=0; i_spec<nspecies; i_spec++) {
+    	for (int j_spec=i_spec; j_spec<nspecies; j_spec++) {
+    		int ij_spec = particles.getSpeciesIndex(i_spec,j_spec);
+    		amrex::Print() << "Collisions between species pair: " << ij_spec
+    		<< " is " << particles.countedCollisions[ij_spec] << " with selections: "
+    		<< particles.NSel_spec[ij_spec] << "\n";
+    	}
+    }*/
+    
+    
+    // Virial Check (main_driver.cpp)
+    /*
+    ofstream virialfile;
+	 virialfile.open("virial.txt");
+    int virial_size = particles.virial.size();
+    for (int i = 0; i < virial_size; i++) {
+    	virialfile << particles.virial[i] << "\n";
+    }
+	 */
+	 
+	 // Selections check
+	         /*time = time + dt;
+			for (int i_spec=0; i_spec<nspecies; i_spec++) {
+	    	  	for (int j_spec=i_spec; j_spec<nspecies; j_spec++) {
+	    		int ij_spec = particles.getSpeciesIndex(i_spec,j_spec);
+	    		amrex::Print() << "Collisions between species pair: " << ij_spec
+	    		<< " is " << particles.countedCollisions[ij_spec] << " with selections: "
+	    		<< particles.NSel_spec[ij_spec] << "\n";
+	    	}
+	    }*/

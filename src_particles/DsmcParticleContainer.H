@@ -136,9 +136,9 @@ public:
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Outputs
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	void EvaluateStats(MultiFab& particleInstant, MultiFab& particleMeans,
-                      MultiFab& particleVars, MultiFab& particleFluct,
-                      const Real delt, int steps);
+	void EvaluateStats(MultiFab& mfcuInst,    MultiFab& mfcuMean,
+							 MultiFab& mfcuDel, 	   MultiFab& mfcovar,
+                      int steps);
                                          
    void OutputParticles();
                     
