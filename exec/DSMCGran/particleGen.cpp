@@ -7,7 +7,7 @@
 
 using namespace std;
 
-void FhdParticleContainer::InitParticles() {
+void FhdParticleContainer::InitParticles(Real& dt) {
 	const int lev = 0;
 	const Geometry& geom = Geom(lev);
 
@@ -50,10 +50,6 @@ void FhdParticleContainer::InitParticles() {
 					p.cpu() = ParallelDescriptor::MyProc();
 					p.idata(FHD_intData::sorted) = -1;
 					p.idata(FHD_intData::species) = i_spec;
-
-					vpart[0] = stdev*amrex::RandomNormal(0.,1.);
-					vpart[1] = stdev*amrex::RandomNormal(0.,1.);
-					vpart[2] = stdev*amrex::RandomNormal(0.,1.);
 					
 					if(particle_input > 0) {
                	particleFile >> p.pos(0);
@@ -64,14 +60,13 @@ void FhdParticleContainer::InitParticles() {
                	particleFile >> vpart[1];
                	particleFile >> vpart[2];
                	particleFile >> p.idata(FHD_intData::species);
-					} else if(particle_placement > 0) {
-               	particleFile >> p.pos(0);                       
-               	particleFile >> p.pos(1);
-               	particleFile >> p.pos(2);
                } else {
                	p.pos(0) = prob_lo[0] + amrex::Random()*(prob_hi[0]-prob_lo[0]);
                	p.pos(1) = prob_lo[1] + amrex::Random()*(prob_hi[1]-prob_lo[1]);
                	p.pos(2) = prob_lo[2] + amrex::Random()*(prob_hi[2]-prob_lo[2]);
+						vpart[0] = stdev*amrex::RandomNormal(0.,1.);
+						vpart[1] = stdev*amrex::RandomNormal(0.,1.);
+						vpart[2] = stdev*amrex::RandomNormal(0.,1.);               	
 					}
 
 					spd = sqrt(vpart[0]*vpart[0]+vpart[1]*vpart[1]+vpart[2]*vpart[2]);
@@ -104,6 +99,7 @@ void FhdParticleContainer::InitParticles() {
 		}
 	}
 	mfvrmax.setVal(spdmax);
+	dt = 1.0/spdmax;
 
 	Redistribute();
 	SortParticles();

@@ -1,26 +1,14 @@
 #include "INS_functions.H"
-
 #include "common_namespace_declarations.H"
-
 #include "gmres_namespace_declarations.H"
-
 #include "species.H"
 #include "paramPlane.H"
-
 #include "StructFact.H"
-
-#include "StochMomFlux.H"
-
-#include "hydro_functions.H"
-
-#include "electrostatic.H"
-
 #include "particle_functions.H"
-
 #include "chrono"
-
 #include "iostream"
 #include "fstream"
+#include "DsmcParticleContainer.H"
 
 using namespace std::chrono;
 using namespace std;
@@ -36,38 +24,16 @@ void main_driver(const char* argv)
 	// we use "+1" because of amrex_string_c_to_f expects a null char termination
 	read_common_namelist(inputs_file.c_str(),inputs_file.size()+1);
 
-	// amrex::Print() << "HERE \n";
-	// copy contents of F90 modules to C++ namespaces
 	InitializeCommonNamespace();
 	InitializeGmresNamespace();
-    
-	int step = 1;
-	Real time = 0.;
-	int statsCount = 1;
-
-	/*
-		Terms prepended with a 'C' are related to the particle grid; only used for finding neighbor lists
-      Those with 'P' are for the electostatic grid.
-      Those without are for the fluid grid.
-      The particle grid and es grids are created as a corsening or refinement of the fluid grid.
-	*/
 
 	// BoxArray for the particles (collision grid)
 	BoxArray ba;
-	// N_cells -< collision cell count on each dim
-    
-	// Box for the fluid
+
 	IntVect dom_lo(AMREX_D_DECL(           0,            0,            0));
 	IntVect dom_hi(AMREX_D_DECL(n_cells[0]-1, n_cells[1]-1, n_cells[2]-1));
 	Box domain(dom_lo, dom_hi);
 	
-	// Box for collision cells (if different)
-	// not yet implemented
-	// normally would use tiles
-	// IntVect dom_lo(AMREX_D_DECL(           0,            0,            0));
-	// IntVect dom_hi(AMREX_D_DECL(n_cells[0]*-1, n_cells[1]-1, n_cells[2]-1));
-	// Box domain(dom_lo, dom_hi);
-    
 	// how boxes are distrubuted among MPI processes
 	DistributionMapping dmap;
 	
@@ -111,22 +77,23 @@ void main_driver(const char* argv)
 		8 	- tau_yy - yy shear stress
 		9  - tau_yz - yz shear stress
 		10 - tau_zz - zz shear stress
-		11 - T_gran - granular temperature
-		12 - X_i - mole fraction for spec. i
-		13 - Y_i - mass fraction for spec. i
-		14 - u_i - x-vel for spec. i
-		15 - v_i - y-vel for spec. i
-		16 - w_i - z-vel for spec. i
-		17 - uu_i 
-		18 - uv_i
-		19 - uw_i
-		20 - vv_i
-		21 - vw_i
-		22 - ww_i
-		23 - T_gran_i
+		11 - E - energy
+		12 - T_gran - granular temperature
+		13 - X_i - mole fraction for spec. i
+		14 - Y_i - mass fraction for spec. i
+		15 - u_i - x-vel for spec. i
+		16 - v_i - y-vel for spec. i
+		17 - w_i - z-vel for spec. i
+		18 - uu_i 
+		19 - uv_i
+		20 - uw_i
+		21 - vv_i
+		22 - vw_i
+		23 - ww_i
+		24 - T_gran_i
 		... (repeat for each add. species)
 		*/
-		int statsz = (nspecies+1)*12;
+		int statsz = (nspecies+1)*13;
 		cuInst.define(ba, dmap, statsz, 0); cuInst.setVal(0.);
 		cuMean.define(ba, dmap, statsz, 0); cuMean.setVal(0.);
 		cuDel.define(ba, dmap, statsz, 0);  cuDel.setVal(0.);
@@ -149,24 +116,6 @@ void main_driver(const char* argv)
 		12 - dJy.dE
 		13 - dJz.dE
 		14 - dE.dE
-		*/
-
-		/*
-		0 	- drho.drho
-		1	- drho.du
-		2 	- drho.dv
-		3 	- drho.dw
-		4 	- drho.dTg
-		5 	- du.du
-		6 	- du.dv
-		7 	- du.dw
-		8 	- dv.dv
-		9  - dv.dw
-		10 - dw.dw
-		11 - du.dTg
-		12 - dv.dTg
-		13 - dw.dTg
-		14 - dTg.dTg
 		*/
 		// Add multifabs for variances
 		int nnspec = std::ceil((double)nspecies*(nspecies-1)*0.5);
@@ -192,9 +141,9 @@ void main_driver(const char* argv)
 	Geometry geom (domain ,&realDomain,CoordSys::cartesian,is_periodic.data());
 	const Real* dx = geom.CellSize();
 
+	// Currently overwritten later
 	Real dt = fixed_dt;
-	// we will want to define a variable timestep based on the max granular temperature
- 
+
 	int paramPlaneCount = 6;
 	paramPlane paramPlaneList[paramPlaneCount];
 	BuildParamplanes(paramPlaneList,paramPlaneCount,realDomain.lo(),realDomain.hi());
@@ -227,81 +176,71 @@ void main_driver(const char* argv)
 		
 		particles.mfvrmax.define(ba, dmap, nspecies*nspecies, 0);
 		particles.mfvrmax.setVal(0.);
-		
-		//particles.mfgrantemp.define(ba,dmap,nspecies,0);
-		//particles.mfgrantemp.setVal(0.);
-		
-		particles.InitParticles();
+		// overwrite dt
+		particles.InitParticles(dt);
 
-		particles.InitCollisionCells();
-		
+		particles.InitCollisionCells(dt);
 	}
 	else {
-        //load from checkpoint
+
 	}
 
-	// cell centered real coordinates - es grid
-	MultiFab RealCenteredCoords;
-	RealCenteredCoords.define(ba, dmap, AMREX_SPACEDIM, 0);
-
-	//FindCenterCoords(RealCenteredCoords, geom);
 	Real init_time = ParallelDescriptor::second() - strt_time;
 	ParallelDescriptor::ReduceRealMax(init_time);
 	amrex::Print() << "Initialization time = " << init_time << " seconds " << std::endl;
 
-	for (int istep=step; istep<=max_step; ++istep) {
+	// Frequency of plot and checkpoints
+	int plot_step = 10;
+	//int check_step = 10;
+	Real time = 0.;
+	int statsCount = 1;
+	for (int istep=1; istep<=max_step; ++istep) {
 		// timer for time step
 		Real time1 = ParallelDescriptor::second();
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// Checkpoints
+		//if (plot_int > 0 && istep > 0 && istep%plot_step == 0) {
+           particles.WritePlotFile(covar, cuMean, geom, time, istep);
+		//}
+
+		//if (istep==1 && restart > 0) {
+      //     ReadCheckPoint(istep, statsCount, time, geom,
+      //     						cuInst, cuMean, cuDel, covar);//,
+           //						particles.mfselect, particles.mfphi, particles.mfvrmax);
+		//}
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Collide Particles
 		amrex::Print() << "Time step: " << istep << "\n";
 		particles.CalcSelections(dt);
 		particles.CollideParticles(dt);
+
+
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Move Particles
-		// total particle move (1=single step, 2=midpoint)
-		if (move_tog != 0) {
-			particles.MoveParticlesCPP(dt, paramPlaneList, paramPlaneCount);
+		particles.MoveParticlesCPP(dt, paramPlaneList, paramPlaneCount);
 
-            // reset statistics after step n_steps_skip
-            // if n_steps_skip is negative, we use it as an interval
-            if ((n_steps_skip > 0 && istep == n_steps_skip) ||
-                (n_steps_skip < 0 && istep%n_steps_skip == 0) ) {
 
-                
-            }
-            else {
-                
-            }
-        }
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// Stats
+		//if ((n_steps_skip > 0 && istep == n_steps_skip) ||
+      //      (n_steps_skip < 0 && istep%n_steps_skip == 0) ) {
 
-		  cuInst.setVal(0.);
-        particles.EvaluateStats(cuInst, cuMean, cuDel, covar, statsCount);
-        statsCount++;
+			cuInst.setVal(0.);
+			particles.EvaluateStats(cuInst, cuMean, cuDel, covar, statsCount);
+			statsCount++;
+		//}
  
-        if ((n_steps_skip > 0 && istep == n_steps_skip) ||
-            (n_steps_skip < 0 && istep%n_steps_skip == 0) ) {
-            
-            //particleMeans.setVal(0.0);
-            //particleVars.setVal(0.0);
+		// timer for time step
+		Real time2 = ParallelDescriptor::second() - time1;
+		ParallelDescriptor::ReduceRealMax(time2);
+		amrex::Print() << "Advanced step " << istep << " in " << time2 << " seconds\n";
+	}
 
-            // Print() << "Resetting stat collection.\n";
-
-            statsCount = 1;
-        }
- 
-        // timer for time step
-        /*Real time2 = ParallelDescriptor::second() - time1;
-        ParallelDescriptor::ReduceRealMax(time2);
-        amrex::Print() << "Advanced step " << istep << " in " << time2 << " seconds\n";*/
-    }
+	Real stop_time = ParallelDescriptor::second() - strt_time;
+	ParallelDescriptor::ReduceRealMax(stop_time);
+	amrex::Print() << "Run time = " << stop_time << " seconds" << std::endl;
 
 
-    Real stop_time = ParallelDescriptor::second() - strt_time;
-    ParallelDescriptor::ReduceRealMax(stop_time);
-    amrex::Print() << "Run time = " << stop_time << " seconds" << std::endl;
-
-
-	 if(particle_input<0) {particles.OutputParticles();} // initial condition
-	 //particles.OutputParticles();
+	if(particle_input<0) {particles.OutputParticles();} // initial condition
+	//particles.OutputParticles();
 }

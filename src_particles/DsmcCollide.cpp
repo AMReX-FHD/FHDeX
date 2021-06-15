@@ -42,15 +42,17 @@ Real FhdParticleContainer::g0_Ma_Ahmadi(int ispec, int jspec, Real iphi, Real jp
 	}
 }
 
-void FhdParticleContainer::InitCollisionCells() {
+void FhdParticleContainer::InitCollisionCells(Real& dt) {
 	int indx, ij_spec;
    int cnt = 0;
+   Real totalPhi = 0;
+   Real mindiam = 1000;
 	for(int i_spec=0;i_spec<nspecies;i_spec++) {
+		totalPhi += phi_domain[i_spec];
+		mindiam = std::min(mindiam,2.0*properties[i_spec].radius);
 		for(int j_spec=0;j_spec<nspecies;j_spec++) {
 			ij_spec = getSpeciesIndex(i_spec,j_spec);
-    		interproperties[ij_spec].alpha = alpha_pp[cnt]; // need to find better way to input this
-    		amrex::Print() << "i: " << i_spec << " j: " << j_spec << " ij: " << ij_spec 
-    			<< " alpha: " << interproperties[ij_spec].alpha << "\n";
+    		interproperties[ij_spec].alpha = alpha_pp[cnt];
     		interproperties[ij_spec].csx = pow(properties[i_spec].radius+properties[j_spec].radius,2)*pi_usr;
     		countedCollisions[ij_spec] = 0;
     		expectedCollisions[ij_spec] = 0;
@@ -58,6 +60,9 @@ void FhdParticleContainer::InitCollisionCells() {
     		cnt++;
 		}
 	}
+	Real lam = mindiam/(6.0*sqrt(2.0)*totalPhi);
+	dt = lam/(10.0*dt);
+	
 
 	const int lev = 0;
 	for (FhdParIter pti(* this, lev); pti.isValid(); ++pti) {

@@ -106,8 +106,8 @@ public:
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // DSMC Routines
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	void InitParticles();
-	void InitCollisionCells(); // not implemented yet
+	void InitParticles(Real& dt);
+	void InitCollisionCells(Real& dt);
 
    void Source(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount);
 
@@ -141,7 +141,9 @@ public:
                       int steps);
                                          
    void OutputParticles();
-                    
+   void WritePlotFile(const MultiFab& covar, const MultiFab& cuMean,
+               const Geometry& geom, Real time, int step);
+   
    Real tTg[MAX_SPECIES];
    Real initTg[MAX_SPECIES];
    std::vector<Real> virial;
@@ -175,8 +177,19 @@ public:
 	const Real phi_max = 0.643;
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	void WriteCheckPoint(int step, int statsCount, const Real time,
+                     const Geometry geom,
+                     const MultiFab& cuInst,   const MultiFab& cuMean, 
+                     const MultiFab& cuDel,    const MultiFab& covar);//,
+    //                 const MultiFab& mfselect, const MultiFab& mfphi,
+      //               const MultiFab& mfvrmax);	
 
-	
+	void ReadCheckPoint(int &step, int& statsCount, Real& time,
+                       Geometry geom,
+                       MultiFab& cuInst,   MultiFab& cuMean, 
+                       MultiFab& cuDel,    MultiFab& covar);//,
+                 //      MultiFab& mfselect, MultiFab& mfphi,
+                  //     MultiFab& mfvrmax);
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	// Constants	
 	Real pi_usr = 4.0*atan(1.0);
