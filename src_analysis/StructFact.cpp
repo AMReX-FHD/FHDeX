@@ -575,10 +575,9 @@ void StructFact::ComputeSWFFT(const MultiFab& variables,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             std::cout << "HACKFFT " << i << " " << j << " " << k << " "
-                      << realpart(i,j,k,0) << " + " << imagpart(i,j,k,0) << "i"
+                      << realpart(i,j,k,comp) << " + " << imagpart(i,j,k,comp) << "i"
                       << std::endl;
         });
-
     }
     */
   }
