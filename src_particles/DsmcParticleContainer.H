@@ -106,8 +106,8 @@ public:
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // DSMC Routines
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	void InitParticles(Real& dt);
-	void InitCollisionCells(Real& dt);
+	void InitParticles(Real dt);
+	void InitCollisionCells(Real dt);
 
    void Source(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount);
 
@@ -143,6 +143,9 @@ public:
    void OutputParticles();
    void writePlotFile(const MultiFab& covar, const MultiFab& cuMean,
                const Geometry& geom, Real time, int step);
+               
+	void PrintCellList(int i, int j, int k);
+   void PrintCellListInternal(int i, int j, int k, int index, long imap);
    
    Real tTg[MAX_SPECIES];
    Real initTg[MAX_SPECIES];
@@ -193,10 +196,10 @@ public:
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	// Constants	
 	Real pi_usr = 4.0*atan(1.0);
+                      
 protected:
     // used to store vectors of particle indices on a cell-by-cell basis
     std::map<int, std::vector<std::vector<int> > > m_cell_vectors[MAX_SPECIES];
-
 };
 
 

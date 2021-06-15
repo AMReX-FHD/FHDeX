@@ -42,7 +42,7 @@ Real FhdParticleContainer::g0_Ma_Ahmadi(int ispec, int jspec, Real iphi, Real jp
 	}
 }
 
-void FhdParticleContainer::InitCollisionCells(Real& dt) {
+void FhdParticleContainer::InitCollisionCells(Real dt) {
 	int indx, ij_spec;
    int cnt = 0;
    Real totalPhi = 0;
@@ -126,6 +126,11 @@ void FhdParticleContainer::CalcSelections(Real dt) {
 			Real NSel;
 			Real phi1, phi2, chi0;
 			Real crossSection;
+
+			for (int i_spec=0; i_spec<nspecies; i_spec++){
+				arrphi(i,j,k,i_spec) = m_cell_vectors[i_spec][grid_id][imap].size()*
+					properties[i_spec].Neff*properties[i_spec].part2cellVol;
+			}
 
 			for (int i_spec = 0; i_spec < nspecies; i_spec++) {
 				for (int j_spec = i_spec; j_spec < nspecies; j_spec++) {
