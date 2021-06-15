@@ -288,11 +288,8 @@ void StructFact::FortStructure(const MultiFab& variables, const Geometry& geom, 
   variables_dft_real.define(ba, dm, NVAR, 0);
   variables_dft_imag.define(ba, dm, NVAR, 0);
 
-  bool use_fftw = true;
-  
   if (use_fftw) {
       ComputeFFTW(variables, variables_dft_real, variables_dft_imag, geom);
-      
   }
   else if (ba.size() == ParallelDescriptor::NProcs()) {
       ComputeSWFFT(variables, variables_dft_real, variables_dft_imag, geom);
@@ -489,11 +486,11 @@ void StructFact::ComputeSWFFT(const MultiFab& variables,
     }
   }
 
-  for (int dim=0; dim<NVAR; dim++) {
+  for (int comp=0; comp<NVAR; comp++) {
 
     bool comp_fft = false;
     for (int i=0; i<NVARU; i++) {
-      if (dim == var_u[i]) {
+      if (comp == var_u[i]) {
 	comp_fft = true;
 	break;
       }
@@ -524,11 +521,11 @@ void StructFact::ComputeSWFFT(const MultiFab& variables,
 	  for(size_t j=0; j<(size_t)ny; j++) {
 	    for(size_t i=0; i<(size_t)nx; i++) {
 
-	      complex_t temp(variables[mfi].dataPtr(dim)[local_indx],0.);
+	      complex_t temp(variables[mfi].dataPtr(comp)[local_indx],0.);
 	      a[local_indx] = temp;
 	      local_indx++;
 
-	      // Print() << "HACK FFT: a[" << local_indx << "] = \t " << variables[mfi].dataPtr(dim)[local_indx] << std::endl;
+	      // Print() << "HACK FFT: a[" << local_indx << "] = \t " << variables[mfi].dataPtr(comp)[local_indx] << std::endl;
 
 	    }
 	  }
@@ -554,8 +551,8 @@ void StructFact::ComputeSWFFT(const MultiFab& variables,
 	    for(size_t i=0; i<(size_t)nx; i++) {
 
 	      // Divide by 2 pi N
-	      variables_dft_real[mfi].dataPtr(dim)[local_indx] = fac * std::real(b[local_indx]);
-	      variables_dft_imag[mfi].dataPtr(dim)[local_indx] = fac * std::imag(b[local_indx]);
+	      variables_dft_real[mfi].dataPtr(comp)[local_indx] = fac * std::real(b[local_indx]);
+	      variables_dft_imag[mfi].dataPtr(comp)[local_indx] = fac * std::imag(b[local_indx]);
 	      local_indx++;
 	    }
 	  }
@@ -578,22 +575,138 @@ void StructFact::ComputeFFTW(const MultiFab& variables,
                              MultiFab& variables_dft_imag,
                              const Geometry& geom) {
 
+    if (AMREX_SPACEDIM == 2) {
+        Abort("Need to implement ComputeFFTW in 2D");
+    }
     
+    // Initialize the boxarray "ba_onegrid" from the single box "domain"
+    BoxArray ba_onegrid;
+    {
+      Box domain = geom.Domain();
+      ba_onegrid.define(domain);
+    }
 
+    DistributionMapping dmap_onegrid(ba_onegrid);
+
+    // we will take one FFT at a time and copy the answer into the
+    // corresponding component
+    MultiFab variables_onegrid;
+    MultiFab variables_dft_real_onegrid;
+    MultiFab variables_dft_imag_onegrid;
+    variables_onegrid.define(ba_onegrid, dmap_onegrid, 1, 0);
+    variables_dft_real_onegrid.define(ba_onegrid, dmap_onegrid, 1, 0);
+    variables_dft_imag_onegrid.define(ba_onegrid, dmap_onegrid, 1, 0);
+
+//    fftw_mpi_init();
     
-    for (int dim=0; dim<NVAR; dim++) {
+    using FFTplan = fftw_plan;
+    using FFTcomplex = fftw_complex;
+
+    // contain to store FFT - note it is shrunk by "half" in x
+    Vector<std::unique_ptr<BaseFab<GpuComplex<Real> > > > spectral_field;
+
+    Vector<FFTplan> forward_plan;
+
+    for (int comp=0; comp<NVAR; comp++) {
 
         bool comp_fft = false;
         for (int i=0; i<NVARU; i++) {
-            if (dim == var_u[i]) {
+            if (comp == var_u[i]) {
                 comp_fft = true;
                 break;
             }
         }
 
+        variables_onegrid.ParallelCopy(variables,comp,0,1);
 
+        for (MFIter mfi(variables_onegrid); mfi.isValid(); ++mfi) {
+
+            // grab a single box including ghost cell range
+            Box realspace_bx = mfi.fabbox();
+
+            // size of box including ghost cell range
+            IntVect fft_size = realspace_bx.length(); // This will be different for hybrid FFT
+
+            // this is the size of the box, except the 0th component is 'halved plus 1'
+            IntVect spectral_bx_size = fft_size;
+            spectral_bx_size[0] = fft_size[0]/2 + 1;
+
+            // spectral box
+            Box spectral_bx = Box(IntVect(0), spectral_bx_size - IntVect(1));
+
+            spectral_field.emplace_back(new BaseFab<GpuComplex<Real> >(spectral_bx,1,
+                                                                       The_Device_Arena()));
+            spectral_field.back()->setVal<RunOn::Device>(0.0); // touch the memory
+
+            FFTplan fplan;
+            fplan = fftw_plan_dft_r2c_3d(fft_size[2], fft_size[1], fft_size[0],
+                                         variables_onegrid[mfi].dataPtr(),
+                                         reinterpret_cast<FFTcomplex*>
+                                         (spectral_field.back()->dataPtr()),
+                                         FFTW_ESTIMATE);
+
+            forward_plan.push_back(fplan);
+        }
+
+        ParallelDescriptor::Barrier();
+
+        // ForwardTransform
+        for (MFIter mfi(variables_onegrid); mfi.isValid(); ++mfi) {
+            int i = mfi.LocalIndex();
+            fftw_execute(forward_plan[i]);
+        }
+
+        // copy data to a full-sized MultiFab
+        // this involves copying the complex conjugate from the half-sized field
+        // into the appropriate place in the full MultiFab
+        for (MFIter mfi(variables_dft_real_onegrid); mfi.isValid(); ++mfi) {
+
+            Array4< GpuComplex<Real> > spectral = (*spectral_field[0]).array();
+
+            Array4<Real> const& realpart = variables_dft_real.array(mfi);
+            Array4<Real> const& imagpart = variables_dft_imag.array(mfi);
+
+            Box bx = mfi.fabbox();
+
+            amrex::ParallelFor(bx,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                if (i <= bx.length(0)/2) {
+                    // copy value
+                    realpart(i,j,k) = spectral(i,j,k).real();
+                    imagpart(i,j,k) = spectral(i,j,k).imag();
+                } else {
+                    // copy complex conjugate
+                    int iloc = bx.length(0)-i;
+                    int jloc = (j == 0) ? 0 : bx.length(1)-j;
+                    int kloc = (k == 0) ? 0 : bx.length(2)-k;
+
+                    realpart(i,j,k) =  spectral(iloc,jloc,kloc).real();
+                    imagpart(i,j,k) = -spectral(iloc,jloc,kloc).imag();
+                }
+            });
+
+            amrex::ParallelFor(bx,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                std::cout << "HACKFFT " << i << " " << j << " " << k << " "
+                          << realpart(i,j,k) << " + " << imagpart(i,j,k,0) << "i"
+                          << std::endl;
+            });
+        }
+
+        variables_dft_real.ParallelCopy(variables_dft_real_onegrid,0,comp,1);
+        variables_dft_imag.ParallelCopy(variables_dft_imag_onegrid,0,comp,1);
 
     }
+
+    // destroy fft plan
+    for (int i = 0; i < forward_plan.size(); ++i) {
+        fftw_destroy_plan(forward_plan[i]);
+    }
+
+//    fftw_mpi_cleanup();
+
 }
 
 void StructFact::WritePlotFile(const int step, const Real time, const Geometry& geom,
