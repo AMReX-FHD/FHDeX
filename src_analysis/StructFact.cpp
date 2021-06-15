@@ -288,6 +288,9 @@ void StructFact::FortStructure(const MultiFab& variables, const Geometry& geom, 
   variables_dft_real.define(ba, dm, NVAR, 0);
   variables_dft_imag.define(ba, dm, NVAR, 0);
 
+  // for testing - override the value provided in constructor
+  // bool use_fftw = false;
+
   if (use_fftw) {
       ComputeFFTW(variables, variables_dft_real, variables_dft_imag, geom);
   }
@@ -560,6 +563,24 @@ void StructFact::ComputeSWFFT(const MultiFab& variables,
       }
     }
 
+    /*
+    for (MFIter mfi(variables_dft_real); mfi.isValid(); ++mfi) {
+
+        Box bx = mfi.fabbox();
+
+        Array4<Real> const& realpart = variables_dft_real.array(mfi);
+        Array4<Real> const& imagpart = variables_dft_imag.array(mfi);
+
+        amrex::ParallelFor(bx,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            std::cout << "HACKFFT " << i << " " << j << " " << k << " "
+                      << realpart(i,j,k,0) << " + " << imagpart(i,j,k,0) << "i"
+                      << std::endl;
+        });
+
+    }
+    */
   }
 
   bool write_data = false;
@@ -585,6 +606,10 @@ void StructFact::ComputeFFTW(const MultiFab& variables,
       Box domain = geom.Domain();
       ba_onegrid.define(domain);
     }
+
+    long npts = (AMREX_SPACEDIM == 3) ? n_cells[0]*n_cells[1]*n_cells[2] : n_cells[0]*n_cells[1];
+
+    Real sqrtnpts = std::sqrt(npts);
 
     DistributionMapping dmap_onegrid(ba_onegrid);
 
@@ -684,15 +709,20 @@ void StructFact::ComputeFFTW(const MultiFab& variables,
                     realpart(i,j,k) =  spectral(iloc,jloc,kloc).real();
                     imagpart(i,j,k) = -spectral(iloc,jloc,kloc).imag();
                 }
+
+                realpart(i,j,k) /= sqrtnpts;
+                imagpart(i,j,k) /= sqrtnpts;
             });
 
+            /*
             amrex::ParallelFor(bx,
             [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 std::cout << "HACKFFT " << i << " " << j << " " << k << " "
-                          << realpart(i,j,k) << " + " << imagpart(i,j,k,0) << "i"
+                          << realpart(i,j,k) << " + " << imagpart(i,j,k) << "i"
                           << std::endl;
             });
+            */
         }
 
         variables_dft_real.ParallelCopy(variables_dft_real_onegrid,0,comp,1);
