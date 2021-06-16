@@ -591,7 +591,7 @@ void StructFact::ComputeFFTW(const MultiFab& variables,
                              const Geometry& geom) {
 
     if (AMREX_SPACEDIM == 2) {
-        Abort("Need to implement ComputeFFTW in 2D");
+        Abort("Need to implement ComputeFFTW in 2D; set fft_type=0 in your inputs file to use SWFFT for now");
     }
     
     // Initialize the boxarray "ba_onegrid" from the single box "domain"
