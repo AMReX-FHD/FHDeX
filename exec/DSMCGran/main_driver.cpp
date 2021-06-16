@@ -181,8 +181,9 @@ void main_driver(const char* argv)
 	//int check_step = 10;
 	Real time = 0.;
 	int statsCount = 1;
+	int plotCount = 0;
 	int step_stat = 1;
-	for (int istep=1; istep<=max_step; ++istep) {
+	for (int istep=0; istep<=max_step; ++istep) {
 		Real tbegin = ParallelDescriptor::second();
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Checkpoints
@@ -201,19 +202,15 @@ void main_driver(const char* argv)
 		//	particles.CountedCollision[
 		particles.CalcSelections(dt);
 		particles.CollideParticles(dt);
-
+		
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Move Particles
 		particles.MoveParticlesCPP(dt, paramPlaneList, paramPlaneCount);
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Stats
-		cu.setVal(0.);
-		particles.EvaluateStats(cu, cuMeans, cuVars, coVars, statsCount++);
-		if (istep%plot_int == 0) {
-			cu.setVal(0.);
-			particles.writePlotFile(cu, cuMeans, cuVars,  coVars,  geom,  time, statsCount);
-		}
+		if(istep%n_steps_skip == 0) {cu.setVal(0.); particles.EvaluateStats(cu, cuMeans, cuVars, coVars, statsCount++);}
+		if(istep%plot_int == 0) {particles.writePlotFile(cu, cuMeans, cuVars,  coVars,  geom,  time, plotCount++);}
  
 		Real tend = ParallelDescriptor::second() - tbegin;
 		ParallelDescriptor::ReduceRealMax(tend);

@@ -56,13 +56,9 @@ void FhdParticleContainer::InitCollisionCells(Real & dt) {
     		interproperties[ij_spec].csx = pow(properties[i_spec].radius+properties[j_spec].radius,2)*pi_usr;
     		countedCollisions[ij_spec] = 0;
     		expectedCollisions[ij_spec] = 0;
-    		NSel_spec[ij_spec] = 0;
     		cnt++;
 		}
 	}
-	Real lam = mindiam/(6.0*sqrt(2.0)*totalPhi);
-	dt = lam/(10.0*dt);
-	
 
 	const int lev = 0;
 	for (FhdParIter pti(* this, lev); pti.isValid(); ++pti) {
@@ -143,11 +139,9 @@ void FhdParticleContainer::CalcSelections(Real dt) {
 					chi0 = g0_Ma_Ahmadi(i_spec,j_spec, phi1, phi2);
 					vrmax = arrvrmax(i,j,k,i_spec);
 					crossSection = interproperties[ij_spec].csx;
-					
 					NSel = 2.0*particle_neff*np_i*np_j*crossSection*vrmax*ocollisionCellVol*chi0*dt;
-					if(i_spec==j_spec) {NSel = NSel*0.5;}
+					if(i_spec==j_spec) {NSel = NSel*0.5; np_j = np_i-1;}
 					arrselect(i,j,k,ij_spec) = std::floor(NSel + amrex::Random());
-					NSel_spec[ij_spec] += arrselect(i,j,k,ij_spec);
 				}
 			}
 		});
@@ -271,12 +265,13 @@ void FhdParticleContainer::CollideParticles(Real dt) {
 					partj.rdata(FHD_realData::velx) = vj[0] + vreij[0]*massi;
 					partj.rdata(FHD_realData::vely) = vj[1] + vreij[1]*massi;
 					partj.rdata(FHD_realData::velz) = vj[2] + vreij[2]*massi;
-							
+					
+					/*	
 					// Boosted Velocities
 					vijpost[0] = vi[0]-vj[0];
 					vijpost[1] = vi[1]-vj[1];
 					vijpost[2] = vi[2]-vj[2];
-							
+						
 					boost[0] = vijpost[0]-vij[0];
 					boost[1] = vijpost[1]-vij[1];
 					boost[2] = vijpost[2]-vij[2];
@@ -292,6 +287,7 @@ void FhdParticleContainer::CollideParticles(Real dt) {
 					partj.rdata(FHD_realData::boostx) = -boost[0];
 					partj.rdata(FHD_realData::boosty) = -boost[1];
 					partj.rdata(FHD_realData::boostz) = -boost[2];
+					*/
 				}		
 			}
 		}

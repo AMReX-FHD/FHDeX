@@ -3,7 +3,7 @@ using namespace std;
 void FhdParticleContainer::EvaluateStats(MultiFab& Cu,    
                                          MultiFab& CuMeans,
                                          MultiFab& CuVars,
-													               MultiFab& CoVars,
+													  MultiFab& CoVars,
                                          int steps) {
 	BL_PROFILE_VAR("EvaluateStats()",EvaluateStats);
 
@@ -63,8 +63,8 @@ void FhdParticleContainer::EvaluateStats(MultiFab& Cu,
 				const long np_spec = m_cell_vectors[l][grid_id][imap].size();
 				Real moV  = properties[l].mass*ocollisionCellVol*properties[l].Neff;     // density
 				Real mass = properties[l].mass*properties[l].Neff;
-				cu(i,j,k,cnt)   = np_spec*ocollisionCellVol;		   // number of species l
-				cu(i,j,k,0)    += np_spec*ocollisionCellVol; 		// total number
+				cu(i,j,k,cnt)   = np_spec*ocollisionCellVol;		   // number density of species l
+				cu(i,j,k,0)    += np_spec*ocollisionCellVol; 		// total number density
 				cu(i,j,k,cnt+1) = np_spec*moV;         		    	// mass density of species l
 				cu(i,j,k,1)    += np_spec*moV;							// total mass density
 				
@@ -82,14 +82,14 @@ void FhdParticleContainer::EvaluateStats(MultiFab& Cu,
 					Real u = p.rdata(FHD_realData::velx);
 					Real v = p.rdata(FHD_realData::vely);
 					Real w = p.rdata(FHD_realData::velz);
-					cu(i,j,k,cnt+5)  += pow(u,2);							   	    // tau_xx of spec l
-					cu(i,j,k,cnt+6)  += u*v; 										    // tau_xy of spec l
-					cu(i,j,k,cnt+7)  += u*w; 							 			    // tau_xz of spec l
-					cu(i,j,k,cnt+8)  += pow(v,2); 									 // tau_yy of spec l
-					cu(i,j,k,cnt+9)  += v*w; 							 	          // tau_yz of spec l
-					cu(i,j,k,cnt+10) += pow(w,2); 								    // tau_zz of spec l
-					cu(i,j,k,cnt+11) += (pow(u,2)+pow(v,2)+pow(w,2))*mass/3;  // Energy of spec l
-					cu(i,j,k,cnt+12) += pow(u,2)+pow(v,2)+pow(w,2);           // Gran. Temp.
+					cu(i,j,k,cnt+5)  += pow(u,2);							   	    // uu of spec l
+					cu(i,j,k,cnt+6)  += u*v; 										    // uv of spec l
+					cu(i,j,k,cnt+7)  += u*w; 							 			    // uw of spec l
+					cu(i,j,k,cnt+8)  += pow(v,2); 									 // vv of spec l
+					cu(i,j,k,cnt+9)  += v*w; 							 	          // vw of spec l
+					cu(i,j,k,cnt+10) += pow(w,2); 								    // ww of spec l
+					cu(i,j,k,cnt+11) += pow(u,2)+pow(v,2)+pow(w,2);           // Energy of spec l
+					cu(i,j,k,cnt+12) += (pow(u,2)+pow(v,2)+pow(w,2))/3;           // Gran. Temp.
 				}
 
 				// Convert velocities to momentum densities
@@ -106,7 +106,11 @@ void FhdParticleContainer::EvaluateStats(MultiFab& Cu,
 				cu(i,j,k,9)  += cu(i,j,k,cnt+9)*moV*0.5;  // total tau_yz
 				cu(i,j,k,10) += cu(i,j,k,cnt+10)*moV*0.5; // total tau_zz
 				cu(i,j,k,11) += cu(i,j,k,cnt+11)*moV*0.5; // total energy
-				// Gran. Temp of species l x number density of species l
+				
+				// Gran. Temp of species l
+				cu(i,j,k,cnt+12) = cu(i,j,k,cnt+12)*properties[l].mass/np_spec;
+				
+				//Total Gran temp
 				cu(i,j,k,12) += cu(i,j,k,cnt+12)*cu(i,j,k,cnt); // total Gran. Temp.
 				cnt += nstats;
 			}
@@ -141,9 +145,9 @@ void FhdParticleContainer::EvaluateStats(MultiFab& Cu,
       		4  - dJx.dJy
       		5  - dJx.dJz
       		6  - dJy.dJz
-      		7 - dJx.dE
-      		8 - dJy.dE
-      		9 - dJz.dE
+      		7  - dJx.dE
+      		8  - dJy.dE
+      		9  - dJz.dE
       		// Comment -- need to add some temperature-velocity covariances as well (see Balakrishnan)
       	*/
 			covars(i,j,k,0)  = (covars(i,j,k,0)*stepsMinusOne+delfluc[1]*delfluc[2])*osteps;    // 0
@@ -155,7 +159,7 @@ void FhdParticleContainer::EvaluateStats(MultiFab& Cu,
 			covars(i,j,k,6)  = (covars(i,j,k,6)*stepsMinusOne+delfluc[3]*delfluc[4])*osteps;    // 6
 			covars(i,j,k,7)  = (covars(i,j,k,7)*stepsMinusOne+delfluc[2]*delfluc[11])*osteps;   // 7
 			covars(i,j,k,8)  = (covars(i,j,k,8)*stepsMinusOne+delfluc[3]*delfluc[11])*osteps;   // 8
-			covars(i,j,k,9)  = (covars(i,j,k,9)*stepsMinusOne+delfluc[4]*delfluc[11])*osteps;  // 9
+			covars(i,j,k,9)  = (covars(i,j,k,9)*stepsMinusOne+delfluc[4]*delfluc[11])*osteps;   // 9
 		});
 	}
 }

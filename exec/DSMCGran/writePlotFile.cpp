@@ -12,7 +12,7 @@ void FhdParticleContainer::writePlotFile(const MultiFab& Cu,
                                          const MultiFab& CoVars,
                                          const Geometry& geom, 
                                          Real time, 
-                                         int statCount) {
+                                         int plotCount) {
 	BL_PROFILE("writePlotFile()");
 	
 	int ncovar = 10;     			     // covar 
@@ -22,7 +22,7 @@ void FhdParticleContainer::writePlotFile(const MultiFab& Cu,
 	amrex::BoxArray ba = Cu.boxArray();
 	amrex::DistributionMapping dmap = Cu.DistributionMap();
 
-	std::string pltfname = amrex::Concatenate("plt",statCount,9);
+	std::string pltfname = amrex::Concatenate("plt",plotCount,9);
 	amrex::Print() << " Writing plotfile " << pltfname << "\n";
 	
 	amrex::MultiFab mfplot(ba, dmap, npltvar, 0);
@@ -189,5 +189,5 @@ void FhdParticleContainer::writePlotFile(const MultiFab& Cu,
 	MultiFab::Copy(mfplot, CuVars, 0, pltbegin, nstats, 0);
 	pltbegin += nstats;
 
-	WriteSingleLevelPlotfile(pltfname, mfplot, varNames, geom, time, statCount);
+	WriteSingleLevelPlotfile(pltfname, mfplot, varNames, geom, time, plotCount);
 }

@@ -18,10 +18,11 @@ void FhdParticleContainer::InitParticles(Real & dt) {
 	// Search for max relative speed
 	// ... estimate as double the mag of a single particle speed
 	std::array<Real, 3> vpart = {0., 0., 0.};
-	Real spdmax = 0.;
-	Real spd;
+	Real jmax = 0, spdmax = 0;
+	Real umax = 0, vmax = 0, wmax = 0;
+	Real jp, spd;
 	Real stdev;
-	Real u,v,w;
+	Real u[nspecies],v[nspecies],w[nspecies];
 	
 	//tTg = 0;
    for (MFIter mfi = MakeMFIter(lev, true); mfi.isValid(); ++mfi) {
@@ -40,10 +41,11 @@ void FhdParticleContainer::InitParticles(Real & dt) {
 		if(ParallelDescriptor::MyProc() == 0 && mfi.LocalTileIndex() == 0 && proc0_enter) {
 			proc0_enter = false;
 			std::ifstream particleFile("particles.dat");
-			Real vmean;
 			for(int i_spec=0; i_spec < nspecies; i_spec++) {
-				u = 0; v = 0; w = 0;
-				stdev = sqrt(T_init[i_spec]);
+				u[i_spec] = 0.0; v[i_spec] = 0.0; w[i_spec] = 0.0;
+			}
+			for(int i_spec=0; i_spec < nspecies; i_spec++) {
+				stdev = sqrt(T_init[i_spec]/properties[i_spec].mass);
 				for (int i_part=0; i_part<properties[i_spec].total;i_part++) {
 					ParticleType p;
 					p.id()  = ParticleType::NextID();
@@ -64,42 +66,56 @@ void FhdParticleContainer::InitParticles(Real & dt) {
                	p.pos(0) = prob_lo[0] + amrex::Random()*(prob_hi[0]-prob_lo[0]);
                	p.pos(1) = prob_lo[1] + amrex::Random()*(prob_hi[1]-prob_lo[1]);
                	p.pos(2) = prob_lo[2] + amrex::Random()*(prob_hi[2]-prob_lo[2]);
-						vpart[0] = stdev*amrex::RandomNormal(0.,1.);
-						vpart[1] = stdev*amrex::RandomNormal(0.,1.);
-						vpart[2] = stdev*amrex::RandomNormal(0.,1.);               	
+						vpart[0] = amrex::RandomNormal(0.,stdev);
+						vpart[1] = amrex::RandomNormal(0.,stdev);
+						vpart[2] = amrex::RandomNormal(0.,stdev);               	
 					}
 
 					spd = sqrt(pow(vpart[0],2)+pow(vpart[1],2)+pow(vpart[2],2));
-					if(spd>spdmax){ spdmax = spd; }
 					
-					p.rdata(FHD_realData::velx) = vpart[0]; u += vpart[0];
-					p.rdata(FHD_realData::vely) = vpart[1]; v += vpart[1];
-					p.rdata(FHD_realData::velz) = vpart[2]; w += vpart[2];
+					if(spd>spdmax){ spdmax=spd; }
+					// For calculating timstep from Courant number
+					if(vpart[0]>umax) { umax=vpart[0]; }
+					if(vpart[1]>vmax) { vmax=vpart[1]; }
+					if(vpart[2]>wmax) { wmax=vpart[2]; }
+					
+					p.rdata(FHD_realData::velx) = vpart[0]; u[p.idata(FHD_intData::species)] += vpart[0];
+					p.rdata(FHD_realData::vely) = vpart[1]; v[p.idata(FHD_intData::species)] += vpart[1];
+					p.rdata(FHD_realData::velz) = vpart[2]; w[p.idata(FHD_intData::species)] += vpart[2];
 
 					p.rdata(FHD_realData::boostx) = 0;
 					p.rdata(FHD_realData::boosty) = 0;
 					p.rdata(FHD_realData::boostz) = 0;
                     
 					particle_tile.push_back(p);
-
 					pcount++;
 				}
+			}
+			
+			// Zero out bulk velocities
+			int nstart = 0;
+			for(int i_spec=0; i_spec < nspecies; i_spec++) {			
 				// Zero out the bulk velocities
-				u = u/properties[i_spec].total;
-				v = v/properties[i_spec].total;
-				w = w/properties[i_spec].total;
-				for (int i_part=0; i_part<properties[i_spec].total;i_part++) {
-					ParticleType p = particles[i_part];
-					p.rdata(FHD_realData::velx) = p.rdata(FHD_realData::velx) - u;
-					p.rdata(FHD_realData::vely) = p.rdata(FHD_realData::vely) - v;
-					p.rdata(FHD_realData::velz) = p.rdata(FHD_realData::velz) - w;
+				u[i_spec] = u[i_spec]/properties[i_spec].total;
+				v[i_spec] = v[i_spec]/properties[i_spec].total;
+				w[i_spec] = w[i_spec]/properties[i_spec].total;
+				for (int i_part=nstart; i_part<nstart+properties[i_spec].total;i_part++) {
+					ParticleType & p = particles[i_part];
+					p.rdata(FHD_realData::velx) = p.rdata(FHD_realData::velx) - u[i_spec];
+					p.rdata(FHD_realData::vely) = p.rdata(FHD_realData::vely) - v[i_spec];
+					p.rdata(FHD_realData::velz) = p.rdata(FHD_realData::velz) - w[i_spec];
 				}
+				nstart += properties[i_spec].total;
 			}
 			particleFile.close();
 		}
 	}
+	dt  = umax*n_cells[0]/(prob_hi[0]-prob_lo[0]);
+	dt += vmax*n_cells[1]/(prob_hi[1]-prob_lo[1]);
+	dt += wmax*n_cells[2]/(prob_hi[2]-prob_lo[2]);
+	dt  = 0.2/dt; // Courant number of 0.2
 	mfvrmax.setVal(spdmax);
-	dt = 1.0/spdmax;
+	amrex::Print() << "dt: " << dt << "\n";
 
 	Redistribute();
 	SortParticles();
