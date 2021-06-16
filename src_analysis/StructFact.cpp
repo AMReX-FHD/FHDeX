@@ -676,7 +676,7 @@ void StructFact::ComputeFFTW(const MultiFab& variables,
                                              (spectral_field.back()->dataPtr()),
                                              FFTW_ESTIMATE);
 #elif (AMREX_SPACEDIM == 3)
-                fplan = fftw_plan_dft_r2c_2d(fft_size[2], fft_size[1],
+                fplan = fftw_plan_dft_r2c_2d(fft_size[1], fft_size[0],
                                              variables_onegrid[mfi].dataPtr(),
                                              reinterpret_cast<FFTcomplex*>
                                              (spectral_field.back()->dataPtr()),
