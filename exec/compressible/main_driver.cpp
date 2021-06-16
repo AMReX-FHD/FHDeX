@@ -521,6 +521,16 @@ void main_driver(const char* argv)
         if (restart > 0 && step==1) {
             ReadCheckPoint(step, time, statsCount, geom, cu, cuMeans, cuVars, prim,
                            primMeans, primVars, spatialCross, miscStats, eta, kappa);
+            
+            if (reset_stats == 1) {
+                cuMeans.setVal(0.0);
+                cuVars.setVal(0.0);
+                primMeans.setVal(0.0);
+                primVars.setVal(0.0);
+                spatialCross.setVal(0.0);
+                miscStats.setVal(0.0);
+                statsCount = 1;
+            }
         }
 
         // timer
