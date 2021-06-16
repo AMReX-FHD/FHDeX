@@ -473,7 +473,7 @@ void main_driver(const char* argv)
             for(int d=0; d<AMREX_SPACEDIM; d++) {
                 ShiftFaceToCC(umac[d], 0, structFactMF, d, 1);
             }
-            structFact.FortStructure(structFactMF,geom);
+            structFact.FortStructure(structFactMF,geom,fft_type);
             if(project_dir >= 0) {
                 MultiFab Flattened;  // flattened multifab defined below
                 if (slicepoint < 0) {
@@ -484,7 +484,7 @@ void main_driver(const char* argv)
                 // we rotate this flattened MultiFab to have normal in the z-direction since
                 // SWFFT only presently supports flattened MultiFabs with z-normal.
                 MultiFab FlattenedRot = RotateFlattenedMF(Flattened);
-                structFactFlattened.FortStructure(FlattenedRot,geom_flat);
+                structFactFlattened.FortStructure(FlattenedRot,geom_flat,0);
             }
         }
 
@@ -543,7 +543,7 @@ void main_driver(const char* argv)
             for(int d=0; d<AMREX_SPACEDIM; d++) {
                 ShiftFaceToCC(umac[d], 0, structFactMF, d, 1);
             }
-            structFact.FortStructure(structFactMF,geom);
+            structFact.FortStructure(structFactMF,geom,fft_type);
             if(project_dir >= 0) {
                 MultiFab Flattened;  // flattened multifab defined below
                 if (slicepoint < 0) {
@@ -554,7 +554,7 @@ void main_driver(const char* argv)
                 // we rotate this flattened MultiFab to have normal in the z-direction since
                 // SWFFT only presently supports flattened MultiFabs with z-normal.
                 MultiFab FlattenedRot = RotateFlattenedMF(Flattened);
-                structFactFlattened.FortStructure(FlattenedRot,geom_flat);
+                structFactFlattened.FortStructure(FlattenedRot,geom_flat,0);
             }
         }
                 
@@ -585,7 +585,7 @@ void main_driver(const char* argv)
                     ShiftFaceToCC(umac[d], 0, structFactMF, d, 1);
                 }
                 // reset and compute structure factor
-                turbStructFact.FortStructure(structFactMF,geom,1);
+                turbStructFact.FortStructure(structFactMF,geom,fft_type,1);
 
                 // writing the plotfiles does the shifting and copying into cov_mag
                 turbStructFact.WritePlotFile(step,time,geom,"plt_Turb");
