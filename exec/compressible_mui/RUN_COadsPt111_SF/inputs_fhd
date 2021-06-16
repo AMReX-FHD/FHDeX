@@ -25,8 +25,8 @@
 
   ! Controls for number of steps between actions
 
-  max_step = 200
-  plot_int = 100
+  max_step = 20000
+  plot_int = 10000
 
   ! Multispecies toggle
   ! if algorithm_type = 1, single component
@@ -57,7 +57,7 @@
   rho0 = 5.886949e-05
 
   struct_fact_int = 1
-  n_steps_skip = 100
+  n_steps_skip = 10000
 
   ! Boundary conditions:
   ! NOTE: setting bc_vel to periodic sets all the other bc's to periodic)
@@ -94,5 +94,7 @@
   hcv = -1 -1
   hcp = -1 -1
 
+  plot_means = 1
+  plot_vars = 1
 /
 
