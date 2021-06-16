@@ -304,7 +304,7 @@ void main_driver(const char* argv)
 
     // compute all pairs
     // note: StructFactPrim option to compute only speicified pairs not written yet
-    StructFact structFactPrim(ba,dmap,prim_var_names,var_scaling,false);
+    StructFact structFactPrim(ba,dmap,prim_var_names,var_scaling);
 
     ///////////////////////////////////////////
 
@@ -395,7 +395,7 @@ void main_driver(const char* argv)
         geom_flat.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
       }
 
-      structFactPrimFlattened.define(ba_flat,dmap_flat,prim_var_names,var_scaling,false);
+      structFactPrimFlattened.define(ba_flat,dmap_flat,prim_var_names,var_scaling);
     }
     
     //////////////////////////////////////////////
@@ -447,7 +447,7 @@ void main_driver(const char* argv)
 
     // compute all pairs
     // note: StructFactCons option to compute only speicified pairs not written yet
-    StructFact structFactCons(ba,dmap,cons_var_names,var_scaling,false);
+    StructFact structFactCons(ba,dmap,cons_var_names,var_scaling);
     
     //////////////////////////////////////////////
 

@@ -326,7 +326,7 @@ void main_driver(const char* argv)
 
 #if 1
     // option to compute all pairs
-    StructFact structFact(ba,dmap,var_names,var_scaling,false);
+    StructFact structFact(ba,dmap,var_names,var_scaling);
 #else
     // option to compute only specified pairs
     int nPairs = 2;
@@ -339,7 +339,7 @@ void main_driver(const char* argv)
     s_pairA[1] = 1;
     s_pairB[1] = 1;
     
-    StructFact structFact(ba,dmap,var_names,var_scaling,s_pairA,s_pairB,false);
+    StructFact structFact(ba,dmap,var_names,var_scaling,s_pairA,s_pairB);
 #endif
 
     ///////////////////////////////////////////
@@ -437,7 +437,7 @@ void main_driver(const char* argv)
         geom_flat.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
       }
 
-      structFactFlattened.define(ba_flat,dmap_flat,var_names,var_scaling,false);
+      structFactFlattened.define(ba_flat,dmap_flat,var_names,var_scaling);
     }
     
     ///////////////////////////////////////////
@@ -458,7 +458,7 @@ void main_driver(const char* argv)
         s_pairA[d] = d;
         s_pairB[d] = d;
     }    
-    StructFact turbStructFact(ba,dmap,var_names,var_scaling,s_pairA,s_pairB,false);
+    StructFact turbStructFact(ba,dmap,var_names,var_scaling,s_pairA,s_pairB);
     
     ///////////////////////////////////////////
 

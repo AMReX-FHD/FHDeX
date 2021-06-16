@@ -120,8 +120,7 @@ void main_driver(const char* argv)
     s_pairA[2] = 1;
     s_pairB[2] = 1;
 
-    bool use_fftw = false;
-    StructFact structFact(ba,dmap,var_names,var_scaling,s_pairA,s_pairB,use_fftw);
+    StructFact structFact(ba,dmap,var_names,var_scaling,s_pairA,s_pairB);
     
     structFact.FortStructure(struct_cc,geom);
       

@@ -363,14 +363,14 @@ void main_driver(const char* argv)
 
         // compute all pairs
         // note: StructFactPrim option to compute only speicified pairs not written yet
-        structFactPrim.define(ba,dmap,prim_var_names,var_scaling_prim,false);
+        structFactPrim.define(ba,dmap,prim_var_names,var_scaling_prim);
         
         //////////////////////////////////////////////
         structFactConsMF.define(ba, dmap, structVarsCons, 0);
 
         // compute all pairs
         // note: StructFactCons option to compute only speicified pairs not written yet
-        structFactCons.define(ba,dmap,cons_var_names,var_scaling_cons,false);
+        structFactCons.define(ba,dmap,cons_var_names,var_scaling_cons);
         
         //////////////////////////////////////////////
         
@@ -445,14 +445,14 @@ void main_driver(const char* argv)
             }
 
             if (do_slab_sf == 0) {
-                structFactPrimVerticalAverage.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim,2,false);
-                structFactConsVerticalAverage.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons,2,false);
+                structFactPrimVerticalAverage.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim,2);
+                structFactConsVerticalAverage.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons,2);
             }
             else {
-                structFactPrimVerticalAverage0.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim,false);
-                structFactPrimVerticalAverage1.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim,false);
-                structFactConsVerticalAverage0.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons,false);
-                structFactConsVerticalAverage1.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons,false);
+                structFactPrimVerticalAverage0.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim);
+                structFactPrimVerticalAverage1.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim);
+                structFactConsVerticalAverage0.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons);
+                structFactConsVerticalAverage1.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons);
             }
 
             //structFactPrimVerticalAverage.~StructFact(); // destruct
@@ -573,14 +573,14 @@ void main_driver(const char* argv)
 
         // compute all pairs
         // note: StructFactPrim option to compute only speicified pairs not written yet
-        structFactPrim.define(ba,dmap,prim_var_names,var_scaling_prim,false);
+        structFactPrim.define(ba,dmap,prim_var_names,var_scaling_prim);
         
         //////////////////////////////////////////////
         structFactConsMF.define(ba, dmap, structVarsCons, 0);
 
         // compute all pairs
         // note: StructFactCons option to compute only speicified pairs not written yet
-        structFactCons.define(ba,dmap,cons_var_names,var_scaling_cons,false);
+        structFactCons.define(ba,dmap,cons_var_names,var_scaling_cons);
         
         //////////////////////////////////////////////
         
@@ -649,17 +649,17 @@ void main_driver(const char* argv)
             }
 
             if (do_slab_sf == 0) {
-                structFactPrimVerticalAverage.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim,2,false);
-                structFactConsVerticalAverage.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons,2,false);
+                structFactPrimVerticalAverage.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim,2);
+                structFactConsVerticalAverage.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons,2);
             }
             else {
-                structFactPrimVerticalAverage0.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim,false);
-                structFactPrimVerticalAverage1.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim,false);
-                structFactConsVerticalAverage0.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons,false);
-                structFactConsVerticalAverage1.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons,false);
+                structFactPrimVerticalAverage0.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim);
+                structFactPrimVerticalAverage1.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim);
+                structFactConsVerticalAverage0.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons);
+                structFactConsVerticalAverage1.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons);
             }
             //structFactPrimVerticalAverage.~StructFact(); // destruct
-            //new(&structFactPrimVerticalAverage) StructFact(ba_flat,dmap_flat,prim_var_names,var_scaling,false); // reconstruct
+            //new(&structFactPrimVerticalAverage) StructFact(ba_flat,dmap_flat,prim_var_names,var_scaling); // reconstruct
     
         }
 
