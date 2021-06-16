@@ -585,7 +585,7 @@ void main_driver(const char* argv)
                     ShiftFaceToCC(umac[d], 0, structFactMF, d, 1);
                 }
                 // reset and compute structure factor
-                turbStructFact.FortStructure(structFactMF,geom,1,fft_type);
+                turbStructFact.FortStructure(structFactMF,geom,fft_type,1);
 
                 // writing the plotfiles does the shifting and copying into cov_mag
                 turbStructFact.WritePlotFile(step,time,geom,"plt_Turb");
