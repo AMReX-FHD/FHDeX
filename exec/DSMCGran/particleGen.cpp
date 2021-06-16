@@ -110,10 +110,18 @@ void FhdParticleContainer::InitParticles(Real & dt) {
 			particleFile.close();
 		}
 	}
+	// Broadcast max vels to other procs
+	ParallelDescriptor::Bcast(&umax,1,ParallelDescriptor::IOProcessorNumber());
+	ParallelDescriptor::Bcast(&vmax,1,ParallelDescriptor::IOProcessorNumber());
+	ParallelDescriptor::Bcast(&umax,1,ParallelDescriptor::IOProcessorNumber());
+	ParallelDescriptor::Bcast(&spdmax,1,ParallelDescriptor::IOProcessorNumber());
+	amrex::Print() << "myproc: " << ParallelDescriptor::MyProc() << " umax: " << umax << "\n";
+	amrex::Print() << "spdmax: " << spdmax << "\n";
 	dt  = umax*n_cells[0]/(prob_hi[0]-prob_lo[0]);
 	dt += vmax*n_cells[1]/(prob_hi[1]-prob_lo[1]);
 	dt += wmax*n_cells[2]/(prob_hi[2]-prob_lo[2]);
 	dt  = 0.2/dt; // Courant number of 0.2
+	amrex::Print() << "My dt " << dt << "\n";
 	mfvrmax.setVal(spdmax);
 
 	Redistribute();
