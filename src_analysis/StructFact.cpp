@@ -695,8 +695,8 @@ void StructFact::ComputeFFTW(const MultiFab& variables,
                                              reinterpret_cast<FFTcomplex*>
                                              (spectral_field.back()->dataPtr()),
                                              FFTW_ESTIMATE);
-            }
 #endif
+            }
 
             forward_plan.push_back(fplan);
         }
