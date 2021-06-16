@@ -164,7 +164,7 @@ void main_driver(const char* argv)
 		// overwrite dt
 		particles.InitParticles(dt);
 
-		particles.InitCollisionCells(dt);
+		particles.InitCollisionCells();
 		amrex::Print() << "Overwritten dt so Courant number <1: " << dt << "\n";
 	}
 	

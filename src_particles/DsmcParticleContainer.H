@@ -107,7 +107,7 @@ public:
 // DSMC Routines
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	void InitParticles(Real & dt);
-	void InitCollisionCells(Real & dt);
+	void InitCollisionCells();
 
    void Source(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount);
 

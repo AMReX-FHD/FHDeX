@@ -101,24 +101,6 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
 
     long moves = 0;
     int reDist = 0;
-    
-
-
-    for (FhdParIter pti(* this, lev); pti.isValid(); ++pti) {
-
-        const int grid_id = pti.index();
-        const int tile_id = pti.LocalTileIndex();
-        const Box& tile_box  = pti.tilebox();
-
-        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
-        auto& particles = particle_tile.GetArrayOfStructs();
-        const long np = particles.numParticles();
-
-        Box bx  = pti.tilebox();
-        IntVect myLo = bx.smallEnd();
-        IntVect myHi = bx.bigEnd();
-
-    }
 
     for (FhdParIter pti(* this, lev); pti.isValid(); ++pti) {
 
@@ -228,55 +210,7 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
 
     }
 
-    // gather statistics
-    ParallelDescriptor::ReduceIntSum(np_proc);
-    ParallelDescriptor::ReduceRealSum(moves_proc);
-    ParallelDescriptor::ReduceRealMax(maxspeed_proc);
-    ParallelDescriptor::ReduceRealMax(maxdist_proc);
-    ParallelDescriptor::ReduceIntSum(reDist);
-
-    // write out global diagnostics
-    // if (ParallelDescriptor::IOProcessor()) {
-    //    Print() << "I see " << np_proc << " particles\n";
-    //    Print() << reDist << " particles to be redistributed.\n";
-    //    Print() <<"Maximum observed speed: " << sqrt(maxspeed_proc) << "\n";
-    //    Print() <<"Maximum observed displacement (fraction of radius): " << maxdist_proc << "\n";
-    //}
-
-    for (FhdParIter pti(* this, lev); pti.isValid(); ++pti) {
-
-        const int grid_id = pti.index();
-        const int tile_id = pti.LocalTileIndex();
-        const Box& tile_box  = pti.tilebox();
-
-        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
-        auto& particles = particle_tile.GetArrayOfStructs();
-        const long np = particles.numParticles();
-
-        Box bx  = pti.tilebox();
-        IntVect myLo = bx.smallEnd();
-        IntVect myHi = bx.bigEnd();
-
-    }
-
     Redistribute();
-    for (FhdParIter pti(* this, lev); pti.isValid(); ++pti) {
-
-        const int grid_id = pti.index();
-        const int tile_id = pti.LocalTileIndex();
-        const Box& tile_box  = pti.tilebox();
-
-        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
-        auto& particles = particle_tile.GetArrayOfStructs();
-        const long np = particles.numParticles();
-
-        Box bx  = pti.tilebox();
-        IntVect myLo = bx.smallEnd();
-        IntVect myHi = bx.bigEnd();
-
-
-    }
-
     SortParticles();
 }
 
@@ -302,14 +236,10 @@ void FhdParticleContainer::SortParticles()
         {
             ParticleType & part = particles[i];
 
-            IntVect iv ={0,0,0};
-
 
             if(part.idata(FHD_intData::sorted) == -1)
             {
-                iv[0] = (int)floor((part.pos(0)-plo[0])/dx[0]);
-                iv[1] = (int)floor((part.pos(1)-plo[1])/dx[1]);
-                iv[2] = (int)floor((part.pos(2)-plo[2])/dx[2]);
+            	 const IntVect iv = this->Index(part,lev);
 
                 part.idata(FHD_intData::i) = iv[0];
                 part.idata(FHD_intData::j) = iv[1];
@@ -321,18 +251,7 @@ void FhdParticleContainer::SortParticles()
 
                 m_cell_vectors[part.idata(FHD_intData::species)][pti.index()][imap].push_back(i);
 
-            }else
-            {
-
-                iv[0] = part.idata(FHD_intData::i);
-                iv[1] = part.idata(FHD_intData::j);
-                iv[2] = part.idata(FHD_intData::k);
-
-                long imap = tile_box.index(iv);
-
-                m_cell_vectors[part.idata(FHD_intData::species)][pti.index()][imap][part.idata(FHD_intData::sorted)] = i;
             }
-
         }
     }
 }
@@ -441,54 +360,3 @@ void FhdParticleContainer::Source(const Real dt, const paramPlane* paramPlaneLis
     SortParticles();
 
 }
-
-void FhdParticleContainer::PrintCellList(int i, int j, int k)
-{
-    int lev = 0;
-
-    for (FhdParIter pti(* this, lev); pti.isValid(); ++pti) {
-
-        const int grid_id = pti.index();
-        const int tile_id = pti.LocalTileIndex();
-        const Box& tile_box  = pti.tilebox();
-
-        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
-        auto& particles = particle_tile.GetArrayOfStructs();
-        const long np = particles.numParticles();
-
-        Box bx  = pti.tilebox();
-        IntVect myLo = bx.smallEnd();
-        IntVect myHi = bx.bigEnd();
-
-        if((i >= myLo[0]) && (j >= myLo[1]) && (k >= myLo[2]) && (i <= myHi[0]) && (j <= myHi[1]) && (k <= myHi[2]))
-        {
-            IntVect iv = {i,j,k};
-            long imap = tile_box.index(iv);
-            
-            for(int ii = 0; ii<nspecies; ii++) {
-                int size = m_cell_vectors[ii][pti.index()][imap].size();
-                cout << "Species " << ii << ":\n";
-			   	 for(int jj = 0; jj<size; jj++) {cout << m_cell_vectors[ii][pti.index()][imap][jj] << " ";}
-				cout << "\n";
-			   }
-		  }
-    }
-
-}
-
-void FhdParticleContainer::PrintCellListInternal(int i, int j, int k, int index, long imap)
-{
-        IntVect iv = {i,j,k};
-        for(int ii = 0; ii<nspecies; ii++)
-        {
-            int size = m_cell_vectors[ii][index][imap].size();
-            cout << "Species " << ii << ":\n";
-		    for(int jj = 0; jj<size; jj++)
-	    	{                
-	            cout << m_cell_vectors[ii][index][imap][jj] << " ";
-	        }
-			cout << "\n";
-		}
-}
-
-

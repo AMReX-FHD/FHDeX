@@ -115,7 +115,6 @@ void FhdParticleContainer::InitParticles(Real & dt) {
 	dt += wmax*n_cells[2]/(prob_hi[2]-prob_lo[2]);
 	dt  = 0.2/dt; // Courant number of 0.2
 	mfvrmax.setVal(spdmax);
-	amrex::Print() << "dt: " << dt << "\n";
 
 	Redistribute();
 	SortParticles();
