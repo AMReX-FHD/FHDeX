@@ -590,14 +590,27 @@ void StructFact::ComputeFFTW(const MultiFab& variables,
                              MultiFab& variables_dft_imag,
                              const Geometry& geom) {
 
+    bool is_flattened = false;
+
+    long npts;
+
     // Initialize the boxarray "ba_onegrid" from the single box "domain"
     BoxArray ba_onegrid;
     {
       Box domain = geom.Domain();
       ba_onegrid.define(domain);
-    }
 
-    long npts = (AMREX_SPACEDIM == 3) ? n_cells[0]*n_cells[1]*n_cells[2] : n_cells[0]*n_cells[1];
+      if (domain.bigEnd(AMREX_SPACEDIM-1) == 0) {
+          is_flattened = true;
+      }
+
+#if (AMREX_SPACEDIM == 2)
+      npts = (domain.length(0)*domain.length(1));
+#elif (AMREX_SPACEDIM == 3)
+      npts = (domain.length(0)*domain.length(1)*domain.length(2));
+#endif
+
+    }
 
     Real sqrtnpts = std::sqrt(npts);
 
@@ -654,18 +667,35 @@ void StructFact::ComputeFFTW(const MultiFab& variables,
             spectral_field.back()->setVal<RunOn::Device>(0.0); // touch the memory
 
             FFTplan fplan;
+
+            if (is_flattened) {
 #if (AMREX_SPACEDIM == 2)
-            fplan = fftw_plan_dft_r2c_2d(fft_size[1], fft_size[0],
-                                         variables_onegrid[mfi].dataPtr(),
-                                         reinterpret_cast<FFTcomplex*>
-                                         (spectral_field.back()->dataPtr()),
-                                         FFTW_ESTIMATE);
+                fplan = fftw_plan_dft_r2c_1d(fft_size[0],
+                                             variables_onegrid[mfi].dataPtr(),
+                                             reinterpret_cast<FFTcomplex*>
+                                             (spectral_field.back()->dataPtr()),
+                                             FFTW_ESTIMATE);
 #elif (AMREX_SPACEDIM == 3)
-            fplan = fftw_plan_dft_r2c_3d(fft_size[2], fft_size[1], fft_size[0],
-                                         variables_onegrid[mfi].dataPtr(),
-                                         reinterpret_cast<FFTcomplex*>
-                                         (spectral_field.back()->dataPtr()),
-                                         FFTW_ESTIMATE);
+                fplan = fftw_plan_dft_r2c_2d(fft_size[2], fft_size[1],
+                                             variables_onegrid[mfi].dataPtr(),
+                                             reinterpret_cast<FFTcomplex*>
+                                             (spectral_field.back()->dataPtr()),
+                                             FFTW_ESTIMATE);
+#endif
+            } else {
+#if (AMREX_SPACEDIM == 2)
+                fplan = fftw_plan_dft_r2c_2d(fft_size[1], fft_size[0],
+                                             variables_onegrid[mfi].dataPtr(),
+                                             reinterpret_cast<FFTcomplex*>
+                                             (spectral_field.back()->dataPtr()),
+                                             FFTW_ESTIMATE);
+#elif (AMREX_SPACEDIM == 3)
+                fplan = fftw_plan_dft_r2c_3d(fft_size[2], fft_size[1], fft_size[0],
+                                             variables_onegrid[mfi].dataPtr(),
+                                             reinterpret_cast<FFTcomplex*>
+                                             (spectral_field.back()->dataPtr()),
+                                             FFTW_ESTIMATE);
+            }
 #endif
 
             forward_plan.push_back(fplan);
@@ -701,12 +731,22 @@ void StructFact::ComputeFFTW(const MultiFab& variables,
                 } else {
                     // copy complex conjugate
                     int iloc = bx.length(0)-i;
-                    int jloc = (j == 0) ? 0 : bx.length(1)-j;
+                    int jloc, kloc;
+                    if (is_flattened) {
 #if (AMREX_SPACEDIM == 2)
-                    int kloc = 0;
+                        jloc = 0;
 #elif (AMREX_SPACEDIM == 3)
-                    int kloc = (k == 0) ? 0 : bx.length(2)-k;
+                        jloc = (j == 0) ? 0 : bx.length(1)-j;
 #endif
+                        kloc = 0;
+                    } else {
+                        jloc = (j == 0) ? 0 : bx.length(1)-j;
+#if (AMREX_SPACEDIM == 2)
+                        kloc = 0;
+#elif (AMREX_SPACEDIM == 3)
+                        kloc = (k == 0) ? 0 : bx.length(2)-k;
+#endif
+                    }
 
                     realpart(i,j,k) =  spectral(iloc,jloc,kloc).real();
                     imagpart(i,j,k) = -spectral(iloc,jloc,kloc).imag();

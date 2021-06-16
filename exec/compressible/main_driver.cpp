@@ -571,7 +571,7 @@ void main_driver(const char* argv)
                 // we rotate this flattened MultiFab to have normal in the z-direction since
                 // SWFFT only presently supports flattened MultiFabs with z-normal.
                 MultiFab primFlattenedRot = RotateFlattenedMF(primFlattened);
-                structFactPrimFlattened.FortStructure(primFlattenedRot,geom_flat,0);
+                structFactPrimFlattened.FortStructure(primFlattenedRot,geom_flat,fft_type);
             }
         }
 
