@@ -590,10 +590,6 @@ void StructFact::ComputeFFTW(const MultiFab& variables,
                              MultiFab& variables_dft_imag,
                              const Geometry& geom) {
 
-    if (AMREX_SPACEDIM == 2) {
-        Abort("Need to implement ComputeFFTW in 2D; set fft_type=0 in your inputs file to use SWFFT for now");
-    }
-    
     // Initialize the boxarray "ba_onegrid" from the single box "domain"
     BoxArray ba_onegrid;
     {
@@ -658,11 +654,19 @@ void StructFact::ComputeFFTW(const MultiFab& variables,
             spectral_field.back()->setVal<RunOn::Device>(0.0); // touch the memory
 
             FFTplan fplan;
+#if (AMREX_SPACEDIM == 2)
+            fplan = fftw_plan_dft_r2c_2d(fft_size[1], fft_size[0],
+                                         variables_onegrid[mfi].dataPtr(),
+                                         reinterpret_cast<FFTcomplex*>
+                                         (spectral_field.back()->dataPtr()),
+                                         FFTW_ESTIMATE);
+#elif (AMREX_SPACEDIM == 3)
             fplan = fftw_plan_dft_r2c_3d(fft_size[2], fft_size[1], fft_size[0],
                                          variables_onegrid[mfi].dataPtr(),
                                          reinterpret_cast<FFTcomplex*>
                                          (spectral_field.back()->dataPtr()),
                                          FFTW_ESTIMATE);
+#endif
 
             forward_plan.push_back(fplan);
         }
@@ -698,7 +702,11 @@ void StructFact::ComputeFFTW(const MultiFab& variables,
                     // copy complex conjugate
                     int iloc = bx.length(0)-i;
                     int jloc = (j == 0) ? 0 : bx.length(1)-j;
+#if (AMREX_SPACEDIM == 2)
+                    int kloc = 0;
+#elif (AMREX_SPACEDIM == 3)
                     int kloc = (k == 0) ? 0 : bx.length(2)-k;
+#endif
 
                     realpart(i,j,k) =  spectral(iloc,jloc,kloc).real();
                     imagpart(i,j,k) = -spectral(iloc,jloc,kloc).imag();
