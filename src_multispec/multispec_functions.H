@@ -185,20 +185,6 @@ void ComputeMolconcMolmtot(const MultiFab& rho,
 			   MultiFab& molarconc,
 			   MultiFab& molmtot);
 
-// EP - does a gpu function go here?
-// a better name then molmtot_tmp?
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void GetMolTot(const GpuArray<Real, MAX_SPECIES>& W,
-                Real& molmtot_tmp)
-{
-    Real sumOverN = 0;
-
-    for (int n=0; n<nspecies; ++n){
-        sumOverN += W[n] / molmass[n];                
-    }  
-
-    molmtot_tmp = 1.0 / sumOverN; 
-}  
 
 
 void ComputeGamma(const MultiFab& molarconc,
@@ -257,6 +243,22 @@ void ConvertRhoCToC(MultiFab& rho, const MultiFab& rhotot, MultiFab& conc, int r
 void FillRhoRhototGhost(MultiFab& rho, MultiFab& rhotot, const Geometry& geom);
 
 void FillRhototGhost(MultiFab& rhotot_in, const MultiFab& conc_in, const Geometry& geom);
+
 /////////////////////////////////////////////////////////////////////////////////
+// Device calls from  MassFluxUtil.cpp
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void GetMolTot(const GpuArray<Real, MAX_SPECIES>& W,
+                Real& molmtot)
+{
+    Real sumOverN = 0;
+
+    for (int n=0; n<nspecies; ++n){
+        sumOverN += W[n] / molmass[n];                
+    }  
+
+    molmtot = 1.0 / sumOverN; 
+}  
+
 
 #endif

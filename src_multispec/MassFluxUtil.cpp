@@ -27,18 +27,13 @@ void ComputeMolconcMolmtot(const MultiFab& rho_in,
 
             GpuArray<Real, MAX_SPECIES> W;
 
-            // EP - better name than molmtot_tmp?
-            Real molmtot_tmp;
-
             // calculate mass fraction and total molar mass (1/m=Sum(w_i/m_i))
 
             for (int n=0; n<nspecies; ++n){
                 W[n] = rho(i,j,k,n) / rhotot(i,j,k);
             }
 
-            GetMolTot(W, molmtot_tmp);
-
-            molmtot(i,j,k) = molmtot_tmp; 
+            GetMolTot(W, molmtot(i,j,k));
 
             // calculate molar concentrations in each cell (x_i=m*w_i/m_i) 
 
