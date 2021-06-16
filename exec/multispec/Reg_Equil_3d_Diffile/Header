@@ -1,0 +1,54 @@
+HyperCLaw-V1.1
+14
+rho
+rho1
+rho2
+rho3
+c1
+c2
+c3
+averaged_velx
+averaged_vely
+averaged_velz
+shifted_velx
+shifted_vely
+shifted_velz
+pres
+3
+0.03
+0
+0 0 0 
+1 1 1 
+
+((0,0,0) (31,31,31) (0,0,0)) 
+0 
+0.03125 0.03125 0.03125 
+0
+0
+0 8 0.03
+0
+0 0.5
+0 0.5
+0 0.5
+0.5 1
+0 0.5
+0 0.5
+0 0.5
+0.5 1
+0 0.5
+0.5 1
+0.5 1
+0 0.5
+0 0.5
+0 0.5
+0.5 1
+0.5 1
+0 0.5
+0.5 1
+0 0.5
+0.5 1
+0.5 1
+0.5 1
+0.5 1
+0.5 1
+Level_0//MultiFab
