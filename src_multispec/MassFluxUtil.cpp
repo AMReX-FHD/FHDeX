@@ -1,26 +1,81 @@
 #include "multispec_functions.H"
 
-void ComputeMolconcMolmtot(const MultiFab& rho,
-			   const MultiFab& rhotot,
-			   MultiFab& molarconc,
-			   MultiFab& molmtot)
+void ComputeMolconcMolmtot(const MultiFab& rho_in,
+			   const MultiFab& rhotot_in,
+			   MultiFab& molarconc_in,
+			   MultiFab& molmtot_in)
 {
 
     BL_PROFILE_VAR("ComputeMolconcMolmtot()",ComputeMolconcMolmtot);
 
-    int ng = molarconc.nGrow();
+    int ng = molarconc_in.nGrow();
         
     // Loop over boxes
-    for (MFIter mfi(rho,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
+    for (MFIter mfi(rho_in,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
 
         // Create cell-centered box
         const Box& bx = mfi.growntilebox(ng);
 
-        compute_molconc_molmtot(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
-				BL_TO_FORTRAN_ANYD(rho[mfi]),
-				BL_TO_FORTRAN_ANYD(rhotot[mfi]),
-				BL_TO_FORTRAN_ANYD(molarconc[mfi]),
-				BL_TO_FORTRAN_ANYD(molmtot[mfi]));
+        //EP - place new cpp code here
+        const Array4<const Real>& rho = rho_in.array(mfi);
+        const Array4<const Real>& rhotot = rhotot_in.array(mfi);
+        const Array4<      Real>& molarconc = molarconc_in.array(mfi);
+        const Array4<      Real>& molmtot = molmtot_in.array(mfi);
+        
+        //compute_molconc_molmtot(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
+				//BL_TO_FORTRAN_ANYD(rho[mfi]),
+				//BL_TO_FORTRAN_ANYD(rhotot[mfi]),
+				//BL_TO_FORTRAN_ANYD(molarconc[mfi]),
+				//BL_TO_FORTRAN_ANYD(molmtot[mfi]));
+
+
+//This is wrong -- for testing
+        int nSpeciesIn = 2; 
+        double molmass[2] = { 1.0, 2.0 };
+        double molmassIn[2] = { 1.0, 2.0 };
+
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+
+      
+        //assume rho is not array just to start
+
+        //local computation needs:
+        //nspecies_in -- pull from ???
+        //molmass -- pull from ???
+        //molmassIn -- pull from ???
+        //rho -- rho[mfi]  (vector)
+        //rhotot -- rhotot[mfi]
+        //molarconc -- molarconc[mfi] (vector)
+        //molmtot -- molm[mfi]
+
+
+            int n;
+            double w[nSpeciesIn];
+            double sumWOverN;
+
+    // calculate mass fraction and total molar mass (1/m=Sum(w_i/m_i))
+            sumWovern = 0;
+
+            for (int n=0; n<nSpeciesIn; ++n){
+                    w[n] = rho(i,j,k,n) / rhotot(i,j,k);
+                    sumWOverN = sumWOverN + w[n] / molmass[n];
+            }
+
+            molmtot(i,j,k) = 1.0 / sumWOverN; 
+
+    // calculate molar concentrations in each cell (x_i=m*w_i/m_i) 
+
+            for (int n=0; n<nSpeciesIn; ++n){
+                molarconc(i,j,k,n) = molmtot(i,j,k) * w[n] / molmassIn[n];
+            }
+    
+    
+       //    std::cout << ".";
+        });
+
+
+
     }
 
 }
