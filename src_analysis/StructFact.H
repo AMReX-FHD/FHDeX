@@ -56,10 +56,10 @@ class StructFact {
     // Define vector of unique selected variables
     amrex::Vector< int > var_u;
 
-    // use fftw or swfft
+    // use fftw (1) or swfft (0)
     // note: fftw does not work for flattened MultiFabs yet
     // swfft is buggy for non-cubic domains and large flattened MultiFabs
-    bool use_fftw;
+    int use_fftw;
 
 public:
 
@@ -69,22 +69,20 @@ public:
                const amrex::Vector< std::string >&,
                const amrex::Vector< amrex::Real >&,
                const amrex::Vector< int >&, const amrex::Vector< int >&,
-               const bool& use_fftw_in,
                const int& verbosity=0);
 
     StructFact(const amrex::BoxArray&, const amrex::DistributionMapping&, 
                const amrex::Vector< std::string >&,
                const amrex::Vector< amrex::Real >&,
-               const bool& use_fftw_in,
                const int& verbosity=0);
 
     void define(const amrex::BoxArray&, const amrex::DistributionMapping&, 
                 const amrex::Vector< std::string >&,
                 const amrex::Vector< amrex::Real >&,
-                const bool& use_fftw_in,
                 const int& verbosity=0);
 
     void FortStructure(const amrex::MultiFab&, const amrex::Geometry&,
+                       const int& fft_type_in,
                        const int& reset=0);
 
     void Reset();

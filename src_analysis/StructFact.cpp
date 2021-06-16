@@ -14,13 +14,11 @@ StructFact::StructFact(const BoxArray& ba_in, const DistributionMapping& dmap_in
 		       const Vector< Real >& var_scaling_in,
 		       const Vector< int >& s_pairA_in,
 		       const Vector< int >& s_pairB_in,
-                       const bool& use_fftw_in,
 		       const int& verbosity_in) {
 
   BL_PROFILE_VAR("StructFact::StructFact()",StructFact);
 
   verbosity = verbosity_in;
-  use_fftw = use_fftw_in;
   
   if (s_pairA_in.size() != s_pairA_in.size())
         amrex::Error("StructFact::StructFact() - Must have an equal number of components");
@@ -153,13 +151,11 @@ StructFact::StructFact(const BoxArray& ba_in, const DistributionMapping& dmap_in
 StructFact::StructFact(const BoxArray& ba_in, const DistributionMapping& dmap_in,
 		       const Vector< std::string >& var_names,
 		       const Vector< Real >& var_scaling_in,
-                       const bool& use_fftw_in,
 		       const int& verbosity_in) {
   
   BL_PROFILE_VAR("StructFact::StructFact()",StructFact);
 
   verbosity = verbosity_in;
-  use_fftw = use_fftw_in;
   
   NVAR = var_names.size();
   NCOV = NVAR*(NVAR+1)/2;
@@ -217,13 +213,11 @@ StructFact::StructFact(const BoxArray& ba_in, const DistributionMapping& dmap_in
 void StructFact::define(const BoxArray& ba_in, const DistributionMapping& dmap_in,
                         const Vector< std::string >& var_names,
                         const Vector< Real >& var_scaling_in,
-                        const bool& use_fftw_in,
                         const int& verbosity_in) {
   
   BL_PROFILE_VAR("StructFact::define()",StructFactDefine);
 
   verbosity = verbosity_in;
-  use_fftw = use_fftw_in;
   
   NVAR = var_names.size();
   NCOV = NVAR*(NVAR+1)/2;
@@ -278,7 +272,9 @@ void StructFact::define(const BoxArray& ba_in, const DistributionMapping& dmap_i
   }
 }
 
-void StructFact::FortStructure(const MultiFab& variables, const Geometry& geom, const int& reset) {
+void StructFact::FortStructure(const MultiFab& variables, const Geometry& geom,
+                               const int& reset,
+                               const int& fft_type_in) {
 
   BL_PROFILE_VAR("StructFact::FortStructure()",FortStructure);
 
@@ -288,10 +284,7 @@ void StructFact::FortStructure(const MultiFab& variables, const Geometry& geom, 
   variables_dft_real.define(ba, dm, NVAR, 0);
   variables_dft_imag.define(ba, dm, NVAR, 0);
 
-  // for testing - override the value provided in constructor
-  // bool use_fftw = false;
-
-  if (use_fftw) {
+  if (fftw_type_in == 1) {
       ComputeFFTW(variables, variables_dft_real, variables_dft_imag, geom);
   }
   else if (ba.size() == ParallelDescriptor::NProcs()) {
