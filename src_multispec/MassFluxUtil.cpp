@@ -16,7 +16,6 @@ void ComputeMolconcMolmtot(const MultiFab& rho_in,
         // Create cell-centered box
         const Box& bx = mfi.growntilebox(ng);
 
-        //EP - place new cpp code here
         const Array4<const Real>& rho = rho_in.array(mfi);
         const Array4<const Real>& rhotot = rhotot_in.array(mfi);
         const Array4<      Real>& molarconc = molarconc_in.array(mfi);
@@ -29,49 +28,33 @@ void ComputeMolconcMolmtot(const MultiFab& rho_in,
 				//BL_TO_FORTRAN_ANYD(molmtot[mfi]));
 
 
-//This is wrong -- for testing
-        int nSpeciesIn = 2; 
-        double molmass[2] = { 1.0, 2.0 };
-        double molmassIn[2] = { 1.0, 2.0 };
 
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
 
-      
-        //assume rho is not array just to start
-
-        //local computation needs:
-        //nspecies_in -- pull from ???
-        //molmass -- pull from ???
-        //molmassIn -- pull from ???
-        //rho -- rho[mfi]  (vector)
-        //rhotot -- rhotot[mfi]
-        //molarconc -- molarconc[mfi] (vector)
-        //molmtot -- molm[mfi]
 
 
             int n;
-            double w[nSpeciesIn];
+            double w[nspecies];
             double sumWOverN;
 
-    // calculate mass fraction and total molar mass (1/m=Sum(w_i/m_i))
-            sumWovern = 0;
+            // calculate mass fraction and total molar mass (1/m=Sum(w_i/m_i))
+            sumWOverN = 0;
 
-            for (int n=0; n<nSpeciesIn; ++n){
+            for (int n=0; n<nspecies; ++n){
                     w[n] = rho(i,j,k,n) / rhotot(i,j,k);
-                    sumWOverN = sumWOverN + w[n] / molmass[n];
+                    sumWOverN += w[n] / molmass[n];
             }
 
             molmtot(i,j,k) = 1.0 / sumWOverN; 
 
-    // calculate molar concentrations in each cell (x_i=m*w_i/m_i) 
+            // calculate molar concentrations in each cell (x_i=m*w_i/m_i) 
 
-            for (int n=0; n<nSpeciesIn; ++n){
-                molarconc(i,j,k,n) = molmtot(i,j,k) * w[n] / molmassIn[n];
+            for (int n=0; n<nspecies; ++n){
+                molarconc(i,j,k,n) = molmtot(i,j,k) * w[n] / molmass[n];
             }
     
     
-       //    std::cout << ".";
         });
 
 
