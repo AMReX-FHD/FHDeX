@@ -21,43 +21,32 @@ void ComputeMolconcMolmtot(const MultiFab& rho_in,
         const Array4<      Real>& molarconc = molarconc_in.array(mfi);
         const Array4<      Real>& molmtot = molmtot_in.array(mfi);
         
-        //compute_molconc_molmtot(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
-				//BL_TO_FORTRAN_ANYD(rho[mfi]),
-				//BL_TO_FORTRAN_ANYD(rhotot[mfi]),
-				//BL_TO_FORTRAN_ANYD(molarconc[mfi]),
-				//BL_TO_FORTRAN_ANYD(molmtot[mfi]));
-
-
 
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
 
+            GpuArray<Real, MAX_SPECIES> W;
 
-
-            int n;
-            double w[nspecies];
-            double sumWOverN;
+            // EP - better name than molmtot_tmp?
+            Real molmtot_tmp;
 
             // calculate mass fraction and total molar mass (1/m=Sum(w_i/m_i))
-            sumWOverN = 0;
 
             for (int n=0; n<nspecies; ++n){
-                    w[n] = rho(i,j,k,n) / rhotot(i,j,k);
-                    sumWOverN += w[n] / molmass[n];
+                W[n] = rho(i,j,k,n) / rhotot(i,j,k);
             }
 
-            molmtot(i,j,k) = 1.0 / sumWOverN; 
+            GetMolTot(W, molmtot_tmp);
+
+            molmtot(i,j,k) = molmtot_tmp; 
 
             // calculate molar concentrations in each cell (x_i=m*w_i/m_i) 
 
             for (int n=0; n<nspecies; ++n){
-                molarconc(i,j,k,n) = molmtot(i,j,k) * w[n] / molmass[n];
+                molarconc(i,j,k,n) = molmtot(i,j,k) * W[n] / molmass[n];
             }
     
-    
         });
-
-
 
     }
 

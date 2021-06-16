@@ -185,6 +185,22 @@ void ComputeMolconcMolmtot(const MultiFab& rho,
 			   MultiFab& molarconc,
 			   MultiFab& molmtot);
 
+// EP - does a gpu function go here?
+// a better name then molmtot_tmp?
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void GetMolTot(const GpuArray<Real, MAX_SPECIES>& W,
+                Real& molmtot_tmp)
+{
+    Real sumOverN = 0;
+
+    for (int n=0; n<nspecies; ++n){
+        sumOverN += W[n] / molmass[n];                
+    }  
+
+    molmtot_tmp = 1.0 / sumOverN; 
+}  
+
+
 void ComputeGamma(const MultiFab& molarconc,
 		  const MultiFab& Hessian,
 		  MultiFab& Gamma);
