@@ -284,7 +284,7 @@ void StructFact::FortStructure(const MultiFab& variables, const Geometry& geom,
   variables_dft_real.define(ba, dm, NVAR, 0);
   variables_dft_imag.define(ba, dm, NVAR, 0);
 
-  if (fftw_type_in == 1) {
+  if (fft_type_in == 1) {
       ComputeFFTW(variables, variables_dft_real, variables_dft_imag, geom);
   }
   else if (ba.size() == ParallelDescriptor::NProcs()) {
