@@ -313,12 +313,12 @@ void FhdParticleContainer::computeForcesNLGPU(const MultiFab& charge, const Mult
 #pragma omp parallel
 #endif
 
-    if(doRedist != 0)
-    {
+    //if(doRedist != 0)
+    //{
         fillNeighbors();
 
         buildNeighborList(CHECK_PAIR{});
-    }
+    //}
 
    for (FhdParIter pti(*this, lev, MFItInfo().SetDynamic(false)); pti.isValid(); ++pti)
    {     
