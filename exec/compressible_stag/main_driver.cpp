@@ -917,9 +917,9 @@ void main_driver(const char* argv)
                     amrex::Print() << "entering stage 1" << std::endl;
                     amrex::Print() << geom_flat << std::endl;
                     amrex::Print() << "entering stage 1a" << std::endl;
-                    structFactPrimVerticalAverage.FortStructure(primVertAvgRot,geom_flat,0);
+                    structFactPrimVerticalAverage.FortStructure(primVertAvgRot,geom_flat,fft_type);
                     amrex::Print() << "exiting stage 1" << std::endl;
-                    structFactConsVerticalAverage.FortStructure(consVertAvgRot,geom_flat,0);
+                    structFactConsVerticalAverage.FortStructure(consVertAvgRot,geom_flat,fft_type);
                     amrex::Print() << "exiting stage 2" << std::endl;
                 }
                 else {
@@ -935,10 +935,10 @@ void main_driver(const char* argv)
                     MultiFab primVertAvgRot1 = RotateFlattenedMF(primVertAvg1);
                     MultiFab consVertAvgRot0 = RotateFlattenedMF(consVertAvg0);
                     MultiFab consVertAvgRot1 = RotateFlattenedMF(consVertAvg1);
-                    structFactPrimVerticalAverage0.FortStructure(primVertAvgRot0,geom_flat,0);
-                    structFactPrimVerticalAverage1.FortStructure(primVertAvgRot1,geom_flat,0);
-                    structFactConsVerticalAverage0.FortStructure(consVertAvgRot0,geom_flat,0);
-                    structFactConsVerticalAverage1.FortStructure(consVertAvgRot1,geom_flat,0);
+                    structFactPrimVerticalAverage0.FortStructure(primVertAvgRot0,geom_flat,fft_type);
+                    structFactPrimVerticalAverage1.FortStructure(primVertAvgRot1,geom_flat,fft_type);
+                    structFactConsVerticalAverage0.FortStructure(consVertAvgRot0,geom_flat,fft_type);
+                    structFactConsVerticalAverage1.FortStructure(consVertAvgRot1,geom_flat,fft_type);
                 }
             }
         }
