@@ -260,5 +260,4 @@ void GetMolTot(const GpuArray<Real, MAX_SPECIES>& W,
     molmtot = 1.0 / sumOverN; 
 }  
 
-
 #endif
