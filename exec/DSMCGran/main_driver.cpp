@@ -165,6 +165,7 @@ void main_driver(const char* argv)
 		particles.InitParticles(dt);
 
 		particles.InitCollisionCells(dt);
+		amrex::Print() << "Overwritten dt so Courant number <1: " << dt << "\n";
 	}
 	
 	else {
@@ -180,7 +181,7 @@ void main_driver(const char* argv)
 	//int check_step = 10;
 	Real time = 0.;
 	int statsCount = 1;
-	int step_stat = 5;
+	int step_stat = 1;
 	for (int istep=1; istep<=max_step; ++istep) {
 		Real tbegin = ParallelDescriptor::second();
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -196,7 +197,8 @@ void main_driver(const char* argv)
 		//}
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Collide Particles
-		amrex::Print() << "Time step: " << istep << "\n";
+		//amrex::Print() << "Collisions per particles per species: " << 
+		//	particles.CountedCollision[
 		particles.CalcSelections(dt);
 		particles.CollideParticles(dt);
 
@@ -206,10 +208,11 @@ void main_driver(const char* argv)
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Stats
-		if (istep%step_stat == 0) {
+		cu.setVal(0.);
+		particles.EvaluateStats(cu, cuMeans, cuVars, coVars, statsCount++);
+		if (istep%plot_int == 0) {
 			cu.setVal(0.);
-			particles.EvaluateStats(cu, cuMeans, cuVars, coVars,  statsCount); // Comment -- Why not this out of the if statement? Compute every step -- print every step_stat
-			particles.writePlotFile(cu, cuMeans, cuVars,  coVars,  geom,  time, statsCount++);
+			particles.writePlotFile(cu, cuMeans, cuVars,  coVars,  geom,  time, statsCount);
 		}
  
 		Real tend = ParallelDescriptor::second() - tbegin;
@@ -222,6 +225,5 @@ void main_driver(const char* argv)
 	amrex::Print() << "Run time = " << stop_time << " seconds" << std::endl;
 
 
-	if(particle_input<0) {particles.OutputParticles();} // initial condition
-	//particles.OutputParticles();
+	//if(particle_input<0 && ParallelDescriptor::MyProc() == 0) {particles.OutputParticles();} // initial condition
 }

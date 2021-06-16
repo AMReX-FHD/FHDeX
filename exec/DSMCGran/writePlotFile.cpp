@@ -13,7 +13,7 @@ void FhdParticleContainer::writePlotFile(const MultiFab& Cu,
                                          const Geometry& geom, 
                                          Real time, 
                                          int statCount) {
-	BL_PROFILE("WritePlotFile()");
+	BL_PROFILE("writePlotFile()");
 	
 	int ncovar = 10;     			     // covar 
 	int nstats  = (nspecies+1)*13; // variables

@@ -42,7 +42,7 @@ Real FhdParticleContainer::g0_Ma_Ahmadi(int ispec, int jspec, Real iphi, Real jp
 	}
 }
 
-void FhdParticleContainer::InitCollisionCells(Real dt) {
+void FhdParticleContainer::InitCollisionCells(Real & dt) {
 	int indx, ij_spec;
    int cnt = 0;
    Real totalPhi = 0;

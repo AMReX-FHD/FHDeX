@@ -106,8 +106,8 @@ public:
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // DSMC Routines
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	void InitParticles(Real dt);
-	void InitCollisionCells(Real dt);
+	void InitParticles(Real & dt);
+	void InitCollisionCells(Real & dt);
 
    void Source(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount);
 
@@ -139,7 +139,7 @@ public:
   void EvaluateStats(MultiFab& Cu,    
                      MultiFab& CuMeans,
                      MultiFab& CuVars,
-										 MultiFab& CoVars,
+							MultiFab& CoVars,
                      int steps);
                                          
    void OutputParticles();
@@ -152,7 +152,7 @@ public:
                       int statCount);
                
 	void PrintCellList(int i, int j, int k);
-  void PrintCellListInternal(int i, int j, int k, int index, long imap);
+   void PrintCellListInternal(int i, int j, int k, int index, long imap);
    
    Real tTg[MAX_SPECIES];
    Real initTg[MAX_SPECIES];

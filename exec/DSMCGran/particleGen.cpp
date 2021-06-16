@@ -7,7 +7,7 @@
 
 using namespace std;
 
-void FhdParticleContainer::InitParticles(Real dt) {
+void FhdParticleContainer::InitParticles(Real & dt) {
 	const int lev = 0;
 	const Geometry& geom = Geom(lev);
 
@@ -69,7 +69,7 @@ void FhdParticleContainer::InitParticles(Real dt) {
 						vpart[2] = stdev*amrex::RandomNormal(0.,1.);               	
 					}
 
-					spd = sqrt(vpart[0]*vpart[0]+vpart[1]*vpart[1]+vpart[2]*vpart[2]);
+					spd = sqrt(pow(vpart[0],2)+pow(vpart[1],2)+pow(vpart[2],2));
 					if(spd>spdmax){ spdmax = spd; }
 					
 					p.rdata(FHD_realData::velx) = vpart[0]; u += vpart[0];

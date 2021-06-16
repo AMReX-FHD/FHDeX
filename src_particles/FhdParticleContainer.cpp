@@ -313,12 +313,12 @@ void FhdParticleContainer::computeForcesNLGPU(const MultiFab& charge, const Mult
 #pragma omp parallel
 #endif
 
-    //if(doRedist != 0)
-    //{
+    if(doRedist != 0)
+    {
         fillNeighbors();
 
         buildNeighborList(CHECK_PAIR{});
-    //}
+    }
 
    for (FhdParIter pti(*this, lev, MFItInfo().SetDynamic(false)); pti.isValid(); ++pti)
    {     
@@ -724,7 +724,7 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
 
                         Real dummy = 1;
                         //app_bc(&surf, &part, &intside, domsize, &push, &dummy, &dummy);
-                        app_bc_gpu(&surf, part, intside, domsize, &push, &runtime, dummy);
+                        app_bc_gpu(&surf, part, intside, domsize, &push, dummy, dummy);
                         //std::cout << "Post: " << part.id() << ", " << part.rdata(FHD_realData::velx) << ", " << part.rdata(FHD_realData::vely) << ", " << part.rdata(FHD_realData::velz) << ", " << intsurf << "\n";
 
                         if(push == 1)

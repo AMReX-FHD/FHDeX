@@ -51,13 +51,13 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
       	properties[i].total = (int)amrex::Math::ceil(particle_n0[i]*domainVol/particle_neff);
       	properties[i].n0 = properties[i].total/domainVol;
       
-      	amrex::Print() <<  "Species "<< i << " count " << properties[i].total << "\n";
-      	amrex::Print() <<  "Species "<< i << " n0 " << properties[i].total << "\n";
+      	amrex::Print() <<  "Species " << i << " count " << properties[i].total << "\n";
+      	amrex::Print() <<  "Species " << i << " n0 " << properties[i].total << "\n";
       }
       
       realParticles = realParticles + properties[i].total*particle_neff;
       simParticles = simParticles + properties[i].total;
-      amrex::Print() << "Particles per cell for species: " << i << " is " << properties[i].total/totalCollisionCells << "\n";
+      amrex::Print() << "Particles per cell for species " << i << " is " << properties[i].total/totalCollisionCells << "\n";
 	}
 
 	for (int d=0; d<AMREX_SPACEDIM; ++d) {
