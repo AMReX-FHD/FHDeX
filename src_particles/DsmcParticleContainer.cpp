@@ -176,6 +176,7 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
                   }
 
               }
+ 
               part.rdata(FHD_realData::timeFrac) = 1;
 
 
@@ -191,15 +192,23 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
 
                 IntVect iv(part.idata(FHD_intData::i), part.idata(FHD_intData::j), part.idata(FHD_intData::k));
                 long imap = tile_box.index(iv);
+
+
                 int lastIndex = m_cell_vectors[part.idata(FHD_intData::species)][pti.index()][imap].size() - 1;
+
                 int lastPart = m_cell_vectors[part.idata(FHD_intData::species)][pti.index()][imap][lastIndex];
+
+
                 int newIndex = part.idata(FHD_intData::sorted);
+
+
                 m_cell_vectors[part.idata(FHD_intData::species)][pti.index()][imap][newIndex] = lastPart;
                 m_cell_vectors[part.idata(FHD_intData::species)][pti.index()][imap].pop_back();
 
                 particles[lastPart].idata(FHD_intData::sorted) = newIndex;
 
                 part.idata(FHD_intData::sorted) = -1;
+    
             }
        
 
@@ -208,7 +217,24 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
         maxspeed_proc = amrex::max(maxspeed_proc, maxspeed);
         maxdist_proc  = amrex::max(maxdist_proc, maxdist);
 
+
     }
+
+    // gather statistics
+    ParallelDescriptor::ReduceIntSum(np_proc);
+    ParallelDescriptor::ReduceRealSum(moves_proc);
+    ParallelDescriptor::ReduceRealMax(maxspeed_proc);
+    ParallelDescriptor::ReduceRealMax(maxdist_proc);
+    ParallelDescriptor::ReduceIntSum(reDist);
+
+    // write out global diagnostics
+    /*if (ParallelDescriptor::IOProcessor()) {
+        Print() << "I see " << np_proc << " particles\n";
+
+        Print() << reDist << " particles to be redistributed.\n";
+        Print() <<"Maximum observed speed: " << sqrt(maxspeed_proc) << "\n";
+        Print() <<"Maximum observed displacement (fraction of radius): " << maxdist_proc << "\n";
+    }*/
 
     Redistribute();
     SortParticles();
@@ -236,10 +262,14 @@ void FhdParticleContainer::SortParticles()
         {
             ParticleType & part = particles[i];
 
+            IntVect iv ={0,0,0};
+
 
             if(part.idata(FHD_intData::sorted) == -1)
             {
-            	 const IntVect iv = this->Index(part,lev);
+                iv[0] = (int)floor((part.pos(0)-plo[0])/dx[0]);
+                iv[1] = (int)floor((part.pos(1)-plo[1])/dx[1]);
+                iv[2] = (int)floor((part.pos(2)-plo[2])/dx[2]);
 
                 part.idata(FHD_intData::i) = iv[0];
                 part.idata(FHD_intData::j) = iv[1];
@@ -251,7 +281,18 @@ void FhdParticleContainer::SortParticles()
 
                 m_cell_vectors[part.idata(FHD_intData::species)][pti.index()][imap].push_back(i);
 
+            }else
+            {
+
+                iv[0] = part.idata(FHD_intData::i);
+                iv[1] = part.idata(FHD_intData::j);
+                iv[2] = part.idata(FHD_intData::k);
+
+                long imap = tile_box.index(iv);
+
+                m_cell_vectors[part.idata(FHD_intData::species)][pti.index()][imap][part.idata(FHD_intData::sorted)] = i;
             }
+
         }
     }
 }
