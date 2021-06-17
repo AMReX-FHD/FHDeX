@@ -24,23 +24,9 @@ void ComputeMolconcMolmtot(const MultiFab& rho_in,
 
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-
-            GpuArray<Real, MAX_SPECIES> W;
-
-            // calculate mass fraction and total molar mass (1/m=Sum(w_i/m_i))
-
-            for (int n=0; n<nspecies; ++n){
-                W[n] = rho(i,j,k,n) / rhotot(i,j,k);
-            }
-
-            GetMolTot(W, molmtot(i,j,k));
-
-            // calculate molar concentrations in each cell (x_i=m*w_i/m_i) 
-
-            for (int n=0; n<nspecies; ++n){
-                molarconc(i,j,k,n) = molmtot(i,j,k) * W[n] / molmass[n];
-            }
-    
+            ComputeMolconcMolmtotLocal(nspecies, molmass, 
+                            rho(i,j,k,:), rhotot(i,j,k),          //EP - want to pass an array like this but it doesn't work
+                            molarconc(i,j,k,:), molmtot(i,j,k));
         });
 
     }
