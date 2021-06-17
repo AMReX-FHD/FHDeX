@@ -903,8 +903,8 @@ void main_driver(const char* argv)
             }
             ////////////////////////////////////////////////////
 
-            structFactPrim.FortStructure(structFactPrimMF,geom);
-            structFactCons.FortStructure(structFactConsMF,geom);
+            structFactPrim.FortStructure(structFactPrimMF,geom,fft_type);
+            structFactCons.FortStructure(structFactConsMF,geom,fft_type);
 
             if(project_dir >= 0) {
                 if (do_slab_sf == 0) {
@@ -917,9 +917,9 @@ void main_driver(const char* argv)
                     amrex::Print() << "entering stage 1" << std::endl;
                     amrex::Print() << geom_flat << std::endl;
                     amrex::Print() << "entering stage 1a" << std::endl;
-                    structFactPrimVerticalAverage.FortStructure(primVertAvgRot,geom_flat);
+                    structFactPrimVerticalAverage.FortStructure(primVertAvgRot,geom_flat,fft_type);
                     amrex::Print() << "exiting stage 1" << std::endl;
-                    structFactConsVerticalAverage.FortStructure(consVertAvgRot,geom_flat);
+                    structFactConsVerticalAverage.FortStructure(consVertAvgRot,geom_flat,fft_type);
                     amrex::Print() << "exiting stage 2" << std::endl;
                 }
                 else {
@@ -935,10 +935,10 @@ void main_driver(const char* argv)
                     MultiFab primVertAvgRot1 = RotateFlattenedMF(primVertAvg1);
                     MultiFab consVertAvgRot0 = RotateFlattenedMF(consVertAvg0);
                     MultiFab consVertAvgRot1 = RotateFlattenedMF(consVertAvg1);
-                    structFactPrimVerticalAverage0.FortStructure(primVertAvgRot0,geom_flat);
-                    structFactPrimVerticalAverage1.FortStructure(primVertAvgRot1,geom_flat);
-                    structFactConsVerticalAverage0.FortStructure(consVertAvgRot0,geom_flat);
-                    structFactConsVerticalAverage1.FortStructure(consVertAvgRot1,geom_flat);
+                    structFactPrimVerticalAverage0.FortStructure(primVertAvgRot0,geom_flat,fft_type);
+                    structFactPrimVerticalAverage1.FortStructure(primVertAvgRot1,geom_flat,fft_type);
+                    structFactConsVerticalAverage0.FortStructure(consVertAvgRot0,geom_flat,fft_type);
+                    structFactConsVerticalAverage1.FortStructure(consVertAvgRot1,geom_flat,fft_type);
                 }
             }
         }

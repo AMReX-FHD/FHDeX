@@ -173,6 +173,7 @@ void app_bc_gpu(const paramPlane* surf, FhdParticleContainer::ParticleType& part
       if(amrex::Random() < surf->sinkRight)
       {
         *runtime = 0;
+                cout << "HEEEEEEEEERRRRRRRRRRRRRRRRRRRRRRRREEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE!!!!!!!\n";
 
         part.id() = -1;
       }
@@ -249,7 +250,7 @@ void app_bc_gpu(const paramPlane* surf, FhdParticleContainer::ParticleType& part
       if(amrex::Random() < surf->sinkLeft)
       {
         *runtime = 0;
-
+                cout << "HEEEEEEEEERRRRRRRRRRRRRRRRRRRRRRRREEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE!!!!!!!\n";
         part.id() = -1;
       }
       else if(amrex::Random() > surf->porosityLeft)
