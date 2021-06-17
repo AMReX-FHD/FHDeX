@@ -24,9 +24,19 @@ void ComputeMolconcMolmtot(const MultiFab& rho_in,
 
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
+
+            GpuArray<Real, MAX_SPECIES> RhoN;
+            GpuArray<Real, MAX_SPECIES> MolarConcN;
+
+            for (int n=0; n<nspecies; ++n ){
+                RhoN[n] = rhotot(i,j,k,n);
+                MolarConcN[n] = molarconc(i,j,k,n);
+            }
+
+
             ComputeMolconcMolmtotLocal(nspecies, molmass, 
-                            rho(i,j,k,:), rhotot(i,j,k),          //EP - want to pass an array like this but it doesn't work
-                            molarconc(i,j,k,:), molmtot(i,j,k));
+                            RhoN, rhotot(i,j,k),          
+                            MolarConcN, molmtot(i,j,k));
         });
 
     }

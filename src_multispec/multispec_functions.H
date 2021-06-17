@@ -267,9 +267,9 @@ void GetMolTot(const GpuArray<Real, MAX_SPECIES>& W,
 
 void ComputeMolconcMolmtotLocal( int nspecies_in,
                 GpuArray<Real, MAX_SPECIES>& molmass_in,
-                Array<Real, MAX_SPECIES>& rho_in,
+                GpuArray<Real, MAX_SPECIES>& RhoN,
                 Real rhotot_in,
-                Array<Real, MAX_SPECIES>& molarconc_in,
+                GpuArray<Real, MAX_SPECIES>& MolarConcN,
                 Real molmtot_in){
 
     GpuArray<Real, MAX_SPECIES> W;
@@ -277,15 +277,15 @@ void ComputeMolconcMolmtotLocal( int nspecies_in,
     // calculate mass fraction and total molar mass (1/m=Sum(w_i/m_i))
 
     for (int n=0; n<nspecies_in; ++n){
-        W[n] = rho_in[n] / rhotot_in;
+        W[n] = RhoN[n] / rhotot_in;
     }
 
-    GetMolTot(W, molmtot_in);
+    GetMolTot(W, molmtot_in); 
 
     // calculate molar concentrations in each cell (x_i=m*w_i/m_i) 
 
     for (int n=0; n<nspecies_in; ++n){
-        molarconc_in[n] = molmtot_in * W[n] / molmass[n];
+        MolarConcN[n] = molmtot_in * W[n] / molmass[n];
     }
     
 
