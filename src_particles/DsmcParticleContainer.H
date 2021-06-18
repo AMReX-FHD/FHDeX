@@ -132,27 +132,26 @@ public:
    MultiFab mfCollisions; // keep track to ensure correct collision frequency
 	int expectedCollisions[MAX_SPECIES], countedCollisions[MAX_SPECIES];
 
-
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Outputs
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  void EvaluateStats(MultiFab& Cu,    
-                     MultiFab& CuMeans,
-                     MultiFab& CuVars,
-							MultiFab& CoVars,
-                     int steps);
-                                         
+   void EvaluateStats(MultiFab& cuConInst,
+   						 MultiFab& cuConMeans,
+   						 MultiFab& cuPrimInst,
+   						 MultiFab& cuPrimMeans,
+   						 MultiFab& cuVars,
+   						 MultiFab& coVars,
+   						 int steps);
    void OutputParticles();
-   void writePlotFile(const MultiFab& Cu,
-                      const MultiFab& CuMeans, 
-                      const MultiFab& CuVars,
-                      const MultiFab& CoVars,
-                      const Geometry& geom, 
-                      Real time, 
-                      int statCount);
-               
-	void PrintCellList(int i, int j, int k);
-   void PrintCellListInternal(int i, int j, int k, int index, long imap);
+   void writePlotFile(const MultiFab& cuConInst,
+   						 const MultiFab& cuConMeans,
+   						 const MultiFab& cuPrimInst,
+   						 const MultiFab& cuPrimMeans,
+   						 const MultiFab& cuVars,
+   						 const MultiFab& coVars,
+   						 const Geometry& geom,
+   						 Real time,
+   						 int steps);
    
    Real tTg[MAX_SPECIES];
    Real initTg[MAX_SPECIES];

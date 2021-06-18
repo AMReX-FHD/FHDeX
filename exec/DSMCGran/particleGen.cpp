@@ -45,7 +45,8 @@ void FhdParticleContainer::InitParticles(Real & dt) {
 				u[i_spec] = 0.0; v[i_spec] = 0.0; w[i_spec] = 0.0;
 			}
 			for(int i_spec=0; i_spec < nspecies; i_spec++) {
-				stdev = sqrt(T_init[i_spec]/properties[i_spec].mass);
+				// Standard deviation of velocity at temperature T_init
+				stdev = sqrt(T_init[i_spec]*k_B/properties[i_spec].mass);
 				for (int i_part=0; i_part<properties[i_spec].total;i_part++) {
 					ParticleType p;
 					p.id()  = ParticleType::NextID();
@@ -66,9 +67,9 @@ void FhdParticleContainer::InitParticles(Real & dt) {
                	p.pos(0) = prob_lo[0] + amrex::Random()*(prob_hi[0]-prob_lo[0]);
                	p.pos(1) = prob_lo[1] + amrex::Random()*(prob_hi[1]-prob_lo[1]);
                	p.pos(2) = prob_lo[2] + amrex::Random()*(prob_hi[2]-prob_lo[2]);
-						vpart[0] = amrex::RandomNormal(0.,stdev);
-						vpart[1] = amrex::RandomNormal(0.,stdev);
-						vpart[2] = amrex::RandomNormal(0.,stdev);               	
+						vpart[0] = stdev*amrex::RandomNormal(0.,1.);
+						vpart[1] = stdev*amrex::RandomNormal(0.,1.);
+						vpart[2] = stdev*amrex::RandomNormal(0.,1.);               	
 					}
 
 					spd = sqrt(pow(vpart[0],2)+pow(vpart[1],2)+pow(vpart[2],2));
@@ -93,7 +94,7 @@ void FhdParticleContainer::InitParticles(Real & dt) {
 			}
 			
 			// Zero out bulk velocities
-                        
+                     
 			int nstart = 0;
 			for(int i_spec=0; i_spec < nspecies; i_spec++) {			
 				// Zero out the bulk velocities
@@ -108,24 +109,26 @@ void FhdParticleContainer::InitParticles(Real & dt) {
 				}
 				nstart += properties[i_spec].total;
 			}
+			
                         
 			particleFile.close();
 		}
 	}
-	// Broadcast max vels to other procs
-	ParallelDescriptor::Bcast(&umax,1,ParallelDescriptor::IOProcessorNumber());
-	ParallelDescriptor::Bcast(&vmax,1,ParallelDescriptor::IOProcessorNumber());
-	ParallelDescriptor::Bcast(&umax,1,ParallelDescriptor::IOProcessorNumber());
+	// Set guess of max relative velocity
 	ParallelDescriptor::Bcast(&spdmax,1,ParallelDescriptor::IOProcessorNumber());
-	amrex::Print() << "myproc: " << ParallelDescriptor::MyProc() << " umax: " << umax << "\n";
-	amrex::Print() << "spdmax: " << spdmax << "\n";
-	dt  = umax*n_cells[0]/(prob_hi[0]-prob_lo[0]);
-	dt += vmax*n_cells[1]/(prob_hi[1]-prob_lo[1]);
-	dt += wmax*n_cells[2]/(prob_hi[2]-prob_lo[2]);
-	dt  = 0.2/dt; // Courant number of 0.2
-	amrex::Print() << "My dt " << dt << "\n";
 	mfvrmax.setVal(spdmax);
 
+	// Calculate global timestep
+	// Assume IO processor is 0
+	if(ParallelDescriptor::MyProc() == 0) {
+		dt  = umax*n_cells[0]/(prob_hi[0]-prob_lo[0]);
+		dt += vmax*n_cells[1]/(prob_hi[1]-prob_lo[1]);
+		dt += wmax*n_cells[2]/(prob_hi[2]-prob_lo[2]);
+		dt  = 0.2/dt; // Courant number of 0.2
+	}
+	ParallelDescriptor::Bcast(&dt,1,ParallelDescriptor::IOProcessorNumber());
+	amrex::Print() << "My dt " << dt << "\n";
+	
 	Redistribute();
 	SortParticles();
 }

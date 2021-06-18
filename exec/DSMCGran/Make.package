@@ -1,6 +1,6 @@
 CEXE_headers   += INS_functions.H
 CEXE_sources   += particleGen.cpp
 CEXE_sources   += stats.cpp
-CEXE_sources   += checkpoint.cpp
+#CEXE_sources   += checkpoint.cpp
 CEXE_sources   += DsmcCollide.cpp
 CEXE_sources   += writePlotFile.cpp

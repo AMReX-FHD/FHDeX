@@ -1,10 +1,12 @@
 #include "DsmcParticleContainer.H"
 using namespace std;
-void FhdParticleContainer::EvaluateStats(MultiFab& Cu,    
-                                         MultiFab& CuMeans,
-                                         MultiFab& CuVars,
-													  MultiFab& CoVars,
-                                         int steps) {
+void FhdParticleContainer::EvaluateStats(MultiFab& mfcuConInst,
+   						 MultiFab& mfcuConMeans,
+   						 MultiFab& mfcuPrimInst,
+   						 MultiFab& mfcuPrimMeans,
+   						 MultiFab& mfcuVars,
+   						 MultiFab& mfcoVars,
+   						 int steps) {
 	BL_PROFILE_VAR("EvaluateStats()",EvaluateStats);
 
 	const Real osteps = 1.0/steps;
@@ -20,150 +22,249 @@ void FhdParticleContainer::EvaluateStats(MultiFab& Cu,
 		IntVect smallEnd = tile_box.smallEnd();
 		IntVect bigEnd = tile_box.bigEnd();
 		
-		// Instantaneous Values
 		/*
-		0 	- n - number density
-		1	- rho - mass density
-		2 	- Jx - x-mom density
-		3 	- Jy - y-mom density
-		4 	- Jz - z-mom density
-		5 	- tau_xx - xx shear stress
-		6 	- tau_xy - xy shear stress
-		7 	- tau_xz - xz shear stress
-		8 	- tau_yy - yy shear stress
-		9  - tau_yz - yz shear stress
-		10 - tau_zz - zz shear stress
-		11 - E - energy
-		12 - T_g - granular temperature
-		13 - X_i - mole fraction for spec. i
-		14 - Y_i - mass fraction for spec. i
-		15 - u_i - x-vel for spec. i
-		16 - v_i - y-vel for spec. i
-		17 - w_i - z-vel for spec. i
-		18 - uu_i 
-		19 - uv_i
-		20 - uw_i
-		21 - vv_i
-		22 - vw_i
-		23 - ww_i
-		24 - E_i
-		25 - T_g_i
-		... (repeat for each add. species)
+			Conserved Vars:
+			0  - rho = (1/V) += m
+			1  - Jx  = (1/V) += mu
+			2  - Jy  = (1/V) += mv
+			3  - Jz  = (1/V) += mw
+			4  - K   = (1/V) += m|v|^2
+			... (repeat for each species)
+
+		   Primitive Vars:
+			0	- n  (X_ns)
+			1  - u  (u_ns)
+			2  - v  (v_ns)
+			3  - w  (w_ns)
+			4  - uu (uu_ns)
+			5  - uv (uv_ns)
+			6  - uw (uw_ns)
+			7  - vv (vv_ns)
+			8  - vw (vw_ns)
+			9  - ww (ww_ns)
+			10 - P  (P_ns)  = (1/3V) += m|v|^2
+			11 - T  (T_ns)  = (1/3Nk_B) += m|v|^2
+			12 - E  (E_ns)  = (1/2) += |v|^2 + c_v*T
+			... (repeat for each species)
 		*/
-		int nstats = 13;
-		Array4<Real> cu = Cu[pti].array();
-		Array4<Real> cumean = CuMeans[pti].array();
-		Array4<Real> cuvars = CuVars[pti].array();
-		Array4<Real> covars = CoVars[pti].array();
+		
+		int ncon  = (nspecies+1)*5;
+		int nprim = (nspecies+1)*13;
+		Array4<Real> cuConInst   = mfcuConInst[pti].array();
+		Array4<Real> cuPrimInst  = mfcuPrimInst[pti].array();	
+		// Instaneous Values
+		// Need to verify the values are within reason
 		amrex::ParallelFor(tile_box,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
 			const IntVect& iv = {i,j,k};
 			long imap = tile_box.index(iv);
-			int cnt = nstats;
+			int icon = 5; int iprim = 13;
 			for (int l=0; l<nspecies; l++) {
 				const long np_spec = m_cell_vectors[l][grid_id][imap].size();
-				Real moV  = properties[l].mass*ocollisionCellVol*properties[l].Neff;     // density
 				Real mass = properties[l].mass*properties[l].Neff;
-				cu(i,j,k,cnt)   = np_spec*ocollisionCellVol;		   // number density of species l
-				cu(i,j,k,0)    += np_spec*ocollisionCellVol; 		// total number density
-				cu(i,j,k,cnt+1) = np_spec*moV;         		    	// mass density of species l
-				cu(i,j,k,1)    += np_spec*moV;							// total mass density
+				Real moV  = mass*ocollisionCellVol;    						// density
+				Real cv_l = 3.0*k_B*0.5/mass;                        		// assume ideal gas <- in general untrue for most granular cases
+				cuPrimInst(i,j,k,iprim)   = np_spec*ocollisionCellVol;	// number density of species l
+				cuConInst(i,j,k,icon)     = np_spec*moV;         		   // mass density of species l
 				
 				// Read particle data
 				for (int m=0; m<np_spec; m++) {
 					int pind = m_cell_vectors[l][grid_id][imap][m];
 					ParticleType ptemp = particles[pind];
 					ParticleType & p = ptemp;
-					// ParticleType & p = particles[pind]; 
-										
-					cu(i,j,k,cnt+2)  += p.rdata(FHD_realData::velx); // x-mom of species l
-					cu(i,j,k,cnt+3)  += p.rdata(FHD_realData::vely); // y-mom of species l
-					cu(i,j,k,cnt+4)  += p.rdata(FHD_realData::velz); // z-mom of species l
-					
+					// ParticleType & p = particles[pind];
 					Real u = p.rdata(FHD_realData::velx);
 					Real v = p.rdata(FHD_realData::vely);
 					Real w = p.rdata(FHD_realData::velz);
-					cu(i,j,k,cnt+5)  += pow(u,2);							   	    // uu of spec l
-					cu(i,j,k,cnt+6)  += u*v; 										    // uv of spec l
-					cu(i,j,k,cnt+7)  += u*w; 							 			    // uw of spec l
-					cu(i,j,k,cnt+8)  += pow(v,2); 									 // vv of spec l
-					cu(i,j,k,cnt+9)  += v*w; 							 	          // vw of spec l
-					cu(i,j,k,cnt+10) += pow(w,2); 								    // ww of spec l
-					cu(i,j,k,cnt+11) += pow(u,2)+pow(v,2)+pow(w,2);           // Energy of spec l
-					cu(i,j,k,cnt+12) += (pow(u,2)+pow(v,2)+pow(w,2))/3;           // Gran. Temp.
-				}
 
-				// Convert velocities to momentum densities
-				cu(i,j,k,2) += cu(i,j,k,cnt+2)*moV;	  // total x-mom
-				cu(i,j,k,3) += cu(i,j,k,cnt+3)*moV;   // total y-mom
-				cu(i,j,k,4) += cu(i,j,k,cnt+4)*moV;   // total z-mom
+					cuConInst(i,j,k,icon+1) += u;
+					cuConInst(i,j,k,icon+2) += v;
+					cuConInst(i,j,k,icon+3) += w;
+					cuConInst(i,j,k,icon+4) += (pow(u,2)+pow(v,2)+pow(w,2));
+				}
 				
-				// Convert speeds squared to energy/stress densities
-				// Stresses do not include cross terms atm
-				cu(i,j,k,5)  += cu(i,j,k,cnt+5)*moV*0.5;  // total tau_xx
-				cu(i,j,k,6)  += cu(i,j,k,cnt+6)*moV*0.5;  // total tau_xy
-				cu(i,j,k,7)  += cu(i,j,k,cnt+7)*moV*0.5;  // total tau_xz
-				cu(i,j,k,8)  += cu(i,j,k,cnt+8)*moV*0.5;  // total tau_yy
-				cu(i,j,k,9)  += cu(i,j,k,cnt+9)*moV*0.5;  // total tau_yz
-				cu(i,j,k,10) += cu(i,j,k,cnt+10)*moV*0.5; // total tau_zz
-				cu(i,j,k,11) += cu(i,j,k,cnt+11)*moV*0.5; // total energy
+				// Momentum densities
+				cuConInst(i,j,k,icon+1) = cuConInst(i,j,k,icon+1)*moV;  		// x-mom density
+				cuConInst(i,j,k,icon+2) = cuConInst(i,j,k,icon+2)*moV;  		// y-mom density
+				cuConInst(i,j,k,icon+3) = cuConInst(i,j,k,icon+3)*moV;  		// z-mom density
+				// Energy density
+				cuConInst(i,j,k,icon+4) = cuConInst(i,j,k,icon+4)*moV*0.5;  // energy density
+				// Total of cons. vars
+				for (int m=0; m<=4; m++) {cuConInst(i,j,k,m) += cuConInst(i,j,k,icon+m);}
 				
-				// Gran. Temp of species l
-				cu(i,j,k,cnt+12) = cu(i,j,k,cnt+12)*properties[l].mass/np_spec;
 				
-				//Total Gran temp
-				cu(i,j,k,12) += cu(i,j,k,cnt+12)*cu(i,j,k,cnt); // total Gran. Temp.
-				cnt += nstats;
-			}
+				// Care not to use mean of instananeous primitives as mean (use conserved)
+				cuPrimInst(i,j,k,iprim+ 1) = cuConInst(i,j,k,icon+1)/cuConInst(i,j,k,icon);				// u  of spec l
+				cuPrimInst(i,j,k,iprim+ 2) = cuConInst(i,j,k,icon+2)/cuConInst(i,j,k,icon);				// v  of spec l
+				cuPrimInst(i,j,k,iprim+ 3) = cuConInst(i,j,k,icon+3)/cuConInst(i,j,k,icon);				// w  of spec l
+				cuPrimInst(i,j,k,iprim+ 4) = pow(cuPrimInst(i,j,k,iprim+1),2);									// uu of spec l
+				cuPrimInst(i,j,k,iprim+ 5) = cuPrimInst(i,j,k,iprim+1)*cuPrimInst(i,j,k,iprim+2);		// uv of spec l
+				cuPrimInst(i,j,k,iprim+ 6) = cuPrimInst(i,j,k,iprim+1)*cuPrimInst(i,j,k,iprim+3);		// uw of spec l
+				cuPrimInst(i,j,k,iprim+ 7) = pow(cuPrimInst(i,j,k,iprim+2),2);									// vv of spec l
+				cuPrimInst(i,j,k,iprim+ 8) = cuPrimInst(i,j,k,iprim+2)*cuPrimInst(i,j,k,iprim+3);		// vw of spec l
+				cuPrimInst(i,j,k,iprim+ 9) = pow(cuPrimInst(i,j,k,iprim+3),2);									// ww of spec l
+				cuPrimInst(i,j,k,iprim+10) = (k_B/mass)*(cuConInst(i,j,k,icon+4)-
+					(pow(cuConInst(i,j,k,icon+1),2)+pow(cuConInst(i,j,k,icon+2),2)+pow(cuConInst(i,j,k,icon+3),2))*0.5/
+					cuConInst(i,j,k,icon))/cv_l;																			// P  of spec l
+				cuPrimInst(i,j,k,iprim+11) = cuPrimInst(i,j,k,iprim+10)
+					*(mass/k_B)/cuConInst(i,j,k,icon);   																// T  of spec l
+				cuPrimInst(i,j,k,iprim+12) = cuConInst(i,j,k,icon+4)												
+					+cv_l*cuPrimInst(i,j,k,iprim+11)*cuConInst(i,j,k,icon);										// E  of spec l
 			
-			// Mixture temperature (Divide by total number density)
-			cu(i,j,k,12) /= cu(i,j,k,0);
-			
-			// Determine mole/mass fraction
-			cnt = nstats;
-			for (int l=0; l<nspecies; l++) {
-				cu(i,j,k,cnt)   /= cu(i,j,k,0); // mole fraction of species l
-				cu(i,j,k,cnt+1) /= cu(i,j,k,1); // mass fraction of species l
-				cnt += nstats;
+
+				// Total of primitive vars
+				// Handle temperature/energy seperately
+				for (int m=0; m<11; m++) {cuPrimInst(i,j,k,m) += cuPrimInst(i,j,k,iprim+m);}
+				cuPrimInst(i,j,k,11) += cuPrimInst(i,j,k,iprim+11)*cuPrimInst(i,j,k,iprim);
+				cuPrimInst(i,j,k,12) += cuPrimInst(i,j,k,iprim+12);
+
+				icon += 5; iprim += 13;
 			}
+			// Mixture temperature
+			cuPrimInst(i,j,k,11) /= cuPrimInst(i,j,k,0);
 		});
 		
 	   // Mean & Variances
+	   // Need to rewrite primitive means in terms of the conserved vars
+	   Array4<Real> cuConMeans  = mfcuConMeans[pti].array();
+	   Array4<Real> cuPrimMeans = mfcuPrimMeans[pti].array();
+		Array4<Real> cuVars      = mfcuVars[pti].array();
+		Array4<Real> coVars      = mfcoVars[pti].array();
 		amrex::ParallelFor(tile_box,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
-      Vector<Real> delfluc((nspecies+1)*13, 0.0);
-			for (int l=0; l<(nspecies+1)*13; l++) {
-				cumean(i,j,k,l) = (cumean(i,j,k,l)*stepsMinusOne+cu(i,j,k,l))*osteps;
-         	delfluc[l] = cu(i,j,k,l) - cumean(i,j,k,l);
-         	cuvars(i,j,k,l) = (cuvars(i,j,k,l)*stepsMinusOne+delfluc[l]*delfluc[l])*osteps;
+    		Vector<Real> delCon(ncon, 0.0);
+      	// Conserved Variances
+			for (int l=0; l<ncon; l++) {
+				cuConMeans(i,j,k,l) = (cuConMeans(i,j,k,l)*stepsMinusOne+cuConInst(i,j,k,l))*osteps;
+         	delCon[l] = cuConInst(i,j,k,l) - cuConMeans(i,j,k,l);
+         	cuVars(i,j,k,l) = (cuVars(i,j,k,l)*stepsMinusOne+delCon[l]*delCon[l])*osteps;
 			}
+			
+			// Primitive Variances
+			// Derive from conserved means
+			// Append to end of cuvars
+			int cntprim = ncon;
+			Vector<Real> delPrim(nprim, 0.0);
+			Real T_ml=0.;
+			Real n_ml=0.;
+			Real cv_ml=0.;
+			Real mass;
+			for (int l=0; l<=nspecies; l++) { // +1 to include mean of all species
+				if(l==0) {
+					mass = properties[0].mass*properties[0].Neff*cuPrimInst(i,j,k,0*13+0);
+					mass     += properties[1].mass*properties[1].Neff*cuPrimInst(i,j,k,1*13+0);
+					mass     += properties[2].mass*properties[2].Neff*cuPrimInst(i,j,k,2*13+0);
+					mass     += properties[3].mass*properties[3].Neff*cuPrimInst(i,j,k,3*13+0);
+					mass     /= (cuPrimInst(i,j,k,0*13+0)+cuPrimInst(i,j,k,1*13+0)+
+					             cuPrimInst(i,j,k,2*13+0)+cuPrimInst(i,j,k,3*13+0));
+				} else {
+					mass = properties[l-1].mass*properties[l-1].Neff;
+				}
+				Real cv_l = 3.0*k_B*0.5/mass;  
+				if(l==0) {cv_ml=cv_l;}
+				
+				Real n_m = cuPrimInst(i,j,k,l*13+0);
+				cuPrimMeans(i,j,k,l*13+0) = (cuPrimMeans(i,j,k,l*13+0)*stepsMinusOne+n_m)*osteps;
+				Real u_m = cuConMeans(i,j,k,l*5+1)/cuConMeans(i,j,k,l*5+0);
+				cuPrimMeans(i,j,k,l*13+1) = (cuPrimMeans(i,j,k,l*13+1)*stepsMinusOne+u_m)*osteps;
+				Real v_m = cuConMeans(i,j,k,l*5+2)/cuConMeans(i,j,k,l*5+0);
+				cuPrimMeans(i,j,k,l*13+2) = (cuPrimMeans(i,j,k,l*13+2)*stepsMinusOne+v_m)*osteps;
+				Real w_m = cuConMeans(i,j,k,l*5+3)/cuConMeans(i,j,k,l*5+0);
+				cuPrimMeans(i,j,k,l*13+3) = (cuPrimMeans(i,j,k,l*13+3)*stepsMinusOne+w_m)*osteps;
+				Real uu_m = pow(cuConMeans(i,j,k,l*5+1),2)/cuConMeans(i,j,k,l*5+0);
+				cuPrimMeans(i,j,k,l*13+4) = (cuPrimMeans(i,j,k,l*13+4)*stepsMinusOne+uu_m)*osteps;
+				Real uv_m = (cuConMeans(i,j,k,l*5+1)*cuConMeans(i,j,k,l*5+2))/cuConMeans(i,j,k,l*5+0);
+				cuPrimMeans(i,j,k,l*13+5) = (cuPrimMeans(i,j,k,l*13+5)*stepsMinusOne+uv_m)*osteps;
+				Real uw_m = (cuConMeans(i,j,k,l*5+1)*cuConMeans(i,j,k,l*5+3))/cuConMeans(i,j,k,l*5+0);
+				cuPrimMeans(i,j,k,l*13+6) = (cuPrimMeans(i,j,k,l*13+6)*stepsMinusOne+uw_m)*osteps;
+				Real vv_m = pow(cuConMeans(i,j,k,l*5+2),2)/cuConMeans(i,j,k,l*5+0);
+				cuPrimMeans(i,j,k,l*13+7) = (cuPrimMeans(i,j,k,l*13+7)*stepsMinusOne+vv_m)*osteps;
+				Real vw_m = (cuConMeans(i,j,k,l*5+2)*cuConMeans(i,j,k,l*5+3))/cuConMeans(i,j,k,l*5+0);
+				cuPrimMeans(i,j,k,l*13+8) = (cuPrimMeans(i,j,k,l*13+8)*stepsMinusOne+vw_m)*osteps;
+				Real ww_m = pow(cuConMeans(i,j,k,l*5+3),2)/cuConMeans(i,j,k,l*5+0);
+				cuPrimMeans(i,j,k,l*13+9) = (cuPrimMeans(i,j,k,l*13+9)*stepsMinusOne+ww_m)*osteps;
+				Real P_m = (k_B/mass)*(cuConMeans(i,j,k,l*5+4)-
+					(pow(cuConMeans(i,j,k,l*5+1),2)+pow(cuConMeans(i,j,k,l*5+2),2)+pow(cuConMeans(i,j,k,l*5+3),2))*0.5
+					/cuConMeans(i,j,k,l*5+0))/cv_l;
+				cuPrimMeans(i,j,k,l*13+10) = (cuPrimMeans(i,j,k,l*13+10)*stepsMinusOne+P_m)*osteps;
+				if(l>0) {
+					Real T_m = (cuConMeans(i,j,k,l*5+4)-
+						(pow(cuConMeans(i,j,k,l*5+1),2)+pow(cuConMeans(i,j,k,l*5+2),2)+pow(cuConMeans(i,j,k,l*5+3),2))*0.5/
+						cuConMeans(i,j,k,l*5+0))/cv_l/cuConMeans(i,j,k,l*5+0);
+					cuPrimMeans(i,j,k,l*13+11) = (cuPrimMeans(i,j,k,l*13+11)*stepsMinusOne+T_m)*osteps;
+					T_ml += T_m * n_m; n_ml += n_m;
+					Real E_m = cuConMeans(i,j,k,l*5+4)+cv_l*T_m*cuConMeans(i,j,k,l*5+0);
+					cuPrimMeans(i,j,k,l*13+12) = (cuPrimMeans(i,j,k,l*13+12)*stepsMinusOne+E_m)*osteps;
+				}
 
-     		// Covariances
-      	/*
-      		0  - drho.dJx
-      		1  - drho.dJy
-      		2  - drho.dJz
-      		3  - drho.dE
-      		4  - dJx.dJy
-      		5  - dJx.dJz
-      		6  - dJy.dJz
-      		7  - dJx.dE
-      		8  - dJy.dE
-      		9  - dJz.dE
-      		// Comment -- need to add some temperature-velocity covariances as well (see Balakrishnan)
-      	*/
-			covars(i,j,k,0)  = (covars(i,j,k,0)*stepsMinusOne+delfluc[1]*delfluc[2])*osteps;    // 0
-			covars(i,j,k,1)  = (covars(i,j,k,1)*stepsMinusOne+delfluc[1]*delfluc[3])*osteps;    // 1
-			covars(i,j,k,2)  = (covars(i,j,k,2)*stepsMinusOne+delfluc[1]*delfluc[4])*osteps;    // 2
-			covars(i,j,k,3)  = (covars(i,j,k,3)*stepsMinusOne+delfluc[1]*delfluc[11])*osteps;   // 3
-			covars(i,j,k,4)  = (covars(i,j,k,4)*stepsMinusOne+delfluc[2]*delfluc[3])*osteps;    // 4
-			covars(i,j,k,5)  = (covars(i,j,k,5)*stepsMinusOne+delfluc[2]*delfluc[4])*osteps;    // 5
-			covars(i,j,k,6)  = (covars(i,j,k,6)*stepsMinusOne+delfluc[3]*delfluc[4])*osteps;    // 6
-			covars(i,j,k,7)  = (covars(i,j,k,7)*stepsMinusOne+delfluc[2]*delfluc[11])*osteps;   // 7
-			covars(i,j,k,8)  = (covars(i,j,k,8)*stepsMinusOne+delfluc[3]*delfluc[11])*osteps;   // 8
-			covars(i,j,k,9)  = (covars(i,j,k,9)*stepsMinusOne+delfluc[4]*delfluc[11])*osteps;   // 9
+				for(int m=0; m<13; m++) {
+					int ind = l*13+m;
+         		delPrim[ind] = cuPrimInst(i,j,k,ind) - cuPrimMeans(i,j,k,ind);
+         		if(!((l==0 && m==11)||(l==0 && m==12))) {
+         			cuVars(i,j,k,cntprim) = (cuVars(i,j,k,cntprim)*stepsMinusOne+delPrim[ind]*delPrim[ind])*osteps;
+         		}
+         		cntprim++;
+         	}
+			}
+			
+			// Treat mixture temperature seperately
+			// Energy not correct atm - need to first temperature before calculating energy
+			T_ml /= n_ml;
+			cuPrimMeans(i,j,k,11) = (cuPrimMeans(i,j,k,11)*stepsMinusOne+T_ml)*osteps;
+			delPrim[11] = cuPrimInst(i,j,k,11) - cuPrimMeans(i,j,k,11);
+			cuVars(i,j,k,ncon+11) = (cuVars(i,j,k,ncon+11)*stepsMinusOne+delPrim[11]*delPrim[11])*osteps;
+			Real E_m = cuConMeans(i,j,k,4)+cv_ml*T_ml*cuConMeans(i,j,k,0);
+			cuPrimMeans(i,j,k,12) = (cuPrimMeans(i,j,k,12)*stepsMinusOne+E_m)*osteps;
+
+			// Covariances
+			/*
+				0  - drho.dJx
+				1  - drho.dJy
+				2  - drho.dJz
+				3  - drho.dT
+				4  - drho.d(rho*E)
+				5  - dJx.dJy
+				6  - dJx.dJz
+				7  - dJy.dJz
+				8  - dJx.d(rho*E)
+				9  - dJy.d(rho*E)
+				10 - dJz.d(rho*E)
+				11 - drho.du
+				12 - drho.dv
+				13 - drho.dw
+				14 - du.dv
+				15 - du.dw
+				16 - dv.dw
+				17 - drho.dT
+				18 - du.dT
+				19 - dv.dT
+				20 - dw.dT
+			*/
+      	
+			coVars(i,j,k, 0)  = (coVars(i,j,k, 0)*stepsMinusOne+delCon[0]*delCon[1])*osteps;
+			coVars(i,j,k, 1)  = (coVars(i,j,k, 1)*stepsMinusOne+delCon[0]*delCon[2])*osteps;
+			coVars(i,j,k, 2)  = (coVars(i,j,k, 2)*stepsMinusOne+delCon[0]*delCon[3])*osteps;
+			coVars(i,j,k, 3)  = (coVars(i,j,k, 3)*stepsMinusOne+delCon[0]*delPrim[11])*osteps;
+			coVars(i,j,k, 4)  = (coVars(i,j,k, 4)*stepsMinusOne+delCon[0]*delPrim[12])*osteps;
+			coVars(i,j,k, 5)  = (coVars(i,j,k, 5)*stepsMinusOne+delCon[1]*delCon[2])*osteps;
+			coVars(i,j,k, 6)  = (coVars(i,j,k, 6)*stepsMinusOne+delCon[1]*delCon[3])*osteps;
+			coVars(i,j,k, 7)  = (coVars(i,j,k, 7)*stepsMinusOne+delCon[2]*delCon[3])*osteps;
+			coVars(i,j,k, 8)  = (coVars(i,j,k, 8)*stepsMinusOne+delCon[1]*delPrim[12])*osteps;
+			coVars(i,j,k, 9)  = (coVars(i,j,k, 9)*stepsMinusOne+delCon[2]*delPrim[12])*osteps;
+			coVars(i,j,k,10)  = (coVars(i,j,k,10)*stepsMinusOne+delCon[3]*delPrim[12])*osteps;
+			coVars(i,j,k,11)  = (coVars(i,j,k,11)*stepsMinusOne+delCon[0]*delPrim[1])*osteps;
+			coVars(i,j,k,12)  = (coVars(i,j,k,12)*stepsMinusOne+delCon[0]*delPrim[2])*osteps;
+			coVars(i,j,k,13)  = (coVars(i,j,k,13)*stepsMinusOne+delCon[0]*delPrim[3])*osteps;
+			coVars(i,j,k,14)  = (coVars(i,j,k,14)*stepsMinusOne+delPrim[1]*delPrim[2])*osteps;
+			coVars(i,j,k,15)  = (coVars(i,j,k,15)*stepsMinusOne+delPrim[1]*delPrim[3])*osteps;
+			coVars(i,j,k,16)  = (coVars(i,j,k,16)*stepsMinusOne+delPrim[2]*delPrim[3])*osteps;
+			coVars(i,j,k,17)  = (coVars(i,j,k,17)*stepsMinusOne+delCon[0]*delPrim[11])*osteps;
+			coVars(i,j,k,18)  = (coVars(i,j,k,18)*stepsMinusOne+delPrim[1]*delPrim[11])*osteps;
+			coVars(i,j,k,19)  = (coVars(i,j,k,19)*stepsMinusOne+delPrim[2]*delPrim[11])*osteps;
+			coVars(i,j,k,20)  = (coVars(i,j,k,20)*stepsMinusOne+delPrim[3]*delPrim[11])*osteps;
 		});
 	}
 }
 
+/*
 void FhdParticleContainer::OutputParticles() {
 	string tTgFile = "particles.dat";
 	ofstream myfile;
@@ -186,4 +287,4 @@ void FhdParticleContainer::OutputParticles() {
 		}
 	}
 	myfile.close();	
-}
+}*/

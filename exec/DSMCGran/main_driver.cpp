@@ -9,6 +9,7 @@
 #include "iostream"
 #include "fstream"
 #include "DsmcParticleContainer.H"
+#include <AMReX_MultiFab.H>
 #include <AMReX_PlotFileUtil.H>
 
 using namespace std::chrono;
@@ -31,12 +32,9 @@ void main_driver(const char* argv)
 	BoxArray ba;
 	IntVect dom_lo(AMREX_D_DECL(           0,            0,            0));
 	IntVect dom_hi(AMREX_D_DECL(n_cells[0]-1, n_cells[1]-1, n_cells[2]-1));
-	Box domain(dom_lo, dom_hi);
-	
+	Box domain(dom_lo, dom_hi);	
 	DistributionMapping dmap;
-	
-	MultiFab cu, cuMeans, cuVars, coVars;
-	int nnspec, nstats;
+
 	// Will likely need to redo this
 	if (restart < 0) {
 		if (seed > 0) {
@@ -55,60 +53,6 @@ void main_driver(const char* argv)
 		ba.maxSize(IntVect(max_grid_size));
 		dmap.define(ba);
 		
-		/*
-		0	- n - number density
-		1	- rho - mass density
-		2	- Jx - x-mom density
-		3	- Jy - y-mom density
-		4	- Jz - z-mom density
-		5	- tau_xx - xx shear stress
-		6	- tau_xy - xy shear stress
-		7	- tau_xz - xz shear stress
-		8	- tau_yy - yy shear stress
-		9 - tau_yz - yz shear stress
-		10 - tau_zz - zz shear stress
-		11 - E - energy
-		12 - T_gran - granular temperature
-		13 - X_i - mole fraction for spec. i
-		14 - Y_i - mass fraction for spec. i
-		15 - u_i - x-vel for spec. i
-		16 - v_i - y-vel for spec. i
-		17 - w_i - z-vel for spec. i
-		18 - uu_i 
-		19 - uv_i
-		20 - uw_i
-		21 - vv_i
-		22 - vw_i
-		23 - ww_i
-		24 - E_i
-		25 - T_g_i
-		... (repeat for each add. species)
-		*/
-		nstats = (nspecies+1)*13;
-		cu.define(ba, dmap, nstats, 0); cu.setVal(0.);
-		cuMeans.define(ba, dmap, nstats, 0); cuMeans.setVal(0.);
-		cuVars.define(ba, dmap, nstats, 0);  cuVars.setVal(0.);
-		
-		// Variances
-		// Each has (nspecies)(nspecies+1)*0.5 data points
-		/*
-		0  - drho.dJx
-		1  - drho.dJy
-		2  - drho.dJz
-		3  - drho.dE
-		4  - dJx.dJy
-		5  - dJx.dJz
-		6  - dJy.dJz
-		7 - dJx.dE
-		8 - dJy.dE
-		9 - dJz.dE
-    // Comment -- need to add some temperature-velocity covariances as well (see Balakrishnan)
-		*/
-		// Add multifabs for variances
-		//nnspec = std::ceil((double)nspecies*(nspecies-1)*0.5);
-		//MultiFab coVars(ba, dmap, (nnspec+1)*15, 0);
-		coVars.define(ba, dmap, 10, 0);
-		// just track ones you want
 	} else {
 		// restart from checkpoint
 	}
@@ -125,7 +69,6 @@ void main_driver(const char* argv)
 		{AMREX_D_DECL(prob_hi[0],prob_hi[1],prob_hi[2])});
 
 	Geometry geom (domain ,&realDomain,CoordSys::cartesian,is_periodic.data());
-	const Real* dx = geom.CellSize();
 
 	// Currently overwritten later
 	Real dt = fixed_dt;
@@ -151,6 +94,129 @@ void main_driver(const char* argv)
 
 	int cRange = 0;
 	FhdParticleContainer particles(geom, dmap, ba, cRange);
+	
+	/*
+		Conserved Vars:
+		0  - rho = (1/V) += m
+		1  - Jx  = (1/V) += mu
+		2  - Jy  = (1/V) += mv
+		3  - Jz  = (1/V) += mw
+		4  - K   = (1/V) += m|v|^2
+		... (repeat for each species)
+	*/
+	
+	/*
+	   Primitive Vars:
+		0	- n  (X_ns)
+		1  - u  (u_ns)
+		2  - v  (v_ns)
+		3  - w  (w_ns)
+		4  - uu (uu_ns)
+		5  - uv (uv_ns)
+		6  - uw (uw_ns)
+		7  - vv (vv_ns)
+		8  - vw (vw_ns)
+		9  - ww (ww_ns)
+		10 - P  (P_ns)
+		11 - T  (T_ns)
+		12 - E  (E_ns)
+		... (repeat for each species)
+	*/   	
+   MultiFab cuConInst,  cuConMeans;
+	MultiFab cuPrimInst, cuPrimMeans;
+	MultiFab cuVars;
+	
+	int ncon  = (nspecies+1)*5;
+	cuConInst.define(ba, dmap, ncon, 0);    cuConInst.setVal(0.);
+	cuConMeans.define(ba, dmap, ncon, 0);   cuConMeans.setVal(0.);
+	
+	int nprim = (nspecies+1)*13;
+	cuPrimInst.define(ba, dmap, nprim, 0);   cuPrimInst.setVal(0.);
+	cuPrimMeans.define(ba, dmap, nprim, 0);  cuPrimMeans.setVal(0.);
+	cuVars.define(ba, dmap, ncon+nprim, 0);       cuVars.setVal(0.);
+		
+	// Covariances
+	/*
+		0  - drho.dJx
+		1  - drho.dJy
+		2  - drho.dJz
+		3  - drho.dT
+		4  - drho.d(rho*E)
+		5  - dJx.dJy
+		6  - dJx.dJz
+		7  - dJy.dJz
+		8  - dJx.d(rho*E)
+		9  - dJy.d(rho*E)
+		10 - dJz.d(rho*E)
+		11 - drho.du
+		12 - drho.dv
+		13 - drho.dw
+		14 - du.dv
+		15 - du.dw
+		16 - dv.dw
+		17 - drho.dT
+		18 - du.dT
+		19 - dv.dT
+		20 - dw.dT
+	*/
+	
+	// Add multifabs for variances
+	MultiFab coVars(ba, dmap, 21, 0);   coVars.setVal(0.);
+      
+   // scale SF results by inverse cell volume
+	const Real* dx = geom.CellSize();
+	int nstruct = nprim*(nprim+1)/2;
+   Vector<Real> var_scaling(nstruct);
+   for (int d=0; d<var_scaling.size(); ++d) {var_scaling[d] = 1./(dx[0]*dx[1]*dx[2]);}
+
+   // Structure Factor labels
+	Vector< std::string > cu_struct_names;
+	cu_struct_names.resize(nprim);
+	int cnt = 0;
+	cu_struct_names[cnt++] = "n";
+	std::string varname;
+	for (int i=0; i<AMREX_SPACEDIM; i++) {
+    	varname  = (117+i);
+     	cu_struct_names[cnt++] = varname;
+   }
+   for (int i=0; i<AMREX_SPACEDIM; i++) {
+    	varname  = (117+i);
+    	for (int j=i; j<AMREX_SPACEDIM; j++) {
+    		varname += (117+j);
+    	}
+     	cu_struct_names[cnt++] = varname;
+   }
+   cu_struct_names[cnt++] = "P";
+   cu_struct_names[cnt++] = "T";
+   cu_struct_names[cnt++] = "E";
+   
+   // repeat labels for ecah species
+   for (int i_spec=0; i_spec<nspecies; i_spec++) {
+	   for (int i=0; i<AMREX_SPACEDIM; i++) {
+   	 	varname  = (117+i);
+   	 	varname += std::to_string(i_spec);
+   	  	cu_struct_names[cnt++] = varname;
+   	}
+   	for (int i=0; i<AMREX_SPACEDIM; i++) {
+   	 	varname  = (117+i);
+   	 	for (int j=i; j<AMREX_SPACEDIM; j++) {
+   	 		varname += (117+j);
+  		  	}
+  		  	varname += std::to_string(i_spec);
+     		cu_struct_names[cnt++] = varname;
+   	}
+   	varname = "P"; varname += std::to_string(i_spec);
+   	cu_struct_names[cnt++] = varname;
+   	varname = "T"; varname += std::to_string(i_spec);
+   	cu_struct_names[cnt++] = varname;
+   	varname = "E"; varname += std::to_string(i_spec);
+   	cu_struct_names[cnt++] = varname;
+   }
+   
+   // Structure Factor
+	StructFact structFactPrim  (ba, dmap, cu_struct_names, var_scaling);
+	MultiFab   structFactPrimMF(ba, dmap,           nprim,           0);
+	
 	if (restart < 0 && particle_restart < 0) {
 		// Collision Cell Vars
 		particles.mfselect.define(ba, dmap, nspecies*nspecies, 0);
@@ -181,8 +247,6 @@ void main_driver(const char* argv)
 	//int check_step = 10;
 	Real time = 0.;
 	int statsCount = 1;
-	int plotCount = 0;
-	int step_stat = 1;
 	for (int istep=0; istep<=max_step; ++istep) {
 		Real tbegin = ParallelDescriptor::second();
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -209,8 +273,32 @@ void main_driver(const char* argv)
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Stats
-		if(istep%n_steps_skip == 0) {cu.setVal(0.); particles.EvaluateStats(cu, cuMeans, cuVars, coVars, statsCount++);}
-		if(istep%plot_int == 0) {particles.writePlotFile(cu, cuMeans, cuVars,  coVars,  geom,  time, plotCount++);}
+		cuConInst.setVal(0.); cuPrimInst.setVal(0.);
+		particles.EvaluateStats(cuConInst,
+										cuConMeans,
+		                        cuPrimInst,
+		                        cuPrimMeans,
+		                        cuVars,
+		                        coVars,
+		                        statsCount++);
+		                        
+		if(istep%n_steps_skip == 0 && istep > 0) {
+			//MultiFab::Copy(structFactPrimMF,cuPrimInst,0,0,nprim,0);
+			//structFactPrim.FortStructure(structFactPrimMF,geom,fft_type);
+		}
+		
+		if(istep%plot_int == 0) {// && istep > 0) {
+			particles.writePlotFile(cuConInst,
+											  cuConMeans,
+		                        	  cuPrimInst,
+		                        	  cuPrimMeans,
+		                        	  cuVars,
+		                        	  coVars,
+		                        	  geom,
+		                        	  time,
+		                        	  istep);
+			//structFactPrim.WritePlotFile(istep,time,geom,"plt_SF_prim");
+		}
  
 		Real tend = ParallelDescriptor::second() - tbegin;
 		ParallelDescriptor::ReduceRealMax(tend);

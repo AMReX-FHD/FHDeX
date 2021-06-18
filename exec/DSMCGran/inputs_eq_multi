@@ -12,8 +12,8 @@
   fixed_dt = 1e-8                        ! dt = dx/(10*sqrt(kT/m))
 
   ! Controls for number of steps between actions
-  max_step = 800000
-  plot_int =  10000
+  max_step = 0
+  plot_int =  5000
   plot_ascii = 1
   struct_fact_int = -1
   n_steps_skip = 10000
@@ -38,7 +38,8 @@
   ! Stochastic parameters
 	seed = 0
 	k_B = 1.38064852e-16
-	T_init = 1.0e-23 1.0e-23 1.0e-23 1.0e-23
+	!T_init = 1.0e-23 1.0e-23 1.0e-23 1.0e-23 ! kT
+	T_init  = 300     300     300     300
 	variance_coef_mom = 1
 
 
