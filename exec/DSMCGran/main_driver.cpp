@@ -107,19 +107,20 @@ void main_driver(const char* argv)
 	
 	/*
 	   Primitive Vars:
-		0	- n  (X_ns)
-		1  - u  (u_ns)
-		2  - v  (v_ns)
-		3  - w  (w_ns)
-		4  - uu (uu_ns)
-		5  - uv (uv_ns)
-		6  - uw (uw_ns)
-		7  - vv (vv_ns)
-		8  - vw (vw_ns)
-		9  - ww (ww_ns)
-		10 - P  (P_ns)
-		11 - T  (T_ns)
-		12 - E  (E_ns)
+		0	- n   (X_ns)
+		1  - rho (Y_ns)
+		2  - u   (u_ns)
+		3  - v   (v_ns)
+		4  - w   (w_ns)
+		5  - uu  (uu_ns)
+		6  - uv  (uv_ns)
+		7  - uw  (uw_ns)
+		8  - vv  (vv_ns)
+		9  - vw  (vw_ns)
+		10 - ww  (ww_ns)
+		11 - T   (T_ns)
+		12 - P   (P_ns)
+		13 - E   (E_ns)
 		... (repeat for each species)
 	*/   	
    MultiFab cuConInst,  cuConMeans;
@@ -130,7 +131,7 @@ void main_driver(const char* argv)
 	cuConInst.define(ba, dmap, ncon, 0);    cuConInst.setVal(0.);
 	cuConMeans.define(ba, dmap, ncon, 0);   cuConMeans.setVal(0.);
 	
-	int nprim = (nspecies+1)*13;
+	int nprim = (nspecies+1)*14;
 	cuPrimInst.define(ba, dmap, nprim, 0);   cuPrimInst.setVal(0.);
 	cuPrimMeans.define(ba, dmap, nprim, 0);  cuPrimMeans.setVal(0.);
 	cuVars.define(ba, dmap, ncon+nprim, 0);       cuVars.setVal(0.);
@@ -161,61 +162,85 @@ void main_driver(const char* argv)
 	*/
 	
 	// Add multifabs for variances
-	MultiFab coVars(ba, dmap, 21, 0);   coVars.setVal(0.);
+	int ncovar = 21;
+	MultiFab coVars(ba, dmap, ncovar, 0);   coVars.setVal(0.);
+   
+   //////////////////////////////////////
+   // Structure Factor Setup
+   //////////////////////////////////////
       
-   // scale SF results by inverse cell volume
+   // Output all primitives for structure factor
+   int nvarstruct = nprim;
 	const Real* dx = geom.CellSize();
-	int nstruct = nprim*(nprim+1)/2;
+	int nstruct = std::ceil((double)nvarstruct*(nvarstruct+1)/2);
+	// scale SF results by inverse cell volume
    Vector<Real> var_scaling(nstruct);
    for (int d=0; d<var_scaling.size(); ++d) {var_scaling[d] = 1./(dx[0]*dx[1]*dx[2]);}
 
    // Structure Factor labels
-	Vector< std::string > cu_struct_names;
-	cu_struct_names.resize(nprim);
+	Vector< std::string > cu_struct_names(nvarstruct);
 	int cnt = 0;
-	cu_struct_names[cnt++] = "n";
 	std::string varname;
-	for (int i=0; i<AMREX_SPACEDIM; i++) {
-    	varname  = (117+i);
-     	cu_struct_names[cnt++] = varname;
+	cu_struct_names[cnt++] = "n";
+	for (int ispec=0; ispec<nspecies; ispec++) {
+     	cu_struct_names[cnt++] = amrex::Concatenate("X",ispec,2);
    }
-   for (int i=0; i<AMREX_SPACEDIM; i++) {
-    	varname  = (117+i);
-    	for (int j=i; j<AMREX_SPACEDIM; j++) {
-    		varname += (117+j);
-    	}
-     	cu_struct_names[cnt++] = varname;
+   cu_struct_names[cnt++] = "rho";
+	for (int ispec=0; ispec<nspecies; ispec++) {
+     	cu_struct_names[cnt++] = amrex::Concatenate("rho",ispec,2);
+   }
+   cu_struct_names[cnt++] = "u";
+	for (int ispec=0; ispec<nspecies; ispec++) {
+     	cu_struct_names[cnt++] = amrex::Concatenate("u",ispec,2);
+   }
+   cu_struct_names[cnt++] = "v";
+	for (int ispec=0; ispec<nspecies; ispec++) {
+     	cu_struct_names[cnt++] = amrex::Concatenate("v",ispec,2);
+   }
+   cu_struct_names[cnt++] = "w";
+	for (int ispec=0; ispec<nspecies; ispec++) {
+     	cu_struct_names[cnt++] = amrex::Concatenate("w",ispec,2);
+   }
+   cu_struct_names[cnt++] = "uu";
+	for (int ispec=0; ispec<nspecies; ispec++) {
+     	cu_struct_names[cnt++] = amrex::Concatenate("uu",ispec,2);
+   }
+   cu_struct_names[cnt++] = "uv";
+	for (int ispec=0; ispec<nspecies; ispec++) {
+     	cu_struct_names[cnt++] = amrex::Concatenate("uv",ispec,2);
+   }
+   cu_struct_names[cnt++] = "uw";
+	for (int ispec=0; ispec<nspecies; ispec++) {
+     	cu_struct_names[cnt++] = amrex::Concatenate("uw",ispec,2);
+   }
+	cu_struct_names[cnt++] = "vv";
+	for (int ispec=0; ispec<nspecies; ispec++) {
+     	cu_struct_names[cnt++] = amrex::Concatenate("vv",ispec,2);
+   }
+   cu_struct_names[cnt++] = "vw";
+	for (int ispec=0; ispec<nspecies; ispec++) {
+     	cu_struct_names[cnt++] = amrex::Concatenate("vw",ispec,2);
+   }
+   cu_struct_names[cnt++] = "ww";
+	for (int ispec=0; ispec<nspecies; ispec++) {
+     	cu_struct_names[cnt++] = amrex::Concatenate("ww",ispec,2);
+   }
+   cu_struct_names[cnt++] = "T";
+	for (int ispec=0; ispec<nspecies; ispec++) {
+     	cu_struct_names[cnt++] = amrex::Concatenate("T",ispec,2);
    }
    cu_struct_names[cnt++] = "P";
-   cu_struct_names[cnt++] = "T";
+	for (int ispec=0; ispec<nspecies; ispec++) {
+     	cu_struct_names[cnt++] = amrex::Concatenate("P",ispec,2);
+   }
    cu_struct_names[cnt++] = "E";
-   
-   // repeat labels for ecah species
-   for (int i_spec=0; i_spec<nspecies; i_spec++) {
-	   for (int i=0; i<AMREX_SPACEDIM; i++) {
-   	 	varname  = (117+i);
-   	 	varname += std::to_string(i_spec);
-   	  	cu_struct_names[cnt++] = varname;
-   	}
-   	for (int i=0; i<AMREX_SPACEDIM; i++) {
-   	 	varname  = (117+i);
-   	 	for (int j=i; j<AMREX_SPACEDIM; j++) {
-   	 		varname += (117+j);
-  		  	}
-  		  	varname += std::to_string(i_spec);
-     		cu_struct_names[cnt++] = varname;
-   	}
-   	varname = "P"; varname += std::to_string(i_spec);
-   	cu_struct_names[cnt++] = varname;
-   	varname = "T"; varname += std::to_string(i_spec);
-   	cu_struct_names[cnt++] = varname;
-   	varname = "E"; varname += std::to_string(i_spec);
-   	cu_struct_names[cnt++] = varname;
+	for (int ispec=0; ispec<nspecies; ispec++) {
+     	cu_struct_names[cnt++] = amrex::Concatenate("E",ispec,2);
    }
    
    // Structure Factor
 	StructFact structFactPrim  (ba, dmap, cu_struct_names, var_scaling);
-	MultiFab   structFactPrimMF(ba, dmap,           nprim,           0);
+	MultiFab   structFactPrimMF(ba, dmap,      nvarstruct,           0);
 	
 	if (restart < 0 && particle_restart < 0) {
 		// Collision Cell Vars
@@ -283,11 +308,11 @@ void main_driver(const char* argv)
 		                        statsCount++);
 		                        
 		if(istep%n_steps_skip == 0 && istep > 0) {
-			//MultiFab::Copy(structFactPrimMF,cuPrimInst,0,0,nprim,0);
-			//structFactPrim.FortStructure(structFactPrimMF,geom,fft_type);
+			MultiFab::Copy(structFactPrimMF,cuPrimInst,0,0,nvarstruct,0);
+			structFactPrim.FortStructure(structFactPrimMF,geom,fft_type);
 		}
 		
-		if(istep%plot_int == 0) {// && istep > 0) {
+		if(istep%plot_int == 0) {
 			particles.writePlotFile(cuConInst,
 											  cuConMeans,
 		                        	  cuPrimInst,
@@ -297,8 +322,9 @@ void main_driver(const char* argv)
 		                        	  geom,
 		                        	  time,
 		                        	  istep);
-			//structFactPrim.WritePlotFile(istep,time,geom,"plt_SF_prim");
 		}
+		
+		//if(istep%struct_fact_int ==0 && istep>0) {structFactPrim.WritePlotFile(istep,time,geom,"plt_SF_prim");}
  
 		Real tend = ParallelDescriptor::second() - tbegin;
 		ParallelDescriptor::ReduceRealMax(tend);
