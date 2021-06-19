@@ -20,8 +20,7 @@ void FhdParticleContainer::InitParticles(Real & dt) {
 	std::array<Real, 3> vpart = {0., 0., 0.};
 	Real jmax = 0, spdmax = 0;
 	Real umax = 0, vmax = 0, wmax = 0;
-	Real jp, spd;
-	Real stdev;
+	Real spd;
 	Real u[nspecies],v[nspecies],w[nspecies];
 	
 	//tTg = 0;
@@ -46,7 +45,7 @@ void FhdParticleContainer::InitParticles(Real & dt) {
 			}
 			for(int i_spec=0; i_spec < nspecies; i_spec++) {
 				// Standard deviation of velocity at temperature T_init
-				stdev = sqrt(T_init[i_spec]*k_B/properties[i_spec].mass);
+				Real stdev = sqrt(T_init[i_spec]*k_B/properties[i_spec].mass);
 				for (int i_part=0; i_part<properties[i_spec].total;i_part++) {
 					ParticleType p;
 					p.id()  = ParticleType::NextID();
@@ -94,7 +93,7 @@ void FhdParticleContainer::InitParticles(Real & dt) {
 			}
 			
 			// Zero out bulk velocities
-         /*        
+			// Only works if particle input not given  
 			int nstart = 0;
 			for(int i_spec=0; i_spec < nspecies; i_spec++) {			
 				// Zero out the bulk velocities
@@ -109,7 +108,6 @@ void FhdParticleContainer::InitParticles(Real & dt) {
 				}
 				nstart += properties[i_spec].total;
 			}
-			*/
 			
 			particleFile.close();
 		}

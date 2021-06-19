@@ -135,19 +135,21 @@ public:
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Outputs
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-   void EvaluateStats(MultiFab& cuConInst,
-   						 MultiFab& cuConMeans,
-   						 MultiFab& cuPrimInst,
-   						 MultiFab& cuPrimMeans,
+   void EvaluateStats(MultiFab& cuInst,
+   						 MultiFab& cuMeans,
    						 MultiFab& cuVars,
+   						 MultiFab& primInst,
+   						 MultiFab& primMeans,
+   						 MultiFab& primVars,
    						 MultiFab& coVars,
    						 int steps);
    void OutputParticles();
-   void writePlotFile(const MultiFab& cuConInst,
-   						 const MultiFab& cuConMeans,
-   						 const MultiFab& cuPrimInst,
-   						 const MultiFab& cuPrimMeans,
+   void writePlotFile(const MultiFab& cuInst,
+   						 const MultiFab& cuMeans,
    						 const MultiFab& cuVars,
+   						 const MultiFab& primInst,
+   						 const MultiFab& primMeans,
+   						 const MultiFab& primVars,
    						 const MultiFab& coVars,
    						 const Geometry& geom,
    						 Real time,

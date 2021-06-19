@@ -94,6 +94,10 @@ void main_driver(const char* argv)
 
 	int cRange = 0;
 	FhdParticleContainer particles(geom, dmap, ba, cRange);
+
+   //////////////////////////////////////
+   // Conserved/Primitive Var Setup
+   //////////////////////////////////////
 	
 	/*
 		Conserved Vars:
@@ -104,7 +108,13 @@ void main_driver(const char* argv)
 		4  - K   = (1/V) += m|v|^2
 		... (repeat for each species)
 	*/
-	
+	   	
+   MultiFab cuInst,   cuMeans,   cuVars;
+	int ncon  = (nspecies+1)*5;
+	cuInst.define(ba, dmap, ncon, 0);    cuInst.setVal(0.);
+	cuMeans.define(ba, dmap, ncon, 0);   cuMeans.setVal(0.);
+	cuVars.define(ba,dmap, ncon, 0);		 cuVars.setVal(0.);
+
 	/*
 	   Primitive Vars:
 		0	- n   (X_ns)
@@ -122,19 +132,13 @@ void main_driver(const char* argv)
 		12 - P   (P_ns)
 		13 - E   (E_ns)
 		... (repeat for each species)
-	*/   	
-   MultiFab cuConInst,  cuConMeans;
-	MultiFab cuPrimInst, cuPrimMeans;
-	MultiFab cuVars;
+	*/
 	
-	int ncon  = (nspecies+1)*5;
-	cuConInst.define(ba, dmap, ncon, 0);    cuConInst.setVal(0.);
-	cuConMeans.define(ba, dmap, ncon, 0);   cuConMeans.setVal(0.);
-	
+	MultiFab primInst, primMeans, primVars;	
 	int nprim = (nspecies+1)*14;
-	cuPrimInst.define(ba, dmap, nprim, 0);   cuPrimInst.setVal(0.);
-	cuPrimMeans.define(ba, dmap, nprim, 0);  cuPrimMeans.setVal(0.);
-	cuVars.define(ba, dmap, ncon+nprim, 0);       cuVars.setVal(0.);
+	primInst.define(ba, dmap, nprim, 0);   	primInst.setVal(0.);
+	primMeans.define(ba, dmap, nprim, 0);  	primMeans.setVal(0.);
+	primVars.define(ba, dmap, ncon+nprim, 0); primVars.setVal(0.);
 		
 	// Covariances
 	/*
@@ -298,27 +302,29 @@ void main_driver(const char* argv)
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Stats
-		cuConInst.setVal(0.); cuPrimInst.setVal(0.);
-		particles.EvaluateStats(cuConInst,
-										cuConMeans,
-		                        cuPrimInst,
-		                        cuPrimMeans,
-		                        cuVars,
+		cuInst.setVal(0.); primInst.setVal(0.);
+		particles.EvaluateStats(cuInst,
+										cuMeans,
+										cuVars,
+		                        primInst,
+		                        primMeans,
+		                        primVars,
 		                        coVars,
 		                        statsCount++);
 		                        
 		if(istep%n_steps_skip == 0 && istep > 0) {
-			MultiFab::Copy(structFactPrimMF,cuPrimInst,0,0,nvarstruct,0);
+			MultiFab::Copy(structFactPrimMF,primInst,0,0,nvarstruct,0);
 			structFactPrim.FortStructure(structFactPrimMF,geom,fft_type);
 			structFactPrim.WritePlotFile(istep,time,geom,"plt_SF_prim");
 		}
 		
 		if(istep%plot_int == 0) {
-			particles.writePlotFile(cuConInst,
-											cuConMeans,
-		                        	cuPrimInst,
-		                        	cuPrimMeans,
-		                        	cuVars,
+			particles.writePlotFile(cuInst,
+										   cuMeans,
+											cuVars,
+		                        	primInst,
+		                        	primMeans,
+		                        	primVars,
 		                        	coVars,
 		                        	geom,
 		                        	time,

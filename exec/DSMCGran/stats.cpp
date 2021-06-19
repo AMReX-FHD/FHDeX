@@ -1,12 +1,13 @@
 #include "DsmcParticleContainer.H"
 using namespace std;
-void FhdParticleContainer::EvaluateStats(MultiFab& mfcuConInst,
-   						 MultiFab& mfcuConMeans,
-   						 MultiFab& mfcuPrimInst,
-   						 MultiFab& mfcuPrimMeans,
-   						 MultiFab& mfcuVars,
-   						 MultiFab& mfcoVars,
-   						 int steps) {
+void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
+   						 						  MultiFab& mfcuMeans,
+   						 						  MultiFab& mfcuVars,
+   						 						  MultiFab& mfprimInst,
+   						 						  MultiFab& mfprimMeans,
+   						 						  MultiFab& mfprimVars,
+   						 						  MultiFab& mfcoVars,
+   						 						  int steps) {
 	BL_PROFILE_VAR("EvaluateStats()",EvaluateStats);
 
 	const Real osteps = 1.0/steps;
@@ -51,30 +52,34 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuConInst,
 		
 		int ncon  = (nspecies+1)*5;
 		int nprim = (nspecies+1)*14;
-		Array4<Real> cuConInst   = mfcuConInst[pti].array();
-		Array4<Real> cuPrimInst  = mfcuPrimInst[pti].array();	
+		Array4<Real> cuInst     = mfcuInst[pti].array();
+		Array4<Real> primInst   = mfprimInst[pti].array();
+	   Array4<Real> cuMeans    = mfcuMeans[pti].array();
+	   Array4<Real> primMeans  = mfprimMeans[pti].array();
+		Array4<Real> cuVars     = mfcuVars[pti].array();
+		Array4<Real> primVars   = mfprimVars[pti].array();
+		Array4<Real> coVars     = mfcoVars[pti].array();
 		
    	//////////////////////////////////////
    	// Instantaneous Values
    	//////////////////////////////////////
-   	
-   	// Primitive by species + Conserved by species/total
+ 
 		amrex::ParallelFor(tile_box,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
 			const IntVect& iv = {i,j,k};
 			long imap = tile_box.index(iv);
 			int icon = 5; int iprim = 14;
-			Real cv      = 0.;
+			Real cv  = 0.;
 			for (int l=0; l<nspecies; l++) {
 				const long np_spec = m_cell_vectors[l][grid_id][imap].size();
 				Real mass = properties[l].mass*properties[l].Neff;
-				Real moV  = mass*ocollisionCellVol;    						// density
-				Real cv_l = 3.0*k_B*0.5/mass;                        		// assume ideal gas <- in general untrue for most granular cases
-				cuPrimInst(i,j,k,iprim+0) = np_spec*ocollisionCellVol;	// number density of species l
-				cuPrimInst(i,j,k,0)      += cuPrimInst(i,j,k,iprim+0);
-				cuPrimInst(i,j,k,iprim+1) = np_spec*moV;
-				cuPrimInst(i,j,k,1)      += cuPrimInst(i,j,k,iprim+1);
-				cuConInst(i,j,k,icon+0)   = np_spec*moV;         		   // mass density of species l
-				cv      					 	 += cv_l*cuConInst(i,j,k,icon);  // total cv
+				Real moV  = properties[l].mass*ocollisionCellVol;    	 // density
+				Real cv_l = 3.0*k_B*0.5/mass;                        	 // assume ideal gas <- in general untrue for most granular cases
+				primInst(i,j,k,iprim+0) = np_spec*ocollisionCellVol;	 // number density of species l
+				primInst(i,j,k,0)      += np_spec*ocollisionCellVol;
+				primInst(i,j,k,iprim+1) = np_spec*moV;         		    // mass density of species l
+				primInst(i,j,k,1)      += np_spec*moV;
+				cuInst(i,j,k,icon+0)    = np_spec*moV;
+				cv      					  += cv_l*np_spec*moV;				 // total cv
 				
 				// Read particle data
 				for (int m=0; m<np_spec; m++) {
@@ -86,101 +91,96 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuConInst,
 					Real v = p.rdata(FHD_realData::vely);
 					Real w = p.rdata(FHD_realData::velz);
 
-					cuConInst(i,j,k,icon+1) += u;
-					cuConInst(i,j,k,icon+2) += v;
-					cuConInst(i,j,k,icon+3) += w;
-					cuConInst(i,j,k,icon+4) += (pow(u,2)+pow(v,2)+pow(w,2));
+					cuInst(i,j,k,icon+1) += u;
+					cuInst(i,j,k,icon+2) += v;
+					cuInst(i,j,k,icon+3) += w;
+					cuInst(i,j,k,icon+4) += (pow(u,2)+pow(v,2)+pow(w,2));
 				}
 				
 				// Momentum densities
-				cuConInst(i,j,k,icon+1) = cuConInst(i,j,k,icon+1)*moV;  		// x-mom density
-				cuConInst(i,j,k,icon+2) = cuConInst(i,j,k,icon+2)*moV;  		// y-mom density
-				cuConInst(i,j,k,icon+3) = cuConInst(i,j,k,icon+3)*moV;  		// z-mom density
+				cuInst(i,j,k,icon+1) *= moV;  		// x-mom density
+				cuInst(i,j,k,icon+2) *= moV;  		// y-mom density
+				cuInst(i,j,k,icon+3) *= moV;  		// z-mom density
 
 				// Energy density
-				cuConInst(i,j,k,icon+4) = cuConInst(i,j,k,icon+4)*moV*0.5;
+				cuInst(i,j,k,icon+4) *= (moV*0.5);
 
 				// Total of cons. vars
-				for (int m=0; m<5; m++) {cuConInst(i,j,k,m) += cuConInst(i,j,k,icon+m);}
+				for (int m=0; m<5; m++) {cuInst(i,j,k,m) += cuInst(i,j,k,icon+m);}
 
 				// Care not to use mean of instananeous primitives as mean (use conserved)
-				cuPrimInst(i,j,k,iprim+ 2) = cuConInst(i,j,k,icon+1)/cuConInst(i,j,k,icon);					// u  of spec l
-				cuPrimInst(i,j,k,iprim+ 3) = cuConInst(i,j,k,icon+2)/cuConInst(i,j,k,icon);					// v  of spec l
-				cuPrimInst(i,j,k,iprim+ 4) = cuConInst(i,j,k,icon+3)/cuConInst(i,j,k,icon);					// w  of spec l
-				cuPrimInst(i,j,k,iprim+ 5) = pow(cuPrimInst(i,j,k,iprim+2),2);										// uu of spec l
-				cuPrimInst(i,j,k,iprim+ 6) = cuPrimInst(i,j,k,iprim+1)*cuPrimInst(i,j,k,iprim+2);			// uv of spec l
-				cuPrimInst(i,j,k,iprim+ 7) = cuPrimInst(i,j,k,iprim+1)*cuPrimInst(i,j,k,iprim+3);			// uw of spec l
-				cuPrimInst(i,j,k,iprim+ 8) = pow(cuPrimInst(i,j,k,iprim+3),2);										// vv of spec l
-				cuPrimInst(i,j,k,iprim+ 9) = cuPrimInst(i,j,k,iprim+2)*cuPrimInst(i,j,k,iprim+3);			// vw of spec l
-				cuPrimInst(i,j,k,iprim+10) = pow(cuPrimInst(i,j,k,iprim+4),2);										// ww of spec l
+				primInst(i,j,k,iprim+ 2) = cuInst(i,j,k,icon+1)/cuInst(i,j,k,icon);					// u  of spec l
+				primInst(i,j,k,iprim+ 3) = cuInst(i,j,k,icon+2)/cuInst(i,j,k,icon);					// v  of spec l
+				primInst(i,j,k,iprim+ 4) = cuInst(i,j,k,icon+3)/cuInst(i,j,k,icon);					// w  of spec l
+				primInst(i,j,k,iprim+ 5) = pow(primInst(i,j,k,iprim+2),2);								// uu of spec l
+				primInst(i,j,k,iprim+ 6) = primInst(i,j,k,iprim+2)*primInst(i,j,k,iprim+3);		// uv of spec l
+				primInst(i,j,k,iprim+ 7) = primInst(i,j,k,iprim+2)*primInst(i,j,k,iprim+4);		// uw of spec l
+				primInst(i,j,k,iprim+ 8) = pow(primInst(i,j,k,iprim+3),2);								// vv of spec l
+				primInst(i,j,k,iprim+ 9) = primInst(i,j,k,iprim+3)*primInst(i,j,k,iprim+4);		// vw of spec l
+				primInst(i,j,k,iprim+10) = pow(primInst(i,j,k,iprim+4),2);								// ww of spec l
 				
-				Real vsqb = 0.5*(pow(cuConInst(i,j,k,icon+1),2) + 
-								pow(cuConInst(i,j,k,icon+2),2) +
-								pow(cuConInst(i,j,k,icon+3),2));
+				Real vsqb = 0.5*(pow(primInst(i,j,k,iprim+2),2)+pow(primInst(i,j,k,iprim+3),2) +
+								     pow(primInst(i,j,k,iprim+4),2));
 				
-				cuPrimInst(i,j,k,iprim+11) = (cuConInst(i,j,k,icon+4)/cuConInst(i,j,k,icon)-vsqb*0.5)/cv_l;	// T  of spec l
-				cuPrimInst(i,j,k,iprim+12) = cuPrimInst(i,j,k,iprim+11)*(k_B/mass)*cuConInst(i,j,k,icon);		// P  of spec l
-				cuPrimInst(i,j,k,iprim+13) = vsqb*moV+cv_l*cuPrimInst(i,j,k,iprim+11)*cuConInst(i,j,k,icon);	// E  of spec l
+				primInst(i,j,k,iprim+11) = (cuInst(i,j,k,icon+4)/cuInst(i,j,k,icon)-vsqb*0.5)/cv_l;		// T  of spec l
+				primInst(i,j,k,iprim+12) = primInst(i,j,k,iprim+11)*(k_B/mass)*cuInst(i,j,k,icon);		// P  of spec l
+				primInst(i,j,k,iprim+13) = vsqb*moV+cv_l*primInst(i,j,k,iprim+11)*cuInst(i,j,k,icon);	// E  of spec l
 
 				// Total of primitive vars
 				// Handle temperature/energy seperately
-				cuPrimInst(i,j,k,11) += cuPrimInst(i,j,k,iprim+11)*cuPrimInst(i,j,k,iprim+0);                // Mixture T = sum of (nk*Tk)/n
-				cuPrimInst(i,j,k,12) += cuPrimInst(i,j,k,iprim+12);														// Mixture P = sum of partial P
+				primInst(i,j,k,11) += primInst(i,j,k,iprim+11)*primInst(i,j,k,iprim);                	// Mixture T = sum (nk*Tk)/n
+				primInst(i,j,k,12) += primInst(i,j,k,iprim+12);													 	// Mixture P = sum Pk
 				icon += 5; iprim += 14;
 			}
 			
 			// Primitive total
-			cuPrimInst(i,j,k,2) = cuConInst(i,j,k,1)/cuConInst(i,j,k,0);		// Bulk x-velocity
-			cuPrimInst(i,j,k,3) = cuConInst(i,j,k,2)/cuConInst(i,j,k,0);		// Bulk y-velocity
-			cuPrimInst(i,j,k,4) = cuConInst(i,j,k,3)/cuConInst(i,j,k,0);		// Bulk z-velocity
+			primInst(i,j,k,2) = cuInst(i,j,k,1)/cuInst(i,j,k,0);		// Bulk x-velocity
+			primInst(i,j,k,3) = cuInst(i,j,k,2)/cuInst(i,j,k,0);		// Bulk y-velocity
+			primInst(i,j,k,4) = cuInst(i,j,k,3)/cuInst(i,j,k,0);		// Bulk z-velocity
 			
-			cuPrimInst(i,j,k,5)  = pow(cuConInst(i,j,k,1),2)/pow(cuConInst(i,j,k,0),2);					// Bulk uu
-			cuPrimInst(i,j,k,6)  = cuConInst(i,j,k,1)*cuConInst(i,j,k,2)/pow(cuConInst(i,j,k,0),2);	// Bulk uv
-			cuPrimInst(i,j,k,6)  = cuConInst(i,j,k,1)*cuConInst(i,j,k,3)/pow(cuConInst(i,j,k,0),2);	// Bulk uw
-			cuPrimInst(i,j,k,8)  = pow(cuConInst(i,j,k,2),2)/pow(cuConInst(i,j,k,0),2);					// Bulk vv
-			cuPrimInst(i,j,k,6)  = cuConInst(i,j,k,2)*cuConInst(i,j,k,3)/pow(cuConInst(i,j,k,0),2);	// Bulk vw
-			cuPrimInst(i,j,k,10) = pow(cuConInst(i,j,k,3),2)/pow(cuConInst(i,j,k,0),2);					// Bulk ww
+			primInst(i,j,k,5)  = pow(primInst(i,j,k,2),2);					// Bulk uu
+			primInst(i,j,k,6)  = primInst(i,j,k,2)*primInst(i,j,k,3);	// Bulk uv
+			primInst(i,j,k,7)  = primInst(i,j,k,2)*primInst(i,j,k,4);	// Bulk uw
+			primInst(i,j,k,8)  = pow(primInst(i,j,k,3),2);					// Bulk vv
+			primInst(i,j,k,9)  = primInst(i,j,k,3)*primInst(i,j,k,4);	// Bulk vw
+			primInst(i,j,k,10) = pow(primInst(i,j,k,4),2);					// Bulk ww
 			
-			cuPrimInst(i,j,k,11) /= cuPrimInst(i,j,k,0);																// T
+			// Mixture Temperature
+			primInst(i,j,k,11) /= primInst(i,j,k,0);
 			
-			cv /= cuPrimInst(i,j,k,1);
 			// Energy Density
-			cuPrimInst(i,j,k,13)  = pow(cuPrimInst(i,j,k,2),2)+pow(cuPrimInst(i,j,k,3),2)+pow(cuPrimInst(i,j,k,4),2);
-			cuPrimInst(i,j,k,13) *= (0.5*cuPrimInst(i,j,k,1));                      // Bulk energy
-			cuPrimInst(i,j,k,13) += (cv*cuPrimInst(i,j,k,11)*cuPrimInst(i,j,k,1));  // Total Particle KE
+			cv /= primInst(i,j,k,1);
+			primInst(i,j,k,13)  = pow(primInst(i,j,k,2),2)+pow(primInst(i,j,k,3),2)+pow(primInst(i,j,k,4),2);
+			primInst(i,j,k,13)  = 0.5*primInst(i,j,k,1)*primInst(i,j,k,13);								// Bulk energy
+			primInst(i,j,k,13)  = primInst(i,j,k,13) + (cv*primInst(i,j,k,11)*primInst(i,j,k,1));	// Total Particle KE
 			
 			// Convert n to Xk and rho to Yk
+			/*
 			for (int l=0; l<nspecies; l++) {
-				cuPrimInst(i,j,k,14*l+0)  /= cuPrimInst(i,j,k,0); //X_k
-				// cuPrimInst(i,j,k,14*l+1)  /= cuConInst(i,j,k,0);  //Y_k
-			}
+				primInst(i,j,k,14*l+0)  /= primInst(i,j,k,0); //X_k
+				primInst(i,j,k,14*l+1)  /= primInst(i,j,k,0);  //Y_k
+			}*/
 		});
 		
-	   // Mean & Variances
-	   // Need to rewrite primitive means in terms of the conserved vars
-	   Array4<Real> cuConMeans  = mfcuConMeans[pti].array();
-	   Array4<Real> cuPrimMeans = mfcuPrimMeans[pti].array();
-		Array4<Real> cuVars      = mfcuVars[pti].array();
-		Array4<Real> coVars      = mfcoVars[pti].array();
-		
+   	//////////////////////////////////////
+   	// Mean Values and Variances
+   	//////////////////////////////////////		
+
 		amrex::ParallelFor(tile_box,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
     		Vector<Real> delCon(ncon, 0.0);
       	// Conserved Variances
 			for (int l=0; l<ncon; l++) {
-				cuConMeans(i,j,k,l) = (cuConMeans(i,j,k,l)*stepsMinusOne+cuConInst(i,j,k,l))*osteps;
-         	delCon[l] = cuConInst(i,j,k,l) - cuConMeans(i,j,k,l);
-         	cuVars(i,j,k,l) = (cuVars(i,j,k,l)*stepsMinusOne+delCon[l]*delCon[l])*osteps;
+				cuMeans(i,j,k,l) = (cuMeans(i,j,k,l)*stepsMinusOne+cuInst(i,j,k,l))*osteps;
+         	delCon[l]        = cuInst(i,j,k,l) - cuMeans(i,j,k,l);
+         	cuVars(i,j,k,l)  = (cuVars(i,j,k,l)*stepsMinusOne+delCon[l]*delCon[l])*osteps;
 			}
 			
 			// Primitive Variances
-			// Derive from conserved means
-			// Append to end of cuvars
-			int prevEnd = ncon;
 			Vector<Real> delPrim(nprim, 0.0);
 			for (int l=0; l<nprim; l++) {
-				cuPrimMeans(i,j,k,l) = (cuPrimMeans(i,j,k,l)*stepsMinusOne+cuPrimInst(i,j,k,l))*osteps;
-         	delPrim[l] = cuPrimInst(i,j,k,l) - cuPrimMeans(i,j,k,l);
-         	cuVars(i,j,k,prevEnd+l) = (cuVars(i,j,k,prevEnd+l)*stepsMinusOne+delPrim[l]*delPrim[l])*osteps;
+				primMeans(i,j,k,l) = (primMeans(i,j,k,l)*stepsMinusOne+primInst(i,j,k,l))*osteps;
+         	delPrim[l]         = primInst(i,j,k,l) - primMeans(i,j,k,l);
+         	primVars(i,j,k,l)  = (primVars(i,j,k,l)*stepsMinusOne+delPrim[l]*delPrim[l])*osteps;
 			}
 
 			// Covariances
@@ -219,16 +219,16 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuConInst,
 			coVars(i,j,k, 8)  = (coVars(i,j,k, 8)*stepsMinusOne+delCon[1]*delPrim[13])*osteps;
 			coVars(i,j,k, 9)  = (coVars(i,j,k, 9)*stepsMinusOne+delCon[2]*delPrim[13])*osteps;
 			coVars(i,j,k,10)  = (coVars(i,j,k,10)*stepsMinusOne+delCon[3]*delPrim[13])*osteps;
-			coVars(i,j,k,11)  = (coVars(i,j,k,11)*stepsMinusOne+delCon[0]*delPrim[1])*osteps;
-			coVars(i,j,k,12)  = (coVars(i,j,k,12)*stepsMinusOne+delCon[0]*delPrim[2])*osteps;
-			coVars(i,j,k,13)  = (coVars(i,j,k,13)*stepsMinusOne+delCon[0]*delPrim[3])*osteps;
-			coVars(i,j,k,14)  = (coVars(i,j,k,14)*stepsMinusOne+delPrim[1]*delPrim[2])*osteps;
-			coVars(i,j,k,15)  = (coVars(i,j,k,15)*stepsMinusOne+delPrim[1]*delPrim[3])*osteps;
-			coVars(i,j,k,16)  = (coVars(i,j,k,16)*stepsMinusOne+delPrim[2]*delPrim[3])*osteps;
+			coVars(i,j,k,11)  = (coVars(i,j,k,11)*stepsMinusOne+delCon[0]*delPrim[2])*osteps;
+			coVars(i,j,k,12)  = (coVars(i,j,k,12)*stepsMinusOne+delCon[0]*delPrim[3])*osteps;
+			coVars(i,j,k,13)  = (coVars(i,j,k,13)*stepsMinusOne+delCon[0]*delPrim[4])*osteps;
+			coVars(i,j,k,14)  = (coVars(i,j,k,14)*stepsMinusOne+delPrim[2]*delPrim[3])*osteps;
+			coVars(i,j,k,15)  = (coVars(i,j,k,15)*stepsMinusOne+delPrim[2]*delPrim[4])*osteps;
+			coVars(i,j,k,16)  = (coVars(i,j,k,16)*stepsMinusOne+delPrim[3]*delPrim[4])*osteps;
 			coVars(i,j,k,17)  = (coVars(i,j,k,17)*stepsMinusOne+delCon[0]*delPrim[11])*osteps;
-			coVars(i,j,k,18)  = (coVars(i,j,k,18)*stepsMinusOne+delPrim[1]*delPrim[11])*osteps;
-			coVars(i,j,k,19)  = (coVars(i,j,k,19)*stepsMinusOne+delPrim[2]*delPrim[11])*osteps;
-			coVars(i,j,k,20)  = (coVars(i,j,k,20)*stepsMinusOne+delPrim[3]*delPrim[11])*osteps;
+			coVars(i,j,k,18)  = (coVars(i,j,k,18)*stepsMinusOne+delPrim[2]*delPrim[11])*osteps;
+			coVars(i,j,k,19)  = (coVars(i,j,k,19)*stepsMinusOne+delPrim[3]*delPrim[11])*osteps;
+			coVars(i,j,k,20)  = (coVars(i,j,k,20)*stepsMinusOne+delPrim[4]*delPrim[11])*osteps;
 		});
 	}
 }
