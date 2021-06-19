@@ -310,21 +310,22 @@ void main_driver(const char* argv)
 		if(istep%n_steps_skip == 0 && istep > 0) {
 			MultiFab::Copy(structFactPrimMF,cuPrimInst,0,0,nvarstruct,0);
 			structFactPrim.FortStructure(structFactPrimMF,geom,fft_type);
+			structFactPrim.WritePlotFile(istep,time,geom,"plt_SF_prim");
 		}
 		
 		if(istep%plot_int == 0) {
 			particles.writePlotFile(cuConInst,
-											  cuConMeans,
-		                        	  cuPrimInst,
-		                        	  cuPrimMeans,
-		                        	  cuVars,
-		                        	  coVars,
-		                        	  geom,
-		                        	  time,
-		                        	  istep);
+											cuConMeans,
+		                        	cuPrimInst,
+		                        	cuPrimMeans,
+		                        	cuVars,
+		                        	coVars,
+		                        	geom,
+		                        	time,
+		                        	istep);
 		}
 		
-		//if(istep%struct_fact_int ==0 && istep>0) {structFactPrim.WritePlotFile(istep,time,geom,"plt_SF_prim");}
+		//if(istep%struct_fact_int ==0 && istep>0) {}
  
 		Real tend = ParallelDescriptor::second() - tbegin;
 		ParallelDescriptor::ReduceRealMax(tend);

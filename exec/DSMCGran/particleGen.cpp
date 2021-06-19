@@ -94,7 +94,7 @@ void FhdParticleContainer::InitParticles(Real & dt) {
 			}
 			
 			// Zero out bulk velocities
-                     
+         /*        
 			int nstart = 0;
 			for(int i_spec=0; i_spec < nspecies; i_spec++) {			
 				// Zero out the bulk velocities
@@ -109,8 +109,8 @@ void FhdParticleContainer::InitParticles(Real & dt) {
 				}
 				nstart += properties[i_spec].total;
 			}
+			*/
 			
-                        
 			particleFile.close();
 		}
 	}

@@ -143,11 +143,11 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuConInst,
 			
 			cuPrimInst(i,j,k,11) /= cuPrimInst(i,j,k,0);																// T
 			
-			cv /= cuConInst(i,j,k,0);
+			cv /= cuPrimInst(i,j,k,1);
 			// Energy Density
-			cuPrimInst(i,j,k,13)  = pow(cuConInst(i,j,k,1),2)+pow(cuConInst(i,j,k,2),2)+pow(cuConInst(i,j,k,3),2);
-			cuPrimInst(i,j,k,13) *= (0.5*cuConInst(i,j,k,0));   // Bulk energy
-			cuPrimInst(i,j,k,13) += (cv*cuPrimInst(i,j,k,11));  // Total Particle KE
+			cuPrimInst(i,j,k,13)  = pow(cuPrimInst(i,j,k,2),2)+pow(cuPrimInst(i,j,k,3),2)+pow(cuPrimInst(i,j,k,4),2);
+			cuPrimInst(i,j,k,13) *= (0.5*cuPrimInst(i,j,k,1));                      // Bulk energy
+			cuPrimInst(i,j,k,13) += (cv*cuPrimInst(i,j,k,11)*cuPrimInst(i,j,k,1));  // Total Particle KE
 			
 			// Convert n to Xk and rho to Yk
 			for (int l=0; l<nspecies; l++) {
