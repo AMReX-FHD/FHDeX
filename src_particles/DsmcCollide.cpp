@@ -43,6 +43,7 @@ Real FhdParticleContainer::g0_Ma_Ahmadi(int ispec, int jspec, Real iphi, Real jp
 }
 
 void FhdParticleContainer::InitCollisionCells() {
+	BL_PROFILE_VAR("InitCollisionCells()",InitCollisionCells);
 	int indx, ij_spec;
    int cnt = 0;
    Real totalPhi = 0;
@@ -97,6 +98,7 @@ void FhdParticleContainer::InitCollisionCells() {
 
 // Compute selections here
 void FhdParticleContainer::CalcSelections(Real dt) {
+	BL_PROFILE_VAR("CalcSelections()",CalcSelections);
 	int lev = 0;
 	mfselect.setVal(0.0);
 	for(MFIter mfi(mfvrmax); mfi.isValid(); ++mfi) {
@@ -151,8 +153,8 @@ void FhdParticleContainer::CalcSelections(Real dt) {
 }
 
 void FhdParticleContainer::CollideParticles(Real dt) {
+	BL_PROFILE_VAR("CollideParticles()",CollideParticles);
 	int lev = 0;
-	//tTg = 0.0;
 	for(MFIter mfi(mfvrmax); mfi.isValid(); ++mfi) {
 		const Box& tile_box  = mfi.tilebox();
 		const int grid_id = mfi.index();

@@ -17,7 +17,7 @@ void FhdParticleContainer::writePlotFile(const MultiFab& mfcuInst,
 		                                   const Geometry& geom, 
 		                                   Real time,
 		                                   int step) {
-	BL_PROFILE("writePlotFile()");
+	BL_PROFILE_VAR("writePlotFile()",writePlotFile);
 
 	int ncon    = (nspecies+1)*5;
 	int nprim   = (nspecies+1)*14;
