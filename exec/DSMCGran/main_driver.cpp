@@ -307,9 +307,20 @@ void main_driver(const char* argv)
 		//////////////////////////////////////
 		// Stats
 		//////////////////////////////////////
+		
+		// n_steps_skip = equilbration period
     if (istep > amrex::Math::abs(n_steps_skip)) {
 		  cuInst.setVal(0.);
       primInst.setVal(0.);
+      if(statsCount == 1) {
+      	int alpha_cnt = 0;
+				for(int i_spec=0;i_spec<nspecies;i_spec++) {
+					for(int j_spec=0;j_spec<nspecies;j_spec++) {
+						int ij_spec = particles.getSpeciesIndex(i_spec,j_spec);
+    				particles.interproperties[ij_spec].alpha = alpha_pp[alpha_cnt++];
+					}
+				}
+			}
    		particles.EvaluateStats(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,coVars,statsCount++,time);
     }
 		                        

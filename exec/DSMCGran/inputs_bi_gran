@@ -28,7 +28,7 @@
   nspecies = 2
   ! Base off glass beads (rho = 2348 kg/m^3)
   mass     =   5.271e-08  7.550e-07 ! kg
-  diameter =     350e-06    850e-06 ! m
+  diameter =     3.5e-04    8.5e-04 ! m
   phi_domain =     5e-04      5e-04 ! [-]
   ! write each row, i.e. 1-1, 1-2, 1-3 .... 2-1, 2-2 ,2-3 ....
   ! need total nspecies*nspecies values
@@ -39,7 +39,6 @@
 	k_B = 1.38064852e-16
 	T_init  = 3.8179e9 5.4684e10 ! kT/m ~= 10
 	variance_coef_mom = 1
-
 
   bc_vel_lo(1:3) = -1 -1 -1
   bc_vel_hi(1:3) = -1 -1 -1

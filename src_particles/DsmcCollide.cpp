@@ -53,7 +53,7 @@ void FhdParticleContainer::InitCollisionCells() {
 		mindiam = std::min(mindiam,2.0*properties[i_spec].radius);
 		for(int j_spec=0;j_spec<nspecies;j_spec++) {
 			ij_spec = getSpeciesIndex(i_spec,j_spec);
-    		interproperties[ij_spec].alpha = alpha_pp[cnt];
+    		interproperties[ij_spec].alpha = 1.0; //alpha_pp[cnt];
     		interproperties[ij_spec].csx = pow(properties[i_spec].radius+properties[j_spec].radius,2)*pi_usr;
     		cnt++;
 		}

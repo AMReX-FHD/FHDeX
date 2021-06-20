@@ -25,7 +25,7 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
 		properties[i].mass = mass[i];
 		properties[i].radius = diameter[i]/2.0;
 		properties[i].partVol = pow(diameter[i],3)*pi_usr/6;
-      properties[i].part2cellVol = properties[i].partVol*ocollisionCellVol;
+		properties[i].part2cellVol = properties[i].partVol*ocollisionCellVol;
 		properties[i].Neff = particle_neff; // assume F_n is same for each
       
       // Overwrite particle_count
@@ -35,7 +35,7 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
       	properties[i].n0 = particle_neff*properties[i].total/domainVol;
       	
       	amrex::Print() <<  "Species "<< i << " count " << properties[i].total << "\n";
-      	amrex::Print() <<  "Species "<< i << " n0 " << properties[i].total << "\n";
+      	amrex::Print() <<  "Species "<< i << " n0 " << properties[i].n0 << "\n";
       	
       } else if( phi_domain[i] >= 0 ) {
       
@@ -44,7 +44,7 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
       	properties[i].n0 = properties[i].total/domainVol;
 
       	amrex::Print() <<  "Species "<< i << " count " << properties[i].total << "\n";
-      	amrex::Print() <<  "Species "<< i << " n0 " << properties[i].total << "\n";
+      	amrex::Print() <<  "Species "<< i << " n0 " << properties[i].n0 << "\n";
 
       } else {
       
@@ -52,7 +52,7 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
       	properties[i].n0 = properties[i].total/domainVol;
       
       	amrex::Print() <<  "Species " << i << " count " << properties[i].total << "\n";
-      	amrex::Print() <<  "Species " << i << " n0 " << properties[i].total << "\n";
+      	amrex::Print() <<  "Species " << i << " n0 " << properties[i].n0 << "\n";
       }
       
       realParticles = realParticles + properties[i].total*particle_neff;
