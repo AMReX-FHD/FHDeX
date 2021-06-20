@@ -7,13 +7,14 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
    						 						  MultiFab& mfprimMeans,
    						 						  MultiFab& mfprimVars,
    						 						  MultiFab& mfcoVars,
-   						 						  int steps) {
+   						 						  int steps,
+   						 						  Real time) {
 	BL_PROFILE_VAR("EvaluateStats()",EvaluateStats);
 
 	const Real osteps = 1.0/steps;
 	const int stepsMinusOne = steps-1;
 
-   const int lev = 0;  
+	const int lev = 0;  
 	for (FhdParIter pti(* this, lev); pti.isValid(); ++pti) {
 		const int grid_id = pti.index();
 		const int tile_id = pti.LocalTileIndex();
@@ -54,8 +55,8 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
 		int nprim = (nspecies+1)*14;
 		Array4<Real> cuInst     = mfcuInst[pti].array();
 		Array4<Real> primInst   = mfprimInst[pti].array();
-	   Array4<Real> cuMeans    = mfcuMeans[pti].array();
-	   Array4<Real> primMeans  = mfprimMeans[pti].array();
+		Array4<Real> cuMeans    = mfcuMeans[pti].array();
+		Array4<Real> primMeans  = mfprimMeans[pti].array();
 		Array4<Real> cuVars     = mfcuVars[pti].array();
 		Array4<Real> primVars   = mfprimVars[pti].array();
 		Array4<Real> coVars     = mfcoVars[pti].array();
@@ -79,7 +80,7 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
 				primInst(i,j,k,iprim+1) = np_spec*moV;         		    // mass density of species l
 				primInst(i,j,k,1)      += np_spec*moV;
 				cuInst(i,j,k,icon+0)    = np_spec*moV;
-				cv      					  += cv_l*np_spec*moV;				 // total cv
+				cv      					     += cv_l*np_spec*moV;				 // total cv
 				
 				// Read particle data
 				for (int m=0; m<np_spec; m++) {
@@ -167,8 +168,8 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
    	//////////////////////////////////////		
 
 		amrex::ParallelFor(tile_box,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
-    		Vector<Real> delCon(ncon, 0.0);
-      	// Conserved Variances
+			Vector<Real> delCon(ncon, 0.0);
+			// Conserved Variances
 			for (int l=0; l<ncon; l++) {
 				cuMeans(i,j,k,l) = (cuMeans(i,j,k,l)*stepsMinusOne+cuInst(i,j,k,l))*osteps;
          	delCon[l]        = cuInst(i,j,k,l) - cuMeans(i,j,k,l);
@@ -230,6 +231,55 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
 			coVars(i,j,k,19)  = (coVars(i,j,k,19)*stepsMinusOne+delPrim[3]*delPrim[11])*osteps;
 			coVars(i,j,k,20)  = (coVars(i,j,k,20)*stepsMinusOne+delPrim[4]*delPrim[11])*osteps;
 		});
+		/*
+		// Global Granular Temperature
+		Real Tg[nspecies];
+		for (int l=0; l<nspecies; l++) {Tg[l] = 0.;}
+		int np = particles.numParticles();
+
+		for (int i = 0; i < np; ++i) {
+			ParticleType & part = particles[i];
+
+			int ispec = part.idata(FHD_intData::species);
+			Real vsq = pow(part.rdata(FHD_realData::velx),2) +
+								 pow(part.rdata(FHD_realData::vely),2) +
+								 pow(part.rdata(FHD_realData::velz),2);
+			vsq	    *= (properties[ispec].mass/3.0);
+			Tg[ispec] += vsq;
+    }
+    
+    // Gather from all procs
+    ParallelDescriptor::ReduceIntSum(np);
+	  for (int l=0; l<nspecies; l++) {
+	  	Real tempTg = Tg[l];
+	  	amrex::Print() << Tg[l] << "\n";
+		  ParallelDescriptor::ReduceRealSum(tempTg);
+		  Tg[l] = tempTg/(double)np;
+		  amrex::Print() << Tg[l] << "\n";
+		}
+
+		// Print to files
+    if (ParallelDescriptor::IOProcessor()) {
+    	amrex::Print() << "Printing temps\n";
+    	std::string Tgfname = "Tg.dat";
+			std::string TgNfname = "TgN.dat";
+			fileTg.open(Tgfname);
+    	fileTgN.open(TgNfname);
+    	fileTg << fixed << setprecision(8) << time << " ";
+    	fileTgN << fixed << setprecision(8) << time << " ";
+    	for(int l=0; l<nspecies; l++){
+    		if(steps==1) {
+    			Tg0[l] = Tg[l];
+    		}
+    		
+    		fileTg << Tg[l] << " ";
+    		fileTgN << Tg[l]/Tg0[l] << " ";
+    	}
+    	fileTg << "\n";
+    	fileTgN << "\n";
+    	fileTg.close();
+    	fileTgN.close();
+    }*/
 	}
 }
 

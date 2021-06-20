@@ -109,7 +109,7 @@ void main_driver(const char* argv)
 		... (repeat for each species)
 	*/
 	   	
-   MultiFab cuInst,   cuMeans,   cuVars;
+	MultiFab cuInst, cuMeans, cuVars;
 	int ncon  = (nspecies+1)*5;
 	cuInst.define(ba, dmap, ncon, 0);    cuInst.setVal(0.);
 	cuMeans.define(ba, dmap, ncon, 0);   cuMeans.setVal(0.);
@@ -169,9 +169,9 @@ void main_driver(const char* argv)
 	int ncovar = 21;
 	MultiFab coVars(ba, dmap, ncovar, 0);   coVars.setVal(0.);
    
-   //////////////////////////////////////
-   // Structure Factor Setup
-   //////////////////////////////////////
+	//////////////////////////////////////
+	// Structure Factor Setup
+	//////////////////////////////////////
       
   // Output all primitives for structure factor
   int nvarstruct = 6+nspecies*2;
@@ -278,8 +278,11 @@ void main_driver(const char* argv)
 	int statsCount = 1;
 	for (int istep=0; istep<=max_step; ++istep) {
 		Real tbegin = ParallelDescriptor::second();
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-// Checkpoints
+		
+		//////////////////////////////////////
+		// Checkpoint
+		//////////////////////////////////////
+   
 		//if (plot_int > 0 && istep > 0 && istep%plot_step == 0) {
            
 		//}
@@ -289,44 +292,44 @@ void main_driver(const char* argv)
       //     						cu, cuMeans, cuVars, coVars);//,
            //						particles.mfselect, particles.mfphi, particles.mfvrmax);
 		//}
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-// Collide Particles
+
+		//////////////////////////////////////
+		// DSMC Collide + Move
+		//////////////////////////////////////
+		
 		//amrex::Print() << "Collisions per particles per species: " << 
 		//	particles.CountedCollision[
 		particles.CalcSelections(dt);
 		particles.CollideParticles(dt);
-		
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-// Move Particles
 		particles.MoveParticlesCPP(dt, paramPlaneList, paramPlaneCount);
 
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-// Stats
+
+		//////////////////////////////////////
+		// Stats
+		//////////////////////////////////////
     if (istep > amrex::Math::abs(n_steps_skip)) {
 		  cuInst.setVal(0.);
       primInst.setVal(0.);
-      particles.EvaluateStats(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,coVars,statsCount++);
+   		particles.EvaluateStats(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,coVars,statsCount++,time);
     }
 		                        
     // write a plotfile
     bool writePlt = false;
     if (plot_int > 0) {
-        if (n_steps_skip >= 0) { // for positive n_steps_skip, write out at plot_int
-            writePlt = (istep%plot_int == 0);
-        }
-        else if (n_steps_skip < 0) { // for negative n_steps_skip, write out at plot_int-1
-            writePlt = ((istep+1)%plot_int == 0);
-        }
-    }
+			if (n_steps_skip >= 0) { // for positive n_steps_skip, write out at plot_int
+				writePlt = (istep%plot_int == 0);
+			} else if (n_steps_skip < 0) { // for negative n_steps_skip, write out at plot_int-1
+				writePlt = ((istep+1)%plot_int == 0);
+			}
+		}
 
-    if (writePlt) {
+		if (writePlt) {
 			particles.writePlotFile(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,coVars,geom,time,istep);
     }
 
     // do structure factor
-    if (istep > amrex::Math::abs(n_steps_skip) && 
-        struct_fact_int > 0 && 
-        (istep-amrex::Math::abs(n_steps_skip))%struct_fact_int == 0) {
+    if(istep > amrex::Math::abs(n_steps_skip) && struct_fact_int > 0 && 
+			(istep-amrex::Math::abs(n_steps_skip))%struct_fact_int == 0) {
 
       int cnt_sf, numvars_sf;
       cnt_sf = 0;
@@ -336,9 +339,9 @@ void main_driver(const char* argv)
       cnt_sf += numvars_sf;
       // rho species
       for (int i=0;i<nspecies;i++) {
-          numvars_sf = 1;
-          MultiFab::Copy(structFactPrimMF,primInst,1+(i+1)*14,cnt_sf,numvars_sf,0);
-          cnt_sf += numvars_sf;
+				numvars_sf = 1;
+				MultiFab::Copy(structFactPrimMF,primInst,1+(i+1)*14,cnt_sf,numvars_sf,0);
+				cnt_sf += numvars_sf;
       }
       // u, v, w
       numvars_sf = 3;
@@ -350,9 +353,9 @@ void main_driver(const char* argv)
       cnt_sf += numvars_sf;
       // T species
       for (int i=0;i<nspecies;i++) {
-          numvars_sf = 1;
-          MultiFab::Copy(structFactPrimMF,primInst,11+(i+1)*14,cnt_sf,numvars_sf,0);
-          cnt_sf += numvars_sf;
+				numvars_sf = 1;
+				MultiFab::Copy(structFactPrimMF,primInst,11+(i+1)*14,cnt_sf,numvars_sf,0);
+				cnt_sf += numvars_sf;
       }
       // E
       numvars_sf = 1;
@@ -364,10 +367,9 @@ void main_driver(const char* argv)
     }
 		
     // write structure factor
-    if (istep > amrex::Math::abs(n_steps_skip) && 
-        struct_fact_int > 0 && plot_int > 0 && 
-        istep%plot_int == 0) {
-
+    if(istep > amrex::Math::abs(n_steps_skip) && 
+			struct_fact_int > 0 && plot_int > 0 && 
+			istep%plot_int == 0) {
       structFactPrim.WritePlotFile(istep,time,geom,"plt_SF_prim");
     }
  
@@ -379,7 +381,6 @@ void main_driver(const char* argv)
 	Real stop_time = ParallelDescriptor::second() - strt_time;
 	ParallelDescriptor::ReduceRealMax(stop_time);
 	amrex::Print() << "Run time = " << stop_time << " seconds" << std::endl;
-
 
 	//if(particle_input<0 && ParallelDescriptor::MyProc() == 0) {particles.OutputParticles();} // initial condition
 }

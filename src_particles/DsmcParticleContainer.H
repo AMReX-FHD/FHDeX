@@ -142,7 +142,8 @@ public:
    						 MultiFab& primMeans,
    						 MultiFab& primVars,
    						 MultiFab& coVars,
-   						 int steps);
+   						 int steps,
+   						 Real time);
    void OutputParticles();
    void writePlotFile(const MultiFab& cuInst,
    						 const MultiFab& cuMeans,
@@ -155,8 +156,7 @@ public:
    						 Real time,
    						 int steps);
    
-   Real tTg[MAX_SPECIES];
-   Real initTg[MAX_SPECIES];
+   Real Tg0[MAX_SPECIES];
    std::vector<Real> virial;
    
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -54,10 +54,10 @@ void FhdParticleContainer::InitCollisionCells() {
 			ij_spec = getSpeciesIndex(i_spec,j_spec);
     		interproperties[ij_spec].alpha = alpha_pp[cnt];
     		interproperties[ij_spec].csx = pow(properties[i_spec].radius+properties[j_spec].radius,2)*pi_usr;
-    		countedCollisions[ij_spec] = 0;
-    		expectedCollisions[ij_spec] = 0;
     		cnt++;
 		}
+		countedCollisions[i_spec] = 0;
+		expectedCollisions[i_spec] = 0;
 	}
 
 	const int lev = 0;
@@ -250,7 +250,8 @@ void FhdParticleContainer::CollideParticles(Real dt) {
 				eij[2] = std::cos(theta);
 				vreijmag = vij[0]*eij[0]+vij[1]*eij[1]+vij[2]*eij[2];					
 				if(amrex::Math::abs(vreijmag)>vrmax*amrex::Random()) {
-					countedCollisions[specij] += 2;
+					countedCollisions[speci] += 1;
+					countedCollisions[specj] += 1;
 
 					//virial.push_back(vreijmag);
 					vreijmag = vreijmag*(1.0+interproperties[specij].alpha)/massij;
