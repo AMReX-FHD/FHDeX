@@ -231,7 +231,7 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
 			coVars(i,j,k,19)  = (coVars(i,j,k,19)*stepsMinusOne+delPrim[3]*delPrim[11])*osteps;
 			coVars(i,j,k,20)  = (coVars(i,j,k,20)*stepsMinusOne+delPrim[4]*delPrim[11])*osteps;
 		});
-		/*
+		
 		// Global Granular Temperature
 		Real Tg[nspecies];
 		for (int l=0; l<nspecies; l++) {Tg[l] = 0.;}
@@ -252,34 +252,36 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
     ParallelDescriptor::ReduceIntSum(np);
 	  for (int l=0; l<nspecies; l++) {
 	  	Real tempTg = Tg[l];
-	  	amrex::Print() << Tg[l] << "\n";
+	  	amrex::Print() << "My proc: " << ParallelDescriptor::MyProc()
+	  		<< " Tg: " << Tg[l] << "\n";
 		  ParallelDescriptor::ReduceRealSum(tempTg);
 		  Tg[l] = tempTg/(double)np;
-		  amrex::Print() << Tg[l] << "\n";
+		  amrex::Print() << "My proc: " << ParallelDescriptor::MyProc()
+	  		<< " New Tg: " << Tg[l] << "\n";
 		}
 
 		// Print to files
     if (ParallelDescriptor::IOProcessor()) {
     	amrex::Print() << "Printing temps\n";
+			ofstream fileTg, fileTgN;
     	std::string Tgfname = "Tg.dat";
 			std::string TgNfname = "TgN.dat";
-			fileTg.open(Tgfname);
-    	fileTgN.open(TgNfname);
-    	fileTg << fixed << setprecision(8) << time << " ";
-    	fileTgN << fixed << setprecision(8) << time << " ";
+			if(steps==1) {
+				fileTg.open(Tgfname);	fileTgN.open(TgNfname);
+  	  } else {
+				fileTg.open(Tgfname, fstream::app);
+  	  	fileTgN.open(TgNfname, fstream::app);  	  
+  	  }
+    	fileTg << std::scientific << setprecision(8) << time << " ";
+    	fileTgN << std::scientific << setprecision(8) << time << " ";
     	for(int l=0; l<nspecies; l++){
-    		if(steps==1) {
-    			Tg0[l] = Tg[l];
-    		}
-    		
+    		if(steps==1) {Tg0[l] = Tg[l];}
     		fileTg << Tg[l] << " ";
     		fileTgN << Tg[l]/Tg0[l] << " ";
     	}
-    	fileTg << "\n";
-    	fileTgN << "\n";
-    	fileTg.close();
-    	fileTgN.close();
-    }*/
+    	fileTg << "\n"; fileTgN << "\n";
+    	fileTg.close(); fileTgN.close();
+    }
 	}
 }
 

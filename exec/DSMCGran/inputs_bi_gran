@@ -23,7 +23,7 @@
   particle_input = -1
   particle_count = -1 -1 -1 -1 ! -1 = calculate based on n0
   particle_neff = 1e0
-  
+  t
   !Species info
   !--------------
   nspecies = 2

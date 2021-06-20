@@ -376,6 +376,7 @@ void main_driver(const char* argv)
 		Real tend = ParallelDescriptor::second() - tbegin;
 		ParallelDescriptor::ReduceRealMax(tend);
 		amrex::Print() << "Advanced step " << istep << " in " << tend << " seconds\n";
+		time += dt;
 	}
 
 	Real stop_time = ParallelDescriptor::second() - strt_time;
