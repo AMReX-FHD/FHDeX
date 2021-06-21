@@ -14,9 +14,9 @@ Real ComputeSpatialVariance(MultiFab& mf, const int& incomp)
     // MultiFab with one component and no ghost cells
     MultiFab temp(ba, dmap, 1, 0);
 
-    // copy contents of mf into temp
-    Copy(temp,mf,incomp,0,1,0);
-
+    // set temp to the average
+    temp.setVal(average);
+    
     // subtract mf from temp; "temp = temp - mf"
     Subtract(temp,mf,incomp,0,1,0);
 
