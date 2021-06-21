@@ -113,7 +113,7 @@ void evaluateStatsStag(const MultiFab& cons, MultiFab& consMean, MultiFab& consV
                        std::array<MultiFab, AMREX_SPACEDIM>& cumomVar,
                        MultiFab& coVar,
                        Vector<Real>& yzAvMeans_cross,
-                       Vector<Real>& spatialCross,
+                       Vector<Real>& spatialCross, int ncross,
                        const int steps, const amrex::Real* dx);
 
 void doMembraneStag(MultiFab& cons, 
@@ -147,7 +147,7 @@ void WriteCheckPoint(int step,
                      const std::array<MultiFab, AMREX_SPACEDIM>& velMeans,
                      const std::array<MultiFab, AMREX_SPACEDIM>& velVars,
                      const amrex::MultiFab& coVars,
-                     const Vector<Real>& spatialCross);
+                     const Vector<Real>& spatialCross, int ncross);
 
 void ReadCheckPoint(int& step,
                      amrex::Real& time,
@@ -167,7 +167,7 @@ void ReadCheckPoint(int& step,
                      std::array<MultiFab, AMREX_SPACEDIM>& velMeans,
                      std::array<MultiFab, AMREX_SPACEDIM>& velVars,
                      amrex::MultiFab& coVars,
-                     Vector<Real>& spatialCross,
+                     Vector<Real>& spatialCross, int ncross,
                      BoxArray& ba, DistributionMapping& dmap);
 
 void ReadFile(const std::string& filename, Vector<char>& charBuf,

@@ -36,7 +36,7 @@ void WriteCheckPoint(int step,
                      const std::array<MultiFab, AMREX_SPACEDIM>& velMeans,
                      const std::array<MultiFab, AMREX_SPACEDIM>& velVars,
                      const amrex::MultiFab& coVars,
-                     const Vector<Real>& spatialCross)
+                     const Vector<Real>& spatialCross, int ncross)
 {
     // timer for profiling
     BL_PROFILE_VAR("WriteCheckPoint()",WriteCheckPoint);
@@ -60,8 +60,6 @@ void WriteCheckPoint(int step,
     amrex::PreBuildDirectorHierarchy(checkpointname, "Level_", nlevels, true);
     
     VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
-
-    int ncross = 28+nspecies;
 
     // write Header file
     if (ParallelDescriptor::IOProcessor()) {
@@ -223,6 +221,7 @@ void ReadCheckPoint(int& step,
                      std::array<MultiFab, AMREX_SPACEDIM>& velVars,
                      amrex::MultiFab& coVars,
                      Vector<Real>& spatialCross,
+                     int ncross,
                      BoxArray& ba, DistributionMapping& dmap)
 {
     // timer for profiling
@@ -237,8 +236,6 @@ void ReadCheckPoint(int& step,
 
     std::string line, word;
 
-    int ncross = 28+nspecies;
-    
     // read in old boxarray, and create old distribution map (this is to read in MFabs)
     BoxArray ba_old;
     DistributionMapping dmap_old;

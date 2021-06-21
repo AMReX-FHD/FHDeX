@@ -13,7 +13,7 @@ void evaluateStatsStag(const MultiFab& cons, MultiFab& consMean, MultiFab& consV
                        std::array<MultiFab, AMREX_SPACEDIM>& cumomVar,
                        MultiFab& coVar, 
                        Vector<Real>& yzAvMeans_cross,
-                       Vector<Real>& spatialCross,
+                       Vector<Real>& spatialCross, int ncross,
                        const int steps, const amrex::Real* dx)
 {
     BL_PROFILE_VAR("evaluateStatsStag()",evaluateStatsStag);
@@ -446,7 +446,7 @@ void evaluateStatsStag(const MultiFab& cons, MultiFab& consMean, MultiFab& consV
     /////////////////////////////////////////////////////////////
     // evaluate x-spatial correlations
     /////////////////////////////////////////////////////////////
-    int ncross = 28+nspecies;
+    // int ncross = 28+nspecies; check main_drive.cpp for latest
     for (int i=0; i<n_cells[0]; ++i) {
 
         // Get mean values

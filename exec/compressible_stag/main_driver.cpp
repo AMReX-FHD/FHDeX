@@ -333,7 +333,7 @@ void main_driver(const char* argv)
     if (restart > 0) {
         ReadCheckPoint(step_start, time, statsCount, geom, domain, cu, cuMeans, cuVars, prim,
                        primMeans, primVars, cumom, cumomMeans, cumomVars, 
-                       vel, velMeans, velVars, coVars, spatialCross,
+                       vel, velMeans, velVars, coVars, spatialCross, ncross,
                        ba, dmap);
 
         if (reset_stats == 1) statsCount = 1;
@@ -835,7 +835,7 @@ void main_driver(const char* argv)
         // Evaluate Statistics
         evaluateStatsStag(cu, cuMeans, cuVars, prim, primMeans, primVars, vel, 
                           velMeans, velVars, cumom, cumomMeans, cumomVars, coVars,
-                          yzAvMeans_cross, spatialCross, statsCount, dx);
+                          yzAvMeans_cross, spatialCross, ncross, statsCount, dx);
         statsCount++;
 
         // write a plotfile
@@ -983,7 +983,7 @@ void main_driver(const char* argv)
         {
             WriteCheckPoint(step, time, statsCount, geom, cu, cuMeans, cuVars, prim,
                            primMeans, primVars, cumom, cumomMeans, cumomVars, 
-                           vel, velMeans, velVars, coVars, spatialCross);
+                           vel, velMeans, velVars, coVars, spatialCross, ncross);
         }
 
         // timer
