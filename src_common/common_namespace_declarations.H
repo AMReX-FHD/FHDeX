@@ -124,6 +124,7 @@ amrex::Vector<amrex::Real> common::wallspeed_hi;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::potential_lo;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::potential_hi;
 
+int                        common::fft_type;
 int                        common::struct_fact_int;
 int                        common::radialdist_int;
 int                        common::cartdist_int;

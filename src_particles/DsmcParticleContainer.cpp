@@ -102,6 +102,31 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
     long moves = 0;
     int reDist = 0;
 
+
+    for (FhdParIter pti(* this, lev); pti.isValid(); ++pti) {
+
+        const int grid_id = pti.index();
+        const int tile_id = pti.LocalTileIndex();
+        const Box& tile_box  = pti.tilebox();
+
+        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+        auto& particles = particle_tile.GetArrayOfStructs();
+        const long np = particles.numParticles();
+
+        Box bx  = pti.tilebox();
+        IntVect myLo = bx.smallEnd();
+        IntVect myHi = bx.bigEnd();
+
+        if(np > 98)
+        {
+            ParticleType & part = particles[98];
+
+            cout << "START OF MOVE In box " << pti.index() << ", " << pti.LocalTileIndex() << " 98 has id " << part.id() << " sorted " << part.idata(FHD_intData::sorted) << endl;
+        }
+
+
+    }
+
     for (FhdParIter pti(* this, lev); pti.isValid(); ++pti) {
 
         const int grid_id = pti.index();
@@ -118,14 +143,15 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
 
         np_proc += np;
 
-        for (int i = 0; i < np; ++ i) {
-              ParticleType & part = particles[i];
+        for (int i = 0; i < np; i++) {
 
-                if(part.id() == 332)
-                {
-                       Print() << "stated moving particle " << i << "\n";
-                }
 
+        if(pti.index() == 1)
+        {
+              // Print() << "Moving " << i << "\n";
+        }
+
+              ParticleType & part = particles[i];      
 
               Real speed = 0;
 
@@ -184,7 +210,7 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
                 if(part.id() == 332)
                 {
               Print() << "finished move particle " << i << "\n";
-}
+                }
               part.rdata(FHD_realData::timeFrac) = 1;
 
 
@@ -212,18 +238,11 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
                 Print() << "removing " << i << ", " << part.id() << " from cell " << iv[0] << ", " << iv[1] << ", " << iv[2] << "\n";}
 
                 int lastIndex = m_cell_vectors[part.idata(FHD_intData::species)][pti.index()][imap].size() - 1;
-                if(part.id() == 332)
-                {
-                Print() << "last index is " << lastIndex << "\n";}
 
                 int lastPart = m_cell_vectors[part.idata(FHD_intData::species)][pti.index()][imap][lastIndex];
-                if(part.id() == 332)
-                {
-                Print() << "last part is " << lastPart << "\n";}
+
                 int newIndex = part.idata(FHD_intData::sorted);
-                if(part.id() == 332)
-                {
-                Print() << "found new index\n";}
+
 
                 m_cell_vectors[part.idata(FHD_intData::species)][pti.index()][imap][newIndex] = lastPart;
                 m_cell_vectors[part.idata(FHD_intData::species)][pti.index()][imap].pop_back();
@@ -231,23 +250,51 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
                 particles[lastPart].idata(FHD_intData::sorted) = newIndex;
 
                 part.idata(FHD_intData::sorted) = -1;
+                //part.idata(FHD_intData::j) = -1;
 
                 if(part.id() == 332)
-                {
-                Print() << "sorted is " << part.idata(FHD_intData::sorted) << "\n";
-                Print() << "vel is " << part.rdata(FHD_realData::velx) << "\n";}
+               {
 
-                if(part.id() == 332)
-                {
-                Print() << "cpu is " << part.cpu() << "\n";}
-                //Print() << "Removed\n";
+                   cout << "In REMOVAL In box " << pti.index() << ", " << pti.LocalTileIndex() << " sorted " << part.idata(FHD_intData::sorted) << " vel " << part.rdata(FHD_realData::velz)  << " j " << part.idata(FHD_intData::j) <<  "\n";
+              }
+    
             }
 
-              //Print() << "finished sorting particle " << i << "\n";
+            if(part.id() == 332)
+            {
+                Print() << "ADDRESS1: " << &part.idata(FHD_intData::sorted) << endl;
+                cout << "END OF MOVE LOOP In box " << pti.index() << ", " << i << " sorted " << part.idata(FHD_intData::sorted) << " vel " << part.rdata(FHD_realData::velz)  << " j " << part.idata(FHD_intData::j) <<  "\n";
+            }
+
+            if(i > 98 && pti.index() == 1)
+            {
+                cout << "ADDRESS1 FOLLOW: " << &part.idata(FHD_intData::sorted) << endl;
+                cout << "Sorted " << part.idata(FHD_intData::sorted) <<  "\n";
+            }
+
+//            if(pti.index() > 1)
+//            {
+//                cout << "ADDRESS1 FOLLOW: " << &part.idata(FHD_intData::sorted) << endl;
+//                cout << "Sorted " << part.idata(FHD_intData::sorted) <<  "\n";
+//            }
         }
 
         maxspeed_proc = amrex::max(maxspeed_proc, maxspeed);
         maxdist_proc  = amrex::max(maxdist_proc, maxdist);
+
+
+        if(np > 98)
+        {
+            ParticleType & part2 = particles[98];
+
+            if(part2.id() == 332)
+            {
+
+                    Print() << "ADDRESS2: " << &part2.idata(FHD_intData::sorted) << ", " << &particles[98].idata(FHD_intData::sorted) << endl;
+
+                cout << "POST MOVE LOOP In box " << pti.index() << ", " << pti.LocalTileIndex() << " sorted " << part2.idata(FHD_intData::sorted) << " vel " << part2.rdata(FHD_realData::velz)  << " j " << part2.idata(FHD_intData::j) <<  "\n";
+            }
+        }
 
 
 
@@ -269,9 +316,146 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
         Print() <<"Maximum observed displacement (fraction of radius): " << maxdist_proc << "\n";
     }
 
+    for (FhdParIter pti(* this, lev); pti.isValid(); ++pti) {
+
+        const int grid_id = pti.index();
+        const int tile_id = pti.LocalTileIndex();
+        const Box& tile_box  = pti.tilebox();
+
+        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+        auto& particles = particle_tile.GetArrayOfStructs();
+        const long np = particles.numParticles();
+
+        Box bx  = pti.tilebox();
+        IntVect myLo = bx.smallEnd();
+        IntVect myHi = bx.bigEnd();
+
+        if(np > 98)
+        {
+            ParticleType & part = particles[98];
+
+            //cout << "BEFORE REDIST In box " << pti.index() << ", " << pti.LocalTileIndex() << " 98 has id " << part.id() << " sorted " << part.idata(FHD_intData::sorted)  << " j " << part.idata(FHD_intData::j) <<  "\n";
+        }
+
+
+    }
+
     Redistribute();
+    for (FhdParIter pti(* this, lev); pti.isValid(); ++pti) {
+
+        const int grid_id = pti.index();
+        const int tile_id = pti.LocalTileIndex();
+        const Box& tile_box  = pti.tilebox();
+
+        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+        auto& particles = particle_tile.GetArrayOfStructs();
+        const long np = particles.numParticles();
+
+        Box bx  = pti.tilebox();
+        IntVect myLo = bx.smallEnd();
+        IntVect myHi = bx.bigEnd();
+
+        if(np > 98)
+        {
+            ParticleType & part = particles[98];
+
+            //cout << "AFTER REDIST In box " << pti.index() << ", " << pti.LocalTileIndex() << " 98 has id " << part.id() << " sorted " << part.idata(FHD_intData::sorted)  << " j " << part.idata(FHD_intData::j) <<  "\n";
+        }
+
+
+    }
+
     SortParticles();
 
+
+}
+
+
+void FhdParticleContainer::SortParticles()
+{
+    int lev = 0;
+    Print() << "SORTING\n";
+    for (FhdParIter pti(* this, lev); pti.isValid(); ++pti) {
+
+        const int grid_id = pti.index();
+        const int tile_id = pti.LocalTileIndex();
+        const Box& tile_box  = pti.tilebox();
+
+        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+        auto& particles = particle_tile.GetArrayOfStructs();
+        const long np = particles.numParticles();
+
+        Box bx  = pti.tilebox();
+        IntVect myLo = bx.smallEnd();
+        IntVect myHi = bx.bigEnd();
+
+        if(np > 98)
+        {
+            ParticleType & part = particles[98];
+
+            cout << "BEFORE SORT In box " << pti.index() << ", " << pti.LocalTileIndex() << " 98 has id " << part.id() << " sorted " << part.idata(FHD_intData::sorted)  << " j " << part.idata(FHD_intData::j) <<  "\n";
+        }
+
+
+    }
+
+    for (FhdParIter pti(* this, lev); pti.isValid(); ++pti) {
+
+        const int grid_id = pti.index();
+        const int tile_id = pti.LocalTileIndex();
+        const Box& tile_box  = pti.tilebox();
+
+        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+        auto& particles = particle_tile.GetArrayOfStructs();
+        const long np = particles.numParticles();
+
+        for (int i = 0; i < np; ++ i)
+        {
+            ParticleType & part = particles[i];
+            if(part.id() == 332)
+//if(true)
+            {
+            Print() << "Checking " << i << ", " << part.id() << ", " << part.idata(FHD_intData::sorted) << "\n";
+            Print() << "vel is " << part.rdata(FHD_realData::velz) << "\n";
+            Print() << "pos is " << part.pos(2) << "\n";
+            const IntVect& iv2 = this->Index(part, lev);
+            cout << "intended cell " << iv2[0] << ", " << iv2[1] << ", " << iv2[2] << "\n";
+            }
+            if(part.idata(FHD_intData::sorted) == -1)
+            {
+                const IntVect& iv = this->Index(part, lev);
+
+                //cout << "part " << i << " is in cell " << iv[0] << ", " << iv[1] << ", " << iv[2] << "\n";
+
+                part.idata(FHD_intData::i) = iv[0];
+                part.idata(FHD_intData::j) = iv[1];
+                part.idata(FHD_intData::k) = iv[2];
+
+                //Print() << "cell recorded\n";
+
+                long imap = tile_box.index(iv);
+
+                //Print() << "map built\n";
+                //Print() << "pti is: " << pti.index() << "\n";
+                //Print() << "spec is: " << part.idata(FHD_intData::species) << "\n";
+
+                part.idata(FHD_intData::sorted) = m_cell_vectors[part.idata(FHD_intData::species)][pti.index()][imap].size();
+
+                //Print() << "size is: " << part.idata(FHD_intData::sorted) << "\n";
+
+                m_cell_vectors[part.idata(FHD_intData::species)][pti.index()][imap].push_back(i);
+
+                //Print() << "pushed\n";
+
+                if(part.id() == 332)
+                {
+                    Print() << "Adding to " << iv[0] << ", " << iv[1] << ", " << iv[2] << "\n";
+                }
+
+            }
+
+        }
+    }
 }
 
 void FhdParticleContainer::EvaluateStats(MultiFab& particleInstant, MultiFab& particleMeans,
@@ -474,61 +658,5 @@ void FhdParticleContainer::Source(const Real dt, const paramPlane* paramPlaneLis
     Redistribute();
     SortParticles();
 
-}
-
-void FhdParticleContainer::SortParticles()
-{
-
-   // Print() << "SORTING\n";
-    int lev = 0;
-    for (FhdParIter pti(* this, lev); pti.isValid(); ++pti) {
-
-        const int grid_id = pti.index();
-        const int tile_id = pti.LocalTileIndex();
-        const Box& tile_box  = pti.tilebox();
-
-        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
-        auto& particles = particle_tile.GetArrayOfStructs();
-        const long np = particles.numParticles();
-
-        for (int i = 0; i < np; ++ i)
-        {
-            ParticleType & part = particles[i];
-
-            Print() << "Checking " << i << ", " << part.id() << ", " << part.idata(FHD_intData::sorted) << "\n";
-            Print() << "vel is " << part.rdata(FHD_realData::velx) << "\n";
-            if(part.idata(FHD_intData::sorted) == -1)
-            {
-                const IntVect& iv = this->Index(part, lev);
-
-               // cout << "part " << i << " is in cell " << iv[0] << ", " << iv[1] << ", " << iv[2] << "\n";
-
-                part.idata(FHD_intData::i) = iv[0];
-                part.idata(FHD_intData::j) = iv[1];
-                part.idata(FHD_intData::k) = iv[2];
-
-                //Print() << "cell recorded\n";
-
-                long imap = tile_box.index(iv);
-
-                //Print() << "map built\n";
-               // Print() << "pti is: " << pti.index() << "\n";
-               // Print() << "spec is: " << part.idata(FHD_intData::species) << "\n";
-
-                part.idata(FHD_intData::sorted) = m_cell_vectors[part.idata(FHD_intData::species)][pti.index()][imap].size();
-
-               // Print() << "size is: " << part.idata(FHD_intData::sorted) << "\n";
-
-                m_cell_vectors[part.idata(FHD_intData::species)][pti.index()][imap].push_back(i);
-
-                if(part.id() == 332)
-                {
-                    Print() << "Adding to " << iv[0] << ", " << iv[1] << ", " << iv[2] << "\n";
-                }
-
-            }
-
-        }
-    }
 }
 
