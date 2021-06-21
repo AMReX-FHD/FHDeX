@@ -260,10 +260,6 @@ void GetMolTot(const GpuArray<Real, MAX_SPECIES>& W,
     molmtot = 1.0 / sumOverN; 
 }  
 
-//EP
-// Put innerloop code here. Then call this function to do the calculations
-// Remember to have nspecies be an input
-//
 
 AMREX_FORCE_INLINE
 void ComputeMolconcMolmtotLocal( int nspecies_in,
