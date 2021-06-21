@@ -29,14 +29,18 @@ void ComputeMolconcMolmtot(const MultiFab& rho_in,
             GpuArray<Real, MAX_SPECIES> MolarConcN;
 
             for (int n=0; n<nspecies; ++n ){
-                RhoN[n] = rhotot(i,j,k,n);
-                MolarConcN[n] = molarconc(i,j,k,n);
+                RhoN[n] = rho(i,j,k,n);
             }
 
 
             ComputeMolconcMolmtotLocal(nspecies, molmass, 
                             RhoN, rhotot(i,j,k),          
                             MolarConcN, molmtot(i,j,k));
+
+            for (int n=0; n<nspecies; ++n ){
+                molarconc(i,j,k,n) = MolarConcN[n] ;
+            }
+
         });
 
     }
