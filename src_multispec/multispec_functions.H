@@ -261,7 +261,7 @@ void GetMolTot(const GpuArray<Real, MAX_SPECIES>& W,
 }  
 
 
-AMREX_FORCE_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void ComputeMolconcMolmtotLocal( int nspecies_in,
                 GpuArray<Real, MAX_SPECIES>& molmass_in,
                 GpuArray<Real, MAX_SPECIES>& RhoN,
