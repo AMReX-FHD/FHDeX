@@ -267,7 +267,7 @@ void ComputeMolconcMolmtotLocal( int nspecies_in,
                 GpuArray<Real, MAX_SPECIES>& RhoN,
                 Real rhotot_in,
                 GpuArray<Real, MAX_SPECIES>& MolarConcN,
-                Real molmtot_in){
+                Real& molmtot_in){
 
     GpuArray<Real, MAX_SPECIES> W;
 
