@@ -927,13 +927,9 @@ void main_driver(const char* argv)
                     ComputeVerticalAverage(structFactConsMF, consVertAvg, geom, project_dir, 0, structVarsCons);
                     MultiFab primVertAvgRot = RotateFlattenedMF(primVertAvg);
                     MultiFab consVertAvgRot = RotateFlattenedMF(consVertAvg);
-                    amrex::Print() << "entering stage 1" << std::endl;
                     amrex::Print() << geom_flat << std::endl;
-                    amrex::Print() << "entering stage 1a" << std::endl;
                     structFactPrimVerticalAverage.FortStructure(primVertAvgRot,geom_flat,fft_type);
-                    amrex::Print() << "exiting stage 1" << std::endl;
                     structFactConsVerticalAverage.FortStructure(consVertAvgRot,geom_flat,fft_type);
-                    amrex::Print() << "exiting stage 2" << std::endl;
                 }
                 else {
                     MultiFab primVertAvg0;  // flattened multifab defined below
@@ -961,18 +957,18 @@ void main_driver(const char* argv)
             struct_fact_int > 0 && plot_int > 0 && 
             step%plot_int == 0) {
 
-            structFactPrim.WritePlotFile(step,time,geom,"plt_SF_prim",0);
-            structFactCons.WritePlotFile(step,time,geom,"plt_SF_cons",0);
+            structFactPrim.WritePlotFile(step,time,geom,"plt_SF_prim");
+            structFactCons.WritePlotFile(step,time,geom,"plt_SF_cons");
             if(project_dir >= 0) {
                 if (do_slab_sf == 0) {
-                    structFactPrimVerticalAverage.WritePlotFile(step,time,geom_flat,"plt_SF_prim_VerticalAverage",0);
-                    structFactConsVerticalAverage.WritePlotFile(step,time,geom_flat,"plt_SF_cons_VerticalAverage",0);
+                    structFactPrimVerticalAverage.WritePlotFile(step,time,geom_flat,"plt_SF_prim_VerticalAverage");
+                    structFactConsVerticalAverage.WritePlotFile(step,time,geom_flat,"plt_SF_cons_VerticalAverage");
                 }
                 else {
-                    structFactPrimVerticalAverage0.WritePlotFile(step,time,geom_flat,"plt_SF_prim_VerticalAverageSlab0",0);
-                    structFactPrimVerticalAverage1.WritePlotFile(step,time,geom_flat,"plt_SF_prim_VerticalAverageSlab1",0);
-                    structFactConsVerticalAverage0.WritePlotFile(step,time,geom_flat,"plt_SF_cons_VerticalAverageSlab0",0);
-                    structFactConsVerticalAverage1.WritePlotFile(step,time,geom_flat,"plt_SF_cons_VerticalAverageSlab1",0);
+                    structFactPrimVerticalAverage0.WritePlotFile(step,time,geom_flat,"plt_SF_prim_VerticalAverageSlab0");
+                    structFactPrimVerticalAverage1.WritePlotFile(step,time,geom_flat,"plt_SF_prim_VerticalAverageSlab1");
+                    structFactConsVerticalAverage0.WritePlotFile(step,time,geom_flat,"plt_SF_cons_VerticalAverageSlab0");
+                    structFactConsVerticalAverage1.WritePlotFile(step,time,geom_flat,"plt_SF_cons_VerticalAverageSlab1");
                 }
             }
         }
