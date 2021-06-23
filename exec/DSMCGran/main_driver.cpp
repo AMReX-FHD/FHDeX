@@ -35,8 +35,8 @@ void main_driver(const char* argv)
 	
 	DistributionMapping dmap;
 	
-	MultiFab cuInst, cuMean, cuDel, covar;
-	int nnspec, statsz;
+	MultiFab cu, cuMeans, cuVars, coVars;
+	int nnspec, nstats;
 	// Will likely need to redo this
 	if (restart < 0) {
 		if (seed > 0) {
@@ -56,16 +56,16 @@ void main_driver(const char* argv)
 		dmap.define(ba);
 		
 		/*
-		0 	- n - number density
+		0	- n - number density
 		1	- rho - mass density
-		2 	- Jx - x-mom density
-		3 	- Jy - y-mom density
-		4 	- Jz - z-mom density
-		5 	- tau_xx - xx shear stress
-		6 	- tau_xy - xy shear stress
-		7 	- tau_xz - xz shear stress
-		8 	- tau_yy - yy shear stress
-		9  - tau_yz - yz shear stress
+		2	- Jx - x-mom density
+		3	- Jy - y-mom density
+		4	- Jz - z-mom density
+		5	- tau_xx - xx shear stress
+		6	- tau_xy - xy shear stress
+		7	- tau_xz - xz shear stress
+		8	- tau_yy - yy shear stress
+		9 - tau_yz - yz shear stress
 		10 - tau_zz - zz shear stress
 		11 - E - energy
 		12 - T_gran - granular temperature
@@ -84,34 +84,30 @@ void main_driver(const char* argv)
 		25 - T_g_i
 		... (repeat for each add. species)
 		*/
-		statsz = (nspecies+1)*13;
-		cuInst.define(ba, dmap, statsz, 0); cuInst.setVal(0.);
-		cuMean.define(ba, dmap, statsz, 0); cuMean.setVal(0.);
-		cuDel.define(ba, dmap, statsz, 0);  cuDel.setVal(0.);
+		nstats = (nspecies+1)*13;
+		cu.define(ba, dmap, nstats, 0); cu.setVal(0.);
+		cuMeans.define(ba, dmap, nstats, 0); cuMeans.setVal(0.);
+		cuVars.define(ba, dmap, nstats, 0);  cuVars.setVal(0.);
 		
 		// Variances
 		// Each has (nspecies)(nspecies+1)*0.5 data points
 		/*
-		0  - drho.drho
-		1  - drho.dJx
-		2  - drho.dJy
-		3  - drho.dJz
-		4  - drho.dE
-		5  - dJx.dJx
-		6  - dJx.dJy
-		7  - dJx.dJz
-		8  - dJy.dJy
-		9  - dJy.dJz
-		10 - dJz.dJz
-		11 - dJx.dE
-		12 - dJy.dE
-		13 - dJz.dE
-		14 - dE.dE
+		0  - drho.dJx
+		1  - drho.dJy
+		2  - drho.dJz
+		3  - drho.dE
+		4  - dJx.dJy
+		5  - dJx.dJz
+		6  - dJy.dJz
+		7 - dJx.dE
+		8 - dJy.dE
+		9 - dJz.dE
+    // Comment -- need to add some temperature-velocity covariances as well (see Balakrishnan)
 		*/
 		// Add multifabs for variances
-		nnspec = std::ceil((double)nspecies*(nspecies-1)*0.5);
-		//MultiFab covar(ba, dmap, (nnspec+1)*15, 0);
-		covar.define(ba, dmap, 15, 0);
+		//nnspec = std::ceil((double)nspecies*(nspecies-1)*0.5);
+		//MultiFab coVars(ba, dmap, (nnspec+1)*15, 0);
+		coVars.define(ba, dmap, 10, 0);
 		// just track ones you want
 	} else {
 		// restart from checkpoint
@@ -196,7 +192,7 @@ void main_driver(const char* argv)
 
 		//if (istep==1 && restart > 0) {
       //     ReadCheckPoint(istep, statsCount, time, geom,
-      //     						cuInst, cuMean, cuDel, covar);//,
+      //     						cu, cuMeans, cuVars, coVars);//,
            //						particles.mfselect, particles.mfphi, particles.mfvrmax);
 		//}
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -212,9 +208,9 @@ void main_driver(const char* argv)
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Stats
 		if (istep%step_stat == 0) {
-			cuInst.setVal(0.);
-			particles.EvaluateStats(cuInst, cuMean, cuDel, covar,   statsCount);
-			particles.writePlotFile(covar,  cuMean,  geom,  time, statsCount++);
+			cu.setVal(0.);
+			particles.EvaluateStats(cu, cuMeans, cuVars, coVars,  statsCount); // Comment -- Why not this out of the if statement? Compute every step -- print every step_stat
+			particles.writePlotFile(cu, cuMeans, cuVars,  coVars,  geom,  time, statsCount++);
 		}
  
 		Real end = ParallelDescriptor::second() - time1;

@@ -136,13 +136,20 @@ public:
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Outputs
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	void EvaluateStats(MultiFab& mfcuInst,    MultiFab& mfcuMean,
-							 MultiFab& mfcuDel, 	   MultiFab& mfcovar,
-                      int steps);
+  void EvaluateStats(MultiFab& Cu,    
+                     MultiFab& CuMeans,
+                     MultiFab& CuVars,
+										 MultiFab& CoVars,
+                     int steps);
                                          
    void OutputParticles();
-   void writePlotFile(const MultiFab& covar, const MultiFab& cuMean,
-               const Geometry& geom, Real time, int step);
+   void writePlotFile(const MultiFab& Cu,
+                      const MultiFab& CuMeans, 
+                      const MultiFab& CuVars,
+                      const MultiFab& CoVars,
+                      const Geometry& geom, 
+                      Real time, 
+                      int statCount);
    
    Real tTg[MAX_SPECIES];
    Real initTg[MAX_SPECIES];
