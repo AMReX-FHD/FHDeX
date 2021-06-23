@@ -137,32 +137,9 @@ void main_driver(const char* argv)
     // contains yz-averaged running & instantaneous averages of conserved variables (2*nvars) + primitive variables [vx, vy, vz, T, Yk]: 2*4 + 2*nspecies 
     Vector<Real> yzAvMeans_cross(2*nvars+8+2*nspecies, 0.0); 
     
-    // 1: <delrho*delrho>
-    // 2: <delrhoE*delrhoE>
-    // 3: <deljx*deljx>
-    // 4: <deljy*deljy>
-    // 5: <deljz*deljz>
-    // 6: <deljx*delrho>
-    // 7: <delG*delG>
-    // 8: <delG*delK>
-    // 9: <delK*delG>
-    // 10: <delrho*delK>
-    // 11: <delK*delrho>
-    // 12: <delrho*delG>
-    // 13: <delG*delrho>
-    // 14: <delT*delT>
-    // 15: <delT*delrho>
-    // 16: <delux*delrho>
-    // 17: <delux*delrhoYkL>
-    // 18: <delux*delrhoYkH>
-    // 19: <delux*delYkL>
-    // 20: <delux*delYkH>
-    // 21: <delYkL*delYkL>
-    // 22: <delYkH*delYkH>
-    // 23: <delYkL*delYkH>
-    // nspecies: <delrhoYk*delrhoYk>
+    // see statsStag for the list
     // can add more -- change main_driver, statsStag, writeplotfilestag, and Checkpoint
-    int ncross = 28+nspecies;
+    int ncross = 37+nspecies+2;
     Vector<Real> spatialCross(n_cells[0]*ncross, 0.0); 
     
     // make BoxArray and Geometry
