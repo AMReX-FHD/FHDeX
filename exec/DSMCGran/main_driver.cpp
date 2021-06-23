@@ -149,7 +149,6 @@ void main_driver(const char* argv)
 	ParmParse pp ("particles");
 	pp.addarr("tile_size", ts);
 
-
 	int cRange = 0;
 	FhdParticleContainer particles(geom, dmap, ba, cRange);
 	if (restart < 0 && particle_restart < 0) {
@@ -183,7 +182,7 @@ void main_driver(const char* argv)
 	int statsCount = 1;
 	int step_stat = 5;
 	for (int istep=1; istep<=max_step; ++istep) {
-		Real begin = ParallelDescriptor::second();
+		Real tbegin = ParallelDescriptor::second();
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Checkpoints
 		//if (plot_int > 0 && istep > 0 && istep%plot_step == 0) {
@@ -213,9 +212,9 @@ void main_driver(const char* argv)
 			particles.writePlotFile(cu, cuMeans, cuVars,  coVars,  geom,  time, statsCount++);
 		}
  
-		Real end = ParallelDescriptor::second() - time1;
-		ParallelDescriptor::ReduceRealMax(time2);
-		amrex::Print() << "Advanced step " << istep << " in " << time2 << " seconds\n";
+		Real tend = ParallelDescriptor::second() - tbegin;
+		ParallelDescriptor::ReduceRealMax(tend);
+		amrex::Print() << "Advanced step " << istep << " in " << tend << " seconds\n";
 	}
 
 	Real stop_time = ParallelDescriptor::second() - strt_time;

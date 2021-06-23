@@ -9,14 +9,13 @@
   max_grid_size(1:3) = 16 16 4
   max_particle_tile_size(1:3) = 256 256 256 ! set to zero to use max_grid_size, setting a very large number will also use max grid size, but will also ensure that refined es and particle grids will do the same.
 
-  ! above settings are for fluid grid. EM and particle grid (the grid for finding neighbour lists) are coarsened or refined off these grids. <1 = refine, >1 = coarsen.
-  !Leave these on 1 until properly tested
 
   ! Time-step control
   fixed_dt = 1e-8                         ! 1e-13 is too large 
 
   ! Controls for number of steps between actions
-  max_step = 500
+  max_step = 200
+ 
   plot_int = 2
   plot_ascii = 1
   struct_fact_int = -1

@@ -7,7 +7,7 @@
 
 using namespace std;
 
-void FhdParticleContainer::InitParticles(Real& dt) {
+void FhdParticleContainer::InitParticles(Real dt) {
 	const int lev = 0;
 	const Geometry& geom = Geom(lev);
 

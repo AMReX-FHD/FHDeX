@@ -50,30 +50,30 @@ void FhdParticleContainer::EvaluateStats(MultiFab& Cu,
 		25 - T_g_i
 		... (repeat for each add. species)
 		*/
-		nvars = 13;
+		nstats = 13;
 		Array4<Real> cu = Cu[pti].array();
 		Array4<Real> cumean = CuMeans[pti].array();
 		Array4<Real> cuvars = CuVars[pti].array();
 		Array4<Real> covars = CoVars[pti].array();
-		for (int i = smallEnd[0]; i <= bigEnd[0]; i++) {
-		for (int j = smallEnd[1]; j <= bigEnd[1]; j++) {
-		for (int k = smallEnd[2]; k <= bigEnd[2]; k++) {
+		amrex::ParallelFor(tile_box,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
 			const IntVect& iv = {i,j,k};
 			long imap = tile_box.index(iv);
-			int cnt = nvars;
+			int cnt = nstats;
 			for (int l=0; l<nspecies; l++) {
 				const long np_spec = m_cell_vectors[l][grid_id][imap].size();
-				Real moV  = properties[l].mass*ocollisionCellVol;     // density
-				Real mass = properties[l].mass;
-				cu(i,j,k,cnt)   = np_spec*ocollisionCellVol;		// number of species l
-				cu(i,j,k,0)    += np_spec*ocollisionCellVol; 		// total number
-				cu(i,j,k,cnt+1) = np_spec*moV;         		    	// mass density of species l
-				cu(i,j,k,1)    += np_spec*moV;							// total mass density
+				Real moV  = properties[l].mass*ocollisionCellVol*properties[l].Neff;     // density
+				Real mass = properties[l].mass*properties[l].Neff;
+				cuInst(i,j,k,cnt)   = np_spec*ocollisionCellVol;		// number of species l
+				cuInst(i,j,k,0)    += np_spec*ocollisionCellVol; 		// total number
+				cuInst(i,j,k,cnt+1) = np_spec*moV;         		    	// mass density of species l
+				cuInst(i,j,k,1)    += np_spec*moV;							// total mass density
 				
 				// Read particle data
 				for (int m=0; m<np_spec; m++) {
 					int pind = m_cell_vectors[l][grid_id][imap][m];
-					ParticleType & p = particles[pind]; 
+					ParticleType ptemp = particles[pind];
+					ParticleType & p = ptemp;
+					// ParticleType & p = particles[pind]; 
 										
 					cu(i,j,k,cnt+2)  += p.rdata(FHD_realData::velx); // x-mom of species l
 					cu(i,j,k,cnt+3)  += p.rdata(FHD_realData::vely); // y-mom of species l
@@ -108,22 +108,20 @@ void FhdParticleContainer::EvaluateStats(MultiFab& Cu,
 				cu(i,j,k,11) += cu(i,j,k,cnt+11)*moV*0.5; // total energy
 				// Gran. Temp of species l x number density of species l
 				cu(i,j,k,12) += cu(i,j,k,cnt+12)*cu(i,j,k,cnt); // total Gran. Temp.
-				cnt += nvars;
+				cnt += nstats;
 			}
 			
 			// Mixture temperature (Divide by total number density)
 			cu(i,j,k,12) /= cu(i,j,k,0);
 			
 			// Determine mole/mass fraction
-			cnt = nvars;
+			cnt = nstats;
 			for (int l=0; l<nspecies; l++) {
 				cu(i,j,k,cnt)   /= cu(i,j,k,0); // mole fraction of species l
 				cu(i,j,k,cnt+1) /= cu(i,j,k,1); // mass fraction of species l
-				cnt += nvars;
+				cnt += nstats;
 			}
-		}
-		}
-		}
+		});
 		
 	   // Mean & Variances
 		amrex::ParallelFor(tile_box,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {

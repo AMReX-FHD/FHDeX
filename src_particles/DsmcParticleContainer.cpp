@@ -103,6 +103,7 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
     int reDist = 0;
     
 
+
     for (FhdParIter pti(* this, lev); pti.isValid(); ++pti) {
 
         const int grid_id = pti.index();
@@ -112,9 +113,22 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
         auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
         auto& particles = particle_tile.GetArrayOfStructs();
         const long np = particles.numParticles();
-        
-        // Update solid fraction here ( and at sort_particles() )
-        const Array4<Real> & arrphi = mfphi.array(pti);
+
+        Box bx  = pti.tilebox();
+        IntVect myLo = bx.smallEnd();
+        IntVect myHi = bx.bigEnd();
+
+    }
+
+    for (FhdParIter pti(* this, lev); pti.isValid(); ++pti) {
+
+        const int grid_id = pti.index();
+        const int tile_id = pti.LocalTileIndex();
+        const Box& tile_box  = pti.tilebox();
+
+        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+        auto& particles = particle_tile.GetArrayOfStructs();
+        const long np = particles.numParticles();
 
         Box bx  = pti.tilebox();
         IntVect myLo = bx.smallEnd();
@@ -122,14 +136,9 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
 
         np_proc += np;
 
-        for (int i = 0; i < np; ++ i) {
-              ParticleType & part = particles[i];
-
-                if(part.id() == 332)
-                {
-                       //Print() << "stated moving particle " << i << "\n";
-                }
-
+        for (int i = 0; i < np; i++) {
+       
+            ParticleType & part = particles[i];
 
               Real speed = 0;
 
@@ -185,10 +194,6 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
                   }
 
               }
-                if(part.id() == 332)
-                {
-              //Print() << "finished move particle " << i << "\n";
-}
               part.rdata(FHD_realData::timeFrac) = 1;
 
 
@@ -197,44 +202,30 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
             cell[1] = (int)floor((part.pos(1)-plo[1])/dx[1]);
             cell[2] = (int)floor((part.pos(2)-plo[2])/dx[2]);
 
-            //n << "current pos: " << part.pos(0) << ", " << part.pos(1) << ", " << part.pos(2) << "\n";
-
-//            if((cell[0] < myLo[0]) || (cell[1] < myLo[1]) || (cell[2] < myLo[2]) || (cell[0] > myHi[0]) || (cell[1] > myHi[1]) || (cell[2] > myHi[2]))
-//            {
-//                reDist++;
-//            }
 
             if((part.idata(FHD_intData::i) != cell[0]) || (part.idata(FHD_intData::j) != cell[1]) || (part.idata(FHD_intData::k) != cell[2]) || part.id() < 0)
             {
                 //remove particle from old cell
-
 
                 IntVect iv(part.idata(FHD_intData::i), part.idata(FHD_intData::j), part.idata(FHD_intData::k));
                 long imap = tile_box.index(iv);
                 int lastIndex = m_cell_vectors[part.idata(FHD_intData::species)][pti.index()][imap].size() - 1;
                 int lastPart = m_cell_vectors[part.idata(FHD_intData::species)][pti.index()][imap][lastIndex];
                 int newIndex = part.idata(FHD_intData::sorted);
-
                 m_cell_vectors[part.idata(FHD_intData::species)][pti.index()][imap][newIndex] = lastPart;
                 m_cell_vectors[part.idata(FHD_intData::species)][pti.index()][imap].pop_back();
 
                 particles[lastPart].idata(FHD_intData::sorted) = newIndex;
 
                 part.idata(FHD_intData::sorted) = -1;
-
-                // reduce solid fraction
-                int ispec = part.idata(FHD_intData::species);
-                arrphi(iv[0],iv[1],iv[2],ispec) =
-                	arrphi(iv[0],iv[1],iv[2],ispec) - properties[ispec].part2cellVol*properties[ispec].Neff;
-
-                //Print() << "Removed\n";
             }
+       
 
-              //Print() << "finished sorting particle " << i << "\n";
         }
 
         maxspeed_proc = amrex::max(maxspeed_proc, maxspeed);
         maxdist_proc  = amrex::max(maxdist_proc, maxdist);
+
     }
 
     // gather statistics
@@ -252,8 +243,98 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
     //    Print() <<"Maximum observed displacement (fraction of radius): " << maxdist_proc << "\n";
     //}
 
+    for (FhdParIter pti(* this, lev); pti.isValid(); ++pti) {
+
+        const int grid_id = pti.index();
+        const int tile_id = pti.LocalTileIndex();
+        const Box& tile_box  = pti.tilebox();
+
+        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+        auto& particles = particle_tile.GetArrayOfStructs();
+        const long np = particles.numParticles();
+
+        Box bx  = pti.tilebox();
+        IntVect myLo = bx.smallEnd();
+        IntVect myHi = bx.bigEnd();
+
+    }
+
     Redistribute();
+    for (FhdParIter pti(* this, lev); pti.isValid(); ++pti) {
+
+        const int grid_id = pti.index();
+        const int tile_id = pti.LocalTileIndex();
+        const Box& tile_box  = pti.tilebox();
+
+        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+        auto& particles = particle_tile.GetArrayOfStructs();
+        const long np = particles.numParticles();
+
+        Box bx  = pti.tilebox();
+        IntVect myLo = bx.smallEnd();
+        IntVect myHi = bx.bigEnd();
+
+
+    }
+
     SortParticles();
+}
+
+void FhdParticleContainer::SortParticles()
+{
+    int lev = 0;
+
+    const Real* dx = Geom(lev).CellSize();
+    const Real* plo = Geom(lev).ProbLo();
+    const Real* phi = Geom(lev).ProbHi();
+
+    for (FhdParIter pti(* this, lev); pti.isValid(); ++pti) {
+
+        const int grid_id = pti.index();
+        const int tile_id = pti.LocalTileIndex();
+        const Box& tile_box  = pti.tilebox();
+
+        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+        auto& particles = particle_tile.GetArrayOfStructs();
+        const long np = particles.numParticles();
+
+        for (int i = 0; i < np; ++ i)
+        {
+            ParticleType & part = particles[i];
+
+            IntVect iv ={0,0,0};
+
+
+            if(part.idata(FHD_intData::sorted) == -1)
+            {
+                iv[0] = (int)floor((part.pos(0)-plo[0])/dx[0]);
+                iv[1] = (int)floor((part.pos(1)-plo[1])/dx[1]);
+                iv[2] = (int)floor((part.pos(2)-plo[2])/dx[2]);
+
+                part.idata(FHD_intData::i) = iv[0];
+                part.idata(FHD_intData::j) = iv[1];
+                part.idata(FHD_intData::k) = iv[2];
+
+                long imap = tile_box.index(iv);
+
+                part.idata(FHD_intData::sorted) = m_cell_vectors[part.idata(FHD_intData::species)][pti.index()][imap].size();
+
+                m_cell_vectors[part.idata(FHD_intData::species)][pti.index()][imap].push_back(i);
+
+            }else
+            {
+
+                iv[0] = part.idata(FHD_intData::i);
+                iv[1] = part.idata(FHD_intData::j);
+                iv[2] = part.idata(FHD_intData::k);
+
+                long imap = tile_box.index(iv);
+
+                m_cell_vectors[part.idata(FHD_intData::species)][pti.index()][imap][part.idata(FHD_intData::sorted)] = i;
+            }
+
+        }
+    }
 }
 
 void FhdParticleContainer::Source(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount) {
@@ -342,15 +423,7 @@ void FhdParticleContainer::Source(const Real dt, const paramPlane* paramPlaneLis
 
                             rotation(surf.cosThetaLeft, surf.sinThetaLeft, surf.cosPhiLeft, surf.sinPhiLeft, &p.rdata(FHD_realData::velx), &p.rdata(FHD_realData::vely), &p.rdata(FHD_realData::velz));
 
-                            //Print() << "Pushing back " << p.id() << ", pos: " << p.pos(0) << ", " << p.pos(1) << ", " << p.pos(2) << "\n";
-                            //Print() << "Pushing back " << p.id() << ", vel: " << p.rdata(FHD_realData::velx) << ", " << p.rdata(FHD_realData::vely) << ", " << p.rdata(FHD_realData::velz) << "\n";
-
                             particle_tile.push_back(p);
-
-                            if(p.id() == 332)
-                            {
-                                Print() << "Generated particle!\n";
-                            }
 
                         }
 
@@ -369,9 +442,10 @@ void FhdParticleContainer::Source(const Real dt, const paramPlane* paramPlaneLis
 
 }
 
-void FhdParticleContainer::SortParticles() {
-   // Print() << "SORTING\n";
+void FhdParticleContainer::PrintCellList(int i, int j, int k)
+{
     int lev = 0;
+
     for (FhdParIter pti(* this, lev); pti.isValid(); ++pti) {
 
         const int grid_id = pti.index();
@@ -382,51 +456,39 @@ void FhdParticleContainer::SortParticles() {
         auto& particles = particle_tile.GetArrayOfStructs();
         const long np = particles.numParticles();
 
-        const Array4<Real> & arrphi = mfphi.array(pti);
+        Box bx  = pti.tilebox();
+        IntVect myLo = bx.smallEnd();
+        IntVect myHi = bx.bigEnd();
 
-        for (int i = 0; i < np; ++ i)
+        if((i >= myLo[0]) && (j >= myLo[1]) && (k >= myLo[2]) && (i <= myHi[0]) && (j <= myHi[1]) && (k <= myHi[2]))
         {
-            ParticleType & part = particles[i];
-
-            //Print() << "Checking " << i << ", " << part.id() << ", " << part.idata(FHD_intData::sorted) << "\n";
-            //Print() << "vel is " << part.rdata(FHD_realData::velx) << "\n";
-            if(part.idata(FHD_intData::sorted) == -1)
-            {
-                const IntVect& iv = this->Index(part, lev);
-
-               // cout << "part " << i << " is in cell " << iv[0] << ", " << iv[1] << ", " << iv[2] << "\n";
-
-                part.idata(FHD_intData::i) = iv[0];
-                part.idata(FHD_intData::j) = iv[1];
-                part.idata(FHD_intData::k) = iv[2];
-
-                //Print() << "cell recorded\n";
-
-                long imap = tile_box.index(iv);
-
-                //Print() << "map built\n";
-               // Print() << "pti is: " << pti.index() << "\n";
-               // Print() << "spec is: " << part.idata(FHD_intData::species) << "\n";
-
-                part.idata(FHD_intData::sorted) = m_cell_vectors[part.idata(FHD_intData::species)][pti.index()][imap].size();
-
-               // Print() << "size is: " << part.idata(FHD_intData::sorted) << "\n";
-
-                m_cell_vectors[part.idata(FHD_intData::species)][pti.index()][imap].push_back(i);
-                
-					 int ispec = part.idata(FHD_intData::species);
-					 arrphi(iv[0],iv[1],iv[2],ispec) =
-					    arrphi(iv[0],iv[1],iv[2],ispec) + properties[ispec].part2cellVol*properties[ispec].Neff;
-
-                if(part.id() == 332)
-                {
-                    //Print() << "Adding to " << iv[0] << ", " << iv[1] << ", " << iv[2] << "\n";
-                }
-
-            }
-
-        }
+            IntVect iv = {i,j,k};
+            long imap = tile_box.index(iv);
+            
+            for(int ii = 0; ii<nspecies; ii++) {
+                int size = m_cell_vectors[ii][pti.index()][imap].size();
+                cout << "Species " << ii << ":\n";
+			   	 for(int jj = 0; jj<size; jj++) {cout << m_cell_vectors[ii][pti.index()][imap][jj] << " ";}
+				cout << "\n";
+			   }
+		  }
     }
+
+}
+
+void FhdParticleContainer::PrintCellListInternal(int i, int j, int k, int index, long imap)
+{
+        IntVect iv = {i,j,k};
+        for(int ii = 0; ii<nspecies; ii++)
+        {
+            int size = m_cell_vectors[ii][index][imap].size();
+            cout << "Species " << ii << ":\n";
+		    for(int jj = 0; jj<size; jj++)
+	    	{                
+	            cout << m_cell_vectors[ii][index][imap][jj] << " ";
+	        }
+			cout << "\n";
+		}
 }
 
 

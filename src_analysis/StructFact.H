@@ -11,6 +11,11 @@
 #include <AlignedAllocator.h>
 #include <Dfft.H>
 
+// These are for FFTW
+#include <fftw3.h>
+#include <fftw3-mpi.h>
+#include <AMReX_GpuComplex.H>
+
 #include <string>
 
 #include "common_functions.H"
@@ -51,6 +56,11 @@ class StructFact {
     // Define vector of unique selected variables
     amrex::Vector< int > var_u;
 
+    // use fftw (1) or swfft (0)
+    // note: fftw does not work for flattened MultiFabs yet
+    // swfft is buggy for non-cubic domains and large flattened MultiFabs
+    int use_fftw;
+
 public:
 
     StructFact();
@@ -58,7 +68,7 @@ public:
     StructFact(const amrex::BoxArray&, const amrex::DistributionMapping&, 
                const amrex::Vector< std::string >&,
                const amrex::Vector< amrex::Real >&,
-               const amrex::Vector< int >&, const amrex::Vector< int >&, 
+               const amrex::Vector< int >&, const amrex::Vector< int >&,
                const int& verbosity=0);
 
     StructFact(const amrex::BoxArray&, const amrex::DistributionMapping&, 
@@ -72,11 +82,15 @@ public:
                 const int& verbosity=0);
 
     void FortStructure(const amrex::MultiFab&, const amrex::Geometry&,
+                       const int& fft_type_in,
                        const int& reset=0);
 
     void Reset();
     
-    void ComputeFFT(const amrex::MultiFab&, amrex::MultiFab&,
+    void ComputeSWFFT(const amrex::MultiFab&, amrex::MultiFab&,
+                      amrex::MultiFab&, const amrex::Geometry&);
+    
+    void ComputeFFTW(const amrex::MultiFab&, amrex::MultiFab&,
                     amrex::MultiFab&, const amrex::Geometry&);
     
     void WritePlotFile(const int, const amrex::Real, const amrex::Geometry&, 
