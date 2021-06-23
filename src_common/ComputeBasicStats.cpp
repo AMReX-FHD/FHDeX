@@ -4,7 +4,7 @@ Real ComputeSpatialVariance(MultiFab& mf, const int& incomp)
 {
     BL_PROFILE_VAR("ComputeSpatialVariance()",ComputeSpatialVariance);
 
-    int npts = (AMREX_SPACEDIM == 2) ? n_cells[0]*n_cells[1]-1 : n_cells[0]*n_cells[1]*n_cells[2]-1;
+    int npts = (AMREX_SPACEDIM == 2) ? n_cells[0]*n_cells[1] : n_cells[0]*n_cells[1]*n_cells[2];
 
     Real average = mf.sum(incomp) / npts;
 
@@ -24,10 +24,9 @@ Real ComputeSpatialVariance(MultiFab& mf, const int& incomp)
     MultiFab::Multiply(temp,temp,0,0,1,0);
 
     // compute the variance
-    Real variance = temp.sum(0) / npts;
+    Real variance = temp.sum(0) / (npts-1);
 
     return variance;
-    
 }
 
 void ComputeBasicStats(MultiFab & instant, MultiFab & means,
