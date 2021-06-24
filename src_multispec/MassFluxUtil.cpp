@@ -75,45 +75,47 @@ void ComputeGamma(const MultiFab& molarconc_in,
 
         //EP-Starts here
         const Array4<const Real>& molarconc = molarconc_in.array(mfi);
-        const Array4<const Real>& Hessian = Hessian_in.array(mfi); //What if I want a 6-dim array?
+        const Array4<const Real>& Hessian = Hessian_in.array(mfi); 
         const Array4<      Real>& Gamma = Gamma_in.array(mfi);
 
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
 
             GpuArray<Real, MAX_SPECIES> MolarConcN;
-            //GpuArray<Real, MAX_SPECIES> HessianN;
-            //GpuArray<Real, MAX_SPECIES> GammaN;
-            Array2D<Real, MAX_SPECIES, MAX_SPECIES*MAX_SPECIES> GammaN;
-            Array2D<Real, MAX_SPECIES, MAX_SPECIES*MAX_SPECIES> HessianN;
+            Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> GammaN; // verified that Array2D are ok to use
+            Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> HessianN;
 
+           //Print() << "Sigfault sandwhich 0 " << std::endl; 
 
             for (int n=0; n<nspecies; ++n ){
                 MolarConcN[n] = molarconc(i,j,k,n);
-                
-                for (int m=0; m<nspecies*nspecies; ++m){ 
-                    GammaN(n+1,m+1) = Gamma(i,j,k,n*nspecies+m+1);  //Gamma's index starts at 1 right?
-                    HessianN(n+1,m+1) = Hessian(i,j,k,n*nspecies+m+1); 
+
+                for (int m=0; m<nspecies; ++m){ 
+
+                    //Print() << nspecies << " n = " << n << " m = " << m << " iter = " << n*nspecies+m+1 << std::endl;
+
+
+                    GammaN(n+1,m+1) = Gamma(i,j,k,n*nspecies+m);  //Gamma's index starts at 1 right?
+                    HessianN(n+1,m+1) = Hessian(i,j,k,n*nspecies+m); 
                 } 
                 //HessianN[n] = Hessian(i,j,k,n);   
                 //GammaN[n] = Gamma(i,j,k,n);
             }
         
-            
-
+           //Print() << "Sigfault sandwhich 1 " << std::endl; 
 
             //ComputeGammaLocal(MolarConcN, HessianN, GammaN, nspecies);
-            Array2D<Reak, MAX_SPECIES, MAX_SPECIES> I;
-            Array2D<Reak, MAX_SPECIES, MAX_SPECIES> X_xxt;
+            Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> I;
+            Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> X_xxt;
 
             if ((use_multiphase == 1) && (nspecies == 2)){ 
                             
                 Real w1 = MolarConcN[0];
                 Real w2 = MolarConcN[1];
 
-                if (abs(w1+w2-1.0) > 1e-14){ 
+                if (std::abs(w1+w2-1.0) > 1e-14){ 
                     //verify this is the correct print statment
-                    Print() << " mole fractions do not add up in gamma computation"; 
+                    //Print() << " mole fractions do not add up in gamma computation"; 
                 }
                 if (w1 < 0){ 
                     w1 = 0.0;
@@ -124,10 +126,10 @@ void ComputeGamma(const MultiFab& molarconc_in,
                     w2 = 0.0;
                 }
 
-                GammaN(1,2) = w1 * n_gex * n_gex * alpha_gex * pow(w1, n_gex-1) * pow(w2, n_gex-1);
-                GammaN(2,1) = w2 * n_gex * n_gex * alpha_gex * pow(w1, n_gex-1) * pow(w2, n_gex-1);
-                GammaN(1,1) = 1.0 + w1 + n_gex * (n_gex-1) * alpha_gex * pow(w1, n_gex-2) * pow(w2, n_gex); 
-                GammaN(2,2) = 1.0 + w1 + n_gex * (n_gex-1) * alpha_gex * pow(w2, n_gex-2) * pow(w1, n_gex); 
+                GammaN(1,2) = w1 * n_gex * n_gex * alpha_gex * std::pow(w1, n_gex-1) * std::pow(w2, n_gex-1);
+                GammaN(2,1) = w2 * n_gex * n_gex * alpha_gex * std::pow(w1, n_gex-1) * std::pow(w2, n_gex-1);
+                GammaN(1,1) = 1.0 + w1 + n_gex * (n_gex-1) * alpha_gex * std::pow(w1, n_gex-2) * std::pow(w2, n_gex); 
+                GammaN(2,2) = 1.0 + w1 + n_gex * (n_gex-1) * alpha_gex * std::pow(w2, n_gex-2) * std::pow(w1, n_gex); 
 
 
             } else {
@@ -146,7 +148,7 @@ void ComputeGamma(const MultiFab& molarconc_in,
                 } else {
                     for (int row=1; row<=nspecies;++row ){
                         // diagonal entries
-                        X_xxt(row,row) = MolarConcN[row-1] - pow(MolarConcN[row-1],2);
+                        X_xxt(row,row) = MolarConcN[row-1] - std::pow(MolarConcN[row-1],2);
                         for (int column=1; column<=nspecies; ++column ){
                             // form x*traspose(x) off diagonals -- is x the MolarConc vectorT?
                             X_xxt(row,column) = -MolarConcN[row-1]*MolarConcN[column-1];
@@ -157,9 +159,13 @@ void ComputeGamma(const MultiFab& molarconc_in,
                 }
             }
             
+           //Print() << "Sigfault sandwhich 2 " << std::endl; 
               
             for (int row=1; row<=nspecies; ++row){
                 for (int column=1; column<=nspecies; ++column){
+
+                    //Print() << "Row = " << row << " Column = " << column << std::endl;
+
                     if (row == column) {
                         GammaN(row,column) = 1.0;   // add the identity matrix
                     } else {
@@ -170,7 +176,8 @@ void ComputeGamma(const MultiFab& molarconc_in,
                     }
                 }
             }
-
+             
+           //Print() << "Sigfault sandwhich 3 " << std::endl; 
             
 
             //This isn't going to work anymore
@@ -178,12 +185,15 @@ void ComputeGamma(const MultiFab& molarconc_in,
             //    Gamma(i,j,k,n) = GammaN[n];
             //}
             for (int n=0; n<nspecies; ++n ){
-                for (int m=0; m<nspecies*nspecies; ++m){ 
-                    Gamma(i,j,k,n*nspecies+m+1) = GammaN(n+1,m+1);  
+                for (int m=0; m<nspecies; ++m){ 
+                    Gamma(i,j,k,n*nspecies+m) = GammaN(n+1,m+1);  
                 } 
             }
 
         });
+
+        //Print() << "end parfor" << std::endl;
+
         //EP-Ends here
     }
 
