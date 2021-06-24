@@ -101,6 +101,9 @@ public:
 
     void EvaluateStats(MultiFab& particleInstant, MultiFab& particleMeans,
                                          MultiFab& particleVars, const Real delt, int steps);
+                                         
+    void PrintCellList(int i, int j, int k);
+    void PrintCellListInternal(int i, int j, int k, int index, long imap);
 
     dsmcSpecies properties[MAX_SPECIES];
     long realParticles;
