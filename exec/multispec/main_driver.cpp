@@ -1,6 +1,5 @@
 
 #include "multispec_test_functions.H"
-#include "multispec_test_functions_F.H"
 
 #include "StochMomFlux.H"
 
@@ -21,6 +20,10 @@
 #include <AMReX_PlotFileUtil.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_MultiFabUtil.H>
+
+#include "chrono"
+
+using namespace std::chrono;
 
 
 // argv contains the name of the inputs file entered at the command line
@@ -57,21 +60,27 @@ void main_driver(const char* argv)
     //
     //
 
-    // one common seed; not split by process yet like the original code
-    int fhdSeed = seed;
-    
-    // these are unused
-    int particleSeed = 2;
-    int selectorSeed = 3;
-    int thetaSeed = 4;
-    int phiSeed = 5;
-    int generalSeed = 6;
-
+    /////////////////////////////////////////
     //Initialise rngs
-    rng_initialize(&fhdSeed,&particleSeed,&selectorSeed,&thetaSeed,&phiSeed,&generalSeed);
+    /////////////////////////////////////////
+    if (restart < 0) {
 
-    // initializes the seed for C++ random number calls
-    InitRandom(seed+ParallelDescriptor::MyProc());
+        if (seed > 0) {
+            // initializes the seed for C++ random number calls
+            InitRandom(seed+ParallelDescriptor::MyProc());
+        } else if (seed == 0) {
+            // initializes the seed for C++ random number calls based on the clock
+            auto now = time_point_cast<nanoseconds>(system_clock::now());
+            int randSeed = now.time_since_epoch().count();
+            // broadcast the same root seed to all processors
+            ParallelDescriptor::Bcast(&randSeed,1,ParallelDescriptor::IOProcessorNumber());
+            InitRandom(randSeed+ParallelDescriptor::MyProc());
+        } else {
+            Abort("Must supply non-negative seed");
+        }
+
+    }
+    /////////////////////////////////////////
     
     // is the problem periodic?
     Vector<int> is_periodic(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
@@ -177,18 +186,7 @@ void main_driver(const char* argv)
     if (restart < 0) {
     
         // initialize rho and umac in valid region only
-        for ( MFIter mfi(rho_old); mfi.isValid(); ++mfi ) {
-            const Box& bx = mfi.validbox();
-
-            init_rho_and_umac(BL_TO_FORTRAN_BOX(bx),
-                              BL_TO_FORTRAN_FAB(rho_old[mfi]),
-                              BL_TO_FORTRAN_ANYD(umac[0][mfi]),
-                              BL_TO_FORTRAN_ANYD(umac[1][mfi]),
-#if (AMREX_SPACEDIM == 3)
-                              BL_TO_FORTRAN_ANYD(umac[2][mfi]),
-#endif
-                              dx, geom.ProbLo(), geom.ProbHi());
-        }
+        InitRhoUmac(umac,rho_old,geom);
 
         // initialize pi, including ghost cells
         pi.setVal(0.);
@@ -495,7 +493,7 @@ void main_driver(const char* argv)
             for(int d=0; d<nspecies; d++) {
                 MultiFab::Divide(structFactMF,rhotot_old,0,AMREX_SPACEDIM+d+1,1,0);
             }
-            structFact.FortStructure(structFactMF,geom);
+            structFact.FortStructure(structFactMF,geom,fft_type);
         }
         
         // write initial plotfile and structure factor
@@ -571,7 +569,7 @@ void main_driver(const char* argv)
             for(int d=0; d<nspecies; d++) {
                 MultiFab::Divide(structFactMF,rhotot_new,0,AMREX_SPACEDIM+d+1,1,0);
             }
-            structFact.FortStructure(structFactMF,geom);
+            structFact.FortStructure(structFactMF,geom,fft_type);
         }
 	
 

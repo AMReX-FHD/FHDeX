@@ -160,18 +160,30 @@ void InitConsVarStag(MultiFab& cons, std::array< MultiFab, AMREX_SPACEDIM >& mom
                 }
             } else if (prob_type == 100) { // sinusoidal density variation
 
-                   Real y = itVec[1];
-                   Real Ly = realhi[1] - reallo[1];
-                   for (int l=0;l<nspecies;l++) {
-                     Yk[l] = cu(i,j,k,5+l)/cu(i,j,k,0);
-                   }
-                   cu(i,j,k,0) = rho0 + 0.1*rho0*sin(2.*pi*y/Ly);
-                   for (int l=0;l<nspecies;l++) {
-                     cu(i,j,k,5+l) = cu(i,j,k,0)*Yk[l];
-                   }
+                    Real y = itVec[1];
+                    Real Ly = realhi[1] - reallo[1];
+                    for (int l=0;l<nspecies;l++) {
+                        Yk[l] = cu(i,j,k,5+l)/cu(i,j,k,0);
+                    }
+                    cu(i,j,k,0) = rho0 + 0.1*rho0*sin(2.*pi*y/Ly);
+                    for (int l=0;l<nspecies;l++) {
+                        cu(i,j,k,5+l) = cu(i,j,k,0)*Yk[l];
+                    }
+            } else if (prob_type == 101) { // two temperature across membrane
+                    
+                    Real intEnergy;
+                    cu(i,j,k,0) = rho0;
+                    massvec[0] = 0.25; massvec[1] = 0.25; massvec[2] = 0.25; massvec[3] = 0.25;
+                    if (i < membrane_cell) {
+                        GetEnergy(intEnergy, massvec, t_lo[0]);
+                        cu(i,j,k,4) = cu(i,j,k,0)*intEnergy;
+                    }
+                    else {
+                        GetEnergy(intEnergy, massvec, t_hi[0]);
+                        cu(i,j,k,4) = cu(i,j,k,0)*intEnergy;
+                    }
             } // prob type
 
         });
     } // end MFIter
-
 }

@@ -1,6 +1,6 @@
 namespace common {
 
-#define MAX_SPECIES 4
+#define MAX_SPECIES 8
     
     // misc global variables
     extern amrex::IntVect nodal_flag;
@@ -28,9 +28,10 @@ namespace common {
     extern AMREX_GPU_MANAGED int      nvars;         //number of conserved variables
     extern AMREX_GPU_MANAGED int      nprimvars;     //number of primitive variables
 
-    extern int                        membrane_cell; //cell to locate membrane
-    extern int                        cross_cell;    //cell to compute spatial correlation
-    extern amrex::Real                transmission;
+    extern AMREX_GPU_MANAGED int      membrane_cell; //cell to locate membrane
+    extern AMREX_GPU_MANAGED int      cross_cell;    //cell to compute spatial correlation
+    extern AMREX_GPU_MANAGED int      do_slab_sf;    //whether to compute SF for two slabs separated by cross_cell
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> transmission;
 
     extern amrex::Vector<amrex::Real> qval;
     extern AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_SPECIES> pkernel_fluid; // GALEN - FLUID KERNEL
@@ -54,6 +55,7 @@ namespace common {
     extern std::string                chk_base_name;
     extern AMREX_GPU_MANAGED int      prob_type;
     extern int                        restart;
+    extern int                        reset_stats;
     extern int                        particle_restart;
     extern int                        print_int;
     extern int                        project_eos_int;
@@ -193,6 +195,7 @@ namespace common {
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> potential_hi;
 
     // structure factor and radial/cartesian pair correlation function analysis
+    extern int                        fft_type; // 0=SWFFT; 1=FFTW (flattened MFs always use SWFFT presently)
     extern int                        struct_fact_int;
     extern int                        radialdist_int;
     extern int                        cartdist_int;
@@ -273,6 +276,8 @@ namespace common {
     extern int                        plot_ascii;
     extern int                        plot_means;
     extern int                        plot_vars;
+    extern int                        plot_covars;
+    extern int                        plot_cross;
     extern int                        particle_motion;
     
     // parameters neccesary for chemical reactions

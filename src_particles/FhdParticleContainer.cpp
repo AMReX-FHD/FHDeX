@@ -313,12 +313,12 @@ void FhdParticleContainer::computeForcesNLGPU(const MultiFab& charge, const Mult
 #pragma omp parallel
 #endif
 
-    if(doRedist != 0)
-    {
+    //if(doRedist != 0)
+    //{
         fillNeighbors();
 
         buildNeighborList(CHECK_PAIR{});
-    }
+    //}
 
    for (FhdParIter pti(*this, lev, MFItInfo().SetDynamic(false)); pti.isValid(); ++pti)
    {     
@@ -560,7 +560,7 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
                                    Real dummy = 1;
                                    //std::cout << "Pre: " << part.rdata(FHD_realData::velx) << ", " << part.rdata(FHD_realData::vely) << ", " << part.rdata(FHD_realData::velz) << ", " << intside << "\n";
                                    //app_bc(&surf, &part, &intside, domsize, &push, &dummy, &dummy);
-                                   app_bc_gpu(&surf, part, intside, domsize, &push, dummy, dummy);
+                                   app_bc_gpu(&surf, part, intside, domsize, &push, &runtime, dummy);
                                    //std::cout << "Post: " << part.rdata(FHD_realData::velx) << ", " << part.rdata(FHD_realData::vely) << ", " << part.rdata(FHD_realData::velz) << ", " << intside << "\n";
 
                                    runtime = runtime - inttime;
@@ -724,7 +724,7 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
 
                         Real dummy = 1;
                         //app_bc(&surf, &part, &intside, domsize, &push, &dummy, &dummy);
-                        app_bc_gpu(&surf, part, intside, domsize, &push, dummy, dummy);
+                        app_bc_gpu(&surf, part, intside, domsize, &push, &runtime, dummy);
                         //std::cout << "Post: " << part.id() << ", " << part.rdata(FHD_realData::velx) << ", " << part.rdata(FHD_realData::vely) << ", " << part.rdata(FHD_realData::velz) << ", " << intsurf << "\n";
 
                         if(push == 1)
@@ -2367,13 +2367,18 @@ FhdParticleContainer::BuildCorrectionTable(const Real* dx, int setMeasureFinal) 
             ParticleType & part0 = particles[0];
             ParticleType & part1 = particles[1];
 
-            x0 = prob_lo[0] + 0.25*(prob_hi[0]-prob_lo[0]) + get_uniform_func()*(prob_hi[0]-prob_lo[0])*0.5;
-            y0 = prob_lo[1] + 0.25*(prob_hi[0]-prob_lo[0]) + get_uniform_func()*(prob_hi[1]-prob_lo[1])*0.5;
-            z0 = prob_lo[2] + 0.25*(prob_hi[0]-prob_lo[0]) + get_uniform_func()*(prob_hi[2]-prob_lo[2])*0.5;
+            x0 = prob_lo[0] + 0.25*(prob_hi[0]-prob_lo[0]) + amrex::Random()*(prob_hi[0]-prob_lo[0])*0.5;
+            y0 = prob_lo[1] + 0.25*(prob_hi[0]-prob_lo[0]) + amrex::Random()*(prob_hi[1]-prob_lo[1])*0.5;
+            z0 = prob_lo[2] + 0.25*(prob_hi[0]-prob_lo[0]) + amrex::Random()*(prob_hi[2]-prob_lo[2])*0.5;
     
             SetPosition(1, x0, y0, z0);
 
-            get_angles(&costheta, &sintheta, &cosphi, &sinphi);
+            costheta = 2.*amrex::Random() - 1.;
+            sintheta = 1. - costheta*costheta;
+
+            Real phi = amrex::Random() * 2. * 3.14159265358979;
+            cosphi = std::cos(phi);
+            sinphi = std::sin(phi);
 
             x1 = x0 + dr*sintheta*cosphi;
             y1 = y0 + dr*sintheta*sinphi;

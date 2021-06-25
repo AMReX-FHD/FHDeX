@@ -172,37 +172,6 @@ void WriteCheckPoint(int step,
                  amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "potential"));
     VisMF::Write(potentialM,
                  amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "potentialM"));
-
-    int check;
-    char str[80];
-    
-    strcpy (str,checkpointname.c_str());
-    strcat (str,"/rng_eng_fhd");
-    check = mkdir(str,0777);
-    
-    strcpy (str,checkpointname.c_str());
-    strcat (str,"/rng_eng_particle");
-    check = mkdir(str,0777);
-    
-    strcpy (str,checkpointname.c_str());
-    strcat (str,"/rng_eng_select");
-    check = mkdir(str,0777);
-    
-    strcpy (str,checkpointname.c_str());
-    strcat (str,"/rng_eng_scatter_theta");
-    check = mkdir(str,0777);
-    
-    strcpy (str,checkpointname.c_str());
-    strcat (str,"/rng_eng_scatter_phi");
-    check = mkdir(str,0777);
-    
-    strcpy (str,checkpointname.c_str());
-    strcat (str,"/rng_eng_general");
-    check = mkdir(str,0777);
-    
-    // random number engines
-    int digits = 9;
-    rng_checkpoint(&step,&digits);
     
     // checkpoint particles
     particles.Checkpoint(checkpointname,"particle");
@@ -416,36 +385,6 @@ void ReadCheckPoint(int& step,
                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "potential"));
     VisMF::Read(potentialM,
                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "potentialM"));
-    
-    // random number engines
-    int digits = 9;
-    // zero is a clock-based seed
-    int fhdSeed      = 0;
-    int particleSeed = 0;
-    int selectorSeed = 0;
-    int thetaSeed    = 0;
-    int phiSeed      = 0;
-    int generalSeed  = 0;
-    
-    if (seed < 0) {
-       rng_restart(&restart,&digits);
-    }
-    else if (seed == 0) {
-       //Initialise rngs
-       rng_initialize(&fhdSeed,&particleSeed,&selectorSeed,&thetaSeed,&phiSeed,&generalSeed);
-    }
-    else 
-    {
-       fhdSeed      = 6*ParallelDescriptor::MyProc() + seed;
-       particleSeed = 6*ParallelDescriptor::MyProc() + seed + 1;
-       selectorSeed = 6*ParallelDescriptor::MyProc() + seed + 2;
-       thetaSeed    = 6*ParallelDescriptor::MyProc() + seed + 3;
-       phiSeed      = 6*ParallelDescriptor::MyProc() + seed + 4;
-       generalSeed  = 6*ParallelDescriptor::MyProc() + seed + 5;
-
-       //Initialise rngs
-       rng_initialize(&fhdSeed,&particleSeed,&selectorSeed,&thetaSeed,&phiSeed,&generalSeed);
-    }
 }
 
 void ReadCheckPointParticles(FhdParticleContainer& particles, species* particleInfo, const Real* dxp) {

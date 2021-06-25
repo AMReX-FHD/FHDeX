@@ -1,23 +1,21 @@
 #include "INS_functions.H"
 #include "common_functions.H"
 #include "DsmcParticleContainer.H"
+#include <sstream>
+#include <string>
+#include <fstream>
 
-#include "species.H"
-
-void DsmcParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
+void FhdParticleContainer::InitParticles()
 {
-    
     const int lev = 0;
     const Geometry& geom = Geom(lev);
-    const Real* dx = geom.CellSize();
-    const Real* plo = geom.ProbLo();
-    const Real* phi = geom.ProbHi(); 
-        double rad;
 
-    int pcount = 0;  
+    int pcount = 0;
+
+    bool proc0_enter = true;
         
-    for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
-    {
+    for (MFIter mfi = MakeMFIter(lev, true); mfi.isValid(); ++mfi) {
+        
         const Box& tile_box  = mfi.tilebox();
         const RealBox tile_realbox{tile_box, geom.CellSize(), geom.ProbLo()};
         const int grid_id = mfi.index();
@@ -28,111 +26,66 @@ void DsmcParticleContainer::InitParticles(species* particleInfo, const Real* dxp
         IntVect smallEnd = tile_box.smallEnd();
         IntVect bigEnd = tile_box.bigEnd();       
 
+        if(ParallelDescriptor::MyProc() == 0 && mfi.LocalTileIndex() == 0 && proc0_enter) {
 
-        if(ParallelDescriptor::MyProc() == 0 && mfi.LocalTileIndex() == 0)
-        {
+            proc0_enter = false;
 
-            for(int i_spec=0; i_spec < nspecies; i_spec++)
-            {
+            std::ifstream particleFile("particles.dat");
+ //           Print() << "SPEC TOTAL: " << particleInfo[0].total << "\n";
+            for(int i_spec=0; i_spec < nspecies; i_spec++) {
+                for (int i_part=0; i_part<properties[i_spec].total;i_part++) {
+                    ParticleType p;
+                    p.id()  = ParticleType::NextID();
+ //                   std::cout << "ID: " << p.id() << "\n";
+                    p.cpu() = ParallelDescriptor::MyProc();
+                    p.idata(FHD_intData::sorted) = -1;
 
-            for (int i_part=0; i_part<particleInfo[i_spec].total;i_part++)
-            {
-                ParticleType p;
-                p.id()  = ParticleType::NextID();
-                p.cpu() = ParallelDescriptor::MyProc();
-                p.idata(DSMC_intData::sorted) = 0;
+                    p.idata(FHD_intData::species) = i_spec;
 
-               
-//                p.pos(0) = plo[0] + get_uniform_func()*(phi[0]-plo[0]);
-//                p.pos(1) = plo[1] + get_uniform_func()*(phi[1]-plo[1]);
-//#if (BL_SPACEDIM == 3)
-//                p.pos(2) = plo[2] + get_uniform_func()*(phi[2]-plo[2]);
-//#endif
-                rad = 1;
-                while(rad > 0.99*(2.5e-4))
-                {                
-                    p.pos(0) = plo[0] + get_uniform_func()*(phi[0]-plo[0]);
-                    p.pos(1) = plo[1] + get_uniform_func()*(phi[1]-plo[1]);
-#if (BL_SPACEDIM == 3)
-                    p.pos(2) = plo[2] + get_uniform_func()*(phi[2]-plo[2]);
-#endif
-                    rad = sqrt((p.pos(0)-0)*(p.pos(0)-0) + (p.pos(1)-0)*(p.pos(1)-0));
+                    p.idata(FHD_intData::i) = -100;
+                    p.idata(FHD_intData::j) = -100;
+                    p.idata(FHD_intData::k) = -100;
+
+                    if(particle_placement == 1)
+                    {
+                        particleFile >> p.pos(0);                       
+                        particleFile >> p.pos(1);
+                        particleFile >> p.pos(2);
+
+                    }else
+                    {
+
+                        p.pos(0) = prob_lo[0] + amrex::Random()*(prob_hi[0]-prob_lo[0]);
+                        p.pos(1) = prob_lo[1] + amrex::Random()*(prob_hi[1]-prob_lo[1]);
+                        p.pos(2) = prob_lo[2] + amrex::Random()*(prob_hi[2]-prob_lo[2]);
+
+                    }
+
+                    p.rdata(FHD_realData::velx) = sqrt(properties[i_spec].R*properties[i_spec].T)*amrex::RandomNormal(0.,1.);
+                    p.rdata(FHD_realData::vely) = sqrt(properties[i_spec].R*properties[i_spec].T)*amrex::RandomNormal(0.,1.);
+                    p.rdata(FHD_realData::velz) = sqrt(properties[i_spec].R*properties[i_spec].T)*amrex::RandomNormal(0.,1.);
+
+                    p.rdata(FHD_realData::boostx) = 0;
+                    p.rdata(FHD_realData::boosty) = 0;
+                    p.rdata(FHD_realData::boostz) = 0;
+
+                    p.rdata(FHD_realData::timeFrac) = 1;
+
+                    p.rdata(FHD_realData::R) = properties[i_spec].R;
+
+                    particle_tile.push_back(p);
+
+                    pcount++;
                 }
-                
-                p.rdata(DSMC_realData::q) = 0;
-
-                //original position stored for MSD calculations
-                p.rdata(DSMC_realData::ox) = p.pos(0);
-                p.rdata(DSMC_realData::oy) = p.pos(1);
-#if (BL_SPACEDIM == 3)
-                p.rdata(DSMC_realData::oz) = p.pos(2);
-#endif
-
-                p.rdata(DSMC_realData::vx) = sqrt(particleInfo[i_spec].R*particleInfo[i_spec].T)*get_particle_normal_func();
-                p.rdata(DSMC_realData::vy) = sqrt(particleInfo[i_spec].R*particleInfo[i_spec].T)*get_particle_normal_func();
-                p.rdata(DSMC_realData::vz) = sqrt(particleInfo[i_spec].R*particleInfo[i_spec].T)*get_particle_normal_func();
-
-                p.rdata(DSMC_realData::fx) = 0;
-                p.rdata(DSMC_realData::fy) = 0;
-                p.rdata(DSMC_realData::fz) = 0;
-
-                p.rdata(DSMC_realData::ux) = 0;
-                p.rdata(DSMC_realData::uy) = 0;
-                p.rdata(DSMC_realData::uz) = 0;
-
-                //Print() << "Pos: " << p.pos(0) << ", " << p.pos(1) << ", " << p.pos(2) << p.rdata(DSMC_realData::vx) << ", " << p.rdata(DSMC_realData::vy) << ", " << p.rdata(DSMC_realData::vz) << "\n" ;
-
-                p.rdata(DSMC_realData::mass) = particleInfo[i_spec].m; //mass
-                p.rdata(DSMC_realData::R) = particleInfo[i_spec].R; //R
-                p.rdata(DSMC_realData::radius) = particleInfo[i_spec].d/2.0; //radius
-
-                p.idata(DSMC_intData::species) = i_spec +1;
-
-                p.rdata(DSMC_realData::ox) = 0;
-                p.rdata(DSMC_realData::oy) = 0;
-                p.rdata(DSMC_realData::oz) = 0;
-
-                p.rdata(DSMC_realData::ax) = 0;
-                p.rdata(DSMC_realData::ay) = 0;
-                p.rdata(DSMC_realData::az) = 0;
-
-                p.rdata(DSMC_realData::accelFactor) = 0;
-                p.rdata(DSMC_realData::dragFactor) = 0;
-                p.rdata(DSMC_realData::travelTime) = 0;
-                p.rdata(DSMC_realData::diffAv) = 0;
-                p.rdata(DSMC_realData::stepCount) = 0;
-                p.rdata(DSMC_realData::multi) = 0;
-                p.rdata(DSMC_realData::dryDiff) = 0;
-                p.rdata(DSMC_realData::wetDiff) = 0;
-                p.rdata(DSMC_realData::totalDiff) = 0;
-                p.rdata(DSMC_realData::sigma) = 0;
-                p.rdata(DSMC_realData::eepsilon) = 0;
-                p.rdata(DSMC_realData::potential) = 0;
-                
-                particle_tile.push_back(p);
-
-                pcount++;
             }
-            }
-//           
+
+            particleFile.close();
         }
     }
 
-    UpdateCellVectors();
-    ReBin();
     Redistribute();
+    SortParticles();
 }
 
-void getCellVols(MultiFab & vols, const Geometry & Geom, int samples)
-{
 
-    const Real* dx = Geom.CellSize();
-    const Real* plo = Geom.ProbLo();
 
-    for ( MFIter mfi(vols); mfi.isValid(); ++mfi ) {
-
-        const Box& bx = mfi.validbox();
-        get_cell_vols(BL_TO_FORTRAN_3D(vols[mfi]), ZFILL(dx), &samples, plo);
-        
-    }
-}

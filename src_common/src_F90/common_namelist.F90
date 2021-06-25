@@ -25,7 +25,8 @@ module common_namelist_module
   integer,            save :: nprimvars
   integer,            save :: membrane_cell
   integer,            save :: cross_cell
-  double precision,   save :: transmission
+  integer,            save :: do_slab_sf
+  double precision,   save :: transmission(MAX_SPECIES)
 
   double precision,   save :: qval(MAX_SPECIES)
   integer,            save :: pkernel_fluid(MAX_SPECIES) ! GALEN - FLUID KERNEL
@@ -58,6 +59,7 @@ module common_namelist_module
   character(len=128), save :: chk_base_name
   integer,            save :: prob_type
   integer,            save :: restart
+  integer,            save :: reset_stats
   integer,            save :: particle_restart
   integer,            save :: print_int
   integer,            save :: project_eos_int
@@ -141,6 +143,7 @@ module common_namelist_module
   double precision,   save :: potential_lo(AMREX_SPACEDIM)
   double precision,   save :: potential_hi(AMREX_SPACEDIM)
 
+  integer,            save :: fft_type
   integer,            save :: struct_fact_int
   integer,            save :: radialdist_int
   integer,            save :: cartdist_int
@@ -198,6 +201,8 @@ module common_namelist_module
   integer,            save :: plot_ascii
   integer,            save :: plot_means
   integer,            save :: plot_vars
+  integer,            save :: plot_covars
+  integer,            save :: plot_cross
   integer,            save :: particle_motion
 
   integer,            save :: solve_chem
@@ -225,6 +230,7 @@ module common_namelist_module
   namelist /common/ nprimvars     ! number of primative variables
   namelist /common/ membrane_cell ! location of membrane
   namelist /common/ cross_cell    ! cell to compute spatial correlation
+  namelist /common/ do_slab_sf    ! whether to compute SF in two slabs separated by cross_cell
   namelist /common/ transmission
 
   namelist /common/ qval                ! charge on an ion
@@ -261,6 +267,7 @@ module common_namelist_module
   namelist /common/ chk_base_name
   namelist /common/ prob_type
   namelist /common/ restart
+  namelist /common/ reset_stats
   namelist /common/ particle_restart
   namelist /common/ print_int
   namelist /common/ project_eos_int
@@ -369,6 +376,7 @@ module common_namelist_module
   namelist /common/ potential_hi
 
   ! structure factor and radial/cartesian pair correlation function analysis
+  namelist /common/ fft_type
   namelist /common/ struct_fact_int
   namelist /common/ radialdist_int
   namelist /common/ cartdist_int
@@ -429,6 +437,8 @@ module common_namelist_module
   namelist /common/ plot_ascii
   namelist /common/ plot_means
   namelist /common/ plot_vars
+  namelist /common/ plot_covars
+  namelist /common/ plot_cross
   namelist /common/ particle_motion
 
   ! chemistry
@@ -469,6 +479,7 @@ contains
 
     membrane_cell = -1
     cross_cell = 0
+    do_slab_sf = 0
     ! transmission (no default)
     
     fixed_dt = 1.
@@ -482,6 +493,7 @@ contains
     chk_base_name = "chk"
     prob_type = 1
     restart = -1
+    reset_stats = 0
     particle_restart = -1
     print_int = 0
     project_eos_int = -1
@@ -549,6 +561,7 @@ contains
     wallspeed_hi(:,:) = 0
     potential_lo(:) = 0
     potential_hi(:) = 0
+    fft_type = 1
     struct_fact_int = 0
     radialdist_int = 0
     cartdist_int = 0
@@ -588,6 +601,8 @@ contains
 
     plot_means = 0
     plot_vars = 0    
+    plot_covars = 0    
+    plot_cross = 0    
     particle_motion = 0
 
     graphene_tog = 0
@@ -624,13 +639,13 @@ contains
                                          max_grid_size_in, max_grid_size_structfact_in, &
                                          max_particle_tile_size_in, cell_depth_in, ngc_in, &
                                          nvars_in, nprimvars_in, &
-                                         membrane_cell_in, cross_cell_in, transmission_in, &
+                                         membrane_cell_in, cross_cell_in, do_slab_sf_in, transmission_in, &
                                          qval_in, pkernel_fluid_in, pkernel_es_in,&
                                          eskernel_fluid_in, eskernel_beta_in,&
                                          fixed_dt_in, cfl_in, rfd_delta_in, max_step_in, plot_int_in, plot_stag_in, &
                                          plot_base_name_in, plot_base_name_len, chk_int_in, &
                                          chk_base_name_in, chk_base_name_len, prob_type_in, &
-                                         restart_in, particle_restart_in, &
+                                         restart_in, reset_stats_in, particle_restart_in, &
                                          print_int_in, project_eos_int_in, &
                                          grav_in, nspecies_in, molmass_in, diameter_in, &
                                          dof_in, hcv_in, hcp_in, rhobar_in, &
@@ -660,7 +675,7 @@ contains
                                          bc_Xk_z_lo_in, bc_Xk_z_hi_in, &
                                          wallspeed_lo_in, wallspeed_hi_in, &
                                          potential_lo_in, potential_hi_in, &
-                                         struct_fact_int_in, radialdist_int_in, &
+                                         fft_type_in, struct_fact_int_in, radialdist_int_in, &
                                          cartdist_int_in, n_steps_skip_in, &
                                          binsize_in, searchdist_in, &
                                          project_dir_in, slicepoint_in, max_grid_projection_in, &
@@ -675,7 +690,7 @@ contains
                                          fluid_tog_in, es_tog_in, drag_tog_in, move_tog_in, rfd_tog_in, &
                                          dry_move_tog_in, sr_tog_in, graphene_tog_in, crange_in, &
                                          thermostat_tog_in, zero_net_force_in, images_in, eamp_in, efreq_in, ephase_in, &
-                                         plot_ascii_in, plot_means_in, plot_vars_in, &
+                                         plot_ascii_in, plot_means_in, plot_vars_in, plot_covars_in, plot_cross_in, &
                                          solve_chem_in, diffcoeff_in, scaling_factor_in, &
                                          source_strength_in, regrid_int_in, do_reflux_in, particle_motion_in, &
                                          turb_a_in, turb_b_in, turbForcing_in) &
@@ -710,7 +725,8 @@ contains
 
     integer,                intent(inout) :: membrane_cell_in
     integer,                intent(inout) :: cross_cell_in
-    double precision,       intent(inout) :: transmission_in
+    integer,                intent(inout) :: do_slab_sf_in
+    double precision,       intent(inout) :: transmission_in(MAX_SPECIES)
 
     double precision,       intent(inout) :: qval_in(MAX_SPECIES)
     integer,                intent(inout) :: pkernel_fluid_in(MAX_SPECIES)
@@ -728,6 +744,7 @@ contains
     character(kind=c_char), intent(inout) :: chk_base_name_in(chk_base_name_len)
     integer,                intent(inout) :: prob_type_in
     integer,                intent(inout) :: restart_in
+    integer,                intent(inout) :: reset_stats_in
     integer,                intent(inout) :: particle_restart_in
     integer,                intent(inout) :: print_int_in
     integer,                intent(inout) :: project_eos_int_in
@@ -797,6 +814,7 @@ contains
     double precision,       intent(inout) :: potential_lo_in(AMREX_SPACEDIM)
     double precision,       intent(inout) :: potential_hi_in(AMREX_SPACEDIM)
 
+    integer,                intent(inout) :: fft_type_in
     integer,                intent(inout) :: struct_fact_int_in
     integer,                intent(inout) :: radialdist_int_in
     integer,                intent(inout) :: cartdist_int_in
@@ -852,6 +870,8 @@ contains
     integer,                intent(inout) :: plot_ascii_in
     integer,                intent(inout) :: plot_means_in
     integer,                intent(inout) :: plot_vars_in
+    integer,                intent(inout) :: plot_covars_in
+    integer,                intent(inout) :: plot_cross_in
     
     integer,                intent(inout) :: solve_chem_in
     double precision,       intent(inout) :: diffcoeff_in
@@ -877,6 +897,7 @@ contains
     nprimvars_in = nprimvars
     membrane_cell_in = membrane_cell
     cross_cell_in = cross_cell
+    do_slab_sf_in = do_slab_sf
     transmission_in = transmission
 
     qval_in = qval
@@ -896,6 +917,7 @@ contains
     chk_base_name_in = amrex_string_f_to_c(chk_base_name)
     prob_type_in = prob_type
     restart_in = restart
+    reset_stats_in = reset_stats
     particle_restart_in = particle_restart
     print_int_in = print_int
     project_eos_int_in = project_eos_int
@@ -964,6 +986,7 @@ contains
     potential_lo_in = potential_lo
     potential_hi_in = potential_hi
 
+    fft_type_in = fft_type
     struct_fact_int_in = struct_fact_int
     radialdist_int_in = radialdist_int
     cartdist_int_in = cartdist_int
@@ -1029,6 +1052,8 @@ contains
     plot_ascii_in = plot_ascii
     plot_means_in = plot_means
     plot_vars_in = plot_vars
+    plot_covars_in = plot_covars
+    plot_cross_in = plot_cross
     
     solve_chem_in = solve_chem
     diffcoeff_in  = diffcoeff

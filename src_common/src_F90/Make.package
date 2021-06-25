@@ -1,2 +1,2 @@
 F90EXE_sources += common_namelist.F90
-F90EXE_sources += init_funcs.F90
+

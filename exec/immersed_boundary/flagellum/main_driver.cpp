@@ -30,6 +30,10 @@
 #include <IBMarkerContainer.H>
 #include <IBMarkerMD.H>
 
+#include "chrono"
+
+using namespace std::chrono;
+
 
 using namespace amrex;
 
@@ -272,28 +276,19 @@ void main_driver(const char * argv) {
     // Initialize random number generators
     const int n_rngs = 1;
 
-    // this seems really random :P
-    int fhdSeed      = 1;
-    int particleSeed = 2;
-    int selectorSeed = 3;
-    int thetaSeed    = 4;
-    int phiSeed      = 5;
-    int generalSeed  = 6;
-
-    // each CPU gets a different random seed
-    const int proc = ParallelDescriptor::MyProc();
-    fhdSeed      += proc;
-    particleSeed += proc;
-    selectorSeed += proc;
-    thetaSeed    += proc;
-    phiSeed      += proc;
-    generalSeed  += proc;
-
-    // initialize rngs
-    rng_initialize( & fhdSeed, & particleSeed, & selectorSeed,
-                    & thetaSeed, & phiSeed, & generalSeed);
-
-
+    if (seed > 0) {
+        // initializes the seed for C++ random number calls
+        InitRandom(seed+ParallelDescriptor::MyProc());
+    } else if (seed == 0) {
+        // initializes the seed for C++ random number calls based on the clock
+        auto now = time_point_cast<nanoseconds>(system_clock::now());
+        int randSeed = now.time_since_epoch().count();
+        // broadcast the same root seed to all processors
+        ParallelDescriptor::Bcast(&randSeed,1,ParallelDescriptor::IOProcessorNumber());
+        InitRandom(randSeed+ParallelDescriptor::MyProc());
+    } else {
+        Abort("Must supply non-negative seed");
+    }
 
     /****************************************************************************
      *                                                                          *
@@ -545,7 +540,8 @@ void main_driver(const char * argv) {
              init_vel(BL_TO_FORTRAN_BOX(bx),
                       BL_TO_FORTRAN_ANYD(umac[d][mfi]), geom.CellSize(),
                       geom.ProbLo(), geom.ProbHi(), & d,
-                      ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
+                      ZFILL(realDomain.lo()), ZFILL(realDomain.hi()),
+                      &prob_type);
     }
 
     BL_PROFILE_VAR_STOP(initfv);
@@ -653,7 +649,7 @@ void main_driver(const char * argv) {
         //     for(int d=0; d<AMREX_SPACEDIM; d++) {
         //         ShiftFaceToCC(umac[d], 0, struct_in_cc, d, 1);
         //     }
-        //     structFact.FortStructure(struct_in_cc,geom);
+        //     structFact.FortStructure(struct_in_cc,geom,fft_type);
         //
         // }
 

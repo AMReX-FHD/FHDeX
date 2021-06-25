@@ -1,4 +1,3 @@
-CEXE_sources   += WritePlotFile.cpp
-CEXE_sources   += particleGen.cpp
 CEXE_headers   += INS_functions.H
-F90EXE_sources += cellvols.F90
+CEXE_sources   += particleGen.cpp
+CEXE_sources   += WritePlotFile.cpp

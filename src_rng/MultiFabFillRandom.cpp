@@ -10,9 +10,9 @@ void MultiFabFillRandom(MultiFab& mf, const int& comp, const amrex::Real& varian
     for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
         const Box& bx = mfi.validbox();
         const Array4<Real>& mf_fab = mf.array(mfi);
-        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        amrex::ParallelForRNG(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k, amrex::RandomEngine const& engine) noexcept
         {
-            mf_fab(i,j,k,comp) = amrex::RandomNormal(0.,1.);
+	  mf_fab(i,j,k,comp) = amrex::RandomNormal(0.,1.,engine);
         });
     }
 

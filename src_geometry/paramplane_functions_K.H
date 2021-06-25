@@ -3,7 +3,7 @@
 
 #include <AMReX.H>
 #include <common_namespace.H>
-#include <FhdParticleContainer.H>
+//#include <FhdParticleContainer.H>
 #include <math.h>
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
@@ -72,7 +72,7 @@ void find_inter_gpu(FhdParticleContainer::ParticleType& part, const Real delt, c
 
     //dummy(inttime);
     //printf("delt post1 %e\n",*inttime);
-    pre_check_gpu(part, delt, paramplanes, ns, &flag, phi, plo, inttime);
+    //pre_check_gpu(part, delt, paramplanes, ns, &flag, phi, plo, inttime);
        // printf("delt post2 %e\n",*inttime);
 
     if(flag == 0)
@@ -111,7 +111,7 @@ void find_inter_gpu(FhdParticleContainer::ParticleType& part, const Real delt, c
                 *intside = 0; //0 for lhs
               }
 
-              //std::cout << "Intersection! " << s << " part " << part.id() << ", " << part.rdata(FHD_realData::velx) << ", " << part.rdata(FHD_realData::vely) << ", " << part.rdata(FHD_realData::velz) << ", " << *intside << "\n";
+//              std::cout << "Intersection! " << s << " part " << part.id() << ", " << part.rdata(FHD_realData::velx) << ", " << part.rdata(FHD_realData::vely) << ", " << part.rdata(FHD_realData::velz) << ", " << *intside << "\n";
 
             }
         }
@@ -134,7 +134,9 @@ void rotation(Real costheta, Real sintheta, Real cosphi, Real sinphi, Real *cx, 
 
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+// uncomment this once this routine is on a GPU device
+// then the amrex::Random() calls will need to be fixed
+//AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void randomhemisphere(Real costheta, Real sintheta, Real cosphi, Real sinphi, Real *cx, Real *cy, Real *cz)
 {
     Real mag, costhetanew, sinthetanew, cosphinew, sinphinew, phi;
@@ -159,14 +161,23 @@ void randomhemisphere(Real costheta, Real sintheta, Real cosphi, Real sinphi, Re
 
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
-void app_bc_gpu(const paramPlane* surf, FhdParticleContainer::ParticleType& part, int intside, Real* domsize, int *push, Real time, Real inttime)
+// uncomment this once this routine is on a GPU device
+// then the amrex::Random() calls will need to be fixed
+//AMREX_GPU_HOST_DEVICE AMREX_INLINE
+void app_bc_gpu(const paramPlane* surf, FhdParticleContainer::ParticleType& part, int intside, Real* domsize, int *push, Real *runtime, Real inttime)
 {
     
     
     if(intside == 1)
     {
-      if(amrex::Random() > surf->porosityRight)
+      if(amrex::Random() < surf->sinkRight)
+      {
+        *runtime = 0;
+                cout << "HEEEEEEEEERRRRRRRRRRRRRRRRRRRRRRRREEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE!!!!!!!\n";
+
+        part.id() = -1;
+      }
+      else if(amrex::Random() > surf->porosityRight)
       {
         *push = 0;
 
@@ -236,8 +247,13 @@ void app_bc_gpu(const paramPlane* surf, FhdParticleContainer::ParticleType& part
 
     }else
     {
-
-      if(amrex::Random() > surf->porosityLeft)
+      if(amrex::Random() < surf->sinkLeft)
+      {
+        *runtime = 0;
+                cout << "HEEEEEEEEERRRRRRRRRRRRRRRRRRRRRRRREEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE!!!!!!!\n";
+        part.id() = -1;
+      }
+      else if(amrex::Random() > surf->porosityLeft)
       {
         *push = 0;
 
@@ -259,7 +275,7 @@ void app_bc_gpu(const paramPlane* surf, FhdParticleContainer::ParticleType& part
 
           part.rdata(FHD_realData::velx) = srt*amrex::RandomNormal(0.,1.);
           part.rdata(FHD_realData::vely) = srt*amrex::RandomNormal(0.,1.);
-          part.rdata(FHD_realData::velz) = 1.414213562*srt*sqrt(-log(amrex::Random()));
+          part.rdata(FHD_realData::velz) = sqrt(2)*srt*sqrt(-log(amrex::Random()));
 
           rotation(surf->cosThetaLeft, surf->sinThetaLeft, surf->cosPhiLeft, surf->sinPhiLeft, &part.rdata(FHD_realData::velx), &part.rdata(FHD_realData::vely), &part.rdata(FHD_realData::velz));
         }

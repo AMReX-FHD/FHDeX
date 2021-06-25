@@ -2,7 +2,7 @@
 
   ! Problem specification
   prob_lo(1:3) = 0.0 0.0 0.0      ! physical lo coordinate
-  prob_hi(1:3) = 6.25e-5 6.25e-5 6.25e-5 ! physical hi coordinate
+  prob_hi(1:3) = 1e-4 1e-4 1e-4
 
   ! Number of ghost cells, conserved, and primitive variables
   ! ---------------------
@@ -93,11 +93,11 @@
   hcp = -1 -1 -1 -1
 
   ! Xk and Yk at the wall for Dirichlet (concentrations) - set one to zero
-  bc_Yk_x_lo(1:4) = 0.1 0.2 0.3 0.4     ! lo BC
-  bc_Yk_x_hi(1:4) = 0.1 0.2 0.3 0.4     ! hi BC
-  bc_Yk_y_lo(1:4) = 0.1 0.2 0.3 0.4     ! lo BC
-  bc_Yk_y_hi(1:4) = 0.1 0.2 0.3 0.4     ! hi BC
-  bc_Yk_z_lo(1:4) = 0.1 0.2 0.3 0.4     ! lo BC
-  bc_Yk_z_hi(1:4) = 0.1 0.2 0.3 0.4     ! hi BC
+  bc_Yk_x_lo(1:4) = 0.22 0.24 0.26 0.28     ! lo BC
+  bc_Yk_x_hi(1:4) = 0.22 0.24 0.26 0.28     ! hi BC
+  bc_Yk_y_lo(1:4) = 0.22 0.24 0.26 0.28     ! lo BC
+  bc_Yk_y_hi(1:4) = 0.22 0.24 0.26 0.28     ! hi BC
+  bc_Yk_z_lo(1:4) = 0.22 0.24 0.26 0.28     ! lo BC
+  bc_Yk_z_hi(1:4) = 0.22 0.24 0.26 0.28     ! hi BC
 
 /
