@@ -93,6 +93,7 @@ void FhdParticleContainer::InitParticles(Real & dt) {
 			}
 			
 			// Zero out bulk velocities
+                        
 			int nstart = 0;
 			for(int i_spec=0; i_spec < nspecies; i_spec++) {			
 				// Zero out the bulk velocities
@@ -107,13 +108,14 @@ void FhdParticleContainer::InitParticles(Real & dt) {
 				}
 				nstart += properties[i_spec].total;
 			}
+                        
 			particleFile.close();
 		}
 	}
-	dt  = umax*n_cells[0]/(prob_hi[0]-prob_lo[0]);
-	dt += vmax*n_cells[1]/(prob_hi[1]-prob_lo[1]);
-	dt += wmax*n_cells[2]/(prob_hi[2]-prob_lo[2]);
-	dt  = 0.2/dt; // Courant number of 0.2
+	//dt  = umax*n_cells[0]/(prob_hi[0]-prob_lo[0]);
+	//dt += vmax*n_cells[1]/(prob_hi[1]-prob_lo[1]);
+	//dt += wmax*n_cells[2]/(prob_hi[2]-prob_lo[2]);
+	//dt  = 0.2/dt; // Courant number of 0.2
 	mfvrmax.setVal(spdmax);
 
 	Redistribute();
