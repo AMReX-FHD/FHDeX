@@ -108,14 +108,29 @@ void ComputeGamma(const MultiFab& molarconc_in,
             Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> I;
             Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> X_xxt;
 
-            if ((use_multiphase == 1) && (nspecies == 2)){ 
+            //if ((use_multiphase == 1) && (nspecies == 2)){ 
+            GammaN(1,1) = 3.0;
+            GammaN(1,2) = 5.0;
+            GammaN(2,1) = 7.0;
+            GammaN(2,2) = 11.0;
+
+            Print() << GammaN(1,1) << " " << GammaN(1,2) << std::endl;
+            Print() << GammaN(2,1) << " " << GammaN(2,2) << std::endl;
+
+
+            if (true){ 
                             
                 Real w1 = MolarConcN[0];
                 Real w2 = MolarConcN[1];
 
+            Print() << w1 << std::endl;
+            Print() << w2 << std::endl;
+            Print() << "n_gex " << n_gex << " alpha_gex " << alpha_gex << std::endl;
+
+
+
                 if (std::abs(w1+w2-1.0) > 1e-14){ 
-                    //verify this is the correct print statment
-                    //Print() << " mole fractions do not add up in gamma computation"; 
+                    Print() << "Mole fractions do not add up in gamma computation" << std::endl; 
                 }
                 if (w1 < 0){ 
                     w1 = 0.0;
@@ -126,11 +141,15 @@ void ComputeGamma(const MultiFab& molarconc_in,
                     w2 = 0.0;
                 }
 
-                GammaN(1,2) = w1 * n_gex * n_gex * alpha_gex * std::pow(w1, n_gex-1) * std::pow(w2, n_gex-1);
-                GammaN(2,1) = w2 * n_gex * n_gex * alpha_gex * std::pow(w1, n_gex-1) * std::pow(w2, n_gex-1);
-                GammaN(1,1) = 1.0 + w1 + n_gex * (n_gex-1) * alpha_gex * std::pow(w1, n_gex-2) * std::pow(w2, n_gex); 
-                GammaN(2,2) = 1.0 + w1 + n_gex * (n_gex-1) * alpha_gex * std::pow(w2, n_gex-2) * std::pow(w1, n_gex); 
+                GammaN(1,2) = w1 * n_gex * n_gex * alpha_gex * std::pow(w1,n_gex-1) * std::pow(w2,n_gex-1);
+                GammaN(2,1) = w2 * n_gex * n_gex * alpha_gex * std::pow(w2,n_gex-1) * std::pow(w1,n_gex-1);
+                GammaN(1,1) = 1.0 + w1 * n_gex * (n_gex-1) * alpha_gex * std::pow(w1,n_gex-2) * std::pow(w2,n_gex); 
+                GammaN(2,2) = 1.0 + w2 * n_gex * (n_gex-1) * alpha_gex * std::pow(w2,n_gex-2) * std::pow(w1,n_gex); 
 
+                //HACK HACK HACK
+            Print() << GammaN(1,1) << " " << GammaN(1,2) << std::endl;
+            Print() << GammaN(2,1) << " " << GammaN(2,2) << std::endl;
+            Abort();
 
             } else {
             ////construct identity matrix
@@ -180,15 +199,16 @@ void ComputeGamma(const MultiFab& molarconc_in,
            //Print() << "Sigfault sandwhich 3 " << std::endl; 
             
 
-            //This isn't going to work anymore
-            //for (int n=0; n<nspecies; ++n ){
-            //    Gamma(i,j,k,n) = GammaN[n];
-            //}
             for (int n=0; n<nspecies; ++n ){
                 for (int m=0; m<nspecies; ++m){ 
                     Gamma(i,j,k,n*nspecies+m) = GammaN(n+1,m+1);  
                 } 
             }
+
+
+            //Print() << GammaN(1,1) << " " << GammaN(1,2) << " " << GammaN(1,3) << std::endl;
+            //Print() << GammaN(2,1) << " " << GammaN(2,2) << " " << GammaN(2,3) << std::endl;
+            //Print() << GammaN(3,1) << " " << GammaN(3,2) << " " << GammaN(3,3) << std::endl;
 
         });
 
@@ -196,6 +216,7 @@ void ComputeGamma(const MultiFab& molarconc_in,
 
         //EP-Ends here
     }
+    //Abort();
 
 }
 
