@@ -41,7 +41,13 @@ void ComputeMolconcMolmtot(const MultiFab& rho_in,
                 molarconc(i,j,k,n) = MolarConcN[n] ;
             }
 
+            //Print() << ">>>> *MolarConcN[0] " << MolarConcN[0] << std::endl;
+            //Print() << ">>>> *MolarConcN[1] " << MolarConcN[1] << std::endl;
+            //Print() << ">>>> *MolarConcN[2] " << MolarConcN[2] << std::endl;
+            //Print() << ">>>> *molmtot(i,j,k) " << molmtot(i,j,k) << std::endl;
+            //Abort();
         });
+
 
     }
 
@@ -105,31 +111,37 @@ void ComputeGamma(const MultiFab& molarconc_in,
            //Print() << "Sigfault sandwhich 1 " << std::endl; 
 
             //ComputeGammaLocal(MolarConcN, HessianN, GammaN, nspecies);
+            // Fill this in later
+
+
             Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> I;
             Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> X_xxt;
 
             //if ((use_multiphase == 1) && (nspecies == 2)){ 
+            //if (true){ 
             GammaN(1,1) = 3.0;
             GammaN(1,2) = 5.0;
             GammaN(2,1) = 7.0;
             GammaN(2,2) = 11.0;
+            n_gex = 3.3;
+            alpha_gex = 0.72;
 
             Print() << GammaN(1,1) << " " << GammaN(1,2) << std::endl;
             Print() << GammaN(2,1) << " " << GammaN(2,2) << std::endl;
 
 
-            if (true){ 
+            //Print() << "w1 " << w1 << std::endl;
+            //Print() << "w2 " << w2 << std::endl;
+            Print() << "n_gex " << n_gex << " alpha_gex " << alpha_gex << std::endl;
+
+            if ((use_multiphase == 1) && (nspecies == 2)){ 
                             
                 Real w1 = MolarConcN[0];
                 Real w2 = MolarConcN[1];
 
-            Print() << w1 << std::endl;
-            Print() << w2 << std::endl;
-            Print() << "n_gex " << n_gex << " alpha_gex " << alpha_gex << std::endl;
 
 
-
-                if (std::abs(w1+w2-1.0) > 1e-14){ 
+                if (std::abs(w1+w2-1.0) > 1e-14){  //Tested and working
                     Print() << "Mole fractions do not add up in gamma computation" << std::endl; 
                 }
                 if (w1 < 0){ 
@@ -141,15 +153,12 @@ void ComputeGamma(const MultiFab& molarconc_in,
                     w2 = 0.0;
                 }
 
+                //These calculations were tested -- working 
                 GammaN(1,2) = w1 * n_gex * n_gex * alpha_gex * std::pow(w1,n_gex-1) * std::pow(w2,n_gex-1);
                 GammaN(2,1) = w2 * n_gex * n_gex * alpha_gex * std::pow(w2,n_gex-1) * std::pow(w1,n_gex-1);
                 GammaN(1,1) = 1.0 + w1 * n_gex * (n_gex-1) * alpha_gex * std::pow(w1,n_gex-2) * std::pow(w2,n_gex); 
                 GammaN(2,2) = 1.0 + w2 * n_gex * (n_gex-1) * alpha_gex * std::pow(w2,n_gex-2) * std::pow(w1,n_gex); 
 
-                //HACK HACK HACK
-            Print() << GammaN(1,1) << " " << GammaN(1,2) << std::endl;
-            Print() << GammaN(2,1) << " " << GammaN(2,2) << std::endl;
-            Abort();
 
             } else {
             ////construct identity matrix
@@ -158,7 +167,8 @@ void ComputeGamma(const MultiFab& molarconc_in,
             //    }
 
                 //populate X_xxt
-                if (is_ideal_mixture == 1){
+                //if (is_ideal_mixture == 1){
+                if (is_ideal_mixture == -1){
                     for (int n=1; n<=nspecies; ++n ){
                        for (int m=1; m<=nspecies; ++m ){
                            X_xxt(n,m) = 0.0;
@@ -166,17 +176,35 @@ void ComputeGamma(const MultiFab& molarconc_in,
                     }
                 } else {
                     for (int row=1; row<=nspecies;++row ){
+                            Print() << "row " << row << std::endl;
                         // diagonal entries
                         X_xxt(row,row) = MolarConcN[row-1] - std::pow(MolarConcN[row-1],2);
-                        for (int column=1; column<=nspecies; ++column ){
+                        for (int column=1; column<=row-1; ++column ){
+                            Print() << "column " << column << std::endl;
                             // form x*traspose(x) off diagonals -- is x the MolarConc vectorT?
                             X_xxt(row,column) = -MolarConcN[row-1]*MolarConcN[column-1];
                             //symmetric
-                            X_xxt(column,row) = X_xxt(column,row);
+                            X_xxt(column,row) = X_xxt(row,column);
                         }
                     }
                 }
             }
+            //
+                //HACK HACK HACK
+            Print() << ">>>> MolarConcN[0] " << MolarConcN[0] << std::endl;
+            Print() << ">>>> MolarConcN[1] " << MolarConcN[1] << std::endl;
+            Print() << ">>>> MolarConcN[2] " << MolarConcN[2] << std::endl;
+            Print() << std::endl;
+            Print() << ">>>> X_xxt(1,1) " << X_xxt(1,1) << std::endl;
+            Print() << ">>>> X_xxt(1,2) " << X_xxt(1,2) << std::endl;
+            Print() << ">>>> X_xxt(1,3) " << X_xxt(1,3) << std::endl;
+            Print() << ">>>> X_xxt(2,1) " << X_xxt(2,1) << std::endl;
+            Print() << ">>>> X_xxt(2,2) " << X_xxt(2,2) << std::endl;
+            Print() << ">>>> X_xxt(2,3) " << X_xxt(2,3) << std::endl;
+            Print() << ">>>> X_xxt(3,1) " << X_xxt(3,1) << std::endl;
+            Print() << ">>>> X_xxt(3,2) " << X_xxt(3,2) << std::endl;
+            Print() << ">>>> X_xxt(3,3) " << X_xxt(3,3) << std::endl;
+            Abort();
             
            //Print() << "Sigfault sandwhich 2 " << std::endl; 
               
