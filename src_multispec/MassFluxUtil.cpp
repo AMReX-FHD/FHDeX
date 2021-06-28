@@ -110,6 +110,17 @@ void ComputeGamma(const MultiFab& molarconc_in,
         
            //Print() << "Sigfault sandwhich 1 " << std::endl; 
 
+            HessianN(1,1) = 1.0;
+            HessianN(1,2) = 3.0;
+            HessianN(1,3) = 5.0;
+            HessianN(2,1) = 7.0;
+            HessianN(2,2) = 11.0;
+            HessianN(2,3) = 13.0;
+            HessianN(3,1) = 17.0;
+            HessianN(3,2) = 19.0;
+            HessianN(3,3) = 23.0;
+
+
             //ComputeGammaLocal(MolarConcN, HessianN, GammaN, nspecies);
             // Fill this in later
 
@@ -126,8 +137,8 @@ void ComputeGamma(const MultiFab& molarconc_in,
             n_gex = 3.3;
             alpha_gex = 0.72;
 
-            Print() << GammaN(1,1) << " " << GammaN(1,2) << std::endl;
-            Print() << GammaN(2,1) << " " << GammaN(2,2) << std::endl;
+            //Print() << GammaN(1,1) << " " << GammaN(1,2) << std::endl;
+            //Print() << GammaN(2,1) << " " << GammaN(2,2) << std::endl;
 
 
             //Print() << "w1 " << w1 << std::endl;
@@ -161,26 +172,22 @@ void ComputeGamma(const MultiFab& molarconc_in,
 
 
             } else {
-            ////construct identity matrix
-            //    for (int n=1; n<=nspecies; ++n ){
-            //        I(n,n) = 1.0;
-            //    }
 
                 //populate X_xxt
-                //if (is_ideal_mixture == 1){
-                if (is_ideal_mixture == -1){
+                //if (is_ideal_mixture == 1){   //verified 
+                if (is_ideal_mixture == -1){   //verified 
                     for (int n=1; n<=nspecies; ++n ){
                        for (int m=1; m<=nspecies; ++m ){
                            X_xxt(n,m) = 0.0;
                        }
                     }
                 } else {
-                    for (int row=1; row<=nspecies;++row ){
-                            Print() << "row " << row << std::endl;
+                    for (int row=1; row<=nspecies;++row ){ //verified
+                            //Print() << "row " << row << std::endl;
                         // diagonal entries
                         X_xxt(row,row) = MolarConcN[row-1] - std::pow(MolarConcN[row-1],2);
                         for (int column=1; column<=row-1; ++column ){
-                            Print() << "column " << column << std::endl;
+                            //Print() << "column " << column << std::endl;
                             // form x*traspose(x) off diagonals -- is x the MolarConc vectorT?
                             X_xxt(row,column) = -MolarConcN[row-1]*MolarConcN[column-1];
                             //symmetric
@@ -190,24 +197,10 @@ void ComputeGamma(const MultiFab& molarconc_in,
                 }
             }
             //
-                //HACK HACK HACK
-            Print() << ">>>> MolarConcN[0] " << MolarConcN[0] << std::endl;
-            Print() << ">>>> MolarConcN[1] " << MolarConcN[1] << std::endl;
-            Print() << ">>>> MolarConcN[2] " << MolarConcN[2] << std::endl;
-            Print() << std::endl;
-            Print() << ">>>> X_xxt(1,1) " << X_xxt(1,1) << std::endl;
-            Print() << ">>>> X_xxt(1,2) " << X_xxt(1,2) << std::endl;
-            Print() << ">>>> X_xxt(1,3) " << X_xxt(1,3) << std::endl;
-            Print() << ">>>> X_xxt(2,1) " << X_xxt(2,1) << std::endl;
-            Print() << ">>>> X_xxt(2,2) " << X_xxt(2,2) << std::endl;
-            Print() << ">>>> X_xxt(2,3) " << X_xxt(2,3) << std::endl;
-            Print() << ">>>> X_xxt(3,1) " << X_xxt(3,1) << std::endl;
-            Print() << ">>>> X_xxt(3,2) " << X_xxt(3,2) << std::endl;
-            Print() << ">>>> X_xxt(3,3) " << X_xxt(3,3) << std::endl;
-            Abort();
             
            //Print() << "Sigfault sandwhich 2 " << std::endl; 
               
+            //verfied 
             for (int row=1; row<=nspecies; ++row){
                 for (int column=1; column<=nspecies; ++column){
 
@@ -224,6 +217,32 @@ void ComputeGamma(const MultiFab& molarconc_in,
                 }
             }
              
+                //HACK HACK HACK
+            //Print() << ">>>> MolarConcN[0] " << MolarConcN[0] << std::endl;
+            //Print() << ">>>> MolarConcN[1] " << MolarConcN[1] << std::endl;
+            //Print() << ">>>> MolarConcN[2] " << MolarConcN[2] << std::endl;
+            Print() << std::endl;
+            Print() << ">>>> GammaN(1,1) " << GammaN(1,1) << std::endl;
+            Print() << ">>>> GammaN(1,2) " << GammaN(1,2) << std::endl;
+            Print() << ">>>> GammaN(1,3) " << GammaN(1,3) << std::endl;
+            Print() << ">>>> GammaN(2,1) " << GammaN(2,1) << std::endl;
+            Print() << ">>>> GammaN(2,2) " << GammaN(2,2) << std::endl;
+            Print() << ">>>> GammaN(2,3) " << GammaN(2,3) << std::endl;
+            Print() << ">>>> GammaN(3,1) " << GammaN(3,1) << std::endl;
+            Print() << ">>>> GammaN(3,2) " << GammaN(3,2) << std::endl;
+            Print() << ">>>> GammaN(3,3) " << GammaN(3,3) << std::endl;
+            Print() << std::endl;
+            Print() << ">>>> HessianN(1,1) " << HessianN(1,1) << std::endl;
+            Print() << ">>>> HessianN(1,2) " << HessianN(1,2) << std::endl;
+            Print() << ">>>> HessianN(1,3) " << HessianN(1,3) << std::endl;
+            Print() << ">>>> HessianN(2,1) " << HessianN(2,1) << std::endl;
+            Print() << ">>>> HessianN(2,2) " << HessianN(2,2) << std::endl;
+            Print() << ">>>> HessianN(2,3) " << HessianN(2,3) << std::endl;
+            Print() << ">>>> HessianN(3,1) " << HessianN(3,1) << std::endl;
+            Print() << ">>>> HessianN(3,2) " << HessianN(3,2) << std::endl;
+            Print() << ">>>> HessianN(3,3) " << HessianN(3,3) << std::endl;
+
+            Abort();
            //Print() << "Sigfault sandwhich 3 " << std::endl; 
             
 
