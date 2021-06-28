@@ -41,11 +41,6 @@ void ComputeMolconcMolmtot(const MultiFab& rho_in,
                 molarconc(i,j,k,n) = MolarConcN[n] ;
             }
 
-            //Print() << ">>>> *MolarConcN[0] " << MolarConcN[0] << std::endl;
-            //Print() << ">>>> *MolarConcN[1] " << MolarConcN[1] << std::endl;
-            //Print() << ">>>> *MolarConcN[2] " << MolarConcN[2] << std::endl;
-            //Print() << ">>>> *molmtot(i,j,k) " << molmtot(i,j,k) << std::endl;
-            //Abort();
         });
 
 
@@ -128,7 +123,6 @@ void ComputeGamma(const MultiFab& molarconc_in,
             Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> I;
             Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> X_xxt;
 
-            //if ((use_multiphase == 1) && (nspecies == 2)){ 
             //if (true){ 
             GammaN(1,1) = 3.0;
             GammaN(1,2) = 5.0;
@@ -174,8 +168,7 @@ void ComputeGamma(const MultiFab& molarconc_in,
             } else {
 
                 //populate X_xxt
-                //if (is_ideal_mixture == 1){   //verified 
-                if (is_ideal_mixture == -1){   //verified 
+                if (is_ideal_mixture == 1){   //verified 
                     for (int n=1; n<=nspecies; ++n ){
                        for (int m=1; m<=nspecies; ++m ){
                            X_xxt(n,m) = 0.0;

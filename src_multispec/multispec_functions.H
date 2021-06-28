@@ -288,7 +288,85 @@ void ComputeMolconcMolmtotLocal( int nspecies_in,
 
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void ComputeGammaLocal(
+                GpuArray<Real, MAX_SPECIES> MolarConcN,
+                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> HessianN, //read only so no &
+                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> GammaN,
+                int nspecies_in){
+    
+    //Local variables
+    int row, column;
+    Real w1, w2;
 
+    Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> I;
+    Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> X_xxt;
+
+    if ((use_multiphase == 1) && (nspecies == 2)){ 
+                    
+        Real w1 = MolarConcN[0];
+        Real w2 = MolarConcN[1];
+
+
+        if (std::abs(w1+w2-1.0) > 1e-14){  
+            Print() << "Mole fractions do not add up in gamma computation" << std::endl; 
+        }
+        if (w1 < 0){ 
+            w1 = 0.0;
+            w2 = 1.0;
+        }
+        if (w2 < 0){ 
+            w1 = 1.0;
+            w2 = 0.0;
+        }
+
+        GammaN(1,2) = w1 * n_gex * n_gex * alpha_gex * std::pow(w1,n_gex-1) * std::pow(w2,n_gex-1);
+        GammaN(2,1) = w2 * n_gex * n_gex * alpha_gex * std::pow(w2,n_gex-1) * std::pow(w1,n_gex-1);
+        GammaN(1,1) = 1.0 + w1 * n_gex * (n_gex-1) * alpha_gex * std::pow(w1,n_gex-2) * std::pow(w2,n_gex); 
+        GammaN(2,2) = 1.0 + w2 * n_gex * (n_gex-1) * alpha_gex * std::pow(w2,n_gex-2) * std::pow(w1,n_gex); 
+
+
+    } else {
+
+        //populate X_xxt
+        if (is_ideal_mixture == 1){   
+            for (int n=1; n<=nspecies; ++n ){
+               for (int m=1; m<=nspecies; ++m ){
+                   X_xxt(n,m) = 0.0;
+               }
+            }
+        } else {
+            for (int row=1; row<=nspecies;++row ){ 
+                // diagonal entries
+                X_xxt(row,row) = MolarConcN[row-1] - std::pow(MolarConcN[row-1],2);
+                for (int column=1; column<=row-1; ++column ){
+                    // form x*traspose(x) off diagonals -- is x the MolarConc vectorT?
+                    X_xxt(row,column) = -MolarConcN[row-1]*MolarConcN[column-1];
+                    //symmetric
+                    X_xxt(column,row) = X_xxt(row,column);
+                }
+            }
+        }
+    }
+    
+    //Compute Gamma 
+    for (int row=1; row<=nspecies; ++row){
+        for (int column=1; column<=nspecies; ++column){
+            if (row == column) {
+                GammaN(row,column) = 1.0;   // add the identity matrix
+            } else {
+                GammaN(row,column) = 0.0;   // intialize off-diagonals to 0
+            }
+            // matmul(X_xxtT, HessianN)
+            for (int n=1; n<=nspecies; ++n){ 
+                GammaN(row, column) += X_xxt(row,n) * HessianN(n,column);
+            }
+        }
+    }
+
+
+
+}
 
 
 #endif
