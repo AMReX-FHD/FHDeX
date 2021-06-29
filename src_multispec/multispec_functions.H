@@ -290,23 +290,19 @@ void ComputeMolconcMolmtotLocal( int nspecies_in,
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void ComputeGammaLocal(
-                GpuArray<Real, MAX_SPECIES> MolarConcN,
-                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> HessianN, //read only so no &
-                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> GammaN,
+                GpuArray<Real, MAX_SPECIES>& MolarConcN,
+                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& HessianN, 
+                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& GammaN,
                 int nspecies_in){
     
     //Local variables
-    int row, column;
-    Real w1, w2;
-
-    Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> I;
     Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> X_xxt;
+
 
     if ((use_multiphase == 1) && (nspecies == 2)){ 
                     
         Real w1 = MolarConcN[0];
         Real w2 = MolarConcN[1];
-
 
         if (std::abs(w1+w2-1.0) > 1e-14){  
             Print() << "Mole fractions do not add up in gamma computation" << std::endl; 
@@ -320,13 +316,17 @@ void ComputeGammaLocal(
             w2 = 0.0;
         }
 
+
         GammaN(1,2) = w1 * n_gex * n_gex * alpha_gex * std::pow(w1,n_gex-1) * std::pow(w2,n_gex-1);
         GammaN(2,1) = w2 * n_gex * n_gex * alpha_gex * std::pow(w2,n_gex-1) * std::pow(w1,n_gex-1);
         GammaN(1,1) = 1.0 + w1 * n_gex * (n_gex-1) * alpha_gex * std::pow(w1,n_gex-2) * std::pow(w2,n_gex); 
         GammaN(2,2) = 1.0 + w2 * n_gex * (n_gex-1) * alpha_gex * std::pow(w2,n_gex-2) * std::pow(w1,n_gex); 
 
 
+
     } else {
+
+        //Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> I;
 
         //populate X_xxt
         if (is_ideal_mixture == 1){   
@@ -367,6 +367,5 @@ void ComputeGammaLocal(
 
 
 }
-
 
 #endif

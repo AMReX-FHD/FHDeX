@@ -105,23 +105,21 @@ void ComputeGamma(const MultiFab& molarconc_in,
         
            //Print() << "Sigfault sandwhich 1 " << std::endl; 
 
-            HessianN(1,1) = 1.0;
-            HessianN(1,2) = 3.0;
-            HessianN(1,3) = 5.0;
-            HessianN(2,1) = 7.0;
-            HessianN(2,2) = 11.0;
-            HessianN(2,3) = 13.0;
-            HessianN(3,1) = 17.0;
-            HessianN(3,2) = 19.0;
-            HessianN(3,3) = 23.0;
+            //HessianN(1,1) = 1.0;
+            //HessianN(1,2) = 3.0;
+            //HessianN(1,3) = 5.0;
+            //HessianN(2,1) = 7.0;
+            //HessianN(2,2) = 11.0;
+            //HessianN(2,3) = 13.0;
+            //HessianN(3,1) = 17.0;
+            //HessianN(3,2) = 19.0;
+            //HessianN(3,3) = 23.0;
 
 
             //ComputeGammaLocal(MolarConcN, HessianN, GammaN, nspecies);
             // Fill this in later
 
 
-            Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> I;
-            Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> X_xxt;
 
             //if (true){ 
             GammaN(1,1) = 3.0;
@@ -137,7 +135,15 @@ void ComputeGamma(const MultiFab& molarconc_in,
 
             //Print() << "w1 " << w1 << std::endl;
             //Print() << "w2 " << w2 << std::endl;
-            Print() << "n_gex " << n_gex << " alpha_gex " << alpha_gex << std::endl;
+            //Print() << "n_gex " << n_gex << " alpha_gex " << alpha_gex << std::endl;
+
+            ComputeGammaLocal(MolarConcN, HessianN, GammaN, nspecies);
+
+            //Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> I; //no longer necessary
+
+
+            /*
+            Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> X_xxt;
 
             if ((use_multiphase == 1) && (nspecies == 2)){ 
                             
@@ -209,33 +215,34 @@ void ComputeGamma(const MultiFab& molarconc_in,
                     }
                 }
             }
-             
+            */
+
                 //HACK HACK HACK
             //Print() << ">>>> MolarConcN[0] " << MolarConcN[0] << std::endl;
             //Print() << ">>>> MolarConcN[1] " << MolarConcN[1] << std::endl;
             //Print() << ">>>> MolarConcN[2] " << MolarConcN[2] << std::endl;
-            Print() << std::endl;
-            Print() << ">>>> GammaN(1,1) " << GammaN(1,1) << std::endl;
-            Print() << ">>>> GammaN(1,2) " << GammaN(1,2) << std::endl;
-            Print() << ">>>> GammaN(1,3) " << GammaN(1,3) << std::endl;
-            Print() << ">>>> GammaN(2,1) " << GammaN(2,1) << std::endl;
-            Print() << ">>>> GammaN(2,2) " << GammaN(2,2) << std::endl;
-            Print() << ">>>> GammaN(2,3) " << GammaN(2,3) << std::endl;
-            Print() << ">>>> GammaN(3,1) " << GammaN(3,1) << std::endl;
-            Print() << ">>>> GammaN(3,2) " << GammaN(3,2) << std::endl;
-            Print() << ">>>> GammaN(3,3) " << GammaN(3,3) << std::endl;
-            Print() << std::endl;
-            Print() << ">>>> HessianN(1,1) " << HessianN(1,1) << std::endl;
-            Print() << ">>>> HessianN(1,2) " << HessianN(1,2) << std::endl;
-            Print() << ">>>> HessianN(1,3) " << HessianN(1,3) << std::endl;
-            Print() << ">>>> HessianN(2,1) " << HessianN(2,1) << std::endl;
-            Print() << ">>>> HessianN(2,2) " << HessianN(2,2) << std::endl;
-            Print() << ">>>> HessianN(2,3) " << HessianN(2,3) << std::endl;
-            Print() << ">>>> HessianN(3,1) " << HessianN(3,1) << std::endl;
-            Print() << ">>>> HessianN(3,2) " << HessianN(3,2) << std::endl;
-            Print() << ">>>> HessianN(3,3) " << HessianN(3,3) << std::endl;
+            //Print() << std::endl;
+            //Print() << ">>>> GammaN(1,1) " << GammaN(1,1) << std::endl;
+            //Print() << ">>>> GammaN(1,2) " << GammaN(1,2) << std::endl;
+            //Print() << ">>>> GammaN(1,3) " << GammaN(1,3) << std::endl;
+            //Print() << ">>>> GammaN(2,1) " << GammaN(2,1) << std::endl;
+            //Print() << ">>>> GammaN(2,2) " << GammaN(2,2) << std::endl;
+            //Print() << ">>>> GammaN(2,3) " << GammaN(2,3) << std::endl;
+            //Print() << ">>>> GammaN(3,1) " << GammaN(3,1) << std::endl;
+            //Print() << ">>>> GammaN(3,2) " << GammaN(3,2) << std::endl;
+            //Print() << ">>>> GammaN(3,3) " << GammaN(3,3) << std::endl;
+            //Print() << std::endl;
+            //Print() << ">>>> HessianN(1,1) " << HessianN(1,1) << std::endl;
+            //Print() << ">>>> HessianN(1,2) " << HessianN(1,2) << std::endl;
+            //Print() << ">>>> HessianN(1,3) " << HessianN(1,3) << std::endl;
+            //Print() << ">>>> HessianN(2,1) " << HessianN(2,1) << std::endl;
+            //Print() << ">>>> HessianN(2,2) " << HessianN(2,2) << std::endl;
+            //Print() << ">>>> HessianN(2,3) " << HessianN(2,3) << std::endl;
+            //Print() << ">>>> HessianN(3,1) " << HessianN(3,1) << std::endl;
+            //Print() << ">>>> HessianN(3,2) " << HessianN(3,2) << std::endl;
+            //Print() << ">>>> HessianN(3,3) " << HessianN(3,3) << std::endl;
 
-            Abort();
+            //Abort();
            //Print() << "Sigfault sandwhich 3 " << std::endl; 
             
 
