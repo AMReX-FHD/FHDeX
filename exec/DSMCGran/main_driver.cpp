@@ -173,74 +173,74 @@ void main_driver(const char* argv)
    // Structure Factor Setup
    //////////////////////////////////////
       
-   // Output all primitives for structure factor
-   int nvarstruct = nprim;
+  // Output all primitives for structure factor
+  int nvarstruct = 6+nspecies*2;
 	const Real* dx = geom.CellSize();
 	int nstruct = std::ceil((double)nvarstruct*(nvarstruct+1)/2);
 	// scale SF results by inverse cell volume
-   Vector<Real> var_scaling(nstruct);
-   for (int d=0; d<var_scaling.size(); ++d) {var_scaling[d] = 1./(dx[0]*dx[1]*dx[2]);}
+  Vector<Real> var_scaling(nstruct);
+  for (int d=0; d<var_scaling.size(); ++d) {var_scaling[d] = 1./(dx[0]*dx[1]*dx[2]);}
 
    // Structure Factor labels
 	Vector< std::string > cu_struct_names(nvarstruct);
 	int cnt = 0;
 	std::string varname;
-	cu_struct_names[cnt++] = "n";
-	for (int ispec=0; ispec<nspecies; ispec++) {
-     	cu_struct_names[cnt++] = amrex::Concatenate("X",ispec,2);
-   }
-   cu_struct_names[cnt++] = "rho";
+	//cu_struct_names[cnt++] = "n";
+	//for (int ispec=0; ispec<nspecies; ispec++) {
+  //   	cu_struct_names[cnt++] = amrex::Concatenate("X",ispec,2);
+  //}
+  cu_struct_names[cnt++] = "rho";
 	for (int ispec=0; ispec<nspecies; ispec++) {
      	cu_struct_names[cnt++] = amrex::Concatenate("rho",ispec,2);
    }
-   cu_struct_names[cnt++] = "u";
-	for (int ispec=0; ispec<nspecies; ispec++) {
-     	cu_struct_names[cnt++] = amrex::Concatenate("u",ispec,2);
-   }
-   cu_struct_names[cnt++] = "v";
-	for (int ispec=0; ispec<nspecies; ispec++) {
-     	cu_struct_names[cnt++] = amrex::Concatenate("v",ispec,2);
-   }
-   cu_struct_names[cnt++] = "w";
-	for (int ispec=0; ispec<nspecies; ispec++) {
-     	cu_struct_names[cnt++] = amrex::Concatenate("w",ispec,2);
-   }
-   cu_struct_names[cnt++] = "uu";
-	for (int ispec=0; ispec<nspecies; ispec++) {
-     	cu_struct_names[cnt++] = amrex::Concatenate("uu",ispec,2);
-   }
-   cu_struct_names[cnt++] = "uv";
-	for (int ispec=0; ispec<nspecies; ispec++) {
-     	cu_struct_names[cnt++] = amrex::Concatenate("uv",ispec,2);
-   }
-   cu_struct_names[cnt++] = "uw";
-	for (int ispec=0; ispec<nspecies; ispec++) {
-     	cu_struct_names[cnt++] = amrex::Concatenate("uw",ispec,2);
-   }
-	cu_struct_names[cnt++] = "vv";
-	for (int ispec=0; ispec<nspecies; ispec++) {
-     	cu_struct_names[cnt++] = amrex::Concatenate("vv",ispec,2);
-   }
-   cu_struct_names[cnt++] = "vw";
-	for (int ispec=0; ispec<nspecies; ispec++) {
-     	cu_struct_names[cnt++] = amrex::Concatenate("vw",ispec,2);
-   }
-   cu_struct_names[cnt++] = "ww";
-	for (int ispec=0; ispec<nspecies; ispec++) {
-     	cu_struct_names[cnt++] = amrex::Concatenate("ww",ispec,2);
-   }
-   cu_struct_names[cnt++] = "T";
+  cu_struct_names[cnt++] = "u";
+	//for (int ispec=0; ispec<nspecies; ispec++) {
+  //   	cu_struct_names[cnt++] = amrex::Concatenate("u",ispec,2);
+  // }
+  cu_struct_names[cnt++] = "v";
+	//for (int ispec=0; ispec<nspecies; ispec++) {
+  //   	cu_struct_names[cnt++] = amrex::Concatenate("v",ispec,2);
+  // }
+  cu_struct_names[cnt++] = "w";
+	//for (int ispec=0; ispec<nspecies; ispec++) {
+  //   	cu_struct_names[cnt++] = amrex::Concatenate("w",ispec,2);
+  // }
+  // cu_struct_names[cnt++] = "uu";
+	//for (int ispec=0; ispec<nspecies; ispec++) {
+  //   	cu_struct_names[cnt++] = amrex::Concatenate("uu",ispec,2);
+  // }
+  // cu_struct_names[cnt++] = "uv";
+	//for (int ispec=0; ispec<nspecies; ispec++) {
+  //   	cu_struct_names[cnt++] = amrex::Concatenate("uv",ispec,2);
+  // }
+  // cu_struct_names[cnt++] = "uw";
+	//for (int ispec=0; ispec<nspecies; ispec++) {
+  //   	cu_struct_names[cnt++] = amrex::Concatenate("uw",ispec,2);
+  // }
+	//cu_struct_names[cnt++] = "vv";
+	//for (int ispec=0; ispec<nspecies; ispec++) {
+  //   	cu_struct_names[cnt++] = amrex::Concatenate("vv",ispec,2);
+  // }
+  // cu_struct_names[cnt++] = "vw";
+	//for (int ispec=0; ispec<nspecies; ispec++) {
+  //   	cu_struct_names[cnt++] = amrex::Concatenate("vw",ispec,2);
+  // }
+  // cu_struct_names[cnt++] = "ww";
+	//for (int ispec=0; ispec<nspecies; ispec++) {
+  //   	cu_struct_names[cnt++] = amrex::Concatenate("ww",ispec,2);
+  // }
+  cu_struct_names[cnt++] = "T";
 	for (int ispec=0; ispec<nspecies; ispec++) {
      	cu_struct_names[cnt++] = amrex::Concatenate("T",ispec,2);
    }
-   cu_struct_names[cnt++] = "P";
-	for (int ispec=0; ispec<nspecies; ispec++) {
-     	cu_struct_names[cnt++] = amrex::Concatenate("P",ispec,2);
-   }
-   cu_struct_names[cnt++] = "E";
-	for (int ispec=0; ispec<nspecies; ispec++) {
-     	cu_struct_names[cnt++] = amrex::Concatenate("E",ispec,2);
-   }
+  //cu_struct_names[cnt++] = "P";
+	//for (int ispec=0; ispec<nspecies; ispec++) {
+  //   	cu_struct_names[cnt++] = amrex::Concatenate("P",ispec,2);
+  //}
+  cu_struct_names[cnt++] = "E";
+	//for (int ispec=0; ispec<nspecies; ispec++) {
+  //   	cu_struct_names[cnt++] = amrex::Concatenate("E",ispec,2);
+  //}
    
    // Structure Factor
 	StructFact structFactPrim  (ba, dmap, cu_struct_names, var_scaling);
@@ -312,8 +312,39 @@ void main_driver(const char* argv)
 		                        coVars,
 		                        statsCount++);
 		                        
+    int cnt_sf, numvars_sf;
 		if(istep%n_steps_skip == 0 && istep > 0) {
-			MultiFab::Copy(structFactPrimMF,primInst,0,0,nvarstruct,0);
+      cnt_sf = 0;
+      // rho
+      numvars_sf = 1;
+      MultiFab::Copy(structFactPrimMF,primInst,0,cnt_sf,numvars_sf,0);
+      cnt_sf += numvars_sf;
+      // rho species
+      for (int i=0;i<nspecies;i++) {
+          numvars_sf = 1;
+          MultiFab::Copy(structFactPrimMF,primInst,1+(i+1)*14,cnt_sf,numvars_sf,0);
+          cnt_sf += numvars_sf;
+      }
+      // u, v, w
+      numvars_sf = 3;
+      MultiFab::Copy(structFactPrimMF,primInst,2,cnt_sf,numvars_sf,0);
+      cnt_sf += numvars_sf;
+      // T
+      numvars_sf = 1;
+      MultiFab::Copy(structFactPrimMF,primInst,11,cnt_sf,numvars_sf,0);
+      cnt_sf += numvars_sf;
+      // T species
+      for (int i=0;i<nspecies;i++) {
+          numvars_sf = 1;
+          MultiFab::Copy(structFactPrimMF,primInst,11+(i+1)*14,cnt_sf,numvars_sf,0);
+          cnt_sf += numvars_sf;
+      }
+      // E
+      numvars_sf = 1;
+      MultiFab::Copy(structFactPrimMF,primInst,13,cnt_sf,numvars_sf,0);
+      cnt_sf += numvars_sf;
+
+			//MultiFab::Copy(structFactPrimMF,primInst,0,0,nvarstruct,0);
 			structFactPrim.FortStructure(structFactPrimMF,geom,fft_type);
 			structFactPrim.WritePlotFile(istep,time,geom,"plt_SF_prim");
 		}

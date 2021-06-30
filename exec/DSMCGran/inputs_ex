@@ -2,10 +2,10 @@
 
   ! Problem specification
   prob_lo(1:3) = 0.0 0.0 0.0     			 ! physical lo coordinate
-  prob_hi(1:3) = 1.6e-5 1.6e-5 1.6e-5      ! physical hi coordinate (cm)
+  prob_hi(1:3) = 6.4e-5 6.4e-5 6.4e-5      ! physical hi coordinate (cm)
 
-  n_cells(1:3) = 2 2 2 ! keep as powers of two
-  max_grid_size(1:3) = 2 2 2
+  n_cells(1:3) = 8 8 8 ! keep as powers of two
+  max_grid_size(1:3) = 4 4 4
   max_particle_tile_size(1:3) = 256 256 256
 
   ! Time-step control
@@ -30,6 +30,9 @@
   mass     =   6.646e-24 3.351e-23 6.634e-23 1.390e-22 ! g
   diameter =    2.18e-8   2.58e-8   3.63e-8   4.16e-8 ! cm
   phi_domain = 9.856e-5  3.240e-5  4.559e-5  3.275e-5 ![-]
+  !mass     =   6.646e-24 ! g
+  !diameter =    2.18e-8  ! cm
+  !phi_domain = 9.856e-5  ![-]
   ! write each row, i.e. 1-1, 1-2, 1-3 .... 2-1, 2-2 ,2-3 ....
   ! need total nspecies*nspecies values
   alpha_pp = 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0
@@ -40,7 +43,6 @@
 	k_B = 1.38064852e-16
 	T_init = 300 300 300 300
 	variance_coef_mom = 1
-
 
   bc_vel_lo(1:3) = -1 -1 -1
   bc_vel_hi(1:3) = -1 -1 -1
