@@ -285,18 +285,72 @@ void ComputeMolconcMolmtotLocal( int nspecies_in,
         MolarConcN[n] = molmtot_in * W[n] / molmass[n];
     }
     
-
 }
+
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void MatrixToZeros(int nspecies,
+                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& matrixIn) {
+
+    for (int n=1; n<=nspecies; ++n ){
+        for (int m=1; m<=nspecies; ++m ){
+            matrixIn(n,m) = 0.0;
+        }
+    }
+}
+
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void PopulateX_xxT(int nspecies,
+                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& X_xxT,
+                GpuArray<Real, MAX_SPECIES>& MolarConcN) {
+
+    for (int row=1; row<=nspecies;++row ){ 
+    // diagonal entries
+    X_xxT(row,row) = MolarConcN[row-1] - std::pow(MolarConcN[row-1],2);
+        for (int column=1; column<=row-1; ++column ){
+        // off-diagonal entries
+        // form x*traspose(x) off diagonals 
+        X_xxT(row,column) = -MolarConcN[row-1]*MolarConcN[column-1];
+        //symmetric
+        X_xxT(column,row) = X_xxT(row,column);
+        }
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void GammaIPlusMatmul(int nspecies,
+                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& GammaN,
+                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& X_xxT,
+                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& HessianN) {
+
+    //Compute Gamma 
+    for (int row=1; row<=nspecies; ++row){
+        for (int column=1; column<=nspecies; ++column){
+            if (row == column) {
+                GammaN(row,column) = 1.0;   // add the identity matrix
+            } else {
+                GammaN(row,column) = 0.0;   // intialize off-diagonals to 0
+            }
+            // add matmul(X_xxT, HessianN)
+            for (int n=1; n<=nspecies; ++n){ 
+                GammaN(row, column) += X_xxT(row,n) * HessianN(n,column);
+            }
+        }
+    }
+}
+
+
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void ComputeGammaLocal(
                 GpuArray<Real, MAX_SPECIES>& MolarConcN,
                 Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& HessianN, 
                 Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& GammaN,
-                int nspecies_in){
+                int nspecies){
     
     //Local variables
-    Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> X_xxt;
+    Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> X_xxT;
 
 
     if ((use_multiphase == 1) && (nspecies == 2)){ 
@@ -316,40 +370,43 @@ void ComputeGammaLocal(
             w2 = 0.0;
         }
 
-
         GammaN(1,2) = w1 * n_gex * n_gex * alpha_gex * std::pow(w1,n_gex-1) * std::pow(w2,n_gex-1);
         GammaN(2,1) = w2 * n_gex * n_gex * alpha_gex * std::pow(w2,n_gex-1) * std::pow(w1,n_gex-1);
         GammaN(1,1) = 1.0 + w1 * n_gex * (n_gex-1) * alpha_gex * std::pow(w1,n_gex-2) * std::pow(w2,n_gex); 
         GammaN(2,2) = 1.0 + w2 * n_gex * (n_gex-1) * alpha_gex * std::pow(w2,n_gex-2) * std::pow(w1,n_gex); 
 
-
-
     } else {
 
-        //Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> I;
-
-        //populate X_xxt
+        //populate X_xxT
         if (is_ideal_mixture == 1){   
+            MatrixToZeros(nspecies, X_xxT);
+            /*
             for (int n=1; n<=nspecies; ++n ){
                for (int m=1; m<=nspecies; ++m ){
-                   X_xxt(n,m) = 0.0;
+                   X_xxT(n,m) = 0.0;
                }
             }
+            */
         } else {
+            PopulateX_xxT(nspecies, X_xxT, MolarConcN);
+            /*
             for (int row=1; row<=nspecies;++row ){ 
                 // diagonal entries
-                X_xxt(row,row) = MolarConcN[row-1] - std::pow(MolarConcN[row-1],2);
+                X_xxT(row,row) = MolarConcN[row-1] - std::pow(MolarConcN[row-1],2);
                 for (int column=1; column<=row-1; ++column ){
                     // form x*traspose(x) off diagonals -- is x the MolarConc vectorT?
-                    X_xxt(row,column) = -MolarConcN[row-1]*MolarConcN[column-1];
+                    X_xxT(row,column) = -MolarConcN[row-1]*MolarConcN[column-1];
                     //symmetric
-                    X_xxt(column,row) = X_xxt(row,column);
+                    X_xxT(column,row) = X_xxT(row,column);
                 }
             }
+            */
         }
     }
     
     //Compute Gamma 
+    GammaIPlusMatmul(nspecies, GammaN, X_xxT, HessianN);
+    /*
     for (int row=1; row<=nspecies; ++row){
         for (int column=1; column<=nspecies; ++column){
             if (row == column) {
@@ -357,13 +414,13 @@ void ComputeGammaLocal(
             } else {
                 GammaN(row,column) = 0.0;   // intialize off-diagonals to 0
             }
-            // matmul(X_xxtT, HessianN)
+            // matmul(X_xxT, HessianN)
             for (int n=1; n<=nspecies; ++n){ 
-                GammaN(row, column) += X_xxt(row,n) * HessianN(n,column);
+                GammaN(row, column) += X_xxT(row,n) * HessianN(n,column);
             }
         }
     }
-
+    */
 
 
 }
