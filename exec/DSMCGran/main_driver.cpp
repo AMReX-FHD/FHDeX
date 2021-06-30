@@ -302,18 +302,33 @@ void main_driver(const char* argv)
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Stats
-		cuInst.setVal(0.); primInst.setVal(0.);
-		particles.EvaluateStats(cuInst,
-										cuMeans,
-										cuVars,
-		                        primInst,
-		                        primMeans,
-		                        primVars,
-		                        coVars,
-		                        statsCount++);
+    if (istep > amrex::Math::abs(n_steps_skip)) {
+		  cuInst.setVal(0.);
+      primInst.setVal(0.);
+      particles.EvaluateStats(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,coVars,statsCount++);
+    }
 		                        
-    int cnt_sf, numvars_sf;
-		if(istep%n_steps_skip == 0 && istep > 0) {
+    // write a plotfile
+    bool writePlt = false;
+    if (plot_int > 0) {
+        if (n_steps_skip >= 0) { // for positive n_steps_skip, write out at plot_int
+            writePlt = (istep%plot_int == 0);
+        }
+        else if (n_steps_skip < 0) { // for negative n_steps_skip, write out at plot_int-1
+            writePlt = ((istep+1)%plot_int == 0);
+        }
+    }
+
+    if (writePlt) {
+			particles.writePlotFile(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,coVars,geom,time,istep);
+    }
+
+    // do structure factor
+    if (istep > amrex::Math::abs(n_steps_skip) && 
+        struct_fact_int > 0 && 
+        (istep-amrex::Math::abs(n_steps_skip))%struct_fact_int == 0) {
+
+      int cnt_sf, numvars_sf;
       cnt_sf = 0;
       // rho
       numvars_sf = 1;
@@ -344,25 +359,17 @@ void main_driver(const char* argv)
       MultiFab::Copy(structFactPrimMF,primInst,13,cnt_sf,numvars_sf,0);
       cnt_sf += numvars_sf;
 
-			//MultiFab::Copy(structFactPrimMF,primInst,0,0,nvarstruct,0);
-			structFactPrim.FortStructure(structFactPrimMF,geom,fft_type);
-			structFactPrim.WritePlotFile(istep,time,geom,"plt_SF_prim");
-		}
+      //MultiFab::Copy(structFactPrimMF,primInst,0,0,nvarstruct,0);
+      structFactPrim.FortStructure(structFactPrimMF,geom,fft_type);
+    }
 		
-		if(istep%plot_int == 0) {
-			particles.writePlotFile(cuInst,
-										   cuMeans,
-											cuVars,
-		                        	primInst,
-		                        	primMeans,
-		                        	primVars,
-		                        	coVars,
-		                        	geom,
-		                        	time,
-		                        	istep);
-		}
-		
-		//if(istep%struct_fact_int ==0 && istep>0) {}
+    // write structure factor
+    if (istep > amrex::Math::abs(n_steps_skip) && 
+        struct_fact_int > 0 && plot_int > 0 && 
+        istep%plot_int == 0) {
+
+      structFactPrim.WritePlotFile(istep,time,geom,"plt_SF_prim");
+    }
  
 		Real tend = ParallelDescriptor::second() - tbegin;
 		ParallelDescriptor::ReduceRealMax(tend);
