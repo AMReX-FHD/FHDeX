@@ -292,6 +292,8 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void MatrixToZeros(int nspecies,
                 Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& matrixIn) {
 
+        //Print() << "HACK 4" << std::endl;
+
     for (int n=1; n<=nspecies; ++n ){
         for (int m=1; m<=nspecies; ++m ){
             matrixIn(n,m) = 0.0;
@@ -304,6 +306,8 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void PopulateX_xxT(int nspecies,
                 Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& X_xxT,
                 GpuArray<Real, MAX_SPECIES>& MolarConcN) {
+
+//        Print() << "HACK 3" << std::endl;
 
     for (int row=1; row<=nspecies;++row ){ 
     // diagonal entries
@@ -323,6 +327,8 @@ void GammaIPlusMatmul(int nspecies,
                 Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& GammaN,
                 Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& X_xxT,
                 Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& HessianN) {
+        
+      //  Print() << "HACK 2" << std::endl;
 
     //Compute Gamma 
     for (int row=1; row<=nspecies; ++row){
@@ -349,9 +355,14 @@ void ComputeGammaLocal(
                 Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& GammaN,
                 int nspecies){
     
+   //     Print() << "HACK 1" << std::endl;
+
+
     //Local variables
     Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> X_xxT;
 
+  //Print() << "Use multiphase = " << use_multiphase << std::endl;
+  //Print() << "is_ideal_mixture = " << is_ideal_mixture << std::endl;
 
     if ((use_multiphase == 1) && (nspecies == 2)){ 
                     
@@ -388,6 +399,8 @@ void ComputeGammaLocal(
             }
             */
         } else {
+             
+//            Print() << "HACK5: Use multiphase = " << use_multiphase << std::endl;
             PopulateX_xxT(nspecies, X_xxT, MolarConcN);
             /*
             for (int row=1; row<=nspecies;++row ){ 
