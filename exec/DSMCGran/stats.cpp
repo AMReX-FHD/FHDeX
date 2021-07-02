@@ -233,8 +233,9 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
 		});
 		
 		// Global Granular Temperature
-		Real Tg[nspecies];
-		for (int l=0; l<nspecies; l++) {Tg[l] = 0.;}
+		Real Tgl[nspecies];
+		Real npl[nspecies];
+		for (int l=0; l<nspecies; l++) {Tgl[l] = 0.; npl[l] = 0.;}
 		int np = particles.numParticles();
 
 		for (int i = 0; i < np; ++i) {
@@ -245,15 +246,17 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
 								 pow(part.rdata(FHD_realData::vely),2) +
 								 pow(part.rdata(FHD_realData::velz),2);
 			vsq	    *= (properties[ispec].mass/3.0);
-			Tg[ispec] += vsq;
-    }
+			Tgl[ispec] += vsq; npl[ispec] += 1;
+		}
     
     // Gather from all procs
-    ParallelDescriptor::ReduceIntSum(np);
 	  for (int l=0; l<nspecies; l++) {
-	  	Real tempTg = Tg[l];
-		  ParallelDescriptor::ReduceRealSum(tempTg);
-		  Tg[l] = tempTg/(double)np;
+			Real tempTg = Tgl[l];
+			Real tempnp = npl[l];
+			ParallelDescriptor::ReduceRealSum(tempTg);
+			ParallelDescriptor::ReduceRealSum(tempnp);
+			npl[l] = tempnp;
+			Tgl[l] = tempTg/tempnp;
 		}
 
 		// Print to files
@@ -270,9 +273,9 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
     	fileTg << std::scientific << setprecision(8) << time << " ";
     	fileTgN << std::scientific << setprecision(8) << time << " ";
     	for(int l=0; l<nspecies; l++){
-    		if(steps==1) {Tg0[l] = Tg[l];}
-    		fileTg << Tg[l] << " ";
-    		fileTgN << Tg[l]/Tg0[l] << " ";
+    		if(steps==1) {Tg0[l] = Tgl[l];}
+    		fileTg << Tgl[l] << " ";
+    		fileTgN << Tgl[l]/Tg0[l] << " ";
     	}
     	fileTg << "\n"; fileTgN << "\n";
     	fileTg.close(); fileTgN.close();

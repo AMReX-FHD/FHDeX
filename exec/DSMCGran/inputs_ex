@@ -2,20 +2,20 @@
 
   ! Problem specification
   prob_lo(1:3) = 0.0 0.0 0.0     			 ! physical lo coordinate
-  prob_hi(1:3) = 600e-03 600-03 300e-03   ! physical hi coordinate (cm)
+  prob_hi(1:3) = 150e-03 150-03 100e-03   ! physical hi coordinate (cm)
 
-  n_cells(1:3) = 16 16 8 ! keep as powers of two
-  max_grid_size(1:3) = 8 8 8
+  n_cells(1:3) = 4 4 2 ! keep as powers of two
+  max_grid_size(1:3) = 4 4 2
   max_particle_tile_size(1:3) = 256 256 256
 
   ! Time-step control
   fixed_dt = 1e-8                        ! dt = dx/(10*sqrt(kT/m))
 
   ! Controls for number of steps between actions
-  max_step = 850000
-  plot_int = 50000
+  max_step = 2000
+  plot_int = 2000
   struct_fact_int = 10
-  n_steps_skip = 50000
+  n_steps_skip = 100
   chk_int  = -1
 
   !particle initialization (-1 - no input; 1 - input provided)
@@ -32,12 +32,12 @@
   phi_domain =     5e-04      5e-04 ! [-]
   ! write each row, i.e. 1-1, 1-2, 1-3 .... 2-1, 2-2 ,2-3 ....
   ! need total nspecies*nspecies values
-  alpha_pp = 0.95 0.95 0.95 0.95
+  alpha_pp = 1.0 1.0 1.0 1.0
   
   ! Stochastic parameters
 	seed = 0
 	k_B = 1.38064852e-16
-	T_init  = 3.8179e9 5.4684e10 ! kT/m ~= 10
+	T_init  = 1e10 1e10 ! kT/m ~= 10
 	variance_coef_mom = 1
 
   bc_vel_lo(1:3) = -1 -1 -1
