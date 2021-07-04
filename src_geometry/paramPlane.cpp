@@ -25,9 +25,54 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 
     double theta, phi;
 //Domain boundaries
+		/*
+		for(int i=0; i<3 ; i++) {
+			// Set plane normals
+    	paramPlaneList[i].lnx   = std::floor(std::max(i+1,1)/std::min(i+1,1));
+    	paramPlaneList[i].lny   = std::floor(std::max(i+1,2)/std::min(i+1,2));
+    	paramPlaneList[i].lnz   = std::floor(std::max(i+1,3)/std::min(i+1,3));
+    	paramPlaneList[i+1].lnx = std::floor(std::max(i+1,1)/std::min(i+1,1));
+    	paramPlaneList[i+1].lny = std::floor(std::max(i+1,2)/std::min(i+1,2));
+    	paramPlaneList[i+1].lnz = std::floor(std::max(i+1,3)/std::min(i+1,3));
+    	
+    	theta = getTheta(paramPlaneList[i].lnx, paramPlaneList[i].lny,
+    		paramPlaneList[i].lnz);
+    	phi   = getPhi(paramPlaneList[i].lnx, paramPlaneList[i].lny,
+    		paramPlaneList[i].lnz);
+    		
+			paramPlaneList[i].cosThetaLeft = cos(theta);
+    	paramPlaneList[i].sinThetaLeft = sin(theta);
+    	paramPlaneList[i].cosPhiLeft = cos(phi);
+    	paramPlaneList[i].sinPhiLeft = sin(phi);
+    	
+			paramPlaneList[i+1].cosThetaLeft = cos(theta);
+    	paramPlaneList[i+1].sinThetaLeft = sin(theta);
+    	paramPlaneList[i+1].cosPhiLeft = cos(phi);
+    	paramPlaneList[i+1].sinPhiLeft = sin(phi);
+    		
+    	// Specularity
+    	paramPlaneList[i].specularityLeft = 0;
+    	paramPlaneList[i+1].specularityRight = 0;
+    	
+    	// Temperature
+    	paramPlaneList[i].temperatureLeft = t_lo[i];
+    	paramPlaneList[i].temperatureRight = t_lo[i];
+    	
+    	paramPlaneList[i+1].temperatureLeft = t_hi[i];
+    	paramPlaneList[i+1].temperatureRight = t_hi[i];
+
+    	// Density
+    	for (int ispec=0; ispec<nspecies; ispec++){
+    	
+    	}
+    	paramPlaneList[i]
+    	
+    }
+    */
+		
 
 //domainLo x plane
-    paramPlaneList[0].x0 = domainLo[0];
+		paramPlaneList[0].x0 = domainLo[0];
     paramPlaneList[0].y0 = domainLo[1];
     paramPlaneList[0].z0 = domainLo[2];
 
@@ -51,16 +96,20 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
     paramPlaneList[0].rnz = 0;
 
     paramPlaneList[0].specularityLeft = 0;
-    paramPlaneList[0].temperatureLeft = T_init[0];
+    paramPlaneList[0].temperatureLeft = t_lo[0];
     paramPlaneList[0].momentumConsLeft = 1;
-    paramPlaneList[0].densityLeft[0] = 0;
+    for(int l=0;l<nspecies;l++) {
+	    paramPlaneList[0].densityLeft[l] = rho_lo[0]*bc_Yk_x_lo[l];
+	  }
     paramPlaneList[0].sourceLeft = 0;
     paramPlaneList[0].sinkLeft = 0;
 
     paramPlaneList[0].specularityRight = 0;
-    paramPlaneList[0].temperatureRight = T_init[0];
+    paramPlaneList[0].temperatureRight = t_lo[0];
     paramPlaneList[0].momentumConsRight = 1;
-    paramPlaneList[0].densityRight[0] = 0;
+    for(int l=0;l<nspecies;l++) {
+	    paramPlaneList[0].densityRight[l] = rho_lo[0]*bc_Yk_x_lo[l];
+	  }
     paramPlaneList[0].sourceRight = 0;
     paramPlaneList[0].sinkRight = 0;
 
@@ -140,16 +189,20 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
     paramPlaneList[1].rnz = 0;
 
     paramPlaneList[1].specularityLeft = 0;
-    paramPlaneList[1].temperatureLeft = T_init[0];
-    paramPlaneList[1].densityLeft[0] = 0;
+    paramPlaneList[1].temperatureLeft = t_hi[0];
+    for(int l=0;l<nspecies;l++) {
+	    paramPlaneList[1].densityLeft[l] = rho_hi[0]*bc_Yk_x_hi[l];
+	  }
     paramPlaneList[1].momentumConsLeft = 1;
     paramPlaneList[1].sourceLeft = 0;
     paramPlaneList[1].sinkLeft = 0;
 
     paramPlaneList[1].specularityRight = 0;
-    paramPlaneList[1].temperatureRight = T_init[0];
+    paramPlaneList[1].temperatureRight = t_hi[0];
     paramPlaneList[1].momentumConsRight = 1;
-    paramPlaneList[1].densityRight[0] = 0;
+    for(int l=0;l<nspecies;l++) {
+	    paramPlaneList[1].densityRight[l] = rho_hi[0]*bc_Yk_x_hi[l];
+	  }
     paramPlaneList[1].sourceRight = 0;
     paramPlaneList[1].sinkRight = 0;
 
@@ -229,16 +282,20 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
     paramPlaneList[2].rnz = 0;
 
     paramPlaneList[2].specularityLeft = 0;
-    paramPlaneList[2].temperatureLeft = T_init[0];
+    paramPlaneList[2].temperatureLeft = t_lo[1];
     paramPlaneList[2].momentumConsLeft = 1;
-    paramPlaneList[2].densityLeft[0] = 0;
+    for(int l=0;l<nspecies;l++) {
+	    paramPlaneList[2].densityLeft[l] = rho_lo[1]*bc_Yk_x_lo[l];
+	  }
     paramPlaneList[2].sourceLeft = 0;
     paramPlaneList[2].sinkLeft = 0;
 
     paramPlaneList[2].specularityRight = 0;
-    paramPlaneList[2].temperatureRight = T_init[0];
+    paramPlaneList[2].temperatureRight = t_lo[1];
     paramPlaneList[2].momentumConsRight = 1;
-    paramPlaneList[2].densityRight[0] = 0;
+    for(int l=0;l<nspecies;l++) {
+	    paramPlaneList[2].densityRight[l] = rho_lo[1]*bc_Yk_x_lo[l];
+	  }
     paramPlaneList[2].sourceRight = 0;
     paramPlaneList[2].sinkRight = 0;
 
@@ -317,16 +374,20 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
     paramPlaneList[3].rnz = 0;
 
     paramPlaneList[3].specularityLeft = 0;
-    paramPlaneList[3].temperatureLeft = T_init[0];
+    paramPlaneList[3].temperatureLeft = t_hi[1];
     paramPlaneList[3].momentumConsLeft = 1;
-    paramPlaneList[3].densityLeft[0] = 0;
+    for(int l=0;l<nspecies;l++) {
+	    paramPlaneList[3].densityLeft[l] = rho_hi[1]*bc_Yk_x_hi[l];
+	  }
     paramPlaneList[3].sourceLeft = 0;
     paramPlaneList[3].sinkLeft = 0;
 
     paramPlaneList[3].specularityRight = 0;
-    paramPlaneList[3].temperatureRight = T_init[0];
+    paramPlaneList[3].temperatureRight = t_hi[1];
     paramPlaneList[3].momentumConsRight = 1;
-    paramPlaneList[3].densityRight[0] = 0;
+    for(int l=0;l<nspecies;l++) {
+	    paramPlaneList[3].densityRight[l] = rho_hi[1]*bc_Yk_x_hi[l];
+	  }
     paramPlaneList[3].sourceRight = 0;
     paramPlaneList[3].sinkRight = 0;
 
@@ -407,16 +468,20 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
     paramPlaneList[4].rnz = -1;
 
     paramPlaneList[4].specularityLeft = 0;
-    paramPlaneList[4].temperatureLeft = T_init[0];
+    paramPlaneList[4].temperatureLeft = t_lo[2];
     paramPlaneList[4].momentumConsLeft = 1;
     paramPlaneList[4].sourceLeft = 0;
-    paramPlaneList[4].densityLeft[0] = 0;
+    for(int l=0;l<nspecies;l++) {
+	    paramPlaneList[4].densityLeft[l] = rho_lo[2]*bc_Yk_x_lo[l];
+	  }
     paramPlaneList[4].sinkLeft = 0;
 
     paramPlaneList[4].specularityRight = 0;
-    paramPlaneList[4].temperatureRight = T_init[0];
+    paramPlaneList[4].temperatureRight = t_lo[2];
     paramPlaneList[4].momentumConsRight = 1;
-    paramPlaneList[4].densityRight[0] = 0;
+    for(int l=0;l<nspecies;l++) {
+	    paramPlaneList[4].densityRight[l] = rho_lo[2]*bc_Yk_x_lo[l];
+	  }
     paramPlaneList[4].sourceRight = 0;
     paramPlaneList[4].sinkRight = 0;
 
@@ -497,16 +562,20 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
     paramPlaneList[5].rnz = -1;
 
     paramPlaneList[5].specularityLeft = 0;
-    paramPlaneList[5].temperatureLeft = T_init[0];
+    paramPlaneList[5].temperatureLeft = t_hi[2];
     paramPlaneList[5].momentumConsLeft = 1;
-    paramPlaneList[5].densityLeft[0] = 0;
+    for(int l=0;l<nspecies;l++) {
+	    paramPlaneList[5].densityLeft[l] = rho_hi[2]*bc_Yk_x_hi[l];
+	  }
     paramPlaneList[5].sourceLeft = 0;
     paramPlaneList[5].sinkLeft = 0;
 
     paramPlaneList[5].specularityRight = 0;
-    paramPlaneList[5].temperatureRight = T_init[0];
+    paramPlaneList[5].temperatureRight = t_hi[2];
     paramPlaneList[5].momentumConsRight = 1;
-    paramPlaneList[5].densityRight[0] = 0;
+    for(int l=0;l<nspecies;l++) {
+	    paramPlaneList[5].densityRight[l] = rho_hi[2]*bc_Yk_x_hi[l];
+	  }
     paramPlaneList[5].sourceRight = 0;
     paramPlaneList[5].sinkRight = 0;
 
@@ -576,6 +645,85 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
     paramPlaneList[5].fxRightAv = 0;
     paramPlaneList[5].fyRightAv = 0;
     paramPlaneList[5].fzRightAv = 0;
+    
+    // Thermal/Conc BC
+    // Will conflict with velocity BC (need to resolve at one point)
+    for(int i=0; i<3 ; i++) {
+    	// Lower (Left, Bottom, Back)
+    	// Initialize porosities/specularities
+    	// Assume solid, thermal wall at boundary
+    	paramPlaneList[i].specularityLeft = 0; // 0 specularity -> thermal
+    	paramPlaneList[i].specularityRight = 0;
+    	paramPlaneList[i].porosityLeft = 1;
+    	paramPlaneList[i].porosityRight = 1;
+    	paramPlaneList[i].sourceLeft = 0;
+    	paramPlaneList[i].sinkLeft = 0;
+      paramPlaneList[i].sourceRight = 0;
+	    paramPlaneList[i].sinkRight = 0;
+    	paramPlaneList[i].periodicity = 0;
+
+			// Adjust parameters based on BC wanted
+			// Adiabatic not implemented
+			// Periodic
+    	if(bc_mass_lo[i] == -1) {
+    		if(bc_therm_lo[i] == -1) {
+    			paramPlaneList[i].periodicity = 1;
+    		// Adjust back to thermal walls if periodic
+    		} else if(bc_therm_lo[i] == 2) {
+    			paramPlaneList[i].porosityLeft = 0;
+    			paramPlaneList[i].porosityRight = 0;
+    		}
+    	// Solid Wall
+    	// Not fully implemented
+    	} else if(bc_mass_lo[i] == 1) {
+        paramPlaneList[i].porosityLeft = 0;
+        paramPlaneList[i].porosityRight = 0; 
+    	// Reservoir
+    	} else if(bc_mass_lo[i] == 2) {
+        paramPlaneList[i].porosityLeft = 1;
+        paramPlaneList[i].porosityRight = 1;
+  	  	paramPlaneList[i].sourceLeft = 1;
+  	  	paramPlaneList[i].sinkLeft = 1;
+ 	     	paramPlaneList[i].sourceRight = 1;
+	    	paramPlaneList[i].sinkRight = 1;
+    	}
+    	
+    	// Upper Boundary (Right, Top, Front)
+    	paramPlaneList[i+1].specularityLeft = 0; // 0 specularity -> thermal
+    	paramPlaneList[i+1].specularityRight = 0;
+    	paramPlaneList[i+1].sourceLeft = 0;
+    	paramPlaneList[i+1].sinkLeft = 0;
+      paramPlaneList[i+1].sourceRight = 0;
+	    paramPlaneList[i+1].sinkRight = 0;    	
+    	paramPlaneList[i+1].porosityLeft = 1;
+    	paramPlaneList[i+1].porosityRight = 1;
+    	paramPlaneList[i+1].periodicity = 0;
+
+			// Adjust parameters based on BC wanted
+    	if(bc_mass_hi[i+1] == -1) {
+    		if(bc_therm_hi[i+1] == -1) {
+    			paramPlaneList[i+1].periodicity = 1;
+    		} else if(bc_therm_hi[i+1] == 1) {
+    			paramPlaneList[i+1].specularityLeft = 1;
+    			paramPlaneList[i+1].specularityRight = 1;
+    			paramPlaneList[i+1].porosityLeft = 0;
+    			paramPlaneList[i+1].porosityRight = 0;
+    		} else if(bc_therm_hi[i+1] == 2) {
+    			paramPlaneList[i+1].porosityLeft = 0;
+    			paramPlaneList[i+1].porosityRight = 0;
+    		}
+    	} else if(bc_mass_hi[i+1] == 1) {
+        paramPlaneList[i+1].porosityLeft = 0;
+        paramPlaneList[i+1].porosityRight = 0;
+    	} else if(bc_mass_hi[i+1] == 2) {
+        paramPlaneList[i+1].porosityLeft = 1;
+        paramPlaneList[i+1].porosityRight = 1; 
+  	  	paramPlaneList[i+1].sourceLeft = 1;
+  	  	paramPlaneList[i+1].sinkLeft = 1;
+ 	     	paramPlaneList[i+1].sourceRight = 1;
+	    	paramPlaneList[i+1].sinkRight = 1;  
+    	}
+    }
 
     std::ifstream planeFile("paramplanes.dat");
     int fileCount;

@@ -124,6 +124,9 @@ module common_namelist_module
   double precision,   save :: t_lo(AMREX_SPACEDIM)
   double precision,   save :: t_hi(AMREX_SPACEDIM)
   
+  double precision,   save :: rho_lo(AMREX_SPACEDIM)
+  double precision,   save :: rho_hi(AMREX_SPACEDIM)
+  
   double precision,   save :: bc_Yk_x_lo(MAX_SPECIES)
   double precision,   save :: bc_Yk_x_hi(MAX_SPECIES)
   double precision,   save :: bc_Yk_y_lo(MAX_SPECIES)
@@ -360,6 +363,9 @@ module common_namelist_module
 
   namelist /common/ t_lo
   namelist /common/ t_hi
+  
+  namelist /common/ rho_lo
+  namelist /common/ rho_hi  
 
   ! c_i boundary conditions
   namelist /common/ bc_Yk_x_lo
@@ -560,6 +566,8 @@ contains
 
     t_lo(:) = 0
     t_hi(:) = 0
+    rho_lo(:) = 0
+    rho_hi(:) = 0
     bc_Yk_x_lo(:) = 0.d0
     bc_Yk_x_hi(:) = 0.d0
     bc_Yk_y_lo(:) = 0.d0
@@ -692,6 +700,7 @@ contains
                                          bc_therm_lo_in, bc_therm_hi_in,  &
                                          p_lo_in, p_hi_in, &
                                          t_lo_in, t_hi_in, &
+                                         rho_lo_in, rho_hi_in, &
                                          bc_Yk_x_lo_in, bc_Yk_x_hi_in, &
                                          bc_Yk_y_lo_in, bc_Yk_y_hi_in, &
                                          bc_Yk_z_lo_in, bc_Yk_z_hi_in, &
@@ -824,6 +833,8 @@ contains
     double precision,       intent(inout) :: p_hi_in(AMREX_SPACEDIM)
     double precision,       intent(inout) :: t_lo_in(AMREX_SPACEDIM)
     double precision,       intent(inout) :: t_hi_in(AMREX_SPACEDIM)
+    double precision,       intent(inout) :: rho_lo_in(AMREX_SPACEDIM)
+    double precision,       intent(inout) :: rho_hi_in(AMREX_SPACEDIM)
     double precision,       intent(inout) :: bc_Yk_x_lo_in(MAX_SPECIES)
     double precision,       intent(inout) :: bc_Yk_x_hi_in(MAX_SPECIES)
     double precision,       intent(inout) :: bc_Yk_y_lo_in(MAX_SPECIES)
@@ -1003,6 +1014,8 @@ contains
     p_hi_in = p_hi
     t_lo_in = t_lo
     t_hi_in = t_hi
+    rho_lo_in = rho_lo
+    rho_hi_in = rho_hi
     bc_Yk_x_lo_in = bc_Yk_x_lo
     bc_Yk_x_hi_in = bc_Yk_x_hi
     bc_Yk_y_lo_in = bc_Yk_y_lo

@@ -111,6 +111,7 @@ void InitializeCommonNamespace() {
                                 bc_therm_lo.dataPtr(), bc_therm_hi.dataPtr(),
                                 p_lo.data(), p_hi.data(),
                                 t_lo.data(), t_hi.data(),
+                                rho_lo.data(), rho_hi.data(),
                                 bc_Yk_x_lo.data(), bc_Yk_x_hi.data(),
                                 bc_Yk_y_lo.data(), bc_Yk_y_hi.data(),
                                 bc_Yk_z_lo.data(), bc_Yk_z_hi.data(),

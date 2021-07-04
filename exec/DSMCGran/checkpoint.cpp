@@ -18,9 +18,7 @@ namespace {
 void FhdParticleContainer::WriteCheckPoint(int step, int statsCount, const Real time,
                      const amrex::Geometry geom,
                      const amrex::MultiFab& cuInst,   const amrex::MultiFab& cuMean, 
-                     const amrex::MultiFab& cuDel,    const amrex::MultiFab& covar){//,
-                //     const amrex::MultiFab& mfselect, const amrex::MultiFab& mfphi,
-                  //   const amrex::MultiFab& mfvrmax  ) {
+                     const amrex::MultiFab& cuDel,    const amrex::MultiFab& covar){
 	// timer for profiling
 	BL_PROFILE_VAR("WriteCheckPoint()",WriteCheckPoint);
 
@@ -69,22 +67,12 @@ void FhdParticleContainer::WriteCheckPoint(int step, int statsCount, const Real 
 	VisMF::Write(covar,
                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "covar"));
 
-	// Collision related MFs (defined in DSMC particle container)
-	/*VisMF::Write(mfselect,
-                amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "mfselect"));
-	VisMF::Write(mfphi,
-                amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "mfphi"));
-	VisMF::Write(mfvrmax,
-                amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "mfvrmax"));*/
-
 }
 
 void FhdParticleContainer::ReadCheckPoint(int &step, int& statsCount, amrex::Real& time,
                     amrex::Geometry geom,
                     amrex::MultiFab& cuInst,   amrex::MultiFab& cuMean, 
-                    amrex::MultiFab& cuDel,    amrex::MultiFab& covar){//,
-      //              amrex::MultiFab& mfselect, amrex::MultiFab& mfphi,
-        //            amrex::MultiFab& mfvrmax) {
+                    amrex::MultiFab& cuDel,    amrex::MultiFab& covar){
     // timer for profiling
     BL_PROFILE_VAR("ReadCheckPoint()",ReadCheckPoint);
 
@@ -134,12 +122,10 @@ void FhdParticleContainer::ReadCheckPoint(int &step, int& statsCount, amrex::Rea
         cuInst.define(ba,dm,nvars,0);
         cuMean.define(ba,dm,nvars,0);
         cuDel.define(ba,dm,nvars,0);
-		  covar.define(ba,dm,nvars,0);
+		  	covar.define(ba,dm,nvars,0);
 		  
         // prim, primMeans, primVars
-        //mfselect.define(ba,dm,nprimvars,0);
-        //mfphi.define(ba,dm,nprimvars,0);
-        //mfvrmax.define(ba,dm,nprimvars,0);
+
     }
 
 	// Stat MFs
@@ -152,11 +138,4 @@ void FhdParticleContainer::ReadCheckPoint(int &step, int& statsCount, amrex::Rea
 	VisMF::Read(covar,
                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "covar"));
 
-	// Collision related MFs
-	/*VisMF::Read(mfselect,
-                amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "mfselect"));
-	VisMF::Read(mfphi,
-                amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "mfphi"));
-	VisMF::Read(mfvrmax,
-                amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "mfvrmax"));*/
 }

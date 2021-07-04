@@ -29,6 +29,8 @@ struct FHD_realData {
         R,
         timeFrac,
         omega,
+        radius,
+        mass,
         count    // Awesome little trick! (only works if first field is 0)
     };
 
@@ -111,12 +113,13 @@ public:
 	void InitParticles(Real & dt);
 	void InitCollisionCells();
 
-   void Source(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount);
+	void Source(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount);
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	// Main DSMC routines
 	void SortParticles();
 
+	Real maxDiam;
 	void CalcSelections(Real dt);
 	void CollideParticles(Real dt);
 
@@ -126,12 +129,12 @@ public:
 	// MFs for DSMC and directly related quantities
 	// May condense MFs in the future
 	MultiFab mfselect; // store number of selections
-   MultiFab mfvrmax; // store max relative speed found
-   // currently a single constant but updates over time
-   MultiFab mfphi; // needed for evaluating radial distribution function
-   //MultiFab mfgrantemp;
+	MultiFab mfvrmax; // store max relative speed found
+	// currently a single constant but updates over time
+	MultiFab mfphi; // needed for evaluating radial distribution function
+	//MultiFab mfgrantemp;
 
-   MultiFab mfCollisions; // keep track to ensure correct collision frequency
+	MultiFab mfCollisions; // keep track to ensure correct collision frequency
 	int expectedCollisions[MAX_SPECIES], countedCollisions[MAX_SPECIES];
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -193,16 +196,12 @@ public:
 	void WriteCheckPoint(int step, int statsCount, const Real time,
                      const Geometry geom,
                      const MultiFab& cuInst,   const MultiFab& cuMean, 
-                     const MultiFab& cuDel,    const MultiFab& covar);//,
-    //                 const MultiFab& mfselect, const MultiFab& mfphi,
-      //               const MultiFab& mfvrmax);	
+                     const MultiFab& cuDel,    const MultiFab& covar);
 
 	void ReadCheckPoint(int &step, int& statsCount, Real& time,
                        Geometry geom,
                        MultiFab& cuInst,   MultiFab& cuMean, 
-                       MultiFab& cuDel,    MultiFab& covar);//,
-                 //      MultiFab& mfselect, MultiFab& mfphi,
-                  //     MultiFab& mfvrmax);
+                       MultiFab& cuDel,    MultiFab& covar);
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	// Constants	
 	Real pi_usr = 4.0*atan(1.0);

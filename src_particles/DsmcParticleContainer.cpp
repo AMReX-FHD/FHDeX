@@ -88,7 +88,6 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
 
     int        np_tile = 0 ,       np_proc = 0 ; // particle count
     Real    moves_tile = 0.,    moves_proc = 0.; // total moves
-    Real  maxspeed_proc = 0.; // max speed
     Real  maxdist_proc = 0.; // max displacement (fraction of radius)
 
     Real adj = 0.99999;
@@ -99,7 +98,6 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
     Real maxspeed = 0;
     Real maxdist = 0;
 
-    long moves = 0;
     int reDist = 0;
 
     for (FhdParIter pti(* this, lev); pti.isValid(); ++pti) {
@@ -121,20 +119,6 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
         for (int i = 0; i < np; i++) {
        
             ParticleType & part = particles[i];
-
-              Real speed = 0;
-
-              for (int d=0; d<AMREX_SPACEDIM; ++d)
-              {                   
-                  speed += part.rdata(FHD_realData::velx + d)*part.rdata(FHD_realData::velx + d);
-              }
-
-              if(speed > maxspeed)
-              {
-                  maxspeed = speed;
-              }
-
-              moves++;
 
               runtime = dt*part.rdata(FHD_realData::timeFrac);
 
@@ -214,7 +198,6 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
 
         }
 
-        maxspeed_proc = amrex::max(maxspeed_proc, maxspeed);
         maxdist_proc  = amrex::max(maxdist_proc, maxdist);
 
 
@@ -222,8 +205,6 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
 
     // gather statistics
     ParallelDescriptor::ReduceIntSum(np_proc);
-    ParallelDescriptor::ReduceRealSum(moves_proc);
-    ParallelDescriptor::ReduceRealMax(maxspeed_proc);
     ParallelDescriptor::ReduceRealMax(maxdist_proc);
     ParallelDescriptor::ReduceIntSum(reDist);
 
@@ -355,8 +336,6 @@ void FhdParticleContainer::Source(const Real dt, const paramPlane* paramPlaneLis
                             p.pos(1) = paramPlaneList[i].y0 + paramPlaneList[i].uy*uCoord + paramPlaneList[i].vy*vCoord;
                             p.pos(2) = paramPlaneList[i].z0 + paramPlaneList[i].uz*uCoord + paramPlaneList[i].vz*vCoord;
 
-                            //Print() << "origin: " << paramPlaneList[i].x0 << ", " << paramPlaneList[i].y0 << ", " << paramPlaneList[i].z0 << ", uCoord: " << uCoord << "\n";
-
                             //move the particle slightly off the surface so it doesn't intersect it when it moves
                             p.pos(0) = p.pos(0) + uCoord*0.00000001*paramPlaneList[i].lnx;
                             p.pos(1) = p.pos(1) + uCoord*0.00000001*paramPlaneList[i].lny;
@@ -370,7 +349,7 @@ void FhdParticleContainer::Source(const Real dt, const paramPlane* paramPlaneLis
                             p.idata(FHD_intData::j) = -100;
                             p.idata(FHD_intData::k) = -100;
 
-                            p.rdata(FHD_realData::R) = properties[j].R;
+                            // p.rdata(FHD_realData::R) = properties[j].R; // Set at particleGen
                             p.rdata(FHD_realData::timeFrac) = amrex::Random();
 
                             Real srt = sqrt(p.rdata(FHD_realData::R)*temp);
@@ -386,7 +365,6 @@ void FhdParticleContainer::Source(const Real dt, const paramPlane* paramPlaneLis
                             particle_tile.push_back(p);
 
                         }
-
 
                     }
 

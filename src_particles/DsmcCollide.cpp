@@ -138,7 +138,8 @@ void FhdParticleContainer::CalcSelections(Real dt) {
 					phi1 = arrphi(i,j,k,i_spec);
 					phi2 = arrphi(i,j,k,j_spec);
 					// comment out if expecting dilute
-					chi0 = g0_Ma_Ahmadi(i_spec,j_spec, phi1, phi2);
+					chi0 = 1.0;
+					//chi0 = g0_Ma_Ahmadi(i_spec,j_spec, phi1, phi2);
 					vrmax = arrvrmax(i,j,k,i_spec);
 					crossSection = interproperties[ij_spec].csx;
 					NSel = 2.0*particle_neff*np_i*np_j*crossSection*vrmax*ocollisionCellVol*chi0*dt;

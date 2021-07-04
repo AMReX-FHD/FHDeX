@@ -326,7 +326,7 @@ void main_driver(const char* argv)
 		                        
     // write a plotfile
     bool writePlt = false;
-    if (plot_int > 0) {
+    if (plot_int > 0 && istep>0) {
 			if (n_steps_skip >= 0) { // for positive n_steps_skip, write out at plot_int
 				writePlt = (istep%plot_int == 0);
 			} else if (n_steps_skip < 0) { // for negative n_steps_skip, write out at plot_int-1
@@ -334,9 +334,7 @@ void main_driver(const char* argv)
 			}
 		}
 
-		if (writePlt) {
-			particles.writePlotFile(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,coVars,geom,time,istep);
-    }
+		if (writePlt) {particles.writePlotFile(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,coVars,geom,time,istep);}
 
     // do structure factor
     if(istep > amrex::Math::abs(n_steps_skip) && struct_fact_int > 0 && 

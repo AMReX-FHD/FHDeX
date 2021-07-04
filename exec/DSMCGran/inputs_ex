@@ -12,8 +12,8 @@
   fixed_dt = 1e-8                        ! dt = dx/(10*sqrt(kT/m))
 
   ! Controls for number of steps between actions
-  max_step = 2000
-  plot_int = 2000
+  max_step = 1000
+  plot_int = 100
   struct_fact_int = 10
   n_steps_skip = 100
   chk_int  = -1

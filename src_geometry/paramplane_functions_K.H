@@ -166,12 +166,11 @@ void randomhemisphere(Real costheta, Real sintheta, Real cosphi, Real sinphi, Re
 //AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void app_bc_gpu(const paramPlane* surf, FhdParticleContainer::ParticleType& part, int intside, Real* domsize, int *push, Real *runtime, Real inttime)
 {
-    
-    
-    if(intside == 1)
-    {
-      if(amrex::Random() < surf->sinkRight)
-      {
+		// Right Boundary
+		if(intside == 1)
+		{
+			if(amrex::Random() < surf->sinkRight)
+			{
         *runtime = 0;
 
         part.id() = -1;
@@ -186,26 +185,21 @@ void app_bc_gpu(const paramPlane* surf, FhdParticleContainer::ParticleType& part
 
         if(amrex::Random() < surf->specularityRight)
         {
-
-          Real dotprod = part.rdata(FHD_realData::velx)*surf->rnx + part.rdata(FHD_realData::vely)*surf->rny + part.rdata(FHD_realData::velz)*surf->rnz;
-
+          Real dotprod = part.rdata(FHD_realData::velx)*surf->rnx + part.rdata(FHD_realData::vely)*surf->rny
+          	+ part.rdata(FHD_realData::velz)*surf->rnz;
           part.rdata(FHD_realData::velx) = -2.0*dotprod*surf->rnx + part.rdata(FHD_realData::velx);
           part.rdata(FHD_realData::vely) = -2.0*dotprod*surf->rny + part.rdata(FHD_realData::vely);
           part.rdata(FHD_realData::velz) = -2.0*dotprod*surf->rnz + part.rdata(FHD_realData::velz);
         }else
         {
-          
           Real srt = sqrt(part.rdata(FHD_realData::R)*surf->temperatureRight);
-
           part.rdata(FHD_realData::velx) = srt*amrex::RandomNormal(0.,1.);
           part.rdata(FHD_realData::vely) = srt*amrex::RandomNormal(0.,1.);
-          part.rdata(FHD_realData::velz) = 1.414213562*srt*sqrt(-log(amrex::Random()));
-        
+          part.rdata(FHD_realData::velz) = sqrt(2)*srt*sqrt(-log(amrex::Random()));
           rotation(surf->cosThetaRight, surf->sinThetaRight, surf->cosPhiRight, surf->sinPhiRight, &part.rdata(FHD_realData::velx), &part.rdata(FHD_realData::vely), &part.rdata(FHD_realData::velz));
-
-
         }
-      }else if(amrex::Random() < surf->periodicity)
+      }
+      else if(amrex::Random() < surf->periodicity)
       {
         *push = 0;
 
@@ -234,7 +228,8 @@ void app_bc_gpu(const paramPlane* surf, FhdParticleContainer::ParticleType& part
           part.pos(2) = part.pos(2) - 0.9999999*domsize[2];
         }
 
-      }else
+      }
+      else
       {
         *push = 1;
 
@@ -244,12 +239,13 @@ void app_bc_gpu(const paramPlane* surf, FhdParticleContainer::ParticleType& part
         }
       }
 
-    }else
+    }
+    // Left boundary
+    else
     {
       if(amrex::Random() < surf->sinkLeft)
       {
         *runtime = 0;
-                cout << "HEEEEEEEEERRRRRRRRRRRRRRRRRRRRRRRREEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE!!!!!!!\n";
         part.id() = -1;
       }
       else if(amrex::Random() > surf->porosityLeft)
@@ -262,21 +258,21 @@ void app_bc_gpu(const paramPlane* surf, FhdParticleContainer::ParticleType& part
 
         if(amrex::Random() < surf->specularityLeft)
         {
-          Real dotprod = part.rdata(FHD_realData::velx)*surf->lnx + part.rdata(FHD_realData::vely)*surf->lny + part.rdata(FHD_realData::velz)*surf->lnz;
+          Real dotprod = part.rdata(FHD_realData::velx)*surf->lnx + part.rdata(FHD_realData::vely)*surf->lny
+          	+ part.rdata(FHD_realData::velz)*surf->lnz;
 
           part.rdata(FHD_realData::velx) = -2.0*dotprod*surf->lnx + part.rdata(FHD_realData::velx);
           part.rdata(FHD_realData::vely) = -2.0*dotprod*surf->lny + part.rdata(FHD_realData::vely);
           part.rdata(FHD_realData::velz) = -2.0*dotprod*surf->lnz + part.rdata(FHD_realData::velz);
         }
         else
-        { 
+        {
           Real srt = sqrt(part.rdata(FHD_realData::R)*surf->temperatureLeft);
-
           part.rdata(FHD_realData::velx) = srt*amrex::RandomNormal(0.,1.);
           part.rdata(FHD_realData::vely) = srt*amrex::RandomNormal(0.,1.);
           part.rdata(FHD_realData::velz) = sqrt(2)*srt*sqrt(-log(amrex::Random()));
-
-          rotation(surf->cosThetaLeft, surf->sinThetaLeft, surf->cosPhiLeft, surf->sinPhiLeft, &part.rdata(FHD_realData::velx), &part.rdata(FHD_realData::vely), &part.rdata(FHD_realData::velz));
+          rotation(surf->cosThetaLeft, surf->sinThetaLeft, surf->cosPhiLeft, surf->sinPhiLeft, &part.rdata(FHD_realData::velx),
+          	&part.rdata(FHD_realData::vely), &part.rdata(FHD_realData::velz));
         }
        
       }
