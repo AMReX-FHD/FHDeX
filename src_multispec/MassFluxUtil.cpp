@@ -103,8 +103,30 @@ void ComputeGamma(const MultiFab& molarconc_in,
                 //GammaN[n] = Gamma(i,j,k,n);
             }
         
-           //Print() << "Sigfault sandwhich 1 " << std::endl; 
+/*
+           Print() << "---------PRE-----------" << std::endl;
 
+
+           Print() << "GammaN(1,1) ="<< GammaN(1,1) << std::endl; 
+           Print() << "GammaN(1,2) ="<< GammaN(1,2) << std::endl; 
+           Print() << "GammaN(1,3) ="<< GammaN(1,3) << std::endl; 
+           Print() << "GammaN(2,1) ="<< GammaN(2,1) << std::endl; 
+           Print() << "GammaN(2,2) ="<< GammaN(2,2) << std::endl; 
+           Print() << "GammaN(2,3) ="<< GammaN(2,3) << std::endl; 
+           Print() << "GammaN(3,1) ="<< GammaN(3,1) << std::endl; 
+           Print() << "GammaN(3,2) ="<< GammaN(3,2) << std::endl; 
+           Print() << "GammaN(3,3) ="<< GammaN(3,3) << std::endl << std::endl; 
+
+           Print() << "HessianN(1,1) ="<< HessianN(1,1) << std::endl; 
+           Print() << "HessianN(1,2) ="<< HessianN(1,2) << std::endl; 
+           Print() << "HessianN(1,3) ="<< HessianN(1,3) << std::endl; 
+           Print() << "HessianN(2,1) ="<< HessianN(2,1) << std::endl; 
+           Print() << "HessianN(2,2) ="<< HessianN(2,2) << std::endl; 
+           Print() << "HessianN(2,3) ="<< HessianN(2,3) << std::endl; 
+           Print() << "HessianN(3,1) ="<< HessianN(3,1) << std::endl; 
+           Print() << "HessianN(3,2) ="<< HessianN(3,2) << std::endl; 
+           Print() << "HessianN(3,3) ="<< HessianN(3,3) << std::endl; 
+*/
             //HessianN(1,1) = 1.0;
             //HessianN(1,2) = 3.0;
             //HessianN(1,3) = 5.0;
@@ -122,12 +144,12 @@ void ComputeGamma(const MultiFab& molarconc_in,
 
 
             //if (true){ 
-            GammaN(1,1) = 3.0;
-            GammaN(1,2) = 5.0;
-            GammaN(2,1) = 7.0;
-            GammaN(2,2) = 11.0;
-            n_gex = 3.3;
-            alpha_gex = 0.72;
+            //GammaN(1,1) = 3.0;
+            //GammaN(1,2) = 5.0;
+            //GammaN(2,1) = 7.0;
+            //GammaN(2,2) = 11.0;
+            //n_gex = 3.3;
+            //alpha_gex = 0.72;
 
             //Print() << GammaN(1,1) << " " << GammaN(1,2) << std::endl;
             //Print() << GammaN(2,1) << " " << GammaN(2,2) << std::endl;
@@ -139,6 +161,31 @@ void ComputeGamma(const MultiFab& molarconc_in,
 
             ComputeGammaLocal(MolarConcN, HessianN, GammaN, nspecies);
 
+/*
+           Print() << "---------POST-----------" << std::endl;
+
+
+           Print() << "GammaN(1,1) ="<< GammaN(1,1) << std::endl; 
+           Print() << "GammaN(1,2) ="<< GammaN(1,2) << std::endl; 
+           Print() << "GammaN(1,3) ="<< GammaN(1,3) << std::endl; 
+           Print() << "GammaN(2,1) ="<< GammaN(2,1) << std::endl; 
+           Print() << "GammaN(2,2) ="<< GammaN(2,2) << std::endl; 
+           Print() << "GammaN(2,3) ="<< GammaN(2,3) << std::endl; 
+           Print() << "GammaN(3,1) ="<< GammaN(3,1) << std::endl; 
+           Print() << "GammaN(3,2) ="<< GammaN(3,2) << std::endl; 
+           Print() << "GammaN(3,3) ="<< GammaN(3,3) << std::endl << std::endl; 
+
+           Print() << "HessianN(1,1) ="<< HessianN(1,1) << std::endl; 
+           Print() << "HessianN(1,2) ="<< HessianN(1,2) << std::endl; 
+           Print() << "HessianN(1,3) ="<< HessianN(1,3) << std::endl; 
+           Print() << "HessianN(2,1) ="<< HessianN(2,1) << std::endl; 
+           Print() << "HessianN(2,2) ="<< HessianN(2,2) << std::endl; 
+           Print() << "HessianN(2,3) ="<< HessianN(2,3) << std::endl; 
+           Print() << "HessianN(3,1) ="<< HessianN(3,1) << std::endl; 
+           Print() << "HessianN(3,2) ="<< HessianN(3,2) << std::endl; 
+           Print() << "HessianN(3,3) ="<< HessianN(3,3) << std::endl; 
+           Abort();
+*/            
             //Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> I; //no longer necessary
 
 
