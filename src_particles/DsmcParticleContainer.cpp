@@ -334,22 +334,32 @@ void FhdParticleContainer::Source(const Real dt, const paramPlane* paramPlaneLis
                         Real density = paramPlaneList[i].densityLeft[j];
                         Real temp = paramPlaneList[i].temperatureLeft;
                         Real area = paramPlaneList[i].area;
+                        /*amrex::Print() << "Plane: " << i << "\n";
+                        amrex::Print() << "S: " << j << "\n";
+                        amrex::Print() << "T: " << temp << "\n";
+                        amrex::Print() << "A: " << area << "\n";
+                        amrex::Print() << "rho: " << density << "\n";
+                        amrex::Print() << "R: " << properties[j].R << "\n";
+                        amrex::Print() << "mass: " << properties[j].mass << "\n";
+                        amrex::Print() << "dt: " << dt << "\n";*/
 
                         Real fluxMean = density*area*sqrt(properties[j].R*temp/(2.0*M_PI))/particle_neff;
                         Real fluxVar = density*area*sqrt(properties[j].R*temp/(2.0*M_PI))/particle_neff;
 
                         Real totalFlux = dt*fluxMean + sqrt(dt*fluxVar)*amrex::RandomNormal(0.,1.);
+                        totalFlux = std::max(totalFlux,0.);
 
                         //Print() << "Flux mean " << dt*fluxMean << ", flux sd " << sqrt(dt*fluxVar) << "\n";
 
                         int totalFluxInt =  (int)floor(totalFlux);
                         Real totalFluxLeftOver = totalFlux - totalFluxInt;
+                        
 
                         if(amrex::Random() < totalFluxLeftOver) {
                         	totalFluxInt++;
                         }
 
-                        // Print() << "Surface " << i << " generating " << totalFluxInt << " of species " << j << "\n";
+                        //Print() << "Surface " << i << " generating " << totalFluxInt << " of species " << j << "\n";
 
                         for(int k=0;k<totalFluxInt;k++) {
                             Real uCoord = amrex::Random()*paramPlaneList[i].uTop;
@@ -402,11 +412,23 @@ void FhdParticleContainer::Source(const Real dt, const paramPlane* paramPlaneLis
                         Real density = paramPlaneList[i].densityRight[j];
                         Real temp = paramPlaneList[i].temperatureRight;
                         Real area = paramPlaneList[i].area;
+                        /*amrex::Print() << "Plane: " << i << "\n";
+                        amrex::Print() << "S: " << j << "\n";
+                        amrex::Print() << "T: " << temp << "\n";
+                        amrex::Print() << "A: " << area << "\n";
+                        amrex::Print() << "rho: " << density << "\n";
+                        amrex::Print() << "R: " << properties[j].R << "\n";
+                        amrex::Print() << "mass: " << properties[j].mass << "\n";
+                        amrex::Print() << "dt: " << dt << "\n";*/
+
 
                         Real fluxMean = density*area*sqrt(properties[j].R*temp/(2.0*M_PI))/particle_neff;
                         Real fluxVar = density*area*sqrt(properties[j].R*temp/(2.0*M_PI))/particle_neff;
 
                         Real totalFlux = dt*fluxMean + sqrt(dt*fluxVar)*amrex::RandomNormal(0.,1.);
+                        totalFlux = std::max(totalFlux,0.);
+                        
+                        //Print() << "Flux mean " << dt*fluxMean << ", flux sd " << sqrt(dt*fluxVar) <<  " TotalFlux: " << totalFlux <<"\n";
 
 
                         int totalFluxInt =  (int)floor(totalFlux);
@@ -417,7 +439,8 @@ void FhdParticleContainer::Source(const Real dt, const paramPlane* paramPlaneLis
                             totalFluxInt++;
                         }
 
-
+												//Print() << "Surface " << i << " generating " << totalFluxInt << " of species " << j << "\n";
+												
                         for(int k=0;k<totalFluxInt;k++)
                         {
                             Real uCoord = amrex::Random()*paramPlaneList[i].uTop;

@@ -301,8 +301,8 @@ void main_driver(const char* argv)
 		//	particles.CountedCollision[
 		particles.CalcSelections(dt);
 		particles.CollideParticles(dt);
-		particles.MoveParticlesCPP(dt, paramPlaneList, paramPlaneCount);
 		particles.Source(dt, paramPlaneList, paramPlaneCount);
+		particles.MoveParticlesCPP(dt, paramPlaneList, paramPlaneCount);
 
 		//////////////////////////////////////
 		// Stats

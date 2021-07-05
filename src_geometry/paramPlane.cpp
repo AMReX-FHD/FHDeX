@@ -546,10 +546,10 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
     	if(bc_mass_lo[i] == -1) {
     		if(bc_therm_lo[i] == -1) {
     			paramPlaneList[p].periodicity = 1;
+    		// solid thermal wall
     		} else if(bc_therm_lo[i] == 2) {
     			paramPlaneList[p].temperatureLeft = t_lo[i];
     			paramPlaneList[p].temperatureRight = t_lo[i];
-    			// Concentration defaulted earlier to zero conc. grad.
     			paramPlaneList[p].porosityLeft = 0;
     			paramPlaneList[p].porosityRight = 0;
     			paramPlaneList[p].sourceLeft = 0;
@@ -564,7 +564,7 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
   	  	paramPlaneList[p].sourceLeft = 0;
  	     	paramPlaneList[p].sourceRight = 1;
  	     	paramPlaneList[p].sinkLeft = 1;
-	    	paramPlaneList[p].sinkRight = 1;
+	    	paramPlaneList[p].sinkRight = 0;
 	    	
 	    	for(int l=0;l<nspecies;l++) {
 	    		if(i==0) {
@@ -624,7 +624,7 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
         paramPlaneList[p+1].porosityRight = 1;
   	  	paramPlaneList[p+1].sourceLeft = 1;
  	     	paramPlaneList[p+1].sourceRight = 0;
- 	     	paramPlaneList[p+1].sinkLeft = 1;
+ 	     	paramPlaneList[p+1].sinkLeft = 0;
 	    	paramPlaneList[p+1].sinkRight = 1;
 	    	
 	    	for(int l=0;l<nspecies;l++) {
