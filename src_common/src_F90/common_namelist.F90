@@ -661,6 +661,8 @@ contains
     qval(:) = 0
 
     crange = maxval(pkernel_es) + 1
+    
+    particle_input = -1
 
     ! read in common namelist
     open(unit=100, file=amrex_string_c_to_f(inputs_file), status='old', action='read')

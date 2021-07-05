@@ -300,10 +300,9 @@ void main_driver(const char* argv)
 		//amrex::Print() << "Collisions per particles per species: " << 
 		//	particles.CountedCollision[
 		particles.CalcSelections(dt);
-		//particles.CollideParticles(dt);
-		particles.Source(dt, paramPlaneList, paramPlaneCount);
+		particles.CollideParticles(dt);
 		particles.MoveParticlesCPP(dt, paramPlaneList, paramPlaneCount);
-
+		particles.Source(dt, paramPlaneList, paramPlaneCount);
 
 		//////////////////////////////////////
 		// Stats
@@ -361,7 +360,7 @@ void main_driver(const char* argv)
       numvars_sf = 1;
       MultiFab::Copy(structFactPrimMF,primInst,11,cnt_sf,numvars_sf,0);
       cnt_sf += numvars_sf;
-      // T species
+      // T Species
       for (int i=0;i<nspecies;i++) {
 				numvars_sf = 1;
 				MultiFab::Copy(structFactPrimMF,primInst,11+(i+1)*14,cnt_sf,numvars_sf,0);

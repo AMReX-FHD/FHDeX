@@ -25,7 +25,7 @@ void FhdParticleContainer::InitParticles(Real & dt) {
 	maxDiam = 0.;
 	
 	//tTg = 0;
-   for (MFIter mfi = MakeMFIter(lev, true); mfi.isValid(); ++mfi) {
+	for (MFIter mfi = MakeMFIter(lev, true); mfi.isValid(); ++mfi) {
 		// take tile/box
 		const Box& tile_box  = mfi.tilebox();
 		const RealBox tile_realbox{tile_box, geom.CellSize(), geom.ProbLo()};
@@ -90,12 +90,15 @@ void FhdParticleContainer::InitParticles(Real & dt) {
 						p.idata(FHD_intData::sorted) = -1;
 						p.idata(FHD_intData::species) = i_spec;
 						p.rdata(FHD_realData::R) = R;	
-            p.pos(0) = prob_lo[0] + amrex::Random()*(prob_hi[0]-prob_lo[0]);
-            p.pos(1) = prob_lo[1] + amrex::Random()*(prob_hi[1]-prob_lo[1]);
-            p.pos(2) = prob_lo[2] + amrex::Random()*(prob_hi[2]-prob_lo[2]);
+            //p.pos(0) = prob_lo[0] + amrex::Random()*(prob_hi[0]-prob_lo[0]);
+            p.pos(0) = (prob_lo[0] + properties[i_spec].radius) + amrex::Random()*(prob_hi[0]-(prob_lo[0] + properties[i_spec].radius));
+            // p.pos(1) = prob_lo[1] + amrex::Random()*(prob_hi[1]-prob_lo[1]);
+            p.pos(1) = (prob_lo[1] + properties[i_spec].radius) + amrex::Random()*(prob_hi[1]-(prob_lo[1] + properties[i_spec].radius));
+            // p.pos(2) = prob_lo[2] + amrex::Random()*(prob_hi[2]-prob_lo[2]);
+            p.pos(2) = (prob_lo[2] + properties[i_spec].radius) + amrex::Random()*(prob_hi[2]-(prob_lo[2] + properties[i_spec].radius));
 						vpart[0] = stdev*amrex::RandomNormal(0.,1.);
 						vpart[1] = stdev*amrex::RandomNormal(0.,1.);
-						vpart[2] = stdev*amrex::RandomNormal(0.,1.);               	
+						vpart[2] = stdev*amrex::RandomNormal(0.,1.);
 
 						p.rdata(FHD_realData::velx) = vpart[0]; u[p.idata(FHD_intData::species)] += vpart[0];
 						p.rdata(FHD_realData::vely) = vpart[1]; v[p.idata(FHD_intData::species)] += vpart[1];

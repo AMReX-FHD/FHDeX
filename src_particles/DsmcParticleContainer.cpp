@@ -255,17 +255,6 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
     }*/
     Redistribute();
     SortParticles();
-		for (FhdParIter pti(* this, lev); pti.isValid(); ++pti) {
-
-       const int grid_id = pti.index();
-       const int tile_id = pti.LocalTileIndex();
-       const Box& tile_box  = pti.tilebox();
-
-        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
-        auto& particles = particle_tile.GetArrayOfStructs();
-        const long np = particles.numParticles();
-    	cout << "Particles: " << np << "\n";
-    }
 }
 
 void FhdParticleContainer::SortParticles()
@@ -339,12 +328,9 @@ void FhdParticleContainer::Source(const Real dt, const paramPlane* paramPlaneLis
             const int tile_id = mfi.LocalTileIndex();
             auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
 
-            for(int i = 0; i< paramPlaneCount; i++)
-            {
-                if(paramPlaneList[i].sourceLeft == 1)
-                {
-                    for(int j = 0; j< nspecies; j++)
-                    {
+            for(int i = 0; i< paramPlaneCount; i++) {
+                if(paramPlaneList[i].sourceLeft == 1) {
+                    for(int j = 0; j< nspecies; j++) {
                         Real density = paramPlaneList[i].densityLeft[j];
                         Real temp = paramPlaneList[i].temperatureLeft;
                         Real area = paramPlaneList[i].area;
@@ -359,15 +345,13 @@ void FhdParticleContainer::Source(const Real dt, const paramPlane* paramPlaneLis
                         int totalFluxInt =  (int)floor(totalFlux);
                         Real totalFluxLeftOver = totalFlux - totalFluxInt;
 
-                        if(amrex::Random() < totalFluxLeftOver)
-                        {
-                            totalFluxInt++;
+                        if(amrex::Random() < totalFluxLeftOver) {
+                        	totalFluxInt++;
                         }
 
                         // Print() << "Surface " << i << " generating " << totalFluxInt << " of species " << j << "\n";
 
-                        for(int k=0;k<totalFluxInt;k++)
-                        {
+                        for(int k=0;k<totalFluxInt;k++) {
                             Real uCoord = amrex::Random()*paramPlaneList[i].uTop;
                             Real vCoord = amrex::Random()*paramPlaneList[i].vTop;
 
@@ -410,13 +394,80 @@ void FhdParticleContainer::Source(const Real dt, const paramPlane* paramPlaneLis
                             rotation(surf.cosThetaLeft, surf.sinThetaLeft, surf.cosPhiLeft, surf.sinPhiLeft, &p.rdata(FHD_realData::velx), &p.rdata(FHD_realData::vely), &p.rdata(FHD_realData::velz));
 
                             particle_tile.push_back(p);
+                        }
+                    }
+                } else if(paramPlaneList[i].sourceRight == 1) {
+                    for(int j = 0; j< nspecies; j++)
+                    {
+                        Real density = paramPlaneList[i].densityRight[j];
+                        Real temp = paramPlaneList[i].temperatureRight;
+                        Real area = paramPlaneList[i].area;
+
+                        Real fluxMean = density*area*sqrt(properties[j].R*temp/(2.0*M_PI))/particle_neff;
+                        Real fluxVar = density*area*sqrt(properties[j].R*temp/(2.0*M_PI))/particle_neff;
+
+                        Real totalFlux = dt*fluxMean + sqrt(dt*fluxVar)*amrex::RandomNormal(0.,1.);
+
+
+                        int totalFluxInt =  (int)floor(totalFlux);
+                        Real totalFluxLeftOver = totalFlux - totalFluxInt;
+
+                        if(amrex::Random() < totalFluxLeftOver)
+                        {
+                            totalFluxInt++;
+                        }
+
+
+                        for(int k=0;k<totalFluxInt;k++)
+                        {
+                            Real uCoord = amrex::Random()*paramPlaneList[i].uTop;
+                            Real vCoord = amrex::Random()*paramPlaneList[i].vTop;
+
+                            ParticleType p;
+                            p.id() = ParticleType::NextID();
+
+                            p.cpu() = ParallelDescriptor::MyProc();
+                            p.idata(FHD_intData::sorted) = -1;
+
+                            p.idata(FHD_intData::species) = j;
+
+                            p.pos(0) = paramPlaneList[i].x0 + paramPlaneList[i].ux*uCoord + paramPlaneList[i].vx*vCoord;
+                            p.pos(1) = paramPlaneList[i].y0 + paramPlaneList[i].uy*uCoord + paramPlaneList[i].vy*vCoord;
+                            p.pos(2) = paramPlaneList[i].z0 + paramPlaneList[i].uz*uCoord + paramPlaneList[i].vz*vCoord;
+
+                            //move the particle slightly off the surface so it doesn't intersect it when it moves
+                            p.pos(0) = p.pos(0) - uCoord*0.00000001*paramPlaneList[i].lnx;
+                            p.pos(1) = p.pos(1) - uCoord*0.00000001*paramPlaneList[i].lny;
+                            p.pos(2) = p.pos(2) - uCoord*0.00000001*paramPlaneList[i].lnz;
+														
+                            p.rdata(FHD_realData::boostx) = 0;
+                            p.rdata(FHD_realData::boosty) = 0;
+                            p.rdata(FHD_realData::boostz) = 0;
+
+                            p.idata(FHD_intData::i) = -100;
+                            p.idata(FHD_intData::j) = -100;
+                            p.idata(FHD_intData::k) = -100;
+
+                            p.rdata(FHD_realData::R) = properties[j].R;
+                            p.rdata(FHD_realData::timeFrac) = amrex::Random();
+
+                            Real srt = sqrt(p.rdata(FHD_realData::R)*temp);
+
+                            p.rdata(FHD_realData::velx) = srt*amrex::RandomNormal(0.,1.);
+                            p.rdata(FHD_realData::vely) = srt*amrex::RandomNormal(0.,1.);
+                            p.rdata(FHD_realData::velz) = sqrt(2)*srt*sqrt(-log(amrex::Random()));
+
+                            const paramPlane surf = paramPlaneList[i];
+
+                            rotation(surf.cosThetaRight, surf.sinThetaRight, surf.cosPhiRight, surf.sinPhiRight, &p.rdata(FHD_realData::velx), &p.rdata(FHD_realData::vely), &p.rdata(FHD_realData::velz));
+
+                            particle_tile.push_back(p);
 
                         }
 
                     }
 
-                }
-
+								}
             }
 
         }

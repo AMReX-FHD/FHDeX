@@ -244,12 +244,12 @@ void app_bc_gpu(const paramPlane* surf, FhdParticleContainer::ParticleType& part
     // Left boundary
     else
     {
-      if(amrex::Random() < surf->sinkLeft)
+      if(amrex::Random() < surf->sinkLeft) // sink
       {
         *runtime = 0;
         part.id() = -1;
       }
-      else if(amrex::Random() > surf->porosityLeft)
+      else if(amrex::Random() > surf->porosityLeft) // reflect
       {
         *push = 0;
 
@@ -277,7 +277,7 @@ void app_bc_gpu(const paramPlane* surf, FhdParticleContainer::ParticleType& part
         }
        
       }
-      else if(amrex::Random() < surf->periodicity)
+      else if(amrex::Random() < surf->periodicity) // periodic
       {
         *push = 0;
 
@@ -312,7 +312,6 @@ void app_bc_gpu(const paramPlane* surf, FhdParticleContainer::ParticleType& part
       }else
       {
         *push = 1;
-
         if(amrex::Random() > surf->momentumConsLeft)
         {
           randomhemisphere(surf->cosThetaRight, surf->sinThetaRight, surf->cosPhiRight, surf->sinPhiRight, &part.rdata(FHD_realData::velx), &part.rdata(FHD_realData::vely), &part.rdata(FHD_realData::velz));
