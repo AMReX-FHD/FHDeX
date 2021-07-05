@@ -125,6 +125,9 @@ public:
 
 	void MoveParticlesCPP(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount);
 	
+	Real leftMean;
+	int leftcnt;
+	
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	// MFs for DSMC and directly related quantities
 	// May condense MFs in the future

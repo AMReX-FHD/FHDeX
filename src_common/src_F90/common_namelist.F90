@@ -227,6 +227,7 @@ module common_namelist_module
   
   double precision,   save :: phi_domain(MAX_SPECIES)
 
+	double precision,   save :: Yk0(MAX_SPECIES)
   ! Problem specification
   namelist /common/ prob_lo       ! physical lo coordinate
   namelist /common/ prob_hi       ! physical hi coordinate
@@ -476,6 +477,8 @@ module common_namelist_module
   namelist /common/ friction_pw
   
   namelist /common/ phi_domain
+  
+  namelist /common/ Yk0
 
 contains
 
@@ -630,7 +633,11 @@ contains
     friction_pp(:) = 0.d0
     friction_pw(:) = 0.d0
   
-    phi_domain(:) = 0.d0
+  	particle_count(:) = -1.d0
+  	particle_n0(:)    = -1.d0
+    phi_domain(:)     = -1.d0
+    rho0              = -1.d0
+    Yk0(:) = 0.d0
 
     plot_means = 0
     plot_vars = 0    
@@ -729,7 +736,7 @@ contains
                                          source_strength_in, regrid_int_in, do_reflux_in, particle_motion_in, &
                                          turb_a_in, turb_b_in, turbForcing_in, &
                                          alpha_pp_in, alpha_pw_in, &
-                                         friction_pp_in, friction_pw_in, phi_domain_in) &
+                                         friction_pp_in, friction_pw_in, phi_domain_in, Yk0_in) &
                                          bind(C, name="initialize_common_namespace")
 
     double precision,       intent(inout) :: prob_lo_in(AMREX_SPACEDIM)
@@ -930,6 +937,8 @@ contains
     double precision,       intent(inout) :: friction_pw_in(MAX_SPECIES*MAX_SPECIES)
   
     double precision,       intent(inout) :: phi_domain_in(MAX_SPECIES)
+    
+    double precision,       intent(inout) :: Yk0_in(MAX_SPECIES)
 
     prob_lo_in = prob_lo
     prob_hi_in = prob_hi
@@ -1122,6 +1131,8 @@ contains
     friction_pp_in = friction_pp
     friction_pw_in = friction_pw
     phi_domain_in = phi_domain
+    
+    Yk0_in = Yk0
 
   end subroutine initialize_common_namespace
 

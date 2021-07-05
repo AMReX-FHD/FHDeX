@@ -166,6 +166,7 @@ void randomhemisphere(Real costheta, Real sintheta, Real cosphi, Real sinphi, Re
 //AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void app_bc_gpu(const paramPlane* surf, FhdParticleContainer::ParticleType& part, int intside, Real* domsize, int *push, Real *runtime, Real inttime)
 {
+		
 		// Right Boundary
 		if(intside == 1)
 		{

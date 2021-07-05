@@ -144,7 +144,7 @@ void InitializeCommonNamespace() {
                                 &turb_a, &turb_b, &turbForcing,
                                 alpha_pp.begin(), alpha_pw.begin(),
                                 friction_pp.begin(), friction_pw.begin(),
-                                phi_domain.begin()
+                                phi_domain.begin(), Yk0.begin()
                                 );
 
     plot_base_name = temp_plot_base_name;

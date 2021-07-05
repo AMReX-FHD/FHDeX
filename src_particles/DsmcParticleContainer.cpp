@@ -21,44 +21,81 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
 
 	collisionCellVol = domainVol/totalCollisionCells;
 	ocollisionCellVol = 1/collisionCellVol;
+	
+	if(rho0<0) {rho0=0.;}
 	for(int i=0;i<nspecies;i++) {
 		properties[i].mass = mass[i];
 		properties[i].radius = diameter[i]/2.0;
 		properties[i].partVol = pow(diameter[i],3)*pi_usr/6;
 		properties[i].part2cellVol = properties[i].partVol*ocollisionCellVol;
 		properties[i].Neff = particle_neff; // assume F_n is same for each
+		properties[i].R    = k_B/properties[i].mass;
       
-      // Overwrite particle_count
-      if( particle_count[i] >= 0 ) {
+		// Overwrite particle_count
+		if( particle_count[i] >= 0 ) {
       	
-      	properties[i].total = particle_count[i];
-      	properties[i].n0 = particle_neff*properties[i].total/domainVol;
+			properties[i].total = particle_count[i];
+			properties[i].n0 = particle_neff*properties[i].total/domainVol;
       	
-      	amrex::Print() <<  "Species "<< i << " count " << properties[i].total << "\n";
-      	amrex::Print() <<  "Species "<< i << " n0 " << properties[i].n0 << "\n";
-      	
-      } else if( phi_domain[i] >= 0 ) {
+			amrex::Print() <<  "Species "<< i << " count " << properties[i].total << "\n";
+			amrex::Print() <<  "Species "<< i << " n0 " << properties[i].n0 << "\n";
+			
+			// Need for concentration BC
+      rho0 += properties[i].n0*properties[i].mass;
+		} else if( phi_domain[i] >= 0 ) {
       
 			properties[i].total = (int)amrex::Math::ceil(
-      		(phi_domain[i]*domainVol)/(properties[i].partVol*properties[i].Neff) );
-      	properties[i].n0 = properties[i].total/domainVol;
+				(phi_domain[i]*domainVol)/(properties[i].partVol*properties[i].Neff) );
+			properties[i].n0 = properties[i].total/domainVol;
+			
+			amrex::Print() <<  "Species "<< i << " count " << properties[i].total << "\n";
+			amrex::Print() <<  "Species "<< i << " n0 " << properties[i].n0 << "\n";
 
-      	amrex::Print() <<  "Species "<< i << " count " << properties[i].total << "\n";
-      	amrex::Print() <<  "Species "<< i << " n0 " << properties[i].n0 << "\n";
+			rho0 += properties[i].n0*properties[i].mass;
+		} else if( rho0 > 0) {
+		
+			Real rhop = properties[i].mass/domainVol;
+			properties[i].total = std::ceil((rho0*Yk0[i])/rhop);
+			properties[i].n0 = particle_neff*properties[i].total/domainVol;
+			
+			amrex::Print() <<  "Species "<< i << " count " << properties[i].total << "\n";
+			amrex::Print() <<  "Species "<< i << " n0 " << properties[i].n0 << "\n";
 
-      } else {
+		// number density defined
+		} else {
       
-      	properties[i].total = (int)amrex::Math::ceil(particle_n0[i]*domainVol/particle_neff);
-      	properties[i].n0 = properties[i].total/domainVol;
+      amrex::Print() << "n0: " << particle_n0[i] << "\n";
+			properties[i].total = (int)amrex::Math::ceil(particle_n0[i]
+				*domainVol/particle_neff);
+			properties[i].n0 = properties[i].total/domainVol;
       
-      	amrex::Print() <<  "Species " << i << " count " << properties[i].total << "\n";
-      	amrex::Print() <<  "Species " << i << " n0 " << properties[i].n0 << "\n";
-      }
+			amrex::Print() <<  "Species " << i << " count " << properties[i].total << "\n";
+			amrex::Print() <<  "Species " << i << " n0 " << properties[i].n0 << "\n";
+			
+			rho0 += properties[i].n0*properties[i].mass;
+		}
       
-      realParticles = realParticles + properties[i].total*particle_neff;
-      simParticles = simParticles + properties[i].total;
-      amrex::Print() << "Particles per cell for species " << i << " is " << properties[i].total/totalCollisionCells << "\n";
+		realParticles = realParticles + properties[i].total*particle_neff;
+		simParticles = simParticles + properties[i].total;
+		amrex::Print() << "Particles per cell for species " << i 
+			<< " is " << properties[i].total/totalCollisionCells << "\n";
 	}
+	
+	// Recalculate rho0
+	rho0 = 0.0;
+	for(int i=0; i<nspecies; i++) {
+		Real rhop = properties[i].n0*properties[i].mass;
+		rho0 += rhop; 
+	}
+	
+	// Recalculate Yk
+	for(int i=0; i<nspecies; i++) {
+		Real rhop = properties[i].n0*properties[i].mass;
+		amrex::Print() << "Yk: " << Yk0[i] << "\n";
+		Yk0[i] = rhop/rho0;
+		amrex::Print() << "Yk: " << Yk0[i] << "\n";
+	}
+		
 
 	for (int d=0; d<AMREX_SPACEDIM; ++d) {
 		domSize[d] = prob_hi[d] - prob_lo[d];
@@ -99,7 +136,7 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
     Real maxdist = 0;
 
     int reDist = 0;
-
+		int left = 0;
     for (FhdParIter pti(* this, lev); pti.isValid(); ++pti) {
 
         const int grid_id = pti.index();
@@ -216,9 +253,19 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
         Print() <<"Maximum observed speed: " << sqrt(maxspeed_proc) << "\n";
         Print() <<"Maximum observed displacement (fraction of radius): " << maxdist_proc << "\n";
     }*/
-
     Redistribute();
     SortParticles();
+		for (FhdParIter pti(* this, lev); pti.isValid(); ++pti) {
+
+       const int grid_id = pti.index();
+       const int tile_id = pti.LocalTileIndex();
+       const Box& tile_box  = pti.tilebox();
+
+        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+        auto& particles = particle_tile.GetArrayOfStructs();
+        const long np = particles.numParticles();
+    	cout << "Particles: " << np << "\n";
+    }
 }
 
 void FhdParticleContainer::SortParticles()
@@ -317,7 +364,7 @@ void FhdParticleContainer::Source(const Real dt, const paramPlane* paramPlaneLis
                             totalFluxInt++;
                         }
 
-                        Print() << "Surface " << i << " generating " << totalFluxInt << " of species " << j << "\n";
+                        // Print() << "Surface " << i << " generating " << totalFluxInt << " of species " << j << "\n";
 
                         for(int k=0;k<totalFluxInt;k++)
                         {
@@ -349,7 +396,7 @@ void FhdParticleContainer::Source(const Real dt, const paramPlane* paramPlaneLis
                             p.idata(FHD_intData::j) = -100;
                             p.idata(FHD_intData::k) = -100;
 
-                            // p.rdata(FHD_realData::R) = properties[j].R; // Set at particleGen
+                            p.rdata(FHD_realData::R) = properties[j].R;
                             p.rdata(FHD_realData::timeFrac) = amrex::Random();
 
                             Real srt = sqrt(p.rdata(FHD_realData::R)*temp);
