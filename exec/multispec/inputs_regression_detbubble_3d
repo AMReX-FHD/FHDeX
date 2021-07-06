@@ -122,4 +122,3 @@
   gmres_max_inner = 5                   # max number of inner iterations, or restart number
   gmres_max_iter = 100                  # max number of gmres iterations
   gmres_min_iter = 1                    # min number of gmres iterations
-

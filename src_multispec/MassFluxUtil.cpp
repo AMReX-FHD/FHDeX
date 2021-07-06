@@ -1,51 +1,96 @@
 #include "multispec_functions.H"
 
-void ComputeMolconcMolmtot(const MultiFab& rho,
-			   const MultiFab& rhotot,
-			   MultiFab& molarconc,
-			   MultiFab& molmtot)
+void ComputeMolconcMolmtot(const MultiFab& rho_in,
+			   const MultiFab& rhotot_in,
+			   MultiFab& molarconc_in,
+			   MultiFab& molmtot_in)
 {
 
     BL_PROFILE_VAR("ComputeMolconcMolmtot()",ComputeMolconcMolmtot);
 
-    int ng = molarconc.nGrow();
+    int ng = molarconc_in.nGrow();
         
     // Loop over boxes
-    for (MFIter mfi(rho,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
+    for (MFIter mfi(rho_in,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
 
         // Create cell-centered box
         const Box& bx = mfi.growntilebox(ng);
 
-        compute_molconc_molmtot(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
-				BL_TO_FORTRAN_ANYD(rho[mfi]),
-				BL_TO_FORTRAN_ANYD(rhotot[mfi]),
-				BL_TO_FORTRAN_ANYD(molarconc[mfi]),
-				BL_TO_FORTRAN_ANYD(molmtot[mfi]));
+        const Array4<const Real>& rho = rho_in.array(mfi);
+        const Array4<const Real>& rhotot = rhotot_in.array(mfi);
+        const Array4<      Real>& molarconc = molarconc_in.array(mfi);
+        const Array4<      Real>& molmtot = molmtot_in.array(mfi);
+        
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+
+            GpuArray<Real, MAX_SPECIES> RhoN;
+            GpuArray<Real, MAX_SPECIES> MolarConcN;
+
+            for (int n=0; n<nspecies; ++n ){
+                RhoN[n] = rho(i,j,k,n);
+            }
+
+            ComputeMolconcMolmtotLocal(nspecies, molmass, 
+                            RhoN, rhotot(i,j,k),          
+                            MolarConcN, molmtot(i,j,k));
+
+            for (int n=0; n<nspecies; ++n ){
+                molarconc(i,j,k,n) = MolarConcN[n] ;
+            }
+
+        });
+        
     }
 
 }
 
-void ComputeGamma(const MultiFab& molarconc,
-		  const MultiFab& Hessian,
-		  MultiFab& Gamma)
+void ComputeGamma(const MultiFab& molarconc_in,
+		      const MultiFab& Hessian_in,
+          MultiFab& Gamma_in)
 {
   
     BL_PROFILE_VAR("ComputeGamma()",ComputeGamma);
 
-    int ng = Gamma.nGrow();
+    int ng = Gamma_in.nGrow();
     
     // Loop over boxes
-    for (MFIter mfi(Gamma,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
+    for (MFIter mfi(Gamma_in,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
 
         // Create cell-centered box
         const Box& bx = mfi.growntilebox(ng);
 
-        compute_Gamma(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
-		      BL_TO_FORTRAN_ANYD(molarconc[mfi]),
-		      BL_TO_FORTRAN_ANYD(Hessian[mfi]),
-		      BL_TO_FORTRAN_ANYD(Gamma[mfi]));
-    }
+        const Array4<const Real>& molarconc = molarconc_in.array(mfi);
+        const Array4<const Real>& Hessian = Hessian_in.array(mfi); 
+        const Array4<      Real>& Gamma = Gamma_in.array(mfi);
 
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+
+            GpuArray<Real, MAX_SPECIES> MolarConcN;
+            Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> GammaN; 
+            Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> HessianN;
+
+            // Read MultiFab data into arrays
+            for (int n=0; n<nspecies; ++n ){
+                MolarConcN[n] = molarconc(i,j,k,n);
+
+                for (int m=0; m<nspecies; ++m){ 
+                    GammaN(m+1,n+1) = Gamma(i,j,k,n*nspecies+m);  
+                    HessianN(m+1,n+1) = Hessian(i,j,k,n*nspecies+m); 
+                } 
+            }
+        
+            ComputeGammaLocal(MolarConcN, HessianN, GammaN, nspecies);
+
+            // Write back to MultiFab
+            for (int n=0; n<nspecies; ++n ){
+                for (int m=0; m<nspecies; ++m){ 
+                    Gamma(i,j,k,n*nspecies+m) = GammaN(m+1,n+1);  
+                } 
+            }
+        });
+    }
 }
 
 void ComputeRhoWChi(const MultiFab& rho,
