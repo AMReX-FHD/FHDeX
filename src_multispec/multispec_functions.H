@@ -332,7 +332,6 @@ void GammaIPlusMatmul(int nspecies,
             } else {
                 GammaN(row,column) = 0.0;   // intialize off-diagonals to 0
             }
-            // add matmul(X_xxT, HessianN)
             for (int n=1; n<=nspecies; ++n){ 
                 GammaN(row, column) += X_xxT(row,n) * HessianN(n,column);
             }
@@ -345,7 +344,6 @@ void GammaIPlusMatmul(int nspecies,
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void ComputeGammaLocal(
                 GpuArray<Real, MAX_SPECIES>& MolarConcN,
-                //Array1D<Real, 1, MAX_SPECIES>& MolarConcN, 
                 Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& HessianN, 
                 Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& GammaN,
                 int nspecies){
@@ -355,6 +353,7 @@ void ComputeGammaLocal(
 
     if ((use_multiphase == 1) && (nspecies == 2)){ 
                     
+        // local to define Gamma matrix
         Real w1 = MolarConcN[0];
         Real w2 = MolarConcN[1];
 
@@ -380,76 +379,13 @@ void ComputeGammaLocal(
         //populate X_xxT
         if (is_ideal_mixture == 1){   
             MatrixToZeros(nspecies, X_xxT);
-            /*
-            for (int n=1; n<=nspecies; ++n ){
-               for (int m=1; m<=nspecies; ++m ){
-                   X_xxT(n,m) = 0.0;
-               }
-            }
-            */
         } else {
-             
             PopulateX_xxT(nspecies, X_xxT, MolarConcN);
-            
-            /*
-            for (int row=1; row<=nspecies;++row ){ 
-                // diagonal entries
-                X_xxT(row,row) = MolarConcN[row-1] - std::pow(MolarConcN[row-1],2);
-                for (int column=1; column<=row-1; ++column ){
-                    // form x*traspose(x) off diagonals -- is x the MolarConc vectorT?
-                    X_xxT(row,column) = -MolarConcN[row-1]*MolarConcN[column-1];
-                    //symmetric
-                    X_xxT(column,row) = X_xxT(row,column);
-            //HACK
-            //Print() << "X_xxT(" << row << "," << column << ") = " << X_xxT(row, column) << std::endl;
-                }
-            }
-            */
-            
         }
     }
     
     //Compute Gamma 
     GammaIPlusMatmul(nspecies, GammaN, X_xxT, HessianN);
-    
-    /*
-    for (int row=1; row<=nspecies; ++row){
-        for (int column=1; column<=nspecies; ++column){
-            if (row == column) {
-                GammaN(row,column) = 1.0;   // add the identity matrix
-            } else {
-                GammaN(row,column) = 0.0;   // intialize off-diagonals to 0
-            }
-            // matmul(X_xxT, HessianN)
-            //for (int n=1; n<=nspecies; ++n){ 
-            //    GammaN(row, column) += X_xxT(row,n) * HessianN(n,column);
-            //}
-        }
-    }
-    //
-            // matmul(X_xxT, HessianN)
-    for (int row=1; row<=nspecies; ++row){
-        for (int column=1; column<=nspecies; ++column){
-            for (int n=1; n<=nspecies; ++n){ 
-                GammaN(row, column) += X_xxT(row,n) * HessianN(n,column);
-                //Print() << "row =" << row << "column =" << column << " n = " << n << "GammaN(" << column << "," << row << ")" << std::endl;
-            }
-        }
-    }
-    */ 
-  
-    //Print() << "Gamma(1,1)= " << GammaN(1,1) << std::endl;
-    //Print() << "Gamma(1,2)= " << GammaN(1,2) << std::endl;
-    //Print() << "Gamma(1,3)= " << GammaN(1,3) << std::endl;
-    //Print() << "Gamma(2,1)= " << GammaN(2,1) << std::endl;
-    //Print() << "Gamma(2,2)= " << GammaN(2,2) << std::endl;
-    //Print() << "Gamma(2,3)= " << GammaN(2,3) << std::endl;
-    //Print() << "Gamma(3,1)= " << GammaN(3,1) << std::endl;
-    //Print() << "Gamma(3,2)= " << GammaN(3,2) << std::endl;
-    //Print() << "Gamma(3,3)= " << GammaN(3,3) << std::endl;
-    //MPI_Barrier(MPI_COMM_WORLD);    
-    //Abort();    
-
 }
 
 #endif

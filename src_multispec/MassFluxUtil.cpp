@@ -48,33 +48,21 @@ void ComputeMolconcMolmtot(const MultiFab& rho_in,
 
 }
 
-// EP
 void ComputeGamma(const MultiFab& molarconc_in,
 		      const MultiFab& Hessian_in,
           MultiFab& Gamma_in)
-//void ComputeGamma(const MultiFab& molarconc,
-//		  const MultiFab& Hessian,
-//		  MultiFab& Gamma)
 {
   
     BL_PROFILE_VAR("ComputeGamma()",ComputeGamma);
 
-    //int ng = Gamma.nGrow();
     int ng = Gamma_in.nGrow();
     
     // Loop over boxes
-    //for (MFIter mfi(Gamma,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
     for (MFIter mfi(Gamma_in,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
 
         // Create cell-centered box
         const Box& bx = mfi.growntilebox(ng);
 
-        //compute_Gamma(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
-		    //  BL_TO_FORTRAN_ANYD(molarconc[mfi]),
-		    //  BL_TO_FORTRAN_ANYD(Hessian[mfi]),
-		    //  BL_TO_FORTRAN_ANYD(Gamma[mfi]));
-
-        //EP-Starts here
         const Array4<const Real>& molarconc = molarconc_in.array(mfi);
         const Array4<const Real>& Hessian = Hessian_in.array(mfi); 
         const Array4<      Real>& Gamma = Gamma_in.array(mfi);
@@ -83,235 +71,30 @@ void ComputeGamma(const MultiFab& molarconc_in,
         {
 
             GpuArray<Real, MAX_SPECIES> MolarConcN;
-            Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> GammaN; // verified that Array2D are ok to use
+            Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> GammaN; 
             Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> HessianN;
 
-           //Print() << "Sigfault sandwhich 0 " << std::endl; 
 
+            // Read MultiFab data into arrays
             for (int n=0; n<nspecies; ++n ){
                 MolarConcN[n] = molarconc(i,j,k,n);
 
                 for (int m=0; m<nspecies; ++m){ 
-
-                    //Print() << nspecies << " n = " << n << " m = " << m << " iter = " << n*nspecies+m+1 << std::endl;
-
-
-                    GammaN(m+1,n+1) = Gamma(i,j,k,n*nspecies+m);  //Gamma's index starts at 1 right?
+                    GammaN(m+1,n+1) = Gamma(i,j,k,n*nspecies+m);  
                     HessianN(m+1,n+1) = Hessian(i,j,k,n*nspecies+m); 
                 } 
-                //HessianN[n] = Hessian(i,j,k,n);   
-                //GammaN[n] = Gamma(i,j,k,n);
             }
         
-/*
-           Print() << "---------PRE-----------" << std::endl;
-
-
-           Print() << "GammaN(1,1) ="<< GammaN(1,1) << std::endl; 
-           Print() << "GammaN(1,2) ="<< GammaN(1,2) << std::endl; 
-           Print() << "GammaN(1,3) ="<< GammaN(1,3) << std::endl; 
-           Print() << "GammaN(2,1) ="<< GammaN(2,1) << std::endl; 
-           Print() << "GammaN(2,2) ="<< GammaN(2,2) << std::endl; 
-           Print() << "GammaN(2,3) ="<< GammaN(2,3) << std::endl; 
-           Print() << "GammaN(3,1) ="<< GammaN(3,1) << std::endl; 
-           Print() << "GammaN(3,2) ="<< GammaN(3,2) << std::endl; 
-           Print() << "GammaN(3,3) ="<< GammaN(3,3) << std::endl << std::endl; 
-
-           Print() << "HessianN(1,1) ="<< HessianN(1,1) << std::endl; 
-           Print() << "HessianN(1,2) ="<< HessianN(1,2) << std::endl; 
-           Print() << "HessianN(1,3) ="<< HessianN(1,3) << std::endl; 
-           Print() << "HessianN(2,1) ="<< HessianN(2,1) << std::endl; 
-           Print() << "HessianN(2,2) ="<< HessianN(2,2) << std::endl; 
-           Print() << "HessianN(2,3) ="<< HessianN(2,3) << std::endl; 
-           Print() << "HessianN(3,1) ="<< HessianN(3,1) << std::endl; 
-           Print() << "HessianN(3,2) ="<< HessianN(3,2) << std::endl; 
-           Print() << "HessianN(3,3) ="<< HessianN(3,3) << std::endl; 
-*/
-            //HessianN(1,1) = 1.0;
-            //HessianN(1,2) = 3.0;
-            //HessianN(1,3) = 5.0;
-            //HessianN(2,1) = 7.0;
-            //HessianN(2,2) = 11.0;
-            //HessianN(2,3) = 13.0;
-            //HessianN(3,1) = 17.0;
-            //HessianN(3,2) = 19.0;
-            //HessianN(3,3) = 23.0;
-
-
-            //ComputeGammaLocal(MolarConcN, HessianN, GammaN, nspecies);
-            // Fill this in later
-
-
-
-            //if (true){ 
-            //GammaN(1,1) = 3.0;
-            //GammaN(1,2) = 5.0;
-            //GammaN(2,1) = 7.0;
-            //GammaN(2,2) = 11.0;
-            //n_gex = 3.3;
-            //alpha_gex = 0.72;
-
-            //Print() << GammaN(1,1) << " " << GammaN(1,2) << std::endl;
-            //Print() << GammaN(2,1) << " " << GammaN(2,2) << std::endl;
-
-
-            //Print() << "w1 " << w1 << std::endl;
-            //Print() << "w2 " << w2 << std::endl;
-            //Print() << "n_gex " << n_gex << " alpha_gex " << alpha_gex << std::endl;
-
             ComputeGammaLocal(MolarConcN, HessianN, GammaN, nspecies);
 
-/*
-           Print() << "---------POST-----------" << std::endl;
-
-
-           Print() << "GammaN(1,1) ="<< GammaN(1,1) << std::endl; 
-           Print() << "GammaN(1,2) ="<< GammaN(1,2) << std::endl; 
-           Print() << "GammaN(1,3) ="<< GammaN(1,3) << std::endl; 
-           Print() << "GammaN(2,1) ="<< GammaN(2,1) << std::endl; 
-           Print() << "GammaN(2,2) ="<< GammaN(2,2) << std::endl; 
-           Print() << "GammaN(2,3) ="<< GammaN(2,3) << std::endl; 
-           Print() << "GammaN(3,1) ="<< GammaN(3,1) << std::endl; 
-           Print() << "GammaN(3,2) ="<< GammaN(3,2) << std::endl; 
-           Print() << "GammaN(3,3) ="<< GammaN(3,3) << std::endl << std::endl; 
-
-           Print() << "HessianN(1,1) ="<< HessianN(1,1) << std::endl; 
-           Print() << "HessianN(1,2) ="<< HessianN(1,2) << std::endl; 
-           Print() << "HessianN(1,3) ="<< HessianN(1,3) << std::endl; 
-           Print() << "HessianN(2,1) ="<< HessianN(2,1) << std::endl; 
-           Print() << "HessianN(2,2) ="<< HessianN(2,2) << std::endl; 
-           Print() << "HessianN(2,3) ="<< HessianN(2,3) << std::endl; 
-           Print() << "HessianN(3,1) ="<< HessianN(3,1) << std::endl; 
-           Print() << "HessianN(3,2) ="<< HessianN(3,2) << std::endl; 
-           Print() << "HessianN(3,3) ="<< HessianN(3,3) << std::endl; 
-           Abort();
-*/            
-            //Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> I; //no longer necessary
-
-
-            /*
-            Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> X_xxt;
-
-            if ((use_multiphase == 1) && (nspecies == 2)){ 
-                            
-                Real w1 = MolarConcN[0];
-                Real w2 = MolarConcN[1];
-
-
-
-                if (std::abs(w1+w2-1.0) > 1e-14){  //Tested and working
-                    Print() << "Mole fractions do not add up in gamma computation" << std::endl; 
-                }
-                if (w1 < 0){ 
-                    w1 = 0.0;
-                    w2 = 1.0;
-                }
-                if (w2 < 0){ 
-                    w1 = 1.0;
-                    w2 = 0.0;
-                }
-
-                //These calculations were tested -- working 
-                GammaN(1,2) = w1 * n_gex * n_gex * alpha_gex * std::pow(w1,n_gex-1) * std::pow(w2,n_gex-1);
-                GammaN(2,1) = w2 * n_gex * n_gex * alpha_gex * std::pow(w2,n_gex-1) * std::pow(w1,n_gex-1);
-                GammaN(1,1) = 1.0 + w1 * n_gex * (n_gex-1) * alpha_gex * std::pow(w1,n_gex-2) * std::pow(w2,n_gex); 
-                GammaN(2,2) = 1.0 + w2 * n_gex * (n_gex-1) * alpha_gex * std::pow(w2,n_gex-2) * std::pow(w1,n_gex); 
-
-
-            } else {
-
-                //populate X_xxt
-                if (is_ideal_mixture == 1){   //verified 
-                    for (int n=1; n<=nspecies; ++n ){
-                       for (int m=1; m<=nspecies; ++m ){
-                           X_xxt(n,m) = 0.0;
-                       }
-                    }
-                } else {
-                    for (int row=1; row<=nspecies;++row ){ //verified
-                            //Print() << "row " << row << std::endl;
-                        // diagonal entries
-                        X_xxt(row,row) = MolarConcN[row-1] - std::pow(MolarConcN[row-1],2);
-                        for (int column=1; column<=row-1; ++column ){
-                            //Print() << "column " << column << std::endl;
-                            // form x*traspose(x) off diagonals -- is x the MolarConc vectorT?
-                            X_xxt(row,column) = -MolarConcN[row-1]*MolarConcN[column-1];
-                            //symmetric
-                            X_xxt(column,row) = X_xxt(row,column);
-                        }
-                    }
-                }
-            }
-            //
-            
-           //Print() << "Sigfault sandwhich 2 " << std::endl; 
-              
-            //verfied 
-            for (int row=1; row<=nspecies; ++row){
-                for (int column=1; column<=nspecies; ++column){
-
-                    //Print() << "Row = " << row << " Column = " << column << std::endl;
-
-                    if (row == column) {
-                        GammaN(row,column) = 1.0;   // add the identity matrix
-                    } else {
-                        GammaN(row,column) = 0.0;   // intialize off-diagonals to 0
-                    }
-                    for (int n=1; n<=nspecies; ++n){
-                        GammaN(row, column) += X_xxt(row,n) * HessianN(n,column);
-                    }
-                }
-            }
-            */
-
-                //HACK HACK HACK
-            //Print() << ">>>> MolarConcN[0] " << MolarConcN[0] << std::endl;
-            //Print() << ">>>> MolarConcN[1] " << MolarConcN[1] << std::endl;
-            //Print() << ">>>> MolarConcN[2] " << MolarConcN[2] << std::endl;
-            //Print() << std::endl;
-            //Print() << ">>>> GammaN(1,1) " << GammaN(1,1) << std::endl;
-            //Print() << ">>>> GammaN(1,2) " << GammaN(1,2) << std::endl;
-            //Print() << ">>>> GammaN(1,3) " << GammaN(1,3) << std::endl;
-            //Print() << ">>>> GammaN(2,1) " << GammaN(2,1) << std::endl;
-            //Print() << ">>>> GammaN(2,2) " << GammaN(2,2) << std::endl;
-            //Print() << ">>>> GammaN(2,3) " << GammaN(2,3) << std::endl;
-            //Print() << ">>>> GammaN(3,1) " << GammaN(3,1) << std::endl;
-            //Print() << ">>>> GammaN(3,2) " << GammaN(3,2) << std::endl;
-            //Print() << ">>>> GammaN(3,3) " << GammaN(3,3) << std::endl;
-            //Print() << std::endl;
-            //Print() << ">>>> HessianN(1,1) " << HessianN(1,1) << std::endl;
-            //Print() << ">>>> HessianN(1,2) " << HessianN(1,2) << std::endl;
-            //Print() << ">>>> HessianN(1,3) " << HessianN(1,3) << std::endl;
-            //Print() << ">>>> HessianN(2,1) " << HessianN(2,1) << std::endl;
-            //Print() << ">>>> HessianN(2,2) " << HessianN(2,2) << std::endl;
-            //Print() << ">>>> HessianN(2,3) " << HessianN(2,3) << std::endl;
-            //Print() << ">>>> HessianN(3,1) " << HessianN(3,1) << std::endl;
-            //Print() << ">>>> HessianN(3,2) " << HessianN(3,2) << std::endl;
-            //Print() << ">>>> HessianN(3,3) " << HessianN(3,3) << std::endl;
-
-            //Abort();
-           //Print() << "Sigfault sandwhich 3 " << std::endl; 
-            
-
+            // Write back to MultiFab
             for (int n=0; n<nspecies; ++n ){
                 for (int m=0; m<nspecies; ++m){ 
                     Gamma(i,j,k,n*nspecies+m) = GammaN(m+1,n+1);  
                 } 
             }
-
-
-            //Print() << GammaN(1,1) << " " << GammaN(1,2) << " " << GammaN(1,3) << std::endl;
-            //Print() << GammaN(2,1) << " " << GammaN(2,2) << " " << GammaN(2,3) << std::endl;
-            //Print() << GammaN(3,1) << " " << GammaN(3,2) << " " << GammaN(3,3) << std::endl;
-
         });
-
-        //Print() << "end parfor" << std::endl;
-
-        //EP-Ends here
     }
-    //Abort();
-
 }
 
 void ComputeRhoWChi(const MultiFab& rho,
