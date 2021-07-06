@@ -389,8 +389,9 @@ void ComputeGammaLocal(
             */
         } else {
              
-           // PopulateX_xxT(nspecies, X_xxT, MolarConcN);
+            PopulateX_xxT(nspecies, X_xxT, MolarConcN);
             
+            /*
             for (int row=1; row<=nspecies;++row ){ 
                 // diagonal entries
                 X_xxT(row,row) = MolarConcN[row-1] - std::pow(MolarConcN[row-1],2);
@@ -403,14 +404,15 @@ void ComputeGammaLocal(
             //Print() << "X_xxT(" << row << "," << column << ") = " << X_xxT(row, column) << std::endl;
                 }
             }
-
+            */
             
         }
     }
     
     //Compute Gamma 
-    //GammaIPlusMatmul(nspecies, GammaN, X_xxT, HessianN);
+    GammaIPlusMatmul(nspecies, GammaN, X_xxT, HessianN);
     
+    /*
     for (int row=1; row<=nspecies; ++row){
         for (int column=1; column<=nspecies; ++column){
             if (row == column) {
@@ -429,12 +431,12 @@ void ComputeGammaLocal(
     for (int row=1; row<=nspecies; ++row){
         for (int column=1; column<=nspecies; ++column){
             for (int n=1; n<=nspecies; ++n){ 
-                GammaN(column, row) += X_xxT(row,n) * HessianN(n,column);
+                GammaN(row, column) += X_xxT(row,n) * HessianN(n,column);
                 //Print() << "row =" << row << "column =" << column << " n = " << n << "GammaN(" << column << "," << row << ")" << std::endl;
             }
         }
     }
-    
+    */ 
   
     //Print() << "Gamma(1,1)= " << GammaN(1,1) << std::endl;
     //Print() << "Gamma(1,2)= " << GammaN(1,2) << std::endl;

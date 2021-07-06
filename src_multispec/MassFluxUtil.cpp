@@ -96,8 +96,8 @@ void ComputeGamma(const MultiFab& molarconc_in,
                     //Print() << nspecies << " n = " << n << " m = " << m << " iter = " << n*nspecies+m+1 << std::endl;
 
 
-                    GammaN(n+1,m+1) = Gamma(i,j,k,n*nspecies+m);  //Gamma's index starts at 1 right?
-                    HessianN(n+1,m+1) = Hessian(i,j,k,n*nspecies+m); 
+                    GammaN(m+1,n+1) = Gamma(i,j,k,n*nspecies+m);  //Gamma's index starts at 1 right?
+                    HessianN(m+1,n+1) = Hessian(i,j,k,n*nspecies+m); 
                 } 
                 //HessianN[n] = Hessian(i,j,k,n);   
                 //GammaN[n] = Gamma(i,j,k,n);
@@ -295,7 +295,7 @@ void ComputeGamma(const MultiFab& molarconc_in,
 
             for (int n=0; n<nspecies; ++n ){
                 for (int m=0; m<nspecies; ++m){ 
-                    Gamma(i,j,k,n*nspecies+m) = GammaN(n+1,m+1);  
+                    Gamma(i,j,k,n*nspecies+m) = GammaN(m+1,n+1);  
                 } 
             }
 
