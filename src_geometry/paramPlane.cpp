@@ -94,6 +94,12 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 
        // paramPlaneList[0].x0 = domainLo[0] + sigma[0]/2.0;
     }
+    else if(bc_vel_lo[0] == 3)
+    {
+				paramPlaneList[0].periodicity = 1;
+        paramPlaneList[0].porosityLeft = 1;
+        paramPlaneList[0].porosityRight = 1;   
+    }
     else{
 
         paramPlaneList[0].periodicity = 0;
@@ -168,6 +174,12 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
         paramPlaneList[1].specularityRight = 1;
 
       //  paramPlaneList[1].x0 = domainHi[0] - sigma[0]/2.0;
+    }
+    else if(bc_vel_hi[0] == 3)
+    {
+				paramPlaneList[1].periodicity = 1;
+        paramPlaneList[1].porosityLeft = 1;
+        paramPlaneList[1].porosityRight = 1;   
     }
     else{
         paramPlaneList[1].periodicity = 0;
@@ -244,6 +256,12 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 
        // paramPlaneList[2].y0 = domainLo[1] + sigma[0]/2.0;
     }
+    else if(bc_vel_lo[1] == 3)
+    {
+				paramPlaneList[2].periodicity = 1;
+        paramPlaneList[2].porosityLeft = 1;
+        paramPlaneList[2].porosityRight = 1;   
+    }
     else{
         paramPlaneList[2].periodicity = 0;
         paramPlaneList[2].porosityLeft = 0;
@@ -317,6 +335,12 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
         paramPlaneList[3].specularityRight = 1;
 
        // paramPlaneList[3].y0 = domainHi[1] - sigma[0]/2.0;
+    }
+    else if(bc_vel_hi[1] == 3)
+    {
+				paramPlaneList[3].periodicity = 1;
+        paramPlaneList[3].porosityLeft = 1;
+        paramPlaneList[3].porosityRight = 1;   
     }
     else{
         paramPlaneList[3].periodicity = 0;
@@ -392,6 +416,12 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
         paramPlaneList[4].specularityRight = 1;
 
        // paramPlaneList[4].z0 = domainLo[2] + sigma[0]/2.0;
+    }
+    else if(bc_vel_lo[2] == 3)
+    {
+				paramPlaneList[4].periodicity = 1;
+        paramPlaneList[4].porosityLeft = 1;
+        paramPlaneList[4].porosityRight = 1;   
     }
     else{
         paramPlaneList[4].periodicity = 0;
@@ -484,6 +514,12 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 
        // paramPlaneList[5].z0 = domainHi[2] - sigma[0]/2.0;
     }
+    else if(bc_vel_hi[2] == 3)
+    {
+				paramPlaneList[5].periodicity = 1;
+        paramPlaneList[5].porosityLeft = 1;
+        paramPlaneList[5].porosityRight = 1;   
+    }
     else{
         paramPlaneList[5].periodicity = 0;
         paramPlaneList[5].porosityLeft = 0;
@@ -529,6 +565,7 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
     // Adiabatic not considered here
     // Solid walls not considered here (not trivial for concentration)
     // Will conflict with velocity BC (need to resolve at one point)
+    // Implemented Lees-Edwards BC for unbounded shear
     int p = 0;
     for(int i=0; i<3 ; i++) {
     	// Lower (Left, Bottom, Back)

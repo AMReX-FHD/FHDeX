@@ -94,6 +94,29 @@ void FhdParticleContainer::InitCollisionCells() {
 			}
 		});
 	}
+		
+		
+	Real spd, spdmax = 0.;
+	Real u,v,w;
+	for (FhdParIter pti(* this, lev); pti.isValid(); ++pti) {
+		const int grid_id = pti.index();
+		const int tile_id = pti.LocalTileIndex();
+		const Box& tile_box  = pti.tilebox();
+		
+		auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+		auto& particles = particle_tile.GetArrayOfStructs();		
+		const long np = particles.numParticles();
+		
+		for (int i = 0; i < np; ++ i) {
+			ParticleType & part = particles[i];
+			u = part.rdata(FHD_realData::velx);
+			v = part.rdata(FHD_realData::vely);
+			w = part.rdata(FHD_realData::velz);
+			spd = pow(u*u + v*v + w*w,0.5);
+			if(spd>spdmax) { spdmax = spd;}
+		}
+	}
+	mfvrmax.setVal(spdmax);
 }
 
 // Compute selections here

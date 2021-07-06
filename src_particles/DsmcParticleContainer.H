@@ -111,6 +111,7 @@ public:
 // DSMC Routines
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	void InitParticles(Real & dt);
+	void ReInitParticles();
 	void InitCollisionCells();
 
 	void Source(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount);
@@ -195,16 +196,6 @@ public:
 	const Real chi_max = 500.0; // value is arbitrary (change as needed or maybe as input?)
 	const Real phi_max = 0.643;
 
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	void WriteCheckPoint(int step, int statsCount, const Real time,
-                     const Geometry geom,
-                     const MultiFab& cuInst,   const MultiFab& cuMean, 
-                     const MultiFab& cuDel,    const MultiFab& covar);
-
-	void ReadCheckPoint(int &step, int& statsCount, Real& time,
-                       Geometry geom,
-                       MultiFab& cuInst,   MultiFab& cuMean, 
-                       MultiFab& cuDel,    MultiFab& covar);
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	// Constants	
 	Real pi_usr = 4.0*atan(1.0);

@@ -11,7 +11,6 @@
 #include "DsmcParticleContainer.H"
 #include <AMReX_MultiFab.H>
 #include <AMReX_PlotFileUtil.H>
-#include "Checkpoint.H"
 
 using namespace std::chrono;
 using namespace std;
@@ -35,17 +34,8 @@ void main_driver(const char* argv)
 	IntVect dom_hi(AMREX_D_DECL(n_cells[0]-1, n_cells[1]-1, n_cells[2]-1));
 	Box domain(dom_lo, dom_hi);	
 	DistributionMapping dmap;
-	 
-	// MFs for Stats
-	MultiFab cuInst, cuMeans, cuVars;
-	MultiFab primInst, primMeans, primVars;	
-	MultiFab coVars;
 
 	// Will likely need to redo this
-	int step = 0;
-	Real dt = 0;
-	int statsCount = 1;
-	Real time = 0.;
 	if (restart < 0) {
 		if (seed > 0) {
 			InitRandom(seed+ParallelDescriptor::MyProc());
@@ -63,88 +53,10 @@ void main_driver(const char* argv)
 		ba.maxSize(IntVect(max_grid_size));
 		dmap.define(ba);
 		
-		//////////////////////////////////////
-   	// Stat Setup
-   	//////////////////////////////////////
-		/*
-			Conserved Vars:
-			0  - rho = (1/V) += m
-			1  - Jx  = (1/V) += mu
-			2  - Jy  = (1/V) += mv
-			3  - Jz  = (1/V) += mw
-			4  - K   = (1/V) += m|v|^2
-			... (repeat for each species)
-		*/
-		int ncon  = (nspecies+1)*5;
-		cuInst.define(ba, dmap, ncon, 0);    cuInst.setVal(0.);
-		cuMeans.define(ba, dmap, ncon, 0);   cuMeans.setVal(0.);
-		cuVars.define(ba,dmap, ncon, 0);		 cuVars.setVal(0.);
-
-		/*
-	  	Primitive Vars:
-			0	- n   (X_ns)
-			1  - rho (Y_ns)
-			2  - u   (u_ns)
-			3  - v   (v_ns)
-			4  - w   (w_ns)
-			5  - uu  (uu_ns)
-			6  - uv  (uv_ns)
-			7  - uw  (uw_ns)
-			8  - vv  (vv_ns)
-			9  - vw  (vw_ns)
-			10 - ww  (ww_ns)
-			11 - T   (T_ns)
-			12 - P   (P_ns)
-			13 - E   (E_ns)
-			... (repeat for each species)
-		*/
-		int nprim = (nspecies+1)*14;
-		primInst.define(ba, dmap, nprim, 0);   	primInst.setVal(0.);
-		primMeans.define(ba, dmap, nprim, 0);  	primMeans.setVal(0.);
-		primVars.define(ba, dmap, nprim, 0);    primVars.setVal(0.);
-		
-		// Covariances
-		/*
-			0  - drho.dJx
-			1  - drho.dJy
-			2  - drho.dJz
-			3  - drho.dT
-			4  - drho.d(rho*E)
-			5  - dJx.dJy
-			6  - dJx.dJz
-			7  - dJy.dJz
-			8  - dJx.d(rho*E)
-			9  - dJy.d(rho*E)
-			10 - dJz.d(rho*E)
-			11 - drho.du
-			12 - drho.dv
-			13 - drho.dw
-			14 - du.dv
-			15 - du.dw
-			16 - dv.dw
-			17 - drho.dT
-			18 - du.dT
-			19 - dv.dT
-			20 - dw.dT
-		*/
-		int ncovar = 21;
-		coVars.define(ba, dmap, ncovar, 0); coVars.setVal(0.);
-		
-		step=0;
 	} else {
-		ReadCheckPoint(step, time, dt, statsCount,
-    	cuInst, cuMeans, cuVars,
-    	primInst, primMeans, primVars,
-    	coVars);
-    dmap = cuInst.DistributionMap();
-    ba = cuInst.boxArray();
-    
-    // Zero out vars
-    cuVars.setVal(0.);
-    primVars.setVal(0.);
-    coVars.setVal(0.);
+		// restart from checkpoint
 	}
-	
+
 	Vector<int> is_periodic (AMREX_SPACEDIM,0);
 	for (int i=0; i<AMREX_SPACEDIM; ++i) {
 		if (bc_vel_lo[i] == -1 && bc_vel_hi[i] == -1) {
@@ -158,14 +70,12 @@ void main_driver(const char* argv)
 
 	Geometry geom (domain ,&realDomain,CoordSys::cartesian,is_periodic.data());
 
-	//////////////////////////////////////
-	// Boundary Setup
-	//////////////////////////////////////
+	// Currently overwritten later
+	Real dt = fixed_dt;
 
 	int paramPlaneCount = 6;
-	paramPlane paramPlaneList[paramPlaneCount];	
-	BuildParamplanes(paramPlaneList,paramPlaneCount,
-		realDomain.lo(),realDomain.hi());
+	paramPlane paramPlaneList[paramPlaneCount];
+	BuildParamplanes(paramPlaneList,paramPlaneCount,realDomain.lo(),realDomain.hi());
 
 	// Particle tile size
 	Vector<int> ts(BL_SPACEDIM);
@@ -181,30 +91,84 @@ void main_driver(const char* argv)
 
 	ParmParse pp ("particles");
 	pp.addarr("tile_size", ts);
-	
-	//////////////////////////////////////
-	// Particle Setup
-	//////////////////////////////////////
-	
+
 	int cRange = 0;
 	FhdParticleContainer particles(geom, dmap, ba, cRange);
-	particles.mfselect.define(ba, dmap, nspecies*nspecies, 0);
-	particles.mfselect.setVal(0.);
+
+   //////////////////////////////////////
+   // Conserved/Primitive Var Setup
+   //////////////////////////////////////
+	
+	/*
+		Conserved Vars:
+		0  - rho = (1/V) += m
+		1  - Jx  = (1/V) += mu
+		2  - Jy  = (1/V) += mv
+		3  - Jz  = (1/V) += mw
+		4  - K   = (1/V) += m|v|^2
+		... (repeat for each species)
+	*/
+	   	
+	MultiFab cuInst, cuMeans, cuVars;
+	int ncon  = (nspecies+1)*5;
+	cuInst.define(ba, dmap, ncon, 0);    cuInst.setVal(0.);
+	cuMeans.define(ba, dmap, ncon, 0);   cuMeans.setVal(0.);
+	cuVars.define(ba,dmap, ncon, 0);		 cuVars.setVal(0.);
+
+	/*
+	   Primitive Vars:
+		0	- n   (X_ns)
+		1  - rho (Y_ns)
+		2  - u   (u_ns)
+		3  - v   (v_ns)
+		4  - w   (w_ns)
+		5  - uu  (uu_ns)
+		6  - uv  (uv_ns)
+		7  - uw  (uw_ns)
+		8  - vv  (vv_ns)
+		9  - vw  (vw_ns)
+		10 - ww  (ww_ns)
+		11 - T   (T_ns)
+		12 - P   (P_ns)
+		13 - E   (E_ns)
+		... (repeat for each species)
+	*/
+	
+	MultiFab primInst, primMeans, primVars;	
+	int nprim = (nspecies+1)*14;
+	primInst.define(ba, dmap, nprim, 0);   	primInst.setVal(0.);
+	primMeans.define(ba, dmap, nprim, 0);  	primMeans.setVal(0.);
+	primVars.define(ba, dmap, ncon+nprim, 0); primVars.setVal(0.);
 		
-	particles.mfphi.define(ba, dmap, nspecies, 0);
-	particles.mfphi.setVal(0.);
-		
-	particles.mfvrmax.define(ba, dmap, nspecies*nspecies, 0);
-	particles.mfvrmax.setVal(0.);
-	if (restart < 0 && particle_restart < 0) {
-		// Collision Cell Vars
-  	particles.InitParticles(dt);
-  } else {
-  	ReadCheckPointParticles(particles);
-  }
-  // vrmax set here now
-	particles.InitCollisionCells();
-		
+	// Covariances
+	/*
+		0  - drho.dJx
+		1  - drho.dJy
+		2  - drho.dJz
+		3  - drho.dT
+		4  - drho.d(rho*E)
+		5  - dJx.dJy
+		6  - dJx.dJz
+		7  - dJy.dJz
+		8  - dJx.d(rho*E)
+		9  - dJy.d(rho*E)
+		10 - dJz.d(rho*E)
+		11 - drho.du
+		12 - drho.dv
+		13 - drho.dw
+		14 - du.dv
+		15 - du.dw
+		16 - dv.dw
+		17 - drho.dT
+		18 - du.dT
+		19 - dv.dT
+		20 - dw.dT
+	*/
+	
+	// Add multifabs for variances
+	int ncovar = 21;
+	MultiFab coVars(ba, dmap, ncovar, 0);   coVars.setVal(0.);
+   
 	//////////////////////////////////////
 	// Structure Factor Setup
 	//////////////////////////////////////
@@ -221,38 +185,123 @@ void main_driver(const char* argv)
 	Vector< std::string > cu_struct_names(nvarstruct);
 	int cnt = 0;
 	std::string varname;
+	//cu_struct_names[cnt++] = "n";
+	//for (int ispec=0; ispec<nspecies; ispec++) {
+  //   	cu_struct_names[cnt++] = amrex::Concatenate("X",ispec,2);
+  //}
   cu_struct_names[cnt++] = "rho";
 	for (int ispec=0; ispec<nspecies; ispec++) {
      	cu_struct_names[cnt++] = amrex::Concatenate("rho",ispec,2);
    }
   cu_struct_names[cnt++] = "u";
+	//for (int ispec=0; ispec<nspecies; ispec++) {
+  //   	cu_struct_names[cnt++] = amrex::Concatenate("u",ispec,2);
+  // }
   cu_struct_names[cnt++] = "v";
+	//for (int ispec=0; ispec<nspecies; ispec++) {
+  //   	cu_struct_names[cnt++] = amrex::Concatenate("v",ispec,2);
+  // }
   cu_struct_names[cnt++] = "w";
+	//for (int ispec=0; ispec<nspecies; ispec++) {
+  //   	cu_struct_names[cnt++] = amrex::Concatenate("w",ispec,2);
+  // }
+  // cu_struct_names[cnt++] = "uu";
+	//for (int ispec=0; ispec<nspecies; ispec++) {
+  //   	cu_struct_names[cnt++] = amrex::Concatenate("uu",ispec,2);
+  // }
+  // cu_struct_names[cnt++] = "uv";
+	//for (int ispec=0; ispec<nspecies; ispec++) {
+  //   	cu_struct_names[cnt++] = amrex::Concatenate("uv",ispec,2);
+  // }
+  // cu_struct_names[cnt++] = "uw";
+	//for (int ispec=0; ispec<nspecies; ispec++) {
+  //   	cu_struct_names[cnt++] = amrex::Concatenate("uw",ispec,2);
+  // }
+	//cu_struct_names[cnt++] = "vv";
+	//for (int ispec=0; ispec<nspecies; ispec++) {
+  //   	cu_struct_names[cnt++] = amrex::Concatenate("vv",ispec,2);
+  // }
+  // cu_struct_names[cnt++] = "vw";
+	//for (int ispec=0; ispec<nspecies; ispec++) {
+  //   	cu_struct_names[cnt++] = amrex::Concatenate("vw",ispec,2);
+  // }
+  // cu_struct_names[cnt++] = "ww";
+	//for (int ispec=0; ispec<nspecies; ispec++) {
+  //   	cu_struct_names[cnt++] = amrex::Concatenate("ww",ispec,2);
+  // }
   cu_struct_names[cnt++] = "T";
 	for (int ispec=0; ispec<nspecies; ispec++) {
      	cu_struct_names[cnt++] = amrex::Concatenate("T",ispec,2);
    }
+  //cu_struct_names[cnt++] = "P";
+	//for (int ispec=0; ispec<nspecies; ispec++) {
+  //   	cu_struct_names[cnt++] = amrex::Concatenate("P",ispec,2);
+  //}
   cu_struct_names[cnt++] = "E";
+	//for (int ispec=0; ispec<nspecies; ispec++) {
+  //   	cu_struct_names[cnt++] = amrex::Concatenate("E",ispec,2);
+  //}
    
    // Structure Factor
 	StructFact structFactPrim  (ba, dmap, cu_struct_names, var_scaling);
 	MultiFab   structFactPrimMF(ba, dmap,      nvarstruct,           0);
+	
+	if (restart < 0 && particle_restart < 0) {
+		// Collision Cell Vars
+		particles.mfselect.define(ba, dmap, nspecies*nspecies, 0);
+		particles.mfselect.setVal(0.);
+		
+		particles.mfphi.define(ba, dmap, nspecies, 0);
+		particles.mfphi.setVal(0.);
+		
+		particles.mfvrmax.define(ba, dmap, nspecies*nspecies, 0);
+		particles.mfvrmax.setVal(0.);
+		// overwrite dt
+		particles.InitParticles(dt);
+
+		particles.InitCollisionCells();
+		amrex::Print() << "Overwritten dt so Courant number <1: " << dt << "\n";
+	}
+	
+	else {
+
+	}
 
 	Real init_time = ParallelDescriptor::second() - strt_time;
 	ParallelDescriptor::ReduceRealMax(init_time);
 	amrex::Print() << "Initialization time = " << init_time << " seconds " << std::endl;
 
-	max_step += step;
-	for (int istep=step; istep<=max_step; ++istep) {
+	// Frequency of plot and checkpoints
+	int plot_step = 10;
+	//int check_step = 10;
+	Real time = 0.;
+	int statsCount = 1;
+	for (int istep=0; istep<=max_step; ++istep) {
 		Real tbegin = ParallelDescriptor::second();
+		
+		//////////////////////////////////////
+		// Checkpoint
+		//////////////////////////////////////
+   
+		//if (plot_int > 0 && istep > 0 && istep%plot_step == 0) {
+           
+		//}
+
+		//if (istep==1 && restart > 0) {
+      //     ReadCheckPoint(istep, statsCount, time, geom,
+      //     						cu, cuMeans, cuVars, coVars);//,
+           //						particles.mfselect, particles.mfphi, particles.mfvrmax);
+		//}
 
 		//////////////////////////////////////
 		// DSMC Collide + Move
 		//////////////////////////////////////
-
+		
+		//amrex::Print() << "Collisions per particles per species: " << 
+		//	particles.CountedCollision[
 		particles.CalcSelections(dt);
 		particles.CollideParticles(dt);
-		//particles.Source(dt, paramPlaneList, paramPlaneCount);
+		particles.Source(dt, paramPlaneList, paramPlaneCount);
 		particles.MoveParticlesCPP(dt, paramPlaneList, paramPlaneCount);
 
 		//////////////////////////////////////
@@ -322,6 +371,7 @@ void main_driver(const char* argv)
       MultiFab::Copy(structFactPrimMF,primInst,13,cnt_sf,numvars_sf,0);
       cnt_sf += numvars_sf;
 
+      //MultiFab::Copy(structFactPrimMF,primInst,0,0,nvarstruct,0);
       structFactPrim.FortStructure(structFactPrimMF,geom,fft_type);
     }
 		
@@ -331,16 +381,6 @@ void main_driver(const char* argv)
 			istep%plot_int == 0) {
       structFactPrim.WritePlotFile(istep,time,geom,"plt_SF_prim");
     }
-    
-		//////////////////////////////////////
-		// Checkpoint
-		//////////////////////////////////////
-		
-		if (chk_int > 0 && istep%chk_int == 0) {
-			WriteCheckPoint(istep, time, dt, statsCount,
-				cuInst, cuMeans, cuVars, primInst, primMeans, primVars, coVars,
-				particles);
-		}
  
 		Real tend = ParallelDescriptor::second() - tbegin;
 		ParallelDescriptor::ReduceRealMax(tend);
@@ -352,11 +392,5 @@ void main_driver(const char* argv)
 	ParallelDescriptor::ReduceRealMax(stop_time);
 	amrex::Print() << "Run time = " << stop_time << " seconds" << std::endl;
 
-	// Output in case not enough stats
-	WriteCheckPoint(max_step, time, dt, statsCount,
-                     cuInst, cuMeans, cuVars,
-                     primInst, primMeans, primVars,
-                     coVars,
-                     particles); 
 	//if(particle_input<0 && ParallelDescriptor::MyProc() == 0) {particles.OutputParticles();} // initial condition
 }

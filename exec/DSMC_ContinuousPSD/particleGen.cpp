@@ -18,8 +18,8 @@ void FhdParticleContainer::InitParticles(Real & dt) {
 	// Search for max relative speed
 	// ... estimate as double the mag of a single particle speed
 	std::array<Real, 3> vpart = {0., 0., 0.};
+	Real cvrmax = 0, spd, csx;
 	Real umax = 0, vmax = 0, wmax = 0;
-	Real u[nspecies],v[nspecies],w[nspecies];
 	maxDiam = 0.;
 	
 	//tTg = 0;
@@ -56,6 +56,8 @@ void FhdParticleContainer::InitParticles(Real & dt) {
           p.rdata(FHD_realData::vely) = vpart[1];
           p.rdata(FHD_realData::velz) = vpart[2];
           
+          spd = sqrt(pow(vpart[0],2)+pow(vpart[1],2)+pow(vpart[2],2));
+          if(spd>spdmax){ spdmax=spd; }
 					// For calculating timstep from Courant number
 					if(vpart[0]>umax) { umax=vpart[0]; }
 					if(vpart[1]>vmax) { vmax=vpart[1]; }
@@ -71,10 +73,6 @@ void FhdParticleContainer::InitParticles(Real & dt) {
 				}
 				particleFile.close();
 			} else {
-				// Initialize to bulk velocities
-				for(int i_spec=0; i_spec < nspecies; i_spec++) {
-					u[i_spec] = 0.0; v[i_spec] = 0.0; w[i_spec] = 0.0;
-				}
 				for(int i_spec=0; i_spec < nspecies; i_spec++) {
 					// Standard deviation of velocity at temperature T_init
 					Real R     = k_B/properties[i_spec].mass;
@@ -84,52 +82,39 @@ void FhdParticleContainer::InitParticles(Real & dt) {
 						p.id()  = ParticleType::NextID();
 						p.cpu() = ParallelDescriptor::MyProc();
 						p.idata(FHD_intData::sorted) = -1;
-						p.idata(FHD_intData::species) = i_spec;
-						p.rdata(FHD_realData::R) = R;	
+						p.idata(FHD_intData::species) = 0;
+						p.rdata(FHD_realData::mass) = properties[i_spec].mass;
+						p.rdata(FHD_realData::R) = k_B/p.rdata(FHD_realData::mass);
+						p.rdata(FHD_realData::radius) = properties[i_spec].diameter*0.5;
+						
             p.pos(0) = prob_lo[0] + amrex::Random()*(prob_hi[0]-prob_lo[0]);
-            //p.pos(0) = (prob_lo[0] + properties[i_spec].radius) + amrex::Random()*(prob_hi[0]-(prob_lo[0] + properties[i_spec].radius));
             p.pos(1) = prob_lo[1] + amrex::Random()*(prob_hi[1]-prob_lo[1]);
-            // p.pos(1) = (prob_lo[1] + properties[i_spec].radius) + amrex::Random()*(prob_hi[1]-(prob_lo[1] + properties[i_spec].radius));
             p.pos(2) = prob_lo[2] + amrex::Random()*(prob_hi[2]-prob_lo[2]);
-            // p.pos(2) = (prob_lo[2] + properties[i_spec].radius) + amrex::Random()*(prob_hi[2]-(prob_lo[2] + properties[i_spec].radius));
-						vpart[0] = stdev*amrex::RandomNormal(0.,1.);
+            vpart[0] = stdev*amrex::RandomNormal(0.,1.);
 						vpart[1] = stdev*amrex::RandomNormal(0.,1.);
 						vpart[2] = stdev*amrex::RandomNormal(0.,1.);
 
-						p.rdata(FHD_realData::velx) = vpart[0]; u[p.idata(FHD_intData::species)] += vpart[0];
-						p.rdata(FHD_realData::vely) = vpart[1]; v[p.idata(FHD_intData::species)] += vpart[1];
-						p.rdata(FHD_realData::velz) = vpart[2]; w[p.idata(FHD_intData::species)] += vpart[2];
-
+						p.rdata(FHD_realData::velx) = vpart[0];
+						p.rdata(FHD_realData::vely) = vpart[1];
+						p.rdata(FHD_realData::velz) = vpart[2];
+						spd = sqrt(pow(vpart[0],2)+pow(vpart[1],2)+pow(vpart[2],2));
+						csx = pi_usr*pow(2.0*p.rdata(FHD_realData::radius),2.0);
+					  
+						if((csx*spd)>cvrmax){ cvrmax=csx*spd; }
 						// For calculating timstep from Courant number
 						if(vpart[0]>umax) { umax=vpart[0]; }
 						if(vpart[1]>vmax) { vmax=vpart[1]; }
 						if(vpart[2]>wmax) { wmax=vpart[2]; }
 
-						p.rdata(FHD_realData::boostx) = 0;
-						p.rdata(FHD_realData::boosty) = 0;
-						p.rdata(FHD_realData::boostz) = 0;
 						particle_tile.push_back(p);
-						pcount++;
 					}
 				}
 			}
-			
-			int nstart = 0;
-			for(int i_spec=0; i_spec < nspecies; i_spec++) {			
-				// Zero out the bulk velocities
-				u[i_spec] = u[i_spec]/properties[i_spec].total;
-				v[i_spec] = v[i_spec]/properties[i_spec].total;
-				w[i_spec] = w[i_spec]/properties[i_spec].total;
-				for (int i_part=nstart; i_part<nstart+properties[i_spec].total;i_part++) {
-					ParticleType & p = particles[i_part];
-					p.rdata(FHD_realData::velx) = p.rdata(FHD_realData::velx) - u[i_spec];
-					p.rdata(FHD_realData::vely) = p.rdata(FHD_realData::vely) - v[i_spec];
-					p.rdata(FHD_realData::velz) = p.rdata(FHD_realData::velz) - w[i_spec];
-				}
-				nstart += properties[i_spec].total;
-			}
 		}
 	}
+	// Set guess of max relative velocity
+	ParallelDescriptor::Bcast(&spdmax,1,ParallelDescriptor::IOProcessorNumber());
+	mfvrmax.setVal(spdmax);
 
 	// Calculate global timestep
 	// Assume IO processor is 0
@@ -139,49 +124,9 @@ void FhdParticleContainer::InitParticles(Real & dt) {
 		dt += wmax*n_cells[2]/(prob_hi[2]-prob_lo[2]);
 		dt  = 0.2/dt; // Courant number of 0.2
 	}
-//	ParallelDescriptor::Bcast(&dt,1,ParallelDescriptor::IOProcessorNumber());
-//	amrex::Print() << "My dt " << dt << "\n";
+	ParallelDescriptor::Bcast(&dt,1,ParallelDescriptor::IOProcessorNumber());
+	amrex::Print() << "My dt " << dt << "\n";
 	
 	Redistribute();
 	SortParticles();
 }
-
-void FhdParticleContainer::ReInitParticles() {
-	const int lev = 0;
-	const Geometry& geom = Geom(lev);
-
-	int pcount = 0;
-
-	bool proc0_enter = true;
-    
-	// Search for max relative speed
-	// ... estimate as double the mag of a single particle speed
-	std::array<Real, 3> vpart = {0., 0., 0.};
-	Real umax = 0, vmax = 0, wmax = 0;
-	Real u[nspecies],v[nspecies],w[nspecies];
-	maxDiam = 0.;
-	
-	//tTg = 0;
-	for (MFIter mfi = MakeMFIter(lev, true); mfi.isValid(); ++mfi) {
-		// take tile/box
-		const Box& tile_box  = mfi.tilebox();
-		const RealBox tile_realbox{tile_box, geom.CellSize(), geom.ProbLo()};
-		const int grid_id = mfi.index();
-		const int tile_id = mfi.LocalTileIndex();
-		auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
-		auto& particles = particle_tile.GetArrayOfStructs();
-		const long np = particles.numParticles();
-
-    for (int i = 0; i < np; ++ i) {
-    	ParticleType & part = particles[i];
-			part.id()  = ParticleType::NextID();
-			part.cpu() = ParallelDescriptor::MyProc();
-			part.idata(FHD_intData::sorted) = -1;
-		}
-	}
-	Redistribute();
-	SortParticles();
-}
-		
-		
-	

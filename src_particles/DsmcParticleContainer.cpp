@@ -281,6 +281,7 @@ void FhdParticleContainer::SortParticles()
 
             IntVect iv ={0,0,0};
 
+						amrex::Print() << "Part idata: " << part.idata(FHD_intData::sorted) << "\n";
 
             if(part.idata(FHD_intData::sorted) == -1)
             {
@@ -359,7 +360,7 @@ void FhdParticleContainer::Source(const Real dt, const paramPlane* paramPlaneLis
                         	totalFluxInt++;
                         }
 
-                        //Print() << "Surface " << i << " generating " << totalFluxInt << " of species " << j << "\n";
+                        Print() << "Surface " << i << " generating " << totalFluxInt << " of species " << j << "\n";
 
                         for(int k=0;k<totalFluxInt;k++) {
                             Real uCoord = amrex::Random()*paramPlaneList[i].uTop;
@@ -439,7 +440,7 @@ void FhdParticleContainer::Source(const Real dt, const paramPlane* paramPlaneLis
                             totalFluxInt++;
                         }
 
-												//Print() << "Surface " << i << " generating " << totalFluxInt << " of species " << j << "\n";
+												Print() << "Surface " << i << " generating " << totalFluxInt << " of species " << j << "\n";
 												
                         for(int k=0;k<totalFluxInt;k++)
                         {
