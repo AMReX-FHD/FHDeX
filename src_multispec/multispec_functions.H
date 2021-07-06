@@ -185,8 +185,6 @@ void ComputeMolconcMolmtot(const MultiFab& rho,
 			   MultiFab& molarconc,
 			   MultiFab& molmtot);
 
-
-
 void ComputeGamma(const MultiFab& molarconc,
 		  const MultiFab& Hessian,
 		  MultiFab& Gamma);
@@ -260,7 +258,6 @@ void GetMolTot(const GpuArray<Real, MAX_SPECIES>& W,
     molmtot = 1.0 / sumOverN; 
 }  
 
-
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void ComputeMolconcMolmtotLocal( int nspecies_in,
                 GpuArray<Real, MAX_SPECIES>& molmass_in,
@@ -286,7 +283,6 @@ void ComputeMolconcMolmtotLocal( int nspecies_in,
     }
     
 }
-
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void MatrixToZeros(int nspecies,
@@ -338,8 +334,6 @@ void GammaIPlusMatmul(int nspecies,
         }
     }
 }
-
-
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void ComputeGammaLocal(

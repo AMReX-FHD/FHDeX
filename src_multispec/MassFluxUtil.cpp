@@ -21,7 +21,6 @@ void ComputeMolconcMolmtot(const MultiFab& rho_in,
         const Array4<      Real>& molarconc = molarconc_in.array(mfi);
         const Array4<      Real>& molmtot = molmtot_in.array(mfi);
         
-
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
 
@@ -32,7 +31,6 @@ void ComputeMolconcMolmtot(const MultiFab& rho_in,
                 RhoN[n] = rho(i,j,k,n);
             }
 
-
             ComputeMolconcMolmtotLocal(nspecies, molmass, 
                             RhoN, rhotot(i,j,k),          
                             MolarConcN, molmtot(i,j,k));
@@ -42,8 +40,7 @@ void ComputeMolconcMolmtot(const MultiFab& rho_in,
             }
 
         });
-
-
+        
     }
 
 }
@@ -73,7 +70,6 @@ void ComputeGamma(const MultiFab& molarconc_in,
             GpuArray<Real, MAX_SPECIES> MolarConcN;
             Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> GammaN; 
             Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> HessianN;
-
 
             // Read MultiFab data into arrays
             for (int n=0; n<nspecies; ++n ){
