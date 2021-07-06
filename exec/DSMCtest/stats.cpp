@@ -52,7 +52,8 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
 		*/
 		
 		int ncon  = (nspecies+1)*5;
-		int nprim = (nspecies+1)*14;
+		int nprimvars = 17;
+		int nprim = (nspecies+1)*nprimvars;
 		Array4<Real> cuInst     = mfcuInst[pti].array();
 		Array4<Real> primInst   = mfprimInst[pti].array();
 		Array4<Real> cuMeans    = mfcuMeans[pti].array();
@@ -68,7 +69,7 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
 		amrex::ParallelFor(tile_box,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
 			const IntVect& iv = {i,j,k};
 			long imap = tile_box.index(iv);
-			int icon = 5; int iprim = 14;
+			int icon = 5; int iprim = nprimvars;
 			Real cv  = 0.;
 			for (int l=0; l<nspecies; l++) {
 				const long np_spec = m_cell_vectors[l][grid_id][imap].size();
@@ -95,7 +96,12 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
 					cuInst(i,j,k,icon+1) += u;
 					cuInst(i,j,k,icon+2) += v;
 					cuInst(i,j,k,icon+3) += w;
-					cuInst(i,j,k,icon+4) += (pow(u,2)+pow(v,2)+pow(w,2));
+					Real spdsq = pow(u,2)+pow(v,2)+pow(w,2);
+					cuInst(i,j,k,icon+4) += spdsq;
+					
+					primInst(i,j,k,iprim+14) += spdsq*u;	// qx
+					primInst(i,j,k,iprim+15) += spdsq*v;	// qy
+					primInst(i,j,k,iprim+16) += spdsq*w;	// qz
 				}
 				
 				// Momentum densities
@@ -113,12 +119,12 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
 				primInst(i,j,k,iprim+ 2) = cuInst(i,j,k,icon+1)/cuInst(i,j,k,icon);					// u  of spec l
 				primInst(i,j,k,iprim+ 3) = cuInst(i,j,k,icon+2)/cuInst(i,j,k,icon);					// v  of spec l
 				primInst(i,j,k,iprim+ 4) = cuInst(i,j,k,icon+3)/cuInst(i,j,k,icon);					// w  of spec l
-				primInst(i,j,k,iprim+ 5) = pow(primInst(i,j,k,iprim+2),2);								// uu of spec l
-				primInst(i,j,k,iprim+ 6) = primInst(i,j,k,iprim+2)*primInst(i,j,k,iprim+3);		// uv of spec l
-				primInst(i,j,k,iprim+ 7) = primInst(i,j,k,iprim+2)*primInst(i,j,k,iprim+4);		// uw of spec l
-				primInst(i,j,k,iprim+ 8) = pow(primInst(i,j,k,iprim+3),2);								// vv of spec l
-				primInst(i,j,k,iprim+ 9) = primInst(i,j,k,iprim+3)*primInst(i,j,k,iprim+4);		// vw of spec l
-				primInst(i,j,k,iprim+10) = pow(primInst(i,j,k,iprim+4),2);								// ww of spec l
+				primInst(i,j,k,iprim+ 5) = pow(primInst(i,j,k,iprim+2),2);									// uu of spec l
+				primInst(i,j,k,iprim+ 6) = primInst(i,j,k,iprim+2)*primInst(i,j,k,iprim+3);	// uv of spec l
+				primInst(i,j,k,iprim+ 7) = primInst(i,j,k,iprim+2)*primInst(i,j,k,iprim+4);	// uw of spec l
+				primInst(i,j,k,iprim+ 8) = pow(primInst(i,j,k,iprim+3),2);									// vv of spec l
+				primInst(i,j,k,iprim+ 9) = primInst(i,j,k,iprim+3)*primInst(i,j,k,iprim+4);	// vw of spec l
+				primInst(i,j,k,iprim+10) = pow(primInst(i,j,k,iprim+4),2);									// ww of spec l
 				
 				Real vsqb = 0.5*(pow(primInst(i,j,k,iprim+2),2)+pow(primInst(i,j,k,iprim+3),2) +
 								     pow(primInst(i,j,k,iprim+4),2));
@@ -126,12 +132,20 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
 				primInst(i,j,k,iprim+11) = (cuInst(i,j,k,icon+4)/cuInst(i,j,k,icon)-vsqb*0.5)/cv_l;		// T  of spec l
 				primInst(i,j,k,iprim+12) = primInst(i,j,k,iprim+11)*(k_B/mass)*cuInst(i,j,k,icon);		// P  of spec l
 				primInst(i,j,k,iprim+13) = vsqb*moV+cv_l*primInst(i,j,k,iprim+11)*cuInst(i,j,k,icon);	// E  of spec l
+				
+				primInst(i,j,k,iprim+14) *= 0.5*moV;	// qx
+				primInst(i,j,k,iprim+15) *= 0.5*moV;	// qy
+				primInst(i,j,k,iprim+16) *= 0.5*moV;	// qz
 
 				// Total of primitive vars
 				// Handle temperature/energy seperately
-				primInst(i,j,k,11) += primInst(i,j,k,iprim+11)*primInst(i,j,k,iprim);                	// Mixture T = sum (nk*Tk)/n
-				primInst(i,j,k,12) += primInst(i,j,k,iprim+12);													 	// Mixture P = sum Pk
-				icon += 5; iprim += 14;
+				primInst(i,j,k,11) += primInst(i,j,k,iprim+11)*primInst(i,j,k,iprim);		// Mixture T = sum (nk*Tk)/n
+				
+				primInst(i,j,k,12) += primInst(i,j,k,iprim+12);													// Mixture P = sum Pk
+				primInst(i,j,k,14) += primInst(i,j,k,iprim+14);
+				primInst(i,j,k,15) += primInst(i,j,k,iprim+15);
+				primInst(i,j,k,16) += primInst(i,j,k,iprim+16);
+				icon += 5; iprim += nprimvars;
 			}
 			
 			// Primitive total
@@ -158,8 +172,8 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
 			// Convert n to Xk and rho to Yk
 			/*
 			for (int l=0; l<nspecies; l++) {
-				primInst(i,j,k,14*l+0)  /= primInst(i,j,k,0); //X_k
-				primInst(i,j,k,14*l+1)  /= primInst(i,j,k,0);  //Y_k
+				primInst(i,j,k,nprimvars*l+0)  /= primInst(i,j,k,0); //X_k
+				primInst(i,j,k,nprimvars*l+1)  /= primInst(i,j,k,0);  //Y_k
 			}*/
 		});
 		
@@ -260,6 +274,7 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
 		}
 
 		// Print to files
+		/*
     if (ParallelDescriptor::IOProcessor()) {
 			ofstream fileTg, fileTgN;
     	std::string Tgfname = "Tg.dat";
@@ -279,7 +294,7 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
     	}
     	fileTg << "\n"; fileTgN << "\n";
     	fileTg.close(); fileTgN.close();
-    }
+    }*/
 	}
 }
 

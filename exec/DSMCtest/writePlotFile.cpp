@@ -20,7 +20,8 @@ void FhdParticleContainer::writePlotFile(const MultiFab& mfcuInst,
 	BL_PROFILE_VAR("writePlotFile()",writePlotFile);
 
 	int ncon    = (nspecies+1)*5;
-	int nprim   = (nspecies+1)*14;
+	int nprimvars = 17;
+	int nprim   = (nspecies+1)*nprimvars;
 	int nvars   = 21 + ncon + nprim; // covariances + prim. vars + cons. vars
 
 	amrex::BoxArray ba = mfcuInst.boxArray();
@@ -126,6 +127,9 @@ void FhdParticleContainer::writePlotFile(const MultiFab& mfcuInst,
 	primNames[cnt++] = "TInstant";
 	primNames[cnt++] = "PInstant";
 	primNames[cnt++] = "EInstant";
+	primNames[cnt++] = "qxInstant";
+	primNames[cnt++] = "qyInstant";
+	primNames[cnt++] = "qzInstant";
 
 	for(int ispec=0;ispec<nspecies;ispec++) {
 		primNames[cnt++] = amrex::Concatenate("nInstant_",ispec,2);
@@ -142,6 +146,9 @@ void FhdParticleContainer::writePlotFile(const MultiFab& mfcuInst,
 		primNames[cnt++] = amrex::Concatenate("TInstant_",ispec,2);
 		primNames[cnt++] = amrex::Concatenate("PInstant_",ispec,2);
 		primNames[cnt++] = amrex::Concatenate("EInstant_",ispec,2);
+		primNames[cnt++] = amrex::Concatenate("qxInstant_",ispec,2);
+		primNames[cnt++] = amrex::Concatenate("qyInstant_",ispec,2);
+		primNames[cnt++] = amrex::Concatenate("qzInstant_",ispec,2);
 	}
 	MultiFab::Copy(mfprimplt, mfprimInst, 0, nprim*0, nprim, 0);
 
@@ -160,6 +167,9 @@ void FhdParticleContainer::writePlotFile(const MultiFab& mfcuInst,
 	primNames[cnt++] = "TMean";
 	primNames[cnt++] = "PMean";
 	primNames[cnt++] = "EMean";
+	primNames[cnt++] = "qxMean";
+	primNames[cnt++] = "qyMean";
+	primNames[cnt++] = "qzMean";
 
 	for(int ispec=0;ispec<nspecies;ispec++) {
 		primNames[cnt++] = amrex::Concatenate("nMean_",ispec,2);
@@ -176,6 +186,9 @@ void FhdParticleContainer::writePlotFile(const MultiFab& mfcuInst,
 		primNames[cnt++] = amrex::Concatenate("TMean_",ispec,2);
 		primNames[cnt++] = amrex::Concatenate("PMean_",ispec,2);
 		primNames[cnt++] = amrex::Concatenate("EMean_",ispec,2);
+		primNames[cnt++] = amrex::Concatenate("qxMean_",ispec,2);
+		primNames[cnt++] = amrex::Concatenate("qyMean_",ispec,2);
+		primNames[cnt++] = amrex::Concatenate("qzMean_",ispec,2);
 	}
 	MultiFab::Copy(mfprimplt, mfprimMeans, 0, nprim*1, nprim, 0);
 	

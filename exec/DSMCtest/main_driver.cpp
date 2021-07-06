@@ -82,7 +82,7 @@ void main_driver(const char* argv)
 
 		/*
 	  	Primitive Vars:
-			0	- n   (X_ns)
+			0	 - n   (X_ns)
 			1  - rho (Y_ns)
 			2  - u   (u_ns)
 			3  - v   (v_ns)
@@ -96,9 +96,13 @@ void main_driver(const char* argv)
 			11 - T   (T_ns)
 			12 - P   (P_ns)
 			13 - E   (E_ns)
+			14 - qx  (qx_ns) - Heat flux
+			15 - qy  (qy_ns)
+			16 - qz  (qz_ns)
 			... (repeat for each species)
 		*/
-		int nprim = (nspecies+1)*14;
+		int nprimvars = 17;
+		int nprim = (nspecies+1)*nprimvars;
 		primInst.define(ba, dmap, nprim, 0);   	primInst.setVal(0.);
 		primMeans.define(ba, dmap, nprim, 0);  	primMeans.setVal(0.);
 		primVars.define(ba, dmap, nprim, 0);    primVars.setVal(0.);
@@ -250,7 +254,7 @@ void main_driver(const char* argv)
 
 		particles.CalcSelections(dt);
 		particles.CollideParticles(dt);
-		//particles.Source(dt, paramPlaneList, paramPlaneCount);
+		particles.Source(dt, paramPlaneList, paramPlaneCount);
 		particles.MoveParticlesCPP(dt, paramPlaneList, paramPlaneCount);
 
 		//////////////////////////////////////
@@ -342,7 +346,7 @@ void main_driver(const char* argv)
  
 		Real tend = ParallelDescriptor::second() - tbegin;
 		ParallelDescriptor::ReduceRealMax(tend);
-		amrex::Print() << "Advanced step " << istep << " in " << tend << " seconds\n";
+		amrex::Print() << "Step " << istep << " in " << tend << " seconds\n";
 		time += dt;
 	}
 
@@ -350,11 +354,5 @@ void main_driver(const char* argv)
 	ParallelDescriptor::ReduceRealMax(stop_time);
 	amrex::Print() << "Run time = " << stop_time << " seconds" << std::endl;
 
-	// Output in case not enough stats
-	WriteCheckPoint(max_step, time, dt, statsCount,
-                     cuInst, cuMeans, cuVars,
-                     primInst, primMeans, primVars,
-                     coVars,
-                     particles); 
 	//if(particle_input<0 && ParallelDescriptor::MyProc() == 0) {particles.OutputParticles();} // initial condition
 }

@@ -281,7 +281,7 @@ void FhdParticleContainer::SortParticles()
 
             IntVect iv ={0,0,0};
 
-						amrex::Print() << "Part idata: " << part.idata(FHD_intData::sorted) << "\n";
+						//amrex::Print() << "Part idata: " << part.idata(FHD_intData::sorted) << "\n";
 
             if(part.idata(FHD_intData::sorted) == -1)
             {

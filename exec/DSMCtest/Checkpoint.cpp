@@ -194,7 +194,8 @@ void ReadCheckPoint(int& step,
         // MFs
         // MAKE SURE TO UPDATE IF INCREASED NUMBER OF VARS IN MF
         int cnvars  = (nspecies+1)*5;
-        int pnvars  = (nspecies+1)*14;
+        int nprimvars = 17;
+        int pnvars  = (nspecies+1)*nprimvars;
         int convars = 21;
         cuInst.define(ba,dm,cnvars,0);
         cuMeans.define(ba,dm,cnvars,0);
