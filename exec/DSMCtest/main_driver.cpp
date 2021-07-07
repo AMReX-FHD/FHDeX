@@ -101,8 +101,7 @@ void main_driver(const char* argv)
 			16 - qz  (qz_ns)
 			... (repeat for each species)
 		*/
-		int nprimvars = 17;
-		int nprim = (nspecies+1)*nprimvars;
+		int nprim = (nspecies+1)*17;
 		primInst.define(ba, dmap, nprim, 0);   	primInst.setVal(0.);
 		primMeans.define(ba, dmap, nprim, 0);  	primMeans.setVal(0.);
 		primVars.define(ba, dmap, nprim, 0);    primVars.setVal(0.);
@@ -190,23 +189,7 @@ void main_driver(const char* argv)
 	
 	int cRange = 0;
 	FhdParticleContainer particles(geom, dmap, ba, cRange);
-	particles.mfselect.define(ba, dmap, nspecies*nspecies, 0);
-	particles.mfselect.setVal(0.);
-		
-	particles.mfphi.define(ba, dmap, nspecies, 0);
-	particles.mfphi.setVal(0.);
-		
-	particles.mfvrmax.define(ba, dmap, nspecies*nspecies, 0);
-	particles.mfvrmax.setVal(0.);
-	if (restart < 0 && particle_restart < 0) {
-		// Collision Cell Vars
-  	particles.InitParticles(dt);
-  } else {
-  	ReadCheckPointParticles(particles);
-  }
-  // vrmax set here now
-	particles.InitCollisionCells();
-		
+
 	//////////////////////////////////////
 	// Structure Factor Setup
 	//////////////////////////////////////
@@ -239,6 +222,24 @@ void main_driver(const char* argv)
    // Structure Factor
 	StructFact structFactPrim  (ba, dmap, cu_struct_names, var_scaling);
 	MultiFab   structFactPrimMF(ba, dmap,      nvarstruct,           0);
+
+  particles.mfselect.define(ba, dmap, nspecies*nspecies, 0);
+	particles.mfselect.setVal(0.);
+		
+	particles.mfphi.define(ba, dmap, nspecies, 0);
+	particles.mfphi.setVal(0.);
+		
+	particles.mfvrmax.define(ba, dmap, nspecies*nspecies, 0);
+	particles.mfvrmax.setVal(0.);
+	
+	if (restart < 0 && particle_restart < 0) {
+		// Collision Cell Vars
+  	particles.InitParticles(dt);
+  } else {
+  	ReadCheckPointParticles(particles);
+  }
+  // vrmax set here now
+	particles.InitCollisionCells();
 
 	Real init_time = ParallelDescriptor::second() - strt_time;
 	ParallelDescriptor::ReduceRealMax(init_time);

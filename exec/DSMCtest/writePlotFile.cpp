@@ -20,8 +20,7 @@ void FhdParticleContainer::writePlotFile(const MultiFab& mfcuInst,
 	BL_PROFILE_VAR("writePlotFile()",writePlotFile);
 
 	int ncon    = (nspecies+1)*5;
-	int nprimvars = 17;
-	int nprim   = (nspecies+1)*nprimvars;
+	int nprim   = (nspecies+1)*17;
 	int nvars   = 21 + ncon + nprim; // covariances + prim. vars + cons. vars
 
 	amrex::BoxArray ba = mfcuInst.boxArray();
@@ -256,6 +255,9 @@ void FhdParticleContainer::writePlotFile(const MultiFab& mfcuInst,
 	varNames[cnt++] = "TVar";
 	varNames[cnt++] = "PVar";
 	varNames[cnt++] = "EVar";
+	varNames[cnt++] = "qxVar";
+	varNames[cnt++] = "qyVar";
+	varNames[cnt++] = "qzVar";
 
 	for(int ispec=0;ispec<nspecies;ispec++) {
 		varNames[cnt++] = amrex::Concatenate("nVar_",ispec,2);
@@ -272,6 +274,9 @@ void FhdParticleContainer::writePlotFile(const MultiFab& mfcuInst,
 		varNames[cnt++] = amrex::Concatenate("TVar_",ispec,2);
 		varNames[cnt++] = amrex::Concatenate("PVar_",ispec,2);
 		varNames[cnt++] = amrex::Concatenate("EVar_",ispec,2);
+		varNames[cnt++] = amrex::Concatenate("qxVar_",ispec,2);
+		varNames[cnt++] = amrex::Concatenate("qyVar_",ispec,2);
+		varNames[cnt++] = amrex::Concatenate("qzVar_",ispec,2);
 	}
 	MultiFab::Copy(mfvarplt, mfprimVars, 0, istart, nprim, 0);
 	istart += (nspecies+1)*14;

@@ -52,8 +52,7 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
 		*/
 		
 		int ncon  = (nspecies+1)*5;
-		int nprimvars = 17;
-		int nprim = (nspecies+1)*nprimvars;
+		int nprim = (nspecies+1)*17;
 		Array4<Real> cuInst     = mfcuInst[pti].array();
 		Array4<Real> primInst   = mfprimInst[pti].array();
 		Array4<Real> cuMeans    = mfcuMeans[pti].array();
@@ -247,6 +246,7 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
 		});
 		
 		// Global Granular Temperature
+		/*
 		Real Tgl[nspecies];
 		Real npl[nspecies];
 		for (int l=0; l<nspecies; l++) {Tgl[l] = 0.; npl[l] = 0.;}
@@ -274,7 +274,6 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
 		}
 
 		// Print to files
-		/*
     if (ParallelDescriptor::IOProcessor()) {
 			ofstream fileTg, fileTgN;
     	std::string Tgfname = "Tg.dat";
