@@ -66,8 +66,9 @@ void FhdParticleContainer::InitParticles(Real & dt) {
 					if(vpart[2]>wmax) { wmax=vpart[2]; }
 
 					particleFile >> p.idata(FHD_intData::species);
-					int ispec = p.idata(FHD_intData::species);
-					p.rdata(FHD_realData::R) = k_B/properties[ispec].mass;
+					int i_spec = p.idata(FHD_intData::species);
+					p.idata(FHD_intData::species_change) = i_spec;
+					p.rdata(FHD_realData::R) = k_B/properties[i_spec].mass;
 					p.rdata(FHD_realData::boostx) = 0;
 					p.rdata(FHD_realData::boosty) = 0;
 					p.rdata(FHD_realData::boostz) = 0;
@@ -78,7 +79,9 @@ void FhdParticleContainer::InitParticles(Real & dt) {
 				// Initialize to bulk velocities
 				for(int i_spec=0; i_spec < nspecies; i_spec++) {
 					u[i_spec] = 0.0; v[i_spec] = 0.0; w[i_spec] = 0.0;
+					amrex::Print() << "u0: " << u[i_spec] << "\n";
 				}
+				
 				for(int i_spec=0; i_spec < nspecies; i_spec++) {
 					// Standard deviation of velocity at temperature T_init
 					Real R     = k_B/properties[i_spec].mass;
@@ -89,6 +92,7 @@ void FhdParticleContainer::InitParticles(Real & dt) {
 						p.cpu() = ParallelDescriptor::MyProc();
 						p.idata(FHD_intData::sorted) = -1;
 						p.idata(FHD_intData::species) = i_spec;
+						p.idata(FHD_intData::species_change) = i_spec;
 						p.rdata(FHD_realData::R) = R;
 						p.pos(0) = prob_lo[0] + amrex::Random()*(prob_hi[0]-prob_lo[0]);
 						p.pos(1) = prob_lo[1] + amrex::Random()*(prob_hi[1]-prob_lo[1]);
@@ -97,9 +101,9 @@ void FhdParticleContainer::InitParticles(Real & dt) {
 						vpart[1] = stdev*amrex::RandomNormal(0.,1.);
 						vpart[2] = stdev*amrex::RandomNormal(0.,1.);
 
-						p.rdata(FHD_realData::velx) = vpart[0]; u[p.idata(FHD_intData::species)] += vpart[0];
-						p.rdata(FHD_realData::vely) = vpart[1]; v[p.idata(FHD_intData::species)] += vpart[1];
-						p.rdata(FHD_realData::velz) = vpart[2]; w[p.idata(FHD_intData::species)] += vpart[2];
+						p.rdata(FHD_realData::velx) = vpart[0];
+						p.rdata(FHD_realData::vely) = vpart[1];
+						p.rdata(FHD_realData::velz) = vpart[2];
 						spd = sqrt(pow(vpart[0],2)+pow(vpart[1],2)+pow(vpart[2],2));
 
 						if(spd>spdmax){ spdmax=spd; }
@@ -108,6 +112,10 @@ void FhdParticleContainer::InitParticles(Real & dt) {
 						if(vpart[1]>vmax) { vmax=vpart[1]; }
 						if(vpart[2]>wmax) { wmax=vpart[2]; }
 
+						u[p.idata(FHD_intData::species)] += vpart[0];
+						v[p.idata(FHD_intData::species)] += vpart[1];
+						w[p.idata(FHD_intData::species)] += vpart[2];
+
 						p.rdata(FHD_realData::boostx) = 0;
 						p.rdata(FHD_realData::boosty) = 0;
 						p.rdata(FHD_realData::boostz) = 0;
@@ -115,21 +123,26 @@ void FhdParticleContainer::InitParticles(Real & dt) {
 						pcount++;
 					}
 				}
-			}
 
-			int nstart = 0;
-			for(int i_spec=0; i_spec < nspecies; i_spec++) {
 				// Zero out the bulk velocities
-				u[i_spec] = u[i_spec]/properties[i_spec].total;
-				v[i_spec] = v[i_spec]/properties[i_spec].total;
-				w[i_spec] = w[i_spec]/properties[i_spec].total;
-				for (int i_part=nstart; i_part<nstart+properties[i_spec].total;i_part++) {
-					ParticleType & p = particles[i_part];
-					p.rdata(FHD_realData::velx) = p.rdata(FHD_realData::velx) - u[i_spec];
-					p.rdata(FHD_realData::vely) = p.rdata(FHD_realData::vely) - v[i_spec];
-					p.rdata(FHD_realData::velz) = p.rdata(FHD_realData::velz) - w[i_spec];
+				// Only do if no restart provided for particles
+				amrex::Print() << "Zeroing Bulk Velocities" << "\n";
+				// VCOM by species
+				for(int i_spec=0; i_spec < nspecies; i_spec++) {
+					long npi = properties[i_spec].total;
+					u[i_spec] = u[i_spec]/npi;
+					v[i_spec] = v[i_spec]/npi;
+					w[i_spec] = w[i_spec]/npi;
 				}
-				nstart += properties[i_spec].total;
+
+				const int np = particles.numParticles();
+				for(int i = 0; i < np; i++) {
+					ParticleType & part = particles[i];
+					int i_spec = part.idata(FHD_intData::species);
+					part.rdata(FHD_realData::velx) = part.rdata(FHD_realData::velx)-u[i_spec];
+					part.rdata(FHD_realData::vely) = part.rdata(FHD_realData::vely)-v[i_spec];
+					part.rdata(FHD_realData::velz) = part.rdata(FHD_realData::velz)-w[i_spec];
+				}
 			}
 		}
 	}

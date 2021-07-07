@@ -40,7 +40,7 @@ void WriteCheckPoint(int step,
 
 	// checkpoint file name, e.g., chk0000010
 	const std::string& checkpointname =
-		amrex::Concatenate(chk_base_name,step,9);
+		amrex::Concatenate(chk_base_name,step,12);
 
 	amrex::Print() << "Writing checkpoint " << checkpointname << "\n";
 
@@ -147,9 +147,9 @@ void ReadCheckPoint(int& step,
 
 	// checkpoint file name, e.g., chk0000010
 	const std::string& checkpointname =
-    	amrex::Concatenate(chk_base_name,restart,9);
+    	amrex::Concatenate(chk_base_name,restart,12);
 
-    amrex::Print() << "Restart from checkpoint " << checkpointname << "\n";
+	amrex::Print() << "Restart from checkpoint " << checkpointname << "\n";
 
     VisMF::IO_Buffer io_buffer(VisMF::GetIOBufferSize());
 
@@ -290,10 +290,10 @@ void ReadCheckPointParticles(FhdParticleContainer& particles) {
     std::string checkpointname;
 
     if (particle_restart > 0) {
-        checkpointname = amrex::Concatenate(chk_base_name,particle_restart,9);
+        checkpointname = amrex::Concatenate(chk_base_name,particle_restart,12);
     }
     else {
-        checkpointname = amrex::Concatenate(chk_base_name,restart,9);
+        checkpointname = amrex::Concatenate(chk_base_name,restart,12);
     }
 
     amrex::Print() << "Restart particles from checkpoint " << checkpointname << "\n";

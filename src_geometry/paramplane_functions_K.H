@@ -200,19 +200,14 @@ void app_bc_gpu(const paramPlane* surf, FhdParticleContainer::ParticleType& part
         }
         
         Real Ykl = 0;
-        for(int l=0; l<nspecies; l++ ) {
-        	Ykl += (surf->densityRight[l]);
-	        if(amrex::Random() > Ykl)
-  	      {
-  	      		part.idata(FHD_intData::species) = l;
-  	      		part.rdata(FHD_realData::R) =
-  	      			k_B/mass[l];
-  	      		part.rdata(FHD_realData::mass) =
-  	      			mass[l];
-  	      		part.rdata(FHD_realData::radius) =
-  	      			diameter[l]*0.5;
-  	      }
+        Real RR = amrex::Random();
+        int l = 0;
+        while(RR > Ykl) {
+        	Ykl += (surf->densityRight[l++]);
 				}
+				l--;
+				part.idata(FHD_intData::species_change) = l;
+
       }
       else if(amrex::Random() < surf->periodicity)
       {
@@ -315,19 +310,14 @@ void app_bc_gpu(const paramPlane* surf, FhdParticleContainer::ParticleType& part
         }
         
         Real Ykl = 0;
-        for(int l=0; l<nspecies; l++ ) {
-        	Ykl += (surf->densityLeft[l]);
-	        if(amrex::Random() > Ykl)
-  	      {
-  	      		part.idata(FHD_intData::species) = l;
-  	      		part.rdata(FHD_realData::R) =
-  	      			k_B/mass[l];
-  	      		part.rdata(FHD_realData::mass) =
-  	      			mass[l];
-  	      		part.rdata(FHD_realData::radius) =
-  	      			diameter[l]*0.5;
-  	      }
+        Real RR = amrex::Random();
+        int l = 0;
+        while(RR > Ykl) {
+        	Ykl += (surf->densityLeft[l++]);
 				}
+				l--;
+				part.idata(FHD_intData::species_change) = l;
+
       }
       else if(amrex::Random() < surf->periodicity) // periodic
       {

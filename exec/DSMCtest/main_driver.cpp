@@ -231,6 +231,7 @@ void main_driver(const char* argv)
 	amrex::Print() << "Initialization time = " << init_time << " seconds " << std::endl;
 
 	max_step += step;
+	n_steps_skip += step;
 	for (int istep=step; istep<=max_step; ++istep) {
 		Real tbegin = ParallelDescriptor::second();
 
@@ -247,7 +248,7 @@ void main_driver(const char* argv)
 		// Stats
 		//////////////////////////////////////
 
-		if (istep > amrex::Math::abs(n_steps_skip)) {
+		if (istep >= amrex::Math::abs(n_steps_skip)) {
 			cuInst.setVal(0.);
 			primInst.setVal(0.);
 			if(statsCount == 1) {
@@ -266,8 +267,8 @@ void main_driver(const char* argv)
 		// PlotFile
 		//////////////////////////////////////
 
-    		bool writePlt = false;
-    		if (plot_int > 0 && istep>0) {
+		bool writePlt = false;
+		if (plot_int > 0 && istep>0) {
 			if (n_steps_skip >= 0) { // for positive n_steps_skip, write out at plot_int
 				writePlt = (istep%plot_int == 0);
 			} else if (n_steps_skip < 0) { // for negative n_steps_skip, write out at plot_int-1
@@ -328,7 +329,7 @@ void main_driver(const char* argv)
 		// Checkpoint
 		//////////////////////////////////////
 
-		if (chk_int > 0 && istep%chk_int == 0) {
+		if (chk_int > 0 && istep%chk_int == 0 && istep > step) {
 			WriteCheckPoint(istep, time, dt, statsCount,
 				cuInst, cuMeans, cuVars, primInst, primMeans, primVars, coVars,
 				particles);

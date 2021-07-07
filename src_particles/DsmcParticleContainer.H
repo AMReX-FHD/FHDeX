@@ -59,6 +59,7 @@ struct FHD_intData {
         j,
         k,
         species,
+        species_change, // for concentration wall
         count
     };
 
@@ -68,7 +69,8 @@ struct FHD_intData {
             "i",
             "j",
             "k",
-            "species"
+            "species",
+            "species_change"
         };
     };
 };
@@ -84,7 +86,7 @@ typedef struct {
   double Neff;
   double partVol;
   double part2cellVol;
-  // double alpha_wall; // resitution with wall
+  // double alpha_wall; // restitution with wall
   // double beta_wall; // friction with wall (for later)
   
 } dsmcSpecies;

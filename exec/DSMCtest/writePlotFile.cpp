@@ -26,9 +26,9 @@ void FhdParticleContainer::writePlotFile(const MultiFab& mfcuInst,
 	amrex::BoxArray ba = mfcuInst.boxArray();
 	amrex::DistributionMapping dmap = mfcuInst.DistributionMap();
 
-	std::string pltcu    = amrex::Concatenate("pltcu",step,9);
-	std::string pltprim  = amrex::Concatenate("pltprim",step,9);
-	std::string pltvar   = amrex::Concatenate("pltvar",step,9);
+	std::string pltcu    = amrex::Concatenate("pltcu",step,12);
+	std::string pltprim  = amrex::Concatenate("pltprim",step,12);
+	std::string pltvar   = amrex::Concatenate("pltvar",step,12);
 
 	amrex::MultiFab mfcuplt(ba, dmap, 2*ncon, 0);
 	amrex::MultiFab mfprimplt(ba, dmap, 2*nprim, 0);
