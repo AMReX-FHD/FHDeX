@@ -23,13 +23,14 @@ double getPhi(double nx, double ny, double nz)
 void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const Real* domainLo, const Real* domainHi)
 {
 
-    double theta, phi;
+		double theta, phi;
     Real xl = prob_hi[0] - prob_lo[0];
     Real yl = prob_hi[1] - prob_lo[1];
     Real zl = prob_hi[2] - prob_lo[2];
 
-//Domain boundaries
+		//Domain boundaries		
 		// Initialize Boundaries when possible
+		// Likely redundant		
 		for(int i=0; i<6; i++) {
 			for(int l=0;l<nspecies;l++) {
 	    	paramPlaneList[i].densityLeft[l]  = rho0*Yk0[l]/(mass[l]*particle_neff);
@@ -560,16 +561,46 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
     	cout << paramPlaneList[i].densityLeft[0] << "\n";
     	cout << paramPlaneList[i].densityRight[0] << "\n";
     }*/
-    
+
+		// Normalize Yk at boundaries
+		if(bc_mass_lo[0]>0) {
+			Real Yktot = 0.;
+			for(int l=0; l<nspecies; l++) { Yktot += bc_Yk_x_lo[l]; }
+			for(int l=0; l<nspecies; l++) { bc_Yk_x_lo[l] /= Yktot; }
+		}
+		if(bc_mass_hi[0]>0) {
+			Real Yktot = 0.;
+			for(int l=0; l<nspecies; l++) { Yktot += bc_Yk_x_hi[l]; }
+			for(int l=0; l<nspecies; l++) { bc_Yk_x_hi[l] /= Yktot; }
+		}
+		if(bc_mass_lo[1]>0) {
+			Real Yktot = 0.;
+			for(int l=0; l<nspecies; l++) { Yktot += bc_Yk_y_lo[l]; }
+			for(int l=0; l<nspecies; l++) { bc_Yk_y_lo[l] /= Yktot; }
+		}
+		if(bc_mass_hi[1]>0) {
+			Real Yktot = 0.;
+			for(int l=0; l<nspecies; l++) { Yktot += bc_Yk_y_hi[l]; }
+			for(int l=0; l<nspecies; l++) { bc_Yk_y_hi[l] /= Yktot; }
+		}
+		if(bc_mass_lo[2]>0) {
+			Real Yktot = 0.;
+			for(int l=0; l<nspecies; l++) { Yktot += bc_Yk_z_lo[l]; }
+			for(int l=0; l<nspecies; l++) { bc_Yk_z_lo[l] /= Yktot; }
+		}
+		if(bc_mass_hi[2]>0) {
+			Real Yktot = 0.;
+			for(int l=0; l<nspecies; l++) { Yktot += bc_Yk_z_hi[l]; }
+			for(int l=0; l<nspecies; l++) { bc_Yk_z_hi[l] /= Yktot; }
+		}
+
     // Thermal/Conc BC
     // Adiabatic not considered here
-    // Solid walls not considered here (not trivial for concentration)
-    // Will conflict with velocity BC (need to resolve at one point)
-    // Implemented Lees-Edwards BC for unbounded shear
+    // Implemented Lees-Edwards BC for unbounded shear (bc_vel==3)
     int p = 0;
     for(int i=0; i<3 ; i++) {
-    	// Lower (Left, Bottom, Back)
-    	paramPlaneList[p].specularityLeft = 0;
+			// Lower (Left, Bottom, Back)
+			paramPlaneList[p].specularityLeft = 0;
     	paramPlaneList[p].specularityRight = 0;
     	paramPlaneList[p].porosityLeft = 1;
     	paramPlaneList[p].porosityRight = 1;
@@ -578,118 +609,199 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
       paramPlaneList[p].sourceRight = 0;
 	    paramPlaneList[p].sinkRight = 0;
     	paramPlaneList[p].periodicity = 0;
+	    paramPlaneList[p].temperatureLeft  = T_init[0];
+	    paramPlaneList[p].temperatureRight = T_init[0];
+
+			for (int l=0; l<nspecies; l++) {
+				if(i==0) {
+					paramPlaneList[p].densityLeft[l] = -1;
+					paramPlaneList[p].densityRight[l] = -1;
+				} else if(i==1) {
+					paramPlaneList[p].densityLeft[l] = -1;
+					paramPlaneList[p].densityRight[l] = -1;
+				} else {
+					paramPlaneList[p].densityLeft[l]  = -1;
+					paramPlaneList[p].densityRight[l] = -1;
+				}
+			}
 
 			// Periodic
-    	if(bc_mass_lo[i] == -1) {
-    		if(bc_therm_lo[i] == -1) {
-    			paramPlaneList[p].periodicity = 1;
-    		// solid thermal wall
-    		} else if(bc_therm_lo[i] == 2) {
-    			paramPlaneList[p].temperatureLeft = t_lo[i];
+			if(bc_mass_lo[i] == -1 &&
+				bc_therm_lo[i] == -1 &&
+				(bc_vel_lo[i] == -1 || bc_vel_lo[i] == 3)) {
+				paramPlaneList[p].periodicity = 1;
+
+			// Solid Wall
+			} else if (bc_vel_lo[i] == 1 ||
+				bc_vel_lo[i] == 2 ||
+				bc_therm_lo[i] == 2 ||
+				bc_mass_lo[i] == 1) {
+				paramPlaneList[p].porosityLeft = 0;
+				paramPlaneList[p].porosityRight = 0;
+
+				// Thermal Wall
+				if(bc_therm_lo[i] == 2) {
+					paramPlaneList[p].temperatureLeft = t_lo[i];
     			paramPlaneList[p].temperatureRight = t_lo[i];
-    			paramPlaneList[p].porosityLeft = 0;
-    			paramPlaneList[p].porosityRight = 0;
-    			paramPlaneList[p].sourceLeft = 0;
-    			paramPlaneList[p].sourceRight = 0;
-    			paramPlaneList[p].sinkLeft = 0;
-    			paramPlaneList[p].sinkRight = 0;
+    		// Full slip
+    		} else if(bc_vel_lo[i] == 1) {
+    			paramPlaneList[p].specularityLeft = 1;
+    			paramPlaneList[p].specularityRight = 1;
     		}
+    		
+    		// Concentration Wall
+    		if(bc_mass_lo[i] == 1) {
+					for (int l=0; l<nspecies; l++) {
+						if(i==0) {
+							paramPlaneList[p].densityLeft[l] = 
+								bc_Yk_x_lo[l];
+							paramPlaneList[p].densityRight[l] = 
+								bc_Yk_x_lo[l];
+						} else if(i==1) {
+							paramPlaneList[p].densityLeft[l] = 
+								bc_Yk_y_lo[l];
+							paramPlaneList[p].densityRight[l] = 
+								bc_Yk_y_lo[l];
+						} else {
+							paramPlaneList[p].densityLeft[l]  = 
+								bc_Yk_z_lo[l];
+							paramPlaneList[p].densityRight[l] = 
+								bc_Yk_z_lo[l];
+						}
+					}
+    		}
+
     	// Reservoir
-    	} else if(bc_mass_lo[i] == 2) {
-        paramPlaneList[p].porosityLeft = 1;
-        paramPlaneList[p].porosityRight = 1;
+    	} else if (bc_mass_lo[i] == 2) {
   	  	paramPlaneList[p].sourceLeft = 0;
  	     	paramPlaneList[p].sourceRight = 1;
  	     	paramPlaneList[p].sinkLeft = 1;
 	    	paramPlaneList[p].sinkRight = 0;
-	    	
-	    	for(int l=0;l<nspecies;l++) {
-	    		if(i==0) {
-		    		paramPlaneList[p].densityLeft[l]  = 
-		    			rho_lo[i]*bc_Yk_x_lo[l]/(mass[l]*particle_neff);
-		    		paramPlaneList[p].densityRight[l] = 
-		    			rho_lo[i]*bc_Yk_x_lo[l]/(mass[l]*particle_neff);
-		    	} else if(i==1) {
-		    		paramPlaneList[p].densityLeft[l]  = 
-		    			rho_lo[i]*bc_Yk_y_lo[l]/(mass[l]*particle_neff);
-		    		paramPlaneList[p].densityRight[l] = 
-		    			rho_lo[i]*bc_Yk_y_lo[l]/(mass[l]*particle_neff);
-		    	} else {
+				for (int l=0; l<nspecies; l++) {
+					if(i==0) {
 						paramPlaneList[p].densityLeft[l]  = 
-		    			rho_lo[i]*bc_Yk_z_lo[l]/(mass[l]*particle_neff);
-		    		paramPlaneList[p].densityRight[l] = 
-		    			rho_lo[i]*bc_Yk_z_lo[l]/(mass[l]*particle_neff);
-		    	}
-	    	}
-	    	
-	    	if(bc_therm_lo[i] == -1) {
-    			// Defaults to initial temperature earlier
-    		} else if(bc_therm_lo[i] == 2) {
-    			paramPlaneList[p].temperatureLeft  = t_lo[i];
-    			paramPlaneList[p].temperatureRight = t_lo[i];
-    		}
-    	}
+							rho_lo[i]*bc_Yk_x_lo[l]/(mass[l]*particle_neff);
+						paramPlaneList[p].densityRight[l] = 
+							rho_lo[i]*bc_Yk_x_lo[l]/(mass[l]*particle_neff);
+					} else if(i==1) {
+						paramPlaneList[p].densityLeft[l]  = 
+							rho_lo[i]*bc_Yk_y_lo[l]/(mass[l]*particle_neff);
+						paramPlaneList[p].densityRight[l] = 
+							rho_lo[i]*bc_Yk_y_lo[l]/(mass[l]*particle_neff);
+					} else {
+						paramPlaneList[p].densityLeft[l]  = 
+							rho_lo[i]*bc_Yk_z_lo[l]/(mass[l]*particle_neff);
+						paramPlaneList[p].densityRight[l] = 
+							rho_lo[i]*bc_Yk_z_lo[l]/(mass[l]*particle_neff);
+					}
+				}
+				
+				if(bc_therm_lo[i] == 2) {
+					paramPlaneList[p].temperatureLeft = t_lo[i];
+    			paramPlaneList[p].temperatureRight = t_lo[i];					
+				}
+			}
     	
-    	// Upper Boundary (Right, Top, Front)
-    	paramPlaneList[p+1].specularityLeft = 0;
-    	paramPlaneList[p+1].specularityRight = 0;
-    	paramPlaneList[p+1].sourceLeft = 0;
+			// Upper Boundary (Right, Top, Front)
+			paramPlaneList[p+1].specularityLeft = 0;
+			paramPlaneList[p+1].specularityRight = 0;
+			paramPlaneList[p+1].sourceLeft = 0;
     	paramPlaneList[p+1].sinkLeft = 0;
       paramPlaneList[p+1].sourceRight = 0;
 	    paramPlaneList[p+1].sinkRight = 0;    	
     	paramPlaneList[p+1].porosityLeft = 1;
     	paramPlaneList[p+1].porosityRight = 1;
     	paramPlaneList[p+1].periodicity = 0;
+	    paramPlaneList[p+1].temperatureLeft  = T_init[0];
+	    paramPlaneList[p+1].temperatureRight = T_init[0];
+	    
+			for (int l=0; l<nspecies; l++) {
+				if(i==0) {
+					paramPlaneList[p+1].densityLeft[l] = -1;
+					paramPlaneList[p+1].densityRight[l] = -1;
+				} else if(i==1) {
+					paramPlaneList[p+1].densityLeft[l] = -1;
+					paramPlaneList[p+1].densityRight[l] = -1;
+				} else {
+					paramPlaneList[p+1].densityLeft[l]  = -1;
+					paramPlaneList[p+1].densityRight[l] = -1;
+				}
+			}
 
-    	if(bc_mass_hi[i] == -1) {
-    		if(bc_therm_hi[i] == -1) {
-    			paramPlaneList[p+1].periodicity = 1;
-    		} else if(bc_therm_hi[i] == 2) {
-    			paramPlaneList[p+1].temperatureLeft = t_hi[i];
+			// Periodic
+			if(bc_mass_hi[i] == -1 &&
+				bc_therm_hi[i] == -1 &&
+				(bc_vel_hi[i] == -1 || bc_vel_hi[i] == 3)) {
+				paramPlaneList[p+1].periodicity = 1;
+
+			// Solid Wall
+			} else if (bc_vel_hi[i] == 1 ||
+				bc_vel_hi[i] == 2 ||
+				bc_therm_hi[i] == 2 ||
+				bc_mass_hi[i] == 1) {
+				paramPlaneList[p+1].porosityLeft = 0;
+				paramPlaneList[p+1].porosityRight = 0;
+
+				if(bc_therm_hi[i] == 2) {
+					paramPlaneList[p+1].temperatureLeft = t_hi[i];
     			paramPlaneList[p+1].temperatureRight = t_hi[i];
-    			// Concentration defaulted earlier to initial conc.
-    			paramPlaneList[p+1].porosityLeft = 0;
-    			paramPlaneList[p+1].porosityRight = 0;
-    			paramPlaneList[p+1].sourceLeft = 0;
-    			paramPlaneList[p+1].sourceRight = 0;
-    			paramPlaneList[p+1].sinkLeft = 0;	
-    			paramPlaneList[p+1].sinkRight = 0;		
+    		} else if(bc_vel_hi[i] == 2) {
+    			paramPlaneList[p+1].specularityLeft = 1;
+    			paramPlaneList[p+1].specularityRight = 1;
     		}
+
+				// Concentration wall
+    		if(bc_mass_hi[i] == 1) {    		
+ 					for (int l=0; l<nspecies; l++) {
+						if(i==0) {
+							paramPlaneList[p+1].densityLeft[l] = 
+								bc_Yk_x_hi[l];
+							paramPlaneList[p+1].densityRight[l] = 
+								bc_Yk_x_hi[l];
+						} else if(i==1) {
+							paramPlaneList[p+1].densityLeft[l] = 
+								bc_Yk_y_hi[l];
+							paramPlaneList[p+1].densityRight[l] = 
+								bc_Yk_y_hi[l];
+						} else {
+							paramPlaneList[p+1].densityLeft[l]  = 
+								bc_Yk_z_hi[l];
+							paramPlaneList[p+1].densityRight[l] = 
+								bc_Yk_z_hi[l];
+						}
+					}
+    		}
+
     	// Reservoir
-    	} else if(bc_mass_hi[i] == 2) {
-        paramPlaneList[p+1].porosityLeft = 1;
-        paramPlaneList[p+1].porosityRight = 1;
+    	} else if (bc_mass_hi[i] == 2) {
   	  	paramPlaneList[p+1].sourceLeft = 1;
  	     	paramPlaneList[p+1].sourceRight = 0;
  	     	paramPlaneList[p+1].sinkLeft = 0;
 	    	paramPlaneList[p+1].sinkRight = 1;
-	    	
-	    	for(int l=0;l<nspecies;l++) {
-	    		if(i==0) {
-		    		paramPlaneList[p+1].densityLeft[l]  = 
-		    			rho_hi[i]*bc_Yk_x_hi[l]/(mass[l]*particle_neff);
-		    		paramPlaneList[p+1].densityRight[l] = 
-		    			rho_hi[i]*bc_Yk_x_hi[l]/(mass[l]*particle_neff);
-		    	} else if(i==1) {
-		    		paramPlaneList[p+1].densityLeft[l]  = 
-		    			rho_hi[i]*bc_Yk_y_hi[l]/(mass[l]*particle_neff);
-		    		paramPlaneList[p+1].densityRight[l] = 
-		    			rho_hi[i]*bc_Yk_y_hi[l]/(mass[l]*particle_neff);
-		    	} else {
+
+				for (int l=0; l<nspecies; l++) {
+					if(i==0) {
 						paramPlaneList[p+1].densityLeft[l]  = 
-		    			rho_hi[i]*bc_Yk_z_hi[l]/(mass[l]*particle_neff);
-		    		paramPlaneList[p+1].densityRight[l] = 
-		    			rho_hi[i]*bc_Yk_z_hi[l]/(mass[l]*particle_neff);		    	
-		    	}
-	    	}	    	
-	    	
-	    	if(bc_therm_hi[i] == -1) {
-    			// Defaults to initial temperature earlier
-    		} else if(bc_therm_hi[i] == 2) {
-    			paramPlaneList[p+1].temperatureLeft  = t_hi[i];
-    			paramPlaneList[p+1].temperatureRight = t_hi[i];
-    		}
-    	}
+							rho_hi[i]*bc_Yk_x_hi[l]/(mass[l]*particle_neff);
+						paramPlaneList[p+1].densityRight[l] = 
+							rho_hi[i]*bc_Yk_x_hi[l]/(mass[l]*particle_neff);
+					} else if(i==1) {
+						paramPlaneList[p+1].densityLeft[l]  = 
+							rho_hi[i]*bc_Yk_y_hi[l]/(mass[l]*particle_neff);
+						paramPlaneList[p+1].densityRight[l] = 
+							rho_hi[i]*bc_Yk_y_hi[l]/(mass[l]*particle_neff);
+					} else {
+						paramPlaneList[p+1].densityLeft[l]  = 
+							rho_hi[i]*bc_Yk_z_hi[l]/(mass[l]*particle_neff);
+						paramPlaneList[p+1].densityRight[l] = 
+							rho_hi[i]*bc_Yk_z_hi[l]/(mass[l]*particle_neff);
+					}
+				}
+				if(bc_therm_hi[i] == 2) {
+					paramPlaneList[p+1].temperatureLeft = t_hi[i];
+    			paramPlaneList[p+1].temperatureRight = t_hi[i];					
+				}
+			}
     	p += 2;
     }
     

@@ -23,6 +23,7 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
 	ocollisionCellVol = 1/collisionCellVol;
 	
 	if(rho0<0) {rho0=0.;}
+	
 	for(int i=0;i<nspecies;i++) {
 		properties[i].mass = mass[i];
 		properties[i].radius = diameter[i]/2.0;
@@ -95,8 +96,7 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
 		Yk0[i] = rhop/rho0;
 		amrex::Print() << "Yk: " << Yk0[i] << "\n";
 	}
-		
-
+	
 	for (int d=0; d<AMREX_SPACEDIM; ++d) {
 		domSize[d] = prob_hi[d] - prob_lo[d];
 	}
