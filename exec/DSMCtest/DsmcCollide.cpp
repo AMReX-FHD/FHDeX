@@ -45,9 +45,9 @@ Real FhdParticleContainer::g0_Ma_Ahmadi(int ispec, int jspec, Real iphi, Real jp
 void FhdParticleContainer::InitCollisionCells() {
 	BL_PROFILE_VAR("InitCollisionCells()",InitCollisionCells);
 	int indx, ij_spec;
-   int cnt = 0;
-   Real totalPhi = 0;
-   Real mindiam = 1000;
+	int cnt = 0;
+	Real totalPhi = 0;
+	Real mindiam = 1000;
 	for(int i_spec=0;i_spec<nspecies;i_spec++) {
 		totalPhi += phi_domain[i_spec];
 		mindiam = std::min(mindiam,2.0*properties[i_spec].radius);
@@ -94,29 +94,6 @@ void FhdParticleContainer::InitCollisionCells() {
 			}
 		});
 	}
-		
-		
-	Real spd, spdmax = 0.;
-	Real u,v,w;
-	for (FhdParIter pti(* this, lev); pti.isValid(); ++pti) {
-		const int grid_id = pti.index();
-		const int tile_id = pti.LocalTileIndex();
-		const Box& tile_box  = pti.tilebox();
-		
-		auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
-		auto& particles = particle_tile.GetArrayOfStructs();		
-		const long np = particles.numParticles();
-		
-		for (int i = 0; i < np; ++ i) {
-			ParticleType & part = particles[i];
-			u = part.rdata(FHD_realData::velx);
-			v = part.rdata(FHD_realData::vely);
-			w = part.rdata(FHD_realData::velz);
-			spd = pow(u*u + v*v + w*w,0.5);
-			if(spd>spdmax) { spdmax = spd;}
-		}
-	}
-	mfvrmax.setVal(spdmax);
 }
 
 // Compute selections here

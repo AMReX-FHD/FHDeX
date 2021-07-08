@@ -24,6 +24,7 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 {
 
 		double theta, phi;
+		Real local_pi = 4.0*atan(1.0);
     Real xl = prob_hi[0] - prob_lo[0];
     Real yl = prob_hi[1] - prob_lo[1];
     Real zl = prob_hi[2] - prob_lo[2];
@@ -562,36 +563,89 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
     	cout << paramPlaneList[i].densityRight[0] << "\n";
     }*/
 
-		// Normalize Yk at boundaries
+		// Convert mass fractions to number densities to mole fractions
+		// If mass fractions defined, mole fractions overwritten
+		// Note, because Yk normalized, mass density at wall is in the end same
+		// ... as mass density slightly away from wall (assuming no vol exclu)
+		// Normalize Xk at boundaries
 		if(bc_mass_lo[0]>0) {
-			Real Yktot = 0.;
-			for(int l=0; l<nspecies; l++) { Yktot += bc_Yk_x_lo[l]; }
-			for(int l=0; l<nspecies; l++) { bc_Yk_x_lo[l] /= Yktot; }
+			// Mass fractions defined
+			if(bc_Yk_x_lo[0]>=0) {
+				// Overwrite molefractions
+				for(int l=0; l<nspecies; l++) {
+					Real rho_p = mass[l]/(local_pi*pow(diameter[l],3)/6.0);
+					bc_Xk_x_lo[l] = bc_Yk_x_lo[l]*rho_lo[0]/rho_p; // number density
+				}
+			}
+			
+			Real Xktot = 0.;
+			for(int l=0; l<nspecies; l++) { Xktot += bc_Xk_x_lo[l]; }
+			for(int l=0; l<nspecies; l++) { bc_Xk_x_lo[l] /= Xktot; }
 		}
 		if(bc_mass_hi[0]>0) {
-			Real Yktot = 0.;
-			for(int l=0; l<nspecies; l++) { Yktot += bc_Yk_x_hi[l]; }
-			for(int l=0; l<nspecies; l++) { bc_Yk_x_hi[l] /= Yktot; }
+			if(bc_Yk_x_hi[0]>=0) {
+				for(int l=0; l<nspecies; l++) {
+					Real rho_p = mass[l]/(local_pi*pow(diameter[l],3)/6.0);
+					bc_Xk_x_hi[l] = bc_Yk_x_hi[l]*rho_hi[0]/rho_p;
+				}
+			}
+
+			Real Xktot = 0.;
+			for(int l=0; l<nspecies; l++) { Xktot += bc_Xk_x_hi[l]; }
+			for(int l=0; l<nspecies; l++) { bc_Xk_x_hi[l] /= Xktot; }
 		}
 		if(bc_mass_lo[1]>0) {
-			Real Yktot = 0.;
-			for(int l=0; l<nspecies; l++) { Yktot += bc_Yk_y_lo[l]; }
-			for(int l=0; l<nspecies; l++) { bc_Yk_y_lo[l] /= Yktot; }
+			if(bc_Yk_y_lo[0]>=0) {
+				for(int l=0; l<nspecies; l++) {
+					Real rho_p = mass[l]/(local_pi*pow(diameter[l],3)/6.0);
+					bc_Xk_y_lo[l] = bc_Yk_y_lo[l]*rho_lo[1]/rho_p;
+				}
+			}
+
+			Real Xktot = 0.;
+			for(int l=0; l<nspecies; l++) { Xktot += bc_Xk_y_lo[l]; }
+			for(int l=0; l<nspecies; l++) { bc_Xk_y_lo[l] /= Xktot; }
 		}
 		if(bc_mass_hi[1]>0) {
-			Real Yktot = 0.;
-			for(int l=0; l<nspecies; l++) { Yktot += bc_Yk_y_hi[l]; }
-			for(int l=0; l<nspecies; l++) { bc_Yk_y_hi[l] /= Yktot; }
+			if(bc_Yk_y_hi[0]>=0) {
+				Real rhotot = 0.;
+				for(int l=0; l<nspecies; l++) {
+					Real rho_p = mass[l]/(local_pi*pow(diameter[l],3)/6.0);
+					rhotot += bc_Yk_y_hi[l]*rho_p;
+				}
+				for(int l=0; l<nspecies; l++) {
+					Real rho_p = mass[l]/(local_pi*pow(diameter[l],3)/6.0);
+					bc_Xk_y_hi[l] = bc_Yk_y_hi[l]*rho_hi[1]/rho_p;
+				}
+			}
+
+			Real Xktot = 0.;
+			for(int l=0; l<nspecies; l++) { Xktot += bc_Xk_y_hi[l]; }
+			for(int l=0; l<nspecies; l++) { bc_Xk_y_hi[l] /= Xktot; }
 		}
 		if(bc_mass_lo[2]>0) {
-			Real Yktot = 0.;
-			for(int l=0; l<nspecies; l++) { Yktot += bc_Yk_z_lo[l]; }
-			for(int l=0; l<nspecies; l++) { bc_Yk_z_lo[l] /= Yktot; }
+			if(bc_Yk_z_lo[0]>=0) {
+				for(int l=0; l<nspecies; l++) {
+					Real rho_p = mass[l]/(local_pi*pow(diameter[l],3)/6.0);
+					bc_Xk_z_lo[l] = bc_Yk_z_lo[l]*rho_lo[2]/rho_p;
+				}
+			}
+
+			Real Xktot = 0.;
+			for(int l=0; l<nspecies; l++) { Xktot += bc_Xk_z_lo[l]; }
+			for(int l=0; l<nspecies; l++) { bc_Xk_z_lo[l] /= Xktot; }
 		}
 		if(bc_mass_hi[2]>0) {
-			Real Yktot = 0.;
-			for(int l=0; l<nspecies; l++) { Yktot += bc_Yk_z_hi[l]; }
-			for(int l=0; l<nspecies; l++) { bc_Yk_z_hi[l] /= Yktot; }
+			if(bc_Yk_z_hi[0]>=0) {
+				for(int l=0; l<nspecies; l++) {
+					Real rho_p = mass[l]/(local_pi*pow(diameter[l],3)/6.0);
+					bc_Xk_z_hi[l] = bc_Yk_z_hi[l]*rho_hi[2]/rho_p;
+				}
+			}
+
+			Real Xktot = 0.;
+			for(int l=0; l<nspecies; l++) { Xktot += bc_Xk_z_hi[l]; }
+			for(int l=0; l<nspecies; l++) { bc_Xk_z_hi[l] /= Xktot; }
 		}
 
     // Thermal/Conc BC
@@ -611,6 +665,9 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
     	paramPlaneList[p].periodicity = 0;
 	    paramPlaneList[p].temperatureLeft  = T_init[0];
 	    paramPlaneList[p].temperatureRight = T_init[0];
+	    paramPlaneList[p].velx = -1;
+	    paramPlaneList[p].vely = -1;
+	    paramPlaneList[p].velz = -1;
 
 			for (int l=0; l<nspecies; l++) {
 				if(i==0) {
@@ -630,7 +687,12 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 				bc_therm_lo[i] == -1 &&
 				(bc_vel_lo[i] == -1 || bc_vel_lo[i] == 3)) {
 				paramPlaneList[p].periodicity = 1;
-
+				
+				if(bc_vel_lo[i] == 3) {
+					paramPlaneList[p+1].velx = t_lo[i];
+					paramPlaneList[p+1].vely = t_lo[i];
+					paramPlaneList[p+1].velz = t_lo[i];
+				}
 			// Solid Wall
 			} else if (bc_vel_lo[i] == 1 ||
 				bc_vel_lo[i] == 2 ||
@@ -654,19 +716,19 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 					for (int l=0; l<nspecies; l++) {
 						if(i==0) {
 							paramPlaneList[p].densityLeft[l] = 
-								bc_Yk_x_lo[l];
+								bc_Xk_x_lo[l]/particle_neff;
 							paramPlaneList[p].densityRight[l] = 
-								bc_Yk_x_lo[l];
+								bc_Xk_x_lo[l]/particle_neff;
 						} else if(i==1) {
 							paramPlaneList[p].densityLeft[l] = 
-								bc_Yk_y_lo[l];
+								bc_Xk_y_lo[l]/particle_neff;
 							paramPlaneList[p].densityRight[l] = 
-								bc_Yk_y_lo[l];
+								bc_Xk_y_lo[l]/particle_neff;
 						} else {
 							paramPlaneList[p].densityLeft[l]  = 
-								bc_Yk_z_lo[l];
+								bc_Xk_z_lo[l]/particle_neff;
 							paramPlaneList[p].densityRight[l] = 
-								bc_Yk_z_lo[l];
+								bc_Xk_z_lo[l]/particle_neff;
 						}
 					}
     		}
@@ -714,6 +776,10 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
     	paramPlaneList[p+1].periodicity = 0;
 	    paramPlaneList[p+1].temperatureLeft  = T_init[0];
 	    paramPlaneList[p+1].temperatureRight = T_init[0];
+	    paramPlaneList[p+1].velx = -1;
+	    paramPlaneList[p+1].vely = -1;
+	    paramPlaneList[p+1].velz = -1;
+
 	    
 			for (int l=0; l<nspecies; l++) {
 				if(i==0) {
@@ -733,6 +799,11 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 				bc_therm_hi[i] == -1 &&
 				(bc_vel_hi[i] == -1 || bc_vel_hi[i] == 3)) {
 				paramPlaneList[p+1].periodicity = 1;
+				if(bc_vel_hi[i] == 3) {
+					paramPlaneList[p+1].velx = t_hi[i];
+					paramPlaneList[p+1].vely = t_hi[i];
+					paramPlaneList[p+1].velz = t_hi[i];
+				}
 
 			// Solid Wall
 			} else if (bc_vel_hi[i] == 1 ||
@@ -755,19 +826,19 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
  					for (int l=0; l<nspecies; l++) {
 						if(i==0) {
 							paramPlaneList[p+1].densityLeft[l] = 
-								bc_Yk_x_hi[l];
+								bc_Xk_x_hi[l]/particle_neff;
 							paramPlaneList[p+1].densityRight[l] = 
-								bc_Yk_x_hi[l];
+								bc_Xk_x_hi[l]/particle_neff;
 						} else if(i==1) {
 							paramPlaneList[p+1].densityLeft[l] = 
-								bc_Yk_y_hi[l];
+								bc_Xk_y_hi[l]/particle_neff;
 							paramPlaneList[p+1].densityRight[l] = 
-								bc_Yk_y_hi[l];
+								bc_Xk_y_hi[l]/particle_neff;
 						} else {
 							paramPlaneList[p+1].densityLeft[l]  = 
-								bc_Yk_z_hi[l];
+								bc_Xk_z_hi[l]/particle_neff;
 							paramPlaneList[p+1].densityRight[l] = 
-								bc_Yk_z_hi[l];
+								bc_Xk_z_hi[l]/particle_neff;
 						}
 					}
     		}

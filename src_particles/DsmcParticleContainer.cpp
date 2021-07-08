@@ -154,12 +154,12 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
         for (int i = 0; i < np; i++) {
        
             ParticleType & part = particles[i];
+            //amrex::Print() << "Moving particle " << i << "\n";
 
               runtime = dt*part.rdata(FHD_realData::timeFrac);
-
+              //amrex::Print() << "rt: " << runtime << "\n";
               while(runtime > 0)
               {
-
                   find_inter_gpu(part, runtime, paramPlaneList, paramPlaneCount, &intsurf, &inttime, &intside, ZFILL(plo), ZFILL(phi));
 
                   for (int d=0; d<AMREX_SPACEDIM; ++d)
@@ -182,8 +182,9 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
 
                       Real dummy = 1;
                        //Print() << "surf: " << intsurf-1 << "\n";
+                      
                       app_bc_gpu(&surf, part, intside, domSize, &push, &runtime, dummy);
-                       //Print() << "rt: " << runtime << "\n";
+                      //Print() << "rt: " << runtime << "\n";
 
                       if(push == 1)
                       {
@@ -195,7 +196,7 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
                   }
 
               }
- 
+ 							//amrex::Print() << "Particle move done\n";
               part.rdata(FHD_realData::timeFrac) = 1;
 
 
@@ -203,7 +204,6 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
             cell[0] = (int)floor((part.pos(0)-plo[0])/dx[0]);
             cell[1] = (int)floor((part.pos(1)-plo[1])/dx[1]);
             cell[2] = (int)floor((part.pos(2)-plo[2])/dx[2]);
-
 
             if((part.idata(FHD_intData::i) != cell[0]) || (part.idata(FHD_intData::j) != cell[1]) || (part.idata(FHD_intData::k) != cell[2]) || part.id() < 0)
             {

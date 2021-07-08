@@ -57,6 +57,7 @@ void FhdParticleContainer::InitParticles(Real & dt) {
 					p.rdata(FHD_realData::velx) = vpart[0];
 					p.rdata(FHD_realData::vely) = vpart[1];
 					p.rdata(FHD_realData::velz) = vpart[2];
+					p.rdata(FHD_realData::timeFrac) = 1;
 
 					spd = sqrt(pow(vpart[0],2)+pow(vpart[1],2)+pow(vpart[2],2));
 					if(spd>spdmax){ spdmax=spd; }
@@ -79,7 +80,6 @@ void FhdParticleContainer::InitParticles(Real & dt) {
 				// Initialize to bulk velocities
 				for(int i_spec=0; i_spec < nspecies; i_spec++) {
 					u[i_spec] = 0.0; v[i_spec] = 0.0; w[i_spec] = 0.0;
-					amrex::Print() << "u0: " << u[i_spec] << "\n";
 				}
 				
 				for(int i_spec=0; i_spec < nspecies; i_spec++) {
@@ -94,6 +94,7 @@ void FhdParticleContainer::InitParticles(Real & dt) {
 						p.idata(FHD_intData::species) = i_spec;
 						p.idata(FHD_intData::species_change) = i_spec;
 						p.rdata(FHD_realData::R) = R;
+						p.rdata(FHD_realData::timeFrac) = 1;
 						p.pos(0) = prob_lo[0] + amrex::Random()*(prob_hi[0]-prob_lo[0]);
 						p.pos(1) = prob_lo[1] + amrex::Random()*(prob_hi[1]-prob_lo[1]);
 						p.pos(2) = prob_lo[2] + amrex::Random()*(prob_hi[2]-prob_lo[2]);
@@ -126,7 +127,6 @@ void FhdParticleContainer::InitParticles(Real & dt) {
 
 				// Zero out the bulk velocities
 				// Only do if no restart provided for particles
-				amrex::Print() << "Zeroing Bulk Velocities" << "\n";
 				// VCOM by species
 				for(int i_spec=0; i_spec < nspecies; i_spec++) {
 					long npi = properties[i_spec].total;

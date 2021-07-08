@@ -222,7 +222,6 @@ void main_driver(const char* argv)
 	} else {
 		ReadCheckPointParticles(particles);
 	}
-
 	particles.InitCollisionCells();
 	amrex::Print() << "Overwritten dt so Courant number <1: " << dt << "\n";
 
@@ -260,8 +259,8 @@ void main_driver(const char* argv)
 					}
 				}
 			}
-   			particles.EvaluateStats(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,coVars,statsCount++,time);
-    		}
+			particles.EvaluateStats(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,coVars,statsCount++,time);
+		}
 
 		//////////////////////////////////////
 		// PlotFile
