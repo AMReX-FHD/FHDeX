@@ -21,6 +21,7 @@ struct FHD_realData {
         boostz,
         R,
         timeFrac,
+        omega,
         count    // Awesome little trick! (only works if first field is 0)
     };
 
@@ -33,7 +34,8 @@ struct FHD_realData {
             "boosty",
             "boostz",
             "R",
-            "timeFrac"
+            "timeFrac",
+            "omega",
         };
     };
 };
@@ -101,6 +103,9 @@ public:
 
     void EvaluateStats(MultiFab& particleInstant, MultiFab& particleMeans,
                                          MultiFab& particleVars, const Real delt, int steps);
+                                         
+    void PrintCellList(int i, int j, int k);
+    void PrintCellListInternal(int i, int j, int k, int index, long imap);
 
     dsmcSpecies properties[MAX_SPECIES];
     long realParticles;

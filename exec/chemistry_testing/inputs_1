@@ -1,0 +1,29 @@
+n_cell = 64
+max_grid_size = 16
+
+plot_int = -1
+
+nsteps = 200
+dt = 0.01
+
+# dimerization reaction
+# react1 : 2A -> A_2
+# react2 : A_2 -> 2A
+# spec1 = A
+# spec2 = A_2
+
+nreaction = 2
+nspecies = 2
+
+rate_const = 0.3 0.5 
+
+stoich_1R = 2 0
+stoich_1P = 0 1
+stoich_2R = 0 1
+stoich_2P = 2 0
+
+# 0 = Deterministic Chemistry
+# 1 = CLE (Chemical Langevin Equation)
+# 2 = SSA (Stochastic Simulation Algorithm)
+
+reaction_type = 0

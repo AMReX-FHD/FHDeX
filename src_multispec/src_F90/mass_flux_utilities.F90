@@ -27,7 +27,7 @@ contains
     
     ! local variables
     integer          :: i,j,k
-    
+
     ! for specific box, now start loops over alloted cells    
     do k=tlo(3), thi(3)
        do j=tlo(2), thi(2)
