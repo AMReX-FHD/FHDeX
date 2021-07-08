@@ -430,7 +430,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                 fweights[0] = sqrt(k_B*kzp*volinv*dtinv);
                 wiener[0] = fweights[0]*stochfacez(i,j,k,4);
 
-                // hear flux
+                // heat flux
                 zflux(i,j,k,nvars) += wiener[0];
                     
                 // viscous heating
