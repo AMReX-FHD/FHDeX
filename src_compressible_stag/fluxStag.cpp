@@ -208,7 +208,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
 
 
                 GpuArray<Real,MAX_SPECIES+1> fweights;
-                GpuArray<Real,MAX_SPECIES+1> weiner;
+                GpuArray<Real,MAX_SPECIES+1> wiener;
                 
                 GpuArray<Real,MAX_SPECIES> hk;
                 GpuArray<Real,MAX_SPECIES> yy;
@@ -223,9 +223,9 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
 
                 // Weights for facial fluxes:
                 fweights[0]=sqrt(k_B*kxp*volinv*dtinv); //energy flux
-                weiner[0] = fweights[0]*stochfacex(i,j,k,4);
+                wiener[0] = fweights[0]*stochfacex(i,j,k,4);
                                 
-                xflux(i,j,k,4) += weiner[0];
+                xflux(i,j,k,4) += wiener[0];
 
                 xflux(i,j,k,4) -= 0.5*velx(i,j,k)*(tauxx_stoch(i-1,j,k)+tauxx_stoch(i,j,k));
                 xflux(i,j,k,4) -= 0.25*((vely(i,j+1,k)+vely(i-1,j+1,k))*tauxy_stoch(i,j+1,k) + (vely(i,j,k)+vely(i-1,j,k))*tauxy_stoch(i,j,k));
@@ -234,7 +234,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                 if (algorithm_type == 2) {
 
                     for (int n=1; n<1+nspecies; ++n) {
-                        weiner[n] = 0.;
+                        wiener[n] = 0.;
                     }
 
                     for (int ns=0; ns<nspecies; ++ns) {
@@ -286,9 +286,9 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                     for (int ns=0; ns<nspecies; ++ns) {
                         for (int ll=0; ll<=ns; ++ll) {
                             fweights[1+ll]=sqrt(k_B*MWmix*volinv/(Runiv*dt))*sqD[ns*nspecies+ll];
-                            weiner[1+ns] = weiner[1+ns] + fweights[1+ll]*stochfacex(i,j,k,5+ll);
+                            wiener[1+ns] = wiener[1+ns] + fweights[1+ll]*stochfacex(i,j,k,5+ll);
                         }
-                        xflux(i,j,k,5+ns) = weiner[1+ns];
+                        xflux(i,j,k,5+ns) = wiener[1+ns];
                     }
 
                     GetEnthalpies(meanT, hk);
@@ -297,7 +297,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
 
                     for (int ns=0; ns<nspecies; ++ns) {
                         soret = soret + (hk[ns] + Runiv*meanT/molmass[ns]
-                                         *0.5*(chi(i-1,j,k,ns)+chi(i,j,k,ns)))*weiner[1+ns];
+                                         *0.5*(chi(i-1,j,k,ns)+chi(i,j,k,ns)))*wiener[1+ns];
                     }
                     xflux(i,j,k,4) = xflux(i,j,k,4) + soret;
                 }
@@ -307,7 +307,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
             [=] AMREX_GPU_DEVICE (int i, int j, int k) {
 
                 GpuArray<Real,MAX_SPECIES+1> fweights;
-                GpuArray<Real,MAX_SPECIES+1> weiner;
+                GpuArray<Real,MAX_SPECIES+1> wiener;
                 
                 GpuArray<Real,MAX_SPECIES> hk;
                 GpuArray<Real,MAX_SPECIES> yy;
@@ -322,9 +322,9 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
 
                 // Weights for facial fluxes:
                 fweights[0] = sqrt(k_B*kyp*volinv*dtinv);
-                weiner[0] = fweights[0]*stochfacey(i,j,k,4);
+                wiener[0] = fweights[0]*stochfacey(i,j,k,4);
 
-                yflux(i,j,k,4) += weiner[0];
+                yflux(i,j,k,4) += wiener[0];
 
                 yflux(i,j,k,4) -= 0.25*((velx(i+1,j,k)+velx(i+1,j-1,k))*tauxy_stoch(i+1,j,k) + (velx(i,j,k)+velx(i,j-1,k))*tauxy_stoch(i,j,k));
                 yflux(i,j,k,4) -= 0.5*vely(i,j,k)*(tauyy_stoch(i,j-1,k)+tauyy_stoch(i,j,k));
@@ -333,7 +333,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                 if (algorithm_type == 2) {
 
                     for (int n=1; n<1+nspecies; ++n) {
-                        weiner[n] = 0.;
+                        wiener[n] = 0.;
                     }
 
                     for (int ns=0; ns<nspecies; ++ns) {
@@ -385,9 +385,9 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                     for (int ns=0; ns<nspecies; ++ns) {
                         for (int ll=0; ll<=ns; ++ll) {
                             fweights[1+ll]=sqrt(k_B*MWmix*volinv/(Runiv*dt))*sqD[ns*nspecies+ll];
-                            weiner[1+ns] = weiner[1+ns] + fweights[1+ll]*stochfacey(i,j,k,5+ll);
+                            wiener[1+ns] = wiener[1+ns] + fweights[1+ll]*stochfacey(i,j,k,5+ll);
                         }
-                        yflux(i,j,k,5+ns) = weiner[1+ns];
+                        yflux(i,j,k,5+ns) = wiener[1+ns];
                     }
 
                     GetEnthalpies(meanT, hk);
@@ -396,7 +396,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
 
                     for (int ns=0; ns<nspecies; ++ns) {
                         soret = soret + (hk[ns] + Runiv*meanT/molmass[ns]
-                                         *0.5*(chi(i,j-1,k,ns)+chi(i,j,k,ns)))*weiner[1+ns];
+                                         *0.5*(chi(i,j-1,k,ns)+chi(i,j,k,ns)))*wiener[1+ns];
                     }
                     yflux(i,j,k,4) = yflux(i,j,k,4) + soret;
                 }
@@ -405,7 +405,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
             [=] AMREX_GPU_DEVICE (int i, int j, int k) {
 
                 GpuArray<Real,MAX_SPECIES+1> fweights;
-                GpuArray<Real,MAX_SPECIES+1> weiner;
+                GpuArray<Real,MAX_SPECIES+1> wiener;
                 
                 GpuArray<Real,MAX_SPECIES> hk;
                 GpuArray<Real,MAX_SPECIES> yy;
@@ -420,9 +420,9 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
 
                 // Weights for facial fluxes:
                 fweights[0] = sqrt(k_B*kzp*volinv*dtinv);
-                weiner[0] = fweights[0]*stochfacez(i,j,k,4);
+                wiener[0] = fweights[0]*stochfacez(i,j,k,4);
 
-                zflux(i,j,k,4) += weiner[0];
+                zflux(i,j,k,4) += wiener[0];
                     
                 zflux(i,j,k,4) -= 0.25*((velx(i+1,j,k-1)+velx(i+1,j,k))*tauxz_stoch(i+1,j,k) + (velx(i,j,k)+velx(i,j,k-1))*tauxz_stoch(i,j,k));
                 zflux(i,j,k,4) -= 0.25*((vely(i,j+1,k-1)+vely(i,j+1,k))*tauyz_stoch(i,j+1,k) + (vely(i,j,k)+vely(i,j,k-1))*tauyz_stoch(i,j,k));
@@ -432,7 +432,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                 if (algorithm_type == 2) {
 
                 for (int n=1; n<1+nspecies; ++n) {
-                    weiner[n] = 0.;
+                    wiener[n] = 0.;
                 }
 
                 for (int ns=0; ns<nspecies; ++ns) {
@@ -485,9 +485,9 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                 for (int ns=0; ns<nspecies; ++ns) {
                     for (int ll=0; ll<=ns; ++ll) {
                         fweights[1+ll]=sqrt(k_B*MWmix*volinv/(Runiv*dt))*sqD[ns*nspecies+ll];
-                        weiner[1+ns] = weiner[1+ns] + fweights[1+ll]*stochfacez(i,j,k,5+ll);
+                        wiener[1+ns] = wiener[1+ns] + fweights[1+ll]*stochfacez(i,j,k,5+ll);
                     }
-                    zflux(i,j,k,5+ns) = weiner[1+ns];
+                    zflux(i,j,k,5+ns) = wiener[1+ns];
                 }
 
                 GetEnthalpies(meanT, hk);
@@ -496,7 +496,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
 
                 for (int ns=0; ns<nspecies; ++ns) {
                     soret = soret + (hk[ns] + Runiv*meanT/molmass[ns]
-                                     *0.5*(chi(i,j,k-1,ns)+chi(i,j,k,ns)))*weiner[1+ns];
+                                     *0.5*(chi(i,j,k-1,ns)+chi(i,j,k,ns)))*wiener[1+ns];
                 }
                 zflux(i,j,k,4) = zflux(i,j,k,4) + soret;
                 
