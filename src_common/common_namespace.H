@@ -2,7 +2,7 @@ namespace common {
 
 //////////////
 // DO NOT CHANGE THIS VALUE WITHOUT ALSO CHANGING common_namelist.F90
-#define MAX_SPECIES 8
+#define MAX_SPECIES 4
 //////////////
     
     // misc global variables
