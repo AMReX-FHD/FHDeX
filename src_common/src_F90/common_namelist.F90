@@ -1,6 +1,5 @@
 #include <AMReX_Config.H>
 
-
 module common_namelist_module
 
   use iso_c_binding, only: c_char
@@ -9,8 +8,10 @@ module common_namelist_module
   
   implicit none
 
+  !!!!!!!!!!!!!
+  ! DO NOT CHANGE THIS VALUE WITHOUT ALSO CHANGING common_namespace.H
   integer, parameter :: MAX_SPECIES = 4
-  integer, parameter :: LOHI = 2
+  !!!!!!!!!!!!!
 
   double precision,   save :: prob_lo(AMREX_SPACEDIM)
   double precision,   save :: prob_hi(AMREX_SPACEDIM)
@@ -157,7 +158,7 @@ module common_namelist_module
 
   integer,            save :: histogram_unit
   double precision,   save :: density_weights(MAX_SPECIES)
-  integer,            save :: shift_cc_to_boundary(AMREX_SPACEDIM,LOHI)
+  integer,            save :: shift_cc_to_boundary(AMREX_SPACEDIM,2)
 
   double precision,   save :: permittivity
   integer,            save :: wall_mob
@@ -826,7 +827,7 @@ contains
     integer,                intent(inout) :: max_grid_projection_in(AMREX_SPACEDIM-1)
     integer,                intent(inout) :: histogram_unit_in
     double precision,       intent(inout) :: density_weights_in(MAX_SPECIES)
-    integer,                intent(inout) :: shift_cc_to_boundary_in(AMREX_SPACEDIM,LOHI)
+    integer,                intent(inout) :: shift_cc_to_boundary_in(AMREX_SPACEDIM,2)
 
     double precision,       intent(inout) :: eepsilon_in(MAX_SPECIES*MAX_SPECIES)
     double precision,       intent(inout) :: sigma_in(MAX_SPECIES*MAX_SPECIES)

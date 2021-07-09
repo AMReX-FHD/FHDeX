@@ -1,8 +1,6 @@
 #ifndef _compressible_functions_stag_H_
 #define _compressible_functions_stag_H_
 
-#define LOHI 2
-
 #include <AMReX.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_ArrayLim.H>

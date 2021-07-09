@@ -1,7 +1,6 @@
 #ifndef _common_functions_H_
 #define _common_functions_H_
 
-#define LOHI 2
 #if (AMREX_SPACEDIM == 2)
 #define NUM_EDGE 1
 #else

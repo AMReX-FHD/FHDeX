@@ -1,6 +1,9 @@
 namespace common {
 
+//////////////
+// DO NOT CHANGE THIS VALUE WITHOUT ALSO CHANGING common_namelist.F90
 #define MAX_SPECIES 8
+//////////////
     
     // misc global variables
     extern amrex::IntVect nodal_flag;
