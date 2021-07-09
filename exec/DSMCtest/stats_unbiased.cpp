@@ -10,7 +10,6 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
 						int steps,
 						Real time) {
 	BL_PROFILE_VAR("EvaluateStats()",EvaluateStats);
-
 	const Real osteps = 1.0/steps;
 	const int stepsMinusOne = steps-1;
 
@@ -127,7 +126,7 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
 				primInst(i,j,k,iprim+ 9) = primInst(i,j,k,iprim+3)*primInst(i,j,k,iprim+4);	// vw of spec l
 				primInst(i,j,k,iprim+10) = pow(primInst(i,j,k,iprim+4),2);									// ww of spec l
 
-				Real vsqb = 0.5*(pow(primInst(i,j,k,iprim+2),2)+pow(primInst(i,j,k,iprim+3),2) +
+				Real vsqb = (pow(primInst(i,j,k,iprim+2),2)+pow(primInst(i,j,k,iprim+3),2) +
 								     pow(primInst(i,j,k,iprim+4),2));
 
 				primInst(i,j,k,iprim+11) = (cuInst(i,j,k,icon+4)/cuInst(i,j,k,icon)-vsqb*0.5)/cv_l;		// T  of spec l
@@ -175,7 +174,6 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
 		//////////////////////////////////////
 		// Means and Variances
 		//////////////////////////////////////
-
 		amrex::ParallelFor(tile_box,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
 			Vector<Real> delCon(ncon, 0.0);
 			
@@ -187,6 +185,7 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
 			}
 				
 			// Evaluate Primitive Means from Conserved Means
+			primMeans(i,j,k,0)  = 0.;
 			primMeans(i,j,k,1)  = cuMeans(i,j,k,0);
 			primMeans(i,j,k,2)  = cuMeans(i,j,k,1)/cuMeans(i,j,k,0);
 			primMeans(i,j,k,3)  = cuMeans(i,j,k,2)/cuMeans(i,j,k,0);
@@ -198,6 +197,8 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
 			primMeans(i,j,k,9)  = primMeans(i,j,k,3)*primMeans(i,j,k,4);
 			primMeans(i,j,k,10) = pow(primMeans(i,j,k,4),2);
 			
+			primMeans(i,j,k,11) = 0.;
+			primMeans(i,j,k,12) = 0.;
 			int iprim = 17; int icon = 5;
 			Real cv = 0.;
 			for(int l=0; l<nspecies; l++) { 
@@ -228,7 +229,7 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
 				Real vsqb = pow(primMeans(i,j,k,iprim+2),2)+pow(primMeans(i,j,k,iprim+3),2) +
 								     pow(primMeans(i,j,k,iprim+4),2);
 
-				primMeans(i,j,k,iprim+11) = (cuMeans(i,j,k,icon+4)/cuMeans(i,j,k,icon)-vsqb*0.5)/cv_l;
+				primMeans(i,j,k,iprim+11) = (cuMeans(i,j,k,icon+4)/cuMeans(i,j,k,icon+0)-vsqb*0.5)/cv_l;
 				primMeans(i,j,k,iprim+12) = primInst(i,j,k,iprim+11)*(k_B/mass)*cuInst(i,j,k,icon);
 				primMeans(i,j,k,iprim+13) = vsqb*moV+cv_l*primInst(i,j,k,iprim+11)*cuInst(i,j,k,icon);
 				
@@ -252,8 +253,10 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
 			// Mixture Temperature
 			primMeans(i,j,k,11) /= primMeans(i,j,k,0);
 
+
 			// Energy Density
 			cv /= primMeans(i,j,k,1);
+
 			primMeans(i,j,k,13)  = pow(primMeans(i,j,k,2),2)+pow(primMeans(i,j,k,3),2)+pow(primMeans(i,j,k,4),2);
 			primMeans(i,j,k,13)  = 0.5*primMeans(i,j,k,1)*primMeans(i,j,k,13);								        // Bulk energy
 			primMeans(i,j,k,13)  = primMeans(i,j,k,13) + (cv*primMeans(i,j,k,11)*primMeans(i,j,k,1));	// Total Particle KE

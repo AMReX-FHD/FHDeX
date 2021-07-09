@@ -15,9 +15,9 @@
   max_step =   5000000
   max_step =   10000
   plot_int =     50000
-  plot_int =   1000
+  plot_int =   500
   n_steps_skip = 50000
-  n_steps_skip = 1000
+  n_steps_skip = 500
   struct_fact_int = 10
 
   reset_stats = 1

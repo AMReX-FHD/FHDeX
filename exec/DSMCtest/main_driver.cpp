@@ -264,9 +264,9 @@ void main_driver(const char* argv)
 					}
 				}
 			}
-			if(istep%stat_int == 0) {
+			//if(istep%stat_int == 0) {
 				particles.EvaluateStats(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,coVars,statsCount++,time);
-			}
+			//}
 		}
 
 		//////////////////////////////////////
