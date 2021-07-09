@@ -1,4 +1,3 @@
-int chemistry::nspecies;
 int chemistry::nreaction;
 
 std::array<amrex::Real, MAX_REACTION> chemistry::rate_const; 

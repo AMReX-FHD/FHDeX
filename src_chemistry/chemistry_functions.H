@@ -5,12 +5,14 @@
 #include <AMReX_REAL.H>
 #include <AMReX_MultiFab.H>
 #include <math.h>
-#include <random>
-#include <iterator>
+#include "common_functions.H"
+#include "common_functions_F.H"
+#include "common_namespace.H"
 #include "chemistry_namespace.H"
 
 using namespace chemistry;
 using namespace amrex;
+using namespace common;
 
 void InitializeChemistryNamespace();
 

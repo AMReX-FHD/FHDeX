@@ -1,111 +1,59 @@
 #include <AMReX_PlotFileUtil.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_Vector.H>
-#include <iostream>
-#include <iterator>
-#include <random>
-#include <vector>
+
 #include "myfunc.H"
-
-
 #include "chemistry_functions.H"
 #include "chemistry_namespace_declarations.H"
-
+#include "common_functions.H"
+#include "common_namespace_declarations.H"
 
 using namespace amrex;
 
-int n_cell;
 
 int main (int argc, char* argv[])
 {
     amrex::Initialize(argc,argv);
-
-    main_main();
+    main_main(argv[1]);
 
     amrex::Finalize();
     return 0;
 }
 
-// compute mean across cells
-Real ComputeMean(MultiFab& mf, const int& incomp)
+void main_main(const char* argv)
 {
-    BL_PROFILE_VAR("ComputeSpatialMean()",ComputeSpatialMean);
-
-    int npts = (AMREX_SPACEDIM == 2) ? n_cell*n_cell : n_cell*n_cell*n_cell;
-
-    Real average = mf.sum(incomp) / npts;
-
-    return average;
-
-}
-
-// compute variance across cells
-Real ComputeSpatialVariance(MultiFab& mf, const int& incomp)
-{
-    BL_PROFILE_VAR("ComputeSpatialVariance()",ComputeSpatialVariance);
-
-    int npts = (AMREX_SPACEDIM == 2) ? n_cell*n_cell : n_cell*n_cell*n_cell;
-
-    Real average = mf.sum(incomp) / npts;
-
-    BoxArray ba = mf.boxArray();
-    DistributionMapping dmap = mf.DistributionMap();
-
-    // MultiFab with one component and no ghost cells
-    MultiFab temp(ba, dmap, 1, 0);
-
-    // set temp to the average
-    temp.setVal(average);
-
-    // subtract mf from temp; "temp = temp - mf"
-    MultiFab::Subtract(temp,mf,incomp,0,1,0);
-
-    // square the contents of temp
-    MultiFab::Multiply(temp,temp,0,0,1,0);
-
-    // compute the variance
-    Real variance = temp.sum(0) / (npts - 1);
-
-    return variance;
-
-}
-
-void main_main ()
-{
-    int max_grid_size;
+    std::string inputs_file = argv;
     
-    int nsteps;
-
-    int plot_int;
-
-
-    amrex::Real dt;
+    // read in parameters from inputs file into F90 modules
+    // we use "+1" because of amrex_string_c_to_f expects a null char termination
     
-    ParmParse pp;
+    read_common_namelist(inputs_file.c_str(),inputs_file.size()+1);
 
-
-    pp.get("n_cell",n_cell);
-
-    pp.get("max_grid_size",max_grid_size);
-
-    nsteps = 10;
-    pp.query("nsteps",nsteps);
+    // copy contents of F90 modules to C++ namespaces
+    InitializeCommonNamespace();
     
-    plot_int = -1;
-    pp.query("plot_int",plot_int);
-
-    pp.get("dt",dt);
-
+    amrex::Print() << "n_cells_x =  " << n_cells[0] << "\n";
+    amrex::Print() << "n_cells_y =  " << n_cells[1] << "\n";
+#if AMREX_SPACEDIM==3
+    amrex::Print() << "n_cells_z =  " << n_cells[2] << "\n";
+#endif
+    
+    amrex::Print() << "max_step = " << max_step << "\n";   
+    
+    amrex::Print() << "dt = " << fixed_dt << "\n";   
+     
+    amrex::Print() << "plot_int =  " << plot_int << "\n";
+    
+    // print number of species
+    amrex::Print() << "nspecies  = " << nspecies << "\n";
+    
+    // initialize chemistry namespace
     InitializeChemistryNamespace();
-
     // print reaction type
     amrex::Print() << "reaction type = " << reaction_type << "\n";
 
     // print number of reactions
     amrex::Print() << "nreaction = " << nreaction << "\n";
-    
-    // print number of species
-    amrex::Print() << "nspecies  = " << nspecies << "\n";
     
     // print reaction rates k's
     amrex::Print() << "Rate constants are:" << "\n";
@@ -146,7 +94,7 @@ void main_main ()
 
     // AMREX_D_DECL means "do the first X of these, where X is the dimensionality of the simulation"
     IntVect dom_lo(AMREX_D_DECL(       0,        0,        0));
-    IntVect dom_hi(AMREX_D_DECL(n_cell-1, n_cell-1, n_cell-1));
+    IntVect dom_hi(AMREX_D_DECL(n_cells[0]-1, n_cells[1]-1, n_cells[2]-1));
 
     // Make a single box that is the entire domain
     Box domain(dom_lo, dom_hi);
@@ -155,7 +103,7 @@ void main_main ()
     ba.define(domain);
 
     // Break up boxarray "ba" into chunks no larger than "max_grid_size" along a direction
-    ba.maxSize(max_grid_size);
+    ba.maxSize(IntVect(max_grid_size));
 
     // This defines the physical box, [0,1] in each direction.
     RealBox real_box({AMREX_D_DECL( 0., 0., 0.)},
@@ -188,7 +136,8 @@ void main_main ()
     
     // time = starting time in the simulation
     amrex::Real time = 0.0;
-
+    amrex::Real dt = fixed_dt;
+    
     // for now I fix the cell volume as a sanity check
     amrex::Real dV = 1000.;
     //amrex::Real dV = dx[0]*dx[1];
@@ -228,16 +177,12 @@ void main_main ()
     amrex::Print()  << 0 << " ";
     for (int n=0; n<nspecies; n++)
     {
-        amrex::Print()  << ComputeMean(phi_old,Ncomp-(n+1)) << " ";
-    }
-    for (int n=0; n<nspecies; n++)
-    {
         amrex::Print()  << ComputeSpatialVariance(phi_old,Ncomp-(n+1)) << " ";
     }
     amrex::Print() << "\n";
     
 
-    for (int step = 1; step <= nsteps; ++step)
+    for (int step = 1; step <= max_step; ++step)
     {
         // fill periodic ghost cells
         phi_old.FillBoundary(geom.periodicity());
@@ -288,10 +233,6 @@ void main_main ()
         // print out mean and variance of both species in one single line at each time step 
         amrex::Print()  << "Stats ";
         amrex::Print()  << dt*step << " ";
-        for (int n=0; n<nspecies; n++)
-        {
-            amrex::Print()  << ComputeMean(phi_new,Ncomp-(n+1)) << " ";
-        }
         for (int n=0; n<nspecies; n++)
         {
             amrex::Print()  << ComputeSpatialVariance(phi_new,Ncomp-(n+1)) << " ";

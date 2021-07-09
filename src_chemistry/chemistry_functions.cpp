@@ -9,9 +9,6 @@ void InitializeChemistryNamespace()
 
     // get number of reactions
     pp.get("nreaction",nreaction);
-    // get number of species
-    pp.get("nspecies",nspecies);
-
     // get rate constants from input files and assign them to rate_const
     std::vector<amrex::Real> k_tmp(MAX_REACTION);               // temporary vector to extract data from input files
     pp.getarr("rate_const",k_tmp,0,nreaction);                  // get reaction constants from input files
