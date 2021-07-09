@@ -142,7 +142,7 @@ void FhdParticleContainer::CalcSelections(Real dt) {
 					//chi0 = g0_Ma_Ahmadi(i_spec,j_spec, phi1, phi2);
 					vrmax = arrvrmax(i,j,k,i_spec);
 					crossSection = interproperties[ij_spec].csx;
-					NSel = 4.0*particle_neff*np_i*np_j*crossSection*vrmax*ocollisionCellVol*chi0*dt;
+					NSel = 2.0*particle_neff*np_i*np_j*crossSection*vrmax*ocollisionCellVol*chi0*dt;
 					if(i_spec==j_spec) {NSel = NSel*0.5; np_j = np_i-1;}
 					arrselect(i,j,k,ij_spec) = std::floor(NSel + amrex::Random());
 				}
@@ -252,7 +252,7 @@ void FhdParticleContainer::CollideParticles(Real dt) {
 				eij[1] = std::sin(theta)*std::sin(phi);
 				eij[2] = std::cos(theta);
 				vreijmag = vij[0]*eij[0]+vij[1]*eij[1]+vij[2]*eij[2];
-				if(vreijmag>vrmax*amrex::Random()) {
+				if(std::abs(vreijmag)>vrmax*amrex::Random()) {
 					countedCollisions[speci] += 1;
 					countedCollisions[specj] += 1;
 

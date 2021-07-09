@@ -65,7 +65,7 @@
 	bc_mass_hi(1:3)  = -1 -1 -1
   
 	! Temperature if thermal BC specified
-	t_hi(1:3) = 519 273 273
+	t_hi(1:3) = 273 273 273
 	t_lo(1:3) = 273 273 273
   
 	! Total density at boundaries

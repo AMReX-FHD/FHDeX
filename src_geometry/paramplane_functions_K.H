@@ -203,7 +203,7 @@ void app_bc_gpu(const paramPlane* surf, FhdParticleContainer::ParticleType& part
 					Real Xkl = 0;
 					Real RR = amrex::Random();
 					int l = 0;
-						while(RR > Xkl) {
+						while(RR >= Xkl) {
 							Xkl += (surf->densityRight[l++]);
 						}
 					l--;
@@ -320,7 +320,7 @@ void app_bc_gpu(const paramPlane* surf, FhdParticleContainer::ParticleType& part
 					Real Xkl = 0;
 	        Real RR = amrex::Random();
 	        int l = 0;
-	        while(RR > Xkl) {
+	        while(RR >= Xkl) {
 						Xkl += (surf->densityLeft[l++]);
 					}
 					l--;

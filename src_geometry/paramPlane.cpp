@@ -571,11 +571,7 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 		if(bc_mass_lo[0]>0) {
 			// Mass fractions defined
 			if(bc_Yk_x_lo[0]>=0) {
-				// Overwrite molefractions
-				for(int l=0; l<nspecies; l++) {
-					Real rho_p = mass[l]/(local_pi*pow(diameter[l],3)/6.0);
-					bc_Xk_x_lo[l] = bc_Yk_x_lo[l]*rho_lo[0]/rho_p; // number density
-				}
+				for(int l=0; l<nspecies; l++) { bc_Xk_x_lo[l] = bc_Yk_x_lo[l]*rho_lo[0]/mass[l]; }
 			}
 			
 			Real Xktot = 0.;
@@ -584,10 +580,7 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 		}
 		if(bc_mass_hi[0]>0) {
 			if(bc_Yk_x_hi[0]>=0) {
-				for(int l=0; l<nspecies; l++) {
-					Real rho_p = mass[l]/(local_pi*pow(diameter[l],3)/6.0);
-					bc_Xk_x_hi[l] = bc_Yk_x_hi[l]*rho_hi[0]/rho_p;
-				}
+				for(int l=0; l<nspecies; l++) { bc_Xk_x_hi[l] = bc_Yk_x_hi[l]*rho_hi[0]/mass[l]; }
 			}
 
 			Real Xktot = 0.;
@@ -596,10 +589,7 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 		}
 		if(bc_mass_lo[1]>0) {
 			if(bc_Yk_y_lo[0]>=0) {
-				for(int l=0; l<nspecies; l++) {
-					Real rho_p = mass[l]/(local_pi*pow(diameter[l],3)/6.0);
-					bc_Xk_y_lo[l] = bc_Yk_y_lo[l]*rho_lo[1]/rho_p;
-				}
+				for(int l=0; l<nspecies; l++) { bc_Xk_y_lo[l] = bc_Yk_y_lo[l]*rho_lo[1]/mass[l]; }
 			}
 
 			Real Xktot = 0.;
@@ -608,15 +598,7 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 		}
 		if(bc_mass_hi[1]>0) {
 			if(bc_Yk_y_hi[0]>=0) {
-				Real rhotot = 0.;
-				for(int l=0; l<nspecies; l++) {
-					Real rho_p = mass[l]/(local_pi*pow(diameter[l],3)/6.0);
-					rhotot += bc_Yk_y_hi[l]*rho_p;
-				}
-				for(int l=0; l<nspecies; l++) {
-					Real rho_p = mass[l]/(local_pi*pow(diameter[l],3)/6.0);
-					bc_Xk_y_hi[l] = bc_Yk_y_hi[l]*rho_hi[1]/rho_p;
-				}
+				for(int l=0; l<nspecies; l++) { bc_Xk_y_lo[l] = bc_Yk_y_hi[l]*rho_hi[1]/mass[l]; }
 			}
 
 			Real Xktot = 0.;
@@ -625,10 +607,7 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 		}
 		if(bc_mass_lo[2]>0) {
 			if(bc_Yk_z_lo[0]>=0) {
-				for(int l=0; l<nspecies; l++) {
-					Real rho_p = mass[l]/(local_pi*pow(diameter[l],3)/6.0);
-					bc_Xk_z_lo[l] = bc_Yk_z_lo[l]*rho_lo[2]/rho_p;
-				}
+				for(int l=0; l<nspecies; l++) { bc_Xk_z_lo[l] = bc_Yk_z_lo[l]*rho_lo[2]/mass[l]; }
 			}
 
 			Real Xktot = 0.;
@@ -637,10 +616,7 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 		}
 		if(bc_mass_hi[2]>0) {
 			if(bc_Yk_z_hi[0]>=0) {
-				for(int l=0; l<nspecies; l++) {
-					Real rho_p = mass[l]/(local_pi*pow(diameter[l],3)/6.0);
-					bc_Xk_z_hi[l] = bc_Yk_z_hi[l]*rho_hi[2]/rho_p;
-				}
+				for(int l=0; l<nspecies; l++) { bc_Xk_z_hi[l] = bc_Yk_z_hi[l]*rho_hi[2]/mass[l]; }
 			}
 
 			Real Xktot = 0.;
@@ -689,9 +665,9 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 				paramPlaneList[p].periodicity = 1;
 				
 				if(bc_vel_lo[i] == 3) {
-					paramPlaneList[p+1].velx = t_lo[i];
-					paramPlaneList[p+1].vely = t_lo[i];
-					paramPlaneList[p+1].velz = t_lo[i];
+					paramPlaneList[p].velx = t_lo[i];
+					paramPlaneList[p].vely = t_lo[i];
+					paramPlaneList[p].velz = t_lo[i];
 				}
 			// Solid Wall
 			} else if (bc_vel_lo[i] == 1 ||
@@ -742,19 +718,19 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 				for (int l=0; l<nspecies; l++) {
 					if(i==0) {
 						paramPlaneList[p].densityLeft[l]  = 
-							rho_lo[i]*bc_Yk_x_lo[l]/(mass[l]*particle_neff);
+							bc_Yk_x_lo[l]/particle_neff;
 						paramPlaneList[p].densityRight[l] = 
-							rho_lo[i]*bc_Yk_x_lo[l]/(mass[l]*particle_neff);
+							bc_Yk_x_lo[l]/particle_neff;
 					} else if(i==1) {
 						paramPlaneList[p].densityLeft[l]  = 
-							rho_lo[i]*bc_Yk_y_lo[l]/(mass[l]*particle_neff);
+							bc_Yk_y_lo[l]/particle_neff;
 						paramPlaneList[p].densityRight[l] = 
-							rho_lo[i]*bc_Yk_y_lo[l]/(mass[l]*particle_neff);
+							bc_Yk_y_lo[l]/particle_neff;
 					} else {
 						paramPlaneList[p].densityLeft[l]  = 
-							rho_lo[i]*bc_Yk_z_lo[l]/(mass[l]*particle_neff);
+							bc_Yk_z_lo[l]/particle_neff;
 						paramPlaneList[p].densityRight[l] = 
-							rho_lo[i]*bc_Yk_z_lo[l]/(mass[l]*particle_neff);
+							bc_Yk_z_lo[l]/particle_neff;
 					}
 				}
 				
@@ -853,19 +829,19 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 				for (int l=0; l<nspecies; l++) {
 					if(i==0) {
 						paramPlaneList[p+1].densityLeft[l]  = 
-							rho_hi[i]*bc_Yk_x_hi[l]/(mass[l]*particle_neff);
+							bc_Xk_x_hi[l]/particle_neff;
 						paramPlaneList[p+1].densityRight[l] = 
-							rho_hi[i]*bc_Yk_x_hi[l]/(mass[l]*particle_neff);
+							bc_Xk_x_hi[l]/particle_neff;
 					} else if(i==1) {
 						paramPlaneList[p+1].densityLeft[l]  = 
-							rho_hi[i]*bc_Yk_y_hi[l]/(mass[l]*particle_neff);
+							bc_Xk_y_hi[l]/particle_neff;
 						paramPlaneList[p+1].densityRight[l] = 
-							rho_hi[i]*bc_Yk_y_hi[l]/(mass[l]*particle_neff);
+							bc_Xk_y_hi[l]/particle_neff;
 					} else {
 						paramPlaneList[p+1].densityLeft[l]  = 
-							rho_hi[i]*bc_Yk_z_hi[l]/(mass[l]*particle_neff);
+							bc_Xk_z_hi[l]/particle_neff;
 						paramPlaneList[p+1].densityRight[l] = 
-							rho_hi[i]*bc_Yk_z_hi[l]/(mass[l]*particle_neff);
+							bc_Xk_z_hi[l]/particle_neff;
 					}
 				}
 				if(bc_therm_hi[i] == 2) {

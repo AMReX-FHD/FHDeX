@@ -117,7 +117,6 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
 				// Total of cons. vars
 				for (int m=0; m<5; m++) {cuInst(i,j,k,m) += cuInst(i,j,k,icon+m);}
 
-				// Care not to use mean of instananeous primitives as mean (use conserved)
 				primInst(i,j,k,iprim+ 2) = cuInst(i,j,k,icon+1)/cuInst(i,j,k,icon+0);				// u  of spec l
 				primInst(i,j,k,iprim+ 3) = cuInst(i,j,k,icon+2)/cuInst(i,j,k,icon+0);				// v  of spec l
 				primInst(i,j,k,iprim+ 4) = cuInst(i,j,k,icon+3)/cuInst(i,j,k,icon+0);				// w  of spec l
@@ -132,13 +131,12 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
 								     pow(primInst(i,j,k,iprim+4),2));
 
 				primInst(i,j,k,iprim+11) = (cuInst(i,j,k,icon+4)/cuInst(i,j,k,icon)-vsqb*0.5)/cv_l;		// T  of spec l
-				Print() << "T_inst: " << primInst(i,j,k,iprim+11) << "\n";
 				primInst(i,j,k,iprim+12) = primInst(i,j,k,iprim+11)*(k_B/mass)*cuInst(i,j,k,icon);		// P  of spec l
 				primInst(i,j,k,iprim+13) = vsqb*moV+cv_l*primInst(i,j,k,iprim+11)*cuInst(i,j,k,icon);	// E  of spec l
 
-				primInst(i,j,k,iprim+14) = primInst(i,j,k,iprim+ 2)*cuInst(i,j,k,icon+4);	// qx
-				primInst(i,j,k,iprim+15) = 0.5*moV;	// qy
-				primInst(i,j,k,iprim+16) = 0.5*moV;	// qz
+				primInst(i,j,k,iprim+14) *= 0.5*moV;	// qx
+				primInst(i,j,k,iprim+15) *= 0.5*moV;	// qy
+				primInst(i,j,k,iprim+16) *= 0.5*moV;	// qz
 
 				// Total of primitive vars
 				// Handle temperature/energy seperately
@@ -152,16 +150,16 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
 			}
 
 			// Primitive total
-			primInst(i,j,k,2) = cuInst(i,j,k,1)/cuInst(i,j,k,0);		// Bulk x-velocity
-			primInst(i,j,k,3) = cuInst(i,j,k,2)/cuInst(i,j,k,0);		// Bulk y-velocity
-			primInst(i,j,k,4) = cuInst(i,j,k,3)/cuInst(i,j,k,0);		// Bulk z-velocity
+			primInst(i,j,k,2) = cuInst(i,j,k,1)/cuInst(i,j,k,0);		  // Bulk x-velocity
+			primInst(i,j,k,3) = cuInst(i,j,k,2)/cuInst(i,j,k,0);		  // Bulk y-velocity
+			primInst(i,j,k,4) = cuInst(i,j,k,3)/cuInst(i,j,k,0);		  // Bulk z-velocity
 
-			primInst(i,j,k,5)  = pow(primInst(i,j,k,2),2);					// Bulk uu
+			primInst(i,j,k,5)  = pow(primInst(i,j,k,2),2);					  // Bulk uu
 			primInst(i,j,k,6)  = primInst(i,j,k,2)*primInst(i,j,k,3);	// Bulk uv
 			primInst(i,j,k,7)  = primInst(i,j,k,2)*primInst(i,j,k,4);	// Bulk uw
-			primInst(i,j,k,8)  = pow(primInst(i,j,k,3),2);					// Bulk vv
+			primInst(i,j,k,8)  = pow(primInst(i,j,k,3),2);					  // Bulk vv
 			primInst(i,j,k,9)  = primInst(i,j,k,3)*primInst(i,j,k,4);	// Bulk vw
-			primInst(i,j,k,10) = pow(primInst(i,j,k,4),2);					// Bulk ww
+			primInst(i,j,k,10) = pow(primInst(i,j,k,4),2);					  // Bulk ww
 
 			// Mixture Temperature
 			primInst(i,j,k,11) /= primInst(i,j,k,0);
@@ -169,34 +167,102 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
 			// Energy Density
 			cv /= primInst(i,j,k,1);
 			primInst(i,j,k,13)  = pow(primInst(i,j,k,2),2)+pow(primInst(i,j,k,3),2)+pow(primInst(i,j,k,4),2);
-			primInst(i,j,k,13)  = 0.5*primInst(i,j,k,1)*primInst(i,j,k,13);								// Bulk energy
+			primInst(i,j,k,13)  = 0.5*primInst(i,j,k,1)*primInst(i,j,k,13);								        // Bulk energy
 			primInst(i,j,k,13)  = primInst(i,j,k,13) + (cv*primInst(i,j,k,11)*primInst(i,j,k,1));	// Total Particle KE
 
-			// Convert n to Xk and rho to Yk
-			/*
-			for (int l=0; l<nspecies; l++) {
-				primInst(i,j,k,nprimvars*l+0)  /= primInst(i,j,k,0); //X_k
-				primInst(i,j,k,nprimvars*l+1)  /= primInst(i,j,k,0);  //Y_k
-			}*/
 		});
 
 		//////////////////////////////////////
-		// Mean Values and Variances
+		// Means and Variances
 		//////////////////////////////////////
 
 		amrex::ParallelFor(tile_box,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
 			Vector<Real> delCon(ncon, 0.0);
-			// Conserved Variances
+			
+			// Conserved Means + Variances
 			for (int l=0; l<ncon; l++) {
 				cuMeans(i,j,k,l) = (cuMeans(i,j,k,l)*stepsMinusOne+cuInst(i,j,k,l))*osteps;
 				delCon[l]        = cuInst(i,j,k,l) - cuMeans(i,j,k,l);
 				cuVars(i,j,k,l)  = (cuVars(i,j,k,l)*stepsMinusOne+delCon[l]*delCon[l])*osteps;
 			}
+				
+			// Evaluate Primitive Means from Conserved Means
+			primMeans(i,j,k,0)  = 0.;
+			primMeans(i,j,k,1)  = cuMeans(i,j,k,0);
+			primMeans(i,j,k,2)  = cuMeans(i,j,k,1)/cuMeans(i,j,k,0);
+			primMeans(i,j,k,3)  = cuMeans(i,j,k,2)/cuMeans(i,j,k,0);
+			primMeans(i,j,k,4)  = cuMeans(i,j,k,3)/cuMeans(i,j,k,0);
+			primMeans(i,j,k,5)  = pow(primMeans(i,j,k,2),2);
+			primMeans(i,j,k,6)  = primMeans(i,j,k,2)*primMeans(i,j,k,3);
+			primMeans(i,j,k,7)  = primMeans(i,j,k,2)*primMeans(i,j,k,4);
+			primMeans(i,j,k,8)  = pow(primMeans(i,j,k,3),2);
+			primMeans(i,j,k,9)  = primMeans(i,j,k,3)*primMeans(i,j,k,4);
+			primMeans(i,j,k,10) = pow(primMeans(i,j,k,4),2);
 			
+			int iprim = 17; int icon = 5;
+			Real cv = 0.;
+			for(int l=0; l<nspecies; l++) { 
+				Real mass = properties[l].mass*properties[l].Neff;
+				Real moV  = properties[l].mass*ocollisionCellVol;
+				Real cv_l = 3.0*k_B*0.5/mass;
+				
+				// Densities
+				primMeans(i,j,k,iprim+0) = cuMeans(i,j,k,icon+0)/mass;
+				primMeans(i,j,k,0) += primMeans(i,j,k,iprim+0);
+				primMeans(i,j,k,iprim+1) = cuMeans(i,j,k,icon+0);
+
+				// Bulk Velocities
+				primMeans(i,j,k,iprim+2) = cuMeans(i,j,k,icon+1)/cuMeans(i,j,k,icon+0);
+				primMeans(i,j,k,iprim+3) = cuMeans(i,j,k,icon+2)/cuMeans(i,j,k,icon+0);
+				primMeans(i,j,k,iprim+4) = cuMeans(i,j,k,icon+3)/cuMeans(i,j,k,icon+0);
+				
+				// Stresses
+				primMeans(i,j,k,iprim+5)  = pow(primMeans(i,j,k,iprim+1),2);
+				primMeans(i,j,k,iprim+6)  = primMeans(i,j,k,iprim+2)*primMeans(i,j,k,iprim+3);
+				primMeans(i,j,k,iprim+7)  = primMeans(i,j,k,iprim+2)*primMeans(i,j,k,iprim+4);
+				primMeans(i,j,k,iprim+8)  = pow(primMeans(i,j,k,iprim+3),2);
+				primMeans(i,j,k,iprim+9)  = primMeans(i,j,k,iprim+3)*primMeans(i,j,k,iprim+4);
+				primMeans(i,j,k,iprim+10) = pow(primMeans(i,j,k,iprim+4),2);
+				
+				// Temperature
+				cv += cv_l*primMeans(i,j,k,iprim+1);
+				Real vsqb = pow(primMeans(i,j,k,iprim+2),2)+pow(primMeans(i,j,k,iprim+3),2) +
+								     pow(primMeans(i,j,k,iprim+4),2);
+
+				primMeans(i,j,k,iprim+11) = (cuMeans(i,j,k,icon+4)/cuMeans(i,j,k,icon)-vsqb*0.5)/cv_l;
+				primMeans(i,j,k,iprim+12) = primInst(i,j,k,iprim+11)*(k_B/mass)*cuInst(i,j,k,icon);
+				primMeans(i,j,k,iprim+13) = vsqb*moV+cv_l*primInst(i,j,k,iprim+11)*cuInst(i,j,k,icon);
+				
+				// Omitted ATM
+				primMeans(i,j,k,iprim+14) = 0.;	// qx
+				primMeans(i,j,k,iprim+15) = 0.;	// qy
+				primMeans(i,j,k,iprim+16) = 0.;	// qz
+
+				// Total EoS
+				primMeans(i,j,k,11) += primMeans(i,j,k,iprim+11)*primMeans(i,j,k,iprim+0);
+				primMeans(i,j,k,12) += primMeans(i,j,k,iprim+12);
+				
+				// q omitted
+				// Need to implement averaging from Rader 2006
+				primMeans(i,j,k,14) += primMeans(i,j,k,iprim+14);
+				primMeans(i,j,k,15) += primMeans(i,j,k,iprim+15);
+				primMeans(i,j,k,16) += primMeans(i,j,k,iprim+16);				
+				iprim += 17; icon += 5;
+			}
+
+			// Mixture Temperature
+			primMeans(i,j,k,11) /= primMeans(i,j,k,0);
+
+			// Energy Density
+			cv /= primMeans(i,j,k,1);
+			primMeans(i,j,k,13)  = pow(primMeans(i,j,k,2),2)+pow(primMeans(i,j,k,3),2)+pow(primMeans(i,j,k,4),2);
+			primMeans(i,j,k,13)  = 0.5*primMeans(i,j,k,1)*primMeans(i,j,k,13);								        // Bulk energy
+			primMeans(i,j,k,13)  = primMeans(i,j,k,13) + (cv*primMeans(i,j,k,11)*primMeans(i,j,k,1));	// Total Particle KE
+
 			// Primitive Variances
 			Vector<Real> delPrim(nprim, 0.0);
 			for (int l=0; l<nprim; l++) {
-				primMeans(i,j,k,l) = (primMeans(i,j,k,l)*stepsMinusOne+primInst(i,j,k,l))*osteps;
+				// primMeans(i,j,k,l) = (primMeans(i,j,k,l)*stepsMinusOne+primInst(i,j,k,l))*osteps;
 				delPrim[l]         = primInst(i,j,k,l) - primMeans(i,j,k,l);
 				primVars(i,j,k,l)  = (primVars(i,j,k,l)*stepsMinusOne+delPrim[l]*delPrim[l])*osteps;
 			}

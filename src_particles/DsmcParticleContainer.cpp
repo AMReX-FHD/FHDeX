@@ -43,6 +43,8 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
 			
 			// Need for concentration BC
       rho0 += properties[i].n0*properties[i].mass;
+      properties[i].n0*properties[i].mass;
+
 		} else if( phi_domain[i] >= 0 ) {
       
 			properties[i].total = (int)amrex::Math::ceil(
@@ -53,14 +55,20 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
 			amrex::Print() <<  "Species "<< i << " n0 " << properties[i].n0 << "\n";
 
 			rho0 += properties[i].n0*properties[i].mass;
+			Yk0[i] = properties[i].n0*properties[i].mass;
+			
 		} else if( rho0 > 0) {
-		
+			Real Yktot = 0.0;
+			for(int i=0; i<nspecies; i++) { Yktot += Yk0[i]; }
+			for(int i=0; i<nspecies; i++) {	Yk0[i] /= Yktot; }
+
 			Real rhop = properties[i].mass/domainVol;
 			properties[i].total = std::ceil((rho0*Yk0[i])/rhop);
 			properties[i].n0 = particle_neff*properties[i].total/domainVol;
 			
 			amrex::Print() <<  "Species "<< i << " count " << properties[i].total << "\n";
 			amrex::Print() <<  "Species "<< i << " n0 " << properties[i].n0 << "\n";
+			for(int i=0; i<nspecies; i++) { Yk0[i] *= rho0; }
 
 		// number density defined
 		} else {
@@ -74,6 +82,8 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
 			amrex::Print() <<  "Species " << i << " n0 " << properties[i].n0 << "\n";
 			
 			rho0 += properties[i].n0*properties[i].mass;
+			properties[i].n0*properties[i].mass;
+
 		}
       
 		realParticles = realParticles + properties[i].total*particle_neff;
@@ -82,17 +92,8 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
 			<< " is " << properties[i].total/totalCollisionCells << "\n";
 	}
 	
-	// Recalculate rho0
-	rho0 = 0.0;
-	for(int i=0; i<nspecies; i++) {
-		Real rhop = properties[i].n0*properties[i].mass;
-		rho0 += rhop; 
-	}
-	
-	// Recalculate Yk
-	for(int i=0; i<nspecies; i++) {
-		Real rhop = properties[i].n0*properties[i].mass;
-		Yk0[i] = rhop/rho0;
+	for(int i=0; i<nspecies ; i++) {
+		Yk0[i] = Yk0[i]/rho0;
 	}
 	
 	for (int d=0; d<AMREX_SPACEDIM; ++d) {

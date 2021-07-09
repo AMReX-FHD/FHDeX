@@ -231,7 +231,8 @@ void main_driver(const char* argv)
 
 	max_step += step;
 	n_steps_skip += step;
-        int IO_int = std::ceil(plot_int*0.01);
+	int IO_int = std::ceil(plot_int*0.01);
+	int stat_int = 5;
 	Real tbegin, tend;
 	for (int istep=step; istep<=max_step; ++istep) {
 		if(istep%IO_int == 0) {
@@ -263,7 +264,9 @@ void main_driver(const char* argv)
 					}
 				}
 			}
-			particles.EvaluateStats(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,coVars,statsCount++,time);
+			if(istep%stat_int == 0) {
+				particles.EvaluateStats(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,coVars,statsCount++,time);
+			}
 		}
 
 		//////////////////////////////////////
