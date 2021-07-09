@@ -13,7 +13,7 @@ void evaluateStatsStag(const MultiFab& cons, MultiFab& consMean, MultiFab& consV
                        std::array<MultiFab, AMREX_SPACEDIM>& cumomVar,
                        MultiFab& coVar, 
                        Vector<Real>& yzAvMeans_cross,
-                       Vector<Real>& spatialCross,
+                       Vector<Real>& spatialCross, int ncross,
                        const int steps, const amrex::Real* dx)
 {
     BL_PROFILE_VAR("evaluateStatsStag()",evaluateStatsStag);
@@ -428,6 +428,14 @@ void evaluateStatsStag(const MultiFab& cons, MultiFab& consMean, MultiFab& consV
     for (int ns=0; ns<nspecies; ++ns) {
         delrhoYkstar[ns] =  yzAvMeans_cross[18+4*ns+0] - yzAvMeans_cross[18+4*ns+1];
     }
+
+    // Get fluctuations of some primitive variables (for direct fluctuation calculations)
+    Real delTstar = yzAvMeans_cross[16] - yzAvMeans_cross[17];
+    Real delvxstar = yzAvMeans_cross[10] - yzAvMeans_cross[11];
+    Vector<Real>  delYkstar(nspecies, 0.0);
+    for (int ns=0; ns<nspecies; ++ns) {
+        delYkstar[ns] =  yzAvMeans_cross[18+4*ns+2] - yzAvMeans_cross[18+4*ns+3];
+    }
     
     // evaluate heat stuff at the cross cell
     Real cv = 0.;
@@ -446,7 +454,7 @@ void evaluateStatsStag(const MultiFab& cons, MultiFab& consMean, MultiFab& consV
     /////////////////////////////////////////////////////////////
     // evaluate x-spatial correlations
     /////////////////////////////////////////////////////////////
-    int ncross = 28+nspecies;
+    // int ncross = 37+nspecies+2; check main_drive.cpp for latest
     for (int i=0; i<n_cells[0]; ++i) {
 
         // Get mean values
@@ -465,6 +473,14 @@ void evaluateStatsStag(const MultiFab& cons, MultiFab& consMean, MultiFab& consV
         Vector<Real>  delrhoYk(nspecies, 0.0);
         for (int ns=0; ns<nspecies; ++ns) {
             delrhoYk[ns] = yzAvMeans[i*nstats+18+4*ns+0] - yzAvMeans[i*nstats+18+4*ns+1];
+        }
+
+        // Get fluctuations of some primitive variables (for direct fluctuation calculations)
+        Real delT = yzAvMeans[i*nstats+16] - yzAvMeans[i*nstats+17];
+        Real delvx = yzAvMeans[i*nstats+10] - yzAvMeans[i*nstats+11];
+        Vector<Real>  delYk(nspecies, 0.0);
+        for (int ns=0; ns<nspecies; ++ns) {
+            delYk[ns] = yzAvMeans[i*nstats+18+4*ns+2] - yzAvMeans[i*nstats+18+4*ns+3];
         }
     
         Real qmean = cv*yzAvMeans[i*nstats+17] - 
@@ -528,22 +544,55 @@ void evaluateStatsStag(const MultiFab& cons, MultiFab& consMean, MultiFab& consV
         spatialCross[i*ncross+25] = (1.0/(meanrho*meanrhostar))*(spatialCross[i*ncross+7] - meanuxstar*spatialCross[i*ncross+9] 
                                                                  - meanYk[nspecies-1]*spatialCross[i*ncross+5] + meanuxstar*meanYk[nspecies-1]*spatialCross[i*ncross+0]);
 
+        // Direct -- <delT(x*)delT(x)>
+        spatialCross[i*ncross+26] = (spatialCross[i*ncross+26]*stepsminusone + delTstar*delT)*stepsinv;
+
+        // Direct -- <delT(x*)delrho(x)>
+        spatialCross[i*ncross+27] = (spatialCross[i*ncross+27]*stepsminusone + delTstar*delrho)*stepsinv;
+
+        // Direct -- <delT(x*)delu(x)>
+        spatialCross[i*ncross+28] = (spatialCross[i*ncross+28]*stepsminusone + delTstar*delvx)*stepsinv;
+
+        // Direct -- <delu(x*)delrho>
+        spatialCross[i*ncross+29] = (spatialCross[i*ncross+29]*stepsminusone + delvxstar*delrho)*stepsinv;
+
+        // Direct -- <delu(x*)del(rhoYkL)
+        spatialCross[i*ncross+30] = (spatialCross[i*ncross+30]*stepsminusone + delvxstar*delYk[0])*stepsinv;
+
+        // Direct -- <delu(x*)del(rhoYkH)
+        spatialCross[i*ncross+31] = (spatialCross[i*ncross+31]*stepsminusone + delvxstar*delYk[nspecies-1])*stepsinv;
+
+        // Direct -- <delu(x*)del(YkL)
+        spatialCross[i*ncross+32] = (spatialCross[i*ncross+32]*stepsminusone + delvxstar*delrhoYk[0])*stepsinv;
+
+        // Direct -- <delu(x*)del(YkH)
+        spatialCross[i*ncross+33] = (spatialCross[i*ncross+33]*stepsminusone + delvxstar*delrhoYk[nspecies-1])*stepsinv;
+
+        // Direct <delYkL(x*)delYkL(x)>
+        spatialCross[i*ncross+34] = (spatialCross[i*ncross+34]*stepsminusone + delYkstar[0]*delYk[0])*stepsinv;
+
+        // Direct <delYkH(x*)delYkH(x)>
+        spatialCross[i*ncross+35] = (spatialCross[i*ncross+35]*stepsminusone + delYkstar[nspecies-1]*delYk[nspecies-1])*stepsinv;
+
+        // Direct <delYkL(x*)delYkH(x)>
+        spatialCross[i*ncross+36] = (spatialCross[i*ncross+36]*stepsminusone + delYkstar[0]*delYk[nspecies-1])*stepsinv;
+
+        // Last we rhoYk for species
+        for (int ns=0; ns<nspecies; ++ns) {
+            spatialCross[i*ncross+37+ns] = (spatialCross[i*ncross+37+ns]*stepsminusone + delrhoYkstar[ns]*delrhoYk[ns])*stepsinv; // <delrhoYk(x*)delrhoYk(x)>
+        }
+
         // <delYkL(x*)delYkL(x)> = (1/<rho(x*)>/<rho(x)>)*(<delrhoYkL(x*)delrhoYkL> - <YkL(x*)><delrho(x*)delrhoYkL(x)>
         //                                                 - <YkL(x)><delrhoYkL(x*)delrho(x) + <YkL(x*)><YkL(x)><delrho(x*)delrho(x)>)
-        Real delrhoYkdelrhoYk = (spatialCross[i*ncross+28]*stepsminusone + delrhoYkstar[0]*delrhoYk[0])*stepsinv;
-        spatialCross[i*ncross+26] = (1.0/(meanrho*meanrhostar))*(delrhoYkdelrhoYk - meanYkstar[0]*spatialCross[i*ncross+8]
+        Real delrhoYkdelrhoYk = (spatialCross[i*ncross+37]*stepsminusone + delrhoYkstar[0]*delrhoYk[0])*stepsinv;
+        spatialCross[i*ncross+37+nspecies] = (1.0/(meanrho*meanrhostar))*(delrhoYkdelrhoYk - meanYkstar[0]*spatialCross[i*ncross+8]
                                                                 - meanYk[0]*spatialCross[i*ncross+10] + meanYkstar[0]*meanYk[0]*spatialCross[i*ncross+0]);
 
         // <delYkL(x*)delYkH(x)> = (1/<rho(x*)>/<rho(x)>)*(<delrhoYkH(x*)delrhoYkH> - <YkH(x*)><delrho(x*)delrhoYkH(x)>
         //                                                 - <YkH(x)><delrhoYkH(x*)delrho(x) + <YkH(x*)><YkH(x)><delrho(x*)delrho(x)>)
-        delrhoYkdelrhoYk = (spatialCross[i*ncross+28+nspecies-1]*stepsminusone + delrhoYkstar[nspecies-1]*delrhoYk[nspecies-1])*stepsinv;
-        spatialCross[i*ncross+27] = (1.0/(meanrho*meanrhostar))*(delrhoYkdelrhoYk - meanYkstar[nspecies-1]*spatialCross[i*ncross+9]
+        delrhoYkdelrhoYk = (spatialCross[i*ncross+37+nspecies-1]*stepsminusone + delrhoYkstar[nspecies-1]*delrhoYk[nspecies-1])*stepsinv;
+        spatialCross[i*ncross+37+nspecies+1] = (1.0/(meanrho*meanrhostar))*(delrhoYkdelrhoYk - meanYkstar[nspecies-1]*spatialCross[i*ncross+9]
                                                                 - meanYk[nspecies-1]*spatialCross[i*ncross+11] + meanYkstar[nspecies-1]*meanYk[nspecies-1]*spatialCross[i*ncross+0]);
-
-        // Last we rhoYk for species
-        for (int ns=0; ns<nspecies; ++ns) {
-            spatialCross[i*ncross+28+ns] = (spatialCross[i*ncross+28+ns]*stepsminusone + delrhoYkstar[ns]*delrhoYk[ns])*stepsinv; // <delrhoYk(x*)delrhoYk(x)>
-        }
     }
     
     //Vector<Real> yzAv(n_cells[0]*(nvars+2),0.); 
