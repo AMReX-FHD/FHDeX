@@ -213,7 +213,37 @@ void ReadCheckPoint(int& step,
     int n_ranks;
     MPI_Comm_size(MPI_COMM_WORLD, &n_ranks);
 
-		if (seed == 0) {       
+    if (seed < 0) {
+
+        // read in rng state from checkpoint
+        // don't read in all the rng states at once (overload filesystem)
+        // one at a time read the rng states to different files, one for each MPI rank
+        for (int rank=0; rank<n_ranks; ++rank) {
+
+            if (comm_rank == rank) {
+    
+                if (seed < 0) {
+                    // create filename, e.g. chk0000005/rng0000002
+                    std::string FileBase(checkpointname + "/rng");
+                    std::string File = amrex::Concatenate(FileBase,comm_rank,7);
+                    
+                    // read in contents
+                    Vector<char> fileCharPtr;
+                    ReadFile(File, fileCharPtr);
+                    std::string fileCharPtrString(fileCharPtr.dataPtr());
+                    std::istringstream is(fileCharPtrString, std::istringstream::in);
+                    
+                    // restore random state
+                    amrex::RestoreRandomState(is, 1, 0);
+                }
+            }
+
+            ParallelDescriptor::Barrier();
+
+        }
+
+    }
+    else if (seed == 0) {       
 			// initializes seed for random number calls from clock
 			auto now = time_point_cast<nanoseconds>(system_clock::now());
 			int randSeed = now.time_since_epoch().count();
@@ -225,20 +255,32 @@ void ReadCheckPoint(int& step,
 			InitRandom(seed+ParallelDescriptor::MyProc());
     }
 
-		VisMF::Read(cuInst,
-			amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cuInst"));
-		VisMF::Read(cuMeans,
-			amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cuMeans"));
-		VisMF::Read(cuVars,
-			amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cuVars"));
-		VisMF::Read(primInst,
-			amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "primInst"));
-		VisMF::Read(primMeans,
-			amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "primMeans"));
-		VisMF::Read(primVars,
-			amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "primVars"));
-		VisMF::Read(coVars,
-			amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "coVars"));
+    // read in the MultiFab data
+    VisMF::Read(cuInst,
+      amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cuInst"));
+    VisMF::Read(primInst,
+      amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "primInst"));
+
+    // Set all stats to zero if reset stats, else read
+    if (reset_stats == 1) {
+        cuMeans.setVal(0.0);
+        cuVars.setVal(0.0);
+        primMeans.setVal(0.0);
+        primVars.setVal(0.0);
+        coVars.setVal(0.0);
+    }
+    else {
+        VisMF::Read(cuMeans,
+          amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cuMeans"));
+        VisMF::Read(cuVars,
+          amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cuVars"));
+        VisMF::Read(primMeans,
+          amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "primMeans"));
+        VisMF::Read(primVars,
+          amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "primVars"));
+        VisMF::Read(coVars,
+			    amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "coVars"));
+    }
 }
 
 void ReadCheckPointParticles(FhdParticleContainer& particles) {
@@ -254,6 +296,8 @@ void ReadCheckPointParticles(FhdParticleContainer& particles) {
     else {
         checkpointname = amrex::Concatenate(chk_base_name,restart,9);
     }
+
+    amrex::Print() << "Restart particles from checkpoint " << checkpointname << "\n";
 
     std::string line, word;
     
@@ -305,4 +349,47 @@ void ReadCheckPointParticles(FhdParticleContainer& particles) {
     particles.ReInitParticles();
 }
 
+void ReadFile(const std::string& filename, Vector<char>& charBuf, 
+              bool bExitOnError) {
 
+    enum { IO_Buffer_Size = 262144 * 8 };
+
+#ifdef BL_SETBUF_SIGNED_CHAR
+    typedef signed char Setbuf_Char_Type;
+#else
+    typedef char Setbuf_Char_Type;
+#endif
+
+    Vector<Setbuf_Char_Type> io_buffer(IO_Buffer_Size);
+
+    Long fileLength(0), fileLengthPadded(0);
+
+    std::ifstream iss;
+
+    iss.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
+    iss.open(filename.c_str(), std::ios::in);
+    if ( ! iss.good()) {
+        if(bExitOnError) {
+            amrex::FileOpenFailed(filename);
+        } else {
+            fileLength = -1;
+        }
+    } else {
+        iss.seekg(0, std::ios::end);
+        fileLength = static_cast<std::streamoff>(iss.tellg());
+        iss.seekg(0, std::ios::beg);
+    }
+
+    if(fileLength == -1) {
+      return;
+    }
+
+    fileLengthPadded = fileLength + 1;
+//    fileLengthPadded += fileLengthPadded % 8;
+    charBuf.resize(fileLengthPadded);
+
+    iss.read(charBuf.dataPtr(), fileLength);
+    iss.close();
+
+    charBuf[fileLength] = '\0';
+}

@@ -36,4 +36,7 @@ void ReadCheckPoint(int& step,
 
 void ReadCheckPointParticles(FhdParticleContainer& particles);
 
+void ReadFile(const std::string& filename, Vector<char>& charBuf, 
+              bool bExitOnError);
+
 #endif

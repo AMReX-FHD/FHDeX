@@ -139,10 +139,8 @@ void main_driver(const char* argv)
     dmap = cuInst.DistributionMap();
     ba = cuInst.boxArray();
     
-    // Zero out vars
-    cuVars.setVal(0.);
-    primVars.setVal(0.);
-    coVars.setVal(0.);
+    if (reset_stats == 1) statsCount = 1;
+    
 	}
 	
 	Vector<int> is_periodic (AMREX_SPACEDIM,0);
