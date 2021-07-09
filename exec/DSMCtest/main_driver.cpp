@@ -243,10 +243,10 @@ void main_driver(const char* argv)
 		// DSMC Collide + Move
 		//////////////////////////////////////
 
-		particles.CalcSelections(dt);
-		particles.CollideParticles(dt);
-		particles.Source(dt, paramPlaneList, paramPlaneCount);
-		particles.MoveParticlesCPP(dt, paramPlaneList, paramPlaneCount);
+		//particles.CalcSelections(dt);
+		//particles.CollideParticles(dt);
+		//particles.Source(dt, paramPlaneList, paramPlaneCount);
+		//particles.MoveParticlesCPP(dt, paramPlaneList, paramPlaneCount);
 
 		//////////////////////////////////////
 		// Stats
@@ -274,7 +274,7 @@ void main_driver(const char* argv)
 		//////////////////////////////////////
 
 		bool writePlt = false;
-		if (plot_int > 0 && istep>0) {
+		if (plot_int > 0 && istep>0 && istep>=n_steps_skip) {
 			if (n_steps_skip >= 0) { // for positive n_steps_skip, write out at plot_int
 				writePlt = (istep%plot_int == 0);
 			} else if (n_steps_skip < 0) { // for negative n_steps_skip, write out at plot_int-1

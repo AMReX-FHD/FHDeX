@@ -166,6 +166,53 @@ void FhdParticleContainer::InitParticles(Real & dt) {
 
 	Redistribute();
 	SortParticles();
+	
+	// Zero bulk velocities in each cell
+	for (FhdParIter pti(* this, lev); pti.isValid(); ++pti) {
+		const int grid_id = pti.index();
+		const int tile_id = pti.LocalTileIndex();
+		const Box& tile_box  = pti.tilebox();
+
+		auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+		auto& particles = particle_tile.GetArrayOfStructs();
+		const long np = particles.numParticles();
+
+		IntVect smallEnd = tile_box.smallEnd();
+		IntVect bigEnd = tile_box.bigEnd();
+	
+		for (int i = smallEnd[0]; i <= bigEnd[0]; i++) {
+		for (int j = smallEnd[1]; j <= bigEnd[1]; j++) {
+		for (int k = smallEnd[2]; k <= bigEnd[2]; k++) {
+			const IntVect& iv = {i,j,k};
+			long imap = tile_box.index(iv);
+			for (int niter=0; niter<3; niter++) {
+			for (int ispec=0; ispec<nspecies; ispec++){
+				Real ucom=0., vcom=0., wcom=0.;
+				int np = m_cell_vectors[ispec][grid_id][imap].size();
+				double lmass = properties[ispec].mass;
+				for (int ip = 0; ip<np; ip++) {
+					int ipart = m_cell_vectors[ispec][grid_id][imap][ip];
+					ParticleType & part = particles[ipart];
+					ucom += part.rdata(FHD_realData::velx);
+					vcom += part.rdata(FHD_realData::vely);
+					wcom += part.rdata(FHD_realData::velz);
+				}
+				ucom /= (double)np;
+				vcom /= (double)np;
+				wcom /= (double)np;
+				for (int ip = 0; ip<np; ip++) {
+					int ipart = m_cell_vectors[ispec][grid_id][imap][ip];
+					ParticleType & part = particles[ipart];
+					part.rdata(FHD_realData::velx) = part.rdata(FHD_realData::velx) - ucom;
+					part.rdata(FHD_realData::vely) = part.rdata(FHD_realData::vely) - vcom;
+					part.rdata(FHD_realData::velz) = part.rdata(FHD_realData::velz) - wcom;
+				}
+			}
+			}
+		}
+		}
+		}
+	}
 }
 
 void FhdParticleContainer::ReInitParticles() {

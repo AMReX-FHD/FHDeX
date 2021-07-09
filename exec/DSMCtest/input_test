@@ -13,11 +13,11 @@
 
   ! Controls for number of steps between actions
   max_step =   5000000
-  max_step =   10000
+  max_step =   10
   plot_int =     50000
-  plot_int =   500
+  plot_int =   5
   n_steps_skip = 50000
-  n_steps_skip = 500
+  n_steps_skip = 2
   struct_fact_int = 10
 
   reset_stats = 1
