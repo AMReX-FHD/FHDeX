@@ -1247,7 +1247,14 @@ void mob_interp_gpu(Real z, Real a, Real* tmob, Real* nmob)
 //  for iceo 6.59 nm channel, 256*256 in x-z plane, pkernel_fluid=4
         *tmob = std::max(0.977863 + 1.13644e-05/pow(2.06719e-02  + h,5) - 16.9451/pow(4.05121   + h,3) - 0.3445501/(1.144203e-04  + h),0.0);
         *nmob = std::max(0.9677998 + 0.465011/pow(0.404108  + h,5) - 144.349/pow(6.77596   + h,3) - 0.507712/(1.16305e-02  + h),0.0);
+    }else if(wall_mob==9)
+    {
+        Real h = (z)/a;
+//  for iceo 13.18 nm channel, 256*256 in x-z plane, pkernel_fluid=4
+        *tmob = std::max(0.9961144 + 1.06175e-04/pow(3.56443e-02  + h,5) - (-0.103210)/pow(0.247971   + h,3) - 0.550113/(2.96865e-04  + h),0.0);
+        *nmob = std::max(0.989801 + 4.46549/pow(0.917613  + h,5) - 88.3371/pow(8.30857   + h,3) - 0.895525/(0.116306  + h),0.0);
     }
+
 }
 
 void mob_interp_der_gpu(Real z, Real a, Real* tmobDer, Real* nmobDer)
@@ -1312,7 +1319,15 @@ void mob_interp_der_gpu(Real z, Real a, Real* tmobDer, Real* nmobDer)
 
         *tmobDer = std::max(-5.6822e-05/(a*pow(2.06719e-02 + h , 6)) + 50.8353/(a*pow(4.05121 + h , 4)) + 0.34455/(a*pow(1.1442e-04 + h , 2)),0.0);
         *nmobDer = std::max(-2.32506/(a*pow(0.404108 + h,6)) + 433.047/(a*pow(6.77596  + h,4)) + 0.507712/(a*pow(1.16305e-02 + h,2)),0.0);
+    }else if(wall_mob==9)
+    {
+//  for iceo 13.18 nm channel, 256*256 in x-z plane, pkernel_fluid=4
+        Real h = (z)/a;
+
+        *tmobDer = std::max(-5.30875e-04/(a*pow(3.56443e-02 + h , 6)) + (-0.30963)/(a*pow(0.247971 + h , 4)) + 0.550113/(a*pow(2.96865e-04 + h , 2)),0.0);
+        *nmobDer = std::max(-22.3275/(a*pow(0.917613 + h,6)) + 265.011/(a*pow(8.30857  + h,4)) + 0.895525/(a*pow(0.116306 + h,2)),0.0);
     }
+
 
 
 }
