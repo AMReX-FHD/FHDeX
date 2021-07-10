@@ -10,7 +10,8 @@ module common_namelist_module
 
   !!!!!!!!!!!!!
   ! DO NOT CHANGE THIS VALUE WITHOUT ALSO CHANGING common_namespace.H
-  integer, parameter :: MAX_SPECIES = 4
+  integer, parameter :: MAX_SPECIES = 8
+  integer, parameter :: MAX_ELEMENT = 28 ! needs to be MAX_SPECIES*(MAX_SPECIES-1)/2
   !!!!!!!!!!!!!
 
   double precision,   save :: prob_lo(AMREX_SPACEDIM)
