@@ -217,56 +217,50 @@ void app_bc_gpu(const paramPlane* surf, FhdParticleContainer::ParticleType& part
         if(surf->boundary == 1)
         {
           part.pos(0) = part.pos(0) + 0.9999999*domsize[0];
-/*          if(surf->velz > 0) {*/
-/*          	part.rdata(FHD_realData::velz) =*/
-/*          		part.rdata(FHD_realData::velz) - surf->velz;*/
-/*          }*/
+          if(surf->velz > 0) {
+          	part.rdata(FHD_realData::velz) =
+          		part.rdata(FHD_realData::velz) - surf->velz;
+          }
         }
         else if(surf->boundary == 2)
         {
           part.pos(0) = part.pos(0) - 0.9999999*domsize[0];
-/*          if(surf->velz > 0) {*/
-/*          	part.rdata(FHD_realData::velz) =*/
-/*          		part.rdata(FHD_realData::velz) + surf->velz;*/
-/*          }*/
+          if(surf->velz > 0) {
+          	part.rdata(FHD_realData::velz) =
+          		part.rdata(FHD_realData::velz) + surf->velz;
+          }
         }
         else if(surf->boundary == 3)
         {
           part.pos(1) = part.pos(1) + 0.9999999*domsize[1];
-/*          if(surf->velx > 0) {*/
-/*          	amrex::Print() << "BC: " << surf->boundary << "\n";*/
-/*          	amrex::Print() << "v0: " << part.rdata(FHD_realData::velx) << "\n";*/
-/*          	part.rdata(FHD_realData::velx) =*/
-/*          		part.rdata(FHD_realData::velx) - surf->velx;*/
-/*          	amrex::Print() << "vf: " << part.rdata(FHD_realData::velx) << "\n";*/
-/*          }*/
+          if(surf->velx > 0) {
+          	part.rdata(FHD_realData::velx) =
+          		part.rdata(FHD_realData::velx) - surf->velx;
+          }
         }
         else if(surf->boundary == 4)
         {
-/*        	amrex::Print() << "BC: " << surf->boundary << "\n";*/
-/*          amrex::Print() << "v0: " << part.rdata(FHD_realData::velx) << "\n";*/
           part.pos(1) = part.pos(1) - 0.9999999*domsize[1];
-/*          if(surf->velx > 0) {*/
-/*          	part.rdata(FHD_realData::velx) =*/
-/*          		part.rdata(FHD_realData::velx) + surf->velx;*/
-/*          }*/
-/*          	amrex::Print() << "vf: " << part.rdata(FHD_realData::velx) << "\n";*/
+          if(surf->velx > 0) {
+          	part.rdata(FHD_realData::velx) =
+          		part.rdata(FHD_realData::velx) + surf->velx;
+          }
         }
         else if(surf->boundary == 5)
         {
           part.pos(2) = part.pos(2) + 0.9999999*domsize[2];
-/*          if(surf->vely > 0){*/
-/*          	part.rdata(FHD_realData::vely) =*/
-/*          		part.rdata(FHD_realData::vely) - surf->vely;*/
-/*          }*/
+          if(surf->vely > 0){
+          	part.rdata(FHD_realData::vely) =
+          		part.rdata(FHD_realData::vely) - surf->vely;
+          }
         }
         else if(surf->boundary == 6)
         {
           part.pos(2) = part.pos(2) - 0.9999999*domsize[2];
-/*          if(surf->vely > 0) {*/
-/*          	part.rdata(FHD_realData::vely) =*/
-/*          		part.rdata(FHD_realData::vely) + surf->vely;*/
-/*          }*/
+          if(surf->vely > 0) {
+          	part.rdata(FHD_realData::vely) =
+          		part.rdata(FHD_realData::vely) + surf->vely;
+          }
         }
 
       }
@@ -334,56 +328,50 @@ void app_bc_gpu(const paramPlane* surf, FhdParticleContainer::ParticleType& part
         if(surf->boundary == 1)
         {
           part.pos(0) = part.pos(0) + 0.9999999*domsize[0];
-/*          if(surf->velz > 0) {*/
-/*          	part.rdata(FHD_realData::velz) =*/
-/*          		part.rdata(FHD_realData::velz) - surf->velz;*/
-/*          }*/
+          if(surf->velz > 0) {
+          	part.rdata(FHD_realData::velz) =
+          		part.rdata(FHD_realData::velz) - surf->velz;
+          }
         }
         else if(surf->boundary == 2)
         {
           part.pos(0) = part.pos(0) - 0.9999999*domsize[0];
-/*          if(surf->velz > 0) {*/
-/*          	part.rdata(FHD_realData::velz) =*/
-/*          		part.rdata(FHD_realData::velz) + surf->velz;*/
-/*          }*/
+          if(surf->velz > 0) {
+          	part.rdata(FHD_realData::velz) =
+          		part.rdata(FHD_realData::velz) + surf->velz;
+          }
         }
         else if(surf->boundary == 3)
         {
-/*						amrex::Print() << "BC: " << surf->boundary << "\n";*/
-/*          	amrex::Print() << "v0: " << part.rdata(FHD_realData::velx) << "\n";*/
           part.pos(1) = part.pos(1) + 0.9999999*domsize[1];
-/*          if(surf->velx > 0) {*/
-/*          	part.rdata(FHD_realData::velx) =*/
-/*          		part.rdata(FHD_realData::velx) - surf->velx;*/
-/*          }*/
-/*          	amrex::Print() << "vf: " << part.rdata(FHD_realData::velx) << "\n";*/
+          if(surf->velx > 0) {
+          	part.rdata(FHD_realData::velx) =
+          		part.rdata(FHD_realData::velx) - surf->velx;
+          }
         }
         else if(surf->boundary == 4)
         {
-/*						amrex::Print() << "BC: " << surf->boundary << "\n";*/
-/*          	amrex::Print() << "v0: " << part.rdata(FHD_realData::velx) << "\n";*/
           part.pos(1) = part.pos(1) - 0.9999999*domsize[1];
-/*          if(surf->velx > 0) {*/
-/*          	part.rdata(FHD_realData::velx) =*/
-/*          		part.rdata(FHD_realData::velx) + surf->velx;*/
-/*          }*/
-/*          	amrex::Print() << "vf: " << part.rdata(FHD_realData::velx) << "\n";*/
+          if(surf->velx > 0) {
+          	part.rdata(FHD_realData::velx) =
+          		part.rdata(FHD_realData::velx) + surf->velx;
+          }
         }
         else if(surf->boundary == 5)
         {
           part.pos(2) = part.pos(2) + 0.9999999*domsize[2];
-/*          if(surf->vely > 0) {*/
-/*          	part.rdata(FHD_realData::vely) =*/
-/*          		part.rdata(FHD_realData::vely) - surf->vely;*/
-/*          }*/
+          if(surf->vely > 0) {
+          	part.rdata(FHD_realData::vely) =
+          		part.rdata(FHD_realData::vely) - surf->vely;
+          }
         }
         else if(surf->boundary == 6)
         {
           part.pos(2) = part.pos(2) - 0.9999999*domsize[2];
-/*          if(surf->vely > 0) {*/
-/*          	part.rdata(FHD_realData::vely) =*/
-/*          		part.rdata(FHD_realData::vely) + surf->vely;*/
-/*          }*/
+          if(surf->vely > 0) {
+          	part.rdata(FHD_realData::vely) =
+          		part.rdata(FHD_realData::vely) + surf->vely;
+          }
         }
 
       }else
