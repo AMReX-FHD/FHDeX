@@ -37,10 +37,16 @@ GRTAGS
 
 
 # Data Files
+exec/**/*.dat
+exec/**/**/*.dat
 
 ## Plot files
 exec/**/plt*
 exec/**/stag*
+
+## Checkpoints
+exec/**/**/chk*
+exec/**/chk*
 
 ## Debug data
 exec/**/ib_data/*
