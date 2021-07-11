@@ -74,7 +74,7 @@ void WriteCheckPoint(int step,
 		ba.writeOn(HeaderFile); // write the BoxArray (fluid)
 		HeaderFile << '\n';
 	}
-	
+
 	int comm_rank;
 	MPI_Comm_rank(MPI_COMM_WORLD, &comm_rank);
 
@@ -126,7 +126,7 @@ void WriteCheckPoint(int step,
                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "primVars"));
 	VisMF::Write(coVars,
                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "coVars"));
-                		
+
 	// checkpoint particles
 	particles.Checkpoint(checkpointname,"particle");
 }
