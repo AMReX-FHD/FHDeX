@@ -232,7 +232,7 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
             // If using solid concentration wall
             else if(part.idata(FHD_intData::species) != part.idata(FHD_intData::species_change))
             {
-                IntVect iv(part.idata(FHD_intData::i), part.idata(FHD_intData::j), part.idata(FHD_intData::k));
+            	IntVect iv(part.idata(FHD_intData::i), part.idata(FHD_intData::j), part.idata(FHD_intData::k));
                 long imap = tile_box.index(iv);
 
 
@@ -299,7 +299,7 @@ void FhdParticleContainer::SortParticles()
 
             IntVect iv ={0,0,0};
 
-						//amrex::Print() << "Part idata: " << part.idata(FHD_intData::sorted) << "\n";
+		//amrex::Print() << "Part idata: " << part.idata(FHD_intData::sorted) << "\n";
 
             if(part.idata(FHD_intData::sorted) == -1)
             {
