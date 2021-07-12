@@ -37,8 +37,8 @@ GRTAGS
 
 
 # Data Files
-exec/**/*.dat
-exec/**/**/*.dat
+exec/**/Tg*
+exec/**/**/Tg*
 
 ## Plot files
 exec/**/plt*

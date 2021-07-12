@@ -23,18 +23,18 @@ namespace {
 	}
 }
 
-void WriteCheckPoint(int step, 
-										 const Real time,
-										 const Real dt,
-										 int statsCount,
-                     const amrex::MultiFab& cuInst, 
-                     const amrex::MultiFab& cuMeans,
-                     const amrex::MultiFab& cuVars,
-                     const amrex::MultiFab& primInst,
-                     const amrex::MultiFab& primMeans,
-                     const amrex::MultiFab& primVars,
-                     const amrex::MultiFab& coVars,
-                     const FhdParticleContainer& particles){
+void WriteCheckPoint(int step,
+			const Real time,
+			const Real dt,
+			int statsCount,
+			const amrex::MultiFab& cuInst,
+			const amrex::MultiFab& cuMeans,
+			const amrex::MultiFab& cuVars,
+			const amrex::MultiFab& primInst,
+			const amrex::MultiFab& primMeans,
+			const amrex::MultiFab& primVars,
+			const amrex::MultiFab& coVars,
+			const FhdParticleContainer& particles){
 	// timer for profiling
 	BL_PROFILE_VAR("WriteCheckPoint()",WriteCheckPoint);
 
@@ -113,40 +113,40 @@ void WriteCheckPoint(int step,
 
 	// Stat MFs
 	VisMF::Write(cuInst,
-					 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cuInst"));
+		amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cuInst"));
 	VisMF::Write(cuMeans,
-	             amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cuMeans"));
+		amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cuMeans"));
 	VisMF::Write(cuVars,
-                amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cuVars"));
+		amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cuVars"));
 	VisMF::Write(primInst,
-					 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "primInst"));
+		amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "primInst"));
 	VisMF::Write(primMeans,
-	             amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "primMeans"));
+		amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "primMeans"));
 	VisMF::Write(primVars,
-                amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "primVars"));
+		amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "primVars"));
 	VisMF::Write(coVars,
-                amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "coVars"));
+		amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "coVars"));
 
 	// checkpoint particles
 	particles.Checkpoint(checkpointname,"particle");
 }
 
-void ReadCheckPoint(int& step, 
-										 Real& time,
-										 Real& dt,
-										 int& statsCount,
-                     amrex::MultiFab& cuInst, 
-                     amrex::MultiFab& cuMeans,
-                     amrex::MultiFab& cuVars,
-                     amrex::MultiFab& primInst,
-                     amrex::MultiFab& primMeans,
-                     amrex::MultiFab& primVars,
-                     amrex::MultiFab& coVars){
-    // timer for profiling
-		BL_PROFILE_VAR("ReadCheckPoint()",ReadCheckPoint);
+void ReadCheckPoint(int& step,
+			Real& time,
+			Real& dt,
+			int& statsCount,
+			amrex::MultiFab& cuInst,
+			amrex::MultiFab& cuMeans,
+			amrex::MultiFab& cuVars,
+			amrex::MultiFab& primInst,
+			amrex::MultiFab& primMeans,
+			amrex::MultiFab& primVars,
+			amrex::MultiFab& coVars){
+	// timer for profiling
+	BL_PROFILE_VAR("ReadCheckPoint()",ReadCheckPoint);
 
-    // checkpoint file name, e.g., chk0000010
-    const std::string& checkpointname =
+	// checkpoint file name, e.g., chk0000010
+	const std::string& checkpointname =
     	amrex::Concatenate(chk_base_name,restart,9);
 
     amrex::Print() << "Restart from checkpoint " << checkpointname << "\n";
@@ -190,12 +190,11 @@ void ReadCheckPoint(int& step,
 
         // create a distribution mapping
         DistributionMapping dm { ba, ParallelDescriptor::NProcs() };
-        
+
         // MFs
         // MAKE SURE TO UPDATE IF INCREASED NUMBER OF VARS IN MF
         int cnvars  = (nspecies+1)*5;
-        int nprimvars = 17;
-        int pnvars  = (nspecies+1)*nprimvars;
+        int pnvars  = (nspecies+1)*17;
         int convars = 21;
         cuInst.define(ba,dm,cnvars,0);
         cuMeans.define(ba,dm,cnvars,0);
@@ -203,8 +202,7 @@ void ReadCheckPoint(int& step,
         primInst.define(ba,dm,pnvars,0);
         primMeans.define(ba,dm,pnvars,0);
         primVars.define(ba,dm,pnvars,0);
-		  	coVars.define(ba,dm,convars,0);
-
+	coVars.define(ba,dm,convars,0);
     }
     // C++ random number engine
     // each MPI process reads in its own file
@@ -222,18 +220,18 @@ void ReadCheckPoint(int& step,
         for (int rank=0; rank<n_ranks; ++rank) {
 
             if (comm_rank == rank) {
-    
+
                 if (seed < 0) {
                     // create filename, e.g. chk0000005/rng0000002
                     std::string FileBase(checkpointname + "/rng");
                     std::string File = amrex::Concatenate(FileBase,comm_rank,7);
-                    
+
                     // read in contents
                     Vector<char> fileCharPtr;
                     ReadFile(File, fileCharPtr);
                     std::string fileCharPtrString(fileCharPtr.dataPtr());
                     std::istringstream is(fileCharPtrString, std::istringstream::in);
-                    
+
                     // restore random state
                     amrex::RestoreRandomState(is, 1, 0);
                 }
@@ -244,7 +242,7 @@ void ReadCheckPoint(int& step,
         }
 
     }
-    else if (seed == 0) {       
+    else if (seed == 0) {
 			// initializes seed for random number calls from clock
 			auto now = time_point_cast<nanoseconds>(system_clock::now());
 			int randSeed = now.time_since_epoch().count();
@@ -272,25 +270,25 @@ void ReadCheckPoint(int& step,
     }
     else {
         VisMF::Read(cuMeans,
-          amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cuMeans"));
+		amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cuMeans"));
         VisMF::Read(cuVars,
-          amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cuVars"));
+		amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cuVars"));
         VisMF::Read(primMeans,
-          amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "primMeans"));
+		amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "primMeans"));
         VisMF::Read(primVars,
-          amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "primVars"));
+		amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "primVars"));
         VisMF::Read(coVars,
-			    amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "coVars"));
+		amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "coVars"));
     }
 }
 
 void ReadCheckPointParticles(FhdParticleContainer& particles) {
-    
+
     // timer for profiling
     BL_PROFILE_VAR("ReadCheckPointParticles()",ReadCheckPointParticles);
 
     std::string checkpointname;
-    
+
     if (particle_restart > 0) {
         checkpointname = amrex::Concatenate(chk_base_name,particle_restart,9);
     }
@@ -301,7 +299,7 @@ void ReadCheckPointParticles(FhdParticleContainer& particles) {
     amrex::Print() << "Restart particles from checkpoint " << checkpointname << "\n";
 
     std::string line, word;
-    
+
         int temp;
         std::string File(checkpointname + "/Header");
         Vector<char> fileCharPtr;
@@ -346,7 +344,6 @@ void ReadCheckPointParticles(FhdParticleContainer& particles) {
     int np = particles.TotalNumberOfParticles();
     //particlesTemp.Checkpoint("testcheck","particle");
     Print() << "Checkpoint contains " << np << " particles." <<std::endl;
-    
     particles.ReInitParticles();
 }
 

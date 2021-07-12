@@ -8,15 +8,15 @@ using namespace amrex;
 using namespace std;
 
 void FhdParticleContainer::writePlotFile(const MultiFab& mfcuInst,
-   						 						  const MultiFab& mfcuMeans,
-   						 						  const MultiFab& mfcuVars,
-   						 						  const MultiFab& mfprimInst,
-   						 						  const MultiFab& mfprimMeans,
-   						 						  const MultiFab& mfprimVars,
-   						 						  const MultiFab& mfcoVars,
-		                                   const Geometry& geom, 
-		                                   Real time,
-		                                   int step) {
+						const MultiFab& mfcuMeans,
+						const MultiFab& mfcuVars,
+						const MultiFab& mfprimInst,
+						const MultiFab& mfprimMeans,
+						const MultiFab& mfprimVars,
+						const MultiFab& mfcoVars,
+						const Geometry& geom,
+						Real time,
+						int step) {
 	BL_PROFILE_VAR("writePlotFile()",writePlotFile);
 
 	int ncon    = (nspecies+1)*5;
@@ -29,19 +29,19 @@ void FhdParticleContainer::writePlotFile(const MultiFab& mfcuInst,
 	std::string pltcu    = amrex::Concatenate("pltcu",step,9);
 	std::string pltprim  = amrex::Concatenate("pltprim",step,9);
 	std::string pltvar   = amrex::Concatenate("pltvar",step,9);
-	
+
 	amrex::MultiFab mfcuplt(ba, dmap, 2*ncon, 0);
 	amrex::MultiFab mfprimplt(ba, dmap, 2*nprim, 0);
 	amrex::MultiFab mfvarplt(ba, dmap, nvars, 0);
-	
+
 	amrex::Vector<std::string> cuNames(2*ncon);
 	amrex::Vector<std::string> primNames(2*nprim);
 	amrex::Vector<std::string> varNames(nvars);
-	
-   //////////////////////////////////////
-   // Conserved Means and Instants
-   //////////////////////////////////////	
-   
+
+	//////////////////////////////////////
+	// Conserved Means and Instants
+	//////////////////////////////////////
+
 	/*
 		Conserved Vars:
 		0  - rho = (1/V) += m
@@ -51,9 +51,9 @@ void FhdParticleContainer::writePlotFile(const MultiFab& mfcuInst,
 		4  - K   = (1/V) += m|v|^2
 		... (repeat for each species)
 	*/
-	
+
 	int cnt = 0;
-   // Instant values
+	// Instant values
 	cuNames[cnt++] = "rhoInstant";
 	cuNames[cnt++] = "JxInstant";
 	cuNames[cnt++] = "JyInstant";
@@ -69,7 +69,7 @@ void FhdParticleContainer::writePlotFile(const MultiFab& mfcuInst,
 	}
 	MultiFab::Copy(mfcuplt, mfcuInst, 0, ncon*0, ncon, 0);
 
-   // Mean values
+	// Mean values
 	cuNames[cnt++] = "rhoMean";
 	cuNames[cnt++] = "JxMean";
 	cuNames[cnt++] = "JyMean";
@@ -84,13 +84,12 @@ void FhdParticleContainer::writePlotFile(const MultiFab& mfcuInst,
 		cuNames[cnt++] = amrex::Concatenate("KMean_",ispec,2);
 	}
 	MultiFab::Copy(mfcuplt, mfcuMeans, 0, ncon*1, ncon, 0);
-	
 	WriteSingleLevelPlotfile(pltcu, mfcuplt, cuNames, geom, time, step);
-	
-   //////////////////////////////////////
-   // Primitive Means and Instants
-   //////////////////////////////////////
-   	
+
+	//////////////////////////////////////
+	// Primitive Means and Instants
+	//////////////////////////////////////
+
 	/*
 	   Primitive Vars:
 		0	- n  (X_ns)
@@ -111,7 +110,7 @@ void FhdParticleContainer::writePlotFile(const MultiFab& mfcuInst,
 	*/
 
 	cnt = 0;
-   // Instant values
+	// Instant values
 	primNames[cnt++] = "nInstant";
 	primNames[cnt++] = "rhoInstant";
 	primNames[cnt++] = "uInstant";
@@ -151,7 +150,7 @@ void FhdParticleContainer::writePlotFile(const MultiFab& mfcuInst,
 	}
 	MultiFab::Copy(mfprimplt, mfprimInst, 0, nprim*0, nprim, 0);
 
-   // Mean values
+	// Mean values
 	primNames[cnt++] = "nMean";
 	primNames[cnt++] = "rhoMean";
 	primNames[cnt++] = "uMean";
@@ -190,12 +189,12 @@ void FhdParticleContainer::writePlotFile(const MultiFab& mfcuInst,
 		primNames[cnt++] = amrex::Concatenate("qzMean_",ispec,2);
 	}
 	MultiFab::Copy(mfprimplt, mfprimMeans, 0, nprim*1, nprim, 0);
-	
 	WriteSingleLevelPlotfile(pltprim, mfprimplt, primNames, geom, time, step);
 
-   //////////////////////////////////////
-   // Variances
-   //////////////////////////////////////
+	//////////////////////////////////////
+	// Variances
+	//////////////////////////////////////
+
 	// Covariances
 	/*
 		0  - drho.dJx
@@ -220,9 +219,9 @@ void FhdParticleContainer::writePlotFile(const MultiFab& mfcuInst,
 		19 - dv.dT
 		20 - dw.dT
 	*/
-	
 	cnt = 0;
 	int istart = 0;
+
 	// Conserved Variances
 	varNames[cnt++] = "rhoVar";
 	varNames[cnt++] = "JxVar";
@@ -238,7 +237,7 @@ void FhdParticleContainer::writePlotFile(const MultiFab& mfcuInst,
 		varNames[cnt++] = amrex::Concatenate("KVar_",ispec,2);
 	}
 	MultiFab::Copy(mfvarplt, mfcuVars, 0, istart, ncon, 0);
-	istart += (nspecies+1)*5;
+	istart += ncon;
 
 	// Primitive Variances
 	varNames[cnt++] = "nVar";
@@ -279,8 +278,8 @@ void FhdParticleContainer::writePlotFile(const MultiFab& mfcuInst,
 		varNames[cnt++] = amrex::Concatenate("qzVar_",ispec,2);
 	}
 	MultiFab::Copy(mfvarplt, mfprimVars, 0, istart, nprim, 0);
-	istart += (nspecies+1)*14;
-	
+	istart += nprim;
+
 	varNames[cnt++] = "rho.Jx";
 	varNames[cnt++] = "rho.Jy";
 	varNames[cnt++] = "rho.Jz";
