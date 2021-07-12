@@ -89,7 +89,7 @@ void SqrtMF(MultiFab& MF);
 ///////////////////////////
 // in ComputeBasicStats.cpp
 
-Real ComputeMean(MultiFab& mf, const int& incomp);
+Real ComputeSpatialMean(MultiFab& mf, const int& incomp);
 
 Real ComputeSpatialVariance(MultiFab& mf, const int& incomp);
 
