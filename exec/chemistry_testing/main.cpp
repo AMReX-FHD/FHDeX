@@ -177,7 +177,7 @@ void main_main(const char* argv)
     amrex::Print()  << 0 << " ";
     for (int n=0; n<nspecies; n++)
     {
-        amrex::Print()  << ComputeMean(phi_old,Ncomp-(n+1)) << " ";
+        amrex::Print()  << ComputeSpatialMean(phi_old,Ncomp-(n+1)) << " ";
     }
     for (int n=0; n<nspecies; n++)
     {
@@ -239,7 +239,7 @@ void main_main(const char* argv)
         amrex::Print()  << dt*step << " ";
         for (int n=0; n<nspecies; n++)
         {
-            amrex::Print()  << ComputeMean(phi_new,Ncomp-(n+1)) << " ";
+            amrex::Print()  << ComputeSpatialMean(phi_new,Ncomp-(n+1)) << " ";
         }
         for (int n=0; n<nspecies; n++)
         {
