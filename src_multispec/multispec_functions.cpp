@@ -7,7 +7,6 @@ void InitializeMultispecNamespace() {
     H_offdiag.resize(MAX_ELEMENT);
     H_diag.resize(MAX_SPECIES);
 
-    charge_per_mass.resize(MAX_SPECIES);
     E_ext_value.resize(3);
     
     initialize_multispec_namespace( &inverse_type, &temp_type, 
@@ -27,7 +26,7 @@ void InitializeMultispecNamespace() {
                                     &print_debye_len,
                                     &dielectric_const,
                                     &dielectric_type,
-                                    charge_per_mass.dataPtr(),
+                                    charge_per_mass.data(),
                                     &theta_pot,
                                     &num_pot_iters,
                                     &dpdt_factor,

@@ -177,6 +177,10 @@ void main_main(const char* argv)
     amrex::Print()  << 0 << " ";
     for (int n=0; n<nspecies; n++)
     {
+        amrex::Print()  << ComputeSpatialMean(phi_old,Ncomp-(n+1)) << " ";
+    }
+    for (int n=0; n<nspecies; n++)
+    {
         amrex::Print()  << ComputeSpatialVariance(phi_old,Ncomp-(n+1)) << " ";
     }
     amrex::Print() << "\n";
@@ -233,6 +237,10 @@ void main_main(const char* argv)
         // print out mean and variance of both species in one single line at each time step 
         amrex::Print()  << "Stats ";
         amrex::Print()  << dt*step << " ";
+        for (int n=0; n<nspecies; n++)
+        {
+            amrex::Print()  << ComputeSpatialMean(phi_new,Ncomp-(n+1)) << " ";
+        }
         for (int n=0; n<nspecies; n++)
         {
             amrex::Print()  << ComputeSpatialVariance(phi_new,Ncomp-(n+1)) << " ";
