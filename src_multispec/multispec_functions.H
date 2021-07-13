@@ -365,7 +365,7 @@ void GammaIPlusMatmul(int nspecies,
 /**
  * \brief Compute Gamma
  *
- * \param[in] MolarConcN 
+ * \param[in] MolarConcN molar concentration
  * \param[in] HessianN 
  * \param[in,out] GammaN
  * \param[in] nspecies Number of species.
@@ -417,5 +417,112 @@ void ComputeGammaLocal(
     //Compute Gamma 
     GammaIPlusMatmul(nspecies, GammaN, X_xxT, HessianN);
 }
+
+/**
+ * \brief 
+ *
+ *
+ *
+ */
+
+/**
+ * \brief Compute rhoWchi
+ *
+ * \param[in] rhoN densities
+ * \param[in] rhotot total density
+ * \param[in] molarconcN molar concentration
+ * \param[in,out] rhoWchiN 
+ * \param[in] D_barN MS diff-coefs
+ * \param[in] nspecies
+ *
+ */
+
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void ComputeRhoWChiLocal(
+               Array1D<Real, 1, MAX_SPECIES>& rhoN,
+               Real rhotot,
+               Array1D<Real, 1, MAX_SPECIES>& MolarConcN,
+               Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& rhoWchiN, 
+               Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& D_barN, 
+               int nspecies){
+
+    //Print() << "HACK"; 
+
+    //local variables
+    Array1D<Real, 1, MAX_SPECIES> W;
+    Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> chi;
+    int ntrace; /**< number of trace species with w_k < fractional_tolerance */
+    int nspecies_sub; /**< dim of subsystem = nspecies - ntrace */
+    Real w1,w2;
+    //Real molmtot_sub;
+    //Real rhotot_sub;
+
+    /*
+     * this is a mapping used to eliminate the elements in D_bar that we don't need (for D_bar_sub)
+     * and for expanding sqrtLonsager_sub into sqrtLonsager
+     * it will contain the numbers 1, 2, ..., (nspecies-ntrace)
+     * with zeros in elements corresponding to trace elements
+     * (example) for a 5-species system having trace species 2 and 5:
+     * species       1 2 3 4 5
+     * dest(species) 1 0 2 3 0
+     */
+    Array1D<int, 1, MAX_SPECIES> dest;    
+
+    if ((use_multiphase == 1) && (nspecies == 2)) {
+
+        w1 = MolarConcN(1);
+        w2 = MolarConcN(2);
+        if (w1<0){
+            w1=0.0;
+            w2=1.0;
+        }
+        if (w2<0){
+            w1=1.0;
+            w2=0.0;
+        }
+        rhoWchiN(1,1) =  w2*rho0*D_barN(1,2);
+        rhoWchiN(1,2) = -w1*rho0*D_barN(1,2);
+        rhoWchiN(2,1) = -w2*rho0*D_barN(1,2);
+        rhoWchiN(2,2) =  w1*rho0*D_barN(1,2);
+
+    } else { 
+
+       // compute the number of trace species
+       // build the mapping for expanding/contracting arrays
+        ntrace = 0;
+        for (int row=1; row<=nspecies; ++row){
+            W(row) = rhoN(row) / rhotot;
+            if (W(row) < fraction_tolerance){
+                ntrace++;
+                dest(row) = 0;
+            } else {
+                dest(row) = row - ntrace; 
+            }
+        }
+
+        if (ntrace == nspecies -1){
+            // this is all trace species except for 1 (essentially pure solvent);
+            MatrixToZeros(nspecies, rhoWchiN); //set rhoWchi to zero
+        } else if (ntrace == 0){
+            // there are no trace species hencem chi = chi_sub
+            //ComputeChi(nspecies, molmass, rhoN, rhotot, molarconcN, chi, D_barN); 
+            //HACK - molmass needs to be molmass_in ? Notice, issue shows up in other fucntions as well
+
+            for (int row=1; row<=nspecies; ++row){
+                for (int column=1; column<=nspecies; ++column){
+                    rhoWchiN(row, column) = rhoN(row) * chi(row,column);        
+                }
+            }
+        }
+        else {
+          // if there are trace species, we consider a subsystem 
+          // consisting of non-trace species
+          nspecies_sub = nspecies - ntrace;
+          //ComputeChiSub();
+        } 
+    }
+}
+
 
 #endif
