@@ -388,7 +388,7 @@ void ComputeGammaLocal(
         Real w2 = MolarConcN[1];
 
         if (std::abs(w1+w2-1.0) > 1e-14){  
-            Print() << "Mole fractions do not add up in gamma computation" << std::endl; 
+            printf("Mole fractions do not add up in gamma computation\n");
         }
         if (w1 < 0){ 
             w1 = 0.0;
