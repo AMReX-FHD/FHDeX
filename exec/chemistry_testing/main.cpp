@@ -46,7 +46,13 @@ void main_main(const char* argv)
     
     // print number of species
     amrex::Print() << "nspecies  = " << nspecies << "\n";
-    
+
+    // print mass of each species    
+    for (int n=0; n<nspecies; n++)
+    {
+        amrex::Print() << "molmass_" << n << " = " << molmass[n] << "\n";
+    }
+
     // initialize chemistry namespace
     InitializeChemistryNamespace();
     // print reaction type
@@ -54,6 +60,7 @@ void main_main(const char* argv)
 
     // print number of reactions
     amrex::Print() << "nreaction = " << nreaction << "\n";
+
     
     // print reaction rates k's
     amrex::Print() << "Rate constants are:" << "\n";
@@ -121,16 +128,13 @@ void main_main(const char* argv)
     // Nghost = number of ghost cells for each array
     int Nghost = 1;
 
-    // Ncomp = number of components for each array
-    int Ncomp = nspecies;
-
     // How Boxes are distrubuted among MPI processes
     DistributionMapping dm(ba);
 
     // we allocate two phi multifabs; one will store the old state, the other the new.
     // phis for SSA
-    MultiFab phi_old(ba, dm, Ncomp, Nghost);
-    MultiFab phi_new(ba, dm, Ncomp, Nghost);
+    MultiFab phi_old(ba, dm, nspecies, Nghost);
+    MultiFab phi_new(ba, dm, nspecies, Nghost);
 
 
     
@@ -152,16 +156,16 @@ void main_main(const char* argv)
 
         const Array4<Real>& phiOld = phi_old.array(mfi);
 
-        amrex::ParallelFor(bx, Ncomp, [=] AMREX_GPU_DEVICE(int i, int j, int k, int n)
+        amrex::ParallelFor(bx, nspecies, [=] AMREX_GPU_DEVICE(int i, int j, int k, int n)
         {
-            phiOld(i,j,k,n) = 10.;
+            phiOld(i,j,k,n) = rho0*rhobar[n]*(Runiv/k_B)/molmass[n];
         });
     }
     
     // vector to store the name of the components.
     // NOTE: its size must be equal to the number of components
-    Vector<std::string> var_names(Ncomp);
-    for (int comp=0; comp<Ncomp; comp++) var_names[comp] = "n" + std::to_string(comp+1); 
+    Vector<std::string> var_names(nspecies);
+    for (int n=0; n<nspecies; n++) var_names[n] = "spec" + std::to_string(n+1); 
     
     // Write a plotfile of the initial data if plot_int > 0
     if (plot_int > 0)
@@ -177,11 +181,11 @@ void main_main(const char* argv)
     amrex::Print()  << 0 << " ";
     for (int n=0; n<nspecies; n++)
     {
-        amrex::Print()  << ComputeSpatialMean(phi_old,Ncomp-(n+1)) << " ";
+        amrex::Print()  << ComputeSpatialMean(phi_old,n) << " ";
     }
     for (int n=0; n<nspecies; n++)
     {
-        amrex::Print()  << ComputeSpatialVariance(phi_old,Ncomp-(n+1)) << " ";
+        amrex::Print()  << ComputeSpatialVariance(phi_old,n) << " ";
     }
     amrex::Print() << "\n";
     
@@ -201,8 +205,8 @@ void main_main(const char* argv)
 
             amrex::ParallelForRNG(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k, RandomEngine const& engine) noexcept
             {
-                double n_old[MAX_SPECIES];
-                double n_new[MAX_SPECIES];
+                amrex::Real n_old[MAX_SPECIES];
+                amrex::Real n_new[MAX_SPECIES];
                 for (int n=0; n<nspecies; n++) n_old[n] = phiOld(i,j,k,n);
                 
                 switch(reaction_type){
@@ -229,7 +233,7 @@ void main_main(const char* argv)
         time = time + dt;
 
         // copy new solution into old solution
-        MultiFab::Copy(phi_old, phi_new, 0, 0, Ncomp, 0);
+        MultiFab::Copy(phi_old, phi_new, 0, 0, nspecies, 0);
 
         // Tell the I/O Processor to write out which step we're doing
         amrex::Print() << "Advanced step " << step << "\n";
@@ -239,11 +243,11 @@ void main_main(const char* argv)
         amrex::Print()  << dt*step << " ";
         for (int n=0; n<nspecies; n++)
         {
-            amrex::Print()  << ComputeSpatialMean(phi_new,Ncomp-(n+1)) << " ";
+            amrex::Print()  << ComputeSpatialMean(phi_new,n) << " ";
         }
         for (int n=0; n<nspecies; n++)
         {
-            amrex::Print()  << ComputeSpatialVariance(phi_new,Ncomp-(n+1)) << " ";
+            amrex::Print()  << ComputeSpatialVariance(phi_new,n) << " ";
         }
         amrex::Print() << "\n";
 

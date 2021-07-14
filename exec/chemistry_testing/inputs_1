@@ -3,11 +3,15 @@
     n_cells(1:2) = 64 64 
     max_grid_size(1:2) = 16 16 
     plot_int = -1
-    nspecies = 2
     max_step = 200
     fixed_dt = 0.01
+    nspecies = 2
+    molmass = 14.0, 16.0
+    k_B = 1.38064852e-16  ! [units: cm2*g*s-2*K-1]
+    Runiv = 8.314462175e7
+    rho0 = 4.981615735115182e-22
+    rhobar = 0.46666666667, 0.53333333333
 /
-
 
 # dimerization reaction
 # react1 : 2A -> A_2
@@ -28,4 +32,4 @@ stoich_2P = 2 0
 # 1 = CLE (Chemical Langevin Equation)
 # 2 = SSA (Stochastic Simulation Algorithm)
 
-reaction_type = 1
+reaction_type = 0
