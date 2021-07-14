@@ -36,13 +36,13 @@ include $(AMREX_HOME)/Src/Base/Make.package
 
 # structure factor and SWFFT stuff
 
-include ../../src_analysis/Make.package
-VPATH_LOCATIONS   += ../../src_analysis/
-INCLUDE_LOCATIONS += ../../src_analysis/
+#include ../../src_analysis/Make.package
+#VPATH_LOCATIONS   += ../../src_analysis/
+#INCLUDE_LOCATIONS += ../../src_analysis/
 
-include $(AMREX_HOME)/Src/Extern/SWFFT/Make.package
-INCLUDE_LOCATIONS	+= $(AMREX_HOME)/Src/Extern/SWFFT
-VPATH_LOCATIONS	+= $(AMREX_HOME)/Src/Extern/SWFFT
+#include $(AMREX_HOME)/Src/Extern/SWFFT/Make.package
+#INCLUDE_LOCATIONS	+= $(AMREX_HOME)/Src/Extern/SWFFT
+#VPATH_LOCATIONS	+= $(AMREX_HOME)/Src/Extern/SWFFT
 
 LIBRARIES += -L$(FFTW_DIR) -lfftw3_mpi -lfftw3
 

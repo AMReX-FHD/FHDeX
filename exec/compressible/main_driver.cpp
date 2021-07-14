@@ -5,7 +5,7 @@
 
 #include "rng_functions.H"
 
-#include "StructFact.H"
+//#include "StructFact.H"
 
 #include "chrono"
 
@@ -259,6 +259,7 @@ void main_driver(const char* argv)
 
     int step, statsCount;
 
+#if 0
     ///////////////////////////////////////////
     // Structure factor:
     ///////////////////////////////////////////
@@ -458,7 +459,8 @@ void main_driver(const char* argv)
     StructFact structFactCons(ba,dmap,cons_var_names,var_scaling);
     
     //////////////////////////////////////////////
-
+#endif
+    
     // Initialize everything
     
     prim.setVal(0.0,0,nprimvars,ngc);
@@ -562,6 +564,7 @@ void main_driver(const char* argv)
                            cuVars, prim, primMeans, primVars, spatialCross, miscStats, eta, kappa);
         }
 
+        /*
 	// collect a snapshot for structure factor
 	if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip)%struct_fact_int == 0) {
             MultiFab::Copy(structFactPrimMF, prim, 0,                0,                structVarsPrim,   0);
@@ -591,6 +594,7 @@ void main_driver(const char* argv)
                 structFactPrimFlattened.WritePlotFile(step,time,geom_flat,"plt_SF_prim_Flattened");
             }
         }
+        */
         
         // timer
         Real aux2 = ParallelDescriptor::second() - aux1;
