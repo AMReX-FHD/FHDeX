@@ -131,12 +131,9 @@ void main_main(const char* argv)
     // How Boxes are distrubuted among MPI processes
     DistributionMapping dm(ba);
 
-    // we allocate two phi multifabs; one will store the old state, the other the new.
-    // phis for SSA
-    MultiFab phi_old(ba, dm, nspecies, Nghost);
-    MultiFab phi_new(ba, dm, nspecies, Nghost);
-
-
+    // we allocate two rho multifabs; one will store the old state, the other the new.
+    MultiFab rho_old(ba, dm, nspecies, Nghost);
+    MultiFab rho_new(ba, dm, nspecies, Nghost);
     
     // time = starting time in the simulation
     amrex::Real time = 0.0;
@@ -150,15 +147,15 @@ void main_main(const char* argv)
     // INITIALIZE DATA
 
     // loop over boxes
-    for (MFIter mfi(phi_old); mfi.isValid(); ++mfi)
+    for (MFIter mfi(rho_old); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.validbox();
 
-        const Array4<Real>& phiOld = phi_old.array(mfi);
+        const Array4<Real>& rhoOld = rho_old.array(mfi);
 
         amrex::ParallelFor(bx, nspecies, [=] AMREX_GPU_DEVICE(int i, int j, int k, int n)
         {
-            phiOld(i,j,k,n) = rho0*rhobar[n]*(Runiv/k_B)/molmass[n];
+            rhoOld(i,j,k,n) = rho0*rhobar[n];
         });
     }
     
@@ -172,7 +169,7 @@ void main_main(const char* argv)
     {
         int step = 0;
         const std::string& pltfile = amrex::Concatenate("plt",step,5);
-        WriteSingleLevelPlotfile(pltfile, phi_old, var_names, geom, time, 0);
+        WriteSingleLevelPlotfile(pltfile, rho_old, var_names, geom, time, 0);
     }
 
     // mean and variance computed numerically at t0 for SSA
@@ -181,11 +178,11 @@ void main_main(const char* argv)
     amrex::Print()  << 0 << " ";
     for (int n=0; n<nspecies; n++)
     {
-        amrex::Print()  << ComputeSpatialMean(phi_old,n) << " ";
+        amrex::Print()  << ComputeSpatialMean(rho_old,n)*(Runiv/k_B)/molmass[n] << " ";
     }
     for (int n=0; n<nspecies; n++)
     {
-        amrex::Print()  << ComputeSpatialVariance(phi_old,n) << " ";
+        amrex::Print()  << ComputeSpatialVariance(rho_old,n)*((Runiv/k_B)/molmass[n])*((Runiv/k_B)/molmass[n]) << " ";
     }
     amrex::Print() << "\n";
     
@@ -193,21 +190,21 @@ void main_main(const char* argv)
     for (int step = 1; step <= max_step; ++step)
     {
         // fill periodic ghost cells
-        phi_old.FillBoundary(geom.periodicity());
+        rho_old.FillBoundary(geom.periodicity());
 
         // loop over boxes
-        for ( MFIter mfi(phi_old); mfi.isValid(); ++mfi )
+        for ( MFIter mfi(rho_old); mfi.isValid(); ++mfi )
         {
             const Box& bx = mfi.validbox();
 
-            const Array4<Real>& phiOld = phi_old.array(mfi);
-            const Array4<Real>& phiNew = phi_new.array(mfi);
+            const Array4<Real>& rhoOld = rho_old.array(mfi);
+            const Array4<Real>& rhoNew = rho_new.array(mfi);
 
             amrex::ParallelForRNG(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k, RandomEngine const& engine) noexcept
             {
                 amrex::Real n_old[MAX_SPECIES];
                 amrex::Real n_new[MAX_SPECIES];
-                for (int n=0; n<nspecies; n++) n_old[n] = phiOld(i,j,k,n);
+                for (int n=0; n<nspecies; n++) n_old[n] = rhoOld(i,j,k,n)*(Runiv/k_B)/molmass[n];
                 
                 switch(reaction_type){
                     case 0: // deterministic case
@@ -221,19 +218,16 @@ void main_main(const char* argv)
                         break;
                 }
 
-                for (int n=0; n<nspecies; n++) phiNew(i,j,k,n) = n_new[n];
+                for (int n=0; n<nspecies; n++) rhoNew(i,j,k,n) = n_new[n]*(k_B/Runiv)*molmass[n];
 
             });
 
         }
-            
-        
-
         // update time
         time = time + dt;
 
         // copy new solution into old solution
-        MultiFab::Copy(phi_old, phi_new, 0, 0, nspecies, 0);
+        MultiFab::Copy(rho_old, rho_new, 0, 0, nspecies, 0);
 
         // Tell the I/O Processor to write out which step we're doing
         amrex::Print() << "Advanced step " << step << "\n";
@@ -243,11 +237,11 @@ void main_main(const char* argv)
         amrex::Print()  << dt*step << " ";
         for (int n=0; n<nspecies; n++)
         {
-            amrex::Print()  << ComputeSpatialMean(phi_new,n) << " ";
+            amrex::Print()  << ComputeSpatialMean(rho_new,n)*(Runiv/k_B)/molmass[n] << " ";
         }
         for (int n=0; n<nspecies; n++)
         {
-            amrex::Print()  << ComputeSpatialVariance(phi_new,n) << " ";
+            amrex::Print()  << ComputeSpatialVariance(rho_new,n)*((Runiv/k_B)/molmass[n])*((Runiv/k_B)/molmass[n]) << " ";
         }
         amrex::Print() << "\n";
 
@@ -255,7 +249,7 @@ void main_main(const char* argv)
         if (plot_int > 0 && step%plot_int == 0)
         {
             const std::string& pltfile = amrex::Concatenate("plt",step,5);
-            WriteSingleLevelPlotfile(pltfile, phi_new, var_names, geom, time, step);
+            WriteSingleLevelPlotfile(pltfile, rho_new, var_names, geom, time, step);
         }
     }
 
