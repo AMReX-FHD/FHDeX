@@ -142,7 +142,7 @@ void FhdParticleContainer::CalcSelections(Real dt) {
 					//chi0 = g0_Ma_Ahmadi(i_spec,j_spec, phi1, phi2);
 					vrmax = arrvrmax(i,j,k,i_spec);
 					crossSection = interproperties[ij_spec].csx;
-					NSel = 2.0*particle_neff*np_i*np_j*crossSection*vrmax*ocollisionCellVol*chi0*dt;
+					NSel = 4.0*particle_neff*np_i*np_j*crossSection*vrmax*ocollisionCellVol*chi0*dt;
 					if(i_spec==j_spec) {NSel = NSel*0.5; np_j = np_i-1;}
 					arrselect(i,j,k,ij_spec) = std::floor(NSel + amrex::Random());
 				}
@@ -233,7 +233,7 @@ void FhdParticleContainer::CollideParticles(Real dt) {
 				pindxj = m_cell_vectors[specj][grid_id][imap][pindxj];
 				ParticleType &	parti = particles[pindxi];
 				ParticleType & partj = particles[pindxj];
-						
+
 				vi[0] = parti.rdata(FHD_realData::velx);
 				vi[1] = parti.rdata(FHD_realData::vely);
 				vi[2] = parti.rdata(FHD_realData::velz);
@@ -241,7 +241,7 @@ void FhdParticleContainer::CollideParticles(Real dt) {
 				vj[0] = partj.rdata(FHD_realData::velx);
 				vj[1] = partj.rdata(FHD_realData::vely);
 				vj[2] = partj.rdata(FHD_realData::velz);
-						
+
 				vij[0] = vi[0]-vj[0]; vij[1] = vi[1]-vj[1]; vij[2] = vi[2]-vj[2];
 				vrmag = sqrt(pow(vij[0],2)+pow(vij[1],2)+pow(vij[2],2));
 				if(vrmag>vrmax) {vrmax = vrmag; arrvrmax(i,j,k,ij_spec) = vrmax;}
@@ -251,8 +251,8 @@ void FhdParticleContainer::CollideParticles(Real dt) {
 				eij[0] = std::sin(theta)*std::cos(phi);
 				eij[1] = std::sin(theta)*std::sin(phi);
 				eij[2] = std::cos(theta);
-				vreijmag = vij[0]*eij[0]+vij[1]*eij[1]+vij[2]*eij[2];					
-				if(amrex::Math::abs(vreijmag)>vrmax*amrex::Random()) {
+				vreijmag = vij[0]*eij[0]+vij[1]*eij[1]+vij[2]*eij[2];
+				if(vreijmag>vrmax*amrex::Random()) {
 					countedCollisions[speci] += 1;
 					countedCollisions[specj] += 1;
 
@@ -260,8 +260,8 @@ void FhdParticleContainer::CollideParticles(Real dt) {
 					vreijmag = vreijmag*(1.0+interproperties[specij].alpha)/massij;
 					vreij[0] = vreijmag*eij[0];
 					vreij[1] = vreijmag*eij[1];
-					vreij[2] = vreijmag*eij[2];							
-							
+					vreij[2] = vreijmag*eij[2];
+
 					// Update velocities
 					parti.rdata(FHD_realData::velx) = vi[0] - vreij[0]*massj;
 					parti.rdata(FHD_realData::vely) = vi[1] - vreij[1]*massj;

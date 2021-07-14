@@ -285,15 +285,15 @@ void StructFact::FortStructure(const MultiFab& variables, const Geometry& geom,
   variables_dft_imag.define(ba, dm, NVAR, 0);
 
   if (fft_type_in == 1) {
-      Print() << "Using FFTW\n";
+      //Print() << "Using FFTW\n";
       ComputeFFTW(variables, variables_dft_real, variables_dft_imag, geom);
   }
   else if (ba.size() == ParallelDescriptor::NProcs()) {
-      Print() << "Using SWFFT\n";
+      //Print() << "Using SWFFT\n";
       ComputeSWFFT(variables, variables_dft_real, variables_dft_imag, geom);
   }
   else {
-      Print() << "Using SWFFT\n";
+      //Print() << "Using SWFFT\n";
       BoxArray ba_temp(geom.Domain());
 
       ba_temp.maxSize(IntVect(max_grid_size_structfact));

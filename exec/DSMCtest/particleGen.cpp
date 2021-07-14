@@ -81,7 +81,7 @@ void FhdParticleContainer::InitParticles(Real & dt) {
 				for(int i_spec=0; i_spec < nspecies; i_spec++) {
 					u[i_spec] = 0.0; v[i_spec] = 0.0; w[i_spec] = 0.0;
 				}
-				
+
 				for(int i_spec=0; i_spec < nspecies; i_spec++) {
 					// Standard deviation of velocity at temperature T_init
 					Real R     = k_B/properties[i_spec].mass;
@@ -98,10 +98,13 @@ void FhdParticleContainer::InitParticles(Real & dt) {
 						p.pos(0) = prob_lo[0] + amrex::Random()*(prob_hi[0]-prob_lo[0]);
 						p.pos(1) = prob_lo[1] + amrex::Random()*(prob_hi[1]-prob_lo[1]);
 						p.pos(2) = prob_lo[2] + amrex::Random()*(prob_hi[2]-prob_lo[2]);
+						p.idata(FHD_intData::i) = -100;
+						p.idata(FHD_intData::j) = -100;
+						p.idata(FHD_intData::k) = -100;
+
 						vpart[0] = stdev*amrex::RandomNormal(0.,1.);
 						vpart[1] = stdev*amrex::RandomNormal(0.,1.);
 						vpart[2] = stdev*amrex::RandomNormal(0.,1.);
-
 						p.rdata(FHD_realData::velx) = vpart[0];
 						p.rdata(FHD_realData::vely) = vpart[1];
 						p.rdata(FHD_realData::velz) = vpart[2];
@@ -190,7 +193,11 @@ void FhdParticleContainer::ReInitParticles() {
 			part.id() = ParticleType::NextID();
 			part.cpu() = ParallelDescriptor::MyProc();
 			part.idata(FHD_intData::sorted) = -1;
+			part.idata(FHD_intData::i) = -100;
+			part.idata(FHD_intData::j) = -100;
+			part.idata(FHD_intData::k) = -100;
 
+			part.rdata(FHD_realData::timeFrac) = 1;
 			Real u = part.rdata(FHD_realData::velx);
 			Real v = part.rdata(FHD_realData::vely);
 			Real w = part.rdata(FHD_realData::velz);

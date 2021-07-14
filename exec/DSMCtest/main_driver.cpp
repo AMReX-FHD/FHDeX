@@ -231,8 +231,12 @@ void main_driver(const char* argv)
 
 	max_step += step;
 	n_steps_skip += step;
+        int IO_int = std::ceil(plot_int*0.01);
+	Real tbegin, tend;
 	for (int istep=step; istep<=max_step; ++istep) {
-		Real tbegin = ParallelDescriptor::second();
+		if(istep%IO_int == 0) {
+			tbegin = ParallelDescriptor::second();
+		}
 
 		//////////////////////////////////////
 		// DSMC Collide + Move
@@ -334,9 +338,11 @@ void main_driver(const char* argv)
 				particles);
 		}
 
-		Real tend = ParallelDescriptor::second() - tbegin;
-		ParallelDescriptor::ReduceRealMax(tend);
-		amrex::Print() << "Advanced step " << istep << " in " << tend << " seconds\n";
+		if (istep%IO_int == 0) {
+			tend = ParallelDescriptor::second() - tbegin;
+			ParallelDescriptor::ReduceRealMax(tend);
+			amrex::Print() << "Advanced step " << istep << " in " << tend << " seconds\n";
+		}
 		time += dt;
 	}
 
