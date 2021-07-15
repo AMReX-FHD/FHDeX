@@ -116,8 +116,8 @@ void main_main(const char* argv)
     ba.maxSize(IntVect(max_grid_size));
 
     // This defines the physical box, [0,1] in each direction.
-    RealBox real_box({AMREX_D_DECL( 0., 0., 0.)},
-                     {AMREX_D_DECL( 1., 1., 1.)});
+    RealBox real_box({AMREX_D_DECL( prob_lo[0], prob_lo[1], prob_lo[2])},
+                     {AMREX_D_DECL( prob_hi[0], prob_hi[1], prob_hi[2])});
 
     // periodic in all direction
     Array<int,AMREX_SPACEDIM> is_periodic{AMREX_D_DECL(1,1,1)};
