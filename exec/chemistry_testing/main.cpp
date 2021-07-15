@@ -43,6 +43,9 @@ void main_main(const char* argv)
     amrex::Print() << "dt = " << fixed_dt << "\n";   
      
     amrex::Print() << "plot_int =  " << plot_int << "\n";
+
+    // print problem type
+    amrex::Print() << "prob_type = " << prob_type << "\n";
     
     // print number of species
     amrex::Print() << "nspecies  = " << nspecies << "\n";
@@ -135,6 +138,9 @@ void main_main(const char* argv)
     MultiFab rho_old(ba, dm, nspecies, Nghost);
     MultiFab rho_new(ba, dm, nspecies, Nghost);
     
+    // allocate Omega MultiFab 
+    MultiFab Omega(ba, dm, nspecies, Nghost);    
+    
     // time = starting time in the simulation
     amrex::Real time = 0.0;
     amrex::Real dt = fixed_dt;
@@ -191,7 +197,15 @@ void main_main(const char* argv)
     {
         // fill periodic ghost cells
         rho_old.FillBoundary(geom.periodicity());
-
+        
+        // only need to compute Omega if prob_type=2
+        if (prob_type==2)
+        {
+            Omega.FillBoundary(geom.periodicity());
+            // compute Omega
+            compute_Omega(rho_old,Omega);
+        }
+        
         // loop over boxes
         for ( MFIter mfi(rho_old); mfi.isValid(); ++mfi )
         {
@@ -200,26 +214,37 @@ void main_main(const char* argv)
             const Array4<Real>& rhoOld = rho_old.array(mfi);
             const Array4<Real>& rhoNew = rho_new.array(mfi);
 
+            const Array4<Real>& OmegaArr = Omega.array(mfi);
+            
             amrex::ParallelForRNG(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k, RandomEngine const& engine) noexcept
             {
-                amrex::Real n_old[MAX_SPECIES];
-                amrex::Real n_new[MAX_SPECIES];
-                for (int n=0; n<nspecies; n++) n_old[n] = rhoOld(i,j,k,n)*(Runiv/k_B)/molmass[n];
+                // cell-based routines
+                if (prob_type==1)
+                {
+                    amrex::Real n_old[MAX_SPECIES];
+                    amrex::Real n_new[MAX_SPECIES];
+                    for (int n=0; n<nspecies; n++) n_old[n] = rhoOld(i,j,k,n)*(Runiv/k_B)/molmass[n];
                 
-                switch(reaction_type){
-                    case 0: // deterministic case
-                        advance_reaction_det_cell(n_old,n_new,dt);
-                        break;
-                    case 1: // CLE case
-                        advance_reaction_CLE_cell(n_old,n_new,dt,dV,engine);
-                        break;
-                    case 2: // SSA case
-                        advance_reaction_SSA_cell(n_old,n_new,dt,dV,engine);
-                        break;
+                    switch(reaction_type){
+                        case 0: // deterministic case
+                            advance_reaction_det_cell(n_old,n_new,dt);
+                            break;
+                        case 1: // CLE case
+                            advance_reaction_CLE_cell(n_old,n_new,dt,dV,engine);
+                            break;
+                        case 2: // SSA case
+                            advance_reaction_SSA_cell(n_old,n_new,dt,dV,engine);
+                            break;
+                    }
+
+                    for (int n=0; n<nspecies; n++) rhoNew(i,j,k,n) = n_new[n]*(k_B/Runiv)*molmass[n];
                 }
-
-                for (int n=0; n<nspecies; n++) rhoNew(i,j,k,n) = n_new[n]*(k_B/Runiv)*molmass[n];
-
+                // MultiFab-based routine
+                else
+                {
+                    // just deterministic case for now
+                    for (int n=0; n<nspecies; n++) rhoNew(i,j,k,n) = rhoOld(i,j,k,n) + dt*OmegaArr(i,j,k,n);
+                }
             });
 
         }

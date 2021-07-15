@@ -5,6 +5,7 @@
     plot_int = -1
     max_step = 200
     fixed_dt = 0.01
+    prob_type = 2 ! 1 = cell-based, 2 = MultiFab-based
     nspecies = 2
     molmass = 14.0, 16.0
     k_B = 1.38064852e-16  ! [units: cm2*g*s-2*K-1]
