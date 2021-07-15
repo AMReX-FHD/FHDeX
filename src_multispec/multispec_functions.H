@@ -419,11 +419,154 @@ void ComputeGammaLocal(
 }
 
 /**
- * \brief 
+ * \brief D_bar to chi - iterative
  *
- *
+ * \param[in] nspecies_local number of species 
+ * \param[in] num_iterations number of terms in the sum to use: 3-5 are reasonable values
+ * \param[in] D_bar matrix of Maxwell-Stefan binary diffusion coefficient 
+ * \param[in] Xk mole fractions --- MUST NOT BE ZERO
+ * \param[in] molmass_local 
+ * \param[out] chi multispcies diffision matrix 
  *
  */
+void Dbar2chiIterative( int nspecies_local,
+               int num_iterations,
+               Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& D_bar,
+               Array1D<Real, 1, MAX_SPECIES>& Xk,
+               Array1D<Real, 1, MAX_SPECIES>& molmass_local,
+               Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& chi){
+
+
+    Array1D<Real, 1, MAX_SPECIES> Xkp, Ykp, Di, Mmat, Minv; //HACK -- different methods for declaring in fortran, same?
+    Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> Pmat;
+
+
+    // mole fractions correction
+    // Turned this off since it should be done in caller // HACK -- confirm
+    for (int ii=1; ii<=nspecies_local; ++ii){
+       Xkp(ii) = Xk(ii);
+    }
+
+    // molecular weight of mixture - EGLIB
+    Real MWmix = 0.0; //HACK -- confirm -- F90 has Mwmix
+    for (int ii=1; ii<=nspecies_local; ++ii){
+        MWmix = MWmix + Xkp(ii)*molmass_local(ii);
+    }
+
+    // mass fractions correction - EGLIB
+    for (int ii=1; ii<=nspecies_local; ++ii){
+        Ykp(ii) = molmass_local(ii) / MWmix * Xkp(ii);
+    }
+
+    // Find Di matrix 
+    Real term2;
+    for (int i=1; i<=nspecies_local; ++i){
+        term2 = 0.0;
+        for (int j=1; j<=nspecies_local; ++j){
+            if (j!=i){
+                term2 = term2 + Xkp(j)/D_bar(i,j);
+            }
+        }
+        Di(i) = (1.0 - Ykp(i))/term2; 
+    }
+
+    // Compute Mmat and Minv
+    for (int i=1; i<=nspecies_local; ++i){
+        Mmat(i) = Xkp(i)/Di(i);
+        Minv(i) = Di(i)/Xkp(i);
+    }
+    
+    MatrixToZeros(MAX_SPECIES, Pmat);
+    for (int i=1; i<=nspecies_local; ++i){
+        for (int j=1; j<=nspecies_local; ++j){
+            if (j==i){
+                term2 = term2 + Xkp(j)/D_bar(i,j);
+            }
+        }
+    }
+    
+
+    
+    
+
+}
+    
+
+
+
+
+
+
+
+
+
+/**
+ * \brief Compute Chi
+ *
+ * \param[in] nspecies_in
+ * \param[in] molmass_in
+ * \param[in] rhoN
+ * \param[in] rhotot
+ * \param[in] molarconcN
+ * \param[in,out] chi
+ * \param[in] D_barN
+ * \param[in] chi_iterations_in
+ *
+ */
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void ComputeChi(int nspecies_in, 
+               GpuArray<Real, MAX_SPECIES>& molmass_in
+               Array1D<Real, 1, MAX_SPECIES>& rhoN,
+               Real rhotot,
+               Array1D<Real, 1, MAX_SPECIES>& MolarConcN,
+               Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& chi,
+               Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& D_barN,
+               int chi_iterations_in){ 
+
+    //local variables
+    double eepsilon=1.d-16; //HACK -- confirm this
+
+    Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> Lambda;
+    Array1D<Real, 1, MAX_SPECIES> W;
+
+   /*
+    * if nspecies_in = 2, use analytic formulas
+    * note: nspecies_in = 1 (that is, ntrace = nspecies-1) is treated separately (chi=0)
+    *       before this routine is called
+    */
+
+    if ( nspecies_in == 2){
+        W(1) = rhoN(1)/rhotot;
+        W(2) = rhoN(2)/rhotot;
+
+        if ( use_multiphase == 1 ){
+            W(1) = std::max(std::min(W(1),1.0),eepsilon);
+            W(2) = std::max(std::min(W(2),1.0),eepsilon);
+        }
+
+        Real tmp = molmass_in[0]*W(2) + molmass_in[1]*W(1); 
+        tmp = D_barN(1,2)*tmp*tmp/molmass_in[0]/molmass_in[1];
+
+        chi(1,1) = tmp*W(2)/W(1);
+        chi(1,2) = -tmp;
+        chi(2,1) = -tmp;
+        chi(2,2) = tmp*W(1)/W(2);
+
+        return;
+    }
+
+    
+    // compute chi either selecting inverse/pseudoinverse or iterative methods 
+    if (use_lapack == 1){
+       printf("Compute Chi: use_lapack not supported\n"); //HACK -- pass errors back to host?
+       //call amrex_error('compute_chi: use_lapack not supported')
+    }
+
+    Dbar2chiIterative(nspecies_in,chi_iterations_in,D_barN,MolarConcN,molmass_in,chi);
+}
+
+
 
 /**
  * \brief Compute rhoWchi
@@ -434,6 +577,9 @@ void ComputeGammaLocal(
  * \param[in,out] rhoWchiN 
  * \param[in] D_barN MS diff-coefs
  * \param[in] nspecies
+ * \param[in] molmass_in
+ * \param[in] chi_iterations_in
+ *
  *
  */
 
@@ -445,7 +591,9 @@ void ComputeRhoWChiLocal(
                Array1D<Real, 1, MAX_SPECIES>& MolarConcN,
                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& rhoWchiN, 
                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& D_barN, 
-               int nspecies){
+               int nspecies_in,
+               GpuArray<Real, MAX_SPECIES>& molmass_in,
+               int chi_iterations_in){
 
     //Print() << "HACK"; 
 
@@ -469,7 +617,7 @@ void ComputeRhoWChiLocal(
      */
     Array1D<int, 1, MAX_SPECIES> dest;    
 
-    if ((use_multiphase == 1) && (nspecies == 2)) {
+    if ((use_multiphase == 1) && (nspecies_in == 2)) {
 
         w1 = MolarConcN(1);
         w2 = MolarConcN(2);
@@ -491,7 +639,7 @@ void ComputeRhoWChiLocal(
        // compute the number of trace species
        // build the mapping for expanding/contracting arrays
         ntrace = 0;
-        for (int row=1; row<=nspecies; ++row){
+        for (int row=1; row<=nspecies_in; ++row){
             W(row) = rhoN(row) / rhotot;
             if (W(row) < fraction_tolerance){
                 ntrace++;
@@ -501,16 +649,15 @@ void ComputeRhoWChiLocal(
             }
         }
 
-        if (ntrace == nspecies -1){
+        if (ntrace == nspecies_in -1){
             // this is all trace species except for 1 (essentially pure solvent);
-            MatrixToZeros(nspecies, rhoWchiN); //set rhoWchi to zero
+            MatrixToZeros(nspecies_in, rhoWchiN); //set rhoWchi to zero
         } else if (ntrace == 0){
-            // there are no trace species hencem chi = chi_sub
-            //ComputeChi(nspecies, molmass, rhoN, rhotot, molarconcN, chi, D_barN); 
-            //HACK - molmass needs to be molmass_in ? Notice, issue shows up in other fucntions as well
+            // there are no trace species hence chi = chi_sub
+            ComputeChi(nspecies_in, molmass_in, rhoN, rhotot, molarconcN, chi, D_barN, chi_iterations_in); 
 
-            for (int row=1; row<=nspecies; ++row){
-                for (int column=1; column<=nspecies; ++column){
+            for (int row=1; row<=nspecies_in; ++row){
+                for (int column=1; column<=nspecies_in; ++column){
                     rhoWchiN(row, column) = rhoN(row) * chi(row,column);        
                 }
             }

@@ -31,6 +31,7 @@ void ComputeMolconcMolmtot(const MultiFab& rho_in,
                 RhoN[n] = rho(i,j,k,n);
             }
 
+            //compatabile type casting for molmass?
             ComputeMolconcMolmtotLocal(nspecies, molmass, 
                             RhoN, rhotot(i,j,k),          
                             MolarConcN, molmtot(i,j,k));
@@ -136,7 +137,8 @@ void ComputeRhoWChi(const MultiFab& rho_in,
                 }
             }
 
-            ComputeRhoWChiLocal(rhoN, rhotot(i,j,k), MolarConcN, rhoWchiN, D_barN, nspecies);
+            //compatabile type casting for molmass?
+            ComputeRhoWChiLocal(rhoN, rhotot(i,j,k), MolarConcN, rhoWchiN, D_barN, nspecies, molmass, chi_iterations);
 
             // Write back to MultiFab
             for (int n=0; n<nspecies; ++n ){
