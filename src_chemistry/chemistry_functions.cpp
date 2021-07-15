@@ -51,7 +51,6 @@ void InitializeChemistryNamespace()
         }
     }
 
-
     // get reaction type: Deterministic, CLE or SSA
     pp.get("reaction_type",reaction_type);
     
@@ -67,6 +66,39 @@ void compute_reaction_rates(amrex::Real n_dens[MAX_SPECIES], amrex::Real a_r[MAX
     }
 
     return;
+}
+
+void compute_Omega(MultiFab& rho, MultiFab& Omega)
+{
+    for (MFIter mfi(rho); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.validbox();
+
+        const Array4<Real>& rho_arr = rho.array(mfi);
+        const Array4<Real>& Omega_arr = Omega.array(mfi);
+
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k)
+        {
+            amrex::Real m_s[MAX_SPECIES];
+            for (int n=0; n<nspecies; n++) m_s[n] = molmass[n]/(Runiv/k_B); 
+            
+            amrex::Real n_dens[MAX_SPECIES];
+            for (int n=0; n<nspecies; n++) n_dens[n] = rho_arr(i,j,k,n)/m_s[n];
+            
+            amrex::Real a_r[MAX_REACTION];
+            compute_reaction_rates(n_dens,a_r);
+
+            amrex::Real OmegaArr[MAX_SPECIES];
+            for (int n=0; n<nspecies; n++) OmegaArr[n] = 0.;
+
+            for (int m=0; m<nreaction; m++)
+            {
+                for (int n=0; n<nspecies; n++) OmegaArr[n] += m_s[n]*stoich_coeffs_PR[m][n]*a_r[m];
+            }
+            
+            for (int n=0; n<nspecies; n++) Omega_arr(i,j,k,n) = OmegaArr[n];
+        });
+    }
 }
 
 void advance_reaction_SSA_cell(amrex::Real n_old[MAX_SPECIES],amrex::Real n_new[MAX_SPECIES],amrex::Real dt,amrex::Real dV,RandomEngine const& engine)
