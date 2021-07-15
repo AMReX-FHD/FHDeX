@@ -10,10 +10,12 @@
 
 using namespace amrex;
 
-
 int main (int argc, char* argv[])
 {
     amrex::Initialize(argc,argv);
+
+    if (argc==1) amrex::Abort("ERROR: inputs file expected");
+
     main_main(argv[1]);
 
     amrex::Finalize();
@@ -22,65 +24,87 @@ int main (int argc, char* argv[])
 
 void main_main(const char* argv)
 {
+    // **********************************
+    // variables defined in src_common
+
     std::string inputs_file = argv;
     
     // read in parameters from inputs file into F90 modules
     // we use "+1" because of amrex_string_c_to_f expects a null char termination
-    
     read_common_namelist(inputs_file.c_str(),inputs_file.size()+1);
 
     // copy contents of F90 modules to C++ namespaces
     InitializeCommonNamespace();
-    
-    amrex::Print() << "n_cells_x =  " << n_cells[0] << "\n";
-    amrex::Print() << "n_cells_y =  " << n_cells[1] << "\n";
-#if AMREX_SPACEDIM==3
-    amrex::Print() << "n_cells_z =  " << n_cells[2] << "\n";
-#endif
-    
-    amrex::Print() << "max_step = " << max_step << "\n";   
-    
-    amrex::Print() << "dt = " << fixed_dt << "\n";   
-     
-    amrex::Print() << "plot_int =  " << plot_int << "\n";
-    
-    // print number of species
-    amrex::Print() << "nspecies  = " << nspecies << "\n";
-    
-    // initialize chemistry namespace
-    InitializeChemistryNamespace();
-    // print reaction type
-    amrex::Print() << "reaction type = " << reaction_type << "\n";
 
-    // print number of reactions
-    amrex::Print() << "nreaction = " << nreaction << "\n";
+    // print variable values read from inputs file
+    amrex::Print() << "\n";
+
+    amrex::Print() << "(src_common param) n_cells: " << n_cells[0] << " " << n_cells[1];
+#if AMREX_SPACEDIM==3
+    amrex::Print() << " " << n_cells[2] << "\n";
+#else
+    amrex::Print() << "\n";
+#endif
+
+    amrex::Print() << "(src_common param) prob_lo: " << prob_lo[0] << " " << prob_lo[1];
+#if AMREX_SPACEDIM==3
+    amrex::Print() << " " << prob_lo[2] << "\n";
+#else
+    amrex::Print() << "\n";
+#endif
+
+    amrex::Print() << "(src_common param) prob_hi: " << prob_hi[0] << " " << prob_hi[1];
+#if AMREX_SPACEDIM==3
+    amrex::Print() << " " << prob_hi[2] << "\n";
+#else
+    amrex::Print() << "\n";
+#endif
+
+    amrex::Print() << "(src_common param) max_step = "  << max_step   << "\n";
+    amrex::Print() << "(src_common param) fixed_dt = "  << fixed_dt   << "\n";
+    amrex::Print() << "(src_common param) plot_int = "  << plot_int   << "\n";
+    amrex::Print() << "(src_common param) prob_type = " << prob_type  << "\n";
+    amrex::Print() << "(src_common param) nspecies = "  << nspecies   << "\n";
+
+    amrex::Print() << "(src_common param) molmass: ";
+    for (int n=0; n<nspecies; n++)
+        amrex::Print() << molmass[n] << " ";
+    amrex::Print() << "\n";
+
+    // **********************************
+    // variables defined in src_chemistry
+
+    InitializeChemistryNamespace();
+
+    // print variable values read from inputs file
+    amrex::Print() << "\n";
+
+    amrex::Print() << "(src_chemistry param) nreaction = " << nreaction << "\n";
     
-    // print reaction rates k's
-    amrex::Print() << "Rate constants are:" << "\n";
-    for (int m=0; m<nreaction; m++) amrex::Print() << rate_const[m] << " ";
+    amrex::Print() << "(src_chemistry param) rate_const: ";
+    for (int m=0; m<nreaction; m++)
+        amrex::Print() << rate_const[m] << " ";
     amrex::Print() << "\n";
     
-    // print stoichiometry coeffs for the reactants
-    amrex::Print() << "Stoich Coeffs Reactants:" << "\n";
-    for (int m=0;m<nreaction;m++)
+    for (int m=0; m<nreaction; m++)
     {
-        for (int n=0;n<nspecies;n++)
-        {
+        amrex::Print() << "(src_chemistry param) stoich_coeffs_R_" << m+1 << ": ";
+        for (int n=0; n<nspecies; n++)
             amrex::Print() << stoich_coeffs_R[m][n] << " ";
-        }
         amrex::Print() << "\n";
     }
 
-    // print stoichiometry coeffs for the products
-    amrex::Print() << "Stoich Coeffs Products:" << "\n";
     for (int m=0;m<nreaction;m++)
     {
-        for (int n=0;n<nspecies;n++)
-        {
+        amrex::Print() << "(src_chemistry param) stoich_coeffs_P_" << m+1 << ": ";
+        for (int n=0; n<nspecies; n++)
             amrex::Print() << stoich_coeffs_P[m][n] << " ";
-        }
         amrex::Print() << "\n";
     }
+
+    amrex::Print() << "(src_chemistry param) reaction_type = " << reaction_type << "\n";
+
+    amrex::Print() << "\n";
 
     // **********************************
     // SIMULATION SETUP
@@ -93,7 +117,7 @@ void main_main(const char* argv)
     Geometry geom;
 
     // AMREX_D_DECL means "do the first X of these, where X is the dimensionality of the simulation"
-    IntVect dom_lo(AMREX_D_DECL(       0,        0,        0));
+    IntVect dom_lo(AMREX_D_DECL(0, 0, 0));
     IntVect dom_hi(AMREX_D_DECL(n_cells[0]-1, n_cells[1]-1, n_cells[2]-1));
 
     // Make a single box that is the entire domain
@@ -106,8 +130,8 @@ void main_main(const char* argv)
     ba.maxSize(IntVect(max_grid_size));
 
     // This defines the physical box, [0,1] in each direction.
-    RealBox real_box({AMREX_D_DECL( 0., 0., 0.)},
-                     {AMREX_D_DECL( 1., 1., 1.)});
+    RealBox real_box({AMREX_D_DECL( prob_lo[0], prob_lo[1], prob_lo[2])},
+                     {AMREX_D_DECL( prob_hi[0], prob_hi[1], prob_hi[2])});
 
     // periodic in all direction
     Array<int,AMREX_SPACEDIM> is_periodic{AMREX_D_DECL(1,1,1)};
@@ -121,115 +145,145 @@ void main_main(const char* argv)
     // Nghost = number of ghost cells for each array
     int Nghost = 1;
 
-    // Ncomp = number of components for each array
-    int Ncomp = nspecies;
-
     // How Boxes are distrubuted among MPI processes
     DistributionMapping dm(ba);
 
-    // we allocate two phi multifabs; one will store the old state, the other the new.
-    // phis for SSA
-    MultiFab phi_old(ba, dm, Ncomp, Nghost);
-    MultiFab phi_new(ba, dm, Ncomp, Nghost);
-
-
+    // we allocate two rho multifabs; one will store the old state, the other the new.
+    MultiFab rho_old(ba, dm, nspecies, Nghost);
+    MultiFab rho_new(ba, dm, nspecies, Nghost);
+    
+    // allocate Omega MultiFab 
+    MultiFab Omega(ba, dm, nspecies, Nghost);    
     
     // time = starting time in the simulation
     amrex::Real time = 0.0;
     amrex::Real dt = fixed_dt;
     
-    // for now I fix the cell volume as a sanity check
-    amrex::Real dV = 1000.;
-    //amrex::Real dV = dx[0]*dx[1];
-    //amrex::Print() << "dV = " << dV; "\n";
+    amrex::Real dV ;
+#if AMREX_SPACEDIM==3
+    dV = dx[0]*dx[1]*dx[2];
+    amrex::Print() << "dx: " << dx[0] << " " << dx[1] << " " << dx[2] << "\n";
+#else
+    dV = dx[0]*dx[1];
+    amrex::Print() << "dx: " << dx[0] << " " << dx[1] << "\n";
+#endif
+    amrex::Print() << "dV = " << dV << "\n";
+    amrex::Print() << "\n";
+
     // **********************************
     // INITIALIZE DATA
 
     // loop over boxes
-    for (MFIter mfi(phi_old); mfi.isValid(); ++mfi)
+    for (MFIter mfi(rho_old); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.validbox();
 
-        const Array4<Real>& phiOld = phi_old.array(mfi);
+        const Array4<Real>& rhoOld = rho_old.array(mfi);
 
-        amrex::ParallelFor(bx, Ncomp, [=] AMREX_GPU_DEVICE(int i, int j, int k, int n)
+        amrex::ParallelFor(bx, nspecies, [=] AMREX_GPU_DEVICE(int i, int j, int k, int n)
         {
-            phiOld(i,j,k,n) = 10.;
+            rhoOld(i,j,k,n) = rho0*rhobar[n];
         });
     }
     
-    // vector to store the name of the components.
+    // vector to store the name of the components
     // NOTE: its size must be equal to the number of components
-    Vector<std::string> var_names(Ncomp);
-    for (int comp=0; comp<Ncomp; comp++) var_names[comp] = "n" + std::to_string(comp+1); 
+    Vector<std::string> var_names(nspecies);
+    for (int n=0; n<nspecies; n++) var_names[n] = "spec" + std::to_string(n+1); 
     
     // Write a plotfile of the initial data if plot_int > 0
     if (plot_int > 0)
     {
         int step = 0;
         const std::string& pltfile = amrex::Concatenate("plt",step,5);
-        WriteSingleLevelPlotfile(pltfile, phi_old, var_names, geom, time, 0);
+        WriteSingleLevelPlotfile(pltfile, rho_old, var_names, geom, time, 0);
     }
 
-    // mean and variance computed numerically at t0 for SSA
+    // mean and variance computed numerically at initial time
 
     amrex::Print() << "Stats ";
-    amrex::Print()  << 0 << " ";
+    amrex::Print() << 0 << " ";
+
     for (int n=0; n<nspecies; n++)
-    {
-        amrex::Print()  << ComputeSpatialMean(phi_old,Ncomp-(n+1)) << " ";
-    }
+        amrex::Print() << ComputeSpatialMean(rho_old,n)*(Runiv/k_B)/molmass[n] << " ";
+
     for (int n=0; n<nspecies; n++)
-    {
-        amrex::Print()  << ComputeSpatialVariance(phi_old,Ncomp-(n+1)) << " ";
-    }
+        amrex::Print() << ComputeSpatialVariance(rho_old,n)*((Runiv/k_B)/molmass[n])*((Runiv/k_B)/molmass[n]) << " ";
+
     amrex::Print() << "\n";
     
+    // **********************************
+    // MAIN LOOP: Time advancement
 
     for (int step = 1; step <= max_step; ++step)
     {
         // fill periodic ghost cells
-        phi_old.FillBoundary(geom.periodicity());
-
-        // loop over boxes
-        for ( MFIter mfi(phi_old); mfi.isValid(); ++mfi )
-        {
-            const Box& bx = mfi.validbox();
-
-            const Array4<Real>& phiOld = phi_old.array(mfi);
-            const Array4<Real>& phiNew = phi_new.array(mfi);
-
-            amrex::ParallelForRNG(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k, RandomEngine const& engine) noexcept
-            {
-                double n_old[MAX_SPECIES];
-                double n_new[MAX_SPECIES];
-                for (int n=0; n<nspecies; n++) n_old[n] = phiOld(i,j,k,n);
-                
-                switch(reaction_type){
-                    case 0: // deterministic case
-                        advance_reaction_det_cell(n_old,n_new,dt);
-                        break;
-                    case 1: // CLE case
-                        advance_reaction_CLE_cell(n_old,n_new,dt,dV,engine);
-                        break;
-                    case 2: // SSA case
-                        advance_reaction_SSA_cell(n_old,n_new,dt,dV,engine);
-                        break;
-                }
-
-                for (int n=0; n<nspecies; n++) phiNew(i,j,k,n) = n_new[n];
-
-            });
-
-        }
-            
+        rho_old.FillBoundary(geom.periodicity());
         
+        if (prob_type==1)   // cell-based routines
+        {
+            for ( MFIter mfi(rho_old); mfi.isValid(); ++mfi )
+            {
+                const Box& bx = mfi.validbox();
+
+                const Array4<Real>& rhoOld = rho_old.array(mfi);
+                const Array4<Real>& rhoNew = rho_new.array(mfi);
+
+                amrex::ParallelForRNG(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k, RandomEngine const& engine) noexcept
+                {
+                    amrex::Real n_old[MAX_SPECIES];
+                    amrex::Real n_new[MAX_SPECIES];
+                    for (int n=0; n<nspecies; n++) n_old[n] = rhoOld(i,j,k,n)*(Runiv/k_B)/molmass[n];
+
+                    switch(reaction_type){
+                        case 0: // deterministic case
+                            advance_reaction_det_cell(n_old,n_new,dt);
+                            break;
+                        case 1: // CLE case
+                            advance_reaction_CLE_cell(n_old,n_new,dt,dV,engine);
+                            break;
+                        case 2: // SSA case
+                            advance_reaction_SSA_cell(n_old,n_new,dt,dV,engine);
+                            break;
+                        default:
+                            amrex::Abort("ERROR: invalid reaction_type");
+                    }
+
+                    for (int n=0; n<nspecies; n++) rhoNew(i,j,k,n) = n_new[n]*(k_B/Runiv)*molmass[n];
+                });
+            }
+        }
+        else if (prob_type==2)  // MultiFab-based routine
+        {
+            // compute Omega
+            compute_Omega(rho_old,Omega);
+
+            for ( MFIter mfi(rho_old); mfi.isValid(); ++mfi )
+            {
+                const Box& bx = mfi.validbox();
+
+                const Array4<Real>& rhoOld = rho_old.array(mfi);
+                const Array4<Real>& rhoNew = rho_new.array(mfi);
+
+                const Array4<Real>& OmegaArr = Omega.array(mfi);
+
+                amrex::ParallelForRNG(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k, RandomEngine const& engine) noexcept
+                {
+                    // just deterministic case for now
+                    for (int n=0; n<nspecies; n++) rhoNew(i,j,k,n) = rhoOld(i,j,k,n) + dt*OmegaArr(i,j,k,n);
+                });
+            }
+        }
+        else
+        {
+            amrex::Abort("ERROR: invalid prob_type");
+        }
 
         // update time
         time = time + dt;
 
         // copy new solution into old solution
-        MultiFab::Copy(phi_old, phi_new, 0, 0, Ncomp, 0);
+        MultiFab::Copy(rho_old, rho_new, 0, 0, nspecies, 0);
 
         // Tell the I/O Processor to write out which step we're doing
         amrex::Print() << "Advanced step " << step << "\n";
@@ -239,11 +293,11 @@ void main_main(const char* argv)
         amrex::Print()  << dt*step << " ";
         for (int n=0; n<nspecies; n++)
         {
-            amrex::Print()  << ComputeSpatialMean(phi_new,Ncomp-(n+1)) << " ";
+            amrex::Print()  << ComputeSpatialMean(rho_new,n)*(Runiv/k_B)/molmass[n] << " ";
         }
         for (int n=0; n<nspecies; n++)
         {
-            amrex::Print()  << ComputeSpatialVariance(phi_new,Ncomp-(n+1)) << " ";
+            amrex::Print()  << ComputeSpatialVariance(rho_new,n)*((Runiv/k_B)/molmass[n])*((Runiv/k_B)/molmass[n]) << " ";
         }
         amrex::Print() << "\n";
 
@@ -251,10 +305,9 @@ void main_main(const char* argv)
         if (plot_int > 0 && step%plot_int == 0)
         {
             const std::string& pltfile = amrex::Concatenate("plt",step,5);
-            WriteSingleLevelPlotfile(pltfile, phi_new, var_names, geom, time, step);
+            WriteSingleLevelPlotfile(pltfile, rho_new, var_names, geom, time, step);
         }
     }
-
 
     return;
 }

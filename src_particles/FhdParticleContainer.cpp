@@ -152,25 +152,25 @@ void FhdParticleContainer::forceFunction(Real dt)
             if(part.rdata(FHD_realData::spring) != 0)
             {
                 Real radVec[3];
-//                radVec[0] = part.pos(0)-part.rdata(FHD_realData::ox);
-//                radVec[1] = part.pos(1)-part.rdata(FHD_realData::oy);
-//                radVec[2] = part.pos(2)-part.rdata(FHD_realData::oz);
+                radVec[0] = part.pos(0);
+                radVec[1] = part.pos(1);
+                radVec[2] = part.pos(2);
 
-                radVec[0] = part.rdata(FHD_realData::ax);
-                radVec[1] = part.rdata(FHD_realData::ay);
-                radVec[2] = part.rdata(FHD_realData::az);
+                //radVec[0] = part.rdata(FHD_realData::ax);
+                //radVec[1] = part.rdata(FHD_realData::ay);
+                //radVec[2] = part.rdata(FHD_realData::az);
 
-                Real kFac = 6*M_PI*part.rdata(FHD_realData::radius)*visc_coef/dt;
+                //Real kFac = 6*M_PI*part.rdata(FHD_realData::radius)*visc_coef/dt;
 
                 //Print() << "k: " << kFac << endl;
 
-//                part.rdata(FHD_realData::forcex) = part.rdata(FHD_realData::forcex) - part.rdata(FHD_realData::spring)*radVec[0];
-//                part.rdata(FHD_realData::forcey) = part.rdata(FHD_realData::forcey) - part.rdata(FHD_realData::spring)*radVec[1];
-//                part.rdata(FHD_realData::forcez) = part.rdata(FHD_realData::forcez) - part.rdata(FHD_realData::spring)*radVec[2];
+                part.rdata(FHD_realData::forcex) = part.rdata(FHD_realData::forcex) - part.rdata(FHD_realData::spring)*radVec[0];
+                part.rdata(FHD_realData::forcey) = part.rdata(FHD_realData::forcey) - part.rdata(FHD_realData::spring)*radVec[1];
+                part.rdata(FHD_realData::forcez) = part.rdata(FHD_realData::forcez) - part.rdata(FHD_realData::spring)*radVec[2];
 
-                part.rdata(FHD_realData::forcex) = part.rdata(FHD_realData::forcex) - kFac*radVec[0];
-                part.rdata(FHD_realData::forcey) = part.rdata(FHD_realData::forcey) - kFac*radVec[1];
-                part.rdata(FHD_realData::forcez) = part.rdata(FHD_realData::forcez) - kFac*radVec[2];
+//                part.rdata(FHD_realData::forcex) = part.rdata(FHD_realData::forcex) - kFac*radVec[0];
+//                part.rdata(FHD_realData::forcey) = part.rdata(FHD_realData::forcey) - kFac*radVec[1];
+//                part.rdata(FHD_realData::forcez) = part.rdata(FHD_realData::forcez) - kFac*radVec[2];
 
                 Real dSqr = (pow(radVec[0],2) + pow(radVec[1],2) + pow(radVec[2],2));
             
@@ -332,7 +332,6 @@ void FhdParticleContainer::computeForcesNLGPU(const MultiFab& charge, const Mult
 
         if (sr_tog!= 0)
         {
-                //Print() << "rPre: " << rcount << std::endl;
             compute_forces_nl_gpu(particles, Np, Nn,
                               m_neighbor_list[lev][index], rcount, rdcount);
                // Print() << "rPost: " << rcount << std::endl;            
@@ -516,7 +515,6 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
 
             Real posOld[3];
             Real velOld[3];
-
             moves_tile = 0;
 
             for (int i = 0; i < np; ++ i) {
@@ -593,7 +591,6 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
             moves_proc    += moves_tile;
 
             //std::cout << "Moves " << moves_tile << std::endl;
-
                 
         }
 
@@ -620,6 +617,7 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
 
             }
         }
+        
     }
     }
 
@@ -781,6 +779,7 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
         //std::cout << "MAXDISTPROC: " << maxdist_proc << "\n";
 
         diffinst_proc += diffinst;
+        
     }
 
     // gather statistics
