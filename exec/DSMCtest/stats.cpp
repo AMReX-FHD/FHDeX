@@ -132,7 +132,6 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
 								     pow(primInst(i,j,k,iprim+4),2));
 
 				primInst(i,j,k,iprim+11) = (cuInst(i,j,k,icon+4)/cuInst(i,j,k,icon)-vsqb*0.5)/cv_l;		// T  of spec l
-				Print() << "T_inst: " << primInst(i,j,k,iprim+11) << "\n";
 				primInst(i,j,k,iprim+12) = primInst(i,j,k,iprim+11)*(k_B/mass)*cuInst(i,j,k,icon);		// P  of spec l
 				primInst(i,j,k,iprim+13) = vsqb*moV+cv_l*primInst(i,j,k,iprim+11)*cuInst(i,j,k,icon);	// E  of spec l
 
@@ -192,7 +191,7 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
 				delCon[l]        = cuInst(i,j,k,l) - cuMeans(i,j,k,l);
 				cuVars(i,j,k,l)  = (cuVars(i,j,k,l)*stepsMinusOne+delCon[l]*delCon[l])*osteps;
 			}
-			
+
 			// Primitive Variances
 			Vector<Real> delPrim(nprim, 0.0);
 			for (int l=0; l<nprim; l++) {
