@@ -418,6 +418,142 @@ void ComputeGammaLocal(
     GammaIPlusMatmul(nspecies, GammaN, X_xxT, HessianN);
 }
 
+
+
+/**
+ * \param[in] nspecies_in
+ * \param[in] nspecies_sub
+ * \param[in] molmass_in
+ * \param[in] rhoN
+ * \param[in] chi
+ * \param[in] D_barN
+ * \param[in,out] rhoWchi
+ *
+ *
+ *
+ */
+void ComputeChiSub(int nspecies_in,
+                int nspecies_sub,
+                Array1D<int, 1, MAX_SPECIES> dest,
+                GpuArray<Real, MAX_SPECIES>& molmass_in,
+                Array1D<Real, 1, MAX_SPECIES>& rhoN,
+                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> D_barN,
+                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> rhoWchi){
+
+
+    Array1D<Real, 1, MAX_SPECIES> molmass_sub, rhoN_sub, W_sub, MolarConcN_sub;
+    Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> D_barN_sub, chi_sub;
+    Real rhotot_sub, molmtot_sub;
+    Real Deff, tmp; 
+
+    // create a vector of non-trace densities and molmass for the subsystem
+    for (int row=1; row<=nspecies_in; ++row){
+        if ( dest(row) != 0 ){
+            molmass_sub(dest(row)) = molmass_in(row);
+            rhoN_sub(dest(row)) = rhoN(row);
+        }    
+    }
+
+    //
+    // renormalize total density and mass fractions
+    rhotot_sub = 0.0;
+    for (int n=1; n<=nspecies_in; ++n){
+        rhotot_sub += rhoN_sub(n); //HACK -- does rhoN_sub have values for all n? does it need to be initialized to 0
+    }
+    for (int n=1; n<=nspecies_sub; ++n){
+        W_sub(row) = rhoN_sub(row)/rhotot_sub;
+    }
+
+    // construct D_bar_sub by mapping the full D_bar into D_bar_sub
+    // you could read in only the lower diagonals, 
+    // reflect, and set the diagnals to zero if you want
+
+    for (int row=1; row<=nspecies_in; ++row){
+        if (dest(row) == 0){
+            continue; //HACK -- equiv to cycle?
+        }
+        for (int column=1; column<=nspecies_in; ++column){
+            if (dest(column) != 0){
+                D_barN_sub(dest(row),dest(column)) = D_barN(row,column);
+            }
+        }
+    }
+
+    // compute molarconc_sub and molmtot_sub
+    ComputeMolconcMolmtotLocal(nspecies_in, molmass_sub, rhoN_sub, rhotot_sub, MolarConcN_sub, molmtot_sub);
+
+
+    // compute chi_sub
+    ComputeChi(nspecies_sub, molmass_sub, rhoN_sub, rhotot_sub, MolarConcN_sub, chi_sub, D_barN_sub, chi_iterations_in);
+
+
+    // compute full rho*W*chi
+    MatrixToZeros(nspecies_in, rhoWchi);
+    for (int column=1; column<=nspecies_in; ++column){
+        if (dest(column) == 0){   //column of trace species
+            // compute Deff
+            Deff = 0.0;
+            for (int k=1; k<=nspecies_in; ++k){
+                if (dest(k) != 0){
+                    Deff = Deff + MolarConcN_sub(dest(k))/D_barN(k,column);
+                } 
+            }
+            Deff = 1.0/Deff;
+            
+            // assign rowWchi
+            for (int row=1; row<=nspecies_in; ++row){
+                if ( row == column ){
+                    rhoWchi(row,column) = rhotot_sub*Deff*molmass_in(row)/molmtot_sub;
+                } else if ( dest(row) == 0 ){
+                    rowWchi(row,column) = 0.0;
+                } else {
+                    tmp = 0.0; 
+                    for (int k=1; k<=nspecies_in; ++k){
+                        if ( dest(k)!=0 ){
+                            tmp = tmp + chi_sub(dest(row),dest(k))*MolarConcN_sub(dest(k))/D_barN(k,column);
+                        }
+                    }
+                    rhoWchi(row,column) = Deff*rho_sub(dest(row))*(tmp-molmass(column)/molmtot_sub);
+                }
+            }
+        } else {   // column of non-trace species
+            // assign rowWchi
+            for (int row=1; row<=nspecies_in; ++row){
+                if ( dest(row) == 0 ){
+                    rhoWchi(row,column) = 0.0;
+                } else {
+                    rhoWchi(row,column) = rho_sub(dest(row))*chi_sub(dest(row),dest(column));
+                }
+            }
+        }
+    }
+}
+
+
+/**
+ * \brief Set 2D Matrix = Matrix
+ *
+ * \param[in] Matrix_out
+ * \param[out] Matrix_in
+ * \param[in] size
+ *  Takes two Array2Ds of size `size` and sets Matrix_out = Matrix_in
+ *
+ */
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void Matrix2DSetEqual(Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& Matrix_out,
+                 Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& Matrix_in,
+                 int size){
+
+    for (int i=1; i<=size; ++i){
+        for (int j=1; j<=size; ++j){
+            Matrix_out(i,j) = Matrix_in(i,j);
+        }
+    }
+    
+}
+
+
 /**
  * \brief D_bar to chi - iterative
  *
@@ -429,16 +565,17 @@ void ComputeGammaLocal(
  * \param[out] chi multispcies diffision matrix 
  *
  */
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void Dbar2chiIterative( int nspecies_local,
                int num_iterations,
                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& D_bar,
                Array1D<Real, 1, MAX_SPECIES>& Xk,
-               Array1D<Real, 1, MAX_SPECIES>& molmass_local,
+               GpuArray<Real, MAX_SPECIES>& molmass_local,
                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& chi){
 
 
     Array1D<Real, 1, MAX_SPECIES> Xkp, Ykp, Di, Mmat, Minv; //HACK -- different methods for declaring in fortran, same?
-    Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> Pmat;
+    Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> Pmat, Deltamat, Zmat, Jmat, PJ, matrix1, matrix2;
 
 
     // mole fractions correction
@@ -450,12 +587,12 @@ void Dbar2chiIterative( int nspecies_local,
     // molecular weight of mixture - EGLIB
     Real MWmix = 0.0; //HACK -- confirm -- F90 has Mwmix
     for (int ii=1; ii<=nspecies_local; ++ii){
-        MWmix = MWmix + Xkp(ii)*molmass_local(ii);
+        MWmix = MWmix + Xkp(ii)*molmass_local[ii-1];
     }
 
     // mass fractions correction - EGLIB
     for (int ii=1; ii<=nspecies_local; ++ii){
-        Ykp(ii) = molmass_local(ii) / MWmix * Xkp(ii);
+        Ykp(ii) = molmass_local[ii-1] / MWmix * Xkp(ii);
     }
 
     // Find Di matrix 
@@ -476,19 +613,89 @@ void Dbar2chiIterative( int nspecies_local,
         Minv(i) = Di(i)/Xkp(i);
     }
     
-    MatrixToZeros(MAX_SPECIES, Pmat);
+    // Compute P matrix
+    MatrixToZeros(nspecies_local, Pmat);
     for (int i=1; i<=nspecies_local; ++i){
         for (int j=1; j<=nspecies_local; ++j){
-            if (j==i){
-                term2 = term2 + Xkp(j)/D_bar(i,j);
+            Pmat(i,j) = - Ykp(j);
+            if (i==j){
+                Pmat(i,j) =  Pmat(i,j) + 1.0;  
             }
         }
     }
     
 
-    
-    
+    // Compute Deltamat
+    MatrixToZeros(nspecies_local, Deltamat);
+    Real term1;
+    for (int i=1; i<=nspecies_local; ++i){
+        for (int j=1; j<=nspecies_local; ++j){
+            if (i==j){
+                term1 = 0.0;
+                for (int k=1; k<=nspecies_local; ++k){
+                    if (k!=i){
+                        term1 = term1 + Xkp(i)*Xkp(k)/D_bar(i,k);
+                    }
+                }
+                Deltamat(i,i) = term1;
+            } else {
+                Deltamat(i,j) = -Xkp(i)*Xkp(j)/D_bar(i,j);
+            }
+            Zmat(i,j) = -Deltamat(i,j);
+        }
+    }
 
+    // Compute Zmat
+    for (int i=1; i<=nspecies_local; ++i){
+        Zmat(i,i) = Zmat(i,i) + Mmat(i);
+    }
+
+
+    // Compute Jmat
+    for (int i=1; i<=nspecies_local; ++i){
+        for (int j=1; j<=nspecies_local; ++j){
+            Jmat(i,j) = Minv(i)*Zmat(i,j);
+        }
+    }
+
+    // Compute PJ
+    MatrixToZeros(MAX_SPECIES, PJ);
+    for (int i=1; i<=nspecies_local; ++i){
+        for (int j=1; j<=nspecies_local; ++j){
+            for (int k=1; k<=nspecies_local; ++k){
+                PJ(i,j) = PJ(i,j) + Pmat(i,k)*Jmat(k,j);
+            }
+        }
+    }
+
+    // Compute P M^-1 Pt; store it in matrix2
+    Real scr;
+    for (int i=1; i<=nspecies_local; ++i){
+        for (int j=1; j<=nspecies_local; ++j){
+            scr = 0.0;
+            for (int k=1; k<=nspecies_local; ++k){
+                // notice the change in indices for Pmat to represent Pmat^t
+                scr = scr + Pmat(i,k)*Minv(k)*Pmat(j,k);
+            }
+            matrix2(i,j) = scr;
+            chi(i,j) = scr;
+        }
+    }
+
+
+    for (int jj=1; jj<=num_iterations; ++jj){
+        for (int i=1; i<=nspecies_local; ++i){
+            for (int j=1; j<=nspecies_local; ++j){
+                    scr = 0.0;
+                for (int k=1; k<=nspecies_local; ++k){
+                    scr = scr + PJ(i,k)*chi(k,j);
+                }
+                matrix1(i,j) = scr + matrix2(i,j);
+            }
+        }
+        Matrix2DSetEqual(chi, matrix1, nspecies_local);
+    }
+    
 }
     
 
@@ -507,7 +714,7 @@ void Dbar2chiIterative( int nspecies_local,
  * \param[in] molmass_in
  * \param[in] rhoN
  * \param[in] rhotot
- * \param[in] molarconcN
+ * \param[in] MolarConcN
  * \param[in,out] chi
  * \param[in] D_barN
  * \param[in] chi_iterations_in
@@ -516,7 +723,7 @@ void Dbar2chiIterative( int nspecies_local,
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void ComputeChi(int nspecies_in, 
-               GpuArray<Real, MAX_SPECIES>& molmass_in
+               GpuArray<Real, MAX_SPECIES>& molmass_in,
                Array1D<Real, 1, MAX_SPECIES>& rhoN,
                Real rhotot,
                Array1D<Real, 1, MAX_SPECIES>& MolarConcN,
@@ -573,7 +780,7 @@ void ComputeChi(int nspecies_in,
  *
  * \param[in] rhoN densities
  * \param[in] rhotot total density
- * \param[in] molarconcN molar concentration
+ * \param[in] MolarConcN molar concentration
  * \param[in,out] rhoWchiN 
  * \param[in] D_barN MS diff-coefs
  * \param[in] nspecies
@@ -654,7 +861,7 @@ void ComputeRhoWChiLocal(
             MatrixToZeros(nspecies_in, rhoWchiN); //set rhoWchi to zero
         } else if (ntrace == 0){
             // there are no trace species hence chi = chi_sub
-            ComputeChi(nspecies_in, molmass_in, rhoN, rhotot, molarconcN, chi, D_barN, chi_iterations_in); 
+            ComputeChi(nspecies_in, molmass_in, rhoN, rhotot, MolarConcN, chi, D_barN, chi_iterations_in); 
 
             for (int row=1; row<=nspecies_in; ++row){
                 for (int column=1; column<=nspecies_in; ++column){
