@@ -243,8 +243,8 @@ void main_driver(const char* argv)
 		// DSMC Collide + Move
 		//////////////////////////////////////
 
-		//particles.CalcSelections(dt);
-		//particles.CollideParticles(dt);
+		particles.CalcSelections(dt);
+		particles.CollideParticles(dt);
 		//particles.Source(dt, paramPlaneList, paramPlaneCount);
 		//particles.MoveParticlesCPP(dt, paramPlaneList, paramPlaneCount);
 
@@ -264,9 +264,9 @@ void main_driver(const char* argv)
 					}
 				}
 			}
-			//if(istep%stat_int == 0) {
+			if(istep%stat_int == 0) {
 				particles.EvaluateStats(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,coVars,statsCount++,time);
-			//}
+			}
 		}
 
 		//////////////////////////////////////
@@ -284,6 +284,18 @@ void main_driver(const char* argv)
 
 		if (writePlt) {particles.writePlotFile(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,coVars,geom,time,istep);}
 
+		// Record Initial Condition
+		if(istep == step) {
+			cuInst.setVal(0.);
+			primInst.setVal(0.);
+			particles.EvaluateStats(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,coVars,statsCount,time);
+			particles.writePlotFile(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,coVars,geom,time,istep);
+			cuMeans.setVal(0.);
+			primMeans.setVal(0.);
+			cuVars.setVal(0.);
+			primVars.setVal(0.);
+			coVars.setVal(0.);
+		}
 		//////////////////////////////////////
 		// Structure Factor
 		//////////////////////////////////////

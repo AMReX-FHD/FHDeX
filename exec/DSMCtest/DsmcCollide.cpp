@@ -66,15 +66,15 @@ void FhdParticleContainer::InitCollisionCells() {
 		const int grid_id = pti.index();
 		const int tile_id = pti.LocalTileIndex();
 		const Box& tile_box  = pti.tilebox();
-		
+
 		auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
 		auto& particles = particle_tile.GetArrayOfStructs();
-		
+
 		// Convert MultiFabs -> arrays
 		const Array4<Real> & arrvrmax = mfvrmax.array(pti);
 		const Array4<Real> & arrphi = mfphi.array(pti);
 		const Array4<Real> & arrselect = mfselect.array(pti);
-		
+
 		amrex::ParallelFor(tile_box,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
 
 			int ij_spec;
@@ -84,7 +84,7 @@ void FhdParticleContainer::InitCollisionCells() {
 					arrselect(i,j,k,ij_spec) = 0.0;
 				}
 			}
-					
+
 			const IntVect& iv = {i,j,k};
 			long imap = tile_box.index(iv);
 
@@ -111,14 +111,14 @@ void FhdParticleContainer::CalcSelections(Real dt) {
 		// Convert MultiFabs -> arrays
 		const Array4<Real> & arrvrmax = mfvrmax.array(mfi);
 		const Array4<Real> & arrphi = mfphi.array(mfi);
-		const Array4<Real> & arrselect = mfselect.array(mfi);		
+		const Array4<Real> & arrselect = mfselect.array(mfi);
 		// anything defined outside of parallelfor is read-only
-		amrex::ParallelFor(tile_box,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {       
+		amrex::ParallelFor(tile_box,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
 			int ij_spec;
 			long np_i, np_j;
-			
+
 			const IntVect& iv = {i,j,k};
-			long imap = tile_box.index(iv);		
+			long imap = tile_box.index(iv);
 
 			Real vrmax;
 			Real NSel;
@@ -171,10 +171,9 @@ void FhdParticleContainer::CollideParticles(Real dt) {
 		// may be better if written with AMREX_FOR_1D
 		//amrex::ParallelForRNG(tile_box,
 		//	[=] AMREX_GPU_DEVICE (int i, int j, int k, amrex::RandomEngine const& engine) noexcept {
-		
 		IntVect smallEnd = tile_box.smallEnd();
 		IntVect bigEnd = tile_box.bigEnd();
-		
+
 		for (int i = smallEnd[0]; i <= bigEnd[0]; i++) {
 		for (int j = smallEnd[1]; j <= bigEnd[1]; j++) {
 		for (int k = smallEnd[2]; k <= bigEnd[2]; k++) {
@@ -185,15 +184,14 @@ void FhdParticleContainer::CollideParticles(Real dt) {
 			int np[nspecies];
 			int pindxi, pindxj; // index of randomly sampled particles
 			int ij_spec;
-			
+
 			RealVect eij, vreij;
-			Real phi, theta, eijmag;
 			RealVect vi, vj, vij;
 			RealVect vijpost, boost;
 			Real oboostmag;
 			Real massi, massj, massij;
 			Real vrmag, vrmax, vreijmag;
-			
+
 			totalSel = 0;
 			for (int i_spec = 0; i_spec<nspecies; i_spec++) {
 				np[i_spec] = m_cell_vectors[i_spec][grid_id][imap].size();
@@ -203,15 +201,15 @@ void FhdParticleContainer::CollideParticles(Real dt) {
 					totalSel += NSel[ij_spec];
 				}
 			}
-			
+
 			int speci, specj, specij;
 			while (totalSel>0) {
 				Real RR = amrex::Random();
 				bool spec_select = false;
 				selrun = 0;
 				speci = -1; specj = -1; specij = -1;
-				for(int i_spec=0;i_spec<nspecies;i_spec++) { 
-					for(int j_spec=i_spec;j_spec<nspecies;j_spec++) { 
+				for(int i_spec=0;i_spec<nspecies;i_spec++) {
+					for(int j_spec=i_spec;j_spec<nspecies;j_spec++) {
 						int ij_spec = getSpeciesIndex(i_spec,j_spec);
 						selrun += NSel[ij_spec];
 						if(selrun/totalSel>RR && !spec_select) {
@@ -246,11 +244,15 @@ void FhdParticleContainer::CollideParticles(Real dt) {
 				vrmag = sqrt(pow(vij[0],2)+pow(vij[1],2)+pow(vij[2],2));
 				if(vrmag>vrmax) {vrmax = vrmag; arrvrmax(i,j,k,ij_spec) = vrmax;}
 
-				theta = 2.0*pi_usr*amrex::Random();
-				phi = std::acos(2.0*amrex::Random()-1.0);
-				eij[0] = std::sin(theta)*std::cos(phi);
-				eij[1] = std::sin(theta)*std::sin(phi);
-				eij[2] = std::cos(theta);
+				Real eijmag = 0;
+				while(eijmag < 1.0e-12) {
+					eij[0] = amrex::RandomNormal(0.,1.);
+					eij[1] = amrex::RandomNormal(0.,1.);
+					eij[2] = amrex::RandomNormal(0.,1.);
+					eijmag = pow(eij[0],2)+pow(eij[1],2)+pow(eij[2],2);
+					eijmag = pow(eijmag,0.5);
+				}
+				for(int idim=0; idim<3; idim++) { eij[idim] /= eijmag; }
 				vreijmag = vij[0]*eij[0]+vij[1]*eij[1]+vij[2]*eij[2];
 				if(std::abs(vreijmag)>vrmax*amrex::Random()) {
 					countedCollisions[speci] += 1;
@@ -269,13 +271,13 @@ void FhdParticleContainer::CollideParticles(Real dt) {
 					partj.rdata(FHD_realData::velx) = vj[0] + vreij[0]*massi;
 					partj.rdata(FHD_realData::vely) = vj[1] + vreij[1]*massi;
 					partj.rdata(FHD_realData::velz) = vj[2] + vreij[2]*massi;
-					
-					/*	
+
+					/*
 					// Boosted Velocities
 					vijpost[0] = vi[0]-vj[0];
 					vijpost[1] = vi[1]-vj[1];
 					vijpost[2] = vi[2]-vj[2];
-						
+
 					boost[0] = vijpost[0]-vij[0];
 					boost[1] = vijpost[1]-vij[1];
 					boost[2] = vijpost[2]-vij[2];
