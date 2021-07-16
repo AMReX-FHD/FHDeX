@@ -123,8 +123,8 @@ void ComputeRhoWChi(const MultiFab& rho_in,
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
         
-            Array1D<Real, 1, MAX_SPECIES> rhoN;
-            Array1D<Real, 1, MAX_SPECIES> MolarConcN;
+            GpuArray<Real, MAX_SPECIES> rhoN;
+            GpuArray<Real, MAX_SPECIES> MolarConcN;
             Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> rhoWchiN; 
             Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> D_barN;
 
@@ -132,8 +132,8 @@ void ComputeRhoWChi(const MultiFab& rho_in,
             // Read MultiFab data into arrays
             for (int n=0; n<nspecies; ++n){
 
-                rhoN(n+1) = rho(i,j,k,n);
-                MolarConcN(n+1) = molarconc(i,j,k,n);
+                rhoN[n] = rho(i,j,k,n);
+                MolarConcN[n] = molarconc(i,j,k,n);
                 for (int m=0; m<nspecies; ++m){
                     rhoWchiN(m+1,n+1) = rhoWchi(i,j,k,n*nspecies+m);  
                     D_barN(m+1,n+1) = D_bar(i,j,k,n*nspecies+m); 
