@@ -140,6 +140,13 @@ void ComputeRhoWChi(const MultiFab& rho_in,
                 }
             }
 
+//HACK
+// Print().SetPrecision(15) << "rhoN:    " << rhoN[0] << std::endl; 
+// Print().SetPrecision(15) << "MolarConcN:    " << MolarConcN[0] << std::endl; 
+// Print().SetPrecision(15) << "rhoWchiN:    " << rhoWchiN(1,1) << std::endl; 
+// Print().SetPrecision(15) << "D_barN:    " << D_barN(1,1) << std::endl; 
+
+
             //compatabile type casting for molmass?
             ComputeRhoWChiLocal(rhoN, rhotot(i,j,k), MolarConcN, rhoWchiN, D_barN, nspecies, molmass, chi_iterations);
 
@@ -150,6 +157,9 @@ void ComputeRhoWChi(const MultiFab& rho_in,
                 } 
             }
 
+        
+
+
         });  /*HACK: End current development */
 //Fortran
       //compute_rhoWchi(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
@@ -159,6 +169,12 @@ void ComputeRhoWChi(const MultiFab& rho_in,
 			//BL_TO_FORTRAN_ANYD(rhoWchi_in[mfi]),
 			//BL_TO_FORTRAN_ANYD(D_bar_in[mfi]));
     }
+
+
+    //Print() << "--- rhoWchi --- " << std::endl << rhoWchi_in << std::endl << "---" << std::endl;
+    //Print() << "--- D_bar  --- " << std::endl << D_bar_in << std::endl << "---" << std::endl;
+    //Print() << "--- rhoWchi --- " << std::endl << rhoWchi_in << std::endl << "---" << std::endl;
+    //Print() << "--- rhoWchi --- " << std::endl << rhoWchi_in << std::endl << "---" << std::endl;
 
 }
 

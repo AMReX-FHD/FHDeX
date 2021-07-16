@@ -451,6 +451,7 @@ void ComputeChiSub(int nspecies_in,
                 Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> rhoWchiN,
                 int chi_iterations_in){
 
+Print() << "HACK -- ComputeChiSub" << std::endl;
 
     GpuArray<Real, MAX_SPECIES> molmass_sub, rhoN_sub, MolarConcN_sub;
     Array1D<Real, 1, MAX_SPECIES> W_sub;
@@ -468,7 +469,10 @@ void ComputeChiSub(int nspecies_in,
 
     // renormalize total density and mass fractions
     rhotot_sub = 0.0;
+
     for (int row=1; row<=nspecies_in; ++row){
+
+//Print() << "HACK: rhoNsub --" << rhoN_sub[row-1] << std::endl;
         rhotot_sub += rhoN_sub[row-1]; //HACK -- does rhoN_sub have values for all n? does it need to be initialized to 0
     }
     for (int row=1; row<=nspecies_sub; ++row){
@@ -489,6 +493,13 @@ void ComputeChiSub(int nspecies_in,
             }
         }
     }
+    
+ Print().SetPrecision(16) << "HACK: dest1    " << dest(1) << std::endl;
+ Print().SetPrecision(16) << "HACK: dest2    " << dest(2) << std::endl;
+ Print().SetPrecision(16) << "HACK: dest3    " << dest(3) << std::endl;
+ Print().SetPrecision(16) << "HACK: rhoNsub1    " << rhoN_sub[0] << std::endl;
+ Print().SetPrecision(16) << "HACK: rhoNsub2    " << rhoN_sub[1] << std::endl;
+ Print().SetPrecision(16) << "HACK: rhoNsub3    " << rhoN_sub[2] << std::endl;
 
     // compute molarconc_sub and molmtot_sub
     ComputeMolconcMolmtotLocal(nspecies_in, molmass_sub, rhoN_sub, rhotot_sub, MolarConcN_sub, molmtot_sub);
@@ -499,7 +510,7 @@ void ComputeChiSub(int nspecies_in,
 
 
     // compute full rho*W*chi
-    MatrixToZeros(nspecies_in, rhoWchiN);
+    MatrixToZeros(MAX_SPECIES, rhoWchiN); //MatrixToZeros(nspecies_in, rhoWchiN);
     for (int column=1; column<=nspecies_in; ++column){
         if (dest(column) == 0){   //column of trace species
             // compute Deff
@@ -742,8 +753,12 @@ void ComputeChi(int nspecies_in,
                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& D_barN,
                int chi_iterations_in){ 
 
+
+//Print() << "HACK -- ComputeChi" << std::endl;
+
+
     //local variables
-    double eepsilon=1.d-16; //HACK -- confirm this
+    Real eepsilon=1.d-16; //HACK -- confirm this
 
     Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> Lambda;
     Array1D<Real, 1, MAX_SPECIES> W;
@@ -813,7 +828,9 @@ void ComputeRhoWChiLocal(
                GpuArray<Real, MAX_SPECIES>& molmass_in,
                int chi_iterations_in){
 
-    //Print() << "HACK"; 
+ Print().SetPrecision(16) << "HACK: rhoN1    " << rhoN[0] << std::endl;
+ Print().SetPrecision(16) << "HACK: rhoN2    " << rhoN[1] << std::endl;
+ Print().SetPrecision(16) << "HACK: rhoN3    " << rhoN[2] << std::endl;
 
     //local variables
     Array1D<Real, 1, MAX_SPECIES> W;
@@ -835,7 +852,19 @@ void ComputeRhoWChiLocal(
      */
     Array1D<int, 1, MAX_SPECIES> dest;    
 
+
+// HACK -- verify inputs are the same
+//Print() << "rhoN: " << rhoN << std::endl;    
+//Print() << "MolarConcN: " << MolarConcN << std::endl;    
+
+//for (int n=0; n< MAX_SPECIES; ++n){
+    //Print() << "rhoN[" << n << "]: " << rhoN[n] << std::endl;    
+//}    
+
+
     if ((use_multiphase == 1) && (nspecies_in == 2)) {
+
+Print() << "HACK -- 1" << std::endl; 
 
         w1 = MolarConcN[0];
         w2 = MolarConcN[1];
@@ -854,6 +883,7 @@ void ComputeRhoWChiLocal(
 
     } else { 
 
+//Print() << "HACK -- 2" << std::endl; 
        // compute the number of trace species
        // build the mapping for expanding/contracting arrays
         ntrace = 0;
@@ -869,7 +899,8 @@ void ComputeRhoWChiLocal(
 
         if (ntrace == nspecies_in -1){
             // this is all trace species except for 1 (essentially pure solvent);
-            MatrixToZeros(nspecies_in, rhoWchiN); //set rhoWchi to zero
+            //MatrixToZeros(nspecies_in, rhoWchiN); //set rhoWchi to zero
+            MatrixToZeros(MAX_SPECIES, rhoWchiN); //set rhoWchi to zero
         } else if (ntrace == 0){
             // there are no trace species hence chi = chi_sub
             ComputeChi(nspecies_in, molmass_in, rhoN, rhotot, MolarConcN, chi, D_barN, chi_iterations_in); 
@@ -884,7 +915,7 @@ void ComputeRhoWChiLocal(
           // if there are trace species, we consider a subsystem 
           // consisting of non-trace species
           nspecies_sub = nspecies - ntrace;
-          ComputeChiSub(nspecies, 
+          ComputeChiSub(nspecies_in, 
                       nspecies_sub,
                       dest,
                       molmass_in,
