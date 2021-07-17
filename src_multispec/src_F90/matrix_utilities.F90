@@ -150,6 +150,10 @@ contains
        chi=matrix1
       end do
 
+write(*,*) "HACK: chi row 1 " , chi(1,1) , " " , chi(1,2) , " " , chi(1,3) 
+write(*,*) "HACK: chi row 2 " , chi(2,1) , " " , chi(2,2) , " " , chi(2,3) 
+write(*,*) "HACK: chi row 3 " , chi(3,1) , " " , chi(3,2) , " " , chi(3,3) 
+
   end subroutine
 
    ! a is input matrix.  

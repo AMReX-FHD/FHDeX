@@ -114,7 +114,7 @@ void ComputeRhoWChi(const MultiFab& rho_in,
         const Array4<const Real>& rho = rho_in.array(mfi);
         const Array4<const Real>& rhotot = rhotot_in.array(mfi);
         const Array4<const Real>& molarconc = molarconc_in.array(mfi);
-        const Array4<      Real>& rhoWchi = rhoWchi_in.array(mfi); 
+        const Array4<      Real>& rhoWchi = rhoWchi_in.array(mfi); //HACK
         const Array4<const Real>& D_bar = D_bar_in.array(mfi);
 
 
@@ -135,7 +135,7 @@ void ComputeRhoWChi(const MultiFab& rho_in,
                 rhoN[n] = rho(i,j,k,n);
                 MolarConcN[n] = molarconc(i,j,k,n);
                 for (int m=0; m<nspecies; ++m){
-                    rhoWchiN(m+1,n+1) = rhoWchi(i,j,k,n*nspecies+m);  
+                    rhoWchiN(m+1,n+1) = rhoWchi(i,j,k,n*nspecies+m); //HACK 
                     D_barN(m+1,n+1) = D_bar(i,j,k,n*nspecies+m); 
                 }
             }
@@ -168,10 +168,15 @@ void ComputeRhoWChi(const MultiFab& rho_in,
 			//BL_TO_FORTRAN_ANYD(molarconc_in[mfi]),
 			//BL_TO_FORTRAN_ANYD(rhoWchi_in[mfi]),
 			//BL_TO_FORTRAN_ANYD(D_bar_in[mfi]));
+
+
+
+
+
+
     }
 
 
-    //Print() << "--- rhoWchi --- " << std::endl << rhoWchi_in << std::endl << "---" << std::endl;
     //Print() << "--- D_bar  --- " << std::endl << D_bar_in << std::endl << "---" << std::endl;
     //Print() << "--- rhoWchi --- " << std::endl << rhoWchi_in << std::endl << "---" << std::endl;
     //Print() << "--- rhoWchi --- " << std::endl << rhoWchi_in << std::endl << "---" << std::endl;

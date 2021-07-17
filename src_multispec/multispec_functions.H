@@ -308,11 +308,11 @@ void ComputeMolconcMolmtotLocal( int nspecies_in,
  *
  */
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void MatrixToZeros(int nspecies,
+void MatrixToZeros(int nspecies_in,
                 Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& matrixIn) {
 
-    for (int n=1; n<=nspecies; ++n ){
-        for (int m=1; m<=nspecies; ++m ){
+    for (int n=1; n<=nspecies_in; ++n ){
+        for (int m=1; m<=nspecies_in; ++m ){
             matrixIn(n,m) = 0.0;
         }
     }
@@ -494,12 +494,12 @@ Print() << "HACK -- ComputeChiSub" << std::endl;
         }
     }
     
- Print().SetPrecision(16) << "HACK: dest1    " << dest(1) << std::endl;
- Print().SetPrecision(16) << "HACK: dest2    " << dest(2) << std::endl;
- Print().SetPrecision(16) << "HACK: dest3    " << dest(3) << std::endl;
- Print().SetPrecision(16) << "HACK: rhoNsub1    " << rhoN_sub[0] << std::endl;
- Print().SetPrecision(16) << "HACK: rhoNsub2    " << rhoN_sub[1] << std::endl;
- Print().SetPrecision(16) << "HACK: rhoNsub3    " << rhoN_sub[2] << std::endl;
+ //Print().SetPrecision(16) << "HACK: dest1    " << dest(1) << std::endl;
+ //Print().SetPrecision(16) << "HACK: dest2    " << dest(2) << std::endl;
+ //Print().SetPrecision(16) << "HACK: dest3    " << dest(3) << std::endl;
+ //Print().SetPrecision(16) << "HACK: rhoNsub1    " << rhoN_sub[0] << std::endl;
+ //Print().SetPrecision(16) << "HACK: rhoNsub2    " << rhoN_sub[1] << std::endl;
+ //Print().SetPrecision(16) << "HACK: rhoNsub3    " << rhoN_sub[2] << std::endl;
 
     // compute molarconc_sub and molmtot_sub
     ComputeMolconcMolmtotLocal(nspecies_in, molmass_sub, rhoN_sub, rhotot_sub, MolarConcN_sub, molmtot_sub);
@@ -563,9 +563,10 @@ Print() << "HACK -- ComputeChiSub" << std::endl;
  */
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void Matrix2DSetEqual(Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& Matrix_out,
-                 Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& Matrix_in,
-                 int size){
+void Matrix2DSetEqual(
+                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& Matrix_out,
+                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& Matrix_in,
+                int size){
 
     for (int i=1; i<=size; ++i){
         for (int j=1; j<=size; ++j){
@@ -636,7 +637,7 @@ void Dbar2chiIterative( int nspecies_local,
     }
     
     // Compute P matrix
-    MatrixToZeros(nspecies_local, Pmat);
+    MatrixToZeros(MAX_SPECIES, Pmat);  //HACK -- no difference -> change back
     for (int i=1; i<=nspecies_local; ++i){
         for (int j=1; j<=nspecies_local; ++j){
             Pmat(i,j) = - Ykp(j);
@@ -648,7 +649,7 @@ void Dbar2chiIterative( int nspecies_local,
     
 
     // Compute Deltamat
-    MatrixToZeros(nspecies_local, Deltamat);
+    MatrixToZeros(MAX_SPECIES, Deltamat); //HACK -- no difference -> change back
     Real term1;
     for (int i=1; i<=nspecies_local; ++i){
         for (int j=1; j<=nspecies_local; ++j){
@@ -715,9 +716,15 @@ void Dbar2chiIterative( int nspecies_local,
                 matrix1(i,j) = scr + matrix2(i,j);
             }
         }
-        Matrix2DSetEqual(chi, matrix1, nspecies_local);
+        Matrix2DSetEqual(chi, matrix1, MAX_SPECIES);
     }
-    
+   
+Print().SetPrecision(17) << "HACK: chi row 1 " << chi(1,1) << " " << chi(1,2) << " " << chi(1,3) << std::endl;
+Print().SetPrecision(17) << "HACK: chi row 2 " << chi(2,1) << " " << chi(2,2) << " " << chi(2,3) << std::endl;
+Print().SetPrecision(17) << "HACK: chi row 3 " << chi(3,1) << " " << chi(3,2) << " " << chi(3,3) << std::endl;
+
+
+
 }
     
 
@@ -796,6 +803,10 @@ void ComputeChi(int nspecies_in,
        //call amrex_error('compute_chi: use_lapack not supported')
     }
 
+    Print() << "HACK: MolarConcN[0]" << MolarConcN[0] << std::endl;
+    Print() << "HACK: MolarConcN[1]" << MolarConcN[1] << std::endl;
+    Print() << "HACK: MolarConcN[2]" << MolarConcN[2] << std::endl;
+
     Dbar2chiIterative(nspecies_in,chi_iterations_in,D_barN,MolarConcN,molmass_in,chi);
 }
 
@@ -828,9 +839,6 @@ void ComputeRhoWChiLocal(
                GpuArray<Real, MAX_SPECIES>& molmass_in,
                int chi_iterations_in){
 
- Print().SetPrecision(16) << "HACK: rhoN1    " << rhoN[0] << std::endl;
- Print().SetPrecision(16) << "HACK: rhoN2    " << rhoN[1] << std::endl;
- Print().SetPrecision(16) << "HACK: rhoN3    " << rhoN[2] << std::endl;
 
     //local variables
     Array1D<Real, 1, MAX_SPECIES> W;
@@ -861,6 +869,8 @@ void ComputeRhoWChiLocal(
     //Print() << "rhoN[" << n << "]: " << rhoN[n] << std::endl;    
 //}    
 
+    //HACK
+    MatrixToZeros(MAX_SPECIES, chi);
 
     if ((use_multiphase == 1) && (nspecies_in == 2)) {
 
@@ -890,19 +900,35 @@ Print() << "HACK -- 1" << std::endl;
         for (int row=1; row<=nspecies_in; ++row){
             W(row) = rhoN[row-1] / rhotot;
             if (W(row) < fraction_tolerance){
-                ntrace++;
+                ntrace = ntrace + 1;
                 dest(row) = 0;
             } else {
                 dest(row) = row - ntrace; 
             }
         }
+Print().SetPrecision(17) << "HACK: rhoWchiN(1) " << rhoWchiN(1,1) << " " << rhoWchiN(1,2) << " " << rhoWchiN(1,3) << std::endl;
+Print().SetPrecision(17) << "HACK: rhoWchiN(2) " << rhoWchiN(2,1) << " " << rhoWchiN(2,2) << " " << rhoWchiN(2,3) << std::endl;
+Print().SetPrecision(17) << "HACK: rhoWchiN(3) " << rhoWchiN(3,1) << " " << rhoWchiN(3,2) << " " << rhoWchiN(3,3) << std::endl;
 
-        if (ntrace == nspecies_in -1){
+        if (1){
+//        if (ntrace == nspecies_in -1){
             // this is all trace species except for 1 (essentially pure solvent);
-            //MatrixToZeros(nspecies_in, rhoWchiN); //set rhoWchi to zero
-            MatrixToZeros(MAX_SPECIES, rhoWchiN); //set rhoWchi to zero
+            MatrixToZeros(nspecies_in, rhoWchiN); //set rhoWchi to zero
+////HACK
+for (int row=1; row<=nspecies_in; ++row){
+for (int column=1; column<=nspecies_in; ++column){
+rhoWchiN(row, column) = 0.0;
+//        if ( rhoWchiN(row,column) != rhoWchiN(column,row) ){
+//                Print() << "zeros Not Symmetric " << std::endl;
+}
+} 
+//}
+Print().SetPrecision(17) << "HACK: rhoWchiN(1) " << rhoWchiN(1,1) << " " << rhoWchiN(1,2) << " " << rhoWchiN(1,3) << std::endl;
+Print().SetPrecision(17) << "HACK: rhoWchiN(2) " << rhoWchiN(2,1) << " " << rhoWchiN(2,2) << " " << rhoWchiN(2,3) << std::endl;
+Print().SetPrecision(17) << "HACK: rhoWchiN(3) " << rhoWchiN(3,1) << " " << rhoWchiN(3,2) << " " << rhoWchiN(3,3) << std::endl;
         } else if (ntrace == 0){
             // there are no trace species hence chi = chi_sub
+
             ComputeChi(nspecies_in, molmass_in, rhoN, rhotot, MolarConcN, chi, D_barN, chi_iterations_in); 
 
             for (int row=1; row<=nspecies_in; ++row){
@@ -910,6 +936,18 @@ Print() << "HACK -- 1" << std::endl;
                     rhoWchiN(row, column) = rhoN[row-1] * chi(row,column);        
                 }
             }
+////HACK
+//for (int row=1; row<=nspecies_in; ++row){
+//for (int column=1; column<=nspecies_in; ++column){
+//        if ( rhoWchiN(row,column) != rhoWchiN(column,row) ){
+//                Print() << "Chi Not Symmetric " << std::endl;
+//}
+//} 
+//}
+//
+// Print().SetPrecision(17) << "HACK: rhoWchiN(1) " << rhoWchiN(1,1) << " " << rhoWchiN(1,2) << " " << rhoWchiN(1,3) << std::endl;
+// Print().SetPrecision(17) << "HACK: rhoWchiN(2) " << rhoWchiN(2,1) << " " << rhoWchiN(2,2) << " " << rhoWchiN(2,3) << std::endl;
+// Print().SetPrecision(17) << "HACK: rhoWchiN(3) " << rhoWchiN(3,1) << " " << rhoWchiN(3,2) << " " << rhoWchiN(3,3) << std::endl;
         }
         else {
           // if there are trace species, we consider a subsystem 
@@ -923,9 +961,24 @@ Print() << "HACK -- 1" << std::endl;
                       D_barN,
                       rhoWchiN,
                       chi_iterations_in);
+////HACK
+//for (int row=1; row<=nspecies_in; ++row){
+//for (int column=1; column<=nspecies_in; ++column){
+//        if ( rhoWchiN(row,column) != rhoWchiN(column,row) ){
+//                Print() << "Chi_sub Not Symmetric " << std::endl;
+//}
+//} 
+//}
+//          
+// Print().SetPrecision(17) << "HACK: rhoWchiN(1) " << rhoWchiN(1,1) << " " << rhoWchiN(1,2) << " " << rhoWchiN(1,3) << std::endl;
+// Print().SetPrecision(17) << "HACK: rhoWchiN(2) " << rhoWchiN(2,1) << " " << rhoWchiN(2,2) << " " << rhoWchiN(2,3) << std::endl;
+// Print().SetPrecision(17) << "HACK: rhoWchiN(3) " << rhoWchiN(3,1) << " " << rhoWchiN(3,2) << " " << rhoWchiN(3,3) << std::endl;
+
         } 
     }
-}
-
+//if ( (rhoWchiN(1,1)+rhoWchiN(1,2)+rhoWchiN(1,3)+
+//      rhoWchiN(2,1)+rhoWchiN(2,2)+rhoWchiN(2,3)+
+//      rhoWchiN(3,1)+rhoWchiN(3,2)+rhoWchiN(3,3)) != 0.0 ){ Abort();}
+} 
 
 #endif
