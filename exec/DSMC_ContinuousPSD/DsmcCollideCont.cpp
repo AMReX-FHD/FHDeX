@@ -76,9 +76,6 @@ void FhdParticleContainer::CollideParticles(Real dt) {
 		const Array4<Real> & arrselect = mfselect.array(mfi);
 
 		const long np = particles.numParticles();
-		// may be better if written with AMREX_FOR_1D
-		//amrex::ParallelForRNG(tile_box,
-		//	[=] AMREX_GPU_DEVICE (int i, int j, int k, amrex::RandomEngine const& engine) noexcept {
 		
 		IntVect smallEnd = tile_box.smallEnd();
 		IntVect bigEnd = tile_box.bigEnd();
@@ -123,20 +120,27 @@ void FhdParticleContainer::CollideParticles(Real dt) {
 				vj[0] = partj.rdata(FHD_realData::velx);
 				vj[1] = partj.rdata(FHD_realData::vely);
 				vj[2] = partj.rdata(FHD_realData::velz);
-						
-				vij[0] = vi[0]-vj[0]; vij[1] = vi[1]-vj[1]; vij[2] = vi[2]-vj[2];
-				csx = pi_usr*pow(dij,2.0);
-				vrmag = sqrt(pow(vij[0],2)+pow(vij[1],2)+pow(vij[2],2))*;
-				if(csx*vrmag>vrmax) {vrmax = csx*vrmag;}
 
-				theta = 2.0*pi_usr*amrex::Random();
-				phi = std::acos(2.0*amrex::Random()-1.0);
-				eij[0] = std::sin(theta)*std::cos(phi);
-				eij[1] = std::sin(theta)*std::sin(phi);
-				eij[2] = std::cos(theta);
+				vrmag = sqrt(pow(vij[0],2)+pow(vij[1],2)+pow(vij[2],2));
+				csx = pi_usr*pow(dij,2.0);
+				if(csx*vrmag>vrmax) {
+					vrmax = csx*vrmag;
+					arrvrmax(i,j,k,ij_spec) = vrmax;
+				}
+
+				vij[0] = vi[0]-vj[0]; vij[1] = vi[1]-vj[1]; vij[2] = vi[2]-vj[2];
+				Real eijmag = 0;
+				while(eijmag < 1.0e-12) {
+					eij[0] = amrex::RandomNormal(0.,1.);
+					eij[1] = amrex::RandomNormal(0.,1.);
+					eij[2] = amrex::RandomNormal(0.,1.);
+					eijmag = pow(eij[0],2)+pow(eij[1],2)+pow(eij[2],2);
+					eijmag = pow(eijmag,0.5);
+				}
+				for(int idim=0; idim<3; idim++) { eij[idim] /= eijmag; }
 				vreijmag = vij[0]*eij[0]+vij[1]*eij[1]+vij[2]*eij[2];
-				vreijmag = vreijmag*csx
-				;
+				vreijmag = vreijmag*csx;
+
 				if(amrex::Math::abs(vreijmag)>vrmax*amrex::Random()) {
 
 					vreijmag = vreijmag*(1.0+interproperties[0].alpha)/massij;
@@ -153,7 +157,6 @@ void FhdParticleContainer::CollideParticles(Real dt) {
 					partj.rdata(FHD_realData::velz) = vj[2] + vreij[2]*massi;
 				}		
 			}
-			arrvrmax(i,j,k,0) = vrmax;
 		}
 		}
 		}
