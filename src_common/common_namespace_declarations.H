@@ -209,5 +209,5 @@ amrex::Real                common::turb_a;
 amrex::Real                common::turb_b;
 int                        common::turbForcing;
 
-int                        common::do_1D;
+AMREX_GPU_MANAGED int      common::do_1D;
 
