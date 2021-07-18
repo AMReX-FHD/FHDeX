@@ -12,14 +12,14 @@
   fixed_dt = 1e-8                        ! dt = dx/(10*sqrt(kT/m))
 
   ! Controls for number of steps between actions
-  max_step =   100000
-  plot_int =   1000
-  n_steps_skip = 1000
+  max_step =   1000000
+  plot_int =   -1
+  n_steps_skip = 0
   struct_fact_int = 10
 
   reset_stats = 1
   restart  = -1
-  chk_int  = -1
+  chk_int  = 250000
 
   !particle initialization (-1 - no input; 1 - input provided)
   particle_input = -1
@@ -30,13 +30,13 @@
   nspecies   		=  1
   mass       		=  1.636e-8 1.636e-8 ! kg
   diameter   		=  2.5e-4 4.5e-4
-  qval					=  2.5e-5 4.5e-5
+  qval			=  2.5e-5 4.5e-5
   phi_domain    =  0.01 0.005
   !particle_n0 	=  1.2223e9 1.2223e9
   
   ! write each row, i.e. 1-1, 1-2, 1-3 .... 2-1, 2-2 ,2-3 ....
   ! need total nspecies*nspecies values
-  alpha_pp = 0.99
+  alpha_pp = 1.00
   
   ! Stochastic parameters
   seed    = 0

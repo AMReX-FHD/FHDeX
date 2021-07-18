@@ -225,6 +225,7 @@ void main_driver(const char* argv)
 	max_step += step;
 	n_steps_skip += step;
 	int IO_int = std::ceil(plot_int*0.01);
+	IO_int = std::max(IO_int,1);
 	int stat_int = 5;
 	Real tbegin, tend;
 

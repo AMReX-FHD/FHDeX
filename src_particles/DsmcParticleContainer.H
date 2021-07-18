@@ -127,6 +127,7 @@ public:
 	void CollideParticles(Real dt);
 
 	void MoveParticlesCPP(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount);
+	void externalForce(const Real dt);
 	
 	Real leftMean;
 	int leftcnt;
