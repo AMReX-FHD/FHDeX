@@ -20,14 +20,14 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
 	domainVol = (prob_hi[0] - prob_lo[0])*(prob_hi[1] - prob_lo[1])*(prob_hi[2] - prob_lo[2]);
 
 	collisionCellVol = domainVol/totalCollisionCells;
-	ocollisionCellVol = 1/collisionCellVol;
+	ocollisionCellVol = 1.0/collisionCellVol;
 	
 	if(rho0<0) {rho0=0.;}
 	
 	for(int i=0;i<nspecies;i++) {
 		properties[i].mass = mass[i];
 		properties[i].radius = diameter[i]/2.0;
-		properties[i].partVol = pow(diameter[i],3)*pi_usr/6;
+		properties[i].partVol = pow(diameter[i],3.0)*pi_usr/6.0;
 		properties[i].part2cellVol = properties[i].partVol*ocollisionCellVol;
 		properties[i].Neff = particle_neff; // assume F_n is same for each
 		properties[i].R    = k_B/properties[i].mass;
@@ -158,7 +158,6 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
             //amrex::Print() << "Moving particle " << i << "\n";
 
               runtime = dt*part.rdata(FHD_realData::timeFrac);
-              //amrex::Print() << "rt: " << runtime << "\n";
               while(runtime > 0)
               {
                   find_inter_gpu(part, runtime, paramPlaneList, paramPlaneCount, &intsurf, &inttime, &intside, ZFILL(plo), ZFILL(phi));
@@ -183,7 +182,6 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
 
                       Real dummy = 1;
                        //Print() << "surf: " << intsurf-1 << "\n";
-                      
                       app_bc_gpu(&surf, part, intside, domSize, &push, &runtime, dummy);
                       //Print() << "rt: " << runtime << "\n";
 
@@ -197,7 +195,6 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
                   }
 
               }
- 							//amrex::Print() << "Particle move done\n";
               part.rdata(FHD_realData::timeFrac) = 1;
 
 
@@ -251,14 +248,12 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
                 part.idata(FHD_intData::sorted) = -1;
                 part.idata(FHD_intData::species) = part.idata(FHD_intData::species_change);
             }
-
         }
 
         maxdist_proc  = amrex::max(maxdist_proc, maxdist);
 
 
     }
-
     // gather statistics
     ParallelDescriptor::ReduceIntSum(np_proc);
     ParallelDescriptor::ReduceRealMax(maxdist_proc);
@@ -307,7 +302,6 @@ void FhdParticleContainer::SortParticles()
                 iv[0] = (int)floor((part.pos(0)-plo[0])/dx[0]);
                 iv[1] = (int)floor((part.pos(1)-plo[1])/dx[1]);
                 iv[2] = (int)floor((part.pos(2)-plo[2])/dx[2]);
-
                 part.idata(FHD_intData::i) = iv[0];
                 part.idata(FHD_intData::j) = iv[1];
                 part.idata(FHD_intData::k) = iv[2];
@@ -324,12 +318,10 @@ void FhdParticleContainer::SortParticles()
                 iv[0] = part.idata(FHD_intData::i);
                 iv[1] = part.idata(FHD_intData::j);
                 iv[2] = part.idata(FHD_intData::k);
-
                 long imap = tile_box.index(iv);
-
                 m_cell_vectors[part.idata(FHD_intData::species)][pti.index()][imap][part.idata(FHD_intData::sorted)] = i;
+                
             }
-
         }
     }
 }

@@ -2,7 +2,7 @@
 # If you set AMREX_HOME as an environment variable, this line will be ignored
 AMREX_HOME ?= ../../../amrex/
 FHDeX ?= ../../
-FDSMC = $(FHDeX)/exec/DSMCGran
+FDSMC = $(FHDeX)/exec/DSMC_ContinuousPSD
 
 DEBUG     = FALSE
 PROFILE   = FALSE
@@ -20,8 +20,8 @@ include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 VPATH_LOCATIONS   += .
 INCLUDE_LOCATIONS += .
 
-VPATH_LOCATIONS   += $(FIONS)
-INCLUDE_LOCATIONS += $(FIONS)
+VPATH_LOCATIONS   += $(FDSMC)
+INCLUDE_LOCATIONS += $(FDSMC)
 
 include $(FHDeX)/src_rng/Make.package
 VPATH_LOCATIONS   += $(FHDeX)/src_rng

@@ -18,7 +18,8 @@ void FhdParticleContainer::InitParticles(Real & dt) {
 	// Search for max relative speed
 	// ... estimate as double the mag of a single particle speed
 	std::array<Real, 3> vpart = {0., 0., 0.};
-	Real cvrmax = 0, spd, csx;
+	Real spd, csx;
+	Real csxmax = 0., spdmax = 0.;
 	Real umax = 0, vmax = 0, wmax = 0;
 	maxDiam = 0.;
 	
@@ -38,86 +39,67 @@ void FhdParticleContainer::InitParticles(Real & dt) {
 		
 		if(ParallelDescriptor::MyProc() == 0 && mfi.LocalTileIndex() == 0 && proc0_enter) {
 			proc0_enter = false;
-			// If full particle input provided
-			if(particle_input>0) {
-				std::ifstream particleFile("particles.dat");
-				while(true) {
+			// Loop over species (mean diameters)
+			for(int ispec=0; ispec < nspecies; ispec++) {
+				Real dmean = diameter[ispec];
+				Real dstd  = qval[ispec];
+				Real rhomean = mass[ispec]/(pi_usr*pow(dmean,3.0)/6.0);
+				for (int ipart=0; ipart<properties[ispec].total;ipart++) {
 					ParticleType p;
 					p.id()  = ParticleType::NextID();
 					p.cpu() = ParallelDescriptor::MyProc();
 					p.idata(FHD_intData::sorted) = -1;
-					particleFile >> p.pos(0);
-					particleFile >> p.pos(1);
-          particleFile >> p.pos(2);
-          particleFile >> vpart[0];
-          particleFile >> vpart[1];
-          particleFile >> vpart[2];
-          p.rdata(FHD_realData::velx) = vpart[0];
-          p.rdata(FHD_realData::vely) = vpart[1];
-          p.rdata(FHD_realData::velz) = vpart[2];
+					p.idata(FHD_intData::i) = -100;
+					p.idata(FHD_intData::j) = -100;
+					p.idata(FHD_intData::k) = -100;
+					p.rdata(FHD_realData::timeFrac) = 1;
+					p.idata(FHD_intData::species) = ispec;
+					p.idata(FHD_intData::species_change) = ispec;
+					
+					// Normal Distribution
+					Real diam = -1;
+					while(diam<0) {
+						diam = amrex::RandomNormal(dmean,dstd);
+					}
+					Real volp = pi_usr*pow(diam,3.0)/6.0;
+					
+					p.rdata(FHD_realData::radius) = diam*0.5;
+					p.rdata(FHD_realData::mass) = rhomean*volp;
+					p.rdata(FHD_realData::R) = k_B/p.rdata(FHD_realData::mass);
+
+          p.pos(0) = prob_lo[0] + amrex::Random()*(prob_hi[0]-prob_lo[0]);
+          p.pos(1) = prob_lo[1] + amrex::Random()*(prob_hi[1]-prob_lo[1]);
+          p.pos(2) = prob_lo[2] + amrex::Random()*(prob_hi[2]-prob_lo[2]);
           
-          spd = sqrt(pow(vpart[0],2)+pow(vpart[1],2)+pow(vpart[2],2));
-          if(spd>spdmax){ spdmax=spd; }
+          Real stdev = sqrt(T_init[0]*p.rdata(FHD_realData::R));
+          vpart[0] = stdev*amrex::RandomNormal(0.,1.);
+					vpart[1] = stdev*amrex::RandomNormal(0.,1.);
+					vpart[2] = stdev*amrex::RandomNormal(0.,1.);
+
+					p.rdata(FHD_realData::velx) = vpart[0];
+					p.rdata(FHD_realData::vely) = vpart[1];
+					p.rdata(FHD_realData::velz) = vpart[2];
+					spd = sqrt(pow(vpart[0],2)+pow(vpart[1],2)+pow(vpart[2],2));
+					csx = pi_usr*pow(diam,2.0);
+				  
+					if(csx>csxmax){ csxmax = csx; }
+					if(spd>spdmax){ spdmax = spd; }
 					// For calculating timstep from Courant number
 					if(vpart[0]>umax) { umax=vpart[0]; }
 					if(vpart[1]>vmax) { vmax=vpart[1]; }
 					if(vpart[2]>wmax) { wmax=vpart[2]; }
-          
-          particleFile >> p.idata(FHD_intData::species);
-          int ispec = p.idata(FHD_intData::species);
-          p.rdata(FHD_realData::R) = k_B/properties[ispec].mass;
-          p.rdata(FHD_realData::boostx) = 0;
-					p.rdata(FHD_realData::boosty) = 0;
-					p.rdata(FHD_realData::boostz) = 0;
-          if( particleFile.eof() ) break;
-				}
-				particleFile.close();
-			} else {
-				for(int i_spec=0; i_spec < nspecies; i_spec++) {
-					// Standard deviation of velocity at temperature T_init
-					Real R     = k_B/properties[i_spec].mass;
-					Real stdev = sqrt(T_init[i_spec]*R);
-					for (int i_part=0; i_part<properties[i_spec].total;i_part++) {
-						ParticleType p;
-						p.id()  = ParticleType::NextID();
-						p.cpu() = ParallelDescriptor::MyProc();
-						p.idata(FHD_intData::sorted) = -1;
-						p.idata(FHD_intData::species) = 0;
-						p.rdata(FHD_realData::mass) = properties[i_spec].mass;
-						p.rdata(FHD_realData::R) = k_B/p.rdata(FHD_realData::mass);
-						p.rdata(FHD_realData::radius) = properties[i_spec].diameter*0.5;
-						
-            p.pos(0) = prob_lo[0] + amrex::Random()*(prob_hi[0]-prob_lo[0]);
-            p.pos(1) = prob_lo[1] + amrex::Random()*(prob_hi[1]-prob_lo[1]);
-            p.pos(2) = prob_lo[2] + amrex::Random()*(prob_hi[2]-prob_lo[2]);
-            vpart[0] = stdev*amrex::RandomNormal(0.,1.);
-						vpart[1] = stdev*amrex::RandomNormal(0.,1.);
-						vpart[2] = stdev*amrex::RandomNormal(0.,1.);
 
-						p.rdata(FHD_realData::velx) = vpart[0];
-						p.rdata(FHD_realData::vely) = vpart[1];
-						p.rdata(FHD_realData::velz) = vpart[2];
-						spd = sqrt(pow(vpart[0],2)+pow(vpart[1],2)+pow(vpart[2],2));
-						csx = pi_usr*pow(2.0*p.rdata(FHD_realData::radius),2.0);
-					  
-						if((csx*spd)>cvrmax){ cvrmax=csx*spd; }
-						// For calculating timstep from Courant number
-						if(vpart[0]>umax) { umax=vpart[0]; }
-						if(vpart[1]>vmax) { vmax=vpart[1]; }
-						if(vpart[2]>wmax) { wmax=vpart[2]; }
-
-						particle_tile.push_back(p);
-					}
+					particle_tile.push_back(p);
+					
 				}
 			}
 		}
 	}
 	// Set guess of max relative velocity
-	ParallelDescriptor::Bcast(&spdmax,1,ParallelDescriptor::IOProcessorNumber());
-	mfvrmax.setVal(spdmax);
+	Real cvrmax = csxmax*spdmax;
+	ParallelDescriptor::Bcast(&cvrmax,1,ParallelDescriptor::IOProcessorNumber());
+	mfvrmax.setVal(cvrmax);
 
-	// Calculate global timestep
-	// Assume IO processor is 0
 	if(ParallelDescriptor::MyProc() == 0) {
 		dt  = umax*n_cells[0]/(prob_hi[0]-prob_lo[0]);
 		dt += vmax*n_cells[1]/(prob_hi[1]-prob_lo[1]);
@@ -126,7 +108,57 @@ void FhdParticleContainer::InitParticles(Real & dt) {
 	}
 	ParallelDescriptor::Bcast(&dt,1,ParallelDescriptor::IOProcessorNumber());
 	amrex::Print() << "My dt " << dt << "\n";
-	
+
+	Redistribute();
+	SortParticles();
+}
+
+void FhdParticleContainer::ReInitParticles() {
+	const int lev = 0;
+	const Geometry& geom = Geom(lev);
+
+	int pcount = 0;
+	bool proc0_enter = true;
+
+	std::array<Real, 3> vpart = {0.,0.,0.};
+	Real u,v,w;
+	Real spd, spdmax = 0.;
+	Real csx, csxmax = 0.;
+
+	for (MFIter mfi = MakeMFIter(lev, true); mfi.isValid(); ++mfi) {
+		const Box& tile_box = mfi.tilebox();
+		const RealBox tile_realbox{tile_box, geom.CellSize(), geom.ProbLo()};
+		const int grid_id = mfi.index();
+		const int tile_id = mfi.LocalTileIndex();
+		auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+		auto& particles = particle_tile.GetArrayOfStructs();
+		const long np = particles.numParticles();
+
+		for (int i=0; i<np; ++i) {
+			ParticleType & part = particles[i];
+			part.id() = ParticleType::NextID();
+			part.cpu() = ParallelDescriptor::MyProc();
+			part.idata(FHD_intData::sorted) = -1;
+			part.idata(FHD_intData::i) = -100;
+			part.idata(FHD_intData::j) = -100;
+			part.idata(FHD_intData::k) = -100;
+
+			part.rdata(FHD_realData::timeFrac) = 1;
+			Real u = part.rdata(FHD_realData::velx);
+			Real v = part.rdata(FHD_realData::vely);
+			Real w = part.rdata(FHD_realData::velz);
+			spd = sqrt(pow(u,2.0)+pow(v,2.0)+pow(w,2.0));
+			Real diam = 2.0*part.rdata(FHD_realData::radius);
+			csx = pi_usr*pow(diam,2.0);
+			if(csx>csxmax) { csxmax=csx; }
+			if(spd>spdmax) { spdmax=spd; }
+		}
+	}
+	Real cvrmax;
+	cvrmax = spdmax*csxmax;
+	ParallelDescriptor::Bcast(&cvrmax,1,ParallelDescriptor::IOProcessorNumber());
+	mfvrmax.setVal(cvrmax);
+
 	Redistribute();
 	SortParticles();
 }

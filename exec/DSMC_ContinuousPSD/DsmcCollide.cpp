@@ -15,8 +15,6 @@ void FhdParticleContainer::InitCollisionCells() {
 		auto& particles = particle_tile.GetArrayOfStructs();
 		
 		// Convert MultiFabs -> arrays
-		const Array4<Real> & arrvrmax = mfvrmax.array(pti);
-		const Array4<Real> & arrphi = mfphi.array(pti);
 		const Array4<Real> & arrselect = mfselect.array(pti);
 		
 		amrex::ParallelFor(tile_box,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
@@ -44,18 +42,13 @@ void FhdParticleContainer::CalcSelections(Real dt) {
 		const Array4<Real> & arrvrmax = mfvrmax.array(mfi);
 		const Array4<Real> & arrselect = mfselect.array(mfi);
 		// anything defined outside of parallelfor is read-only
-		amrex::ParallelFor(tile_box,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {       
-			long np_c;
-			
+		amrex::ParallelFor(tile_box,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {			
 			const IntVect& iv = {i,j,k};
 			long imap = tile_box.index(iv);		
 
-			Real vrmax;
-			Real NSel;
-
-			np_c = m_cell_vectors[0][grid_id][imap].size();
-			vrmax = arrvrmax(i,j,k,i_spec); // includes cross section
-			NSel = 2.0*particle_neff*np_c*(np_c-1)*vrmax*ocollisionCellVol*dt;
+			const long np = m_cell_vectors[0][grid_id][imap].size();
+			const Real vrmax = arrvrmax(i,j,k,0); // includes cross section
+			Real NSel = 2.0*particle_neff*np*(np-1)*vrmax*ocollisionCellVol*dt;
 			arrselect(i,j,k,0) = std::floor(NSel + amrex::Random());
 		});
 	}
@@ -90,18 +83,17 @@ void FhdParticleContainer::CollideParticles(Real dt) {
 			int pindxi, pindxj; // index of randomly sampled particles
 			
 			RealVect eij, vreij;
-			Real phi, theta, eijmag;
+			Real eijmag, vreijmag;
 			RealVect vi, vj, vij;
 			Real massi, massj, massij;
 			Real radj, radi, dij;
-			Real csx;
-			Real vrmag, vrmax, vreijmag;
+			Real csx, vrmag;
+			Real cvrmag, cvrmax, cvreijmag;
 			
 			totalSel = (int)arrselect(i,j,k,0);;
 			const long np = m_cell_vectors[0][grid_id][imap].size();
-			Real vrmax = arrvrmax(ij,k,0); // includes cross section
+			cvrmax = arrvrmax(i,j,k,0); // includes cross section
 			
-			int speci, specj, specij;
 			for (int isel = 0; isel<totalSel; isel++) {
 				pindxi = floor(amrex::Random()*np);
 				pindxj = floor(amrex::Random()*np);
@@ -109,8 +101,11 @@ void FhdParticleContainer::CollideParticles(Real dt) {
 				pindxj = m_cell_vectors[0][grid_id][imap][pindxj];
 				ParticleType & parti = particles[pindxi];
 				ParticleType & partj = particles[pindxj];
-				massi = parti.mass;   radi = parti.radius;
-				massj = partj.mass;   radj = partj.radius;
+				massi = parti.rdata(FHD_realData::mass);
+				massj = partj.rdata(FHD_realData::mass);
+				radi  = parti.rdata(FHD_realData::radius);
+				radj  = partj.rdata(FHD_realData::radius);
+
 				massij = massi+massj; dij = radi+radj;
 
 				vi[0] = parti.rdata(FHD_realData::velx);
@@ -123,9 +118,10 @@ void FhdParticleContainer::CollideParticles(Real dt) {
 
 				vrmag = sqrt(pow(vij[0],2)+pow(vij[1],2)+pow(vij[2],2));
 				csx = pi_usr*pow(dij,2.0);
-				if(csx*vrmag>vrmax) {
-					vrmax = csx*vrmag;
-					arrvrmax(i,j,k,ij_spec) = vrmax;
+				cvrmag = csx*vrmag;
+				if(cvrmag>cvrmax) {
+					cvrmax = cvrmag;
+					arrvrmax(i,j,k,0) = cvrmax;
 				}
 
 				vij[0] = vi[0]-vj[0]; vij[1] = vi[1]-vj[1]; vij[2] = vi[2]-vj[2];
@@ -139,9 +135,9 @@ void FhdParticleContainer::CollideParticles(Real dt) {
 				}
 				for(int idim=0; idim<3; idim++) { eij[idim] /= eijmag; }
 				vreijmag = vij[0]*eij[0]+vij[1]*eij[1]+vij[2]*eij[2];
-				vreijmag = vreijmag*csx;
+				cvreijmag = vreijmag*csx;
 
-				if(amrex::Math::abs(vreijmag)>vrmax*amrex::Random()) {
+				if(amrex::Math::abs(cvreijmag)>cvrmax*amrex::Random()) {
 
 					vreijmag = vreijmag*(1.0+interproperties[0].alpha)/massij;
 					vreij[0] = vreijmag*eij[0];

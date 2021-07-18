@@ -29,8 +29,9 @@
   !Species info
   !--------------
   nspecies   		=  1
-  mass       		=  6.63e-23 3.35e-23 ! kg
-  diameter   		=  3.66e-08 2.58e-08 ! m
+  mass       		=  6.63e-23 6.63e-23 ! Used to derive density (assume constant)
+  diameter   		=  3.66e-08 2.58e-08 ! Mean diameter
+  qval          =  0.1 0.1 ! Placeholder for STD of diameter
   rho0       		=  0.0017787
   Yk0        		=  0.5 0.5  ! does not need to add to 1 exactly (handled)
   !particle_n0 	= 2.68299e19
