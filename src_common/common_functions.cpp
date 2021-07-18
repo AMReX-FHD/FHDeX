@@ -61,7 +61,7 @@ void InitializeCommonNamespace() {
     max_grid_projection.resize(AMREX_SPACEDIM-1);
 
     density_weights.resize(MAX_SPECIES);
-    shift_cc_to_boundary.resize(AMREX_SPACEDIM*LOHI);
+    shift_cc_to_boundary.resize(AMREX_SPACEDIM*2);
 
     mass.resize(MAX_SPECIES);
     nfrac.resize(MAX_SPECIES);
@@ -150,6 +150,10 @@ void InitializeCommonNamespace() {
     plot_base_name = temp_plot_base_name;
     chk_base_name = temp_chk_base_name;
 
+    if (nspecies > MAX_SPECIES) {
+        Abort("InitializeCommonNamespace: nspecies > MAX_SPECIES");
+    }
+    
     ParmParse pp;
 
     // read in from command line

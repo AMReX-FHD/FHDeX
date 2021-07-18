@@ -137,32 +137,9 @@ void main_driver(const char* argv)
     // contains yz-averaged running & instantaneous averages of conserved variables (2*nvars) + primitive variables [vx, vy, vz, T, Yk]: 2*4 + 2*nspecies 
     Vector<Real> yzAvMeans_cross(2*nvars+8+2*nspecies, 0.0); 
     
-    // 1: <delrho*delrho>
-    // 2: <delrhoE*delrhoE>
-    // 3: <deljx*deljx>
-    // 4: <deljy*deljy>
-    // 5: <deljz*deljz>
-    // 6: <deljx*delrho>
-    // 7: <delG*delG>
-    // 8: <delG*delK>
-    // 9: <delK*delG>
-    // 10: <delrho*delK>
-    // 11: <delK*delrho>
-    // 12: <delrho*delG>
-    // 13: <delG*delrho>
-    // 14: <delT*delT>
-    // 15: <delT*delrho>
-    // 16: <delux*delrho>
-    // 17: <delux*delrhoYkL>
-    // 18: <delux*delrhoYkH>
-    // 19: <delux*delYkL>
-    // 20: <delux*delYkH>
-    // 21: <delYkL*delYkL>
-    // 22: <delYkH*delYkH>
-    // 23: <delYkL*delYkH>
-    // nspecies: <delrhoYk*delrhoYk>
+    // see statsStag for the list
     // can add more -- change main_driver, statsStag, writeplotfilestag, and Checkpoint
-    int ncross = 28+nspecies;
+    int ncross = 37+nspecies+2;
     Vector<Real> spatialCross(n_cells[0]*ncross, 0.0); 
     
     // make BoxArray and Geometry
@@ -333,7 +310,7 @@ void main_driver(const char* argv)
     if (restart > 0) {
         ReadCheckPoint(step_start, time, statsCount, geom, domain, cu, cuMeans, cuVars, prim,
                        primMeans, primVars, cumom, cumomMeans, cumomVars, 
-                       vel, velMeans, velVars, coVars, spatialCross,
+                       vel, velMeans, velVars, coVars, spatialCross, ncross,
                        ba, dmap);
 
         if (reset_stats == 1) statsCount = 1;
@@ -744,16 +721,29 @@ void main_driver(const char* argv)
     source.setVal(0.0);
 
     //fluxes (except momentum) at faces
+    // need +4 to separate out heat, viscous heating (diagonal vs shear)  and Dufour contributions to the energy flux
+    // stacked at the end (see below)
+    // index: flux term
+    // 0: density
+    // 1: x-momentum
+    // 2: y-momentum
+    // 3: z-momentum
+    // 4: total energy
+    // 5:nvars-1: species flux (nvars = nspecies+5)
+    // nvars: heat flux
+    // nvars + 1: viscous heating (diagonal)
+    // nvars + 2: viscous heating (shear)
+    // nvars + 3: Dufour effect
     std::array< MultiFab, AMREX_SPACEDIM > faceflux;
-    AMREX_D_TERM(faceflux[0].define(convert(ba,nodal_flag_x), dmap, nvars, 0);,
-                 faceflux[1].define(convert(ba,nodal_flag_y), dmap, nvars, 0);,
-                 faceflux[2].define(convert(ba,nodal_flag_z), dmap, nvars, 0););
+    AMREX_D_TERM(faceflux[0].define(convert(ba,nodal_flag_x), dmap, nvars+4, 0);,
+                 faceflux[1].define(convert(ba,nodal_flag_y), dmap, nvars+4, 0);,
+                 faceflux[2].define(convert(ba,nodal_flag_z), dmap, nvars+4, 0););
 
     //momentum flux (edge + center)
 #if (AMREX_SPACEDIM == 3)
-    std::array< MultiFab, 2 > edgeflux_x; // divide by dx
-    std::array< MultiFab, 2 > edgeflux_y; // divide by dy
-    std::array< MultiFab, 2 > edgeflux_z; // divide by dz
+    std::array< MultiFab, 2 > edgeflux_x;
+    std::array< MultiFab, 2 > edgeflux_y;
+    std::array< MultiFab, 2 > edgeflux_z;
 
     edgeflux_x[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0); // 0-2: rhoU, rhoV, rhoW
     edgeflux_x[1].define(convert(ba,nodal_flag_xz), dmap, 1, 0);
@@ -822,7 +812,7 @@ void main_driver(const char* argv)
         // Evaluate Statistics
         evaluateStatsStag(cu, cuMeans, cuVars, prim, primMeans, primVars, vel, 
                           velMeans, velVars, cumom, cumomMeans, cumomVars, coVars,
-                          yzAvMeans_cross, spatialCross, statsCount, dx);
+                          yzAvMeans_cross, spatialCross, ncross, statsCount, dx);
         statsCount++;
 
         // write a plotfile
@@ -914,13 +904,9 @@ void main_driver(const char* argv)
                     ComputeVerticalAverage(structFactConsMF, consVertAvg, geom, project_dir, 0, structVarsCons);
                     MultiFab primVertAvgRot = RotateFlattenedMF(primVertAvg);
                     MultiFab consVertAvgRot = RotateFlattenedMF(consVertAvg);
-                    amrex::Print() << "entering stage 1" << std::endl;
                     amrex::Print() << geom_flat << std::endl;
-                    amrex::Print() << "entering stage 1a" << std::endl;
                     structFactPrimVerticalAverage.FortStructure(primVertAvgRot,geom_flat,fft_type);
-                    amrex::Print() << "exiting stage 1" << std::endl;
                     structFactConsVerticalAverage.FortStructure(consVertAvgRot,geom_flat,fft_type);
-                    amrex::Print() << "exiting stage 2" << std::endl;
                 }
                 else {
                     MultiFab primVertAvg0;  // flattened multifab defined below
@@ -948,18 +934,18 @@ void main_driver(const char* argv)
             struct_fact_int > 0 && plot_int > 0 && 
             step%plot_int == 0) {
 
-            structFactPrim.WritePlotFile(step,time,geom,"plt_SF_prim",0);
-            structFactCons.WritePlotFile(step,time,geom,"plt_SF_cons",0);
+            structFactPrim.WritePlotFile(step,time,geom,"plt_SF_prim");
+            structFactCons.WritePlotFile(step,time,geom,"plt_SF_cons");
             if(project_dir >= 0) {
                 if (do_slab_sf == 0) {
-                    structFactPrimVerticalAverage.WritePlotFile(step,time,geom_flat,"plt_SF_prim_VerticalAverage",0);
-                    structFactConsVerticalAverage.WritePlotFile(step,time,geom_flat,"plt_SF_cons_VerticalAverage",0);
+                    structFactPrimVerticalAverage.WritePlotFile(step,time,geom_flat,"plt_SF_prim_VerticalAverage");
+                    structFactConsVerticalAverage.WritePlotFile(step,time,geom_flat,"plt_SF_cons_VerticalAverage");
                 }
                 else {
-                    structFactPrimVerticalAverage0.WritePlotFile(step,time,geom_flat,"plt_SF_prim_VerticalAverageSlab0",0);
-                    structFactPrimVerticalAverage1.WritePlotFile(step,time,geom_flat,"plt_SF_prim_VerticalAverageSlab1",0);
-                    structFactConsVerticalAverage0.WritePlotFile(step,time,geom_flat,"plt_SF_cons_VerticalAverageSlab0",0);
-                    structFactConsVerticalAverage1.WritePlotFile(step,time,geom_flat,"plt_SF_cons_VerticalAverageSlab1",0);
+                    structFactPrimVerticalAverage0.WritePlotFile(step,time,geom_flat,"plt_SF_prim_VerticalAverageSlab0");
+                    structFactPrimVerticalAverage1.WritePlotFile(step,time,geom_flat,"plt_SF_prim_VerticalAverageSlab1");
+                    structFactConsVerticalAverage0.WritePlotFile(step,time,geom_flat,"plt_SF_cons_VerticalAverageSlab0");
+                    structFactConsVerticalAverage1.WritePlotFile(step,time,geom_flat,"plt_SF_cons_VerticalAverageSlab1");
                 }
             }
         }
@@ -970,7 +956,7 @@ void main_driver(const char* argv)
         {
             WriteCheckPoint(step, time, statsCount, geom, cu, cuMeans, cuVars, prim,
                            primMeans, primVars, cumom, cumomMeans, cumomVars, 
-                           vel, velMeans, velVars, coVars, spatialCross);
+                           vel, velMeans, velVars, coVars, spatialCross, ncross);
         }
 
         // timer

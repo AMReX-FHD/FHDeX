@@ -1,6 +1,10 @@
 namespace common {
 
+//////////////
+// DO NOT CHANGE THIS VALUE WITHOUT ALSO CHANGING common_namelist.F90
 #define MAX_SPECIES 8
+#define MAX_ELEMENT 28 // needs to be MAX_SPECIES*(MAX_SPECIES-1)/2
+//////////////
     
     // misc global variables
     extern amrex::IntVect nodal_flag;
@@ -116,7 +120,7 @@ namespace common {
     // Initial conditions
     extern amrex::Vector<amrex::Real> u_init;
     extern amrex::Real                perturb_width;
-    extern amrex::Real                smoothing_width;
+    extern AMREX_GPU_MANAGED amrex::Real smoothing_width;
     extern amrex::Real                initial_variance_mom;
     extern amrex::Real                initial_variance_mass;
     extern amrex::Real                domega;

@@ -1,8 +1,6 @@
 #ifndef _compressible_functions_stag_H_
 #define _compressible_functions_stag_H_
 
-#define LOHI 2
-
 #include <AMReX.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_ArrayLim.H>
@@ -113,7 +111,7 @@ void evaluateStatsStag(const MultiFab& cons, MultiFab& consMean, MultiFab& consV
                        std::array<MultiFab, AMREX_SPACEDIM>& cumomVar,
                        MultiFab& coVar,
                        Vector<Real>& yzAvMeans_cross,
-                       Vector<Real>& spatialCross,
+                       Vector<Real>& spatialCross, int ncross,
                        const int steps, const amrex::Real* dx);
 
 void doMembraneStag(MultiFab& cons, 
@@ -147,7 +145,7 @@ void WriteCheckPoint(int step,
                      const std::array<MultiFab, AMREX_SPACEDIM>& velMeans,
                      const std::array<MultiFab, AMREX_SPACEDIM>& velVars,
                      const amrex::MultiFab& coVars,
-                     const Vector<Real>& spatialCross);
+                     const Vector<Real>& spatialCross, int ncross);
 
 void ReadCheckPoint(int& step,
                      amrex::Real& time,
@@ -167,7 +165,7 @@ void ReadCheckPoint(int& step,
                      std::array<MultiFab, AMREX_SPACEDIM>& velMeans,
                      std::array<MultiFab, AMREX_SPACEDIM>& velVars,
                      amrex::MultiFab& coVars,
-                     Vector<Real>& spatialCross,
+                     Vector<Real>& spatialCross, int ncross,
                      BoxArray& ba, DistributionMapping& dmap);
 
 void ReadFile(const std::string& filename, Vector<char>& charBuf,
@@ -176,6 +174,10 @@ void ReadFile(const std::string& filename, Vector<char>& charBuf,
 void Read_Copy_MF_Checkpoint(amrex::MultiFab& mf, std::string mf_name, const std::string& checkpointname, 
                              BoxArray& ba_old, DistributionMapping& dmap_old,
                              int NVARS, int NGC, int nodal_flag=-1);
+
+void PrintFluxes(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array< MultiFab, 2 >& edgeflux_x_in,
+                 std::array< MultiFab, 2 >& edgeflux_y_in, std::array< MultiFab, 2 >& edgeflux_z_in,
+                 std::array< MultiFab, AMREX_SPACEDIM>& cenflux_in, std::string prefix); 
 
 //void yzAverageStag(const MultiFab& consMean, 
 //                   const MultiFab& consVar, 
