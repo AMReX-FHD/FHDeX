@@ -139,7 +139,7 @@ void FhdParticleContainer::CollideParticles(Real dt) {
 
 				if(amrex::Math::abs(cvreijmag)>cvrmax*amrex::Random()) {
 
-					vreijmag = vreijmag*(1.0+interproperties[0].alpha)/massij;
+					vreijmag = vreijmag*(1.0+alpha_pp[0])/massij;
 					vreij[0] = vreijmag*eij[0];
 					vreij[1] = vreijmag*eij[1];
 					vreij[2] = vreijmag*eij[2];

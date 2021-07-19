@@ -30,7 +30,7 @@
   nspecies     =  1
   mass         =  1.636e-8 1.636e-8 ! kg
   diameter     =  2.5e-4 4.5e-4
-  qval	       =  2.5e-5 4.5e-5
+  qval	       =  5.0e-5 4.5e-5
   phi_domain   =  0.01 0.005
   !particle_n0 =  1.2223e9 1.2223e9
   
