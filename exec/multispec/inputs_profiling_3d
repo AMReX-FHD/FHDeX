@@ -17,7 +17,7 @@
   fixed_dt = 500.
 
   ! Controls for number of steps between actions
-  max_step = 10
+  max_step = 3
   plot_int = -1
 
   ! Viscous friction L phi operator
