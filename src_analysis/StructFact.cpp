@@ -16,7 +16,7 @@ StructFact::StructFact(const BoxArray& ba_in, const DistributionMapping& dmap_in
 		       const Vector< int >& s_pairB_in,
 		       const int& verbosity_in) {
 
-  BL_PROFILE_VAR("StructFact::StructFact()",StructFact);
+  BL_PROFILE_VAR("StructFact::StructFact_constructor1()",StructFact_constructor1);
 
   verbosity = verbosity_in;
   
@@ -153,7 +153,7 @@ StructFact::StructFact(const BoxArray& ba_in, const DistributionMapping& dmap_in
 		       const Vector< Real >& var_scaling_in,
 		       const int& verbosity_in) {
   
-  BL_PROFILE_VAR("StructFact::StructFact()",StructFact);
+  BL_PROFILE_VAR("StructFact::StructFact_constructor2()",StructFact_constructor2);
 
   verbosity = verbosity_in;
   
@@ -384,6 +384,8 @@ void StructFact::FortStructure(const MultiFab& variables, const Geometry& geom,
 
 void StructFact::Reset() {
 
+    BL_PROFILE_VAR("StructFact::Reset()", StructFactReset);
+  
     cov_real.setVal(0.);
     cov_imag.setVal(0.);
     nsamples = 0;
@@ -584,12 +586,13 @@ void StructFact::ComputeSWFFT(const MultiFab& variables,
   }
 }
 
-
 void StructFact::ComputeFFTW(const MultiFab& variables,
                              MultiFab& variables_dft_real, 
                              MultiFab& variables_dft_imag,
                              const Geometry& geom) {
 
+    BL_PROFILE_VAR("StructFact::ComputeFFTW()", ComputeFFTW);
+    
     bool is_flattened = false;
 
     long npts;
@@ -785,7 +788,7 @@ void StructFact::WritePlotFile(const int step, const Real time, const Geometry& 
                                std::string plotfile_base,
                                const int& zero_avg) {
   
-  BL_PROFILE_VAR("StructFact::WritePlotFile()",WritePlotFile);
+  BL_PROFILE_VAR("StructFact::WritePlotFile()",StructFactWritePlotFile);
 
   MultiFab plotfile;
   Vector<std::string> varNames;
@@ -891,7 +894,7 @@ void StructFact::StructOut(MultiFab& struct_out) {
 void StructFact::Finalize(MultiFab& cov_real_in, MultiFab& cov_imag_in,
                           const Geometry& geom, const int& zero_avg) {
 
-  BL_PROFILE_VAR("StructFact::Finalize()",Finalize);
+  BL_PROFILE_VAR("StructFact::Finalize()",StructFactFinalize);
   
   Real nsamples_inv = 1.0/(Real)nsamples;
   
