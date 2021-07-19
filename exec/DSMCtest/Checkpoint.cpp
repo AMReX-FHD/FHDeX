@@ -202,7 +202,7 @@ void ReadCheckPoint(int& step,
         primInst.define(ba,dm,pnvars,0);
         primMeans.define(ba,dm,pnvars,0);
         primVars.define(ba,dm,pnvars,0);
-	coVars.define(ba,dm,convars,0);
+				coVars.define(ba,dm,convars,0);
     }
     // C++ random number engine
     // each MPI process reads in its own file

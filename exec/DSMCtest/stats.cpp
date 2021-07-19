@@ -121,7 +121,7 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
 				primInst(i,j,k,iprim+ 7) = primInst(i,j,k,iprim+6)*(k_B/mass)*cuInst(i,j,k,icon);     // P_l
 				primInst(i,j,k,7) += primInst(i,j,k,iprim+7);
 				
-				primInst(i,j,k,iprim+ 8) = vsqb*moV+cv_l*primInst(i,j,k,iprim+6)*cuInst(i,j,k,icon); // E_l
+				primInst(i,j,k,iprim+ 8) = vsqb*moV+cv_l*primInst(i,j,k,iprim+6)*cuInst(i,j,k,icon);  // E_l
 				primInst(i,j,k,8) += primInst(i,j,k,iprim+8);
 
 				icon += 5; iprim += 9;
@@ -164,6 +164,11 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
 			primMeans(i,j,k,3)  = cuMeans(i,j,k,2)/cuMeans(i,j,k,0);
 			primMeans(i,j,k,4)  = cuMeans(i,j,k,3)/cuMeans(i,j,k,0);
 
+			// Zero out hydrodynamic means (derive from conserved means)
+			primMeans(i,j,k,5) = 0.0;
+			primMeans(i,j,k,6) = 0.0;
+			primMeans(i,j,k,7) = 0.0;
+			primMeans(i,j,k,8) = 0.0;
 			int iprim = 9; int icon = 5;
 			Real cv = 0.;
 			for(int l=0; l<nspecies; l++) { 
@@ -335,59 +340,9 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
 				+ primMeans(i,j,k,4)*Qbar*cuVars(i,j,k,0));
 			coVars(i,j,k,24) = (coVars(i,j,k,24)*stepsMinusOne+dwdT)*osteps;                     // dw.dT
 			
-			// TODO: Add T and E variances
+			// TODO: Add P and E variances
 			// TODO: Add variances by species
 		});
-
-		// Global Granular Temperature
-		/*
-		Real Tgl[nspecies];
-		Real npl[nspecies];
-		for (int l=0; l<nspecies; l++) {Tgl[l] = 0.; npl[l] = 0.;}
-		int np = particles.numParticles();
-
-		for (int i = 0; i < np; ++i) {
-			ParticleType & part = particles[i];
-
-			int ispec = part.idata(FHD_intData::species);
-			Real vsq = pow(part.rdata(FHD_realData::velx),2) +
-				pow(part.rdata(FHD_realData::vely),2) +
-				pow(part.rdata(FHD_realData::velz),2);
-			vsq	    *= (properties[ispec].mass/3.0);
-			Tgl[ispec] += vsq; npl[ispec] += 1;
-		}
-
-		// Gather from all proc
-		for (int l=0; l<nspecies; l++) {
-			Real tempTg = Tgl[l];
-			Real tempnp = npl[l];
-			ParallelDescriptor::ReduceRealSum(tempTg);
-			ParallelDescriptor::ReduceRealSum(tempnp);
-			npl[l] = tempnp;
-			Tgl[l] = tempTg/tempnp;
-		}
-
-		// Print to files
-		if (ParallelDescriptor::IOProcessor()) {
-			ofstream fileTg, fileTgN;
-			std::string Tgfname = "Tg.dat";
-			std::string TgNfname = "TgN.dat";
-			if(steps==1) {
-			fileTg.open(Tgfname);	fileTgN.open(TgNfname);
-		} else {
-			fileTg.open(Tgfname, fstream::app);
-			fileTgN.open(TgNfname, fstream::app);
-		}
-		fileTg << std::scientific << setprecision(8) << time << " ";
-		fileTgN << std::scientific << setprecision(8) << time << " ";
-		for(int l=0; l<nspecies; l++){
-			if(steps==1) {Tg0[l] = Tgl[l];}
-			fileTg << Tgl[l] << " ";
-			fileTgN << Tgl[l]/Tg0[l] << " ";
-		}
-		fileTg << "\n"; fileTgN << "\n";
-		fileTg.close(); fileTgN.close();
-	}*/
 	}
 }
 

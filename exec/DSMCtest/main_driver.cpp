@@ -233,9 +233,9 @@ void main_driver(const char* argv)
 	ParallelDescriptor::ReduceRealMax(init_time);
 	amrex::Print() << "Initialization time = " << init_time << " seconds " << std::endl;
 
+	int IO_int = std::ceil(max_step*0.000001);
 	max_step += step;
 	n_steps_skip += step;
-	int IO_int = std::ceil(plot_int*0.01);
 	int stat_int = 5;
 	Real tbegin, tend;
 	
@@ -259,11 +259,13 @@ void main_driver(const char* argv)
 			primInst.setVal(0.);
 			particles.EvaluateStats(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,coVars,statsCount,time);
 			particles.writePlotFile(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,coVars,geom,time,istep);
-			cuMeans.setVal(0.);
-			primMeans.setVal(0.);
-			cuVars.setVal(0.);
-			primVars.setVal(0.);
-			coVars.setVal(0.);
+			if(reset_stats == 1) {
+				cuMeans.setVal(0.);
+				primMeans.setVal(0.);
+				cuVars.setVal(0.);
+				primVars.setVal(0.);
+				coVars.setVal(0.);
+			}
 		}
 
 		//////////////////////////////////////
@@ -273,7 +275,7 @@ void main_driver(const char* argv)
 		particles.CalcSelections(dt);
 		particles.CollideParticles(dt);
 		particles.Source(dt, paramPlaneList, paramPlaneCount);
-		particles.externalForce(dt);
+		//particles.externalForce(dt);
 		particles.MoveParticlesCPP(dt, paramPlaneList, paramPlaneCount);
 
 		//////////////////////////////////////

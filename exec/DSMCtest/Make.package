@@ -7,3 +7,4 @@ CEXE_sources   += stats.cpp
 CEXE_sources   += writePlotFile.cpp
 CEXE_sources   += DsmcCollide.cpp
 CEXE_sources   += externalF.cpp
+#CEXE_sources   += globalVars.cpp
