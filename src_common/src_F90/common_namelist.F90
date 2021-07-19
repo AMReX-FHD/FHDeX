@@ -1,6 +1,5 @@
 #include <AMReX_Config.H>
 
-
 module common_namelist_module
 
   use iso_c_binding, only: c_char
@@ -9,8 +8,11 @@ module common_namelist_module
   
   implicit none
 
-  integer, parameter :: MAX_SPECIES = 4
-  integer, parameter :: LOHI = 2
+  !!!!!!!!!!!!!
+  ! DO NOT CHANGE THIS VALUE WITHOUT ALSO CHANGING common_namespace.H
+  integer, parameter :: MAX_SPECIES = 8
+  integer, parameter :: MAX_ELEMENT = 28 ! needs to be MAX_SPECIES*(MAX_SPECIES-1)/2
+  !!!!!!!!!!!!!
 
   double precision,   save :: prob_lo(AMREX_SPACEDIM)
   double precision,   save :: prob_hi(AMREX_SPACEDIM)
@@ -143,6 +145,7 @@ module common_namelist_module
   double precision,   save :: potential_lo(AMREX_SPACEDIM)
   double precision,   save :: potential_hi(AMREX_SPACEDIM)
 
+  integer,            save :: fft_type
   integer,            save :: struct_fact_int
   integer,            save :: radialdist_int
   integer,            save :: cartdist_int
@@ -156,7 +159,7 @@ module common_namelist_module
 
   integer,            save :: histogram_unit
   double precision,   save :: density_weights(MAX_SPECIES)
-  integer,            save :: shift_cc_to_boundary(AMREX_SPACEDIM,LOHI)
+  integer,            save :: shift_cc_to_boundary(AMREX_SPACEDIM,2)
 
   double precision,   save :: permittivity
   integer,            save :: wall_mob
@@ -375,6 +378,7 @@ module common_namelist_module
   namelist /common/ potential_hi
 
   ! structure factor and radial/cartesian pair correlation function analysis
+  namelist /common/ fft_type
   namelist /common/ struct_fact_int
   namelist /common/ radialdist_int
   namelist /common/ cartdist_int
@@ -559,6 +563,7 @@ contains
     wallspeed_hi(:,:) = 0
     potential_lo(:) = 0
     potential_hi(:) = 0
+    fft_type = 1
     struct_fact_int = 0
     radialdist_int = 0
     cartdist_int = 0
@@ -672,7 +677,7 @@ contains
                                          bc_Xk_z_lo_in, bc_Xk_z_hi_in, &
                                          wallspeed_lo_in, wallspeed_hi_in, &
                                          potential_lo_in, potential_hi_in, &
-                                         struct_fact_int_in, radialdist_int_in, &
+                                         fft_type_in, struct_fact_int_in, radialdist_int_in, &
                                          cartdist_int_in, n_steps_skip_in, &
                                          binsize_in, searchdist_in, &
                                          project_dir_in, slicepoint_in, max_grid_projection_in, &
@@ -811,6 +816,7 @@ contains
     double precision,       intent(inout) :: potential_lo_in(AMREX_SPACEDIM)
     double precision,       intent(inout) :: potential_hi_in(AMREX_SPACEDIM)
 
+    integer,                intent(inout) :: fft_type_in
     integer,                intent(inout) :: struct_fact_int_in
     integer,                intent(inout) :: radialdist_int_in
     integer,                intent(inout) :: cartdist_int_in
@@ -822,7 +828,7 @@ contains
     integer,                intent(inout) :: max_grid_projection_in(AMREX_SPACEDIM-1)
     integer,                intent(inout) :: histogram_unit_in
     double precision,       intent(inout) :: density_weights_in(MAX_SPECIES)
-    integer,                intent(inout) :: shift_cc_to_boundary_in(AMREX_SPACEDIM,LOHI)
+    integer,                intent(inout) :: shift_cc_to_boundary_in(AMREX_SPACEDIM,2)
 
     double precision,       intent(inout) :: eepsilon_in(MAX_SPECIES*MAX_SPECIES)
     double precision,       intent(inout) :: sigma_in(MAX_SPECIES*MAX_SPECIES)
@@ -982,6 +988,7 @@ contains
     potential_lo_in = potential_lo
     potential_hi_in = potential_hi
 
+    fft_type_in = fft_type
     struct_fact_int_in = struct_fact_int
     radialdist_int_in = radialdist_int
     cartdist_int_in = cartdist_int

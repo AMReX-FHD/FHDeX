@@ -1,7 +1,6 @@
 #ifndef _common_functions_H_
 #define _common_functions_H_
 
-#define LOHI 2
 #if (AMREX_SPACEDIM == 2)
 #define NUM_EDGE 1
 #else
@@ -89,6 +88,10 @@ void SqrtMF(MultiFab& MF);
 
 ///////////////////////////
 // in ComputeBasicStats.cpp
+
+Real ComputeSpatialMean(MultiFab& mf, const int& incomp);
+
+Real ComputeSpatialVariance(MultiFab& mf, const int& incomp);
 
 void ComputeBasicStats(MultiFab & instant, MultiFab & means, 
                 const int incomp, const int outcomp, const int steps);

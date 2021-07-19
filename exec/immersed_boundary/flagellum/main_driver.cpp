@@ -495,10 +495,25 @@ void main_driver(const char * argv) {
         Print() << "l_link= " << l_link      << std::endl;
         Print() << "x_0=    " << x_0         << std::endl;
 
-        Vector<RealVect> marker_positions = equil_pos(i_ib, 0, geom);
 
         // using fourier modes => first two nodes reserved as "anchor"
         int N_markers = immbdy::contains_fourier ? N+1 : N;
+
+        Vector<RealVect> marker_positions = equil_pos(i_ib, 0, geom);
+
+        // Vector<RealVect> marker_positions(N_markers);
+        // if (immbdy::contains_fourier) {
+        //     marker_positions = equil_pos(i_ib, 0, geom);
+        // } else {
+        //     for (int i=0; i<marker_positions.size(); ++i) {
+        //         Real x = x_0[0] + i*l_link;
+        //         // Compute periodic offset. Will work as long as winding number = 1
+        //         Real x_period = x < geom.ProbHi(0) ? x : x - geom.ProbLength(0);
+
+        //         marker_positions[i] = RealVect{x_period, x_0[1], x_0[2]};
+        //     }
+        // }
+
         Vector<Real> marker_radii(N_markers);
         for (int i=0; i<marker_radii.size(); ++i) marker_radii[i] = 4*l_link;
 
@@ -634,7 +649,7 @@ void main_driver(const char * argv) {
         //     for(int d=0; d<AMREX_SPACEDIM; d++) {
         //         ShiftFaceToCC(umac[d], 0, struct_in_cc, d, 1);
         //     }
-        //     structFact.FortStructure(struct_in_cc,geom);
+        //     structFact.FortStructure(struct_in_cc,geom,fft_type);
         //
         // }
 

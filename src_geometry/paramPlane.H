@@ -74,6 +74,9 @@ typedef struct {
     double sourceLeft;
     double sourceRight;
 
+    double sinkLeft;
+    double sinkRight;
+
     double periodicity;
     double area;
 

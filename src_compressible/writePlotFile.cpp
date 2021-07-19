@@ -35,7 +35,7 @@ void WritePlotFile(int step,
         nplot += 10;
     }
    
-    nplot += 6; //spatial correl
+    nplot += 8; //spatial correl
 
     amrex::BoxArray ba = cuMeans.boxArray();
     amrex::DistributionMapping dmap = cuMeans.DistributionMap();
@@ -92,7 +92,7 @@ void WritePlotFile(int step,
         cnt+=numvars;
     }
 
-    numvars = 6;
+    numvars = 8;
     amrex::MultiFab::Copy(plotfile,spatialCross,0,cnt,numvars,0);
     cnt+=numvars;
 
@@ -166,13 +166,15 @@ void WritePlotFile(int step,
         varNames[cnt++] = "tVar";
     }
 
-    varNames[cnt++] = "Energy-densityCross";
-    varNames[cnt++] = "Energy-energyCross";
-    varNames[cnt++] = "Momentum-densityCross";
+    varNames[cnt++] = "Tyzaveragedcross";
+    varNames[cnt++] = "Tyzaveraged";
+    varNames[cnt++] = "T*T";
 
-    varNames[cnt++] = "Temperature-temperatureCross";
-    varNames[cnt++] = "Temperature-densityCross";
-    varNames[cnt++] = "Velocity-densityCross";
+    varNames[cnt++] = "delT*delT";
+    varNames[cnt++] = "delT*delrho";
+    varNames[cnt++] = "delu*delrho";
+    varNames[cnt++] = "deljx*delrho";
+    varNames[cnt++] = "delrho*delrhoE";
 
     varNames[cnt++] = "eta";
     varNames[cnt++] = "kappa";

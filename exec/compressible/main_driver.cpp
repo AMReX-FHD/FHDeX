@@ -173,13 +173,21 @@ void main_driver(const char* argv)
     primMeans.setVal(0.0);
     primVars.setVal(0.0);
    
-    //Miscstats
-    // 0        time averaged kinetic energy density
-
+    //miscStats & miscVals (only used internally -- not outputted)
     MultiFab miscStats(ba,dmap,10,ngc);
-    Real miscVals[20]; 
-    MultiFab spatialCross(ba,dmap,6,ngc);
-    MultiFab spatialCrossAv(ba,dmap,6,ngc);
+    Real miscVals[20];
+
+    // spatial cross correlations
+    // 0: slice average of mean temperature
+    // 1: yz- average of mean temperature
+    // 2: <T*T>
+    // 3: <delta T* delta T>
+    // 4: <delta T* delta rho>
+    // 5: <delta u* delta rho> 
+    // 6: <delta jx* delta rho>
+    // 7: <delta rho* delta rhoE>
+    MultiFab spatialCross(ba,dmap,8,ngc);
+    MultiFab spatialCrossAv(ba,dmap,8,ngc);
 
     miscStats.setVal(0.0);
     spatialCross.setVal(0.0);
@@ -559,8 +567,8 @@ void main_driver(const char* argv)
             MultiFab::Copy(structFactPrimMF, prim, 0,                0,                structVarsPrim,   0);
             MultiFab::Copy(structFactConsMF, cu,   0,                0,                structVarsCons-1, 0);
             MultiFab::Copy(structFactConsMF, prim, AMREX_SPACEDIM+1, structVarsCons-1, 1,                0); // temperature too
-            structFactPrim.FortStructure(structFactPrimMF,geom);
-            structFactCons.FortStructure(structFactConsMF,geom);
+            structFactPrim.FortStructure(structFactPrimMF,geom,fft_type);
+            structFactCons.FortStructure(structFactConsMF,geom,fft_type);
             if(project_dir >= 0) {
                 MultiFab primFlattened;  // flattened multifab defined below
                 if (slicepoint < 0) {
@@ -571,7 +579,7 @@ void main_driver(const char* argv)
                 // we rotate this flattened MultiFab to have normal in the z-direction since
                 // SWFFT only presently supports flattened MultiFabs with z-normal.
                 MultiFab primFlattenedRot = RotateFlattenedMF(primFlattened);
-                structFactPrimFlattened.FortStructure(primFlattenedRot,geom_flat);
+                structFactPrimFlattened.FortStructure(primFlattenedRot,geom_flat,fft_type);
             }
         }
 

@@ -76,7 +76,7 @@ int                        common::filtering_width;
 int                        common::stoch_stress_form;
 amrex::Vector<amrex::Real> common::u_init;
 amrex::Real                common::perturb_width;
-amrex::Real                common::smoothing_width;
+AMREX_GPU_MANAGED amrex::Real common::smoothing_width;
 amrex::Real                common::initial_variance_mom;
 amrex::Real                common::initial_variance_mass;
 amrex::Real                common::domega;
@@ -124,6 +124,7 @@ amrex::Vector<amrex::Real> common::wallspeed_hi;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::potential_lo;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::potential_hi;
 
+int                        common::fft_type;
 int                        common::struct_fact_int;
 int                        common::radialdist_int;
 int                        common::cartdist_int;

@@ -1,0 +1,5 @@
+CEXE_sources   += chemistry_functions.cpp
+CEXE_headers   += chemistry_functions.H
+
+CEXE_headers   += chemistry_namespace.H
+CEXE_headers   += chemistry_namespace_declarations.H

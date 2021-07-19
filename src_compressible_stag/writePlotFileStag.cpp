@@ -355,8 +355,7 @@ void WriteSpatialCross(const Vector<Real>& spatialCross, int step, const amrex::
         std::ofstream outfile;
         outfile.open(filename);
     
-        int flag;
-        int ncross = 28+nspecies;
+        int ncross = 37+nspecies+2;
         for (auto i=0; i<n_cells[0]; ++i) {
             outfile << prob_lo[0] + (i+0.5)*dx[0] << " "; 
             for (auto n=0; n<ncross; ++n) {
