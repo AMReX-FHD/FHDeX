@@ -80,54 +80,58 @@ void main_driver(const char* argv)
 
 		/*
 		   Primitive Vars:
-			0	- n   (X_ns)
-			1  - rho (Y_ns)
-			2  - u   (u_ns)
-			3  - v   (v_ns)
-			4  - w   (w_ns)
-			5  - uu  (uu_ns)
-			6  - uv  (uv_ns)
-			7  - uw  (uw_ns)
-			8  - vv  (vv_ns)
-			9  - vw  (vw_ns)
-			10 - ww  (ww_ns)
-			11 - T   (T_ns)
-			12 - P   (P_ns)
-			13 - E   (E_ns)
+			0	- n   (n_ns)
+			1 - Yk  (Y_ns)
+			2 - u   (u_ns)
+			3 - v   (v_ns)
+			4 - w   (w_ns)
+			5 - G   (G_ns) = dot(u_mean,dJ)
+			6 - T   (T_ns)
+			7 - P   (P_ns)
+			8 - E   (E_ns)
 			... (repeat for each species)
 		*/
 
-		int nprim = (nspecies+1)*17;
+		int nprim = (nspecies+1)*9;
 		primInst.define(ba, dmap, nprim, 0);   	primInst.setVal(0.);
 		primMeans.define(ba, dmap, nprim, 0);  	primMeans.setVal(0.);
 		primVars.define(ba, dmap, ncon+nprim, 0); primVars.setVal(0.);
 
 		// Covariances
 		/*
+			// Conserved
 			0  - drho.dJx
 			1  - drho.dJy
 			2  - drho.dJz
-			3  - drho.dT
-			4  - drho.d(rho*E)
-			5  - dJx.dJy
-			6  - dJx.dJz
+			3  - drho.dK
+			4  - dJx.dJy
+			5  - dJx.dJz
+			6  - dJx.dK
 			7  - dJy.dJz
-			8  - dJx.d(rho*E)
-			9  - dJy.d(rho*E)
-			10 - dJz.d(rho*E)
-			11 - drho.du
-			12 - drho.dv
-			13 - drho.dw
-			14 - du.dv
-			15 - du.dw
-			16 - dv.dw
-			17 - drho.dT
-			18 - du.dT
-			19 - dv.dT
-			20 - dw.dT
+			8  - dJy.dK
+			9  - dJz.dk
+			
+			// Energy
+			10 - drho.dG
+			11 - dJx.dG
+			12 - dJy.dG
+			13 - dJz.dG
+			14 - dK.dG
+			
+			// Hydro
+			15 - drho.du
+			16 - drho.dv
+			17 - drho.dw
+			18 - du.dv
+			19 - du.dw
+			20 - dv.dw
+			21 - drho.dT
+			22 - du.dT
+			23 - dv.dT
+			24 - dw.dT
 		*/
 
-		int ncovar = 21;
+		int ncovar = 25;
 		coVars.define(ba, dmap, ncovar, 0);   coVars.setVal(0.);
 
 	} else {
@@ -234,6 +238,14 @@ void main_driver(const char* argv)
 	int IO_int = std::ceil(plot_int*0.01);
 	int stat_int = 5;
 	Real tbegin, tend;
+	
+	int alpha_cnt = 0;
+	for(int i_spec=0;i_spec<nspecies;i_spec++) {
+		for(int j_spec=0;j_spec<nspecies;j_spec++) {
+			int ij_spec = particles.getSpeciesIndex(i_spec,j_spec);
+			particles.interproperties[ij_spec].alpha = alpha_pp[alpha_cnt++];
+		}
+	}
 	for (int istep=step; istep<=max_step; ++istep) {
 		if(istep%IO_int == 0) {
 			tbegin = ParallelDescriptor::second();
@@ -261,6 +273,7 @@ void main_driver(const char* argv)
 		particles.CalcSelections(dt);
 		particles.CollideParticles(dt);
 		particles.Source(dt, paramPlaneList, paramPlaneCount);
+		particles.externalForce(dt);
 		particles.MoveParticlesCPP(dt, paramPlaneList, paramPlaneCount);
 
 		//////////////////////////////////////
@@ -270,15 +283,6 @@ void main_driver(const char* argv)
 		if (istep >= amrex::Math::abs(n_steps_skip)) {
 			cuInst.setVal(0.);
 			primInst.setVal(0.);
-			if(statsCount == 1) {
-				int alpha_cnt = 0;
-				for(int i_spec=0;i_spec<nspecies;i_spec++) {
-					for(int j_spec=0;j_spec<nspecies;j_spec++) {
-						int ij_spec = particles.getSpeciesIndex(i_spec,j_spec);
-    						particles.interproperties[ij_spec].alpha = alpha_pp[alpha_cnt++];
-					}
-				}
-			}
 			if(istep%stat_int == 0) {
 				particles.EvaluateStats(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,coVars,statsCount++,time);
 			}
@@ -315,7 +319,7 @@ void main_driver(const char* argv)
 			// rho species
 			for (int i=0;i<nspecies;i++) {
 				numvars_sf = 1;
-				MultiFab::Copy(structFactPrimMF,primInst,1+(i+1)*14,cnt_sf,numvars_sf,0);
+				MultiFab::Copy(structFactPrimMF,primInst,1+(i+1)*9,cnt_sf,numvars_sf,0);
 				cnt_sf += numvars_sf;
 			}
 			// u, v, w
@@ -324,17 +328,17 @@ void main_driver(const char* argv)
 			 cnt_sf += numvars_sf;
 			// T
 			numvars_sf = 1;
-			MultiFab::Copy(structFactPrimMF,primInst,11,cnt_sf,numvars_sf,0);
+			MultiFab::Copy(structFactPrimMF,primInst,6,cnt_sf,numvars_sf,0);
 			cnt_sf += numvars_sf;
 			// T species
 			for (int i=0;i<nspecies;i++) {
 				numvars_sf = 1;
-				MultiFab::Copy(structFactPrimMF,primInst,11+(i+1)*14,cnt_sf,numvars_sf,0);
+				MultiFab::Copy(structFactPrimMF,primInst,6+(i+1)*9,cnt_sf,numvars_sf,0);
 				cnt_sf += numvars_sf;
 			}
 			// E
 			numvars_sf = 1;
-			MultiFab::Copy(structFactPrimMF,primInst,13,cnt_sf,numvars_sf,0);
+			MultiFab::Copy(structFactPrimMF,primInst,8,cnt_sf,numvars_sf,0);
 			cnt_sf += numvars_sf;
 
 			structFactPrim.FortStructure(structFactPrimMF,geom,fft_type);

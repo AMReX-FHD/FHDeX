@@ -13,6 +13,7 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
 	const Real osteps = 1.0/steps;
 	const int stepsMinusOne = steps-1;
 
+	// TODO: Add Heat Fluxes
 	const int lev = 0;
 	for (FhdParIter pti(* this, lev); pti.isValid(); ++pti) {
 		const int grid_id = pti.index();
@@ -30,31 +31,24 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
 			2  - Jy  = (1/V) += mv
 			3  - Jz  = (1/V) += mw
 			4  - K   = (1/V) += m|v|^2
-			... (repeat for each species)
+		*/
 
-			Primitive Vars:
-			0	- n   (X_ns)
+		/*
+		   Primitive Vars:
+			0	 - n   (n_ns)
 			1  - rho (Y_ns)
 			2  - u   (u_ns)
 			3  - v   (v_ns)
 			4  - w   (w_ns)
-			5  - uu  (uu_ns)
-			6  - uv  (uv_ns)
-			7  - uw  (uw_ns)
-			8  - vv  (vv_ns)
-			9  - vw  (vw_ns)
-			10 - ww  (ww_ns)
-			11 - T   (P_ns)  = (1/3V) += m|v|^2
-			12 - P   (T_ns)  = (1/3Nk_B) += m|v|^2
-			13 - E   (E_ns)  = (1/2) += |v|^2 + c_v*T
-			14 - qx  (qx_ns)
-			15 - qy  (qy_ns)
-			16 - qz  (qz_ns)
-			... (repeat for each species)
+			5  - G   (G_ns) = dot(u_mean,dJ)
+			6  - T   (T_ns)
+			7  - P   (P_ns)
+			8  - E   (E_ns)
 		*/
 
+
 		int ncon  = (nspecies+1)*5;
-		int nprim = (nspecies+1)*17;
+		int nprim = (nspecies+1)*9;
 		Array4<Real> cuInst     = mfcuInst[pti].array();
 		Array4<Real> primInst   = mfprimInst[pti].array();
 		Array4<Real> cuMeans    = mfcuMeans[pti].array();
@@ -64,25 +58,26 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
 		Array4<Real> coVars     = mfcoVars[pti].array();
 
 		//////////////////////////////////////
-		// Instantaneous Values
+		// Primitve and Conserved Instantaneous Values
 		//////////////////////////////////////
 
 		amrex::ParallelFor(tile_box,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
 			const IntVect& iv = {i,j,k};
 			long imap = tile_box.index(iv);
-			int icon = 5; int iprim = 17;
+			int icon = 5; int iprim = 9;
 			Real cv  = 0.;
+
 			for (int l=0; l<nspecies; l++) {
 				const long np_spec = m_cell_vectors[l][grid_id][imap].size();
 				Real mass = properties[l].mass*properties[l].Neff;
-				Real moV  = properties[l].mass*ocollisionCellVol;    	 // density
-				Real cv_l = 3.0*k_B*0.5/mass;                        	 // assume ideal gas <- in general untrue for most granular cases
-				primInst(i,j,k,iprim+0) = np_spec*ocollisionCellVol;	 // number density of species l
-				primInst(i,j,k,0)	+= np_spec*ocollisionCellVol;
-				primInst(i,j,k,iprim+1) = np_spec*moV;         		    // mass density of species l
-				primInst(i,j,k,1)	+= np_spec*moV;
-				cuInst(i,j,k,icon+0)	= np_spec*moV;
-				cv			+= cv_l*np_spec*moV;				 // total cv
+				Real moV  = properties[l].mass*ocollisionCellVol;
+				Real cv_l = 3.0*k_B*0.5/mass;
+				primInst(i,j,k,iprim+0) = np_spec*ocollisionCellVol;
+				primInst(i,j,k,0)      += np_spec*ocollisionCellVol;
+				primInst(i,j,k,iprim+1) = np_spec*moV;
+				primInst(i,j,k,1)	     += np_spec*moV;
+				cuInst(i,j,k,icon+0)	  = np_spec*moV;
+				cv			               += cv_l*np_spec*moV;
 
 				// Read particle data
 				for (int m=0; m<np_spec; m++) {
@@ -97,224 +92,251 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
 					cuInst(i,j,k,icon+1) += u;
 					cuInst(i,j,k,icon+2) += v;
 					cuInst(i,j,k,icon+3) += w;
+
 					Real spdsq = pow(u,2)+pow(v,2)+pow(w,2);
 					cuInst(i,j,k,icon+4) += spdsq;
-
-					primInst(i,j,k,iprim+14) += spdsq*u;	// qx
-					primInst(i,j,k,iprim+15) += spdsq*v;	// qy
-					primInst(i,j,k,iprim+16) += spdsq*w;	// qz
 				}
 
-				// Momentum densities
-				cuInst(i,j,k,icon+1) *= moV;  		// x-mom density
-				cuInst(i,j,k,icon+2) *= moV;  		// y-mom density
-				cuInst(i,j,k,icon+3) *= moV;  		// z-mom density
+				cuInst(i,j,k,icon+1) *= moV;       // x-mom density
+				cuInst(i,j,k,icon+2) *= moV;       // y-mom density
+				cuInst(i,j,k,icon+3) *= moV;       // z-mom density
+				cuInst(i,j,k,icon+4) *= (moV*0.5); // K     density
 
-				// Energy density
-				cuInst(i,j,k,icon+4) *= (moV*0.5);
-
-				// Total of cons. vars
+				// Total Conserved Vars
 				for (int m=0; m<5; m++) {cuInst(i,j,k,m) += cuInst(i,j,k,icon+m);}
 
-				primInst(i,j,k,iprim+ 2) = cuInst(i,j,k,icon+1)/cuInst(i,j,k,icon+0);				// u  of spec l
-				primInst(i,j,k,iprim+ 3) = cuInst(i,j,k,icon+2)/cuInst(i,j,k,icon+0);				// v  of spec l
-				primInst(i,j,k,iprim+ 4) = cuInst(i,j,k,icon+3)/cuInst(i,j,k,icon+0);				// w  of spec l
-				primInst(i,j,k,iprim+ 5) = pow(primInst(i,j,k,iprim+2),2);									// uu of spec l
-				primInst(i,j,k,iprim+ 6) = primInst(i,j,k,iprim+2)*primInst(i,j,k,iprim+3);	// uv of spec l
-				primInst(i,j,k,iprim+ 7) = primInst(i,j,k,iprim+2)*primInst(i,j,k,iprim+4);	// uw of spec l
-				primInst(i,j,k,iprim+ 8) = pow(primInst(i,j,k,iprim+3),2);									// vv of spec l
-				primInst(i,j,k,iprim+ 9) = primInst(i,j,k,iprim+3)*primInst(i,j,k,iprim+4);	// vw of spec l
-				primInst(i,j,k,iprim+10) = pow(primInst(i,j,k,iprim+4),2);									// ww of spec l
+				primInst(i,j,k,iprim+ 2) = cuInst(i,j,k,icon+1)/cuInst(i,j,k,icon+0);				// u_l
+				primInst(i,j,k,iprim+ 3) = cuInst(i,j,k,icon+2)/cuInst(i,j,k,icon+0);				// v_l
+				primInst(i,j,k,iprim+ 4) = cuInst(i,j,k,icon+3)/cuInst(i,j,k,icon+0);				// w_l
 
 				Real vsqb = (pow(primInst(i,j,k,iprim+2),2)+pow(primInst(i,j,k,iprim+3),2) +
 								     pow(primInst(i,j,k,iprim+4),2));
 
-				primInst(i,j,k,iprim+11) = (cuInst(i,j,k,icon+4)/cuInst(i,j,k,icon)-vsqb*0.5)/cv_l;		// T  of spec l
-				primInst(i,j,k,iprim+12) = primInst(i,j,k,iprim+11)*(k_B/mass)*cuInst(i,j,k,icon);		// P  of spec l
-				primInst(i,j,k,iprim+13) = vsqb*moV+cv_l*primInst(i,j,k,iprim+11)*cuInst(i,j,k,icon);	// E  of spec l
+				primInst(i,j,k,iprim+ 5) = primInst(i,j,k,iprim+2)*cuInst(i,j,k,1) +                  //G_l
+					primInst(i,j,k,iprim+3)*cuInst(i,j,k,2) +
+					primInst(i,j,k,iprim+4)*cuInst(i,j,k,3);
+				primInst(i,j,k,iprim+ 6) = (cuInst(i,j,k,icon+4)/cuInst(i,j,k,icon)-vsqb*0.5)/cv_l;   // T_l
+				primInst(i,j,k,6) += primInst(i,j,k,iprim+6)*primInst(i,j,k,iprim);
+				
+				primInst(i,j,k,iprim+ 7) = primInst(i,j,k,iprim+6)*(k_B/mass)*cuInst(i,j,k,icon);     // P_l
+				primInst(i,j,k,7) += primInst(i,j,k,iprim+7);
+				
+				primInst(i,j,k,iprim+ 8) = vsqb*moV+cv_l*primInst(i,j,k,iprim+6)*cuInst(i,j,k,icon); // E_l
+				primInst(i,j,k,8) += primInst(i,j,k,iprim+8);
 
-				primInst(i,j,k,iprim+14) *= 0.5*moV;	// qx
-				primInst(i,j,k,iprim+15) *= 0.5*moV;	// qy
-				primInst(i,j,k,iprim+16) *= 0.5*moV;	// qz
-
-				// Total of primitive vars
-				// Handle temperature/energy seperately
-				primInst(i,j,k,11) += primInst(i,j,k,iprim+11)*primInst(i,j,k,iprim);		// Mixture T = sum (nk*Tk)/n
-
-				primInst(i,j,k,12) += primInst(i,j,k,iprim+12);													// Mixture P = sum Pk
-				primInst(i,j,k,14) += primInst(i,j,k,iprim+14);
-				primInst(i,j,k,15) += primInst(i,j,k,iprim+15);
-				primInst(i,j,k,16) += primInst(i,j,k,iprim+16);
-				icon += 5; iprim += 17;
+				icon += 5; iprim += 9;
 			}
 
-			// Primitive total
-			primInst(i,j,k,2) = cuInst(i,j,k,1)/cuInst(i,j,k,0);		  // Bulk x-velocity
-			primInst(i,j,k,3) = cuInst(i,j,k,2)/cuInst(i,j,k,0);		  // Bulk y-velocity
-			primInst(i,j,k,4) = cuInst(i,j,k,3)/cuInst(i,j,k,0);		  // Bulk z-velocity
+			iprim = 9;
+			for (int l=0; l<nspecies; l++) {
+				primInst(i,j,k,iprim+0) /= primInst(i,j,k,0);
+				iprim += 9;
+			}
 
-			primInst(i,j,k,5)  = pow(primInst(i,j,k,2),2);					  // Bulk uu
-			primInst(i,j,k,6)  = primInst(i,j,k,2)*primInst(i,j,k,3);	// Bulk uv
-			primInst(i,j,k,7)  = primInst(i,j,k,2)*primInst(i,j,k,4);	// Bulk uw
-			primInst(i,j,k,8)  = pow(primInst(i,j,k,3),2);					  // Bulk vv
-			primInst(i,j,k,9)  = primInst(i,j,k,3)*primInst(i,j,k,4);	// Bulk vw
-			primInst(i,j,k,10) = pow(primInst(i,j,k,4),2);					  // Bulk ww
-
-			// Mixture Temperature
-			primInst(i,j,k,11) /= primInst(i,j,k,0);
+			primInst(i,j,k,2) = cuInst(i,j,k,1)/cuInst(i,j,k,0);  // Total x-velocity
+			primInst(i,j,k,3) = cuInst(i,j,k,2)/cuInst(i,j,k,0);  // Total y-velocity
+			primInst(i,j,k,4) = cuInst(i,j,k,3)/cuInst(i,j,k,0);  // Total z-velocity
+			primInst(i,j,k,5) = primInst(i,j,k,2)*cuInst(i,j,k,1) + 
+				primInst(i,j,k,3)*cuInst(i,j,k,2) +
+				primInst(i,j,k,4)*cuInst(i,j,k,3);                  // G
+			primInst(i,j,k,6) /= primInst(i,j,k,0);               // Mixture Temperature
 
 			// Energy Density
 			cv /= primInst(i,j,k,1);
-			primInst(i,j,k,13)  = pow(primInst(i,j,k,2),2)+pow(primInst(i,j,k,3),2)+pow(primInst(i,j,k,4),2);
-			primInst(i,j,k,13)  = 0.5*primInst(i,j,k,1)*primInst(i,j,k,13);								        // Bulk energy
-			primInst(i,j,k,13)  = primInst(i,j,k,13) + (cv*primInst(i,j,k,11)*primInst(i,j,k,1));	// Total Particle KE
+			primInst(i,j,k,8)  = pow(primInst(i,j,k,2),2)+pow(primInst(i,j,k,3),2)+pow(primInst(i,j,k,4),2);
+			primInst(i,j,k,8)  = 0.5*primInst(i,j,k,1)*primInst(i,j,k,8);								        // Bulk energy
+			primInst(i,j,k,8)  = primInst(i,j,k,8) + (cv*primInst(i,j,k,6)*primInst(i,j,k,1));	// Total Particle KE
 
 		});
 
 		//////////////////////////////////////
-		// Means and Variances
+		// Means
 		//////////////////////////////////////
 		amrex::ParallelFor(tile_box,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
-			Vector<Real> delCon(ncon, 0.0);
-			
-			// Conserved Means + Variances
 			for (int l=0; l<ncon; l++) {
 				cuMeans(i,j,k,l) = (cuMeans(i,j,k,l)*stepsMinusOne+cuInst(i,j,k,l))*osteps;
-				delCon[l]        = cuInst(i,j,k,l) - cuMeans(i,j,k,l);
-				cuVars(i,j,k,l)  = (cuVars(i,j,k,l)*stepsMinusOne+delCon[l]*delCon[l])*osteps;
 			}
-				
+
 			// Evaluate Primitive Means from Conserved Means
 			primMeans(i,j,k,0)  = 0.;
 			primMeans(i,j,k,1)  = cuMeans(i,j,k,0);
 			primMeans(i,j,k,2)  = cuMeans(i,j,k,1)/cuMeans(i,j,k,0);
 			primMeans(i,j,k,3)  = cuMeans(i,j,k,2)/cuMeans(i,j,k,0);
 			primMeans(i,j,k,4)  = cuMeans(i,j,k,3)/cuMeans(i,j,k,0);
-			primMeans(i,j,k,5)  = pow(primMeans(i,j,k,2),2);
-			primMeans(i,j,k,6)  = primMeans(i,j,k,2)*primMeans(i,j,k,3);
-			primMeans(i,j,k,7)  = primMeans(i,j,k,2)*primMeans(i,j,k,4);
-			primMeans(i,j,k,8)  = pow(primMeans(i,j,k,3),2);
-			primMeans(i,j,k,9)  = primMeans(i,j,k,3)*primMeans(i,j,k,4);
-			primMeans(i,j,k,10) = pow(primMeans(i,j,k,4),2);
-			
-			primMeans(i,j,k,11) = 0.;
-			primMeans(i,j,k,12) = 0.;
-			int iprim = 17; int icon = 5;
+
+			int iprim = 9; int icon = 5;
 			Real cv = 0.;
 			for(int l=0; l<nspecies; l++) { 
 				Real mass = properties[l].mass*properties[l].Neff;
 				Real moV  = properties[l].mass*ocollisionCellVol;
 				Real cv_l = 3.0*k_B*0.5/mass;
-				
-				// Densities
-				primMeans(i,j,k,iprim+0) = cuMeans(i,j,k,icon+0)/mass;
-				primMeans(i,j,k,0) += primMeans(i,j,k,iprim+0);
-				primMeans(i,j,k,iprim+1) = cuMeans(i,j,k,icon+0);
 
-				// Bulk Velocities
-				primMeans(i,j,k,iprim+2) = cuMeans(i,j,k,icon+1)/cuMeans(i,j,k,icon+0);
-				primMeans(i,j,k,iprim+3) = cuMeans(i,j,k,icon+2)/cuMeans(i,j,k,icon+0);
-				primMeans(i,j,k,iprim+4) = cuMeans(i,j,k,icon+3)/cuMeans(i,j,k,icon+0);
-				
-				// Stresses
-				primMeans(i,j,k,iprim+5)  = pow(primMeans(i,j,k,iprim+1),2);
-				primMeans(i,j,k,iprim+6)  = primMeans(i,j,k,iprim+2)*primMeans(i,j,k,iprim+3);
-				primMeans(i,j,k,iprim+7)  = primMeans(i,j,k,iprim+2)*primMeans(i,j,k,iprim+4);
-				primMeans(i,j,k,iprim+8)  = pow(primMeans(i,j,k,iprim+3),2);
-				primMeans(i,j,k,iprim+9)  = primMeans(i,j,k,iprim+3)*primMeans(i,j,k,iprim+4);
-				primMeans(i,j,k,iprim+10) = pow(primMeans(i,j,k,iprim+4),2);
-				
-				// Temperature
+				primMeans(i,j,k,iprim+0) = cuMeans(i,j,k,icon+0)/mass;     // n_l
+				primMeans(i,j,k,0)      += primMeans(i,j,k,iprim+0)/mass;  // n
+				primMeans(i,j,k,iprim+1) = cuMeans(i,j,k,icon+0);          // rho_l
+
+				primMeans(i,j,k,iprim+2) = cuMeans(i,j,k,icon+1)/cuMeans(i,j,k,icon+0); // u_l
+				primMeans(i,j,k,iprim+3) = cuMeans(i,j,k,icon+2)/cuMeans(i,j,k,icon+0); // v_l
+				primMeans(i,j,k,iprim+4) = cuMeans(i,j,k,icon+3)/cuMeans(i,j,k,icon+0); // w_l
+
 				cv += cv_l*primMeans(i,j,k,iprim+1);
 				Real vsqb = pow(primMeans(i,j,k,iprim+2),2)+pow(primMeans(i,j,k,iprim+3),2) +
 								     pow(primMeans(i,j,k,iprim+4),2);
 
-				primMeans(i,j,k,iprim+11) = (cuMeans(i,j,k,icon+4)/cuMeans(i,j,k,icon+0)-vsqb*0.5)/cv_l;
-				primMeans(i,j,k,iprim+12) = primInst(i,j,k,iprim+11)*(k_B/mass)*cuInst(i,j,k,icon);
-				primMeans(i,j,k,iprim+13) = vsqb*moV+cv_l*primInst(i,j,k,iprim+11)*cuInst(i,j,k,icon);
+				primMeans(i,j,k,iprim+6) = (cuMeans(i,j,k,icon+4)/cuMeans(i,j,k,icon+0)-vsqb*0.5)/cv_l;
+				primMeans(i,j,k,iprim+7) = primMeans(i,j,k,iprim+6)*(k_B/mass)*cuMeans(i,j,k,icon+0);
+				primMeans(i,j,k,7)      += primMeans(i,j,k,iprim+7);
+				primMeans(i,j,k,iprim+8) = vsqb*moV+cv_l*primMeans(i,j,k,iprim+6)*cuMeans(i,j,k,icon+0);
 				
-				// Omitted ATM
-				primMeans(i,j,k,iprim+14) = 0.;	// qx
-				primMeans(i,j,k,iprim+15) = 0.;	// qy
-				primMeans(i,j,k,iprim+16) = 0.;	// qz
-
-				// Total EoS
-				primMeans(i,j,k,11) += primMeans(i,j,k,iprim+11)*primMeans(i,j,k,iprim+0);
-				primMeans(i,j,k,12) += primMeans(i,j,k,iprim+12);
-				
-				// q omitted
-				// Need to implement averaging from Rader 2006
-				primMeans(i,j,k,14) += primMeans(i,j,k,iprim+14);
-				primMeans(i,j,k,15) += primMeans(i,j,k,iprim+15);
-				primMeans(i,j,k,16) += primMeans(i,j,k,iprim+16);				
-				iprim += 17; icon += 5;
+				iprim += 9; icon += 5;
 			}
 
-			// Mixture Temperature
-			primMeans(i,j,k,11) /= primMeans(i,j,k,0);
-
-
-			// Energy Density
+			primMeans(i,j,k,5) = primMeans(i,j,k,2)*cuMeans(i,j,k,1) +
+				primMeans(i,j,k,3)*cuMeans(i,j,k,2) +
+				primMeans(i,j,k,4)*cuMeans(i,j,k,3);
 			cv /= primMeans(i,j,k,1);
+			
+			Real vsqb = pow(primMeans(i,j,k,2),2) + pow(primMeans(i,j,k,3),2) + pow(primMeans(i,j,k,4),2);
+			primMeans(i,j,k,6) = (cuMeans(i,j,k,4)/cuMeans(i,j,k,0) - 0.5*vsqb)/cv;
 
-			primMeans(i,j,k,13)  = pow(primMeans(i,j,k,2),2)+pow(primMeans(i,j,k,3),2)+pow(primMeans(i,j,k,4),2);
-			primMeans(i,j,k,13)  = 0.5*primMeans(i,j,k,1)*primMeans(i,j,k,13);								        // Bulk energy
-			primMeans(i,j,k,13)  = primMeans(i,j,k,13) + (cv*primMeans(i,j,k,11)*primMeans(i,j,k,1));	// Total Particle KE
+			primMeans(i,j,k,8)  = pow(primMeans(i,j,k,2),2)+pow(primMeans(i,j,k,3),2)+pow(primMeans(i,j,k,4),2);
+			primMeans(i,j,k,8)  = 0.5*primMeans(i,j,k,1)*primMeans(i,j,k,8);
+			primMeans(i,j,k,8)  = primMeans(i,j,k,8) + (cv*primMeans(i,j,k,6)*primMeans(i,j,k,1));
+		});
+
+		//////////////////////////////////////
+		// Variances
+		//////////////////////////////////////
+		// Covariances
+		/*
+			// Conserved
+			0  - drho.dJx
+			1  - drho.dJy
+			2  - drho.dJz
+			3  - drho.dK
+			4  - dJx.dJy
+			5  - dJx.dJz
+			6  - dJx.dK
+			7  - dJy.dJz
+			8  - dJy.dK
+			9  - dJz.dk
+			
+			// Energy
+			10 - drho.dG
+			11 - dJx.dG
+			12 - dJy.dG
+			13 - dJz.dG
+			14 - dK.dG
+			
+			// Hydro
+			15 - drho.du
+			16 - drho.dv
+			17 - drho.dw
+			18 - du.dv
+			19 - du.dw
+			20 - dv.dw
+			21 - drho.dT
+			22 - du.dT
+			23 - dv.dT
+			24 - dw.dT
+		*/
+		
+		amrex::ParallelFor(tile_box,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
+			// Conserved Variances
+			Vector<Real> delCon(ncon, 0.0);
+			for (int l=0; l<ncon; l++) {
+				delCon[l]        = cuInst(i,j,k,l) - cuMeans(i,j,k,l);
+				cuVars(i,j,k,l)  = (cuVars(i,j,k,l)*stepsMinusOne+delCon[l]*delCon[l])*osteps;
+			}
+			
+			//Conserved Covariances
+			coVars(i,j,k, 0)  = (coVars(i,j,k, 0)*stepsMinusOne+delCon[0]*delCon[1])*osteps; // drho.dJx
+			coVars(i,j,k, 1)  = (coVars(i,j,k, 1)*stepsMinusOne+delCon[0]*delCon[2])*osteps; // drho.dJy
+			coVars(i,j,k, 2)  = (coVars(i,j,k, 2)*stepsMinusOne+delCon[0]*delCon[3])*osteps; // drho.dJz
+			coVars(i,j,k, 3)  = (coVars(i,j,k, 3)*stepsMinusOne+delCon[0]*delCon[4])*osteps; // drho.dK
+			coVars(i,j,k, 4)  = (coVars(i,j,k, 4)*stepsMinusOne+delCon[1]*delCon[2])*osteps; // dJx.dJy
+			coVars(i,j,k, 5)  = (coVars(i,j,k, 5)*stepsMinusOne+delCon[1]*delCon[3])*osteps; // dJx.dJz
+			coVars(i,j,k, 6)  = (coVars(i,j,k, 6)*stepsMinusOne+delCon[1]*delCon[4])*osteps; // dJx.dK
+			coVars(i,j,k, 7)  = (coVars(i,j,k, 7)*stepsMinusOne+delCon[2]*delCon[3])*osteps; // dJy.dJz
+			coVars(i,j,k, 8)  = (coVars(i,j,k, 8)*stepsMinusOne+delCon[2]*delCon[4])*osteps; // dJy.dK
+			coVars(i,j,k, 9)  = (coVars(i,j,k, 9)*stepsMinusOne+delCon[3]*delCon[4])*osteps; // dJz.dK
 
 			// Primitive Variances
-			Vector<Real> delPrim(nprim, 0.0);
-			for (int l=0; l<nprim; l++) {
-				// primMeans(i,j,k,l) = (primMeans(i,j,k,l)*stepsMinusOne+primInst(i,j,k,l))*osteps;
-				delPrim[l]         = primInst(i,j,k,l) - primMeans(i,j,k,l);
-				primVars(i,j,k,l)  = (primVars(i,j,k,l)*stepsMinusOne+delPrim[l]*delPrim[l])*osteps;
+			Real odensity = 1.0/cuMeans(i,j,k,0);
+			Real deln = primInst(i,j,k,0) - primMeans(i,j,k,0);
+			primVars(i,j,k, 0) = (primVars(i,j,k,0)*stepsMinusOne+deln*deln)*osteps;         // dn.dn
+			Real delrho = delCon[1];
+			primVars(i,j,k, 1) = cuVars(i,j,k,0);                                            // drho.drho
+			
+			Real dudu = pow(odensity,2.0)*(cuVars(i,j,k,1) - 2.0*primMeans(i,j,k,2)*coVars(i,j,k,0)+pow(primMeans(i,j,k,2),2)*cuVars(i,j,k,0));
+			primVars(i,j,k, 2) = (primVars(i,j,k,2)*stepsMinusOne+dudu)*osteps;
+			Real dvdv = pow(odensity,2.0)*(cuVars(i,j,k,2) - 2.0*primMeans(i,j,k,3)*coVars(i,j,k,1)+pow(primMeans(i,j,k,3),2)*cuVars(i,j,k,0));
+			primVars(i,j,k, 3) = (primVars(i,j,k,3)*stepsMinusOne+dvdv)*osteps;
+			Real dwdw = pow(odensity,2.0)*(cuVars(i,j,k,3) - 2.0*primMeans(i,j,k,4)*coVars(i,j,k,2)+pow(primMeans(i,j,k,4),2)*cuVars(i,j,k,0));
+			primVars(i,j,k, 4) = (primVars(i,j,k,4)*stepsMinusOne+dwdw)*osteps;
+			
+			Real dG = primMeans(i,j,k,2)*delCon[1]+primMeans(i,j,k,3)*delCon[2]+primMeans(i,j,k,4)*delCon[3];
+			primVars(i,j,k, 5) = (primVars(i,j,k,5)*stepsMinusOne+dG*dG)*osteps;                 // dG.dG
+
+			coVars(i,j,k,10)   = (coVars(i,j,k,10)*stepsMinusOne+delCon[0]*dG)*osteps;           // drho.dG
+			coVars(i,j,k,11)   = (coVars(i,j,k,11)*stepsMinusOne+delCon[1]*dG)*osteps;           // dJx.dG
+			coVars(i,j,k,12)   = (coVars(i,j,k,12)*stepsMinusOne+delCon[2]*dG)*osteps;           // dJy.dG
+			coVars(i,j,k,13)   = (coVars(i,j,k,13)*stepsMinusOne+delCon[3]*dG)*osteps;           // dJz.dG
+			coVars(i,j,k,14)   = (coVars(i,j,k,14)*stepsMinusOne+delCon[4]*dG)*osteps;           // dK.dG
+
+			Real drhodu = odensity*(coVars(i,j,k,0) - primMeans(i,j,k,2)*cuVars(i,j,k,0));
+			coVars(i,j,k,15)   = (coVars(i,j,k,15)*stepsMinusOne+drhodu)*osteps;                 // drho.du
+			Real drhodv = odensity*(coVars(i,j,k,1) - primMeans(i,j,k,3)*cuVars(i,j,k,0));
+			coVars(i,j,k,16)   = (coVars(i,j,k,16)*stepsMinusOne+drhodv)*osteps;                 // drho.dv
+			Real drhodw = odensity*(coVars(i,j,k,2) - primMeans(i,j,k,4)*cuVars(i,j,k,0));
+			coVars(i,j,k,17)   = (coVars(i,j,k,17)*stepsMinusOne+drhodw)*osteps;                 // drho.dw
+
+			Real dudv = pow(odensity,2.0)*(coVars(i,j,k,4) - primMeans(i,j,k,2)*coVars(i,j,k,1)
+				- primMeans(i,j,k,3)*coVars(i,j,k,0) + primMeans(i,j,k,2)*primMeans(i,j,k,3)*cuVars(i,j,k,0));
+			coVars(i,j,k,18) = (coVars(i,j,k,18)*stepsMinusOne+dudv)*osteps;                     // du.dv
+			Real dudw = pow(odensity,2.0)*(coVars(i,j,k,5) - primMeans(i,j,k,2)*coVars(i,j,k,2)
+				- primMeans(i,j,k,4)*coVars(i,j,k,0) + primMeans(i,j,k,2)*primMeans(i,j,k,4)*cuVars(i,j,k,0));
+			coVars(i,j,k,19) = (coVars(i,j,k,19)*stepsMinusOne+dudw)*osteps;                     // du.dw
+			Real dvdw = pow(odensity,2.0)*(coVars(i,j,k,7) - primMeans(i,j,k,4)*coVars(i,j,k,2)
+				- primMeans(i,j,k,3)*coVars(i,j,k,1) + primMeans(i,j,k,3)*primMeans(i,j,k,4)*cuVars(i,j,k,0));
+			coVars(i,j,k,20) = (coVars(i,j,k,20)*stepsMinusOne+dvdw)*osteps;                     // dv.dw
+
+
+			Real cv = 0.;
+			int iprim = 9;
+			for(int l=0; l<nspecies; l++) { 
+				Real mass = properties[l].mass*properties[l].Neff;
+				Real cv_l = 3.0*k_B*0.5/mass;
+				cv       += cv_l*primMeans(i,j,k,iprim+1);
+				iprim += 9;
 			}
-
-			// Covariances
-			/*
-				0  - drho.dJx
-				1  - drho.dJy
-				2  - drho.dJz
-				3  - drho.dT
-				4  - drho.d(rho*E)
-				5  - dJx.dJy
-				6  - dJx.dJz
-				7  - dJy.dJz
-				8  - dJx.d(rho*E)
-				9  - dJy.d(rho*E)
-				10 - dJz.d(rho*E)
-				11 - drho.du
-				12 - drho.dv
-				13 - drho.dw
-				14 - du.dv
-				15 - du.dw
-				16 - dv.dw
-				17 - drho.dT
-				18 - du.dT
-				19 - dv.dT
-				20 - dw.dT
-			*/
-
-			coVars(i,j,k, 0)  = (coVars(i,j,k, 0)*stepsMinusOne+delCon[0]*delCon[1])*osteps;
-			coVars(i,j,k, 1)  = (coVars(i,j,k, 1)*stepsMinusOne+delCon[0]*delCon[2])*osteps;
-			coVars(i,j,k, 2)  = (coVars(i,j,k, 2)*stepsMinusOne+delCon[0]*delCon[3])*osteps;
-			coVars(i,j,k, 3)  = (coVars(i,j,k, 3)*stepsMinusOne+delCon[0]*delPrim[11])*osteps;
-			coVars(i,j,k, 4)  = (coVars(i,j,k, 4)*stepsMinusOne+delCon[0]*delPrim[13])*osteps;
-			coVars(i,j,k, 5)  = (coVars(i,j,k, 5)*stepsMinusOne+delCon[1]*delCon[2])*osteps;
-			coVars(i,j,k, 6)  = (coVars(i,j,k, 6)*stepsMinusOne+delCon[1]*delCon[3])*osteps;
-			coVars(i,j,k, 7)  = (coVars(i,j,k, 7)*stepsMinusOne+delCon[2]*delCon[3])*osteps;
-			coVars(i,j,k, 8)  = (coVars(i,j,k, 8)*stepsMinusOne+delCon[1]*delPrim[13])*osteps;
-			coVars(i,j,k, 9)  = (coVars(i,j,k, 9)*stepsMinusOne+delCon[2]*delPrim[13])*osteps;
-			coVars(i,j,k,10)  = (coVars(i,j,k,10)*stepsMinusOne+delCon[3]*delPrim[13])*osteps;
-			coVars(i,j,k,11)  = (coVars(i,j,k,11)*stepsMinusOne+delCon[0]*delPrim[2])*osteps;
-			coVars(i,j,k,12)  = (coVars(i,j,k,12)*stepsMinusOne+delCon[0]*delPrim[3])*osteps;
-			coVars(i,j,k,13)  = (coVars(i,j,k,13)*stepsMinusOne+delCon[0]*delPrim[4])*osteps;
-			coVars(i,j,k,14)  = (coVars(i,j,k,14)*stepsMinusOne+delPrim[2]*delPrim[3])*osteps;
-			coVars(i,j,k,15)  = (coVars(i,j,k,15)*stepsMinusOne+delPrim[2]*delPrim[4])*osteps;
-			coVars(i,j,k,16)  = (coVars(i,j,k,16)*stepsMinusOne+delPrim[3]*delPrim[4])*osteps;
-			coVars(i,j,k,17)  = (coVars(i,j,k,17)*stepsMinusOne+delCon[0]*delPrim[11])*osteps;
-			coVars(i,j,k,18)  = (coVars(i,j,k,18)*stepsMinusOne+delPrim[2]*delPrim[11])*osteps;
-			coVars(i,j,k,19)  = (coVars(i,j,k,19)*stepsMinusOne+delPrim[3]*delPrim[11])*osteps;
-			coVars(i,j,k,20)  = (coVars(i,j,k,20)*stepsMinusOne+delPrim[4]*delPrim[11])*osteps;
+			cv /= primMeans(i,j,k,1);
+			
+			Real Qbar = cv*primMeans(i,j,k,6) - 0.5*(pow(primMeans(i,j,k,2),2)+pow(primMeans(i,j,k,3),2)+pow(primMeans(i,j,k,4),2));
+			Real dTdT = pow(odensity/cv,2.0)*(cuVars(i,j,k,4) - primVars(i,j,k,5) + pow(Qbar,2)*cuVars(i,j,k,0)
+				- 2.0*coVars(i,j,k,14) - 2.0*Qbar*coVars(i,j,k,3) + 2.0*Qbar*coVars(i,j,k,10));
+			primVars(i,j,k, 6) = (primVars(i,j,k,6)*stepsMinusOne+dTdT)*osteps;                  // dT.dT
+			
+			Real drhodT = odensity/cv*(coVars(i,j,k,3) - coVars(i,j,k,10) - Qbar*cuVars(i,j,k,0));
+			coVars(i,j,k,21) = (coVars(i,j,k,21)*stepsMinusOne+drhodT)*osteps;                   // drho.dT
+			
+			Real dudT = pow(odensity,2.0)/cv*(coVars(i,j,k,6) - primMeans(i,j,k,2)*coVars(i,j,k,3)
+				- coVars(i,j,k,11) + primMeans(i,j,k,2)*coVars(i,j,k,10) - Qbar*coVars(i,j,k,0)
+				+ primMeans(i,j,k,2)*Qbar*cuVars(i,j,k,0));
+			coVars(i,j,k,22) = (coVars(i,j,k,22)*stepsMinusOne+dudT)*osteps;                     // du.dT
+			
+			Real dvdT = pow(odensity,2.0)/cv*(coVars(i,j,k,8) - primMeans(i,j,k,3)*coVars(i,j,k,3)
+				- coVars(i,j,k,12) + primMeans(i,j,k,2)*coVars(i,j,k,10) - Qbar*coVars(i,j,k,1)
+				+ primMeans(i,j,k,3)*Qbar*cuVars(i,j,k,0));
+			coVars(i,j,k,23) = (coVars(i,j,k,23)*stepsMinusOne+dvdT)*osteps;                     // dv.dT
+			
+			Real dwdT = pow(odensity,2.0)/cv*(coVars(i,j,k,9) - primMeans(i,j,k,4)*coVars(i,j,k,3)
+				- coVars(i,j,k,13) + primMeans(i,j,k,2)*coVars(i,j,k,10) - Qbar*coVars(i,j,k,2)
+				+ primMeans(i,j,k,4)*Qbar*cuVars(i,j,k,0));
+			coVars(i,j,k,24) = (coVars(i,j,k,24)*stepsMinusOne+dwdT)*osteps;                     // dw.dT
+			
+			// TODO: Add T and E variances
+			// TODO: Add variances by species
 		});
 
 		// Global Granular Temperature

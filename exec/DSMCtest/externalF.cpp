@@ -8,9 +8,6 @@ void FhdParticleContainer::externalForce(Real dt)
     const Real* dx = Geom(lev).CellSize();
     const Real* plo = Geom(lev).ProbLo();
     const Real* phi = Geom(lev).ProbHi();
-    
-    RealVect grav;
-    grav[0] = 0.0; grav[1] = -9.8; grav[2] = 0.0;
 
 		Real meanDrag, fluctDrag;
 
