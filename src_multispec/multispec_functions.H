@@ -777,6 +777,7 @@ void ComputeChi(int nspecies_in,
     */
 
     if ( nspecies_in == 2){
+
         W(1) = rhoN[0]/rhotot;
         W(2) = rhoN[1]/rhotot;
 
@@ -795,7 +796,6 @@ void ComputeChi(int nspecies_in,
 
         return;
     }
-
     
     // compute chi either selecting inverse/pseudoinverse or iterative methods 
     if (use_lapack == 1){
@@ -803,11 +803,36 @@ void ComputeChi(int nspecies_in,
        //call amrex_error('compute_chi: use_lapack not supported')
     }
 
-    Print() << "HACK: MolarConcN[0]" << MolarConcN[0] << std::endl;
-    Print() << "HACK: MolarConcN[1]" << MolarConcN[1] << std::endl;
-    Print() << "HACK: MolarConcN[2]" << MolarConcN[2] << std::endl;
 
-    Dbar2chiIterative(nspecies_in,chi_iterations_in,D_barN,MolarConcN,molmass_in,chi);
+Print().SetPrecision(17) << "nspecies_in: " << nspecies_in << std::endl;
+Print().SetPrecision(17) << "chi_iterations_in: " << chi_iterations_in << std::endl;
+Print().SetPrecision(17) << "D_barN(1,1): " << D_barN(1,1) << std::endl;
+Print().SetPrecision(17) << "D_barN(1,2): " << D_barN(1,2) << std::endl;
+Print().SetPrecision(17) << "D_barN(1,3): " << D_barN(1,3) << std::endl;
+Print().SetPrecision(17) << "D_barN(2,1): " << D_barN(2,1) << std::endl;
+Print().SetPrecision(17) << "D_barN(2,2): " << D_barN(2,2) << std::endl;
+Print().SetPrecision(17) << "D_barN(2,3): " << D_barN(2,3) << std::endl;
+Print().SetPrecision(17) << "D_barN(3,1): " << D_barN(3,1) << std::endl;
+Print().SetPrecision(17) << "D_barN(3,2): " << D_barN(3,2) << std::endl;
+Print().SetPrecision(17) << "D_barN(3,3): " << D_barN(3,3) << std::endl;
+Print().SetPrecision(17) << "MolarConcN[0]: " << MolarConcN[0] << std::endl;
+Print().SetPrecision(17) << "MolarConcN[1]: " << MolarConcN[1] << std::endl;
+Print().SetPrecision(17) << "MolarConcN[2]: " << MolarConcN[2] << std::endl;
+Print().SetPrecision(17) << "molmass_in[0]: " << molmass_in[0] << std::endl;
+Print().SetPrecision(17) << "molmass_in[1]: " << molmass_in[1] << std::endl;
+Print().SetPrecision(17) << "molmass_in[2]: " << molmass_in[2] << std::endl;
+Print().SetPrecision(17) << "chi(1,1): " << chi(1,1) << std::endl;
+Print().SetPrecision(17) << "chi(1,2): " << chi(1,2) << std::endl;
+Print().SetPrecision(17) << "chi(1,3): " << chi(1,3) << std::endl;
+Print().SetPrecision(17) << "chi(2,1): " << chi(2,1) << std::endl;
+Print().SetPrecision(17) << "chi(2,2): " << chi(2,2) << std::endl;
+Print().SetPrecision(17) << "chi(2,3): " << chi(2,3) << std::endl;
+Print().SetPrecision(17) << "chi(3,1): " << chi(3,1) << std::endl;
+Print().SetPrecision(17) << "chi(3,2): " << chi(3,2) << std::endl;
+Print().SetPrecision(17) << "chi(3,3): " << chi(3,3) << std::endl;
+
+//HACK: There is some issue in here, but I should confirm first with the code above.
+    Dbar2chiIterative(nspecies_in,chi_iterations_in,D_barN,MolarConcN,molmass_in,chi); 
 }
 
 
@@ -906,11 +931,11 @@ Print() << "HACK -- 1" << std::endl;
                 dest(row) = row - ntrace; 
             }
         }
-Print().SetPrecision(17) << "HACK: rhoWchiN(1) " << rhoWchiN(1,1) << " " << rhoWchiN(1,2) << " " << rhoWchiN(1,3) << std::endl;
-Print().SetPrecision(17) << "HACK: rhoWchiN(2) " << rhoWchiN(2,1) << " " << rhoWchiN(2,2) << " " << rhoWchiN(2,3) << std::endl;
-Print().SetPrecision(17) << "HACK: rhoWchiN(3) " << rhoWchiN(3,1) << " " << rhoWchiN(3,2) << " " << rhoWchiN(3,3) << std::endl;
+//Print().SetPrecision(17) << "HACK: rhoWchiN(1) " << rhoWchiN(1,1) << " " << rhoWchiN(1,2) << " " << rhoWchiN(1,3) << std::endl;
+//Print().SetPrecision(17) << "HACK: rhoWchiN(2) " << rhoWchiN(2,1) << " " << rhoWchiN(2,2) << " " << rhoWchiN(2,3) << std::endl;
+//Print().SetPrecision(17) << "HACK: rhoWchiN(3) " << rhoWchiN(3,1) << " " << rhoWchiN(3,2) << " " << rhoWchiN(3,3) << std::endl;
 
-        if (1){
+        if (0){
 //        if (ntrace == nspecies_in -1){
             // this is all trace species except for 1 (essentially pure solvent);
             MatrixToZeros(nspecies_in, rhoWchiN); //set rhoWchi to zero
@@ -923,13 +948,25 @@ rhoWchiN(row, column) = 0.0;
 }
 } 
 //}
-Print().SetPrecision(17) << "HACK: rhoWchiN(1) " << rhoWchiN(1,1) << " " << rhoWchiN(1,2) << " " << rhoWchiN(1,3) << std::endl;
-Print().SetPrecision(17) << "HACK: rhoWchiN(2) " << rhoWchiN(2,1) << " " << rhoWchiN(2,2) << " " << rhoWchiN(2,3) << std::endl;
-Print().SetPrecision(17) << "HACK: rhoWchiN(3) " << rhoWchiN(3,1) << " " << rhoWchiN(3,2) << " " << rhoWchiN(3,3) << std::endl;
-        } else if (ntrace == 0){
+//Print().SetPrecision(17) << "HACK: rhoWchiN(1) " << rhoWchiN(1,1) << " " << rhoWchiN(1,2) << " " << rhoWchiN(1,3) << std::endl;
+//Print().SetPrecision(17) << "HACK: rhoWchiN(2) " << rhoWchiN(2,1) << " " << rhoWchiN(2,2) << " " << rhoWchiN(2,3) << std::endl;
+//Print().SetPrecision(17) << "HACK: rhoWchiN(3) " << rhoWchiN(3,1) << " " << rhoWchiN(3,2) << " " << rhoWchiN(3,3) << std::endl;
+        } else if (1){
+        //} else if (ntrace == 0){
             // there are no trace species hence chi = chi_sub
 
-            ComputeChi(nspecies_in, molmass_in, rhoN, rhotot, MolarConcN, chi, D_barN, chi_iterations_in); 
+            ComputeChi(nspecies_in, molmass_in, rhoN, rhotot, MolarConcN, chi, D_barN, chi_iterations_in); //issue in here.
+
+
+//chi(1,1) = 1;
+//chi(1,2) = 1;
+//chi(1,3) = 1;
+//chi(2,1) = 1;
+//chi(2,2) = 1;
+//chi(2,3) = 1;
+//chi(3,1) = 1;
+//chi(2,2) = 1;
+//chi(3,3) = 1;
 
             for (int row=1; row<=nspecies_in; ++row){
                 for (int column=1; column<=nspecies_in; ++column){
@@ -953,7 +990,7 @@ Print().SetPrecision(17) << "HACK: rhoWchiN(3) " << rhoWchiN(3,1) << " " << rhoW
           // if there are trace species, we consider a subsystem 
           // consisting of non-trace species
           nspecies_sub = nspecies - ntrace;
-          ComputeChiSub(nspecies_in, 
+          ComputeChiSub(nspecies_in,     //Not close
                       nspecies_sub,
                       dest,
                       molmass_in,
