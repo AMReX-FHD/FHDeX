@@ -12,36 +12,6 @@ module mass_flux_utilities_module
 
 contains
 
-  subroutine compute_molconc_molmtot(tlo, thi, &
-                                     rho, rhlo, rhhi, &
-                                     rhotot, rtlo, rthi, &
-                                     molarconc, mclo, mchi, &
-                                     molmtot, mtlo, mthi) bind(C,name="compute_molconc_molmtot")
- 
-    integer         , intent(in   ) :: tlo(3),thi(3)
-    integer         , intent(in   ) :: rhlo(3),rhhi(3), rtlo(3),rthi(3), mclo(3),mchi(3), mtlo(3),mthi(3)
-    double precision, intent(in   ) ::       rho(rhlo(1):rhhi(1),rhlo(2):rhhi(2),rhlo(3):rhhi(3),nspecies) ! density
-    double precision, intent(in   ) ::    rhotot(rtlo(1):rthi(1),rtlo(2):rthi(2),rtlo(3):rthi(3))          ! total density in each cell 
-    double precision, intent(inout) :: molarconc(mclo(1):mchi(1),mclo(2):mchi(2),mclo(3):mchi(3),nspecies) ! molar concentration
-    double precision, intent(inout) ::   molmtot(mtlo(1):mthi(1),mtlo(2):mthi(2),mtlo(3):mthi(3))          ! total molar mass 
-    
-    ! local variables
-    integer          :: i,j,k
-
-    ! for specific box, now start loops over alloted cells    
-    do k=tlo(3), thi(3)
-       do j=tlo(2), thi(2)
-          do i=tlo(1), thi(1)
-
-             call compute_molconc_molmtot_local(nspecies,molmass,rho(i,j,k,:),rhotot(i,j,k),&
-                                                molarconc(i,j,k,:),molmtot(i,j,k))
-
-          end do
-       end do
-    end do
- 
-  end subroutine compute_molconc_molmtot
-  
   subroutine compute_molconc_molmtot_local(nspecies_in,molmass_in,rho,rhotot,molarconc,molmtot)
 
     integer,          intent(in)   :: nspecies_in
@@ -70,32 +40,6 @@ contains
     end do
     
   end subroutine compute_molconc_molmtot_local
-
-  subroutine compute_Gamma(tlo,thi, &
-                           molarconc, mlo, mhi, &
-                           Hessian, hlo, hhi, & 
-                           Gamma, glo, ghi) bind(C,name="compute_Gamma")
-
-    integer, intent(in   )          :: tlo(3),thi(3)
-    integer, intent(in   )          :: mlo(3),mhi(3), hlo(3),hhi(3), glo(3),ghi(3) 
-    double precision, intent(in   ) :: molarconc(mlo(1):mhi(1),mlo(2):mhi(2),mlo(3):mhi(3),nspecies) ! molar concentration 
-    double precision, intent(in   ) ::   Hessian(hlo(1):hhi(1),hlo(2):hhi(2),hlo(3):hhi(3),nspecies*nspecies)
-    double precision, intent(inout) ::     Gamma(glo(1):ghi(1),glo(2):ghi(2),glo(3):ghi(3),nspecies*nspecies)
-
-    ! local varialbes
-    integer          :: i,j,k
-
-    ! for specific box, now start loops over alloted cells 
-    do k=tlo(3),thi(3)
-       do j=tlo(2),thi(2)
-          do i=tlo(1),thi(1)
-
-             call compute_Gamma_local(molarconc(i,j,k,:),Hessian(i,j,k,:),Gamma(i,j,k,:),nspecies)
-          end do
-       end do
-    end do
-   
-  end subroutine compute_Gamma
 
   subroutine compute_Gamma_local(molarconc,Hessian,Gamma,nspecies)
    

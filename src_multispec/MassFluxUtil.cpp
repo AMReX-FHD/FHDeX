@@ -31,6 +31,7 @@ void ComputeMolconcMolmtot(const MultiFab& rho_in,
                 RhoN[n] = rho(i,j,k,n);
             }
 
+            //compatabile type casting for molmass?
             ComputeMolconcMolmtotLocal(nspecies, molmass, 
                             RhoN, rhotot(i,j,k),          
                             MolarConcN, molmtot(i,j,k));
@@ -93,29 +94,92 @@ void ComputeGamma(const MultiFab& molarconc_in,
     }
 }
 
-void ComputeRhoWChi(const MultiFab& rho,
-		    const MultiFab& rhotot,
-		    const MultiFab& molarconc,
-		    MultiFab& rhoWchi,
-		    const MultiFab& D_bar)
+void ComputeRhoWChi(const MultiFab& rho_in,
+		    const MultiFab& rhotot_in,
+		    const MultiFab& molarconc_in,
+		    MultiFab& rhoWchi_in,
+		    const MultiFab& D_bar_in)
 {
     BL_PROFILE_VAR("ComputeRhoWChi()",ComputeRhoWChi);
 
-    int ng = rhoWchi.nGrow();
+    int ng = rhoWchi_in.nGrow();
     
     // Loop over boxes
-    for (MFIter mfi(rhoWchi,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
+    for (MFIter mfi(rhoWchi_in,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
 
         // Create cell-centered box
         const Box& bx = mfi.growntilebox(ng);
 
-        compute_rhoWchi(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
-			BL_TO_FORTRAN_ANYD(rho[mfi]),
-			BL_TO_FORTRAN_ANYD(rhotot[mfi]),
-			BL_TO_FORTRAN_ANYD(molarconc[mfi]),
-			BL_TO_FORTRAN_ANYD(rhoWchi[mfi]),
-			BL_TO_FORTRAN_ANYD(D_bar[mfi]));
+        /* HACK: Currently Under Development */
+        const Array4<const Real>& rho = rho_in.array(mfi);
+        const Array4<const Real>& rhotot = rhotot_in.array(mfi);
+        const Array4<const Real>& molarconc = molarconc_in.array(mfi);
+        const Array4<      Real>& rhoWchi = rhoWchi_in.array(mfi); //HACK
+        const Array4<const Real>& D_bar = D_bar_in.array(mfi);
+
+
+
+
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+        
+            GpuArray<Real, MAX_SPECIES> rhoN;
+            GpuArray<Real, MAX_SPECIES> MolarConcN;
+            Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> rhoWchiN; 
+            Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> D_barN;
+
+
+            // Read MultiFab data into arrays
+            for (int n=0; n<nspecies; ++n){
+
+                rhoN[n] = rho(i,j,k,n);
+                MolarConcN[n] = molarconc(i,j,k,n);
+                for (int m=0; m<nspecies; ++m){
+                    rhoWchiN(m+1,n+1) = rhoWchi(i,j,k,n*nspecies+m); //HACK 
+                    D_barN(m+1,n+1) = D_bar(i,j,k,n*nspecies+m); 
+                }
+            }
+
+//HACK
+// Print().SetPrecision(15) << "rhoN:    " << rhoN[0] << std::endl; 
+// Print().SetPrecision(15) << "MolarConcN:    " << MolarConcN[0] << std::endl; 
+// Print().SetPrecision(15) << "rhoWchiN:    " << rhoWchiN(1,1) << std::endl; 
+// Print().SetPrecision(15) << "D_barN:    " << D_barN(1,1) << std::endl; 
+
+
+            //compatabile type casting for molmass?
+            ComputeRhoWChiLocal(rhoN, rhotot(i,j,k), MolarConcN, rhoWchiN, D_barN, nspecies, molmass, chi_iterations);
+
+            // Write back to MultiFab
+            for (int n=0; n<nspecies; ++n ){
+                for (int m=0; m<nspecies; ++m){ 
+                    rhoWchi(i,j,k,n*nspecies+m) = rhoWchiN(m+1,n+1);  
+                } 
+            }
+
+        
+
+
+        });  /*HACK: End current development */
+//Fortran
+      //compute_rhoWchi(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
+			//BL_TO_FORTRAN_ANYD(rho_in[mfi]),
+			//BL_TO_FORTRAN_ANYD(rhotot_in[mfi]),
+			//BL_TO_FORTRAN_ANYD(molarconc_in[mfi]),
+			//BL_TO_FORTRAN_ANYD(rhoWchi_in[mfi]),
+			//BL_TO_FORTRAN_ANYD(D_bar_in[mfi]));
+
+
+
+
+
+
     }
+
+
+    //Print() << "--- D_bar  --- " << std::endl << D_bar_in << std::endl << "---" << std::endl;
+    //Print() << "--- rhoWchi --- " << std::endl << rhoWchi_in << std::endl << "---" << std::endl;
+    //Print() << "--- rhoWchi --- " << std::endl << rhoWchi_in << std::endl << "---" << std::endl;
 
 }
 
