@@ -284,10 +284,8 @@ void ComputeMolconcMolmtotLocal( int nspecies_in,
                 GpuArray<Real, MAX_SPECIES>& RhoN,
                 Real rhotot_in,
                 GpuArray<Real, MAX_SPECIES>& MolarConcN,
-                Real& molmtot_in,
-                int& func_call_counter){
+                Real& molmtot_in){
         
-    func_call_counter++;
 //Print().SetPrecision(17) << " inner B molmtot_in: " << molmtot_in << std::endl;
 
     GpuArray<Real, MAX_SPECIES> W; /**< Mass fraction w_i = rho_i/rho */
@@ -304,12 +302,20 @@ void ComputeMolconcMolmtotLocal( int nspecies_in,
 //Print().SetPrecision(17) << "inner A molmtot_in: " << molmtot_in << std::endl;
 
     // calculate molar concentrations in each cell (x_i=m*w_i/m_i) 
+//HACK are these nan?     
+//Print().SetPrecision(17) << "molmass_in[0]: " << molmass_in[0] << std::endl;
+//Print().SetPrecision(17) << "molmass_in[1]: " << molmass_in[1] << std::endl;
+//Print().SetPrecision(17) << "molmass_in[2]: " << molmass_in[2] << std::endl;
+//
+//Print().SetPrecision(17) << "W[0]: " << W[0] << std::endl;
+//Print().SetPrecision(17) << "W[1]: " << W[1] << std::endl;
+//Print().SetPrecision(17) << "W[2]: " << W[2] << std::endl;
 
     for (int n=0; n<nspecies_in; ++n){
-        MolarConcN[n] = molmtot_in * W[n] / molmass_in[n]; //HACK error found
+        MolarConcN[n] = molmtot_in * W[n] / molmass_in[n]; 
     }
     
-//Print().SetPrecision(17) << "inner A molmtot_in: " << molmtot_in;
+//HACK -- MolarConcN already nan here.
 Print().SetPrecision(17) << "molarconc(1): " << MolarConcN[0] << std::endl;
 Print().SetPrecision(17) << "molarconc(2): " << MolarConcN[1] << std::endl;
 Print().SetPrecision(17) << "molarconc(3): " << MolarConcN[2] << std::endl;
@@ -474,7 +480,7 @@ void ComputeChiSub(int nspecies_in,
     Real Deff, tmp; 
 
     
-//HACK -- probably unnecessary
+//HACK -- probably unnecessary but makes for easier compare.
 for (int n=0; n<MAX_SPECIES; ++n){
   molmass_sub[n] = 0.0;
   rhoN_sub[n] = 0.0;
@@ -503,7 +509,7 @@ for (int m=0; m<MAX_SPECIES; ++m){
     }
 
 
-rhotot_sub = 1.0; //HACK
+rhotot_sub = 1.0; //HACK -- since its almost 1 and not behaving
  //Print().SetPrecision(17) << "rhotot_sub: " << rhotot_sub << std::endl;
 
 //HACK -- looks good
@@ -539,25 +545,25 @@ rhotot_sub = 1.0; //HACK
 //Print().SetPrecision(17) << "D_bar_sub(3,2): " << D_barN_sub(3,2) << std::endl;
 //Print().SetPrecision(17) << "D_bar_sub(3,3): " << D_barN_sub(3,3) << std::endl;
     
-molmtot_sub = 0.0;
-int func_call_counter = 0;
+molmtot_sub = 0.0; //HACK
 Print().SetPrecision(17) << " B molmtot_sub " << molmtot_sub << std::endl;
     // compute molarconc_sub and molmtot_sub
-    ComputeMolconcMolmtotLocal(nspecies_in, molmass_sub, rhoN_sub, rhotot_sub, MolarConcN_sub, molmtot_sub, func_call_counter);
-Print().SetPrecision(17) << "func_call_counter: " << func_call_counter << std::endl;
-    
-molmtot_sub = 3.0; //HACK -- don't understand why this won't set to the correct value
+    ComputeMolconcMolmtotLocal(nspecies_in, molmass_sub, rhoN_sub, rhotot_sub, MolarConcN_sub, molmtot_sub);
 Print().SetPrecision(17) << " A molmtot_sub " << molmtot_sub << std::endl;
-//Print().SetPrecision(17) << "molarconc_sub(1): " << MolarConcN_sub[0] << std::endl;
-//Print().SetPrecision(17) << "molarconc_sub(2): " << MolarConcN_sub[1] << std::endl;
-//Print().SetPrecision(17) << "molarconc_sub(3): " << MolarConcN_sub[2] << std::endl;
+molmtot_sub = 3.0; //HACK -- don't understand why this won't set to the correct value
+                   //         it keeps giving me nan. 
+Print().SetPrecision(17) << " AA molmtot_sub " << molmtot_sub << std::endl;
+Print().SetPrecision(17) << "molarconc_sub(1): " << MolarConcN_sub[0] << std::endl;
+Print().SetPrecision(17) << "molarconc_sub(2): " << MolarConcN_sub[1] << std::endl;
+Print().SetPrecision(17) << "molarconc_sub(3): " << MolarConcN_sub[2] << std::endl;
+// HACK -- these are doing something similar
 
     // compute chi_sub
     ComputeChi(nspecies_sub, molmass_sub, rhoN_sub, rhotot_sub, MolarConcN_sub, chi_sub, D_barN_sub, chi_iterations_in);
 
-Print().SetPrecision(17) << "molarconc_sub(1): " << MolarConcN_sub[0] << std::endl;
-Print().SetPrecision(17) << "molarconc_sub(2): " << MolarConcN_sub[1] << std::endl;
-Print().SetPrecision(17) << "molarconc_sub(3): " << MolarConcN_sub[2] << std::endl;
+//Print().SetPrecision(17) << "molarconc_sub(1): " << MolarConcN_sub[0] << std::endl;
+//Print().SetPrecision(17) << "molarconc_sub(2): " << MolarConcN_sub[1] << std::endl;
+//Print().SetPrecision(17) << "molarconc_sub(3): " << MolarConcN_sub[2] << std::endl;
 
     // compute full rho*W*chi
     MatrixToZeros(MAX_SPECIES, rhoWchiN); //MatrixToZeros(nspecies_in, rhoWchiN);
@@ -571,7 +577,7 @@ Print().SetPrecision(17) << "molarconc_sub(3): " << MolarConcN_sub[2] << std::en
                 } 
             }
             Deff = 1.0/Deff;
-Print().SetPrecision(17) << "Deff: " << Deff << std::endl;
+Print().SetPrecision(17) << "Deff: " << Deff << std::endl; //HACK -- looks like becoming nan from MolarConcN 
             
             // assign rhoWchi
             for (int row=1; row<=nspecies_in; ++row){
@@ -967,14 +973,18 @@ void ComputeRhoWChiLocal(
      */
     Array1D<int, 1, MAX_SPECIES> dest;    
 
+    
+//HACK -- setting to zero makes comparison easier
+for (int row=1; row<=nspecies_in; ++row){
+for (int column=1; column<=nspecies_in; ++column){
+rhoWchiN(row, column) = 0.0;
+}
+} 
 
 // HACK -- verify inputs are the same
 //Print() << "rhoN: " << rhoN << std::endl;    
 //Print() << "MolarConcN: " << MolarConcN << std::endl;    
 
-//for (int n=0; n< MAX_SPECIES; ++n){
-    //Print() << "rhoN[" << n << "]: " << rhoN[n] << std::endl;    
-//}    
 
     //HACK
     MatrixToZeros(MAX_SPECIES, chi);
@@ -1000,7 +1010,6 @@ void ComputeRhoWChiLocal(
 
     } else { 
 
-//Print() << "HACK -- 2" << std::endl; 
        // compute the number of trace species
        // build the mapping for expanding/contracting arrays
         ntrace = 0;
@@ -1013,26 +1022,15 @@ void ComputeRhoWChiLocal(
                 dest(row) = row - ntrace; 
             }
         }
-//Print().SetPrecision(17) << "HACK: rhoWchiN(1) " << rhoWchiN(1,1) << " " << rhoWchiN(1,2) << " " << rhoWchiN(1,3) << std::endl;
-//Print().SetPrecision(17) << "HACK: rhoWchiN(2) " << rhoWchiN(2,1) << " " << rhoWchiN(2,2) << " " << rhoWchiN(2,3) << std::endl;
-//Print().SetPrecision(17) << "HACK: rhoWchiN(3) " << rhoWchiN(3,1) << " " << rhoWchiN(3,2) << " " << rhoWchiN(3,3) << std::endl;
 
-        if (0){
+        if (0){ //HACK
 //        if (ntrace == nspecies_in -1){
             // this is all trace species except for 1 (essentially pure solvent);
             MatrixToZeros(nspecies_in, rhoWchiN); //set rhoWchi to zero
-////HACK
-for (int row=1; row<=nspecies_in; ++row){
-for (int column=1; column<=nspecies_in; ++column){
-rhoWchiN(row, column) = 0.0;
-//        if ( rhoWchiN(row,column) != rhoWchiN(column,row) ){
-//                Print() << "zeros Not Symmetric " << std::endl;
-}
-} 
-//}
-        } else if (0){
+
+        } else if (0){ //HACK
         //} else if (ntrace == 0){
-            // there are no trace species hence chi = chi_sub
+            // there are no trace species, hence chi = chi_sub
 
             ComputeChi(nspecies_in, molmass_in, rhoN, rhotot, MolarConcN, chi, D_barN, chi_iterations_in); 
 
@@ -1049,7 +1047,7 @@ rhoWchiN(row, column) = 0.0;
 
 //Print().SetPrecision(17) << "nspecies_sub: " << nspecies_sub << std::endl;
            
-          ComputeChiSub(nspecies_in,     //Not close
+          ComputeChiSub(nspecies_in,     //HACK -- error search -> This function is not even close to correct
                       nspecies_sub,
                       dest,
                       molmass_in,
@@ -1057,24 +1055,9 @@ rhoWchiN(row, column) = 0.0;
                       D_barN,
                       rhoWchiN,
                       chi_iterations_in);
-////HACK
-//for (int row=1; row<=nspecies_in; ++row){
-//for (int column=1; column<=nspecies_in; ++column){
-//        if ( rhoWchiN(row,column) != rhoWchiN(column,row) ){
-//                Print() << "Chi_sub Not Symmetric " << std::endl;
-//}
-//} 
-//}
-//          
-// Print().SetPrecision(17) << "HACK: rhoWchiN(1) " << rhoWchiN(1,1) << " " << rhoWchiN(1,2) << " " << rhoWchiN(1,3) << std::endl;
-// Print().SetPrecision(17) << "HACK: rhoWchiN(2) " << rhoWchiN(2,1) << " " << rhoWchiN(2,2) << " " << rhoWchiN(2,3) << std::endl;
-// Print().SetPrecision(17) << "HACK: rhoWchiN(3) " << rhoWchiN(3,1) << " " << rhoWchiN(3,2) << " " << rhoWchiN(3,3) << std::endl;
 
         } 
     }
-//if ( (rhoWchiN(1,1)+rhoWchiN(1,2)+rhoWchiN(1,3)+
-//      rhoWchiN(2,1)+rhoWchiN(2,2)+rhoWchiN(2,3)+
-//      rhoWchiN(3,1)+rhoWchiN(3,2)+rhoWchiN(3,3)) != 0.0 ){ Abort();}
 } 
 
 #endif
