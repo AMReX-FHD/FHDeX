@@ -336,7 +336,7 @@ void main_driver(const char* argv)
         chi.setVal(1.0,0,nspecies,ngc);
         D.setVal(1.0,0,nspecies*nspecies,ngc);
 
-        if (plot_cross) {
+        if ((plot_cross) and (do_1D==0)) {
             if (ParallelDescriptor::IOProcessor()) outfile.open(filename, std::ios::app);
         }
 
@@ -722,7 +722,7 @@ void main_driver(const char* argv)
             }
         }
 
-        if (plot_cross) {
+        if ((plot_cross) and (do_1D==0)) {
             if (ParallelDescriptor::IOProcessor()) outfile.open(filename);
         }
 
@@ -806,7 +806,7 @@ void main_driver(const char* argv)
         // reset statistics after n_steps_skip
         // if n_steps_skip is negative, we use it as an interval
         if ((n_steps_skip > 0 && step == n_steps_skip) ||
-            (n_steps_skip < 0 && step%amrex::Math::abs(n_steps_skip == 0)) ) {
+            (n_steps_skip < 0 && step%amrex::Math::abs(n_steps_skip) == 0) ) {
 
             cuMeans.setVal(0.0);
             cuVars.setVal(0.0);
