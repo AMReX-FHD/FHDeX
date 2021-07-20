@@ -31,10 +31,15 @@ void ComputeMolconcMolmtot(const MultiFab& rho_in,
                 RhoN[n] = rho(i,j,k,n);
             }
 
+            int z = 0;
             //compatabile type casting for molmass?
-            ComputeMolconcMolmtotLocal(nspecies, molmass, 
-                            RhoN, rhotot(i,j,k),          
-                            MolarConcN, molmtot(i,j,k));
+            ComputeMolconcMolmtotLocal(nspecies, 
+                            molmass, 
+                            RhoN, 
+                            rhotot(i,j,k),          
+                            MolarConcN, 
+                            molmtot(i,j,k),
+                            z);
 
             for (int n=0; n<nspecies; ++n ){
                 molarconc(i,j,k,n) = MolarConcN[n] ;
@@ -118,6 +123,10 @@ void ComputeRhoWChi(const MultiFab& rho_in,
         const Array4<const Real>& D_bar = D_bar_in.array(mfi);
 
 
+//HACK
+Print() << "molmass[0]: " << molmass[0] << std::endl;
+Print() << "molmass[1]: " << molmass[1] << std::endl;
+Print() << "molmass[2]: " << molmass[2] << std::endl;
 
 
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
@@ -148,7 +157,15 @@ void ComputeRhoWChi(const MultiFab& rho_in,
 
 
             //compatabile type casting for molmass?
-            ComputeRhoWChiLocal(rhoN, rhotot(i,j,k), MolarConcN, rhoWchiN, D_barN, nspecies, molmass, chi_iterations);
+            
+            ComputeRhoWChiLocal(rhoN, 
+                            rhotot(i,j,k), 
+                            MolarConcN, 
+                            rhoWchiN, 
+                            D_barN, 
+                            nspecies, 
+                            molmass, 
+                            chi_iterations);
 
             // Write back to MultiFab
             for (int n=0; n<nspecies; ++n ){
@@ -161,6 +178,9 @@ void ComputeRhoWChi(const MultiFab& rho_in,
 
 
         });  /*HACK: End current development */
+Print() << "molmass[0]: " << molmass[0] << std::endl;
+Print() << "molmass[1]: " << molmass[1] << std::endl;
+Print() << "molmass[2]: " << molmass[2] << std::endl;
 //Fortran
       //compute_rhoWchi(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
 			//BL_TO_FORTRAN_ANYD(rho_in[mfi]),
