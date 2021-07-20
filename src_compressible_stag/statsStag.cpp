@@ -77,9 +77,9 @@ void evaluateStatsStag1D(const MultiFab& cons, MultiFab& consMean, MultiFab& con
     int nstats = 2*nvars+8+2*nspecies;
 
     // Get all nstats at xcross for all j and k, and store in data_xcross
-    Vector<Real>  data_xcross(nstats*n_cells[1]*n_cells[2], 0.0); // values at x* for a given y and z
+    amrex::Gpu::ManagedVector<Real> data_xcross(nstats*n_cells[1]*n_cells[2], 0.0); // values at x* for a given y and z
     GetPencilCross(data_xcross,consMean,primMean,prim_in,cons,vel,velMean,cumom,cumomMean,nstats);
-    ParallelDescriptor::ReduceRealSum(data_xcross.dataPtr(),nstats*n_cells[1]*n_cells[2]);
+    ParallelDescriptor::ReduceRealSum(data_xcross.data(),nstats*n_cells[1]*n_cells[2]);
 
     // Update Spatial Correlations
     EvaluateSpatialCorrelations1D(spatialCross1D,data_xcross,consMean,primMean,prim_in,cons,vel,velMean,cumom,cumomMean,steps,nstats);
@@ -511,7 +511,7 @@ void GetSliceAverageCross(Vector<Real>& dataAvMeans_x,
 // Get Pencil values at x* ///////////////
 // for all j and k ///////////////////////
 // ///////////////////////////////////////
-void GetPencilCross(Vector<Real>& data_xcross,
+void GetPencilCross(amrex::Gpu::ManagedVector<Real>& data_xcross_in,
                     const MultiFab& consMean,
                     const MultiFab& primMean,
                     const MultiFab& prim_in,
@@ -550,10 +550,12 @@ void GetPencilCross(Vector<Real>& data_xcross,
         const Array4<const Real> momymeans = cumomMean[1].array(mfi);
         const Array4<const Real> momzmeans = cumomMean[2].array(mfi);
         
-        for (auto k = lo.z; k <= hi.z; ++k) {
-        for (auto j = lo.y; j <= hi.y; ++j) {
-        for (auto i = lo.x; i <= hi.x; ++i) {
-
+        //for (auto k = lo.z; k <= hi.z; ++k) {
+        //for (auto j = lo.y; j <= hi.y; ++j) {
+        //for (auto i = lo.x; i <= hi.x; ++i) {
+        Real* data_xcross = data_xcross_in.data();
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
             if (i==cross_cell) {
                 int index = k*n_cells[1]*nstats + j*nstats;
                 data_xcross[index + 0]  = cu(i,j,k,0);                                 // rho-instant
@@ -580,12 +582,13 @@ void GetPencilCross(Vector<Real>& data_xcross,
                     data_xcross[index + 18+4*ns+2]  = prim(i,j,k,6+ns);               // Yk-instant
                     data_xcross[index + 18+4*ns+3]  = primmeans(i,j,k,6+ns);          // Yk-mean
                 }
-            }
-        }
-        }
-        }
+           }
+        //}
+        //}
+        //}
 
-    } // end MFITer
+        }); // end MFITer
+    }
 }
 
 //////////////////////////////////////////
@@ -801,7 +804,7 @@ void EvaluateSpatialCorrelations3D(Vector<Real>& spatialCross,
 // Update Spatial Correlations ///////////
 // ///////////////////////////////////////
 void EvaluateSpatialCorrelations1D(MultiFab& spatialCross1D,
-                                   const Vector<Real>& data_xcross,
+                                   amrex::Gpu::ManagedVector<Real>& data_xcross_in,
                                    const MultiFab& consMean,
                                    const MultiFab& primMean,
                                    const MultiFab& prim_in,
@@ -847,8 +850,14 @@ void EvaluateSpatialCorrelations1D(MultiFab& spatialCross1D,
 
         const Array4<      Real> spatialCross = spatialCross1D.array(mfi);
         
-        for (auto k = lo.z; k <= hi.z; ++k) {
-        for (auto j = lo.y; j <= hi.y; ++j) {
+        Real* data_xcross = data_xcross_in.data();
+
+        //for (auto k = lo.z; k <= hi.z; ++k) {
+        //for (auto j = lo.y; j <= hi.y; ++j) {
+        //for (auto i = lo.x; i <= hi.x; ++i) {
+
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
 
             //////////////////////////////////////////////
             // Get fluctuations at xcross for this j and k
@@ -857,7 +866,7 @@ void EvaluateSpatialCorrelations1D(MultiFab& spatialCross1D,
 
             // Get mean values
             Real meanrhocross = data_xcross[index + 1];
-            Vector<Real>  meanYkcross(nspecies, 0.0);
+            GpuArray<Real,MAX_SPECIES> meanYkcross;
             for (int ns=0; ns<nspecies; ++ns) {
                 meanYkcross[ns] =  data_xcross[index + 18+4*ns+3];
             }
@@ -869,7 +878,7 @@ void EvaluateSpatialCorrelations1D(MultiFab& spatialCross1D,
             Real deljxcross  = data_xcross[index + 4] - data_xcross[index + 5];
             Real deljycross  = data_xcross[index + 6] - data_xcross[index + 7];
             Real deljzcross  = data_xcross[index + 8] - data_xcross[index + 9];
-            Vector<Real>  delrhoYkcross(nspecies, 0.0);
+            GpuArray<Real,MAX_SPECIES> delrhoYkcross;
             for (int ns=0; ns<nspecies; ++ns) {
                 delrhoYkcross[ns] =  data_xcross[index + 18+4*ns+0] - data_xcross[index + 18+4*ns+1];
             }
@@ -877,7 +886,7 @@ void EvaluateSpatialCorrelations1D(MultiFab& spatialCross1D,
             // Get fluctuations of some primitive variables (for direct fluctuation calculations)
             Real delTcross = data_xcross[index + 16] - data_xcross[index + 17];
             Real delvxcross = data_xcross[index + 10] - data_xcross[index + 11];
-            Vector<Real>  delYkcross(nspecies, 0.0);
+            GpuArray<Real,MAX_SPECIES> delYkcross;
             for (int ns=0; ns<nspecies; ++ns) {
                 delYkcross[ns] =  data_xcross[index + 18+4*ns+2] - data_xcross[index + 18+4*ns+3];
             }
@@ -898,7 +907,6 @@ void EvaluateSpatialCorrelations1D(MultiFab& spatialCross1D,
             // delG = \vec{v}\cdot\vec{\deltaj}
             Real delGcross = vxmeancross*deljxcross + vymeancross*deljycross + vzmeancross*deljzcross;
 
-        for (auto i = lo.x; i <= hi.x; ++i) {
 
             ////////////////////////////////////////
             // Get fluctuations at this cell (i,j,k)
@@ -906,7 +914,7 @@ void EvaluateSpatialCorrelations1D(MultiFab& spatialCross1D,
             
             // Get mean densities
             Real meanrho = cumeans(i,j,k,0);;
-            Vector<Real>  meanYk(nspecies, 0.0);
+            GpuArray<Real,MAX_SPECIES>  meanYk;
             for (int ns=0; ns<nspecies; ++ns) {
                 meanYk[ns] = primmeans(i,j,k,6+ns);;
             }
@@ -917,7 +925,7 @@ void EvaluateSpatialCorrelations1D(MultiFab& spatialCross1D,
             Real deljx  = 0.5*(momx(i,j,k) + momx(i+1,j,k)) - 0.5*(momxmeans(i,j,k) + momxmeans(i+1,j,k));
             Real deljy  = 0.5*(momy(i,j,k) + momy(i,j+1,k)) - 0.5*(momymeans(i,j,k) + momymeans(i,j+1,k));
             Real deljz  = 0.5*(momz(i,j,k) + momz(i,j,k+1)) - 0.5*(momzmeans(i,j,k) + momzmeans(i,j,k+1));
-            Vector<Real>  delrhoYk(nspecies, 0.0);
+            GpuArray<Real,MAX_SPECIES> delrhoYk;
             for (int ns=0; ns<nspecies; ++ns) {
                 delrhoYk[ns] = cu(i,j,k,5+ns) - cumeans(i,j,k,5+ns);
             }
@@ -925,7 +933,7 @@ void EvaluateSpatialCorrelations1D(MultiFab& spatialCross1D,
             // Get fluctuations of some primitive variables (for direct fluctuation calculations)
             Real delT = prim(i,j,k,4) - primmeans(i,j,k,4);
             Real delvx = 0.5*(velx(i,j,k) + velx(i+1,j,k)) - 0.5*(velxmeans(i,j,k) + velxmeans(i+1,j,k));
-            Vector<Real>  delYk(nspecies, 0.0);
+            GpuArray<Real,MAX_SPECIES> delYk;
             for (int ns=0; ns<nspecies; ++ns) {
                 delYk[ns] = prim(i,j,k,6+ns) - primmeans(i,j,k,6+ns);
             }
@@ -1048,9 +1056,11 @@ void EvaluateSpatialCorrelations1D(MultiFab& spatialCross1D,
             delrhoYkdelrhoYk = (spatialCross(i,j,k,37+nspecies-1)*stepsminusone + delrhoYkcross[nspecies-1]*delrhoYk[nspecies-1])*stepsinv;
             spatialCross(i,j,k,37+nspecies+1) = (1.0/(meanrho*meanrhocross))*(delrhoYkdelrhoYk - meanYkcross[nspecies-1]*spatialCross(i,j,k,9)
                                                     - meanYk[nspecies-1]*spatialCross(i,j,k,11) + meanYkcross[nspecies-1]*meanYk[nspecies-1]*spatialCross(i,j,k,0));
-        }
-        }
-        }
+
+        });
+       // }
+       // }
+       // }
     }
 }
 

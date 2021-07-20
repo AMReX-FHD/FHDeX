@@ -262,7 +262,7 @@ void GetSliceAverageCross(Vector<Real>& dataAvMeans_x,
                          const std::array<MultiFab, AMREX_SPACEDIM>& cumomMean,
                          const int nstats);
 
-void GetPencilCross(Vector<Real>& data_xcross,
+void GetPencilCross(amrex::Gpu::ManagedVector<Real>& data_xcross,
                     const MultiFab& consMean,
                     const MultiFab& primMean,
                     const MultiFab& prim_in,
@@ -281,7 +281,7 @@ void EvaluateSpatialCorrelations3D(Vector<Real>& spatialCross,
                                    const int ncross);
 
 void EvaluateSpatialCorrelations1D(MultiFab& spatialCross1D,
-                                   const Vector<Real>& data_xcross,
+                                   amrex::Gpu::ManagedVector<Real>& data_xcross,
                                    const MultiFab& consMean,
                                    const MultiFab& primMean,
                                    const MultiFab& prim_in,
