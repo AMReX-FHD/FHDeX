@@ -195,7 +195,10 @@ void ReadCheckPoint(int& step,
         primVars.define(ba,dm,nprimvars + 5,ngc);
 
         // spatialCross
-        spatialCross.define(ba,dm,6,ngc);
+        spatialCross.define(ba,dm,8,ngc);
+
+        // miscStats
+        miscStats.define(ba,dm,10,ngc);
  
         //eta and kappa
         eta.define(ba,dm,1,ngc);
@@ -203,35 +206,50 @@ void ReadCheckPoint(int& step,
     }
 
     // read in the MultiFab data
-    // cu, cuMeans, cuVars
+    // cu
     VisMF::Read(cu,
                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cu"));
-    VisMF::Read(cuMeans,
-                amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cuMeans"));
-    VisMF::Read(cuVars,
-                amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cuVars"));
 
-    // prim, primMeans, primVars
+    // prim
     VisMF::Read(prim,
                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "prim"));
-    VisMF::Read(primMeans,
-                amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "primMeans"));
-    VisMF::Read(primVars,
-                amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "primVars"));
-
-    // spatialCross
-    VisMF::Read(spatialCross,
-                amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "spatialCross"));
-
-    // miscStats
-    VisMF::Read(miscStats,
-                amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "miscStats"));
  
     // eta and kappa
     VisMF::Read(eta,
                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "eta"));
     VisMF::Read(kappa,
                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "kappa"));
+
+    if (reset_stats == 0) {
+        // cuMeans, cuVars
+        VisMF::Read(cuMeans,
+                    amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cuMeans"));
+        VisMF::Read(cuVars,
+                    amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cuVars"));
+
+        // primMeans, primVars
+        VisMF::Read(primMeans,
+                    amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "primMeans"));
+        VisMF::Read(primVars,
+                    amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "primVars"));
+
+        // spatialCross
+        VisMF::Read(spatialCross,
+                    amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "spatialCross"));
+
+        // miscStats
+        VisMF::Read(miscStats,
+                    amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "miscStats"));
+    }
+    else if (reset_stats == 1) {
+        cuMeans.setVal(0.0);
+        cuVars.setVal(0.0);
+        primMeans.setVal(0.0);
+        primVars.setVal(0.0);
+        spatialCross.setVal(0.0);
+        miscStats.setVal(0.0);
+        statsCount = 1;
+    }
 }
 
 

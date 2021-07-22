@@ -1,5 +1,17 @@
 #include "common_functions.H"
 
+Real ComputeSpatialMean(MultiFab& mf, const int& incomp)
+{
+    BL_PROFILE_VAR("ComputeSpatialMean()",ComputeSpatialMean);
+
+    int npts = (AMREX_SPACEDIM == 2) ? n_cells[0]*n_cells[1] : n_cells[0]*n_cells[1]*n_cells[2];
+
+    Real average = mf.sum(incomp) / npts;
+
+    return average;
+
+}
+
 Real ComputeSpatialVariance(MultiFab& mf, const int& incomp)
 {
     BL_PROFILE_VAR("ComputeSpatialVariance()",ComputeSpatialVariance);

@@ -1,10 +1,6 @@
 #ifndef _multispec_functions_H_
 #define _multispec_functions_H_
 
-// used for binary diffusion coefficients
-// needs to be MAX_SPECIES*(MAX_SPECIES-1)/2, MAX_SPECIES is in common_functions.H
-#define MAX_ELEMENT 6
-
 #include <AMReX_MultiFab.H>
 
 #include "multispec_functions_F.H"
@@ -245,6 +241,12 @@ void FillRhototGhost(MultiFab& rhotot_in, const MultiFab& conc_in, const Geometr
 /////////////////////////////////////////////////////////////////////////////////
 // Device calls from  MassFluxUtil.cpp
 
+/** 
+ * \brief Compute total molar mass
+ *
+ * \param[in] W Mass fractions.
+ * \param[out] molmtot Total molar mass
+ */
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void GetMolTot(const GpuArray<Real, MAX_SPECIES>& W,
                 Real& molmtot)
@@ -258,6 +260,14 @@ void GetMolTot(const GpuArray<Real, MAX_SPECIES>& W,
     molmtot = 1.0 / sumOverN; 
 }  
 
+/**
+ * \param[in] nspecies_in Number of species
+ * \param[in] molmass_in 
+ * \param[in] RhoN Density, last dim for number of species
+ * \param[in] rhotot_in Total density in each cell
+ * \param[out] MolarConcN Molar concentration
+ * \param[out] molmtot_in Total molar mass 
+ */
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void ComputeMolconcMolmtotLocal( int nspecies_in,
                 GpuArray<Real, MAX_SPECIES>& molmass_in,
@@ -266,7 +276,7 @@ void ComputeMolconcMolmtotLocal( int nspecies_in,
                 GpuArray<Real, MAX_SPECIES>& MolarConcN,
                 Real& molmtot_in){
 
-    GpuArray<Real, MAX_SPECIES> W;
+    GpuArray<Real, MAX_SPECIES> W; /**< Mass fraction w_i = rho_i/rho */
 
     // calculate mass fraction and total molar mass (1/m=Sum(w_i/m_i))
 
@@ -284,6 +294,11 @@ void ComputeMolconcMolmtotLocal( int nspecies_in,
     
 }
 
+
+/**
+ * \brief Set all values in 2D Array to zero.
+ *
+ */
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void MatrixToZeros(int nspecies,
                 Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& matrixIn) {
@@ -295,7 +310,9 @@ void MatrixToZeros(int nspecies,
     }
 }
 
-
+/**
+ * \brief Populate X_xxT
+ */
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void PopulateX_xxT(int nspecies,
                 Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& X_xxT,
@@ -314,6 +331,16 @@ void PopulateX_xxT(int nspecies,
     }
 }
 
+/**
+ * \brief Compute Gamma = I + matmul(X_xxT, Hessian). j
+ *
+ * Adds the identity matrix during initialization. Then adds product of X_xxT and Hessian matrices.
+ *
+ * \param[in] nspecies Number of species.
+ * \param[out] GammaN 
+ * \param[in] X_xxT 
+ * \param[in] HessianN 
+ */
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void GammaIPlusMatmul(int nspecies,
                 Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& GammaN,
@@ -326,7 +353,7 @@ void GammaIPlusMatmul(int nspecies,
             if (row == column) {
                 GammaN(row,column) = 1.0;   // add the identity matrix
             } else {
-                GammaN(row,column) = 0.0;   // intialize off-diagonals to 0
+                GammaN(row,column) = 0.0;   // initialize off-diagonals to 0
             }
             for (int n=1; n<=nspecies; ++n){ 
                 GammaN(row, column) += X_xxT(row,n) * HessianN(n,column);
@@ -335,6 +362,15 @@ void GammaIPlusMatmul(int nspecies,
     }
 }
 
+/**
+ * \brief Compute Gamma
+ *
+ * \param[in] MolarConcN 
+ * \param[in] HessianN 
+ * \param[in,out] GammaN
+ * \param[in] nspecies Number of species.
+ *
+ */
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void ComputeGammaLocal(
                 GpuArray<Real, MAX_SPECIES>& MolarConcN,
@@ -352,7 +388,7 @@ void ComputeGammaLocal(
         Real w2 = MolarConcN[1];
 
         if (std::abs(w1+w2-1.0) > 1e-14){  
-            Print() << "Mole fractions do not add up in gamma computation" << std::endl; 
+            printf("Mole fractions do not add up in gamma computation\n");
         }
         if (w1 < 0){ 
             w1 = 0.0;

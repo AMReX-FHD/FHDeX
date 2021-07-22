@@ -335,6 +335,9 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
 
             miscstats(i,j,k,2) = (miscstats(i,j,k,2)*stepsminusone + miscVals[16]*yzAvMeans[i*nstats+17])*stepsinv; // <(T(x*)T(x))>
             miscstats(i,j,k,3) = (miscstats(i,j,k,3)*stepsminusone + miscVals[16]*yzAvMeans[i*nstats+0])*stepsinv; // <(T(x*)rho(x))>
+
+            miscstats(i,j,k,4) = (miscstats(i,j,k,4)*stepsminusone + delrhoS*delpxSstar)*stepsinv; // <(jx(x*)-<jx(x*)>)(rho(x)-<rho(x)>)>, sliced
+            miscstats(i,j,k,5) = (miscstats(i,j,k,5)*stepsminusone + delES*delrhoSstar)*stepsinv; // <(rho(x*)-<rho(x*)>)(rhoE(x)-<rhoE(x)>)>, sliced
                  
             spatialcross(i,j,k,0) = miscVals[13];
             spatialcross(i,j,k,1) = yzAvMeans[i*nstats+18];
@@ -348,6 +351,8 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
             } else {
                 spatialcross(i,j,k,5) = (delpdelrho - miscVals[2]*miscstats(i,j,k,1))/miscVals[3];
             }
+            spatialcross(i,j,k,6) = miscstats(i,j,k,4);
+            spatialcross(i,j,k,7) = miscstats(i,j,k,5);
         }
         }
         }

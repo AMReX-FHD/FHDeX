@@ -173,13 +173,21 @@ void main_driver(const char* argv)
     primMeans.setVal(0.0);
     primVars.setVal(0.0);
    
-    //Miscstats
-    // 0        time averaged kinetic energy density
-
+    //miscStats & miscVals (only used internally -- not outputted)
     MultiFab miscStats(ba,dmap,10,ngc);
-    Real miscVals[20]; 
-    MultiFab spatialCross(ba,dmap,6,ngc);
-    MultiFab spatialCrossAv(ba,dmap,6,ngc);
+    Real miscVals[20];
+
+    // spatial cross correlations
+    // 0: slice average of mean temperature
+    // 1: yz- average of mean temperature
+    // 2: <T*T>
+    // 3: <delta T* delta T>
+    // 4: <delta T* delta rho>
+    // 5: <delta u* delta rho> 
+    // 6: <delta jx* delta rho>
+    // 7: <delta rho* delta rhoE>
+    MultiFab spatialCross(ba,dmap,8,ngc);
+    MultiFab spatialCrossAv(ba,dmap,8,ngc);
 
     miscStats.setVal(0.0);
     spatialCross.setVal(0.0);

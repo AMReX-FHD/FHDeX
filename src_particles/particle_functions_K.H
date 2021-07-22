@@ -686,9 +686,10 @@ void compute_forces_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
         if(p1.idata(FHD_intData::pinned) == 0)
         {
             int spec1 = p1.idata(FHD_intData::species)-1;
-
+            //cout << "id1: " << p1.id()  << endl;
             for (const auto& p2 : nbor_data.getNeighbors(i))
             {       
+                //cout << "id2: " << p2.id() << endl;
 
                 int spec2 = p2.idata(FHD_intData::species)-1;
                 int p_matrix_val = spec1*nspecies + spec2;
@@ -701,7 +702,9 @@ void compute_forces_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
 
                     const Real r = sqrt(dx*dx + dy*dy + dz*dz);
 
-                    const Real rMax = rmax[p_matrix_val]*sigma[p_matrix_val];       
+                    const Real rMax = rmax[p_matrix_val]*sigma[p_matrix_val];
+                    
+                    //cout << "id1: " << p1.id() << ", id2: " << p2.id() << ", r: " << r << ", rmax: " << rMax << endl;
 
                     if (r <= rMax)
                     {

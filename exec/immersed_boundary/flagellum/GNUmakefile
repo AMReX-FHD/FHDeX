@@ -11,13 +11,14 @@ AMREX_HOME ?= ../../../../amrex
 FBOXLIB_HOME ?= ../../../../FBoxLib
 
 DEBUG     = FALSE
-PROFILE   = FALSE
 USE_MPI   = TRUE
 USE_OMP   = FALSE
+USE_CUDA  = FALSE
 COMP      = gnu
 DIM       = 3
 DSMC      = TRUE
 
+TINY_PROFILE = TRUE
 USE_PARTICLES = TRUE
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
