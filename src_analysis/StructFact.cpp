@@ -6,6 +6,25 @@
 #include "AMReX_PlotFileUtil.H"
 #include "AMReX_BoxArray.H"
 
+#ifdef AMREX_USE_CUDA
+std::string cufftErrorToString (const cufftResult& err)
+{
+    switch (err) {
+    case CUFFT_SUCCESS:  return "CUFFT_SUCCESS";
+    case CUFFT_INVALID_PLAN: return "CUFFT_INVALID_PLAN";
+    case CUFFT_ALLOC_FAILED: return "CUFFT_ALLOC_FAILED";
+    case CUFFT_INVALID_TYPE: return "CUFFT_INVALID_TYPE";
+    case CUFFT_INVALID_VALUE: return "CUFFT_INVALID_VALUE";
+    case CUFFT_INTERNAL_ERROR: return "CUFFT_INTERNAL_ERROR";
+    case CUFFT_EXEC_FAILED: return "CUFFT_EXEC_FAILED";
+    case CUFFT_SETUP_FAILED: return "CUFFT_SETUP_FAILED";
+    case CUFFT_INVALID_SIZE: return "CUFFT_INVALID_SIZE";
+    case CUFFT_UNALIGNED_DATA: return "CUFFT_UNALIGNED_DATA";
+    default: return std::to_string(err) + " (unknown error code)";
+    }
+}
+#endif
+
 StructFact::StructFact()
 {}
 
@@ -285,7 +304,11 @@ void StructFact::FortStructure(const MultiFab& variables, const Geometry& geom,
   variables_dft_imag.define(ba, dm, NVAR, 0);
 
   if (fft_type_in == 1) {
+#ifdef AMREX_USE_CUDA
+      Print() << "Using cuFFT\n";
+#else
       Print() << "Using FFTW\n";
+#endif
       ComputeFFTW(variables, variables_dft_real, variables_dft_imag, geom);
   }
   else if (ba.size() == ParallelDescriptor::NProcs()) {
@@ -629,9 +652,14 @@ void StructFact::ComputeFFTW(const MultiFab& variables,
     variables_dft_imag_onegrid.define(ba_onegrid, dmap_onegrid, 1, 0);
 
 //    fftw_mpi_init();
-    
+
+#ifdef AMREX_USE_CUDA
+    using FFTplan = cufftHandle;
+    using FFTcomplex = cuDoubleComplex;
+#else
     using FFTplan = fftw_plan;
     using FFTcomplex = fftw_complex;
+#endif
 
     // contain to store FFT - note it is shrunk by "half" in x
     Vector<std::unique_ptr<BaseFab<GpuComplex<Real> > > > spectral_field;

@@ -11,9 +11,13 @@
 #include <AlignedAllocator.h>
 #include <Dfft.H>
 
-// These are for FFTW
+// These are for FFTW or cuFFT
+#ifdef AMREX_USE_CUDA
+#include <cufft.h>
+#else
 #include <fftw3.h>
 #include <fftw3-mpi.h>
+#endif
 #include <AMReX_GpuComplex.H>
 
 #include <string>
