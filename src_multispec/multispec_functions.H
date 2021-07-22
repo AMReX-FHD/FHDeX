@@ -258,16 +258,26 @@ void ComputeChi(int nspecies_in,
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void GetMolTot( GpuArray<Real, MAX_SPECIES>& W,
                 GpuArray<Real, MAX_SPECIES>& molmass_in,
-                Real& molmtot,
+                Real& molmtot_in,
                 int nspecies_in)
 {
-    Real sumOverN = 0;
+    Real sumWOverN = 0.0;
+//Print().SetPrecision(17) << "inner B molmtot_in: " << molmtot_in << std::endl;
 
     for (int n=0; n<nspecies_in; ++n){
-        sumOverN += W[n] / molmass_in[n];                
+//Print().SetPrecision(17) << "sumWOverN: " << sumWOverN << std::endl;
+//Print().SetPrecision(17) << "W[" << n << "]: " << W[n] << std::endl;
+//Print().SetPrecision(17) << "molmass_in["<< n << "]: " << molmass_in[n] << std::endl;
+        if (molmass_in[n] == 0) continue; //HACK -- shouldn't need this
+        sumWOverN += W[n] / molmass_in[n]; //HACK -- was making nan values -- why is molmass_in = 0?               
+//HACK
+//Print().SetPrecision(17) << "sumWOverN: " << sumWOverN << std::endl;
+//Print().SetPrecision(17) << "W[" << n << "]: " << W[n] << std::endl;
+//Print().SetPrecision(17) << "molmass_in["<< n << "]: " << molmass_in[n] << std::endl;
     }  
 
-    molmtot = 1.0 / sumOverN; 
+    molmtot_in = 1.0 / sumWOverN; 
+//Print().SetPrecision(17) << "inner A molmtot_in: " << molmtot_in << std::endl;
 }  
 
 /**
@@ -286,10 +296,10 @@ void ComputeMolconcMolmtotLocal( int nspecies_in,
                 GpuArray<Real, MAX_SPECIES>& MolarConcN,
                 Real& molmtot_in){
         
-//Print().SetPrecision(17) << " inner B molmtot_in: " << molmtot_in << std::endl;
 
     GpuArray<Real, MAX_SPECIES> W; /**< Mass fraction w_i = rho_i/rho */
 
+//Print().SetPrecision(17) << "inner B molmtot_in: " << molmtot_in << std::endl;
     // calculate mass fraction and total molar mass (1/m=Sum(w_i/m_i))
 
     for (int n=0; n<nspecies_in; ++n){
@@ -297,8 +307,7 @@ void ComputeMolconcMolmtotLocal( int nspecies_in,
     }
 
 
-//Print().SetPrecision(17) << "inner B molmtot_in: " << molmtot_in << std::endl;
-    GetMolTot(W, molmass_in, molmtot_in, nspecies_in); 
+    GetMolTot(W, molmass_in, molmtot_in, nspecies_in); //HACK -- not making nan 
 //Print().SetPrecision(17) << "inner A molmtot_in: " << molmtot_in << std::endl;
 
     // calculate molar concentrations in each cell (x_i=m*w_i/m_i) 
@@ -310,15 +319,19 @@ void ComputeMolconcMolmtotLocal( int nspecies_in,
 //Print().SetPrecision(17) << "W[0]: " << W[0] << std::endl;
 //Print().SetPrecision(17) << "W[1]: " << W[1] << std::endl;
 //Print().SetPrecision(17) << "W[2]: " << W[2] << std::endl;
+Print().SetPrecision(17) << "molmtot_in: " << molmtot_in << std::endl;
 
     for (int n=0; n<nspecies_in; ++n){
-        MolarConcN[n] = molmtot_in * W[n] / molmass_in[n]; 
+Print().SetPrecision(17) << "W[" << n << "]: " << W[n] << std::endl;
+Print().SetPrecision(17) << "molmass_in["<< n+1 << "]: " << molmass_in[n] << std::endl;
+//        if (molmass_in[n] == 0) continue; //HACK - should not need this
+        MolarConcN[n] = molmtot_in * W[n] / molmass_in[n];  //HACK - START HERE -- Probably Cause of nan
     }
     
 //HACK -- MolarConcN already nan here.
-Print().SetPrecision(17) << "molarconc(1): " << MolarConcN[0] << std::endl;
-Print().SetPrecision(17) << "molarconc(2): " << MolarConcN[1] << std::endl;
-Print().SetPrecision(17) << "molarconc(3): " << MolarConcN[2] << std::endl;
+//Print().SetPrecision(17) << "molarconc(1): " << MolarConcN[0] << std::endl;
+//Print().SetPrecision(17) << "molarconc(2): " << MolarConcN[1] << std::endl;
+//Print().SetPrecision(17) << "molarconc(3): " << MolarConcN[2] << std::endl;
 
 }
 
@@ -545,14 +558,14 @@ rhotot_sub = 1.0; //HACK -- since its almost 1 and not behaving
 //Print().SetPrecision(17) << "D_bar_sub(3,2): " << D_barN_sub(3,2) << std::endl;
 //Print().SetPrecision(17) << "D_bar_sub(3,3): " << D_barN_sub(3,3) << std::endl;
     
-molmtot_sub = 0.0; //HACK
-Print().SetPrecision(17) << " B molmtot_sub " << molmtot_sub << std::endl;
+molmtot_sub = 0.0; //HACK -- maybe unnecessary
+//Print().SetPrecision(17) << " B molmtot_sub " << molmtot_sub << std::endl;
     // compute molarconc_sub and molmtot_sub
-    ComputeMolconcMolmtotLocal(nspecies_in, molmass_sub, rhoN_sub, rhotot_sub, MolarConcN_sub, molmtot_sub);
-Print().SetPrecision(17) << " A molmtot_sub " << molmtot_sub << std::endl;
-molmtot_sub = 3.0; //HACK -- don't understand why this won't set to the correct value
+    ComputeMolconcMolmtotLocal(nspecies_sub, molmass_sub, rhoN_sub, rhotot_sub, MolarConcN_sub, molmtot_sub);
+//Print().SetPrecision(17) << " A molmtot_sub " << molmtot_sub << std::endl;
+//molmtot_sub = 3.0; //HACK -- don't understand why this won't set to the correct value
                    //         it keeps giving me nan. 
-Print().SetPrecision(17) << " AA molmtot_sub " << molmtot_sub << std::endl;
+Print().SetPrecision(17) << "molmtot_sub: " << molmtot_sub << std::endl;
 Print().SetPrecision(17) << "molarconc_sub(1): " << MolarConcN_sub[0] << std::endl;
 Print().SetPrecision(17) << "molarconc_sub(2): " << MolarConcN_sub[1] << std::endl;
 Print().SetPrecision(17) << "molarconc_sub(3): " << MolarConcN_sub[2] << std::endl;

@@ -35,9 +35,9 @@ void ComputeMolconcMolmtot(const MultiFab& rho_in,
             ComputeMolconcMolmtotLocal(nspecies, 
                             molmass, 
                             RhoN, 
-                            rhotot(i,j,k,0),          //HACK -- is it this? Need to confirm 
+                            rhotot(i,j,k),          //HACK -- is it this? Need to confirm 
                             MolarConcN, 
-                            molmtot(i,j,k,0));       //HACK -- is it this?
+                            molmtot(i,j,k));       //HACK -- is it this?
 
             for (int n=0; n<nspecies; ++n ){
                 molarconc(i,j,k,n) = MolarConcN[n] ;
@@ -150,8 +150,8 @@ void ComputeRhoWChi(const MultiFab& rho_in,
                             MolarConcN, 
                             rhoWchiN, 
                             D_barN, 
-                            nspecies, 
-                            molmass, 
+                            nspecies,  //int
+                            molmass,  //GpuArray
                             chi_iterations);
 
             // Write back to MultiFab
