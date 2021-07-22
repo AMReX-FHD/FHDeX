@@ -5,6 +5,7 @@ AMREX_HOME ?= ../../../amrex/
 DEBUG         = FALSE
 USE_MPI       = TRUE
 USE_OMP       = FALSE
+USE_CUDA      = FALSE
 COMP          = gnu
 DIM           = 3
 TINY_PROFILE  = FALSE

@@ -249,9 +249,11 @@ void ComputeChi(int nspecies_in,
                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& D_barN,
                int chi_iterations_in); 
 
-/** 
+/**
  * \brief Compute total molar mass
  *
+ * \param[in] nspecies_in Number of species
+ * \param[in] molmass_in
  * \param[in] W Mass fractions.
  * \param[out] molmtot Total molar mass
  */
@@ -272,11 +274,11 @@ void GetMolTot( GpuArray<Real, MAX_SPECIES>& W,
 
 /**
  * \param[in] nspecies_in Number of species
- * \param[in] molmass_in 
+ * \param[in] molmass_in
  * \param[in] RhoN Density, last dim for number of species
  * \param[in] rhotot_in Total density in each cell
  * \param[out] MolarConcN Molar concentration
- * \param[out] molmtot_in Total molar mass 
+ * \param[out] molmtot_in Total molar mass
  */
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void ComputeMolconcMolmtotLocal( int nspecies_in,
@@ -323,16 +325,16 @@ void MatrixToZeros(int nspecies_in,
  * \brief Populate X_xxT
  */
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void PopulateX_xxT(int nspecies,
+void PopulateX_xxT(int nspecies_in,
                 Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& X_xxT,
                 GpuArray<Real, MAX_SPECIES>& MolarConcN) {
 
-    for (int row=1; row<=nspecies;++row ){ 
+    for (int row=1; row<=nspecies_in;++row ){
         // diagonal entries
         X_xxT(row,row) = MolarConcN[row-1] - std::pow(MolarConcN[row-1],2);
         for (int column=1; column<=row-1; ++column ){
             // off-diagonal entries
-            // form x*traspose(x) off diagonals 
+            // form x*traspose(x) off diagonals
             X_xxT(row,column) = -MolarConcN[row-1]*MolarConcN[column-1];
             //symmetric
             X_xxT(column,row) = X_xxT(row,column);
@@ -341,7 +343,7 @@ void PopulateX_xxT(int nspecies,
 }
 
 /**
- * \brief Compute Gamma = I + matmul(X_xxT, Hessian). j
+ * \brief Compute Gamma = I + matmul(X_xxT, Hessian).
  *
  * Adds the identity matrix during initialization. Then adds product of X_xxT and Hessian matrices.
  *
@@ -383,7 +385,7 @@ void GammaIPlusMatmul(int nspecies_in,
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void ComputeGammaLocal(
                 GpuArray<Real, MAX_SPECIES>& MolarConcN,
-                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& HessianN, 
+                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& HessianN,
                 Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& GammaN,
                 int nspecies_in){
     
@@ -396,22 +398,22 @@ void ComputeGammaLocal(
         Real w1 = MolarConcN[0];
         Real w2 = MolarConcN[1];
 
-        if (std::abs(w1+w2-1.0) > 1e-14){  
+        if (std::abs(w1+w2-1.0) > 1e-14){
             printf("Mole fractions do not add up in gamma computation\n");
         }
-        if (w1 < 0){ 
+        if (w1 < 0){
             w1 = 0.0;
             w2 = 1.0;
         }
-        if (w2 < 0){ 
+        if (w2 < 0){
             w1 = 1.0;
             w2 = 0.0;
         }
 
         GammaN(1,2) = w1 * n_gex * n_gex * alpha_gex * std::pow(w1,n_gex-1) * std::pow(w2,n_gex-1);
         GammaN(2,1) = w2 * n_gex * n_gex * alpha_gex * std::pow(w2,n_gex-1) * std::pow(w1,n_gex-1);
-        GammaN(1,1) = 1.0 + w1 * n_gex * (n_gex-1) * alpha_gex * std::pow(w1,n_gex-2) * std::pow(w2,n_gex); 
-        GammaN(2,2) = 1.0 + w2 * n_gex * (n_gex-1) * alpha_gex * std::pow(w2,n_gex-2) * std::pow(w1,n_gex); 
+        GammaN(1,1) = 1.0 + w1 * n_gex * (n_gex-1) * alpha_gex * std::pow(w1,n_gex-2) * std::pow(w2,n_gex);
+        GammaN(2,2) = 1.0 + w2 * n_gex * (n_gex-1) * alpha_gex * std::pow(w2,n_gex-2) * std::pow(w1,n_gex);
 
     } else {
 
