@@ -45,7 +45,10 @@ void ComputeMolconcMolmtot(const MultiFab& rho_in,
 
         });
         
+    //HACK -- molmtot same here
+    //Print() << "molmtot(0,0,0,0): " << molmtot(0,0,0,0) << std::endl;
     }
+
 
 }
 
@@ -162,9 +165,13 @@ void ComputeRhoWChi(const MultiFab& rho_in,
             }
 
         
+        printf("rhoWchi %25.16E\n", rhoWchi(i,j,k,0));
 
 
         });  /*HACK: End current development */
+        
+      
+     
 //Fortran
       //compute_rhoWchi(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
 			//BL_TO_FORTRAN_ANYD(rho_in[mfi]),
@@ -174,17 +181,7 @@ void ComputeRhoWChi(const MultiFab& rho_in,
 			//BL_TO_FORTRAN_ANYD(D_bar_in[mfi]));
 
 
-
-
-
-
     }
-
-
-    //Print() << "--- D_bar  --- " << std::endl << D_bar_in << std::endl << "---" << std::endl;
-    //Print() << "--- rhoWchi --- " << std::endl << rhoWchi_in << std::endl << "---" << std::endl;
-    //Print() << "--- rhoWchi --- " << std::endl << rhoWchi_in << std::endl << "---" << std::endl;
-
 }
 
 void ComputeZetaByTemp(const MultiFab& molarconc,
