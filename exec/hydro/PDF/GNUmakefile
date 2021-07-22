@@ -11,6 +11,9 @@ PRECISION = DOUBLE
 
 USE_MPI   = TRUE
 USE_OMP   = FALSE
+USE_CUDA  = FALSE
+
+TINY_PROFILE = FALSE
 
 ###################################################
 
