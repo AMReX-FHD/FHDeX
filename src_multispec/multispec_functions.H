@@ -262,22 +262,12 @@ void GetMolTot( GpuArray<Real, MAX_SPECIES>& W,
                 int nspecies_in)
 {
     Real sumWOverN = 0.0;
-//Print().SetPrecision(17) << "inner B molmtot_in: " << molmtot_in << std::endl;
 
     for (int n=0; n<nspecies_in; ++n){
-//Print().SetPrecision(17) << "sumWOverN: " << sumWOverN << std::endl;
-//Print().SetPrecision(17) << "W[" << n << "]: " << W[n] << std::endl;
-//Print().SetPrecision(17) << "molmass_in["<< n << "]: " << molmass_in[n] << std::endl;
-        if (molmass_in[n] == 0) continue; //HACK -- shouldn't need this
-        sumWOverN += W[n] / molmass_in[n]; //HACK -- was making nan values -- why is molmass_in = 0?               
-//HACK
-//Print().SetPrecision(17) << "sumWOverN: " << sumWOverN << std::endl;
-//Print().SetPrecision(17) << "W[" << n << "]: " << W[n] << std::endl;
-//Print().SetPrecision(17) << "molmass_in["<< n << "]: " << molmass_in[n] << std::endl;
+        sumWOverN += W[n] / molmass_in[n]; 
     }  
 
     molmtot_in = 1.0 / sumWOverN; 
-//Print().SetPrecision(17) << "inner A molmtot_in: " << molmtot_in << std::endl;
 }  
 
 /**
@@ -299,39 +289,17 @@ void ComputeMolconcMolmtotLocal( int nspecies_in,
 
     GpuArray<Real, MAX_SPECIES> W; /**< Mass fraction w_i = rho_i/rho */
 
-//Print().SetPrecision(17) << "inner B molmtot_in: " << molmtot_in << std::endl;
     // calculate mass fraction and total molar mass (1/m=Sum(w_i/m_i))
-
     for (int n=0; n<nspecies_in; ++n){
         W[n] = RhoN[n] / rhotot_in;
     }
 
-
-    GetMolTot(W, molmass_in, molmtot_in, nspecies_in); //HACK -- not making nan 
-//Print().SetPrecision(17) << "inner A molmtot_in: " << molmtot_in << std::endl;
+    GetMolTot(W, molmass_in, molmtot_in, nspecies_in); 
 
     // calculate molar concentrations in each cell (x_i=m*w_i/m_i) 
-//HACK are these nan?     
-//Print().SetPrecision(17) << "molmass_in[0]: " << molmass_in[0] << std::endl;
-//Print().SetPrecision(17) << "molmass_in[1]: " << molmass_in[1] << std::endl;
-//Print().SetPrecision(17) << "molmass_in[2]: " << molmass_in[2] << std::endl;
-//
-//Print().SetPrecision(17) << "W[0]: " << W[0] << std::endl;
-//Print().SetPrecision(17) << "W[1]: " << W[1] << std::endl;
-//Print().SetPrecision(17) << "W[2]: " << W[2] << std::endl;
-//Print().SetPrecision(17) << "molmtot_in: " << molmtot_in << std::endl;
-
     for (int n=0; n<nspecies_in; ++n){
-//Print().SetPrecision(17) << "W[" << n+1 << "]: " << W[n] << std::endl;
-//Print().SetPrecision(17) << "molmass_in["<< n+1 << "]: " << molmass_in[n] << std::endl;
-//        if (molmass_in[n] == 0) continue; //HACK - should not need this
-        MolarConcN[n] = molmtot_in * W[n] / molmass_in[n];  //HACK - START HERE -- Probably Cause of nan
+        MolarConcN[n] = molmtot_in * W[n] / molmass_in[n];  
     }
-    
-//HACK -- MolarConcN already nan here.
-//Print().SetPrecision(17) << "molarconc(1): " << MolarConcN[0] << std::endl;
-//Print().SetPrecision(17) << "molarconc(2): " << MolarConcN[1] << std::endl;
-//Print().SetPrecision(17) << "molarconc(3): " << MolarConcN[2] << std::endl;
 
 }
 
@@ -484,8 +452,6 @@ void ComputeChiSub(int nspecies_in,
                 Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> rhoWchiN,
                 int chi_iterations_in){
 
-//Print() << "HACK -- ComputeChiSub" << std::endl;
-
     GpuArray<Real, MAX_SPECIES> molmass_sub, rhoN_sub, MolarConcN_sub;
     Array1D<Real, 1, MAX_SPECIES> W_sub;
     Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> D_barN_sub, chi_sub;
@@ -493,23 +459,11 @@ void ComputeChiSub(int nspecies_in,
     Real Deff, tmp; 
 
     
-//HACK -- probably unnecessary but makes for easier compare.
-for (int n=0; n<MAX_SPECIES; ++n){
-  molmass_sub[n] = 0.0;
-  rhoN_sub[n] = 0.0;
-  W_sub(n+1) = 0.0;
-  MolarConcN_sub[n] = 0.0;
-for (int m=0; m<MAX_SPECIES; ++m){
-  D_barN_sub(n,m) = 0.0;
-}
-}  
-
-   
     // create a vector of non-trace densities and molmass for the subsystem
     for (int row=1; row<=nspecies_in; ++row){
         if ( dest(row) != 0 ){
-            molmass_sub[dest(row)-1] = molmass_in[row-1];  //HACK -- Looks good
-            rhoN_sub[dest(row)-1] = rhoN[row-1]; //HACK -- Looks good
+            molmass_sub[dest(row)-1] = molmass_in[row-1];  
+            rhoN_sub[dest(row)-1] = rhoN[row-1]; 
         }    
     }
 
@@ -518,26 +472,17 @@ for (int m=0; m<MAX_SPECIES; ++m){
 
     //HACK -- exact until after to writing plotfile, then only close.
     for (int row=1; row<=nspecies_in; ++row){
-        rhotot_sub += rhoN_sub[row-1]; //HACK -- does rhoN_sub have values for all n? does it need to be initialized to 0
+        rhotot_sub += rhoN_sub[row-1]; 
     }
 
-
-//rhotot_sub = 1.0; //HACK -- since its almost 1 and not behaving
-//Print().SetPrecision(17) << "rhotot_sub: " << rhotot_sub << std::endl;
-//printf("rhotot_sub): %25.16E\n", rhotot_sub);
-
-//HACK -- looks good
     for (int row=1; row<=nspecies_sub; ++row){
         W_sub(row) = rhoN_sub[row-1]/rhotot_sub;
     }
-
-
 
     // construct D_bar_sub by mapping the full D_bar into D_bar_sub
     // you could read in only the lower diagonals, 
     // reflect, and set the diagnals to zero if you want
 
-//HACK -- looks good
     for (int row=1; row<=nspecies_in; ++row){
         if (dest(row) == 0){
             continue; //HACK -- equiv to cycle?
@@ -557,7 +502,7 @@ for (int m=0; m<MAX_SPECIES; ++m){
 
 
     // compute full rho*W*chi
-    MatrixToZeros(MAX_SPECIES, rhoWchiN); //MatrixToZeros(nspecies_in, rhoWchiN);
+    MatrixToZeros(nspecies_in, rhoWchiN); 
     for (int column=1; column<=nspecies_in; ++column){
         if (dest(column) == 0){   //column of trace species
             // compute Deff
@@ -600,16 +545,6 @@ for (int m=0; m<MAX_SPECIES; ++m){
     }
 
 //HACK -- so far looks good here until plotfile is called.
-
-//printf("rhoWchi(1,1): %25.16E\n", rhoWchiN(1,1));
-//printf("rhoWchi(1,2): %25.16E\n", rhoWchiN(1,2));
-//printf("rhoWchi(1,3): %25.16E\n", rhoWchiN(1,3));
-//printf("rhoWchi(2,1): %25.16E\n", rhoWchiN(2,1));
-//printf("rhoWchi(2,2): %25.16E\n", rhoWchiN(2,2));
-//printf("rhoWchi(2,3): %25.16E\n", rhoWchiN(2,3));
-//printf("rhoWchi(3,1): %25.16E\n", rhoWchiN(3,1));
-//printf("rhoWchi(3,2): %25.16E\n", rhoWchiN(3,2));
-//printf("rhoWchi(3,3): %25.16E\n", rhoWchiN(3,3));
 
 }
 
@@ -663,27 +598,23 @@ void Dbar2chiIterative( int nspecies_local,
     Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> Pmat, Deltamat, Zmat, Jmat, PJ, matrix1, matrix2;
 
 
-//HACK -- Good
     // mole fractions correction
     // Turned this off since it should be done in caller // HACK -- confirm
     for (int ii=1; ii<=nspecies_local; ++ii){
        Xkp(ii) = Xk[ii-1];
     }
 
-//HACK -- Good
     // molecular weight of mixture - EGLIB
     Real MWmix = 0.0; //HACK -- confirm -- F90 has Mwmix
     for (int ii=1; ii<=nspecies_local; ++ii){
         MWmix = MWmix + Xkp(ii)*molmass_local[ii-1];
     }
 
-//HACK -- Good
     // mass fractions correction - EGLIB
     for (int ii=1; ii<=nspecies_local; ++ii){
         Ykp(ii) = molmass_local[ii-1] / MWmix * Xkp(ii);
     }
 
-//HACK -- Good
     // Find Di matrix 
     Real term2;
     for (int i=1; i<=nspecies_local; ++i){
@@ -696,16 +627,14 @@ void Dbar2chiIterative( int nspecies_local,
         Di(i) = (1.0 - Ykp(i))/term2; 
     }
 
-//HACK -- Good
     // Compute Mmat and Minv
     for (int i=1; i<=nspecies_local; ++i){
         Mmat(i) = Xkp(i)/Di(i);
         Minv(i) = Di(i)/Xkp(i);
     }
     
-//HACK -- Good
     // Compute P matrix
-    MatrixToZeros(MAX_SPECIES, Pmat);  //HACK -- no difference -> change back
+    MatrixToZeros(nspecies_local, Pmat);  
     for (int i=1; i<=nspecies_local; ++i){
         for (int j=1; j<=nspecies_local; ++j){
             Pmat(i,j) = - Ykp(j);
@@ -715,10 +644,8 @@ void Dbar2chiIterative( int nspecies_local,
         }
     }
     
-
-//HACK -- is there a difference between -nan and nan??
     // Compute Deltamat
-    MatrixToZeros(MAX_SPECIES, Deltamat); //HACK -- no difference -> change back
+    MatrixToZeros(nspecies_local, Deltamat); 
     Real term1;
 
     for (int i=1; i<=nspecies_local; ++i){
@@ -737,15 +664,6 @@ void Dbar2chiIterative( int nspecies_local,
             Zmat(i,j) = -Deltamat(i,j);
         }
     }
-//Print().SetPrecision(17) << "Zmat(1,1): " << Zmat(1,1) << std::endl;
-//Print().SetPrecision(17) << "Zmat(1,2): " << Zmat(1,2) << std::endl;
-//Print().SetPrecision(17) << "Zmat(1,3): " << Zmat(1,3) << std::endl;
-//Print().SetPrecision(17) << "Zmat(2,1): " << Zmat(2,1) << std::endl;
-//Print().SetPrecision(17) << "Zmat(2,2): " << Zmat(2,2) << std::endl;
-//Print().SetPrecision(17) << "Zmat(2,3): " << Zmat(2,3) << std::endl;
-//Print().SetPrecision(17) << "Zmat(3,1): " << Zmat(3,1) << std::endl;
-//Print().SetPrecision(17) << "Zmat(3,2): " << Zmat(3,2) << std::endl;
-//Print().SetPrecision(17) << "Zmat(3,3): " << Zmat(3,3) << std::endl;
 
     // Compute Zmat
     for (int i=1; i<=nspecies_local; ++i){
@@ -761,7 +679,7 @@ void Dbar2chiIterative( int nspecies_local,
     }
 
     // Compute PJ
-    MatrixToZeros(MAX_SPECIES, PJ);
+    MatrixToZeros(nspecies_local, PJ);
     for (int i=1; i<=nspecies_local; ++i){
         for (int j=1; j<=nspecies_local; ++j){
             for (int k=1; k<=nspecies_local; ++k){
@@ -797,13 +715,6 @@ void Dbar2chiIterative( int nspecies_local,
         }
         Matrix2DSetEqual(chi, matrix1, MAX_SPECIES);
     }
-   
-//Print().SetPrecision(17) << "HACK: chi row 1 " << chi(1,1) << " " << chi(1,2) << " " << chi(1,3) << std::endl;
-//Print().SetPrecision(17) << "HACK: chi row 2 " << chi(2,1) << " " << chi(2,2) << " " << chi(2,3) << std::endl;
-//Print().SetPrecision(17) << "HACK: chi row 3 " << chi(3,1) << " " << chi(3,2) << " " << chi(3,3) << std::endl;
-
-
-
 }
     
 
@@ -839,12 +750,8 @@ void ComputeChi(int nspecies_in,
                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& D_barN,
                int chi_iterations_in){ 
 
-
-//Print() << "HACK -- ComputeChi" << std::endl;
-
-
     //local variables
-    Real eepsilon=1.d-16; //HACK -- confirm this
+    Real eepsilon=1.d-16; //HACK -- real or double 
 
     Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> Lambda;
     Array1D<Real, 1, MAX_SPECIES> W;
@@ -878,39 +785,10 @@ void ComputeChi(int nspecies_in,
     
     // compute chi either selecting inverse/pseudoinverse or iterative methods 
     if (use_lapack == 1){
-       printf("Compute Chi: use_lapack not supported\n"); //HACK -- pass errors back to host?
+       printf("Compute Chi: use_lapack not supported\n"); //HACK -- how to pass errors back to host?
        //call amrex_error('compute_chi: use_lapack not supported')
     }
 
-
-//Print().SetPrecision(17) << "nspecies_in: " << nspecies_in << std::endl;
-//Print().SetPrecision(17) << "chi_iterations_in: " << chi_iterations_in << std::endl;
-//Print().SetPrecision(17) << "D_barN(1,1): " << D_barN(1,1) << std::endl;
-//Print().SetPrecision(17) << "D_barN(1,2): " << D_barN(1,2) << std::endl;
-//Print().SetPrecision(17) << "D_barN(1,3): " << D_barN(1,3) << std::endl;
-//Print().SetPrecision(17) << "D_barN(2,1): " << D_barN(2,1) << std::endl;
-//Print().SetPrecision(17) << "D_barN(2,2): " << D_barN(2,2) << std::endl;
-//Print().SetPrecision(17) << "D_barN(2,3): " << D_barN(2,3) << std::endl;
-//Print().SetPrecision(17) << "D_barN(3,1): " << D_barN(3,1) << std::endl;
-//Print().SetPrecision(17) << "D_barN(3,2): " << D_barN(3,2) << std::endl;
-//Print().SetPrecision(17) << "D_barN(3,3): " << D_barN(3,3) << std::endl;
-//Print().SetPrecision(17) << "MolarConcN[0]: " << MolarConcN[0] << std::endl;
-//Print().SetPrecision(17) << "MolarConcN[1]: " << MolarConcN[1] << std::endl;
-//Print().SetPrecision(17) << "MolarConcN[2]: " << MolarConcN[2] << std::endl;
-//Print().SetPrecision(17) << "molmass_in[0]: " << molmass_in[0] << std::endl;
-//Print().SetPrecision(17) << "molmass_in[1]: " << molmass_in[1] << std::endl;
-//Print().SetPrecision(17) << "molmass_in[2]: " << molmass_in[2] << std::endl;
-//Print().SetPrecision(17) << "chi(1,1): " << chi(1,1) << std::endl;
-//Print().SetPrecision(17) << "chi(1,2): " << chi(1,2) << std::endl;
-//Print().SetPrecision(17) << "chi(1,3): " << chi(1,3) << std::endl;
-//Print().SetPrecision(17) << "chi(2,1): " << chi(2,1) << std::endl;
-//Print().SetPrecision(17) << "chi(2,2): " << chi(2,2) << std::endl;
-//Print().SetPrecision(17) << "chi(2,3): " << chi(2,3) << std::endl;
-//Print().SetPrecision(17) << "chi(3,1): " << chi(3,1) << std::endl;
-//Print().SetPrecision(17) << "chi(3,2): " << chi(3,2) << std::endl;
-//Print().SetPrecision(17) << "chi(3,3): " << chi(3,3) << std::endl;
-
-//HACK: There is some issue in here, but I should confirm first with the code above.
     Dbar2chiIterative(nspecies_in,chi_iterations_in,D_barN,MolarConcN,molmass_in,chi); 
 }
 
@@ -965,24 +843,10 @@ void ComputeRhoWChiLocal(
     Array1D<int, 1, MAX_SPECIES> dest;    
 
     
-//HACK -- setting to zero makes comparison easier
-//for (int row=1; row<=nspecies_in; ++row){
-//for (int column=1; column<=nspecies_in; ++column){
-//rhoWchiN(row, column) = 0.0;
-//}
-//} 
-
-// HACK -- verify inputs are the same
-//Print() << "rhoN: " << rhoN << std::endl;    
-//Print() << "MolarConcN: " << MolarConcN << std::endl;    
 
 
-    //HACK
-    MatrixToZeros(MAX_SPECIES, chi);
 
     if ((use_multiphase == 1) && (nspecies_in == 2)) {
-
-//Print() << "HACK -- 1" << std::endl; 
 
         w1 = MolarConcN[0];
         w2 = MolarConcN[1];
@@ -1014,12 +878,10 @@ void ComputeRhoWChiLocal(
             }
         }
 
-        //if (0){ //HACK
         if (ntrace == nspecies_in -1){
             // this is all trace species except for 1 (essentially pure solvent);
             MatrixToZeros(nspecies_in, rhoWchiN); //set rhoWchi to zero
 
-        //} else if (0){ //HACK
         } else if (ntrace == 0){
             // there are no trace species, hence chi = chi_sub
 
@@ -1034,11 +896,9 @@ void ComputeRhoWChiLocal(
         else {
           // if there are trace species, we consider a subsystem 
           // consisting of non-trace species
-          nspecies_sub = nspecies_in - ntrace; //HACK -- probably ok
+          nspecies_sub = nspecies_in - ntrace; 
 
-//Print().SetPrecision(17) << "nspecies_sub: " << nspecies_sub << std::endl;
-           
-          ComputeChiSub(nspecies_in,     //HACK -- error search -> This function is not even close to correct
+          ComputeChiSub(nspecies_in,     
                       nspecies_sub,
                       dest,
                       molmass_in,
