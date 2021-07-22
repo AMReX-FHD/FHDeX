@@ -319,11 +319,11 @@ void ComputeMolconcMolmtotLocal( int nspecies_in,
 //Print().SetPrecision(17) << "W[0]: " << W[0] << std::endl;
 //Print().SetPrecision(17) << "W[1]: " << W[1] << std::endl;
 //Print().SetPrecision(17) << "W[2]: " << W[2] << std::endl;
-Print().SetPrecision(17) << "molmtot_in: " << molmtot_in << std::endl;
+//Print().SetPrecision(17) << "molmtot_in: " << molmtot_in << std::endl;
 
     for (int n=0; n<nspecies_in; ++n){
-Print().SetPrecision(17) << "W[" << n << "]: " << W[n] << std::endl;
-Print().SetPrecision(17) << "molmass_in["<< n+1 << "]: " << molmass_in[n] << std::endl;
+//Print().SetPrecision(17) << "W[" << n+1 << "]: " << W[n] << std::endl;
+//Print().SetPrecision(17) << "molmass_in["<< n+1 << "]: " << molmass_in[n] << std::endl;
 //        if (molmass_in[n] == 0) continue; //HACK - should not need this
         MolarConcN[n] = molmtot_in * W[n] / molmass_in[n];  //HACK - START HERE -- Probably Cause of nan
     }
@@ -522,8 +522,9 @@ for (int m=0; m<MAX_SPECIES; ++m){
     }
 
 
-rhotot_sub = 1.0; //HACK -- since its almost 1 and not behaving
- //Print().SetPrecision(17) << "rhotot_sub: " << rhotot_sub << std::endl;
+//rhotot_sub = 1.0; //HACK -- since its almost 1 and not behaving
+//Print().SetPrecision(17) << "rhotot_sub: " << rhotot_sub << std::endl;
+//printf("rhotot_sub): %25.16E\n", rhotot_sub);
 
 //HACK -- looks good
     for (int row=1; row<=nspecies_sub; ++row){
@@ -548,35 +549,12 @@ rhotot_sub = 1.0; //HACK -- since its almost 1 and not behaving
         }
     }
 
-//Print().SetPrecision(17) << "D_bar_sub(1,1): " << D_barN_sub(1,1) << std::endl;
-//Print().SetPrecision(17) << "D_bar_sub(1,2): " << D_barN_sub(1,2) << std::endl;
-//Print().SetPrecision(17) << "D_bar_sub(1,3): " << D_barN_sub(1,3) << std::endl;
-//Print().SetPrecision(17) << "D_bar_sub(2,1): " << D_barN_sub(2,1) << std::endl;
-//Print().SetPrecision(17) << "D_bar_sub(2,2): " << D_barN_sub(2,2) << std::endl;
-//Print().SetPrecision(17) << "D_bar_sub(2,3): " << D_barN_sub(2,3) << std::endl;
-//Print().SetPrecision(17) << "D_bar_sub(3,1): " << D_barN_sub(3,1) << std::endl;
-//Print().SetPrecision(17) << "D_bar_sub(3,2): " << D_barN_sub(3,2) << std::endl;
-//Print().SetPrecision(17) << "D_bar_sub(3,3): " << D_barN_sub(3,3) << std::endl;
-    
-molmtot_sub = 0.0; //HACK -- maybe unnecessary
-//Print().SetPrecision(17) << " B molmtot_sub " << molmtot_sub << std::endl;
     // compute molarconc_sub and molmtot_sub
     ComputeMolconcMolmtotLocal(nspecies_sub, molmass_sub, rhoN_sub, rhotot_sub, MolarConcN_sub, molmtot_sub);
-//Print().SetPrecision(17) << " A molmtot_sub " << molmtot_sub << std::endl;
-//molmtot_sub = 3.0; //HACK -- don't understand why this won't set to the correct value
-                   //         it keeps giving me nan. 
-Print().SetPrecision(17) << "molmtot_sub: " << molmtot_sub << std::endl;
-Print().SetPrecision(17) << "molarconc_sub(1): " << MolarConcN_sub[0] << std::endl;
-Print().SetPrecision(17) << "molarconc_sub(2): " << MolarConcN_sub[1] << std::endl;
-Print().SetPrecision(17) << "molarconc_sub(3): " << MolarConcN_sub[2] << std::endl;
-// HACK -- these are doing something similar
 
     // compute chi_sub
     ComputeChi(nspecies_sub, molmass_sub, rhoN_sub, rhotot_sub, MolarConcN_sub, chi_sub, D_barN_sub, chi_iterations_in);
 
-//Print().SetPrecision(17) << "molarconc_sub(1): " << MolarConcN_sub[0] << std::endl;
-//Print().SetPrecision(17) << "molarconc_sub(2): " << MolarConcN_sub[1] << std::endl;
-//Print().SetPrecision(17) << "molarconc_sub(3): " << MolarConcN_sub[2] << std::endl;
 
     // compute full rho*W*chi
     MatrixToZeros(MAX_SPECIES, rhoWchiN); //MatrixToZeros(nspecies_in, rhoWchiN);
@@ -590,7 +568,6 @@ Print().SetPrecision(17) << "molarconc_sub(3): " << MolarConcN_sub[2] << std::en
                 } 
             }
             Deff = 1.0/Deff;
-Print().SetPrecision(17) << "Deff: " << Deff << std::endl; //HACK -- looks like becoming nan from MolarConcN 
             
             // assign rhoWchi
             for (int row=1; row<=nspecies_in; ++row){
@@ -605,7 +582,6 @@ Print().SetPrecision(17) << "Deff: " << Deff << std::endl; //HACK -- looks like 
                             tmp = tmp + chi_sub(dest(row),dest(k))*MolarConcN_sub[dest(k)-1]/D_barN(k,column);
                         }
                     }
-Print().SetPrecision(17) << "tmp:  " << tmp << std::endl;
                
 
                     rhoWchiN(row,column) = Deff*rhoN_sub[dest(row)-1]*(tmp - molmass_in[column-1]/molmtot_sub);
@@ -623,15 +599,17 @@ Print().SetPrecision(17) << "tmp:  " << tmp << std::endl;
         }
     }
 
-Print().SetPrecision(17) << "rhoWchi(1,1): " << rhoWchiN(1,1) << std::endl;
-Print().SetPrecision(17) << "rhoWchi(1,2): " << rhoWchiN(1,2) << std::endl;
-Print().SetPrecision(17) << "rhoWchi(1,3): " << rhoWchiN(1,3) << std::endl;
-Print().SetPrecision(17) << "rhoWchi(2,1): " << rhoWchiN(2,1) << std::endl;
-Print().SetPrecision(17) << "rhoWchi(2,2): " << rhoWchiN(2,2) << std::endl;
-Print().SetPrecision(17) << "rhoWchi(2,3): " << rhoWchiN(2,3) << std::endl;
-Print().SetPrecision(17) << "rhoWchi(3,1): " << rhoWchiN(3,1) << std::endl;
-Print().SetPrecision(17) << "rhoWchi(3,2): " << rhoWchiN(3,2) << std::endl;
-Print().SetPrecision(17) << "rhoWchi(3,3): " << rhoWchiN(3,3) << std::endl;
+//HACK -- so far looks good here until plotfile is called.
+
+//printf("rhoWchi(1,1): %25.16E\n", rhoWchiN(1,1));
+//printf("rhoWchi(1,2): %25.16E\n", rhoWchiN(1,2));
+//printf("rhoWchi(1,3): %25.16E\n", rhoWchiN(1,3));
+//printf("rhoWchi(2,1): %25.16E\n", rhoWchiN(2,1));
+//printf("rhoWchi(2,2): %25.16E\n", rhoWchiN(2,2));
+//printf("rhoWchi(2,3): %25.16E\n", rhoWchiN(2,3));
+//printf("rhoWchi(3,1): %25.16E\n", rhoWchiN(3,1));
+//printf("rhoWchi(3,2): %25.16E\n", rhoWchiN(3,2));
+//printf("rhoWchi(3,3): %25.16E\n", rhoWchiN(3,3));
 
 }
 
@@ -988,11 +966,11 @@ void ComputeRhoWChiLocal(
 
     
 //HACK -- setting to zero makes comparison easier
-for (int row=1; row<=nspecies_in; ++row){
-for (int column=1; column<=nspecies_in; ++column){
-rhoWchiN(row, column) = 0.0;
-}
-} 
+//for (int row=1; row<=nspecies_in; ++row){
+//for (int column=1; column<=nspecies_in; ++column){
+//rhoWchiN(row, column) = 0.0;
+//}
+//} 
 
 // HACK -- verify inputs are the same
 //Print() << "rhoN: " << rhoN << std::endl;    
@@ -1036,13 +1014,13 @@ rhoWchiN(row, column) = 0.0;
             }
         }
 
-        if (0){ //HACK
-//        if (ntrace == nspecies_in -1){
+        //if (0){ //HACK
+        if (ntrace == nspecies_in -1){
             // this is all trace species except for 1 (essentially pure solvent);
             MatrixToZeros(nspecies_in, rhoWchiN); //set rhoWchi to zero
 
-        } else if (0){ //HACK
-        //} else if (ntrace == 0){
+        //} else if (0){ //HACK
+        } else if (ntrace == 0){
             // there are no trace species, hence chi = chi_sub
 
             ComputeChi(nspecies_in, molmass_in, rhoN, rhotot, MolarConcN, chi, D_barN, chi_iterations_in); 
