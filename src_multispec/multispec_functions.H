@@ -760,7 +760,7 @@ void ComputeChi(int nspecies_in,
                int chi_iterations_in){
 
     //local variables
-    Real eepsilon=1.d-16;
+    Real eepsilon=1.e-16;
 
     Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> Lambda;
     Array1D<Real, 1, MAX_SPECIES> W;
