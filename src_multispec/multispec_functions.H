@@ -291,7 +291,6 @@ void ComputeMolconcMolmtotLocal( int nspecies_in,
                 Real rhotot_in,
                 GpuArray<Real, MAX_SPECIES>& MolarConcN,
                 Real& molmtot_in){
-        
 
     GpuArray<Real, MAX_SPECIES> W; /**< Mass fraction w_i = rho_i/rho */
 
@@ -367,7 +366,7 @@ void GammaIPlusMatmul(int nspecies_in,
                 Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& GammaN,
                 Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& X_xxT,
                 Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& HessianN) {
-        
+
     //Compute Gamma
     for (int row=1; row<=nspecies_in; ++row){
         for (int column=1; column<=nspecies_in; ++column){
@@ -398,13 +397,12 @@ void ComputeGammaLocal(
                 Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& HessianN,
                 Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& GammaN,
                 int nspecies_in){
-    
+
     //Local variables
     Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> X_xxT;
 
-    if (nspecies_in == 2){ //HACK
-    //if ((use_multiphase == 1) && (nspecies_in == 2)){
-                    
+    if ((use_multiphase == 1) && (nspecies_in == 2)){
+
         // local to define Gamma matrix
         Real w1 = MolarConcN[0];
         Real w2 = MolarConcN[1];
@@ -435,7 +433,7 @@ void ComputeGammaLocal(
             PopulateX_xxT(nspecies_in, X_xxT, MolarConcN);
         }
     }
-    
+
     //Compute Gamma
     GammaIPlusMatmul(nspecies_in, GammaN, X_xxT, HessianN);
 }
@@ -474,7 +472,7 @@ void ComputeChiSub(int nspecies_in,
     Real rhotot_sub, molmtot_sub;
     Real Deff, tmp;
 
-    
+
     // create a vector of non-trace densities and molmass for the subsystem
     for (int row=1; row<=nspecies_in; ++row){
         if ( dest(row) != 0 ){
@@ -499,7 +497,7 @@ void ComputeChiSub(int nspecies_in,
 
     for (int row=1; row<=nspecies_in; ++row){
         if (dest(row) == 0){
-            continue; //HACK -- equiv to cycle?
+            continue;
         }
         for (int column=1; column<=nspecies_in; ++column){
             if (dest(column) != 0){
@@ -527,7 +525,7 @@ void ComputeChiSub(int nspecies_in,
                 }
             }
             Deff = 1.0/Deff;
-            
+
             // assign rhoWchi
             for (int row=1; row<=nspecies_in; ++row){
                 if ( row == column ){
@@ -541,7 +539,7 @@ void ComputeChiSub(int nspecies_in,
                             tmp = tmp + chi_sub(dest(row),dest(k))*MolarConcN_sub[dest(k)-1]/D_barN(k,column);
                         }
                     }
-               
+
 
                     rhoWchiN(row,column) = Deff*rhoN_sub[dest(row)-1]*(tmp - molmass_in[column-1]/molmtot_sub);
                 }
@@ -581,7 +579,7 @@ void Matrix2DSetEqual(
             Matrix_out(i,j) = Matrix_in(i,j);
         }
     }
-    
+
 }
 
 
@@ -605,18 +603,18 @@ void Dbar2chiIterative( int nspecies_local,
                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& chi){
 
 
-    Array1D<Real, 1, MAX_SPECIES> Xkp, Ykp, Di, Mmat, Minv; //HACK -- different methods for declaring in fortran, same?
+    Array1D<Real, 1, MAX_SPECIES> Xkp, Ykp, Di, Mmat, Minv;
     Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> Pmat, Deltamat, Zmat, Jmat, PJ, matrix1, matrix2;
 
 
     // mole fractions correction
-    // Turned this off since it should be done in caller // HACK -- confirm
+    // Turned this off since it should be done in caller
     for (int ii=1; ii<=nspecies_local; ++ii){
        Xkp(ii) = Xk[ii-1];
     }
 
     // molecular weight of mixture - EGLIB
-    Real MWmix = 0.0; //HACK -- confirm -- F90 has Mwmix
+    Real MWmix = 0.0;
     for (int ii=1; ii<=nspecies_local; ++ii){
         MWmix = MWmix + Xkp(ii)*molmass_local[ii-1];
     }
@@ -643,7 +641,7 @@ void Dbar2chiIterative( int nspecies_local,
         Mmat(i) = Xkp(i)/Di(i);
         Minv(i) = Di(i)/Xkp(i);
     }
-    
+
     // Compute P matrix
     MatrixToZeros(nspecies_local, Pmat);
     for (int i=1; i<=nspecies_local; ++i){
@@ -654,7 +652,7 @@ void Dbar2chiIterative( int nspecies_local,
             }
         }
     }
-    
+
     // Compute Deltamat
     MatrixToZeros(nspecies_local, Deltamat);
     Real term1;
@@ -727,7 +725,7 @@ void Dbar2chiIterative( int nspecies_local,
         Matrix2DSetEqual(chi, matrix1, MAX_SPECIES);
     }
 }
-    
+
 
 
 
@@ -763,7 +761,7 @@ void ComputeChi(int nspecies_in,
                int chi_iterations_in){
 
     //local variables
-    Real eepsilon=1.d-16; //HACK -- real or double
+    Real eepsilon=1.d-16;
 
     Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> Lambda;
     Array1D<Real, 1, MAX_SPECIES> W;
@@ -775,15 +773,16 @@ void ComputeChi(int nspecies_in,
     */
 
     if ( nspecies_in == 2){
+    // NOTE: The above if condition was not tested.
 
         W(1) = rhoN[0]/rhotot;
         W(2) = rhoN[1]/rhotot;
-        
 
-        //if ( use_multiphase == 1 ){  //HACK
+        if ( use_multiphase == 1 ){
+        // NOTE: The above if condition was not tested.
             W(1) = std::max(std::min(W(1),1.0),eepsilon);
             W(2) = std::max(std::min(W(2),1.0),eepsilon);
-        //}
+        }
 
         Real tmp = molmass_in[0]*W(2) + molmass_in[1]*W(1);
         tmp = D_barN(1,2)*tmp*tmp/molmass_in[0]/molmass_in[1];
@@ -793,14 +792,12 @@ void ComputeChi(int nspecies_in,
         chi(2,1) = -tmp;
         chi(2,2) = tmp*W(1)/W(2);
 
-Print() << "HACK: Touch Touch1" << std::endl;
-
         return;
     }
-    
+
     // compute chi either selecting inverse/pseudoinverse or iterative methods
     if (use_lapack == 1){
-       printf("Compute Chi: use_lapack not supported\n"); //HACK -- how to pass errors back to host?
+       printf("Compute Chi: use_lapack not supported\n");
        //call amrex_error('compute_chi: use_lapack not supported')
     }
 
@@ -857,8 +854,8 @@ void ComputeRhoWChiLocal(
      */
     Array1D<int, 1, MAX_SPECIES> dest;
 
-    if (nspecies_in == 2) { //HACK
-    //if ((use_multiphase == 1) && (nspecies_in == 2)) {
+    if ((use_multiphase == 1) && (nspecies_in == 2)) {
+    // NOTE: The above if condition was not tested.
 
         w1 = MolarConcN[0];
         w2 = MolarConcN[1];
@@ -874,8 +871,6 @@ void ComputeRhoWChiLocal(
         rhoWchiN(1,2) = -w1*rho0*D_barN(1,2);
         rhoWchiN(2,1) = -w2*rho0*D_barN(1,2);
         rhoWchiN(2,2) =  w1*rho0*D_barN(1,2);
-
-Print() << "HACK: Touch Touch2" << std::endl;
 
     } else {
 
