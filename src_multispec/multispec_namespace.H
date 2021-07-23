@@ -7,18 +7,18 @@ namespace multispec {
 
     extern int                        inverse_type;
     extern int                        temp_type;
-    extern int                        chi_iterations;
+    extern AMREX_GPU_MANAGED int      chi_iterations;
     extern amrex::Real                start_time;
     extern amrex::Vector<amrex::Real> Dbar;
     extern amrex::Vector<amrex::Real> Dtherm;
     extern amrex::Vector<amrex::Real> H_offdiag;
     extern amrex::Vector<amrex::Real> H_diag;
-    extern amrex::Real                fraction_tolerance;
+    extern AMREX_GPU_MANAGED amrex::Real fraction_tolerance;
     extern int                        correct_flux;
     extern int                        print_error_norms;
     extern int                        is_nonisothermal;
     extern AMREX_GPU_MANAGED int      is_ideal_mixture;
-    extern int                        use_lapack;
+    extern AMREX_GPU_MANAGED int      use_lapack;
     extern AMREX_GPU_MANAGED int      use_multiphase;
     extern AMREX_GPU_MANAGED amrex::Real kc_tension;
     extern AMREX_GPU_MANAGED amrex::Real alpha_gex;
