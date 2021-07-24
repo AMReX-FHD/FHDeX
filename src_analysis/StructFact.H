@@ -7,9 +7,9 @@
 #include <AMReX_VisMF.H>
 
 // These are for SWFFT
-#include <Distribution.H>
-#include <AlignedAllocator.h>
-#include <Dfft.H>
+//#include <Distribution.H>
+//#include <AlignedAllocator.h>
+//#include <Dfft.H>
 
 // These are for FFTW or cuFFT
 #ifdef AMREX_USE_CUDA
@@ -90,9 +90,6 @@ public:
                        const int& reset=0);
 
     void Reset();
-    
-    void ComputeSWFFT(const amrex::MultiFab&, amrex::MultiFab&,
-                      amrex::MultiFab&, const amrex::Geometry&);
     
     void ComputeFFTW(const amrex::MultiFab&, amrex::MultiFab&,
                     amrex::MultiFab&, const amrex::Geometry&);
