@@ -5,7 +5,6 @@ FHDeX ?= ../../../
 FIONS = $(FHDeX)/exec/tests/RFDanalysis
 
 DEBUG     = FALSE
-PROFILE   = FALSE
 USE_MPI   = TRUE
 USE_OMP   = FALSE
 USE_CUDA  = FALSE
