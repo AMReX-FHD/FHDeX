@@ -64,7 +64,7 @@ void compute_reaction_rates(amrex::Real n_dens[MAX_SPECIES], amrex::Real a_r[MAX
     return;
 }
 
-void compute_Omega(MultiFab& rho, MultiFab& Omega)
+void compute_chemistry_source(MultiFab& rho, MultiFab& source)
 {
     amrex::Real m_s[MAX_SPECIES];
     for (int n=0; n<nspecies; n++) m_s[n] = molmass[n]/(Runiv/k_B);
@@ -74,7 +74,7 @@ void compute_Omega(MultiFab& rho, MultiFab& Omega)
         const Box& bx = mfi.validbox();
 
         const Array4<Real>& rho_arr = rho.array(mfi);
-        const Array4<Real>& Omega_arr = Omega.array(mfi);
+        const Array4<Real>& source_arr = source.array(mfi);
 
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k)
         {
@@ -84,14 +84,14 @@ void compute_Omega(MultiFab& rho, MultiFab& Omega)
             amrex::Real a_r[MAX_REACTION];
             compute_reaction_rates(n_dens,a_r);
 
-            amrex::Real OmegaArr[MAX_SPECIES];
-            for (int n=0; n<nspecies; n++) OmegaArr[n] = 0.;
+            amrex::Real sourceArr[MAX_SPECIES];
+            for (int n=0; n<nspecies; n++) sourceArr[n] = 0.;
 
             for (int m=0; m<nreaction; m++)
                 for (int n=0; n<nspecies; n++)
-                    OmegaArr[n] += m_s[n]*stoich_coeffs_PR[m][n]*a_r[m];
+                    sourceArr[n] += m_s[n]*stoich_coeffs_PR[m][n]*a_r[m];
             
-            for (int n=0; n<nspecies; n++) Omega_arr(i,j,k,n) = OmegaArr[n];
+            for (int n=0; n<nspecies; n++) source_arr(i,j,k,n) = sourceArr[n];
         });
     }
 }
