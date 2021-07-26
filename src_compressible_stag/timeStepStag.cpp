@@ -181,8 +181,8 @@ void RK3stepStag(MultiFab& cu,
     }
 
     if (do_1D) { // only 1D simulation -- do not need v_x and w_z stochastic terms
-        MultiFabFillRandom(stochcen_A[0], 0, 2.0, geom);
-        MultiFabFillRandom(stochcen_B[0], 0, 2.0, geom);
+        MultiFabFillRandom(stochcen_A[0], 0, 1.0, geom);
+        MultiFabFillRandom(stochcen_B[0], 0, 1.0, geom);
     }
     else {
         for (int i=0; i<3; i++) {
@@ -643,6 +643,8 @@ void RK3stepStag(MultiFab& cu,
                                                     + grav[2]*(momp2z(i,j,k+1)+momp2z(i,j,k)) );
         });
     }
+
+    //PrintFluxes(faceflux,edgeflux_x,edgeflux_y,edgeflux_z,cenflux,"");
 
     // Set the correct momentum at the walls -- this is spurious after RK3 update beacuse of the \nabla P term 
     for (int i=0; i<AMREX_SPACEDIM; i++) {

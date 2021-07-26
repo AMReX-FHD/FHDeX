@@ -864,34 +864,27 @@ void EvaluateSpatialCorrelations1D(MultiFab& spatialCross1D,
             //////////////////////////////////////////////
             int index = k*n_cells[1]*nstats + j*nstats;
 
-            // Get mean values
             Real meanrhocross = data_xcross[index + 1];
+            Real meanuxcross  = data_xcross[index + 11];
+
             GpuArray<Real,MAX_SPECIES> meanYkcross;
+            GpuArray<Real,MAX_SPECIES> delYkcross;
+            GpuArray<Real,MAX_SPECIES> delrhoYkcross;
             for (int ns=0; ns<nspecies; ++ns) {
                 meanYkcross[ns] =  data_xcross[index + 18+4*ns+3];
+                delYkcross[ns]  =  data_xcross[index + 18+4*ns+2] - data_xcross[index + 18+4*ns+3];
+                delrhoYkcross[ns] =  data_xcross[index + 18+4*ns+0] - data_xcross[index + 18+4*ns+1];
             }
-            Real meanuxcross = data_xcross[index + 11];
 
-            // Get fluctuations of the conserved variables at the cross cell
             Real delrhocross = data_xcross[index + 0] - data_xcross[index + 1];
             Real delKcross   = data_xcross[index + 2] - data_xcross[index + 3];
             Real deljxcross  = data_xcross[index + 4] - data_xcross[index + 5];
             Real deljycross  = data_xcross[index + 6] - data_xcross[index + 7];
             Real deljzcross  = data_xcross[index + 8] - data_xcross[index + 9];
-            GpuArray<Real,MAX_SPECIES> delrhoYkcross;
-            for (int ns=0; ns<nspecies; ++ns) {
-                delrhoYkcross[ns] =  data_xcross[index + 18+4*ns+0] - data_xcross[index + 18+4*ns+1];
-            }
 
-            // Get fluctuations of some primitive variables (for direct fluctuation calculations)
             Real delTcross = data_xcross[index + 16] - data_xcross[index + 17];
             Real delvxcross = data_xcross[index + 10] - data_xcross[index + 11];
-            GpuArray<Real,MAX_SPECIES> delYkcross;
-            for (int ns=0; ns<nspecies; ++ns) {
-                delYkcross[ns] =  data_xcross[index + 18+4*ns+2] - data_xcross[index + 18+4*ns+3];
-            }
             
-            // evaluate heat stuff at the cross cell
             Real cvcross = 0.;
             for (int l=0; l<nspecies; ++l) {
                 cvcross = cvcross + hcv[l]*data_xcross[index + 18+4*l+1]/data_xcross[index + 1];
@@ -903,7 +896,6 @@ void EvaluateSpatialCorrelations1D(MultiFab& spatialCross1D,
             Real qmeancross = cvcross*data_xcross[index + 17] - 
                              0.5*(vxmeancross*vxmeancross + vymeancross*vymeancross + vzmeancross*vzmeancross); 
 
-            // Get fluctuations of derived hydrodynamic quantities at the cross cell
             // delG = \vec{v}\cdot\vec{\deltaj}
             Real delGcross = vxmeancross*deljxcross + vymeancross*deljycross + vzmeancross*deljzcross;
 
@@ -912,33 +904,26 @@ void EvaluateSpatialCorrelations1D(MultiFab& spatialCross1D,
             // Get fluctuations at this cell (i,j,k)
             ////////////////////////////////////////
             
-            // Get mean densities
-            Real meanrho = cumeans(i,j,k,0);;
+            Real meanrho = cumeans(i,j,k,0);
+
             GpuArray<Real,MAX_SPECIES>  meanYk;
+            GpuArray<Real,MAX_SPECIES> delrhoYk;
+            GpuArray<Real,MAX_SPECIES> delYk;
             for (int ns=0; ns<nspecies; ++ns) {
                 meanYk[ns] = primmeans(i,j,k,6+ns);;
+                delrhoYk[ns] = cu(i,j,k,5+ns) - cumeans(i,j,k,5+ns);
+                delYk[ns]    = prim(i,j,k,6+ns) - primmeans(i,j,k,6+ns);
             }
 
-            // Get fluctuations of the conserved variables
             Real delrho = cu(i,j,k,0) - cumeans(i,j,k,0);
             Real delK   = cu(i,j,k,4) - cumeans(i,j,k,4);
             Real deljx  = 0.5*(momx(i,j,k) + momx(i+1,j,k)) - 0.5*(momxmeans(i,j,k) + momxmeans(i+1,j,k));
             Real deljy  = 0.5*(momy(i,j,k) + momy(i,j+1,k)) - 0.5*(momymeans(i,j,k) + momymeans(i,j+1,k));
             Real deljz  = 0.5*(momz(i,j,k) + momz(i,j,k+1)) - 0.5*(momzmeans(i,j,k) + momzmeans(i,j,k+1));
-            GpuArray<Real,MAX_SPECIES> delrhoYk;
-            for (int ns=0; ns<nspecies; ++ns) {
-                delrhoYk[ns] = cu(i,j,k,5+ns) - cumeans(i,j,k,5+ns);
-            }
 
-            // Get fluctuations of some primitive variables (for direct fluctuation calculations)
             Real delT = prim(i,j,k,4) - primmeans(i,j,k,4);
             Real delvx = 0.5*(velx(i,j,k) + velx(i+1,j,k)) - 0.5*(velxmeans(i,j,k) + velxmeans(i+1,j,k));
-            GpuArray<Real,MAX_SPECIES> delYk;
-            for (int ns=0; ns<nspecies; ++ns) {
-                delYk[ns] = prim(i,j,k,6+ns) - primmeans(i,j,k,6+ns);
-            }
             
-            // evaluate heat stuff at the cross cell
             Real cv = 0.;
             for (int l=0; l<nspecies; ++l) {
                 cv = cv + hcv[l]*cumeans(i,j,k,5+l)/cumeans(i,j,k,0);
@@ -950,11 +935,11 @@ void EvaluateSpatialCorrelations1D(MultiFab& spatialCross1D,
 
             Real qmean = cv*primmeans(i,j,k,4) - 0.5*(vxmean*vxmean + vymean*vymean + vzmean*vzmean);
 
-            // Get fluctuations of derived hydrodynamic quantities
             // delG = \vec{v}\cdot\vec{\deltaj}
             Real delG = vxmean*deljx + vymean*deljy +vzmean*deljz;
+
+            // Spatial Correlation Calculations
             
-            // First update correlations of conserved quantities (we will do rhoYk later)
             spatialCross(i,j,k,0) = (spatialCross(i,j,k,0)*stepsminusone + delrhocross*delrho)*stepsinv; // <delrho(x*)delrho(x)>
             spatialCross(i,j,k,1) = (spatialCross(i,j,k,1)*stepsminusone + delKcross*delK)*stepsinv;     // <delK(x*)delK(x)>
             spatialCross(i,j,k,2) = (spatialCross(i,j,k,2)*stepsminusone + deljxcross*deljx)*stepsinv;   // <deljx(x*)deljx(x)>
@@ -968,7 +953,6 @@ void EvaluateSpatialCorrelations1D(MultiFab& spatialCross1D,
             spatialCross(i,j,k,10)= (spatialCross(i,j,k,10)*stepsminusone + delrhoYkcross[0]*delrho)*stepsinv; // <delrhoYkL(x*)delrho(x)>
             spatialCross(i,j,k,11)= (spatialCross(i,j,k,11)*stepsminusone + delrhoYkcross[nspecies-1]*delrho)*stepsinv; // <delrhoYkH(x*)delrho(x)>
             
-            // Some more cross-correlations for hydrodynamical variables later
             spatialCross(i,j,k,12) = (spatialCross(i,j,k,12)*stepsminusone + delGcross*delG)*stepsinv; // <delG(x*)delG(x)>
             spatialCross(i,j,k,13) = (spatialCross(i,j,k,13)*stepsminusone + delGcross*delK)*stepsinv; // <delG(x*)delK(x)>
             spatialCross(i,j,k,14) = (spatialCross(i,j,k,14)*stepsminusone + delKcross*delG)*stepsinv; // <delK(x*)delG(x)>
@@ -977,7 +961,6 @@ void EvaluateSpatialCorrelations1D(MultiFab& spatialCross1D,
             spatialCross(i,j,k,17) = (spatialCross(i,j,k,17)*stepsminusone + delrhocross*delG)*stepsinv; // <delrho(x*)delG(x)>
             spatialCross(i,j,k,18) = (spatialCross(i,j,k,18)*stepsminusone + delGcross*delrho)*stepsinv; // <delG(x*)delrho(x)>
 
-            // Next we do cross-correlations with and between hydrodynamical variables
             // <delT(x*)delT(x)> = (1/cv*/cv/<rho(x)>/<rho(x*)>)(<delK*delK> + <delG*delG> - <delG*delK> - <delK*delG> 
             //                      + <Q><Q*><delrho*delrho> - <Q*><delrho*delK> - <Q><delK*delrho> + <Q*><delrho*delG> + <Q><delG*delrho>)
             spatialCross(i,j,k,19) = (cvinvcross*cvinv/(meanrhocross*meanrho))*
@@ -1051,7 +1034,7 @@ void EvaluateSpatialCorrelations1D(MultiFab& spatialCross1D,
             spatialCross(i,j,k,37+nspecies) = (1.0/(meanrho*meanrhocross))*(delrhoYkdelrhoYk - meanYkcross[0]*spatialCross(i,j,k,8)
                                                                     - meanYk[0]*spatialCross(i,j,k,10) + meanYkcross[0]*meanYk[0]*spatialCross(i,j,k,0));
 
-            // <delYkL(x*)delYkH(x)> = (1/<rho(x*)>/<rho(x)>)*(<delrhoYkH(x*)delrhoYkH> - <YkH(x*)><delrho(x*)delrhoYkH(x)>
+            // <delYkH(x*)delYkH(x)> = (1/<rho(x*)>/<rho(x)>)*(<delrhoYkH(x*)delrhoYkH> - <YkH(x*)><delrho(x*)delrhoYkH(x)>
             //                                                 - <YkH(x)><delrhoYkH(x*)delrho(x) + <YkH(x*)><YkH(x)><delrho(x*)delrho(x)>)
             delrhoYkdelrhoYk = (spatialCross(i,j,k,37+nspecies-1)*stepsminusone + delrhoYkcross[nspecies-1]*delrhoYk[nspecies-1])*stepsinv;
             spatialCross(i,j,k,37+nspecies+1) = (1.0/(meanrho*meanrhocross))*(delrhoYkdelrhoYk - meanYkcross[nspecies-1]*spatialCross(i,j,k,9)
