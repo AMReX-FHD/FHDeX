@@ -118,6 +118,12 @@ void ComputeVerticalAverage(const MultiFab & mf, MultiFab & mf_avg, const Geomet
 void ExtractSlice(const MultiFab & mf, MultiFab & mf_slice, const Geometry & geom,
                   const int dir, const int incomp, const int ncomp);
 
+namespace amrex
+{
+    Gpu::HostVector<Real> sumToLine (MultiFab const& mf, int icomp, int ncomp,
+                                         Box const& domain, int direction, bool local = false);
+}
+
 ///////////////////////////
 // in MultiFabPhysBC.cpp
 // see comments in C++ files for descriptions
