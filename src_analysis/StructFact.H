@@ -91,7 +91,7 @@ public:
 
     void Reset();
     
-    void ComputeFFTW(const amrex::MultiFab&, amrex::MultiFab&,
+    void ComputeFFT(const amrex::MultiFab&, amrex::MultiFab&,
                     amrex::MultiFab&, const amrex::Geometry&);
     
     void WritePlotFile(const int, const amrex::Real, const amrex::Geometry&, 

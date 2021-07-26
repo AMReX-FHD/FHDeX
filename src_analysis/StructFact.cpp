@@ -304,12 +304,7 @@ void StructFact::FortStructure(const MultiFab& variables, const Geometry& geom,
   variables_dft_imag.define(ba, dm, NVAR, 0);
 
   if (fft_type_in == 1) {
-#ifdef AMREX_USE_CUDA
-      Print() << "Using cuFFT\n";
-#else
-      Print() << "Using FFTW\n";
-#endif
-      ComputeFFTW(variables, variables_dft_real, variables_dft_imag, geom);
+      ComputeFFT(variables, variables_dft_real, variables_dft_imag, geom);
   }
   else {
       Abort("Using SWFFT no longer supported");
@@ -381,14 +376,20 @@ void StructFact::Reset() {
     
 }
 
-void StructFact::ComputeFFTW(const MultiFab& variables,
-                             MultiFab& variables_dft_real, 
-                             MultiFab& variables_dft_imag,
-                             const Geometry& geom) {
+void StructFact::ComputeFFT(const MultiFab& variables,
+			    MultiFab& variables_dft_real, 
+			    MultiFab& variables_dft_imag,
+			    const Geometry& geom) {
 
-    BL_PROFILE_VAR("StructFact::ComputeFFTW()", ComputeFFTW);
-    
-    bool is_flattened = false;
+    BL_PROFILE_VAR("StructFact::ComputeFFT()", ComputeFFT);
+
+#ifdef AMREX_USE_CUDA
+      Print() << "Using cuFFT\n";
+#else
+      Print() << "Using FFTW\n";
+#endif
+
+      bool is_flattened = false;
 
     long npts;
 
@@ -448,6 +449,8 @@ void StructFact::ComputeFFTW(const MultiFab& variables,
             }
         }
 
+	if (comp_fft == false) continue;
+
         variables_onegrid.ParallelCopy(variables,comp,0,1);
 
         for (MFIter mfi(variables_onegrid); mfi.isValid(); ++mfi) {
@@ -470,34 +473,41 @@ void StructFact::ComputeFFTW(const MultiFab& variables,
             spectral_field.back()->setVal<RunOn::Device>(0.0); // touch the memory
 
             FFTplan fplan;
+
 #ifdef AMREX_USE_CUDA
 	    if (is_flattened) {
 #if (AMREX_SPACEDIM == 2)
-
+	      /*
+	      cufftResult result = cufftPlan1d(&fplan, fft_size[0], CUFFT_D2Z);
+	      if (result != CUFFT_SUCCESS) {
+		amrex::AllPrint() << " cufftplan1d forward failed! Error: "
+				  << cufftErrorToString(result) << "\n";
+	      }
+	      */
 #elif (AMREX_SPACEDIM == 3)
-
+	      cufftResult result = cufftPlan2d(&fplan, fft_size[1], fft_size[0], CUFFT_D2Z);
+	      if (result != CUFFT_SUCCESS) {
+		amrex::AllPrint() << " cufftplan2d forward failed! Error: "
+				  << cufftErrorToString(result) << "\n";
+	      }
 #endif
 	    } else {
 #if (AMREX_SPACEDIM == 2)
-
+	      cufftResult result = cufftPlan2d(&fplan, fft_size[1], fft_size[0], CUFFT_D2Z);
+	      if (result != CUFFT_SUCCESS) {
+		amrex::AllPrint() << " cufftplan2d forward failed! Error: "
+				  << cufftErrorToString(result) << "\n";
+	      }
 #elif (AMREX_SPACEDIM == 3)
-	      /*
 	      cufftResult result = cufftPlan3d(&fplan, fft_size[2], fft_size[1], fft_size[0], CUFFT_D2Z);
 	      if (result != CUFFT_SUCCESS) {
 		amrex::AllPrint() << " cufftplan3d forward failed! Error: "
 				  << cufftErrorToString(result) << "\n";
 	      }
-
-	      result = cufftPlan3d(&bplan, fft_size[2], fft_size[1], fft_size[0], CUFFT_Z2D);
-	      if (result != CUFFT_SUCCESS) {
-		amrex::AllPrint() << " cufftplan3d backward failed! Error: "
-				  << cufftErrorToString(result) << "\n";
-	      }
-	      */
 #endif
 	    }
+#else // host
 
-#else	    
             if (is_flattened) {
 #if (AMREX_SPACEDIM == 2)
                 fplan = fftw_plan_dft_r2c_1d(fft_size[0],
@@ -538,7 +548,15 @@ void StructFact::ComputeFFTW(const MultiFab& variables,
         for (MFIter mfi(variables_onegrid); mfi.isValid(); ++mfi) {
             int i = mfi.LocalIndex();
 #ifdef AMREX_USE_CUDA
-
+            cufftSetStream(forward_plan[i], amrex::Gpu::gpuStream());
+            cufftResult result = cufftExecD2Z(forward_plan[i],
+                                              variables_onegrid[mfi].dataPtr(),
+                                              reinterpret_cast<FFTcomplex*>
+                                                  (spectral_field[i]->dataPtr()));
+            if (result != CUFFT_SUCCESS) {
+	      amrex::AllPrint() << " forward transform using cufftExec failed! Error: "
+				<< cufftErrorToString(result) << "\n";
+	    }
 #else
             fftw_execute(forward_plan[i]);
 #endif
