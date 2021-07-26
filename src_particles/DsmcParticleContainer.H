@@ -128,6 +128,7 @@ public:
 
 	void MoveParticlesCPP(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount);
 	void externalForce(const Real dt);
+	void updateTimeStep(const Geometry& geom, Real& dt);
 	
 	Real leftMean;
 	int leftcnt;

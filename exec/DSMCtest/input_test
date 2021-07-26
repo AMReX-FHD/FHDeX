@@ -13,16 +13,14 @@
 
   ! Controls for number of steps between actions
   max_step =   1000000
-  max_step =   200
+  max_step =  10
   plot_int =     50000
-  plot_int =   20
   n_steps_skip = 50000
-  n_steps_skip = 20
   struct_fact_int = 10
 
   reset_stats = 1
   restart  = -1
-  chk_int  = 100
+  chk_int  = -1
 
   !particle initialization (-1 - no input; 1 - input provided)
   particle_input = -1
@@ -49,7 +47,7 @@
   variance_coef_mom = 1
 
   ! Gravity
-  grav(1:3) = 0 -1.0 0
+  grav(1:3) = 0 -980.0 0
 
   ! Boundary conditions:
   ! NOTE: setting bc_vel to periodic sets all the other bc's to periodic)

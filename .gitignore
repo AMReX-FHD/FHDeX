@@ -35,17 +35,14 @@ GRTAGS
 ## IDE debris
 .vscode
 
-
 # Data Files
 exec/**/Tg*
-exec/**/**/Tg*
 
 ## Plot files
 exec/**/plt*
 exec/**/stag*
 
 ## Checkpoints
-exec/**/**/chk*
 exec/**/chk*
 
 ## Debug data

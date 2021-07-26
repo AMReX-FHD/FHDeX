@@ -7,18 +7,10 @@
 using namespace amrex;
 using namespace std;
 
-void updateTimeStep(const MultiFab& mfcuInst,
-						const MultiFab& mfcuMeans,
-						const MultiFab& mfcuVars,
-						const MultiFab& mfprimInst,
-						const MultiFab& mfprimMeans,
-						const MultiFab& mfprimVars,
-						const MultiFab& mfcoVars,
-						const Geometry& geom,
-						Real time,
-						int step) {
+void FhdParticleContainer::updateTimeStep(const Geometry& geom, Real& dt) {
 	BL_PROFILE_VAR("updateTimeStep()",writePlotFile);
 
+	const int lev = 0;
 	const Real* dx = Geom(lev).CellSize();
 
 	Real umax = 0., vmax = 0., wmax = 0.;
@@ -35,9 +27,9 @@ void updateTimeStep(const MultiFab& mfcuInst,
 
 		for (int i = 0; i < np; ++ i) {
 			ParticleType & part = particles[i];
-			Real u = part.rData(FHD_realData::velx);
-			Real v = part.rData(FHD_realData::vely);
-			Real w = part.rData(FHD_realData::velz);
+			Real u = part.rdata(FHD_realData::velx);
+			Real v = part.rdata(FHD_realData::vely);
+			Real w = part.rdata(FHD_realData::velz);
 			umax = std::max(umax,u);
 			vmax = std::max(vmax,v);
 			wmax = std::max(wmax,w);
@@ -48,12 +40,13 @@ void updateTimeStep(const MultiFab& mfcuInst,
 	dtmax += vmax/dx[1];
 	dtmax += wmax/dx[2];
 	dtmax  = 0.2/dtmax; // Courant number of 0.2
+	dtmax = dtmax*2;
+	Print() << "dt: " << dt << " dtmax: "  << dtmax << "\n";
 	// Want to compare dt across each processor and choose largest one (gather?)
+	if(dt<dtmax) { dt=dtmax; }
 	if(ParallelDescriptor::MyProc() == 0) {
-		//ParallelDescriptor::Gather()
-		if(dtmax>dt) { 
-			dt = dtmax;
-			ParallelDescriptor::Bcast(&dt,1,ParallelDescriptor::IOProcessorNumber());
-		}
+		ParallelDescriptor::ReduceRealMax(dt);
+		ParallelDescriptor::Bcast(&dt,1,ParallelDescriptor::IOProcessorNumber());
 	}
+	Print() << "dt: " << dt << "\n";
 }

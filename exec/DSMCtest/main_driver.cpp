@@ -247,6 +247,7 @@ void main_driver(const char* argv)
 	amrex::Print() << "Initialization time = " << init_time << " seconds " << std::endl;
 
 	int IO_int = std::ceil(max_step*0.000001);
+	IO_int = std::max(IO_int,1);
 	max_step += step;
 	n_steps_skip += step;
 	int stat_int = 5;
@@ -288,8 +289,9 @@ void main_driver(const char* argv)
 		particles.CalcSelections(dt);
 		particles.CollideParticles(dt);
 		particles.Source(dt, paramPlaneList, paramPlaneCount);
-		//particles.externalForce(dt);
+		particles.externalForce(dt);
 		particles.MoveParticlesCPP(dt, paramPlaneList, paramPlaneCount);
+		particles.updateTimeStep(geom,dt);
 
 		//////////////////////////////////////
 		// Stats
