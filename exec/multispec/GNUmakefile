@@ -3,13 +3,14 @@
 AMREX_HOME ?= ../../../amrex/
 
 DEBUG     = FALSE
-PROFILE   = FALSE
 USE_MPI   = TRUE
 USE_OMP   = FALSE
+USE_CUDA  = FALSE
 COMP      = gnu
 DIM       = 2
 DSMC      = FALSE
 
+TINY_PROFILE = TRUE
 USE_PARTICLES = TRUE
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
