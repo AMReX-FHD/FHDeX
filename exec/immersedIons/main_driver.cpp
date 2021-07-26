@@ -919,7 +919,7 @@ void main_driver(const char* argv)
 
 //        if(istep == 1)
 //        {
-//            particles.SetPosition(1, prob_hi[0]*0.5, prob_hi[1]*0.5, prob_hi[2]*0.5);
+//            particles.SetPosition(1, prob_hi[0]*0.5, prob_hi[1]*0.45, prob_hi[2]*0.5);
 //        }
 
     
@@ -946,7 +946,7 @@ void main_driver(const char* argv)
             // set velx/y/z and forcex/y/z for each particle to zero
             particles.ResetMarkers(0);
         }
-
+//	    particles.SetForce(1,1,0,0);
 //        Real origin[3];
 //        origin[0] = prob_hi[0]/2.0;
 //        origin[1] = prob_hi[1]/2.0;

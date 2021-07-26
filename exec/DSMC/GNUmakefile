@@ -5,7 +5,6 @@ FHDeX ?= ../../
 FDSMC = $(FHDeX)/exec/DSMC
 
 DEBUG     = FALSE
-PROFILE   = FALSE
 USE_MPI   = TRUE
 USE_OMP   = FALSE
 USE_CUDA  = FALSE

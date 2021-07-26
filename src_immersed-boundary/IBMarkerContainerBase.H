@@ -293,7 +293,7 @@ protected:
     int totalPinnedMarkers; 
 
 
-    static inline Vector<Real> norm_es;
+    static inline Gpu::ManagedDeviceVector<Real> norm_es;
     
 
 private:

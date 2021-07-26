@@ -76,7 +76,7 @@ int                        common::filtering_width;
 int                        common::stoch_stress_form;
 amrex::Vector<amrex::Real> common::u_init;
 amrex::Real                common::perturb_width;
-amrex::Real                common::smoothing_width;
+AMREX_GPU_MANAGED amrex::Real common::smoothing_width;
 amrex::Real                common::initial_variance_mom;
 amrex::Real                common::initial_variance_mass;
 amrex::Real                common::domega;
