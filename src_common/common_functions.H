@@ -104,7 +104,8 @@ Real MaskedSum (const MultiFab & inFab,int comp, const Periodicity& period);
 // in ComputeAverages.cpp
 
 void WriteHorizontalAverage(const MultiFab& mf_in, const int& dir, const int& incomp,
-                            const int& ncomp, const int& step, const Geometry& geom);
+                            const int& ncomp, const int& step, const Geometry& geom,
+                            const std::string& file_prefix = "havg");
 
 void WriteHorizontalAverageToMF(const MultiFab& mf_in, MultiFab& mf_out,
                                 const int& dir, const int& incomp,

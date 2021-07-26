@@ -24,132 +24,140 @@ namespace {
 }
 
 void WriteCheckPoint(int step,
-			const Real time,
-			const Real dt,
-			int statsCount,
-			const amrex::MultiFab& cuInst,
-			const amrex::MultiFab& cuMeans,
-			const amrex::MultiFab& cuVars,
-			const amrex::MultiFab& primInst,
-			const amrex::MultiFab& primMeans,
-			const amrex::MultiFab& primVars,
-			const amrex::MultiFab& coVars,
-			const FhdParticleContainer& particles){
-	// timer for profiling
-	BL_PROFILE_VAR("WriteCheckPoint()",WriteCheckPoint);
+			               const Real time,
+			               const Real dt,
+			               int statsCount,
+			               const amrex::MultiFab& cuInst,
+			               const amrex::MultiFab& cuMeans,
+			               const amrex::MultiFab& cuVars,
+			               const amrex::MultiFab& primInst,
+			               const amrex::MultiFab& primMeans,
+			               const amrex::MultiFab& primVars,
+			               const amrex::MultiFab& coVars,
+			               const FhdParticleContainer& particles,
+                     const amrex::MultiFab& spatialCross1D,
+                     const int ncross) {
 
-	// checkpoint file name, e.g., chk0000010
-	const std::string& checkpointname =
-		amrex::Concatenate(chk_base_name,step,12);
+    // timer for profiling
+    BL_PROFILE_VAR("WriteCheckPoint()",WriteCheckPoint);
 
-	amrex::Print() << "Writing checkpoint " << checkpointname << "\n";
+    // checkpoint file name, e.g., chk0000010
+    const std::string& checkpointname =
+      amrex::Concatenate(chk_base_name,step,12);
 
-	BoxArray ba = cuInst.boxArray();
+    amrex::Print() << "Writing checkpoint " << checkpointname << "\n";
 
-	// single level problem
-	int nlevels = 1;
+    BoxArray ba = cuInst.boxArray();
 
-	amrex::PreBuildDirectorHierarchy(checkpointname, "Level_", nlevels, true);
-	VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+    // single level problem
+    int nlevels = 1;
 
-	//////////////////////////////////////
-	// Header File
-	//////////////////////////////////////
-	if (ParallelDescriptor::IOProcessor()) {
-		std::ofstream HeaderFile;
-		HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
-		std::string HeaderFileName(checkpointname + "/Header");
-		HeaderFile.open(HeaderFileName.c_str(), std::ofstream::out   |
-                      std::ofstream::trunc |
-                      std::ofstream::binary);
+    amrex::PreBuildDirectorHierarchy(checkpointname, "Level_", nlevels, true);
+    VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
 
-		if( !HeaderFile.good()) { amrex::FileOpenFailed(HeaderFileName); }
+    //////////////////////////////////////
+    // Header File
+    //////////////////////////////////////
+    if (ParallelDescriptor::IOProcessor()) {
+        std::ofstream HeaderFile;
+        HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
+        std::string HeaderFileName(checkpointname + "/Header");
+        HeaderFile.open(HeaderFileName.c_str(), std::ofstream::out   |
+                          std::ofstream::trunc |
+                          std::ofstream::binary);
 
-		HeaderFile.precision(17);
-		HeaderFile << "Checkpoint file for FHDeX/dsmc\n"; // write out title line
-		HeaderFile << step << "\n"; // write out the time step number
-		HeaderFile << time << "\n"; // write out time
-		HeaderFile << dt << "\n"; // write out time
-		HeaderFile << statsCount << "\n"; // write out statsCount
-		ba.writeOn(HeaderFile); // write the BoxArray (fluid)
-		HeaderFile << '\n';
-	}
+        if( !HeaderFile.good()) { amrex::FileOpenFailed(HeaderFileName); }
 
-	int comm_rank;
-	MPI_Comm_rank(MPI_COMM_WORLD, &comm_rank);
+        HeaderFile.precision(17);
+        HeaderFile << "Checkpoint file for FHDeX/dsmc\n"; // write out title line
+        HeaderFile << step << "\n"; // write out the time step number
+        HeaderFile << time << "\n"; // write out time
+        HeaderFile << dt << "\n"; // write out time
+        HeaderFile << statsCount << "\n"; // write out statsCount
+        ba.writeOn(HeaderFile); // write the BoxArray (fluid)
+        HeaderFile << '\n';
+    }
 
-	int n_ranks;
-	MPI_Comm_size(MPI_COMM_WORLD, &n_ranks);
+    int comm_rank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &comm_rank);
 
-	//////////////////////////////////////
-	// Save RNG State
-	//////////////////////////////////////
-	// don't write out all the rng states at once (overload filesystem)
-	// one at a time write out the rng states to different files, one for each MPI rank
-	for (int rank=0; rank<n_ranks; ++rank) {
-		if (comm_rank == rank) {
-			std::ofstream rngFile;
-			rngFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
+    int n_ranks;
+    MPI_Comm_size(MPI_COMM_WORLD, &n_ranks);
 
-			// create filename, e.g. chk0000005/rng0000002
-			const std::string& rngFileNameBase = (checkpointname + "/rng");
-			const std::string& rngFileName = amrex::Concatenate(rngFileNameBase,comm_rank,7);
+    //////////////////////////////////////
+    // Save RNG State
+    //////////////////////////////////////
+    // don't write out all the rng states at once (overload filesystem)
+    // one at a time write out the rng states to different files, one for each MPI rank
+    for (int rank=0; rank<n_ranks; ++rank) {
+        if (comm_rank == rank) {
+            std::ofstream rngFile;
+            rngFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
 
-			rngFile.open(rngFileName.c_str(), std::ofstream::out   |
-				std::ofstream::trunc |
-				std::ofstream::binary);
+            // create filename, e.g. chk0000005/rng0000002
+            const std::string& rngFileNameBase = (checkpointname + "/rng");
+            const std::string& rngFileName = amrex::Concatenate(rngFileNameBase,comm_rank,7);
 
-				if( !rngFile.good()) {
-					amrex::FileOpenFailed(rngFileName);
-				}
-				amrex::SaveRandomState(rngFile);
-			}
-			ParallelDescriptor::Barrier();
-	}
+            rngFile.open(rngFileName.c_str(), std::ofstream::out   |
+              std::ofstream::trunc |
+              std::ofstream::binary);
 
-	//////////////////////////////////////
-	// Record MF and Particles
-	//////////////////////////////////////
+              if( !rngFile.good()) {
+                  amrex::FileOpenFailed(rngFileName);
+              }
+              amrex::SaveRandomState(rngFile);
+          }
+          ParallelDescriptor::Barrier();
+    }
 
-	// Stat MFs
-	VisMF::Write(cuInst,
-		amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cuInst"));
-	VisMF::Write(cuMeans,
-		amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cuMeans"));
-	VisMF::Write(cuVars,
-		amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cuVars"));
-	VisMF::Write(primInst,
-		amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "primInst"));
-	VisMF::Write(primMeans,
-		amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "primMeans"));
-	VisMF::Write(primVars,
-		amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "primVars"));
-	VisMF::Write(coVars,
-		amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "coVars"));
+    //////////////////////////////////////
+    // Record MF and Particles
+    //////////////////////////////////////
 
-	// checkpoint particles
-	particles.Checkpoint(checkpointname,"particle");
+    // Stat MFs
+    VisMF::Write(cuInst,
+      amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cuInst"));
+    VisMF::Write(cuMeans,
+      amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cuMeans"));
+    VisMF::Write(cuVars,
+      amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cuVars"));
+    VisMF::Write(primInst,
+      amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "primInst"));
+    VisMF::Write(primMeans,
+      amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "primMeans"));
+    VisMF::Write(primVars,
+      amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "primVars"));
+    VisMF::Write(coVars,
+      amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "coVars"));
+    VisMF::Write(spatialCross1D,
+                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "spatialCross1D"));
+
+    // checkpoint particles
+    particles.Checkpoint(checkpointname,"particle");
 }
 
 void ReadCheckPoint(int& step,
-			Real& time,
-			Real& dt,
-			int& statsCount,
-			amrex::MultiFab& cuInst,
-			amrex::MultiFab& cuMeans,
-			amrex::MultiFab& cuVars,
-			amrex::MultiFab& primInst,
-			amrex::MultiFab& primMeans,
-			amrex::MultiFab& primVars,
-			amrex::MultiFab& coVars){
-	// timer for profiling
-	BL_PROFILE_VAR("ReadCheckPoint()",ReadCheckPoint);
+			              Real& time,
+			              Real& dt,
+			              int& statsCount,
+			              amrex::MultiFab& cuInst,
+			              amrex::MultiFab& cuMeans,
+			              amrex::MultiFab& cuVars,
+			              amrex::MultiFab& primInst,
+			              amrex::MultiFab& primMeans,
+			              amrex::MultiFab& primVars,
+			              amrex::MultiFab& coVars,
+                    amrex::MultiFab& spatialCross1D,
+                    const int ncross) {
 
-	// checkpoint file name, e.g., chk0000010
-	const std::string& checkpointname =
-    	amrex::Concatenate(chk_base_name,restart,12);
+    // timer for profiling
+    BL_PROFILE_VAR("ReadCheckPoint()",ReadCheckPoint);
 
-	amrex::Print() << "Restart from checkpoint " << checkpointname << "\n";
+    // checkpoint file name, e.g., chk0000010
+    const std::string& checkpointname =
+        amrex::Concatenate(chk_base_name,restart,12);
+
+    amrex::Print() << "Restart from checkpoint " << checkpointname << "\n";
 
     VisMF::IO_Buffer io_buffer(VisMF::GetIOBufferSize());
 
@@ -202,7 +210,8 @@ void ReadCheckPoint(int& step,
         primInst.define(ba,dm,pnvars,0);
         primMeans.define(ba,dm,pnvars,0);
         primVars.define(ba,dm,pnvars,0);
-				coVars.define(ba,dm,convars,0);
+        coVars.define(ba,dm,convars,0);
+        spatialCross1D.define(ba,dm,ncross,0);
     }
     // C++ random number engine
     // each MPI process reads in its own file
@@ -243,15 +252,15 @@ void ReadCheckPoint(int& step,
 
     }
     else if (seed == 0) {
-			// initializes seed for random number calls from clock
-			auto now = time_point_cast<nanoseconds>(system_clock::now());
-			int randSeed = now.time_since_epoch().count();
-			// broadcast the same root seed to all processors
-			ParallelDescriptor::Bcast(&randSeed,1,ParallelDescriptor::IOProcessorNumber());
-			InitRandom(randSeed+ParallelDescriptor::MyProc());
+      // initializes seed for random number calls from clock
+      auto now = time_point_cast<nanoseconds>(system_clock::now());
+      int randSeed = now.time_since_epoch().count();
+      // broadcast the same root seed to all processors
+      ParallelDescriptor::Bcast(&randSeed,1,ParallelDescriptor::IOProcessorNumber());
+      InitRandom(randSeed+ParallelDescriptor::MyProc());
     } else {
-			// initializes the seed for C++ random number calls
-			InitRandom(seed+ParallelDescriptor::MyProc());
+      // initializes the seed for C++ random number calls
+      InitRandom(seed+ParallelDescriptor::MyProc());
     }
 
     // read in the MultiFab data
@@ -267,18 +276,15 @@ void ReadCheckPoint(int& step,
         primMeans.setVal(0.0);
         primVars.setVal(0.0);
         coVars.setVal(0.0);
+        spatialCross1D.setVal(0.0);
     }
     else {
-        VisMF::Read(cuMeans,
-		amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cuMeans"));
-        VisMF::Read(cuVars,
-		amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cuVars"));
-        VisMF::Read(primMeans,
-		amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "primMeans"));
-        VisMF::Read(primVars,
-		amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "primVars"));
-        VisMF::Read(coVars,
-		amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "coVars"));
+        VisMF::Read(cuMeans,amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cuMeans"));
+        VisMF::Read(cuVars,amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cuVars"));
+        VisMF::Read(primMeans,amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "primMeans"));
+        VisMF::Read(primVars,amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "primVars"));
+        VisMF::Read(coVars,amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "coVars"));
+        VisMF::Read(spatialCross1D,amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "spatialCross1D"));
     }
 }
 

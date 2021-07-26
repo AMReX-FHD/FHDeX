@@ -20,7 +20,9 @@ void WriteCheckPoint(int step,
                      const amrex::MultiFab& primMeans,
                      const amrex::MultiFab& primVars,
                      const amrex::MultiFab& coVars,
-                     const FhdParticleContainer& particles);
+                     const FhdParticleContainer& particles,
+                     const amrex::MultiFab& spatialCross1D,
+                     const int ncross);
 
 void ReadCheckPoint(int& step, 
 										 Real& time,
@@ -32,7 +34,9 @@ void ReadCheckPoint(int& step,
                      amrex::MultiFab& primInst,
                      amrex::MultiFab& primMeans,
                      amrex::MultiFab& primVars,
-                     amrex::MultiFab& coVars);
+                     amrex::MultiFab& coVars,
+                     amrex::MultiFab& spatialCross1D,
+                     const int ncross);
 
 void ReadCheckPointParticles(FhdParticleContainer& particles);
 
