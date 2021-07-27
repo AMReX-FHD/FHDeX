@@ -40,6 +40,9 @@ void main_driver(const char* argv)
 	MultiFab primInst, primMeans, primVars;
 	MultiFab coVars;
 
+	// For long-range temperature-related correlations
+	MultiFab cvlMeans, cvlInst, QMeans;
+
   // see stats for the list
   // can add more -- change main_driver, stats, writeplotfile, and Checkpoint
   int ncross = 37+nspecies+2;
@@ -145,7 +148,7 @@ void main_driver(const char* argv)
 
 		int ncovar = 25;
 		coVars.define(ba, dmap, ncovar, 0);   coVars.setVal(0.);
-    spatialCross1D.define(ba,dmap,ncross,0);
+    spatialCross1D.define(ba,dmap,ncross,0); spatialCross1D.setVal(0.);
 
 	} else {
 		ReadCheckPoint(step, time, dt, statsCount,
@@ -157,6 +160,12 @@ void main_driver(const char* argv)
 
 		if(reset_stats == 1) { statsCount=1; }
 	}
+
+	// Specific Heat
+	int ncvl = nspecies+1;
+	cvlInst.define(ba, dmap, ncvl, 0);  cvlInst.setVal(0.);
+	cvlMeans.define(ba, dmap, ncvl, 0); cvlMeans.setVal(0.);
+	QMeans.define(ba, dmap, ncvl, 0); QMeans.setVal(0.);
 
 	Vector<int> is_periodic (AMREX_SPACEDIM,0);
 	for (int i=0; i<AMREX_SPACEDIM; ++i) {
@@ -250,7 +259,7 @@ void main_driver(const char* argv)
 	IO_int = std::max(IO_int,1);
 	max_step += step;
 	n_steps_skip += step;
-	int stat_int = 5;
+	int stat_int = 1;
 	Real tbegin, tend;
 	
 	int alpha_cnt = 0;
@@ -269,17 +278,17 @@ void main_driver(const char* argv)
 		// Initial Condition
 		//////////////////////////////////////
 		if(istep == step) {
-			cuInst.setVal(0.);
-			primInst.setVal(0.);
-			particles.EvaluateStats(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,coVars,spatialCross1D,statsCount,time);
-			particles.writePlotFile(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,coVars,spatialCross1D,geom,time,ncross,istep);
 			if(reset_stats == 1) {
 				cuMeans.setVal(0.);
 				primMeans.setVal(0.);
 				cuVars.setVal(0.);
 				primVars.setVal(0.);
-				coVars.setVal(0.);
+				coVars.setVal(0.);			
 			}
+			particles.EvaluateStats(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
+				cvlInst,cvlMeans,QMeans,coVars,spatialCross1D,statsCount,time);
+			particles.writePlotFile(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
+				coVars,spatialCross1D,geom,time,ncross,istep);
 		}
 
 		//////////////////////////////////////
@@ -291,17 +300,16 @@ void main_driver(const char* argv)
 		particles.Source(dt, paramPlaneList, paramPlaneCount);
 		particles.externalForce(dt);
 		particles.MoveParticlesCPP(dt, paramPlaneList, paramPlaneCount);
-		particles.updateTimeStep(geom,dt);
+		//particles.updateTimeStep(geom,dt);
 
 		//////////////////////////////////////
 		// Stats
 		//////////////////////////////////////
 
 		if (istep >= amrex::Math::abs(n_steps_skip)) {
-			cuInst.setVal(0.);
-			primInst.setVal(0.);
 			if(istep%stat_int == 0) {
-				particles.EvaluateStats(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,coVars,spatialCross1D,statsCount++,time);
+				particles.EvaluateStats(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
+					cvlInst,cvlMeans,QMeans,coVars,spatialCross1D,statsCount++,time);
 			}
 		}
 

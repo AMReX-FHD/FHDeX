@@ -148,29 +148,33 @@ public:
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Outputs
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-   void EvaluateStats(MultiFab& cuInst,
-   						 MultiFab& cuMeans,
-   						 MultiFab& cuVars,
-   						 MultiFab& primInst,
-   						 MultiFab& primMeans,
-   						 MultiFab& primVars,
-   						 MultiFab& coVars,
-               MultiFab& spatialCross1D,
-   						 const int steps,
-   						 Real time);
-   void OutputParticles();
-   void writePlotFile(const MultiFab& cuInst,
-   						 const MultiFab& cuMeans,
-   						 const MultiFab& cuVars,
-   						 const MultiFab& primInst,
-   						 const MultiFab& primMeans,
-   						 const MultiFab& primVars,
-   						 const MultiFab& coVars,
-               const MultiFab& mfspatialCorr1d,
-   						 const Geometry& geom,
-   						 Real time,
-               const int ncross,
-   						 int steps);
+	void EvaluateStats(MultiFab& cuInst,
+		MultiFab& cuMeans,
+		MultiFab& cuVars,
+		MultiFab& primInst,
+		MultiFab& primMeans,
+		MultiFab& primVars,
+		MultiFab& mfcvlInst,
+		MultiFab& mfcvlMeans,
+		MultiFab& mfQMeans,
+		MultiFab& coVars,
+		MultiFab& spatialCross1D,
+		const int steps,
+		Real time);
+
+	void OutputParticles();
+	void writePlotFile(const MultiFab& cuInst,
+		const MultiFab& cuMeans,
+		const MultiFab& cuVars,
+		const MultiFab& primInst,
+		const MultiFab& primMeans,
+		const MultiFab& primVars,
+		const MultiFab& coVars,
+		const MultiFab& mfspatialCorr1d,
+		const Geometry& geom,
+		Real time,
+		const int ncross,
+		int steps);
    
    Real Tg0[MAX_SPECIES];
    std::vector<Real> virial;
