@@ -252,6 +252,27 @@ void ComputeChi(int nspecies_in,
                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& D_barN,
                int chi_iterations_in);
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 /**
  * \brief Compute total molar mass
  *
@@ -919,4 +940,41 @@ void ComputeRhoWChiLocal(
     }
 }
 
+/**
+ * \brief Compute nonnegative rho face-centered average 
+ *
+ * \param[in] Rho1 density from a neighboring cell
+ * \param[in] Rho2 density from a neighboring cell
+ * \param[in] dx 
+ * \param[out] RhoAv face-centered average
+ *
+ */
+
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void ComputeNonnegativeRhoAv(
+                GpuArray<Real, MAX_SPECIES>& Rho1,
+                GpuArray<Real, MAX_SPECIES>& Rho2,
+                Real dx, 
+                GpuArray<Real, MAX_SPECIES>& RhoAv){
+Print() << "HACK - ComputeNonnegativeRhoAv" << std::endl;
+}
+
+/**
+ * \brief Compute Sqrt L-Onsager
+ *
+ * \param[in] rho_in 
+ * \param[in] rhotot
+ * \param[in,out] sqrtLonsager 
+ *
+ */
+
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void ComputeSqrtLOnsagerLocal(
+                GpuArray<Real, MAX_SPECIES>& RhoN,
+                Real rhotot,
+                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& sqrtLOnsager){
+Print() << "HACK - ComputeSqrtLOnsager" << std::endl;
+}
 #endif
