@@ -142,7 +142,7 @@ void FhdParticleContainer::CalcSelections(Real dt) {
 					//chi0 = g0_Ma_Ahmadi(i_spec,j_spec, phi1, phi2);
 					vrmax = arrvrmax(i,j,k,i_spec);
 					crossSection = interproperties[ij_spec].csx;
-					NSel = 2.0*particle_neff*np_i*np_j*crossSection*vrmax*ocollisionCellVol*chi0*dt;
+					NSel = 4.0*particle_neff*np_i*np_j*crossSection*vrmax*ocollisionCellVol*chi0*dt;
 					if(i_spec==j_spec) {NSel = NSel*0.5; np_j = np_i-1;}
 					arrselect(i,j,k,ij_spec) = std::floor(NSel + amrex::Random());
 				}
@@ -245,16 +245,16 @@ void FhdParticleContainer::CollideParticles(Real dt) {
 				if(vrmag>vrmax) {vrmax = vrmag; arrvrmax(i,j,k,ij_spec) = vrmax;}
 
 				Real eijmag = 0;
-				while(eijmag < 1.0e-12) {
-					eij[0] = amrex::RandomNormal(0.,1.);
-					eij[1] = amrex::RandomNormal(0.,1.);
-					eij[2] = amrex::RandomNormal(0.,1.);
-					eijmag = pow(eij[0],2)+pow(eij[1],2)+pow(eij[2],2);
-					eijmag = pow(eijmag,0.5);
-				}
+				Real theta = 2.0*pi_usr*amrex::Random();
+				Real phi = std::acos(1.0-2.0*amrex::Random());
+				eij[0] = std::sin(phi)*std::cos(theta);
+				eij[1] = std::sin(phi)*std::sin(theta);
+				eij[2] = std::cos(phi);
+				eijmag = pow(eij[0],2)+pow(eij[1],2)+pow(eij[2],2);
+				eijmag = pow(eijmag,0.5);
 				for(int idim=0; idim<3; idim++) { eij[idim] /= eijmag; }
 				vreijmag = vij[0]*eij[0]+vij[1]*eij[1]+vij[2]*eij[2];
-				if(std::abs(vreijmag)>vrmax*amrex::Random()) {
+				if(vreijmag>vrmax*amrex::Random()) {
 					countedCollisions[speci] += 1;
 					countedCollisions[specj] += 1;
 
@@ -286,7 +286,7 @@ void FhdParticleContainer::CollideParticles(Real dt) {
 					boost[0] = boost[0]*oboostmag;
 					boost[1] = boost[1]*oboostmag;
 					boost[2] = boost[2]*oboostmag;
-							
+
 					parti.rdata(FHD_realData::boostx) = boost[0];
 					parti.rdata(FHD_realData::boosty) = boost[1];
 					parti.rdata(FHD_realData::boostz) = boost[2];
@@ -294,7 +294,7 @@ void FhdParticleContainer::CollideParticles(Real dt) {
 					partj.rdata(FHD_realData::boosty) = -boost[1];
 					partj.rdata(FHD_realData::boostz) = -boost[2];
 					*/
-				}		
+				}
 			}
 		}
 		}
