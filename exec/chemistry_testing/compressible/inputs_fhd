@@ -24,8 +24,8 @@
   fixed_dt = 1.e-12
 
   ! Controls for number of steps between actions
-  max_step = 20000
-  plot_int = 2000
+  max_step = 200000
+  plot_int = 20000
 
   ! Multispecies toggle
   ! if algorithm_type = 1, single component
@@ -56,7 +56,7 @@
   rho0 = 1.855335e-03 
 
   struct_fact_int = 1
-  n_steps_skip = 2000
+  n_steps_skip = 20000
 
   ! Boundary conditions:
   ! NOTE: setting bc_vel to periodic sets all the other bc's to periodic)
@@ -89,7 +89,7 @@
   rhobar = 7.267597e-01 2.732403e-01 
 
   ! Enter negative dof to use hcv & hcp values
-  dof =  6, 6
+  dof =  6 6
   hcv = -1 -1
   hcp = -1 -1
 
