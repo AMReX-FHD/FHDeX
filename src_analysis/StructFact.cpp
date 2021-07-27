@@ -384,12 +384,12 @@ void StructFact::ComputeFFT(const MultiFab& variables,
     BL_PROFILE_VAR("StructFact::ComputeFFT()", ComputeFFT);
 
 #ifdef AMREX_USE_CUDA
-      Print() << "Using cuFFT\n";
+    Print() << "Using cuFFT\n";
 #else
-      Print() << "Using FFTW\n";
+    Print() << "Using FFTW\n";
 #endif
 
-      bool is_flattened = false;
+    bool is_flattened = false;
 
     long npts;
 
@@ -439,6 +439,9 @@ void StructFact::ComputeFFT(const MultiFab& variables,
 
     Vector<FFTplan> forward_plan;
 
+    // for CUDA builds we only need to build the plan once; track whether we did
+    bool built_plan = false;
+    
     for (int comp=0; comp<NVAR; comp++) {
 
         bool comp_fft = false;
@@ -453,93 +456,101 @@ void StructFact::ComputeFFT(const MultiFab& variables,
 
         variables_onegrid.ParallelCopy(variables,comp,0,1);
 
-        for (MFIter mfi(variables_onegrid); mfi.isValid(); ++mfi) {
+        if (!built_plan) {
+        
+            for (MFIter mfi(variables_onegrid); mfi.isValid(); ++mfi) {
 
-            // grab a single box including ghost cell range
-            Box realspace_bx = mfi.fabbox();
+                // grab a single box including ghost cell range
+                Box realspace_bx = mfi.fabbox();
 
-            // size of box including ghost cell range
-            IntVect fft_size = realspace_bx.length(); // This will be different for hybrid FFT
+                // size of box including ghost cell range
+                IntVect fft_size = realspace_bx.length(); // This will be different for hybrid FFT
 
-            // this is the size of the box, except the 0th component is 'halved plus 1'
-            IntVect spectral_bx_size = fft_size;
-            spectral_bx_size[0] = fft_size[0]/2 + 1;
+                // this is the size of the box, except the 0th component is 'halved plus 1'
+                IntVect spectral_bx_size = fft_size;
+                spectral_bx_size[0] = fft_size[0]/2 + 1;
 
-            // spectral box
-            Box spectral_bx = Box(IntVect(0), spectral_bx_size - IntVect(1));
+                // spectral box
+                Box spectral_bx = Box(IntVect(0), spectral_bx_size - IntVect(1));
 
-            spectral_field.emplace_back(new BaseFab<GpuComplex<Real> >(spectral_bx,1,
+                spectral_field.emplace_back(new BaseFab<GpuComplex<Real> >(spectral_bx,1,
                                                                        The_Device_Arena()));
-            spectral_field.back()->setVal<RunOn::Device>(0.0); // touch the memory
+                spectral_field.back()->setVal<RunOn::Device>(0.0); // touch the memory
 
-            FFTplan fplan;
+                FFTplan fplan;
 
 #ifdef AMREX_USE_CUDA
-	    if (is_flattened) {
+                if (is_flattened) {
 #if (AMREX_SPACEDIM == 2)
-	      /*
-	      cufftResult result = cufftPlan1d(&fplan, fft_size[0], CUFFT_D2Z);
-	      if (result != CUFFT_SUCCESS) {
-		amrex::AllPrint() << " cufftplan1d forward failed! Error: "
-				  << cufftErrorToString(result) << "\n";
-	      }
-	      */
+                    /*
+                    cufftResult result = cufftPlan1d(&fplan, fft_size[0], CUFFT_D2Z);
+                    if (result != CUFFT_SUCCESS) {
+                        amrex::AllPrint() << " cufftplan1d forward failed! Error: "
+                                          << cufftErrorToString(result) << "\n";
+                    }
+                    */
 #elif (AMREX_SPACEDIM == 3)
-	      cufftResult result = cufftPlan2d(&fplan, fft_size[1], fft_size[0], CUFFT_D2Z);
-	      if (result != CUFFT_SUCCESS) {
-		amrex::AllPrint() << " cufftplan2d forward failed! Error: "
-				  << cufftErrorToString(result) << "\n";
-	      }
+                    cufftResult result = cufftPlan2d(&fplan, fft_size[1], fft_size[0], CUFFT_D2Z);
+                    if (result != CUFFT_SUCCESS) {
+                        amrex::AllPrint() << " cufftplan2d forward failed! Error: "
+                                          << cufftErrorToString(result) << "\n";
+                    }
 #endif
-	    } else {
+                } else {
 #if (AMREX_SPACEDIM == 2)
-	      cufftResult result = cufftPlan2d(&fplan, fft_size[1], fft_size[0], CUFFT_D2Z);
-	      if (result != CUFFT_SUCCESS) {
-		amrex::AllPrint() << " cufftplan2d forward failed! Error: "
-				  << cufftErrorToString(result) << "\n";
-	      }
+                    cufftResult result = cufftPlan2d(&fplan, fft_size[1], fft_size[0], CUFFT_D2Z);
+                    if (result != CUFFT_SUCCESS) {
+                        amrex::AllPrint() << " cufftplan2d forward failed! Error: "
+                                          << cufftErrorToString(result) << "\n";
+                    }
 #elif (AMREX_SPACEDIM == 3)
-	      cufftResult result = cufftPlan3d(&fplan, fft_size[2], fft_size[1], fft_size[0], CUFFT_D2Z);
-	      if (result != CUFFT_SUCCESS) {
-		amrex::AllPrint() << " cufftplan3d forward failed! Error: "
-				  << cufftErrorToString(result) << "\n";
-	      }
+                    cufftResult result = cufftPlan3d(&fplan, fft_size[2], fft_size[1], fft_size[0], CUFFT_D2Z);
+                    if (result != CUFFT_SUCCESS) {
+                        amrex::AllPrint() << " cufftplan3d forward failed! Error: "
+                                          << cufftErrorToString(result) << "\n";
+                    }
 #endif
-	    }
+                }
 #else // host
 
-            if (is_flattened) {
+                if (is_flattened) {
 #if (AMREX_SPACEDIM == 2)
-                fplan = fftw_plan_dft_r2c_1d(fft_size[0],
-                                             variables_onegrid[mfi].dataPtr(),
-                                             reinterpret_cast<FFTcomplex*>
-                                             (spectral_field.back()->dataPtr()),
-                                             FFTW_ESTIMATE);
+                    fplan = fftw_plan_dft_r2c_1d(fft_size[0],
+                                                 variables_onegrid[mfi].dataPtr(),
+                                                 reinterpret_cast<FFTcomplex*>
+                                                 (spectral_field.back()->dataPtr()),
+                                                 FFTW_ESTIMATE);
 #elif (AMREX_SPACEDIM == 3)
-                fplan = fftw_plan_dft_r2c_2d(fft_size[1], fft_size[0],
-                                             variables_onegrid[mfi].dataPtr(),
-                                             reinterpret_cast<FFTcomplex*>
-                                             (spectral_field.back()->dataPtr()),
-                                             FFTW_ESTIMATE);
+                    fplan = fftw_plan_dft_r2c_2d(fft_size[1], fft_size[0],
+                                                 variables_onegrid[mfi].dataPtr(),
+                                                 reinterpret_cast<FFTcomplex*>
+                                                 (spectral_field.back()->dataPtr()),
+                                                 FFTW_ESTIMATE);
 #endif
-            } else {
+                } else {
 #if (AMREX_SPACEDIM == 2)
-                fplan = fftw_plan_dft_r2c_2d(fft_size[1], fft_size[0],
-                                             variables_onegrid[mfi].dataPtr(),
-                                             reinterpret_cast<FFTcomplex*>
-                                             (spectral_field.back()->dataPtr()),
-                                             FFTW_ESTIMATE);
+                    fplan = fftw_plan_dft_r2c_2d(fft_size[1], fft_size[0],
+                                                 variables_onegrid[mfi].dataPtr(),
+                                                 reinterpret_cast<FFTcomplex*>
+                                                 (spectral_field.back()->dataPtr()),
+                                                 FFTW_ESTIMATE);
 #elif (AMREX_SPACEDIM == 3)
-                fplan = fftw_plan_dft_r2c_3d(fft_size[2], fft_size[1], fft_size[0],
-                                             variables_onegrid[mfi].dataPtr(),
-                                             reinterpret_cast<FFTcomplex*>
-                                             (spectral_field.back()->dataPtr()),
-                                             FFTW_ESTIMATE);
+                    fplan = fftw_plan_dft_r2c_3d(fft_size[2], fft_size[1], fft_size[0],
+                                                 variables_onegrid[mfi].dataPtr(),
+                                                 reinterpret_cast<FFTcomplex*>
+                                                 (spectral_field.back()->dataPtr()),
+                                                 FFTW_ESTIMATE);
 #endif
-            }
+                }
 #endif
 
-            forward_plan.push_back(fplan);
+                forward_plan.push_back(fplan);
+            }
+
+#if (AMREX_USE_CUDA)
+            built_plan = true;
+#endif
+        
         }
 
         ParallelDescriptor::Barrier();
