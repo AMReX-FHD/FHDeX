@@ -117,6 +117,7 @@ def compute_Kp_ref(temp):
 # reference values at 298K
 # k(assoc) = 1.1e9 (M^-1*s^-1)
 # k(dissoc) = 5.6e6 (s^-1)
+# ----> for comparison (i.e. not used for actual parameter evalution)
 
 def compute_rate_N2O4_2NO2_ref(temp):
 
@@ -128,12 +129,26 @@ Runiv = 8.31446261815324e7  # universal gas constant
 kB = 1.38064852e-16         # Boltzmann constant
 Navo = 6.0221409e23         # Avogadro constant
 
-#Temp = 298.15
-Temp = 298 
+# state
+Temp = 350. 
 p_atm = 1.
 
 print("Temp=  \t%f" % Temp)
 print("p(atm)=\t%f\n" % p_atm) 
+
+# molecular weights
+MNO2 = 46.0055
+MN2O4 = 2*MNO2
+# mass of a molecule
+mNO2 = MNO2/Navo
+mN2O4 = MN2O4/Navo
+
+print("M_NO2= \t%f" % MNO2)
+print("M_N2O4=\t%f" % MN2O4)
+print("m_NO2= \t%e" % mNO2)
+print("m_N2O4=\t%e\n" % mN2O4)
+
+#####
 
 [CpNO2,HNO2,SNO2] = compute_thermochem_NO2(Temp)
 [CpN2O4,HN2O4,SN2O4] = compute_thermochem_N2O4(Temp)
@@ -147,9 +162,25 @@ print("S_N2O4(J/mol*K)= \t%f\n" % SN2O4)
 
 fNO2 = 2*CpNO2/(Runiv/1e7)-2
 fN2O4 = 2*CpN2O4/(Runiv/1e7)-2
+eT0_NO2 = (HNO2-(Runiv/1e10)*Temp)*1e10/MNO2
+eT0_N2O4 = (HN2O4-(Runiv/1e10)*Temp)*1e10/MN2O4
 
-print("fNO2= \t%f" % fNO2)
-print("fN2O4=\t%f\n" % fN2O4)
+print("f_NO2=   \t%f" % fNO2)
+print("f_N2O4=  \t%f" % fN2O4)
+print("eT0_NO2= \t%e" % eT0_NO2)
+print("eT0_N2O4=\t%e\n" % eT0_N2O4)
+
+e0_NO2 = eT0_NO2-0.5*fNO2*Runiv*Temp/MNO2
+e0_N2O4 = eT0_N2O4-0.5*fN2O4*Runiv*Temp/MN2O4
+cvNO2 = 0.5*fNO2*Runiv/MNO2
+cvN2O4 = 0.5*fN2O4*Runiv/MN2O4
+
+print("e0_NO2= \t%e" % e0_NO2)
+print("e0_N2O4=\t%e" % e0_N2O4)
+print("cv_NO2= \t%e" % cvNO2)
+print("cv_N2O4=\t%e\n" % cvN2O4)
+
+#####
 
 dH = 2*HNO2-HN2O4
 dS = 2*SNO2-SN2O4
@@ -185,18 +216,6 @@ print("eq nN2O4=\t%e" % nN2O4)
 print("eq ntot= \t%e" % ntot)
 print("eq mole fractions= %e %e\n" % (nNO2/ntot,nN2O4/ntot))
 
-# molecular weights
-MNO2 = 46.0055
-MN2O4 = 2*MNO2
-# mass of a molecule
-mNO2 = MNO2/Navo
-mN2O4 = MN2O4/Navo
-
-print("M_NO2= \t%f" % MNO2)
-print("M_N2O4=\t%f" % MN2O4)
-print("mNO2=  \t%e" % mNO2)
-print("mN2O4= \t%e\n" % mN2O4)
-
 # mass densities
 rhoNO2 = mNO2*nNO2
 rhoN2O4 = mN2O4*nN2O4
@@ -215,3 +234,52 @@ print("k_diss=     \t%e" % k_diss)
 print("ref: k_diss=\t%e\n" % k_diss_ref)
 print("k_asso_c(M^-1*s^-1)=\t%e" % k_asso_c)
 print("k_asso_n(cm^3*s^-1)=\t%e\n" % k_asso_n)
+
+#####
+
+# ** Technical note: Determination of binary gas-phase diffusion
+# coefficients of unstable and adsorbing atmospheric trace gases at
+# low temperature - arrested flow and twin tube method
+# Atmos. Chem. Phys. 20, 3669-3682 (2020)
+# https://doi.org/10.5194/acp-20-3669-2020
+# ** Viscosity and Thermal Conductivity of the N2O4<->2NO2 System
+# J. Chem. Phys. 44, 4643 (1966)
+# https://doi.org/10.1063/1.1726692
+
+diamNO2 = 3.765e-8
+diamN2O4 = 4.621e-8
+
+print("diam_NO2= \t%e" % diamNO2)
+print("diam_N2O4=\t%e\n" % diamN2O4)
+
+#####
+
+dx = 8e-6
+dy = 8e-6
+dz = 8e-6
+
+dt = 1e-12
+
+Nx = 8
+Ny = 8
+Nz = 8
+
+dv = dx*dy*dz
+
+print("dx=\t%e\tLx=\t%e" % (dx,Nx*dx))
+print("dy=\t%e\tLy=\t%e" % (dy,Ny*dy))
+print("dz=\t%e\tLz=\t%e" % (dz,Nz*dz))
+print("dv=\t%e" % dv)
+print("dt=\t%e\n" % dt)
+
+print("n_NO2*dv= \t%e" % (nNO2*dv))
+print("n_N2O4*dv=\t%e\n" % (nN2O4*dv))
+
+rate_diss = k_diss*nN2O4
+rate_asso = k_asso_n*nNO2**2
+
+print("eq diss rate (cm^-3*s^-1)=\t%e" % rate_diss)
+print("eq asso rate (cm^-3*s^-1)=\t%e\n" % rate_asso)
+
+print("No diss rxn during dt=\t%e" % (rate_diss*dv*dt))
+print("No asso rxn during dt=\t%e" % (rate_asso*dv*dt))
