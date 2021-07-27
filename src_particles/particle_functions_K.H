@@ -946,7 +946,7 @@ void collect_charge_gpu (FhdParticleContainer::AoS& aos, FArrayBox& charge,
 {
     if (common::pkernel_es[0] == 3)
     {
-        collect_charge_gpu (aos, charge, Kernel3P(), plo, dx);
+        collect_charge_gpu(aos, charge, Kernel3P(), plo, dx);
     }
     else if (common::pkernel_es[0] == 4)
     {
@@ -1252,7 +1252,8 @@ void get_mobility_diff_gpu(Real* nmob, Real* tmob, Real* nmobDer, Real* tmobDer,
 }
 
 
-void get_explicit_mobility_gpu(Real* mob, Real* mobDer, FhdParticleContainer::ParticleType& part, const Real* plo, const Real* phi)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void get_explicit_mobility_gpu(amrex::GpuArray<Real, 3>& mob, amrex::GpuArray<Real, 3>& mobDer, FhdParticleContainer::ParticleType& part, const amrex::GpuArray<Real, 3>& plo, const amrex::GpuArray<Real, 3>& phi)
 {                           
 
     Real nmob;
@@ -1363,15 +1364,16 @@ void get_explicit_mobility_gpu(Real* mob, Real* mobDer, FhdParticleContainer::Pa
     //cin.get();
 }
 
-void dry_gpu(Real dt, FhdParticleContainer::ParticleType& part, Real* dry_terms, Real* mb, Real* mobDir)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void dry_gpu(Real dt, FhdParticleContainer::ParticleType& part, amrex::GpuArray<Real, 3>& dry_terms, amrex::GpuArray<Real, 3>& mb, amrex::GpuArray<Real, 3>& mobDir, amrex::RandomEngine const& engine)
 {
-    Real normalrand[3];
-    Real std[3];
-    Real bfac[3];
+    GpuArray<Real, 3> normalrand;
+    GpuArray<Real, 3> std;
+    GpuArray<Real, 3> bfac;
 
-    normalrand[0] = amrex::RandomNormal(0.,1.);
-    normalrand[1] = amrex::RandomNormal(0.,1.);
-    normalrand[2] = amrex::RandomNormal(0.,1.);
+    normalrand[0] = amrex::RandomNormal(0.,1.,engine);
+    normalrand[1] = amrex::RandomNormal(0.,1.,engine);
+    normalrand[2] = amrex::RandomNormal(0.,1.,engine);
 
 //    !std = sqrt(part%dry_diff*k_B*2d0*t_init(1))
     std[0] = sqrt(2.0*mb[0]*part.rdata(FHD_realData::dryDiff));
