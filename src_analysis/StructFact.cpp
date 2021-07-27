@@ -482,13 +482,11 @@ void StructFact::ComputeFFT(const MultiFab& variables,
 #ifdef AMREX_USE_CUDA
                 if (is_flattened) {
 #if (AMREX_SPACEDIM == 2)
-                    /*
-                    cufftResult result = cufftPlan1d(&fplan, fft_size[0], CUFFT_D2Z);
+                    cufftResult result = cufftPlan1d(&fplan, fft_size[0], CUFFT_D2Z, 1);
                     if (result != CUFFT_SUCCESS) {
                         amrex::AllPrint() << " cufftplan1d forward failed! Error: "
                                           << cufftErrorToString(result) << "\n";
                     }
-                    */
 #elif (AMREX_SPACEDIM == 3)
                     cufftResult result = cufftPlan2d(&fplan, fft_size[1], fft_size[0], CUFFT_D2Z);
                     if (result != CUFFT_SUCCESS) {
