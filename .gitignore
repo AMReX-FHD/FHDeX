@@ -38,6 +38,9 @@ GRTAGS
 # Data Files
 exec/**/Tg*
 
+# Spatial Correlations
+exec/**/spatial*
+
 ## Plot files
 exec/**/plt*
 exec/**/stag*

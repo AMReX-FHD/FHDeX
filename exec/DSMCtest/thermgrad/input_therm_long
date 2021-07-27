@@ -12,14 +12,16 @@
 	fixed_dt = 1e-8                        ! dt = dx/(10*sqrt(kT/m))
 
 	! Controls for number of steps between actions
-	max_step     = 200000000
+	max_step     = 400000000
 	plot_int     =  10000000
+	plot_cross   =  1
+	cross_cell   = 20
 	n_steps_skip =   5000000
 	struct_fact_int = 10
   
 	reset_stats = 1
 	restart     = -1
-	chk_int     = 10000000
+	chk_int     = 20000000
 
 	!particle initialization (-1 - no input; 1 - input provided)
 	particle_input = -1
