@@ -198,7 +198,7 @@ void main_driver(const char* argv)
     spatialCross.setVal(0.0);
     spatialCrossAv.setVal(0.0);
 
-    // external source term - possibly for later
+    // external source term - currently only chemistry source considered for nreaction>0
     MultiFab source(ba,dmap,nprimvars,ngc);
     source.setVal(0.0);
 
