@@ -152,8 +152,8 @@ void main_main(const char* argv)
     MultiFab rho_old(ba, dm, nspecies, Nghost);
     MultiFab rho_new(ba, dm, nspecies, Nghost);
     
-    // allocate Omega MultiFab 
-    MultiFab Omega(ba, dm, nspecies, Nghost);    
+    // allocate source MultiFab 
+    MultiFab source(ba, dm, nspecies, Nghost);    
     
     // time = starting time in the simulation
     amrex::Real time = 0.0;
@@ -255,8 +255,8 @@ void main_main(const char* argv)
         }
         else if (prob_type==2)  // MultiFab-based routine
         {
-            // compute Omega
-            compute_Omega(rho_old,Omega);
+            // compute source
+            compute_chemistry_source(dt,dV,rho_old,source);
 
             for ( MFIter mfi(rho_old); mfi.isValid(); ++mfi )
             {
@@ -265,12 +265,12 @@ void main_main(const char* argv)
                 const Array4<Real>& rhoOld = rho_old.array(mfi);
                 const Array4<Real>& rhoNew = rho_new.array(mfi);
 
-                const Array4<Real>& OmegaArr = Omega.array(mfi);
+                const Array4<Real>& sourceArr = source.array(mfi);
 
                 amrex::ParallelForRNG(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k, RandomEngine const& engine) noexcept
                 {
                     // just deterministic case for now
-                    for (int n=0; n<nspecies; n++) rhoNew(i,j,k,n) = rhoOld(i,j,k,n) + dt*OmegaArr(i,j,k,n);
+                    for (int n=0; n<nspecies; n++) rhoNew(i,j,k,n) = rhoOld(i,j,k,n) + dt*sourceArr(i,j,k,n);
                 });
             }
         }
