@@ -30,10 +30,6 @@ INCLUDE_LOCATIONS += ../../src_common/
 
 include $(AMREX_HOME)/Src/Base/Make.package
 
-include $(AMREX_HOME)/Src/Extern/SWFFT/Make.package
-INCLUDE_LOCATIONS	+= $(AMREX_HOME)/Src/Extern/SWFFT
-VPATH_LOCATIONS		+= $(AMREX_HOME)/Src/Extern/SWFFT
-
 include $(AMREX_HOME)/Tools/GNUMake/Make.rules
 
 ifeq ($(findstring cgpu, $(HOST)), cgpu)

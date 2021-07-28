@@ -307,7 +307,7 @@ void StructFact::FortStructure(const MultiFab& variables, const Geometry& geom,
       ComputeFFT(variables, variables_dft_real, variables_dft_imag, geom);
   }
   else {
-      Abort("Using SWFFT no longer supported");
+      Abort("FortStructure:Invalid fft_type");
   }
 
   MultiFab cov_temp;

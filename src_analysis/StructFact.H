@@ -6,11 +6,6 @@
 #include <AMReX_Vector.H>
 #include <AMReX_VisMF.H>
 
-// These are for SWFFT
-//#include <Distribution.H>
-//#include <AlignedAllocator.h>
-//#include <Dfft.H>
-
 // These are for FFTW or cuFFT
 #ifdef AMREX_USE_CUDA
 #include <cufft.h>
@@ -59,11 +54,6 @@ class StructFact {
 
     // Define vector of unique selected variables
     amrex::Vector< int > var_u;
-
-    // use fftw (1) or swfft (0)
-    // note: fftw does not work for flattened MultiFabs yet
-    // swfft is buggy for non-cubic domains and large flattened MultiFabs
-    int use_fftw;
 
 public:
 
