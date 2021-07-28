@@ -208,8 +208,8 @@ void PrintFluxes(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array< 
                  std::array< MultiFab, 2 >& edgeflux_y_in, std::array< MultiFab, 2 >& edgeflux_z_in,
                  std::array< MultiFab, AMREX_SPACEDIM>& cenflux_in, std::string prefix); 
 
-void evaluateStatsStag3D(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
-                         const MultiFab& prim_in, MultiFab& primMean, MultiFab& primVar,
+void evaluateStatsStag3D(MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
+                         MultiFab& prim_in, MultiFab& primMean, MultiFab& primVar,
                          const std::array<MultiFab, AMREX_SPACEDIM>& vel, 
                          std::array<MultiFab, AMREX_SPACEDIM>& velMean, 
                          std::array<MultiFab, AMREX_SPACEDIM>& velVar, 
@@ -219,10 +219,11 @@ void evaluateStatsStag3D(const MultiFab& cons, MultiFab& consMean, MultiFab& con
                          MultiFab& coVar, 
                          Vector<Real>& dataSliceMeans_xcross,
                          Vector<Real>& spatialCross3D, const int ncross,
+                         const amrex::Box& domain,
                          const int steps);
 
-void evaluateStatsStag1D(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
-                         const MultiFab& prim_in, MultiFab& primMean, MultiFab& primVar,
+void evaluateStatsStag1D(MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
+                         MultiFab& prim_in, MultiFab& primMean, MultiFab& primVar,
                          const std::array<MultiFab, AMREX_SPACEDIM>& vel, 
                          std::array<MultiFab, AMREX_SPACEDIM>& velMean, 
                          std::array<MultiFab, AMREX_SPACEDIM>& velVar, 
@@ -233,8 +234,9 @@ void evaluateStatsStag1D(const MultiFab& cons, MultiFab& consMean, MultiFab& con
                          MultiFab& spatialCross1D, const int ncross,
                          const int steps);
 
-void EvaluateStatsMeans(const MultiFab& cons, MultiFab& consMean,
-                        const MultiFab& prim_in, MultiFab& primMean,
+void EvaluateStatsMeans(MultiFab& cons, MultiFab& consMean,
+                        MultiFab& prim_in, MultiFab& primMean,
+                        const std::array<MultiFab, AMREX_SPACEDIM>& vel,
                         std::array<MultiFab, AMREX_SPACEDIM>& velMean,
                         const std::array<MultiFab, AMREX_SPACEDIM>& cumom,
                         std::array<MultiFab, AMREX_SPACEDIM>& cumomMean,
@@ -262,26 +264,25 @@ void GetSliceAverageCross(Vector<Real>& dataAvMeans_x,
                          const std::array<MultiFab, AMREX_SPACEDIM>& cumomMean,
                          const int nstats);
 
-void GetPencilCross(amrex::Gpu::ManagedVector<Real>& data_xcross,
+void GetPencilCross(amrex::Gpu::DeviceVector<Real>& data_xcross,
                     const MultiFab& consMean,
                     const MultiFab& primMean,
                     const MultiFab& prim_in,
                     const MultiFab& cons,
-                    const std::array<MultiFab, AMREX_SPACEDIM>& vel,
-                    const std::array<MultiFab, AMREX_SPACEDIM>& velMean,
-                    const std::array<MultiFab, AMREX_SPACEDIM>& cumom,
-                    const std::array<MultiFab, AMREX_SPACEDIM>& cumomMean,
                     const int nstats);
 
 void EvaluateSpatialCorrelations3D(Vector<Real>& spatialCross,
-                                   const Vector<Real>& data_x,
-                                   const Vector<Real>& data_xcross,
+                                   Vector<Real>& data_xcross,
+                                   amrex::Gpu::HostVector<Real>& cu_avg, 
+                                   amrex::Gpu::HostVector<Real>& cumeans_avg, 
+                                   amrex::Gpu::HostVector<Real>& prim_avg, 
+                                   amrex::Gpu::HostVector<Real>& primmeans_avg, 
                                    const int steps,
                                    const int nstats,
                                    const int ncross);
 
 void EvaluateSpatialCorrelations1D(MultiFab& spatialCross1D,
-                                   amrex::Gpu::ManagedVector<Real>& data_xcross,
+                                   amrex::Gpu::DeviceVector<Real>& data_xcross,
                                    const MultiFab& consMean,
                                    const MultiFab& primMean,
                                    const MultiFab& prim_in,

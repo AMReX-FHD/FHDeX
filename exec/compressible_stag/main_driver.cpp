@@ -843,7 +843,7 @@ void main_driver(const char* argv)
         else {
             evaluateStatsStag3D(cu, cuMeans, cuVars, prim, primMeans, primVars, vel, 
                                 velMeans, velVars, cumom, cumomMeans, cumomVars, coVars,
-                                dataSliceMeans_xcross, spatialCross3D, ncross, statsCount);
+                                dataSliceMeans_xcross, spatialCross3D, ncross, domain, statsCount);
         }
         statsCount++;
 
