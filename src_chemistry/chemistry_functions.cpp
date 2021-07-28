@@ -6,8 +6,12 @@ void InitializeChemistryNamespace()
     // extract inputs parameters
     ParmParse pp;
 
+    nreaction = 0;
     // get number of reactions
-    pp.get("nreaction",nreaction);
+    pp.query("nreaction",nreaction);
+
+    // if nreaction is set to zero or not defined in the inputs file, quit the routine
+    if (nreaction==0) return;
 
     // get rate constants
     std::vector<amrex::Real> k_tmp(MAX_REACTION);
