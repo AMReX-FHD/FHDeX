@@ -205,10 +205,17 @@ void main_main(const char* argv)
     amrex::Print() << 0 << " ";
 
     for (int n=0; n<nspecies; n++)
-        amrex::Print() << ComputeSpatialMean(rho_old,n)*(Runiv/k_B)/molmass[n] << " ";
+    {
+        //amrex::Print() << ComputeSpatialMean(rho_old,n)*(Runiv/k_B)/molmass[n] << " ";
+        amrex::Print() << ComputeSpatialMean(rho_old,n) << " ";
+    }
+
 
     for (int n=0; n<nspecies; n++)
-        amrex::Print() << ComputeSpatialVariance(rho_old,n)*((Runiv/k_B)/molmass[n])*((Runiv/k_B)/molmass[n]) << " ";
+    {
+        //amrex::Print() << ComputeSpatialVariance(rho_old,n)*((Runiv/k_B)/molmass[n])*((Runiv/k_B)/molmass[n]) << " ";
+        amrex::Print() << ComputeSpatialVariance(rho_old,n) << " ";
+    }
 
     amrex::Print() << "\n";
     
