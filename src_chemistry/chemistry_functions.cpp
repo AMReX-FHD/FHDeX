@@ -70,9 +70,9 @@ void compute_reaction_rates(amrex::Real n_dens[MAX_SPECIES], amrex::Real a_r[MAX
 
 void compute_chemistry_source(amrex::Real dt, amrex::Real dV, MultiFab& rho, MultiFab& source)
 {
-    if (reaction_type!=0 && reaction_type!=1 && reaction_type!=2) amrex::Abort("ERROR: Incorrect reaction_type");
+    if (reaction_type<0 || reaction_type>2) amrex::Abort("ERROR: invalid reaction_type");
     
-    if (reaction_type==2) amrex::Abort("ERROR: reaction_type=2 Not implemented yet");
+    if (reaction_type==2) amrex::Abort("ERROR: reaction_type=2 not implemented yet");
     
     amrex::Real m_s[MAX_SPECIES];
     for (int n=0; n<nspecies; n++) m_s[n] = molmass[n]/(Runiv/k_B);
@@ -101,18 +101,18 @@ void compute_chemistry_source(amrex::Real dt, amrex::Real dV, MultiFab& rho, Mul
                 for (int n=0; n<nspecies; n++)
                     sourceArr[n] += m_s[n]*stoich_coeffs_PR[m][n]*avg_react_rate[m];
             }
-            for (int n=0; n<nspecies; n++) source_arr(i,j,k,n) = sourceArr[n];
             
             if (reaction_type==1)
             {
                 for (int m=0; m<nreaction; m++)
                 {
-                    amrex::Real W = sqrt(1./(dt*dV))*RandomNormal(0.,1.,engine);
+                    amrex::Real W = RandomNormal(0.,1.,engine)/sqrt(dt*dV);
                     for (int n=0; n<nspecies; n++)
                         sourceArr[n] += m_s[n]*stoich_coeffs_PR[m][n]*sqrt(avg_react_rate[m])*W;
                 }
-                for (int n=0; n<nspecies; n++) source_arr(i,j,k,n) = sourceArr[n];
             }
+
+            for (int n=0; n<nspecies; n++) source_arr(i,j,k,n) = sourceArr[n];
         });
     }
 }
