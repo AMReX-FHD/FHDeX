@@ -335,14 +335,15 @@ void compute_p3m_sr_correction_nl_gpu (FhdParticleContainer::AoS& aos, int Np, i
     Real ee = 1.0/(common::permittivity*4*3.141592653589793238);
     Real dx2_inv = 1.0/(dx[0]*dx[0]); // assumes isotropic cells
 
-    // clearly we don't want to do this every time...
-    Gpu::DeviceVector<int> bc_es_lo_d = getDeviceVector(bc_es_lo);
-    Gpu::DeviceVector<int> bc_es_hi_d = getDeviceVector(bc_es_hi);    
-    //Gpu::DeviceVector<int> p_int_tog_d = getDeviceVector(p_int_tog);
+    // Using GpuArray now should avoid getDeviceVector
+    //// clearly we don't want to do this every time...
+    //Gpu::DeviceVector<int> bc_es_lo_d = getDeviceVector(bc_es_lo);
+    //Gpu::DeviceVector<int> bc_es_hi_d = getDeviceVector(bc_es_hi);    
+    ////Gpu::DeviceVector<int> p_int_tog_d = getDeviceVector(p_int_tog);
 
-    auto p_bc_es_lo_d = bc_es_lo_d.data();
-    auto p_bc_es_hi_d = bc_es_hi_d.data();
-    //auto p_p_int_tog_d = p_int_tog_d.data();
+    //auto p_bc_es_lo_d = bc_es_lo_d.data();
+    //auto p_bc_es_hi_d = bc_es_hi_d.data();
+    ////auto p_p_int_tog_d = p_int_tog_d.data();
 
     AMREX_FOR_1D( Np, i, 
     {
@@ -362,10 +363,10 @@ void compute_p3m_sr_correction_nl_gpu (FhdParticleContainer::AoS& aos, int Np, i
             Real q = p1.rdata(FHD_realData::q);
 
             int near_wall_below = 0;
-            if (p_bc_es_lo_d[1] != -1) near_wall_below = near_wall_check(p1, -2, 0.5*p3m_radius);
+            if (bc_es_lo[1] != -1) near_wall_below = near_wall_check(p1, -2, 0.5*p3m_radius);
 
             int near_wall_above = 0;
-            if (p_bc_es_hi_d[1] != -1) near_wall_above = near_wall_check(p1,  2, 0.5*p3m_radius);
+            if (bc_es_hi[1] != -1) near_wall_above = near_wall_check(p1,  2, 0.5*p3m_radius);
 
             // image charge interactions for wall below
             if (near_wall_below)
@@ -381,7 +382,7 @@ void compute_p3m_sr_correction_nl_gpu (FhdParticleContainer::AoS& aos, int Np, i
                 r = std::sqrt(r2);      // separation dist
 
                 // perform coulomb and p3m interaction with image charge
-                if ((p_bc_es_lo_d[1] == 1) and (r < p3m_radius))
+                if ((bc_es_lo[1] == 1) and (r < p3m_radius))
                 {
                     // hom. dirichlet--image charge opposite that of particle
                     
@@ -403,7 +404,7 @@ void compute_p3m_sr_correction_nl_gpu (FhdParticleContainer::AoS& aos, int Np, i
 
                     //Print() << p1.id() << ": " << setprecision(15) << correction_force_mag << "\n";
                 }
-                else if ((p_bc_es_lo_d[1] == 2) and (r < p3m_radius))
+                else if ((bc_es_lo[1] == 2) and (r < p3m_radius))
                 {
                     // hom. neumann  --image charge equal that of particle
 
@@ -438,7 +439,7 @@ void compute_p3m_sr_correction_nl_gpu (FhdParticleContainer::AoS& aos, int Np, i
                 r = std::sqrt(r2);      // separation dist
 
                 // perform coulomb and p3m interaction with image charge
-                if ((p_bc_es_hi_d[1] == 1) and (r < p3m_radius))
+                if ((bc_es_hi[1] == 1) and (r < p3m_radius))
                 {
                     // hom. dirichlet--image charge opposite that of particle
                     
@@ -456,7 +457,7 @@ void compute_p3m_sr_correction_nl_gpu (FhdParticleContainer::AoS& aos, int Np, i
                     p1.rdata(FHD_realData::forcey) -= ee*(dr[1]/r)*q*(-q)*correction_force_mag*dx2_inv;
                     p1.rdata(FHD_realData::forcez) -= ee*(dr[2]/r)*q*(-q)*correction_force_mag*dx2_inv;
                 }
-                else if ((p_bc_es_hi_d[1] == 2) and (r < p3m_radius))
+                else if ((bc_es_hi[1] == 2) and (r < p3m_radius))
                 {
                     // hom. neumann  --image charge equal that of particle
 
@@ -530,7 +531,7 @@ void compute_p3m_sr_correction_nl_gpu (FhdParticleContainer::AoS& aos, int Np, i
                             r = std::sqrt(r2);      // separation dist
 
                             // perform coulomb and p3m interaction with NL particle's image charge
-                            if ((p_bc_es_lo_d[1] == 1) and (r < p3m_radius))
+                            if ((bc_es_lo[1] == 1) and (r < p3m_radius))
                             {
                                 // hom. dirichlet--image charge opposite that of particle
 
@@ -554,7 +555,7 @@ void compute_p3m_sr_correction_nl_gpu (FhdParticleContainer::AoS& aos, int Np, i
 
                                 //Print() << "Below: " << p1.id() << ": " << setprecision(17) << correction_force_mag << ", " << p1.rdata(FHD_realData::forcex) << ", " << p1.rdata(FHD_realData::forcey) << ", " << p1.rdata(FHD_realData::forcez) << "\n";
                             }
-                            else if ((p_bc_es_lo_d[1] == 2) and (r < p3m_radius))
+                            else if ((bc_es_lo[1] == 2) and (r < p3m_radius))
                             {
                                 // hom. neumann  --image charge equal that of particle
                                 
@@ -592,7 +593,7 @@ void compute_p3m_sr_correction_nl_gpu (FhdParticleContainer::AoS& aos, int Np, i
                             r = std::sqrt(r2);      // separation dist
                         
                             // perform coulomb and p3m interaction with image charge
-                            if ((p_bc_es_hi_d[1] == 1) and (r < p3m_radius))
+                            if ((bc_es_hi[1] == 1) and (r < p3m_radius))
                             {
                                 // hom. dirichlet--image charge opposite that of particle
                                 
@@ -612,7 +613,7 @@ void compute_p3m_sr_correction_nl_gpu (FhdParticleContainer::AoS& aos, int Np, i
 
                                // Print() << "Above: " << p1.id() << ": " << setprecision(15) << correction_force_mag << "\n";
                             }
-                            else if ((p_bc_es_hi_d[1] == 2) and (r < p3m_radius))
+                            else if ((bc_es_hi[1] == 2) and (r < p3m_radius))
                             {
                                 // hom. neumann  --image charge equal that of particle
 
@@ -666,11 +667,12 @@ void compute_forces_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
 
     auto rmin = common::rmin;
 
-    // clearly we don't want to do this every time...
-    Gpu::DeviceVector<int> bc_vel_lo_d = getDeviceVector(bc_vel_lo);
-    Gpu::DeviceVector<int> bc_vel_hi_d = getDeviceVector(bc_vel_hi);    
-    auto p_bc_vel_lo_d = bc_vel_lo_d.data();
-    auto p_bc_vel_hi_d = bc_vel_hi_d.data();
+    // Using GpuArray should avoid getDeviceVector
+    //// clearly we don't want to do this every time...
+    //Gpu::DeviceVector<int> bc_vel_lo_d = getDeviceVector(bc_vel_lo);
+    //Gpu::DeviceVector<int> bc_vel_hi_d = getDeviceVector(bc_vel_hi);    
+    //auto p_bc_vel_lo_d = bc_vel_lo_d.data();
+    //auto p_bc_vel_hi_d = bc_vel_hi_d.data();
 
 //    Gpu::DeviceVector<Real> prob_lo_d = getDeviceVector(prob_lo);
 //    Gpu::DeviceVector<Real> prob_hi_d = getDeviceVector(prob_hi);    
@@ -1095,6 +1097,7 @@ void spread_ions_fhd_gpu(FhdParticleContainer::AoS& aos,
     }
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mob_interp_gpu(Real z, Real a, Real* tmob, Real* nmob)
 {
     if(wall_mob==1)
@@ -1155,6 +1158,7 @@ void mob_interp_gpu(Real z, Real a, Real* tmob, Real* nmob)
     }
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mob_interp_der_gpu(Real z, Real a, Real* tmobDer, Real* nmobDer)
 {
 
@@ -1215,6 +1219,7 @@ void mob_interp_der_gpu(Real z, Real a, Real* tmobDer, Real* nmobDer)
 
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void get_mobility_diff_gpu(Real* nmob, Real* tmob, Real* nmobDer, Real* tmobDer, FhdParticleContainer::ParticleType& part, Real z)
 {
 

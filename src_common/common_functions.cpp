@@ -46,14 +46,14 @@ void InitializeCommonNamespace() {
     u_init.resize(2);
 
     // boundary condition flags
-    bc_vel_lo.resize(AMREX_SPACEDIM);
-    bc_vel_hi.resize(AMREX_SPACEDIM);
-    bc_es_lo.resize(AMREX_SPACEDIM);
-    bc_es_hi.resize(AMREX_SPACEDIM);
-    bc_mass_lo.resize(AMREX_SPACEDIM);
-    bc_mass_hi.resize(AMREX_SPACEDIM);
-    bc_therm_lo.resize(AMREX_SPACEDIM);
-    bc_therm_hi.resize(AMREX_SPACEDIM);
+    //bc_vel_lo.resize(AMREX_SPACEDIM);
+    //bc_vel_hi.resize(AMREX_SPACEDIM);
+    //bc_es_lo.resize(AMREX_SPACEDIM);
+    //bc_es_hi.resize(AMREX_SPACEDIM);
+    //bc_mass_lo.resize(AMREX_SPACEDIM);
+    //bc_mass_hi.resize(AMREX_SPACEDIM);
+    //bc_therm_lo.resize(AMREX_SPACEDIM);
+    //bc_therm_hi.resize(AMREX_SPACEDIM);
 
     wallspeed_lo.resize((AMREX_SPACEDIM-1)*AMREX_SPACEDIM);
     wallspeed_hi.resize((AMREX_SPACEDIM-1)*AMREX_SPACEDIM);
@@ -105,10 +105,10 @@ void InitializeCommonNamespace() {
                                 &filtering_width, &stoch_stress_form, u_init.dataPtr(),
                                 &perturb_width, &smoothing_width, &initial_variance_mom,
                                 &initial_variance_mass, &domega,
-                                bc_vel_lo.dataPtr(), bc_vel_hi.dataPtr(),
-                                bc_es_lo.dataPtr(), bc_es_hi.dataPtr(),
-                                bc_mass_lo.dataPtr(), bc_mass_hi.dataPtr(),
-                                bc_therm_lo.dataPtr(), bc_therm_hi.dataPtr(),
+                                bc_vel_lo.data(), bc_vel_hi.data(),
+                                bc_es_lo.data(), bc_es_hi.data(),
+                                bc_mass_lo.data(), bc_mass_hi.data(),
+                                bc_therm_lo.data(), bc_therm_hi.data(),
                                 p_lo.data(), p_hi.data(),
                                 t_lo.data(), t_hi.data(),
                                 bc_Yk_x_lo.data(), bc_Yk_x_hi.data(),
