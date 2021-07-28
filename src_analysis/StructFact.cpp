@@ -457,7 +457,7 @@ void StructFact::ComputeFFT(const MultiFab& variables,
         variables_onegrid.ParallelCopy(variables,comp,0,1);
 
         if (!built_plan) {
-        
+
             for (MFIter mfi(variables_onegrid); mfi.isValid(); ++mfi) {
 
                 // grab a single box including ghost cell range
@@ -545,9 +545,7 @@ void StructFact::ComputeFFT(const MultiFab& variables,
                 forward_plan.push_back(fplan);
             }
 
-#if (AMREX_USE_CUDA)
-            built_plan = true;
-#endif
+	    built_plan = true;
         
         }
 
