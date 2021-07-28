@@ -572,7 +572,7 @@ contains
     searchDist = 0.
     project_dir = -1
     slicepoint = -1
-    max_grid_projection(:) = 1
+    max_grid_projection(:) = 4096
     histogram_unit = 0
     density_weights(:) = 0.d0
     shift_cc_to_boundary(:,:) = 0
