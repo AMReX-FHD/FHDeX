@@ -35,18 +35,12 @@ void FhdParticleContainer::updateTimeStep(const Geometry& geom, Real& dt) {
 			wmax = std::max(wmax,w);
 		}
 	}
-	
+
 	dtmax  = umax/dx[0];
 	dtmax += vmax/dx[1];
 	dtmax += wmax/dx[2];
 	dtmax  = 0.2/dtmax; // Courant number of 0.2
-	dtmax = dtmax*2;
-	Print() << "dt: " << dt << " dtmax: "  << dtmax << "\n";
-	// Want to compare dt across each processor and choose largest one (gather?)
-	if(dt<dtmax) { dt=dtmax; }
-	if(ParallelDescriptor::MyProc() == 0) {
-		ParallelDescriptor::ReduceRealMax(dt);
-		ParallelDescriptor::Bcast(&dt,1,ParallelDescriptor::IOProcessorNumber());
-	}
-	Print() << "dt: " << dt << "\n";
+	dtmax = std::min(dt,dtmax);
+	ParallelDescriptor::ReduceRealMax(dtmax);
+	dt = dtmax;
 }

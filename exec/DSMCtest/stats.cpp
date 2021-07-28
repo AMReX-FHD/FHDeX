@@ -208,10 +208,10 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
 
                 Real cv = cvlMeans(i,j,k,icvl);
                 Real rho = cuMeans(i,j,k,icon+0);
-                Real jx = cuMeans(i,j,k,icon+0);
-                Real jy = cuMeans(i,j,k,icon+0);
-                Real jz = cuMeans(i,j,k,icon+0);
-                Real K = cuMeans(i,j,k,icon+0);
+                Real jx = cuMeans(i,j,k,icon+1);
+                Real jy = cuMeans(i,j,k,icon+2);
+                Real jz = cuMeans(i,j,k,icon+3);
+                Real K = cuMeans(i,j,k,icon+4);
                 
                 cvlMeans(i,j,k,0) += cv*rho;
 
@@ -234,7 +234,7 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
                 primMeans(i,j,k,iprim+6) = (K/rho-vsqb*0.5)/cv;
 
                 Real T = primMeans(i,j,k,iprim+6);
-                primMeans(i,j,k,6) += T*n; // Ask [IS]. Should temperature be summed or calculated at end?
+                primMeans(i,j,k,6) += T*n;
 
                 primMeans(i,j,k,iprim+7) = rho*(k_B/mass)*T;
                 primMeans(i,j,k,7) += primMeans(i,j,k,iprim+7);
@@ -374,7 +374,6 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
             	pow(orhomean,2.0)*(coVars(i,j,k,7)-vmean*coVars(i,j,k,2)-wmean*coVars(i,j,k,1)
             	+vmean*wmean*cuVars(i,j,k,0));
 
-						Print() << "cvl: " << cvlMeans(i,j,k,0) << "\n";
 						Real vsqb = pow(umean,2)+pow(vmean,2)+pow(wmean,2);
 						Real cv = cvlMeans(i,j,k,0);
             QMeans(i,j,k,0) = cv*primMeans(i,j,k,6)-0.5*vsqb;
@@ -396,6 +395,8 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
        				pow(orhomean,2.0)/cv*(coVars(i,j,k,9)-wmean*coVars(i,j,k,3)-coVars(i,j,k,13)
        				+wmean*coVars(i,j,k,10)-Qbar*coVars(i,j,k,2)+wmean*Qbar*cuVars(i,j,k,0));
             
+            //primVars(i,j,k,7) = // Add (R_m/c_m) dP.dP
+							//(cuvars(i,j,k,8)
             // TODO: Add P and E variances
             // TODO: Add variances by species
         });
