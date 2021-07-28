@@ -22,7 +22,7 @@
     Runiv = 8.314462175e7
 
     ! initial total mass density
-    rho0 = 3.166062e-03 
+    rho0 = 1.855335e-03
     ! initial mass fractions
     !rhobar = 1.878679e-01 8.121321e-01 
     rhobar = 0.5 0.5 
