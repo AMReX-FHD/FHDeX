@@ -37,20 +37,19 @@ INCLUDE_LOCATIONS += $(MUI_HOME)
 
 include $(AMREX_HOME)/Src/Base/Make.package
 
-# structure factor and SWFFT stuff
 include ../../src_analysis/Make.package
 VPATH_LOCATIONS   += ../../src_analysis/
 INCLUDE_LOCATIONS += ../../src_analysis/
 
-include $(AMREX_HOME)/Src/Extern/SWFFT/Make.package
-INCLUDE_LOCATIONS     += $(AMREX_HOME)/Src/Extern/SWFFT
-VPATH_LOCATIONS       += $(AMREX_HOME)/Src/Extern/SWFFT
-
-LIBRARIES += -L$(FFTW_DIR) -lfftw3_mpi -lfftw3
-
 include $(AMREX_HOME)/Tools/GNUMake/Make.rules
 
 ifeq ($(findstring cgpu, $(HOST)), cgpu)
-CXXFLAGS += $(FFTW)
+  CXXFLAGS += $(FFTW)
+endif
+
+ifeq ($(USE_CUDA),TRUE)
+  LIBRARIES += -lcufft
+else
+  LIBRARIES += -L$(FFTW_DIR) -lfftw3_mpi -lfftw3
 endif
 
