@@ -11,6 +11,8 @@
 #include "StochMassFlux.H"
 #include "StochMomFlux.H"
 
+#include <limits>
+
 using namespace multispec;
 using namespace amrex;
 
@@ -955,10 +957,141 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void ComputeNonnegativeRhoAv(
                 GpuArray<Real, MAX_SPECIES>& Rho1,
                 GpuArray<Real, MAX_SPECIES>& Rho2,
-                Real dx, 
+                const GpuArray<Real, AMREX_SPACEDIM>& dx,
+                GpuArray<Real, MAX_SPECIES>& molmass_in,
+                int nspecies_in,
                 GpuArray<Real, MAX_SPECIES>& RhoAv){
+
 Print() << "HACK - ComputeNonnegativeRhoAv" << std::endl;
+    
+    Real dv, value1, value2, tmp1, tmp2;
+
+#if (AMREX_SPACEDIM == 2)
+    //dv = product(dx(1:2))*cell_depth -- HACK
+    dv = 1.0;
+    for (int dim=0; dim<2; ++dim){
+        dv *= dx[dim];
+    }
+    dv *= cell_depth;
+#elif (AMREX_SPACEDIM == 3)
+    //dv = product(dx(1:3)) -- HACK
+    dv = 1.0;
+    for (int dim=0; dim<3; ++dim){
+        dv *= dx[dim];
+    }
+#endif
+
+    // special version for rtil
+    if ((use_multiphase == 1) && (nspecies_in == 2)){
+       value1 = Rho1[0];
+       value2 = Rho2[0];
+       if ((value1 <= 0.0) || (value2 <= 0.0)){
+          RhoAv[0] = 0.0;
+       } else {
+          RhoAv[0] = std::min( 0.5*(value1 + value2), rho0);  //rho0 is global HACK: should I pass this too?
+       }
+       RhoAv[1] = rho0 - RhoAv[0];
+
+    } else {
+
+        for (int comp=1; comp<=nspecies_in; ++comp){
+               value1 = Rho1[comp-1]/molmass_in[comp-1]; //Convert to number density
+               value2 = Rho2[comp-1]/molmass_in[comp-1];       
+
+            switch (avg_type) {
+
+            // Arithmetic with a C0-smoothed Heaviside
+            case 1 : { 
+                if ( (value1 <= 0.0) || (value2 <= 0.0) ) {
+                   RhoAv[comp-1] = 0.0;
+                } else {
+                   tmp1 = std::min(dv*value1,1.0);
+                   tmp2 = std::min(dv*value2,1.0);
+                   RhoAv[comp-1] = molmass_in[comp-1]*(value1+value2)/2.0*tmp1*tmp2;
+                }
+            } break;
+
+            // Geometric
+            case 2 : 
+                RhoAv[comp-1] = molmass_in[comp-1]*std::sqrt(std::max(value1,0.0)*std::max(value2,0.0));
+            break;
+
+            // Harmonic
+            case 3 : {
+                // What we want here is the harmonic mean of max(value1,0) and max(value2,0)
+                // Where we define the result to be zero if either one is zero
+                // But numerically we want to avoid here division by zero
+                Real tiny = std::numeric_limits<Real>::min(); //replacement for fortran tiny(1.d0) function call
+                if ( (value1 <= 10.0*tiny) || (value2 <= 10.0*tiny) ) {
+                   RhoAv[comp-1] = 0.0;
+                } else {
+                   RhoAv[comp-1] = molmass_in[comp-1]*2.0/(1.0/value1+1.0/value2);
+                }
+            } break;
+
+            // Arithmetic with (discontinuous) Heaviside
+            case 10 : {  
+                if ( (value1 <= 0.0) || (value2 <= 0.0) ) {
+                   RhoAv[comp-1] = 0.0;
+                } else {
+                   RhoAv[comp-1] = molmass_in[comp-1]*(value1+value2)/2.0;
+                }
+            } break;
+
+            // Arithmetic with C1-smoothed Heaviside
+            case 11 : {  
+                if ( (value1 <= 0.0) || (value2 <= 0.0) ) {
+                   RhoAv[comp-1] = 0.0;
+                } else {
+                    tmp1 = dv*value1;
+                    if (tmp1 < 1.0) {
+                        tmp1 = (3.0-2.0*tmp1)*tmp1*tmp1;
+                    } else {
+                        tmp1 = 1.0;
+                    }
+                    tmp2 = dv*value2;
+                    if (tmp2 < 1.0) {
+                        tmp2 = (3.0 - 2.0*tmp2)*tmp2*tmp2;
+                    } else {
+                        tmp2 = 1.0;
+                    }
+                    RhoAv[comp-1] = molmass_in[comp-1]*(value1 + value2)/2.0*tmp1*tmp2;
+                }
+            } break;
+
+            // Arithmetic with C2-smoothed Heaviside
+            case 12 : {  
+                if ( (value1 <= 0.0) || (value2 <= 0.0) ) {
+                    RhoAv[comp-1] = 0.0;
+                } else {
+                    tmp1 = dv*value1;
+                    if (tmp1 < 1.0) {
+                        tmp1=(10.0 - 15.0*tmp1 + 6.0*tmp1*tmp1)*std::pow(tmp1,3);
+                    } else {
+                        tmp1=1.0;
+                    }
+                    tmp2 = dv*value2;
+                    if (tmp2 < 1.0) {
+                        tmp2 = (10.0-15.0*tmp2+6.0*tmp2*tmp2)*std::pow(tmp2,3);
+                    } else {
+                        tmp2 = 1.0;
+                    }
+                    RhoAv[comp-1] = molmass_in[comp-1]*(value1+value2)/2.0*tmp1*tmp2;
+                }
+            } break;
+            default :
+                printf("compute_nonnegative_rho_av: invalid avg_type\n");
+                Abort();
+            }
+        }
+    }    
 }
+
+
+
+
+
+
 
 /**
  * \brief Compute Sqrt L-Onsager
@@ -969,12 +1102,95 @@ Print() << "HACK - ComputeNonnegativeRhoAv" << std::endl;
  *
  */
 
-
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void ComputeSqrtLOnsagerLocal(
+                GpuArray<Real, MAX_SPECIES>& molmass_in,
                 GpuArray<Real, MAX_SPECIES>& RhoN,
-                Real rhotot,
-                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& sqrtLOnsager){
+                Real rhotot_in,
+                int nspecies_in,
+                int chi_iterations_in,
+                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& SqrtLOnsager){
 Print() << "HACK - ComputeSqrtLOnsager" << std::endl;
+
+    // local variables
+    Array1D<Real, 1, MAX_SPECIES> W;
+
+    Real rcond;  /**< For LAPACK95 call */
+    int info;  /**< For LAPACK95 call */
+
+    GpuArray<Real, MAX_SPECIES> Molarconc_loc;
+    Real molmtot_loc;
+    Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> Chi_loc;
+    Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> DBar_loc;
+
+    int ntrace;                /**<   number of trace species with w_k < fractional_tolerance */
+    int nspecies_sub;          /**<   dim of subsystem = nspecies-ntrace */
+    Real molmtot_sub;
+    Real rhotot_sub;
+
+   /*
+    * this is a mapping used to eliminate elements in D_bar we don't need (for D_bar_sub)
+    * and for expanding sqrtLonsager_sub into sqrtLonsager
+    * it will contain the numbers 1, 2, ..., (nspecies-ntrace)
+    * with zeros in elements corresponding to trace elements
+    * (example) for a 5-species system having trace species 2 and 5:
+    *  species       1 2 3 4 5
+    *  dest(species) 1 0 2 3 0
+    */
+    Array1D<int, 1, MAX_SPECIES> dest;
+  
+    // compute the number of trace species
+    // build the mapping for expanding/contracting arrays
+    ntrace = 0;
+    for (int row=1; row <= nspecies_in; ++row){ 
+        W(row) = RhoN[row-1]/rhotot_in;
+        if (W(row) < fraction_tolerance){
+           ntrace = ntrace + 1;
+           dest(row) = 0;
+        } else {
+           dest(row) = row - ntrace;
+        }
+    }
+
+    if (ntrace == nspecies_in-1){
+
+        // this is all trace species except for 1 (essentially pure solvent);
+        // set sqrtLonsager to zero
+        MatrixToZeros(MAX_SPECIES, SqrtLOnsager);
+        //sqrtLonsager(:,:) = 0.0;
+
+    } else if (ntrace == 0) {    // there are no trace species
+
+       // compute molarconc and molmtot
+        ComputeMolconcMolmtotLocal(nspecies_in, molmass_in, RhoN, rhotot_in, Molarconc_loc, molmtot_loc);
+        
+       // compute D_bar
+       //call compute_D_bar_local(rho,rhotot,D_bar)
+        
+       // compute chi
+       //call compute_chi(nspecies_in,molmass,rho,rhotot,molarconc,chi,D_bar)
+        ComputeChi(nspecies_in, molmass_in, RhoN, rhotot_in, Molarconc_loc, Chi_loc, DBar_loc, chi_iterations_in);
+
+       // compute Onsager matrix L (store in sqrtLonsager)
+       for (int column=1; column<= nspecies_in; ++column){ 
+          for (int row=1; row<=nspecies_in; ++row){ 
+             SqrtLOnsager(row, column) = molmtot_loc*rhotot_in*W(row)*Chi_loc(row,column)*W(column)/k_B;
+          }
+       }
+
+       // compute cell-centered Cholesky factor, sqrtLonsager
+       //call choldc(SqrtLOnsager,nspecies_in)   
+
+    } else {
+
+       // if there are trace species, we consider a subsystem 
+       // consisting of non-trace species
+
+       nspecies_sub = nspecies_in - ntrace;
+       //call compute_sqrtLonsager_sub()
+
+    } 
+
+    Print() << "HACK" << std::endl;
 }
 #endif
