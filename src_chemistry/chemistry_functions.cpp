@@ -68,7 +68,7 @@ void compute_reaction_rates(amrex::Real n_dens[MAX_SPECIES], amrex::Real a_r[MAX
     return;
 }
 
-void compute_chemistry_source(amrex::Real dt, amrex::Real dV, MultiFab& rho, MultiFab& source, int startOutComp)
+void compute_chemistry_source(amrex::Real dt, amrex::Real dV, MultiFab& rho, MultiFab& source, int startComp)
 {
     if (reaction_type<0 || reaction_type>2) amrex::Abort("ERROR: invalid reaction_type");
     
@@ -87,7 +87,7 @@ void compute_chemistry_source(amrex::Real dt, amrex::Real dV, MultiFab& rho, Mul
         amrex::ParallelForRNG(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k, RandomEngine const& engine) noexcept
         {
             amrex::Real n_dens[MAX_SPECIES];
-            for (int n=0; n<nspecies; n++) n_dens[n] = rho_arr(i,j,k,n+startOutComp)/m_s[n];
+            for (int n=0; n<nspecies; n++) n_dens[n] = rho_arr(i,j,k,n+startComp)/m_s[n];
             
             amrex::Real avg_react_rate[MAX_REACTION];
             compute_reaction_rates(n_dens,avg_react_rate);
@@ -112,7 +112,7 @@ void compute_chemistry_source(amrex::Real dt, amrex::Real dV, MultiFab& rho, Mul
                 }
             }
 
-            for (int n=0; n<nspecies; n++) source_arr(i,j,k,n+startOutComp) = sourceArr[n];
+            for (int n=0; n<nspecies; n++) source_arr(i,j,k,n+startComp) = sourceArr[n];
         });
     }
 }
