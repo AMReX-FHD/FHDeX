@@ -263,8 +263,8 @@ void main_main(const char* argv)
         else if (prob_type==2)  // MultiFab-based routine
         {
             // compute source
-            int noffset = 0;
-            compute_chemistry_source(dt,dV,rho_old,source,noffset);
+            int startOutComp = 0;
+            compute_chemistry_source(dt,dV,rho_old,source,startOutComp);
 
             for ( MFIter mfi(rho_old); mfi.isValid(); ++mfi )
             {
