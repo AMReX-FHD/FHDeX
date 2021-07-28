@@ -136,8 +136,8 @@ void rotation(Real costheta, Real sintheta, Real cosphi, Real sinphi, Real *cx, 
 
 // uncomment this once this routine is on a GPU device
 // then the amrex::Random() calls will need to be fixed
-//AMREX_GPU_HOST_DEVICE AMREX_INLINE
-void randomhemisphere(Real costheta, Real sintheta, Real cosphi, Real sinphi, Real *cx, Real *cy, Real *cz)
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
+void randomhemisphere(Real costheta, Real sintheta, Real cosphi, Real sinphi, Real *cx, Real *cy, Real *cz, amrex::RandomEngine const& engine)
 {
     Real mag, costhetanew, sinthetanew, cosphinew, sinphinew, phi;
 
@@ -145,10 +145,10 @@ void randomhemisphere(Real costheta, Real sintheta, Real cosphi, Real sinphi, Re
 
 //    call get_half_angles(costhetanew, sinthetanew, cosphinew, sinphinew)
 
-    costhetanew = amrex::Random();
+    costhetanew = amrex::Random(engine);
     sinthetanew = sqrt(1.0 - costhetanew*costhetanew);
 
-    phi = amrex::Random()*2.0*M_PI;
+    phi = amrex::Random(engine)*2.0*M_PI;
 
     cosphinew = cos(phi);
     sinphinew = sin(phi);
@@ -240,7 +240,7 @@ void app_bc_gpu(const paramPlane* surf, FhdParticleContainer::ParticleType& part
 
         if(amrex::Random(engine) > surf->momentumConsRight)
         {
-          randomhemisphere(surf->cosThetaRight, surf->sinThetaRight, surf->cosPhiRight, surf->sinPhiRight, &part.rdata(FHD_realData::velx), &part.rdata(FHD_realData::vely), &part.rdata(FHD_realData::velz));
+          randomhemisphere(surf->cosThetaRight, surf->sinThetaRight, surf->cosPhiRight, surf->sinPhiRight, &part.rdata(FHD_realData::velx), &part.rdata(FHD_realData::vely), &part.rdata(FHD_realData::velz), engine);
         }
       }
 
@@ -318,7 +318,7 @@ void app_bc_gpu(const paramPlane* surf, FhdParticleContainer::ParticleType& part
 
         if(amrex::Random(engine) > surf->momentumConsLeft)
         {
-          randomhemisphere(surf->cosThetaRight, surf->sinThetaRight, surf->cosPhiRight, surf->sinPhiRight, &part.rdata(FHD_realData::velx), &part.rdata(FHD_realData::vely), &part.rdata(FHD_realData::velz));
+          randomhemisphere(surf->cosThetaRight, surf->sinThetaRight, surf->cosPhiRight, surf->sinPhiRight, &part.rdata(FHD_realData::velx), &part.rdata(FHD_realData::vely), &part.rdata(FHD_realData::velz), engine);
         }
 
       }
