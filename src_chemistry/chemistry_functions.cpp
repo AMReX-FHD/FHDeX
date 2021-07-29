@@ -68,7 +68,11 @@ void compute_reaction_rates(amrex::Real n_dens[MAX_SPECIES], amrex::Real a_r[MAX
     return;
 }
 
-void compute_chemistry_source(amrex::Real dt, amrex::Real dV, MultiFab& rho, MultiFab& source, int startComp)
+void compute_chemistry_source(amrex::Real dt, amrex::Real dV, MultiFab& mf_in, int startComp_in, MultiFab& source, int startComp_out)
+// mf_in: input MultiFab containing mass densitities rho1, rho2, ..., rho_nspecies
+// startComp_in: position of rho1 in mf_in
+// source: output MultiFab containing source terms corresponding to rho1, rho2, ..., rho_nspecies
+// startComp_out: position of the first source term corresponding to rho1 in MultiFab source
 {
     if (reaction_type<0 || reaction_type>2) amrex::Abort("ERROR: invalid reaction_type");
     
@@ -77,17 +81,17 @@ void compute_chemistry_source(amrex::Real dt, amrex::Real dV, MultiFab& rho, Mul
     amrex::Real m_s[MAX_SPECIES];
     for (int n=0; n<nspecies; n++) m_s[n] = molmass[n]/(Runiv/k_B);
 
-    for (MFIter mfi(rho); mfi.isValid(); ++mfi)
+    for (MFIter mfi(mf_in); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.validbox();
 
-        const Array4<Real>& rho_arr = rho.array(mfi);
+        const Array4<Real>& rho_arr = mf_in.array(mfi);
         const Array4<Real>& source_arr = source.array(mfi);
 
         amrex::ParallelForRNG(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k, RandomEngine const& engine) noexcept
         {
             amrex::Real n_dens[MAX_SPECIES];
-            for (int n=0; n<nspecies; n++) n_dens[n] = rho_arr(i,j,k,n+startComp)/m_s[n];
+            for (int n=0; n<nspecies; n++) n_dens[n] = rho_arr(i,j,k,n+startComp_in)/m_s[n];
             
             amrex::Real avg_react_rate[MAX_REACTION];
             compute_reaction_rates(n_dens,avg_react_rate);
@@ -112,7 +116,7 @@ void compute_chemistry_source(amrex::Real dt, amrex::Real dV, MultiFab& rho, Mul
                 }
             }
 
-            for (int n=0; n<nspecies; n++) source_arr(i,j,k,n+startComp) = sourceArr[n];
+            for (int n=0; n<nspecies; n++) source_arr(i,j,k,n+startComp_out) = sourceArr[n];
         });
     }
 }
