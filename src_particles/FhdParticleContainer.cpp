@@ -523,7 +523,7 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
             long np = this->GetParticles(lev).at(index).numParticles();
 
 	    // Set up vector to do reduction
-	    Gpu::ManagedVector<Real> increment_moves_tile(np, 0.);
+	    Gpu::DeviceVector<Real> increment_moves_tile(np, 0.);
             Real* pincrement_moves_tile = increment_moves_tile.data();
 
             //Real posOld[3];
