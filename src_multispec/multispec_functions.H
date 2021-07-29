@@ -1276,6 +1276,7 @@ void ComputeSqrtLOnsagerSub(
                 GpuArray<Real, MAX_SPECIES>& Molmass_in,
                 GpuArray<Real, MAX_SPECIES>& Rho_in,
                 Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> DBar_in,
+                Real rhotot_in,
                 int nspecies_in,
                 int nspecies_sub,
                 int chi_iterations_sub,
@@ -1316,7 +1317,7 @@ void ComputeSqrtLOnsagerSub(
     // you could read in only the lower diagonals, 
     // reflect, and set the diagnals to zero if you want
 
-    //HACK//call compute_D_bar_local(rho,rhotot,D_bar)
+    ComputeDBarLocal(Rho_in, rhotot_in, nspecies_in, DBar_in);
 
     for (int row=1; row<= nspecies_in; ++row){
         if (dest(row) == 0){
@@ -1330,10 +1331,12 @@ void ComputeSqrtLOnsagerSub(
     }
     
     // compute molarconc_sub and molmtot_sub
-    //HACK//call compute_molconc_molmtot_local(nspecies_sub,molmass_sub,rho_sub,rhotot_sub,molarconc_sub,molmtot_sub)
+    ComputeMolconcMolmtotLocal(nspecies_sub, Molmass_sub, Rho_sub, rhotot_sub, Molarconc_sub, molmtot_sub);
+
+
 
     // compute chi_sub
-    //HACK//call compute_chi(nspecies_sub,molmass_sub,rho_sub,rhotot_sub,molarconc_sub,chi_sub,D_bar_sub)
+    ComputeChi(nspecies_sub, Molmass_sub, Rho_sub, rhotot_sub, Molarconc_sub, Chi_sub, DBar_sub, chi_iterations_sub);
 
     // compute Onsager matrix L_sub (store in sqrtLonsager_sub)
     for (int column=1; column<= nspecies_sub; ++column){
@@ -1343,8 +1346,8 @@ void ComputeSqrtLOnsagerSub(
     }
 
     // compute cell-centered Cholesky factor, sqrtLonsager_sub
-    //HACK//call choldc(sqrtLonsager_sub,nspecies_sub)   
-
+    CholeskyDC(SqrtLOnsager_sub, nspecies_sub);
+    
     // expand sqrtLonsager_sub into sqrtLonsager
     MatrixToZeros(nspecies_in, SqrtLOnsager);
     for (int row=1; row<= nspecies_in; ++row){
@@ -1432,34 +1435,41 @@ void ComputeSqrtLOnsagerLocal(
     } else if (ntrace == 0) {    // there are no trace species
     //} else if (1) {    // there are no trace species
 
-       // compute molarconc and molmtot
+        // compute molarconc and molmtot
         ComputeMolconcMolmtotLocal(nspecies_in, molmass_in, RhoN, rhotot_in, Molarconc_loc, molmtot_loc);
         
-       // compute D_bar
+        // compute D_bar
         ComputeDBarLocal(RhoN, rhotot_in, nspecies_in, DBar_loc); 
         
-       // compute chi
+        // compute chi
         ComputeChi(nspecies_in, molmass_in, RhoN, rhotot_in, Molarconc_loc, Chi_loc, DBar_loc, chi_iterations_in);
 
-       // compute Onsager matrix L (store in sqrtLonsager)
-       for (int column=1; column<= nspecies_in; ++column){ 
-          for (int row=1; row<=nspecies_in; ++row){ 
-             SqrtLOnsager(row, column) = molmtot_loc*rhotot_in*W(row)*Chi_loc(row,column)*W(column)/k_B;
-          }
-       }
+        // compute Onsager matrix L (store in sqrtLonsager)
+        for (int column=1; column<= nspecies_in; ++column){ 
+            for (int row=1; row<=nspecies_in; ++row){ 
+                SqrtLOnsager(row, column) = molmtot_loc*rhotot_in*W(row)*Chi_loc(row,column)*W(column)/k_B;
+            }
+        }
 
-       //call compute_chi(nspecies_in,molmass,rho,rhotot,molarconc,chi,D_bar)
-       // compute cell-centered Cholesky factor, sqrtLonsager
-       //call choldc(SqrtLOnsager,nspecies_in)   
+        //call compute_chi(nspecies_in,molmass,rho,rhotot,molarconc,chi,D_bar)
+        // compute cell-centered Cholesky factor, sqrtLonsager
         CholeskyDC(SqrtLOnsager,nspecies_in);
 
     } else {
 
-       // if there are trace species, we consider a subsystem 
-       // consisting of non-trace species
+        // if there are trace species, we consider a subsystem 
+        // consisting of non-trace species
 
-       nspecies_sub = nspecies_in - ntrace;
-       //call compute_sqrtLonsager_sub()
+        nspecies_sub = nspecies_in - ntrace;
+        ComputeSqrtLOnsagerSub( dest, 
+                        molmass_in, 
+                        RhoN, 
+                        DBar_loc, 
+                        rhotot_in, 
+                        nspecies_in, 
+                        nspecies_sub, 
+                        chi_iterations_in,
+                        SqrtLOnsager);
 
     } 
 
