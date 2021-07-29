@@ -757,7 +757,7 @@ void EvaluateSpatialCorrelations3D(Vector<Real>& spatialCross,
                                      + qmeancross*spatialCross[i*ncross+17] + qmean*spatialCross[i*ncross+18]);
 
         // <delT(x*)delrho(x)> = (1/cv/<rho(x*)>)*(<delK*delrho> - <delG*delrho> - <Q*><delrhodelrho*>)
-        spatialCross[i*ncross+20] = (cvinvcross*meanrhocross)*(spatialCross[i*ncross+16] - spatialCross[i*ncross+18] - qmeancross*spatialCross[i*ncross+0]);
+        spatialCross[i*ncross+20] = (cvinvcross/meanrhocross)*(spatialCross[i*ncross+16] - spatialCross[i*ncross+18] - qmeancross*spatialCross[i*ncross+0]);
 
         // <delu(x*)delrho> = (1/<rho(x*)>)*(<deljx(x*)delrho(x)> - <u(x*)><<delrho(x*)delrho(x)>) 
         spatialCross[i*ncross+21] = (1.0/meanrhocross)*(spatialCross[i*ncross+5] - meanuxcross*spatialCross[i*ncross+0]);  
@@ -1198,7 +1198,7 @@ void EvaluateSpatialCorrelations1D(MultiFab& spatialCross1D,
                                          + qmeancross*spatialCross(i,j,k,17) + qmean*spatialCross(i,j,k,18));
 
             // <delT(x*)delrho(x)> = (1/cv/<rho(x*)>)*(<delK*delrho> - <delG*delrho> - <Q*><delrhodelrho*>)
-            spatialCross(i,j,k,20) = (cvinvcross*meanrhocross)*(spatialCross(i,j,k,16) - spatialCross(i,j,k,18) - qmeancross*spatialCross(i,j,k,0));
+            spatialCross(i,j,k,20) = (cvinvcross/meanrhocross)*(spatialCross(i,j,k,16) - spatialCross(i,j,k,18) - qmeancross*spatialCross(i,j,k,0));
 
             // <delu(x*)delrho> = (1/<rho(x*)>)*(<deljx(x*)delrho(x)> - <u(x*)><<delrho(x*)delrho(x)>) 
             spatialCross(i,j,k,21) = (1.0/meanrhocross)*(spatialCross(i,j,k,5) - meanuxcross*spatialCross(i,j,k,0));
