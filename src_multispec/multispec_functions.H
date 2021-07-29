@@ -962,7 +962,7 @@ void ComputeNonnegativeRhoAv(
                 int nspecies_in,
                 GpuArray<Real, MAX_SPECIES>& RhoAv){
 
-Print() << "HACK - ComputeNonnegativeRhoAv" << std::endl;
+//Print() << "HACK - ComputeNonnegativeRhoAv" << std::endl;
     
     Real dv, value1, value2, tmp1, tmp2;
 
@@ -1191,13 +1191,183 @@ void ComputeDBarLocal(
 
 }
 
+/**
+ * \brief lower triangle and diagonal are overwritten by cholesky factor
+ *
+ * \param[in] A input matrix
+ * \param[in] np 
+ *  
+ * A is ths input matrix. Upon return the lower triangle and diagonal 
+ * are overwritten by the cholesky factor.
+ */
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void CholeskyDC(Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& A,
+                int np){
 
+    int ising, sum1;
+
+    Array1D<Real, 1, MAX_SPECIES> P;
+
+    Real small_number = 0.0; // Some tolerance
+    
+    for (int i=1; i<=np; ++i){
+        ising = 0;
+
+        for (int j=i; j<=np; j++){
+            sum1 = A(i,j);
+
+            for (int k=i-1; k==1; --k){
+                sum1 = sum1 - A(i,k)*A(j,k);
+            }
+            if(i==j){
+            
+                if(sum1<=small_number){
+                    P(i) = 0.0;
+                    ising = 1.0;
+
+                } else {
+                    P(i) = std::sqrt(sum1);
+                }
+            } else {
+
+                if( ising==0 ){
+                    A(j,i) = sum1/P(i);
+                } else {
+                    A(j,i) = 0.0;
+                }
+            }
+        }
+    }
+
+    for (int i = 1; i<=np; ++i){
+        for (int j = i+1; j<=np; ++j){
+            A(i,j) = 0.0; // Zero upper triangle
+        }
+    A(i,i) = P(i);
+    }
+
+}
+
+/**
+ * \brief Compute Sqrt L-Onsager on subset 
+ *
+ * \param[in] dest map from full system to subset
+ * \param[in] Molmass_sub 
+ * \param[in] Rho_sub 
+ * \param[in] rhotot_sub
+ * \param[in] nspecies_in
+ * \param[in] nspecies_sub
+ * \param[in] chi_iterations_sub
+ * \param[in,out] SqrtLOnsager_sub
+ *
+ * dest is a mapping used to eliminate elements in D_bar we don't need (for D_bar_sub)
+ * and for expanding sqrtLonsager_sub into sqrtLonsager
+ * it will contain the numbers 1, 2, ..., (nspecies-ntrace)
+ * with zeros in elements corresponding to trace elements
+ * (example) for a 5-species system having trace species 2 and 5:
+ * species       1 2 3 4 5
+ * dest(species) 1 0 2 3 0
+ *
+ */
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void ComputeSqrtLOnsagerSub(
+                Array1D<int, 1, MAX_SPECIES>& dest,
+                GpuArray<Real, MAX_SPECIES>& Molmass_in,
+                GpuArray<Real, MAX_SPECIES>& Rho_in,
+                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> DBar_in,
+                int nspecies_in,
+                int nspecies_sub,
+                int chi_iterations_sub,
+                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& SqrtLOnsager){
+
+    // local variables
+    GpuArray<Real, MAX_SPECIES> Molmass_sub;
+    GpuArray<Real, MAX_SPECIES> Rho_sub;
+    GpuArray<Real, MAX_SPECIES> Molarconc_sub;
+
+    Real molmtot_sub;
+    Array1D<Real, 1, MAX_SPECIES> W_sub;
+    Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> Chi_sub;
+    Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> DBar_sub;
+    Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> SqrtLOnsager_sub;
+
+    // create a vector of non-trace densities and molmass for the subsystem
+    for (int row=1; row<=nspecies; ++row){
+        if (dest(row) != 0){
+            Molmass_sub[dest(row)-1] = Molmass_in[row-1];
+            Rho_sub[dest(row)-1] = Rho_in[row-1];
+        }
+    }
+
+    // renormalize total density and mass fractions
+    //rhotot_sub = sum(rho_sub)
+    Real rhotot_sub = 0.0;
+    for (int n=0; n<nspecies_sub; ++n){
+        rhotot_sub += Rho_sub[n];
+    }
+
+    for (int row=1; row<= nspecies_sub; ++row){
+        W_sub(row) = Rho_sub[row-1]/rhotot_sub;
+    }
+
+    // first, compute the full D_bar
+    // then, construct D_bar_sub by mapping the full D_bar into D_bar_sub
+    // you could read in only the lower diagonals, 
+    // reflect, and set the diagnals to zero if you want
+
+    //HACK//call compute_D_bar_local(rho,rhotot,D_bar)
+
+    for (int row=1; row<= nspecies_in; ++row){
+        if (dest(row) == 0){
+            continue;
+        }
+        for (int column=1; column<=nspecies; ++column){
+            if (dest(column) != 0){
+                DBar_sub(dest(row),dest(column)) = DBar_in(row,column);
+            }
+        }
+    }
+    
+    // compute molarconc_sub and molmtot_sub
+    //HACK//call compute_molconc_molmtot_local(nspecies_sub,molmass_sub,rho_sub,rhotot_sub,molarconc_sub,molmtot_sub)
+
+    // compute chi_sub
+    //HACK//call compute_chi(nspecies_sub,molmass_sub,rho_sub,rhotot_sub,molarconc_sub,chi_sub,D_bar_sub)
+
+    // compute Onsager matrix L_sub (store in sqrtLonsager_sub)
+    for (int column=1; column<= nspecies_sub; ++column){
+        for (int row=1; row<= nspecies_sub; ++row){
+            SqrtLOnsager_sub(row, column) = molmtot_sub*rhotot_sub*W_sub(row)*Chi_sub(row,column)*W_sub(column)/k_B;
+        }
+    }
+
+    // compute cell-centered Cholesky factor, sqrtLonsager_sub
+    //HACK//call choldc(sqrtLonsager_sub,nspecies_sub)   
+
+    // expand sqrtLonsager_sub into sqrtLonsager
+    MatrixToZeros(nspecies_in, SqrtLOnsager);
+    for (int row=1; row<= nspecies_in; ++row){
+        if (dest(row) == 0){
+           continue;
+        }
+        for (int column=1; column<= nspecies_in; ++column){
+            if (dest(column) != 0){
+                SqrtLOnsager(row,column) = SqrtLOnsager_sub(dest(row),dest(column));
+            }
+        }
+    }
+
+}
 
 /**
  * \brief Compute Sqrt L-Onsager
  *
- * \param[in] rho_in 
- * \param[in] rhotot
+ * \param[in] molmass_in 
+ * \param[in] RhoN
+ * \param[in] rhotot_in
+ * \param[in] nspecies_in
+ * \param[in] chi_iterations_in
  * \param[in,out] sqrtLonsager 
  *
  */
@@ -1210,7 +1380,6 @@ void ComputeSqrtLOnsagerLocal(
                 int nspecies_in,
                 int chi_iterations_in,
                 Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& SqrtLOnsager){
-Print() << "HACK - ComputeSqrtLOnsager" << std::endl;
 
     // local variables
     Array1D<Real, 1, MAX_SPECIES> W;
@@ -1252,26 +1421,24 @@ Print() << "HACK - ComputeSqrtLOnsager" << std::endl;
         }
     }
 
-    //if (ntrace == nspecies_in-1){
-    if (0){ //HACK
+    if (ntrace == nspecies_in-1){
+    //if (0){ //HACK
 
         // this is all trace species except for 1 (essentially pure solvent);
         // set sqrtLonsager to zero
         MatrixToZeros(MAX_SPECIES, SqrtLOnsager);
         //sqrtLonsager(:,:) = 0.0;
 
-    //} else if (ntrace == 0) {    // there are no trace species
-    } else if (1) {    // there are no trace species
+    } else if (ntrace == 0) {    // there are no trace species
+    //} else if (1) {    // there are no trace species
 
        // compute molarconc and molmtot
         ComputeMolconcMolmtotLocal(nspecies_in, molmass_in, RhoN, rhotot_in, Molarconc_loc, molmtot_loc);
         
        // compute D_bar
-       //call compute_D_bar_local(rho,rhotot,D_bar)
         ComputeDBarLocal(RhoN, rhotot_in, nspecies_in, DBar_loc); 
         
        // compute chi
-       //call compute_chi(nspecies_in,molmass,rho,rhotot,molarconc,chi,D_bar)
         ComputeChi(nspecies_in, molmass_in, RhoN, rhotot_in, Molarconc_loc, Chi_loc, DBar_loc, chi_iterations_in);
 
        // compute Onsager matrix L (store in sqrtLonsager)
@@ -1281,8 +1448,10 @@ Print() << "HACK - ComputeSqrtLOnsager" << std::endl;
           }
        }
 
+       //call compute_chi(nspecies_in,molmass,rho,rhotot,molarconc,chi,D_bar)
        // compute cell-centered Cholesky factor, sqrtLonsager
        //call choldc(SqrtLOnsager,nspecies_in)   
+        CholeskyDC(SqrtLOnsager,nspecies_in);
 
     } else {
 
@@ -1294,6 +1463,6 @@ Print() << "HACK - ComputeSqrtLOnsager" << std::endl;
 
     } 
 
-    Print() << "HACK" << std::endl;
+    //Print() << "HACK" << std::endl;
 }
 #endif
