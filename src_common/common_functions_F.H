@@ -31,7 +31,7 @@ extern "C"
                                      int* prob_type, int* restart, int* reset_stats, int* particle_restart, int* print_int,
                                      int* project_eos_int, amrex::Real* grav, int* nspecies,
                                      amrex::Real* molmass,amrex::Real* diameter,
-                                     int* dof,amrex::Real* hcv,amrex::Real* hcp, amrex::Real* rhobar,
+                                     amrex::Real* dof,amrex::Real* hcv,amrex::Real* hcp, amrex::Real* rhobar,
                                      amrex::Real* rho0, amrex::Real* variance_coef_mom,
                                      amrex::Real* variance_coef_mass, amrex::Real* k_B,
                                      amrex::Real* Runiv, amrex::Real* T_init,

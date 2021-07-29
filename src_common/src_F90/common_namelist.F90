@@ -74,7 +74,7 @@ module common_namelist_module
   double precision,   save :: molmass(MAX_SPECIES)
   double precision,   save :: diameter(MAX_SPECIES)
 
-  integer,            save :: dof(MAX_SPECIES)
+  double precision,   save :: dof(MAX_SPECIES)
   double precision,   save :: hcv(MAX_SPECIES)
   double precision,   save :: hcp(MAX_SPECIES)
 
@@ -754,7 +754,7 @@ contains
     integer,                intent(inout) :: nspecies_in
     double precision,       intent(inout) :: molmass_in(MAX_SPECIES)
     double precision,       intent(inout) :: diameter_in(MAX_SPECIES)
-    integer,                intent(inout) :: dof_in(MAX_SPECIES)
+    double precision,       intent(inout) :: dof_in(MAX_SPECIES)
     double precision,       intent(inout) :: hcv_in(MAX_SPECIES)
     double precision,       intent(inout) :: hcp_in(MAX_SPECIES)
 

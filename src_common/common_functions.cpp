@@ -42,7 +42,6 @@ void InitializeCommonNamespace() {
     max_grid_size.resize(AMREX_SPACEDIM);
     max_grid_size_structfact.resize(AMREX_SPACEDIM);
     max_particle_tile_size.resize(AMREX_SPACEDIM);
-    dof.resize(MAX_SPECIES);
     u_init.resize(2);
 
     // boundary condition flags
@@ -93,7 +92,7 @@ void InitializeCommonNamespace() {
                                 &chk_int, temp_chk_base_name, 128,
                                 &prob_type, &restart, &reset_stats, &particle_restart, &print_int, &project_eos_int,
                                 grav.data(), &nspecies, molmass.data(), diameter.data(),
-                                dof.dataPtr(), hcv.data(), hcp.data(),
+                                dof.data(), hcv.data(), hcp.data(),
                                 rhobar.data(),
                                 &rho0, &variance_coef_mom, &variance_coef_mass, &k_B, &Runiv,
                                 T_init.begin(),
