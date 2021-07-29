@@ -469,6 +469,7 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
 {
     BL_PROFILE_VAR("MoveIons()",MoveIons);
 
+    //AMREX_GPU_ERROR_CHECK();
     const int lev = 0;
     const GpuArray<Real, 3> dx = Geom(lev).CellSizeArray();
     const GpuArray<Real, 3> plo = Geom(lev).ProbLoArray();
@@ -522,7 +523,7 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
             long np = this->GetParticles(lev).at(index).numParticles();
 
 	    // Set up vector to do reduction
-	    Gpu::ManagedVector<Real> increment_moves_tile(np);
+	    Gpu::ManagedVector<Real> increment_moves_tile(np, 0.);
             Real* pincrement_moves_tile = increment_moves_tile.data();
 
             //Real posOld[3];
@@ -536,7 +537,6 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
 	    amrex::ParallelForRNG(np, [=] AMREX_GPU_DEVICE (int i, amrex::RandomEngine const& engine) noexcept
             //for (int i = 0; i < np; ++ i) 
 	    {
-	        pincrement_moves_tile[i] = 0; // 
 
                 ParticleType & part = particles[i];
 
@@ -547,7 +547,7 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
                 if(part.idata(FHD_intData::pinned) == 0)
                 {
                         //moves_tile++;
-	                pincrement_moves_tile[i] = 1;
+	                pincrement_moves_tile[i] = 1.;
 
                         for (int d=0; d<AMREX_SPACEDIM; ++d)
                         {
@@ -564,7 +564,7 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
                         {
                             //find_inter(&part, &runtime, paramPlaneList, &paramPlaneCount, &intsurf, &inttime, &intside, ZFILL(plo), ZFILL(phi));
                             find_inter_gpu(part, runtime, paramPlaneList, paramPlaneCount, &intsurf, &inttime, &intside, ZFILL(plo), ZFILL(phi));
-                            
+		            
                             for (int d=0; d<AMREX_SPACEDIM; ++d)
                             {
                                 posAlt[d] = inttime * part.rdata(FHD_realData::velx + d)*adjalt;
@@ -611,17 +611,18 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
 
                         }
                 }            
-		//return increment_moves_tile;
+	        //return increment_moves_tile;
             });
 
 	    //// Get the value of the reduce sum on one processor
 	    //moves_tile = amrex::get<0>(reduce_data.value());
 
-	    Gpu::synchronize();
-	    moves_tile = Reduce::Sum(np, pincrement_moves_tile);
-	    Gpu::synchronize();
-            moves_proc    += moves_tile;
-	    Gpu::synchronize();
+	    //Gpu::synchronize();
+	    //AMREX_GPU_ERROR_CHECK();
+	    moves_proc = Reduce::Sum(np, pincrement_moves_tile);
+	    //Gpu::synchronize();
+            //moves_proc    += moves_tile;
+	    //Gpu::synchronize();
 
             //std::cout << "Moves " << moves_tile << std::endl;
                 
@@ -722,11 +723,11 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
         np_proc += np;
 
 	// Set up vectors to do reduction
-	Gpu::DeviceVector<int> increment_moves(np);
-	Gpu::DeviceVector<int> increment_reDist(np);
-	Gpu::DeviceVector<Real> increment_maxspeed(np);
-	Gpu::DeviceVector<Real> increment_maxdist(np);
-	Gpu::DeviceVector<Real> increment_diffest(np);
+	Gpu::DeviceVector<int> increment_moves(np, 0);
+	Gpu::DeviceVector<int> increment_reDist(np, 0);
+	Gpu::DeviceVector<Real> increment_maxspeed(np, 0.);
+	Gpu::DeviceVector<Real> increment_maxdist(np, 0.);
+	Gpu::DeviceVector<Real> increment_diffest(np, 0.);
         int* pincrement_moves = increment_moves.data();
         int* pincrement_reDist = increment_reDist.data();
         Real* pincrement_maxspeed = increment_maxspeed.data();
@@ -739,19 +740,8 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
 	amrex::ParallelForRNG(np, [=] AMREX_GPU_DEVICE (int i, amrex::RandomEngine const& engine) noexcept
         //for (int i = 0; i < np; ++ i) 
 	{
-	    pincrement_moves[i] = 0;
-	    pincrement_reDist[i] = 0;
-	    pincrement_maxspeed[i] = 0.;
-	    pincrement_maxdist[i] = 0.;
-
+	    
             ParticleType & part = particles[i];
-
-            //Real maxspeed = 0;
-            //Real maxdist = 0;
-            //Real totaldist, diffest;
-            //Real diffinst = 0;
-            //int moves = 0;
-            //int reDist = 0;
 
 	    GpuArray<Real, 3> posAlt;
 	    
@@ -852,9 +842,12 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
                 pincrement_reDist[i] = 1;
             }    
 	    
+	    //// For ReduceOP, return reduced data at the end.
 	    //return { maxspeed, maxdist, diffest, increment_moves, increment_reDist };
         });
 
+	//// These are ReduceOp-way of getting the value of reduced data
+	////   Need to update to these once there is a RNG-engine feature of ReduceOp
         //maxspeed_proc = amrex::max(maxspeed_proc, amrex::get<0>(reduce_data5.value()));
         //maxdist_proc = amrex::max(maxdist_proc, amrex::get<1>(reduce_data5.value()));
         //diffinst_proc = amrex::get<2>(reduce_data5.value());
@@ -875,6 +868,7 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
     ParallelDescriptor::ReduceIntSum(np_proc);
     ParallelDescriptor::ReduceRealSum(check);
     ParallelDescriptor::ReduceRealSum(moves_proc);
+    ParallelDescriptor::ReduceIntSum(moves);
     ParallelDescriptor::ReduceRealMax(maxspeed_proc);
     ParallelDescriptor::ReduceRealMax(maxdist_proc);
     ParallelDescriptor::ReduceRealSum(diffinst_proc);
