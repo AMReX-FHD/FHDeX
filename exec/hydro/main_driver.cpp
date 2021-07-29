@@ -367,7 +367,7 @@ void main_driver(const char* argv)
           ExtractSlice(structFactMF, Flattened, geom, project_dir, 0, structVars);
       }
       // we rotate this flattened MultiFab to have normal in the z-direction since
-      // SWFFT only presently supports flattened MultiFabs with z-normal.
+      // our structure factor class assumes this for flattened
       MultiFab FlattenedRot = RotateFlattenedMF(Flattened);
       BoxArray ba_flat = FlattenedRot.boxArray();
       const DistributionMapping& dmap_flat = FlattenedRot.DistributionMap();
@@ -482,7 +482,7 @@ void main_driver(const char* argv)
                     ExtractSlice(structFactMF, Flattened, geom, project_dir, 0, structVars);
                 }
                 // we rotate this flattened MultiFab to have normal in the z-direction since
-                // SWFFT only presently supports flattened MultiFabs with z-normal.
+                // our structure factor class assumes this for flattened
                 MultiFab FlattenedRot = RotateFlattenedMF(Flattened);
                 structFactFlattened.FortStructure(FlattenedRot,geom_flat,fft_type);
             }
@@ -552,7 +552,7 @@ void main_driver(const char* argv)
                     ExtractSlice(structFactMF, Flattened, geom, project_dir, 0, structVars);
                 }
                 // we rotate this flattened MultiFab to have normal in the z-direction since
-                // SWFFT only presently supports flattened MultiFabs with z-normal.
+                // our structure factor class assumes this for flattened
                 MultiFab FlattenedRot = RotateFlattenedMF(Flattened);
                 structFactFlattened.FortStructure(FlattenedRot,geom_flat,fft_type);
             }
