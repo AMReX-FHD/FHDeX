@@ -74,7 +74,8 @@ module common_namelist_module
   double precision,   save :: molmass(MAX_SPECIES)
   double precision,   save :: diameter(MAX_SPECIES)
 
-  integer,            save :: dof(MAX_SPECIES)
+  double precision,   save :: dof(MAX_SPECIES)
+  double precision,   save :: e0(MAX_SPECIES)
   double precision,   save :: hcv(MAX_SPECIES)
   double precision,   save :: hcp(MAX_SPECIES)
 
@@ -285,6 +286,7 @@ module common_namelist_module
   namelist /common/ diameter
 
   namelist /common/ dof
+  namelist /common/ e0
   namelist /common/ hcv
   namelist /common/ hcp
 
@@ -624,6 +626,8 @@ contains
 
     crange = maxval(pkernel_es) + 1
 
+    e0(:) = 0
+
     ! read in common namelist
     open(unit=100, file=amrex_string_c_to_f(inputs_file), status='old', action='read')
     read(unit=100, nml=common)
@@ -650,7 +654,7 @@ contains
                                          restart_in, reset_stats_in, particle_restart_in, &
                                          print_int_in, project_eos_int_in, &
                                          grav_in, nspecies_in, molmass_in, diameter_in, &
-                                         dof_in, hcv_in, hcp_in, rhobar_in, &
+                                         dof_in, e0_in, hcv_in, hcp_in, rhobar_in, &
                                          rho0_in, variance_coef_mom_in, &
                                          variance_coef_mass_in, &
                                          k_B_in, Runiv_in, T_init_in, algorithm_type_in, &
@@ -754,7 +758,8 @@ contains
     integer,                intent(inout) :: nspecies_in
     double precision,       intent(inout) :: molmass_in(MAX_SPECIES)
     double precision,       intent(inout) :: diameter_in(MAX_SPECIES)
-    integer,                intent(inout) :: dof_in(MAX_SPECIES)
+    double precision,       intent(inout) :: dof_in(MAX_SPECIES)
+    double precision,       intent(inout) :: e0_in(MAX_SPECIES)
     double precision,       intent(inout) :: hcv_in(MAX_SPECIES)
     double precision,       intent(inout) :: hcp_in(MAX_SPECIES)
 
@@ -929,6 +934,7 @@ contains
     rhobar_in = rhobar
     diameter_in = diameter
     dof_in = dof
+    e0_in = e0
     hcv_in = hcv
     hcp_in = hcp
     rho0_in= rho0

@@ -109,7 +109,7 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
 
     if (nreaction>0)
     {
-        compute_chemistry_source(dt,dx[0]*dx[1]*dx[2],cu,source,5);
+        compute_chemistry_source(dt,dx[0]*dx[1]*dx[2],cu,5,source,5);
     }
 
     for ( MFIter mfi(cu,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
@@ -208,7 +208,7 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
 
     if (nreaction>0)
     {
-        compute_chemistry_source(dt,dx[0]*dx[1]*dx[2],cup,source,5);
+        compute_chemistry_source(dt,dx[0]*dx[1]*dx[2],cup,5,source,5);
     }
 
     for ( MFIter mfi(cu,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
@@ -307,7 +307,7 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
 
     if (nreaction>0)
     {
-        compute_chemistry_source(dt,dx[0]*dx[1]*dx[2],cup2,source,5);
+        compute_chemistry_source(dt,dx[0]*dx[1]*dx[2],cup2,5,source,5);
     }
 
     for ( MFIter mfi(cu,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
