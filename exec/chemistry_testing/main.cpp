@@ -90,7 +90,7 @@ void main_main(const char* argv)
     {
         amrex::Print() << "(src_chemistry param) stoich_coeffs_R_" << m+1 << ": ";
         for (int n=0; n<nspecies; n++)
-            amrex::Print() << stoich_coeffs_R[m][n] << " ";
+            amrex::Print() << stoich_coeffs_R(m,n) << " ";
         amrex::Print() << "\n";
     }
 
@@ -98,7 +98,7 @@ void main_main(const char* argv)
     {
         amrex::Print() << "(src_chemistry param) stoich_coeffs_P_" << m+1 << ": ";
         for (int n=0; n<nspecies; n++)
-            amrex::Print() << stoich_coeffs_P[m][n] << " ";
+            amrex::Print() << stoich_coeffs_P(m,n) << " ";
         amrex::Print() << "\n";
     }
 
@@ -238,8 +238,8 @@ void main_main(const char* argv)
 
                 amrex::ParallelForRNG(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k, RandomEngine const& engine) noexcept
                 {
-                    amrex::Real n_old[MAX_SPECIES];
-                    amrex::Real n_new[MAX_SPECIES];
+                    GpuArray<amrex::Real,MAX_SPECIES> n_old;
+                    GpuArray<amrex::Real,MAX_SPECIES> n_new;
                     for (int n=0; n<nspecies; n++) n_old[n] = rhoOld(i,j,k,n)*(Runiv/k_B)/molmass[n];
 
                     switch(reaction_type){
@@ -277,7 +277,6 @@ void main_main(const char* argv)
 
                 amrex::ParallelForRNG(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k, RandomEngine const& engine) noexcept
                 {
-                    // just deterministic case for now
                     for (int n=0; n<nspecies; n++) rhoNew(i,j,k,n) = rhoOld(i,j,k,n) + dt*sourceArr(i,j,k,n);
                 });
             }
