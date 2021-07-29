@@ -52,6 +52,7 @@ AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::rhobar;
 AMREX_GPU_MANAGED amrex::Real common::rho0;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::diameter;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::dof;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::e0;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::hcv;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::hcp;
 

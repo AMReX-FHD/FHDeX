@@ -72,6 +72,7 @@ namespace common {
     extern AMREX_GPU_MANAGED amrex::Real rho0;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> diameter;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> dof;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> e0;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> hcv;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> hcp;
 

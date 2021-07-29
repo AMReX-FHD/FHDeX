@@ -92,7 +92,7 @@ void InitializeCommonNamespace() {
                                 &chk_int, temp_chk_base_name, 128,
                                 &prob_type, &restart, &reset_stats, &particle_restart, &print_int, &project_eos_int,
                                 grav.data(), &nspecies, molmass.data(), diameter.data(),
-                                dof.data(), hcv.data(), hcp.data(),
+                                dof.data(), e0.data(), hcv.data(), hcp.data(),
                                 rhobar.data(),
                                 &rho0, &variance_coef_mom, &variance_coef_mass, &k_B, &Runiv,
                                 T_init.begin(),
