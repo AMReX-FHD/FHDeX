@@ -156,11 +156,11 @@ void ComputeRhoWChi(const MultiFab& rho_in,
     }
 }
 
-void ComputeZetaByTemp(const MultiFab& molarconc,
- 		       const MultiFab& D_bar,
- 		       const MultiFab& Temp,
- 		       MultiFab& zeta_by_Temp,
- 		       const MultiFab& D_therm)
+void ComputeZetaByTemp(const MultiFab& molarconc_in,
+ 		       const MultiFab& D_bar_in,
+ 		       const MultiFab& Temp_in,
+ 		       MultiFab& zeta_by_Temp_in,
+ 		       const MultiFab& D_therm_in)
 {
     BL_PROFILE_VAR("ComputeZetaByTemp()",ComputeZetaByTemp);
 
@@ -172,12 +172,59 @@ void ComputeZetaByTemp(const MultiFab& molarconc,
         // Create cell-centered box
         const Box& bx = mfi.growntilebox(ng);
 
+
+
+/* HACK BEGAN DEVELOPMENT */
+        const Array4<const Real>& molarconc = molarconc_in.array(mfi);
+        const Array4<const Real>& D_bar = D_bar_in.array(mfi);
+        const Array4<const Real>& Temp = Temp_in.array(mfi);
+        const Array4<      Real>& zeta_by_Temp = zeta_by_Temp_in.array(mfi);
+        const Array4<const Real>& D_therm = D_therm_in.array(mfi);
+
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+
+            GpuArray<Real, MAX_SPECIES> MolarConcN;
+            GpuArray<Real, MAX_SPECIES> ZetaByTemp; 
+            GpuArray<Real, MAX_SPECIES> DTherm; 
+            Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> DBarN;
+//Temp?
+
+            // Read MultiFab data into arrays
+            for (int n=0; n<nspecies; ++n){
+                MolarConcN[n] = molarconc(i,j,k,n);
+                ZetaByTemp[n] = zeta_by_Temp(i,j,k,n);
+                DTherm[n] = D_therm(i,j,k,n);
+                for (int m=0; m<nspecies; ++m){
+                    DBarN(m+1,n+1) = D_bar(i,j,k,n*nspecies+m);
+                }
+            }
+
+            ComputeZetaByTemp( nspecies,
+                               MolarConcN,
+                               DBarN,
+                               Temp(i,j,k),
+                               ZetaByTemp,
+                               DTherm );                    
+
+            //write data back to MultiFabs
+            for (int n=0; n<nspecies; ++n ){
+                zeta_by_Temp(i,j,k,n) = ZetaByTemp[n] ;
+            }
+
+
+        });
+/* HACK END DEVELOPMENT */
+
+
+
+
         compute_zeta_by_Temp(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
-                             BL_TO_FORTRAN_ANYD(molarconc[mfi]),
-                             BL_TO_FORTRAN_ANYD(D_bar[mfi]),
-                             BL_TO_FORTRAN_ANYD(Temp[mfi]),
-                             BL_TO_FORTRAN_ANYD(zeta_by_Temp[mfi]),
-                             BL_TO_FORTRAN_ANYD(D_therm[mfi]));
+                             BL_TO_FORTRAN_ANYD(molarconc_in[mfi]),
+                             BL_TO_FORTRAN_ANYD(D_bar_in[mfi]),
+                             BL_TO_FORTRAN_ANYD(Temp_in[mfi]),
+                             BL_TO_FORTRAN_ANYD(zeta_by_Temp_in[mfi]),
+                             BL_TO_FORTRAN_ANYD(D_therm_in[mfi]));
     }
 }
 

@@ -1387,8 +1387,8 @@ void ComputeSqrtLOnsagerLocal(
     // local variables
     Array1D<Real, 1, MAX_SPECIES> W;
 
-    Real rcond;  /**< For LAPACK95 call */
-    int info;  /**< For LAPACK95 call */
+    //Real rcond;  /**< For LAPACK95 call */  // These were for a chol_lapack function 
+    //int info;  /**< For LAPACK95 call */    // that is no longer being called in the code. Remove? HACK
 
     GpuArray<Real, MAX_SPECIES> Molarconc_loc;
     Real molmtot_loc;
