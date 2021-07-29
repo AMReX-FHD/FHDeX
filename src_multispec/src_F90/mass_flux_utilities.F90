@@ -668,13 +668,15 @@ contains
        end if
     end do
 
-    if (ntrace .eq. nspecies-1) then
+    !if (ntrace .eq. nspecies-1) then
+    if (1 .eq. 2) then
 
        ! this is all trace species except for 1 (essentially pure solvent);
        ! set sqrtLonsager to zero
        sqrtLonsager(:,:) = 0.d0
 
-    else if (ntrace .eq. 0) then
+    !else if (ntrace .eq. 0) then
+    else if (1 .eq. 1) then
 
        ! there are no trace species
 

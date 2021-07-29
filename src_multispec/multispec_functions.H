@@ -1000,8 +1000,8 @@ Print() << "HACK - ComputeNonnegativeRhoAv" << std::endl;
 
             switch (avg_type) {
 
-            // Arithmetic with a C0-smoothed Heaviside
-            case 1 : { 
+            case 1 : {    // Arithmetic with a C0-smoothed Heaviside 
+
                 if ( (value1 <= 0.0) || (value2 <= 0.0) ) {
                    RhoAv[comp-1] = 0.0;
                 } else {
@@ -1011,13 +1011,13 @@ Print() << "HACK - ComputeNonnegativeRhoAv" << std::endl;
                 }
             } break;
 
-            // Geometric
-            case 2 : 
+            case 2 :   // Geometric  
+
                 RhoAv[comp-1] = molmass_in[comp-1]*std::sqrt(std::max(value1,0.0)*std::max(value2,0.0));
             break;
 
-            // Harmonic
-            case 3 : {
+            case 3 : {   // Harmonic
+
                 // What we want here is the harmonic mean of max(value1,0) and max(value2,0)
                 // Where we define the result to be zero if either one is zero
                 // But numerically we want to avoid here division by zero
@@ -1029,8 +1029,8 @@ Print() << "HACK - ComputeNonnegativeRhoAv" << std::endl;
                 }
             } break;
 
-            // Arithmetic with (discontinuous) Heaviside
-            case 10 : {  
+            case 10 : {  // Arithmetic with (discontinuous) Heaviside
+
                 if ( (value1 <= 0.0) || (value2 <= 0.0) ) {
                    RhoAv[comp-1] = 0.0;
                 } else {
@@ -1038,8 +1038,8 @@ Print() << "HACK - ComputeNonnegativeRhoAv" << std::endl;
                 }
             } break;
 
-            // Arithmetic with C1-smoothed Heaviside
-            case 11 : {  
+            case 11 : {  // Arithmetic with C1-smoothed Heaviside
+
                 if ( (value1 <= 0.0) || (value2 <= 0.0) ) {
                    RhoAv[comp-1] = 0.0;
                 } else {
@@ -1059,8 +1059,8 @@ Print() << "HACK - ComputeNonnegativeRhoAv" << std::endl;
                 }
             } break;
 
-            // Arithmetic with C2-smoothed Heaviside
-            case 12 : {  
+            case 12 : {  // Arithmetic with C2-smoothed Heaviside
+
                 if ( (value1 <= 0.0) || (value2 <= 0.0) ) {
                     RhoAv[comp-1] = 0.0;
                 } else {
@@ -1079,6 +1079,7 @@ Print() << "HACK - ComputeNonnegativeRhoAv" << std::endl;
                     RhoAv[comp-1] = molmass_in[comp-1]*(value1+value2)/2.0*tmp1*tmp2;
                 }
             } break;
+
             default :
                 printf("compute_nonnegative_rho_av: invalid avg_type\n");
                 Abort();
@@ -1087,9 +1088,108 @@ Print() << "HACK - ComputeNonnegativeRhoAv" << std::endl;
     }    
 }
 
+/**
+ * \brief Water-glycerol mixtures near room temperature
+ *
+ * \param[in,out] chi 
+ * \param[in] RhoN
+ * \param[in] rhotot
+ */
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void ChiWaterGlycerol(
+                Real chi,
+                GpuArray<Real, MAX_SPECIES>& RhoN,
+                Real rhotot_in){
+
+    // local
+    Real c_loc;
+
+    // mass fraction of glycerol
+    c_loc = RhoN[0]/rhotot_in;
+
+    // chi = chi0 * rational function
+    chi = Dbar[0]*(1.024-1.001692692*c_loc)/(1.0+0.6632641981*c_loc);
+}
 
 
+/**
+ * \brief compute D_bar 
+ *
+ * \param[in] RhoN
+ * \param[in] rhotot
+ * \param[in] nspecies
+ * \param[in,out] D_bar 
+ */
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void ComputeDBarLocal(
+          GpuArray<Real, MAX_SPECIES>& RhoN,
+          Real rhotot_in,
+          int nspecies_in,
+          Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> D_bar){
+        
+    // off-diagonal components of symmetric matrices
+    Array1D<Real, 1, MAX_SPECIES*(MAX_SPECIES-1)/2> DBar_loc;
+
+    switch (std::abs(mixture_type)) {
+    
+    case 1 : { // water-glycerol 
+   
+        //HACK -- probably untouched in current tests
+
+       // we require nspecies=2
+       // Dbar(1) = chi0 in the binary notation
+        if (nspecies_in != 2){
+          //call bl_error("mixture_properties_mass_local assumes nspecies=2 if mixture_type=3 (water-glycerol)")
+            printf("mixture_properties_mass_local assumes nspecies=2 if mixture_type=3 (water-glycerol)\n");
+            Abort();
+        }
+       
+        ChiWaterGlycerol(DBar_loc(1), RhoN, rhotot_in); 
+
+    } break;
+
+    case 2 : { // Electrolyte mixture
+    
+        if (nspecies_in != 3){
+            //call bl_error("mixture_properties_mass_local assumes nspecies=3 if mixture_type=2 (water-glycerol)")
+            printf("mixture_properties_mass_local assumes nspecies=3 if mixture_type=2 (water-glycerol)\n");
+            Abort();
+        }
+
+        // This is the leading-order correction for dilute solutions
+        // In particular, the cross-diffusion coefficient ~sqrt(concentration) as per renormalization theory
+        // The ordering of the values is D_12; D_13, D_23
+
+        DBar_loc(1) = Dbar[0]*std::sqrt(RhoN[0]/rhotot_in); // counter-ion cross coefficient D_12~sqrt(w)
+        DBar_loc(2) = Dbar[1]; // D_13 = self diffusion of first ion
+        DBar_loc(3) = Dbar[2]; // D_23 = self diffusion of second ion
+
+    } break;
+
+    default : //Keep it constant
+
+        for ( int n=1; n <= nspecies_in*(nspecies_in-1)/2; ++n){
+            DBar_loc(n) = Dbar[n-1];
+        }
+
+    }
+
+    // Complete the process by filling the matrices using generic formulae -- this part should not change
+    // populate D_bar and Hessian matrix 
+    int n=0; 
+    for (int row=1; row<=nspecies_in; ++row){
+        for (int column=1; column<=row-1; ++column){
+            n = n+1;
+            D_bar(row, column) = DBar_loc(n);         // SM-diffcoeff's read from input
+            D_bar(column, row) = D_bar(row, column);     // symmetric
+        }
+        // populate diagonals 
+        D_bar(row, row) = 0.0;           // as self-diffusion is zero
+    }
+
+}
 
 
 
@@ -1152,20 +1252,23 @@ Print() << "HACK - ComputeSqrtLOnsager" << std::endl;
         }
     }
 
-    if (ntrace == nspecies_in-1){
+    //if (ntrace == nspecies_in-1){
+    if (0){ //HACK
 
         // this is all trace species except for 1 (essentially pure solvent);
         // set sqrtLonsager to zero
         MatrixToZeros(MAX_SPECIES, SqrtLOnsager);
         //sqrtLonsager(:,:) = 0.0;
 
-    } else if (ntrace == 0) {    // there are no trace species
+    //} else if (ntrace == 0) {    // there are no trace species
+    } else if (1) {    // there are no trace species
 
        // compute molarconc and molmtot
         ComputeMolconcMolmtotLocal(nspecies_in, molmass_in, RhoN, rhotot_in, Molarconc_loc, molmtot_loc);
         
        // compute D_bar
        //call compute_D_bar_local(rho,rhotot,D_bar)
+        ComputeDBarLocal(RhoN, rhotot_in, nspecies_in, DBar_loc); 
         
        // compute chi
        //call compute_chi(nspecies_in,molmass,rho,rhotot,molarconc,chi,D_bar)
