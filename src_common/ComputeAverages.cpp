@@ -421,6 +421,8 @@ namespace amrex
     Gpu::HostVector<Real> sumToLine (MultiFab const& mf, int icomp, int ncomp,
                                           Box const& domain, int direction, bool local)
     {
+        BL_PROFILE_VAR("sumToLine()",sumToLine);
+
         int n1d = domain.length(direction) * ncomp;
         Gpu::HostVector<Real> hv(n1d);
 
