@@ -554,14 +554,7 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
     paramPlaneList[5].fxRightAv = 0;
     paramPlaneList[5].fyRightAv = 0;
     paramPlaneList[5].fzRightAv = 0;
-    /*
-    for(int i=0; i<6; i++) {
-			cout << "Plane: " << i << "\n";
-    	cout << paramPlaneList[i].temperatureLeft << "\n";
-    	cout << paramPlaneList[i].temperatureRight << "\n";
-    	cout << paramPlaneList[i].densityLeft[0] << "\n";
-    	cout << paramPlaneList[i].densityRight[0] << "\n";
-    }*/
+
 
 		// Convert mass fractions to number densities to mole fractions
 		// If mass fractions defined, mole fractions overwritten
@@ -851,24 +844,6 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 			}
     	p += 2;
     }
-    
-    /*
-    for(int l=0; l<6; l++) {
-    	amrex::Print() << "I am plane: " << l << "\n";
-    	amrex::Print() << "Periodic: " << paramPlaneList[l].periodicity << "\n";
-    	amrex::Print() << "SpecL: " << paramPlaneList[l].specularityLeft << "\n";
-    	amrex::Print() << "SpecR: " << paramPlaneList[l].specularityRight << "\n";
-    	amrex::Print() << "SinkL: " << paramPlaneList[l].sinkLeft << "\n";
-    	amrex::Print() << "SinkR: " << paramPlaneList[l].sinkRight << "\n";
-    	amrex::Print() << "SourceR: " << paramPlaneList[l].sourceRight << "\n";
-    	amrex::Print() << "SourceL: " << paramPlaneList[l].sourceLeft << "\n";
-    	amrex::Print() << "PoroL: " << paramPlaneList[l].porosityLeft << "\n";
-    	amrex::Print() << "PoroR: " << paramPlaneList[l].porosityRight << "\n";
-    	amrex::Print() << "TL: " << paramPlaneList[l].temperatureLeft << "\n";
-    	amrex::Print() << "TR: " << paramPlaneList[l].temperatureRight << "\n";
-    	amrex::Print() << "rhoL: " << paramPlaneList[l].densityLeft[0] << "\n";
-    	amrex::Print() << "rhoR: " << paramPlaneList[l].densityRight[0] << "\n";    	
-    }*/
 
     std::ifstream planeFile("paramplanes.dat");
     int fileCount = 0;
@@ -961,6 +936,5 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
         paramPlaneList[i].fzRightAv = 0;        
 
     }
-
     planeFile.close();
 }

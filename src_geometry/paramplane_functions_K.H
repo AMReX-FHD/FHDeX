@@ -89,10 +89,6 @@ void find_inter_gpu(FhdParticleContainer::ParticleType& part, const Real delt, c
 
             tval = (-part.pos(2)*surf->uy*surf->vx + surf->z0*surf->uy*surf->vx + part.pos(1)*surf->uz*surf->vx - surf->y0*surf->uz*surf->vx + part.pos(2)*surf->ux*surf->vy - surf->z0*surf->ux*surf->vy - part.pos(0)*surf->uz*surf->vy + surf->x0*surf->uz*surf->vy - part.pos(1)*surf->ux*surf->vz + surf->y0*surf->ux*surf->vz + part.pos(0)*surf->uy*surf->vz - surf->x0*surf->uy*surf->vz)*denominv;
 
-//            Print() << "Testing "<< s+1 << " particle " << part.id() << ", " << uval << ", " << vval << ", " << tval << ", " << denominv << "\n";
-//            Print() << "Vel "<< part.rdata(FHD_realData::velx) << ", " << part.rdata(FHD_realData::vely) << ", " << part.rdata(FHD_realData::velz) << "\n";
-//            Print() << "surf1 "<< surf->ux << ", " << surf->uy << ", " << surf->uz << "\n";
-//            Print() << "surf2 "<< surf->vx << ", " << surf->vy << ", " << surf->vz << "\n";
        
             if(  ((uval > 0) && (uval < surf->uTop)) && ((vval > 0) && (vval < surf->vTop))  &&  ((tval > 0) && (tval < *inttime))   )
             {
@@ -177,10 +173,6 @@ void app_bc_gpu(const paramPlane* surf, FhdParticleContainer::ParticleType& part
       {
         *push = 0;
 
-//        surf%fxright = surf%fxright + part%mass*part%vel(1)
-//        surf%fyright = surf%fyright + part%mass*part%vel(2)
-//        surf%fzright = surf%fzright + part%mass*part%vel(3)
-
         if(amrex::Random(engine) < surf->specularityRight)
         {
           Real dotprod = part.rdata(FHD_realData::velx)*surf->rnx + part.rdata(FHD_realData::vely)*surf->rny
@@ -196,49 +188,8 @@ void app_bc_gpu(const paramPlane* surf, FhdParticleContainer::ParticleType& part
           part.rdata(FHD_realData::velz) = 1.414213562*srt*sqrt(-log(amrex::Random(engine)));
 
           rotation(surf->cosThetaRight, surf->sinThetaRight, surf->cosPhiRight, surf->sinPhiRight, &part.rdata(FHD_realData::velx), &part.rdata(FHD_realData::vely), &part.rdata(FHD_realData::velz));
-/*          if(surf->boundary == 1) {*/
-/*          	part.rdata(FHD_realData::vely) = srt*amrex::RandomNormal(0.,1.);*/
-/*          	part.rdata(FHD_realData::velz) = srt*amrex::RandomNormal(0.,1.);*/
-/*          	part.rdata(FHD_realData::velx) = sqrt(2)*srt*sqrt(-log(amrex::Random()));          */
-/*          }*/
-/*          else if(surf->boundary == 2) {*/
-/*          	part.rdata(FHD_realData::velz) = srt*amrex::RandomNormal(0.,1.);*/
-/*          	part.rdata(FHD_realData::vely) = srt*amrex::RandomNormal(0.,1.);*/
-/*          	part.rdata(FHD_realData::velx) = -sqrt(2)*srt*sqrt(-log(amrex::Random()));*/
-/*          }*/
-/*          else if(surf->boundary == 3) {*/
-/*          	part.rdata(FHD_realData::velx) = srt*amrex::RandomNormal(0.,1.);*/
-/*          	part.rdata(FHD_realData::velz) = srt*amrex::RandomNormal(0.,1.);*/
-/*          	part.rdata(FHD_realData::vely) = sqrt(2)*srt*sqrt(-log(amrex::Random()));*/
-/*          }*/
-/*          else if(surf->boundary == 4) {*/
-/*          	part.rdata(FHD_realData::velx) = srt*amrex::RandomNormal(0.,1.);*/
-/*          	part.rdata(FHD_realData::velz) = srt*amrex::RandomNormal(0.,1.);*/
-/*          	part.rdata(FHD_realData::vely) = -sqrt(2)*srt*sqrt(-log(amrex::Random()));*/
-/*          }*/
-/*          else if(surf->boundary == 5) {*/
-/*          	part.rdata(FHD_realData::velx) = srt*amrex::RandomNormal(0.,1.);*/
-/*          	part.rdata(FHD_realData::vely) = srt*amrex::RandomNormal(0.,1.);*/
-/*          	part.rdata(FHD_realData::velz) = sqrt(2)*srt*sqrt(-log(amrex::Random()));*/
-/*          }*/
-/*          else if(surf->boundary == 6) {*/
-/*          	part.rdata(FHD_realData::velx) = srt*amrex::RandomNormal(0.,1.);*/
-/*          	part.rdata(FHD_realData::vely) = srt*amrex::RandomNormal(0.,1.);*/
-/*          	part.rdata(FHD_realData::velz) = -sqrt(2)*srt*sqrt(-log(amrex::Random()));*/
-/*          }*/
-        }
 
-				// For solid wall concentrations
-/*				if(surf->densityRight[0]>=0) {*/
-/*					Real Xkl = 0;*/
-/*					Real RR = amrex::Random();*/
-/*					int l = 0;*/
-/*						while(RR >= Xkl) {*/
-/*							Xkl += (surf->densityRight[l++]);*/
-/*						}*/
-/*					l--;*/
-/*					part.idata(FHD_intData::species_change) = l;*/
-/*				}*/
+        }
 
       }else if(amrex::Random(engine) < surf->periodicity)
       {
@@ -319,10 +270,6 @@ void app_bc_gpu(const paramPlane* surf, FhdParticleContainer::ParticleType& part
       {
         *push = 0;
 
-//        surf%fxleft = surf%fxleft + part%mass*part%vel(1)
-//        surf%fyleft = surf%fyleft + part%mass*part%vel(1)
-//        surf%fzleft = surf%fzleft + part%mass*part%vel(1)
-
         if(amrex::Random(engine) < surf->specularityLeft)
         {
           Real dotprod = part.rdata(FHD_realData::velx)*surf->lnx + part.rdata(FHD_realData::vely)*surf->lny
@@ -340,51 +287,8 @@ void app_bc_gpu(const paramPlane* surf, FhdParticleContainer::ParticleType& part
           part.rdata(FHD_realData::velz) = sqrt(2)*srt*sqrt(-log(amrex::Random(engine)));
 
           rotation(surf->cosThetaLeft, surf->sinThetaLeft, surf->cosPhiLeft, surf->sinPhiLeft, &part.rdata(FHD_realData::velx), &part.rdata(FHD_realData::vely), &part.rdata(FHD_realData::velz));
-
-/*          if(surf->boundary == 1) {*/
-/*          	part.rdata(FHD_realData::vely) = srt*amrex::RandomNormal(0.,1.);*/
-/*          	part.rdata(FHD_realData::velz) = srt*amrex::RandomNormal(0.,1.);*/
-/*          	part.rdata(FHD_realData::velx) = sqrt(2)*srt*sqrt(-log(amrex::Random()));          */
-/*          }*/
-/*          else if(surf->boundary == 2) {*/
-/*          	part.rdata(FHD_realData::velz) = srt*amrex::RandomNormal(0.,1.);*/
-/*          	part.rdata(FHD_realData::vely) = srt*amrex::RandomNormal(0.,1.);*/
-/*          	part.rdata(FHD_realData::velx) = -sqrt(2)*srt*sqrt(-log(amrex::Random()));*/
-/*          }*/
-/*          else if(surf->boundary == 3) {*/
-/*          	part.rdata(FHD_realData::velx) = srt*amrex::RandomNormal(0.,1.);*/
-/*          	part.rdata(FHD_realData::velz) = srt*amrex::RandomNormal(0.,1.);*/
-/*          	part.rdata(FHD_realData::vely) = sqrt(2)*srt*sqrt(-log(amrex::Random()));*/
-/*          }*/
-/*          else if(surf->boundary == 4) {*/
-/*          	part.rdata(FHD_realData::velx) = srt*amrex::RandomNormal(0.,1.);*/
-/*          	part.rdata(FHD_realData::velz) = srt*amrex::RandomNormal(0.,1.);*/
-/*          	part.rdata(FHD_realData::vely) = -sqrt(2)*srt*sqrt(-log(amrex::Random()));*/
-/*          }*/
-/*          else if(surf->boundary == 5) {*/
-/*          	part.rdata(FHD_realData::velx) = srt*amrex::RandomNormal(0.,1.);*/
-/*          	part.rdata(FHD_realData::vely) = srt*amrex::RandomNormal(0.,1.);*/
-/*          	part.rdata(FHD_realData::velz) = sqrt(2)*srt*sqrt(-log(amrex::Random()));*/
-/*          }*/
-/*          else if(surf->boundary == 6) {*/
-/*          	part.rdata(FHD_realData::velx) = srt*amrex::RandomNormal(0.,1.);*/
-/*          	part.rdata(FHD_realData::vely) = srt*amrex::RandomNormal(0.,1.);*/
-/*          	part.rdata(FHD_realData::velz) = -sqrt(2)*srt*sqrt(-log(amrex::Random()));*/
-/*          }*/
-
         }
 
-				// For solid wall concentration
-/*				if(surf->densityLeft[0]>=0) {*/
-/*					Real Xkl = 0;*/
-/*	        Real RR = amrex::Random();*/
-/*	        int l = 0;*/
-/*	        while(RR >= Xkl) {*/
-/*						Xkl += (surf->densityLeft[l++]);*/
-/*					}*/
-/*					l--;*/
-/*					part.idata(FHD_intData::species_change) = l;*/
-/*				}*/
       }
       else if(amrex::Random(engine) < surf->periodicity)
       {

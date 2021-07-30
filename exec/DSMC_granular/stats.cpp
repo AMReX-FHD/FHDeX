@@ -594,7 +594,7 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
                 //		<u(x)>Qbar(x*)<delrho(x)delrho(x*)>)
                 spatialCross(i,j,k,31) = (cvinvcross/(meanrhocross*meanrho))*(spatialCross(i,j,k,18) - vxmean*spatialCross(i,j,k,8) 
                 	- 
-                	+ vxmean*qmeancross*spatialCross(i,j,k,0);
+                	+ vxmean*qmeancross*spatialCross(i,j,k,0));
 
                 // [IS] Species-dependent stuff -- commented now -- add later
                 // <delu(x*)del(rhoYkL)> = (1/<rho(x*)>)*(<deljx(x*)del(rhoYkL)> - <u(x*)><delrho(x*)del(rhoYkL)>)
@@ -656,28 +656,3 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
         }
     }
 }
-
-/*
-void FhdParticleContainer::OutputParticles() {
-	string tTgFile = "particles.dat";
-	ofstream myfile;
-	myfile.open(tTgFile);
-	int lev = 0;
-	for (FhdParIter pti(* this, lev); pti.isValid(); ++pti) {
-		const int grid_id = pti.index();
-		const int tile_id = pti.LocalTileIndex();
-		const Box& tile_box  = pti.tilebox();
-
-		auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
-		auto& particles = particle_tile.GetArrayOfStructs();
-		const long np = particles.numParticles();
-
-		for (int i = 0; i < np; ++i) {
-			ParticleType & part = particles[i];
-			myfile << fixed << setprecision(5) << part.pos(0) << "  " << part.pos(1) << "  " << part.pos(2) << " "
-				<< part.rdata(FHD_realData::velx) << " " << part.rdata(FHD_realData::vely) << " "
-				<< part.rdata(FHD_realData::velz) << " " << part.idata(FHD_intData::species) << "\n"; 
-		}
-	}
-	myfile.close();	
-}*/

@@ -5,7 +5,7 @@
 #include <string>
 #include <fstream>
 
-void FhdParticleContainer::InitParticles(Real T_init, MultiFab* vrmax)
+void FhdParticleContainer::InitParticles(Real &dt)
 {
     const int lev = 0;
     const Geometry& geom = Geom(lev);
@@ -69,14 +69,15 @@ void FhdParticleContainer::InitParticles(Real T_init, MultiFab* vrmax)
 						  vmax[1] = sqrt(T_init[i_spec]/3)*amrex::RandomNormal(0.,1.);
 						  vmax[2] = sqrt(T_init[i_spec]/3)*amrex::RandomNormal(0.,1.);
 						  vmax[3] = sqrt(T_init[i_spec]/3)*amrex::RandomNormal(0.,1.);
-						  spd = std::norm(vmax);
+						  spd = vmax[0]*vmax[0]+vmax[1]*vmax[1]+vmax[2]*vmax[2];
+						  spd = pow(spd,0.5);
 						  if(spd>spdmax){
 						      spdmax = spd;
 						  }
 						  
-                    p.rdata(FHD_realData::velx) = vmax[1];
-                    p.rdata(FHD_realData::vely) = sqrt(properties[i_spec].R*properties[i_spec].T)*amrex::RandomNormal(0.,1.);
-                    p.rdata(FHD_realData::velz) = sqrt(properties[i_spec].R*properties[i_spec].T)*amrex::RandomNormal(0.,1.);
+                    p.rdata(FHD_realData::velx) = sqrt(properties[i_spec].R*T_init[i_spec])*amrex::RandomNormal(0.,1.);
+                    p.rdata(FHD_realData::vely) = sqrt(properties[i_spec].R*T_init[i_spec])*amrex::RandomNormal(0.,1.);
+                    p.rdata(FHD_realData::velz) = sqrt(properties[i_spec].R*T_init[i_spec])*amrex::RandomNormal(0.,1.);
 
                     p.rdata(FHD_realData::boostx) = 0;
                     p.rdata(FHD_realData::boosty) = 0;
@@ -94,7 +95,6 @@ void FhdParticleContainer::InitParticles(Real T_init, MultiFab* vrmax)
             particleFile.close();
         }
     }
-	 vrmax.setVal(spdmax);
 
     Redistribute();
     SortParticles();

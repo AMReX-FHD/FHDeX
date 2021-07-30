@@ -2,9 +2,11 @@
 #include <math.h>
 
 int FhdParticleContainer::getSpeciesIndex(int species1, int species2) {
-	if(species1<species2){
+	if(species1<species2)
+	{
 		return species2+nspecies*species1;
-	} else {
+	} else
+	{
 		return species1+nspecies*species2;
 	}
 }
@@ -14,19 +16,19 @@ Real FhdParticleContainer::g0_Ma_Ahmadi(int ispec, int jspec, Real iphi, Real jp
 	const Real C1 = 2.5, C2 = 4.5904;
 	const Real C3 = 4.515439, CPOW = 0.67802;
 	Real chi;
-	if(ispec==jspec) {
-		// Ma Ahmadi 1990s ish
+	if(ispec==jspec)
+	{
+		// Ma Ahmadi 1990s
 		Real numer = 1 + C1*iphi + C2*pow(iphi,2) + C3*pow(iphi,3);
 		numer = numer * 4.0*iphi;
 		Real phiRatio = iphi/phi_max;
 		Real denom = pow(1.0 - pow(phiRatio,3),CPOW);
 		chi = 1+numer/denom;
 		return std::min(chi,chi_max);
-	} else {
+	} else
+	{
 		// Mansoori et al (1971) Equ. Thermo. Prop. of the Mix. of HS
 		// Agreement looks good up to 0.50 solid fraction from paper
-		// Will likely underestimate near packing
-		// Also allows packing fractions past the max packing fraction
 		const Real phiTotal = iphi + jphi;
 		const Real irad = properties[ispec].radius;
 		const Real jrad = properties[jspec].radius;
@@ -48,21 +50,24 @@ void FhdParticleContainer::InitCollisionCells() {
 	int cnt = 0;
 	Real totalPhi = 0;
 	Real mindiam = 1000;
-	for(int i_spec=0;i_spec<nspecies;i_spec++) {
+	for(int i_spec=0;i_spec<nspecies;i_spec++)
+	{
 		totalPhi += phi_domain[i_spec];
 		mindiam = std::min(mindiam,2.0*properties[i_spec].radius);
-		for(int j_spec=0;j_spec<nspecies;j_spec++) {
+		for(int j_spec=0;j_spec<nspecies;j_spec++)
+		{
 			ij_spec = getSpeciesIndex(i_spec,j_spec);
-    		interproperties[ij_spec].alpha = 1.0; //alpha_pp[cnt];
-    		interproperties[ij_spec].csx = pow(properties[i_spec].radius+properties[j_spec].radius,2)*pi_usr;
-    		cnt++;
+			interproperties[ij_spec].alpha = 1.0; //alpha_pp[cnt];
+			interproperties[ij_spec].csx = pow(properties[i_spec].radius+properties[j_spec].radius,2)*pi_usr;
+			cnt++;
 		}
 		countedCollisions[i_spec] = 0;
 		expectedCollisions[i_spec] = 0;
 	}
 
 	const int lev = 0;
-	for (FhdParIter pti(* this, lev); pti.isValid(); ++pti) {
+	for (FhdParIter pti(* this, lev); pti.isValid(); ++pti)
+	{
 		const int grid_id = pti.index();
 		const int tile_id = pti.LocalTileIndex();
 		const Box& tile_box  = pti.tilebox();

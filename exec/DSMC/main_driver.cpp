@@ -28,7 +28,7 @@ void main_driver(const char* argv)
 
 	// copy contents of F90 modules to C++ namespaces
 	InitializeCommonNamespace();
-	InitializeGmresNamespace();
+
 
 	int step = 1;
 	Real time = 0.;
@@ -58,10 +58,7 @@ void main_driver(const char* argv)
 	MultiFab particleMeans;
 	MultiFab particleVars;
 	MultiFab particleInstant;
-	
-	// MFs for DSMC
-	MultiFab selectionsCell; // define(..,..,max_species*max_species)
-   MultiFab vrmax
+
     
 	if (restart < 0) {
 		if (seed > 0) {
@@ -97,13 +94,7 @@ void main_driver(const char* argv)
 
 		particleInstant.define(ba, dmap, 8+nspecies, 0);
 		particleInstant.setVal(0.);
-		
-		// Collision Cell Vars
-		selectionsCell.define(ba, dmap, nspecies*nspecies, 0);
-		selectionsCell.setVal(0.);
-		
-		vrmax.define(ba, dmap, nspecies, 0);
-		vrmax.setVal(0.); // we will reset this later in initParticles
+
 	}
 	else {
 		// restart from checkpoint
@@ -164,7 +155,7 @@ void main_driver(const char* argv)
     if (restart < 0 && particle_restart < 0) {
         
 
-       particles.InitParticles();
+       particles.InitParticles(dt);
 
     }
     else {
@@ -187,9 +178,7 @@ void main_driver(const char* argv)
 		Real time1 = ParallelDescriptor::second();
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Collide Particles
-		if (collide_tog != 0) {
-			particles.CollideParticles(MultiFab& selectionsCell, dt);
-		}
+
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Move Particles
         // total particle move (1=single step, 2=midpoint)
@@ -214,7 +203,7 @@ void main_driver(const char* argv)
             Print() << "Finish move.\n";
         }
 
-        particles.EvaluateStats(particleInstant, particleMeans, particleVars, dt,statsCount);
+        //particles.EvaluateStats(particleInstant, particleMeans, particleVars, dt,statsCount);
         statsCount++;
 
         if (istep%plot_int == 0) {
