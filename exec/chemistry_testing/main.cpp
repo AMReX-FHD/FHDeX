@@ -241,7 +241,6 @@ void main_main(const char* argv)
                     GpuArray<amrex::Real,MAX_SPECIES> n_old;
                     GpuArray<amrex::Real,MAX_SPECIES> n_new;
                     for (int n=0; n<nspecies; n++) n_old[n] = rhoOld(i,j,k,n)*(Runiv/k_B)/molmass[n];
-
                     switch(reaction_type){
                         case 0: // deterministic case
                             advance_reaction_det_cell(n_old,n_new,dt);
@@ -255,7 +254,6 @@ void main_main(const char* argv)
                         default:
                             amrex::Abort("ERROR: invalid reaction_type");
                     }
-
                     for (int n=0; n<nspecies; n++) rhoNew(i,j,k,n) = n_new[n]*(k_B/Runiv)*molmass[n];
                 });
             }
