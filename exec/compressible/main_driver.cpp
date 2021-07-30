@@ -1,7 +1,9 @@
 #include "common_functions.H"
 #include "compressible_functions.H"
+#include "chemistry_functions.H"
 
 #include "common_namespace_declarations.H"
+#include "chemistry_namespace_declarations.H"
 
 #include "rng_functions.H"
 
@@ -28,6 +30,9 @@ void main_driver(const char* argv)
     
     // copy contents of F90 modules to C++ namespaces
     InitializeCommonNamespace();
+
+    // read the inputs file for chemistry
+    InitializeChemistryNamespace();
 
     // if gas heat capacities in the namelist are negative, calculate them using using dofs.
     // This will only update the Fortran values.
@@ -193,7 +198,7 @@ void main_driver(const char* argv)
     spatialCross.setVal(0.0);
     spatialCrossAv.setVal(0.0);
 
-    // external source term - possibly for later
+    // external source term - currently only chemistry source considered for nreaction>0
     MultiFab source(ba,dmap,nprimvars,ngc);
     source.setVal(0.0);
 

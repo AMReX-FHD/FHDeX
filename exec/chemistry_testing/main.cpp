@@ -90,7 +90,7 @@ void main_main(const char* argv)
     {
         amrex::Print() << "(src_chemistry param) stoich_coeffs_R_" << m+1 << ": ";
         for (int n=0; n<nspecies; n++)
-            amrex::Print() << stoich_coeffs_R[m][n] << " ";
+            amrex::Print() << stoich_coeffs_R(m,n) << " ";
         amrex::Print() << "\n";
     }
 
@@ -98,7 +98,7 @@ void main_main(const char* argv)
     {
         amrex::Print() << "(src_chemistry param) stoich_coeffs_P_" << m+1 << ": ";
         for (int n=0; n<nspecies; n++)
-            amrex::Print() << stoich_coeffs_P[m][n] << " ";
+            amrex::Print() << stoich_coeffs_P(m,n) << " ";
         amrex::Print() << "\n";
     }
 
@@ -205,10 +205,17 @@ void main_main(const char* argv)
     amrex::Print() << 0 << " ";
 
     for (int n=0; n<nspecies; n++)
-        amrex::Print() << ComputeSpatialMean(rho_old,n)*(Runiv/k_B)/molmass[n] << " ";
+    {
+        //amrex::Print() << ComputeSpatialMean(rho_old,n)*(Runiv/k_B)/molmass[n] << " ";
+        amrex::Print() << ComputeSpatialMean(rho_old,n) << " ";
+    }
+
 
     for (int n=0; n<nspecies; n++)
-        amrex::Print() << ComputeSpatialVariance(rho_old,n)*((Runiv/k_B)/molmass[n])*((Runiv/k_B)/molmass[n]) << " ";
+    {
+        //amrex::Print() << ComputeSpatialVariance(rho_old,n)*((Runiv/k_B)/molmass[n])*((Runiv/k_B)/molmass[n]) << " ";
+        amrex::Print() << ComputeSpatialVariance(rho_old,n) << " ";
+    }
 
     amrex::Print() << "\n";
     
@@ -231,10 +238,9 @@ void main_main(const char* argv)
 
                 amrex::ParallelForRNG(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k, RandomEngine const& engine) noexcept
                 {
-                    amrex::Real n_old[MAX_SPECIES];
-                    amrex::Real n_new[MAX_SPECIES];
+                    GpuArray<amrex::Real,MAX_SPECIES> n_old;
+                    GpuArray<amrex::Real,MAX_SPECIES> n_new;
                     for (int n=0; n<nspecies; n++) n_old[n] = rhoOld(i,j,k,n)*(Runiv/k_B)/molmass[n];
-
                     switch(reaction_type){
                         case 0: // deterministic case
                             advance_reaction_det_cell(n_old,n_new,dt);
@@ -248,7 +254,6 @@ void main_main(const char* argv)
                         default:
                             amrex::Abort("ERROR: invalid reaction_type");
                     }
-
                     for (int n=0; n<nspecies; n++) rhoNew(i,j,k,n) = n_new[n]*(k_B/Runiv)*molmass[n];
                 });
             }
@@ -256,7 +261,7 @@ void main_main(const char* argv)
         else if (prob_type==2)  // MultiFab-based routine
         {
             // compute source
-            compute_chemistry_source(dt,dV,rho_old,source);
+            compute_chemistry_source(dt,dV,rho_old,0,source,0);
 
             for ( MFIter mfi(rho_old); mfi.isValid(); ++mfi )
             {
@@ -269,7 +274,6 @@ void main_main(const char* argv)
 
                 amrex::ParallelForRNG(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k, RandomEngine const& engine) noexcept
                 {
-                    // just deterministic case for now
                     for (int n=0; n<nspecies; n++) rhoNew(i,j,k,n) = rhoOld(i,j,k,n) + dt*sourceArr(i,j,k,n);
                 });
             }
@@ -293,11 +297,13 @@ void main_main(const char* argv)
         amrex::Print()  << dt*step << " ";
         for (int n=0; n<nspecies; n++)
         {
-            amrex::Print()  << ComputeSpatialMean(rho_new,n)*(Runiv/k_B)/molmass[n] << " ";
+            //amrex::Print()  << ComputeSpatialMean(rho_new,n)*(Runiv/k_B)/molmass[n] << " ";
+            amrex::Print()  << ComputeSpatialMean(rho_new,n) << " ";
         }
         for (int n=0; n<nspecies; n++)
         {
-            amrex::Print()  << ComputeSpatialVariance(rho_new,n)*((Runiv/k_B)/molmass[n])*((Runiv/k_B)/molmass[n]) << " ";
+            //amrex::Print()  << ComputeSpatialVariance(rho_new,n)*((Runiv/k_B)/molmass[n])*((Runiv/k_B)/molmass[n]) << " ";
+            amrex::Print()  << ComputeSpatialVariance(rho_new,n) << " ";
         }
         amrex::Print() << "\n";
 
