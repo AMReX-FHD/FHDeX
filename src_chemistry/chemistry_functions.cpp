@@ -57,12 +57,14 @@ void InitializeChemistryNamespace()
     return;
 }
 
-AMREX_GPU_DEVICE void compute_reaction_rates(GpuArray<Real,MAX_SPECIES> n_dens, GpuArray<amrex::Real,MAX_REACTION> a_r)
+AMREX_GPU_HOST_DEVICE void compute_reaction_rates(GpuArray<Real,MAX_SPECIES>& n_dens, GpuArray<Real,MAX_REACTION>& a_r)
 {
     for (int m=0; m<nreaction; m++)
     {
         a_r[m] = rate_const[m];
-        for (int n=0; n<nspecies; n++) a_r[m] *= pow(n_dens[n],stoich_coeffs_R(m,n));
+        
+        for (int n=0; n<nspecies; n++)
+            a_r[m] *= pow(n_dens[n],stoich_coeffs_R(m,n));
     }
 
     return;
@@ -121,7 +123,7 @@ void compute_chemistry_source(amrex::Real dt, amrex::Real dV, MultiFab& mf_in, i
     }
 }
 
-AMREX_GPU_DEVICE void advance_reaction_det_cell(GpuArray<amrex::Real,MAX_SPECIES> n_old,GpuArray<amrex::Real,MAX_SPECIES> n_new,amrex::Real dt)
+AMREX_GPU_HOST_DEVICE void advance_reaction_det_cell(GpuArray<amrex::Real,MAX_SPECIES>& n_old,GpuArray<amrex::Real,MAX_SPECIES>& n_new,amrex::Real dt)
 {
     for (int n=0; n<nspecies; n++) n_new[n] = n_old[n];
 
@@ -131,15 +133,13 @@ AMREX_GPU_DEVICE void advance_reaction_det_cell(GpuArray<amrex::Real,MAX_SPECIES
     for (int m=0; m<nreaction; m++)
     {
         avg_react_rate[m] = std::max(0.,avg_react_rate[m]);
-
         for (int n=0; n<nspecies; n++)
             n_new[n] += dt*stoich_coeffs_PR(m,n)*avg_react_rate[m];
     }
 
     return;
 }
-
-AMREX_GPU_DEVICE void advance_reaction_CLE_cell(GpuArray<amrex::Real,MAX_SPECIES> n_old,GpuArray<amrex::Real,MAX_SPECIES> n_new,amrex::Real dt,amrex::Real dV,RandomEngine const& engine)
+AMREX_GPU_HOST_DEVICE void advance_reaction_CLE_cell(GpuArray<amrex::Real,MAX_SPECIES>& n_old,GpuArray<amrex::Real,MAX_SPECIES>& n_new,amrex::Real dt,amrex::Real dV,RandomEngine const& engine)
 {
     for (int n=0; n<nspecies; n++) n_new[n] = n_old[n];
 
@@ -162,7 +162,7 @@ AMREX_GPU_DEVICE void advance_reaction_CLE_cell(GpuArray<amrex::Real,MAX_SPECIES
     return;
 }
 
-AMREX_GPU_DEVICE void advance_reaction_SSA_cell(GpuArray<amrex::Real,MAX_SPECIES> n_old,GpuArray<amrex::Real,MAX_SPECIES> n_new,amrex::Real dt,amrex::Real dV,RandomEngine const& engine)
+AMREX_GPU_HOST_DEVICE void advance_reaction_SSA_cell(GpuArray<amrex::Real,MAX_SPECIES>& n_old,GpuArray<amrex::Real,MAX_SPECIES>& n_new,amrex::Real dt,amrex::Real dV,RandomEngine const& engine)
 {
     amrex::Real t_local = 0.;
 
