@@ -485,6 +485,8 @@ contains
     ! local variables
     integer         :: i,j,k
     double precision :: rhoav(nspecies)
+
+    print *, sum(rhoav)
     
     ! x-faces
     do k=lo(3),hi(3)
@@ -496,6 +498,8 @@ contains
     end do
     end do
 
+    print *, sum(rhoav)
+
     ! y-faces
     do k=lo(3),hi(3)
     do j=lo(2),hi(2)+1
@@ -505,6 +509,8 @@ contains
     end do
     end do
     end do
+
+    print *, sum(rhoav)
 
 #if (AMREX_SPACEDIM == 3)
     ! z-faces

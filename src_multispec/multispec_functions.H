@@ -1475,4 +1475,56 @@ void ComputeSqrtLOnsagerLocal(
 
     //Print() << "HACK" << std::endl;
 }
+
+/**
+ * \brief Compute Zeta by temperature
+ *
+ * \param[in] MolarConc molar concentration
+ * \param[in] DBar MS diff-coeffs
+ * \param[in] Temp Temperature
+ * \param[in,out] ZetaByTemp zeta/T
+ * \param[in] DTerm Thermo diff-coeffs
+ * \param[in] nspecies_in
+ *
+ *
+ */
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void ComputeZetaByTempLocal(
+                GpuArray<Real, MAX_SPECIES>& MolarConc,
+                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& DBar,
+                Real Temp,
+                GpuArray<Real, MAX_SPECIES>& ZetaByTemp,
+                GpuArray<Real, MAX_SPECIES>& DTherm,
+                int nspecies_in){
+
+    // local variables
+    Real Sum_knoti;
+    Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> Lambda;
+
+    // compute zeta_by_Temp for thermodiffusion
+    if (is_nonisothermal == 1){   //HACK -- shouldn't this if statement go way earlier?
+
+       // compute Lambda_ij matrix; molarconc is 
+       // expressed in terms of molmtot,mi,rhotot etc. 
+        for (int row=1; row<=nspecies_in; ++row){
+            for (int column=1; column<=row-1; ++column){
+                Lambda(row, column) = -MolarConc[row-1]*MolarConc[column-1]/DBar(row,column);
+                Lambda(column, row) = Lambda(row, column);
+            }
+        }
+        for (int row=1; row<=nspecies_in; ++row){
+            Sum_knoti = 0.0;
+            for (int column=1; column<=nspecies_in; ++column){
+                if (column != row){
+                    Sum_knoti = Sum_knoti + Lambda(row,column)*(DTherm[row-1] - DTherm[column-1]);
+                }
+                ZetaByTemp[row-1] = Sum_knoti/Temp;
+            }
+        }
+    }
+
+}
+
+
 #endif

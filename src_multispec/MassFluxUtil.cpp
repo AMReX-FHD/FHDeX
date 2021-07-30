@@ -164,10 +164,10 @@ void ComputeZetaByTemp(const MultiFab& molarconc_in,
 {
     BL_PROFILE_VAR("ComputeZetaByTemp()",ComputeZetaByTemp);
 
-    int ng = zeta_by_Temp.nGrow();
+    int ng = zeta_by_Temp_in.nGrow();
 
     // Loop over boxes
-    for (MFIter mfi(zeta_by_Temp,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
+    for (MFIter mfi(zeta_by_Temp_in,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
 
         // Create cell-centered box
         const Box& bx = mfi.growntilebox(ng);
@@ -200,12 +200,12 @@ void ComputeZetaByTemp(const MultiFab& molarconc_in,
                 }
             }
 
-            ComputeZetaByTemp( nspecies,
-                               MolarConcN,
-                               DBarN,
-                               Temp(i,j,k),
-                               ZetaByTemp,
-                               DTherm );                    
+            ComputeZetaByTempLocal( MolarConcN,
+                                    DBarN,
+                                    Temp(i,j,k),
+                                    ZetaByTemp,
+                                    DTherm,
+                                    nspecies);                    
 
             //write data back to MultiFabs
             for (int n=0; n<nspecies; ++n ){
@@ -216,15 +216,12 @@ void ComputeZetaByTemp(const MultiFab& molarconc_in,
         });
 /* HACK END DEVELOPMENT */
 
-
-
-
-        compute_zeta_by_Temp(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
-                             BL_TO_FORTRAN_ANYD(molarconc_in[mfi]),
-                             BL_TO_FORTRAN_ANYD(D_bar_in[mfi]),
-                             BL_TO_FORTRAN_ANYD(Temp_in[mfi]),
-                             BL_TO_FORTRAN_ANYD(zeta_by_Temp_in[mfi]),
-                             BL_TO_FORTRAN_ANYD(D_therm_in[mfi]));
+//        compute_zeta_by_Temp(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
+//                             BL_TO_FORTRAN_ANYD(molarconc_in[mfi]),
+//                             BL_TO_FORTRAN_ANYD(D_bar_in[mfi]),
+//                             BL_TO_FORTRAN_ANYD(Temp_in[mfi]),
+//                             BL_TO_FORTRAN_ANYD(zeta_by_Temp_in[mfi]),
+//                             BL_TO_FORTRAN_ANYD(D_therm_in[mfi]));
     }
 }
 
@@ -278,11 +275,20 @@ void ComputeSqrtLonsagerFC(const MultiFab& rho_in,
 
             Real RhoAvSum = 0.0;
             ComputeNonnegativeRhoAv(RhoN, RhoNXShift, dx, molmass, nspecies, RhoAv);
+
+            //update RhoAv for SqrtLOnsager
             for (int n=0; n<nspecies; ++n ){
                 RhoAvSum += RhoAv[n];
             } 
+
             ComputeSqrtLOnsagerLocal(molmass, RhoAv, RhoAvSum, nspecies, chi_iterations, sqrtLOnsager_XN);
             //copy data back
+            for (int n=0; n<nspecies; ++n ){
+                for (int m=0; m<nspecies; ++m){
+                    sqrtLOnsager_X(i,j,k,n*nspecies+m) = sqrtLOnsager_XN(m+1,n+1);
+                }
+            }
+
         });
         amrex::ParallelFor(box_y, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
@@ -306,7 +312,13 @@ void ComputeSqrtLonsagerFC(const MultiFab& rho_in,
                 RhoAvSum += RhoAv[n];
             } 
             ComputeSqrtLOnsagerLocal(molmass, RhoAv, RhoAvSum, nspecies, chi_iterations, sqrtLOnsager_YN);
+            
             //copy data back
+            for (int n=0; n<nspecies; ++n ){
+                for (int m=0; m<nspecies; ++m){
+                    sqrtLOnsager_Y(i,j,k,n*nspecies+m) = sqrtLOnsager_YN(m+1,n+1);
+                }
+            }
         });
 #if (AMREX_SPACEDIM == 3)
         amrex::ParallelFor(box_z, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
@@ -330,29 +342,39 @@ void ComputeSqrtLonsagerFC(const MultiFab& rho_in,
 
             Real RhoAvSum = 0.0;
             ComputeNonnegativeRhoAv(RhoN, RhoNZShift, dx, molmass, nspecies, RhoAv);
+
+            //update RhoAv for SqrtLOnsager
             for (int n=0; n<nspecies; ++n ){
                 RhoAvSum += RhoAv[n];
             } 
+
             ComputeSqrtLOnsagerLocal(molmass, RhoAv, RhoAvSum, nspecies, chi_iterations, sqrtLOnsager_ZN);
+            
             //copy data back
+            for (int n=0; n<nspecies; ++n ){
+                for (int m=0; m<nspecies; ++m){
+                    sqrtLOnsager_Z(i,j,k,n*nspecies+m) = sqrtLOnsager_ZN(m+1,n+1);
+                }
+            }
+
         });
 #endif
 
         
- /*HACK -- END DEVELOPMENT */
+/* HACK -- END DEVELOPMENT */
 
   
 
-        compute_sqrtLonsager_fc(ARLIM_3D(validBox.loVect()), ARLIM_3D(validBox.hiVect()),
-                                BL_TO_FORTRAN_ANYD(rho_in[mfi]),
-                                BL_TO_FORTRAN_ANYD(rhotot_in[mfi]),
-                                BL_TO_FORTRAN_ANYD(sqrtLonsager_fc[0][mfi]),
-                                BL_TO_FORTRAN_ANYD(sqrtLonsager_fc[1][mfi]),
-#if (AMREX_SPACEDIM == 3)
-                                BL_TO_FORTRAN_ANYD(sqrtLonsager_fc[2][mfi]),
-#endif
-                                dx_old);
-
+//        compute_sqrtLonsager_fc(ARLIM_3D(validBox.loVect()), ARLIM_3D(validBox.hiVect()),
+//                                BL_TO_FORTRAN_ANYD(rho_in[mfi]),
+//                                BL_TO_FORTRAN_ANYD(rhotot_in[mfi]),
+//                                BL_TO_FORTRAN_ANYD(sqrtLonsager_fc[0][mfi]),
+//                                BL_TO_FORTRAN_ANYD(sqrtLonsager_fc[1][mfi]),
+//#if (AMREX_SPACEDIM == 3)
+//                                BL_TO_FORTRAN_ANYD(sqrtLonsager_fc[2][mfi]),
+//#endif
+//                                dx_old);
+//
     }
 
 }
