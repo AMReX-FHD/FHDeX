@@ -63,7 +63,6 @@ AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void find_inter_gpu(FhdParticleContainer::ParticleType& part, const Real delt, const paramPlane* paramplanes, const int ns, int* intsurf,
                         Real* inttime, int* intside, const GpuArray<Real, 3>& phi, const GpuArray<Real, 3>& plo)
 {
-
     int flag = 0;
     *inttime = delt;
     *intsurf = -1;

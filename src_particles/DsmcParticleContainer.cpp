@@ -108,9 +108,6 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
 			m_cell_vectors[i][grid_id].resize(box.numPts());
 		}
 	}
-
-	//initTg = -1;
-	//tTg = 0;
 }
 
 void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount)
@@ -155,7 +152,6 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
         for (int i = 0; i < np; i++) {
        
             ParticleType & part = particles[i];
-            //amrex::Print() << "Moving particle " << i << "\n";
 
               runtime = dt*part.rdata(FHD_realData::timeFrac);
               while(runtime > 0)
@@ -226,27 +222,6 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
 
                 part.idata(FHD_intData::sorted) = -1;
     
-            }
-            // If using solid concentration wall
-            else if(part.idata(FHD_intData::species) != part.idata(FHD_intData::species_change))
-            {
-            	IntVect iv(part.idata(FHD_intData::i), part.idata(FHD_intData::j), part.idata(FHD_intData::k));
-                long imap = tile_box.index(iv);
-
-
-                int lastIndex = m_cell_vectors[part.idata(FHD_intData::species)][pti.index()][imap].size() - 1;
-
-                int lastPart = m_cell_vectors[part.idata(FHD_intData::species)][pti.index()][imap][lastIndex];
-
-                int newIndex = part.idata(FHD_intData::sorted);
-
-                m_cell_vectors[part.idata(FHD_intData::species)][pti.index()][imap][newIndex] = lastPart;
-                m_cell_vectors[part.idata(FHD_intData::species)][pti.index()][imap].pop_back();
-
-                particles[lastPart].idata(FHD_intData::sorted) = newIndex;
-
-                part.idata(FHD_intData::sorted) = -1;
-                part.idata(FHD_intData::species) = part.idata(FHD_intData::species_change);
             }
         }
 

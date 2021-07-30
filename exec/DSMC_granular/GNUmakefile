@@ -2,7 +2,7 @@
 # If you set AMREX_HOME as an environment variable, this line will be ignored
 AMREX_HOME ?= ../../../amrex/
 FHDeX ?= ../../
-FDSMC = $(FHDeX)/exec/DSMCtest
+FDSMC = $(FHDeX)/exec/DSMC_granular
 
 DEBUG     = FALSE
 PROFILE   = FALSE
@@ -88,7 +88,7 @@ LIBRARIES += -L$(FFTW_DIR) -lfftw3_mpi -lfftw3_omp -lfftw3 -lgomp
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.rules
 
-#DEFINES	+= -DDSMC=$(DSMC)				
+#DEFINES	+= -DDSMC=$(DSMC)
 
 ifeq ($(findstring cgpu, $(HOST)), cgpu)
 CXXFLAGS += $(FFTW)
