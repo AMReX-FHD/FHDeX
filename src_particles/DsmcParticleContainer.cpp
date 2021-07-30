@@ -82,10 +82,6 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
     BL_PROFILE_VAR("MoveParticlesCPP()", MoveParticlesCPP);
 
     const int lev = 0;
-//    const Real* dx = Geom(lev).CellSize();
-//    const Real* plo = Geom(lev).ProbLo();
-//    const Real* phi = Geom(lev).ProbHi();
-    
     const GpuArray<Real, 3> dx = Geom(lev).CellSizeArray();
     const GpuArray<Real, 3> plo = Geom(lev).ProbLoArray();
     const GpuArray<Real, 3> phi = Geom(lev).ProbHiArray();
@@ -185,7 +181,7 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
                       Real dummy = 1;
                        //Print() << "surf: " << intsurf-1 << "\n";
                       //app_bc_gpu(&surf, part, intside, domSize, &push, &runtime, dummy);
-                      amrex::RandomEngine engine; // might not be correct
+                      amrex::RandomEngine engine;
                       app_bc_gpu(&surf, part, intside, domSize, &push, &runtime, dummy, engine);
                        //Print() << "rt: " << runtime << "\n";
 
