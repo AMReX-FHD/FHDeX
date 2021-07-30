@@ -532,12 +532,31 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
 
                 // Spatial Correlation Calculations
                 
-                spatialCross(i,j,k,0) = (spatialCross(i,j,k,0)*stepsMinusOne + delrhocross*delrho)*osteps; // <delrho(x*)delrho(x)>
-                spatialCross(i,j,k,1) = (spatialCross(i,j,k,1)*stepsMinusOne + delKcross*delK)*osteps;     // <delK(x*)delK(x)>
-                spatialCross(i,j,k,2) = (spatialCross(i,j,k,2)*stepsMinusOne + deljxcross*deljx)*osteps;   // <deljx(x*)deljx(x)>
-                spatialCross(i,j,k,3) = (spatialCross(i,j,k,3)*stepsMinusOne + deljycross*deljy)*osteps;   // <deljy(x*)deljy(x)>
-                spatialCross(i,j,k,4) = (spatialCross(i,j,k,4)*stepsMinusOne + deljzcross*deljz)*osteps;   // <deljz(x*)deljz(x)>
-                spatialCross(i,j,k,5) = (spatialCross(i,j,k,5)*stepsMinusOne + deljxcross*delrho)*osteps;  // <deljx(x*)delrho(x)>
+                spatialCross(i,j,k,0) = (spatialCross(i,j,k,0)*stepsMinusOne + delrhocross*delrho)*osteps;  // <delrho(x*)delrho(x)>
+                spatialCross(i,j,k,1) = (spatialCross(i,j,k,1)*stepsMinusOne + delKcross*delK)*osteps;      // <delK(x*)delK(x)>
+                spatialCross(i,j,k,2) = (spatialCross(i,j,k,2)*stepsMinusOne + deljxcross*deljx)*osteps;    // <deljx(x*)deljx(x)>
+                spatialCross(i,j,k,3) = (spatialCross(i,j,k,3)*stepsMinusOne + deljycross*deljy)*osteps;    // <deljy(x*)deljy(x)>
+                spatialCross(i,j,k,4) = (spatialCross(i,j,k,4)*stepsMinusOne + deljzcross*deljz)*osteps;    // <deljz(x*)deljz(x)>
+                
+                spatialCross(i,j,k,5) = (spatialCross(i,j,k,5)*stepsMinusOne + deljxcross*delrho)*osteps;   // <deljx(x*)delrho(x)>
+                spatialCross(i,j,k,6) = (spatialCross(i,j,k,6)*stepsMinusOne + deljycross*delrho)*osteps;   // <deljy(x*)delrho(x)>
+                spatialCross(i,j,k,7) = (spatialCross(i,j,k,7)*stepsMinusOne + deljzcross*delrho)*osteps;   // <deljz(x*)delrho(x)>
+                spatialCross(i,j,k,8) = (spatialCross(i,j,k,8)*stepsMinusOne + delKcross*delrho)*osteps;    // <delK(x*)delrho(x)>
+
+                spatialCross(i,j,k,9) = (spatialCross(i,j,k,9)*stepsMinusOne + delrhocross*deljx)*osteps;   // <delrho(x*)deljx(x)>
+                spatialCross(i,j,k,10) = (spatialCross(i,j,k,10)*stepsMinusOne + deljycross*deljx)*osteps;  // <deljy(x*)deljx(x)>
+                spatialCross(i,j,k,11) = (spatialCross(i,j,k,11)*stepsMinusOne + deljzcross*deljx)*osteps;  // <deljz(x*)deljx(x)>
+                spatialCross(i,j,k,12) = (spatialCross(i,j,k,12)*stepsMinusOne + delKcross*deljx)*osteps;   // <delK(x*)deljx(x)>
+
+                spatialCross(i,j,k,13) = (spatialCross(i,j,k,13)*stepsMinusOne + delrhocross*deljy)*osteps; // <delrho(x*)deljy(x)>
+                spatialCross(i,j,k,14) = (spatialCross(i,j,k,14)*stepsMinusOne + deljxcross*deljy)*osteps;  // <deljx(x*)deljy(x)>
+                spatialCross(i,j,k,15) = (spatialCross(i,j,k,15)*stepsMinusOne + deljzcross*deljy)*osteps;  // <deljz(x*)deljy(x)>
+                spatialCross(i,j,k,16) = (spatialCross(i,j,k,16)*stepsMinusOne + delKcross*deljy)*osteps;   // <delK(x*)deljy(x)>
+
+                spatialCross(i,j,k,17) = (spatialCross(i,j,k,17)*stepsMinusOne + delrhocross*deljz)*osteps; // <delrho(x*)delK(x)>
+                spatialCross(i,j,k,18) = (spatialCross(i,j,k,18)*stepsMinusOne + deljxcross*deljz)*osteps;  // <deljx(x*)delK(x)>
+                spatialCross(i,j,k,19) = (spatialCross(i,j,k,19)*stepsMinusOne + deljycross*deljz)*osteps;  // <deljy(x*)delK(x)>
+                spatialCross(i,j,k,20) = (spatialCross(i,j,k,20)*stepsMinusOne + delKcross*deljz)*osteps;   // <deljz(x*)delK(x)>
 
                 // [IS] Species-dependent stuff -- commented now -- add later
                 //spatialCross(i,j,k,6) = (spatialCross(i,j,k,6)*stepsMinusOne + deljxcross*delrhoYk[0])*osteps;  // <deljx(x*)delrhoYkL(x)>
@@ -547,27 +566,35 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
                 //spatialCross(i,j,k,10)= (spatialCross(i,j,k,10)*stepsMinusOne + delrhoYkcross[0]*delrho)*osteps; // <delrhoYkL(x*)delrho(x)>
                 //spatialCross(i,j,k,11)= (spatialCross(i,j,k,11)*stepsMinusOne + delrhoYkcross[nspecies-1]*delrho)*osteps; // <delrhoYkH(x*)delrho(x)>
                 
-                spatialCross(i,j,k,12) = (spatialCross(i,j,k,12)*stepsMinusOne + delGcross*delG)*osteps; // <delG(x*)delG(x)>
-                spatialCross(i,j,k,13) = (spatialCross(i,j,k,13)*stepsMinusOne + delGcross*delK)*osteps; // <delG(x*)delK(x)>
-                spatialCross(i,j,k,14) = (spatialCross(i,j,k,14)*stepsMinusOne + delKcross*delG)*osteps; // <delK(x*)delG(x)>
-                spatialCross(i,j,k,15) = (spatialCross(i,j,k,15)*stepsMinusOne + delrhocross*delK)*osteps; // <delrho(x*)delK(x)>
-                spatialCross(i,j,k,16) = (spatialCross(i,j,k,16)*stepsMinusOne + delKcross*delrho)*osteps; // <delK(x*)delrho(x)>
-                spatialCross(i,j,k,17) = (spatialCross(i,j,k,17)*stepsMinusOne + delrhocross*delG)*osteps; // <delrho(x*)delG(x)>
-                spatialCross(i,j,k,18) = (spatialCross(i,j,k,18)*stepsMinusOne + delGcross*delrho)*osteps; // <delG(x*)delrho(x)>
+                spatialCross(i,j,k,21) = (spatialCross(i,j,k,21)*stepsMinusOne + delGcross*delG)*osteps; // <delG(x*)delG(x)>
+                spatialCross(i,j,k,22) = (spatialCross(i,j,k,22)*stepsMinusOne + delGcross*delK)*osteps; // <delG(x*)delK(x)>
+                spatialCross(i,j,k,23) = (spatialCross(i,j,k,23)*stepsMinusOne + delKcross*delG)*osteps; // <delK(x*)delG(x)>
+                spatialCross(i,j,k,24) = (spatialCross(i,j,k,24)*stepsMinusOne + delrhocross*delK)*osteps; // <delrho(x*)delK(x)>
+                spatialCross(i,j,k,25) = (spatialCross(i,j,k,25)*stepsMinusOne + delKcross*delrho)*osteps; // <delK(x*)delrho(x)>
+                spatialCross(i,j,k,26) = (spatialCross(i,j,k,26)*stepsMinusOne + delrhocross*delG)*osteps; // <delrho(x*)delG(x)>
+                spatialCross(i,j,k,27) = (spatialCross(i,j,k,27)*stepsMinusOne + delGcross*delrho)*osteps; // <delG(x*)delrho(x)>
 
                 // <delT(x*)delT(x)> = (1/cv*/cv/<rho(x)>/<rho(x*)>)(<delK*delK> + <delG*delG> - <delG*delK> - <delK*delG> 
-                //                      + <Q><Q*><delrho*delrho> - <Q*><delrho*delK> - <Q><delK*delrho> + <Q*><delrho*delG> + <Q><delG*delrho>)
-                spatialCross(i,j,k,19) = (cvinvcross*cvinv/(meanrhocross*meanrho))*
-									(spatialCross(i,j,k,1) + spatialCross(i,j,k,12) + qmean*qmeancross*spatialCross(i,j,k,0)
-									- spatialCross(i,j,k,13) - spatialCross(i,j,k,14) - qmeancross*spatialCross(i,j,k,15) - qmean*spatialCross(i,j,k,16)
-									+ qmeancross*spatialCross(i,j,k,17) + qmean*spatialCross(i,j,k,18));
+                //                      + <Q><Q*><delrho*delrho> - <Q*><delrho*delK> - <Q><delK*delrho> 
+                //											+ <Q*><delrho*delG> + <Q><delG*delrho>)
+                spatialCross(i,j,k,28) = (cvinvcross*cvinv/(meanrhocross*meanrho))*
+									(spatialCross(i,j,k,1) + spatialCross(i,j,k,21) - spatialCross(i,j,k,22) - spatialCross(i,j,k,23) 
+									+ qmean*qmeancross*spatialCross(i,j,k,0) - qmeancross*spatialCross(i,j,k,17) - qmean*spatialCross(i,j,k,8)
+									+ qmeancross*spatialCross(i,j,k,26) + qmean*spatialCross(i,j,k,27));
 
                 // <delT(x*)delrho(x)> = (1/cv/<rho(x*)>)*(<delK*delrho> - <delG*delrho> - <Q*><delrhodelrho*>)
-                spatialCross(i,j,k,20) = (cvinvcross/meanrhocross)*
-                	(spatialCross(i,j,k,16) - spatialCross(i,j,k,18) - qmeancross*spatialCross(i,j,k,0));
+                spatialCross(i,j,k,29) = (cvinvcross/meanrhocross)*
+                	(spatialCross(i,j,k,8) - spatialCross(i,j,k,27) - qmeancross*spatialCross(i,j,k,0));
 
                 // <delu(x*)delrho> = (1/<rho(x*)>)*(<deljx(x*)delrho(x)> - <u(x*)><<delrho(x*)delrho(x)>) 
-                spatialCross(i,j,k,21) = (1.0/meanrhocross)*(spatialCross(i,j,k,5) - meanuxcross*spatialCross(i,j,k,0));
+                spatialCross(i,j,k,30) = (1.0/meanrhocross)*(spatialCross(i,j,k,5) - meanuxcross*spatialCross(i,j,k,0));
+
+                // <delT(x*)delu> = (1/cv/<rho(x*)>/<rho(x)>)*(<deljx(x*)delK(x)> - <u(x)><<delrho(x)delK(x*)>
+                //		- <deljx(x)delG(x*)> + <u(x)><delrho(x)delG(x*)> - Qbar(x*)<deljx(x)delrho(x*)> + 
+                //		<u(x)>Qbar(x*)<delrho(x)delrho(x*)>)
+                spatialCross(i,j,k,31) = (cvinvcross/(meanrhocross*meanrho))*(spatialCross(i,j,k,18) - vxmean*spatialCross(i,j,k,8) 
+                	- 
+                	+ vxmean*qmeancross*spatialCross(i,j,k,0);
 
                 // [IS] Species-dependent stuff -- commented now -- add later
                 // <delu(x*)del(rhoYkL)> = (1/<rho(x*)>)*(<deljx(x*)del(rhoYkL)> - <u(x*)><delrho(x*)del(rhoYkL)>)
@@ -585,18 +612,6 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
                 //                      - <YkH(x)><deljx(x*)delrho(x)> + <u(x*)><YkH(x)><delrho(x*)delrho(x)>)
                 // spatialCross(i,j,k,25) = (1.0/(meanrho*meanrhocross))*(spatialCross(i,j,k,7) - meanuxcross*spatialCross(i,j,k,9)
                 //                                                         - meanYk[nspecies-1]*spatialCross(i,j,k,5) + meanuxcross*meanYk[nspecies-1]*spatialCross(i,j,k,0));
-
-                // Direct -- <delT(x*)delT(x)>
-                spatialCross(i,j,k,26) = (spatialCross(i,j,k,26)*stepsMinusOne + delTcross*delT)*osteps;
-
-                // Direct -- <delT(x*)delrho(x)>
-                spatialCross(i,j,k,27) = (spatialCross(i,j,k,27)*stepsMinusOne + delTcross*delrho)*osteps;
-
-                // Direct -- <delT(x*)delu(x)>
-                spatialCross(i,j,k,28) = (spatialCross(i,j,k,28)*stepsMinusOne + delTcross*delvx)*osteps;
-
-                // Direct -- <delu(x*)delrho>
-                spatialCross(i,j,k,29) = (spatialCross(i,j,k,29)*stepsMinusOne + delvxcross*delrho)*osteps;
 
                 // [IS] Species-dependent stuff -- commented now -- add later
                 // Direct -- <delu(x*)del(rhoYkL)
