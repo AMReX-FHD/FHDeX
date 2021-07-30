@@ -384,20 +384,38 @@ void FhdParticleContainer::computeForcesCoulombGPU(long totalParticles) {
     domy = (phi[1] - plo[1]);
     domz = (phi[2] - plo[2]);
 
-    Real posx[totalParticles];
-    Real posy[totalParticles];
-    Real posz[totalParticles];
-    int  species[totalParticles];
+//    Real posx[totalParticles];
+    Gpu::ManagedVector<Real> posx;
+    posx.resize(totalParticles);
+    Real * posxPtr = posx.dataPtr();
+    
+    Gpu::ManagedVector<Real> posy;
+    posy.resize(totalParticles);
+    Real * posyPtr = posy.dataPtr();
+    
+    Gpu::ManagedVector<Real> posz;
+    posz.resize(totalParticles);
+    Real * poszPtr = posz.dataPtr();
+    
+    Gpu::ManagedVector<Real> charge;
+    charge.resize(totalParticles);
+    Real * chargePtr = charge.dataPtr();
 
-    Real charge[totalParticles];
+
+//    Real posx[totalParticles];
+//    Real posy[totalParticles];
+//    Real posz[totalParticles];
+//    int  species[totalParticles];
+//    Real charge[totalParticles];
 
     Print() << "Calculating Coulomb force for each particle pair\n";
 
     // collect particle positions onto one processor
-    PullDown(0, posx, -1, totalParticles);
-    PullDown(0, posy, -2, totalParticles);
-    PullDown(0, posz, -3, totalParticles);
-    PullDown(0, charge, FHD_realData::q , totalParticles);
+    PullDown(0, posxPtr, -1, totalParticles);
+    PullDown(0, posyPtr, -2, totalParticles);
+    PullDown(0, poszPtr, -3, totalParticles);
+    PullDown(0, chargePtr, FHD_realData::q , totalParticles);
+    
     
     int imag = (images == 0) ? 1 : images;
 
@@ -405,9 +423,7 @@ void FhdParticleContainer::computeForcesCoulombGPU(long totalParticles) {
                                    //imag * domy,
                                    imag * domz);
 
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
+
     for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) {
 
         const int grid_id = pti.index();
@@ -417,32 +433,44 @@ void FhdParticleContainer::computeForcesCoulombGPU(long totalParticles) {
         auto& particles = particle_tile.GetArrayOfStructs();
         const int np = particles.numParticles();
 
+       
+
+       auto pstruct = particles().dataPtr();
+       
+       
+       
         // loop over particles
-        for(int i = 0; i < np; i++){
+//                for(int i = 0; i < np; i++)
+        AMREX_FOR_1D( np, i,
+        {
 
-            ParticleType & part = particles[i];
+            ParticleType & part = pstruct[i];
 
-            double dr2, rtdr2, dx, dy, dz;
+            double dr2;
+            double rtdr2;
+            double dx;
+            double dy;
+            double dz;
 
-	    Real q1 = part.rdata(FHD_realData::q);
+	        Real q1 = part.rdata(FHD_realData::q);
 
-            // loop over other particles
-            for(int j = 0; j < totalParticles; j++) {
+            for(int j = 0; j < totalParticles; j++)
+            {
 
-		Real q2 = charge[j];
+		         Real q2 = chargePtr[j];
 
-                // assume triply periodic, check the domain and the 8 periodic images
-		// (currently hard-coded for y-wall)
-                for(int ii = -images; ii <= images; ii++) {
-                    //for(int jj = -images; jj <= images; jj++) {
-                       for(int kk = -images; kk <= images; kk++) {
+		        // (currently hard-coded for y-wall)
+                for(int ii = -images; ii <= images; ii++)
+                {
+                       for(int kk = -images; kk <= images; kk++)
+                       {
 
                           // get distance between particles
-                          dx = part.pos(0)-posx[j] - ii*domx;
-                          dy = part.pos(1)-posy[j];// - jj*domy;
-                          dz = part.pos(2)-posz[j] - kk*domz;
+                          dx = part.pos(0)-posxPtr[j] - ii*domx;
+                          dy = part.pos(1)-posyPtr[j];// - jj*domy;
+                          dz = part.pos(2)-poszPtr[j] - kk*domz;
 
-			  dr2 = dx*dx + dy*dy + dz*dz;
+			              dr2 = dx*dx + dy*dy + dz*dz;
                           rtdr2 = sqrt(dr2);
 
               	          if (rtdr2 < maxdist && rtdr2 > 0.)
@@ -451,12 +479,13 @@ void FhdParticleContainer::computeForcesCoulombGPU(long totalParticles) {
                               part.rdata(FHD_realData::forcey) += ee*(dy/rtdr2)*q1*q2/dr2;
                               part.rdata(FHD_realData::forcez) += ee*(dz/rtdr2)*q1*q2/dr2;
                           }
-		       }
-		    //}
-		}
-	    }
-	}
+		               }
+		        }
+	        }
+	    });
     }
+    
+    Print() << "Finished Coulomb calculation\n";
 }
 
 
