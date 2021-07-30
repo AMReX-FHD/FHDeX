@@ -1,0 +1,5 @@
+cat havg* > a; gnuplot -persist -e 'ncz=400;nfreq=200;plot "a" u (($0/ncz)*nfreq):($2) w l'
+
+gnuplot -persist -e 'plot "res.mass_cons" u 0:3 w l'
+
+grep Aux log.fhd > a; grep Advance log.fhd > b; gnuplot -persist -e 'plot "a" u 0:7 w l';gnuplot -persist -e 'plot "b" u 0:5 w l'

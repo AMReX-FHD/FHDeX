@@ -1,0 +1,1 @@
+grep MUI-PUSH log.fhd | awk '{print $3, $5}' > a1;grep RK3 log.fhd | awk '{print $3, $5}' > a2;grep MUI-FETCH log.fhd | awk '{print $3, $5}' > a3;grep Advanced log.fhd | awk '{print $3, $5}' > a0

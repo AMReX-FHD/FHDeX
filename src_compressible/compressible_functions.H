@@ -170,13 +170,14 @@ void GetTemperature ( Real const energy,
                       Real& temp)
 {
     Real cvmix = 0.;
-    Real e0 = 0.;
+    Real e0mix = 0.;
 
     for (int n=0; n<nspecies; ++n) {
         cvmix += Yk[n]*hcv[n];
+        e0mix += Yk[n]*e0[n];
     }
 
-    temp = (energy-e0)/cvmix;
+    temp = (energy-e0mix)/cvmix;
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -1015,13 +1016,14 @@ void GetEnergy ( Real& energy,
                  const Real temp)
 {
     Real cvmix = 0.;
-    Real e0 = 0.;
+    Real e0mix = 0.;
 
     for (int i=0; i<nspecies; ++i) {
         cvmix += massvec[i]*hcv[i];
+        e0mix += massvec[i]*e0[i];
     }
 
-    energy = e0 + temp*cvmix;    
+    energy = e0mix + temp*cvmix;
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -1029,7 +1031,7 @@ void GetEnthalpies (const Real& T,
                     GpuArray<Real,MAX_SPECIES>& hk)
 {
     for (int i=0; i<nspecies; ++i) {
-        hk[i] = hcp[i]*T;
+        hk[i] = e0[i]+hcp[i]*T;
     }
 }
 
