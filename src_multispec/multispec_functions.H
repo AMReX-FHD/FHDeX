@@ -980,6 +980,8 @@ void ComputeNonnegativeRhoAv(
         dv *= dx[dim];
     }
 #endif
+    
+//printf("dv %25.16E\n", dv);
 
     // special version for rtil
     if ((use_multiphase == 1) && (nspecies_in == 2)){
@@ -997,11 +999,14 @@ void ComputeNonnegativeRhoAv(
         for (int comp=1; comp<=nspecies_in; ++comp){
                value1 = Rho1[comp-1]/molmass_in[comp-1]; //Convert to number density
                value2 = Rho2[comp-1]/molmass_in[comp-1];       
+//printf("Rho1 %25.16E\n", Rho1[comp-1]);
+//printf("Rho2 %25.16E\n", Rho2[comp-1]);
+//printf("molmass %25.16E\n", molmass_in[comp-1]);
 
             switch (avg_type) {
 
             case 1 : {    // Arithmetic with a C0-smoothed Heaviside 
-
+//Print() << "HACK - case 1 " << std::endl;
                 if ( (value1 <= 0.0) || (value2 <= 0.0) ) {
                    RhoAv[comp-1] = 0.0;
                 } else {
@@ -1009,15 +1014,20 @@ void ComputeNonnegativeRhoAv(
                    tmp2 = std::min(dv*value2,1.0);
                    RhoAv[comp-1] = molmass_in[comp-1]*(value1+value2)/2.0*tmp1*tmp2;
                 }
+//printf("tmp1= %25.16E\n", tmp1);
+//printf("tmp2= %25.16E\n", tmp2);
+//HACK printf("Rhoav( %16d )= %25.16E\n", comp, RhoAv[comp-1]);
+
+
             } break;
 
             case 2 :   // Geometric  
-
+Print() << "HACK - case 2 " << std::endl;
                 RhoAv[comp-1] = molmass_in[comp-1]*std::sqrt(std::max(value1,0.0)*std::max(value2,0.0));
             break;
 
             case 3 : {   // Harmonic
-
+Print() << "HACK - case 3 " << std::endl;
                 // What we want here is the harmonic mean of max(value1,0) and max(value2,0)
                 // Where we define the result to be zero if either one is zero
                 // But numerically we want to avoid here division by zero
@@ -1030,7 +1040,7 @@ void ComputeNonnegativeRhoAv(
             } break;
 
             case 10 : {  // Arithmetic with (discontinuous) Heaviside
-
+Print() << "HACK - case 10" << std::endl;
                 if ( (value1 <= 0.0) || (value2 <= 0.0) ) {
                    RhoAv[comp-1] = 0.0;
                 } else {
@@ -1039,6 +1049,7 @@ void ComputeNonnegativeRhoAv(
             } break;
 
             case 11 : {  // Arithmetic with C1-smoothed Heaviside
+Print() << "HACK - case 11" << std::endl;
 
                 if ( (value1 <= 0.0) || (value2 <= 0.0) ) {
                    RhoAv[comp-1] = 0.0;
@@ -1423,9 +1434,22 @@ void ComputeSqrtLOnsagerLocal(
            dest(row) = row - ntrace;
         }
     }
+printf( "nspecies_in %d\n", nspecies_in);
+printf( "molmass_in: ");
+for (int row=1; row <= nspecies_in; ++row){ 
+    printf( " %25.16E\n", molmass_in[row-1]);
+}
+printf( "\n");
+printf( "rhotot_in %25.16E\n", rhotot_in);
+printf( "RhoN: ");
+for (int row=1; row <= nspecies_in; ++row){ 
+    printf( " %25.16E", RhoN[row-1]);
+}
+printf( "\n");
 
     if (ntrace == nspecies_in-1){
     //if (0){ //HACK
+//Print() << "HACK - first condition" << std::endl;
 
         // this is all trace species except for 1 (essentially pure solvent);
         // set sqrtLonsager to zero
@@ -1434,15 +1458,96 @@ void ComputeSqrtLOnsagerLocal(
 
     } else if (ntrace == 0) {    // there are no trace species
     //} else if (1) {    // there are no trace species
+Print() << "HACK - second condition" << std::endl;
 
         // compute molarconc and molmtot
         ComputeMolconcMolmtotLocal(nspecies_in, molmass_in, RhoN, rhotot_in, Molarconc_loc, molmtot_loc);
         
         // compute D_bar
         ComputeDBarLocal(RhoN, rhotot_in, nspecies_in, DBar_loc); 
+
+printf( "Befor\n");
+printf( "nspecies_in %d\n", nspecies_in);
+printf( "molmass_in: ");
+for (int row=1; row <= nspecies_in; ++row){ 
+    printf( " %25.16E\n", molmass_in[row-1]);
+}
+printf( "RhoN: ");
+for (int row=1; row <= nspecies_in; ++row){ 
+    printf( " %25.16E", RhoN[row-1]);
+}
+printf( "\n");
+printf( "Molarconc_loc: ");
+for (int row=1; row <= nspecies_in; ++row){ 
+    printf( " %25.16E", Molarconc_loc[row-1]);
+}
+printf( "\n");
+
+printf( "Chi_loc: ");
+for (int row=1; row <= nspecies_in; ++row){ 
+for (int column=1; column <= nspecies_in; ++column){ 
+    printf( " %25.16E", Chi_loc(row,column));
+}
+printf( "\n");
+}
+printf( "\n");
+printf( "\n");
+
+printf( "DBar_loc: ");
+for (int row=1; row <= nspecies_in; ++row){ 
+for (int column=1; column <= nspecies_in; ++column){ 
+    printf( " %25.16E", DBar_loc(row,column));
+}
+printf( "\n");
+}
+printf( "\n");
+printf( "\n");
+
+printf( "chi_iterations_in %d\n", chi_iterations_in);
+
         
         // compute chi
         ComputeChi(nspecies_in, molmass_in, RhoN, rhotot_in, Molarconc_loc, Chi_loc, DBar_loc, chi_iterations_in);
+
+printf( "After\n");
+printf( "nspecies_in %d\n", nspecies_in);
+printf( "molmass_in: ");
+for (int row=1; row <= nspecies_in; ++row){ 
+    printf( " %25.16E\n", molmass_in[row-1]);
+}
+printf( "RhoN: ");
+for (int row=1; row <= nspecies_in; ++row){ 
+    printf( " %25.16E", RhoN[row-1]);
+}
+printf( "\n");
+printf( "Molarconc_loc: ");
+for (int row=1; row <= nspecies_in; ++row){ 
+    printf( " %25.16E", Molarconc_loc[row-1]);
+}
+printf( "\n");
+
+printf( "Chi_loc: ");
+for (int row=1; row <= nspecies_in; ++row){ 
+for (int column=1; column <= nspecies_in; ++column){ 
+    printf( " %25.16E", Chi_loc(row,column));
+}
+printf( "\n");
+}
+printf( "\n");
+printf( "\n");
+
+printf( "DBar_loc: ");
+for (int row=1; row <= nspecies_in; ++row){ 
+for (int column=1; column <= nspecies_in; ++column){ 
+    printf( " %25.16E", DBar_loc(row,column));
+}
+printf( "\n");
+}
+printf( "\n");
+printf( "\n");
+
+printf( "chi_iterations_in %d\n", chi_iterations_in);
+
 
         // compute Onsager matrix L (store in sqrtLonsager)
         for (int column=1; column<= nspecies_in; ++column){ 
@@ -1451,7 +1556,6 @@ void ComputeSqrtLOnsagerLocal(
             }
         }
 
-        //call compute_chi(nspecies_in,molmass,rho,rhotot,molarconc,chi,D_bar)
         // compute cell-centered Cholesky factor, sqrtLonsager
         CholeskyDC(SqrtLOnsager,nspecies_in);
 
@@ -1459,6 +1563,8 @@ void ComputeSqrtLOnsagerLocal(
 
         // if there are trace species, we consider a subsystem 
         // consisting of non-trace species
+
+Print() << "HACK - final condition" << std::endl;
 
         nspecies_sub = nspecies_in - ntrace;
         ComputeSqrtLOnsagerSub( dest, 
@@ -1473,6 +1579,14 @@ void ComputeSqrtLOnsagerLocal(
 
     } 
 
+    //HACK
+        for (int column=1; column<= nspecies_in; ++column){ 
+            for (int row=1; row<=nspecies_in; ++row){ 
+                printf("SLO %25.16E", SqrtLOnsager(row, column)); 
+            }
+            printf("\n");
+        }
+        printf("\n");
     //Print() << "HACK" << std::endl;
 }
 
