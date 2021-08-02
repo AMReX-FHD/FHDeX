@@ -663,13 +663,19 @@ void main_driver(const char* argv)
     // AJN - we don't understand why you need this for ions
 #if (BL_SPACEDIM == 3)
     int paramPlaneCount = 6;
-    paramPlane paramPlaneList[paramPlaneCount];
-    BuildParamplanes(paramPlaneList,paramPlaneCount,realDomain.lo(),realDomain.hi());
+    // Make paramPlaneList GPU compatible
+    Gpu::ManagedVector<paramPlane> paramPlaneList(paramPlaneCount);
+    // Set up a pointer to access data of paramPlaneList, which is used as a normal vector everywhere
+    paramPlane* pparamPlaneList = paramPlaneList.data();
+    BuildParamplanes(pparamPlaneList,paramPlaneCount,realDomain.lo(),realDomain.hi());
 #endif
 #if (BL_SPACEDIM == 2)
     int paramPlaneCount = 5;
-    paramPlane paramPlaneList[paramPlaneCount];
-    BuildParamplanes(paramPlaneList,paramPlaneCount,realDomain.lo(),realDomain.hi());
+    // Make paramPlaneList GPU compatible
+    Gpu::ManagedVector<paramPlane> paramPlaneList(paramPlaneCount);
+    // Set up a pointer to access data of paramPlaneList, which is used as a normal vector everywhere
+    paramPlane* pparamPlaneList = paramPlaneList.data();
+    BuildParamplanes(pparamPlaneList,paramPlaneCount,realDomain.lo(),realDomain.hi());
 #endif
 
     // IBMarkerContainerBase default behaviour is to do tiling. Turn off here:
@@ -1086,7 +1092,7 @@ void main_driver(const char* argv)
         {
             //Calls wet ion interpolation and movement.
 
-            particles.MoveIonsCPP(dt, dx, dxp, geom, umac, efield, RealFaceCoords, source, sourceTemp, paramPlaneList,
+            particles.MoveIonsCPP(dt, dx, dxp, geom, umac, efield, RealFaceCoords, source, sourceTemp, pparamPlaneList,
                                paramPlaneCount, 3 /*this number currently does nothing, but we will use it later*/);
 
             // reset statistics after step n_steps_skip
