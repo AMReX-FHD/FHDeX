@@ -164,6 +164,9 @@ void ComputeZetaByTemp(const MultiFab& molarconc_in,
 {
     BL_PROFILE_VAR("ComputeZetaByTemp()",ComputeZetaByTemp);
 
+Print() << "I called this function" << std::endl;
+
+
     int ng = zeta_by_Temp_in.nGrow();
 
     // Loop over boxes
@@ -174,12 +177,17 @@ void ComputeZetaByTemp(const MultiFab& molarconc_in,
 
 
 
-/* HACK BEGAN DEVELOPMENT 
+/* HACK BEGAN DEVELOPMENT */
         const Array4<const Real>& molarconc = molarconc_in.array(mfi);
         const Array4<const Real>& D_bar = D_bar_in.array(mfi);
         const Array4<const Real>& Temp = Temp_in.array(mfi);
         const Array4<      Real>& zeta_by_Temp = zeta_by_Temp_in.array(mfi);
         const Array4<const Real>& D_therm = D_therm_in.array(mfi);
+
+
+
+
+
 
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
@@ -214,7 +222,7 @@ void ComputeZetaByTemp(const MultiFab& molarconc_in,
 
 
         });
- HACK END DEVELOPMENT */
+ /*HACK END DEVELOPMENT */
 
         compute_zeta_by_Temp(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
                              BL_TO_FORTRAN_ANYD(molarconc_in[mfi]),
@@ -222,6 +230,27 @@ void ComputeZetaByTemp(const MultiFab& molarconc_in,
                              BL_TO_FORTRAN_ANYD(Temp_in[mfi]),
                              BL_TO_FORTRAN_ANYD(zeta_by_Temp_in[mfi]),
                              BL_TO_FORTRAN_ANYD(D_therm_in[mfi]));
+
+        //HACK
+const Array4<      Real>& zeta_by_Temp2 = zeta_by_Temp_in.array(mfi);
+
+
+Dim3 lo = lbound(bx);
+Dim3 hi = ubound(bx);
+Print() << "lo " << lo << std::endl;
+Print() << "hi " << hi << std::endl;
+for     (int k = lo.z; k <= hi.z; ++k) {
+  for   (int j = lo.y; j <= hi.y; ++j) {
+    for (int i = lo.x; i <= hi.x; ++i) {
+            Print() << zeta_by_Temp2(i,j,k) - zeta_by_Temp(i,j,k) << " ";
+    }
+    Print() << std::endl;
+  }
+    Print() << std::endl;
+    Print() << std::endl;
+}
+
+
     }
 }
 

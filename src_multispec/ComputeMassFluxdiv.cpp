@@ -54,7 +54,8 @@ void ComputeMassFluxdiv(MultiFab& rho,
 
   // compute rho*W*chi and zeta/Temp
   ComputeRhoWChi(rho,rhotot,molarconc,rhoWchi,D_bar);
-  // ComputeZetaByTemp(molarconc,D_Bar,Temp,zeta_by_Temp,D_therm);
+  //ComputeZetaByTemp(molarconc,D_Bar,Temp,zeta_by_Temp,D_therm); 
+  ComputeZetaByTemp(molarconc,D_bar,Temp,zeta_by_Temp,D_therm); // HACK - EP -- to force function call
   if (is_nonisothermal == 1) {
       Abort("ComputeMassFluxDiv: implement is_nonisothermal");
   }

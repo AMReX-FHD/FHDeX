@@ -1368,13 +1368,13 @@ void CholeskyDC(Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& A,
 
 //Print() << "CholeskyDC" << std::endl; //Equil regression tests use this routine
 
-printf("A in\n");
-for (int i=1; i<=np; ++i){
-for (int j=1; j<=np; ++j){
-        printf("%25.16E ", A(i,j));
-}
-        printf("\n");
-}
+//printf("A in\n");
+//for (int i=1; i<=np; ++i){
+//for (int j=1; j<=np; ++j){
+//        printf("%25.16E ", A(i,j));
+//}
+//        printf("\n");
+//}
 
 
 
@@ -1392,9 +1392,9 @@ for (int j=1; j<=np; ++j){
             sum1 = A(i,j);
 
             for (int k=i-1; k>=1; --k){
-                printf("k= %d ",k);
+// HACK                printf("k= %d ",k);
                 sum1 = sum1 - A(i,k)*A(j,k);
-                printf("sum1= %25.16E\n",sum1);
+// HACK                printf("sum1= %25.16E\n",sum1);
             }
             if(i==j){
             
@@ -1423,13 +1423,13 @@ for (int j=1; j<=np; ++j){
     A(i,i) = P(i);
     }
 
-printf("A out\n");
-for (int i=1; i<=np; ++i){
-for (int j=1; j<=np; ++j){
-        printf("%25.16E ", A(i,j));
-}
-        printf("\n");
-}
+//printf("A out\n");
+//for (int i=1; i<=np; ++i){
+//for (int j=1; j<=np; ++j){
+//        printf("%25.16E ", A(i,j));
+//}
+//        printf("\n");
+//}
 
 }
 
