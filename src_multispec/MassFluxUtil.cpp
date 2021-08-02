@@ -302,11 +302,11 @@ void ComputeSqrtLonsagerFC(const MultiFab& rho_in,
 //printf("%25.16E\n", sqrtLOnsager_XN(m+1, n+1));
                 }
                 //printf(" %25.16E\n", RhoNXShift[n]);
-                printf(" %25.16E", RhoN[n]);
+                //printf(" %25.16E", RhoN[n]);
             }
             //printf("%25.16E %25.16E\n", rho(i+1,j,k,0), rho(i,j,k,0));
             //printf(" %25.16E\n", rho(i-1000,j,k,n));
-            printf("\n");
+            //printf("\n");
 
             ComputeNonnegativeRhoAv(RhoNXShift, RhoN, dx, molmass, nspecies, RhoAv);
 

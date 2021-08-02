@@ -484,8 +484,8 @@ void ComputeChiSub(int nspecies_in,
                 Array1D<int, 1, MAX_SPECIES> dest,
                 GpuArray<Real, MAX_SPECIES>& molmass_in,
                 GpuArray<Real, MAX_SPECIES>& rhoN,
-                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> D_barN,
-                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> rhoWchiN,
+                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& D_barN,
+                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& rhoWchiN,
                 int chi_iterations_in){
 
     GpuArray<Real, MAX_SPECIES> molmass_sub, rhoN_sub, MolarConcN_sub;
@@ -609,7 +609,7 @@ void Matrix2DSetEqual(
  * \brief D_bar to chi - iterative
  *
  * \param[in] nspecies_local number of species
- * \param[in] num_iterations number of terms in the sum to use: 3-5 are reasonable values
+ * \param[in] num_iterations_in number of terms in the sum to use: 3-5 are reasonable values
  * \param[in] D_bar matrix of Maxwell-Stefan binary diffusion coefficient
  * \param[in] Xk mole fractions --- MUST NOT BE ZERO
  * \param[in] molmass_local
@@ -618,7 +618,7 @@ void Matrix2DSetEqual(
  */
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void Dbar2chiIterative( int nspecies_local,
-               int num_iterations,
+               int num_iterations_in,
                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& D_bar,
                GpuArray<Real, MAX_SPECIES>& Xk,
                GpuArray<Real, MAX_SPECIES>& molmass_local,
@@ -628,25 +628,40 @@ void Dbar2chiIterative( int nspecies_local,
     Array1D<Real, 1, MAX_SPECIES> Xkp, Ykp, Di, Mmat, Minv;
     Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> Pmat, Deltamat, Zmat, Jmat, PJ, matrix1, matrix2;
 
+//printf( "chi2 Befor: ");
+//for (int row=1; row <= nspecies_local; ++row){ 
+//for (int column=1; column <= nspecies_local; ++column){ 
+//    printf( " %25.16E", chi(row,column));
+//}
+//printf( "\n");
+//}
+//printf( "\n");
+//printf( "\n");
 
     // mole fractions correction
     // Turned this off since it should be done in caller
     for (int ii=1; ii<=nspecies_local; ++ii){
        Xkp(ii) = Xk[ii-1];
+       //printf("Xkp(%d) = %25.16E \n", ii, Xkp(ii)); 
     }
 
     // molecular weight of mixture - EGLIB
     Real MWmix = 0.0;
     for (int ii=1; ii<=nspecies_local; ++ii){
         MWmix = MWmix + Xkp(ii)*molmass_local[ii-1];
+       
     }
+    //printf("MWmix = %25.16E \n", MWmix);  //looks good
+
 
     // mass fractions correction - EGLIB
     for (int ii=1; ii<=nspecies_local; ++ii){
         Ykp(ii) = molmass_local[ii-1] / MWmix * Xkp(ii);
+        printf("Ykp(%d) = %25.16E \n", ii, Ykp(ii));  // -- looks good
     }
 
-    // Find Di matrix
+    // Find Di matrix //Hack -- looks good
+    
     Real term2;
     for (int i=1; i<=nspecies_local; ++i){
         term2 = 0.0;
@@ -656,12 +671,30 @@ void Dbar2chiIterative( int nspecies_local,
             }
         }
         Di(i) = (1.0 - Ykp(i))/term2;
+        printf("Di(%d) = %25.16E Ykp(%d) = %25.16E term2 = %25.16E\n", i, Di(i), i, Ykp(i), term2); // looks good
     }
 
+//HACK
+for (int i=1; i<=nspecies_local; ++i){
+for (int j=1; j<=nspecies_local; ++j){
+printf("Dbar(%d,%d) = %25.16E ", i,j,D_bar(i,j));
+}
+printf("\n");
+} 
+printf("\n");
+    //for (int i=1; i<=nspecies_local; ++i){
+    //  printf("Di(%d) = %25.16E \n", i, Di(i)); // looks good
+    //}
+    
     // Compute Mmat and Minv
     for (int i=1; i<=nspecies_local; ++i){
         Mmat(i) = Xkp(i)/Di(i);
         Minv(i) = Di(i)/Xkp(i);
+
+      //printf("Mmat(%d) = %25.16E \n", i, Mmat(i)); 
+      //printf("Minv(%d) = %25.16E \n", i, Minv(i)); 
+
+
     }
 
     // Compute P matrix
@@ -695,11 +728,30 @@ void Dbar2chiIterative( int nspecies_local,
             Zmat(i,j) = -Deltamat(i,j);
         }
     }
+//HACK
+//for (int i=1; i<=nspecies_local; ++i){
+//for (int j=1; j<=nspecies_local; ++j){
+//printf("Deltamat(%d,%d) = %25.16E ", i,j,Deltamat(i,j));
+//}
+//printf("\n");
+//} 
+//printf("\n");
 
-    // Compute Zmat
+
+
+
+    // Compute Zmat -- HACK contains INF and NAN numbers
     for (int i=1; i<=nspecies_local; ++i){
         Zmat(i,i) = Zmat(i,i) + Mmat(i);
     }
+////HACK
+//for (int i=1; i<=nspecies_local; ++i){
+//for (int j=1; j<=nspecies_local; ++j){
+//printf("Zmat(%d,%d) = %25.16E ", i,j,Zmat(i,j));
+//}
+//printf("\n");
+//} 
+//printf("\n");
 
 
     // Compute Jmat
@@ -708,8 +760,16 @@ void Dbar2chiIterative( int nspecies_local,
             Jmat(i,j) = Minv(i)*Zmat(i,j);
         }
     }
+////HACK
+//for (int i=1; i<=nspecies_local; ++i){
+//for (int j=1; j<=nspecies_local; ++j){
+//printf("Jmat(%d,%d) = %25.16E ", i,j,Jmat(i,j));
+//}
+//printf("\n");
+//} 
+//printf("\n");
 
-    // Compute PJ
+    // Compute PJ  //HACK -- has NAN values
     MatrixToZeros(nspecies_local, PJ);
     for (int i=1; i<=nspecies_local; ++i){
         for (int j=1; j<=nspecies_local; ++j){
@@ -718,6 +778,14 @@ void Dbar2chiIterative( int nspecies_local,
             }
         }
     }
+////HACK
+//for (int i=1; i<=nspecies_local; ++i){
+//for (int j=1; j<=nspecies_local; ++j){
+//printf("PJ(%d,%d) = %25.16E ", i,j,PJ(i,j));
+//}
+//printf("\n");
+//} 
+//printf("\n");
 
     // Compute P M^-1 Pt; store it in matrix2
     Real scr;
@@ -733,8 +801,16 @@ void Dbar2chiIterative( int nspecies_local,
         }
     }
 
+////HACK
+//for (int i=1; i<=nspecies_local; ++i){
+//for (int j=1; j<=nspecies_local; ++j){
+//printf("matrix2(%d,%d) = %25.16E ", i,j,matrix2(i,j));
+//}
+//printf("\n");
+//} 
+//printf("\n");
 
-    for (int jj=1; jj<=num_iterations; ++jj){
+    for (int jj=1; jj<=num_iterations_in; ++jj){
         for (int i=1; i<=nspecies_local; ++i){
             for (int j=1; j<=nspecies_local; ++j){
                     scr = 0.0;
@@ -744,8 +820,30 @@ void Dbar2chiIterative( int nspecies_local,
                 matrix1(i,j) = scr + matrix2(i,j);
             }
         }
+
+
+        //HACK
+        //for (int i=1; i<=nspecies_local; ++i){
+        //    for (int j=1; j<=nspecies_local; ++j){
+        //            printf("matrix1(%d,%d) = %25.16E ", i,j,matrix1(i,j));
+        //    }
+        //    printf("\n");
+        //} 
+        //printf("\n");
+
         Matrix2DSetEqual(chi, matrix1, MAX_SPECIES);
     }
+
+
+printf( "chi2 After: ");
+for (int row=1; row <= nspecies_local; ++row){ 
+for (int column=1; column <= nspecies_local; ++column){ 
+    printf( " %25.16E", chi(row,column));
+}
+printf( "\n");
+}
+printf( "\n");
+printf( "\n");
 }
 
 
@@ -797,6 +895,9 @@ void ComputeChi(int nspecies_in,
     if ( nspecies_in == 2){
     // NOTE: The above if condition was not tested.
 
+    //HACK 
+    printf(">>>>Hack ComputeChi species 2\n");
+
         W(1) = rhoN[0]/rhotot;
         W(2) = rhoN[1]/rhotot;
 
@@ -823,7 +924,30 @@ void ComputeChi(int nspecies_in,
        //call amrex_error('compute_chi: use_lapack not supported')
     }
 
+
+//printf( "chi3 Befor: ");
+//for (int row=1; row <= nspecies_in; ++row){ 
+//for (int column=1; column <= nspecies_in; ++column){ 
+//    printf( " %25.16E", chi(row,column));
+//}
+//printf( "\n");
+//}
+//printf( "\n");
+//printf( "\n");
+
     Dbar2chiIterative(nspecies_in,chi_iterations_in,D_barN,MolarConcN,molmass_in,chi);
+
+//printf( "chi3 After: ");
+//for (int row=1; row <= nspecies_in; ++row){ 
+//for (int column=1; column <= nspecies_in; ++column){ 
+//    printf( " %25.16E", chi(row,column));
+//}
+//printf( "\n");
+//}
+//printf( "\n");
+//printf( "\n");
+
+
 }
 
 
@@ -1138,7 +1262,7 @@ void ComputeDBarLocal(
           GpuArray<Real, MAX_SPECIES>& RhoN,
           Real rhotot_in,
           int nspecies_in,
-          Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> D_bar){
+          Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& D_bar){
         
     // off-diagonal components of symmetric matrices
     Array1D<Real, 1, MAX_SPECIES*(MAX_SPECIES-1)/2> DBar_loc;
@@ -1181,11 +1305,20 @@ void ComputeDBarLocal(
 
     default : //Keep it constant
 
+//printf("Default D_bar\n");
         for ( int n=1; n <= nspecies_in*(nspecies_in-1)/2; ++n){
             DBar_loc(n) = Dbar[n-1];
         }
 
     }
+
+//printf( "DBar_loc: \n");
+//for (int row=1; row <= nspecies_in; ++row){ 
+//    printf( " %25.16E", DBar_loc(row));
+//printf( "\n");
+//}
+//printf( "\n");
+//printf( "\n");
 
     // Complete the process by filling the matrices using generic formulae -- this part should not change
     // populate D_bar and Hessian matrix 
@@ -1199,6 +1332,16 @@ void ComputeDBarLocal(
         // populate diagonals 
         D_bar(row, row) = 0.0;           // as self-diffusion is zero
     }
+
+printf( ">>D_bar: \n");
+for (int row=1; row <= nspecies_in; ++row){ 
+for (int column=1; column <= nspecies_in; ++column){ 
+    printf( " %25.16E", D_bar(row,column));
+}
+printf( "\n");
+}
+printf( "\n");
+printf( "\n");
 
 }
 
@@ -1286,7 +1429,7 @@ void ComputeSqrtLOnsagerSub(
                 Array1D<int, 1, MAX_SPECIES>& dest,
                 GpuArray<Real, MAX_SPECIES>& Molmass_in,
                 GpuArray<Real, MAX_SPECIES>& Rho_in,
-                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> DBar_in,
+                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& DBar_in,
                 Real rhotot_in,
                 int nspecies_in,
                 int nspecies_sub,
@@ -1434,18 +1577,18 @@ void ComputeSqrtLOnsagerLocal(
            dest(row) = row - ntrace;
         }
     }
-printf( "nspecies_in %d\n", nspecies_in);
-printf( "molmass_in: ");
-for (int row=1; row <= nspecies_in; ++row){ 
-    printf( " %25.16E\n", molmass_in[row-1]);
-}
-printf( "\n");
-printf( "rhotot_in %25.16E\n", rhotot_in);
-printf( "RhoN: ");
-for (int row=1; row <= nspecies_in; ++row){ 
-    printf( " %25.16E", RhoN[row-1]);
-}
-printf( "\n");
+//printf( "nspecies_in %d\n", nspecies_in);
+//printf( "molmass_in: ");
+//for (int row=1; row <= nspecies_in; ++row){ 
+//    printf( " %25.16E\n", molmass_in[row-1]);
+//}
+//printf( "\n");
+//printf( "rhotot_in %25.16E\n", rhotot_in);
+//printf( "RhoN: ");
+//for (int row=1; row <= nspecies_in; ++row){ 
+//    printf( " %25.16E", RhoN[row-1]);
+//}
+//printf( "\n");
 
     if (ntrace == nspecies_in-1){
     //if (0){ //HACK
@@ -1466,34 +1609,34 @@ Print() << "HACK - second condition" << std::endl;
         // compute D_bar
         ComputeDBarLocal(RhoN, rhotot_in, nspecies_in, DBar_loc); 
 
-printf( "Befor\n");
-printf( "nspecies_in %d\n", nspecies_in);
-printf( "molmass_in: ");
-for (int row=1; row <= nspecies_in; ++row){ 
-    printf( " %25.16E\n", molmass_in[row-1]);
-}
-printf( "RhoN: ");
-for (int row=1; row <= nspecies_in; ++row){ 
-    printf( " %25.16E", RhoN[row-1]);
-}
-printf( "\n");
-printf( "Molarconc_loc: ");
-for (int row=1; row <= nspecies_in; ++row){ 
-    printf( " %25.16E", Molarconc_loc[row-1]);
-}
-printf( "\n");
+printf( "Befor ");
+//printf( "nspecies_in %d\n", nspecies_in);
+//printf( "molmass_in: ");
+//for (int row=1; row <= nspecies_in; ++row){ 
+//    printf( " %25.16E\n", molmass_in[row-1]);
+//}
+//printf( "RhoN: ");
+//for (int row=1; row <= nspecies_in; ++row){ 
+//    printf( " %25.16E", RhoN[row-1]);
+//}
+//printf( "\n");
+//printf( "Molarconc_loc: ");
+//for (int row=1; row <= nspecies_in; ++row){ 
+//    printf( " %25.16E", Molarconc_loc[row-1]);
+//}
+//printf( "\n");
+//
+//printf( "Chi_loc: ");
+//for (int row=1; row <= nspecies_in; ++row){ 
+//for (int column=1; column <= nspecies_in; ++column){ 
+//    printf( " %25.16E", Chi_loc(row,column));
+//}
+//printf( "\n");
+//}
+//printf( "\n");
+//printf( "\n");
 
-printf( "Chi_loc: ");
-for (int row=1; row <= nspecies_in; ++row){ 
-for (int column=1; column <= nspecies_in; ++column){ 
-    printf( " %25.16E", Chi_loc(row,column));
-}
-printf( "\n");
-}
-printf( "\n");
-printf( "\n");
-
-printf( "DBar_loc: ");
+printf( "DBar_loc: \n");
 for (int row=1; row <= nspecies_in; ++row){ 
 for (int column=1; column <= nspecies_in; ++column){ 
     printf( " %25.16E", DBar_loc(row,column));
@@ -1503,50 +1646,50 @@ printf( "\n");
 printf( "\n");
 printf( "\n");
 
-printf( "chi_iterations_in %d\n", chi_iterations_in);
+//printf( "chi_iterations_in %d\n", chi_iterations_in);
 
         
         // compute chi
         ComputeChi(nspecies_in, molmass_in, RhoN, rhotot_in, Molarconc_loc, Chi_loc, DBar_loc, chi_iterations_in);
 
-printf( "After\n");
-printf( "nspecies_in %d\n", nspecies_in);
-printf( "molmass_in: ");
-for (int row=1; row <= nspecies_in; ++row){ 
-    printf( " %25.16E\n", molmass_in[row-1]);
-}
-printf( "RhoN: ");
-for (int row=1; row <= nspecies_in; ++row){ 
-    printf( " %25.16E", RhoN[row-1]);
-}
-printf( "\n");
-printf( "Molarconc_loc: ");
-for (int row=1; row <= nspecies_in; ++row){ 
-    printf( " %25.16E", Molarconc_loc[row-1]);
-}
-printf( "\n");
+printf( "After ");
+//printf( "nspecies_in %d\n", nspecies_in);
+//printf( "molmass_in: ");
+//for (int row=1; row <= nspecies_in; ++row){ 
+//    printf( " %25.16E\n", molmass_in[row-1]);
+//}
+//printf( "RhoN: ");
+//for (int row=1; row <= nspecies_in; ++row){ 
+//    printf( " %25.16E", RhoN[row-1]);
+//}
+//printf( "\n");
+//printf( "Molarconc_loc: ");
+//for (int row=1; row <= nspecies_in; ++row){ 
+//    printf( " %25.16E", Molarconc_loc[row-1]);
+//}
+//printf( "\n");
 
-printf( "Chi_loc: ");
-for (int row=1; row <= nspecies_in; ++row){ 
-for (int column=1; column <= nspecies_in; ++column){ 
-    printf( " %25.16E", Chi_loc(row,column));
-}
-printf( "\n");
-}
-printf( "\n");
-printf( "\n");
+//printf( "Chi_loc: ");
+//for (int row=1; row <= nspecies_in; ++row){ 
+//for (int column=1; column <= nspecies_in; ++column){ 
+//    printf( " %25.16E", Chi_loc(row,column));
+//}
+//printf( "\n");
+//}
+//printf( "\n");
+//printf( "\n");
 
-printf( "DBar_loc: ");
-for (int row=1; row <= nspecies_in; ++row){ 
-for (int column=1; column <= nspecies_in; ++column){ 
-    printf( " %25.16E", DBar_loc(row,column));
-}
-printf( "\n");
-}
-printf( "\n");
-printf( "\n");
-
-printf( "chi_iterations_in %d\n", chi_iterations_in);
+//printf( "DBar_loc: ");
+//for (int row=1; row <= nspecies_in; ++row){ 
+//for (int column=1; column <= nspecies_in; ++column){ 
+//    printf( " %25.16E", DBar_loc(row,column));
+//}
+//printf( "\n");
+//}
+//printf( "\n");
+//printf( "\n");
+//
+//printf( "chi_iterations_in %d\n", chi_iterations_in);
 
 
         // compute Onsager matrix L (store in sqrtLonsager)
@@ -1580,13 +1723,13 @@ Print() << "HACK - final condition" << std::endl;
     } 
 
     //HACK
-        for (int column=1; column<= nspecies_in; ++column){ 
-            for (int row=1; row<=nspecies_in; ++row){ 
-                printf("SLO %25.16E", SqrtLOnsager(row, column)); 
-            }
-            printf("\n");
-        }
-        printf("\n");
+//        for (int column=1; column<= nspecies_in; ++column){ 
+//            for (int row=1; row<=nspecies_in; ++row){ 
+//                printf("SLO %25.16E", SqrtLOnsager(row, column)); 
+//            }
+//            printf("\n");
+//        }
+//        printf("\n");
     //Print() << "HACK" << std::endl;
 }
 
