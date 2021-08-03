@@ -199,7 +199,6 @@ namespace common {
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> potential_hi;
 
     // structure factor and radial/cartesian pair correlation function analysis
-    extern int                        fft_type; // only 1=FFTW/cuFFT supported
     extern int                        struct_fact_int;
     extern int                        radialdist_int;
     extern int                        cartdist_int;

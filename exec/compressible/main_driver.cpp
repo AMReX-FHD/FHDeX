@@ -572,8 +572,8 @@ void main_driver(const char* argv)
             MultiFab::Copy(structFactPrimMF, prim, 0,                0,                structVarsPrim,   0);
             MultiFab::Copy(structFactConsMF, cu,   0,                0,                structVarsCons-1, 0);
             MultiFab::Copy(structFactConsMF, prim, AMREX_SPACEDIM+1, structVarsCons-1, 1,                0); // temperature too
-            structFactPrim.FortStructure(structFactPrimMF,geom,fft_type);
-            structFactCons.FortStructure(structFactConsMF,geom,fft_type);
+            structFactPrim.FortStructure(structFactPrimMF,geom);
+            structFactCons.FortStructure(structFactConsMF,geom);
             if(project_dir >= 0) {
                 MultiFab primFlattened;  // flattened multifab defined below
                 if (slicepoint < 0) {
@@ -584,7 +584,7 @@ void main_driver(const char* argv)
                 // we rotate this flattened MultiFab to have normal in the z-direction since
                 // our structure factor class assumes this for flattened
                 MultiFab primFlattenedRot = RotateFlattenedMF(primFlattened);
-                structFactPrimFlattened.FortStructure(primFlattenedRot,geom_flat,fft_type);
+                structFactPrimFlattened.FortStructure(primFlattenedRot,geom_flat);
             }
         }
 
