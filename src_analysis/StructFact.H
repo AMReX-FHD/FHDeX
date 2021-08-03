@@ -76,7 +76,6 @@ public:
                 const int& verbosity=0);
 
     void FortStructure(const amrex::MultiFab&, const amrex::Geometry&,
-                       const int& fft_type_in,
                        const int& reset=0);
 
     void Reset();

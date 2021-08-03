@@ -292,7 +292,6 @@ void StructFact::define(const BoxArray& ba_in, const DistributionMapping& dmap_i
 }
 
 void StructFact::FortStructure(const MultiFab& variables, const Geometry& geom,
-                               const int& fft_type_in,
                                const int& reset) {
 
   BL_PROFILE_VAR("StructFact::FortStructure()",FortStructure);
@@ -303,12 +302,7 @@ void StructFact::FortStructure(const MultiFab& variables, const Geometry& geom,
   variables_dft_real.define(ba, dm, NVAR, 0);
   variables_dft_imag.define(ba, dm, NVAR, 0);
 
-  if (fft_type_in == 1) {
-      ComputeFFT(variables, variables_dft_real, variables_dft_imag, geom);
-  }
-  else {
-      Abort("FortStructure:Invalid fft_type");
-  }
+  ComputeFFT(variables, variables_dft_real, variables_dft_imag, geom);
 
   MultiFab cov_temp;
   cov_temp.define(ba, dm, 1, 0);
