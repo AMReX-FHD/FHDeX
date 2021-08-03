@@ -2,6 +2,8 @@
 
 #include "common_functions.H"
 
+#include "chemistry_functions.H"
+
 #include "rng_functions.H"
 
 
@@ -105,6 +107,11 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
     calculateFlux(cu, prim, eta, zeta, kappa, chi, D, flux, stochFlux, cornx, corny, cornz,
                   visccorn, rancorn, geom, stoch_weights, dt);
 
+    if (nreaction>0)
+    {
+        compute_chemistry_source(dt,dx[0]*dx[1]*dx[2],cu,5,source,5);
+    }
+
     for ( MFIter mfi(cu,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
         
         const Box& bx = mfi.tilebox();
@@ -199,6 +206,11 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
     calculateFlux(cup, prim, eta, zeta, kappa, chi, D, flux, stochFlux, cornx, corny, cornz,
                   visccorn, rancorn, geom, stoch_weights, dt);
 
+    if (nreaction>0)
+    {
+        compute_chemistry_source(dt,dx[0]*dx[1]*dx[2],cup,5,source,5);
+    }
+
     for ( MFIter mfi(cu,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
         
         const Box& bx = mfi.tilebox();
@@ -292,6 +304,11 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
 
     calculateFlux(cup2, prim, eta, zeta, kappa, chi, D, flux, stochFlux, cornx, corny, cornz,
                   visccorn, rancorn, geom, stoch_weights, dt);
+
+    if (nreaction>0)
+    {
+        compute_chemistry_source(dt,dx[0]*dx[1]*dx[2],cup2,5,source,5);
+    }
 
     for ( MFIter mfi(cu,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
         

@@ -16,7 +16,7 @@ extern "C"
 
     // copy contents of common_params_module to C++ common namespace
     void initialize_common_namespace(amrex::Real* prob_lo, amrex::Real* prob_hi, int* n_cells,
-                                     int* max_grid_size, int* max_grid_size_structfact,
+                                     int* max_grid_size,
                                      int* max_particle_tile_size,amrex::Real* cell_depth, int* ngc,
                                      int* nvars, int* nprimvars,
                                      int* membrane_cell, int* cross_cell, int* do_slab_sf, amrex::Real* transmission,
@@ -31,7 +31,7 @@ extern "C"
                                      int* prob_type, int* restart, int* reset_stats, int* particle_restart, int* print_int,
                                      int* project_eos_int, amrex::Real* grav, int* nspecies,
                                      amrex::Real* molmass,amrex::Real* diameter,
-                                     int* dof,amrex::Real* hcv,amrex::Real* hcp, amrex::Real* rhobar,
+                                     amrex::Real* dof,amrex::Real* e0,amrex::Real* hcv,amrex::Real* hcp, amrex::Real* rhobar,
                                      amrex::Real* rho0, amrex::Real* variance_coef_mom,
                                      amrex::Real* variance_coef_mass, amrex::Real* k_B,
                                      amrex::Real* Runiv, amrex::Real* T_init,

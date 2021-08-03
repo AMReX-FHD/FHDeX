@@ -490,20 +490,23 @@ void IBMarkerContainerBase<StructReal, StructInt>::PullDown(
         auto& aos   = ptile.GetArrayOfStructs();
         ParticleType* particles = aos().dataPtr();
 
-       //std::cout << "Proc " << ParallelDescriptor::MyProc() << " sees " << np << " particles." <<std::endl;
+        //std::cout << "Proc " << ParallelDescriptor::MyProc() << " doing " << np << " particles\n";
 
         if (element >= 0) {
 
+                //std::cout << "Proc " << ParallelDescriptor::MyProc() << " 1a start\n";
             AMREX_FOR_1D( np, i,
             {
                 ParticleType & part = particles[i];
                 int id = part.id();
-                //std::cout << id << " of " << totalParticles << std::endl;
+                
                 list[id-1] = particles[i].rdata(StructReal::radius + element);
             });
+                //std::cout << "Proc " << ParallelDescriptor::MyProc() << " 1a finish\n";
 
         } else {
 
+                //std::cout << "Proc " << ParallelDescriptor::MyProc() << " 1b start\n";
             AMREX_FOR_1D( np, i,
             {
                 ParticleType & part = particles[i];
@@ -513,9 +516,11 @@ void IBMarkerContainerBase<StructReal, StructInt>::PullDown(
               //  std::cout << "Proc " << ParallelDescriptor::MyProc() << " storing " << part.pos((-element)-1)
                 //                               << " from " << i << " in position " << id-1 << std::endl;
             });
+                //std::cout << "Proc " << ParallelDescriptor::MyProc() << " 1b finish\n";
         }
-    }
 
+    }
+    //std::cout << "Proc " << ParallelDescriptor::MyProc() << " 2\n";
     //I'm sure there is an array version of this but this will do for now.
     // There is: void amrex::ParallelDescriptor::ReduceRealSum (Vector< std::reference_wrapper< Real > > &&)
     // the commented code below should do the trick (but it has not been tested)
@@ -531,6 +536,8 @@ void IBMarkerContainerBase<StructReal, StructInt>::PullDown(
 
     // // Vectorized parallel reduce:
     // ParallelDescriptor::ReduceRealSum(std::move(tmp)); // Ask Weiqun why tmp needs to be &&?
+    //std::cout << "Proc " << ParallelDescriptor::MyProc() << " 3\n";
+    
 }
 
 template <typename StructReal, typename StructInt>

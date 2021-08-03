@@ -18,7 +18,6 @@ module common_namelist_module
   double precision,   save :: prob_hi(AMREX_SPACEDIM)
   integer,            save :: n_cells(AMREX_SPACEDIM)
   integer,            save :: max_grid_size(AMREX_SPACEDIM)
-  integer,            save :: max_grid_size_structfact(AMREX_SPACEDIM)
   integer,            save :: max_particle_tile_size(AMREX_SPACEDIM)
   double precision,   save :: cell_depth
 
@@ -74,7 +73,8 @@ module common_namelist_module
   double precision,   save :: molmass(MAX_SPECIES)
   double precision,   save :: diameter(MAX_SPECIES)
 
-  integer,            save :: dof(MAX_SPECIES)
+  double precision,   save :: dof(MAX_SPECIES)
+  double precision,   save :: e0(MAX_SPECIES)
   double precision,   save :: hcv(MAX_SPECIES)
   double precision,   save :: hcp(MAX_SPECIES)
 
@@ -225,7 +225,6 @@ module common_namelist_module
   namelist /common/ prob_hi       ! physical hi coordinate
   namelist /common/ n_cells       ! number of cells in domain
   namelist /common/ max_grid_size ! max number of cells in a box
-  namelist /common/ max_grid_size_structfact ! max number of cells in a box for structure factor
   namelist /common/ max_particle_tile_size ! max number of cells in a box
   namelist /common/ cell_depth
 
@@ -287,6 +286,7 @@ module common_namelist_module
   namelist /common/ diameter
 
   namelist /common/ dof
+  namelist /common/ e0
   namelist /common/ hcv
   namelist /common/ hcp
 
@@ -475,7 +475,6 @@ contains
     prob_hi(:) = 1.d0
     n_cells(:) = 1
     max_grid_size(:) = 1
-    max_grid_size_structfact(:) = 1
     max_particle_tile_size(:) = 0
     cell_depth = 1.d0
 
@@ -577,7 +576,7 @@ contains
     searchDist = 0.
     project_dir = -1
     slicepoint = -1
-    max_grid_projection(:) = 1
+    max_grid_projection(:) = 4096
     histogram_unit = 0
     density_weights(:) = 0.d0
     shift_cc_to_boundary(:,:) = 0
@@ -629,6 +628,8 @@ contains
 
     crange = maxval(pkernel_es) + 1
 
+    e0(:) = 0
+
     ! read in common namelist
     open(unit=100, file=amrex_string_c_to_f(inputs_file), status='old', action='read')
     read(unit=100, nml=common)
@@ -643,7 +644,7 @@ contains
 
   ! copy contents of common_params_module to C++ common namespace
   subroutine initialize_common_namespace(prob_lo_in, prob_hi_in, n_cells_in, &
-                                         max_grid_size_in, max_grid_size_structfact_in, &
+                                         max_grid_size_in, &
                                          max_particle_tile_size_in, cell_depth_in, ngc_in, &
                                          nvars_in, nprimvars_in, &
                                          membrane_cell_in, cross_cell_in, do_slab_sf_in, transmission_in, &
@@ -655,7 +656,7 @@ contains
                                          restart_in, reset_stats_in, particle_restart_in, &
                                          print_int_in, project_eos_int_in, &
                                          grav_in, nspecies_in, molmass_in, diameter_in, &
-                                         dof_in, hcv_in, hcp_in, rhobar_in, &
+                                         dof_in, e0_in, hcv_in, hcp_in, rhobar_in, &
                                          rho0_in, variance_coef_mom_in, &
                                          variance_coef_mass_in, &
                                          k_B_in, Runiv_in, T_init_in, algorithm_type_in, &
@@ -707,7 +708,6 @@ contains
     double precision,       intent(inout) :: prob_hi_in(AMREX_SPACEDIM)
     integer,                intent(inout) :: n_cells_in(AMREX_SPACEDIM)
     integer,                intent(inout) :: max_grid_size_in(AMREX_SPACEDIM)
-    integer,                intent(inout) :: max_grid_size_structfact_in(AMREX_SPACEDIM)
     integer,                intent(inout) :: max_particle_tile_size_in(AMREX_SPACEDIM)
     double precision,       intent(inout) :: cell_depth_in
 
@@ -759,7 +759,8 @@ contains
     integer,                intent(inout) :: nspecies_in
     double precision,       intent(inout) :: molmass_in(MAX_SPECIES)
     double precision,       intent(inout) :: diameter_in(MAX_SPECIES)
-    integer,                intent(inout) :: dof_in(MAX_SPECIES)
+    double precision,       intent(inout) :: dof_in(MAX_SPECIES)
+    double precision,       intent(inout) :: e0_in(MAX_SPECIES)
     double precision,       intent(inout) :: hcv_in(MAX_SPECIES)
     double precision,       intent(inout) :: hcp_in(MAX_SPECIES)
 
@@ -898,7 +899,6 @@ contains
     prob_hi_in = prob_hi
     n_cells_in = n_cells
     max_grid_size_in = max_grid_size
-    max_grid_size_structfact_in = max_grid_size_structfact
     max_particle_tile_size_in = max_particle_tile_size
     cell_depth_in = cell_depth
     ngc_in = ngc
@@ -936,6 +936,7 @@ contains
     rhobar_in = rhobar
     diameter_in = diameter
     dof_in = dof
+    e0_in = e0
     hcv_in = hcv
     hcp_in = hcp
     rho0_in= rho0

@@ -24,7 +24,6 @@ namespace common {
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, 3> prob_hi; // physical hi coordinate
     extern AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM> n_cells;              // number of cells in domain
     extern amrex::Vector<int>         max_grid_size;            // max number of cells in a box
-    extern amrex::Vector<int>         max_grid_size_structfact; // max number of cells in a box for structure factor
     extern amrex::Vector<int>         max_particle_tile_size;        // max number of cells in a box
     extern amrex::Real                cell_depth;
 
@@ -71,13 +70,14 @@ namespace common {
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> rhobar;
     extern AMREX_GPU_MANAGED amrex::Real rho0;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> diameter;
-    extern amrex::Vector<int>         dof;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> dof;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> e0;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> hcv;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> hcp;
 
     // stochastic forcing amplitudes (1 for physical values, 0 to run them off)
-    extern amrex::Real                variance_coef_mom;
-    extern amrex::Real                variance_coef_mass;
+    extern AMREX_GPU_MANAGED amrex::Real variance_coef_mom;
+    extern AMREX_GPU_MANAGED amrex::Real variance_coef_mass;
     extern AMREX_GPU_MANAGED amrex::Real k_B;
     extern AMREX_GPU_MANAGED amrex::Real Runiv;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> T_init;
@@ -109,7 +109,7 @@ namespace common {
     // if abs(visc_type) = 3, L = div [ beta (grad + grad^T) + I (gamma - (2/3)*beta) div ]
     // positive = assume constant coefficients
     // negative = assume spatially-varying coefficients
-    extern amrex::Real                visc_coef;
+    extern AMREX_GPU_MANAGED amrex::Real visc_coef;
     extern AMREX_GPU_MANAGED int      visc_type;
 
     // Stochastic momentum flux controls:
@@ -130,29 +130,29 @@ namespace common {
     // -1 = periodic
     //  1 = slip
     //  2 = no-slip
-    extern amrex::Vector<int>          bc_vel_lo;
-    extern amrex::Vector<int>          bc_vel_hi;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>          bc_vel_lo;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>          bc_vel_hi;
 
     // BC specifications:
     // -1 = periodic
     //  1 = Dirichlet
     //  2 = Neumann
-    extern amrex::Vector<int>          bc_es_lo;
-    extern amrex::Vector<int>          bc_es_hi;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>          bc_es_lo;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>          bc_es_hi;
 
     // BC specifications:
     // -1 = periodic
     //  1 = wall
     //  2 = reservoir (Dirichlet values must be suppled by other means)
-    extern amrex::Vector<int>          bc_mass_lo;
-    extern amrex::Vector<int>          bc_mass_hi;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>          bc_mass_lo;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>          bc_mass_hi;
 
     // BC specifications:
     // -1 = periodic
     //  1 = adiabatic
     //  2 = isothermal
-    extern amrex::Vector<int>          bc_therm_lo;
-    extern amrex::Vector<int>          bc_therm_hi;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>          bc_therm_lo;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>          bc_therm_hi;
 
     // Pressure drop are periodic inflow/outflow walls (bc_[hi,lo]=-2).
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> p_lo;
@@ -199,7 +199,7 @@ namespace common {
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> potential_hi;
 
     // structure factor and radial/cartesian pair correlation function analysis
-    extern int                        fft_type; // 0=SWFFT; 1=FFTW (flattened MFs always use SWFFT presently)
+    extern int                        fft_type; // only 1=FFTW/cuFFT supported
     extern int                        struct_fact_int;
     extern int                        radialdist_int;
     extern int                        cartdist_int;
@@ -234,7 +234,7 @@ namespace common {
     extern amrex::Vector<amrex::Real> nfrac;
 
     extern AMREX_GPU_MANAGED amrex::Real permittivity;
-    extern int                        wall_mob;
+    extern AMREX_GPU_MANAGED int      wall_mob;
 
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES*MAX_SPECIES> rmin;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES*MAX_SPECIES> rmax;
@@ -265,7 +265,7 @@ namespace common {
     extern int                        drag_tog;
     extern int                        move_tog;
     extern int                        rfd_tog;
-    extern int                        dry_move_tog;
+    extern AMREX_GPU_MANAGED int      dry_move_tog;
     extern AMREX_GPU_MANAGED int      sr_tog;
     extern int                        graphene_tog;
     extern int                        crange;
