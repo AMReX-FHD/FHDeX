@@ -7,6 +7,9 @@
 
 #include "StructFact.H"
 
+#include "chemistry_functions.H"
+#include "chemistry_namespace_declarations.H"
+
 #include "chrono"
 
 using namespace std::chrono;
@@ -222,6 +225,9 @@ void main_driver(const char* argv)
     
     // copy contents of F90 modules to C++ namespaces
     InitializeCommonNamespace();
+
+    // read the inputs file for chemistry
+    InitializeChemistryNamespace();
 
     // if gas heat capacities in the namelist are negative, calculate them using using dofs.
     // This will only update the Fortran values.
