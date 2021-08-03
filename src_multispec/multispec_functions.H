@@ -254,27 +254,6 @@ void ComputeChi(int nspecies_in,
                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& D_barN,
                int chi_iterations_in);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 /**
  * \brief Compute total molar mass
  *
@@ -452,6 +431,8 @@ void ComputeGammaLocal(
         if (is_ideal_mixture == 1){
             MatrixToZeros(nspecies_in, X_xxT);
         } else {
+//NOTE: Needs additonal testing
+//Print() << "HACK - ComputeGamma section 3 not tested." << std::endl;
             PopulateX_xxT(nspecies_in, X_xxT, MolarConcN);
         }
     }
@@ -493,7 +474,6 @@ void ComputeChiSub(int nspecies_in,
     Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> D_barN_sub, chi_sub;
     Real rhotot_sub, molmtot_sub;
     Real Deff, tmp;
-
 
     // create a vector of non-trace densities and molmass for the subsystem
     for (int row=1; row<=nspecies_in; ++row){
@@ -628,21 +608,9 @@ void Dbar2chiIterative( int nspecies_local,
     Array1D<Real, 1, MAX_SPECIES> Xkp, Ykp, Di, Mmat, Minv;
     Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> Pmat, Deltamat, Zmat, Jmat, PJ, matrix1, matrix2;
 
-//printf( "chi2 Befor: ");
-//for (int row=1; row <= nspecies_local; ++row){ 
-//for (int column=1; column <= nspecies_local; ++column){ 
-//    printf( " %25.16E", chi(row,column));
-//}
-//printf( "\n");
-//}
-//printf( "\n");
-//printf( "\n");
-
     // mole fractions correction
-    // Turned this off since it should be done in caller
     for (int ii=1; ii<=nspecies_local; ++ii){
        Xkp(ii) = Xk[ii-1];
-       //printf("Xkp(%d) = %25.16E \n", ii, Xkp(ii)); 
     }
 
     // molecular weight of mixture - EGLIB
@@ -651,17 +619,13 @@ void Dbar2chiIterative( int nspecies_local,
         MWmix = MWmix + Xkp(ii)*molmass_local[ii-1];
        
     }
-    //printf("MWmix = %25.16E \n", MWmix);  //looks good
-
 
     // mass fractions correction - EGLIB
     for (int ii=1; ii<=nspecies_local; ++ii){
         Ykp(ii) = molmass_local[ii-1] / MWmix * Xkp(ii);
-        //printf("Ykp(%d) = %25.16E \n", ii, Ykp(ii));  // -- looks good
     }
 
-    // Find Di matrix //Hack -- looks good
-    
+    // Find Di matrix 
     Real term2;
     for (int i=1; i<=nspecies_local; ++i){
         term2 = 0.0;
@@ -671,30 +635,12 @@ void Dbar2chiIterative( int nspecies_local,
             }
         }
         Di(i) = (1.0 - Ykp(i))/term2;
-        //printf("Di(%d) = %25.16E Ykp(%d) = %25.16E term2 = %25.16E\n", i, Di(i), i, Ykp(i), term2); // looks good
     }
 
-//HACK
-//for (int i=1; i<=nspecies_local; ++i){
-//for (int j=1; j<=nspecies_local; ++j){
-//printf("Dbar(%d,%d) = %25.16E ", i,j,D_bar(i,j));
-//}
-//printf("\n");
-//} 
-//printf("\n");
-    //for (int i=1; i<=nspecies_local; ++i){
-    //  printf("Di(%d) = %25.16E \n", i, Di(i)); // looks good
-    //}
-    
     // Compute Mmat and Minv
     for (int i=1; i<=nspecies_local; ++i){
         Mmat(i) = Xkp(i)/Di(i);
         Minv(i) = Di(i)/Xkp(i);
-
-      //printf("Mmat(%d) = %25.16E \n", i, Mmat(i)); 
-      //printf("Minv(%d) = %25.16E \n", i, Minv(i)); 
-
-
     }
 
     // Compute P matrix
@@ -728,31 +674,11 @@ void Dbar2chiIterative( int nspecies_local,
             Zmat(i,j) = -Deltamat(i,j);
         }
     }
-//HACK
-//for (int i=1; i<=nspecies_local; ++i){
-//for (int j=1; j<=nspecies_local; ++j){
-//printf("Deltamat(%d,%d) = %25.16E ", i,j,Deltamat(i,j));
-//}
-//printf("\n");
-//} 
-//printf("\n");
 
-
-
-
-    // Compute Zmat -- HACK contains INF and NAN numbers
+    // Compute Zmat
     for (int i=1; i<=nspecies_local; ++i){
         Zmat(i,i) = Zmat(i,i) + Mmat(i);
     }
-////HACK
-//for (int i=1; i<=nspecies_local; ++i){
-//for (int j=1; j<=nspecies_local; ++j){
-//printf("Zmat(%d,%d) = %25.16E ", i,j,Zmat(i,j));
-//}
-//printf("\n");
-//} 
-//printf("\n");
-
 
     // Compute Jmat
     for (int i=1; i<=nspecies_local; ++i){
@@ -760,16 +686,8 @@ void Dbar2chiIterative( int nspecies_local,
             Jmat(i,j) = Minv(i)*Zmat(i,j);
         }
     }
-////HACK
-//for (int i=1; i<=nspecies_local; ++i){
-//for (int j=1; j<=nspecies_local; ++j){
-//printf("Jmat(%d,%d) = %25.16E ", i,j,Jmat(i,j));
-//}
-//printf("\n");
-//} 
-//printf("\n");
 
-    // Compute PJ  //HACK -- has NAN values
+    // Compute PJ
     MatrixToZeros(nspecies_local, PJ);
     for (int i=1; i<=nspecies_local; ++i){
         for (int j=1; j<=nspecies_local; ++j){
@@ -778,14 +696,6 @@ void Dbar2chiIterative( int nspecies_local,
             }
         }
     }
-////HACK
-//for (int i=1; i<=nspecies_local; ++i){
-//for (int j=1; j<=nspecies_local; ++j){
-//printf("PJ(%d,%d) = %25.16E ", i,j,PJ(i,j));
-//}
-//printf("\n");
-//} 
-//printf("\n");
 
     // Compute P M^-1 Pt; store it in matrix2
     Real scr;
@@ -801,14 +711,6 @@ void Dbar2chiIterative( int nspecies_local,
         }
     }
 
-////HACK
-//for (int i=1; i<=nspecies_local; ++i){
-//for (int j=1; j<=nspecies_local; ++j){
-//printf("matrix2(%d,%d) = %25.16E ", i,j,matrix2(i,j));
-//}
-//printf("\n");
-//} 
-//printf("\n");
 
     for (int jj=1; jj<=num_iterations_in; ++jj){
         for (int i=1; i<=nspecies_local; ++i){
@@ -820,38 +722,9 @@ void Dbar2chiIterative( int nspecies_local,
                 matrix1(i,j) = scr + matrix2(i,j);
             }
         }
-
-
-        //HACK
-        //for (int i=1; i<=nspecies_local; ++i){
-        //    for (int j=1; j<=nspecies_local; ++j){
-        //            printf("matrix1(%d,%d) = %25.16E ", i,j,matrix1(i,j));
-        //    }
-        //    printf("\n");
-        //} 
-        //printf("\n");
-
         Matrix2DSetEqual(chi, matrix1, MAX_SPECIES);
     }
-
-
-//printf( "chi2 After: ");
-//for (int row=1; row <= nspecies_local; ++row){ 
-//for (int column=1; column <= nspecies_local; ++column){ 
-//    printf( " %25.16E", chi(row,column));
-//}
-//printf( "\n");
-//}
-//printf( "\n");
-//printf( "\n");
-
-
-
 }
-
-
-
-
 
 
 
@@ -896,16 +769,12 @@ void ComputeChi(int nspecies_in,
     */
 
     if ( nspecies_in == 2){
-    // NOTE: The above if condition was not tested.
-
-    //printf(">>>>Hack ComputeChi species 2\n");
 
         W(1) = rhoN[0]/rhotot;
         W(2) = rhoN[1]/rhotot;
 
         if ( use_multiphase == 1 ){
-        // NOTE: The above if condition was not tested.
-            W(1) = std::max(std::min(W(1),1.0),eepsilon);
+            W(1) = std::max(std::min(W(1),1.0),eepsilon); 
             W(2) = std::max(std::min(W(2),1.0),eepsilon);
         }
 
@@ -926,29 +795,7 @@ void ComputeChi(int nspecies_in,
        //call amrex_error('compute_chi: use_lapack not supported')
     }
 
-
-//printf( "chi3 Befor: ");
-//for (int row=1; row <= nspecies_in; ++row){ 
-//for (int column=1; column <= nspecies_in; ++column){ 
-//    printf( " %25.16E", chi(row,column));
-//}
-//printf( "\n");
-//}
-//printf( "\n");
-//printf( "\n");
-
     Dbar2chiIterative(nspecies_in,chi_iterations_in,D_barN,MolarConcN,molmass_in,chi);
-
-//printf( "chi3 After: ");
-//for (int row=1; row <= nspecies_in; ++row){ 
-//for (int column=1; column <= nspecies_in; ++column){ 
-//    printf( " %25.16E", chi(row,column));
-//}
-//printf( "\n");
-//}
-//printf( "\n");
-//printf( "\n");
-
 
 }
 
@@ -1003,7 +850,6 @@ void ComputeRhoWChiLocal(
     Array1D<int, 1, MAX_SPECIES> dest;
 
     if ((use_multiphase == 1) && (nspecies_in == 2)) {
-    // NOTE: The above if condition was not tested.
 
         w1 = MolarConcN[0];
         w2 = MolarConcN[1];
@@ -1088,35 +934,30 @@ void ComputeNonnegativeRhoAv(
                 int nspecies_in,
                 GpuArray<Real, MAX_SPECIES>& RhoAv){
 
-//Print() << "HACK - ComputeNonnegativeRhoAv" << std::endl;
-    
     Real dv, value1, value2, tmp1, tmp2;
 
 #if (AMREX_SPACEDIM == 2)
-    //dv = product(dx(1:2))*cell_depth -- HACK
     dv = 1.0;
     for (int dim=0; dim<2; ++dim){
         dv *= dx[dim];
     }
     dv *= cell_depth;
 #elif (AMREX_SPACEDIM == 3)
-    //dv = product(dx(1:3)) -- HACK
     dv = 1.0;
     for (int dim=0; dim<3; ++dim){
         dv *= dx[dim];
     }
 #endif
     
-//printf("dv %25.16E\n", dv);
 
-    // special version for rtil
+    // special version for rtil -- HACK-TESTED
     if ((use_multiphase == 1) && (nspecies_in == 2)){
        value1 = Rho1[0];
        value2 = Rho2[0];
        if ((value1 <= 0.0) || (value2 <= 0.0)){
           RhoAv[0] = 0.0;
        } else {
-          RhoAv[0] = std::min( 0.5*(value1 + value2), rho0);  //rho0 is global HACK: should I pass this too?
+          RhoAv[0] = std::min( 0.5*(value1 + value2), rho0);
        }
        RhoAv[1] = rho0 - RhoAv[0];
 
@@ -1125,17 +966,10 @@ void ComputeNonnegativeRhoAv(
         for (int comp=1; comp<=nspecies_in; ++comp){
                value1 = Rho1[comp-1]/molmass_in[comp-1]; //Convert to number density
                value2 = Rho2[comp-1]/molmass_in[comp-1];       
-//printf("Rho1 %25.16E\n", Rho1[comp-1]);
-//printf("Rho2 %25.16E\n", Rho2[comp-1]);
-//printf("molmass %25.16E\n", molmass_in[comp-1]);
 
             switch (avg_type) {
 
-            case 1 : {    // Arithmetic with a C0-smoothed Heaviside 
-
-
-//Print() << "HACK -RhoAV- case 1 " << std::endl;
-//Looks like all regression tests take this path
+            case 1 : {    // Arithmetic with a C0-smoothed Heaviside -- HACK-TESTED
 
                 if ( (value1 <= 0.0) || (value2 <= 0.0) ) {
                    RhoAv[comp-1] = 0.0;
@@ -1144,19 +978,17 @@ void ComputeNonnegativeRhoAv(
                    tmp2 = std::min(dv*value2,1.0);
                    RhoAv[comp-1] = molmass_in[comp-1]*(value1+value2)/2.0*tmp1*tmp2;
                 }
-//printf("tmp1= %25.16E\n", tmp1);
-//printf("tmp2= %25.16E\n", tmp2);
-//HACK printf("Rhoav( %16d )= %25.16E\n", comp, RhoAv[comp-1]);
-
 
             } break;
 
             case 2 :   // Geometric  
+//NOTE: Needs Further Testing
 Print() << "HACK -RhoAV- case 2 " << std::endl;
                 RhoAv[comp-1] = molmass_in[comp-1]*std::sqrt(std::max(value1,0.0)*std::max(value2,0.0));
             break;
 
             case 3 : {   // Harmonic
+//NOTE: Needs Further Testing
 Print() << "HACK -RhoAV-  case 3 " << std::endl;
                 // What we want here is the harmonic mean of max(value1,0) and max(value2,0)
                 // Where we define the result to be zero if either one is zero
@@ -1170,6 +1002,7 @@ Print() << "HACK -RhoAV-  case 3 " << std::endl;
             } break;
 
             case 10 : {  // Arithmetic with (discontinuous) Heaviside
+//NOTE: Needs Further Testing
 Print() << "HACK -RhoAV-  case 10" << std::endl;
                 if ( (value1 <= 0.0) || (value2 <= 0.0) ) {
                    RhoAv[comp-1] = 0.0;
@@ -1179,6 +1012,7 @@ Print() << "HACK -RhoAV-  case 10" << std::endl;
             } break;
 
             case 11 : {  // Arithmetic with C1-smoothed Heaviside
+//NOTE: Needs Further Testing
 Print() << "HACK -RhoAV-  case 11" << std::endl;
 
                 if ( (value1 <= 0.0) || (value2 <= 0.0) ) {
@@ -1201,6 +1035,7 @@ Print() << "HACK -RhoAV-  case 11" << std::endl;
             } break;
 
             case 12 : {  // Arithmetic with C2-smoothed Heaviside
+//NOTE: Needs Further Testing
 Print() << "HACK -RhoAV-  case 12" << std::endl;
 
                 if ( (value1 <= 0.0) || (value2 <= 0.0) ) {
@@ -1240,7 +1075,7 @@ Print() << "HACK -RhoAV-  case 12" << std::endl;
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void ChiWaterGlycerol(
-                Real chi,
+                Real& chi,
                 GpuArray<Real, MAX_SPECIES>& RhoN,
                 Real rhotot_in){
 
@@ -1277,13 +1112,10 @@ void ComputeDBarLocal(
     switch (std::abs(mixture_type)) {
     
     case 1 : { // water-glycerol 
-   Print() << "ComputeDbarLoc - Case1" << std::endl;
-        //HACK -- probably untouched in current tests
-
+//NOTE: Needs Further Testing
        // we require nspecies=2
        // Dbar(1) = chi0 in the binary notation
         if (nspecies_in != 2){
-          //call bl_error("mixture_properties_mass_local assumes nspecies=2 if mixture_type=3 (water-glycerol)")
             printf("mixture_properties_mass_local assumes nspecies=2 if mixture_type=3 (water-glycerol)\n");
             Abort();
         }
@@ -1293,10 +1125,9 @@ void ComputeDBarLocal(
     } break;
 
     case 2 : { // Electrolyte mixture
-   Print() << "ComputeDbarLoc - Case2" << std::endl;
+//NOTE: Needs Further Testing
     
         if (nspecies_in != 3){
-            //call bl_error("mixture_properties_mass_local assumes nspecies=3 if mixture_type=2 (water-glycerol)")
             printf("mixture_properties_mass_local assumes nspecies=3 if mixture_type=2 (water-glycerol)\n");
             Abort();
         }
@@ -1312,21 +1143,12 @@ void ComputeDBarLocal(
     } break;
 
     default : //Keep it constant
-//Print() << "ComputeDbarLoc - Default" << std::endl; //All regression tests going through here.
 
         for ( int n=1; n <= nspecies_in*(nspecies_in-1)/2; ++n){
             DBar_loc(n) = Dbar[n-1];
         }
 
     }
-
-//printf( "DBar_loc: \n");
-//for (int row=1; row <= nspecies_in; ++row){ 
-//    printf( " %25.16E", DBar_loc(row));
-//printf( "\n");
-//}
-//printf( "\n");
-//printf( "\n");
 
     // Complete the process by filling the matrices using generic formulae -- this part should not change
     // populate D_bar and Hessian matrix 
@@ -1340,17 +1162,6 @@ void ComputeDBarLocal(
         // populate diagonals 
         D_bar(row, row) = 0.0;           // as self-diffusion is zero
     }
-
-//printf( ">>D_bar: \n");
-//for (int row=1; row <= nspecies_in; ++row){ 
-//for (int column=1; column <= nspecies_in; ++column){ 
-//    printf( " %25.16E", D_bar(row,column));
-//}
-//printf( "\n");
-//}
-//printf( "\n");
-//printf( "\n");
-
 }
 
 /**
@@ -1366,18 +1177,6 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void CholeskyDC(Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& A,
                 int np){
 
-//Print() << "CholeskyDC" << std::endl; //Equil regression tests use this routine
-
-//printf("A in\n");
-//for (int i=1; i<=np; ++i){
-//for (int j=1; j<=np; ++j){
-//        printf("%25.16E ", A(i,j));
-//}
-//        printf("\n");
-//}
-
-
-
     int ising; 
     Real sum1;
 
@@ -1392,9 +1191,7 @@ void CholeskyDC(Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& A,
             sum1 = A(i,j);
 
             for (int k=i-1; k>=1; --k){
-// HACK                printf("k= %d ",k);
                 sum1 = sum1 - A(i,k)*A(j,k);
-// HACK                printf("sum1= %25.16E\n",sum1);
             }
             if(i==j){
             
@@ -1422,14 +1219,6 @@ void CholeskyDC(Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& A,
         }
     A(i,i) = P(i);
     }
-
-//printf("A out\n");
-//for (int i=1; i<=np; ++i){
-//for (int j=1; j<=np; ++j){
-//        printf("%25.16E ", A(i,j));
-//}
-//        printf("\n");
-//}
 
 }
 
@@ -1487,7 +1276,6 @@ void ComputeSqrtLOnsagerSub(
     }
 
     // renormalize total density and mass fractions
-    //rhotot_sub = sum(rho_sub)
     Real rhotot_sub = 0.0;
     for (int n=0; n<nspecies_sub; ++n){
         rhotot_sub += Rho_sub[n];
@@ -1608,120 +1396,23 @@ void ComputeSqrtLOnsagerLocal(
            dest(row) = row - ntrace;
         }
     }
-//printf( "nspecies_in %d\n", nspecies_in);
-//printf( "molmass_in: ");
-//for (int row=1; row <= nspecies_in; ++row){ 
-//    printf( " %25.16E\n", molmass_in[row-1]);
-//}
-//printf( "\n");
-//printf( "rhotot_in %25.16E\n", rhotot_in);
-//printf( "RhoN: ");
-//for (int row=1; row <= nspecies_in; ++row){ 
-//    printf( " %25.16E", RhoN[row-1]);
-//}
-//printf( "\n");
 
     if (ntrace == nspecies_in-1){
-    //if (0){ //HACK
-Print() << "SqrtLOnsager -path1" << std::endl; 
 
         // this is all trace species except for 1 (essentially pure solvent);
         // set sqrtLonsager to zero
         MatrixToZeros(MAX_SPECIES, SqrtLOnsager);
-        //sqrtLonsager(:,:) = 0.0;
 
     } else if (ntrace == 0) {    // there are no trace species
-    //} else if (1) {    // there are no trace species
-//Print() << "SqrtLOnsager -path2" << std::endl; // All regression tests take this path
 
         // compute molarconc and molmtot
         ComputeMolconcMolmtotLocal(nspecies_in, molmass_in, RhoN, rhotot_in, Molarconc_loc, molmtot_loc);
         
         // compute D_bar
         ComputeDBarLocal(RhoN, rhotot_in, nspecies_in, DBar_loc); 
-
-//printf( "Befor ");
-//printf( "nspecies_in %d\n", nspecies_in);
-//printf( "molmass_in: ");
-//for (int row=1; row <= nspecies_in; ++row){ 
-//    printf( " %25.16E\n", molmass_in[row-1]);
-//}
-//printf( "RhoN: ");
-//for (int row=1; row <= nspecies_in; ++row){ 
-//    printf( " %25.16E", RhoN[row-1]);
-//}
-//printf( "\n");
-//printf( "Molarconc_loc: ");
-//for (int row=1; row <= nspecies_in; ++row){ 
-//    printf( " %25.16E", Molarconc_loc[row-1]);
-//}
-//printf( "\n");
-//
-//printf( "Chi_loc: ");
-//for (int row=1; row <= nspecies_in; ++row){ 
-//for (int column=1; column <= nspecies_in; ++column){ 
-//    printf( " %25.16E", Chi_loc(row,column));
-//}
-//printf( "\n");
-//}
-//printf( "\n");
-//printf( "\n");
-
-//printf( "DBar_loc: \n");
-//for (int row=1; row <= nspecies_in; ++row){ 
-//for (int column=1; column <= nspecies_in; ++column){ 
-//    printf( " %25.16E", DBar_loc(row,column));
-//}
-//printf( "\n");
-//}
-//printf( "\n");
-//printf( "\n");
-
-//printf( "chi_iterations_in %d\n", chi_iterations_in);
-
         
         // compute chi
         ComputeChi(nspecies_in, molmass_in, RhoN, rhotot_in, Molarconc_loc, Chi_loc, DBar_loc, chi_iterations_in);
-
-//printf( "After ");
-//printf( "nspecies_in %d\n", nspecies_in);
-//printf( "molmass_in: ");
-//for (int row=1; row <= nspecies_in; ++row){ 
-//    printf( " %25.16E\n", molmass_in[row-1]);
-//}
-//printf( "RhoN: ");
-//for (int row=1; row <= nspecies_in; ++row){ 
-//    printf( " %25.16E", RhoN[row-1]);
-//}
-//printf( "\n");
-//printf( "Molarconc_loc: ");
-//for (int row=1; row <= nspecies_in; ++row){ 
-//    printf( " %25.16E", Molarconc_loc[row-1]);
-//}
-//printf( "\n");
-
-//printf( "Chi_loc: ");
-//for (int row=1; row <= nspecies_in; ++row){ 
-//for (int column=1; column <= nspecies_in; ++column){ 
-//    printf( " %25.16E", Chi_loc(row,column));
-//}
-//printf( "\n");
-//}
-//printf( "\n");
-//printf( "\n");
-
-//printf( "DBar_loc: ");
-//for (int row=1; row <= nspecies_in; ++row){ 
-//for (int column=1; column <= nspecies_in; ++column){ 
-//    printf( " %25.16E", DBar_loc(row,column));
-//}
-//printf( "\n");
-//}
-//printf( "\n");
-//printf( "\n");
-//
-//printf( "chi_iterations_in %d\n", chi_iterations_in);
-
 
         // compute Onsager matrix L (store in sqrtLonsager)
         for (int column=1; column<= nspecies_in; ++column){ 
@@ -1734,12 +1425,10 @@ Print() << "SqrtLOnsager -path1" << std::endl;
         CholeskyDC(SqrtLOnsager,nspecies_in);
 
     } else {
-Print() << "SqrtLOnsager -path3" << std::endl;
+//NOTE: Tested on full system (in place of above) 
 
         // if there are trace species, we consider a subsystem 
         // consisting of non-trace species
-
-//Print() << "HACK - final condition" << std::endl;
 
         nspecies_sub = nspecies_in - ntrace;
         ComputeSqrtLOnsagerSub( dest, 
@@ -1754,15 +1443,6 @@ Print() << "SqrtLOnsager -path3" << std::endl;
 
     } 
 
-    //HACK
-//        for (int column=1; column<= nspecies_in; ++column){ 
-//            for (int row=1; row<=nspecies_in; ++row){ 
-//                printf("SLO %25.16E", SqrtLOnsager(row, column)); 
-//            }
-//            printf("\n");
-//        }
-//        printf("\n");
-    //Print() << "HACK" << std::endl;
 }
 
 /**

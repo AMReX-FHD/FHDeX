@@ -164,9 +164,6 @@ void ComputeZetaByTemp(const MultiFab& molarconc_in,
 {
     BL_PROFILE_VAR("ComputeZetaByTemp()",ComputeZetaByTemp);
 
-Print() << "I called this function" << std::endl;
-
-
     int ng = zeta_by_Temp_in.nGrow();
 
     // Loop over boxes
@@ -175,19 +172,11 @@ Print() << "I called this function" << std::endl;
         // Create cell-centered box
         const Box& bx = mfi.growntilebox(ng);
 
-
-
-/* HACK BEGAN DEVELOPMENT */
         const Array4<const Real>& molarconc = molarconc_in.array(mfi);
         const Array4<const Real>& D_bar = D_bar_in.array(mfi);
         const Array4<const Real>& Temp = Temp_in.array(mfi);
         const Array4<      Real>& zeta_by_Temp = zeta_by_Temp_in.array(mfi);
         const Array4<const Real>& D_therm = D_therm_in.array(mfi);
-
-
-
-
-
 
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
@@ -196,7 +185,6 @@ Print() << "I called this function" << std::endl;
             GpuArray<Real, MAX_SPECIES> ZetaByTemp; 
             GpuArray<Real, MAX_SPECIES> DTherm; 
             Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> DBarN;
-//Temp?
 
             // Read MultiFab data into arrays
             for (int n=0; n<nspecies; ++n){
@@ -220,37 +208,7 @@ Print() << "I called this function" << std::endl;
                 zeta_by_Temp(i,j,k,n) = ZetaByTemp[n] ;
             }
 
-
         });
- /*HACK END DEVELOPMENT */
-
-        compute_zeta_by_Temp(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
-                             BL_TO_FORTRAN_ANYD(molarconc_in[mfi]),
-                             BL_TO_FORTRAN_ANYD(D_bar_in[mfi]),
-                             BL_TO_FORTRAN_ANYD(Temp_in[mfi]),
-                             BL_TO_FORTRAN_ANYD(zeta_by_Temp_in[mfi]),
-                             BL_TO_FORTRAN_ANYD(D_therm_in[mfi]));
-
-        //HACK
-const Array4<      Real>& zeta_by_Temp2 = zeta_by_Temp_in.array(mfi);
-
-
-Dim3 lo = lbound(bx);
-Dim3 hi = ubound(bx);
-Print() << "lo " << lo << std::endl;
-Print() << "hi " << hi << std::endl;
-for     (int k = lo.z; k <= hi.z; ++k) {
-  for   (int j = lo.y; j <= hi.y; ++j) {
-    for (int i = lo.x; i <= hi.x; ++i) {
-            Print() << zeta_by_Temp2(i,j,k) - zeta_by_Temp(i,j,k) << " ";
-    }
-    Print() << std::endl;
-  }
-    Print() << std::endl;
-    Print() << std::endl;
-}
-
-
     }
 }
 
@@ -277,14 +235,6 @@ void ComputeSqrtLonsagerFC(const MultiFab& rho_in,
         const Array4<const Real>& rho = rho_in.array(mfi);
         const Array4<const Real>& rhotot = rhotot_in.array(mfi);
 
-
-/* HACK: BEGIN DEVELOPMENT */
-        // used by Equil 2/3D
-        // Not touched by DetBubble simulations 
-        
-        //Print() << "HACK: SqrtLOnsager" << std::endl;
-
-
         AMREX_D_TERM(const Array4<      Real>& sqrtLOnsager_X = sqrtLonsager_fc[0].array(mfi);,
                      const Array4<      Real>& sqrtLOnsager_Y = sqrtLonsager_fc[1].array(mfi);,
                      const Array4<      Real>& sqrtLOnsager_Z = sqrtLonsager_fc[2].array(mfi););
@@ -293,25 +243,6 @@ void ComputeSqrtLonsagerFC(const MultiFab& rho_in,
                      const Box& box_y = mfi.nodaltilebox(1);,
                      const Box& box_z = mfi.nodaltilebox(2););
       
-//// Show no variation in Rho
-////Print() << "Nodal: " << box_x << std::endl;
-//Dim3 lo = lbound(box_x);
-//Dim3 hi = ubound(box_x);
-//Print() << "lo " << lo << std::endl;
-//Print() << "hi " << hi << std::endl;
-//for     (int k = lo.z; k <= hi.z; ++k) {
-//  for   (int j = lo.y; j <= hi.y; ++j) {
-//    for (int i = lo.x; i <= hi.x; ++i) {
-//      for (int n = 0; n < 3; n++) {
-//              Print() << rho(i,j,k,n) << " ";
-//      }
-//    }
-//    Print() << std::endl;
-//  }
-//    Print() << std::endl;
-//    Print() << std::endl;
-//}
-
         amrex::ParallelFor(box_x, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
 
@@ -319,23 +250,14 @@ void ComputeSqrtLonsagerFC(const MultiFab& rho_in,
             GpuArray<Real, MAX_SPECIES> RhoAv;
             GpuArray<Real, MAX_SPECIES> RhoNXShift;
             Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> sqrtLOnsager_XN;
-//HACK 
-//printf("Befor %8d %8d %8d %25.16E\n", i, j, k, sqrtLOnsager_X(i,j,k,0));
 
-            //printf("%12d %12d %12d\n",i,j,k);
             for (int n=0; n<nspecies; ++n ){
                 RhoN[n] = rho(i,j,k,n);
                 RhoNXShift[n] = rho(i-1,j,k,n);
                 for (int m=0; m<nspecies; ++m){
                     sqrtLOnsager_XN(m+1,n+1) = sqrtLOnsager_X(i,j,k,n*nspecies+m);
-//printf("%25.16E\n", sqrtLOnsager_XN(m+1, n+1));
                 }
-                //printf(" %25.16E\n", RhoNXShift[n]);
-                //printf(" %25.16E", RhoN[n]);
             }
-            //printf("%25.16E %25.16E\n", rho(i+1,j,k,0), rho(i,j,k,0));
-            //printf(" %25.16E\n", rho(i-1000,j,k,n));
-            //printf("\n");
 
             ComputeNonnegativeRhoAv(RhoNXShift, RhoN, dx, molmass, nspecies, RhoAv);
 
@@ -344,22 +266,16 @@ void ComputeSqrtLonsagerFC(const MultiFab& rho_in,
             for (int n=0; n<nspecies; ++n ){
                 RhoAvSum += RhoAv[n];
             } 
-//HACK printf("%25.16E\n", RhoAvSum);
 
             ComputeSqrtLOnsagerLocal(molmass, RhoAv, RhoAvSum, nspecies, chi_iterations, sqrtLOnsager_XN);
+
             //copy data back
             for (int n=0; n<nspecies; ++n ){
                 for (int m=0; m<nspecies; ++m){
-//printf("%25.16E\n", sqrtLOnsager_XN(m+1, n+1));
                     sqrtLOnsager_X(i,j,k,n*nspecies+m) = sqrtLOnsager_XN(m+1,n+1);
                 }
             }
-
-//HACK
-//printf("After %8d %8d %8d %25.16E\n", i, j, k, sqrtLOnsager_X(i,j,k,0));
-      
-
-        });
+        }); //end box_x
 
         amrex::ParallelFor(box_y, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
@@ -383,8 +299,6 @@ void ComputeSqrtLonsagerFC(const MultiFab& rho_in,
             for (int n=0; n<nspecies; ++n ){
                 RhoAvSum += RhoAv[n];
             } 
-            //printf("%25.16E\n", RhoAvSum);
-
 
             ComputeSqrtLOnsagerLocal(molmass, RhoAv, RhoAvSum, nspecies, chi_iterations, sqrtLOnsager_YN);
             
@@ -394,7 +308,7 @@ void ComputeSqrtLonsagerFC(const MultiFab& rho_in,
                     sqrtLOnsager_Y(i,j,k,n*nspecies+m) = sqrtLOnsager_YN(m+1,n+1);
                 }
             }
-        });
+        }); //end box_y
 #if (AMREX_SPACEDIM == 3)
         amrex::ParallelFor(box_z, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
@@ -403,7 +317,6 @@ void ComputeSqrtLonsagerFC(const MultiFab& rho_in,
             GpuArray<Real, MAX_SPECIES> RhoNZShift;
             Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> sqrtLOnsager_ZN;
 
-            //printf("RhoZShif* %12d %12d %12d",i,j,k);
             for (int n=0; n<nspecies; ++n ){
                 RhoN[n] = rho(i,j,k,n);
                 RhoNZShift[n] = rho(i,j,k-1,n); 
@@ -411,9 +324,7 @@ void ComputeSqrtLonsagerFC(const MultiFab& rho_in,
                 for (int m=0; m<nspecies; ++m){
                     sqrtLOnsager_ZN(m+1,n+1) = sqrtLOnsager_Z(i,j,k,n*nspecies+m);
                 }
-                //printf(" %25.16E", RhoNZShift[n]);
             }
-            //printf("\n");
 
             ComputeNonnegativeRhoAv(RhoNZShift, RhoN, dx, molmass, nspecies, RhoAv);
 
@@ -422,7 +333,6 @@ void ComputeSqrtLonsagerFC(const MultiFab& rho_in,
             for (int n=0; n<nspecies; ++n ){
                 RhoAvSum += RhoAv[n];
             } 
-            //printf("%25.16E\n", RhoAvSum);
 
             ComputeSqrtLOnsagerLocal(molmass, RhoAv, RhoAvSum, nspecies, chi_iterations, sqrtLOnsager_ZN);
             
@@ -433,24 +343,8 @@ void ComputeSqrtLonsagerFC(const MultiFab& rho_in,
                 }
             }
 
-        });
+        }); //end box_z
 #endif
-
-        
-/* HACK -- END DEVELOPMENT */
-
-  
-
-//        compute_sqrtLonsager_fc(ARLIM_3D(validBox.loVect()), ARLIM_3D(validBox.hiVect()),
-//                                BL_TO_FORTRAN_ANYD(rho_in[mfi]),
-//                                BL_TO_FORTRAN_ANYD(rhotot_in[mfi]),
-//                                BL_TO_FORTRAN_ANYD(sqrtLonsager_fc[0][mfi]),
-//                                BL_TO_FORTRAN_ANYD(sqrtLonsager_fc[1][mfi]),
-//#if (AMREX_SPACEDIM == 3)
-//                                BL_TO_FORTRAN_ANYD(sqrtLonsager_fc[2][mfi]),
-//#endif
-//                                dx_old);
-//
     }
 
 }
