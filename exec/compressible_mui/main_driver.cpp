@@ -367,13 +367,21 @@ void main_driver(const char* argv)
     primMeans.setVal(0.0);
     primVars.setVal(0.0);
    
-    //Miscstats
-    // 0        time averaged kinetic energy density
-
+    //miscStats & miscVals (only used internally -- not outputted)
     MultiFab miscStats(ba,dmap,10,ngc);
-    Real miscVals[20]; 
-    MultiFab spatialCross(ba,dmap,6,ngc);
-    MultiFab spatialCrossAv(ba,dmap,6,ngc);
+    Real miscVals[20];
+
+    // spatial cross correlations
+    // 0: slice average of mean temperature
+    // 1: yz- average of mean temperature
+    // 2: <T*T>
+    // 3: <delta T* delta T>
+    // 4: <delta T* delta rho>
+    // 5: <delta u* delta rho> 
+    // 6: <delta jx* delta rho>
+    // 7: <delta rho* delta rhoE>
+    MultiFab spatialCross(ba,dmap,8,ngc);
+    MultiFab spatialCrossAv(ba,dmap,8,ngc);
 
     miscStats.setVal(0.0);
     spatialCross.setVal(0.0);
@@ -780,27 +788,31 @@ void main_driver(const char* argv)
         }
 
         // timer
-        Real ts1 = ParallelDescriptor::second();
+        Real ts0 = ParallelDescriptor::second();
 
         mui_push(cu, prim, dx, uniface, step,lox,loy,loz,hix,hiy,hiz);
 
-        Real ts3 = ParallelDescriptor::second();
-        Real ts_mp = ts3-ts1;
+        Real ts0a = ParallelDescriptor::second();
+        Real ts_mp = ts0a-ts0;
         ParallelDescriptor::ReduceRealMax(ts_mp);
         amrex::Print() << "MUI-PUSH step " << step << " in " << ts_mp << " seconds\n";
+
+        Real ts1 = ParallelDescriptor::second();
 
         RK3step(cu, cup, cup2, cup3, prim, source, eta, zeta, kappa, chi, D, flux,
                 stochFlux, cornx, corny, cornz, visccorn, rancorn, geom, dt);
 
-        Real ts4 = ParallelDescriptor::second();
-        Real ts_rk = ts4-ts3;
-        ParallelDescriptor::ReduceRealMax(ts_rk);
-        amrex::Print() << "RK3 step " << step << " in " << ts_rk << " seconds\n";
+        // timer
+        Real ts2 = ParallelDescriptor::second() - ts1;
+        ParallelDescriptor::ReduceRealMax(ts2);
+    	amrex::Print() << "Advanced step " << step << " in " << ts2 << " seconds\n";
+
+        Real ts3 = ParallelDescriptor::second();
 
         mui_fetch(cu, prim, dx, uniface, step,lox,loy,loz,hix,hiy,hiz);
 
-        Real ts5 = ParallelDescriptor::second();
-        Real ts_mf = ts5-ts4;
+        Real ts3a = ParallelDescriptor::second();
+        Real ts_mf = ts3a-ts3;
         ParallelDescriptor::ReduceRealMax(ts_mf);
         amrex::Print() << "MUI-FETCH step " << step << " in " << ts_mf << " seconds\n";
 
@@ -810,11 +822,6 @@ void main_driver(const char* argv)
         cu.FillBoundary(geom.periodicity());
         prim.FillBoundary(geom.periodicity());
         setBC(prim, cu);
-
-        // timer
-        Real ts2 = ParallelDescriptor::second() - ts1;
-        ParallelDescriptor::ReduceRealMax(ts2);
-    	amrex::Print() << "Advanced step " << step << " in " << ts2 << " seconds\n";
 
         // timer
         Real aux1 = ParallelDescriptor::second();

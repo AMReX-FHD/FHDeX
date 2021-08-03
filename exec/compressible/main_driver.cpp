@@ -1,13 +1,14 @@
 #include "common_functions.H"
 #include "compressible_functions.H"
-#include "chemistry_functions.H"
 
 #include "common_namespace_declarations.H"
-#include "chemistry_namespace_declarations.H"
 
 #include "rng_functions.H"
 
 #include "StructFact.H"
+
+#include "chemistry_functions.H"
+#include "chemistry_namespace_declarations.H"
 
 #include "chrono"
 
@@ -530,7 +531,7 @@ void main_driver(const char* argv)
 
         // timer
         Real ts1 = ParallelDescriptor::second();
-    
+
         RK3step(cu, cup, cup2, cup3, prim, source, eta, zeta, kappa, chi, D, flux,
                 stochFlux, cornx, corny, cornz, visccorn, rancorn, geom, dt);
 
