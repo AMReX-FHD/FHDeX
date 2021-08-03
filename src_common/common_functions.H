@@ -19,6 +19,7 @@
 
 #include <AMReX.H>
 #include <AMReX_MultiFab.H>
+#include <AMReX_MultiFabUtil.H>
 #include <AMReX_ArrayLim.H>
 #include <AMReX_BC_TYPES.H>
 
@@ -117,12 +118,6 @@ void ComputeVerticalAverage(const MultiFab & mf, MultiFab & mf_avg, const Geomet
 
 void ExtractSlice(const MultiFab & mf, MultiFab & mf_slice, const Geometry & geom,
                   const int dir, const int incomp, const int ncomp);
-
-namespace amrex
-{
-    Gpu::HostVector<Real> sumToLine (MultiFab const& mf, int icomp, int ncomp,
-                                         Box const& domain, int direction, bool local = false);
-}
 
 ///////////////////////////
 // in MultiFabPhysBC.cpp
