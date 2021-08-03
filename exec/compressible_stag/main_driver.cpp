@@ -8,6 +8,9 @@
 
 #include "StructFact.H"
 
+#include "chemistry_functions.H"
+#include "chemistry_namespace_declarations.H"
+
 #include "chrono"
 
 using namespace std::chrono;
