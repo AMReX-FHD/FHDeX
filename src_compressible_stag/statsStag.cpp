@@ -39,10 +39,10 @@ void evaluateStatsStag3D(MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
     amrex::Gpu::HostVector<Real> prim_avg;
     amrex::Gpu::HostVector<Real> primmeans_avg;
 
-    cu_avg = sumToLine(cons,0,nvars,domain,0,true); 
-    cumeans_avg = sumToLine(consMean,0,nvars,domain,0,true);
-    prim_avg = sumToLine(prim_in,1,nspecies+4,domain,0,true);
-    primmeans_avg = sumToLine(primMean,1,nspecies+4,domain,0,true);
+    cu_avg = sumToLine(cons,0,nvars,domain,0,false); 
+    cumeans_avg = sumToLine(consMean,0,nvars,domain,0,false);
+    prim_avg = sumToLine(prim_in,1,nspecies+4,domain,0,false);
+    primmeans_avg = sumToLine(primMean,1,nspecies+4,domain,0,false);
 
     for (int i=0; i<nvars*domain.length(0); ++i) {
         cu_avg[i] /= n_cells[1]*n_cells[2];
