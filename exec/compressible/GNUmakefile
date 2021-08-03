@@ -21,6 +21,10 @@ include ../../src_compressible/Make.package
 VPATH_LOCATIONS   += ../../src_compressible/
 INCLUDE_LOCATIONS += ../../src_compressible/
 
+include ../../src_chemistry/Make.package
+VPATH_LOCATIONS   += ../../src_chemistry/
+INCLUDE_LOCATIONS += ../../src_chemistry/
+
 include ../../src_rng/Make.package
 VPATH_LOCATIONS   += ../../src_rng/
 INCLUDE_LOCATIONS += ../../src_rng/
