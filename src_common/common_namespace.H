@@ -296,4 +296,5 @@ namespace common {
     extern amrex::Real                turb_b;
     extern int                        turbForcing;
 
+    extern AMREX_GPU_MANAGED int      do_1D;
 }

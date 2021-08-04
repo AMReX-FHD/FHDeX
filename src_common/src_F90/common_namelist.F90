@@ -217,6 +217,8 @@ module common_namelist_module
   double precision,   save :: turb_b
   integer,            save :: turbForcing
 
+  integer,            save :: do_1D
+
   ! Problem specification
   namelist /common/ prob_lo       ! physical lo coordinate
   namelist /common/ prob_hi       ! physical hi coordinate
@@ -454,6 +456,8 @@ module common_namelist_module
   namelist /common/ turb_b
   namelist /common/ turbForcing
 
+  namelist /common/ do_1D
+
 contains
 
   ! read in fortran namelist into common_params_module
@@ -479,6 +483,7 @@ contains
     membrane_cell = -1
     cross_cell = 0
     do_slab_sf = 0
+    do_1D = 0
     ! transmission (no default)
     
     fixed_dt = 1.
@@ -693,7 +698,7 @@ contains
                                          plot_ascii_in, plot_means_in, plot_vars_in, plot_covars_in, plot_cross_in, &
                                          solve_chem_in, diffcoeff_in, scaling_factor_in, &
                                          source_strength_in, regrid_int_in, do_reflux_in, particle_motion_in, &
-                                         turb_a_in, turb_b_in, turbForcing_in) &
+                                         turb_a_in, turb_b_in, turbForcing_in, do_1D_in) &
                                          bind(C, name="initialize_common_namespace")
 
     double precision,       intent(inout) :: prob_lo_in(AMREX_SPACEDIM)
@@ -884,6 +889,8 @@ contains
     double precision,       intent(inout) :: turb_b_in
     integer,                intent(inout) :: turbForcing_in
 
+    integer,                intent(inout) :: do_1D_in
+
     prob_lo_in = prob_lo
     prob_hi_in = prob_hi
     n_cells_in = n_cells
@@ -1065,6 +1072,8 @@ contains
     turb_a_in = turb_a
     turb_b_in = turb_b
     turbForcing_in = turbForcing
+
+    do_1D_in = do_1D
 
   end subroutine initialize_common_namespace
 

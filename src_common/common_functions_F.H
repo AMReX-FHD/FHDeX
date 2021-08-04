@@ -86,7 +86,7 @@ extern "C"
                                      int* solve_chem, amrex::Real* diffcoeff,
                                      amrex::Real* scaling_factor, amrex::Real* source_strength,
                                      int* regrid_int, int* do_reflux, int* particle_motion,
-                                     amrex::Real* turb_a, amrex::Real* turb_b, int* turbForcing);
+                                     amrex::Real* turb_a, amrex::Real* turb_b, int* turbForcing, int* do_1D);
 
     void set_max_step(int* max_step);
     void set_domega(amrex::Real* domega);

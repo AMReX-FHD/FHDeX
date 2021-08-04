@@ -136,7 +136,7 @@ void InitializeCommonNamespace() {
                                 &plot_ascii, &plot_means, &plot_vars, &plot_covars, &plot_cross,
                                 &solve_chem, &diffcoeff, &scaling_factor,
                                 &source_strength, &regrid_int, &do_reflux, &particle_motion,
-                                &turb_a, &turb_b, &turbForcing);
+                                &turb_a, &turb_b, &turbForcing, &do_1D);
 
     plot_base_name = temp_plot_base_name;
     chk_base_name = temp_chk_base_name;
