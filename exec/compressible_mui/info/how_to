@@ -1,0 +1,42 @@
+** unless you already have the directory "~/GIT"
+cd ~
+mkdir GIT
+
+** you need armex
+cd ~/GIT
+git clone https://github.com/AMReX-Codes/amrex.git
+
+** clone FHDeX
+cd ~/GIT
+git clone https://github.com/AMReX-FHD/FHDeX.git
+
+** switch to the compressible_mui branch
+cd ~/GIT/FHDeX
+git branch
+git checkout compressible_mui
+git branch
+cd ~/GIT/FHDeX/exec/compressible_mui
+
+----> Now I'll assume that you are on the directory "~/GIT/FHDeX/exec/compressible_mui"
+
+** compile the FHD solver
+make -j8
+(check the file GNUmakefile)
+(make realclean)
+
+** compile SPPARKS_MUI
+cd SPPARKS_MUI
+make -j8 mui
+(check the file "SPPARKS_MUI/MAKE/Makefile.mui")
+(make clean-all)
+
+** install amrvis
+https://amrex-codes.github.io/amrex/docs_html/Visualization.html
+
+----> merge
+
+git checkout main
+git pull
+git checkout <your branch>
+git merge main
+

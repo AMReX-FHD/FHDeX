@@ -76,7 +76,6 @@ public:
                 const int& verbosity=0);
 
     void FortStructure(const amrex::MultiFab&, const amrex::Geometry&,
-                       const int& fft_type_in,
                        const int& reset=0);
 
     void Reset();
@@ -86,8 +85,6 @@ public:
     
     void WritePlotFile(const int, const amrex::Real, const amrex::Geometry&, 
                        std::string, const int& zero_avg=1);
-    
-    void StructOut(amrex::MultiFab&);
     
     void Finalize(amrex::MultiFab&, amrex::MultiFab&, const Geometry& geom,
                   const int& zero_avg=1);

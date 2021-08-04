@@ -493,7 +493,7 @@ void main_driver(const char* argv)
             for(int d=0; d<nspecies; d++) {
                 MultiFab::Divide(structFactMF,rhotot_old,0,AMREX_SPACEDIM+d+1,1,0);
             }
-            structFact.FortStructure(structFactMF,geom,fft_type);
+            structFact.FortStructure(structFactMF,geom);
         }
         
         // write initial plotfile and structure factor
@@ -569,7 +569,7 @@ void main_driver(const char* argv)
             for(int d=0; d<nspecies; d++) {
                 MultiFab::Divide(structFactMF,rhotot_new,0,AMREX_SPACEDIM+d+1,1,0);
             }
-            structFact.FortStructure(structFactMF,geom,fft_type);
+            structFact.FortStructure(structFactMF,geom);
         }
 	
 

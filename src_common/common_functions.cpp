@@ -117,7 +117,7 @@ void InitializeCommonNamespace() {
                                 bc_Xk_z_lo.data(), bc_Xk_z_hi.data(),
                                 wallspeed_lo.dataPtr(), wallspeed_hi.dataPtr(),
                                 potential_lo.data(), potential_hi.data(),
-                                &fft_type, &struct_fact_int, &radialdist_int, &cartdist_int,
+                                &struct_fact_int, &radialdist_int, &cartdist_int,
                                 &n_steps_skip, &binSize, &searchDist,
 				&project_dir, &slicepoint, max_grid_projection.dataPtr(),
                                 &histogram_unit,
@@ -136,7 +136,7 @@ void InitializeCommonNamespace() {
                                 &plot_ascii, &plot_means, &plot_vars, &plot_covars, &plot_cross,
                                 &solve_chem, &diffcoeff, &scaling_factor,
                                 &source_strength, &regrid_int, &do_reflux, &particle_motion,
-                                &turb_a, &turb_b, &turbForcing);
+                                &turb_a, &turb_b, &turbForcing, &do_1D);
 
     plot_base_name = temp_plot_base_name;
     chk_base_name = temp_chk_base_name;
