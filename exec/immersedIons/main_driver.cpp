@@ -1186,13 +1186,13 @@ void main_driver(const char* argv)
 
             // charge
             MultiFab::Copy(struct_cc_charge, charge, 0, 0, nvar_sf_charge, 0);
-            structFact_charge.FortStructure(struct_cc_charge,geomP,fft_type);
+            structFact_charge.FortStructure(struct_cc_charge,geomP);
 
             // velocity
             for (int d=0; d<AMREX_SPACEDIM; ++d) {
                 ShiftFaceToCC(umac[d],0,struct_cc_vel,d,1);
             }
-            structFact_vel.FortStructure(struct_cc_vel,geom,fft_type);
+            structFact_vel.FortStructure(struct_cc_vel,geom);
             
             // plot structure factor on plot_int
             if (istep%plot_int == 0) {

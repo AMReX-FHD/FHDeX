@@ -122,7 +122,7 @@ void main_driver(const char* argv)
 
     StructFact structFact(ba,dmap,var_names,var_scaling,s_pairA,s_pairB);
     
-    structFact.FortStructure(struct_cc,geom,fft_type);
+    structFact.FortStructure(struct_cc,geom);
       
     structFact.WritePlotFile(0,0.,geom,"plt_SF");
 

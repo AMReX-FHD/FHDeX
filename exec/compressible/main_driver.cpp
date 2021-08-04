@@ -1,13 +1,14 @@
 #include "common_functions.H"
 #include "compressible_functions.H"
-#include "chemistry_functions.H"
 
 #include "common_namespace_declarations.H"
-#include "chemistry_namespace_declarations.H"
 
 #include "rng_functions.H"
 
 #include "StructFact.H"
+
+#include "chemistry_functions.H"
+#include "chemistry_namespace_declarations.H"
 
 #include "chrono"
 
@@ -530,7 +531,7 @@ void main_driver(const char* argv)
 
         // timer
         Real ts1 = ParallelDescriptor::second();
-    
+
         RK3step(cu, cup, cup2, cup3, prim, source, eta, zeta, kappa, chi, D, flux,
                 stochFlux, cornx, corny, cornz, visccorn, rancorn, geom, dt);
 
@@ -572,8 +573,8 @@ void main_driver(const char* argv)
             MultiFab::Copy(structFactPrimMF, prim, 0,                0,                structVarsPrim,   0);
             MultiFab::Copy(structFactConsMF, cu,   0,                0,                structVarsCons-1, 0);
             MultiFab::Copy(structFactConsMF, prim, AMREX_SPACEDIM+1, structVarsCons-1, 1,                0); // temperature too
-            structFactPrim.FortStructure(structFactPrimMF,geom,fft_type);
-            structFactCons.FortStructure(structFactConsMF,geom,fft_type);
+            structFactPrim.FortStructure(structFactPrimMF,geom);
+            structFactCons.FortStructure(structFactConsMF,geom);
             if(project_dir >= 0) {
                 MultiFab primFlattened;  // flattened multifab defined below
                 if (slicepoint < 0) {
@@ -584,7 +585,7 @@ void main_driver(const char* argv)
                 // we rotate this flattened MultiFab to have normal in the z-direction since
                 // our structure factor class assumes this for flattened
                 MultiFab primFlattenedRot = RotateFlattenedMF(primFlattened);
-                structFactPrimFlattened.FortStructure(primFlattenedRot,geom_flat,fft_type);
+                structFactPrimFlattened.FortStructure(primFlattenedRot,geom_flat);
             }
         }
 
