@@ -660,23 +660,21 @@ void main_driver(const char* argv)
 
     //Define parametric paramplanes for particle interaction - declare array for paramplanes and then define properties in BuildParamplanes
 
-    // AJN - we don't understand why you need this for ions
-#if (BL_SPACEDIM == 3)
+
     int paramPlaneCount = 6;
     // Make paramPlaneList GPU compatible
+    std::ifstream planeFile("paramplanes.dat");
+    int fileCount = 0;
+    if(planeFile.good())
+    {
+        planeFile >> fileCount;
+    }
+    paramPlaneCount = paramPlaneCount + fileCount;
+    
     Gpu::ManagedVector<paramPlane> paramPlaneList(paramPlaneCount);
     // Set up a pointer to access data of paramPlaneList, which is used as a normal vector everywhere
     paramPlane* pparamPlaneList = paramPlaneList.data();
     BuildParamplanes(pparamPlaneList,paramPlaneCount,realDomain.lo(),realDomain.hi());
-#endif
-#if (BL_SPACEDIM == 2)
-    int paramPlaneCount = 5;
-    // Make paramPlaneList GPU compatible
-    Gpu::ManagedVector<paramPlane> paramPlaneList(paramPlaneCount);
-    // Set up a pointer to access data of paramPlaneList, which is used as a normal vector everywhere
-    paramPlane* pparamPlaneList = paramPlaneList.data();
-    BuildParamplanes(pparamPlaneList,paramPlaneCount,realDomain.lo(),realDomain.hi());
-#endif
 
     // IBMarkerContainerBase default behaviour is to do tiling. Turn off here:
 
