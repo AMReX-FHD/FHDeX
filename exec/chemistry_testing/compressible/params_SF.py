@@ -90,6 +90,7 @@ print "- number of gas molecules of spec2 in dv = %.3e\n" % N2
 
 rho1 = n1*m1
 rho2 = n2*m2
+rhotot = rho1+rho2
 
 drho1sq = rho1**2/N1
 drho2sq = rho2**2/N2
@@ -97,21 +98,39 @@ drho2sq = rho2**2/N2
 drhosq = drho1sq+drho2sq
 djasq = rho*kB*temp/dv
 
-dof1 = 6. 
-dof2 = 6.
+dof1 = 7.279582 
+dof2 = 18.049065
+e01 = 4.684542e+09
+e02 = -1.730892e+09
 
-dEsq = (kB*temp)**2/dv*(0.5*dof1*0.5*(dof1+2)*rho1/m1+0.5*dof2*0.5*(dof2+2)*rho2/m2)
-dTsq = temp**2/dv/(0.5*dof1*n1+0.5*dof2*n2)
+cv1 = 0.5*dof1*Runiv/M1 
+cv2 = 0.5*dof2*Runiv/M2
+cvmix = Y1*cv1+Y2*cv2
+
+e1 = e01+cv1*temp
+e2 = e02+cv2*temp
+
+#dEsq = (kB*temp)**2/dv*(0.5*dof1*0.5*(dof1+2)*rho1/m1+0.5*dof2*0.5*(dof2+2)*rho2/m2)
+#dTsq = temp**2/dv/(0.5*dof1*n1+0.5*dof2*n2)
+
+dTsq = kB*temp**2/rhotot/cvmix/dv
+dEsq = e1**2*drho1sq+e2**2*drho2sq+rhotot**2*cvmix**2*dTsq
 
 print "drhosq = %e" % drhosq
 print "drho1sq = %e" % drho1sq
 print "drho2sq = %e" % drho2sq
 print "djasq = %e\n" % djasq
 
+print "drhosq  = %e\t%e\t%e\t%e" % (drhosq,2*drhosq,0.5*drhosq,1.5*drhosq)
+print "drho1sq = %e\t%e\t%e\t%e" % (drho1sq,2*drho1sq,0.5*drho1sq,1.5*drho1sq)
+print "drho2sq = %e\t%e\t%e\t%e" % (drho2sq,2*drho2sq,0.5*drho2sq,1.5*drho2sq)
+print "djasq   = %e\t%e\t%e\t%e" % (djasq,2*djasq,0.5*djasq,1.5*djasq)
+print "dEsq    = %e\t%e\t%e\t%e" % (dEsq,2*dEsq,0.5*dEsq,1.5*dEsq)
+print "dTsq    = %e\t%e\t%e\t%e\n" % (dTsq,2*dTsq,0.5*dTsq,1.5*dTsq)
+
 print "drhosq*dv  = %e\t%e\t%e\t%e" % (drhosq*dv,2*drhosq*dv,0.5*drhosq*dv,1.5*drhosq*dv)
 print "drho1sq*dv = %e\t%e\t%e\t%e" % (drho1sq*dv,2*drho1sq*dv,0.5*drho1sq*dv,1.5*drho1sq*dv)
 print "drho2sq*dv = %e\t%e\t%e\t%e" % (drho2sq*dv,2*drho2sq*dv,0.5*drho2sq*dv,1.5*drho2sq*dv)
 print "djasq*dv   = %e\t%e\t%e\t%e" % (djasq*dv,2*djasq*dv,0.5*djasq*dv,1.5*djasq*dv)
-
 print "dEsq*dv    = %e\t%e\t%e\t%e" % (dEsq*dv,2*dEsq*dv,0.5*dEsq*dv,1.5*dEsq*dv)
 print "dTsq*dv    = %e\t%e\t%e\t%e" % (dTsq*dv,2*dTsq*dv,0.5*dTsq*dv,1.5*dTsq*dv)
