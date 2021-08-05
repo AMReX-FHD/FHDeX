@@ -200,8 +200,11 @@ void main_driver(const char* argv)
     spatialCrossAv.setVal(0.0);
 
     // external source term - currently only chemistry source considered for nreaction>0
-    MultiFab source(ba,dmap,nprimvars,ngc);
+    MultiFab source(ba,dmap,nvars,ngc);
     source.setVal(0.0);
+
+    MultiFab ranchem;
+    if (nreaction>0) ranchem.define(ba,dmap,nreaction,ngc);
 
     //Initialize physical parameters from input vals
 
@@ -533,7 +536,7 @@ void main_driver(const char* argv)
         Real ts1 = ParallelDescriptor::second();
 
         RK3step(cu, cup, cup2, cup3, prim, source, eta, zeta, kappa, chi, D, flux,
-                stochFlux, cornx, corny, cornz, visccorn, rancorn, geom, dt);
+                stochFlux, cornx, corny, cornz, visccorn, rancorn, ranchem, geom, dt);
 
         // timer
         Real ts2 = ParallelDescriptor::second() - ts1;

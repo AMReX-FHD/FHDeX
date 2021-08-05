@@ -23,6 +23,9 @@ AMREX_GPU_HOST_DEVICE void compute_reaction_rates(GpuArray<amrex::Real,MAX_SPECI
 void compute_chemistry_source(amrex::Real dt, amrex::Real dV, MultiFab& mf_in, int startComp_in,
                               MultiFab& source, int startComp_out);
 
+void compute_chemistry_source_CLE_RK3(amrex::Real dt, amrex::Real dV, MultiFab& mf_in, int startComp_in,
+                                      MultiFab& source, int startComp_out, MultiFab& ranchem);
+
 AMREX_GPU_HOST_DEVICE void advance_reaction_det_cell(GpuArray<amrex::Real,MAX_SPECIES>& n_old,
                                                      GpuArray<amrex::Real,MAX_SPECIES>& n_new,amrex::Real dt);
 
