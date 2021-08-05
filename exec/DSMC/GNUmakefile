@@ -1,6 +1,6 @@
 # AMREX_HOME defines the directory in which we will find all the AMReX code.
 # If you set AMREX_HOME as an environment variable, this line will be ignored
-AMREX_HOME ?= ../../../../programs/amrex/
+AMREX_HOME ?= ../../../amrex/
 FHDeX ?= ../../
 FDSMC = $(FHDeX)/exec/DSMC
 
@@ -79,6 +79,8 @@ include $(AMREX_HOME)/Tools/GNUMake/Make.rules
 
 #DEFINES	+= -DDSMC=$(DSMC)				
 
-ifeq ($(findstring cgpu, $(HOST)), cgpu)
-CXXFLAGS += $(FFTW)
-endif
+#ifeq ($(findstring cgpu, $(HOST)), cgpu)
+#CXXFLAGS += $(FFTW)
+#endif
+
+INCLUDE_LOCATIONS += $(FFTW_INC)
