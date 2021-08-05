@@ -1,6 +1,5 @@
 #include <AMReX_Config.H>
 
-
 module common_namelist_module
 
   use iso_c_binding, only: c_char
@@ -9,14 +8,16 @@ module common_namelist_module
   
   implicit none
 
-  integer, parameter :: MAX_SPECIES = 4
-  integer, parameter :: LOHI = 2
+  !!!!!!!!!!!!!
+  ! DO NOT CHANGE THIS VALUE WITHOUT ALSO CHANGING common_namespace.H
+  integer, parameter :: MAX_SPECIES = 8
+  integer, parameter :: MAX_ELEMENT = 28 ! needs to be MAX_SPECIES*(MAX_SPECIES-1)/2
+  !!!!!!!!!!!!!
 
   double precision,   save :: prob_lo(AMREX_SPACEDIM)
   double precision,   save :: prob_hi(AMREX_SPACEDIM)
   integer,            save :: n_cells(AMREX_SPACEDIM)
   integer,            save :: max_grid_size(AMREX_SPACEDIM)
-  integer,            save :: max_grid_size_structfact(AMREX_SPACEDIM)
   integer,            save :: max_particle_tile_size(AMREX_SPACEDIM)
   double precision,   save :: cell_depth
 
@@ -72,7 +73,8 @@ module common_namelist_module
   double precision,   save :: molmass(MAX_SPECIES)
   double precision,   save :: diameter(MAX_SPECIES)
 
-  integer,            save :: dof(MAX_SPECIES)
+  double precision,   save :: dof(MAX_SPECIES)
+  double precision,   save :: e0(MAX_SPECIES)
   double precision,   save :: hcv(MAX_SPECIES)
   double precision,   save :: hcp(MAX_SPECIES)
 
@@ -143,7 +145,6 @@ module common_namelist_module
   double precision,   save :: potential_lo(AMREX_SPACEDIM)
   double precision,   save :: potential_hi(AMREX_SPACEDIM)
 
-  integer,            save :: fft_type
   integer,            save :: struct_fact_int
   integer,            save :: radialdist_int
   integer,            save :: cartdist_int
@@ -157,7 +158,7 @@ module common_namelist_module
 
   integer,            save :: histogram_unit
   double precision,   save :: density_weights(MAX_SPECIES)
-  integer,            save :: shift_cc_to_boundary(AMREX_SPACEDIM,LOHI)
+  integer,            save :: shift_cc_to_boundary(AMREX_SPACEDIM,2)
 
   double precision,   save :: permittivity
   integer,            save :: wall_mob
@@ -216,12 +217,13 @@ module common_namelist_module
   double precision,   save :: turb_b
   integer,            save :: turbForcing
 
+  integer,            save :: do_1D
+
   ! Problem specification
   namelist /common/ prob_lo       ! physical lo coordinate
   namelist /common/ prob_hi       ! physical hi coordinate
   namelist /common/ n_cells       ! number of cells in domain
   namelist /common/ max_grid_size ! max number of cells in a box
-  namelist /common/ max_grid_size_structfact ! max number of cells in a box for structure factor
   namelist /common/ max_particle_tile_size ! max number of cells in a box
   namelist /common/ cell_depth
 
@@ -283,6 +285,7 @@ module common_namelist_module
   namelist /common/ diameter
 
   namelist /common/ dof
+  namelist /common/ e0
   namelist /common/ hcv
   namelist /common/ hcp
 
@@ -376,7 +379,6 @@ module common_namelist_module
   namelist /common/ potential_hi
 
   ! structure factor and radial/cartesian pair correlation function analysis
-  namelist /common/ fft_type
   namelist /common/ struct_fact_int
   namelist /common/ radialdist_int
   namelist /common/ cartdist_int
@@ -454,6 +456,8 @@ module common_namelist_module
   namelist /common/ turb_b
   namelist /common/ turbForcing
 
+  namelist /common/ do_1D
+
 contains
 
   ! read in fortran namelist into common_params_module
@@ -469,7 +473,6 @@ contains
     prob_hi(:) = 1.d0
     n_cells(:) = 1
     max_grid_size(:) = 1
-    max_grid_size_structfact(:) = 1
     max_particle_tile_size(:) = 0
     cell_depth = 1.d0
 
@@ -480,6 +483,7 @@ contains
     membrane_cell = -1
     cross_cell = 0
     do_slab_sf = 0
+    do_1D = 0
     ! transmission (no default)
     
     fixed_dt = 1.
@@ -561,7 +565,6 @@ contains
     wallspeed_hi(:,:) = 0
     potential_lo(:) = 0
     potential_hi(:) = 0
-    fft_type = 1
     struct_fact_int = 0
     radialdist_int = 0
     cartdist_int = 0
@@ -570,7 +573,7 @@ contains
     searchDist = 0.
     project_dir = -1
     slicepoint = -1
-    max_grid_projection(:) = 1
+    max_grid_projection(:) = 4096
     histogram_unit = 0
     density_weights(:) = 0.d0
     shift_cc_to_boundary(:,:) = 0
@@ -622,6 +625,8 @@ contains
 
     crange = maxval(pkernel_es) + 1
 
+    e0(:) = 0
+
     ! read in common namelist
     open(unit=100, file=amrex_string_c_to_f(inputs_file), status='old', action='read')
     read(unit=100, nml=common)
@@ -636,7 +641,7 @@ contains
 
   ! copy contents of common_params_module to C++ common namespace
   subroutine initialize_common_namespace(prob_lo_in, prob_hi_in, n_cells_in, &
-                                         max_grid_size_in, max_grid_size_structfact_in, &
+                                         max_grid_size_in, &
                                          max_particle_tile_size_in, cell_depth_in, ngc_in, &
                                          nvars_in, nprimvars_in, &
                                          membrane_cell_in, cross_cell_in, do_slab_sf_in, transmission_in, &
@@ -648,7 +653,7 @@ contains
                                          restart_in, reset_stats_in, particle_restart_in, &
                                          print_int_in, project_eos_int_in, &
                                          grav_in, nspecies_in, molmass_in, diameter_in, &
-                                         dof_in, hcv_in, hcp_in, rhobar_in, &
+                                         dof_in, e0_in, hcv_in, hcp_in, rhobar_in, &
                                          rho0_in, variance_coef_mom_in, &
                                          variance_coef_mass_in, &
                                          k_B_in, Runiv_in, T_init_in, algorithm_type_in, &
@@ -675,7 +680,7 @@ contains
                                          bc_Xk_z_lo_in, bc_Xk_z_hi_in, &
                                          wallspeed_lo_in, wallspeed_hi_in, &
                                          potential_lo_in, potential_hi_in, &
-                                         fft_type_in, struct_fact_int_in, radialdist_int_in, &
+                                         struct_fact_int_in, radialdist_int_in, &
                                          cartdist_int_in, n_steps_skip_in, &
                                          binsize_in, searchdist_in, &
                                          project_dir_in, slicepoint_in, max_grid_projection_in, &
@@ -693,14 +698,13 @@ contains
                                          plot_ascii_in, plot_means_in, plot_vars_in, plot_covars_in, plot_cross_in, &
                                          solve_chem_in, diffcoeff_in, scaling_factor_in, &
                                          source_strength_in, regrid_int_in, do_reflux_in, particle_motion_in, &
-                                         turb_a_in, turb_b_in, turbForcing_in) &
+                                         turb_a_in, turb_b_in, turbForcing_in, do_1D_in) &
                                          bind(C, name="initialize_common_namespace")
 
     double precision,       intent(inout) :: prob_lo_in(AMREX_SPACEDIM)
     double precision,       intent(inout) :: prob_hi_in(AMREX_SPACEDIM)
     integer,                intent(inout) :: n_cells_in(AMREX_SPACEDIM)
     integer,                intent(inout) :: max_grid_size_in(AMREX_SPACEDIM)
-    integer,                intent(inout) :: max_grid_size_structfact_in(AMREX_SPACEDIM)
     integer,                intent(inout) :: max_particle_tile_size_in(AMREX_SPACEDIM)
     double precision,       intent(inout) :: cell_depth_in
 
@@ -752,7 +756,8 @@ contains
     integer,                intent(inout) :: nspecies_in
     double precision,       intent(inout) :: molmass_in(MAX_SPECIES)
     double precision,       intent(inout) :: diameter_in(MAX_SPECIES)
-    integer,                intent(inout) :: dof_in(MAX_SPECIES)
+    double precision,       intent(inout) :: dof_in(MAX_SPECIES)
+    double precision,       intent(inout) :: e0_in(MAX_SPECIES)
     double precision,       intent(inout) :: hcv_in(MAX_SPECIES)
     double precision,       intent(inout) :: hcp_in(MAX_SPECIES)
 
@@ -814,7 +819,6 @@ contains
     double precision,       intent(inout) :: potential_lo_in(AMREX_SPACEDIM)
     double precision,       intent(inout) :: potential_hi_in(AMREX_SPACEDIM)
 
-    integer,                intent(inout) :: fft_type_in
     integer,                intent(inout) :: struct_fact_int_in
     integer,                intent(inout) :: radialdist_int_in
     integer,                intent(inout) :: cartdist_int_in
@@ -826,7 +830,7 @@ contains
     integer,                intent(inout) :: max_grid_projection_in(AMREX_SPACEDIM-1)
     integer,                intent(inout) :: histogram_unit_in
     double precision,       intent(inout) :: density_weights_in(MAX_SPECIES)
-    integer,                intent(inout) :: shift_cc_to_boundary_in(AMREX_SPACEDIM,LOHI)
+    integer,                intent(inout) :: shift_cc_to_boundary_in(AMREX_SPACEDIM,2)
 
     double precision,       intent(inout) :: eepsilon_in(MAX_SPECIES*MAX_SPECIES)
     double precision,       intent(inout) :: sigma_in(MAX_SPECIES*MAX_SPECIES)
@@ -885,11 +889,12 @@ contains
     double precision,       intent(inout) :: turb_b_in
     integer,                intent(inout) :: turbForcing_in
 
+    integer,                intent(inout) :: do_1D_in
+
     prob_lo_in = prob_lo
     prob_hi_in = prob_hi
     n_cells_in = n_cells
     max_grid_size_in = max_grid_size
-    max_grid_size_structfact_in = max_grid_size_structfact
     max_particle_tile_size_in = max_particle_tile_size
     cell_depth_in = cell_depth
     ngc_in = ngc
@@ -927,6 +932,7 @@ contains
     rhobar_in = rhobar
     diameter_in = diameter
     dof_in = dof
+    e0_in = e0
     hcv_in = hcv
     hcp_in = hcp
     rho0_in= rho0
@@ -986,7 +992,6 @@ contains
     potential_lo_in = potential_lo
     potential_hi_in = potential_hi
 
-    fft_type_in = fft_type
     struct_fact_int_in = struct_fact_int
     radialdist_int_in = radialdist_int
     cartdist_int_in = cartdist_int
@@ -1067,6 +1072,8 @@ contains
     turb_a_in = turb_a
     turb_b_in = turb_b
     turbForcing_in = turbForcing
+
+    do_1D_in = do_1D
 
   end subroutine initialize_common_namespace
 

@@ -69,9 +69,9 @@ void RK3stepStag(MultiFab& cu,
     stochedge_z[1].define(convert(cu.boxArray(),nodal_flag_yz), cu.DistributionMap(), 1, 0);
 
     std::array< MultiFab, AMREX_SPACEDIM > stochcen;
-    AMREX_D_TERM(stochcen[0].define(cu.boxArray(),cu.DistributionMap(),1,0);, 
-                 stochcen[1].define(cu.boxArray(),cu.DistributionMap(),1,0);,
-                 stochcen[2].define(cu.boxArray(),cu.DistributionMap(),1,0););
+    AMREX_D_TERM(stochcen[0].define(cu.boxArray(),cu.DistributionMap(),1,1);,
+                 stochcen[1].define(cu.boxArray(),cu.DistributionMap(),1,1);,
+                 stochcen[2].define(cu.boxArray(),cu.DistributionMap(),1,1););
     /////////////////////////////////////////////////////
 
     /////////////////////////////////////////////////////
@@ -109,9 +109,9 @@ void RK3stepStag(MultiFab& cu,
     stochedge_z_A[0].setVal(0.0); stochedge_z_A[1].setVal(0.0);
 
     std::array< MultiFab, AMREX_SPACEDIM > stochcen_A;
-    AMREX_D_TERM(stochcen_A[0].define(stochcen[0].boxArray(),stochcen[0].DistributionMap(),1,0);, 
-                 stochcen_A[1].define(stochcen[1].boxArray(),stochcen[1].DistributionMap(),1,0);,
-                 stochcen_A[2].define(stochcen[2].boxArray(),stochcen[2].DistributionMap(),1,0););
+    AMREX_D_TERM(stochcen_A[0].define(stochcen[0].boxArray(),stochcen[0].DistributionMap(),1,1);,
+                 stochcen_A[1].define(stochcen[1].boxArray(),stochcen[1].DistributionMap(),1,1);,
+                 stochcen_A[2].define(stochcen[2].boxArray(),stochcen[2].DistributionMap(),1,1););
 
     AMREX_D_TERM(stochcen_A[0].setVal(0.0);,
                  stochcen_A[1].setVal(0.0);,
@@ -145,33 +145,52 @@ void RK3stepStag(MultiFab& cu,
     stochedge_z_B[0].setVal(0.0); stochedge_z_B[1].setVal(0.0);
 
     std::array< MultiFab, AMREX_SPACEDIM > stochcen_B;
-    AMREX_D_TERM(stochcen_B[0].define(stochcen[0].boxArray(),stochcen[0].DistributionMap(),1,0);, 
-                 stochcen_B[1].define(stochcen[1].boxArray(),stochcen[1].DistributionMap(),1,0);,
-                 stochcen_B[2].define(stochcen[2].boxArray(),stochcen[2].DistributionMap(),1,0););
+    AMREX_D_TERM(stochcen_B[0].define(stochcen[0].boxArray(),stochcen[0].DistributionMap(),1,1);,
+                 stochcen_B[1].define(stochcen[1].boxArray(),stochcen[1].DistributionMap(),1,1);,
+                 stochcen_B[2].define(stochcen[2].boxArray(),stochcen[2].DistributionMap(),1,1););
 
     AMREX_D_TERM(stochcen_B[0].setVal(0.0);,
                  stochcen_B[1].setVal(0.0);,
                  stochcen_B[2].setVal(0.0););
 
     // fill random numbers (can skip density component 0)
-    for(int d=0;d<AMREX_SPACEDIM;d++) {
-     	for(int i=1;i<nvars;i++) {
-    	    MultiFabFillRandom(stochface_A[d], i, 1.0, geom);
-	        MultiFabFillRandom(stochface_B[d], i, 1.0, geom);
+    if (do_1D) { // need only for x- face 
+        for(int i=1;i<nvars;i++) {
+            MultiFabFillRandom(stochface_A[0], i, 1.0, geom);
+            MultiFabFillRandom(stochface_B[0], i, 1.0, geom);
         }
     }
-    for (int i=0; i<2; i++) {
-        MultiFabFillRandom(stochedge_x_A[i], 0, 1.0, geom);
-        MultiFabFillRandom(stochedge_x_B[i], 0, 1.0, geom);
-        MultiFabFillRandom(stochedge_y_A[i], 0, 1.0, geom);
-        MultiFabFillRandom(stochedge_y_B[i], 0, 1.0, geom);
-        MultiFabFillRandom(stochedge_z_A[i], 0, 1.0, geom);
-        MultiFabFillRandom(stochedge_z_B[i], 0, 1.0, geom);
+    else {
+        for(int d=0;d<AMREX_SPACEDIM;d++) {
+            for(int i=1;i<nvars;i++) {
+                MultiFabFillRandom(stochface_A[d], i, 1.0, geom);
+                MultiFabFillRandom(stochface_B[d], i, 1.0, geom);
+            }
+        }
     }
-    for (int i=0; i<3; i++) {
-        MultiFabFillRandom(stochcen_A[i], 0, 2.0, geom);
-        MultiFabFillRandom(stochcen_B[i], 0, 2.0, geom);
+
+    if (do_1D == 0) { // don't need this for 1D
+        for (int i=0; i<2; i++) {
+            MultiFabFillRandom(stochedge_x_A[i], 0, 1.0, geom);
+            MultiFabFillRandom(stochedge_x_B[i], 0, 1.0, geom);
+            MultiFabFillRandom(stochedge_y_A[i], 0, 1.0, geom);
+            MultiFabFillRandom(stochedge_y_B[i], 0, 1.0, geom);
+            MultiFabFillRandom(stochedge_z_A[i], 0, 1.0, geom);
+            MultiFabFillRandom(stochedge_z_B[i], 0, 1.0, geom);
+        }
     }
+
+    if (do_1D) { // only 1D simulation -- do not need v_x and w_z stochastic terms
+        MultiFabFillRandom(stochcen_A[0], 0, 1.0, geom);
+        MultiFabFillRandom(stochcen_B[0], 0, 1.0, geom);
+    }
+    else {
+        for (int i=0; i<3; i++) {
+            MultiFabFillRandom(stochcen_A[i], 0, 2.0, geom);
+            MultiFabFillRandom(stochcen_B[i], 0, 2.0, geom);
+        }
+    }
+
     /////////////////////////////////////////////////////
 
     /////////////////////////////////////////////////////
@@ -217,7 +236,7 @@ void RK3stepStag(MultiFab& cu,
         MultiFab::LinComb(stochcen[i],
             stoch_weights[0], stochcen_A[i], 0,
             stoch_weights[1], stochcen_B[i], 0,
-            0, 1, 0);
+            0, 1, 1);
     }
     /////////////////////////////////////////////////////
 
@@ -228,20 +247,6 @@ void RK3stepStag(MultiFab& cu,
         faceflux, edgeflux_x, edgeflux_y, edgeflux_z, cenflux, 
         stochface, stochedge_x, stochedge_y, stochedge_z, stochcen, 
         geom, stoch_weights,dt);
-
-    // Set species flux to zero at the walls
-    BCWallSpeciesFluxStag(faceflux,geom);
-
-    for (int d=0; d<AMREX_SPACEDIM; d++) {
-        cenflux[d].FillBoundary(geom.periodicity());
-        faceflux[d].FillBoundary(geom.periodicity());
-    }
-
-    for (int d=0; d<2; d++) {
-        edgeflux_x[d].FillBoundary(geom.periodicity());
-        edgeflux_y[d].FillBoundary(geom.periodicity());
-        edgeflux_z[d].FillBoundary(geom.periodicity());
-    }
 
     for ( MFIter mfi(cu,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
         
@@ -391,7 +396,7 @@ void RK3stepStag(MultiFab& cu,
         MultiFab::LinComb(stochcen[i],
             stoch_weights[0], stochcen_A[i], 0,
             stoch_weights[1], stochcen_B[i], 0,
-            0, 1, 0);
+            0, 1, 1);
     }
     ///////////////////////////////////////////////////////////
 
@@ -399,20 +404,6 @@ void RK3stepStag(MultiFab& cu,
         faceflux, edgeflux_x, edgeflux_y, edgeflux_z, cenflux, 
         stochface, stochedge_x, stochedge_y, stochedge_z, stochcen, 
         geom, stoch_weights,dt);
-
-    // Set species flux to zero at the walls
-    BCWallSpeciesFluxStag(faceflux,geom);
-
-    for (int d=0; d<AMREX_SPACEDIM; d++) {
-        cenflux[d].FillBoundary(geom.periodicity());
-        faceflux[d].FillBoundary(geom.periodicity());
-    }
-
-    for (int d=0; d<2; d++) {
-        edgeflux_x[d].FillBoundary(geom.periodicity());
-        edgeflux_y[d].FillBoundary(geom.periodicity());
-        edgeflux_z[d].FillBoundary(geom.periodicity());
-    }
 
     for ( MFIter mfi(cu,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
         
@@ -567,7 +558,7 @@ void RK3stepStag(MultiFab& cu,
         MultiFab::LinComb(stochcen[i],
             stoch_weights[0], stochcen_A[i], 0,
             stoch_weights[1], stochcen_B[i], 0,
-            0, 1, 0);
+            0, 1, 1);
     }
     ///////////////////////////////////////////////////////////
 
@@ -575,20 +566,6 @@ void RK3stepStag(MultiFab& cu,
         faceflux, edgeflux_x, edgeflux_y, edgeflux_z, cenflux, 
         stochface, stochedge_x, stochedge_y, stochedge_z, stochcen, 
         geom, stoch_weights,dt);
-
-    // Set species flux to zero at the walls
-    BCWallSpeciesFluxStag(faceflux,geom);
-
-    for (int d=0; d<AMREX_SPACEDIM; d++) {
-        cenflux[d].FillBoundary(geom.periodicity());
-        faceflux[d].FillBoundary(geom.periodicity());
-    }
-
-    for (int d=0; d<2; d++) {
-        edgeflux_x[d].FillBoundary(geom.periodicity());
-        edgeflux_y[d].FillBoundary(geom.periodicity());
-        edgeflux_z[d].FillBoundary(geom.periodicity());
-    }
 
     for ( MFIter mfi(cu,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
         
@@ -666,6 +643,8 @@ void RK3stepStag(MultiFab& cu,
                                                     + grav[2]*(momp2z(i,j,k+1)+momp2z(i,j,k)) );
         });
     }
+
+    //PrintFluxes(faceflux,edgeflux_x,edgeflux_y,edgeflux_z,cenflux,"");
 
     // Set the correct momentum at the walls -- this is spurious after RK3 update beacuse of the \nabla P term 
     for (int i=0; i<AMREX_SPACEDIM; i++) {

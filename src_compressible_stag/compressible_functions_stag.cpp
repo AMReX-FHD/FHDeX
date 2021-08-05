@@ -169,7 +169,30 @@ void InitConsVarStag(MultiFab& cons, std::array< MultiFab, AMREX_SPACEDIM >& mom
                     for (int l=0;l<nspecies;l++) {
                         cu(i,j,k,5+l) = cu(i,j,k,0)*Yk[l];
                     }
-            } else if (prob_type == 101) { // two temperature across membrane
+            }
+            else if (prob_type == 101) { // sinusoidal temperature variation (constant pressure)
+
+                   Real y = itVec[1];
+                   Real Ly = realhi[1] - reallo[0];
+
+                   for (int ns=0;ns<nspecies;++ns) massvec[ns] = rhobar[ns];
+
+                   Real pressure;
+                   GetPressureGas(pressure,massvec,rho0,T_init[0]);
+
+                   Real temperature;
+                   temperature = T_init[0] + 0.1*T_init[0]*sin(2.*pi*y/Ly);
+
+                   Real density;
+                   GetDensity(pressure,density,temperature,massvec);
+                   cu(i,j,k,0) = density;
+                   for (int ns=0;ns<nspecies;++ns) cu(i,j,k,5+ns) = density*massvec[ns];
+
+                   Real intEnergy;
+                   GetEnergy(intEnergy, massvec, temperature);
+                   cu(i,j,k,4) = density*intEnergy;
+            }
+            else if (prob_type == 102) { // two temperature across membrane
                     
                     Real intEnergy;
                     cu(i,j,k,0) = rho0;
@@ -186,4 +209,39 @@ void InitConsVarStag(MultiFab& cons, std::array< MultiFab, AMREX_SPACEDIM >& mom
 
         });
     } // end MFIter
+}
+
+void PrintFluxes(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array< MultiFab, 2 >& edgeflux_x_in,
+                 std::array< MultiFab, 2 >& edgeflux_y_in, std::array< MultiFab, 2 >& edgeflux_z_in,
+                 std::array< MultiFab, AMREX_SPACEDIM>& cenflux_in, std::string prefix)
+{
+    std::string xflux = prefix + "xface";
+    std::string yflux = prefix + "yface";
+    std::string zflux = prefix + "zface";
+
+    std::string edgex_v = prefix + "edgexv";
+    std::string edgex_w = prefix + "edgexw";
+    std::string edgey_u = prefix + "edgeyu";
+    std::string edgey_w = prefix + "edgeyw";
+    std::string edgez_u = prefix + "edgezu";
+    std::string edgez_v = prefix + "edgezv";
+
+    std::string cenx = prefix + "cenx";
+    std::string ceny = prefix + "ceny";
+    std::string cenz = prefix + "cenz";
+
+    outputMFAscii(faceflux_in[0],xflux);
+    outputMFAscii(faceflux_in[1],yflux);
+    outputMFAscii(faceflux_in[2],zflux);
+
+    outputMFAscii(edgeflux_x_in[0],edgex_v);
+    outputMFAscii(edgeflux_x_in[1],edgex_w);
+    outputMFAscii(edgeflux_y_in[0],edgey_u);
+    outputMFAscii(edgeflux_y_in[1],edgey_w);
+    outputMFAscii(edgeflux_z_in[0],edgez_u);
+    outputMFAscii(edgeflux_z_in[1],edgez_v);
+
+    outputMFAscii(cenflux_in[0],cenx);
+    outputMFAscii(cenflux_in[1],ceny);
+    outputMFAscii(cenflux_in[2],cenz);
 }

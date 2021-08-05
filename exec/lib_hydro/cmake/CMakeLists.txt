@@ -134,7 +134,6 @@ set(HEADERS
 
     ../../../src_rng/bl_random_c.H
     ../../../src_rng/rng_functions.H
-    ../../../src_rng/rng_functions_F.H
 
     ../../../src_gmres/GMRES.H
     ../../../src_gmres/MacProj.H
@@ -146,7 +145,6 @@ set(HEADERS
 
     ../../../src_hydro/StochMomFlux.H
     ../../../src_hydro/hydro_functions.H
-    ../../../src_hydro/hydro_functions_F.H
 
     ../../../src_immersed-boundary/IBCore.H
     ../../../src_immersed-boundary/IBMarkerContainer.H
@@ -163,7 +161,6 @@ set(HEADERS
     ../../../src_immersed-boundary/kernel_functions_K.H
 
     ../../../src_particles/particle_functions.H
-    ../../../src_particles/particle_functions_F.H
     )
 
 message("HEADERS = ${HEADERS}")

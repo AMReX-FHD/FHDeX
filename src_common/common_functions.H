@@ -1,7 +1,6 @@
 #ifndef _common_functions_H_
 #define _common_functions_H_
 
-#define LOHI 2
 #if (AMREX_SPACEDIM == 2)
 #define NUM_EDGE 1
 #else
@@ -20,6 +19,7 @@
 
 #include <AMReX.H>
 #include <AMReX_MultiFab.H>
+#include <AMReX_MultiFabUtil.H>
 #include <AMReX_ArrayLim.H>
 #include <AMReX_BC_TYPES.H>
 
@@ -90,6 +90,8 @@ void SqrtMF(MultiFab& MF);
 ///////////////////////////
 // in ComputeBasicStats.cpp
 
+Real ComputeSpatialMean(MultiFab& mf, const int& incomp);
+
 Real ComputeSpatialVariance(MultiFab& mf, const int& incomp);
 
 void ComputeBasicStats(MultiFab & instant, MultiFab & means, 
@@ -103,7 +105,8 @@ Real MaskedSum (const MultiFab & inFab,int comp, const Periodicity& period);
 // in ComputeAverages.cpp
 
 void WriteHorizontalAverage(const MultiFab& mf_in, const int& dir, const int& incomp,
-                            const int& ncomp, const int& step, const Geometry& geom);
+                            const int& ncomp, const int& step, const Geometry& geom,
+                            const std::string& file_prefix = "havg");
 
 void WriteHorizontalAverageToMF(const MultiFab& mf_in, MultiFab& mf_out,
                                 const int& dir, const int& incomp,

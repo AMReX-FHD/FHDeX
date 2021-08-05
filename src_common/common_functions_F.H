@@ -16,7 +16,7 @@ extern "C"
 
     // copy contents of common_params_module to C++ common namespace
     void initialize_common_namespace(amrex::Real* prob_lo, amrex::Real* prob_hi, int* n_cells,
-                                     int* max_grid_size, int* max_grid_size_structfact,
+                                     int* max_grid_size,
                                      int* max_particle_tile_size,amrex::Real* cell_depth, int* ngc,
                                      int* nvars, int* nprimvars,
                                      int* membrane_cell, int* cross_cell, int* do_slab_sf, amrex::Real* transmission,
@@ -31,7 +31,7 @@ extern "C"
                                      int* prob_type, int* restart, int* reset_stats, int* particle_restart, int* print_int,
                                      int* project_eos_int, amrex::Real* grav, int* nspecies,
                                      amrex::Real* molmass,amrex::Real* diameter,
-                                     int* dof,amrex::Real* hcv,amrex::Real* hcp, amrex::Real* rhobar,
+                                     amrex::Real* dof,amrex::Real* e0,amrex::Real* hcv,amrex::Real* hcp, amrex::Real* rhobar,
                                      amrex::Real* rho0, amrex::Real* variance_coef_mom,
                                      amrex::Real* variance_coef_mass, amrex::Real* k_B,
                                      amrex::Real* Runiv, amrex::Real* T_init,
@@ -62,7 +62,7 @@ extern "C"
                                      amrex::Real* bc_Xk_z_lo, amrex::Real* bc_Xk_z_hi,
                                      amrex::Real* wallspeed_lo, amrex::Real* wallspeed_hi,
                                      amrex::Real* potential_lo, amrex::Real* potential_hi,
-                                     int* fft_type, int* struct_fact_int, int* radialdist_int,
+                                     int* struct_fact_int, int* radialdist_int,
                                      int* cartdist_int, int* n_steps_skip,
                                      amrex::Real* binSize, amrex::Real* searchDist,
 				     int* project_dir, int* slicepoint, int* max_grid_projection,
@@ -86,7 +86,7 @@ extern "C"
                                      int* solve_chem, amrex::Real* diffcoeff,
                                      amrex::Real* scaling_factor, amrex::Real* source_strength,
                                      int* regrid_int, int* do_reflux, int* particle_motion,
-                                     amrex::Real* turb_a, amrex::Real* turb_b, int* turbForcing);
+                                     amrex::Real* turb_a, amrex::Real* turb_b, int* turbForcing, int* do_1D);
 
     void set_max_step(int* max_step);
     void set_domega(amrex::Real* domega);

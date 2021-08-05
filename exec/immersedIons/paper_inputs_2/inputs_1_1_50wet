@@ -32,7 +32,7 @@
 
   all_dry = 0
   fluid_tog = 1 ! 0=Do nothing, 1=Do stokes solve, 2=Do low Mach solve
-  es_tog = 3 ! Do electrostatic solve 0=off, 1=Poisson, 2=Pairwise Coulomb (Doesn't work in parallel), 3=PPPM
+  es_tog = 2 ! Do electrostatic solve 0=off, 1=Poisson, 2=Pairwise Coulomb (Doesn't work in parallel), 3=PPPM
   drag_tog = 0 ! Apply drag force to fluid
   rfd_tog = 1 ! Apply RFD force to fluid
   move_tog = 2 ! ! Total particle move. 0 = off, 1 = single step, 2 = midpoint
@@ -84,9 +84,9 @@
 
   !Interaction parameters
   !------------
-  permittivity = 692.96e-21
+  permittivity = 708e-21
 
-  images = 0    !if pairwise Coulomb interactions have been selected, this is the number of periodic images to use
+  images = 20    !if pairwise Coulomb interactions have been selected, this is the number of periodic images to use
 
   eamp = 0 3.3333e12 0 !external electric field properties
   efreq = 0 0 0

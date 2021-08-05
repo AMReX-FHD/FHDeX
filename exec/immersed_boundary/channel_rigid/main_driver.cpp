@@ -621,7 +621,7 @@ void main_driver(const char * argv) {
             for(int d=0; d<AMREX_SPACEDIM; d++) {
                 ShiftFaceToCC(umac[d], 0, struct_in_cc, d, 1);
             }
-            structFact.FortStructure(struct_in_cc,geom,fft_type);
+            structFact.FortStructure(struct_in_cc,geom);
         }
 
         Real step_stop_time = ParallelDescriptor::second() - step_strt_time;
