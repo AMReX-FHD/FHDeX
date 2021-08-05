@@ -578,8 +578,11 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
     paramPlaneList[5].fzRightAv = 0;
 
     std::ifstream planeFile("paramplanes.dat");
-    int fileCount;
-    planeFile >> fileCount;
+    int fileCount = 0;
+    if(planeFile.good())
+    {
+        planeFile >> fileCount;
+    }
     
     int totalCount = 6+fileCount;
 

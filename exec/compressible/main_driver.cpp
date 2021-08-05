@@ -7,6 +7,9 @@
 
 #include "StructFact.H"
 
+#include "chemistry_functions.H"
+#include "chemistry_namespace_declarations.H"
+
 #include "chrono"
 
 using namespace std::chrono;
@@ -28,6 +31,9 @@ void main_driver(const char* argv)
     
     // copy contents of F90 modules to C++ namespaces
     InitializeCommonNamespace();
+
+    // read the inputs file for chemistry
+    InitializeChemistryNamespace();
 
     // if gas heat capacities in the namelist are negative, calculate them using using dofs.
     // This will only update the Fortran values.
@@ -173,19 +179,27 @@ void main_driver(const char* argv)
     primMeans.setVal(0.0);
     primVars.setVal(0.0);
    
-    //Miscstats
-    // 0        time averaged kinetic energy density
-
+    //miscStats & miscVals (only used internally -- not outputted)
     MultiFab miscStats(ba,dmap,10,ngc);
-    Real miscVals[20]; 
-    MultiFab spatialCross(ba,dmap,6,ngc);
-    MultiFab spatialCrossAv(ba,dmap,6,ngc);
+    Real miscVals[20];
+
+    // spatial cross correlations
+    // 0: slice average of mean temperature
+    // 1: yz- average of mean temperature
+    // 2: <T*T>
+    // 3: <delta T* delta T>
+    // 4: <delta T* delta rho>
+    // 5: <delta u* delta rho> 
+    // 6: <delta jx* delta rho>
+    // 7: <delta rho* delta rhoE>
+    MultiFab spatialCross(ba,dmap,8,ngc);
+    MultiFab spatialCrossAv(ba,dmap,8,ngc);
 
     miscStats.setVal(0.0);
     spatialCross.setVal(0.0);
     spatialCrossAv.setVal(0.0);
 
-    // external source term - possibly for later
+    // external source term - currently only chemistry source considered for nreaction>0
     MultiFab source(ba,dmap,nprimvars,ngc);
     source.setVal(0.0);
 
@@ -325,7 +339,7 @@ void main_driver(const char* argv)
           ExtractSlice(prim, primFlattened, geom, project_dir, 0, structVarsPrim);
       }
       // we rotate this flattened MultiFab to have normal in the z-direction since
-      // SWFFT only presently supports flattened MultiFabs with z-normal.
+      // our structure factor class assumes this for flattened
       MultiFab primFlattenedRot = RotateFlattenedMF(primFlattened);
       BoxArray ba_flat = primFlattenedRot.boxArray();
       const DistributionMapping& dmap_flat = primFlattenedRot.DistributionMap();
@@ -517,7 +531,7 @@ void main_driver(const char* argv)
 
         // timer
         Real ts1 = ParallelDescriptor::second();
-    
+
         RK3step(cu, cup, cup2, cup3, prim, source, eta, zeta, kappa, chi, D, flux,
                 stochFlux, cornx, corny, cornz, visccorn, rancorn, geom, dt);
 
@@ -559,8 +573,8 @@ void main_driver(const char* argv)
             MultiFab::Copy(structFactPrimMF, prim, 0,                0,                structVarsPrim,   0);
             MultiFab::Copy(structFactConsMF, cu,   0,                0,                structVarsCons-1, 0);
             MultiFab::Copy(structFactConsMF, prim, AMREX_SPACEDIM+1, structVarsCons-1, 1,                0); // temperature too
-            structFactPrim.FortStructure(structFactPrimMF,geom,fft_type);
-            structFactCons.FortStructure(structFactConsMF,geom,fft_type);
+            structFactPrim.FortStructure(structFactPrimMF,geom);
+            structFactCons.FortStructure(structFactConsMF,geom);
             if(project_dir >= 0) {
                 MultiFab primFlattened;  // flattened multifab defined below
                 if (slicepoint < 0) {
@@ -569,9 +583,9 @@ void main_driver(const char* argv)
                     ExtractSlice(prim, primFlattened, geom, project_dir, 0, structVarsPrim);
                 }
                 // we rotate this flattened MultiFab to have normal in the z-direction since
-                // SWFFT only presently supports flattened MultiFabs with z-normal.
+                // our structure factor class assumes this for flattened
                 MultiFab primFlattenedRot = RotateFlattenedMF(primFlattened);
-                structFactPrimFlattened.FortStructure(primFlattenedRot,geom_flat,fft_type);
+                structFactPrimFlattened.FortStructure(primFlattenedRot,geom_flat);
             }
         }
 

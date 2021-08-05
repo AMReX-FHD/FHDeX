@@ -8,6 +8,9 @@
 
 #include "StructFact.H"
 
+#include "chemistry_functions.H"
+#include "chemistry_namespace_declarations.H"
+
 #include "chrono"
 
 using namespace std::chrono;
@@ -135,35 +138,13 @@ void main_driver(const char* argv)
     }
 
     // contains yz-averaged running & instantaneous averages of conserved variables (2*nvars) + primitive variables [vx, vy, vz, T, Yk]: 2*4 + 2*nspecies 
-    Vector<Real> yzAvMeans_cross(2*nvars+8+2*nspecies, 0.0); 
+    Vector<Real> dataSliceMeans_xcross(2*nvars+8+2*nspecies, 0.0); 
     
-    // 1: <delrho*delrho>
-    // 2: <delrhoE*delrhoE>
-    // 3: <deljx*deljx>
-    // 4: <deljy*deljy>
-    // 5: <deljz*deljz>
-    // 6: <deljx*delrho>
-    // 7: <delG*delG>
-    // 8: <delG*delK>
-    // 9: <delK*delG>
-    // 10: <delrho*delK>
-    // 11: <delK*delrho>
-    // 12: <delrho*delG>
-    // 13: <delG*delrho>
-    // 14: <delT*delT>
-    // 15: <delT*delrho>
-    // 16: <delux*delrho>
-    // 17: <delux*delrhoYkL>
-    // 18: <delux*delrhoYkH>
-    // 19: <delux*delYkL>
-    // 20: <delux*delYkH>
-    // 21: <delYkL*delYkL>
-    // 22: <delYkH*delYkH>
-    // 23: <delYkL*delYkH>
-    // nspecies: <delrhoYk*delrhoYk>
+    // see statsStag for the list
     // can add more -- change main_driver, statsStag, writeplotfilestag, and Checkpoint
-    int ncross = 28+nspecies;
-    Vector<Real> spatialCross(n_cells[0]*ncross, 0.0); 
+    int ncross = 37+nspecies+2;
+    MultiFab spatialCross1D;
+    Vector<Real> spatialCross3D(n_cells[0]*ncross, 0.0);
     
     // make BoxArray and Geometry
     BoxArray ba;
@@ -331,10 +312,17 @@ void main_driver(const char* argv)
     /////////////////////////////////////////////
 
     if (restart > 0) {
-        ReadCheckPoint(step_start, time, statsCount, geom, domain, cu, cuMeans, cuVars, prim,
-                       primMeans, primVars, cumom, cumomMeans, cumomVars, 
-                       vel, velMeans, velVars, coVars, spatialCross,
-                       ba, dmap);
+        
+        if (do_1D) {
+            ReadCheckPoint1D(step_start, time, statsCount, geom, domain, cu, cuMeans, cuVars, prim,
+                             primMeans, primVars, cumom, cumomMeans, cumomVars, 
+                             vel, velMeans, velVars, coVars, spatialCross1D, ncross, ba, dmap);
+        }
+        else {
+            ReadCheckPoint3D(step_start, time, statsCount, geom, domain, cu, cuMeans, cuVars, prim,
+                             primMeans, primVars, cumom, cumomMeans, cumomVars, 
+                             vel, velMeans, velVars, coVars, spatialCross3D, ncross, ba, dmap);
+        }
 
         if (reset_stats == 1) statsCount = 1;
 
@@ -351,7 +339,7 @@ void main_driver(const char* argv)
         chi.setVal(1.0,0,nspecies,ngc);
         D.setVal(1.0,0,nspecies*nspecies,ngc);
 
-        if (plot_cross) {
+        if ((plot_cross) and (do_1D==0)) {
             if (ParallelDescriptor::IOProcessor()) outfile.open(filename, std::ios::app);
         }
 
@@ -565,6 +553,11 @@ void main_driver(const char* argv)
             cumomVars[d].setVal(0.);
         }
 
+        if (do_1D) {
+            spatialCross1D.define(ba,dmap,ncross,0);
+            spatialCross1D.setVal(0.0);
+        }
+
         ///////////////////////////////////////////
         // Setup Structure factor
         ///////////////////////////////////////////
@@ -722,10 +715,17 @@ void main_driver(const char* argv)
             WritePlotFileStag(0, 0.0, geom, cu, cuMeans, cuVars, cumom, cumomMeans, cumomVars, 
                           prim, primMeans, primVars, vel, velMeans, velVars, coVars, eta, kappa);
 
-            if (plot_cross) WriteSpatialCross(spatialCross, 0, dx);
+            if (plot_cross) {
+                if (do_1D) {
+                    WriteSpatialCross1D(spatialCross1D, 0, geom, ncross);
+                }
+                else {
+                    WriteSpatialCross3D(spatialCross3D, 0, geom, ncross);
+                }
+            }
         }
 
-        if (plot_cross) {
+        if ((plot_cross) and (do_1D==0)) {
             if (ParallelDescriptor::IOProcessor()) outfile.open(filename);
         }
 
@@ -744,16 +744,29 @@ void main_driver(const char* argv)
     source.setVal(0.0);
 
     //fluxes (except momentum) at faces
+    // need +4 to separate out heat, viscous heating (diagonal vs shear)  and Dufour contributions to the energy flux
+    // stacked at the end (see below)
+    // index: flux term
+    // 0: density
+    // 1: x-momentum
+    // 2: y-momentum
+    // 3: z-momentum
+    // 4: total energy
+    // 5:nvars-1: species flux (nvars = nspecies+5)
+    // nvars: heat flux
+    // nvars + 1: viscous heating (diagonal)
+    // nvars + 2: viscous heating (shear)
+    // nvars + 3: Dufour effect
     std::array< MultiFab, AMREX_SPACEDIM > faceflux;
-    AMREX_D_TERM(faceflux[0].define(convert(ba,nodal_flag_x), dmap, nvars, 0);,
-                 faceflux[1].define(convert(ba,nodal_flag_y), dmap, nvars, 0);,
-                 faceflux[2].define(convert(ba,nodal_flag_z), dmap, nvars, 0););
+    AMREX_D_TERM(faceflux[0].define(convert(ba,nodal_flag_x), dmap, nvars+4, 0);,
+                 faceflux[1].define(convert(ba,nodal_flag_y), dmap, nvars+4, 0);,
+                 faceflux[2].define(convert(ba,nodal_flag_z), dmap, nvars+4, 0););
 
     //momentum flux (edge + center)
 #if (AMREX_SPACEDIM == 3)
-    std::array< MultiFab, 2 > edgeflux_x; // divide by dx
-    std::array< MultiFab, 2 > edgeflux_y; // divide by dy
-    std::array< MultiFab, 2 > edgeflux_z; // divide by dz
+    std::array< MultiFab, 2 > edgeflux_x;
+    std::array< MultiFab, 2 > edgeflux_y;
+    std::array< MultiFab, 2 > edgeflux_z;
 
     edgeflux_x[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0); // 0-2: rhoU, rhoV, rhoW
     edgeflux_x[1].define(convert(ba,nodal_flag_xz), dmap, 1, 0);
@@ -796,7 +809,7 @@ void main_driver(const char* argv)
         // reset statistics after n_steps_skip
         // if n_steps_skip is negative, we use it as an interval
         if ((n_steps_skip > 0 && step == n_steps_skip) ||
-            (n_steps_skip < 0 && step%amrex::Math::abs(n_steps_skip == 0)) ) {
+            (n_steps_skip < 0 && step%amrex::Math::abs(n_steps_skip) == 0) ) {
 
             cuMeans.setVal(0.0);
             cuVars.setVal(0.0);
@@ -811,7 +824,12 @@ void main_driver(const char* argv)
             }
 
             coVars.setVal(0.0);
-            spatialCross.assign(spatialCross.size(), 0.0);
+            if (do_1D) {
+                spatialCross1D.setVal(0.0);
+            }
+            else {
+                spatialCross3D.assign(spatialCross3D.size(), 0.0);
+            }
 
             std::printf("Resetting stat collection.\n");
 
@@ -820,9 +838,16 @@ void main_driver(const char* argv)
         }
 
         // Evaluate Statistics
-        evaluateStatsStag(cu, cuMeans, cuVars, prim, primMeans, primVars, vel, 
-                          velMeans, velVars, cumom, cumomMeans, cumomVars, coVars,
-                          yzAvMeans_cross, spatialCross, statsCount, dx);
+        if (do_1D) {
+            evaluateStatsStag1D(cu, cuMeans, cuVars, prim, primMeans, primVars, vel, 
+                                velMeans, velVars, cumom, cumomMeans, cumomVars, coVars,
+                                spatialCross1D, ncross, statsCount);
+        }
+        else {
+            evaluateStatsStag3D(cu, cuMeans, cuVars, prim, primMeans, primVars, vel, 
+                                velMeans, velVars, cumom, cumomMeans, cumomVars, coVars,
+                                dataSliceMeans_xcross, spatialCross3D, ncross, domain, statsCount);
+        }
         statsCount++;
 
         // write a plotfile
@@ -840,16 +865,21 @@ void main_driver(const char* argv)
              //yzAverage(cuMeans, cuVars, primMeans, primVars, spatialCross,
              //          cuMeansAv, cuVarsAv, primMeansAv, primVarsAv, spatialCrossAv);
             WritePlotFileStag(step, time, geom, cu, cuMeans, cuVars, cumom, cumomMeans, cumomVars,
-                          prim, primMeans, primVars, vel, velMeans, velVars, coVars, eta, kappa);
+                              prim, primMeans, primVars, vel, velMeans, velVars, coVars, eta, kappa);
 
             if (plot_cross) {
-                WriteSpatialCross(spatialCross, step, dx);
-                if (ParallelDescriptor::IOProcessor()) {
-                    outfile << step << " ";
-                    for (auto l=0; l<2*nvars+8+2*nspecies; ++l) {
-                        outfile << yzAvMeans_cross[l] << " ";
+                if (do_1D) {
+                    WriteSpatialCross1D(spatialCross1D, step, geom, ncross);
+                }
+                else {
+                    WriteSpatialCross3D(spatialCross3D, step, geom, ncross);
+                    if (ParallelDescriptor::IOProcessor()) {
+                        outfile << step << " ";
+                        for (auto l=0; l<2*nvars+8+2*nspecies; ++l) {
+                            outfile << dataSliceMeans_xcross[l] << " ";
+                        }
+                        outfile << std::endl;
                     }
-                    outfile << std::endl;
                 }
             }
         }
@@ -903,8 +933,8 @@ void main_driver(const char* argv)
             }
             ////////////////////////////////////////////////////
 
-            structFactPrim.FortStructure(structFactPrimMF,geom,fft_type);
-            structFactCons.FortStructure(structFactConsMF,geom,fft_type);
+            structFactPrim.FortStructure(structFactPrimMF,geom);
+            structFactCons.FortStructure(structFactConsMF,geom);
 
             if(project_dir >= 0) {
                 if (do_slab_sf == 0) {
@@ -914,13 +944,9 @@ void main_driver(const char* argv)
                     ComputeVerticalAverage(structFactConsMF, consVertAvg, geom, project_dir, 0, structVarsCons);
                     MultiFab primVertAvgRot = RotateFlattenedMF(primVertAvg);
                     MultiFab consVertAvgRot = RotateFlattenedMF(consVertAvg);
-                    amrex::Print() << "entering stage 1" << std::endl;
                     amrex::Print() << geom_flat << std::endl;
-                    amrex::Print() << "entering stage 1a" << std::endl;
-                    structFactPrimVerticalAverage.FortStructure(primVertAvgRot,geom_flat,fft_type);
-                    amrex::Print() << "exiting stage 1" << std::endl;
-                    structFactConsVerticalAverage.FortStructure(consVertAvgRot,geom_flat,fft_type);
-                    amrex::Print() << "exiting stage 2" << std::endl;
+                    structFactPrimVerticalAverage.FortStructure(primVertAvgRot,geom_flat);
+                    structFactConsVerticalAverage.FortStructure(consVertAvgRot,geom_flat);
                 }
                 else {
                     MultiFab primVertAvg0;  // flattened multifab defined below
@@ -935,10 +961,10 @@ void main_driver(const char* argv)
                     MultiFab primVertAvgRot1 = RotateFlattenedMF(primVertAvg1);
                     MultiFab consVertAvgRot0 = RotateFlattenedMF(consVertAvg0);
                     MultiFab consVertAvgRot1 = RotateFlattenedMF(consVertAvg1);
-                    structFactPrimVerticalAverage0.FortStructure(primVertAvgRot0,geom_flat,fft_type);
-                    structFactPrimVerticalAverage1.FortStructure(primVertAvgRot1,geom_flat,fft_type);
-                    structFactConsVerticalAverage0.FortStructure(consVertAvgRot0,geom_flat,fft_type);
-                    structFactConsVerticalAverage1.FortStructure(consVertAvgRot1,geom_flat,fft_type);
+                    structFactPrimVerticalAverage0.FortStructure(primVertAvgRot0,geom_flat);
+                    structFactPrimVerticalAverage1.FortStructure(primVertAvgRot1,geom_flat);
+                    structFactConsVerticalAverage0.FortStructure(consVertAvgRot0,geom_flat);
+                    structFactConsVerticalAverage1.FortStructure(consVertAvgRot1,geom_flat);
                 }
             }
         }
@@ -948,18 +974,18 @@ void main_driver(const char* argv)
             struct_fact_int > 0 && plot_int > 0 && 
             step%plot_int == 0) {
 
-            structFactPrim.WritePlotFile(step,time,geom,"plt_SF_prim",0);
-            structFactCons.WritePlotFile(step,time,geom,"plt_SF_cons",0);
+            structFactPrim.WritePlotFile(step,time,geom,"plt_SF_prim");
+            structFactCons.WritePlotFile(step,time,geom,"plt_SF_cons");
             if(project_dir >= 0) {
                 if (do_slab_sf == 0) {
-                    structFactPrimVerticalAverage.WritePlotFile(step,time,geom_flat,"plt_SF_prim_VerticalAverage",0);
-                    structFactConsVerticalAverage.WritePlotFile(step,time,geom_flat,"plt_SF_cons_VerticalAverage",0);
+                    structFactPrimVerticalAverage.WritePlotFile(step,time,geom_flat,"plt_SF_prim_VerticalAverage");
+                    structFactConsVerticalAverage.WritePlotFile(step,time,geom_flat,"plt_SF_cons_VerticalAverage");
                 }
                 else {
-                    structFactPrimVerticalAverage0.WritePlotFile(step,time,geom_flat,"plt_SF_prim_VerticalAverageSlab0",0);
-                    structFactPrimVerticalAverage1.WritePlotFile(step,time,geom_flat,"plt_SF_prim_VerticalAverageSlab1",0);
-                    structFactConsVerticalAverage0.WritePlotFile(step,time,geom_flat,"plt_SF_cons_VerticalAverageSlab0",0);
-                    structFactConsVerticalAverage1.WritePlotFile(step,time,geom_flat,"plt_SF_cons_VerticalAverageSlab1",0);
+                    structFactPrimVerticalAverage0.WritePlotFile(step,time,geom_flat,"plt_SF_prim_VerticalAverageSlab0");
+                    structFactPrimVerticalAverage1.WritePlotFile(step,time,geom_flat,"plt_SF_prim_VerticalAverageSlab1");
+                    structFactConsVerticalAverage0.WritePlotFile(step,time,geom_flat,"plt_SF_cons_VerticalAverageSlab0");
+                    structFactConsVerticalAverage1.WritePlotFile(step,time,geom_flat,"plt_SF_cons_VerticalAverageSlab1");
                 }
             }
         }
@@ -968,9 +994,16 @@ void main_driver(const char* argv)
         // write checkpoint file
         if (chk_int > 0 && step > 0 && step%chk_int == 0)
         {
-            WriteCheckPoint(step, time, statsCount, geom, cu, cuMeans, cuVars, prim,
-                           primMeans, primVars, cumom, cumomMeans, cumomVars, 
-                           vel, velMeans, velVars, coVars, spatialCross);
+            if (do_1D) {
+                WriteCheckPoint1D(step, time, statsCount, geom, cu, cuMeans, cuVars, prim,
+                                  primMeans, primVars, cumom, cumomMeans, cumomVars, 
+                                  vel, velMeans, velVars, coVars, spatialCross1D, ncross);
+            }
+            else {
+                WriteCheckPoint3D(step, time, statsCount, geom, cu, cuMeans, cuVars, prim,
+                                  primMeans, primVars, cumom, cumomMeans, cumomVars, 
+                                  vel, velMeans, velVars, coVars, spatialCross3D, ncross);
+            }
         }
 
         // timer

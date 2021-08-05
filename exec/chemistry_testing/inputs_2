@@ -1,10 +1,12 @@
-n_cell = 256
-max_grid_size = 64
+&common
 
-plot_int = -1
-
-nsteps = 1000
-dt = 0.01
+    n_cells(1:2) = 64 64 
+    max_grid_size(1:2) = 16 16 
+    plot_int = -1
+    nspecies = 2
+    max_step = 200
+    fixed_dt = 0.01
+/
 
 # react1: A->B
 # react2: B->A
@@ -12,9 +14,8 @@ dt = 0.01
 # spec2 = B
 
 nreaction = 2
-nspecies = 2
 
-rate_const = 0.4 0.6 
+rate_const = 0.4 0.6
 
 stoich_1R = 1 0
 stoich_1P = 0 1
@@ -25,4 +26,4 @@ stoich_2P = 1 0
 # 1 = CLE (Chemical Langevin Equation)
 # 2 = SSA (Stochastic Simulation Algorithm)
 
-reaction_type = 2
+reaction_type = 1

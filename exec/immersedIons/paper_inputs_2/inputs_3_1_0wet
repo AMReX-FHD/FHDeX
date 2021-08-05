@@ -86,7 +86,7 @@
 
   !Interaction parameters
   !------------
-  permittivity = 692.96e-21
+  permittivity = 708e-21
 
   images = 10    !if pairwise Coulomb interactions have been selected, this is the number of periodic images to use
 

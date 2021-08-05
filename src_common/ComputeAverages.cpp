@@ -6,7 +6,8 @@ int greatest_common_factor(int,int);
 void factor(int,int*,int);
 
 void WriteHorizontalAverage(const MultiFab& mf_in, const int& dir, const int& incomp,
-                            const int& ncomp, const int& step, const Geometry& geom)
+                            const int& ncomp, const int& step, const Geometry& geom, 
+                            const std::string& file_prefix)
 {
     // number of points in the averaging direction
     int npts = n_cells[dir];
@@ -76,7 +77,7 @@ void WriteHorizontalAverage(const MultiFab& mf_in, const int& dir, const int& in
     }
 
     if (ParallelDescriptor::IOProcessor()) {
-        std::string filename = amrex::Concatenate("havg",step,9);
+        std::string filename = amrex::Concatenate(file_prefix,step,9);
         std::ofstream outfile;
         outfile.open(filename);
     
@@ -318,7 +319,7 @@ void ComputeVerticalAverage(const MultiFab& mf, MultiFab& mf_avg,
 
         if (dir == 0) {
         
-            for (auto n = incomp; n<incomp+ncomp-1; ++n) {
+            for (auto n = incomp; n<incomp+ncomp; ++n) {
             for (auto k = lo.z; k <= hi.z; ++k) {
             for (auto j = lo.y; j <= hi.y; ++j) {
             for (auto i = lo.x; i <= hi.x; ++i) {
@@ -332,7 +333,7 @@ void ComputeVerticalAverage(const MultiFab& mf, MultiFab& mf_avg,
             
         } else if (dir == 1) {
         
-            for (auto n = incomp; n<incomp+ncomp-1; ++n) {
+            for (auto n = incomp; n<incomp+ncomp; ++n) {
             for (auto k = lo.z; k <= hi.z; ++k) {
             for (auto j = lo.y; j <= hi.y; ++j) {
             for (auto i = lo.x; i <= hi.x; ++i) {
@@ -346,7 +347,7 @@ void ComputeVerticalAverage(const MultiFab& mf, MultiFab& mf_avg,
 
         } else if (dir == 2) {
         
-            for (auto n = incomp; n<incomp+ncomp-1; ++n) {
+            for (auto n = incomp; n<incomp+ncomp; ++n) {
             for (auto k = lo.z; k <= hi.z; ++k) {
             for (auto j = lo.y; j <= hi.y; ++j) {
             for (auto i = lo.x; i <= hi.x; ++i) {

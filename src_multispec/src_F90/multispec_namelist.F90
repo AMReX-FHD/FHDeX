@@ -2,11 +2,9 @@ module multispec_namelist_module
 
   use iso_c_binding, only: c_char
   use amrex_string_module, only: amrex_string_c_to_f, amrex_string_f_to_c
-  use common_namelist_module, only: MAX_SPECIES
+  use common_namelist_module, only: MAX_SPECIES, MAX_ELEMENT
 
   implicit none
-
-  integer, parameter :: MAX_ELEMENT=MAX_SPECIES*(MAX_SPECIES-1)/2
 
   integer,            save :: inverse_type
   integer,            save :: temp_type

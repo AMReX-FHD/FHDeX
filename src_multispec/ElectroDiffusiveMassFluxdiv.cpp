@@ -86,7 +86,7 @@ void ElectroDiffusiveMassFlux(const MultiFab& rho,
     }
 
     bool any_shift = false;
-    for (int i=0; i<AMREX_SPACEDIM*LOHI; ++i) {
+    for (int i=0; i<AMREX_SPACEDIM*2; ++i) {
         if (shift_cc_to_boundary[i] == 1) any_shift=true;
     }
 
