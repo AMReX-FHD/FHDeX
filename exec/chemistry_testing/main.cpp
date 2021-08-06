@@ -261,7 +261,7 @@ void main_main(const char* argv)
         else if (prob_type==2)  // MultiFab-based routine
         {
             // compute source
-            compute_chemistry_source(dt,dV,rho_old,0,source,0);
+            compute_chemistry_source_CLE_1(dt,dV,rho_old,0,source,0);
 
             for ( MFIter mfi(rho_old); mfi.isValid(); ++mfi )
             {
