@@ -13,9 +13,15 @@ void EMstep_chem_only(MultiFab& rho_old, MultiFab& rho_new,
     DistributionMapping dm = rho_old.DistributionMap();
 
     MultiFab source(ba,dm,nspecies,0);;
+    
+    MultiFab ranchem(ba,dm,nreaction,0);
 
+    // initialize white noise field
+    for (int m=0;m<nreaction;m++) {
+        MultiFabFillRandom(ranchem,m,1.,geom);
+    }
 
-    compute_chemistry_source(dt,dx[0]*dx[1]*dx[2],rho_old,0,source,0);
+    compute_chemistry_source_CLE_RK3(dt,dx[0]*dx[1]*dx[2],rho_old,0,source,0,ranchem);
 
     for ( MFIter mfi(rho_old,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
 
