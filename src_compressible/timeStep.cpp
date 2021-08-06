@@ -131,7 +131,7 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
                     stoch_weights[1], ranchem_B, 0,
                     0, nreaction, 0);
 
-        compute_chemistry_source_CLE_RK3(dt,dx[0]*dx[1]*dx[2],cu,5,source,5,ranchem);
+        compute_chemistry_source_CLE(dt,dx[0]*dx[1]*dx[2],cu,5,source,5,ranchem);
     }
 
     for ( MFIter mfi(cu,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
@@ -235,7 +235,7 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
                     stoch_weights[1], ranchem_B, 0,
                     0, nreaction, 0);
 
-        compute_chemistry_source_CLE_RK3(dt,dx[0]*dx[1]*dx[2],cup,5,source,5,ranchem);
+        compute_chemistry_source_CLE(dt,dx[0]*dx[1]*dx[2],cup,5,source,5,ranchem);
     }
 
     for ( MFIter mfi(cu,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
@@ -339,7 +339,7 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
                     stoch_weights[1], ranchem_B, 0,
                     0, nreaction, 0);
 
-        compute_chemistry_source_CLE_RK3(dt,dx[0]*dx[1]*dx[2],cup2,5,source,5,ranchem);
+        compute_chemistry_source_CLE(dt,dx[0]*dx[1]*dx[2],cup2,5,source,5,ranchem);
     }
 
     for ( MFIter mfi(cu,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
