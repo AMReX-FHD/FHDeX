@@ -13,7 +13,8 @@
     ! 1 = cell-based update
     ! 2 = MultiFab-based update
     ! 3 = CLE RK3
-    prob_type = 1 
+    ! 4 = CLE EM
+    prob_type = 4 
 
     nspecies = 2
     ! molecular weights (i.e. per mol)
