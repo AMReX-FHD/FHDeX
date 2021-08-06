@@ -39,5 +39,6 @@ AMREX_GPU_HOST_DEVICE void advance_reaction_CLE_cell(GpuArray<amrex::Real,MAX_SP
 AMREX_GPU_HOST_DEVICE void advance_reaction_SSA_cell(GpuArray<amrex::Real,MAX_SPECIES>& n_old,
                                                      GpuArray<amrex::Real,MAX_SPECIES>& n_new,
                                                      amrex::Real dt,amrex::Real dV,RandomEngine const& engine);
-
+void EMstep_chem_only(MultiFab& rho_old, MultiFab& rho_new,
+                       const amrex::Geometry geom, const amrex::Real dt);
 #endif
