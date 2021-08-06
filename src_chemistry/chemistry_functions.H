@@ -20,10 +20,10 @@ void InitializeChemistryNamespace();
 AMREX_GPU_HOST_DEVICE void compute_reaction_rates(GpuArray<amrex::Real,MAX_SPECIES>& n_dens,
                                                   GpuArray<amrex::Real,MAX_REACTION>& a_r);
 
-void compute_chemistry_source(amrex::Real dt, amrex::Real dV, MultiFab& mf_in, int startComp_in,
+void compute_chemistry_source_CLE_1(amrex::Real dt, amrex::Real dV, MultiFab& mf_in, int startComp_in,
                               MultiFab& source, int startComp_out);
 
-void compute_chemistry_source_CLE_RK3(amrex::Real dt, amrex::Real dV, MultiFab& mf_in, int startComp_in,
+void compute_chemistry_source_CLE_2(amrex::Real dt, amrex::Real dV, MultiFab& mf_in, int startComp_in,
                                       MultiFab& source, int startComp_out, MultiFab& ranchem);
 
 void RK3step_chem_only(MultiFab& rho_old, MultiFab& rho_new,
