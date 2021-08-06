@@ -126,7 +126,7 @@ void compute_chemistry_source_CLE_1(amrex::Real dt, amrex::Real dV,
     }
 }
 
-void compute_chemistry_source_CLE_2(amrex::Real dt, amrex::Real dV,
+void compute_chemistry_source_CLE(amrex::Real dt, amrex::Real dV,
                               MultiFab& mf_in, int startComp_in,
                               MultiFab& source, int startComp_out, MultiFab& ranchem)
 // mf_in: input MultiFab containing mass densitities rho1, rho2, ..., rho_nspecies
@@ -134,7 +134,7 @@ void compute_chemistry_source_CLE_2(amrex::Real dt, amrex::Real dV,
 // source: output MultiFab containing source terms corresponding to rho1, rho2, ..., rho_nspecies
 // startComp_out: position of the first source term corresponding to rho1 in MultiFab source
 {
-    if (reaction_type!=1) amrex::Abort("ERROR: compute_chemistry_source_CLE_RK3 assumes reaction_type=1");
+    if (reaction_type!=1) amrex::Abort("ERROR: compute_chemistry_source_CLE assumes reaction_type=1");
 
     GpuArray<amrex::Real,MAX_SPECIES> m_s;
     for (int n=0; n<nspecies; n++) m_s[n] = molmass[n]/(Runiv/k_B);
