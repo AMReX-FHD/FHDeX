@@ -278,6 +278,10 @@ void main_main(const char* argv)
                 });
             }
         }
+        else if (prob_type==3)
+        {
+            RK3step_chem_only(rho_old,rho_new,geom,dt);
+        }
         else
         {
             amrex::Abort("ERROR: invalid prob_type");

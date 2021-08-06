@@ -12,6 +12,7 @@
 
     ! 1 = cell-based update
     ! 2 = MultiFab-based update
+    ! 3 = CLE RK3
     prob_type = 1 
 
     nspecies = 2
