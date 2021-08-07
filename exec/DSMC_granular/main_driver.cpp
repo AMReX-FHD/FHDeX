@@ -294,7 +294,7 @@ void main_driver(const char* argv)
 			}
 			particles.EvaluateStats(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
 				cvlInst,cvlMeans,QMeans,coVars,spatialCross1D,statsCount,time);
-			particles.TimeCorrelation(cuInst,primInst,timeCross,t0Cross,steps)
+			particles.TimeCorrelation(cuInst,primInst,timeCross,t0Cross,statsCount);
 			particles.writePlotFile(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
 				coVars,spatialCross1D,geom,time,ncross,istep);
 		}
@@ -306,9 +306,9 @@ void main_driver(const char* argv)
 		particles.CalcSelections(dt);
 		particles.CollideParticles(dt);
 		particles.Source(dt, paramPlaneList, paramPlaneCount);
-		//particles.externalForce(dt);
+		particles.externalForce(dt);
 		particles.MoveParticlesCPP(dt, paramPlaneList, paramPlaneCount);
-		//particles.updateTimeStep(geom,dt);
+		particles.updateTimeStep(geom,dt);
 
 		//////////////////////////////////////
 		// Stats
