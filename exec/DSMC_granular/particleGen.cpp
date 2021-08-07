@@ -7,7 +7,8 @@
 
 using namespace std;
 
-void FhdParticleContainer::InitParticles(Real & dt) {
+void FhdParticleContainer::InitParticles(Real & dt)
+{
 	const int lev = 0;
 	const Geometry& geom = Geom(lev);
 
@@ -15,14 +16,11 @@ void FhdParticleContainer::InitParticles(Real & dt) {
 
 	bool proc0_enter = true;
 
-	// Search for max relative speed
-	// ... estimate as double the mag of a single particle speed
 	std::array<Real, 3> vpart = {0., 0., 0.};
 	Real spdmax = 0;
 	Real umax = 0, vmax = 0, wmax = 0;
 	Real spd;
 	Real u[nspecies],v[nspecies],w[nspecies];
-	maxDiam = 0.;
 
 	for (MFIter mfi = MakeMFIter(lev, true); mfi.isValid(); ++mfi)
 	{
@@ -68,7 +66,6 @@ void FhdParticleContainer::InitParticles(Real & dt) {
 
 					particleFile >> p.idata(FHD_intData::species);
 					int i_spec = p.idata(FHD_intData::species);
-					p.idata(FHD_intData::species_change) = i_spec;
 					p.rdata(FHD_realData::R) = k_B/properties[i_spec].mass;
 					p.rdata(FHD_realData::boostx) = 0;
 					p.rdata(FHD_realData::boosty) = 0;
@@ -76,7 +73,8 @@ void FhdParticleContainer::InitParticles(Real & dt) {
 					if( particleFile.eof() ) break;
 				}
 				particleFile.close();
-			} else
+			}
+			else
 			{
 				// Initialize to bulk velocities
 				for(int i_spec=0; i_spec < nspecies; i_spec++)
@@ -96,7 +94,6 @@ void FhdParticleContainer::InitParticles(Real & dt) {
 						p.cpu() = ParallelDescriptor::MyProc();
 						p.idata(FHD_intData::sorted) = -1;
 						p.idata(FHD_intData::species) = i_spec;
-						p.idata(FHD_intData::species_change) = i_spec;
 						p.rdata(FHD_realData::R) = R;
 						p.rdata(FHD_realData::timeFrac) = 1;
 						p.pos(0) = prob_lo[0] + amrex::Random()*(prob_hi[0]-prob_lo[0]);
@@ -221,7 +218,8 @@ void FhdParticleContainer::InitParticles(Real & dt) {
 	}
 }
 
-void FhdParticleContainer::ReInitParticles() {
+void FhdParticleContainer::ReInitParticles()
+{
 	const int lev = 0;
 	const Geometry& geom = Geom(lev);
 
@@ -232,7 +230,8 @@ void FhdParticleContainer::ReInitParticles() {
 	Real u,v,w;
 	Real spd, spdmax = 0.;
 
-	for (MFIter mfi = MakeMFIter(lev, true); mfi.isValid(); ++mfi) {
+	for (MFIter mfi = MakeMFIter(lev, true); mfi.isValid(); ++mfi)
+	{
 		const Box& tile_box = mfi.tilebox();
 		const RealBox tile_realbox{tile_box, geom.CellSize(), geom.ProbLo()};
 		const int grid_id = mfi.index();
@@ -241,7 +240,8 @@ void FhdParticleContainer::ReInitParticles() {
 		auto& particles = particle_tile.GetArrayOfStructs();
 		const long np = particles.numParticles();
 
-		for (int i=0; i<np; ++i) {
+		for (int i=0; i<np; ++i)
+		{
 			ParticleType & part = particles[i];
 			part.id() = ParticleType::NextID();
 			part.cpu() = ParallelDescriptor::MyProc();
@@ -255,7 +255,10 @@ void FhdParticleContainer::ReInitParticles() {
 			Real v = part.rdata(FHD_realData::vely);
 			Real w = part.rdata(FHD_realData::velz);
 			spd = sqrt(pow(u,2.0)+pow(v,2.0)+pow(w,2.0));
-			if(spd>spdmax) { spdmax=spd; }
+			if(spd>spdmax)
+			{
+				spdmax=spd;
+			}
 		}
 	}
 

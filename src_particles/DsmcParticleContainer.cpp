@@ -5,10 +5,8 @@
 #include <math.h>
 using namespace std;
 // Same as FhdParticleContainer.H?
-FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
-		const DistributionMapping & dmap,
-		const BoxArray & ba,
-		int ncells)
+FhdParticleContainer::FhdParticleContainer(const Geometry & geom, const DistributionMapping & dmap,
+	const BoxArray & ba, int ncells)
 	: NeighborParticleContainer<FHD_realData::count, FHD_intData::count> (geom, dmap, ba, ncells)
 {
 	BL_PROFILE_VAR("FhdParticleContainer()",FhdParticleContainer);
@@ -22,40 +20,45 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
 	collisionCellVol = domainVol/totalCollisionCells;
 	ocollisionCellVol = 1.0/collisionCellVol;
 	
-	if(rho0<0) {rho0=0.;}
+	if(rho0<0)
+	{
+		rho0=0.;
+	}
 	
-	for(int i=0;i<nspecies;i++) {
+	for(int i=0;i<nspecies;i++)
+	{
 		properties[i].mass = mass[i];
 		properties[i].radius = diameter[i]/2.0;
 		properties[i].partVol = pow(diameter[i],3.0)*pi_usr/6.0;
 		properties[i].part2cellVol = properties[i].partVol*ocollisionCellVol;
-		properties[i].Neff = particle_neff; // assume F_n is same for each
+		properties[i].Neff = particle_neff;
 		properties[i].R = k_B/properties[i].mass;
 
-		if( particle_count[i] >= 0 ) {
+		if(particle_count[i]>=0)
+		{
 			properties[i].total = particle_count[i];
 			properties[i].n0 = particle_neff*properties[i].total/domainVol;
 
 			amrex::Print() <<  "Species "<< i << " count " << properties[i].total << "\n";
 			amrex::Print() <<  "Species "<< i << " n0 " << properties[i].n0 << "\n";
-			
-			// Need for concentration BC
+
 			rho0 += properties[i].n0*properties[i].mass;
 			properties[i].n0*properties[i].mass;
-
-		} else if( phi_domain[i] >= 0 ) {
-      
+		}
+		else if(phi_domain[i]>=0)
+		{
 			properties[i].total = (int)amrex::Math::ceil(
 				(phi_domain[i]*domainVol)/(properties[i].partVol*properties[i].Neff) );
 			properties[i].n0 = properties[i].total/domainVol;
-			
+
 			amrex::Print() <<  "Species "<< i << " count " << properties[i].total << "\n";
 			amrex::Print() <<  "Species "<< i << " n0 " << properties[i].n0 << "\n";
 
 			rho0 += properties[i].n0*properties[i].mass;
 			Yk0[i] = properties[i].n0*properties[i].mass;
-
-		} else if( rho0 > 0) {
+		}
+		else if(rho0 > 0)
+		{
 			Real Yktot = 0.0;
 			for(int i=0; i<nspecies; i++) { Yktot += Yk0[i]; }
 			for(int i=0; i<nspecies; i++) {	Yk0[i] /= Yktot; }
@@ -66,9 +69,13 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
 
 			amrex::Print() <<  "Species "<< i << " count " << properties[i].total << "\n";
 			amrex::Print() <<  "Species "<< i << " n0 " << properties[i].n0 << "\n";
-			for(int i=0; i<nspecies; i++) { Yk0[i] *= rho0; }
-
-		} else {
+			for(int i=0; i<nspecies; i++)
+			{
+				Yk0[i] *= rho0;
+			}
+		}
+		else
+		{
 			amrex::Print() << "n0: " << particle_n0[i] << "\n";
 			properties[i].total = (int)amrex::Math::ceil(particle_n0[i]
 				*domainVol/particle_neff);
@@ -79,28 +86,31 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
 
 			rho0 += properties[i].n0*properties[i].mass;
 			properties[i].n0*properties[i].mass;
-
 		}
-      
 		realParticles = realParticles + properties[i].total*particle_neff;
 		simParticles = simParticles + properties[i].total;
 		amrex::Print() << "Particles per cell for species " << i 
 			<< " is " << properties[i].total/totalCollisionCells << "\n";
 	}
 	
-	for(int i=0; i<nspecies ; i++) {
+	for(int i=0; i<nspecies ; i++)
+	{
 		Yk0[i] = Yk0[i]/rho0;
 	}
 	
-	for (int d=0; d<AMREX_SPACEDIM; ++d) {
+	for (int d=0; d<AMREX_SPACEDIM; ++d)
+	{
 		domSize[d] = prob_hi[d] - prob_lo[d];
 	}
 
 	const int lev=0;
-	for(MFIter mfi = MakeMFIter(lev, false); mfi.isValid(); ++mfi) {
+	for(MFIter mfi = MakeMFIter(lev, false); mfi.isValid(); ++mfi)
+	{
 		const Box& box = mfi.validbox();
 		const int grid_id = mfi.index();
-		for(int i=0;i<nspecies;i++){
+
+		for(int i=0;i<nspecies;i++)
+		{
 			m_cell_vectors[i][grid_id].resize(box.numPts());
 		}
 	}
@@ -115,22 +125,17 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
 	const GpuArray<Real, 3> plo = Geom(lev).ProbLoArray();
 	const GpuArray<Real, 3> phi = Geom(lev).ProbHiArray();
 
-	int        np_tile = 0 ,       np_proc = 0 ; // particle count
-	Real    moves_tile = 0.,    moves_proc = 0.; // total moves
-	Real  maxdist_proc = 0.; // max displacement (fraction of radius)
+	int np_tile = 0, np_proc = 0;
 
 	Real adj = 0.99999;
 	Real adjalt = 2.0*(1.0-0.99999);
 	Real runtime, inttime;
 	int intsurf, intside, push;
 
-	Real maxspeed = 0;
-	Real maxdist = 0;
-
 	int reDist = 0;
 	int left = 0;
-	for (FhdParIter pti(* this, lev); pti.isValid(); ++pti) {
-
+	for (FhdParIter pti(* this, lev); pti.isValid(); ++pti)
+	{
 		const int grid_id = pti.index();
 		const int tile_id = pti.LocalTileIndex();
 		const Box& tile_box  = pti.tilebox();
@@ -143,25 +148,26 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
 		IntVect myLo = bx.smallEnd();
 		IntVect myHi = bx.bigEnd();
 
-		for (int i = 0; i < np; i++) {
-
+		for (int i = 0; i < np; i++)
+		{
 			ParticleType & part = particles[i];
-
 			runtime = dt*part.rdata(FHD_realData::timeFrac);
 			while(runtime > 0)
 			{
-				find_inter_gpu(part, runtime, paramPlaneList, paramPlaneCount, &intsurf, &inttime, &intside, ZFILL(plo), ZFILL(phi));
+				find_inter_gpu(part, runtime, paramPlaneList, paramPlaneCount,
+					&intsurf, &inttime, &intside, ZFILL(plo), ZFILL(phi));
 
 				for (int d=0; d<AMREX_SPACEDIM; ++d)
 				{
-                      part.pos(d) += inttime * part.rdata(FHD_realData::velx + d)*adj;
+					part.pos(d) += inttime * part.rdata(FHD_realData::velx + d)*adj;
 				}
 
 				runtime = runtime - inttime;
 
 				if(intsurf > 0)
 				{
-					const paramPlane& surf = paramPlaneList[intsurf-1];//find_inter indexes from 1 to maintain compatablity with fortran version
+					//find_inter indexes from 1 to maintain compatablity with fortran version
+					const paramPlane& surf = paramPlaneList[intsurf-1];
       
 					Real posAlt[3];
 
@@ -190,7 +196,8 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
 			cell[1] = (int)floor((part.pos(1)-plo[1])/dx[1]);
 			cell[2] = (int)floor((part.pos(2)-plo[2])/dx[2]);
 
-			if((part.idata(FHD_intData::i) != cell[0]) || (part.idata(FHD_intData::j) != cell[1]) || (part.idata(FHD_intData::k) != cell[2]) || part.id() < 0)
+			if((part.idata(FHD_intData::i) != cell[0]) || (part.idata(FHD_intData::j) != cell[1]) ||
+				(part.idata(FHD_intData::k) != cell[2]) || part.id() < 0)
 			{
 				IntVect iv(part.idata(FHD_intData::i), part.idata(FHD_intData::j), part.idata(FHD_intData::k));
 				long imap = tile_box.index(iv);
@@ -220,7 +227,8 @@ void FhdParticleContainer::SortParticles()
 	const Real* plo = Geom(lev).ProbLo();
 	const Real* phi = Geom(lev).ProbHi();
 
-	for (FhdParIter pti(* this, lev); pti.isValid(); ++pti) {
+	for (FhdParIter pti(* this, lev); pti.isValid(); ++pti)
+	{
 		const int grid_id = pti.index();
 		const int tile_id = pti.LocalTileIndex();
 		const Box& tile_box  = pti.tilebox();
@@ -242,22 +250,17 @@ void FhdParticleContainer::SortParticles()
 				part.idata(FHD_intData::i) = iv[0];
 				part.idata(FHD_intData::j) = iv[1];
 				part.idata(FHD_intData::k) = iv[2];
-
 				long imap = tile_box.index(iv);
-
 				part.idata(FHD_intData::sorted) = m_cell_vectors[part.idata(FHD_intData::species)][pti.index()][imap].size();
-
 				m_cell_vectors[part.idata(FHD_intData::species)][pti.index()][imap].push_back(i);
-
-			}else
+			}
+			else
 			{
-
 				iv[0] = part.idata(FHD_intData::i);
 				iv[1] = part.idata(FHD_intData::j);
 				iv[2] = part.idata(FHD_intData::k);
 				long imap = tile_box.index(iv);
 				m_cell_vectors[part.idata(FHD_intData::species)][pti.index()][imap][part.idata(FHD_intData::sorted)] = i;
-                
 			}
 		}
 	}
@@ -266,7 +269,6 @@ void FhdParticleContainer::SortParticles()
 void FhdParticleContainer::Source(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount) {
 	int lev = 0;
 	bool proc0_enter = true;
-    //Do this all on rank 0 for now
 	for (MFIter mfi = MakeMFIter(lev, true); mfi.isValid(); ++mfi)
 	{
 		if(ParallelDescriptor::MyProc() == 0 && proc0_enter)
@@ -295,7 +297,6 @@ void FhdParticleContainer::Source(const Real dt, const paramPlane* paramPlaneLis
 
 						int totalFluxInt =  (int)floor(totalFlux);
 						Real totalFluxLeftOver = totalFlux - totalFluxInt;
-                        
 
 						if(amrex::Random() < totalFluxLeftOver)
 						{
@@ -336,7 +337,6 @@ void FhdParticleContainer::Source(const Real dt, const paramPlane* paramPlaneLis
 							p.rdata(FHD_realData::timeFrac) = amrex::Random();
 
 							Real srt = sqrt(p.rdata(FHD_realData::R)*temp);
-
 							p.rdata(FHD_realData::velx) = srt*amrex::RandomNormal(0.,1.);
 							p.rdata(FHD_realData::vely) = srt*amrex::RandomNormal(0.,1.);
 							p.rdata(FHD_realData::velz) = sqrt(2)*srt*sqrt(-log(amrex::Random()));
@@ -349,9 +349,10 @@ void FhdParticleContainer::Source(const Real dt, const paramPlane* paramPlaneLis
 							particle_tile.push_back(p);
 						}
 					}
-				} else if(paramPlaneList[i].sourceRight == 1)
+				}
+				else if(paramPlaneList[i].sourceRight == 1)
 				{
-					for(int j = 0; j< nspecies; j++)
+					for(int j=0; j< nspecies; j++)
 					{
 						Real density = paramPlaneList[i].densityRight[j];
 						Real temp = paramPlaneList[i].temperatureRight;
@@ -388,11 +389,10 @@ void FhdParticleContainer::Source(const Real dt, const paramPlane* paramPlaneLis
 							p.pos(1) = paramPlaneList[i].y0 + paramPlaneList[i].uy*uCoord + paramPlaneList[i].vy*vCoord;
 							p.pos(2) = paramPlaneList[i].z0 + paramPlaneList[i].uz*uCoord + paramPlaneList[i].vz*vCoord;
 
-							//move the particle slightly off the surface so it doesn't intersect it when it moves
 							p.pos(0) = p.pos(0) - uCoord*0.00000001*paramPlaneList[i].lnx;
 							p.pos(1) = p.pos(1) - uCoord*0.00000001*paramPlaneList[i].lny;
 							p.pos(2) = p.pos(2) - uCoord*0.00000001*paramPlaneList[i].lnz;
-														
+							
 							p.rdata(FHD_realData::boostx) = 0;
 							p.rdata(FHD_realData::boosty) = 0;
 							p.rdata(FHD_realData::boostz) = 0;
@@ -405,7 +405,6 @@ void FhdParticleContainer::Source(const Real dt, const paramPlane* paramPlaneLis
 							p.rdata(FHD_realData::timeFrac) = amrex::Random();
 
 							Real srt = sqrt(p.rdata(FHD_realData::R)*temp);
-
 							p.rdata(FHD_realData::velx) = srt*amrex::RandomNormal(0.,1.);
 							p.rdata(FHD_realData::vely) = srt*amrex::RandomNormal(0.,1.);
 							p.rdata(FHD_realData::velz) = sqrt(2)*srt*sqrt(-log(amrex::Random()));
@@ -416,14 +415,12 @@ void FhdParticleContainer::Source(const Real dt, const paramPlane* paramPlaneLis
 								&p.rdata(FHD_realData::velx), &p.rdata(FHD_realData::vely), &p.rdata(FHD_realData::velz));
 
 							particle_tile.push_back(p);
-
 						}
 					}
 				}
 			}
 		}
 	}
-
 	Redistribute();
 	SortParticles();
 }
