@@ -90,7 +90,8 @@ extern "C"
                                      amrex::Real* turb_a, amrex::Real* turb_b, int* turbForcing,
                                      amrex::Real* alpha_pp, amrex::Real* alpha_pw,
                                      amrex::Real* friction_pp, amrex::Real* friction_pw,
-                                     amrex::Real* phi_domain, amrex::Real* Yk0);
+                                     amrex::Real* phi_domain, amrex::Real* Yk0,
+                                     int* do_1D);
 
     void set_max_step(int* max_step);
     void set_domega(amrex::Real* domega);

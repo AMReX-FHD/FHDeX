@@ -120,7 +120,7 @@ void InitializeCommonNamespace() {
                                 potential_lo.data(), potential_hi.data(),
                                 &struct_fact_int, &radialdist_int, &cartdist_int,
                                 &n_steps_skip, &binSize, &searchDist,
-										  &project_dir, &slicepoint, max_grid_projection.dataPtr(),
+																&project_dir, &slicepoint, max_grid_projection.dataPtr(),
                                 &histogram_unit,
                                 density_weights.dataPtr(), shift_cc_to_boundary.dataPtr(),
                                 &particle_placement, &particle_input, particle_count.dataPtr(),
@@ -142,8 +142,8 @@ void InitializeCommonNamespace() {
                                 &turb_a, &turb_b, &turbForcing,
                                 alpha_pp.begin(), alpha_pw.begin(),
                                 friction_pp.begin(), friction_pw.begin(),
-                                phi_domain.begin(), Yk0.begin()
-                                );
+                                phi_domain.begin(), Yk0.begin(),
+                                &do_1D);
 
     plot_base_name = temp_plot_base_name;
     chk_base_name = temp_chk_base_name;

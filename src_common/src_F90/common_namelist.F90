@@ -229,6 +229,8 @@ module common_namelist_module
   double precision,   save :: phi_domain(MAX_SPECIES)
 
 	double precision,   save :: Yk0(MAX_SPECIES)
+  integer,            save :: do_1D
+
   ! Problem specification
   namelist /common/ prob_lo       ! physical lo coordinate
   namelist /common/ prob_hi       ! physical hi coordinate
@@ -479,6 +481,8 @@ module common_namelist_module
   namelist /common/ phi_domain
   
   namelist /common/ Yk0
+  
+  namelist /common/ do_1D
 
 contains
 
@@ -505,6 +509,7 @@ contains
     membrane_cell = -1
     cross_cell = 0
     do_slab_sf = 0
+    do_1D = 0
     ! transmission (no default)
     
     fixed_dt = 1.
@@ -738,7 +743,9 @@ contains
                                          source_strength_in, regrid_int_in, do_reflux_in, particle_motion_in, &
                                          turb_a_in, turb_b_in, turbForcing_in, &
                                          alpha_pp_in, alpha_pw_in, &
-                                         friction_pp_in, friction_pw_in, phi_domain_in, Yk0_in) &
+                                         friction_pp_in, friction_pw_in, phi_domain_in, Yk0_in, &
+                                         do_1D_in) &
+
                                          bind(C, name="initialize_common_namespace")
 
     double precision,       intent(inout) :: prob_lo_in(AMREX_SPACEDIM)
@@ -941,6 +948,8 @@ contains
     
     double precision,       intent(inout) :: Yk0_in(MAX_SPECIES)
 
+    integer,                intent(inout) :: do_1D_in
+
     prob_lo_in = prob_lo
     prob_hi_in = prob_hi
     n_cells_in = n_cells
@@ -1133,6 +1142,8 @@ contains
     phi_domain_in = phi_domain
     
     Yk0_in = Yk0
+
+    do_1D_in = do_1D
 
   end subroutine initialize_common_namespace
 

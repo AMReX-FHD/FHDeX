@@ -154,24 +154,43 @@ void RK3stepStag(MultiFab& cu,
                  stochcen_B[2].setVal(0.0););
 
     // fill random numbers (can skip density component 0)
-    for(int d=0;d<AMREX_SPACEDIM;d++) {
-     	for(int i=1;i<nvars;i++) {
-    	    MultiFabFillRandom(stochface_A[d], i, 1.0, geom);
-	        MultiFabFillRandom(stochface_B[d], i, 1.0, geom);
+    if (do_1D) { // need only for x- face 
+        for(int i=1;i<nvars;i++) {
+            MultiFabFillRandom(stochface_A[0], i, 1.0, geom);
+            MultiFabFillRandom(stochface_B[0], i, 1.0, geom);
         }
     }
-    for (int i=0; i<2; i++) {
-        MultiFabFillRandom(stochedge_x_A[i], 0, 1.0, geom);
-        MultiFabFillRandom(stochedge_x_B[i], 0, 1.0, geom);
-        MultiFabFillRandom(stochedge_y_A[i], 0, 1.0, geom);
-        MultiFabFillRandom(stochedge_y_B[i], 0, 1.0, geom);
-        MultiFabFillRandom(stochedge_z_A[i], 0, 1.0, geom);
-        MultiFabFillRandom(stochedge_z_B[i], 0, 1.0, geom);
+    else {
+        for(int d=0;d<AMREX_SPACEDIM;d++) {
+            for(int i=1;i<nvars;i++) {
+                MultiFabFillRandom(stochface_A[d], i, 1.0, geom);
+                MultiFabFillRandom(stochface_B[d], i, 1.0, geom);
+            }
+        }
     }
-    for (int i=0; i<3; i++) {
-        MultiFabFillRandom(stochcen_A[i], 0, 2.0, geom);
-        MultiFabFillRandom(stochcen_B[i], 0, 2.0, geom);
+
+    if (do_1D == 0) { // don't need this for 1D
+        for (int i=0; i<2; i++) {
+            MultiFabFillRandom(stochedge_x_A[i], 0, 1.0, geom);
+            MultiFabFillRandom(stochedge_x_B[i], 0, 1.0, geom);
+            MultiFabFillRandom(stochedge_y_A[i], 0, 1.0, geom);
+            MultiFabFillRandom(stochedge_y_B[i], 0, 1.0, geom);
+            MultiFabFillRandom(stochedge_z_A[i], 0, 1.0, geom);
+            MultiFabFillRandom(stochedge_z_B[i], 0, 1.0, geom);
+        }
     }
+
+    if (do_1D) { // only 1D simulation -- do not need v_x and w_z stochastic terms
+        MultiFabFillRandom(stochcen_A[0], 0, 1.0, geom);
+        MultiFabFillRandom(stochcen_B[0], 0, 1.0, geom);
+    }
+    else {
+        for (int i=0; i<3; i++) {
+            MultiFabFillRandom(stochcen_A[i], 0, 2.0, geom);
+            MultiFabFillRandom(stochcen_B[i], 0, 2.0, geom);
+        }
+    }
+
     /////////////////////////////////////////////////////
 
     /////////////////////////////////////////////////////
@@ -624,6 +643,8 @@ void RK3stepStag(MultiFab& cu,
                                                     + grav[2]*(momp2z(i,j,k+1)+momp2z(i,j,k)) );
         });
     }
+
+    //PrintFluxes(faceflux,edgeflux_x,edgeflux_y,edgeflux_z,cenflux,"");
 
     // Set the correct momentum at the walls -- this is spurious after RK3 update beacuse of the \nabla P term 
     for (int i=0; i<AMREX_SPACEDIM; i++) {

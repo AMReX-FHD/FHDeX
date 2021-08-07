@@ -4,7 +4,6 @@
 #include "paramplane_functions_K.H"
 #include <math.h>
 using namespace std;
-// Same as FhdParticleContainer.H?
 FhdParticleContainer::FhdParticleContainer(const Geometry & geom, const DistributionMapping & dmap,
 	const BoxArray & ba, int ncells)
 	: NeighborParticleContainer<FHD_realData::count, FHD_intData::count> (geom, dmap, ba, ncells)
@@ -132,8 +131,6 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
 	Real runtime, inttime;
 	int intsurf, intside, push;
 
-	int reDist = 0;
-	int left = 0;
 	for (FhdParIter pti(* this, lev); pti.isValid(); ++pti)
 	{
 		const int grid_id = pti.index();

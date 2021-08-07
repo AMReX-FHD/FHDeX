@@ -298,15 +298,25 @@ void StructFact::FortStructure(const MultiFab& variables, const Geometry& geom,
 
   const BoxArray& ba = variables.boxArray();
   const DistributionMapping& dm = variables.DistributionMap();
+  
   MultiFab variables_dft_real, variables_dft_imag;
   variables_dft_real.define(ba, dm, NVAR, 0);
   variables_dft_imag.define(ba, dm, NVAR, 0);
 
   ComputeFFT(variables, variables_dft_real, variables_dft_imag, geom);
 
+  // temporary storage built on BoxArray and DistributionMapping of "variables"
+  // One case where "variables" and "cov_real/imag/mag" may have different DistributionMappings
+  // is for flattened MFs with one grid newly built flattened MFs may be on a different
+  // processor than the flattened MF used to build cov_real/imag/mag
+  // or in general, problems that are not perfectly load balanced
   MultiFab cov_temp;
   cov_temp.define(ba, dm, 1, 0);
 
+  // temporary storage built on BoxArray and DistributionMapping of "cov_real/imag/mag"
+  MultiFab cov_temp2;
+  cov_temp2.define(cov_real.boxArray(), cov_real.DistributionMap(), 1, 0);
+  
   int index = 0;
   for (int n=0; n<NCOV; n++) {
     int i = s_pairA[n];
@@ -319,10 +329,13 @@ void StructFact::FortStructure(const MultiFab& variables, const Geometry& geom,
     MultiFab::AddProduct(cov_temp,variables_dft_real,i,variables_dft_real,j,0,1,0);
     MultiFab::AddProduct(cov_temp,variables_dft_imag,i,variables_dft_imag,j,0,1,0);
 
+    // copy into a MF with same ba and dm as cov_real/imag/mag
+    cov_temp2.ParallelCopy(cov_temp,0,0,1);
+        
     if (reset == 1) {
-        MultiFab::Copy(cov_real,cov_temp,0,index,1,0);
-    } else {
-        MultiFab::Add(cov_real,cov_temp,0,index,1,0);
+        MultiFab::Copy(cov_real,cov_temp2,0,index,1,0);
+    } else {        
+        MultiFab::Add(cov_real,cov_temp2,0,index,1,0);
     }
 
     // Imaginary component of covariance
@@ -331,10 +344,13 @@ void StructFact::FortStructure(const MultiFab& variables, const Geometry& geom,
     cov_temp.mult(-1.0,0);
     MultiFab::AddProduct(cov_temp,variables_dft_real,i,variables_dft_imag,j,0,1,0);
 
+    // copy into a MF with same ba and dm as cov_real/imag/mag
+    cov_temp2.ParallelCopy(cov_temp,0,0,1);
+    
     if (reset == 1) {
-        MultiFab::Copy(cov_imag,cov_temp,0,index,1,0);
+        MultiFab::Copy(cov_imag,cov_temp2,0,index,1,0);
     } else {
-        MultiFab::Add(cov_imag,cov_temp,0,index,1,0);
+        MultiFab::Add(cov_imag,cov_temp2,0,index,1,0);
     }
 
     index++;
@@ -734,18 +750,6 @@ void StructFact::WritePlotFile(const int step, const Real time, const Geometry& 
   }
   
 }
-
-void StructFact::StructOut(MultiFab& struct_out) {
-
-  BL_PROFILE_VAR("StructFact::StructOut()",StructOut);
-
-  if (struct_out.nComp() == cov_mag.nComp()) {
-    MultiFab::Copy(struct_out,cov_mag,0,0,cov_mag.nComp(),0);
-  } else {
-    amrex::Error("StructFact::StructOut() - Must have an equal number of components");
-  }
-}
-
 void StructFact::Finalize(MultiFab& cov_real_in, MultiFab& cov_imag_in,
                           const Geometry& geom, const int& zero_avg) {
 
