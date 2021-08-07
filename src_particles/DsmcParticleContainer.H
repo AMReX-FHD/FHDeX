@@ -162,6 +162,12 @@ public:
 		const int steps,
 		Real time);
 
+	void TimeCorrelation(MultiFab& mfcuInst,
+						MultiFab& mfprimInst,
+            MultiFab& mftimeCross1D,
+            MultiFab& mft0Cross1D,
+						const int steps);
+
 	void OutputParticles();
 	void writePlotFile(const MultiFab& cuInst,
 		const MultiFab& cuMeans,

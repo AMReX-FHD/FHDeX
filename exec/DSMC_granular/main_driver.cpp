@@ -47,6 +47,10 @@ void main_driver(const char* argv)
   // can add more -- change main_driver, stats, writeplotfile, and Checkpoint
   int ncross = 37+nspecies+2;
   MultiFab spatialCross1D;
+  
+  // For time correlation functions
+  int tcross = 10;
+  MultiFab timeCross, t0Cross;
 
   if ((plot_cross) and ((cross_cell <= 0) or (cross_cell >= n_cells[0]-1))) {
       Abort("Cross cell needs to be within the domain: 0 < cross_cell < n_cells[0] - 1");
@@ -148,7 +152,10 @@ void main_driver(const char* argv)
 
 		int ncovar = 25;
 		coVars.define(ba, dmap, ncovar, 0);   coVars.setVal(0.);
+
 		spatialCross1D.define(ba,dmap,ncross,0); spatialCross1D.setVal(0.);
+		timeCross.define(ba,dmap,tcross,0); timeCross.setVal(0.);
+		t0Cross.define(ba,dmap,tcross,0); t0Cross.setVal(0.);
 
 	} else {
 		ReadCheckPoint(step, time, dt, statsCount,
@@ -287,6 +294,7 @@ void main_driver(const char* argv)
 			}
 			particles.EvaluateStats(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
 				cvlInst,cvlMeans,QMeans,coVars,spatialCross1D,statsCount,time);
+			particles.TimeCorrelation(cuInst,primInst,timeCross,t0Cross,steps)
 			particles.writePlotFile(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
 				coVars,spatialCross1D,geom,time,ncross,istep);
 		}

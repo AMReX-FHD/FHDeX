@@ -10,5 +10,5 @@ CEXE_sources   += DsmcCollide.cpp
 CEXE_sources   += externalF.cpp
 CEXE_sources   += updateTimeStep.cpp
 
-
+CEXE_sources   += timeCorrelation.cpp
 #CEXE_sources   += globalVars.cpp
