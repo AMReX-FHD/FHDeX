@@ -975,13 +975,15 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
     }
     
     int totalCount = 6+fileCount;
+    
+    Print() << "Creating " << totalCount << " parametric surfaces\n";
 
     for(int i=6; i<totalCount; i++)
     {
 
         planeFile >> paramPlaneList[i].x0;
 
-        Print() << "surface " << i << " xo " << paramPlaneList[i].x0 << "\n";
+        //Print() << "surface " << i << " xo " << paramPlaneList[i].x0 << "\n";
 
         planeFile >> paramPlaneList[i].y0;
         planeFile >> paramPlaneList[i].z0;
@@ -1055,7 +1057,8 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 
         paramPlaneList[i].fxRightAv = 0;
         paramPlaneList[i].fyRightAv = 0;
-        paramPlaneList[i].fzRightAv = 0;        
+        paramPlaneList[i].fzRightAv = 0;
+       
 
     }
     planeFile.close();
