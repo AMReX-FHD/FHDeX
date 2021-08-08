@@ -24,13 +24,15 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom, const Distribu
 		rho0=0.;
 	}
 	
+	// total = simulated total (total*particle_neff = real number of particles)
+	// n0 = real number density
 	for(int i=0;i<nspecies;i++)
 	{
 		properties[i].mass = mass[i];
 		properties[i].radius = diameter[i]/2.0;
 		properties[i].partVol = pow(diameter[i],3.0)*pi_usr/6.0;
 		properties[i].part2cellVol = properties[i].partVol*ocollisionCellVol;
-		properties[i].Neff = particle_neff;
+		properties[i].Neff = particle_neff; //   real / simulated
 		properties[i].R = k_B/properties[i].mass;
 
 		if(particle_count[i]>=0)
@@ -42,13 +44,13 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom, const Distribu
 			amrex::Print() <<  "Species "<< i << " n0 " << properties[i].n0 << "\n";
 
 			rho0 += properties[i].n0*properties[i].mass;
-			properties[i].n0*properties[i].mass;
+			Yk0[i] = properties[i].n0*properties[i].mass;
 		}
 		else if(phi_domain[i]>=0)
 		{
 			properties[i].total = (int)amrex::Math::ceil(
-				(phi_domain[i]*domainVol)/(properties[i].partVol*properties[i].Neff) );
-			properties[i].n0 = properties[i].total/domainVol;
+				(phi_domain[i]*domainVol)/(properties[i].partVol*particle_neff) );
+			properties[i].n0 = particle_neff*properties[i].total/domainVol;
 
 			amrex::Print() <<  "Species "<< i << " count " << properties[i].total << "\n";
 			amrex::Print() <<  "Species "<< i << " n0 " << properties[i].n0 << "\n";
@@ -63,7 +65,7 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom, const Distribu
 			for(int i=0; i<nspecies; i++) {	Yk0[i] /= Yktot; }
 
 			Real rhop = properties[i].mass/domainVol;
-			properties[i].total = std::ceil((rho0*Yk0[i])/rhop);
+			properties[i].total = std::ceil((rho0*Yk0[i])/(rhop*particle_neff));
 			properties[i].n0 = particle_neff*properties[i].total/domainVol;
 
 			amrex::Print() <<  "Species "<< i << " count " << properties[i].total << "\n";
@@ -78,13 +80,13 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom, const Distribu
 			amrex::Print() << "n0: " << particle_n0[i] << "\n";
 			properties[i].total = (int)amrex::Math::ceil(particle_n0[i]
 				*domainVol/particle_neff);
-			properties[i].n0 = properties[i].total/domainVol;
+			properties[i].n0 = particle_neff*properties[i].total/domainVol;
 
 			amrex::Print() <<  "Species " << i << " count " << properties[i].total << "\n";
 			amrex::Print() <<  "Species " << i << " n0 " << properties[i].n0 << "\n";
 
 			rho0 += properties[i].n0*properties[i].mass;
-			properties[i].n0*properties[i].mass;
+			Yk0[i] = properties[i].n0*properties[i].mass;
 		}
 		realParticles = realParticles + properties[i].total*particle_neff;
 		simParticles = simParticles + properties[i].total;

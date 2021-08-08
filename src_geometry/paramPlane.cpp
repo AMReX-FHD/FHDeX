@@ -681,8 +681,7 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 		}
 
     // Thermal/Conc BC
-    // Adiabatic not considered here
-    // Implemented Lees-Edwards BC for unbounded shear (bc_vel==3)
+    // Want real number density in densityLeft/Right
     int p = 0;
     for(int i=0; i<3 ; i++)
     {
@@ -693,7 +692,7 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
     	paramPlaneList[p].porosityRight = 1;
     	paramPlaneList[p].sourceLeft = 0;
     	paramPlaneList[p].sinkLeft = 0;
-        paramPlaneList[p].sourceRight = 0;
+			paramPlaneList[p].sourceRight = 0;
 	    paramPlaneList[p].sinkRight = 0;
     	paramPlaneList[p].periodicity = 0;
 	    paramPlaneList[p].temperatureLeft  = T_init[0];
@@ -766,23 +765,23 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 						if(i==0)
 						{
 							paramPlaneList[p].densityLeft[l] = 
-								bc_Xk_x_lo[l]/particle_neff;
+								bc_Xk_x_lo[l]*properties[l].n0;
 							paramPlaneList[p].densityRight[l] = 
-								bc_Xk_x_lo[l]/particle_neff;
+								bc_Xk_x_lo[l]*properties[l].n0;
 						}
 						else if(i==1)
 						{
 							paramPlaneList[p].densityLeft[l] = 
-								bc_Xk_y_lo[l]/particle_neff;
+								bc_Xk_y_lo[l]*properties[l].n0;
 							paramPlaneList[p].densityRight[l] = 
-								bc_Xk_y_lo[l]/particle_neff;
+								bc_Xk_y_lo[l]*properties[l].n0;
 						}
 						else
 						{
 							paramPlaneList[p].densityLeft[l]  = 
-								bc_Xk_z_lo[l]/particle_neff;
+								bc_Xk_z_lo[l]*properties[l].n0;
 							paramPlaneList[p].densityRight[l] = 
-								bc_Xk_z_lo[l]/particle_neff;
+								bc_Xk_z_lo[l]*properties[l].n0;
 						}
 					}
     		}
@@ -799,23 +798,23 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 					if(i==0)
 					{
 						paramPlaneList[p].densityLeft[l]  = 
-							bc_Yk_x_lo[l]/particle_neff;
+							bc_Xk_x_lo[l]*properties[l].n0;
 						paramPlaneList[p].densityRight[l] = 
-							bc_Yk_x_lo[l]/particle_neff;
+							bc_Xk_x_lo[l]*properties[l].n0;
 					}
 					else if(i==1)
 					{
 						paramPlaneList[p].densityLeft[l]  = 
-							bc_Yk_y_lo[l]/particle_neff;
+							bc_Xk_y_lo[l]*properties[l].n0;
 						paramPlaneList[p].densityRight[l] = 
-							bc_Yk_y_lo[l]/particle_neff;
+							bc_Xk_y_lo[l]*properties[l].n0;
 					}
 					else
 					{
 						paramPlaneList[p].densityLeft[l]  = 
-							bc_Yk_z_lo[l]/particle_neff;
+							bc_Xk_z_lo[l]*properties[l].n0;
 						paramPlaneList[p].densityRight[l] = 
-							bc_Yk_z_lo[l]/particle_neff;
+							bc_Xk_z_lo[l]*properties[l].n0;
 					}
 				}
 				
@@ -904,23 +903,23 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 						if(i==0)
 						{
 							paramPlaneList[p+1].densityLeft[l] = 
-								bc_Xk_x_hi[l]/particle_neff;
+								bc_Xk_x_hi[l]*properties[l].n0;
 							paramPlaneList[p+1].densityRight[l] = 
-								bc_Xk_x_hi[l]/particle_neff;
+								bc_Xk_x_hi[l]*properties[l].n0;
 						}
 						else if(i==1)
 						{
 							paramPlaneList[p+1].densityLeft[l] = 
-								bc_Xk_y_hi[l]/particle_neff;
+								bc_Xk_y_hi[l]*properties[l].n0;
 							paramPlaneList[p+1].densityRight[l] = 
-								bc_Xk_y_hi[l]/particle_neff;
+								bc_Xk_y_hi[l]*properties[l].n0;
 						}
 						else
 						{
 							paramPlaneList[p+1].densityLeft[l]  = 
-								bc_Xk_z_hi[l]/particle_neff;
+								bc_Xk_z_hi[l]*properties[l].n0;
 							paramPlaneList[p+1].densityRight[l] = 
-								bc_Xk_z_hi[l]/particle_neff;
+								bc_Xk_z_hi[l]*properties[l].n0;
 						}
 					}
     		}
@@ -939,23 +938,23 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 					if(i==0)
 					{
 						paramPlaneList[p+1].densityLeft[l]  = 
-							bc_Xk_x_hi[l]/particle_neff;
+							bc_Xk_x_hi[l]*properties[l].n0;
 						paramPlaneList[p+1].densityRight[l] = 
-							bc_Xk_x_hi[l]/particle_neff;
+							bc_Xk_x_hi[l]*properties[l].n0;
 					}
 					else if(i==1)
 					{
 						paramPlaneList[p+1].densityLeft[l]  = 
-							bc_Xk_y_hi[l]/particle_neff;
+							bc_Xk_y_hi[l]*properties[l].n0;
 						paramPlaneList[p+1].densityRight[l] = 
-							bc_Xk_y_hi[l]/particle_neff;
+							bc_Xk_y_hi[l]*properties[l].n0;
 					}
 					else
 					{
 						paramPlaneList[p+1].densityLeft[l]  = 
-							bc_Xk_z_hi[l]/particle_neff;
+							bc_Xk_z_hi[l]*properties[l].n0;
 						paramPlaneList[p+1].densityRight[l] = 
-							bc_Xk_z_hi[l]/particle_neff;
+							bc_Xk_z_hi[l]*properties[l].n0;
 					}
 				}
 
