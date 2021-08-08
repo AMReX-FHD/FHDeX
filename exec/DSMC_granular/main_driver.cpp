@@ -45,7 +45,7 @@ void main_driver(const char* argv)
 
   // see stats for the list
   // can add more -- change main_driver, stats, writeplotfile, and Checkpoint
-  int ncross = 37+nspecies+2;
+  int ncross = 50;
   MultiFab spatialCross1D;
   
   // For time correlation functions
@@ -288,8 +288,10 @@ void main_driver(const char* argv)
 			particles.EvaluateStats(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
 				cvlInst,cvlMeans,QMeans,coVars,spatialCross1D,statsCount,time);
 //			particles.TimeCorrelation(cuInst,primInst,timeCross,t0Cross,statsCount);
-			particles.writePlotFile(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
-				coVars,spatialCross1D,geom,time,ncross,istep);
+			if(plot_int>0) {
+				particles.writePlotFile(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
+					coVars,spatialCross1D,geom,time,ncross,istep);
+			}
 		}
 
 		//////////////////////////////////////
