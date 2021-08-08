@@ -19,9 +19,11 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom, const Distribu
 	collisionCellVol = domainVol/totalCollisionCells;
 	ocollisionCellVol = 1.0/collisionCellVol;
 	
+	bool rho_defined = true;
 	if(rho0<0)
 	{
 		rho0=0.;
+		rho_defined = false;
 	}
 	
 	// total = simulated total (total*particle_neff = real number of particles)
@@ -37,29 +39,36 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom, const Distribu
 
 		if(particle_count[i]>=0)
 		{
+			//Print() << "pcnt\n";
 			properties[i].total = particle_count[i];
 			properties[i].n0 = particle_neff*properties[i].total/domainVol;
+			particle_n0[i] = properties[i].n0;
 
 			amrex::Print() <<  "Species "<< i << " count " << properties[i].total << "\n";
 			amrex::Print() <<  "Species "<< i << " n0 " << properties[i].n0 << "\n";
+			amrex::Print() <<  "Species " << i << " rho0 " << properties[i].n0*properties[i].mass << "\n";
 
 			rho0 += properties[i].n0*properties[i].mass;
 			Yk0[i] = properties[i].n0*properties[i].mass;
 		}
 		else if(phi_domain[i]>=0)
 		{
+			//Print() << "phi\n";
 			properties[i].total = (int)amrex::Math::ceil(
 				(phi_domain[i]*domainVol)/(properties[i].partVol*particle_neff) );
 			properties[i].n0 = particle_neff*properties[i].total/domainVol;
+			particle_n0[i] = properties[i].n0;
 
 			amrex::Print() <<  "Species "<< i << " count " << properties[i].total << "\n";
 			amrex::Print() <<  "Species "<< i << " n0 " << properties[i].n0 << "\n";
+			amrex::Print() <<  "Species " << i << " rho0 " << properties[i].n0*properties[i].mass << "\n";
 
 			rho0 += properties[i].n0*properties[i].mass;
 			Yk0[i] = properties[i].n0*properties[i].mass;
 		}
-		else if(rho0 > 0)
+		else if(rho_defined > 0)
 		{
+			//Print() << "rho\n";
 			Real Yktot = 0.0;
 			for(int i=0; i<nspecies; i++) { Yktot += Yk0[i]; }
 			for(int i=0; i<nspecies; i++) {	Yk0[i] /= Yktot; }
@@ -67,9 +76,11 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom, const Distribu
 			Real rhop = properties[i].mass/domainVol;
 			properties[i].total = std::ceil((rho0*Yk0[i])/(rhop*particle_neff));
 			properties[i].n0 = particle_neff*properties[i].total/domainVol;
+			particle_n0[i] = properties[i].n0;
 
 			amrex::Print() <<  "Species "<< i << " count " << properties[i].total << "\n";
 			amrex::Print() <<  "Species "<< i << " n0 " << properties[i].n0 << "\n";
+			amrex::Print() <<  "Species " << i << " rho0 " << properties[i].n0*properties[i].mass << "\n";
 			for(int i=0; i<nspecies; i++)
 			{
 				Yk0[i] *= rho0;
@@ -77,13 +88,16 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom, const Distribu
 		}
 		else
 		{
+			//Print() << "n0\n";
 			amrex::Print() << "n0: " << particle_n0[i] << "\n";
 			properties[i].total = (int)amrex::Math::ceil(particle_n0[i]
 				*domainVol/particle_neff);
 			properties[i].n0 = particle_neff*properties[i].total/domainVol;
+			particle_n0[i] = properties[i].n0;
 
 			amrex::Print() <<  "Species " << i << " count " << properties[i].total << "\n";
 			amrex::Print() <<  "Species " << i << " n0 " << properties[i].n0 << "\n";
+			amrex::Print() <<  "Species " << i << " rho0 " << properties[i].n0*properties[i].mass << "\n";
 
 			rho0 += properties[i].n0*properties[i].mass;
 			Yk0[i] = properties[i].n0*properties[i].mass;
@@ -93,6 +107,8 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom, const Distribu
 		amrex::Print() << "Particles per cell for species " << i 
 			<< " is " << properties[i].total/totalCollisionCells << "\n";
 	}
+	amrex::Print() <<  "Rho0: " << rho0 << "\n";
+	amrex::Print() <<  "Total n0: " << realParticles/domainVol << "\n";
 	
 	for(int i=0; i<nspecies ; i++)
 	{
@@ -285,6 +301,7 @@ void FhdParticleContainer::Source(const Real dt, const paramPlane* paramPlaneLis
 					for(int j = 0; j< nspecies; j++)
 					{
 						Real density = paramPlaneList[i].densityLeft[j];
+						//Print() << "left n: " << density << "\n";
 						Real temp = paramPlaneList[i].temperatureLeft;
 						Real area = paramPlaneList[i].area;
 
@@ -354,6 +371,7 @@ void FhdParticleContainer::Source(const Real dt, const paramPlane* paramPlaneLis
 					for(int j=0; j< nspecies; j++)
 					{
 						Real density = paramPlaneList[i].densityRight[j];
+						//Print() << "right n: " << density << "\n";
 						Real temp = paramPlaneList[i].temperatureRight;
 						Real area = paramPlaneList[i].area;
 

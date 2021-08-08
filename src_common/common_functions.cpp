@@ -113,6 +113,7 @@ void InitializeCommonNamespace() {
                                 bc_Yk_x_lo.data(), bc_Yk_x_hi.data(),
                                 bc_Yk_y_lo.data(), bc_Yk_y_hi.data(),
                                 bc_Yk_z_lo.data(), bc_Yk_z_hi.data(),
+                                n_lo.data(), n_hi.data(),
                                 bc_Xk_x_lo.data(), bc_Xk_x_hi.data(),
                                 bc_Xk_y_lo.data(), bc_Xk_y_hi.data(),
                                 bc_Xk_z_lo.data(), bc_Xk_z_hi.data(),

@@ -310,8 +310,10 @@ void main_driver(const char* argv)
 			}
 			particles.EvaluateStats(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
 				cvlInst,cvlMeans,QMeans,coVars,spatialCross1D,statsCount,time);
-			particles.writePlotFile(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
-				coVars,spatialCross1D,geom,time,ncross,istep);
+			if(plot_int > 0) {
+				particles.writePlotFile(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
+					coVars,spatialCross1D,geom,time,ncross,istep);
+			}
 		}
 
 		//////////////////////////////////////

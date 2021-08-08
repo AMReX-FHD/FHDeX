@@ -58,6 +58,7 @@ extern "C"
                                      amrex::Real* bc_Yk_x_lo, amrex::Real* bc_Yk_x_hi,
                                      amrex::Real* bc_Yk_y_lo, amrex::Real* bc_Yk_y_hi,
                                      amrex::Real* bc_Yk_z_lo, amrex::Real* bc_Yk_z_hi,
+                                     amrex::Real* n_lo, amrex::Real* n_hi, 
                                      amrex::Real* bc_Xk_x_lo, amrex::Real* bc_Xk_x_hi,
                                      amrex::Real* bc_Xk_y_lo, amrex::Real* bc_Xk_y_hi,
                                      amrex::Real* bc_Xk_z_lo, amrex::Real* bc_Xk_z_hi,
