@@ -452,10 +452,14 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
                     data_xcross[16] = prim(i,j,k,6);      // T-instant
                     data_xcross[17] = primmeans(i,j,k,6); // T-mean
                     cvq_xcross[0]   = cvlMeans(i,j,k,0);  // cv-mean
-                    cvq_xcross[1]   = QMeans(i,j,k,0);    // Q-mean
+
+										Real vsqb = (primmeans(i,j,k,2)*primmeans(i,j,k,2)+
+											primmeans(i,j,k,3)*primmeans(i,j,k,3)+
+											primmeans(i,j,k,4)*primmeans(i,j,k,4));
+                    cvq_xcross[1]   = cvlMeans(i,j,k,0)*primmeans(i,j,k,6)-0.5*vsqb; // Q-mean
                }
             });
-        }  // end MFITer
+        }
 
         // Reduce across MPI processes
         ParallelDescriptor::ReduceRealSum(data_xcross_in.data(),nstats);
@@ -498,6 +502,7 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
 
                 Real cvinvcross = 1.0/cvq_xcross[0];
                 Real qmeancross = cvq_xcross[1];
+                
                 Real vxmeancross = data_xcross[11];
                 Real vymeancross = data_xcross[13];
                 Real vzmeancross = data_xcross[15];
@@ -523,9 +528,11 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
                 Real vxmean = primmeans(i,j,k,2);
                 Real vymean = primmeans(i,j,k,3);
                 Real vzmean = primmeans(i,j,k,4);
+								Real Tmean  = primmeans(i,j,k,6);
 
 								Real cvinv = 1.0/cvlMeans(i,j,k,0);
-								Real qmean = QMeans(i,j,k,0);
+								Real vsqb  = (vxmean*vxmean + vymean*vymean + vzmean*vzmean); 
+								Real qmean = cvlMeans(i,j,k,0)*Tmean - 0.5*vsqb;
 
                 // delG = \vec{v}\cdot\vec{\deltaj}
                 Real delG = vxmean*deljx+vymean*deljy+vzmean*deljz;
