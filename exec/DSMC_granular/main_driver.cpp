@@ -269,13 +269,6 @@ void main_driver(const char* argv)
 	int stat_int = 1;
 	Real tbegin, tend;
 
-	int alpha_cnt = 0;
-	for(int i_spec=0;i_spec<nspecies;i_spec++) {
-		for(int j_spec=0;j_spec<nspecies;j_spec++) {
-			int ij_spec = particles.getSpeciesIndex(i_spec,j_spec);
-			particles.interproperties[ij_spec].alpha = alpha_pp[alpha_cnt++];
-		}
-	}
 	for (int istep=step; istep<=max_step; ++istep) {
 		if(istep%IO_int == 0) {
 			tbegin = ParallelDescriptor::second();
@@ -294,7 +287,7 @@ void main_driver(const char* argv)
 			}
 			particles.EvaluateStats(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
 				cvlInst,cvlMeans,QMeans,coVars,spatialCross1D,statsCount,time);
-			particles.TimeCorrelation(cuInst,primInst,timeCross,t0Cross,statsCount);
+//			particles.TimeCorrelation(cuInst,primInst,timeCross,t0Cross,statsCount);
 			particles.writePlotFile(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
 				coVars,spatialCross1D,geom,time,ncross,istep);
 		}
@@ -404,6 +397,4 @@ void main_driver(const char* argv)
 	Real stop_time = ParallelDescriptor::second() - strt_time;
 	ParallelDescriptor::ReduceRealMax(stop_time);
 	amrex::Print() << "Run time = " << stop_time << " seconds" << std::endl;
-
-	//if(particle_input<0 && ParallelDescriptor::MyProc() == 0) {particles.OutputParticles();} // initial condition
 }
