@@ -550,6 +550,10 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
 
         // Enforce flux boundary conditions
         StochFluxStag(faceflux_in,edgeflux_x_in,edgeflux_y_in,edgeflux_z_in,geom);
+        if (membrane_cell >= 0) {
+            StochFluxMem(faceflux_in,edgeflux_x_in,edgeflux_y_in,edgeflux_z_in);
+        }
+
     }
         
     ////////////////////

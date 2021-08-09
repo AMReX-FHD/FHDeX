@@ -664,7 +664,7 @@ void main_driver(const char* argv)
         prim.setVal(rho0,0,1,ngc);      // density
         prim.setVal(0.,1,3,ngc);        // x/y/z velocity
         prim.setVal(T_init[0],4,1,ngc); // temperature
-                                        // pressure computed later in conservedToPrimitive
+
         for(int i=0;i<nspecies;i++) {
             prim.setVal(rhobar[i],6+i,1,ngc);    // mass fractions
         }
@@ -679,6 +679,11 @@ void main_driver(const char* argv)
             massvec[i] = rhobar[i];
         }
         GetEnergy(intEnergy, massvec, T0);
+
+        // set pressure
+        Real P0;
+        GetPressureGas(P0, massvec, rho0, T0);
+        prim.setVal(P0,5,1,ngc); // pressure
 
         cu.setVal(0.0,0,nvars,ngc);
         cu.setVal(rho0,0,1,ngc);           // density
