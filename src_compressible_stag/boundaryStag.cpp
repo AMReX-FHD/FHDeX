@@ -35,7 +35,7 @@ void SetupCWallStag() {
     }
 
     if (bc_mass_lo[0] == 3) {
-        GetPressure(p_lo[0],bc_Yk_x_lo,rho_lo[0],t_lo[0]);
+        GetPressureGas(p_lo[0],bc_Yk_x_lo,rho_lo[0],t_lo[0]);
     }
 
     if (bc_mass_hi[0] == 2) {
@@ -53,7 +53,7 @@ void SetupCWallStag() {
     }
 
     if (bc_mass_hi[0] == 3) {
-        GetPressure(p_hi[0],bc_Yk_x_hi,rho_hi[0],t_hi[0]);
+        GetPressureGas(p_hi[0],bc_Yk_x_hi,rho_hi[0],t_hi[0]);
     }
 
     // Y walls
@@ -72,7 +72,7 @@ void SetupCWallStag() {
     }
 
     if (bc_mass_lo[1] == 3) {
-        GetPressure(p_lo[1],bc_Yk_y_lo,rho_lo[1],t_lo[1]);
+        GetPressureGas(p_lo[1],bc_Yk_y_lo,rho_lo[1],t_lo[1]);
     }
 
     if (bc_mass_hi[1] == 2) {
@@ -90,7 +90,7 @@ void SetupCWallStag() {
     }
 
     if (bc_mass_hi[1] == 3) {
-        GetPressure(p_hi[1],bc_Yk_y_hi,rho_hi[1],t_hi[1]);
+        GetPressureGas(p_hi[1],bc_Yk_y_hi,rho_hi[1],t_hi[1]);
     }
 
     // Z walls
@@ -109,7 +109,7 @@ void SetupCWallStag() {
     }
 
     if (bc_mass_lo[2] == 3) {
-        GetPressure(p_lo[2],bc_Yk_z_lo,rho_lo[2],t_lo[2]);
+        GetPressureGas(p_lo[2],bc_Yk_z_lo,rho_lo[2],t_lo[2]);
     }
 
     if (bc_mass_hi[2] == 2) {
@@ -127,7 +127,7 @@ void SetupCWallStag() {
     }
 
     if (bc_mass_hi[2] == 3) {
-        GetPressure(p_hi[2],bc_Yk_z_hi,rho_hi[2],t_hi[2]);
+        GetPressureGas(p_hi[2],bc_Yk_z_hi,rho_hi[2],t_hi[2]);
     }
 }
 
@@ -156,7 +156,7 @@ void setBCStag(MultiFab& prim_in, MultiFab& cons_in,
 
     for (int i=0; i<AMREX_SPACEDIM; i++) {
         BCMassTempPress(prim_in, cons_in, geom, i);
-        BCMomNormal(cumom_in[i], vel_in[i], geom, i);
+        BCMomNormal(cumom_in[i], vel_in[i], cons_in, geom, i);
         BCMomTrans(cumom_in[i], vel_in[i], geom, i);
     }
     BCRhoRhoE(cons_in, prim_in, cumom_in, geom);
@@ -1047,7 +1047,7 @@ void BCMassTempPress(MultiFab& prim_in,MultiFab& cons_in,const amrex::Geometry g
 
 // Set normal momemntum and velocity on the boundary and ghost cells of the 
 // staggered grid based on slip/no-slip BCs
-void BCMomNormal(MultiFab& mom_in, MultiFab& vel_in,
+void BCMomNormal(MultiFab& mom_in, MultiFab& vel_in, MultiFab& cons_in,
                  const amrex::Geometry geom, int dim)
 {
     BL_PROFILE_VAR("BCMomNormal()",BCMomNormal);
@@ -1059,8 +1059,9 @@ void BCMomNormal(MultiFab& mom_in, MultiFab& vel_in,
 
         const Box& bx = mfi.growntilebox(ng_v);
         
-        const Array4<Real>& vel = vel_in.array(mfi);
-        const Array4<Real>& mom = mom_in.array(mfi);
+        const Array4<Real>& vel  = vel_in.array(mfi);
+        const Array4<Real>& mom  = mom_in.array(mfi);
+        const Array4<Real>& cons = cons_in.array(mfi);
     
         // LO X
         if ((dim == 0) && (bc_mass_lo[0] == 3) && (bx.smallEnd(0) <= dom.smallEnd(0))) { // reservoir
@@ -1280,7 +1281,7 @@ void BCMomTrans(MultiFab& mom_in, MultiFab& vel_in,
 
         // LO X
         if ((dim != 0) && (bc_vel_lo[0] == 1 || bc_vel_lo[0] == 2) && (bx.smallEnd(0) < dom.smallEnd(0))) {
-            const Real fac;
+            Real fac;
             if (bc_mass_lo[0] == 3) {fac = 0.0;} // reservoir
             else if (bc_vel_lo[0] == 1) {fac = 1.0;} // slip
             else if (bc_vel_lo[0] == 2) {fac = -1.0;} // no-slip
@@ -1295,7 +1296,7 @@ void BCMomTrans(MultiFab& mom_in, MultiFab& vel_in,
 
         // HI X
         if ((dim != 0) && (bc_vel_hi[0] == 1 || bc_vel_hi[0] == 2) && (bx.bigEnd(0) > dom.bigEnd(0))) {
-            const Real fac;
+            Real fac;
             if (bc_mass_hi[0] == 3) {fac = 0.0;} // reservoir
             else if (bc_vel_hi[0] == 1) {fac = 1.0;} // slip
             else if (bc_vel_hi[0] == 2) {fac = -1.0;} // no-slip
@@ -1310,7 +1311,7 @@ void BCMomTrans(MultiFab& mom_in, MultiFab& vel_in,
 
         // LO Y
         if ((dim != 1) && (bc_vel_lo[1] == 1 || bc_vel_lo[1] == 2) && (bx.smallEnd(1) < dom.smallEnd(1))) {
-            const Real fac;
+            Real fac;
             if (bc_mass_lo[1] == 3) {fac = 0.0;} // reservoir
             else if (bc_vel_lo[1] == 1) {fac = 1.0;} // slip
             else if (bc_vel_lo[1] == 2) {fac = -1.0;} // no-slip
@@ -1325,7 +1326,7 @@ void BCMomTrans(MultiFab& mom_in, MultiFab& vel_in,
 
         // HI Y
         if ((dim != 1) && (bc_vel_hi[1] == 1 || bc_vel_hi[1] == 2) && (bx.bigEnd(1) > dom.bigEnd(1))) {
-            const Real fac;
+            Real fac;
             if (bc_mass_hi[1] == 3) {fac = 0.0;} // reservoir
             else if (bc_vel_hi[1] == 1) {fac = 1.0;} // slip
             else if (bc_vel_hi[1] == 2) {fac = -1.0;} // no-slip
@@ -1340,7 +1341,7 @@ void BCMomTrans(MultiFab& mom_in, MultiFab& vel_in,
 
         // LO Z
         if ((dim != 2) && (bc_vel_lo[2] == 1 || bc_vel_lo[2] == 2) && (bx.smallEnd(2) < dom.smallEnd(2))) {
-            const Real fac;
+            Real fac;
             if (bc_mass_lo[2] == 3) {fac = 0.0;} // reservoir
             else if (bc_vel_lo[2] == 1) {fac = 1.0;} // slip
             else if (bc_vel_lo[2] == 2) {fac = -1.0;} // no-slip
@@ -1355,7 +1356,7 @@ void BCMomTrans(MultiFab& mom_in, MultiFab& vel_in,
 
         // HI Z
         if ((dim != 2) && (bc_vel_hi[2] == 1 || bc_vel_hi[2] == 2) && (bx.bigEnd(2) > dom.bigEnd(2))) {
-            const Real fac;
+            Real fac;
             if (bc_mass_hi[2] == 3) {fac = 0.0;} // reservoir
             else if (bc_vel_hi[2] == 1) {fac = 1.0;} // slip
             else if (bc_vel_hi[2] == 2) {fac = -1.0;} // no-slip

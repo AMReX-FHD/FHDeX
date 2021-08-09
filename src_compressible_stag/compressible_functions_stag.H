@@ -58,7 +58,7 @@ void BCMem(MultiFab& prim_in, MultiFab& cons_in,
 
 void BCMassTempPress(MultiFab& prim_in,MultiFab& cons_in,const amrex::Geometry geom,int dim);
 
-void BCMomNormal(MultiFab& mom_in, MultiFab& vel_in,
+void BCMomNormal(MultiFab& mom_in, MultiFab& vel_in, MultiFab& cons_in,
                  const amrex::Geometry geom, int dim);
 
 void BCMomTrans(MultiFab& mom_in, MultiFab& vel_in,

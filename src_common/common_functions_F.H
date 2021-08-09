@@ -54,6 +54,7 @@ extern "C"
                                      int* bc_therm_lo, int* bc_therm_hi,
                                      amrex::Real * p_lo, amrex::Real * p_hi,
                                      amrex::Real* t_lo, amrex::Real* t_hi,
+                                     amrex::Real* rho_lo, amrex::Real* rho_hi,
                                      amrex::Real* bc_Yk_x_lo, amrex::Real* bc_Yk_x_hi,
                                      amrex::Real* bc_Yk_y_lo, amrex::Real* bc_Yk_y_hi,
                                      amrex::Real* bc_Yk_z_lo, amrex::Real* bc_Yk_z_hi,
