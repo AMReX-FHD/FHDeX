@@ -914,7 +914,8 @@ void collect_charge_gpu (FhdParticleContainer::AoS& aos, FArrayBox& charge, F f,
                      const amrex::Real* plo_in, const amrex::Real* dx_in)
 {
     using namespace amrex;
-    constexpr int ks = F::ks;
+    
+    constexpr int twoks = 2*F::ks;
     
     GpuArray<Real, 3> plo = {plo_in[0], plo_in[1], plo_in[2]};
     GpuArray<Real, 3> dx  = {dx_in[0],  dx_in[1],  dx_in[2] };    
@@ -934,9 +935,9 @@ void collect_charge_gpu (FhdParticleContainer::AoS& aos, FArrayBox& charge, F f,
         FhdParticleContainer::ParticleType& p = pstruct[ip];
 
         Real qm = p.rdata(FHD_realData::q)/permittivity;
-        
-        Real w[3][2*ks];
-        int indices[3][2*ks];
+
+        Real w[3][twoks];
+        int indices[3][twoks];
 
         get_weights(p, f, nodal_flag, w, indices, plo, dx, dxi);
         spread_op(arr, f, w, indices, qm*volinv);
@@ -980,7 +981,7 @@ void emf_gpu (FhdParticleContainer::AoS& aos, F f,
     const IntVect Eyflag = Ey.box().type();
     const IntVect Ezflag = Ez.box().type();
 
-    constexpr int ks = F::ks;
+    constexpr int twoks = 2*F::ks;
        
     amrex::ParallelFor(Np, [=] AMREX_GPU_HOST_DEVICE (int ip) noexcept
     {
@@ -989,8 +990,8 @@ void emf_gpu (FhdParticleContainer::AoS& aos, F f,
                 
         if(p.idata(FHD_intData::pinned) == 0)
         {
-            Real w[3][2*ks];
-            int indices[3][2*ks];
+            Real w[3][twoks];
+            int indices[3][twoks];
             //Print() << "Here!\n";
             //E field is cell centered so we can use the same weights/indicies for each component
             get_weights(p, f, Exflag, w, indices, plo, dx, dxi);
@@ -1052,8 +1053,7 @@ void spread_ions_fhd_gpu (FhdParticleContainer::AoS& aos, F f,
     const IntVect sourceyflag = sourcey.box().type();
     const IntVect sourcezflag = sourcez.box().type();
 
-
-    constexpr int ks = F::ks;
+    constexpr int twoks = 2*F::ks;
        
     amrex::ParallelFor(Np, [=] AMREX_GPU_HOST_DEVICE (int ip) noexcept
     {
@@ -1063,8 +1063,8 @@ void spread_ions_fhd_gpu (FhdParticleContainer::AoS& aos, F f,
         Real forcey = p.rdata(FHD_realData::forcey)*volinv;
         Real forcez = p.rdata(FHD_realData::forcez)*volinv;
         
-        Real w[3][2*ks];
-        int indices[3][2*ks];
+        Real w[3][twoks];
+        int indices[3][twoks];
         
         get_weights(p, f, sourcexflag, w, indices, plo, dx, dxi);
         spread_op(sourcexarr, f, w, indices, forcex);
