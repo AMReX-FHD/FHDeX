@@ -311,6 +311,7 @@ void FhdParticleContainer::SortParticles()
         auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
         auto& particles = particle_tile.GetArrayOfStructs();
         const long np = particles.numParticles();
+       
 
         for (int i = 0; i < np; ++ i)
         {
@@ -468,8 +469,6 @@ void FhdParticleContainer::Source(const Real dt, const paramPlane* paramPlaneLis
                         Real fluxVar = density*area*sqrt(properties[j].R*temp/(2.0*M_PI))/particle_neff;
 
                         Real totalFlux = dt*fluxMean + sqrt(dt*fluxVar)*amrex::RandomNormal(0.,1.);
-
-                        //Print() << "Flux mean " << dt*fluxMean << ", flux sd " << sqrt(dt*fluxVar) << "\n";
 
                         int totalFluxInt =  (int)floor(totalFlux);
                         Real totalFluxLeftOver = totalFlux - totalFluxInt;
