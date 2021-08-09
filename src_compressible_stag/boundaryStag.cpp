@@ -1067,7 +1067,7 @@ void BCMomTrans(MultiFab& mom_in, MultiFab& vel_in,
         }
 
         // HI X
-        if ((dim != 0) && (bc_vel_lo[0] == 1 || bc_vel_hi[0] == 2) && (bx.bigEnd(0) > dom.bigEnd(0))) {
+        if ((dim != 0) && (bc_vel_hi[0] == 1 || bc_vel_hi[0] == 2) && (bx.bigEnd(0) > dom.bigEnd(0))) {
             const Real fac = (bc_vel_hi[0] == 1) ? 1. : -1.;
             amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
