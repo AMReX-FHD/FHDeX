@@ -45,7 +45,7 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
              std::array<MultiFab, AMREX_SPACEDIM>& cornx,
              std::array<MultiFab, AMREX_SPACEDIM>& corny,
              std::array<MultiFab, AMREX_SPACEDIM>& cornz,
-             MultiFab& visccorn, MultiFab& rancorn,
+             MultiFab& visccorn, MultiFab& rancorn, MultiFab& ranchem,
              const Geometry geom, const Real dt);
 
 void conservedToPrimitive(MultiFab& prim_in, const MultiFab& cons_in);
