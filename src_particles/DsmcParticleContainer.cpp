@@ -440,6 +440,7 @@ void FhdParticleContainer::EvaluateStats(MultiFab& particleInstant, MultiFab& pa
 void FhdParticleContainer::Source(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount)
 {
 
+    BL_PROFILE_VAR("Source()",Source);
 
     int lev = 0;
     bool proc0_enter = true;
