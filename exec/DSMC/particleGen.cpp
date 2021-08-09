@@ -82,7 +82,6 @@ void FhdParticleContainer::InitParticles()
             particleFile.close();
         }
     }
-
     Redistribute();
     SortParticles();
 }
