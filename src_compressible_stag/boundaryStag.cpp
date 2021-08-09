@@ -1189,7 +1189,7 @@ void BCRhoRhoE(MultiFab& cons_in, MultiFab& prim_in,
         }
         
         // HI X
-        if ((bc_vel_lo[0] == 1 || bc_vel_lo[0] == 2) && (bx.bigEnd(0) > dom.bigEnd(0))) {
+        if ((bc_vel_hi[0] == 1 || bc_vel_hi[0] == 2) && (bx.bigEnd(0) > dom.bigEnd(0))) {
             
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
@@ -1267,7 +1267,7 @@ void BCRhoRhoE(MultiFab& cons_in, MultiFab& prim_in,
         }
         
         // HI Y
-        if ((bc_vel_lo[1] == 1 || bc_vel_lo[1] == 2) && (bx.bigEnd(1) > dom.bigEnd(1))) {
+        if ((bc_vel_hi[1] == 1 || bc_vel_hi[1] == 2) && (bx.bigEnd(1) > dom.bigEnd(1))) {
             
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
@@ -1345,7 +1345,7 @@ void BCRhoRhoE(MultiFab& cons_in, MultiFab& prim_in,
         }
         
         // HI Z
-        if ((bc_vel_lo[2] == 1 || bc_vel_lo[2] == 2) && (bx.bigEnd(2) > dom.bigEnd(2))) {
+        if ((bc_vel_hi[2] == 1 || bc_vel_hi[2] == 2) && (bx.bigEnd(2) > dom.bigEnd(2))) {
             
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
