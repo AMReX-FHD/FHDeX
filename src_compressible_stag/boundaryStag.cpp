@@ -2173,6 +2173,8 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
         // 1 = slip wall   : multiply fluxes on wall by 0
         // 2 = no-slip wall: multiply fluxes on wall by sqrt(2)
         Real factor = (bc_vel_lo[0] == 1) ? 0. : sqrt(2.);
+        // reservoir            : unchanged
+        if (bc_mass_lo[0] == 3) factor = 1.0;
 
         ////////////////////////////////////////////////
         // domain grown nodally based on edgeflux_x_in[0] nodality (xy)
@@ -2246,6 +2248,8 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
         // 1 = slip wall   : multiply fluxes on wall by 0
         // 2 = no-slip wall: multiply fluxes on wall by sqrt(2)
         Real factor = (bc_vel_hi[0] == 1) ? 0. : sqrt(2.);
+        // reservoir            : unchanged
+        if (bc_mass_hi[0] == 3) factor = 1.0;
 
         ////////////////////////////////////////////////
         // domain grown nodally based on edgeflux_x_in[0] nodality (xy)
@@ -2319,6 +2323,8 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
         // 1 = slip wall   : multiply fluxes on wall by 0
         // 2 = no-slip wall: multiply fluxes on wall by sqrt(2)
         Real factor = (bc_vel_lo[1] == 1) ? 0. : sqrt(2.);
+        // reservoir            : unchanged
+        if (bc_mass_lo[1] == 3) factor = 1.0;
 
         ////////////////////////////////////////////////
         // domain grown nodally based on edgeflux_y_in[0] nodality (xy)
@@ -2392,6 +2398,8 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
         // 1 = slip wall   : multiply fluxes on wall by 0
         // 2 = no-slip wall: multiply fluxes on wall by sqrt(2)
         Real factor = (bc_vel_hi[1] == 1) ? 0. : sqrt(2.);
+        // reservoir            : unchanged
+        if (bc_mass_hi[1] == 3) factor = 1.0;
 
         ////////////////////////////////////////////////
         // domain grown nodally based on edgeflux_y_in[0] nodality (xy)
@@ -2465,6 +2473,8 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
         // 1 = slip wall   : multiply fluxes on wall by 0
         // 2 = no-slip wall: multiply fluxes on wall by sqrt(2)
         Real factor = (bc_vel_lo[2] == 1) ? 0. : sqrt(2.);
+        // reservoir            : unchanged
+        if (bc_mass_lo[2] == 3) factor = 1.0;
 
         ////////////////////////////////////////////////
         // domain grown nodally based on edgeflux_z_in[1] nodality (xz)
@@ -2538,6 +2548,8 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
         // 1 = slip wall   : multiply fluxes on wall by 0
         // 2 = no-slip wall: multiply fluxes on wall by sqrt(2)
         Real factor = (bc_vel_hi[2] == 1) ? 0. : sqrt(2.);
+        // reservoir            : unchanged
+        if (bc_mass_hi[2] == 3) factor = 1.0;
 
         ////////////////////////////////////////////////
         // domain grown nodally based on edgeflux_z_in[1] nodality (xz)
