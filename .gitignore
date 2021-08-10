@@ -59,6 +59,7 @@ exec/**/*.png
 
 ## Output data
 exec/**/out
+exec/**/*Cross_*
 
 
 exec/lib_hydro/amrex
