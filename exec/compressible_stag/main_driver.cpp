@@ -138,12 +138,13 @@ void main_driver(const char* argv)
     }
 
     // contains yz-averaged running & instantaneous averages of conserved variables (2*nvars) + primitive variables [vx, vy, vz, T, Yk]: 2*4 + 2*nspecies 
-    Vector<Real> yzAvMeans_cross(2*nvars+8+2*nspecies, 0.0); 
+    Vector<Real> dataSliceMeans_xcross(2*nvars+8+2*nspecies, 0.0); 
     
     // see statsStag for the list
     // can add more -- change main_driver, statsStag, writeplotfilestag, and Checkpoint
     int ncross = 37+nspecies+2;
-    Vector<Real> spatialCross(n_cells[0]*ncross, 0.0); 
+    MultiFab spatialCross1D;
+    Vector<Real> spatialCross3D(n_cells[0]*ncross, 0.0);
     
     // make BoxArray and Geometry
     BoxArray ba;
@@ -311,10 +312,17 @@ void main_driver(const char* argv)
     /////////////////////////////////////////////
 
     if (restart > 0) {
-        ReadCheckPoint(step_start, time, statsCount, geom, domain, cu, cuMeans, cuVars, prim,
-                       primMeans, primVars, cumom, cumomMeans, cumomVars, 
-                       vel, velMeans, velVars, coVars, spatialCross, ncross,
-                       ba, dmap);
+        
+        if (do_1D) {
+            ReadCheckPoint1D(step_start, time, statsCount, geom, domain, cu, cuMeans, cuVars, prim,
+                             primMeans, primVars, cumom, cumomMeans, cumomVars, 
+                             vel, velMeans, velVars, coVars, spatialCross1D, ncross, ba, dmap);
+        }
+        else {
+            ReadCheckPoint3D(step_start, time, statsCount, geom, domain, cu, cuMeans, cuVars, prim,
+                             primMeans, primVars, cumom, cumomMeans, cumomVars, 
+                             vel, velMeans, velVars, coVars, spatialCross3D, ncross, ba, dmap);
+        }
 
         if (reset_stats == 1) statsCount = 1;
 
@@ -331,7 +339,7 @@ void main_driver(const char* argv)
         chi.setVal(1.0,0,nspecies,ngc);
         D.setVal(1.0,0,nspecies*nspecies,ngc);
 
-        if (plot_cross) {
+        if ((plot_cross) and (do_1D==0)) {
             if (ParallelDescriptor::IOProcessor()) outfile.open(filename, std::ios::app);
         }
 
@@ -545,6 +553,11 @@ void main_driver(const char* argv)
             cumomVars[d].setVal(0.);
         }
 
+        if (do_1D) {
+            spatialCross1D.define(ba,dmap,ncross,0);
+            spatialCross1D.setVal(0.0);
+        }
+
         ///////////////////////////////////////////
         // Setup Structure factor
         ///////////////////////////////////////////
@@ -702,10 +715,17 @@ void main_driver(const char* argv)
             WritePlotFileStag(0, 0.0, geom, cu, cuMeans, cuVars, cumom, cumomMeans, cumomVars, 
                           prim, primMeans, primVars, vel, velMeans, velVars, coVars, eta, kappa);
 
-            if (plot_cross) WriteSpatialCross(spatialCross, 0, dx);
+            if (plot_cross) {
+                if (do_1D) {
+                    WriteSpatialCross1D(spatialCross1D, 0, geom, ncross);
+                }
+                else {
+                    WriteSpatialCross3D(spatialCross3D, 0, geom, ncross);
+                }
+            }
         }
 
-        if (plot_cross) {
+        if ((plot_cross) and (do_1D==0)) {
             if (ParallelDescriptor::IOProcessor()) outfile.open(filename);
         }
 
@@ -789,7 +809,7 @@ void main_driver(const char* argv)
         // reset statistics after n_steps_skip
         // if n_steps_skip is negative, we use it as an interval
         if ((n_steps_skip > 0 && step == n_steps_skip) ||
-            (n_steps_skip < 0 && step%amrex::Math::abs(n_steps_skip == 0)) ) {
+            (n_steps_skip < 0 && step%amrex::Math::abs(n_steps_skip) == 0) ) {
 
             cuMeans.setVal(0.0);
             cuVars.setVal(0.0);
@@ -804,7 +824,12 @@ void main_driver(const char* argv)
             }
 
             coVars.setVal(0.0);
-            spatialCross.assign(spatialCross.size(), 0.0);
+            if (do_1D) {
+                spatialCross1D.setVal(0.0);
+            }
+            else {
+                spatialCross3D.assign(spatialCross3D.size(), 0.0);
+            }
 
             std::printf("Resetting stat collection.\n");
 
@@ -813,9 +838,16 @@ void main_driver(const char* argv)
         }
 
         // Evaluate Statistics
-        evaluateStatsStag(cu, cuMeans, cuVars, prim, primMeans, primVars, vel, 
-                          velMeans, velVars, cumom, cumomMeans, cumomVars, coVars,
-                          yzAvMeans_cross, spatialCross, ncross, statsCount, dx);
+        if (do_1D) {
+            evaluateStatsStag1D(cu, cuMeans, cuVars, prim, primMeans, primVars, vel, 
+                                velMeans, velVars, cumom, cumomMeans, cumomVars, coVars,
+                                spatialCross1D, ncross, statsCount);
+        }
+        else {
+            evaluateStatsStag3D(cu, cuMeans, cuVars, prim, primMeans, primVars, vel, 
+                                velMeans, velVars, cumom, cumomMeans, cumomVars, coVars,
+                                dataSliceMeans_xcross, spatialCross3D, ncross, domain, statsCount);
+        }
         statsCount++;
 
         // write a plotfile
@@ -833,16 +865,21 @@ void main_driver(const char* argv)
              //yzAverage(cuMeans, cuVars, primMeans, primVars, spatialCross,
              //          cuMeansAv, cuVarsAv, primMeansAv, primVarsAv, spatialCrossAv);
             WritePlotFileStag(step, time, geom, cu, cuMeans, cuVars, cumom, cumomMeans, cumomVars,
-                          prim, primMeans, primVars, vel, velMeans, velVars, coVars, eta, kappa);
+                              prim, primMeans, primVars, vel, velMeans, velVars, coVars, eta, kappa);
 
             if (plot_cross) {
-                WriteSpatialCross(spatialCross, step, dx);
-                if (ParallelDescriptor::IOProcessor()) {
-                    outfile << step << " ";
-                    for (auto l=0; l<2*nvars+8+2*nspecies; ++l) {
-                        outfile << yzAvMeans_cross[l] << " ";
+                if (do_1D) {
+                    WriteSpatialCross1D(spatialCross1D, step, geom, ncross);
+                }
+                else {
+                    WriteSpatialCross3D(spatialCross3D, step, geom, ncross);
+                    if (ParallelDescriptor::IOProcessor()) {
+                        outfile << step << " ";
+                        for (auto l=0; l<2*nvars+8+2*nspecies; ++l) {
+                            outfile << dataSliceMeans_xcross[l] << " ";
+                        }
+                        outfile << std::endl;
                     }
-                    outfile << std::endl;
                 }
             }
         }
@@ -957,9 +994,16 @@ void main_driver(const char* argv)
         // write checkpoint file
         if (chk_int > 0 && step > 0 && step%chk_int == 0)
         {
-            WriteCheckPoint(step, time, statsCount, geom, cu, cuMeans, cuVars, prim,
-                           primMeans, primVars, cumom, cumomMeans, cumomVars, 
-                           vel, velMeans, velVars, coVars, spatialCross, ncross);
+            if (do_1D) {
+                WriteCheckPoint1D(step, time, statsCount, geom, cu, cuMeans, cuVars, prim,
+                                  primMeans, primVars, cumom, cumomMeans, cumomVars, 
+                                  vel, velMeans, velVars, coVars, spatialCross1D, ncross);
+            }
+            else {
+                WriteCheckPoint3D(step, time, statsCount, geom, cu, cuMeans, cuVars, prim,
+                                  primMeans, primVars, cumom, cumomMeans, cumomVars, 
+                                  vel, velMeans, velVars, coVars, spatialCross3D, ncross);
+            }
         }
 
         // timer

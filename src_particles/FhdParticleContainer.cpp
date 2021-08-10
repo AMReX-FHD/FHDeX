@@ -916,11 +916,11 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
         Print() <<"Maximum observed displacement (fraction of radius): " << maxdist_proc << "\n";
         //Print() <<"Average diffusion coefficient: " << diffinst_proc/np_proc << "\n";
     }
-    if(reDist != 0)
-    {
+//    if(reDist != 0)
+//    {
         Redistribute();
         doRedist = 1;
-    }
+//    }
 }
 
 
@@ -1806,7 +1806,7 @@ void FhdParticleContainer::EvaluateStats(MultiFab& particleInstant,
     for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) 
     {
 
-	    PairIndex index(pti.index(), pti.LocalTileIndex()); /
+	    PairIndex index(pti.index(), pti.LocalTileIndex());
         const int np = this->GetParticles(lev)[index].numRealParticles();
 	    auto& plev = this->GetParticles(lev);
 	    auto& ptile = plev[index];

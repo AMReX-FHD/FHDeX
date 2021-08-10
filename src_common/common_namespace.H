@@ -171,6 +171,9 @@ namespace common {
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> bc_Yk_y_hi;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> bc_Yk_z_lo;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> bc_Yk_z_hi;
+
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> n_lo;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> n_hi;
     
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> bc_Xk_x_lo;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> bc_Xk_x_hi;
@@ -203,6 +206,8 @@ namespace common {
     // specify the Dirichlet or Neumann BC value
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> potential_lo;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> potential_hi;
+
+    extern int                        dsmc_boundaries;
 
     // structure factor and radial/cartesian pair correlation function analysis
     extern int                        struct_fact_int;
@@ -297,6 +302,7 @@ namespace common {
     extern int                        plot_vars;
     extern int                        plot_covars;
     extern int                        plot_cross;
+    extern int                        plot_time;
     extern int                        particle_motion;
     
     // parameters neccesary for chemical reactions
@@ -312,4 +318,6 @@ namespace common {
     extern amrex::Real                turb_b;
     extern int                        turbForcing;
 
+    extern AMREX_GPU_MANAGED int      do_1D;
+    extern int                        time_sample;
 }

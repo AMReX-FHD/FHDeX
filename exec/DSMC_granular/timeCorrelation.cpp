@@ -1,56 +1,79 @@
 #include "DsmcParticleContainer.H"
 using namespace std;
-void FhdParticleContainer::TimeCorrelation(MultiFab& mfcuInst,
-						MultiFab& mfprimInst,
-            MultiFab& mftimeCross,
-            MultiFab& mft0Cross,
+void FhdParticleContainer::TimeCorrelation(
+						const MultiFab& mfrho_time,
+						const MultiFab& mfu_time,
+						const MultiFab& mfK_time,
+            MultiFab& mfrhotimeCross,
+            MultiFab& mfutimeCross,
+            MultiFab& mfKtimeCross,
+						const int nCor,
 						const int steps)
 {
-    BL_PROFILE_VAR("EvaluateStats()",EvaluateStats);
-    const Real osteps = 1.0/steps;
-    const Real stepsMinusOne = steps-1.;
+  BL_PROFILE_VAR("EvaluateStats()",EvaluateStats);
+  Print() << "step " << steps << "\n";
+  const Real osteps = 1.0/steps;
+  const Real stepsMinusOne = steps-1.;
+  const int lev = 0;
+  for ( MFIter mfi(mfrhotimeCross); mfi.isValid(); ++mfi)
+  {
+    const Box& bx = mfi.validbox();
 
-    const int lev = 0;
-    if (plot_cross)
+    const Array4<const Real> rho_time  = mfrho_time.array(mfi);
+    const Array4<const Real> u_time    = mfu_time.array(mfi);
+    const Array4<const Real> K_time    = mfK_time.array(mfi);
+
+    Array4<      Real> rhoCross  = mfrhotimeCross.array(mfi);
+    Array4<      Real> uCross    = mfutimeCross.array(mfi);
+    Array4<      Real> KCross    = mfKtimeCross.array(mfi);
+
+		amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
     {
-        for ( MFIter mfi(mfcuInst); mfi.isValid(); ++mfi)
-        {
-            const Box& bx = mfi.validbox();
+    	for(int l=0;l<nCor;l++){
+    		rhoCross(i,j,k,l) = (rho_time(i,j,k,0)*rho_time(i,j,k,l)
+    			+rhoCross(i,j,k,l)*stepsMinusOne)*osteps; 
+    		uCross(i,j,k,l) = (u_time(i,j,k,0)*u_time(i,j,k,l)
+    			+uCross(i,j,k,l)*stepsMinusOne)*osteps;
+    		KCross(i,j,k,l) = (K_time(i,j,k,0)*K_time(i,j,k,l)
+    			+KCross(i,j,k,l)*stepsMinusOne)*osteps;
+    	}
+    });
+	}
+}
 
-            const Array4<const Real> prim      = mfprimInst.array(mfi);
-            const Array4<const Real> cu        = mfcuInst.array(mfi);
+// Update data points
+// Assumes equally spaced
+void FhdParticleContainer::updateTimeData(
+	MultiFab& mfcuInst,
+	MultiFab& mfprimInst,
+	MultiFab& mfrho_time,
+	MultiFab& mfu_time,
+	MultiFab& mfK_time,
+	const int nCor)
+{
+  BL_PROFILE_VAR("updateTimeData()",EvaluateStats);
+  const int lev = 0;
+  for ( MFIter mfi(mfcuInst); mfi.isValid(); ++mfi)
+  {
+    const Box& bx = mfi.validbox();
 
-						const Array4<      Real> t0Cross   = mftimeCross.array(mfi);
-            const Array4<      Real> timeCross = mft0Cross.array(mfi);
+    Array4<Real> rho_time              = mfrho_time.array(mfi);
+    Array4<Real> u_time                = mfu_time.array(mfi);
+    Array4<Real> K_time                = mfK_time.array(mfi);
+    const Array4<const Real> cuInst    = mfcuInst.array(mfi);
+    const Array4<const Real> primInst  = mfprimInst.array(mfi);
 
-						if(steps==1)
-						{
-							amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-            	{
-								t0Cross(i,j,k,0)  = cu(i,j,k,0);  // rho-instant
-								t0Cross(i,j,k,1)  = cu(i,j,k,4);  // energy-instant
-								t0Cross(i,j,k,2)  = cu(i,j,k,1);  // jx-instant
-								t0Cross(i,j,k,3)  = cu(i,j,k,2);  // jy-instant
-								t0Cross(i,j,k,4)  = cu(i,j,k,3);  // jz-instant
-								t0Cross(i,j,k,5) = prim(i,j,k,2); // velx-instant
-								t0Cross(i,j,k,6) = prim(i,j,k,3); // vely-instant
-								t0Cross(i,j,k,7) = prim(i,j,k,4); // velz-instant
-								t0Cross(i,j,k,8) = prim(i,j,k,6); // T-instant
-							});
-						}
-
-            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-            {
-            	timeCross(i,j,k,0) = (cu(i,j,k,0)*t0Cross(i,j,k,0)+timeCross(i,j,k,0)*stepsMinusOne)*osteps;
-            	timeCross(i,j,k,1) = (cu(i,j,k,4)*t0Cross(i,j,k,1)+timeCross(i,j,k,1)*stepsMinusOne)*osteps;
-            	timeCross(i,j,k,2) = (cu(i,j,k,1)*t0Cross(i,j,k,2)+timeCross(i,j,k,2)*stepsMinusOne)*osteps;
-            	timeCross(i,j,k,3) = (cu(i,j,k,2)*t0Cross(i,j,k,3)+timeCross(i,j,k,3)*stepsMinusOne)*osteps;
-            	timeCross(i,j,k,4) = (cu(i,j,k,3)*t0Cross(i,j,k,4)+timeCross(i,j,k,4)*stepsMinusOne)*osteps;
-            	timeCross(i,j,k,5) = (prim(i,j,k,2)*t0Cross(i,j,k,5)+timeCross(i,j,k,5)*stepsMinusOne)*osteps;
-            	timeCross(i,j,k,6) = (prim(i,j,k,3)*t0Cross(i,j,k,6)+timeCross(i,j,k,6)*stepsMinusOne)*osteps;
-            	timeCross(i,j,k,7) = (prim(i,j,k,4)*t0Cross(i,j,k,7)+timeCross(i,j,k,7)*stepsMinusOne)*osteps;
-            	timeCross(i,j,k,8) = (prim(i,j,k,6)*t0Cross(i,j,k,8)+timeCross(i,j,k,8)*stepsMinusOne)*osteps;
-            });
-        }
-    }
+		amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+    {
+    	// shift all values one to left
+    	for (int l=1;l<nCor;l++) {
+    		rho_time(i,j,k,l-1) = rho_time(i,j,k,l);
+    		u_time(i,j,k,l-1) = u_time(i,j,k,l);
+    		K_time(i,j,k,l-1) = K_time(i,j,k,l);
+    	}
+    	rho_time(i,j,k,nCor-1) = cuInst(i,j,k,0);
+    	u_time(i,j,k,nCor-1)   = primInst(i,j,k,2);
+    	K_time(i,j,k,nCor-1)   = cuInst(i,j,k,4);
+    });
+	}
 }

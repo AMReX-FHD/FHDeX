@@ -1,27 +1,23 @@
 #include "DsmcParticleContainer.H"
 using namespace std;
-void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
-						MultiFab& mfcuMeans,
-						MultiFab& mfcuVars,
-						MultiFab& mfprimInst,
-						MultiFab& mfprimMeans,
-						MultiFab& mfprimVars,
-						MultiFab& mfcvlInst,
-						MultiFab& mfcvlMeans,
-						MultiFab& mfQMeans,
-						MultiFab& mfcoVars,
-            MultiFab& spatialCross1D, 
-						const int steps,
-						Real time) {
+void FhdParticleContainer::EvaluateStats(
+	MultiFab& mfcuInst,
+	MultiFab& mfcuMeans,
+	MultiFab& mfcuVars,
+	MultiFab& mfprimInst,
+	MultiFab& mfprimMeans,
+	MultiFab& mfprimVars,
+	MultiFab& mfcvlInst,
+	MultiFab& mfcvlMeans,
+	MultiFab& mfQMeans,
+	MultiFab& mfcoVars,
+	MultiFab& spatialCross1D, 
+	const int steps,
+	Real time)
+{
     BL_PROFILE_VAR("EvaluateStats()",EvaluateStats);
     const Real osteps = 1.0/steps;
     const Real stepsMinusOne = steps-1.;
-
-		// Zero out instantaneous values
-		mfcuInst.setVal(0.);
-		mfprimInst.setVal(0.);
-		mfcvlInst.setVal(0.);
-    mfcvlInst.setVal(0.);
 
     // Zero out heat flux and heat capacity
     mfQMeans.setVal(0.);
@@ -594,22 +590,6 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
 									(spatialCross(i,j,k,1) + spatialCross(i,j,k,25) - spatialCross(i,j,k,26) - spatialCross(i,j,k,27) 
 									+ qmean*qmeancross*spatialCross(i,j,k,0) - qmeancross*spatialCross(i,j,k,21) - qmean*spatialCross(i,j,k,8)
 									+ qmeancross*spatialCross(i,j,k,28) + qmean*spatialCross(i,j,k,29));
-
-								if(i==cross_cell) {
-									Print() << "cv: " << cvinv << " cvc: " << cvinvcross << "\n";
-									Print() << "rho: " << meanrho << " rhocr: " << meanrhocross << "\n";
-									Print() << "drho: " << delrho << " drhoc: " << delrhocross << "\n";
-									Print() << "dK: " << delK << " dKc: " << delKcross << "\n";
-									Print() << "dG: " << delG << " dGc: " << delGcross << "\n";
-									Print() << "Q: " << qmean << " Qc: " << qmeancross << "\n";
-									Print() << "dKdK: " << cuvars(i,j,k,4) << " dKcdKc: " << spatialCross(i,j,k,1) << "\n";
-									Print() << "dGdG: " << primvars(i,j,k,5) << " dGcdG: " << spatialCross(i,j,k,25) << "\n";
-									Print() << "drhodrho: " << cuvars(i,j,k,0) << " drhocdrho: " << spatialCross(i,j,k,0) << "\n";
-									Print() << "dKdG: " << covars(i,j,k,14) << " dKcdG: " << spatialCross(i,j,k,27) << " dGcdK: " << spatialCross(i,j,k,36) << "\n";
-									Print() << "dKdrho: " << covars(i,j,k,3) << " dKcdrho: " << spatialCross(i,j,k,8) << " drhocdK: " << spatialCross(i,j,k,21) << "\n";
-									Print() << "dGdrho: " << covars(i,j,k,10) << " dGcdrho: " << spatialCross(i,j,k,28) << " drhocdG: " << spatialCross(i,j,k,29) << "\n";
-									Print() << "T*T: " << spatialCross(i,j,k,38) << " T*T_var: " << primvars(i,j,k,6) << "\n";
-								}
 
                 // <delT(x*)delrho(x)> = (1/cv/<rho(x*)>)*
                 // 		(<delK*delrho> - <delG*delrho> - <Q*><delrhodelrho*>)

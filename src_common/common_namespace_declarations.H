@@ -109,6 +109,9 @@ AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::bc_Yk_y_hi;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::bc_Yk_z_lo;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::bc_Yk_z_hi;
 
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::n_lo;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::n_hi;
+
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::bc_Xk_x_lo;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::bc_Xk_x_hi;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::bc_Xk_y_lo;
@@ -128,6 +131,8 @@ amrex::Vector<amrex::Real> common::wallspeed_hi;
 
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::potential_lo;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::potential_hi;
+
+int                        common::dsmc_boundaries;
 
 int                        common::struct_fact_int;
 int                        common::radialdist_int;
@@ -209,6 +214,8 @@ int                        common::plot_means;
 int                        common::plot_vars;
 int                        common::plot_covars;
 int                        common::plot_cross;
+int                        common::plot_time;
+int                        common::time_sample;
 int                        common::particle_motion;
 int                        common::solve_chem;
 amrex::Real                common::diffcoeff;
@@ -220,3 +227,6 @@ int                        common::do_reflux;
 amrex::Real                common::turb_a;
 amrex::Real                common::turb_b;
 int                        common::turbForcing;
+
+AMREX_GPU_MANAGED int      common::do_1D;
+

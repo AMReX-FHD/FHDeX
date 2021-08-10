@@ -86,8 +86,6 @@ public:
     void WritePlotFile(const int, const amrex::Real, const amrex::Geometry&, 
                        std::string, const int& zero_avg=1);
     
-    void StructOut(amrex::MultiFab&);
-    
     void Finalize(amrex::MultiFab&, amrex::MultiFab&, const Geometry& geom,
                   const int& zero_avg=1);
     

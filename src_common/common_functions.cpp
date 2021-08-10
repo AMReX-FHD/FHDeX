@@ -113,14 +113,15 @@ void InitializeCommonNamespace() {
                                 bc_Yk_x_lo.data(), bc_Yk_x_hi.data(),
                                 bc_Yk_y_lo.data(), bc_Yk_y_hi.data(),
                                 bc_Yk_z_lo.data(), bc_Yk_z_hi.data(),
+                                n_lo.data(), n_hi.data(),
                                 bc_Xk_x_lo.data(), bc_Xk_x_hi.data(),
                                 bc_Xk_y_lo.data(), bc_Xk_y_hi.data(),
                                 bc_Xk_z_lo.data(), bc_Xk_z_hi.data(),
                                 wallspeed_lo.dataPtr(), wallspeed_hi.dataPtr(),
                                 potential_lo.data(), potential_hi.data(),
-                                &struct_fact_int, &radialdist_int, &cartdist_int,
+                                &struct_fact_int, &dsmc_boundaries, &radialdist_int, &cartdist_int,
                                 &n_steps_skip, &binSize, &searchDist,
-										  &project_dir, &slicepoint, max_grid_projection.dataPtr(),
+																&project_dir, &slicepoint, max_grid_projection.dataPtr(),
                                 &histogram_unit,
                                 density_weights.dataPtr(), shift_cc_to_boundary.dataPtr(),
                                 &particle_placement, &particle_input, particle_count.dataPtr(),
@@ -136,14 +137,15 @@ void InitializeCommonNamespace() {
                                 diff.dataPtr(), &all_dry, &fluid_tog, &es_tog, &drag_tog, &move_tog, &rfd_tog,
                                 &dry_move_tog, &sr_tog, &graphene_tog, &crange, &thermostat_tog, &zero_net_force,
                                 &images, eamp.dataPtr(), efreq.dataPtr(), ephase.dataPtr(),
-                                &plot_ascii, &plot_means, &plot_vars, &plot_covars, &plot_cross,
+                                &plot_ascii, &plot_means, &plot_vars, &plot_covars, &plot_cross, &plot_time,
                                 &solve_chem, &diffcoeff, &scaling_factor,
                                 &source_strength, &regrid_int, &do_reflux, &particle_motion,
                                 &turb_a, &turb_b, &turbForcing,
                                 alpha_pp.begin(), alpha_pw.begin(),
                                 friction_pp.begin(), friction_pw.begin(),
-                                phi_domain.begin(), Yk0.begin()
-                                );
+                                phi_domain.begin(), Yk0.begin(),
+                                &do_1D,
+                                &time_sample);
 
     plot_base_name = temp_plot_base_name;
     chk_base_name = temp_chk_base_name;

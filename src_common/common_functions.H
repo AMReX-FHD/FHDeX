@@ -19,6 +19,7 @@
 
 #include <AMReX.H>
 #include <AMReX_MultiFab.H>
+#include <AMReX_MultiFabUtil.H>
 #include <AMReX_ArrayLim.H>
 #include <AMReX_BC_TYPES.H>
 

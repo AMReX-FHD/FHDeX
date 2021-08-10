@@ -36,43 +36,63 @@ void main_driver(const char* argv)
 	Box domain(dom_lo, dom_hi);
 	DistributionMapping dmap;
 
+	int ncon  = (nspecies+1)*5;
 	MultiFab cuInst, cuMeans, cuVars;
+	int nprim = (nspecies+1)*9;
 	MultiFab primInst, primMeans, primVars;
+	int ncovar = 25;
 	MultiFab coVars;
 
 	// For long-range temperature-related correlations
 	MultiFab cvlMeans, cvlInst, QMeans;
 
   // see stats for the list
-  // can add more -- change main_driver, stats, writeplotfile, and Checkpoint
-  int ncross = 50;
+	int ncross = 50;
   MultiFab spatialCross1D;
   
+  // For statisitics from particles
+ 	int npart = 10;
+  MultiFab vmom;
+  
   // For time correlation functions
-  int tcross = 10;
-  MultiFab timeCross, t0Cross;
+  // plot_time is the increments between correlations
+  int ntimecor = 101; // set as user input
 
-  if ((plot_cross) and ((cross_cell <= 0) or (cross_cell >= n_cells[0]-1))) {
+  MultiFab rhotimecross, utimecross, Ktimecross;
+  MultiFab rho_time, u_time, K_time;
+
+	MultiFab timeCross, t0Cross; // temporary to check if compiles
+
+  if ((plot_cross) and ((cross_cell <= 0) or (cross_cell >= n_cells[0]-1)))
+  {
       Abort("Cross cell needs to be within the domain: 0 < cross_cell < n_cells[0] - 1");
   }
-  if ((do_slab_sf) and ((membrane_cell <= 0) or (membrane_cell >= n_cells[0]-1))) {
+  if ((do_slab_sf) and ((membrane_cell <= 0) or (membrane_cell >= n_cells[0]-1)))
+  {
       Abort("Slab structure factor needs a membrane cell within the domain: 0 < cross_cell < n_cells[0] - 1");
   }
 
 	int step = 0;
-	Real dt = 0;
+	Real dt = fixed_dt;
 	int statsCount = 1;
 	Real time = 0.;
-	if (restart < 0) {
-		if (seed > 0) {
+
+	if (restart < 0)
+	{
+		if (seed > 0)
+		{
 			InitRandom(seed+ParallelDescriptor::MyProc());
-		} else if (seed == 0) {
+		}
+		else if (seed == 0)
+		{
 			auto now = time_point_cast<nanoseconds>(system_clock::now());
 			int randSeed = now.time_since_epoch().count();
 			// broadcast the same root seed to all processors
 			ParallelDescriptor::Bcast(&randSeed,1,ParallelDescriptor::IOProcessorNumber());
 			InitRandom(randSeed+ParallelDescriptor::MyProc());
-		} else {
+		}
+		else
+		{
 			Abort("Must supply non-negative seed");
 		}
 
@@ -92,10 +112,9 @@ void main_driver(const char* argv)
 			... (repeat for each species)
 		*/
 
-		int ncon  = (nspecies+1)*5;
-		cuInst.define(ba, dmap, ncon, 0);    cuInst.setVal(0.);
-		cuMeans.define(ba, dmap, ncon, 0);   cuMeans.setVal(0.);
-		cuVars.define(ba,dmap, ncon, 0);		 cuVars.setVal(0.);
+		cuInst.define(ba, dmap, ncon, 0); cuInst.setVal(0.);
+		cuMeans.define(ba, dmap, ncon, 0); cuMeans.setVal(0.);
+		cuVars.define(ba,dmap, ncon, 0); cuVars.setVal(0.);
 
 		/*
 		   Primitive Vars:
@@ -111,9 +130,8 @@ void main_driver(const char* argv)
 			... (repeat for each species)
 		*/
 
-		int nprim = (nspecies+1)*9;
-		primInst.define(ba, dmap, nprim, 0);   	primInst.setVal(0.);
-		primMeans.define(ba, dmap, nprim, 0);  	primMeans.setVal(0.);
+		primInst.define(ba, dmap, nprim, 0); primInst.setVal(0.);
+		primMeans.define(ba, dmap, nprim, 0); primMeans.setVal(0.);
 		primVars.define(ba, dmap, ncon+nprim, 0); primVars.setVal(0.);
 
 		// Covariances
@@ -150,22 +168,34 @@ void main_driver(const char* argv)
 			24 - dw.dT
 		*/
 
-		int ncovar = 25;
-		coVars.define(ba, dmap, ncovar, 0);   coVars.setVal(0.);
-
+		coVars.define(ba, dmap, ncovar, 0);      coVars.setVal(0.);
+		// Add flags for spatial correlations
 		spatialCross1D.define(ba,dmap,ncross,0); spatialCross1D.setVal(0.);
-		timeCross.define(ba,dmap,tcross,0); timeCross.setVal(0.);
-		t0Cross.define(ba,dmap,tcross,0); t0Cross.setVal(0.);
+		// Add flags for time corrleations
+		rhotimecross.define(ba,dmap,ntimecor,0); rhotimecross.setVal(0.);
+		utimecross.define(ba,dmap,ntimecor,0);   utimecross.setVal(0.);
+		Ktimecross.define(ba,dmap,ntimecor,0);   Ktimecross.setVal(0.);
 
-	} else {
-		ReadCheckPoint(step, time, dt, statsCount,
-			cuInst, cuMeans, cuVars,
-			primInst, primMeans, primVars,
-			coVars, spatialCross1D, ncross);
+		rho_time.define(ba,dmap,ntimecor,0);     rho_time.setVal(0.);
+		u_time.define(ba,dmap,ntimecor,0);       u_time.setVal(0.);
+		K_time.define(ba,dmap,ntimecor,0);       K_time.setVal(0.);
+
+		vmom.define(ba,dmap,npart,0);            vmom.setVal(0.);
+	}
+	else
+	{
+//		ReadCheckPoint(step, time, dt, statsCount,
+//			cuInst, cuMeans, cuVars,
+//			primInst, primMeans, primVars, coVars,
+//			spatialCross1D, timeCross, t0Cross, vmom,
+//			ncon, nprim, ncovar, ncross, ntimecor, npart);
 		dmap = cuInst.DistributionMap();
 		ba = cuInst.boxArray();
 
-		if(reset_stats == 1) { statsCount=1; }
+		if(reset_stats == 1)
+		{
+			statsCount=1;
+		}
 	}
 
 	// Specific Heat
@@ -175,8 +205,10 @@ void main_driver(const char* argv)
 	QMeans.define(ba, dmap, ncvl, 0); QMeans.setVal(0.);
 
 	Vector<int> is_periodic (AMREX_SPACEDIM,0);
-	for (int i=0; i<AMREX_SPACEDIM; ++i) {
-		if (bc_vel_lo[i] == -1 && bc_vel_hi[i] == -1) {
+	for (int i=0; i<AMREX_SPACEDIM; ++i)
+	{
+		if (bc_vel_lo[i] == -1 && bc_vel_hi[i] == -1)
+		{
 			is_periodic [i] = -1;
 		}
 	}
@@ -194,11 +226,14 @@ void main_driver(const char* argv)
 	// Particle tile size
 	Vector<int> ts(BL_SPACEDIM);
 
-	for (int d=0; d<AMREX_SPACEDIM; ++d) {
-		if (max_particle_tile_size[d] > 0) {
+	for (int d=0; d<AMREX_SPACEDIM; ++d)
+	{
+		if (max_particle_tile_size[d] > 0)
+		{
 			ts[d] = max_particle_tile_size[d];
 		}
-		else {
+		else
+		{
 			ts[d] = max_grid_size[d];
 		}
 	}
@@ -219,28 +254,33 @@ void main_driver(const char* argv)
 	int nstruct = std::ceil((double)nvarstruct*(nvarstruct+1)/2);
 	// scale SF results by inverse cell volume
 	Vector<Real> var_scaling(nstruct);
-	for (int d=0; d<var_scaling.size(); ++d) {var_scaling[d] = 1./(dx[0]*dx[1]*dx[2]);}
+	for (int d=0; d<var_scaling.size(); ++d)
+	{
+		var_scaling[d] = 1./(dx[0]*dx[1]*dx[2]);
+	}
 
 	// Structure Factor labels
 	Vector< std::string > cu_struct_names(nvarstruct);
 	int cnt = 0;
 	std::string varname;
 	cu_struct_names[cnt++] = "rho";
-	for (int ispec=0; ispec<nspecies; ispec++) {
-     		cu_struct_names[cnt++] = amrex::Concatenate("rho",ispec,2);
+	for (int ispec=0; ispec<nspecies; ispec++)
+	{
+		cu_struct_names[cnt++] = amrex::Concatenate("rho",ispec,2);
  	}
 	cu_struct_names[cnt++] = "u";
 	cu_struct_names[cnt++] = "v";
 	cu_struct_names[cnt++] = "w";
 	cu_struct_names[cnt++] = "T";
-	for (int ispec=0; ispec<nspecies; ispec++) {
-     		cu_struct_names[cnt++] = amrex::Concatenate("T",ispec,2);
+	for (int ispec=0; ispec<nspecies; ispec++)
+	{
+		cu_struct_names[cnt++] = amrex::Concatenate("T",ispec,2);
 	}
 	cu_struct_names[cnt++] = "E";
 
 	// Structure Factor
 	StructFact structFactPrim  (ba, dmap, cu_struct_names, var_scaling);
-	MultiFab   structFactPrimMF(ba, dmap,      nvarstruct,           0);
+	MultiFab   structFactPrimMF(ba, dmap, nvarstruct, 0);
 
 	// Collision Cell Vars
 	particles.mfselect.define(ba, dmap, nspecies*nspecies, 0);
@@ -250,13 +290,15 @@ void main_driver(const char* argv)
 	particles.mfvrmax.define(ba, dmap, nspecies*nspecies, 0);
 	particles.mfvrmax.setVal(0.);
 
-	if (restart < 0 && particle_restart < 0) {
+	if (restart < 0 && particle_restart < 0)
+	{
 		particles.InitParticles(dt);
-	} else {
+	}
+	else
+	{
 		ReadCheckPointParticles(particles);
 	}
 	particles.InitCollisionCells();
-	amrex::Print() << "Overwritten dt so Courant number <1: " << dt << "\n";
 
 	Real init_time = ParallelDescriptor::second() - strt_time;
 	ParallelDescriptor::ReduceRealMax(init_time);
@@ -268,17 +310,22 @@ void main_driver(const char* argv)
 	n_steps_skip += step;
 	int stat_int = 1;
 	Real tbegin, tend;
+	int statsTime = 1;
 
-	for (int istep=step; istep<=max_step; ++istep) {
-		if(istep%IO_int == 0) {
+	for (int istep=step; istep<=max_step; ++istep)
+	{
+		if(istep%IO_int == 0)
+		{
 			tbegin = ParallelDescriptor::second();
 		}
 
 		//////////////////////////////////////
 		// Initial Condition
 		//////////////////////////////////////
-		if(istep == step) {
-			if(reset_stats == 1) {
+		if(istep==step)
+		{
+			if(reset_stats == 1)
+			{
 				cuMeans.setVal(0.);
 				primMeans.setVal(0.);
 				cuVars.setVal(0.);
@@ -287,10 +334,15 @@ void main_driver(const char* argv)
 			}
 			particles.EvaluateStats(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
 				cvlInst,cvlMeans,QMeans,coVars,spatialCross1D,statsCount,time);
-//			particles.TimeCorrelation(cuInst,primInst,timeCross,t0Cross,statsCount);
-			if(plot_int>0) {
-				particles.writePlotFile(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
-					coVars,spatialCross1D,geom,time,ncross,istep);
+			//particles.EvaluateStatsPart(vmom);
+			if(plot_int>0)
+			{
+				particles.writePlotFile(cuInst,cuMeans,cuVars,
+					primInst,primMeans,primVars,coVars,
+					spatialCross1D,rhotimecross,utimecross,Ktimecross,vmom,
+					geom,time,
+					ncon,nprim,ncovar,ncross,ntimecor,npart,
+					istep);
 			}
 		}
 
@@ -309,10 +361,27 @@ void main_driver(const char* argv)
 		// Stats
 		//////////////////////////////////////
 
-		if (istep >= amrex::Math::abs(n_steps_skip)) {
-			if(istep%stat_int == 0) {
+		if (istep >= amrex::Math::abs(n_steps_skip))
+		{
+			if(istep%stat_int == 0)
+			{
+				cuInst.setVal(0.);
+				primInst.setVal(0.);
+				cvlInst.setVal(0.);
 				particles.EvaluateStats(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
-					cvlInst,cvlMeans,QMeans,coVars,spatialCross1D,statsCount++,time);
+					cvlInst,cvlMeans,QMeans,coVars,spatialCross1D,statsCount,time);
+				particles.EvaluateStatsPart(vmom);
+				if(plot_time>0 && istep%plot_time == 0) {
+					particles.updateTimeData(cuInst,primInst,
+						rho_time,u_time,K_time,ntimecor);
+					if(statsTime>ntimecor)
+					{
+						particles.TimeCorrelation(rho_time, u_time, K_time,
+							rhotimecross,utimecross,Ktimecross,ntimecor,statsTime-ntimecor);
+					}
+					statsTime++;
+				}
+				statsCount++;
 			}
 		}
 
@@ -321,22 +390,35 @@ void main_driver(const char* argv)
 		//////////////////////////////////////
 
 		bool writePlt = false;
-		if (plot_int > 0 && istep>0 && istep>=n_steps_skip) {
-			if (n_steps_skip >= 0) { // for positive n_steps_skip, write out at plot_int
+		if (plot_int > 0 && istep>0 && istep>=n_steps_skip)
+		{
+			if (n_steps_skip >= 0) // for positive n_steps_skip, write out at plot_int
+			{
 				writePlt = (istep%plot_int == 0);
-			} else if (n_steps_skip < 0) { // for negative n_steps_skip, write out at plot_int-1
+			}
+			else if (n_steps_skip < 0) // for negative n_steps_skip, write out at plot_int-1
+			{
 				writePlt = ((istep+1)%plot_int == 0);
 			}
 		}
 
-		if (writePlt) {particles.writePlotFile(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,coVars,spatialCross1D,geom,time,ncross,istep);}
+		if (writePlt)
+		{
+			particles.writePlotFile(cuInst,cuMeans,cuVars,
+				primInst,primMeans,primVars,coVars,
+				spatialCross1D,rhotimecross,utimecross,Ktimecross,vmom,
+				geom,time,
+				ncon,nprim,ncovar,ncross,ntimecor,npart,
+				istep);
+		}
 
 		//////////////////////////////////////
 		// Structure Factor
 		//////////////////////////////////////
 
 		if(istep > amrex::Math::abs(n_steps_skip) && struct_fact_int > 0 &&
-			(istep-amrex::Math::abs(n_steps_skip))%struct_fact_int == 0) {
+			(istep-amrex::Math::abs(n_steps_skip))%struct_fact_int == 0)
+		{
 
 			int cnt_sf, numvars_sf;
 			cnt_sf = 0;
@@ -345,7 +427,8 @@ void main_driver(const char* argv)
 			MultiFab::Copy(structFactPrimMF,primInst,0,cnt_sf,numvars_sf,0);
 			cnt_sf += numvars_sf;
 			// rho species
-			for (int i=0;i<nspecies;i++) {
+			for (int i=0;i<nspecies;i++)
+			{
 				numvars_sf = 1;
 				MultiFab::Copy(structFactPrimMF,primInst,1+(i+1)*9,cnt_sf,numvars_sf,0);
 				cnt_sf += numvars_sf;
@@ -359,7 +442,8 @@ void main_driver(const char* argv)
 			MultiFab::Copy(structFactPrimMF,primInst,6,cnt_sf,numvars_sf,0);
 			cnt_sf += numvars_sf;
 			// T species
-			for (int i=0;i<nspecies;i++) {
+			for (int i=0;i<nspecies;i++)
+			{
 				numvars_sf = 1;
 				MultiFab::Copy(structFactPrimMF,primInst,6+(i+1)*9,cnt_sf,numvars_sf,0);
 				cnt_sf += numvars_sf;
@@ -374,7 +458,8 @@ void main_driver(const char* argv)
 
 		if(istep > amrex::Math::abs(n_steps_skip) &&
 			struct_fact_int > 0 && plot_int > 0 &&
-			istep%plot_int == 0) {
+			istep%plot_int == 0)
+		{
 			structFactPrim.WritePlotFile(istep,time,geom,"plt_SF_prim");
 		}
 
@@ -382,13 +467,15 @@ void main_driver(const char* argv)
 		// Checkpoint
 		//////////////////////////////////////
 
-		if (chk_int > 0 && istep%chk_int == 0 && istep > step) {
-			WriteCheckPoint(istep, time, dt, statsCount,
-				cuInst, cuMeans, cuVars, primInst, primMeans, primVars, coVars,
-				particles, spatialCross1D, ncross);
+		if (chk_int > 0 && istep%chk_int == 0 && istep > step)
+		{
+//			WriteCheckPoint(istep, time, dt, statsCount,
+//				cuInst, cuMeans, cuVars, primInst, primMeans, primVars, coVars,
+//				particles, spatialCross1D, timeCross, t0Cross, vmom);
 		}
 
-		if (istep%IO_int == 0) {
+		if (istep%IO_int == 0)
+		{
 			tend = ParallelDescriptor::second() - tbegin;
 			ParallelDescriptor::ReduceRealMax(tend);
 			amrex::Print() << "Advanced step " << istep << " in " << tend << " seconds\n";

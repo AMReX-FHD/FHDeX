@@ -6,8 +6,6 @@
 #include <AMReX_Vector.H>
 #include <AMReX_MLABecLaplacian.H>
 
-#include "hydro_functions_F.H"
-
 #include "common_functions.H"
 #include "gmres_functions.H"
 

@@ -135,7 +135,10 @@ module common_namelist_module
   double precision,   save :: bc_Yk_y_hi(MAX_SPECIES)
   double precision,   save :: bc_Yk_z_lo(MAX_SPECIES)
   double precision,   save :: bc_Yk_z_hi(MAX_SPECIES)
-  
+ 
+  double precision,   save :: n_lo(AMREX_SPACEDIM)
+  double precision,   save :: n_hi(AMREX_SPACEDIM)
+    
   double precision,   save :: bc_Xk_x_lo(MAX_SPECIES)
   double precision,   save :: bc_Xk_x_hi(MAX_SPECIES)
   double precision,   save :: bc_Xk_y_lo(MAX_SPECIES)
@@ -148,6 +151,8 @@ module common_namelist_module
 
   double precision,   save :: potential_lo(AMREX_SPACEDIM)
   double precision,   save :: potential_hi(AMREX_SPACEDIM)
+
+  integer,            save :: dsmc_boundaries
 
   integer,            save :: struct_fact_int
   integer,            save :: radialdist_int
@@ -208,6 +213,8 @@ module common_namelist_module
   integer,            save :: plot_vars
   integer,            save :: plot_covars
   integer,            save :: plot_cross
+  integer,            save :: plot_time
+  integer,            save :: time_sample
   integer,            save :: particle_motion
 
   integer,            save :: solve_chem
@@ -229,6 +236,8 @@ module common_namelist_module
   double precision,   save :: phi_domain(MAX_SPECIES)
 
 	double precision,   save :: Yk0(MAX_SPECIES)
+  integer,            save :: do_1D
+
   ! Problem specification
   namelist /common/ prob_lo       ! physical lo coordinate
   namelist /common/ prob_hi       ! physical hi coordinate
@@ -377,6 +386,9 @@ module common_namelist_module
   namelist /common/ bc_Yk_z_lo
   namelist /common/ bc_Yk_z_hi
 
+  namelist /common/ n_lo
+  namelist /common/ n_hi  
+
   namelist /common/ bc_Xk_x_lo
   namelist /common/ bc_Xk_x_hi
   namelist /common/ bc_Xk_y_lo
@@ -391,6 +403,8 @@ module common_namelist_module
 
   namelist /common/ potential_lo
   namelist /common/ potential_hi
+
+  namelist /common/ dsmc_boundaries
 
   ! structure factor and radial/cartesian pair correlation function analysis
   namelist /common/ struct_fact_int
@@ -455,6 +469,8 @@ module common_namelist_module
   namelist /common/ plot_vars
   namelist /common/ plot_covars
   namelist /common/ plot_cross
+  namelist /common/ plot_time
+  namelist /common/ time_sample
   namelist /common/ particle_motion
 
   ! chemistry
@@ -479,6 +495,8 @@ module common_namelist_module
   namelist /common/ phi_domain
   
   namelist /common/ Yk0
+  
+  namelist /common/ do_1D
 
 contains
 
@@ -505,6 +523,7 @@ contains
     membrane_cell = -1
     cross_cell = 0
     do_slab_sf = 0
+    do_1D = 0
     ! transmission (no default)
     
     fixed_dt = 1.
@@ -568,14 +587,16 @@ contains
 
     t_lo(:) = 0
     t_hi(:) = 0
-    rho_lo(:) = 0
-    rho_hi(:) = 0
+    rho_lo(:) = -1
+    rho_hi(:) = -1
     bc_Yk_x_lo(:) = -1.d0
     bc_Yk_x_hi(:) = -1.d0
     bc_Yk_y_lo(:) = -1.d0
     bc_Yk_y_hi(:) = -1.d0
     bc_Yk_z_lo(:) = -1.d0
     bc_Yk_z_hi(:) = -1.d0
+    n_lo(:) = -1
+    n_hi(:) = -1
     bc_Xk_x_lo(:) = -1.d0
     bc_Xk_x_hi(:) = -1.d0
     bc_Xk_y_lo(:) = -1.d0
@@ -588,6 +609,7 @@ contains
     wallspeed_hi(:,:) = 0
     potential_lo(:) = 0
     potential_hi(:) = 0
+    dsmc_boundaries = 0
     struct_fact_int = 0
     radialdist_int = 0
     cartdist_int = 0
@@ -635,12 +657,14 @@ contains
   	particle_n0(:)    = -1.d0
     phi_domain(:)     = -1.d0
     rho0              = -1.d0
-    Yk0(:) = 0.d0
+    Yk0(:)            = -1.d0
 
-    plot_means = 0
-    plot_vars = 0    
-    plot_covars = 0    
-    plot_cross = 0    
+    plot_means = -1
+    plot_vars = -1  
+    plot_covars = -1    
+    plot_cross = -1
+    plot_time = -1
+    time_sample = 0
     particle_motion = 0
 
     graphene_tog = 0
@@ -713,12 +737,13 @@ contains
                                          bc_Yk_x_lo_in, bc_Yk_x_hi_in, &
                                          bc_Yk_y_lo_in, bc_Yk_y_hi_in, &
                                          bc_Yk_z_lo_in, bc_Yk_z_hi_in, &
+                                         n_lo_in, n_hi_in, &
                                          bc_Xk_x_lo_in, bc_Xk_x_hi_in, &
                                          bc_Xk_y_lo_in, bc_Xk_y_hi_in, &
                                          bc_Xk_z_lo_in, bc_Xk_z_hi_in, &
                                          wallspeed_lo_in, wallspeed_hi_in, &
                                          potential_lo_in, potential_hi_in, &
-                                         struct_fact_int_in, radialdist_int_in, &
+                                         struct_fact_int_in, dsmc_boundaries_in, radialdist_int_in, &
                                          cartdist_int_in, n_steps_skip_in, &
                                          binsize_in, searchdist_in, &
                                          project_dir_in, slicepoint_in, max_grid_projection_in, &
@@ -733,12 +758,15 @@ contains
                                          fluid_tog_in, es_tog_in, drag_tog_in, move_tog_in, rfd_tog_in, &
                                          dry_move_tog_in, sr_tog_in, graphene_tog_in, crange_in, &
                                          thermostat_tog_in, zero_net_force_in, images_in, eamp_in, efreq_in, ephase_in, &
-                                         plot_ascii_in, plot_means_in, plot_vars_in, plot_covars_in, plot_cross_in, &
+                                         plot_ascii_in, plot_means_in, plot_vars_in, plot_covars_in, plot_cross_in, plot_time_in, &
                                          solve_chem_in, diffcoeff_in, scaling_factor_in, &
                                          source_strength_in, regrid_int_in, do_reflux_in, particle_motion_in, &
                                          turb_a_in, turb_b_in, turbForcing_in, &
                                          alpha_pp_in, alpha_pw_in, &
-                                         friction_pp_in, friction_pw_in, phi_domain_in, Yk0_in) &
+                                         friction_pp_in, friction_pw_in, phi_domain_in, Yk0_in, &
+                                         do_1D_in, &
+                                         time_sample_in) &
+
                                          bind(C, name="initialize_common_namespace")
 
     double precision,       intent(inout) :: prob_lo_in(AMREX_SPACEDIM)
@@ -850,6 +878,8 @@ contains
     double precision,       intent(inout) :: bc_Yk_y_hi_in(MAX_SPECIES)
     double precision,       intent(inout) :: bc_Yk_z_lo_in(MAX_SPECIES)
     double precision,       intent(inout) :: bc_Yk_z_hi_in(MAX_SPECIES)
+    double precision,       intent(inout) :: n_lo_in(AMREX_SPACEDIM)
+    double precision,       intent(inout) :: n_hi_in(AMREX_SPACEDIM)
     double precision,       intent(inout) :: bc_Xk_x_lo_in(MAX_SPECIES)
     double precision,       intent(inout) :: bc_Xk_x_hi_in(MAX_SPECIES)
     double precision,       intent(inout) :: bc_Xk_y_lo_in(MAX_SPECIES)
@@ -861,6 +891,8 @@ contains
 
     double precision,       intent(inout) :: potential_lo_in(AMREX_SPACEDIM)
     double precision,       intent(inout) :: potential_hi_in(AMREX_SPACEDIM)
+
+    integer,                intent(inout) :: dsmc_boundaries_in
 
     integer,                intent(inout) :: struct_fact_int_in
     integer,                intent(inout) :: radialdist_int_in
@@ -919,6 +951,8 @@ contains
     integer,                intent(inout) :: plot_vars_in
     integer,                intent(inout) :: plot_covars_in
     integer,                intent(inout) :: plot_cross_in
+    integer,                intent(inout) :: plot_time_in
+    integer,                intent(inout) :: time_sample_in
     
     integer,                intent(inout) :: solve_chem_in
     double precision,       intent(inout) :: diffcoeff_in
@@ -940,6 +974,8 @@ contains
     double precision,       intent(inout) :: phi_domain_in(MAX_SPECIES)
     
     double precision,       intent(inout) :: Yk0_in(MAX_SPECIES)
+
+    integer,                intent(inout) :: do_1D_in
 
     prob_lo_in = prob_lo
     prob_hi_in = prob_hi
@@ -1032,6 +1068,8 @@ contains
     bc_Yk_y_hi_in = bc_Yk_y_hi
     bc_Yk_z_lo_in = bc_Yk_z_lo
     bc_Yk_z_hi_in = bc_Yk_z_hi
+    n_lo_in = n_lo
+    n_hi_in = n_hi
     bc_Xk_x_lo_in = bc_Xk_x_lo
     bc_Xk_x_hi_in = bc_Xk_x_hi
     bc_Xk_y_lo_in = bc_Xk_y_lo
@@ -1043,6 +1081,8 @@ contains
 
     potential_lo_in = potential_lo
     potential_hi_in = potential_hi
+
+    dsmc_boundaries_in = dsmc_boundaries
 
     struct_fact_int_in = struct_fact_int
     radialdist_int_in = radialdist_int
@@ -1112,6 +1152,8 @@ contains
     plot_vars_in = plot_vars
     plot_covars_in = plot_covars
     plot_cross_in = plot_cross
+    plot_time_in = plot_time
+    time_sample_in = time_sample
     
     solve_chem_in = solve_chem
     diffcoeff_in  = diffcoeff
@@ -1133,6 +1175,8 @@ contains
     phi_domain_in = phi_domain
     
     Yk0_in = Yk0
+
+    do_1D_in = do_1D
 
   end subroutine initialize_common_namespace
 

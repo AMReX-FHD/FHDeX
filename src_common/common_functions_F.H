@@ -58,12 +58,13 @@ extern "C"
                                      amrex::Real* bc_Yk_x_lo, amrex::Real* bc_Yk_x_hi,
                                      amrex::Real* bc_Yk_y_lo, amrex::Real* bc_Yk_y_hi,
                                      amrex::Real* bc_Yk_z_lo, amrex::Real* bc_Yk_z_hi,
+                                     amrex::Real* n_lo, amrex::Real* n_hi, 
                                      amrex::Real* bc_Xk_x_lo, amrex::Real* bc_Xk_x_hi,
                                      amrex::Real* bc_Xk_y_lo, amrex::Real* bc_Xk_y_hi,
                                      amrex::Real* bc_Xk_z_lo, amrex::Real* bc_Xk_z_hi,
                                      amrex::Real* wallspeed_lo, amrex::Real* wallspeed_hi,
                                      amrex::Real* potential_lo, amrex::Real* potential_hi,
-                                     int* struct_fact_int, int* radialdist_int,
+                                     int* struct_fact_int, int* dsmc_boundaries, int* radialdist_int,
                                      int* cartdist_int, int* n_steps_skip,
                                      amrex::Real* binSize, amrex::Real* searchDist,
 				     int* project_dir, int* slicepoint, int* max_grid_projection,
@@ -83,14 +84,16 @@ extern "C"
                                      int* move_tog, int* rfd_tog, int* dry_move_tog, int* sr_tog,
                                      int* graphene_tog, int* crange, int* thermostat_tog, int* zero_net_force, int* images,
                                      amrex::Real* eamp, amrex::Real* efreq, amrex::Real* ephase,
-                                     int* plot_ascii, int* plot_means, int* plot_vars, int* plot_covars, int* plot_cross,
+                                     int* plot_ascii, int* plot_means, int* plot_vars, int* plot_covars, int* plot_cross, int* plot_time,
                                      int* solve_chem, amrex::Real* diffcoeff,
                                      amrex::Real* scaling_factor, amrex::Real* source_strength,
                                      int* regrid_int, int* do_reflux, int* particle_motion,
                                      amrex::Real* turb_a, amrex::Real* turb_b, int* turbForcing,
                                      amrex::Real* alpha_pp, amrex::Real* alpha_pw,
                                      amrex::Real* friction_pp, amrex::Real* friction_pw,
-                                     amrex::Real* phi_domain, amrex::Real* Yk0);
+                                     amrex::Real* phi_domain, amrex::Real* Yk0,
+                                     int* do_1D,
+                                     int* time_sample);
 
     void set_max_step(int* max_step);
     void set_domega(amrex::Real* domega);
