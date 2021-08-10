@@ -514,7 +514,7 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
     }
     else if(bc_vel_hi[2] == 3)
     {
-				paramPlaneList[5].periodicity = 1;
+		paramPlaneList[5].periodicity = 1;
         paramPlaneList[5].porosityLeft = 1;
         paramPlaneList[5].porosityRight = 1;   
     }
