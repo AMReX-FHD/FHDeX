@@ -341,7 +341,7 @@ void PopulateX_xxT(int nspecies_in,
 
     for (int row=1; row<=nspecies_in;++row ){
         // diagonal entries
-        X_xxT(row,row) = MolarConcN[row-1] - std::pow(MolarConcN[row-1],2);
+        X_xxT(row,row) = MolarConcN[row-1] - MolarConcN[row-1]*MolarConcN[row-1];
         for (int column=1; column<=row-1; ++column ){
             // off-diagonal entries
             // form x*traspose(x) off diagonals
@@ -429,16 +429,56 @@ void ComputeGammaLocal(
 
         //populate X_xxT
         if (is_ideal_mixture == 1){
+        //if (is_ideal_mixture == 0){
             MatrixToZeros(nspecies_in, X_xxT);
         } else {
 //NOTE: Needs additonal testing
 //Print() << "HACK - ComputeGamma section 3 not tested." << std::endl;
             PopulateX_xxT(nspecies_in, X_xxT, MolarConcN);
         }
-    }
+        
+ //   //Compute Gamma
+ //   for (int row=1; row<=nspecies_in; ++row){
+ //       for (int column=1; column<=nspecies_in; ++column){
+ //           if (row == column) {
+ //               GammaN(row,column) = 1.0;   // add the identity matrix
+ //           } else {
+ //               GammaN(row,column) = 0.0;   // initialize off-diagonals to 0
+ //           }
+ //           for (int n=1; n<=nspecies_in; ++n){
+ //               GammaN(row, column) += X_xxT(row,n) * HessianN(n,column);
+ //           }
+ //       }
+ //   }
 
-    //Compute Gamma
+
+    }
+        //
+    //Compute Gamma //HACK -- This is a mistake that needs to be compared to an even older version
     GammaIPlusMatmul(nspecies_in, GammaN, X_xxT, HessianN);
+
+    //for (int row=1; row<=nspecies_in; ++row){
+    //    for (int column=1; column<=nspecies_in; ++column){
+    //        Print() << X_xxT(row,column);    
+    //    }
+    //    Print() << std::endl;
+    //}
+    //Print() << std::endl;
+
+    //
+ //   //Compute Gamma
+ //   for (int row=1; row<=nspecies_in; ++row){
+ //       for (int column=1; column<=nspecies_in; ++column){
+ //           if (row == column) {
+ //               GammaN(row,column) = 1.0;   // add the identity matrix
+ //           } else {
+ //               GammaN(row,column) = 0.0;   // initialize off-diagonals to 0
+ //           }
+ //           for (int n=1; n<=nspecies_in; ++n){
+ //               GammaN(row, column) += X_xxT(row,n) * HessianN(n,column);
+ //           }
+ //       }
+ //   }
 }
 
 
@@ -933,7 +973,6 @@ void ComputeNonnegativeRhoAv(
                 GpuArray<Real, MAX_SPECIES>& molmass_in,
                 int nspecies_in,
                 GpuArray<Real, MAX_SPECIES>& RhoAv){
-
     Real dv, value1, value2, tmp1, tmp2;
 
 #if (AMREX_SPACEDIM == 2)
@@ -964,8 +1003,8 @@ void ComputeNonnegativeRhoAv(
     } else {
 
         for (int comp=1; comp<=nspecies_in; ++comp){
-               value1 = Rho1[comp-1]/molmass_in[comp-1]; //Convert to number density
-               value2 = Rho2[comp-1]/molmass_in[comp-1];       
+            value1 = Rho1[comp-1]/molmass_in[comp-1]; //Convert to number density
+            value2 = Rho2[comp-1]/molmass_in[comp-1];       
 
             switch (avg_type) {
 
@@ -982,14 +1021,10 @@ void ComputeNonnegativeRhoAv(
             } break;
 
             case 2 :   // Geometric  
-//NOTE: Needs Further Testing
-Print() << "HACK -RhoAV- case 2 " << std::endl;
                 RhoAv[comp-1] = molmass_in[comp-1]*std::sqrt(std::max(value1,0.0)*std::max(value2,0.0));
             break;
 
             case 3 : {   // Harmonic
-//NOTE: Needs Further Testing
-Print() << "HACK -RhoAV-  case 3 " << std::endl;
                 // What we want here is the harmonic mean of max(value1,0) and max(value2,0)
                 // Where we define the result to be zero if either one is zero
                 // But numerically we want to avoid here division by zero
@@ -1002,8 +1037,6 @@ Print() << "HACK -RhoAV-  case 3 " << std::endl;
             } break;
 
             case 10 : {  // Arithmetic with (discontinuous) Heaviside
-//NOTE: Needs Further Testing
-Print() << "HACK -RhoAV-  case 10" << std::endl;
                 if ( (value1 <= 0.0) || (value2 <= 0.0) ) {
                    RhoAv[comp-1] = 0.0;
                 } else {
@@ -1012,21 +1045,20 @@ Print() << "HACK -RhoAV-  case 10" << std::endl;
             } break;
 
             case 11 : {  // Arithmetic with C1-smoothed Heaviside
-//NOTE: Needs Further Testing
-Print() << "HACK -RhoAV-  case 11" << std::endl;
-
                 if ( (value1 <= 0.0) || (value2 <= 0.0) ) {
                    RhoAv[comp-1] = 0.0;
                 } else {
                     tmp1 = dv*value1;
                     if (tmp1 < 1.0) {
                         tmp1 = (3.0-2.0*tmp1)*tmp1*tmp1;
+                        //tmp1 = (3.0-2.0*tmp1)*std::pow(tmp1,2);
                     } else {
                         tmp1 = 1.0;
                     }
                     tmp2 = dv*value2;
                     if (tmp2 < 1.0) {
                         tmp2 = (3.0 - 2.0*tmp2)*tmp2*tmp2;
+                        //tmp2 = (3.0 - 2.0*tmp2)*std::pow(tmp1,2)tmp2*tmp2;
                     } else {
                         tmp2 = 1.0;
                     }
@@ -1035,9 +1067,6 @@ Print() << "HACK -RhoAV-  case 11" << std::endl;
             } break;
 
             case 12 : {  // Arithmetic with C2-smoothed Heaviside
-//NOTE: Needs Further Testing
-Print() << "HACK -RhoAV-  case 12" << std::endl;
-
                 if ( (value1 <= 0.0) || (value2 <= 0.0) ) {
                     RhoAv[comp-1] = 0.0;
                 } else {
@@ -1112,6 +1141,7 @@ void ComputeDBarLocal(
     switch (std::abs(mixture_type)) {
     
     case 1 : { // water-glycerol 
+                     Print() << "HACK -water-glycerol" << std::endl;
 //NOTE: Needs Further Testing
        // we require nspecies=2
        // Dbar(1) = chi0 in the binary notation
