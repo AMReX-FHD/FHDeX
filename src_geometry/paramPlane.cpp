@@ -1066,6 +1066,7 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
   	}
   	else if (bc_mass_lo[i] == 2)
   	{
+  	    //Print() << "HERE!\n";
 	  	paramPlaneList[p].sourceLeft = 0;
      	paramPlaneList[p].sourceRight = 1;
      	paramPlaneList[p].sinkLeft = 0;
@@ -1097,7 +1098,7 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 			if(bc_therm_lo[i] == 2)
 			{
 				paramPlaneList[p].temperatureLeft = t_lo[i];
-  			paramPlaneList[p].temperatureRight = t_lo[i];					
+  			    paramPlaneList[p].temperatureRight = t_lo[i];					
 			}
 		}
   	
@@ -1242,6 +1243,8 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
   	p += 2;
   }
   }
+  
+    //Print() << "Wall: " << paramPlaneList[0].sourceRight << ", " << paramPlaneList[0].densityRight[0] << ", " << paramPlaneList[0].temperatureRight << "\n";
 
     std::ifstream planeFile("paramplanes.dat");
     int fileCount = 0;

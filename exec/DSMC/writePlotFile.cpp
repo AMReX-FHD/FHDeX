@@ -1,4 +1,4 @@
-#include "INS_functions.H"
+#include "LocalFunctions.H"
 #include "common_functions.H"
 #include "species.H"
 #include "DsmcParticleContainer.H"
@@ -7,17 +7,18 @@
 using namespace amrex;
 using namespace std;
 
-void FhdParticleContainer::writePlotFile(const MultiFab& mfcuInst,
+void writePlotFile(const MultiFab& mfcuInst,
 						const MultiFab& mfcuMeans,
 						const MultiFab& mfcuVars,
 						const MultiFab& mfprimInst,
 						const MultiFab& mfprimMeans,
 						const MultiFab& mfprimVars,
 						const MultiFab& mfcoVars,
-            const MultiFab& mfspatialCorr1d,
+                        const MultiFab& mfspatialCorr1d,
+                        FhdParticleContainer& particles,
 						const Geometry& geom,
 						Real time,
-            const int ncross,
+                        const int ncross,
 						int step) {
     BL_PROFILE_VAR("writePlotFile()",writePlotFile);
 
@@ -32,6 +33,7 @@ void FhdParticleContainer::writePlotFile(const MultiFab& mfcuInst,
     std::string pltcu    = amrex::Concatenate("pltcu",step,12);
     std::string pltprim  = amrex::Concatenate("pltprim",step,12);
     std::string pltvar   = amrex::Concatenate("pltvar",step,12);
+    std::string pltpart   = amrex::Concatenate("pltpart",step,12);
 
     amrex::MultiFab mfcuplt(ba, dmap, 2*ncon, 0);
     amrex::MultiFab mfprimplt(ba, dmap, 2*nprim, 0);
@@ -225,5 +227,15 @@ void FhdParticleContainer::writePlotFile(const MultiFab& mfcuInst,
         std::string file_prefix = "spatialCross1D_";
         WriteHorizontalAverage(mfspatialCorr1d,0,0,ncross,step,geom,file_prefix);
     }
+    
+        // particle in cplt file
+//    Vector<std::string> real_comp_names = FHD_realData::names();
+//    Vector<std::string>  int_comp_names = FHD_intData::names();
+
+//    Vector<int> write_real_comp(real_comp_names.size(),1);
+//    Vector<int> write_int_comp(int_comp_names.size(),1);
+//    
+//    particles.WritePlotFile(pltpart, "particles",
+//                            write_real_comp, write_int_comp, real_comp_names, int_comp_names);
 
 }

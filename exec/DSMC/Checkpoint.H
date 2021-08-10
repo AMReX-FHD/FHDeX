@@ -9,40 +9,6 @@
 #include "common_functions.H"
 #include "common_namespace.H"
 
-void WriteCheckPoint(int step,
-										 const Real time,
-										 const Real dt,
-										 int statsCount,
-                     const amrex::MultiFab& cuInst, 
-                     const amrex::MultiFab& cuMeans,
-                     const amrex::MultiFab& cuVars,
-                     const amrex::MultiFab& primInst,
-                     const amrex::MultiFab& primMeans,
-                     const amrex::MultiFab& primVars,
-                     const amrex::MultiFab& coVars,
-                     const FhdParticleContainer& particles,
-                     const amrex::MultiFab& spatialCross1D,
-                     const int ncross);
 
-void ReadCheckPoint(int& step, 
-										 Real& time,
-										 Real& dt,
-										 int& statsCount,
-                     amrex::MultiFab& cuInst, 
-                     amrex::MultiFab& cuMeans,
-                     amrex::MultiFab& cuVars,
-                     amrex::MultiFab& primInst,
-                     amrex::MultiFab& primMeans,
-                     amrex::MultiFab& primVars,
-                     amrex::MultiFab& coVars,
-                     amrex::MultiFab& spatialCross1D,
-                     const int ncross);
-
-void ReadCheckPointParticles(FhdParticleContainer& particles);
-
-void ReadFile(const std::string& filename, Vector<char>& charBuf, 
-              bool bExitOnError);
-              
-void globalVars(Real time);
 
 #endif
