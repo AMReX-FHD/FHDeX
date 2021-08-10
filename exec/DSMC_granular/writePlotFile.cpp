@@ -244,7 +244,7 @@ void FhdParticleContainer::writePlotFile(const MultiFab& mfcuInst,
     WriteHorizontalAverage(mfKtimecross,0,0,ntime,step,geom,file_prefix_Ktime);
   }
 //  if (plot_vmom) {
-//    std::string file_prefix_vmom = "vmom_";
-//    WriteHorizontalAverage(mfvmom,0,0,npart,step,geom,file_prefix_vmom);
+    std::string file_prefix_vmom = "vmom_";
+    WriteHorizontalAverage(mfvmom,0,0,npart,step,geom,file_prefix_vmom);
 //  }
 }

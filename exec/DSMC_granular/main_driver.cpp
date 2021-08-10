@@ -63,7 +63,7 @@ void main_driver(const char* argv)
 
 	MultiFab timeCross, t0Cross; // temporary to check if compiles
 
-  if ((plot_cross) and ((cross_cell <= 0) or (cross_cell >= n_cells[0]-1)))
+  if ((plot_cross>0) and ((cross_cell <= 0) or (cross_cell >= n_cells[0]-1)))
   {
       Abort("Cross cell needs to be within the domain: 0 < cross_cell < n_cells[0] - 1");
   }
@@ -332,7 +332,7 @@ void main_driver(const char* argv)
 			}
 			particles.EvaluateStats(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
 				cvlInst,cvlMeans,QMeans,coVars,spatialCross1D,statsCount,time);
-			//particles.EvaluateStatsPart(vmom);
+			// particles.EvaluateStatsPart(vmom);
 			if(plot_int>0)
 			{
 				particles.writePlotFile(cuInst,cuMeans,cuVars,
@@ -368,6 +368,8 @@ void main_driver(const char* argv)
 				cvlInst.setVal(0.);
 				particles.EvaluateStats(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
 					cvlInst,cvlMeans,QMeans,coVars,spatialCross1D,statsCount,time);
+				Print() << "stat after skip\n";
+				vmom.setVal(0.);
 				particles.EvaluateStatsPart(vmom);
 				if(plot_time>0 && istep%plot_time == 0) {
 					particles.updateTimeData(cuInst,primInst,
