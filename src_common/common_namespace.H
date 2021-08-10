@@ -204,6 +204,8 @@ namespace common {
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> potential_lo;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> potential_hi;
 
+    extern int                        dsmc_boundaries;
+
     // structure factor and radial/cartesian pair correlation function analysis
     extern int                        struct_fact_int;
     extern int                        radialdist_int;

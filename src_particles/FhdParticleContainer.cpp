@@ -1806,7 +1806,7 @@ void FhdParticleContainer::EvaluateStats(MultiFab& particleInstant,
     for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) 
     {
 
-	    PairIndex index(pti.index(), pti.LocalTileIndex()); /
+	    PairIndex index(pti.index(), pti.LocalTileIndex());
         const int np = this->GetParticles(lev)[index].numRealParticles();
 	    auto& plev = this->GetParticles(lev);
 	    auto& ptile = plev[index];

@@ -436,7 +436,7 @@ void FhdParticleContainer::EvaluateStats(MultiFab& particleInstant, MultiFab& pa
     const Real dxInv = 1.0/dx[0];
     const Real cellVolInv = 1.0/(dx[0]*dx[0]*dx[0]);
 
-    const Real stepsInv = 1.0/steps;
+    const Real stepsInv = 1.0/steps;*
     const int stepsMinusOne = steps-1;
 
     // zero instantaneous values
@@ -507,4 +507,4 @@ void FhdParticleContainer::EvaluateStats(MultiFab& particleInstant, MultiFab& pa
     }
 
 }
-
+*/

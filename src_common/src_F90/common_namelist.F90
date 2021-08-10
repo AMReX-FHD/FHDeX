@@ -149,6 +149,8 @@ module common_namelist_module
   double precision,   save :: potential_lo(AMREX_SPACEDIM)
   double precision,   save :: potential_hi(AMREX_SPACEDIM)
 
+  integer,            save :: dsmc_boundaries
+
   integer,            save :: struct_fact_int
   integer,            save :: radialdist_int
   integer,            save :: cartdist_int
@@ -394,6 +396,8 @@ module common_namelist_module
   namelist /common/ potential_lo
   namelist /common/ potential_hi
 
+  namelist /common/ dsmc_boundaries
+
   ! structure factor and radial/cartesian pair correlation function analysis
   namelist /common/ struct_fact_int
   namelist /common/ radialdist_int
@@ -593,6 +597,7 @@ contains
     wallspeed_hi(:,:) = 0
     potential_lo(:) = 0
     potential_hi(:) = 0
+    dsmc_boundaries = 0
     struct_fact_int = 0
     radialdist_int = 0
     cartdist_int = 0
@@ -723,7 +728,7 @@ contains
                                          bc_Xk_z_lo_in, bc_Xk_z_hi_in, &
                                          wallspeed_lo_in, wallspeed_hi_in, &
                                          potential_lo_in, potential_hi_in, &
-                                         struct_fact_int_in, radialdist_int_in, &
+                                         struct_fact_int_in, dsmc_boundaries_in, radialdist_int_in, &
                                          cartdist_int_in, n_steps_skip_in, &
                                          binsize_in, searchdist_in, &
                                          project_dir_in, slicepoint_in, max_grid_projection_in, &
@@ -868,6 +873,8 @@ contains
 
     double precision,       intent(inout) :: potential_lo_in(AMREX_SPACEDIM)
     double precision,       intent(inout) :: potential_hi_in(AMREX_SPACEDIM)
+
+    integer,                intent(inout) :: dsmc_boundaries_in
 
     integer,                intent(inout) :: struct_fact_int_in
     integer,                intent(inout) :: radialdist_int_in
@@ -1052,6 +1059,8 @@ contains
 
     potential_lo_in = potential_lo
     potential_hi_in = potential_hi
+
+    dsmc_boundaries_in = dsmc_boundaries
 
     struct_fact_int_in = struct_fact_int
     radialdist_int_in = radialdist_int

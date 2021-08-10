@@ -118,7 +118,7 @@ void InitializeCommonNamespace() {
                                 bc_Xk_z_lo.data(), bc_Xk_z_hi.data(),
                                 wallspeed_lo.dataPtr(), wallspeed_hi.dataPtr(),
                                 potential_lo.data(), potential_hi.data(),
-                                &struct_fact_int, &radialdist_int, &cartdist_int,
+                                &struct_fact_int, &dsmc_boundaries, &radialdist_int, &cartdist_int,
                                 &n_steps_skip, &binSize, &searchDist,
 																&project_dir, &slicepoint, max_grid_projection.dataPtr(),
                                 &histogram_unit,

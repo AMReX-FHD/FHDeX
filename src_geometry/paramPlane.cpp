@@ -20,17 +20,17 @@ double getPhi(double nx, double ny, double nz)
 void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const Real* domainLo, const Real* domainHi)
 {
 
-		double theta, phi;
-		Real local_pi = 4.0*atan(1.0);
+    double theta, phi;
+    Real local_pi = 4.0*atan(1.0);
     Real xl = prob_hi[0] - prob_lo[0];
     Real yl = prob_hi[1] - prob_lo[1];
     Real zl = prob_hi[2] - prob_lo[2];
 
-		//Domain boundaries		
-		for(int i=0; i<6; i++)
+	//Domain boundaries		
+	for(int i=0; i<6; i++)
+	{
+		for(int l=0;l<nspecies;l++)
 		{
-			for(int l=0;l<nspecies;l++)
-			{
 	    	paramPlaneList[i].densityLeft[l]  = rho0*Yk0[l]/(mass[l]*particle_neff);
 	    	paramPlaneList[i].densityRight[l] = rho0*Yk0[l]/(mass[l]*particle_neff);
 	    }
@@ -44,14 +44,14 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
     	
     	paramPlaneList[i].specularityRight 	= 0;
     	paramPlaneList[i].momentumConsRight = 1;
-      paramPlaneList[i].sourceRight 			= 0;
+        paramPlaneList[i].sourceRight 			= 0;
     	paramPlaneList[i].sinkRight   			= 0;
 	    
 	    paramPlaneList[i].boundary = i+1;
-	  }
+	}
 
 //domainLo x plane
-		paramPlaneList[0].x0 = domainLo[0];
+	paramPlaneList[0].x0 = domainLo[0];
     paramPlaneList[0].y0 = domainLo[1];
     paramPlaneList[0].z0 = domainLo[2];
     
@@ -94,7 +94,7 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
     }
     else if(bc_vel_lo[0] == 3)
     {
-				paramPlaneList[0].periodicity = 1;
+		paramPlaneList[0].periodicity = 1;
         paramPlaneList[0].porosityLeft = 1;
         paramPlaneList[0].porosityRight = 1;   
     }
@@ -551,7 +551,8 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
     paramPlaneList[5].fyRightAv = 0;
     paramPlaneList[5].fzRightAv = 0;
 
-
+    if(dsmc_boundaries == 1)
+    {
 		// Convert mass fractions to number densities to mole fractions
 		// If mass fractions defined, mole fractions overwritten
 		// Note, because Yk normalized, mass density at wall is in the end same
@@ -686,13 +687,13 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
     for(int i=0; i<3 ; i++)
     {
 			// Lower (Left, Bottom, Back)
-			paramPlaneList[p].specularityLeft = 0;
+		paramPlaneList[p].specularityLeft = 0;
     	paramPlaneList[p].specularityRight = 0;
     	paramPlaneList[p].porosityLeft = 1;
     	paramPlaneList[p].porosityRight = 1;
     	paramPlaneList[p].sourceLeft = 0;
     	paramPlaneList[p].sinkLeft = 0;
-      paramPlaneList[p].sourceRight = 0;
+        paramPlaneList[p].sourceRight = 0;
 	    paramPlaneList[p].sinkRight = 0;
     	paramPlaneList[p].periodicity = 0;
 	    paramPlaneList[p].temperatureLeft  = T_init[0];
@@ -965,6 +966,7 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 				}
 			}
     	p += 2;
+    }
     }
 
     std::ifstream planeFile("paramplanes.dat");
