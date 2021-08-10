@@ -167,7 +167,7 @@ void FhdParticleContainer::InitParticles(Real & dt)
 					pow(properties[i_spec].radius*2.0,2.0)*particle_neff/domainVol;
 				Real lam = 1.0/olam;
 				Real dt_spec = lam/vmean;
-				if(dt<0) {
+				if(dt<=0) {
 					dt = dt_spec;
 				}
 				else
@@ -175,10 +175,6 @@ void FhdParticleContainer::InitParticles(Real & dt)
 					dt = std::min(dt,dt_spec);
 				}
 			}
-			//dt  = umax*n_cells[0]/(prob_hi[0]-prob_lo[0]);
-			//dt += vmax*n_cells[1]/(prob_hi[1]-prob_lo[1]);
-			//dt += wmax*n_cells[2]/(prob_hi[2]-prob_lo[2]);
-			//dt  = 0.2/dt; // Courant number of 0.2
 			dt = dt/5.0; // time step must be less than mean collision time
 			amrex::Print() << "Overwritten dt \n";
 		}

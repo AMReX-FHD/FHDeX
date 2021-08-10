@@ -170,7 +170,7 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
 		IntVect myLo = bx.smallEnd();
 		IntVect myHi = bx.bigEnd();
 		
-		cout << "Rank " << ParallelDescriptor::MyProc() << " sees " << np << " particles\n";
+		//cout << "Rank " << ParallelDescriptor::MyProc() << " sees " << np << " particles\n";
 		
 		totalParts += np;
 
@@ -242,9 +242,9 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
 		}
 	}
 	
-    ParallelDescriptor::ReduceIntSum(totalParts);
-	Print() << "Total particles: " << totalParts << "\n";
-	
+	ParallelDescriptor::ReduceIntSum(totalParts);
+	//Print() << "Total particles: " << totalParts << "\n";
+
 	Redistribute();
 	SortParticles();
 }

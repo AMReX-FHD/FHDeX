@@ -23,10 +23,12 @@ namespace {
 	}
 }
 
-void WriteCheckPoint(int step,
+void WriteCheckPoint(
+	int step,
 	const Real time,
 	const Real dt,
 	int statsCount,
+	int statsTime,
 	const amrex::MultiFab& cuInst,
 	const amrex::MultiFab& cuMeans,
 	const amrex::MultiFab& cuVars,
@@ -36,8 +38,12 @@ void WriteCheckPoint(int step,
 	const amrex::MultiFab& coVars,
 	const FhdParticleContainer& particles,
 	const amrex::MultiFab& spatialCross1D,
-	const amrex::MultiFab& timeCross,
-	const amrex::MultiFab& t0Cross,
+	const amrex::MultiFab& rhotimeCross,
+	const amrex::MultiFab& utimeCross,
+	const amrex::MultiFab& KtimeCross,
+	const amrex::MultiFab& rho_time,
+	const amrex::MultiFab& u_time,
+	const amrex::MultiFab& K_time,
 	const amrex::MultiFab& vmom)
 {
 
@@ -73,11 +79,12 @@ void WriteCheckPoint(int step,
     if( !HeaderFile.good()) { amrex::FileOpenFailed(HeaderFileName); }
 
     HeaderFile.precision(17);
-    HeaderFile << "Checkpoint file for FHDeX/dsmc\n"; // write out title line
-    HeaderFile << step << "\n"; // write out the time step number
-    HeaderFile << time << "\n"; // write out time
-    HeaderFile << dt << "\n"; // write out time
-    HeaderFile << statsCount << "\n"; // write out statsCount
+    HeaderFile << "Checkpoint file for FHDeX/dsmc\n"; // title line
+    HeaderFile << step << "\n"; // time step number
+    HeaderFile << time << "\n"; // time
+    HeaderFile << dt << "\n"; // time step
+    HeaderFile << statsCount << "\n";
+    HeaderFile << statsTime << "\n";
     ba.writeOn(HeaderFile); // write the BoxArray (fluid)
     HeaderFile << '\n';
   }
@@ -138,10 +145,18 @@ void WriteCheckPoint(int step,
     amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "coVars"));
   VisMF::Write(spatialCross1D,
 		amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "spatialCross1D"));
-  VisMF::Write(timeCross,
-		amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "timeCross"));
-  VisMF::Write(t0Cross,
-		amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "t0Cross"));
+  VisMF::Write(rhotimeCross,
+		amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "rhotimecross"));
+  VisMF::Write(utimeCross,
+		amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "utimecross"));
+  VisMF::Write(KtimeCross,
+		amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "Ktimecross"));
+  VisMF::Write(rho_time,
+		amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "rho_time"));
+  VisMF::Write(u_time,
+		amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "u_time"));
+  VisMF::Write(K_time,
+		amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "K_time"));
   VisMF::Write(vmom,
 		amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "vmom"));
 
@@ -149,10 +164,12 @@ void WriteCheckPoint(int step,
   particles.Checkpoint(checkpointname,"particle");
 }
 
-void ReadCheckPoint(int& step,
+void ReadCheckPoint(
+	int& step,
 	Real& time,
 	Real& dt,
 	int& statsCount,
+	int& statsTime,
 	amrex::MultiFab& cuInst,
 	amrex::MultiFab& cuMeans,
 	amrex::MultiFab& cuVars,
@@ -161,12 +178,16 @@ void ReadCheckPoint(int& step,
 	amrex::MultiFab& primVars,
 	amrex::MultiFab& coVars,
 	amrex::MultiFab& spatialCross1D,
-	amrex::MultiFab& timeCross,
-	amrex::MultiFab& t0Cross,
+	amrex::MultiFab& rhotimeCross,
+	amrex::MultiFab& utimeCross,
+	amrex::MultiFab& KtimeCross,
+	amrex::MultiFab& rho_time,
+	amrex::MultiFab& u_time,
+	amrex::MultiFab& K_time,
 	amrex::MultiFab& vmom,
-	const int cnvars,
-	const int pnvars,
-	const int convars,
+	const int ncuvars,
+	const int nprimvars,
+	const int ncovars,
 	const int ncross,
 	const int ntime,
 	const int npart)
@@ -212,6 +233,10 @@ void ReadCheckPoint(int& step,
     is >> statsCount;
     GotoNextLine(is);
 
+    // read in statsCount
+    is >> statsTime;
+    GotoNextLine(is);
+
     // read in BoxArray (fluid) from Header
     BoxArray ba;
     ba.readFrom(is);
@@ -223,17 +248,21 @@ void ReadCheckPoint(int& step,
     //int cnvars  = (nspecies+1)*5;
     //int pnvars  = (nspecies+1)*9;
     //int convars = 25;
-    cuInst.define(ba,dm,cnvars,0);
-    cuMeans.define(ba,dm,cnvars,0);
-    cuVars.define(ba,dm,cnvars,0);
-    primInst.define(ba,dm,pnvars,0);
-    primMeans.define(ba,dm,pnvars,0);
-    primVars.define(ba,dm,pnvars,0);
-    coVars.define(ba,dm,convars,0);
+    cuInst.define(ba,dm,ncuvars,0);
+    cuMeans.define(ba,dm,ncuvars,0);
+    cuVars.define(ba,dm,ncuvars,0);
+    primInst.define(ba,dm,nprimvars,0);
+    primMeans.define(ba,dm,nprimvars,0);
+    primVars.define(ba,dm,nprimvars,0);
+    coVars.define(ba,dm,ncovars,0);
 
     spatialCross1D.define(ba,dm,ncross,0);
-    timeCross.define(ba,dm,ntime,0);
-    t0Cross.define(ba,dm,ntime,0);
+    rhotimeCross.define(ba,dm,ntime,0);
+    utimeCross.define(ba,dm,ntime,0);
+    KtimeCross.define(ba,dm,ntime,0);
+    rho_time.define(ba,dm,ntime,0);
+    u_time.define(ba,dm,ntime,0);
+    K_time.define(ba,dm,ntime,0);
     vmom.define(ba,dm,npart,0);
   }
 
@@ -290,36 +319,54 @@ void ReadCheckPoint(int& step,
 
   // Set all stats to zero if reset stats, else read
   if (reset_stats == 1) {
-      cuMeans.setVal(0.0);
-      cuVars.setVal(0.0);
-      primMeans.setVal(0.0);
-      primVars.setVal(0.0);
-      coVars.setVal(0.0);
-      spatialCross1D.setVal(0.0);
-      timeCross.setVal(0.0);
-      t0Cross.setVal(0.0);
-      vmom.setVal(0.0);
+    cuMeans.setVal(0.0);
+    cuVars.setVal(0.0);
+    primMeans.setVal(0.0);
+    primVars.setVal(0.0);
+    coVars.setVal(0.0);
+    spatialCross1D.setVal(0.0);
+    rhotimeCross.setVal(0.0);
+    utimeCross.setVal(0.0);
+    KtimeCross.setVal(0.0);
+    rho_time.setVal(0.0);
+    u_time.setVal(0.0);
+    K_time.setVal(0.0);
+    vmom.setVal(0.0);
+    statsCount=1;
+		statsTime=1;
   }
   else
   {
-		VisMF::Read(cuMeans,amrex::MultiFabFileFullPrefix(0, checkpointname,
-			"Level_", "cuMeans"));
-    VisMF::Read(cuVars,amrex::MultiFabFileFullPrefix(0, checkpointname,
-    	"Level_", "cuVars"));
-    VisMF::Read(primMeans,amrex::MultiFabFileFullPrefix(0, checkpointname,
-    	"Level_", "primMeans"));
-    VisMF::Read(primVars,amrex::MultiFabFileFullPrefix(0, checkpointname,
-    	"Level_", "primVars"));
-    VisMF::Read(coVars,amrex::MultiFabFileFullPrefix(0, checkpointname,
-    	"Level_", "coVars"));
-    VisMF::Read(spatialCross1D,amrex::MultiFabFileFullPrefix(0, checkpointname,
-    	"Level_", "spatialCross1D"));
-    VisMF::Read(timeCross,amrex::MultiFabFileFullPrefix(0, checkpointname,
-    	"Level_", "timeCross"));
-    VisMF::Read(t0Cross,amrex::MultiFabFileFullPrefix(0, checkpointname,
-    	"Level_", "t0Cross"));
-    VisMF::Read(vmom,amrex::MultiFabFileFullPrefix(0, checkpointname,
-    	"Level_", "vmom"));
+		VisMF::Read(cuMeans,
+			amrex::MultiFabFileFullPrefix(0, checkpointname,"Level_", "cuMeans"));
+    VisMF::Read(cuVars,
+    	amrex::MultiFabFileFullPrefix(0, checkpointname,"Level_", "cuVars"));
+    VisMF::Read(primMeans,
+    	amrex::MultiFabFileFullPrefix(0, checkpointname,"Level_", "primMeans"));
+    VisMF::Read(primVars,
+    	amrex::MultiFabFileFullPrefix(0, checkpointname,"Level_", "primVars"));
+    VisMF::Read(coVars,
+    	amrex::MultiFabFileFullPrefix(0, checkpointname,"Level_", "coVars"));
+    VisMF::Read(spatialCross1D,
+    	amrex::MultiFabFileFullPrefix(0, checkpointname,"Level_", "spatialCross1D"));
+		VisMF::Read(rhotimeCross,
+			amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "rhotimecross"));
+		VisMF::Read(utimeCross,
+			amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "utimecross"));
+		VisMF::Read(KtimeCross,
+			amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "Ktimecross"));
+		VisMF::Read(rho_time,
+			amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "rho_time"));
+		VisMF::Read(u_time,
+			amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "u_time"));
+		VisMF::Read(K_time,
+			amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "K_time"));
+    VisMF::Read(vmom,
+    	amrex::MultiFabFileFullPrefix(0, checkpointname,"Level_", "vmom"));
+  }
+  
+  if(fixed_dt>0) {
+  	dt = fixed_dt;
   }
 }
 
@@ -369,6 +416,10 @@ void ReadCheckPointParticles(FhdParticleContainer& particles)
 	is >> temp;
 	GotoNextLine(is);
 
+	// read in statsTime
+	is >> temp;
+	GotoNextLine(is);
+
 	// read in BoxArray (fluid) from Header
 	BoxArray ba;
 	ba.readFrom(is);
@@ -379,7 +430,6 @@ void ReadCheckPointParticles(FhdParticleContainer& particles)
 
 	RealBox realDomain({AMREX_D_DECL(prob_lo[0],prob_lo[1],prob_lo[2])},
 		{AMREX_D_DECL(prob_hi[0],prob_hi[1],prob_hi[2])});
-
 
 	particles.Restart(checkpointname,"particle");
 	int np = particles.TotalNumberOfParticles();

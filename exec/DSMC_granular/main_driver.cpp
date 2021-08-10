@@ -74,7 +74,7 @@ void main_driver(const char* argv)
 
 	int step = 0;
 	Real dt = fixed_dt;
-	int statsCount = 1;
+	int statsCount = 1; int statsTime = 1;
 	Real time = 0.;
 
 	if (restart < 0)
@@ -184,18 +184,16 @@ void main_driver(const char* argv)
 	}
 	else
 	{
-//		ReadCheckPoint(step, time, dt, statsCount,
-//			cuInst, cuMeans, cuVars,
-//			primInst, primMeans, primVars, coVars,
-//			spatialCross1D, timeCross, t0Cross, vmom,
-//			ncon, nprim, ncovar, ncross, ntimecor, npart);
+		ReadCheckPoint(step, time, dt, statsCount, statsTime,
+			cuInst, cuMeans, cuVars,
+			primInst, primMeans, primVars, coVars,
+			spatialCross1D,
+			rhotimecross, utimecross, Ktimecross,
+			rho_time, u_time, K_time,
+			vmom,
+			ncon, nprim, ncovar, ncross, ntimecor, npart);
 		dmap = cuInst.DistributionMap();
 		ba = cuInst.boxArray();
-
-		if(reset_stats == 1)
-		{
-			statsCount=1;
-		}
 	}
 
 	// Specific Heat
@@ -310,8 +308,8 @@ void main_driver(const char* argv)
 	n_steps_skip += step;
 	int stat_int = 1;
 	Real tbegin, tend;
-	int statsTime = 1;
-
+	
+	Print() << "dt: " << dt << "\n";
 	for (int istep=step; istep<=max_step; ++istep)
 	{
 		if(istep%IO_int == 0)
@@ -353,9 +351,9 @@ void main_driver(const char* argv)
 		particles.CalcSelections(dt);
 		particles.CollideParticles(dt);
 		particles.Source(dt, paramPlaneList, paramPlaneCount);
-		particles.externalForce(dt);
+		//particles.externalForce(dt);
 		particles.MoveParticlesCPP(dt, paramPlaneList, paramPlaneCount);
-		particles.updateTimeStep(geom,dt);
+		//particles.updateTimeStep(geom,dt);
 
 		//////////////////////////////////////
 		// Stats
@@ -377,7 +375,8 @@ void main_driver(const char* argv)
 					if(statsTime>ntimecor)
 					{
 						particles.TimeCorrelation(rho_time, u_time, K_time,
-							rhotimecross,utimecross,Ktimecross,ntimecor,statsTime-ntimecor);
+							rhotimecross,utimecross,Ktimecross,
+							ntimecor,statsTime-ntimecor);
 					}
 					statsTime++;
 				}
@@ -469,9 +468,13 @@ void main_driver(const char* argv)
 
 		if (chk_int > 0 && istep%chk_int == 0 && istep > step)
 		{
-//			WriteCheckPoint(istep, time, dt, statsCount,
-//				cuInst, cuMeans, cuVars, primInst, primMeans, primVars, coVars,
-//				particles, spatialCross1D, timeCross, t0Cross, vmom);
+			WriteCheckPoint(istep, time, dt, statsCount, statsTime,
+				cuInst, cuMeans, cuVars,
+				primInst, primMeans, primVars, coVars,
+				particles, spatialCross1D,
+				rhotimecross, utimecross, Ktimecross,
+				rho_time, u_time, K_time,
+				vmom);
 		}
 
 		if (istep%IO_int == 0)

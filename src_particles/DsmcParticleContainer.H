@@ -163,7 +163,6 @@ public:
 
 	// Ouput Raw particle data
 	void OutputParticles();
-<<<<<<< HEAD
 
 	// Output Plotfiles
 	void writePlotFile(const MultiFab& mfcuInst,
@@ -187,11 +186,7 @@ public:
 		const int ntime,
 		const int npart,
 		int step);
-=======
-		
->>>>>>> main
 
-  //Real Tg0[MAX_SPECIES];
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Scalars
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
