@@ -46,21 +46,37 @@ void FhdParticleContainer::InitParticles(Real & dt)
 					p.id()  = ParticleType::NextID();
 					p.cpu() = ParallelDescriptor::MyProc();
 					p.idata(FHD_intData::sorted) = -1;
+					particleFile >> p.pos(0);
+					particleFile >> p.pos(1);
+					particleFile >> p.pos(2);
+					particleFile >> vpart[0];
+					particleFile >> vpart[1];
+					particleFile >> vpart[2];
+					p.rdata(FHD_realData::velx) = vpart[0];
+					p.rdata(FHD_realData::vely) = vpart[1];
+					p.rdata(FHD_realData::velz) = vpart[2];
+					p.rdata(FHD_realData::timeFrac) = 1;
 
 					spd = sqrt(pow(vpart[0],2)+pow(vpart[1],2)+pow(vpart[2],2));
 					if(spd>spdmax){ spdmax=spd; }
-
+					// For calculating timstep from Courant number
 					if(vpart[0]>umax) { umax=vpart[0]; }
 					if(vpart[1]>vmax) { vmax=vpart[1]; }
 					if(vpart[2]>wmax) { wmax=vpart[2]; }
 
-
+					particleFile >> p.idata(FHD_intData::species);
+					int i_spec = p.idata(FHD_intData::species);
+					p.rdata(FHD_realData::R) = k_B/properties[i_spec].mass;
+					p.rdata(FHD_realData::boostx) = 0;
+					p.rdata(FHD_realData::boosty) = 0;
+					p.rdata(FHD_realData::boostz) = 0;
 					if( particleFile.eof() ) break;
 				}
 				particleFile.close();
 			}
 			else
 			{
+				// Initialize to bulk velocities
 				for(int i_spec=0; i_spec < nspecies; i_spec++)
 				{
 					u[i_spec] = 0.0; v[i_spec] = 0.0; w[i_spec] = 0.0;
@@ -68,6 +84,7 @@ void FhdParticleContainer::InitParticles(Real & dt)
 
 				for(int i_spec=0; i_spec < nspecies; i_spec++)
 				{
+					// Standard deviation of velocity at temperature T_init
 					Real R     = k_B/properties[i_spec].mass;
 					Real stdev = sqrt(T_init[i_spec]*R);
 					for (int i_part=0; i_part<properties[i_spec].total;i_part++)
@@ -135,7 +152,7 @@ void FhdParticleContainer::InitParticles(Real & dt)
 			}
 		}
 	}
-
+	// Set guess of max relative velocity
 	ParallelDescriptor::Bcast(&spdmax,1,ParallelDescriptor::IOProcessorNumber());
 	mfvrmax.setVal(spdmax);
 

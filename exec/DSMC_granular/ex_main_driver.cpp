@@ -33,8 +33,13 @@ void main_driver(const char* argv)
 	Box domain(dom_lo, dom_hi);
 	DistributionMapping dmap;
 
+	MultiFab cuInst, cuMeans, cuVars;
+	MultiFab primInst, primMeans, primVars;
+	MultiFab coVars;
+
 	int step = 0;
 	Real dt = 0;
+	int statsCount = 1;
 	Real time = 0.;
 
 	if (seed > 0)
@@ -72,14 +77,7 @@ void main_driver(const char* argv)
 
 	Geometry geom (domain ,&realDomain,CoordSys::cartesian,is_periodic.data());
 
-    std::ifstream planeFile("paramplanes.dat");
-    int fileCount = 0;
-    if(planeFile.good())
-    {
-        planeFile >> fileCount;
-    }
-
-	int paramPlaneCount = 6 + fileCount;
+	int paramPlaneCount = 6;
 	paramPlane paramPlaneList[paramPlaneCount];
 	BuildParamplanes(paramPlaneList,paramPlaneCount,realDomain.lo(),realDomain.hi());
 
@@ -137,7 +135,10 @@ void main_driver(const char* argv)
 	Real tbegin, tend;
 	for (int istep=step; istep<=max_step; ++istep)
 	{
-		tbegin = ParallelDescriptor::second();
+		if(istep%IO_int == 0)
+		{
+			tbegin = ParallelDescriptor::second();
+		}
 
 		particles.CalcSelections(dt);
 		particles.CollideParticles(dt);

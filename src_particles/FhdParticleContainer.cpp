@@ -313,12 +313,12 @@ void FhdParticleContainer::computeForcesNLGPU(const MultiFab& charge, const Mult
 #pragma omp parallel
 #endif
 
-    //if(doRedist != 0)
-    //{
+    if(doRedist != 0)
+    {
         fillNeighbors();
 
         buildNeighborList(CHECK_PAIR{});
-    //}
+    }
 
    for (FhdParIter pti(*this, lev, MFItInfo().SetDynamic(false)); pti.isValid(); ++pti)
    {     
@@ -820,7 +820,9 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
 
                         Real dummy = 1;
                         //app_bc(&surf, &part, &intside, domsize, &push, &dummy, &dummy);
+
                         app_bc_gpu(&surf, part, intside, pdomsize, &push, &runtime, dummy, engine);
+
                         //std::cout << "Post: " << part.id() << ", " << part.rdata(FHD_realData::velx) << ", " << part.rdata(FHD_realData::vely) << ", " << part.rdata(FHD_realData::velz) << ", " << intsurf << "\n";
 
                         if(push == 1)
@@ -1804,7 +1806,7 @@ void FhdParticleContainer::EvaluateStats(MultiFab& particleInstant,
     for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) 
     {
 
-	    PairIndex index(pti.index(), pti.LocalTileIndex());
+	    PairIndex index(pti.index(), pti.LocalTileIndex()); /
         const int np = this->GetParticles(lev)[index].numRealParticles();
 	    auto& plev = this->GetParticles(lev);
 	    auto& ptile = plev[index];
@@ -1823,7 +1825,7 @@ void FhdParticleContainer::EvaluateStats(MultiFab& particleInstant,
         Array4<Real> part_mean = particleMeans[pti].array();
 
         //const Array4<Real>& data = charge.array(mfi);
-
+		  // Updates multfab
         AMREX_FOR_1D( np, ni,
         {
             ParticleType & part = particles[ni];

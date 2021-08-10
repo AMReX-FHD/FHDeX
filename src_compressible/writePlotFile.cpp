@@ -4,7 +4,7 @@
 
 #include "compressible_functions.H"
 
-void WritePlotFile(int step,
+void WritePltFile(int step,
                    const amrex::Real time,
                    const amrex::Geometry geom,
 	           const amrex::MultiFab& cu,
