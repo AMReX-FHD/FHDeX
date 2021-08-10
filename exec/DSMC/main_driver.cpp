@@ -72,7 +72,14 @@ void main_driver(const char* argv)
 
 	Geometry geom (domain ,&realDomain,CoordSys::cartesian,is_periodic.data());
 
-	int paramPlaneCount = 6;
+    std::ifstream planeFile("paramplanes.dat");
+    int fileCount = 0;
+    if(planeFile.good())
+    {
+        planeFile >> fileCount;
+    }
+
+	int paramPlaneCount = 6 + fileCount;
 	paramPlane paramPlaneList[paramPlaneCount];
 	BuildParamplanes(paramPlaneList,paramPlaneCount,realDomain.lo(),realDomain.hi());
 
