@@ -16,11 +16,15 @@ jobs:
     - uses: actions/checkout@v2
     - name: Dependencies
       run: .github/workflows/dependencies/dependencies.sh
+    - name: Clone AMReX
+      uses: actions/checkout@development
+      with: 
+        repository: AMReX-Codes/amrex
     - name: Build & Install
       run: |
         cd exec/multispec
         pwd
-        make -j2 
+        make -j2 DIM=2 TINY_PROFILE=FALSE
   
  
         #  # Build and install libamrex as AMReX CMake project
