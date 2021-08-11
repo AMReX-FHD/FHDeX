@@ -13,12 +13,25 @@ jobs:
     name: AMReX
     runs-on: ubuntu-20.04
     steps:
+    - name: check things
+      run: |
+        ls
+        pwd
+        echo $GITHUB_ACTION_PATH
+    - name: check things
+      run: |
+        mkdir amrex
+        cd amrex
+        ls
+        pwd
+        echo $GITHUB_ACTION_PATH
     - name: Clone AMReX
       uses: actions/checkout@v2
       with: 
-        repository: AMReX-Codes/amrex
+        repository: AMReX-Codes/amrex@development
     - name: check things
       run: |
+        cd ~
         ls
         pwd
         echo $GITHUB_ACTION_PATH
