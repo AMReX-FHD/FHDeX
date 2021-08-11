@@ -7,7 +7,20 @@ name: linux
 on: [push, pull_request]
 
 jobs:
- 
+
+  # Clone and cache AMReX
+  amrex:
+    name: AMReX
+    runs-on: ubuntu-20.04
+    - name: Clone AMReX
+      uses: actions/checkout@v2
+    - name: Cache AMReX
+      uses: actions/cache@v2
+      key: amrex 
+
+
+
+
   # Build Tools/Plotfile
   multispec:
     name: Multispec 
@@ -22,6 +35,7 @@ jobs:
         repository: AMReX-Codes/amrex
     - name: Build & Install
       run: |
+        amrex
         cd exec/multispec
         pwd
         echo $AMREX_HOME
