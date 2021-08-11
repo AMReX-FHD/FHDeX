@@ -13,5 +13,5 @@ sudo apt-get install -y --no-install-recommends\
     build-essential \
     g++ gfortran    \
     libopenmpi-dev  \
-    openmpi-bin
+    openmpi-bin     \
     libfftw3-3
