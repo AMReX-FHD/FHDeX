@@ -28,7 +28,8 @@ jobs:
     - name: Clone AMReX
       uses: actions/checkout@v2
       with: 
-        repository: AMReX-Codes/amrex@development
+        repository: AMReX-Codes/amrex
+        ref: development
     - name: check things
       run: |
         cd ~
