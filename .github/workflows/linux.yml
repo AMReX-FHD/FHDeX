@@ -18,9 +18,9 @@ jobs:
 
     - name: Cache AMReX
       uses: actions/cache@v2
-        with:
-          path: ~/amrex
-          key: amrex 
+      with:
+        path: ~/amrex
+        key: amrex 
 
 
 
