@@ -13,8 +13,7 @@
 
   ! Controls for number of steps between actions
   max_step =   50000
-	max_step = 1
-  plot_int =    5000
+  plot_int =    -1
   plot_cross = 1
   cross_cell = 20  
   n_steps_skip = 0

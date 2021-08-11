@@ -135,7 +135,10 @@ module common_namelist_module
   double precision,   save :: bc_Yk_y_hi(MAX_SPECIES)
   double precision,   save :: bc_Yk_z_lo(MAX_SPECIES)
   double precision,   save :: bc_Yk_z_hi(MAX_SPECIES)
-  
+ 
+  double precision,   save :: n_lo(AMREX_SPACEDIM)
+  double precision,   save :: n_hi(AMREX_SPACEDIM)
+    
   double precision,   save :: bc_Xk_x_lo(MAX_SPECIES)
   double precision,   save :: bc_Xk_x_hi(MAX_SPECIES)
   double precision,   save :: bc_Xk_y_lo(MAX_SPECIES)
@@ -381,6 +384,9 @@ module common_namelist_module
   namelist /common/ bc_Yk_z_lo
   namelist /common/ bc_Yk_z_hi
 
+  namelist /common/ n_lo
+  namelist /common/ n_hi  
+
   namelist /common/ bc_Xk_x_lo
   namelist /common/ bc_Xk_x_hi
   namelist /common/ bc_Xk_y_lo
@@ -577,14 +583,16 @@ contains
 
     t_lo(:) = 0
     t_hi(:) = 0
-    rho_lo(:) = 0
-    rho_hi(:) = 0
+    rho_lo(:) = -1
+    rho_hi(:) = -1
     bc_Yk_x_lo(:) = -1.d0
     bc_Yk_x_hi(:) = -1.d0
     bc_Yk_y_lo(:) = -1.d0
     bc_Yk_y_hi(:) = -1.d0
     bc_Yk_z_lo(:) = -1.d0
     bc_Yk_z_hi(:) = -1.d0
+    n_lo(:) = -1
+    n_hi(:) = -1
     bc_Xk_x_lo(:) = -1.d0
     bc_Xk_x_hi(:) = -1.d0
     bc_Xk_y_lo(:) = -1.d0
@@ -723,6 +731,7 @@ contains
                                          bc_Yk_x_lo_in, bc_Yk_x_hi_in, &
                                          bc_Yk_y_lo_in, bc_Yk_y_hi_in, &
                                          bc_Yk_z_lo_in, bc_Yk_z_hi_in, &
+                                         n_lo_in, n_hi_in, &
                                          bc_Xk_x_lo_in, bc_Xk_x_hi_in, &
                                          bc_Xk_y_lo_in, bc_Xk_y_hi_in, &
                                          bc_Xk_z_lo_in, bc_Xk_z_hi_in, &
@@ -862,6 +871,8 @@ contains
     double precision,       intent(inout) :: bc_Yk_y_hi_in(MAX_SPECIES)
     double precision,       intent(inout) :: bc_Yk_z_lo_in(MAX_SPECIES)
     double precision,       intent(inout) :: bc_Yk_z_hi_in(MAX_SPECIES)
+    double precision,       intent(inout) :: n_lo_in(AMREX_SPACEDIM)
+    double precision,       intent(inout) :: n_hi_in(AMREX_SPACEDIM)
     double precision,       intent(inout) :: bc_Xk_x_lo_in(MAX_SPECIES)
     double precision,       intent(inout) :: bc_Xk_x_hi_in(MAX_SPECIES)
     double precision,       intent(inout) :: bc_Xk_y_lo_in(MAX_SPECIES)
@@ -1048,6 +1059,8 @@ contains
     bc_Yk_y_hi_in = bc_Yk_y_hi
     bc_Yk_z_lo_in = bc_Yk_z_lo
     bc_Yk_z_hi_in = bc_Yk_z_hi
+    n_lo_in = n_lo
+    n_hi_in = n_hi
     bc_Xk_x_lo_in = bc_Xk_x_lo
     bc_Xk_x_hi_in = bc_Xk_x_hi
     bc_Xk_y_lo_in = bc_Xk_y_lo
