@@ -21,12 +21,12 @@ jobs:
       with: 
         repository: AMReX-Codes/amrex
     - name: Build & Install
-      env: 
-        AMREX_HOME: $PWD/amrex
       run: |
         cd exec/multispec
         pwd
         echo $AMREX_HOME
         make -j2 DIM=2 TINY_PROFILE=FALSE
+      env: 
+        AMREX_HOME: $GITHUB_ACTION_PATH/amrex
   
  
