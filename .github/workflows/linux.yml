@@ -8,6 +8,39 @@ on: [push, pull_request]
 
 jobs:
 
+  # Build Tools/Plotfile
+  multispec:
+    name: Multispec 
+    runs-on: ubuntu-20.04
+    needs: AMReX
+    steps:
+    - uses: actions/checkout@v2
+    - name: Dependencies
+      run: .github/workflows/dependencies/dependencies.sh
+#    - name: download artifact
+#      uses: actions/download-artifact@v2
+#      with:
+#        name: amrex
+#        path: amrex
+#    - name: 'Echo download path'
+#      run: echo ${{steps.download.outputs.download-path}}
+    - name: Clone AMReX
+      uses: actions/checkout@v2
+      with: 
+        repository: AMReX-Codes/amrex
+        ref: development
+        path: amrex
+    - name: Build & Install
+      run: |
+        ls
+        cd exec/multispec
+        pwd
+        echo $AMREX_HOME
+        make -j2 DIM=2 TINY_PROFILE=FALSE
+      env: 
+        #AMREX_HOME: ${{steps.download.outputs.download-path}}
+        AMREX_HOME: $GITHUB_WORKSPACE/amrex
+  
   # Clone and cache AMReX
   #  amrex:
   #    name: AMReX
@@ -50,41 +83,4 @@ jobs:
   #          #   with:
   #          #     path: ~/amrex
   #          #     key: amrex 
-
-
-
-
-  # Build Tools/Plotfile
-  multispec:
-    name: Multispec 
-    runs-on: ubuntu-20.04
-    needs: AMReX
-    steps:
-    - uses: actions/checkout@v2
-    - name: Dependencies
-      run: .github/workflows/dependencies/dependencies.sh
-#    - name: download artifact
-#      uses: actions/download-artifact@v2
-#      with:
-#        name: amrex
-#        path: amrex
-#    - name: 'Echo download path'
-#      run: echo ${{steps.download.outputs.download-path}}
-    - name: Clone AMReX
-      uses: actions/checkout@v2
-      with: 
-        repository: AMReX-Codes/amrex
-        ref: development
-        path: amrex
-    - name: Build & Install
-      run: |
-        ls
-        cd exec/multispec
-        pwd
-        echo $AMREX_HOME
-        make -j2 DIM=2 TINY_PROFILE=FALSE
-      env: 
-        #AMREX_HOME: ${{steps.download.outputs.download-path}}
-        AMREX_HOME: $GITHUB_WORKSPACE/amrex
-  
  
