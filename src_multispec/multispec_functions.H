@@ -432,53 +432,13 @@ void ComputeGammaLocal(
         //if (is_ideal_mixture == 0){
             MatrixToZeros(nspecies_in, X_xxT);
         } else {
-//NOTE: Needs additonal testing
-//Print() << "HACK - ComputeGamma section 3 not tested." << std::endl;
             PopulateX_xxT(nspecies_in, X_xxT, MolarConcN);
         }
         
- //   //Compute Gamma
- //   for (int row=1; row<=nspecies_in; ++row){
- //       for (int column=1; column<=nspecies_in; ++column){
- //           if (row == column) {
- //               GammaN(row,column) = 1.0;   // add the identity matrix
- //           } else {
- //               GammaN(row,column) = 0.0;   // initialize off-diagonals to 0
- //           }
- //           for (int n=1; n<=nspecies_in; ++n){
- //               GammaN(row, column) += X_xxT(row,n) * HessianN(n,column);
- //           }
- //       }
- //   }
-
+        //Compute Gamma 
+        GammaIPlusMatmul(nspecies_in, GammaN, X_xxT, HessianN);
 
     }
-        //
-    //Compute Gamma //HACK -- This is a mistake that needs to be compared to an even older version
-    GammaIPlusMatmul(nspecies_in, GammaN, X_xxT, HessianN);
-
-    //for (int row=1; row<=nspecies_in; ++row){
-    //    for (int column=1; column<=nspecies_in; ++column){
-    //        Print() << X_xxT(row,column);    
-    //    }
-    //    Print() << std::endl;
-    //}
-    //Print() << std::endl;
-
-    //
- //   //Compute Gamma
- //   for (int row=1; row<=nspecies_in; ++row){
- //       for (int column=1; column<=nspecies_in; ++column){
- //           if (row == column) {
- //               GammaN(row,column) = 1.0;   // add the identity matrix
- //           } else {
- //               GammaN(row,column) = 0.0;   // initialize off-diagonals to 0
- //           }
- //           for (int n=1; n<=nspecies_in; ++n){
- //               GammaN(row, column) += X_xxT(row,n) * HessianN(n,column);
- //           }
- //       }
- //   }
 }
 
 
@@ -988,8 +948,6 @@ void ComputeNonnegativeRhoAv(
     }
 #endif
     
-
-    // special version for rtil -- HACK-TESTED
     if ((use_multiphase == 1) && (nspecies_in == 2)){
        value1 = Rho1[0];
        value2 = Rho2[0];
@@ -1008,7 +966,7 @@ void ComputeNonnegativeRhoAv(
 
             switch (avg_type) {
 
-            case 1 : {    // Arithmetic with a C0-smoothed Heaviside -- HACK-TESTED
+            case 1 : {    // Arithmetic with a C0-smoothed Heaviside
 
                 if ( (value1 <= 0.0) || (value2 <= 0.0) ) {
                    RhoAv[comp-1] = 0.0;
@@ -1051,14 +1009,12 @@ void ComputeNonnegativeRhoAv(
                     tmp1 = dv*value1;
                     if (tmp1 < 1.0) {
                         tmp1 = (3.0-2.0*tmp1)*tmp1*tmp1;
-                        //tmp1 = (3.0-2.0*tmp1)*std::pow(tmp1,2);
                     } else {
                         tmp1 = 1.0;
                     }
                     tmp2 = dv*value2;
                     if (tmp2 < 1.0) {
                         tmp2 = (3.0 - 2.0*tmp2)*tmp2*tmp2;
-                        //tmp2 = (3.0 - 2.0*tmp2)*std::pow(tmp1,2)tmp2*tmp2;
                     } else {
                         tmp2 = 1.0;
                     }
@@ -1094,6 +1050,7 @@ void ComputeNonnegativeRhoAv(
     }    
 }
 
+
 /**
  * \brief Water-glycerol mixtures near room temperature
  *
@@ -1116,6 +1073,7 @@ void ChiWaterGlycerol(
 
     // chi = chi0 * rational function
     chi = Dbar[0]*(1.024-1.001692692*c_loc)/(1.0+0.6632641981*c_loc);
+
 }
 
 
@@ -1138,11 +1096,11 @@ void ComputeDBarLocal(
     // off-diagonal components of symmetric matrices
     Array1D<Real, 1, MAX_SPECIES*(MAX_SPECIES-1)/2> DBar_loc;
 
-    switch (std::abs(mixture_type)) {
+    switch (2) {
+    //switch (std::abs(mixture_type)) {
     
     case 1 : { // water-glycerol 
-                     Print() << "HACK -water-glycerol" << std::endl;
-//NOTE: Needs Further Testing
+//NOTE: Needs Further Testing -- Close? But not same.
        // we require nspecies=2
        // Dbar(1) = chi0 in the binary notation
         if (nspecies_in != 2){
@@ -1150,17 +1108,17 @@ void ComputeDBarLocal(
             Abort();
         }
        
-        ChiWaterGlycerol(DBar_loc(1), RhoN, rhotot_in); 
+        ChiWaterGlycerol(DBar_loc(1), RhoN, rhotot_in);  //seems ok
 
     } break;
 
     case 2 : { // Electrolyte mixture
 //NOTE: Needs Further Testing
     
-        if (nspecies_in != 3){
-            printf("mixture_properties_mass_local assumes nspecies=3 if mixture_type=2 (water-glycerol)\n");
-            Abort();
-        }
+        //if (nspecies_in != 3){
+        //    printf("mixture_properties_mass_local assumes nspecies=3 if mixture_type=2 (water-glycerol)\n");
+        //    Abort();
+        //}
 
         // This is the leading-order correction for dilute solutions
         // In particular, the cross-diffusion coefficient ~sqrt(concentration) as per renormalization theory
@@ -1170,6 +1128,9 @@ void ComputeDBarLocal(
         DBar_loc(2) = Dbar[1]; // D_13 = self diffusion of first ion
         DBar_loc(3) = Dbar[2]; // D_23 = self diffusion of second ion
 
+    //printf("DBar %25.16E %25.16E %25.16E\n", Dbar[0], Dbar[1], Dbar[2] );
+    //printf("DBar_loc %25.16E %25.16E %25.16E\n", DBar_loc(1), DBar_loc(2), DBar_loc(3) );
+    printf("RhoN %25.16E rhotot_in %25.16E\n", RhoN[0], rhotot_in);
     } break;
 
     default : //Keep it constant
