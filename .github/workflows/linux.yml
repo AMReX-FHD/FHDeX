@@ -15,12 +15,13 @@ jobs:
     steps:
     - name: Clone AMReX
       uses: actions/checkout@v2
-
+      with: 
+        repository: AMReX-Codes/amrex
     - name: Cache AMReX
       uses: actions/cache@v2
       with:
         path: ~/amrex
-        key: amrex 
+        restore key: amrex 
 
 
 
@@ -29,14 +30,11 @@ jobs:
   multispec:
     name: Multispec 
     runs-on: ubuntu-20.04
+    needs: AMReX
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies
       run: .github/workflows/dependencies/dependencies.sh
-    - name: Clone AMReX
-      uses: actions/checkout@v2
-      with: 
-        repository: AMReX-Codes/amrex
     - name: Build & Install
       run: |
         amrex
