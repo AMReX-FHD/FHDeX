@@ -15,6 +15,8 @@ jobs:
 #   needs: AMReX
     steps:
     - uses: actions/checkout@v2
+      with: 
+        path: FHDeX
     - name: Dependencies
       run: .github/workflows/dependencies/dependencies.sh
 #    - name: download artifact
@@ -33,13 +35,13 @@ jobs:
     - name: Build & Install
       run: |
         ls
-        cd exec/multispec
+        cd FHDeX/exec/multispec
         pwd
         echo $AMREX_HOME
         make -j2 DIM=2 TINY_PROFILE=FALSE
       env: 
         #AMREX_HOME: ${{steps.download.outputs.download-path}}
-        AMREX_HOME: $PWD/amrex
+        AMREX_HOME: $(PWD)/amrex
   
   # Clone and cache AMReX
   #  amrex:
