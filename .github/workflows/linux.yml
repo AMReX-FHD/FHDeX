@@ -12,7 +12,7 @@ jobs:
   multispec:
     name: Multispec 
     runs-on: ubuntu-20.04
-    needs: AMReX
+#   needs: AMReX
     steps:
     - uses: actions/checkout@v2
     - name: Dependencies
