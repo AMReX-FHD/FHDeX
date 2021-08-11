@@ -15,10 +15,11 @@ jobs:
     steps:
     - name: Clone AMReX
       uses: actions/checkout@v2
+
     - name: Cache AMReX
       uses: actions/cache@v2
         with:
-          path: ~/
+          path: ~/amrex
           key: amrex 
 
 
