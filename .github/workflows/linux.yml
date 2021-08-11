@@ -17,11 +17,17 @@ jobs:
       uses: actions/checkout@v2
       with: 
         repository: AMReX-Codes/amrex
+    - name: check things
+      run: |
+        ls
+        pwd
+        echo $GITHUB_ACTION_PATH
     - name: upload artifact
       uses: actions/upload-artifact@v2
       with:
         name: amrex
         path: ~/amrex
+        
           # - name: Cache AMReX
           #   uses: actions/cache@v2
           #   with:
