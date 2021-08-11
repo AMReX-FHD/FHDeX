@@ -37,7 +37,7 @@ jobs:
         pwd
         echo $PWD
         echo $AMREX_HOME
-        make -j2 DIM=2 TINY_PROFILE=FALSE
+        make -j2 DIM=2 TINY_PROFILE=FALSE CXXFLAGS+=$(FFTW)
       env: 
         #AMREX_HOME: ${{steps.download.outputs.download-path}}
         AMREX_HOME: $(GITHUB_WORKSPACE)/amrex
