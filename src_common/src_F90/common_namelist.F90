@@ -39,6 +39,7 @@ module common_namelist_module
   double precision,   save :: nfrac(MAX_SPECIES)
   
   integer,            save :: particle_placement
+  integer,				 save :: particle_input
   integer,            save :: particle_count(MAX_SPECIES)
   integer,            save :: p_move_tog(MAX_SPECIES)
   integer,            save :: p_force_tog(MAX_SPECIES)
@@ -82,7 +83,7 @@ module common_namelist_module
   double precision,   save :: variance_coef_mass
   double precision,   save :: k_B
   double precision,   save :: Runiv
-  double precision,   save :: T_init(2)
+  double precision,   save :: T_init(MAX_SPECIES)
 
   integer,            save :: algorithm_type
   integer,            save :: advection_type
@@ -134,7 +135,10 @@ module common_namelist_module
   double precision,   save :: bc_Yk_y_hi(MAX_SPECIES)
   double precision,   save :: bc_Yk_z_lo(MAX_SPECIES)
   double precision,   save :: bc_Yk_z_hi(MAX_SPECIES)
-  
+ 
+  double precision,   save :: n_lo(AMREX_SPACEDIM)
+  double precision,   save :: n_hi(AMREX_SPACEDIM)
+    
   double precision,   save :: bc_Xk_x_lo(MAX_SPECIES)
   double precision,   save :: bc_Xk_x_hi(MAX_SPECIES)
   double precision,   save :: bc_Xk_y_lo(MAX_SPECIES)
@@ -147,6 +151,8 @@ module common_namelist_module
 
   double precision,   save :: potential_lo(AMREX_SPACEDIM)
   double precision,   save :: potential_hi(AMREX_SPACEDIM)
+
+  integer,            save :: dsmc_boundaries
 
   integer,            save :: struct_fact_int
   integer,            save :: radialdist_int
@@ -169,7 +175,7 @@ module common_namelist_module
   double precision,   save :: rmax(MAX_SPECIES*MAX_SPECIES)
   double precision,   save :: eepsilon(MAX_SPECIES*MAX_SPECIES)
   double precision,   save :: sigma(MAX_SPECIES*MAX_SPECIES)
-
+  
   double precision,   save :: rmin_wall(MAX_SPECIES)
   double precision,   save :: rmax_wall(MAX_SPECIES)
   double precision,   save :: eepsilon_wall(MAX_SPECIES)
@@ -219,7 +225,15 @@ module common_namelist_module
   double precision,   save :: turb_a
   double precision,   save :: turb_b
   integer,            save :: turbForcing
+  
+  double precision,   save :: alpha_pp(MAX_SPECIES*MAX_SPECIES)
+  double precision,   save :: alpha_pw(MAX_SPECIES*MAX_SPECIES)
+  double precision,   save :: friction_pp(MAX_SPECIES*MAX_SPECIES)
+  double precision,   save :: friction_pw(MAX_SPECIES*MAX_SPECIES)
+  
+  double precision,   save :: phi_domain(MAX_SPECIES)
 
+	double precision,   save :: Yk0(MAX_SPECIES)
   integer,            save :: do_1D
 
   ! Problem specification
@@ -248,6 +262,7 @@ module common_namelist_module
   namelist /common/ nfrac
 
   namelist /common/ particle_placement
+  namelist /common/ particle_input
   namelist /common/ particle_count
   namelist /common/ p_move_tog
   namelist /common/ p_force_tog
@@ -357,6 +372,9 @@ module common_namelist_module
 
   namelist /common/ t_lo
   namelist /common/ t_hi
+  
+  namelist /common/ rho_lo
+  namelist /common/ rho_hi  
 
   namelist /common/ rho_lo
   namelist /common/ rho_hi
@@ -368,6 +386,9 @@ module common_namelist_module
   namelist /common/ bc_Yk_y_hi
   namelist /common/ bc_Yk_z_lo
   namelist /common/ bc_Yk_z_hi
+
+  namelist /common/ n_lo
+  namelist /common/ n_hi  
 
   namelist /common/ bc_Xk_x_lo
   namelist /common/ bc_Xk_x_hi
@@ -383,6 +404,8 @@ module common_namelist_module
 
   namelist /common/ potential_lo
   namelist /common/ potential_hi
+
+  namelist /common/ dsmc_boundaries
 
   ! structure factor and radial/cartesian pair correlation function analysis
   namelist /common/ struct_fact_int
@@ -462,6 +485,16 @@ module common_namelist_module
   namelist /common/ turb_b
   namelist /common/ turbForcing
 
+  ! DSMC Granular
+  namelist /common/ alpha_pp
+  namelist /common/ alpha_pw
+  namelist /common/ friction_pp
+  namelist /common/ friction_pw
+  
+  namelist /common/ phi_domain
+  
+  namelist /common/ Yk0
+  
   namelist /common/ do_1D
 
 contains
@@ -553,26 +586,29 @@ contains
 
     t_lo(:) = 0
     t_hi(:) = 0
-    rho_lo(:) = 0
-    rho_hi(:) = 0
-    bc_Yk_x_lo(:) = 0.d0
-    bc_Yk_x_hi(:) = 0.d0
-    bc_Yk_y_lo(:) = 0.d0
-    bc_Yk_y_hi(:) = 0.d0
-    bc_Yk_z_lo(:) = 0.d0
-    bc_Yk_z_hi(:) = 0.d0
-    bc_Xk_x_lo(:) = 0.d0
-    bc_Xk_x_hi(:) = 0.d0
-    bc_Xk_y_lo(:) = 0.d0
-    bc_Xk_y_hi(:) = 0.d0
-    bc_Xk_z_lo(:) = 0.d0
-    bc_Xk_z_hi(:) = 0.d0
+    rho_lo(:) = -1
+    rho_hi(:) = -1
+    bc_Yk_x_lo(:) = -1.d0
+    bc_Yk_x_hi(:) = -1.d0
+    bc_Yk_y_lo(:) = -1.d0
+    bc_Yk_y_hi(:) = -1.d0
+    bc_Yk_z_lo(:) = -1.d0
+    bc_Yk_z_hi(:) = -1.d0
+    n_lo(:) = -1
+    n_hi(:) = -1
+    bc_Xk_x_lo(:) = -1.d0
+    bc_Xk_x_hi(:) = -1.d0
+    bc_Xk_y_lo(:) = -1.d0
+    bc_Xk_y_hi(:) = -1.d0
+    bc_Xk_z_lo(:) = -1.d0
+    bc_Xk_z_hi(:) = -1.d0
     p_lo(:) = 0
     p_hi(:) = 0
     wallspeed_lo(:,:) = 0
     wallspeed_hi(:,:) = 0
     potential_lo(:) = 0
     potential_hi(:) = 0
+    dsmc_boundaries = 0
     struct_fact_int = 0
     radialdist_int = 0
     cartdist_int = 0
@@ -609,6 +645,18 @@ contains
     turb_a = 1.d0
     turb_b = 1.d0
     turbForcing = 0
+    
+    ! DSMC Granular
+    alpha_pp(:) = 1.d0
+    alpha_pw(:) = 1.d0
+    friction_pp(:) = 0.d0
+    friction_pw(:) = 0.d0
+  
+  	particle_count(:) = -1.d0
+  	particle_n0(:)    = -1.d0
+    phi_domain(:)     = -1.d0
+    rho0              = -1.d0
+    Yk0(:) = 0.d0
 
     plot_means = 0
     plot_vars = 0    
@@ -632,6 +680,8 @@ contains
     qval(:) = 0
 
     crange = maxval(pkernel_es) + 1
+    
+    particle_input = -1
 
     e0(:) = 0
 
@@ -684,18 +734,19 @@ contains
                                          bc_Yk_x_lo_in, bc_Yk_x_hi_in, &
                                          bc_Yk_y_lo_in, bc_Yk_y_hi_in, &
                                          bc_Yk_z_lo_in, bc_Yk_z_hi_in, &
+                                         n_lo_in, n_hi_in, &
                                          bc_Xk_x_lo_in, bc_Xk_x_hi_in, &
                                          bc_Xk_y_lo_in, bc_Xk_y_hi_in, &
                                          bc_Xk_z_lo_in, bc_Xk_z_hi_in, &
                                          wallspeed_lo_in, wallspeed_hi_in, &
                                          potential_lo_in, potential_hi_in, &
-                                         struct_fact_int_in, radialdist_int_in, &
+                                         struct_fact_int_in, dsmc_boundaries_in, radialdist_int_in, &
                                          cartdist_int_in, n_steps_skip_in, &
                                          binsize_in, searchdist_in, &
                                          project_dir_in, slicepoint_in, max_grid_projection_in, &
                                          histogram_unit_in, density_weights_in, &
                                          shift_cc_to_boundary_in, &
-                                         particle_placement_in, particle_count_in, p_move_tog_in, &
+                                         particle_placement_in, particle_input_in, particle_count_in, p_move_tog_in, &
                                          p_force_tog_in, p_int_tog_in, p_int_tog_wall_in, particle_neff_in,&
                                          particle_n0_in, mass_in, nfrac_in, permittivity_in, &
                                          wall_mob_in, rmin_in, rmax_in, eepsilon_in, sigma_in, rmin_wall_in, rmax_wall_in, eepsilon_wall_in, sigma_wall_in, poisson_verbose_in, &
@@ -707,7 +758,11 @@ contains
                                          plot_ascii_in, plot_means_in, plot_vars_in, plot_covars_in, plot_cross_in, &
                                          solve_chem_in, diffcoeff_in, scaling_factor_in, &
                                          source_strength_in, regrid_int_in, do_reflux_in, particle_motion_in, &
-                                         turb_a_in, turb_b_in, turbForcing_in, do_1D_in) &
+                                         turb_a_in, turb_b_in, turbForcing_in, &
+                                         alpha_pp_in, alpha_pw_in, &
+                                         friction_pp_in, friction_pw_in, phi_domain_in, Yk0_in, &
+                                         do_1D_in) &
+
                                          bind(C, name="initialize_common_namespace")
 
     double precision,       intent(inout) :: prob_lo_in(AMREX_SPACEDIM)
@@ -727,6 +782,7 @@ contains
     integer,                intent(inout) :: p_int_tog_in(MAX_SPECIES*MAX_SPECIES)
     integer,                intent(inout) :: p_int_tog_wall_in(MAX_SPECIES)
     integer,                intent(inout) :: particle_placement_in
+    integer, 					 intent(inout) :: particle_input_in
     
     double precision,       intent(inout) :: fixed_dt_in
     double precision,       intent(inout) :: cfl_in
@@ -776,7 +832,7 @@ contains
     double precision,       intent(inout) :: variance_coef_mass_in
     double precision,       intent(inout) :: k_B_in
     double precision,       intent(inout) :: Runiv_in
-    double precision,       intent(inout) :: T_init_in(2)
+    double precision,       intent(inout) :: T_init_in(MAX_SPECIES)
     integer,                intent(inout) :: algorithm_type_in
     integer,                intent(inout) :: advection_type_in
     integer,                intent(inout) :: barodiffusion_type_in
@@ -818,6 +874,8 @@ contains
     double precision,       intent(inout) :: bc_Yk_y_hi_in(MAX_SPECIES)
     double precision,       intent(inout) :: bc_Yk_z_lo_in(MAX_SPECIES)
     double precision,       intent(inout) :: bc_Yk_z_hi_in(MAX_SPECIES)
+    double precision,       intent(inout) :: n_lo_in(AMREX_SPACEDIM)
+    double precision,       intent(inout) :: n_hi_in(AMREX_SPACEDIM)
     double precision,       intent(inout) :: bc_Xk_x_lo_in(MAX_SPECIES)
     double precision,       intent(inout) :: bc_Xk_x_hi_in(MAX_SPECIES)
     double precision,       intent(inout) :: bc_Xk_y_lo_in(MAX_SPECIES)
@@ -829,6 +887,8 @@ contains
 
     double precision,       intent(inout) :: potential_lo_in(AMREX_SPACEDIM)
     double precision,       intent(inout) :: potential_hi_in(AMREX_SPACEDIM)
+
+    integer,                intent(inout) :: dsmc_boundaries_in
 
     integer,                intent(inout) :: struct_fact_int_in
     integer,                intent(inout) :: radialdist_int_in
@@ -899,6 +959,15 @@ contains
     double precision,       intent(inout) :: turb_a_in
     double precision,       intent(inout) :: turb_b_in
     integer,                intent(inout) :: turbForcing_in
+    
+    double precision,       intent(inout) :: alpha_pp_in(MAX_SPECIES*MAX_SPECIES)
+    double precision,       intent(inout) :: alpha_pw_in(MAX_SPECIES*MAX_SPECIES)
+    double precision,       intent(inout) :: friction_pp_in(MAX_SPECIES*MAX_SPECIES)
+    double precision,       intent(inout) :: friction_pw_in(MAX_SPECIES*MAX_SPECIES)
+  
+    double precision,       intent(inout) :: phi_domain_in(MAX_SPECIES)
+    
+    double precision,       intent(inout) :: Yk0_in(MAX_SPECIES)
 
     integer,                intent(inout) :: do_1D_in
 
@@ -993,6 +1062,8 @@ contains
     bc_Yk_y_hi_in = bc_Yk_y_hi
     bc_Yk_z_lo_in = bc_Yk_z_lo
     bc_Yk_z_hi_in = bc_Yk_z_hi
+    n_lo_in = n_lo
+    n_hi_in = n_hi
     bc_Xk_x_lo_in = bc_Xk_x_lo
     bc_Xk_x_hi_in = bc_Xk_x_hi
     bc_Xk_y_lo_in = bc_Xk_y_lo
@@ -1004,6 +1075,8 @@ contains
 
     potential_lo_in = potential_lo
     potential_hi_in = potential_hi
+
+    dsmc_boundaries_in = dsmc_boundaries
 
     struct_fact_int_in = struct_fact_int
     radialdist_int_in = radialdist_int
@@ -1028,6 +1101,7 @@ contains
     p_int_tog_in = p_int_tog
     p_int_tog_wall_in = p_int_tog_wall
     particle_placement_in = particle_placement
+	 particle_input_in = particle_input
 
     poisson_verbose_in = poisson_verbose
     poisson_bottom_verbose_in = poisson_bottom_verbose
@@ -1085,6 +1159,14 @@ contains
     turb_a_in = turb_a
     turb_b_in = turb_b
     turbForcing_in = turbForcing
+    
+    alpha_pp_in = alpha_pp
+    alpha_pw_in = alpha_pw
+    friction_pp_in = friction_pp
+    friction_pw_in = friction_pw
+    phi_domain_in = phi_domain
+    
+    Yk0_in = Yk0
 
     do_1D_in = do_1D
 
