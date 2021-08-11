@@ -35,11 +35,12 @@ jobs:
         ls
         cd exec/multispec
         pwd
+        echo $PWD
         echo $AMREX_HOME
         make -j2 DIM=2 TINY_PROFILE=FALSE
       env: 
         #AMREX_HOME: ${{steps.download.outputs.download-path}}
-        AMREX_HOME: $(PWD)/amrex
+        AMREX_HOME: $(GITHUB_WORKSPACE)/amrex
   
   # Clone and cache AMReX
   #  amrex:
