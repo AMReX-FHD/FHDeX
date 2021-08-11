@@ -20,9 +20,9 @@ jobs:
       uses: actions/checkout@v2
       with: 
         repository: AMReX-Codes/amrex
-      run: export $AMREX_HOME=$PWD/amrex
     - name: Build & Install
       run: |
+        export $AMREX_HOME=$PWD/amrex
         cd exec/multispec
         pwd
         echo $AMREX_HOME
