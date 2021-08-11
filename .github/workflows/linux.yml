@@ -9,47 +9,47 @@ on: [push, pull_request]
 jobs:
 
   # Clone and cache AMReX
-  amrex:
-    name: AMReX
-    runs-on: ubuntu-20.04
-    steps:
-    - name: check things
-      run: |
-        ls
-        pwd
-        echo $GITHUB_ACTION_PATH
-    - name: check things
-      run: |
-        mkdir amrex
-        cd amrex
-        ls
-        pwd
-        echo $GITHUB_ACTION_PATH
-    - name: Clone AMReX
-      uses: actions/checkout@v2
-      with: 
-        repository: AMReX-Codes/amrex
-        ref: development
-        path: amrex
-
-
-    - name: check things
-      run: |
-        cd ~
-        ls
-        pwd
-        echo $GITHUB_ACTION_PATH
-    - name: upload artifact
-      uses: actions/upload-artifact@v2
-      with:
-        name: amrex
-        path: amrex
-        
-          # - name: Cache AMReX
-          #   uses: actions/cache@v2
-          #   with:
-          #     path: ~/amrex
-          #     key: amrex 
+  #  amrex:
+  #    name: AMReX
+  #    runs-on: ubuntu-20.04
+  #    steps:
+  #    - name: check things
+  #      run: |
+  #        ls
+  #        pwd
+  #        echo $GITHUB_ACTION_PATH
+  #    - name: check things
+  #      run: |
+  #        mkdir amrex
+  #        cd amrex
+  #        ls
+  #        pwd
+  #        echo $GITHUB_ACTION_PATH
+  #    - name: Clone AMReX
+  #      uses: actions/checkout@v2
+  #      with: 
+  #        repository: AMReX-Codes/amrex
+  #        ref: development
+  #        path: amrex
+  #
+  #
+  #    - name: check things
+  #      run: |
+  #        cd ~
+  #        ls
+  #        pwd
+  #        echo $GITHUB_ACTION_PATH
+  #    - name: upload artifact
+  #      uses: actions/upload-artifact@v2
+  #      with:
+  #        name: amrex
+  #        path: amrex
+  #        
+  #          # - name: Cache AMReX
+  #          #   uses: actions/cache@v2
+  #          #   with:
+  #          #     path: ~/amrex
+  #          #     key: amrex 
 
 
 
@@ -63,13 +63,19 @@ jobs:
     - uses: actions/checkout@v2
     - name: Dependencies
       run: .github/workflows/dependencies/dependencies.sh
-    - name: download artifact
-      uses: actions/download-artifact@v2
-      with:
-        name: amrex
+#    - name: download artifact
+#      uses: actions/download-artifact@v2
+#      with:
+#        name: amrex
+#        path: amrex
+#    - name: 'Echo download path'
+#      run: echo ${{steps.download.outputs.download-path}}
+    - name: Clone AMReX
+      uses: actions/checkout@v2
+      with: 
+        repository: AMReX-Codes/amrex
+        ref: development
         path: amrex
-    - name: 'Echo download path'
-      run: echo ${{steps.download.outputs.download-path}}
     - name: Build & Install
       run: |
         ls
@@ -78,6 +84,7 @@ jobs:
         echo $AMREX_HOME
         make -j2 DIM=2 TINY_PROFILE=FALSE
       env: 
-        AMREX_HOME: ${{steps.download.outputs.download-path}}
+        #AMREX_HOME: ${{steps.download.outputs.download-path}}
+        AMREX_HOME: $GITHUB_WORKSPACE/amrex
   
  
