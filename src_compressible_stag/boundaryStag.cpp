@@ -20,7 +20,7 @@ void SetupCWallStag() {
     // Compute Xk or Yk at the wall, depending on which is defined
     // For reservoirs, also compute pressure in the reservoir depending on reservoir t, rho, Yk
     // X walls
-    if (bc_mass_lo[0] == 2) {
+    if ((bc_mass_lo[0] == 2) or (bc_mass_lo[0] == 3)) {
        sumx = 0.;
        sumy = 0.;
        for (int ns=0; ns<nspecies; ++ns) {
@@ -38,7 +38,7 @@ void SetupCWallStag() {
         GetPressureGas(p_lo[0],bc_Yk_x_lo,rho_lo[0],t_lo[0]);
     }
 
-    if (bc_mass_hi[0] == 2) {
+    if ((bc_mass_hi[0] == 2) or (bc_mass_hi[0] == 3)) {
        sumx = 0.;
        sumy = 0.;
        for (int ns=0; ns<nspecies; ++ns) {
@@ -57,7 +57,7 @@ void SetupCWallStag() {
     }
 
     // Y walls
-    if (bc_mass_lo[1] == 2) {
+    if ((bc_mass_lo[1] == 2) or (bc_mass_lo[1] == 3)) {
        sumx = 0.;
        sumy = 0.;
        for (int ns=0; ns<nspecies; ++ns) {
@@ -75,7 +75,7 @@ void SetupCWallStag() {
         GetPressureGas(p_lo[1],bc_Yk_y_lo,rho_lo[1],t_lo[1]);
     }
 
-    if (bc_mass_hi[1] == 2) {
+    if ((bc_mass_hi[1] == 2) or (bc_mass_hi[1] == 3)) {
        sumx = 0.;
        sumy = 0.;
        for (int ns=0; ns<nspecies; ++ns) {
@@ -94,7 +94,7 @@ void SetupCWallStag() {
     }
 
     // Z walls
-    if (bc_mass_lo[2] == 2) {
+    if ((bc_mass_lo[2] == 2) or (bc_mass_lo[2] == 3)) {
        sumx = 0.;
        sumy = 0.;
        for (int ns=0; ns<nspecies; ++ns) {
@@ -112,7 +112,7 @@ void SetupCWallStag() {
         GetPressureGas(p_lo[2],bc_Yk_z_lo,rho_lo[2],t_lo[2]);
     }
 
-    if (bc_mass_hi[2] == 2) {
+    if ((bc_mass_hi[2] == 2) or (bc_mass_hi[2] == 3)) {
        sumx = 0.;
        sumy = 0.;
        for (int ns=0; ns<nspecies; ++ns) {
