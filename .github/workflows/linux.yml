@@ -17,11 +17,16 @@ jobs:
       uses: actions/checkout@v2
       with: 
         repository: AMReX-Codes/amrex
-    - name: Cache AMReX
-      uses: actions/cache@v2
+    - name: upload artifact
+      uses: actions/upload-artifact@v2
       with:
+        name: amrex
         path: ~/amrex
-        key: amrex 
+          # - name: Cache AMReX
+          #   uses: actions/cache@v2
+          #   with:
+          #     path: ~/amrex
+          #     key: amrex 
 
 
 
@@ -35,9 +40,12 @@ jobs:
     - uses: actions/checkout@v2
     - name: Dependencies
       run: .github/workflows/dependencies/dependencies.sh
+    - name: download artifact
+      uses: actions/download-artifact@v2
+      with:
+        name: amrex
     - name: Build & Install
       run: |
-        amrex
         cd exec/multispec
         pwd
         echo $AMREX_HOME
