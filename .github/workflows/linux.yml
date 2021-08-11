@@ -22,7 +22,7 @@ jobs:
         repository: AMReX-Codes/amrex
     - name: Build & Install
       env: 
-      AMREX_HOME: $PWD/amrex
+        AMREX_HOME: $PWD/amrex
       run: |
         cd exec/multispec
         pwd
