@@ -39,7 +39,7 @@ jobs:
         make -j2 DIM=2 TINY_PROFILE=FALSE
       env: 
         #AMREX_HOME: ${{steps.download.outputs.download-path}}
-        AMREX_HOME: $GITHUB_WORKSPACE/amrex
+        AMREX_HOME: ~/amrex
   
   # Clone and cache AMReX
   #  amrex:
