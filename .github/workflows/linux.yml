@@ -12,6 +12,7 @@ jobs:
   amrex:
     name: AMReX
     runs-on: ubuntu-20.04
+    steps:
     - name: Clone AMReX
       uses: actions/checkout@v2
     - name: Cache AMReX
