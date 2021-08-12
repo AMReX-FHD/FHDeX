@@ -40,20 +40,18 @@ void InitializeCommonNamespace() {
     }
 
     max_grid_size.resize(AMREX_SPACEDIM);
-    max_grid_size_structfact.resize(AMREX_SPACEDIM);
     max_particle_tile_size.resize(AMREX_SPACEDIM);
-    dof.resize(MAX_SPECIES);
     u_init.resize(2);
 
     // boundary condition flags
-    bc_vel_lo.resize(AMREX_SPACEDIM);
-    bc_vel_hi.resize(AMREX_SPACEDIM);
-    bc_es_lo.resize(AMREX_SPACEDIM);
-    bc_es_hi.resize(AMREX_SPACEDIM);
-    bc_mass_lo.resize(AMREX_SPACEDIM);
-    bc_mass_hi.resize(AMREX_SPACEDIM);
-    bc_therm_lo.resize(AMREX_SPACEDIM);
-    bc_therm_hi.resize(AMREX_SPACEDIM);
+    //bc_vel_lo.resize(AMREX_SPACEDIM);
+    //bc_vel_hi.resize(AMREX_SPACEDIM);
+    //bc_es_lo.resize(AMREX_SPACEDIM);
+    //bc_es_hi.resize(AMREX_SPACEDIM);
+    //bc_mass_lo.resize(AMREX_SPACEDIM);
+    //bc_mass_hi.resize(AMREX_SPACEDIM);
+    //bc_therm_lo.resize(AMREX_SPACEDIM);
+    //bc_therm_hi.resize(AMREX_SPACEDIM);
 
     wallspeed_lo.resize((AMREX_SPACEDIM-1)*AMREX_SPACEDIM);
     wallspeed_hi.resize((AMREX_SPACEDIM-1)*AMREX_SPACEDIM);
@@ -82,7 +80,7 @@ void InitializeCommonNamespace() {
     char temp_chk_base_name[128];
 
     initialize_common_namespace(prob_lo.begin(), prob_hi.begin(), n_cells.data(),
-                                max_grid_size.dataPtr(), max_grid_size_structfact.dataPtr(),
+                                max_grid_size.dataPtr(),
                                 max_particle_tile_size.dataPtr(), &cell_depth, ngc.getVect(),
                                 &nvars, &nprimvars,
                                 &membrane_cell, &cross_cell, &do_slab_sf, transmission.data(),
@@ -93,7 +91,7 @@ void InitializeCommonNamespace() {
                                 &chk_int, temp_chk_base_name, 128,
                                 &prob_type, &restart, &reset_stats, &particle_restart, &print_int, &project_eos_int,
                                 grav.data(), &nspecies, molmass.data(), diameter.data(),
-                                dof.dataPtr(), hcv.data(), hcp.data(),
+                                dof.data(), e0.data(), hcv.data(), hcp.data(),
                                 rhobar.data(),
                                 &rho0, &variance_coef_mom, &variance_coef_mass, &k_B, &Runiv,
                                 T_init.begin(),
@@ -105,31 +103,35 @@ void InitializeCommonNamespace() {
                                 &filtering_width, &stoch_stress_form, u_init.dataPtr(),
                                 &perturb_width, &smoothing_width, &initial_variance_mom,
                                 &initial_variance_mass, &domega,
-                                bc_vel_lo.dataPtr(), bc_vel_hi.dataPtr(),
-                                bc_es_lo.dataPtr(), bc_es_hi.dataPtr(),
-                                bc_mass_lo.dataPtr(), bc_mass_hi.dataPtr(),
-                                bc_therm_lo.dataPtr(), bc_therm_hi.dataPtr(),
+                                bc_vel_lo.data(), bc_vel_hi.data(),
+                                bc_es_lo.data(), bc_es_hi.data(),
+                                bc_mass_lo.data(), bc_mass_hi.data(),
+                                bc_therm_lo.data(), bc_therm_hi.data(),
                                 p_lo.data(), p_hi.data(),
                                 t_lo.data(), t_hi.data(),
+                                rho_lo.data(), rho_hi.data(),
                                 bc_Yk_x_lo.data(), bc_Yk_x_hi.data(),
                                 bc_Yk_y_lo.data(), bc_Yk_y_hi.data(),
                                 bc_Yk_z_lo.data(), bc_Yk_z_hi.data(),
+                                n_lo.data(), n_hi.data(),
                                 bc_Xk_x_lo.data(), bc_Xk_x_hi.data(),
                                 bc_Xk_y_lo.data(), bc_Xk_y_hi.data(),
                                 bc_Xk_z_lo.data(), bc_Xk_z_hi.data(),
                                 wallspeed_lo.dataPtr(), wallspeed_hi.dataPtr(),
                                 potential_lo.data(), potential_hi.data(),
-                                &fft_type, &struct_fact_int, &radialdist_int, &cartdist_int,
+                                &struct_fact_int, &dsmc_boundaries, &radialdist_int, &cartdist_int,
                                 &n_steps_skip, &binSize, &searchDist,
-				&project_dir, &slicepoint, max_grid_projection.dataPtr(),
+																&project_dir, &slicepoint, max_grid_projection.dataPtr(),
                                 &histogram_unit,
                                 density_weights.dataPtr(), shift_cc_to_boundary.dataPtr(),
-                                &particle_placement, particle_count.dataPtr(),
+                                &particle_placement, &particle_input, particle_count.dataPtr(),
                                 p_move_tog.dataPtr(), p_force_tog.dataPtr(),
                                 p_int_tog.begin(),p_int_tog_wall.begin(), &particle_neff,
                                 particle_n0.dataPtr(), mass.dataPtr(), nfrac.dataPtr(),
                                 &permittivity,
-                                &wall_mob,rmin.begin(),rmax.begin(), eepsilon.begin(), sigma.begin(),rmin_wall.begin(),rmax_wall.begin(), eepsilon_wall.begin(), sigma_wall.begin(),
+                                &wall_mob,rmin.begin(),rmax.begin(), eepsilon.begin(), 
+                                sigma.begin(),rmin_wall.begin(),rmax_wall.begin(),
+                                eepsilon_wall.begin(), sigma_wall.begin(),
                                 &poisson_verbose, &poisson_bottom_verbose, &poisson_max_iter,
                                 &poisson_rel_tol, &particle_grid_refine, &es_grid_refine,
                                 diff.dataPtr(), &all_dry, &fluid_tog, &es_tog, &drag_tog, &move_tog, &rfd_tog,
@@ -138,7 +140,11 @@ void InitializeCommonNamespace() {
                                 &plot_ascii, &plot_means, &plot_vars, &plot_covars, &plot_cross,
                                 &solve_chem, &diffcoeff, &scaling_factor,
                                 &source_strength, &regrid_int, &do_reflux, &particle_motion,
-                                &turb_a, &turb_b, &turbForcing);
+                                &turb_a, &turb_b, &turbForcing,
+                                alpha_pp.begin(), alpha_pw.begin(),
+                                friction_pp.begin(), friction_pw.begin(),
+                                phi_domain.begin(), Yk0.begin(),
+                                &do_1D);
 
     plot_base_name = temp_plot_base_name;
     chk_base_name = temp_chk_base_name;

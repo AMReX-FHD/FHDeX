@@ -1,6 +1,6 @@
 # AMREX_HOME defines the directory in which we will find all the AMReX code.
 # If you set AMREX_HOME as an environment variable, this line will be ignored
-AMREX_HOME ?= ../../../../programs/amrex/
+AMREX_HOME ?= ../../../amrex/
 FHDeX ?= ../../
 FIONS = $(FHDeX)/exec/immersedIons
 
@@ -71,33 +71,20 @@ include $(AMREX_HOME)/Src/AmrCore/Make.package
 include $(AMREX_HOME)/Src/LinearSolvers/MLMG/Make.package
 include $(AMREX_HOME)/Src/Particle/Make.package
 
-include $(AMREX_HOME)/Src/Extern/SWFFT/Make.package
-INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Extern/SWFFT
-VPATH_LOCATIONS   += $(AMREX_HOME)/Src/Extern/SWFFT
-
-#ifeq ($(NERSC_HOST),) # check if NERSC_HOST is empty => hack to test if on cori
-#    LIBRARIES += -L$(FFTW_DIR) -lfftw3
-#    ifeq ($(USE_OMP), TRUE)
-#	LIBRARIES += -lfftw3_omp
-#    endif
-#    ifeq ($(USE_MPI), TRUE)
-#	LIBRARIES += -lfftw3_mpi
-#    endif
-#else
-#    $(info NERSC_HOST not empty => relying on compiler wrapper for fftw3)
-#endif
-
-LIBRARIES += -L$(FFTW_DIR) -lfftw3_mpi -lfftw3_omp -lfftw3 -lgomp
-#LIBRARIES += -L$(FFTW_DIR) -lfftw3
-
 include $(AMREX_HOME)/Tools/GNUMake/Make.rules
 
 ifeq ($(DSMC), TRUE)
   DEFINES += -DDSMC
 endif
 
-#DEFINES	+= -DDSMC=$(DSMC)				
+#DEFINES	+= -DDSMC=$(DSMC)
 
 ifeq ($(findstring cgpu, $(HOST)), cgpu)
-CXXFLAGS += $(FFTW)
+  CXXFLAGS += $(FFTW)
+endif
+
+ifeq ($(USE_CUDA),TRUE)
+  LIBRARIES += -lcufft
+else
+  LIBRARIES += -L$(FFTW_DIR) -lfftw3_mpi -lfftw3
 endif

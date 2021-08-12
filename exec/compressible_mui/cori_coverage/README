@@ -1,0 +1,20 @@
+** module setup
+module swap PrgEnv-intel PrgEnv-gnu
+module add gcc
+module add cray-fftw
+
+** compile fhd
+go to exec/compressible_mui 
+run "make"
+
+(if needed)
+edit: exec/compressible_mui/GNUmakefile 
+clean: "make realclean" 
+
+** compile spparks
+go to exec/compressible_mui/SPPARKS_MUI
+run "make mui_cori"
+
+(if needed)
+edit: exec/compressible_mui/SPPARKS_MUI/MAKE/Makefile.mui_cori
+clean: "make clean-all"

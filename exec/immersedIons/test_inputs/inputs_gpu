@@ -6,7 +6,7 @@
     
   n_cells(1:3) = 64 64 64                  ! leads to 50% dry + 50% wet
   ! max number of cells in a box
-  max_grid_size(1:3) = 64 64 64
+  max_grid_size(1:3) = 32 32 32
   max_particle_tile_size(1:3) = 256 256 256 ! set to zero to use max_grid_size, setting a very large number will also use max grid size, but will also ensure that refined es and particle grids will do the same.
 
   ! above settings are for fluid grid. EM and particle grid (the grid for finding neighbour lists) are coarsened or refined off these grids. <1 = refine, >1 = coarsen.

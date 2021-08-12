@@ -168,12 +168,20 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                 if (amrex::Math::abs(visc_type) == 3) {
                   Real fac2 = sqrt(k_B * zetaT * volinv * dtinv / 3.0) - sqrt(2.0 * k_B * etaT * volinv * dtinv)/3.0;
                 }
-                  
-                Real traceZ = stochcenx_u(i,j,k) + stochceny_v(i,j,k) + stochcenz_w(i,j,k);
-
-                tauxx_stoch(i,j,k) = (fac1 * stochcenx_u(i,j,k)) + (fac2 * traceZ);
-                tauyy_stoch(i,j,k) = (fac1 * stochceny_v(i,j,k)) + (fac2 * traceZ);
-                tauzz_stoch(i,j,k) = (fac1 * stochcenz_w(i,j,k)) + (fac2 * traceZ);
+                 
+                if (do_1D) {
+                    Real traceZ = stochcenx_u(i,j,k);
+                    //tauxx_stoch(i,j,k) = (fac1 * stochcenx_u(i,j,k)) + (fac2 * traceZ);
+                    tauxx_stoch(i,j,k) = sqrt(3.0) * ((fac1 * stochcenx_u(i,j,k)) + (fac2 * traceZ)); //  // need sqrt(3.0) for correct F-D for 1D
+                    tauyy_stoch(i,j,k) = 0.0;
+                    tauzz_stoch(i,j,k) = 0.0;
+                }
+                else {
+                    Real traceZ = stochcenx_u(i,j,k) + stochceny_v(i,j,k) + stochcenz_w(i,j,k);
+                    tauxx_stoch(i,j,k) = (fac1 * stochcenx_u(i,j,k)) + (fac2 * traceZ);
+                    tauyy_stoch(i,j,k) = (fac1 * stochceny_v(i,j,k)) + (fac2 * traceZ);
+                    tauzz_stoch(i,j,k) = (fac1 * stochcenz_w(i,j,k)) + (fac2 * traceZ);
+                }
             });
 
             // Populate off-diagonal stress
@@ -222,18 +230,18 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                 Real meanT = 0.5*(prim(i,j,k,4)+prim(i-1,j,k,4));
 
                 // Weights for facial fluxes:
-                fweights[0]=sqrt(k_B*kxp*volinv*dtinv); //energy flux
+                fweights[0] = sqrt(k_B*kxp*volinv*dtinv); //energy flux
                 wiener[0] = fweights[0]*stochfacex(i,j,k,4);
                                 
                 // heat flux
-                xflux(i,j,k,nvars) += wiener[0];
+                xflux(i,j,k,nvars) = wiener[0];
 
                 // viscous heating
                 // diagonal
-                xflux(i,j,k,nvars+1) -= 0.5*velx(i,j,k)*(tauxx_stoch(i-1,j,k)+tauxx_stoch(i,j,k));
+                xflux(i,j,k,nvars+1) = 0.5*velx(i,j,k)*(tauxx_stoch(i-1,j,k)+tauxx_stoch(i,j,k));
                 // shear
-                xflux(i,j,k,nvars+2) -= 0.25*((vely(i,j+1,k)+vely(i-1,j+1,k))*tauxy_stoch(i,j+1,k) + (vely(i,j,k)+vely(i-1,j,k))*tauxy_stoch(i,j,k));
-                xflux(i,j,k,nvars+2) -= 0.25*((velz(i,j,k+1)+velz(i-1,j,k+1))*tauxz_stoch(i,j,k+1) + (velz(i,j,k)+velz(i-1,j,k))*tauxz_stoch(i,j,k));
+                xflux(i,j,k,nvars+2) = 0.25*((vely(i,j+1,k)+vely(i-1,j+1,k))*tauxy_stoch(i,j+1,k) + (vely(i,j,k)+vely(i-1,j,k))*tauxy_stoch(i,j,k));
+                xflux(i,j,k,nvars+2) = 0.25*((velz(i,j,k+1)+velz(i-1,j,k+1))*tauxz_stoch(i,j,k+1) + (velz(i,j,k)+velz(i-1,j,k))*tauxz_stoch(i,j,k));
 
                 if (algorithm_type == 2) {
 
@@ -289,7 +297,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
 
                     for (int ns=0; ns<nspecies; ++ns) {
                         for (int ll=0; ll<=ns; ++ll) {
-                            fweights[1+ll]=sqrt(k_B*MWmix*volinv/(Runiv*dt))*sqD[ns*nspecies+ll];
+                            fweights[1+ll] = sqrt(k_B*MWmix*volinv/(Runiv*dt))*sqD[ns*nspecies+ll];
                             wiener[1+ns] = wiener[1+ns] + fweights[1+ll]*stochfacex(i,j,k,5+ll);
                         }
                         xflux(i,j,k,5+ns) = wiener[1+ns];
@@ -303,7 +311,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                         soret = soret + (hk[ns] + Runiv*meanT/molmass[ns]
                                          *0.5*(chi(i-1,j,k,ns)+chi(i,j,k,ns)))*wiener[1+ns];
                     }
-                    xflux(i,j,k,nvars+3) = xflux(i,j,k,nvars+3) + soret;
+                    xflux(i,j,k,nvars+3) = soret;
                 }
 
             },
@@ -329,14 +337,14 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                 wiener[0] = fweights[0]*stochfacey(i,j,k,4);
 
                 // heat flux
-                yflux(i,j,k,nvars) += wiener[0];
+                yflux(i,j,k,nvars) = wiener[0];
 
                 // viscous heating
                 // diagonal
-                yflux(i,j,k,nvars+1) -= 0.5*vely(i,j,k)*(tauyy_stoch(i,j-1,k)+tauyy_stoch(i,j,k));
+                yflux(i,j,k,nvars+1) = 0.5*vely(i,j,k)*(tauyy_stoch(i,j-1,k)+tauyy_stoch(i,j,k));
                 // shear
-                yflux(i,j,k,nvars+2) -= 0.25*((velx(i+1,j,k)+velx(i+1,j-1,k))*tauxy_stoch(i+1,j,k) + (velx(i,j,k)+velx(i,j-1,k))*tauxy_stoch(i,j,k));
-                yflux(i,j,k,nvars+2) -= 0.25*((velz(i,j,k+1)+velz(i,j-1,k+1))*tauyz_stoch(i,j,k+1) + (velz(i,j,k)+velz(i,j-1,k))*tauyz_stoch(i,j,k));
+                yflux(i,j,k,nvars+2) = 0.25*((velx(i+1,j,k)+velx(i+1,j-1,k))*tauxy_stoch(i+1,j,k) + (velx(i,j,k)+velx(i,j-1,k))*tauxy_stoch(i,j,k));
+                yflux(i,j,k,nvars+2) = 0.25*((velz(i,j,k+1)+velz(i,j-1,k+1))*tauyz_stoch(i,j,k+1) + (velz(i,j,k)+velz(i,j-1,k))*tauyz_stoch(i,j,k));
             
                 if (algorithm_type == 2) {
 
@@ -392,7 +400,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
 
                     for (int ns=0; ns<nspecies; ++ns) {
                         for (int ll=0; ll<=ns; ++ll) {
-                            fweights[1+ll]=sqrt(k_B*MWmix*volinv/(Runiv*dt))*sqD[ns*nspecies+ll];
+                            fweights[1+ll] = sqrt(k_B*MWmix*volinv/(Runiv*dt))*sqD[ns*nspecies+ll];
                             wiener[1+ns] = wiener[1+ns] + fweights[1+ll]*stochfacey(i,j,k,5+ll);
                         }
                         yflux(i,j,k,5+ns) = wiener[1+ns];
@@ -406,7 +414,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                         soret = soret + (hk[ns] + Runiv*meanT/molmass[ns]
                                          *0.5*(chi(i,j-1,k,ns)+chi(i,j,k,ns)))*wiener[1+ns];
                     }
-                    yflux(i,j,k,nvars+3) = yflux(i,j,k,nvars+3) + soret;
+                    yflux(i,j,k,nvars+3) = soret;
                 }
             },
 
@@ -431,14 +439,14 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                 wiener[0] = fweights[0]*stochfacez(i,j,k,4);
 
                 // heat flux
-                zflux(i,j,k,nvars) += wiener[0];
+                zflux(i,j,k,nvars) = wiener[0];
                     
                 // viscous heating
                 // diagonal
-                zflux(i,j,k,nvars+1) -= 0.5*velz(i,j,k)*(tauzz_stoch(i,j,k-1)+tauzz_stoch(i,j,k));
+                zflux(i,j,k,nvars+1) = 0.5*velz(i,j,k)*(tauzz_stoch(i,j,k-1)+tauzz_stoch(i,j,k));
                 // shear
-                zflux(i,j,k,nvars+2) -= 0.25*((velx(i+1,j,k-1)+velx(i+1,j,k))*tauxz_stoch(i+1,j,k) + (velx(i,j,k)+velx(i,j,k-1))*tauxz_stoch(i,j,k));
-                zflux(i,j,k,nvars+2) -= 0.25*((vely(i,j+1,k-1)+vely(i,j+1,k))*tauyz_stoch(i,j+1,k) + (vely(i,j,k)+vely(i,j,k-1))*tauyz_stoch(i,j,k));
+                zflux(i,j,k,nvars+2) = 0.25*((velx(i+1,j,k-1)+velx(i+1,j,k))*tauxz_stoch(i+1,j,k) + (velx(i,j,k)+velx(i,j,k-1))*tauxz_stoch(i,j,k));
+                zflux(i,j,k,nvars+2) = 0.25*((vely(i,j+1,k-1)+vely(i,j+1,k))*tauyz_stoch(i,j+1,k) + (vely(i,j,k)+vely(i,j,k-1))*tauyz_stoch(i,j,k));
                 
 
                 if (algorithm_type == 2) {
@@ -496,7 +504,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
 
                 for (int ns=0; ns<nspecies; ++ns) {
                     for (int ll=0; ll<=ns; ++ll) {
-                        fweights[1+ll]=sqrt(k_B*MWmix*volinv/(Runiv*dt))*sqD[ns*nspecies+ll];
+                        fweights[1+ll] = sqrt(k_B*MWmix*volinv/(Runiv*dt))*sqD[ns*nspecies+ll];
                         wiener[1+ns] = wiener[1+ns] + fweights[1+ll]*stochfacez(i,j,k,5+ll);
                     }
                     zflux(i,j,k,5+ns) = wiener[1+ns];
@@ -510,7 +518,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                     soret = soret + (hk[ns] + Runiv*meanT/molmass[ns]
                                      *0.5*(chi(i,j,k-1,ns)+chi(i,j,k,ns)))*wiener[1+ns];
                 }
-                zflux(i,j,k,nvars+3) = zflux(i,j,k,nvars+3) + soret;
+                zflux(i,j,k,nvars+3) = soret;
                 
                 }
                 
@@ -519,23 +527,23 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
             // Loop over edges for momemntum flux calculations [1:3]
             amrex::ParallelFor(bx_xy, bx_xz, bx_yz,
             [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-                edgey_u(i,j,k) += tauxy_stoch(i,j,k);
-                edgex_v(i,j,k) += tauxy_stoch(i,j,k);
+                edgey_u(i,j,k) = tauxy_stoch(i,j,k);
+                edgex_v(i,j,k) = tauxy_stoch(i,j,k);
             },
             [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-                edgez_u(i,j,k) += tauxz_stoch(i,j,k);
-                edgex_w(i,j,k) += tauxz_stoch(i,j,k);
+                edgez_u(i,j,k) = tauxz_stoch(i,j,k);
+                edgex_w(i,j,k) = tauxz_stoch(i,j,k);
             },
             [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-                edgez_v(i,j,k) += tauyz_stoch(i,j,k);
-                edgey_w(i,j,k) += tauyz_stoch(i,j,k);
+                edgez_v(i,j,k) = tauyz_stoch(i,j,k);
+                edgey_w(i,j,k) = tauyz_stoch(i,j,k);
             });
             
             // Loop over the center cells and compute fluxes (diagonal momentum terms)
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
-                cenx_u(i,j,k) += tauxx_stoch(i,j,k);
-                ceny_v(i,j,k) += tauyy_stoch(i,j,k);
-                cenz_w(i,j,k) += tauzz_stoch(i,j,k);
+                cenx_u(i,j,k) = tauxx_stoch(i,j,k);
+                ceny_v(i,j,k) = tauyy_stoch(i,j,k);
+                cenz_w(i,j,k) = tauzz_stoch(i,j,k);
             });
         } // end MFIter
 
@@ -612,20 +620,37 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) {
 
             Real u_x, v_y, w_z; // velocity gradients
-            u_x = (velx(i+1,j,k) - velx(i,j,k))/dx[0];
-            v_y = (vely(i,j+1,k) - vely(i,j,k))/dx[1];
-            w_z = (velz(i,j,k+1) - velz(i,j,k))/dx[2];
+            if (do_1D) {
+                u_x = (velx(i+1,j,k) - velx(i,j,k))/dx[0];
 
-            Real div = u_x + v_y + w_z;
-            if (amrex::Math::abs(visc_type) == 3) {
-              tauxx(i,j,k) = 2*eta(i,j,k)*u_x + (zeta(i,j,k) - 2*eta(i,j,k)/3.)*div; 
-              tauyy(i,j,k) = 2*eta(i,j,k)*v_y + (zeta(i,j,k) - 2*eta(i,j,k)/3.)*div; 
-              tauzz(i,j,k) = 2*eta(i,j,k)*w_z + (zeta(i,j,k) - 2*eta(i,j,k)/3.)*div;
+                Real div = u_x; // divergence
+                if (amrex::Math::abs(visc_type) == 3) {
+                  tauxx(i,j,k) = 2*eta(i,j,k)*u_x + (zeta(i,j,k) - 2*eta(i,j,k)/3.)*div; 
+                  tauyy(i,j,k) = 0.0; 
+                  tauzz(i,j,k) = 0.0;
+                }
+                else {
+                  tauxx(i,j,k) = 2*eta(i,j,k)*u_x + (0.0 - 2*eta(i,j,k)/3.)*div; 
+                  tauyy(i,j,k) = 0.0; 
+                  tauzz(i,j,k) = 0.0;
+                }
             }
             else {
-              tauxx(i,j,k) = 2*eta(i,j,k)*u_x + (0.0 - 2*eta(i,j,k)/3.)*div; 
-              tauyy(i,j,k) = 2*eta(i,j,k)*v_y + (0.0 - 2*eta(i,j,k)/3.)*div; 
-              tauzz(i,j,k) = 2*eta(i,j,k)*w_z + (0.0 - 2*eta(i,j,k)/3.)*div;
+                u_x = (velx(i+1,j,k) - velx(i,j,k))/dx[0];
+                v_y = (vely(i,j+1,k) - vely(i,j,k))/dx[1];
+                w_z = (velz(i,j,k+1) - velz(i,j,k))/dx[2];
+
+                Real div = u_x + v_y + w_z; // divergence
+                if (amrex::Math::abs(visc_type) == 3) {
+                  tauxx(i,j,k) = 2*eta(i,j,k)*u_x + (zeta(i,j,k) - 2*eta(i,j,k)/3.)*div; 
+                  tauyy(i,j,k) = 2*eta(i,j,k)*v_y + (zeta(i,j,k) - 2*eta(i,j,k)/3.)*div; 
+                  tauzz(i,j,k) = 2*eta(i,j,k)*w_z + (zeta(i,j,k) - 2*eta(i,j,k)/3.)*div;
+                }
+                else {
+                  tauxx(i,j,k) = 2*eta(i,j,k)*u_x + (0.0 - 2*eta(i,j,k)/3.)*div; 
+                  tauyy(i,j,k) = 2*eta(i,j,k)*v_y + (0.0 - 2*eta(i,j,k)/3.)*div; 
+                  tauzz(i,j,k) = 2*eta(i,j,k)*w_z + (0.0 - 2*eta(i,j,k)/3.)*div;
+                }
             }
 
         });
@@ -634,28 +659,41 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
         amrex::ParallelFor(bx_xy, bx_xz, bx_yz,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
 
-            Real u_y, v_x; // velocity gradients
-            u_y = (velx(i,j,k) - velx(i,j-1,k))/dx[1];
-            v_x = (vely(i,j,k) - vely(i-1,j,k))/dx[0];
-            tauxy(i,j,k) = 0.25*(eta(i-1,j-1,k)+eta(i-1,j,k)+eta(i,j-1,k)+eta(i,j,k))*(u_y+v_x);
-            
+            if (do_1D) {
+                tauxy(i,j,k) = 0.0;
+            }
+            else {
+                Real u_y, v_x; // velocity gradients
+                u_y = (velx(i,j,k) - velx(i,j-1,k))/dx[1];
+                v_x = (vely(i,j,k) - vely(i-1,j,k))/dx[0];
+                tauxy(i,j,k) = 0.25*(eta(i-1,j-1,k)+eta(i-1,j,k)+eta(i,j-1,k)+eta(i,j,k))*(u_y+v_x);
+            }
         },
 
         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
 
-            Real u_z, w_x; // velocity gradients
-            u_z = (velx(i,j,k) - velx(i,j,k-1))/dx[2];
-            w_x = (velz(i,j,k) - velz(i-1,j,k))/dx[0];
-            tauxz(i,j,k) = 0.25*(eta(i-1,j,k-1)+eta(i-1,j,k)+eta(i,j,k-1)+eta(i,j,k))*(u_z+w_x);
+            if (do_1D) {
+                tauxz(i,j,k) = 0.0;
+            }
+            else {
+                Real u_z, w_x; // velocity gradients
+                u_z = (velx(i,j,k) - velx(i,j,k-1))/dx[2];
+                w_x = (velz(i,j,k) - velz(i-1,j,k))/dx[0];
+                tauxz(i,j,k) = 0.25*(eta(i-1,j,k-1)+eta(i-1,j,k)+eta(i,j,k-1)+eta(i,j,k))*(u_z+w_x);
+            }
         },
 
         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
 
-            Real v_z, w_y; // velocity gradients
-            v_z = (vely(i,j,k) - vely(i,j,k-1))/dx[2];
-            w_y = (velz(i,j,k) - velz(i,j-1,k))/dx[1];
-            tauyz(i,j,k) = 0.25*(eta(i,j-1,k-1)+eta(i,j-1,k)+eta(i,j,k-1)+eta(i,j,k))*(v_z+w_y);
-
+            if (do_1D) {
+                tauyz(i,j,k) = 0.0;
+            }
+            else {
+                Real v_z, w_y; // velocity gradients
+                v_z = (vely(i,j,k) - vely(i,j,k-1))/dx[2];
+                w_y = (velz(i,j,k) - velz(i,j-1,k))/dx[1];
+                tauyz(i,j,k) = 0.25*(eta(i,j-1,k-1)+eta(i,j-1,k)+eta(i,j,k-1)+eta(i,j,k))*(v_z+w_y);
+            }
         });
 
         // Loop over faces for flux calculations (4:5+ns)
@@ -669,7 +707,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
             GpuArray<Real,MAX_SPECIES> hk;
             GpuArray<Real,MAX_SPECIES> soret;
 
-            // viscous heating
+            // viscous heating (automatically taken care of setting shear stress to zero above for 1D)
             // diagonal
             xflux(i,j,k,nvars+1) -= 0.5*velx(i,j,k)*(tauxx(i-1,j,k)+tauxx(i,j,k));
             // shear
@@ -730,54 +768,64 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
             GpuArray<Real,MAX_SPECIES> hk;
             GpuArray<Real,MAX_SPECIES> soret;
 
-            // viscous heating
+            // viscous heating (automatically taken care of setting shear stress to zero above for 1D)
             // diagonal
             yflux(i,j,k,nvars+1) -= 0.5*vely(i,j,k)*(tauyy(i,j-1,k)+tauyy(i,j,k));
             // shear
             yflux(i,j,k,nvars+2) -= 0.25*((velx(i+1,j,k)+velx(i+1,j-1,k))*tauxy(i+1,j,k) + (velx(i,j,k)+velx(i,j-1,k))*tauxy(i,j,k));
             yflux(i,j,k,nvars+2) -= 0.25*((velz(i,j,k+1)+velz(i,j-1,k+1))*tauyz(i,j,k+1) + (velz(i,j,k)+velz(i,j-1,k))*tauyz(i,j,k));
 
-            Real kyp = 0.5*(kappa(i,j,k) + kappa(i,j-1,k));
-            // heat flux
-            yflux(i,j,k,nvars) -= kyp*(prim(i,j,k,4)-prim(i,j-1,k,4))/dx[1];
-
-            Real meanT = 0.5*(prim(i,j-1,k,4)+prim(i,j,k,4));
-            Real meanP = 0.5*(prim(i,j-1,k,5)+prim(i,j,k,5));
-
-            if (algorithm_type == 2) {
-                // compute dk
+            if (do_1D) { 
+                yflux(i,j,k,nvars) -= 0.0;
+                yflux(i,j,k,nvars+3) += 0.0;
                 for (int ns=0; ns<nspecies; ++ns) {
-                    Real term1 = (prim(i,j,k,6+nspecies+ns)-prim(i,j-1,k,6+nspecies+ns))/dx[1];
-                    meanXk[ns] = 0.5*(prim(i,j-1,k,6+nspecies+ns)+prim(i,j,k,6+nspecies+ns));
-                    meanYk[ns] = 0.5*(prim(i,j-1,k,6+ns)+prim(i,j,k,6+ns));
-                    Real term2 = (meanXk[ns]-meanYk[ns])*(prim(i,j,k,5)-prim(i,j-1,k,5))/dx[1]/meanP;
-                    dk[ns] = term1 + term2;
-                    soret[ns] = 0.5*(chi(i,j-1,k,ns)*prim(i,j-1,k,6+nspecies+ns)+chi(i,j,k,ns)*prim(i,j,k,6+nspecies+ns))
-                        *(prim(i,j,k,4)-prim(i,j-1,k,4))/dx[1]/meanT;
+                    yflux(i,j,k,5+ns) += 0.0;
                 }
+            }
+            else {
+                Real kyp = 0.5*(kappa(i,j,k) + kappa(i,j-1,k));
+                // heat flux
+                yflux(i,j,k,nvars) -= kyp*(prim(i,j,k,4)-prim(i,j-1,k,4))/dx[1];
+            
 
-                // compute Fk (based on Eqn. 2.5.24, Giovangigli's book)
-                for (int kk=0; kk<nspecies; ++kk) {
-                    Fk[kk] = 0.;
-                    for (int ll=0; ll<nspecies; ++ll) {
-                        Fk[kk] -= half*(Dij(i,j-1,k,ll*nspecies+kk)+Dij(i,j,k,ll*nspecies+kk))*( dk[ll] +soret[ll]);
+                Real meanT = 0.5*(prim(i,j-1,k,4)+prim(i,j,k,4));
+                Real meanP = 0.5*(prim(i,j-1,k,5)+prim(i,j,k,5));
+
+                if (algorithm_type == 2) {
+                    // compute dk
+                    for (int ns=0; ns<nspecies; ++ns) {
+                        Real term1 = (prim(i,j,k,6+nspecies+ns)-prim(i,j-1,k,6+nspecies+ns))/dx[1];
+                        meanXk[ns] = 0.5*(prim(i,j-1,k,6+nspecies+ns)+prim(i,j,k,6+nspecies+ns));
+                        meanYk[ns] = 0.5*(prim(i,j-1,k,6+ns)+prim(i,j,k,6+ns));
+                        Real term2 = (meanXk[ns]-meanYk[ns])*(prim(i,j,k,5)-prim(i,j-1,k,5))/dx[1]/meanP;
+                        dk[ns] = term1 + term2;
+                        soret[ns] = 0.5*(chi(i,j-1,k,ns)*prim(i,j-1,k,6+nspecies+ns)+chi(i,j,k,ns)*prim(i,j,k,6+nspecies+ns))
+                            *(prim(i,j,k,4)-prim(i,j-1,k,4))/dx[1]/meanT;
                     }
-                }
 
-                // compute Q (based on Eqn. 2.5.25, Giovangigli's book)
-                GetEnthalpies(meanT,hk);
+                    // compute Fk (based on Eqn. 2.5.24, Giovangigli's book)
+                    for (int kk=0; kk<nspecies; ++kk) {
+                        Fk[kk] = 0.;
+                        for (int ll=0; ll<nspecies; ++ll) {
+                            Fk[kk] -= half*(Dij(i,j-1,k,ll*nspecies+kk)+Dij(i,j,k,ll*nspecies+kk))*( dk[ll] +soret[ll]);
+                        }
+                    }
 
-                Real Q5 = 0.0;
-                for (int ns=0; ns<nspecies; ++ns) {
-                    Q5 += (hk[ns] + 0.5 * Runiv*meanT*(chi(i,j-1,k,ns)+chi(i,j,k,ns))/molmass[ns])*Fk[ns];
-                }
+                    // compute Q (based on Eqn. 2.5.25, Giovangigli's book)
+                    GetEnthalpies(meanT,hk);
 
-                // heat conduction already included in flux(5)
+                    Real Q5 = 0.0;
+                    for (int ns=0; ns<nspecies; ++ns) {
+                        Q5 += (hk[ns] + 0.5 * Runiv*meanT*(chi(i,j-1,k,ns)+chi(i,j,k,ns))/molmass[ns])*Fk[ns];
+                    }
 
-                yflux(i,j,k,nvars+3) += Q5;
+                    // heat conduction already included in flux(5)
 
-                for (int ns=0; ns<nspecies; ++ns) {
-                    yflux(i,j,k,5+ns) += Fk[ns];
+                    yflux(i,j,k,nvars+3) += Q5;
+
+                    for (int ns=0; ns<nspecies; ++ns) {
+                        yflux(i,j,k,5+ns) += Fk[ns];
+                    }
                 }
             }
         },
@@ -793,56 +841,64 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                 GpuArray<Real,MAX_SPECIES> hk;
                 GpuArray<Real,MAX_SPECIES> soret;
                     
-                // viscous heating
+                // viscous heating (automatically taken care of setting shear stress to zero above for 1D)
                 // diagonal
                 zflux(i,j,k,nvars+1) -= 0.5*velz(i,j,k)*(tauzz(i,j,k-1)+tauzz(i,j,k));
                 // shear
                 zflux(i,j,k,nvars+2) -= 0.25*((velx(i+1,j,k-1)+velx(i+1,j,k))*tauxz(i+1,j,k) + (velx(i,j,k)+velx(i,j,k-1))*tauxz(i,j,k));
                 zflux(i,j,k,nvars+2) -= 0.25*((vely(i,j+1,k-1)+vely(i,j+1,k))*tauyz(i,j+1,k) + (vely(i,j,k)+vely(i,j,k-1))*tauyz(i,j,k));
 
-                Real kzp = 0.5*(kappa(i,j,k) + kappa(i,j,k-1));
-                zflux(i,j,k,4) -= kzp*(prim(i,j,k,4)-prim(i,j,k-1,4))/dx[2];
-
-                Real meanT = 0.5*(prim(i,j,k-1,4)+prim(i,j,k,4));
-                Real meanP = 0.5*(prim(i,j,k-1,5)+prim(i,j,k,5));
-
-                if (algorithm_type == 2) {
-
-                    // compute dk
+                if (do_1D) { 
+                    zflux(i,j,k,nvars) -= 0.0;
+                    zflux(i,j,k,nvars+3) += 0.0;
                     for (int ns=0; ns<nspecies; ++ns) {
-                        Real term1 = (prim(i,j,k,6+nspecies+ns)-prim(i,j,k-1,6+nspecies+ns))/dx[2];
-                        meanXk[ns] = 0.5*(prim(i,j,k-1,6+nspecies+ns)+prim(i,j,k,6+nspecies+ns));
-                        meanYk[ns] = 0.5*(prim(i,j,k-1,6+ns)+prim(i,j,k,6+ns));
-                        Real term2 = (meanXk[ns]-meanYk[ns])*(prim(i,j,k,5)-prim(i,j,k-1,5))/dx[2]/meanP;
-                        dk[ns] = term1 + term2;
-                        soret[ns] = 0.5*(chi(i,j,k,ns)*prim(i,j,k-1,6+nspecies+ns)+chi(i,j,k+1,ns)*prim(i,j,k,6+nspecies+ns))
-                            *(prim(i,j,k,4)-prim(i,j,k-1,4))/dx[2]/meanT;
-                    }
-
-                    // compute Fk (based on Eqn. 2.5.24, Giovangigli's book)
-                    for (int kk=0; kk<nspecies; ++kk) {
-                        Fk[kk] = 0.;
-                        for (int ll=0; ll<nspecies; ++ll) {
-                            Fk[kk] -= half*(Dij(i,j,k-1,ll*nspecies+kk)+Dij(i,j,k,ll*nspecies+kk))*( dk[ll] +soret[ll]);
-                        }
-                    }
-
-                    // compute Q (based on Eqn. 2.5.25, Giovangigli's book)
-                    GetEnthalpies(meanT,hk);
-
-                    Real Q5 = 0.0;
-                    for (int ns=0; ns<nspecies; ++ns) {
-                        Q5 += (hk[ns] + 0.5 * Runiv*meanT*(chi(i,j,k,ns)+chi(i,j,k,ns))/molmass[ns])*Fk[ns];
-                    }
-
-                    // heat conduction already included in flux(5)
-                    zflux(i,j,k,nvars+3) += Q5;
-
-                    for (int ns=0; ns<nspecies; ++ns) {
-                        zflux(i,j,k,5+ns) += Fk[ns];
+                        zflux(i,j,k,5+ns) += 0.0;
                     }
                 }
-            
+                else {
+                    Real kzp = 0.5*(kappa(i,j,k) + kappa(i,j,k-1));
+                    zflux(i,j,k,4) -= kzp*(prim(i,j,k,4)-prim(i,j,k-1,4))/dx[2];
+
+                    Real meanT = 0.5*(prim(i,j,k-1,4)+prim(i,j,k,4));
+                    Real meanP = 0.5*(prim(i,j,k-1,5)+prim(i,j,k,5));
+
+                    if (algorithm_type == 2) {
+
+                        // compute dk
+                        for (int ns=0; ns<nspecies; ++ns) {
+                            Real term1 = (prim(i,j,k,6+nspecies+ns)-prim(i,j,k-1,6+nspecies+ns))/dx[2];
+                            meanXk[ns] = 0.5*(prim(i,j,k-1,6+nspecies+ns)+prim(i,j,k,6+nspecies+ns));
+                            meanYk[ns] = 0.5*(prim(i,j,k-1,6+ns)+prim(i,j,k,6+ns));
+                            Real term2 = (meanXk[ns]-meanYk[ns])*(prim(i,j,k,5)-prim(i,j,k-1,5))/dx[2]/meanP;
+                            dk[ns] = term1 + term2;
+                            soret[ns] = 0.5*(chi(i,j,k,ns)*prim(i,j,k-1,6+nspecies+ns)+chi(i,j,k+1,ns)*prim(i,j,k,6+nspecies+ns))
+                                *(prim(i,j,k,4)-prim(i,j,k-1,4))/dx[2]/meanT;
+                        }
+
+                        // compute Fk (based on Eqn. 2.5.24, Giovangigli's book)
+                        for (int kk=0; kk<nspecies; ++kk) {
+                            Fk[kk] = 0.;
+                            for (int ll=0; ll<nspecies; ++ll) {
+                                Fk[kk] -= half*(Dij(i,j,k-1,ll*nspecies+kk)+Dij(i,j,k,ll*nspecies+kk))*( dk[ll] +soret[ll]);
+                            }
+                        }
+
+                        // compute Q (based on Eqn. 2.5.25, Giovangigli's book)
+                        GetEnthalpies(meanT,hk);
+
+                        Real Q5 = 0.0;
+                        for (int ns=0; ns<nspecies; ++ns) {
+                            Q5 += (hk[ns] + 0.5 * Runiv*meanT*(chi(i,j,k,ns)+chi(i,j,k,ns))/molmass[ns])*Fk[ns];
+                        }
+
+                        // heat conduction already included in flux(5)
+                        zflux(i,j,k,nvars+3) += Q5;
+
+                        for (int ns=0; ns<nspecies; ++ns) {
+                            zflux(i,j,k,5+ns) += Fk[ns];
+                        }
+                    }
+                }
             } // n_cells_z test
         });
 
@@ -1046,6 +1102,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
             });
             
         } else if (advection_type == 1) { // interpolate conserved quantitites
+          // this will work directly for 1D as all the velocities in the y- and z-directions are always zero
 
             // 1. Loop over the face cells and compute fluxes (all conserved qtys. except momentum; i.e.,[0,4,5-nspecies])
             amrex::ParallelFor(tbx, tby, tbz,
@@ -1111,9 +1168,16 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
 
             // 3. Loop over the center cells and compute fluxes (diagonal momentum terms)
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
-                cenx_u(i,j,k) += 0.25*(momx(i,j,k)+momx(i+1,j,k))*(velx(i,j,k)+velx(i+1,j,k)) + prim(i,j,k,5);
-                ceny_v(i,j,k) += 0.25*(momy(i,j,k)+momy(i,j+1,k))*(vely(i,j,k)+vely(i,j+1,k)) + prim(i,j,k,5);
-                cenz_w(i,j,k) += 0.25*(momz(i,j,k)+momz(i,j,k+1))*(velz(i,j,k)+velz(i,j,k+1)) + prim(i,j,k,5);
+                if (do_1D) {
+                    cenx_u(i,j,k) += 0.25*(momx(i,j,k)+momx(i+1,j,k))*(velx(i,j,k)+velx(i+1,j,k)) + prim(i,j,k,5);
+                    ceny_v(i,j,k) += 0.0;
+                    cenz_w(i,j,k) += 0.0;
+                }
+                else {
+                    cenx_u(i,j,k) += 0.25*(momx(i,j,k)+momx(i+1,j,k))*(velx(i,j,k)+velx(i+1,j,k)) + prim(i,j,k,5);
+                    ceny_v(i,j,k) += 0.25*(momy(i,j,k)+momy(i,j+1,k))*(vely(i,j,k)+vely(i,j+1,k)) + prim(i,j,k,5);
+                    cenz_w(i,j,k) += 0.25*(momz(i,j,k)+momz(i,j,k+1))*(velz(i,j,k)+velz(i,j,k+1)) + prim(i,j,k,5);
+                }
             });
 
         }
