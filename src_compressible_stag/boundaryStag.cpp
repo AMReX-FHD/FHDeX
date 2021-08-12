@@ -35,7 +35,25 @@ void SetupCWallStag() {
     }
 
     if (bc_mass_lo[0] == 3) {
-        GetPressureGas(p_lo[0],bc_Yk_x_lo,rho_lo[0],t_lo[0]);
+        // set reservoir pressure equal to inital ambient pressure (for no flow)
+        // if t_lo/hi is positive, compute rho_lo/hi (default)
+        // if rho_lo/hi is positive, rewrite t_lo/hi (from input script)
+
+        GpuArray<Real,MAX_SPECIES> massvec;
+        for (int ns=0;ns<nspecies;++ns) massvec[ns] = rhobar[ns];
+        GetPressureGas(p_lo[0],massvec,rho0,T_init[0]);
+
+        if (rho_lo[0] < 0.0) { // specify reservoir density
+            GetDensity(p_lo[0],rho_lo[0],t_lo[0],bc_Yk_x_lo);
+        }
+        else { // specify reservoir temperature
+            Real molmix = 0.;
+            for (int n=0; n<nspecies; ++n) {
+                molmix += bc_Yk_x_lo[n]/molmass[n];
+            }
+            molmix = 1./molmix;
+            t_lo[0] = p_lo[0]*(molmix/Runiv)/rho_lo[0];
+        }     
     }
 
     if ((bc_mass_hi[0] == 2) or (bc_mass_hi[0] == 3)) {
@@ -53,7 +71,25 @@ void SetupCWallStag() {
     }
 
     if (bc_mass_hi[0] == 3) {
-        GetPressureGas(p_hi[0],bc_Yk_x_hi,rho_hi[0],t_hi[0]);
+        // set reservoir pressure equal to inital ambient pressure (for no flow)
+        // if t_lo/hi is positive, compute rho_lo/hi (default)
+        // if rho_lo/hi is positive, rewrite t_lo/hi (from input script)
+
+        GpuArray<Real,MAX_SPECIES> massvec;
+        for (int ns=0;ns<nspecies;++ns) massvec[ns] = rhobar[ns];
+        GetPressureGas(p_hi[0],massvec,rho0,T_init[0]);
+
+        if (rho_hi[0] < 0.0) { // specify reservoir density
+            GetDensity(p_hi[0],rho_hi[0],t_hi[0],bc_Yk_x_hi);
+        }
+        else { // specify reservoir temperature
+            Real molmix = 0.;
+            for (int n=0; n<nspecies; ++n) {
+                molmix += bc_Yk_x_hi[n]/molmass[n];
+            }
+            molmix = 1./molmix;
+            t_hi[0] = p_hi[0]*(molmix/Runiv)/rho_hi[0];
+        }     
     }
 
     // Y walls
@@ -72,7 +108,25 @@ void SetupCWallStag() {
     }
 
     if (bc_mass_lo[1] == 3) {
-        GetPressureGas(p_lo[1],bc_Yk_y_lo,rho_lo[1],t_lo[1]);
+        // set reservoir pressure equal to inital ambient pressure (for no flow)
+        // if t_lo/hi is positive, compute rho_lo/hi (default)
+        // if rho_lo/hi is positive, rewrite t_lo/hi (from input script)
+
+        GpuArray<Real,MAX_SPECIES> massvec;
+        for (int ns=0;ns<nspecies;++ns) massvec[ns] = rhobar[ns];
+        GetPressureGas(p_lo[1],massvec,rho0,T_init[0]);
+
+        if (rho_lo[1] < 0.0) { // specify reservoir density
+            GetDensity(p_lo[1],rho_lo[1],t_lo[1],bc_Yk_y_lo);
+        }
+        else { // specify reservoir temperature
+            Real molmix = 0.;
+            for (int n=0; n<nspecies; ++n) {
+                molmix += bc_Yk_y_lo[n]/molmass[n];
+            }
+            molmix = 1./molmix;
+            t_lo[1] = p_lo[1]*(molmix/Runiv)/rho_lo[1];
+        }     
     }
 
     if ((bc_mass_hi[1] == 2) or (bc_mass_hi[1] == 3)) {
@@ -90,7 +144,25 @@ void SetupCWallStag() {
     }
 
     if (bc_mass_hi[1] == 3) {
-        GetPressureGas(p_hi[1],bc_Yk_y_hi,rho_hi[1],t_hi[1]);
+        // set reservoir pressure equal to inital ambient pressure (for no flow)
+        // if t_lo/hi is positive, compute rho_lo/hi (default)
+        // if rho_lo/hi is positive, rewrite t_lo/hi (from input script)
+
+        GpuArray<Real,MAX_SPECIES> massvec;
+        for (int ns=0;ns<nspecies;++ns) massvec[ns] = rhobar[ns];
+        GetPressureGas(p_hi[1],massvec,rho0,T_init[0]);
+
+        if (rho_hi[1] < 0.0) { // specify reservoir density
+            GetDensity(p_hi[1],rho_hi[1],t_hi[1],bc_Yk_y_hi);
+        }
+        else { // specify reservoir temperature
+            Real molmix = 0.;
+            for (int n=0; n<nspecies; ++n) {
+                molmix += bc_Yk_y_hi[n]/molmass[n];
+            }
+            molmix = 1./molmix;
+            t_hi[1] = p_hi[1]*(molmix/Runiv)/rho_hi[1];
+        }     
     }
 
     // Z walls
@@ -109,7 +181,25 @@ void SetupCWallStag() {
     }
 
     if (bc_mass_lo[2] == 3) {
-        GetPressureGas(p_lo[2],bc_Yk_z_lo,rho_lo[2],t_lo[2]);
+        // set reservoir pressure equal to inital ambient pressure (for no flow)
+        // if t_lo/hi is positive, compute rho_lo/hi (default)
+        // if rho_lo/hi is positive, rewrite t_lo/hi (from input script)
+
+        GpuArray<Real,MAX_SPECIES> massvec;
+        for (int ns=0;ns<nspecies;++ns) massvec[ns] = rhobar[ns];
+        GetPressureGas(p_lo[2],massvec,rho0,T_init[0]);
+
+        if (rho_lo[2] < 0.0) { // specify reservoir density
+            GetDensity(p_lo[2],rho_lo[2],t_lo[2],bc_Yk_z_lo);
+        }
+        else { // specify reservoir temperature
+            Real molmix = 0.;
+            for (int n=0; n<nspecies; ++n) {
+                molmix += bc_Yk_z_lo[n]/molmass[n];
+            }
+            molmix = 1./molmix;
+            t_lo[2] = p_lo[2]*(molmix/Runiv)/rho_lo[2];
+        }     
     }
 
     if ((bc_mass_hi[2] == 2) or (bc_mass_hi[2] == 3)) {
@@ -127,7 +217,25 @@ void SetupCWallStag() {
     }
 
     if (bc_mass_hi[2] == 3) {
-        GetPressureGas(p_hi[2],bc_Yk_z_hi,rho_hi[2],t_hi[2]);
+        // set reservoir pressure equal to inital ambient pressure (for no flow)
+        // if t_lo/hi is positive, compute rho_lo/hi (default)
+        // if rho_lo/hi is positive, rewrite t_lo/hi (from input script)
+
+        GpuArray<Real,MAX_SPECIES> massvec;
+        for (int ns=0;ns<nspecies;++ns) massvec[ns] = rhobar[ns];
+        GetPressureGas(p_hi[2],massvec,rho0,T_init[0]);
+
+        if (rho_hi[2] < 0.0) { // specify reservoir density
+            GetDensity(p_hi[2],rho_hi[2],t_hi[2],bc_Yk_z_hi);
+        }
+        else { // specify reservoir temperature
+            Real molmix = 0.;
+            for (int n=0; n<nspecies; ++n) {
+                molmix += bc_Yk_z_hi[n]/molmass[n];
+            }
+            molmix = 1./molmix;
+            t_hi[2] = p_hi[2]*(molmix/Runiv)/rho_hi[2];
+        }     
     }
 }
 
