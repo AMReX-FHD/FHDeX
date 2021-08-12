@@ -690,26 +690,26 @@ void StagApplyOp(const Geometry & geom,
 
         const Box & bx = mfi.tilebox();
 
-        Array4<Real const> const& beta_cc_fab = beta_cc.array(mfi);
-        Array4<Real const> const& gamma_cc_fab = gamma_cc.array(mfi);
+        Array4<Real const> const& betacc = beta_cc.array(mfi);
+        Array4<Real const> const& gammacc = gamma_cc.array(mfi);
 
-        Array4<Real const> const& beta_xy_fab = beta_ed[0].array(mfi);
+        Array4<Real const> const& betaxy = beta_ed[0].array(mfi);
 #if (AMREX_SPACEDIM == 3)
-        Array4<Real const> const& beta_xz_fab = beta_ed[1].array(mfi);
-        Array4<Real const> const& beta_yz_fab = beta_ed[2].array(mfi);
+        Array4<Real const> const& betaxz = beta_ed[1].array(mfi);
+        Array4<Real const> const& betayz = beta_ed[2].array(mfi);
 #endif
 
-        AMREX_D_TERM(Array4<Real const> const& phix_fab = phi[0].array(mfi);,
-                     Array4<Real const> const& phiy_fab = phi[1].array(mfi);,
-                     Array4<Real const> const& phiz_fab = phi[2].array(mfi););
+        AMREX_D_TERM(Array4<Real const> const& phix = phi[0].array(mfi);,
+                     Array4<Real const> const& phiy = phi[1].array(mfi);,
+                     Array4<Real const> const& phiz = phi[2].array(mfi););
 
-        AMREX_D_TERM(Array4<Real> const& Lphix_fab = Lphi[0].array(mfi);,
-                     Array4<Real> const& Lphiy_fab = Lphi[1].array(mfi);,
-                     Array4<Real> const& Lphiz_fab = Lphi[2].array(mfi););
+        AMREX_D_TERM(Array4<Real> const& Lphix = Lphi[0].array(mfi);,
+                     Array4<Real> const& Lphiy = Lphi[1].array(mfi);,
+                     Array4<Real> const& Lphiz = Lphi[2].array(mfi););
 
-        AMREX_D_TERM(Array4<Real const> const& alphax_fab = alpha_fc[0].array(mfi);,
-                     Array4<Real const> const& alphay_fab = alpha_fc[1].array(mfi);,
-                     Array4<Real const> const& alphaz_fab = alpha_fc[2].array(mfi););
+        AMREX_D_TERM(Array4<Real const> const& alphax = alpha_fc[0].array(mfi);,
+                     Array4<Real const> const& alphay = alpha_fc[1].array(mfi);,
+                     Array4<Real const> const& alphaz = alpha_fc[2].array(mfi););
 
         AMREX_D_TERM(const Box& bx_x = mfi.nodaltilebox(0);,
                      const Box& bx_y = mfi.nodaltilebox(1);,
@@ -721,17 +721,17 @@ void StagApplyOp(const Geometry & geom,
         // for positive visc_types, the coefficients are constant in space
         if (visc_type > 0) {
             const auto& lo = amrex::lbound(bx);
-            bt = beta_cc_fab (lo.x,lo.y,lo.z);
-            gt = gamma_cc_fab(lo.x,lo.y,lo.z);
+            bt = betacc (lo.x,lo.y,lo.z);
+            gt = gammacc(lo.x,lo.y,lo.z);
         }
 
         if (visc_type == 1) {
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA(index_bounds, tbx,
             {
                 stag_applyop_visc_p1(tbx, AMREX_D_DECL(bx_x,bx_y,bx_z),
-                                     AMREX_D_DECL(alphax_fab,alphay_fab,alphaz_fab),
-                                     AMREX_D_DECL(phix_fab,phiy_fab,phiz_fab),
-                                     AMREX_D_DECL(Lphix_fab,Lphiy_fab,Lphiz_fab),
+                                     AMREX_D_DECL(alphax,alphay,alphaz),
+                                     AMREX_D_DECL(phix,phiy,phiz),
+                                     AMREX_D_DECL(Lphix,Lphiy,Lphiz),
                                      AMREX_D_DECL(do_x,do_y,do_z),
                                      theta_alpha, bt, gt, offset, color, dx_gpu);
             });
@@ -740,12 +740,12 @@ void StagApplyOp(const Geometry & geom,
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA(index_bounds, tbx,
             {
                 stag_applyop_visc_m1(tbx, AMREX_D_DECL(bx_x,bx_y,bx_z),
-                                     AMREX_D_DECL(alphax_fab,alphay_fab,alphaz_fab),
-                                     AMREX_D_DECL(phix_fab,phiy_fab,phiz_fab),
-                                     AMREX_D_DECL(Lphix_fab,Lphiy_fab,Lphiz_fab),
-                                     beta_cc_fab, beta_xy_fab,
+                                     AMREX_D_DECL(alphax,alphay,alphaz),
+                                     AMREX_D_DECL(phix,phiy,phiz),
+                                     AMREX_D_DECL(Lphix,Lphiy,Lphiz),
+                                     betacc, betaxy,
 #if (AMREX_SPACEDIM == 3)
-                                     beta_xz_fab, beta_yz_fab,
+                                     betaxz, betayz,
 #endif                                 
                                      AMREX_D_DECL(do_x,do_y,do_z),
                                      theta_alpha, bt, gt, offset, color, dx_gpu);
@@ -755,9 +755,9 @@ void StagApplyOp(const Geometry & geom,
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA(index_bounds, tbx,
             {
                 stag_applyop_visc_p2(tbx, AMREX_D_DECL(bx_x,bx_y,bx_z),
-                                     AMREX_D_DECL(alphax_fab,alphay_fab,alphaz_fab),
-                                     AMREX_D_DECL(phix_fab,phiy_fab,phiz_fab),
-                                     AMREX_D_DECL(Lphix_fab,Lphiy_fab,Lphiz_fab),
+                                     AMREX_D_DECL(alphax,alphay,alphaz),
+                                     AMREX_D_DECL(phix,phiy,phiz),
+                                     AMREX_D_DECL(Lphix,Lphiy,Lphiz),
                                      AMREX_D_DECL(do_x,do_y,do_z),
                                      theta_alpha, bt, gt, offset, color, dx_gpu);
             });
@@ -766,12 +766,12 @@ void StagApplyOp(const Geometry & geom,
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA(index_bounds, tbx,
             {
                 stag_applyop_visc_m2(tbx, AMREX_D_DECL(bx_x,bx_y,bx_z),
-                                     AMREX_D_DECL(alphax_fab,alphay_fab,alphaz_fab),
-                                     AMREX_D_DECL(phix_fab,phiy_fab,phiz_fab),
-                                     AMREX_D_DECL(Lphix_fab,Lphiy_fab,Lphiz_fab),
-                                     beta_cc_fab, beta_xy_fab,
+                                     AMREX_D_DECL(alphax,alphay,alphaz),
+                                     AMREX_D_DECL(phix,phiy,phiz),
+                                     AMREX_D_DECL(Lphix,Lphiy,Lphiz),
+                                     betacc, betaxy,
 #if (AMREX_SPACEDIM == 3)
-                                     beta_xz_fab, beta_yz_fab,
+                                     betaxz, betayz,
 #endif                                 
                                      AMREX_D_DECL(do_x,do_y,do_z),
                                      theta_alpha, bt, gt, offset, color, dx_gpu);
