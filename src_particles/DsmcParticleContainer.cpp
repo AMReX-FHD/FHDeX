@@ -78,9 +78,14 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom, const Distribu
 			properties[i].n0 = particle_neff*properties[i].total/domainVol;
 			particle_n0[i] = properties[i].n0;
 
+//            Real specRho = rho0*Yk0[i];
+//            properties[i].total = std::ceil((specRho/properties[i].mass)*domainVol/particle_neff);
+//            properties[i].n0 = particle_neff*properties[i].total/properties[i].mass;
+//            particle_n0[i] = properties[i].n0;
+            
 			amrex::Print() <<  "Species "<< i << " count " << properties[i].total << "\n";
 			amrex::Print() <<  "Species "<< i << " n0 " << properties[i].n0 << "\n";
-			amrex::Print() <<  "Species " << i << " rho0 " << properties[i].n0*properties[i].mass << "\n";
+			amrex::Print() <<  "Species " << i << " rho0 " << properties[i].n0*properties[i].mass << ", from " << rho0*Yk0[i] << "\n";
 			for(int i=0; i<nspecies; i++)
 			{
 				Yk0[i] *= rho0;
@@ -148,6 +153,8 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
 	Real adjalt = 2.0*(1.0-0.99999);
 	Real runtime, inttime;
 	int intsurf, intside, push;
+	
+	int totalParts = 0;
 
 	for (FhdParIter pti(* this, lev); pti.isValid(); ++pti)
 	{
@@ -162,6 +169,10 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
 		Box bx  = pti.tilebox();
 		IntVect myLo = bx.smallEnd();
 		IntVect myHi = bx.bigEnd();
+		
+		cout << "Rank " << ParallelDescriptor::MyProc() << " sees " << np << " particles\n";
+		
+		totalParts += np;
 
 		for (int i = 0; i < np; i++)
 		{
@@ -230,6 +241,10 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
 			}
 		}
 	}
+	
+    ParallelDescriptor::ReduceIntSum(totalParts);
+	Print() << "Total particles: " << totalParts << "\n";
+	
 	Redistribute();
 	SortParticles();
 }
