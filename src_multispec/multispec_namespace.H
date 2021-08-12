@@ -9,14 +9,14 @@ namespace multispec {
     extern int                        temp_type;
     extern AMREX_GPU_MANAGED int      chi_iterations;
     extern amrex::Real                start_time;
-    extern amrex::Vector<amrex::Real> Dbar;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_ELEMENT> Dbar;
     extern amrex::Vector<amrex::Real> Dtherm;
     extern amrex::Vector<amrex::Real> H_offdiag;
     extern amrex::Vector<amrex::Real> H_diag;
     extern AMREX_GPU_MANAGED amrex::Real fraction_tolerance;
     extern int                        correct_flux;
     extern int                        print_error_norms;
-    extern int                        is_nonisothermal;
+    extern AMREX_GPU_MANAGED int      is_nonisothermal;
     extern AMREX_GPU_MANAGED int      is_ideal_mixture;
     extern AMREX_GPU_MANAGED int      use_lapack;
     extern AMREX_GPU_MANAGED int      use_multiphase;
@@ -27,7 +27,7 @@ namespace multispec {
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> c_init_2;
   
     extern int                        midpoint_stoch_mass_flux_type;
-    extern int                        avg_type;
+    extern AMREX_GPU_MANAGED int      avg_type;
     extern int                        mixture_type;
 
     // charged fluid

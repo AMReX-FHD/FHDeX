@@ -759,7 +759,6 @@ void ComputeChi(int nspecies_in,
     //local variables
     Real eepsilon=1.e-16;
 
-    Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> Lambda;
     Array1D<Real, 1, MAX_SPECIES> W;
 
    /*
@@ -1130,7 +1129,7 @@ void ComputeDBarLocal(
 
     //printf("DBar %25.16E %25.16E %25.16E\n", Dbar[0], Dbar[1], Dbar[2] );
     //printf("DBar_loc %25.16E %25.16E %25.16E\n", DBar_loc(1), DBar_loc(2), DBar_loc(3) );
-    printf("RhoN %25.16E rhotot_in %25.16E\n", RhoN[0], rhotot_in);
+    //printf("RhoN %25.16E rhotot_in %25.16E\n", RhoN[0], rhotot_in);
     } break;
 
     default : //Keep it constant
@@ -1361,8 +1360,6 @@ void ComputeSqrtLOnsagerLocal(
 
     int ntrace;                /**<   number of trace species with w_k < fractional_tolerance */
     int nspecies_sub;          /**<   dim of subsystem = nspecies-ntrace */
-    Real molmtot_sub;
-    Real rhotot_sub;
 
    /*
     * this is a mapping used to eliminate elements in D_bar we don't need (for D_bar_sub)
@@ -1463,7 +1460,7 @@ void ComputeZetaByTempLocal(
     Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> Lambda;
 
     // compute zeta_by_Temp for thermodiffusion
-    if (is_nonisothermal == 1){   //HACK -- shouldn't this if statement go way earlier?
+    if (is_nonisothermal == 1){
 
        // compute Lambda_ij matrix; molarconc is 
        // expressed in terms of molmtot,mi,rhotot etc. 
