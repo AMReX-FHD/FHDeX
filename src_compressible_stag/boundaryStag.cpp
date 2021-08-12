@@ -650,14 +650,15 @@ void BCMassTempPress(MultiFab& prim_in,MultiFab& cons_in,const amrex::Geometry g
                         for (int n=0; n<nspecies; ++n) {
                             prim(i,j,k,6+n)          = bc_Yk_x_lo[n]; // set ghost cell equal to reservoir mass fraction
                             prim(i,j,k,6+nspecies+n) = bc_Xk_x_lo[n]; // set ghost cell equal to reservoir mole fraction
+                            
+                            prim(i,j,k,0) = rho_lo[0]; // set ghost cell equal to reservoir density
+                            cons(i,j,k,0) = rho_lo[0]; // set ghost cell equal to reservoir density
+
+                            prim(i,j,k,4) = t_lo[0]; // set ghost cell equal to reservoir temperature
+                            prim(i,j,k,5) = p_lo[0]; // set ghost cell equal to reservoir pressure
                         }
                     }
 
-                    prim(i,j,k,0) = rho_lo[0]; // set ghost cell equal to reservoir density
-                    cons(i,j,k,0) = rho_lo[0]; // set ghost cell equal to reservoir density
-
-                    prim(i,j,k,4) = t_lo[0]; // set ghost cell equal to reservoir temperature
-                    prim(i,j,k,5) = p_lo[0]; // set ghost cell equal to reservoir pressure
                 });
             }
 
@@ -722,14 +723,14 @@ void BCMassTempPress(MultiFab& prim_in,MultiFab& cons_in,const amrex::Geometry g
                         for (int n=0; n<nspecies; ++n) {
                             prim(i,j,k,6+n)          = bc_Yk_x_hi[n]; // set ghost cell equal to reservoir mass fraction
                             prim(i,j,k,6+nspecies+n) = bc_Xk_x_hi[n]; // set ghost cell equal to reservoir mole fraction
+
+                            prim(i,j,k,0) = rho_hi[0]; // set ghost cell equal to reservoir density
+                            cons(i,j,k,0) = rho_hi[0]; // set ghost cell equal to reservoir density
+
+                            prim(i,j,k,4) = t_hi[0]; // set ghost cell equal to reservoir temperature
+                            prim(i,j,k,5) = p_hi[0]; // set ghost cell equal to reservoir pressure
                         }
                     }
-
-                    prim(i,j,k,0) = rho_hi[0]; // set ghost cell equal to reservoir density
-                    cons(i,j,k,0) = rho_hi[0]; // set ghost cell equal to reservoir density
-
-                    prim(i,j,k,4) = t_hi[0]; // set ghost cell equal to reservoir temperature
-                    prim(i,j,k,5) = p_hi[0]; // set ghost cell equal to reservoir pressure
                 });
             }
 
@@ -793,14 +794,14 @@ void BCMassTempPress(MultiFab& prim_in,MultiFab& cons_in,const amrex::Geometry g
                         for (int n=0; n<nspecies; ++n) {
                             prim(i,j,k,6+n)          = bc_Yk_y_lo[n]; // set ghost cell equal to reservoir mass fraction
                             prim(i,j,k,6+nspecies+n) = bc_Xk_y_lo[n]; // set ghost cell equal to reservoir mole fraction
+
+                            prim(i,j,k,0) = rho_lo[1]; // set ghost cell equal to reservoir density
+                            cons(i,j,k,0) = rho_lo[1]; // set ghost cell equal to reservoir density
+
+                            prim(i,j,k,4) = t_lo[1]; // set ghost cell equal to reservoir temperature
+                            prim(i,j,k,5) = p_lo[1]; // set ghost cell equal to reservoir pressure
                         }
                     }
-
-                    prim(i,j,k,0) = rho_lo[1]; // set ghost cell equal to reservoir density
-                    cons(i,j,k,0) = rho_lo[1]; // set ghost cell equal to reservoir density
-
-                    prim(i,j,k,4) = t_lo[1]; // set ghost cell equal to reservoir temperature
-                    prim(i,j,k,5) = p_lo[1]; // set ghost cell equal to reservoir pressure
                 });
             }
 
@@ -866,14 +867,14 @@ void BCMassTempPress(MultiFab& prim_in,MultiFab& cons_in,const amrex::Geometry g
                         for (int n=0; n<nspecies; ++n) {
                             prim(i,j,k,6+n)          = bc_Yk_y_hi[n]; // set ghost cell equal to reservoir mass fraction
                             prim(i,j,k,6+nspecies+n) = bc_Xk_y_hi[n]; // set ghost cell equal to reservoir mole fraction
+
+                            prim(i,j,k,0) = rho_hi[1]; // set ghost cell equal to reservoir density
+                            cons(i,j,k,0) = rho_hi[1]; // set ghost cell equal to reservoir density
+
+                            prim(i,j,k,4) = t_hi[1]; // set ghost cell equal to reservoir temperature
+                            prim(i,j,k,5) = p_hi[1]; // set ghost cell equal to reservoir pressure
                         }
                     }
-
-                    prim(i,j,k,0) = rho_hi[1]; // set ghost cell equal to reservoir density
-                    cons(i,j,k,0) = rho_hi[1]; // set ghost cell equal to reservoir density
-
-                    prim(i,j,k,4) = t_hi[1]; // set ghost cell equal to reservoir temperature
-                    prim(i,j,k,5) = p_hi[1]; // set ghost cell equal to reservoir pressure
                 });
             }
 
@@ -937,14 +938,14 @@ void BCMassTempPress(MultiFab& prim_in,MultiFab& cons_in,const amrex::Geometry g
                         for (int n=0; n<nspecies; ++n) {
                             prim(i,j,k,6+n)          = bc_Yk_z_lo[n]; // set ghost cell equal to reservoir mass fraction
                             prim(i,j,k,6+nspecies+n) = bc_Xk_z_lo[n]; // set ghost cell equal to reservoir mole fraction
+
+                            prim(i,j,k,0) = rho_lo[2]; // set ghost cell equal to reservoir density
+                            cons(i,j,k,0) = rho_lo[2]; // set ghost cell equal to reservoir density
+
+                            prim(i,j,k,4) = t_lo[2]; // set ghost cell equal to reservoir temperature
+                            prim(i,j,k,5) = p_lo[2]; // set ghost cell equal to reservoir pressure
                         }
                     }
-
-                    prim(i,j,k,0) = rho_lo[2]; // set ghost cell equal to reservoir density
-                    cons(i,j,k,0) = rho_lo[2]; // set ghost cell equal to reservoir density
-
-                    prim(i,j,k,4) = t_lo[2]; // set ghost cell equal to reservoir temperature
-                    prim(i,j,k,5) = p_lo[2]; // set ghost cell equal to reservoir pressure
                 });
             }
 
@@ -1010,14 +1011,14 @@ void BCMassTempPress(MultiFab& prim_in,MultiFab& cons_in,const amrex::Geometry g
                         for (int n=0; n<nspecies; ++n) {
                             prim(i,j,k,6+n)          = bc_Yk_z_hi[n]; // set ghost cell equal to reservoir mass fraction
                             prim(i,j,k,6+nspecies+n) = bc_Xk_z_hi[n]; // set ghost cell equal to reservoir mole fraction
+
+                            prim(i,j,k,0) = rho_hi[2]; // set ghost cell equal to reservoir density
+                            cons(i,j,k,0) = rho_hi[2]; // set ghost cell equal to reservoir density
+
+                            prim(i,j,k,4) = t_hi[2]; // set ghost cell equal to reservoir temperature
+                            prim(i,j,k,5) = p_hi[2]; // set ghost cell equal to reservoir pressure
                         }
                     }
-
-                    prim(i,j,k,0) = rho_hi[2]; // set ghost cell equal to reservoir density
-                    cons(i,j,k,0) = rho_hi[2]; // set ghost cell equal to reservoir density
-
-                    prim(i,j,k,4) = t_hi[2]; // set ghost cell equal to reservoir temperature
-                    prim(i,j,k,5) = p_hi[2]; // set ghost cell equal to reservoir pressure
                 });
             }
 
