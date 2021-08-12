@@ -36,10 +36,29 @@ contains
     subroutine matvec_mul_comp(xp_ij, ap_ij)
 
       double precision, dimension(nc),    intent(inout) :: xp_ij
-      double precision, dimension(nc,nc), intent(in)    :: ap_ij  
-        
-      xp_ij = matmul(ap_ij, xp_ij)
- 
+      double precision, dimension(nc,nc), intent(in)    :: ap_ij
+
+      ! temporary copy of input x
+      double precision, dimension(nc) :: x_in
+
+      integer :: i,j
+
+      double precision :: sum
+
+      do i=1,nc
+         x_in(i) = xp_ij(i)
+      end do
+
+      do j=1,nc
+         sum = 0.
+         do i=1,nc
+            sum = sum + ap_ij(j,i)*x_in(i)
+         end do
+         xp_ij(j) = sum
+      end do
+
+!      xp_ij = matmul(ap_ij, xp_ij)
+
     end subroutine matvec_mul_comp
 
   end subroutine matvec_mul
