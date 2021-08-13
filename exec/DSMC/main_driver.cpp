@@ -32,7 +32,7 @@ void main_driver(const char* argv)
 	DistributionMapping dmap;
 
 	int step = 1;
-	Real dt = 0;
+	Real dt = fixed_dt;
 	Real time = 0.;
 	int statsCount = 1;
 	
@@ -248,7 +248,6 @@ void main_driver(const char* argv)
 	particles.InitParticles(dt);
 
 	particles.InitCollisionCells();
-	amrex::Print() << "Overwritten dt so Courant number <1: " << dt << "\n";
 
 	Real init_time = ParallelDescriptor::second() - strt_time;
 	ParallelDescriptor::ReduceRealMax(init_time);

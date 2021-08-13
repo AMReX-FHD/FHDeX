@@ -229,13 +229,13 @@ void writePlotFile(const MultiFab& mfcuInst,
     }
     
         // particle in cplt file
-    Vector<std::string> real_comp_names = FHD_realData::names();
-    Vector<std::string>  int_comp_names = FHD_intData::names();
+//    Vector<std::string> real_comp_names = FHD_realData::names();
+//    Vector<std::string>  int_comp_names = FHD_intData::names();
 
-    Vector<int> write_real_comp(real_comp_names.size(),1);
-    Vector<int> write_int_comp(int_comp_names.size(),1);
-    
-    particles.WritePlotFile(pltpart, "particles",
-                            write_real_comp, write_int_comp, real_comp_names, int_comp_names);
+//    Vector<int> write_real_comp(real_comp_names.size(),1);
+//    Vector<int> write_int_comp(int_comp_names.size(),1);
+//    
+//    particles.WritePlotFile(pltpart, "particles",
+//                            write_real_comp, write_int_comp, real_comp_names, int_comp_names);
 
 }

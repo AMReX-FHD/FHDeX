@@ -298,12 +298,19 @@ void FhdParticleContainer::SortParticles()
 
 void FhdParticleContainer::Source(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount) {
 	int lev = 0;
-	bool proc0_enter = true;
+	bool proc_enter = true;
+	
+	const Real* dx = Geom(lev).CellSize();
+	Real smallNumber = dx[0];
+	if(dx[1] < smallNumber){smallNumber = dx[1];}
+	if(dx[2] < smallNumber){smallNumber = dx[2];}
+	smallNumber = smallNumber*0.00000001;
+	
 	for (MFIter mfi = MakeMFIter(lev, true); mfi.isValid(); ++mfi)
 	{
-		if(ParallelDescriptor::MyProc() == 0 && proc0_enter)
+		if(proc_enter)
 		{
-			proc0_enter = false;
+			proc_enter = false;//Make sure this runs only once incase of tiling
 
 			const int grid_id = mfi.index();
 			const int tile_id = mfi.LocalTileIndex();
@@ -316,9 +323,9 @@ void FhdParticleContainer::Source(const Real dt, const paramPlane* paramPlaneLis
 					for(int j = 0; j< nspecies; j++)
 					{
 						Real density = paramPlaneList[i].densityLeft[j];
-						//Print() << "left n: " << density << "\n";
+
 						Real temp = paramPlaneList[i].temperatureLeft;
-						Real area = paramPlaneList[i].area;
+						Real area = paramPlaneList[i].area/ParallelDescriptor::NProcs();
 
 						Real fluxMean = density*area*sqrt(properties[j].R*temp/(2.0*M_PI))/particle_neff;
 						Real fluxVar = density*area*sqrt(properties[j].R*temp/(2.0*M_PI))/particle_neff;
@@ -333,6 +340,8 @@ void FhdParticleContainer::Source(const Real dt, const paramPlane* paramPlaneLis
 						{
 							totalFluxInt++;
 						}
+						
+						Print() << "Surface " << i << " generating " << totalFluxInt << " of species " << j << " on the left.\n";
 
 						for(int k=0;k<totalFluxInt;k++)
 						{
@@ -352,9 +361,9 @@ void FhdParticleContainer::Source(const Real dt, const paramPlane* paramPlaneLis
 							p.pos(2) = paramPlaneList[i].z0 + paramPlaneList[i].uz*uCoord + paramPlaneList[i].vz*vCoord;
 
 							//move the particle slightly off the surface so it doesn't intersect it when it moves
-							p.pos(0) = p.pos(0) + uCoord*0.00000001*paramPlaneList[i].lnx;
-							p.pos(1) = p.pos(1) + uCoord*0.00000001*paramPlaneList[i].lny;
-							p.pos(2) = p.pos(2) + uCoord*0.00000001*paramPlaneList[i].lnz;
+							p.pos(0) = p.pos(0) + smallNumber*paramPlaneList[i].lnx;
+							p.pos(1) = p.pos(1) + smallNumber*paramPlaneList[i].lny;
+							p.pos(2) = p.pos(2) + smallNumber*paramPlaneList[i].lnz;
 
 							p.rdata(FHD_realData::boostx) = 0;
 							p.rdata(FHD_realData::boosty) = 0;
@@ -386,12 +395,12 @@ void FhdParticleContainer::Source(const Real dt, const paramPlane* paramPlaneLis
 					for(int j=0; j< nspecies; j++)
 					{
 						Real density = paramPlaneList[i].densityRight[j];
-						//Print() << "right n: " << density << "\n";
 						Real temp = paramPlaneList[i].temperatureRight;
-						Real area = paramPlaneList[i].area;
+						Real area = paramPlaneList[i].area/ParallelDescriptor::NProcs();
 
 						Real fluxMean = density*area*sqrt(properties[j].R*temp/(2.0*M_PI))/particle_neff;
 						Real fluxVar = density*area*sqrt(properties[j].R*temp/(2.0*M_PI))/particle_neff;
+						
 
 						Real totalFlux = dt*fluxMean + sqrt(dt*fluxVar)*amrex::RandomNormal(0.,1.);
 						totalFlux = std::max(totalFlux,0.);
@@ -403,6 +412,7 @@ void FhdParticleContainer::Source(const Real dt, const paramPlane* paramPlaneLis
 						{
 							totalFluxInt++;
 						}
+						Print() << "Surface " << i << " generating " << totalFluxInt << " of species " << j << " on the right.\n";
 
 						for(int k=0;k<totalFluxInt;k++)
 						{
@@ -421,9 +431,9 @@ void FhdParticleContainer::Source(const Real dt, const paramPlane* paramPlaneLis
 							p.pos(1) = paramPlaneList[i].y0 + paramPlaneList[i].uy*uCoord + paramPlaneList[i].vy*vCoord;
 							p.pos(2) = paramPlaneList[i].z0 + paramPlaneList[i].uz*uCoord + paramPlaneList[i].vz*vCoord;
 
-							p.pos(0) = p.pos(0) - uCoord*0.00000001*paramPlaneList[i].lnx;
-							p.pos(1) = p.pos(1) - uCoord*0.00000001*paramPlaneList[i].lny;
-							p.pos(2) = p.pos(2) - uCoord*0.00000001*paramPlaneList[i].lnz;
+							p.pos(0) = p.pos(0) + smallNumber*paramPlaneList[i].rnx;
+							p.pos(1) = p.pos(1) + smallNumber*paramPlaneList[i].rny;
+							p.pos(2) = p.pos(2) + smallNumber*paramPlaneList[i].rnz;
 							
 							p.rdata(FHD_realData::boostx) = 0;
 							p.rdata(FHD_realData::boosty) = 0;
