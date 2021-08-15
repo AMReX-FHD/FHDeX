@@ -1,4 +1,4 @@
-#include "INS_functions.H"
+#include "LocalFunctions.H"
 #include "common_functions.H"
 #include "species.H"
 #include "DsmcParticleContainer.H"
