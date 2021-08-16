@@ -782,6 +782,21 @@ void StructFact::ShiftFFT(MultiFab& dft_out, const Geometry& geom, const int& ze
 
   BL_PROFILE_VAR("StructFact::ShiftFFT()",ShiftFFT);
 
+  /*
+    Shifting rules:
+
+    For domains from (0,0,0) to (Nx-1,Ny-1,Nz-1)
+
+    For any cells with i index >= Nx/2, these values are complex conjugates of the corresponding
+    entry where (Nx-i,Ny-j,Nz-k) UNLESS that index is zero, in which case you use 0.
+
+    e.g. for an 8^3 domain, any cell with i index 
+
+    Cell (6,2,3) is complex conjugate of (2,6,5)
+
+    Cell (4,1,0) is complex conjugate of (4,7,0)  (note that the FFT is computed for 0 <= i <= Nx/2)
+  */
+
   BoxArray ba_onegrid;
   {
       Box domain = geom.Domain();
@@ -835,15 +850,6 @@ void StructFact::ShiftFFT(MultiFab& dft_out, const Geometry& geom, const int& ze
 #endif
             dft(ip,jp,kp) = dft_temp(i,j,k);
         });
-
-        /*
-        amrex::ParallelFor(bx,
-        [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-        {
-            std::cout << "HACKFFTSHIFT " << i << " " << j << " " << k << " "
-                      << dft(i,j,k) << std::endl;
-        });
-        */
     }
 
     dft_out.ParallelCopy(dft_onegrid, 0, d, 1);
