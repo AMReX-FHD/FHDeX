@@ -326,22 +326,32 @@ void FhdParticleContainer::Source(const Real dt, const paramPlane* paramPlaneLis
 
 						Real temp = paramPlaneList[i].temperatureLeft;
 						Real area = paramPlaneList[i].area/ParallelDescriptor::NProcs();
-
 						Real fluxMean = density*area*sqrt(properties[j].R*temp/(2.0*M_PI))/particle_neff;
-						Real fluxVar = density*area*sqrt(properties[j].R*temp/(2.0*M_PI))/particle_neff;
-
-						Real totalFlux = dt*fluxMean + sqrt(dt*fluxVar)*amrex::RandomNormal(0.,1.);
-						totalFlux = std::max(totalFlux,0.);
-
-						int totalFluxInt =  (int)floor(totalFlux);
-						Real totalFluxLeftOver = totalFlux - totalFluxInt;
-
-						if(amrex::Random() < totalFluxLeftOver)
+												
+						Real elapsedTime = -log(amrex::Random())/fluxMean;
+                        int totalFluxInt = 0;
+						while(elapsedTime < dt)
 						{
-							totalFluxInt++;
+						    totalFluxInt++;
+						    elapsedTime += -log(amrex::Random())/fluxMean;
 						}
+
+
+//						Real fluxMean = density*area*sqrt(properties[j].R*temp/(2.0*M_PI))/particle_neff;
+//						Real fluxVar = density*area*sqrt(properties[j].R*temp/(2.0*M_PI))/particle_neff;
+
+//						Real totalFlux = dt*fluxMean + sqrt(dt*fluxVar)*amrex::RandomNormal(0.,1.);
+//						totalFlux = std::max(totalFlux,0.);
+
+//						int totalFluxInt =  (int)floor(totalFlux);
+//						Real totalFluxLeftOver = totalFlux - totalFluxInt;
+
+//						if(amrex::Random() < totalFluxLeftOver)
+//						{
+//							totalFluxInt++;
+//						}
 						
-						//Print() << "Surface " << i << " generating " << totalFluxInt << " of species " << j << " on the left.\n";
+						Print() << "Surface " << i << " generating " << totalFluxInt << " of species " << j << " on the left.\n";
 
 						for(int k=0;k<totalFluxInt;k++)
 						{
@@ -397,22 +407,30 @@ void FhdParticleContainer::Source(const Real dt, const paramPlane* paramPlaneLis
 						Real density = paramPlaneList[i].densityRight[j];
 						Real temp = paramPlaneList[i].temperatureRight;
 						Real area = paramPlaneList[i].area/ParallelDescriptor::NProcs();
-
 						Real fluxMean = density*area*sqrt(properties[j].R*temp/(2.0*M_PI))/particle_neff;
-						Real fluxVar = density*area*sqrt(properties[j].R*temp/(2.0*M_PI))/particle_neff;
-						
-
-						Real totalFlux = dt*fluxMean + sqrt(dt*fluxVar)*amrex::RandomNormal(0.,1.);
-						totalFlux = std::max(totalFlux,0.);
-
-						int totalFluxInt =  (int)floor(totalFlux);
-						Real totalFluxLeftOver = totalFlux - totalFluxInt;
-
-						if(amrex::Random() < totalFluxLeftOver)
+												
+						Real elapsedTime = -log(amrex::Random())/fluxMean;
+                        int totalFluxInt = 0;
+						while(elapsedTime < dt)
 						{
-							totalFluxInt++;
+						    totalFluxInt++;
+						    elapsedTime += -log(amrex::Random())/fluxMean;
 						}
-						//Print() << "Surface " << i << " generating " << totalFluxInt << " of species " << j << " on the right.\n";
+
+//						Real fluxMean = density*area*sqrt(properties[j].R*temp/(2.0*M_PI))/particle_neff;
+//						Real fluxVar = density*area*sqrt(properties[j].R*temp/(2.0*M_PI))/particle_neff;
+//						
+//						Real totalFlux = dt*fluxMean + sqrt(dt*fluxVar)*amrex::RandomNormal(0.,1.);
+//						totalFlux = std::max(totalFlux,0.);
+
+//						int totalFluxInt =  (int)floor(totalFlux);
+//						Real totalFluxLeftOver = totalFlux - totalFluxInt;
+
+//						if(amrex::Random() < totalFluxLeftOver)
+//						{
+//							totalFluxInt++;
+//						}
+						Print() << "Surface " << i << " generating " << totalFluxInt << " of species " << j << " on the right.\n";
 
 						for(int k=0;k<totalFluxInt;k++)
 						{
@@ -466,6 +484,7 @@ void FhdParticleContainer::Source(const Real dt, const paramPlane* paramPlaneLis
 	Redistribute();
 	SortParticles();
 }
+
 /*
 void FhdParticleContainer::EvaluateStats(MultiFab& particleInstant, MultiFab& particleMeans,
                                          MultiFab& particleVars, const Real delt, int steps)
