@@ -47,11 +47,6 @@ void MatvecMul(MultiFab& x_in,
 
 
         });
-
-
-      //  matvec_mul(ARLIM_3D(validBox.loVect()), ARLIM_3D(validBox.hiVect()),
-		  // BL_TO_FORTRAN_FAB(x_in[mfi]),
-		  // BL_TO_FORTRAN_FAB(A_in[mfi]));
     }
 
 }
