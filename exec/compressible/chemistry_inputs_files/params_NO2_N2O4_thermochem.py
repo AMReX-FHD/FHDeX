@@ -211,10 +211,12 @@ print("eq pN2O4(atm)=\t%e\n" % pN2O4)
 nNO2 = (1.013250e6*pNO2)/kB/Temp
 nN2O4 = (1.013250e6*pN2O4)/kB/Temp
 ntot = nNO2+nN2O4
+xNO2 = nNO2/ntot
+xN2O4 = nN2O4/ntot
 print("eq nNO2= \t%e" % nNO2)
 print("eq nN2O4=\t%e" % nN2O4)
 print("eq ntot= \t%e" % ntot)
-print("eq mole fractions= %e %e\n" % (nNO2/ntot,nN2O4/ntot))
+print("eq mole fractions= %e %e\n" % (xNO2,xN2O4))
 
 # mass densities
 rhoNO2 = mNO2*nNO2
@@ -234,6 +236,12 @@ print("k_diss=     \t%e" % k_diss)
 print("ref: k_diss=\t%e\n" % k_diss_ref)
 print("k_asso_c(M^-1*s^-1)=\t%e" % k_asso_c)
 print("k_asso_n(cm^3*s^-1)=\t%e\n" % k_asso_n)
+
+k_asso_x = k_asso_n*nNO2**2/xNO2**2
+k_diss_x = k_diss*nN2O4/xN2O4
+
+print("k_asso_x=\t%e" % k_asso_x)
+print("k_diss_x=\t%e\n" % k_diss_x)
 
 #####
 
