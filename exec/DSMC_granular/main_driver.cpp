@@ -74,6 +74,11 @@ void main_driver(const char* argv)
 
 	int step = 0;
 	Real dt = fixed_dt;
+	bool dt_const=false;
+	if(fixed_dt>0) {
+		dt_const=true;
+	}
+
 	int statsCount = 1; int statsTime = 1;
 	Real time = 0.;
 
@@ -336,7 +341,10 @@ void main_driver(const char* argv)
 			}
 			particles.EvaluateStats(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
 				cvlInst,cvlMeans,QMeans,coVars,spatialCross1D,statsCount,time);
-			// particles.EvaluateStatsPart(vmom);
+			if(plot_vmom>0)
+			{
+				particles.EvaluateStatsPart(vmom);
+			}
 			if(plot_int>0)
 			{
 				particles.writePlotFile(cuInst,cuMeans,cuVars,
@@ -357,7 +365,9 @@ void main_driver(const char* argv)
 		particles.Source(dt, paramPlaneList, paramPlaneCount);
 		particles.externalForce(dt);
 		particles.MoveParticlesCPP(dt, paramPlaneList, paramPlaneCount);
-		particles.updateTimeStep(geom,dt);
+		if(!dt_const) {
+			particles.updateTimeStep(geom,dt);
+		}
 
 		//////////////////////////////////////
 		// Stats

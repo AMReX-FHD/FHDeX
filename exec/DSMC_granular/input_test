@@ -9,23 +9,24 @@
 
 	! Time-step control
 	fixed_dt = 1e-10                        ! dt = dx/(10*sqrt(kT/m))
-	!fixed_dt = -1
+	fixed_dt = -1
 
 	! Controls for number of steps between actions
 	max_step = 50000
 	max_step = 5000
-	max_step = 10
-	plot_int = 200
+	max_step = 500
+	plot_int = 100
 	plot_cross = -1
-	plot_time = 10
 	cross_cell = 3
+	plot_time = -1
+	plot_vmom = 1
 	n_steps_skip = 0
 	struct_fact_int = 10
 
 	reset_stats = 1
 	restart  = -1
 	chk_int  = 5000
-	chk_int  = 500
+	chk_int  = 100
 
 	!particle initialization (-1 - no input; 1 - input provided)
 	particle_input = -1

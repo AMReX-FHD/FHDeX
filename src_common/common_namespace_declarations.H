@@ -215,6 +215,7 @@ int                        common::plot_vars;
 int                        common::plot_covars;
 int                        common::plot_cross;
 int                        common::plot_time;
+int                        common::plot_vmom;
 int                        common::time_sample;
 int                        common::particle_motion;
 int                        common::solve_chem;

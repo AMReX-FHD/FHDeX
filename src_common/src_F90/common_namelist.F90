@@ -214,6 +214,7 @@ module common_namelist_module
   integer,            save :: plot_covars
   integer,            save :: plot_cross
   integer,            save :: plot_time
+  integer,            save :: plot_vmom
   integer,            save :: time_sample
   integer,            save :: particle_motion
 
@@ -470,6 +471,7 @@ module common_namelist_module
   namelist /common/ plot_covars
   namelist /common/ plot_cross
   namelist /common/ plot_time
+  namelist /common/ plot_vmom
   namelist /common/ time_sample
   namelist /common/ particle_motion
 
@@ -664,6 +666,7 @@ contains
     plot_covars = -1    
     plot_cross = -1
     plot_time = -1
+    plot_vmom = -1
     time_sample = 0
     particle_motion = 0
 
@@ -758,7 +761,8 @@ contains
                                          fluid_tog_in, es_tog_in, drag_tog_in, move_tog_in, rfd_tog_in, &
                                          dry_move_tog_in, sr_tog_in, graphene_tog_in, crange_in, &
                                          thermostat_tog_in, zero_net_force_in, images_in, eamp_in, efreq_in, ephase_in, &
-                                         plot_ascii_in, plot_means_in, plot_vars_in, plot_covars_in, plot_cross_in, plot_time_in, &
+                                         plot_ascii_in, plot_means_in, plot_vars_in, plot_covars_in, &
+                                         plot_cross_in, plot_time_in, plot_vmom_in, &
                                          solve_chem_in, diffcoeff_in, scaling_factor_in, &
                                          source_strength_in, regrid_int_in, do_reflux_in, particle_motion_in, &
                                          turb_a_in, turb_b_in, turbForcing_in, &
@@ -952,6 +956,7 @@ contains
     integer,                intent(inout) :: plot_covars_in
     integer,                intent(inout) :: plot_cross_in
     integer,                intent(inout) :: plot_time_in
+    integer,                intent(inout) :: plot_vmom_in
     integer,                intent(inout) :: time_sample_in
     
     integer,                intent(inout) :: solve_chem_in
@@ -1153,6 +1158,7 @@ contains
     plot_covars_in = plot_covars
     plot_cross_in = plot_cross
     plot_time_in = plot_time
+    plot_vmom_in = plot_vmom
     time_sample_in = time_sample
     
     solve_chem_in = solve_chem

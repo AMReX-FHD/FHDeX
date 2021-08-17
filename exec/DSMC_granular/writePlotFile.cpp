@@ -73,7 +73,8 @@ void FhdParticleContainer::writePlotFile(const MultiFab& mfcuInst,
   cuNames[cnt++] = "JzInstant";
   cuNames[cnt++] = "KInstant";
 
-  for(int ispec=0;ispec<nspecies;ispec++) {
+  for(int ispec=0;ispec<nspecies;ispec++)
+  {
     cuNames[cnt++] = amrex::Concatenate("rhoInstant_",ispec,2);
     cuNames[cnt++] = amrex::Concatenate("JxInstant_",ispec,2);
     cuNames[cnt++] = amrex::Concatenate("JyInstant_",ispec,2);
@@ -89,7 +90,8 @@ void FhdParticleContainer::writePlotFile(const MultiFab& mfcuInst,
   cuNames[cnt++] = "JzMean";
   cuNames[cnt++] = "KMean";
 
-  for(int ispec=0;ispec<nspecies;ispec++) {
+  for(int ispec=0;ispec<nspecies;ispec++)
+  {
     cuNames[cnt++] = amrex::Concatenate("rhoMean_",ispec,2);
     cuNames[cnt++] = amrex::Concatenate("JxMean_",ispec,2);
     cuNames[cnt++] = amrex::Concatenate("JyMean_",ispec,2);
@@ -115,7 +117,8 @@ void FhdParticleContainer::writePlotFile(const MultiFab& mfcuInst,
   primNames[cnt++] = "PInstant";
   primNames[cnt++] = "EInstant";
 
-  for(int ispec=0;ispec<nspecies;ispec++) {
+  for(int ispec=0;ispec<nspecies;ispec++)
+  {
     primNames[cnt++] = amrex::Concatenate("nInstant_",ispec,2);
     primNames[cnt++] = amrex::Concatenate("rhoInstant_",ispec,2);
     primNames[cnt++] = amrex::Concatenate("uInstant_",ispec,2);
@@ -139,7 +142,8 @@ void FhdParticleContainer::writePlotFile(const MultiFab& mfcuInst,
   primNames[cnt++] = "PMean";
   primNames[cnt++] = "EMean";
 
-  for(int ispec=0;ispec<nspecies;ispec++) {
+  for(int ispec=0;ispec<nspecies;ispec++)
+  {
     primNames[cnt++] = amrex::Concatenate("nMean_",ispec,2);
     primNames[cnt++] = amrex::Concatenate("rhoMean_",ispec,2);
     primNames[cnt++] = amrex::Concatenate("uMean_",ispec,2);
@@ -167,7 +171,8 @@ void FhdParticleContainer::writePlotFile(const MultiFab& mfcuInst,
   varNames[cnt++] = "JzVar";
   varNames[cnt++] = "KVar";
 
-  for(int ispec=0;ispec<nspecies;ispec++) {
+  for(int ispec=0;ispec<nspecies;ispec++)
+  {
     varNames[cnt++] = amrex::Concatenate("rhoVar_",ispec,2);
     varNames[cnt++] = amrex::Concatenate("JxVar_",ispec,2);
     varNames[cnt++] = amrex::Concatenate("JyVar_",ispec,2);
@@ -188,7 +193,8 @@ void FhdParticleContainer::writePlotFile(const MultiFab& mfcuInst,
   varNames[cnt++] = "PVar";
   varNames[cnt++] = "EVar";
 
-  for(int ispec=0;ispec<nspecies;ispec++) {
+  for(int ispec=0;ispec<nspecies;ispec++)
+  {
     varNames[cnt++] = amrex::Concatenate("nVar_",ispec,2);
     varNames[cnt++] = amrex::Concatenate("rhoVar_",ispec,2);
     varNames[cnt++] = amrex::Concatenate("uVar_",ispec,2);
@@ -231,11 +237,13 @@ void FhdParticleContainer::writePlotFile(const MultiFab& mfcuInst,
   MultiFab::Copy(mfvarplt, mfcoVars, 0, istart, ncovar, 0);
   WriteSingleLevelPlotfile(pltvar, mfvarplt, varNames, geom, time, step);
 
-  if (plot_cross) {
+  if(plot_cross>0)
+  {
     std::string file_prefix_spatial = "spatialCross1D_";
     WriteHorizontalAverage(mfspatialCorr1d,0,0,ncross,step,geom,file_prefix_spatial);
   }
-  if (plot_time) {
+  if(plot_time>0)
+  {
     std::string file_prefix_rhotime = "rhotimeCross_";
     WriteHorizontalAverage(mfrhotimecross,0,0,ntime,step,geom,file_prefix_rhotime);
     std::string file_prefix_utime = "utimeCross_";
@@ -243,8 +251,9 @@ void FhdParticleContainer::writePlotFile(const MultiFab& mfcuInst,
     std::string file_prefix_Ktime = "KtimeCross_";
     WriteHorizontalAverage(mfKtimecross,0,0,ntime,step,geom,file_prefix_Ktime);
   }
-//  if (plot_vmom) {
+  if(plot_vmom>0)
+  {
     std::string file_prefix_vmom = "vmom_";
     WriteHorizontalAverage(mfvmom,0,0,npart,step,geom,file_prefix_vmom);
-//  }
+  }
 }
