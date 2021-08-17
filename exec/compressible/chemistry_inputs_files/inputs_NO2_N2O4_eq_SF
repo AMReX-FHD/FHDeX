@@ -24,8 +24,8 @@
   fixed_dt = 1.e-12
 
   ! Controls for number of steps between actions
-  max_step = 200000
-  plot_int = 20000
+  max_step = 100000
+  plot_int = 10000
 
   ! Multispecies toggle
   ! if algorithm_type = 1, single component
@@ -56,7 +56,7 @@
   rho0 = 1.855335e-03 
 
   struct_fact_int = 1
-  n_steps_skip = 20000
+  n_steps_skip = 10000
 
   ! Boundary conditions:
   ! NOTE: setting bc_vel to periodic sets all the other bc's to periodic)
@@ -110,7 +110,9 @@
 
 nreaction = 2
 
-rate_const = 1.181533e-12 1.109368e+08
+T0_chem = 350
+
+rate_const = 5.194896e+26 2.326169e+27
 
 stoich_1R = 2 0
 stoich_1P = 0 1

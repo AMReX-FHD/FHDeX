@@ -21,7 +21,7 @@ void EMstep_chem_only(MultiFab& rho_old, MultiFab& rho_new,
         MultiFabFillRandom(ranchem,m,1.,geom);
     }
 
-    compute_chemistry_source_CLE(dt,dx[0]*dx[1]*dx[2],rho_old,0,source,0,ranchem);
+    compute_chemistry_source_CLE_2(dt,dx[0]*dx[1]*dx[2],rho_old,0,source,0,ranchem);
 
     for ( MFIter mfi(rho_old,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
 
