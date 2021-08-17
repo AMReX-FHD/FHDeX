@@ -170,7 +170,7 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
 		IntVect myLo = bx.smallEnd();
 		IntVect myHi = bx.bigEnd();
 		
-		cout << "Rank " << ParallelDescriptor::MyProc() << " sees " << np << " particles\n";
+		//cout << "Rank " << ParallelDescriptor::MyProc() << " sees " << np << " particles\n";
 		
 		totalParts += np;
 
@@ -341,7 +341,7 @@ void FhdParticleContainer::Source(const Real dt, const paramPlane* paramPlaneLis
 							totalFluxInt++;
 						}
 						
-						Print() << "Surface " << i << " generating " << totalFluxInt << " of species " << j << " on the left.\n";
+						//Print() << "Surface " << i << " generating " << totalFluxInt << " of species " << j << " on the left.\n";
 
 						for(int k=0;k<totalFluxInt;k++)
 						{
@@ -412,7 +412,7 @@ void FhdParticleContainer::Source(const Real dt, const paramPlane* paramPlaneLis
 						{
 							totalFluxInt++;
 						}
-						Print() << "Surface " << i << " generating " << totalFluxInt << " of species " << j << " on the right.\n";
+						//Print() << "Surface " << i << " generating " << totalFluxInt << " of species " << j << " on the right.\n";
 
 						for(int k=0;k<totalFluxInt;k++)
 						{
