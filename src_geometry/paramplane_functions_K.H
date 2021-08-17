@@ -9,52 +9,52 @@ AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void pre_check_gpu(FhdParticleContainer::ParticleType& part, const Real delt, const paramPlane* paramplanes, 
                                                 const int ns, int* flag, const Real* phi, const Real* plo, Real* inttime)
 {
-    Real proj[3];
-    Real box1lo[3];
-    Real box2lo[3];
-    Real box1hi[3];
-    Real box2hi[3];
+	Real proj[3];
+	Real box1lo[3];
+	Real box2lo[3];
+	Real box1hi[3];
+	Real box2hi[3];
 
-    for (int d=0; d<AMREX_SPACEDIM; ++d)
-    {
-        proj[d] = part.pos(d) + delt*part.rdata(FHD_realData::velx + 0);
-    }
+	for (int d=0; d<AMREX_SPACEDIM; ++d)
+	{
+		proj[d] = part.pos(d) + delt*part.rdata(FHD_realData::velx + 0);
+	}
 
-    for (int d=0; d<AMREX_SPACEDIM; ++d)
-    {
-        box1lo[d] = plo[d];
-        box1hi[d] = phi[d];
+	for (int d=0; d<AMREX_SPACEDIM; ++d)
+	{
+		box1lo[d] = plo[d];
+		box1hi[d] = phi[d];
 
-        box2lo[d] = plo[d];
-        box2hi[d] = phi[d];
-    }
+		box2lo[d] = plo[d];
+		box2hi[d] = phi[d];
+	}
 
-    if(  (part.pos(0) < box1hi[0]) && (part.pos(1) < box1hi[1]) &&
-	    (part.pos(2) < box1hi[2]) && (part.pos(0) > box1lo[0]) &&
-	    (part.pos(1) > box1lo[1]) && (part.pos(2) > box1lo[2])  )
-    {
-        if(  (proj[0] < box1hi[0]) && (proj[1] < box1hi[1]) &&
-        	(proj[2] < box1hi[2]) && (proj[0] > box1lo[0]) &&
-        	(proj[1] > box1lo[1]) && (proj[2] > box1lo[2]) )
-        {
-            *flag = 1;
-        }
-    }
-    else  //started in box 2
-    {
-        if(  (proj[0] < box2hi[0]) && (proj[1] < box2hi[1]) &&
-        	(proj[2] < box2hi[2]) && (proj[0] > box2lo[0]) &&
-        	(proj[1] > box2lo[1]) && (proj[2] > box2lo[2]) )
-        {
-            *flag = 1;
-        }
-    }
+	if(  (part.pos(0) < box1hi[0]) && (part.pos(1) < box1hi[1]) &&
+		(part.pos(2) < box1hi[2]) && (part.pos(0) > box1lo[0]) &&
+		(part.pos(1) > box1lo[1]) && (part.pos(2) > box1lo[2])  )
+	{
+		if(  (proj[0] < box1hi[0]) && (proj[1] < box1hi[1]) &&
+			(proj[2] < box1hi[2]) && (proj[0] > box1lo[0]) &&
+			(proj[1] > box1lo[1]) && (proj[2] > box1lo[2]) )
+		{
+			*flag = 1;
+		}
+	}
+	else  //started in box 2
+	{
+		if(  (proj[0] < box2hi[0]) && (proj[1] < box2hi[1]) &&
+			(proj[2] < box2hi[2]) && (proj[0] > box2lo[0]) &&
+			(proj[1] > box2lo[1]) && (proj[2] > box2lo[2]) )
+		{
+			*flag = 1;
+		}
+	}
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void dummy(Real* inttime)
 {
-        printf("delt dummy %e\n",*inttime);
+	printf("delt dummy %e\n",*inttime);
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
@@ -109,6 +109,14 @@ void rotation(Real costheta, Real sintheta, Real cosphi, Real sinphi, Real *cx, 
     *cy = *cy*cosphi + *cx*costheta*sinphi + *cz*sintheta*sinphi;
     *cz = *cz*costheta - *cx*sintheta;
     *cx = cxnew;
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
+void accelerate(Real *cx, Real *cy, Real *cz)
+{
+    *cx = *cx + grav[0]*fixed_dt;
+    *cy = *cy + grav[1]*fixed_dt;
+    *cz = *cz + grav[2]*fixed_dt;
 }
 
 // uncomment this once this routine is on a GPU device
@@ -171,6 +179,9 @@ void app_bc_gpu(const paramPlane* surf, FhdParticleContainer::ParticleType& part
           surf->cosPhiRight, surf->sinPhiRight,
           &part.rdata(FHD_realData::velx), &part.rdata(FHD_realData::vely), &part.rdata(FHD_realData::velz));
 
+					accelerate(&part.rdata(FHD_realData::velx),
+						&part.rdata(FHD_realData::vely),
+						&part.rdata(FHD_realData::velz));
         }
       }
       else if(amrex::Random(engine) < surf->periodicity)
@@ -248,6 +259,10 @@ void app_bc_gpu(const paramPlane* surf, FhdParticleContainer::ParticleType& part
           rotation(surf->cosThetaLeft, surf->sinThetaLeft,
           surf->cosPhiLeft, surf->sinPhiLeft,
           &part.rdata(FHD_realData::velx), &part.rdata(FHD_realData::vely), &part.rdata(FHD_realData::velz));
+
+					accelerate(&part.rdata(FHD_realData::velx),
+						&part.rdata(FHD_realData::vely),
+						&part.rdata(FHD_realData::velz));
         }
 
       }

@@ -14,7 +14,7 @@
 	! Controls for number of steps between actions
 	max_step = 50000
 	max_step = 5000
-	max_step = 1000
+	max_step = 10
 	plot_int = 200
 	plot_cross = -1
 	plot_time = 10
@@ -52,7 +52,7 @@
 	variance_coef_mom = 1
 
 	! Gravity
-	grav(1:3) = 0.0 0.0 0.0
+	grav(1:3) = 0.0 1.6e-4 0.0
 
 	! Boundary conditions:
 	! NOTE: setting bc_vel to periodic sets all the other bc's to periodic)
@@ -69,8 +69,8 @@
 
 	bc_vel_lo(1:3)   = -1 -1 -1
 	bc_vel_hi(1:3)   = -1 -1 -1  
-	bc_therm_lo(1:3) = -1 -1 -1
-	bc_therm_hi(1:3) = -1 -1 -1
+	bc_therm_lo(1:3) = 2 -1 -1
+	bc_therm_hi(1:3) = 2 -1 -1
 	bc_mass_lo(1:3)  = -1 -1 -1
 	bc_mass_hi(1:3)  = -1 -1 -1
 	dsmc_boundaries = 1

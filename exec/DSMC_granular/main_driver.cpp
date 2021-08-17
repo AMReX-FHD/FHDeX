@@ -200,7 +200,7 @@ void main_driver(const char* argv)
 	int ncvl = nspecies+1;
 	cvlInst.define(ba, dmap, ncvl, 0);  cvlInst.setVal(0.);
 	cvlMeans.define(ba, dmap, ncvl, 0); cvlMeans.setVal(0.);
-	QMeans.define(ba, dmap, ncvl, 0); QMeans.setVal(0.);
+	QMeans.define(ba, dmap, ncvl, 0);   QMeans.setVal(0.);
 
 	Vector<int> is_periodic (AMREX_SPACEDIM,0);
 	for (int i=0; i<AMREX_SPACEDIM; ++i)
@@ -309,6 +309,10 @@ void main_driver(const char* argv)
 	int stat_int = 1;
 	Real tbegin, tend;
 	
+	// for geometry
+	fixed_dt = dt;
+	ParallelDescriptor::Bcast(&fixed_dt,1,ParallelDescriptor::IOProcessorNumber());
+	
 	Print() << "dt: " << dt << "\n";
 	for (int istep=step; istep<=max_step; ++istep)
 	{
@@ -351,9 +355,9 @@ void main_driver(const char* argv)
 		particles.CalcSelections(dt);
 		particles.CollideParticles(dt);
 		particles.Source(dt, paramPlaneList, paramPlaneCount);
-		//particles.externalForce(dt);
+		particles.externalForce(dt);
 		particles.MoveParticlesCPP(dt, paramPlaneList, paramPlaneCount);
-		//particles.updateTimeStep(geom,dt);
+		particles.updateTimeStep(geom,dt);
 
 		//////////////////////////////////////
 		// Stats
@@ -368,7 +372,6 @@ void main_driver(const char* argv)
 				cvlInst.setVal(0.);
 				particles.EvaluateStats(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
 					cvlInst,cvlMeans,QMeans,coVars,spatialCross1D,statsCount,time);
-				Print() << "stat after skip\n";
 				vmom.setVal(0.);
 				particles.EvaluateStatsPart(vmom);
 				if(plot_time>0 && istep%plot_time == 0) {

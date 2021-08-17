@@ -958,6 +958,7 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 	}
 
   // Thermal/Conc BC
+  Print() << "HERE\n";
   int p = 0;
   for(int i=0; i<3 ; i++)
   {

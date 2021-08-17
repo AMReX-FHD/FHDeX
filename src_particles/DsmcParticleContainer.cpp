@@ -4,8 +4,11 @@
 #include "paramplane_functions_K.H"
 #include <math.h>
 using namespace std;
-FhdParticleContainer::FhdParticleContainer(const Geometry & geom, const DistributionMapping & dmap,
-	const BoxArray & ba, int ncells)
+FhdParticleContainer::FhdParticleContainer(
+	const Geometry & geom, 
+	const DistributionMapping & dmap,
+	const BoxArray & ba,
+	int ncells)
 	: NeighborParticleContainer<FHD_realData::count, FHD_intData::count> (geom, dmap, ba, ncells)
 {
 	BL_PROFILE_VAR("FhdParticleContainer()",FhdParticleContainer);
