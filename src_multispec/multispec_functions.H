@@ -1506,18 +1506,9 @@ void MixturePropsMassLocal( GpuArray<Real, MAX_SPECIES>& Rho,
                 int nspecies_in){
 
    
- 
-    // local variables
-    GpuArray<Real, MAX_SPECIES> MassFrac;
-
-
     // Local values of transport and thermodynamic coefficients (functions of composition!):
     GpuArray<Real, MAX_SPECIES*(MAX_SPECIES-1)/2> HOffdiagLoc; //off-diagonal components of symmetric matrices
     GpuArray<Real, MAX_SPECIES> HDiagLoc; // Diagonal component
-
-    for (int n=0; n<nspecies_in; ++n){ 
-        MassFrac[n] = Rho[n]/rhotot;
-    }
 
     // populate D_bar
     ComputeDBarLocal(Rho, rhotot, nspecies_in, DBar);
@@ -1547,6 +1538,7 @@ void MixturePropsMassLocal( GpuArray<Real, MAX_SPECIES>& Rho,
        
        // populate diagonals 
        DThermLoc[row-1]  = Dtherm[row-1];    // thermal diffcoeff's read from input    
+
        if (is_ideal_mixture == 0){
           Hessian(row, row) = HDiagLoc[row-1];
        } else { 
