@@ -7,7 +7,7 @@
 #include "common_namespace.H"
 #include "chrono"
 
-#include "INS_functions.H"
+#include "LocalFunctions.H"
 #include "common_functions.H"
 #include <sstream>
 #include <string>
