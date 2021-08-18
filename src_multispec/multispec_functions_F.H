@@ -72,7 +72,7 @@ extern "C"
 
     ///////////////////////////
     // in mass_flux_utilities.F90
-
+    /*
     void compute_molconc_molmtot(const int* tlo, const int* thi,
                                  const amrex_real* rho, const int* rhlo, const int* rhhi,
                                  const amrex_real* rhotot, const int* rtlo, const int* rthi,
@@ -107,7 +107,7 @@ extern "C"
                                  const amrex_real* sqrtLonsager_z, const int* Lzlo, const int* Lzhi,
 #endif
                                  const amrex_real* dx);
-
+    */
 
 #ifdef __cplusplus
 }
