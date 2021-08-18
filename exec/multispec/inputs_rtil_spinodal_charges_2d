@@ -18,8 +18,8 @@
   fixed_dt = 2.e-13
 
   ! Controls for number of steps between actions
-  max_step = 50000
-  plot_int= 1000
+  max_step = 20
+  plot_int= 10
 
   ! Viscous friction L phi operator
   ! if abs(visc_type) = 1, L = div beta grad

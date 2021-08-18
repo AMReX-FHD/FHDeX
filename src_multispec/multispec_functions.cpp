@@ -2,7 +2,6 @@
 
 void InitializeMultispecNamespace() {
 
-    Dbar.resize(MAX_ELEMENT);
     Dtherm.resize(MAX_SPECIES);
     H_offdiag.resize(MAX_ELEMENT);
     H_diag.resize(MAX_SPECIES);
@@ -11,7 +10,7 @@ void InitializeMultispecNamespace() {
     
     initialize_multispec_namespace( &inverse_type, &temp_type, 
 				    &chi_iterations, &start_time, 
-				    Dbar.dataPtr(), Dtherm.dataPtr(), 
+				    Dbar.data(), Dtherm.dataPtr(), 
 				    H_offdiag.dataPtr(), H_diag.dataPtr(), 
 				    &fraction_tolerance, &correct_flux, 
 				    &print_error_norms,
