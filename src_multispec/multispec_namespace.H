@@ -10,9 +10,9 @@ namespace multispec {
     extern AMREX_GPU_MANAGED int      chi_iterations;
     extern amrex::Real                start_time;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_ELEMENT> Dbar;
-    extern amrex::Vector<amrex::Real> Dtherm;
-    extern amrex::Vector<amrex::Real> H_offdiag;
-    extern amrex::Vector<amrex::Real> H_diag;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> Dtherm;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_ELEMENT> H_offdiag;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> H_diag;
     extern AMREX_GPU_MANAGED amrex::Real fraction_tolerance;
     extern int                        correct_flux;
     extern int                        print_error_norms;

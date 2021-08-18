@@ -17,8 +17,6 @@ void ComputeMixtureProperties(const MultiFab& rho_in,
         // Create cell-centered box
         const Box& bx = mfi.growntilebox(ng);
 
-
-        /* Begin New Development
         const Array4<const Real>& rho_n = rho_in.array(mfi);
         const Array4<const Real>& rhotot = rhotot_in.array(mfi);
         const Array4<      Real>& D_bar_nn = D_bar_in.array(mfi);
@@ -30,12 +28,12 @@ void ComputeMixtureProperties(const MultiFab& rho_in,
 
             GpuArray<Real, MAX_SPECIES> Rho;
             Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> DBar;
-            Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> DTherm;
+            GpuArray<Real, MAX_SPECIES> DTherm;
             Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> Hessian;
 
             //Read in multifab data
             for (int n=0; n<nspecies; ++n){
-                Rho[n] = rho(i,j,k,n);
+                Rho[n] = rho_n(i,j,k,n);
                 DTherm[n] = D_therm_n(i,j,k,n);
                 for (int m=0; m<nspecies; ++m){
                     DBar(m+1, n+1) = D_bar_nn(i,j,k,n*nspecies+m);
@@ -43,7 +41,7 @@ void ComputeMixtureProperties(const MultiFab& rho_in,
                 }
             }
 
-            MixturePropsMassLocal(Rho, rhotot(i,j,k), Dbar, DTherm, Hessian);
+            MixturePropsMassLocal(Rho, rhotot(i,j,k), DBar, DTherm, Hessian, nspecies);
 
             //write back to multifab 
             for (int n=0; n<nspecies; ++n ){
@@ -55,14 +53,6 @@ void ComputeMixtureProperties(const MultiFab& rho_in,
             }
 
         });
-        */ //End development
-
-        mixture_properties_mass(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
-				BL_TO_FORTRAN_ANYD(rho_in[mfi]),
-				BL_TO_FORTRAN_ANYD(rhotot_in[mfi]),
-				BL_TO_FORTRAN_ANYD(D_bar_in[mfi]),
-				BL_TO_FORTRAN_ANYD(D_therm_in[mfi]),
-				BL_TO_FORTRAN_ANYD(Hessian_in[mfi]));
     }
 
 }
