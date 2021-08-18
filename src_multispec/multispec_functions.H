@@ -434,8 +434,8 @@ void ComputeGammaLocal(
         } else {
             PopulateX_xxT(nspecies_in, X_xxT, MolarConcN);
         }
-        
-        //Compute Gamma 
+
+        //Compute Gamma
         GammaIPlusMatmul(nspecies_in, GammaN, X_xxT, HessianN);
 
     }
@@ -617,7 +617,7 @@ void Dbar2chiIterative( int nspecies_local,
     Real MWmix = 0.0;
     for (int ii=1; ii<=nspecies_local; ++ii){
         MWmix = MWmix + Xkp(ii)*molmass_local[ii-1];
-       
+
     }
 
     // mass fractions correction - EGLIB
@@ -625,7 +625,7 @@ void Dbar2chiIterative( int nspecies_local,
         Ykp(ii) = molmass_local[ii-1] / MWmix * Xkp(ii);
     }
 
-    // Find Di matrix 
+    // Find Di matrix
     Real term2;
     for (int i=1; i<=nspecies_local; ++i){
         term2 = 0.0;
@@ -773,7 +773,7 @@ void ComputeChi(int nspecies_in,
         W(2) = rhoN[1]/rhotot;
 
         if ( use_multiphase == 1 ){
-            W(1) = std::max(std::min(W(1),1.0),eepsilon); 
+            W(1) = std::max(std::min(W(1),1.0),eepsilon);
             W(2) = std::max(std::min(W(2),1.0),eepsilon);
         }
 
@@ -914,11 +914,11 @@ void ComputeRhoWChiLocal(
 }
 
 /**
- * \brief Compute nonnegative rho face-centered average 
+ * \brief Compute nonnegative rho face-centered average
  *
  * \param[in] Rho1 density from a neighboring cell
  * \param[in] Rho2 density from a neighboring cell
- * \param[in] dx 
+ * \param[in] dx
  * \param[out] RhoAv face-centered average
  *
  */
@@ -946,7 +946,7 @@ void ComputeNonnegativeRhoAv(
         dv *= dx[dim];
     }
 #endif
-    
+
     if ((use_multiphase == 1) && (nspecies_in == 2)){
        value1 = Rho1[0];
        value2 = Rho2[0];
@@ -961,7 +961,7 @@ void ComputeNonnegativeRhoAv(
 
         for (int comp=1; comp<=nspecies_in; ++comp){
             value1 = Rho1[comp-1]/molmass_in[comp-1]; //Convert to number density
-            value2 = Rho2[comp-1]/molmass_in[comp-1];       
+            value2 = Rho2[comp-1]/molmass_in[comp-1];
 
             switch (avg_type) {
 
@@ -977,7 +977,7 @@ void ComputeNonnegativeRhoAv(
 
             } break;
 
-            case 2 :   // Geometric  
+            case 2 :   // Geometric
                 RhoAv[comp-1] = molmass_in[comp-1]*std::sqrt(std::max(value1,0.0)*std::max(value2,0.0));
             break;
 
@@ -1046,14 +1046,14 @@ void ComputeNonnegativeRhoAv(
                 Abort();
             }
         }
-    }    
+    }
 }
 
 
 /**
  * \brief Water-glycerol mixtures near room temperature
  *
- * \param[in,out] chi 
+ * \param[in,out] chi
  * \param[in] RhoN
  * \param[in] rhotot
  */
@@ -1077,12 +1077,12 @@ void ChiWaterGlycerol(
 
 
 /**
- * \brief compute D_bar 
+ * \brief compute D_bar
  *
  * \param[in] RhoN
  * \param[in] rhotot
  * \param[in] nspecies
- * \param[in,out] D_bar 
+ * \param[in,out] D_bar
  */
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -1091,33 +1091,39 @@ void ComputeDBarLocal(
           Real rhotot_in,
           int nspecies_in,
           Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& D_bar){
-        
+
     // off-diagonal components of symmetric matrices
     Array1D<Real, 1, MAX_SPECIES*(MAX_SPECIES-1)/2> DBar_loc;
 
-    switch (2) {
-    //switch (std::abs(mixture_type)) {
-    
-    case 1 : { // water-glycerol 
-//NOTE: Needs Further Testing -- Close? But not same.
+    switch (std::abs(mixture_type)) {
+
+    case 1 : { // water-glycerol
+
+        //Note: This case could not be verified.
+        printf("mixture_type=1 is not currently supported.\n");
+        Abort();
+
        // we require nspecies=2
        // Dbar(1) = chi0 in the binary notation
         if (nspecies_in != 2){
             printf("mixture_properties_mass_local assumes nspecies=2 if mixture_type=3 (water-glycerol)\n");
             Abort();
         }
-       
-        ChiWaterGlycerol(DBar_loc(1), RhoN, rhotot_in);  //seems ok
+
+        ChiWaterGlycerol(DBar_loc(1), RhoN, rhotot_in);
 
     } break;
 
     case 2 : { // Electrolyte mixture
-//NOTE: Needs Further Testing
-    
-        //if (nspecies_in != 3){
-        //    printf("mixture_properties_mass_local assumes nspecies=3 if mixture_type=2 (water-glycerol)\n");
-        //    Abort();
-        //}
+
+        //Note: The case could not be verified.
+        printf("mixture_type=2 is not currently supported.\n");
+        Abort();
+
+        if (nspecies_in != 3){
+            printf("mixture_properties_mass_local assumes nspecies=3 if mixture_type=2 (water-glycerol)\n");
+            Abort();
+        }
 
         // This is the leading-order correction for dilute solutions
         // In particular, the cross-diffusion coefficient ~sqrt(concentration) as per renormalization theory
@@ -1127,9 +1133,6 @@ void ComputeDBarLocal(
         DBar_loc(2) = Dbar[1]; // D_13 = self diffusion of first ion
         DBar_loc(3) = Dbar[2]; // D_23 = self diffusion of second ion
 
-    //printf("DBar %25.16E %25.16E %25.16E\n", Dbar[0], Dbar[1], Dbar[2] );
-    //printf("DBar_loc %25.16E %25.16E %25.16E\n", DBar_loc(1), DBar_loc(2), DBar_loc(3) );
-    //printf("RhoN %25.16E rhotot_in %25.16E\n", RhoN[0], rhotot_in);
     } break;
 
     default : //Keep it constant
@@ -1141,15 +1144,15 @@ void ComputeDBarLocal(
     }
 
     // Complete the process by filling the matrices using generic formulae -- this part should not change
-    // populate D_bar and Hessian matrix 
-    int n=0; 
+    // populate D_bar and Hessian matrix
+    int n=0;
     for (int row=1; row<=nspecies_in; ++row){
         for (int column=1; column<=row-1; ++column){
             n = n+1;
             D_bar(row, column) = DBar_loc(n);         // SM-diffcoeff's read from input
             D_bar(column, row) = D_bar(row, column);     // symmetric
         }
-        // populate diagonals 
+        // populate diagonals
         D_bar(row, row) = 0.0;           // as self-diffusion is zero
     }
 }
@@ -1158,22 +1161,22 @@ void ComputeDBarLocal(
  * \brief lower triangle and diagonal are overwritten by cholesky factor
  *
  * \param[in] A input matrix
- * \param[in] np 
- *  
- * A is ths input matrix. Upon return the lower triangle and diagonal 
+ * \param[in] np
+ *
+ * A is ths input matrix. Upon return the lower triangle and diagonal
  * are overwritten by the cholesky factor.
  */
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void CholeskyDC(Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& A,
                 int np){
 
-    int ising; 
+    int ising;
     Real sum1;
 
     Array1D<Real, 1, MAX_SPECIES> P;
 
     Real small_number = 0.0; // Some tolerance
-    
+
     for (int i=1; i<=np; ++i){
         ising = 0;
 
@@ -1184,7 +1187,7 @@ void CholeskyDC(Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& A,
                 sum1 = sum1 - A(i,k)*A(j,k);
             }
             if(i==j){
-            
+
                 if(sum1<=small_number){
                     P(i) = 0.0;
                     ising = 1;
@@ -1213,11 +1216,11 @@ void CholeskyDC(Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& A,
 }
 
 /**
- * \brief Compute Sqrt L-Onsager on subset 
+ * \brief Compute Sqrt L-Onsager on subset
  *
  * \param[in] dest map from full system to subset
- * \param[in] Molmass_sub 
- * \param[in] Rho_sub 
+ * \param[in] Molmass_sub
+ * \param[in] Rho_sub
  * \param[in] rhotot_sub
  * \param[in] nspecies_in
  * \param[in] nspecies_sub
@@ -1277,7 +1280,7 @@ void ComputeSqrtLOnsagerSub(
 
     // first, compute the full D_bar
     // then, construct D_bar_sub by mapping the full D_bar into D_bar_sub
-    // you could read in only the lower diagonals, 
+    // you could read in only the lower diagonals,
     // reflect, and set the diagnals to zero if you want
 
     ComputeDBarLocal(Rho_in, rhotot_in, nspecies_in, DBar_in);
@@ -1292,7 +1295,7 @@ void ComputeSqrtLOnsagerSub(
             }
         }
     }
-    
+
     // compute molarconc_sub and molmtot_sub
     ComputeMolconcMolmtotLocal(nspecies_sub, Molmass_sub, Rho_sub, rhotot_sub, Molarconc_sub, molmtot_sub);
 
@@ -1310,7 +1313,7 @@ void ComputeSqrtLOnsagerSub(
 
     // compute cell-centered Cholesky factor, sqrtLonsager_sub
     CholeskyDC(SqrtLOnsager_sub, nspecies_sub);
-    
+
     // expand sqrtLonsager_sub into sqrtLonsager
     MatrixToZeros(nspecies_in, SqrtLOnsager);
     for (int row=1; row<= nspecies_in; ++row){
@@ -1329,12 +1332,12 @@ void ComputeSqrtLOnsagerSub(
 /**
  * \brief Compute Sqrt L-Onsager
  *
- * \param[in] molmass_in 
+ * \param[in] molmass_in
  * \param[in] RhoN
  * \param[in] rhotot_in
  * \param[in] nspecies_in
  * \param[in] chi_iterations_in
- * \param[in,out] sqrtLonsager 
+ * \param[in,out] sqrtLonsager
  *
  */
 
@@ -1349,9 +1352,6 @@ void ComputeSqrtLOnsagerLocal(
 
     // local variables
     Array1D<Real, 1, MAX_SPECIES> W;
-
-    //Real rcond;  /**< For LAPACK95 call */  // These were for a chol_lapack function 
-    //int info;  /**< For LAPACK95 call */    // that is no longer being called in the code. Remove? HACK
 
     GpuArray<Real, MAX_SPECIES> Molarconc_loc;
     Real molmtot_loc;
@@ -1371,11 +1371,11 @@ void ComputeSqrtLOnsagerLocal(
     *  dest(species) 1 0 2 3 0
     */
     Array1D<int, 1, MAX_SPECIES> dest;
-  
+
     // compute the number of trace species
     // build the mapping for expanding/contracting arrays
     ntrace = 0;
-    for (int row=1; row <= nspecies_in; ++row){ 
+    for (int row=1; row <= nspecies_in; ++row){
         W(row) = RhoN[row-1]/rhotot_in;
         if (W(row) < fraction_tolerance){
            ntrace = ntrace + 1;
@@ -1395,16 +1395,16 @@ void ComputeSqrtLOnsagerLocal(
 
         // compute molarconc and molmtot
         ComputeMolconcMolmtotLocal(nspecies_in, molmass_in, RhoN, rhotot_in, Molarconc_loc, molmtot_loc);
-        
+
         // compute D_bar
-        ComputeDBarLocal(RhoN, rhotot_in, nspecies_in, DBar_loc); 
-        
+        ComputeDBarLocal(RhoN, rhotot_in, nspecies_in, DBar_loc);
+
         // compute chi
         ComputeChi(nspecies_in, molmass_in, RhoN, rhotot_in, Molarconc_loc, Chi_loc, DBar_loc, chi_iterations_in);
 
         // compute Onsager matrix L (store in sqrtLonsager)
-        for (int column=1; column<= nspecies_in; ++column){ 
-            for (int row=1; row<=nspecies_in; ++row){ 
+        for (int column=1; column<= nspecies_in; ++column){
+            for (int row=1; row<=nspecies_in; ++row){
                 SqrtLOnsager(row, column) = molmtot_loc*rhotot_in*W(row)*Chi_loc(row,column)*W(column)/k_B;
             }
         }
@@ -1413,23 +1413,22 @@ void ComputeSqrtLOnsagerLocal(
         CholeskyDC(SqrtLOnsager,nspecies_in);
 
     } else {
-//NOTE: Tested on full system (in place of above) 
 
-        // if there are trace species, we consider a subsystem 
+        // if there are trace species, we consider a subsystem
         // consisting of non-trace species
 
         nspecies_sub = nspecies_in - ntrace;
-        ComputeSqrtLOnsagerSub( dest, 
-                        molmass_in, 
-                        RhoN, 
-                        DBar_loc, 
-                        rhotot_in, 
-                        nspecies_in, 
-                        nspecies_sub, 
+        ComputeSqrtLOnsagerSub( dest,
+                        molmass_in,
+                        RhoN,
+                        DBar_loc,
+                        rhotot_in,
+                        nspecies_in,
+                        nspecies_sub,
                         chi_iterations_in,
                         SqrtLOnsager);
 
-    } 
+    }
 
 }
 
@@ -1462,8 +1461,8 @@ void ComputeZetaByTempLocal(
     // compute zeta_by_Temp for thermodiffusion
     if (is_nonisothermal == 1){
 
-       // compute Lambda_ij matrix; molarconc is 
-       // expressed in terms of molmtot,mi,rhotot etc. 
+       // compute Lambda_ij matrix; molarconc is
+       // expressed in terms of molmtot,mi,rhotot etc.
         for (int row=1; row<=nspecies_in; ++row){
             for (int column=1; column<=row-1; ++column){
                 Lambda(row, column) = -MolarConc[row-1]*MolarConc[column-1]/DBar(row,column);
