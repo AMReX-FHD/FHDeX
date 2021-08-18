@@ -422,4 +422,14 @@ void ComputeGammaLocal(
     GammaIPlusMatmul(nspecies_in, GammaN, X_xxT, HessianN);
 }
 
+/**
+ * \brief Mixture Mass Properties 
+ *
+ *
+ *
+ *
+ */
+
+
+
 #endif
