@@ -1408,8 +1408,8 @@ void get_explicit_mobility_gpu(amrex::GpuArray<Real, 3>& mob, amrex::GpuArray<Re
        mob[2] = tmob;
 
        mobDer[0] = nmobDer;
-       mobDer[1] = tmobDer;               
-       mobDer[2] = tmobDer;
+       mobDer[1] = 0;               
+       mobDer[2] = 0;
 
        z = part.pos(0);
        if(z > (phi[0]-plo[0])/2.0)
@@ -1435,9 +1435,9 @@ void get_explicit_mobility_gpu(amrex::GpuArray<Real, 3>& mob, amrex::GpuArray<Re
        mob[1] = nmob;               
        mob[2] = tmob;
 
-       mobDer[0] = tmobDer;
+       mobDer[0] = 0;
        mobDer[1] = nmobDer;               
-       mobDer[2] = tmobDer;
+       mobDer[2] = 0;
 
        z = part.pos(1);
        if(z > (phi[1]-plo[1])/2.0)
@@ -1467,8 +1467,8 @@ void get_explicit_mobility_gpu(amrex::GpuArray<Real, 3>& mob, amrex::GpuArray<Re
        mob[1] = tmob;               
        mob[2] = nmob;
 
-       mobDer[0] = tmobDer;
-       mobDer[1] = tmobDer;               
+       mobDer[0] = 0;
+       mobDer[1] = 0;               
        mobDer[2] = nmobDer;
 
        z = part.pos(2);
