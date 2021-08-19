@@ -1516,13 +1516,19 @@ void MixturePropsMassLocal( GpuArray<Real, MAX_SPECIES>& Rho,
     // models coded up (Wilson, NTLR, UNIQUAC, etc.)
 
     for (int n=0; n<nspecies_in; ++n){
-        HDiagLoc[n] = H_diag[n];
-        DThermLoc[n]  = Dtherm[n];    // thermal diffcoeff's read from input
+        HDiagLoc[n] = 1000*H_diag[n];
+        DThermLoc[n]  = 1000*Dtherm[n];    // thermal diffcoeff's read from input
+
+        printf("HDiagLoc[%d]: %f DThermLoc[%d]: %f", n,HDiagLoc[n],n, DThermLoc[n]);
+
     }
+    printf("\n");
 
     for (int n=0; n < nspecies_in*(nspecies_in-1)/2; ++n){
-        HOffdiagLoc[n] = H_offdiag[n];
+        HOffdiagLoc[n] = 1000*H_offdiag[n];
+        printf("HOffdiagLoc[%d]: %f",n, HOffdiagLoc[n]);
     }
+    printf("\n");
 
     // Complete the process by filling the matrices using generic formulae -- this part should not change
     // populate Hessian matrix
