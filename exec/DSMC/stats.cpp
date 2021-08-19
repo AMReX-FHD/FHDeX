@@ -478,13 +478,13 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
                     cvq_xcross[0]   = cvlMeans(i,j,k,0);  // cv-mean
                     cvq_xcross[1]   = QMeans(i,j,k,0);    // Q-mean
                     
-                    data_xcross[19] = cu(i,j,k,ncon+0); // rho0-instant
-                    data_xcross[20] = cumeans(i,j,k,ncon+0); // rho0-mean
+                    data_xcross[19] = cu(i,j,k,5+0); // rho0-instant
+                    data_xcross[20] = cumeans(i,j,k,5+0); // rho0-mean
                     
                     if(nspecies >1)
                     {
-                        data_xcross[21] = cu(i,j,k,2*ncon+0); // rho1-instant
-                        data_xcross[22] = cumeans(i,j,k,2*ncon+0); // rho1-mean
+                        data_xcross[21] = cu(i,j,k,2*5+0); // rho1-instant
+                        data_xcross[22] = cumeans(i,j,k,2*5+0); // rho1-mean
                     }
 
                }
@@ -566,12 +566,11 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
                 Real vymean = primmeans(i,j,k,3);
                 Real vzmean = primmeans(i,j,k,4);
                 
-                Real delrho0 = cu(i,j,k,ncon+0) - cumeans(i,j,k,ncon+0);
-                
+                Real delrho0 = cu(i,j,k,5+0) - cumeans(i,j,k,5+0);
                 Real delrho1;
                 if(nspecies > 1)
                 {
-                    delrho1 = cu(i,j,k,2*ncon+0) - cumeans(i,j,k,2*ncon+0);
+                    delrho1 = cu(i,j,k,2*5+0) - cumeans(i,j,k,2*5+0);
                 }
 
 				Real cvinv = 1.0/cvlMeans(i,j,k,0);
@@ -661,7 +660,7 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
                     spatialCross(i,j,k,40) = (spatialCross(i,j,k,40)*stepsMinusOne + delrho1cross*delrho0)*osteps;   // <delRho1(x*)delRho0(x)>
                     spatialCross(i,j,k,41) = (spatialCross(i,j,k,41)*stepsMinusOne + delrho0cross*delrho1)*osteps;   // <delRho0(x*)delRho1(x)>
                 }
-
+                
                 // [IS] Species-dependent stuff -- commented now -- add later
                 // <delu(x*)del(rhoYkL)> = (1/<rho(x*)>)*(<deljx(x*)del(rhoYkL)> - <u(x*)><delrho(x*)del(rhoYkL)>)
                 // spatialCross(i,j,k,22) = (1.0/meanrhocross)*(spatialCross(i,j,k,6) - meanuxcross*spatialCross(i,j,k,8));  
