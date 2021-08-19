@@ -2,16 +2,16 @@
 
 void InitializeMultispecNamespace() {
 
-    Dtherm.resize(MAX_SPECIES);
-    H_offdiag.resize(MAX_ELEMENT);
-    H_diag.resize(MAX_SPECIES);
+    //Dtherm.resize(MAX_SPECIES);
+    //H_offdiag.resize(MAX_ELEMENT);
+    //H_diag.resize(MAX_SPECIES);
 
     E_ext_value.resize(3);
     
     initialize_multispec_namespace( &inverse_type, &temp_type, 
 				    &chi_iterations, &start_time, 
-				    Dbar.data(), Dtherm.dataPtr(), 
-				    H_offdiag.dataPtr(), H_diag.dataPtr(), 
+				    Dbar.data(), Dtherm.data(), 
+				    H_offdiag.data(), H_diag.data(), //HACK confirm changes
 				    &fraction_tolerance, &correct_flux, 
 				    &print_error_norms,
 				    &is_nonisothermal, &is_ideal_mixture,
