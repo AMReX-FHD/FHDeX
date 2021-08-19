@@ -244,15 +244,14 @@ void FillRhototGhost(MultiFab& rhotot_in, const MultiFab& conc_in, const Geometr
 // Device calls from  MassFluxUtil.cpp
 
 
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void ComputeChi(int nspecies_in,
-               GpuArray<Real, MAX_SPECIES>& molmass_in,
-               GpuArray<Real, MAX_SPECIES>& rhoN,
-               Real rhotot,
-               GpuArray<Real, MAX_SPECIES>& MolarConcN,
-               Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& chi,
-               Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& D_barN,
-               int chi_iterations_in);
+                GpuArray<Real, MAX_SPECIES>& molmass_in,
+                GpuArray<Real, MAX_SPECIES>& rhoN,
+                Real rhotot,
+                GpuArray<Real, MAX_SPECIES>& MolarConcN,
+                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& chi,
+                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& D_barN,
+                int chi_iterations_in);
 
 /**
  * \brief Compute total molar mass
@@ -460,14 +459,13 @@ void ComputeGammaLocal(
  *
  */
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void ComputeChiSub(int nspecies_in,
-                int nspecies_sub,
-                Array1D<int, 1, MAX_SPECIES> dest,
-                GpuArray<Real, MAX_SPECIES>& molmass_in,
-                GpuArray<Real, MAX_SPECIES>& rhoN,
-                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& D_barN,
-                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& rhoWchiN,
-                int chi_iterations_in){
+void ComputeChiSub(int nspecies_sub,
+                   Array1D<int, 1, MAX_SPECIES> dest,
+                   GpuArray<Real, MAX_SPECIES>& molmass_in,
+                   GpuArray<Real, MAX_SPECIES>& rhoN,
+                   Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& D_barN,
+                   Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& rhoWchiN,
+                   int chi_iterations_in){
 
     GpuArray<Real, MAX_SPECIES> molmass_sub, rhoN_sub, MolarConcN_sub;
     Array1D<Real, 1, MAX_SPECIES> W_sub;
@@ -476,7 +474,7 @@ void ComputeChiSub(int nspecies_in,
     Real Deff, tmp;
 
     // create a vector of non-trace densities and molmass for the subsystem
-    for (int row=1; row<=nspecies_in; ++row){
+    for (int row=1; row<=nspecies; ++row){
         if ( dest(row) != 0 ){
             molmass_sub[dest(row)-1] = molmass_in[row-1];
             rhoN_sub[dest(row)-1] = rhoN[row-1];
@@ -485,7 +483,7 @@ void ComputeChiSub(int nspecies_in,
 
     // renormalize total density and mass fractions
     rhotot_sub = 0.0;
-    for (int row=1; row<=nspecies_in; ++row){
+    for (int row=1; row<=nspecies_sub; ++row){
         rhotot_sub += rhoN_sub[row-1];
     }
 
@@ -497,11 +495,11 @@ void ComputeChiSub(int nspecies_in,
     // you could read in only the lower diagonals,
     // reflect, and set the diagnals to zero if you want
 
-    for (int row=1; row<=nspecies_in; ++row){
+    for (int row=1; row<=nspecies; ++row){
         if (dest(row) == 0){
             continue;
         }
-        for (int column=1; column<=nspecies_in; ++column){
+        for (int column=1; column<=nspecies; ++column){
             if (dest(column) != 0){
                 D_barN_sub(dest(row),dest(column)) = D_barN(row,column);
             }
@@ -516,12 +514,12 @@ void ComputeChiSub(int nspecies_in,
 
 
     // compute full rho*W*chi
-    MatrixToZeros(nspecies_in, rhoWchiN);
-    for (int column=1; column<=nspecies_in; ++column){
+    MatrixToZeros(nspecies, rhoWchiN);
+    for (int column=1; column<=nspecies; ++column){
         if (dest(column) == 0){   //column of trace species
             // compute Deff
             Deff = 0.0;
-            for (int k=1; k<=nspecies_in; ++k){
+            for (int k=1; k<=nspecies; ++k){
                 if (dest(k) != 0){
                     Deff = Deff + MolarConcN_sub[dest(k)-1]/D_barN(k,column);
                 }
@@ -529,14 +527,14 @@ void ComputeChiSub(int nspecies_in,
             Deff = 1.0/Deff;
 
             // assign rhoWchi
-            for (int row=1; row<=nspecies_in; ++row){
+            for (int row=1; row<=nspecies; ++row){
                 if ( row == column ){
                     rhoWchiN(row,column) = rhotot_sub*Deff*molmass_in[row-1]/molmtot_sub;
                 } else if ( dest(row) == 0 ){
                     rhoWchiN(row,column) = 0.0;
                 } else {
                     tmp = 0.0;
-                    for (int k=1; k<=nspecies_in; ++k){
+                    for (int k=1; k<=nspecies; ++k){
                         if ( dest(k)!=0 ){
                             tmp = tmp + chi_sub(dest(row),dest(k))*MolarConcN_sub[dest(k)-1]/D_barN(k,column);
                         }
@@ -548,7 +546,7 @@ void ComputeChiSub(int nspecies_in,
             }
         } else {   // column of non-trace species
             // assign rhoWchi
-            for (int row=1; row<=nspecies_in; ++row){
+            for (int row=1; row<=nspecies; ++row){
                 if ( dest(row) == 0 ){
                     rhoWchiN(row,column) = 0.0;
                 } else {
@@ -825,7 +823,6 @@ void ComputeRhoWChiLocal(
                GpuArray<Real, MAX_SPECIES>& MolarConcN,
                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& rhoWchiN,
                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& D_barN,
-               int nspecies_in,
                GpuArray<Real, MAX_SPECIES>& molmass_in,
                int chi_iterations_in){
 
@@ -848,7 +845,7 @@ void ComputeRhoWChiLocal(
      */
     Array1D<int, 1, MAX_SPECIES> dest;
 
-    if ((use_multiphase == 1) && (nspecies_in == 2)) {
+    if ((use_multiphase == 1) && (nspecies == 2)) {
 
         w1 = MolarConcN[0];
         w2 = MolarConcN[1];
@@ -870,7 +867,7 @@ void ComputeRhoWChiLocal(
        // compute the number of trace species
        // build the mapping for expanding/contracting arrays
         ntrace = 0;
-        for (int row=1; row<=nspecies_in; ++row){
+        for (int row=1; row<=nspecies; ++row){
             W(row) = rhoN[row-1] / rhotot;
             if (W(row) < fraction_tolerance){
                 ntrace = ntrace + 1;
@@ -880,17 +877,17 @@ void ComputeRhoWChiLocal(
             }
         }
 
-        if (ntrace == nspecies_in -1){
+        if (ntrace == nspecies -1){
             // this is all trace species except for 1 (essentially pure solvent);
-            MatrixToZeros(nspecies_in, rhoWchiN); //set rhoWchi to zero
+            MatrixToZeros(nspecies, rhoWchiN); //set rhoWchi to zero
 
         } else if (ntrace == 0){
             // there are no trace species, hence chi = chi_sub
 
-            ComputeChi(nspecies_in, molmass_in, rhoN, rhotot, MolarConcN, chi, D_barN, chi_iterations_in);
+            ComputeChi(nspecies, molmass_in, rhoN, rhotot, MolarConcN, chi, D_barN, chi_iterations_in);
 
-            for (int row=1; row<=nspecies_in; ++row){
-                for (int column=1; column<=nspecies_in; ++column){
+            for (int row=1; row<=nspecies; ++row){
+                for (int column=1; column<=nspecies; ++column){
                     rhoWchiN(row, column) = rhoN[row-1] * chi(row,column);
                 }
             }
@@ -898,16 +895,15 @@ void ComputeRhoWChiLocal(
         else {
           // if there are trace species, we consider a subsystem
           // consisting of non-trace species
-          nspecies_sub = nspecies_in - ntrace;
+          nspecies_sub = nspecies - ntrace;
 
-          ComputeChiSub(nspecies_in,
-                      nspecies_sub,
-                      dest,
-                      molmass_in,
-                      rhoN,
-                      D_barN,
-                      rhoWchiN,
-                      chi_iterations_in);
+          ComputeChiSub(nspecies_sub,
+                        dest,
+                        molmass_in,
+                        rhoN,
+                        D_barN,
+                        rhoWchiN,
+                        chi_iterations_in);
 
         }
     }
