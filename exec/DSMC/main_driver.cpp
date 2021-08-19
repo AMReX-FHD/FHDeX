@@ -43,7 +43,7 @@ void main_driver(const char* argv)
 	// For long-range temperature-related correlations
 	MultiFab cvlMeans, cvlInst, QMeans;
 	
-    int ncross = 37+nspecies+4;
+    int ncross = 38+nspecies*nspecies;
     MultiFab spatialCross1D;
 	
 
@@ -159,6 +159,8 @@ void main_driver(const char* argv)
 
 		int ncovar = 25;
 		coVars.define(ba, dmap, ncovar, 0); coVars.setVal(0.);
+		
+		
 		spatialCross1D.define(ba,dmap,ncross,0); spatialCross1D.setVal(0.);
 
 	}
@@ -334,7 +336,7 @@ void main_driver(const char* argv)
 		}
 		tend = ParallelDescriptor::second() - tbegin;
 		ParallelDescriptor::ReduceRealMax(tend);
-		if(istep%1000==0)
+		if(istep%1==0)
 		{
 		    amrex::Print() << "Advanced step " << istep << " in " << tend << " seconds\n";
 		}
