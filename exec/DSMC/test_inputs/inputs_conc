@@ -12,11 +12,11 @@
 	fixed_dt = 1e-10                        ! overwritten
 
 	! Controls for number of steps between actions
-	max_step     = 5000
-	plot_int     =  1000
+	max_step     =  2000000000
+	plot_int     =  10000000
 	cross_cell   =  16
 	plot_cross   =  1
-	n_steps_skip =  20000000
+	n_steps_skip =  10000000
 	struct_fact_int = -1
   
 	reset_stats = 1
