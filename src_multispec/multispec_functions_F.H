@@ -69,16 +69,10 @@ extern "C"
                                  const amrex_real* D_bar, const int* dblo, const int* dbhi,
                                  const amrex_real* D_therm, const int* dtlo, const int* dthi,
                                  const amrex_real* Hessian, const int* hslo, const int* hshi);
-    ///////////////////////////
-    // in matvec_mul.F90
-
-    void matvec_mul(const int* tlo, const int* thi,
-                    const amrex_real* xp, const int* xlo, const int* xhi, const int* nc,
-                    const amrex_real* ap, const int* alo, const int* ahi, const int* nc2);
 
     ///////////////////////////
     // in mass_flux_utilities.F90
-
+    /*
     void compute_molconc_molmtot(const int* tlo, const int* thi,
                                  const amrex_real* rho, const int* rhlo, const int* rhhi,
                                  const amrex_real* rhotot, const int* rtlo, const int* rthi,
@@ -113,7 +107,7 @@ extern "C"
                                  const amrex_real* sqrtLonsager_z, const int* Lzlo, const int* Lzhi,
 #endif
                                  const amrex_real* dx);
-
+    */
 
 #ifdef __cplusplus
 }

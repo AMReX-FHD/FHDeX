@@ -6,7 +6,7 @@ module compute_mixture_properties_module
   use amrex_error_module
   use common_namelist_module
   use multispec_namelist_module
-  use matrix_utilities_module
+  ! use matrix_utilities_module
  
   implicit none
 
@@ -117,6 +117,7 @@ contains
     
     integer :: n,row,column
 
+
     select case (abs(mixture_type))
     case (1)  ! water-glycerol
     
@@ -142,9 +143,11 @@ contains
        D_bar_local(2) = Dbar(2) ! D_13 = self diffusion of first ion
        D_bar_local(3) = Dbar(3) ! D_23 = self diffusion of second ion
 
+
     case default
 
        D_bar_local(1:nspecies*(nspecies-1)/2) = Dbar(1:nspecies*(nspecies-1)/2) ! Keep it constant
+
 
     end select
 
@@ -161,6 +164,7 @@ contains
        ! populate diagonals 
        D_bar(row, row) = 0.d0           ! as self-diffusion is zero
     end do
+
 
   end subroutine compute_D_bar_local
 
