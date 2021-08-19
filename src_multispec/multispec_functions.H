@@ -429,7 +429,6 @@ void ComputeGammaLocal (
 
         //populate X_xxT
         if (is_ideal_mixture == 1){
-        //if (is_ideal_mixture == 0){
             MatrixToZeros(nspecies_in, X_xxT);
         } else {
             PopulateX_xxT(nspecies_in, X_xxT, MolarConcN);
@@ -1484,50 +1483,66 @@ void ComputeZetaByTempLocal (
 }
 
 /**
- * \brief Mixture Mass Properties 
+ * \brief Mixture Mass Properties
  *
- * \params[in] Rho 
- * \params[in] rhotot 
- * \params[out] DBar 
- * \params[out] DTherm 
- * \params[out] Hessian 
- * \params[in] nspecies_in 
+ * \params[in] Rho
+ * \params[in] rhotot
+ * \params[out] DBar
+ * \params[out] DTherm
+ * \params[out] Hessian
+ * \params[in] nspecies_in
  *
  * The default case should be to simply set Dbar, Dtherm and Hessian to constants, read from the input file
- * 
+ *
  *
  */
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void MixturePropsMassLocal( GpuArray<Real, MAX_SPECIES>& Rho, 
-                Real rhotot, 
+void MixturePropsMassLocal( GpuArray<Real, MAX_SPECIES>& Rho,
+                Real rhotot,
                 Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& DBar,
                 GpuArray<Real, MAX_SPECIES>& DThermLoc,
                 Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& Hessian,
                 int nspecies_in){
 
-   
+
     // Local values of transport and thermodynamic coefficients (functions of composition!):
     GpuArray<Real, MAX_SPECIES*(MAX_SPECIES-1)/2> HOffdiagLoc; //off-diagonal components of symmetric matrices
     GpuArray<Real, MAX_SPECIES> HDiagLoc; // Diagonal component
 
     // populate D_bar
     ComputeDBarLocal(Rho, rhotot, nspecies_in, DBar);
-    
-    // For now we only encode constant Hessian matrices since we do not have any thermodynamic 
+
+    // For now we only encode constant Hessian matrices since we do not have any thermodynamic
     // models coded up (Wilson, NTLR, UNIQUAC, etc.)
 
-    for (int n=0; n<nspecies_in; ++n){ 
+    for (int n=0; n<nspecies_in; ++n){
         HDiagLoc[n] = H_diag[n];
+        DThermLoc[n]  = Dtherm[n];    // thermal diffcoeff's read from input
     }
 
-    for (int n=0; n < nspecies_in*(nspecies_in-1)/2; ++n){ 
+    for (int n=0; n < nspecies_in*(nspecies_in-1)/2; ++n){
         HOffdiagLoc[n] = H_offdiag[n];
     }
 
     // Complete the process by filling the matrices using generic formulae -- this part should not change
-    // populate Hessian matrix 
-    int n=0; 
-    for (int row=1; row<=nspecies; ++row){  
+    // populate Hessian matrix
+    int n=0;
+
+    if (is_ideal_mixture == 1){
+        MatrixToZeros(nspecies_in,Hessian); // set matrix to zero for ideal-mixture
+    } else {
+        for (int row=1; row<=nspecies; ++row){
+            for (int column=1; column<=row-1; ++column){
+                ++n;
+                Hessian(row, column) = HOffdiagLoc[n-1];  // positive semidefinite matrix read from input
+                Hessian(column, row) = Hessian(row,column);  // Hessian is symmetric
+            }
+        Hessian(row, row) = HDiagLoc[row-1];
+        }
+    }
+
+/*
+    for (int row=1; row<=nspecies; ++row){
        for (int column=1; column<=row-1; ++column){
           ++n;
           if (is_ideal_mixture == 0){
@@ -1535,9 +1550,9 @@ void MixturePropsMassLocal( GpuArray<Real, MAX_SPECIES>& Rho,
              Hessian(column, row) = Hessian(row,column);  // Hessian is symmetric
           }
        }
-       
-       // populate diagonals 
-       DThermLoc[row-1]  = Dtherm[row-1];    // thermal diffcoeff's read from input    
+
+       // populate diagonals
+       DThermLoc[row-1]  = Dtherm[row-1];    // thermal diffcoeff's read from input
 
        if (is_ideal_mixture == 0){
           Hessian(row, row) = HDiagLoc[row-1];
@@ -1545,7 +1560,7 @@ void MixturePropsMassLocal( GpuArray<Real, MAX_SPECIES>& Rho,
           MatrixToZeros(nspecies_in,Hessian); // set matrix to zero for ideal-mixture
        }
     }
-
+*/
 }
 
 
