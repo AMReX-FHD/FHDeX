@@ -2,14 +2,14 @@ int                        multispec::inverse_type;
 int                        multispec::temp_type;
 int                        multispec::chi_iterations;
 amrex::Real                multispec::start_time;
-amrex::Vector<amrex::Real> multispec::Dbar;
-amrex::Vector<amrex::Real> multispec::Dtherm;
-amrex::Vector<amrex::Real> multispec::H_offdiag;
-amrex::Vector<amrex::Real> multispec::H_diag;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_ELEMENT> multispec::Dbar;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> multispec::Dtherm;   //HACK: confirm?
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_ELEMENT> multispec::H_offdiag;//HACK: confirm?
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> multispec::H_diag;//HACK: confirm?
 amrex::Real                multispec::fraction_tolerance;
 int                        multispec::correct_flux;
 int                        multispec::print_error_norms;
-int                        multispec::is_nonisothermal;
+AMREX_GPU_MANAGED int      multispec::is_nonisothermal;
 AMREX_GPU_MANAGED int      multispec::is_ideal_mixture;
 int                        multispec::use_lapack;
 AMREX_GPU_MANAGED int      multispec::use_multiphase;
@@ -20,7 +20,7 @@ AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> multispec::c_init_1;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> multispec::c_init_2;
   
 int                        multispec::midpoint_stoch_mass_flux_type;
-int                        multispec::avg_type;
+AMREX_GPU_MANAGED int      multispec::avg_type;
 int                        multispec::mixture_type;
 
 // charged fluid
