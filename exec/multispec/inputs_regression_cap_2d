@@ -18,8 +18,8 @@
   fixed_dt = 2.e-13
 
   ! Controls for number of steps between actions
-  max_step = 50000
-  plot_int= 1000
+  max_step = 3
+  plot_int= 3
 
   ! Viscous friction L phi operator
   ! if abs(visc_type) = 1, L = div beta grad
@@ -50,23 +50,23 @@
   ! -1 = periodic
   !  1 = slip
   !  2 = no-slip
-  bc_vel_lo(1:2) = -1 -1
-  bc_vel_hi(1:2) = -1 -1
+  bc_vel_lo(1:2) = -1 2
+  bc_vel_hi(1:2) = -1 2
 
   ! -1 = periodic
   !  1 = wall
   !  2 = reservoir (Dirichlet values must be suppled by other means)
-  bc_mass_lo(1:2) = -1 -1
-  bc_mass_hi(1:2) = -1 -1
+  bc_mass_lo(1:2) = -1 1
+  bc_mass_hi(1:2) = -1 1
 
   ! -1 = periodic
   !  1 = Dirichlet
   !  2 = Neumann
-  bc_es_lo(1:2) = -1 -1
-  bc_es_hi(1:2) = -1 -1
+  bc_es_lo(1:2) = -1 1
+  bc_es_hi(1:2) = -1 1
 
-  potential_lo(1:2) = 0. 0.
-  potential_hi(1:2) = 0. 0.
+  potential_lo(1:2) = 0.  .128d10
+  potential_hi(1:2) = 0. -.128d10
 
   ! Thermodynamic and transport properties:
   !----------------------
