@@ -1492,7 +1492,7 @@ void ComputeZetaByTempLocal (
  * \params[out] Hessian
  * \params[in] nspecies_in
  *
- * The default case should be to simply set Dbar, Dtherm and Hessian to constants, read from the input file
+ * The default case should be to simply set Dbar, Dtherm and Hessian to constants, and read from the input file.
  *
  *
  */
@@ -1516,27 +1516,19 @@ void MixturePropsMassLocal( GpuArray<Real, MAX_SPECIES>& Rho,
     // models coded up (Wilson, NTLR, UNIQUAC, etc.)
 
     for (int n=0; n<nspecies_in; ++n){
-        HDiagLoc[n] = 1000*H_diag[n];
-        DThermLoc[n]  = 1000*Dtherm[n];    // thermal diffcoeff's read from input
-
-        printf("HDiagLoc[%d]: %f DThermLoc[%d]: %f", n,HDiagLoc[n],n, DThermLoc[n]);
-
+        HDiagLoc[n] = H_diag[n];
+        DThermLoc[n]  = Dtherm[n];    // thermal diffcoeff's read from input
     }
-    printf("\n");
 
     for (int n=0; n < nspecies_in*(nspecies_in-1)/2; ++n){
-        HOffdiagLoc[n] = 1000*H_offdiag[n];
-        printf("HOffdiagLoc[%d]: %f",n, HOffdiagLoc[n]);
+        HOffdiagLoc[n] = H_offdiag[n];
     }
-    printf("\n");
 
     // Complete the process by filling the matrices using generic formulae -- this part should not change
     // populate Hessian matrix
     int n=0;
 
-    if (is_ideal_mixture == 1){
-        MatrixToZeros(nspecies_in,Hessian); // set matrix to zero for ideal-mixture
-    } else {
+    if (is_ideal_mixture == 0){
         for (int row=1; row<=nspecies; ++row){
             for (int column=1; column<=row-1; ++column){
                 ++n;
@@ -1545,28 +1537,10 @@ void MixturePropsMassLocal( GpuArray<Real, MAX_SPECIES>& Rho,
             }
         Hessian(row, row) = HDiagLoc[row-1];
         }
+    } else {
+        MatrixToZeros(nspecies_in,Hessian); // set matrix to zero for ideal-mixture
     }
 
-/*
-    for (int row=1; row<=nspecies; ++row){
-       for (int column=1; column<=row-1; ++column){
-          ++n;
-          if (is_ideal_mixture == 0){
-             Hessian(row, column) = HOffdiagLoc[n-1];  // positive semidefinite matrix read from input
-             Hessian(column, row) = Hessian(row,column);  // Hessian is symmetric
-          }
-       }
-
-       // populate diagonals
-       DThermLoc[row-1]  = Dtherm[row-1];    // thermal diffcoeff's read from input
-
-       if (is_ideal_mixture == 0){
-          Hessian(row, row) = HDiagLoc[row-1];
-       } else { 
-          MatrixToZeros(nspecies_in,Hessian); // set matrix to zero for ideal-mixture
-       }
-    }
-*/
 }
 
 
