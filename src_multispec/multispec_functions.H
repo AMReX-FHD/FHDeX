@@ -416,10 +416,10 @@ void ComputeGammaLocal(
         } else {
             PopulateX_xxT(nspecies_in, X_xxT, MolarConcN);
         }
-    }
 
-    //Compute Gamma
-    GammaIPlusMatmul(nspecies_in, GammaN, X_xxT, HessianN);
+        //Compute Gamma
+        GammaIPlusMatmul(nspecies_in, GammaN, X_xxT, HessianN);
+    }
 }
 
 #endif
