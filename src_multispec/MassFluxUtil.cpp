@@ -141,7 +141,6 @@ void ComputeRhoWChi(const MultiFab& rho_in,
                             MolarConcN,
                             rhoWchiN,
                             D_barN,
-                            nspecies,
                             molmass,
                             chi_iterations);
 

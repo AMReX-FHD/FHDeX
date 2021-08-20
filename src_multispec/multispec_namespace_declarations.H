@@ -3,9 +3,9 @@ int                        multispec::temp_type;
 int                        multispec::chi_iterations;
 amrex::Real                multispec::start_time;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_ELEMENT> multispec::Dbar;
-amrex::Vector<amrex::Real> multispec::Dtherm;
-amrex::Vector<amrex::Real> multispec::H_offdiag;
-amrex::Vector<amrex::Real> multispec::H_diag;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> multispec::Dtherm;   //HACK: confirm?
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_ELEMENT> multispec::H_offdiag;//HACK: confirm?
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> multispec::H_diag;//HACK: confirm?
 amrex::Real                multispec::fraction_tolerance;
 int                        multispec::correct_flux;
 int                        multispec::print_error_norms;

@@ -243,16 +243,14 @@ void FillRhototGhost(MultiFab& rhotot_in, const MultiFab& conc_in, const Geometr
 /////////////////////////////////////////////////////////////////////////////////
 // Device calls from  MassFluxUtil.cpp
 
-
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void ComputeChi(int nspecies_in,
-               GpuArray<Real, MAX_SPECIES>& molmass_in,
-               GpuArray<Real, MAX_SPECIES>& rhoN,
-               Real rhotot,
-               GpuArray<Real, MAX_SPECIES>& MolarConcN,
-               Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& chi,
-               Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& D_barN,
-               int chi_iterations_in);
+                GpuArray<Real, MAX_SPECIES>& molmass_in,
+                GpuArray<Real, MAX_SPECIES>& rhoN,
+                Real rhotot,
+                GpuArray<Real, MAX_SPECIES>& MolarConcN,
+                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& chi,
+                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& D_barN,
+                int chi_iterations_in);
 
 /**
  * \brief Compute total molar mass
@@ -263,7 +261,7 @@ void ComputeChi(int nspecies_in,
  * \param[out] molmtot Total molar mass
  */
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void GetMolTot( GpuArray<Real, MAX_SPECIES>& W,
+void GetMolTot ( GpuArray<Real, MAX_SPECIES>& W,
                 GpuArray<Real, MAX_SPECIES>& molmass_in,
                 Real& molmtot_in,
                 int nspecies_in)
@@ -286,7 +284,7 @@ void GetMolTot( GpuArray<Real, MAX_SPECIES>& W,
  * \param[out] molmtot_in Total molar mass
  */
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void ComputeMolconcMolmtotLocal( int nspecies_in,
+void ComputeMolconcMolmtotLocal ( int nspecies_in,
                 GpuArray<Real, MAX_SPECIES>& molmass_in,
                 GpuArray<Real, MAX_SPECIES>& RhoN,
                 Real rhotot_in,
@@ -317,7 +315,7 @@ void ComputeMolconcMolmtotLocal( int nspecies_in,
  * \param[in,out] matrixIn Array2D to be set to zeros.
  */
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void MatrixToZeros(int nspecies_in,
+void MatrixToZeros (int nspecies_in,
                 Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& matrixIn) {
 
     for (int n=1; n<=nspecies_in; ++n ){
@@ -335,7 +333,7 @@ void MatrixToZeros(int nspecies_in,
  * \param[in] MolarConcN
  */
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void PopulateX_xxT(int nspecies_in,
+void PopulateX_xxT (int nspecies_in,
                 Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& X_xxT,
                 GpuArray<Real, MAX_SPECIES>& MolarConcN) {
 
@@ -363,7 +361,7 @@ void PopulateX_xxT(int nspecies_in,
  * \param[in] HessianN
  */
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void GammaIPlusMatmul(int nspecies_in,
+void GammaIPlusMatmul (int nspecies_in,
                 Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& GammaN,
                 Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& X_xxT,
                 Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& HessianN) {
@@ -393,7 +391,7 @@ void GammaIPlusMatmul(int nspecies_in,
  *
  */
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void ComputeGammaLocal(
+void ComputeGammaLocal (
                 GpuArray<Real, MAX_SPECIES>& MolarConcN,
                 Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& HessianN,
                 Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& GammaN,
@@ -429,7 +427,6 @@ void ComputeGammaLocal(
 
         //populate X_xxT
         if (is_ideal_mixture == 1){
-        //if (is_ideal_mixture == 0){
             MatrixToZeros(nspecies_in, X_xxT);
         } else {
             PopulateX_xxT(nspecies_in, X_xxT, MolarConcN);
@@ -460,14 +457,13 @@ void ComputeGammaLocal(
  *
  */
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void ComputeChiSub(int nspecies_in,
-                int nspecies_sub,
-                Array1D<int, 1, MAX_SPECIES> dest,
-                GpuArray<Real, MAX_SPECIES>& molmass_in,
-                GpuArray<Real, MAX_SPECIES>& rhoN,
-                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& D_barN,
-                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& rhoWchiN,
-                int chi_iterations_in){
+void ComputeChiSub(int nspecies_sub,
+                   Array1D<int, 1, MAX_SPECIES> dest,
+                   GpuArray<Real, MAX_SPECIES>& molmass_in,
+                   GpuArray<Real, MAX_SPECIES>& rhoN,
+                   Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& D_barN,
+                   Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& rhoWchiN,
+                   int chi_iterations_in){
 
     GpuArray<Real, MAX_SPECIES> molmass_sub, rhoN_sub, MolarConcN_sub;
     Array1D<Real, 1, MAX_SPECIES> W_sub;
@@ -476,7 +472,7 @@ void ComputeChiSub(int nspecies_in,
     Real Deff, tmp;
 
     // create a vector of non-trace densities and molmass for the subsystem
-    for (int row=1; row<=nspecies_in; ++row){
+    for (int row=1; row<=nspecies; ++row){
         if ( dest(row) != 0 ){
             molmass_sub[dest(row)-1] = molmass_in[row-1];
             rhoN_sub[dest(row)-1] = rhoN[row-1];
@@ -485,7 +481,7 @@ void ComputeChiSub(int nspecies_in,
 
     // renormalize total density and mass fractions
     rhotot_sub = 0.0;
-    for (int row=1; row<=nspecies_in; ++row){
+    for (int row=1; row<=nspecies_sub; ++row){
         rhotot_sub += rhoN_sub[row-1];
     }
 
@@ -497,11 +493,11 @@ void ComputeChiSub(int nspecies_in,
     // you could read in only the lower diagonals,
     // reflect, and set the diagnals to zero if you want
 
-    for (int row=1; row<=nspecies_in; ++row){
+    for (int row=1; row<=nspecies; ++row){
         if (dest(row) == 0){
             continue;
         }
-        for (int column=1; column<=nspecies_in; ++column){
+        for (int column=1; column<=nspecies; ++column){
             if (dest(column) != 0){
                 D_barN_sub(dest(row),dest(column)) = D_barN(row,column);
             }
@@ -516,12 +512,12 @@ void ComputeChiSub(int nspecies_in,
 
 
     // compute full rho*W*chi
-    MatrixToZeros(nspecies_in, rhoWchiN);
-    for (int column=1; column<=nspecies_in; ++column){
+    MatrixToZeros(nspecies, rhoWchiN);
+    for (int column=1; column<=nspecies; ++column){
         if (dest(column) == 0){   //column of trace species
             // compute Deff
             Deff = 0.0;
-            for (int k=1; k<=nspecies_in; ++k){
+            for (int k=1; k<=nspecies; ++k){
                 if (dest(k) != 0){
                     Deff = Deff + MolarConcN_sub[dest(k)-1]/D_barN(k,column);
                 }
@@ -529,14 +525,14 @@ void ComputeChiSub(int nspecies_in,
             Deff = 1.0/Deff;
 
             // assign rhoWchi
-            for (int row=1; row<=nspecies_in; ++row){
+            for (int row=1; row<=nspecies; ++row){
                 if ( row == column ){
                     rhoWchiN(row,column) = rhotot_sub*Deff*molmass_in[row-1]/molmtot_sub;
                 } else if ( dest(row) == 0 ){
                     rhoWchiN(row,column) = 0.0;
                 } else {
                     tmp = 0.0;
-                    for (int k=1; k<=nspecies_in; ++k){
+                    for (int k=1; k<=nspecies; ++k){
                         if ( dest(k)!=0 ){
                             tmp = tmp + chi_sub(dest(row),dest(k))*MolarConcN_sub[dest(k)-1]/D_barN(k,column);
                         }
@@ -548,7 +544,7 @@ void ComputeChiSub(int nspecies_in,
             }
         } else {   // column of non-trace species
             // assign rhoWchi
-            for (int row=1; row<=nspecies_in; ++row){
+            for (int row=1; row<=nspecies; ++row){
                 if ( dest(row) == 0 ){
                     rhoWchiN(row,column) = 0.0;
                 } else {
@@ -571,7 +567,7 @@ void ComputeChiSub(int nspecies_in,
  */
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void Matrix2DSetEqual(
+void Matrix2DSetEqual (
                 Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& Matrix_out,
                 Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& Matrix_in,
                 int size){
@@ -597,7 +593,7 @@ void Matrix2DSetEqual(
  *
  */
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void Dbar2chiIterative( int nspecies_local,
+void Dbar2chiIterative ( int nspecies_local,
                int num_iterations_in,
                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& D_bar,
                GpuArray<Real, MAX_SPECIES>& Xk,
@@ -747,7 +743,7 @@ void Dbar2chiIterative( int nspecies_local,
  */
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void ComputeChi(int nspecies_in,
+void ComputeChi (int nspecies_in,
                GpuArray<Real, MAX_SPECIES>& molmass_in,
                GpuArray<Real, MAX_SPECIES>& rhoN,
                Real rhotot,
@@ -819,13 +815,12 @@ void ComputeChi(int nspecies_in,
 
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void ComputeRhoWChiLocal(
+void ComputeRhoWChiLocal (
                GpuArray<Real, MAX_SPECIES>& rhoN,
                Real rhotot,
                GpuArray<Real, MAX_SPECIES>& MolarConcN,
                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& rhoWchiN,
                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& D_barN,
-               int nspecies_in,
                GpuArray<Real, MAX_SPECIES>& molmass_in,
                int chi_iterations_in){
 
@@ -848,7 +843,7 @@ void ComputeRhoWChiLocal(
      */
     Array1D<int, 1, MAX_SPECIES> dest;
 
-    if ((use_multiphase == 1) && (nspecies_in == 2)) {
+    if ((use_multiphase == 1) && (nspecies == 2)) {
 
         w1 = MolarConcN[0];
         w2 = MolarConcN[1];
@@ -870,7 +865,7 @@ void ComputeRhoWChiLocal(
        // compute the number of trace species
        // build the mapping for expanding/contracting arrays
         ntrace = 0;
-        for (int row=1; row<=nspecies_in; ++row){
+        for (int row=1; row<=nspecies; ++row){
             W(row) = rhoN[row-1] / rhotot;
             if (W(row) < fraction_tolerance){
                 ntrace = ntrace + 1;
@@ -880,17 +875,17 @@ void ComputeRhoWChiLocal(
             }
         }
 
-        if (ntrace == nspecies_in -1){
+        if (ntrace == nspecies -1){
             // this is all trace species except for 1 (essentially pure solvent);
-            MatrixToZeros(nspecies_in, rhoWchiN); //set rhoWchi to zero
+            MatrixToZeros(nspecies, rhoWchiN); //set rhoWchi to zero
 
         } else if (ntrace == 0){
             // there are no trace species, hence chi = chi_sub
 
-            ComputeChi(nspecies_in, molmass_in, rhoN, rhotot, MolarConcN, chi, D_barN, chi_iterations_in);
+            ComputeChi(nspecies, molmass_in, rhoN, rhotot, MolarConcN, chi, D_barN, chi_iterations_in);
 
-            for (int row=1; row<=nspecies_in; ++row){
-                for (int column=1; column<=nspecies_in; ++column){
+            for (int row=1; row<=nspecies; ++row){
+                for (int column=1; column<=nspecies; ++column){
                     rhoWchiN(row, column) = rhoN[row-1] * chi(row,column);
                 }
             }
@@ -898,16 +893,15 @@ void ComputeRhoWChiLocal(
         else {
           // if there are trace species, we consider a subsystem
           // consisting of non-trace species
-          nspecies_sub = nspecies_in - ntrace;
+          nspecies_sub = nspecies - ntrace;
 
-          ComputeChiSub(nspecies_in,
-                      nspecies_sub,
-                      dest,
-                      molmass_in,
-                      rhoN,
-                      D_barN,
-                      rhoWchiN,
-                      chi_iterations_in);
+          ComputeChiSub(nspecies_sub,
+                        dest,
+                        molmass_in,
+                        rhoN,
+                        D_barN,
+                        rhoWchiN,
+                        chi_iterations_in);
 
         }
     }
@@ -925,7 +919,7 @@ void ComputeRhoWChiLocal(
 
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void ComputeNonnegativeRhoAv(
+void ComputeNonnegativeRhoAv (
                 GpuArray<Real, MAX_SPECIES>& Rho1,
                 GpuArray<Real, MAX_SPECIES>& Rho2,
                 const GpuArray<Real, AMREX_SPACEDIM>& dx,
@@ -1050,6 +1044,7 @@ void ComputeNonnegativeRhoAv(
 }
 
 
+
 /**
  * \brief Water-glycerol mixtures near room temperature
  *
@@ -1059,7 +1054,7 @@ void ComputeNonnegativeRhoAv(
  */
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void ChiWaterGlycerol(
+void ChiWaterGlycerol (
                 Real& chi,
                 GpuArray<Real, MAX_SPECIES>& RhoN,
                 Real rhotot_in){
@@ -1086,7 +1081,7 @@ void ChiWaterGlycerol(
  */
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void ComputeDBarLocal(
+void ComputeDBarLocal (
           GpuArray<Real, MAX_SPECIES>& RhoN,
           Real rhotot_in,
           int nspecies_in,
@@ -1167,7 +1162,7 @@ void ComputeDBarLocal(
  * are overwritten by the cholesky factor.
  */
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void CholeskyDC(Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& A,
+void CholeskyDC (Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& A,
                 int np){
 
     int ising;
@@ -1238,7 +1233,7 @@ void CholeskyDC(Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& A,
  */
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void ComputeSqrtLOnsagerSub(
+void ComputeSqrtLOnsagerSub (
                 Array1D<int, 1, MAX_SPECIES>& dest,
                 GpuArray<Real, MAX_SPECIES>& Molmass_in,
                 GpuArray<Real, MAX_SPECIES>& Rho_in,
@@ -1342,7 +1337,7 @@ void ComputeSqrtLOnsagerSub(
  */
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void ComputeSqrtLOnsagerLocal(
+void ComputeSqrtLOnsagerLocal (
                 GpuArray<Real, MAX_SPECIES>& molmass_in,
                 GpuArray<Real, MAX_SPECIES>& RhoN,
                 Real rhotot_in,
@@ -1446,7 +1441,7 @@ void ComputeSqrtLOnsagerLocal(
  */
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void ComputeZetaByTempLocal(
+void ComputeZetaByTempLocal (
                 GpuArray<Real, MAX_SPECIES>& MolarConc,
                 Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& DBar,
                 Real Temp,
@@ -1478,6 +1473,67 @@ void ComputeZetaByTempLocal(
                 ZetaByTemp[row-1] = Sum_knoti/Temp;
             }
         }
+    }
+
+}
+
+/**
+ * \brief Mixture Mass Properties
+ *
+ * \params[in] Rho
+ * \params[in] rhotot
+ * \params[out] DBar
+ * \params[out] DTherm
+ * \params[out] Hessian
+ * \params[in] nspecies_in
+ *
+ * The default case should be to simply set Dbar, Dtherm and Hessian to constants, and read from the input file.
+ *
+ *
+ */
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void MixturePropsMassLocal( GpuArray<Real, MAX_SPECIES>& Rho,
+                Real rhotot,
+                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& DBar,
+                GpuArray<Real, MAX_SPECIES>& DThermLoc,
+                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& Hessian,
+                int nspecies_in){
+
+
+    // Local values of transport and thermodynamic coefficients (functions of composition!):
+    GpuArray<Real, MAX_SPECIES*(MAX_SPECIES-1)/2> HOffdiagLoc; //off-diagonal components of symmetric matrices
+    GpuArray<Real, MAX_SPECIES> HDiagLoc; // Diagonal component
+
+    // populate D_bar
+    ComputeDBarLocal(Rho, rhotot, nspecies_in, DBar);
+
+    // For now we only encode constant Hessian matrices since we do not have any thermodynamic
+    // models coded up (Wilson, NTLR, UNIQUAC, etc.)
+
+    for (int n=0; n<nspecies_in; ++n){
+        HDiagLoc[n] = H_diag[n];
+        DThermLoc[n]  = Dtherm[n];    // thermal diffcoeff's read from input
+    }
+
+    for (int n=0; n < nspecies_in*(nspecies_in-1)/2; ++n){
+        HOffdiagLoc[n] = H_offdiag[n];
+    }
+
+    // Complete the process by filling the matrices using generic formulae -- this part should not change
+    // populate Hessian matrix
+    int n=0;
+
+    if (is_ideal_mixture == 0){
+        for (int row=1; row<=nspecies; ++row){
+            for (int column=1; column<=row-1; ++column){
+                ++n;
+                Hessian(row, column) = HOffdiagLoc[n-1];  // positive semidefinite matrix read from input
+                Hessian(column, row) = Hessian(row,column);  // Hessian is symmetric
+            }
+        Hessian(row, row) = HDiagLoc[row-1];
+        }
+    } else {
+        MatrixToZeros(nspecies_in,Hessian); // set matrix to zero for ideal-mixture
     }
 
 }
