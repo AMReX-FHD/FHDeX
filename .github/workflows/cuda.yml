@@ -49,13 +49,14 @@ jobs:
         ref: development
         path: amrex
     - name: Build & Install
-      env: AMREX_HOME: $(GITHUB_WORKSPACE)/amrex
       run: |
         cd exec/multispec
         export PATH=/usr/local/nvidia/bin:/usr/local/cuda/bin:${PATH}
         export LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64:/usr/local/cuda/lib64:${LD_LIBRARY_PATH}
         which nvcc || echo "nvcc not in PATH!"
         make -j2 V=1 USE_MPI=TRUE USE_CUDA=TRUE USE_OMP=FALSE DIM=3 TINY_PROFILE=FALSE
+      env: 
+        AMREX_HOME: $(GITHUB_WORKSPACE)/amrex
 
 
 
