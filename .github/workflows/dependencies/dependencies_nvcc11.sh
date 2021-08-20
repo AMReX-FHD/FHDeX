@@ -31,6 +31,7 @@ echo "deb https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x8
 sudo apt-get update
 sudo apt-get install -y \
     cuda-command-line-tools-11-2 \
+    cuda-cufft-10-2           \
     cuda-compiler-11-2           \
     cuda-cupti-dev-11-2          \
     cuda-minimal-build-11-2      \
