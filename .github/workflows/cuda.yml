@@ -33,7 +33,7 @@ jobs:
   #            -DAMReX_CUDA_ERROR_CROSS_EXECUTION_SPACE_CALL=ON
   #        make -j 2
 
-  # Build libamrex and all tests with CUDA 11.0.2 - Needless change to test via push
+  # Build libamrex and all tests with CUDA 11.0.2
   tests-cuda11:
     name: CUDA@11.2 GNU@9.3.0 C++17 Release [tests]
     runs-on: ubuntu-20.04
@@ -54,7 +54,8 @@ jobs:
         export PATH=/usr/local/nvidia/bin:/usr/local/cuda/bin:${PATH}
         export LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64:/usr/local/cuda/lib64:${LD_LIBRARY_PATH}
         which nvcc || echo "nvcc not in PATH!"
-        make -j2 V=1 USE_MPI=TRUE USE_CUDA=TRUE USE_OMP=FALSE DIM=3 TINY_PROFILE=FALSE
+        nvcc ../../src_analysis/StructFact.H -lcufft -o justTest
+        make -j2 VERBOSE=1 USE_MPI=TRUE USE_CUDA=TRUE USE_OMP=FALSE DIM=3 TINY_PROFILE=FALSE
       env: 
         AMREX_HOME: $(GITHUB_WORKSPACE)/amrex
 
