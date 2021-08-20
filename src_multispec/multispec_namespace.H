@@ -28,7 +28,7 @@ namespace multispec {
   
     extern int                        midpoint_stoch_mass_flux_type;
     extern AMREX_GPU_MANAGED int      avg_type;
-    extern int                        mixture_type;
+    extern AMREX_GPU_MANAGED int      mixture_type;
 
     // charged fluid
     extern int                        use_charged_fluid;
