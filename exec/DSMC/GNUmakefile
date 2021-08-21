@@ -27,17 +27,9 @@ include $(FHDeX)/src_rng/Make.package
 VPATH_LOCATIONS   += $(FHDeX)/src_rng
 INCLUDE_LOCATIONS += $(FHDeX)/src_rng
 
-include $(FHDeX)/src_hydro/Make.package
-VPATH_LOCATIONS   += $(FHDeX)/src_hydro/
-INCLUDE_LOCATIONS += $(FHDeX)/src_hydro/
-
 include $(FHDeX)/src_analysis/Make.package
 VPATH_LOCATIONS   += $(FHDeX)/src_analysis/
 INCLUDE_LOCATIONS += $(FHDeX)/src_analysis/
-
-include $(FHDeX)/src_gmres/Make.package
-VPATH_LOCATIONS   += $(FHDeX)/src_gmres/
-INCLUDE_LOCATIONS += $(FHDeX)/src_gmres/
 
 include $(FHDeX)/src_common/Make.package
 VPATH_LOCATIONS   += $(FHDeX)/src_common/
@@ -55,16 +47,12 @@ include $(FHDeX)/src_geometry/Make.package
 VPATH_LOCATIONS   += $(FHDeX)/src_geometry
 INCLUDE_LOCATIONS += $(FHDeX)/src_geometry
 
-include $(FHDeX)/src_electrostatic/Make.package
-VPATH_LOCATIONS   += $(FHDeX)/src_electrostatic
-INCLUDE_LOCATIONS += $(FHDeX)/src_electrostatic
 
 include $(FDSMC)/Make.package
 
 include $(AMREX_HOME)/Src/Base/Make.package
 include $(AMREX_HOME)/Src/Boundary/Make.package
 include $(AMREX_HOME)/Src/AmrCore/Make.package
-include $(AMREX_HOME)/Src/LinearSolvers/MLMG/Make.package
 include $(AMREX_HOME)/Src/Particle/Make.package
 
 include $(AMREX_HOME)/Src/Extern/SWFFT/Make.package
