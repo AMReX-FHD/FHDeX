@@ -13,7 +13,7 @@ AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, 3> common::prob_hi;
 AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM> common::n_cells;
 amrex::Vector<int>         common::max_grid_size;
 amrex::Vector<int>         common::max_particle_tile_size;
-amrex::Real                common::cell_depth;
+AMREX_GPU_MANAGED amrex::Real common::cell_depth;
 amrex::IntVect             common::ngc;
 AMREX_GPU_MANAGED int      common::nvars;
 AMREX_GPU_MANAGED int      common::nprimvars;
