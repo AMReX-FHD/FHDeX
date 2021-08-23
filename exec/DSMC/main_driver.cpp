@@ -261,20 +261,20 @@ void main_driver(const char* argv)
 	
 	
     //Initial condition
-    spatialCross1D.setVal(0.);
-	cuMeans.setVal(0.);
-	primMeans.setVal(0.);
-	cuVars.setVal(0.);
-	primVars.setVal(0.);
-	coVars.setVal(0.);
+//    spatialCross1D.setVal(0.);
+//	cuMeans.setVal(0.);
+//	primMeans.setVal(0.);
+//	cuVars.setVal(0.);
+//	primVars.setVal(0.);
+//	coVars.setVal(0.);
 
-	particles.EvaluateStats(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
-		cvlInst,cvlMeans,QMeans,coVars,spatialCross1D,statsCount++,time);
+//	particles.EvaluateStats(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
+//		cvlInst,cvlMeans,QMeans,coVars,spatialCross1D,statsCount++,time);
 
-	if(plot_int > 0) {
-		writePlotFile(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
-			coVars,spatialCross1D,particles,geom,time,ncross,0);
-	}
+//	if(plot_int > 0) {
+//		writePlotFile(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
+//			coVars,spatialCross1D,particles,geom,time,ncross,0);
+//	}
 	
 	
 	
