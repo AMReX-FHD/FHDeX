@@ -206,6 +206,28 @@ void InitConsVarStag(MultiFab& cons, std::array< MultiFab, AMREX_SPACEDIM >& mom
                         cu(i,j,k,4) = cu(i,j,k,0)*intEnergy;
                     }
             } // prob type
+            else if (prob_type == 103) { // double the pressure in other half
+                
+                    for (int ns=0;ns<nspecies;++ns) massvec[ns] = rhobar[ns];
+                    Real pressure;
+                    GetPressureGas(pressure,massvec,rho0,T_init[0]);
+
+                    if (relpos[0] > 0.0) {
+                        Real pressure_new = 2.0*pressure;
+                        Real temperature;
+                        temperature = T_init[0];
+
+                        Real density;
+                        GetDensity(pressure_new,density,temperature,massvec);
+                        cu(i,j,k,0) = density;
+                        for (int ns=0;ns<nspecies;++ns) cu(i,j,k,5+ns) = density*massvec[ns];
+
+                        Real intEnergy;
+                        GetEnergy(intEnergy, massvec, temperature);
+                        cu(i,j,k,4) = density*intEnergy;
+                    }
+                    
+            } // prob type
 
         });
     } // end MFIter

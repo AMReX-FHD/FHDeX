@@ -142,7 +142,7 @@ void main_driver(const char* argv)
     
     // see statsStag for the list
     // can add more -- change main_driver, statsStag, writeplotfilestag, and Checkpoint
-    int ncross = 37+nspecies+2;
+    int ncross = 37+nspecies+3;
     MultiFab spatialCross1D;
     Vector<Real> spatialCross3D(n_cells[0]*ncross, 0.0);
     
@@ -507,7 +507,7 @@ void main_driver(const char* argv)
         cuMeans.setVal(0.0);
         cuVars.setVal(0.0);
         
-        primMeans.define(ba,dmap,nprimvars,ngc);
+        primMeans.define(ba,dmap,nprimvars+3,ngc); // the last three have COM velocity
         primVars.define(ba,dmap,nprimvars+5,ngc);
         primMeans.setVal(0.0);
         primVars.setVal(0.0);
@@ -795,6 +795,11 @@ void main_driver(const char* argv)
     //Time stepping loop
     /////////////////////////////////////////////////
     
+    //std::string primfile = amrex::Concatenate("prim",0,9);
+    //outputMFAscii(prim,primfile);
+    //std::string cufile = amrex::Concatenate("cu",0,9);
+    //outputMFAscii(cu,cufile);
+
     for (int step=step_start;step<=max_step;++step) {
 
         // timer
