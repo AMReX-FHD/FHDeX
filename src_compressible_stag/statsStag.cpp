@@ -179,6 +179,9 @@ void EvaluateStatsMeans(MultiFab& cons, MultiFab& consMean,
                 fracvec[l-5] = cumeans(i,j,k,l)/cumeans(i,j,k,0); // Ykmeans
                 primmeans(i,j,k,l+1) = fracvec[l-5]; // Ykmeans
             }
+            for (int l=0; l<nspecies; ++l) {
+                primmeans(i,j,k,6+nspecies+l) = (primmeans(i,j,k,6+nspecies+l)*stepsminusone + prim(i,j,k,6+nspecies+l))*stepsinv; // Xkmeans
+            }
 
             Real densitymeaninv = 1.0/cumeans(i,j,k,0);
             primmeans(i,j,k,1) = densitymeaninv*0.5*(momxmeans(i,j,k) + momxmeans(i+1,j,k)); // velxmeans on CC
@@ -187,6 +190,11 @@ void EvaluateStatsMeans(MultiFab& cons, MultiFab& consMean,
             prim(i,j,k,1) = 0.5*(velx(i,j,k) + velx(i+1,j,k)); // velx on CC
             prim(i,j,k,2) = 0.5*(vely(i,j,k) + vely(i,j+1,k)); // vely on CC
             prim(i,j,k,3) = 0.5*(velz(i,j,k) + velz(i,j,k+1)); // velz on CC
+
+            // mean COM velocity
+            primmeans(i,j,k,nprimvars+0) = (primmeans(i,j,k,nprimvars+0)*stepsminusone + prim(i,j,k,1))*stepsinv;
+            primmeans(i,j,k,nprimvars+1) = (primmeans(i,j,k,nprimvars+1)*stepsminusone + prim(i,j,k,2))*stepsinv;
+            primmeans(i,j,k,nprimvars+2) = (primmeans(i,j,k,nprimvars+2)*stepsminusone + prim(i,j,k,3))*stepsinv;
 
             primmeans(i,j,k,0) = cumeans(i,j,k,0); //rhomeans
 
@@ -796,10 +804,10 @@ void EvaluateSpatialCorrelations3D(Vector<Real>& spatialCross,
         // Direct -- <delu(x*)del(rhoYkH)
         spatialCross[i*ncross+31] = (spatialCross[i*ncross+31]*stepsminusone + delvxcross*delYk[nspecies-1])*stepsinv;
 
-        // Direct -- <delu(x*)del(YkL)
+        // Direct -- <delu(x*)del(rhoYkL)
         spatialCross[i*ncross+32] = (spatialCross[i*ncross+32]*stepsminusone + delvxcross*delrhoYk[0])*stepsinv;
 
-        // Direct -- <delu(x*)del(YkH)
+        // Direct -- <delu(x*)del(rhoYkH)
         spatialCross[i*ncross+33] = (spatialCross[i*ncross+33]*stepsminusone + delvxcross*delrhoYk[nspecies-1])*stepsinv;
 
         // Direct <delYkL(x*)delYkL(x)>
@@ -816,16 +824,19 @@ void EvaluateSpatialCorrelations3D(Vector<Real>& spatialCross,
             spatialCross[i*ncross+37+ns] = (spatialCross[i*ncross+37+ns]*stepsminusone + delrhoYkcross[ns]*delrhoYk[ns])*stepsinv; // <delrhoYk(x*)delrhoYk(x)>
         }
 
+        // <delrhoYkL(x)delrhoYkH(x*)
+        spatialCross[i*ncross+37+nspecies+0] = (spatialCross[i*ncross+37+nspecies+0]*stepsminusone + delrhoYkcross[nspecies-1]*delrhoYk[0])*stepsinv;
+
         // <delYkL(x*)delYkL(x)> = (1/<rho(x*)>/<rho(x)>)*(<delrhoYkL(x*)delrhoYkL> - <YkL(x*)><delrho(x*)delrhoYkL(x)>
         //                                                 - <YkL(x)><delrhoYkL(x*)delrho(x) + <YkL(x*)><YkL(x)><delrho(x*)delrho(x)>)
         Real delrhoYkdelrhoYk = (spatialCross[i*ncross+37]*stepsminusone + delrhoYkcross[0]*delrhoYk[0])*stepsinv;
-        spatialCross[i*ncross+37+nspecies] = (1.0/(meanrho*meanrhocross))*(delrhoYkdelrhoYk - meanYkcross[0]*spatialCross[i*ncross+8]
+        spatialCross[i*ncross+37+nspecies+1] = (1.0/(meanrho*meanrhocross))*(delrhoYkdelrhoYk - meanYkcross[0]*spatialCross[i*ncross+8]
                                                                 - meanYk[0]*spatialCross[i*ncross+10] + meanYkcross[0]*meanYk[0]*spatialCross[i*ncross+0]);
 
         // <delYkL(x*)delYkH(x)> = (1/<rho(x*)>/<rho(x)>)*(<delrhoYkH(x*)delrhoYkH> - <YkH(x*)><delrho(x*)delrhoYkH(x)>
         //                                                 - <YkH(x)><delrhoYkH(x*)delrho(x) + <YkH(x*)><YkH(x)><delrho(x*)delrho(x)>)
         delrhoYkdelrhoYk = (spatialCross[i*ncross+37+nspecies-1]*stepsminusone + delrhoYkcross[nspecies-1]*delrhoYk[nspecies-1])*stepsinv;
-        spatialCross[i*ncross+37+nspecies+1] = (1.0/(meanrho*meanrhocross))*(delrhoYkdelrhoYk - meanYkcross[nspecies-1]*spatialCross[i*ncross+9]
+        spatialCross[i*ncross+37+nspecies+2] = (1.0/(meanrho*meanrhocross))*(delrhoYkdelrhoYk - meanYkcross[nspecies-1]*spatialCross[i*ncross+9]
                                                 - meanYk[nspecies-1]*spatialCross[i*ncross+11] + meanYkcross[nspecies-1]*meanYk[nspecies-1]*spatialCross[i*ncross+0]);
     }
 }
@@ -1237,10 +1248,10 @@ void EvaluateSpatialCorrelations1D(MultiFab& spatialCross1D,
             // Direct -- <delu(x*)del(rhoYkH)
             spatialCross(i,j,k,31) = (spatialCross(i,j,k,31)*stepsminusone + delvxcross*delYk[nspecies-1])*stepsinv;
 
-            // Direct -- <delu(x*)del(YkL)
+            // Direct -- <delu(x*)del(rhoYkL)
             spatialCross(i,j,k,32) = (spatialCross(i,j,k,32)*stepsminusone + delvxcross*delrhoYk[0])*stepsinv;
 
-            // Direct -- <delu(x*)del(YkH)
+            // Direct -- <delu(x*)del(rhoYkH)
             spatialCross(i,j,k,33) = (spatialCross(i,j,k,33)*stepsminusone + delvxcross*delrhoYk[nspecies-1])*stepsinv;
 
             // Direct <delYkL(x*)delYkL(x)>
@@ -1257,16 +1268,19 @@ void EvaluateSpatialCorrelations1D(MultiFab& spatialCross1D,
                 spatialCross(i,j,k,37+ns) = (spatialCross(i,j,k,37+ns)*stepsminusone + delrhoYkcross[ns]*delrhoYk[ns])*stepsinv; // <delrhoYk(x*)delrhoYk(x)>
             }
 
+            // <delrhoYkL(x)delrhoYkH(x*)
+            spatialCross(i,j,k,37+nspecies+0) = (spatialCross(i,j,k,37+nspecies+0)*stepsminusone + delrhoYkcross[nspecies-1]*delrhoYk[0])*stepsinv;
+
             // <delYkL(x*)delYkL(x)> = (1/<rho(x*)>/<rho(x)>)*(<delrhoYkL(x*)delrhoYkL> - <YkL(x*)><delrho(x*)delrhoYkL(x)>
             //                                                 - <YkL(x)><delrhoYkL(x*)delrho(x) + <YkL(x*)><YkL(x)><delrho(x*)delrho(x)>)
             Real delrhoYkdelrhoYk = (spatialCross(i,j,k,37)*stepsminusone + delrhoYkcross[0]*delrhoYk[0])*stepsinv;
-            spatialCross(i,j,k,37+nspecies) = (1.0/(meanrho*meanrhocross))*(delrhoYkdelrhoYk - meanYkcross[0]*spatialCross(i,j,k,8)
+            spatialCross(i,j,k,37+nspecies+1) = (1.0/(meanrho*meanrhocross))*(delrhoYkdelrhoYk - meanYkcross[0]*spatialCross(i,j,k,8)
                                                                     - meanYk[0]*spatialCross(i,j,k,10) + meanYkcross[0]*meanYk[0]*spatialCross(i,j,k,0));
 
             // <delYkH(x*)delYkH(x)> = (1/<rho(x*)>/<rho(x)>)*(<delrhoYkH(x*)delrhoYkH> - <YkH(x*)><delrho(x*)delrhoYkH(x)>
             //                                                 - <YkH(x)><delrhoYkH(x*)delrho(x) + <YkH(x*)><YkH(x)><delrho(x*)delrho(x)>)
             delrhoYkdelrhoYk = (spatialCross(i,j,k,37+nspecies-1)*stepsminusone + delrhoYkcross[nspecies-1]*delrhoYk[nspecies-1])*stepsinv;
-            spatialCross(i,j,k,37+nspecies+1) = (1.0/(meanrho*meanrhocross))*(delrhoYkdelrhoYk - meanYkcross[nspecies-1]*spatialCross(i,j,k,9)
+            spatialCross(i,j,k,37+nspecies+2) = (1.0/(meanrho*meanrhocross))*(delrhoYkdelrhoYk - meanYkcross[nspecies-1]*spatialCross(i,j,k,9)
                                                     - meanYk[nspecies-1]*spatialCross(i,j,k,11) + meanYkcross[nspecies-1]*meanYk[nspecies-1]*spatialCross(i,j,k,0));
 
         });
