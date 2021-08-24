@@ -243,6 +243,7 @@ void FillRhototGhost(MultiFab& rhotot_in, const MultiFab& conc_in, const Geometr
 /////////////////////////////////////////////////////////////////////////////////
 // Device calls from  MassFluxUtil.cpp
 
+
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void ComputeChi(int nspecies_in,
                 GpuArray<Real, MAX_SPECIES>& molmass_in,
@@ -274,6 +275,30 @@ void GetMolTot ( GpuArray<Real, MAX_SPECIES>& W,
     }
 
     molmtot_in = 1.0 / sumWOverN;
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void ComputeMolconcMolmtotTest ( int nspecies_in,
+                GpuArray<Real, MAX_SPECIES>& molmass_in,
+                Gpu::DeviceVector<Real>& RhoN,
+                Real rhotot_in,
+                GpuArray<Real, MAX_SPECIES>& MolarConcN,
+                Real& molmtot_in){
+
+    GpuArray<Real, MAX_SPECIES> W; /**< Mass fraction w_i = rho_i/rho */
+
+    // calculate mass fraction and total molar mass (1/m=Sum(w_i/m_i))
+    for (int n=0; n<nspecies_in; ++n){
+        W[n] = RhoN[n] / rhotot_in;
+    }
+
+    GetMolTot(W, molmass_in, molmtot_in, nspecies_in);
+
+    // calculate molar concentrations in each cell (x_i=m*w_i/m_i)
+    for (int n=0; n<nspecies_in; ++n){
+        MolarConcN[n] = molmtot_in * W[n] / molmass_in[n];
+    }
+
 }
 
 /**
