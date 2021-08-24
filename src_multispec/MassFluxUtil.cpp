@@ -10,7 +10,6 @@ void ComputeMolconcMolmtot(const MultiFab& rho_in,
 
     int ng = molarconc_in.nGrow();
 
-
     // Loop over boxes
     for (MFIter mfi(rho_in,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
 
@@ -24,21 +23,16 @@ void ComputeMolconcMolmtot(const MultiFab& rho_in,
         
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-
-
-        //HACK -- maybe this is all we need?
+	    // HACK -- maybe this is all we need?
             Gpu::DeviceVector<Real> TestVec(nspecies);
-            for (int n=0; n<nspecies; ++n ){
-                TestVec[n] = rho(i,j,k,n);
-            }
             
-            
-            //GpuArray<Real, MAX_SPECIES> RhoN;
+            // GpuArray<Real, MAX_SPECIES> RhoN;
             GpuArray<Real, MAX_SPECIES> MolarConcN;
 
-            //for (int n=0; n<nspecies; ++n ){
-            //    RhoN[n] = rho(i,j,k,n);
-            //}
+            for (int n=0; n<nspecies; ++n ){
+  	        // RhoN[n] = rho(i,j,k,n);
+   	        TestVec[n] = rho(i,j,k,n);
+            }
 
             //ComputeMolconcMolmtotLocal(nspecies,
             //                molmass,
