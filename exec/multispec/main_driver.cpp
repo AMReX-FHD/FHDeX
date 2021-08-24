@@ -9,9 +9,6 @@
 #include "gmres_functions.H"
 #include "multispec_functions.H"
 
-#include "common_namespace_declarations.H"
-#include "gmres_namespace_declarations.H"
-#include "multispec_namespace_declarations.H"
 
 #include "hydro_functions.H"
 #include "rng_functions.H"
