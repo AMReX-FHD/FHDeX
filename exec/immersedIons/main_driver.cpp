@@ -1,8 +1,6 @@
 #include "INS_functions.H"
 
-#include "common_namespace_declarations.H"
 
-#include "gmres_namespace_declarations.H"
 
 #include "species.H"
 #include "paramPlane.H"
