@@ -14,13 +14,10 @@
 
 #include <ib_functions.H>
 
-#include <common_namespace_declarations.H>
 
-#include <gmres_namespace_declarations.H>
 
 #include <immbdy_namespace.H>
 // Comment out if getting `duplicate symbols` error duing linking
-// #include <immbdy_namespace_declarations.H>
 
 #include <AMReX_VisMF.H>
 #include <AMReX_PlotFileUtil.H>

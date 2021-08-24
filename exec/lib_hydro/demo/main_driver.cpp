@@ -8,9 +8,7 @@
 
 #include "gmres_functions.H"
 
-#include "common_namespace_declarations.H"
 
-#include "gmres_namespace_declarations.H"
 
 #include <AMReX_VisMF.H>
 #include <AMReX_PlotFileUtil.H>
