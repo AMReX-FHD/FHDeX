@@ -3,7 +3,6 @@
 
 #include <AMReX_MultiFab.H>
 
-#include "multispec_functions_F.H"
 #include "multispec_namespace.H"
 
 #include "common_functions.H"
