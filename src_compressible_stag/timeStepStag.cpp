@@ -181,13 +181,13 @@ void RK3stepStag(MultiFab& cu,
     }
 
     if (do_1D) { // only 1D simulation -- do not need v_x and w_z stochastic terms
-        MultiFabFillRandom(stochcen_A[0], 0, 1.0, geom);
-        MultiFabFillRandom(stochcen_B[0], 0, 1.0, geom);
+        MultiFabFillRandom(stochcen_A[0], 0, 1.0, geom, 1);
+        MultiFabFillRandom(stochcen_B[0], 0, 1.0, geom, 1);
     }
     else {
         for (int i=0; i<3; i++) {
-            MultiFabFillRandom(stochcen_A[i], 0, 2.0, geom);
-            MultiFabFillRandom(stochcen_B[i], 0, 2.0, geom);
+            MultiFabFillRandom(stochcen_A[i], 0, 2.0, geom, 1);
+            MultiFabFillRandom(stochcen_B[i], 0, 2.0, geom, 1);
         }
     }
 

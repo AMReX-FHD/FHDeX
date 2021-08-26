@@ -1186,12 +1186,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
             // 3. Loop over the center cells and compute fluxes (diagonal momentum terms)
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
                 if (do_1D) {
-                    if ((i < dom.smallEnd(0)) or (i > dom.bigEnd(0))) {
-                        cenx_u(i,j,k) += prim(i,j,k,5);
-                    }
-                    else {
-                      cenx_u(i,j,k) += 0.25*(momx(i,j,k)+momx(i+1,j,k))*(velx(i,j,k)+velx(i+1,j,k)) + prim(i,j,k,5);
-                    }
+                    cenx_u(i,j,k) += 0.25*(momx(i,j,k)+momx(i+1,j,k))*(velx(i,j,k)+velx(i+1,j,k)) + prim(i,j,k,5);
                     ceny_v(i,j,k) += 0.0;
                     cenz_w(i,j,k) += 0.0;
                 }
