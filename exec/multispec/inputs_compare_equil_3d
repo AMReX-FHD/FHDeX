@@ -4,7 +4,7 @@
   prob_lo(1:3) =    0.    0.    0. ! physical lo coordinate
   prob_hi(1:3) = 1600. 1600. 1600. ! physical hi coordinate
 
-  ! refer to init_funcs.F90
+  ! refer to Init.cpp
   prob_type = 2
   
   ! number of cells in domain
