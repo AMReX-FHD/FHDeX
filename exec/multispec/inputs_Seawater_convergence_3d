@@ -6,7 +6,7 @@
 
   cell_depth = 1.
 
-  ! refer to init_funcs.F90
+  ! refer to Init.cpp
   prob_type = 15
 
   n_cells(1:3) = 4 4 128

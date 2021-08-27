@@ -6,7 +6,7 @@
 
   cell_depth = 1.0
 
-  ! refer to init_funcs.F90
+  ! refer to Init.cpp
   prob_type = 12
   
   ! number of cells in domain
