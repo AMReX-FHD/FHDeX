@@ -35,12 +35,18 @@ GRTAGS
 ## IDE debris
 .vscode
 
-
 # Data Files
+exec/**/Tg*
+
+# Spatial Correlations
+exec/**/spatial*
 
 ## Plot files
 exec/**/plt*
 exec/**/stag*
+
+## Checkpoints
+exec/**/chk*
 
 ## Debug data
 exec/**/ib_data/*

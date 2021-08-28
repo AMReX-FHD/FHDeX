@@ -131,7 +131,7 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
                     stoch_weights[1], ranchem_B, 0,
                     0, nreaction, 0);
 
-        compute_chemistry_source_CLE(dt,dx[0]*dx[1]*dx[2],cu,5,source,5,ranchem);
+        compute_chemistry_source_CLE(dt,dx[0]*dx[1]*dx[2],prim,source,ranchem);
     }
 
     for ( MFIter mfi(cu,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
@@ -145,8 +145,12 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
                      Array4<Real const> const& yflux_fab = flux[1].array(mfi);,
                      Array4<Real const> const& zflux_fab = flux[2].array(mfi););
 
-        amrex::ParallelFor(bx, nvars, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+		  // for the box, 
+		  // for loop for GPUS
+        amrex::ParallelFor(bx, nvars, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept // <- just leave it
         {
+        		// nth component of cell i,j,k
+        		// nvars -> nspecies*nspecies
             cup_fab(i,j,k,n) = cu_fab(i,j,k,n) - dt *
                 ( AMREX_D_TERM(  (xflux_fab(i+1,j,k,n) - xflux_fab(i,j,k,n)) / dx[0],
                                + (yflux_fab(i,j+1,k,n) - yflux_fab(i,j,k,n)) / dx[1],
@@ -235,7 +239,7 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
                     stoch_weights[1], ranchem_B, 0,
                     0, nreaction, 0);
 
-        compute_chemistry_source_CLE(dt,dx[0]*dx[1]*dx[2],cup,5,source,5,ranchem);
+        compute_chemistry_source_CLE(dt,dx[0]*dx[1]*dx[2],prim,source,ranchem);
     }
 
     for ( MFIter mfi(cu,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
@@ -339,7 +343,7 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
                     stoch_weights[1], ranchem_B, 0,
                     0, nreaction, 0);
 
-        compute_chemistry_source_CLE(dt,dx[0]*dx[1]*dx[2],cup2,5,source,5,ranchem);
+        compute_chemistry_source_CLE(dt,dx[0]*dx[1]*dx[2],prim,source,ranchem);
     }
 
     for ( MFIter mfi(cu,TilingIfNotGPU()); mfi.isValid(); ++mfi) {

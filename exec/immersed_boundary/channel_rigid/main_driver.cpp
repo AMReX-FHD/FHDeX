@@ -12,9 +12,7 @@
 
 #include "gmres_functions.H"
 
-#include "common_namespace_declarations.H"
 
-#include "gmres_namespace_declarations.H"
 
 #include <AMReX_ParmParse.H>
 #include "IBParticleContainer.H"

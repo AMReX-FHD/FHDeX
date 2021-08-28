@@ -1,8 +1,6 @@
 #include "INS_functions.H"
 
-#include "common_namespace_declarations.H"
 
-#include "gmres_namespace_declarations.H"
 
 #include "species.H"
 #include "paramPlane.H"
@@ -923,7 +921,7 @@ void main_driver(const char* argv)
 
 //        if(istep == 1)
 //        {
-//            particles.SetPosition(1, prob_hi[0]*0.5, prob_hi[1]*0.45, prob_hi[2]*0.5);
+//            particles.SetPosition(1, prob_hi[0]*0.5, 0.5e-7, prob_hi[2]*0.5);
 //        }
 
     

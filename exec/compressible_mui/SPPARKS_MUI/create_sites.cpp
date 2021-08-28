@@ -34,7 +34,7 @@ using namespace SPPARKS_NS;
 
 // same as in lattice.cpp
 
-enum{NONE,LINE_2N,SQ_4N,SQ_8N,TRI,SC_6N,SC_26N,FCC,BCC,DIAMOND,
+enum{NONE,LINE_2N,SQ_4N,SQ_8N,TRI,ZIGZAG,SC_6N,SC_26N,FCC,BCC,DIAMOND,
        FCC_OCTA_TETRA,RANDOM_1D,RANDOM_2D,RANDOM_3D};
 
 enum{BOX,REGION};
@@ -152,6 +152,8 @@ void CreateSites::command(int narg, char **arg)
 
   int dimension = domain->dimension;
   latstyle = domain->lattice->style;
+
+  if (latstyle == ZIGZAG) error->all(FLERR,"Cannot use create_sites with zigzag lattice");
 
   if (latstyle == LINE_2N ||
       latstyle == SQ_4N || latstyle == SQ_8N || latstyle == TRI || 

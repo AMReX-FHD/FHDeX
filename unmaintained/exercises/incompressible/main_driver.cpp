@@ -15,12 +15,6 @@
 
 #include "multispec_functions.H"
 
-#include "common_namespace_declarations.H"
-
-#include "gmres_namespace_declarations.H"
-
-#include "multispec_namespace_declarations.H"
-
 #include <AMReX_VisMF.H>
 #include <AMReX_PlotFileUtil.H>
 #include <AMReX_ParallelDescriptor.H>

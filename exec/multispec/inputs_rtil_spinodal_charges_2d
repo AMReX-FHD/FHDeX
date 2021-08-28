@@ -6,7 +6,7 @@
 
   cell_depth = 0.5d-7
 
-  ! refer to init_funcs.F90
+  ! refer to Init.cpp
   prob_type = 2
   
   ! number of cells in domain
@@ -77,31 +77,27 @@
 
 /
 
-&multispec
-
   is_ideal_mixture = 0
 
-  ! initial values for c
-  c_init_1(1:2) = 0.5 0.5
-  c_init_2(1:2) = 0.5 0.5
+  # initial values for c
+  c_init_1 = 0.5 0.5
+  c_init_2 = 0.5 0.5
 
-  ! These are lower-triangules of symmetric matrices represented as vectors
-  ! Number of elements is (nspecies*(nspecies-1)/2)
-  ! The values are red row by row starting from top going down
-  ! (this allows easy addition/deletion of new species/rows)
-  ! So D_12; D_13, D_23; D_14, D_24, D_34; ...
-  Dbar(1) = 5.d-8 ! Maxwell-Stefan diffusion constant  
+  # These are lower-triangules of symmetric matrices represented as vectors
+  # Number of elements is (nspecies*(nspecies-1)/2)
+  # The values are red row by row starting from top going down
+  # (this allows easy addition/deletion of new species/rows)
+  # So D_12; D_13, D_23; D_14, D_24, D_34; ...
+  Dbar = 5.e-8 # Maxwell-Stefan diffusion constant  
 
   use_charged_fluid = 1
-  dielectric_const = 9.2d-20
-  charge_per_mass(1:2) = 6.8d2 -6.8d2
+  dielectric_const = 9.2e-20
+  charge_per_mass = 6.8e2 -6.8e2
 
   use_multiphase = 1
   alpha_gex = 4000.
   n_gex = 2
-  kc_tension = 1.d-11
-
-/
+  kc_tension = 1.e-11
 
   mg_verbose = 0                  # multigrid verbosity
 
