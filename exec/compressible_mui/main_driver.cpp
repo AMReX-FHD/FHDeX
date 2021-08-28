@@ -528,71 +528,9 @@ void main_driver(const char* argv)
     mui::uniface2d uniface( "mpi://FHD-side/FHD-KMC-coupling" );
 
     int lox,loy,loz,hix,hiy,hiz;
-    bool isfirst = true;
+    find_lohi(cu,lox,loy,loz,hix,hiy,hiz);
 
-    for (MFIter mfi(cu,false); mfi.isValid(); ++mfi)
-    {
-        const Box& bx = mfi.tilebox();
-        Dim3 lo = lbound(bx);
-        Dim3 hi = ubound(bx);
-
-        if (isfirst)
-        {
-            lox = lo.x;
-            loy = lo.y;
-            loz = lo.z;
-            hix = hi.x;
-            hiy = hi.y;
-            hiz = hi.z;
-
-	    isfirst = false;
-	}
-        else
-        {
-            lox = (lox<lo.x) ? lox : lo.x;
-            loy = (loy<lo.y) ? loy : lo.y;
-            loz = (loz<lo.z) ? loz : lo.z;
-            hix = (hix>hi.x) ? hix : hi.x;
-            hiy = (hiy>hi.y) ? hiy : hi.y;
-            hiz = (hiz>hi.z) ? hiz : hi.z;
-        }
-    }
-
-    int k = 0;
-    if (k>=loz && k<=hiz)
-    {
-        double tmp[2];
-
-        tmp[0] = prob_lo[0] + lox*dx[0];
-        tmp[1] = prob_lo[1] + loy*dx[1];
-        point<double,2> span_lo(tmp);
-
-        tmp[0] = prob_lo[0] + (hix+1)*dx[0];
-        tmp[1] = prob_lo[1] + (hiy+1)*dx[1];
-        point<double,2> span_hi(tmp);
-
-        mui::geometry::box<config_2d> span(span_lo,span_hi);
-
-        //uniface.announce_send_span(0.,(double)max_step,span);
-        //uniface.announce_recv_span(0.,(double)max_step,span);
-    }
-    else
-    {
-        double tmp[2];
-
-        tmp[0] = -1.;
-        tmp[1] = -1.;
-        point<double,2> span_lo(tmp);
-
-        tmp[0] = -0.9;
-        tmp[1] = -0.9;
-        point<double,2> span_hi(tmp);
-
-        mui::geometry::box<config_2d> span(span_lo,span_hi);
-
-        //uniface.announce_send_span(0.,(double)max_step,span);
-        //uniface.announce_recv_span(0.,(double)max_step,span);
-    }
+    //mui_announce_send_recv_span(uniface,dx,lox,loy,loz,hix,hiy,hiz);
 
     //Time stepping loop
     for(step=1;step<=max_step;++step) {
