@@ -5,10 +5,9 @@ AMREX_GPU_MANAGED int surfchem_mui::NADSDESSPEC = 1;
 
 AMREX_GPU_MANAGED amrex::Real surfchem_mui::MOMOFINERCO = 1.456061e-39;
 
+void mui_push(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface2d &uniface, const int step)
 // this routine pushes the following information to MUI
 // - species number densities and temperature of FHD cells contacting the interface
-void mui_push(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface2d &uniface, const int step,
-              int lox,int loy,int loz,int hix,int hiy,int hiz)
 {
     // assuming the interface is perpendicular to the z-axis 
     // and includes cells with the smallest value of z (i.e. k=0)
@@ -20,13 +19,6 @@ void mui_push(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface2
         Dim3 hi = ubound(bx);
         const Array4<Real> & cu_fab = cu.array(mfi);
         const Array4<Real> & prim_fab = prim.array(mfi);
-
-	if (lox>lo.x) Abort("ERROR: lox>lo.x");
-	if (loy>lo.y) Abort("ERROR: loy>lo.y");
-	if (loz>lo.z) Abort("ERROR: loz>lo.z");
-	if (hix<hi.x) Abort("ERROR: hix<hi.x");
-	if (hiy<hi.y) Abort("ERROR: hiy<hi.y");
-	if (hiz<hi.z) Abort("ERROR: hiz<hi.z");
 
         // unless bx contains cells at the interface, skip 
         int k = 0;
@@ -66,8 +58,7 @@ void mui_push(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface2
 
 // this routine fetches the following information from MUI:
 // - adsoprtion and desoprtion counts of each species between time points
-void mui_fetch(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface2d &uniface, const int step,
-               int lox,int loy,int loz,int hix,int hiy,int hiz)
+void mui_fetch(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface2d &uniface, const int step)
 {
     // assuming the interface is perpendicular to the z-axis 
     // and includes cells with the smallest value of z (i.e. k=0)
@@ -82,13 +73,6 @@ void mui_fetch(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface
         Dim3 hi = ubound(bx);
         const Array4<Real> & cu_fab = cu.array(mfi);
         const Array4<Real> & prim_fab = prim.array(mfi);
-
-	if (lox>lo.x) Abort("ERROR: lox>lo.x");
-	if (loy>lo.y) Abort("ERROR: loy>lo.y");
-	if (loz>lo.z) Abort("ERROR: loz>lo.z");
-	if (hix<hi.x) Abort("ERROR: hix<hi.x");
-	if (hiy<hi.y) Abort("ERROR: hiy<hi.y");
-	if (hiz<hi.z) Abort("ERROR: hiz<hi.z");
 
         // unless bx contains cells at the interface, skip 
         // ad-hoc fix to avoid memory leakage
@@ -132,9 +116,9 @@ void mui_fetch(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface
                     double vx,vy,vz;
                     double dmomx,dmomy,dmomz,derg;
 
-		    double kBTI = k_B*temp/MOMOFINERCO;
-		    double sqrtkBTI = sqrt(kBTI);
-		    double omegax,omegay;
+                    double kBTI = k_B*temp/MOMOFINERCO;
+                    double sqrtkBTI = sqrt(kBTI);
+                    double omegax,omegay;
 
                     dmomx = dmomy = dmomz = derg = 0.;
 
@@ -150,10 +134,10 @@ void mui_fetch(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface
                         dmomz += mass*vz;
                         derg  -= 0.5*mass*(vx*vx+vy*vy+vz*vz);
 
-			// angular velocity (diatomic)
-			omegax = RandomNormal(0.,sqrtkBTI);
-			omegay = RandomNormal(0.,sqrtkBTI);
-			derg -= 0.5*MOMOFINERCO*(omegax*omegax+omegay*omegay);
+                        // angular velocity (diatomic)
+                        omegax = RandomNormal(0.,sqrtkBTI);
+                        omegay = RandomNormal(0.,sqrtkBTI);
+                        derg -= 0.5*MOMOFINERCO*(omegax*omegax+omegay*omegay);
                     }
 
                     for (int l=0;l<dc;l++)
@@ -168,10 +152,10 @@ void mui_fetch(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface
                         dmomz += mass*vz;
                         derg  += 0.5*mass*(vx*vx+vy*vy+vz*vz);
 
-			// angular velocity (diatomic)
-			omegax = RandomNormal(0.,sqrtkBTI);
-			omegay = RandomNormal(0.,sqrtkBTI);
-			derg += 0.5*MOMOFINERCO*(omegax*omegax+omegay*omegay);
+                        // angular velocity (diatomic)
+                        omegax = RandomNormal(0.,sqrtkBTI);
+                        omegay = RandomNormal(0.,sqrtkBTI);
+                        derg += 0.5*MOMOFINERCO*(omegax*omegax+omegay*omegay);
                     }
 
                     cu_fab(i,j,k,0) += (dc-ac)*mass/dV;
@@ -191,8 +175,12 @@ void mui_fetch(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface
     return;
 }
 
-void find_lohi(MultiFab& mf,int &lox,int &loy,int &loz,int &hix,int &hiy,int &hiz)
+void mui_announce_send_recv_span(mui::uniface2d &uniface,MultiFab& mf,const Real* dx)
 {
+    // find the lo and hi points of a square that covers all boxes assigned to the MPI process
+
+    int lox,loy,loz,hix,hiy,hiz;
+
     bool isfirst = true;
 
     for (MFIter mfi(mf,false); mfi.isValid(); ++mfi)
@@ -223,11 +211,7 @@ void find_lohi(MultiFab& mf,int &lox,int &loy,int &loz,int &hix,int &hiy,int &hi
         }
     }
 
-    return;
-}
-
-void mui_announce_send_recv_span(mui::uniface2d &uniface,const Real* dx,int lox,int loy,int loz,int hix,int hiy,int hiz)
-{
+    // announce span to MUI
     // we assume that the FHD layer contacting the KMC is k = 0
     int k = 0;
 

@@ -18,14 +18,10 @@ using namespace mui;
 using namespace amrex;
 using namespace common;
 
-void mui_push(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface2d &uniface, const int step,
-              int lox,int loy,int loz,int hix,int hiy,int hiz);
+void mui_push(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface2d &uniface, const int step);
 
-void mui_fetch(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface2d &uniface, const int step,
-               int lox,int loy,int loz,int hix,int hiy,int hiz);
+void mui_fetch(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface2d &uniface, const int step);
 
-void find_lohi(MultiFab& mf,int &lox,int &loy,int &loz,int &hix,int &hiy,int &hiz);
-
-void mui_announce_send_recv_span(mui::uniface2d &uniface,const Real* dx,int lox,int loy,int loz,int hix,int hiy,int hiz);
+void mui_announce_send_recv_span(mui::uniface2d &uniface, MultiFab& mf, const Real* dx);
 
 #endif

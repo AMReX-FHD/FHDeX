@@ -527,10 +527,7 @@ void main_driver(const char* argv)
     // MUI setting
     mui::uniface2d uniface( "mpi://FHD-side/FHD-KMC-coupling" );
 
-    int lox,loy,loz,hix,hiy,hiz;
-    find_lohi(cu,lox,loy,loz,hix,hiy,hiz);
-
-    //mui_announce_send_recv_span(uniface,dx,lox,loy,loz,hix,hiy,hiz);
+    mui_announce_send_recv_span(uniface,cu,dx);
 
     //Time stepping loop
     for(step=1;step<=max_step;++step) {
@@ -543,7 +540,7 @@ void main_driver(const char* argv)
         // timer
         Real ts0 = ParallelDescriptor::second();
 
-        mui_push(cu, prim, dx, uniface, step,lox,loy,loz,hix,hiy,hiz);
+        mui_push(cu, prim, dx, uniface, step);
 
         Real ts0a = ParallelDescriptor::second();
         Real ts_mp = ts0a-ts0;
@@ -562,7 +559,7 @@ void main_driver(const char* argv)
 
         Real ts3 = ParallelDescriptor::second();
 
-        mui_fetch(cu, prim, dx, uniface, step,lox,loy,loz,hix,hiy,hiz);
+        mui_fetch(cu, prim, dx, uniface, step);
 
         Real ts3a = ParallelDescriptor::second();
         Real ts_mf = ts3a-ts3;
