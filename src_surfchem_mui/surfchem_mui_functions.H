@@ -13,10 +13,14 @@
 #include <mui.h>
 #include "surfchem_mui_namespace.H"
 
+#define AVONUM 6.02214076e23
+
 using namespace surfchem_mui;
 using namespace mui;
 using namespace amrex;
 using namespace common;
+
+void InitializeSurfChemMUINamespace();
 
 void mui_push(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface2d &uniface, const int step);
 

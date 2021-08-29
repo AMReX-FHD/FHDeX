@@ -35,6 +35,9 @@ void main_driver(const char* argv)
     // read the inputs file for chemistry
     InitializeChemistryNamespace();
 
+    // read the inputs file for surfchem_mui
+    InitializeSurfChemMUINamespace();
+
     // if gas heat capacities in the namelist are negative, calculate them using using dofs.
     // This will only update the Fortran values.
     GetHcGas();
