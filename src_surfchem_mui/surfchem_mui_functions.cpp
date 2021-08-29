@@ -130,10 +130,6 @@ void mui_fetch(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface
                     double vx,vy,vz;
                     double dmomx,dmomy,dmomz,derg;
 
-                    double kBTI = k_B*temp/mom_inertia[n];
-                    double sqrtkBTI = sqrt(kBTI);
-                    double omegax,omegay;
-
                     dmomx = dmomy = dmomz = derg = 0.;
 
                     // sample incoming velocities and compute translational energy change
@@ -163,9 +159,24 @@ void mui_fetch(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface
                     }
 
                     // sample non-translational energy change
-                    if (dof[n]==5 && e0[n]==0.)
+                    if (e0[n]!=0.)
                     {
-                        // in this case (i.e. diatomic molecules), non-translational energy = rotational energy
+                        amrex::Abort("Currently, only the case with e0 = 0 is implemented.");
+                    }
+
+                    if (dof[n]!=3 && dof[n]!=5)
+                    {
+                        amrex::Abort("Currently, only the monoatomic and diatomic cases are implemented.");
+                    }
+
+                    if (dof[n]==5 && e0[n]==0.)
+                    // in this case (i.e. diatomic molecules), non-translational energy = rotational energy
+                    // in the monoatomic case, non-translational energy = 0
+                    {
+                        double kBTI = k_B*temp/mom_inertia[n];
+                        double sqrtkBTI = sqrt(kBTI);
+                        double omegax,omegay;
+
                         for (int l=0;l<ac;l++)
                         {
                             // angular velocity (diatomic)
@@ -182,10 +193,8 @@ void mui_fetch(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface
                             derg += 0.5*mom_inertia[n]*(omegax*omegax+omegay*omegay);
                         }
                     }
-                    else
-                    {
-                        amrex::Abort("Sampling of non-translational energy is implemented only for dof=5 and e0 = 0");
-                    }
+
+                    // update
 
                     cu_arr(i,j,k,0) += (dc-ac)*mass/dV;
                     cu_arr(i,j,k,5+n) += (dc-ac)*mass/dV;
