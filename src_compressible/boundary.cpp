@@ -215,9 +215,9 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
 
             // mass fractions, density, temperature and pressure in the reservoir
             if (bc_mass_lo[0] == 3 && algorithm_type == 2) {
-                amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                amrex::ParallelFor(gbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
-                    if (i < dom.smallEnd(0)) {
+                    if (i < 0) {
                         for (int n=0; n<nspecies; ++n) {
                             prim(i,j,k,6+n)          = bc_Yk_x_lo[n]; // set ghost cell equal to reservoir mass fraction
                             prim(i,j,k,6+nspecies+n) = bc_Xk_x_lo[n]; // set ghost cell equal to reservoir mole fraction
@@ -411,9 +411,9 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
 
             // mass fractions, density, temperature and pressure in the reservoir
             if (bc_mass_hi[0] == 3 && algorithm_type == 2) {
-                amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                amrex::ParallelFor(gbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
-                    if (i > dom.bigEnd(0)) {
+                    if (i > n_cells[0]-1) {
                         for (int n=0; n<nspecies; ++n) {
                             prim(i,j,k,6+n)          = bc_Yk_x_hi[n]; // set ghost cell equal to reservoir mass fraction
                             prim(i,j,k,6+nspecies+n) = bc_Xk_x_hi[n]; // set ghost cell equal to reservoir mole fraction
@@ -488,7 +488,8 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                                                                  prim(i,j,k,3)*prim(i,j,k,3));
                     }
                 });
-                else if (bc_vel_hi[0] == 1) { // slip
+            }
+            else if (bc_vel_hi[0] == 1) { // slip
                 amrex::ParallelFor(gbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (i > n_cells[0]-1) {
