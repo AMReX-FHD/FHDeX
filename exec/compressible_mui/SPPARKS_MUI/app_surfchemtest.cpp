@@ -750,34 +750,28 @@ double AppSurfchemtest::site_propensity(int i)
     if (type[i] != adstype[m] || element[i] != adsinput[m]) continue;
     
     if(ads_is_rate) adspropensity = adsrate[m];
-
-/*    
-    // propensity for adsorption = adsrate * num_dens * sqrt(site_temp/sys_temp)
-    if (adsoutput[m]==SPEC1) adspropensity = adsrate[m]*density1[i]*sqrt(temp[i]/temperature);
-    else if (adsoutput[m]==SPEC2) adspropensity = adsrate[m]*density2[i]*sqrt(temp[i]/temperature);
-    else if (adsoutput[m]==SPEC3) adspropensity = adsrate[m]*density3[i]*sqrt(temp[i]/temperature);
-    else if (adsoutput[m]==SPEC4) adspropensity = adsrate[m]*density4[i]*sqrt(temp[i]/temperature);
-    else if (adsoutput[m]==SPEC5) adspropensity = adsrate[m]*density5[i]*sqrt(temp[i]/temperature);
-    add_event(i,4,m,adspropensity,-1,-1);
-    proball += adspropensity;
-*/
-
-    // propensity for adsorption = adsrate * num_dens 
-    else {
-    if (adsoutput[m]==SPEC1) adspropensity = adsrate[m]*density1[i];
-    else if (adsoutput[m]==SPEC2) adspropensity = adsrate[m]*density2[i];
-    else if (adsoutput[m]==SPEC3) adspropensity = adsrate[m]*density3[i];
-    else if (adsoutput[m]==SPEC4) adspropensity = adsrate[m]*density4[i];
-    else if (adsoutput[m]==SPEC5) adspropensity = adsrate[m]*density5[i];
+    else
+    {
+      // propensity for adsorption = adsrate * num_dens * sqrt(site_temp/sys_temp)
+      if (adsoutput[m]==SPEC1) adspropensity = adsrate[m]*density1[i]*sqrt(temp[i]/temperature);
+      else if (adsoutput[m]==SPEC2) adspropensity = adsrate[m]*density2[i]*sqrt(temp[i]/temperature);
+      else if (adsoutput[m]==SPEC3) adspropensity = adsrate[m]*density3[i]*sqrt(temp[i]/temperature);
+      else if (adsoutput[m]==SPEC4) adspropensity = adsrate[m]*density4[i]*sqrt(temp[i]/temperature);
+      else if (adsoutput[m]==SPEC5) adspropensity = adsrate[m]*density5[i]*sqrt(temp[i]/temperature);
     }
+/*
+    else
+    {
+      // propensity for adsorption = adsrate * num_dens
+      if (adsoutput[m]==SPEC1) adspropensity = adsrate[m]*density1[i];
+      else if (adsoutput[m]==SPEC2) adspropensity = adsrate[m]*density2[i];
+      else if (adsoutput[m]==SPEC3) adspropensity = adsrate[m]*density3[i];
+      else if (adsoutput[m]==SPEC4) adspropensity = adsrate[m]*density4[i];
+      else if (adsoutput[m]==SPEC5) adspropensity = adsrate[m]*density5[i];
+    }
+*/
     add_event(i,4,m,adspropensity,-1,-1);
     proball += adspropensity;
-
-/*
-    // simpler rate
-    add_event(i,4,m,adsrate[m],-1,-1);
-    proball += adsrate[m];
-*/
   }
 
   // desorption events
@@ -1457,7 +1451,16 @@ void AppSurfchemtest::mui_fetch_agg(int narg, char **arg)
       // distribute info to each KMC site
       for (int i=0;i<nlocal;i++)
         density1[i] = MUIdblval[localFHDcell[i]];
-    } else {
+    }
+    else if (strcmp(arg[k],"temp") == 0) {
+      // get info for each FHD cell
+      for (int n=0;n<nlocalFHDcell;n++)
+        MUIdblval[n] = spk->uniface->fetch("CH_temp",{xFHD[n],yFHD[n]},timestamp,s,t);
+      // distribute info to each KMC site
+      for (int i=0;i<nlocal;i++)
+        temp[i] = MUIdblval[localFHDcell[i]];
+    }
+    else {
       error->all(FLERR,"Illegal mui_fetch_agg command");
     }
 

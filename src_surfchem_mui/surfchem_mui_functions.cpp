@@ -59,9 +59,9 @@ void mui_push(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface2
                     uniface.push(channel,{x,y},dens);
                 }
 
-                //channel = "CH_temp";
+                channel = "CH_temp";
 
-                //uniface.push(channel,{x,y},prim_arr(i,j,k,4));
+                uniface.push(channel,{x,y},prim_arr(i,j,k,4));
             }
         }
     }
