@@ -54,7 +54,7 @@ void main_driver(const char* argv)
   
   // For time correlation functions
   // plot_time is the increments between correlations
-  int ntimecor = 101; // set as user input
+  int ntimecor = 201; // set as user input
 
   MultiFab rhotimecross, utimecross, Ktimecross;
   MultiFab rho_time, u_time, K_time;
