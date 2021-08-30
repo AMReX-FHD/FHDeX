@@ -268,7 +268,7 @@ void FhdParticleContainer::CollideParticles(Real dt)
 				eijmag = pow(eijmag,0.5);
 				for(int idim=0; idim<3; idim++)
 				{
-				eij[idim] /= eijmag;
+					eij[idim] /= eijmag;
 				}
 
 				vreijmag = vij[0]*eij[0]+vij[1]*eij[1]+vij[2]*eij[2];
