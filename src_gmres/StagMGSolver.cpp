@@ -671,7 +671,7 @@ int StagMGSolver::ComputeNlevsMG(const BoxArray& ba) {
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             int temp = iv[d];
             int rdir = 1;
-            while (temp%2 == 0 && temp/stag_mg_minwidth != 1) {
+            while (temp%2 == 0 && temp/2 >= stag_mg_minwidth) {
                 temp /= 2;
                 ++rdir;
             }

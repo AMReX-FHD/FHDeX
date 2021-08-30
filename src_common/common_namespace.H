@@ -25,7 +25,7 @@ namespace common {
     extern AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM> n_cells;              // number of cells in domain
     extern amrex::Vector<int>         max_grid_size;            // max number of cells in a box
     extern amrex::Vector<int>         max_particle_tile_size;        // max number of cells in a box
-    extern amrex::Real                cell_depth;
+    extern AMREX_GPU_MANAGED amrex::Real cell_depth;
 
     extern amrex::IntVect             ngc;           //number of chost cells
     extern AMREX_GPU_MANAGED int      nvars;         //number of conserved variables

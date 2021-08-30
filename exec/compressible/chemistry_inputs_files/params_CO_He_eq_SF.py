@@ -131,15 +131,16 @@ djasq = rho*kB*temp/dV
 dEsq = (kB*temp)**2/dV*(2.5*3.5*rho1/m1+1.5*2.5*rho2/m2)
 dTsq = temp**2/dV/(2.5*n1+1.5*n2)
 
-print "drhosq = %e" % drhosq
-print "drho1sq = %e" % drho1sq
-print "drho2sq = %e" % drho2sq
-print "djasq = %e\n" % djasq
+print "drhosq  = %e\t%e\t%e\t%e" % (drhosq,2*drhosq,0.5*drhosq,1.5*drhosq)
+print "drho1sq = %e\t%e\t%e\t%e" % (drho1sq,2*drho1sq,0.5*drho1sq,1.5*drho1sq)
+print "drho2sq = %e\t%e\t%e\t%e" % (drho2sq,2*drho2sq,0.5*drho2sq,1.5*drho2sq)
+print "djasq   = %e\t%e\t%e\t%e" % (djasq,2*djasq,0.5*djasq,1.5*djasq)
+print "dEsq    = %e\t%e\t%e\t%e" % (dEsq,2*dEsq,0.5*dEsq,1.5*dEsq)
+print "dTsq    = %e\t%e\t%e\t%e\n" % (dTsq,2*dTsq,0.5*dTsq,1.5*dTsq)
 
 print "drhosq*dV  = %e\t%e\t%e\t%e" % (drhosq*dV,2*drhosq*dV,0.5*drhosq*dV,1.5*drhosq*dV)
 print "drho1sq*dV = %e\t%e\t%e\t%e" % (drho1sq*dV,2*drho1sq*dV,0.5*drho1sq*dV,1.5*drho1sq*dV)
 print "drho2sq*dV = %e\t%e\t%e\t%e" % (drho2sq*dV,2*drho2sq*dV,0.5*drho2sq*dV,1.5*drho2sq*dV)
 print "djasq*dV   = %e\t%e\t%e\t%e" % (djasq*dV,2*djasq*dV,0.5*djasq*dV,1.5*djasq*dV)
-
 print "dEsq*dV    = %e\t%e\t%e\t%e" % (dEsq*dV,2*dEsq*dV,0.5*dEsq*dV,1.5*dEsq*dV)
 print "dTsq*dV    = %e\t%e\t%e\t%e" % (dTsq*dV,2*dTsq*dV,0.5*dTsq*dV,1.5*dTsq*dV)

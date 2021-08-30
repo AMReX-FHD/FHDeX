@@ -10,7 +10,7 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
 						MultiFab& mfcvlMeans,
 						MultiFab& mfQMeans,
 						MultiFab& mfcoVars,
-            MultiFab& spatialCross1D, 
+                        MultiFab& spatialCross1D, 
 						const int steps,
 						Real time) {
     BL_PROFILE_VAR("EvaluateStats()",EvaluateStats);
@@ -28,15 +28,26 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
     mfcvlMeans.setVal(0.);
 
     // TODO: Add Heat Fluxes
-    const int lev = 0;    
+    const int lev = 0;
+    
+    int ncon  = (nspecies+1)*5;
+    int nprim = (nspecies+1)*9;
+        
     for (FhdParIter pti(* this, lev); pti.isValid(); ++pti) {
         const int grid_id = pti.index();
         const int tile_id = pti.LocalTileIndex();
         const Box& tile_box  = pti.tilebox();
+                
         auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
-        auto& particles = particle_tile.GetArrayOfStructs();
+        auto& aos = particle_tile.GetArrayOfStructs();
+	    ParticleType* particles = aos().dataPtr();
+
         IntVect smallEnd = tile_box.smallEnd();
         IntVect bigEnd = tile_box.bigEnd();
+        
+        
+
+
 
         /*
           Conserved Vars:
@@ -60,8 +71,7 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
           8  - E   (E_ns)
         */
 
-        int ncon  = (nspecies+1)*5;
-        int nprim = (nspecies+1)*9;
+
         Array4<Real> cuInst  = mfcuInst[pti].array();
         Array4<Real> primInst  = mfprimInst[pti].array();
         Array4<Real> cuMeans  = mfcuMeans[pti].array();
@@ -70,10 +80,21 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
         Array4<Real> primVars  = mfprimVars[pti].array();
         Array4<Real> coVars  = mfcoVars[pti].array();
 
-				Array4<Real> cvlInst = mfcvlInst[pti].array();
-				Array4<Real> cvlMeans = mfcvlMeans[pti].array();
-				Array4<Real> QMeans  = mfQMeans[pti].array();
-				
+		Array4<Real> cvlInst = mfcvlInst[pti].array();
+		Array4<Real> cvlMeans = mfcvlMeans[pti].array();
+		Array4<Real> QMeans  = mfQMeans[pti].array();
+		
+		dsmcSpecies* propertiesPtr = properties;
+		
+		//ParticleType* particlesPtr = particles.dataPtr();		
+		//std::map<int, std::vector<Gpu::ManagedVector<int> > >* m_cell_vectorsPtr = m_cell_vectors;
+		//std::map<int, std::vector<Gpu::ManagedVector<int> > >* m_cell_vectors[MAX_SPECIES];
+		
+		//Real * cell_vecs = m_cell_vectors[1][grid_id].data();
+		
+		Real ocollisionCellVolTmp = ocollisionCellVol;
+		
+		
         //////////////////////////////////////
         // Primitve and Conserved Instantaneous Values
         //////////////////////////////////////
@@ -86,11 +107,15 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
             cvlInst(i,j,k,0) = 0;
 
             for (int l=0; l<nspecies; l++) {
-                const long np_spec = m_cell_vectors[l][grid_id][imap].size();
-                Real mass = properties[l].mass*properties[l].Neff;
-                Real moV  = properties[l].mass*ocollisionCellVol;
-                primInst(i,j,k,iprim+0) = np_spec*ocollisionCellVol;
-                primInst(i,j,k,0)      += np_spec*ocollisionCellVol;
+                long np_spec = m_cell_vectors[l][grid_id][imap].size();
+                //long np_spec = cell_vecs[l][grid_id][imap].size();
+                //const long np_spec = 1;
+                Real mass = propertiesPtr[l].mass*propertiesPtr[l].Neff;
+                Real moV  = propertiesPtr[l].mass*ocollisionCellVolTmp;
+                //Real mass =1;
+                //Real moV =1;
+                primInst(i,j,k,iprim+0) = np_spec*ocollisionCellVolTmp;
+                primInst(i,j,k,0)      += np_spec*ocollisionCellVolTmp;
                 primInst(i,j,k,iprim+1) = np_spec*moV;
                 primInst(i,j,k,1)	     += np_spec*moV;
                 cuInst(i,j,k,icon+0)	  = np_spec*moV;
@@ -102,9 +127,8 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
                 // Read particle data
                 for (int m=0; m<np_spec; m++) {
                     int pind = m_cell_vectors[l][grid_id][imap][m];
-                    ParticleType ptemp = particles[pind];
-                    ParticleType & p = ptemp;
-                    // ParticleType & p = particles[pind];
+                    //int pind = 1;
+                    ParticleType & p = particles[pind];
                     Real u = p.rdata(FHD_realData::velx);
                     Real v = p.rdata(FHD_realData::vely);
                     Real w = p.rdata(FHD_realData::velz);
@@ -122,11 +146,11 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
                 cuInst(i,j,k,icon+3) *= moV;       // z-mom density
                 cuInst(i,j,k,icon+4) *= (moV*0.5); // K     density
 
-								Real jx = cuInst(i,j,k,icon+1);
-								Real jy = cuInst(i,j,k,icon+2);
-								Real jz = cuInst(i,j,k,icon+3);
-								Real K = cuInst(i,j,k,icon+4);
-								Real n = primInst(i,j,k,iprim+0);
+				Real jx = cuInst(i,j,k,icon+1);
+				Real jy = cuInst(i,j,k,icon+2);
+				Real jz = cuInst(i,j,k,icon+3);
+				Real K = cuInst(i,j,k,icon+4);
+				Real n = primInst(i,j,k,iprim+0);
 
                 // Total Conserved Vars
                 for (int m=0; m<5; m++) {cuInst(i,j,k,m) += cuInst(i,j,k,icon+m);}
@@ -135,11 +159,11 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
                 primInst(i,j,k,iprim+3) = jy/rho;  // v_l
                 primInst(i,j,k,iprim+4) = jz/rho;  // w_l
 
-								Real u = primInst(i,j,k,iprim+2);
-								Real v = primInst(i,j,k,iprim+3);
-								Real w = primInst(i,j,k,iprim+4);
+				Real u = primInst(i,j,k,iprim+2);
+				Real v = primInst(i,j,k,iprim+3);
+				Real w = primInst(i,j,k,iprim+4);
 
-								primInst(i,j,k,iprim+5) = u*jx+v*jy+w*jz;  // G_l
+				primInst(i,j,k,iprim+5) = u*jx+v*jy+w*jz;  // G_l
 
                 Real vsqb = pow(u,2.)+pow(v,2.)+pow(w,2.);
                 Real cv = cvlInst(i,j,k,icvl);
@@ -158,22 +182,22 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
                 icon += 5; iprim += 9; icvl++;
             }
 
-						Real rho = cuInst(i,j,k,0);
-						Real jx = cuInst(i,j,k,1);
-						Real jy = cuInst(i,j,k,2);
-						Real jz = cuInst(i,j,k,3);
-						Real K = cuInst(i,j,k,4);
-						Real n = primInst(i,j,k,0);
+			Real rho = cuInst(i,j,k,0);
+			Real jx = cuInst(i,j,k,1);
+			Real jy = cuInst(i,j,k,2);
+			Real jz = cuInst(i,j,k,3);
+			Real K = cuInst(i,j,k,4);
+			Real n = primInst(i,j,k,0);
 
             primInst(i,j,k,2) = jx/rho;  // u
             primInst(i,j,k,3) = jy/rho;  // v
             primInst(i,j,k,4) = jz/rho;  // w
 
-						Real u = primInst(i,j,k,iprim+2);
-						Real v = primInst(i,j,k,iprim+3);
-						Real w = primInst(i,j,k,iprim+4);
+			Real u = primInst(i,j,k,iprim+2);
+			Real v = primInst(i,j,k,iprim+3);
+			Real w = primInst(i,j,k,iprim+4);
 
-						primInst(i,j,k,5) = u*jx+v*jy+w*jz;  // G
+			primInst(i,j,k,5) = u*jx+v*jy+w*jz;  // G
 
             primInst(i,j,k,6) /= n;  // Mixture T
 
@@ -201,8 +225,8 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
             
             cvlMeans(i,j,k,0) = 0.;
             for(int l=0; l<nspecies; l++) { 
-                Real mass = properties[l].mass*properties[l].Neff;
-                Real moV  = properties[l].mass*ocollisionCellVol;
+                Real mass = propertiesPtr[l].mass*propertiesPtr[l].Neff;
+                Real moV  = propertiesPtr[l].mass*ocollisionCellVolTmp;
                 
                 cvlMeans(i,j,k,icvl) = 3.0*k_B*0.5/mass;
 
@@ -406,9 +430,9 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
     // Spatial Correlations (works only for 1D currently: 1 cell each in y and z directions)
     // in this order: conserved variables [rho, K, jx, jy, jz] + primitive variables [vx, vy, vz, T]
     // total: 2*9
-    // add species later
+    // add species later - I added a couple - Daniel
     if (plot_cross) {
-        int nstats = 19;
+        int nstats = 23;
 
         // Get all nstats at xcross and store in GpuVector
         amrex::Gpu::ManagedVector<Real> data_xcross_in(nstats, 0.0); // values at x*
@@ -453,6 +477,16 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
                     data_xcross[17] = primmeans(i,j,k,6); // T-mean
                     cvq_xcross[0]   = cvlMeans(i,j,k,0);  // cv-mean
                     cvq_xcross[1]   = QMeans(i,j,k,0);    // Q-mean
+                    
+                    data_xcross[19] = cu(i,j,k,5+0); // rho0-instant
+                    data_xcross[20] = cumeans(i,j,k,5+0); // rho0-mean
+                    
+                    if(nspecies >1)
+                    {
+                        data_xcross[21] = cu(i,j,k,2*5+0); // rho1-instant
+                        data_xcross[22] = cumeans(i,j,k,2*5+0); // rho1-mean
+                    }
+
                }
             });
         }  // end MFITer
@@ -501,6 +535,14 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
                 Real vxmeancross = data_xcross[11];
                 Real vymeancross = data_xcross[13];
                 Real vzmeancross = data_xcross[15];
+                
+                //interspecies
+                Real delrho0cross = data_xcross[19] - data_xcross[20];
+                Real delrho1cross;
+                if(nspecies >1)
+                {
+                    delrho1cross = data_xcross[21] - data_xcross[22];
+                }
 
                 // delG = \vec{v}\cdot\vec{\deltaj}
                 Real delGcross = vxmeancross*deljxcross + vymeancross*deljycross + vzmeancross*deljzcross;
@@ -523,9 +565,16 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
                 Real vxmean = primmeans(i,j,k,2);
                 Real vymean = primmeans(i,j,k,3);
                 Real vzmean = primmeans(i,j,k,4);
+                
+                Real delrho0 = cu(i,j,k,5+0) - cumeans(i,j,k,5+0);
+                Real delrho1;
+                if(nspecies > 1)
+                {
+                    delrho1 = cu(i,j,k,2*5+0) - cumeans(i,j,k,2*5+0);
+                }
 
-								Real cvinv = 1.0/cvlMeans(i,j,k,0);
-								Real qmean = QMeans(i,j,k,0);
+				Real cvinv = 1.0/cvlMeans(i,j,k,0);
+				Real qmean = QMeans(i,j,k,0);
 
                 // delG = \vec{v}\cdot\vec{\deltaj}
                 Real delG = vxmean*deljx+vymean*deljy+vzmean*deljz;
@@ -601,7 +650,17 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
                 spatialCross(i,j,k,37) = (cvinvcross/(meanrhocross*meanrho))*(spatialCross(i,j,k,18) - vxmean*spatialCross(i,j,k,8)
                 	- spatialCross(i,j,k,27) + vxmean*spatialCross(i,j,k,25) - qmeancross*spatialCross(i,j,k,9)
                 	+ vxmean*qmeancross*spatialCross(i,j,k,0));
-
+                	
+                	
+                //added a few species specific terms here
+                spatialCross(i,j,k,38) = (spatialCross(i,j,k,38)*stepsMinusOne + delrho0cross*delrho0)*osteps;   // <delRho0(x*)delRho0(x)>
+                if(nspecies > 1)
+                {
+                    spatialCross(i,j,k,39) = (spatialCross(i,j,k,39)*stepsMinusOne + delrho1cross*delrho1)*osteps;   // <delRho1(x*)delRho1(x)>
+                    spatialCross(i,j,k,40) = (spatialCross(i,j,k,40)*stepsMinusOne + delrho1cross*delrho0)*osteps;   // <delRho1(x*)delRho0(x)>
+                    spatialCross(i,j,k,41) = (spatialCross(i,j,k,41)*stepsMinusOne + delrho0cross*delrho1)*osteps;   // <delRho0(x*)delRho1(x)>
+                }
+                
                 // [IS] Species-dependent stuff -- commented now -- add later
                 // <delu(x*)del(rhoYkL)> = (1/<rho(x*)>)*(<deljx(x*)del(rhoYkL)> - <u(x*)><delrho(x*)del(rhoYkL)>)
                 // spatialCross(i,j,k,22) = (1.0/meanrhocross)*(spatialCross(i,j,k,6) - meanuxcross*spatialCross(i,j,k,8));  

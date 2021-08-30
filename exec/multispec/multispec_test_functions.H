@@ -90,6 +90,9 @@ void ReadCheckPoint(int& step,
                     BoxArray& ba,
                     DistributionMapping& dmap);
 
+void ReadFile(const std::string& filename, Vector<char>& charBuf,
+              bool bExitOnError=true);
+
 ///////////////////////////
 // in Init.cpp
 

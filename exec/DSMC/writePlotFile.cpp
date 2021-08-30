@@ -25,7 +25,8 @@ void writePlotFile(const MultiFab& mfcuInst,
     int ncon    = (nspecies+1)*5;
     int nprim   = (nspecies+1)*9;
     int ncovar  = 25;
-    int nvars   = ncovar + ncon + nprim; // covariances + prim. vars + cons. vars
+    int nvars   = ncovar + ncon + nprim + ncross; // covariances + prim. vars + cons. vars
+
 
     amrex::BoxArray ba = mfcuInst.boxArray();
     amrex::DistributionMapping dmap = mfcuInst.DistributionMap();
@@ -38,6 +39,8 @@ void writePlotFile(const MultiFab& mfcuInst,
     amrex::MultiFab mfcuplt(ba, dmap, 2*ncon, 0);
     amrex::MultiFab mfprimplt(ba, dmap, 2*nprim, 0);
     amrex::MultiFab mfvarplt(ba, dmap, nvars, 0);
+    
+    amrex::MultiFab mfcrossav(ba, dmap, ncross, 0);
 
     amrex::Vector<std::string> cuNames(2*ncon);
     amrex::Vector<std::string> primNames(2*nprim);
@@ -193,7 +196,8 @@ void writePlotFile(const MultiFab& mfcuInst,
     }
     MultiFab::Copy(mfvarplt, mfprimVars, 0, istart, nprim, 0);
     istart += nprim;
-
+    
+    //Covariances
     varNames[cnt++] = "rho.Jx";
     varNames[cnt++] = "rho.Jy";
     varNames[cnt++] = "rho.Jz";
@@ -221,12 +225,60 @@ void writePlotFile(const MultiFab& mfcuInst,
     varNames[cnt++] = "w.T";
 
     MultiFab::Copy(mfvarplt, mfcoVars, 0, istart, ncovar, 0);
+    istart += ncovar;
+    
+    //Cross correlations
+    varNames[cnt++] = "rho*.rho";
+    varNames[cnt++] = "K*.K";
+    varNames[cnt++] = "Jx*.Jx";
+    varNames[cnt++] = "Jy*.Jy";
+    varNames[cnt++] = "Jz*.Jz";
+    varNames[cnt++] = "Jx*.rho";
+    varNames[cnt++] = "Jy*.rho";
+    varNames[cnt++] = "Jz*.rho";
+    varNames[cnt++] = "K*.rho";
+    varNames[cnt++] = "rho*.Jx";
+    varNames[cnt++] = "Jy*.Jx";
+    varNames[cnt++] = "Jz*.Jx";
+    varNames[cnt++] = "K*.Jx";
+    varNames[cnt++] = "rho*.Jy";
+    varNames[cnt++] = "Jx*.Jy";
+    varNames[cnt++] = "Jz*.Jy";
+    varNames[cnt++] = "K*.Jy";   
+    varNames[cnt++] = "rho*.K";
+    varNames[cnt++] = "Jx*.K";
+    varNames[cnt++] = "Jy*.K";
+    varNames[cnt++] = "Jz*.K";
+    varNames[cnt++] = "G*.G";
+    varNames[cnt++] = "G*.K";
+    varNames[cnt++] = "K*.G";
+    varNames[cnt++] = "rho*.G";
+    varNames[cnt++] = "G*.rho";
+    varNames[cnt++] = "Jx*.G";
+    varNames[cnt++] = "G*.Jx";
+    varNames[cnt++] = "Jy*.G";
+    varNames[cnt++] = "G*.Jy";
+    varNames[cnt++] = "Jz*.G";
+    varNames[cnt++] = "G*.Jz";
+    varNames[cnt++] = "K*.G";
+    varNames[cnt++] = "G*.K";
+    varNames[cnt++] = "T*.T";
+    varNames[cnt++] = "T*.rho";
+    varNames[cnt++] = "u*.rho";
+    varNames[cnt++] = "T*.u";
+    varNames[cnt++] = "rho0*.rho0";
+    if(nspecies > 1)
+    {    
+        varNames[cnt++] = "rho1*.rho1";
+        varNames[cnt++] = "rho1*.rho0";
+        varNames[cnt++] = "rho0*.rho1";
+    }
+
+    //WriteHorizontalAverage(mfspatialCorr1d,mfcrossav,0,ncross);
+    MultiFab::Copy(mfvarplt, mfspatialCorr1d, 0, istart, ncross, 0);
+    
     WriteSingleLevelPlotfile(pltvar, mfvarplt, varNames, geom, time, step);
 
-    if (plot_cross) {
-        std::string file_prefix = "spatialCross1D_";
-        WriteHorizontalAverage(mfspatialCorr1d,0,0,ncross,step,geom,file_prefix);
-    }
     
         // particle in cplt file
 //    Vector<std::string> real_comp_names = FHD_realData::names();

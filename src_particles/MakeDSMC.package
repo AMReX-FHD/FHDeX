@@ -6,6 +6,5 @@ CEXE_headers   += particle_functions_K.H
 CEXE_sources   += DsmcParticleContainer.cpp
 CEXE_sources   += particle_physbc.cpp
 CEXE_sources   += dsmc_functions.cpp
-CEXE_headers   += dsmc_namespace_declarations.H
 CEXE_headers   += dsmc_namespace.H
 CEXE_headers   += dsmc_functions.H

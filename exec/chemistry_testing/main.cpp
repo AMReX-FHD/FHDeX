@@ -4,9 +4,7 @@
 
 #include "myfunc.H"
 #include "chemistry_functions.H"
-#include "chemistry_namespace_declarations.H"
 #include "common_functions.H"
-#include "common_namespace_declarations.H"
 
 using namespace amrex;
 
