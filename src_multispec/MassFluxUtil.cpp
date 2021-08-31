@@ -257,7 +257,7 @@ void ComputeSqrtLonsagerFC(const MultiFab& rho_in,
                 }
             }
 
-            ComputeNonnegativeRhoAv(RhoNXShift, RhoN, dx, molmass, nspecies, RhoAv);
+            ComputeNonnegativeRhoAv(RhoNXShift, RhoN, dx, molmass, RhoAv);
 
             //update RhoAv for SqrtLOnsager
             Real RhoAvSum = 0.0;
@@ -291,7 +291,7 @@ void ComputeSqrtLonsagerFC(const MultiFab& rho_in,
                 }
             }
 
-            ComputeNonnegativeRhoAv(RhoNYShift, RhoN, dx, molmass, nspecies, RhoAv);
+            ComputeNonnegativeRhoAv(RhoNYShift, RhoN, dx, molmass, RhoAv);
 
             Real RhoAvSum = 0.0;
             for (int n=0; n<nspecies; ++n ){
@@ -324,7 +324,7 @@ void ComputeSqrtLonsagerFC(const MultiFab& rho_in,
                 }
             }
 
-            ComputeNonnegativeRhoAv(RhoNZShift, RhoN, dx, molmass, nspecies, RhoAv);
+            ComputeNonnegativeRhoAv(RhoNZShift, RhoN, dx, molmass, RhoAv);
 
             //update RhoAv for SqrtLOnsager
             Real RhoAvSum = 0.0;

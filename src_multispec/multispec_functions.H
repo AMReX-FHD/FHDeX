@@ -821,7 +821,6 @@ void ComputeChi (int nspecies_in,
  * \param[in] MolarConcN molar concentration
  * \param[in,out] rhoWchiN
  * \param[in] D_barN MS diff-coefs
- * \param[in] nspecies_in Number of species
  * \param[in] molmass_in
  * \param[in] chi_iterations_in If needed, this is the number of terms to use
  * in the sum to construct chi in the function Dbar2chiIterative.
@@ -840,7 +839,6 @@ void ComputeRhoWChiLocal (
                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& D_barN,
                GpuArray<Real, MAX_SPECIES>& molmass_in,
                int chi_iterations_in){
-//HACK:not required
 
     //local variables
     Array1D<Real, 1, MAX_SPECIES> W;
@@ -941,12 +939,7 @@ void ComputeNonnegativeRhoAv (
                 GpuArray<Real, MAX_SPECIES>& Rho2,
                 const GpuArray<Real, AMREX_SPACEDIM>& dx,
                 GpuArray<Real, MAX_SPECIES>& molmass_in,
-                int nspecies_in,
                 GpuArray<Real, MAX_SPECIES>& RhoAv){
-
-    //HACK -- not required
-    if (nspecies!=nspecies_in) { Print() << "Mismatch! -- NonNegRhoaV" << std::endl; }
-
 
     Real dv, value1, value2, tmp1, tmp2;
 
@@ -963,7 +956,7 @@ void ComputeNonnegativeRhoAv (
     }
 #endif
 
-    if ((use_multiphase == 1) && (nspecies_in == 2)){
+    if ((use_multiphase == 1) && (nspecies == 2)){
        value1 = Rho1[0];
        value2 = Rho2[0];
        if ((value1 <= 0.0) || (value2 <= 0.0)){
@@ -975,7 +968,7 @@ void ComputeNonnegativeRhoAv (
 
     } else {
 
-        for (int comp=1; comp<=nspecies_in; ++comp){
+        for (int comp=1; comp<=nspecies; ++comp){
             value1 = Rho1[comp-1]/molmass_in[comp-1]; //Convert to number density
             value2 = Rho2[comp-1]/molmass_in[comp-1];
 
@@ -1237,7 +1230,6 @@ void CholeskyDC (Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& A,
  * \param[in] Molmass_sub
  * \param[in] Rho_sub
  * \param[in] rhotot_sub
- * \param[in] nspecies_in
  * \param[in] nspecies_sub
  * \param[in] chi_iterations_sub
  * \param[in,out] SqrtLOnsager_sub
