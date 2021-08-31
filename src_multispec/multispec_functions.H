@@ -295,7 +295,7 @@ void ComputeMolconcMolmtotLocal ( int nspecies_in,
     GpuArray<Real, MAX_SPECIES> W; /**< Mass fraction w_i = rho_i/rho */
 
     // calculate mass fraction and total molar mass (1/m=Sum(w_i/m_i))
-    for (int n=0; n<nspecies; ++n){
+    for (int n=0; n<nspecies_in; ++n){   //HACK: Ask Andy about nspecies -> nspecies_in
         W[n] = RhoN[n] / rhotot_in;
     }
 
