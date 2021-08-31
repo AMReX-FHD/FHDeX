@@ -267,7 +267,6 @@ void GetMolTot ( GpuArray<Real, MAX_SPECIES>& W,
                 Real& molmtot_in,
                 int nspecies_in)
 {
-//HACK:required
     Real sumWOverN = 0.0;
 
     for (int n=0; n<nspecies_in; ++n){
@@ -292,8 +291,6 @@ void ComputeMolconcMolmtotLocal ( int nspecies_in,
                 Real rhotot_in,
                 GpuArray<Real, MAX_SPECIES>& MolarConcN,
                 Real& molmtot_in){
-
-//HACK:required
 
     GpuArray<Real, MAX_SPECIES> W; /**< Mass fraction w_i = rho_i/rho */
 
@@ -333,20 +330,15 @@ void MatrixToZeros (int size,
 /**
  * \brief Populate X_xxT
  *
- * \param[in] nspecies_in Number of species.
  * \param[out] X_xxT
  * \param[in] MolarConcN
  */
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void PopulateX_xxT (int nspecies_in,
+void PopulateX_xxT (
                 Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& X_xxT,
                 GpuArray<Real, MAX_SPECIES>& MolarConcN) {
 
-    //HACK -- not required
-
-    if (nspecies!=nspecies_in) { Print() << "Mismatch PopulateXxxt!" << std::endl; }
-
-    for (int row=1; row<=nspecies_in;++row ){
+    for (int row=1; row<=nspecies;++row ){
         // diagonal entries
         X_xxT(row,row) = MolarConcN[row-1] - MolarConcN[row-1]*MolarConcN[row-1];
         for (int column=1; column<=row-1; ++column ){
@@ -436,7 +428,7 @@ void ComputeGammaLocal (
         if (is_ideal_mixture == 1){
             MatrixToZeros(nspecies, X_xxT);
         } else {
-            PopulateX_xxT(nspecies, X_xxT, MolarConcN);
+            PopulateX_xxT(X_xxT, MolarConcN);
         }
 
         //Compute Gamma
