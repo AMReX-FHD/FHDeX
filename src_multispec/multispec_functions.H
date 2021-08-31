@@ -1266,7 +1266,7 @@ void ComputeSqrtLOnsagerSub (
 
     //HACK -- ??
     if (nspecies!=nspecies_sub) { Print() << "Mismatch! -sub- LOnsagerSub" << std::endl; }
-    if (nspecies!=nspecies_in) { Print() << "Mismatch! -in- LOnsagerSub" << std::endl; }
+    if (nspecies==nspecies_in) { Print() << "Match! -in- LOnsagerSub" << std::endl; }
 //HACK:nspecies_in not required
 
        
@@ -1307,7 +1307,7 @@ void ComputeSqrtLOnsagerSub (
 
     ComputeDBarLocal(Rho_in, rhotot_in, DBar_in);
 
-    for (int row=1; row<= nspecies_in; ++row){
+    for (int row=1; row<= nspecies; ++row){
         if (dest(row) == 0){
             continue;
         }
@@ -1337,12 +1337,12 @@ void ComputeSqrtLOnsagerSub (
     CholeskyDC(SqrtLOnsager_sub, nspecies_sub);
 
     // expand sqrtLonsager_sub into sqrtLonsager
-    MatrixToZeros(nspecies_in, SqrtLOnsager);
-    for (int row=1; row<= nspecies_in; ++row){
+    MatrixToZeros(nspecies, SqrtLOnsager);
+    for (int row=1; row<= nspecies; ++row){
         if (dest(row) == 0){
            continue;
         }
-        for (int column=1; column<= nspecies_in; ++column){
+        for (int column=1; column<= nspecies; ++column){
             if (dest(column) != 0){
                 SqrtLOnsager(row,column) = SqrtLOnsager_sub(dest(row),dest(column));
             }
@@ -1357,7 +1357,7 @@ void ComputeSqrtLOnsagerSub (
  * \param[in] molmass_in
  * \param[in] RhoN
  * \param[in] rhotot_in
- * \param[in] nspecies_in
+ * \param[in] nspecies
  * \param[in] chi_iterations_in
  * \param[in,out] sqrtLonsager
  *
@@ -1368,11 +1368,8 @@ void ComputeSqrtLOnsagerLocal (
                 GpuArray<Real, MAX_SPECIES>& molmass_in,
                 GpuArray<Real, MAX_SPECIES>& RhoN,
                 Real rhotot_in,
-                int nspecies_in,
                 int chi_iterations_in,
                 Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& SqrtLOnsager){
-    //HACK -- required
-    if (nspecies!=nspecies_in) { Print() << "Mismatch! -- LOnsagerLoc" << std::endl; }
 
     // local variables
     Array1D<Real, 1, MAX_SPECIES> W;
@@ -1399,7 +1396,7 @@ void ComputeSqrtLOnsagerLocal (
     // compute the number of trace species
     // build the mapping for expanding/contracting arrays
     ntrace = 0;
-    for (int row=1; row <= nspecies_in; ++row){
+    for (int row=1; row <= nspecies; ++row){
         W(row) = RhoN[row-1]/rhotot_in;
         if (W(row) < fraction_tolerance){
            ntrace = ntrace + 1;
@@ -1409,7 +1406,7 @@ void ComputeSqrtLOnsagerLocal (
         }
     }
 
-    if (ntrace == nspecies_in-1){
+    if (ntrace == nspecies-1){
 
         // this is all trace species except for 1 (essentially pure solvent);
         // set sqrtLonsager to zero
@@ -1418,36 +1415,36 @@ void ComputeSqrtLOnsagerLocal (
     } else if (ntrace == 0) {    // there are no trace species
 
         // compute molarconc and molmtot
-        ComputeMolconcMolmtotLocal(nspecies_in, molmass_in, RhoN, rhotot_in, Molarconc_loc, molmtot_loc);
+        ComputeMolconcMolmtotLocal(nspecies, molmass_in, RhoN, rhotot_in, Molarconc_loc, molmtot_loc);
 
         // compute D_bar
         ComputeDBarLocal(RhoN, rhotot_in, DBar_loc);
 
         // compute chi
-        ComputeChi(nspecies_in, molmass_in, RhoN, rhotot_in, Molarconc_loc, Chi_loc, DBar_loc, chi_iterations_in);
+        ComputeChi(nspecies, molmass_in, RhoN, rhotot_in, Molarconc_loc, Chi_loc, DBar_loc, chi_iterations_in);
 
         // compute Onsager matrix L (store in sqrtLonsager)
-        for (int column=1; column<= nspecies_in; ++column){
-            for (int row=1; row<=nspecies_in; ++row){
+        for (int column=1; column<= nspecies; ++column){
+            for (int row=1; row<=nspecies; ++row){
                 SqrtLOnsager(row, column) = molmtot_loc*rhotot_in*W(row)*Chi_loc(row,column)*W(column)/k_B;
             }
         }
 
         // compute cell-centered Cholesky factor, sqrtLonsager
-        CholeskyDC(SqrtLOnsager,nspecies_in);
+        CholeskyDC(SqrtLOnsager,nspecies);
 
     } else {
 
         // if there are trace species, we consider a subsystem
         // consisting of non-trace species
 
-        nspecies_sub = nspecies_in - ntrace;
+        nspecies_sub = nspecies - ntrace;
         ComputeSqrtLOnsagerSub( dest,
                         molmass_in,
                         RhoN,
                         DBar_loc,
                         rhotot_in,
-                        nspecies_in,
+                        nspecies,
                         nspecies_sub,
                         chi_iterations_in,
                         SqrtLOnsager);
