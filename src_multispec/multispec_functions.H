@@ -250,8 +250,7 @@ void ComputeChi(int nspecies_in,
                 Real rhotot,
                 GpuArray<Real, MAX_SPECIES>& MolarConcN,
                 Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& chi,
-                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& D_barN,
-                int chi_iterations_in);
+                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& D_barN);
 
 /**
  * \brief Compute total molar mass
@@ -447,7 +446,9 @@ void ComputeGammaLocal (
  * \param[in] rhoN
  * \param[in] D_barN
  * \param[in,out] rhoWchiN
- * \param[in] chi_iterations_in If needed, this is the number of terms to use
+ *
+ *
+ * The global variable `chi_iterations` determines the number of terms to use
  * in the sum to construct chi in the function Dbar2chiIterative.
  *
  *
@@ -459,8 +460,7 @@ void ComputeChiSub(int nspecies_sub,
                    GpuArray<Real, MAX_SPECIES>& molmass_in,
                    GpuArray<Real, MAX_SPECIES>& rhoN,
                    Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& D_barN,
-                   Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& rhoWchiN,
-                   int chi_iterations_in){
+                   Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& rhoWchiN){
 
     GpuArray<Real, MAX_SPECIES> molmass_sub, rhoN_sub, MolarConcN_sub;
     Array1D<Real, 1, MAX_SPECIES> W_sub;
@@ -505,7 +505,7 @@ void ComputeChiSub(int nspecies_sub,
     ComputeMolconcMolmtotLocal(nspecies_sub, molmass_sub, rhoN_sub, rhotot_sub, MolarConcN_sub, molmtot_sub);
 
     // compute chi_sub
-    ComputeChi(nspecies_sub, molmass_sub, rhoN_sub, rhotot_sub, MolarConcN_sub, chi_sub, D_barN_sub, chi_iterations_in);
+    ComputeChi(nspecies_sub, molmass_sub, rhoN_sub, rhotot_sub, MolarConcN_sub, chi_sub, D_barN_sub);
 
 
     // compute full rho*W*chi
@@ -581,16 +581,17 @@ void Matrix2DSetEqual (
 /**
  * \brief D_bar to chi - iterative
  *
- * \param[in] num_iterations_in number of terms in the sum to use: 3-5 are reasonable values
  * \param[in] D_bar matrix of Maxwell-Stefan binary diffusion coefficient
  * \param[in] Xk mole fractions --- MUST NOT BE ZERO
  * \param[in] molmass_local
  * \param[out] chi multispecies diffusion matrix
  *
+ * The number of terms in the sum is determined by the global variable `chi_iterations`.
+ * 3-5 is a reasonable range for the value.
+ *
  */
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void Dbar2chiIterative (
-               int num_iterations_in,
                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& D_bar,
                GpuArray<Real, MAX_SPECIES>& Xk,
                GpuArray<Real, MAX_SPECIES>& molmass_local,
@@ -703,7 +704,7 @@ void Dbar2chiIterative (
     }
 
 
-    for (int jj=1; jj<=num_iterations_in; ++jj){
+    for (int jj=1; jj<=chi_iterations; ++jj){
         for (int i=1; i<=nspecies; ++i){
             for (int j=1; j<=nspecies; ++j){
                     scr = 0.0;
@@ -732,8 +733,7 @@ void Dbar2chiIterative (
  * \param[in] MolarConcN
  * \param[in,out] chi multispcies diffusion matrix.
  * \param[in] D_barN matrix of Maxwell-Stefan binary diffusion coefficient
- * \param[in] chi_iterations_in If needed, this is the number of terms to use
- * in the sum to construct chi in the function Dbar2chiIterative.
+ *
  *
  */
 
@@ -744,8 +744,7 @@ void ComputeChi (int nspecies_in,
                Real rhotot,
                GpuArray<Real, MAX_SPECIES>& MolarConcN,
                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& chi,
-               Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& D_barN,
-               int chi_iterations_in){
+               Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& D_barN){
 
     //local variables
     Real eepsilon=1.e-16;
@@ -785,7 +784,7 @@ void ComputeChi (int nspecies_in,
        //call amrex_error('compute_chi: use_lapack not supported')
     }
 
-    Dbar2chiIterative(chi_iterations_in,D_barN,MolarConcN,molmass_in,chi);
+    Dbar2chiIterative(D_barN,MolarConcN,molmass_in,chi);
 
 }
 
@@ -800,10 +799,6 @@ void ComputeChi (int nspecies_in,
  * \param[in,out] rhoWchiN
  * \param[in] D_barN MS diff-coefs
  * \param[in] molmass_in
- * \param[in] chi_iterations_in If needed, this is the number of terms to use
- * in the sum to construct chi in the function Dbar2chiIterative.
- *
- *
  *
  */
 
@@ -815,8 +810,7 @@ void ComputeRhoWChiLocal (
                GpuArray<Real, MAX_SPECIES>& MolarConcN,
                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& rhoWchiN,
                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& D_barN,
-               GpuArray<Real, MAX_SPECIES>& molmass_in,
-               int chi_iterations_in){
+               GpuArray<Real, MAX_SPECIES>& molmass_in){
 
     //local variables
     Array1D<Real, 1, MAX_SPECIES> W;
@@ -875,7 +869,7 @@ void ComputeRhoWChiLocal (
         } else if (ntrace == 0){
             // there are no trace species, hence chi = chi_sub
 
-            ComputeChi(nspecies, molmass_in, rhoN, rhotot, MolarConcN, chi, D_barN, chi_iterations_in);
+            ComputeChi(nspecies, molmass_in, rhoN, rhotot, MolarConcN, chi, D_barN);
 
             for (int row=1; row<=nspecies; ++row){
                 for (int column=1; column<=nspecies; ++column){
@@ -893,8 +887,7 @@ void ComputeRhoWChiLocal (
                         molmass_in,
                         rhoN,
                         D_barN,
-                        rhoWchiN,
-                        chi_iterations_in);
+                        rhoWchiN);
 
         }
     }
@@ -1209,7 +1202,6 @@ void CholeskyDC (Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& A,
  * \param[in] Rho_sub
  * \param[in] rhotot_sub
  * \param[in] nspecies_sub
- * \param[in] chi_iterations_sub
  * \param[in,out] SqrtLOnsager_sub
  *
  * dest is a mapping used to eliminate elements in D_bar we don't need (for D_bar_sub)
@@ -1230,7 +1222,6 @@ void ComputeSqrtLOnsagerSub (
                 Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& DBar_in,
                 Real rhotot_in,
                 int nspecies_sub,
-                int chi_iterations_sub,
                 Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& SqrtLOnsager){
 
     // local variables
@@ -1286,7 +1277,7 @@ void ComputeSqrtLOnsagerSub (
 
 
     // compute chi_sub
-    ComputeChi(nspecies_sub, Molmass_sub, Rho_sub, rhotot_sub, Molarconc_sub, Chi_sub, DBar_sub, chi_iterations_sub);
+    ComputeChi(nspecies_sub, Molmass_sub, Rho_sub, rhotot_sub, Molarconc_sub, Chi_sub, DBar_sub);
 
     // compute Onsager matrix L_sub (store in sqrtLonsager_sub)
     for (int column=1; column<= nspecies_sub; ++column){
@@ -1319,7 +1310,6 @@ void ComputeSqrtLOnsagerSub (
  * \param[in] molmass_in
  * \param[in] RhoN
  * \param[in] rhotot_in
- * \param[in] chi_iterations_in
  * \param[in,out] sqrtLonsager
  *
  */
@@ -1329,7 +1319,6 @@ void ComputeSqrtLOnsagerLocal (
                 GpuArray<Real, MAX_SPECIES>& molmass_in,
                 GpuArray<Real, MAX_SPECIES>& RhoN,
                 Real rhotot_in,
-                int chi_iterations_in,
                 Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& SqrtLOnsager){
 
     // local variables
@@ -1382,7 +1371,7 @@ void ComputeSqrtLOnsagerLocal (
         ComputeDBarLocal(RhoN, rhotot_in, DBar_loc);
 
         // compute chi
-        ComputeChi(nspecies, molmass_in, RhoN, rhotot_in, Molarconc_loc, Chi_loc, DBar_loc, chi_iterations_in);
+        ComputeChi(nspecies, molmass_in, RhoN, rhotot_in, Molarconc_loc, Chi_loc, DBar_loc);
 
         // compute Onsager matrix L (store in sqrtLonsager)
         for (int column=1; column<= nspecies; ++column){
@@ -1406,7 +1395,6 @@ void ComputeSqrtLOnsagerLocal (
                         DBar_loc,
                         rhotot_in,
                         nspecies_sub,
-                        chi_iterations_in,
                         SqrtLOnsager);
 
     }
