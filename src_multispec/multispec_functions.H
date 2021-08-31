@@ -1098,7 +1098,6 @@ void ChiWaterGlycerol (
  *
  * \param[in] RhoN
  * \param[in] rhotot
- * \param[in] nspecies
  * \param[in,out] D_bar
  */
 
@@ -1107,9 +1106,6 @@ void ComputeDBarLocal (
           GpuArray<Real, MAX_SPECIES>& RhoN,
           Real rhotot_in,
           Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& D_bar){
-
-    //HACK -- not required
-    //if (nspecies!=nspecies_in) { Print() << "Mismatch! -- DBarLoc" << std::endl; }
     
     // off-diagonal components of symmetric matrices
     Array1D<Real, 1, MAX_SPECIES*(MAX_SPECIES-1)/2> DBar_loc;
@@ -1468,7 +1464,6 @@ void ComputeSqrtLOnsagerLocal (
  * \param[in] Temp Temperature
  * \param[in,out] ZetaByTemp zeta/T
  * \param[in] DTerm Thermo diff-coeffs
- * \param[in] nspecies_in
  *
  *
  */
@@ -1479,14 +1474,8 @@ void ComputeZetaByTempLocal (
                 Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& DBar,
                 Real Temp,
                 GpuArray<Real, MAX_SPECIES>& ZetaByTemp,
-                GpuArray<Real, MAX_SPECIES>& DTherm,
-                int nspecies_in){
+                GpuArray<Real, MAX_SPECIES>& DTherm){
 
-    //HACK - not required
-    
-    if (nspecies!=nspecies_in) { Print() << "Mismatch! -- ZetaTemp" << std::endl; }
-       
-        
     // local variables
     Real Sum_knoti;
     Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> Lambda;
@@ -1496,15 +1485,15 @@ void ComputeZetaByTempLocal (
 
        // compute Lambda_ij matrix; molarconc is
        // expressed in terms of molmtot,mi,rhotot etc.
-        for (int row=1; row<=nspecies_in; ++row){
+        for (int row=1; row<=nspecies; ++row){
             for (int column=1; column<=row-1; ++column){
                 Lambda(row, column) = -MolarConc[row-1]*MolarConc[column-1]/DBar(row,column);
                 Lambda(column, row) = Lambda(row, column);
             }
         }
-        for (int row=1; row<=nspecies_in; ++row){
+        for (int row=1; row<=nspecies; ++row){
             Sum_knoti = 0.0;
-            for (int column=1; column<=nspecies_in; ++column){
+            for (int column=1; column<=nspecies; ++column){
                 if (column != row){
                     Sum_knoti = Sum_knoti + Lambda(row,column)*(DTherm[row-1] - DTherm[column-1]);
                 }
@@ -1523,7 +1512,6 @@ void ComputeZetaByTempLocal (
  * \params[out] DBar
  * \params[out] DTherm
  * \params[out] Hessian
- * \params[in] nspecies_in
  *
  * The default case should be to simply set Dbar, Dtherm and Hessian to constants, and read from the input file.
  *
@@ -1536,10 +1524,6 @@ void MixturePropsMassLocal (GpuArray<Real, MAX_SPECIES>& Rho,
                 GpuArray<Real, MAX_SPECIES>& DThermLoc,
                 Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& Hessian){
         
-    //HACK -- not required
-    int nspecies_in = nspecies;
-    if (nspecies!=nspecies_in) { Print() << "Mismatch! -- MixProps" << std::endl; }
-
     // Local values of transport and thermodynamic coefficients (functions of composition!):
     GpuArray<Real, MAX_SPECIES*(MAX_SPECIES-1)/2> HOffdiagLoc; //off-diagonal components of symmetric matrices
     GpuArray<Real, MAX_SPECIES> HDiagLoc; // Diagonal component
