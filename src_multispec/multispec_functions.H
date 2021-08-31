@@ -242,6 +242,7 @@ void FillRhototGhost(MultiFab& rhotot_in, const MultiFab& conc_in, const Geometr
 /////////////////////////////////////////////////////////////////////////////////
 // Device calls from  MassFluxUtil.cpp
 
+
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void ComputeChi(int nspecies_in,
                 GpuArray<Real, MAX_SPECIES>& molmass_in,
@@ -266,6 +267,7 @@ void GetMolTot ( GpuArray<Real, MAX_SPECIES>& W,
                 Real& molmtot_in,
                 int nspecies_in)
 {
+//HACK:required
     Real sumWOverN = 0.0;
 
     for (int n=0; n<nspecies_in; ++n){
@@ -290,11 +292,13 @@ void ComputeMolconcMolmtotLocal ( int nspecies_in,
                 Real rhotot_in,
                 GpuArray<Real, MAX_SPECIES>& MolarConcN,
                 Real& molmtot_in){
+        
+//HACK:required
 
     GpuArray<Real, MAX_SPECIES> W; /**< Mass fraction w_i = rho_i/rho */
 
     // calculate mass fraction and total molar mass (1/m=Sum(w_i/m_i))
-    for (int n=0; n<nspecies_in; ++n){
+    for (int n=0; n<nspecies; ++n){
         W[n] = RhoN[n] / rhotot_in;
     }
 
@@ -311,15 +315,16 @@ void ComputeMolconcMolmtotLocal ( int nspecies_in,
 /**
  * \brief Set all values in 2D Array to zero.
  *
- * \param[in] nspecies_in upper limit of Array2D index (1 to nspecies_in) to set to zeros.
+ * \param[in] size upper limit of Array2D index (1 to size) to set to zeros.
  * \param[in,out] matrixIn Array2D to be set to zeros.
  */
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void MatrixToZeros (int nspecies_in,
+void MatrixToZeros (int size,
                 Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& matrixIn) {
-
-    for (int n=1; n<=nspecies_in; ++n ){
-        for (int m=1; m<=nspecies_in; ++m ){
+//HACK:required
+        
+    for (int n=1; n<=size; ++n ){
+        for (int m=1; m<=size; ++m ){
             matrixIn(n,m) = 0.0;
         }
     }
@@ -336,6 +341,10 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void PopulateX_xxT (int nspecies_in,
                 Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& X_xxT,
                 GpuArray<Real, MAX_SPECIES>& MolarConcN) {
+        
+    //HACK -- not required
+    
+    if (nspecies!=nspecies_in) { Print() << "Mismatch PopulateXxxt!" << std::endl; }
 
     for (int row=1; row<=nspecies_in;++row ){
         // diagonal entries
@@ -365,6 +374,9 @@ void GammaIPlusMatmul (int nspecies_in,
                 Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& GammaN,
                 Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& X_xxT,
                 Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& HessianN) {
+        
+    //HACK -- not requried
+    if (nspecies!=nspecies_in) { Print() << "Mismatch! GammaIplusmatmal" << std::endl; }
 
     //Compute Gamma
     for (int row=1; row<=nspecies_in; ++row){
@@ -396,6 +408,8 @@ void ComputeGammaLocal (
                 Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& HessianN,
                 Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& GammaN,
                 int nspecies_in){
+    //HACK -- not required
+    if (nspecies!=nspecies_in) { Print() << "Mismatch! ComputeGammaLoc" << std::endl; }
 
     //Local variables
     Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> X_xxT;
@@ -464,6 +478,7 @@ void ComputeChiSub(int nspecies_sub,
                    Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& D_barN,
                    Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& rhoWchiN,
                    int chi_iterations_in){
+//HACK:sub required
 
     GpuArray<Real, MAX_SPECIES> molmass_sub, rhoN_sub, MolarConcN_sub;
     Array1D<Real, 1, MAX_SPECIES> W_sub;
@@ -600,6 +615,7 @@ void Dbar2chiIterative ( int nspecies_local,
                GpuArray<Real, MAX_SPECIES>& molmass_local,
                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& chi){
 
+//HACK:local required
 
     Array1D<Real, 1, MAX_SPECIES> Xkp, Ykp, Di, Mmat, Minv;
     Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> Pmat, Deltamat, Zmat, Jmat, PJ, matrix1, matrix2;
@@ -751,7 +767,8 @@ void ComputeChi (int nspecies_in,
                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& chi,
                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& D_barN,
                int chi_iterations_in){
-
+//HACK:required
+    
     //local variables
     Real eepsilon=1.e-16;
 
@@ -823,7 +840,7 @@ void ComputeRhoWChiLocal (
                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& D_barN,
                GpuArray<Real, MAX_SPECIES>& molmass_in,
                int chi_iterations_in){
-
+//HACK:not required
 
     //local variables
     Array1D<Real, 1, MAX_SPECIES> W;
@@ -926,6 +943,11 @@ void ComputeNonnegativeRhoAv (
                 GpuArray<Real, MAX_SPECIES>& molmass_in,
                 int nspecies_in,
                 GpuArray<Real, MAX_SPECIES>& RhoAv){
+
+    //HACK -- not required
+    if (nspecies!=nspecies_in) { Print() << "Mismatch! -- NonNegRhoaV" << std::endl; }
+
+
     Real dv, value1, value2, tmp1, tmp2;
 
 #if (AMREX_SPACEDIM == 2)
@@ -1084,9 +1106,11 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void ComputeDBarLocal (
           GpuArray<Real, MAX_SPECIES>& RhoN,
           Real rhotot_in,
-          int nspecies_in,
           Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& D_bar){
 
+    //HACK -- not required
+    //if (nspecies!=nspecies_in) { Print() << "Mismatch! -- DBarLoc" << std::endl; }
+    
     // off-diagonal components of symmetric matrices
     Array1D<Real, 1, MAX_SPECIES*(MAX_SPECIES-1)/2> DBar_loc;
 
@@ -1100,7 +1124,7 @@ void ComputeDBarLocal (
 
        // we require nspecies=2
        // Dbar(1) = chi0 in the binary notation
-        if (nspecies_in != 2){
+        if (nspecies != 2){
             printf("mixture_properties_mass_local assumes nspecies=2 if mixture_type=3 (water-glycerol)\n");
             Abort();
         }
@@ -1115,7 +1139,7 @@ void ComputeDBarLocal (
         printf("mixture_type=2 is not currently supported.\n");
         Abort();
 
-        if (nspecies_in != 3){
+        if (nspecies != 3){
             printf("mixture_properties_mass_local assumes nspecies=3 if mixture_type=2 (water-glycerol)\n");
             Abort();
         }
@@ -1132,7 +1156,7 @@ void ComputeDBarLocal (
 
     default : //Keep it constant
 
-        for ( int n=1; n <= nspecies_in*(nspecies_in-1)/2; ++n){
+        for ( int n=1; n <= nspecies*(nspecies-1)/2; ++n){
             DBar_loc(n) = Dbar[n-1];
         }
 
@@ -1141,7 +1165,7 @@ void ComputeDBarLocal (
     // Complete the process by filling the matrices using generic formulae -- this part should not change
     // populate D_bar and Hessian matrix
     int n=0;
-    for (int row=1; row<=nspecies_in; ++row){
+    for (int row=1; row<=nspecies; ++row){
         for (int column=1; column<=row-1; ++column){
             n = n+1;
             D_bar(row, column) = DBar_loc(n);         // SM-diffcoeff's read from input
@@ -1244,6 +1268,13 @@ void ComputeSqrtLOnsagerSub (
                 int chi_iterations_sub,
                 Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& SqrtLOnsager){
 
+    //HACK -- ??
+    if (nspecies!=nspecies_sub) { Print() << "Mismatch! -sub- LOnsagerSub" << std::endl; }
+    if (nspecies!=nspecies_in) { Print() << "Mismatch! -in- LOnsagerSub" << std::endl; }
+//HACK:nspecies_in not required
+
+       
+        
     // local variables
     GpuArray<Real, MAX_SPECIES> Molmass_sub;
     GpuArray<Real, MAX_SPECIES> Rho_sub;
@@ -1278,7 +1309,7 @@ void ComputeSqrtLOnsagerSub (
     // you could read in only the lower diagonals,
     // reflect, and set the diagnals to zero if you want
 
-    ComputeDBarLocal(Rho_in, rhotot_in, nspecies_in, DBar_in);
+    ComputeDBarLocal(Rho_in, rhotot_in, DBar_in);
 
     for (int row=1; row<= nspecies_in; ++row){
         if (dest(row) == 0){
@@ -1344,6 +1375,8 @@ void ComputeSqrtLOnsagerLocal (
                 int nspecies_in,
                 int chi_iterations_in,
                 Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& SqrtLOnsager){
+    //HACK -- required
+    if (nspecies!=nspecies_in) { Print() << "Mismatch! -- LOnsagerLoc" << std::endl; }
 
     // local variables
     Array1D<Real, 1, MAX_SPECIES> W;
@@ -1392,7 +1425,7 @@ void ComputeSqrtLOnsagerLocal (
         ComputeMolconcMolmtotLocal(nspecies_in, molmass_in, RhoN, rhotot_in, Molarconc_loc, molmtot_loc);
 
         // compute D_bar
-        ComputeDBarLocal(RhoN, rhotot_in, nspecies_in, DBar_loc);
+        ComputeDBarLocal(RhoN, rhotot_in, DBar_loc);
 
         // compute chi
         ComputeChi(nspecies_in, molmass_in, RhoN, rhotot_in, Molarconc_loc, Chi_loc, DBar_loc, chi_iterations_in);
@@ -1449,6 +1482,11 @@ void ComputeZetaByTempLocal (
                 GpuArray<Real, MAX_SPECIES>& DTherm,
                 int nspecies_in){
 
+    //HACK - not required
+    
+    if (nspecies!=nspecies_in) { Print() << "Mismatch! -- ZetaTemp" << std::endl; }
+       
+        
     // local variables
     Real Sum_knoti;
     Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> Lambda;
@@ -1492,30 +1530,32 @@ void ComputeZetaByTempLocal (
  *
  */
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void MixturePropsMassLocal( GpuArray<Real, MAX_SPECIES>& Rho,
+void MixturePropsMassLocal (GpuArray<Real, MAX_SPECIES>& Rho,
                 Real rhotot,
                 Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& DBar,
                 GpuArray<Real, MAX_SPECIES>& DThermLoc,
-                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& Hessian,
-                int nspecies_in){
-
+                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& Hessian){
+        
+    //HACK -- not required
+    int nspecies_in = nspecies;
+    if (nspecies!=nspecies_in) { Print() << "Mismatch! -- MixProps" << std::endl; }
 
     // Local values of transport and thermodynamic coefficients (functions of composition!):
     GpuArray<Real, MAX_SPECIES*(MAX_SPECIES-1)/2> HOffdiagLoc; //off-diagonal components of symmetric matrices
     GpuArray<Real, MAX_SPECIES> HDiagLoc; // Diagonal component
 
     // populate D_bar
-    ComputeDBarLocal(Rho, rhotot, nspecies_in, DBar);
+    ComputeDBarLocal(Rho, rhotot, DBar);
 
     // For now we only encode constant Hessian matrices since we do not have any thermodynamic
     // models coded up (Wilson, NTLR, UNIQUAC, etc.)
 
-    for (int n=0; n<nspecies_in; ++n){
+    for (int n=0; n<nspecies; ++n){
         HDiagLoc[n] = H_diag[n];
         DThermLoc[n]  = Dtherm[n];    // thermal diffcoeff's read from input
     }
 
-    for (int n=0; n < nspecies_in*(nspecies_in-1)/2; ++n){
+    for (int n=0; n < nspecies*(nspecies-1)/2; ++n){
         HOffdiagLoc[n] = H_offdiag[n];
     }
 
@@ -1533,7 +1573,7 @@ void MixturePropsMassLocal( GpuArray<Real, MAX_SPECIES>& Rho,
         Hessian(row, row) = HDiagLoc[row-1];
         }
     } else {
-        MatrixToZeros(nspecies_in,Hessian); // set matrix to zero for ideal-mixture
+        MatrixToZeros(nspecies,Hessian); // set matrix to zero for ideal-mixture
     }
 
 }
