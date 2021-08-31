@@ -399,22 +399,18 @@ void GammaIPlusMatmul (int nspecies_in,
  * \param[in] MolarConcN molar concentration
  * \param[in] HessianN
  * \param[in,out] GammaN
- * \param[in] nspecies_in Number of species.
  *
  */
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void ComputeGammaLocal (
                 GpuArray<Real, MAX_SPECIES>& MolarConcN,
                 Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& HessianN,
-                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& GammaN,
-                int nspecies_in){
-    //HACK -- not required
-    if (nspecies!=nspecies_in) { Print() << "Mismatch! ComputeGammaLoc" << std::endl; }
+                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& GammaN){
 
     //Local variables
     Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> X_xxT;
 
-    if ((use_multiphase == 1) && (nspecies_in == 2)){
+    if ((use_multiphase == 1) && (nspecies == 2)){
 
         // local to define Gamma matrix
         Real w1 = MolarConcN[0];
@@ -441,13 +437,13 @@ void ComputeGammaLocal (
 
         //populate X_xxT
         if (is_ideal_mixture == 1){
-            MatrixToZeros(nspecies_in, X_xxT);
+            MatrixToZeros(nspecies, X_xxT);
         } else {
-            PopulateX_xxT(nspecies_in, X_xxT, MolarConcN);
+            PopulateX_xxT(nspecies, X_xxT, MolarConcN);
         }
 
         //Compute Gamma
-        GammaIPlusMatmul(nspecies_in, GammaN, X_xxT, HessianN);
+        GammaIPlusMatmul(nspecies, GammaN, X_xxT, HessianN);
 
     }
 }
@@ -612,8 +608,6 @@ void Dbar2chiIterative (
                GpuArray<Real, MAX_SPECIES>& Xk,
                GpuArray<Real, MAX_SPECIES>& molmass_local,
                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& chi){
-
-//HACK:local required
 
     Array1D<Real, 1, MAX_SPECIES> Xkp, Ykp, Di, Mmat, Minv;
     Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> Pmat, Deltamat, Zmat, Jmat, PJ, matrix1, matrix2;

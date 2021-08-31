@@ -82,7 +82,7 @@ void ComputeGamma(const MultiFab& molarconc_in,
                 }
             }
 
-            ComputeGammaLocal(MolarConcN, HessianN, GammaN, nspecies);
+            ComputeGammaLocal(MolarConcN, HessianN, GammaN);
 
             // Write back to MultiFab
             for (int n=0; n<nspecies; ++n ){
