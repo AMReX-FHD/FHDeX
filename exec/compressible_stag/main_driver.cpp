@@ -24,12 +24,11 @@ void main_driver(const char* argv)
 
     std::string inputs_file = argv;
 
-    // read in parameters from inputs file into F90 modules
-    // we use "+1" because of amrex_string_c_to_f expects a null char termination
-    read_common_namelist(inputs_file.c_str(),inputs_file.size()+1);
     
     // copy contents of F90 modules to C++ namespaces
     InitializeCommonNamespace();
+
+    InitializeCompressibleNamespace();
 
     int step_start, statsCount;
     amrex::Real time;
@@ -140,7 +139,7 @@ void main_driver(const char* argv)
     
     // see statsStag for the list
     // can add more -- change main_driver, statsStag, writeplotfilestag, and Checkpoint
-    int ncross = 37+nspecies+2;
+    int ncross = 37+nspecies+3;
     MultiFab spatialCross1D;
     Vector<Real> spatialCross3D(n_cells[0]*ncross, 0.0);
     
@@ -505,7 +504,7 @@ void main_driver(const char* argv)
         cuMeans.setVal(0.0);
         cuVars.setVal(0.0);
         
-        primMeans.define(ba,dmap,nprimvars,ngc);
+        primMeans.define(ba,dmap,nprimvars+3,ngc); // the last three have COM velocity
         primVars.define(ba,dmap,nprimvars+5,ngc);
         primMeans.setVal(0.0);
         primVars.setVal(0.0);
@@ -662,7 +661,7 @@ void main_driver(const char* argv)
         prim.setVal(rho0,0,1,ngc);      // density
         prim.setVal(0.,1,3,ngc);        // x/y/z velocity
         prim.setVal(T_init[0],4,1,ngc); // temperature
-                                        // pressure computed later in conservedToPrimitive
+
         for(int i=0;i<nspecies;i++) {
             prim.setVal(rhobar[i],6+i,1,ngc);    // mass fractions
         }
@@ -677,6 +676,11 @@ void main_driver(const char* argv)
             massvec[i] = rhobar[i];
         }
         GetEnergy(intEnergy, massvec, T0);
+
+        // set pressure
+        Real P0;
+        GetPressureGas(P0, massvec, rho0, T0);
+        prim.setVal(P0,5,1,ngc); // pressure
 
         cu.setVal(0.0,0,nvars,ngc);
         cu.setVal(rho0,0,1,ngc);           // density
@@ -799,7 +803,9 @@ void main_driver(const char* argv)
         // timer
         Real ts2 = ParallelDescriptor::second() - ts1;
         ParallelDescriptor::ReduceRealMax(ts2);
-        amrex::Print() << "Advanced step " << step << " in " << ts2 << " seconds\n";
+        if (step%100 == 0) {
+            amrex::Print() << "Advanced step " << step << " in " << ts2 << " seconds\n";
+        }
 
         // timer
         Real aux1 = ParallelDescriptor::second();
@@ -847,6 +853,9 @@ void main_driver(const char* argv)
                                 dataSliceMeans_xcross, spatialCross3D, ncross, domain, statsCount);
         }
         statsCount++;
+        if (step%100 == 0) {
+            amrex::Print() << "Mean Momentum: " << ComputeSpatialMean(cumom[0], 0) << "\n";
+        }
 
         // write a plotfile
         bool writePlt = false;
@@ -942,7 +951,6 @@ void main_driver(const char* argv)
                     ComputeVerticalAverage(structFactConsMF, consVertAvg, geom, project_dir, 0, structVarsCons);
                     MultiFab primVertAvgRot = RotateFlattenedMF(primVertAvg);
                     MultiFab consVertAvgRot = RotateFlattenedMF(consVertAvg);
-                    amrex::Print() << geom_flat << std::endl;
                     structFactPrimVerticalAverage.FortStructure(primVertAvgRot,geom_flat);
                     structFactConsVerticalAverage.FortStructure(consVertAvgRot,geom_flat);
                 }
@@ -1007,7 +1015,9 @@ void main_driver(const char* argv)
         // timer
         Real aux2 = ParallelDescriptor::second() - aux1;
         ParallelDescriptor::ReduceRealMax(aux2);
-        amrex::Print() << "Aux time (stats, struct fac, plotfiles) " << aux2 << " seconds\n";
+        if (step%100 == 0) {
+            amrex::Print() << "Aux time (stats, struct fac, plotfiles) " << aux2 << " seconds\n";
+        }
         
         time = time + dt;
 
@@ -1020,8 +1030,10 @@ void main_driver(const char* argv)
         ParallelDescriptor::ReduceLongMin(min_fab_megabytes, IOProc);
         ParallelDescriptor::ReduceLongMax(max_fab_megabytes, IOProc);
 
-        amrex::Print() << "High-water FAB megabyte spread across MPI nodes: ["
-                       << min_fab_megabytes << " ... " << max_fab_megabytes << "]\n";
+        if (step%100 == 0) {
+            amrex::Print() << "High-water FAB megabyte spread across MPI nodes: ["
+                           << min_fab_megabytes << " ... " << max_fab_megabytes << "]\n";
+        }
 
         min_fab_megabytes  = amrex::TotalBytesAllocatedInFabs()/1048576;
         max_fab_megabytes  = min_fab_megabytes;
@@ -1029,8 +1041,10 @@ void main_driver(const char* argv)
         ParallelDescriptor::ReduceLongMin(min_fab_megabytes, IOProc);
         ParallelDescriptor::ReduceLongMax(max_fab_megabytes, IOProc);
 
-        amrex::Print() << "Curent     FAB megabyte spread across MPI nodes: ["
-                     << min_fab_megabytes << " ... " << max_fab_megabytes << "]\n";
+        if (step%100 == 0) {
+            amrex::Print() << "Curent     FAB megabyte spread across MPI nodes: ["
+                           << min_fab_megabytes << " ... " << max_fab_megabytes << "]\n";
+        }
     }
 
     if (ParallelDescriptor::IOProcessor()) outfile.close();

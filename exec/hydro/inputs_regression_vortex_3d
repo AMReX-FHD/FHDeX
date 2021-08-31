@@ -1,52 +1,52 @@
-&common
 
-  ! Problem specification
-  prob_lo(1:3) = 0.0 0.0 0.0       ! physical lo coordinate
-  prob_hi(1:3) = 3200. 3200. 3200. ! physical hi coordinate
 
-  ! if prob_type = 0, zero initial velocity
-  ! if prob_type = 1, vortex
-  ! if prob_type = 2, KH - sine
-  ! if prob_type = 3, KH - smooth
+  # Problem specification
+  prob_lo = 0.0 0.0 0.0       # physical lo coordinate
+  prob_hi = 3200. 3200. 3200. # physical hi coordinate
+
+  # if prob_type = 0, zero initial velocity
+  # if prob_type = 1, vortex
+  # if prob_type = 2, KH - sine
+  # if prob_type = 3, KH - smooth
   prob_type = 1
   
-  ! number of cells in domain
-  n_cells(1:3) = 32 32 32
-  ! max number of cells in a box
-  max_grid_size(1:3) = 16 16 16
+  # number of cells in domain
+  n_cells = 32 32 32
+  # max number of cells in a box
+  max_grid_size = 16 16 16
 
-  ! Time-step control
+  # Time-step control
   fixed_dt = 10
 
-  ! Controls for number of steps between actions
+  # Controls for number of steps between actions
   max_step = 3
   plot_int = 3
 
-  ! Viscous friction L phi operator
-  ! if abs(visc_type) = 1, L = div beta grad
-  ! if abs(visc_type) = 2, L = div [ beta (grad + grad^T) ]
-  ! if abs(visc_type) = 3, L = div [ beta (grad + grad^T) + I (gamma - (2/3)*beta) div ]
-  ! positive = assume constant coefficients
-  ! negative = assume spatially-varying coefficients
-  ! visc_coef = 1.
+  # Viscous friction L phi operator
+  # if abs(visc_type) = 1, L = div beta grad
+  # if abs(visc_type) = 2, L = div [ beta (grad + grad^T) ]
+  # if abs(visc_type) = 3, L = div [ beta (grad + grad^T) + I (gamma - (2/3)*beta) div ]
+  # positive = assume constant coefficients
+  # negative = assume spatially-varying coefficients
+  # visc_coef = 1.
   visc_coef = 1.
   visc_type = 1
 
-  ! Stochastic parameters
+  # Stochastic parameters
   variance_coef_mom = 0.
   initial_variance_mom = 0.
 
   k_B = 1.
-  T_init(1) = 1.
+  T_init = 1.
 
-  ! Boundary conditions
-  ! ----------------------
-  ! BC specifications:
-  ! -1 = periodic
-  bc_vel_lo(1:3) = 1 2 -1
-  bc_vel_hi(1:3) = 1 2 -1
+  # Boundary conditions
+  # ----------------------
+  # BC specifications:
+  # -1 = periodic
+  bc_vel_lo = 1 2 -1
+  bc_vel_hi = 1 2 -1
 
-/
+
 
   mg_verbose = 0                  # multigrid verbosity
 

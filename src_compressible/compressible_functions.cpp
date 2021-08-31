@@ -1,4 +1,60 @@
 #include "compressible_functions.H"
+#include "AMReX_ParmParse.H"
+
+AMREX_GPU_MANAGED int compressible::transport_type;
+AMREX_GPU_MANAGED int compressible::membrane_cell;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> compressible::transmission;
+AMREX_GPU_MANAGED int compressible::do_1D;
+
+void InitializeCompressibleNamespace()
+{
+    // extract inputs parameters
+    ParmParse pp;
+
+    int temp_max = std::max(3,MAX_SPECIES*MAX_SPECIES);    
+    amrex::Vector<amrex::Real> temp    (temp_max,0.);
+    amrex::Vector<int>         temp_int(temp_max,0 );
+
+    // get transport type (1: Giovangigli; 2: Valk/Waldmann; 2: HCB)
+    transport_type = 1; // Giovangigli (default)
+    pp.query("transport_type",transport_type);
+    switch (transport_type) {
+        case 1:
+            amrex::Print() << "Giovangigli transport model selected" << "\n";
+            break;
+        case 2:
+            amrex::Print() << "Valk/Waldmann transport model selected" << "\n";
+            break;
+        case 3:
+            amrex::Print() << "HCB binary transport model selected" << "\n";
+            break;
+    }
+
+    // get membrane cell 
+    membrane_cell = -1; // location of membrane (default)
+    pp.query("membrane_cell",membrane_cell);
+    if (membrane_cell >= 0) amrex::Print() << "Membrane cell is: " << membrane_cell << "\n";
+
+    // get membrane transmission
+    for (int i=0; i<MAX_SPECIES; ++i) {
+        transmission[i] = 0.0;
+    }
+    if (pp.queryarr("transmission",temp,0,nspecies)) {
+        amrex::Print() << "Membrane cell transmissions are: ";
+        for (int i=0; i<nspecies; ++i) {
+            transmission[i] = temp[i];
+            amrex::Print() << transmission[i] << " ";
+        }
+        amrex::Print() << "\n";
+    }
+
+    // 1D simulation toggle
+    do_1D = 0;
+    pp.query("do_1D",do_1D);
+
+
+    return;
+}
 
 
 void GetHcGas() {
@@ -206,6 +262,65 @@ void InitConsVar(MultiFab& cons, const MultiFab& prim,
                    GetEnergy(intEnergy, massvec, temperature);
                    cu(i,j,k,4) = density*intEnergy;
             } 
+
+            else if (prob_type == 104) { // temperature discontinuity 
+                
+                    if (i==15) 
+                    {
+                        for (int ns=0;ns<nspecies;++ns) massvec[ns] = rhobar[ns];
+                        Real pamb;
+                        GetPressureGas(pamb,massvec,rho0,T_init[0]);
+
+                        Real density;
+                        GetDensity(pamb,density,400.0,massvec);
+                        cu(i,j,k,0) = density;
+                        for (int ns=0;ns<nspecies;++ns) cu(i,j,k,5+ns) = density*massvec[ns];
+
+                        Real intEnergy;
+                        GetEnergy(intEnergy, massvec, 400.0);
+                        cu(i,j,k,4) = density*intEnergy;
+                    }
+                    
+            }
+            else if (prob_type == 105) { // pressure discontinuity 
+                
+                    if (i==15) 
+                    {
+                        for (int ns=0;ns<nspecies;++ns) massvec[ns] = rhobar[ns];
+                        Real pamb;
+                        GetPressureGas(pamb,massvec,rho0,T_init[0]);
+
+                        Real density;
+                        GetDensity(pamb*1.5,density,T_init[0],massvec);
+                        cu(i,j,k,0) = density;
+                        for (int ns=0;ns<nspecies;++ns) cu(i,j,k,5+ns) = density*massvec[ns];
+
+                        Real intEnergy;
+                        GetEnergy(intEnergy, massvec, T_init[0]);
+                        cu(i,j,k,4) = density*intEnergy;
+                    }
+            }
+            else if (prob_type == 106) { // concentration discontinuity 
+                
+                    if (i==15) 
+                    {
+                        for (int ns=0;ns<nspecies;++ns) massvec[ns] = rhobar[ns];
+                        Real pamb;
+                        GetPressureGas(pamb,massvec,rho0,T_init[0]);
+
+                        massvec[0] = 0.4;
+                        massvec[1] = 0.6;
+                        Real density;
+                        GetDensity(pamb,density,T_init[0],massvec);
+                        cu(i,j,k,0) = density;
+                        for (int ns=0;ns<nspecies;++ns) cu(i,j,k,5+ns) = density*massvec[ns];
+
+                        Real intEnergy;
+                        GetEnergy(intEnergy, massvec, T_init[0]);
+                        cu(i,j,k,4) = density*intEnergy;
+                    }
+                    
+            } // prob type
 
         });
     } // end MFIter

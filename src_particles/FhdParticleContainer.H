@@ -63,8 +63,10 @@ struct FHD_realData {
         sigma,
         eepsilon,
         potential,
-	p3m_radius,
+	    p3m_radius,
         spring,
+        omega,
+        lambda,
         count    // Awesome little trick! (only works if first field is 0)
     };
 
@@ -85,7 +87,41 @@ struct FHD_realData {
             "pred_velz",
             "pred_forcex",
             "pred_forcey",
-            "pred_forcez"
+            "pred_forcez",
+            "vx",
+        "vy",
+        "vz",
+        "fx",
+        "fy",
+        "fz",
+        "ux",
+        "uy",
+        "uz",
+        "mass",
+        "R",
+        "q",
+        "accelFactor",
+        "dragFactor",
+        "ox",
+        "oy",
+        "oz",
+        "ax",
+        "ay",
+        "az",
+        "travelTime",
+        "diffAv",
+        "stepCount",
+        "multi",
+        "dryDiff",
+        "wetDiff",
+        "totalDiff",
+        "sigma",
+        "eepsilon",
+        "potential",
+	    "p3m_radius",
+        "spring",
+        "omega",
+        "lambda"
         };
     };
 };
@@ -107,10 +143,13 @@ struct FHD_intData {
 
     static Vector<std::string> names() {
         return Vector<std::string> {
-            "id_0",
-            "cpu_0",
-            "id_1",
-            "cpu_1",
+            "soted",
+            "i",
+            "j",
+            "k",
+            "species",
+            "visible",
+            "pinned"
         };
     };
 };
@@ -271,6 +310,8 @@ public:
 
 
     void invertMatrix();
+    
+    void GetAllParticlePositions(Real* posx, Real* posy, Real* posz, int totalParticles);
 
 
     /****************************************************************************

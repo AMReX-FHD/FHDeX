@@ -22,6 +22,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
 {
     BL_PROFILE_VAR("calculateFluxStag()",calculateFluxStag);
     
+    Box dom(geom.Domain());
     int n_cells_z = n_cells[2];
     
     GpuArray<Real,AMREX_SPACEDIM> dx = geom.CellSizeArray();
@@ -241,7 +242,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                 xflux(i,j,k,nvars+1) = 0.5*velx(i,j,k)*(tauxx_stoch(i-1,j,k)+tauxx_stoch(i,j,k));
                 // shear
                 xflux(i,j,k,nvars+2) = 0.25*((vely(i,j+1,k)+vely(i-1,j+1,k))*tauxy_stoch(i,j+1,k) + (vely(i,j,k)+vely(i-1,j,k))*tauxy_stoch(i,j,k));
-                xflux(i,j,k,nvars+2) = 0.25*((velz(i,j,k+1)+velz(i-1,j,k+1))*tauxz_stoch(i,j,k+1) + (velz(i,j,k)+velz(i-1,j,k))*tauxz_stoch(i,j,k));
+                xflux(i,j,k,nvars+2) += 0.25*((velz(i,j,k+1)+velz(i-1,j,k+1))*tauxz_stoch(i,j,k+1) + (velz(i,j,k)+velz(i-1,j,k))*tauxz_stoch(i,j,k));
 
                 if (algorithm_type == 2) {
 
@@ -344,7 +345,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                 yflux(i,j,k,nvars+1) = 0.5*vely(i,j,k)*(tauyy_stoch(i,j-1,k)+tauyy_stoch(i,j,k));
                 // shear
                 yflux(i,j,k,nvars+2) = 0.25*((velx(i+1,j,k)+velx(i+1,j-1,k))*tauxy_stoch(i+1,j,k) + (velx(i,j,k)+velx(i,j-1,k))*tauxy_stoch(i,j,k));
-                yflux(i,j,k,nvars+2) = 0.25*((velz(i,j,k+1)+velz(i,j-1,k+1))*tauyz_stoch(i,j,k+1) + (velz(i,j,k)+velz(i,j-1,k))*tauyz_stoch(i,j,k));
+                yflux(i,j,k,nvars+2) += 0.25*((velz(i,j,k+1)+velz(i,j-1,k+1))*tauyz_stoch(i,j,k+1) + (velz(i,j,k)+velz(i,j-1,k))*tauyz_stoch(i,j,k));
             
                 if (algorithm_type == 2) {
 
@@ -446,7 +447,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                 zflux(i,j,k,nvars+1) = 0.5*velz(i,j,k)*(tauzz_stoch(i,j,k-1)+tauzz_stoch(i,j,k));
                 // shear
                 zflux(i,j,k,nvars+2) = 0.25*((velx(i+1,j,k-1)+velx(i+1,j,k))*tauxz_stoch(i+1,j,k) + (velx(i,j,k)+velx(i,j,k-1))*tauxz_stoch(i,j,k));
-                zflux(i,j,k,nvars+2) = 0.25*((vely(i,j+1,k-1)+vely(i,j+1,k))*tauyz_stoch(i,j+1,k) + (vely(i,j,k)+vely(i,j,k-1))*tauyz_stoch(i,j,k));
+                zflux(i,j,k,nvars+2) += 0.25*((vely(i,j+1,k-1)+vely(i,j+1,k))*tauyz_stoch(i,j+1,k) + (vely(i,j,k)+vely(i,j,k-1))*tauyz_stoch(i,j,k));
                 
 
                 if (algorithm_type == 2) {
@@ -550,6 +551,10 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
 
         // Enforce flux boundary conditions
         StochFluxStag(faceflux_in,edgeflux_x_in,edgeflux_y_in,edgeflux_z_in,geom);
+        if (membrane_cell >= 0) {
+            StochFluxMem(faceflux_in,edgeflux_x_in,edgeflux_y_in,edgeflux_z_in);
+        }
+
     }
         
     ////////////////////
@@ -733,6 +738,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                     soret[ns] = 0.5*(chi(i-1,j,k,ns)*prim(i-1,j,k,6+nspecies+ns)+chi(i,j,k,ns)*prim(i,j,k,6+nspecies+ns))
                         *(prim(i,j,k,4)-prim(i-1,j,k,4))/dx[0]/meanT;
                 }
+                        
 
                 // compute Fk (based on Eqn. 2.5.24, Giovangigli's book)
                 for (int kk=0; kk<nspecies; ++kk) {

@@ -1,12 +1,12 @@
-&common
 
-    n_cells(1:2) = 64 64 
-    max_grid_size(1:2) = 16 16 
+
+    n_cells = 64 64 
+    max_grid_size = 16 16 
     plot_int = -1
     nspecies = 2
     max_step = 200
     fixed_dt = 0.01
-/
+
 
 # react1: A->B
 # react2: B->A

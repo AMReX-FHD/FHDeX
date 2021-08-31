@@ -99,6 +99,10 @@ void advance_stokes(std::array<MultiFab, AMREX_SPACEDIM >& umac,
     // Parameters for calling bending force calculation
     RealVect driv_u = {0, 0, 1};
 
+    // // Slowly ramp up driving amplitude
+    // Real driv_amp = amrex::min(time*100, 1.);
+    // Print() << "driv_amp = " << driv_amp << std::endl;
+
     // I'm too impatient to wait... -JPB
     Real driv_amp = 1.;
 
@@ -122,7 +126,7 @@ void advance_stokes(std::array<MultiFab, AMREX_SPACEDIM >& umac,
      *                                                                          *
      * ADVANCE (stokes) step, compute:                                          *
      * 1.           x^(n+1) = x^n + dt J(u^(n))      [x = marker positions]     *
-     * 2. L(u^(n+1))/2 + Gp = S(f(x^(n+1)))                                      *
+     * 2. L(u^(n+1))/2 + Gp = S(f(x^(n+1)))                                     *
      *             Du^(n+1) = 0                                                 *
      *                                                                          *
      ***************************************************************************/

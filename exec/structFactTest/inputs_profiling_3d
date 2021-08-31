@@ -1,13 +1,13 @@
-&common
 
-  ! Problem specification
-  prob_lo(1:3) = 0.0 0.0 0.0       ! physical lo coordinate
-  prob_hi(1:3) = 12800. 12800. 12800. ! physical hi coordinate
+
+  # Problem specification
+  prob_lo = 0.0 0.0 0.0       # physical lo coordinate
+  prob_hi = 12800. 12800. 12800. # physical hi coordinate
   
-  ! number of cells in domain
-  n_cells(1:3) = 128 128 128
-  ! max number of cells in a box
-  max_grid_size(1:3) = 128 128 128
+  # number of cells in domain
+  n_cells = 128 128 128
+  # max number of cells in a box
+  max_grid_size = 128 128 128
 
-/
+
 

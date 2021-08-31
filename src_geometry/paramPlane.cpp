@@ -26,25 +26,428 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 	Real xl = prob_hi[0] - prob_lo[0];
 	Real yl = prob_hi[1] - prob_lo[1];
 	Real zl = prob_hi[2] - prob_lo[2];
+	
+	if(bc_vel_lo[0]==3)
+	{
+		// Mass densities defined
+		if(rho_lo[0]>=0)
+		{
+			// Normalize Yk
+			Real Yktot = 0.;
+			for(int l=0; l<nspecies; l++)
+			{
+				if(bc_Yk_x_lo[l]<0) {
+					Abort("Yk of all species must be non-negative");
+				}
+				Yktot += bc_Yk_x_lo[l];
+			}
+			for(int l=0; l<nspecies; l++)
+			{
+				bc_Yk_x_lo[l] /= Yktot;
+			}
+
+			// Determine number density at boundary
+			n_lo[0] = 0.;
+			for(int l=0; l<nspecies; l++)
+			{
+				bc_Xk_x_lo[l] = bc_Yk_x_lo[l]*rho_lo[0]/mass[l];
+				n_lo[0] += bc_Xk_x_lo[l];
+				
+			}
+			for(int l=0; l<nspecies; l++)
+			{
+				bc_Xk_x_lo[l] /= n_lo[0];
+			}
+		}
+		// Number densities defined
+		else if(n_lo[0]>=0)
+		{
+			// Normalize Xk
+			Real Xktot = 0.;
+			for(int l=0; l<nspecies; l++)
+			{
+				if(bc_Xk_x_lo[l]<0) {
+					Abort("Xk of all species must be non-negative");
+				}
+				Xktot += bc_Xk_x_lo[l];
+			}
+			for(int l=0; l<nspecies; l++)
+			{
+				bc_Xk_x_lo[l] /= Xktot;
+			}
+
+			// Determine mass density at boundary
+			rho_lo[0] = 0.;
+			for(int l=0; l<nspecies; l++)
+			{
+				bc_Yk_x_lo[l] = bc_Xk_x_lo[l]*n_lo[0]*mass[l]; //mass density
+				rho_lo[0] += bc_Yk_x_lo[l];
+			}
+			for(int l=0; l<nspecies; l++)
+			{
+				bc_Yk_x_lo[l] /= rho_lo[0];
+			}
+		}
+		else
+		{
+			Abort("Neither mass nor number density defined");
+		}
+	}
+
+	// Mass Inflow at y-lo
+	if(bc_vel_lo[1]==3)
+	{
+		// Mass densities defined
+		if(rho_lo[1]>=0)
+		{
+			// Normalize Yk
+			Real Yktot = 0.;
+			for(int l=0; l<nspecies; l++)
+			{
+				if(bc_Yk_y_lo[l]<0) {
+					Abort("Yk of all species must be non-negative");
+				}
+				Yktot += bc_Yk_y_lo[l];
+			}
+			for(int l=0; l<nspecies; l++)
+			{
+				bc_Yk_y_lo[l] /= Yktot;
+			}
+
+			// Determine number density at boundary
+			n_lo[1] = 0.;
+			for(int l=0; l<nspecies; l++)
+			{
+				bc_Xk_y_lo[l] = bc_Yk_y_lo[l]*rho_lo[1]/mass[l];
+				n_lo[1] += bc_Xk_y_lo[l];
+			}
+			for(int l=0; l<nspecies; l++)
+			{
+				bc_Xk_y_lo[l] /= n_lo[1];
+			}
+		}
+		// Number densities defined
+		else if(n_lo[1]>=0)
+		{
+			// Normalize Xk
+			Real Xktot = 0.;
+			for(int l=0; l<nspecies; l++)
+			{
+				if(bc_Xk_y_lo[l]<0) {
+					Abort("Xk of all species must be non-negative");
+				}
+				Xktot += bc_Xk_y_lo[l];
+			}
+			for(int l=0; l<nspecies; l++)
+			{
+				bc_Xk_y_lo[l] /= Xktot;
+			}
+
+			// Determine mass density at boundary
+			rho_lo[1] = 0.;
+			for(int l=0; l<nspecies; l++)
+			{
+				bc_Yk_y_lo[l] = bc_Xk_y_lo[l]*n_lo[1]*mass[l]; //mass density
+				rho_lo[1] += bc_Yk_y_lo[l];
+			}
+			for(int l=0; l<nspecies; l++)
+			{
+				bc_Yk_y_lo[l] /= rho_lo[1];
+			}
+		}
+		else
+		{
+			Abort("Neither mass nor number density defined");
+		}
+	}
+
+	// Mass Inflow at z-lo
+	if(bc_vel_lo[2]==3)
+	{
+		// Mass densities defined
+		if(rho_lo[2]>=0)
+		{
+			// Normalize Yk
+			Real Yktot = 0.;
+			for(int l=0; l<nspecies; l++)
+			{
+				if(bc_Yk_z_lo[l]<0) {
+					Abort("Yk of all species must be non-negative");
+				}
+				Yktot += bc_Yk_z_lo[l];
+			}
+			for(int l=0; l<nspecies; l++)
+			{
+				bc_Yk_z_lo[l] /= Yktot;
+			}
+
+			// Determine number density at boundary
+			n_lo[2] = 0.;
+			for(int l=0; l<nspecies; l++)
+			{
+				bc_Xk_z_lo[l] = bc_Yk_z_lo[l]*rho_lo[2]/mass[l];
+				n_lo[2] += bc_Xk_z_lo[l];
+			}
+			for(int l=0; l<nspecies; l++)
+			{
+				bc_Xk_z_lo[l] /= n_lo[2];
+			}
+		}
+		// Number densities defined
+		else if(n_lo[2]>=0)
+		{
+			// Normalize Xk
+			Real Xktot = 0.;
+			for(int l=0; l<nspecies; l++)
+			{
+				if(bc_Xk_z_lo[l]<0) {
+					Abort("Xk of all species must be non-negative");
+				}
+				Xktot += bc_Xk_z_lo[l];
+			}
+			for(int l=0; l<nspecies; l++)
+			{
+				bc_Xk_z_lo[l] /= Xktot;
+			}
+
+			// Determine mass density at boundary
+			rho_lo[2] = 0.;
+			for(int l=0; l<nspecies; l++)
+			{
+				bc_Yk_z_lo[l] = bc_Xk_z_lo[l]*n_lo[2]*mass[l]; //mass density
+				rho_lo[2] += bc_Yk_x_lo[l];
+			}
+			for(int l=0; l<nspecies; l++)
+			{
+				bc_Yk_z_lo[l] /= rho_lo[2];
+			}
+		}
+		else
+		{
+			Abort("Neither mass nor number density defined");
+		}
+	}
+
+	// Mass Inflow at x-hi
+	if(bc_vel_hi[0]==3)
+	{
+		// Mass densities defined
+		if(rho_hi[0]>=0)
+		{
+			// Normalize Yk
+			Real Yktot = 0.;
+			for(int l=0; l<nspecies; l++)
+			{
+				if(bc_Yk_x_hi[l]<0) {
+					Abort("Yk of all species must be non-negative");
+				}
+				Yktot += bc_Yk_x_hi[l];
+			}
+			for(int l=0; l<nspecies; l++)
+			{
+				bc_Yk_x_hi[l] /= Yktot;
+			}
+
+			// Determine number density at boundary
+			n_hi[0] = 0.;
+			for(int l=0; l<nspecies; l++)
+			{
+				bc_Xk_x_hi[l] = bc_Yk_x_hi[l]*rho_hi[0]/mass[l];
+				n_hi[0] += bc_Xk_x_hi[l];
+				
+			}
+			for(int l=0; l<nspecies; l++)
+			{
+				bc_Xk_x_hi[l] /= n_hi[0];
+			}
+		}
+		// Number densities defined
+		else if(n_hi[0]>=0)
+		{
+			// Normalize Xk
+			Real Xktot = 0.;
+			for(int l=0; l<nspecies; l++)
+			{
+				if(bc_Xk_x_hi[l]<0) {
+					Abort("Xk of all species must be non-negative");
+				}
+				Xktot += bc_Xk_x_hi[l];
+			}
+			for(int l=0; l<nspecies; l++)
+			{
+				bc_Xk_x_hi[l] /= Xktot;
+			}
+
+			// Determine mass density at boundary
+			rho_hi[0] = 0.;
+			for(int l=0; l<nspecies; l++)
+			{
+				bc_Yk_x_hi[l] = bc_Xk_x_hi[l]*n_hi[0]*mass[l]; //mass density
+				rho_hi[0] += bc_Yk_x_hi[l];
+			}
+			for(int l=0; l<nspecies; l++)
+			{
+				bc_Yk_x_hi[l] /= rho_hi[0];
+			}
+		}
+		else
+		{
+			Abort("Neither mass nor number density defined");
+		}
+	}
+
+	// Mass Inflow at y-hi
+	if(bc_vel_hi[1]==3)
+	{
+		// Mass densities defined
+		if(rho_hi[1]>=0)
+		{
+			// Normalize Yk
+			Real Yktot = 0.;
+			for(int l=0; l<nspecies; l++)
+			{
+				if(bc_Yk_y_hi[l]<0) {
+					Abort("Yk of all species must be non-negative");
+				}
+				Yktot += bc_Yk_y_hi[l];
+			}
+			for(int l=0; l<nspecies; l++)
+			{
+				bc_Yk_y_hi[l] /= Yktot;
+			}
+
+			// Determine number density at boundary
+			n_hi[1] = 0.;
+			for(int l=0; l<nspecies; l++)
+			{
+				bc_Xk_y_hi[l] = bc_Yk_y_hi[l]*rho_hi[1]/mass[l];
+				n_hi[1] += bc_Xk_y_hi[l];
+			}
+			for(int l=0; l<nspecies; l++)
+			{
+				bc_Xk_y_hi[l] /= n_hi[1];
+			}
+		}
+		// Number densities defined
+		else if(n_hi[1]>=0)
+		{
+			// Normalize Xk
+			Real Xktot = 0.;
+			for(int l=0; l<nspecies; l++)
+			{
+				if(bc_Xk_y_hi[l]<0) {
+					Abort("Xk of all species must be non-negative");
+				}
+				Xktot += bc_Xk_y_hi[l];
+			}
+			for(int l=0; l<nspecies; l++)
+			{
+				bc_Xk_y_hi[l] /= Xktot;
+			}
+
+			// Determine mass density at boundary
+			rho_hi[1] = 0.;
+			for(int l=0; l<nspecies; l++)
+			{
+				bc_Yk_y_hi[l] = bc_Xk_y_hi[l]*n_hi[1]*mass[l]; //mass density
+				rho_hi[1] += bc_Yk_y_hi[l];
+			}
+			for(int l=0; l<nspecies; l++)
+			{
+				bc_Yk_y_hi[l] /= rho_hi[1];
+			}
+		}
+		else
+		{
+			Abort("Neither mass nor number density defined");
+		}
+	}
+
+	// Mass Inflow at z-hi
+	if(bc_vel_hi[2]==3)
+	{
+		// Mass densities defined
+		if(rho_hi[2]>=0)
+		{
+			// Normalize Yk
+			Real Yktot = 0.;
+			for(int l=0; l<nspecies; l++)
+			{
+				if(bc_Yk_z_hi[l]<0) {
+					Abort("Yk of all species must be non-negative");
+				}
+				Yktot += bc_Yk_z_hi[l];
+			}
+			for(int l=0; l<nspecies; l++)
+			{
+				bc_Yk_z_hi[l] /= Yktot;
+			}
+
+			// Determine number density at boundary
+			n_hi[2] = 0.;
+			for(int l=0; l<nspecies; l++)
+			{
+				bc_Xk_z_hi[l] = bc_Yk_z_hi[l]*rho_hi[2]/mass[l];
+				n_hi[2] += bc_Xk_z_hi[l];
+			}
+			for(int l=0; l<nspecies; l++)
+			{
+				bc_Xk_z_hi[l] /= n_hi[2];
+			}
+		}
+		// Number densities defined
+		else if(n_hi[2]>=0)
+		{
+			// Normalize Xk
+			Real Xktot = 0.;
+			for(int l=0; l<nspecies; l++)
+			{
+				if(bc_Xk_z_hi[l]<0) {
+					Abort("Xk of all species must be non-negative");
+				}
+				Xktot += bc_Xk_z_hi[l];
+			}
+			for(int l=0; l<nspecies; l++)
+			{
+				bc_Xk_z_hi[l] /= Xktot;
+			}
+
+			// Determine mass density at boundary
+			rho_hi[2] = 0.;
+			for(int l=0; l<nspecies; l++)
+			{
+				bc_Yk_z_hi[l] = bc_Xk_z_hi[l]*n_hi[2]*mass[l]; //mass density
+				rho_hi[2] += bc_Yk_x_hi[l];
+			}
+			for(int l=0; l<nspecies; l++)
+			{
+				bc_Yk_z_hi[l] /= rho_hi[2];
+			}
+		}
+		else
+		{
+			Abort("Neither mass nor number density defined");
+		}
+	}
 
 	//Domain boundaries
 	for(int i=0; i<6; i++)
 	{
 		for(int l=0;l<nspecies;l++)
 		{
-	  	paramPlaneList[i].densityLeft[l]  = -1;
-	  	paramPlaneList[i].densityRight[l] = -1;
+	  	    paramPlaneList[i].densityLeft[l]  = -1;
+	    	paramPlaneList[i].densityRight[l] = -1;
 		}
-    paramPlaneList[i].temperatureLeft  = T_init[0];
-    paramPlaneList[i].temperatureRight = T_init[0];
+        paramPlaneList[i].temperatureLeft  = T_init[0];
+        paramPlaneList[i].temperatureRight = T_init[0];
 	    
-    paramPlaneList[i].specularityLeft   = 0;
-   	paramPlaneList[i].momentumConsLeft  = 1;
-    paramPlaneList[i].sourceLeft 			  = 0;
-   	paramPlaneList[i].sinkLeft   			  = 0;
+        paramPlaneList[i].specularityLeft   = 0;
+     	paramPlaneList[i].momentumConsLeft  = 1;
+        paramPlaneList[i].sourceLeft 			  = 0;
+     	paramPlaneList[i].sinkLeft   			  = 0;
     	
-   	paramPlaneList[i].specularityRight 	= 0;
-   	paramPlaneList[i].momentumConsRight = 1;
+    	paramPlaneList[i].specularityRight 	= 0;
+   	    paramPlaneList[i].momentumConsRight = 1;
 		paramPlaneList[i].sourceRight 			= 0;
 		paramPlaneList[i].sinkRight   			= 0;
 	    
@@ -87,7 +490,7 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 	{
 		paramPlaneList[0].periodicity = 0;
 		paramPlaneList[0].porosityLeft = 0;
-		paramPlaneList[0].porosityRight = 0;
+		paramPlaneList[0].porosityRight = 1;
 		paramPlaneList[0].specularityLeft = 1;
 		paramPlaneList[0].specularityRight = 1;
 
@@ -95,9 +498,19 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 	}
 	else if(bc_vel_lo[0] == 3)
 	{
-		paramPlaneList[0].periodicity = 1;
-		paramPlaneList[0].porosityLeft = 1;
-		paramPlaneList[0].porosityRight = 1;   
+		paramPlaneList[0].periodicity = 0;
+		paramPlaneList[0].porosityLeft = 0;
+		paramPlaneList[0].porosityRight = 1;
+		paramPlaneList[0].sourceRight = 1;
+     	paramPlaneList[0].sourceLeft = 0;
+     	paramPlaneList[0].sinkLeft = 0;
+    	paramPlaneList[0].sinkRight = 1;
+
+		for (int l=0; l<nspecies; l++)
+		{    	
+        	paramPlaneList[0].densityRight[l] = bc_Xk_x_lo[l]*n_lo[0];
+           	paramPlaneList[0].temperatureRight = t_lo[0];
+        }		 
 	}
 	else
 	{
@@ -176,9 +589,19 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
   }
   else if(bc_vel_hi[0] == 3)
   {
-		paramPlaneList[1].periodicity = 1;
-    paramPlaneList[1].porosityLeft = 1;
-    paramPlaneList[1].porosityRight = 1;   
+		paramPlaneList[1].periodicity = 0;
+		paramPlaneList[1].porosityLeft = 1;
+		paramPlaneList[1].porosityRight = 0;
+		paramPlaneList[1].sourceRight = 0;
+     	paramPlaneList[1].sourceLeft = 1;
+     	paramPlaneList[1].sinkLeft = 1;
+    	paramPlaneList[1].sinkRight = 0;
+
+		for (int l=0; l<nspecies; l++)
+		{    	
+        	paramPlaneList[1].densityLeft[l] = bc_Xk_x_hi[l]*n_hi[0];
+           	paramPlaneList[1].temperatureLeft = t_hi[0];
+        }  
   }
   else
   {
@@ -552,8 +975,6 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
   paramPlaneList[5].fyRightAv = 0;
   paramPlaneList[5].fzRightAv = 0;
 
-  if(dsmc_boundaries == 1)
-  {
 
 	// Mass Inflow at x-lo
 	if(bc_mass_lo[0]>0)
@@ -958,7 +1379,6 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 	}
 
   // Thermal/Conc BC
-  Print() << "HERE\n";
   int p = 0;
   for(int i=0; i<3 ; i++)
   {
@@ -1096,11 +1516,11 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 				}
 			}
 			
-			if(bc_therm_lo[i] == 2)
-			{
+			//if(bc_therm_lo[i] == 2)
+			//{
 				paramPlaneList[p].temperatureLeft = t_lo[i];
   			    paramPlaneList[p].temperatureRight = t_lo[i];					
-			}
+			//}
 		}
   	
 		// Upper Boundary (Right, Top, Front)
@@ -1235,14 +1655,13 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 						bc_Xk_z_hi[l]*n_hi[2];
 				}
 			}
-			if(bc_therm_hi[i] == 2)
-			{
+			//if(bc_therm_hi[i] == 2)
+			//{
 				paramPlaneList[p+1].temperatureLeft = t_hi[i];
   			paramPlaneList[p+1].temperatureRight = t_hi[i];					
-			}
+			//}
 		}
   	p += 2;
-  }
   }
   
     //Print() << "Wall: " << paramPlaneList[0].sourceRight << ", " << paramPlaneList[0].densityRight[0] << ", " << paramPlaneList[0].temperatureRight << "\n";
@@ -1259,6 +1678,108 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
     Print() << "Creating " << totalCount << " parametric surfaces\n";
 
     for(int i=6; i<totalCount; i++)
+    {
+
+        planeFile >> paramPlaneList[i].x0;
+
+        //Print() << "surface " << i << " xo " << paramPlaneList[i].x0 << "\n";
+
+        planeFile >> paramPlaneList[i].y0;
+        planeFile >> paramPlaneList[i].z0;
+
+        planeFile >> paramPlaneList[i].ux;
+        planeFile >> paramPlaneList[i].uy;
+        planeFile >> paramPlaneList[i].uz;
+
+        planeFile >> paramPlaneList[i].vx;
+        planeFile >> paramPlaneList[i].vy;
+        planeFile >> paramPlaneList[i].vz;
+
+        planeFile >> paramPlaneList[i].uTop;
+        planeFile >> paramPlaneList[i].vTop;
+
+        planeFile >> paramPlaneList[i].rnx;
+        planeFile >> paramPlaneList[i].rny;
+        planeFile >> paramPlaneList[i].rnz;
+
+        planeFile >> paramPlaneList[i].lnx;
+        planeFile >> paramPlaneList[i].lny;
+        planeFile >> paramPlaneList[i].lnz;
+        
+        planeFile >> paramPlaneList[i].porosityRight;
+        planeFile >> paramPlaneList[i].specularityRight;
+        planeFile >> paramPlaneList[i].temperatureRight;
+        for(int j=0; j < nspecies; j++)
+        {
+            planeFile >> paramPlaneList[i].densityRight[j];
+        }
+        planeFile >> paramPlaneList[i].sourceRight;
+        planeFile >> paramPlaneList[i].sinkRight;
+        planeFile >> paramPlaneList[i].momentumConsRight;
+
+        planeFile >> paramPlaneList[i].porosityLeft;
+        planeFile >> paramPlaneList[i].specularityLeft;
+        planeFile >> paramPlaneList[i].temperatureLeft;
+        for(int j=0; j < nspecies; j++)
+        {
+           planeFile >> paramPlaneList[i].densityLeft[j];
+        }
+        planeFile >> paramPlaneList[i].sourceLeft;
+        planeFile >> paramPlaneList[i].sinkLeft;
+        planeFile >> paramPlaneList[i].momentumConsLeft;
+
+        planeFile >> paramPlaneList[i].periodicity;
+
+        planeFile >> paramPlaneList[i].area;
+
+        paramPlaneList[i].boundary = i+1;
+            
+        theta = getTheta(paramPlaneList[i].lnx, paramPlaneList[i].lny, paramPlaneList[i].lnz);
+        phi   = getPhi(paramPlaneList[i].lnx, paramPlaneList[i].lny, paramPlaneList[i].lnz);
+
+        paramPlaneList[i].cosThetaLeft = cos(theta);
+        paramPlaneList[i].sinThetaLeft = sin(theta);
+        paramPlaneList[i].cosPhiLeft = cos(phi);
+        paramPlaneList[i].sinPhiLeft = sin(phi);
+
+        theta = getTheta(paramPlaneList[i].rnx, paramPlaneList[i].rny, paramPlaneList[i].rnz);
+        phi   = getPhi(paramPlaneList[i].rnx, paramPlaneList[i].rny, paramPlaneList[i].rnz);
+
+        paramPlaneList[i].cosThetaRight = cos(theta);
+        paramPlaneList[i].sinThetaRight = sin(theta);
+        paramPlaneList[i].cosPhiRight = cos(phi);
+        paramPlaneList[i].sinPhiRight = sin(phi);
+
+        paramPlaneList[i].fxLeftAv = 0;
+        paramPlaneList[i].fyLeftAv = 0;
+        paramPlaneList[i].fzLeftAv = 0;
+
+        paramPlaneList[i].fxRightAv = 0;
+        paramPlaneList[i].fyRightAv = 0;
+        paramPlaneList[i].fzRightAv = 0;
+       
+
+    }
+    planeFile.close();
+}
+
+void BuildParamplanesPhonon(paramPlane* paramPlaneList, const int paramplanes, const Real* domainLo, const Real* domainHi)
+{
+
+	double theta, phi;
+
+    std::ifstream planeFile("paramplanes.dat");
+    int fileCount = 0;
+    if(planeFile.good())
+    {
+        planeFile >> fileCount;
+    }
+    
+    int totalCount = fileCount;
+    
+    Print() << "Creating " << totalCount << " parametric surfaces\n";
+
+    for(int i=0; i<totalCount; i++)
     {
 
         planeFile >> paramPlaneList[i].x0;

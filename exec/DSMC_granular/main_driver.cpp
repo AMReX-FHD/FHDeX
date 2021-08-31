@@ -21,10 +21,6 @@ void main_driver(const char* argv)
 
 	std::string inputs_file = argv;
 
-	// read in parameters from inputs file into F90 modules
-	// we use "+1" because of amrex_string_c_to_f expects a null char termination
-	read_common_namelist(inputs_file.c_str(),inputs_file.size()+1);
-
 	InitializeCommonNamespace();
 	InitializeGmresNamespace();
 
@@ -65,7 +61,7 @@ void main_driver(const char* argv)
   {
       Abort("Cross cell needs to be within the domain: 0 < cross_cell < n_cells[0] - 1");
   }
-  if ((do_slab_sf) and ((membrane_cell <= 0) or (membrane_cell >= n_cells[0]-1)))
+  if (do_slab_sf)
   {
       Abort("Slab structure factor needs a membrane cell within the domain: 0 < cross_cell < n_cells[0] - 1");
   }
@@ -365,7 +361,7 @@ void main_driver(const char* argv)
 
 		particles.CalcSelections(dt);
 		particles.CollideParticles(dt);
-		//particles.Source(dt, paramPlaneList, paramPlaneCount);
+		particles.Source(dt, paramPlaneList, paramPlaneCount);
 		//particles.externalForce(dt);
 		particles.MoveParticlesCPP(dt, paramPlaneList, paramPlaneCount);
 		//if(!dt_const) {

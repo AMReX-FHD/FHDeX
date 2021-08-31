@@ -9,6 +9,10 @@
 
 #include "common_namespace.H"
 
+#include "chrono"
+
+using namespace std::chrono;
+
 using namespace common;
 
 namespace {
@@ -479,8 +483,8 @@ void ReadCheckPoint3D(int& step,
 
         // prim, primMeans, primVars
         prim.define(ba,dmap,nprimvars,ngc);
-        primMeans.define(ba,dmap,nprimvars,ngc);
-        primVars.define(ba,dmap,nprimvars + 5,ngc);
+        primMeans.define(ba,dmap,nprimvars+3,ngc);
+        primVars.define(ba,dmap,nprimvars+5,ngc);
 
         // velocity and momentum (instantaneous, means, variances)
         for (int d=0; d<AMREX_SPACEDIM; d++) {
@@ -532,6 +536,20 @@ void ReadCheckPoint3D(int& step,
 
         }
     }
+    else if (seed == 0) {
+                
+        // initializes the seed for C++ random number calls based on the clock
+        auto now = time_point_cast<nanoseconds>(system_clock::now());
+        int randSeed = now.time_since_epoch().count();
+        // broadcast the same root seed to all processors
+        ParallelDescriptor::Bcast(&randSeed,1,ParallelDescriptor::IOProcessorNumber());
+        
+        InitRandom(randSeed+ParallelDescriptor::MyProc());
+    }
+    else {
+        // initializes the seed for C++ random number calls
+        InitRandom(seed+ParallelDescriptor::MyProc());
+    }
 
     // read in the MultiFab data
     Read_Copy_MF_Checkpoint(cu,"cu",checkpointname,ba_old,dmap_old,nvars,1);
@@ -563,7 +581,7 @@ void ReadCheckPoint3D(int& step,
         Read_Copy_MF_Checkpoint(cuMeans,"cuMeans",checkpointname,ba_old,dmap_old,nvars,1);
         Read_Copy_MF_Checkpoint(cuVars,"cuVars",checkpointname,ba_old,dmap_old,nvars,1);
 
-        Read_Copy_MF_Checkpoint(primMeans,"primMeans",checkpointname,ba_old,dmap_old,nprimvars,1);
+        Read_Copy_MF_Checkpoint(primMeans,"primMeans",checkpointname,ba_old,dmap_old,nprimvars+3,1);
         Read_Copy_MF_Checkpoint(primVars,"primVars",checkpointname,ba_old,dmap_old,nprimvars+5,1);
 
         Read_Copy_MF_Checkpoint(coVars,"coVars",checkpointname,ba_old,dmap_old,26,0);
@@ -680,8 +698,8 @@ void ReadCheckPoint1D(int& step,
 
         // prim, primMeans, primVars
         prim.define(ba,dmap,nprimvars,ngc);
-        primMeans.define(ba,dmap,nprimvars,ngc);
-        primVars.define(ba,dmap,nprimvars + 5,ngc);
+        primMeans.define(ba,dmap,nprimvars+3,ngc);
+        primVars.define(ba,dmap,nprimvars+5,ngc);
 
         // velocity and momentum (instantaneous, means, variances)
         for (int d=0; d<AMREX_SPACEDIM; d++) {
@@ -736,6 +754,20 @@ void ReadCheckPoint1D(int& step,
 
         }
     }
+    else if (seed == 0) {
+                
+        // initializes the seed for C++ random number calls based on the clock
+        auto now = time_point_cast<nanoseconds>(system_clock::now());
+        int randSeed = now.time_since_epoch().count();
+        // broadcast the same root seed to all processors
+        ParallelDescriptor::Bcast(&randSeed,1,ParallelDescriptor::IOProcessorNumber());
+        
+        InitRandom(randSeed+ParallelDescriptor::MyProc());
+    }
+    else {
+        // initializes the seed for C++ random number calls
+        InitRandom(seed+ParallelDescriptor::MyProc());
+    }
 
     // read in the MultiFab data
     Read_Copy_MF_Checkpoint(cu,"cu",checkpointname,ba_old,dmap_old,nvars,1);
@@ -768,7 +800,7 @@ void ReadCheckPoint1D(int& step,
         Read_Copy_MF_Checkpoint(cuMeans,"cuMeans",checkpointname,ba_old,dmap_old,nvars,1);
         Read_Copy_MF_Checkpoint(cuVars,"cuVars",checkpointname,ba_old,dmap_old,nvars,1);
 
-        Read_Copy_MF_Checkpoint(primMeans,"primMeans",checkpointname,ba_old,dmap_old,nprimvars,1);
+        Read_Copy_MF_Checkpoint(primMeans,"primMeans",checkpointname,ba_old,dmap_old,nprimvars+3,1);
         Read_Copy_MF_Checkpoint(primVars,"primVars",checkpointname,ba_old,dmap_old,nprimvars+5,1);
 
         Read_Copy_MF_Checkpoint(coVars,"coVars",checkpointname,ba_old,dmap_old,26,0);

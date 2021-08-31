@@ -213,7 +213,6 @@ void FhdParticleContainer::CollideParticles(Real dt)
 			}
 
 			int speci, specj, specij;
-			Print() << "Sel: " << totalSel << "\n";
 			while (totalSel>0)
 			{
 				Real RR = amrex::Random();
@@ -328,7 +327,6 @@ void FhdParticleContainer::CollideParticles(Real dt)
 		}
 		}
 		}
-		Print() << "vr: " << vreijrun/NCollAll << "\n";
-		Print() << "Coll: " << NCollAll << "\n";	
+//		Print() << "Coll: " << NCollAll << "\n";	
 	}
 }
