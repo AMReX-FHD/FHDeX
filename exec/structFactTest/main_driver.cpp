@@ -96,7 +96,7 @@ void main_driver(const char* argv)
         amrex::ParallelFor(bx, 2, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
             if (n == 0) {
-                struct_fab(i,j,k,n) = i+j+2*k;
+                struct_fab(i,j,k,n) = i+j+k;
             }
             else if (n == 1) {
                 struct_fab(i,j,k,n) = 0.5*sqrt(i+j+k);
