@@ -448,11 +448,6 @@ void ComputeGammaLocal (
  * \param[in,out] rhoWchiN
  *
  *
- * The global variable `chi_iterations` determines the number of terms to use
- * in the sum to construct chi in the function Dbar2chiIterative.
- *
- *
- *
  */
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void ComputeChiSub(int nspecies_sub,
