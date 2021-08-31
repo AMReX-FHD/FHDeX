@@ -478,7 +478,6 @@ void ComputeChiSub(int nspecies_sub,
                    Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& D_barN,
                    Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& rhoWchiN,
                    int chi_iterations_in){
-//HACK:sub required
 
     GpuArray<Real, MAX_SPECIES> molmass_sub, rhoN_sub, MolarConcN_sub;
     Array1D<Real, 1, MAX_SPECIES> W_sub;
@@ -805,7 +804,7 @@ void ComputeChi (int nspecies_in,
        //call amrex_error('compute_chi: use_lapack not supported')
     }
 
-    Dbar2chiIterative(nspecies_in,chi_iterations_in,D_barN,MolarConcN,molmass_in,chi);
+    Dbar2chiIterative(chi_iterations_in,D_barN,MolarConcN,molmass_in,chi);
 
 }
 
