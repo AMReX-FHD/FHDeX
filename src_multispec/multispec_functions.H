@@ -1259,18 +1259,10 @@ void ComputeSqrtLOnsagerSub (
                 GpuArray<Real, MAX_SPECIES>& Rho_in,
                 Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& DBar_in,
                 Real rhotot_in,
-                int nspecies_in,
                 int nspecies_sub,
                 int chi_iterations_sub,
                 Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& SqrtLOnsager){
-
-    //HACK -- ??
-    if (nspecies!=nspecies_sub) { Print() << "Mismatch! -sub- LOnsagerSub" << std::endl; }
-    if (nspecies==nspecies_in) { Print() << "Match! -in- LOnsagerSub" << std::endl; }
-//HACK:nspecies_in not required
-
        
-        
     // local variables
     GpuArray<Real, MAX_SPECIES> Molmass_sub;
     GpuArray<Real, MAX_SPECIES> Rho_sub;
@@ -1357,7 +1349,6 @@ void ComputeSqrtLOnsagerSub (
  * \param[in] molmass_in
  * \param[in] RhoN
  * \param[in] rhotot_in
- * \param[in] nspecies
  * \param[in] chi_iterations_in
  * \param[in,out] sqrtLonsager
  *
@@ -1444,7 +1435,6 @@ void ComputeSqrtLOnsagerLocal (
                         RhoN,
                         DBar_loc,
                         rhotot_in,
-                        nspecies,
                         nspecies_sub,
                         chi_iterations_in,
                         SqrtLOnsager);
