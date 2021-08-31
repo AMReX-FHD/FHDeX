@@ -14,18 +14,17 @@
 
 	# Controls for number of steps between actions
 	max_step = 500000000
-	max_step = 50
+	max_step = 100
 	plot_int = 10000000
 	plot_int = 10
 	plot_cross = 1
 	cross_cell = 60
 	plot_time = 5
-	n_steps_skip =  0
+	n_steps_skip = 50
 	struct_fact_int = 10
 
 	reset_stats = -1
 	restart = -1
-	restart = 50
 	chk_int = 50000000
 	chk_int = 10
 
