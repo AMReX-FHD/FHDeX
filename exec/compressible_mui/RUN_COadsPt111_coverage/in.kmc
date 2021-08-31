@@ -46,9 +46,9 @@ set         i1 value 1                           # all siteA
 set         i2 value 0                           # all vac
 #set         i2 value 1 fraction 1.519198e-01     # equilibrium coverage
 
-#event       4 siteA vac   5.242861e+06 spec1     # adsorption of spec1 (rate)
-event       4 siteA vac   2.071143e-11 spec1     # adsorption of spec1 (factor)
-event       5 siteA spec1 2.926784e+07 vac       # desorption of spec1
+#event       4 siteA vac   5.242861e+06 spec1 rate       # adsorption of spec1 (rate)
+event       4 siteA vac   2.071143e-11 spec1            # adsorption of spec1
+event       5 siteA spec1 2.926784e+07 vac temp_dep     # desorption of spec1
 
 ###########################
 
@@ -68,7 +68,7 @@ mui_init_agg
 variable ts loop ${nstep}
 label ts_loop
     # MPI_FETCH
-    mui_fetch_agg   ${ts} density1
+    mui_fetch_agg   ${ts} density1 temp
 
     ##### if imagefreq
     variable reminder equal ${ts}-${imagfreq}*floor(${ts}/${imagfreq})

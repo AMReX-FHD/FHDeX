@@ -60,16 +60,6 @@ void ComputeChargeCoef(const MultiFab& rho_in,
 {
     BL_PROFILE_VAR("ComputeChargeCoef()",ComputeChargeCoef);
 
-    int nspecies_gpu = nspecies;
-    Real k_B_gpu = k_B;
-    
-    GpuArray<Real,MAX_SPECIES> molmass_gpu;
-    GpuArray<Real,MAX_SPECIES> charge_per_mass_gpu;
-    for (int comp=0; comp<nspecies_gpu; ++comp) {
-        molmass_gpu[comp] = molmass[comp];
-        charge_per_mass_gpu[comp] = charge_per_mass[comp];
-    }
-
     for ( MFIter mfi(charge_coef_in,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
         
         const Box& bx = mfi.growntilebox(1);
@@ -81,13 +71,13 @@ void ComputeChargeCoef(const MultiFab& rho_in,
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             Real n=0.;
-            for (int comp=0; comp<nspecies_gpu; ++comp) {
-                n += rho(i,j,k,comp) / molmass_gpu[comp];
+            for (int comp=0; comp<nspecies; ++comp) {
+                n += rho(i,j,k,comp) / molmass[comp];
             }
 
-            for (int comp=0; comp<nspecies_gpu; ++comp) {
-                charge_coef(i,j,k,comp) = rho(i,j,k,comp)*charge_per_mass_gpu[comp]
-                    / (n*k_B_gpu*Temp(i,j,k));
+            for (int comp=0; comp<nspecies; ++comp) {
+                charge_coef(i,j,k,comp) = rho(i,j,k,comp)*charge_per_mass[comp]
+                    / (n*k_B*Temp(i,j,k));
             }
         });
     }

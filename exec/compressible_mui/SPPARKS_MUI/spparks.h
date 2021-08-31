@@ -16,7 +16,10 @@
 
 #include "mpi.h"
 #include "stdio.h"
+
+#ifdef MUI
 #include "mui.h"
+#endif
 
 namespace SPPARKS_NS {
 
@@ -35,7 +38,9 @@ class SPPARKS {
   class Output *output;          // output
   class Timer *timer;            // timer
 
+#ifdef MUI
   mui::uniface2d * uniface;
+#endif
 
   MPI_Comm world;          // communicator for my world of procs
   FILE *infile;            // infile for my world

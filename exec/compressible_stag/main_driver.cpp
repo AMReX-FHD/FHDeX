@@ -2,14 +2,12 @@
 #include "compressible_functions.H"
 #include "compressible_functions_stag.H"
 
-#include "common_namespace_declarations.H"
 
 #include "rng_functions.H"
 
 #include "StructFact.H"
 
 #include "chemistry_functions.H"
-#include "chemistry_namespace_declarations.H"
 
 #include "chrono"
 

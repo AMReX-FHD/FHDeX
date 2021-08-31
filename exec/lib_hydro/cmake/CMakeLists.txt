@@ -129,7 +129,6 @@ set(HEADERS
     ../../../src_common/common_functions.H
     ../../../src_common/common_functions_F.H
     ../../../src_common/common_namespace.H
-    ../../../src_common/common_namespace_declarations.H
     ../../../src_common/species.H
 
     ../../../src_rng/bl_random_c.H
@@ -141,7 +140,6 @@ set(HEADERS
     ../../../src_gmres/StagMGSolver.H
     ../../../src_gmres/gmres_functions.H
     ../../../src_gmres/gmres_namespace.H
-    ../../../src_gmres/gmres_namespace_declarations.H
 
     ../../../src_hydro/StochMomFlux.H
     ../../../src_hydro/hydro_functions.H
@@ -157,7 +155,6 @@ set(HEADERS
     ../../../src_immersed-boundary/ib_functions.H
     ../../../src_immersed-boundary/ib_functions_F.H
     ../../../src_immersed-boundary/immbdy_namespace.H
-    ../../../src_immersed-boundary/immbdy_namespace_declarations.H
     ../../../src_immersed-boundary/kernel_functions_K.H
 
     ../../../src_particles/particle_functions.H
