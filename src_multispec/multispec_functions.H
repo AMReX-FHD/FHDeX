@@ -356,7 +356,6 @@ void PopulateX_xxT (
  *
  * Adds the identity matrix during initialization. Then adds product of X_xxT and Hessian matrices.
  *
- * \param[in] nspecies_in Number of species.
  * \param[out] GammaN
  * \param[in] X_xxT
  * \param[in] HessianN
@@ -442,7 +441,6 @@ void ComputeGammaLocal (
 /**
  * \brief Compute rhoWchi using a subsystem of species above the fractional weight tolerance.
  *
- * \param[in] nspecies_in Number of species.
  * \param[in] nspecies_sub Number of species in the subsystem (= nspecies - ntrace).
  * \param[in] dest Mapping between system and subsystem
  * \param[in] molmass_in
