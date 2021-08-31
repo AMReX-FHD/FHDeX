@@ -292,7 +292,7 @@ void ComputeMolconcMolmtotLocal ( int nspecies_in,
                 Real rhotot_in,
                 GpuArray<Real, MAX_SPECIES>& MolarConcN,
                 Real& molmtot_in){
-        
+
 //HACK:required
 
     GpuArray<Real, MAX_SPECIES> W; /**< Mass fraction w_i = rho_i/rho */
@@ -322,7 +322,7 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void MatrixToZeros (int size,
                 Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& matrixIn) {
 //HACK:required
-        
+
     for (int n=1; n<=size; ++n ){
         for (int m=1; m<=size; ++m ){
             matrixIn(n,m) = 0.0;
@@ -341,9 +341,9 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void PopulateX_xxT (int nspecies_in,
                 Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& X_xxT,
                 GpuArray<Real, MAX_SPECIES>& MolarConcN) {
-        
+
     //HACK -- not required
-    
+
     if (nspecies!=nspecies_in) { Print() << "Mismatch PopulateXxxt!" << std::endl; }
 
     for (int row=1; row<=nspecies_in;++row ){
@@ -374,7 +374,7 @@ void GammaIPlusMatmul (int nspecies_in,
                 Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& GammaN,
                 Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& X_xxT,
                 Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& HessianN) {
-        
+
     //HACK -- not requried
     if (nspecies!=nspecies_in) { Print() << "Mismatch! GammaIplusmatmal" << std::endl; }
 
@@ -599,7 +599,6 @@ void Matrix2DSetEqual (
 /**
  * \brief D_bar to chi - iterative
  *
- * \param[in] nspecies_local number of species
  * \param[in] num_iterations_in number of terms in the sum to use: 3-5 are reasonable values
  * \param[in] D_bar matrix of Maxwell-Stefan binary diffusion coefficient
  * \param[in] Xk mole fractions --- MUST NOT BE ZERO
@@ -608,7 +607,7 @@ void Matrix2DSetEqual (
  *
  */
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void Dbar2chiIterative ( int nspecies_local,
+void Dbar2chiIterative (
                int num_iterations_in,
                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& D_bar,
                GpuArray<Real, MAX_SPECIES>& Xk,
@@ -621,27 +620,27 @@ void Dbar2chiIterative ( int nspecies_local,
     Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> Pmat, Deltamat, Zmat, Jmat, PJ, matrix1, matrix2;
 
     // mole fractions correction
-    for (int ii=1; ii<=nspecies_local; ++ii){
+    for (int ii=1; ii<=nspecies; ++ii){
        Xkp(ii) = Xk[ii-1];
     }
 
     // molecular weight of mixture - EGLIB
     Real MWmix = 0.0;
-    for (int ii=1; ii<=nspecies_local; ++ii){
+    for (int ii=1; ii<=nspecies; ++ii){
         MWmix = MWmix + Xkp(ii)*molmass_local[ii-1];
 
     }
 
     // mass fractions correction - EGLIB
-    for (int ii=1; ii<=nspecies_local; ++ii){
+    for (int ii=1; ii<=nspecies; ++ii){
         Ykp(ii) = molmass_local[ii-1] / MWmix * Xkp(ii);
     }
 
     // Find Di matrix
     Real term2;
-    for (int i=1; i<=nspecies_local; ++i){
+    for (int i=1; i<=nspecies; ++i){
         term2 = 0.0;
-        for (int j=1; j<=nspecies_local; ++j){
+        for (int j=1; j<=nspecies; ++j){
             if (j!=i){
                 term2 = term2 + Xkp(j)/D_bar(i,j);
             }
@@ -650,15 +649,15 @@ void Dbar2chiIterative ( int nspecies_local,
     }
 
     // Compute Mmat and Minv
-    for (int i=1; i<=nspecies_local; ++i){
+    for (int i=1; i<=nspecies; ++i){
         Mmat(i) = Xkp(i)/Di(i);
         Minv(i) = Di(i)/Xkp(i);
     }
 
     // Compute P matrix
-    MatrixToZeros(nspecies_local, Pmat);
-    for (int i=1; i<=nspecies_local; ++i){
-        for (int j=1; j<=nspecies_local; ++j){
+    MatrixToZeros(nspecies, Pmat);
+    for (int i=1; i<=nspecies; ++i){
+        for (int j=1; j<=nspecies; ++j){
             Pmat(i,j) = - Ykp(j);
             if (i==j){
                 Pmat(i,j) =  Pmat(i,j) + 1.0;
@@ -667,14 +666,14 @@ void Dbar2chiIterative ( int nspecies_local,
     }
 
     // Compute Deltamat
-    MatrixToZeros(nspecies_local, Deltamat);
+    MatrixToZeros(nspecies, Deltamat);
     Real term1;
 
-    for (int i=1; i<=nspecies_local; ++i){
-        for (int j=1; j<=nspecies_local; ++j){
+    for (int i=1; i<=nspecies; ++i){
+        for (int j=1; j<=nspecies; ++j){
             if (i==j){
                 term1 = 0.0;
-                for (int k=1; k<=nspecies_local; ++k){
+                for (int k=1; k<=nspecies; ++k){
                     if (k!=i){
                         term1 = term1 + Xkp(i)*Xkp(k)/D_bar(i,k);
                     }
@@ -688,22 +687,22 @@ void Dbar2chiIterative ( int nspecies_local,
     }
 
     // Compute Zmat
-    for (int i=1; i<=nspecies_local; ++i){
+    for (int i=1; i<=nspecies; ++i){
         Zmat(i,i) = Zmat(i,i) + Mmat(i);
     }
 
     // Compute Jmat
-    for (int i=1; i<=nspecies_local; ++i){
-        for (int j=1; j<=nspecies_local; ++j){
+    for (int i=1; i<=nspecies; ++i){
+        for (int j=1; j<=nspecies; ++j){
             Jmat(i,j) = Minv(i)*Zmat(i,j);
         }
     }
 
     // Compute PJ
-    MatrixToZeros(nspecies_local, PJ);
-    for (int i=1; i<=nspecies_local; ++i){
-        for (int j=1; j<=nspecies_local; ++j){
-            for (int k=1; k<=nspecies_local; ++k){
+    MatrixToZeros(nspecies, PJ);
+    for (int i=1; i<=nspecies; ++i){
+        for (int j=1; j<=nspecies; ++j){
+            for (int k=1; k<=nspecies; ++k){
                 PJ(i,j) = PJ(i,j) + Pmat(i,k)*Jmat(k,j);
             }
         }
@@ -711,10 +710,10 @@ void Dbar2chiIterative ( int nspecies_local,
 
     // Compute P M^-1 Pt; store it in matrix2
     Real scr;
-    for (int i=1; i<=nspecies_local; ++i){
-        for (int j=1; j<=nspecies_local; ++j){
+    for (int i=1; i<=nspecies; ++i){
+        for (int j=1; j<=nspecies; ++j){
             scr = 0.0;
-            for (int k=1; k<=nspecies_local; ++k){
+            for (int k=1; k<=nspecies; ++k){
                 // notice the change in indices for Pmat to represent Pmat^t
                 scr = scr + Pmat(i,k)*Minv(k)*Pmat(j,k);
             }
@@ -725,10 +724,10 @@ void Dbar2chiIterative ( int nspecies_local,
 
 
     for (int jj=1; jj<=num_iterations_in; ++jj){
-        for (int i=1; i<=nspecies_local; ++i){
-            for (int j=1; j<=nspecies_local; ++j){
+        for (int i=1; i<=nspecies; ++i){
+            for (int j=1; j<=nspecies; ++j){
                     scr = 0.0;
-                for (int k=1; k<=nspecies_local; ++k){
+                for (int k=1; k<=nspecies; ++k){
                     scr = scr + PJ(i,k)*chi(k,j);
                 }
                 matrix1(i,j) = scr + matrix2(i,j);
@@ -767,8 +766,7 @@ void ComputeChi (int nspecies_in,
                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& chi,
                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& D_barN,
                int chi_iterations_in){
-//HACK:required
-    
+
     //local variables
     Real eepsilon=1.e-16;
 
@@ -1099,7 +1097,7 @@ void ComputeDBarLocal (
           GpuArray<Real, MAX_SPECIES>& RhoN,
           Real rhotot_in,
           Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& D_bar){
-    
+
     // off-diagonal components of symmetric matrices
     Array1D<Real, 1, MAX_SPECIES*(MAX_SPECIES-1)/2> DBar_loc;
 
@@ -1254,7 +1252,7 @@ void ComputeSqrtLOnsagerSub (
                 int nspecies_sub,
                 int chi_iterations_sub,
                 Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& SqrtLOnsager){
-       
+
     // local variables
     GpuArray<Real, MAX_SPECIES> Molmass_sub;
     GpuArray<Real, MAX_SPECIES> Rho_sub;
@@ -1502,7 +1500,7 @@ void MixturePropsMassLocal (GpuArray<Real, MAX_SPECIES>& Rho,
                 Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& DBar,
                 GpuArray<Real, MAX_SPECIES>& DThermLoc,
                 Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& Hessian){
-        
+
     // Local values of transport and thermodynamic coefficients (functions of composition!):
     GpuArray<Real, MAX_SPECIES*(MAX_SPECIES-1)/2> HOffdiagLoc; //off-diagonal components of symmetric matrices
     GpuArray<Real, MAX_SPECIES> HDiagLoc; // Diagonal component
