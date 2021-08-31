@@ -370,23 +370,20 @@ void PopulateX_xxT (int nspecies_in,
  * \param[in] HessianN
  */
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void GammaIPlusMatmul (int nspecies_in,
+void GammaIPlusMatmul (
                 Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& GammaN,
                 Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& X_xxT,
                 Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& HessianN) {
 
-    //HACK -- not requried
-    if (nspecies!=nspecies_in) { Print() << "Mismatch! GammaIplusmatmal" << std::endl; }
-
     //Compute Gamma
-    for (int row=1; row<=nspecies_in; ++row){
-        for (int column=1; column<=nspecies_in; ++column){
+    for (int row=1; row<=nspecies; ++row){
+        for (int column=1; column<=nspecies; ++column){
             if (row == column) {
                 GammaN(row,column) = 1.0;   // add the identity matrix
             } else {
                 GammaN(row,column) = 0.0;   // initialize off-diagonals to 0
             }
-            for (int n=1; n<=nspecies_in; ++n){
+            for (int n=1; n<=nspecies; ++n){
                 GammaN(row, column) += X_xxT(row,n) * HessianN(n,column);
             }
         }
@@ -443,7 +440,7 @@ void ComputeGammaLocal (
         }
 
         //Compute Gamma
-        GammaIPlusMatmul(nspecies, GammaN, X_xxT, HessianN);
+        GammaIPlusMatmul(GammaN, X_xxT, HessianN);
 
     }
 }
