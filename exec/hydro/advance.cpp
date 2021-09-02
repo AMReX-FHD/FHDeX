@@ -14,7 +14,7 @@ using namespace amrex;
 // argv contains the name of the inputs file entered at the command line
 void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
              std::array< MultiFab, AMREX_SPACEDIM >& umacNew,
-             MultiFab& pres, MultiFab& tracer,
+             MultiFab& pres,
              const std::array< MultiFab, AMREX_SPACEDIM >& mfluxdiv_stoch,
              std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
              MultiFab& beta, MultiFab& gamma,
@@ -64,24 +64,6 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
   for (int d=0; d<AMREX_SPACEDIM; ++d) {
     umac[d].FillBoundary(geom.periodicity());
   }
-
-  //////////////////////////
-  // Advance tracer
-
-  MultiFab tracerPred(ba,dmap,1,1);
-  MultiFab advFluxdivS(ba,dmap,1,1);
-  
-  tracer.FillBoundary(geom.periodicity());
-
-  // compute -div(c*u)^n
-  MkAdvSFluxdiv_cc(umac,tracer,advFluxdivS,geom,0,1,0);
-  
-  // compute c^{*,n+1} = c^n + dt * (-div(c*u)^n)
-  MultiFab::Copy(tracerPred, tracer, 0, 0, 1, 0);
-  MultiFab::Saxpy(tracerPred, dt, advFluxdivS, 0, 0, 1, 0);
-  tracerPred.FillBoundary(geom.periodicity());
-
-  //////////////////////////
 
   //////////////////////////////////////////////////
   // ADVANCE velocity field
@@ -171,18 +153,6 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
   for (int d=0; d<AMREX_SPACEDIM; d++) {
     umacNew[d].FillBoundary(geom.periodicity());
   }
-
-  //////////////////////////
-  // Advance tracer
-  
-  // compute -div(c*u)^{*,n+1} and add to -div(c*u)^n
-  MkAdvSFluxdiv_cc(umacNew,tracerPred,advFluxdivS,geom,0,1,1);
-  
-  // compute c^{*,n+1} = c^n + (dt/2) * (-div(c*u)^n) + (dt/2) * (-div(c*u)^{*,n+1})
-  MultiFab::Saxpy(tracer, dt/2.0, advFluxdivS, 0, 0, 1, 0);
-  tracer.FillBoundary(geom.periodicity());  
-
-  //////////////////////////
 
   /*
     Corrector
