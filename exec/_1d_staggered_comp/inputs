@@ -1,10 +1,10 @@
  &input_param
 
-   dt = 1.d-12
-   xlen = 1.6d-4
+   dt = 1.e-12
+   xlen = 1.6e-4
    npts = 80
-   across = 4.d-12
-   across = 4.d-10
+   across = 4.e-12
+   across = 4.e-10
 
    ntherm = 100000
    nstep =  500000000
@@ -16,15 +16,15 @@
 
    seed = 10299
 
-   T0 = 400.d0
-   rhoamb = 1.78d-3
-   camb = 0.5d0
+   T0 = 400.
+   rhoamb = 1.78e-3
+   camb = 0.5
 
-    mass1 = 6.63d-23
-    mass0 = 19.89d-3
-    mass0 = 6.63d-23
-    d0=3.66d-8
-    d1=3.66d-8
+    mass1 = 6.63e-23
+    mass0 = 19.89e-3
+    mass0 = 6.63e-23
+    d0=3.66e-8
+    d1=3.66e-8
 
    Tleft =  280.8
    Tright = 508.5

@@ -2,9 +2,9 @@
 
   ! Problem specification
   prob_lo(1:2) = 0.      0.        ! physical lo coordinate
-  prob_hi(1:2) = 0.96d-5 0.96d-5   ! physical hi coordinate
+  prob_hi(1:2) = 0.96e-5 0.96e-5   ! physical hi coordinate
 
-  cell_depth = 0.5d-7
+  cell_depth = 0.5e-7
 
   ! refer to Init.cpp
   prob_type = 2
@@ -27,7 +27,7 @@
   ! if abs(visc_type) = 3, L = div [ beta (grad + grad^T) + I (gamma - (2/3)*beta) div ]
   ! positive = assume constant coefficients
   ! negative = assume spatially-varying coefficients
-  visc_coef = 2.7d0	! [units: g*cm-1*s-1] dynamic (shear) viscosity of water
+  visc_coef = 2.7	! [units: g*cm-1*s-1] dynamic (shear) viscosity of water
   visc_type = 1
   
   ! Stochastic parameters
@@ -36,7 +36,7 @@
   variance_coef_mass = 1.
   initial_variance_mom = 0.
 
-  k_B = 1.3806488d-16   ! Boltzmann's constant [units: cm2*g*s-2*K-1]
+  k_B = 1.3806488e-16   ! Boltzmann's constant [units: cm2*g*s-2*K-1]
   T_init(1) = 300. 	! [units: K]
 
   algorithm_type = 6
@@ -65,15 +65,15 @@
   bc_es_lo(1:2) = -1 1
   bc_es_hi(1:2) = -1 1
 
-  potential_lo(1:2) = 0.  .128d10
-  potential_hi(1:2) = 0. -.128d10
+  potential_lo(1:2) = 0.  .128e10
+  potential_hi(1:2) = 0. -.128e10
 
   ! Thermodynamic and transport properties:
   !----------------------
   nspecies = 2
-  molmass(1:2) = 2.4d-22 2.4d-22  ! molecular masses for nspecies (mass per molecule, *not* molar mass)
-  rhobar(1:2) = 1.38d0 1.38d0     ! pure component densities for all species
-  rho0 = 1.38d0
+  molmass(1:2) = 2.4e-22 2.4e-22  ! molecular masses for nspecies (mass per molecule, *not* molar mass)
+  rhobar(1:2) = 1.38 1.38     ! pure component densities for all species
+  rho0 = 1.38
 
 /
 
