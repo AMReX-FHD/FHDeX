@@ -18,7 +18,6 @@ void calculateTransportCoeffs(const MultiFab& prim_in,
     // here we know the size at compile time
     
     // Loop over boxes
-//    amrex::Print() << "transport type: " << transport_type << "\n";
     for ( MFIter mfi(prim_in); mfi.isValid(); ++mfi) {
 
         // grow the box by ngc
@@ -53,12 +52,18 @@ void calculateTransportCoeffs(const MultiFab& prim_in,
             // compute mole fractions from mass fractions
             GetMolfrac(Yk_fixed, Xk_fixed);
 
-            if (transport_type == 1) { // Waldmann-Valk
-                IdealMixtureTransport(i,j,k, prim(i,j,k,0), prim(i,j,k,4), prim(i,j,k,5),
+            if (transport_type == 1) { // Giovangigli
+                IdealMixtureTransportGIO(i,j,k, prim(i,j,k,0), prim(i,j,k,4), prim(i,j,k,5),
+                                         Yk_fixed, eta(i,j,k), kappa(i,j,k), zeta(i,j,k),
+                                         Dij, chi);
+            }
+
+            else if (transport_type == 2) { // Waldmann-Valk
+                IdealMixtureTransportVW(i,j,k, prim(i,j,k,0), prim(i,j,k,4), prim(i,j,k,5),
                                       Yk_fixed, Xk_fixed, eta(i,j,k), kappa(i,j,k), zeta(i,j,k),
                                       Dij, chi);
             }
-            else if (transport_type == 2) { // Hirschfelder-Curtiss-Bird for binary mixtures
+            else if (transport_type == 3) { // Hirschfelder-Curtiss-Bird for binary mixtures
                 IdealMixtureTransportHCBBin(i,j,k, prim(i,j,k,0), prim(i,j,k,4), prim(i,j,k,5),
                                             Yk_fixed, Xk_fixed, eta(i,j,k), kappa(i,j,k), zeta(i,j,k),
                                             Dij, chi);
