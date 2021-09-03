@@ -992,6 +992,129 @@ void IdealMixtureTransport ( int iloc, int jloc, int kloc,
     // chitil = 0.0d0
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void IdealMixtureTransportHCBBin ( int iloc, int jloc, int kloc,
+                                   Real const density,
+                                   Real const temperature,
+                                   Real const pressure,
+                                   const GpuArray<Real,MAX_SPECIES>& Yk,
+                                   const GpuArray<Real,MAX_SPECIES>& Xk,
+                                   Real& eta,
+                                   Real& kappa,
+                                   Real& zeta,
+                                   const Array4<Real>& diff_ij,
+                                   const Array4<Real>& chitil)
+{
+
+    // This routine calculates transport coefficients for a 
+    // binary mixtures of gases of monoatomic hard spheres
+    // The components 0 and 1 of Yk and Xk are the only relevant
+    // ones.
+    
+    GpuArray<Real,2> xxtr;
+    GpuArray<Real,2> yytr;
+    GpuArray<Real,2> molecular_mass;
+
+    Real pi = 3.1415926535897932;
+
+    // compute molecular_mass by dividing molmass by Avogadro's
+    for (int n=0; n<2; ++n) {
+        molecular_mass[n] = molmass[n]*(k_B/Runiv);;
+    }
+            
+    // mole fracions correction - EGLIB
+    for (int ii=0; ii<2; ++ii) {
+        Real sumXk = 0.;
+        for (int jj=0; jj<2; ++jj) {
+            sumXk += Xk[jj];
+        }
+        // GM: Why this factor of 1E-15???
+        xxtr[ii] = Xk[ii] + 1.e-15*(sumXk/2.0 - Xk[ii]);
+    }
+    
+    // molecular weight of mixture - EGLIB
+    Real MWmix = 0.;
+    for (int ii=0; ii<2; ++ii) {
+        MWmix += xxtr[ii]*molmass[ii];
+    }
+
+    // mass fractions correction - EGLIB
+    for (int ii=0; ii<2; ++ii) {
+        yytr[ii] = molmass[ii]/MWmix*xxtr[ii];
+    }
+
+    // Mass, diameter, concentration
+    Real m0 = molecular_mass[0];
+    Real m1 = molecular_mass[1];
+
+    Real d0 = diameter[0];
+    Real d1 = diameter[1];
+
+    Real mx = 2.0*m0*m1/(m0 + m1);
+    Real dx = 0.5*(d0 + d1);
+
+    Real conc = xxtr[1]; // c'
+    Real onc  = xxtr[0]; // 1-c'
+
+    // Viscosity
+    Real eta0 = (5.0/(16.0*d0*d0)) * sqrt(m0*k_B*temperature/pi);
+    Real eta1 = (5.0/(16.0*d1*d1)) * sqrt(m1*k_B*temperature/pi);
+    Real etax = (5.0/(16.0*dx*dx)) * sqrt(mx*k_B*temperature/pi);
+
+    Real Xeta = (onc*onc/eta0) + (2.0*conc*onc/etax) + (conc*conc/eta1);
+    Real Yeta = (3.0/5.0) * ( (onc*onc*m0)/(eta0*m1) + 
+                              (2.0*conc*onc*etax*(m0+m1)*(m0+m1))/(4.0*eta0*eta1*m0*m1) + 
+                              (conc*conc*m1)/(eta1*m0) );
+    Real Zeta = (3.0/5.0) * ( (onc*onc*m0/m1) + 2.0*conc*onc*( ((m0+m1)*(m0+m1)/(4.0*m0*m1))*((etax/eta0) + (etax/eta1)) - 1.0 ) + conc*conc*m1/m0 );
+
+    eta = 1.016*(1.0 + Zeta)/(Xeta + Yeta);
+
+    // Thermal conductivity
+    Real kappa0 = 15.0*k_B*eta0/(4.0*m0);
+    Real kappa1 = 15.0*k_B*eta1/(4.0*m1);
+    Real kappax = 15.0*k_B*etax/(4.0*mx);
+
+    Real U0 = 4.0/15.0 - 17.0*m0/(60.0*m1) + (m0-m1)*(m0-m1)/(2.0*m0*m1);
+    Real U1 = 4.0/15.0 - 17.0*m1/(60.0*m0) + (m0-m1)*(m0-m1)/(2.0*m0*m1);
+    Real UY = 4.0*(m0+m1)*(m0+m1)*kappax*kappax/(15.0*4.0*m0*m1*kappa0*kappa1) - 17.0/60.0 + 13.0*(m0-m1)*(m0-m1)/(32.0*m0*m1);
+    Real UZ = (4.0/15.0)* ( ((m0+m1)*(m0+m1)/(4.0*m0*m1))*((kappax/kappa0) + (kappax/kappa1)) - 1.0) - 17.0/60.0;
+
+    Real Xkappa = onc*onc/kappa0 + 2.0*conc*onc/kappax + conc*conc/kappa1;
+    Real Ykappa = onc*onc*U0/kappa0 + 2.0*conc*onc*UY/kappax + conc*conc*U1/kappa1;
+    Real Zkappa = onc*onc*U0 + 2.0*conc*onc*UZ + conc*conc*U1;
+
+    kappa = 1.025*(1.0 + Zkappa)/(Xkappa + Ykappa);
+
+    zeta = 0.0;
+
+    // Diffusion Coefficient
+    Real diff = 6.0*1.133*etax/(5.0*density);
+
+    // Thermal diffusion ratio (k_T)
+    Real S0 = (m0+m1)*kappax/(2.0*m1*kappa0) - 15*(m1-m0)/(8.0*m0) - 1.0;
+    Real S1 = (m0+m1)*kappax/(2.0*m0*kappa1) - 15*(m0-m1)/(8.0*m1) - 1.0;
+
+    Real thermal_diff = 1.299*conc*onc*(S1*conc - S0*onc)/(6.0*kappax*(Xkappa + Ykappa));
+
+    // Barodiffusion
+    Real baro_diff    = (m0 - m1)*yytr[1]*yytr[0]*(yytr[0]/m0 + yytr[1]/m1);
+
+    // Fill the Diffusion Matrix
+    Real mR = m0/m1;
+    Real diffO_tilde = mR*diff*yytr[1]*yytr[1]*yytr[1]/(yytr[0]*xxtr[1]*xxtr[1]);
+    Real diff1_tilde = mR*diff*yytr[1]*yytr[1]/(xxtr[1]*xxtr[1]);
+
+    diff_ij(iloc,jloc,kloc,0) =  1.0*yytr[0]*diffO_tilde;
+    diff_ij(iloc,jloc,kloc,1) = -1.0*yytr[0]*diffO_tilde;
+    diff_ij(iloc,jloc,kloc,2) = -1.0*yytr[0]*diff1_tilde;
+    diff_ij(iloc,jloc,kloc,3) =  1.0*yytr[0]*diff1_tilde;
+
+    // Fil the thermal diffusion ratio vector
+    thermal_diff = thermal_diff*mR*yytr[1]*yytr[1]/(xxtr[1]*xxtr[1]);
+    chitil(iloc,jloc,kloc,0) = -1.0*xxtr[1]*xxtr[1]*thermal_diff/(mR*xxtr[0]*yytr[1]*yytr[1]); 
+    chitil(iloc,jloc,kloc,1) =  1.0*xxtr[1]*thermal_diff/(mR*yytr[1]*yytr[1]);
+
+}
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void GetDensity ( const Real pressure,

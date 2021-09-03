@@ -11,4 +11,5 @@ CEXE_sources += compressible_functions_stag.cpp
 CEXE_headers += compressible_functions_stag.H
 CEXE_sources += compressible_functions.cpp
 CEXE_headers += compressible_functions.H
+CEXE_headers += compressible_namespace.H
 

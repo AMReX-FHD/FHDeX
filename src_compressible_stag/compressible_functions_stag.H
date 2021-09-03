@@ -6,8 +6,12 @@
 #include <AMReX_ArrayLim.H>
 
 #include "common_functions.H"
+#include "compressible_namespace.H"
 
 using namespace amrex;
+using namespace compressible;
+
+void InitializeCompressibleNamespace();
 
 void WritePlotFileStag(int step,
                        const Real time,

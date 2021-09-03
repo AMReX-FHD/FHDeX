@@ -31,6 +31,8 @@ void main_driver(const char* argv)
     // copy contents of F90 modules to C++ namespaces
     InitializeCommonNamespace();
 
+    InitializeCompressibleNamespace();
+
     int step_start, statsCount;
     amrex::Real time;
 
@@ -874,6 +876,12 @@ void main_driver(const char* argv)
              //          cuMeansAv, cuVarsAv, primMeansAv, primVarsAv, spatialCrossAv);
             WritePlotFileStag(step, time, geom, cu, cuMeans, cuVars, cumom, cumomMeans, cumomVars,
                               prim, primMeans, primVars, vel, velMeans, velVars, coVars, eta, kappa);
+
+            amrex::Print() << "Mean Momentum: " << ComputeSpatialMean(cumom[0], 0) << "\n";
+            //outputMFAscii(prim,amrex::Concatenate("prim",step,9));
+            //outputMFAscii(cu,amrex::Concatenate("cu",step,9));
+            //outputMFAscii(faceflux[0],amrex::Concatenate("xflux",step,9));
+            //outputMFAscii(cumom[0],amrex::Concatenate("xmom",step,9));
 
             if (plot_cross) {
                 if (do_1D) {

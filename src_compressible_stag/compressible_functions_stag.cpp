@@ -1,5 +1,21 @@
 #include "compressible_functions.H"
 #include "compressible_functions_stag.H"
+#include "AMReX_ParmParse.H"
+
+AMREX_GPU_MANAGED int compressible::transport_type;
+
+void InitializeCompressibleNamespace()
+{
+    // extract inputs parameters
+    ParmParse pp;
+
+    transport_type = 1; // Valk/Waldmann (default)
+
+    // get transport type (1: Valk/Waldmann; 2: HCB)
+    pp.query("transport_type",transport_type);
+
+    return;
+}
 
 void InitConsVarStag(MultiFab& cons, std::array< MultiFab, AMREX_SPACEDIM >& momStag, 
                      const MultiFab& prim, const amrex::Geometry geom) {
