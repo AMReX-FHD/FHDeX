@@ -9,7 +9,7 @@ void ComputeMolconcMolmtot(const MultiFab& rho_in,
     BL_PROFILE_VAR("ComputeMolconcMolmtot()",ComputeMolconcMolmtot);
 
     int ng = molarconc_in.nGrow();
-        
+
     // Loop over boxes
     for (MFIter mfi(rho_in,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
 
@@ -20,7 +20,7 @@ void ComputeMolconcMolmtot(const MultiFab& rho_in,
         const Array4<const Real>& rhotot = rhotot_in.array(mfi);
         const Array4<      Real>& molarconc = molarconc_in.array(mfi);
         const Array4<      Real>& molmtot = molmtot_in.array(mfi);
-        
+
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
 
@@ -50,11 +50,11 @@ void ComputeGamma(const MultiFab& molarconc_in,
 		      const MultiFab& Hessian_in,
           MultiFab& Gamma_in)
 {
-  
+
     BL_PROFILE_VAR("ComputeGamma()",ComputeGamma);
 
     int ng = Gamma_in.nGrow();
-    
+
     // Loop over boxes
     for (MFIter mfi(Gamma_in,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
 
@@ -81,8 +81,8 @@ void ComputeGamma(const MultiFab& molarconc_in,
                     HessianN(m+1,n+1) = Hessian(i,j,k,n*nspecies+m);
                 }
             }
-        
-            ComputeGammaLocal(MolarConcN, HessianN, GammaN, nspecies);
+
+            ComputeGammaLocal(MolarConcN, HessianN, GammaN);
 
             // Write back to MultiFab
             for (int n=0; n<nspecies; ++n ){
@@ -103,7 +103,7 @@ void ComputeRhoWChi(const MultiFab& rho_in,
     BL_PROFILE_VAR("ComputeRhoWChi()",ComputeRhoWChi);
 
     int ng = rhoWchi_in.nGrow();
-    
+
     // Loop over boxes
     for (MFIter mfi(rhoWchi_in,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
 
@@ -119,7 +119,7 @@ void ComputeRhoWChi(const MultiFab& rho_in,
 
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-        
+
             GpuArray<Real, MAX_SPECIES> rhoN;
             GpuArray<Real, MAX_SPECIES> MolarConcN;
             Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> rhoWchiN;
@@ -141,8 +141,7 @@ void ComputeRhoWChi(const MultiFab& rho_in,
                             MolarConcN,
                             rhoWchiN,
                             D_barN,
-                            molmass,
-                            chi_iterations);
+                            molmass);
 
             // Write back to MultiFab
             for (int n=0; n<nspecies; ++n ){
@@ -181,8 +180,8 @@ void ComputeZetaByTemp(const MultiFab& molarconc_in,
         {
 
             GpuArray<Real, MAX_SPECIES> MolarConcN;
-            GpuArray<Real, MAX_SPECIES> ZetaByTemp; 
-            GpuArray<Real, MAX_SPECIES> DTherm; 
+            GpuArray<Real, MAX_SPECIES> ZetaByTemp;
+            GpuArray<Real, MAX_SPECIES> DTherm;
             Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> DBarN;
 
             // Read MultiFab data into arrays
@@ -199,8 +198,7 @@ void ComputeZetaByTemp(const MultiFab& molarconc_in,
                                     DBarN,
                                     Temp(i,j,k),
                                     ZetaByTemp,
-                                    DTherm,
-                                    nspecies);                    
+                                    DTherm);
 
             //write data back to MultiFabs
             for (int n=0; n<nspecies; ++n ){
@@ -211,7 +209,7 @@ void ComputeZetaByTemp(const MultiFab& molarconc_in,
     }
 }
 
-void ComputeSqrtLonsagerFC(const MultiFab& rho_in, 
+void ComputeSqrtLonsagerFC(const MultiFab& rho_in,
                           const MultiFab& rhotot_in,
                           std::array< MultiFab, AMREX_SPACEDIM >& sqrtLonsager_fc,
                           const Geometry& geom)
@@ -222,15 +220,15 @@ void ComputeSqrtLonsagerFC(const MultiFab& rho_in,
 
     // for GPU later
     const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
-    
+
     // Loop over boxes
     for (MFIter mfi(rho_in); mfi.isValid(); ++mfi) {
         // note: tiling or GPU-ing requires nodal tileboxes and changes to
         // loop indices in fortran
-        
+
         // Create cell-centered box
         const Box& validBox = mfi.validbox();
-        
+
         const Array4<const Real>& rho = rho_in.array(mfi);
         const Array4<const Real>& rhotot = rhotot_in.array(mfi);
 
@@ -241,7 +239,7 @@ void ComputeSqrtLonsagerFC(const MultiFab& rho_in,
         AMREX_D_TERM(const Box& box_x = mfi.nodaltilebox(0);,
                      const Box& box_y = mfi.nodaltilebox(1);,
                      const Box& box_z = mfi.nodaltilebox(2););
-      
+
         amrex::ParallelFor(box_x, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
 
@@ -258,15 +256,15 @@ void ComputeSqrtLonsagerFC(const MultiFab& rho_in,
                 }
             }
 
-            ComputeNonnegativeRhoAv(RhoNXShift, RhoN, dx, molmass, nspecies, RhoAv);
+            ComputeNonnegativeRhoAv(RhoNXShift, RhoN, dx, molmass, RhoAv);
 
             //update RhoAv for SqrtLOnsager
             Real RhoAvSum = 0.0;
             for (int n=0; n<nspecies; ++n ){
                 RhoAvSum += RhoAv[n];
-            } 
+            }
 
-            ComputeSqrtLOnsagerLocal(molmass, RhoAv, RhoAvSum, nspecies, chi_iterations, sqrtLOnsager_XN);
+            ComputeSqrtLOnsagerLocal(molmass, RhoAv, RhoAvSum, sqrtLOnsager_XN);
 
             //copy data back
             for (int n=0; n<nspecies; ++n ){
@@ -285,22 +283,22 @@ void ComputeSqrtLonsagerFC(const MultiFab& rho_in,
 
             for (int n=0; n<nspecies; ++n ){
                 RhoN[n] = rho(i,j,k,n);
-                RhoNYShift[n] = rho(i,j-1,k,n); 
+                RhoNYShift[n] = rho(i,j-1,k,n);
 
                 for (int m=0; m<nspecies; ++m){
                     sqrtLOnsager_YN(m+1,n+1) = sqrtLOnsager_Y(i,j,k,n*nspecies+m);
                 }
             }
 
-            ComputeNonnegativeRhoAv(RhoNYShift, RhoN, dx, molmass, nspecies, RhoAv);
+            ComputeNonnegativeRhoAv(RhoNYShift, RhoN, dx, molmass, RhoAv);
 
             Real RhoAvSum = 0.0;
             for (int n=0; n<nspecies; ++n ){
                 RhoAvSum += RhoAv[n];
-            } 
+            }
 
-            ComputeSqrtLOnsagerLocal(molmass, RhoAv, RhoAvSum, nspecies, chi_iterations, sqrtLOnsager_YN);
-            
+            ComputeSqrtLOnsagerLocal(molmass, RhoAv, RhoAvSum, sqrtLOnsager_YN);
+
             //copy data back
             for (int n=0; n<nspecies; ++n ){
                 for (int m=0; m<nspecies; ++m){
@@ -318,23 +316,23 @@ void ComputeSqrtLonsagerFC(const MultiFab& rho_in,
 
             for (int n=0; n<nspecies; ++n ){
                 RhoN[n] = rho(i,j,k,n);
-                RhoNZShift[n] = rho(i,j,k-1,n); 
+                RhoNZShift[n] = rho(i,j,k-1,n);
 
                 for (int m=0; m<nspecies; ++m){
                     sqrtLOnsager_ZN(m+1,n+1) = sqrtLOnsager_Z(i,j,k,n*nspecies+m);
                 }
             }
 
-            ComputeNonnegativeRhoAv(RhoNZShift, RhoN, dx, molmass, nspecies, RhoAv);
+            ComputeNonnegativeRhoAv(RhoNZShift, RhoN, dx, molmass, RhoAv);
 
             //update RhoAv for SqrtLOnsager
             Real RhoAvSum = 0.0;
             for (int n=0; n<nspecies; ++n ){
                 RhoAvSum += RhoAv[n];
-            } 
+            }
 
-            ComputeSqrtLOnsagerLocal(molmass, RhoAv, RhoAvSum, nspecies, chi_iterations, sqrtLOnsager_ZN);
-            
+            ComputeSqrtLOnsagerLocal(molmass, RhoAv, RhoAvSum, sqrtLOnsager_ZN);
+
             //copy data back
             for (int n=0; n<nspecies; ++n ){
                 for (int m=0; m<nspecies; ++m){

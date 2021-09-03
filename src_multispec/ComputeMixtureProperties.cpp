@@ -41,7 +41,7 @@ void ComputeMixtureProperties(const MultiFab& rho_in,
                 }
             }
 
-            MixturePropsMassLocal(Rho, rhotot(i,j,k), DBar, DTherm, Hessian, nspecies);
+            MixturePropsMassLocal(Rho, rhotot(i,j,k), DBar, DTherm, Hessian);
 
             //write back to multifab 
             for (int n=0; n<nspecies; ++n ){
