@@ -274,16 +274,6 @@ void InitializeCommonNamespace() {
     max_particle_tile_size.resize(AMREX_SPACEDIM);
     u_init.resize(2);
 
-    // boundary condition flags
-    //bc_vel_lo.resize(AMREX_SPACEDIM);
-    //bc_vel_hi.resize(AMREX_SPACEDIM);
-    //bc_es_lo.resize(AMREX_SPACEDIM);
-    //bc_es_hi.resize(AMREX_SPACEDIM);
-    //bc_mass_lo.resize(AMREX_SPACEDIM);
-    //bc_mass_hi.resize(AMREX_SPACEDIM);
-    //bc_therm_lo.resize(AMREX_SPACEDIM);
-    //bc_therm_hi.resize(AMREX_SPACEDIM);
-
     wallspeed_lo.resize((AMREX_SPACEDIM-1)*AMREX_SPACEDIM);
     wallspeed_hi.resize((AMREX_SPACEDIM-1)*AMREX_SPACEDIM);
 
@@ -307,6 +297,310 @@ void InitializeCommonNamespace() {
     efreq.resize(3);
     ephase.resize(3);
 
+    // specify default values first, then read in values from inputs file
+
+    // Problem specification
+    for (int i=0; i<3; ++i) {
+        prob_lo[i] = 0.; // physical lo coordinate
+        prob_hi[i] = 0.; // physical hi coordinate
+    }
+
+    for (int i=0; i<AMREX_SPACEDIM; ++i) {
+        n_cells[1] = 1;                // number of cells in domain
+        max_grid_size[i] = 1;          // max number of cells in a box
+        max_particle_tile_size[i] = 0;
+    }
+    
+    cell_depth = 1.;
+
+    for (int i=0; i<AMREX_SPACEDIM; ++i) {
+        ngc[i] = 1;           // number of ghost cells
+    }
+    
+    // nvars - number of conserved variables (no default)
+    // primvars - number of primative variables (no default)
+
+    membrane_cell = -1; // location of membrane
+    cross_cell = 0;     // cell to compute spatial correlation
+    do_slab_sf = 0;     // whether to compute SF in two slabs separated by cross_cell
+    // transmission - no default
+
+    for (int i=0; i<MAX_SPECIES; ++i) {
+        qval[i] = 0.;                // charge on an ion
+        pkernel_fluid[i] = 4;        // peskin kernel for fluid
+        pkernel_es[i] = 4;           // peskin kernel for es
+        eskernel_fluid[i] = -1;      // ES kernel for fluid
+        eskernel_beta[i] = -1;       // ES kernel for fluid: beta
+    }
+
+    // mass (no default)
+    // nfrac (no default)
+
+    // particle_placement (no default)
+    particle_input = -1;
+    for (int i=0; i<MAX_SPECIES; ++i) {
+        particle_count[i] = -1.;
+        p_move_tog[i] = 1.;
+        p_force_tog[i] = 1.;
+        p_int_tog[i] = 1.;
+        particle_n0[i] = -1.;
+    }
+    
+    // p_int_tog_wall (no default)
+    particle_neff = 1;
+
+    // Time-step control
+    fixed_dt = 1.;
+    cfl = 0.5;
+
+    //random finite difference size, fraction of cell size
+    rfd_delta = 1.e-5;
+
+    // Controls for number of steps between actions
+    max_step = 1;
+    plot_int = 0;
+    plot_stag = 0;
+    plot_base_name = "plt";
+    chk_int = 0;
+    chk_base_name = "chk";
+    prob_type = 1;
+    restart = -1;
+    reset_stats = 0;
+    particle_restart = -1;
+    print_int = 0;
+    project_eos_int = -1;
+
+    // Physical parameters
+    for (int i=0; i<AMREX_SPACEDIM; ++i) {
+        grav[i] = 0.;
+    }
+    for (int i=0; i<MAX_SPECIES; ++i) {
+        rhobar[i] = 1.;
+    }
+    rho0 = 1.;
+
+    // Kinetic parameters
+    nspecies = 2;
+    for (int i=0; i<MAX_SPECIES; ++i) {
+        molmass[i] = 1.;
+        diameter[i] = 1.;
+    }
+
+    // dof (no default)
+    for (int i=0; i<MAX_SPECIES; ++i) {
+        e0[i] = 0.;
+    }
+    // hcv (no default)
+    // hcp (no default)
+
+    // stochastic forcing amplitudes (1 for physical values, 0 to run them off)
+    variance_coef_mom = 1.;
+    variance_coef_mass = 1.;
+    k_B = 1.38064852e-16;
+    Runiv = 8.314462175e7;
+    for (int i=0; i<MAX_SPECIES; ++i) {
+        T_init[i] = 1.;
+    }
+
+    // Algorithm control / selection
+    algorithm_type = 0;
+    advection_type = 0;
+    barodiffusion_type = 0;
+    use_bl_rng = 0;
+
+    // random number seed
+    // 0        = unpredictable seed based on clock
+    // positive = fixed seed
+    seed = 0;
+
+    // as assortment of other seeds in case one needs different engines
+    // implementation is problem-dependent
+    // 0        = unpredictable seed based on clock
+    // positive = fixed seed
+    seed_momentum = 1;
+    seed_diffusion = 1;
+    seed_reaction = 1;
+    seed_init_mass = 1;
+    seed_init_momentum = 1;
+
+    // Viscous friction L phi operator
+    // if abs(visc_type) = 1, L = div beta grad
+    // if abs(visc_type) = 2, L = div [ beta (grad + grad^T) ]
+    // if abs(visc_type) = 3, L = div [ beta (grad + grad^T) + I (gamma - (2/3)*beta) div ]
+    // positive = assume constant coefficients
+    // negative = assume spatially-varying coefficients
+    visc_coef = 1.;
+    visc_type = 1;
+
+    // Stochastic momentum flux controls:
+    filtering_width = 0;
+    stoch_stress_form = 1;
+
+    // Initial conditions
+    u_init[0] = 0.;
+    u_init[1] = 0.;
+    perturb_width = 0.;
+    smoothing_width = 1.;
+    initial_variance_mom = 0.;
+    initial_variance_mass = 0.;
+    domega = 0.;
+
+    // Boundary conditions
+    for (int i=0; i<AMREX_SPACEDIM; ++i) {
+        bc_vel_lo[i] = 0;
+        bc_vel_hi[i] = 0;
+        bc_es_lo[i] = 0;
+        bc_es_hi[i] = 0;
+        bc_mass_lo[i] = 0;
+        bc_mass_hi[i] = 0;
+        bc_therm_lo[i] = 0;
+        bc_therm_hi[i] = 0;
+
+        // Pressure drop are periodic inflow/outflow walls (bc_[hi,lo]=-2).
+        p_lo[i] = 0.;
+        p_hi[i] = 0.;
+
+        t_lo[i] = 0.;
+        t_hi[i] = 0.;
+  
+        rho_lo[i] = 0.;
+        rho_hi[i] = 0.;
+    } 
+
+    // c_i boundary conditions
+    for (int i=0; i<MAX_SPECIES; ++i) {
+        bc_Yk_x_lo[i] = -1.;
+        bc_Yk_x_hi[i] = -1.;
+        bc_Yk_y_lo[i] = -1.;
+        bc_Yk_y_hi[i] = -1.;
+        bc_Yk_z_lo[i] = -1.;
+        bc_Yk_z_hi[i] = -1.;
+
+        bc_Xk_x_lo[i] = -1.;
+        bc_Xk_x_hi[i] = -1.;
+        bc_Xk_y_lo[i] = -1.;
+        bc_Xk_y_hi[i] = -1.;
+        bc_Xk_z_lo[i] = -1.;
+        bc_Xk_z_hi[i] = -1.;
+    }
+
+    for (int i=0; i<AMREX_SPACEDIM; ++i) {
+        n_lo[i] = -1.;
+        n_hi[i] = -1.;
+    }
+
+    // Each no-slip wall may be moving with a specified tangential
+    for (int i=0; i<(AMREX_SPACEDIM-1)*AMREX_SPACEDIM; ++i) {
+        wallspeed_lo[i] = 0.;
+        wallspeed_hi[i] = 0.;
+    }
+
+    for (int i=0; i<AMREX_SPACEDIM; ++i) {
+        potential_lo[i] = 0.;
+        potential_hi[i] = 0.;
+    }
+
+    dsmc_boundaries = 0;
+
+    // structure factor and radial/cartesian pair correlation function analysis
+    struct_fact_int = 0;
+    radialdist_int = 0;
+    cartdist_int = 0;
+    n_steps_skip = 0;
+    binSize = 0.;
+    searchDist = 0.;
+
+    // projection
+    project_dir = -1;
+    slicepoint = -1;
+    for (int i=0; i<AMREX_SPACEDIM-1; ++i) {
+        max_grid_projection[i] = 4096;
+    }
+
+    // These are mostly used for reaction-diffusion:
+    histogram_unit = 0;
+    for (int i=0; i<MAX_SPECIES; ++i) {
+        density_weights[i] = 0.;
+    }
+    for (int i=0; i<2*AMREX_SPACEDIM; ++i) {
+        shift_cc_to_boundary[i] = 0;
+    }
+
+    // permittivity (no default)
+    wall_mob = 1;
+    // rmin (no default)
+    // rmax (no default)
+    // eepsilon (no default)
+    // sigma (no default)
+
+    // rmin_wall (no default)
+    // rmax_wall (no default)
+    // eepsilon_wall (no default)
+    // sigma_wall (no default)
+  
+    poisson_verbose = 1;
+    poisson_bottom_verbose = 0;
+    poisson_max_iter = 100;
+    poisson_rel_tol = 1.e-10;
+
+    particle_grid_refine = 1;
+    es_grid_refine = 1;
+    // diff (no default)
+    all_dry = 0;
+
+    // fluid_tog (no default)
+    // es_tog (no default)
+    drag_tog = 0;
+    // move_tog (no default)
+    // rfd_tog (no default)
+    // dry_move_tog (no default)
+    // sr_tog (no default)
+    graphene_tog = 0;
+    crange = 5;
+    thermostat_tog = 0;
+    zero_net_force = 0;
+
+    // images (no default)
+    for (int i=0; i<3; ++i) {
+        eamp[i] = 0.;
+        efreq[i] = 0.;
+        ephase[i] = 0.;
+    }
+
+    // plot_ascii (no default)
+    plot_means = 0;
+    plot_vars = 0;
+    plot_covars = 0;
+    plot_cross = 0;
+    particle_motion = 0;
+
+    // chemistry
+    solve_chem = 0.;
+    diffcoeff = 1.e-3;
+    source_strength = 0.1;
+    scaling_factor = 0.1;
+    regrid_int = 25;
+    do_reflux = 0;
+
+    // turblent forcing parameters
+    turb_a = 1.;
+    turb_b = 1.;
+    turbForcing = 0;
+
+  // DSMC Granular
+    for (int i=0; i<MAX_SPECIES*MAX_SPECIES; ++i) {
+        alpha_pp[i] = 1.;
+        alpha_pw[i] = 1.;
+        friction_pp[i] = 0.;
+        friction_pw[i] = 0.;
+    }
+    for (int i=0; i<MAX_SPECIES; ++i) {
+        phi_domain[i] = -1.;
+        Yk0[i] = 0.;
+    }
+  
+    do_1D = 0;
+    
     char temp_plot_base_name[128];
     char temp_chk_base_name[128];
 
