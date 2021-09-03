@@ -4,7 +4,6 @@
     module ib_fort_utils
 
     use amrex_fort_module,      only: amrex_real, amrex_particle_real
-    use common_namelist_module, only: pkernel_fluid
     use iso_c_binding,          only: c_int
 
     implicit none
@@ -645,13 +644,14 @@ contains
             &                coords_x, cx_lo,    cx_hi,  &
             &                coords_y, cy_lo,    cy_hi,  &
             &                coords_z, cz_lo,    cz_hi,  &
-            &                pos, v_spread, dx, ghost)
+            &                pos, v_spread, dx, ghost, pkernel_fluid_in)
 
 
         !________________________________________________________________________
         ! ** work region
         integer(c_int), dimension(3), intent(in   ) :: lo, hi
         integer(c_int), intent(in   ) :: ghost
+        integer(c_int), intent(in   ) :: pkernel_fluid_in(1)
 
         ! ** OUT: vector quantity `v_spread` is spread to (staggered) MultiFabs `mf_*`
         integer(c_int), dimension(3), intent(in   ) :: mfx_lo, mfx_hi
@@ -740,7 +740,7 @@ contains
         ! pkernel_fluid value is set => we save ourselves the followint IF
         ! branch point. JPB.
 
-        if(pkernel_fluid(1) .eq. 3) then
+        if(pkernel_fluid_in(1) .eq. 3) then
           kernel_ptr => kernel_3p
           gs = 2
         else
@@ -855,13 +855,14 @@ contains
                 &                mf,     mf_lo,   mf_hi, &
                 &                weights, wf_lo,   wf_hi, &
                 &                coords, c_lo,    c_hi,  &
-                &                pos, v_spread, dx, ghost)
+                &                pos, v_spread, dx, ghost, pkernel_fluid_in)
 
 
         !________________________________________________________________________
         ! ** work region
         integer(c_int), dimension(3), intent(in   ) :: lo, hi
         integer(c_int), intent(in   ) :: ghost
+        integer(c_int), intent(in   ) :: pkernel_fluid_in(1)
 
         ! ** OUT: vector quantity `v_spread` is spread to MultiFab `mf`
         integer(c_int), dimension(3), intent(in   ) :: mf_lo, mf_hi
@@ -919,7 +920,7 @@ contains
         ! pkernel_fluid value is set => we save ourselves the followint IF
         ! branch point. JPB.
 
-        if(pkernel_fluid(1) .eq. 3) then
+        if(pkernel_fluid_in(1) .eq. 3) then
           kernel_ptr => kernel_3p
           gs = 2
         else
@@ -995,7 +996,7 @@ contains
             &                 coords_y,   cy_lo,    cy_hi,     &
             &                 coords_z,   cz_lo,    cz_hi,     &
             &                 pos_marker, v_marker, n_marker,  &
-            &                 dx, ghost                             ) &
+            &                 dx, ghost, pkernel_fluid_in ) &
             bind(C, name="spread_markers")
 
         !________________________________________________________________________
@@ -1056,6 +1057,7 @@ contains
         ! ** IN:  `n_marker`-many marker positions (pos_marker). The `pos_marker` and
         !         `v_marker` arrays are `Vector<RealVecr>` in c-land.
         integer(c_int), intent(in   ) :: n_marker, ghost
+        integer(c_int), intent(in   ) :: pkernel_fluid_in(1)
         real(amrex_real), intent(in   ) :: pos_marker(AMREX_SPACEDIM, n_marker);
         ! ** IN:  each marker spreads a vector qunantity `v_marker` to the stagged
         !         MultiFabs `mf_*`
@@ -1099,7 +1101,8 @@ contains
                 &              coords_x, cx_lo,    cx_hi,  &
                 &              coords_y, cy_lo,    cy_hi,  &
                 &              coords_z, cz_lo,    cz_hi,  &
-                &              pos,  v_spread, dx, ghost)
+                &              pos,  v_spread, dx, ghost,  &
+                &              pkernel_fluid_in)
 
         end do
 
@@ -1117,12 +1120,13 @@ contains
             &                     coords_x, cx_lo,    cx_hi,  &
             &                     coords_y, cy_lo,    cy_hi,  &
             &                     coords_z, cz_lo,    cz_hi,  &
-            &                     pos,      v_interp, dx      )
+            &                     pos,      v_interp, dx, pkernel_fluid_in)
 
 
         !________________________________________________________________________
         ! ** work region
-        integer(c_int), dimension(3), intent(in   ) :: lo, hi
+      integer(c_int), dimension(3), intent(in   ) :: lo, hi
+      integer(c_int), intent(in   ) :: pkernel_fluid_in(1)
 
         ! ** IN:  interpolating v_interp from staggered MultiFabs `mf_*`
         integer(c_int), dimension(3), intent(in   ) :: mfx_lo, mfx_hi
@@ -1211,7 +1215,7 @@ contains
         ! pkernel_fluid value is set => we save ourselves the followint IF
         ! branch point. JPB.
 
-        if(pkernel_fluid(1) .eq. 3) then
+        if(pkernel_fluid_in(1) .eq. 3) then
           kernel_ptr => kernel_3p
           gs = 2
         else
@@ -1337,12 +1341,13 @@ contains
             &                      coords_y,   cy_lo,    cy_hi,     &
             &                      coords_z,   cz_lo,    cz_hi,     &
             &                      pos_marker, v_marker, n_marker,  &
-            &                      dx                             ) &
+            &                      dx, pkernel_fluid_in           ) &
             bind(C, name="interpolate_markers")
 
         !________________________________________________________________________
         ! ** work region
-        integer(c_int), dimension(3), intent(in   ) :: lo, hi, tile_lo, tile_hi
+      integer(c_int), dimension(3), intent(in   ) :: lo, hi, tile_lo, tile_hi
+      integer(c_int), intent(in   ) :: pkernel_fluid_in(1)
 
         ! ** IN:  vector quantity `v_marker` is interpolated from (staggered) MultiFabs `mf_*`
         integer(c_int), dimension(3), intent(in   ) :: mfx_lo, mfx_hi
@@ -1440,7 +1445,7 @@ contains
                 &                   coords_x, cx_lo,    cx_hi,  &
                 &                   coords_y, cy_lo,    cy_hi,  &
                 &                   coords_z, cz_lo,    cz_hi,  &
-                &                   pos,      v_spread, dx      )
+                &                   pos,      v_spread, dx, pkernel_fluid_in)
 
             v_marker(:, i) = v_spread(:)
 
@@ -1458,12 +1463,13 @@ contains
             &                         coords_x, cx_lo,    cx_hi,  &
             &                         coords_y, cy_lo,    cy_hi,  &
             &                         coords_z, cz_lo,    cz_hi,  &
-            &                         pos,      v_spread, dx      )
+            &                         pos,      v_spread, dx, pkernel_fluid_in)
 
 
         !________________________________________________________________________
         ! ** work region
-        integer(c_int), dimension(3), intent(in   ) :: lo, hi
+      integer(c_int), dimension(3), intent(in   ) :: lo, hi
+      integer(c_int), intent(in   ) :: pkernel_fluid_in(1)
 
         ! ** OUT: vector quantity `v_spread` is spread to (staggered) MultiFabs `mf_*`
         integer(c_int), dimension(3), intent(in   ) :: mfx_lo, mfx_hi
@@ -1534,7 +1540,7 @@ contains
         ! pkernel_fluid value is set => we save ourselves the followint IF
         ! branch point. JPB.
 
-        if(pkernel_fluid(1) .eq. 3) then
+        if(pkernel_fluid_in(1) .eq. 3) then
           kernel_ptr => kernel_3p
           gs = 2
         else
@@ -1722,12 +1728,13 @@ contains
             &                          coords_y,   cy_lo,    cy_hi,     &
             &                          coords_z,   cz_lo,    cz_hi,     &
             &                          pos_marker, v_marker, n_marker,  &
-            &                          dx                             ) &
+            &                          dx, pkernel_fluid_in           ) &
             bind(C, name="inv_interpolate_markers")
 
         !________________________________________________________________________
         ! ** work region
-        integer(c_int), dimension(3), intent(in   ) :: lo, hi, tile_lo, tile_hi
+      integer(c_int), dimension(3), intent(in   ) :: lo, hi, tile_lo, tile_hi
+      integer(c_int), intent(in   ) :: pkernel_fluid_in(1)
 
         ! ** OUT: vector quantity `v_marker` is spread to (staggered) MultiFabs `mf_*`
         integer(c_int), dimension(3), intent(in   ) :: mfx_lo, mfx_hi
@@ -1792,7 +1799,7 @@ contains
                 &                       coords_x, cx_lo,    cx_hi,  &
                 &                       coords_y, cy_lo,    cy_hi,  &
                 &                       coords_z, cz_lo,    cz_hi,  &
-                &                       pos,      v_spread, dx      )
+                &                       pos,      v_spread, dx, pkernel_fluid_in )
 
         end do
 
@@ -1806,13 +1813,15 @@ contains
             &                    coords_x, cx_lo,    cx_hi,  &
             &                    coords_y, cy_lo,    cy_hi,  &
             &                    coords_z, cz_lo,    cz_hi,  &
-            &                    pos,      v_interp, dx      )
+            &                    pos,      v_interp, dx,     &
+            &                    pkernel_fluid_in)
 
 
         !________________________________________________________________________
         ! ** work region
         integer(c_int), dimension(3), intent(in   ) :: lo, hi
-
+        integer(c_int), intent(in   ) :: pkernel_fluid_in(1)
+        
         ! ** IN:  interpolating v_interp from staggered MultiFabs `mf_*`
         integer(c_int), dimension(3), intent(in   ) :: mfx_lo, mfx_hi
         real(amrex_real), intent(in   ) :: mf_x(mfx_lo(1):mfx_hi(1), &
@@ -1883,7 +1892,7 @@ contains
         ! pkernel_fluid value is set => we save ourselves the followint IF
         ! branch point. JPB.
 
-        if(pkernel_fluid(1) .eq. 3) then
+        if(pkernel_fluid_in(1) .eq. 3) then
           kernel_ptr => kernel_3p
           gs = 2
         else
@@ -2022,12 +2031,13 @@ contains
             &                     coords_y,   cy_lo,    cy_hi,     &
             &                     coords_z,   cz_lo,    cz_hi,     &
             &                     pos_marker, v_marker, n_marker,  &
-            &                     dx                             ) &
+            &                     dx, pkernel_fluid_in           ) &
             bind(C, name="inv_spread_markers")
 
         !________________________________________________________________________
         ! ** work region
         integer(c_int), dimension(3), intent(in   ) :: lo, hi, tile_lo, tile_hi
+        integer(c_int), intent(in   ) :: pkernel_fluid_in(1)
 
         ! ** IN:  vector quantity `v_marker` is interpolated from (staggered) MultiFabs `mf_*`
         integer(c_int), dimension(3), intent(in   ) :: mfx_lo, mfx_hi
@@ -2092,7 +2102,7 @@ contains
                 &                   coords_x, cx_lo,    cx_hi,  &
                 &                   coords_y, cy_lo,    cy_hi,  &
                 &                   coords_z, cz_lo,    cz_hi,  &
-                &                   pos,      v_spread, dx      )
+                &                   pos,      v_spread, dx, pkernel_fluid_in )
 
             v_marker(:, i) = v_spread(:)
 

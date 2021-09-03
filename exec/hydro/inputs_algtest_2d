@@ -41,8 +41,8 @@
   variance_coef_mom = 0.
   initial_variance_mom = 0.
 
-  k_B = 1.38064852d-16
-  T_init(1) = 295.d0
+  k_B = 1.38064852e-16
+  T_init(1) = 295.
 
   struct_fact_int = -1
   n_steps_skip = 0

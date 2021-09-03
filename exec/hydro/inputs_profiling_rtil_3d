@@ -30,14 +30,14 @@
   ! positive = assume constant coefficients
   ! negative = assume spatially-varying coefficients
   ! visc_coef = 1.
-  visc_coef = 2.7d0
+  visc_coef = 2.7
   visc_type = 1
 
   ! Stochastic parameters
   variance_coef_mom = 1.
   initial_variance_mom = 0.
 
-  k_B = 1.3806488d-16
+  k_B = 1.3806488e-16
   T_init(1) = 300.
 
   ! Boundary conditions
