@@ -240,27 +240,12 @@ void RK3stepStag(MultiFab& cu,
     }
     /////////////////////////////////////////////////////
 
-    // Compute transport coefs after setting BCs    
-    //std::string primfile = amrex::Concatenate("prim",step,9);
-    //outputMFAscii(prim,primfile);
-    //std::string cufile = amrex::Concatenate("cu",step,9);
-    //outputMFAscii(cu,cufile);
-    //std::string momfile = amrex::Concatenate("xmom",step,9);
-    //outputMFAscii(cumom[0],momfile);
-    //std::string velfile = amrex::Concatenate("vel",step,9);
-    //outputMFAscii(vel[0],velfile);
-
     calculateTransportCoeffs(prim, eta, zeta, kappa, chi, D);
-    //std::string chifile = amrex::Concatenate("chi",step,9);
-    //outputMFAscii(chi,chifile);
 
-//    amrex::Print() << "RK1: " << step << "\n";
     calculateFluxStag(cu, cumom, prim, vel, eta, zeta, kappa, chi, D, 
         faceflux, edgeflux_x, edgeflux_y, edgeflux_z, cenflux, 
         stochface, stochedge_x, stochedge_y, stochedge_z, stochcen, 
         geom, stoch_weights,dt);
-
-    //PrintFluxes(faceflux,edgeflux_x,edgeflux_y,edgeflux_z,cenflux,std::to_string(step));
 
     for ( MFIter mfi(cu,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
         
@@ -422,7 +407,6 @@ void RK3stepStag(MultiFab& cu,
     }
     ///////////////////////////////////////////////////////////
 
-//    amrex::Print() << "RK2: " << step << "\n";
     calculateFluxStag(cup, cupmom, prim, vel, eta, zeta, kappa, chi, D, 
         faceflux, edgeflux_x, edgeflux_y, edgeflux_z, cenflux, 
         stochface, stochedge_x, stochedge_y, stochedge_z, stochcen, 
@@ -585,7 +569,6 @@ void RK3stepStag(MultiFab& cu,
     }
     ///////////////////////////////////////////////////////////
 
-//    amrex::Print() << "RK3: " << step << "\n";
     calculateFluxStag(cup2, cup2mom, prim, vel, eta, zeta, kappa, chi, D, 
         faceflux, edgeflux_x, edgeflux_y, edgeflux_z, cenflux, 
         stochface, stochedge_x, stochedge_y, stochedge_z, stochcen, 
@@ -668,8 +651,6 @@ void RK3stepStag(MultiFab& cu,
         });
     }
 
-    //PrintFluxes(faceflux,edgeflux_x,edgeflux_y,edgeflux_z,cenflux,"");
-
     // Set the correct momentum at the walls 
     for (int i=0; i<AMREX_SPACEDIM; i++) {
         BCMomNormal(cumom[i], vel[i], cu, geom, i);
@@ -699,12 +680,5 @@ void RK3stepStag(MultiFab& cu,
     if (membrane_cell >= 0) {
         doMembraneStag(cu,cumom,prim,vel,faceflux,geom,dt);
     }
-
-    //std::string primfile = amrex::Concatenate("prim",step,9);
-    //outputMFAscii(prim,primfile);
-    //std::string cufile = amrex::Concatenate("cu",step,9);
-    //outputMFAscii(cu,cufile);
-    //std::string cumomfile = amrex::Concatenate("xmom",step,9);
-    //outputMFAscii(cumom[0],cumomfile);
 
 }

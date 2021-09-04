@@ -157,8 +157,6 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
             #endif
 
             const Box& bx = mfi.growntilebox(1);
-            int lo = dom.smallEnd(0);
-            int hi = dom.bigEnd(0);
 
             // Populate diagonal stochastic stress
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) {
@@ -178,7 +176,6 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                     tauxx_stoch(i,j,k) = sqrt(3.0) * ((fac1 * stochcenx_u(i,j,k)) + (fac2 * traceZ)); //  // need sqrt(3.0) for correct F-D for 1D
                     tauyy_stoch(i,j,k) = 0.0;
                     tauzz_stoch(i,j,k) = 0.0;
-                    if ((i < dom.smallEnd(0)) or (i > dom.bigEnd(0))) tauxx_stoch(i,j,k) = 0.0;
                 }
                 else {
                     Real traceZ = stochcenx_u(i,j,k) + stochceny_v(i,j,k) + stochcenz_w(i,j,k);
@@ -621,8 +618,6 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
         #endif
 
         const Box& bx = mfi.growntilebox(1);
-        int lo = dom.smallEnd(0);
-        int hi = dom.bigEnd(0);
 
         Real half = 0.5;
 
@@ -644,7 +639,6 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                   tauyy(i,j,k) = 0.0; 
                   tauzz(i,j,k) = 0.0;
                 }
-                if ((i < dom.smallEnd(0)) or (i > dom.bigEnd(0))) tauxx(i,j,k) = 0.0;
             }
             else {
                 u_x = (velx(i+1,j,k) - velx(i,j,k))/dx[0];
@@ -743,7 +737,6 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                     dk[ns] = term1 + term2;
                     soret[ns] = 0.5*(chi(i-1,j,k,ns)*prim(i-1,j,k,6+nspecies+ns)+chi(i,j,k,ns)*prim(i,j,k,6+nspecies+ns))
                         *(prim(i,j,k,4)-prim(i-1,j,k,4))/dx[0]/meanT;
-//                    if ((i==0) and (j==0) and (k==0)) amrex::Print() << "Spec: " << ns << " " << term1  << " " << term2 << " " << soret[ns]  << "\n";
                 }
                         
 
@@ -752,7 +745,6 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                     Fk[kk] = 0.;
                     for (int ll=0; ll<nspecies; ++ll) {
                         Fk[kk] -= half*(Dij(i-1,j,k,ll*nspecies+kk)+Dij(i,j,k,ll*nspecies+kk))*( dk[ll] +soret[ll]);
-//                        if ((i==0) and (j==0) and (k==0)) amrex::Print() << "SpecA: " << kk << " SpecB: " << ll  << " " << -1.0*half*(Dij(i-1,j,k,ll*nspecies+kk)+Dij(i,j,k,ll*nspecies+kk)) << " " <<  "\n";
                     }
                 }
 
@@ -989,8 +981,6 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
         #endif
 
         const Box& bx = mfi.growntilebox(1);
-        int lo = dom.smallEnd(0);
-        int hi = dom.bigEnd(0);
 
         if (advection_type == 2) { // interpolate primitive quantities (fix this later for staggered grid -- Ishan)
             
@@ -1132,7 +1122,6 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
 
                 if (algorithm_type == 2) { // Add advection of concentration
                     for (int n=0; n<nspecies; ++n) {
-//                        if ((i==0) and (j==0) and (k==0)) amrex::Print() << "hyper spec: " << n << " " << 0.5*(cons(i-1,j,k,5+n)+cons(i,j,k,5+n))*velx(i,j,k) << "\n";
                         xflux(i,j,k,5+n) += 0.5*(cons(i-1,j,k,5+n)+cons(i,j,k,5+n))*velx(i,j,k);
                     }
                 }
