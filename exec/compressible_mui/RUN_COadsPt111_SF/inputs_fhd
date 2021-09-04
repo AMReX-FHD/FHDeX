@@ -90,7 +90,7 @@
   rhobar =  0.2 0.8
 
   ! Enter negative dof to use hcv & hcp values
-  dof =  5, 3
+  dof =  5 3
   hcv = -1 -1
   hcp = -1 -1
 
@@ -98,3 +98,6 @@
   plot_vars = 1
 /
 
+nspec_mui = 1
+
+mom_inertia = 1.456061e-39

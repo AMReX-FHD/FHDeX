@@ -66,11 +66,12 @@ AppSurfchemtest::AppSurfchemtest(SPPARKS *spk, int narg, char **arg) :
 
   ads_is_rate = false;
   dads_is_rate = false;
+  des_is_temp_dep = false;
 
   // reaction lists
   none = ntwo = nthree = nads = ndes = ndissocads = nassocdes = 0;
   srate = drate = trate = adsrate = desrate = dadsrate = adesrate = NULL;
-  spropensity = dpropensity = tpropensity = despropensity = adespropensity = NULL;   // no adspropensity
+  spropensity = dpropensity = tpropensity = adespropensity = NULL;   // no adspropensity/dadspropensity/despropensity
   stype = sinput = soutput = NULL;
   dtype = dinput = doutput = NULL;
   ttype = tinput = toutput = NULL;
@@ -112,7 +113,6 @@ AppSurfchemtest::~AppSurfchemtest()
   memory->destroy(spropensity);
   memory->destroy(dpropensity);
   memory->destroy(tpropensity);
-  memory->destroy(despropensity);
   memory->destroy(adespropensity);
   memory->destroy(stype);
   memory->destroy(sinput);
@@ -337,8 +337,11 @@ void AppSurfchemtest::input_app(char *command, int narg, char **arg)
       nads++;
       
     } else if (rstyle == 5) {   // desorption
-      if (narg != 5) error->all(FLERR,"Illegal event command");
-
+      if (narg < 5 || narg > 6) error->all(FLERR,"Illegal event command");
+      if (narg == 6) {
+        if (strcmp(arg[5],"temp_dep") == 0) des_is_temp_dep = true;
+        else error->all(FLERR,"Illegal event commnd");
+      }
       if (strcmp(arg[1],"siteA") == 0) destype[ndes] = SITEA;
       else if (strcmp(arg[1],"siteB") == 0) destype[ndes] = SITEB;
       else if (strcmp(arg[1],"siteC") == 0) destype[ndes] = SITEC;
@@ -668,7 +671,6 @@ void AppSurfchemtest::setup_app()
     adscount[m] = 0;
   }
   for (int m = 0; m < ndes; m++) {
-    despropensity[m] = desrate[m];
     descount[m] = 0;
   }
   for (int m = 0; m < ndissocads; m++) {
@@ -749,43 +751,47 @@ double AppSurfchemtest::site_propensity(int i)
   for (m = 0; m < nads; m++) {
     if (type[i] != adstype[m] || element[i] != adsinput[m]) continue;
     
-    if(ads_is_rate) adspropensity = adsrate[m];
-
-/*    
-    // propensity for adsorption = adsrate * num_dens * sqrt(site_temp/sys_temp)
-    if (adsoutput[m]==SPEC1) adspropensity = adsrate[m]*density1[i]*sqrt(temp[i]/temperature);
-    else if (adsoutput[m]==SPEC2) adspropensity = adsrate[m]*density2[i]*sqrt(temp[i]/temperature);
-    else if (adsoutput[m]==SPEC3) adspropensity = adsrate[m]*density3[i]*sqrt(temp[i]/temperature);
-    else if (adsoutput[m]==SPEC4) adspropensity = adsrate[m]*density4[i]*sqrt(temp[i]/temperature);
-    else if (adsoutput[m]==SPEC5) adspropensity = adsrate[m]*density5[i]*sqrt(temp[i]/temperature);
-    add_event(i,4,m,adspropensity,-1,-1);
-    proball += adspropensity;
-*/
-
-    // propensity for adsorption = adsrate * num_dens 
-    else {
-    if (adsoutput[m]==SPEC1) adspropensity = adsrate[m]*density1[i];
-    else if (adsoutput[m]==SPEC2) adspropensity = adsrate[m]*density2[i];
-    else if (adsoutput[m]==SPEC3) adspropensity = adsrate[m]*density3[i];
-    else if (adsoutput[m]==SPEC4) adspropensity = adsrate[m]*density4[i];
-    else if (adsoutput[m]==SPEC5) adspropensity = adsrate[m]*density5[i];
+    if (ads_is_rate) adspropensity = adsrate[m];
+    else
+    {
+      // propensity for adsorption = adsrate * num_dens * sqrt(site_temp/sys_temp)
+      if (adsoutput[m]==SPEC1) adspropensity = adsrate[m]*density1[i]*sqrt(temp[i]/temperature);
+      else if (adsoutput[m]==SPEC2) adspropensity = adsrate[m]*density2[i]*sqrt(temp[i]/temperature);
+      else if (adsoutput[m]==SPEC3) adspropensity = adsrate[m]*density3[i]*sqrt(temp[i]/temperature);
+      else if (adsoutput[m]==SPEC4) adspropensity = adsrate[m]*density4[i]*sqrt(temp[i]/temperature);
+      else if (adsoutput[m]==SPEC5) adspropensity = adsrate[m]*density5[i]*sqrt(temp[i]/temperature);
     }
+/*
+    else
+    {
+      // propensity for adsorption = adsrate * num_dens
+      if (adsoutput[m]==SPEC1) adspropensity = adsrate[m]*density1[i];
+      else if (adsoutput[m]==SPEC2) adspropensity = adsrate[m]*density2[i];
+      else if (adsoutput[m]==SPEC3) adspropensity = adsrate[m]*density3[i];
+      else if (adsoutput[m]==SPEC4) adspropensity = adsrate[m]*density4[i];
+      else if (adsoutput[m]==SPEC5) adspropensity = adsrate[m]*density5[i];
+    }
+*/
     add_event(i,4,m,adspropensity,-1,-1);
     proball += adspropensity;
-
-/*
-    // simpler rate
-    add_event(i,4,m,adsrate[m],-1,-1);
-    proball += adsrate[m];
-*/
   }
 
   // desorption events
 
+  double despropensity;
+
   for (m = 0; m < ndes; m++) {
     if (type[i] != destype[m] || element[i] != desinput[m]) continue;
-    add_event(i,5,m,despropensity[m],-1,-1);
-    proball += despropensity[m];
+
+    if (des_is_temp_dep)
+    {
+      double cphat = 3.5;
+      despropensity = desrate[m]*std::pow(temp[i]/temperature,cphat-0.5);
+    }
+    else despropensity = desrate[m];
+
+    add_event(i,5,m,despropensity,-1,-1);
+    proball += despropensity;
   }
 
   // dissociative adsorption events
@@ -1049,7 +1055,6 @@ void AppSurfchemtest::grow_reactions(int rstyle)
   } else if (rstyle == 5) {
     int n = ndes + 1;
     memory->grow(desrate,n,"app/surfchemtest:desrate");
-    memory->grow(despropensity,n,"app/surfchemtest:despropensity");
     memory->grow(destype,n,"app/surfchemtest:destype");
     memory->grow(desinput,n,"app/surfchemtest:desinput");
     memory->grow(desoutput,n,"app/surfchemtest:desoutput");
@@ -1457,7 +1462,16 @@ void AppSurfchemtest::mui_fetch_agg(int narg, char **arg)
       // distribute info to each KMC site
       for (int i=0;i<nlocal;i++)
         density1[i] = MUIdblval[localFHDcell[i]];
-    } else {
+    }
+    else if (strcmp(arg[k],"temp") == 0) {
+      // get info for each FHD cell
+      for (int n=0;n<nlocalFHDcell;n++)
+        MUIdblval[n] = spk->uniface->fetch("CH_temp",{xFHD[n],yFHD[n]},timestamp,s,t);
+      // distribute info to each KMC site
+      for (int i=0;i<nlocal;i++)
+        temp[i] = MUIdblval[localFHDcell[i]];
+    }
+    else {
       error->all(FLERR,"Illegal mui_fetch_agg command");
     }
 

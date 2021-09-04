@@ -91,7 +91,8 @@ extern "C"
             const void *       pos_marker,
             const void *       v_marker,
             const int *        n_marker,
-            const amrex_real * dx, const int * ghost
+            const amrex_real * dx, const int * ghost,
+            const int * pkernel_fluid_in
         );
 
     void inv_interpolate_markers(
@@ -106,7 +107,8 @@ extern "C"
             const void *       pos_marker,
             const void *       v_marker,
             const int *        n_marker,
-            const amrex_real * dx
+            const amrex_real * dx,
+            const int * pkernel_fluid_in
         );
 
     void interpolate_markers(
@@ -124,7 +126,8 @@ extern "C"
             const void *       pos_marker,
                   void *       v_marker,
             const int *        n_marker,
-            const amrex_real * dx
+            const amrex_real * dx,
+            const int * pkernel_fluid_in
         );
 
     void inv_spread_markers(
@@ -139,7 +142,8 @@ extern "C"
             const void *       pos_marker,
                   void *       v_marker,
             const int *        n_marker,
-            const amrex_real * dx
+            const amrex_real * dx,
+            const int * pkernel_fluid_in
         );
 
     void interpolate_ib_staggered(
