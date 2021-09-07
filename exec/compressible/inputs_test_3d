@@ -86,9 +86,9 @@
   #--------------
   nspecies = 2
 
-  molmass = 39.9480, 39.9480
-  diameter = 3.63e-8, 3.63e-8
-  rhobar =  0.5, 0.5
+  molmass = 39.9480 39.9480
+  diameter = 3.63e-8 3.63e-8
+  rhobar =  0.5 0.5
 
   #Enter negative dof to use hcv & hcp values
   dof =  3 3
