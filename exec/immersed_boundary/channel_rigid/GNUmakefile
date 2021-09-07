@@ -36,9 +36,6 @@ include ../../../src_analysis/Make.package
 VPATH_LOCATIONS   += ../../../src_analysis/
 INCLUDE_LOCATIONS += ../../../src_analysis/
 
-include ../../../src_rng/src_F90/Make.package
-VPATH_LOCATIONS   += ../../../src_rng/src_F90
-INCLUDE_LOCATIONS += ../../../src_rng/src_F90
 
 include ../../../src_rng/Make.package
 VPATH_LOCATIONS   += ../../../src_rng/
@@ -48,9 +45,6 @@ include ../../../src_gmres/Make.package
 VPATH_LOCATIONS   += ../../../src_gmres/
 INCLUDE_LOCATIONS += ../../../src_gmres/
 
-include ../../../src_common/src_F90/Make.package
-VPATH_LOCATIONS   += ../../../src_common/src_F90
-INCLUDE_LOCATIONS += ../../../src_common/src_F90
 
 include ../../../src_common/Make.package
 VPATH_LOCATIONS   += ../../../src_common/

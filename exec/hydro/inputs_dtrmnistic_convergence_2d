@@ -1,58 +1,58 @@
-&common
-  ! Problem specification
 
-  ! physical hi & lo coordinate
-  prob_lo(1:2) = 0.0 0.0	 
-  prob_hi(1:2) = 256000. 256000.
+  # Problem specification
+
+  # physical hi & lo coordinate
+  prob_lo = 0.0 0.0	 
+  prob_hi = 256000. 256000.
   cell_depth = 1.0
 
-  ! if prob_type = 0, zero initial velocity
-  ! if prob_type = 1, vortex
-  ! if prob_type = 2, KH - sine
-  ! if prob_type = 3, KH - smooth
+  # if prob_type = 0, zero initial velocity
+  # if prob_type = 1, vortex
+  # if prob_type = 2, KH - sine
+  # if prob_type = 3, KH - smooth
   prob_type = 1
   
-  ! number of cells in domain
-  n_cells(1:2) = 256 256
-  ! max number of cells in a box
-  max_grid_size(1:2) = 128 128
+  # number of cells in domain
+  n_cells = 256 256
+  # max number of cells in a box
+  max_grid_size = 128 128
 
-  ! Time-step control
+  # Time-step control
   fixed_dt = 200
 
-  ! Controls for number of steps between actions
+  # Controls for number of steps between actions
   max_step = 040
   plot_int = 040
 
-  ! Viscous friction L phi operator
-  ! if abs(visc_type) = 1, L = div beta grad
-  ! if abs(visc_type) = 2, L = div [ beta (grad + grad^T) ]
-  ! if abs(visc_type) = 3, L = div [ beta (grad + grad^T) + I (gamma - (2/3)*beta) div ]
-  ! positive = assume constant coefficients
-  ! negative = assume spatially-varying coefficients
+  # Viscous friction L phi operator
+  # if abs(visc_type) = 1, L = div beta grad
+  # if abs(visc_type) = 2, L = div [ beta (grad + grad^T) ]
+  # if abs(visc_type) = 3, L = div [ beta (grad + grad^T) + I (gamma - (2/3)*beta) div ]
+  # positive = assume constant coefficients
+  # negative = assume spatially-varying coefficients
 
-  visc_coef = 1000.0  ! [units: g*cm-1*s-1] dynamic (shear) viscosity
+  visc_coef = 1000.0  # [units: g*cm-1*s-1] dynamic (shear) viscosity
 
   visc_type = 2
 
-  ! Stochastic parameters
+  # Stochastic parameters
   variance_coef_mom = 0.
   initial_variance_mom = 0.
 
-  k_B = 1.0	             	! [units: cm2*g*s-2*K-1]
-  T_init(1) = 1.0		! [units: K]
+  k_B = 1.0	             	# [units: cm2*g*s-2*K-1]
+  T_init = 1.0		# [units: K]
 
   struct_fact_int = 0
   n_steps_skip = 0
 
-  ! Boundary conditions
-  ! ----------------------
-  ! BC specifications:
-  ! -1 = periodic
-  bc_vel_lo(1:2) = -1 -1
-  bc_vel_hi(1:2) = -1 -1
+  # Boundary conditions
+  # ----------------------
+  # BC specifications:
+  # -1 = periodic
+  bc_vel_lo = -1 -1
+  bc_vel_hi = -1 -1
 
-/
+
 
   mg_verbose = 0                  # multigrid verbosity
 
