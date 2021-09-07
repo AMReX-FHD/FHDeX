@@ -175,30 +175,36 @@ void InitializeMultispecNamespace() {
     pp.query("n_gex",n_gex);
     pp.query("chi_iterations",chi_iterations);
     pp.query("temp_type",temp_type);
-    pp.queryarr("c_init_1",temp);
-    for (int i=0; i<MAX_SPECIES; ++i) {
-        c_init_1[i] = temp[i];
+    if(pp.queryarr("c_init_1",temp)) {
+        for (int i=0; i<MAX_SPECIES; ++i) {
+            c_init_1[i] = temp[i];
+        }
     }
-    pp.queryarr("c_init_2",temp);
-    for (int i=0; i<MAX_SPECIES; ++i) {
-        c_init_2[i] = temp[i];
+    if(pp.queryarr("c_init_2",temp)) {
+        for (int i=0; i<MAX_SPECIES; ++i) {
+            c_init_2[i] = temp[i];
+        }
     }
-    pp.queryarr("Dtherm",temp);
-    for (int i=0; i<MAX_SPECIES; ++i) {
-       Dtherm[i] = temp[i];
+    if(pp.queryarr("Dtherm",temp)) {
+        for (int i=0; i<MAX_SPECIES; ++i) {
+            Dtherm[i] = temp[i];
+        }
     }
-    pp.queryarr("H_diag",temp);
-    for (int i=0; i<MAX_SPECIES; ++i) {
-       H_diag[i] = temp[i];
+    if(pp.queryarr("H_diag",temp)) {
+        for (int i=0; i<MAX_SPECIES; ++i) {
+            H_diag[i] = temp[i];
+        }
     }
-    pp.queryarr("Dbar",temp);
-    for (int i=0; i<MAX_ELEMENT; ++i) {
-        Dbar[i] = temp[i];
+    if(pp.queryarr("Dbar",temp)) {
+        for (int i=0; i<MAX_ELEMENT; ++i) {
+            Dbar[i] = temp[i];
+        }
     }
-    pp.queryarr("H_offdiag",temp);
-    for (int i=0; i<MAX_ELEMENT; ++i) {
-        H_offdiag[i] = temp[i];
-    }    
+    if(pp.queryarr("H_offdiag",temp)) {
+        for (int i=0; i<MAX_ELEMENT; ++i) {
+            H_offdiag[i] = temp[i];
+        } 
+    }   
     pp.query("midpoint_stoch_mass_flux_type",midpoint_stoch_mass_flux_type);
     pp.query("avg_type",avg_type);
     pp.query("mixture_type",mixture_type);
@@ -206,9 +212,10 @@ void InitializeMultispecNamespace() {
     pp.query("print_debye_len",print_debye_len);
     pp.query("dielectric_const",dielectric_const);
     pp.query("dielectric_type",dielectric_type);
-    pp.queryarr("charge_per_mass",temp);
-    for (int i=0; i<MAX_SPECIES; ++i) {
-       charge_per_mass[i] = temp[i];
+    if(pp.queryarr("charge_per_mass",temp)) {
+        for (int i=0; i<MAX_SPECIES; ++i) {
+            charge_per_mass[i] = temp[i];
+        }
     }
     pp.query("bc_function_type",bc_function_type);
     pp.query("L_pos",L_pos);
@@ -218,9 +225,10 @@ void InitializeMultispecNamespace() {
     pp.query("num_pot_iters",num_pot_iters);
     pp.query("dpdt_factor",dpdt_factor);
     pp.query("E_ext_type",E_ext_type);
-    pp.queryarr("E_ext_value",temp);
-    for (int i=0; i<3; ++i) {
-       E_ext_value[i] = temp[i];
+    if(pp.queryarr("E_ext_value",temp)) {
+        for (int i=0; i<3; ++i) {
+            E_ext_value[i] = temp[i];
+        }
     }
     pp.query("electroneutral",electroneutral);
     pp.query("induced_charge_eo",induced_charge_eo);
