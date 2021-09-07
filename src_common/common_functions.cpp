@@ -734,37 +734,37 @@ void InitializeCommonNamespace() {
     pp.query("initial_variance_mom",initial_variance_mom);
     pp.query("initial_variance_mass",initial_variance_mass);
     pp.query("domega",domega);
-    pp.queryarr("bc_vel_lo",temp);
+    pp.queryarr("bc_vel_lo",temp_int);
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
-        bc_vel_lo[i] = temp[i];
+        bc_vel_lo[i] = temp_int[i];
     }
-    pp.queryarr("bc_vel_hi",temp);
+    pp.queryarr("bc_vel_hi",temp_int);
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
-        bc_vel_hi[i] = temp[i];
+        bc_vel_hi[i] = temp_int[i];
     }
-    pp.queryarr("bc_es_lo",temp);
+    pp.queryarr("bc_es_lo",temp_int);
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
-        bc_es_lo[i] = temp[i];
+        bc_es_lo[i] = temp_int[i];
     }
-    pp.queryarr("bc_es_hi",temp);
+    pp.queryarr("bc_es_hi",temp_int);
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
-        bc_es_hi[i] = temp[i];
+        bc_es_hi[i] = temp_int[i];
     }
-    pp.queryarr("bc_mass_lo",temp);
+    pp.queryarr("bc_mass_lo",temp_int);
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
-        bc_mass_lo[i] = temp[i];
+        bc_mass_lo[i] = temp_int[i];
     }
-    pp.queryarr("bc_mass_hi",temp);
+    pp.queryarr("bc_mass_hi",temp_int);
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
-        bc_mass_hi[i] = temp[i];
+        bc_mass_hi[i] = temp_int[i];
     }
-    pp.queryarr("bc_therm_lo",temp);
+    pp.queryarr("bc_therm_lo",temp_int);
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
-        bc_therm_lo[i] = temp[i];
+        bc_therm_lo[i] = temp_int[i];
     }
-    pp.queryarr("bc_therm_hi",temp);
+    pp.queryarr("bc_therm_hi",temp_int);
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
-        bc_therm_hi[i] = temp[i];
+        bc_therm_hi[i] = temp_int[i];
     }
     pp.queryarr("p_lo",temp);
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
@@ -888,9 +888,9 @@ void InitializeCommonNamespace() {
     pp.queryarr("particle_n0",particle_n0);
     pp.queryarr("mass",mass);
     pp.queryarr("nfrac",nfrac);
-    pp.queryarr("p_int_tog",temp);
+    pp.queryarr("p_int_tog",temp_int);
     for (int i=0; i<MAX_SPECIES*MAX_SPECIES; ++i) {
-        p_int_tog[i] = temp[i];
+        p_int_tog[i] = temp_int[i];
     }
     pp.queryarr("eepsilon",temp);
     for (int i=0; i<MAX_SPECIES*MAX_SPECIES; ++i) {
@@ -928,9 +928,9 @@ void InitializeCommonNamespace() {
     for (int i=0; i<MAX_SPECIES; ++i) {
         phi_domain[i] = temp[i];
     }
-    pp.queryarr("p_int_tog_wall",temp);
+    pp.queryarr("p_int_tog_wall",temp_int);
     for (int i=0; i<MAX_SPECIES; ++i) {
-        p_int_tog_wall[i] = temp[i];
+        p_int_tog_wall[i] = temp_int[i];
     }
     pp.queryarr("eepsilon_wall",temp);
     for (int i=0; i<MAX_SPECIES; ++i) {
