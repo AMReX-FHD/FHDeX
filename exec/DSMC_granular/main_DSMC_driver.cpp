@@ -20,8 +20,6 @@ void main_driver(const char* argv)
 	Real strt_time = ParallelDescriptor::second();
 	std::string inputs_file = argv;
 
-	read_common_namelist(inputs_file.c_str(),inputs_file.size()+1);
-
 	InitializeCommonNamespace();
 	InitializeGmresNamespace();
 
