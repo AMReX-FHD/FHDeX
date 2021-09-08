@@ -612,6 +612,8 @@ void InitializeCommonNamespace() {
     // pp.get aborts if the parameter is not found
     // pp.getarr and queryarr("string",inputs,start_indx,count); can be used for arrays
 
+    pp.query("nspecies",nspecies);
+    
     if (pp.queryarr("prob_lo",temp)) {
         for (int i=0; i<3; ++i) {
             prob_lo[i] = temp[i];
@@ -622,15 +624,15 @@ void InitializeCommonNamespace() {
             prob_hi[i] = temp[i];
         }
     }
-    if (pp.queryarr("n_cells",temp_int)) {
+    if (pp.queryarr("n_cells",temp_int,0,AMREX_SPACEDIM)) {
         for (int i=0; i<AMREX_SPACEDIM; ++i) {
             n_cells[i] = temp_int[i];
         }
     }
-    pp.queryarr("max_grid_size",max_grid_size);
-    pp.queryarr("max_particle_tile_size",max_particle_tile_size);
+    pp.queryarr("max_grid_size",max_grid_size,0,AMREX_SPACEDIM);
+    pp.queryarr("max_particle_tile_size",max_particle_tile_size,0,AMREX_SPACEDIM);
     pp.query("cell_depth",cell_depth);
-    if (pp.queryarr("ngc",temp_int)) {
+    if (pp.queryarr("ngc",temp_int,0,AMREX_SPACEDIM)) {
         for (int i=0; i<AMREX_SPACEDIM; ++i) {
             ngc[i] = temp_int[i];
         }
@@ -640,32 +642,32 @@ void InitializeCommonNamespace() {
     pp.query("membrane_cell",membrane_cell);
     pp.query("cross_cell",cross_cell);
     pp.query("do_slab_sf",do_slab_sf);
-    if (pp.queryarr("transmission",temp)) {
-        for (int i=0; i<MAX_SPECIES; ++i) {
+    if (pp.queryarr("transmission",temp,0,nspecies)) {
+        for (int i=0; i<nspecies; ++i) {
             transmission[i] = temp[i];
         }
     }
-    if (pp.queryarr("pkernel_fluid",temp_int)) {
-        for (int i=0; i<MAX_SPECIES; ++i) {
+    if (pp.queryarr("pkernel_fluid",temp_int,0,nspecies)) {
+        for (int i=0; i<nspecies; ++i) {
             pkernel_fluid[i] = temp_int[i];
         }
     }
-    if (pp.queryarr("pkernel_es",temp_int)) {
-        for (int i=0; i<MAX_SPECIES; ++i) {
+    if (pp.queryarr("pkernel_es",temp_int,0,nspecies)) {
+        for (int i=0; i<nspecies; ++i) {
             pkernel_es[i] = temp_int[i];
         }
     }
-    if (pp.queryarr("eskernel_fluid",temp_int)) {
-        for (int i=0; i<MAX_SPECIES; ++i) {
+    if (pp.queryarr("eskernel_fluid",temp_int,0,nspecies)) {
+        for (int i=0; i<nspecies; ++i) {
             eskernel_fluid[i] = temp_int[i];
         }
     }
-    if (pp.queryarr("eskernel_beta",temp)) {
-        for (int i=0; i<MAX_SPECIES; ++i) {
+    if (pp.queryarr("eskernel_beta",temp,0,nspecies)) {
+        for (int i=0; i<nspecies; ++i) {
             eskernel_beta[i] = temp[i];
         }
     }
-    pp.queryarr("qval",qval);
+    pp.queryarr("qval",qval,0,nspecies);
     pp.query("fixed_dt",fixed_dt);
     pp.query("cfl",cfl);
     pp.query("rfd_delta",rfd_delta);
@@ -681,45 +683,44 @@ void InitializeCommonNamespace() {
     pp.query("particle_restart",particle_restart);
     pp.query("print_int",print_int);
     pp.query("project_eos_int",project_eos_int);    
-    if (pp.queryarr("grav",temp)) {
+    if (pp.queryarr("grav",temp,0,AMREX_SPACEDIM)) {
         for (int i=0; i<AMREX_SPACEDIM; ++i) {
             grav[i] = temp[i];
         }
     }
-    pp.query("nspecies",nspecies);
-    if (pp.queryarr("molmass",temp)) {
-        for (int i=0; i<MAX_SPECIES; ++i) {
+    if (pp.queryarr("molmass",temp,0,nspecies)) {
+        for (int i=0; i<nspecies; ++i) {
             molmass[i] = temp[i];
         }
     }
-    if (pp.queryarr("rhobar",temp)) {
-        for (int i=0; i<MAX_SPECIES; ++i) {
+    if (pp.queryarr("rhobar",temp,0,nspecies)) {
+        for (int i=0; i<nspecies; ++i) {
             rhobar[i] = temp[i];
         }
     }
     pp.query("rho0",rho0);
-    if (pp.queryarr("diameter",temp)) {
-        for (int i=0; i<MAX_SPECIES; ++i) {
+    if (pp.queryarr("diameter",temp,0,nspecies)) {
+        for (int i=0; i<nspecies; ++i) {
             diameter[i] = temp[i];
         }
     }
-    if (pp.queryarr("dof",temp)) {
-        for (int i=0; i<MAX_SPECIES; ++i) {
+    if (pp.queryarr("dof",temp,0,nspecies)) {
+        for (int i=0; i<nspecies; ++i) {
             dof[i] = temp[i];
         }
     }
-    if (pp.queryarr("e0",temp)) {
-        for (int i=0; i<MAX_SPECIES; ++i) {
+    if (pp.queryarr("e0",temp,0,nspecies)) {
+        for (int i=0; i<nspecies; ++i) {
             e0[i] = temp[i];
         }
     }
-    if (pp.queryarr("hcv",temp)) {
-        for (int i=0; i<MAX_SPECIES; ++i) {
+    if (pp.queryarr("hcv",temp,0,nspecies)) {
+        for (int i=0; i<nspecies; ++i) {
             hcv[i] = temp[i];
         }
     }
-    if (pp.queryarr("hcp",temp)) {
-        for (int i=0; i<MAX_SPECIES; ++i) {
+    if (pp.queryarr("hcp",temp,0,nspecies)) {
+        for (int i=0; i<nspecies; ++i) {
             hcp[i] = temp[i];
         }
     }
@@ -728,7 +729,7 @@ void InitializeCommonNamespace() {
     pp.query("k_B",k_B);
     pp.query("Runiv",Runiv);
     if (pp.queryarr("T_init",temp)) {
-        for (int i=0; i<MAX_SPECIES; ++i) {
+        for (int i=0; i<nspecies; ++i) {
             T_init[i] = temp[i];
         }
     }
@@ -746,154 +747,154 @@ void InitializeCommonNamespace() {
     pp.query("advection_type",advection_type);
     pp.query("filtering_width",filtering_width);
     pp.query("stoch_stress_form",stoch_stress_form);
-    pp.queryarr("u_init",u_init);
+    pp.queryarr("u_init",u_init,0,2);
     pp.query("perturb_width",perturb_width);
     pp.query("smoothing_width",smoothing_width);
     pp.query("initial_variance_mom",initial_variance_mom);
     pp.query("initial_variance_mass",initial_variance_mass);
     pp.query("domega",domega);
-    if (pp.queryarr("bc_vel_lo",temp_int)) {
+    if (pp.queryarr("bc_vel_lo",temp_int,0,AMREX_SPACEDIM)) {
         for (int i=0; i<AMREX_SPACEDIM; ++i) {
             bc_vel_lo[i] = temp_int[i];
         }
     }
-    if (pp.queryarr("bc_vel_hi",temp_int)) {
+    if (pp.queryarr("bc_vel_hi",temp_int,0,AMREX_SPACEDIM)) {
         for (int i=0; i<AMREX_SPACEDIM; ++i) {
             bc_vel_hi[i] = temp_int[i];
         }
     }
-    if (pp.queryarr("bc_es_lo",temp_int)) {
+    if (pp.queryarr("bc_es_lo",temp_int,0,AMREX_SPACEDIM)) {
         for (int i=0; i<AMREX_SPACEDIM; ++i) {
             bc_es_lo[i] = temp_int[i];
         }
     }
-    if (pp.queryarr("bc_es_hi",temp_int)) {
+    if (pp.queryarr("bc_es_hi",temp_int,0,AMREX_SPACEDIM)) {
         for (int i=0; i<AMREX_SPACEDIM; ++i) {
             bc_es_hi[i] = temp_int[i];
         }
     }
-    if (pp.queryarr("bc_mass_lo",temp_int)) {
+    if (pp.queryarr("bc_mass_lo",temp_int,0,AMREX_SPACEDIM)) {
         for (int i=0; i<AMREX_SPACEDIM; ++i) {
             bc_mass_lo[i] = temp_int[i];
         }
     }
-    if (pp.queryarr("bc_mass_hi",temp_int)) {
+    if (pp.queryarr("bc_mass_hi",temp_int,0,AMREX_SPACEDIM)) {
         for (int i=0; i<AMREX_SPACEDIM; ++i) {
             bc_mass_hi[i] = temp_int[i];
         }
     }
-    if (pp.queryarr("bc_therm_lo",temp_int)) {
+    if (pp.queryarr("bc_therm_lo",temp_int,0,AMREX_SPACEDIM)) {
         for (int i=0; i<AMREX_SPACEDIM; ++i) {
             bc_therm_lo[i] = temp_int[i];
         }
     }
-    if (pp.queryarr("bc_therm_hi",temp_int)) {
+    if (pp.queryarr("bc_therm_hi",temp_int,0,AMREX_SPACEDIM)) {
         for (int i=0; i<AMREX_SPACEDIM; ++i) {
             bc_therm_hi[i] = temp_int[i];
         }
     }
-    if (pp.queryarr("p_lo",temp)) {
+    if (pp.queryarr("p_lo",temp,0,AMREX_SPACEDIM)) {
         for (int i=0; i<AMREX_SPACEDIM; ++i) {
             p_lo[i] = temp[i];
         }
     }
-    if (pp.queryarr("p_hi",temp)) {
+    if (pp.queryarr("p_hi",temp,0,AMREX_SPACEDIM)) {
         for (int i=0; i<AMREX_SPACEDIM; ++i) {
             p_hi[i] = temp[i];
         }
     }
-    if (pp.queryarr("t_lo",temp)) {
+    if (pp.queryarr("t_lo",temp,0,AMREX_SPACEDIM)) {
         for (int i=0; i<AMREX_SPACEDIM; ++i) {
             t_lo[i] = temp[i];
         }
     }
-    if (pp.queryarr("t_hi",temp)) {
+    if (pp.queryarr("t_hi",temp,0,AMREX_SPACEDIM)) {
         for (int i=0; i<AMREX_SPACEDIM; ++i) {
             t_hi[i] = temp[i];
         }
     }
-    if (pp.queryarr("rho_lo",temp)) {
+    if (pp.queryarr("rho_lo",temp,0,AMREX_SPACEDIM)) {
         for (int i=0; i<AMREX_SPACEDIM; ++i) {
             rho_lo[i] = temp[i];
         }
     }
-    if (pp.queryarr("rho_hi",temp)) {
+    if (pp.queryarr("rho_hi",temp,0,AMREX_SPACEDIM)) {
         for (int i=0; i<AMREX_SPACEDIM; ++i) {
             rho_hi[i] = temp[i];
         }
     }
-    if (pp.queryarr("n_lo",temp)) {
+    if (pp.queryarr("n_lo",temp,0,AMREX_SPACEDIM)) {
         for (int i=0; i<AMREX_SPACEDIM; ++i) {
             n_lo[i] = temp[i];
         }
     }
-    if (pp.queryarr("n_hi",temp)) {
+    if (pp.queryarr("n_hi",temp,0,AMREX_SPACEDIM)) {
         for (int i=0; i<AMREX_SPACEDIM; ++i) {
             n_hi[i] = temp[i];
         }
     }
-    if (pp.queryarr("Yk0",temp)) {
-        for (int i=0; i<MAX_SPECIES; ++i) {
+    if (pp.queryarr("Yk0",temp,0,nspecies)) {
+        for (int i=0; i<nspecies; ++i) {
             Yk0[i] = temp[i];
         }
     }
-    if (pp.queryarr("bc_Yk_x_lo",temp)) {
-        for (int i=0; i<MAX_SPECIES; ++i) {
+    if (pp.queryarr("bc_Yk_x_lo",temp,0,nspecies)) {
+        for (int i=0; i<nspecies; ++i) {
             bc_Yk_x_lo[i] = temp[i];
         }
     }
-    if (pp.queryarr("bc_Yk_x_hi",temp)) {
-        for (int i=0; i<MAX_SPECIES; ++i) {
+    if (pp.queryarr("bc_Yk_x_hi",temp,0,nspecies)) {
+        for (int i=0; i<nspecies; ++i) {
             bc_Yk_x_hi[i] = temp[i];
         }
     }
-    if (pp.queryarr("bc_Yk_y_lo",temp)) {
-        for (int i=0; i<MAX_SPECIES; ++i) {
+    if (pp.queryarr("bc_Yk_y_lo",temp,0,nspecies)) {
+        for (int i=0; i<nspecies; ++i) {
             bc_Yk_y_lo[i] = temp[i];
         }
     }
-    if (pp.queryarr("bc_Yk_y_hi",temp)) {
-        for (int i=0; i<MAX_SPECIES; ++i) {
+    if (pp.queryarr("bc_Yk_y_hi",temp,0,nspecies)) {
+        for (int i=0; i<nspecies; ++i) {
             bc_Yk_y_hi[i] = temp[i];
         }
     }
-    if (pp.queryarr("bc_Yk_z_lo",temp)) {
-        for (int i=0; i<MAX_SPECIES; ++i) {
+    if (pp.queryarr("bc_Yk_z_lo",temp,0,nspecies)) {
+        for (int i=0; i<nspecies; ++i) {
             bc_Yk_z_lo[i] = temp[i];
         }
     }
-    if (pp.queryarr("bc_Yk_z_hi",temp)) {
-        for (int i=0; i<MAX_SPECIES; ++i) {
+    if (pp.queryarr("bc_Yk_z_hi",temp,0,nspecies)) {
+        for (int i=0; i<nspecies; ++i) {
             bc_Yk_z_hi[i] = temp[i];
         }
     }
-    if (pp.queryarr("bc_Xk_x_lo",temp)) {
-        for (int i=0; i<MAX_SPECIES; ++i) {
+    if (pp.queryarr("bc_Xk_x_lo",temp,0,nspecies)) {
+        for (int i=0; i<nspecies; ++i) {
             bc_Xk_x_lo[i] = temp[i];
         }
     }
-    if (pp.queryarr("bc_Xk_x_hi",temp)) {
-        for (int i=0; i<MAX_SPECIES; ++i) {
+    if (pp.queryarr("bc_Xk_x_hi",temp,0,nspecies)) {
+        for (int i=0; i<nspecies; ++i) {
             bc_Xk_x_hi[i] = temp[i];
         }
     }
-    if (pp.queryarr("bc_Xk_y_lo",temp)) {
-        for (int i=0; i<MAX_SPECIES; ++i) {
+    if (pp.queryarr("bc_Xk_y_lo",temp,0,nspecies)) {
+        for (int i=0; i<nspecies; ++i) {
             bc_Xk_y_lo[i] = temp[i];
         }
     }
-    if (pp.queryarr("bc_Xk_y_hi",temp)) {
-        for (int i=0; i<MAX_SPECIES; ++i) {
+    if (pp.queryarr("bc_Xk_y_hi",temp,0,nspecies)) {
+        for (int i=0; i<nspecies; ++i) {
             bc_Xk_y_hi[i] = temp[i];
         }
     }
-    if (pp.queryarr("bc_Xk_z_lo",temp)) {
-        for (int i=0; i<MAX_SPECIES; ++i) {
+    if (pp.queryarr("bc_Xk_z_lo",temp,0,nspecies)) {
+        for (int i=0; i<nspecies; ++i) {
             bc_Xk_z_lo[i] = temp[i];
         }
     }
-    if (pp.queryarr("bc_Xk_z_hi",temp)) {
-        for (int i=0; i<MAX_SPECIES; ++i) {
+    if (pp.queryarr("bc_Xk_z_hi",temp,0,nspecies)) {
+        for (int i=0; i<nspecies; ++i) {
             bc_Xk_z_hi[i] = temp[i];
         }
     }
@@ -903,14 +904,14 @@ void InitializeCommonNamespace() {
     pp.query("bc_rhotot_y_lo",bc_rhotot_y_hi);
     pp.query("bc_rhotot_z_lo",bc_rhotot_z_lo);
     pp.query("bc_rhotot_z_lo",bc_rhotot_z_hi);
-    pp.queryarr("wallspeed_lo",wallspeed_lo);
-    pp.queryarr("wallspeed_hi",wallspeed_hi);
-    if (pp.queryarr("potential_lo",temp)) {
+    pp.queryarr("wallspeed_lo",wallspeed_lo,0,(AMREX_SPACEDIM-1)*AMREX_SPACEDIM);
+    pp.queryarr("wallspeed_hi",wallspeed_hi,0,(AMREX_SPACEDIM-1)*AMREX_SPACEDIM);
+    if (pp.queryarr("potential_lo",temp,0,AMREX_SPACEDIM)) {
         for (int i=0; i<AMREX_SPACEDIM; ++i) {
             potential_lo[i] = temp[i];
         }
     }
-    if (pp.queryarr("potential_hi",temp)) {
+    if (pp.queryarr("potential_hi",temp,0,AMREX_SPACEDIM)) {
         for (int i=0; i<AMREX_SPACEDIM; ++i) {
             potential_hi[i] = temp[i];
         }
@@ -924,91 +925,91 @@ void InitializeCommonNamespace() {
     pp.query("searchDist",searchDist);
     pp.query("project_dir",project_dir);
     pp.query("slicepoint",slicepoint);
-    pp.queryarr("max_grid_projection",max_grid_projection);
+    pp.queryarr("max_grid_projection",max_grid_projection,0,AMREX_SPACEDIM-1);
     pp.query("histogram_unit",histogram_unit);
-    pp.queryarr("density_weights",density_weights);
-    pp.queryarr("shift_cc_to_boundary",shift_cc_to_boundary);
+    pp.queryarr("density_weights",density_weights,0,nspecies);
+    pp.queryarr("shift_cc_to_boundary",shift_cc_to_boundary,0,AMREX_SPACEDIM*2);
     pp.query("particle_placement",particle_placement);
     pp.query("particle_input",particle_input);
-    pp.queryarr("particle_count",particle_count);
-    pp.queryarr("p_move_tog",p_move_tog);
-    pp.queryarr("p_force_tog",p_force_tog);
+    pp.queryarr("particle_count",particle_count,0,nspecies);
+    pp.queryarr("p_move_tog",p_move_tog,0,nspecies);
+    pp.queryarr("p_force_tog",p_force_tog,0,nspecies);
     pp.query("particle_neff",particle_neff);
-    pp.queryarr("particle_n0",particle_n0);
-    pp.queryarr("mass",mass);
-    pp.queryarr("nfrac",nfrac);
-    if (pp.queryarr("p_int_tog",temp_int)) {
-        for (int i=0; i<MAX_SPECIES*MAX_SPECIES; ++i) {
+    pp.queryarr("particle_n0",particle_n0,0,nspecies);
+    pp.queryarr("mass",mass,0,nspecies);
+    pp.queryarr("nfrac",nfrac,0,nspecies);
+    if (pp.queryarr("p_int_tog",temp_int,0,nspecies*nspecies)) {
+        for (int i=0; i<nspecies*nspecies; ++i) {
             p_int_tog[i] = temp_int[i];
         }
     }
-    if (pp.queryarr("eepsilon",temp)) {
-        for (int i=0; i<MAX_SPECIES*MAX_SPECIES; ++i) {
+    if (pp.queryarr("eepsilon",temp,0,nspecies*nspecies)) {
+        for (int i=0; i<nspecies*nspecies; ++i) {
             eepsilon[i] = temp[i];
         }
     }
-    if (pp.queryarr("sigma",temp)) {
-        for (int i=0; i<MAX_SPECIES*MAX_SPECIES; ++i) {
+    if (pp.queryarr("sigma",temp,0,nspecies*nspecies)) {
+        for (int i=0; i<nspecies*nspecies; ++i) {
             sigma[i] = temp[i];
         }
     }
-    if (pp.queryarr("rmin",temp)) {
-        for (int i=0; i<MAX_SPECIES*MAX_SPECIES; ++i) {
+    if (pp.queryarr("rmin",temp,0,nspecies*nspecies)) {
+        for (int i=0; i<nspecies*nspecies; ++i) {
             rmin[i] = temp[i];
         }
     }
-    if (pp.queryarr("rmax",temp)) {
-        for (int i=0; i<MAX_SPECIES*MAX_SPECIES; ++i) {
+    if (pp.queryarr("rmax",temp,0,nspecies*nspecies)) {
+        for (int i=0; i<nspecies*nspecies; ++i) {
             rmax[i] = temp[i];
         }
     }
-    if (pp.queryarr("alpha_pp",temp)) {
-        for (int i=0; i<MAX_SPECIES*MAX_SPECIES; ++i) {
+    if (pp.queryarr("alpha_pp",temp,0,nspecies*nspecies)) {
+        for (int i=0; i<nspecies*nspecies; ++i) {
             alpha_pp[i] = temp[i];
         }
     }
-    if (pp.queryarr("alpha_pw",temp)) {
-        for (int i=0; i<MAX_SPECIES*MAX_SPECIES; ++i) {
+    if (pp.queryarr("alpha_pw",temp,0,nspecies*nspecies)) {
+        for (int i=0; i<nspecies*nspecies; ++i) {
             alpha_pw[i] = temp[i];
         }
     }
-    if (pp.queryarr("friction_pp",temp)) {
-        for (int i=0; i<MAX_SPECIES*MAX_SPECIES; ++i) {
+    if (pp.queryarr("friction_pp",temp,0,nspecies*nspecies)) {
+        for (int i=0; i<nspecies*nspecies; ++i) {
             friction_pp[i] = temp[i];
         }
     }
-    if (pp.queryarr("friction_pw",temp)) {
-        for (int i=0; i<MAX_SPECIES*MAX_SPECIES; ++i) {
+    if (pp.queryarr("friction_pw",temp,0,nspecies*nspecies)) {
+        for (int i=0; i<nspecies*nspecies; ++i) {
             friction_pw[i] = temp[i];
         }
     }
-    if (pp.queryarr("phi_domain",temp)) {
-        for (int i=0; i<MAX_SPECIES; ++i) {
+    if (pp.queryarr("phi_domain",temp,0,nspecies)) {
+        for (int i=0; i<nspecies; ++i) {
             phi_domain[i] = temp[i];
         }
     }
-    if (pp.queryarr("p_int_tog_wall",temp_int)) {
-        for (int i=0; i<MAX_SPECIES; ++i) {
+    if (pp.queryarr("p_int_tog_wall",temp_int,0,nspecies)) {
+        for (int i=0; i<nspecies; ++i) {
             p_int_tog_wall[i] = temp_int[i];
         }
     }
-    if (pp.queryarr("eepsilon_wall",temp)) {
-        for (int i=0; i<MAX_SPECIES; ++i) {
+    if (pp.queryarr("eepsilon_wall",temp,0,nspecies)) {
+        for (int i=0; i<nspecies; ++i) {
             eepsilon_wall[i] = temp[i];
         }
     }
-    if (pp.queryarr("sigma_wall",temp)) {
-        for (int i=0; i<MAX_SPECIES; ++i) {
+    if (pp.queryarr("sigma_wall",temp,0,nspecies)) {
+        for (int i=0; i<nspecies; ++i) {
             sigma_wall[i] = temp[i];
         }
     }
-    if (pp.queryarr("rmin_wall",temp)) {
-        for (int i=0; i<MAX_SPECIES; ++i) {
+    if (pp.queryarr("rmin_wall",temp,0,nspecies)) {
+        for (int i=0; i<nspecies; ++i) {
             rmin_wall[i] = temp[i];
         }
     }
-    if (pp.queryarr("rmax_wall",temp)) {
-        for (int i=0; i<MAX_SPECIES; ++i) {
+    if (pp.queryarr("rmax_wall",temp,0,nspecies)) {
+        for (int i=0; i<nspecies; ++i) {
             rmax_wall[i] = temp[i];
         }
     }
@@ -1020,7 +1021,7 @@ void InitializeCommonNamespace() {
     pp.query("wall_mob",wall_mob);
     pp.query("particle_grid_refine",particle_grid_refine);
     pp.query("es_grid_refine",es_grid_refine);
-    pp.queryarr("diff",diff);
+    pp.queryarr("diff",diff,0,nspecies);
     pp.query("all_dry",all_dry);
     pp.query("fluid_tog",fluid_tog);
     pp.query("es_tog",es_tog);
@@ -1034,9 +1035,9 @@ void InitializeCommonNamespace() {
     pp.query("zero_net_force",zero_net_force);
     pp.query("crange",crange);
     pp.query("images",images);
-    pp.queryarr("eamp",eamp);
-    pp.queryarr("efreq",efreq);
-    pp.queryarr("ephase",ephase);
+    pp.queryarr("eamp",eamp,0,3);
+    pp.queryarr("efreq",efreq,0,3);
+    pp.queryarr("ephase",ephase,0,3);
     pp.query("plot_ascii",plot_ascii);
     pp.query("plot_means",plot_means);
     pp.query("plot_vars",plot_vars);

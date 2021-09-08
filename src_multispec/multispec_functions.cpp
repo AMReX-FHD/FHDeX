@@ -52,7 +52,7 @@ amrex::Real                                                 multispec::L_zero;
 
 void InitializeMultispecNamespace() {
 
-    E_ext_value.resize(3);
+    E_ext_value.resize(AMREX_SPACEDIM);
 
     // specify default values first, then read in values from inputs file
 
@@ -135,7 +135,7 @@ void InitializeMultispecNamespace() {
     num_pot_iters = 2;
     dpdt_factor = 0.;
     E_ext_type = 0;         // if 1, sets an external E field to E_ext_value
-    for (int i=0; i<3; ++i) {
+    for (int i=0; i<AMREX_SPACEDIM; ++i) {
         E_ext_value[i] = 0.;        // spacedim-vector specifying external E field
     }
     electroneutral = 0;              // use electroneutral diffusion fluxes
@@ -176,32 +176,32 @@ void InitializeMultispecNamespace() {
     pp.query("chi_iterations",chi_iterations);
     pp.query("temp_type",temp_type);
     if(pp.queryarr("c_init_1",temp)) {
-        for (int i=0; i<MAX_SPECIES; ++i) {
+        for (int i=0; i<nspecies; ++i) {
             c_init_1[i] = temp[i];
         }
     }
     if(pp.queryarr("c_init_2",temp)) {
-        for (int i=0; i<MAX_SPECIES; ++i) {
+        for (int i=0; i<nspecies; ++i) {
             c_init_2[i] = temp[i];
         }
     }
-    if(pp.queryarr("Dtherm",temp)) {
-        for (int i=0; i<MAX_SPECIES; ++i) {
+    if(pp.queryarr("Dtherm",temp,0,nspecies)) {
+        for (int i=0; i<nspecies; ++i) {
             Dtherm[i] = temp[i];
         }
     }
-    if(pp.queryarr("H_diag",temp)) {
-        for (int i=0; i<MAX_SPECIES; ++i) {
+    if(pp.queryarr("H_diag",temp,0,nspecies)) {
+        for (int i=0; i<nspecies; ++i) {
             H_diag[i] = temp[i];
         }
     }
-    if(pp.queryarr("Dbar",temp)) {
-        for (int i=0; i<MAX_ELEMENT; ++i) {
+    if(pp.queryarr("Dbar",temp,0,nspecies*(nspecies-1)/2)) {
+        for (int i=0; i<nspecies*(nspecies-1)/2; ++i) {
             Dbar[i] = temp[i];
         }
     }
-    if(pp.queryarr("H_offdiag",temp)) {
-        for (int i=0; i<MAX_ELEMENT; ++i) {
+    if(pp.queryarr("H_offdiag",temp,0,nspecies*(nspecies-1)/2)) {
+        for (int i=0; i<nspecies*(nspecies-1)/2; ++i) {
             H_offdiag[i] = temp[i];
         } 
     }   
@@ -212,8 +212,8 @@ void InitializeMultispecNamespace() {
     pp.query("print_debye_len",print_debye_len);
     pp.query("dielectric_const",dielectric_const);
     pp.query("dielectric_type",dielectric_type);
-    if(pp.queryarr("charge_per_mass",temp)) {
-        for (int i=0; i<MAX_SPECIES; ++i) {
+    if(pp.queryarr("charge_per_mass",temp,0,nspecies)) {
+        for (int i=0; i<nspecies; ++i) {
             charge_per_mass[i] = temp[i];
         }
     }
@@ -225,8 +225,8 @@ void InitializeMultispecNamespace() {
     pp.query("num_pot_iters",num_pot_iters);
     pp.query("dpdt_factor",dpdt_factor);
     pp.query("E_ext_type",E_ext_type);
-    if(pp.queryarr("E_ext_value",temp)) {
-        for (int i=0; i<3; ++i) {
+    if(pp.queryarr("E_ext_value",temp,0,AMREX_SPACEDIM)) {
+        for (int i=0; i<AMREX_SPACEDIM; ++i) {
             E_ext_value[i] = temp[i];
         }
     }
