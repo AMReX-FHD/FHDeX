@@ -795,11 +795,6 @@ void main_driver(const char* argv)
     //Time stepping loop
     /////////////////////////////////////////////////
     
-    //std::string primfile = amrex::Concatenate("prim",0,9);
-    //outputMFAscii(prim,primfile);
-    //std::string cufile = amrex::Concatenate("cu",0,9);
-    //outputMFAscii(cu,cufile);
-
     for (int step=step_start;step<=max_step;++step) {
 
         // timer
@@ -811,7 +806,9 @@ void main_driver(const char* argv)
         // timer
         Real ts2 = ParallelDescriptor::second() - ts1;
         ParallelDescriptor::ReduceRealMax(ts2);
-        amrex::Print() << "Advanced step " << step << " in " << ts2 << " seconds\n";
+        if (step%100 == 0) {
+            amrex::Print() << "Advanced step " << step << " in " << ts2 << " seconds\n";
+        }
 
         // timer
         Real aux1 = ParallelDescriptor::second();
@@ -859,6 +856,9 @@ void main_driver(const char* argv)
                                 dataSliceMeans_xcross, spatialCross3D, ncross, domain, statsCount);
         }
         statsCount++;
+        if (step%100 == 0) {
+            amrex::Print() << "Mean Momentum: " << ComputeSpatialMean(cumomMeans[0], 0) << "\n";
+        }
 
         // write a plotfile
         bool writePlt = false;
@@ -876,12 +876,6 @@ void main_driver(const char* argv)
              //          cuMeansAv, cuVarsAv, primMeansAv, primVarsAv, spatialCrossAv);
             WritePlotFileStag(step, time, geom, cu, cuMeans, cuVars, cumom, cumomMeans, cumomVars,
                               prim, primMeans, primVars, vel, velMeans, velVars, coVars, eta, kappa);
-
-            amrex::Print() << "Mean Momentum: " << ComputeSpatialMean(cumom[0], 0) << "\n";
-            //outputMFAscii(prim,amrex::Concatenate("prim",step,9));
-            //outputMFAscii(cu,amrex::Concatenate("cu",step,9));
-            //outputMFAscii(faceflux[0],amrex::Concatenate("xflux",step,9));
-            //outputMFAscii(cumom[0],amrex::Concatenate("xmom",step,9));
 
             if (plot_cross) {
                 if (do_1D) {
@@ -960,7 +954,6 @@ void main_driver(const char* argv)
                     ComputeVerticalAverage(structFactConsMF, consVertAvg, geom, project_dir, 0, structVarsCons);
                     MultiFab primVertAvgRot = RotateFlattenedMF(primVertAvg);
                     MultiFab consVertAvgRot = RotateFlattenedMF(consVertAvg);
-                    amrex::Print() << geom_flat << std::endl;
                     structFactPrimVerticalAverage.FortStructure(primVertAvgRot,geom_flat);
                     structFactConsVerticalAverage.FortStructure(consVertAvgRot,geom_flat);
                 }
@@ -1025,7 +1018,9 @@ void main_driver(const char* argv)
         // timer
         Real aux2 = ParallelDescriptor::second() - aux1;
         ParallelDescriptor::ReduceRealMax(aux2);
-        amrex::Print() << "Aux time (stats, struct fac, plotfiles) " << aux2 << " seconds\n";
+        if (step%100 == 0) {
+            amrex::Print() << "Aux time (stats, struct fac, plotfiles) " << aux2 << " seconds\n";
+        }
         
         time = time + dt;
 
@@ -1038,8 +1033,10 @@ void main_driver(const char* argv)
         ParallelDescriptor::ReduceLongMin(min_fab_megabytes, IOProc);
         ParallelDescriptor::ReduceLongMax(max_fab_megabytes, IOProc);
 
-        amrex::Print() << "High-water FAB megabyte spread across MPI nodes: ["
-                       << min_fab_megabytes << " ... " << max_fab_megabytes << "]\n";
+        if (step%100 == 0) {
+            amrex::Print() << "High-water FAB megabyte spread across MPI nodes: ["
+                           << min_fab_megabytes << " ... " << max_fab_megabytes << "]\n";
+        }
 
         min_fab_megabytes  = amrex::TotalBytesAllocatedInFabs()/1048576;
         max_fab_megabytes  = min_fab_megabytes;
@@ -1047,8 +1044,10 @@ void main_driver(const char* argv)
         ParallelDescriptor::ReduceLongMin(min_fab_megabytes, IOProc);
         ParallelDescriptor::ReduceLongMax(max_fab_megabytes, IOProc);
 
-        amrex::Print() << "Curent     FAB megabyte spread across MPI nodes: ["
-                     << min_fab_megabytes << " ... " << max_fab_megabytes << "]\n";
+        if (step%100 == 0) {
+            amrex::Print() << "Curent     FAB megabyte spread across MPI nodes: ["
+                           << min_fab_megabytes << " ... " << max_fab_megabytes << "]\n";
+        }
     }
 
     if (ParallelDescriptor::IOProcessor()) outfile.close();
