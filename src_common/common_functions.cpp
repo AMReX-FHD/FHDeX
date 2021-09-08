@@ -66,13 +66,7 @@ AMREX_GPU_MANAGED amrex::Real common::Runiv;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::T_init;
 AMREX_GPU_MANAGED int      common::algorithm_type;
 int                        common::barodiffusion_type;
-int                        common::use_bl_rng;
 int                        common::seed;
-int                        common::seed_momentum;
-int                        common::seed_diffusion;
-int                        common::seed_reaction;
-int                        common::seed_init_mass;
-int                        common::seed_init_momentum;
 AMREX_GPU_MANAGED amrex::Real common::visc_coef;
 AMREX_GPU_MANAGED int      common::visc_type;
 int                        common::advection_type;
@@ -219,12 +213,6 @@ int                        common::plot_vars;
 int                        common::plot_covars;
 int                        common::plot_cross;
 int                        common::particle_motion;
-int                        common::solve_chem;
-amrex::Real                common::diffcoeff;
-amrex::Real                common::scaling_factor;
-amrex::Real                common::source_strength;
-int                        common::regrid_int;
-int                        common::do_reflux;
 
 amrex::Real                common::turb_a;
 amrex::Real                common::turb_b;
@@ -406,22 +394,11 @@ void InitializeCommonNamespace() {
     algorithm_type = 0;
     advection_type = 0;
     barodiffusion_type = 0;
-    use_bl_rng = 0;
 
     // random number seed
     // 0        = unpredictable seed based on clock
     // positive = fixed seed
     seed = 0;
-
-    // as assortment of other seeds in case one needs different engines
-    // implementation is problem-dependent
-    // 0        = unpredictable seed based on clock
-    // positive = fixed seed
-    seed_momentum = 1;
-    seed_diffusion = 1;
-    seed_reaction = 1;
-    seed_init_mass = 1;
-    seed_init_momentum = 1;
 
     // Viscous friction L phi operator
     // if abs(visc_type) = 1, L = div beta grad
@@ -573,14 +550,6 @@ void InitializeCommonNamespace() {
     plot_covars = 0;
     plot_cross = 0;
     particle_motion = 0;
-
-    // chemistry
-    solve_chem = 0.;
-    diffcoeff = 1.e-3;
-    source_strength = 0.1;
-    scaling_factor = 0.1;
-    regrid_int = 25;
-    do_reflux = 0;
 
     // turblent forcing parameters
     turb_a = 1.;
@@ -735,13 +704,7 @@ void InitializeCommonNamespace() {
     }
     pp.query("algorithm_type",algorithm_type);
     pp.query("barodiffusion_type",barodiffusion_type);
-    pp.query("use_bl_rng",use_bl_rng);
     pp.query("seed",seed);
-    pp.query("seed_momentum",seed_momentum);
-    pp.query("seed_diffusion",seed_diffusion);
-    pp.query("seed_reaction",seed_reaction);
-    pp.query("seed_init_mass",seed_init_mass);
-    pp.query("seed_init_momentum",seed_init_momentum);
     pp.query("visc_coef",visc_coef);
     pp.query("visc_type",visc_type);
     pp.query("advection_type",advection_type);
@@ -1044,12 +1007,6 @@ void InitializeCommonNamespace() {
     pp.query("plot_covars",plot_covars);
     pp.query("plot_cross",plot_cross);
     pp.query("particle_motion",particle_motion);
-    pp.query("solve_chem",solve_chem);
-    pp.query("diffcoeff",diffcoeff);
-    pp.query("scaling_factor",scaling_factor);
-    pp.query("source_strength",source_strength);
-    pp.query("regrid_int",regrid_int);
-    pp.query("do_reflux",do_reflux);
     pp.query("turb_a",turb_a);
     pp.query("turb_b",turb_b);
     pp.query("turbForcing",turbForcing);

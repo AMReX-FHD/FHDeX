@@ -81,28 +81,16 @@ namespace common {
     extern AMREX_GPU_MANAGED amrex::Real k_B;
     extern AMREX_GPU_MANAGED amrex::Real Runiv;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> T_init;
-    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> T_init;
 
     // Algorithm control / selection
     extern AMREX_GPU_MANAGED int      algorithm_type;
     extern int                        advection_type;
     extern int                        barodiffusion_type;
-    extern int                        use_bl_rng;
 
     // random number seed
     // 0        = unpredictable seed based on clock
     // positive = fixed seed
     extern int                        seed;
-
-    // as assortment of other seeds in case one needs different engines
-    // implementation is problem-dependent
-    // 0        = unpredictable seed based on clock
-    // positive = fixed seed
-    extern int                        seed_momentum;
-    extern int                        seed_diffusion;
-    extern int                        seed_reaction;
-    extern int                        seed_init_mass;
-    extern int                        seed_init_momentum;
 
     // Viscous friction L phi operator
     // if abs(visc_type) = 1, L = div beta grad
@@ -222,13 +210,6 @@ namespace common {
     extern int                        slicepoint;
     extern amrex::Vector<int>         max_grid_projection;
 
-  /*
-    extern int                        stats_int;
-    extern int                        n_steps_save_stats;
-    extern bool                       analyze_conserved;
-    extern bool                       center_snapshots;
-  */
-
     // These are mostly used for reaction-diffusion:
     extern int                        histogram_unit;
     extern amrex::Vector<amrex::Real> density_weights;
@@ -303,14 +284,6 @@ namespace common {
     extern int                        plot_covars;
     extern int                        plot_cross;
     extern int                        particle_motion;
-    
-    // parameters neccesary for chemical reactions
-    extern int                        solve_chem;    
-    extern amrex::Real                diffcoeff;
-    extern amrex::Real                scaling_factor;
-    extern amrex::Real                source_strength;
-    extern int                        regrid_int;    
-    extern int                        do_reflux;
 
     // parameters for turbulent forcing example
     extern amrex::Real                turb_a;
