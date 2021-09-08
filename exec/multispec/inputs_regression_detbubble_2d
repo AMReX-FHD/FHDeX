@@ -89,8 +89,6 @@
   # So D_12; D_13, D_23; D_14, D_24, D_34; ...
   Dbar = 1.e-4 5.e-4 1.e-3   # Maxwell-Stefan diffusion constant  
   Dtherm = 0. 0. 0. # thermo-diffusion coefficients, only differences among elements matter
-  H_offdiag = 0.        # Off diagonal elements of H=d^2F/dx^2  
-  H_diag = 0.           # Diagonal of H=d^2F/dx^2, these are vectors of length nspecies
 
   mg_verbose = 0                  # multigrid verbosity
 

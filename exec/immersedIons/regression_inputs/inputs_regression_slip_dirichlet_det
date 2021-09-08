@@ -111,7 +111,7 @@
   #Peskin kernel (Currently 3, 4, & 6 implemented) (keep these the same for now)
   #--------
   pkernel_fluid = 4 6
-  pkernel_es = 4
+  pkernel_es = 4 4
 
   # Stochastic parameters
   seed = 1
