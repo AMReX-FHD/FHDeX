@@ -89,7 +89,7 @@
   contains_flagellum = true
   contains_fourier   = true
 
-
+/
 
 
 &ib_flagellum
@@ -108,5 +108,4 @@
   fourier_coef_len = 4
   chlamy_flagellum_datafile = "inputs_chlamy_data"
 
-
-
+/
