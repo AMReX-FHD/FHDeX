@@ -5,7 +5,7 @@ seed = 0
 
 # Problem specification
 prob_lo = 0.0 0.0 0.0 # physical lo coordinate
-prob_hi = 6.4e-05 6.4e-05 6.4e-05 # physical hi coordinate
+prob_hi = 6.72e-05 5.819691e-05 6.72e-05 # physical hi coordinate
 
 # Number of ghost cells, conserved, and primitive variables
 # ---------------------
@@ -19,10 +19,11 @@ n_cells = 8 8 8
 max_grid_size = 4 4 4 
 
 # Time-step control
-fixed_dt = 1.e-12
+fixed_dt = 5.e-13
 
 # Controls for number of steps between actions
-max_step = 100000
+
+max_step = 200000
 plot_int = 10000
 
 # Multispecies toggle
@@ -50,8 +51,8 @@ prob_type = 1
 # Initial parameters
 k_B = 1.38064852e-16	# [units: cm2*g*s-2*K-1]
 runiv = 8.314462175e7
-T_init = 350 
-rho0 = 1.855335e-03 
+T_init = 1000
+rho0 = 5.886949e-05
 
 struct_fact_int = 1
 n_steps_skip = 10000
@@ -67,54 +68,33 @@ n_steps_skip = 10000
 # bc_therm: -1 = periodic
 #1 = adiabatic
 #2 = isothermal (set with t_lo/hi in common namelist)
-bc_vel_lo = -1 -1 -1
-bc_vel_hi = -1 -1 -1
-bc_mass_lo= -1 -1 -1
-bc_mass_hi= -1 -1 -1
-bc_therm_lo = -1 -1 -1
-bc_therm_hi = -1 -1 -1
+bc_vel_lo = -1 -1 1
+bc_vel_hi = -1 -1 1
+bc_mass_lo= -1 -1 1
+bc_mass_hi= -1 -1 1
+bc_therm_lo = -1 -1 2
+bc_therm_hi = -1 -1 2
 
 # Temperature if thermal BC specified
-t_hi = 350 350 350 
-t_lo = 350 350 350 
+t_hi = 1000 1000 1000 
+t_lo = 1000 1000 1000 
 
 #Kinetic species info
 #--------------
 nspecies = 2 
 
-molmass = 46.0055 92.0110 
-diameter = 3.765e-08 4.621e-08 
-rhobar = 7.267597e-01 2.732403e-01 
+molmass = 28.01 4.0026
+diameter = 3.76e-8 2.18e-8
+rhobar =0.2 0.8
 
 # Enter negative dof to use hcv & hcp values
-dof =7.279582 18.049065
+dof =5 3
 hcv = -1 -1
 hcp = -1 -1
-e0 = 4.684542e+09 -1.730892e+09
 
 plot_means = 1
 plot_vars = 1
 
+nspec_mui = 1
 
-# dimerization reaction
-# react1 : 2A -> A_2
-# react2 : A_2 -> 2A
-# spec1 = A
-# spec2 = A_2
-
-nreaction = 2
-
-T0_chem = 350
-
-rate_const = 5.194896e+26 2.326169e+27
-
-stoich_1R = 2 0
-stoich_1P = 0 1
-stoich_2R = 0 1
-stoich_2P = 2 0
-
-# 0 = Deterministic Chemistry
-# 1 = CLE (Chemical Langevin Equation)
-# 2 = SSA (Stochastic Simulation Algorithm)
-
-reaction_type = 1
+mom_inertia = 1.456061e-39

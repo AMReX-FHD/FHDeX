@@ -15,22 +15,16 @@ src := ../../..
 
 
 include $(src)/src_hydro/Make.package
-include $(src)/src_hydro/src_F90/Make.package
 INCLUDE_LOCATIONS += $(src)/src_hydro/
-INCLUDE_LOCATIONS += $(src)/src_hydro/src_F90/
 
 include $(src)/src_gmres/Make.package
 INCLUDE_LOCATIONS += $(src)/src_gmres/
 
 include $(src)/src_common/Make.package
-include $(src)/src_common/src_F90/Make.package
 INCLUDE_LOCATIONS += $(src)/src_common/
-INCLUDE_LOCATIONS += $(src)/src_common/src_F90
 
 include $(src)/src_rng/Make.package
-include $(src)/src_rng/src_F90/Make.package
 INCLUDE_LOCATIONS += $(src)/src_rng/
-INCLUDE_LOCATIONS += $(src)/src_rng/src_F90
 
 
 CXXFLAGS := -fPIC -g -fopenmp
@@ -54,23 +48,14 @@ all: $(TARGET)
 %.o: $(src)/src_common/%.cpp
 	$(CXX) $(CXXFLAGS) -c $(INCLUDES) -o $@ $<
 
-%.o %.mod %_module.mod: $(src)/src_common/src_F90/%.F90
-	$(FC) $(FCFLAGS) $(INCLUDES) -o $@ $<
-
 %.o: $(src)/src_hydro/%.cpp common_namelist.o
 	$(CXX) $(CXXFLAGS) -c $(INCLUDES) -o $@ $<
-
-%.o %.mod %_module.mod: $(src)/src_hydro/src_F90/%.F90
-	$(FC) $(INCLUDES) -o $@ $<
 
 %.o: $(src)/src_gmres/%.cpp
 	$(CXX) $(CXXFLAGS) -c $(INCLUDES) -o $@ $<
 
 %.o: $(src)/src_rng/%.cpp
 	$(CXX) $(CXXFLAGS) -c $(INCLUDES) -o $@ $<
-
-%.o %.mod %_module.mod: $(src)/src_rng/src_F90/%.F90
-	$(FC) $(INCLUDES) -o $@ $<
 
 # $(TARGET): $(OBJECTS)
 # 	$(CXX) $(LIBRARIES) -o $(TARGET) -shared -Wl,--whole-archive $(AMREX_HOME)/dist/lib/libamrex.a -Wl,--no-whole-archive $(OBJECTS)

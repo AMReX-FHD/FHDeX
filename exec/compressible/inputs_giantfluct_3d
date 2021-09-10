@@ -1,103 +1,103 @@
-&common
 
-  ! Problem specification
-  prob_lo(1:3) = 0.0 0.0 0.0               ! physical lo coordinate
-  prob_hi(1:3) = 6.912e-3 3.456e-3 2.7e-5  ! physical hi coordinate
 
-  ! Number of ghost cells, conserved, and primitive variables
-  ! ---------------------
+  # Problem specification
+  prob_lo = 0.0 0.0 0.0               # physical lo coordinate
+  prob_hi = 6.912e-3 3.456e-3 2.7e-5  # physical hi coordinate
+
+  # Number of ghost cells, conserved, and primitive variables
+  # ---------------------
   ngc = 2 2 2
   nvars = 8
   nprimvars = 12
 
-  ! number of cells in domain
-  n_cells(1:3) = 256 128 1
+  # number of cells in domain
+  n_cells = 256 128 1
 
-  ! max number of cells in a box
+  # max number of cells in a box
 
-  max_grid_size(1:3) = 128 64 1
-  ! Time-step control
+  max_grid_size = 128 64 1
+  # Time-step control
   fixed_dt = 1e-10
 
-  ! Controls for number of steps between actions
+  # Controls for number of steps between actions
 
   max_step = 2800000
   plot_int = 10
 
-  ! Multispecies toggle
-  ! if algorithm_type = 1, single component
-  ! if algorithm_type = 2, multispecies
+  # Multispecies toggle
+  # if algorithm_type = 1, single component
+  # if algorithm_type = 2, multispecies
   algorithm_type = 2
 
-  ! Viscous tensor form
-  ! if visc_type = 1, L = not-symmetric (bulk viscosity = 0)
-  ! if visc_type = 2, L = symmetric (bulk viscosity = 0)
-  ! if visc_type = 3, L = symmetric + bulk viscosity
+  # Viscous tensor form
+  # if visc_type = 1, L = not-symmetric (bulk viscosity = 0)
+  # if visc_type = 2, L = symmetric (bulk viscosity = 0)
+  # if visc_type = 3, L = symmetric + bulk viscosity
   visc_type = 2
 
-  ! Advection method
-  ! if advection_type = 1, interpolate primitive quantities
-  ! if advection_type = 2, interpolate conserved quantities
+  # Advection method
+  # if advection_type = 1, interpolate primitive quantities
+  # if advection_type = 2, interpolate conserved quantities
   advection_type = 2
 
-  ! Problem specification
-  ! if prob_type = 1, constant species concentration
-  ! if prob_type = 2, Rayleigh-Taylor instability
-  ! if prob_type = 3, diffusion barrier
+  # Problem specification
+  # if prob_type = 1, constant species concentration
+  # if prob_type = 2, Rayleigh-Taylor instability
+  # if prob_type = 3, diffusion barrier
   prob_type = 3
 
-  ! Initial parameters
-  k_B = 1.38064852e-16	! [units: cm2*g*s-2*K-1]
+  # Initial parameters
+  k_B = 1.38064852e-16	# [units: cm2*g*s-2*K-1]
   runiv = 8.314462175e7
-  T_init(1) = 300
+  T_init = 300
   rho0 = 4.83e-4
 
   struct_fact_int = 1
   project_dir = -1
-  max_grid_projection(1:2) = 256 1
-  max_grid_projection(1:2) = 32 1
+  max_grid_projection = 256 1
+  max_grid_projection = 32 1
 
   n_steps_skip = 200000
   n_steps_skip = 10
 
-  ! Boundary conditions:
-  ! NOTE: setting bc_vel to periodic sets all the other bc's to periodic)
-  ! bc_vel:   -1 = periodic  
-  !            1 = slip
-  !            2 = no-slip
-  ! bc_mass:  -1 = periodic
-  !            1 = wall
-  !            2 = reservoir (set bc_Yk or bc_Xk in compressible namelist)
-  ! bc_therm: -1 = periodic
-  !            1 = adiabatic
-  !            2 = isothermal (set with t_lo/hi in common namelist)
-  bc_vel_lo(1:3)   = -1 2 -1
-  bc_vel_hi(1:3)   = -1 2 -1
-  bc_mass_lo(1:3)  = -1 2 -1
-  bc_mass_hi(1:3)  = -1 2 -1
-  bc_therm_lo(1:3) = -1 2 -1
-  bc_therm_hi(1:3) = -1 2 -1
+  # Boundary conditions:
+  # NOTE: setting bc_vel to periodic sets all the other bc's to periodic)
+  # bc_vel:   -1 = periodic  
+  #            1 = slip
+  #            2 = no-slip
+  # bc_mass:  -1 = periodic
+  #            1 = wall
+  #            2 = reservoir (set bc_Yk or bc_Xk in compressible namelist)
+  # bc_therm: -1 = periodic
+  #            1 = adiabatic
+  #            2 = isothermal (set with t_lo/hi in common namelist)
+  bc_vel_lo   = -1 2 -1
+  bc_vel_hi   = -1 2 -1
+  bc_mass_lo  = -1 2 -1
+  bc_mass_hi  = -1 2 -1
+  bc_therm_lo = -1 2 -1
+  bc_therm_hi = -1 2 -1
   
-  ! Temperature if thermal BC specified
-  t_hi(1:3) = 300 300 300
-  t_lo(1:3) = 300 300 300
+  # Temperature if thermal BC specified
+  t_hi = 300 300 300
+  t_lo = 300 300 300
 
-  !Kinetic species info
-  !--------------
+  #Kinetic species info
+  #--------------
   nspecies = 3
 
-  molmass = 39.9480, 39.9480, 39.9480
-  diameter = 3.63e-8, 3.63e-8, 36.3e-8
-  rhobar =  0.25, 0.25, 0.5
+  molmass = 39.9480 39.9480 39.9480
+  diameter = 3.63e-8 3.63e-8 36.3e-8
+  rhobar =  0.25 0.25 0.5
 
-  !Enter negative dof to use hcv & hcp values
-  dof =  3, 3, 3
+  #Enter negative dof to use hcv & hcp values
+  dof =  3 3 3
   hcv = -1 -1 -1
   hcp = -1 -1 -1
 
-  ! Xk and Yk at the wall for Dirichlet (concentrations) - set one to zero
-  ! Ordering: (species 1, x-dir), (species 2, x-dir), ... (species 1, y-dir), ...
-  bc_Yk_y_lo(1:3) = 0.2 0.09316672 0.70683296     ! lo BC
-  bc_Yk_y_hi(1:3) = 0.3 0.40683328 0.29316704     ! hi BC
+  # Xk and Yk at the wall for Dirichlet (concentrations) - set one to zero
+  # Ordering: (species 1, x-dir), (species 2, x-dir), ... (species 1, y-dir), ...
+  bc_Yk_y_lo = 0.2 0.09316672 0.70683296     # lo BC
+  bc_Yk_y_hi = 0.3 0.40683328 0.29316704     # hi BC
 
-/
+
