@@ -351,14 +351,6 @@ void RK3stepStag(MultiFab& cu,
     // Compute transport coefs after setting BCs
     calculateTransportCoeffs(prim, eta, zeta, kappa, chi, D);
 
-    //std::string primfile = amrex::Concatenate("prim",step,9);
-    //outputMFAscii(prim,primfile);
-    //std::string cumomfile = amrex::Concatenate("xmom",step,9);
-    //outputMFAscii(cumom[0],cumomfile);
-    //std::string ffluxfile = amrex::Concatenate("fflux",step,9);
-    //outputMFAscii(faceflux[0],ffluxfile);
-    //std::string cfluxfile = amrex::Concatenate("cflux",step,9);
-    //outputMFAscii(cenflux[0],cfluxfile);
     ///////////////////////////////////////////////////////////
     // Perform weighting of white noise fields
 

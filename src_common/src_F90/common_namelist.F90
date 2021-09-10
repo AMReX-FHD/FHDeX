@@ -372,9 +372,6 @@ module common_namelist_module
 
   namelist /common/ t_lo
   namelist /common/ t_hi
-  
-  namelist /common/ rho_lo
-  namelist /common/ rho_hi  
 
   namelist /common/ rho_lo
   namelist /common/ rho_hi

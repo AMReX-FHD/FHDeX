@@ -168,9 +168,6 @@ void EvaluateStatsMeans(MultiFab& cons, MultiFab& consMean,
             cumeans(i,j,k,1) = 0.5*(momxmeans(i,j,k) + momxmeans(i+1,j,k)); // jxmeans on CC
             cumeans(i,j,k,2) = 0.5*(momymeans(i,j,k) + momymeans(i,j+1,k)); // jymeans on CC
             cumeans(i,j,k,3) = 0.5*(momzmeans(i,j,k) + momzmeans(i,j,k+1)); // jzmeans on CC
-            cu(i,j,k,1) = 0.5*(momx(i,j,k) + momx(i+1,j,k)); // jx on CC
-            cu(i,j,k,2) = 0.5*(momy(i,j,k) + momy(i,j+1,k)); // jy on CC
-            cu(i,j,k,3) = 0.5*(momz(i,j,k) + momz(i,j,k+1)); // jz on CC
 
             cumeans(i,j,k,4) = (cumeans(i,j,k,4)*stepsminusone + cu(i,j,k,4))*stepsinv; //rhoEmeans
 
@@ -187,9 +184,6 @@ void EvaluateStatsMeans(MultiFab& cons, MultiFab& consMean,
             primmeans(i,j,k,1) = densitymeaninv*0.5*(momxmeans(i,j,k) + momxmeans(i+1,j,k)); // velxmeans on CC
             primmeans(i,j,k,2) = densitymeaninv*0.5*(momymeans(i,j,k) + momymeans(i,j+1,k)); // velymeans on CC
             primmeans(i,j,k,3) = densitymeaninv*0.5*(momzmeans(i,j,k) + momzmeans(i,j,k+1)); // velzmeans on CC
-            prim(i,j,k,1) = 0.5*(velx(i,j,k) + velx(i+1,j,k)); // velx on CC
-            prim(i,j,k,2) = 0.5*(vely(i,j,k) + vely(i,j+1,k)); // vely on CC
-            prim(i,j,k,3) = 0.5*(velz(i,j,k) + velz(i,j,k+1)); // velz on CC
 
             // mean COM velocity
             primmeans(i,j,k,nprimvars+0) = (primmeans(i,j,k,nprimvars+0)*stepsminusone + prim(i,j,k,1))*stepsinv;
