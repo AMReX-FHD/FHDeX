@@ -3,16 +3,21 @@
 #include "AMReX_ParmParse.H"
 
 AMREX_GPU_MANAGED int compressible::transport_type;
+AMREX_GPU_MANAGED int compressible::all_correl;
 
 void InitializeCompressibleNamespace()
 {
     // extract inputs parameters
     ParmParse pp;
 
-    transport_type = 1; // Valk/Waldmann (default)
-
     // get transport type (1: Valk/Waldmann; 2: HCB)
+    transport_type = 1; // Valk/Waldmann (default)
     pp.query("transport_type",transport_type);
+
+    // do full correlation (vary x* from lo to hi, instead of a fixed value)
+    all_correl = 0;
+    pp.query("all_correl",all_correl);
+
 
     return;
 }

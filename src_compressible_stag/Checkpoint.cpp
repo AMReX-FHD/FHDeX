@@ -697,7 +697,8 @@ void ReadCheckPoint1D(int& step,
         coVars.define(ba,dmap,26,0);
 
         // spatialCross
-        spatialCross.define(ba,dmap,ncross,0);
+        if (all_correl) spatialCross.define(ba,dmap,ncross*5,0); // for five x*: [0, fl(n_cells[0]/4), fl(n_cells[0]/2), fl(n_cells[0]*3/4), n_cells[0]-1]
+        else spatialCross.define(ba,dmap,ncross,0);
 
     }
 
@@ -773,7 +774,12 @@ void ReadCheckPoint1D(int& step,
 
         Read_Copy_MF_Checkpoint(coVars,"coVars",checkpointname,ba_old,dmap_old,26,0);
 
-        Read_Copy_MF_Checkpoint(spatialCross,"spatialCross",checkpointname,ba_old,dmap_old,ncross,0);
+        if (all_correl == 0) {
+            Read_Copy_MF_Checkpoint(spatialCross,"spatialCross",checkpointname,ba_old,dmap_old,ncross,0);
+        }
+        else {
+            Read_Copy_MF_Checkpoint(spatialCross,"spatialCross",checkpointname,ba_old,dmap_old,ncross*5,0);
+        }
 
         Read_Copy_MF_Checkpoint(velMeans[0],"velmeanx",checkpointname,ba_old,dmap_old,1,0,0);
         Read_Copy_MF_Checkpoint(velMeans[1],"velmeany",checkpointname,ba_old,dmap_old,1,0,1);
