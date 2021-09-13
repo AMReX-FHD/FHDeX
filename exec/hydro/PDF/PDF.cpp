@@ -41,7 +41,6 @@ main (int   argc,
         PrintUsage(argv[0]);
     }
 
-    // read in parameters from inputs file or command line
     ParmParse pp;
 
     // plotfile name

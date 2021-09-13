@@ -1,65 +1,65 @@
-&common
 
-  ! Problem specification
-  prob_lo(1:2) = 0.0 0.0       ! physical lo coordinate
-  prob_hi(1:2) = 1.0 1.0       ! physical hi coordinate
+
+  # Problem specification
+  prob_lo = 0.0 0.0       # physical lo coordinate
+  prob_hi = 1.0 1.0       # physical hi coordinate
   cell_depth = 1.0e-7
-  !cell_depth = 0.015625
+  #cell_depth = 0.015625
 
-  ! refer to Init.cpp
+  # refer to Init.cpp
   prob_type = 4
   
-  ! number of cells in domain
-  n_cells(1:2) = 64 64
-  ! max number of cells in a box
-  max_grid_size(1:2) = 32 32
+  # number of cells in domain
+  n_cells = 64 64
+  # max number of cells in a box
+  max_grid_size = 32 32
 
-  ! Time-step control
+  # Time-step control
   fixed_dt = 2e-4
 
-  ! Controls for number of steps between actions
+  # Controls for number of steps between actions
   max_step = 10000
   plot_int = 500
 
-  ! Viscous friction L phi operator
-  ! if abs(visc_type) = 1, L = div beta grad
-  ! if abs(visc_type) = 2, L = div [ beta (grad + grad^T) ]
-  ! if abs(visc_type) = 3, L = div [ beta (grad + grad^T) + I (gamma - (2/3)*beta) div ]
-  ! positive = assume constant coefficients
-  ! negative = assume spatially-varying coefficients
+  # Viscous friction L phi operator
+  # if abs(visc_type) = 1, L = div beta grad
+  # if abs(visc_type) = 2, L = div [ beta (grad + grad^T) ]
+  # if abs(visc_type) = 3, L = div [ beta (grad + grad^T) + I (gamma - (2/3)*beta) div ]
+  # positive = assume constant coefficients
+  # negative = assume spatially-varying coefficients
 
-  !visc_coef = 1.
-  visc_coef = 1e-3		! [units: g*cm-1*s-1] dynamic (shear) viscosity of water
+  #visc_coef = 1.
+  visc_coef = 1e-3		# [units: g*cm-1*s-1] dynamic (shear) viscosity of water
 
   visc_type = 2
   
-  ! Stochastic parameters
+  # Stochastic parameters
   variance_coef_mom = 1.
   initial_variance_mom = 1.
 
-  k_B = 1.38064852e-16	! [units: cm2*g*s-2*K-1]
-  T_init(1) = 295	! [units: K]
+  k_B = 1.38064852e-16	# [units: cm2*g*s-2*K-1]
+  T_init = 295	# [units: K]
 
   struct_fact_int = 0
   n_steps_skip = 0
 
-  ! Boundary conditions
-  ! ----------------------
-  ! BC specifications:
-  ! -1 = periodic
-  bc_vel_lo(1:2) = -1 -1
-  bc_vel_hi(1:2) = -1 -1
+  # Boundary conditions
+  # ----------------------
+  # BC specifications:
+  # -1 = periodic
+  bc_vel_lo = -1 -1
+  bc_vel_hi = -1 -1
 
-  ! Thermodynamic and transport properties:
-  !----------------------
+  # Thermodynamic and transport properties:
+  #----------------------
 
   smoothing_width = 100
 
   nspecies = 2
-  molmass(1:3) = 2.d0 1.d0       ! molecular masses for nspecies (mass per molecule, *not* molar mass)
-  rhobar(1:3) = 3.d0 2.d0        ! pure component densities for all species
+  molmass = 2. 1.       # molecular masses for nspecies (mass per molecule, *not* molar mass)
+  rhobar = 3. 2.        # pure component densities for all species
 
-/
+
 
   c_init_1 = 1. 0.
   c_init_2 = 0. 1.

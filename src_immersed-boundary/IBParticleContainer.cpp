@@ -769,7 +769,11 @@ void IBParticleContainer::InvInterpolateMarkers(int lev, const ParticleIndex & p
 
     MultiFab dummy(ba, dm, 1, f_out[0].nGrow());
 
-
+    Vector<int> pkernel_fluid_in(1);
+    for (int i=0; i<1; ++i) {
+        pkernel_fluid_in[i] = pkernel_fluid[i];
+    }
+    
     for (MFIter mfi(dummy); mfi.isValid(); ++mfi) {
 
         const Box & bx       = mfi.growntilebox();
@@ -795,7 +799,8 @@ void IBParticleContainer::InvInterpolateMarkers(int lev, const ParticleIndex & p
                                 marker_positions[lev].at(pindex).dataPtr(),
                                 f_in.dataPtr(),
                                 & n_marker,
-                                dx );
+                                dx,
+                                pkernel_fluid_in.dataPtr() );
     }
 }
 
@@ -831,6 +836,10 @@ void IBParticleContainer::InterpolateMarkers(int lev, const ParticleIndex & pind
 
     MultiFab dummy(ba, dm, 1, f_in[0].nGrow());
 
+    Vector<int> pkernel_fluid_in(1);
+    for (int i=0; i<1; ++i) {
+        pkernel_fluid_in[i] = pkernel_fluid[i];
+    }
 
     for (MFIter mfi(dummy); mfi.isValid(); ++mfi) {
 
@@ -863,7 +872,8 @@ void IBParticleContainer::InterpolateMarkers(int lev, const ParticleIndex & pind
                             marker_positions[lev].at(pindex).dataPtr(),
                             f_out.dataPtr(),
                             & n_marker,
-                            dx );
+                            dx,
+                            pkernel_fluid_in.dataPtr() );
     }
 }
 
@@ -916,6 +926,10 @@ void IBParticleContainer::InvSpreadMarkers(int lev, const ParticleIndex & pindex
 
     MultiFab dummy(ba, dm, 1, f_in[0].nGrow());
 
+    Vector<int> pkernel_fluid_in(1);
+    for (int i=0; i<1; ++i) {
+        pkernel_fluid_in[i] = pkernel_fluid[i];
+    }
 
     for (MFIter mfi(dummy); mfi.isValid(); ++mfi) {
 
@@ -942,7 +956,8 @@ void IBParticleContainer::InvSpreadMarkers(int lev, const ParticleIndex & pindex
                            marker_positions[lev].at(pindex).dataPtr(),
                            f_out.dataPtr(),
                            & n_marker,
-                           dx );
+                           dx,
+                        pkernel_fluid_in.dataPtr() );
     }
 }
 

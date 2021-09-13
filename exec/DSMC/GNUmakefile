@@ -35,9 +35,6 @@ include $(FHDeX)/src_common/Make.package
 VPATH_LOCATIONS   += $(FHDeX)/src_common/
 INCLUDE_LOCATIONS += $(FHDeX)/src_common/
 
-include $(FHDeX)/src_common/src_F90/Make.package
-VPATH_LOCATIONS   += $(FHDeX)/src_common/src_F90
-INCLUDE_LOCATIONS += $(FHDeX)/src_common/src_F90
 
 include $(FHDeX)/src_particles/MakeDSMC.package
 VPATH_LOCATIONS   += $(FHDeX)/src_particles/

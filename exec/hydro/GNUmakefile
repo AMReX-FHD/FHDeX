@@ -33,10 +33,6 @@ include ../../src_gmres/Make.package
 VPATH_LOCATIONS   += ../../src_gmres/
 INCLUDE_LOCATIONS += ../../src_gmres/
 
-include ../../src_common/src_F90/Make.package
-VPATH_LOCATIONS   += ../../src_common/src_F90
-INCLUDE_LOCATIONS += ../../src_common/src_F90
-
 include ../../src_common/Make.package
 VPATH_LOCATIONS   += ../../src_common/
 INCLUDE_LOCATIONS += ../../src_common/

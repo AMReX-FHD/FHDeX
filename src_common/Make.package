@@ -3,7 +3,6 @@ CEXE_sources += main_driver.cpp
 
 CEXE_sources += common_functions.cpp
 CEXE_headers += common_functions.H
-CEXE_headers += common_functions_F.H
 CEXE_headers += common_namespace.H
 CEXE_headers += InhomogeneousBCVal.H
 CEXE_headers += species.H
