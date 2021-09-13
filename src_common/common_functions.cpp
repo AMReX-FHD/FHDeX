@@ -440,8 +440,8 @@ void InitializeCommonNamespace() {
         t_lo[i] = 0.;
         t_hi[i] = 0.;
   
-        rho_lo[i] = -1.;
-        rho_hi[i] = -1.;
+        rho_lo[i] = 0.;
+        rho_hi[i] = 0.;
     } 
 
     // c_i boundary conditions
