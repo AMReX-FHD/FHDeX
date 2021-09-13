@@ -6,8 +6,10 @@
 #include <AMReX_ArrayLim.H>
 
 #include "common_functions.H"
+#include "compressible_namespace.H"
 
 using namespace amrex;
+using namespace compressible;
 
 // copy contents of compressible_params_module to C++ compressible namespace
 void InitializeCompressibleNamespace();
