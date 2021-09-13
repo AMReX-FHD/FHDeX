@@ -44,12 +44,14 @@ void WritePlotFileStag(int step,
     // mean values
     // cu: [rho, jx, jy, jz, rhoE, rhoYk] -- nvars
     // shifted [jx, jy, jz] -- 3
-    // prim: [vx, vy, vz, T, p, Yk] -- 5 + nspecies
+    // prim: [vx, vy, vz, T, p, Yk, Xk] -- 5 + 2*nspecies
     // shifted [vx, vy, vz] -- 3
+    // center of mass [ux, uy, uz] -- 3
     if (plot_means == 1) {
         nplot += nvars;
         nplot += 3;
-        nplot += 5 + nspecies;
+        nplot += 5 + 2*nspecies;
+        nplot += 3;
         nplot += 3;
     }
     
@@ -133,8 +135,8 @@ void WritePlotFileStag(int step,
             ++cnt;
         }
     
-        // prim: [vx, vy, vz, T, p, Yk] -- 5 + nspecies
-        numvars = 5 + nspecies;
+        // prim: [vx, vy, vz, T, p, Yk, Xk] -- 5 + nspecies
+        numvars = 5 + 2*nspecies;
         amrex::MultiFab::Copy(plotfile,primMeans,1,cnt,numvars,0);
         cnt+=numvars;
 
@@ -143,6 +145,11 @@ void WritePlotFileStag(int step,
             ShiftFaceToCC(velMeans[d],0,plotfile,cnt,1);
             ++cnt;
         }
+
+        // prim: center of mass velocity [ux, uy, uz] -- 3
+        numvars = 3;
+        amrex::MultiFab::Copy(plotfile,primMeans,nprimvars,cnt,numvars,0);
+        cnt+=numvars;
     }
 
     if (plot_vars == 1) {
@@ -264,9 +271,19 @@ void WritePlotFileStag(int step,
             varNames[cnt++] += 48+i;
         }
 
+        x = "XkMean_";
+        for (i=0; i<nspecies; i++) {
+            varNames[cnt] = x;
+            varNames[cnt++] += 48+i;
+        }
+
         varNames[cnt++] = "uxMeanFACE";
         varNames[cnt++] = "uyMeanFACE";
         varNames[cnt++] = "uzMeanFACE";
+
+        varNames[cnt++] = "uxMeanCOM";
+        varNames[cnt++] = "uyMeanCOM";
+        varNames[cnt++] = "uzMeanCOM";
     }
 
     if (plot_vars == 1) {

@@ -1,8 +1,6 @@
 #include "common_functions.H"
 #include "compressible_functions.H"
 
-#include "common_namespace_declarations.H"
-#include "compressible_namespace_declarations.H"
 
 #include "rng_functions.H"
 
@@ -181,9 +179,6 @@ void main_driver(const char* argv)
 
     std::string inputs_file = argv;
 
-    // read in parameters from inputs file into F90 modules
-    // we use "+1" because of amrex_string_c_to_f expects a null char termination
-    read_common_namelist(inputs_file.c_str(),inputs_file.size()+1);
     read_compressible_namelist(inputs_file.c_str(),inputs_file.size()+1);
     
     // copy contents of F90 modules to C++ namespaces

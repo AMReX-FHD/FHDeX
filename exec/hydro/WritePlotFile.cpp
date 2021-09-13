@@ -14,7 +14,6 @@ void WritePlotFile(int step,
                    const amrex::Real time,
                    const amrex::Geometry& geom,
                    std::array< MultiFab, AMREX_SPACEDIM >& umac,
-		   const MultiFab& tracer,
 		   const MultiFab& pres)
 {
     
@@ -32,9 +31,8 @@ void WritePlotFile(int step,
     // plot all the velocity variables (shifted)
     // plot magvort
     // plot pressure
-    // plot tracer
     // plot divergence
-    int nPlot = 2*AMREX_SPACEDIM+4;
+    int nPlot = 2*AMREX_SPACEDIM+3;
 
     MultiFab plotfile(ba, dmap, nPlot, 0);
 
@@ -56,7 +54,6 @@ void WritePlotFile(int step,
     }
 
     varNames[cnt++] = "magvort";
-    varNames[cnt++] = "tracer";
     varNames[cnt++] = "pres";
     varNames[cnt++] = "divergence";
 
@@ -75,10 +72,6 @@ void WritePlotFile(int step,
 
     // magnitude of vorticity
     MagVort(umac,plotfile,geom,cnt);
-    cnt++;
-
-    // copy tracer into plotfile
-    MultiFab::Copy(plotfile, tracer, 0, cnt, 1, 0);
     cnt++;
 
     // copy pressure into plotfile

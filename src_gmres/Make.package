@@ -18,4 +18,3 @@ CEXE_sources   += gmres_functions.cpp
 CEXE_headers   += gmres_functions.H
 
 CEXE_headers   += gmres_namespace.H
-CEXE_headers   += gmres_namespace_declarations.H

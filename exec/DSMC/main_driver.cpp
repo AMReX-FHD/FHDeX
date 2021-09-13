@@ -1,5 +1,4 @@
 #include "LocalFunctions.H"
-#include "common_namespace_declarations.H"
 #include "species.H"
 #include "paramPlane.H"
 #include "StructFact.H"
@@ -20,8 +19,6 @@ void main_driver(const char* argv)
 	// timer for total simulation time
 	Real strt_time = ParallelDescriptor::second();
 	std::string inputs_file = argv;
-
-	read_common_namelist(inputs_file.c_str(),inputs_file.size()+1);
 
 	InitializeCommonNamespace();
 

@@ -43,7 +43,7 @@ class AppSurfchemtest : public AppLattice {
   int engstyle;
   int firsttime;
   // variables on each lattice site
-  int *type,*element,*ac1,*ac2,*ac3,*ac4,*ac5,*dc1,*dc2,*dc3,*dc4,*dc5;
+  int *type,*element,*ac1,*ac2,*ac3,*ac4,*ac5,*dc1,*dc2,*dc3,*dc4,*dc5,*dac1,*dac2,*dac3,*dac4,*dac5,*adc1,*adc2,*adc3,*adc4,*adc5;  
   double *density1,*density2,*density3,*density4,*density5,*temp;      
 
   int *esites;
@@ -54,13 +54,15 @@ class AppSurfchemtest : public AppLattice {
   // however, propensity for adsorption depends on number density of gas phase
   // hence different in each cell and we do not use propensity variable
   // adding desorption reactions is exactly same as the first-order reaction case
-  int none,ntwo,nthree,nads,ndes;
-  double *srate,*drate,*trate,*adsrate,*desrate;
-  double *spropensity,*dpropensity,*tpropensity,*despropensity;
-  int *stype,**dtype,**ttype,*adstype,*destype;
-  int *sinput,**dinput,**tinput,*adsinput,*desinput;
-  int *soutput,**doutput,**toutput,*adsoutput,*desoutput;
-  int *scount,*dcount,*tcount,*adscount,*descount;
+  int none,ntwo,nthree,nads,ndes,ndissocads,nassocdes;
+  double *srate,*drate,*trate,*adsrate,*desrate,*dadsrate,*adesrate;
+  bool ads_is_rate,dads_is_rate,des_is_temp_dep;
+  double *spropensity,*dpropensity,*tpropensity,*adespropensity;
+  int *stype,**dtype,**ttype,*adstype,*destype,**dadstype,**adestype;
+  int *sinput,**dinput,**tinput,*adsinput,*desinput,**dadsinput,**adesinput;
+  int *soutput,**doutput,**toutput,*adsoutput,*desoutput,**dadsoutput,**adesoutput;
+  int *scount,*dcount,*tcount,*adscount,*descount,*dadscount,*adescount;
+  int *dadsadsorbate,*adesdesorbate;
 
   struct Event {           // one event for an owned site
     int style;             // reaction style = SINGLE,DOUBLE,TRIPLE
@@ -80,6 +82,7 @@ class AppSurfchemtest : public AppLattice {
   void add_event(int, int, int, double, int, int);
   void grow_reactions(int);
 
+#ifdef MUI
   void mui_init_agg();
   void mui_push(int,char **);
   void mui_fetch(int,char **);
@@ -96,6 +99,7 @@ class AppSurfchemtest : public AppLattice {
   int *MUIintval;           // temp int array for MUI push/fetch
   double *MUIdblval;        // temp double array for MUI push/fetch
   int *localFHDcell;        // map from local KMC site to FHD cell
+#endif
 };
 
 }

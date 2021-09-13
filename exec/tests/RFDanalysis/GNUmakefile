@@ -27,9 +27,6 @@ include $(FHDeX)/src_rng/Make.package
 VPATH_LOCATIONS   += $(FHDeX)/src_rng
 INCLUDE_LOCATIONS += $(FHDeX)/src_rng
 
-include $(FHDeX)/src_rng/src_F90/Make.package
-VPATH_LOCATIONS   += $(FHDeX)/src_rng/src_F90
-INCLUDE_LOCATIONS += $(FHDeX)/src_rng/src_F90
 
 include $(FHDeX)/src_hydro/Make.package
 VPATH_LOCATIONS   += $(FHDeX)/src_hydro/
@@ -48,9 +45,6 @@ include $(FHDeX)/src_common/Make.package
 VPATH_LOCATIONS   += $(FHDeX)/src_common/
 INCLUDE_LOCATIONS += $(FHDeX)/src_common/
 
-include $(FHDeX)/src_common/src_F90/Make.package
-VPATH_LOCATIONS   += $(FHDeX)/src_common/src_F90
-INCLUDE_LOCATIONS += $(FHDeX)/src_common/src_F90
 
 include $(FHDeX)/src_particles/Make.package
 VPATH_LOCATIONS   += $(FHDeX)/src_particles/

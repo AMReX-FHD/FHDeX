@@ -12,9 +12,7 @@
 
 #include "gmres_functions.H"
 
-#include "common_namespace_declarations.H"
 
-#include "gmres_namespace_declarations.H"
 
 #include <AMReX_VisMF.H>
 #include <AMReX_PlotFileUtil.H>
@@ -36,10 +34,6 @@ void main_driver(const char* argv)
     Real strt_time = ParallelDescriptor::second();
 
     std::string inputs_file = argv;
-
-    // read in parameters from inputs file into F90 modules
-    // we use "+1" because of amrex_string_c_to_f expects a null char termination
-    read_common_namelist(inputs_file.c_str(),inputs_file.size()+1);
 
     // copy contents of F90 modules to C++ namespaces
     InitializeCommonNamespace();
@@ -103,14 +97,11 @@ void main_driver(const char* argv)
     // object for turbulent forcing
     TurbForcing turbforce;
 
-    // tracer
-    MultiFab tracer;
-    
     // staggered velocities
     std::array< MultiFab, AMREX_SPACEDIM > umac;
     
     if (restart > 0) {
-        ReadCheckPoint(step_start,time,umac,tracer,turbforce,ba,dmap);
+        ReadCheckPoint(step_start,time,umac,turbforce,ba,dmap);
     }
     else {
 
@@ -134,12 +125,7 @@ void main_driver(const char* argv)
                      umac[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
                      umac[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
     
-        tracer.define(ba,dmap,1,1);
-        tracer.setVal(0.);
-
         InitVel(umac,geom);
-
-        InitTracer(tracer,geom);
 
         // temporary for addMomfluctuations and MacProj_hydro
         MultiFab rho(ba, dmap, 1, 1);
@@ -489,9 +475,9 @@ void main_driver(const char* argv)
         }
 
         // write out initial state
-        // write out umac, tracer, pres, and divergence to a plotfile
+        // write out umac, pres, and divergence to a plotfile
         if (plot_int > 0) {
-            WritePlotFile(0,time,geom,umac,tracer,pres);
+            WritePlotFile(0,time,geom,umac,pres);
             if (n_steps_skip == 0 && struct_fact_int > 0) {
                 structFact.WritePlotFile(0,0.,geom,"plt_SF");
                 if(project_dir >= 0) {
@@ -501,8 +487,6 @@ void main_driver(const char* argv)
         }
     }
     
-    // FIXME need to fill physical boundary condition ghost cells for tracer
-
     std::array< MultiFab, AMREX_SPACEDIM > umacTemp;
     AMREX_D_TERM(umacTemp[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
                  umacTemp[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
@@ -529,7 +513,7 @@ void main_driver(const char* argv)
 	}
 
 	// Advance umac
-        advance(umac,umacTemp,pres,tracer,mfluxdiv_stoch,
+        advance(umac,umacTemp,pres,mfluxdiv_stoch,
                 alpha_fc,beta,gamma,beta_ed,geom,dt,turbforce);
 
 	//////////////////////////////////////////////////
@@ -566,8 +550,8 @@ void main_driver(const char* argv)
         time = time + dt;
 
         if (plot_int > 0 && step%plot_int == 0) {
-            // write out umac, tracer, pres, and divergence to a plotfile
-            WritePlotFile(step,time,geom,umac,tracer,pres);
+            // write out umac, pres, and divergence to a plotfile
+            WritePlotFile(step,time,geom,umac,pres);
 
             // write out structure factor to plotfile
             if (step > n_steps_skip && struct_fact_int > 0) {
@@ -596,8 +580,8 @@ void main_driver(const char* argv)
         }
 
         if (chk_int > 0 && step%chk_int == 0) {
-            // write out umac and tracer to a checkpoint file
-            WriteCheckPoint(step,time,umac,tracer,turbforce);
+            // write out umac and to a checkpoint file
+            WriteCheckPoint(step,time,umac,turbforce);
         }
 
         // compute kinetic energy integral( (1/2) * rho * U dot U dV)

@@ -4,9 +4,7 @@
 
 #include "myfunc.H"
 #include "chemistry_functions.H"
-#include "chemistry_namespace_declarations.H"
 #include "common_functions.H"
-#include "common_namespace_declarations.H"
 
 using namespace amrex;
 
@@ -29,9 +27,6 @@ void main_main(const char* argv)
 
     std::string inputs_file = argv;
     
-    // read in parameters from inputs file into F90 modules
-    // we use "+1" because of amrex_string_c_to_f expects a null char termination
-    read_common_namelist(inputs_file.c_str(),inputs_file.size()+1);
 
     // copy contents of F90 modules to C++ namespaces
     InitializeCommonNamespace();
