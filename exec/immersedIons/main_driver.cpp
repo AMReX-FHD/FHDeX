@@ -69,19 +69,34 @@ void main_driver(const char* argv)
     // AJN - for perdictor/corrector do we need one more ghost cell if the predictor pushes
     //       a particle into a ghost region?
     int ang = 1;
-    if (*(std::max_element(pkernel_fluid.begin(),pkernel_fluid.begin()+nspecies)) == 3) {
-        ang = 2;
+    for(int i=0;i<nspecies;i++)
+    {
+        int tempang = 1;
+        if (pkernel_fluid[i] == 3) {
+            tempang = 2;
+        }
+        else if (pkernel_fluid[i] == 4) {
+            tempang = 3;
+        }
+        else if (pkernel_fluid[i] == 6) {
+            tempang = 4;
+        }
+        else if (eskernel_fluid[i] == 4) {
+	        tempang = 3;
+        }
+        else if (eskernel_fluid[i] == 5) {
+	        tempang = 3;
+        }
+        else if (eskernel_fluid[i] == 6) {
+	        tempang = 4;
+        }
+        
+        if(tempang > ang)
+        {
+            ang = tempang;
+        }   
     }
-    else if (*(std::max_element(pkernel_fluid.begin(),pkernel_fluid.begin()+nspecies)) == 4) {
-        ang = 3;
-    }
-    else if (*(std::max_element(pkernel_fluid.begin(),pkernel_fluid.begin()+nspecies)) == 6) {
-        ang = 4;
-    }
-    else if (*(std::max_element(eskernel_fluid.begin(),eskernel_fluid.begin()+nspecies)) > 0) {
-	ang = static_cast<int>(floor(*(std::max_element(eskernel_fluid.begin(),eskernel_fluid.begin()+nspecies)))/2+1);
-    }
-
+    
     int ngp = 1;
     // using maximum number of peskin kernel points to determine the ghost cells for the whole grid.
     //     not sure if it will cause problem for BCs.
@@ -93,10 +108,7 @@ void main_driver(const char* argv)
     }
     else if (*(std::max_element(pkernel_es.begin(),pkernel_es.begin()+nspecies)) == 6) {
         ngp = 4;
-    }
-    else if (*(std::max_element(eskernel_fluid.begin(),eskernel_fluid.begin()+nspecies)) > 0) {
-	ngp = static_cast<int>(floor(*(std::max_element(eskernel_fluid.begin(),eskernel_fluid.begin()+nspecies)))/2+1);
-    }   
+    } 
 
     // staggered velocities
     // umac needs extra ghost cells for Peskin kernels
@@ -718,14 +730,14 @@ void main_driver(const char* argv)
            max_sr_range = range ;
         }
     }
-    for(int i=0;i<nspecies;i++) {
-        Real range = sigma_wall[i]*rmax_wall[i];
+//    for(int i=0;i<nspecies;i++) {
+//        Real range = sigma_wall[i]*rmax_wall[i];
 
-        if(range > max_sr_range)
-        {
-           max_sr_range = range ;
-        }
-    }
+//        if(range > max_sr_range)
+//        {
+//           max_sr_range = range ;
+//        }
+//    }
     
     if(max_sr_range > max_es_range)
     {
@@ -889,36 +901,99 @@ void main_driver(const char* argv)
         // timer for time step
         Real time1 = ParallelDescriptor::second();
 
-        if(istep == 20)
-        {
-                dt = dt*10;
-                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
-        }
-
-
-        if(istep == 40)
-        {
-                dt = dt*10;
-                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
-        }
-
-        if(istep == 60)
-        {
-                dt = dt*10;
-                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
-        }
-
         if(istep == 80)
         {
-                dt = dt*10;
+                dt = dt*5;
                 Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
         }
 
-        if(istep == 100)
+
+        if(istep == 160)
         {
-                dt = dt*10;
+                dt = dt*2;
                 Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
         }
+
+        if(istep == 240)
+        {
+                dt = dt*5;
+                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+        }
+
+        if(istep == 320)
+        {
+                dt = dt*2;
+                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+        }
+
+        if(istep == 400)
+        {
+                dt = dt*5;
+                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+        }
+        
+        if(istep == 480)
+        {
+                dt = dt*2;
+                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+        }
+
+
+        if(istep == 560)
+        {
+                dt = dt*5;
+                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+        }
+
+        if(istep == 640)
+        {
+                dt = dt*2;
+                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+        }
+
+        if(istep == 720)
+        {
+                dt = dt*5;
+                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+        }
+
+        if(istep == 800)
+        {
+                dt = dt*2;
+                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+        }
+        
+        
+//        if(istep == 20)
+//        {
+//                dt = dt*10;
+//                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+//        }
+
+
+//        if(istep == 40)
+//        {
+//                dt = dt*10;
+//                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+//        }
+
+//        if(istep == 60)
+//        {
+//                dt = dt*10;
+//                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+//        }
+
+//        if(istep == 80)
+//        {
+//                dt = dt*10;
+//                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+//        }
+
+//        if(istep == 100)
+//        {
+//                dt = dt*10;
+//                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+//        }
 
 
 //        if(istep == 1)

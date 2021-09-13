@@ -1736,8 +1736,8 @@ void FhdParticleContainer::collectFieldsGPU(const Real dt, const Real* dxPotenti
     charge.setVal(0.0);
     chargeTemp.setVal(0.0);
 
-    mass.setVal(0.0);
-    massTemp.setVal(0.0);
+    //mass.setVal(0.0);
+    //massTemp.setVal(0.0);
 
     for (FhdParIter pti(*this, lev); pti.isValid(); ++pti)
     {
