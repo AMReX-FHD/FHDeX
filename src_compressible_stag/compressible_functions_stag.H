@@ -6,12 +6,8 @@
 #include <AMReX_ArrayLim.H>
 
 #include "common_functions.H"
-#include "compressible_namespace.H"
 
 using namespace amrex;
-using namespace compressible;
-
-void InitializeCompressibleNamespace();
 
 void WritePlotFileStag(int step,
                        const Real time,
@@ -60,9 +56,9 @@ void BCMem(MultiFab& prim_in, MultiFab& cons_in,
            std::array< MultiFab, AMREX_SPACEDIM >& vel_in,
            const amrex::Geometry geom);
 
-void BCMassTempPress(MultiFab& prim_in,MultiFab& cons_in,const amrex::Geometry geom,int dim);
+void BCMassTempPress(MultiFab& prim_in,const amrex::Geometry geom,int dim);
 
-void BCMomNormal(MultiFab& mom_in, MultiFab& vel_in, MultiFab& cons_in,
+void BCMomNormal(MultiFab& mom_in, MultiFab& vel_in,
                  const amrex::Geometry geom, int dim);
 
 void BCMomTrans(MultiFab& mom_in, MultiFab& vel_in,
@@ -75,9 +71,6 @@ void BCRhoRhoE(MultiFab& cons_in, MultiFab& prim_in,
 void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array< MultiFab, 2 >& edgeflux_x_in,
                    std::array< MultiFab, 2 >& edgeflux_y_in, std::array< MultiFab, 2 >& edgeflux_z_in,
                    const amrex::Geometry geom);
-
-void StochFluxMem(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array< MultiFab, 2 >& edgeflux_x_in,
-                   std::array< MultiFab, 2 >& edgeflux_y_in, std::array< MultiFab, 2 >& edgeflux_z_in);
 
 void RK3stepStag(MultiFab& cu, 
                  std::array< MultiFab, AMREX_SPACEDIM >& cumom,

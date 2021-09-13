@@ -22,7 +22,6 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
 {
     BL_PROFILE_VAR("calculateFluxStag()",calculateFluxStag);
     
-    Box dom(geom.Domain());
     int n_cells_z = n_cells[2];
     
     GpuArray<Real,AMREX_SPACEDIM> dx = geom.CellSizeArray();
@@ -551,10 +550,6 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
 
         // Enforce flux boundary conditions
         StochFluxStag(faceflux_in,edgeflux_x_in,edgeflux_y_in,edgeflux_z_in,geom);
-        if (membrane_cell >= 0) {
-            StochFluxMem(faceflux_in,edgeflux_x_in,edgeflux_y_in,edgeflux_z_in);
-        }
-
     }
         
     ////////////////////
@@ -738,7 +733,6 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                     soret[ns] = 0.5*(chi(i-1,j,k,ns)*prim(i-1,j,k,6+nspecies+ns)+chi(i,j,k,ns)*prim(i,j,k,6+nspecies+ns))
                         *(prim(i,j,k,4)-prim(i-1,j,k,4))/dx[0]/meanT;
                 }
-                        
 
                 // compute Fk (based on Eqn. 2.5.24, Giovangigli's book)
                 for (int kk=0; kk<nspecies; ++kk) {
