@@ -27,6 +27,8 @@ void main_driver(const char* argv)
     // copy contents of F90 modules to C++ namespaces
     InitializeCommonNamespace();
 
+    InitializeCompressibleNamespace();
+
     // read the inputs file for chemistry
     InitializeChemistryNamespace();
 

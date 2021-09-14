@@ -22,10 +22,8 @@ amrex::IntVect             common::ngc;
 AMREX_GPU_MANAGED int      common::nvars;
 AMREX_GPU_MANAGED int      common::nprimvars;
 
-AMREX_GPU_MANAGED int      common::membrane_cell;
 AMREX_GPU_MANAGED int      common::cross_cell;
 AMREX_GPU_MANAGED int      common::do_slab_sf;
-AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::transmission;
 
 AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_SPECIES> common::pkernel_fluid; // GALEN - FLUID KERNEL
 AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_SPECIES> common::pkernel_es;
@@ -218,9 +216,6 @@ amrex::Real                common::turb_a;
 amrex::Real                common::turb_b;
 int                        common::turbForcing;
 
-AMREX_GPU_MANAGED int      common::do_1D;
-
-
 
 void InitializeCommonNamespace() {
 
@@ -308,10 +303,8 @@ void InitializeCommonNamespace() {
     // nvars - number of conserved variables (no default)
     // primvars - number of primative variables (no default)
 
-    membrane_cell = -1; // location of membrane
     cross_cell = 0;     // cell to compute spatial correlation
     do_slab_sf = 0;     // whether to compute SF in two slabs separated by cross_cell
-    // transmission - no default
 
     for (int i=0; i<MAX_SPECIES; ++i) {
         qval[i] = 0.;                // charge on an ion
@@ -440,8 +433,8 @@ void InitializeCommonNamespace() {
         t_lo[i] = 0.;
         t_hi[i] = 0.;
   
-        rho_lo[i] = 0.;
-        rho_hi[i] = 0.;
+        rho_lo[i] = -1.;
+        rho_hi[i] = -1.;
     } 
 
     // c_i boundary conditions
@@ -568,8 +561,6 @@ void InitializeCommonNamespace() {
         Yk0[i] = 0.;
     }
   
-    do_1D = 0;
-
     ParmParse pp;
 
     int temp_max = std::max(3,MAX_SPECIES*MAX_SPECIES);
@@ -608,14 +599,9 @@ void InitializeCommonNamespace() {
     }
     pp.query("nvars",nvars);
     pp.query("nprimvars",nprimvars);
-    pp.query("membrane_cell",membrane_cell);
     pp.query("cross_cell",cross_cell);
     pp.query("do_slab_sf",do_slab_sf);
-    if (pp.queryarr("transmission",temp,0,nspecies)) {
-        for (int i=0; i<nspecies; ++i) {
-            transmission[i] = temp[i];
-        }
-    }
+
     if (pp.queryarr("pkernel_fluid",temp_int,0,nspecies)) {
         for (int i=0; i<nspecies; ++i) {
             pkernel_fluid[i] = temp_int[i];
@@ -1010,7 +996,6 @@ void InitializeCommonNamespace() {
     pp.query("turb_a",turb_a);
     pp.query("turb_b",turb_b);
     pp.query("turbForcing",turbForcing);
-    pp.query("do_1D",do_1D);
 
     if (nspecies > MAX_SPECIES) {
         Abort("InitializeCommonNamespace: nspecies > MAX_SPECIES");

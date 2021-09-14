@@ -55,36 +55,28 @@ print "- number density of spec2 = %e\n" % n2
 
 ##########
 
-lat_const = 2.8e-8
-n1x = 300
-n1y = 150
-
-dx = n1x*lat_const
-dy = n1y*lat_const*math.sqrt(3)
+dx = 300*2.8e-8 
+dy = 150*2.8e-8*math.sqrt(3)
 dz = dx
 dV = dx*dy*dz
 
-n2x = 8
-n2y = 8
-n2z = 8
+nx = 8
+ny = 8
+nz = 8
 
-Lx = n2x*dx
-Ly = n2y*dy
-Lz = n2z*dz
+Lx = nx*dx
+Ly = ny*dy
+Lz = nz*dz
 
-print "- lattice constant for Pt(111): %e" % lat_const
-print "- dx (FHD) = %e" % dx
-print "- dy (FHD) = %e" % dy
-print "- dz (FHD) = %e" % dz
-print "- dV (FHD) = %e" % dV
+print "- dx = %e" % dx
+print "- dy = %e" % dy
+print "- dz = %e" % dz
+print "- dV = %e" % dV
 print "- Lx = %e" % Lx
 print "- Ly = %e" % Ly
 print "- Lz = %e\n" % Lz
 
 ##########
-
-n1s = 2*n1x*n1y
-print "- total number of sites per dxFHD*dyFHD = %d" % n1s 
 
 Ntot = ntot*dV
 N1 = n1*dV
@@ -93,29 +85,6 @@ N2 = n2*dV
 print "- total number of gas molecules in dV = %.3e" % Ntot
 print "- number of gas molecules of spec1 in dV = %.3e" % N1
 print "- number of gas molecules of spec2 in dV = %.3e\n" % N2
-
-##########
-
-p1torr = pres*X1/1.01325e6*760
-k1ads = 2e5*p1torr
-
-print "- p1 in torr = %e" % p1torr
-print "- k1ads = %e" % k1ads
-
-k1des = 1.25e15*math.exp(-1.514/(8.617e-5*temp))
-print "- temp in K = %e" % temp
-print "- k1des = %e" % k1des
-
-theta1 = k1ads/(k1ads+k1des)
-print "- eq coverage of spec1: %e\n" % theta1
-
-##########
-
-dt = 1e-12
-
-print "- dt (FHD) = %e" % dt
-print "- max mean number of ads events per dxFHD*dyFHD per dt = %e" % (n1s*k1ads*dt)
-print "- max mean number of des events per dxFHD*dyFHD per dt = %e\n" % (n1s*k1des*dt)
 
 ##########
 
@@ -128,19 +97,22 @@ drho2sq = rho2**2/N2
 drhosq = drho1sq+drho2sq
 djasq = rho*kB*temp/dV
 
-dEsq = (kB*temp)**2/dV*(2.5*3.5*rho1/m1+1.5*2.5*rho2/m2)
-dTsq = temp**2/dV/(2.5*n1+1.5*n2)
+dof1 = 5
+dof2 = 3 
 
-print "drhosq  = %e\t%e\t%e\t%e" % (drhosq,2*drhosq,0.5*drhosq,1.5*drhosq)
-print "drho1sq = %e\t%e\t%e\t%e" % (drho1sq,2*drho1sq,0.5*drho1sq,1.5*drho1sq)
-print "drho2sq = %e\t%e\t%e\t%e" % (drho2sq,2*drho2sq,0.5*drho2sq,1.5*drho2sq)
-print "djasq   = %e\t%e\t%e\t%e" % (djasq,2*djasq,0.5*djasq,1.5*djasq)
-print "dEsq    = %e\t%e\t%e\t%e" % (dEsq,2*dEsq,0.5*dEsq,1.5*dEsq)
-print "dTsq    = %e\t%e\t%e\t%e\n" % (dTsq,2*dTsq,0.5*dTsq,1.5*dTsq)
+dEsq = (kB*temp)**2/dV*((0.5*dof1)*(0.5*dof1+1)*rho1/m1+(0.5*dof2)*(0.5*dof2+1)*rho2/m2)
+dTsq = temp**2/dV/((0.5*dof1)*n1+(0.5*dof2)*n2)
 
-print "drhosq*dV  = %e\t%e\t%e\t%e" % (drhosq*dV,2*drhosq*dV,0.5*drhosq*dV,1.5*drhosq*dV)
-print "drho1sq*dV = %e\t%e\t%e\t%e" % (drho1sq*dV,2*drho1sq*dV,0.5*drho1sq*dV,1.5*drho1sq*dV)
-print "drho2sq*dV = %e\t%e\t%e\t%e" % (drho2sq*dV,2*drho2sq*dV,0.5*drho2sq*dV,1.5*drho2sq*dV)
-print "djasq*dV   = %e\t%e\t%e\t%e" % (djasq*dV,2*djasq*dV,0.5*djasq*dV,1.5*djasq*dV)
-print "dEsq*dV    = %e\t%e\t%e\t%e" % (dEsq*dV,2*dEsq*dV,0.5*dEsq*dV,1.5*dEsq*dV)
-print "dTsq*dV    = %e\t%e\t%e\t%e" % (dTsq*dV,2*dTsq*dV,0.5*dTsq*dV,1.5*dTsq*dV)
+print "drhosq  (+/-50%%) = %e\t%e\t%e\t%e" % (drhosq,2*drhosq,0.5*drhosq,1.5*drhosq)
+print "drho1sq (+/-50%%) = %e\t%e\t%e\t%e" % (drho1sq,2*drho1sq,0.5*drho1sq,1.5*drho1sq)
+print "drho2sq (+/-50%%) = %e\t%e\t%e\t%e" % (drho2sq,2*drho2sq,0.5*drho2sq,1.5*drho2sq)
+print "djasq   (+/-10%%) = %e\t%e\t%e\t%e" % (djasq,2*djasq,0.9*djasq,1.1*djasq)
+print "dEsq    (+/-50%%) = %e\t%e\t%e\t%e" % (dEsq,2*dEsq,0.5*dEsq,1.5*dEsq)
+print "dTsq    (+/-10%%) = %e\t%e\t%e\t%e\n" % (dTsq,2*dTsq,0.9*dTsq,1.1*dTsq)
+
+print "drhosq*dV  (+/-50%%) = %e\t%e\t%e\t%e" % (drhosq*dV,2*drhosq*dV,0.5*drhosq*dV,1.5*drhosq*dV)
+print "drho1sq*dV (+/-50%%) = %e\t%e\t%e\t%e" % (drho1sq*dV,2*drho1sq*dV,0.5*drho1sq*dV,1.5*drho1sq*dV)
+print "drho2sq*dV (+/-50%%) = %e\t%e\t%e\t%e" % (drho2sq*dV,2*drho2sq*dV,0.5*drho2sq*dV,1.5*drho2sq*dV)
+print "djasq*dV   (+/-10%%) = %e\t%e\t%e\t%e" % (djasq*dV,2*djasq*dV,0.9*djasq*dV,1.1*djasq*dV)
+print "dEsq*dV    (+/-50%%) = %e\t%e\t%e\t%e" % (dEsq*dV,2*dEsq*dV,0.5*dEsq*dV,1.5*dEsq*dV)
+print "dTsq*dV    (+/-10%%) = %e\t%e\t%e\t%e" % (dTsq*dV,2*dTsq*dV,0.9*dTsq*dV,1.1*dTsq*dV)
