@@ -2448,6 +2448,17 @@ FhdParticleContainer::MeanSqrCalc(int lev, int reset) {
 }
 
 void
+FhdParticleContainer::GetAllParticlePositions(Real* posx, Real* posy, Real* posz, long totalParticles) {
+
+
+    // collect particle positions onto one processor
+    PullDown(0, posx, -1, totalParticles);
+    PullDown(0, posy, -2, totalParticles);
+    PullDown(0, posz, -3, totalParticles);
+
+}
+
+void
 FhdParticleContainer::BuildCorrectionTable(const Real* dx, int setMeasureFinal) {
 
     BL_PROFILE_VAR("BuildCorrectionTable()",BuildCorrectionTable);

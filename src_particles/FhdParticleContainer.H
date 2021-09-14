@@ -271,6 +271,8 @@ public:
 
 
     void invertMatrix();
+    
+    void GetAllParticlePositions(Real* posx, Real* posy, Real* posz, long totalParticles);
 
 
     /****************************************************************************

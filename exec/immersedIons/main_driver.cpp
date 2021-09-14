@@ -31,7 +31,7 @@ void main_driver(const char* argv)
     // copy contents of F90 modules to C++ namespaces
     InitializeCommonNamespace();
     InitializeGmresNamespace();
-    
+        
     int step = 1;
     Real time = 0.;
     int statsCount = 1;
@@ -439,6 +439,7 @@ void main_driver(const char* argv)
                // std::cout << "Species " << i << " radius: " << ionParticle[i].d << std::endl;
 
             // compute wet diffusion from wetRad
+            Print() << "WETRAD: " << wetRad[i] << endl;
             ionParticle[i].wetDiff = (k_B*T_init[0])/(6*M_PI*wetRad[i]*visc_coef);
 
             if (all_dry == 1) {
@@ -896,105 +897,105 @@ void main_driver(const char* argv)
         // timer for time step
         Real time1 = ParallelDescriptor::second();
 
-        if(istep == 80)
-        {
-                dt = dt*5;
-                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
-        }
-
-
-        if(istep == 160)
-        {
-                dt = dt*2;
-                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
-        }
-
-        if(istep == 240)
-        {
-                dt = dt*5;
-                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
-        }
-
-        if(istep == 320)
-        {
-                dt = dt*2;
-                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
-        }
-
-        if(istep == 400)
-        {
-                dt = dt*5;
-                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
-        }
-        
-        if(istep == 480)
-        {
-                dt = dt*2;
-                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
-        }
-
-
-        if(istep == 560)
-        {
-                dt = dt*5;
-                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
-        }
-
-        if(istep == 640)
-        {
-                dt = dt*2;
-                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
-        }
-
-        if(istep == 720)
-        {
-                dt = dt*5;
-                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
-        }
-
-        if(istep == 800)
-        {
-                dt = dt*2;
-                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
-        }
-        
-        
-//        if(istep == 20)
-//        {
-//                dt = dt*10;
-//                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
-//        }
-
-
-//        if(istep == 40)
-//        {
-//                dt = dt*10;
-//                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
-//        }
-
-//        if(istep == 60)
-//        {
-//                dt = dt*10;
-//                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
-//        }
-
 //        if(istep == 80)
 //        {
-//                dt = dt*10;
-//                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
-//        }
-
-//        if(istep == 100)
-//        {
-//                dt = dt*10;
+//                dt = dt*5;
 //                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
 //        }
 
 
-//        if(istep == 1)
+//        if(istep == 160)
 //        {
-//            particles.SetPosition(1, prob_hi[0]*0.5, 0.5e-7, prob_hi[2]*0.5);
+//                dt = dt*2;
+//                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
 //        }
+
+//        if(istep == 240)
+//        {
+//                dt = dt*5;
+//                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+//        }
+
+//        if(istep == 320)
+//        {
+//                dt = dt*2;
+//                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+//        }
+
+//        if(istep == 400)
+//        {
+//                dt = dt*5;
+//                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+//        }
+//        
+//        if(istep == 480)
+//        {
+//                dt = dt*2;
+//                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+//        }
+
+
+//        if(istep == 560)
+//        {
+//                dt = dt*5;
+//                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+//        }
+
+//        if(istep == 640)
+//        {
+//                dt = dt*2;
+//                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+//        }
+
+//        if(istep == 720)
+//        {
+//                dt = dt*5;
+//                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+//        }
+
+//        if(istep == 800)
+//        {
+//                dt = dt*2;
+//                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+//        }
+        
+        
+        if(istep == 20)
+        {
+                dt = dt*10;
+                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+        }
+
+
+        if(istep == 40)
+        {
+                dt = dt*10;
+                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+        }
+
+        if(istep == 60)
+        {
+                dt = dt*10;
+                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+        }
+
+        if(istep == 80)
+        {
+                dt = dt*10;
+                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+        }
+
+        if(istep == 100)
+        {
+                dt = dt*10;
+                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+        }
+
+
+        if(istep == 1)
+        {
+            particles.SetPosition(1, prob_hi[0]*0.5, 0.5e-7, prob_hi[2]*0.5);
+        }
 
     
         //Most of these functions are sensitive to the order of execution. We can fix this, but for now leave them in this order.
