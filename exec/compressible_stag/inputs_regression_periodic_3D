@@ -23,7 +23,7 @@
   max_step = 3
   plot_int = 1
   struct_fact_int = -1
-  n_steps_skip = 10
+  n_steps_skip = 0
   chk_int = -1
   restart = -1
 

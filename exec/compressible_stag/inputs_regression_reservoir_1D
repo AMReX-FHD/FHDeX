@@ -25,7 +25,7 @@
   max_step = 3
   plot_int = 1
   struct_fact_int = -1
-  n_steps_skip = 10
+  n_steps_skip = 0
   chk_int = -1
   restart = -1
 
@@ -90,9 +90,9 @@
   bc_Yk_x_hi = 0.9 0.1    # hi BC
 
   nspecies = 2
-  molmass(1:2)  = 20.17417748454183 20.17417748454183
-  diameter(1:2) = 2.58e-8 4.16e-8
-  rhobar = 0.5 0.5
+  molmass  = 20.17417748454183 20.17417748454183
+  diameter = 2.58e-8 4.16e-8
+  rhobar   = 0.5 0.5
 
   # Enter negative dof to use hcv & hcp values
   dof =  3 3
