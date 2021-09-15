@@ -2448,7 +2448,7 @@ FhdParticleContainer::MeanSqrCalc(int lev, int reset) {
 }
 
 void
-FhdParticleContainer::GetAllParticlePositions(Real* posx, Real* posy, Real* posz, long totalParticles) {
+FhdParticleContainer::GetAllParticlePositions(Real* posx, Real* posy, Real* posz, int totalParticles) {
 
 
     // collect particle positions onto one processor
