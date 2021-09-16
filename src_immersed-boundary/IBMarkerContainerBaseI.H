@@ -647,7 +647,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::PushUpAdd(
                 ParticleType & part = particles[i];
                 int id = part.id();
 
-                particles[i].rdata(StructReal::radius + element) = particles[i].rdata(StructReal::radius + element) + list[id-1];
+                particles[i].rdata(element) = particles[i].rdata(element) + list[id-1];
             });
 
         } else {

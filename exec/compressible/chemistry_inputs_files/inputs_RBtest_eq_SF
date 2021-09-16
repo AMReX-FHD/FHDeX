@@ -4,8 +4,8 @@
 seed = 0
 
 # Problem specification
-prob_lo = 0.0 0.0 0.0 # physical lo coordinate
-prob_hi = 6.72e-05 5.819691e-05 6.72e-05 # physical hi coordinate
+prob_lo = 0.0 0.0 0.0               # physical lo coordinate
+prob_hi = 6.4e-05 6.4e-05 6.4e-05   # physical hi coordinate
 
 # Number of ghost cells, conserved, and primitive variables
 # ---------------------
@@ -19,11 +19,11 @@ n_cells = 8 8 8
 max_grid_size = 4 4 4 
 
 # Time-step control
-fixed_dt = 5.e-13
+fixed_dt = 2.5e-13
 
 # Controls for number of steps between actions
 
-max_step = 2000000
+max_step = 1000000
 plot_int = 100000
 
 # Multispecies toggle
@@ -52,7 +52,7 @@ prob_type = 1
 k_B = 1.38064852e-16	# [units: cm2*g*s-2*K-1]
 runiv = 8.314462175e7
 T_init = 1000
-rho0 = 5.886949e-05
+rho0 = 4.810894e-05 
 
 struct_fact_int = 1
 n_steps_skip = 100000
@@ -68,12 +68,12 @@ n_steps_skip = 100000
 # bc_therm: -1 = periodic
 #1 = adiabatic
 #2 = isothermal (set with t_lo/hi in common namelist)
-bc_vel_lo = -1 -1 1
-bc_vel_hi = -1 -1 1
-bc_mass_lo= -1 -1 1
-bc_mass_hi= -1 -1 1
-bc_therm_lo = -1 -1 2
-bc_therm_hi = -1 -1 2
+bc_vel_lo = -1 -1 -1
+bc_vel_hi = -1 -1 -1
+bc_mass_lo= -1 -1 -1
+bc_mass_hi= -1 -1 -1
+bc_therm_lo = -1 -1 -1
+bc_therm_hi = -1 -1 -1
 
 # Temperature if thermal BC specified
 t_hi = 1000 1000 1000 
@@ -83,12 +83,12 @@ t_lo = 1000 1000 1000
 #--------------
 nspecies = 2 
 
-molmass = 28.01 4.0026
-diameter = 3.76e-8 2.18e-8
-rhobar = 0.2 0.8
+molmass = 4. 4.
+diameter = 2.e-8 2.e-8
+rhobar = 0.5 0.5
 
 # Enter negative dof to use hcv & hcp values
-dof = 5 3
+dof = 3 3
 hcv = -1 -1
 hcp = -1 -1
 
