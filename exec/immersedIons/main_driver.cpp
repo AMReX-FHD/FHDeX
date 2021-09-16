@@ -992,10 +992,10 @@ void main_driver(const char* argv)
         }
 
 
-        if(istep == 1)
-        {
-            particles.SetPosition(1, prob_hi[0]*0.5, 0.5e-7, prob_hi[2]*0.5);
-        }
+//        if(istep == 1)
+//        {
+//            particles.SetPosition(1, prob_hi[0]*0.5, 0.5e-7, prob_hi[2]*0.5);
+//        }
 
     
         //Most of these functions are sensitive to the order of execution. We can fix this, but for now leave them in this order.

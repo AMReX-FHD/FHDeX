@@ -1,4 +1,3 @@
-&common
 	# System: Isothermal boundaries with gradient of (200k/mm) with Ar
 	# Problem specification
 	prob_lo = 0.0 0.0 0.0	           # physical lo coordinate
@@ -84,4 +83,3 @@
 	bc_Yk_y_hi = 1.0  1.0   # hi BC
 	bc_Yk_z_lo = 1.0  1.0   # lo BC
 	bc_Yk_z_hi = 1.0  1.0   # hi BC
-/
