@@ -63,7 +63,7 @@ struct FHD_realData {
         sigma,
         eepsilon,
         potential,
-	p3m_radius,
+	    p3m_radius,
         spring,
         count    // Awesome little trick! (only works if first field is 0)
     };
@@ -271,6 +271,8 @@ public:
 
 
     void invertMatrix();
+    
+    void GetAllParticlePositions(Real* posx, Real* posy, Real* posz, int totalParticles);
 
 
     /****************************************************************************
