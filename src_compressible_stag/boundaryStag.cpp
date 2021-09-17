@@ -45,7 +45,7 @@ void SetupCWallStag() {
             GetPressureGas(p_lo[0],massvec,rho0,T_init[0]);
         }
 
-        if (rho_lo[0] < 0.0) { // specify reservoir density if not specified
+        if (rho_lo[0] <= 0.0) { // specify reservoir density if not specified
             GetDensity(p_lo[0],rho_lo[0],t_lo[0],bc_Yk_x_lo);
         }
         else if (t_lo[0] <= 0.0) { // specify reservoir temperature if not specified
@@ -83,7 +83,7 @@ void SetupCWallStag() {
             GetPressureGas(p_hi[0],massvec,rho0,T_init[0]);
         }
 
-        if (rho_hi[0] < 0.0) { // specify reservoir density  if not specified
+        if (rho_hi[0] <= 0.0) { // specify reservoir density  if not specified
             GetDensity(p_hi[0],rho_hi[0],t_hi[0],bc_Yk_x_hi);
         }
         else if (t_hi[0] <= 0.0) { // specify reservoir temperature if not specified
@@ -122,7 +122,7 @@ void SetupCWallStag() {
             GetPressureGas(p_lo[1],massvec,rho0,T_init[0]);
         }
 
-        if (rho_lo[1] < 0.0) { // specify reservoir density  if not specified
+        if (rho_lo[1] <= 0.0) { // specify reservoir density  if not specified
             GetDensity(p_lo[1],rho_lo[1],t_lo[1],bc_Yk_y_lo);
         }
         else if (t_lo[1] <= 0.0) { // specify reservoir temperature if not specified
@@ -160,7 +160,7 @@ void SetupCWallStag() {
             GetPressureGas(p_hi[1],massvec,rho0,T_init[0]);
         }
 
-        if (rho_hi[1] < 0.0) { // specify reservoir density  if not specified
+        if (rho_hi[1] <= 0.0) { // specify reservoir density  if not specified
             GetDensity(p_hi[1],rho_hi[1],t_hi[1],bc_Yk_y_hi);
         }
         else if (t_hi[1] <= 0.0) { // specify reservoir temperature if not specified
@@ -199,7 +199,7 @@ void SetupCWallStag() {
             GetPressureGas(p_lo[2],massvec,rho0,T_init[0]);
         }
 
-        if (rho_lo[2] < 0.0) { // specify reservoir density  if not specified
+        if (rho_lo[2] <= 0.0) { // specify reservoir density  if not specified
             GetDensity(p_lo[2],rho_lo[2],t_lo[2],bc_Yk_z_lo);
         }
         else if (t_lo[2] <= 0.0) { // specify reservoir temperature if not specified
@@ -237,7 +237,7 @@ void SetupCWallStag() {
             GetPressureGas(p_hi[2],massvec,rho0,T_init[0]);
         }
 
-        if (rho_hi[2] < 0.0) { // specify reservoir density  if not specified
+        if (rho_hi[2] <= 0.0) { // specify reservoir density  if not specified
             GetDensity(p_hi[2],rho_hi[2],t_hi[2],bc_Yk_z_hi);
         }
         else if (t_hi[2] <= 0.0) { // specify reservoir temperature if not specified

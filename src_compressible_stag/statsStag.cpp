@@ -394,11 +394,11 @@ void EvaluateVarsCoVars(const MultiFab& cons, const MultiFab& consMean, MultiFab
             primvars(i,j,k,nprimvars+2) = (primvars(i,j,k,nprimvars+2)*stepsminusone + delrho*delenergy)*stepsinv; // krcross
             primvars(i,j,k,nprimvars+3) = (primvars(i,j,k,nprimvars+3)*stepsminusone + delrho*delg)*stepsinv; // rgcross
 
-            //primvars(i,j,k,4) = (primvars(i,j,k,4)*stepsminusone + cvinv*cvinv*densitymeaninv*densitymeaninv*
-            //                     (cuvars(i,j,k,4) + primvars(i,j,k,nprimvars) - 2*primvars(i,j,k,nprimvars+1)
-            //                      + qmean*(qmean*cuvars(i,j,k,0) - 2*primvars(i,j,k,nprimvars+2) + 2*primvars(i,j,k,nprimvars+3))))*stepsinv; // <T T> 
-            Real delT = prim(i,j,k,4) - primmeans(i,j,k,4);
-            primvars(i,j,k,4)   = (primvars(i,j,k,4)*stepsminusone + delT*delT)*stepsinv;
+            primvars(i,j,k,4) = (primvars(i,j,k,4)*stepsminusone + cvinv*cvinv*densitymeaninv*densitymeaninv*
+                                 (cuvars(i,j,k,4) + primvars(i,j,k,nprimvars) - 2*primvars(i,j,k,nprimvars+1)
+                                  + qmean*(qmean*cuvars(i,j,k,0) - 2*primvars(i,j,k,nprimvars+2) + 2*primvars(i,j,k,nprimvars+3))))*stepsinv; // <T T> 
+            //Real delT = prim(i,j,k,4) - primmeans(i,j,k,4);
+            //primvars(i,j,k,4)   = (primvars(i,j,k,4)*stepsminusone + delT*delT)*stepsinv;
 
             Real deltemp = (delenergy - delg - qmean*delrho)*cvinv*densitymeaninv;
 

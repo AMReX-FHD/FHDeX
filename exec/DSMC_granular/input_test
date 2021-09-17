@@ -1,5 +1,3 @@
-&common
-
  # Problem specification
   prob_lo = 0.0 0.0 0.0     			 	# physical lo coordinate
   prob_hi = 3.66e-06 1.25e-05 1.25e-05	# physical hi coordinate (cm)
@@ -99,4 +97,3 @@
   bc_Xk_y_hi = 0.1  0.1   # hi BC
   bc_Xk_z_lo = 0.4  0.4   # lo BC
   bc_Xk_z_hi = 0.9  0.9   # hi BC
-/
