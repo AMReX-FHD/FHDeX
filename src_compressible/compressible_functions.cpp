@@ -5,6 +5,7 @@ AMREX_GPU_MANAGED int compressible::transport_type;
 AMREX_GPU_MANAGED int compressible::membrane_cell;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> compressible::transmission;
 AMREX_GPU_MANAGED int compressible::do_1D;
+AMREX_GPU_MANAGED int compressible::all_correl;
 
 void InitializeCompressibleNamespace()
 {
