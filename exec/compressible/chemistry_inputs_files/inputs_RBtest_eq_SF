@@ -68,12 +68,12 @@ n_steps_skip = 100000
 # bc_therm: -1 = periodic
 #1 = adiabatic
 #2 = isothermal (set with t_lo/hi in common namelist)
-bc_vel_lo = -1 -1 -1
-bc_vel_hi = -1 -1 -1
-bc_mass_lo= -1 -1 -1
-bc_mass_hi= -1 -1 -1
-bc_therm_lo = -1 -1 -1
-bc_therm_hi = -1 -1 -1
+bc_vel_lo = -1 -1 1
+bc_vel_hi = -1 -1 1
+bc_mass_lo= -1 -1 1
+bc_mass_hi= -1 -1 1
+bc_therm_lo = -1 -1 2 
+bc_therm_hi = -1 -1 2 
 
 # Temperature if thermal BC specified
 t_hi = 1000 1000 1000 
