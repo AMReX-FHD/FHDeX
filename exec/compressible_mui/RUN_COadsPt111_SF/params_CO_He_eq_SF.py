@@ -10,11 +10,11 @@ Navo = 6.0221409e23         # Avogadro constant
 
 # molecular weights
 M1 = 28.01      # CO 
-M2 =  4.0026    # He
+M2 = 39.95      # Ne
 print "- molecular masses: [%.2f, %.2f]" % (M1,M2)
 
 # mass fractions
-Y1 = 0.2
+Y1 = 0.05
 Y2 = 1-Y1 
 print "- mass fractions: [%.3f, %.3f]" % (Y1,Y2)
 
@@ -111,7 +111,7 @@ print "- eq coverage of spec1: %e\n" % theta1
 
 ##########
 
-dt = 1e-12
+dt = 5e-13
 
 print "- dt (FHD) = %e" % dt
 print "- max mean number of ads events per dxFHD*dyFHD per dt = %e" % (n1s*k1ads*dt)
@@ -144,3 +144,17 @@ print "drho2sq*dV = %e\t%e\t%e\t%e" % (drho2sq*dV,2*drho2sq*dV,0.5*drho2sq*dV,1.
 print "djasq*dV   = %e\t%e\t%e\t%e" % (djasq*dV,2*djasq*dV,0.5*djasq*dV,1.5*djasq*dV)
 print "dEsq*dV    = %e\t%e\t%e\t%e" % (dEsq*dV,2*dEsq*dV,0.5*dEsq*dV,1.5*dEsq*dV)
 print "dTsq*dV    = %e\t%e\t%e\t%e" % (dTsq*dV,2*dTsq*dV,0.5*dTsq*dV,1.5*dTsq*dV)
+
+d1 = 3.76e-8
+d2 = 3.63e-8 
+d12 = (d1+d2)/2
+D12 = 3./16*math.sqrt(2*math.pi*kB**3*(m1+m2)/m1/m2)/math.pi/d12**2*temp*math.sqrt(temp)/pres
+
+u = 3*math.sqrt(kB*temp/mavg/Ntot)  # rough estimate
+
+print "dx = %e " % dx
+print "dt = %e " % dt
+print "D12 = %e" % D12
+print "D12*dt/dx**2 = %e" % (D12*dt/dx**2)
+print "u = %e" % u
+print "u*dt/dx = %e" % (u*dt/dx)
