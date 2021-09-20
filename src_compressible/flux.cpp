@@ -144,25 +144,25 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                     // 1 = slip
                     // 2 = no-slip
                     if (bc_vel_lo[1] == 1 || bc_vel_lo[1] == 2) {
-                        if (j == 0) {
-                            factor1 = (bc_vel_lo[1] == 1) sqrt(2.0) : 0.;
-                        }
-                    }
-                    if (bc_vel_lo[2] == 1 || bc_vel_lo[2] == 2) {
                         
                     }
+                    if (bc_vel_lo[2] == 1 || bc_vel_lo[2] == 2) {
+                        if (k == 0) {
+                            factor1 = (bc_vel_lo[2] == 1) ? std::sqrt(2.0) : 0.;
+                        }                        
+                    }
                     if (bc_vel_hi[1] == 1 || bc_vel_hi[1] == 2) {
-                        if (j == n_cells[1]-1) {
-                            factor2 = (bc_vel_hi[1] == 1) sqrt(2.0) : 0.;
-                        }
+                        
                     }
                     if (bc_vel_hi[2] == 1 || bc_vel_hi[2] == 2) {
-
+                        if (k == n_cells[2]-1) {
+                            factor2 = (bc_vel_hi[2] == 1) ? std::sqrt(2.0) : 0.;
+                        }
                     }                    
                     
                     wiener[1] = wiener[1] + 0.25*nweight*(factor2*sqrt(muzepp)*rancorn(i,j+1,k+1) +
-                                                          factor1*sqrt(muzemp)*rancorn(i,j,k+1) +
-                                                          factor2*sqrt(muzepm)*rancorn(i,j+1,k) + 
+                                                          factor2*sqrt(muzemp)*rancorn(i,j,k+1) +
+                                                          factor1*sqrt(muzepm)*rancorn(i,j+1,k) + 
                                                           factor1*sqrt(muzemm)*rancorn(i,j,k)); // Random "divergence" stress
 
                 } else if (n_cells_z == 1) {
@@ -360,8 +360,33 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                                                 zeta(i-1,j-1,k)*prim(i-1,j-1,k,4) + zeta(i,j-1,k)*prim(i,j-1,k,4) );
                     }
 
-                    wiener[2] = wiener[2] + 0.25*nweight*(sqrt(muzepp)*rancorn(i+1,j,k+1)+ sqrt(muzemp)*rancorn(i,j,k+1) + 
-                                                          sqrt(muzepm)* rancorn(i+1,j,k)+ sqrt(muzemm)*rancorn(i,j,k)); // Random "divergence" stress
+
+                    Real factor1 = 1.;
+                    Real factor2 = 1.;
+
+                    // 1 = slip
+                    // 2 = no-slip
+                    if (bc_vel_lo[1] == 1 || bc_vel_lo[1] == 2) {
+                        
+                    }
+                    if (bc_vel_lo[2] == 1 || bc_vel_lo[2] == 2) {
+                        if (k == 0) {
+                            factor1 = (bc_vel_lo[2] == 1) ? std::sqrt(2.0) : 0.;
+                        }                        
+                    }
+                    if (bc_vel_hi[1] == 1 || bc_vel_hi[1] == 2) {
+                        
+                    }
+                    if (bc_vel_hi[2] == 1 || bc_vel_hi[2] == 2) {
+                        if (k == n_cells[2]-1) {
+                            factor2 = (bc_vel_hi[2] == 1) ? std::sqrt(2.0) : 0.;
+                        }
+                    }                    
+                    
+                    wiener[2] = wiener[2] + 0.25*nweight*(factor2*sqrt(muzepp)*rancorn(i+1,j,k+1) +
+                                                          factor2*sqrt(muzemp)*rancorn(i,j,k+1) +
+                                                          factor1*sqrt(muzepm)*rancorn(i+1,j,k) +
+                                                          factor1*sqrt(muzemm)*rancorn(i,j,k)); // Random "divergence" stress
 
                 } else if (n_cells_z == 1) {
                     
@@ -556,36 +581,12 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                                                 zeta(i-1,j-1,k-1)*prim(i-1,j-1,k-1,4) + zeta(i,j-1,k-1)*prim(i,j-1,k-1,4) +
                                                 zeta(i-1,j,k-1)*prim(i-1,j,k-1,4) + zeta(i,j,k-1)*prim(i,j,k-1,4) );
 
-                    }
-
-
-
-                    Real factor1 = 1.;
-                    Real factor2 = 1.;
-
-                    // 1 = slip
-                    // 2 = no-slip
-                    if (bc_vel_lo[1] == 1 || bc_vel_lo[1] == 2) {
-                        if (j == 0) {
-                            factor1 = (bc_vel_lo[1] == 1) sqrt(2.0) : 0.;
-                        }
-                    }
-                    if (bc_vel_lo[2] == 1 || bc_vel_lo[2] == 2) {
-                        
-                    }
-                    if (bc_vel_hi[1] == 1 || bc_vel_hi[1] == 2) {
-                        if (j == n_cells[1]-1) {
-                            factor2 = (bc_vel_hi[1] == 1) sqrt(2.0) : 0.;
-                        }
-                    }
-                    if (bc_vel_hi[2] == 1 || bc_vel_hi[2] == 2) {
-
-                    }       
+                    }    
                     
-                    wiener[3] = wiener[3] + 0.25*nweight* (factor2*sqrt(muzepp)*rancorn(i+1,j+1,k) +
-                                                           factor2*sqrt(muzemp)*rancorn(i,j+1,k) +
-                                                           factor1*sqrt(muzepm)*rancorn(i+1,j,k) +
-                                                           factor1*sqrt(muzemm)*rancorn(i,j,k)); // Random "divergence" stress
+                    wiener[3] = wiener[3] + 0.25*nweight* (sqrt(muzepp)*rancorn(i+1,j+1,k) +
+                                                           sqrt(muzemp)*rancorn(i,j+1,k) +
+                                                           sqrt(muzepm)*rancorn(i+1,j,k) +
+                                                           sqrt(muzemm)*rancorn(i,j,k)); // Random "divergence" stress
 
                     for (int n=1; n<4; ++n) {
                         fluxz(i,j,k,n) = fluxz(i,j,k,n) + wiener[n];
