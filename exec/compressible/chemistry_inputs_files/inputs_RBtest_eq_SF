@@ -19,7 +19,7 @@ n_cells = 8 8 8
 max_grid_size = 4 4 4 
 
 # Time-step control
-fixed_dt = 2.5e-13
+fixed_dt = 1.25e-13
 
 # Controls for number of steps between actions
 

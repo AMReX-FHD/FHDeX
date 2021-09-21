@@ -124,7 +124,7 @@ D12 = 3./16*math.sqrt(2*math.pi*kB**3*(m1+m2)/m1/m2)/math.pi/d12**2*temp*math.sq
 
 u = 3*math.sqrt(kB*temp/m1/Ntot)
 
-dt = 2.5e-13
+dt = 1.25e-13
 print "dx = %e " % dx
 print "dt = %e " % dt
 print "D12 = %e" % D12
