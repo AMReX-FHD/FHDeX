@@ -594,7 +594,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                                                 zeta(i-1,j-1,k-1)*prim(i-1,j-1,k-1,4) + zeta(i,j-1,k-1)*prim(i,j-1,k-1,4) +
                                                 zeta(i-1,j,k-1)*prim(i-1,j,k-1,4) + zeta(i,j,k-1)*prim(i,j,k-1,4) );
 
-                    }    
+                    }
 
                     Real factor_lo_x = 1.;
                     Real factor_hi_x = 1.;
