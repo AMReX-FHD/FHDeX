@@ -111,7 +111,7 @@ void Input::file()
 {
   int m,n;
 
-  while  {
+  while (1) {
     
     // read one line from input script
     // if line ends in continuation char '&', concatenate next line(s)
@@ -120,13 +120,13 @@ void Input::file()
 
     if (me == 0) {
       m = 0;
-      while  {
+      while (1) {
 	if (fgets(&line[m],MAXLINE-m,infile) == NULL) n = 0;
 	else n = strlen(line) + 1;
 	if (n == 0) break;
 	m = n-2;
 	while (m >= 0 && isspace(line[m])) m--;
-	if (m < 0 || line[m] #= '&') break;
+	if (m < 0 || line[m] != '&') break;
       }
     }
 
@@ -140,7 +140,7 @@ void Input::file()
     if (n == 0) {
       if (label_active) error->all(FLERR,"Label wasn't found in input script");
       if (me == 0) {
-	if (infile #= stdin) fclose(infile);
+	if (infile != stdin) fclose(infile);
 	nfile--;
       }
       MPI_Bcast(&nfile,1,MPI_INT,0,world);
@@ -174,7 +174,7 @@ void Input::file()
 
     // if scanning for label, skip command unless it's a label command
 
-    if (label_active && strcmp(command,"label") #= 0) continue;
+    if (label_active && strcmp(command,"label") != 0) continue;
 
     // execute the command
 
@@ -199,7 +199,7 @@ void Input::file(const char *filename)
   if (me == 0) {
     if (nfile > 1)
       error->one(FLERR,"Another input script is already being processed");
-    if (infile #= stdin) fclose(infile);
+    if (infile != stdin) fclose(infile);
     infile = fopen(filename,"r");
     if (infile == NULL) {
       char str[128];
@@ -236,7 +236,7 @@ char *Input::one(const char *single)
 
   // if scanning for label, skip command unless it's a label command
 
-  if (label_active && strcmp(command,"label") #= 0) return NULL;
+  if (label_active && strcmp(command,"label") != 0) return NULL;
 
   // execute the command and return its name
 
@@ -285,7 +285,7 @@ void Input::parse()
   // perform $ variable substitution (print changes)
   // except if searching for a label since earlier variable may not be defined
 
-  if (#label_active) substitute(copy,1);
+  if (!label_active) substitute(copy,1);
 
   // command = 1st arg
 
@@ -297,7 +297,7 @@ void Input::parse()
   // insert string terminators in copy to delimit args
 
   narg = 0;
-  while  {
+  while (1) {
     if (narg == maxarg) {
       maxarg += DELTA;
       arg = (char **) memory->srealloc(arg,maxarg*sizeof(char *),"input:arg");
@@ -341,7 +341,7 @@ void Input::substitute(char *str, int flag)
       if (*(ptr+1) == '{') {
 	var = ptr+2;
 	int i = 0;
-	while (var[i] #= '\0' && var[i] #= '}') i++;
+	while (var[i] != '\0' && var[i] != '}') i++;
 	if (var[i] == '\0') error->one(FLERR,"Invalid variable name");
 	var[i] = '\0';
 	beyond = ptr + strlen(var) + 3;
@@ -387,35 +387,35 @@ int Input::execute_command()
 {
   int flag = 1;
 
-  if (#strcmp(command,"clear")) clear();
-  else if (#strcmp(command,"echo")) echo();
-  else if (#strcmp(command,"if")) ifthenelse();
-  else if (#strcmp(command,"include")) include();
-  else if (#strcmp(command,"jump")) jump();
-  else if (#strcmp(command,"label")) label();
-  else if (#strcmp(command,"log")) log();
-  else if (#strcmp(command,"next")) next_command();
-  else if (#strcmp(command,"print")) print();
-  else if (#strcmp(command,"variable")) variable_command();
+  if (!strcmp(command,"clear")) clear();
+  else if (!strcmp(command,"echo")) echo();
+  else if (!strcmp(command,"if")) ifthenelse();
+  else if (!strcmp(command,"include")) include();
+  else if (!strcmp(command,"jump")) jump();
+  else if (!strcmp(command,"label")) label();
+  else if (!strcmp(command,"log")) log();
+  else if (!strcmp(command,"next")) next_command();
+  else if (!strcmp(command,"print")) print();
+  else if (!strcmp(command,"variable")) variable_command();
 
-  else if (#strcmp(command,"app_style")) app_style();
-  else if (#strcmp(command,"boundary")) boundary();
-  else if (#strcmp(command,"diag_style")) diag_style();
-  else if (#strcmp(command,"dimension")) dimension();
-  else if (#strcmp(command,"dump")) dump();
-  else if (#strcmp(command,"dump_modify")) dump_modify();
-  else if (#strcmp(command,"dump_one")) dump_one();
-  else if (#strcmp(command,"lattice")) lattice();
-  else if (#strcmp(command,"pair_coeff")) pair_coeff();
-  else if (#strcmp(command,"pair_style")) pair_style();
-  else if (#strcmp(command,"processors")) processors();
-  else if (#strcmp(command,"region")) region();
-  else if (#strcmp(command,"reset_time")) reset_time();
-  else if (#strcmp(command,"run")) run();
-  else if (#strcmp(command,"seed")) seed();
-  else if (#strcmp(command,"solve_style")) solve_style();
-  else if (#strcmp(command,"stats")) stats();
-  else if (#strcmp(command,"undump")) undump();
+  else if (!strcmp(command,"app_style")) app_style();
+  else if (!strcmp(command,"boundary")) boundary();
+  else if (!strcmp(command,"diag_style")) diag_style();
+  else if (!strcmp(command,"dimension")) dimension();
+  else if (!strcmp(command,"dump")) dump();
+  else if (!strcmp(command,"dump_modify")) dump_modify();
+  else if (!strcmp(command,"dump_one")) dump_one();
+  else if (!strcmp(command,"lattice")) lattice();
+  else if (!strcmp(command,"pair_coeff")) pair_coeff();
+  else if (!strcmp(command,"pair_style")) pair_style();
+  else if (!strcmp(command,"processors")) processors();
+  else if (!strcmp(command,"region")) region();
+  else if (!strcmp(command,"reset_time")) reset_time();
+  else if (!strcmp(command,"run")) run();
+  else if (!strcmp(command,"seed")) seed();
+  else if (!strcmp(command,"solve_style")) solve_style();
+  else if (!strcmp(command,"stats")) stats();
+  else if (!strcmp(command,"undump")) undump();
 
   else flag = 0;
 
@@ -462,7 +462,7 @@ void Input::clear()
 
 void Input::echo()
 {
-  if (narg #= 1) error->all(FLERR,"Illegal echo command");
+  if (narg != 1) error->all(FLERR,"Illegal echo command");
 
   if (strcmp(arg[0],"none") == 0) {
     echo_screen = 0;
@@ -483,13 +483,13 @@ void Input::echo()
 
 void Input::ifthenelse()
 {
-  if (narg #= 5 && narg #= 7) error->all(FLERR,"Illegal if command");
+  if (narg != 5 && narg != 7) error->all(FLERR,"Illegal if command");
 
   int flag = 0;
   if (strcmp(arg[1],"==") == 0) {
     if (atof(arg[0]) == atof(arg[2])) flag = 1;
-  } else if (strcmp(arg[1],"#=") == 0) {
-    if (atof(arg[0]) #= atof(arg[2])) flag = 1;
+  } else if (strcmp(arg[1],"!=") == 0) {
+    if (atof(arg[0]) != atof(arg[2])) flag = 1;
   } else if (strcmp(arg[1],"<") == 0) {
     if (atof(arg[0]) < atof(arg[2])) flag = 1;
   } else if (strcmp(arg[1],"<=") == 0) {
@@ -500,8 +500,8 @@ void Input::ifthenelse()
     if (atof(arg[0]) >= atof(arg[2])) flag = 1;
   } else error->all(FLERR,"Illegal if command");
 
-  if (strcmp(arg[3],"then") #= 0) error->all(FLERR,"Illegal if command");
-  if (narg == 7 && strcmp(arg[5],"else") #= 0) 
+  if (strcmp(arg[3],"then") != 0) error->all(FLERR,"Illegal if command");
+  if (narg == 7 && strcmp(arg[5],"else") != 0) 
     error->all(FLERR,"Illegal if command");
 
   char str[128] = "\0";
@@ -516,7 +516,7 @@ void Input::ifthenelse()
 
 void Input::include()
 {
-  if (narg #= 1) error->all(FLERR,"Illegal include command");
+  if (narg != 1) error->all(FLERR,"Illegal include command");
 
   if (me == 0) {
     if (nfile == maxfile) {
@@ -546,7 +546,7 @@ void Input::jump()
   }
 
   if (me == 0) {
-    if (infile #= stdin) fclose(infile);
+    if (infile != stdin) fclose(infile);
     infile = fopen(arg[0],"r");
     if (infile == NULL) {
       char str[128];
@@ -569,7 +569,7 @@ void Input::jump()
 
 void Input::label()
 {
-  if (narg #= 1) error->all(FLERR,"Illegal label command");
+  if (narg != 1) error->all(FLERR,"Illegal label command");
   if (label_active && strcmp(labelstr,arg[0]) == 0) label_active = 0;
 }
 
@@ -577,7 +577,7 @@ void Input::label()
 
 void Input::log()
 {
-  if (narg #= 1) error->all(FLERR,"Illegal log command");
+  if (narg != 1) error->all(FLERR,"Illegal log command");
 
   if (me == 0) {
     if (logfile) fclose(logfile);
@@ -605,7 +605,7 @@ void Input::next_command()
 
 void Input::print()
 {
-  if (narg #= 1) error->all(FLERR,"Illegal print command");
+  if (narg != 1) error->all(FLERR,"Illegal print command");
 
   // substitute for $ variables (no printing)
 
@@ -693,7 +693,7 @@ void Input::dimension()
     error->all(FLERR,"Dimension command after simulation box is defined");
   if (domain->lattice) 
     error->all(FLERR,"Dimension command after lattice is defined");
-  if (narg #= 1) error->all(FLERR,"Illegal dimension command");
+  if (narg != 1) error->all(FLERR,"Illegal dimension command");
 
   domain->dimension = atoi(arg[0]);
   if (domain->dimension < 1 || domain->dimension > 3)
@@ -762,7 +762,7 @@ void Input::processors()
 {
   if (domain->box_exist)
     error->all(FLERR,"Processors command after simulation box is defined");
-  if (narg #= 3) error->all(FLERR,"Illegal processors command");
+  if (narg != 3) error->all(FLERR,"Illegal processors command");
 
   domain->user_procgrid[0] = atoi(arg[0]);
   domain->user_procgrid[1] = atoi(arg[1]);
@@ -783,7 +783,7 @@ void Input::region()
 void Input::reset_time()
 {
   if (app == NULL) error->all(FLERR,"Reset_time command before app_style set");
-  if (narg #= 1) error->all(FLERR,"Illegal reset_time command");
+  if (narg != 1) error->all(FLERR,"Illegal reset_time command");
 
   double time = atof(arg[0]);
   if (time < 0.0) error->all(FLERR,"Illegal reset_time command");
@@ -804,7 +804,7 @@ void Input::run()
 
 void Input::seed()
 {
-  if (narg #= 1) error->all(FLERR,"Illegal seed command");
+  if (narg != 1) error->all(FLERR,"Illegal seed command");
 
   int seed = atoi(arg[0]);
   if (seed <= 0) error->all(FLERR,"Illegal seed command");
