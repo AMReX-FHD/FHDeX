@@ -138,9 +138,39 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                                                 zeta(i,j,k)*prim(i,j,k,4) + zeta(i-1,j,k)*prim(i-1,j,k,4) );
                     }
 
-                    wiener[1] = wiener[1] + 0.25*nweight*(sqrt(muzepp)*rancorn(i,j+1,k+1)+
-                                                          sqrt(muzemp)*rancorn(i,j,k+1) + sqrt(muzepm)* rancorn(i,j+1,k)+ 
-                                                          sqrt(muzemm)*rancorn(i,j,k)); // Random "divergence" stress
+                    Real factor_lo_y = 1.;
+                    Real factor_hi_y = 1.;
+                    Real factor_lo_z = 1.;
+                    Real factor_hi_z = 1.;
+
+                    // 1 = slip
+                    // 2 = no-slip
+                    if (bc_vel_lo[1] == 1 || bc_vel_lo[1] == 2) {
+                        if (j == 0) {
+                            factor_lo_y = (bc_vel_lo[1] == 1) ? std::sqrt(2.0) : 0.;
+                        }
+                    }
+                    if (bc_vel_lo[2] == 1 || bc_vel_lo[2] == 2) {
+                        if (k == 0) {
+                            factor_lo_z = (bc_vel_lo[2] == 1) ? std::sqrt(2.0) : 0.;
+                        }
+                    }
+                    if (bc_vel_hi[1] == 1 || bc_vel_hi[1] == 2) {
+                        if (j == n_cells[1]-1) {
+                            factor_hi_y = (bc_vel_hi[1] == 1) ? std::sqrt(2.0) : 0.;
+                        }
+                    }
+                    if (bc_vel_hi[2] == 1 || bc_vel_hi[2] == 2) {
+                        if (k == n_cells[2]-1) {
+                            factor_hi_z = (bc_vel_hi[2] == 1) ? std::sqrt(2.0) : 0.;
+                        }
+                    }
+                    
+                    // Random "divergence" stress
+                    wiener[1] = wiener[1] + 0.25*nweight*(factor_hi_y*factor_hi_z*sqrt(muzepp)*rancorn(i,j+1,k+1) +
+                                                          factor_lo_y*factor_hi_z*sqrt(muzemp)*rancorn(i,j,k+1) +
+                                                          factor_hi_y*factor_lo_z*sqrt(muzepm)*rancorn(i,j+1,k) + 
+                                                          factor_lo_y*factor_lo_z*sqrt(muzemm)*rancorn(i,j,k));
 
                 } else if (n_cells_z == 1) {
 
@@ -337,8 +367,39 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                                                 zeta(i-1,j-1,k)*prim(i-1,j-1,k,4) + zeta(i,j-1,k)*prim(i,j-1,k,4) );
                     }
 
-                    wiener[2] = wiener[2] + 0.25*nweight*(sqrt(muzepp)*rancorn(i+1,j,k+1)+ sqrt(muzemp)*rancorn(i,j,k+1) + 
-                                                          sqrt(muzepm)* rancorn(i+1,j,k)+ sqrt(muzemm)*rancorn(i,j,k)); // Random "divergence" stress
+                    Real factor_lo_x = 1.;
+                    Real factor_hi_x = 1.;
+                    Real factor_lo_z = 1.;
+                    Real factor_hi_z = 1.;
+
+                    // 1 = slip
+                    // 2 = no-slip
+                    if (bc_vel_lo[0] == 1 || bc_vel_lo[0] == 2) {
+                        if (i == 0) {
+                            factor_lo_x = (bc_vel_lo[0] == 1) ? std::sqrt(2.0) : 0.;
+                        }
+                    }
+                    if (bc_vel_lo[2] == 1 || bc_vel_lo[2] == 2) {
+                        if (k == 0) {
+                            factor_lo_z = (bc_vel_lo[2] == 1) ? std::sqrt(2.0) : 0.;
+                        }                        
+                    }
+                    if (bc_vel_hi[0] == 1 || bc_vel_hi[0] == 2) {
+                        if (i == n_cells[0]-1) {
+                            factor_hi_x = (bc_vel_hi[0] == 1) ? std::sqrt(2.0) : 0.;
+                        }
+                    }
+                    if (bc_vel_hi[2] == 1 || bc_vel_hi[2] == 2) {
+                        if (k == n_cells[2]-1) {
+                            factor_hi_z = (bc_vel_hi[2] == 1) ? std::sqrt(2.0) : 0.;
+                        }
+                    }
+
+                    // Random "divergence" stress
+                    wiener[2] = wiener[2] + 0.25*nweight*(factor_hi_x*factor_hi_z*sqrt(muzepp)*rancorn(i+1,j,k+1) +
+                                                          factor_lo_x*factor_hi_z*sqrt(muzemp)*rancorn(i,j,k+1) +
+                                                          factor_hi_x*factor_lo_z*sqrt(muzepm)*rancorn(i+1,j,k) +
+                                                          factor_lo_x*factor_lo_z*sqrt(muzemm)*rancorn(i,j,k));
 
                 } else if (n_cells_z == 1) {
                     
@@ -535,10 +596,39 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 
                     }
 
-                    wiener[3] = wiener[3] + 0.25*nweight*
-                        (sqrt(muzepp)*rancorn(i+1,j+1,k)+ sqrt(muzemp)*rancorn(i,j+1,k) + 
-                         sqrt(muzepm)* rancorn(i+1,j,k)+ sqrt(muzemm)*rancorn(i,j,k)); // Random "divergence" stress
+                    Real factor_lo_x = 1.;
+                    Real factor_hi_x = 1.;
+                    Real factor_lo_y = 1.;
+                    Real factor_hi_y = 1.;
 
+                    // 1 = slip
+                    // 2 = no-slip
+                    if (bc_vel_lo[0] == 1 || bc_vel_lo[0] == 2) {
+                        if (i == 0) {
+                            factor_lo_x = (bc_vel_lo[0] == 1) ? std::sqrt(2.0) : 0.;
+                        }
+                    }
+                    if (bc_vel_lo[1] == 1 || bc_vel_lo[1] == 2) {
+                        if (j == 0) {
+                            factor_lo_y = (bc_vel_lo[1] == 1) ? std::sqrt(2.0) : 0.;
+                        }                        
+                    }
+                    if (bc_vel_hi[0] == 1 || bc_vel_hi[0] == 2) {
+                        if (i == n_cells[0]-1) {
+                            factor_hi_x = (bc_vel_hi[0] == 1) ? std::sqrt(2.0) : 0.;
+                        }
+                    }
+                    if (bc_vel_hi[1] == 1 || bc_vel_hi[1] == 2) {
+                        if (j == n_cells[1]-1) {
+                            factor_hi_y = (bc_vel_hi[1] == 1) ? std::sqrt(2.0) : 0.;
+                        }
+                    }
+                    
+                    // Random "divergence" stress
+                    wiener[3] = wiener[3] + 0.25*nweight*(factor_hi_x*factor_hi_y*sqrt(muzepp)*rancorn(i+1,j+1,k) +
+                                                          factor_lo_x*factor_hi_y*sqrt(muzemp)*rancorn(i,j+1,k) +
+                                                          factor_hi_x*factor_lo_y*sqrt(muzepm)*rancorn(i+1,j,k) +
+                                                          factor_lo_x*factor_lo_y*sqrt(muzemm)*rancorn(i,j,k));
 
                     for (int n=1; n<4; ++n) {
                         fluxz(i,j,k,n) = fluxz(i,j,k,n) + wiener[n];
