@@ -44,6 +44,8 @@
   # if advection_type = 2, interpolate conserved quantities
   advection_type = 2
 
+  transport_type = 2
+
   # Problem specification
   # if prob_type = 1, constant species concentration
   # if prob_type = 2, Rayleigh-Taylor instability
