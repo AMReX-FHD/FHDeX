@@ -206,6 +206,86 @@ void InitConsVarStag(MultiFab& cons, std::array< MultiFab, AMREX_SPACEDIM >& mom
                         cu(i,j,k,4) = cu(i,j,k,0)*intEnergy;
                     }
             } // prob type
+            else if (prob_type == 103) { // double the pressure in other half
+                
+                    for (int ns=0;ns<nspecies;++ns) massvec[ns] = rhobar[ns];
+                    Real pressure;
+                    GetPressureGas(pressure,massvec,rho0,T_init[0]);
+
+                    if (relpos[0] > 0.0) {
+                        Real pressure_new = 2.0*pressure;
+                        Real temperature;
+                        temperature = T_init[0];
+
+                        Real density;
+                        GetDensity(pressure_new,density,temperature,massvec);
+                        cu(i,j,k,0) = density;
+                        for (int ns=0;ns<nspecies;++ns) cu(i,j,k,5+ns) = density*massvec[ns];
+
+                        Real intEnergy;
+                        GetEnergy(intEnergy, massvec, temperature);
+                        cu(i,j,k,4) = density*intEnergy;
+                    }
+                    
+            } // prob type
+            else if (prob_type == 104) { // temperature discontinuity 
+                
+                    if (i==15) 
+                    {
+                        for (int ns=0;ns<nspecies;++ns) massvec[ns] = rhobar[ns];
+                        Real pamb;
+                        GetPressureGas(pamb,massvec,rho0,T_init[0]);
+
+                        Real density;
+                        GetDensity(pamb,density,400.0,massvec);
+                        cu(i,j,k,0) = density;
+                        for (int ns=0;ns<nspecies;++ns) cu(i,j,k,5+ns) = density*massvec[ns];
+
+                        Real intEnergy;
+                        GetEnergy(intEnergy, massvec, 400.0);
+                        cu(i,j,k,4) = density*intEnergy;
+                    }
+                    
+            }
+            else if (prob_type == 105) { // pressure discontinuity 
+                
+                    if (i==15) 
+                    {
+                        for (int ns=0;ns<nspecies;++ns) massvec[ns] = rhobar[ns];
+                        Real pamb;
+                        GetPressureGas(pamb,massvec,rho0,T_init[0]);
+
+                        Real density;
+                        GetDensity(pamb*1.5,density,T_init[0],massvec);
+                        cu(i,j,k,0) = density;
+                        for (int ns=0;ns<nspecies;++ns) cu(i,j,k,5+ns) = density*massvec[ns];
+
+                        Real intEnergy;
+                        GetEnergy(intEnergy, massvec, T_init[0]);
+                        cu(i,j,k,4) = density*intEnergy;
+                    }
+            }
+            else if (prob_type == 106) { // concentration discontinuity 
+                
+                    if (i==15) 
+                    {
+                        for (int ns=0;ns<nspecies;++ns) massvec[ns] = rhobar[ns];
+                        Real pamb;
+                        GetPressureGas(pamb,massvec,rho0,T_init[0]);
+
+                        massvec[0] = 0.4;
+                        massvec[1] = 0.6;
+                        Real density;
+                        GetDensity(pamb,density,T_init[0],massvec);
+                        cu(i,j,k,0) = density;
+                        for (int ns=0;ns<nspecies;++ns) cu(i,j,k,5+ns) = density*massvec[ns];
+
+                        Real intEnergy;
+                        GetEnergy(intEnergy, massvec, T_init[0]);
+                        cu(i,j,k,4) = density*intEnergy;
+                    }
+                    
+            } // prob type
 
         });
     } // end MFIter

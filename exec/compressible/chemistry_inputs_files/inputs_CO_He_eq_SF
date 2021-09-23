@@ -23,8 +23,8 @@ fixed_dt = 5.e-13
 
 # Controls for number of steps between actions
 
-max_step = 200000
-plot_int = 10000
+max_step = 2000000
+plot_int = 100000
 
 # Multispecies toggle
 # if algorithm_type = 1, single component
@@ -55,7 +55,7 @@ T_init = 1000
 rho0 = 5.886949e-05
 
 struct_fact_int = 1
-n_steps_skip = 10000
+n_steps_skip = 100000
 
 # Boundary conditions:
 # NOTE: setting bc_vel to periodic sets all the other bc's to periodic)
@@ -85,16 +85,12 @@ nspecies = 2
 
 molmass = 28.01 4.0026
 diameter = 3.76e-8 2.18e-8
-rhobar =0.2 0.8
+rhobar = 0.2 0.8
 
 # Enter negative dof to use hcv & hcp values
-dof =5 3
+dof = 5 3
 hcv = -1 -1
 hcp = -1 -1
 
 plot_means = 1
 plot_vars = 1
-
-nspec_mui = 1
-
-mom_inertia = 1.456061e-39
