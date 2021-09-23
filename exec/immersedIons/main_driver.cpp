@@ -27,14 +27,11 @@ void main_driver(const char* argv)
 
     std::string inputs_file = argv;
 
-    // read in parameters from inputs file into F90 modules
-    // we use "+1" because of amrex_string_c_to_f expects a null char termination
-    read_common_namelist(inputs_file.c_str(),inputs_file.size()+1);
 
     // copy contents of F90 modules to C++ namespaces
     InitializeCommonNamespace();
     InitializeGmresNamespace();
-    
+        
     int step = 1;
     Real time = 0.;
     int statsCount = 1;
@@ -67,19 +64,37 @@ void main_driver(const char* argv)
     // AJN - for perdictor/corrector do we need one more ghost cell if the predictor pushes
     //       a particle into a ghost region?
     int ang = 1;
-    if (*(std::max_element(pkernel_fluid.begin(),pkernel_fluid.begin()+nspecies)) == 3) {
-        ang = 2;
+    for(int i=0;i<nspecies;i++)
+    {
+        int tempang = 1;
+        if (pkernel_fluid[i] == 3) {
+            tempang = 2;
+        }
+        else if (pkernel_fluid[i] == 4) {
+            tempang = 3;
+        }
+        else if (pkernel_fluid[i] == 6) {
+            tempang = 4;
+        }
+        else if (eskernel_fluid[i] == 4) {
+	        tempang = 3;
+        }
+        else if (eskernel_fluid[i] == 5) {
+	        tempang = 3;
+        }
+        else if (eskernel_fluid[i] == 6) {
+	        tempang = 4;
+        }
+        else {
+	        tempang = floor(eskernel_fluid[i]/2)+1;
+        }
+        
+        if(tempang > ang)
+        {
+            ang = tempang;
+        }   
     }
-    else if (*(std::max_element(pkernel_fluid.begin(),pkernel_fluid.begin()+nspecies)) == 4) {
-        ang = 3;
-    }
-    else if (*(std::max_element(pkernel_fluid.begin(),pkernel_fluid.begin()+nspecies)) == 6) {
-        ang = 4;
-    }
-    else if (*(std::max_element(eskernel_fluid.begin(),eskernel_fluid.begin()+nspecies)) > 0) {
-	ang = static_cast<int>(floor(*(std::max_element(eskernel_fluid.begin(),eskernel_fluid.begin()+nspecies)))/2+1);
-    }
-
+    
     int ngp = 1;
     // using maximum number of peskin kernel points to determine the ghost cells for the whole grid.
     //     not sure if it will cause problem for BCs.
@@ -91,10 +106,7 @@ void main_driver(const char* argv)
     }
     else if (*(std::max_element(pkernel_es.begin(),pkernel_es.begin()+nspecies)) == 6) {
         ngp = 4;
-    }
-    else if (*(std::max_element(eskernel_fluid.begin(),eskernel_fluid.begin()+nspecies)) > 0) {
-	ngp = static_cast<int>(floor(*(std::max_element(eskernel_fluid.begin(),eskernel_fluid.begin()+nspecies)))/2+1);
-    }   
+    } 
 
     // staggered velocities
     // umac needs extra ghost cells for Peskin kernels
@@ -388,8 +400,41 @@ void main_driver(const char* argv)
 	   wetRad_w6.close();
            //wetRad[j] = 1.478*dxAv; // With beta = 8.64
        }
+       else if (eskernel_fluid[j] == 3) {
+	   if (eskernel_beta[j] < 3 || eskernel_beta[j] > 9) {
+	      Abort("Please provide eskernel_beta within the range [1,3]*eskernel_fluid.");
+	   }
+
+           int targetLine = (eskernel_beta[j]-eskernel_fluid[j])*10+1;
+	   //Print() << targetLine << std::endl;
+	   std::ifstream wetRad_w3("wetRad_w3.dat");
+	   for (int lineCount=0; lineCount < targetLine-1; lineCount++) {
+	       wetRad_w3.ignore(100000, '\n');
+	   }
+	   wetRad_w3 >> wetRad[j];
+	   Print() << "wetRad read from file is " << wetRad[j] << std::endl;
+	   wetRad[j] *= dxAv;
+	   wetRad_w3.close();
+       }
+       else if (eskernel_fluid[j] == 7) {
+	   if (eskernel_beta[j] < 7 || eskernel_beta[j] > 21) {
+	      Abort("Please provide eskernel_beta within the range [1,3]*eskernel_fluid.");
+	   }
+
+           int targetLine = (eskernel_beta[j]-eskernel_fluid[j])*10+1;
+	   //Print() << targetLine << std::endl;
+	   std::ifstream wetRad_w7("wetRad_w7.dat");
+	   for (int lineCount=0; lineCount < targetLine-1; lineCount++) {
+	       wetRad_w7.ignore(100000, '\n');
+	   }
+	   wetRad_w7 >> wetRad[j];
+	   Print() << "wetRad read from file is " << wetRad[j] << std::endl;
+	   wetRad[j] *= dxAv;
+	   wetRad_w7.close();
+       }
        else {
-	   Abort("Currently the code only supports pkernel_fluid = 1,3,4,6 or eskernel_fluid = 4,5,6.");
+           Abort("Currently the code only supports pkernel_fluid = 1,3,4,6 or eskernel_fluid = 3,4,5,6,7.");
+	   //wetRad[j] = 1.255*dxAv;
        }
     }
 
@@ -430,6 +475,7 @@ void main_driver(const char* argv)
                // std::cout << "Species " << i << " radius: " << ionParticle[i].d << std::endl;
 
             // compute wet diffusion from wetRad
+            Print() << "WETRAD: " << wetRad[i] << endl;
             ionParticle[i].wetDiff = (k_B*T_init[0])/(6*M_PI*wetRad[i]*visc_coef);
 
             if (all_dry == 1) {
@@ -716,14 +762,14 @@ void main_driver(const char* argv)
            max_sr_range = range ;
         }
     }
-    for(int i=0;i<nspecies;i++) {
-        Real range = sigma_wall[i]*rmax_wall[i];
+//    for(int i=0;i<nspecies;i++) {
+//        Real range = sigma_wall[i]*rmax_wall[i];
 
-        if(range > max_sr_range)
-        {
-           max_sr_range = range ;
-        }
-    }
+//        if(range > max_sr_range)
+//        {
+//           max_sr_range = range ;
+//        }
+//    }
     
     if(max_sr_range > max_es_range)
     {
@@ -887,6 +933,69 @@ void main_driver(const char* argv)
         // timer for time step
         Real time1 = ParallelDescriptor::second();
 
+//        if(istep == 80)
+//        {
+//                dt = dt*5;
+//                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+//        }
+
+
+//        if(istep == 160)
+//        {
+//                dt = dt*2;
+//                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+//        }
+
+//        if(istep == 240)
+//        {
+//                dt = dt*5;
+//                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+//        }
+
+//        if(istep == 320)
+//        {
+//                dt = dt*2;
+//                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+//        }
+
+//        if(istep == 400)
+//        {
+//                dt = dt*5;
+//                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+//        }
+//        
+//        if(istep == 480)
+//        {
+//                dt = dt*2;
+//                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+//        }
+
+
+//        if(istep == 560)
+//        {
+//                dt = dt*5;
+//                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+//        }
+
+//        if(istep == 640)
+//        {
+//                dt = dt*2;
+//                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+//        }
+
+//        if(istep == 720)
+//        {
+//                dt = dt*5;
+//                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+//        }
+
+//        if(istep == 800)
+//        {
+//                dt = dt*2;
+//                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+//        }
+        
+        
         if(istep == 20)
         {
                 dt = dt*10;
@@ -919,10 +1028,10 @@ void main_driver(const char* argv)
         }
 
 
-//        if(istep == 1)
-//        {
-//            particles.SetPosition(1, prob_hi[0]*0.5, 0.5e-7, prob_hi[2]*0.5);
-//        }
+        //if(istep == 1)
+        //{
+        //    particles.SetPosition(1, prob_hi[0]*0.5, prob_hi[1]*0.5, prob_hi[2]*0.5);
+        //}
 
     
         //Most of these functions are sensitive to the order of execution. We can fix this, but for now leave them in this order.
@@ -948,7 +1057,7 @@ void main_driver(const char* argv)
             // set velx/y/z and forcex/y/z for each particle to zero
             particles.ResetMarkers(0);
         }
-//	    particles.SetForce(1,1,0,0);
+	    //particles.SetForce(1,1,0,0);
 //        Real origin[3];
 //        origin[0] = prob_hi[0]/2.0;
 //        origin[1] = prob_hi[1]/2.0;

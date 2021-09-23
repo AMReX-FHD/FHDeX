@@ -89,6 +89,7 @@ void FhdParticleContainer::InitParticles(Real & dt)
 						vpart[0] = stdev*amrex::RandomNormal(0.,1.);
 						vpart[1] = stdev*amrex::RandomNormal(0.,1.);
 						vpart[2] = stdev*amrex::RandomNormal(0.,1.);
+						
 						p.rdata(FHD_realData::velx) = vpart[0];
 						p.rdata(FHD_realData::vely) = vpart[1];
 						p.rdata(FHD_realData::velz) = vpart[2];

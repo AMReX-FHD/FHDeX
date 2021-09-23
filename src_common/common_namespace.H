@@ -1,7 +1,6 @@
 namespace common {
 
 //////////////
-// DO NOT CHANGE THIS VALUE WITHOUT ALSO CHANGING common_namelist.F90
 #define MAX_SPECIES 8
 #define MAX_ELEMENT 28 // needs to be MAX_SPECIES*(MAX_SPECIES-1)/2
 //////////////
@@ -31,10 +30,8 @@ namespace common {
     extern AMREX_GPU_MANAGED int      nvars;         //number of conserved variables
     extern AMREX_GPU_MANAGED int      nprimvars;     //number of primitive variables
 
-    extern AMREX_GPU_MANAGED int      membrane_cell; //cell to locate membrane
     extern AMREX_GPU_MANAGED int      cross_cell;    //cell to compute spatial correlation
     extern AMREX_GPU_MANAGED int      do_slab_sf;    //whether to compute SF for two slabs separated by cross_cell
-    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> transmission;
 
     extern amrex::Vector<amrex::Real> qval;
     extern AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_SPECIES> pkernel_fluid; // GALEN - FLUID KERNEL
@@ -81,28 +78,16 @@ namespace common {
     extern AMREX_GPU_MANAGED amrex::Real k_B;
     extern AMREX_GPU_MANAGED amrex::Real Runiv;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> T_init;
-    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> T_init;
 
     // Algorithm control / selection
     extern AMREX_GPU_MANAGED int      algorithm_type;
     extern int                        advection_type;
     extern int                        barodiffusion_type;
-    extern int                        use_bl_rng;
 
     // random number seed
     // 0        = unpredictable seed based on clock
     // positive = fixed seed
     extern int                        seed;
-
-    // as assortment of other seeds in case one needs different engines
-    // implementation is problem-dependent
-    // 0        = unpredictable seed based on clock
-    // positive = fixed seed
-    extern int                        seed_momentum;
-    extern int                        seed_diffusion;
-    extern int                        seed_reaction;
-    extern int                        seed_init_mass;
-    extern int                        seed_init_momentum;
 
     // Viscous friction L phi operator
     // if abs(visc_type) = 1, L = div beta grad
@@ -161,7 +146,7 @@ namespace common {
 
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> t_lo;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> t_hi;
-   
+
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> rho_lo;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> rho_hi;
     
@@ -221,13 +206,6 @@ namespace common {
     extern int                        project_dir;
     extern int                        slicepoint;
     extern amrex::Vector<int>         max_grid_projection;
-
-  /*
-    extern int                        stats_int;
-    extern int                        n_steps_save_stats;
-    extern bool                       analyze_conserved;
-    extern bool                       center_snapshots;
-  */
 
     // These are mostly used for reaction-diffusion:
     extern int                        histogram_unit;
@@ -303,19 +281,10 @@ namespace common {
     extern int                        plot_covars;
     extern int                        plot_cross;
     extern int                        particle_motion;
-    
-    // parameters neccesary for chemical reactions
-    extern int                        solve_chem;    
-    extern amrex::Real                diffcoeff;
-    extern amrex::Real                scaling_factor;
-    extern amrex::Real                source_strength;
-    extern int                        regrid_int;    
-    extern int                        do_reflux;
 
     // parameters for turbulent forcing example
     extern amrex::Real                turb_a;
     extern amrex::Real                turb_b;
     extern int                        turbForcing;
 
-    extern AMREX_GPU_MANAGED int      do_1D;
 }

@@ -1,17 +1,16 @@
-&common
-	! System: Isothermal boundaries with gradient of (200k/mm) with Ar
-	! Problem specification
-	prob_lo(1:3) = 0.0 0.0 0.0	              ! physical lo coordinate
-	prob_hi(1:3) = 5.12e-04 5.12e-04 5.12e-04 ! physical hi coordinate (cm)
+	# System: Isothermal boundaries with gradient of (200k/mm) with Ar
+	# Problem specification
+	prob_lo = 0.0 0.0 0.0	              # physical lo coordinate
+	prob_hi = 5.12e-04 5.12e-04 5.12e-04 # physical hi coordinate (cm)
 
-	n_cells(1:3) = 64 64 64 ! keep as powers of two
-	max_grid_size(1:3) = 8 8 64
-	max_particle_tile_size(1:3) = 256 256 256
+	n_cells = 64 64 64 # keep as powers of two
+	max_grid_size = 8 8 64
+	max_particle_tile_size = 256 256 256
 
-	! Time-step control
-	fixed_dt = 1e-8                        ! dt = dx/(10*sqrt(kT/m))
+	# Time-step control
+	fixed_dt = 1e-8                        # dt = dx/(10*sqrt(kT/m))
 
-	! Controls for number of steps between actions
+	# Controls for number of steps between actions
 	max_step     = 400000000
 	plot_int     =   5000000
 	plot_cross   = -1
@@ -23,65 +22,65 @@
 	restart     = -1
 	chk_int     = 20000000
 
-	!particle initialization (-1 - no input; 1 - input provided)
+	#particle initialization (-1 - no input; 1 - input provided)
 	particle_input = -1
 	particle_neff = 1e0
 
-	!Species info
-	!--------------
+	#Species info
+	#--------------
 	nspecies	=  1
-	mass	=  6.63e-23 6.63e-23 ! kg
+	mass	=  6.63e-23 6.63e-23 # kg
 	diameter	=  2.18e-08 2.58e-08 3.63e-08 4.16e-08
 	rho0	=  4.83e-04
-	Yk0	=  0.25 0.25 0.25 0.25 ! does not need to add to 1 exactly (handled)
-	!particle_n0	= 2.68299e19
+	Yk0	=  0.25 0.25 0.25 0.25 # does not need to add to 1 exactly (handled)
+	#particle_n0	= 2.68299e19
 
-	! write each row, i.e. 1-1, 1-2, 1-3 .... 2-1, 2-2 ,2-3 ....
-	! need total nspecies*nspecies values
+	# write each row, i.e. 1-1, 1-2, 1-3 .... 2-1, 2-2 ,2-3 ....
+	# need total nspecies*nspecies values
 	alpha_pp = 1.00
   
-	! Stochastic parameters
+	# Stochastic parameters
 	seed    = 0
 	k_B     = 1.38064852e-16
-	T_init  = 300 ! kT/m ~= 10
+	T_init  = 300 # kT/m ~= 10
 	variance_coef_mom = 1
 
-	! Boundary conditions:
-	! NOTE: setting bc_vel to periodic sets all the other bc's to periodic)
-	! bc_vel:   -1 = periodic  
-	!            1 = slip
-	!            2 = no-slip
-	!            3 = Lees Edwards
-	! bc_therm: -1 = periodic
-	!            1 = adiabatic
-	!            2 = isothermal (set with t_lo/hi in common namelist)
-	! bc_mass:  -1 = periodic
-	!            1 = wall
-	!            2 = reservoir (set bc_Yk or bc_Xk in compressible namelist)
+	# Boundary conditions:
+	# NOTE: setting bc_vel to periodic sets all the other bc's to periodic)
+	# bc_vel:   -1 = periodic  
+	#            1 = slip
+	#            2 = no-slip
+	#            3 = Lees Edwards
+	# bc_therm: -1 = periodic
+	#            1 = adiabatic
+	#            2 = isothermal (set with t_lo/hi in common namelist)
+	# bc_mass:  -1 = periodic
+	#            1 = wall
+	#            2 = reservoir (set bc_Yk or bc_Xk in compressible namelist)
 
-	bc_vel_lo(1:3)   = -1 -1 -1
-	bc_vel_hi(1:3)   = -1 -1 -1  
-	bc_therm_lo(1:3) = -1 -1 -1
-	bc_therm_hi(1:3) = -1 -1 -1
-	bc_mass_lo(1:3)  = -1 -1 -1
-	bc_mass_hi(1:3)  = -1 -1 -1
+	bc_vel_lo   = -1 -1 -1
+	bc_vel_hi   = -1 -1 -1  
+	bc_therm_lo = -1 -1 -1
+	bc_therm_hi = -1 -1 -1
+	bc_mass_lo  = -1 -1 -1
+	bc_mass_hi  = -1 -1 -1
   
-	! Temperature if thermal BC specified
-	t_hi(1:3) = 300 300 300
-	t_lo(1:3) = 300 300 300
+	# Temperature if thermal BC specified
+	t_hi = 300 300 300
+	t_lo = 300 300 300
   
-	! Total density at boundaries
-	! Set as same as the internal density
-	rho_hi(1:3) = 0.0017787 0.0017787 0.0017787
-	rho_lo(1:3) = 0.0017787 0.0017787 0.0017787
+	# Total density at boundaries
+	# Set as same as the internal density
+	rho_hi = 0.0017787 0.0017787 0.0017787
+	rho_lo = 0.0017787 0.0017787 0.0017787
   
-	! Xk and Yk at the wall for Dirichlet (concentrations) - set one to zero
-	! Ordering: (species 1, x-dir), (species 2, x-dir), ... (species 1, y-dir), ... 
+	# Xk and Yk at the wall for Dirichlet (concentrations) - set one to zero
+	# Ordering: (species 1, x-dir), (species 2, x-dir), ... (species 1, y-dir), ... 
 
-	bc_Yk_x_lo(1:3) = 1.0  1.0   ! lo BC
-	bc_Yk_x_hi(1:3) = 1.0  1.0   ! hi BC
-	bc_Yk_y_lo(1:3) = 1.0  1.0   ! lo BC
-	bc_Yk_y_hi(1:3) = 1.0  1.0   ! hi BC
-	bc_Yk_z_lo(1:3) = 1.0  1.0   ! lo BC
-	bc_Yk_z_hi(1:3) = 1.0  1.0   ! hi BC
-/
+	bc_Yk_x_lo = 1.0  1.0   # lo BC
+	bc_Yk_x_hi = 1.0  1.0   # hi BC
+	bc_Yk_y_lo = 1.0  1.0   # lo BC
+	bc_Yk_y_hi = 1.0  1.0   # hi BC
+	bc_Yk_z_lo = 1.0  1.0   # lo BC
+	bc_Yk_z_hi = 1.0  1.0   # hi BC
+

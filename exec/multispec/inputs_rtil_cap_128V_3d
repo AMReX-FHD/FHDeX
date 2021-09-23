@@ -1,80 +1,80 @@
-&common
 
-  ! Problem specification
-  prob_lo(1:3) = 0.      0.      0.       ! physical lo coordinate
-  prob_hi(1:3) = 0.48d-5 0.48d-5 0.48d-5  ! physical hi coordinate
 
-  ! refer to init_funcs.F90
+  # Problem specification
+  prob_lo = 0.      0.      0.       # physical lo coordinate
+  prob_hi = 0.48e-5 0.48e-5 0.48e-5  # physical hi coordinate
+
+  # refer to init_funcs.F90
   prob_type = 2
   
-  ! number of cells in domain
-  n_cells(1:3) = 96 96 96
-  ! max number of cells in a box
-  max_grid_size(1:3) = 48 48 48
-  max_grid_size(1:3) = 96 96 96
+  # number of cells in domain
+  n_cells = 96 96 96
+  # max number of cells in a box
+  max_grid_size = 48 48 48
+  max_grid_size = 96 96 96
 
-  ! Time-step control
+  # Time-step control
   fixed_dt = 2.e-13
 
-  ! Controls for number of steps between actions
+  # Controls for number of steps between actions
   max_step = 10000
   plot_int = 100
 
-  ! Viscous friction L phi operator
-  ! if abs(visc_type) = 1, L = div beta grad
-  ! if abs(visc_type) = 2, L = div [ beta (grad + grad^T) ]
-  ! if abs(visc_type) = 3, L = div [ beta (grad + grad^T) + I (gamma - (2/3)*beta) div ]
-  ! positive = assume constant coefficients
-  ! negative = assume spatially-varying coefficients
-  visc_coef = 2.7d0	! [units: g*cm-1*s-1] dynamic (shear) viscosity of water
+  # Viscous friction L phi operator
+  # if abs(visc_type) = 1, L = div beta grad
+  # if abs(visc_type) = 2, L = div [ beta (grad + grad^T) ]
+  # if abs(visc_type) = 3, L = div [ beta (grad + grad^T) + I (gamma - (2/3)*beta) div ]
+  # positive = assume constant coefficients
+  # negative = assume spatially-varying coefficients
+  visc_coef = 2.7	# [units: g*cm-1*s-1] dynamic (shear) viscosity of water
   visc_type = 1
   
-  ! Stochastic parameters
+  # Stochastic parameters
   seed = 1
   variance_coef_mom = 1.
   variance_coef_mass = 1.
   initial_variance_mom = 0.
 
-  k_B = 1.3806488d-16   ! Boltzmann's constant [units: cm2*g*s-2*K-1]
-  T_init(1) = 300. 	! [units: K]
+  k_B = 1.3806488e-16   # Boltzmann's constant [units: cm2*g*s-2*K-1]
+  T_init = 300. 	# [units: K]
 
   algorithm_type = 6
 
   struct_fact_int = -1
   n_steps_skip = 0
 
-  ! Boundary conditions
-  ! ----------------------
-  ! BC specifications:
-  ! -1 = periodic
-  !  1 = slip
-  !  2 = no-slip
-  bc_vel_lo(1:3) = -1 2 -1
-  bc_vel_hi(1:3) = -1 2 -1
+  # Boundary conditions
+  # ----------------------
+  # BC specifications:
+  # -1 = periodic
+  #  1 = slip
+  #  2 = no-slip
+  bc_vel_lo = -1 2 -1
+  bc_vel_hi = -1 2 -1
 
-  ! -1 = periodic
-  !  1 = wall
-  !  2 = reservoir (Dirichlet values must be suppled by other means)
-  bc_mass_lo(1:3) = -1 1 -1
-  bc_mass_hi(1:3) = -1 1 -1
+  # -1 = periodic
+  #  1 = wall
+  #  2 = reservoir (Dirichlet values must be suppled by other means)
+  bc_mass_lo = -1 1 -1
+  bc_mass_hi = -1 1 -1
 
-  ! -1 = periodic
-  !  1 = Dirichlet
-  !  2 = Neumann
-  bc_es_lo(1:3) = -1 1 -1
-  bc_es_hi(1:3) = -1 1 -1
+  # -1 = periodic
+  #  1 = Dirichlet
+  #  2 = Neumann
+  bc_es_lo = -1 1 -1
+  bc_es_hi = -1 1 -1
 
-  potential_lo(1:3) = 0.  .128d10 0.
-  potential_hi(1:3) = 0. -.128d10 0.
+  potential_lo = 0.  .128e10 0.
+  potential_hi = 0. -.128e10 0.
 
-  ! Thermodynamic and transport properties:
-  !----------------------
+  # Thermodynamic and transport properties:
+  #----------------------
   nspecies = 2
-  molmass(1:2) = 2.4d-22 2.4d-22  ! molecular masses for nspecies (mass per molecule, *not* molar mass)
-  rhobar(1:2) = 1.38d0 1.38d0     ! pure component densities for all species
-  rho0 = 1.38d0
+  molmass = 2.4e-22 2.4e-22  # molecular masses for nspecies (mass per molecule, *not* molar mass)
+  rhobar = 1.38 1.38     # pure component densities for all species
+  rho0 = 1.38
 
-/
+
 
   is_ideal_mixture = 0
 

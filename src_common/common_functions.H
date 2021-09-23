@@ -23,7 +23,6 @@
 #include <AMReX_ArrayLim.H>
 #include <AMReX_BC_TYPES.H>
 
-#include "common_functions_F.H"
 #include "common_namespace.H"
 
 using namespace common;

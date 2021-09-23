@@ -125,6 +125,7 @@ void FhdParticleContainer::CollideParticles(Real dt)
 		for (int i = smallEnd[0]; i <= bigEnd[0]; i++) {
 		for (int j = smallEnd[1]; j <= bigEnd[1]; j++) {
 		for (int k = smallEnd[2]; k <= bigEnd[2]; k++) {
+	        int totalCol = 0;
 			const IntVect& iv = {i,j,k};
 			long imap = tile_box.index(iv);
 
@@ -224,8 +225,10 @@ void FhdParticleContainer::CollideParticles(Real dt)
 					partj.rdata(FHD_realData::velx) = vj[0] + vreij[0]*massi;
 					partj.rdata(FHD_realData::vely) = vj[1] + vreij[1]*massi;
 					partj.rdata(FHD_realData::velz) = vj[2] + vreij[2]*massi;
+					totalCol++;
 				}
 			}
+			//Print() << "total cols: " << totalCol << "\n";
 		}
 		}
 		}

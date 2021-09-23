@@ -210,9 +210,6 @@ void main_driver(const char * argv) {
     // Load parameters from inputs file, and initialize global parameters
     std::string inputs_file = argv;
 
-    // read in parameters from inputs file into F90 modules NOTE: we use "+1"
-    // because of amrex_string_c_to_f expects a null char termination
-    read_common_namelist(inputs_file.c_str(), inputs_file.size() + 1);
     read_immbdy_namelist(inputs_file.c_str(), inputs_file.size() + 1);
 
     // copy contents of F90 modules to C++ namespaces NOTE: any changes to
@@ -633,7 +630,6 @@ void main_driver(const char * argv) {
         // Advance umac
         // advance_CN(umac, umacNew, pres, ib_mc, mfluxdiv_predict, mfluxdiv_correct,
         //            alpha_fc, force_ib, beta, gamma, beta_ed, geom, dt, time);
-        //
         advance_stokes(umac, umacNew, pres, ib_mc, mfluxdiv_predict, mfluxdiv_correct,
                        alpha_fc, force_ib, beta, gamma, beta_ed, geom, dt, time);
 
