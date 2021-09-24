@@ -9,13 +9,13 @@ Navo = 6.0221409e23         # Avogadro constant
 ##########
 
 # molecular weights
-M1 = 28.01      # CO 
-M2 = 39.95      # Ne
-print "- molecular masses: [%.2f, %.2f]" % (M1,M2)
+M1 = 28.01    # CO
+M2 = 39.95    # Ar
+print "- molecular masses: [%.4f, %.4f]" % (M1,M2)
 
 # mass fractions
 Y1 = 0.05
-Y2 = 1-Y1 
+Y2 = 0.95
 print "- mass fractions: [%.3f, %.3f]" % (Y1,Y2)
 
 # mole fractions
@@ -62,7 +62,7 @@ n1y = 150
 dx = n1x*lat_const
 dy = n1y*lat_const*math.sqrt(3)
 dz = dx
-dV = dx*dy*dz
+dv = dx*dy*dz
 
 n2x = 8
 n2y = 8
@@ -76,7 +76,7 @@ print "- lattice constant for Pt(111): %e" % lat_const
 print "- dx (FHD) = %e" % dx
 print "- dy (FHD) = %e" % dy
 print "- dz (FHD) = %e" % dz
-print "- dV (FHD) = %e" % dV
+print "- dv (FHD) = %e" % dv
 print "- Lx = %e" % Lx
 print "- Ly = %e" % Ly
 print "- Lz = %e\n" % Lz
@@ -86,13 +86,13 @@ print "- Lz = %e\n" % Lz
 n1s = 2*n1x*n1y
 print "- total number of sites per dxFHD*dyFHD = %d" % n1s 
 
-Ntot = ntot*dV
-N1 = n1*dV
-N2 = n2*dV
+Ntot = ntot*dv
+N1 = n1*dv
+N2 = n2*dv
 
-print "- total number of gas molecules in dV = %.3e" % Ntot
-print "- number of gas molecules of spec1 in dV = %.3e" % N1
-print "- number of gas molecules of spec2 in dV = %.3e\n" % N2
+print "- total number of gas molecules in dv = %.3e" % Ntot
+print "- number of gas molecules of spec1 in dv = %.3e" % N1
+print "- number of gas molecules of spec2 in dv = %.3e\n" % N2
 
 ##########
 
@@ -111,7 +111,7 @@ print "- eq coverage of spec1: %e\n" % theta1
 
 ##########
 
-dt = 5e-13
+dt = 1.e-12
 
 print "- dt (FHD) = %e" % dt
 print "- max mean number of ads events per dxFHD*dyFHD per dt = %e" % (n1s*k1ads*dt)
@@ -121,15 +121,33 @@ print "- max mean number of des events per dxFHD*dyFHD per dt = %e\n" % (n1s*k1d
 
 rho1 = n1*m1
 rho2 = n2*m2
+rhotot = rho1+rho2
 
 drho1sq = rho1**2/N1
 drho2sq = rho2**2/N2
 
 drhosq = drho1sq+drho2sq
-djasq = rho*kB*temp/dV
+djasq = rho*kB*temp/dv
 
-dEsq = (kB*temp)**2/dV*(2.5*3.5*rho1/m1+1.5*2.5*rho2/m2)
-dTsq = temp**2/dV/(2.5*n1+1.5*n2)
+dof1 = 5
+dof2 = 3
+e01 = 0.
+e02 = 0.
+
+cv1 = 0.5*dof1*Runiv/M1
+cv2 = 0.5*dof2*Runiv/M2
+cvmix = Y1*cv1+Y2*cv2
+
+e1 = e01+cv1*temp
+e2 = e02+cv2*temp
+
+dTsq = kB*temp**2/rhotot/cvmix/dv
+dEsq = e1**2*drho1sq+e2**2*drho2sq+rhotot**2*cvmix**2*dTsq
+
+print "drhosq = %e" % drhosq
+print "drho1sq = %e" % drho1sq
+print "drho2sq = %e" % drho2sq
+print "djasq = %e\n" % djasq
 
 print "drhosq  = %e\t%e\t%e\t%e" % (drhosq,2*drhosq,0.5*drhosq,1.5*drhosq)
 print "drho1sq = %e\t%e\t%e\t%e" % (drho1sq,2*drho1sq,0.5*drho1sq,1.5*drho1sq)
@@ -138,19 +156,19 @@ print "djasq   = %e\t%e\t%e\t%e" % (djasq,2*djasq,0.5*djasq,1.5*djasq)
 print "dEsq    = %e\t%e\t%e\t%e" % (dEsq,2*dEsq,0.5*dEsq,1.5*dEsq)
 print "dTsq    = %e\t%e\t%e\t%e\n" % (dTsq,2*dTsq,0.5*dTsq,1.5*dTsq)
 
-print "drhosq*dV  = %e\t%e\t%e\t%e" % (drhosq*dV,2*drhosq*dV,0.5*drhosq*dV,1.5*drhosq*dV)
-print "drho1sq*dV = %e\t%e\t%e\t%e" % (drho1sq*dV,2*drho1sq*dV,0.5*drho1sq*dV,1.5*drho1sq*dV)
-print "drho2sq*dV = %e\t%e\t%e\t%e" % (drho2sq*dV,2*drho2sq*dV,0.5*drho2sq*dV,1.5*drho2sq*dV)
-print "djasq*dV   = %e\t%e\t%e\t%e" % (djasq*dV,2*djasq*dV,0.5*djasq*dV,1.5*djasq*dV)
-print "dEsq*dV    = %e\t%e\t%e\t%e" % (dEsq*dV,2*dEsq*dV,0.5*dEsq*dV,1.5*dEsq*dV)
-print "dTsq*dV    = %e\t%e\t%e\t%e" % (dTsq*dV,2*dTsq*dV,0.5*dTsq*dV,1.5*dTsq*dV)
+print "drhosq*dv  = %e\t%e\t%e\t%e" % (drhosq*dv,2*drhosq*dv,0.5*drhosq*dv,1.5*drhosq*dv)
+print "drho1sq*dv = %e\t%e\t%e\t%e" % (drho1sq*dv,2*drho1sq*dv,0.5*drho1sq*dv,1.5*drho1sq*dv)
+print "drho2sq*dv = %e\t%e\t%e\t%e" % (drho2sq*dv,2*drho2sq*dv,0.5*drho2sq*dv,1.5*drho2sq*dv)
+print "djasq*dv   = %e\t%e\t%e\t%e" % (djasq*dv,2*djasq*dv,0.5*djasq*dv,1.5*djasq*dv)
+print "dEsq*dv    = %e\t%e\t%e\t%e" % (dEsq*dv,2*dEsq*dv,0.5*dEsq*dv,1.5*dEsq*dv)
+print "dTsq*dv    = %e\t%e\t%e\t%e\n" % (dTsq*dv,2*dTsq*dv,0.5*dTsq*dv,1.5*dTsq*dv)
 
 d1 = 3.76e-8
-d2 = 3.63e-8 
+d2 = 3.63e-8
 d12 = (d1+d2)/2
 D12 = 3./16*math.sqrt(2*math.pi*kB**3*(m1+m2)/m1/m2)/math.pi/d12**2*temp*math.sqrt(temp)/pres
 
-u = 3*math.sqrt(kB*temp/mavg/Ntot)  # rough estimate
+u = 3*math.sqrt(kB*temp/mavg/Ntot)
 
 print "dx = %e " % dx
 print "dt = %e " % dt

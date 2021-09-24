@@ -9,13 +9,13 @@ Navo = 6.0221409e23         # Avogadro constant
 ##########
 
 # molecular weights
-M1 = 28.01    # CO 
-M2 = 39.95    # Ar 
+M1 = 28.01    # CO
+M2 = 39.95    # Ar
 print "- molecular masses: [%.4f, %.4f]" % (M1,M2)
 
 # mass fractions
 Y1 = 0.05
-Y2 = 0.95 
+Y2 = 0.95
 print "- mass fractions: [%.3f, %.3f]" % (Y1,Y2)
 
 # mole fractions
@@ -103,7 +103,7 @@ dof2 = 3
 e01 = 0.
 e02 = 0.
 
-cv1 = 0.5*dof1*Runiv/M1 
+cv1 = 0.5*dof1*Runiv/M1
 cv2 = 0.5*dof2*Runiv/M2
 cvmix = Y1*cv1+Y2*cv2
 
