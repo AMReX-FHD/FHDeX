@@ -118,19 +118,19 @@ print "drho1sq = %e" % drho1sq
 print "drho2sq = %e" % drho2sq
 print "djasq = %e\n" % djasq
 
-print "drhosq  = %e\t%e\t%e\t%e" % (drhosq,2*drhosq,0.5*drhosq,1.5*drhosq)
-print "drho1sq = %e\t%e\t%e\t%e" % (drho1sq,2*drho1sq,0.5*drho1sq,1.5*drho1sq)
-print "drho2sq = %e\t%e\t%e\t%e" % (drho2sq,2*drho2sq,0.5*drho2sq,1.5*drho2sq)
-print "djasq   = %e\t%e\t%e\t%e" % (djasq,2*djasq,0.5*djasq,1.5*djasq)
-print "dEsq    = %e\t%e\t%e\t%e" % (dEsq,2*dEsq,0.5*dEsq,1.5*dEsq)
-print "dTsq    = %e\t%e\t%e\t%e\n" % (dTsq,2*dTsq,0.5*dTsq,1.5*dTsq)
+print "drhosq  (+/-50%%) = %e\t%e\t%e\t%e" % (drhosq,2*drhosq,0.5*drhosq,1.5*drhosq)
+print "drho1sq (+/-50%%) = %e\t%e\t%e\t%e" % (drho1sq,2*drho1sq,0.5*drho1sq,1.5*drho1sq)
+print "drho2sq (+/-50%%) = %e\t%e\t%e\t%e" % (drho2sq,2*drho2sq,0.5*drho2sq,1.5*drho2sq)
+print "djasq   (+/- 3%%) = %e\t%e\t%e\t%e" % (djasq,2*djasq,0.97*djasq,1.03*djasq)
+print "dEsq    (+/-50%%) = %e\t%e\t%e\t%e" % (dEsq,2*dEsq,0.5*dEsq,1.5*dEsq)
+print "dTsq    (+/- 3%%) = %e\t%e\t%e\t%e\n" % (dTsq,2*dTsq,0.97*dTsq,1.03*dTsq)
 
-print "drhosq*dv  = %e\t%e\t%e\t%e" % (drhosq*dv,2*drhosq*dv,0.5*drhosq*dv,1.5*drhosq*dv)
-print "drho1sq*dv = %e\t%e\t%e\t%e" % (drho1sq*dv,2*drho1sq*dv,0.5*drho1sq*dv,1.5*drho1sq*dv)
-print "drho2sq*dv = %e\t%e\t%e\t%e" % (drho2sq*dv,2*drho2sq*dv,0.5*drho2sq*dv,1.5*drho2sq*dv)
-print "djasq*dv   = %e\t%e\t%e\t%e" % (djasq*dv,2*djasq*dv,0.5*djasq*dv,1.5*djasq*dv)
-print "dEsq*dv    = %e\t%e\t%e\t%e" % (dEsq*dv,2*dEsq*dv,0.5*dEsq*dv,1.5*dEsq*dv)
-print "dTsq*dv    = %e\t%e\t%e\t%e\n" % (dTsq*dv,2*dTsq*dv,0.5*dTsq*dv,1.5*dTsq*dv)
+print "drhosq*dv  (+/-50%%) = %e\t%e\t%e\t%e" % (drhosq*dv,2*drhosq*dv,0.5*drhosq*dv,1.5*drhosq*dv)
+print "drho1sq*dv (+/-50%%) = %e\t%e\t%e\t%e" % (drho1sq*dv,2*drho1sq*dv,0.5*drho1sq*dv,1.5*drho1sq*dv)
+print "drho2sq*dv (+/-50%%) = %e\t%e\t%e\t%e" % (drho2sq*dv,2*drho2sq*dv,0.5*drho2sq*dv,1.5*drho2sq*dv)
+print "djasq*dv   (+/-10%%) = %e\t%e\t%e\t%e" % (djasq*dv,2*djasq*dv,0.9*djasq*dv,1.1*djasq*dv)
+print "dEsq*dv    (+/-50%%) = %e\t%e\t%e\t%e" % (dEsq*dv,2*dEsq*dv,0.5*dEsq*dv,1.5*dEsq*dv)
+print "dTsq*dv    (+/-10%%) = %e\t%e\t%e\t%e\n" % (dTsq*dv,2*dTsq*dv,0.9*dTsq*dv,1.1*dTsq*dv)
 
 d1 = 3.765e-08
 d2 = 4.621e-08
