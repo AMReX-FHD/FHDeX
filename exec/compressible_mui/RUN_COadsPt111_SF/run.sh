@@ -1,6 +1,5 @@
 #!/bin/bash
 
-ORIGDIR=RUN_COadsPt111_SF
 SPKSCR=in.kmc
 FHDSCR=inputs_fhd
 
@@ -19,21 +18,6 @@ then
   echo "ERROR: fhd executable $exec2 not found"
   exit
 fi
-
-# check run directory
-rundir=${PWD##*/}
-if [ $rundir == $ORIGDIR ]
-then
-  echo "ERROR: create a copy directory and run in that directory"
-  exit
-fi
-
-# copy main driver file 
-cp ../main_driver.cpp .
-
-# copy spparks app file
-cp ../SPPARKS_MUI/app_surfchemtest.cpp .
-cp ../SPPARKS_MUI/app_surfchemtest.h .
 
 # check number of steps
 N1=`grep nstep $SPKSCR | head -1 | awk '{print $4}'`
