@@ -57,7 +57,7 @@ T_init = 1000
 rho0 = 4.766943e-04
 
 struct_fact_int = 1
-n_steps_skip = 100000
+n_steps_skip = 10000
 
 # Boundary conditions:
 # NOTE: setting bc_vel to periodic sets all the other bc's to periodic)
