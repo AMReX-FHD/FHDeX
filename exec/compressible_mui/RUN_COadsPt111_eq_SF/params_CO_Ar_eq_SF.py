@@ -100,7 +100,8 @@ p1torr = pres*X1/1.01325e6*760
 k1ads = 2e5*p1torr
 
 print "- p1 in torr = %e" % p1torr
-print "- k1ads = %e" % k1ads
+print "- k1ads = %e (rate)" % k1ads
+print "- k1ads/n1 (rate const) = %e" % (k1ads/n1)
 
 k1des = 1.25e15*math.exp(-1.514/(8.617e-5*temp))
 print "- temp in K = %e" % temp
