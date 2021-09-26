@@ -10,8 +10,8 @@ then
     exit
 fi
 
-grep -B1 "Loop" $log --no-group-separator | awk 'NR % 2 == 1{printf("%e\t%d\t%d\n",$1,$6,$7,$8)}' > $res
+grep -B1 "Loop" $log --no-group-separator | awk 'NR % 2 == 1{printf("%e\t%d\t%d\t%e\n",$1,$6,$7,$7/($6+$7))}' > $res
 
-gnuplot -persist -e 'plot "res.coverage" u 1:($3/2400/2400) w l'
+gnuplot -persist -e 'plot "res.coverage" u 1:4 w l'
 
 python $scr $res
