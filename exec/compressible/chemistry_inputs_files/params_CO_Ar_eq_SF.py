@@ -9,13 +9,13 @@ Navo = 6.0221409e23         # Avogadro constant
 ##########
 
 # molecular weights
-M1 = 46.0055    # NO2 
-M2 = 92.0110    # N2O4 
+M1 = 28.01    # CO
+M2 = 39.95    # Ar
 print "- molecular masses: [%.4f, %.4f]" % (M1,M2)
 
 # mass fractions
-Y1 = 7.267597e-01 
-Y2 = 2.732403e-01 
+Y1 = 0.05
+Y2 = 0.95
 print "- mass fractions: [%.3f, %.3f]" % (Y1,Y2)
 
 # mole fractions
@@ -32,7 +32,7 @@ print "- average mass of a gas molecule = %e\n" % mavg
 
 ##########
 
-temp = 350.                 # room temperature
+temp = 1000.                # room temperature
 pres = 1.01325e6            # atmospheric pressure
 rho = pres*Mavg/Runiv/temp  # total mass density
 
@@ -55,9 +55,9 @@ print "- number density of spec2 = %e\n" % n2
 
 ##########
 
-dx = 8e-6 
-dy = 8e-6 
-dz = 8e-6
+dx = 8.4e-06
+dy = dx*math.sqrt(3.)/2 
+dz = dx 
 dv = dx*dy*dz
 
 Nx = 8
@@ -98,12 +98,12 @@ drho2sq = rho2**2/N2
 drhosq = drho1sq+drho2sq
 djasq = rho*kB*temp/dv
 
-dof1 = 7.279582 
-dof2 = 18.049065
-e01 = 4.684542e+09
-e02 = -1.730892e+09
+dof1 = 5
+dof2 = 3
+e01 = 0.
+e02 = 0.
 
-cv1 = 0.5*dof1*Runiv/M1 
+cv1 = 0.5*dof1*Runiv/M1
 cv2 = 0.5*dof2*Runiv/M2
 cvmix = Y1*cv1+Y2*cv2
 
@@ -132,8 +132,8 @@ print "djasq*dv   (+/-10%%) = %e\t%e\t%e\t%e" % (djasq*dv,2*djasq*dv,0.9*djasq*d
 print "dEsq*dv    (+/-50%%) = %e\t%e\t%e\t%e" % (dEsq*dv,2*dEsq*dv,0.5*dEsq*dv,1.5*dEsq*dv)
 print "dTsq*dv    (+/-10%%) = %e\t%e\t%e\t%e\n" % (dTsq*dv,2*dTsq*dv,0.9*dTsq*dv,1.1*dTsq*dv)
 
-d1 = 3.765e-08
-d2 = 4.621e-08
+d1 = 3.76e-8
+d2 = 3.63e-8
 d12 = (d1+d2)/2
 D12 = 3./16*math.sqrt(2*math.pi*kB**3*(m1+m2)/m1/m2)/math.pi/d12**2*temp*math.sqrt(temp)/pres
 
