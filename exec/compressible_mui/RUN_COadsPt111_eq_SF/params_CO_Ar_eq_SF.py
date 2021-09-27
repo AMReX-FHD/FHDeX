@@ -96,14 +96,19 @@ print "- number of gas molecules of spec2 in dv = %.3e\n" % N2
 
 ##########
 
+factor = 10
+
 p1torr = pres*X1/1.01325e6*760
 k1ads = 2e5*p1torr
+k1ads = factor*k1ads
 
+print "- factor = %f" % factor
 print "- p1 in torr = %e" % p1torr
 print "- k1ads = %e (rate)" % k1ads
 print "- k1ads/n1 (rate const) = %e" % (k1ads/n1)
 
 k1des = 1.25e15*math.exp(-1.514/(8.617e-5*temp))
+k1des = factor*k1des
 print "- temp in K = %e" % temp
 print "- k1des = %e" % k1des
 
@@ -116,7 +121,9 @@ dt = 1.e-12
 
 print "- dt (FHD) = %e" % dt
 print "- max mean number of ads events per dxFHD*dyFHD per dt = %e" % (n1s*k1ads*dt)
-print "- max mean number of des events per dxFHD*dyFHD per dt = %e\n" % (n1s*k1des*dt)
+print "- eq mean number of ads events per dxFHD*dyFHD per dt = %e" % (n1s*k1ads*dt*(1-theta1))
+print "- max mean number of des events per dxFHD*dyFHD per dt = %e" % (n1s*k1des*dt)
+print "- eq mean number of des events per dxFHD*dyFHD per dt = %e\n" % (n1s*k1des*dt*theta1)
 
 ##########
 
@@ -150,19 +157,19 @@ print "drho1sq = %e" % drho1sq
 print "drho2sq = %e" % drho2sq
 print "djasq = %e\n" % djasq
 
-print "drhosq  = %e\t%e\t%e\t%e" % (drhosq,2*drhosq,0.5*drhosq,1.5*drhosq)
-print "drho1sq = %e\t%e\t%e\t%e" % (drho1sq,2*drho1sq,0.5*drho1sq,1.5*drho1sq)
-print "drho2sq = %e\t%e\t%e\t%e" % (drho2sq,2*drho2sq,0.5*drho2sq,1.5*drho2sq)
-print "djasq   = %e\t%e\t%e\t%e" % (djasq,2*djasq,0.5*djasq,1.5*djasq)
-print "dEsq    = %e\t%e\t%e\t%e" % (dEsq,2*dEsq,0.5*dEsq,1.5*dEsq)
-print "dTsq    = %e\t%e\t%e\t%e\n" % (dTsq,2*dTsq,0.5*dTsq,1.5*dTsq)
+print "drhosq  (+/-50%%) = %e\t%e\t%e\t%e" % (drhosq,2*drhosq,0.5*drhosq,1.5*drhosq)
+print "drho1sq (+/-50%%) = %e\t%e\t%e\t%e" % (drho1sq,2*drho1sq,0.5*drho1sq,1.5*drho1sq)
+print "drho2sq (+/-50%%) = %e\t%e\t%e\t%e" % (drho2sq,2*drho2sq,0.5*drho2sq,1.5*drho2sq)
+print "djasq   (+/-25%%) = %e\t%e\t%e\t%e" % (djasq,2*djasq,0.75*djasq,1.25*djasq)
+print "dEsq    (+/-50%%) = %e\t%e\t%e\t%e" % (dEsq,2*dEsq,0.5*dEsq,1.5*dEsq)
+print "dTsq    (+/-25%%) = %e\t%e\t%e\t%e\n" % (dTsq,2*dTsq,0.75*dTsq,1.25*dTsq)
 
-print "drhosq*dv  = %e\t%e\t%e\t%e" % (drhosq*dv,2*drhosq*dv,0.5*drhosq*dv,1.5*drhosq*dv)
-print "drho1sq*dv = %e\t%e\t%e\t%e" % (drho1sq*dv,2*drho1sq*dv,0.5*drho1sq*dv,1.5*drho1sq*dv)
-print "drho2sq*dv = %e\t%e\t%e\t%e" % (drho2sq*dv,2*drho2sq*dv,0.5*drho2sq*dv,1.5*drho2sq*dv)
-print "djasq*dv   = %e\t%e\t%e\t%e" % (djasq*dv,2*djasq*dv,0.5*djasq*dv,1.5*djasq*dv)
-print "dEsq*dv    = %e\t%e\t%e\t%e" % (dEsq*dv,2*dEsq*dv,0.5*dEsq*dv,1.5*dEsq*dv)
-print "dTsq*dv    = %e\t%e\t%e\t%e\n" % (dTsq*dv,2*dTsq*dv,0.5*dTsq*dv,1.5*dTsq*dv)
+print "drhosq*dv  (+/-50%%) = %e\t%e\t%e\t%e" % (drhosq*dv,2*drhosq*dv,0.5*drhosq*dv,1.5*drhosq*dv)
+print "drho1sq*dv (+/-50%%) = %e\t%e\t%e\t%e" % (drho1sq*dv,2*drho1sq*dv,0.5*drho1sq*dv,1.5*drho1sq*dv)
+print "drho2sq*dv (+/-50%%) = %e\t%e\t%e\t%e" % (drho2sq*dv,2*drho2sq*dv,0.5*drho2sq*dv,1.5*drho2sq*dv)
+print "djasq*dv   (+/-25%%) = %e\t%e\t%e\t%e" % (djasq*dv,2*djasq*dv,0.75*djasq*dv,1.25*djasq*dv)
+print "dEsq*dv    (+/-50%%) = %e\t%e\t%e\t%e" % (dEsq*dv,2*dEsq*dv,0.5*dEsq*dv,1.5*dEsq*dv)
+print "dTsq*dv    (+/-25%%) = %e\t%e\t%e\t%e\n" % (dTsq*dv,2*dTsq*dv,0.75*dTsq*dv,1.25*dTsq*dv)
 
 d1 = 3.76e-8
 d2 = 3.63e-8
