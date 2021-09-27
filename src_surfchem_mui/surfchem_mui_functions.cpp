@@ -108,8 +108,8 @@ void mui_fetch(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface
                 double x = prob_lo[0]+(i+0.5)*dx[0];
                 double y = prob_lo[1]+(j+0.5)*dx[1];
                 double dV = dx[0]*dx[1]*dx[2];
-                //double temp = prim_arr(i,j,k,4);
-                double temp = t_lo[2];
+                double temp = prim_arr(i,j,k,4);
+                //double temp = t_lo[2];
 
                 for (int n = 0; n < nspec_mui; ++n)
                 {

@@ -20,6 +20,7 @@ struct FHD_realData {
 		R,
 		timeFrac,
 		omega,
+		lambda,
 		radius,
 		mass,
 		count

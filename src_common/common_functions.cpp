@@ -129,7 +129,8 @@ amrex::Vector<amrex::Real> common::wallspeed_hi;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::potential_lo;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::potential_hi;
 
-int                        common::dsmc_boundaries;
+int                           common::dsmc_boundaries;
+int                           common::phonon_sound_speed;
 
 int                           common::struct_fact_int;
 int                           common::radialdist_int;
@@ -145,7 +146,7 @@ amrex::Vector<amrex::Real>    common::density_weights;
 amrex::Vector<int>            common::shift_cc_to_boundary;
 
 int                           common::particle_placement;
-int			      common::particle_input;
+int			                  common::particle_input;
 amrex::Vector<int>            common::particle_count;
 amrex::Vector<int>            common::p_move_tog;
 amrex::Vector<int>            common::p_force_tog;
@@ -473,6 +474,7 @@ void InitializeCommonNamespace() {
     }
 
     dsmc_boundaries = 0;
+    phonon_sound_speed = 3000;
 
     // structure factor and radial/cartesian pair correlation function analysis
     struct_fact_int = 0;
@@ -869,6 +871,7 @@ void InitializeCommonNamespace() {
         }
     }
     pp.query("dsmc_boundaries",dsmc_boundaries);
+    pp.query("phonon_sound_speed",phonon_sound_speed);
     pp.query("struct_fact_int",struct_fact_int);
     pp.query("radialdist_int",radialdist_int);
     pp.query("cartdist_int",cartdist_int);

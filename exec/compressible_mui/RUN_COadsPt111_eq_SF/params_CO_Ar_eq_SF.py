@@ -9,13 +9,13 @@ Navo = 6.0221409e23         # Avogadro constant
 ##########
 
 # molecular weights
-M1 = 46.0055    # NO2 
-M2 = 92.0110    # N2O4 
+M1 = 28.01    # CO
+M2 = 39.95    # Ar
 print "- molecular masses: [%.4f, %.4f]" % (M1,M2)
 
 # mass fractions
-Y1 = 7.267597e-01 
-Y2 = 2.732403e-01 
+Y1 = 0.05
+Y2 = 0.95
 print "- mass fractions: [%.3f, %.3f]" % (Y1,Y2)
 
 # mole fractions
@@ -32,7 +32,7 @@ print "- average mass of a gas molecule = %e\n" % mavg
 
 ##########
 
-temp = 350.                 # room temperature
+temp = 1000.                # room temperature
 pres = 1.01325e6            # atmospheric pressure
 rho = pres*Mavg/Runiv/temp  # total mass density
 
@@ -55,28 +55,36 @@ print "- number density of spec2 = %e\n" % n2
 
 ##########
 
-dx = 8e-6 
-dy = 8e-6 
-dz = 8e-6
+lat_const = 2.8e-8
+n1x = 300
+n1y = 150
+
+dx = n1x*lat_const
+dy = n1y*lat_const*math.sqrt(3)
+dz = dx
 dv = dx*dy*dz
 
-Nx = 8
-Ny = 8
-Nz = 8
+n2x = 8
+n2y = 8
+n2z = 8
 
-Lx = Nx*dx
-Ly = Ny*dy
-Lz = Nz*dz
+Lx = n2x*dx
+Ly = n2y*dy
+Lz = n2z*dz
 
-print "- dx = %e" % dx
-print "- dy = %e" % dy
-print "- dz = %e" % dz
-print "- dv = %e" % dv
+print "- lattice constant for Pt(111): %e" % lat_const
+print "- dx (FHD) = %e" % dx
+print "- dy (FHD) = %e" % dy
+print "- dz (FHD) = %e" % dz
+print "- dv (FHD) = %e" % dv
 print "- Lx = %e" % Lx
 print "- Ly = %e" % Ly
 print "- Lz = %e\n" % Lz
 
 ##########
+
+n1s = 2*n1x*n1y
+print "- total number of sites per dxFHD*dyFHD = %d" % n1s 
 
 Ntot = ntot*dv
 N1 = n1*dv
@@ -85,6 +93,37 @@ N2 = n2*dv
 print "- total number of gas molecules in dv = %.3e" % Ntot
 print "- number of gas molecules of spec1 in dv = %.3e" % N1
 print "- number of gas molecules of spec2 in dv = %.3e\n" % N2
+
+##########
+
+factor = 10
+
+p1torr = pres*X1/1.01325e6*760
+k1ads = 2e5*p1torr
+k1ads = factor*k1ads
+
+print "- factor = %f" % factor
+print "- p1 in torr = %e" % p1torr
+print "- k1ads = %e (rate)" % k1ads
+print "- k1ads/n1 (rate const) = %e" % (k1ads/n1)
+
+k1des = 1.25e15*math.exp(-1.514/(8.617e-5*temp))
+k1des = factor*k1des
+print "- temp in K = %e" % temp
+print "- k1des = %e" % k1des
+
+theta1 = k1ads/(k1ads+k1des)
+print "- eq coverage of spec1: %e\n" % theta1
+
+##########
+
+dt = 1.e-12
+
+print "- dt (FHD) = %e" % dt
+print "- max mean number of ads events per dxFHD*dyFHD per dt = %e" % (n1s*k1ads*dt)
+print "- eq mean number of ads events per dxFHD*dyFHD per dt = %e" % (n1s*k1ads*dt*(1-theta1))
+print "- max mean number of des events per dxFHD*dyFHD per dt = %e" % (n1s*k1des*dt)
+print "- eq mean number of des events per dxFHD*dyFHD per dt = %e\n" % (n1s*k1des*dt*theta1)
 
 ##########
 
@@ -98,12 +137,12 @@ drho2sq = rho2**2/N2
 drhosq = drho1sq+drho2sq
 djasq = rho*kB*temp/dv
 
-dof1 = 7.279582 
-dof2 = 18.049065
-e01 = 4.684542e+09
-e02 = -1.730892e+09
+dof1 = 5
+dof2 = 3
+e01 = 0.
+e02 = 0.
 
-cv1 = 0.5*dof1*Runiv/M1 
+cv1 = 0.5*dof1*Runiv/M1
 cv2 = 0.5*dof2*Runiv/M2
 cvmix = Y1*cv1+Y2*cv2
 
@@ -121,25 +160,24 @@ print "djasq = %e\n" % djasq
 print "drhosq  (+/-50%%) = %e\t%e\t%e\t%e" % (drhosq,2*drhosq,0.5*drhosq,1.5*drhosq)
 print "drho1sq (+/-50%%) = %e\t%e\t%e\t%e" % (drho1sq,2*drho1sq,0.5*drho1sq,1.5*drho1sq)
 print "drho2sq (+/-50%%) = %e\t%e\t%e\t%e" % (drho2sq,2*drho2sq,0.5*drho2sq,1.5*drho2sq)
-print "djasq   (+/- 3%%) = %e\t%e\t%e\t%e" % (djasq,2*djasq,0.97*djasq,1.03*djasq)
+print "djasq   (+/-25%%) = %e\t%e\t%e\t%e" % (djasq,2*djasq,0.75*djasq,1.25*djasq)
 print "dEsq    (+/-50%%) = %e\t%e\t%e\t%e" % (dEsq,2*dEsq,0.5*dEsq,1.5*dEsq)
-print "dTsq    (+/- 3%%) = %e\t%e\t%e\t%e\n" % (dTsq,2*dTsq,0.97*dTsq,1.03*dTsq)
+print "dTsq    (+/-25%%) = %e\t%e\t%e\t%e\n" % (dTsq,2*dTsq,0.75*dTsq,1.25*dTsq)
 
 print "drhosq*dv  (+/-50%%) = %e\t%e\t%e\t%e" % (drhosq*dv,2*drhosq*dv,0.5*drhosq*dv,1.5*drhosq*dv)
 print "drho1sq*dv (+/-50%%) = %e\t%e\t%e\t%e" % (drho1sq*dv,2*drho1sq*dv,0.5*drho1sq*dv,1.5*drho1sq*dv)
 print "drho2sq*dv (+/-50%%) = %e\t%e\t%e\t%e" % (drho2sq*dv,2*drho2sq*dv,0.5*drho2sq*dv,1.5*drho2sq*dv)
-print "djasq*dv   (+/-10%%) = %e\t%e\t%e\t%e" % (djasq*dv,2*djasq*dv,0.9*djasq*dv,1.1*djasq*dv)
+print "djasq*dv   (+/-25%%) = %e\t%e\t%e\t%e" % (djasq*dv,2*djasq*dv,0.75*djasq*dv,1.25*djasq*dv)
 print "dEsq*dv    (+/-50%%) = %e\t%e\t%e\t%e" % (dEsq*dv,2*dEsq*dv,0.5*dEsq*dv,1.5*dEsq*dv)
-print "dTsq*dv    (+/-10%%) = %e\t%e\t%e\t%e\n" % (dTsq*dv,2*dTsq*dv,0.9*dTsq*dv,1.1*dTsq*dv)
+print "dTsq*dv    (+/-25%%) = %e\t%e\t%e\t%e\n" % (dTsq*dv,2*dTsq*dv,0.75*dTsq*dv,1.25*dTsq*dv)
 
-d1 = 3.765e-08
-d2 = 4.621e-08
+d1 = 3.76e-8
+d2 = 3.63e-8
 d12 = (d1+d2)/2
 D12 = 3./16*math.sqrt(2*math.pi*kB**3*(m1+m2)/m1/m2)/math.pi/d12**2*temp*math.sqrt(temp)/pres
 
 u = 3*math.sqrt(kB*temp/mavg/Ntot)
 
-dt = 1.e-12
 print "dx = %e " % dx
 print "dt = %e " % dt
 print "D12 = %e" % D12

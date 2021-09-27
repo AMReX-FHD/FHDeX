@@ -85,6 +85,9 @@ void main_driver(const char* argv)
         else if (eskernel_fluid[i] == 6) {
 	        tempang = 4;
         }
+        else {
+	        tempang = floor(eskernel_fluid[i]/2)+1;
+        }
         
         if(tempang > ang)
         {
@@ -397,8 +400,41 @@ void main_driver(const char* argv)
 	   wetRad_w6.close();
            //wetRad[j] = 1.478*dxAv; // With beta = 8.64
        }
+       else if (eskernel_fluid[j] == 3) {
+	   if (eskernel_beta[j] < 3 || eskernel_beta[j] > 9) {
+	      Abort("Please provide eskernel_beta within the range [1,3]*eskernel_fluid.");
+	   }
+
+           int targetLine = (eskernel_beta[j]-eskernel_fluid[j])*10+1;
+	   //Print() << targetLine << std::endl;
+	   std::ifstream wetRad_w3("wetRad_w3.dat");
+	   for (int lineCount=0; lineCount < targetLine-1; lineCount++) {
+	       wetRad_w3.ignore(100000, '\n');
+	   }
+	   wetRad_w3 >> wetRad[j];
+	   Print() << "wetRad read from file is " << wetRad[j] << std::endl;
+	   wetRad[j] *= dxAv;
+	   wetRad_w3.close();
+       }
+       else if (eskernel_fluid[j] == 7) {
+	   if (eskernel_beta[j] < 7 || eskernel_beta[j] > 21) {
+	      Abort("Please provide eskernel_beta within the range [1,3]*eskernel_fluid.");
+	   }
+
+           int targetLine = (eskernel_beta[j]-eskernel_fluid[j])*10+1;
+	   //Print() << targetLine << std::endl;
+	   std::ifstream wetRad_w7("wetRad_w7.dat");
+	   for (int lineCount=0; lineCount < targetLine-1; lineCount++) {
+	       wetRad_w7.ignore(100000, '\n');
+	   }
+	   wetRad_w7 >> wetRad[j];
+	   Print() << "wetRad read from file is " << wetRad[j] << std::endl;
+	   wetRad[j] *= dxAv;
+	   wetRad_w7.close();
+       }
        else {
-	   Abort("Currently the code only supports pkernel_fluid = 1,3,4,6 or eskernel_fluid = 4,5,6.");
+           Abort("Currently the code only supports pkernel_fluid = 1,3,4,6 or eskernel_fluid = 3,4,5,6,7.");
+	   //wetRad[j] = 1.255*dxAv;
        }
     }
 
@@ -1009,12 +1045,11 @@ void main_driver(const char* argv)
         }
 
 
-//        if(istep == 1)
-//        {
-//            particles.SetPosition(1, prob_hi[0]*0.5, 0.5e-7, prob_hi[2]*0.5);
-//        }
-        
 
+        //if(istep == 1)
+        //{
+        //    particles.SetPosition(1, prob_hi[0]*0.5, prob_hi[1]*0.5, prob_hi[2]*0.5);
+        //}
     
         //Most of these functions are sensitive to the order of execution. We can fix this, but for now leave them in this order.
 
@@ -1039,7 +1074,7 @@ void main_driver(const char* argv)
             // set velx/y/z and forcex/y/z for each particle to zero
             particles.ResetMarkers(0);
         }
-//	    particles.SetForce(1,1,0,0);
+	    //particles.SetForce(1,1,0,0);
 //        Real origin[3];
 //        origin[0] = prob_hi[0]/2.0;
 //        origin[1] = prob_hi[1]/2.0;
