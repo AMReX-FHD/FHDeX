@@ -883,8 +883,12 @@ void main_driver(const char* argv)
     remove("bulkFlowEst");
     //Time stepping loop
 
-
-    dt = dt*1e-5;
+    if(ramp_step==1){
+        dt = dt*1e-6;
+    }else{
+        dt = dt*1e-5;
+    }
+        
 
     particles.initRankLists(simParticles);
 
@@ -896,99 +900,112 @@ void main_driver(const char* argv)
 
         // timer for time step
         Real time1 = ParallelDescriptor::second();
+        if(ramp_step==1)
+        {
+            if(istep == 20)
+            {
+                    dt = dt*2;
+                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+            }
+            
+            if(istep == 40)
+            {
+                    dt = dt*5;
+                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+            }
 
-//        if(istep == 80)
-//        {
-//                dt = dt*5;
-//                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
-//        }
-
-
-//        if(istep == 160)
-//        {
-//                dt = dt*2;
-//                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
-//        }
-
-//        if(istep == 240)
-//        {
-//                dt = dt*5;
-//                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
-//        }
-
-//        if(istep == 320)
-//        {
-//                dt = dt*2;
-//                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
-//        }
-
-//        if(istep == 400)
-//        {
-//                dt = dt*5;
-//                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
-//        }
-//        
-//        if(istep == 480)
-//        {
-//                dt = dt*2;
-//                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
-//        }
+            if(istep == 80)
+            {
+                    dt = dt*5;
+                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+            }
 
 
-//        if(istep == 560)
-//        {
-//                dt = dt*5;
-//                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
-//        }
+            if(istep == 160)
+            {
+                    dt = dt*2;
+                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+            }
 
-//        if(istep == 640)
-//        {
-//                dt = dt*2;
-//                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
-//        }
+            if(istep == 240)
+            {
+                    dt = dt*5;
+                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+            }
 
-//        if(istep == 720)
-//        {
-//                dt = dt*5;
-//                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
-//        }
+            if(istep == 320)
+            {
+                    dt = dt*2;
+                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+            }
 
-//        if(istep == 800)
-//        {
-//                dt = dt*2;
-//                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
-//        }
+            if(istep == 400)
+            {
+                    dt = dt*5;
+                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+            }
+            
+            if(istep == 480)
+            {
+                    dt = dt*2;
+                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+            }
+
+
+            if(istep == 560)
+            {
+                    dt = dt*5;
+                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+            }
+
+            if(istep == 640)
+            {
+                    dt = dt*2;
+                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+            }
+
+            if(istep == 720)
+            {
+                    dt = dt*5;
+                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+            }
+
+            if(istep == 800)
+            {
+                    dt = dt*2;
+                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+            }
+        }else
+        {
         
-        
-        if(istep == 20)
-        {
-                dt = dt*10;
-                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
-        }
+            if(istep == 20)
+            {
+                    dt = dt*10;
+                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+            }
+            if(istep == 40)
+            {
+                    dt = dt*10;
+                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+            }
 
+            if(istep == 60)
+            {
+                    dt = dt*10;
+                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+            }
 
-        if(istep == 40)
-        {
-                dt = dt*10;
-                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
-        }
+            if(istep == 80)
+            {
+                    dt = dt*10;
+                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+            }
 
-        if(istep == 60)
-        {
-                dt = dt*10;
-                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
-        }
-
-        if(istep == 80)
-        {
-                dt = dt*10;
-                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
-        }
-
-        if(istep == 100)
-        {
-                dt = dt*10;
-                Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+            if(istep == 100)
+            {
+                    dt = dt*10;
+                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+            }
         }
 
 
@@ -996,6 +1013,7 @@ void main_driver(const char* argv)
 //        {
 //            particles.SetPosition(1, prob_hi[0]*0.5, 0.5e-7, prob_hi[2]*0.5);
 //        }
+        
 
     
         //Most of these functions are sensitive to the order of execution. We can fix this, but for now leave them in this order.

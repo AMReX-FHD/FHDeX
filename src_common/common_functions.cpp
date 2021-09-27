@@ -35,6 +35,7 @@ amrex::Real                common::fixed_dt;
 amrex::Real                common::cfl;
 amrex::Real                common::rfd_delta;
 int                        common::max_step;
+int                        common::ramp_step;
 int                        common::plot_int;
 int                        common::plot_stag;
 std::string                common::plot_base_name;
@@ -339,6 +340,7 @@ void InitializeCommonNamespace() {
 
     // Controls for number of steps between actions
     max_step = 1;
+    ramp_step = 0;
     plot_int = 0;
     plot_stag = 0;
     plot_base_name = "plt";
@@ -627,6 +629,7 @@ void InitializeCommonNamespace() {
     pp.query("cfl",cfl);
     pp.query("rfd_delta",rfd_delta);
     pp.query("max_step",max_step);
+    pp.query("ramp_step",ramp_step);
     pp.query("plot_int",plot_int);
     pp.query("plot_stag",plot_stag);
     pp.query("plot_base_name",plot_base_name);

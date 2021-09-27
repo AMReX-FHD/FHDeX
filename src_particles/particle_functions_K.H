@@ -293,7 +293,7 @@ void repulsive_force_wall (      FhdParticleContainer::ParticleType& part1,
     using namespace amrex;
 
     //note that we are adjusting eps for the different wall potential
-    const Real drA = dr;
+    const Real drA = dr+0.5*sig;
     const Real dr2A = drA*drA;
     const Real fac1 = std::pow((sig), 9);
     const Real fac2 = std::pow((sig), 3);
