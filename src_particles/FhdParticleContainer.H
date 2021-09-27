@@ -65,6 +65,8 @@ struct FHD_realData {
         potential,
 	    p3m_radius,
         spring,
+        omega,
+        lambda,
         count    // Awesome little trick! (only works if first field is 0)
     };
 
