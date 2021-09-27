@@ -395,6 +395,7 @@ void app_bc_phonon_gpu(const paramPlane* surf, FhdParticleContainer::ParticleTyp
         *push = 1;
         if(amrex::Random(engine) > surf->momentumConsRight)
         {
+          //Is this using the wrong side?
           randomhemisphere(surf->cosThetaRight, surf->sinThetaRight,
           surf->cosPhiRight, surf->sinPhiRight,
           &part.rdata(FHD_realData::velx),&part.rdata(FHD_realData::vely), &part.rdata(FHD_realData::velz),
@@ -472,6 +473,7 @@ void app_bc_phonon_gpu(const paramPlane* surf, FhdParticleContainer::ParticleTyp
         *push = 1;
         if(amrex::Random(engine) > surf->momentumConsLeft)
         {
+          //Is this using the wrong side?
           randomhemisphere(surf->cosThetaRight, surf->sinThetaRight,
           	surf->cosPhiRight, surf->sinPhiRight,
           	&part.rdata(FHD_realData::velx), &part.rdata(FHD_realData::vely), &part.rdata(FHD_realData::velz),
