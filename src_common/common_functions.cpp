@@ -61,6 +61,7 @@ AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::hcp;
 AMREX_GPU_MANAGED amrex::Real common::variance_coef_mom;
 AMREX_GPU_MANAGED amrex::Real common::variance_coef_mass;
 AMREX_GPU_MANAGED amrex::Real common::k_B;
+AMREX_GPU_MANAGED amrex::Real common::h_bar;
 AMREX_GPU_MANAGED amrex::Real common::Runiv;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::T_init;
 AMREX_GPU_MANAGED int      common::algorithm_type;
@@ -381,6 +382,7 @@ void InitializeCommonNamespace() {
     variance_coef_mom = 1.;
     variance_coef_mass = 1.;
     k_B = 1.38064852e-16;
+    h_bar = 1.0546e-27;
     Runiv = 8.314462175e7;
     for (int i=0; i<MAX_SPECIES; ++i) {
         T_init[i] = 1.;
@@ -687,6 +689,7 @@ void InitializeCommonNamespace() {
     pp.query("variance_coef_mom",variance_coef_mom);
     pp.query("variance_coef_mass",variance_coef_mass);
     pp.query("k_B",k_B);
+    pp.query("h_bar",h_bar);
     pp.query("Runiv",Runiv);
     if (pp.queryarr("T_init",temp)) {
         for (int i=0; i<nspecies; ++i) {

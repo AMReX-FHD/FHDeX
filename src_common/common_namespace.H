@@ -77,6 +77,7 @@ namespace common {
     extern AMREX_GPU_MANAGED amrex::Real variance_coef_mom;
     extern AMREX_GPU_MANAGED amrex::Real variance_coef_mass;
     extern AMREX_GPU_MANAGED amrex::Real k_B;
+    extern AMREX_GPU_MANAGED amrex::Real h_bar;
     extern AMREX_GPU_MANAGED amrex::Real Runiv;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> T_init;
 

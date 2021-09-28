@@ -159,26 +159,38 @@ void cosineLawHemisphere(Real costheta, Real sintheta, Real cosphi, Real sinphi,
     rotation(costheta, sintheta, cosphi, sinphi, cx, cy, cz);
 }
 
+
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
-void plankDist(Real costheta, Real sintheta, Real cosphi, Real sinphi, Real *cx, Real *cy, Real *cz, Real mag, amrex::RandomEngine const& engine)
+Real pn(int n)
 {
-    Real costhetanew, sinthetanew, cosphinew, sinphinew, phi;
+    return 90.0/pow(M_PI*n,4);
+}
 
-//    call get_half_angles(costhetanew, sinthetanew, cosphinew, sinphinew)
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
+Real erlang4Dist(int n, Real temp, amrex::RandomEngine const& engine)
+{
+    return -log(amrex::Random(engine)*amrex::Random(engine)*amrex::Random(engine)*amrex::Random(engine))*k_B*temp/(h_bar*n);
+}
 
-    sinthetanew = sqrt(amrex::Random(engine));
-    costhetanew = sqrt(1.0 - sinthetanew*sinthetanew);
-
-    phi = amrex::Random(engine)*2.0*M_PI;
-
-    cosphinew = cos(phi);
-    sinphinew = sin(phi);
-
-    *cx = mag*sinthetanew*cosphinew;
-    *cy = mag*sinthetanew*sinphinew;
-    *cz = mag*costhetanew;
-
-    rotation(costheta, sintheta, cosphi, sinphi, cx, cy, cz);
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
+Real plankDist(Real temp, amrex::RandomEngine const& engine)
+{
+    Real sample = 360*k_B*temp*1.037/(h_bar*pow(M_PI,4));//Mean value incase sampling fails
+    
+    Real pnTotal = 0;
+    Real test = amrex::Random(engine);
+    
+    for(int n=1;n<=50;n++)
+    {
+        pnTotal = pnTotal + pn(n);
+        if(test < pnTotal)
+        {
+            sample = erlang4Dist(n, temp, engine);
+            break;
+        }
+    }
+    
+    return sample;
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
