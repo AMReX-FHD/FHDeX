@@ -160,6 +160,28 @@ void cosineLawHemisphere(Real costheta, Real sintheta, Real cosphi, Real sinphi,
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
+void plankDist(Real costheta, Real sintheta, Real cosphi, Real sinphi, Real *cx, Real *cy, Real *cz, Real mag, amrex::RandomEngine const& engine)
+{
+    Real costhetanew, sinthetanew, cosphinew, sinphinew, phi;
+
+//    call get_half_angles(costhetanew, sinthetanew, cosphinew, sinphinew)
+
+    sinthetanew = sqrt(amrex::Random(engine));
+    costhetanew = sqrt(1.0 - sinthetanew*sinthetanew);
+
+    phi = amrex::Random(engine)*2.0*M_PI;
+
+    cosphinew = cos(phi);
+    sinphinew = sin(phi);
+
+    *cx = mag*sinthetanew*cosphinew;
+    *cy = mag*sinthetanew*sinphinew;
+    *cz = mag*costhetanew;
+
+    rotation(costheta, sintheta, cosphi, sinphi, cx, cy, cz);
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void app_bc_gpu(const paramPlane* surf, FhdParticleContainer::ParticleType& part, int intside, Real* domsize, int *push, Real *runtime, Real inttime, amrex::RandomEngine const& engine)
 {
     if(intside == 1)
@@ -350,6 +372,12 @@ void app_bc_phonon_gpu(const paramPlane* surf, FhdParticleContainer::ParticleTyp
         if(amrex::Random(engine) < probSpec)
         {
             //Specular
+          Real dotprod = part.rdata(FHD_realData::velx)*surf->rnx + part.rdata(FHD_realData::vely)*surf->rny
+          	+ part.rdata(FHD_realData::velz)*surf->rnz;
+
+          part.rdata(FHD_realData::velx) = -2.0*dotprod*surf->rnx + part.rdata(FHD_realData::velx);
+          part.rdata(FHD_realData::vely) = -2.0*dotprod*surf->rny + part.rdata(FHD_realData::vely);
+          part.rdata(FHD_realData::velz) = -2.0*dotprod*surf->rnz + part.rdata(FHD_realData::velz);
         
         }else
         {
@@ -427,6 +455,12 @@ void app_bc_phonon_gpu(const paramPlane* surf, FhdParticleContainer::ParticleTyp
         if(amrex::Random(engine) < probSpec)
         {
             //Specular
+          Real dotprod = part.rdata(FHD_realData::velx)*surf->lnx + part.rdata(FHD_realData::vely)*surf->lny
+          	+ part.rdata(FHD_realData::velz)*surf->lnz;
+
+          part.rdata(FHD_realData::velx) = -2.0*dotprod*surf->lnx + part.rdata(FHD_realData::velx);
+          part.rdata(FHD_realData::vely) = -2.0*dotprod*surf->lny + part.rdata(FHD_realData::vely);
+          part.rdata(FHD_realData::velz) = -2.0*dotprod*surf->lnz + part.rdata(FHD_realData::velz);
         
         }else
         {
