@@ -14,4 +14,4 @@ export OMP_PLACES=threads
 export OMP_PROC_BIND=spread
 
 #run the application
-srun -n 16 -c 4 --cpu_bind=cores ./main3d.gnu.haswell.MPI.ex input
+srun -n 16 -c 4 --cpu_bind=cores ./main3d.gnu.haswell.MPI.ex input >& out

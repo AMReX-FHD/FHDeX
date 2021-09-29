@@ -195,8 +195,8 @@ void main_driver(const char* argv)
 			rho_time, u_time, K_time,
 			vmom,
 			ncon, nprim, ncovar, ncross, ntimecor, npart);
-		dmap = cuInst.DistributionMap();
-		ba = cuInst.boxArray();
+		dmap = cuMeans.DistributionMap();
+		ba = cuMeans.boxArray();
 	}
 
 	// Specific Heat
@@ -495,6 +495,7 @@ void main_driver(const char* argv)
 			tend = ParallelDescriptor::second() - tbegin;
 			ParallelDescriptor::ReduceRealMax(tend);
 			amrex::Print() << "Advanced step " << istep << " in " << tend << " seconds\n";
+			amrex::Print() << "Time: " << time << " s\n";
 		}
 		time += dt;
 	}
