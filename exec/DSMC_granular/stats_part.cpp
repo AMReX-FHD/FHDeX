@@ -81,17 +81,19 @@ void FhdParticleContainer::EvaluateStatsPart(MultiFab& mfvmom)
           vmom(i,j,k,6) = vmom(i,j,k,6)+(c[2]*c[2]);
           
           Real spdsq = c[0]*c[0]+c[1]*c[1]+c[2]*c[2];
+					spdsq = spdsq*0.5;
           vmom(i,j,k,7) = vmom(i,j,k,7)+spdsq*c[0];
           vmom(i,j,k,8) = vmom(i,j,k,8)+spdsq*c[1];
           vmom(i,j,k,9) = vmom(i,j,k,9)+spdsq*c[2];
         }
-        
+
         vmom(i,j,k,0) += np_spec;
         Nsample = vmom(i,j,k,0);
         for(int m=1; m<=9; m++)
         {
 					vmom(i,j,k,m) /= Nsample;
 				}
+				//Print() << "T: " << mass[0]*(vmom(i,j,k,1) + vmom(i,j,k,4) + vmom(i,j,k,6))/(3.0*k_B) << "\n"; 
         //}
     });
 	}

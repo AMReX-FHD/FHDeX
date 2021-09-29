@@ -152,8 +152,9 @@ void FhdParticleContainer::CalcSelections(Real dt)
 					//chi0 = g0_Ma_Ahmadi(i_spec,j_spec, phi1, phi2);
 					vrmax = arrvrmax(i,j,k,i_spec);
 					crossSection = interproperties[ij_spec].csx;
+					if(i_spec==j_spec) {np_j = np_i-1;}
 					NSel = 4.0*particle_neff*np_i*np_j*crossSection*vrmax*ocollisionCellVol*chi0*dt;
-					if(i_spec==j_spec) {NSel = NSel*0.5; np_j = np_i-1;}
+					if(i_spec==j_spec) {NSel = NSel*0.5;}
 					arrselect(i,j,k,ij_spec) = std::floor(NSel + amrex::Random());
 				}
 			}
@@ -199,7 +200,6 @@ void FhdParticleContainer::CollideParticles(Real dt)
 			//Real oboostmag;
 			Real massi, massj, massij;
 			Real vrmag, vrmax, vreijmag;
-
 			totalSel = 0;
 			for (int i_spec = 0; i_spec<nspecies; i_spec++)
 			{
@@ -213,6 +213,7 @@ void FhdParticleContainer::CollideParticles(Real dt)
 			}
 
 			int speci, specj, specij;
+			Print() << "Sel: " << totalSel << "\n";
 			while (totalSel>0)
 			{
 				Real RR = amrex::Random();
@@ -235,16 +236,18 @@ void FhdParticleContainer::CollideParticles(Real dt)
 					}
 				}
 				totalSel--;
-				massi = properties[speci].mass;
-				massj = properties[specj].mass;
-				massij = properties[speci].mass + properties[specj].mass;
-				vrmax = arrvrmax(i,j,k,specij);
+
 				pindxi = floor(amrex::Random()*np[speci]);
 				pindxj = floor(amrex::Random()*np[specj]);
 				pindxi = m_cell_vectors[speci][grid_id][imap][pindxi];
 				pindxj = m_cell_vectors[specj][grid_id][imap][pindxj];
-				ParticleType &	parti = particles[pindxi];
+				ParticleType & parti = particles[pindxi];
 				ParticleType & partj = particles[pindxj];
+
+				massi = properties[speci].mass;
+				massj = properties[specj].mass;
+				massij = massi + massj;
+				vrmax = arrvrmax(i,j,k,specij);
 
 				vi[0] = parti.rdata(FHD_realData::velx);
 				vi[1] = parti.rdata(FHD_realData::vely);
@@ -256,7 +259,6 @@ void FhdParticleContainer::CollideParticles(Real dt)
 
 				vij[0] = vi[0]-vj[0]; vij[1] = vi[1]-vj[1]; vij[2] = vi[2]-vj[2];
 				vrmag = sqrt(pow(vij[0],2)+pow(vij[1],2)+pow(vij[2],2));
-				if(vrmag>vrmax) {vrmax = vrmag; arrvrmax(i,j,k,ij_spec) = vrmax;}
 
 				Real eijmag = 0;
 				Real theta = 2.0*pi_usr*amrex::Random();
@@ -268,16 +270,26 @@ void FhdParticleContainer::CollideParticles(Real dt)
 				eijmag = pow(eijmag,0.5);
 				for(int idim=0; idim<3; idim++)
 				{
-				eij[idim] /= eijmag;
+					eij[idim] /= eijmag;
 				}
 
 				vreijmag = vij[0]*eij[0]+vij[1]*eij[1]+vij[2]*eij[2];
+				if(vrmag>vrmax)
+				{
+					vrmax = vrmag;
+					arrvrmax(i,j,k,ij_spec) = vrmax;
+				}
 				if(vreijmag>vrmax*amrex::Random())
 				{
 					countedCollisions[speci] += 1;
 					countedCollisions[specj] += 1;
 
+					NCollAll += 1.0;
+					vreijrun += vreijmag;
+					//vreijrun += vrmag;
+
 					vreijmag = vreijmag*(1.0+interproperties[specij].alpha)/massij;
+		
 					vreij[0] = vreijmag*eij[0];
 					vreij[1] = vreijmag*eij[1];
 					vreij[2] = vreijmag*eij[2];
@@ -316,5 +328,7 @@ void FhdParticleContainer::CollideParticles(Real dt)
 		}
 		}
 		}
+		Print() << "vr: " << vreijrun/NCollAll << "\n";
+		Print() << "Coll: " << NCollAll << "\n";	
 	}
 }
