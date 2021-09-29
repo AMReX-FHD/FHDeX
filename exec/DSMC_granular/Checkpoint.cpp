@@ -192,6 +192,7 @@ void ReadCheckPoint(
 	const int ntime,
 	const int npart)
 {
+
   // timer for profiling
   BL_PROFILE_VAR("ReadCheckPoint()",ReadCheckPoint);
 
@@ -205,6 +206,7 @@ void ReadCheckPoint(
 
   std::string line, word;
 
+	Print() << "Here1\n";
   // Header
   {
     std::string File(checkpointname + "/Header");
@@ -266,6 +268,7 @@ void ReadCheckPoint(
     vmom.define(ba,dm,npart,0);
   }
 
+	Print() << "Here2\n";
   // C++ random number engine
   // each MPI process reads in its own file
   int comm_rank;
@@ -273,7 +276,8 @@ void ReadCheckPoint(
 
   int n_ranks;
   MPI_Comm_size(MPI_COMM_WORLD, &n_ranks);
-
+	Print() << "Here3\n";
+	Print() << seed << "\n";
   if (seed < 0) {
 
 		// read in rng state from checkpoint
@@ -311,14 +315,17 @@ void ReadCheckPoint(
     InitRandom(seed+ParallelDescriptor::MyProc());
   }
 
+	Print() << "Reading\n";
   // read in the MultiFab data
   VisMF::Read(cuInst,
     amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cuInst"));
   VisMF::Read(primInst,
     amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "primInst"));
 
+	Print() << "Read prim\n";
   // Set all stats to zero if reset stats, else read
-  if (reset_stats == 1) {
+  if (reset_stats == 1)
+  {
     cuMeans.setVal(0.0);
     cuVars.setVal(0.0);
     primMeans.setVal(0.0);
@@ -337,30 +344,37 @@ void ReadCheckPoint(
   }
   else
   {
+		Print() << "Set Values Start\n";
     VisMF::Read(cuMeans,
         amrex::MultiFabFileFullPrefix(0, checkpointname,"Level_", "cuMeans"));
+		Print() << "Set cu Start\n";
     VisMF::Read(cuVars,
         amrex::MultiFabFileFullPrefix(0, checkpointname,"Level_", "cuVars"));
+		Print() << "Set prim Start\n";
     VisMF::Read(primMeans,
     	amrex::MultiFabFileFullPrefix(0, checkpointname,"Level_", "primMeans"));
-    VisMF::Read(primVars,
-    	amrex::MultiFabFileFullPrefix(0, checkpointname,"Level_", "primVars"));
+		Print() << "Set vars Start\n";
+//    VisMF::Read(primVars,
+//    	amrex::MultiFabFileFullPrefix(0, checkpointname,"Level_", "primVars"));
+		Print() << "Set covars Start\n";
     VisMF::Read(coVars,
     	amrex::MultiFabFileFullPrefix(0, checkpointname,"Level_", "coVars"));
+		Print() << "Set cu and prims\n";
     VisMF::Read(spatialCross1D,
     	amrex::MultiFabFileFullPrefix(0, checkpointname,"Level_", "spatialCross1D"));
     VisMF::Read(rhotimeCross,
-		amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "rhotimecross"));
-	VisMF::Read(utimeCross,
-		amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "utimecross"));
-	VisMF::Read(KtimeCross,
-		amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "Ktimecross"));
-	VisMF::Read(rho_time,
-		amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "rho_time"));
-	VisMF::Read(u_time,
-		amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "u_time"));
-	VisMF::Read(K_time,
-		amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "K_time"));
+			amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "rhotimecross"));
+		VisMF::Read(utimeCross,
+			amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "utimecross"));
+		VisMF::Read(KtimeCross,
+			amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "Ktimecross"));
+		Print() << "Set time and spatials\n";
+		VisMF::Read(rho_time,
+			amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "rho_time"));
+		VisMF::Read(u_time,
+			amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "u_time"));
+		VisMF::Read(K_time,
+			amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "K_time"));
     VisMF::Read(vmom,
     	amrex::MultiFabFileFullPrefix(0, checkpointname,"Level_", "vmom"));
   }
