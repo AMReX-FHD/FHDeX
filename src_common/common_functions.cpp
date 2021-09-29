@@ -131,7 +131,7 @@ AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::potential
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::potential_hi;
 
 int                           common::dsmc_boundaries;
-int                           common::phonon_sound_speed;
+amrex::Real                   common::phonon_sound_speed;
 
 int                           common::struct_fact_int;
 int                           common::radialdist_int;
@@ -476,7 +476,7 @@ void InitializeCommonNamespace() {
     }
 
     dsmc_boundaries = 0;
-    phonon_sound_speed = 3000;
+    phonon_sound_speed = 6000.0;
 
     // structure factor and radial/cartesian pair correlation function analysis
     struct_fact_int = 0;

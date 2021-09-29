@@ -210,7 +210,7 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
 
 					Real dummy = 1;
 					amrex::RandomEngine engine;
-					app_bc_gpu(&surf, part, intside, domSize, &push, &runtime, dummy, engine);
+					app_bc_phonon_gpu(&surf, part, intside, domSize, &push, &runtime, dummy, engine);
                     if(part.id() == -1)
                     {
                         delCount[part.idata(FHD_intData::species)]++;
@@ -412,9 +412,13 @@ void FhdParticleContainer::Source(const Real dt, const paramPlane* paramPlaneLis
 							p.rdata(FHD_realData::velz) = sqrt(2)*srt*sqrt(-log(amrex::Random()));
 
 							const paramPlane surf = paramPlaneList[i];
+							
+							amrex::RandomEngine engine;
+							cosineLawHemisphere(surf.cosThetaLeft, surf.sinThetaLeft, surf.cosPhiLeft, surf.sinPhiLeft,
+                                                &p.rdata(FHD_realData::velx),&p.rdata(FHD_realData::vely), &p.rdata(FHD_realData::velz), phonon_sound_speed, engine);
 
-							rotation(surf.cosThetaLeft, surf.sinThetaLeft, surf.cosPhiLeft, surf.sinPhiLeft, 
-								&p.rdata(FHD_realData::velx), &p.rdata(FHD_realData::vely), &p.rdata(FHD_realData::velz));
+                            p.rdata(FHD_realData::omega) = plankDist(surf.temperatureLeft, engine);
+                            p.rdata(FHD_realData::lambda) = plankDist(surf.temperatureLeft, engine);
 
                             //cout << "velx: " << p.rdata(FHD_realData::velx) << "\n";
 
