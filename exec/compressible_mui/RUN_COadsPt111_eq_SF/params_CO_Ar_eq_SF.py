@@ -96,23 +96,15 @@ print "- number of gas molecules of spec2 in dv = %.3e\n" % N2
 
 ##########
 
-factor = 10
+rcol = math.sqrt(kB*temp/2/math.pi/m1)*n1*(lat_const**2*math.sqrt(3)/2)
+k1ads = rcol
+k1des = 1.25e15*math.exp(-1.514/(8.617e-5*temp))
+theta1 = k1ads/(k1ads+k1des)
 
-p1torr = pres*X1/1.01325e6*760
-k1ads = 2e5*p1torr
-k1ads = factor*k1ads
-
-print "- factor = %f" % factor
-print "- p1 in torr = %e" % p1torr
+print "- rcol = %e" % rcol
 print "- k1ads = %e (rate)" % k1ads
 print "- k1ads/n1 (rate const) = %e" % (k1ads/n1)
-
-k1des = 1.25e15*math.exp(-1.514/(8.617e-5*temp))
-k1des = factor*k1des
-print "- temp in K = %e" % temp
 print "- k1des = %e" % k1des
-
-theta1 = k1ads/(k1ads+k1des)
 print "- eq coverage of spec1: %e\n" % theta1
 
 ##########
