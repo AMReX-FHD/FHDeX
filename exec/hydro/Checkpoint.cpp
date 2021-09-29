@@ -17,7 +17,7 @@ namespace {
 void WriteCheckPoint(int step,
                      const amrex::Real time,
                      std::array< MultiFab, AMREX_SPACEDIM >& umac,
-                     const MultiFab& tracer, TurbForcing& turbforce)
+                     TurbForcing& turbforce)
 {
     // timer for profiling
     BL_PROFILE_VAR("WriteCheckPoint()",WriteCheckPoint);
@@ -27,7 +27,7 @@ void WriteCheckPoint(int step,
 
     amrex::Print() << "Writing checkpoint " << checkpointname << "\n";
 
-    BoxArray ba = tracer.boxArray();
+    BoxArray ba = convert(umac[0].boxArray(), IntVect::TheCellVector());
 
     // single level problem
     int nlevels = 1;
@@ -124,14 +124,12 @@ void WriteCheckPoint(int step,
     VisMF::Write(umac[2],
                  amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "wmac"));
 #endif
-    VisMF::Write(tracer,
-                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "tracer"));    
 }
 
 void ReadCheckPoint(int& step,
                     amrex::Real& time,
                     std::array< MultiFab, AMREX_SPACEDIM >& umac,
-                    MultiFab& tracer, TurbForcing& turbforce,
+                    TurbForcing& turbforce,
                     BoxArray& ba, DistributionMapping& dmap)
 {
     // timer for profiling
@@ -192,7 +190,6 @@ void ReadCheckPoint(int& step,
 #if (AMREX_SPACEDIM == 3)
         umac[2].define(convert(ba,nodal_flag_z), dmap, 1, 1);
 #endif
-        tracer.define(ba, dmap, 1, 1);
     }
 
     // C++ random number engine
@@ -237,8 +234,6 @@ void ReadCheckPoint(int& step,
     VisMF::Read(umac[2],
                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "wmac"));
 #endif
-    VisMF::Read(tracer,
-                amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "tracer"));
 }
 
 void

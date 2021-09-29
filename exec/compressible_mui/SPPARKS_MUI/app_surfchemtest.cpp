@@ -21,10 +21,16 @@
 #include "memory.h"
 #include "error.h"
 #include "domain.h"
+
+#ifdef MUI
 #include "mui.h"
+#endif
+
 #include <vector>
 
+#ifdef MUI
 using namespace mui;
+#endif
 
 using namespace SPPARKS_NS;
 
@@ -40,7 +46,7 @@ enum{VACANCY,SPEC1,SPEC2,SPEC3,SPEC4,SPEC5}; // removed ZERO and moved VACANCY t
 AppSurfchemtest::AppSurfchemtest(SPPARKS *spk, int narg, char **arg) : 
   AppLattice(spk,narg,arg)
 {
-  ninteger = 12; // type, element, ac1, ac2, ac3, ac4, ac5, dc1, dc2, dc3, dc4, dc5  (number changes due to ads/des)
+  ninteger = 22; // type, element, ac1, ac2, ac3, ac4, ac5, dc1, dc2, dc3, dc4, dc5  (number changes due to ads/des)
   ndouble = 6;  // density1, density2, density3, density4, density5 (number densities in gas phase), temp (local temperature)
   delpropensity = 1;
   delevent = 1;
@@ -58,18 +64,25 @@ AppSurfchemtest::AppSurfchemtest(SPPARKS *spk, int narg, char **arg) :
   maxevent = 0;
   firstevent = NULL;
 
-  // reaction lists
+  ads_is_rate = false;
+  dads_is_rate = false;
+  des_is_temp_dep = false;
 
-  none = ntwo = nthree = nads = ndes = 0;
-  srate = drate = trate = adsrate = desrate = NULL;
-  spropensity = dpropensity = tpropensity = despropensity = NULL;   // no adspropensity
+  // reaction lists
+  none = ntwo = nthree = nads = ndes = ndissocads = nassocdes = 0;
+  srate = drate = trate = adsrate = desrate = dadsrate = adesrate = NULL;
+  spropensity = dpropensity = tpropensity = adespropensity = NULL;   // no adspropensity/dadspropensity/despropensity
   stype = sinput = soutput = NULL;
   dtype = dinput = doutput = NULL;
   ttype = tinput = toutput = NULL;
   adstype = adsinput = adsoutput = NULL;
   destype = desinput = desoutput = NULL;
-  scount = dcount = tcount = adscount = descount = NULL;
+  dadstype = dadsinput = dadsoutput = NULL;
+  adestype = adesinput = adesoutput = NULL;
+  scount = dcount = tcount = adscount = descount = dadscount = adescount = NULL;
+  dadsadsorbate = adesdesorbate = NULL;
 
+#ifdef MUI
   mui_fhd_lattice_size_x = mui_fhd_lattice_size_y = -1.;
   mui_kmc_lattice_offset_x = mui_kmc_lattice_offset_y = 0.;
 
@@ -78,6 +91,7 @@ AppSurfchemtest::AppSurfchemtest(SPPARKS *spk, int narg, char **arg) :
   MUIintval = NULL;
   MUIdblval = NULL;
   localFHDcell = NULL;
+#endif
 }
 
 /* ---------------------------------------------------------------------- */
@@ -86,18 +100,20 @@ AppSurfchemtest::~AppSurfchemtest()
 {
   delete [] esites;
   delete [] echeck;
+  
   memory->sfree(events);
   memory->destroy(firstevent);
-
   memory->destroy(srate);
   memory->destroy(drate);
   memory->destroy(trate);
   memory->destroy(adsrate);
   memory->destroy(desrate);
+  memory->destroy(dadsrate);
+  memory->destroy(adesrate);
   memory->destroy(spropensity);
   memory->destroy(dpropensity);
   memory->destroy(tpropensity);
-  memory->destroy(despropensity);
+  memory->destroy(adespropensity);
   memory->destroy(stype);
   memory->destroy(sinput);
   memory->destroy(soutput);
@@ -113,17 +129,29 @@ AppSurfchemtest::~AppSurfchemtest()
   memory->destroy(destype);
   memory->destroy(desinput);
   memory->destroy(desoutput);
+  memory->destroy(dadstype);
+  memory->destroy(dadsinput);
+  memory->destroy(dadsoutput);
+  memory->destroy(adestype);
+  memory->destroy(adesinput);
+  memory->destroy(adesoutput);
   memory->destroy(scount);
   memory->destroy(dcount);
   memory->destroy(tcount);
   memory->destroy(adscount);
   memory->destroy(descount);
-
+  memory->destroy(dadscount);
+  memory->destroy(adescount);
+  memory->destroy(dadsadsorbate);
+  memory->destroy(adesdesorbate);
+ 
+#ifdef MUI 
   delete [] xFHD;
   delete [] yFHD;
   delete [] MUIintval;
   delete [] MUIdblval;
   delete [] localFHDcell;
+#endif
 }
 
 /* ---------------------------------------------------------------------- */
@@ -271,8 +299,11 @@ void AppSurfchemtest::input_app(char *command, int narg, char **arg)
       nthree++;
 
     } else if (rstyle == 4) {   // adsorption
-      if (narg != 5) error->all(FLERR,"Illegal event command");
-
+      if (narg < 5 || narg > 6) error->all(FLERR,"Illegal event command");
+      if (narg == 6) {
+        if (strcmp(arg[5],"rate") == 0) ads_is_rate = true;
+        else error->all(FLERR,"Illegal event command");
+      }
       if (strcmp(arg[1],"siteA") == 0) adstype[nads] = SITEA;
       else if (strcmp(arg[1],"siteB") == 0) adstype[nads] = SITEB;
       else if (strcmp(arg[1],"siteC") == 0) adstype[nads] = SITEC;
@@ -306,8 +337,11 @@ void AppSurfchemtest::input_app(char *command, int narg, char **arg)
       nads++;
       
     } else if (rstyle == 5) {   // desorption
-      if (narg != 5) error->all(FLERR,"Illegal event command");
-
+      if (narg < 5 || narg > 6) error->all(FLERR,"Illegal event command");
+      if (narg == 6) {
+        if (strcmp(arg[5],"temp_dep") == 0) des_is_temp_dep = true;
+        else error->all(FLERR,"Illegal event commnd");
+      }
       if (strcmp(arg[1],"siteA") == 0) destype[ndes] = SITEA;
       else if (strcmp(arg[1],"siteB") == 0) destype[ndes] = SITEB;
       else if (strcmp(arg[1],"siteC") == 0) destype[ndes] = SITEC;
@@ -339,9 +373,145 @@ void AppSurfchemtest::input_app(char *command, int narg, char **arg)
       else error->all(FLERR,"Illegal event command");
 
       ndes++;
-      
-    } else error->all(FLERR,"Illegal event command");
-  } else if (strcmp(command,"mui_init_agg") == 0) {
+     
+    } else if (rstyle == 6) { // disassociative adsorption
+      if (narg < 9 || narg > 10) error->all(FLERR,"Illegal event command");
+      if (narg == 10) {
+        if (strcmp(arg[9],"rate") == 0) dads_is_rate = true;
+        else error->all(FLERR,"Illegal event command");
+      }
+      if (strcmp(arg[1],"siteA") == 0) dadstype[ndissocads][0] = SITEA;
+      else if (strcmp(arg[1],"siteB") == 0) dadstype[ndissocads][0] = SITEB;
+      else if (strcmp(arg[1],"siteC") == 0) dadstype[ndissocads][0] = SITEC;
+      else error->all(FLERR,"Illegal event command");
+      if (strcmp(arg[2],"siteA") == 0) dadstype[ndissocads][1] = SITEA;
+      else if (strcmp(arg[2],"siteB") == 0) dadstype[ndissocads][1] = SITEB;
+      else if (strcmp(arg[2],"siteC") == 0) dadstype[ndissocads][1] = SITEC;
+      else error->all(FLERR,"Illegal event command");
+      if (strcmp(arg[3],"spec1") == 0)
+        error->all(FLERR,"rstyle=6 only allows vac->spec1/2/3/4/5");
+      else if (strcmp(arg[3],"spec2") == 0)
+        error->all(FLERR,"rstyle=6 only allows vac->spec1/2/3/4/5");
+      else if (strcmp(arg[3],"spec3") == 0)
+        error->all(FLERR,"rstyle=6 only allows vac->spec1/2/3/4/5");
+      else if (strcmp(arg[3],"spec4") == 0)
+        error->all(FLERR,"rstyle=6 only allows vac->spec1/2/3/4/5");
+      else if (strcmp(arg[3],"spec5") == 0)
+        error->all(FLERR,"rstyle=6 only allows vac->spec1/2/3/4/5");
+      else if (strcmp(arg[3],"vac") == 0) dadsinput[ndissocads][0] = VACANCY;
+      else error->all(FLERR,"Illegal event command");
+      if (strcmp(arg[4],"spec1") == 0)
+        error->all(FLERR,"rstyle=6 only allows vac->spec1/2/3/4/5");
+      else if (strcmp(arg[4],"spec2") == 0)
+        error->all(FLERR,"rstyle=6 only allows vac->spec1/2/3/4/5");
+      else if (strcmp(arg[4],"spec3") == 0)
+        error->all(FLERR,"rstyle=6 only allows vac->spec1/2/3/4/5");
+      else if (strcmp(arg[4],"spec4") == 0)
+        error->all(FLERR,"rstyle=6 only allows vac->spec1/2/3/4/5");
+      else if (strcmp(arg[4],"spec5") == 0)
+        error->all(FLERR,"rstyle=6 only allows vac->spec1/2/3/4/5");
+      else if (strcmp(arg[4],"vac") == 0) dadsinput[ndissocads][1] = VACANCY;
+      else error->all(FLERR,"Illegal event command");
+
+      dadsrate[ndissocads] = atof(arg[5]);
+
+      if (strcmp(arg[6],"spec1") == 0) dadsoutput[ndissocads][0] = SPEC1;
+      else if (strcmp(arg[6],"spec2") == 0) dadsoutput[ndissocads][0] = SPEC2;
+      else if (strcmp(arg[6],"spec3") == 0) dadsoutput[ndissocads][0] = SPEC3;
+      else if (strcmp(arg[6],"spec4") == 0) dadsoutput[ndissocads][0] = SPEC4;
+      else if (strcmp(arg[6],"spec5") == 0) dadsoutput[ndissocads][0] = SPEC5;
+      else if (strcmp(arg[6],"vac") == 0)
+        error->all(FLERR,"rstyle=6 only allows vac->spec1/2/3/4/5");
+      else error->all(FLERR,"Illegal event command");
+      if (strcmp(arg[7],"spec1") == 0) dadsoutput[ndissocads][1] = SPEC1;
+      else if (strcmp(arg[7],"spec2") == 0) dadsoutput[ndissocads][1] = SPEC2;
+      else if (strcmp(arg[7],"spec3") == 0) dadsoutput[ndissocads][1] = SPEC3;
+      else if (strcmp(arg[7],"spec4") == 0) dadsoutput[ndissocads][1] = SPEC4;
+      else if (strcmp(arg[7],"spec5") == 0) dadsoutput[ndissocads][1] = SPEC5;
+      else if (strcmp(arg[6],"vac") == 0)
+        error->all(FLERR,"rstyle=6 only allows vac->spec1/2/3/4/5");
+      if (strcmp(arg[8],"spec1") == 0) dadsadsorbate[ndissocads] = SPEC1;
+      else if (strcmp(arg[8],"spec2") == 0) dadsadsorbate[ndissocads] = SPEC2;
+      else if (strcmp(arg[8],"spec3") == 0) dadsadsorbate[ndissocads] = SPEC3;
+      else if (strcmp(arg[8],"spec4") == 0) dadsadsorbate[ndissocads] = SPEC4;
+      else if (strcmp(arg[8],"spec5") == 0) dadsadsorbate[ndissocads] = SPEC5;
+      else if (strcmp(arg[8],"vac") == 0)
+        error->all(FLERR,"rstyle=6 only allows adsorption of spec1/2/3/4/5");
+
+      else error->all(FLERR,"Illegal event command");
+
+      ndissocads++;
+
+    } else if (rstyle == 7) { // associative desorption
+      if (narg != 9) error->all(FLERR,"Illegal event command");
+
+      if (strcmp(arg[1],"siteA") == 0) adestype[nassocdes][0] = SITEA;
+      else if (strcmp(arg[1],"siteB") == 0) adestype[nassocdes][0] = SITEB;
+      else if (strcmp(arg[1],"siteC") == 0) adestype[nassocdes][0] = SITEC;
+      else error->all(FLERR,"Illegal event command");
+      if (strcmp(arg[2],"siteA") == 0) adestype[nassocdes][1] = SITEA;
+      else if (strcmp(arg[2],"siteB") == 0) adestype[nassocdes][1] = SITEB;
+      else if (strcmp(arg[2],"siteC") == 0) adestype[nassocdes][1] = SITEC;
+      else error->all(FLERR,"Illegal event command");
+      if (strcmp(arg[3],"spec1") == 0) adesinput[nassocdes][0] = SPEC1;
+      else if (strcmp(arg[3],"spec2") == 0) adesinput[nassocdes][0] = SPEC2;
+      else if (strcmp(arg[3],"spec3") == 0) adesinput[nassocdes][0] = SPEC3;
+      else if (strcmp(arg[3],"spec4") == 0) adesinput[nassocdes][0] = SPEC4;
+      else if (strcmp(arg[3],"spec5") == 0) adesinput[nassocdes][0] = SPEC5;
+      else if (strcmp(arg[3],"vac") == 0)
+    error->all(FLERR,"rstyle=7 only allows spec1/2/3/4/5->vac");
+      else error->all(FLERR,"Illegal event command");
+      if (strcmp(arg[4],"spec1") == 0) adesinput[nassocdes][1] = SPEC1;
+      else if (strcmp(arg[4],"spec2") == 0) adesinput[nassocdes][1] = SPEC2;
+      else if (strcmp(arg[4],"spec3") == 0) adesinput[nassocdes][1] = SPEC3;
+      else if (strcmp(arg[4],"spec4") == 0) adesinput[nassocdes][1] = SPEC4;
+      else if (strcmp(arg[4],"spec5") == 0) adesinput[nassocdes][1] = SPEC5;
+      else if (strcmp(arg[4],"vac") == 0)
+    error->all(FLERR,"rstyle=7 only allows spec1/2/3/4/5->vac");
+      else error->all(FLERR,"Illegal event command");
+
+      adesrate[nassocdes] = atof(arg[5]);
+
+      if (strcmp(arg[6],"spec1") == 0)
+        error->all(FLERR,"rstyle=7 only allows spec1/2/3/4/5->vac");
+      else if (strcmp(arg[6],"spec2") == 0)
+        error->all(FLERR,"rstyle=7 only allows spec1/2/3/4/5->vac");
+      else if (strcmp(arg[6],"spec3") == 0)
+        error->all(FLERR,"rstyle=7 only allows spec1/2/3/4/5->vac");
+      else if (strcmp(arg[6],"spec4") == 0)
+        error->all(FLERR,"rstyle=7 only allows spec1/2/3/4/5->vac");
+      else if (strcmp(arg[6],"spec5") == 0)
+        error->all(FLERR,"rstyle=7 only allows spec1/2/3/4/5->vac");
+      else if (strcmp(arg[6],"vac") == 0) adesoutput[nassocdes][0] = VACANCY;
+      else error->all(FLERR,"Illegal event command");
+      if (strcmp(arg[7],"spec1") == 0)
+        error->all(FLERR,"rstyle=7 only allows spec1/2/3/4/5->vac");
+      else if (strcmp(arg[7],"spec2") == 0)
+        error->all(FLERR,"rstyle=7 only allows spec1/2/3/4/5->vac");
+      else if (strcmp(arg[7],"spec3") == 0)
+        error->all(FLERR,"rstyle=7 only allows spec1/2/3/4/5->vac");
+      else if (strcmp(arg[7],"spec4") == 0)
+        error->all(FLERR,"rstyle=7 only allows spec1/2/3/4/5->vac");
+      else if (strcmp(arg[7],"spec5") == 0)
+        error->all(FLERR,"rstyle=7 only allows spec1/2/3/4/5->vac");
+      else if (strcmp(arg[7],"vac") == 0) adesoutput[nassocdes][1] = VACANCY;
+      else error->all(FLERR,"Illegal event command");
+      if (strcmp(arg[8],"spec1") == 0) adesdesorbate[nassocdes] = SPEC1;
+      else if (strcmp(arg[8],"spec2") == 0) adesdesorbate[nassocdes] = SPEC2;
+      else if (strcmp(arg[8],"spec3") == 0) adesdesorbate[nassocdes] = SPEC3;
+      else if (strcmp(arg[8],"spec4") == 0) adesdesorbate[nassocdes] = SPEC4;
+      else if (strcmp(arg[8],"spec5") == 0) adesdesorbate[nassocdes] = SPEC5;
+      else if (strcmp(arg[8],"vac") == 0)
+        error->all(FLERR,"rstyle=7 only allows desorption of spec1/2/3/4/5");
+      else error->all(FLERR,"Illegal event command");
+
+      nassocdes++;
+
+    }  else error->all(FLERR,"Illegal event command");
+  }
+
+#ifdef MUI
+    else if (strcmp(command,"mui_init_agg") == 0) {
     if (narg != 0) error->all(FLERR,"Illegal mui_init_agg command");
     mui_init_agg();
   } else if (strcmp(command,"mui_push") == 0) {
@@ -364,7 +534,10 @@ void AppSurfchemtest::input_app(char *command, int narg, char **arg)
     if (narg != 2) error->all(FLERR,"Illegal mui_kmc_lattice_offset command");
     mui_kmc_lattice_offset_x = atof(arg[0]);
     mui_kmc_lattice_offset_y = atof(arg[1]);
-  } else error->all(FLERR,"Unrecognized command");
+  } 
+#endif
+
+  else error->all(FLERR,"Unrecognized command");
 }
 
 /* ----------------------------------------------------------------------
@@ -385,6 +558,16 @@ void AppSurfchemtest::grow_app()
   dc3 = iarray[9];
   dc4 = iarray[10];
   dc5 = iarray[11];
+  dac1 = iarray[12];
+  dac2 = iarray[13];
+  dac3 = iarray[14];
+  dac4 = iarray[15];
+  dac5 = iarray[16];
+  adc1 = iarray[17];
+  adc2 = iarray[18];
+  adc3 = iarray[19];
+  adc4 = iarray[20];
+  adc5 = iarray[21];
   density1 = darray[0];
   density2 = darray[1];
   density3 = darray[2];
@@ -423,10 +606,20 @@ void AppSurfchemtest::init_app()
       dc3[i] = 0;
       dc4[i] = 0;
       dc5[i] = 0;
+      dac1[i] = 0;
+      dac2[i] = 0;
+      dac3[i] = 0;
+      dac4[i] = 0;
+      dac5[i] = 0;
+      adc1[i] = 0;
+      adc2[i] = 0;
+      adc3[i] = 0;
+      adc4[i] = 0;
+      adc5[i] = 0;
     }
 
     if (domain->me == 0 && screen) {
-      fprintf(screen,"** DEBUG: ac1-ac5, dc1-dc5 initialized to zero\n");
+      fprintf(screen,"** DEBUG: ac1-ac5, dc1-dc5, dac1-dac5, adc1-adc5 initialized to zero\n");
       fflush(screen);
     }
   }
@@ -478,8 +671,14 @@ void AppSurfchemtest::setup_app()
     adscount[m] = 0;
   }
   for (int m = 0; m < ndes; m++) {
-    despropensity[m] = desrate[m];
     descount[m] = 0;
+  }
+  for (int m = 0; m < ndissocads; m++) {
+    dadscount[m] = 0;
+  }
+  for (int m = 0; m < nassocdes; m++) {
+    adespropensity[m] = adesrate[m];
+    adescount[m] = 0;
   }
 }
 
@@ -551,40 +750,82 @@ double AppSurfchemtest::site_propensity(int i)
 
   for (m = 0; m < nads; m++) {
     if (type[i] != adstype[m] || element[i] != adsinput[m]) continue;
-
-/*    
-    // propensity for adsorption = adsrate * num_dens * sqrt(site_temp/sys_temp)
-    if (adsoutput[m]==SPEC1) adspropensity = adsrate[m]*density1[i]*sqrt(temp[i]/temperature);
-    else if (adsoutput[m]==SPEC2) adspropensity = adsrate[m]*density2[i]*sqrt(temp[i]/temperature);
-    else if (adsoutput[m]==SPEC3) adspropensity = adsrate[m]*density3[i]*sqrt(temp[i]/temperature);
-    else if (adsoutput[m]==SPEC4) adspropensity = adsrate[m]*density4[i]*sqrt(temp[i]/temperature);
-    else if (adsoutput[m]==SPEC5) adspropensity = adsrate[m]*density5[i]*sqrt(temp[i]/temperature);
-    add_event(i,4,m,adspropensity,-1,-1);
-    proball += adspropensity;
-*/
-
-    // propensity for adsorption = adsrate * num_dens 
-    if (adsoutput[m]==SPEC1) adspropensity = adsrate[m]*density1[i];
-    else if (adsoutput[m]==SPEC2) adspropensity = adsrate[m]*density2[i];
-    else if (adsoutput[m]==SPEC3) adspropensity = adsrate[m]*density3[i];
-    else if (adsoutput[m]==SPEC4) adspropensity = adsrate[m]*density4[i];
-    else if (adsoutput[m]==SPEC5) adspropensity = adsrate[m]*density5[i];
-    add_event(i,4,m,adspropensity,-1,-1);
-    proball += adspropensity;
-
+    
+    if (ads_is_rate) adspropensity = adsrate[m];
+    else
+    {
+      // propensity for adsorption = adsrate * num_dens * sqrt(site_temp/sys_temp)
+      if (adsoutput[m]==SPEC1) adspropensity = adsrate[m]*density1[i]*sqrt(temp[i]/temperature);
+      else if (adsoutput[m]==SPEC2) adspropensity = adsrate[m]*density2[i]*sqrt(temp[i]/temperature);
+      else if (adsoutput[m]==SPEC3) adspropensity = adsrate[m]*density3[i]*sqrt(temp[i]/temperature);
+      else if (adsoutput[m]==SPEC4) adspropensity = adsrate[m]*density4[i]*sqrt(temp[i]/temperature);
+      else if (adsoutput[m]==SPEC5) adspropensity = adsrate[m]*density5[i]*sqrt(temp[i]/temperature);
+    }
 /*
-    // simpler rate
-    add_event(i,4,m,adsrate[m],-1,-1);
-    proball += adsrate[m];
+    else
+    {
+      // propensity for adsorption = adsrate * num_dens
+      if (adsoutput[m]==SPEC1) adspropensity = adsrate[m]*density1[i];
+      else if (adsoutput[m]==SPEC2) adspropensity = adsrate[m]*density2[i];
+      else if (adsoutput[m]==SPEC3) adspropensity = adsrate[m]*density3[i];
+      else if (adsoutput[m]==SPEC4) adspropensity = adsrate[m]*density4[i];
+      else if (adsoutput[m]==SPEC5) adspropensity = adsrate[m]*density5[i];
+    }
 */
+    add_event(i,4,m,adspropensity,-1,-1);
+    proball += adspropensity;
   }
 
   // desorption events
 
+  double despropensity;
+
   for (m = 0; m < ndes; m++) {
     if (type[i] != destype[m] || element[i] != desinput[m]) continue;
-    add_event(i,5,m,despropensity[m],-1,-1);
-    proball += despropensity[m];
+
+    if (des_is_temp_dep)
+    {
+      double cphat = 3.5;
+      despropensity = desrate[m]*std::pow(temp[i]/temperature,cphat-0.5);
+    }
+    else despropensity = desrate[m];
+
+    add_event(i,5,m,despropensity,-1,-1);
+    proball += despropensity;
+  }
+
+  // dissociative adsorption events
+
+  double dadspropensity;
+
+  for (int jj = 0; jj < numneigh[i]; jj++) {
+    j = neighbor[i][jj];
+    for (m = 0; m < ndissocads; m++) {
+      if (type[i] != dadstype[m][0] || element[i] != dadsinput[m][0]) continue;
+      if (type[j] != dadstype[m][1] || element[j] != dadsinput[m][1]) continue;
+      if (dads_is_rate) dadspropensity = dadsrate[m];
+      else {
+        if (dadsadsorbate[m]==SPEC1) dadspropensity = dadsrate[m]*density1[i];
+        else if (dadsadsorbate[m]==SPEC2) dadspropensity = dadsrate[m]*density2[i];
+        else if (dadsadsorbate[m]==SPEC3) dadspropensity = dadsrate[m]*density3[i];
+        else if (dadsadsorbate[m]==SPEC4) dadspropensity = dadsrate[m]*density4[i];
+        else if (dadsadsorbate[m]==SPEC5) dadspropensity = dadsrate[m]*density5[i];
+      }
+      add_event(i,6,m,dadspropensity,j,-1);
+      proball += dadspropensity;
+    }
+  }
+
+  // associative desorption events
+
+  for (int jj = 0; jj < numneigh[i]; jj++) {
+    j = neighbor[i][jj];
+    for (m = 0; m < nassocdes; m++) {
+      if (type[i] != adestype[m][0] || element[i] != adesinput[m][0]) continue;
+      if (type[j] != adestype[m][1] || element[j] != adesinput[m][1]) continue;
+      add_event(i,7,m,adespropensity[m],j,-1);
+      proball += adespropensity[m];
+    }
   }
 
   return proball;
@@ -647,6 +888,26 @@ void AppSurfchemtest::site_event(int i, class RandomPark *random)
     else if (element[i] == SPEC5) dc5[i]++;
     element[i] = desoutput[which];
     descount[which]++;
+  } else if (rstyle == 6) { // dissociative adsorption case
+    element[i] = dadsoutput[which][0];
+    element[j] = dadsoutput[which][1];
+    int adsorbate = dadsadsorbate[which];
+    if (adsorbate == SPEC1) dac1[i]++;
+    else if (adsorbate == SPEC2) dac2[i]++;
+    else if (adsorbate == SPEC3) dac3[i]++;
+    else if (adsorbate == SPEC4) dac4[i]++;
+    else if (adsorbate == SPEC5) dac5[i]++;
+    dadscount[which]++;
+  } else if (rstyle == 7) { // associative desorption case
+    element[i] = adesoutput[which][0];
+    element[j] = adesoutput[which][1];
+    int desorbate = adesdesorbate[which];
+    if (desorbate == SPEC1) adc1[i]++;
+    else if (desorbate == SPEC2) adc2[i]++;
+    else if (desorbate == SPEC3) adc3[i]++;
+    else if (desorbate == SPEC4) adc4[i]++;
+    else if (desorbate == SPEC5) adc5[i]++;
+    adescount[which]++;
   }
 
   // compute propensity changes for participating sites and first neighs
@@ -670,7 +931,7 @@ void AppSurfchemtest::site_event(int i, class RandomPark *random)
     }
   }
 
-  if (rstyle == 2 || rstyle == 3) {
+  if (rstyle == 2 || rstyle == 3 || rstyle == 6 || rstyle == 7) {
     for (n = 0; n < numneigh[j]; n++) {
       m = neighbor[j][n];
       isite = i2site[m];
@@ -794,13 +1055,31 @@ void AppSurfchemtest::grow_reactions(int rstyle)
   } else if (rstyle == 5) {
     int n = ndes + 1;
     memory->grow(desrate,n,"app/surfchemtest:desrate");
-    memory->grow(despropensity,n,"app/surfchemtest:despropensity");
     memory->grow(destype,n,"app/surfchemtest:destype");
     memory->grow(desinput,n,"app/surfchemtest:desinput");
     memory->grow(desoutput,n,"app/surfchemtest:desoutput");
     memory->grow(descount,n,"app/surfchemtest:descount");
-  } 
+  } else if (rstyle == 6) {
+    int n = ndissocads + 1;
+    memory->grow(dadsrate,n,"app/surfchemtest:dadsrate");
+    dadstype = memory->grow(dadstype,n,2,"app/surfchemtest:dadstype");
+    dadsinput = memory->grow(dadsinput,n,2,"app/surfchemtest:dadsinput");
+    dadsoutput = memory->grow(dadsoutput,n,2,"app/surfchemtest:dadsoutput");
+    memory->grow(dadscount,n,"app/surfchemtest:dadscount");
+    memory->grow(dadsadsorbate,n,"app/surfchemtest:dadsadsorbate");
+  } else if (rstyle == 7) {
+    int n = nassocdes + 1;
+    memory->grow(adesrate,n,"app/surfchemtest:adesrate");
+    memory->grow(adespropensity,n,"app/surfchemtest:adespropensity");
+    adestype = memory->grow(adestype,n,2,"app/surfchemtest:adestype");
+    adesinput = memory->grow(adesinput,n,2,"app/surfchemtest:adesinput");
+    adesoutput = memory->grow(adesoutput,n,2,"app/surfchemtest:adesoutput");
+    memory->grow(adescount,n,"app/surfchemtest:adescount");
+    memory->grow(adesdesorbate,n,"app/surfchemtest:adesdesorbate");
+  }
 }
+
+#ifdef MUI
 
 /* ----------------------------------------------------------------------
    MUI routines 
@@ -968,6 +1247,56 @@ void AppSurfchemtest::mui_push(int narg, char **arg)
         spk->uniface->push("CH_dc5",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},dc5[i]);
         dc5[i] = 0;
       }
+    } else if (strcmp(arg[k],"dac1") == 0) {     // i13
+      for (int i=0;i<nlocal;i++) {
+        spk->uniface->push("CH_dac1",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},dac1[i]);
+        dac1[i] = 0;
+      }
+    } else if (strcmp(arg[k],"dac2") == 0) {     // i14
+      for (int i=0;i<nlocal;i++) {
+        spk->uniface->push("CH_dac2",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},dac2[i]);
+        dac2[i] = 0;
+      }
+    } else if (strcmp(arg[k],"dac3") == 0) {     // i15
+      for (int i=0;i<nlocal;i++) {
+        spk->uniface->push("CH_dac3",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},dac3[i]);
+        dac3[i] = 0;
+      }
+    } else if (strcmp(arg[k],"dac4") == 0) {     // i16
+      for (int i=0;i<nlocal;i++) {
+        spk->uniface->push("CH_dac4",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},dac4[i]);
+        dac4[i] = 0;
+      }
+    } else if (strcmp(arg[k],"dac5") == 0) {     // i17
+      for (int i=0;i<nlocal;i++) {
+        spk->uniface->push("CH_dac5",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},dac5[i]);
+        dac5[i] = 0;
+      }
+    } else if (strcmp(arg[k],"adc1") == 0) {     // i18
+      for (int i=0;i<nlocal;i++) {
+        spk->uniface->push("CH_adc1",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},adc1[i]);
+        adc1[i] = 0;
+      }
+    } else if (strcmp(arg[k],"adc2") == 0) {     // i19
+      for (int i=0;i<nlocal;i++) {
+        spk->uniface->push("CH_adc2",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},adc2[i]);
+        adc2[i] = 0;
+      }
+    } else if (strcmp(arg[k],"adc3") == 0) {     // i20
+      for (int i=0;i<nlocal;i++) {
+        spk->uniface->push("CH_adc3",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},adc3[i]);
+        adc3[i] = 0;
+      }
+    } else if (strcmp(arg[k],"adc4") == 0) {     // i21
+      for (int i=0;i<nlocal;i++) {
+        spk->uniface->push("CH_adc4",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},adc4[i]);
+        adc4[i] = 0;
+      }
+    } else if (strcmp(arg[k],"adc5") == 0) {     // i22
+      for (int i=0;i<nlocal;i++) {
+        spk->uniface->push("CH_adc5",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},adc5[i]);
+        adc5[i] = 0;
+      }
     } else if (strcmp(arg[k],"density1") == 0) {    // d1
       for (int i=0;i<nlocal;i++) {
         spk->uniface->push("CH_density1",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},density1[i]);
@@ -1133,7 +1462,16 @@ void AppSurfchemtest::mui_fetch_agg(int narg, char **arg)
       // distribute info to each KMC site
       for (int i=0;i<nlocal;i++)
         density1[i] = MUIdblval[localFHDcell[i]];
-    } else {
+    }
+    else if (strcmp(arg[k],"temp") == 0) {
+      // get info for each FHD cell
+      for (int n=0;n<nlocalFHDcell;n++)
+        MUIdblval[n] = spk->uniface->fetch("CH_temp",{xFHD[n],yFHD[n]},timestamp,s,t);
+      // distribute info to each KMC site
+      for (int i=0;i<nlocal;i++)
+        temp[i] = MUIdblval[localFHDcell[i]];
+    }
+    else {
       error->all(FLERR,"Illegal mui_fetch_agg command");
     }
 
@@ -1147,3 +1485,4 @@ void AppSurfchemtest::mui_fetch_agg(int narg, char **arg)
 
   return;
 }
+#endif

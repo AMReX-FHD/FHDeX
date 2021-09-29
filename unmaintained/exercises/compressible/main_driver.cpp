@@ -1,8 +1,6 @@
 #include "common_functions.H"
-#include "common_namespace_declarations.H"
 
 #include "compressible_functions.H"
-#include "compressible_namespace_declarations.H"
 
 
 #include "StructFact.H"

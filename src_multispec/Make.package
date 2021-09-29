@@ -1,8 +1,6 @@
 CEXE_headers   += multispec_namespace.H
-CEXE_headers   += multispec_namespace_declarations.H
 
 CEXE_headers   += multispec_functions.H
-CEXE_headers   += multispec_functions_F.H
 
 CEXE_headers   += StochMassFlux.H
 

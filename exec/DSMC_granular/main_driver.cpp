@@ -1,6 +1,4 @@
 #include "INS_functions.H"
-#include "common_namespace_declarations.H"
-#include "gmres_namespace_declarations.H"
 #include "species.H"
 #include "paramPlane.H"
 #include "StructFact.H"
@@ -56,7 +54,7 @@ void main_driver(const char* argv)
   
   // For time correlation functions
   // plot_time is the increments between correlations
-  int ntimecor = 101; // set as user input
+  int ntimecor = 201; // set as user input
 
   MultiFab rhotimecross, utimecross, Ktimecross;
   MultiFab rho_time, u_time, K_time;
@@ -197,8 +195,8 @@ void main_driver(const char* argv)
 			rho_time, u_time, K_time,
 			vmom,
 			ncon, nprim, ncovar, ncross, ntimecor, npart);
-		dmap = cuInst.DistributionMap();
-		ba = cuInst.boxArray();
+		dmap = cuMeans.DistributionMap();
+		ba = cuMeans.boxArray();
 	}
 
 	// Specific Heat
@@ -502,6 +500,7 @@ void main_driver(const char* argv)
 			tend = ParallelDescriptor::second() - tbegin;
 			ParallelDescriptor::ReduceRealMax(tend);
 			amrex::Print() << "Advanced step " << istep << " in " << tend << " seconds\n";
+			amrex::Print() << "Time: " << time << " s\n";
 		}
 		time += dt;
 	}

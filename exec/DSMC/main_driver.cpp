@@ -1,5 +1,4 @@
 #include "LocalFunctions.H"
-#include "common_namespace_declarations.H"
 #include "species.H"
 #include "paramPlane.H"
 #include "StructFact.H"
@@ -43,7 +42,7 @@ void main_driver(const char* argv)
 	// For long-range temperature-related correlations
 	MultiFab cvlMeans, cvlInst, QMeans;
 	
-    int ncross = 37+nspecies+2;
+    int ncross = 38+nspecies*nspecies;
     MultiFab spatialCross1D;
 	
 
@@ -159,6 +158,8 @@ void main_driver(const char* argv)
 
 		int ncovar = 25;
 		coVars.define(ba, dmap, ncovar, 0); coVars.setVal(0.);
+		
+		
 		spatialCross1D.define(ba,dmap,ncross,0); spatialCross1D.setVal(0.);
 
 	}
@@ -259,20 +260,20 @@ void main_driver(const char* argv)
 	
 	
     //Initial condition
+//    spatialCross1D.setVal(0.);
+//	cuMeans.setVal(0.);
+//	primMeans.setVal(0.);
+//	cuVars.setVal(0.);
+//	primVars.setVal(0.);
+//	coVars.setVal(0.);
 
-	cuMeans.setVal(0.);
-	primMeans.setVal(0.);
-	cuVars.setVal(0.);
-	primVars.setVal(0.);
-	coVars.setVal(0.);
+//	particles.EvaluateStats(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
+//		cvlInst,cvlMeans,QMeans,coVars,spatialCross1D,statsCount++,time);
 
-	particles.EvaluateStats(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
-		cvlInst,cvlMeans,QMeans,coVars,spatialCross1D,statsCount++,time);
-
-	if(plot_int > 0) {
-		writePlotFile(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
-			coVars,spatialCross1D,particles,geom,time,ncross,0);
-	}
+//	if(plot_int > 0) {
+//		writePlotFile(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
+//			coVars,spatialCross1D,particles,geom,time,ncross,0);
+//	}
 	
 	
 	
@@ -317,11 +318,27 @@ void main_driver(const char* argv)
         if ((n_steps_skip > 0 && istep == n_steps_skip) || (n_steps_skip < 0 && istep%n_steps_skip == 0) ) {
             //reset stats
             statsCount = 1;
+            spatialCross1D.setVal(0.);
+	        cuMeans.setVal(0.);
+	        primMeans.setVal(0.);
+	        cuVars.setVal(0.);
+	        primVars.setVal(0.);
+	        coVars.setVal(0.);
 
         }
+        
+        if (chk_int > 0 && istep%chk_int == 0 && istep > step)
+		{
+			WriteCheckPoint(istep, time, dt, statsCount,
+				cuInst, cuMeans, cuVars, primInst, primMeans, primVars, coVars,
+				particles, spatialCross1D, ncross);
+		}
 		tend = ParallelDescriptor::second() - tbegin;
 		ParallelDescriptor::ReduceRealMax(tend);
-		amrex::Print() << "Advanced step " << istep << " in " << tend << " seconds\n";
+		if(istep%1000==0)
+		{
+		    amrex::Print() << "Advanced step " << istep << " in " << tend << " seconds\n";
+		}
 
 		time += dt;
 	}

@@ -59,6 +59,7 @@ exec/**/*.png
 
 ## Output data
 exec/**/out
+exec/**/**slurm**
 exec/**/*Cross_*
 exec/**/*vmom*
 

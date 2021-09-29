@@ -1184,21 +1184,21 @@ void mob_interp_gpu(Real z, Real a, Real* tmob, Real* nmob, int sw)
          }else
          {
             //  1.5nm
-            Real p1t=1.52910439e+00;
-            Real p2t=4.49941348e+01;
-            Real p3t=1.44615906e+00;
-            Real p4t=-7.06694001e+02;
-            Real p5t=4.64172593e+00;
-            Real p6t=8.42880148e+00;
-            Real p7t=5.36544935e-01;
+            Real p1t=1.47093364e+00;
+            Real p2t=3.68449064e+01;
+            Real p3t=1.40089913e+00;
+            Real p4t=-6.15414210e+02;
+            Real p5t=4.58467711e+00;
+            Real p6t=7.51583164e+00;
+            Real p7t=5.11764804e-01;
             
-            Real p1n=-3.11322075e+01;
-            Real p2n=7.25052457e+02;
-            Real p3n=2.59750698e+00;
-            Real p4n=4.13990386e+01;
-            Real p5n=1.79983544e+00;
-            Real p6n=-3.20961140e+04;
-            Real p7n=9.99845028e+02;
+            Real p1n=-3.11038612e+01;
+            Real p2n=7.24698118e+02;
+            Real p3n=2.59720646e+00;
+            Real p4n=4.13848704e+01;
+            Real p5n=1.79959078e+00;
+            Real p6n=-3.20502020e+04;
+            Real p7n=9.99299583e+02;
                         
             *tmob = std::max(p1t + p2t/pow(p3t  + h,5) - p4t/pow(p5t   + h,3) - p6t/(p7t  + h),0.0);
             *nmob = std::max(p1n + p2n/pow(p3n  + h,5) - p4n/pow(p5n   + h,3) - p6n/(p7n  + h),0.0);
@@ -1295,13 +1295,29 @@ void mob_interp_der_gpu(Real z, Real a, Real* tmobDer, Real* nmobDer, int sw)
          }else
          {
             //  1.5nm
-            Real p1t=1.46989171e+00;
-            Real p2t=3.81546048e+01;
-            Real p3t=1.40740370e+00;
-            Real p4t=-6.36160414e+02;
-            Real p5t=4.59905797e+00;
-            Real p6t=7.68694068e+00;
-            Real p7t=5.15229774e-01;
+/*            Real p1t=1.46989171e+00;*/
+/*            Real p2t=3.81546048e+01;*/
+/*            Real p3t=1.40740370e+00;*/
+/*            Real p4t=-6.36160414e+02;*/
+/*            Real p5t=4.59905797e+00;*/
+/*            Real p6t=7.68694068e+00;*/
+/*            Real p7t=5.15229774e-01;*/
+/*            */
+/*            Real p1n=-3.11038612e+01;*/
+/*            Real p2n=7.24698118e+02;*/
+/*            Real p3n=2.59720646e+00;*/
+/*            Real p4n=4.13848704e+01;*/
+/*            Real p5n=1.79959078e+00;*/
+/*            Real p6n=-3.20502020e+04;*/
+/*            Real p7n=9.99299583e+02;*/
+
+            Real p1t=1.47093364e+00;
+            Real p2t=3.68449064e+01;
+            Real p3t=1.40089913e+00;
+            Real p4t=-6.15414210e+02;
+            Real p5t=4.58467711e+00;
+            Real p6t=7.51583164e+00;
+            Real p7t=5.11764804e-01;
             
             Real p1n=-3.11038612e+01;
             Real p2n=7.24698118e+02;
@@ -1392,8 +1408,8 @@ void get_explicit_mobility_gpu(amrex::GpuArray<Real, 3>& mob, amrex::GpuArray<Re
        mob[2] = tmob;
 
        mobDer[0] = nmobDer;
-       mobDer[1] = tmobDer;               
-       mobDer[2] = tmobDer;
+       mobDer[1] = 0;               
+       mobDer[2] = 0;
 
        z = part.pos(0);
        if(z > (phi[0]-plo[0])/2.0)
@@ -1419,9 +1435,9 @@ void get_explicit_mobility_gpu(amrex::GpuArray<Real, 3>& mob, amrex::GpuArray<Re
        mob[1] = nmob;               
        mob[2] = tmob;
 
-       mobDer[0] = tmobDer;
+       mobDer[0] = 0;
        mobDer[1] = nmobDer;               
-       mobDer[2] = tmobDer;
+       mobDer[2] = 0;
 
        z = part.pos(1);
        if(z > (phi[1]-plo[1])/2.0)
@@ -1451,8 +1467,8 @@ void get_explicit_mobility_gpu(amrex::GpuArray<Real, 3>& mob, amrex::GpuArray<Re
        mob[1] = tmob;               
        mob[2] = nmob;
 
-       mobDer[0] = tmobDer;
-       mobDer[1] = tmobDer;               
+       mobDer[0] = 0;
+       mobDer[1] = 0;               
        mobDer[2] = nmobDer;
 
        z = part.pos(2);

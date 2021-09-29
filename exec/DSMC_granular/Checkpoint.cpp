@@ -337,10 +337,10 @@ void ReadCheckPoint(
   }
   else
   {
-		VisMF::Read(cuMeans,
-			amrex::MultiFabFileFullPrefix(0, checkpointname,"Level_", "cuMeans"));
+    VisMF::Read(cuMeans,
+        amrex::MultiFabFileFullPrefix(0, checkpointname,"Level_", "cuMeans"));
     VisMF::Read(cuVars,
-    	amrex::MultiFabFileFullPrefix(0, checkpointname,"Level_", "cuVars"));
+        amrex::MultiFabFileFullPrefix(0, checkpointname,"Level_", "cuVars"));
     VisMF::Read(primMeans,
     	amrex::MultiFabFileFullPrefix(0, checkpointname,"Level_", "primMeans"));
     VisMF::Read(primVars,
@@ -349,18 +349,18 @@ void ReadCheckPoint(
     	amrex::MultiFabFileFullPrefix(0, checkpointname,"Level_", "coVars"));
     VisMF::Read(spatialCross1D,
     	amrex::MultiFabFileFullPrefix(0, checkpointname,"Level_", "spatialCross1D"));
-		VisMF::Read(rhotimeCross,
-			amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "rhotimecross"));
-		VisMF::Read(utimeCross,
-			amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "utimecross"));
-		VisMF::Read(KtimeCross,
-			amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "Ktimecross"));
-		VisMF::Read(rho_time,
-			amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "rho_time"));
-		VisMF::Read(u_time,
-			amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "u_time"));
-		VisMF::Read(K_time,
-			amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "K_time"));
+    VisMF::Read(rhotimeCross,
+		amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "rhotimecross"));
+	VisMF::Read(utimeCross,
+		amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "utimecross"));
+	VisMF::Read(KtimeCross,
+		amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "Ktimecross"));
+	VisMF::Read(rho_time,
+		amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "rho_time"));
+	VisMF::Read(u_time,
+		amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "u_time"));
+	VisMF::Read(K_time,
+		amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "K_time"));
     VisMF::Read(vmom,
     	amrex::MultiFabFileFullPrefix(0, checkpointname,"Level_", "vmom"));
   }

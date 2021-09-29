@@ -23,10 +23,6 @@ include ../../src_hydro/Make.package
 VPATH_LOCATIONS   += ../../src_hydro/
 INCLUDE_LOCATIONS += ../../src_hydro/
 
-include ../../src_multispec/src_F90/Make.package
-VPATH_LOCATIONS   += ../../src_multispec/src_F90
-INCLUDE_LOCATIONS += ../../src_multispec/src_F90
-
 include ../../src_multispec/Make.package
 VPATH_LOCATIONS   += ../../src_multispec/
 INCLUDE_LOCATIONS += ../../src_multispec/
