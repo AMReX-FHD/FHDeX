@@ -1455,7 +1455,7 @@ void get_explicit_mobility_gpu(amrex::GpuArray<Real, 3>& mob, amrex::GpuArray<Re
     if((bc_vel_lo[2] == 2) && (bc_vel_hi[2] == 2))
     {
 
-       z = z = part.pos(2);;
+       z = part.pos(2);
 
        if(z > (phi[2]-plo[2])/2.0)
        {
