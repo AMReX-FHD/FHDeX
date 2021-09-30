@@ -53,6 +53,10 @@ void InitializeCompressibleNamespace()
     do_1D = 0;
     pp.query("do_1D",do_1D);
 
+    // options for spatial correlations at multiple x*
+    all_correl = 0;
+    pp.query("all_correl",all_correl);
+
 
     return;
 }
