@@ -108,8 +108,8 @@ void mui_fetch(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface
                 double x = prob_lo[0]+(i+0.5)*dx[0];
                 double y = prob_lo[1]+(j+0.5)*dx[1];
                 double dV = dx[0]*dx[1]*dx[2];
-                //double temp = prim_arr(i,j,k,4);
-                double temp = t_lo[2];
+                double temp_gas = prim_arr(i,j,k,4);
+                double temp_wall = t_lo[2];
 
                 for (int n = 0; n < nspec_mui; ++n)
                 {
@@ -125,8 +125,10 @@ void mui_fetch(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface
                     dc = uniface.fetch(channel,{x,y},step,s,t);
 
                     double mass = molmass[n]/AVONUM;
-                    double kBTm = k_B*temp/mass;
-                    double sqrtkBTm = sqrt(kBTm);
+                    double kBTm_gas = k_B*temp_gas/mass;
+                    double kBTm_wall = k_B*temp_wall/mass;
+                    double sqrtkBTm_gas = sqrt(kBTm_gas);
+                    double sqrtkBTm_wall = sqrt(kBTm_wall);
                     double vx,vy,vz;
                     double dmomx,dmomy,dmomz,derg;
 
@@ -135,9 +137,9 @@ void mui_fetch(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface
                     // sample incoming velocities and compute translational energy change
                     for (int l=0;l<ac;l++)
                     {
-                        vx = RandomNormal(0.,sqrtkBTm);
-                        vy = RandomNormal(0.,sqrtkBTm);
-                        vz = -sqrt(-2.*kBTm*log(1.-Random()));
+                        vx = RandomNormal(0.,sqrtkBTm_gas);
+                        vy = RandomNormal(0.,sqrtkBTm_gas);
+                        vz = -sqrt(-2.*kBTm_gas*log(1.-Random()));
 
                         dmomx -= mass*vx;
                         dmomy -= mass*vy;
@@ -148,9 +150,9 @@ void mui_fetch(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface
                     // sample outgoing velocities and compute translational energy change
                     for (int l=0;l<dc;l++)
                     {
-                        vx = RandomNormal(0.,sqrtkBTm);
-                        vy = RandomNormal(0.,sqrtkBTm);
-                        vz = sqrt(-2.*kBTm*log(1.-Random()));
+                        vx = RandomNormal(0.,sqrtkBTm_wall);
+                        vy = RandomNormal(0.,sqrtkBTm_wall);
+                        vz = sqrt(-2.*kBTm_wall*log(1.-Random()));
 
                         dmomx += mass*vx;
                         dmomy += mass*vy;
@@ -173,23 +175,25 @@ void mui_fetch(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface
                     // in this case (i.e. diatomic molecules), non-translational energy = rotational energy
                     // in the monoatomic case, non-translational energy = 0
                     {
-                        double kBTI = k_B*temp/mom_inertia[n];
-                        double sqrtkBTI = sqrt(kBTI);
+                        double kBTI_gas = k_B*temp_gas/mom_inertia[n];
+                        double kBTI_wall = k_B*temp_wall/mom_inertia[n];
+                        double sqrtkBTI_gas = sqrt(kBTI_gas);
+                        double sqrtkBTI_wall = sqrt(kBTI_wall);
                         double omegax,omegay;
 
                         for (int l=0;l<ac;l++)
                         {
                             // angular velocity (diatomic)
-                            omegax = RandomNormal(0.,sqrtkBTI);
-                            omegay = RandomNormal(0.,sqrtkBTI);
+                            omegax = RandomNormal(0.,sqrtkBTI_gas);
+                            omegay = RandomNormal(0.,sqrtkBTI_gas);
                             derg -= 0.5*mom_inertia[n]*(omegax*omegax+omegay*omegay);
                         }
 
                         for (int l=0;l<dc;l++)
                         {
                             // angular velocity (diatomic)
-                            omegax = RandomNormal(0.,sqrtkBTI);
-                            omegay = RandomNormal(0.,sqrtkBTI);
+                            omegax = RandomNormal(0.,sqrtkBTI_wall);
+                            omegay = RandomNormal(0.,sqrtkBTI_wall);
                             derg += 0.5*mom_inertia[n]*(omegax*omegax+omegay*omegay);
                         }
                     }

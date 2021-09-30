@@ -830,7 +830,7 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
                             for (int d=0; d<AMREX_SPACEDIM; ++d)
                             {
                                 part.pos(d) += part.pos(d) + posAlt[d];
-                                part.rdata(FHD_realData::ax + d) += part.pos(d) + posAlt[d];
+                                part.rdata(FHD_realData::ax + d) += part.rdata(FHD_realData::ax + d) + posAlt[d];
                                 //thisMove[d] += part.pos(d) + posAlt[d];
                             }
                         }
@@ -838,10 +838,10 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
 
                 }
 
-                for (int d=0; d<AMREX_SPACEDIM; ++d)
-                {
-                    part.rdata(FHD_realData::ax + d) += part.rdata(FHD_realData::velx + d)*dt;
-                }
+//                for (int d=0; d<AMREX_SPACEDIM; ++d)
+//                {
+//                    part.rdata(FHD_realData::ax + d) += part.rdata(FHD_realData::velx + d)*dt;
+//                }
 
     //            Print() << part.id() << " vel: " << setprecision(15) << part.rdata(FHD_realData::velx) << " pos: " << part.pos(0) << "\n";
 

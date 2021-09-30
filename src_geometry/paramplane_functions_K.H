@@ -138,6 +138,62 @@ void randomhemisphere(Real costheta, Real sintheta, Real cosphi, Real sinphi, Re
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
+void cosineLawHemisphere(Real costheta, Real sintheta, Real cosphi, Real sinphi, Real *cx, Real *cy, Real *cz, Real mag, amrex::RandomEngine const& engine)
+{
+    Real costhetanew, sinthetanew, cosphinew, sinphinew, phi;
+
+//    call get_half_angles(costhetanew, sinthetanew, cosphinew, sinphinew)
+
+    sinthetanew = sqrt(amrex::Random(engine));
+    costhetanew = sqrt(1.0 - sinthetanew*sinthetanew);
+
+    phi = amrex::Random(engine)*2.0*M_PI;
+
+    cosphinew = cos(phi);
+    sinphinew = sin(phi);
+
+    *cx = mag*sinthetanew*cosphinew;
+    *cy = mag*sinthetanew*sinphinew;
+    *cz = mag*costhetanew;
+
+    rotation(costheta, sintheta, cosphi, sinphi, cx, cy, cz);
+}
+
+
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
+Real pn(int n)
+{
+    return 90.0/pow(M_PI*n,4);
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
+Real erlang4Dist(int n, Real temp, amrex::RandomEngine const& engine)
+{
+    return -log(amrex::Random(engine)*amrex::Random(engine)*amrex::Random(engine)*amrex::Random(engine))*k_B*temp/(h_bar*n);
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
+Real plankDist(Real temp, amrex::RandomEngine const& engine)
+{
+    Real sample = 360*k_B*temp*1.037/(h_bar*pow(M_PI,4));//Mean value incase sampling fails
+    
+    Real pnTotal = 0;
+    Real test = amrex::Random(engine);
+    
+    for(int n=1;n<=50;n++)
+    {
+        pnTotal = pnTotal + pn(n);
+        if(test < pnTotal)
+        {
+            sample = erlang4Dist(n, temp, engine);
+            break;
+        }
+    }
+    
+    return sample;
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void app_bc_gpu(const paramPlane* surf, FhdParticleContainer::ParticleType& part, int intside, Real* domsize, int *push, Real *runtime, Real inttime, amrex::RandomEngine const& engine)
 {
     if(intside == 1)
@@ -300,6 +356,177 @@ void app_bc_gpu(const paramPlane* surf, FhdParticleContainer::ParticleType& part
 //      call surf_velocity(surf, part, time, oldvel, inttime)
 //   endif
 //   endif
+
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
+void app_bc_phonon_gpu(const paramPlane* surf, FhdParticleContainer::ParticleType& part, int intside, Real* domsize, int *push, Real *runtime, Real inttime, amrex::RandomEngine const& engine)
+{
+
+    if(intside == 1)
+    {
+      if(amrex::Random(engine) < surf->sinkRight)
+      {
+        *runtime = 0;
+
+        part.id() = -1;
+      }
+      else if(amrex::Random(engine) > surf->porosityRight)
+      {
+        *push = 0;
+
+        Real dotprod = part.rdata(FHD_realData::velx)*surf->rnx + part.rdata(FHD_realData::vely)*surf->rny + part.rdata(FHD_realData::velz)*surf->rnz;
+        Real speed = sqrt(part.rdata(FHD_realData::velx)*part.rdata(FHD_realData::velx)+part.rdata(FHD_realData::vely)*part.rdata(FHD_realData::vely)+part.rdata(FHD_realData::velz)*part.rdata(FHD_realData::velz));
+        Real cosAlpha = dotprod/speed;
+
+        Real probSpec = exp(-16*M_PI*M_PI*surf->specularityRight*surf->specularityRight*cosAlpha*cosAlpha/(part.rdata(FHD_realData::lambda)*part.rdata(FHD_realData::lambda)));
+        
+        if(amrex::Random(engine) < probSpec)
+        {
+            //Specular
+          Real dotprod = part.rdata(FHD_realData::velx)*surf->rnx + part.rdata(FHD_realData::vely)*surf->rny
+          	+ part.rdata(FHD_realData::velz)*surf->rnz;
+
+          part.rdata(FHD_realData::velx) = -2.0*dotprod*surf->rnx + part.rdata(FHD_realData::velx);
+          part.rdata(FHD_realData::vely) = -2.0*dotprod*surf->rny + part.rdata(FHD_realData::vely);
+          part.rdata(FHD_realData::velz) = -2.0*dotprod*surf->rnz + part.rdata(FHD_realData::velz);
+        
+        }else
+        {
+            //Lambert cosine law
+          cosineLawHemisphere(surf->cosThetaRight, surf->sinThetaRight, surf->cosPhiRight, surf->sinPhiRight,
+                            &part.rdata(FHD_realData::velx),&part.rdata(FHD_realData::vely), &part.rdata(FHD_realData::velz), speed, 
+                            engine);        
+        
+        }
+      }
+      else if(amrex::Random(engine) < surf->periodicity)
+      {
+        *push = 0;
+
+        if(surf->boundary == 1)
+        {
+          part.pos(0) = part.pos(0) + 0.9999999*domsize[0];
+        }
+        else if(surf->boundary == 2)
+        {
+          part.pos(0) = part.pos(0) - 0.9999999*domsize[0];
+        }
+        else if(surf->boundary == 3)
+        {
+          part.pos(1) = part.pos(1) + 0.9999999*domsize[1];
+        }
+        else if(surf->boundary == 4)
+        {
+          part.pos(1) = part.pos(1) - 0.9999999*domsize[1];
+        }
+        else if(surf->boundary == 5)
+        {
+          part.pos(2) = part.pos(2) + 0.9999999*domsize[2];
+        }
+        else if(surf->boundary == 6)
+        {
+          part.pos(2) = part.pos(2) - 0.9999999*domsize[2];
+        }
+
+      }
+      else
+      {
+        *push = 1;
+        if(amrex::Random(engine) > surf->momentumConsRight)
+        {
+          //Is this using the wrong side?
+          randomhemisphere(surf->cosThetaRight, surf->sinThetaRight,
+          surf->cosPhiRight, surf->sinPhiRight,
+          &part.rdata(FHD_realData::velx),&part.rdata(FHD_realData::vely), &part.rdata(FHD_realData::velz),
+          engine);
+        }
+      }
+
+    }
+    // Left boundary
+    else
+    {
+
+      if(amrex::Random(engine) < surf->sinkLeft)
+      {
+        *runtime = 0;
+        part.id() = -1;
+      }
+      else if(amrex::Random(engine) > surf->porosityLeft)
+      {
+        *push = 0;
+
+
+        Real dotprod = part.rdata(FHD_realData::velx)*surf->lnx + part.rdata(FHD_realData::vely)*surf->lny + part.rdata(FHD_realData::velz)*surf->lnz;
+        Real speed = sqrt(part.rdata(FHD_realData::velx)*part.rdata(FHD_realData::velx)+part.rdata(FHD_realData::vely)*part.rdata(FHD_realData::vely)+part.rdata(FHD_realData::velz)*part.rdata(FHD_realData::velz));
+        Real cosAlpha = dotprod/speed;
+
+        Real probSpec = exp(-16*M_PI*M_PI*surf->specularityLeft*surf->specularityLeft*cosAlpha*cosAlpha/(part.rdata(FHD_realData::lambda)*part.rdata(FHD_realData::lambda)));
+        
+        if(amrex::Random(engine) < probSpec)
+        {
+            //Specular
+          Real dotprod = part.rdata(FHD_realData::velx)*surf->lnx + part.rdata(FHD_realData::vely)*surf->lny
+          	+ part.rdata(FHD_realData::velz)*surf->lnz;
+
+          part.rdata(FHD_realData::velx) = -2.0*dotprod*surf->lnx + part.rdata(FHD_realData::velx);
+          part.rdata(FHD_realData::vely) = -2.0*dotprod*surf->lny + part.rdata(FHD_realData::vely);
+          part.rdata(FHD_realData::velz) = -2.0*dotprod*surf->lnz + part.rdata(FHD_realData::velz);
+        
+        }else
+        {
+            //Lambert cosine law 
+          cosineLawHemisphere(surf->cosThetaLeft, surf->sinThetaLeft, surf->cosPhiLeft, surf->sinPhiLeft,
+                &part.rdata(FHD_realData::velx),&part.rdata(FHD_realData::vely), &part.rdata(FHD_realData::velz), speed, 
+                engine);       
+        }
+        
+
+      }
+      else if(amrex::Random(engine) < surf->periodicity)
+      {
+        *push = 0;
+
+        if(surf->boundary == 1)
+        {
+          part.pos(0) = part.pos(0) + 0.9999999*domsize[0];
+        }
+        else if(surf->boundary == 2)
+        {
+          part.pos(0) = part.pos(0) - 0.9999999*domsize[0];
+        }
+        else if(surf->boundary == 3)
+        {
+          part.pos(1) = part.pos(1) + 0.9999999*domsize[1];
+        }
+        else if(surf->boundary == 4)
+        {
+          part.pos(1) = part.pos(1) - 0.9999999*domsize[1];
+        }
+        else if(surf->boundary == 5)
+        {
+          part.pos(2) = part.pos(2) + 0.9999999*domsize[2];
+        }
+        else if(surf->boundary == 6)
+        {
+          part.pos(2) = part.pos(2) - 0.9999999*domsize[2];
+        }
+
+      }
+      else
+      {
+        *push = 1;
+        if(amrex::Random(engine) > surf->momentumConsLeft)
+        {
+          //Is this using the wrong side?
+          randomhemisphere(surf->cosThetaRight, surf->sinThetaRight,
+          	surf->cosPhiRight, surf->sinPhiRight,
+          	&part.rdata(FHD_realData::velx), &part.rdata(FHD_realData::vely), &part.rdata(FHD_realData::velz),
+          	engine);
+        }
+      }
+   }
 
 }
 
