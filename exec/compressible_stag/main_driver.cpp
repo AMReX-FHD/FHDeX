@@ -126,8 +126,8 @@ void main_driver(const char* argv)
     std::array< MultiFab, AMREX_SPACEDIM > cumomMeans;
     std::array< MultiFab, AMREX_SPACEDIM > cumomVars;
     
-    if ((plot_cross) and ((cross_cell <= 0) or (cross_cell >= n_cells[0]-1))) {
-        Abort("Cross cell needs to be within the domain: 0 < cross_cell < n_cells[0] - 1");
+    if ((plot_cross) and ((cross_cell < 0) or (cross_cell > n_cells[0]-1))) {
+        Abort("Cross cell needs to be within the domain: 0 <= cross_cell <= n_cells[0] - 1");
     }
     if ((do_slab_sf) and ((membrane_cell <= 0) or (membrane_cell >= n_cells[0]-1))) {
         Abort("Slab structure factor needs a membrane cell within the domain: 0 < cross_cell < n_cells[0] - 1");

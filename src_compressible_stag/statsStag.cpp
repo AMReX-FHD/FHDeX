@@ -100,8 +100,8 @@ void evaluateStatsStag1D(MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
         x_star[0] = 0;
         x_star[1] = (int)amrex::Math::floor(1.0*n_cells[0]/4.0);
         x_star[2] = (int)amrex::Math::floor(2.0*n_cells[0]/4.0);
-        x_star[1] = (int)amrex::Math::floor(3.0*n_cells[0]/4.0);
-        x_star[1] = n_cells[0] - 1;
+        x_star[3] = (int)amrex::Math::floor(3.0*n_cells[0]/4.0);
+        x_star[4] = n_cells[0] - 1;
 
         amrex::Gpu::DeviceVector<Real> data_xcross(nstats*n_cells[1]*n_cells[2], 0.0); // values at x* for a given y and z
         for (int i=0; i<5; ++i) {
