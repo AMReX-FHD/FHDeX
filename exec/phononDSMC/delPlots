@@ -1,0 +1,5 @@
+rm -r pltvar*
+rm -r pltpart*
+rm -r pltprim*
+rm -r pltcu*
+rm -r spatialCross1D*
