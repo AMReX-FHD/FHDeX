@@ -269,7 +269,7 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
 	SortParticles();
 }
 
-void FhdParticleContainer::MovePhononsCPP(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount)
+void FhdParticleContainer::MovePhononsCPP(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount, const int step)
 {
 	BL_PROFILE_VAR("MoveParticlesCPP()", MoveParticlesCPP);
 
@@ -278,7 +278,7 @@ void FhdParticleContainer::MovePhononsCPP(const Real dt, const paramPlane* param
 	const GpuArray<Real, 3> plo = Geom(lev).ProbLoArray();
 	const GpuArray<Real, 3> phi = Geom(lev).ProbHiArray();
 
-	int np_tile = 0, np_proc = 0;
+	int np_tile = 0, np_proc = 0, scatterCount = 0, count = 0, specCount = 0;
 
 	Real adj = 0.99999;
 	Real adjalt = 2.0*(1.0-0.99999);
@@ -320,46 +320,65 @@ void FhdParticleContainer::MovePhononsCPP(const Real dt, const paramPlane* param
 			{
 				find_inter_gpu(part, runtime, paramPlaneList, paramPlaneCount,
 					&intsurf, &inttime, &intside, ZFILL(plo), ZFILL(phi));
-
-				for (int d=0; d<AMREX_SPACEDIM; ++d)
-				{
-					part.pos(d) += inttime * part.rdata(FHD_realData::velx + d)*adj;
-				}
 				
-				Real tauImpurity = pow(part.rdata(FHD_realData::omega),4)*tau_i;
-				Real tauTA = part.rdata(FHD_realData::omega)*pow(T_init[0],4)*tau_ta;
-				Real tauLA = pow(part.rdata(FHD_realData::omega),2)*pow(T_init[0],3)*tau_la;
-
-				runtime = runtime - inttime;
+				Real tauImpurityInv = pow(part.rdata(FHD_realData::omega),4)/tau_i;
+				Real tauTAInv = part.rdata(FHD_realData::omega)*pow(T_init[0],4)/tau_ta;
+				Real tauLAInv = pow(part.rdata(FHD_realData::omega),2)*pow(T_init[0],3)/tau_la;
+				Real tauNormalInv = (2.0*tauTAInv+tauLAInv)/3.0;
+				Real tauInv = tauImpurityInv + tauNormalInv;
 				
-				if(intsurf > 0)
-				{
-					//find_inter indexes from 1 to maintain compatablity with fortran version
-					const paramPlane& surf = paramPlaneList[intsurf-1];
-      
-					Real posAlt[3];
+				Real scatterTime = -log(amrex::Random(engine))/tauInv;
+				
+                if(scatterTime > inttime)
+                {
+                    runtime = runtime - inttime;
+                    
+                    for (int d=0; d<AMREX_SPACEDIM; ++d)
+				    {
+					    part.pos(d) += inttime * part.rdata(FHD_realData::velx + d)*adj;
+				    }
+                    if(intsurf > 0)
+				    {
+					    //find_inter indexes from 1 to maintain compatablity with fortran version
+					    const paramPlane& surf = paramPlaneList[intsurf-1];
+          
+					    Real posAlt[3];
 
-					for (int d=0; d<AMREX_SPACEDIM; ++d)
-					{
-						posAlt[d] = inttime * part.rdata(FHD_realData::velx + d)*adjalt;
-					}
-
-					Real dummy = 1;
-					app_bc_phonon_gpu(&surf, part, intside, domSize, &push, &runtime, dummy, engine);
-                    if(part.id() == -1)
-                    {
-                        delCount[part.idata(FHD_intData::species)]++;
-                    }
-					if(push == 1)
-					{
-						for (int d=0; d<AMREX_SPACEDIM; ++d)
-						{
-							part.pos(d) += part.pos(d) + posAlt[d];
-						}
-					}
-				}
+					    for (int d=0; d<AMREX_SPACEDIM; ++d)
+					    {
+						    posAlt[d] = inttime * part.rdata(FHD_realData::velx + d)*adjalt;
+					    }
+					    
+					    app_bc_phonon_gpu(&surf, part, intside, domSize, &push, &runtime, step, &count, &specCount, engine);
+                        if(part.id() == -1)
+                        {
+                            delCount[part.idata(FHD_intData::species)]++;
+                        }
+					    if(push == 1)
+					    {
+						    for (int d=0; d<AMREX_SPACEDIM; ++d)
+						    {
+							    part.pos(d) += part.pos(d) + posAlt[d];
+						    }
+					    }
+				    }				    
+				    
+				    
+                }else
+                {
+                    runtime = runtime - scatterTime;
+                    scatterCount++;
+                    for (int d=0; d<AMREX_SPACEDIM; ++d)
+				    {
+					    part.pos(d) += scatterTime * part.rdata(FHD_realData::velx + d)*adj;
+				    }
+				    
+				    randomSphere(&part.rdata(FHD_realData::velx),&part.rdata(FHD_realData::vely), &part.rdata(FHD_realData::velz), engine);				    
+                }
+                
 			}
-			part.rdata(FHD_realData::timeFrac) = 1;
+			
+			part.rdata(FHD_realData::timeFrac) = 1.0;
 
 			int cell[3];
 			cell[0] = (int)floor((part.pos(0)-plo[0])/dx[0]);
@@ -396,8 +415,16 @@ void FhdParticleContainer::MovePhononsCPP(const Real dt, const paramPlane* param
 //        }
 //    }
 
+    ParallelDescriptor::ReduceIntSum(scatterCount);
     ParallelDescriptor::ReduceIntSum(totalParts);
+    ParallelDescriptor::ReduceIntSum(count);
+    ParallelDescriptor::ReduceIntSum(specCount);
 	Print() << "Total particles: " << totalParts << "\n";
+    Print() << "Internal scattering events: " << scatterCount << "\n";
+    if(count != 0)
+    {
+        Print() << "Fraction of boundary interactions which were specular: " << (double)specCount/((double)count) << "\n";
+    }
 	
 	Redistribute();
 	SortParticles();

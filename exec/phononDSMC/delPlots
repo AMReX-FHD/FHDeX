@@ -1,6 +1,5 @@
 rm -r chk*
-rm -r pltvar*
 rm -r pltpart*
-rm -r pltprim*
 rm -r pltcu*
-rm -r spatialCross1D*
+rm -r *_particles_right*
+rm -r *_particles_left*

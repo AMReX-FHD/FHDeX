@@ -479,10 +479,10 @@ void InitializeCommonNamespace() {
     }
 
     dsmc_boundaries = 0;
-    phonon_sound_speed = 6000.0;
-    tau_i = 2.95e-45;
-    tau_ta = 9.3e-13;
-    tau_la = 2.0e-24;
+    phonon_sound_speed = 600000.0;
+    tau_i = 2.95e45;
+    tau_ta = 9.3e13;
+    tau_la = 2.0e24;
 
     // structure factor and radial/cartesian pair correlation function analysis
     struct_fact_int = 0;

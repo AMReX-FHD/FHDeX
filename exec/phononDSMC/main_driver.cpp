@@ -34,16 +34,7 @@ void main_driver(const char* argv)
 	int statsCount = 1;
 	
 	MultiFab cuInst, cuMeans, cuVars;
-	MultiFab primInst, primMeans, primVars;
-	MultiFab coVars;
-
-	// For long-range temperature-related correlations
-	MultiFab cvlMeans, cvlInst, QMeans;
 	
-    int ncross = 38+nspecies*nspecies;
-    MultiFab spatialCross1D;
-	
-
 	if (seed > 0)
 	{
 		InitRandom(seed+ParallelDescriptor::MyProc());
@@ -96,88 +87,24 @@ void main_driver(const char* argv)
 			... (repeat for each species)
 		*/
 
-		int ncon  = (nspecies+1)*5;
+		int ncon  = 5;
 		cuInst.define(ba, dmap, ncon, 0); cuInst.setVal(0.);
 		cuMeans.define(ba, dmap, ncon, 0); cuMeans.setVal(0.);
 		cuVars.define(ba,dmap, ncon, 0); cuVars.setVal(0.);
 
-		/*
-		   Primitive Vars:
-			0	- n   (n_ns)
-			1 - Yk  (Y_ns)
-			2 - u   (u_ns)
-			3 - v   (v_ns)
-			4 - w   (w_ns)
-			5 - G   (G_ns) = dot(u_mean,dJ)
-			6 - T   (T_ns)
-			7 - P   (P_ns)
-			8 - E   (E_ns)
-			... (repeat for each species)
-		*/
-
-		int nprim = (nspecies+1)*9;
-		primInst.define(ba, dmap, nprim, 0); primInst.setVal(0.);
-		primMeans.define(ba, dmap, nprim, 0); primMeans.setVal(0.);
-		primVars.define(ba, dmap, ncon+nprim, 0); primVars.setVal(0.);
-
-		// Covariances
-		/*
-			// Conserved
-			0  - drho.dJx
-			1  - drho.dJy
-			2  - drho.dJz
-			3  - drho.dK
-			4  - dJx.dJy
-			5  - dJx.dJz
-			6  - dJx.dK
-			7  - dJy.dJz
-			8  - dJy.dK
-			9  - dJz.dk
-
-			// Energy
-			10 - drho.dG
-			11 - dJx.dG
-			12 - dJy.dG
-			13 - dJz.dG
-			14 - dK.dG
-
-			// Hydro
-			15 - drho.du
-			16 - drho.dv
-			17 - drho.dw
-			18 - du.dv
-			19 - du.dw
-			20 - dv.dw
-			21 - drho.dT
-			22 - du.dT
-			23 - dv.dT
-			24 - dw.dT
-		*/
-
-		int ncovar = 25;
-		coVars.define(ba, dmap, ncovar, 0); coVars.setVal(0.);
-		
-		
-		spatialCross1D.define(ba,dmap,ncross,0); spatialCross1D.setVal(0.);
 
 	}
 	else
 	{
-		ReadCheckPoint(step, time, dt, statsCount,
-			cuInst, cuMeans, cuVars,
-			primInst, primMeans, primVars,
-			coVars, spatialCross1D, ncross);
-		dmap = cuInst.DistributionMap();
-		ba = cuInst.boxArray();
+//		ReadCheckPoint(step, time, dt, statsCount,
+//			cuInst, cuMeans, cuVars,
+//			primInst, primMeans, primVars,
+//			coVars, spatialCross1D, ncross);
+//		dmap = cuInst.DistributionMap();
+//		ba = cuInst.boxArray();
 
 	}
-	
-		// Specific Heat
-	int ncvl = nspecies+1;
-	cvlInst.define(ba, dmap, ncvl, 0);  cvlInst.setVal(0.);
-	cvlMeans.define(ba, dmap, ncvl, 0); cvlMeans.setVal(0.);
-	QMeans.define(ba, dmap, ncvl, 0); QMeans.setVal(0.);
-	
+		
 	Vector<int> is_periodic (AMREX_SPACEDIM,0);
 	for (int i=0; i<AMREX_SPACEDIM; ++i)
 	{
@@ -226,111 +153,52 @@ void main_driver(const char* argv)
 	int cRange = 0;
 	FhdParticleContainer particles(geom, dmap, ba, cRange);
 
-	// Output all primitives for structure factor
-	int nvarstruct = 6+nspecies*2;
-	const Real* dx = geom.CellSize();
-	int nstruct = std::ceil((double)nvarstruct*(nvarstruct+1)/2);
-	// scale SF results by inverse cell volume
-	Vector<Real> var_scaling(nstruct);
-	for (int d=0; d<var_scaling.size(); ++d)
-	{
-		var_scaling[d] = 1./(dx[0]*dx[1]*dx[2]);
-	}
-
-	// Collision Cell Vars
-	particles.mfselect.define(ba, dmap, nspecies*nspecies, 0);
-	particles.mfselect.setVal(0.);
-	particles.mfphi.define(ba, dmap, nspecies, 0);
-	particles.mfphi.setVal(0.);
-	particles.mfvrmax.define(ba, dmap, nspecies*nspecies, 0);
-	particles.mfvrmax.setVal(0.);
-
-	//particles.InitParticles(dt);
-
-	//particles.InitCollisionCells();
-
 	Real init_time = ParallelDescriptor::second() - strt_time;
 	ParallelDescriptor::ReduceRealMax(init_time);
 	amrex::Print() << "Initialization time = " << init_time << " seconds " << std::endl;
 
-	max_step += step;
-	n_steps_skip += step;
+
 	Real tbegin, tend;
-	
-	
-    //Initial condition
-//    spatialCross1D.setVal(0.);
-//	cuMeans.setVal(0.);
-//	primMeans.setVal(0.);
-//	cuVars.setVal(0.);
-//	primVars.setVal(0.);
-//	coVars.setVal(0.);
-
-//	particles.EvaluateStats(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
-//		cvlInst,cvlMeans,QMeans,coVars,spatialCross1D,statsCount++,time);
-
-//	if(plot_int > 0) {
-//		writePlotFile(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
-//			coVars,spatialCross1D,particles,geom,time,ncross,0);
-//	}
-	
-//			writePlotFile(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
-//				coVars,spatialCross1D,particles,geom,time,ncross,0);
-	
+	int writeStep = 0;
+		
 	for (int istep=step; istep<=max_step; ++istep)
 	{
 		tbegin = ParallelDescriptor::second();
-
-
+		
+		if ((n_steps_skip > 0 && istep == n_steps_skip) || (n_steps_skip < 0 && istep%n_steps_skip == 0) ) 
+		{
+			writeStep = istep;
+		}
 
 		particles.SourcePhonons(dt, paramPlaneList, paramPlaneCount);
-		Print() << "finished source\n";
-		particles.MovePhononsCPP(dt, paramPlaneList, paramPlaneCount);
 
-		particles.EvaluateStats(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
-					cvlInst,cvlMeans,QMeans,coVars,spatialCross1D,statsCount++,time);
+		particles.MovePhononsCPP(dt, paramPlaneList, paramPlaneCount, writeStep);
+
+		particles.EvaluateStatsPhonon(cuInst,cuMeans,cuVars,statsCount++,time);
 
 		//////////////////////////////////////
 		// PlotFile
 		//////////////////////////////////////
 
-		bool writePlt = false;
-		if (plot_int > 0 && istep>0 && istep>=n_steps_skip)
-		{
-			if (n_steps_skip >= 0) // for positive n_steps_skip, write out at plot_int
-			{
-				writePlt = (istep%plot_int == 0);
-			}
-			else if (n_steps_skip < 0) // for negative n_steps_skip, write out at plot_int-1
-			{
-				writePlt = ((istep+1)%plot_int == 0);
-			}
-		}
 
 		if ((plot_int > 0 && istep%plot_int==0))
 		{
-			writePlotFile(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
-				coVars,spatialCross1D,particles,geom,time,ncross,istep);
+			writePlotFile(cuInst,cuMeans,cuVars,particles,geom,time,istep);
 		}
+		   
+//        if (chk_int > 0 && istep%chk_int == 0 && istep > step)
+//		{
+//			WriteCheckPoint(istep, time, dt, statsCount,
+//				cuInst, cuMeans, cuVars, primInst, primMeans, primVars, coVars,
+//				particles, spatialCross1D, ncross);
+//		}
 		
-        if ((n_steps_skip > 0 && istep == n_steps_skip) || (n_steps_skip < 0 && istep%n_steps_skip == 0) ) {
+		if ((n_steps_skip > 0 && istep == n_steps_skip) || (n_steps_skip < 0 && istep%n_steps_skip == 0) ) {
             //reset stats
             statsCount = 1;
-            spatialCross1D.setVal(0.);
 	        cuMeans.setVal(0.);
-	        primMeans.setVal(0.);
 	        cuVars.setVal(0.);
-	        primVars.setVal(0.);
-	        coVars.setVal(0.);
-
         }
-        
-        if (chk_int > 0 && istep%chk_int == 0 && istep > step)
-		{
-			WriteCheckPoint(istep, time, dt, statsCount,
-				cuInst, cuMeans, cuVars, primInst, primMeans, primVars, coVars,
-				particles, spatialCross1D, ncross);
-		}
 		tend = ParallelDescriptor::second() - tbegin;
 		ParallelDescriptor::ReduceRealMax(tend);
 		if(istep%1==0)

@@ -138,6 +138,26 @@ void randomhemisphere(Real costheta, Real sintheta, Real cosphi, Real sinphi, Re
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
+void randomSphere(Real *cx, Real *cy, Real *cz, amrex::RandomEngine const& engine)
+{
+    Real mag, costhetanew, sinthetanew, cosphinew, sinphinew, phi;
+
+    mag = sqrt((*cx)*(*cx) + (*cy)*(*cy) + (*cz)*(*cz));
+
+    costhetanew = 2.0*amrex::Random(engine)-1.0;
+    sinthetanew = sqrt(1.0 - costhetanew*costhetanew);
+
+    phi = amrex::Random(engine)*2.0*M_PI;
+
+    cosphinew = cos(phi);
+    sinphinew = sin(phi);
+
+    *cx = mag*sinthetanew*cosphinew;
+    *cy = mag*sinthetanew*sinphinew;
+    *cz = mag*costhetanew;
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void cosineLawHemisphere(Real costheta, Real sintheta, Real cosphi, Real sinphi, Real *cx, Real *cy, Real *cz, Real mag, amrex::RandomEngine const& engine)
 {
     Real costhetanew, sinthetanew, cosphinew, sinphinew, phi;
@@ -369,14 +389,14 @@ void app_bc_gpu(const paramPlane* surf, FhdParticleContainer::ParticleType& part
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
-void app_bc_phonon_gpu(const paramPlane* surf, FhdParticleContainer::ParticleType& part, int intside, Real* domsize, int *push, Real *runtime, Real inttime, amrex::RandomEngine const& engine)
+void app_bc_phonon_gpu(const paramPlane* surf, FhdParticleContainer::ParticleType& part, int intside, Real* domsize, int *push, Real *runtime, const int step, int *count, int *specCount, amrex::RandomEngine const& engine)
 {
 
     if(intside == 1)
     {
       if(amrex::Random(engine) < surf->momentumConsRight)
       {
-           std::string plotfilename = std::to_string(surf->boundary) + "_" + std::to_string(ParallelDescriptor::MyProc()) + "_particles_right.dat";
+           std::string plotfilename = std::to_string(surf->boundary) + "_" + std::to_string(ParallelDescriptor::MyProc()) + amrex::Concatenate("_particles_right_",step,12);
            std::ofstream ofs(plotfilename, std::ios::app);
            ofs << part.pos(0) << " " << part.pos(1) << " " << part.pos(2) << " " << part.rdata(FHD_realData::velx) << " " << part.rdata(FHD_realData::vely) << " " << part.rdata(FHD_realData::velz) << " " << part.rdata(FHD_realData::omega) << std::endl;
            ofs.close();
@@ -392,15 +412,19 @@ void app_bc_phonon_gpu(const paramPlane* surf, FhdParticleContainer::ParticleTyp
       {
         *push = 0;
 
+        (*count)++;
         Real dotprod = part.rdata(FHD_realData::velx)*surf->rnx + part.rdata(FHD_realData::vely)*surf->rny + part.rdata(FHD_realData::velz)*surf->rnz;
         Real speed = sqrt(part.rdata(FHD_realData::velx)*part.rdata(FHD_realData::velx)+part.rdata(FHD_realData::vely)*part.rdata(FHD_realData::vely)+part.rdata(FHD_realData::velz)*part.rdata(FHD_realData::velz));
         Real cosAlpha = dotprod/speed;
 
         Real probSpec = exp(-16*M_PI*M_PI*surf->specularityRight*surf->specularityRight*cosAlpha*cosAlpha/(part.rdata(FHD_realData::lambda)*part.rdata(FHD_realData::lambda)));
         
+        //cout << "SPEC " << surf->boundary << ": " << part.id() << ", " << surf->specularityRight << ", " << part.rdata(FHD_realData::lambda) << ", " << probSpec << endl;
+        
         if(amrex::Random(engine) < probSpec)
         {
             //Specular
+          (*specCount)++;
           Real dotprod = part.rdata(FHD_realData::velx)*surf->rnx + part.rdata(FHD_realData::vely)*surf->rny
           	+ part.rdata(FHD_realData::velz)*surf->rnz;
 
@@ -459,7 +483,7 @@ void app_bc_phonon_gpu(const paramPlane* surf, FhdParticleContainer::ParticleTyp
     {
       if(amrex::Random(engine) < surf->momentumConsLeft)
       {
-           std::string plotfilename = std::to_string(surf->boundary) + "_" + std::to_string(ParallelDescriptor::MyProc()) + "_particles_left.dat";
+           std::string plotfilename = std::to_string(surf->boundary) + "_" + std::to_string(ParallelDescriptor::MyProc()) + amrex::Concatenate("_particles_left_",step,12);
            std::ofstream ofs(plotfilename, std::ios::app);
            ofs << part.pos(0) << " " << part.pos(1) << " " << part.pos(2) << " " << part.rdata(FHD_realData::velx) << " " << part.rdata(FHD_realData::vely) << " " << part.rdata(FHD_realData::velz) << " " << part.rdata(FHD_realData::omega) << std::endl;
            ofs.close();
@@ -472,8 +496,7 @@ void app_bc_phonon_gpu(const paramPlane* surf, FhdParticleContainer::ParticleTyp
       else if(amrex::Random(engine) > surf->porosityLeft)
       {
         *push = 0;
-
-
+        (*count)++;
         Real dotprod = part.rdata(FHD_realData::velx)*surf->lnx + part.rdata(FHD_realData::vely)*surf->lny + part.rdata(FHD_realData::velz)*surf->lnz;
         Real speed = sqrt(part.rdata(FHD_realData::velx)*part.rdata(FHD_realData::velx)+part.rdata(FHD_realData::vely)*part.rdata(FHD_realData::vely)+part.rdata(FHD_realData::velz)*part.rdata(FHD_realData::velz));
         Real cosAlpha = dotprod/speed;
@@ -483,6 +506,7 @@ void app_bc_phonon_gpu(const paramPlane* surf, FhdParticleContainer::ParticleTyp
         if(amrex::Random(engine) < probSpec)
         {
             //Specular
+          (*specCount)++;
           Real dotprod = part.rdata(FHD_realData::velx)*surf->lnx + part.rdata(FHD_realData::vely)*surf->lny
           	+ part.rdata(FHD_realData::velz)*surf->lnz;
 
@@ -535,6 +559,7 @@ void app_bc_phonon_gpu(const paramPlane* surf, FhdParticleContainer::ParticleTyp
         *push = 1;
       }
    }
+   
 
 }
 

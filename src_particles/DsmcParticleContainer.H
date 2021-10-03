@@ -113,7 +113,7 @@ public:
 	void CollideParticles(Real dt);
 
 	void MoveParticlesCPP(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount);
-    void MovePhononsCPP(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount);
+    void MovePhononsCPP(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount, const int step);
 	void externalForce(const Real dt);
 	void updateTimeStep(const Geometry& geom, Real& dt);
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -137,6 +137,12 @@ public:
 		MultiFab& mfQMeans,
 		MultiFab& coVars,
 		MultiFab& spatialCross1D,
+		const int steps,
+		Real time);
+		
+   void EvaluateStatsPhonon(MultiFab& cuInst,
+		MultiFab& cuMeans,
+		MultiFab& cuVars,
 		const int steps,
 		Real time);
 
