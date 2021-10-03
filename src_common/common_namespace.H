@@ -196,6 +196,9 @@ namespace common {
 
     extern int                        dsmc_boundaries;
     extern amrex::Real                phonon_sound_speed;
+    extern amrex::Real                tau_i;
+    extern amrex::Real                tau_la;
+    extern amrex::Real                tau_ta;
 
     // structure factor and radial/cartesian pair correlation function analysis
     extern int                        struct_fact_int;

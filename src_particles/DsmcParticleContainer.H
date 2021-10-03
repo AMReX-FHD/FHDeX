@@ -37,6 +37,7 @@ struct FHD_realData {
 			"R",
 			"timeFrac",
 			"omega",
+			"lambda",
 			"radius",
 			"mass",
 		};
@@ -102,6 +103,7 @@ public:
 	void InitCollisionCells();
 
 	void Source(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount);
+    void SourcePhonons(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount);
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	// Main DSMC routines
@@ -111,6 +113,7 @@ public:
 	void CollideParticles(Real dt);
 
 	void MoveParticlesCPP(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount);
+    void MovePhononsCPP(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount);
 	void externalForce(const Real dt);
 	void updateTimeStep(const Geometry& geom, Real& dt);
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

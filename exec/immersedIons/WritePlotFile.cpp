@@ -185,8 +185,6 @@ void WritePlotFile(int step,
 
     // particle in cplt file
 
-    
-
     Vector<int> write_real_comp(FHD_realData::count);
     fill(write_real_comp.begin(), write_real_comp.end(), 1);
     

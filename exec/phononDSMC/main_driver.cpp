@@ -199,10 +199,11 @@ void main_driver(const char* argv)
     {
         planeFile >> fileCount;
     }
+    planeFile.close();
 
-	int paramPlaneCount = 6 + fileCount;
+	int paramPlaneCount = fileCount;
 	paramPlane paramPlaneList[paramPlaneCount];
-	BuildParamplanes(paramPlaneList,paramPlaneCount,realDomain.lo(),realDomain.hi());
+	BuildParamplanesPhonon(paramPlaneList,paramPlaneCount,realDomain.lo(),realDomain.hi());
 
 	// Particle tile size
 	Vector<int> ts(BL_SPACEDIM);
@@ -244,9 +245,9 @@ void main_driver(const char* argv)
 	particles.mfvrmax.define(ba, dmap, nspecies*nspecies, 0);
 	particles.mfvrmax.setVal(0.);
 
-	particles.InitParticles(dt);
+	//particles.InitParticles(dt);
 
-	particles.InitCollisionCells();
+	//particles.InitCollisionCells();
 
 	Real init_time = ParallelDescriptor::second() - strt_time;
 	ParallelDescriptor::ReduceRealMax(init_time);
@@ -273,19 +274,18 @@ void main_driver(const char* argv)
 //			coVars,spatialCross1D,particles,geom,time,ncross,0);
 //	}
 	
-	
+//			writePlotFile(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
+//				coVars,spatialCross1D,particles,geom,time,ncross,0);
 	
 	for (int istep=step; istep<=max_step; ++istep)
 	{
 		tbegin = ParallelDescriptor::second();
 
-		particles.CalcSelections(dt);
-		particles.CollideParticles(dt);
-		particles.Source(dt, paramPlaneList, paramPlaneCount);
-		//particles.externalForce(dt);
-		particles.MoveParticlesCPP(dt, paramPlaneList, paramPlaneCount);
-		//particles.updateTimeStep(geom,dt);
 
+
+		particles.SourcePhonons(dt, paramPlaneList, paramPlaneCount);
+		Print() << "finished source\n";
+		particles.MovePhononsCPP(dt, paramPlaneList, paramPlaneCount);
 
 		particles.EvaluateStats(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
 					cvlInst,cvlMeans,QMeans,coVars,spatialCross1D,statsCount++,time);
@@ -333,7 +333,7 @@ void main_driver(const char* argv)
 		}
 		tend = ParallelDescriptor::second() - tbegin;
 		ParallelDescriptor::ReduceRealMax(tend);
-		if(istep%1000==0)
+		if(istep%1==0)
 		{
 		    amrex::Print() << "Advanced step " << istep << " in " << tend << " seconds\n";
 		}
