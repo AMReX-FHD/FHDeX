@@ -37,14 +37,18 @@ void main_driver(const char* argv)
 	
 	if (seed > 0)
 	{
-		InitRandom(seed+ParallelDescriptor::MyProc());
+            InitRandom(seed+ParallelDescriptor::MyProc(),
+                       ParallelDescriptor::NProcs(),
+                       seed+ParallelDescriptor::MyProc());
 	}
 	else if (seed == 0)
 	{
 		auto now = time_point_cast<nanoseconds>(system_clock::now());
 		int randSeed = now.time_since_epoch().count();
 		ParallelDescriptor::Bcast(&randSeed,1,ParallelDescriptor::IOProcessorNumber());
-		InitRandom(randSeed+ParallelDescriptor::MyProc());
+                InitRandom(randSeed+ParallelDescriptor::MyProc(),
+                           ParallelDescriptor::NProcs(),
+                           randSeed+ParallelDescriptor::MyProc());
 	}
 	else
 	{
@@ -56,7 +60,9 @@ void main_driver(const char* argv)
 	{
 		if (seed > 0)
 		{
-			InitRandom(seed+ParallelDescriptor::MyProc());
+                    InitRandom(seed+ParallelDescriptor::MyProc(),
+                               ParallelDescriptor::NProcs(),
+                               seed+ParallelDescriptor::MyProc());
 		}
 		else if (seed == 0)
 		{
@@ -64,7 +70,9 @@ void main_driver(const char* argv)
 			int randSeed = now.time_since_epoch().count();
 			// broadcast the same root seed to all processors
 			ParallelDescriptor::Bcast(&randSeed,1,ParallelDescriptor::IOProcessorNumber());
-			InitRandom(randSeed+ParallelDescriptor::MyProc());
+                        InitRandom(randSeed+ParallelDescriptor::MyProc(),
+                                   ParallelDescriptor::NProcs(),
+                                   randSeed+ParallelDescriptor::MyProc());
 		}
 		else
 		{
