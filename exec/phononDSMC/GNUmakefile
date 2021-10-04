@@ -2,7 +2,7 @@
 # If you set AMREX_HOME as an environment variable, this line will be ignored
 AMREX_HOME ?= ../../../amrex/
 FHDeX ?= ../../
-FDSMC = $(FHDeX)/exec/DSMC
+FDSMC = $(FHDeX)/exec/phononDSMC
 
 DEBUG     = FALSE
 PROFILE   = FALSE
@@ -52,9 +52,6 @@ include $(AMREX_HOME)/Src/Boundary/Make.package
 include $(AMREX_HOME)/Src/AmrCore/Make.package
 include $(AMREX_HOME)/Src/Particle/Make.package
 
-include $(AMREX_HOME)/Src/Extern/SWFFT/Make.package
-INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Extern/SWFFT
-VPATH_LOCATIONS   += $(AMREX_HOME)/Src/Extern/SWFFT
 
 #ifeq ($(NERSC_HOST),) # check if NERSC_HOST is empty => hack to test if on cori
 #    LIBRARIES += -L$(FFTW_DIR) -lfftw3
