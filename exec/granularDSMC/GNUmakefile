@@ -2,7 +2,7 @@
 # If you set AMREX_HOME as an environment variable, this line will be ignored
 AMREX_HOME ?= ../../../amrex/
 FHDeX ?= ../../
-FDSMC = $(FHDeX)/exec/DSMC_granular
+FDSMC = $(FHDeX)/exec/granularDSMC
 
 DEBUG     = FALSE
 PROFILE   = FALSE
