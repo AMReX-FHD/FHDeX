@@ -3,7 +3,6 @@
 #include "paramPlane.H"
 #include "StructFact.H"
 #include "particle_functions.H"
-#include "Checkpoint.H"
 #include "chrono"
 #include "iostream"
 #include "fstream"
@@ -346,10 +345,10 @@ void main_driver(const char* argv)
 			}
 			if(plot_int>0)
 			{
-				particles.writePlotFile(cuInst,cuMeans,cuVars,
+				writePlotFile(cuInst,cuMeans,cuVars,
 					primInst,primMeans,primVars,coVars,
 					spatialCross1D,rhotimecross,utimecross,Ktimecross,vmom,
-					geom,time,
+					particles,geom,time,
 					ncon,nprim,ncovar,ncross,ntimecor,npart,
 					istep);
 			}
@@ -417,10 +416,10 @@ void main_driver(const char* argv)
 
 		if (writePlt)
 		{
-			particles.writePlotFile(cuInst,cuMeans,cuVars,
+			writePlotFile(cuInst,cuMeans,cuVars,
 				primInst,primMeans,primVars,coVars,
 				spatialCross1D,rhotimecross,utimecross,Ktimecross,vmom,
-				geom,time,
+				particles,geom,time,
 				ncon,nprim,ncovar,ncross,ntimecor,npart,
 				istep);
 		}

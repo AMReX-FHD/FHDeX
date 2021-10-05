@@ -1,7 +1,6 @@
 CEXE_headers   += INS_functions.H
-CEXE_headers   += Checkpoint.H
-CEXE_sources   += Checkpoint.cpp
 
+CEXE_sources   += Checkpoint.cpp
 CEXE_sources   += stats.cpp
 CEXE_sources   += stats_part.cpp
 CEXE_sources   += writePlotFile.cpp
