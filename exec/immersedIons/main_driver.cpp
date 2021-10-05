@@ -355,8 +355,7 @@ void main_driver(const char* argv)
 	      Abort("Please provide eskernel_beta within the range [1,3]*eskernel_fluid.");
 	   }
 
-	   int targetLine = (eskernel_beta[j]-eskernel_fluid[j])*10+1;
-	   //Print() << targetLine << std::endl;
+       int targetLine = ((int)(10*eskernel_beta[j])-10*eskernel_fluid[j])+1;
 	   std::ifstream wetRad_w4("wetRad_w4.dat");
 	   for (int lineCount=0; lineCount < targetLine-1; lineCount++) {
 	       wetRad_w4.ignore(100000, '\n');
@@ -372,7 +371,7 @@ void main_driver(const char* argv)
 	      Abort("Please provide eskernel_beta within the range [1,3]*eskernel_fluid.");
 	   }
 
-           int targetLine = (eskernel_beta[j]-eskernel_fluid[j])*10+1;
+       int targetLine = ((int)(10*eskernel_beta[j])-10*eskernel_fluid[j])+1;
 	   //Print() << targetLine << std::endl;
 	   std::ifstream wetRad_w5("wetRad_w5.dat");
 	   for (int lineCount=0; lineCount < targetLine-1; lineCount++) {
@@ -388,7 +387,7 @@ void main_driver(const char* argv)
 	      Abort("Please provide eskernel_beta within the range [1,3]*eskernel_fluid.");
 	   }
 
-           int targetLine = (eskernel_beta[j]-eskernel_fluid[j])*10+1;
+       int targetLine = ((int)(10*eskernel_beta[j])-10*eskernel_fluid[j])+1;
 	   //Print() << targetLine << std::endl;
 	   std::ifstream wetRad_w6("wetRad_w6.dat");
 	   for (int lineCount=0; lineCount < targetLine-1; lineCount++) {
@@ -405,7 +404,7 @@ void main_driver(const char* argv)
 	      Abort("Please provide eskernel_beta within the range [1,3]*eskernel_fluid.");
 	   }
 
-           int targetLine = (eskernel_beta[j]-eskernel_fluid[j])*10+1;
+       int targetLine = ((int)(10*eskernel_beta[j])-10*eskernel_fluid[j])+1;
 	   //Print() << targetLine << std::endl;
 	   std::ifstream wetRad_w3("wetRad_w3.dat");
 	   for (int lineCount=0; lineCount < targetLine-1; lineCount++) {
@@ -421,8 +420,8 @@ void main_driver(const char* argv)
 	      Abort("Please provide eskernel_beta within the range [1,3]*eskernel_fluid.");
 	   }
 
-           int targetLine = (eskernel_beta[j]-eskernel_fluid[j])*10+1;
-	   //Print() << targetLine << std::endl;
+       int targetLine = ((int)(10*eskernel_beta[j])-10*eskernel_fluid[j])+1;
+	   Print() << "TARGET: " << targetLine << std::endl;
 	   std::ifstream wetRad_w7("wetRad_w7.dat");
 	   for (int lineCount=0; lineCount < targetLine-1; lineCount++) {
 	       wetRad_w7.ignore(100000, '\n');
