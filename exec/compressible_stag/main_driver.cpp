@@ -51,6 +51,8 @@ void main_driver(const char* argv)
         }
     }
 
+    if (((do_1D) or (do_2D)) and (amrex::Math::abs(visc_type) == 3)) Abort("1D and 2D version only work for zero bulk viscosity currently. Use visc_type 1 or 2");
+
     // for each direction, if bc_vel_lo/hi is periodic, then
     // set the corresponding bc_mass_lo/hi and bc_therm_lo/hi to periodic
     SetupBCStag();
@@ -141,6 +143,7 @@ void main_driver(const char* argv)
     // can add more -- change main_driver, statsStag, writeplotfilestag, and Checkpoint
     int ncross = 37+nspecies+3;
     MultiFab spatialCross1D;
+    MultiFab spatialCross2D;
     Vector<Real> spatialCross3D(n_cells[0]*ncross, 0.0);
     
     // make BoxArray and Geometry
@@ -163,8 +166,6 @@ void main_driver(const char* argv)
     const Real* dx = geom.CellSize();
     const RealBox& realDomain = geom.ProbDomain();
 
-    std::string filename = "crossMeans";
-    std::ofstream outfile;
 
     /////////////////////////////////////////////
     // Setup Structure factor variables & scaling
@@ -315,6 +316,11 @@ void main_driver(const char* argv)
                              primMeans, primVars, cumom, cumomMeans, cumomVars, 
                              vel, velMeans, velVars, coVars, spatialCross1D, ncross, ba, dmap);
         }
+        else if (do_2D) {
+            ReadCheckPoint2D(step_start, time, statsCount, geom, domain, cu, cuMeans, cuVars, prim,
+                             primMeans, primVars, cumom, cumomMeans, cumomVars, 
+                             vel, velMeans, velVars, coVars, spatialCross2D, ncross, ba, dmap);
+        }
         else {
             ReadCheckPoint3D(step_start, time, statsCount, geom, domain, cu, cuMeans, cuVars, prim,
                              primMeans, primVars, cumom, cumomMeans, cumomVars, 
@@ -336,7 +342,9 @@ void main_driver(const char* argv)
         chi.setVal(1.0,0,nspecies,ngc);
         D.setVal(1.0,0,nspecies*nspecies,ngc);
 
-        if ((plot_cross) and (do_1D==0)) {
+        if ((plot_cross) and (do_1D==0) and (do_2D==0)) {
+            std::string filename = "crossMeans";
+            std::ofstream outfile;
             if (ParallelDescriptor::IOProcessor()) outfile.open(filename, std::ios::app);
         }
 
@@ -554,6 +562,10 @@ void main_driver(const char* argv)
             spatialCross1D.define(ba,dmap,ncross,0);
             spatialCross1D.setVal(0.0);
         }
+        else if (do_2D) {
+            spatialCross2D.define(ba,dmap,ncross,0);
+            spatialCross2D.setVal(0.0);
+        }
 
         ///////////////////////////////////////////
         // Setup Structure factor
@@ -721,13 +733,18 @@ void main_driver(const char* argv)
                 if (do_1D) {
                     WriteSpatialCross1D(spatialCross1D, 0, geom, ncross);
                 }
+                else if (do_2D) {
+                //    WriteSpatialCross2D(spatialCross2D, 0, geom, ncross); // (do later)
+                }
                 else {
                     WriteSpatialCross3D(spatialCross3D, 0, geom, ncross);
                 }
             }
         }
 
-        if ((plot_cross) and (do_1D==0)) {
+        if ((plot_cross) and (do_1D==0) and (do_2D==0)) {
+            std::string filename = "crossMeans";
+            std::ofstream outfile;
             if (ParallelDescriptor::IOProcessor()) outfile.open(filename);
         }
 
@@ -831,6 +848,9 @@ void main_driver(const char* argv)
             if (do_1D) {
                 spatialCross1D.setVal(0.0);
             }
+            else if (do_2D) {
+                spatialCross2D.setVal(0.0);
+            }
             else {
                 spatialCross3D.assign(spatialCross3D.size(), 0.0);
             }
@@ -846,6 +866,11 @@ void main_driver(const char* argv)
             evaluateStatsStag1D(cu, cuMeans, cuVars, prim, primMeans, primVars, vel, 
                                 velMeans, velVars, cumom, cumomMeans, cumomVars, coVars,
                                 spatialCross1D, ncross, statsCount);
+        }
+        else if (do_2D) {
+        //    evaluateStatsStag2D(cu, cuMeans, cuVars, prim, primMeans, primVars, vel, 
+        //                        velMeans, velVars, cumom, cumomMeans, cumomVars, coVars,
+        //                        spatialCross2D, ncross, statsCount); // (do later)
         }
         else {
             evaluateStatsStag3D(cu, cuMeans, cuVars, prim, primMeans, primVars, vel, 
@@ -877,6 +902,9 @@ void main_driver(const char* argv)
             if (plot_cross) {
                 if (do_1D) {
                     WriteSpatialCross1D(spatialCross1D, step, geom, ncross);
+                }
+                else if (do_2D) {
+                //    WriteSpatialCross2D(spatialCross2D, step, geom, ncross); // (do later)
                 }
                 else {
                     WriteSpatialCross3D(spatialCross3D, step, geom, ncross);
@@ -1004,6 +1032,11 @@ void main_driver(const char* argv)
                 WriteCheckPoint1D(step, time, statsCount, geom, cu, cuMeans, cuVars, prim,
                                   primMeans, primVars, cumom, cumomMeans, cumomVars, 
                                   vel, velMeans, velVars, coVars, spatialCross1D, ncross);
+            }
+            else if (do_2D) {
+                WriteCheckPoint2D(step, time, statsCount, geom, cu, cuMeans, cuVars, prim,
+                                  primMeans, primVars, cumom, cumomMeans, cumomVars, 
+                                  vel, velMeans, velVars, coVars, spatialCross2D, ncross);
             }
             else {
                 WriteCheckPoint3D(step, time, statsCount, geom, cu, cuMeans, cuVars, prim,
