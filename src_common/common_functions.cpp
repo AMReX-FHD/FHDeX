@@ -130,6 +130,8 @@ amrex::Vector<amrex::Real> common::wallspeed_hi;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::potential_lo;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::potential_hi;
 
+int                           common::n_burn;
+
 int                           common::dsmc_boundaries;
 amrex::Real                   common::phonon_sound_speed;
 amrex::Real                   common::tau_ta;
@@ -479,6 +481,7 @@ void InitializeCommonNamespace() {
     }
 
     dsmc_boundaries = 0;
+    n_burn = 1000;
     phonon_sound_speed = 600000.0;
     tau_i = 2.95e45;
     tau_ta = 9.3e13;
@@ -880,6 +883,7 @@ void InitializeCommonNamespace() {
         }
     }
     pp.query("dsmc_boundaries",dsmc_boundaries);
+    pp.query("n_burn",n_burn);
     pp.query("phonon_sound_speed",phonon_sound_speed);
     pp.query("tau_i",tau_i);
     pp.query("tau_ta",tau_ta);

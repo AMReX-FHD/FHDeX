@@ -223,6 +223,10 @@ void ReadCheckPoint(int& step,
 
     if (seed < 0) {
 
+#ifdef AMREX_USE_CUDA
+        Abort("Restart with negative seed not supported on GPU");
+#endif
+
         // read in rng state from checkpoint
         // don't read in all the rng states at once (overload filesystem)
         // one at a time read the rng states to different files, one for each MPI rank
@@ -257,10 +261,14 @@ void ReadCheckPoint(int& step,
       int randSeed = now.time_since_epoch().count();
       // broadcast the same root seed to all processors
       ParallelDescriptor::Bcast(&randSeed,1,ParallelDescriptor::IOProcessorNumber());
-      InitRandom(randSeed+ParallelDescriptor::MyProc());
+      InitRandom(randSeed+ParallelDescriptor::MyProc(),
+                 ParallelDescriptor::NProcs(),
+                 randSeed+ParallelDescriptor::MyProc());
     } else {
       // initializes the seed for C++ random number calls
-      InitRandom(seed+ParallelDescriptor::MyProc());
+      InitRandom(seed+ParallelDescriptor::MyProc(),
+                 ParallelDescriptor::NProcs(),
+                 seed+ParallelDescriptor::MyProc());
     }
 
     // read in the MultiFab data
