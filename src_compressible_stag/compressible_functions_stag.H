@@ -267,6 +267,18 @@ void evaluateStatsStag3D(MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
                          const amrex::Box& domain,
                          const int steps);
 
+void evaluateStatsStag2D(MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
+                         MultiFab& prim_in, MultiFab& primMean, MultiFab& primVar,
+                         const std::array<MultiFab, AMREX_SPACEDIM>& vel, 
+                         std::array<MultiFab, AMREX_SPACEDIM>& velMean, 
+                         std::array<MultiFab, AMREX_SPACEDIM>& velVar, 
+                         const std::array<MultiFab, AMREX_SPACEDIM>& cumom,
+                         std::array<MultiFab, AMREX_SPACEDIM>& cumomMean,
+                         std::array<MultiFab, AMREX_SPACEDIM>& cumomVar,
+                         MultiFab& coVar, 
+                         MultiFab& spatialCross2D, const int ncross,
+                         const int steps);
+
 void evaluateStatsStag1D(MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
                          MultiFab& prim_in, MultiFab& primMean, MultiFab& primVar,
                          const std::array<MultiFab, AMREX_SPACEDIM>& vel, 

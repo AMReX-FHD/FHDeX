@@ -870,9 +870,9 @@ void main_driver(const char* argv)
                                 spatialCross1D, ncross, statsCount);
         }
         else if (do_2D) {
-        //    evaluateStatsStag2D(cu, cuMeans, cuVars, prim, primMeans, primVars, vel, 
-        //                        velMeans, velVars, cumom, cumomMeans, cumomVars, coVars,
-        //                        spatialCross2D, ncross, statsCount); // (do later)
+            evaluateStatsStag2D(cu, cuMeans, cuVars, prim, primMeans, primVars, vel, 
+                                velMeans, velVars, cumom, cumomMeans, cumomVars, coVars,
+                                spatialCross2D, ncross, statsCount);
         }
         else {
             evaluateStatsStag3D(cu, cuMeans, cuVars, prim, primMeans, primVars, vel, 
