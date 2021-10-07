@@ -371,6 +371,7 @@ void main_driver(const char* argv)
 			{
 				particles.EvaluateStats(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
 					cvlInst,cvlMeans,QMeans,coVars,spatialCross1D,statsCount,time);
+				vmom.setVal(0.);
 				particles.EvaluateStatsPart(vmom);
 				if(plot_time>0 && istep%plot_time == 0 && ntimecor>0) {
 					particles.updateTimeData(cuInst,primInst,
