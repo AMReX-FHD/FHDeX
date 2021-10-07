@@ -288,6 +288,7 @@ namespace common {
     extern int                        plot_covars;
     extern int                        plot_cross;
     extern int                        plot_time;
+    extern int                        ntimecor;
     extern int                        plot_vmom;
     extern int                        particle_motion;
 

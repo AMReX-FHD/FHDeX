@@ -36,6 +36,7 @@ void FhdParticleContainer::TimeCorrelation(
 					+uCross(i,j,k,l)*stepsMinusOne)*osteps;
 				KCross(i,j,k,l) = (K_time(i,j,k,0)*K_time(i,j,k,l)
 					+KCross(i,j,k,l)*stepsMinusOne)*osteps;
+//				Print() << uCross(i,j,k,0) << " " << u_time(i,j,k,0) << "\n";
 			}
 		});
 	}

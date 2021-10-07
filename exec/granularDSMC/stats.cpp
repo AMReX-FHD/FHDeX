@@ -22,6 +22,11 @@ void FhdParticleContainer::EvaluateStats(
   // Zero out heat flux and heat capacity
   mfQMeans.setVal(0.);
   mfcvlMeans.setVal(0.);
+  
+  // Zero out instaneous
+  mfcuInst.setVal(0.);
+  mfprimInst.setVal(0.);
+  mfcvlInst.setVal(0.);
 
   const int lev = 0;    
   for (FhdParIter pti(* this, lev); pti.isValid(); ++pti) {
