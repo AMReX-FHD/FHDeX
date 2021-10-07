@@ -170,6 +170,8 @@ void main_driver(const char* argv)
     const Real* dx = geom.CellSize();
     const RealBox& realDomain = geom.ProbDomain();
 
+    std::string filename = "crossMeans";
+    std::ofstream outfile;
 
     /////////////////////////////////////////////
     // Setup Structure factor variables & scaling
@@ -347,8 +349,6 @@ void main_driver(const char* argv)
         D.setVal(1.0,0,nspecies*nspecies,ngc);
 
         if ((plot_cross) and (do_1D==0) and (do_2D==0)) {
-            std::string filename = "crossMeans";
-            std::ofstream outfile;
             if (ParallelDescriptor::IOProcessor()) outfile.open(filename, std::ios::app);
         }
 
@@ -747,8 +747,6 @@ void main_driver(const char* argv)
         }
 
         if ((plot_cross) and (do_1D==0) and (do_2D==0)) {
-            std::string filename = "crossMeans";
-            std::ofstream outfile;
             if (ParallelDescriptor::IOProcessor()) outfile.open(filename);
         }
 
