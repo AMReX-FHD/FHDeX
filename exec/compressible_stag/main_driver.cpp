@@ -517,10 +517,6 @@ void main_driver(const char* argv)
             primSF2D_realimag.define(ba_flat,dmap_flat,2*structFactPrimArray[0].get_ncov(),0);
             consSF2D_mag.define(ba_flat,dmap_flat,structFactConsArray[0].get_ncov(),0);
             consSF2D_realimag.define(ba_flat,dmap_flat,2*structFactConsArray[0].get_ncov(),0);
-            primSF2D_mag.setVal(0.0);
-            primSF2D_realimag.setVal(0.0);
-            consSF2D_mag.setVal(0.0);
-            consSF2D_realimag.setVal(0.0);
 
         }
 
@@ -764,10 +760,6 @@ void main_driver(const char* argv)
             primSF2D_realimag.define(ba_flat,dmap_flat,2*structFactPrimArray[0].get_ncov(),0);
             consSF2D_mag.define(ba_flat,dmap_flat,structFactConsArray[0].get_ncov(),0);
             consSF2D_realimag.define(ba_flat,dmap_flat,2*structFactConsArray[0].get_ncov(),0);
-            primSF2D_mag.setVal(0.0);
-            primSF2D_realimag.setVal(0.0);
-            consSF2D_mag.setVal(0.0);
-            consSF2D_realimag.setVal(0.0);
 
         }
 
@@ -1110,12 +1102,7 @@ void main_driver(const char* argv)
                     consVertAvgRot = RotateFlattenedMF(consVertAvg);
                     structFactPrimArray[i].FortStructure(primVertAvgRot,geom_flat);
                     structFactConsArray[i].FortStructure(consVertAvgRot,geom_flat);
-                    structFactPrimArray[i].AddToExternal(primSF2D_mag,primSF2D_realimag,geom_flat);
-                    structFactConsArray[i].AddToExternal(consSF2D_mag,consSF2D_realimag,geom_flat);
                 }
-                Real ncellsinv = 1.0/n_cells[2];
-                primSF2D_mag.mult(ncellsinv);
-                consSF2D_mag.mult(ncellsinv);
             }
         }
 
@@ -1143,10 +1130,23 @@ void main_driver(const char* argv)
             }
 
             if (do_2D) {
-                    WritePlotFilesSF_2D(primSF2D_mag,primSF2D_realimag,geom_flat,step,time,
-                                       structFactPrimArray[0].get_names(),"plt_SF_prim_2D");
-                    WritePlotFilesSF_2D(consSF2D_mag,consSF2D_realimag,geom_flat,step,time,
-                                       structFactConsArray[0].get_names(),"plt_SF_cons_2D");
+                    
+                primSF2D_mag.setVal(0.0);
+                consSF2D_mag.setVal(0.0);
+                for (int i=0; i<n_cells[2]; ++i) {
+                    structFactPrimArray[i].AddToExternal(primSF2D_mag,primSF2D_realimag,geom_flat);
+                    structFactConsArray[i].AddToExternal(consSF2D_mag,consSF2D_realimag,geom_flat);
+                }
+                    
+                Real ncellsinv = 1.0/n_cells[2];
+                primSF2D_mag.mult(ncellsinv);
+                consSF2D_mag.mult(ncellsinv);
+
+                WritePlotFilesSF_2D(primSF2D_mag,primSF2D_realimag,geom_flat,step,time,
+                                    structFactPrimArray[0].get_names(),"plt_SF_prim_2D");
+                WritePlotFilesSF_2D(consSF2D_mag,consSF2D_realimag,geom_flat,step,time,
+                                    structFactConsArray[0].get_names(),"plt_SF_cons_2D");
+
             }
         }
         
