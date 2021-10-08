@@ -415,3 +415,48 @@ void ExtractSlice(const MultiFab& mf, MultiFab& mf_slice,
 
     mf_slice.ParallelCopy(mf, incomp, 0, ncomp);
 }
+
+void ExtractSliceI(const MultiFab& mf, MultiFab& mf_slice,
+                   const Geometry& geom, const int dir, const int slice,
+                   const int incomp, const int ncomp)
+{
+    BL_PROFILE_VAR("ExtractSliceI()",ExtractSliceI);
+
+    Box domain(geom.Domain());
+
+    // create BoxArray
+    IntVect dom_lo(domain.loVect());
+    IntVect dom_hi(domain.hiVect());
+    dom_lo[dir] = slice;
+    dom_hi[dir] = slice;
+
+    Box domain_slice(dom_lo, dom_hi);
+
+    Vector<int> max_grid_slice(AMREX_SPACEDIM);
+#if (AMREX_SPACEDIM == 2)
+    max_grid_slice[  dir] = 1;
+    max_grid_slice[1-dir] = max_grid_projection[0];
+#elif (AMREX_SPACEDIM == 3)
+    max_grid_slice[dir] = 1;
+    if (dir == 0) {
+        max_grid_slice[1] = max_grid_projection[0];
+        max_grid_slice[2] = max_grid_projection[1];
+    } else if (dir == 1) {
+        max_grid_slice[0] = max_grid_projection[0];
+        max_grid_slice[2] = max_grid_projection[1];
+    } else {
+        max_grid_slice[0] = max_grid_projection[0];
+        max_grid_slice[1] = max_grid_projection[1];
+    }
+#endif
+
+    BoxArray ba_slice(domain_slice);
+    ba_slice.maxSize(IntVect(max_grid_slice));
+
+    DistributionMapping dmap_slice(ba_slice);
+
+    mf_slice.define(ba_slice,dmap_slice,ncomp,0);
+
+    mf_slice.ParallelCopy(mf, incomp, 0, ncomp);
+}
+
