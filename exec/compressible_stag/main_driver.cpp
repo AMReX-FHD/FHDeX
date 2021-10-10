@@ -724,7 +724,7 @@ void main_driver(const char* argv)
         if (do_2D) { // 2D is coded only for XY plane
 
             prim.setVal(0.0);
-            ComputeVerticalAverage(prim, primVertAvg, geom, project_dir, 0, nprimvars);
+            ComputeVerticalAverage(prim, primVertAvg, geom, 2, 0, nprimvars);
             primVertAvgRot = RotateFlattenedMF(primVertAvg);
             BoxArray ba_flat = primVertAvgRot.boxArray();
             const DistributionMapping& dmap_flat = primVertAvg.DistributionMap();
