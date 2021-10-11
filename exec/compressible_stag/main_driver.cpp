@@ -1133,6 +1133,8 @@ void main_driver(const char* argv)
                     
                 primSF2D_mag.setVal(0.0);
                 consSF2D_mag.setVal(0.0);
+                primSF2D_realimag.setVal(0.0);
+                consSF2D_realimag.setVal(0.0);
                 for (int i=0; i<n_cells[2]; ++i) {
                     structFactPrimArray[i].AddToExternal(primSF2D_mag,primSF2D_realimag,geom_flat);
                     structFactConsArray[i].AddToExternal(consSF2D_mag,consSF2D_realimag,geom_flat);
@@ -1141,6 +1143,8 @@ void main_driver(const char* argv)
                 Real ncellsinv = 1.0/n_cells[2];
                 primSF2D_mag.mult(ncellsinv);
                 consSF2D_mag.mult(ncellsinv);
+                primSF2D_realimag.mult(ncellsinv);
+                consSF2D_realimag.mult(ncellsinv);
 
                 WritePlotFilesSF_2D(primSF2D_mag,primSF2D_realimag,geom_flat,step,time,
                                     structFactPrimArray[0].get_names(),"plt_SF_prim_2D");
