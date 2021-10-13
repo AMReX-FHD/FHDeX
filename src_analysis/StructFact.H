@@ -34,14 +34,6 @@ class StructFact {
     // Total number of states to average over, updated by FortStructure()
     int nsamples = 0;
 
-    // Vector containing running sums of real and imaginary components 
-    // of inner products (covariances) of DFTs
-    MultiFab cov_real;
-    MultiFab cov_imag;
-
-    // Vector of MultiFabs containing final magnitude of covariances
-    MultiFab cov_mag;
-
     // Vector containing covariance scaling
     Vector< Real > scaling;
 
@@ -56,6 +48,14 @@ class StructFact {
     amrex::Vector< int > var_u;
 
 public:
+
+    // Vector containing running sums of real and imaginary components
+    // of inner products (covariances) of DFTs
+    MultiFab cov_real;
+    MultiFab cov_imag;
+
+    // Vector of MultiFabs containing final magnitude of covariances
+    MultiFab cov_mag;
 
     StructFact();
     
