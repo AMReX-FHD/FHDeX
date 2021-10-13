@@ -294,6 +294,7 @@ void repulsive_force_wall (      FhdParticleContainer::ParticleType& part1,
 
     //note that we are adjusting eps for the different wall potential
     const Real drA = dr;
+    //const Real drA = dr+0.5*sig;
     const Real dr2A = drA*drA;
     const Real fac1 = std::pow((sig), 9);
     const Real fac2 = std::pow((sig), 3);
@@ -1100,6 +1101,10 @@ void spread_ions_fhd_gpu(FhdParticleContainer::AoS& aos,
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mob_interp_gpu(Real z, Real a, Real* tmob, Real* nmob, int sw)
 {
+
+    *tmob = 1;
+    *nmob = 1;
+    
     if(wall_mob==1)
     {
         //Single plane approximation
@@ -1212,6 +1217,8 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mob_interp_der_gpu(Real z, Real a, Real* tmobDer, Real* nmobDer, int sw)
 {
 
+    *nmobDer = 0;
+    *tmobDer = 0;
 
     if(wall_mob==1)
     {
@@ -1454,7 +1461,7 @@ void get_explicit_mobility_gpu(amrex::GpuArray<Real, 3>& mob, amrex::GpuArray<Re
     if((bc_vel_lo[2] == 2) && (bc_vel_hi[2] == 2))
     {
 
-       z = z = part.pos(2);;
+       z = part.pos(2);
 
        if(z > (phi[2]-plo[2])/2.0)
        {

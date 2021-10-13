@@ -48,6 +48,7 @@ namespace common {
 
     // Controls for number of steps between actions
     extern int                        max_step;
+    extern int                        ramp_step;
     extern int                        plot_int;
     extern int                        plot_stag;
     extern std::string                plot_base_name;
@@ -76,6 +77,7 @@ namespace common {
     extern AMREX_GPU_MANAGED amrex::Real variance_coef_mom;
     extern AMREX_GPU_MANAGED amrex::Real variance_coef_mass;
     extern AMREX_GPU_MANAGED amrex::Real k_B;
+    extern AMREX_GPU_MANAGED amrex::Real h_bar;
     extern AMREX_GPU_MANAGED amrex::Real Runiv;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> T_init;
 
@@ -192,8 +194,12 @@ namespace common {
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> potential_lo;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> potential_hi;
 
+    extern int                        n_burn;
     extern int                        dsmc_boundaries;
-    extern int                        phonon_sound_speed;
+    extern amrex::Real                phonon_sound_speed;
+    extern amrex::Real                tau_i;
+    extern amrex::Real                tau_la;
+    extern amrex::Real                tau_ta;
 
     // structure factor and radial/cartesian pair correlation function analysis
     extern int                        struct_fact_int;

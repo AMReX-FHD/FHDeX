@@ -35,6 +35,7 @@ amrex::Real                common::fixed_dt;
 amrex::Real                common::cfl;
 amrex::Real                common::rfd_delta;
 int                        common::max_step;
+int                        common::ramp_step;
 int                        common::plot_int;
 int                        common::plot_stag;
 std::string                common::plot_base_name;
@@ -60,6 +61,7 @@ AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::hcp;
 AMREX_GPU_MANAGED amrex::Real common::variance_coef_mom;
 AMREX_GPU_MANAGED amrex::Real common::variance_coef_mass;
 AMREX_GPU_MANAGED amrex::Real common::k_B;
+AMREX_GPU_MANAGED amrex::Real common::h_bar;
 AMREX_GPU_MANAGED amrex::Real common::Runiv;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::T_init;
 AMREX_GPU_MANAGED int      common::algorithm_type;
@@ -128,8 +130,13 @@ amrex::Vector<amrex::Real> common::wallspeed_hi;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::potential_lo;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::potential_hi;
 
+int                           common::n_burn;
+
 int                           common::dsmc_boundaries;
-int                           common::phonon_sound_speed;
+amrex::Real                   common::phonon_sound_speed;
+amrex::Real                   common::tau_ta;
+amrex::Real                   common::tau_la;
+amrex::Real                   common::tau_i;
 
 int                           common::struct_fact_int;
 int                           common::radialdist_int;
@@ -340,6 +347,7 @@ void InitializeCommonNamespace() {
 
     // Controls for number of steps between actions
     max_step = 1;
+    ramp_step = 0;
     plot_int = 0;
     plot_stag = 0;
     plot_base_name = "plt";
@@ -379,6 +387,7 @@ void InitializeCommonNamespace() {
     variance_coef_mom = 1.;
     variance_coef_mass = 1.;
     k_B = 1.38064852e-16;
+    h_bar = 1.0546e-27;
     Runiv = 8.314462175e7;
     for (int i=0; i<MAX_SPECIES; ++i) {
         T_init[i] = 1.;
@@ -472,7 +481,11 @@ void InitializeCommonNamespace() {
     }
 
     dsmc_boundaries = 0;
-    phonon_sound_speed = 3000;
+    n_burn = 1000;
+    phonon_sound_speed = 600000.0;
+    tau_i = 2.95e45;
+    tau_ta = 9.3e13;
+    tau_la = 2.0e24;
 
     // structure factor and radial/cartesian pair correlation function analysis
     struct_fact_int = 0;
@@ -629,6 +642,7 @@ void InitializeCommonNamespace() {
     pp.query("cfl",cfl);
     pp.query("rfd_delta",rfd_delta);
     pp.query("max_step",max_step);
+    pp.query("ramp_step",ramp_step);
     pp.query("plot_int",plot_int);
     pp.query("plot_stag",plot_stag);
     pp.query("plot_base_name",plot_base_name);
@@ -684,6 +698,7 @@ void InitializeCommonNamespace() {
     pp.query("variance_coef_mom",variance_coef_mom);
     pp.query("variance_coef_mass",variance_coef_mass);
     pp.query("k_B",k_B);
+    pp.query("h_bar",h_bar);
     pp.query("Runiv",Runiv);
     if (pp.queryarr("T_init",temp)) {
         for (int i=0; i<nspecies; ++i) {
@@ -868,7 +883,11 @@ void InitializeCommonNamespace() {
         }
     }
     pp.query("dsmc_boundaries",dsmc_boundaries);
+    pp.query("n_burn",n_burn);
     pp.query("phonon_sound_speed",phonon_sound_speed);
+    pp.query("tau_i",tau_i);
+    pp.query("tau_ta",tau_ta);
+    pp.query("tau_la",tau_la);
     pp.query("struct_fact_int",struct_fact_int);
     pp.query("radialdist_int",radialdist_int);
     pp.query("cartdist_int",cartdist_int);

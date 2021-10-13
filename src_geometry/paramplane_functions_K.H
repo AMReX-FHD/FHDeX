@@ -138,6 +138,26 @@ void randomhemisphere(Real costheta, Real sintheta, Real cosphi, Real sinphi, Re
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
+void randomSphere(Real *cx, Real *cy, Real *cz, amrex::RandomEngine const& engine)
+{
+    Real mag, costhetanew, sinthetanew, cosphinew, sinphinew, phi;
+
+    mag = sqrt((*cx)*(*cx) + (*cy)*(*cy) + (*cz)*(*cz));
+
+    costhetanew = 2.0*amrex::Random(engine)-1.0;
+    sinthetanew = sqrt(1.0 - costhetanew*costhetanew);
+
+    phi = amrex::Random(engine)*2.0*M_PI;
+
+    cosphinew = cos(phi);
+    sinphinew = sin(phi);
+
+    *cx = mag*sinthetanew*cosphinew;
+    *cy = mag*sinthetanew*sinphinew;
+    *cz = mag*costhetanew;
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void cosineLawHemisphere(Real costheta, Real sintheta, Real cosphi, Real sinphi, Real *cx, Real *cy, Real *cz, Real mag, amrex::RandomEngine const& engine)
 {
     Real costhetanew, sinthetanew, cosphinew, sinphinew, phi;
@@ -159,6 +179,40 @@ void cosineLawHemisphere(Real costheta, Real sintheta, Real cosphi, Real sinphi,
     rotation(costheta, sintheta, cosphi, sinphi, cx, cy, cz);
 }
 
+
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
+Real pn(int n)
+{
+    return 90.0/pow(M_PI*n,4);
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
+Real erlang4Dist(int n, Real temp, amrex::RandomEngine const& engine)
+{
+    return -log(amrex::Random(engine)*amrex::Random(engine)*amrex::Random(engine)*amrex::Random(engine))*k_B*temp/(h_bar*n);
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
+Real plankDist(Real temp, amrex::RandomEngine const& engine)
+{
+    Real sample = 360*k_B*temp*1.037/(h_bar*pow(M_PI,4));//Mean value incase sampling fails
+    
+    Real pnTotal = 0;
+    Real test = amrex::Random(engine);
+    
+    for(int n=1;n<=50;n++)
+    {
+        pnTotal = pnTotal + pn(n);
+        if(test < pnTotal)
+        {
+            sample = erlang4Dist(n, temp, engine);
+            break;
+        }
+    }
+    
+    return sample;
+}
+
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void app_bc_gpu(const paramPlane* surf, FhdParticleContainer::ParticleType& part, int intside, Real* domsize, int *push, Real *runtime, Real inttime, amrex::RandomEngine const& engine)
 {
@@ -176,11 +230,16 @@ void app_bc_gpu(const paramPlane* surf, FhdParticleContainer::ParticleType& part
 
         if(amrex::Random(engine) < surf->specularityRight)
         {
+//          cout << "SPECULAR COLLISION\n";
+//          cout << "PREVEL: " << part.rdata(FHD_realData::velx) << ", " << part.rdata(FHD_realData::vely) << ", " << part.rdata(FHD_realData::velz) << endl;
+
           Real dotprod = part.rdata(FHD_realData::velx)*surf->rnx + part.rdata(FHD_realData::vely)*surf->rny
           	+ part.rdata(FHD_realData::velz)*surf->rnz;
           part.rdata(FHD_realData::velx) = -2.0*dotprod*surf->rnx + part.rdata(FHD_realData::velx);
           part.rdata(FHD_realData::vely) = -2.0*dotprod*surf->rny + part.rdata(FHD_realData::vely);
           part.rdata(FHD_realData::velz) = -2.0*dotprod*surf->rnz + part.rdata(FHD_realData::velz);
+ //                   cout << "POSTVEL: " << part.rdata(FHD_realData::velx) << ", " << part.rdata(FHD_realData::vely) << ", " << part.rdata(FHD_realData::velz) << endl;
+                              //exit(1);
         }
         else
         {
@@ -253,12 +312,16 @@ void app_bc_gpu(const paramPlane* surf, FhdParticleContainer::ParticleType& part
 
         if(amrex::Random(engine) < surf->specularityLeft)
         {
+//          cout << "SPECULAR COLLISION\n";
+//                    cout << "PREVEL: " << part.rdata(FHD_realData::velx) << ", " << part.rdata(FHD_realData::vely) << ", " << part.rdata(FHD_realData::velz) << endl;
+
           Real dotprod = part.rdata(FHD_realData::velx)*surf->lnx + part.rdata(FHD_realData::vely)*surf->lny
           	+ part.rdata(FHD_realData::velz)*surf->lnz;
 
           part.rdata(FHD_realData::velx) = -2.0*dotprod*surf->lnx + part.rdata(FHD_realData::velx);
           part.rdata(FHD_realData::vely) = -2.0*dotprod*surf->lny + part.rdata(FHD_realData::vely);
           part.rdata(FHD_realData::velz) = -2.0*dotprod*surf->lnz + part.rdata(FHD_realData::velz);
+//                    cout << "POSTVEL: " << part.rdata(FHD_realData::velx) << ", " << part.rdata(FHD_realData::vely) << ", " << part.rdata(FHD_realData::velz) << endl;
         }
         else
         {
@@ -326,11 +389,19 @@ void app_bc_gpu(const paramPlane* surf, FhdParticleContainer::ParticleType& part
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
-void app_bc_phonon_gpu(const paramPlane* surf, FhdParticleContainer::ParticleType& part, int intside, Real* domsize, int *push, Real *runtime, Real inttime, amrex::RandomEngine const& engine)
+void app_bc_phonon_gpu(const paramPlane* surf, FhdParticleContainer::ParticleType& part, int intside, Real* domsize, int *push, Real *runtime, const int step, int *count, int *specCount, amrex::RandomEngine const& engine)
 {
 
     if(intside == 1)
     {
+      if(amrex::Random(engine) < surf->momentumConsRight)
+      {
+           std::string plotfilename = std::to_string(surf->boundary) + "_" + std::to_string(ParallelDescriptor::MyProc()) + amrex::Concatenate("_particles_right_",step,12);
+           std::ofstream ofs(plotfilename, std::ios::app);
+           ofs << part.pos(0) << " " << part.pos(1) << " " << part.pos(2) << " " << part.rdata(FHD_realData::velx) << " " << part.rdata(FHD_realData::vely) << " " << part.rdata(FHD_realData::velz) << " " << part.rdata(FHD_realData::omega) << std::endl;
+           ofs.close();
+      }    
+      
       if(amrex::Random(engine) < surf->sinkRight)
       {
         *runtime = 0;
@@ -341,15 +412,25 @@ void app_bc_phonon_gpu(const paramPlane* surf, FhdParticleContainer::ParticleTyp
       {
         *push = 0;
 
+        (*count)++;
         Real dotprod = part.rdata(FHD_realData::velx)*surf->rnx + part.rdata(FHD_realData::vely)*surf->rny + part.rdata(FHD_realData::velz)*surf->rnz;
         Real speed = sqrt(part.rdata(FHD_realData::velx)*part.rdata(FHD_realData::velx)+part.rdata(FHD_realData::vely)*part.rdata(FHD_realData::vely)+part.rdata(FHD_realData::velz)*part.rdata(FHD_realData::velz));
         Real cosAlpha = dotprod/speed;
 
         Real probSpec = exp(-16*M_PI*M_PI*surf->specularityRight*surf->specularityRight*cosAlpha*cosAlpha/(part.rdata(FHD_realData::lambda)*part.rdata(FHD_realData::lambda)));
         
+        //cout << "SPEC " << surf->boundary << ": " << part.id() << ", " << surf->specularityRight << ", " << part.rdata(FHD_realData::lambda) << ", " << probSpec << endl;
+        
         if(amrex::Random(engine) < probSpec)
         {
             //Specular
+          (*specCount)++;
+          Real dotprod = part.rdata(FHD_realData::velx)*surf->rnx + part.rdata(FHD_realData::vely)*surf->rny
+          	+ part.rdata(FHD_realData::velz)*surf->rnz;
+
+          part.rdata(FHD_realData::velx) = -2.0*dotprod*surf->rnx + part.rdata(FHD_realData::velx);
+          part.rdata(FHD_realData::vely) = -2.0*dotprod*surf->rny + part.rdata(FHD_realData::vely);
+          part.rdata(FHD_realData::velz) = -2.0*dotprod*surf->rnz + part.rdata(FHD_realData::velz);
         
         }else
         {
@@ -393,21 +474,20 @@ void app_bc_phonon_gpu(const paramPlane* surf, FhdParticleContainer::ParticleTyp
       else
       {
         *push = 1;
-        if(amrex::Random(engine) > surf->momentumConsRight)
-        {
-          //Is this using the wrong side?
-          randomhemisphere(surf->cosThetaRight, surf->sinThetaRight,
-          surf->cosPhiRight, surf->sinPhiRight,
-          &part.rdata(FHD_realData::velx),&part.rdata(FHD_realData::vely), &part.rdata(FHD_realData::velz),
-          engine);
-        }
       }
+
 
     }
     // Left boundary
     else
     {
-
+      if(amrex::Random(engine) < surf->momentumConsLeft)
+      {
+           std::string plotfilename = std::to_string(surf->boundary) + "_" + std::to_string(ParallelDescriptor::MyProc()) + amrex::Concatenate("_particles_left_",step,12);
+           std::ofstream ofs(plotfilename, std::ios::app);
+           ofs << part.pos(0) << " " << part.pos(1) << " " << part.pos(2) << " " << part.rdata(FHD_realData::velx) << " " << part.rdata(FHD_realData::vely) << " " << part.rdata(FHD_realData::velz) << " " << part.rdata(FHD_realData::omega) << std::endl;
+           ofs.close();
+      }    
       if(amrex::Random(engine) < surf->sinkLeft)
       {
         *runtime = 0;
@@ -416,8 +496,7 @@ void app_bc_phonon_gpu(const paramPlane* surf, FhdParticleContainer::ParticleTyp
       else if(amrex::Random(engine) > surf->porosityLeft)
       {
         *push = 0;
-
-
+        (*count)++;
         Real dotprod = part.rdata(FHD_realData::velx)*surf->lnx + part.rdata(FHD_realData::vely)*surf->lny + part.rdata(FHD_realData::velz)*surf->lnz;
         Real speed = sqrt(part.rdata(FHD_realData::velx)*part.rdata(FHD_realData::velx)+part.rdata(FHD_realData::vely)*part.rdata(FHD_realData::vely)+part.rdata(FHD_realData::velz)*part.rdata(FHD_realData::velz));
         Real cosAlpha = dotprod/speed;
@@ -427,6 +506,13 @@ void app_bc_phonon_gpu(const paramPlane* surf, FhdParticleContainer::ParticleTyp
         if(amrex::Random(engine) < probSpec)
         {
             //Specular
+          (*specCount)++;
+          Real dotprod = part.rdata(FHD_realData::velx)*surf->lnx + part.rdata(FHD_realData::vely)*surf->lny
+          	+ part.rdata(FHD_realData::velz)*surf->lnz;
+
+          part.rdata(FHD_realData::velx) = -2.0*dotprod*surf->lnx + part.rdata(FHD_realData::velx);
+          part.rdata(FHD_realData::vely) = -2.0*dotprod*surf->lny + part.rdata(FHD_realData::vely);
+          part.rdata(FHD_realData::velz) = -2.0*dotprod*surf->lnz + part.rdata(FHD_realData::velz);
         
         }else
         {
@@ -471,16 +557,9 @@ void app_bc_phonon_gpu(const paramPlane* surf, FhdParticleContainer::ParticleTyp
       else
       {
         *push = 1;
-        if(amrex::Random(engine) > surf->momentumConsLeft)
-        {
-          //Is this using the wrong side?
-          randomhemisphere(surf->cosThetaRight, surf->sinThetaRight,
-          	surf->cosPhiRight, surf->sinPhiRight,
-          	&part.rdata(FHD_realData::velx), &part.rdata(FHD_realData::vely), &part.rdata(FHD_realData::velz),
-          	engine);
-        }
       }
    }
+   
 
 }
 
