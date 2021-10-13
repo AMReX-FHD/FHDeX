@@ -922,12 +922,19 @@ void main_driver(const char* argv)
     remove("bulkFlowEst");
     //Time stepping loop
 
-    if(ramp_step==1){
+
+
+    if(ramp_step==2){
+        dt = dt*1e-7;
+
+    }else if(ramp_step==1){
         dt = dt*1e-6;
+
     }else{
         dt = dt*1e-5;
     }
         
+    
 
     particles.initRankLists(simParticles);
 
@@ -939,7 +946,144 @@ void main_driver(const char* argv)
 
         // timer for time step
         Real time1 = ParallelDescriptor::second();
-        if(ramp_step==1)
+        
+        if(ramp_step==2)
+        {
+            if(istep == 50)
+            {
+                    dt = dt*2;
+                    
+                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+            }
+            
+            if(istep == 100)
+            {
+                    dt = dt*2;
+                    
+                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+            }
+
+            if(istep == 150)
+            {
+                    dt = dt*2;
+                    
+                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+            }
+
+
+            if(istep == 200)
+            {
+                    dt = dt*2;
+                    
+                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+            }
+
+            if(istep == 250)
+            {
+                    dt = dt*2;
+                    
+                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+            }
+
+            if(istep == 300)
+            {
+                    dt = dt*2;
+                    
+                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+            }
+            if(istep == 350)
+            {
+                    dt = dt*2;
+                    
+                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+            }
+
+            if(istep == 400)
+            {
+                    dt = dt*sqrt(5);
+                    
+                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+
+            }
+            
+            if(istep == 500)
+            {
+                    dt = dt*sqrt(5);
+                    
+                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+
+            }
+
+            if(istep == 600)
+            {
+                    dt = dt*sqrt(5);
+                    
+                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+
+            }
+
+            if(istep == 700)
+            {
+                    dt = dt*sqrt(5);
+                    
+                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+
+            }
+
+            if(istep == 800)
+            {
+                    dt = dt*sqrt(5);
+                    
+                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+            }
+
+            if(istep == 900)
+            {
+                    dt = dt*sqrt(5);
+                    
+                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+            }
+            if(istep == 1000)
+            {
+                    dt = dt*sqrt(5);
+                    
+                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+            }
+            if(istep == 1100)
+            {
+                    dt = dt*sqrt(5);
+                    
+                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+            }
+            
+            if(istep == 1200)
+            {
+                    dt = dt*sqrt(5);
+                    
+                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+            }if(istep == 1300)
+            {
+                    dt = dt*sqrt(5);
+                    
+                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+            }if(istep == 1400)
+            {
+                    dt = dt*sqrt(5);
+                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+            }if(istep == 1500)
+            {
+                    dt = dt*sqrt(5);
+                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+            }if(istep == 1600)
+            {
+                    dt = dt*sqrt(5);
+                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+            }if(istep == 1700)
+            {
+                    dt = dt*sqrt(5);
+                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+            }
+        }else if(ramp_step==1)
         {
             if(istep == 20)
             {
@@ -982,12 +1126,14 @@ void main_driver(const char* argv)
             {
                     dt = dt*5;
                     Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+
             }
             
             if(istep == 480)
             {
                     dt = dt*2;
                     Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+
             }
 
 
@@ -995,12 +1141,14 @@ void main_driver(const char* argv)
             {
                     dt = dt*5;
                     Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+
             }
 
             if(istep == 640)
             {
                     dt = dt*2;
                     Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+
             }
 
             if(istep == 720)
