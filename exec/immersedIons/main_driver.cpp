@@ -478,7 +478,6 @@ void main_driver(const char* argv)
                // std::cout << "Species " << i << " radius: " << ionParticle[i].d << std::endl;
 
             // compute wet diffusion from wetRad
-            Print() << "WETRAD: " << wetRad[i] << endl;
             ionParticle[i].wetDiff = (k_B*T_init[0])/(6*M_PI*wetRad[i]*visc_coef);
 
             if (all_dry == 1) {
@@ -788,7 +787,7 @@ void main_driver(const char* argv)
 
     if (restart < 0 && particle_restart < 0) {
         // create particles
-        if (sr_tog == 4) {
+        if (false) {
             //particles.InitParticlesFromFile(ionParticle, dxp);
         }
         else {

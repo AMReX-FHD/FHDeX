@@ -171,6 +171,15 @@ struct FHD_realDataLW {
 };
 
 
+typedef struct {
+
+    Real x;
+    Real y;
+    Real z;
+
+} Triplet;
+
+
 class FhdParIter
     : public IBMarIterBase<FHD_realData::count, FHD_intData::count>
 {
@@ -378,6 +387,12 @@ public:
     Real threepmMin[50];
     Real threepmPoints[50]; 
     Real threepmRange = 5; 
+    
+    int bottomListLength;
+    int topListLength;
+    
+    Triplet* bottomList;
+    Triplet* topList;
 
   //protected:
 
