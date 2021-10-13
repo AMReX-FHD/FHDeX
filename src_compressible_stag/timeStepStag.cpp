@@ -347,6 +347,7 @@ void RK3stepStag(MultiFab& cu,
 
     // Set the correct momentum at the walls and ghost 
     for (int i=0; i<AMREX_SPACEDIM; i++) {
+        BCMassTempPress(prim, cup, geom, i);
         BCMomNormal(cupmom[i], vel[i], cup, geom, i);
         BCMomTrans(cupmom[i], vel[i], geom, i);
     }
@@ -509,6 +510,7 @@ void RK3stepStag(MultiFab& cu,
         
     // Set the correct momentum at the walls 
     for (int i=0; i<AMREX_SPACEDIM; i++) {
+        BCMassTempPress(prim, cup2, geom, i);
         BCMomNormal(cup2mom[i], vel[i], cup2, geom, i);
         BCMomTrans(cup2mom[i], vel[i], geom, i);
     }
@@ -667,6 +669,7 @@ void RK3stepStag(MultiFab& cu,
 
     // Set the correct momentum at the walls 
     for (int i=0; i<AMREX_SPACEDIM; i++) {
+        BCMassTempPress(prim, cu, geom, i);
         BCMomNormal(cumom[i], vel[i], cu, geom, i);
         BCMomTrans(cumom[i], vel[i], geom, i);
     }
