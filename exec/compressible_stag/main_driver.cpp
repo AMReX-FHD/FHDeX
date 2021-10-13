@@ -400,7 +400,7 @@ void main_driver(const char* argv)
             ComputeVerticalAverage(prim_temp, primVertAvg, geom, project_dir, 0, nprimvars);
             primVertAvgRot = RotateFlattenedMF(primVertAvg);
             BoxArray ba_flat = primVertAvgRot.boxArray();
-            const DistributionMapping& dmap_flat = primVertAvg.DistributionMap();
+            const DistributionMapping& dmap_flat = primVertAvgRot.DistributionMap();
             {
                 IntVect dom_lo_flat(AMREX_D_DECL(0,0,0));
                 IntVect dom_hi_flat;
@@ -651,7 +651,7 @@ void main_driver(const char* argv)
             ComputeVerticalAverage(prim, primVertAvg, geom, project_dir, 0, nprimvars);
             primVertAvgRot = RotateFlattenedMF(primVertAvg);
             BoxArray ba_flat = primVertAvgRot.boxArray();
-            const DistributionMapping& dmap_flat = primVertAvg.DistributionMap();
+            const DistributionMapping& dmap_flat = primVertAvgRot.DistributionMap();
             {
                 IntVect dom_lo_flat(AMREX_D_DECL(0,0,0));
                 IntVect dom_hi_flat;
