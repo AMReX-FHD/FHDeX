@@ -346,7 +346,7 @@ void main_driver(const char* argv)
       if (slicepoint < 0) {
           ComputeVerticalAverage(prim, primFlattened, geom, project_dir, 0, structVarsPrim);
       } else {
-          ExtractSlice(prim, primFlattened, geom, project_dir, 0, structVarsPrim);
+          ExtractSlice(prim, primFlattened, geom, project_dir, slicepoint, 0, structVarsPrim);
       }
       // we rotate this flattened MultiFab to have normal in the z-direction since
       // our structure factor class assumes this for flattened
@@ -623,7 +623,7 @@ void main_driver(const char* argv)
                 if (slicepoint < 0) {
                     ComputeVerticalAverage(prim, primFlattened, geom, project_dir, 0, structVarsPrim);
                 } else {
-                    ExtractSlice(prim, primFlattened, geom, project_dir, 0, structVarsPrim);
+                    ExtractSlice(prim, primFlattened, geom, project_dir, slicepoint, 0, structVarsPrim);
                 }
                 // we rotate this flattened MultiFab to have normal in the z-direction since
                 // our structure factor class assumes this for flattened
