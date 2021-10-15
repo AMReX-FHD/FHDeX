@@ -190,35 +190,27 @@ void main_driver(const char* argv)
     // Structure factor for 2D averaged data
     StructFact structFactPrimVerticalAverage;
     StructFact structFactConsVerticalAverage;
-    MultiFab primVertAvg;
-    MultiFab consVertAvg;
-    MultiFab prim_temp;
-    MultiFab primVertAvgRot;
-    MultiFab consVertAvgRot;
 
     // Structure factor for 2D averaged data (across a membrane)
     StructFact structFactPrimVerticalAverage0;
     StructFact structFactPrimVerticalAverage1;
     StructFact structFactConsVerticalAverage0;
     StructFact structFactConsVerticalAverage1;
-    MultiFab primVertAvg0;
-    MultiFab primVertAvg1;
-    MultiFab consVertAvg0;
-    MultiFab consVertAvg1;
-    MultiFab primVertAvgRot0;
-    MultiFab primVertAvgRot1;
-    MultiFab consVertAvgRot0;
-    MultiFab consVertAvgRot1;
+    MultiFab master_project_rot_prim;
+    MultiFab master_project_rot_cons;
 
     // Vector of structure factors for 2D simulation
     Vector < StructFact > structFactPrimArray;
     Vector < StructFact > structFactConsArray;
-    MultiFab primSF2D_mag;
-    MultiFab primSF2D_realimag;
-    MultiFab consSF2D_mag;
-    MultiFab consSF2D_realimag;
+    MultiFab master_2D_rot_prim;
+    MultiFab master_2D_rot_cons;
     
     Geometry geom_flat;
+    Geometry geom_flat_2D;
+    BoxArray ba_flat;
+    BoxArray ba_flat_2D;
+    DistributionMapping dmap_flat;
+    DistributionMapping dmap_flat_2D;
 
     // "primitive" variable structure factor will contain
     // rho
@@ -394,14 +386,16 @@ void main_driver(const char* argv)
         // structure factor class for vertically-averaged dataset
         if (project_dir >= 0) {
 
-            // need a more elegant way of doing this
-            prim_temp.define(ba,dmap,nprimvars,ngc);
-            prim_temp.setVal(0.0);
-            ComputeVerticalAverage(prim_temp, primVertAvg, geom, project_dir, 0, nprimvars);
-            primVertAvgRot = RotateFlattenedMF(primVertAvg);
-            BoxArray ba_flat = primVertAvgRot.boxArray();
-            const DistributionMapping& dmap_flat = primVertAvgRot.DistributionMap();
+
             {
+                MultiFab X, XRot;
+                ComputeVerticalAverage(prim, X, geom, project_dir, 0, nprimvars);
+                XRot = RotateFlattenedMF(X);
+                ba_flat = XRot.boxArray();
+                dmap_flat = XRot.DistributionMap();
+                master_project_rot_prim.define(ba_flat,dmap_flat,0,structVarsPrim);
+                master_project_rot_cons.define(ba_flat,dmap_flat,0,structVarsCons);
+
                 IntVect dom_lo_flat(AMREX_D_DECL(0,0,0));
                 IntVect dom_hi_flat;
 #if (AMREX_SPACEDIM == 2)
@@ -455,9 +449,11 @@ void main_driver(const char* argv)
           
                 // This defines a Geometry object
                 geom_flat.define(domain_flat,&real_box_flat,CoordSys::cartesian,is_periodic.data());
+
                 amrex::Print() << "nx, ny, nz:\t" << ba_flat[0].size()[0] << ", " << ba_flat[0].size()[1]  << ", " << ba_flat[0].size()[2] << std::endl;
                 amrex::Print() << "Lx, Ly, Lz:\t" << domain_flat.length(0)  << ", " << domain_flat.length(1)  << ", " << domain_flat.length(2) << std::endl;
-                amrex::Print() << "nbx, nby, nbz:\t" << domain_flat.length(0)/ba_flat[0].size()[0] << ", " << domain_flat.length(1)/ba_flat[0].size()[1]  << ", " << domain_flat.length(2)/ba_flat[0].size()[2] << std::endl;
+                amrex::Print() << "nbx, nby, nbz:\t" << domain_flat.length(0)/ba_flat[0].size()[0] << ", " << domain_flat.length(1)/ba_flat[0].size()[1]  << ", " 
+                               << domain_flat.length(2)/ba_flat[0].size()[2] << std::endl;
             }
 
             if (do_slab_sf == 0) {
@@ -475,48 +471,49 @@ void main_driver(const char* argv)
 
         if (do_2D) { // 2D is coded only for XY plane
 
-            prim_temp.define(ba,dmap,nprimvars,ngc);
-            prim_temp.setVal(0.0);
-            ComputeVerticalAverage(prim_temp, primVertAvg, geom, 2, 0, nprimvars);
-            primVertAvgRot = RotateFlattenedMF(primVertAvg);
-            BoxArray ba_flat = primVertAvgRot.boxArray();
-            const DistributionMapping& dmap_flat = primVertAvg.DistributionMap();
-            IntVect dom_lo_flat(AMREX_D_DECL(0,0,0));
-            IntVect dom_hi_flat;
-            dom_hi_flat[0] = n_cells[0]-1;
-            dom_hi_flat[1] = n_cells[1]-1;
-            dom_hi_flat[2] = 0;
-            Box domain_flat(dom_lo_flat, dom_hi_flat);
+            {
+                MultiFab X, XRot;
+                ExtractSliceI(prim, X, geom, 2, 0, 0, nprimvars);
+                XRot = RotateFlattenedMF(X);
+                ba_flat_2D = XRot.boxArray();
+                dmap_flat_2D = XRot.DistributionMap();
+                master_2D_rot_prim.define(ba_flat_2D,dmap_flat_2D,0,structVarsPrim);
+                master_2D_rot_cons.define(ba_flat_2D,dmap_flat_2D,0,structVarsCons);
 
-            // This defines the physical box
-            Vector<Real> projected_hi(AMREX_SPACEDIM);
-            for (int d=0; d<AMREX_SPACEDIM; d++) {
-                projected_hi[d] = prob_hi[d];
-            }
-            projected_hi[AMREX_SPACEDIM-1] = prob_hi[2] / n_cells[2];
+                IntVect dom_lo_flat(AMREX_D_DECL(0,0,0));
+                IntVect dom_hi_flat;
+                dom_hi_flat[0] = n_cells[0]-1;
+                dom_hi_flat[1] = n_cells[1]-1;
+                dom_hi_flat[2] = 0;
+                Box domain_flat(dom_lo_flat, dom_hi_flat);
 
-            RealBox real_box_flat({AMREX_D_DECL(     prob_lo[0],     prob_lo[1],     prob_lo[2])},
-                             {AMREX_D_DECL(projected_hi[0],projected_hi[1],projected_hi[2])});
+                // This defines the physical box
+                Vector<Real> projected_hi(AMREX_SPACEDIM);
+                for (int d=0; d<AMREX_SPACEDIM; d++) {
+                    projected_hi[d] = prob_hi[d];
+                }
+                projected_hi[AMREX_SPACEDIM-1] = prob_hi[2] / n_cells[2];
+
+                RealBox real_box_flat({AMREX_D_DECL(     prob_lo[0],     prob_lo[1],     prob_lo[2])},
+                                 {AMREX_D_DECL(projected_hi[0],projected_hi[1],projected_hi[2])});
           
-            // This defines a Geometry object
-            geom_flat.define(domain_flat,&real_box_flat,CoordSys::cartesian,is_periodic.data());
-            amrex::Print() << "nx, ny, nz:\t" << ba_flat[0].size()[0] << ", " << ba_flat[0].size()[1]  << ", " << ba_flat[0].size()[2] << std::endl;
-            amrex::Print() << "Lx, Ly, Lz:\t" << domain_flat.length(0)  << ", " << domain_flat.length(1)  << ", " << domain_flat.length(2) << std::endl;
-            amrex::Print() << "nbx, nby, nbz:\t" << domain_flat.length(0)/ba_flat[0].size()[0] << ", " << domain_flat.length(1)/ba_flat[0].size()[1]  << ", " 
+                // This defines a Geometry object
+                geom_flat.define(domain_flat,&real_box_flat,CoordSys::cartesian,is_periodic.data());
+
+                amrex::Print() << "nx, ny, nz:\t" << ba_flat[0].size()[0] << ", " << ba_flat[0].size()[1]  << ", " << ba_flat[0].size()[2] << std::endl;
+                amrex::Print() << "Lx, Ly, Lz:\t" << domain_flat.length(0)  << ", " << domain_flat.length(1)  << ", " << domain_flat.length(2) << std::endl;
+                amrex::Print() << "nbx, nby, nbz:\t" << domain_flat.length(0)/ba_flat[0].size()[0] << ", " << domain_flat.length(1)/ba_flat[0].size()[1]  << ", " 
                            << domain_flat.length(2)/ba_flat[0].size()[2] << std::endl;
+            }
 
             structFactPrimArray.resize(n_cells[2]);
             structFactConsArray.resize(n_cells[2]);
 
             for (int i = 0; i < n_cells[2]; ++i) { 
-                structFactPrimArray[i].define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim,2);
-                structFactConsArray[i].define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons,2);
+                structFactPrimArray[i].define(ba_flat_2D,dmap_flat_2D,prim_var_names,var_scaling_prim,2);
+                structFactConsArray[i].define(ba_flat_2D,dmap_flat_2D,cons_var_names,var_scaling_cons,2);
             }
 
-            primSF2D_mag.define(ba_flat,dmap_flat,structFactPrimArray[0].get_ncov(),0);
-            primSF2D_realimag.define(ba_flat,dmap_flat,2*structFactPrimArray[0].get_ncov(),0);
-            consSF2D_mag.define(ba_flat,dmap_flat,structFactConsArray[0].get_ncov(),0);
-            consSF2D_realimag.define(ba_flat,dmap_flat,2*structFactConsArray[0].get_ncov(),0);
 
         }
 
@@ -647,12 +644,15 @@ void main_driver(const char* argv)
         // structure factor class for vertically-averaged dataset
         if (project_dir >= 0) {
 
-            prim.setVal(0.0);
-            ComputeVerticalAverage(prim, primVertAvg, geom, project_dir, 0, nprimvars);
-            primVertAvgRot = RotateFlattenedMF(primVertAvg);
-            BoxArray ba_flat = primVertAvgRot.boxArray();
-            const DistributionMapping& dmap_flat = primVertAvgRot.DistributionMap();
             {
+                MultiFab X, XRot;
+                ComputeVerticalAverage(prim, X, geom, project_dir, 0, nprimvars);
+                XRot = RotateFlattenedMF(X);
+                ba_flat = XRot.boxArray();
+                dmap_flat = XRot.DistributionMap();
+                master_project_rot_prim.define(ba_flat,dmap_flat,0,structVarsPrim);
+                master_project_rot_cons.define(ba_flat,dmap_flat,0,structVarsCons);
+
                 IntVect dom_lo_flat(AMREX_D_DECL(0,0,0));
                 IntVect dom_hi_flat;
 #if (AMREX_SPACEDIM == 2)
@@ -706,6 +706,7 @@ void main_driver(const char* argv)
           
                 // This defines a Geometry object
                 geom_flat.define(domain_flat,&real_box_flat,CoordSys::cartesian,is_periodic.data());
+
             }
 
             if (do_slab_sf == 0) {
@@ -723,43 +724,44 @@ void main_driver(const char* argv)
 
         if (do_2D) { // 2D is coded only for XY plane
 
-            prim.setVal(0.0);
-            ComputeVerticalAverage(prim, primVertAvg, geom, 2, 0, nprimvars);
-            primVertAvgRot = RotateFlattenedMF(primVertAvg);
-            BoxArray ba_flat = primVertAvgRot.boxArray();
-            const DistributionMapping& dmap_flat = primVertAvg.DistributionMap();
-            IntVect dom_lo_flat(AMREX_D_DECL(0,0,0));
-            IntVect dom_hi_flat;
-            dom_hi_flat[0] = n_cells[0]-1;
-            dom_hi_flat[1] = n_cells[1]-1;
-            dom_hi_flat[2] = 0;
-            Box domain_flat(dom_lo_flat, dom_hi_flat);
+            {
+                MultiFab X, XRot;
+                ExtractSliceI(prim, X, geom, 2, 0, 0, nprimvars);
+                XRot = RotateFlattenedMF(X);
+                ba_flat_2D = XRot.boxArray();
+                dmap_flat_2D = XRot.DistributionMap();
+                master_2D_rot_prim.define(ba_flat_2D,dmap_flat_2D,0,structVarsPrim);
+                master_2D_rot_cons.define(ba_flat_2D,dmap_flat_2D,0,structVarsCons);
 
-            // This defines the physical box
-            Vector<Real> projected_hi(AMREX_SPACEDIM);
-            for (int d=0; d<AMREX_SPACEDIM; d++) {
-                projected_hi[d] = prob_hi[d];
-            }
-            projected_hi[AMREX_SPACEDIM-1] = prob_hi[2] / n_cells[2];
+                IntVect dom_lo_flat(AMREX_D_DECL(0,0,0));
+                IntVect dom_hi_flat;
+                dom_hi_flat[0] = n_cells[0]-1;
+                dom_hi_flat[1] = n_cells[1]-1;
+                dom_hi_flat[2] = 0;
+                Box domain_flat(dom_lo_flat, dom_hi_flat);
 
-            RealBox real_box_flat({AMREX_D_DECL(     prob_lo[0],     prob_lo[1],     prob_lo[2])},
-                             {AMREX_D_DECL(projected_hi[0],projected_hi[1],projected_hi[2])});
+                // This defines the physical box
+                Vector<Real> projected_hi(AMREX_SPACEDIM);
+                for (int d=0; d<AMREX_SPACEDIM; d++) {
+                    projected_hi[d] = prob_hi[d];
+                }
+                projected_hi[AMREX_SPACEDIM-1] = prob_hi[2] / n_cells[2];
+
+                RealBox real_box_flat({AMREX_D_DECL(     prob_lo[0],     prob_lo[1],     prob_lo[2])},
+                                 {AMREX_D_DECL(projected_hi[0],projected_hi[1],projected_hi[2])});
           
-            // This defines a Geometry object
-            geom_flat.define(domain_flat,&real_box_flat,CoordSys::cartesian,is_periodic.data());
+                // This defines a Geometry object
+                geom_flat.define(domain_flat,&real_box_flat,CoordSys::cartesian,is_periodic.data());
+
+            }
 
             structFactPrimArray.resize(n_cells[2]);
             structFactConsArray.resize(n_cells[2]);
 
             for (int i = 0; i < n_cells[2]; ++i) { 
-                structFactPrimArray[i].define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim,2);
-                structFactConsArray[i].define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons,2);
+                structFactPrimArray[i].define(ba_flat_2D,dmap_flat_2D,prim_var_names,var_scaling_prim,2);
+                structFactConsArray[i].define(ba_flat_2D,dmap_flat_2D,cons_var_names,var_scaling_cons,2);
             }
-
-            primSF2D_mag.define(ba_flat,dmap_flat,structFactPrimArray[0].get_ncov(),0);
-            primSF2D_realimag.define(ba_flat,dmap_flat,2*structFactPrimArray[0].get_ncov(),0);
-            consSF2D_mag.define(ba_flat,dmap_flat,structFactConsArray[0].get_ncov(),0);
-            consSF2D_realimag.define(ba_flat,dmap_flat,2*structFactConsArray[0].get_ncov(),0);
 
         }
 
@@ -1070,38 +1072,94 @@ void main_driver(const char* argv)
             }
 
             if (project_dir >= 0) {
+
                 if (do_slab_sf == 0) {
-                    ComputeVerticalAverage(structFactPrimMF, primVertAvg, geom, project_dir, 0, structVarsPrim);
-                    ComputeVerticalAverage(structFactConsMF, consVertAvg, geom, project_dir, 0, structVarsCons);
-                    primVertAvgRot = RotateFlattenedMF(primVertAvg);
-                    consVertAvgRot = RotateFlattenedMF(consVertAvg);
-                    structFactPrimVerticalAverage.FortStructure(primVertAvgRot,geom_flat);
-                    structFactConsVerticalAverage.FortStructure(consVertAvgRot,geom_flat);
+                    
+                    {
+                        MultiFab X, XRot;
+
+                        ComputeVerticalAverage(structFactPrimMF, X, geom, project_dir, 0, structVarsPrim);
+                        XRot = RotateFlattenedMF(X);
+                        VisMF::Write(XRot,"XRotP");
+                        master_project_rot_prim.ParallelCopy(XRot, 0, 0, structVarsPrim); 
+                        VisMF::Write(master_project_rot_prim,"master_2D_rot_prim");
+                        structFactPrimVerticalAverage.FortStructure(master_project_rot_prim,geom_flat);
+                    }
+
+                    {
+                        MultiFab X, XRot;
+
+                        ComputeVerticalAverage(structFactConsMF, X, geom, project_dir, 0, structVarsCons);
+                        XRot = RotateFlattenedMF(X);
+                        VisMF::Write(XRot,"XRotC");
+                        master_project_rot_cons.ParallelCopy(XRot, 0, 0, structVarsCons);
+                        VisMF::Write(master_project_rot_cons,"master_2D_rot_cons");
+                        structFactConsVerticalAverage.FortStructure(master_project_rot_cons,geom_flat);
+                    }
+
                 }
                 else {
-                    ComputeVerticalAverage(structFactPrimMF, primVertAvg0, geom, project_dir, 0, structVarsPrim, 0, membrane_cell-1);
-                    ComputeVerticalAverage(structFactPrimMF, primVertAvg1, geom, project_dir, 0, structVarsPrim, membrane_cell, n_cells[project_dir]-1);
-                    ComputeVerticalAverage(structFactConsMF, consVertAvg0, geom, project_dir, 0, structVarsCons, 0, membrane_cell-1);
-                    ComputeVerticalAverage(structFactConsMF, consVertAvg1, geom, project_dir, 0, structVarsCons, membrane_cell, n_cells[project_dir]-1);
-                    primVertAvgRot0 = RotateFlattenedMF(primVertAvg0);
-                    primVertAvgRot1 = RotateFlattenedMF(primVertAvg1);
-                    consVertAvgRot0 = RotateFlattenedMF(consVertAvg0);
-                    consVertAvgRot1 = RotateFlattenedMF(consVertAvg1);
-                    structFactPrimVerticalAverage0.FortStructure(primVertAvgRot0,geom_flat);
-                    structFactPrimVerticalAverage1.FortStructure(primVertAvgRot1,geom_flat);
-                    structFactConsVerticalAverage0.FortStructure(consVertAvgRot0,geom_flat);
-                    structFactConsVerticalAverage1.FortStructure(consVertAvgRot1,geom_flat);
+                    
+                    {
+                        MultiFab X, XRot;
+
+                        ComputeVerticalAverage(structFactPrimMF, X, geom, project_dir, 0, structVarsPrim, 0, membrane_cell-1);
+                        XRot = RotateFlattenedMF(X);
+                        master_project_rot_prim.ParallelCopy(XRot, 0, 0, structVarsPrim);
+                        structFactPrimVerticalAverage0.FortStructure(master_project_rot_prim,geom_flat);
+                    }
+
+                    {
+                        MultiFab X, XRot;
+
+                        ComputeVerticalAverage(structFactPrimMF, X, geom, project_dir, 0, structVarsPrim, membrane_cell, n_cells[project_dir]-1);
+                        XRot = RotateFlattenedMF(X);
+                        master_project_rot_prim.ParallelCopy(XRot, 0, 0, structVarsPrim); 
+                        structFactPrimVerticalAverage1.FortStructure(master_project_rot_prim,geom_flat);
+                    }
+
+                    {
+                        MultiFab X, XRot;
+
+                        ComputeVerticalAverage(structFactConsMF, X, geom, project_dir, 0, structVarsCons, 0, membrane_cell-1);
+                        XRot = RotateFlattenedMF(X);
+                        master_project_rot_cons.ParallelCopy(XRot, 0, 0, structVarsCons); 
+                        structFactConsVerticalAverage0.FortStructure(master_project_rot_cons,geom_flat);
+                    }
+
+                    {
+                        MultiFab X, XRot;
+
+                        ComputeVerticalAverage(structFactConsMF, X, geom, project_dir, 0, structVarsCons, membrane_cell, n_cells[project_dir]-1);
+                        XRot = RotateFlattenedMF(X);
+                        master_project_rot_cons.ParallelCopy(XRot, 0, 0, structVarsCons); 
+                        structFactConsVerticalAverage1.FortStructure(master_project_rot_cons,geom_flat);
+                    }
                 }
             }
 
             if (do_2D) {
+
                 for (int i=0; i<n_cells[2]; ++i) {
-                    ExtractSliceI(structFactPrimMF, primVertAvg, geom, 2, i, 0, structVarsPrim);
-                    ExtractSliceI(structFactConsMF, consVertAvg, geom, 2, i, 0, structVarsCons);
-                    primVertAvgRot = RotateFlattenedMF(primVertAvg);
-                    consVertAvgRot = RotateFlattenedMF(consVertAvg);
-                    structFactPrimArray[i].FortStructure(primVertAvgRot,geom_flat);
-                    structFactConsArray[i].FortStructure(consVertAvgRot,geom_flat);
+
+                    {
+                        MultiFab X, XRot;
+
+                        ExtractSliceI(structFactPrimMF, X, geom, 2, i, 0, structVarsPrim);
+                        XRot = RotateFlattenedMF(X);
+                        master_2D_rot_prim.ParallelCopy(XRot, 0, 0, structVarsPrim); 
+                        structFactPrimArray[i].FortStructure(master_2D_rot_prim,geom_flat_2D);
+                    }
+
+                    {
+                        MultiFab X, XRot;
+
+                        ExtractSliceI(structFactConsMF, X, geom, 2, i, 0, structVarsCons);
+                        XRot = RotateFlattenedMF(X);
+                        master_2D_rot_cons.ParallelCopy(XRot, 0, 0, structVarsCons); 
+                        structFactConsArray[i].FortStructure(master_2D_rot_cons,geom_flat_2D);
+                    }
+
                 }
             }
         }
@@ -1131,24 +1189,32 @@ void main_driver(const char* argv)
 
             if (do_2D) {
                     
-                primSF2D_mag.setVal(0.0);
-                consSF2D_mag.setVal(0.0);
-                primSF2D_realimag.setVal(0.0);
-                consSF2D_realimag.setVal(0.0);
+                MultiFab prim_mag, prim_realimag, cons_mag, cons_realimag;
+
+                prim_mag.define(ba_flat_2D,dmap_flat_2D,structFactPrimArray[0].get_ncov(),0);
+                prim_realimag.define(ba_flat_2D,dmap_flat_2D,2*structFactPrimArray[0].get_ncov(),0);
+                cons_mag.define(ba_flat_2D,dmap_flat_2D,structFactConsArray[0].get_ncov(),0);
+                cons_realimag.define(ba_flat_2D,dmap_flat_2D,2*structFactConsArray[0].get_ncov(),0);
+
+                prim_mag.setVal(0.0);
+                cons_mag.setVal(0.0);
+                prim_realimag.setVal(0.0);
+                cons_realimag.setVal(0.0);
+
                 for (int i=0; i<n_cells[2]; ++i) {
-                    structFactPrimArray[i].AddToExternal(primSF2D_mag,primSF2D_realimag,geom_flat);
-                    structFactConsArray[i].AddToExternal(consSF2D_mag,consSF2D_realimag,geom_flat);
+                    structFactPrimArray[i].AddToExternal(prim_mag,prim_realimag,geom_flat_2D);
+                    structFactConsArray[i].AddToExternal(cons_mag,cons_realimag,geom_flat_2D);
                 }
                     
                 Real ncellsinv = 1.0/n_cells[2];
-                primSF2D_mag.mult(ncellsinv);
-                consSF2D_mag.mult(ncellsinv);
-                primSF2D_realimag.mult(ncellsinv);
-                consSF2D_realimag.mult(ncellsinv);
+                prim_mag.mult(ncellsinv);
+                cons_mag.mult(ncellsinv);
+                prim_realimag.mult(ncellsinv);
+                cons_realimag.mult(ncellsinv);
 
-                WritePlotFilesSF_2D(primSF2D_mag,primSF2D_realimag,geom_flat,step,time,
+                WritePlotFilesSF_2D(prim_mag,prim_realimag,geom_flat_2D,step,time,
                                     structFactPrimArray[0].get_names(),"plt_SF_prim_2D");
-                WritePlotFilesSF_2D(consSF2D_mag,consSF2D_realimag,geom_flat,step,time,
+                WritePlotFilesSF_2D(cons_mag,cons_realimag,geom_flat_2D,step,time,
                                     structFactConsArray[0].get_names(),"plt_SF_cons_2D");
 
             }
