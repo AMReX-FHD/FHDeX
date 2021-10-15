@@ -393,8 +393,8 @@ void main_driver(const char* argv)
                 XRot = RotateFlattenedMF(X);
                 ba_flat = XRot.boxArray();
                 dmap_flat = XRot.DistributionMap();
-                master_project_rot_prim.define(ba_flat,dmap_flat,0,structVarsPrim);
-                master_project_rot_cons.define(ba_flat,dmap_flat,0,structVarsCons);
+                master_project_rot_prim.define(ba_flat,dmap_flat,structVarsPrim,0);
+                master_project_rot_cons.define(ba_flat,dmap_flat,structVarsCons,0);
 
                 IntVect dom_lo_flat(AMREX_D_DECL(0,0,0));
                 IntVect dom_hi_flat;
@@ -477,8 +477,8 @@ void main_driver(const char* argv)
                 XRot = RotateFlattenedMF(X);
                 ba_flat_2D = XRot.boxArray();
                 dmap_flat_2D = XRot.DistributionMap();
-                master_2D_rot_prim.define(ba_flat_2D,dmap_flat_2D,0,structVarsPrim);
-                master_2D_rot_cons.define(ba_flat_2D,dmap_flat_2D,0,structVarsCons);
+                master_2D_rot_prim.define(ba_flat_2D,dmap_flat_2D,structVarsPrim,0);
+                master_2D_rot_cons.define(ba_flat_2D,dmap_flat_2D,structVarsCons,0);
 
                 IntVect dom_lo_flat(AMREX_D_DECL(0,0,0));
                 IntVect dom_hi_flat;
@@ -650,8 +650,8 @@ void main_driver(const char* argv)
                 XRot = RotateFlattenedMF(X);
                 ba_flat = XRot.boxArray();
                 dmap_flat = XRot.DistributionMap();
-                master_project_rot_prim.define(ba_flat,dmap_flat,0,structVarsPrim);
-                master_project_rot_cons.define(ba_flat,dmap_flat,0,structVarsCons);
+                master_project_rot_prim.define(ba_flat,dmap_flat,structVarsPrim,0);
+                master_project_rot_cons.define(ba_flat,dmap_flat,structVarsCons,0);
 
                 IntVect dom_lo_flat(AMREX_D_DECL(0,0,0));
                 IntVect dom_hi_flat;
@@ -730,8 +730,8 @@ void main_driver(const char* argv)
                 XRot = RotateFlattenedMF(X);
                 ba_flat_2D = XRot.boxArray();
                 dmap_flat_2D = XRot.DistributionMap();
-                master_2D_rot_prim.define(ba_flat_2D,dmap_flat_2D,0,structVarsPrim);
-                master_2D_rot_cons.define(ba_flat_2D,dmap_flat_2D,0,structVarsCons);
+                master_2D_rot_prim.define(ba_flat_2D,dmap_flat_2D,structVarsPrim,0);
+                master_2D_rot_cons.define(ba_flat_2D,dmap_flat_2D,structVarsCons,0);
 
                 IntVect dom_lo_flat(AMREX_D_DECL(0,0,0));
                 IntVect dom_hi_flat;
@@ -1080,9 +1080,7 @@ void main_driver(const char* argv)
 
                         ComputeVerticalAverage(structFactPrimMF, X, geom, project_dir, 0, structVarsPrim);
                         XRot = RotateFlattenedMF(X);
-                        VisMF::Write(XRot,"XRotP");
                         master_project_rot_prim.ParallelCopy(XRot, 0, 0, structVarsPrim); 
-                        VisMF::Write(master_project_rot_prim,"master_2D_rot_prim");
                         structFactPrimVerticalAverage.FortStructure(master_project_rot_prim,geom_flat);
                     }
 
@@ -1091,9 +1089,7 @@ void main_driver(const char* argv)
 
                         ComputeVerticalAverage(structFactConsMF, X, geom, project_dir, 0, structVarsCons);
                         XRot = RotateFlattenedMF(X);
-                        VisMF::Write(XRot,"XRotC");
                         master_project_rot_cons.ParallelCopy(XRot, 0, 0, structVarsCons);
-                        VisMF::Write(master_project_rot_cons,"master_2D_rot_cons");
                         structFactConsVerticalAverage.FortStructure(master_project_rot_cons,geom_flat);
                     }
 
