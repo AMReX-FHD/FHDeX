@@ -473,7 +473,7 @@ void main_driver(const char* argv)
 
             {
                 MultiFab X, XRot;
-                ExtractSliceI(prim, X, geom, 2, 0, 0, nprimvars);
+                ExtractSlice(prim, X, geom, 2, 0, 0, nprimvars);
                 XRot = RotateFlattenedMF(X);
                 ba_flat_2D = XRot.boxArray();
                 dmap_flat_2D = XRot.DistributionMap();
@@ -726,7 +726,7 @@ void main_driver(const char* argv)
 
             {
                 MultiFab X, XRot;
-                ExtractSliceI(prim, X, geom, 2, 0, 0, nprimvars);
+                ExtractSlice(prim, X, geom, 2, 0, 0, nprimvars);
                 XRot = RotateFlattenedMF(X);
                 ba_flat_2D = XRot.boxArray();
                 dmap_flat_2D = XRot.DistributionMap();
@@ -1141,7 +1141,7 @@ void main_driver(const char* argv)
                     {
                         MultiFab X, XRot;
 
-                        ExtractSliceI(structFactPrimMF, X, geom, 2, i, 0, structVarsPrim);
+                        ExtractSlice(structFactPrimMF, X, geom, 2, i, 0, structVarsPrim);
                         XRot = RotateFlattenedMF(X);
                         master_2D_rot_prim.ParallelCopy(XRot, 0, 0, structVarsPrim); 
                         structFactPrimArray[i].FortStructure(master_2D_rot_prim,geom_flat_2D);
@@ -1150,7 +1150,7 @@ void main_driver(const char* argv)
                     {
                         MultiFab X, XRot;
 
-                        ExtractSliceI(structFactConsMF, X, geom, 2, i, 0, structVarsCons);
+                        ExtractSlice(structFactConsMF, X, geom, 2, i, 0, structVarsCons);
                         XRot = RotateFlattenedMF(X);
                         master_2D_rot_cons.ParallelCopy(XRot, 0, 0, structVarsCons); 
                         structFactConsArray[i].FortStructure(master_2D_rot_cons,geom_flat_2D);
