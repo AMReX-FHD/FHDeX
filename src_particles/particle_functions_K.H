@@ -267,8 +267,6 @@ void force_function2 (      FhdParticleContainer::ParticleType& part1,
     }
 }
 
-
-
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void repulsive_force_lj (      FhdParticleContainer::ParticleType& part1,
                       amrex::Real dx, amrex::Real dy, amrex::Real dz, amrex::Real dr, amrex::Real sig, amrex::Real eps)
@@ -283,6 +281,7 @@ void repulsive_force_lj (      FhdParticleContainer::ParticleType& part1,
     part1.rdata(FHD_realData::forcex) -= dx*ff;
     part1.rdata(FHD_realData::forcey) -= dy*ff;
     part1.rdata(FHD_realData::forcez) -= dz*ff;
+    
 }
 
 
@@ -303,6 +302,30 @@ void repulsive_force_wall (      FhdParticleContainer::ParticleType& part1,
     part1.rdata(FHD_realData::forcex) -= dx*ff;
     part1.rdata(FHD_realData::forcey) -= dy*ff;
     part1.rdata(FHD_realData::forcez) -= dz*ff;
+    
+    //cout << "force: " << part1.rdata(FHD_realData::forcex) << ", " << part1.rdata(FHD_realData::forcey) << ", " << part1.rdata(FHD_realData::forcez) << endl;
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void repulsive_force_grid (      FhdParticleContainer::ParticleType& p1, amrex::Real rMin, amrex::Real rMax, amrex::Real sig, amrex::Real eps, Triplet* list, int length)
+{
+    
+    for(int i=0; i<length;i++)
+    {
+        Real dx = p1.pos(0) - list[i].x;
+        Real dy = p1.pos(1) - list[i].y;
+        Real dz = p1.pos(2) - list[i].z;
+
+        Real r = sqrt(dx*dx + dy*dy + dz*dz);
+        //Print() << "r: " << r << endl;
+        
+        if (r <= rMax)
+        {
+            const Real rMinMax = amrex::max(r, rMin);
+            repulsive_force_lj(p1, dx, dy, dz, rMinMax, sig, eps);
+        }
+    }
+    //cout << "force: " << p1.rdata(FHD_realData::forcex) << ", " << p1.rdata(FHD_realData::forcey) << ", " << p1.rdata(FHD_realData::forcez) << endl;
 }
 
 template <typename T>
@@ -650,6 +673,7 @@ void compute_p3m_sr_correction_nl_gpu (FhdParticleContainer::AoS& aos, int Np, i
 
 void compute_forces_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
                         amrex::NeighborList<FhdParticleContainer::ParticleType>& neighbor_list,
+                        Triplet* topList, Triplet* bottomList, int topLength, int bottomLength,
                         amrex::Real& rcount, amrex::Real& rdcount)
 {
     using namespace amrex;
@@ -679,8 +703,6 @@ void compute_forces_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
 //    Gpu::DeviceVector<Real> prob_hi_d = getDeviceVector(prob_hi);    
 //    auto p_prob_lo_d = prob_lo_d.data();
 //    auto p_prob_hi_d = prob_hi_d.data();
-
-
     
     AMREX_FOR_1D( Np, i, 
     {
@@ -747,14 +769,17 @@ void compute_forces_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
                     if (r <= rMax)
                     {
                         Gpu::Atomic::Add(prdcount_d, 1.0);
-
-                        const Real rMinMax = amrex::max(r, rmin_wall[spec1]*sigma_wall[spec1]);
+                        const Real rMin = rmin_wall[spec1]*sigma_wall[spec1];   
+                        const Real rMinMax = amrex::max(r, rMin);
                         if(sr_tog == 2)
                         {
                             repulsive_force_wall(p1, dx, dy, dz, rMinMax, sigma_wall[spec1], eepsilon_wall[spec1]);
-                        }else
+                        }else if(sr_tog == 3)
                         {
                             repulsive_force_lj(p1, dx, dy, dz, rMinMax, sigma_wall[spec1], eepsilon_wall[spec1]);
+                        }else if(sr_tog == 4)
+                        {
+                            repulsive_force_grid(p1, rMin, rMax, sigma_wall[spec1], eepsilon_wall[spec1], bottomList, bottomLength);
                         }
                     }
                 }
@@ -779,18 +804,23 @@ void compute_forces_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
                     const Real r = sqrt(dx*dx + dy*dy + dz*dz);
 
                     const Real rMax = rmax_wall[spec1]*sigma_wall[spec1];
+
                     
                     if (r <= rMax)
                     {
                         Gpu::Atomic::Add(prdcount_d, 1.0);
+                        const Real rMin = rmin_wall[spec1]*sigma_wall[spec1];
 
-                        const Real rMinMax = amrex::max(r, rmin_wall[spec1]*sigma_wall[spec1]);
+                        const Real rMinMax = amrex::max(r, rMin);
                         if(sr_tog == 2)
                         {
                             repulsive_force_wall(p1, dx, dy, dz, rMinMax, sigma_wall[spec1], eepsilon_wall[spec1]);
-                        }else
+                        }else if(sr_tog == 3)
                         {
                             repulsive_force_lj(p1, dx, dy, dz, rMinMax, sigma_wall[spec1], eepsilon_wall[spec1]);
+                        }else if(sr_tog == 4)
+                        {
+                            repulsive_force_grid(p1, rMin, rMax, sigma_wall[spec1], eepsilon_wall[spec1], topList, topLength);                        
                         }
                     }
                 }
