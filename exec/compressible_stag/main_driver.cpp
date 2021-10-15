@@ -498,12 +498,12 @@ void main_driver(const char* argv)
                                  {AMREX_D_DECL(projected_hi[0],projected_hi[1],projected_hi[2])});
           
                 // This defines a Geometry object
-                geom_flat.define(domain_flat,&real_box_flat,CoordSys::cartesian,is_periodic.data());
+                geom_flat_2D.define(domain_flat,&real_box_flat,CoordSys::cartesian,is_periodic.data());
 
-                amrex::Print() << "nx, ny, nz:\t" << ba_flat[0].size()[0] << ", " << ba_flat[0].size()[1]  << ", " << ba_flat[0].size()[2] << std::endl;
+                amrex::Print() << "nx, ny, nz:\t" << ba_flat_2D[0].size()[0] << ", " << ba_flat_2D[0].size()[1]  << ", " << ba_flat_2D[0].size()[2] << std::endl;
                 amrex::Print() << "Lx, Ly, Lz:\t" << domain_flat.length(0)  << ", " << domain_flat.length(1)  << ", " << domain_flat.length(2) << std::endl;
-                amrex::Print() << "nbx, nby, nbz:\t" << domain_flat.length(0)/ba_flat[0].size()[0] << ", " << domain_flat.length(1)/ba_flat[0].size()[1]  << ", " 
-                           << domain_flat.length(2)/ba_flat[0].size()[2] << std::endl;
+                amrex::Print() << "nbx, nby, nbz:\t" << domain_flat.length(0)/ba_flat_2D[0].size()[0] << ", " << domain_flat.length(1)/ba_flat_2D[0].size()[1]  << ", " 
+                           << domain_flat.length(2)/ba_flat_2D[0].size()[2] << std::endl;
             }
 
             structFactPrimArray.resize(n_cells[2]);
@@ -751,7 +751,7 @@ void main_driver(const char* argv)
                                  {AMREX_D_DECL(projected_hi[0],projected_hi[1],projected_hi[2])});
           
                 // This defines a Geometry object
-                geom_flat.define(domain_flat,&real_box_flat,CoordSys::cartesian,is_periodic.data());
+                geom_flat_2D.define(domain_flat,&real_box_flat,CoordSys::cartesian,is_periodic.data());
 
             }
 
