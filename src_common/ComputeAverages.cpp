@@ -373,7 +373,7 @@ void ComputeVerticalAverage(const MultiFab& mf, MultiFab& mf_avg,
 }
 
 void ExtractSlice(const MultiFab& mf, MultiFab& mf_slice,
-                  const Geometry& geom, const int dir,
+                  const Geometry& geom, const int dir, const int slice,
                   const int incomp, const int ncomp)
 {
     BL_PROFILE_VAR("ExtractSlice()",ExtractSlice);
@@ -383,8 +383,8 @@ void ExtractSlice(const MultiFab& mf, MultiFab& mf_slice,
     // create BoxArray
     IntVect dom_lo(domain.loVect());
     IntVect dom_hi(domain.hiVect());
-    dom_lo[dir] = slicepoint;
-    dom_hi[dir] = slicepoint;
+    dom_lo[dir] = slice;
+    dom_hi[dir] = slice;
 
     Box domain_slice(dom_lo, dom_hi);
 
