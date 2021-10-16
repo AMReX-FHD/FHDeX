@@ -377,50 +377,45 @@ void ExtractSlice(const MultiFab& mf, MultiFab& mf_slice,
                   const int incomp, const int ncomp)
 {
     BL_PROFILE_VAR("ExtractSlice()",ExtractSlice);
-
-    // if mf_slice has not been defined yet, create a flattened boxArray
-    // and a new DistributionMapping in the slice plane based on max_grid_projection
-    if (mf_slice.boxArray().size() == 0) {
     
-        // create BoxArray
+    // create BoxArray
 
-        // get lo and hi coordinates of problem domain
-        Box domain(geom.Domain());
-        IntVect dom_lo(domain.loVect());
-        IntVect dom_hi(domain.hiVect());
+    // get lo and hi coordinates of problem domain
+    Box domain(geom.Domain());
+    IntVect dom_lo(domain.loVect());
+    IntVect dom_hi(domain.hiVect());
 
-        // set lo and hi coordinates in the dir direction to the slice point
-        dom_lo[dir] = slice;
-        dom_hi[dir] = slice;
+    // set lo and hi coordinates in the dir direction to the slice point
+    dom_lo[dir] = slice;
+    dom_hi[dir] = slice;
 
-        // create a BoxArray with a single box containing the flattened box
-        Box domain_slice(dom_lo, dom_hi);
-        BoxArray ba_slice(domain_slice);
+    // create a BoxArray with a single box containing the flattened box
+    Box domain_slice(dom_lo, dom_hi);
+    BoxArray ba_slice(domain_slice);
 
-        // chop up the box based on max_grid_projection
-        Vector<int> max_grid_slice(AMREX_SPACEDIM);
+    // chop up the box based on max_grid_projection
+    Vector<int> max_grid_slice(AMREX_SPACEDIM);
 #if (AMREX_SPACEDIM == 2)
-        max_grid_slice[  dir] = 1;
-        max_grid_slice[1-dir] = max_grid_projection[0];
+    max_grid_slice[  dir] = 1;
+    max_grid_slice[1-dir] = max_grid_projection[0];
 #elif (AMREX_SPACEDIM == 3)
-        max_grid_slice[dir] = 1;
-        if (dir == 0) {
-            max_grid_slice[1] = max_grid_projection[0];
-            max_grid_slice[2] = max_grid_projection[1];
-        } else if (dir == 1) {
-            max_grid_slice[0] = max_grid_projection[0];
-            max_grid_slice[2] = max_grid_projection[1];
-        } else {
-            max_grid_slice[0] = max_grid_projection[0];
-            max_grid_slice[1] = max_grid_projection[1];
-        }
-#endif
-        ba_slice.maxSize(IntVect(max_grid_slice));
-
-        // create a new DistributionMapping and define the MultiFab
-        DistributionMapping dmap_slice(ba_slice);
-        mf_slice.define(ba_slice,dmap_slice,ncomp,0);
+    max_grid_slice[dir] = 1;
+    if (dir == 0) {
+        max_grid_slice[1] = max_grid_projection[0];
+        max_grid_slice[2] = max_grid_projection[1];
+    } else if (dir == 1) {
+        max_grid_slice[0] = max_grid_projection[0];
+        max_grid_slice[2] = max_grid_projection[1];
+    } else {
+        max_grid_slice[0] = max_grid_projection[0];
+        max_grid_slice[1] = max_grid_projection[1];
     }
+#endif
+    ba_slice.maxSize(IntVect(max_grid_slice));
 
+    // create a new DistributionMapping and define the MultiFab
+    DistributionMapping dmap_slice(ba_slice);
+    mf_slice.define(ba_slice,dmap_slice,ncomp,0);
+        
     mf_slice.ParallelCopy(mf, incomp, 0, ncomp);
 }
