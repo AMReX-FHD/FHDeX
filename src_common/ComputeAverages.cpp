@@ -377,17 +377,23 @@ void ExtractSlice(const MultiFab& mf, MultiFab& mf_slice,
                   const int incomp, const int ncomp)
 {
     BL_PROFILE_VAR("ExtractSlice()",ExtractSlice);
-
-    Box domain(geom.Domain());
-
+    
     // create BoxArray
+
+    // get lo and hi coordinates of problem domain
+    Box domain(geom.Domain());
     IntVect dom_lo(domain.loVect());
     IntVect dom_hi(domain.hiVect());
+
+    // set lo and hi coordinates in the dir direction to the slice point
     dom_lo[dir] = slice;
     dom_hi[dir] = slice;
 
+    // create a BoxArray with a single box containing the flattened box
     Box domain_slice(dom_lo, dom_hi);
+    BoxArray ba_slice(domain_slice);
 
+    // chop up the box based on max_grid_projection
     Vector<int> max_grid_slice(AMREX_SPACEDIM);
 #if (AMREX_SPACEDIM == 2)
     max_grid_slice[  dir] = 1;
@@ -405,13 +411,11 @@ void ExtractSlice(const MultiFab& mf, MultiFab& mf_slice,
         max_grid_slice[1] = max_grid_projection[1];
     }
 #endif
-
-    BoxArray ba_slice(domain_slice);
     ba_slice.maxSize(IntVect(max_grid_slice));
 
+    // create a new DistributionMapping and define the MultiFab
     DistributionMapping dmap_slice(ba_slice);
-
     mf_slice.define(ba_slice,dmap_slice,ncomp,0);
-
+        
     mf_slice.ParallelCopy(mf, incomp, 0, ncomp);
 }
