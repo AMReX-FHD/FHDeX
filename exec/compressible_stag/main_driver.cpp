@@ -142,6 +142,7 @@ void main_driver(const char* argv)
     }
     if ((project_dir >= 0) and ((do_1D) or (do_2D))) {
         Abort("Projected structure factors (project_dir) works only for 3D case");
+    }
     if ((all_correl > 1) or (all_correl < 0)) {
         Abort("all_correl can be 0 or 1");
     }
