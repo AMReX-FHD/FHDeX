@@ -23,11 +23,13 @@ void evaluateStatsStag3D(MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
     BL_PROFILE_VAR("evaluateStatsStag3D()",evaluateStatsStag3D);
     
     //// Evaluate Means
-    EvaluateStatsMeans(cons,consMean,prim_in,primMean,vel,velMean,cumom,cumomMean,steps);
+    if (plot_means) EvaluateStatsMeans(cons,consMean,prim_in,primMean,vel,velMean,cumom,cumomMean,steps);
 
     //// Evaluate Variances and Covariances
-    EvaluateVarsCoVars(cons,consMean,consVar,prim_in,primMean,primVar,velMean,velVar,
-                       cumom,cumomMean,cumomVar,coVar,steps);
+    if ((plot_vars) or (plot_covars)) {
+        EvaluateVarsCoVars(cons,consMean,consVar,prim_in,primMean,primVar,velMean,velVar,
+                           cumom,cumomMean,cumomVar,coVar,steps);
+    }
 
     //// Evaluate Spatial Correlations
     
@@ -54,7 +56,7 @@ void evaluateStatsStag3D(MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
     }
 
     // Update Spatial Correlations
-    EvaluateSpatialCorrelations3D(spatialCross3D,dataSliceMeans_xcross,cu_avg,cumeans_avg,prim_avg,primmeans_avg,steps,nstats,ncross);
+    if (plot_cross) EvaluateSpatialCorrelations3D(spatialCross3D,dataSliceMeans_xcross,cu_avg,cumeans_avg,prim_avg,primmeans_avg,steps,nstats,ncross);
 }
 
 
@@ -76,11 +78,13 @@ void evaluateStatsStag2D(MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
     BL_PROFILE_VAR("evaluateStatsStag2D()",evaluateStatsStag2D);
     
     //// Evaluate Means
-    EvaluateStatsMeans(cons,consMean,prim_in,primMean,vel,velMean,cumom,cumomMean,steps);
+    if (plot_means) EvaluateStatsMeans(cons,consMean,prim_in,primMean,vel,velMean,cumom,cumomMean,steps);
 
     //// Evaluate Variances and Covariances
-    EvaluateVarsCoVars(cons,consMean,consVar,prim_in,primMean,primVar,velMean,velVar,
-                       cumom,cumomMean,cumomVar,coVar,steps);
+    if ((plot_vars) or (plot_covars)) {
+        EvaluateVarsCoVars(cons,consMean,consVar,prim_in,primMean,primVar,velMean,velVar,
+                           cumom,cumomMean,cumomVar,coVar,steps);
+    }
 
     //// Evaluate Spatial Correlations (do later)
     
@@ -115,11 +119,13 @@ void evaluateStatsStag1D(MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
     BL_PROFILE_VAR("evaluateStatsStag1D()",evaluateStatsStag1D);
     
     //// Evaluate Means
-    EvaluateStatsMeans(cons,consMean,prim_in,primMean,vel,velMean,cumom,cumomMean,steps);
+    if (plot_means) EvaluateStatsMeans(cons,consMean,prim_in,primMean,vel,velMean,cumom,cumomMean,steps);
 
     //// Evaluate Variances and Covariances
-    EvaluateVarsCoVars(cons,consMean,consVar,prim_in,primMean,primVar,velMean,velVar,
-                       cumom,cumomMean,cumomVar,coVar,steps);
+    if ((plot_vars) or (plot_covars)) {
+        EvaluateVarsCoVars(cons,consMean,consVar,prim_in,primMean,primVar,velMean,velVar,
+                           cumom,cumomMean,cumomVar,coVar,steps);
+    }
 
     //// Evaluate Spatial Correlations
     
@@ -127,26 +133,28 @@ void evaluateStatsStag1D(MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
     int nstats = 2*nvars+8+2*nspecies;
 
     // Get all nstats at xcross for all j and k, and store in data_xcross
-    if (all_correl == 0) { // for a specified cross_cell
-        amrex::Gpu::DeviceVector<Real> data_xcross(nstats*n_cells[1]*n_cells[2], 0.0); // values at x* for a given y and z
-        GetPencilCross(data_xcross,consMean,primMean,prim_in,cons,nstats,cross_cell);
-        ParallelDescriptor::ReduceRealSum(data_xcross.data(),nstats*n_cells[1]*n_cells[2]);
+    if (plot_cross) {
+        if (all_correl == 0) { // for a specified cross_cell
+            amrex::Gpu::DeviceVector<Real> data_xcross(nstats*n_cells[1]*n_cells[2], 0.0); // values at x* for a given y and z
+            GetPencilCross(data_xcross,consMean,primMean,prim_in,cons,nstats,cross_cell);
+            ParallelDescriptor::ReduceRealSum(data_xcross.data(),nstats*n_cells[1]*n_cells[2]);
 
-        // Update Spatial Correlations
-        EvaluateSpatialCorrelations1D(spatialCross1D,data_xcross,consMean,primMean,prim_in,cons,vel,velMean,cumom,cumomMean,steps,nstats,ncross,0);
-    }
-    else { // at five equi-distant x*
-        GpuArray<int, 5 > x_star;
-        x_star[0] = 0;
-        x_star[1] = (int)amrex::Math::floor(1.0*n_cells[0]/4.0);
-        x_star[2] = (int)amrex::Math::floor(2.0*n_cells[0]/4.0);
-        x_star[3] = (int)amrex::Math::floor(3.0*n_cells[0]/4.0);
-        x_star[4] = n_cells[0] - 1;
+            // Update Spatial Correlations
+            EvaluateSpatialCorrelations1D(spatialCross1D,data_xcross,consMean,primMean,prim_in,cons,vel,velMean,cumom,cumomMean,steps,nstats,ncross,0);
+        }
+        else { // at five equi-distant x*
+            GpuArray<int, 5 > x_star;
+            x_star[0] = 0;
+            x_star[1] = (int)amrex::Math::floor(1.0*n_cells[0]/4.0);
+            x_star[2] = (int)amrex::Math::floor(2.0*n_cells[0]/4.0);
+            x_star[3] = (int)amrex::Math::floor(3.0*n_cells[0]/4.0);
+            x_star[4] = n_cells[0] - 1;
 
-        amrex::Gpu::DeviceVector<Real> data_xcross(nstats*n_cells[1]*n_cells[2], 0.0); // values at x* for a given y and z
-        for (int i=0; i<5; ++i) {
-            GetPencilCross(data_xcross,consMean,primMean,prim_in,cons,nstats,x_star[i]);
-            EvaluateSpatialCorrelations1D(spatialCross1D,data_xcross,consMean,primMean,prim_in,cons,vel,velMean,cumom,cumomMean,steps,nstats,ncross,i);
+            amrex::Gpu::DeviceVector<Real> data_xcross(nstats*n_cells[1]*n_cells[2], 0.0); // values at x* for a given y and z
+            for (int i=0; i<5; ++i) {
+                GetPencilCross(data_xcross,consMean,primMean,prim_in,cons,nstats,x_star[i]);
+                EvaluateSpatialCorrelations1D(spatialCross1D,data_xcross,consMean,primMean,prim_in,cons,vel,velMean,cumom,cumomMean,steps,nstats,ncross,i);
+            }
         }
     }
 }
