@@ -108,6 +108,45 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
     threepmMin[0] = 0;
     threepmMax[0] = 0;
     threepmPoints[0] = 0;
+    
+    if(sr_tog == 4)
+    {
+        std::ifstream bottomFile("bottomWall.dat");
+        std::ifstream topFile("topWall.dat");
+
+        if(bottomFile.good() && topFile.good())
+        {
+            bottomFile >> bottomListLength;
+            bottomList = new Triplet[bottomListLength];
+            for(int i=0;i<bottomListLength;i++)
+            {
+                bottomFile >> bottomList[i].x;
+                bottomFile >> bottomList[i].y;
+                bottomFile >> bottomList[i].z;   
+                
+            }
+            
+            topFile >> topListLength;
+            topList = new Triplet[topListLength];
+            for(int i=0;i<topListLength;i++)
+            {
+                topFile >> topList[i].x;
+                topFile >> topList[i].y;
+                topFile >> topList[i].z;                
+            }
+            
+            bottomFile.close();
+            topFile.close();
+            Print() << "Top/bottom particle files read.\n";
+                
+        }else
+        {
+            Abort("Couldn't read bottom/top particle input file!\n");
+        }
+        
+        bottomFile.close();
+        topFile.close();
+    }
 
 
     for(int i=1;i<threepmBins;i++)
@@ -330,11 +369,11 @@ void FhdParticleContainer::computeForcesNLGPU(const MultiFab& charge, const Mult
 
         const Box& tile_box  = pti.tilebox();
 
-        if (sr_tog!= 0)
+        if (sr_tog != 0)
         {
+
             compute_forces_nl_gpu(particles, Np, Nn,
-                              m_neighbor_list[lev][index], rcount, rdcount);
-               // Print() << "rPost: " << rcount << std::endl;            
+                              m_neighbor_list[lev][index], topList, bottomList, topListLength, bottomListLength, rcount, rdcount);           
         }
 
         if (es_tog==3)

@@ -36,16 +36,16 @@ temperature 1000.
 
 set         i1 value 1                           # all siteA
 set         i2 value 0                           # all vac
-set         i2 value 1 fraction 2.661267e-01     # equilibrium coverage
+set         i2 value 1 fraction 2.053333e-01     # equilibrium coverage
 
-event       4 siteA vac   1.061349e+07 spec1 rate       # adsorption of spec1 (rate)
-#event       4 siteA vac   2.071143e-11 spec1            # adsorption of spec1
+event       4 siteA vac   7.562496e+06 spec1 rate       # adsorption of spec1 (rate)
+#event       4 siteA vac   1.475765e-11 spec1            # adsorption of spec1 (rate const)
 event       5 siteA spec1 2.926784e+07 vac              # desorption of spec1
 
 ###########################
 
 variable    Trun     equal 1.e-12
-variable    nstep    equal 100000
+variable    nstep    equal 1000000
 
 #variable    imagfreq equal 10          # dump image frequency
 #variable    imagfreq equal ${nstep}    # only final configuration

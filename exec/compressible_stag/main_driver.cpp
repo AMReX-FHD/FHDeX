@@ -68,14 +68,18 @@ void main_driver(const char* argv)
 
         if (seed > 0) {
             // initializes the seed for C++ random number calls
-            InitRandom(seed+ParallelDescriptor::MyProc());
+            InitRandom(seed+ParallelDescriptor::MyProc(),
+                       ParallelDescriptor::NProcs(),
+                       seed+ParallelDescriptor::MyProc());
         } else if (seed == 0) {
             // initializes the seed for C++ random number calls based on the clock
             auto now = time_point_cast<nanoseconds>(system_clock::now());
             int randSeed = now.time_since_epoch().count();
             // broadcast the same root seed to all processors
             ParallelDescriptor::Bcast(&randSeed,1,ParallelDescriptor::IOProcessorNumber());
-            InitRandom(randSeed+ParallelDescriptor::MyProc());
+            InitRandom(randSeed+ParallelDescriptor::MyProc(),
+                       ParallelDescriptor::NProcs(),
+                       randSeed+ParallelDescriptor::MyProc());
         } else {
             Abort("Must supply non-negative seed");
         }
@@ -374,7 +378,7 @@ void main_driver(const char* argv)
             ComputeVerticalAverage(prim_temp, primVertAvg, geom, project_dir, 0, nprimvars);
             MultiFab primVertAvgRot = RotateFlattenedMF(primVertAvg);
             BoxArray ba_flat = primVertAvgRot.boxArray();
-            const DistributionMapping& dmap_flat = primVertAvg.DistributionMap();
+            const DistributionMapping& dmap_flat = primVertAvgRot.DistributionMap();
             {
                 IntVect dom_lo_flat(AMREX_D_DECL(0,0,0));
                 IntVect dom_hi_flat;
@@ -587,7 +591,7 @@ void main_driver(const char* argv)
             ComputeVerticalAverage(prim, primVertAvg, geom, project_dir, 0, nprimvars);
             MultiFab primVertAvgRot = RotateFlattenedMF(primVertAvg);
             BoxArray ba_flat = primVertAvgRot.boxArray();
-            const DistributionMapping& dmap_flat = primVertAvg.DistributionMap();
+            const DistributionMapping& dmap_flat = primVertAvgRot.DistributionMap();
             {
                 IntVect dom_lo_flat(AMREX_D_DECL(0,0,0));
                 IntVect dom_hi_flat;

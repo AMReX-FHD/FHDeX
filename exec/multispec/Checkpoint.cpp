@@ -4,7 +4,10 @@
 #include "AMReX_PlotFileUtil.H"
 #include "AMReX_PlotFileDataImpl.H"
 
-#include <sys/stat.h> 
+#include <sys/stat.h>
+#include <chrono>
+
+using namespace std::chrono;
 using namespace amrex;
 
 namespace {
@@ -249,29 +252,54 @@ void ReadCheckPoint(int& step,
     int n_ranks;
     MPI_Comm_size(MPI_COMM_WORLD, &n_ranks);
 
-    // don't read in all the rng states at once (overload filesystem)
-    // one at a time write out the rng states to different files, one for each MPI rank
-    for (int rank=0; rank<n_ranks; ++rank) {
+    if (seed < 0) {
 
-        if (comm_rank == rank) {
+#ifdef AMREX_USE_CUDA
+        Abort("Restart with negative seed not supported on GPU");
+#endif
     
-            // create filename, e.g. chk0000005/rng0000002
-            std::string FileBase(checkpointname + "/rng");
-            std::string File = amrex::Concatenate(FileBase,comm_rank,7);
+        // read in rng state from checkpoint
+        // don't read in all the rng states at once (overload filesystem)
+        // one at a time write out the rng states to different files, one for each MPI rank
+        for (int rank=0; rank<n_ranks; ++rank) {
 
-            // read in contents
-            Vector<char> fileCharPtr;
-            ReadFile(File, fileCharPtr);
-            std::string fileCharPtrString(fileCharPtr.dataPtr());
-            std::istringstream is(fileCharPtrString, std::istringstream::in);
+            if (comm_rank == rank) {
+    
+                // create filename, e.g. chk0000005/rng0000002
+                std::string FileBase(checkpointname + "/rng");
+                std::string File = amrex::Concatenate(FileBase,comm_rank,7);
 
-            // restore random state
-            amrex::RestoreRandomState(is, 1, 0);
+                // read in contents
+                Vector<char> fileCharPtr;
+                ReadFile(File, fileCharPtr);
+                std::string fileCharPtrString(fileCharPtr.dataPtr());
+                std::istringstream is(fileCharPtrString, std::istringstream::in);
+
+                // restore random state
+                amrex::RestoreRandomState(is, 1, 0);
+
+            }
+
+            ParallelDescriptor::Barrier();
 
         }
-
-        ParallelDescriptor::Barrier();
-
+        
+    } else if (seed == 0) {
+                
+        // initializes the seed for C++ random number calls based on the clock
+        auto now = time_point_cast<nanoseconds>(system_clock::now());
+        int randSeed = now.time_since_epoch().count();
+        // broadcast the same root seed to all processors
+        ParallelDescriptor::Bcast(&randSeed,1,ParallelDescriptor::IOProcessorNumber());
+        InitRandom(randSeed+ParallelDescriptor::MyProc(),
+                   ParallelDescriptor::NProcs(),
+                   randSeed+ParallelDescriptor::MyProc());
+    }
+    else {
+        // initializes the seed for C++ random number calls
+        InitRandom(seed+ParallelDescriptor::MyProc(),
+                   ParallelDescriptor::NProcs(),
+                   seed+ParallelDescriptor::MyProc());
     }
 
     // read in the MultiFab data
