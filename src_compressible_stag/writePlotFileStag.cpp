@@ -388,8 +388,16 @@ void WriteSpatialCross3D(const Vector<Real>& spatialCross, int step, const Geome
 
 void WriteSpatialCross1D(const amrex::MultiFab& spatialCross, int step, const Geometry& geom, const int ncross) 
 {
-    std::string file_prefix = "spatialCross1D_";
-    WriteHorizontalAverage(spatialCross,0,0,ncross,step,geom,file_prefix);
+    if (all_correl == 0) { // single spatial correlation file
+        std::string file_prefix = "spatialCross1D_";
+        WriteHorizontalAverage(spatialCross,0,0,ncross,step,geom,file_prefix);
+    }
+    else { // five spatial correlation files
+        for (int i=0; i<5; ++i) {
+            std::string file_prefix = std::to_string(i) + "_spatialCross1D_";
+            WriteHorizontalAverage(spatialCross,0,i*ncross,ncross,step,geom,file_prefix);
+        }
+    }
 }
 
 void WritePlotFilesSF_2D(const amrex::MultiFab& mag, const amrex::MultiFab& realimag, const amrex::Geometry& geom,

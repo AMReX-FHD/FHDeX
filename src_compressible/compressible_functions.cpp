@@ -6,6 +6,7 @@ AMREX_GPU_MANAGED int compressible::membrane_cell;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> compressible::transmission;
 AMREX_GPU_MANAGED int compressible::do_1D;
 AMREX_GPU_MANAGED int compressible::do_2D;
+AMREX_GPU_MANAGED int compressible::all_correl;
 
 void InitializeCompressibleNamespace()
 {
@@ -56,6 +57,9 @@ void InitializeCompressibleNamespace()
     // 2D simulation toggle
     do_2D = 0;
     pp.query("do_2D",do_2D);
+    // options for spatial correlations at multiple x*
+    all_correl = 0;
+    pp.query("all_correl",all_correl);
 
 
     return;

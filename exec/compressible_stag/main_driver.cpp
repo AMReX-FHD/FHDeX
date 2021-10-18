@@ -134,14 +134,19 @@ void main_driver(const char* argv)
     std::array< MultiFab, AMREX_SPACEDIM > cumomMeans;
     std::array< MultiFab, AMREX_SPACEDIM > cumomVars;
     
-    if ((plot_cross) and ((cross_cell <= 0) or (cross_cell >= n_cells[0]-1))) {
-        Abort("Cross cell needs to be within the domain: 0 < cross_cell < n_cells[0] - 1");
+    if ((plot_cross) and ((cross_cell < 0) or (cross_cell > n_cells[0]-1))) {
+        Abort("Cross cell needs to be within the domain: 0 <= cross_cell <= n_cells[0] - 1");
     }
     if ((do_slab_sf) and ((membrane_cell <= 0) or (membrane_cell >= n_cells[0]-1))) {
         Abort("Slab structure factor needs a membrane cell within the domain: 0 < cross_cell < n_cells[0] - 1");
     }
     if ((project_dir >= 0) and ((do_1D) or (do_2D))) {
         Abort("Projected structure factors (project_dir) works only for 3D case");
+    if ((all_correl > 1) or (all_correl < 0)) {
+        Abort("all_correl can be 0 or 1");
+    }
+    if ((all_correl == 1) and (cross_cell > 0) and (cross_cell < n_cells[0]-1)) {
+        amrex::Print() << "Correlations will be done at four equi-distant x* because all_correl = 1" << "\n";
     }
 
     // contains yz-averaged running & instantaneous averages of conserved variables (2*nvars) + primitive variables [vx, vy, vz, T, Yk]: 2*4 + 2*nspecies 
@@ -623,7 +628,8 @@ void main_driver(const char* argv)
         }
 
         if (do_1D) {
-            spatialCross1D.define(ba,dmap,ncross,0);
+            if (all_correl) spatialCross1D.define(ba,dmap,ncross*5,0); // for five x*: [0, fl(n_cells[0]/4), fl(n_cells[0]/2), fl(n_cells[0]*3/4), n_cells[0]-1]
+            else spatialCross1D.define(ba,dmap,ncross,0);
             spatialCross1D.setVal(0.0);
         }
         else if (do_2D) {
