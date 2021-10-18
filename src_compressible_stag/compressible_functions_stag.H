@@ -274,7 +274,8 @@ void GetPencilCross(amrex::Gpu::DeviceVector<Real>& data_xcross,
                     const MultiFab& primMean,
                     const MultiFab& prim_in,
                     const MultiFab& cons,
-                    const int nstats);
+                    const int nstats,
+                    const int x_star);
 
 void EvaluateSpatialCorrelations3D(Vector<Real>& spatialCross,
                                    Vector<Real>& data_xcross,
@@ -297,6 +298,8 @@ void EvaluateSpatialCorrelations1D(MultiFab& spatialCross1D,
                                    const std::array<MultiFab, AMREX_SPACEDIM>& cumom,
                                    const std::array<MultiFab, AMREX_SPACEDIM>& cumomMean,
                                    const int steps,
-                                   const int nstats);
+                                   const int nstats,
+                                   const int ncross,
+                                   const int star_index);
 
 #endif
