@@ -57,6 +57,46 @@ void evaluateStatsStag3D(MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
     EvaluateSpatialCorrelations3D(spatialCross3D,dataSliceMeans_xcross,cu_avg,cumeans_avg,prim_avg,primmeans_avg,steps,nstats,ncross);
 }
 
+
+//////////////////////////////////////////////
+//// Evaluate Stats for the 2D case (do later)
+///// ////////////////////////////////////////
+void evaluateStatsStag2D(MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
+                         MultiFab& prim_in, MultiFab& primMean, MultiFab& primVar,
+                         const std::array<MultiFab, AMREX_SPACEDIM>& vel, 
+                         std::array<MultiFab, AMREX_SPACEDIM>& velMean, 
+                         std::array<MultiFab, AMREX_SPACEDIM>& velVar, 
+                         const std::array<MultiFab, AMREX_SPACEDIM>& cumom,
+                         std::array<MultiFab, AMREX_SPACEDIM>& cumomMean,
+                         std::array<MultiFab, AMREX_SPACEDIM>& cumomVar,
+                         MultiFab& coVar, 
+                         MultiFab& spatialCross2D, const int ncross,
+                         const int steps)
+{
+    BL_PROFILE_VAR("evaluateStatsStag2D()",evaluateStatsStag2D);
+    
+    //// Evaluate Means
+    EvaluateStatsMeans(cons,consMean,prim_in,primMean,vel,velMean,cumom,cumomMean,steps);
+
+    //// Evaluate Variances and Covariances
+    EvaluateVarsCoVars(cons,consMean,consVar,prim_in,primMean,primVar,velMean,velVar,
+                       cumom,cumomMean,cumomVar,coVar,steps);
+
+    //// Evaluate Spatial Correlations (do later)
+    
+    //// contains yz-averaged running & instantaneous averages of conserved variables (2*nvars) + primitive variables [vx, vy, vz, T, Yk]: 2*4 + 2*nspecies 
+    //int nstats = 2*nvars+8+2*nspecies;
+
+    //// Get all nstats at xcross for all j and k, and store in data_xcross
+    //amrex::Gpu::DeviceVector<Real> data_xcross(nstats*n_cells[1]*n_cells[2], 0.0); // values at x* for a given y and z
+    //GetPencilCross(data_xcross,consMean,primMean,prim_in,cons,nstats);
+    //ParallelDescriptor::ReduceRealSum(data_xcross.data(),nstats*n_cells[1]*n_cells[2]);
+
+    //// Update Spatial Correlations
+    //EvaluateSpatialCorrelations2D(spatialCross2D,data_xcross,consMean,primMean,prim_in,cons,vel,velMean,cumom,cumomMean,steps,nstats);
+}
+
+
 ///////////////////////////////////////////
 // Evaluate Stats for the 1D case /////////
 /// ///////////////////////////////////////

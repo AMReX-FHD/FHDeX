@@ -2,6 +2,8 @@
 #include "compressible_functions.H"
 #include "compressible_functions_stag.H"
 
+#include <AMReX_Vector.H>
+
 #include "rng_functions.H"
 
 #include "StructFact.H"
@@ -49,6 +51,8 @@ void main_driver(const char* argv)
             }
         }
     }
+
+    if (((do_1D) or (do_2D)) and (amrex::Math::abs(visc_type) == 3)) Abort("1D and 2D version only work for zero bulk viscosity currently. Use visc_type 1 or 2");
 
     // for each direction, if bc_vel_lo/hi is periodic, then
     // set the corresponding bc_mass_lo/hi and bc_therm_lo/hi to periodic
@@ -136,6 +140,8 @@ void main_driver(const char* argv)
     if ((do_slab_sf) and ((membrane_cell <= 0) or (membrane_cell >= n_cells[0]-1))) {
         Abort("Slab structure factor needs a membrane cell within the domain: 0 < cross_cell < n_cells[0] - 1");
     }
+    if ((project_dir >= 0) and ((do_1D) or (do_2D))) {
+        Abort("Projected structure factors (project_dir) works only for 3D case");
     if ((all_correl > 1) or (all_correl < 0)) {
         Abort("all_correl can be 0 or 1");
     }
@@ -150,6 +156,7 @@ void main_driver(const char* argv)
     // can add more -- change main_driver, statsStag, writeplotfilestag, and Checkpoint
     int ncross = 37+nspecies+3;
     MultiFab spatialCross1D;
+    MultiFab spatialCross2D;
     Vector<Real> spatialCross3D(n_cells[0]*ncross, 0.0);
     
     // make BoxArray and Geometry
@@ -178,20 +185,37 @@ void main_driver(const char* argv)
     /////////////////////////////////////////////
     // Setup Structure factor variables & scaling
     /////////////////////////////////////////////
+
+    // Standard 3D structure factors
+    StructFact structFactPrim;
+    StructFact structFactCons;
     MultiFab structFactPrimMF;
     MultiFab structFactConsMF;
 
-    StructFact structFactPrim;
-    StructFact structFactCons;
-
+    // Structure factor for 2D averaged data
     StructFact structFactPrimVerticalAverage;
     StructFact structFactConsVerticalAverage;
+
+    // Structure factor for 2D averaged data (across a membrane)
     StructFact structFactPrimVerticalAverage0;
     StructFact structFactPrimVerticalAverage1;
     StructFact structFactConsVerticalAverage0;
     StructFact structFactConsVerticalAverage1;
+    MultiFab master_project_rot_prim;
+    MultiFab master_project_rot_cons;
+
+    // Vector of structure factors for 2D simulation
+    Vector < StructFact > structFactPrimArray;
+    Vector < StructFact > structFactConsArray;
+    MultiFab master_2D_rot_prim;
+    MultiFab master_2D_rot_cons;
     
     Geometry geom_flat;
+    Geometry geom_flat_2D;
+    BoxArray ba_flat;
+    BoxArray ba_flat_2D;
+    DistributionMapping dmap_flat;
+    DistributionMapping dmap_flat_2D;
 
     // "primitive" variable structure factor will contain
     // rho
@@ -324,6 +348,11 @@ void main_driver(const char* argv)
                              primMeans, primVars, cumom, cumomMeans, cumomVars, 
                              vel, velMeans, velVars, coVars, spatialCross1D, ncross, ba, dmap);
         }
+        else if (do_2D) {
+            ReadCheckPoint2D(step_start, time, statsCount, geom, domain, cu, cuMeans, cuVars, prim,
+                             primMeans, primVars, cumom, cumomMeans, cumomVars, 
+                             vel, velMeans, velVars, coVars, spatialCross2D, ncross, ba, dmap);
+        }
         else {
             ReadCheckPoint3D(step_start, time, statsCount, geom, domain, cu, cuMeans, cuVars, prim,
                              primMeans, primVars, cumom, cumomMeans, cumomVars, 
@@ -345,7 +374,7 @@ void main_driver(const char* argv)
         chi.setVal(1.0,0,nspecies,ngc);
         D.setVal(1.0,0,nspecies*nspecies,ngc);
 
-        if ((plot_cross) and (do_1D==0)) {
+        if ((plot_cross) and (do_1D==0) and (do_2D==0)) {
             if (ParallelDescriptor::IOProcessor()) outfile.open(filename, std::ios::app);
         }
 
@@ -354,32 +383,24 @@ void main_driver(const char* argv)
         ///////////////////////////////////////////
 
         structFactPrimMF.define(ba, dmap, structVarsPrim, 0);
-
-        // compute all pairs
-        // note: StructFactPrim option to compute only speicified pairs not written yet
         structFactPrim.define(ba,dmap,prim_var_names,var_scaling_prim);
         
-        //////////////////////////////////////////////
         structFactConsMF.define(ba, dmap, structVarsCons, 0);
-
-        // compute all pairs
-        // note: StructFactCons option to compute only speicified pairs not written yet
         structFactCons.define(ba,dmap,cons_var_names,var_scaling_cons);
         
-        //////////////////////////////////////////////
-        
         // structure factor class for vertically-averaged dataset
-        if(project_dir >= 0){
-            // need a more elegant way of doing this
-            MultiFab primVertAvg;  // flattened multifab defined below
-            MultiFab prim_temp;
-            prim_temp.define(ba,dmap,nprimvars,ngc);
-            prim_temp.setVal(0.0);
-            ComputeVerticalAverage(prim_temp, primVertAvg, geom, project_dir, 0, nprimvars);
-            MultiFab primVertAvgRot = RotateFlattenedMF(primVertAvg);
-            BoxArray ba_flat = primVertAvgRot.boxArray();
-            const DistributionMapping& dmap_flat = primVertAvgRot.DistributionMap();
+        if (project_dir >= 0) {
+
+
             {
+                MultiFab X, XRot;
+                ComputeVerticalAverage(prim, X, geom, project_dir, 0, nprimvars);
+                XRot = RotateFlattenedMF(X);
+                ba_flat = XRot.boxArray();
+                dmap_flat = XRot.DistributionMap();
+                master_project_rot_prim.define(ba_flat,dmap_flat,structVarsPrim,0);
+                master_project_rot_cons.define(ba_flat,dmap_flat,structVarsCons,0);
+
                 IntVect dom_lo_flat(AMREX_D_DECL(0,0,0));
                 IntVect dom_hi_flat;
 #if (AMREX_SPACEDIM == 2)
@@ -433,9 +454,11 @@ void main_driver(const char* argv)
           
                 // This defines a Geometry object
                 geom_flat.define(domain_flat,&real_box_flat,CoordSys::cartesian,is_periodic.data());
+
                 amrex::Print() << "nx, ny, nz:\t" << ba_flat[0].size()[0] << ", " << ba_flat[0].size()[1]  << ", " << ba_flat[0].size()[2] << std::endl;
                 amrex::Print() << "Lx, Ly, Lz:\t" << domain_flat.length(0)  << ", " << domain_flat.length(1)  << ", " << domain_flat.length(2) << std::endl;
-                amrex::Print() << "nbx, nby, nbz:\t" << domain_flat.length(0)/ba_flat[0].size()[0] << ", " << domain_flat.length(1)/ba_flat[0].size()[1]  << ", " << domain_flat.length(2)/ba_flat[0].size()[2] << std::endl;
+                amrex::Print() << "nbx, nby, nbz:\t" << domain_flat.length(0)/ba_flat[0].size()[0] << ", " << domain_flat.length(1)/ba_flat[0].size()[1]  << ", " 
+                               << domain_flat.length(2)/ba_flat[0].size()[2] << std::endl;
             }
 
             if (do_slab_sf == 0) {
@@ -448,10 +471,55 @@ void main_driver(const char* argv)
                 structFactConsVerticalAverage0.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons);
                 structFactConsVerticalAverage1.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons);
             }
-
-            //structFactPrimVerticalAverage.~StructFact(); // destruct
-            //new(&structFactPrimVerticalAverage) StructFact(ba_flat,dmap_flat,prim_var_names,var_scaling); // reconstruct
     
+        }
+
+        if (do_2D) { // 2D is coded only for XY plane
+
+            {
+                MultiFab X, XRot;
+                ExtractSlice(prim, X, geom, 2, 0, 0, nprimvars);
+                XRot = RotateFlattenedMF(X);
+                ba_flat_2D = XRot.boxArray();
+                dmap_flat_2D = XRot.DistributionMap();
+                master_2D_rot_prim.define(ba_flat_2D,dmap_flat_2D,structVarsPrim,0);
+                master_2D_rot_cons.define(ba_flat_2D,dmap_flat_2D,structVarsCons,0);
+
+                IntVect dom_lo_flat(AMREX_D_DECL(0,0,0));
+                IntVect dom_hi_flat;
+                dom_hi_flat[0] = n_cells[0]-1;
+                dom_hi_flat[1] = n_cells[1]-1;
+                dom_hi_flat[2] = 0;
+                Box domain_flat(dom_lo_flat, dom_hi_flat);
+
+                // This defines the physical box
+                Vector<Real> projected_hi(AMREX_SPACEDIM);
+                for (int d=0; d<AMREX_SPACEDIM; d++) {
+                    projected_hi[d] = prob_hi[d];
+                }
+                projected_hi[AMREX_SPACEDIM-1] = prob_hi[2] / n_cells[2];
+
+                RealBox real_box_flat({AMREX_D_DECL(     prob_lo[0],     prob_lo[1],     prob_lo[2])},
+                                 {AMREX_D_DECL(projected_hi[0],projected_hi[1],projected_hi[2])});
+          
+                // This defines a Geometry object
+                geom_flat_2D.define(domain_flat,&real_box_flat,CoordSys::cartesian,is_periodic.data());
+
+                amrex::Print() << "nx, ny, nz:\t" << ba_flat_2D[0].size()[0] << ", " << ba_flat_2D[0].size()[1]  << ", " << ba_flat_2D[0].size()[2] << std::endl;
+                amrex::Print() << "Lx, Ly, Lz:\t" << domain_flat.length(0)  << ", " << domain_flat.length(1)  << ", " << domain_flat.length(2) << std::endl;
+                amrex::Print() << "nbx, nby, nbz:\t" << domain_flat.length(0)/ba_flat_2D[0].size()[0] << ", " << domain_flat.length(1)/ba_flat_2D[0].size()[1]  << ", " 
+                           << domain_flat.length(2)/ba_flat_2D[0].size()[2] << std::endl;
+            }
+
+            structFactPrimArray.resize(n_cells[2]);
+            structFactConsArray.resize(n_cells[2]);
+
+            for (int i = 0; i < n_cells[2]; ++i) { 
+                structFactPrimArray[i].define(ba_flat_2D,dmap_flat_2D,prim_var_names,var_scaling_prim,2);
+                structFactConsArray[i].define(ba_flat_2D,dmap_flat_2D,cons_var_names,var_scaling_cons,2);
+            }
+
+
         }
 
     }
@@ -564,35 +632,33 @@ void main_driver(const char* argv)
             else spatialCross1D.define(ba,dmap,ncross,0);
             spatialCross1D.setVal(0.0);
         }
+        else if (do_2D) {
+            spatialCross2D.define(ba,dmap,ncross,0);
+            spatialCross2D.setVal(0.0);
+        }
 
         ///////////////////////////////////////////
         // Setup Structure factor
         ///////////////////////////////////////////
 
         structFactPrimMF.define(ba, dmap, structVarsPrim, 0);
-
-        // compute all pairs
-        // note: StructFactPrim option to compute only speicified pairs not written yet
         structFactPrim.define(ba,dmap,prim_var_names,var_scaling_prim);
         
-        //////////////////////////////////////////////
         structFactConsMF.define(ba, dmap, structVarsCons, 0);
-
-        // compute all pairs
-        // note: StructFactCons option to compute only speicified pairs not written yet
         structFactCons.define(ba,dmap,cons_var_names,var_scaling_cons);
         
-        //////////////////////////////////////////////
-        
         // structure factor class for vertically-averaged dataset
-        if(project_dir >= 0){
-            MultiFab primVertAvg;  // flattened multifab defined below
-            prim.setVal(0.0);
-            ComputeVerticalAverage(prim, primVertAvg, geom, project_dir, 0, nprimvars);
-            MultiFab primVertAvgRot = RotateFlattenedMF(primVertAvg);
-            BoxArray ba_flat = primVertAvgRot.boxArray();
-            const DistributionMapping& dmap_flat = primVertAvgRot.DistributionMap();
+        if (project_dir >= 0) {
+
             {
+                MultiFab X, XRot;
+                ComputeVerticalAverage(prim, X, geom, project_dir, 0, nprimvars);
+                XRot = RotateFlattenedMF(X);
+                ba_flat = XRot.boxArray();
+                dmap_flat = XRot.DistributionMap();
+                master_project_rot_prim.define(ba_flat,dmap_flat,structVarsPrim,0);
+                master_project_rot_cons.define(ba_flat,dmap_flat,structVarsCons,0);
+
                 IntVect dom_lo_flat(AMREX_D_DECL(0,0,0));
                 IntVect dom_hi_flat;
 #if (AMREX_SPACEDIM == 2)
@@ -646,6 +712,7 @@ void main_driver(const char* argv)
           
                 // This defines a Geometry object
                 geom_flat.define(domain_flat,&real_box_flat,CoordSys::cartesian,is_periodic.data());
+
             }
 
             if (do_slab_sf == 0) {
@@ -658,9 +725,50 @@ void main_driver(const char* argv)
                 structFactConsVerticalAverage0.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons);
                 structFactConsVerticalAverage1.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons);
             }
-            //structFactPrimVerticalAverage.~StructFact(); // destruct
-            //new(&structFactPrimVerticalAverage) StructFact(ba_flat,dmap_flat,prim_var_names,var_scaling); // reconstruct
     
+        }
+
+        if (do_2D) { // 2D is coded only for XY plane
+
+            {
+                MultiFab X, XRot;
+                ExtractSlice(prim, X, geom, 2, 0, 0, nprimvars);
+                XRot = RotateFlattenedMF(X);
+                ba_flat_2D = XRot.boxArray();
+                dmap_flat_2D = XRot.DistributionMap();
+                master_2D_rot_prim.define(ba_flat_2D,dmap_flat_2D,structVarsPrim,0);
+                master_2D_rot_cons.define(ba_flat_2D,dmap_flat_2D,structVarsCons,0);
+
+                IntVect dom_lo_flat(AMREX_D_DECL(0,0,0));
+                IntVect dom_hi_flat;
+                dom_hi_flat[0] = n_cells[0]-1;
+                dom_hi_flat[1] = n_cells[1]-1;
+                dom_hi_flat[2] = 0;
+                Box domain_flat(dom_lo_flat, dom_hi_flat);
+
+                // This defines the physical box
+                Vector<Real> projected_hi(AMREX_SPACEDIM);
+                for (int d=0; d<AMREX_SPACEDIM; d++) {
+                    projected_hi[d] = prob_hi[d];
+                }
+                projected_hi[AMREX_SPACEDIM-1] = prob_hi[2] / n_cells[2];
+
+                RealBox real_box_flat({AMREX_D_DECL(     prob_lo[0],     prob_lo[1],     prob_lo[2])},
+                                 {AMREX_D_DECL(projected_hi[0],projected_hi[1],projected_hi[2])});
+          
+                // This defines a Geometry object
+                geom_flat_2D.define(domain_flat,&real_box_flat,CoordSys::cartesian,is_periodic.data());
+
+            }
+
+            structFactPrimArray.resize(n_cells[2]);
+            structFactConsArray.resize(n_cells[2]);
+
+            for (int i = 0; i < n_cells[2]; ++i) { 
+                structFactPrimArray[i].define(ba_flat_2D,dmap_flat_2D,prim_var_names,var_scaling_prim,2);
+                structFactConsArray[i].define(ba_flat_2D,dmap_flat_2D,cons_var_names,var_scaling_cons,2);
+            }
+
         }
 
         ///////////////////////////////////////////
@@ -731,13 +839,16 @@ void main_driver(const char* argv)
                 if (do_1D) {
                     WriteSpatialCross1D(spatialCross1D, 0, geom, ncross);
                 }
+                else if (do_2D) {
+                //    WriteSpatialCross2D(spatialCross2D, 0, geom, ncross); // (do later)
+                }
                 else {
                     WriteSpatialCross3D(spatialCross3D, 0, geom, ncross);
                 }
             }
         }
 
-        if ((plot_cross) and (do_1D==0)) {
+        if ((plot_cross) and (do_1D==0) and (do_2D==0)) {
             if (ParallelDescriptor::IOProcessor()) outfile.open(filename);
         }
 
@@ -841,6 +952,9 @@ void main_driver(const char* argv)
             if (do_1D) {
                 spatialCross1D.setVal(0.0);
             }
+            else if (do_2D) {
+                spatialCross2D.setVal(0.0);
+            }
             else {
                 spatialCross3D.assign(spatialCross3D.size(), 0.0);
             }
@@ -856,6 +970,11 @@ void main_driver(const char* argv)
             evaluateStatsStag1D(cu, cuMeans, cuVars, prim, primMeans, primVars, vel, 
                                 velMeans, velVars, cumom, cumomMeans, cumomVars, coVars,
                                 spatialCross1D, ncross, statsCount);
+        }
+        else if (do_2D) {
+            evaluateStatsStag2D(cu, cuMeans, cuVars, prim, primMeans, primVars, vel, 
+                                velMeans, velVars, cumom, cumomMeans, cumomVars, coVars,
+                                spatialCross2D, ncross, statsCount);
         }
         else {
             evaluateStatsStag3D(cu, cuMeans, cuVars, prim, primMeans, primVars, vel, 
@@ -887,6 +1006,9 @@ void main_driver(const char* argv)
             if (plot_cross) {
                 if (do_1D) {
                     WriteSpatialCross1D(spatialCross1D, step, geom, ncross);
+                }
+                else if (do_2D) {
+                //    WriteSpatialCross2D(spatialCross2D, step, geom, ncross); // (do later)
                 }
                 else {
                     WriteSpatialCross3D(spatialCross3D, step, geom, ncross);
@@ -950,37 +1072,96 @@ void main_driver(const char* argv)
             }
             ////////////////////////////////////////////////////
 
-            structFactPrim.FortStructure(structFactPrimMF,geom);
-            structFactCons.FortStructure(structFactConsMF,geom);
+            if ((do_1D==0) and (do_2D==0)) {
+                structFactPrim.FortStructure(structFactPrimMF,geom);
+                structFactCons.FortStructure(structFactConsMF,geom);
+            }
 
-            if(project_dir >= 0) {
+            if (project_dir >= 0) {
+
                 if (do_slab_sf == 0) {
-                    MultiFab primVertAvg;  // flattened multifab defined below
-                    MultiFab consVertAvg;  // flattened multifab defined below
-                    ComputeVerticalAverage(structFactPrimMF, primVertAvg, geom, project_dir, 0, structVarsPrim);
-                    ComputeVerticalAverage(structFactConsMF, consVertAvg, geom, project_dir, 0, structVarsCons);
-                    MultiFab primVertAvgRot = RotateFlattenedMF(primVertAvg);
-                    MultiFab consVertAvgRot = RotateFlattenedMF(consVertAvg);
-                    structFactPrimVerticalAverage.FortStructure(primVertAvgRot,geom_flat);
-                    structFactConsVerticalAverage.FortStructure(consVertAvgRot,geom_flat);
+                    
+                    {
+                        MultiFab X, XRot;
+
+                        ComputeVerticalAverage(structFactPrimMF, X, geom, project_dir, 0, structVarsPrim);
+                        XRot = RotateFlattenedMF(X);
+                        master_project_rot_prim.ParallelCopy(XRot, 0, 0, structVarsPrim); 
+                        structFactPrimVerticalAverage.FortStructure(master_project_rot_prim,geom_flat);
+                    }
+
+                    {
+                        MultiFab X, XRot;
+
+                        ComputeVerticalAverage(structFactConsMF, X, geom, project_dir, 0, structVarsCons);
+                        XRot = RotateFlattenedMF(X);
+                        master_project_rot_cons.ParallelCopy(XRot, 0, 0, structVarsCons);
+                        structFactConsVerticalAverage.FortStructure(master_project_rot_cons,geom_flat);
+                    }
+
                 }
                 else {
-                    MultiFab primVertAvg0;  // flattened multifab defined below
-                    MultiFab primVertAvg1;  // flattened multifab defined below
-                    MultiFab consVertAvg0;  // flattened multifab defined below
-                    MultiFab consVertAvg1;  // flattened multifab defined below
-                    ComputeVerticalAverage(structFactPrimMF, primVertAvg0, geom, project_dir, 0, structVarsPrim, 0, membrane_cell-1);
-                    ComputeVerticalAverage(structFactPrimMF, primVertAvg1, geom, project_dir, 0, structVarsPrim, membrane_cell, n_cells[project_dir]-1);
-                    ComputeVerticalAverage(structFactConsMF, consVertAvg0, geom, project_dir, 0, structVarsCons, 0, membrane_cell-1);
-                    ComputeVerticalAverage(structFactConsMF, consVertAvg1, geom, project_dir, 0, structVarsCons, membrane_cell, n_cells[project_dir]-1);
-                    MultiFab primVertAvgRot0 = RotateFlattenedMF(primVertAvg0);
-                    MultiFab primVertAvgRot1 = RotateFlattenedMF(primVertAvg1);
-                    MultiFab consVertAvgRot0 = RotateFlattenedMF(consVertAvg0);
-                    MultiFab consVertAvgRot1 = RotateFlattenedMF(consVertAvg1);
-                    structFactPrimVerticalAverage0.FortStructure(primVertAvgRot0,geom_flat);
-                    structFactPrimVerticalAverage1.FortStructure(primVertAvgRot1,geom_flat);
-                    structFactConsVerticalAverage0.FortStructure(consVertAvgRot0,geom_flat);
-                    structFactConsVerticalAverage1.FortStructure(consVertAvgRot1,geom_flat);
+                    
+                    {
+                        MultiFab X, XRot;
+
+                        ComputeVerticalAverage(structFactPrimMF, X, geom, project_dir, 0, structVarsPrim, 0, membrane_cell-1);
+                        XRot = RotateFlattenedMF(X);
+                        master_project_rot_prim.ParallelCopy(XRot, 0, 0, structVarsPrim);
+                        structFactPrimVerticalAverage0.FortStructure(master_project_rot_prim,geom_flat);
+                    }
+
+                    {
+                        MultiFab X, XRot;
+
+                        ComputeVerticalAverage(structFactPrimMF, X, geom, project_dir, 0, structVarsPrim, membrane_cell, n_cells[project_dir]-1);
+                        XRot = RotateFlattenedMF(X);
+                        master_project_rot_prim.ParallelCopy(XRot, 0, 0, structVarsPrim); 
+                        structFactPrimVerticalAverage1.FortStructure(master_project_rot_prim,geom_flat);
+                    }
+
+                    {
+                        MultiFab X, XRot;
+
+                        ComputeVerticalAverage(structFactConsMF, X, geom, project_dir, 0, structVarsCons, 0, membrane_cell-1);
+                        XRot = RotateFlattenedMF(X);
+                        master_project_rot_cons.ParallelCopy(XRot, 0, 0, structVarsCons); 
+                        structFactConsVerticalAverage0.FortStructure(master_project_rot_cons,geom_flat);
+                    }
+
+                    {
+                        MultiFab X, XRot;
+
+                        ComputeVerticalAverage(structFactConsMF, X, geom, project_dir, 0, structVarsCons, membrane_cell, n_cells[project_dir]-1);
+                        XRot = RotateFlattenedMF(X);
+                        master_project_rot_cons.ParallelCopy(XRot, 0, 0, structVarsCons); 
+                        structFactConsVerticalAverage1.FortStructure(master_project_rot_cons,geom_flat);
+                    }
+                }
+            }
+
+            if (do_2D) {
+
+                for (int i=0; i<n_cells[2]; ++i) {
+
+                    {
+                        MultiFab X, XRot;
+
+                        ExtractSlice(structFactPrimMF, X, geom, 2, i, 0, structVarsPrim);
+                        XRot = RotateFlattenedMF(X);
+                        master_2D_rot_prim.ParallelCopy(XRot, 0, 0, structVarsPrim); 
+                        structFactPrimArray[i].FortStructure(master_2D_rot_prim,geom_flat_2D);
+                    }
+
+                    {
+                        MultiFab X, XRot;
+
+                        ExtractSlice(structFactConsMF, X, geom, 2, i, 0, structVarsCons);
+                        XRot = RotateFlattenedMF(X);
+                        master_2D_rot_cons.ParallelCopy(XRot, 0, 0, structVarsCons); 
+                        structFactConsArray[i].FortStructure(master_2D_rot_cons,geom_flat_2D);
+                    }
+
                 }
             }
         }
@@ -990,9 +1171,12 @@ void main_driver(const char* argv)
             struct_fact_int > 0 && plot_int > 0 && 
             step%plot_int == 0) {
 
-            structFactPrim.WritePlotFile(step,time,geom,"plt_SF_prim");
-            structFactCons.WritePlotFile(step,time,geom,"plt_SF_cons");
-            if(project_dir >= 0) {
+            if ((do_1D==0) and (do_2D==0)) {
+                structFactPrim.WritePlotFile(step,time,geom,"plt_SF_prim");
+                structFactCons.WritePlotFile(step,time,geom,"plt_SF_cons");
+            }
+
+            if (project_dir >= 0) {
                 if (do_slab_sf == 0) {
                     structFactPrimVerticalAverage.WritePlotFile(step,time,geom_flat,"plt_SF_prim_VerticalAverage");
                     structFactConsVerticalAverage.WritePlotFile(step,time,geom_flat,"plt_SF_cons_VerticalAverage");
@@ -1004,6 +1188,38 @@ void main_driver(const char* argv)
                     structFactConsVerticalAverage1.WritePlotFile(step,time,geom_flat,"plt_SF_cons_VerticalAverageSlab1");
                 }
             }
+
+            if (do_2D) {
+                    
+                MultiFab prim_mag, prim_realimag, cons_mag, cons_realimag;
+
+                prim_mag.define(ba_flat_2D,dmap_flat_2D,structFactPrimArray[0].get_ncov(),0);
+                prim_realimag.define(ba_flat_2D,dmap_flat_2D,2*structFactPrimArray[0].get_ncov(),0);
+                cons_mag.define(ba_flat_2D,dmap_flat_2D,structFactConsArray[0].get_ncov(),0);
+                cons_realimag.define(ba_flat_2D,dmap_flat_2D,2*structFactConsArray[0].get_ncov(),0);
+
+                prim_mag.setVal(0.0);
+                cons_mag.setVal(0.0);
+                prim_realimag.setVal(0.0);
+                cons_realimag.setVal(0.0);
+
+                for (int i=0; i<n_cells[2]; ++i) {
+                    structFactPrimArray[i].AddToExternal(prim_mag,prim_realimag,geom_flat_2D);
+                    structFactConsArray[i].AddToExternal(cons_mag,cons_realimag,geom_flat_2D);
+                }
+                    
+                Real ncellsinv = 1.0/n_cells[2];
+                prim_mag.mult(ncellsinv);
+                cons_mag.mult(ncellsinv);
+                prim_realimag.mult(ncellsinv);
+                cons_realimag.mult(ncellsinv);
+
+                WritePlotFilesSF_2D(prim_mag,prim_realimag,geom_flat_2D,step,time,
+                                    structFactPrimArray[0].get_names(),"plt_SF_prim_2D");
+                WritePlotFilesSF_2D(cons_mag,cons_realimag,geom_flat_2D,step,time,
+                                    structFactConsArray[0].get_names(),"plt_SF_cons_2D");
+
+            }
         }
         
 
@@ -1014,6 +1230,11 @@ void main_driver(const char* argv)
                 WriteCheckPoint1D(step, time, statsCount, geom, cu, cuMeans, cuVars, prim,
                                   primMeans, primVars, cumom, cumomMeans, cumomVars, 
                                   vel, velMeans, velVars, coVars, spatialCross1D, ncross);
+            }
+            else if (do_2D) {
+                WriteCheckPoint2D(step, time, statsCount, geom, cu, cuMeans, cuVars, prim,
+                                  primMeans, primVars, cumom, cumomMeans, cumomVars, 
+                                  vel, velMeans, velVars, coVars, spatialCross2D, ncross);
             }
             else {
                 WriteCheckPoint3D(step, time, statsCount, geom, cu, cuMeans, cuVars, prim,

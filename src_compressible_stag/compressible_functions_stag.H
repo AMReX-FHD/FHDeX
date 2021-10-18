@@ -34,6 +34,8 @@ void WriteSpatialCross3D(const Vector<Real>& spatialCross, int step, const Geome
 
 void WriteSpatialCross1D(const MultiFab& spatialCross    , int step, const Geometry& geom, const int ncross); 
 
+void WritePlotFilesSF_2D(const amrex::MultiFab& mag, const amrex::MultiFab& realimag, const amrex::Geometry& geom,
+                         const int step, const Real time, const amrex::Vector< std::string >& names, std::string plotfile_base);
 
 void conservedToPrimitiveStag(MultiFab& prim_in, std::array<MultiFab, AMREX_SPACEDIM>& velStag_in,
                               MultiFab& cons_in, const std::array<MultiFab, AMREX_SPACEDIM>& momStag_in);
@@ -162,6 +164,46 @@ void ReadCheckPoint3D(int& step,
                       Vector<Real>& spatialCross, int ncross,
                       BoxArray& ba, DistributionMapping& dmap);
 
+void WriteCheckPoint2D(int step,
+                       const amrex::Real time,
+                       int statsCount,
+                       const amrex::Geometry geom,
+                       const amrex::MultiFab& cu,
+                       const amrex::MultiFab& cuMeans,
+                       const amrex::MultiFab& cuVars,
+                       const amrex::MultiFab& prim,
+                       const amrex::MultiFab& primMeans,
+                       const amrex::MultiFab& primVars,
+                       const std::array<MultiFab, AMREX_SPACEDIM>& cumom,
+                       const std::array<MultiFab, AMREX_SPACEDIM>& cumomMeans,
+                       const std::array<MultiFab, AMREX_SPACEDIM>& cumomVars,
+                       const std::array<MultiFab, AMREX_SPACEDIM>& vel,
+                       const std::array<MultiFab, AMREX_SPACEDIM>& velMeans,
+                       const std::array<MultiFab, AMREX_SPACEDIM>& velVars,
+                       const amrex::MultiFab& coVars,
+                       const amrex::MultiFab& spatialCross, int ncross);
+
+void ReadCheckPoint2D(int& step,
+                       amrex::Real& time,
+                       int& statsCount,
+                       amrex::Geometry geom,
+                       const amrex::Box& domain,
+                       amrex::MultiFab& cu,
+                       amrex::MultiFab& cuMeans,
+                       amrex::MultiFab& cuVars,
+                       amrex::MultiFab& prim,
+                       amrex::MultiFab& primMeans,
+                       amrex::MultiFab& primVars,
+                       std::array<MultiFab, AMREX_SPACEDIM>& cumom,
+                       std::array<MultiFab, AMREX_SPACEDIM>& cumomMeans,
+                       std::array<MultiFab, AMREX_SPACEDIM>& cumomVars,
+                       std::array<MultiFab, AMREX_SPACEDIM>& vel,
+                       std::array<MultiFab, AMREX_SPACEDIM>& velMeans,
+                       std::array<MultiFab, AMREX_SPACEDIM>& velVars,
+                       amrex::MultiFab& coVars,
+                       amrex::MultiFab& spatialCross, int ncross,
+                       BoxArray& ba, DistributionMapping& dmap);
+
 void WriteCheckPoint1D(int step,
                        const amrex::Real time,
                        int statsCount,
@@ -225,6 +267,18 @@ void evaluateStatsStag3D(MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
                          Vector<Real>& dataSliceMeans_xcross,
                          Vector<Real>& spatialCross3D, const int ncross,
                          const amrex::Box& domain,
+                         const int steps);
+
+void evaluateStatsStag2D(MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
+                         MultiFab& prim_in, MultiFab& primMean, MultiFab& primVar,
+                         const std::array<MultiFab, AMREX_SPACEDIM>& vel, 
+                         std::array<MultiFab, AMREX_SPACEDIM>& velMean, 
+                         std::array<MultiFab, AMREX_SPACEDIM>& velVar, 
+                         const std::array<MultiFab, AMREX_SPACEDIM>& cumom,
+                         std::array<MultiFab, AMREX_SPACEDIM>& cumomMean,
+                         std::array<MultiFab, AMREX_SPACEDIM>& cumomVar,
+                         MultiFab& coVar, 
+                         MultiFab& spatialCross2D, const int ncross,
                          const int steps);
 
 void evaluateStatsStag1D(MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
