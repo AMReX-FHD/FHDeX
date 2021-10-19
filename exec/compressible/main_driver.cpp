@@ -328,6 +328,7 @@ void main_driver(const char* argv)
 
     // structure factor class for flattened dataset
     StructFact structFactPrimFlattened;
+    MultiFab primFlattenedRotMaster;
 
     Geometry geom_flat;
 
@@ -344,9 +345,9 @@ void main_driver(const char* argv)
       }
       // we rotate this flattened MultiFab to have normal in the z-direction since
       // our structure factor class assumes this for flattened
-      MultiFab primFlattenedRot = RotateFlattenedMF(primFlattened);
-      BoxArray ba_flat = primFlattenedRot.boxArray();
-      const DistributionMapping& dmap_flat = primFlattenedRot.DistributionMap();
+      primFlattenedRotMaster = RotateFlattenedMF(primFlattened);
+      BoxArray ba_flat = primFlattenedRotMaster.boxArray();
+      const DistributionMapping& dmap_flat = primFlattenedRotMaster.DistributionMap();
       {
         IntVect dom_lo(AMREX_D_DECL(0,0,0));
         IntVect dom_hi;
@@ -589,6 +590,7 @@ void main_driver(const char* argv)
                 // we rotate this flattened MultiFab to have normal in the z-direction since
                 // our structure factor class assumes this for flattened
                 MultiFab primFlattenedRot = RotateFlattenedMF(primFlattened);
+                primFlattenedRot.ParallelCopy(primFlattenedRot,0,0,structVarsPrim);
                 structFactPrimFlattened.FortStructure(primFlattenedRot,geom_flat);
             }
         }
