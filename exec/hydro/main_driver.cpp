@@ -337,6 +337,7 @@ void main_driver(const char* argv)
     ///////////////////////////////////////////
 
     StructFact structFactFlattened;
+    MultiFab FlattenedRotMaster;
 
     Geometry geom_flat;
 
@@ -361,6 +362,7 @@ void main_driver(const char* argv)
       MultiFab FlattenedRot = RotateFlattenedMF(Flattened);
       BoxArray ba_flat = FlattenedRot.boxArray();
       const DistributionMapping& dmap_flat = FlattenedRot.DistributionMap();
+      FlattenedRotMaster.define(ba_flat,dmap_flat,structVars,0);
       {
         IntVect dom_lo(AMREX_D_DECL(0,0,0));
         IntVect dom_hi;
@@ -474,7 +476,8 @@ void main_driver(const char* argv)
                 // we rotate this flattened MultiFab to have normal in the z-direction since
                 // our structure factor class assumes this for flattened
                 MultiFab FlattenedRot = RotateFlattenedMF(Flattened);
-                structFactFlattened.FortStructure(FlattenedRot,geom_flat);
+                FlattenedRotMaster.ParallelCopy(FlattenedRot,0,0,structVars);
+                structFactFlattened.FortStructure(FlattenedRotMaster,geom_flat);
             }
         }
 
