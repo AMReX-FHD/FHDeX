@@ -318,6 +318,7 @@ void main_driver(const char* argv)
 
     MultiFab structFactPrimMF;
     structFactPrimMF.define(ba, dmap, structVarsPrim, 0);
+    structFactPrimMF.setVal(0.0);
 
     // scale SF results by inverse cell volume
     Vector<Real> var_scaling_prim;
@@ -376,6 +377,7 @@ void main_driver(const char* argv)
 
     MultiFab structFactConsMF;
     structFactConsMF.define(ba, dmap, structVarsCons, 0);
+    structFactConsMF.setVal(0.0);
 
     // scale SF results by inverse cell volume
     var_scaling_cons.resize(structVarsCons*(structVarsCons+1)/2);
@@ -405,11 +407,11 @@ void main_driver(const char* argv)
       // a built version of primFlattened so can obtain what we need to build the
       // structure factor and geometry objects for flattened data
       if (slicepoint < 0) {
-          ComputeVerticalAverage(prim, primFlattened, geom, project_dir, 0, structVarsPrim);
-          ComputeVerticalAverage(cu, consFlattened, geom, project_dir, 0, structVarsCons);
+          ComputeVerticalAverage(structFactPrimMF, primFlattened, geom, project_dir, 0, structVarsPrim);
+          ComputeVerticalAverage(structFactConsMF, consFlattened, geom, project_dir, 0, structVarsCons);
       } else {
-          ExtractSlice(prim, primFlattened, geom, project_dir, slicepoint, 0, structVarsPrim);
-          ExtractSlice(cu, consFlattened, geom, project_dir, slicepoint, 0, structVarsCons);
+          ExtractSlice(structFactPrimMF, primFlattened, geom, project_dir, slicepoint, 0, structVarsPrim);
+          ExtractSlice(structFactConsMF, consFlattened, geom, project_dir, slicepoint, 0, structVarsCons);
       }
       // we rotate this flattened MultiFab to have normal in the z-direction since
       // our structure factor class assumes this for flattened
