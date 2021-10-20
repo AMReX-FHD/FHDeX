@@ -31,6 +31,14 @@ void main_driver(const char* argv)
 
     InitializeCompressibleNamespace();
 
+    if (nvars != AMREX_SPACEDIM + 2 + nspecies) {
+        Abort("nvars must be equal to AMREX_SPACEDIM + 2 + nspecies");
+    }
+
+    if (nprimvars != AMREX_SPACEDIM + 3 + 2*nspecies) {
+        Abort("nprimvars must be equal to AMREX_SPACEDIM + 3 + 2*nspecies");
+    }
+
     int step_start, statsCount;
     amrex::Real time;
 

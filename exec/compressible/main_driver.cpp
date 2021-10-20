@@ -32,6 +32,14 @@ void main_driver(const char* argv)
     // read the inputs file for chemistry
     InitializeChemistryNamespace();
 
+    if (nvars != AMREX_SPACEDIM + 2 + nspecies) {
+        Abort("nvars must be equal to AMREX_SPACEDIM + 2 + nspecies");
+    }
+
+    if (nprimvars != AMREX_SPACEDIM + 3 + 2*nspecies) {
+        Abort("nprimvars must be equal to AMREX_SPACEDIM + 3 + 2*nspecies");
+    }
+
     // if gas heat capacities in the namelist are negative, calculate them using using dofs.
     // This will only update the Fortran values.
     GetHcGas();
