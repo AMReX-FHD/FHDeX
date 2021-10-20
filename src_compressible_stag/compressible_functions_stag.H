@@ -40,8 +40,9 @@ void WritePlotFilesSF_2D(const amrex::MultiFab& mag, const amrex::MultiFab& real
 void conservedToPrimitiveStag(MultiFab& prim_in, std::array<MultiFab, AMREX_SPACEDIM>& velStag_in,
                               MultiFab& cons_in, const std::array<MultiFab, AMREX_SPACEDIM>& momStag_in);
 
-void InitConsVarStag(MultiFab& cons, std::array< MultiFab, AMREX_SPACEDIM >& momStag, 
-                     const MultiFab& prim, const amrex::Geometry geom);
+void InitConsVarStag(MultiFab& cons,
+                     std::array< MultiFab, AMREX_SPACEDIM >& momStag,
+                     const amrex::Geometry geom);
 
 void SetupBCStag();
 
