@@ -192,7 +192,7 @@ void InitConsVar(MultiFab& cons,
 
                 cu(i,j,k,4) = cu(i,j,k,0)*intEnergy + 0.5*(cu(i,j,k,1)*cu(i,j,k,1) +
                                                            cu(i,j,k,2)*cu(i,j,k,2) +
-                                                           cu(i,j,k,3)*cu(i,j,k,3));
+                                                           cu(i,j,k,3)*cu(i,j,k,3)) / cu(i,j,k,0);
             } else if (prob_type == 3) { // diffusion barrier
 
                 for (int l=0; l<nspecies; ++l) {
@@ -205,7 +205,7 @@ void InitConsVar(MultiFab& cons,
                 GetEnergy(intEnergy, massvec, T_init[0]);
                 cu(i,j,k,4) = cu(i,j,k,0)*intEnergy + 0.5*(cu(i,j,k,1)*cu(i,j,k,1) +
                                                            cu(i,j,k,2)*cu(i,j,k,2) +
-                                                           cu(i,j,k,3)*cu(i,j,k,3));
+                                                           cu(i,j,k,3)*cu(i,j,k,3)) / cu(i,j,k,0);
             } else if (prob_type == 4) { // Taylor Green Vortex
 
                 Real x=itVec[0];
