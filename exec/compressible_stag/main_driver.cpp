@@ -785,51 +785,11 @@ void main_driver(const char* argv)
         ///////////////////////////////////////////
         // Initialize everything
         ///////////////////////////////////////////
-        
-        prim.setVal(0.0,0,nprimvars,ngc);
-        prim.setVal(rho0,0,1,ngc);      // density
-        prim.setVal(0.,1,3,ngc);        // x/y/z velocity
-        prim.setVal(T_init[0],4,1,ngc); // temperature
-
-        for(int i=0;i<nspecies;i++) {
-            prim.setVal(rhobar[i],6+i,1,ngc);    // mass fractions
-        }
-
-        //Initialize physical parameters from input vals
-        Real intEnergy, T0;
-        T0 = T_init[0];
-
-        // compute internal energy
-        GpuArray<Real,MAX_SPECIES  > massvec;
-        for(int i=0;i<nspecies;i++) {
-            massvec[i] = rhobar[i];
-        }
-        GetEnergy(intEnergy, massvec, T0);
-
-        // set pressure
-        Real P0;
-        GetPressureGas(P0, massvec, rho0, T0);
-        prim.setVal(P0,5,1,ngc); // pressure
-
-        cu.setVal(0.0,0,nvars,ngc);
-        cu.setVal(rho0,0,1,ngc);           // density
-        cu.setVal(0,1,3,ngc);              // x/y/z momentum
-        cu.setVal(rho0*intEnergy,4,1,ngc); // total energy
-        for(int i=0;i<nspecies;i++) {
-            cu.setVal(rho0*rhobar[i],5+i,1,ngc); // mass densities
-        }
-
-        for (int d=0; d<AMREX_SPACEDIM; d++) { // staggered momentum & velocities
-          cumom[d].setVal(0.);
-          vel[d].setVal(0.);
-        }
 
         // initialize conserved variables
-        if (prob_type > 1) {
-            InitConsVarStag(cu,cumom,prim,geom); // Need to add for staggered -- Ishan
-        }
+        InitConsVarStag(cu,cumom,geom); // Need to add for staggered -- Ishan
 
-        // Write initial plotfile
+        // initialize primitive variables
         conservedToPrimitiveStag(prim, vel, cu, cumom);
 
         // Set BC: 1) fill boundary 2) physical (How to do for staggered? -- Ishan)
