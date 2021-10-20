@@ -100,10 +100,6 @@ void InitConsVar(MultiFab& cons, const MultiFab& prim,
     Real t_lo_y = t_lo[1];
     Real t_hi_y = t_hi[1];
 
-    // local variables
-    Real mach = 0.3;
-    Real velscale = 30565.2*mach;
-
     Real hy = ( prob_hi[1] - prob_lo[1] ) / 3.;
     Real pi = acos(-1.);
     Real Lf = realhi[0] - reallo[0];
@@ -195,11 +191,15 @@ void InitConsVar(MultiFab& cons, const MultiFab& prim,
                 Real y=itVec[1];
                 Real z=itVec[2];
 
-                cu(i,j,k,0) = 1.784e-3;
+                // local variables
+                Real velscale = 9237.;
+                Real pscale = 884.147e3;
+
+                cu(i,j,k,0) = rho0;
                 cu(i,j,k,1) =  velscale*cu(i,j,k,0)*sin(2.*pi*x/Lf)*cos(2.*pi*y/Lf)*cos(2.*pi*z/Lf);
                 cu(i,j,k,2) = -velscale*cu(i,j,k,0)*cos(2.*pi*x/Lf)*sin(2.*pi*y/Lf)*cos(2.*pi*z/Lf);
                 cu(i,j,k,3) = 0.;
-                Real pres = 1.01325e6+cu(i,j,k,0)*velscale*velscale*cos(2.*pi*x/Lf)*cos(4.*pi*y/Lf)*(cos(4.*pi*z/Lf)+2.);
+                Real pres = pscale+cu(i,j,k,0)*velscale*velscale*cos(2.*pi*x/Lf)*cos(4.*pi*y/Lf)*(cos(4.*pi*z/Lf)+2.);
                 cu(i,j,k,4) = pres/(5./3.-1.) + 0.5*(cu(i,j,k,1)*cu(i,j,k,1) +
                                                      cu(i,j,k,2)*cu(i,j,k,2) +
                                                      cu(i,j,k,3)*cu(i,j,k,3)) / cu(i,j,k,0);
