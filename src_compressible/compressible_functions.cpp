@@ -208,20 +208,29 @@ void InitConsVar(MultiFab& cons,
                 Real y=itVec[1];
                 Real z=itVec[2];
 
-                // local variables
+                // problem scales
                 Real velscale = 9237.;
                 Real pscale = 884.147e3;
 
-                cu(i,j,k,0) = rho0;
+                // compute pressure (needed to compute density)
+                Real pres = pscale+cu(i,j,k,0)*velscale*velscale*cos(2.*pi*x/Lf)*cos(4.*pi*y/Lf)*(cos(4.*pi*z/Lf)+2.);
+
+                // density
+                cu(i,j,k,0) = (molmass[0] / 6.02e23) * pres / (k_B * T_init[0]);
+               
+                // momentum
                 cu(i,j,k,1) =  velscale*cu(i,j,k,0)*sin(2.*pi*x/Lf)*cos(2.*pi*y/Lf)*cos(2.*pi*z/Lf);
                 cu(i,j,k,2) = -velscale*cu(i,j,k,0)*cos(2.*pi*x/Lf)*sin(2.*pi*y/Lf)*cos(2.*pi*z/Lf);
                 cu(i,j,k,3) = 0.;
-                Real pres = pscale+cu(i,j,k,0)*velscale*velscale*cos(2.*pi*x/Lf)*cos(4.*pi*y/Lf)*(cos(4.*pi*z/Lf)+2.);
+
+                // internal energy
                 cu(i,j,k,4) = pres/(5./3.-1.) + 0.5*(cu(i,j,k,1)*cu(i,j,k,1) +
                                                      cu(i,j,k,2)*cu(i,j,k,2) +
                                                      cu(i,j,k,3)*cu(i,j,k,3)) / cu(i,j,k,0);
-                cu(i,j,k,5) = cu(i,j,k,0);
-                cu(i,j,k,6) = 0.;
+
+                // mass densities (50/50 red/blue argon)
+                cu(i,j,k,5) = 0.5*cu(i,j,k,0);
+                cu(i,j,k,6) = 0.5*cu(i,j,k,0);
                 
             } else if (prob_type == 5) { // Taylor Green Vortex
 
