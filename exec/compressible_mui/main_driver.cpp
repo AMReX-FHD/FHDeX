@@ -380,6 +380,7 @@ void main_driver(const char* argv)
     structFactConsMF.setVal(0.0);
 
     // scale SF results by inverse cell volume
+    Vector<Real> var_scaling_cons;
     var_scaling_cons.resize(structVarsCons*(structVarsCons+1)/2);
     for (int d=0; d<var_scaling_cons.size(); ++d) {
         var_scaling_cons[d] = 1./(dx[0]*dx[1]*dx[2]);
@@ -400,25 +401,21 @@ void main_driver(const char* argv)
     Geometry geom_flat;
     
     if(project_dir >= 0){
-      MultiFab primFlattened;  // flattened multifab defined below
-      MultiFab consFlattened;  // flattened multifab defined below
+      MultiFab Flattened;  // flattened multifab defined below
       
       // we are only calling ComputeVerticalAverage or ExtractSlice here to obtain
       // a built version of primFlattened so can obtain what we need to build the
       // structure factor and geometry objects for flattened data
       if (slicepoint < 0) {
-          ComputeVerticalAverage(structFactPrimMF, primFlattened, geom, project_dir, 0, structVarsPrim);
-          ComputeVerticalAverage(structFactConsMF, consFlattened, geom, project_dir, 0, structVarsCons);
+          ComputeVerticalAverage(structFactPrimMF, Flattened, geom, project_dir, 0, 1);
       } else {
-          ExtractSlice(structFactPrimMF, primFlattened, geom, project_dir, slicepoint, 0, structVarsPrim);
-          ExtractSlice(structFactConsMF, consFlattened, geom, project_dir, slicepoint, 0, structVarsCons);
+          ExtractSlice(structFactPrimMF, Flattened, geom, project_dir, slicepoint, 0, 1);
       }
       // we rotate this flattened MultiFab to have normal in the z-direction since
       // our structure factor class assumes this for flattened
-      MultiFab primFlattenedRot = RotateFlattenedMF(primFlattened);
-      MultiFab consFlattenedRot = RotateFlattenedMF(consFlattened);
-      BoxArray ba_flat = primFlattenedRot.boxArray();
-      const DistributionMapping& dmap_flat = primFlattenedRot.DistributionMap();
+      MultiFab FlattenedRot = RotateFlattenedMF(Flattened);
+      BoxArray ba_flat = FlattenedRot.boxArray();
+      const DistributionMapping& dmap_flat = FlattenedRot.DistributionMap();
       primFlattenedRotMaster.define(ba_flat,dmap_flat,structVarsPrim,0);
       consFlattenedRotMaster.define(ba_flat,dmap_flat,structVarsCons,0);
       {
