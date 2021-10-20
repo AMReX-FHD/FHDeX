@@ -320,15 +320,15 @@ void main_driver(const char* argv)
     structFactPrimMF.define(ba, dmap, structVarsPrim, 0);
 
     // scale SF results by inverse cell volume
-    Vector<Real> var_scaling;
-    var_scaling.resize(structVarsPrim*(structVarsPrim+1)/2);
-    for (int d=0; d<var_scaling.size(); ++d) {
-        var_scaling[d] = 1./(dx[0]*dx[1]*dx[2]);
+    Vector<Real> var_scaling_prim;
+    var_scaling_prim.resize(structVarsPrim*(structVarsPrim+1)/2);
+    for (int d=0; d<var_scaling_prim.size(); ++d) {
+        var_scaling_prim[d] = 1./(dx[0]*dx[1]*dx[2]);
     }
 
     // compute all pairs
     // note: StructFactPrim option to compute only speicified pairs not written yet
-    StructFact structFactPrim(ba,dmap,prim_var_names,var_scaling);
+    StructFact structFactPrim(ba,dmap,prim_var_names,var_scaling_prim);
 
     ///////////////////////////////////////////
 
@@ -378,14 +378,14 @@ void main_driver(const char* argv)
     structFactConsMF.define(ba, dmap, structVarsCons, 0);
 
     // scale SF results by inverse cell volume
-    var_scaling.resize(structVarsCons*(structVarsCons+1)/2);
-    for (int d=0; d<var_scaling.size(); ++d) {
-        var_scaling[d] = 1./(dx[0]*dx[1]*dx[2]);
+    var_scaling_cons.resize(structVarsCons*(structVarsCons+1)/2);
+    for (int d=0; d<var_scaling_cons.size(); ++d) {
+        var_scaling_cons[d] = 1./(dx[0]*dx[1]*dx[2]);
     }
 
     // compute all pairs
     // note: StructFactCons option to compute only speicified pairs not written yet
-    StructFact structFactCons(ba,dmap,cons_var_names,var_scaling);
+    StructFact structFactCons(ba,dmap,cons_var_names,var_scaling_cons);
 
     //////////////////////////////////////////////
 
@@ -485,8 +485,8 @@ void main_driver(const char* argv)
         geom_flat.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
       }
 
-      structFactPrimFlattened.define(ba_flat,dmap_flat,prim_var_names,var_scaling);
-      structFactConsFlattened.define(ba_flat,dmap_flat,cons_var_names,var_scaling);
+      structFactPrimFlattened.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim);
+      structFactConsFlattened.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons);
     }
     
     //////////////////////////////////////////////
@@ -638,11 +638,11 @@ void main_driver(const char* argv)
                 MultiFab primFlattened;  // flattened multifab defined below
                 MultiFab consFlattened;  // flattened multifab defined below
                 if (slicepoint < 0) {
-                    ComputeVerticalAverage(prim, primFlattened, geom, project_dir, 0, structVarsPrim);
-                    ComputeVerticalAverage(cu, consFlattened, geom, project_dir, 0, structVarsCons);
+                    ComputeVerticalAverage(structFactPrimMF, primFlattened, geom, project_dir, 0, structVarsPrim);
+                    ComputeVerticalAverage(structFactConsMF, consFlattened, geom, project_dir, 0, structVarsCons);
                 } else {
-                    ExtractSlice(prim, primFlattened, geom, project_dir, slicepoint, 0, structVarsPrim);
-                    ExtractSlice(cu, consFlattened, geom, project_dir, slicepoint, 0, structVarsCons);
+                    ExtractSlice(structFactPrimMF, primFlattened, geom, project_dir, slicepoint, 0, structVarsPrim);
+                    ExtractSlice(structFactConsMF, consFlattened, geom, project_dir, slicepoint, 0, structVarsCons);
                 }
                 // we rotate this flattened MultiFab to have normal in the z-direction since
                 // our structure factor class assumes this for flattened
