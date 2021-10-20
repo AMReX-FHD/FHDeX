@@ -54,6 +54,8 @@ void main_driver(const char* argv)
 
     if (((do_1D) or (do_2D)) and (amrex::Math::abs(visc_type) == 3)) Abort("1D and 2D version only work for zero bulk viscosity currently. Use visc_type 1 or 2");
 
+    if ((do_1D) and (do_2D)) Abort("Can not have both 1D and 2D mode on at the same time");
+
     // for each direction, if bc_vel_lo/hi is periodic, then
     // set the corresponding bc_mass_lo/hi and bc_therm_lo/hi to periodic
     SetupBCStag();
