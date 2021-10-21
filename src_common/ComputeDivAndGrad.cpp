@@ -296,6 +296,36 @@ void ComputeCentredGrad(const MultiFab & phi,
     }
 }
 
+// Computes gradient at cell centres on a component in a given direction
+void ComputeCentredGradCompDir(const MultiFab & phi,
+                               MultiFab& gphi,
+                               int dir,
+                               int incomp,
+                               int outcomp,
+                               const Geometry & geom)
+{
+    BL_PROFILE_VAR("ComputeCentredGradCompDir()",ComputeCentredGrad);
+
+    int ioff = (dir == 0) ? 1 : 0;
+    int joff = (dir == 1) ? 1 : 0;
+    int koff = (dir == 2) ? 1 : 0;
+    
+    const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
+
+    for ( MFIter mfi(phi,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
+
+        const Box& bx = mfi.tilebox();
+
+        Array4<Real const> const& phi_fab = phi.array(mfi);
+        Array4<Real> const& gphi_fab = gphi.array(mfi);
+
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            gphi_fab(i,j,k,outcomp) = (phi_fab(i+ioff,j+joff,k+koff,incomp) - phi_fab(i-ioff,j-joff,k-koff,incomp)) / (2.*dx[dir]);
+        });
+    }
+}
+
 // Computes gradient at cell centres from face centred data
 // Outputs to 3 different components in a cell-centered MultiFab
 void ComputeCentredGradFC(std::array<MultiFab, AMREX_SPACEDIM> & phi,

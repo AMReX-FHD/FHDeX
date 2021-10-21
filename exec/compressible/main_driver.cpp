@@ -267,6 +267,15 @@ void main_driver(const char* argv)
     MultiFab visccorn;
     visccorn.define(convert(ba,nodal_flag), dmap, 1, 0);
 
+    // storage for grad(U) for energy dissipation calculation
+    MultiFab gradU(ba,dmap,AMREX_SPACEDIM,0);
+    MultiFab rhoscaled_gradU(ba,dmap,AMREX_SPACEDIM,0);
+    MultiFab ccTemp(ba,dmap,1,0);
+
+    Real dProb = (AMREX_SPACEDIM==2) ? 1./(n_cells[0]*n_cells[1]) : 1./(n_cells[0]*n_cells[1]*n_cells[2]);
+    Real pscale = 884.147e3;
+    Real rhoscale = molmass[0] / (Runiv / k_B) * pscale / (k_B * T_init[0]);
+        
     Real time = 0;
 
     int step;
@@ -588,6 +597,31 @@ void main_driver(const char* argv)
                 structFactConsFlattened.WritePlotFile(step,time,geom_flat,"plt_SF_cons_Flattened");
             }
         }
+
+        // energy dissipation rate
+
+        // compute gradU = [du/dx, dv/dy, dw/dz]
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            ComputeCentredGradCompDir(prim,gradU,d,d+1,d,geom);
+        }
+
+        // create a copy of gradU scaled by rho/rho0
+        MultiFab::Copy(rhoscaled_gradU, gradU, 0, 0, AMREX_SPACEDIM, 0);
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            MultiFab::Multiply(rhoscaled_gradU, prim, 0, d, 1, 0);
+            rhoscaled_gradU.mult(1./rhoscale,d,1,0);
+        }
+
+        // compute <rho/rho0 du_i/dx_j du_i/dx_j>
+        Vector<Real> gradUdotgradU(3);
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            CCInnerProd(gradU,d,rhoscaled_gradU,d,ccTemp,gradUdotgradU[d]);
+        }
+
+        Print() << "Non-viscosity scaled energy dissipation "
+		<< time << " "
+                << dProb*( gradUdotgradU[0] + gradUdotgradU[1] + gradUdotgradU[2] )
+                << std::endl;
         
         // timer
         Real aux2 = ParallelDescriptor::second() - aux1;
