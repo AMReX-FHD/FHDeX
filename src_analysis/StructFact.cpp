@@ -990,3 +990,35 @@ void StructFact::IntegratekShells(const int& step, const Geometry& geom) {
         }
     }
 }
+
+void StructFact::AddToExternal(MultiFab& x_mag, MultiFab& x_realimag, const Geometry& geom, const int& zero_avg) {
+
+    BL_PROFILE_VAR("StructFact::AddToExternal",AddToExternal);
+
+    MultiFab plotfile;
+    int nPlot = 1;
+
+    // Build temp real & imag components
+    const BoxArray& ba = cov_mag.boxArray();
+    const DistributionMapping& dm = cov_mag.DistributionMap();
+
+    MultiFab cov_real_temp(ba, dm, NCOV, 0);
+    MultiFab cov_imag_temp(ba, dm, NCOV, 0);
+    MultiFab::Copy(cov_real_temp, cov_real, 0, 0, NCOV, 0);
+    MultiFab::Copy(cov_imag_temp, cov_imag, 0, 0, NCOV, 0);
+
+    // Finalize covariances - scale & compute magnitude
+    Finalize(cov_real_temp, cov_imag_temp, geom, zero_avg);
+
+    nPlot = NCOV;
+    plotfile.define(cov_mag.boxArray(), cov_mag.DistributionMap(), nPlot, 0);
+    MultiFab::Copy(plotfile, cov_mag, 0, 0, NCOV, 0); // copy structure factor into plotfile
+    MultiFab::Add(x_mag,plotfile,0,0,NCOV,0);
+
+    nPlot = 2*NCOV;
+    plotfile.define(cov_mag.boxArray(), cov_mag.DistributionMap(), nPlot, 0);
+    MultiFab::Copy(plotfile,cov_real_temp,0,0,   NCOV,0);
+    MultiFab::Copy(plotfile,cov_imag_temp,0,NCOV,NCOV,0);
+    MultiFab::Add(x_realimag,plotfile,0,0,2*NCOV,0);
+
+}

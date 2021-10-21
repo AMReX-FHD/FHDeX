@@ -3,7 +3,7 @@ import numpy as np
 
 outfile = "res.coverage_det"
 
-ka = 1.061349e+07
+ka = 7.562496e+06
 kd = 2.926784e+07
 
 cov0 = 0.

@@ -23,14 +23,22 @@ void main_driver(const char* argv)
 
     std::string inputs_file = argv;
 
-    
-    // copy contents of F90 modules to C++ namespaces
+    // read the inputs file for common
     InitializeCommonNamespace();
 
+    // read the inputs file for compressible 
     InitializeCompressibleNamespace();
 
     // read the inputs file for chemistry
     InitializeChemistryNamespace();
+
+    if (nvars != AMREX_SPACEDIM + 2 + nspecies) {
+        Abort("nvars must be equal to AMREX_SPACEDIM + 2 + nspecies");
+    }
+
+    if (nprimvars != AMREX_SPACEDIM + 3 + 2*nspecies) {
+        Abort("nprimvars must be equal to AMREX_SPACEDIM + 3 + 2*nspecies");
+    }
 
     // if gas heat capacities in the namelist are negative, calculate them using using dofs.
     // This will only update the Fortran values.
@@ -207,12 +215,6 @@ void main_driver(const char* argv)
     MultiFab ranchem;
     if (nreaction>0) ranchem.define(ba,dmap,nreaction,ngc);
 
-    //Initialize physical parameters from input vals
-
-    double intEnergy, T0;
-
-    T0 = T_init[0];
-
     //fluxes
     // need +4 to separate out heat, viscous heating (diagonal vs shear)  and Dufour contributions to the energy flux 
     // stacked at the end (see below)
@@ -267,7 +269,8 @@ void main_driver(const char* argv)
 
     Real time = 0;
 
-    int step, statsCount;
+    int step;
+    int statsCount = 1;
 
     ///////////////////////////////////////////
     // Structure factor:
@@ -312,41 +315,106 @@ void main_driver(const char* argv)
 
     MultiFab structFactPrimMF;
     structFactPrimMF.define(ba, dmap, structVarsPrim, 0);
+    structFactPrimMF.setVal(0.0);
 
     // scale SF results by inverse cell volume
-    Vector<Real> var_scaling;
-    var_scaling.resize(structVarsPrim*(structVarsPrim+1)/2);
-    for (int d=0; d<var_scaling.size(); ++d) {
-        var_scaling[d] = 1./(dx[0]*dx[1]*dx[2]);
+    Vector<Real> var_scaling_prim;
+    var_scaling_prim.resize(structVarsPrim*(structVarsPrim+1)/2);
+    for (int d=0; d<var_scaling_prim.size(); ++d) {
+        var_scaling_prim[d] = 1./(dx[0]*dx[1]*dx[2]);
     }
 
     // compute all pairs
     // note: StructFactPrim option to compute only speicified pairs not written yet
-    StructFact structFactPrim(ba,dmap,prim_var_names,var_scaling);
+    StructFact structFactPrim(ba,dmap,prim_var_names,var_scaling_prim);
 
     ///////////////////////////////////////////
 
     // structure factor class for flattened dataset
     StructFact structFactPrimFlattened;
+    MultiFab primFlattenedRotMaster;
 
+    //////////////////////////////////////////////
+
+    // "conserved" variable structure factor will contain
+    // rho
+    // j
+    // rho*E
+    // rho*Yk
+    // Temperature (not in the conserved array; will have to copy it in)
+    int structVarsCons = AMREX_SPACEDIM+nspecies+3;
+
+    Vector< std::string > cons_var_names;
+    cons_var_names.resize(structVarsCons);
+
+    cnt = 0;
+
+    // rho
+    cons_var_names[cnt++] = "rho";
+
+    // velx, vely, velz
+    for (int d=0; d<AMREX_SPACEDIM; d++) {
+      x = "j";
+      x += (120+d);
+      cons_var_names[cnt++] = x;
+    }
+
+    // rho*E
+    cons_var_names[cnt++] = "rhoE";
+
+    // rho*Yk
+    for (int d=0; d<nspecies; d++) {
+      x = "rhoY";
+      x += (49+d);
+      cons_var_names[cnt++] = x;
+    }
+
+    // Temp
+    cons_var_names[cnt++] = "Temp";
+
+    MultiFab structFactConsMF;
+    structFactConsMF.define(ba, dmap, structVarsCons, 0);
+    structFactConsMF.setVal(0.0);
+
+    // scale SF results by inverse cell volume
+    Vector<Real> var_scaling_cons;
+    var_scaling_cons.resize(structVarsCons*(structVarsCons+1)/2);
+    for (int d=0; d<var_scaling_cons.size(); ++d) {
+        var_scaling_cons[d] = 1./(dx[0]*dx[1]*dx[2]);
+    }
+
+    // compute all pairs
+    // note: StructFactCons option to compute only speicified pairs not written yet
+    StructFact structFactCons(ba,dmap,cons_var_names,var_scaling_cons);
+
+    //////////////////////////////////////////////
+
+    // structure factor class for flattened dataset
+    StructFact structFactConsFlattened;
+    MultiFab consFlattenedRotMaster;
+
+    //////////////////////////////////////////////
+    
     Geometry geom_flat;
-
+    
     if(project_dir >= 0){
-      MultiFab primFlattened;  // flattened multifab defined below
+      MultiFab Flattened;  // flattened multifab defined below
       
       // we are only calling ComputeVerticalAverage or ExtractSlice here to obtain
       // a built version of primFlattened so can obtain what we need to build the
       // structure factor and geometry objects for flattened data
       if (slicepoint < 0) {
-          ComputeVerticalAverage(prim, primFlattened, geom, project_dir, 0, structVarsPrim);
+          ComputeVerticalAverage(structFactPrimMF, Flattened, geom, project_dir, 0, 1);
       } else {
-          ExtractSlice(prim, primFlattened, geom, project_dir, 0, structVarsPrim);
+          ExtractSlice(structFactPrimMF, Flattened, geom, project_dir, slicepoint, 0, 1);
       }
       // we rotate this flattened MultiFab to have normal in the z-direction since
       // our structure factor class assumes this for flattened
-      MultiFab primFlattenedRot = RotateFlattenedMF(primFlattened);
-      BoxArray ba_flat = primFlattenedRot.boxArray();
-      const DistributionMapping& dmap_flat = primFlattenedRot.DistributionMap();
+      MultiFab FlattenedRot = RotateFlattenedMF(Flattened);
+      BoxArray ba_flat = FlattenedRot.boxArray();
+      const DistributionMapping& dmap_flat = FlattenedRot.DistributionMap();
+      primFlattenedRotMaster.define(ba_flat,dmap_flat,structVarsPrim,0);
+      consFlattenedRotMaster.define(ba_flat,dmap_flat,structVarsCons,0);
       {
         IntVect dom_lo(AMREX_D_DECL(0,0,0));
         IntVect dom_hi;
@@ -413,106 +481,16 @@ void main_driver(const char* argv)
         geom_flat.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
       }
 
-      structFactPrimFlattened.define(ba_flat,dmap_flat,prim_var_names,var_scaling);
+      structFactPrimFlattened.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim);
+      structFactConsFlattened.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons);
     }
     
     //////////////////////////////////////////////
-
-    // "conserved" variable structure factor will contain
-    // rho
-    // j
-    // rho*E
-    // rho*Yk
-    // Temperature (not in the conserved array; will have to copy it in)
-    int structVarsCons = AMREX_SPACEDIM+nspecies+3;
-
-    Vector< std::string > cons_var_names;
-    cons_var_names.resize(structVarsCons);
-
-    cnt = 0;
-
-    // rho
-    cons_var_names[cnt++] = "rho";
-
-    // velx, vely, velz
-    for (int d=0; d<AMREX_SPACEDIM; d++) {
-      x = "j";
-      x += (120+d);
-      cons_var_names[cnt++] = x;
-    }
-
-    // rho*E
-    cons_var_names[cnt++] = "rhoE";
-
-    // rho*Yk
-    for (int d=0; d<nspecies; d++) {
-      x = "rhoY";
-      x += (49+d);
-      cons_var_names[cnt++] = x;
-    }
-
-    // Temp
-    cons_var_names[cnt++] = "Temp";
-
-    MultiFab structFactConsMF;
-    structFactConsMF.define(ba, dmap, structVarsCons, 0);
-
-    // scale SF results by inverse cell volume
-    var_scaling.resize(structVarsCons*(structVarsCons+1)/2);
-    for (int d=0; d<var_scaling.size(); ++d) {
-        var_scaling[d] = 1./(dx[0]*dx[1]*dx[2]);
-    }
-
-    // compute all pairs
-    // note: StructFactCons option to compute only speicified pairs not written yet
-    StructFact structFactCons(ba,dmap,cons_var_names,var_scaling);
-    
-    //////////////////////////////////////////////
-
-    // Initialize everything
-    
-    prim.setVal(0.0,0,nprimvars,ngc);
-    prim.setVal(rho0,0,1,ngc);      // density
-    prim.setVal(0.,1,3,ngc);        // x/y/z velocity
-    prim.setVal(T_init[0],4,1,ngc); // temperature
-                                    // pressure computed later in conservedToPrimitive
-    for(int i=0;i<nspecies;i++) {
-        prim.setVal(rhobar[i],6+i,1,ngc);    // mass fractions
-    }
-
-    // compute internal energy
-    GpuArray<Real,MAX_SPECIES> massvec;
-    for(int i=0;i<nspecies;i++) {
-        massvec[i] = rhobar[i];
-    }
-    GetEnergy(intEnergy, massvec, T0);
-
-    cu.setVal(0.0,0,nvars,ngc);
-    cu.setVal(rho0,0,1,ngc);           // density
-    cu.setVal(0,1,3,ngc);              // x/y/z momentum
-    cu.setVal(rho0*intEnergy,4,1,ngc); // total energy
-    for(int i=0;i<nspecies;i++) {
-        cu.setVal(rho0*rhobar[i],5+i,1,ngc); // mass densities
-    }
-
-    // RK stage storage
-    cup.setVal(0.0,0,nvars,ngc);
-    cup2.setVal(0.0,0,nvars,ngc);
-    cup3.setVal(0.0,0,nvars,ngc);
-
-    // set density
-    cup.setVal(rho0,0,1,ngc);
-    cup2.setVal(rho0,0,1,ngc);
-    cup3.setVal(rho0,0,1,ngc);
 
     // initialize conserved variables
-    if (prob_type > 1) {
-        InitConsVar(cu,prim,geom);
-    }
+    InitConsVar(cu,geom);
 
-    statsCount = 1;
-
-    // Write initial plotfile
+    // initialize primitive variables
     conservedToPrimitive(prim, cu);
 
     // Set BC: 1) fill boundary 2) physical
@@ -581,15 +559,23 @@ void main_driver(const char* argv)
             structFactCons.FortStructure(structFactConsMF,geom);
             if(project_dir >= 0) {
                 MultiFab primFlattened;  // flattened multifab defined below
+                MultiFab consFlattened;  // flattened multifab defined below
                 if (slicepoint < 0) {
-                    ComputeVerticalAverage(prim, primFlattened, geom, project_dir, 0, structVarsPrim);
+                    ComputeVerticalAverage(structFactPrimMF, primFlattened, geom, project_dir, 0, structVarsPrim);
+                    ComputeVerticalAverage(structFactConsMF, consFlattened, geom, project_dir, 0, structVarsCons);
                 } else {
-                    ExtractSlice(prim, primFlattened, geom, project_dir, 0, structVarsPrim);
+                    ExtractSlice(structFactPrimMF, primFlattened, geom, project_dir, slicepoint, 0, structVarsPrim);
+                    ExtractSlice(structFactConsMF, consFlattened, geom, project_dir, slicepoint, 0, structVarsCons);
                 }
                 // we rotate this flattened MultiFab to have normal in the z-direction since
                 // our structure factor class assumes this for flattened
                 MultiFab primFlattenedRot = RotateFlattenedMF(primFlattened);
-                structFactPrimFlattened.FortStructure(primFlattenedRot,geom_flat);
+                primFlattenedRotMaster.ParallelCopy(primFlattenedRot,0,0,structVarsPrim);
+                structFactPrimFlattened.FortStructure(primFlattenedRotMaster,geom_flat);
+
+                MultiFab consFlattenedRot = RotateFlattenedMF(consFlattened);
+                consFlattenedRotMaster.ParallelCopy(consFlattenedRot,0,0,structVarsCons);
+                structFactConsFlattened.FortStructure(consFlattenedRotMaster,geom_flat);
             }
         }
 
@@ -599,6 +585,7 @@ void main_driver(const char* argv)
             structFactCons.WritePlotFile(step,time,geom,"plt_SF_cons");
             if(project_dir >= 0) {
                 structFactPrimFlattened.WritePlotFile(step,time,geom_flat,"plt_SF_prim_Flattened");
+                structFactConsFlattened.WritePlotFile(step,time,geom_flat,"plt_SF_cons_Flattened");
             }
         }
         

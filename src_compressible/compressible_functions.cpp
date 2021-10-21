@@ -5,6 +5,8 @@ AMREX_GPU_MANAGED int compressible::transport_type;
 AMREX_GPU_MANAGED int compressible::membrane_cell;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> compressible::transmission;
 AMREX_GPU_MANAGED int compressible::do_1D;
+AMREX_GPU_MANAGED int compressible::do_2D;
+AMREX_GPU_MANAGED int compressible::all_correl;
 
 void InitializeCompressibleNamespace()
 {
@@ -52,6 +54,13 @@ void InitializeCompressibleNamespace()
     do_1D = 0;
     pp.query("do_1D",do_1D);
 
+    // 2D simulation toggle
+    do_2D = 0;
+    pp.query("do_2D",do_2D);
+    // options for spatial correlations at multiple x*
+    all_correl = 0;
+    pp.query("all_correl",all_correl);
+
 
     return;
 }
@@ -69,7 +78,7 @@ void GetHcGas() {
 }
 
 
-void InitConsVar(MultiFab& cons, const MultiFab& prim,
+void InitConsVar(MultiFab& cons,
                  const amrex::Geometry geom) {
 
     const Real* dx_host = geom.CellSize();
@@ -99,8 +108,25 @@ void InitConsVar(MultiFab& cons, const MultiFab& prim,
     Real pi = acos(-1.);
     Real Lf = realhi[0] - reallo[0];
 
+    // compute some values and overwrite based on prob_type
+    
+    // compute internal energy
+    Real intEnergy;
+    GpuArray<Real,MAX_SPECIES> massvec;
+    for(int i=0;i<nspecies;i++) {
+        massvec[i] = rhobar[i];
+    }
+    GetEnergy(intEnergy, massvec, T_init[0]);
+
+    cons.setVal(0.0,0,nvars,ngc);
+    cons.setVal(rho0,0,1,ngc);           // density
+    cons.setVal(0,1,3,ngc);              // x/y/z momentum
+    cons.setVal(rho0*intEnergy,4,1,ngc); // total energy
+    for(int i=0;i<nspecies;i++) {
+        cons.setVal(rho0*rhobar[i],5+i,1,ngc); // mass densities
+    }
+
     for ( MFIter mfi(cons); mfi.isValid(); ++mfi ) {
-        const Array4<const Real> pu = prim.array(mfi);
         const Array4<      Real> cu = cons.array(mfi);
 
         const Box& bx = mfi.tilebox();
@@ -141,7 +167,7 @@ void InitConsVar(MultiFab& cons, const MultiFab& prim,
                 }
 
                 Real pamb;
-                GetPressureGas(pamb, massvec, cu(i,j,k,0), pu(i,j,k,4));
+                GetPressureGas(pamb, massvec, cu(i,j,k,0), T_init[0]);
                 
                 Real molmix = 0.;
 
@@ -150,23 +176,23 @@ void InitConsVar(MultiFab& cons, const MultiFab& prim,
                 }
                 molmix = 1.0/molmix;
                 Real rgasmix = Runiv/molmix;
-                Real alpha = grav[2]/(rgasmix*pu(i,j,k,4));
+                Real alpha = grav[2]/(rgasmix*T_init[0]);
 
                 // rho = exponential in z-dir to init @ hydrostatic eqm.
                 // must satisfy system: dP/dz = -rho*g & P = rhogasmix*rho*T
                 // Assumes temp=const
-                cu(i,j,k,0) = pamb*exp(alpha*pos[2])/(rgasmix*pu(i,j,k,4));
+                cu(i,j,k,0) = pamb*exp(alpha*pos[2])/(rgasmix*T_init[0]);
                 
                 for (int l=0; l<nspecies; ++l) {
                     cu(i,j,k,5+l) = cu(i,j,k,0)*massvec[l];
                 }
 
                 Real intEnergy;
-                GetEnergy(intEnergy, massvec, pu(i,j,k,4));
+                GetEnergy(intEnergy, massvec, T_init[0]);
 
-                cu(i,j,k,4) = cu(i,j,k,0)*intEnergy + 0.5*cu(i,j,k,0)*(pu(i,j,k,1)*pu(i,j,k,1) +
-                                                                       pu(i,j,k,2)*pu(i,j,k,2) +
-                                                                       pu(i,j,k,3)*pu(i,j,k,3));
+                cu(i,j,k,4) = cu(i,j,k,0)*intEnergy + 0.5*(cu(i,j,k,1)*cu(i,j,k,1) +
+                                                           cu(i,j,k,2)*cu(i,j,k,2) +
+                                                           cu(i,j,k,3)*cu(i,j,k,3)) / cu(i,j,k,0);
             } else if (prob_type == 3) { // diffusion barrier
 
                 for (int l=0; l<nspecies; ++l) {
@@ -176,10 +202,10 @@ void InitConsVar(MultiFab& cons, const MultiFab& prim,
                 }
 
                 Real intEnergy;
-                GetEnergy(intEnergy, massvec, pu(i,j,k,4));
-                cu(i,j,k,4) = cu(i,j,k,0)*intEnergy + 0.5*cu(i,j,k,0)*(pu(i,j,k,1)*pu(i,j,k,1) +
-                                                                       pu(i,j,k,2)*pu(i,j,k,2) +
-                                                                       pu(i,j,k,3)*pu(i,j,k,3));
+                GetEnergy(intEnergy, massvec, T_init[0]);
+                cu(i,j,k,4) = cu(i,j,k,0)*intEnergy + 0.5*(cu(i,j,k,1)*cu(i,j,k,1) +
+                                                           cu(i,j,k,2)*cu(i,j,k,2) +
+                                                           cu(i,j,k,3)*cu(i,j,k,3)) / cu(i,j,k,0);
             } else if (prob_type == 4) { // Taylor Green Vortex
 
                 Real x=itVec[0];
