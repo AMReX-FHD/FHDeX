@@ -26,7 +26,7 @@
   # Controls for number of steps between actions
 
   max_step = 1000
-  plot_int = 10
+  plot_int = 1
 
   # Multispecies toggle
   # if algorithm_type = 1, single component

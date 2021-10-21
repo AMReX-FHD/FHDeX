@@ -216,10 +216,10 @@ void InitConsVar(MultiFab& cons,
                 Real rhoscale = molmass[0] / (Runiv / k_B) * pscale / (k_B * T_init[0]);
 
                 // compute pressure (needed to compute density)
-                Real pres = pscale+rho0*velscale*velscale*cos(2.*pi*x/Lf)*cos(4.*pi*y/Lf)*(cos(4.*pi*z/Lf)+2.);
+                Real pres = pscale+rhoscale*velscale*velscale*cos(2.*pi*x/Lf)*cos(4.*pi*y/Lf)*(cos(4.*pi*z/Lf)+2.);
 
                 // density
-                cu(i,j,k,0) = (molmass[0] / 6.02e23) * pres / (k_B * T_init[0]);
+                cu(i,j,k,0) = (molmass[0] / (Runiv / k_B)) * pres / (k_B * T_init[0]);
                
                 // momentum
                 cu(i,j,k,1) =  velscale*cu(i,j,k,0)*sin(2.*pi*x/Lf)*cos(2.*pi*y/Lf)*cos(2.*pi*z/Lf);
