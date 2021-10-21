@@ -17,7 +17,7 @@ void InitializeCompressibleNamespace();
 // if gas heat capacities in the namelist are negative, calculate them using using dofs
 void GetHcGas();
 
-void InitConsVar(MultiFab& cons, const MultiFab& prim,
+void InitConsVar(MultiFab& cons,
                  const amrex::Geometry geom);
 
 void calculateFlux(const MultiFab& cons, const MultiFab& prim,

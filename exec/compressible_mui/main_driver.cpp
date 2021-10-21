@@ -25,8 +25,7 @@ void main_driver(const char* argv)
 
     std::string inputs_file = argv;
 
-    
-    // copy contents of F90 modules to C++ namespaces
+    // read the inputs file for common
     InitializeCommonNamespace();
 
     // read the inputs file for compressible 
@@ -221,12 +220,6 @@ void main_driver(const char* argv)
     MultiFab ranchem;
     if (nreaction>0) ranchem.define(ba,dmap,nreaction,ngc);
 
-    //Initialize physical parameters from input vals
-
-    double intEnergy, T0;
-
-    T0 = T_init[0];
-
     //fluxes
     // need +4 to separate out heat, viscous heating (diagonal vs shear)  and Dufour contributions to the energy flux 
     // stacked at the end (see below)
@@ -281,7 +274,8 @@ void main_driver(const char* argv)
 
     Real time = 0;
 
-    int step, statsCount;
+    int step;
+    int statsCount = 1;
 
     ///////////////////////////////////////////
     // Structure factor:
@@ -498,50 +492,10 @@ void main_driver(const char* argv)
     
     //////////////////////////////////////////////
 
-    // Initialize everything
-    
-    prim.setVal(0.0,0,nprimvars,ngc);
-    prim.setVal(rho0,0,1,ngc);      // density
-    prim.setVal(0.,1,3,ngc);        // x/y/z velocity
-    prim.setVal(T_init[0],4,1,ngc); // temperature
-                                    // pressure computed later in conservedToPrimitive
-    for(int i=0;i<nspecies;i++) {
-        prim.setVal(rhobar[i],6+i,1,ngc);    // mass fractions
-    }
-
-    // compute internal energy
-    GpuArray<Real,MAX_SPECIES> massvec;
-    for(int i=0;i<nspecies;i++) {
-        massvec[i] = rhobar[i];
-    }
-    GetEnergy(intEnergy, massvec, T0);
-
-    cu.setVal(0.0,0,nvars,ngc);
-    cu.setVal(rho0,0,1,ngc);           // density
-    cu.setVal(0,1,3,ngc);              // x/y/z momentum
-    cu.setVal(rho0*intEnergy,4,1,ngc); // total energy
-    for(int i=0;i<nspecies;i++) {
-        cu.setVal(rho0*rhobar[i],5+i,1,ngc); // mass densities
-    }
-
-    // RK stage storage
-    cup.setVal(0.0,0,nvars,ngc);
-    cup2.setVal(0.0,0,nvars,ngc);
-    cup3.setVal(0.0,0,nvars,ngc);
-
-    // set density
-    cup.setVal(rho0,0,1,ngc);
-    cup2.setVal(rho0,0,1,ngc);
-    cup3.setVal(rho0,0,1,ngc);
-
     // initialize conserved variables
-    if (prob_type > 1) {
-        InitConsVar(cu,prim,geom);
-    }
+    InitConsVar(cu,geom);
 
-    statsCount = 1;
-
-    // Write initial plotfile
+    // initialize primitive variables
     conservedToPrimitive(prim, cu);
 
     // Set BC: 1) fill boundary 2) physical
