@@ -1,8 +1,22 @@
-
-
+  # 512^3
   # Problem specification
   prob_lo = -0.0314 -0.0314 -0.0314 # physical lo coordinate
   prob_hi =  0.0314  0.0314  0.0314 # physical hi coordinate
+
+  # number of cells in domain
+  n_cells = 512 512 512
+  # max number of cells in a box
+  max_grid_size = 128 128 128
+
+  # 64^3
+  # Problem specification
+  prob_lo = -0.003925 -0.003925 -0.003925 # physical lo coordinate
+  prob_hi =  0.003925  0.003925  0.003925 # physical hi coordinate
+
+  # number of cells in domain
+  n_cells = 64 64 64
+  # max number of cells in a box
+  max_grid_size = 32 32 32
 
   # Number of ghost cells, conserved, and primitive variables
   # ---------------------
@@ -10,18 +24,8 @@
   nvars = 7
   nprimvars = 10
 
-  # number of cells in domain
-  n_cells = 512 512 512
-  # max number of cells in a box
-  max_grid_size = 128 128 128
-
-  # number of cells in domain
-  n_cells = 64 64 64
-  # max number of cells in a box
-  max_grid_size = 32 32 32
-
   # Time-step control
-  fixed_dt = 1e-8
+  fixed_dt = 1.e-9
 
   # Controls for number of steps between actions
 
