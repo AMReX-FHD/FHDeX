@@ -21,11 +21,11 @@
   max_grid_size = 32 32 32
 
   # Time-step control
-  fixed_dt = 1e-10
+  fixed_dt = 1e-8
 
   # Controls for number of steps between actions
 
-  max_step = 1000
+  max_step = 100
   plot_int = 1
 
   # Multispecies toggle
