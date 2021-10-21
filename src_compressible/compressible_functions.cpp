@@ -212,8 +212,11 @@ void InitConsVar(MultiFab& cons,
                 Real velscale = 9237.;
                 Real pscale = 884.147e3;
 
+                // rho0 = m * p / (k_B * T)
+                Real rhoscale = molmass[0] / (Runiv / k_B) * pscale / (k_B * T_init[0]);
+
                 // compute pressure (needed to compute density)
-                Real pres = pscale+cu(i,j,k,0)*velscale*velscale*cos(2.*pi*x/Lf)*cos(4.*pi*y/Lf)*(cos(4.*pi*z/Lf)+2.);
+                Real pres = pscale+rho0*velscale*velscale*cos(2.*pi*x/Lf)*cos(4.*pi*y/Lf)*(cos(4.*pi*z/Lf)+2.);
 
                 // density
                 cu(i,j,k,0) = (molmass[0] / 6.02e23) * pres / (k_B * T_init[0]);
