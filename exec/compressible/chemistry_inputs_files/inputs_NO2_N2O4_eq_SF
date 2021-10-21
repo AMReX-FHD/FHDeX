@@ -49,7 +49,7 @@ prob_type = 1
 
 # Initial parameters
 k_B = 1.38064852e-16	# [units: cm2*g*s-2*K-1]
-runiv = 8.314462175e7
+Runiv = 8.314462175e7
 T_init = 350 
 rho0 = 1.855335e-03 
 
