@@ -271,6 +271,7 @@ void main_driver(const char* argv)
     MultiFab gradU(ba,dmap,AMREX_SPACEDIM,0);
     MultiFab rhoscaled_gradU(ba,dmap,AMREX_SPACEDIM,0);
     MultiFab ccTemp(ba,dmap,1,0);
+    MultiFab LapU(ba,dmap,AMREX_SPACEDIM,0);
 
     Real dProb = (AMREX_SPACEDIM==2) ? 1./(n_cells[0]*n_cells[1]) : 1./(n_cells[0]*n_cells[1]*n_cells[2]);
     Real pscale = 884.147e3;
@@ -618,9 +619,22 @@ void main_driver(const char* argv)
             CCInnerProd(gradU,d,rhoscaled_gradU,d,ccTemp,gradUdotgradU[d]);
         }
 
+        // u_j Lap(u_j) form
+        ComputeLap(prim,LapU,1,0,AMREX_SPACEDIM,geom);
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            MultiFab::Multiply(LapU, prim, 0, d, 1, 0);
+            LapU.mult(1./rhoscale,d,1,0);
+        }
+
+        Vector<Real> ULapU(3);
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            CCInnerProd(prim,d+1,LapU,d,ccTemp,ULapU[d]);
+        }
+
         Print() << "Non-viscosity scaled energy dissipation "
 		<< time << " "
-                << dProb*( gradUdotgradU[0] + gradUdotgradU[1] + gradUdotgradU[2] )
+                << dProb*(gradUdotgradU[0] + gradUdotgradU[1] + gradUdotgradU[2]) << " "
+                << dProb*(ULapU[0] + ULapU[1] + ULapU[2])
                 << std::endl;
         
         // timer

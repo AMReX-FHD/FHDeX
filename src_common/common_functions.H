@@ -82,6 +82,13 @@ void ComputeCentredGradFC(std::array<MultiFab, AMREX_SPACEDIM> & phi,
                           MultiFab & gphi,
                           const Geometry & geom);
 
+void ComputeLap(const MultiFab & phi_in,
+                MultiFab& Lphi_in,
+                int incomp,
+                int outcomp,
+                int numcomp,
+                const Geometry & geom);
+    
 ///////////////////////////
 // in Debug.cpp
 void PrintMF(const MultiFab& MF);

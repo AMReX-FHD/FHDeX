@@ -354,3 +354,35 @@ void ComputeCentredGradFC(std::array<MultiFab, AMREX_SPACEDIM> & phi,
         });
     }
 }
+
+// Computes gradient at cell centres on a component in a given direction
+void ComputeLap(const MultiFab & phi_in,
+                MultiFab& Lphi_in,
+                int incomp,
+                int outcomp,
+                int numcomp,
+                const Geometry & geom)
+{
+    BL_PROFILE_VAR("ComputeLap()",ComputeLap);
+    
+    const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
+
+    for ( MFIter mfi(phi_in,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
+
+        const Box& bx = mfi.tilebox();
+
+        Array4<Real const> const& phi = phi_in.array(mfi);
+        Array4<Real> const& Lphi = Lphi_in.array(mfi);
+
+        amrex::ParallelFor(bx, numcomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+        {
+            Lphi(i,j,k,outcomp+n) =
+                  ( phi(i-1,j,k,incomp+n) + 2.*phi(i,j,k,incomp+n) - phi(i+1,j,k,incomp+n) ) / (dx[0]*dx[0])
+                + ( phi(i,j-1,k,incomp+n) + 2.*phi(i,j,k,incomp+n) - phi(i,j+1,k,incomp+n) ) / (dx[1]*dx[1])
+#if (AMREX_SPACEDIM == 3)
+                + ( phi(i,j,k-1,incomp+n) + 2.*phi(i,j,k,incomp+n) - phi(i,j,k+1,incomp+n) ) / (dx[2]*dx[2])
+#endif
+                ;
+        });
+    }
+}
