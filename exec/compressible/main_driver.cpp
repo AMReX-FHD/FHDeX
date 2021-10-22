@@ -619,22 +619,24 @@ void main_driver(const char* argv)
             CCInnerProd(gradU,d,rhoscaled_gradU,d,ccTemp,gradUdotgradU[d]);
         }
 
-        // u_j Lap(u_j) form
+        // Lap(u_j)
         ComputeLap(prim,LapU,1,0,AMREX_SPACEDIM,geom);
+
+        // <rho u_j Lap(u_j)>
+        Vector<Real> rhoULapU(3);
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
-            MultiFab::Multiply(LapU, prim, 0, d, 1, 0);
-            LapU.mult(1./rhoscale,d,1,0);
+            CCInnerProd(cu,d+1,LapU,d,ccTemp,rhoULapU[d]);
         }
 
-        Vector<Real> ULapU(3);
+        // <rho/rho0 u_j Lap(u_j)>
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
-            CCInnerProd(prim,d+1,LapU,d,ccTemp,ULapU[d]);
+            rhoULapU[d] /= rhoscale;
         }
 
         Print() << "Non-viscosity scaled energy dissipation "
 		<< time << " "
                 << dProb*(gradUdotgradU[0] + gradUdotgradU[1] + gradUdotgradU[2]) << " "
-                << dProb*(ULapU[0] + ULapU[1] + ULapU[2])
+                << dProb*(rhoULapU[0] + rhoULapU[1] + rhoULapU[2])
                 << std::endl;
         
         // timer
