@@ -956,7 +956,7 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
     // write out global diagnostics
     if (ParallelDescriptor::IOProcessor()) {
         Print() << "I see " << np_proc << " particles\n";
-        if (move_tog == 2) {
+        if (move_tog == 2 && all_dry != 1) {
             Print() << "Fraction of midpoint moves rejected: " << check/moves_proc << "\n";
         }
         Print() << reDist << " particles to be redistributed.\n";
@@ -2479,8 +2479,7 @@ FhdParticleContainer::MeanSqrCalc(int lev, int reset) {
                 if(spec != 0)
                 {
                     for (int d=0; d<AMREX_SPACEDIM; ++d){
-                        part.rdata(FHD_realData::ox + d) = part.pos(d);
-                        part.rdata(FHD_realData::ax + d) = part.pos(d);
+                        part.rdata(FHD_realData::ox + d) = part.rdata(FHD_realData::ax + d);
                     }
                     part.rdata(FHD_realData::travelTime) = 0;
                 }
