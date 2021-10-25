@@ -1,5 +1,5 @@
 #include "FhdParticleContainer.H"
-
+#include <filesystem>
 #include "particle_functions_K.H"
 #include "paramplane_functions_K.H"
 #include <math.h>
@@ -95,7 +95,16 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
     }
 
     //Remove files that we will be appending to.
-    remove("diffusionEst");
+    remove("msdEst");
+    for(int i=0;i<nspecies;i++)
+    {
+        string filename = Concatenate("msdEst_",i);
+//        int n = filename.lenght();
+//        char char_array[n+1];
+//        strcpy
+        remove(filename.c_str());
+    }
+
     remove("velOut");
     remove("matOut");
     remove("conductivityEst");
@@ -108,6 +117,45 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
     threepmMin[0] = 0;
     threepmMax[0] = 0;
     threepmPoints[0] = 0;
+    
+    if(sr_tog == 4)
+    {
+        std::ifstream bottomFile("bottomWall.dat");
+        std::ifstream topFile("topWall.dat");
+
+        if(bottomFile.good() && topFile.good())
+        {
+            bottomFile >> bottomListLength;
+            bottomList = new Triplet[bottomListLength];
+            for(int i=0;i<bottomListLength;i++)
+            {
+                bottomFile >> bottomList[i].x;
+                bottomFile >> bottomList[i].y;
+                bottomFile >> bottomList[i].z;   
+                
+            }
+            
+            topFile >> topListLength;
+            topList = new Triplet[topListLength];
+            for(int i=0;i<topListLength;i++)
+            {
+                topFile >> topList[i].x;
+                topFile >> topList[i].y;
+                topFile >> topList[i].z;                
+            }
+            
+            bottomFile.close();
+            topFile.close();
+            Print() << "Top/bottom particle files read.\n";
+                
+        }else
+        {
+            Abort("Couldn't read bottom/top particle input file!\n");
+        }
+        
+        bottomFile.close();
+        topFile.close();
+    }
 
 
     for(int i=1;i<threepmBins;i++)
@@ -330,11 +378,11 @@ void FhdParticleContainer::computeForcesNLGPU(const MultiFab& charge, const Mult
 
         const Box& tile_box  = pti.tilebox();
 
-        if (sr_tog!= 0)
+        if (sr_tog != 0)
         {
+
             compute_forces_nl_gpu(particles, Np, Nn,
-                              m_neighbor_list[lev][index], rcount, rdcount);
-               // Print() << "rPost: " << rcount << std::endl;            
+                              m_neighbor_list[lev][index], topList, bottomList, topListLength, bottomListLength, rcount, rdcount);           
         }
 
         if (es_tog==3)
@@ -473,7 +521,7 @@ void FhdParticleContainer::computeForcesCoulombGPU(long totalParticles) {
 			              dr2 = dx*dx + dy*dy + dz*dz;
                           rtdr2 = sqrt(dr2);
 
-              	          if (rtdr2 < maxdist && rtdr2 > 0.)
+              	          if (rtdr2 < maxdist && rtdr2 > 0.0)
                           {
                               part.rdata(FHD_realData::forcex) += ee*(dx/rtdr2)*q1*q2/dr2;
                               part.rdata(FHD_realData::forcey) += ee*(dy/rtdr2)*q1*q2/dr2;
@@ -908,7 +956,7 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
     // write out global diagnostics
     if (ParallelDescriptor::IOProcessor()) {
         Print() << "I see " << np_proc << " particles\n";
-        if (move_tog == 2) {
+        if (move_tog == 2 && all_dry != 1) {
             Print() << "Fraction of midpoint moves rejected: " << check/moves_proc << "\n";
         }
         Print() << reDist << " particles to be redistributed.\n";
@@ -2378,6 +2426,21 @@ FhdParticleContainer::MeanSqrCalc(int lev, int reset) {
     Real tt = 0.; // set to zero to protect against grids with no particles
     long nTotal = 0;
     Real sumPosQ[3] = {0,0,0};
+    Real sqrDispX[nspecies];
+    Real sqrDispY[nspecies];
+    Real sqrDispZ[nspecies];
+    Real sqrDisp[nspecies];
+    Real travelTime[nspecies];
+    int specCount[nspecies];
+    
+    for(int i=0;i<nspecies;i++)
+    {
+        sqrDispX[i]=0;
+        sqrDispY[i]=0;
+        sqrDispZ[i]=0;
+        sqrDisp[i]=0;
+        specCount[i]=0;
+    }
 
     for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
 
@@ -2390,59 +2453,96 @@ FhdParticleContainer::MeanSqrCalc(int lev, int reset) {
         for (int i=0; i<np; ++i) {
             ParticleType & part = particles[i];
 
-            Real sqrPos = 0;
-            for (int d=0; d<AMREX_SPACEDIM; ++d){
-                sqrPos += pow(part.rdata(FHD_realData::ax + d),2);
-                sumPosQ[d] += part.rdata(FHD_realData::ax + d)*part.rdata(FHD_realData::q);
-            }
-            //std::cout << part.rdata(FHD_realData::ax) << std::endl;
+            int spec = part.idata(FHD_intData::species)-1;
 
-            diffTotal += sqrPos/(6.0*part.rdata(FHD_realData::travelTime));
-            tt = part.rdata(FHD_realData::travelTime);
+            Real dispX = pow(part.rdata(FHD_realData::ax)-part.rdata(FHD_realData::ox),2);          
+            Real dispY = pow(part.rdata(FHD_realData::ay)-part.rdata(FHD_realData::oy),2);
+            Real dispZ = pow(part.rdata(FHD_realData::az)-part.rdata(FHD_realData::oz),2);
+
+            sqrDispX[spec] += dispX;
+            sqrDispY[spec] += dispY;
+            sqrDispZ[spec] += dispZ;
+            sqrDisp[spec] += dispX + dispY + dispZ;
+
+            travelTime[spec] = part.rdata(FHD_realData::travelTime);
+            specCount[spec]++;
+
         }
+
 
         if(reset == 1)
         {
             for (int i=0; i<np; ++i) {
                 ParticleType & part = particles[i];
+                int spec = part.idata(FHD_intData::species)-1;
 
-                for (int d=0; d<AMREX_SPACEDIM; ++d){
-                    part.rdata(FHD_realData::ax + d) = 0;
+                if(spec != 0)
+                {
+                    for (int d=0; d<AMREX_SPACEDIM; ++d){
+                        part.rdata(FHD_realData::ox + d) = part.rdata(FHD_realData::ax + d);
+                    }
+                    part.rdata(FHD_realData::travelTime) = 0;
                 }
-                part.rdata(FHD_realData::travelTime) = 0;
             }
         }
     }
 
-    ParallelDescriptor::ReduceRealSum(sumPosQ[0]);
-    ParallelDescriptor::ReduceRealSum(sumPosQ[1]);
-    ParallelDescriptor::ReduceRealSum(sumPosQ[2]);
+    for(int i=0;i<nspecies;i++)
+    {
+        Real temp = sqrDispX[i];        
+        ParallelDescriptor::ReduceRealSum(temp);
+        sqrDispX[i] = temp;
 
-    ParallelDescriptor::ReduceRealSum(diffTotal);
-    ParallelDescriptor::ReduceLongSum(nTotal);
+        temp = sqrDispY[i];        
+        ParallelDescriptor::ReduceRealSum(temp);
+        sqrDispY[i] = temp;
 
-    // protect against grids with no particles
-    ParallelDescriptor::ReduceRealMax(tt);
+        temp = sqrDispZ[i];        
+        ParallelDescriptor::ReduceRealSum(temp);
+        sqrDispZ[i] = temp;
 
-    if(ParallelDescriptor::MyProc() == 0) {
+        temp = sqrDisp[i];        
+        ParallelDescriptor::ReduceRealSum(temp);
+        sqrDisp[i] = temp;
 
-        std::string filename = "diffusionEst";
-        std::ofstream ofs(filename, std::ofstream::app);
-    
-        ofs << diffTotal/nTotal << std::endl;
-        
-        ofs.close();
+        temp = travelTime[i];        
+        ParallelDescriptor::ReduceRealMax(temp);
+        travelTime[i] = temp;
+
+        int itemp = specCount[i];        
+        ParallelDescriptor::ReduceIntSum(itemp);
+        specCount[i] = itemp;
+
     }
 
+    for(int i=0;i<nspecies;i++)
+    {
+        if(specCount[i] != 0)
+        {
+            sqrDispX[i] /= specCount[i];
+            sqrDispY[i] /= specCount[i];
+            sqrDispZ[i] /= specCount[i];
+            sqrDisp[i] /= specCount[i];
+        }        
+    }
+
+
     if(ParallelDescriptor::MyProc() == 0) {
 
-        Real domainVol = (prob_hi[0]-prob_lo[0])*(prob_hi[1]-prob_lo[1])*(prob_hi[2]-prob_lo[2]);
-        Real condTotal = (pow(sumPosQ[0],2) + pow(sumPosQ[1],2) + pow(sumPosQ[2],2))/(6.0*k_B*T_init[0]*domainVol*tt);
+        for(int i=0;i<nspecies;i++)
+        {
+            std::string specname = Concatenate("msdEst_",i+1);
+            std::ofstream ofs(specname, std::ofstream::app);
+    
+            ofs << travelTime[i] << "  " << sqrDispX[i] << "  " << sqrDispY[i] << "  "<< sqrDispZ[i] << "  "<< sqrDisp[i] << std::endl;
 
-        std::string filename = "conductivityEst";
-        std::ofstream ofs(filename, std::ofstream::app);
-        ofs << condTotal << std::endl;
-        ofs.close();
+            if(reset == 1)
+            {
+                ofs << std::endl;
+            }
+        
+            ofs.close();
+        }
     }
     
 }

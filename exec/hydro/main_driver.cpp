@@ -302,6 +302,7 @@ void main_driver(const char* argv)
     }
 
     MultiFab structFactMF(ba, dmap, structVars, 0);
+    structFactMF.setVal(0.);
 
     // need to use dVol for scaling
     Real dVol = (AMREX_SPACEDIM==2) ? dx[0]*dx[1]*cell_depth : dx[0]*dx[1]*dx[2];
@@ -337,30 +338,27 @@ void main_driver(const char* argv)
     ///////////////////////////////////////////
 
     StructFact structFactFlattened;
+    MultiFab FlattenedRotMaster;
 
     Geometry geom_flat;
 
     if(project_dir >= 0){
       MultiFab Flattened;  // flattened multifab defined below
 
-      // copy velocities into structFactMF
-      for(int d=0; d<AMREX_SPACEDIM; d++) {
-          ShiftFaceToCC(umac[d], 0, structFactMF, d, 1);
-      }
-
       // we are only calling ComputeVerticalAverage or ExtractSlice here to obtain
       // a built version of Flattened so can obtain what we need to build the
       // structure factor and geometry objects for flattened data
       if (slicepoint < 0) {
-          ComputeVerticalAverage(structFactMF, Flattened, geom, project_dir, 0, structVars);
+          ComputeVerticalAverage(structFactMF, Flattened, geom, project_dir, 0, 1);
       } else {
-          ExtractSlice(structFactMF, Flattened, geom, project_dir, 0, structVars);
+          ExtractSlice(structFactMF, Flattened, geom, project_dir, slicepoint, 0, 1);
       }
       // we rotate this flattened MultiFab to have normal in the z-direction since
       // our structure factor class assumes this for flattened
       MultiFab FlattenedRot = RotateFlattenedMF(Flattened);
       BoxArray ba_flat = FlattenedRot.boxArray();
       const DistributionMapping& dmap_flat = FlattenedRot.DistributionMap();
+      FlattenedRotMaster.define(ba_flat,dmap_flat,structVars,0);
       {
         IntVect dom_lo(AMREX_D_DECL(0,0,0));
         IntVect dom_hi;
@@ -469,12 +467,13 @@ void main_driver(const char* argv)
                 if (slicepoint < 0) {
                     ComputeVerticalAverage(structFactMF, Flattened, geom, project_dir, 0, structVars);
                 } else {
-                    ExtractSlice(structFactMF, Flattened, geom, project_dir, 0, structVars);
+                    ExtractSlice(structFactMF, Flattened, geom, project_dir, slicepoint, 0, structVars);
                 }
                 // we rotate this flattened MultiFab to have normal in the z-direction since
                 // our structure factor class assumes this for flattened
                 MultiFab FlattenedRot = RotateFlattenedMF(Flattened);
-                structFactFlattened.FortStructure(FlattenedRot,geom_flat);
+                FlattenedRotMaster.ParallelCopy(FlattenedRot,0,0,structVars);
+                structFactFlattened.FortStructure(FlattenedRotMaster,geom_flat);
             }
         }
 
@@ -537,7 +536,7 @@ void main_driver(const char* argv)
                 if (slicepoint < 0) {
                     ComputeVerticalAverage(structFactMF, Flattened, geom, project_dir, 0, structVars);
                 } else {
-                    ExtractSlice(structFactMF, Flattened, geom, project_dir, 0, structVars);
+                    ExtractSlice(structFactMF, Flattened, geom, project_dir, slicepoint, 0, structVars);
                 }
                 // we rotate this flattened MultiFab to have normal in the z-direction since
                 // our structure factor class assumes this for flattened

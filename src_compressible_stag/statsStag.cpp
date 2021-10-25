@@ -23,11 +23,13 @@ void evaluateStatsStag3D(MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
     BL_PROFILE_VAR("evaluateStatsStag3D()",evaluateStatsStag3D);
     
     //// Evaluate Means
-    EvaluateStatsMeans(cons,consMean,prim_in,primMean,vel,velMean,cumom,cumomMean,steps);
+    if (plot_means) EvaluateStatsMeans(cons,consMean,prim_in,primMean,vel,velMean,cumom,cumomMean,steps);
 
     //// Evaluate Variances and Covariances
-    EvaluateVarsCoVars(cons,consMean,consVar,prim_in,primMean,primVar,velMean,velVar,
-                       cumom,cumomMean,cumomVar,coVar,steps);
+    if ((plot_vars) or (plot_covars)) {
+        EvaluateVarsCoVars(cons,consMean,consVar,prim_in,primMean,primVar,velMean,velVar,
+                           cumom,cumomMean,cumomVar,coVar,steps);
+    }
 
     //// Evaluate Spatial Correlations
     
@@ -54,8 +56,50 @@ void evaluateStatsStag3D(MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
     }
 
     // Update Spatial Correlations
-    EvaluateSpatialCorrelations3D(spatialCross3D,dataSliceMeans_xcross,cu_avg,cumeans_avg,prim_avg,primmeans_avg,steps,nstats,ncross);
+    if (plot_cross) EvaluateSpatialCorrelations3D(spatialCross3D,dataSliceMeans_xcross,cu_avg,cumeans_avg,prim_avg,primmeans_avg,steps,nstats,ncross);
 }
+
+
+//////////////////////////////////////////////
+//// Evaluate Stats for the 2D case (do later)
+///// ////////////////////////////////////////
+void evaluateStatsStag2D(MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
+                         MultiFab& prim_in, MultiFab& primMean, MultiFab& primVar,
+                         const std::array<MultiFab, AMREX_SPACEDIM>& vel, 
+                         std::array<MultiFab, AMREX_SPACEDIM>& velMean, 
+                         std::array<MultiFab, AMREX_SPACEDIM>& velVar, 
+                         const std::array<MultiFab, AMREX_SPACEDIM>& cumom,
+                         std::array<MultiFab, AMREX_SPACEDIM>& cumomMean,
+                         std::array<MultiFab, AMREX_SPACEDIM>& cumomVar,
+                         MultiFab& coVar, 
+                         MultiFab& spatialCross2D, const int ncross,
+                         const int steps)
+{
+    BL_PROFILE_VAR("evaluateStatsStag2D()",evaluateStatsStag2D);
+    
+    //// Evaluate Means
+    if (plot_means) EvaluateStatsMeans(cons,consMean,prim_in,primMean,vel,velMean,cumom,cumomMean,steps);
+
+    //// Evaluate Variances and Covariances
+    if ((plot_vars) or (plot_covars)) {
+        EvaluateVarsCoVars(cons,consMean,consVar,prim_in,primMean,primVar,velMean,velVar,
+                           cumom,cumomMean,cumomVar,coVar,steps);
+    }
+
+    //// Evaluate Spatial Correlations (do later)
+    
+    //// contains yz-averaged running & instantaneous averages of conserved variables (2*nvars) + primitive variables [vx, vy, vz, T, Yk]: 2*4 + 2*nspecies 
+    //int nstats = 2*nvars+8+2*nspecies;
+
+    //// Get all nstats at xcross for all j and k, and store in data_xcross
+    //amrex::Gpu::DeviceVector<Real> data_xcross(nstats*n_cells[1]*n_cells[2], 0.0); // values at x* for a given y and z
+    //GetPencilCross(data_xcross,consMean,primMean,prim_in,cons,nstats);
+    //ParallelDescriptor::ReduceRealSum(data_xcross.data(),nstats*n_cells[1]*n_cells[2]);
+
+    //// Update Spatial Correlations
+    //EvaluateSpatialCorrelations2D(spatialCross2D,data_xcross,consMean,primMean,prim_in,cons,vel,velMean,cumom,cumomMean,steps,nstats);
+}
+
 
 ///////////////////////////////////////////
 // Evaluate Stats for the 1D case /////////
@@ -75,11 +119,13 @@ void evaluateStatsStag1D(MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
     BL_PROFILE_VAR("evaluateStatsStag1D()",evaluateStatsStag1D);
     
     //// Evaluate Means
-    EvaluateStatsMeans(cons,consMean,prim_in,primMean,vel,velMean,cumom,cumomMean,steps);
+    if (plot_means) EvaluateStatsMeans(cons,consMean,prim_in,primMean,vel,velMean,cumom,cumomMean,steps);
 
     //// Evaluate Variances and Covariances
-    EvaluateVarsCoVars(cons,consMean,consVar,prim_in,primMean,primVar,velMean,velVar,
-                       cumom,cumomMean,cumomVar,coVar,steps);
+    if ((plot_vars) or (plot_covars)) {
+        EvaluateVarsCoVars(cons,consMean,consVar,prim_in,primMean,primVar,velMean,velVar,
+                           cumom,cumomMean,cumomVar,coVar,steps);
+    }
 
     //// Evaluate Spatial Correlations
     
@@ -87,12 +133,30 @@ void evaluateStatsStag1D(MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
     int nstats = 2*nvars+8+2*nspecies;
 
     // Get all nstats at xcross for all j and k, and store in data_xcross
-    amrex::Gpu::DeviceVector<Real> data_xcross(nstats*n_cells[1]*n_cells[2], 0.0); // values at x* for a given y and z
-    GetPencilCross(data_xcross,consMean,primMean,prim_in,cons,nstats);
-    ParallelDescriptor::ReduceRealSum(data_xcross.data(),nstats*n_cells[1]*n_cells[2]);
+    if (plot_cross) {
+        if (all_correl == 0) { // for a specified cross_cell
+            amrex::Gpu::DeviceVector<Real> data_xcross(nstats*n_cells[1]*n_cells[2], 0.0); // values at x* for a given y and z
+            GetPencilCross(data_xcross,consMean,primMean,prim_in,cons,nstats,cross_cell);
+            ParallelDescriptor::ReduceRealSum(data_xcross.data(),nstats*n_cells[1]*n_cells[2]);
 
-    // Update Spatial Correlations
-    EvaluateSpatialCorrelations1D(spatialCross1D,data_xcross,consMean,primMean,prim_in,cons,vel,velMean,cumom,cumomMean,steps,nstats);
+            // Update Spatial Correlations
+            EvaluateSpatialCorrelations1D(spatialCross1D,data_xcross,consMean,primMean,prim_in,cons,vel,velMean,cumom,cumomMean,steps,nstats,ncross,0);
+        }
+        else { // at five equi-distant x*
+            GpuArray<int, 5 > x_star;
+            x_star[0] = 0;
+            x_star[1] = (int)amrex::Math::floor(1.0*n_cells[0]/4.0);
+            x_star[2] = (int)amrex::Math::floor(2.0*n_cells[0]/4.0);
+            x_star[3] = (int)amrex::Math::floor(3.0*n_cells[0]/4.0);
+            x_star[4] = n_cells[0] - 1;
+
+            amrex::Gpu::DeviceVector<Real> data_xcross(nstats*n_cells[1]*n_cells[2], 0.0); // values at x* for a given y and z
+            for (int i=0; i<5; ++i) {
+                GetPencilCross(data_xcross,consMean,primMean,prim_in,cons,nstats,x_star[i]);
+                EvaluateSpatialCorrelations1D(spatialCross1D,data_xcross,consMean,primMean,prim_in,cons,vel,velMean,cumom,cumomMean,steps,nstats,ncross,i);
+            }
+        }
+    }
 }
 
 
@@ -543,7 +607,8 @@ void GetPencilCross(amrex::Gpu::DeviceVector<Real>& data_xcross_in,
                     const MultiFab& primMean,
                     const MultiFab& prim_in,
                     const MultiFab& cons,
-                    const int nstats)
+                    const int nstats,
+                    const int x_star)
 {
     BL_PROFILE_VAR("GetPencilCross()",GetPencilCross);
 
@@ -562,7 +627,7 @@ void GetPencilCross(amrex::Gpu::DeviceVector<Real>& data_xcross_in,
         Real* data_xcross = data_xcross_in.data();
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            if (i==cross_cell) {
+            if (i==x_star) {
                 int index = k*n_cells[1]*nstats + j*nstats;
                 data_xcross[index + 0]  = cu(i,j,k,0);          // rho-instant
                 data_xcross[index + 1]  = cumeans(i,j,k,0);     // rho-mean
@@ -1051,7 +1116,9 @@ void EvaluateSpatialCorrelations1D(MultiFab& spatialCross1D,
                                    const std::array<MultiFab, AMREX_SPACEDIM>& cumom,
                                    const std::array<MultiFab, AMREX_SPACEDIM>& cumomMean,
                                    const int steps,
-                                   const int nstats)
+                                   const int nstats,
+                                   const int ncross,
+                                   const int star_index)
 {
     
     BL_PROFILE_VAR("EvaluateSpatialCorrelations1D()",EvaluateSpatialCorrelations1D);
@@ -1177,108 +1244,111 @@ void EvaluateSpatialCorrelations1D(MultiFab& spatialCross1D,
 
             // Spatial Correlation Calculations
             
-            spatialCross(i,j,k,0) = (spatialCross(i,j,k,0)*stepsminusone + delrhocross*delrho)*stepsinv; // <delrho(x*)delrho(x)>
-            spatialCross(i,j,k,1) = (spatialCross(i,j,k,1)*stepsminusone + delKcross*delK)*stepsinv;     // <delK(x*)delK(x)>
-            spatialCross(i,j,k,2) = (spatialCross(i,j,k,2)*stepsminusone + deljxcross*deljx)*stepsinv;   // <deljx(x*)deljx(x)>
-            spatialCross(i,j,k,3) = (spatialCross(i,j,k,3)*stepsminusone + deljycross*deljy)*stepsinv;   // <deljy(x*)deljy(x)>
-            spatialCross(i,j,k,4) = (spatialCross(i,j,k,4)*stepsminusone + deljzcross*deljz)*stepsinv;   // <deljz(x*)deljz(x)>
-            spatialCross(i,j,k,5) = (spatialCross(i,j,k,5)*stepsminusone + deljxcross*delrho)*stepsinv;  // <deljx(x*)delrho(x)>
-            spatialCross(i,j,k,6) = (spatialCross(i,j,k,6)*stepsminusone + deljxcross*delrhoYk[0])*stepsinv;  // <deljx(x*)delrhoYkL(x)>
-            spatialCross(i,j,k,7) = (spatialCross(i,j,k,7)*stepsminusone + deljxcross*delrhoYk[nspecies-1])*stepsinv;  // <deljx(x*)delrhoYkH(x)>
-            spatialCross(i,j,k,8) = (spatialCross(i,j,k,8)*stepsminusone + delrhocross*delrhoYk[0])*stepsinv; // <delrho(x*)delrhoYkL(x)>
-            spatialCross(i,j,k,9) = (spatialCross(i,j,k,9)*stepsminusone + delrhocross*delrhoYk[nspecies-1])*stepsinv; // <delrho(x*)delrhoYkH(x)>
-            spatialCross(i,j,k,10)= (spatialCross(i,j,k,10)*stepsminusone + delrhoYkcross[0]*delrho)*stepsinv; // <delrhoYkL(x*)delrho(x)>
-            spatialCross(i,j,k,11)= (spatialCross(i,j,k,11)*stepsminusone + delrhoYkcross[nspecies-1]*delrho)*stepsinv; // <delrhoYkH(x*)delrho(x)>
+            int MFindex = star_index*ncross;
+
+            spatialCross(i,j,k,MFindex+0) = (spatialCross(i,j,k,MFindex+0)*stepsminusone + delrhocross*delrho)*stepsinv; // <delrho(x*)delrho(x)>
+            spatialCross(i,j,k,MFindex+1) = (spatialCross(i,j,k,MFindex+1)*stepsminusone + delKcross*delK)*stepsinv;     // <delK(x*)delK(x)>
+            spatialCross(i,j,k,MFindex+2) = (spatialCross(i,j,k,MFindex+2)*stepsminusone + deljxcross*deljx)*stepsinv;   // <deljx(x*)deljx(x)>
+            spatialCross(i,j,k,MFindex+3) = (spatialCross(i,j,k,MFindex+3)*stepsminusone + deljycross*deljy)*stepsinv;   // <deljy(x*)deljy(x)>
+            spatialCross(i,j,k,MFindex+4) = (spatialCross(i,j,k,MFindex+4)*stepsminusone + deljzcross*deljz)*stepsinv;   // <deljz(x*)deljz(x)>
+            spatialCross(i,j,k,MFindex+5) = (spatialCross(i,j,k,MFindex+5)*stepsminusone + deljxcross*delrho)*stepsinv;  // <deljx(x*)delrho(x)>
+            spatialCross(i,j,k,MFindex+6) = (spatialCross(i,j,k,MFindex+6)*stepsminusone + deljxcross*delrhoYk[0])*stepsinv;  // <deljx(x*)delrhoYkL(x)>
+            spatialCross(i,j,k,MFindex+7) = (spatialCross(i,j,k,MFindex+7)*stepsminusone + deljxcross*delrhoYk[nspecies-1])*stepsinv;  // <deljx(x*)delrhoYkH(x)>
+            spatialCross(i,j,k,MFindex+8) = (spatialCross(i,j,k,MFindex+8)*stepsminusone + delrhocross*delrhoYk[0])*stepsinv; // <delrho(x*)delrhoYkL(x)>
+            spatialCross(i,j,k,MFindex+9) = (spatialCross(i,j,k,MFindex+9)*stepsminusone + delrhocross*delrhoYk[nspecies-1])*stepsinv; // <delrho(x*)delrhoYkH(x)>
+            spatialCross(i,j,k,MFindex+10)= (spatialCross(i,j,k,MFindex+10)*stepsminusone + delrhoYkcross[0]*delrho)*stepsinv; // <delrhoYkL(x*)delrho(x)>
+            spatialCross(i,j,k,MFindex+11)= (spatialCross(i,j,k,MFindex+11)*stepsminusone + delrhoYkcross[nspecies-1]*delrho)*stepsinv; // <delrhoYkH(x*)delrho(x)>
             
-            spatialCross(i,j,k,12) = (spatialCross(i,j,k,12)*stepsminusone + delGcross*delG)*stepsinv; // <delG(x*)delG(x)>
-            spatialCross(i,j,k,13) = (spatialCross(i,j,k,13)*stepsminusone + delGcross*delK)*stepsinv; // <delG(x*)delK(x)>
-            spatialCross(i,j,k,14) = (spatialCross(i,j,k,14)*stepsminusone + delKcross*delG)*stepsinv; // <delK(x*)delG(x)>
-            spatialCross(i,j,k,15) = (spatialCross(i,j,k,15)*stepsminusone + delrhocross*delK)*stepsinv; // <delrho(x*)delK(x)>
-            spatialCross(i,j,k,16) = (spatialCross(i,j,k,16)*stepsminusone + delKcross*delrho)*stepsinv; // <delK(x*)delrho(x)>
-            spatialCross(i,j,k,17) = (spatialCross(i,j,k,17)*stepsminusone + delrhocross*delG)*stepsinv; // <delrho(x*)delG(x)>
-            spatialCross(i,j,k,18) = (spatialCross(i,j,k,18)*stepsminusone + delGcross*delrho)*stepsinv; // <delG(x*)delrho(x)>
+            spatialCross(i,j,k,MFindex+12) = (spatialCross(i,j,k,MFindex+12)*stepsminusone + delGcross*delG)*stepsinv; // <delG(x*)delG(x)>
+            spatialCross(i,j,k,MFindex+13) = (spatialCross(i,j,k,MFindex+13)*stepsminusone + delGcross*delK)*stepsinv; // <delG(x*)delK(x)>
+            spatialCross(i,j,k,MFindex+14) = (spatialCross(i,j,k,MFindex+14)*stepsminusone + delKcross*delG)*stepsinv; // <delK(x*)delG(x)>
+            spatialCross(i,j,k,MFindex+15) = (spatialCross(i,j,k,MFindex+15)*stepsminusone + delrhocross*delK)*stepsinv; // <delrho(x*)delK(x)>
+            spatialCross(i,j,k,MFindex+16) = (spatialCross(i,j,k,MFindex+16)*stepsminusone + delKcross*delrho)*stepsinv; // <delK(x*)delrho(x)>
+            spatialCross(i,j,k,MFindex+17) = (spatialCross(i,j,k,MFindex+17)*stepsminusone + delrhocross*delG)*stepsinv; // <delrho(x*)delG(x)>
+            spatialCross(i,j,k,MFindex+18) = (spatialCross(i,j,k,MFindex+18)*stepsminusone + delGcross*delrho)*stepsinv; // <delG(x*)delrho(x)>
 
             // <delT(x*)delT(x)> = (1/cv*/cv/<rho(x)>/<rho(x*)>)(<delK*delK> + <delG*delG> - <delG*delK> - <delK*delG> 
             //                      + <Q><Q*><delrho*delrho> - <Q*><delrho*delK> - <Q><delK*delrho> + <Q*><delrho*delG> + <Q><delG*delrho>)
-            spatialCross(i,j,k,19) = (cvinvcross*cvinv/(meanrhocross*meanrho))*
-                                        (spatialCross(i,j,k,1) + spatialCross(i,j,k,12) - spatialCross(i,j,k,13) - spatialCross(i,j,k,14)
-                                         + qmean*qmeancross*spatialCross(i,j,k,0) - qmeancross*spatialCross(i,j,k,15) - qmean*spatialCross(i,j,k,16)
-                                         + qmeancross*spatialCross(i,j,k,17) + qmean*spatialCross(i,j,k,18));
+            spatialCross(i,j,k,MFindex+19) = (cvinvcross*cvinv/(meanrhocross*meanrho))*
+                                        (spatialCross(i,j,k,MFindex+1) + spatialCross(i,j,k,MFindex+12) - spatialCross(i,j,k,MFindex+13) - spatialCross(i,j,k,MFindex+14)
+                                         + qmean*qmeancross*spatialCross(i,j,k,MFindex+0) - qmeancross*spatialCross(i,j,k,MFindex+15) - qmean*spatialCross(i,j,k,MFindex+16)
+                                         + qmeancross*spatialCross(i,j,k,MFindex+17) + qmean*spatialCross(i,j,k,MFindex+18));
 
             // <delT(x*)delrho(x)> = (1/cv/<rho(x*)>)*(<delK*delrho> - <delG*delrho> - <Q*><delrhodelrho*>)
-            spatialCross(i,j,k,20) = (cvinvcross/meanrhocross)*(spatialCross(i,j,k,16) - spatialCross(i,j,k,18) - qmeancross*spatialCross(i,j,k,0));
+            spatialCross(i,j,k,MFindex+20) = (cvinvcross/meanrhocross)*(spatialCross(i,j,k,MFindex+16) - spatialCross(i,j,k,MFindex+18) - qmeancross*spatialCross(i,j,k,MFindex+0));
 
             // <delu(x*)delrho> = (1/<rho(x*)>)*(<deljx(x*)delrho(x)> - <u(x*)><<delrho(x*)delrho(x)>) 
-            spatialCross(i,j,k,21) = (1.0/meanrhocross)*(spatialCross(i,j,k,5) - meanuxcross*spatialCross(i,j,k,0));
+            spatialCross(i,j,k,MFindex+21) = (1.0/meanrhocross)*(spatialCross(i,j,k,MFindex+5) - meanuxcross*spatialCross(i,j,k,MFindex+0));
 
             // <delu(x*)del(rhoYkL)> = (1/<rho(x*)>)*(<deljx(x*)del(rhoYkL)> - <u(x*)><delrho(x*)del(rhoYkL)>)
-            spatialCross(i,j,k,22) = (1.0/meanrhocross)*(spatialCross(i,j,k,6) - meanuxcross*spatialCross(i,j,k,8));  
+            spatialCross(i,j,k,MFindex+22) = (1.0/meanrhocross)*(spatialCross(i,j,k,MFindex+6) - meanuxcross*spatialCross(i,j,k,MFindex+8));  
 
             // <delu(x*)del(rhoYkH)> = (1/<rho(x*)>)*(<deljx(x*)del(rhoYkH)> - <u(x*)><delrho(x*)del(rhoYkH)>)
-            spatialCross(i,j,k,23) = (1.0/meanrhocross)*(spatialCross(i,j,k,7) - meanuxcross*spatialCross(i,j,k,9));  
+            spatialCross(i,j,k,MFindex+23) = (1.0/meanrhocross)*(spatialCross(i,j,k,MFindex+7) - meanuxcross*spatialCross(i,j,k,MFindex+9));  
 
             // <delu(x*)del(YkL)> = (1/<rho(x*)>/<rho(x)>)*(<deljx(x*)del(rhoYkL) - <u(x*)><delrho(x*)del(rhoYkL)> 
             //                      - <YkL(x)><deljx(x*)delrho(x)> + <u(x*)><YkL(x)><delrho(x*)delrho(x)>)
-            spatialCross(i,j,k,24) = (1.0/(meanrho*meanrhocross))*(spatialCross(i,j,k,6) - meanuxcross*spatialCross(i,j,k,8)
-                                                                     - meanYk[0]*spatialCross(i,j,k,5) + meanuxcross*meanYk[0]*spatialCross(i,j,k,0));
+            spatialCross(i,j,k,MFindex+24) = (1.0/(meanrho*meanrhocross))*(spatialCross(i,j,k,MFindex+6) - meanuxcross*spatialCross(i,j,k,MFindex+8)
+                                                                     - meanYk[0]*spatialCross(i,j,k,MFindex+5) + meanuxcross*meanYk[0]*spatialCross(i,j,k,MFindex+0));
 
             // <delu(x*)del(YkH)> = (1/<rho(x*)>/<rho(x)>)*(<deljx(x*)del(rhoYkH) - <u(x*)><delrho(x*)del(rhoYkH)> 
             //                      - <YkH(x)><deljx(x*)delrho(x)> + <u(x*)><YkH(x)><delrho(x*)delrho(x)>)
-            spatialCross(i,j,k,25) = (1.0/(meanrho*meanrhocross))*(spatialCross(i,j,k,7) - meanuxcross*spatialCross(i,j,k,9)
-                                                                     - meanYk[nspecies-1]*spatialCross(i,j,k,5) + meanuxcross*meanYk[nspecies-1]*spatialCross(i,j,k,0));
+            spatialCross(i,j,k,MFindex+25) = (1.0/(meanrho*meanrhocross))*(spatialCross(i,j,k,MFindex+7) - meanuxcross*spatialCross(i,j,k,MFindex+9)
+                                                                     - meanYk[nspecies-1]*spatialCross(i,j,k,MFindex+5) + 
+                                                                     meanuxcross*meanYk[nspecies-1]*spatialCross(i,j,k,MFindex+0));
 
             // Direct -- <delT(x*)delT(x)>
-            spatialCross(i,j,k,26) = (spatialCross(i,j,k,26)*stepsminusone + delTcross*delT)*stepsinv;
+            spatialCross(i,j,k,MFindex+26) = (spatialCross(i,j,k,MFindex+26)*stepsminusone + delTcross*delT)*stepsinv;
 
             // Direct -- <delT(x*)delrho(x)>
-            spatialCross(i,j,k,27) = (spatialCross(i,j,k,27)*stepsminusone + delTcross*delrho)*stepsinv;
+            spatialCross(i,j,k,MFindex+27) = (spatialCross(i,j,k,MFindex+27)*stepsminusone + delTcross*delrho)*stepsinv;
 
             // Direct -- <delT(x*)delu(x)>
-            spatialCross(i,j,k,28) = (spatialCross(i,j,k,28)*stepsminusone + delTcross*delvx)*stepsinv;
+            spatialCross(i,j,k,MFindex+28) = (spatialCross(i,j,k,MFindex+28)*stepsminusone + delTcross*delvx)*stepsinv;
 
             // Direct -- <delu(x*)delrho>
-            spatialCross(i,j,k,29) = (spatialCross(i,j,k,29)*stepsminusone + delvxcross*delrho)*stepsinv;
+            spatialCross(i,j,k,MFindex+29) = (spatialCross(i,j,k,MFindex+29)*stepsminusone + delvxcross*delrho)*stepsinv;
 
             // Direct -- <delu(x*)del(rhoYkL)
-            spatialCross(i,j,k,30) = (spatialCross(i,j,k,30)*stepsminusone + delvxcross*delYk[0])*stepsinv;
+            spatialCross(i,j,k,MFindex+30) = (spatialCross(i,j,k,MFindex+30)*stepsminusone + delvxcross*delYk[0])*stepsinv;
 
             // Direct -- <delu(x*)del(rhoYkH)
-            spatialCross(i,j,k,31) = (spatialCross(i,j,k,31)*stepsminusone + delvxcross*delYk[nspecies-1])*stepsinv;
+            spatialCross(i,j,k,MFindex+31) = (spatialCross(i,j,k,MFindex+31)*stepsminusone + delvxcross*delYk[nspecies-1])*stepsinv;
 
             // Direct -- <delu(x*)del(rhoYkL)
-            spatialCross(i,j,k,32) = (spatialCross(i,j,k,32)*stepsminusone + delvxcross*delrhoYk[0])*stepsinv;
+            spatialCross(i,j,k,MFindex+32) = (spatialCross(i,j,k,MFindex+32)*stepsminusone + delvxcross*delrhoYk[0])*stepsinv;
 
             // Direct -- <delu(x*)del(rhoYkH)
-            spatialCross(i,j,k,33) = (spatialCross(i,j,k,33)*stepsminusone + delvxcross*delrhoYk[nspecies-1])*stepsinv;
+            spatialCross(i,j,k,MFindex+33) = (spatialCross(i,j,k,MFindex+33)*stepsminusone + delvxcross*delrhoYk[nspecies-1])*stepsinv;
 
             // Direct <delYkL(x*)delYkL(x)>
-            spatialCross(i,j,k,34) = (spatialCross(i,j,k,34)*stepsminusone + delYkcross[0]*delYk[0])*stepsinv;
+            spatialCross(i,j,k,MFindex+34) = (spatialCross(i,j,k,MFindex+34)*stepsminusone + delYkcross[0]*delYk[0])*stepsinv;
 
             // Direct <delYkH(x*)delYkH(x)>
-            spatialCross(i,j,k,35) = (spatialCross(i,j,k,35)*stepsminusone + delYkcross[nspecies-1]*delYk[nspecies-1])*stepsinv;
+            spatialCross(i,j,k,MFindex+35) = (spatialCross(i,j,k,MFindex+35)*stepsminusone + delYkcross[nspecies-1]*delYk[nspecies-1])*stepsinv;
 
             // Direct <delYkL(x*)delYkH(x)>
-            spatialCross(i,j,k,36) = (spatialCross(i,j,k,36)*stepsminusone + delYkcross[0]*delYk[nspecies-1])*stepsinv;
+            spatialCross(i,j,k,MFindex+36) = (spatialCross(i,j,k,MFindex+36)*stepsminusone + delYkcross[0]*delYk[nspecies-1])*stepsinv;
 
             // Last we rhoYk for species
             for (int ns=0; ns<nspecies; ++ns) {
-                spatialCross(i,j,k,37+ns) = (spatialCross(i,j,k,37+ns)*stepsminusone + delrhoYkcross[ns]*delrhoYk[ns])*stepsinv; // <delrhoYk(x*)delrhoYk(x)>
+                spatialCross(i,j,k,MFindex+37+ns) = (spatialCross(i,j,k,MFindex+37+ns)*stepsminusone + delrhoYkcross[ns]*delrhoYk[ns])*stepsinv; // <delrhoYk(x*)delrhoYk(x)>
             }
 
             // <delrhoYkL(x)delrhoYkH(x*)
-            spatialCross(i,j,k,37+nspecies+0) = (spatialCross(i,j,k,37+nspecies+0)*stepsminusone + delrhoYkcross[nspecies-1]*delrhoYk[0])*stepsinv;
+            spatialCross(i,j,k,MFindex+37+nspecies+0) = (spatialCross(i,j,k,MFindex+37+nspecies+0)*stepsminusone + delrhoYkcross[nspecies-1]*delrhoYk[0])*stepsinv;
 
             // <delYkL(x*)delYkL(x)> = (1/<rho(x*)>/<rho(x)>)*(<delrhoYkL(x*)delrhoYkL> - <YkL(x*)><delrho(x*)delrhoYkL(x)>
             //                                                 - <YkL(x)><delrhoYkL(x*)delrho(x) + <YkL(x*)><YkL(x)><delrho(x*)delrho(x)>)
-            Real delrhoYkdelrhoYk = (spatialCross(i,j,k,37)*stepsminusone + delrhoYkcross[0]*delrhoYk[0])*stepsinv;
-            spatialCross(i,j,k,37+nspecies+1) = (1.0/(meanrho*meanrhocross))*(delrhoYkdelrhoYk - meanYkcross[0]*spatialCross(i,j,k,8)
-                                                                    - meanYk[0]*spatialCross(i,j,k,10) + meanYkcross[0]*meanYk[0]*spatialCross(i,j,k,0));
+            Real delrhoYkdelrhoYk = (spatialCross(i,j,k,MFindex+37)*stepsminusone + delrhoYkcross[0]*delrhoYk[0])*stepsinv;
+            spatialCross(i,j,k,MFindex+37+nspecies+1) = (1.0/(meanrho*meanrhocross))*(delrhoYkdelrhoYk - meanYkcross[0]*spatialCross(i,j,k,MFindex+8)
+                                                                    - meanYk[0]*spatialCross(i,j,k,MFindex+10) + meanYkcross[0]*meanYk[0]*spatialCross(i,j,k,MFindex+0));
 
             // <delYkH(x*)delYkH(x)> = (1/<rho(x*)>/<rho(x)>)*(<delrhoYkH(x*)delrhoYkH> - <YkH(x*)><delrho(x*)delrhoYkH(x)>
             //                                                 - <YkH(x)><delrhoYkH(x*)delrho(x) + <YkH(x*)><YkH(x)><delrho(x*)delrho(x)>)
-            delrhoYkdelrhoYk = (spatialCross(i,j,k,37+nspecies-1)*stepsminusone + delrhoYkcross[nspecies-1]*delrhoYk[nspecies-1])*stepsinv;
-            spatialCross(i,j,k,37+nspecies+2) = (1.0/(meanrho*meanrhocross))*(delrhoYkdelrhoYk - meanYkcross[nspecies-1]*spatialCross(i,j,k,9)
-                                                    - meanYk[nspecies-1]*spatialCross(i,j,k,11) + meanYkcross[nspecies-1]*meanYk[nspecies-1]*spatialCross(i,j,k,0));
+            delrhoYkdelrhoYk = (spatialCross(i,j,k,MFindex+37+nspecies-1)*stepsminusone + delrhoYkcross[nspecies-1]*delrhoYk[nspecies-1])*stepsinv;
+            spatialCross(i,j,k,MFindex+37+nspecies+2) = (1.0/(meanrho*meanrhocross))*(delrhoYkdelrhoYk - meanYkcross[nspecies-1]*spatialCross(i,j,k,MFindex+9)
+                                                    - meanYk[nspecies-1]*spatialCross(i,j,k,MFindex+11) + meanYkcross[nspecies-1]*meanYk[nspecies-1]*spatialCross(i,j,k,MFindex+0));
 
         });
        // }

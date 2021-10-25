@@ -34,14 +34,6 @@ class StructFact {
     // Total number of states to average over, updated by FortStructure()
     int nsamples = 0;
 
-    // Vector containing running sums of real and imaginary components 
-    // of inner products (covariances) of DFTs
-    MultiFab cov_real;
-    MultiFab cov_imag;
-
-    // Vector of MultiFabs containing final magnitude of covariances
-    MultiFab cov_mag;
-
     // Vector containing covariance scaling
     Vector< Real > scaling;
 
@@ -56,6 +48,14 @@ class StructFact {
     amrex::Vector< int > var_u;
 
 public:
+
+    // Vector containing running sums of real and imaginary components
+    // of inner products (covariances) of DFTs
+    MultiFab cov_real;
+    MultiFab cov_imag;
+
+    // Vector of MultiFabs containing final magnitude of covariances
+    MultiFab cov_mag;
 
     StructFact();
     
@@ -93,6 +93,12 @@ public:
                   const int& zero_avg=1);
 
     void IntegratekShells(const int& step, const amrex::Geometry& geom);
+
+    void AddToExternal(amrex::MultiFab& x_mag, amrex::MultiFab& x_realimag, const amrex::Geometry&, const int& zero_avg=1);
+
+    int get_ncov() const { return NCOV; }
+
+    const decltype(cov_names)& get_names() const { return cov_names; }
 };
 
 #endif

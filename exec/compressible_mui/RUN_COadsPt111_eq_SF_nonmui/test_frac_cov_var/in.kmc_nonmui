@@ -11,8 +11,8 @@ lattice     tri ${lat_const}
 
 variable    n1x equal 300
 variable    n1y equal 150
-variable    n2x equal 8
-variable    n2y equal 8
+variable    n2x equal 1
+variable    n2y equal 1
 variable    Nx equal ${n1x}*${n2x}
 variable    Ny equal ${n1y}*${n2y}
 
@@ -45,7 +45,7 @@ event       5 siteA spec1 2.926784e+07 vac              # desorption of spec1
 ###########################
 
 variable    Trun     equal 1.e-12
-variable    nstep    equal 1000000
+variable    nstep    equal 10000
 
 #variable    imagfreq equal 10          # dump image frequency
 #variable    imagfreq equal ${nstep}    # only final configuration
