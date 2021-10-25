@@ -951,11 +951,15 @@ void ReadCheckPoint2D(int& step,
         // broadcast the same root seed to all processors
         ParallelDescriptor::Bcast(&randSeed,1,ParallelDescriptor::IOProcessorNumber());
         
-        InitRandom(randSeed+ParallelDescriptor::MyProc());
+        InitRandom(randSeed+ParallelDescriptor::MyProc(),
+                   ParallelDescriptor::NProcs(),
+                   randSeed+ParallelDescriptor::MyProc());
     }
     else {
         // initializes the seed for C++ random number calls
-        InitRandom(seed+ParallelDescriptor::MyProc());
+        InitRandom(seed+ParallelDescriptor::MyProc(),
+                   ParallelDescriptor::NProcs(),
+                   seed+ParallelDescriptor::MyProc());
     }
 
     // read in the MultiFab data
