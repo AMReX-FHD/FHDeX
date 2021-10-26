@@ -103,6 +103,7 @@ void main_driver(const char* argv)
 
     // staggered velocities
     std::array< MultiFab, AMREX_SPACEDIM > umac;
+    std::array< MultiFab, AMREX_SPACEDIM > Lumac;  // for energy dissipation
     
     if (restart > 0) {
         ReadCheckPoint(step_start,time,umac,turbforce,ba,dmap);
@@ -155,6 +156,10 @@ void main_driver(const char* argv)
         time = 0.;
 
     }
+        
+    AMREX_D_TERM(Lumac[0].define(convert(ba,nodal_flag_x), dmap, 1, 0);,
+                 Lumac[1].define(convert(ba,nodal_flag_y), dmap, 1, 0);,
+                 Lumac[2].define(convert(ba,nodal_flag_z), dmap, 1, 0););
 
     if (turbForcing == 1) {
       turbforce.Initialize(geom);
@@ -602,9 +607,17 @@ void main_driver(const char* argv)
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             CCInnerProd(gradU,d,gradU,d,ccTemp,udotu[d]);
         }
+
+        // compute LapU
+        ComputeStagLap(umac,Lumac,geom);
+
+        Vector<Real> uLapu(AMREX_SPACEDIM);
+        StagInnerProd(geom,umac,0,Lumac,0,umacTemp,uLapu);
+
         Print() << "Energy dissipation "
 		<< time << " "
-                << visc_coef*dProb*( udotu[0] + udotu[1] + udotu[2] )
+                << visc_coef*dProb*( udotu[0] + udotu[1] + udotu[2] ) << " "
+                << -visc_coef*dProb*( uLapu[0] + uLapu[1] + uLapu[2] )
                 << std::endl;
         //      << visc_coef*dVol*( udotu[0] + udotu[1] + udotu[2] )
 	//
