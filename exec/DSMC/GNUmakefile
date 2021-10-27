@@ -75,14 +75,6 @@ include $(AMREX_HOME)/Tools/GNUMake/Make.rules
 
 #DEFINES	+= -DDSMC=$(DSMC)
 
-<<<<<<< HEAD
-#ifeq ($(findstring cgpu, $(HOST)), cgpu)
-#CXXFLAGS += $(FFTW)
-#endif
-
-INCLUDE_LOCATIONS += $(FFTW_INC)
-=======
 ifeq ($(findstring cgpu, $(HOST)), cgpu)
 CXXFLAGS += $(FFTW)
 endif
->>>>>>> cce920cdf5228a5934993c5044beec582636dfc2
