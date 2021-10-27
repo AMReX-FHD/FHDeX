@@ -1,0 +1,113 @@
+
+
+  # Problem specification
+  prob_lo = 0.0 0.0 0.0      # physical lo coordinate
+  prob_hi = 1e-4 1e-4 1e-4
+
+  # Number of ghost cells, conserved, and primitive variables
+  # ---------------------
+  ngc = 2 2 2
+  nvars = 9
+  nprimvars = 14
+
+  # number of cells in domain
+  n_cells = 32 32 32
+  # max number of cells in a box
+  max_grid_size = 16 16 16
+
+  # Time-step control
+  fixed_dt = 2e-12
+
+  # Controls for number of steps between actions
+
+  max_step = 3
+  plot_int = 1
+  struct_fact_int = -1
+  n_steps_skip = 0
+  chk_int = -1
+  restart = -1
+
+  # random number seed
+  # 0        = unpredictable seed based on clock
+  # positive = fixed seed
+  seed = 1
+
+  # Multispecies toggle
+  # if algorithm_type = 1, single component
+  # if algorithm_type = 2, multispecies
+  algorithm_type = 2
+
+  # Viscous tensor form
+  # if visc_type = 1, L = not-symmetric (bulk viscosity = 0)
+  # if visc_type = 2, L = symmetric (bulk viscosity = 0)
+  # if visc_type = 3, L = symmetric + bulk viscosity
+  visc_type = 2
+
+  # Advection method
+  # if advection_type = 1, interpolate conserved quantities
+  # if advection_type = 2, interpolate primitive quantities
+  advection_type = 1
+
+  # Problem specification
+  # if prob_type = 1, constant species concentration
+  # if prob_type = 2, Rayleigh-Taylor instability
+  # if prob_type = 3, diffusion barrier
+  prob_type = 1
+
+  # Initial parameters
+  k_B = 1.38064852e-16	# [units: cm2*g*s-2*K-1]
+  Runiv = 8.314462175e7
+  T_init = 400
+  rho0 = 1.78e-3
+
+  # Boundary conditions:
+  # NOTE: setting bc_vel to periodic sets all the other bc's to periodic)
+  # bc_vel:   -1 = periodic
+  #            1 = slip
+  #            2 = no-slip
+  # bc_mass:  -1 = periodic
+  #            1 = wall
+  #            2 = concentration (set bc_Yk or bc_Xk in compressible namelist)
+  #            3 = reservoir (set bc_Yk or bc_Xk in compressible namelist)
+  # bc_therm: -1 = periodic
+  #            1 = adiabatic
+  #            2 = isothermal (set with t_lo/hi in common namelist)
+  bc_vel_lo = 2 2 2
+  bc_vel_hi = 2 2 2
+  bc_therm_lo = 2 2 2
+  bc_therm_hi = 2 2 2
+  bc_mass_lo = 3 3 3
+  bc_mass_hi = 3 3 3
+
+  # Temperature if thermal BC specified
+  t_hi = 410 410 410
+  t_lo = 390 390 390
+
+  # Xk and Yk at the wall for Dirichlet (concentrations) - set one to zero
+  bc_Yk_x_lo = 0.22 0.24 0.26 0.28     # lo BC
+  bc_Yk_x_hi = 0.22 0.24 0.26 0.28     # hi BC
+  bc_Yk_y_lo = 0.22 0.24 0.26 0.28     # lo BC
+  bc_Yk_y_hi = 0.22 0.24 0.26 0.28     # hi BC
+  bc_Yk_z_lo = 0.22 0.24 0.26 0.28     # lo BC
+  bc_Yk_z_hi = 0.22 0.24 0.26 0.28     # hi BC
+
+  #Kinetic species info
+  #--------------
+  nspecies = 4
+  molmass = 39.9480 39.9480 39.9480 39.9480
+  diameter = 3.66e-8 3.66e-8 3.66e-8 3.66e-8
+  rhobar = 0.25 0.25 0.25 0.25
+
+  # Enter negative dof to use hcv & hcp values
+  dof =  3 3 3 3
+  hcv = -1 -1 -1 -1
+  hcp = -1 -1 -1 -1
+
+  # write out means and variances to plotfile
+  plot_means = 1
+  plot_vars = 1
+  plot_covars = 1
+  plot_cross = 1
+  cross_cell = 16
+
+  transport_type = 1

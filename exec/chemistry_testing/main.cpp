@@ -4,9 +4,7 @@
 
 #include "myfunc.H"
 #include "chemistry_functions.H"
-#include "chemistry_namespace_declarations.H"
 #include "common_functions.H"
-#include "common_namespace_declarations.H"
 
 using namespace amrex;
 
@@ -29,9 +27,6 @@ void main_main(const char* argv)
 
     std::string inputs_file = argv;
     
-    // read in parameters from inputs file into F90 modules
-    // we use "+1" because of amrex_string_c_to_f expects a null char termination
-    read_common_namelist(inputs_file.c_str(),inputs_file.size()+1);
 
     // copy contents of F90 modules to C++ namespaces
     InitializeCommonNamespace();
@@ -261,7 +256,7 @@ void main_main(const char* argv)
         else if (prob_type==2)  // MultiFab-based routine
         {
             // compute source
-            compute_chemistry_source(dt,dV,rho_old,0,source,0);
+            compute_chemistry_source_CLE_1(dt,dV,rho_old,0,source,0);
 
             for ( MFIter mfi(rho_old); mfi.isValid(); ++mfi )
             {
@@ -277,6 +272,14 @@ void main_main(const char* argv)
                     for (int n=0; n<nspecies; n++) rhoNew(i,j,k,n) = rhoOld(i,j,k,n) + dt*sourceArr(i,j,k,n);
                 });
             }
+        }
+        else if (prob_type==3)
+        {
+            RK3step_chem_only(rho_old,rho_new,geom,dt);
+        }
+        else if (prob_type==4)
+        {
+            EMstep_chem_only(rho_old,rho_new,geom,dt);
         }
         else
         {

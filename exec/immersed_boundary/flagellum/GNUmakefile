@@ -43,9 +43,6 @@ include ../../../src_gmres/Make.package
 VPATH_LOCATIONS   += ../../../src_gmres/
 INCLUDE_LOCATIONS += ../../../src_gmres/
 
-include ../../../src_common/src_F90/Make.package
-VPATH_LOCATIONS   += ../../../src_common/src_F90
-INCLUDE_LOCATIONS += ../../../src_common/src_F90
 
 include ../../../src_common/Make.package
 VPATH_LOCATIONS   += ../../../src_common/
@@ -75,8 +72,8 @@ ifeq ($(findstring cgpu, $(HOST)), cgpu)
   CXXFLAGS += $(FFTW)
 endif
 
-ifeq ($(USE_CUDA),TRUE)
-  LIBRARIES += -lcufft
-else
-  LIBRARIES += -L$(FFTW_DIR) -lfftw3_mpi -lfftw3
-endif
+# ifeq ($(USE_CUDA),TRUE)
+#   LIBRARIES += -lcufft
+# else
+#   LIBRARIES += -L$(FFTW_DIR) -lfftw3_mpi -lfftw3
+# endif

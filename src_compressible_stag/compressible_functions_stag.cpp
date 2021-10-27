@@ -1,8 +1,9 @@
 #include "compressible_functions.H"
 #include "compressible_functions_stag.H"
 
-void InitConsVarStag(MultiFab& cons, std::array< MultiFab, AMREX_SPACEDIM >& momStag, 
-                     const MultiFab& prim, const amrex::Geometry geom) {
+void InitConsVarStag(MultiFab& cons,
+                     std::array< MultiFab, AMREX_SPACEDIM >& momStag,
+                     const amrex::Geometry geom) {
 
     const Real* dx_host = geom.CellSize();
     const RealBox& realDomain = geom.ProbDomain();
@@ -30,8 +31,29 @@ void InitConsVarStag(MultiFab& cons, std::array< MultiFab, AMREX_SPACEDIM >& mom
     Real pi = acos(-1.);
     Real Lf = realhi[0] - reallo[0];
 
+    // compute some values and overwrite based on prob_type
+        
+    // compute internal energy
+    Real intEnergy;
+    GpuArray<Real,MAX_SPECIES  > massvec;
+    for(int i=0;i<nspecies;i++) {
+        massvec[i] = rhobar[i];
+    }
+    GetEnergy(intEnergy, massvec, T_init[0]);
+
+    cons.setVal(0.0,0,nvars,ngc);
+    cons.setVal(rho0,0,1,ngc);           // density
+    cons.setVal(0,1,3,ngc);              // x/y/z momentum
+    cons.setVal(rho0*intEnergy,4,1,ngc); // total energy
+    for(int i=0;i<nspecies;i++) {
+        cons.setVal(rho0*rhobar[i],5+i,1,ngc); // mass densities
+    }
+
+    for (int d=0; d<AMREX_SPACEDIM; d++) { // staggered momentum & velocities
+        momStag[d].setVal(0.);
+    }
+    
     for ( MFIter mfi(cons); mfi.isValid(); ++mfi ) {
-        const Array4<const Real> pu = prim.array(mfi);
         const Array4<      Real> cu = cons.array(mfi);
 
         const Box& bx = mfi.tilebox();
@@ -72,7 +94,7 @@ void InitConsVarStag(MultiFab& cons, std::array< MultiFab, AMREX_SPACEDIM >& mom
                 }
 
                 Real pamb;
-                GetPressureGas(pamb, massvec, cu(i,j,k,0), pu(i,j,k,4));
+                GetPressureGas(pamb, massvec, cu(i,j,k,0), T_init[0]);
                 
                 Real molmix = 0.;
 
@@ -81,23 +103,23 @@ void InitConsVarStag(MultiFab& cons, std::array< MultiFab, AMREX_SPACEDIM >& mom
                 }
                 molmix = 1.0/molmix;
                 Real rgasmix = Runiv/molmix;
-                Real alpha = grav[2]/(rgasmix*pu(i,j,k,4));
+                Real alpha = grav[2]/(rgasmix*T_init[0]);
 
                 // rho = exponential in z-dir to init @ hydrostatic eqm.
                 // must satisfy system: dP/dz = -rho*g & P = rhogasmix*rho*T
                 // Assumes temp=const
-                cu(i,j,k,0) = pamb*exp(alpha*pos[2])/(rgasmix*pu(i,j,k,4));
+                cu(i,j,k,0) = pamb*exp(alpha*pos[2])/(rgasmix*T_init[0]);
                 
                 for (int l=0; l<nspecies; ++l) {
                     cu(i,j,k,5+l) = cu(i,j,k,0)*massvec[l];
                 }
 
                 Real intEnergy;
-                GetEnergy(intEnergy, massvec, pu(i,j,k,4));
+                GetEnergy(intEnergy, massvec, T_init[0]);
 
-                cu(i,j,k,4) = cu(i,j,k,0)*intEnergy + 0.5*cu(i,j,k,0)*(pu(i,j,k,1)*pu(i,j,k,1) +
-                                                                       pu(i,j,k,2)*pu(i,j,k,2) +
-                                                                       pu(i,j,k,3)*pu(i,j,k,3));
+                cu(i,j,k,4) = cu(i,j,k,0)*intEnergy + 0.5*(cu(i,j,k,1)*cu(i,j,k,1) +
+                                                           cu(i,j,k,2)*cu(i,j,k,2) +
+                                                           cu(i,j,k,3)*cu(i,j,k,3)) / cu(i,j,k,0);
             } else if (prob_type == 3) { // diffusion barrier
 
                 for (int l=0; l<nspecies; ++l) {
@@ -107,10 +129,10 @@ void InitConsVarStag(MultiFab& cons, std::array< MultiFab, AMREX_SPACEDIM >& mom
                 }
 
                 Real intEnergy;
-                GetEnergy(intEnergy, massvec, pu(i,j,k,4));
-                cu(i,j,k,4) = cu(i,j,k,0)*intEnergy + 0.5*cu(i,j,k,0)*(pu(i,j,k,1)*pu(i,j,k,1) +
-                                                                       pu(i,j,k,2)*pu(i,j,k,2) +
-                                                                       pu(i,j,k,3)*pu(i,j,k,3));
+                GetEnergy(intEnergy, massvec, T_init[0]);
+                cu(i,j,k,4) = cu(i,j,k,0)*intEnergy + 0.5*(cu(i,j,k,1)*cu(i,j,k,1) +
+                                                           cu(i,j,k,2)*cu(i,j,k,2) +
+                                                           cu(i,j,k,3)*cu(i,j,k,3)) / cu(i,j,k,0);
             } else if (prob_type == 4) { // Taylor Green Vortex
 
                 Real x=itVec[0];
@@ -205,6 +227,86 @@ void InitConsVarStag(MultiFab& cons, std::array< MultiFab, AMREX_SPACEDIM >& mom
                         GetEnergy(intEnergy, massvec, t_hi[0]);
                         cu(i,j,k,4) = cu(i,j,k,0)*intEnergy;
                     }
+            } // prob type
+            else if (prob_type == 103) { // double the pressure in other half
+                
+                    for (int ns=0;ns<nspecies;++ns) massvec[ns] = rhobar[ns];
+                    Real pressure;
+                    GetPressureGas(pressure,massvec,rho0,T_init[0]);
+
+                    if (relpos[0] > 0.0) {
+                        Real pressure_new = 2.0*pressure;
+                        Real temperature;
+                        temperature = T_init[0];
+
+                        Real density;
+                        GetDensity(pressure_new,density,temperature,massvec);
+                        cu(i,j,k,0) = density;
+                        for (int ns=0;ns<nspecies;++ns) cu(i,j,k,5+ns) = density*massvec[ns];
+
+                        Real intEnergy;
+                        GetEnergy(intEnergy, massvec, temperature);
+                        cu(i,j,k,4) = density*intEnergy;
+                    }
+                    
+            } // prob type
+            else if (prob_type == 104) { // temperature discontinuity 
+                
+                    if (i==15) 
+                    {
+                        for (int ns=0;ns<nspecies;++ns) massvec[ns] = rhobar[ns];
+                        Real pamb;
+                        GetPressureGas(pamb,massvec,rho0,T_init[0]);
+
+                        Real density;
+                        GetDensity(pamb,density,400.0,massvec);
+                        cu(i,j,k,0) = density;
+                        for (int ns=0;ns<nspecies;++ns) cu(i,j,k,5+ns) = density*massvec[ns];
+
+                        Real intEnergy;
+                        GetEnergy(intEnergy, massvec, 400.0);
+                        cu(i,j,k,4) = density*intEnergy;
+                    }
+                    
+            }
+            else if (prob_type == 105) { // pressure discontinuity 
+                
+                    if (i==15) 
+                    {
+                        for (int ns=0;ns<nspecies;++ns) massvec[ns] = rhobar[ns];
+                        Real pamb;
+                        GetPressureGas(pamb,massvec,rho0,T_init[0]);
+
+                        Real density;
+                        GetDensity(pamb*1.5,density,T_init[0],massvec);
+                        cu(i,j,k,0) = density;
+                        for (int ns=0;ns<nspecies;++ns) cu(i,j,k,5+ns) = density*massvec[ns];
+
+                        Real intEnergy;
+                        GetEnergy(intEnergy, massvec, T_init[0]);
+                        cu(i,j,k,4) = density*intEnergy;
+                    }
+            }
+            else if (prob_type == 106) { // concentration discontinuity 
+                
+                    if (i==15) 
+                    {
+                        for (int ns=0;ns<nspecies;++ns) massvec[ns] = rhobar[ns];
+                        Real pamb;
+                        GetPressureGas(pamb,massvec,rho0,T_init[0]);
+
+                        massvec[0] = 0.4;
+                        massvec[1] = 0.6;
+                        Real density;
+                        GetDensity(pamb,density,T_init[0],massvec);
+                        cu(i,j,k,0) = density;
+                        for (int ns=0;ns<nspecies;++ns) cu(i,j,k,5+ns) = density*massvec[ns];
+
+                        Real intEnergy;
+                        GetEnergy(intEnergy, massvec, T_init[0]);
+                        cu(i,j,k,4) = density*intEnergy;
+                    }
+                    
             } // prob type
 
         });

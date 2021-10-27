@@ -1,258 +1,355 @@
-#include "INS_functions.H"
-
-#include "common_namespace_declarations.H"
-
+#include "LocalFunctions.H"
 #include "species.H"
 #include "paramPlane.H"
-
 #include "StructFact.H"
-
 #include "particle_functions.H"
-
+#include "Checkpoint.H"
 #include "chrono"
+#include "iostream"
+#include "fstream"
+#include "DsmcParticleContainer.H"
+#include <AMReX_MultiFab.H>
+#include <AMReX_PlotFileUtil.H>
 
 using namespace std::chrono;
+using namespace std;
 
-// argv contains the name of the inputs file entered at the command line
 void main_driver(const char* argv)
 {
-    // timer for total simulation time
-    Real strt_time = ParallelDescriptor::second();
+	// timer for total simulation time
+	Real strt_time = ParallelDescriptor::second();
+	std::string inputs_file = argv;
 
-    std::string inputs_file = argv;
+	InitializeCommonNamespace();
 
-    // read in parameters from inputs file into F90 modules
-    // we use "+1" because of amrex_string_c_to_f expects a null char termination
-    read_common_namelist(inputs_file.c_str(),inputs_file.size()+1);
+	BoxArray ba;
+	IntVect dom_lo(AMREX_D_DECL(           0,            0,            0));
+	IntVect dom_hi(AMREX_D_DECL(n_cells[0]-1, n_cells[1]-1, n_cells[2]-1));
+	Box domain(dom_lo, dom_hi);
+	DistributionMapping dmap;
 
-    // copy contents of F90 modules to C++ namespaces
-    InitializeCommonNamespace();
-    
-    int step = 1;
-    Real time = 0.;
-    int statsCount = 1;
+	int step = 1;
+	Real dt = fixed_dt;
+	Real time = 0.;
+	int statsCount = 1;
+	
+	MultiFab cuInst, cuMeans, cuVars;
+	MultiFab primInst, primMeans, primVars;
+	MultiFab coVars;
 
-    /*
-      Terms prepended with a 'C' are related to the particle grid; only used for finding neighbor lists
-      Those with 'P' are for the electostatic grid.
-      Those without are for the fluid grid.
-      The particle grid and es grids are created as a corsening or refinement of the fluid grid.
-    */
+	// For long-range temperature-related correlations
+	MultiFab cvlMeans, cvlInst, QMeans;
+	
+    int ncross = 38+nspecies*nspecies;
+    MultiFab spatialCross1D;
+	
 
-    // BoxArray for the particles
-    BoxArray ba;
-    
-    // Box for the fluid
-    IntVect dom_lo(AMREX_D_DECL(           0,            0,            0));
-    IntVect dom_hi(AMREX_D_DECL(n_cells[0]-1, n_cells[1]-1, n_cells[2]-1));
-    Box domain(dom_lo, dom_hi);
-    
-    // how boxes are distrubuted among MPI processes
-    DistributionMapping dmap;
+	if (seed > 0)
+	{
+            InitRandom(seed+ParallelDescriptor::MyProc(),
+                       ParallelDescriptor::NProcs(),
+                       seed+ParallelDescriptor::MyProc());
+	}
+	else if (seed == 0)
+	{
+		auto now = time_point_cast<nanoseconds>(system_clock::now());
+		int randSeed = now.time_since_epoch().count();
+		ParallelDescriptor::Bcast(&randSeed,1,ParallelDescriptor::IOProcessorNumber());
+                InitRandom(randSeed+ParallelDescriptor::MyProc(),
+                           ParallelDescriptor::NProcs(),
+                           randSeed+ParallelDescriptor::MyProc());
+	}
+	else
+	{
+		Abort("Must supply non-negative seed");
+	}
+	
+	
+	if (restart < 0)
+	{
+		if (seed > 0)
+		{
+                    InitRandom(seed+ParallelDescriptor::MyProc(),
+                               ParallelDescriptor::NProcs(),
+                               seed+ParallelDescriptor::MyProc());
+		}
+		else if (seed == 0)
+		{
+			auto now = time_point_cast<nanoseconds>(system_clock::now());
+			int randSeed = now.time_since_epoch().count();
+			// broadcast the same root seed to all processors
+			ParallelDescriptor::Bcast(&randSeed,1,ParallelDescriptor::IOProcessorNumber());
+                        InitRandom(randSeed+ParallelDescriptor::MyProc(),
+                                   ParallelDescriptor::NProcs(),
+                                   randSeed+ParallelDescriptor::MyProc());
+		}
+		else
+		{
+			Abort("Must supply non-negative seed");
+		}
 
-    // MFs for storing particle statistics
-    // A lot of these relate to gas kinetics, but many are still useful so leave in for now.
-    MultiFab particleMeans;
-    MultiFab particleVars;
-    MultiFab particleInstant;
+		ba.define(domain);
+		ba.maxSize(IntVect(max_grid_size));
+		dmap.define(ba);
+		//////////////////////////////////////
+		// Conserved/Primitive Var Setup
+		//////////////////////////////////////
+		/*
+			Conserved Vars:
+			0  - rho = (1/V) += m
+			1  - Jx  = (1/V) += mu
+			2  - Jy  = (1/V) += mv
+			3  - Jz  = (1/V) += mw
+			4  - K   = (1/V) += m|v|^2
+			... (repeat for each species)
+		*/
 
-    
-    if (restart < 0) {
+		int ncon  = (nspecies+1)*5;
+		cuInst.define(ba, dmap, ncon, 0); cuInst.setVal(0.);
+		cuMeans.define(ba, dmap, ncon, 0); cuMeans.setVal(0.);
+		cuVars.define(ba,dmap, ncon, 0); cuVars.setVal(0.);
 
-        if (seed > 0) {
-            // initializes the seed for C++ random number calls
-            InitRandom(seed+ParallelDescriptor::MyProc());
-        } else if (seed == 0) {
-            // initializes the seed for C++ random number calls based on the clock
-            auto now = time_point_cast<nanoseconds>(system_clock::now());
-            int randSeed = now.time_since_epoch().count();
-            // broadcast the same root seed to all processors
-            ParallelDescriptor::Bcast(&randSeed,1,ParallelDescriptor::IOProcessorNumber());
-            InitRandom(randSeed+ParallelDescriptor::MyProc());
-        } else {
-            Abort("Must supply non-negative seed");
-        }
+		/*
+		   Primitive Vars:
+			0	- n   (n_ns)
+			1 - Yk  (Y_ns)
+			2 - u   (u_ns)
+			3 - v   (v_ns)
+			4 - w   (w_ns)
+			5 - G   (G_ns) = dot(u_mean,dJ)
+			6 - T   (T_ns)
+			7 - P   (P_ns)
+			8 - E   (E_ns)
+			... (repeat for each species)
+		*/
 
-        // Initialize the boxarray "ba" from the single box "bx"
-        ba.define(domain);
+		int nprim = (nspecies+1)*9;
+		primInst.define(ba, dmap, nprim, 0); primInst.setVal(0.);
+		primMeans.define(ba, dmap, nprim, 0); primMeans.setVal(0.);
+		primVars.define(ba, dmap, ncon+nprim, 0); primVars.setVal(0.);
 
-        // Break up boxarray "ba" into chunks no larger than "max_grid_size" along a direction
-        // note we are converting "Vector<int> max_grid_size" to an IntVect
-        ba.maxSize(IntVect(max_grid_size));
+		// Covariances
+		/*
+			// Conserved
+			0  - drho.dJx
+			1  - drho.dJy
+			2  - drho.dJz
+			3  - drho.dK
+			4  - dJx.dJy
+			5  - dJx.dJz
+			6  - dJx.dK
+			7  - dJy.dJz
+			8  - dJy.dK
+			9  - dJz.dk
 
-        // how boxes are distrubuted among MPI processes
-        dmap.define(ba);
-  
-        particleMeans.define(ba, dmap, 8+nspecies, 0);
-        particleMeans.setVal(0.);
+			// Energy
+			10 - drho.dG
+			11 - dJx.dG
+			12 - dJy.dG
+			13 - dJz.dG
+			14 - dK.dG
 
-        particleVars.define(ba, dmap, 8+nspecies, 0);
-        particleVars.setVal(0.);
+			// Hydro
+			15 - drho.du
+			16 - drho.dv
+			17 - drho.dw
+			18 - du.dv
+			19 - du.dw
+			20 - dv.dw
+			21 - drho.dT
+			22 - du.dT
+			23 - dv.dT
+			24 - dw.dT
+		*/
 
-        particleInstant.define(ba, dmap, 8+nspecies, 0);
-        particleInstant.setVal(0.);
+		int ncovar = 25;
+		coVars.define(ba, dmap, ncovar, 0); coVars.setVal(0.);
+		
+		
+		spatialCross1D.define(ba,dmap,ncross,0); spatialCross1D.setVal(0.);
 
-    }
-    else {
-        
-        // restart from checkpoint
+	}
+	else
+	{
+		ReadCheckPoint(step, time, dt, statsCount,
+			cuInst, cuMeans, cuVars,
+			primInst, primMeans, primVars,
+			coVars, spatialCross1D, ncross);
+		dmap = cuInst.DistributionMap();
+		ba = cuInst.boxArray();
 
-    }
+	}
+	
+		// Specific Heat
+	int ncvl = nspecies+1;
+	cvlInst.define(ba, dmap, ncvl, 0);  cvlInst.setVal(0.);
+	cvlMeans.define(ba, dmap, ncvl, 0); cvlMeans.setVal(0.);
+	QMeans.define(ba, dmap, ncvl, 0); QMeans.setVal(0.);
+	
+	Vector<int> is_periodic (AMREX_SPACEDIM,0);
+	for (int i=0; i<AMREX_SPACEDIM; ++i)
+	{
+		if (bc_vel_lo[i] == -1 && bc_vel_hi[i] == -1)
+		{
+			is_periodic [i] = -1;
+		}
+	}
 
-    // is the problem periodic?
-    Vector<int> is_periodic  (AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
-    for (int i=0; i<AMREX_SPACEDIM; ++i) {
-        if (bc_vel_lo[i] == -1 && bc_vel_hi[i] == -1) {
-            is_periodic  [i] = 1;
-        }
-    }
+	// This defines a Geometry object
+	RealBox realDomain({AMREX_D_DECL(prob_lo[0],prob_lo[1],prob_lo[2])},
+		{AMREX_D_DECL(prob_hi[0],prob_hi[1],prob_hi[2])});
 
-    // This defines a Geometry object
-    RealBox realDomain({AMREX_D_DECL(prob_lo[0],prob_lo[1],prob_lo[2])},
-                       {AMREX_D_DECL(prob_hi[0],prob_hi[1],prob_hi[2])});
+	Geometry geom (domain ,&realDomain,CoordSys::cartesian,is_periodic.data());
 
-    Geometry geom (domain ,&realDomain,CoordSys::cartesian,is_periodic.  data());
-    const Real* dx = geom.CellSize();
-
-    Real dt = fixed_dt;
- 
     std::ifstream planeFile("paramplanes.dat");
-    int fileCount;
-    planeFile >> fileCount;
-    planeFile.close();
-
-    int paramPlaneCount = fileCount+6;
-    paramPlane paramPlaneList[paramPlaneCount];
-    BuildParamplanes(paramPlaneList,paramPlaneCount,realDomain.lo(),realDomain.hi());
-
-   // IBMarkerContainerBase default behaviour is to do tiling. Turn off here:
-
-    //----------------------    
-    // Particle tile size
-    //----------------------
-    Vector<int> ts(BL_SPACEDIM);
-    
-    for (int d=0; d<AMREX_SPACEDIM; ++d) {        
-        if (max_particle_tile_size[d] > 0) {
-            ts[d] = max_particle_tile_size[d];
-        }
-        else {
-            ts[d] = max_grid_size[d];
-        }
+    int fileCount = 0;
+    if(planeFile.good())
+    {
+        planeFile >> fileCount;
     }
 
-    ParmParse pp ("particles");
-    pp.addarr("tile_size", ts);
+	int paramPlaneCount = 6 + fileCount;
+	paramPlane paramPlaneList[paramPlaneCount];
+	BuildParamplanes(paramPlaneList,paramPlaneCount,realDomain.lo(),realDomain.hi());
 
-    //int num_neighbor_cells = 4; replaced by input var
-    //Particles! Build on geom & box array for collision cells/ poisson grid?
+	// Particle tile size
+	Vector<int> ts(BL_SPACEDIM);
 
-    int cRange = 0;
+	for (int d=0; d<AMREX_SPACEDIM; ++d)
+	{
+		if (max_particle_tile_size[d] > 0)
+		{
+			ts[d] = max_particle_tile_size[d];
+		}
+		else
+		{
+			ts[d] = max_grid_size[d];
+		}
+	}
 
-    FhdParticleContainer particles(geom, dmap, ba, cRange);
+	ParmParse pp ("particles");
+	pp.addarr("tile_size", ts);
 
-    if (restart < 0 && particle_restart < 0) {
-        
+	int cRange = 0;
+	FhdParticleContainer particles(geom, dmap, ba, cRange);
 
-       particles.InitParticles();
+	// Output all primitives for structure factor
+	int nvarstruct = 6+nspecies*2;
+	const Real* dx = geom.CellSize();
+	int nstruct = std::ceil((double)nvarstruct*(nvarstruct+1)/2);
+	// scale SF results by inverse cell volume
+	Vector<Real> var_scaling(nstruct);
+	for (int d=0; d<var_scaling.size(); ++d)
+	{
+		var_scaling[d] = 1./(dx[0]*dx[1]*dx[2]);
+	}
 
-    }
-    else {
-        //load from checkpoint
-    }
+	// Collision Cell Vars
+	particles.mfselect.define(ba, dmap, nspecies*nspecies, 0);
+	particles.mfselect.setVal(0.);
+	particles.mfphi.define(ba, dmap, nspecies, 0);
+	particles.mfphi.setVal(0.);
+	particles.mfvrmax.define(ba, dmap, nspecies*nspecies, 0);
+	particles.mfvrmax.setVal(0.);
 
-    // cell centered real coordinates - es grid
-    MultiFab RealCenteredCoords;
-    RealCenteredCoords.define(ba, dmap, AMREX_SPACEDIM, 0);
+	particles.InitParticles(dt);
 
-    //FindCenterCoords(RealCenteredCoords, geom);
+	particles.InitCollisionCells();
+
+	Real init_time = ParallelDescriptor::second() - strt_time;
+	ParallelDescriptor::ReduceRealMax(init_time);
+	amrex::Print() << "Initialization time = " << init_time << " seconds " << std::endl;
+
+	max_step += step;
+	n_steps_skip += step;
+	Real tbegin, tend;
+	
+	
+    //Initial condition
+//    spatialCross1D.setVal(0.);
+//	cuMeans.setVal(0.);
+//	primMeans.setVal(0.);
+//	cuVars.setVal(0.);
+//	primVars.setVal(0.);
+//	coVars.setVal(0.);
+
+//	particles.EvaluateStats(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
+//		cvlInst,cvlMeans,QMeans,coVars,spatialCross1D,statsCount++,time);
+
+//	if(plot_int > 0) {
+//		writePlotFile(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
+//			coVars,spatialCross1D,particles,geom,time,ncross,0);
+//	}
+	
+	
+	
+	for (int istep=step; istep<=max_step; ++istep)
+	{
+		tbegin = ParallelDescriptor::second();
+
+		particles.CalcSelections(dt);
+		particles.CollideParticles(dt);
+		particles.Source(dt, paramPlaneList, paramPlaneCount);
+		//particles.externalForce(dt);
+		particles.MoveParticlesCPP(dt, paramPlaneList, paramPlaneCount);
+		//particles.updateTimeStep(geom,dt);
 
 
+		particles.EvaluateStats(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
+					cvlInst,cvlMeans,QMeans,coVars,spatialCross1D,statsCount++,time);
 
-    Real init_time = ParallelDescriptor::second() - strt_time;
-    ParallelDescriptor::ReduceRealMax(init_time);
-    amrex::Print() << "Initialization time = " << init_time << " seconds " << std::endl;
+		//////////////////////////////////////
+		// PlotFile
+		//////////////////////////////////////
 
-    for (int istep=step; istep<=max_step; ++istep) {
+		bool writePlt = false;
+		if (plot_int > 0 && istep>0 && istep>=n_steps_skip)
+		{
+			if (n_steps_skip >= 0) // for positive n_steps_skip, write out at plot_int
+			{
+				writePlt = (istep%plot_int == 0);
+			}
+			else if (n_steps_skip < 0) // for negative n_steps_skip, write out at plot_int-1
+			{
+				writePlt = ((istep+1)%plot_int == 0);
+			}
+		}
 
-        // timer for time step
-        Real time1 = ParallelDescriptor::second();
-    
-        // total particle move (1=single step, 2=midpoint)
-        if (move_tog != 0)
-        {
-            particles.Source(dt, paramPlaneList, paramPlaneCount);
-
-            particles.MoveParticlesCPP(dt, paramPlaneList, paramPlaneCount);
-
-
-            // reset statistics after step n_steps_skip
-            // if n_steps_skip is negative, we use it as an interval
-            if ((n_steps_skip > 0 && istep == n_steps_skip) ||
-                (n_steps_skip < 0 && istep%n_steps_skip == 0) ) {
-
-                
-            }
-            else {
-                
-            }
-
-            Print() << "Finish move.\n";
-        }
-
-        particles.EvaluateStats(particleInstant, particleMeans, particleVars, dt,statsCount);
-        statsCount++;
-
-        if (istep%plot_int == 0) {
-            
-            WritePlotFile(istep, time, geom, particleInstant, particleMeans, particleVars, particles);
-
-        }
- 
-        if ((n_steps_skip > 0 && istep == n_steps_skip) ||
-            (n_steps_skip < 0 && istep%n_steps_skip == 0) ) {
-            
-            particleMeans.setVal(0.0);
-            particleVars.setVal(0.0);
-
-            Print() << "Resetting stat collection.\n";
-
+		if ((plot_int > 0 && istep%plot_int==0))
+		{
+			writePlotFile(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
+				coVars,spatialCross1D,particles,geom,time,ncross,istep);
+		}
+		
+        if ((n_steps_skip > 0 && istep == n_steps_skip) || (n_steps_skip < 0 && istep%n_steps_skip == 0) ) {
+            //reset stats
             statsCount = 1;
+            spatialCross1D.setVal(0.);
+	        cuMeans.setVal(0.);
+	        primMeans.setVal(0.);
+	        cuVars.setVal(0.);
+	        primVars.setVal(0.);
+	        coVars.setVal(0.);
+
         }
- 
-        // timer for time step
-        Real time2 = ParallelDescriptor::second() - time1;
-        ParallelDescriptor::ReduceRealMax(time2);
-        amrex::Print() << "Advanced step " << istep << " in " << time2 << " seconds\n";
         
-        time = time + dt;
-        // MultiFab memory usage
-        const int IOProc = ParallelDescriptor::IOProcessorNumber();
+        if (chk_int > 0 && istep%chk_int == 0 && istep > step)
+		{
+			WriteCheckPoint(istep, time, dt, statsCount,
+				cuInst, cuMeans, cuVars, primInst, primMeans, primVars, coVars,
+				particles, spatialCross1D, ncross);
+		}
+		tend = ParallelDescriptor::second() - tbegin;
+		ParallelDescriptor::ReduceRealMax(tend);
+		if(istep%1000==0)
+		{
+		    amrex::Print() << "Advanced step " << istep << " in " << tend << " seconds\n";
+		}
 
-        amrex::Long min_fab_megabytes  = amrex::TotalBytesAllocatedInFabsHWM()/1048576;
-        amrex::Long max_fab_megabytes  = min_fab_megabytes;
+		time += dt;
+	}
 
-        ParallelDescriptor::ReduceLongMin(min_fab_megabytes, IOProc);
-        ParallelDescriptor::ReduceLongMax(max_fab_megabytes, IOProc);
-
-        amrex::Print() << "High-water FAB megabyte spread across MPI nodes: ["
-                       << min_fab_megabytes << " ... " << max_fab_megabytes << "]\n";
-
-        min_fab_megabytes  = amrex::TotalBytesAllocatedInFabs()/1048576;
-        max_fab_megabytes  = min_fab_megabytes;
-
-        ParallelDescriptor::ReduceLongMin(min_fab_megabytes, IOProc);
-        ParallelDescriptor::ReduceLongMax(max_fab_megabytes, IOProc);
-
-        amrex::Print() << "Curent     FAB megabyte spread across MPI nodes: ["
-                       << min_fab_megabytes << " ... " << max_fab_megabytes << "]\n";
-        
-    }
-    ///////////////////////////////////////////
-        //test change
-    // timer for total simulation time
-    Real stop_time = ParallelDescriptor::second() - strt_time;
-    ParallelDescriptor::ReduceRealMax(stop_time);
-    amrex::Print() << "Run time = " << stop_time << " seconds" << std::endl;
-
+	Real stop_time = ParallelDescriptor::second() - strt_time;
+	ParallelDescriptor::ReduceRealMax(stop_time);
+	amrex::Print() << "Run time = " << stop_time << " seconds" << std::endl;
 }

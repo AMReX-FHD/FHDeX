@@ -2,4 +2,7 @@ CEXE_sources   += chemistry_functions.cpp
 CEXE_headers   += chemistry_functions.H
 
 CEXE_headers   += chemistry_namespace.H
-CEXE_headers   += chemistry_namespace_declarations.H
+
+CEXE_sources   += CLE_RK3.cpp
+
+CEXE_sources   += CLE_EM.cpp

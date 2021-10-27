@@ -1,23 +1,23 @@
-&common
 
-  ! Problem specification
-  prob_lo(1:3) = 0.0 0.0 0.0      ! physical lo coordinate
-  prob_hi(1:3) = 1e-5 1e-5 1e-5      ! physical hi coordinate
+
+  # Problem specification
+  prob_lo = 0.0 0.0 0.0      # physical lo coordinate
+  prob_hi = 1e-5 1e-5 1e-5      # physical hi coordinate
     
-  n_cells(1:3) = 32 32 32
-  ! max number of cells in a box
-  max_grid_size(1:3) = 16 32 32
-  max_particle_tile_size(1:3) = 256 256 256 ! set to zero to use max_grid_size, setting a very large number will also use max grid size, but will also ensure that refined es and particle grids will do the same.
+  n_cells = 32 32 32
+  # max number of cells in a box
+  max_grid_size = 16 32 32
+  max_particle_tile_size = 256 256 256 # set to zero to use max_grid_size, setting a very large number will also use max grid size, but will also ensure that refined es and particle grids will do the same.
 
-  ! above settings are for fluid grid. EM and particle grid (the grid for finding neighbour lists) are coarsened or refined off these grids. <1 = refine, >1 = coarsen.
-  !Leave these on 1 until properly tested
+  # above settings are for fluid grid. EM and particle grid (the grid for finding neighbour lists) are coarsened or refined off these grids. <1 = refine, >1 = coarsen.
+  #Leave these on 1 until properly tested
   particle_grid_refine = 0.25
   es_grid_refine = 1
 
-  ! Time-step control
+  # Time-step control
   fixed_dt = 1e-13
 
-  ! Controls for number of steps between actions
+  # Controls for number of steps between actions
   max_step = 5
   plot_int = 5
   plot_ascii = 0
@@ -30,105 +30,105 @@
   binsize = 0.5e-8
   searchDist = 4.e-7
 
-  ! Toggles 0=off, 1=on
+  # Toggles 0=off, 1=on
   all_dry = 0
-  fluid_tog = 1 ! 0=Do nothing, 1=Do stokes solve, 2=Do low Mach solve
-  es_tog = 3 ! Do electrostatic solve 0=off, 1=Poisson, 2=Pairwise Coulomb (Doesn't work in parallel), 3=PPPM
-  drag_tog = 0 ! Apply drag force to fluid
-  rfd_tog = 1 ! Apply RFD force to fluid
-  move_tog = 2 ! ! Total particle move. 0 = off, 1 = single step, 2 = midpoint
-  dry_move_tog = 1 ! Dry particle move
-  wall_mob = 1 !0= no dry adjustment to mobility due to walls, 1=Infinte plane, 2=other model
-  sr_tog = 1 ! 1=Short range LJ forces without walls, 2= with walls, 3=Wall with alternative model
+  fluid_tog = 1 # 0=Do nothing, 1=Do stokes solve, 2=Do low Mach solve
+  es_tog = 3 # Do electrostatic solve 0=off, 1=Poisson, 2=Pairwise Coulomb (Doesn't work in parallel), 3=PPPM
+  drag_tog = 0 # Apply drag force to fluid
+  rfd_tog = 1 # Apply RFD force to fluid
+  move_tog = 2 # # Total particle move. 0 = off, 1 = single step, 2 = midpoint
+  dry_move_tog = 1 # Dry particle move
+  wall_mob = 1 #0= no dry adjustment to mobility due to walls, 1=Infinte plane, 2=other model
+  sr_tog = 1 # 1=Short range LJ forces without walls, 2= with walls, 3=Wall with alternative model
  
 
-  ! Fluid info
-  !--------------
-  ! Viscous friction L phi operator
-  ! if abs(visc_type) = 1, L = div beta grad
-  ! if abs(visc_type) = 2, L = div [ beta (grad + grad^T) ]
-  ! if abs(visc_type) = 3, L = div [ beta (grad + grad^T) + I (gamma - (2/3)*beta) div ]
-  ! positive = assume constant coefficients
-  ! negative = assume spatially-varying coefficients
+  # Fluid info
+  #--------------
+  # Viscous friction L phi operator
+  # if abs(visc_type) = 1, L = div beta grad
+  # if abs(visc_type) = 2, L = div [ beta (grad + grad^T) ]
+  # if abs(visc_type) = 3, L = div [ beta (grad + grad^T) + I (gamma - (2/3)*beta) div ]
+  # positive = assume constant coefficients
+  # negative = assume spatially-varying coefficients
   visc_coef = 1e-2
   visc_type = 1
 
-  !particle initialization
-  ! 1 = spread evenly per cell (not implemented yet), 2 = spread randomly over domain
+  #particle initialization
+  # 1 = spread evenly per cell (not implemented yet), 2 = spread randomly over domain
   particle_placement = 2
-  ! -1 = calculate based on n0
+  # -1 = calculate based on n0
   particle_count = 100 100
-  ! real particles per simulator particle
+  # real particles per simulator particle
   particle_neff = 1
-  ! ignore if particle_count is positive
+  # ignore if particle_count is positive
   particle_n0 = 6.02e19 6.02e19
 
-  !Species info
-  !--------------
+  #Species info
+  #--------------
   nspecies = 2
   mass = 4e-23 4e-23
   diameter = -2.488e-8 -2.488e-8 
   qval = 1.6e-19 -1.6e-19
   diff = 1.33e-05 1.33e-05
- !If diameter is negative, this value will be used. If diameter is positive, it will be ignored. This is the total wet+dry diffusion. The wet component arises from the grid size and peskin kernel, the dry component is set to recover the value entered here.
+ #If diameter is negative, this value will be used. If diameter is positive, it will be ignored. This is the total wet+dry diffusion. The wet component arises from the grid size and peskin kernel, the dry component is set to recover the value entered here.
  
-  p_int_tog = 1 1 1 0        ! 1 - species pair does interact, 0 it doesn't. Non self interacting particles also ignore walls for coulomb, the see walls for short range though.
-  eepsilon = 8.16e-15 7.95e-14 0 7.95e-14 0  ! LJ parameter (not the value is in ergs; taken from Freund JCP 2002)
-  sigma = 8.84e-8 8.84e-8 8.84e-8 8.84e-8 !Close range repulsion diameter*2 (from Freund JCP 2002)
-  rmin = 0.25 0.25 0.25 0.25   !Minimum range to prevent blow up of force. Fraction of sigma
-  rmax = 1.22 1.22 1.22 1.22   !Maximum range
+  p_int_tog = 1 1 1 0        # 1 - species pair does interact, 0 it doesn't. Non self interacting particles also ignore walls for coulomb, the see walls for short range though.
+  eepsilon = 8.16e-15 7.95e-14 0 7.95e-14 0  # LJ parameter (not the value is in ergs; taken from Freund JCP 2002)
+  sigma = 8.84e-8 8.84e-8 8.84e-8 8.84e-8 #Close range repulsion diameter*2 (from Freund JCP 2002)
+  rmin = 0.25 0.25 0.25 0.25   #Minimum range to prevent blow up of force. Fraction of sigma
+  rmax = 1.22 1.22 1.22 1.22   #Maximum range
   
   eepsilon_wall = 8.16e-15 7.95e-14
   sigma_wall = 8.84e-8 8.84e-8
   rmin_wall = 0.25 0.25
   rmax_wall = 1.22 1.22
 
-  !Interaction parameters
-  !------------
+  #Interaction parameters
+  #------------
   permittivity = 692.96e-21
 
-  images = 0    !if pairwise Coulomb interactions have been selected, this is the number of periodic images to use
+  images = 0    #if pairwise Coulomb interactions have been selected, this is the number of periodic images to use
 
-  eamp = 1.e10 0 0  !external electric field properties
+  eamp = 1.e10 0 0  #external electric field properties
   efreq = 0 0 0
   ephase = 0 0 0     
 
-  ! Poisson solver parameters -- there are more options which we can add to the namespace later
-  !-------------------
-  poisson_rel_tol = 1.e-6                ! relative tolerance stopping criteria
-  poisson_verbose =  1                   ! multigrid verbosity
-  poisson_bottom_verbose =  0           ! base solver verbosity
+  # Poisson solver parameters -- there are more options which we can add to the namespace later
+  #-------------------
+  poisson_rel_tol = 1.e-6                # relative tolerance stopping criteria
+  poisson_verbose =  1                   # multigrid verbosity
+  poisson_bottom_verbose =  0           # base solver verbosity
   poisson_max_iter = 100                 
 
 
-  !Peskin kernel (Currently 3, 4, & 6 implemented) (keep these the same for now)
-  !--------
-  pkernel_fluid = 6
-  pkernel_es = 6
+  #Peskin kernel (Currently 3, 4, & 6 implemented) (keep these the same for now)
+  #--------
+  pkernel_fluid = 6 4
+  pkernel_es = 6 4
 
-  ! Stochastic parameters
+  # Stochastic parameters
   seed = 1
   k_B = 1.38064852e-16
-  T_init(1) = 295.00
+  T_init = 295.00
   variance_coef_mom = 1
    
 
-  ! Boundary conditions
-  ! ----------------------
-  ! BC specifications:
-  ! -1 = periodic, 2 = no slip stationary
-  bc_vel_lo(1:3) = -1 -1 -1
-  bc_vel_hi(1:3) = -1 -1 -1
+  # Boundary conditions
+  # ----------------------
+  # BC specifications:
+  # -1 = periodic, 2 = no slip stationary
+  bc_vel_lo = -1 -1 -1
+  bc_vel_hi = -1 -1 -1
 
-  ! -1 = periodic, 1 = dirichlet, 2 = neumann
-  bc_es_lo(1:3) = -1 -1 -1
-  bc_es_hi(1:3) = -1 -1 -1
+  # -1 = periodic, 1 = dirichlet, 2 = neumann
+  bc_es_lo = -1 -1 -1
+  bc_es_hi = -1 -1 -1
 
-  potential_lo(1:3) = 0 0 0
-  potential_hi(1:3) = 0 0 0 !
+  potential_lo = 0 0 0
+  potential_hi = 0 0 0 #
 
   
-/
+
 
   # GMRES solver parameters
   gmres_rel_tol = 1.e-6                # relative tolerance stopping criteria

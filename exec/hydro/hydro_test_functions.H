@@ -10,7 +10,7 @@
 // in advance.cpp
 void advance(std::array< amrex::MultiFab, AMREX_SPACEDIM >& umac,
 	     std::array< amrex::MultiFab, AMREX_SPACEDIM >& umacNew,
-	     amrex::MultiFab& pres, amrex::MultiFab& tracer,
+             amrex::MultiFab& pres,
 	     const std::array< amrex::MultiFab, AMREX_SPACEDIM >& mfluxdiv_stoch,
 	     std::array< amrex::MultiFab, AMREX_SPACEDIM >& alpha_fc,
 	     amrex::MultiFab& beta, amrex::MultiFab& gamma,
@@ -26,10 +26,6 @@ void advance(std::array< amrex::MultiFab, AMREX_SPACEDIM >& umac,
 void InitVel(std::array< MultiFab, AMREX_SPACEDIM >& umac,
              const Geometry& geom);
 
-void InitTracer(MultiFab& tracer,
-                const Geometry& geom);
-
-
 ///////////////////////////
 
 ///////////////////////////
@@ -39,7 +35,6 @@ void WritePlotFile(const int step,
                    const amrex::Real time,
                    const amrex::Geometry& geom,
                    std::array< MultiFab, AMREX_SPACEDIM >& umac,
-		   const MultiFab& tracer,
                    const MultiFab& pres);
 
 ///////////////////////////
@@ -50,12 +45,12 @@ void WritePlotFile(const int step,
 void WriteCheckPoint(const int step,
                      const amrex::Real time,
                      std::array< MultiFab, AMREX_SPACEDIM >& umac,
-                     const MultiFab& tracer, TurbForcing& turbforce);
+                     TurbForcing& turbforce);
 
 void ReadCheckPoint(int& step,
                     amrex::Real& time,
                     std::array< MultiFab, AMREX_SPACEDIM >& umac,
-                    MultiFab& tracer, TurbForcing& turbforce,
+                    TurbForcing& turbforce,
                     BoxArray& ba, DistributionMapping& dmap);
 
 void ReadFile(const std::string& filename, Vector<char>& charBuf,

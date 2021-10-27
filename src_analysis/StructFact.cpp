@@ -782,6 +782,21 @@ void StructFact::ShiftFFT(MultiFab& dft_out, const Geometry& geom, const int& ze
 
   BL_PROFILE_VAR("StructFact::ShiftFFT()",ShiftFFT);
 
+  /*
+    Shifting rules:
+
+    For domains from (0,0,0) to (Nx-1,Ny-1,Nz-1)
+
+    For any cells with i index >= Nx/2, these values are complex conjugates of the corresponding
+    entry where (Nx-i,Ny-j,Nz-k) UNLESS that index is zero, in which case you use 0.
+
+    e.g. for an 8^3 domain, any cell with i index 
+
+    Cell (6,2,3) is complex conjugate of (2,6,5)
+
+    Cell (4,1,0) is complex conjugate of (4,7,0)  (note that the FFT is computed for 0 <= i <= Nx/2)
+  */
+
   BoxArray ba_onegrid;
   {
       Box domain = geom.Domain();
@@ -835,15 +850,6 @@ void StructFact::ShiftFFT(MultiFab& dft_out, const Geometry& geom, const int& ze
 #endif
             dft(ip,jp,kp) = dft_temp(i,j,k);
         });
-
-        /*
-        amrex::ParallelFor(bx,
-        [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-        {
-            std::cout << "HACKFFTSHIFT " << i << " " << j << " " << k << " "
-                      << dft(i,j,k) << std::endl;
-        });
-        */
     }
 
     dft_out.ParallelCopy(dft_onegrid, 0, d, 1);
@@ -983,4 +989,36 @@ void StructFact::IntegratekShells(const int& step, const Geometry& geom) {
             turb << d << " " << phisum_vect[d] << std::endl;
         }
     }
+}
+
+void StructFact::AddToExternal(MultiFab& x_mag, MultiFab& x_realimag, const Geometry& geom, const int& zero_avg) {
+
+    BL_PROFILE_VAR("StructFact::AddToExternal",AddToExternal);
+
+    MultiFab plotfile;
+    int nPlot = 1;
+
+    // Build temp real & imag components
+    const BoxArray& ba = cov_mag.boxArray();
+    const DistributionMapping& dm = cov_mag.DistributionMap();
+
+    MultiFab cov_real_temp(ba, dm, NCOV, 0);
+    MultiFab cov_imag_temp(ba, dm, NCOV, 0);
+    MultiFab::Copy(cov_real_temp, cov_real, 0, 0, NCOV, 0);
+    MultiFab::Copy(cov_imag_temp, cov_imag, 0, 0, NCOV, 0);
+
+    // Finalize covariances - scale & compute magnitude
+    Finalize(cov_real_temp, cov_imag_temp, geom, zero_avg);
+
+    nPlot = NCOV;
+    plotfile.define(cov_mag.boxArray(), cov_mag.DistributionMap(), nPlot, 0);
+    MultiFab::Copy(plotfile, cov_mag, 0, 0, NCOV, 0); // copy structure factor into plotfile
+    MultiFab::Add(x_mag,plotfile,0,0,NCOV,0);
+
+    nPlot = 2*NCOV;
+    plotfile.define(cov_mag.boxArray(), cov_mag.DistributionMap(), nPlot, 0);
+    MultiFab::Copy(plotfile,cov_real_temp,0,0,   NCOV,0);
+    MultiFab::Copy(plotfile,cov_imag_temp,0,NCOV,NCOV,0);
+    MultiFab::Add(x_realimag,plotfile,0,0,2*NCOV,0);
+
 }

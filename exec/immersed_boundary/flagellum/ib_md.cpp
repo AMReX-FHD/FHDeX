@@ -99,8 +99,10 @@ Real theta(Real amp_ramp, Real time, int i_ib, int index_marker) {
         Real amplitude  = ib_flagellum::amplitude[i_ib];
         Real l_link     = L/(N-1);
 
-        Real theta = l_link*amp_ramp*amplitude*sin(2*M_PI*frequency*time
-                     + 2*M_PI/wavelength*index_marker*l_link);
+        Real theta = l_link*amp_ramp*amplitude*sin(
+                2*M_PI*(frequency*time + index_marker*l_link/wavelength)
+                + M_PI/2 + M_PI*(l_link/wavelength)
+            );
 
         return theta;
     }
@@ -249,7 +251,7 @@ void yeax_ibm_marker(Real mot, IBMarkerContainer & ib_mc, int ib_lev,
 
 
 Vector<RealVect> equil_pos(
-        int i_ib, Real time, const Geometry & geom, Real theta_0, bool periodic
+        int i_ib, Real time, const Geometry & geom
     ) {
     // TODO: make this function work on general planes and orientation -- using
     // the 3D rotation matrix defined in IBMarkerMD.cpp
@@ -278,11 +280,6 @@ Vector<RealVect> equil_pos(
     Real tx = 1.;
     Real ty = 0.;
 
-    if (! immbdy::contains_fourier) {
-        tx = cos(theta_0);
-        ty = sin(theta_0);
-    }
-
     Vector<RealVect> marker_positions(N_markers);
     marker_positions[0] = RealVect{x, y, z};
     for (int i=1; i<marker_positions.size()-1; ++i) {
@@ -297,10 +294,10 @@ Vector<RealVect> equil_pos(
         // Compute periodic offset. Will work as long as winding number = 1
         Real x_period = x;
         Real y_period = y;
-        if (periodic) {
+        if (geom.isPeriodic(0))
             x_period = x < geom.ProbHi(0) ? x : x - geom.ProbLength(0);
+        if (geom.isPeriodic(1))
             y_period = y < geom.ProbHi(1) ? y : y - geom.ProbLength(1);
-        }
 
         // marker_positions[i] = RealVect{x_period, x_0[1], x_0[2]};
         marker_positions[i] = RealVect{x_period, y_period, z};
@@ -317,81 +314,12 @@ Vector<RealVect> equil_pos(
     // Compute periodic offset. Will work as long as winding number = 1
     Real x_period = x;
     Real y_period = y;
-    if (periodic) {
+    if (geom.isPeriodic(0))
         x_period = x < geom.ProbHi(0) ? nx : nx - geom.ProbLength(0);
+    if (geom.isPeriodic(1))
         y_period = y < geom.ProbHi(1) ? ny : ny - geom.ProbLength(1);
-    }
     // marker_positions[i] = RealVect{x_period, x_0[1], x_0[2]};
     marker_positions[N_markers-1] = RealVect{x_period, y_period, z};
 
     return marker_positions;
 }
-
-
-
-Vector<RealVect> equil_pos(
-        int i_ib, Real time, const Geometry & geom
-    ) {
-
-    if (immbdy::contains_fourier)
-        return equil_pos(i_ib, time, geom, 0, true);
-
-    Real theta_0  = 0;
-
-    Real theta_hi = 0.0;
-    Real theta_mm = 0.8;
-    Real theta_lo = -1.6;
-    int  N_iter   = 100;
-    int  N        = 1000;
-
-    int  N_old = ib_flagellum::n_marker[i_ib];
-    Real L_old = ib_flagellum::length[i_ib];
-    Real wavelength = ib_flagellum::wavelength[i_ib];
-
-    //HACK!!! Overwrite parameters -- TODO: don't use global parameters
-    ib_flagellum::n_marker[i_ib] = N;
-    ib_flagellum::length[i_ib]   = wavelength;
-
-    Vector<RealVect> ep;
-
-    const RealVect & x_0 = offset_0[i_ib];
-
-    ep = equil_pos(i_ib, time, geom, theta_hi, false);
-    Real y_hi = ep[N-1][1] - x_0[1];
-    ep = equil_pos(i_ib, time, geom, theta_mm, false);
-    Real y_mm = ep[N-1][1] - x_0[1];
-    ep = equil_pos(i_ib, time, geom, theta_lo, false);
-    Real y_lo = ep[N-1][1] - x_0[1];
-
-    for (int i=0; i<N_iter; ++i){
-        Print() << "i=" << i
-            << ", y_lo=" << y_lo     << ", y_mm=" << y_mm     << ", y_hi=" << y_hi
-            << ", t_lo=" << theta_lo << ", t_mm=" << theta_mm << ", t_hi=" << theta_hi
-            << std::endl;
-
-        if (y_mm == 0)
-            break;
-
-        if (y_mm > 0) {
-            theta_hi = theta_mm;
-            y_hi = y_mm;
-        } else {
-            theta_lo = theta_mm;
-            y_lo = y_mm;
-        }
-
-        theta_mm = (theta_hi+theta_lo)/2;
-        ep = equil_pos(i_ib, time, geom, theta_mm, false);
-        y_mm = ep[N-1][1] - x_0[1];
-    }
-
-    theta_0 = theta_mm;
-
-    //HACK!!! Overwrite parameters -- TODO: don't use global parameters
-    ib_flagellum::n_marker[i_ib] = N_old;
-    ib_flagellum::length[i_ib]   = L_old;
-
-
-    return equil_pos(i_ib, time, geom, theta_0, true);
-}
-

@@ -647,7 +647,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::PushUpAdd(
                 ParticleType & part = particles[i];
                 int id = part.id();
 
-                particles[i].rdata(StructReal::radius + element) = particles[i].rdata(StructReal::radius + element) + list[id-1];
+                particles[i].rdata(element) = particles[i].rdata(element) + list[id-1];
             });
 
         } else {
@@ -793,6 +793,11 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadMarkers(
 
     const int n_marker = f_pos.size();
 
+    Vector<int> pkernel_fluid_in(1);
+    for (int i=0; i<1; ++i) {
+        pkernel_fluid_in[i] = pkernel_fluid[i];
+    }
+    
     // Convert stagered boxes into cell centered
     Box bx = enclosedCells(f_out[0]->box());
 
@@ -822,7 +827,8 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadMarkers(
                    f_pos.dataPtr(),
                    f_in.dataPtr(),
                    & n_marker,
-                   dx, & ghost);
+                   dx, & ghost,
+                   pkernel_fluid_in.dataPtr());
 
 }
 
@@ -1376,6 +1382,11 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateMarkers(
     // Convert stagered boxes into cell centered
     Box bx = enclosedCells(f_in[0]->box());
 
+    Vector<int> pkernel_fluid_in(1);
+    for (int i=0; i<1; ++i) {
+        pkernel_fluid_in[i] = pkernel_fluid[i];
+    }
+
     interpolate_markers(BL_TO_FORTRAN_BOX(bx),
                         BL_TO_FORTRAN_BOX(tile_box),
                         BL_TO_FORTRAN_ANYD(* f_in[0]),
@@ -1402,7 +1413,8 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateMarkers(
                         f_pos.dataPtr(),
                         f_out.dataPtr(),
                         & n_marker,
-                        dx );
+                        dx,
+                        pkernel_fluid_in.dataPtr() );
 
 }
 

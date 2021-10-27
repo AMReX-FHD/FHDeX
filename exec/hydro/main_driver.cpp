@@ -12,9 +12,7 @@
 
 #include "gmres_functions.H"
 
-#include "common_namespace_declarations.H"
 
-#include "gmres_namespace_declarations.H"
 
 #include <AMReX_VisMF.H>
 #include <AMReX_PlotFileUtil.H>
@@ -36,10 +34,6 @@ void main_driver(const char* argv)
     Real strt_time = ParallelDescriptor::second();
 
     std::string inputs_file = argv;
-
-    // read in parameters from inputs file into F90 modules
-    // we use "+1" because of amrex_string_c_to_f expects a null char termination
-    read_common_namelist(inputs_file.c_str(),inputs_file.size()+1);
 
     // copy contents of F90 modules to C++ namespaces
     InitializeCommonNamespace();
@@ -82,14 +76,18 @@ void main_driver(const char* argv)
 
         if (seed > 0) {
             // initializes the seed for C++ random number calls
-            InitRandom(seed+ParallelDescriptor::MyProc());
+            InitRandom(seed+ParallelDescriptor::MyProc(),
+                       ParallelDescriptor::NProcs(),
+                       seed+ParallelDescriptor::MyProc());
         } else if (seed == 0) {
             // initializes the seed for C++ random number calls based on the clock
             auto now = time_point_cast<nanoseconds>(system_clock::now());
             int randSeed = now.time_since_epoch().count();
             // broadcast the same root seed to all processors
             ParallelDescriptor::Bcast(&randSeed,1,ParallelDescriptor::IOProcessorNumber());
-            InitRandom(randSeed+ParallelDescriptor::MyProc());
+            InitRandom(randSeed+ParallelDescriptor::MyProc(),
+                       ParallelDescriptor::NProcs(),
+                       randSeed+ParallelDescriptor::MyProc());
         } else {
             Abort("Must supply non-negative seed");
         }
@@ -103,14 +101,11 @@ void main_driver(const char* argv)
     // object for turbulent forcing
     TurbForcing turbforce;
 
-    // tracer
-    MultiFab tracer;
-    
     // staggered velocities
     std::array< MultiFab, AMREX_SPACEDIM > umac;
     
     if (restart > 0) {
-        ReadCheckPoint(step_start,time,umac,tracer,turbforce,ba,dmap);
+        ReadCheckPoint(step_start,time,umac,turbforce,ba,dmap);
     }
     else {
 
@@ -134,12 +129,7 @@ void main_driver(const char* argv)
                      umac[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
                      umac[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
     
-        tracer.define(ba,dmap,1,1);
-        tracer.setVal(0.);
-
         InitVel(umac,geom);
-
-        InitTracer(tracer,geom);
 
         // temporary for addMomfluctuations and MacProj_hydro
         MultiFab rho(ba, dmap, 1, 1);
@@ -312,6 +302,7 @@ void main_driver(const char* argv)
     }
 
     MultiFab structFactMF(ba, dmap, structVars, 0);
+    structFactMF.setVal(0.);
 
     // need to use dVol for scaling
     Real dVol = (AMREX_SPACEDIM==2) ? dx[0]*dx[1]*cell_depth : dx[0]*dx[1]*dx[2];
@@ -347,30 +338,27 @@ void main_driver(const char* argv)
     ///////////////////////////////////////////
 
     StructFact structFactFlattened;
+    MultiFab FlattenedRotMaster;
 
     Geometry geom_flat;
 
     if(project_dir >= 0){
       MultiFab Flattened;  // flattened multifab defined below
 
-      // copy velocities into structFactMF
-      for(int d=0; d<AMREX_SPACEDIM; d++) {
-          ShiftFaceToCC(umac[d], 0, structFactMF, d, 1);
-      }
-
       // we are only calling ComputeVerticalAverage or ExtractSlice here to obtain
       // a built version of Flattened so can obtain what we need to build the
       // structure factor and geometry objects for flattened data
       if (slicepoint < 0) {
-          ComputeVerticalAverage(structFactMF, Flattened, geom, project_dir, 0, structVars);
+          ComputeVerticalAverage(structFactMF, Flattened, geom, project_dir, 0, 1);
       } else {
-          ExtractSlice(structFactMF, Flattened, geom, project_dir, 0, structVars);
+          ExtractSlice(structFactMF, Flattened, geom, project_dir, slicepoint, 0, 1);
       }
       // we rotate this flattened MultiFab to have normal in the z-direction since
       // our structure factor class assumes this for flattened
       MultiFab FlattenedRot = RotateFlattenedMF(Flattened);
       BoxArray ba_flat = FlattenedRot.boxArray();
       const DistributionMapping& dmap_flat = FlattenedRot.DistributionMap();
+      FlattenedRotMaster.define(ba_flat,dmap_flat,structVars,0);
       {
         IntVect dom_lo(AMREX_D_DECL(0,0,0));
         IntVect dom_hi;
@@ -479,19 +467,20 @@ void main_driver(const char* argv)
                 if (slicepoint < 0) {
                     ComputeVerticalAverage(structFactMF, Flattened, geom, project_dir, 0, structVars);
                 } else {
-                    ExtractSlice(structFactMF, Flattened, geom, project_dir, 0, structVars);
+                    ExtractSlice(structFactMF, Flattened, geom, project_dir, slicepoint, 0, structVars);
                 }
                 // we rotate this flattened MultiFab to have normal in the z-direction since
                 // our structure factor class assumes this for flattened
                 MultiFab FlattenedRot = RotateFlattenedMF(Flattened);
-                structFactFlattened.FortStructure(FlattenedRot,geom_flat);
+                FlattenedRotMaster.ParallelCopy(FlattenedRot,0,0,structVars);
+                structFactFlattened.FortStructure(FlattenedRotMaster,geom_flat);
             }
         }
 
         // write out initial state
-        // write out umac, tracer, pres, and divergence to a plotfile
+        // write out umac, pres, and divergence to a plotfile
         if (plot_int > 0) {
-            WritePlotFile(0,time,geom,umac,tracer,pres);
+            WritePlotFile(0,time,geom,umac,pres);
             if (n_steps_skip == 0 && struct_fact_int > 0) {
                 structFact.WritePlotFile(0,0.,geom,"plt_SF");
                 if(project_dir >= 0) {
@@ -501,8 +490,6 @@ void main_driver(const char* argv)
         }
     }
     
-    // FIXME need to fill physical boundary condition ghost cells for tracer
-
     std::array< MultiFab, AMREX_SPACEDIM > umacTemp;
     AMREX_D_TERM(umacTemp[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
                  umacTemp[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
@@ -529,7 +516,7 @@ void main_driver(const char* argv)
 	}
 
 	// Advance umac
-        advance(umac,umacTemp,pres,tracer,mfluxdiv_stoch,
+        advance(umac,umacTemp,pres,mfluxdiv_stoch,
                 alpha_fc,beta,gamma,beta_ed,geom,dt,turbforce);
 
 	//////////////////////////////////////////////////
@@ -549,7 +536,7 @@ void main_driver(const char* argv)
                 if (slicepoint < 0) {
                     ComputeVerticalAverage(structFactMF, Flattened, geom, project_dir, 0, structVars);
                 } else {
-                    ExtractSlice(structFactMF, Flattened, geom, project_dir, 0, structVars);
+                    ExtractSlice(structFactMF, Flattened, geom, project_dir, slicepoint, 0, structVars);
                 }
                 // we rotate this flattened MultiFab to have normal in the z-direction since
                 // our structure factor class assumes this for flattened
@@ -566,8 +553,8 @@ void main_driver(const char* argv)
         time = time + dt;
 
         if (plot_int > 0 && step%plot_int == 0) {
-            // write out umac, tracer, pres, and divergence to a plotfile
-            WritePlotFile(step,time,geom,umac,tracer,pres);
+            // write out umac, pres, and divergence to a plotfile
+            WritePlotFile(step,time,geom,umac,pres);
 
             // write out structure factor to plotfile
             if (step > n_steps_skip && struct_fact_int > 0) {
@@ -596,8 +583,8 @@ void main_driver(const char* argv)
         }
 
         if (chk_int > 0 && step%chk_int == 0) {
-            // write out umac and tracer to a checkpoint file
-            WriteCheckPoint(step,time,umac,tracer,turbforce);
+            // write out umac and to a checkpoint file
+            WriteCheckPoint(step,time,umac,turbforce);
         }
 
         // compute kinetic energy integral( (1/2) * rho * U dot U dV)

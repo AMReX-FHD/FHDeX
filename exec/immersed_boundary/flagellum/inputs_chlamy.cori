@@ -1,59 +1,59 @@
-&common
 
-  ! Problem specification
-  prob_lo(1:3) = 0.0   0.0   0.0        ! physical lo coordinate
-  prob_hi(1:3) = 8.e-3 8.e-3 4.e-3      ! physical hi coordinate
 
-  ! if prob_type = 0, zero initial velocity
-  ! if prob_type = 1, vortex
-  ! if prob_type = 2, KH - sine
-  ! if prob_type = 3, KH - smooth
+  # Problem specification
+  prob_lo = 0.0   0.0   0.0        # physical lo coordinate
+  prob_hi = 8.e-3 8.e-3 4.e-3      # physical hi coordinate
+
+  # if prob_type = 0, zero initial velocity
+  # if prob_type = 1, vortex
+  # if prob_type = 2, KH - sine
+  # if prob_type = 3, KH - smooth
   prob_type = 0
 
-  ! number of cells in domain
-  n_cells(1:3)       = 128 128  64
-  ! max number of cells in a box
-  max_grid_size(1:3) =  16  16  16
+  # number of cells in domain
+  n_cells       = 128 128  64
+  # max number of cells in a box
+  max_grid_size =  16  16  16
 
-  ! Time-step control
+  # Time-step control
   fixed_dt = 1e-4
 
-  ! Controls for number of steps between actions
+  # Controls for number of steps between actions
   max_step = 400000
   plot_int = 100
 
-  ! Viscous friction L phi operator
-  ! if abs(visc_type) = 1, L = div beta grad
-  ! if abs(visc_type) = 2, L = div [ beta (grad + grad^T) ]
-  ! if abs(visc_type) = 3, L = div [ beta (grad + grad^T) + I (gamma - (2/3)*beta) div ]
-  ! positive = assume constant coefficients
-  ! negative = assume spatially-varying coefficients
+  # Viscous friction L phi operator
+  # if abs(visc_type) = 1, L = div beta grad
+  # if abs(visc_type) = 2, L = div [ beta (grad + grad^T) ]
+  # if abs(visc_type) = 3, L = div [ beta (grad + grad^T) + I (gamma - (2/3)*beta) div ]
+  # positive = assume constant coefficients
+  # negative = assume spatially-varying coefficients
   visc_coef = 1e-2
   visc_type = 1
 
-  ! Stochastic parameters
+  # Stochastic parameters
   variance_coef_mom    = 0.
   initial_variance_mom = 0.
 
-  k_B       = 1.38064852e-16 ! [units: cm2*g*s-2*K-1]
-  T_init(1) = 295.00         ! [units: K]
+  k_B       = 1.38064852e-16 # [units: cm2*g*s-2*K-1]
+  T_init = 295.00         # [units: K]
 
-  ! struct_fact_int = 100
-  ! n_steps_skip    = 50000
+  # struct_fact_int = 100
+  # n_steps_skip    = 50000
   struct_fact_int = 0
   n_steps_skip    = 0
 
-  ! Boundary conditions
-  ! ----------------------
-  ! BC specifications:
-  ! -1 = periodic, 1 = finite slip wall 2 = no-slip wall, -2 = periodic pressure
-  bc_vel_lo(1:3) =  2  2  2
-  bc_vel_hi(1:3) =  2  2  2
+  # Boundary conditions
+  # ----------------------
+  # BC specifications:
+  # -1 = periodic, 1 = finite slip wall 2 = no-slip wall, -2 = periodic pressure
+  bc_vel_lo =  2  2  2
+  bc_vel_hi =  2  2  2
 
-  p_lo(1:3)  = 0 -.1  0
-  p_hi(1:3)  = 0  .1  0
+  p_lo  = 0 -.1  0
+  p_hi  = 0  .1  0
 
-/
+
 
   mg_verbose = 0                  # multigrid verbosity
 
@@ -90,24 +90,24 @@
   contains_flagellum = true
   contains_fourier   = true
 
-/
+
 
 
 &ib_flagellum
 
-  n_marker(1:1)  = 21
+  n_marker  = 21
   offset_0(:, 1) = 3.e-3 5.6e-3 2.e-3
 
-  amplitude(1:1)  = 1e4
-  frequency(1:1)  = 0.01
-  length(1:1)     = 3.0e-3
-  wavelength(1:1) = .8e-3
-  k_spring(1:1)   = 2e-3
-  k_driving(1:1)  = 2e-3
+  amplitude  = 1e4
+  frequency  = 0.01
+  length     = 3.0e-3
+  wavelength = .8e-3
+  k_spring   = 2e-3
+  k_driving  = 2e-3
 
 
   fourier_coef_len = 4
   chlamy_flagellum_datafile = "inputs_chlamy_data"
 
-/
+
 

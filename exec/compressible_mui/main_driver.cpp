@@ -1,213 +1,19 @@
 #include "common_functions.H"
 #include "compressible_functions.H"
 
-#include "common_namespace_declarations.H"
 
 #include "rng_functions.H"
 
 #include "StructFact.H"
 
 #include "chemistry_functions.H"
-#include "chemistry_namespace_declarations.H"
 
 #include "chrono"
 
 using namespace std::chrono;
 using namespace amrex;
 
-// mui
-#include <mui.h>
-
-using namespace mui;
-
-#define NADSDESSPEC 1
-#define MOMOFINERCO 1.456061e-39
-
-// this routine pushes the following information to MUI
-// - species number densities and temperature of FHD cells contacting the interface
-void mui_push(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface2d &uniface, const int step,
-              int lox,int loy,int loz,int hix,int hiy,int hiz)
-{
-    // assuming the interface is perpendicular to the z-axis 
-    // and includes cells with the smallest value of z (i.e. k=0)
-
-    for (MFIter mfi(cu,false); mfi.isValid(); ++mfi)
-    {
-        const Box& bx = mfi.tilebox();
-        Dim3 lo = lbound(bx);
-        Dim3 hi = ubound(bx);
-        const Array4<Real> & cu_fab = cu.array(mfi);
-        const Array4<Real> & prim_fab = prim.array(mfi);
-
-	if (lox>lo.x) Abort("ERROR: lox>lo.x");
-	if (loy>lo.y) Abort("ERROR: loy>lo.y");
-	if (loz>lo.z) Abort("ERROR: loz>lo.z");
-	if (hix<hi.x) Abort("ERROR: hix<hi.x");
-	if (hiy<hi.y) Abort("ERROR: hiy<hi.y");
-	if (hiz<hi.z) Abort("ERROR: hiz<hi.z");
-
-        // unless bx contains cells at the interface, skip 
-        int k = 0;
-        if (k<lo.z || k>hi.z) continue;
-
-        for (int j = lo.y; j<= hi.y; ++j) {
-            for (int i = lo.x; i<=hi.x; ++i) {
-
-                double x = prob_lo[0]+(i+0.5)*dx[0];
-                double y = prob_lo[1]+(j+0.5)*dx[1];
-
-                std::string channel;
-
-                //for (int n = 0; n < nspecies; ++n) {
-                for (int n = 0; n < NADSDESSPEC; ++n) {
-
-                    channel = "CH_density";
-                    channel += '0'+(n+1);   // assuming nspecies<10
-
-                    double dens = cu_fab(i,j,k,5+n);    // mass density
-                    dens *= 6.02e23/molmass[n];         // number density
-
-                    uniface.push(channel,{x,y},dens);
-                }
-
-                //channel = "CH_temp";
-
-                //uniface.push(channel,{x,y},prim_fab(i,j,k,4));
-            }
-        }
-    }
-
-    uniface.commit(step);
-
-    return;
-}
-
-// this routine fetches the following information from MUI:
-// - adsoprtion and desoprtion counts of each species between time points
-void mui_fetch(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface2d &uniface, const int step,
-               int lox,int loy,int loz,int hix,int hiy,int hiz)
-{
-    // assuming the interface is perpendicular to the z-axis 
-    // and includes cells with the smallest value of z (i.e. k=0)
-
-    mui::sampler_kmc_fhd2d<int> s({dx[0],dx[1]});
-    mui::chrono_sampler_exact2d t;
-
-    for (MFIter mfi(cu,false); mfi.isValid(); ++mfi)
-    {
-        const Box& bx = mfi.tilebox();
-        Dim3 lo = lbound(bx);
-        Dim3 hi = ubound(bx);
-        const Array4<Real> & cu_fab = cu.array(mfi);
-        const Array4<Real> & prim_fab = prim.array(mfi);
-
-	if (lox>lo.x) Abort("ERROR: lox>lo.x");
-	if (loy>lo.y) Abort("ERROR: loy>lo.y");
-	if (loz>lo.z) Abort("ERROR: loz>lo.z");
-	if (hix<hi.x) Abort("ERROR: hix<hi.x");
-	if (hiy<hi.y) Abort("ERROR: hiy<hi.y");
-	if (hiz<hi.z) Abort("ERROR: hiz<hi.z");
-
-        // unless bx contains cells at the interface, skip 
-        // ad-hoc fix to avoid memory leakage
-        int k = 0;
-        if (k<lo.z || k>hi.z)
-        {
-            double x = prob_lo[0]+(lo.x+0.5)*dx[0];
-            double y = prob_lo[1]+(lo.y+0.5)*dx[1];
-
-            uniface.fetch("CH_ac1",{x,y},step,s,t);
-
-            continue;
-        }
-
-        for (int j = lo.y; j<= hi.y; ++j) {
-            for (int i = lo.x; i<=hi.x; ++i) {
-
-                double x = prob_lo[0]+(i+0.5)*dx[0];
-                double y = prob_lo[1]+(j+0.5)*dx[1];
-                double dV = dx[0]*dx[1]*dx[2];
-                //double temp = prim_fab(i,j,k,4);
-                double temp = t_lo[2];
-
-                //for (int n = 0; n < nspecies; ++n) {
-                for (int n = 0; n < NADSDESSPEC; ++n) {
-                
-                    std::string channel;
-                    int ac,dc;
-
-                    channel = "CH_ac";
-                    channel += '0'+(n+1);   // assuming nspecies<10
-                    ac = uniface.fetch(channel,{x,y},step,s,t);
-
-                    channel = "CH_dc";
-                    channel += '0'+(n+1);   // assuming nspecies<10
-                    dc = uniface.fetch(channel,{x,y},step,s,t);
-
-                    double mass = molmass[n]/6.02e23;
-                    double kBTm = k_B*temp/mass;
-                    double sqrtkBTm = sqrt(kBTm);
-                    double vx,vy,vz;
-                    double dmomx,dmomy,dmomz,derg;
-
-		    double kBTI = k_B*temp/MOMOFINERCO;
-		    double sqrtkBTI = sqrt(kBTI);
-		    double omegax,omegay;
-
-                    dmomx = dmomy = dmomz = derg = 0.;
-
-                    for (int l=0;l<ac;l++)
-                    {
-                        // colliding velocity
-                        vx = RandomNormal(0.,sqrtkBTm);
-                        vy = RandomNormal(0.,sqrtkBTm);
-                        vz = -sqrt(-2.*kBTm*log(1.-Random()));
-
-                        dmomx -= mass*vx;
-                        dmomy -= mass*vy;
-                        dmomz += mass*vz;
-                        derg  -= 0.5*mass*(vx*vx+vy*vy+vz*vz);
-
-			// angular velocity (diatomic)
-			omegax = RandomNormal(0.,sqrtkBTI);
-			omegay = RandomNormal(0.,sqrtkBTI);
-			derg -= 0.5*MOMOFINERCO*(omegax*omegax+omegay*omegay);
-                    }
-
-                    for (int l=0;l<dc;l++)
-                    {
-                        // new velocity
-                        vx = RandomNormal(0.,sqrtkBTm);
-                        vy = RandomNormal(0.,sqrtkBTm);
-                        vz = sqrt(-2.*kBTm*log(1.-Random()));
-
-                        dmomx += mass*vx;
-                        dmomy += mass*vy;
-                        dmomz += mass*vz;
-                        derg  += 0.5*mass*(vx*vx+vy*vy+vz*vz);
-
-			// angular velocity (diatomic)
-			omegax = RandomNormal(0.,sqrtkBTI);
-			omegay = RandomNormal(0.,sqrtkBTI);
-			derg += 0.5*MOMOFINERCO*(omegax*omegax+omegay*omegay);
-                    }
-
-                    cu_fab(i,j,k,0) += (dc-ac)*mass/dV;
-                    cu_fab(i,j,k,5+n) += (dc-ac)*mass/dV;
-
-                    cu_fab(i,j,k,1) += dmomx/dV;
-                    cu_fab(i,j,k,2) += dmomy/dV;
-                    cu_fab(i,j,k,3) += dmomz/dV;
-                    cu_fab(i,j,k,4) += derg/dV;
-                }
-            }
-        }
-    }
-
-    uniface.forget(step);
-
-    return;
-}
+#include "surfchem_mui_functions.H"
 
 // argv contains the name of the inputs file entered at the command line
 void main_driver(const char* argv)
@@ -219,15 +25,25 @@ void main_driver(const char* argv)
 
     std::string inputs_file = argv;
 
-    // read in parameters from inputs file into F90 modules
-    // we use "+1" because of amrex_string_c_to_f expects a null char termination
-    read_common_namelist(inputs_file.c_str(),inputs_file.size()+1);
-    
-    // copy contents of F90 modules to C++ namespaces
+    // read the inputs file for common
     InitializeCommonNamespace();
+
+    // read the inputs file for compressible 
+    InitializeCompressibleNamespace();
 
     // read the inputs file for chemistry
     InitializeChemistryNamespace();
+
+    // read the inputs file for surfchem_mui
+    InitializeSurfChemMUINamespace();
+
+    if (nvars != AMREX_SPACEDIM + 2 + nspecies) {
+        Abort("nvars must be equal to AMREX_SPACEDIM + 2 + nspecies");
+    }
+
+    if (nprimvars != AMREX_SPACEDIM + 3 + 2*nspecies) {
+        Abort("nprimvars must be equal to AMREX_SPACEDIM + 3 + 2*nspecies");
+    }
 
     // if gas heat capacities in the namelist are negative, calculate them using using dofs.
     // This will only update the Fortran values.
@@ -295,14 +111,18 @@ void main_driver(const char* argv)
 
         if (seed > 0) {
             // initializes the seed for C++ random number calls
-            InitRandom(seed+ParallelDescriptor::MyProc());
+            InitRandom(seed+ParallelDescriptor::MyProc(),
+                       ParallelDescriptor::NProcs(),
+                       seed+ParallelDescriptor::MyProc());
         } else if (seed == 0) {
             // initializes the seed for C++ random number calls based on the clock
             auto now = time_point_cast<nanoseconds>(system_clock::now());
             int randSeed = now.time_since_epoch().count();
             // broadcast the same root seed to all processors
             ParallelDescriptor::Bcast(&randSeed,1,ParallelDescriptor::IOProcessorNumber());
-            InitRandom(randSeed+ParallelDescriptor::MyProc());
+            InitRandom(randSeed+ParallelDescriptor::MyProc(),
+                       ParallelDescriptor::NProcs(),
+                       randSeed+ParallelDescriptor::MyProc());
         } else {
             Abort("Must supply non-negative seed");
         }
@@ -393,15 +213,12 @@ void main_driver(const char* argv)
     spatialCross.setVal(0.0);
     spatialCrossAv.setVal(0.0);
 
-    // external source term - possibly for later
-    MultiFab source(ba,dmap,nprimvars,ngc);
+    // external source term - currently only chemistry source considered for nreaction>0
+    MultiFab source(ba,dmap,nvars,ngc);
     source.setVal(0.0);
 
-    //Initialize physical parameters from input vals
-
-    double intEnergy, T0;
-
-    T0 = T_init[0];
+    MultiFab ranchem;
+    if (nreaction>0) ranchem.define(ba,dmap,nreaction,ngc);
 
     //fluxes
     // need +4 to separate out heat, viscous heating (diagonal vs shear)  and Dufour contributions to the energy flux 
@@ -457,7 +274,8 @@ void main_driver(const char* argv)
 
     Real time = 0;
 
-    int step, statsCount;
+    int step;
+    int statsCount = 1;
 
     ///////////////////////////////////////////
     // Structure factor:
@@ -502,41 +320,106 @@ void main_driver(const char* argv)
 
     MultiFab structFactPrimMF;
     structFactPrimMF.define(ba, dmap, structVarsPrim, 0);
+    structFactPrimMF.setVal(0.0);
 
     // scale SF results by inverse cell volume
-    Vector<Real> var_scaling;
-    var_scaling.resize(structVarsPrim*(structVarsPrim+1)/2);
-    for (int d=0; d<var_scaling.size(); ++d) {
-        var_scaling[d] = 1./(dx[0]*dx[1]*dx[2]);
+    Vector<Real> var_scaling_prim;
+    var_scaling_prim.resize(structVarsPrim*(structVarsPrim+1)/2);
+    for (int d=0; d<var_scaling_prim.size(); ++d) {
+        var_scaling_prim[d] = 1./(dx[0]*dx[1]*dx[2]);
     }
 
     // compute all pairs
     // note: StructFactPrim option to compute only speicified pairs not written yet
-    StructFact structFactPrim(ba,dmap,prim_var_names,var_scaling);
+    StructFact structFactPrim(ba,dmap,prim_var_names,var_scaling_prim);
 
     ///////////////////////////////////////////
 
     // structure factor class for flattened dataset
     StructFact structFactPrimFlattened;
+    MultiFab primFlattenedRotMaster;
 
+    //////////////////////////////////////////////
+
+    // "conserved" variable structure factor will contain
+    // rho
+    // j
+    // rho*E
+    // rho*Yk
+    // Temperature (not in the conserved array; will have to copy it in)
+    int structVarsCons = AMREX_SPACEDIM+nspecies+3;
+
+    Vector< std::string > cons_var_names;
+    cons_var_names.resize(structVarsCons);
+
+    cnt = 0;
+
+    // rho
+    cons_var_names[cnt++] = "rho";
+
+    // velx, vely, velz
+    for (int d=0; d<AMREX_SPACEDIM; d++) {
+      x = "j";
+      x += (120+d);
+      cons_var_names[cnt++] = x;
+    }
+
+    // rho*E
+    cons_var_names[cnt++] = "rhoE";
+
+    // rho*Yk
+    for (int d=0; d<nspecies; d++) {
+      x = "rhoY";
+      x += (49+d);
+      cons_var_names[cnt++] = x;
+    }
+
+    // Temp
+    cons_var_names[cnt++] = "Temp";
+
+    MultiFab structFactConsMF;
+    structFactConsMF.define(ba, dmap, structVarsCons, 0);
+    structFactConsMF.setVal(0.0);
+
+    // scale SF results by inverse cell volume
+    Vector<Real> var_scaling_cons;
+    var_scaling_cons.resize(structVarsCons*(structVarsCons+1)/2);
+    for (int d=0; d<var_scaling_cons.size(); ++d) {
+        var_scaling_cons[d] = 1./(dx[0]*dx[1]*dx[2]);
+    }
+
+    // compute all pairs
+    // note: StructFactCons option to compute only speicified pairs not written yet
+    StructFact structFactCons(ba,dmap,cons_var_names,var_scaling_cons);
+
+    //////////////////////////////////////////////
+
+    // structure factor class for flattened dataset
+    StructFact structFactConsFlattened;
+    MultiFab consFlattenedRotMaster;
+
+    //////////////////////////////////////////////
+    
     Geometry geom_flat;
-
+    
     if(project_dir >= 0){
-      MultiFab primFlattened;  // flattened multifab defined below
+      MultiFab Flattened;  // flattened multifab defined below
       
       // we are only calling ComputeVerticalAverage or ExtractSlice here to obtain
       // a built version of primFlattened so can obtain what we need to build the
       // structure factor and geometry objects for flattened data
       if (slicepoint < 0) {
-          ComputeVerticalAverage(prim, primFlattened, geom, project_dir, 0, structVarsPrim);
+          ComputeVerticalAverage(structFactPrimMF, Flattened, geom, project_dir, 0, 1);
       } else {
-          ExtractSlice(prim, primFlattened, geom, project_dir, 0, structVarsPrim);
+          ExtractSlice(structFactPrimMF, Flattened, geom, project_dir, slicepoint, 0, 1);
       }
       // we rotate this flattened MultiFab to have normal in the z-direction since
       // our structure factor class assumes this for flattened
-      MultiFab primFlattenedRot = RotateFlattenedMF(primFlattened);
-      BoxArray ba_flat = primFlattenedRot.boxArray();
-      const DistributionMapping& dmap_flat = primFlattenedRot.DistributionMap();
+      MultiFab FlattenedRot = RotateFlattenedMF(Flattened);
+      BoxArray ba_flat = FlattenedRot.boxArray();
+      const DistributionMapping& dmap_flat = FlattenedRot.DistributionMap();
+      primFlattenedRotMaster.define(ba_flat,dmap_flat,structVarsPrim,0);
+      consFlattenedRotMaster.define(ba_flat,dmap_flat,structVarsCons,0);
       {
         IntVect dom_lo(AMREX_D_DECL(0,0,0));
         IntVect dom_hi;
@@ -603,106 +486,16 @@ void main_driver(const char* argv)
         geom_flat.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
       }
 
-      structFactPrimFlattened.define(ba_flat,dmap_flat,prim_var_names,var_scaling);
+      structFactPrimFlattened.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim);
+      structFactConsFlattened.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons);
     }
     
     //////////////////////////////////////////////
-
-    // "conserved" variable structure factor will contain
-    // rho
-    // j
-    // rho*E
-    // rho*Yk
-    // Temperature (not in the conserved array; will have to copy it in)
-    int structVarsCons = AMREX_SPACEDIM+nspecies+3;
-
-    Vector< std::string > cons_var_names;
-    cons_var_names.resize(structVarsCons);
-
-    cnt = 0;
-
-    // rho
-    cons_var_names[cnt++] = "rho";
-
-    // velx, vely, velz
-    for (int d=0; d<AMREX_SPACEDIM; d++) {
-      x = "j";
-      x += (120+d);
-      cons_var_names[cnt++] = x;
-    }
-
-    // rho*E
-    cons_var_names[cnt++] = "rhoE";
-
-    // rho*Yk
-    for (int d=0; d<nspecies; d++) {
-      x = "rhoY";
-      x += (49+d);
-      cons_var_names[cnt++] = x;
-    }
-
-    // Temp
-    cons_var_names[cnt++] = "Temp";
-
-    MultiFab structFactConsMF;
-    structFactConsMF.define(ba, dmap, structVarsCons, 0);
-
-    // scale SF results by inverse cell volume
-    var_scaling.resize(structVarsCons*(structVarsCons+1)/2);
-    for (int d=0; d<var_scaling.size(); ++d) {
-        var_scaling[d] = 1./(dx[0]*dx[1]*dx[2]);
-    }
-
-    // compute all pairs
-    // note: StructFactCons option to compute only speicified pairs not written yet
-    StructFact structFactCons(ba,dmap,cons_var_names,var_scaling);
-    
-    //////////////////////////////////////////////
-
-    // Initialize everything
-    
-    prim.setVal(0.0,0,nprimvars,ngc);
-    prim.setVal(rho0,0,1,ngc);      // density
-    prim.setVal(0.,1,3,ngc);        // x/y/z velocity
-    prim.setVal(T_init[0],4,1,ngc); // temperature
-                                    // pressure computed later in conservedToPrimitive
-    for(int i=0;i<nspecies;i++) {
-        prim.setVal(rhobar[i],6+i,1,ngc);    // mass fractions
-    }
-
-    // compute internal energy
-    GpuArray<Real,MAX_SPECIES> massvec;
-    for(int i=0;i<nspecies;i++) {
-        massvec[i] = rhobar[i];
-    }
-    GetEnergy(intEnergy, massvec, T0);
-
-    cu.setVal(0.0,0,nvars,ngc);
-    cu.setVal(rho0,0,1,ngc);           // density
-    cu.setVal(0,1,3,ngc);              // x/y/z momentum
-    cu.setVal(rho0*intEnergy,4,1,ngc); // total energy
-    for(int i=0;i<nspecies;i++) {
-        cu.setVal(rho0*rhobar[i],5+i,1,ngc); // mass densities
-    }
-
-    // RK stage storage
-    cup.setVal(0.0,0,nvars,ngc);
-    cup2.setVal(0.0,0,nvars,ngc);
-    cup3.setVal(0.0,0,nvars,ngc);
-
-    // set density
-    cup.setVal(rho0,0,1,ngc);
-    cup2.setVal(rho0,0,1,ngc);
-    cup3.setVal(rho0,0,1,ngc);
 
     // initialize conserved variables
-    if (prob_type > 1) {
-        InitConsVar(cu,prim,geom);
-    }
+    InitConsVar(cu,geom);
 
-    statsCount = 1;
-
-    // Write initial plotfile
+    // initialize primitive variables
     conservedToPrimitive(prim, cu);
 
     // Set BC: 1) fill boundary 2) physical
@@ -718,72 +511,7 @@ void main_driver(const char* argv)
     // MUI setting
     mui::uniface2d uniface( "mpi://FHD-side/FHD-KMC-coupling" );
 
-    int lox,loy,loz,hix,hiy,hiz;
-    bool isfirst = true;
-
-    for (MFIter mfi(cu,false); mfi.isValid(); ++mfi)
-    {
-        const Box& bx = mfi.tilebox();
-        Dim3 lo = lbound(bx);
-        Dim3 hi = ubound(bx);
-
-        if (isfirst)
-        {
-            lox = lo.x;
-            loy = lo.y;
-            loz = lo.z;
-            hix = hi.x;
-            hiy = hi.y;
-            hiz = hi.z;
-
-	    isfirst = false;
-	}
-        else
-        {
-            lox = (lox<lo.x) ? lox : lo.x;
-            loy = (loy<lo.y) ? loy : lo.y;
-            loz = (loz<lo.z) ? loz : lo.z;
-            hix = (hix>hi.x) ? hix : hi.x;
-            hiy = (hiy>hi.y) ? hiy : hi.y;
-            hiz = (hiz>hi.z) ? hiz : hi.z;
-        }
-    }
-
-    int k = 0;
-    if (k>=loz && k<=hiz)
-    {
-        double tmp[2];
-
-        tmp[0] = prob_lo[0] + lox*dx[0];
-        tmp[1] = prob_lo[1] + loy*dx[1];
-        point<double,2> span_lo(tmp);
-
-        tmp[0] = prob_lo[0] + (hix+1)*dx[0];
-        tmp[1] = prob_lo[1] + (hiy+1)*dx[1];
-        point<double,2> span_hi(tmp);
-
-        mui::geometry::box<config_2d> span(span_lo,span_hi);
-
-        //uniface.announce_send_span(0.,(double)max_step,span);
-        //uniface.announce_recv_span(0.,(double)max_step,span);
-    }
-    else
-    {
-        double tmp[2];
-
-        tmp[0] = -1.;
-        tmp[1] = -1.;
-        point<double,2> span_lo(tmp);
-
-        tmp[0] = -0.9;
-        tmp[1] = -0.9;
-        point<double,2> span_hi(tmp);
-
-        mui::geometry::box<config_2d> span(span_lo,span_hi);
-
-        //uniface.announce_send_span(0.,(double)max_step,span);
-        //uniface.announce_recv_span(0.,(double)max_step,span);
-    }
+    mui_announce_send_recv_span(uniface,cu,dx);
 
     //Time stepping loop
     for(step=1;step<=max_step;++step) {
@@ -794,33 +522,14 @@ void main_driver(const char* argv)
         }
 
         // timer
-        Real ts0 = ParallelDescriptor::second();
-
-        mui_push(cu, prim, dx, uniface, step,lox,loy,loz,hix,hiy,hiz);
-
-        Real ts0a = ParallelDescriptor::second();
-        Real ts_mp = ts0a-ts0;
-        ParallelDescriptor::ReduceRealMax(ts_mp);
-        amrex::Print() << "MUI-PUSH step " << step << " in " << ts_mp << " seconds\n";
-
         Real ts1 = ParallelDescriptor::second();
 
         RK3step(cu, cup, cup2, cup3, prim, source, eta, zeta, kappa, chi, D, flux,
-                stochFlux, cornx, corny, cornz, visccorn, rancorn, geom, dt);
+                stochFlux, cornx, corny, cornz, visccorn, rancorn, ranchem, geom, dt);
 
-        // timer
-        Real ts2 = ParallelDescriptor::second() - ts1;
-        ParallelDescriptor::ReduceRealMax(ts2);
-    	amrex::Print() << "Advanced step " << step << " in " << ts2 << " seconds\n";
+        mui_push(cu, prim, dx, uniface, step);
 
-        Real ts3 = ParallelDescriptor::second();
-
-        mui_fetch(cu, prim, dx, uniface, step,lox,loy,loz,hix,hiy,hiz);
-
-        Real ts3a = ParallelDescriptor::second();
-        Real ts_mf = ts3a-ts3;
-        ParallelDescriptor::ReduceRealMax(ts_mf);
-        amrex::Print() << "MUI-FETCH step " << step << " in " << ts_mf << " seconds\n";
+        mui_fetch(cu, prim, dx, uniface, step);
 
         conservedToPrimitive(prim, cu);
 
@@ -828,6 +537,11 @@ void main_driver(const char* argv)
         cu.FillBoundary(geom.periodicity());
         prim.FillBoundary(geom.periodicity());
         setBC(prim, cu);
+
+        // timer
+        Real ts2 = ParallelDescriptor::second() - ts1;
+        ParallelDescriptor::ReduceRealMax(ts2);
+        amrex::Print() << "Advanced step " << step << " in " << ts2 << " seconds\n";
 
         // timer
         Real aux1 = ParallelDescriptor::second();
@@ -869,15 +583,23 @@ void main_driver(const char* argv)
             structFactCons.FortStructure(structFactConsMF,geom);
             if(project_dir >= 0) {
                 MultiFab primFlattened;  // flattened multifab defined below
+                MultiFab consFlattened;  // flattened multifab defined below
                 if (slicepoint < 0) {
-                    ComputeVerticalAverage(prim, primFlattened, geom, project_dir, 0, structVarsPrim);
+                    ComputeVerticalAverage(structFactPrimMF, primFlattened, geom, project_dir, 0, structVarsPrim);
+                    ComputeVerticalAverage(structFactConsMF, consFlattened, geom, project_dir, 0, structVarsCons);
                 } else {
-                    ExtractSlice(prim, primFlattened, geom, project_dir, 0, structVarsPrim);
+                    ExtractSlice(structFactPrimMF, primFlattened, geom, project_dir, slicepoint, 0, structVarsPrim);
+                    ExtractSlice(structFactConsMF, consFlattened, geom, project_dir, slicepoint, 0, structVarsCons);
                 }
                 // we rotate this flattened MultiFab to have normal in the z-direction since
                 // our structure factor class assumes this for flattened
                 MultiFab primFlattenedRot = RotateFlattenedMF(primFlattened);
-                structFactPrimFlattened.FortStructure(primFlattenedRot,geom_flat);
+                primFlattenedRotMaster.ParallelCopy(primFlattenedRot,0,0,structVarsPrim);
+                structFactPrimFlattened.FortStructure(primFlattenedRotMaster,geom_flat);
+
+                MultiFab consFlattenedRot = RotateFlattenedMF(consFlattened);
+                consFlattenedRotMaster.ParallelCopy(consFlattenedRot,0,0,structVarsCons);
+                structFactConsFlattened.FortStructure(consFlattenedRotMaster,geom_flat);
             }
         }
 
@@ -887,6 +609,7 @@ void main_driver(const char* argv)
             structFactCons.WritePlotFile(step,time,geom,"plt_SF_cons");
             if(project_dir >= 0) {
                 structFactPrimFlattened.WritePlotFile(step,time,geom_flat,"plt_SF_prim_Flattened");
+                structFactConsFlattened.WritePlotFile(step,time,geom_flat,"plt_SF_cons_Flattened");
             }
         }
         

@@ -17,7 +17,7 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
              std::array<MultiFab, AMREX_SPACEDIM>& cornx,
              std::array<MultiFab, AMREX_SPACEDIM>& corny,
              std::array<MultiFab, AMREX_SPACEDIM>& cornz,
-             MultiFab& visccorn, MultiFab& rancorn,
+             MultiFab& visccorn, MultiFab& rancorn, MultiFab& ranchem,
              const amrex::Geometry geom, const amrex::Real dt)
 {
     BL_PROFILE_VAR("RK3step()",RK3step);
@@ -42,7 +42,7 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
 
     MultiFab rancorn_A;
     rancorn_A.define(rancorn.boxArray(), rancorn.DistributionMap(), 1, 0);
-    
+
     // field "B"
     std::array< MultiFab, AMREX_SPACEDIM > stochFlux_B;
     AMREX_D_TERM(stochFlux_B[0].define(stochFlux[0].boxArray(), stochFlux[0].DistributionMap(), nvars, 0);,
@@ -62,6 +62,15 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
                  stochFlux_B[2].setVal(0.0););
     rancorn_B.setVal(0.0);
 
+    // chemistry
+    MultiFab ranchem_A;
+    MultiFab ranchem_B;
+    if (nreaction>0)
+    {
+        ranchem_A.define(ranchem.boxArray(), ranchem.DistributionMap(), nreaction, 0);
+        ranchem_B.define(ranchem.boxArray(), ranchem.DistributionMap(), nreaction, 0);
+    }
+
     // fill random numbers (can skip density component 0)
     for(int d=0;d<AMREX_SPACEDIM;d++) {
     	for(int i=1;i<nvars;i++) {
@@ -72,6 +81,14 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
 
     MultiFabFillRandom(rancorn_A, 0, 1.0, geom);
     MultiFabFillRandom(rancorn_B, 0, 1.0, geom);
+
+    if (nreaction>0) {
+        for (int m=0;m<nreaction;m++) {
+            MultiFabFillRandom(ranchem_A, m, 1.0, geom);
+            MultiFabFillRandom(ranchem_B, m, 1.0, geom);
+        }
+    }
+
     /////////////////////////////////////////////////////
 
     // Compute transport coefs after setting BCs    
@@ -109,7 +126,12 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
 
     if (nreaction>0)
     {
-        compute_chemistry_source(dt,dx[0]*dx[1]*dx[2],cu,5,source,5);
+        MultiFab::LinComb(ranchem,
+                    stoch_weights[0], ranchem_A, 0,
+                    stoch_weights[1], ranchem_B, 0,
+                    0, nreaction, 0);
+
+        compute_chemistry_source_CLE(dt,dx[0]*dx[1]*dx[2],prim,source,ranchem);
     }
 
     for ( MFIter mfi(cu,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
@@ -123,8 +145,12 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
                      Array4<Real const> const& yflux_fab = flux[1].array(mfi);,
                      Array4<Real const> const& zflux_fab = flux[2].array(mfi););
 
-        amrex::ParallelFor(bx, nvars, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+		  // for the box, 
+		  // for loop for GPUS
+        amrex::ParallelFor(bx, nvars, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept // <- just leave it
         {
+        		// nth component of cell i,j,k
+        		// nvars -> nspecies*nspecies
             cup_fab(i,j,k,n) = cu_fab(i,j,k,n) - dt *
                 ( AMREX_D_TERM(  (xflux_fab(i+1,j,k,n) - xflux_fab(i,j,k,n)) / dx[0],
                                + (yflux_fab(i,j+1,k,n) - yflux_fab(i,j,k,n)) / dx[1],
@@ -208,7 +234,12 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
 
     if (nreaction>0)
     {
-        compute_chemistry_source(dt,dx[0]*dx[1]*dx[2],cup,5,source,5);
+        MultiFab::LinComb(ranchem,
+                    stoch_weights[0], ranchem_A, 0,
+                    stoch_weights[1], ranchem_B, 0,
+                    0, nreaction, 0);
+
+        compute_chemistry_source_CLE(dt,dx[0]*dx[1]*dx[2],prim,source,ranchem);
     }
 
     for ( MFIter mfi(cu,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
@@ -307,7 +338,12 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
 
     if (nreaction>0)
     {
-        compute_chemistry_source(dt,dx[0]*dx[1]*dx[2],cup2,5,source,5);
+        MultiFab::LinComb(ranchem,
+                    stoch_weights[0], ranchem_A, 0,
+                    stoch_weights[1], ranchem_B, 0,
+                    0, nreaction, 0);
+
+        compute_chemistry_source_CLE(dt,dx[0]*dx[1]*dx[2],prim,source,ranchem);
     }
 
     for ( MFIter mfi(cu,TilingIfNotGPU()); mfi.isValid(); ++mfi) {

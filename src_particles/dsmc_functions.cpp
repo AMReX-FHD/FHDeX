@@ -1,8 +1,11 @@
 #include "dsmc_functions.H"
 
-#include "dsmc_namespace_declarations.H"
 
 #include "AMReX_ParmParse.H"
+
+int         dsmc::sim_type;
+amrex::Real dsmc::hbar;
+amrex::Real dsmc::debye_group_velocity;
 
 void InitializeDsmcNamespace() {
 

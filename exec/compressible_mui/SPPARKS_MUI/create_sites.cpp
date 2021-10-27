@@ -34,7 +34,7 @@ using namespace SPPARKS_NS;
 
 // same as in lattice.cpp
 
-enum{NONE,LINE_2N,SQ_4N,SQ_8N,TRI,SC_6N,SC_26N,FCC,BCC,DIAMOND,
+enum{NONE,LINE_2N,SQ_4N,SQ_8N,TRI,ZIGZAG,SC_6N,SC_26N,FCC,BCC,DIAMOND,
        FCC_OCTA_TETRA,RANDOM_1D,RANDOM_2D,RANDOM_3D};
 
 enum{BOX,REGION};
@@ -43,7 +43,7 @@ enum{DUMMY,IARRAY,DARRAY};
 #define DELTALOCAL 10000
 #define DELTABUF 10000
 //#define EPSILON 0.0001
-#define EPSILON 1.e-10
+#define EPSILON 1.e-12
 
 /* ---------------------------------------------------------------------- */
 
@@ -153,6 +153,8 @@ void CreateSites::command(int narg, char **arg)
   int dimension = domain->dimension;
   latstyle = domain->lattice->style;
 
+  if (latstyle == ZIGZAG) error->all(FLERR,"Cannot use create_sites with zigzag lattice");
+
   if (latstyle == LINE_2N ||
       latstyle == SQ_4N || latstyle == SQ_8N || latstyle == TRI || 
       latstyle == SC_6N || latstyle == SC_26N || 
@@ -220,10 +222,10 @@ void CreateSites::structured_lattice()
   // in periodic dims:
   // check that simulation box is integer multiple of lattice spacing
   
-  nx = static_cast<int> (domain->xprd / xlattice);
-  if (dimension >= 2) ny = static_cast<int> (domain->yprd / ylattice);
+  nx = static_cast<int> (round(domain->xprd / xlattice));
+  if (dimension >= 2) ny = static_cast<int> (round(domain->yprd / ylattice));
   else ny = 1;
-  if (dimension == 3) nz = static_cast<int> (domain->zprd / zlattice);
+  if (dimension == 3) nz = static_cast<int> (round(domain->zprd / zlattice));
   else nz = 1;
 
   if (xperiodic && 

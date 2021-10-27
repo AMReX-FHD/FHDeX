@@ -5,6 +5,7 @@ FHDeX ?= ../../
 FDSMC = $(FHDeX)/exec/DSMC
 
 DEBUG     = FALSE
+PROFILE   = FALSE
 USE_MPI   = TRUE
 USE_OMP   = FALSE
 USE_CUDA  = FALSE
@@ -19,8 +20,8 @@ include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 VPATH_LOCATIONS   += .
 INCLUDE_LOCATIONS += .
 
-VPATH_LOCATIONS   += $(FIONS)
-INCLUDE_LOCATIONS += $(FIONS)
+VPATH_LOCATIONS   += $(FDSMC)
+INCLUDE_LOCATIONS += $(FDSMC)
 
 include $(FHDeX)/src_rng/Make.package
 VPATH_LOCATIONS   += $(FHDeX)/src_rng
@@ -34,9 +35,6 @@ include $(FHDeX)/src_common/Make.package
 VPATH_LOCATIONS   += $(FHDeX)/src_common/
 INCLUDE_LOCATIONS += $(FHDeX)/src_common/
 
-include $(FHDeX)/src_common/src_F90/Make.package
-VPATH_LOCATIONS   += $(FHDeX)/src_common/src_F90
-INCLUDE_LOCATIONS += $(FHDeX)/src_common/src_F90
 
 include $(FHDeX)/src_particles/MakeDSMC.package
 VPATH_LOCATIONS   += $(FHDeX)/src_particles/
@@ -46,20 +44,45 @@ include $(FHDeX)/src_geometry/Make.package
 VPATH_LOCATIONS   += $(FHDeX)/src_geometry
 INCLUDE_LOCATIONS += $(FHDeX)/src_geometry
 
+
 include $(FDSMC)/Make.package
 
 include $(AMREX_HOME)/Src/Base/Make.package
 include $(AMREX_HOME)/Src/Boundary/Make.package
 include $(AMREX_HOME)/Src/AmrCore/Make.package
-include $(AMREX_HOME)/Src/LinearSolvers/MLMG/Make.package
 include $(AMREX_HOME)/Src/Particle/Make.package
+
+include $(AMREX_HOME)/Src/Extern/SWFFT/Make.package
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Extern/SWFFT
+VPATH_LOCATIONS   += $(AMREX_HOME)/Src/Extern/SWFFT
+
+#ifeq ($(NERSC_HOST),) # check if NERSC_HOST is empty => hack to test if on cori
+#    LIBRARIES += -L$(FFTW_DIR) -lfftw3
+#    ifeq ($(USE_OMP), TRUE)
+#	LIBRARIES += -lfftw3_omp
+#    endif
+#    ifeq ($(USE_MPI), TRUE)
+#	LIBRARIES += -lfftw3_mpi
+#    endif
+#else
+#    $(info NERSC_HOST not empty => relying on compiler wrapper for fftw3)
+#endif
+
+LIBRARIES += -L$(FFTW_DIR) -lfftw3_mpi -lfftw3_omp -lfftw3 -lgomp
+#LIBRARIES += -L$(FFTW_DIR) -lfftw3
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.rules
 
 #DEFINES	+= -DDSMC=$(DSMC)
 
+<<<<<<< HEAD
 #ifeq ($(findstring cgpu, $(HOST)), cgpu)
 #CXXFLAGS += $(FFTW)
 #endif
 
 INCLUDE_LOCATIONS += $(FFTW_INC)
+=======
+ifeq ($(findstring cgpu, $(HOST)), cgpu)
+CXXFLAGS += $(FFTW)
+endif
+>>>>>>> cce920cdf5228a5934993c5044beec582636dfc2

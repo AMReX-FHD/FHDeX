@@ -1,6 +1,5 @@
 CEXE_sources += fluxStag.cpp
 CEXE_sources += statsStag.cpp
-#CEXE_sources += transCoeffs.cpp
 CEXE_sources += timeStepStag.cpp
 CEXE_sources += conservedPrimitiveConversionsStag.cpp
 CEXE_sources += boundaryStag.cpp
@@ -12,7 +11,5 @@ CEXE_sources += compressible_functions_stag.cpp
 CEXE_headers += compressible_functions_stag.H
 CEXE_sources += compressible_functions.cpp
 CEXE_headers += compressible_functions.H
-#CEXE_headers += compressible_functions_F.H
+CEXE_headers += compressible_namespace.H
 
-#CEXE_headers += compressible_namespace.H
-#CEXE_headers += compressible_namespace_declarations.H

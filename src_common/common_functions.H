@@ -23,7 +23,6 @@
 #include <AMReX_ArrayLim.H>
 #include <AMReX_BC_TYPES.H>
 
-#include "common_functions_F.H"
 #include "common_namespace.H"
 
 using namespace common;
@@ -112,12 +111,12 @@ void WriteHorizontalAverageToMF(const MultiFab& mf_in, MultiFab& mf_out,
                                 const int& dir, const int& incomp,
                                 const int& ncomp);
     
-void ComputeVerticalAverage(const MultiFab & mf, MultiFab & mf_avg, const Geometry & geom,
+void ComputeVerticalAverage(const MultiFab & mf, MultiFab & mf_flat, const Geometry & geom,
                             const int& dir, const int& incomp, const int& ncomp,
                             const int& slablo=-1, const int& slabhi=99999);
 
 void ExtractSlice(const MultiFab & mf, MultiFab & mf_slice, const Geometry & geom,
-                  const int dir, const int incomp, const int ncomp);
+                  const int dir, const int slice, const int incomp, const int ncomp);
 
 ///////////////////////////
 // in MultiFabPhysBC.cpp

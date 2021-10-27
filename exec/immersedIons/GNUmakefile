@@ -1,6 +1,6 @@
 # AMREX_HOME defines the directory in which we will find all the AMReX code.
 # If you set AMREX_HOME as an environment variable, this line will be ignored
-AMREX_HOME ?= ../../../../programs/amrex/
+AMREX_HOME ?= ../../../amrex/
 FHDeX ?= ../../
 FIONS = $(FHDeX)/exec/immersedIons
 
@@ -43,9 +43,6 @@ include $(FHDeX)/src_common/Make.package
 VPATH_LOCATIONS   += $(FHDeX)/src_common/
 INCLUDE_LOCATIONS += $(FHDeX)/src_common/
 
-include $(FHDeX)/src_common/src_F90/Make.package
-VPATH_LOCATIONS   += $(FHDeX)/src_common/src_F90
-INCLUDE_LOCATIONS += $(FHDeX)/src_common/src_F90
 
 include $(FHDeX)/src_particles/Make.package
 VPATH_LOCATIONS   += $(FHDeX)/src_particles/
