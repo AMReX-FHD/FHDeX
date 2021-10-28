@@ -143,9 +143,11 @@ void MultiFabPotentialBC_solver(MultiFab& potential, const Geometry& geom);
 ///////////////////////////
 // in NormInnerProduct.cpp
 
-void SumStag(const Geometry& geom,
-             const std::array<MultiFab, AMREX_SPACEDIM> & m1,
-	     const int & comp,
+void SumStag(const std::array<MultiFab, AMREX_SPACEDIM> & m1,
+	     Vector<Real> & sum,
+	     const bool & divide_by_ncells=false);
+
+void SumEdge(const std::array<MultiFab, AMREX_SPACEDIM> & m1,
 	     Vector<Real> & sum,
 	     const bool & divide_by_ncells=false);
 
@@ -154,8 +156,7 @@ void SumCC(const MultiFab & m1,
 	   Real & sum,
 	   const bool & divide_by_ncells=false);
 
-void StagInnerProd(const Geometry& geom,
-                   const std::array<MultiFab, AMREX_SPACEDIM> & m1,
+void StagInnerProd(const std::array<MultiFab, AMREX_SPACEDIM> & m1,
                    const int & comp1,
                    const std::array<MultiFab, AMREX_SPACEDIM> & m2,
                    const int & comp2,
@@ -175,8 +176,7 @@ void CCMoments(const MultiFab & m1,
 		 const int & power,
 		 Real & prod_val);
 
-void StagL2Norm(const Geometry& geom,
-                const std::array<MultiFab, AMREX_SPACEDIM> & m1,
+void StagL2Norm(const std::array<MultiFab, AMREX_SPACEDIM> & m1,
 		const int & comp,
                 std::array<MultiFab, AMREX_SPACEDIM>& mscr,
 		Real & norm_l2);
