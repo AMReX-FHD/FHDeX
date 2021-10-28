@@ -522,33 +522,14 @@ void main_driver(const char* argv)
         }
 
         // timer
-        Real ts0 = ParallelDescriptor::second();
-
-        mui_push(cu, prim, dx, uniface, step);
-
-        Real ts0a = ParallelDescriptor::second();
-        Real ts_mp = ts0a-ts0;
-        ParallelDescriptor::ReduceRealMax(ts_mp);
-        amrex::Print() << "MUI-PUSH step " << step << " in " << ts_mp << " seconds\n";
-
         Real ts1 = ParallelDescriptor::second();
 
         RK3step(cu, cup, cup2, cup3, prim, source, eta, zeta, kappa, chi, D, flux,
                 stochFlux, cornx, corny, cornz, visccorn, rancorn, ranchem, geom, dt);
 
-        // timer
-        Real ts2 = ParallelDescriptor::second() - ts1;
-        ParallelDescriptor::ReduceRealMax(ts2);
-    	amrex::Print() << "Advanced step " << step << " in " << ts2 << " seconds\n";
-
-        Real ts3 = ParallelDescriptor::second();
+        mui_push(cu, prim, dx, uniface, step);
 
         mui_fetch(cu, prim, dx, uniface, step);
-
-        Real ts3a = ParallelDescriptor::second();
-        Real ts_mf = ts3a-ts3;
-        ParallelDescriptor::ReduceRealMax(ts_mf);
-        amrex::Print() << "MUI-FETCH step " << step << " in " << ts_mf << " seconds\n";
 
         conservedToPrimitive(prim, cu);
 
@@ -556,6 +537,11 @@ void main_driver(const char* argv)
         cu.FillBoundary(geom.periodicity());
         prim.FillBoundary(geom.periodicity());
         setBC(prim, cu);
+
+        // timer
+        Real ts2 = ParallelDescriptor::second() - ts1;
+        ParallelDescriptor::ReduceRealMax(ts2);
+        amrex::Print() << "Advanced step " << step << " in " << ts2 << " seconds\n";
 
         // timer
         Real aux1 = ParallelDescriptor::second();

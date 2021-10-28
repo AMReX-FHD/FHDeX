@@ -1372,10 +1372,10 @@ void main_driver(const char* argv)
             if ((n_steps_skip > 0 && istep == n_steps_skip) ||
                 (n_steps_skip < 0 && istep%n_steps_skip == 0) ) {
 
-                particles.MeanSqrCalc(0, 1);
+                //particles.MeanSqrCalc(0, 1);
             }
             else {
-                particles.MeanSqrCalc(0, 0);
+                //particles.MeanSqrCalc(0, 0);
             }
 
             Print() << "Finish move.\n";
