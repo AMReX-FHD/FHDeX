@@ -83,7 +83,7 @@ void addMomFluctuations_stag(std::array< MultiFab, AMREX_SPACEDIM >& m_old,
         // Ensure zero total momentum
         Vector<Real> av_mom;
         // take staggered sum & divide by number of cells
-        SumStag(geom,m_old,0,av_mom,true);
+        SumStag(m_old,av_mom,true);
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             // subtract off average
             m_old[d].plus(-av_mom[d],1);

@@ -596,7 +596,7 @@ void main_driver(const char* argv)
         Vector<Real> udotu(3);
         Vector<Real> skew(3);
         Vector<Real> kurt(3);
-        StagInnerProd(geom,umac,0,umac,0,umacTemp,udotu);
+        StagInnerProd(umac,0,umac,0,umacTemp,udotu);
         Print() << "Kinetic energy "
 		<< time << " "
                 << 0.5*dVol*( udotu[0] + udotu[1] + udotu[2] )
