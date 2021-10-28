@@ -309,6 +309,49 @@ void InitConsVarStag(MultiFab& cons,
                     
             } // prob type
 
+            else if (prob_type == 107) { // two-fluid Rayleigh Taylor. 0: lighter species; 1: heavier
+                
+                if (relpos[2] >= 0.) {
+                    massvec[0] = 0.1;
+                    massvec[1] = 0.9;
+                } else {
+                    massvec[0] = 0.9;
+                    massvec[1] = 0.1;
+                }
+
+                Real pamb;
+                GpuArray<Real,MAX_SPECIES  > massvec_bot;
+                massvec_bot[0] = 0.9; massvec_bot[1] = 0.1;
+                GetPressureGas(pamb, massvec_bot, rho0, T_init[0]);
+                
+                Real molmix = 0.;
+
+                for (int l=0; l<nspecies; ++l) {
+                    molmix = molmix + massvec[l]/molmass[l];
+                }
+                molmix = 1.0/molmix;
+                Real rgasmix = Runiv/molmix;
+                Real alpha = grav[2]/(rgasmix*T_init[0]);
+
+                // rho = exponential in z-dir to init @ hydrostatic eqm.
+                // must satisfy system: dP/dz = -rho*g & P = rhogasmix*rho*T
+                // Assumes temp=const
+                Real press = pamb*exp(alpha*pos[2]);
+                cu(i,j,k,0) = pamb*exp(alpha*pos[2])/(rgasmix*T_init[0]);
+                
+                for (int l=0; l<nspecies; ++l) {
+                    cu(i,j,k,5+l) = cu(i,j,k,0)*massvec[l];
+                }
+
+                Real intEnergy;
+                GetEnergy(intEnergy, massvec, T_init[0]);
+
+                cu(i,j,k,4) = cu(i,j,k,0)*intEnergy + 0.5*(cu(i,j,k,1)*cu(i,j,k,1) +
+                                                           cu(i,j,k,2)*cu(i,j,k,2) +
+                                                           cu(i,j,k,3)*cu(i,j,k,3)) / cu(i,j,k,0);
+            }
+
+
         });
     } // end MFIter
 }
