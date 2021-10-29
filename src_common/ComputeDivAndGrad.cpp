@@ -500,3 +500,40 @@ void ComputeCurlFaceToEdge(std::array<MultiFab, AMREX_SPACEDIM> & umac_in,
         
     }    
 }
+
+void ComputeCurlCC(const MultiFab& vel_in,
+                   int incomp,
+                   MultiFab& curl_in,
+                   int outcomp,
+                   const Geometry & geom)
+{
+    BL_PROFILE_VAR("ComputeCurlCC()",ComputeCurlCC);
+    
+    const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
+
+    for ( MFIter mfi(vel_in,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
+
+        const Box& bx = mfi.tilebox();
+        
+        Array4<Real const> const& vel  = vel_in.array(mfi);
+        Array4<Real>       const& curl = curl_in.array(mfi);
+
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            // dw/dy - dv/dz
+            curl(i,j,k,outcomp) =
+                (vel(i,j+1,k,incomp+2) - vel(i,j-1,k,incomp+2)) / (2.*dx[1]) -
+                (vel(i,j,k+1,incomp+1) - vel(i,j,k-1,incomp+1)) / (2.*dx[2]);
+
+            // du/dz - dw/dx                
+            curl(i,j,k,outcomp+1) =
+                (vel(i,j,k+1,outcomp+0) - vel(i,j,k-1,outcomp+0)) / (2.*dx[2]) -
+                (vel(i+1,j,k,outcomp+2) - vel(i-1,j,k,outcomp+2)) / (2.*dx[0]);
+
+            // dv/dx - du/dy
+            curl(i,j,k,outcomp+2) =
+                (vel(i+1,j,k,outcomp+1) - vel(i-1,j,k,outcomp+1)) / (2.*dx[0]) -
+                (vel(i,j+1,k,outcomp+0) - vel(i,j-1,k,outcomp+0)) / (2.*dx[1]);
+        });
+    }    
+}

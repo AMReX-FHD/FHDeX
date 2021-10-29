@@ -96,6 +96,12 @@ void ComputeStagLap(std::array<MultiFab, AMREX_SPACEDIM> & phi,
 void ComputeCurlFaceToEdge(std::array<MultiFab, AMREX_SPACEDIM> & umac_in,
                            std::array<MultiFab, NUM_EDGE> & curl,
                            const Geometry & geom);
+
+void ComputeCurlCC(const MultiFab& vel_in,
+                   int incomp,
+                   MultiFab& curl_in,
+                   int outcomp,
+                   const Geometry & geom);
     
 ///////////////////////////
 // in Debug.cpp
