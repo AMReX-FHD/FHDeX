@@ -382,9 +382,60 @@ void ComputeStagLap(std::array<MultiFab, AMREX_SPACEDIM> & phi_in,
 #endif
             );
         
-    }
+    }    
+}
 
-
-
+void ComputeCurlFaceToEdge(std::array<MultiFab, AMREX_SPACEDIM> & umac_in,
+                           std::array<MultiFab, NUM_EDGE> & curl,
+                           const Geometry & geom)
+{
+    BL_PROFILE_VAR("ComputeCurlFaceToEdge()",ComputeCurlFaceToEdge);
     
+    const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
+
+    for ( MFIter mfi(umac_in[0],TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
+
+        AMREX_D_TERM(Array4<Real const> const& umac = umac_in[0].array(mfi);,
+                     Array4<Real const> const& vmac = umac_in[1].array(mfi);,
+                     Array4<Real const> const& wmac = umac_in[2].array(mfi););
+
+#if (AMREX_SPACEDIM == 3)
+        AMREX_D_TERM(Box bx_xy = mfi.tilebox(nodal_flag_xy);,
+                     Box bx_xz = mfi.tilebox(nodal_flag_xz);,
+                     Box bx_yz = mfi.tilebox(nodal_flag_yz););
+
+        AMREX_D_TERM(Array4<Real> const& curlxy = curl[0].array(mfi);,
+                     Array4<Real> const& curlxz = curl[1].array(mfi);,
+                     Array4<Real> const& curlyz = curl[2].array(mfi););
+
+        amrex::ParallelFor(bx_xy, bx_xz, bx_yz,
+                           [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                // dv/dx - du/dy
+                curlxy(i,j,k) = (vmac(i,j,k) - vmac(i-1,j,k))/dx[0] - (umac(i,j,k)-umac(i,j-1,k))/dx[1];
+            },
+                           [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                // du/dz - dw/dx
+                curlxz(i,j,k) = (umac(i,j,k)-umac(i,j,k-1))/dx[2] - (wmac(i,j,k)-wmac(i-1,j,k))/dx[0];
+            },
+                           [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                // dw/dy - dv/dz
+                curlyz(i,j,k) = (wmac(i,j,k)-wmac(i,j-1,k))/dx[1] - (vmac(i,j,k)-vmac(i,j,k-1))/dx[2];
+            });
+#elif (AMREX_SPACEDIM == 2)
+        Box bx_xy = mfi.tilebox(nodal_flag_xy);
+
+        Array4<Real> const& curlxy = curl[0].array(mfi);
+
+        amrex::ParallelFor(bx_xy,
+                           [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                // dv/dx - du/dy
+                curlxy(i,j,k) = (vmac(i,j,k) - vmac(i-1,j,k))/dx[0] - (umac(i,j,k)-umac(i,j-1,k))/dx[1];
+            });
+#endif
+        
+    }    
 }

@@ -499,11 +499,28 @@ void main_driver(const char* argv)
     MultiFab gradU(ba,dmap,AMREX_SPACEDIM,0);
     MultiFab ccTemp(ba,dmap,1,0);
     std::array< MultiFab, AMREX_SPACEDIM > Lumac;
-    
     AMREX_D_TERM(Lumac[0].define(convert(ba,nodal_flag_x), dmap, 1, 0);,
                  Lumac[1].define(convert(ba,nodal_flag_y), dmap, 1, 0);,
                  Lumac[2].define(convert(ba,nodal_flag_z), dmap, 1, 0););
     
+    std::array< MultiFab, NUM_EDGE > curlU;
+#if (AMREX_SPACEDIM == 3)
+    curlU[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
+    curlU[1].define(convert(ba,nodal_flag_xz), dmap, 1, 0);
+    curlU[2].define(convert(ba,nodal_flag_yz), dmap, 1, 0);
+#elif (AMREX_SPACEDIM == 2)
+    curlU[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
+#endif
+    
+    std::array< MultiFab, NUM_EDGE > curlUtemp;
+#if (AMREX_SPACEDIM == 3)
+    curlUtemp[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
+    curlUtemp[1].define(convert(ba,nodal_flag_xz), dmap, 1, 0);
+    curlUtemp[2].define(convert(ba,nodal_flag_yz), dmap, 1, 0);
+#elif (AMREX_SPACEDIM == 2)
+    curlUtemp[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
+#endif
+
     ///////////////////////////////////////////
 
     //Time stepping loop
@@ -637,27 +654,27 @@ void main_driver(const char* argv)
 
         // compute <u*Lap(u)>, <v*Lap(v)>, <w*Lap(w)>
         Vector<Real> uLapu(AMREX_SPACEDIM);
-        StagInnerProd(geom,umac,0,Lumac,0,umacTemp,uLapu);
+        StagInnerProd(umac,0,Lumac,0,umacTemp,uLapu);
 
         // compute <-u_j Lap(u_j)>
         Real FORM2 = -visc_coef*dProb*( uLapu[0] + uLapu[1] + uLapu[2] );
         
         // FORM 3: <du_i/dx_j du_i/dx_j> using cell-centered and edge-centered
-        //
-        //
 
         // FORM 4: <curl(V) dot (curl(V)> using cell-centered gradients
-        //
-        //
 
         // FORM 5: <curl(V) dot (curl(V)> using edge-centered gradients
-        //
-        //
+        ComputeCurlFaceToEdge(umac,curlU,geom);
+        Vector<Real> curlUdotcurlU(NUM_EDGE);
+        EdgeInnerProd(curlU,0,curlU,0,curlUtemp,curlUdotcurlU);
+        Real FORM5 = (AMREX_SPACEDIM == 2) ? visc_coef*dProb*curlUdotcurlU[0]
+            : visc_coef*dProb*(curlUdotcurlU[0] + curlUdotcurlU[1] + curlUdotcurlU[2]);
         
         Print() << "Energy dissipation "
 		<< time << " "
                 << FORM1 << " "
-                << FORM2
+                << FORM2 << " "
+                << FORM5
                 << std::endl;
 
         Print() << "Skewness "
