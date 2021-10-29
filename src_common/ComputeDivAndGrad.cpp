@@ -355,7 +355,7 @@ void ComputeCentredGradFC(std::array<MultiFab, AMREX_SPACEDIM> & phi,
     }
 }
 
-// Computes gradient at cell centres on a component in a given direction
+// Computes Laplacian at cell centres on a component in a given direction
 void ComputeLap(const MultiFab & phi_in,
                 MultiFab& Lphi_in,
                 int incomp,
@@ -385,4 +385,118 @@ void ComputeLap(const MultiFab & phi_in,
                 ;
         });
     }
+}
+    
+void ComputeStagLap(std::array<MultiFab, AMREX_SPACEDIM> & phi_in,
+                    std::array<MultiFab, AMREX_SPACEDIM> & Lphi_in,
+                    const Geometry & geom)
+{
+    BL_PROFILE_VAR("ComputeStagLap()",ComputeStagLap);
+
+    const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
+
+    for ( MFIter mfi(phi_in[0],TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
+
+        AMREX_D_TERM(Box bx_x = mfi.tilebox(nodal_flag_x);,
+                     Box bx_y = mfi.tilebox(nodal_flag_y);,
+                     Box bx_z = mfi.tilebox(nodal_flag_z););
+
+        AMREX_D_TERM(Array4<Real const> const& phix = phi_in[0].array(mfi);,
+                     Array4<Real const> const& phiy = phi_in[1].array(mfi);,
+                     Array4<Real const> const& phiz = phi_in[2].array(mfi););
+
+        AMREX_D_TERM(Array4<Real> const& Lphix = Lphi_in[0].array(mfi);,
+                     Array4<Real> const& Lphiy = Lphi_in[1].array(mfi);,
+                     Array4<Real> const& Lphiz = Lphi_in[2].array(mfi););
+
+        amrex::ParallelFor(bx_x, bx_y,
+#if (AMREX_SPACEDIM == 3)
+                           bx_z,
+#endif
+                           [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                Lphix(i,j,k) =    (phix(i+1,j,k) - 2.*phix(i,j,k) + phix(i-1,j,k)) / (dx[0]*dx[0])
+                                + (phix(i,j+1,k) - 2.*phix(i,j,k) + phix(i,j-1,k)) / (dx[1]*dx[1])
+#if (AMREX_SPACEDIM == 3)
+                                + (phix(i,j,k+1) - 2.*phix(i,j,k) + phix(i,j,k-1)) / (dx[2]*dx[2])
+#endif
+                    ;
+                    
+            },
+                           [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                Lphiy(i,j,k) =    (phiy(i+1,j,k) - 2.*phiy(i,j,k) + phiy(i-1,j,k)) / (dx[0]*dx[0])
+                                + (phiy(i,j+1,k) - 2.*phiy(i,j,k) + phiy(i,j-1,k)) / (dx[1]*dx[1])
+#if (AMREX_SPACEDIM == 3)
+                                + (phiy(i,j,k+1) - 2.*phiy(i,j,k) + phiy(i,j,k-1)) / (dx[2]*dx[2])
+#endif
+                    ;
+
+            }
+#if (AMREX_SPACEDIM == 3)
+                           , [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                Lphiz(i,j,k) =    (phiz(i+1,j,k) - 2.*phiz(i,j,k) + phiz(i-1,j,k)) / (dx[0]*dx[0])
+                                + (phiz(i,j+1,k) - 2.*phiz(i,j,k) + phiz(i,j-1,k)) / (dx[1]*dx[1])
+                                + (phiz(i,j,k+1) - 2.*phiz(i,j,k) + phiz(i,j,k-1)) / (dx[2]*dx[2]);
+            }
+#endif
+            );
+        
+    }    
+}
+
+void ComputeCurlFaceToEdge(std::array<MultiFab, AMREX_SPACEDIM> & umac_in,
+                           std::array<MultiFab, NUM_EDGE> & curl,
+                           const Geometry & geom)
+{
+    BL_PROFILE_VAR("ComputeCurlFaceToEdge()",ComputeCurlFaceToEdge);
+    
+    const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
+
+    for ( MFIter mfi(umac_in[0],TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
+
+        AMREX_D_TERM(Array4<Real const> const& umac = umac_in[0].array(mfi);,
+                     Array4<Real const> const& vmac = umac_in[1].array(mfi);,
+                     Array4<Real const> const& wmac = umac_in[2].array(mfi););
+
+#if (AMREX_SPACEDIM == 3)
+        AMREX_D_TERM(Box bx_xy = mfi.tilebox(nodal_flag_xy);,
+                     Box bx_xz = mfi.tilebox(nodal_flag_xz);,
+                     Box bx_yz = mfi.tilebox(nodal_flag_yz););
+
+        AMREX_D_TERM(Array4<Real> const& curlxy = curl[0].array(mfi);,
+                     Array4<Real> const& curlxz = curl[1].array(mfi);,
+                     Array4<Real> const& curlyz = curl[2].array(mfi););
+
+        amrex::ParallelFor(bx_xy, bx_xz, bx_yz,
+                           [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                // dv/dx - du/dy
+                curlxy(i,j,k) = (vmac(i,j,k) - vmac(i-1,j,k))/dx[0] - (umac(i,j,k)-umac(i,j-1,k))/dx[1];
+            },
+                           [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                // du/dz - dw/dx
+                curlxz(i,j,k) = (umac(i,j,k)-umac(i,j,k-1))/dx[2] - (wmac(i,j,k)-wmac(i-1,j,k))/dx[0];
+            },
+                           [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                // dw/dy - dv/dz
+                curlyz(i,j,k) = (wmac(i,j,k)-wmac(i,j-1,k))/dx[1] - (vmac(i,j,k)-vmac(i,j,k-1))/dx[2];
+            });
+#elif (AMREX_SPACEDIM == 2)
+        Box bx_xy = mfi.tilebox(nodal_flag_xy);
+
+        Array4<Real> const& curlxy = curl[0].array(mfi);
+
+        amrex::ParallelFor(bx_xy,
+                           [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                // dv/dx - du/dy
+                curlxy(i,j,k) = (vmac(i,j,k) - vmac(i-1,j,k))/dx[0] - (umac(i,j,k)-umac(i,j-1,k))/dx[1];
+            });
+#endif
+        
+    }    
 }

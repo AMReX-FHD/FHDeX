@@ -102,7 +102,7 @@ void SumStag(const std::array<MultiFab, AMREX_SPACEDIM>& m1,
   }
 }
 
-void SumEdge(const std::array<MultiFab, AMREX_SPACEDIM>& m1,
+void SumEdge(const std::array<MultiFab, NUM_EDGE>& m1,
 	     amrex::Vector<amrex::Real>& sum,
 	     const bool& divide_by_ncells)
 {
@@ -149,6 +149,10 @@ void SumEdge(const std::array<MultiFab, AMREX_SPACEDIM>& m1,
   sum[0] = amrex::get<0>(reduce_dataxy.value());
   ParallelDescriptor::ReduceRealSum(sum[0]);
 
+  if (AMREX_SPACEDIM == 2) {
+      return;
+  }
+  
   //////// xz-edges
 
   ReduceData<Real> reduce_dataxz(reduce_op);
@@ -267,6 +271,24 @@ void StagInnerProd(const std::array<MultiFab, AMREX_SPACEDIM>& m1,
   SumStag(mscr,prod_val,false);
 }
 
+void EdgeInnerProd(const std::array<MultiFab, NUM_EDGE>& m1,
+                   const int& comp1,
+                   const std::array<MultiFab, NUM_EDGE>& m2,
+                   const int& comp2,
+                   std::array<MultiFab, NUM_EDGE>& mscr,
+                   amrex::Vector<amrex::Real>& prod_val)
+{
+  BL_PROFILE_VAR("EdgeInnerProd()",EdgeInnerProd);
+
+  for (int d=0; d<NUM_EDGE; d++) {
+    MultiFab::Copy(mscr[d],m1[d],comp1,0,1,0);
+    MultiFab::Multiply(mscr[d],m2[d],comp2,0,1,0);
+  }
+
+  std::fill(prod_val.begin(), prod_val.end(), 0.);
+  SumEdge(mscr,prod_val,false);
+}
+
 void CCInnerProd(const amrex::MultiFab& m1,
 		 const int& comp1,
 		 const amrex::MultiFab& m2,
@@ -313,6 +335,20 @@ void StagL2Norm(const std::array<MultiFab, AMREX_SPACEDIM>& m1,
     Vector<Real> inner_prod(AMREX_SPACEDIM);
 
     StagInnerProd(m1, comp, m1, comp, mscr, inner_prod);
+    norm_l2 = sqrt(std::accumulate(inner_prod.begin(), inner_prod.end(), 0.));
+}
+
+void EdgeL2Norm(const std::array<MultiFab, NUM_EDGE>& m1,
+		const int& comp,
+                std::array<MultiFab, NUM_EDGE>& mscr,
+		Real& norm_l2)
+{
+
+    BL_PROFILE_VAR("EdgeL2Norm()",EdgeL2Norm);
+
+    Vector<Real> inner_prod(NUM_EDGE);
+
+    EdgeInnerProd(m1, comp, m1, comp, mscr, inner_prod);
     norm_l2 = sqrt(std::accumulate(inner_prod.begin(), inner_prod.end(), 0.));
 }
 
