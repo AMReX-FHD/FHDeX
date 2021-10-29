@@ -275,6 +275,19 @@ void main_driver(const char* argv)
     MultiFab gradUtensor(ba,dmap,AMREX_SPACEDIM*AMREX_SPACEDIM,0);
     MultiFab rhoscaled_gradUtensor(ba,dmap,AMREX_SPACEDIM*AMREX_SPACEDIM,0);
 
+    std::array< MultiFab, AMREX_SPACEDIM > gradUtensor_fc;
+    AMREX_D_TERM(gradUtensor_fc[0].define(convert(ba,nodal_flag_x), dmap, AMREX_SPACEDIM, 0);,
+                 gradUtensor_fc[1].define(convert(ba,nodal_flag_y), dmap, AMREX_SPACEDIM, 0);,
+                 gradUtensor_fc[2].define(convert(ba,nodal_flag_z), dmap, AMREX_SPACEDIM, 0););
+    std::array< MultiFab, AMREX_SPACEDIM > rhoscaled_gradUtensor_fc;
+    AMREX_D_TERM(rhoscaled_gradUtensor_fc[0].define(convert(ba,nodal_flag_x), dmap, AMREX_SPACEDIM, 0);,
+                 rhoscaled_gradUtensor_fc[1].define(convert(ba,nodal_flag_y), dmap, AMREX_SPACEDIM, 0);,
+                 rhoscaled_gradUtensor_fc[2].define(convert(ba,nodal_flag_z), dmap, AMREX_SPACEDIM, 0););
+    std::array< MultiFab, AMREX_SPACEDIM > temp_fc;
+    AMREX_D_TERM(temp_fc[0].define(convert(ba,nodal_flag_x), dmap, AMREX_SPACEDIM, 0);,
+                 temp_fc[1].define(convert(ba,nodal_flag_y), dmap, AMREX_SPACEDIM, 0);,
+                 temp_fc[2].define(convert(ba,nodal_flag_z), dmap, AMREX_SPACEDIM, 0););
+    
     // temporary storage
     MultiFab ccTemp(ba,dmap,1,0);
 
@@ -677,8 +690,29 @@ void main_driver(const char* argv)
 
 
         // FORM 4: <rho/rho0 du_i/dx_j du_i/dx_j> using edge and cell-centered gradients
-        //
-        //
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            // only works for periodic (9999 is a fake bc_comp that makes everything INT_DIR)
+            ComputeGrad(prim,gradUtensor_fc,d+1,d,AMREX_SPACEDIM,9999,geom);
+        }
+
+        // create a copy of gradUtensor_fc scaled by rho
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            MultiFab::Copy(rhoscaled_gradUtensor_fc[d], gradUtensor_fc[d], 0, 0, AMREX_SPACEDIM, 0);
+            for (int dd=0; dd<AMREX_SPACEDIM; ++dd) {
+                MultiFab::Multiply(rhoscaled_gradUtensor_fc[d], prim, 0, dd, 1, 0); // fixme need rho averaged to faces
+            }
+        }
+        
+        Vector<Real> gradUdotgradUx(3);
+        Vector<Real> gradUdotgradUy(3);
+        Vector<Real> gradUdotgradUz(3);
+        StagInnerProd(rhoscaled_gradUtensor_fc,1,gradUtensor_fc,2,temp_fc,gradUdotgradUx);
+        StagInnerProd(rhoscaled_gradUtensor_fc,1,gradUtensor_fc,2,temp_fc,gradUdotgradUy);
+        StagInnerProd(rhoscaled_gradUtensor_fc,1,gradUtensor_fc,2,temp_fc,gradUdotgradUz);
+        
+        Real FORM4 = dProb*(  gradUdotgradUx[0] + gradUdotgradUx[1] + gradUdotgradUx[2]
+                            + gradUdotgradUy[0] + gradUdotgradUy[1] + gradUdotgradUy[2]
+                            + gradUdotgradUz[0] + gradUdotgradUz[1] + gradUdotgradUz[2]);
         
         // FORM 5: <curl(V) dot (curl(V)> using cell-centered gradients
         
@@ -707,6 +741,7 @@ void main_driver(const char* argv)
                 << FORM1 << " "
                 << FORM2 << " "
                 << FORM3 << " "
+                << FORM4 << " "
                 << FORM5 << " "
                 << std::endl;
         

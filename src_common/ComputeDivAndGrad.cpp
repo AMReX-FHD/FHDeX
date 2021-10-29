@@ -377,10 +377,10 @@ void ComputeLap(const MultiFab & phi_in,
         amrex::ParallelFor(bx, numcomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
             Lphi(i,j,k,outcomp+n) =
-                  ( phi(i-1,j,k,incomp+n) + 2.*phi(i,j,k,incomp+n) - phi(i+1,j,k,incomp+n) ) / (dx[0]*dx[0])
-                + ( phi(i,j-1,k,incomp+n) + 2.*phi(i,j,k,incomp+n) - phi(i,j+1,k,incomp+n) ) / (dx[1]*dx[1])
+                  ( phi(i-1,j,k,incomp+n) - 2.*phi(i,j,k,incomp+n) + phi(i+1,j,k,incomp+n) ) / (dx[0]*dx[0])
+                + ( phi(i,j-1,k,incomp+n) - 2.*phi(i,j,k,incomp+n) + phi(i,j+1,k,incomp+n) ) / (dx[1]*dx[1])
 #if (AMREX_SPACEDIM == 3)
-                + ( phi(i,j,k-1,incomp+n) + 2.*phi(i,j,k,incomp+n) - phi(i,j,k+1,incomp+n) ) / (dx[2]*dx[2])
+                + ( phi(i,j,k-1,incomp+n) - 2.*phi(i,j,k,incomp+n) + phi(i,j,k+1,incomp+n) ) / (dx[2]*dx[2])
 #endif
                 ;
         });
