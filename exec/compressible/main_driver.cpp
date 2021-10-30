@@ -287,6 +287,11 @@ void main_driver(const char* argv)
     AMREX_D_TERM(temp_fc[0].define(convert(ba,nodal_flag_x), dmap, AMREX_SPACEDIM, 0);,
                  temp_fc[1].define(convert(ba,nodal_flag_y), dmap, AMREX_SPACEDIM, 0);,
                  temp_fc[2].define(convert(ba,nodal_flag_z), dmap, AMREX_SPACEDIM, 0););
+
+    std::array< MultiFab, AMREX_SPACEDIM > rho_fc;
+    AMREX_D_TERM(rho_fc[0].define(convert(ba,nodal_flag_x), dmap, 1, 0);,
+                 rho_fc[1].define(convert(ba,nodal_flag_y), dmap, 1, 0);,
+                 rho_fc[2].define(convert(ba,nodal_flag_z), dmap, 1, 0););
     
     // temporary storage
     MultiFab ccTemp(ba,dmap,1,0);
@@ -692,23 +697,26 @@ void main_driver(const char* argv)
         // FORM 4: <rho/rho0 du_i/dx_j du_i/dx_j> using edge and cell-centered gradients
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             // only works for periodic (9999 is a fake bc_comp that makes everything INT_DIR)
-            ComputeGrad(prim,gradUtensor_fc,d+1,d,AMREX_SPACEDIM,9999,geom);
+            ComputeGrad(prim,gradUtensor_fc,d+1,d,1,9999,geom);
         }
+
+        // compute rho at faces
+        AverageCCToFace(prim,rho_fc,0,1,RHO_BC_COMP,geom);
 
         // create a copy of gradUtensor_fc scaled by rho
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             MultiFab::Copy(rhoscaled_gradUtensor_fc[d], gradUtensor_fc[d], 0, 0, AMREX_SPACEDIM, 0);
             for (int dd=0; dd<AMREX_SPACEDIM; ++dd) {
-                MultiFab::Multiply(rhoscaled_gradUtensor_fc[d], prim, 0, dd, 1, 0); // fixme need rho averaged to faces
+              MultiFab::Multiply(rhoscaled_gradUtensor_fc[d], rho_fc[d], 0, dd, 1, 0);
             }
         }
         
         Vector<Real> gradUdotgradUx(3);
         Vector<Real> gradUdotgradUy(3);
         Vector<Real> gradUdotgradUz(3);
-        StagInnerProd(rhoscaled_gradUtensor_fc,1,gradUtensor_fc,2,temp_fc,gradUdotgradUx);
-        StagInnerProd(rhoscaled_gradUtensor_fc,1,gradUtensor_fc,2,temp_fc,gradUdotgradUy);
-        StagInnerProd(rhoscaled_gradUtensor_fc,1,gradUtensor_fc,2,temp_fc,gradUdotgradUz);
+        StagInnerProd(rhoscaled_gradUtensor_fc,0,gradUtensor_fc,0,temp_fc,gradUdotgradUx);
+        StagInnerProd(rhoscaled_gradUtensor_fc,1,gradUtensor_fc,1,temp_fc,gradUdotgradUy);
+        StagInnerProd(rhoscaled_gradUtensor_fc,2,gradUtensor_fc,2,temp_fc,gradUdotgradUz);
         
         Real FORM4 = dProb*(  gradUdotgradUx[0] + gradUdotgradUx[1] + gradUdotgradUx[2]
                             + gradUdotgradUy[0] + gradUdotgradUy[1] + gradUdotgradUy[2]
