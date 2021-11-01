@@ -179,6 +179,7 @@ AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_SPECIES>         common::p_int_tog_wa
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::eepsilon_wall;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::sigma_wall;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::rmin_wall;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::offset_wall;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::rmax_wall;
 
 int                        common::poisson_verbose;
@@ -977,6 +978,11 @@ void InitializeCommonNamespace() {
     if (pp.queryarr("rmin_wall",temp,0,nspecies)) {
         for (int i=0; i<nspecies; ++i) {
             rmin_wall[i] = temp[i];
+        }
+    }
+    if (pp.queryarr("offset_wall",temp,0,nspecies)) {
+        for (int i=0; i<nspecies; ++i) {
+            offset_wall[i] = temp[i];
         }
     }
     if (pp.queryarr("rmax_wall",temp,0,nspecies)) {

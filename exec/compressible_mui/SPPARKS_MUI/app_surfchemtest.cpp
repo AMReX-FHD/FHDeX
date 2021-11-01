@@ -785,8 +785,7 @@ double AppSurfchemtest::site_propensity(int i)
 
     if (des_is_temp_dep)
     {
-      double cphat = 3.5;
-      despropensity = desrate[m]*std::pow(temp[i]/temperature,cphat-0.5);
+      despropensity = desrate[m]*std::sqrt(temp[i]/temperature);
     }
     else despropensity = desrate[m];
 
