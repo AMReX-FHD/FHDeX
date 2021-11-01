@@ -446,7 +446,10 @@ void main_driver(const char* argv)
         s_pairA[d] = d;
         s_pairB[d] = d;
     }    
-    StructFact turbStructFact(ba,dmap,var_names,var_scaling,s_pairA,s_pairB);
+    StructFact turbStructFact;
+    if (turbForcing == 1) {
+        turbStructFact.define(ba,dmap,var_names,var_scaling,s_pairA,s_pairB);
+    }
     
     ///////////////////////////////////////////
 
