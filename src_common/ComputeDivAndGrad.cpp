@@ -527,13 +527,13 @@ void ComputeCurlCC(const MultiFab& vel_in,
 
             // du/dz - dw/dx                
             curl(i,j,k,outcomp+1) =
-                (vel(i,j,k+1,outcomp+0) - vel(i,j,k-1,outcomp+0)) / (2.*dx[2]) -
-                (vel(i+1,j,k,outcomp+2) - vel(i-1,j,k,outcomp+2)) / (2.*dx[0]);
+                (vel(i,j,k+1,incomp+0) - vel(i,j,k-1,incomp+0)) / (2.*dx[2]) -
+                (vel(i+1,j,k,incomp+2) - vel(i-1,j,k,incomp+2)) / (2.*dx[0]);
 
             // dv/dx - du/dy
             curl(i,j,k,outcomp+2) =
-                (vel(i+1,j,k,outcomp+1) - vel(i-1,j,k,outcomp+1)) / (2.*dx[0]) -
-                (vel(i,j+1,k,outcomp+0) - vel(i,j-1,k,outcomp+0)) / (2.*dx[1]);
+                (vel(i+1,j,k,incomp+1) - vel(i-1,j,k,incomp+1)) / (2.*dx[0]) -
+                (vel(i,j+1,k,incomp+0) - vel(i,j-1,k,incomp+0)) / (2.*dx[1]);
         });
     }    
 }
