@@ -644,10 +644,9 @@ void main_driver(const char* argv)
         Vector<Real> gradUdotgradU(3);
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             CCInnerProd(gradU,d,rhoscaled_gradU,d,ccTemp,gradUdotgradU[d]);
-            gradUdotgradU[d] /= rhoscale;
         }
 
-        Real FORM1 = dProb*(gradUdotgradU[0] + gradUdotgradU[1] + gradUdotgradU[2]);
+        Real FORM1 = dProb*(gradUdotgradU[0] + gradUdotgradU[1] + gradUdotgradU[2]) / rhoscale;
 
         // FORM 2: <-rho/rho0 u_j Lap(u_j)>
         
@@ -661,11 +660,7 @@ void main_driver(const char* argv)
         }
 
         // <rho/rho0 u_j Lap(u_j)>
-        for (int d=0; d<AMREX_SPACEDIM; ++d) {
-            rhoULapU[d] /= rhoscale;
-        }
-
-        Real FORM2 = -dProb*(rhoULapU[0] + rhoULapU[1] + rhoULapU[2]);
+        Real FORM2 = -dProb*(rhoULapU[0] + rhoULapU[1] + rhoULapU[2]) / rhoscale;
 
         // FORM 3: <rho/rho0 du_i/dx_j du_i/dx_j> using cell-centered gradients
 
@@ -686,12 +681,11 @@ void main_driver(const char* argv)
         Vector<Real> gradUdotgradUtensor(9);
         for (int d=0; d<AMREX_SPACEDIM*AMREX_SPACEDIM; ++d) {
             CCInnerProd(gradUtensor,d,rhoscaled_gradUtensor,d,ccTemp,gradUdotgradUtensor[d]);
-            gradUdotgradUtensor[d] /= rhoscale;
         }
 
         Real FORM3 = dProb*(  gradUdotgradUtensor[0] + gradUdotgradUtensor[1] + gradUdotgradUtensor[2]
                             + gradUdotgradUtensor[3] + gradUdotgradUtensor[4] + gradUdotgradUtensor[5]
-                            + gradUdotgradUtensor[6] + gradUdotgradUtensor[7] + gradUdotgradUtensor[8]);
+                            + gradUdotgradUtensor[6] + gradUdotgradUtensor[7] + gradUdotgradUtensor[8]) / rhoscale;
 
 
         // FORM 4: <rho/rho0 du_i/dx_j du_i/dx_j> using face-centered gradients
@@ -726,7 +720,7 @@ void main_driver(const char* argv)
         
         Real FORM4 = dProb*(  gradUdotgradUx[0] + gradUdotgradUx[1] + gradUdotgradUx[2]
                             + gradUdotgradUy[0] + gradUdotgradUy[1] + gradUdotgradUy[2]
-                            + gradUdotgradUz[0] + gradUdotgradUz[1] + gradUdotgradUz[2]);
+                            + gradUdotgradUz[0] + gradUdotgradUz[1] + gradUdotgradUz[2]) / rhoscale;
         
         // FORM 5: <curl(V) dot (curl(V)> using cell-centered gradients
         
@@ -745,11 +739,10 @@ void main_driver(const char* argv)
         Vector<Real> curlUdotcurlU(3);
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             CCInnerProd(gradU,d,rhoscaled_gradU,d,ccTemp,curlUdotcurlU[d]);
-            curlUdotcurlU[d] /= rhoscale;
         }
 
-        Real FORM5 = dProb*(curlUdotcurlU[0] + curlUdotcurlU[1] + curlUdotcurlU[2]);
-        
+        Real FORM5 = dProb*(curlUdotcurlU[0] + curlUdotcurlU[1] + curlUdotcurlU[2]) / rhoscale;
+
         Print() << "Non-viscosity scaled energy dissipation "
 		<< time << " "
                 << FORM1 << " "
