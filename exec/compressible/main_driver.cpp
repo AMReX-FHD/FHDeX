@@ -284,9 +284,9 @@ void main_driver(const char* argv)
                  rhoscaled_gradUtensor_fc[1].define(convert(ba,nodal_flag_y), dmap, AMREX_SPACEDIM, 0);,
                  rhoscaled_gradUtensor_fc[2].define(convert(ba,nodal_flag_z), dmap, AMREX_SPACEDIM, 0););
     std::array< MultiFab, AMREX_SPACEDIM > temp_fc;
-    AMREX_D_TERM(temp_fc[0].define(convert(ba,nodal_flag_x), dmap, AMREX_SPACEDIM, 0);,
-                 temp_fc[1].define(convert(ba,nodal_flag_y), dmap, AMREX_SPACEDIM, 0);,
-                 temp_fc[2].define(convert(ba,nodal_flag_z), dmap, AMREX_SPACEDIM, 0););
+    AMREX_D_TERM(temp_fc[0].define(convert(ba,nodal_flag_x), dmap, 1, 0);,
+                 temp_fc[1].define(convert(ba,nodal_flag_y), dmap, 1, 0);,
+                 temp_fc[2].define(convert(ba,nodal_flag_z), dmap, 1, 0););
 
     std::array< MultiFab, AMREX_SPACEDIM > rho_fc;
     AMREX_D_TERM(rho_fc[0].define(convert(ba,nodal_flag_x), dmap, 1, 0);,
@@ -694,8 +694,12 @@ void main_driver(const char* argv)
                             + gradUdotgradUtensor[6] + gradUdotgradUtensor[7] + gradUdotgradUtensor[8]);
 
 
-        // FORM 4: <rho/rho0 du_i/dx_j du_i/dx_j> using edge and cell-centered gradients
+        // FORM 4: <rho/rho0 du_i/dx_j du_i/dx_j> using face-centered gradients
+
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            // du/dx du/dy du/dz goes into component 0 of each element in gradUtensor_fc
+            // dv/dx dv/dy dv/dz goes into component 1 of each element in gradUtensor_fc
+            // dw/dx dw/dy dw/dz goes into component 2 of each element in gradUtensor_fc
             // only works for periodic (9999 is a fake bc_comp that makes everything INT_DIR)
             ComputeGrad(prim,gradUtensor_fc,d+1,d,1,9999,geom);
         }
@@ -705,9 +709,11 @@ void main_driver(const char* argv)
 
         // create a copy of gradUtensor_fc scaled by rho
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            // copy all 3 components of gradUtensor_fc[d] into a temporary
             MultiFab::Copy(rhoscaled_gradUtensor_fc[d], gradUtensor_fc[d], 0, 0, AMREX_SPACEDIM, 0);
             for (int dd=0; dd<AMREX_SPACEDIM; ++dd) {
-              MultiFab::Multiply(rhoscaled_gradUtensor_fc[d], rho_fc[d], 0, dd, 1, 0);
+                // scale each temporary value by rho
+                MultiFab::Multiply(rhoscaled_gradUtensor_fc[d], rho_fc[d], 0, dd, 1, 0);
             }
         }
         
