@@ -474,7 +474,7 @@ void BCMem(MultiFab& prim_in, MultiFab& cons_in,
     Box dom(geom.Domain());
     int ng_p = prim_in.nGrow();
 
-    // first set adiabatic temperature and pressure
+    // first set adiabatic temperature and pressure, and a wall
     for ( MFIter mfi(prim_in); mfi.isValid(); ++mfi) {
 
         const Box& bx = mfi.growntilebox(ng_p);
@@ -2747,7 +2747,7 @@ void StochFluxMem(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array<
     
     BL_PROFILE_VAR("StochFluxMem()",StochFluxMem);
 
-    // The membrane is an adiabatic wall -- setup the stochastic heat fluxes to zero
+    // The membrane is an adiabatic wall -- setup the stochastic heat and species fluxes to zero
     for (MFIter mfi(faceflux_in[0]); mfi.isValid(); ++mfi) {
 
         const Box& bx = mfi.validbox();
@@ -2757,9 +2757,14 @@ void StochFluxMem(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array<
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 if (i == membrane_cell) {
-                    xflux(i,j,k,nvars+0)   = 0.; // stochastic heating (adiabatic wall)
+                    // species
+                    for (int n=0;n<nspecies;++n) {
+                        xflux(i,j,k,n+5) = 0.0;
+                    }
+                    // heat
+                    xflux(i,j,k,nvars+0) = 0.; // stochastic heating (adiabatic wall)
                     xflux(i,j,k,nvars+1) = 0.; // stochastic viscous heating (normal velocity zero at membrane)
-                    xflux(i,j,k,nvars+2) = 0.; // stochastic viscous heating
+                    xflux(i,j,k,nvars+2) = 0.; // stochastic viscous heating (slip BC)
                     xflux(i,j,k,nvars+3) = 0.; // stochastic dufour 
                 }
             });
@@ -2768,9 +2773,14 @@ void StochFluxMem(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array<
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 if (i == membrane_cell) {
-                    xflux(i,j,k,nvars+0)   = 0.; // stochastic heating (adiabatic wall)
+                    // species
+                    for (int n=0;n<nspecies;++n) {
+                        xflux(i,j,k,n+5) = 0.0;
+                    }
+                    // heat
+                    xflux(i,j,k,nvars+0) = 0.; // stochastic heating (adiabatic wall)
                     xflux(i,j,k,nvars+1) = 0.; // stochastic viscous heating (normal velocity zero at membrane)
-                    xflux(i,j,k,nvars+2) = 0.; // stochastic viscous heating
+                    xflux(i,j,k,nvars+2) = 0.; // stochastic viscous heating (slip BC)
                     xflux(i,j,k,nvars+3) = 0.; // stochastic dufour
                 }
             });
@@ -2778,18 +2788,20 @@ void StochFluxMem(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array<
 
     }
 
-    // Next set momentum fluxes to zero -- we need to do this only for edge fluxes contributing to x-momentum
+    // Set transverse momentum at the membrane according to the full slip condition
     // XY
     for (MFIter mfi(edgeflux_y_in[0]); mfi.isValid(); ++mfi) { 
 
         const Box& bx = mfi.validbox();
         const Array4<Real>& edgey_u = edgeflux_y_in[0].array(mfi);
+        const Array4<Real>& edgex_v = edgeflux_x_in[0].array(mfi);
 
         if (bx.smallEnd(0) == membrane_cell) {
               amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
               {
                   if (i == bx.smallEnd(0)) {
-                      edgey_u(i,j,k) = 0.;
+                      edgey_u(i,j,k) = 0.0;
+                      edgex_v(i,j,k) = 0.0;
                   }
               });
         }
@@ -2797,7 +2809,8 @@ void StochFluxMem(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array<
               amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
               {
                   if (i == bx.bigEnd(0)) {
-                      edgey_u(i,j,k) = 0.;
+                      edgey_u(i,j,k) = 0.0;
+                      edgex_v(i,j,k) = 0.0;
                   }
               });
         }
@@ -2807,60 +2820,14 @@ void StochFluxMem(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array<
 
         const Box& bx = mfi.validbox();
         const Array4<Real>& edgez_u = edgeflux_z_in[0].array(mfi);
-
-        if (bx.smallEnd(0) == membrane_cell) {
-              amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-              {
-                  if (i == bx.smallEnd(0)) {
-                      edgez_u(i,j,k) = 0.;
-                  }
-              });
-        }
-        if (bx.bigEnd(0) == membrane_cell) {
-              amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-              {
-                  if (i == bx.bigEnd(0)) {
-                      edgez_u(i,j,k) = 0.;
-                  }
-              });
-        }
-    }
-
-    // XZ
-    for (MFIter mfi(edgeflux_x_in[0]); mfi.isValid(); ++mfi) {
-
-        const Box& bx = mfi.validbox();
-        const Array4<Real>& edgex_v = edgeflux_x_in[0].array(mfi);
-
-        if (bx.smallEnd(0) == membrane_cell) {
-              amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-              {
-                  if (i == bx.smallEnd(0)) {
-                      edgex_v(i,j,k) = 0.;
-                  }
-              });
-        }
-        if (bx.bigEnd(0) == membrane_cell) {
-              amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-              {
-                  if (i == bx.bigEnd(0)) {
-                      edgex_v(i,j,k) = 0.;
-                  }
-              });
-        }
-    }
-
-    // Z-momentum flux
-    for (MFIter mfi(edgeflux_x_in[1]); mfi.isValid(); ++mfi) {
-
-        const Box& bx = mfi.validbox();
         const Array4<Real>& edgex_w = edgeflux_x_in[1].array(mfi);
 
         if (bx.smallEnd(0) == membrane_cell) {
               amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
               {
                   if (i == bx.smallEnd(0)) {
-                      edgex_w(i,j,k) = 0.;
+                      edgez_u(i,j,k) = 0.0;
+                      edgex_w(i,j,k) = 0.0;
                   }
               });
         }
@@ -2868,11 +2835,10 @@ void StochFluxMem(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array<
               amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
               {
                   if (i == bx.bigEnd(0)) {
-                      edgex_w(i,j,k) = 0.;
+                      edgez_u(i,j,k) = 0.0;
+                      edgex_w(i,j,k) = 0.0;
                   }
               });
         }
-
     }
-
 }

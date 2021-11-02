@@ -116,14 +116,20 @@ void doMembraneStag(MultiFab& cons,
                     MultiFab& prim, 
                     std::array< MultiFab, AMREX_SPACEDIM >& vel,
                     std::array<MultiFab, AMREX_SPACEDIM>& faceflux,
+                    std::array< MultiFab, 2 >& edgeflux_x,
                     const amrex::Geometry geom, const amrex::Real dt);
 
 void doLangevin(MultiFab& cons_in, MultiFab& prim_in,
                 std::array<MultiFab, AMREX_SPACEDIM>& faceflux,
+                std::array< MultiFab, 2 >& edgeflux_x,
+                std::array<MultiFab, AMREX_SPACEDIM>& vel,
                 const amrex::Geometry geom,
                 const amrex::Real dt);
 
-void applyEffusion(std::array<MultiFab, AMREX_SPACEDIM>& faceflux, MultiFab& cons);
+void applyEffusion(std::array<MultiFab, AMREX_SPACEDIM>& faceflux, 
+                   std::array< MultiFab, 2 >& edgeflux_x,
+                   MultiFab& cons_in,
+                   std::array< MultiFab, AMREX_SPACEDIM >& cumom);
 
 void WriteCheckPoint3D(int step,
                        const amrex::Real time,
@@ -356,5 +362,57 @@ void EvaluateSpatialCorrelations1D(MultiFab& spatialCross1D,
                                    const int nstats,
                                    const int ncross,
                                    const int star_index);
+
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void Cholesky(Array2D<Real, 1, MAX_SPECIES+3, 1, MAX_SPECIES+3> A,
+              int const nspecies,
+              Array2D<Real, 1, MAX_SPECIES+3, 1, MAX_SPECIES+3> Adecomp)
+
+{
+    GpuArray<Real,MAX_SPECIES+3> P;
+    
+    Real sum1 = 0.;
+    int ising;
+
+    for (int i=0; i<nspecies+3; ++i) {
+        ising = 0;
+
+        for (int j=0; j<nspecies+3; ++j) {
+            sum1 = A(i,j);
+
+            for (int k=i-1; k>=0; --k) {
+                sum1 = sum1 - A(i,k)*A(j,k);
+            }
+
+            if (i == j) {
+                if (sum1 <= 0.) {
+                    P[i] = 0.;
+                    ising = 1;
+                } else {
+                    P[i] = sqrt(sum1);
+                }
+            }
+            if (ising == 0) {
+                A(j,i) = sum1/P[i];
+            } else {
+                A(j,i) = 0.;
+            }
+        }
+    }
+
+    for (int i=0; i<nspecies+3; ++i) {
+        for (int j=0; j<nspecies+3; ++j) {
+            Adecomp(i,j) = 0.;
+        }
+    }
+
+    for (int i=0; i<nspecies+3; ++i) {
+        for (int j=i-1; j>=0; --j) {
+            Adecomp(i,j) = A(i,j);
+        }
+        Adecomp(i,i) = P[i];
+    }
+}
 
 #endif
