@@ -102,7 +102,7 @@ namespace common {
 
     // Stochastic momentum flux controls:
     extern int                        filtering_width;
-    extern int                        stoch_stress_form;
+    extern int AMREX_GPU_MANAGED      stoch_stress_form;
 
     // Initial conditions
     extern amrex::Vector<amrex::Real> u_init;

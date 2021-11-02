@@ -75,7 +75,7 @@ void doLangevin(MultiFab& cons_in, MultiFab& prim_in,
 
         if (bx.smallEnd(0) == membrane_cell && bx.bigEnd(0) == membrane_cell) {
 
-            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            amrex::ParallelForRNG(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k, RandomEngine const& engine) noexcept
             {
                 if (i == membrane_cell) {
 
@@ -173,7 +173,7 @@ void doLangevin(MultiFab& cons_in, MultiFab& prim_in,
                     GpuArray<Real,MAX_SPECIES+3> rand; // Random normal numbers
                     GpuArray<Real,MAX_SPECIES+3> effflux; // effusive flux
                     for (int n=0;n<nspecies+3;++n) {
-                        if (stoch_stress_form == 1) rand[n] = amrex::RandomNormal(0.,1.);
+                        if (stoch_stress_form == 1) rand[n] = RandomNormal(0.,1.,engine);
                         else rand[n] = 0.0;
                         effflux[n] = 0.0; // initialize effusive flux
                     }
