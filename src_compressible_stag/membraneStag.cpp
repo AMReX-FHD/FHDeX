@@ -61,7 +61,7 @@ void doLangevin(MultiFab& cons_in, MultiFab& prim_in,
         alpha[l] = area*dt*transmission[l]*sqrt(k_B/(2.0*3.142*mass[l]));
     }
     
-    for ( MFIter mfi(faceflux[0]); mfi.isValid(); ++mfi) {
+    for ( MFIter mfi(faceflux[0],TilingIfNotGPU()); mfi.isValid(); ++mfi) {
 
         const Box& bx = mfi.validbox();
 
@@ -73,7 +73,8 @@ void doLangevin(MultiFab& cons_in, MultiFab& prim_in,
         const Array4<Real>& vely = vel[1].array(mfi);
         const Array4<Real>& velz = vel[2].array(mfi);
 
-        if (bx.smallEnd(0) == membrane_cell && bx.bigEnd(0) == membrane_cell) {
+//        amrex::Print() << bx.smallEnd(0) << " " << bx.bigEnd(0) << " " << membrane_cell << "\n";
+        if ((bx.smallEnd(0) == membrane_cell) or (bx.bigEnd(0) == membrane_cell)) { // not really required
 
             amrex::ParallelForRNG(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k, RandomEngine const& engine) noexcept
             {
@@ -83,6 +84,7 @@ void doLangevin(MultiFab& cons_in, MultiFab& prim_in,
                     Real TR = prim(i,j,k,4); 
                     Real sqrtTL = sqrt(TL);
                     Real sqrtTR = sqrt(TR);
+//                    amrex::Print() << i << " " << j << " " << k << " " << TL << " " << TR << "\n";
 
                     Real vyL = vely(i-1,j,k);
                     Real vyR = vely(i,j,k);
@@ -101,7 +103,7 @@ void doLangevin(MultiFab& cons_in, MultiFab& prim_in,
 
                     // Compute effusive flux per species
                     GpuArray<Real,4> Delmean; // Mean flux for [mass, py, pz, E]
-                    Array2D<Real, 1, 4, 1, 4> Delvar; // covariance matrix
+                    Array2D<Real, 0, 4, 0, 4> Delvar; // covariance matrix
                     GpuArray<Real,4> rand; // Random normal numbers
                     GpuArray<Real,4> effflux; // effusive flux
 
@@ -161,7 +163,7 @@ void doLangevin(MultiFab& cons_in, MultiFab& prim_in,
                         Delvar(3,2) = 0.5*alpha[l]*(rhoL[l]*sqrtTL*pzeL + rhoR[l]*sqrtTR*pzeR);
 
                         // Cholesky factorise the covariance matrix
-                        Array2D<Real, 1, 4, 1, 4> sqrtVar;
+                        Array2D<Real, 0, 4, 0, 4> sqrtVar;
                         Cholesky(Delvar,4,sqrtVar);
 
                         // Generate random numbers
@@ -182,8 +184,17 @@ void doLangevin(MultiFab& cons_in, MultiFab& prim_in,
                         xflux(i,j,k,0)  += effflux[0]/vol; // mass flux
                         xflux(i,j,k,5+l) = effflux[0]/vol; // species mass flux
                         xflux(i,j,k,4)  += effflux[3]/vol; // energy flux
-                        edgex_v(i,j,k)  += effflux[1]/vol; // y-momentum flux
-                        edgex_w(i,j,k)  += effflux[2]/vol; // z-momentum flux
+                        if (do_1D) {
+                        }
+                        else if (do_2D) {
+                            edgex_v(i,j,k)  += effflux[1]/vol; // y-momentum flux
+                        }
+                        else {
+                            edgex_v(i,j,k)  += effflux[1]/vol; // y-momentum flux
+                            edgex_w(i,j,k)  += effflux[2]/vol; // z-momentum flux
+                        }
+
+//                        amrex::Print() << i << " " << j << " " << k << " " << l << " " << effflux[0] << " " << effflux[1] << " " << effflux[2] << " " << effflux[3] << "\n";
 
                     }
                     
@@ -204,7 +215,7 @@ void applyEffusion(std::array<MultiFab, AMREX_SPACEDIM>& faceflux,
     
     BL_PROFILE_VAR("applyEffusion()",applyEffusion);
     
-    for ( MFIter mfi(cons_in); mfi.isValid(); ++mfi) {
+    for ( MFIter mfi(cons_in,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
 
         const Box& bx = mfi.validbox();
 
