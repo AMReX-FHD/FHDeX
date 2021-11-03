@@ -50,7 +50,7 @@ void InitConsVarStag(MultiFab& cons,
     }
 
     for (int d=0; d<AMREX_SPACEDIM; d++) { // staggered momentum & velocities
-        momStag[d].setVal(0.);
+        momStag[d].setVal(0.,ngc);
     }
     
     for ( MFIter mfi(cons); mfi.isValid(); ++mfi ) {

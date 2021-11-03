@@ -790,6 +790,10 @@ void main_driver(const char* argv)
         InitConsVarStag(cu,cumom,geom); // Need to add for staggered -- Ishan
 
         // initialize primitive variables
+        prim.setVal(0.0,0,nprimvars,ngc);
+        for (int d=0; d<AMREX_SPACEDIM; d++) { // staggered momentum & velocities
+            vel[d].setVal(0.,ngc);
+        }
         conservedToPrimitiveStag(prim, vel, cu, cumom);
 
         // Set BC: 1) fill boundary 2) physical (How to do for staggered? -- Ishan)
