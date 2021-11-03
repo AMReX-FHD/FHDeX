@@ -491,6 +491,9 @@ void BCMem(MultiFab& prim_in, MultiFab& cons_in,
                 if (i < lo) {
                     prim(i,j,k,4) = prim(2*lo-i-1,j,k,4);
                     prim(i,j,k,5) = prim(2*lo-i-1,j,k,5);
+                    for (int n=6; n<nprimvars; ++n) {
+                        prim(i,j,k,n) = prim(2*lo-i-1,j,k,n);
+                    }
                 }
             });
         }
@@ -503,6 +506,9 @@ void BCMem(MultiFab& prim_in, MultiFab& cons_in,
                 if (i > hi) {
                     prim(i,j,k,4) = prim(2*hi-i+1,j,k,4);
                     prim(i,j,k,5) = prim(2*hi-i+1,j,k,5);
+                    for (int n=6; n<nprimvars; ++n) {
+                        prim(i,j,k,n) = prim(2*hi-i+1,j,k,n);
+                    }
                 }
             });
         }
@@ -816,7 +822,6 @@ void BCMassTempPress(MultiFab& prim_in,MultiFab& cons_in,const amrex::Geometry g
                     if (i > dom.bigEnd(0)) {
                         for (int n=6; n<nprimvars; ++n) {
                             prim(i,j,k,n) = prim(2*hi-i+1,j,k,n);
-
                         }
                     }
                 });

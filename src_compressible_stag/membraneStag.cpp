@@ -97,102 +97,96 @@ void doLangevin(MultiFab& cons_in, MultiFab& prim_in,
                         rhoR[l] = cons(i,j,k,5+l);
                     }
 
-                    GpuArray<Real,MAX_SPECIES+3> Delmean; // Mean fluxes for [species, py, pz, E]
-                    Delmean[nspecies+0] = 0.0; // py
-                    Delmean[nspecies+1] = 0.0; // pz
-                    Delmean[nspecies+2] = 0.0; // E
-                    Real DelmeanM = 0.0; // total mass
+                    Real EL, ER, pyL, pyR, pzL, pzR, meL, meR, pyeL, pyeR, pzeL, pzeR;
+
+                    // Compute effusive flux per species
+                    GpuArray<Real,4> Delmean; // Mean flux for [mass, py, pz, E]
+                    Array2D<Real, 1, 4, 1, 4> Delvar; // covariance matrix
+                    GpuArray<Real,4> rand; // Random normal numbers
+                    GpuArray<Real,4> effflux; // effusive flux
 
                     for (int l=0;l<nspecies;++l) {
-                        Delmean[l] = alpha[l]*sqrt(rhoL[l]*sqrtTL - rhoR[l]*sqrtTR); // mass
-                        DelmeanM += Delmean[l];
 
-                        Delmean[nspecies+0] += alpha[l]*(rhoL[l]*vyL*sqrtTL - rhoR[l]*vyR*sqrtTR); // py
-                        Delmean[nspecies+1] += alpha[l]*(rhoL[l]*vzL*sqrtTL - rhoR[l]*vzR*sqrtTR); // pz
+                        // Mean effusive fluxes
+                        Delmean[0] = alpha[l]*sqrt(rhoL[l]*sqrtTL - rhoR[l]*sqrtTR); // mass
 
-                        Real EL  = (2.0*k_B*TL/mass[l]) + 0.5*(vyL*vyL + vzL*vzL);
-                        Real ER = (2.0*k_B*TR/mass[l]) + 0.5*(vyR*vyR + vzR*vzR);
-                        Delmean[nspecies+2] += alpha[l]*(rhoL[l]*sqrtTL*EL - rhoR[l]*sqrtTR*ER); // E
-                    }
+                        Delmean[1] = alpha[l]*(rhoL[l]*vyL*sqrtTL - rhoR[l]*vyR*sqrtTR); // py
+                        Delmean[2] = alpha[l]*(rhoL[l]*vzL*sqrtTL - rhoR[l]*vzR*sqrtTR); // pz
 
-                    // Construct the covariance matrix
-                    Array2D<Real, 1, MAX_SPECIES+3, 1, MAX_SPECIES+3> Delvar;
-                    for (int l=0;l<nspecies+3;++l) {
-                        for (int n=0;n<nspecies+3;++n) {
-                            Delvar(l,n) = 0.0;
+                        EL = (2.0*k_B*TL/mass[l]) + 0.5*(vyL*vyL + vzL*vzL);
+                        ER = (2.0*k_B*TR/mass[l]) + 0.5*(vyR*vyR + vzR*vzR);
+                        Delmean[3] = alpha[l]*(rhoL[l]*sqrtTL*EL - rhoR[l]*sqrtTR*ER); // E
+                        
+                        // Set the covariance matrix to 0
+                        for (int p=0;p<4;++p) {
+                            for (int q=0;q<4;++q) {
+                                Delvar(p,q) = 0.0;
+                            }
                         }
-                    }
 
-                    // Fill variances
-                    for (int l=0;l<nspecies;++l) {
-                        for (int n=0;n<nspecies;++n) {
-                            if (l==n) Delvar(l,n) = mass[l]*alpha[l]*(rhoL[l]*sqrtTL + rhoR[l]*sqrtTR);
-                            else Delvar(l,n) = 0.0;
+                        // Fill variances
+                        Delvar(0,0) = mass[l]*alpha[l]*(rhoL[l]*sqrtTL + rhoR[l]*sqrtTR);
+                        
+                        pyL = k_B*TL + mass[l]*vyL*vyL;
+                        pyR = k_B*TR + mass[l]*vyR*vyR;
+                        Delvar(1,1) = alpha[l]*(rhoL[l]*sqrtTL*pyL + rhoR[l]*sqrtTR*pyR);
+
+                        pzL = k_B*TL + mass[l]*vzL*vzL;
+                        pzR = k_B*TR + mass[l]*vzR*vzR;
+                        Delvar(2,2) = alpha[l]*(rhoL[l]*sqrtTL*pzL + rhoR[l]*sqrtTR*pzR);
+
+                        EL = 24.0*k_B*k_B*TL*TL + 12.0*k_B*mass[l]*TL*(vyL*vyL+vzL*vzL) + mass[l]*mass[l]*(vyL*vyL+vzL*vzL)*(vyL*vyL+vzL*vzL);
+                        ER = 24.0*k_B*k_B*TR*TR + 12.0*k_B*mass[l]*TR*(vyR*vyR+vzR*vzR) + mass[l]*mass[l]*(vyR*vyR+vzR*vzR)*(vyR*vyR+vzR*vzR);
+                        Delvar(3,3) = alpha[l]*(rhoL[l]*sqrtTL*EL + rhoR[l]*sqrtTR*ER);
+                        
+                        // Fill covariances
+                        Delvar(0,1) = mass[l]*alpha[l]*(rhoL[l]*sqrtTL*vyL + rhoR[l]*sqrtTR*vyR);
+                        Delvar(1,0) = mass[l]*alpha[l]*(rhoL[l]*sqrtTL*vyL + rhoR[l]*sqrtTR*vyR);
+                        Delvar(0,2) = mass[l]*alpha[l]*(rhoL[l]*sqrtTL*vzL + rhoR[l]*sqrtTR*vzR);
+                        Delvar(2,0) = mass[l]*alpha[l]*(rhoL[l]*sqrtTL*vzL + rhoR[l]*sqrtTR*vzR);
+
+                        meL = 4.0*k_B*TL + mass[l]*(vyL*vyL+vzL*vzL);
+                        meR = 4.0*k_B*TR + mass[l]*(vyR*vyR+vzR*vzR);
+                        Delvar(0,3) = 0.5*alpha[l]*(rhoL[l]*sqrtTL*meL + rhoR[l]*sqrtTR*meR);
+                        Delvar(3,0) = 0.5*alpha[l]*(rhoL[l]*sqrtTL*meL + rhoR[l]*sqrtTR*meR);
+
+                        pyeL = vyL*(6.0*k_B*TL + mass[l]*(vyL*vyL+vzL*vzL));
+                        pyeR = vyR*(6.0*k_B*TR + mass[l]*(vyR*vyR+vzR*vzR));
+                        Delvar(1,3) = 0.5*alpha[l]*(rhoL[l]*sqrtTL*pyeL + rhoR[l]*sqrtTR*pyeR);
+                        Delvar(3,1) = 0.5*alpha[l]*(rhoL[l]*sqrtTL*pyeL + rhoR[l]*sqrtTR*pyeR);
+
+                        pzeL = vzL*(6.0*k_B*TL + mass[l]*(vyL*vyL+vzL*vzL));
+                        pzeR = vzR*(6.0*k_B*TR + mass[l]*(vyR*vyR+vzR*vzR));
+                        Delvar(2,3) = 0.5*alpha[l]*(rhoL[l]*sqrtTL*pzeL + rhoR[l]*sqrtTR*pzeR);
+                        Delvar(3,2) = 0.5*alpha[l]*(rhoL[l]*sqrtTL*pzeL + rhoR[l]*sqrtTR*pzeR);
+
+                        // Cholesky factorise the covariance matrix
+                        Array2D<Real, 1, 4, 1, 4> sqrtVar;
+                        Cholesky(Delvar,4,sqrtVar);
+
+                        // Generate random numbers
+                        for (int n=0;n<4;++n) {
+                            if (stoch_stress_form) rand[n] = RandomNormal(0.,1.,engine);
+                            else rand[n] = 0.0;
+                            effflux[n] = 0.0; // initialize effusive flux
                         }
                         
-                        Real pyL = k_B*TL + mass[l]*vyL*vyL;
-                        Real pyR = k_B*TR + mass[l]*vyR*vyR;
-                        Delvar(nspecies+0,nspecies+0) += alpha[l]*(rhoL[l]*sqrtTL*pyL + rhoR[l]*sqrtTR*pyR);
-                        Real pzL = k_B*TL + mass[l]*vzL*vzL;
-                        Real pzR = k_B*TR + mass[l]*vzR*vzR;
-                        Delvar(nspecies+1,nspecies+1) += alpha[l]*(rhoL[l]*sqrtTL*pzL + rhoR[l]*sqrtTR*pzR);
+                        // Get effusive fluxes from Langevin integration
+                        for (int p=0; p<4; ++p) {
+                            for (int q=0; q<4; ++q) {
+                                effflux[p] += Delmean[p] + sqrtVar(p,q)*rand[q]; // x = mean + rand*covar
+                            }
+                        }
 
-                        Real EL = 24.0*k_B*k_B*TL*TL + 12.0*k_B*mass[l]*TL*(vyL*vyL+vzL*vzL) + mass[l]*mass[l]*(vyL*vyL+vzL*vzL)*(vyL*vyL+vzL*vzL);
-                        Real ER = 24.0*k_B*k_B*TR*TR + 12.0*k_B*mass[l]*TR*(vyR*vyR+vzR*vzR) + mass[l]*mass[l]*(vyR*vyR+vzR*vzR)*(vyR*vyR+vzR*vzR);
-                        Delvar(nspecies+2,nspecies+2) += alpha[l]*(rhoL[l]*sqrtTL*EL + rhoR[l]*sqrtTR*ER);
-                    }
+                        // Increment total flux
+                        xflux(i,j,k,0)  += effflux[0]/vol; // mass flux
+                        xflux(i,j,k,5+l) = effflux[0]/vol; // species mass flux
+                        xflux(i,j,k,4)  += effflux[3]/vol; // energy flux
+                        edgex_v(i,j,k)  += effflux[1]/vol; // y-momentum flux
+                        edgex_w(i,j,k)  += effflux[2]/vol; // z-momentum flux
 
-                    // Fill covariances
-                    for (int l=0;l<nspecies;++l) {
-
-                        Delvar(l,nspecies+0) = mass[l]*alpha[l]*(rhoL[l]*sqrtTL*vyL + rhoR[l]*sqrtTR*vyR);
-                        Delvar(nspecies+0,l) = mass[l]*alpha[l]*(rhoL[l]*sqrtTL*vyL + rhoR[l]*sqrtTR*vyR);
-                        Delvar(l,nspecies+1) = mass[l]*alpha[l]*(rhoL[l]*sqrtTL*vzL + rhoR[l]*sqrtTR*vzR);
-                        Delvar(nspecies+1,l) = mass[l]*alpha[l]*(rhoL[l]*sqrtTL*vzL + rhoR[l]*sqrtTR*vzR);
-
-                        Real meL = 4.0*k_B*TL + mass[l]*(vyL*vyL+vzL*vzL);
-                        Real meR = 4.0*k_B*TR + mass[l]*(vyR*vyR+vzR*vzR);
-                        Delvar(l,nspecies+2) = 0.5*alpha[l]*(rhoL[l]*sqrtTL*meL + rhoR[l]*sqrtTR*meR);
-                        Delvar(nspecies+2,l) = 0.5*alpha[l]*(rhoL[l]*sqrtTL*meL + rhoR[l]*sqrtTR*meR);
-
-                        Real pyeL = vyL*(6.0*k_B*TL + mass[l]*(vyL*vyL+vzL*vzL));
-                        Real pyeR = vyR*(6.0*k_B*TR + mass[l]*(vyR*vyR+vzR*vzR));
-                        Delvar(nspecies+2,nspecies+0) += 0.5*alpha[l]*(rhoL[l]*sqrtTL*pyeL + rhoR[l]*sqrtTR*pyeR);
-                        Delvar(nspecies+0,nspecies+2) += 0.5*alpha[l]*(rhoL[l]*sqrtTL*pyeL + rhoR[l]*sqrtTR*pyeR);
-                        Real pzeL = vzL*(6.0*k_B*TL + mass[l]*(vyL*vyL+vzL*vzL));
-                        Real pzeR = vzR*(6.0*k_B*TR + mass[l]*(vyR*vyR+vzR*vzR));
-                        Delvar(nspecies+2,nspecies+1) += 0.5*alpha[l]*(rhoL[l]*sqrtTL*pzeL + rhoR[l]*sqrtTR*pzeR);
-                        Delvar(nspecies+1,nspecies+2) += 0.5*alpha[l]*(rhoL[l]*sqrtTL*pzeL + rhoR[l]*sqrtTR*pzeR);
                     }
                     
-                    // Cholesky factorise the covariance matrix
-                    Array2D<Real, 1, MAX_SPECIES+3, 1, MAX_SPECIES+3> sqrtVar;
-                    Cholesky(Delvar,nspecies,sqrtVar);
-
-                    // Generate random numbers 
-                    GpuArray<Real,MAX_SPECIES+3> rand; // Random normal numbers
-                    GpuArray<Real,MAX_SPECIES+3> effflux; // effusive flux
-                    for (int n=0;n<nspecies+3;++n) {
-                        if (stoch_stress_form == 1) rand[n] = RandomNormal(0.,1.,engine);
-                        else rand[n] = 0.0;
-                        effflux[n] = 0.0; // initialize effusive flux
-                    }
-
-                    // Get effusive fluxes from Langevin integration
-                    for (int ns=0; ns<nspecies+3; ++ns) {
-                        for (int ll=0; ll<=ns; ++ll) {
-                            effflux[ns] += Delmean[ns] + sqrtVar(ns,ll)*rand[ll]; // x = mean + rand*covar
-                        }
-                    }
-
-                    // Fill up the fluxes
-                    for (int ns=0;ns<nspecies;++ns) { // species and mass flux
-                        xflux(i,j,k,ns+5) = effflux[ns]/vol;
-                        xflux(i,j,k,0) += effflux[ns]/vol;
-                    }
-                    xflux(i,j,k,4) = effflux[nspecies+2]/vol; // energy flux
-                    edgex_v(i,j,k) = effflux[nspecies+0]/vol; // y-momentum flux
-                    edgex_w(i,j,k) = effflux[nspecies+1]/vol; // z-momentum flux
                 }
             });
 

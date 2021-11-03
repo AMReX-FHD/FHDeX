@@ -365,20 +365,20 @@ void EvaluateSpatialCorrelations1D(MultiFab& spatialCross1D,
 
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void Cholesky(Array2D<Real, 1, MAX_SPECIES+3, 1, MAX_SPECIES+3> A,
+void Cholesky(Array2D<Real, 1, 4, 1, 4> A,
               int const nspecies,
-              Array2D<Real, 1, MAX_SPECIES+3, 1, MAX_SPECIES+3> Adecomp)
+              Array2D<Real, 1, 4, 1, 4> Adecomp)
 
 {
-    GpuArray<Real,MAX_SPECIES+3> P;
+    GpuArray<Real,4> P;
     
     Real sum1 = 0.;
     int ising;
 
-    for (int i=0; i<nspecies+3; ++i) {
+    for (int i=0; i<4; ++i) {
         ising = 0;
 
-        for (int j=0; j<nspecies+3; ++j) {
+        for (int j=0; j<4; ++j) {
             sum1 = A(i,j);
 
             for (int k=i-1; k>=0; --k) {
@@ -401,13 +401,13 @@ void Cholesky(Array2D<Real, 1, MAX_SPECIES+3, 1, MAX_SPECIES+3> A,
         }
     }
 
-    for (int i=0; i<nspecies+3; ++i) {
-        for (int j=0; j<nspecies+3; ++j) {
+    for (int i=0; i<4; ++i) {
+        for (int j=0; j<4; ++j) {
             Adecomp(i,j) = 0.;
         }
     }
 
-    for (int i=0; i<nspecies+3; ++i) {
+    for (int i=0; i<4; ++i) {
         for (int j=i-1; j>=0; --j) {
             Adecomp(i,j) = A(i,j);
         }
