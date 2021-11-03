@@ -537,3 +537,31 @@ void ComputeCurlCC(const MultiFab& vel_in,
         });
     }    
 }
+
+void ComputeDivCC(const MultiFab& vel_in,
+                   int incomp,
+                   MultiFab& div_in,
+                   int outcomp,
+                   const Geometry & geom)
+{
+    BL_PROFILE_VAR("ComputeDivCC()",ComputeCurlCC);
+    
+    const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
+
+    for ( MFIter mfi(vel_in,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
+
+        const Box& bx = mfi.tilebox();
+        
+        Array4<Real const> const& vel  = vel_in.array(mfi);
+        Array4<Real>       const& div  = div_in.array(mfi);
+
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            // dw/dy - dv/dz
+            div(i,j,k,outcomp) =
+                (vel(i+1,j,k,incomp+0) - vel(i-1,j,k,incomp+0)) / (2.*dx[0]) +
+                (vel(i,j+1,k,incomp+1) - vel(i,j-1,k,incomp+1)) / (2.*dx[1]) +
+                (vel(i,j,k+1,incomp+2) - vel(i,j,k-1,incomp+2)) / (2.*dx[2]);
+        });
+    }    
+}

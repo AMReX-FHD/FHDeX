@@ -102,6 +102,12 @@ void ComputeCurlCC(const MultiFab& vel_in,
                    MultiFab& curl_in,
                    int outcomp,
                    const Geometry & geom);
+
+void ComputeDivCC(const MultiFab& vel_in,
+                   int incomp,
+                   MultiFab& div_in,
+                   int outcomp,
+                   const Geometry & geom);
     
 ///////////////////////////
 // in Debug.cpp
