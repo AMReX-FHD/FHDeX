@@ -182,6 +182,9 @@ AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::rmin_wall;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::offset_wall;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::rmax_wall;
 
+AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_SPECIES>         common::msd_int;
+AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_SPECIES>         common::msd_len;
+
 int                        common::poisson_verbose;
 int                        common::poisson_bottom_verbose;
 int                        common::poisson_max_iter;
@@ -338,6 +341,12 @@ void InitializeCommonNamespace() {
     
     // p_int_tog_wall (no default)
     particle_neff = 1;
+    
+    
+    for (int i=0; i<MAX_SPECIES; ++i) {
+        msd_int[i] = 0;
+        msd_len[i] = 0;
+    }
 
     // Time-step control
     fixed_dt = 1.;
@@ -963,6 +972,16 @@ void InitializeCommonNamespace() {
     if (pp.queryarr("p_int_tog_wall",temp_int,0,nspecies)) {
         for (int i=0; i<nspecies; ++i) {
             p_int_tog_wall[i] = temp_int[i];
+        }
+    }
+    if (pp.queryarr("msd_int",temp_int,0,nspecies)) {
+        for (int i=0; i<nspecies; ++i) {
+            msd_int[i] = temp_int[i];
+        }
+    }
+    if (pp.queryarr("msd_len",temp_int,0,nspecies)) {
+        for (int i=0; i<nspecies; ++i) {
+            msd_len[i] = temp_int[i];
         }
     }
     if (pp.queryarr("eepsilon_wall",temp,0,nspecies)) {

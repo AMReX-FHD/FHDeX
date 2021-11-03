@@ -253,6 +253,9 @@ namespace common {
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> eepsilon_wall;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> sigma_wall;
     extern AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_SPECIES> p_int_tog_wall;
+    
+    extern AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_SPECIES> msd_int;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_SPECIES> msd_len;
 
     extern int                        poisson_verbose;
     extern int                        poisson_bottom_verbose;
