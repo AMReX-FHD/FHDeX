@@ -755,7 +755,15 @@ void main_driver(const char* argv)
                 CCInnerProd(gradU,d,rhoscaled_gradU,d,ccTemp,curlUdotcurlU[d]);
             }
 
-            Real FORM5 = dProb*(curlUdotcurlU[0] + curlUdotcurlU[1] + curlUdotcurlU[2]) * (nu0 / rho0);
+            Real FORM5 =  dProb*(curlUdotcurlU[0] + curlUdotcurlU[1] + curlUdotcurlU[2]) * (nu0 / rho0);
+
+            curlUdotcurlU[0]=0;
+            ComputeDivCC(prim,1,gradU,0,geom);
+            MultiFab::Copy(rhoscaled_gradU, gradU, 0, 0, 1, 0);
+            MultiFab::Multiply(rhoscaled_gradU, prim, 0, 0, 1, 0);
+            CCInnerProd(gradU,0,rhoscaled_gradU,0,ccTemp,curlUdotcurlU[0]);
+
+            Real DIVCOR = 2.* dProb*curlUdotcurlU[0] * nu0 / (3.* rho0);
 
             Print() << "Non-viscosity scaled energy dissipation "
                     << time << " "
@@ -764,6 +772,7 @@ void main_driver(const char* argv)
                     << FORM3 << " "
                     << FORM4 << " "
                     << FORM5 << " "
+                    << FORM3 - DIVCOR  << " "
                     << std::endl;
         }  // end if (turbForcing == 1)
         
