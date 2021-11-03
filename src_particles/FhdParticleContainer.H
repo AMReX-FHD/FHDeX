@@ -246,7 +246,7 @@ public:
     void SetForce(int id, Real x, Real y, Real z);
     void writeVel(int id);
 
-    void MeanSqrCalc(int lev, int reset);
+    void MeanSqrCalc(int lev, int step);
 
     void BuildCorrectionTable(const Real* dx, int setMeasureFinal);
 
