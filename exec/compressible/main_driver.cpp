@@ -674,7 +674,7 @@ void main_driver(const char* argv)
             }
 
             // <rho/rho0 u_j Lap(u_j)>
-            Real FORM2 = -dProb*(rhoULapU[0] + rhoULapU[1] + rhoULapU[2]) / (nu0 / rho0);
+            Real FORM2 = -dProb*(rhoULapU[0] + rhoULapU[1] + rhoULapU[2]) * (nu0 / rho0);
 
             // FORM 3: <rho/rho0 du_i/dx_j du_i/dx_j> using cell-centered gradients
 
