@@ -1184,8 +1184,12 @@ void spread_ions_fhd_gpu(FhdParticleContainer::AoS& aos,
     }
 }
 
-void mob_interp_gpu(Real z, Real a, Real* tmob, Real* nmob)
+void mob_interp_gpu(Real z, Real a, Real* tmob, Real* nmob, int sw)
 {
+
+    *tmob = 1;
+    *nmob = 1;
+
     if(wall_mob==1)
     {
         //Single plane approximation
@@ -1253,13 +1257,63 @@ void mob_interp_gpu(Real z, Real a, Real* tmob, Real* nmob)
 //  for iceo 13.18 nm channel, 256*256 in x-z plane, pkernel_fluid=4
         *tmob = std::max(0.9961144 + 1.06175e-04/pow(3.56443e-02  + h,5) - (-0.103210)/pow(0.247971   + h,3) - 0.550113/(2.96865e-04  + h),0.0);
         *nmob = std::max(0.989801 + 4.46549/pow(0.917613  + h,5) - 88.3371/pow(8.30857   + h,3) - 0.895525/(0.116306  + h),0.0);
+    }else if(wall_mob==10)
+    {
+        //6.59nm channel, 50% wet
+	Real h = (z)/a;
+         if(sw==1)
+         {
+            // fully wet gamma
+            Real p1t=0.977863;
+            Real p2t=1.13644e-05;
+            Real p3t=2.06719e-02;
+            Real p4t=16.9451;
+            Real p5t=4.05121;
+            Real p6t=0.3445501;
+            Real p7t=1.144203e-04;
+            
+            Real p1n=0.9677998;
+            Real p2n=0.465011;
+            Real p3n=0.404108;
+            Real p4n=144.349;
+            Real p5n=6.77596;
+            Real p6n=0.507712;
+            Real p7n=1.16305e-02;
+                        
+            *tmob = std::max(p1t + p2t/pow(p3t  + h,5) - p4t/pow(p5t   + h,3) - p6t/(p7t  + h),0.0);
+            *nmob = std::max(p1n + p2n/pow(p3n  + h,5) - p4n/pow(p5n   + h,3) - p6n/(p7n  + h),0.0);
+         }else
+         {
+            // 50% wet gamma
+            Real p1t=2.09694191e-04;
+            Real p2t=-1.50926645e+03;
+            Real p3t=4.05229894e+00;
+            Real p4t=7.89571653e+02;
+            Real p5t=1.21699528e+01;
+            Real p6t=-9.36166766e+02;
+            Real p7t=9.71302539e+02;
+            
+            Real p1n=6.02752732e+00;
+            Real p2n=9.08393431e+02;
+            Real p3n=2.96878060e+02;
+            Real p4n=1.27505965e+03;
+            Real p5n=1.03573285e+01;
+            Real p6n=-2.44076787e+04;
+            Real p7n=-4.79853938e+03;
+                        
+            *tmob = std::max(p1t + p2t/pow(p3t  + h,5) - p4t/pow(p5t   + h,3) - p6t/(p7t  + h),0.0);
+            *nmob = std::max(p1n + p2n/pow(p3n  + h,5) - p4n/pow(p5n   + h,3) - p6n/(p7n  + h),0.0);
+         
+         }
     }
 
 }
 
-void mob_interp_der_gpu(Real z, Real a, Real* tmobDer, Real* nmobDer)
+void mob_interp_der_gpu(Real z, Real a, Real* tmobDer, Real* nmobDer, int sw)
 {
 
+    *nmobDer = 0;
+    *tmobDer = 0;
 
     if(wall_mob==1)
     {
@@ -1326,10 +1380,54 @@ void mob_interp_der_gpu(Real z, Real a, Real* tmobDer, Real* nmobDer)
 
         *tmobDer = std::max(-5.30875e-04/(a*pow(3.56443e-02 + h , 6)) + (-0.30963)/(a*pow(0.247971 + h , 4)) + 0.550113/(a*pow(2.96865e-04 + h , 2)),0.0);
         *nmobDer = std::max(-22.3275/(a*pow(0.917613 + h,6)) + 265.011/(a*pow(8.30857  + h,4)) + 0.895525/(a*pow(0.116306 + h,2)),0.0);
+    }else if(wall_mob==10)
+    {
+        //6.59nm channel, 50% wet
+	Real h = (z)/a;
+         if(sw==1)
+         {
+            // fully wet gamma
+            Real p1t=0.977863;
+            Real p2t=1.13644e-05;
+            Real p3t=2.06719e-02;
+            Real p4t=16.9451;
+            Real p5t=4.05121;
+            Real p6t=0.3445501;
+            Real p7t=1.144203e-04;
+            
+            Real p1n=0.9677998;
+            Real p2n=0.465011;
+            Real p3n=0.404108;
+            Real p4n=144.349;
+            Real p5n=6.77596;
+            Real p6n=0.507712;
+            Real p7n=1.16305e-02;
+                        
+            *tmobDer = std::max(-5*p2t/(a*pow(p3t  + h,6)) + 3*p4t/(a*pow(p5t   + h,4)) + p6t/(a*pow(p7t  + h, 2)),0.0);
+            *nmobDer = std::max(-5*p2n/(a*pow(p3n  + h,6)) + 3*p4n/(a*pow(p5n   + h,4)) + p6n/(a*pow(p7n  + h, 2)),0.0);
+         }else
+         {
+            // 50% wet gamma
+            Real p1t=2.09694191e-04;
+            Real p2t=-1.50926645e+03;
+            Real p3t=4.05229894e+00;
+            Real p4t=7.89571653e+02;
+            Real p5t=1.21699528e+01;
+            Real p6t=-9.36166766e+02;
+            Real p7t=9.71302539e+02;
+            
+            Real p1n=6.02752732e+00;
+            Real p2n=9.08393431e+02;
+            Real p3n=2.96878060e+02;
+            Real p4n=1.27505965e+03;
+            Real p5n=1.03573285e+01;
+            Real p6n=-2.44076787e+04;
+            Real p7n=-4.79853938e+03;
+                        
+            *tmobDer = std::max(-5*p2t/(a*pow(p3t  + h,6)) + 3*p4t/(a*pow(p5t   + h,4)) + p6t/(a*pow(p7t  + h, 2)),0.0);
+            *nmobDer = std::max(-5*p2n/(a*pow(p3n  + h,6)) + 3*p4n/(a*pow(p5n   + h,4)) + p6n/(a*pow(p7n  + h, 2)),0.0);
+         }
     }
-
-
-
 }
 
 void get_mobility_diff_gpu(Real* nmob, Real* tmob, Real* nmobDer, Real* tmobDer, FhdParticleContainer::ParticleType& part, Real z)
@@ -1355,11 +1453,11 @@ void get_mobility_diff_gpu(Real* nmob, Real* tmob, Real* nmobDer, Real* tmobDer,
 
     //The mobility is dimensionless but the derivative is dimensional. Fix this at some point.
 
-    mob_interp_gpu(z, awet, &tmobwet, &nmobwet);
-    mob_interp_gpu(z, atotal, &tmobtotal, &nmobtotal);
+    mob_interp_gpu(z, awet, &tmobwet, &nmobwet, 0);
+    mob_interp_gpu(z, atotal, &tmobtotal, &nmobtotal, 1);
 
-    mob_interp_der_gpu(z, awet, &tmobwetDer, &nmobwetDer);
-    mob_interp_der_gpu(z, atotal, &tmobtotalDer, &nmobtotalDer);
+    mob_interp_der_gpu(z, awet, &tmobwetDer, &nmobwetDer, 0);
+    mob_interp_der_gpu(z, atotal, &tmobtotalDer, &nmobtotalDer, 1);
 
     *tmob = std::max((tmobtotal*part.rdata(FHD_realData::totalDiff) - tmobwet*part.rdata(FHD_realData::wetDiff))/part.rdata(FHD_realData::dryDiff),0.0);
     *nmob = std::max((nmobtotal*part.rdata(FHD_realData::totalDiff) - nmobwet*part.rdata(FHD_realData::wetDiff))/part.rdata(FHD_realData::dryDiff),0.0);
