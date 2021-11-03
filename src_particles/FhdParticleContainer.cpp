@@ -2418,7 +2418,7 @@ FhdParticleContainer::writeMat()
 }
 
 void
-FhdParticleContainer::MeanSqrCalc(int lev, int reset) {
+FhdParticleContainer::MeanSqrCalc(int lev, int step) {
 
     BL_PROFILE_VAR("MeanSqrCalc()",MeanSqrCalc);
 
@@ -2433,6 +2433,14 @@ FhdParticleContainer::MeanSqrCalc(int lev, int reset) {
     Real travelTime[nspecies];
     int specCount[nspecies];
     
+    int stepstat[nspecies];
+    
+    for(int i=0;i<nspecies;i++)
+    {
+        stepstat[i] = fmod(step-1,msd_int[i]);
+        cout << "remainder: " << stepstat[i] << endl;
+    }
+    
     for(int i=0;i<nspecies;i++)
     {
         sqrDispX[i]=0;
@@ -2441,6 +2449,10 @@ FhdParticleContainer::MeanSqrCalc(int lev, int reset) {
         sqrDisp[i]=0;
         specCount[i]=0;
     }
+    
+
+
+        
 
     for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
 
@@ -2449,6 +2461,19 @@ FhdParticleContainer::MeanSqrCalc(int lev, int reset) {
         AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
         long np = this->GetParticles(lev).at(index).numParticles();
         nTotal += np;
+        
+        for (int i=0; i<np; ++i) {
+            ParticleType & part = particles[i];
+            int spec = part.idata(FHD_intData::species)-1;
+
+            if(stepstat[spec] == 0)
+            {
+                for (int d=0; d<AMREX_SPACEDIM; ++d){
+                    part.rdata(FHD_realData::ox + d) = part.rdata(FHD_realData::ax + d);
+                }
+                part.rdata(FHD_realData::travelTime) = 0;
+            }        
+        }
 
         for (int i=0; i<np; ++i) {
             ParticleType & part = particles[i];
@@ -2470,21 +2495,7 @@ FhdParticleContainer::MeanSqrCalc(int lev, int reset) {
         }
 
 
-        if(reset == 1)
-        {
-            for (int i=0; i<np; ++i) {
-                ParticleType & part = particles[i];
-                int spec = part.idata(FHD_intData::species)-1;
 
-                if(spec != 0)
-                {
-                    for (int d=0; d<AMREX_SPACEDIM; ++d){
-                        part.rdata(FHD_realData::ox + d) = part.rdata(FHD_realData::ax + d);
-                    }
-                    part.rdata(FHD_realData::travelTime) = 0;
-                }
-            }
-        }
     }
 
     for(int i=0;i<nspecies;i++)
@@ -2531,17 +2542,21 @@ FhdParticleContainer::MeanSqrCalc(int lev, int reset) {
 
         for(int i=0;i<nspecies;i++)
         {
-            std::string specname = Concatenate("msdEst_",i+1);
-            std::ofstream ofs(specname, std::ofstream::app);
-    
-            ofs << travelTime[i] << "  " << sqrDispX[i] << "  " << sqrDispY[i] << "  "<< sqrDispZ[i] << "  "<< sqrDisp[i] << std::endl;
-
-            if(reset == 1)
+            if(msd_int[i] > 0)
             {
-                ofs << std::endl;
-            }
+                std::string specname = Concatenate("msdEst_",i+1);
+                std::ofstream ofs(specname, std::ofstream::app);
+
+                if(stepstat[i]==0)
+                {
+                    ofs << std::endl;
+                }else if(stepstat[i]<(msd_len[i]+1))
+                {  
+                    ofs << travelTime[i] << "  " << sqrDispX[i] << "  " << sqrDispY[i] << "  "<< sqrDispZ[i] << "  "<< sqrDisp[i] << std::endl;
+                }
         
-            ofs.close();
+                ofs.close();
+            }
         }
     }
     
