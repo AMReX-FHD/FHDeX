@@ -267,6 +267,55 @@ void main_driver(const char* argv)
     MultiFab visccorn;
     visccorn.define(convert(ba,nodal_flag), dmap, 1, 0);
 
+    // for energy dissipation calculation
+    // [du/dx, dv/dy, dw/dz]
+    MultiFab gradU;
+    MultiFab rhoscaled_gradU;
+    // Laplacian
+    MultiFab LapU;
+    // [du/dx du/dy du/dz dv/dx dv/dy dv/dz dw/dx dw/dy dw/dx]
+    MultiFab gradUtensor;
+    MultiFab rhoscaled_gradUtensor;    
+    // temporary storage
+    MultiFab ccTemp;
+
+    std::array< MultiFab, AMREX_SPACEDIM > gradUtensor_fc;
+    std::array< MultiFab, AMREX_SPACEDIM > rhoscaled_gradUtensor_fc;
+    std::array< MultiFab, AMREX_SPACEDIM > temp_fc;
+    std::array< MultiFab, AMREX_SPACEDIM > rho_fc;
+
+    Real dProb;
+    Real p0;
+    Real rho0;
+    Real nu0;
+
+    if (turbForcing == 1) {
+        gradU.define(ba,dmap,AMREX_SPACEDIM,0);
+        rhoscaled_gradU.define(ba,dmap,AMREX_SPACEDIM,0);
+        LapU.define(ba,dmap,AMREX_SPACEDIM,0);
+        gradUtensor.define(ba,dmap,AMREX_SPACEDIM*AMREX_SPACEDIM,0);
+        rhoscaled_gradUtensor.define(ba,dmap,AMREX_SPACEDIM*AMREX_SPACEDIM,0);
+        ccTemp.define(ba,dmap,1,0);
+    
+        AMREX_D_TERM(gradUtensor_fc[0].define(convert(ba,nodal_flag_x), dmap, AMREX_SPACEDIM, 0);,
+                     gradUtensor_fc[1].define(convert(ba,nodal_flag_y), dmap, AMREX_SPACEDIM, 0);,
+                     gradUtensor_fc[2].define(convert(ba,nodal_flag_z), dmap, AMREX_SPACEDIM, 0););
+        AMREX_D_TERM(rhoscaled_gradUtensor_fc[0].define(convert(ba,nodal_flag_x), dmap, AMREX_SPACEDIM, 0);,
+                     rhoscaled_gradUtensor_fc[1].define(convert(ba,nodal_flag_y), dmap, AMREX_SPACEDIM, 0);,
+                     rhoscaled_gradUtensor_fc[2].define(convert(ba,nodal_flag_z), dmap, AMREX_SPACEDIM, 0););
+        AMREX_D_TERM(temp_fc[0].define(convert(ba,nodal_flag_x), dmap, 1, 0);,
+                     temp_fc[1].define(convert(ba,nodal_flag_y), dmap, 1, 0);,
+                     temp_fc[2].define(convert(ba,nodal_flag_z), dmap, 1, 0););
+        AMREX_D_TERM(rho_fc[0].define(convert(ba,nodal_flag_x), dmap, 1, 0);,
+                     rho_fc[1].define(convert(ba,nodal_flag_y), dmap, 1, 0);,
+                     rho_fc[2].define(convert(ba,nodal_flag_z), dmap, 1, 0););
+    
+        p0 = 884.147e3;
+        dProb = (AMREX_SPACEDIM==2) ? 1./(n_cells[0]*n_cells[1]) : 1./(n_cells[0]*n_cells[1]*n_cells[2]);
+        rho0 = molmass[0] / (Runiv / k_B) * p0 / (k_B * T_init[0]);
+        nu0 = 0.185;
+    }
+        
     Real time = 0;
 
     int step;
@@ -588,6 +637,144 @@ void main_driver(const char* argv)
                 structFactConsFlattened.WritePlotFile(step,time,geom_flat,"plt_SF_cons_Flattened");
             }
         }
+
+        // energy dissipation rate
+        if (turbForcing == 1) {
+
+            // FORM 1: <rho/rho0 du_i/dx_i du_i/dx_i>
+        
+            // compute gradU = [du/dx, dv/dy, dw/dz]
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                ComputeCentredGradCompDir(prim,gradU,d,d+1,d,geom);
+            }
+
+            // create a copy of gradU scaled by rho
+            MultiFab::Copy(rhoscaled_gradU, gradU, 0, 0, AMREX_SPACEDIM, 0);
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                MultiFab::Multiply(rhoscaled_gradU, prim, 0, d, 1, 0);
+            }
+
+            // compute <rho/rho0 du_i/dx_i du_i/dx_i>
+            Vector<Real> gradUdotgradU(3);
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                CCInnerProd(gradU,d,rhoscaled_gradU,d,ccTemp,gradUdotgradU[d]);
+            }
+
+            Real FORM1 = dProb*(gradUdotgradU[0] + gradUdotgradU[1] + gradUdotgradU[2]) * (nu0 / rho0);
+
+            // FORM 2: <-rho/rho0 u_j Lap(u_j)>
+        
+            // Lap(u_j)
+            ComputeLap(prim,LapU,1,0,AMREX_SPACEDIM,geom);
+
+            // <rho u_j Lap(u_j)>
+            Vector<Real> rhoULapU(3);
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                CCInnerProd(cu,d+1,LapU,d,ccTemp,rhoULapU[d]);
+            }
+
+            // <rho/rho0 u_j Lap(u_j)>
+            Real FORM2 = -dProb*(rhoULapU[0] + rhoULapU[1] + rhoULapU[2]) * (nu0 / rho0);
+
+            // FORM 3: <rho/rho0 du_i/dx_j du_i/dx_j> using cell-centered gradients
+
+            // compute [du/dx du/dy du/dz dv/dx dv/dy dv/dz dw/dx dw/dy dw/dx]
+            for (int j=0; j<AMREX_SPACEDIM; ++j) {
+                for (int i=0; i<AMREX_SPACEDIM; ++i) {
+                    ComputeCentredGradCompDir(prim,gradUtensor,i,j+1,i+j*AMREX_SPACEDIM,geom);
+                }
+            }
+
+            // create a copy of gradUtensor scaled by rho
+            MultiFab::Copy(rhoscaled_gradUtensor, gradUtensor, 0, 0, AMREX_SPACEDIM*AMREX_SPACEDIM, 0);
+            for (int d=0; d<AMREX_SPACEDIM*AMREX_SPACEDIM; ++d) {
+                MultiFab::Multiply(rhoscaled_gradUtensor, prim, 0, d, 1, 0);
+            }
+
+            // compute <rho/rho0 du_i/dx_j du_i/dx_j>
+            Vector<Real> gradUdotgradUtensor(9);
+            for (int d=0; d<AMREX_SPACEDIM*AMREX_SPACEDIM; ++d) {
+                CCInnerProd(gradUtensor,d,rhoscaled_gradUtensor,d,ccTemp,gradUdotgradUtensor[d]);
+            }
+
+            Real FORM3 = dProb*(  gradUdotgradUtensor[0] + gradUdotgradUtensor[1] + gradUdotgradUtensor[2]
+                                  + gradUdotgradUtensor[3] + gradUdotgradUtensor[4] + gradUdotgradUtensor[5]
+                                  + gradUdotgradUtensor[6] + gradUdotgradUtensor[7] + gradUdotgradUtensor[8]) * (nu0 / rho0);
+
+
+            // FORM 4: <rho/rho0 du_i/dx_j du_i/dx_j> using face-centered gradients
+
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                // du/dx du/dy du/dz goes into component 0 of each element in gradUtensor_fc
+                // dv/dx dv/dy dv/dz goes into component 1 of each element in gradUtensor_fc
+                // dw/dx dw/dy dw/dz goes into component 2 of each element in gradUtensor_fc
+                // only works for periodic (9999 is a fake bc_comp that makes everything INT_DIR)
+                ComputeGrad(prim,gradUtensor_fc,d+1,d,1,9999,geom);
+            }
+
+            // compute rho at faces
+            AverageCCToFace(prim,rho_fc,0,1,RHO_BC_COMP,geom);
+
+            // create a copy of gradUtensor_fc scaled by rho
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                // copy all 3 components of gradUtensor_fc[d] into a temporary
+                MultiFab::Copy(rhoscaled_gradUtensor_fc[d], gradUtensor_fc[d], 0, 0, AMREX_SPACEDIM, 0);
+                for (int dd=0; dd<AMREX_SPACEDIM; ++dd) {
+                    // scale each temporary value by rho
+                    MultiFab::Multiply(rhoscaled_gradUtensor_fc[d], rho_fc[d], 0, dd, 1, 0);
+                }
+            }
+        
+            Vector<Real> gradUdotgradUx(3);
+            Vector<Real> gradUdotgradUy(3);
+            Vector<Real> gradUdotgradUz(3);
+            StagInnerProd(rhoscaled_gradUtensor_fc,0,gradUtensor_fc,0,temp_fc,gradUdotgradUx);
+            StagInnerProd(rhoscaled_gradUtensor_fc,1,gradUtensor_fc,1,temp_fc,gradUdotgradUy);
+            StagInnerProd(rhoscaled_gradUtensor_fc,2,gradUtensor_fc,2,temp_fc,gradUdotgradUz);
+        
+            Real FORM4 = dProb*(  gradUdotgradUx[0] + gradUdotgradUx[1] + gradUdotgradUx[2]
+                                  + gradUdotgradUy[0] + gradUdotgradUy[1] + gradUdotgradUy[2]
+                                  + gradUdotgradUz[0] + gradUdotgradUz[1] + gradUdotgradUz[2]) * (nu0 / rho0);
+        
+            // FORM 5: <curl(V) dot (curl(V)> using cell-centered gradients
+        
+            // compute curlU (store in gradU)
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                ComputeCurlCC(prim,1,gradU,0,geom);
+            }
+
+            // create a copy of curlU scaled by rho
+            MultiFab::Copy(rhoscaled_gradU, gradU, 0, 0, AMREX_SPACEDIM, 0);
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                MultiFab::Multiply(rhoscaled_gradU, prim, 0, d, 1, 0);
+            }
+
+            // compute <curl(V) dot (curl(V)>
+            Vector<Real> curlUdotcurlU(3);
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                CCInnerProd(gradU,d,rhoscaled_gradU,d,ccTemp,curlUdotcurlU[d]);
+            }
+
+            Real FORM5 =  dProb*(curlUdotcurlU[0] + curlUdotcurlU[1] + curlUdotcurlU[2]) * (nu0 / rho0);
+
+            curlUdotcurlU[0]=0;
+            ComputeDivCC(prim,1,gradU,0,geom);
+            MultiFab::Copy(rhoscaled_gradU, gradU, 0, 0, 1, 0);
+            MultiFab::Multiply(rhoscaled_gradU, prim, 0, 0, 1, 0);
+            CCInnerProd(gradU,0,rhoscaled_gradU,0,ccTemp,curlUdotcurlU[0]);
+
+            Real DIVCOR = 2.* dProb*curlUdotcurlU[0] * nu0 / (3.* rho0);
+
+            Print() << "Non-viscosity scaled energy dissipation "
+                    << time << " "
+                    << FORM1 << " "
+                    << FORM2 << " "
+                    << FORM3 << " "
+                    << FORM4 << " "
+                    << FORM5 << " "
+                    << FORM3 - DIVCOR  << " "
+                    << std::endl;
+        }  // end if (turbForcing == 1)
         
         // timer
         Real aux2 = ParallelDescriptor::second() - aux1;
