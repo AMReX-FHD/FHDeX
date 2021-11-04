@@ -39,7 +39,7 @@ StructFact::StructFact(const BoxArray& ba_in, const DistributionMapping& dmap_in
 
   verbosity = verbosity_in;
   
-  if (s_pairA_in.size() != s_pairA_in.size())
+  if (s_pairA_in.size() != s_pairB_in.size())
         amrex::Error("StructFact::StructFact() - Must have an equal number of components");
 
   NVAR = var_names.size();
@@ -230,11 +230,150 @@ StructFact::StructFact(const BoxArray& ba_in, const DistributionMapping& dmap_in
 }
 
 void StructFact::define(const BoxArray& ba_in, const DistributionMapping& dmap_in,
+                   const Vector< std::string >& var_names,
+                   const Vector< Real >& var_scaling_in,
+                   const Vector< int >& s_pairA_in,
+                   const Vector< int >& s_pairB_in,
+                   const int& verbosity_in) {
+
+  BL_PROFILE_VAR("StructFact::define1()",StructFactDefine1);
+
+  verbosity = verbosity_in;
+  
+  if (s_pairA_in.size() != s_pairB_in.size())
+        amrex::Error("StructFact::define() - Must have an equal number of components");
+
+  NVAR = var_names.size();
+
+  //////////////////////////////////////////////////////
+  // Reorder pair selecting vectors & error checking
+
+  NCOV = s_pairA_in.size();
+
+  if ( NCOV != var_scaling_in.size() )
+      amrex::Error("StructFact::define() - NCOV != var_scaling_in.size()");
+
+  scaling.resize(NCOV);
+  for (int n=0; n<NCOV; n++) {
+      scaling[n] = 1.0/var_scaling_in[n];
+  }
+  
+  s_pairA.resize(NCOV);
+  s_pairB.resize(NCOV);
+  
+  // Set vectors identifying covariance pairs
+  for (int n=0; n<NCOV; n++) {
+    s_pairA[n] = s_pairA_in[n];
+    s_pairB[n] = s_pairB_in[n];
+  }
+  
+  // Create vector of unique variable indices to select which to take the FFT
+  NVARU = 2*NCOV;    // temporary before selecting unique variables
+  amrex::Vector< int > varu_temp (NVARU);
+  
+  // "Stack" on vectors A and B
+  int indx = 0;
+  for (int n=0; n<NCOV; n++) {
+    varu_temp[indx] = s_pairA_in[n];
+    indx++;
+  }
+  for (int n=0; n<NCOV; n++) {
+    varu_temp[indx] = s_pairB_in[n];
+    indx++;
+  }
+
+  // Reorder: ascending order using "bubble sort"
+  int loop = 1;
+  int tot_iters = 0;
+  int x_temp;
+  while (loop == 1) {
+    loop = 0;
+    for (int n=1; n<NVARU; n++) {
+      if (varu_temp[n] < varu_temp[n-1]) {
+
+	x_temp = varu_temp[n];
+        varu_temp[n  ] = varu_temp[n-1];
+        varu_temp[n-1] = x_temp;
+
+	loop = 1;
+      }
+    }
+    tot_iters++;
+    if (tot_iters > 2*NVARU) {
+      loop = 0;
+      amrex::Error("StructFact::StructFact() - Bubble sort failed to converge");
+    }
+  }
+
+  for (int n=0; n<NVARU; n++) {
+    Print() << "HACK 1: vector (" << n << ") = " << varu_temp[n] << std::endl;
+  }
+
+  // Identify number of repeats
+  int N_dup = 0;
+  for (int n=1; n<NVARU; n++) {
+    if (varu_temp[n] == varu_temp[n-1]) {
+      N_dup = N_dup+1;
+    }
+  }
+  
+  // Resize based on number of unique variables
+  int N_u = NVARU - N_dup;
+  var_u.resize(N_u);
+  
+  // Only select unique pairs
+  indx = 0;
+  var_u[indx] = varu_temp[0];
+  for (int n=1; n<NVARU; n++) {
+    if (varu_temp[n] != varu_temp[n-1]) {
+      indx = indx+1;
+      var_u[indx] = varu_temp[n];
+    }
+  }
+  
+  // Update number of variables according to unique vars
+  NVARU = N_u;
+  
+  for (int n=0; n<NCOV; n++) {
+    Print() << "HACK 2: pairs (" << n << ") = " << s_pairA[n] << ", " << s_pairB[n] << std::endl;
+  }
+  Print() << "HACK: NCOV = " << NCOV << std::endl;
+
+  for (int n=0; n<NCOV; n++) {
+    if(s_pairA[n]<0 || s_pairA[n]>=NVAR || s_pairB[n]<0 || s_pairB[n]>=NVAR)
+       amrex::Error("StructFact::StructFact() - Invalid pair select values: must be between 0 and (num of varibles - 1)");
+  }
+  //////////////////////////////////////////////////////
+
+  // Note that we are defining with NO ghost cells
+
+  cov_real.define(ba_in, dmap_in, NCOV, 0);
+  cov_imag.define(ba_in, dmap_in, NCOV, 0);
+  cov_mag.define( ba_in, dmap_in, NCOV, 0);
+  cov_real.setVal(0.0);
+  cov_imag.setVal(0.0);
+  cov_mag.setVal( 0.0);
+
+  cov_names.resize(NCOV);
+  std::string x;
+  int cnt = 0;
+  for (int n=0; n<NCOV; n++) {
+    x = "struct_fact";
+    x += '_';
+    x += var_names[s_pairB[n]];
+    x += '_';
+    x += var_names[s_pairA[n]];
+    cov_names[cnt] = x;
+    cnt++;
+  }
+}
+
+void StructFact::define(const BoxArray& ba_in, const DistributionMapping& dmap_in,
                         const Vector< std::string >& var_names,
                         const Vector< Real >& var_scaling_in,
                         const int& verbosity_in) {
   
-  BL_PROFILE_VAR("StructFact::define()",StructFactDefine);
+  BL_PROFILE_VAR("StructFact::define2()",StructFactDefine2);
 
   verbosity = verbosity_in;
   
