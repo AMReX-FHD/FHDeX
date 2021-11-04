@@ -69,7 +69,13 @@ public:
                const amrex::Vector< std::string >&,
                const amrex::Vector< amrex::Real >&,
                const int& verbosity=0);
-
+    
+    void define(const amrex::BoxArray&, const amrex::DistributionMapping&, 
+                const amrex::Vector< std::string >&,
+                const amrex::Vector< amrex::Real >&,
+                const amrex::Vector< int >&, const amrex::Vector< int >&,
+                const int& verbosity=0);
+    
     void define(const amrex::BoxArray&, const amrex::DistributionMapping&, 
                 const amrex::Vector< std::string >&,
                 const amrex::Vector< amrex::Real >&,

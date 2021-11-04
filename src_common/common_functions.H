@@ -71,9 +71,23 @@ void ComputeGrad(const MultiFab & phi_in, std::array<MultiFab, AMREX_SPACEDIM> &
 void ComputeCentredGrad(const MultiFab& phi, std::array<MultiFab, AMREX_SPACEDIM>& gphi,
                         const Geometry& geom);
 
+void ComputeCentredGradCompDir(const MultiFab & phi,
+                               MultiFab& gphi,
+                               int dir,
+                               int incomp,
+                               int outcomp,
+                               const Geometry & geom);
+
 void ComputeCentredGradFC(std::array<MultiFab, AMREX_SPACEDIM> & phi,
                           MultiFab & gphi,
                           const Geometry & geom);
+
+void ComputeLap(const MultiFab & phi_in,
+                MultiFab& Lphi_in,
+                int incomp,
+                int outcomp,
+                int numcomp,
+                const Geometry & geom);
 
 void ComputeStagLap(std::array<MultiFab, AMREX_SPACEDIM> & phi,
                     std::array<MultiFab, AMREX_SPACEDIM> & Lphi,
@@ -82,6 +96,18 @@ void ComputeStagLap(std::array<MultiFab, AMREX_SPACEDIM> & phi,
 void ComputeCurlFaceToEdge(std::array<MultiFab, AMREX_SPACEDIM> & umac_in,
                            std::array<MultiFab, NUM_EDGE> & curl,
                            const Geometry & geom);
+
+void ComputeCurlCC(const MultiFab& vel_in,
+                   int incomp,
+                   MultiFab& curl_in,
+                   int outcomp,
+                   const Geometry & geom);
+
+void ComputeDivCC(const MultiFab& vel_in,
+                   int incomp,
+                   MultiFab& div_in,
+                   int outcomp,
+                   const Geometry & geom);
     
 ///////////////////////////
 // in Debug.cpp
