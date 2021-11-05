@@ -534,6 +534,43 @@ void main_driver(const char* argv)
       structFactConsFlattened.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons);
     }
     
+    ///////////////////////////////////////////
+    // Structure factor object to help compute tubulent energy spectra
+    ///////////////////////////////////////////
+    
+    // option to compute only specified pairs
+    amrex::Vector< int > s_pairA(AMREX_SPACEDIM);
+    amrex::Vector< int > s_pairB(AMREX_SPACEDIM);
+
+    // need to use dVol for scaling
+    Real dVol = (AMREX_SPACEDIM==2) ? dx[0]*dx[1]*cell_depth : dx[0]*dx[1]*dx[2];
+    
+    Vector< std::string > var_names;
+    var_names.resize(AMREX_SPACEDIM);
+
+    var_names[0] = "xvel";
+    var_names[1] = "yvel";
+#if (AMREX_SPACEDIM == 3)    
+    var_names[2] = "zvel";
+#endif
+    
+    Vector<Real> var_scaling(AMREX_SPACEDIM);
+    for (int d=0; d<var_scaling.size(); ++d) {
+        var_scaling[d] = 1./dVol;
+    }
+    
+    // Select which variable pairs to include in structure factor:
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        s_pairA[d] = d;
+        s_pairB[d] = d;
+    }    
+    StructFact turbStructFact;
+    MultiFab structFactMF;
+    if (turbForcing == 1) {
+        turbStructFact.define(ba,dmap,var_names,var_scaling,s_pairA,s_pairB);
+        structFactMF.define(ba, dmap, AMREX_SPACEDIM, 0);
+    }
+    
     //////////////////////////////////////////////
 
     // initialize conserved variables
@@ -591,6 +628,22 @@ void main_driver(const char* argv)
         */
            WritePlotFile(step, time, geom, cu, cuMeans, cuVars,
                          prim, primMeans, primVars, spatialCross, eta, kappa);
+
+            // snapshot of instantaneous energy spectra
+            if (turbForcing == 1) {
+
+                // copy velocities into structFactMF
+                MultiFab::Copy(structFactMF, prim, 1, 0, AMREX_SPACEDIM, 0);
+                
+                // reset and compute structure factor
+                turbStructFact.FortStructure(structFactMF,geom,1);
+
+                // writing the plotfiles does the shifting and copying into cov_mag
+                turbStructFact.WritePlotFile(step,time,geom,"plt_Turb");
+
+                // integrate cov_mag over shells in k and write to file
+                turbStructFact.IntegratekShells(step,geom);
+            }
         }
 
         if (chk_int > 0 && step > 0 && step%chk_int == 0)
