@@ -1305,6 +1305,54 @@ void mob_interp_gpu(Real z, Real a, Real* tmob, Real* nmob, int sw)
             *nmob = std::max(p1n + p2n/pow(p3n  + h,5) - p4n/pow(p5n   + h,3) - p6n/(p7n  + h),0.0);
          
          }
+    }else if(wall_mob==11)
+    {
+         //6.59nm channel, 75% wet
+	 Real h = (z)/a;
+          if(sw==1)
+          {
+             // fully wet gamma
+             Real p1t=0.977863;
+             Real p2t=1.13644e-05;
+             Real p3t=2.06719e-02;
+             Real p4t=16.9451;
+             Real p5t=4.05121;
+             Real p6t=0.3445501;
+             Real p7t=1.144203e-04;
+             
+             Real p1n=0.9677998;
+             Real p2n=0.465011;
+             Real p3n=0.404108;
+             Real p4n=144.349;
+             Real p5n=6.77596;
+             Real p6n=0.507712;
+             Real p7n=1.16305e-02;
+                         
+             *tmob = std::max(p1t + p2t/pow(p3t  + h,5) - p4t/pow(p5t   + h,3) - p6t/(p7t  + h),0.0);
+             *nmob = std::max(p1n + p2n/pow(p3n  + h,5) - p4n/pow(p5n   + h,3) - p6n/(p7n  + h),0.0);
+          }else
+          {
+             // 75% wet gamma
+             Real p1t=-1.10588749e-05;
+             Real p2t=2.31084203e+02;
+             Real p3t=6.67672594e+00;
+             Real p4t=-1.88193410e+10;
+             Real p5t=2.65155698e+03;
+             Real p6t=8.19170042e-01;
+             Real p7t=2.59182957e-01;
+
+             Real p1n=1.04195167e+00;
+             Real p2n=-1.23132705e+02;
+             Real p3n=6.52176221e+02;
+             Real p4n=-1.74040860e+04;
+             Real p5n=2.87352469e+01;
+             Real p6n=6.47644043e+00;
+             Real p7n=3.23341737e+00;
+                         
+             *tmob = std::max(p1t + p2t/pow(p3t  + h,5) - p4t/pow(p5t   + h,3) - p6t/(p7t  + h),0.0);
+             *nmob = std::max(p1n + p2n/pow(p3n  + h,5) - p4n/pow(p5n   + h,3) - p6n/(p7n  + h),0.0);
+          
+          }
     }
 
 }
@@ -1427,6 +1475,53 @@ void mob_interp_der_gpu(Real z, Real a, Real* tmobDer, Real* nmobDer, int sw)
             *tmobDer = std::max(-5*p2t/(a*pow(p3t  + h,6)) + 3*p4t/(a*pow(p5t   + h,4)) + p6t/(a*pow(p7t  + h, 2)),0.0);
             *nmobDer = std::max(-5*p2n/(a*pow(p3n  + h,6)) + 3*p4n/(a*pow(p5n   + h,4)) + p6n/(a*pow(p7n  + h, 2)),0.0);
          }
+    }else if(wall_mob==11)
+    {
+	 //6.59nm channel, 75% wet
+	 Real h = (z)/a;
+          if(sw==1)
+          {
+             // fully wet gamma
+             Real p1t=0.977863;
+             Real p2t=1.13644e-05;
+             Real p3t=2.06719e-02;
+             Real p4t=16.9451;
+             Real p5t=4.05121;
+             Real p6t=0.3445501;
+             Real p7t=1.144203e-04;
+             
+             Real p1n=0.9677998;
+             Real p2n=0.465011;
+             Real p3n=0.404108;
+             Real p4n=144.349;
+             Real p5n=6.77596;
+             Real p6n=0.507712;
+             Real p7n=1.16305e-02;
+                         
+             *tmobDer = std::max(-5*p2t/(a*pow(p3t  + h,6)) + 3*p4t/(a*pow(p5t   + h,4)) + p6t/(a*pow(p7t  + h, 2)),0.0);
+             *nmobDer = std::max(-5*p2n/(a*pow(p3n  + h,6)) + 3*p4n/(a*pow(p5n   + h,4)) + p6n/(a*pow(p7n  + h, 2)),0.0);
+          }else
+          {
+             // 75% wet gamma
+             Real p1t=-1.10588749e-05;
+             Real p2t=2.31084203e+02;
+             Real p3t=6.67672594e+00;
+             Real p4t=-1.88193410e+10;
+             Real p5t=2.65155698e+03;
+             Real p6t=8.19170042e-01;
+             Real p7t=2.59182957e-01;
+
+             Real p1n=1.04195167e+00;
+             Real p2n=-1.23132705e+02;
+             Real p3n=6.52176221e+02;
+             Real p4n=-1.74040860e+04;
+             Real p5n=2.87352469e+01;
+             Real p6n=6.47644043e+00;
+             Real p7n=3.23341737e+00;
+
+             *tmobDer = std::max(-5*p2t/(a*pow(p3t  + h,6)) + 3*p4t/(a*pow(p5t   + h,4)) + p6t/(a*pow(p7t  + h, 2)),0.0);
+             *nmobDer = std::max(-5*p2n/(a*pow(p3n  + h,6)) + 3*p4n/(a*pow(p5n   + h,4)) + p6n/(a*pow(p7n  + h, 2)),0.0);
+          }
     }
 }
 

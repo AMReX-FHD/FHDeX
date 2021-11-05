@@ -971,11 +971,11 @@ void main_driver(const char* argv)
         }
 
 
-        if(istep == 1)
-        {
-            particles.SetPosition(1, prob_hi[0]*0.5, prob_lo[1]+6*dx[1], prob_hi[2]*0.5);
-            //particles.SetPosition(2, prob_hi[0]*0.8, prob_hi[1]-2*dx[1], prob_hi[2]*0.5);
-        }
+        //if(istep == 1)
+        //{
+        //    particles.SetPosition(1, prob_hi[0]*0.5, prob_lo[1]+1*dx[1], prob_hi[2]*0.5);
+        //    //particles.SetPosition(2, prob_hi[0]*0.8, prob_hi[1]-2*dx[1], prob_hi[2]*0.5);
+        //}
 
     
         //Most of these functions are sensitive to the order of execution. We can fix this, but for now leave them in this order.
@@ -1003,7 +1003,7 @@ void main_driver(const char* argv)
             particles.ResetMarkers(0);
         }
 
-	particles.SetForce(1,0,1,0);
+	//particles.SetForce(1,1,0,0);
 
 //        Real origin[3];
 //        origin[0] = prob_hi[0]/2.0;
@@ -1284,7 +1284,7 @@ void main_driver(const char* argv)
                             potential, potentialM);
         }
 
-        particles.PrintParticles();
+        //particles.PrintParticles();
 
         // timer for time step
         Real time2 = ParallelDescriptor::second() - time1;
