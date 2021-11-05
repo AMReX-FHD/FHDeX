@@ -10,6 +10,10 @@
 
 #include "chrono"
 
+#ifdef MUI
+#include "surfchem_mui_functions.H"
+#endif
+
 using namespace std::chrono;
 using namespace amrex;
 
@@ -31,6 +35,11 @@ void main_driver(const char* argv)
 
     // read the inputs file for chemistry
     InitializeChemistryNamespace();
+
+#ifdef MUI
+    // read the inputs file for surfchem_mui
+    InitializeSurfChemMUINamespace();
+#endif
 
     if (nvars != AMREX_SPACEDIM + 2 + nspecies) {
         Abort("nvars must be equal to AMREX_SPACEDIM + 2 + nspecies");
@@ -589,6 +598,13 @@ void main_driver(const char* argv)
                       prim, primMeans, primVars, spatialCross, eta, kappa);
     }
 
+#ifdef MUI
+    // MUI setting
+    mui::uniface2d uniface( "mpi://FHD-side/FHD-KMC-coupling" );
+
+    mui_announce_send_recv_span(uniface,cu,dx);
+#endif
+
     //Time stepping loop
     for(step=1;step<=max_step;++step) {
 
@@ -602,6 +618,19 @@ void main_driver(const char* argv)
 
         RK3step(cu, cup, cup2, cup3, prim, source, eta, zeta, kappa, chi, D, flux,
                 stochFlux, cornx, corny, cornz, visccorn, rancorn, ranchem, geom, dt);
+
+#ifdef MUI
+        mui_push(cu, prim, dx, uniface, step);
+
+        mui_fetch(cu, prim, dx, uniface, step);
+
+        conservedToPrimitive(prim, cu);
+
+        // Set BC: 1) fill boundary 2) physical
+        cu.FillBoundary(geom.periodicity());
+        prim.FillBoundary(geom.periodicity());
+        setBC(prim, cu);
+#endif
 
         // timer
         Real ts2 = ParallelDescriptor::second() - ts1;
@@ -629,21 +658,26 @@ void main_driver(const char* argv)
            WritePlotFile(step, time, geom, cu, cuMeans, cuVars,
                          prim, primMeans, primVars, spatialCross, eta, kappa);
 
-            // snapshot of instantaneous energy spectra
-            if (turbForcing == 1) {
+#ifdef MUI
+           // also horizontal average
+           WriteHorizontalAverage(cu,2,0,5+nspecies,step,geom);
+#endif
 
-                // copy velocities into structFactMF
-                MultiFab::Copy(structFactMF, prim, 1, 0, AMREX_SPACEDIM, 0);
+           // snapshot of instantaneous energy spectra
+           if (turbForcing == 1) {
+
+               // copy velocities into structFactMF
+               MultiFab::Copy(structFactMF, prim, 1, 0, AMREX_SPACEDIM, 0);
                 
-                // reset and compute structure factor
-                turbStructFact.FortStructure(structFactMF,geom,1);
+               // reset and compute structure factor
+               turbStructFact.FortStructure(structFactMF,geom,1);
 
-                // writing the plotfiles does the shifting and copying into cov_mag
-                turbStructFact.WritePlotFile(step,time,geom,"plt_Turb");
+               // writing the plotfiles does the shifting and copying into cov_mag
+               turbStructFact.WritePlotFile(step,time,geom,"plt_Turb");
 
-                // integrate cov_mag over shells in k and write to file
-                turbStructFact.IntegratekShells(step,geom);
-            }
+               // integrate cov_mag over shells in k and write to file
+               turbStructFact.IntegratekShells(step,geom);
+           }
         }
 
         if (chk_int > 0 && step > 0 && step%chk_int == 0)
