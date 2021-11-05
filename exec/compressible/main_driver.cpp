@@ -636,25 +636,35 @@ void main_driver(const char* argv)
         Real ts2 = ParallelDescriptor::second() - ts1;
         ParallelDescriptor::ReduceRealMax(ts2);
     	amrex::Print() << "Advanced step " << step << " in " << ts2 << " seconds\n";
-
-        // timer
-        Real aux1 = ParallelDescriptor::second();
         
         // compute mean and variances
-        if (step > n_steps_skip) {
+        if (step > n_steps_skip && stats_int > 0 && step%stats_int == 0) {
+
+            // timer
+            Real t1 = ParallelDescriptor::second();
+
             evaluateStats(cu, cuMeans, cuVars, prim, primMeans, primVars,
                           spatialCross, miscStats, miscVals, statsCount, dx);
             statsCount++;
+
+            // timer
+            Real t2 = ParallelDescriptor::second() - t1;
+            ParallelDescriptor::ReduceRealMax(t2);
+            amrex::Print() << "evaluateStats time " << t2 << " seconds\n";
         }
 
         // write a plotfile
-        if (plot_int > 0 && step > 0 && step%plot_int == 0) {
-        /*
-           yzAverage(cuMeans, cuVars, primMeans, primVars, spatialCross,
-                     cuMeansAv, cuVarsAv, primMeansAv, primVarsAv, spatialCrossAv);
-           WritePlotFile(step, time, geom, cu, cuMeansAv, cuVarsAv,
-                         prim, primMeansAv, primVarsAv, spatialCrossAv, eta, kappa);
-        */
+        if (plot_int > 0 && step%plot_int == 0) {
+
+            // timer
+            Real t1 = ParallelDescriptor::second();
+
+            /*
+              yzAverage(cuMeans, cuVars, primMeans, primVars, spatialCross,
+                        cuMeansAv, cuVarsAv, primMeansAv, primVarsAv, spatialCrossAv);
+              WritePlotFile(step, time, geom, cu, cuMeansAv, cuVarsAv,
+                            prim, primMeansAv, primVarsAv, spatialCrossAv, eta, kappa);
+            */
            WritePlotFile(step, time, geom, cu, cuMeans, cuVars,
                          prim, primMeans, primVars, spatialCross, eta, kappa);
 
@@ -663,8 +673,16 @@ void main_driver(const char* argv)
            WriteHorizontalAverage(cu,2,0,5+nspecies,step,geom);
 #endif
 
+           // timer
+           Real t2 = ParallelDescriptor::second() - t1;
+           ParallelDescriptor::ReduceRealMax(t2);
+           amrex::Print() << "WritePlotFile time " << t2 << " seconds\n";
+
            // snapshot of instantaneous energy spectra
            if (turbForcing == 1) {
+
+               // timer
+               t1 = ParallelDescriptor::second();
 
                // copy velocities into structFactMF
                MultiFab::Copy(structFactMF, prim, 1, 0, AMREX_SPACEDIM, 0);
@@ -677,17 +695,34 @@ void main_driver(const char* argv)
 
                // integrate cov_mag over shells in k and write to file
                turbStructFact.IntegratekShells(step,geom);
+
+               // timer
+               t2 = ParallelDescriptor::second() - t1;
+               ParallelDescriptor::ReduceRealMax(t2);
+               amrex::Print() << "Ek time " << t2 << " seconds\n";
            }
         }
 
-        if (chk_int > 0 && step > 0 && step%chk_int == 0)
-        {
-           WriteCheckPoint(step, time, statsCount, geom, cu, cuMeans,
-                           cuVars, prim, primMeans, primVars, spatialCross, miscStats, eta, kappa);
+        if (chk_int > 0 && step > 0 && step%chk_int == 0) {
+
+            // timer
+            Real t1 = ParallelDescriptor::second();
+
+            WriteCheckPoint(step, time, statsCount, geom, cu, cuMeans,
+                            cuVars, prim, primMeans, primVars, spatialCross, miscStats, eta, kappa);
+
+            // timer
+            Real t2 = ParallelDescriptor::second() - t1;
+            ParallelDescriptor::ReduceRealMax(t2);
+            amrex::Print() << "WriteCheckPoint time " << t2 << " seconds\n";
         }
 
 	// collect a snapshot for structure factor
 	if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip)%struct_fact_int == 0) {
+
+            // timer
+            Real t1 = ParallelDescriptor::second();
+
             MultiFab::Copy(structFactPrimMF, prim, 0,                0,                structVarsPrim,   0);
             MultiFab::Copy(structFactConsMF, cu,   0,                0,                structVarsCons-1, 0);
             MultiFab::Copy(structFactConsMF, prim, AMREX_SPACEDIM+1, structVarsCons-1, 1,                0); // temperature too
@@ -713,20 +748,37 @@ void main_driver(const char* argv)
                 consFlattenedRotMaster.ParallelCopy(consFlattenedRot,0,0,structVarsCons);
                 structFactConsFlattened.FortStructure(consFlattenedRotMaster,geom_flat);
             }
+
+            // timer
+            Real t2 = ParallelDescriptor::second() - t1;
+            ParallelDescriptor::ReduceRealMax(t2);
+            amrex::Print() << "StructFact snapshot time " << t2 << " seconds\n";
         }
 
         // write out structure factor
         if (step > n_steps_skip && struct_fact_int > 0 && plot_int > 0 && step%plot_int == 0) {
+
+            // timer
+            Real t1 = ParallelDescriptor::second();
+
             structFactPrim.WritePlotFile(step,time,geom,"plt_SF_prim");
             structFactCons.WritePlotFile(step,time,geom,"plt_SF_cons");
             if(project_dir >= 0) {
                 structFactPrimFlattened.WritePlotFile(step,time,geom_flat,"plt_SF_prim_Flattened");
                 structFactConsFlattened.WritePlotFile(step,time,geom_flat,"plt_SF_cons_Flattened");
             }
+
+            // timer
+            Real t2 = ParallelDescriptor::second() - t1;
+            ParallelDescriptor::ReduceRealMax(t2);
+            amrex::Print() << "StructFact plotfile time " << t2 << " seconds\n";
         }
 
         // energy dissipation rate
         if (turbForcing == 1) {
+
+            // timer
+            Real t1 = ParallelDescriptor::second();
 
             // FORM 1: <rho/rho0 du_i/dx_i du_i/dx_i>
         
@@ -861,12 +913,13 @@ void main_driver(const char* argv)
                     << FORM5 << " "
                     << FORM3 - DIVCOR  << " "
                     << std::endl;
+
+            // timer
+            Real t2 = ParallelDescriptor::second() - t1;
+            ParallelDescriptor::ReduceRealMax(t2);
+            amrex::Print() << "Energy dissipation compute time " << t2 << " seconds\n";
+
         }  // end if (turbForcing == 1)
-        
-        // timer
-        Real aux2 = ParallelDescriptor::second() - aux1;
-        ParallelDescriptor::ReduceRealMax(aux2);
-        amrex::Print() << "Aux time (stats, struct fac, plotfiles) " << aux2 << " seconds\n";
         
         time = time + dt;
 

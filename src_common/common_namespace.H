@@ -56,6 +56,7 @@ namespace common {
     extern std::string                chk_base_name;
     extern AMREX_GPU_MANAGED int      prob_type;
     extern int                        restart;
+    extern int                        stats_int;
     extern int                        reset_stats;
     extern int                        particle_restart;
     extern int                        print_int;
