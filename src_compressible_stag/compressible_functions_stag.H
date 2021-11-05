@@ -363,10 +363,9 @@ void EvaluateSpatialCorrelations1D(MultiFab& spatialCross1D,
                                    const int ncross,
                                    const int star_index);
 
-
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void Cholesky(Array2D<Real, 0, 4, 0, 4> A,
-              Array2D<Real, 0, 4, 0, 4> Adecomp)
+void Chol3D(Array2D<Real, 0, 3, 0, 3> A,
+            Array2D<Real, 0, 3, 0, 3> Adecomp)
 
 {
     GpuArray<Real,4> P;
@@ -407,6 +406,106 @@ void Cholesky(Array2D<Real, 0, 4, 0, 4> A,
     }
 
     for (int i=0; i<4; ++i) {
+        for (int j=i-1; j>=0; --j) {
+            Adecomp(i,j) = A(i,j);
+        }
+        Adecomp(i,i) = P[i];
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void Chol2D(Array2D<Real, 0, 2, 0, 2> A,
+            Array2D<Real, 0, 2, 0, 2> Adecomp)
+
+{
+    GpuArray<Real,3> P;
+    
+    Real sum1 = 0.;
+    int ising;
+
+    for (int i=0; i<3; ++i) {
+        ising = 0;
+
+        for (int j=0; j<3; ++j) {
+            sum1 = A(i,j);
+
+            for (int k=i-1; k>=0; --k) {
+                sum1 = sum1 - A(i,k)*A(j,k);
+            }
+
+            if (i == j) {
+                if (sum1 <= 0.) {
+                    P[i] = 0.;
+                    ising = 1;
+                } else {
+                    P[i] = sqrt(sum1);
+                }
+            }
+            if (ising == 0) {
+                A(j,i) = sum1/P[i];
+            } else {
+                A(j,i) = 0.;
+            }
+        }
+    }
+
+    for (int i=0; i<3; ++i) {
+        for (int j=0; j<3; ++j) {
+            Adecomp(i,j) = 0.;
+        }
+    }
+
+    for (int i=0; i<3; ++i) {
+        for (int j=i-1; j>=0; --j) {
+            Adecomp(i,j) = A(i,j);
+        }
+        Adecomp(i,i) = P[i];
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void Chol1D(Array2D<Real, 0, 1, 0, 1> A,
+            Array2D<Real, 0, 1, 0, 1> Adecomp)
+
+{
+    GpuArray<Real,2> P;
+    
+    Real sum1 = 0.;
+    int ising;
+
+    for (int i=0; i<2; ++i) {
+        ising = 0;
+
+        for (int j=0; j<2; ++j) {
+            sum1 = A(i,j);
+
+            for (int k=i-1; k>=0; --k) {
+                sum1 = sum1 - A(i,k)*A(j,k);
+            }
+
+            if (i == j) {
+                if (sum1 <= 0.) {
+                    P[i] = 0.;
+                    ising = 1;
+                } else {
+                    P[i] = sqrt(sum1);
+                }
+            }
+            if (ising == 0) {
+                A(j,i) = sum1/P[i];
+            } else {
+                A(j,i) = 0.;
+            }
+        }
+    }
+
+    for (int i=0; i<2; ++i) {
+        for (int j=0; j<2; ++j) {
+            Adecomp(i,j) = 0.;
+        }
+    }
+
+    for (int i=0; i<2; ++i) {
         for (int j=i-1; j>=0; --j) {
             Adecomp(i,j) = A(i,j);
         }
