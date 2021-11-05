@@ -690,12 +690,12 @@ void RK3stepStag(MultiFab& cu,
     prim.FillBoundary(geom.periodicity());
     cu.FillBoundary(geom.periodicity()); 
 
-    // Correctly set momentum and velocity at the walls & temperature, pressure, density & mass/mole fractions in ghost cells
-    setBCStag(prim, cu, cumom, vel, geom);
-
     // Membrane setup
     if (membrane_cell >= 0) {
         doMembraneStag(cu,cumom,prim,vel,faceflux,geom,dt);
     }
+
+    // Correctly set momentum and velocity at the walls & temperature, pressure, density & mass/mole fractions in ghost cells
+    setBCStag(prim, cu, cumom, vel, geom);
 
 }
