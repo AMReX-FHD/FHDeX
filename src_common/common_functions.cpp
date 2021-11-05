@@ -43,6 +43,7 @@ int                        common::chk_int;
 std::string                common::chk_base_name;
 AMREX_GPU_MANAGED int      common::prob_type;
 int                        common::restart;
+int                        common::stats_int;
 int                        common::reset_stats;
 int                        common::particle_restart;
 int                        common::print_int;
@@ -365,6 +366,7 @@ void InitializeCommonNamespace() {
     chk_base_name = "chk";
     prob_type = 1;
     restart = -1;
+    stats_int = 1;
     reset_stats = 0;
     particle_restart = -1;
     print_int = 0;
@@ -660,6 +662,7 @@ void InitializeCommonNamespace() {
     pp.query("chk_base_name",chk_base_name);
     pp.query("prob_type",prob_type);
     pp.query("restart",restart);
+    pp.query("stats_int",stats_int);
     pp.query("reset_stats",reset_stats);
     pp.query("particle_restart",particle_restart);
     pp.query("print_int",print_int);

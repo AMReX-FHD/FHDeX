@@ -31,6 +31,7 @@
 
   max_step = 100
   plot_int = 1
+  stats_int = 0
 
   # turn on energy dissipation diagnostic
   turbForcing == 1
