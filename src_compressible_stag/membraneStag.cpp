@@ -107,100 +107,111 @@ void doLangevin(MultiFab& cons_in, MultiFab& prim_in,
                     // Compute effusive flux per species
                     for (int l=0;l<nspecies;++l) {
                         
-                        //amrex::Print(Print::AllProcs) << i << " " << j << " " << k << " " << l << " " << alpha[l] << " " << rhoL[l] << " " << rhoR[l] << " " << TL << " " << TR << " " << vyL << " " << vyR << " " << vzL << " " << vzR << std::endl;
-                        //printf("%d %g %g %g %g %g %g %g %g %g\n",l,alpha[l],rhoL[l],rhoR[l],TL,TR,vyL,vyR,vzL,vzR);
+                        if (amrex::Math::abs(transmission[l]) >= 1.e-10) {
                         
-                        // Mean effusive fluxes
-                        Real EL = (2.0*k_B*TL/mass[l]) + 0.5*(vyL*vyL + vzL*vzL);
-                        Real ER = (2.0*k_B*TR/mass[l]) + 0.5*(vyR*vyR + vzR*vzR);
-                        Real efffluxM = alpha[l]*(rhoL[l]*sqrtTL - rhoR[l]*sqrtTR); // mass
-                        Real efffluxPy = alpha[l]*(rhoL[l]*vyL*sqrtTL - rhoR[l]*vyR*sqrtTR); // py
-                        Real efffluxPz = alpha[l]*(rhoL[l]*vzL*sqrtTL - rhoR[l]*vzR*sqrtTR); // pz
-                        Real efffluxE = alpha[l]*(rhoL[l]*sqrtTL*EL - rhoR[l]*sqrtTR*ER); // E
-                        
-                        if (stoch_stress_form == 1) {
-                            // Set the covariance matrix to 0
-                            Array2D<Real, 0, 4, 0, 4> Delvar; // covariance matrix
-                            for (int p=0;p<4;++p) {
-                                for (int q=0;q<4;++q) {
-                                    Delvar(p,q) = 0.0;
+                            //amrex::Print(Print::AllProcs) << i << " " << j << " " << k << " " << l << " " << alpha[l] << " " << rhoL[l] << " " << rhoR[l] << " " << TL << " " << TR << " " << vyL << " " << vyR << " " << vzL << " " << vzR << std::endl;
+                            //printf("%d %g %g %g %g %g %g %g %g %g\n",l,alpha[l],rhoL[l],rhoR[l],TL,TR,vyL,vyR,vzL,vzR);
+                            
+                            // Mean effusive fluxes
+                            Real EL = (2.0*k_B*TL/mass[l]) + 0.5*(vyL*vyL + vzL*vzL);
+                            Real ER = (2.0*k_B*TR/mass[l]) + 0.5*(vyR*vyR + vzR*vzR);
+                            Real efffluxM = alpha[l]*(rhoL[l]*sqrtTL - rhoR[l]*sqrtTR); // mass
+                            Real efffluxPy = alpha[l]*(rhoL[l]*vyL*sqrtTL - rhoR[l]*vyR*sqrtTR); // py
+                            Real efffluxPz = alpha[l]*(rhoL[l]*vzL*sqrtTL - rhoR[l]*vzR*sqrtTR); // pz
+                            Real efffluxE = alpha[l]*(rhoL[l]*sqrtTL*EL - rhoR[l]*sqrtTR*ER); // E
+                            
+                            if (stoch_stress_form == 1) {
+                                // Set the covariance matrix to 0
+                                Array2D<Real, 0, 4, 0, 4> Delvar; // covariance matrix
+                                for (int p=0;p<4;++p) {
+                                    for (int q=0;q<4;++q) {
+                                        Delvar(p,q) = 0.0;
+                                    }
+                                }
+
+                                // Fill variances
+                                Delvar(0,0) = mass[l]*alpha[l]*(rhoL[l]*sqrtTL + rhoR[l]*sqrtTR);
+                                
+                                Real pyL = k_B*TL + mass[l]*vyL*vyL;
+                                Real pyR = k_B*TR + mass[l]*vyR*vyR;
+                                Delvar(1,1) = alpha[l]*(rhoL[l]*sqrtTL*pyL + rhoR[l]*sqrtTR*pyR);
+
+                                Real pzL = k_B*TL + mass[l]*vzL*vzL;
+                                Real pzR = k_B*TR + mass[l]*vzR*vzR;
+                                Delvar(2,2) = alpha[l]*(rhoL[l]*sqrtTL*pzL + rhoR[l]*sqrtTR*pzR);
+
+                                Real ELV = 24.0*k_B*k_B*TL*TL + 12.0*k_B*mass[l]*TL*(vyL*vyL+vzL*vzL) + mass[l]*mass[l]*(vyL*vyL+vzL*vzL)*(vyL*vyL+vzL*vzL);
+                                Real ERV = 24.0*k_B*k_B*TR*TR + 12.0*k_B*mass[l]*TR*(vyR*vyR+vzR*vzR) + mass[l]*mass[l]*(vyR*vyR+vzR*vzR)*(vyR*vyR+vzR*vzR);
+                                Delvar(3,3) = alpha[l]*(rhoL[l]*sqrtTL*ELV + rhoR[l]*sqrtTR*ERV);
+                                
+                                // Fill covariances
+                                Delvar(0,1) = mass[l]*alpha[l]*(rhoL[l]*sqrtTL*vyL + rhoR[l]*sqrtTR*vyR);
+                                Delvar(1,0) = mass[l]*alpha[l]*(rhoL[l]*sqrtTL*vyL + rhoR[l]*sqrtTR*vyR);
+                                Delvar(0,2) = mass[l]*alpha[l]*(rhoL[l]*sqrtTL*vzL + rhoR[l]*sqrtTR*vzR);
+                                Delvar(2,0) = mass[l]*alpha[l]*(rhoL[l]*sqrtTL*vzL + rhoR[l]*sqrtTR*vzR);
+
+                                Real meL = 4.0*k_B*TL + mass[l]*(vyL*vyL+vzL*vzL);
+                                Real meR = 4.0*k_B*TR + mass[l]*(vyR*vyR+vzR*vzR);
+                                Delvar(0,3) = 0.5*alpha[l]*(rhoL[l]*sqrtTL*meL + rhoR[l]*sqrtTR*meR);
+                                Delvar(3,0) = 0.5*alpha[l]*(rhoL[l]*sqrtTL*meL + rhoR[l]*sqrtTR*meR);
+
+                                //amrex::Print(Print::AllProcs) << "(0,0): " << j << " " << k << " " << l << " " << Delvar(0,0) << "\n";
+                                //amrex::Print(Print::AllProcs) << "(1,1): " << j << " " << k << " " <<  l << " " << Delvar(1,1) << "\n";
+                                //amrex::Print(Print::AllProcs) << "(2,2): " << j << " " << k << " " << l << " " << Delvar(2,2) << "\n";
+                                //amrex::Print(Print::AllProcs) << "(3,3): " << j << " " << k << " " << l << " " << Delvar(3,3) << "\n";
+                                //amrex::Print(Print::AllProcs) << "(0,1): " << j << " " << k << " " << l << " " << Delvar(0,1) << "\n";
+                                //amrex::Print(Print::AllProcs) << "(0,2): " << j << " " << k << " " << l << " " << Delvar(0,2) << "\n";
+                                //amrex::Print(Print::AllProcs) << "(0,3): " << j << " " << k << " " << l << " " << Delvar(0,3) << "\n";
+
+                                Real pyeL = vyL*(6.0*k_B*TL + mass[l]*(vyL*vyL+vzL*vzL));
+                                Real pyeR = vyR*(6.0*k_B*TR + mass[l]*(vyR*vyR+vzR*vzR));
+                                Delvar(1,3) = 0.5*alpha[l]*(rhoL[l]*sqrtTL*pyeL + rhoR[l]*sqrtTR*pyeR);
+                                Delvar(3,1) = 0.5*alpha[l]*(rhoL[l]*sqrtTL*pyeL + rhoR[l]*sqrtTR*pyeR);
+
+                                Real pzeL = vzL*(6.0*k_B*TL + mass[l]*(vyL*vyL+vzL*vzL));
+                                Real pzeR = vzR*(6.0*k_B*TR + mass[l]*(vyR*vyR+vzR*vzR));
+                                Delvar(2,3) = 0.5*alpha[l]*(rhoL[l]*sqrtTL*pzeL + rhoR[l]*sqrtTR*pzeR);
+                                Delvar(3,2) = 0.5*alpha[l]*(rhoL[l]*sqrtTL*pzeL + rhoR[l]*sqrtTR*pzeR);
+
+                                // Cholesky factorise the covariance matrix
+                                Array2D<Real, 0, 4, 0, 4> sqrtVar;
+                                Cholesky(Delvar,sqrtVar);
+
+                                // Generate random numbers
+                                GpuArray<Real,4> rand; // Random normal numbers
+                                for (int n=0;n<4;++n) {
+                                    //rand[n] = RandomNormal(0.,1.,engine);
+                                    rand[n] = RandomNormal(0.,1.);
+                                }
+                                
+                                // Get effusive fluxes from Langevin integration
+                                for (int q=0; q<4; ++q) {
+                                    efffluxM += sqrtVar(0,q)*rand[q]; // x = mean + rand*covar
+                                }
+                                for (int q=0; q<4; ++q) {
+                                    efffluxPy += sqrtVar(1,q)*rand[q]; // x = mean + rand*covar
+                                }
+                                for (int q=0; q<4; ++q) {
+                                    efffluxPz += sqrtVar(2,q)*rand[q]; // x = mean + rand*covar
+                                }
+                                for (int q=0; q<4; ++q) {
+                                    efffluxE += sqrtVar(3,q)*rand[q]; // x = mean + rand*covar
                                 }
                             }
 
-                            // Fill variances
-                            Delvar(0,0) = mass[l]*alpha[l]*(rhoL[l]*sqrtTL + rhoR[l]*sqrtTR);
-                            
-                            Real pyL = k_B*TL + mass[l]*vyL*vyL;
-                            Real pyR = k_B*TR + mass[l]*vyR*vyR;
-                            Delvar(1,1) = alpha[l]*(rhoL[l]*sqrtTL*pyL + rhoR[l]*sqrtTR*pyR);
-
-                            Real pzL = k_B*TL + mass[l]*vzL*vzL;
-                            Real pzR = k_B*TR + mass[l]*vzR*vzR;
-                            Delvar(2,2) = alpha[l]*(rhoL[l]*sqrtTL*pzL + rhoR[l]*sqrtTR*pzR);
-
-                            Real ELV = 24.0*k_B*k_B*TL*TL + 12.0*k_B*mass[l]*TL*(vyL*vyL+vzL*vzL) + mass[l]*mass[l]*(vyL*vyL+vzL*vzL)*(vyL*vyL+vzL*vzL);
-                            Real ERV = 24.0*k_B*k_B*TR*TR + 12.0*k_B*mass[l]*TR*(vyR*vyR+vzR*vzR) + mass[l]*mass[l]*(vyR*vyR+vzR*vzR)*(vyR*vyR+vzR*vzR);
-                            Delvar(3,3) = alpha[l]*(rhoL[l]*sqrtTL*ELV + rhoR[l]*sqrtTR*ERV);
-                            
-                            // Fill covariances
-                            Delvar(0,1) = mass[l]*alpha[l]*(rhoL[l]*sqrtTL*vyL + rhoR[l]*sqrtTR*vyR);
-                            Delvar(1,0) = mass[l]*alpha[l]*(rhoL[l]*sqrtTL*vyL + rhoR[l]*sqrtTR*vyR);
-                            Delvar(0,2) = mass[l]*alpha[l]*(rhoL[l]*sqrtTL*vzL + rhoR[l]*sqrtTR*vzR);
-                            Delvar(2,0) = mass[l]*alpha[l]*(rhoL[l]*sqrtTL*vzL + rhoR[l]*sqrtTR*vzR);
-
-                            Real meL = 4.0*k_B*TL + mass[l]*(vyL*vyL+vzL*vzL);
-                            Real meR = 4.0*k_B*TR + mass[l]*(vyR*vyR+vzR*vzR);
-                            Delvar(0,3) = 0.5*alpha[l]*(rhoL[l]*sqrtTL*meL + rhoR[l]*sqrtTR*meR);
-                            Delvar(3,0) = 0.5*alpha[l]*(rhoL[l]*sqrtTL*meL + rhoR[l]*sqrtTR*meR);
-
-                            Real pyeL = vyL*(6.0*k_B*TL + mass[l]*(vyL*vyL+vzL*vzL));
-                            Real pyeR = vyR*(6.0*k_B*TR + mass[l]*(vyR*vyR+vzR*vzR));
-                            Delvar(1,3) = 0.5*alpha[l]*(rhoL[l]*sqrtTL*pyeL + rhoR[l]*sqrtTR*pyeR);
-                            Delvar(3,1) = 0.5*alpha[l]*(rhoL[l]*sqrtTL*pyeL + rhoR[l]*sqrtTR*pyeR);
-
-                            Real pzeL = vzL*(6.0*k_B*TL + mass[l]*(vyL*vyL+vzL*vzL));
-                            Real pzeR = vzR*(6.0*k_B*TR + mass[l]*(vyR*vyR+vzR*vzR));
-                            Delvar(2,3) = 0.5*alpha[l]*(rhoL[l]*sqrtTL*pzeL + rhoR[l]*sqrtTR*pzeR);
-                            Delvar(3,2) = 0.5*alpha[l]*(rhoL[l]*sqrtTL*pzeL + rhoR[l]*sqrtTR*pzeR);
-
-                            // Cholesky factorise the covariance matrix
-                            Array2D<Real, 0, 4, 0, 4> sqrtVar;
-                            Cholesky(Delvar,sqrtVar);
-
-                            // Generate random numbers
-                            GpuArray<Real,4> rand; // Random normal numbers
-                            for (int n=0;n<4;++n) {
-                                //rand[n] = RandomNormal(0.,1.,engine);
-                                rand[n] = RandomNormal(0.,1.);
+                            // Increment total flux
+                            xflux(membrane_cell,j,k,0)  += efffluxM/vol; // mass flux
+                            xflux(membrane_cell,j,k,5+l) = efffluxM/vol; // species mass flux
+                            xflux(membrane_cell,j,k,4)  += efffluxE/vol; // energy flux
+                            if (do_1D) {
                             }
-                            
-                            // Get effusive fluxes from Langevin integration
-                            for (int q=0; q<4; ++q) {
-                                efffluxM += sqrtVar(0,q)*rand[q]; // x = mean + rand*covar
+                            else if (do_2D) {
+                                edgex_v(membrane_cell,j,k)  += efffluxPy/vol; // y-momentum flux
                             }
-                            for (int q=0; q<4; ++q) {
-                                efffluxPy += sqrtVar(1,q)*rand[q]; // x = mean + rand*covar
+                            else {
+                                edgex_v(membrane_cell,j,k)  += efffluxPy/vol; // y-momentum flux
+                                edgex_w(membrane_cell,j,k)  += efffluxPz/vol; // z-momentum flux
                             }
-                            for (int q=0; q<4; ++q) {
-                                efffluxPz += sqrtVar(2,q)*rand[q]; // x = mean + rand*covar
-                            }
-                            for (int q=0; q<4; ++q) {
-                                efffluxE += sqrtVar(3,q)*rand[q]; // x = mean + rand*covar
-                            }
-                        }
-
-                        // Increment total flux
-                        xflux(membrane_cell,j,k,0)  += efffluxM/vol; // mass flux
-                        xflux(membrane_cell,j,k,5+l) = efffluxM/vol; // species mass flux
-                        xflux(membrane_cell,j,k,4)  += efffluxE/vol; // energy flux
-                        if (do_1D) {
-                        }
-                        else if (do_2D) {
-                            edgex_v(membrane_cell,j,k)  += efffluxPy/vol; // y-momentum flux
-                        }
-                        else {
-                            edgex_v(membrane_cell,j,k)  += efffluxPy/vol; // y-momentum flux
-                            edgex_w(membrane_cell,j,k)  += efffluxPz/vol; // z-momentum flux
                         }
 
                     }
