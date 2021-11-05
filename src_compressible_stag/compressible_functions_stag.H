@@ -366,7 +366,6 @@ void EvaluateSpatialCorrelations1D(MultiFab& spatialCross1D,
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void Cholesky(Array2D<Real, 0, 4, 0, 4> A,
-              int const nspecies,
               Array2D<Real, 0, 4, 0, 4> Adecomp)
 
 {

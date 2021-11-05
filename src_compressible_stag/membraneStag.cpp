@@ -14,7 +14,9 @@ void doMembraneStag(MultiFab& cons,
 {
     BL_PROFILE_VAR("doMembraneStag()",doMembraneStag);
 
-    faceflux[0].setVal(0.0); // set mass & energy flux to zero
+    AMREX_D_TERM(faceflux[0].setVal(0.0);,
+                 faceflux[1].setVal(0.0);,
+                 faceflux[2].setVal(0.0););
     edgeflux_x[0].setVal(0.0); // set flux of y-momentum to zero
     edgeflux_x[1].setVal(0.0); // set flux of z-momentum to zero
     
@@ -57,13 +59,16 @@ void doLangevin(MultiFab& cons_in, MultiFab& prim_in,
     GpuArray<Real,MAX_SPECIES> mass;
     GpuArray<Real,MAX_SPECIES> alpha;
     for (int l=0;l<nspecies;++l) {
-        mass[l] = molmass[l]/(Runiv/k_B);
+        mass[l] = molmass[l]/(6.023e23);
         alpha[l] = area*dt*transmission[l]*sqrt(k_B/(2.0*3.142*mass[l]));
     }
     
-    for ( MFIter mfi(faceflux[0],TilingIfNotGPU()); mfi.isValid(); ++mfi) {
+    for ( MFIter mfi(cons_in); mfi.isValid(); ++mfi) {
 
         const Box& bx = mfi.validbox();
+
+        const auto lo = amrex::lbound(bx);
+        const auto hi = amrex::ubound(bx);
 
         const Array4<Real>& prim = prim_in.array(mfi);
         const Array4<Real>& cons = cons_in.array(mfi);
@@ -73,133 +78,137 @@ void doLangevin(MultiFab& cons_in, MultiFab& prim_in,
         const Array4<Real>& vely = vel[1].array(mfi);
         const Array4<Real>& velz = vel[2].array(mfi);
 
-//        amrex::Print() << bx.smallEnd(0) << " " << bx.bigEnd(0) << " " << membrane_cell << "\n";
-        if ((bx.smallEnd(0) == membrane_cell) or (bx.bigEnd(0) == membrane_cell)) { // not really required
+        if ((bx.smallEnd(0) == membrane_cell) or (bx.bigEnd(0) == membrane_cell - 1)) {
 
-            amrex::ParallelForRNG(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k, RandomEngine const& engine) noexcept
-            {
-                if (i == membrane_cell) {
+            for (auto k = lo.z; k <= hi.z; ++k) {
+            for (auto j = lo.y; j <= hi.y; ++j) {
+//            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+//            amrex::ParallelForRNG(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k, RandomEngine const& engine) noexcept
+//            {
+//                if (i == membrane_cell) {
 
-                    Real TL = prim(i-1,j,k,4);
-                    Real TR = prim(i,j,k,4); 
+                    Real TL = prim(membrane_cell-1,j,k,4);
+                    Real TR = prim(membrane_cell,j,k,4); 
                     Real sqrtTL = sqrt(TL);
                     Real sqrtTR = sqrt(TR);
-//                    amrex::Print() << i << " " << j << " " << k << " " << TL << " " << TR << "\n";
 
-                    Real vyL = vely(i-1,j,k);
-                    Real vyR = vely(i,j,k);
-                    Real vzL = velz(i-1,j,k);
-                    Real vzR = velz(i,j,k);
+                    Real vyL = vely(membrane_cell-1,j,k);
+                    Real vyR = vely(membrane_cell,j,k);
+                    Real vzL = velz(membrane_cell-1,j,k);
+                    Real vzR = velz(membrane_cell,j,k);
 
                     GpuArray<Real,MAX_SPECIES> rhoL;
                     GpuArray<Real,MAX_SPECIES> rhoR;
-
                     for (int l=0;l<nspecies;++l) {
-                        rhoL[l] = cons(i-1,j,k,5+l);
-                        rhoR[l] = cons(i,j,k,5+l);
+                        rhoL[l] = cons(membrane_cell-1,j,k,5+l);
+                        rhoR[l] = cons(membrane_cell,j,k,5+l);
                     }
 
-                    Real EL, ER, pyL, pyR, pzL, pzR, meL, meR, pyeL, pyeR, pzeL, pzeR;
-
                     // Compute effusive flux per species
-                    GpuArray<Real,4> Delmean; // Mean flux for [mass, py, pz, E]
-                    Array2D<Real, 0, 4, 0, 4> Delvar; // covariance matrix
-                    GpuArray<Real,4> rand; // Random normal numbers
-                    GpuArray<Real,4> effflux; // effusive flux
-
                     for (int l=0;l<nspecies;++l) {
-
+                        
+                        //amrex::Print(Print::AllProcs) << i << " " << j << " " << k << " " << l << " " << alpha[l] << " " << rhoL[l] << " " << rhoR[l] << " " << TL << " " << TR << " " << vyL << " " << vyR << " " << vzL << " " << vzR << std::endl;
+                        //printf("%d %g %g %g %g %g %g %g %g %g\n",l,alpha[l],rhoL[l],rhoR[l],TL,TR,vyL,vyR,vzL,vzR);
+                        
                         // Mean effusive fluxes
-                        Delmean[0] = alpha[l]*sqrt(rhoL[l]*sqrtTL - rhoR[l]*sqrtTR); // mass
-
-                        Delmean[1] = alpha[l]*(rhoL[l]*vyL*sqrtTL - rhoR[l]*vyR*sqrtTR); // py
-                        Delmean[2] = alpha[l]*(rhoL[l]*vzL*sqrtTL - rhoR[l]*vzR*sqrtTR); // pz
-
-                        EL = (2.0*k_B*TL/mass[l]) + 0.5*(vyL*vyL + vzL*vzL);
-                        ER = (2.0*k_B*TR/mass[l]) + 0.5*(vyR*vyR + vzR*vzR);
-                        Delmean[3] = alpha[l]*(rhoL[l]*sqrtTL*EL - rhoR[l]*sqrtTR*ER); // E
+                        Real EL = (2.0*k_B*TL/mass[l]) + 0.5*(vyL*vyL + vzL*vzL);
+                        Real ER = (2.0*k_B*TR/mass[l]) + 0.5*(vyR*vyR + vzR*vzR);
+                        Real efffluxM = alpha[l]*(rhoL[l]*sqrtTL - rhoR[l]*sqrtTR); // mass
+                        Real efffluxPy = alpha[l]*(rhoL[l]*vyL*sqrtTL - rhoR[l]*vyR*sqrtTR); // py
+                        Real efffluxPz = alpha[l]*(rhoL[l]*vzL*sqrtTL - rhoR[l]*vzR*sqrtTR); // pz
+                        Real efffluxE = alpha[l]*(rhoL[l]*sqrtTL*EL - rhoR[l]*sqrtTR*ER); // E
                         
-                        // Set the covariance matrix to 0
-                        for (int p=0;p<4;++p) {
-                            for (int q=0;q<4;++q) {
-                                Delvar(p,q) = 0.0;
+                        if (stoch_stress_form == 1) {
+                            // Set the covariance matrix to 0
+                            Array2D<Real, 0, 4, 0, 4> Delvar; // covariance matrix
+                            for (int p=0;p<4;++p) {
+                                for (int q=0;q<4;++q) {
+                                    Delvar(p,q) = 0.0;
+                                }
                             }
-                        }
 
-                        // Fill variances
-                        Delvar(0,0) = mass[l]*alpha[l]*(rhoL[l]*sqrtTL + rhoR[l]*sqrtTR);
-                        
-                        pyL = k_B*TL + mass[l]*vyL*vyL;
-                        pyR = k_B*TR + mass[l]*vyR*vyR;
-                        Delvar(1,1) = alpha[l]*(rhoL[l]*sqrtTL*pyL + rhoR[l]*sqrtTR*pyR);
+                            // Fill variances
+                            Delvar(0,0) = mass[l]*alpha[l]*(rhoL[l]*sqrtTL + rhoR[l]*sqrtTR);
+                            
+                            Real pyL = k_B*TL + mass[l]*vyL*vyL;
+                            Real pyR = k_B*TR + mass[l]*vyR*vyR;
+                            Delvar(1,1) = alpha[l]*(rhoL[l]*sqrtTL*pyL + rhoR[l]*sqrtTR*pyR);
 
-                        pzL = k_B*TL + mass[l]*vzL*vzL;
-                        pzR = k_B*TR + mass[l]*vzR*vzR;
-                        Delvar(2,2) = alpha[l]*(rhoL[l]*sqrtTL*pzL + rhoR[l]*sqrtTR*pzR);
+                            Real pzL = k_B*TL + mass[l]*vzL*vzL;
+                            Real pzR = k_B*TR + mass[l]*vzR*vzR;
+                            Delvar(2,2) = alpha[l]*(rhoL[l]*sqrtTL*pzL + rhoR[l]*sqrtTR*pzR);
 
-                        EL = 24.0*k_B*k_B*TL*TL + 12.0*k_B*mass[l]*TL*(vyL*vyL+vzL*vzL) + mass[l]*mass[l]*(vyL*vyL+vzL*vzL)*(vyL*vyL+vzL*vzL);
-                        ER = 24.0*k_B*k_B*TR*TR + 12.0*k_B*mass[l]*TR*(vyR*vyR+vzR*vzR) + mass[l]*mass[l]*(vyR*vyR+vzR*vzR)*(vyR*vyR+vzR*vzR);
-                        Delvar(3,3) = alpha[l]*(rhoL[l]*sqrtTL*EL + rhoR[l]*sqrtTR*ER);
-                        
-                        // Fill covariances
-                        Delvar(0,1) = mass[l]*alpha[l]*(rhoL[l]*sqrtTL*vyL + rhoR[l]*sqrtTR*vyR);
-                        Delvar(1,0) = mass[l]*alpha[l]*(rhoL[l]*sqrtTL*vyL + rhoR[l]*sqrtTR*vyR);
-                        Delvar(0,2) = mass[l]*alpha[l]*(rhoL[l]*sqrtTL*vzL + rhoR[l]*sqrtTR*vzR);
-                        Delvar(2,0) = mass[l]*alpha[l]*(rhoL[l]*sqrtTL*vzL + rhoR[l]*sqrtTR*vzR);
+                            Real ELV = 24.0*k_B*k_B*TL*TL + 12.0*k_B*mass[l]*TL*(vyL*vyL+vzL*vzL) + mass[l]*mass[l]*(vyL*vyL+vzL*vzL)*(vyL*vyL+vzL*vzL);
+                            Real ERV = 24.0*k_B*k_B*TR*TR + 12.0*k_B*mass[l]*TR*(vyR*vyR+vzR*vzR) + mass[l]*mass[l]*(vyR*vyR+vzR*vzR)*(vyR*vyR+vzR*vzR);
+                            Delvar(3,3) = alpha[l]*(rhoL[l]*sqrtTL*ELV + rhoR[l]*sqrtTR*ERV);
+                            
+                            // Fill covariances
+                            Delvar(0,1) = mass[l]*alpha[l]*(rhoL[l]*sqrtTL*vyL + rhoR[l]*sqrtTR*vyR);
+                            Delvar(1,0) = mass[l]*alpha[l]*(rhoL[l]*sqrtTL*vyL + rhoR[l]*sqrtTR*vyR);
+                            Delvar(0,2) = mass[l]*alpha[l]*(rhoL[l]*sqrtTL*vzL + rhoR[l]*sqrtTR*vzR);
+                            Delvar(2,0) = mass[l]*alpha[l]*(rhoL[l]*sqrtTL*vzL + rhoR[l]*sqrtTR*vzR);
 
-                        meL = 4.0*k_B*TL + mass[l]*(vyL*vyL+vzL*vzL);
-                        meR = 4.0*k_B*TR + mass[l]*(vyR*vyR+vzR*vzR);
-                        Delvar(0,3) = 0.5*alpha[l]*(rhoL[l]*sqrtTL*meL + rhoR[l]*sqrtTR*meR);
-                        Delvar(3,0) = 0.5*alpha[l]*(rhoL[l]*sqrtTL*meL + rhoR[l]*sqrtTR*meR);
+                            Real meL = 4.0*k_B*TL + mass[l]*(vyL*vyL+vzL*vzL);
+                            Real meR = 4.0*k_B*TR + mass[l]*(vyR*vyR+vzR*vzR);
+                            Delvar(0,3) = 0.5*alpha[l]*(rhoL[l]*sqrtTL*meL + rhoR[l]*sqrtTR*meR);
+                            Delvar(3,0) = 0.5*alpha[l]*(rhoL[l]*sqrtTL*meL + rhoR[l]*sqrtTR*meR);
 
-                        pyeL = vyL*(6.0*k_B*TL + mass[l]*(vyL*vyL+vzL*vzL));
-                        pyeR = vyR*(6.0*k_B*TR + mass[l]*(vyR*vyR+vzR*vzR));
-                        Delvar(1,3) = 0.5*alpha[l]*(rhoL[l]*sqrtTL*pyeL + rhoR[l]*sqrtTR*pyeR);
-                        Delvar(3,1) = 0.5*alpha[l]*(rhoL[l]*sqrtTL*pyeL + rhoR[l]*sqrtTR*pyeR);
+                            Real pyeL = vyL*(6.0*k_B*TL + mass[l]*(vyL*vyL+vzL*vzL));
+                            Real pyeR = vyR*(6.0*k_B*TR + mass[l]*(vyR*vyR+vzR*vzR));
+                            Delvar(1,3) = 0.5*alpha[l]*(rhoL[l]*sqrtTL*pyeL + rhoR[l]*sqrtTR*pyeR);
+                            Delvar(3,1) = 0.5*alpha[l]*(rhoL[l]*sqrtTL*pyeL + rhoR[l]*sqrtTR*pyeR);
 
-                        pzeL = vzL*(6.0*k_B*TL + mass[l]*(vyL*vyL+vzL*vzL));
-                        pzeR = vzR*(6.0*k_B*TR + mass[l]*(vyR*vyR+vzR*vzR));
-                        Delvar(2,3) = 0.5*alpha[l]*(rhoL[l]*sqrtTL*pzeL + rhoR[l]*sqrtTR*pzeR);
-                        Delvar(3,2) = 0.5*alpha[l]*(rhoL[l]*sqrtTL*pzeL + rhoR[l]*sqrtTR*pzeR);
+                            Real pzeL = vzL*(6.0*k_B*TL + mass[l]*(vyL*vyL+vzL*vzL));
+                            Real pzeR = vzR*(6.0*k_B*TR + mass[l]*(vyR*vyR+vzR*vzR));
+                            Delvar(2,3) = 0.5*alpha[l]*(rhoL[l]*sqrtTL*pzeL + rhoR[l]*sqrtTR*pzeR);
+                            Delvar(3,2) = 0.5*alpha[l]*(rhoL[l]*sqrtTL*pzeL + rhoR[l]*sqrtTR*pzeR);
 
-                        // Cholesky factorise the covariance matrix
-                        Array2D<Real, 0, 4, 0, 4> sqrtVar;
-                        Cholesky(Delvar,4,sqrtVar);
+                            // Cholesky factorise the covariance matrix
+                            Array2D<Real, 0, 4, 0, 4> sqrtVar;
+                            Cholesky(Delvar,sqrtVar);
 
-                        // Generate random numbers
-                        for (int n=0;n<4;++n) {
-                            if (stoch_stress_form) rand[n] = RandomNormal(0.,1.,engine);
-                            else rand[n] = 0.0;
-                            effflux[n] = 0.0; // initialize effusive flux
-                        }
-                        
-                        // Get effusive fluxes from Langevin integration
-                        for (int p=0; p<4; ++p) {
+                            // Generate random numbers
+                            GpuArray<Real,4> rand; // Random normal numbers
+                            for (int n=0;n<4;++n) {
+                                //rand[n] = RandomNormal(0.,1.,engine);
+                                rand[n] = RandomNormal(0.,1.);
+                            }
+                            
+                            // Get effusive fluxes from Langevin integration
                             for (int q=0; q<4; ++q) {
-                                effflux[p] += Delmean[p] + sqrtVar(p,q)*rand[q]; // x = mean + rand*covar
+                                efffluxM += sqrtVar(0,q)*rand[q]; // x = mean + rand*covar
+                            }
+                            for (int q=0; q<4; ++q) {
+                                efffluxPy += sqrtVar(1,q)*rand[q]; // x = mean + rand*covar
+                            }
+                            for (int q=0; q<4; ++q) {
+                                efffluxPz += sqrtVar(2,q)*rand[q]; // x = mean + rand*covar
+                            }
+                            for (int q=0; q<4; ++q) {
+                                efffluxE += sqrtVar(3,q)*rand[q]; // x = mean + rand*covar
                             }
                         }
 
                         // Increment total flux
-                        xflux(i,j,k,0)  += effflux[0]/vol; // mass flux
-                        xflux(i,j,k,5+l) = effflux[0]/vol; // species mass flux
-                        xflux(i,j,k,4)  += effflux[3]/vol; // energy flux
+                        xflux(membrane_cell,j,k,0)  += efffluxM/vol; // mass flux
+                        xflux(membrane_cell,j,k,5+l) = efffluxM/vol; // species mass flux
+                        xflux(membrane_cell,j,k,4)  += efffluxE/vol; // energy flux
                         if (do_1D) {
                         }
                         else if (do_2D) {
-                            edgex_v(i,j,k)  += effflux[1]/vol; // y-momentum flux
+                            edgex_v(membrane_cell,j,k)  += efffluxPy/vol; // y-momentum flux
                         }
                         else {
-                            edgex_v(i,j,k)  += effflux[1]/vol; // y-momentum flux
-                            edgex_w(i,j,k)  += effflux[2]/vol; // z-momentum flux
+                            edgex_v(membrane_cell,j,k)  += efffluxPy/vol; // y-momentum flux
+                            edgex_w(membrane_cell,j,k)  += efffluxPz/vol; // z-momentum flux
                         }
 
-//                        amrex::Print() << i << " " << j << " " << k << " " << l << " " << effflux[0] << " " << effflux[1] << " " << effflux[2] << " " << effflux[3] << "\n";
-
                     }
-                    
                 }
-            });
+                }
+                    
+//                }
+//            });
 
         }
 
@@ -219,6 +228,9 @@ void applyEffusion(std::array<MultiFab, AMREX_SPACEDIM>& faceflux,
 
         const Box& bx = mfi.validbox();
 
+        const auto lo = amrex::lbound(bx);
+        const auto hi = amrex::ubound(bx);
+
         const Array4<Real>& cons = cons_in.array(mfi);
         const Array4<Real>& xflux = faceflux[0].array(mfi);
         const Array4<Real>& ymom = cumom[1].array(mfi);
@@ -228,34 +240,42 @@ void applyEffusion(std::array<MultiFab, AMREX_SPACEDIM>& faceflux,
 
         if (bx.smallEnd(0) == membrane_cell) { // membrane at the left end (cell to the right of the membrane)
 
-            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-            {
-                if (i == membrane_cell) {
-                    cons(i,j,k,0) += xflux(i,j,k,0);
-                    cons(i,j,k,4) += xflux(i,j,k,4);
+//            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+//            {
+//                if (i == membrane_cell) {
+            for (auto k = lo.z; k <= hi.z; ++k) {
+            for (auto j = lo.y; j <= hi.y; ++j) {
+                    cons(membrane_cell,j,k,0) += xflux(membrane_cell,j,k,0);
+                    cons(membrane_cell,j,k,4) += xflux(membrane_cell,j,k,4);
                     for (int l=0;l<nspecies;++l) {
-                        cons(i,j,k,5+l) += xflux(i,j,k,5+l);
+                        cons(membrane_cell,j,k,5+l) += xflux(membrane_cell,j,k,5+l);
                     }
-                    ymom(i,j,k) += edgex_v(i,j,k); 
-                    zmom(i,j,k) += edgex_w(i,j,k); 
-                }
-            });
+                    ymom(membrane_cell,j,k) += edgex_v(membrane_cell,j,k); 
+                    zmom(membrane_cell,j,k) += edgex_w(membrane_cell,j,k); 
+            }
+            }
+//                }
+//            });
         }
 
         else if (bx.bigEnd(0) == membrane_cell - 1) { // membrane at the right end (cell to the left of the membrane)
 
-            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-            {
-                if (i == membrane_cell-1) {
-                    cons(i,j,k,0) -= xflux(membrane_cell,j,k,0);
-                    cons(i,j,k,4) -= xflux(membrane_cell,j,k,4);
+//            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+//            {
+//                if (i == membrane_cell-1) {
+            for (auto k = lo.z; k <= hi.z; ++k) {
+            for (auto j = lo.y; j <= hi.y; ++j) {
+                    cons(membrane_cell-1,j,k,0) -= xflux(membrane_cell,j,k,0);
+                    cons(membrane_cell-1,j,k,4) -= xflux(membrane_cell,j,k,4);
                     for (int l=0;l<nspecies;++l) {
-                        cons(i,j,k,5+l) -= xflux(membrane_cell,j,k,5+l);
+                        cons(membrane_cell-1,j,k,5+l) -= xflux(membrane_cell,j,k,5+l);
                     }
-                    ymom(i,j,k) -= edgex_v(membrane_cell,j,k); 
-                    zmom(i,j,k) -= edgex_w(membrane_cell,j,k); 
-                }
-            });
+                    ymom(membrane_cell-1,j,k) -= edgex_v(membrane_cell,j,k); 
+                    zmom(membrane_cell-1,j,k) -= edgex_w(membrane_cell,j,k); 
+            }
+            }
+//                }
+//            });
         
         }
 
