@@ -77,6 +77,7 @@ namespace common {
     // stochastic forcing amplitudes (1 for physical values, 0 to run them off)
     extern AMREX_GPU_MANAGED amrex::Real variance_coef_mom;
     extern AMREX_GPU_MANAGED amrex::Real variance_coef_mass;
+    extern AMREX_GPU_MANAGED amrex::Real variance_coef_ener;
     extern AMREX_GPU_MANAGED amrex::Real k_B;
     extern AMREX_GPU_MANAGED amrex::Real h_bar;
     extern AMREX_GPU_MANAGED amrex::Real Runiv;
