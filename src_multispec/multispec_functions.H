@@ -22,6 +22,14 @@ void InitializeMultispecNamespace();
 
 /////////////////////////////////////////////////////////////////////////////////
 // in ComputeDivReversibleStress.cpp
+void ComputeFHDivReversibleStress(std::array<MultiFab,AMREX_SPACEDIM>& div_reversible_stress,
+                                const MultiFab& rhotot_in,
+                                MultiFab& rho_in,
+                                const Geometry& geom);
+
+
+/////////////////////////////////////////////////////////////////////////////////
+// in ComputeDivReversibleStress.cpp
 void ComputeDivReversibleStress(std::array<MultiFab,AMREX_SPACEDIM>& div_reversible_stress,
                                 const MultiFab& rhotot_in,
                                 MultiFab& rho_in,
@@ -47,6 +55,10 @@ void ComputeMassFluxdiv(MultiFab& rho,
                         const int& zero_initial_Epot=1);
 
 void ComputeHigherOrderTerm(const MultiFab& molarconc,
+                            std::array<MultiFab,AMREX_SPACEDIM>& diff_mass_flux,
+                            const Geometry& geom);
+
+void ComputeFHHigherOrderTerm(const MultiFab& molarconc,
                             std::array<MultiFab,AMREX_SPACEDIM>& diff_mass_flux,
                             const Geometry& geom);
 
@@ -276,6 +288,29 @@ void GetMolTot ( GpuArray<Real, MAX_SPECIES>& W,
 }
 
 /**
+ * \brief Compute total molar mass
+ *
+ * \param[in] W Mass fractions.
+ * \param[in] molmass_in
+ * \param[in] nspecies_in Number of species
+ * \param[out] molmtot Total molar mass
+ */
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void GetMonomerTot ( GpuArray<Real, MAX_SPECIES>& W,
+                GpuArray<Real, MAX_SPECIES>& monomer_in,
+                Real& monomertot_in,
+                int nspecies_in)
+{
+    Real sumWOverN = 0.0;
+
+    for (int n=0; n<nspecies_in; ++n){
+        sumWOverN += W[n] / monomer_in[n];
+    }
+
+    monomertot_in = 1.0 / sumWOverN;
+}
+
+/**
  * \param[in] nspecies_in Number of species
  * \param[in] molmass_in
  * \param[in] RhoN Density, last dim for number of species
@@ -397,7 +432,7 @@ void ComputeGammaLocal (
     //Local variables
     Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> X_xxT;
 
-    if ((use_multiphase == 1) && (nspecies == 2)){
+     if ((use_multiphase == 1) && (nspecies == 2)){
 
         // local to define Gamma matrix
         Real w1 = MolarConcN[0];
@@ -433,6 +468,27 @@ void ComputeGammaLocal (
         GammaIPlusMatmul(GammaN, X_xxT, HessianN);
 
     }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void ComputeFHGamma (
+                GpuArray<Real, MAX_SPECIES>& massFrac,
+                Array1D<Real, 0, MAX_SPECIES-1>& NumMonomers,
+                Array2D<Real, 0, MAX_SPECIES-1, 0, MAX_SPECIES-1>& fh_chi,
+                Array2D<Real, 0, MAX_SPECIES-1, 0, MAX_SPECIES-1>& GammaN){
+
+        Real Nbar;
+
+        GetMonomerTot ( massFrac, monomer_in, Nbar, nspecies);
+    
+        for (int n=0; n<nspecies; n++){
+           for (int m=0; m<nspecies; m++){
+              Real wn = std::max(std::min( massFrac[n],1),0);
+              GammaN(n,m) = Nbar*wn*fh_chi(n,m);
+           }
+           GammaN(n,n) += Nbar/ monomer_in(n);
+        }
+
 }
 
 

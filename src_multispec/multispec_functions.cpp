@@ -17,6 +17,7 @@ AMREX_GPU_MANAGED int                                       multispec::is_noniso
 AMREX_GPU_MANAGED int                                       multispec::is_ideal_mixture;
 int                                                         multispec::use_lapack;
 AMREX_GPU_MANAGED int                                       multispec::use_multiphase;
+AMREX_GPU_MANAGED int                                       multispec::use_floryhuggins;
 AMREX_GPU_MANAGED amrex::Real                               multispec::kc_tension;
 AMREX_GPU_MANAGED amrex::Real                               multispec::alpha_gex;
 AMREX_GPU_MANAGED int                                       multispec::n_gex;
@@ -170,6 +171,7 @@ void InitializeMultispecNamespace() {
     pp.query("is_nonisothermal",is_nonisothermal);
     pp.query("use_lapack",use_lapack);
     pp.query("use_multiphase",use_multiphase);
+    pp.query("use_multiphase",use_flory_huggins);
     pp.query("kc_tension",kc_tension);
     pp.query("alpha_gex",alpha_gex);
     pp.query("n_gex",n_gex);

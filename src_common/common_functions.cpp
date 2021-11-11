@@ -51,6 +51,8 @@ int                        common::project_eos_int;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::grav;
 AMREX_GPU_MANAGED int      common::nspecies;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::molmass;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::monomer;
+AMREX_GPU_MANAGED amrex::Real common::monomer_mass;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::rhobar;
 AMREX_GPU_MANAGED amrex::Real common::rho0;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::diameter;
@@ -677,6 +679,12 @@ void InitializeCommonNamespace() {
     if (pp.queryarr("molmass",temp,0,nspecies)) {
         for (int i=0; i<nspecies; ++i) {
             molmass[i] = temp[i];
+        }
+    }
+    pp.query("monomer_mass",monomer_mass);
+    if (pp.queryarr("monomer",temp,0,nspecies)) {
+        for (int i=0; i<nspecies; ++i) {
+            monomer[i] = temp[i];
         }
     }
     if (pp.queryarr("rhobar",temp,0,nspecies)) {
