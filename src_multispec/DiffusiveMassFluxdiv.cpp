@@ -70,7 +70,7 @@ void DiffusiveMassFlux(const MultiFab& rho,
 
     if (use_flory_huggins == 1) {
         ComputeFHHigherOrderTerm(molarconc,diff_mass_flux,kappa,geom);
-    } elseif (use_multiphase == 1) {
+    } else if (use_multiphase == 1) {
         ComputeHigherOrderTerm(molarconc,diff_mass_flux,geom);
     }
 
