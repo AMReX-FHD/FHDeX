@@ -52,8 +52,9 @@ AppSurfchemtest::AppSurfchemtest(SPPARKS *spk, int narg, char **arg) :
                   // dc1/dc2/dc3/dc4/dc5: desorption count
                   // dac1/dac2/dac3/dac4/dac5: dissociative adsorption count
                   // adc1/adc2/adc3/adc4/adc5: associative desorption count
-  ndouble = 6;    // density1/density2/density3/density4/density5: number density of the contacting FHD cell
+  ndouble = 7;    // density1/density2/density3/density4/density5: number density of the contacting FHD cell
                   // temp: temperature of the contacting FHD cell
+                  // Vz: normal velocity of the contacting FHD cell
   delpropensity = 1;
   delevent = 1;
   allow_kmc = 1;
@@ -580,6 +581,7 @@ void AppSurfchemtest::grow_app()
   density4 = darray[3];
   density5 = darray[4];
   temp = darray[5];
+  Vz = darray[6];
 }
 
 /* ----------------------------------------------------------------------
@@ -1326,6 +1328,10 @@ void AppSurfchemtest::mui_push(int narg, char **arg)
       for (int i=0;i<nlocal;i++) {
         spk->uniface->push("CH_temp",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},temp[i]);
       }
+    } else if (strcmp(arg[k],"Vz") == 0) {          // d7
+      for (int i=0;i<nlocal;i++) {
+        spk->uniface->push("CH_Vz",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},Vz[i]);
+      }
     } else {
       error->all(FLERR,"Illegal mui_push command");
     }
@@ -1428,6 +1434,10 @@ void AppSurfchemtest::mui_fetch(int narg, char **arg)
       for (int i=0;i<nlocal;i++) {
         temp[i] = spk->uniface->fetch("CH_temp",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},timestamp,s,t);
       }
+    } else if (strcmp(arg[k],"Vz") == 0) {          // d7
+      for (int i=0;i<nlocal;i++) {
+        Vz[i] = spk->uniface->fetch("CH_Vz",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},timestamp,s,t);
+      }
     } else {
       error->all(FLERR,"Illegal mui_fetch command");
     }
@@ -1475,6 +1485,14 @@ void AppSurfchemtest::mui_fetch_agg(int narg, char **arg)
       // distribute info to each KMC site
       for (int i=0;i<nlocal;i++)
         temp[i] = MUIdblval[localFHDcell[i]];
+    }
+    else if (strcmp(arg[k],"Vz") == 0) {
+      // get info for each FHD cell
+      for (int n=0;n<nlocalFHDcell;n++)
+        MUIdblval[n] = spk->uniface->fetch("CH_Vz",{xFHD[n],yFHD[n]},timestamp,s,t);
+      // distribute info to each KMC site
+      for (int i=0;i<nlocal;i++)
+        Vz[i] = MUIdblval[localFHDcell[i]];
     }
     else {
       error->all(FLERR,"Illegal mui_fetch_agg command");
