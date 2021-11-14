@@ -68,7 +68,7 @@ mui_init_agg
 variable ts loop ${nstep}
 label ts_loop
     # MPI_FETCH
-    mui_fetch_agg   ${ts} density1 temp
+    mui_fetch_agg   ${ts} density1 temp Vz
 
     ##### if imagefreq
     variable reminder equal ${ts}-${imagfreq}*floor(${ts}/${imagfreq})
