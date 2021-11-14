@@ -46,8 +46,14 @@ enum{VACANCY,SPEC1,SPEC2,SPEC3,SPEC4,SPEC5}; // removed ZERO and moved VACANCY t
 AppSurfchemtest::AppSurfchemtest(SPPARKS *spk, int narg, char **arg) : 
   AppLattice(spk,narg,arg)
 {
-  ninteger = 22; // type, element, ac1, ac2, ac3, ac4, ac5, dc1, dc2, dc3, dc4, dc5  (number changes due to ads/des)
-  ndouble = 6;  // density1, density2, density3, density4, density5 (number densities in gas phase), temp (local temperature)
+  ninteger = 22;  // type: site type
+                  // element: site state
+                  // ac1/ac2/ac3/ac4/ac5: adsorption count
+                  // dc1/dc2/dc3/dc4/dc5: desorption count
+                  // dac1/dac2/dac3/dac4/dac5: dissociative adsorption count
+                  // adc1/adc2/adc3/adc4/adc5: associative desorption count
+  ndouble = 6;    // density1/density2/density3/density4/density5: number density of the contacting FHD cell
+                  // temp: temperature of the contacting FHD cell
   delpropensity = 1;
   delevent = 1;
   allow_kmc = 1;
