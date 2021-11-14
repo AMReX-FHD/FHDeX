@@ -762,24 +762,29 @@ double AppSurfchemtest::site_propensity(int i)
     if (ads_is_rate) adspropensity = adsrate[m];
     else
     {
-      // propensity for adsorption = adsrate * num_dens * sqrt(site_temp/sys_temp)
-      if (adsoutput[m]==SPEC1) adspropensity = adsrate[m]*density1[i]*sqrt(temp[i]/temperature);
-      else if (adsoutput[m]==SPEC2) adspropensity = adsrate[m]*density2[i]*sqrt(temp[i]/temperature);
-      else if (adsoutput[m]==SPEC3) adspropensity = adsrate[m]*density3[i]*sqrt(temp[i]/temperature);
-      else if (adsoutput[m]==SPEC4) adspropensity = adsrate[m]*density4[i]*sqrt(temp[i]/temperature);
-      else if (adsoutput[m]==SPEC5) adspropensity = adsrate[m]*density5[i]*sqrt(temp[i]/temperature);
-    }
-/*
-    else
-    {
-      // propensity for adsorption = adsrate * num_dens
+      // propensity for adsorption = adsrate * num_dens * temp_correction * Vz_correction
+
+      // 1. adsrate * num_dens
       if (adsoutput[m]==SPEC1) adspropensity = adsrate[m]*density1[i];
       else if (adsoutput[m]==SPEC2) adspropensity = adsrate[m]*density2[i];
       else if (adsoutput[m]==SPEC3) adspropensity = adsrate[m]*density3[i];
       else if (adsoutput[m]==SPEC4) adspropensity = adsrate[m]*density4[i];
       else if (adsoutput[m]==SPEC5) adspropensity = adsrate[m]*density5[i];
+
+      // 2. temperature correction
+      adspropensity *= sqrt(temp[i]/temperature);
+
+      // 3. Vz correction
+      // Ref: Garcia and Wagner
+      //      Generation of the Maxwellian inflow distribution
+      //      J. Comput. Phys. 217, 693-708 (2006)
+      // see the last equation in page 703
+      // Here we assume the normal direction is z
+      double vT = sqrt(2*1.38064852e-16*temp[i]/4.65116981903e-23);
+      double aratio = Vz[i]/vT;
+      adspropensity *= exp(-aratio*aratio) + sqrt(M_PI)*aratio*(1+erf(aratio));
     }
-*/
+
     add_event(i,4,m,adspropensity,-1,-1);
     proball += adspropensity;
   }
