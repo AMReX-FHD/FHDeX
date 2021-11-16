@@ -919,11 +919,7 @@ void StructFact::Finalize(MultiFab& cov_real_in, MultiFab& cov_imag_in,
 void StructFact::CallFinalize( const Geometry& geom,
                                const int& zero_avg) {
   
-  BL_PROFILE_VAR("StructFact::WritePlotFile()",StructFactWritePlotFile);
-
-  MultiFab plotfile;
-  Vector<std::string> varNames;
-  int nPlot = 1;
+  BL_PROFILE_VAR("CallFinalize()",CallFinalize);
 
   // Build temp real & imag components
   const BoxArray& ba = cov_mag.boxArray();
