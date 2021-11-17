@@ -94,6 +94,8 @@ public:
     
     void Finalize(amrex::MultiFab&, amrex::MultiFab&, const Geometry& geom,
                   const int& zero_avg=1);
+
+    void CallFinalize(const Geometry& geom, const int& zero_avg=1);
     
     void ShiftFFT(amrex::MultiFab&,  const Geometry& geom,
                   const int& zero_avg=1);
