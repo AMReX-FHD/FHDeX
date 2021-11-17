@@ -28,6 +28,16 @@ std::string cufftErrorToString (const cufftResult& err)
 StructFact::StructFact()
 {}
 
+
+StructFact::StructFact(const BoxArray& ba_in, const DistributionMapping& dmap_in,
+		       const Vector< std::string >& var_names,
+		       const Vector< Real >& var_scaling_in,
+		       const int& verbosity_in) {
+
+    this->define(ba_in,dmap_in,var_names,var_scaling_in,verbosity_in);
+
+}
+
 StructFact::StructFact(const BoxArray& ba_in, const DistributionMapping& dmap_in,
 		       const Vector< std::string >& var_names,
 		       const Vector< Real >& var_scaling_in,
@@ -39,23 +49,38 @@ StructFact::StructFact(const BoxArray& ba_in, const DistributionMapping& dmap_in
 
 }
 
-StructFact::StructFact(const BoxArray& ba_in, const DistributionMapping& dmap_in,
-		       const Vector< std::string >& var_names,
-		       const Vector< Real >& var_scaling_in,
-		       const int& verbosity_in) {
 
-    this->define(ba_in,dmap_in,var_names,var_scaling_in,verbosity_in);
+void StructFact::define(const BoxArray& ba_in, const DistributionMapping& dmap_in,
+                        const Vector< std::string >& var_names,
+                        const Vector< Real >& var_scaling_in,
+                        const int& verbosity_in) {
+
+    NVAR = var_names.size();
+
+    Vector<int> s_pairA(NVAR*(NVAR+1)/2);
+    Vector<int> s_pairB(NVAR*(NVAR+1)/2);
+
+    int counter=0;
+    for (int i=0; i<NVAR; ++i) {
+        for (int j=i; j<NVAR; ++j) {
+            s_pairA[counter] = j;
+            s_pairB[counter] = i;
+            ++counter;
+        }
+    }      
+
+    define(ba_in, dmap_in, var_names, var_scaling_in, s_pairA, s_pairB, verbosity_in);
 
 }
 
 void StructFact::define(const BoxArray& ba_in, const DistributionMapping& dmap_in,
-                   const Vector< std::string >& var_names,
-                   const Vector< Real >& var_scaling_in,
-                   const Vector< int >& s_pairA_in,
-                   const Vector< int >& s_pairB_in,
-                   const int& verbosity_in) {
+                        const Vector< std::string >& var_names,
+                        const Vector< Real >& var_scaling_in,
+                        const Vector< int >& s_pairA_in,
+                        const Vector< int >& s_pairB_in,
+                        const int& verbosity_in) {
 
-  BL_PROFILE_VAR("StructFact::define1()",StructFactDefine1);
+  BL_PROFILE_VAR("StructFact::define()",StructFactDefine);
 
   verbosity = verbosity_in;
   
@@ -124,9 +149,11 @@ void StructFact::define(const BoxArray& ba_in, const DistributionMapping& dmap_i
     }
   }
 
+  /*
   for (int n=0; n<NVARU; n++) {
     Print() << "HACK 1: vector (" << n << ") = " << varu_temp[n] << std::endl;
   }
+  */
 
   // Identify number of repeats
   int N_dup = 0;
@@ -154,77 +181,15 @@ void StructFact::define(const BoxArray& ba_in, const DistributionMapping& dmap_i
   NVARU = N_u;
   
   for (int n=0; n<NCOV; n++) {
-    Print() << "HACK 2: pairs (" << n << ") = " << s_pairA[n] << ", " << s_pairB[n] << std::endl;
+    Print() << "SF pairs (" << n << ") = " << s_pairA[n] << ", " << s_pairB[n] << std::endl;
   }
-  Print() << "HACK: NCOV = " << NCOV << std::endl;
+  Print() << "SF numPairs = " << NCOV << std::endl;
 
   for (int n=0; n<NCOV; n++) {
     if(s_pairA[n]<0 || s_pairA[n]>=NVAR || s_pairB[n]<0 || s_pairB[n]>=NVAR)
        amrex::Error("StructFact::StructFact() - Invalid pair select values: must be between 0 and (num of varibles - 1)");
   }
   //////////////////////////////////////////////////////
-
-  // Note that we are defining with NO ghost cells
-
-  cov_real.define(ba_in, dmap_in, NCOV, 0);
-  cov_imag.define(ba_in, dmap_in, NCOV, 0);
-  cov_mag.define( ba_in, dmap_in, NCOV, 0);
-  cov_real.setVal(0.0);
-  cov_imag.setVal(0.0);
-  cov_mag.setVal( 0.0);
-
-  cov_names.resize(NCOV);
-  std::string x;
-  int cnt = 0;
-  for (int n=0; n<NCOV; n++) {
-    x = "struct_fact";
-    x += '_';
-    x += var_names[s_pairB[n]];
-    x += '_';
-    x += var_names[s_pairA[n]];
-    cov_names[cnt] = x;
-    cnt++;
-  }
-}
-
-void StructFact::define(const BoxArray& ba_in, const DistributionMapping& dmap_in,
-                        const Vector< std::string >& var_names,
-                        const Vector< Real >& var_scaling_in,
-                        const int& verbosity_in) {
-  
-  BL_PROFILE_VAR("StructFact::define2()",StructFactDefine2);
-
-  verbosity = verbosity_in;
-  
-  NVAR = var_names.size();
-  NCOV = NVAR*(NVAR+1)/2;
-
-  if ( NCOV != var_scaling_in.size() )
-      amrex::Error("StructFact::define() -  NCOV != var_scaling_in.size()");
-
-  scaling.resize(NCOV);
-  for (int n=0; n<NCOV; n++) {
-      scaling[n] = 1.0/var_scaling_in[n];
-  }
-  
-  s_pairA.resize(NCOV);
-  s_pairB.resize(NCOV);
-  
-  // all variables are selected in this constructor
-  NVARU = NVAR;
-  var_u.resize(NVARU);
-  for (int n=0; n<NVARU; n++) {
-    var_u[n] = n;
-  }
-  
-  int index = 0;
-  for (int j=0; j<NVAR; j++) {
-    for (int i=j; i<NVAR; i++) {
-      s_pairA[index] = i;
-      s_pairB[index] = j;
-      index++;
-    }
-  }
 
   // Note that we are defining with NO ghost cells
 

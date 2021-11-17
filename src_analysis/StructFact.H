@@ -58,27 +58,27 @@ public:
     MultiFab cov_mag;
 
     StructFact();
-    
+
+    StructFact(const amrex::BoxArray&, const amrex::DistributionMapping&, 
+               const amrex::Vector< std::string >&,
+               const amrex::Vector< amrex::Real >&,
+               const int& verbosity=0);
+
     StructFact(const amrex::BoxArray&, const amrex::DistributionMapping&, 
                const amrex::Vector< std::string >&,
                const amrex::Vector< amrex::Real >&,
                const amrex::Vector< int >&, const amrex::Vector< int >&,
                const int& verbosity=0);
 
-    StructFact(const amrex::BoxArray&, const amrex::DistributionMapping&, 
-               const amrex::Vector< std::string >&,
-               const amrex::Vector< amrex::Real >&,
-               const int& verbosity=0);
-    
+    void define(const amrex::BoxArray&, const amrex::DistributionMapping&, 
+                const amrex::Vector< std::string >&,
+                const amrex::Vector< amrex::Real >&,
+                const int& verbosity=0);
+
     void define(const amrex::BoxArray&, const amrex::DistributionMapping&, 
                 const amrex::Vector< std::string >&,
                 const amrex::Vector< amrex::Real >&,
                 const amrex::Vector< int >&, const amrex::Vector< int >&,
-                const int& verbosity=0);
-    
-    void define(const amrex::BoxArray&, const amrex::DistributionMapping&, 
-                const amrex::Vector< std::string >&,
-                const amrex::Vector< amrex::Real >&,
                 const int& verbosity=0);
 
     void FortStructure(const amrex::MultiFab&, const amrex::Geometry&,
