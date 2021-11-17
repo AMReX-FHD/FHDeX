@@ -820,75 +820,73 @@ void StructFact::WritePlotFile(const int step, const Real time, const Geometry& 
   // Write out structure factor magnitude to plot file
   //////////////////////////////////////////////////////////////////////////////////
 
-  if (turbForcing != 1) {
-      std::string name = plotfile_base;
-      name += "_mag";
+  std::string name = plotfile_base;
+  name += "_mag";
   
-      const std::string plotfilename1 = amrex::Concatenate(name,step,9);
-      nPlot = NCOV;
-      plotfile.define(cov_mag.boxArray(), cov_mag.DistributionMap(), nPlot, 0);
-      varNames.resize(nPlot);
+  const std::string plotfilename1 = amrex::Concatenate(name,step,9);
+  nPlot = NCOV;
+  plotfile.define(cov_mag.boxArray(), cov_mag.DistributionMap(), nPlot, 0);
+  varNames.resize(nPlot);
 
-      for (int n=0; n<NCOV; n++) {
-          varNames[n] = cov_names[n];
-      }
-  
-      MultiFab::Copy(plotfile, cov_mag, 0, 0, NCOV, 0); // copy structure factor into plotfile
-
-      Real dx = geom.CellSize(0);
-      Real pi = 3.1415926535897932;
-      Box domain = geom.Domain();
-
-      RealBox real_box({AMREX_D_DECL(-pi/dx,-pi/dx,-pi/dx)},
-                       {AMREX_D_DECL( pi/dx, pi/dx, pi/dx)});
-  
-      // check bc_vel_lo/hi to determine the periodicity
-      Vector<int> is_periodic(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
-      for (int i=0; i<AMREX_SPACEDIM; ++i) {
-          is_periodic[i] = geom.isPeriodic(i);
-      }
-
-      Geometry geom2;
-      geom2.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
-    
-      // write a plotfile
-      WriteSingleLevelPlotfile(plotfilename1,plotfile,varNames,geom2,time,step);
-  
-      //////////////////////////////////////////////////////////////////////////////////
-      // Write out real and imaginary components of structure factor to plot file
-      //////////////////////////////////////////////////////////////////////////////////
-
-      name = plotfile_base;
-      name += "_real_imag";
-  
-      const std::string plotfilename2 = amrex::Concatenate(name,step,9);
-      nPlot = 2*NCOV;
-      plotfile.define(cov_mag.boxArray(), cov_mag.DistributionMap(), nPlot, 0);
-      varNames.resize(nPlot);
-
-      int cnt = 0; // keep a counter for plotfile variables
-      for (int n=0; n<NCOV; n++) {
-          varNames[cnt] = cov_names[cnt];
-          varNames[cnt] += "_real";
-          cnt++;
-      }
-
-      int index = 0;
-      for (int n=0; n<NCOV; n++) {
-          varNames[cnt] = cov_names[index];
-          varNames[cnt] += "_imag";
-          index++;
-          cnt++;
-      }
-
-      MultiFab::Copy(plotfile,cov_real_temp,0,0,   NCOV,0);
-      MultiFab::Copy(plotfile,cov_imag_temp,0,NCOV,NCOV,0);
-
-      // write a plotfile
-      WriteSingleLevelPlotfile(plotfilename2,plotfile,varNames,geom2,time,step);
+  for (int n=0; n<NCOV; n++) {
+      varNames[n] = cov_names[n];
   }
   
+  MultiFab::Copy(plotfile, cov_mag, 0, 0, NCOV, 0); // copy structure factor into plotfile
+
+  Real dx = geom.CellSize(0);
+  Real pi = 3.1415926535897932;
+  Box domain = geom.Domain();
+
+  RealBox real_box({AMREX_D_DECL(-pi/dx,-pi/dx,-pi/dx)},
+                   {AMREX_D_DECL( pi/dx, pi/dx, pi/dx)});
+  
+  // check bc_vel_lo/hi to determine the periodicity
+  Vector<int> is_periodic(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
+  for (int i=0; i<AMREX_SPACEDIM; ++i) {
+      is_periodic[i] = geom.isPeriodic(i);
+  }
+
+  Geometry geom2;
+  geom2.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
+    
+  // write a plotfile
+  WriteSingleLevelPlotfile(plotfilename1,plotfile,varNames,geom2,time,step);
+  
+  //////////////////////////////////////////////////////////////////////////////////
+  // Write out real and imaginary components of structure factor to plot file
+  //////////////////////////////////////////////////////////////////////////////////
+
+  name = plotfile_base;
+  name += "_real_imag";
+  
+  const std::string plotfilename2 = amrex::Concatenate(name,step,9);
+  nPlot = 2*NCOV;
+  plotfile.define(cov_mag.boxArray(), cov_mag.DistributionMap(), nPlot, 0);
+  varNames.resize(nPlot);
+
+  int cnt = 0; // keep a counter for plotfile variables
+  for (int n=0; n<NCOV; n++) {
+      varNames[cnt] = cov_names[cnt];
+      varNames[cnt] += "_real";
+      cnt++;
+  }
+
+  int index = 0;
+  for (int n=0; n<NCOV; n++) {
+      varNames[cnt] = cov_names[index];
+      varNames[cnt] += "_imag";
+      index++;
+      cnt++;
+  }
+
+  MultiFab::Copy(plotfile,cov_real_temp,0,0,   NCOV,0);
+  MultiFab::Copy(plotfile,cov_imag_temp,0,NCOV,NCOV,0);
+
+  // write a plotfile
+  WriteSingleLevelPlotfile(plotfilename2,plotfile,varNames,geom2,time,step);
 }
+
 void StructFact::Finalize(MultiFab& cov_real_in, MultiFab& cov_imag_in,
                           const Geometry& geom, const int& zero_avg) {
 
@@ -916,6 +914,27 @@ void StructFact::Finalize(MultiFab& cov_real_in, MultiFab& cov_imag_in,
   SqrtMF(cov_mag);
 
 }
+
+// Finalize covariances - scale & compute magnitude
+void StructFact::CallFinalize( const Geometry& geom,
+                               const int& zero_avg) {
+  
+  BL_PROFILE_VAR("CallFinalize()",CallFinalize);
+
+  // Build temp real & imag components
+  const BoxArray& ba = cov_mag.boxArray();
+  const DistributionMapping& dm = cov_mag.DistributionMap();
+
+  MultiFab cov_real_temp(ba, dm, NCOV, 0);
+  MultiFab cov_imag_temp(ba, dm, NCOV, 0);
+  MultiFab::Copy(cov_real_temp, cov_real, 0, 0, NCOV, 0);
+  MultiFab::Copy(cov_imag_temp, cov_imag, 0, 0, NCOV, 0);
+
+  // Finalize covariances - scale & compute magnitude
+  Finalize(cov_real_temp, cov_imag_temp, geom, zero_avg);
+}
+
+
 
 void StructFact::ShiftFFT(MultiFab& dft_out, const Geometry& geom, const int& zero_avg) {
 

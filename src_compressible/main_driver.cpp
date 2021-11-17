@@ -689,9 +689,7 @@ void main_driver(const char* argv)
                 
                // reset and compute structure factor
                turbStructFact.FortStructure(structFactMF,geom,1);
-
-               // writing the plotfiles does the shifting and copying into cov_mag
-               turbStructFact.WritePlotFile(step,time,geom,"plt_Turb");
+               turbStructFact.CallFinalize(geom);
 
                // integrate cov_mag over shells in k and write to file
                turbStructFact.IntegratekShells(step,geom);
