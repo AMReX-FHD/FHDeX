@@ -28,7 +28,9 @@ std::string cufftErrorToString (const cufftResult& err)
 StructFact::StructFact()
 {}
 
-
+// var_names contains the names of all variables under consideration
+// this constructor computes the covariances of all possible pairs of variables
+// var_scaling must be sized to match the total number of pairs of variables
 StructFact::StructFact(const BoxArray& ba_in, const DistributionMapping& dmap_in,
 		       const Vector< std::string >& var_names,
 		       const Vector< Real >& var_scaling_in,
@@ -38,6 +40,9 @@ StructFact::StructFact(const BoxArray& ba_in, const DistributionMapping& dmap_in
 
 }
 
+// var_names contains the names of all variables under consideration
+// this constructor compute the covariances of the pairs of variables defined in s_pairA/B_in
+// var_scaling must be sized to match the total number of pairs of variables
 StructFact::StructFact(const BoxArray& ba_in, const DistributionMapping& dmap_in,
 		       const Vector< std::string >& var_names,
 		       const Vector< Real >& var_scaling_in,
@@ -50,6 +55,7 @@ StructFact::StructFact(const BoxArray& ba_in, const DistributionMapping& dmap_in
 }
 
 
+// this builds a list of all possible pairs of variables and calls define()
 void StructFact::define(const BoxArray& ba_in, const DistributionMapping& dmap_in,
                         const Vector< std::string >& var_names,
                         const Vector< Real >& var_scaling_in,

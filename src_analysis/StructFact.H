@@ -25,9 +25,9 @@ using namespace amrex;
 
 class StructFact {
 
-    int NVAR = 1;        // Number of variable
-    int NVARU = NVAR;    // Number of unique variables
-    int NCOV = 1;        // Number of covariances (lower diagonal of matrix - by default)
+    int NVAR = 1;        // Number of variables, as defined by the size of var_names
+    int NVARU = NVAR;    // Number of variables we actually need to take the FFT of
+    int NCOV = 1;        // Number of covariances
 
     int verbosity = 0;
 
