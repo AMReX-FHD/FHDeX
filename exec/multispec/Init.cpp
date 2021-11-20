@@ -76,6 +76,101 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                 }
                 
             });
+        } else if (prob_type == 3) {
+
+            Real rad1 = L[0]/4.;
+            Real rad2 = L[0]/16.;
+            Real shift1 = -L[0]/5.;
+            // Real shift2 = L[0]/4.;
+            Real shift2 = L[0]/8.;
+            Real velbub = 100.;
+
+
+            Real bub1[3];
+            Real bub2[3];
+            Real back[3];
+
+            bub1[0]=1.;
+            bub1[1]=0.;
+            bub1[2]=0.;
+            bub2[0]=0.;
+            bub2[1]=1.;
+            bub2[2]=0.;
+            back[0]=0.;
+            back[1]=0.;
+            back[2]=1.;
+/*
+            bub1[0]=.8;
+            bub1[1]=.1;
+            bub1[2]=.1;
+            bub2[0]=.1;
+            bub2[1]=.8;
+            bub2[2]=.1;
+            back[0]=.1;
+            back[1]=.1;
+            back[2]=.8;
+*/
+            
+            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                Real x,y,z;
+                Real x2,y2,z2;
+                AMREX_D_TERM(x = prob_lo[0] + (i+0.5)*dx[0] - center[0];,
+                             y = prob_lo[1] + (j+0.5)*dx[1] - center[1];,
+                             z = prob_lo[2] + (k+0.5)*dx[2] - center[2]-shift1;);
+                AMREX_D_TERM(x2 = prob_lo[0] + (i+0.5)*dx[0] - center[0];,
+                             y2 = prob_lo[1] + (j+0.5)*dx[1] - center[1];,
+                             z2 = prob_lo[2] + (k+0.5)*dx[2] - center[2]-shift2;);
+
+                Real r1 = (AMREX_SPACEDIM == 2) ? std::sqrt(x*x+y*y) : std::sqrt(x*x+y*y+z*z);
+                Real r2 = (AMREX_SPACEDIM == 2) ? std::sqrt(x2*x2+y2*y2) : std::sqrt(x2*x2+y2*y2+z2*z2);
+
+                if (smoothing_width == 0.) {
+
+                    // discontinuous interface
+                    if (r1 < rad1) {
+                        for (int n=0; n<nspecies; ++n) {
+                            c(i,j,k,n) = bub1[n];
+                        }
+                    } else if (r2 < rad2) {
+                        for (int n=0; n<nspecies; ++n) {
+                            c(i,j,k,n) = bub2[n];
+                        }
+                    } else {
+                        for (int n=0; n<nspecies; ++n) {
+                            c(i,j,k,n) = back[n];
+                        }
+                    }
+                    
+                } else {
+                    // smooth interface
+                    // not coded for this
+                    for (int n=0; n<nspecies; ++n) {
+                        c(i,j,k,n) = c_init_1[n] + (c_init_2[n]-c_init_1[n]) *
+                            0.5*(1. + std::tanh((r1-rad1)/smoothing_width*dx[0]));
+                    }
+                }
+                
+            });
+
+            const Array4<Real> & wmac = (umac[2]).array(mfi);
+            Box bx_wmac = mfi.tilebox(nodal_flag_z);
+
+            amrex::ParallelFor(bx_wmac, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                Real x2,y2,z2;
+                AMREX_D_TERM(x2 = prob_lo[0] + (i+0.5)*dx[0] - center[0];,
+                             y2 = prob_lo[1] + (j+0.5)*dx[1] - center[1];,
+                             z2 = prob_lo[2] + (k)*dx[2] - center[2]-shift2;);
+
+                Real r2 = (AMREX_SPACEDIM == 2) ? std::sqrt(x2*x2+y2*y2) : std::sqrt(x2*x2+y2*y2+z2*z2);
+                if (r2 < rad2) {
+                    for (int n=0; n<nspecies; ++n) {
+                        wmac(i,j,k) = -velbub;
+                    }
+                } 
+            });
+
         } else if (prob_type == 2) {
 
             /*

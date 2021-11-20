@@ -51,6 +51,9 @@ void ShiftFaceToCC(const MultiFab& face_in, int face_in_comp,
                    MultiFab& cc_in, int cc_in_comp,
                    int ncomp);
 
+void ShiftCCToFace_onegrid(MultiFab& face_in, int face_comp,
+                           const MultiFab& cc_in, int cc_comp, int ncomp);
+
 void AverageCCToNode(const MultiFab& cc_in, MultiFab& node_in,
                      int scomp, int ncomp, int bccomp, const Geometry& geom);
 
