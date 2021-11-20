@@ -41,6 +41,7 @@ int                        common::plot_stag;
 std::string                common::plot_base_name;
 int                        common::chk_int;
 std::string                common::chk_base_name;
+std::string                common::plot_init_file;
 AMREX_GPU_MANAGED int      common::prob_type;
 int                        common::restart;
 int                        common::stats_int;
@@ -365,6 +366,7 @@ void InitializeCommonNamespace() {
     plot_base_name = "plt";
     chk_int = 0;
     chk_base_name = "chk";
+    plot_init_file = "";
     prob_type = 1;
     restart = -1;
     stats_int = 1;
@@ -662,6 +664,7 @@ void InitializeCommonNamespace() {
     pp.query("plot_base_name",plot_base_name);
     pp.query("chk_int",chk_int);
     pp.query("chk_base_name",chk_base_name);
+    pp.query("plot_init_file",plot_init_file);
     pp.query("prob_type",prob_type);
     pp.query("restart",restart);
     pp.query("stats_int",stats_int);

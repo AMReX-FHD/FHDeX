@@ -5,6 +5,88 @@ using namespace amrex;
 void InitVel(std::array< MultiFab, AMREX_SPACEDIM >& umac,
              const Geometry& geom) {
 
+    // restart from a possibly-coarser plotfile
+    if (prob_type == -1) {
+
+        MultiFab plot_init;
+
+        plot_init_file += "/Level_0/Cell";
+
+        // read in plotfile
+        VisMF::Read(plot_init, plot_init_file);
+
+        // read in BoxArray
+        BoxArray ba_init_file = plot_init.boxArray();
+
+        // make a single box for the entire domain of the read-in plotfile
+        Box bx_init_file = ba_init_file.minimalBox();
+
+        // create BoxArray and DistrubtionMap with 1 grid
+        BoxArray ba_onegrid(bx_init_file);
+        DistributionMapping dm_onegrid(ba_onegrid);
+
+        // create MultiFabs with one grid
+        // cell-centered
+        MultiFab mf_onegrid(ba_onegrid, dm_onegrid, 1, 0);        
+        // face-centered
+        std::array< MultiFab, AMREX_SPACEDIM > umac_onegrid;
+        AMREX_D_TERM(umac_onegrid[0].define(convert(ba_onegrid,nodal_flag_x), dm_onegrid, 1, 0);,
+                     umac_onegrid[1].define(convert(ba_onegrid,nodal_flag_y), dm_onegrid, 1, 0);,
+                     umac_onegrid[2].define(convert(ba_onegrid,nodal_flag_z), dm_onegrid, 1, 0););
+
+        // this should be auto-computed but will hard-code for now
+        int rr = 2;
+        
+        for (int i=0; i<AMREX_SPACEDIM; ++i) {
+        
+            // parallel copy plotfile data to MF with one grid
+            mf_onegrid.ParallelCopy(plot_init,i+3,0,1);
+        
+            // shift velocities onto faces
+            ShiftCCToFace_onegrid(umac_onegrid[i],0,mf_onegrid,0,1);
+
+            // obtain BoxArray from the input MF
+            BoxArray ba_input = umac[i].boxArray();
+            
+            // make a coarsened version of the BoxArray from the input MF
+            BoxArray ba_input_coarse = ba_input.coarsen(rr);
+
+            Box bx_input_coarse1 = ba_input_coarse.minimalBox();
+            Box bx_input_coarse2 = umac_onegrid[i].boxArray()[0];
+            if (bx_input_coarse1 != bx_input_coarse2) {
+                Abort("Init: prob_type=-1; coarsened box does not equal read-in box.  Check refinement ratio?");
+            }
+            
+            // obtain DistributionMap from input MF
+            DistributionMapping dm_input = umac[i].DistributionMap();
+
+            // allocate a face-centered MultiFab with the
+            // coarsened BoxArray and same DistributionMap
+            MultiFab umac_coarse(ba_input,dm_input,1,0);
+
+            // parallel copy data from one grid into MFs with same distribution
+            // map as the input MF but on the coarsened BoxArray
+            umac_coarse.ParallelCopy(umac_onegrid[i],0,0,1);
+
+            // inject the data into the input MF
+            for (MFIter mfi(umac[i],TilingIfNotGPU()); mfi.isValid(); ++mfi) {
+
+                const Box& bx = mfi.tilebox();
+
+                Array4<Real      > const& fine = umac[i].array(mfi);
+                Array4<Real const> const& crse = umac_coarse.array(mfi);
+                
+                amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    fine(i,j,k) = crse(i/rr,j/rr,k/rr);
+                });
+            }
+        }
+        
+        return;
+    }
+
+    
     Real zshft = (AMREX_SPACEDIM == 2) ? 0. : 0.5;
 
     GpuArray<Real,AMREX_SPACEDIM> reallo = geom.ProbLoArray();
