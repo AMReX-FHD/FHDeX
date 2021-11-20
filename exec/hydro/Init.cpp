@@ -15,17 +15,17 @@ void InitVel(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         // read in plotfile
         VisMF::Read(plot_init, plot_init_file);
 
-        // read in BoxArray
+        // read in BoxArray from plotfile
         BoxArray ba_init_file = plot_init.boxArray();
 
-        // make a single box for the entire domain of the read-in plotfile
+        // create a single Box that spans the domain of the plotfile
         Box bx_init_file = ba_init_file.minimalBox();
 
-        // create BoxArray and DistrubtionMap with 1 grid
+        // create BoxArray with this one single box and a corresponding DistrubtionMap
         BoxArray ba_onegrid(bx_init_file);
         DistributionMapping dm_onegrid(ba_onegrid);
 
-        // create MultiFabs with one grid
+        // create MultiFabs with one box on one MPI rank
         // cell-centered
         MultiFab mf_onegrid(ba_onegrid, dm_onegrid, 1, 0);        
         // face-centered
@@ -45,27 +45,28 @@ void InitVel(std::array< MultiFab, AMREX_SPACEDIM >& umac,
             // shift velocities onto faces
             ShiftCCToFace_onegrid(umac_onegrid[i],0,mf_onegrid,0,1);
 
-            // obtain BoxArray from the input MF
-            BoxArray ba_input = umac[i].boxArray();
+            // obtain BoxArray from the final output MF
+            BoxArray ba_final = umac[i].boxArray();
             
-            // make a coarsened version of the BoxArray from the input MF
-            BoxArray ba_input_coarse = ba_input.coarsen(rr);
+            // make a coarsened version of the BoxArray from the final output MF
+            BoxArray ba_final_coarse = ba_final.coarsen(rr);
 
-            Box bx_input_coarse1 = ba_input_coarse.minimalBox();
-            Box bx_input_coarse2 = umac_onegrid[i].boxArray()[0];
-            if (bx_input_coarse1 != bx_input_coarse2) {
+            // error checking to make sure coarsened domains match
+            Box bx_final_coarse1 = ba_final_coarse.minimalBox();
+            Box bx_final_coarse2 = umac_onegrid[i].boxArray()[0];
+            if (bx_final_coarse1 != bx_final_coarse2) {
                 Abort("Init: prob_type=-1; coarsened box does not equal read-in box.  Check refinement ratio?");
             }
             
-            // obtain DistributionMap from input MF
-            DistributionMapping dm_input = umac[i].DistributionMap();
+            // obtain DistributionMap from final output MF
+            DistributionMapping dm_final = umac[i].DistributionMap();
 
             // allocate a face-centered MultiFab with the
-            // coarsened BoxArray and same DistributionMap
-            MultiFab umac_coarse(ba_input,dm_input,1,0);
+            // coarsened final BoxArray and DistributionMap
+            MultiFab umac_coarse(ba_final_coarse,dm_final,1,0);
 
             // parallel copy data from one grid into MFs with same distribution
-            // map as the input MF but on the coarsened BoxArray
+            // map as the final output MF but on the coarsened BoxArray
             umac_coarse.ParallelCopy(umac_onegrid[i],0,0,1);
 
             // inject the data into the input MF
