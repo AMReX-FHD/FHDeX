@@ -1,5 +1,3 @@
-
-
   # Problem specification
   prob_lo = 0.0 0.0 0.0      # physical lo coordinate
   prob_hi = 5.12e-4 5.12e-4 5.12e-4 # physical hi coordinate
