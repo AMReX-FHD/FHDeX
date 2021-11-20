@@ -185,6 +185,75 @@ void ShiftFaceToCC(const MultiFab& face_in, int face_comp,
     }
 }
 
+void ShiftCCToFace_onegrid(MultiFab& face_in, int face_comp,
+                           const MultiFab& cc_in, int cc_comp, int ncomp)
+{
+
+    BL_PROFILE_VAR("ShiftCCToFace_onegrid()",ShiftCCToFace_onegrid);
+
+    if (cc_in.boxArray().size() != 1) {
+        Abort("ShiftCCToFace_onegrid requires cc_in contain only one box");
+    }
+    if (face_in.boxArray().size() != 1) {
+        Abort("ShiftCCToFace_onegrid requires face_in contain only one box");
+    }
+    
+    int dir;
+    if (face_in.is_nodal(0)) {
+        dir = 0;
+    } else if (face_in.is_nodal(1)) {
+        dir = 1;
+#if (AMREX_SPACEDIM == 3)
+    } else if (face_in.is_nodal(2)) {
+        dir = 2;
+#endif
+    } else {
+        Abort("ShiftCCToFace_onegrid requires a face-centered MultiFab");
+    }
+
+    Box bx = cc_in.boxArray()[0];
+    
+    int lo = bx.smallEnd(dir);
+    int hi = bx.bigEnd(dir);
+    
+    // Loop over boxes (note that mfi takes a cell-centered multifab as an argument)
+    for (MFIter mfi(cc_in,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
+
+        const Box& bx = mfi.tilebox();
+
+        Array4<Real      > const& face = face_in.array(mfi);
+        Array4<Real const> const& cc   = cc_in.array(mfi);
+
+        if (dir == 0) {
+            amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+            {
+                face(i,j,k,cc_comp+n) = cc(i,j,k,face_comp+n);
+                if (i == lo) {
+                    face(hi+1,j,k,cc_comp+n) = cc(i,j,k,face_comp+n);
+                }
+            });
+        } else if (dir == 1) {
+            amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+            {
+                face(i,j,k,cc_comp+n) = cc(i,j,k,face_comp+n);
+                if (j == lo) {
+                    face(i,hi+1,k,cc_comp+n) = cc(i,j,k,face_comp+n);
+                }
+            });
+            
+        } else if (dir == 2) {
+            amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+            {
+                face(i,j,k,cc_comp+n) = cc(i,j,k,face_comp+n);
+                if (k == lo) {
+                    face(i,j,hi+1,cc_comp+n) = cc(i,j,k,face_comp+n);
+                }
+            });
+        }
+    }
+}
+
+
 void AverageCCToNode(const MultiFab& cc_in, MultiFab& node_in, int scomp, int ncomp, int bccomp,
                      const Geometry& geom)
 {
