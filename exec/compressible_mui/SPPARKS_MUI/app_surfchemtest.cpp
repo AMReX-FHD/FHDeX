@@ -46,8 +46,15 @@ enum{VACANCY,SPEC1,SPEC2,SPEC3,SPEC4,SPEC5}; // removed ZERO and moved VACANCY t
 AppSurfchemtest::AppSurfchemtest(SPPARKS *spk, int narg, char **arg) : 
   AppLattice(spk,narg,arg)
 {
-  ninteger = 22; // type, element, ac1, ac2, ac3, ac4, ac5, dc1, dc2, dc3, dc4, dc5  (number changes due to ads/des)
-  ndouble = 6;  // density1, density2, density3, density4, density5 (number densities in gas phase), temp (local temperature)
+  ninteger = 22;  // type: site type
+                  // element: site state
+                  // ac1/ac2/ac3/ac4/ac5: adsorption count
+                  // dc1/dc2/dc3/dc4/dc5: desorption count
+                  // dac1/dac2/dac3/dac4/dac5: dissociative adsorption count
+                  // adc1/adc2/adc3/adc4/adc5: associative desorption count
+  ndouble = 7;    // density1/density2/density3/density4/density5: number density of the contacting FHD cell
+                  // temp: temperature of the contacting FHD cell
+                  // Vz: normal velocity of the contacting FHD cell
   delpropensity = 1;
   delevent = 1;
   allow_kmc = 1;
@@ -574,6 +581,7 @@ void AppSurfchemtest::grow_app()
   density4 = darray[3];
   density5 = darray[4];
   temp = darray[5];
+  Vz = darray[6];
 }
 
 /* ----------------------------------------------------------------------
@@ -754,24 +762,29 @@ double AppSurfchemtest::site_propensity(int i)
     if (ads_is_rate) adspropensity = adsrate[m];
     else
     {
-      // propensity for adsorption = adsrate * num_dens * sqrt(site_temp/sys_temp)
-      if (adsoutput[m]==SPEC1) adspropensity = adsrate[m]*density1[i]*sqrt(temp[i]/temperature);
-      else if (adsoutput[m]==SPEC2) adspropensity = adsrate[m]*density2[i]*sqrt(temp[i]/temperature);
-      else if (adsoutput[m]==SPEC3) adspropensity = adsrate[m]*density3[i]*sqrt(temp[i]/temperature);
-      else if (adsoutput[m]==SPEC4) adspropensity = adsrate[m]*density4[i]*sqrt(temp[i]/temperature);
-      else if (adsoutput[m]==SPEC5) adspropensity = adsrate[m]*density5[i]*sqrt(temp[i]/temperature);
-    }
-/*
-    else
-    {
-      // propensity for adsorption = adsrate * num_dens
+      // propensity for adsorption = adsrate * num_dens * temp_correction * Vz_correction
+
+      // 1. adsrate * num_dens
       if (adsoutput[m]==SPEC1) adspropensity = adsrate[m]*density1[i];
       else if (adsoutput[m]==SPEC2) adspropensity = adsrate[m]*density2[i];
       else if (adsoutput[m]==SPEC3) adspropensity = adsrate[m]*density3[i];
       else if (adsoutput[m]==SPEC4) adspropensity = adsrate[m]*density4[i];
       else if (adsoutput[m]==SPEC5) adspropensity = adsrate[m]*density5[i];
+
+      // 2. temperature correction
+      adspropensity *= sqrt(temp[i]/temperature);
+
+      // 3. Vz correction
+      // Ref: Garcia and Wagner
+      //      Generation of the Maxwellian inflow distribution
+      //      J. Comput. Phys. 217, 693-708 (2006)
+      // see the last equation in page 703
+      // Here we assume the normal direction is z
+      double vT = sqrt(2*1.38064852e-16*temp[i]/4.65116981903e-23);
+      double aratio = Vz[i]/vT;
+      adspropensity *= exp(-aratio*aratio) + sqrt(M_PI)*aratio*(1+erf(aratio));
     }
-*/
+
     add_event(i,4,m,adspropensity,-1,-1);
     proball += adspropensity;
   }
@@ -1320,6 +1333,10 @@ void AppSurfchemtest::mui_push(int narg, char **arg)
       for (int i=0;i<nlocal;i++) {
         spk->uniface->push("CH_temp",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},temp[i]);
       }
+    } else if (strcmp(arg[k],"Vz") == 0) {          // d7
+      for (int i=0;i<nlocal;i++) {
+        spk->uniface->push("CH_Vz",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},Vz[i]);
+      }
     } else {
       error->all(FLERR,"Illegal mui_push command");
     }
@@ -1422,6 +1439,10 @@ void AppSurfchemtest::mui_fetch(int narg, char **arg)
       for (int i=0;i<nlocal;i++) {
         temp[i] = spk->uniface->fetch("CH_temp",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},timestamp,s,t);
       }
+    } else if (strcmp(arg[k],"Vz") == 0) {          // d7
+      for (int i=0;i<nlocal;i++) {
+        Vz[i] = spk->uniface->fetch("CH_Vz",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},timestamp,s,t);
+      }
     } else {
       error->all(FLERR,"Illegal mui_fetch command");
     }
@@ -1469,6 +1490,14 @@ void AppSurfchemtest::mui_fetch_agg(int narg, char **arg)
       // distribute info to each KMC site
       for (int i=0;i<nlocal;i++)
         temp[i] = MUIdblval[localFHDcell[i]];
+    }
+    else if (strcmp(arg[k],"Vz") == 0) {
+      // get info for each FHD cell
+      for (int n=0;n<nlocalFHDcell;n++)
+        MUIdblval[n] = spk->uniface->fetch("CH_Vz",{xFHD[n],yFHD[n]},timestamp,s,t);
+      // distribute info to each KMC site
+      for (int i=0;i<nlocal;i++)
+        Vz[i] = MUIdblval[localFHDcell[i]];
     }
     else {
       error->all(FLERR,"Illegal mui_fetch_agg command");

@@ -14,8 +14,8 @@ USE_MUI       = TRUE
 USE_PARTICLES = FALSE
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
-VPATH_LOCATIONS   += ../compressible
-INCLUDE_LOCATIONS += ../compressible
+VPATH_LOCATIONS   += .
+INCLUDE_LOCATIONS += .
 
 include ../../src_compressible/Make.package
 VPATH_LOCATIONS   += ../../src_compressible/
