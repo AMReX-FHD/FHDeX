@@ -162,7 +162,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::RFD(
 	auto& aos   = ptile.GetArrayOfStructs();
 	ParticleType* particles = aos().dataPtr();
 
-        AMREX_FOR_1D( np, i,
+	amrex::ParallelForRNG(np, [=] AMREX_GPU_DEVICE (int i, amrex::RandomEngine const& engine) noexcept
         {
             ParticleType & part = particles[i];
             int pinned = 0;
@@ -176,7 +176,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::RFD(
                     // using pred_pos to temporarily store the random direction -
                     // hopefully this doesn't cause problems elsewhere
     //                part.rdata(StructReal::pred_posx + d) =  get_particle_normal_func();
-                    part.rdata(StructReal::pred_posx + d) = amrex::RandomNormal(0.,1.);
+                    part.rdata(StructReal::pred_posx + d) = amrex::RandomNormal(0.,1.,engine);
 
                     // move particle to q^n + (dt/2) * Wtilde
                     part.pos(d) += deltaover2 * part.rdata(StructReal::pred_posx + d);
@@ -490,20 +490,23 @@ void IBMarkerContainerBase<StructReal, StructInt>::PullDown(
         auto& aos   = ptile.GetArrayOfStructs();
         ParticleType* particles = aos().dataPtr();
 
-       //std::cout << "Proc " << ParallelDescriptor::MyProc() << " sees " << np << " particles." <<std::endl;
+        //std::cout << "Proc " << ParallelDescriptor::MyProc() << " doing " << np << " particles\n";
 
         if (element >= 0) {
 
+                //std::cout << "Proc " << ParallelDescriptor::MyProc() << " 1a start\n";
             AMREX_FOR_1D( np, i,
             {
                 ParticleType & part = particles[i];
                 int id = part.id();
-                //std::cout << id << " of " << totalParticles << std::endl;
+                
                 list[id-1] = particles[i].rdata(StructReal::radius + element);
             });
+                //std::cout << "Proc " << ParallelDescriptor::MyProc() << " 1a finish\n";
 
         } else {
 
+                //std::cout << "Proc " << ParallelDescriptor::MyProc() << " 1b start\n";
             AMREX_FOR_1D( np, i,
             {
                 ParticleType & part = particles[i];
@@ -513,9 +516,11 @@ void IBMarkerContainerBase<StructReal, StructInt>::PullDown(
               //  std::cout << "Proc " << ParallelDescriptor::MyProc() << " storing " << part.pos((-element)-1)
                 //                               << " from " << i << " in position " << id-1 << std::endl;
             });
+                //std::cout << "Proc " << ParallelDescriptor::MyProc() << " 1b finish\n";
         }
-    }
 
+    }
+    //std::cout << "Proc " << ParallelDescriptor::MyProc() << " 2\n";
     //I'm sure there is an array version of this but this will do for now.
     // There is: void amrex::ParallelDescriptor::ReduceRealSum (Vector< std::reference_wrapper< Real > > &&)
     // the commented code below should do the trick (but it has not been tested)
@@ -531,6 +536,8 @@ void IBMarkerContainerBase<StructReal, StructInt>::PullDown(
 
     // // Vectorized parallel reduce:
     // ParallelDescriptor::ReduceRealSum(std::move(tmp)); // Ask Weiqun why tmp needs to be &&?
+    //std::cout << "Proc " << ParallelDescriptor::MyProc() << " 3\n";
+    
 }
 
 template <typename StructReal, typename StructInt>
@@ -640,7 +647,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::PushUpAdd(
                 ParticleType & part = particles[i];
                 int id = part.id();
 
-                particles[i].rdata(StructReal::radius + element) = particles[i].rdata(StructReal::radius + element) + list[id-1];
+                particles[i].rdata(element) = particles[i].rdata(element) + list[id-1];
             });
 
         } else {
@@ -786,6 +793,11 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadMarkers(
 
     const int n_marker = f_pos.size();
 
+    Vector<int> pkernel_fluid_in(1);
+    for (int i=0; i<1; ++i) {
+        pkernel_fluid_in[i] = pkernel_fluid[i];
+    }
+    
     // Convert stagered boxes into cell centered
     Box bx = enclosedCells(f_out[0]->box());
 
@@ -815,7 +827,8 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadMarkers(
                    f_pos.dataPtr(),
                    f_in.dataPtr(),
                    & n_marker,
-                   dx, & ghost);
+                   dx, & ghost,
+                   pkernel_fluid_in.dataPtr());
 
 }
 
@@ -859,6 +872,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadKernelGpu(const AoS& ao
     const auto pstruct = aos().dataPtr();
 //    const int pk = pkernel_fluid;
     int ng = *nghost;
+    Real* norm_ptr = norm_es.data();
     
     AMREX_FOR_1D( Np, ip,
     {
@@ -960,7 +974,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadKernelGpu(const AoS& ao
                          }
 			 else if (eskernel_fluid[p.idata(StructInt::species)-1] > 0)
                          {
-                            weight*=KernelES(eskernel_beta[p.idata(StructInt::species)-1], eskernel_fluid[p.idata(StructInt::species)-1])(pos_grid[ii])/norm_es[p.idata(StructInt::species)-1];
+                            weight*=KernelES()(pos_grid[ii],eskernel_beta[p.idata(StructInt::species)-1], eskernel_fluid[p.idata(StructInt::species)-1])/norm_ptr[p.idata(StructInt::species)-1];
                          }
    
                       }
@@ -1003,7 +1017,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadKernelGpu(const AoS& ao
                          }
 			 else if (eskernel_fluid[p.idata(StructInt::species)-1] > 0)
                          {
-                            weight*=KernelES(eskernel_beta[p.idata(StructInt::species)-1], eskernel_fluid[p.idata(StructInt::species)-1])(pos_grid[ii])/norm_es[p.idata(StructInt::species)-1];
+                            weight*=KernelES()(pos_grid[ii],eskernel_beta[p.idata(StructInt::species)-1], eskernel_fluid[p.idata(StructInt::species)-1])/norm_ptr[p.idata(StructInt::species)-1];
                          }
                       }
 
@@ -1046,7 +1060,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadKernelGpu(const AoS& ao
                          }
 			 else if (eskernel_fluid[p.idata(StructInt::species)-1] > 0)
                          {
-                            weight*=KernelES(eskernel_beta[p.idata(StructInt::species)-1], eskernel_fluid[p.idata(StructInt::species)-1])(pos_grid[ii])/norm_es[p.idata(StructInt::species)-1];
+                            weight*=KernelES()(pos_grid[ii],eskernel_beta[p.idata(StructInt::species)-1], eskernel_fluid[p.idata(StructInt::species)-1])/norm_ptr[p.idata(StructInt::species)-1];
                          }
 		      }
 
@@ -1368,6 +1382,11 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateMarkers(
     // Convert stagered boxes into cell centered
     Box bx = enclosedCells(f_in[0]->box());
 
+    Vector<int> pkernel_fluid_in(1);
+    for (int i=0; i<1; ++i) {
+        pkernel_fluid_in[i] = pkernel_fluid[i];
+    }
+
     interpolate_markers(BL_TO_FORTRAN_BOX(bx),
                         BL_TO_FORTRAN_BOX(tile_box),
                         BL_TO_FORTRAN_ANYD(* f_in[0]),
@@ -1394,7 +1413,8 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateMarkers(
                         f_pos.dataPtr(),
                         f_out.dataPtr(),
                         & n_marker,
-                        dx );
+                        dx,
+                        pkernel_fluid_in.dataPtr() );
 
 }
 
@@ -1448,6 +1468,8 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateKernelGpu(AoS& aos
 
     Gpu::DeviceScalar<Real> vcheck_gpu(vcheck);
     Real* pvcheck = vcheck_gpu.dataPtr();
+
+    Real* norm_ptr = norm_es.data();
 
     AMREX_FOR_1D( Np, ip,
     {
@@ -1580,7 +1602,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateKernelGpu(AoS& aos
                      }
 		     else if (eskernel_fluid[p.idata(StructInt::species)-1] > 0)
                      {
-                        weight*=KernelES(eskernel_beta[p.idata(StructInt::species)-1], eskernel_fluid[p.idata(StructInt::species)-1])(pos_grid[ii])/norm_es[p.idata(StructInt::species)-1];
+                        weight*=KernelES()(pos_grid[ii],eskernel_beta[p.idata(StructInt::species)-1], eskernel_fluid[p.idata(StructInt::species)-1])/norm_ptr[p.idata(StructInt::species)-1];
 		        //Print() << "weight is " << weight << "\n";
                      }
 		  }
@@ -1636,7 +1658,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateKernelGpu(AoS& aos
                      }
 		     else if (eskernel_fluid[p.idata(StructInt::species)-1] > 0)
                      {
-                        weight*=KernelES(eskernel_beta[p.idata(StructInt::species)-1], eskernel_fluid[p.idata(StructInt::species)-1])(pos_grid[ii])/norm_es[p.idata(StructInt::species)-1];
+                        weight*=KernelES()(pos_grid[ii],eskernel_beta[p.idata(StructInt::species)-1], eskernel_fluid[p.idata(StructInt::species)-1])/norm_ptr[p.idata(StructInt::species)-1];
                      }
                   }
 
@@ -1687,7 +1709,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateKernelGpu(AoS& aos
                      }
 		     else if (eskernel_fluid[p.idata(StructInt::species)-1] > 0)
                      {
-                        weight*=KernelES(eskernel_beta[p.idata(StructInt::species)-1], eskernel_fluid[p.idata(StructInt::species)-1])(pos_grid[ii])/norm_es[p.idata(StructInt::species)-1];
+                        weight*=KernelES()(pos_grid[ii],eskernel_beta[p.idata(StructInt::species)-1], eskernel_fluid[p.idata(StructInt::species)-1])/norm_ptr[p.idata(StructInt::species)-1];
                      } 
                   }
 
@@ -2099,9 +2121,9 @@ void IBMarkerContainerBase<StructReal, StructInt>::InitInternals(int ngrow) {
     FindFaceCoords(face_coords[lev], geom);
    
     //Vector<Real> IBMarkerContainerBase<StructReal, StructInt>::norm_es;
-    IBMarkerContainerBase::norm_es.resize(common::nspecies);
+    norm_es.resize(common::nspecies);
     for (int i=0; i<common::nspecies; ++i) {
-        IBMarkerContainerBase::norm_es[i] = integrate_es(common::eskernel_beta[i], common::eskernel_fluid[i]);
+        norm_es[i] = integrate_es(common::eskernel_beta[i], common::eskernel_fluid[i]);
         //std::cout << "normalization factor " << i << " are " << IBMarkerContainerBase::norm_es[i] << std::endl;
     }
 

@@ -99,8 +99,10 @@ Real theta(Real amp_ramp, Real time, int i_ib, int index_marker) {
         Real amplitude  = ib_flagellum::amplitude[i_ib];
         Real l_link     = L/(N-1);
 
-        Real theta = l_link*amp_ramp*amplitude*sin(2*M_PI*frequency*time
-                     + 2*M_PI/wavelength*index_marker*l_link);
+        Real theta = l_link*amp_ramp*amplitude*sin(
+                2*M_PI*(frequency*time + index_marker*l_link/wavelength)
+                + M_PI/2 + M_PI*(l_link/wavelength)
+            );
 
         return theta;
     }
@@ -180,35 +182,39 @@ void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
                 }
             }
 
-            // // update bending forces for curent, minus/prev, and next/plus
-            // if (status == 0) { // has next (p) and prev (m)
+            // update bending forces for curent, minus/prev, and next/plus
+            if(immbdy::contains_fourier) {
+                Vector<RealVect> marker_positions = equil_pos(i_ib, time, geom);
+                int marker_seq_id                 = mark.idata(IBMInt::id_1);
+                RealVect target_pos               = marker_positions[marker_seq_id];
+                for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                    mark.rdata(component + d) += k_driv*(target_pos[d] - pos[d]);
+                }
+            } else {
+                if (status == 0) { // has next (p) and prev (m)
 
-            //     // position vectors
-            //     const RealVect & r = pos, & r_m = prev_pos, & r_p = next_pos;
+                    // position vectors
+                    const RealVect & r = pos, & r_m = prev_pos, & r_p = next_pos;
 
-            //     // Set bending forces to zero
-            //     RealVect f_p = RealVect{AMREX_D_DECL(0., 0., 0.)};
-            //     RealVect f   = RealVect{AMREX_D_DECL(0., 0., 0.)};
-            //     RealVect f_m = RealVect{AMREX_D_DECL(0., 0., 0.)};
+                    // Set bending forces to zero
+                    RealVect f_p = RealVect{AMREX_D_DECL(0., 0., 0.)};
+                    RealVect f   = RealVect{AMREX_D_DECL(0., 0., 0.)};
+                    RealVect f_m = RealVect{AMREX_D_DECL(0., 0., 0.)};
 
-            //     // calling the active bending force calculation
+                    // calling the active bending force calculation
 
-            //     Real th = theta(driv_amp, time, i_ib, mark.idata(IBMInt::id_1)-1);
-            //     driving_f(f, f_p, f_m, r, r_p, r_m, driv_u, th, k_driv);
+                    Real th = theta(
+                            driv_amp, time, i_ib, mark.idata(IBMInt::id_1) - 1
+                        );
+                    driving_f(f, f_p, f_m, r, r_p, r_m, driv_u, th, k_driv);
 
-            //     // updating the force on the minus, current, and plus particles.
-            //     for (int d=0; d<AMREX_SPACEDIM; ++d) {
-            //         prev_marker->rdata(component + d) += f_m[d];
-            //         mark.rdata(component + d)         +=   f[d];
-            //         next_marker->rdata(component + d) += f_p[d];
-            //     }
-            // }
-
-            Vector<RealVect> marker_positions = equil_pos(i_ib, time, geom);
-            int marker_seq_id                 = mark.idata(IBMInt::id_1);
-            RealVect target_pos               = marker_positions[marker_seq_id];
-            for (int d=0; d<AMREX_SPACEDIM; ++d) {
-                mark.rdata(component + d) += k_driv*(target_pos[d] - pos[d]);
+                    // updating the force on the minus, current, and plus particles.
+                    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                        prev_marker->rdata(component + d) += f_m[d];
+                        mark.rdata(component + d)         +=   f[d];
+                        next_marker->rdata(component + d) += f_p[d];
+                    }
+                }
             }
         }
     }
@@ -244,11 +250,13 @@ void yeax_ibm_marker(Real mot, IBMarkerContainer & ib_mc, int ib_lev,
 
 
 
-Vector<RealVect> equil_pos(int i_ib, Real time, const Geometry & geom) {
+Vector<RealVect> equil_pos(
+        int i_ib, Real time, const Geometry & geom
+    ) {
     // TODO: make this function work on general planes and orientation -- using
-    // the 3D rotation matrix defined in IBMarkerMD.cpp 
+    // the 3D rotation matrix defined in IBMarkerMD.cpp
 
-    int N  = n_marker[i_ib];
+    int N  = ib_flagellum::n_marker[i_ib];
     Real L = ib_flagellum::length[i_ib];
 
     Real l_link = L/(N-1);
@@ -284,8 +292,12 @@ Vector<RealVect> equil_pos(int i_ib, Real time, const Geometry & geom) {
         y = ny;
 
         // Compute periodic offset. Will work as long as winding number = 1
-        Real x_period = x < geom.ProbHi(0) ? x : x - geom.ProbLength(0);
-        Real y_period = y < geom.ProbHi(1) ? y : y - geom.ProbLength(1);
+        Real x_period = x;
+        Real y_period = y;
+        if (geom.isPeriodic(0))
+            x_period = x < geom.ProbHi(0) ? x : x - geom.ProbLength(0);
+        if (geom.isPeriodic(1))
+            y_period = y < geom.ProbHi(1) ? y : y - geom.ProbLength(1);
 
         // marker_positions[i] = RealVect{x_period, x_0[1], x_0[2]};
         marker_positions[i] = RealVect{x_period, y_period, z};
@@ -296,11 +308,16 @@ Vector<RealVect> equil_pos(int i_ib, Real time, const Geometry & geom) {
         tx = rx;
         ty = ry;
     }
+
     Real nx, ny;
     next_node_z(nx, ny, x, y, tx, ty, l_link);
     // Compute periodic offset. Will work as long as winding number = 1
-    Real x_period = x < geom.ProbHi(0) ? nx : nx - geom.ProbLength(0);
-    Real y_period = y < geom.ProbHi(1) ? ny : ny - geom.ProbLength(1);
+    Real x_period = x;
+    Real y_period = y;
+    if (geom.isPeriodic(0))
+        x_period = x < geom.ProbHi(0) ? nx : nx - geom.ProbLength(0);
+    if (geom.isPeriodic(1))
+        y_period = y < geom.ProbHi(1) ? ny : ny - geom.ProbLength(1);
     // marker_positions[i] = RealVect{x_period, x_0[1], x_0[2]};
     marker_positions[N_markers-1] = RealVect{x_period, y_period, z};
 

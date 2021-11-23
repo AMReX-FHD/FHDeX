@@ -14,13 +14,10 @@
 
 #include <ib_functions.H>
 
-#include <common_namespace_declarations.H>
 
-#include <gmres_namespace_declarations.H>
 
 #include <immbdy_namespace.H>
 // Comment out if getting `duplicate symbols` error duing linking
-// #include <immbdy_namespace_declarations.H>
 
 #include <AMReX_VisMF.H>
 #include <AMReX_PlotFileUtil.H>
@@ -213,9 +210,6 @@ void main_driver(const char * argv) {
     // Load parameters from inputs file, and initialize global parameters
     std::string inputs_file = argv;
 
-    // read in parameters from inputs file into F90 modules NOTE: we use "+1"
-    // because of amrex_string_c_to_f expects a null char termination
-    read_common_namelist(inputs_file.c_str(), inputs_file.size() + 1);
     read_immbdy_namelist(inputs_file.c_str(), inputs_file.size() + 1);
 
     // copy contents of F90 modules to C++ namespaces NOTE: any changes to
@@ -278,14 +272,18 @@ void main_driver(const char * argv) {
 
     if (seed > 0) {
         // initializes the seed for C++ random number calls
-        InitRandom(seed+ParallelDescriptor::MyProc());
+        InitRandom(seed+ParallelDescriptor::MyProc(),
+                   ParallelDescriptor::NProcs(),
+                   seed+ParallelDescriptor::MyProc());
     } else if (seed == 0) {
         // initializes the seed for C++ random number calls based on the clock
         auto now = time_point_cast<nanoseconds>(system_clock::now());
         int randSeed = now.time_since_epoch().count();
         // broadcast the same root seed to all processors
         ParallelDescriptor::Bcast(&randSeed,1,ParallelDescriptor::IOProcessorNumber());
-        InitRandom(randSeed+ParallelDescriptor::MyProc());
+        InitRandom(randSeed+ParallelDescriptor::MyProc(),
+                   ParallelDescriptor::NProcs(),
+                   randSeed+ParallelDescriptor::MyProc());
     } else {
         Abort("Must supply non-negative seed");
     }
@@ -495,10 +493,25 @@ void main_driver(const char * argv) {
         Print() << "l_link= " << l_link      << std::endl;
         Print() << "x_0=    " << x_0         << std::endl;
 
-        Vector<RealVect> marker_positions = equil_pos(i_ib, 0, geom);
 
         // using fourier modes => first two nodes reserved as "anchor"
         int N_markers = immbdy::contains_fourier ? N+1 : N;
+
+        Vector<RealVect> marker_positions = equil_pos(i_ib, 0, geom);
+
+        // Vector<RealVect> marker_positions(N_markers);
+        // if (immbdy::contains_fourier) {
+        //     marker_positions = equil_pos(i_ib, 0, geom);
+        // } else {
+        //     for (int i=0; i<marker_positions.size(); ++i) {
+        //         Real x = x_0[0] + i*l_link;
+        //         // Compute periodic offset. Will work as long as winding number = 1
+        //         Real x_period = x < geom.ProbHi(0) ? x : x - geom.ProbLength(0);
+
+        //         marker_positions[i] = RealVect{x_period, x_0[1], x_0[2]};
+        //     }
+        // }
+
         Vector<Real> marker_radii(N_markers);
         for (int i=0; i<marker_radii.size(); ++i) marker_radii[i] = 4*l_link;
 
@@ -621,7 +634,6 @@ void main_driver(const char * argv) {
         // Advance umac
         // advance_CN(umac, umacNew, pres, ib_mc, mfluxdiv_predict, mfluxdiv_correct,
         //            alpha_fc, force_ib, beta, gamma, beta_ed, geom, dt, time);
-        //
         advance_stokes(umac, umacNew, pres, ib_mc, mfluxdiv_predict, mfluxdiv_correct,
                        alpha_fc, force_ib, beta, gamma, beta_ed, geom, dt, time);
 

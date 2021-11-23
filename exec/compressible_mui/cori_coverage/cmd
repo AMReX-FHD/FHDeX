@@ -1,0 +1,3 @@
+grep Advanced slurm-*.out | awk '{ total += $6; count++ } END { printf("FHD:\t\t%f\t%d\n",total/count,count) }';grep Loop RUN_SF/log.spparks | awk '{ sum += $4;cnt+=1 } END { printf("SPPARKS:\t%f\t%d\n",sum/cnt,cnt) }'
+
+grep MUI-PUSH slurm-*.out | awk '{print $4, $6}' > a1;grep RK3 slurm-*.out | awk '{print $4, $6}' > a2;grep MUI-FETCH slurm-*.out | awk '{print $4, $6}' > a3;grep Advanced slurm-*.out | awk '{print $4, $6}' > a0

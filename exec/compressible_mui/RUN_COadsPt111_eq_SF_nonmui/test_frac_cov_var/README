@@ -1,0 +1,6 @@
+1. ./run_nonmui.sh
+
+2. ./analyze_frac.sh  
+
+3a. ./coverage.sh  
+3b. ./analyze_cov_var.sh  

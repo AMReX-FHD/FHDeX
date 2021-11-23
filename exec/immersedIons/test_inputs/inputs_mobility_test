@@ -1,110 +1,110 @@
-&common
-  ! Problem specification
-  prob_lo(1:3) = 0.0 0.0 0.0      ! physical lo coordinate
-!  prob_hi(1:3) = 8.284925963482451e-07 8.284925963482451e-07 8.284925963482451e-07     ! physical hi coordinate
- ! prob_hi(1:3) = 66.2794077078596e-07 66.2794077078596e-07 66.2794077078596e-07    ! physical hi coordinate
-!  prob_hi(1:3) = 66.2794077078596e-07 8.284925963482451e-07 66.2794077078596e-07     ! physical hi coordinate
-  prob_hi(1:3) = 33.1397038539298e-07 8.284925963482451e-07 33.1397038539298e-07     ! physical hi coordinate
+
+  # Problem specification
+  prob_lo = 0.0 0.0 0.0      # physical lo coordinate
+#  prob_hi = 8.284925963482451e-07 8.284925963482451e-07 8.284925963482451e-07     # physical hi coordinate
+ # prob_hi = 66.2794077078596e-07 66.2794077078596e-07 66.2794077078596e-07    # physical hi coordinate
+#  prob_hi = 66.2794077078596e-07 8.284925963482451e-07 66.2794077078596e-07     # physical hi coordinate
+  prob_hi = 33.1397038539298e-07 8.284925963482451e-07 33.1397038539298e-07     # physical hi coordinate
     
-!  n_cells(1:3) = 256 64 256
-  n_cells(1:3) = 241 49 241
-  ! max number of cells in a box
-  max_grid_size(1:3) = 64 64 64
+#  n_cells = 256 64 256
+  n_cells = 241 49 241
+  # max number of cells in a box
+  max_grid_size = 64 64 64
 
 
-  max_particle_tile_size(1:3) = 256 256 256 ! set to zero to use max_grid_size, setting a very large number will also use max grid size, but will also ensure that refined es and particle grids will do the same.
-  ! above settings are for fluid grid. EM and particle grid (the grid for finding neighbour lists) are coarsened or refined off these grids. <1 = refine, >1 = coarsen.
-  !Leave these on 1 until properly tested
+  max_particle_tile_size = 256 256 256 # set to zero to use max_grid_size, setting a very large number will also use max grid size, but will also ensure that refined es and particle grids will do the same.
+  # above settings are for fluid grid. EM and particle grid (the grid for finding neighbour lists) are coarsened or refined off these grids. <1 = refine, >1 = coarsen.
+  #Leave these on 1 until properly tested
   particle_grid_refine = 1
   es_grid_refine = 1
-  ! Time-step control
+  # Time-step control
   fixed_dt = 1e-12
-  ! Controls for number of steps between actions
+  # Controls for number of steps between actions
   max_step = 1
   plot_int = 5000
   plot_ascii = 1
   struct_fact_int = -1
   n_steps_skip = 10000
-  ! Toggles 0=off, 1=on
-  fluid_tog = 1 ! 0=Do nothing, 1=Do stokes solve, 2=Do low Mach solve
-  es_tog = 0 ! Do electrostatic solve 0=off, 1=Poisson, 2=Pairwise Coulomb (Doesn't work in parallel), 3=PPPM
-  drag_tog = 0 ! Apply drag force to fluid
-  rfd_tog = 1 ! Apply RFD force to fluid
-  move_tog = 1 ! ! Total particle move. 0 = off, 1 = single step, 2 = midpoint
-  dry_move_tog = 0 ! Dry particle move
-  sr_tog = 0 ! 1=WCA short range forces without walls, 2=with walls
+  # Toggles 0=off, 1=on
+  fluid_tog = 1 # 0=Do nothing, 1=Do stokes solve, 2=Do low Mach solve
+  es_tog = 0 # Do electrostatic solve 0=off, 1=Poisson, 2=Pairwise Coulomb (Doesn't work in parallel), 3=PPPM
+  drag_tog = 0 # Apply drag force to fluid
+  rfd_tog = 1 # Apply RFD force to fluid
+  move_tog = 1 # # Total particle move. 0 = off, 1 = single step, 2 = midpoint
+  dry_move_tog = 0 # Dry particle move
+  sr_tog = 0 # 1=WCA short range forces without walls, 2=with walls
  
-  ! Fluid info
-  !--------------
-  ! Viscous friction L phi operator
-  ! if abs(visc_type) = 1, L = div beta grad
-  ! if abs(visc_type) = 2, L = div [ beta (grad + grad^T) ]
-  ! if abs(visc_type) = 3, L = div [ beta (grad + grad^T) + I (gamma - (2/3)*beta) div ]
-  ! positive = assume constant coefficients
-  ! negative = assume spatially-varying coefficients
+  # Fluid info
+  #--------------
+  # Viscous friction L phi operator
+  # if abs(visc_type) = 1, L = div beta grad
+  # if abs(visc_type) = 2, L = div [ beta (grad + grad^T) ]
+  # if abs(visc_type) = 3, L = div [ beta (grad + grad^T) + I (gamma - (2/3)*beta) div ]
+  # positive = assume constant coefficients
+  # negative = assume spatially-varying coefficients
   visc_coef = 1e-2
   visc_type = 1
-  !particle initialization
-  ! 1 = spread evenly per cell (not implemented yet), 2 = spread randomly over domain
+  #particle initialization
+  # 1 = spread evenly per cell (not implemented yet), 2 = spread randomly over domain
   particle_placement = 2
-  ! -1 = calculate based on n0
+  # -1 = calculate based on n0
   particle_count = 1 0
-  ! real particles per simulator particle
+  # real particles per simulator particle
   particle_neff = 1
-  ! ignore if particle_count is positive
-  !particle_n0 = 6.02e20 6.02e20
+  # ignore if particle_count is positive
+  #particle_n0 = 6.02e20 6.02e20
   particle_n0 = 6.02e21 6.02e21
-  !Species info
-  !--------------
+  #Species info
+  #--------------
   nspecies = 2
   mass = 4e-23 4e-23
   diameter = -2.488e-8 -2.488e-8 
   qval = 1.6e-19 0
-   !1.17e-05 1.33e-05
+   #1.17e-05 1.33e-05
   diff = 1.17e-05 1.17e-05
- !If diameter is negative, this value will be used. If diameter is positive, it will be ignored. This is the total wet+dry diffusion. The wet component arises from the grid size and peskin kernel, the dry component is set to recover the value entered here.
+ #If diameter is negative, this value will be used. If diameter is positive, it will be ignored. This is the total wet+dry diffusion. The wet component arises from the grid size and peskin kernel, the dry component is set to recover the value entered here.
  
-  p_int_tog = 1 1 ! If zero, LJ/WCA forces will not be computed for this species with itself (different species always interact)
-  eepsilon = 5e-16 5e-16 !WCA potential---note that Aleks uses 10^-3 but we're not sure of the units in BDWoGF
-  sigma = 8e-8 8e-8   !Close range repulsion diameter*2
-  rmin = 1e-8     !Minimum range to prevent blow up of force.  NOTE, THIS IS A RADIUS, THE OTHER VALUES ARE DIAMETER. YES THIS IS STUPID.
-  !Interaction parameters
-  !------------
+  p_int_tog = 1 1 # If zero, LJ/WCA forces will not be computed for this species with itself (different species always interact)
+  eepsilon = 5e-16 5e-16 #WCA potential---note that Aleks uses 10^-3 but we're not sure of the units in BDWoGF
+  sigma = 8e-8 8e-8   #Close range repulsion diameter*2
+  rmin = 1e-8     #Minimum range to prevent blow up of force.  NOTE, THIS IS A RADIUS, THE OTHER VALUES ARE DIAMETER. YES THIS IS STUPID.
+  #Interaction parameters
+  #------------
   permittivity = 692.96e-21
-  crange = 5       !cell depth when building neighbour lists USING PARTICLE GRID CELL SIZE
-  images = 0    !if pairwise Coulomb interactions have been selected, this is the number of periodic images to use
-  eamp = 100 0 0  !external electric field properties
+  crange = 5       #cell depth when building neighbour lists USING PARTICLE GRID CELL SIZE
+  images = 0    #if pairwise Coulomb interactions have been selected, this is the number of periodic images to use
+  eamp = 100 0 0  #external electric field properties
   efreq = 0 0 0
   ephase = 0 0 0     
-  ! Poisson solver parameters -- there are more options which we can add to the namespace later
-  !-------------------
-  poisson_rel_tol = 1.e-6                ! relative tolerance stopping criteria
-  poisson_verbose =  1                   ! multigrid verbosity
-  poisson_bottom_verbose =  0           ! base solver verbosity
+  # Poisson solver parameters -- there are more options which we can add to the namespace later
+  #-------------------
+  poisson_rel_tol = 1.e-6                # relative tolerance stopping criteria
+  poisson_verbose =  1                   # multigrid verbosity
+  poisson_bottom_verbose =  0           # base solver verbosity
   poisson_max_iter = 100                 
-  !Peskin kernel (Currently 3, 4, & 6 implemented) (keep these the same for now)
-  !--------
+  #Peskin kernel (Currently 3, 4, & 6 implemented) (keep these the same for now)
+  #--------
   pkernel_fluid = 4  
   pkernel_es = 4    
-  ! Stochastic parameters
+  # Stochastic parameters
   seed = 0
   k_B = 1.38064852e-16
-  T_init(1) = 295.00
+  T_init = 295.00
   variance_coef_mom = 0
    
-  ! Boundary conditions
-  ! ----------------------
-  ! BC specifications:
-  ! -1 = periodic, 2 = no slip stationary
-  bc_vel_lo(1:3) = -1 2 -1
-  bc_vel_hi(1:3) = -1 2 -1
-  ! -1 = periodic, 1 = dirichlet, 2 = neumann
-  bc_es_lo(1:3) = -1 -1 -1
-  bc_es_hi(1:3) = -1 -1 -1
-  potential_lo(1:3) = 0 0 0
-  potential_hi(1:3) = 0 0 0 !
+  # Boundary conditions
+  # ----------------------
+  # BC specifications:
+  # -1 = periodic, 2 = no slip stationary
+  bc_vel_lo = -1 2 -1
+  bc_vel_hi = -1 2 -1
+  # -1 = periodic, 1 = dirichlet, 2 = neumann
+  bc_es_lo = -1 -1 -1
+  bc_es_hi = -1 -1 -1
+  potential_lo = 0 0 0
+  potential_hi = 0 0 0 #
   
-/
+
 
 # GMRES solver parameters
   gmres_rel_tol = 1.e-9                # relative tolerance stopping criteria

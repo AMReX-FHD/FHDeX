@@ -1,0 +1,10 @@
+  # Problem specification
+  prob_lo = 0.0  0.0  0.0    # physical lo coordinate
+  prob_hi = 5.12 5.12 5.12   # physical hi coordinate
+
+  n_cells = 64 64 64
+
+  plot_init_file = "plt0000005"
+
+  # prob_type specifies the starting component of velocity in the plotfile
+  prob_type = 3

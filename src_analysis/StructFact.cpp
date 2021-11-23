@@ -6,9 +6,43 @@
 #include "AMReX_PlotFileUtil.H"
 #include "AMReX_BoxArray.H"
 
+#ifdef AMREX_USE_CUDA
+std::string cufftErrorToString (const cufftResult& err)
+{
+    switch (err) {
+    case CUFFT_SUCCESS:  return "CUFFT_SUCCESS";
+    case CUFFT_INVALID_PLAN: return "CUFFT_INVALID_PLAN";
+    case CUFFT_ALLOC_FAILED: return "CUFFT_ALLOC_FAILED";
+    case CUFFT_INVALID_TYPE: return "CUFFT_INVALID_TYPE";
+    case CUFFT_INVALID_VALUE: return "CUFFT_INVALID_VALUE";
+    case CUFFT_INTERNAL_ERROR: return "CUFFT_INTERNAL_ERROR";
+    case CUFFT_EXEC_FAILED: return "CUFFT_EXEC_FAILED";
+    case CUFFT_SETUP_FAILED: return "CUFFT_SETUP_FAILED";
+    case CUFFT_INVALID_SIZE: return "CUFFT_INVALID_SIZE";
+    case CUFFT_UNALIGNED_DATA: return "CUFFT_UNALIGNED_DATA";
+    default: return std::to_string(err) + " (unknown error code)";
+    }
+}
+#endif
+
 StructFact::StructFact()
 {}
 
+// var_names contains the names of all variables under consideration
+// this constructor computes the covariances of all possible pairs of variables
+// var_scaling must be sized to match the total number of pairs of variables
+StructFact::StructFact(const BoxArray& ba_in, const DistributionMapping& dmap_in,
+		       const Vector< std::string >& var_names,
+		       const Vector< Real >& var_scaling_in,
+		       const int& verbosity_in) {
+
+    this->define(ba_in,dmap_in,var_names,var_scaling_in,verbosity_in);
+
+}
+
+// var_names contains the names of all variables under consideration
+// this constructor compute the covariances of the pairs of variables defined in s_pairA/B_in
+// var_scaling must be sized to match the total number of pairs of variables
 StructFact::StructFact(const BoxArray& ba_in, const DistributionMapping& dmap_in,
 		       const Vector< std::string >& var_names,
 		       const Vector< Real >& var_scaling_in,
@@ -16,10 +50,48 @@ StructFact::StructFact(const BoxArray& ba_in, const DistributionMapping& dmap_in
 		       const Vector< int >& s_pairB_in,
 		       const int& verbosity_in) {
 
-  BL_PROFILE_VAR("StructFact::StructFact()",StructFact);
+    this->define(ba_in,dmap_in,var_names,var_scaling_in,s_pairA_in,s_pairB_in,verbosity_in);
 
-  if (s_pairA_in.size() != s_pairA_in.size())
-        amrex::Error("StructFact::StructFact() - Must have an equal number of components");
+}
+
+
+// this builds a list of all possible pairs of variables and calls define()
+void StructFact::define(const BoxArray& ba_in, const DistributionMapping& dmap_in,
+                        const Vector< std::string >& var_names,
+                        const Vector< Real >& var_scaling_in,
+                        const int& verbosity_in) {
+
+    NVAR = var_names.size();
+
+    Vector<int> s_pairA(NVAR*(NVAR+1)/2);
+    Vector<int> s_pairB(NVAR*(NVAR+1)/2);
+
+    int counter=0;
+    for (int i=0; i<NVAR; ++i) {
+        for (int j=i; j<NVAR; ++j) {
+            s_pairA[counter] = j;
+            s_pairB[counter] = i;
+            ++counter;
+        }
+    }      
+
+    define(ba_in, dmap_in, var_names, var_scaling_in, s_pairA, s_pairB, verbosity_in);
+
+}
+
+void StructFact::define(const BoxArray& ba_in, const DistributionMapping& dmap_in,
+                        const Vector< std::string >& var_names,
+                        const Vector< Real >& var_scaling_in,
+                        const Vector< int >& s_pairA_in,
+                        const Vector< int >& s_pairB_in,
+                        const int& verbosity_in) {
+
+  BL_PROFILE_VAR("StructFact::define()",StructFactDefine);
+
+  verbosity = verbosity_in;
+  
+  if (s_pairA_in.size() != s_pairB_in.size())
+        amrex::Error("StructFact::define() - Must have an equal number of components");
 
   NVAR = var_names.size();
 
@@ -29,7 +101,7 @@ StructFact::StructFact(const BoxArray& ba_in, const DistributionMapping& dmap_in
   NCOV = s_pairA_in.size();
 
   if ( NCOV != var_scaling_in.size() )
-      amrex::Error("StructFact::StructFact() Constructor 1 - NCOV != var_scaling_in.size()");
+      amrex::Error("StructFact::define() - NCOV != var_scaling_in.size()");
 
   scaling.resize(NCOV);
   for (int n=0; n<NCOV; n++) {
@@ -83,9 +155,11 @@ StructFact::StructFact(const BoxArray& ba_in, const DistributionMapping& dmap_in
     }
   }
 
+  /*
   for (int n=0; n<NVARU; n++) {
     Print() << "HACK 1: vector (" << n << ") = " << varu_temp[n] << std::endl;
   }
+  */
 
   // Identify number of repeats
   int N_dup = 0;
@@ -113,9 +187,9 @@ StructFact::StructFact(const BoxArray& ba_in, const DistributionMapping& dmap_in
   NVARU = N_u;
   
   for (int n=0; n<NCOV; n++) {
-    Print() << "HACK 2: pairs (" << n << ") = " << s_pairA[n] << ", " << s_pairB[n] << std::endl;
+    Print() << "SF pairs (" << n << ") = " << s_pairA[n] << ", " << s_pairB[n] << std::endl;
   }
-  Print() << "HACK: NCOV = " << NCOV << std::endl;
+  Print() << "SF numPairs = " << NCOV << std::endl;
 
   for (int n=0; n<NCOV; n++) {
     if(s_pairA[n]<0 || s_pairA[n]>=NVAR || s_pairB[n]<0 || s_pairB[n]>=NVAR)
@@ -123,8 +197,6 @@ StructFact::StructFact(const BoxArray& ba_in, const DistributionMapping& dmap_in
   }
   //////////////////////////////////////////////////////
 
-  verbosity = verbosity_in;
-
   // Note that we are defining with NO ghost cells
 
   cov_real.define(ba_in, dmap_in, NCOV, 0);
@@ -148,180 +220,32 @@ StructFact::StructFact(const BoxArray& ba_in, const DistributionMapping& dmap_in
   }
 }
 
-StructFact::StructFact(const BoxArray& ba_in, const DistributionMapping& dmap_in,
-		       const Vector< std::string >& var_names,
-		       const Vector< Real >& var_scaling_in,
-		       const int& verbosity_in) {
-  
-  BL_PROFILE_VAR("StructFact::StructFact()",StructFact);
-
-  NVAR = var_names.size();
-  NCOV = NVAR*(NVAR+1)/2;
-
-  if ( NCOV != var_scaling_in.size() )
-      amrex::Error("StructFact::StructFact() Constructor 2 -  NCOV != var_scaling_in.size()");
-
-  scaling.resize(NCOV);
-  for (int n=0; n<NCOV; n++) {
-      scaling[n] = 1.0/var_scaling_in[n];
-  }
-  
-  s_pairA.resize(NCOV);
-  s_pairB.resize(NCOV);
-  
-  // all variables are selected in this constructor
-  NVARU = NVAR;
-  var_u.resize(NVARU);
-  for (int n=0; n<NVARU; n++) {
-    var_u[n] = n;
-  }
-  
-  int index = 0;
-  for (int j=0; j<NVAR; j++) {
-    for (int i=j; i<NVAR; i++) {
-      s_pairA[index] = i;
-      s_pairB[index] = j;
-      index++;
-    }
-  }
-
-  verbosity = verbosity_in;
-
-  // Note that we are defining with NO ghost cells
-
-  cov_real.define(ba_in, dmap_in, NCOV, 0);
-  cov_imag.define(ba_in, dmap_in, NCOV, 0);
-  cov_mag.define( ba_in, dmap_in, NCOV, 0);
-  cov_real.setVal(0.0);
-  cov_imag.setVal(0.0);
-  cov_mag.setVal( 0.0);
-
-  cov_names.resize(NCOV);
-  std::string x;
-  int cnt = 0;
-  for (int n=0; n<NCOV; n++) {
-    x = "struct_fact";
-    x += '_';
-    x += var_names[s_pairB[n]];
-    x += '_';
-    x += var_names[s_pairA[n]];
-    cov_names[cnt] = x;
-    cnt++;
-  }
-}
-
-void StructFact::define(const BoxArray& ba_in, const DistributionMapping& dmap_in,
-                        const Vector< std::string >& var_names,
-                        const Vector< Real >& var_scaling_in,
-                        const int& verbosity_in) {
-  
-  BL_PROFILE_VAR("StructFact::define()",StructFactDefine);
-
-  NVAR = var_names.size();
-  NCOV = NVAR*(NVAR+1)/2;
-
-  if ( NCOV != var_scaling_in.size() )
-      amrex::Error("StructFact::define() -  NCOV != var_scaling_in.size()");
-
-  scaling.resize(NCOV);
-  for (int n=0; n<NCOV; n++) {
-      scaling[n] = 1.0/var_scaling_in[n];
-  }
-  
-  s_pairA.resize(NCOV);
-  s_pairB.resize(NCOV);
-  
-  // all variables are selected in this constructor
-  NVARU = NVAR;
-  var_u.resize(NVARU);
-  for (int n=0; n<NVARU; n++) {
-    var_u[n] = n;
-  }
-  
-  int index = 0;
-  for (int j=0; j<NVAR; j++) {
-    for (int i=j; i<NVAR; i++) {
-      s_pairA[index] = i;
-      s_pairB[index] = j;
-      index++;
-    }
-  }
-
-  verbosity = verbosity_in;
-
-  // Note that we are defining with NO ghost cells
-
-  cov_real.define(ba_in, dmap_in, NCOV, 0);
-  cov_imag.define(ba_in, dmap_in, NCOV, 0);
-  cov_mag.define( ba_in, dmap_in, NCOV, 0);
-  cov_real.setVal(0.0);
-  cov_imag.setVal(0.0);
-  cov_mag.setVal( 0.0);
-
-  cov_names.resize(NCOV);
-  std::string x;
-  int cnt = 0;
-  for (int n=0; n<NCOV; n++) {
-    x = "struct_fact";
-    x += '_';
-    x += var_names[s_pairB[n]];
-    x += '_';
-    x += var_names[s_pairA[n]];
-    cov_names[cnt] = x;
-    cnt++;
-  }
-}
-
-void StructFact::FortStructure(const MultiFab& variables, const Geometry& geom, const int& reset) {
+void StructFact::FortStructure(const MultiFab& variables, const Geometry& geom,
+                               const int& reset) {
 
   BL_PROFILE_VAR("StructFact::FortStructure()",FortStructure);
 
   const BoxArray& ba = variables.boxArray();
   const DistributionMapping& dm = variables.DistributionMap();
+  
   MultiFab variables_dft_real, variables_dft_imag;
   variables_dft_real.define(ba, dm, NVAR, 0);
   variables_dft_imag.define(ba, dm, NVAR, 0);
 
-  if (ba.size() == ParallelDescriptor::NProcs()) {
-      ComputeFFT(variables, variables_dft_real, variables_dft_imag, geom);
-  }
-  else {
+  ComputeFFT(variables, variables_dft_real, variables_dft_imag, geom);
 
-      BoxArray ba_temp(geom.Domain());
-
-      ba_temp.maxSize(IntVect(max_grid_size_structfact));
-
-      if (ba_temp.size() != ParallelDescriptor::NProcs()) {
-          Print() << "StructFact::FortStructure - number of MPI ranks needs to match the number of grids;\n"
-                  << "If this is a full-dimensional dataset, use max_grid_size_structfact;\n"
-                  << "If this is a vertically-averaged dataset, use max_grid_projection.\n";
-          Abort("");
-          exit(0);
-      }
-
-      DistributionMapping dm_temp(ba_temp);
-
-      // create variables_temp, variables_dft_real_temp and variables_dft_imag
-      // these will have the same number of grids as MPI ranks so they need a different
-      // BoxArray and DistributionMapping
-      MultiFab variables_temp         (ba_temp, dm_temp, variables.nComp(), 0);
-      MultiFab variables_dft_real_temp(ba_temp, dm_temp, NVAR, 0);
-      MultiFab variables_dft_imag_temp(ba_temp, dm_temp, NVAR, 0);
-
-      // ParallelCopy variables into variables_temp
-      variables_temp.ParallelCopy(variables, 0, 0, variables.nComp());
-
-      ComputeFFT(variables_temp, variables_dft_real_temp, variables_dft_imag_temp, geom);
-
-      // ParallelCopy variables_dft_real_temp into variables_dft_real
-      // ParallelCopy variables_dft_imag_temp into variables_dft_imag
-      variables_dft_real.ParallelCopy(variables_dft_real_temp, 0, 0, NVAR);
-      variables_dft_imag.ParallelCopy(variables_dft_imag_temp, 0, 0, NVAR);
-  }
-
+  // temporary storage built on BoxArray and DistributionMapping of "variables"
+  // One case where "variables" and "cov_real/imag/mag" may have different DistributionMappings
+  // is for flattened MFs with one grid newly built flattened MFs may be on a different
+  // processor than the flattened MF used to build cov_real/imag/mag
+  // or in general, problems that are not perfectly load balanced
   MultiFab cov_temp;
   cov_temp.define(ba, dm, 1, 0);
 
+  // temporary storage built on BoxArray and DistributionMapping of "cov_real/imag/mag"
+  MultiFab cov_temp2;
+  cov_temp2.define(cov_real.boxArray(), cov_real.DistributionMap(), 1, 0);
+  
   int index = 0;
   for (int n=0; n<NCOV; n++) {
     int i = s_pairA[n];
@@ -334,10 +258,13 @@ void StructFact::FortStructure(const MultiFab& variables, const Geometry& geom, 
     MultiFab::AddProduct(cov_temp,variables_dft_real,i,variables_dft_real,j,0,1,0);
     MultiFab::AddProduct(cov_temp,variables_dft_imag,i,variables_dft_imag,j,0,1,0);
 
+    // copy into a MF with same ba and dm as cov_real/imag/mag
+    cov_temp2.ParallelCopy(cov_temp,0,0,1);
+        
     if (reset == 1) {
-        MultiFab::Copy(cov_real,cov_temp,0,index,1,0);
-    } else {
-        MultiFab::Add(cov_real,cov_temp,0,index,1,0);
+        MultiFab::Copy(cov_real,cov_temp2,0,index,1,0);
+    } else {        
+        MultiFab::Add(cov_real,cov_temp2,0,index,1,0);
     }
 
     // Imaginary component of covariance
@@ -346,10 +273,13 @@ void StructFact::FortStructure(const MultiFab& variables, const Geometry& geom, 
     cov_temp.mult(-1.0,0);
     MultiFab::AddProduct(cov_temp,variables_dft_real,i,variables_dft_imag,j,0,1,0);
 
+    // copy into a MF with same ba and dm as cov_real/imag/mag
+    cov_temp2.ParallelCopy(cov_temp,0,0,1);
+    
     if (reset == 1) {
-        MultiFab::Copy(cov_imag,cov_temp,0,index,1,0);
+        MultiFab::Copy(cov_imag,cov_temp2,0,index,1,0);
     } else {
-        MultiFab::Add(cov_imag,cov_temp,0,index,1,0);
+        MultiFab::Add(cov_imag,cov_temp2,0,index,1,0);
     }
 
     index++;
@@ -377,6 +307,8 @@ void StructFact::FortStructure(const MultiFab& variables, const Geometry& geom, 
 
 void StructFact::Reset() {
 
+    BL_PROFILE_VAR("StructFact::Reset()", StructFactReset);
+  
     cov_real.setVal(0.);
     cov_imag.setVal(0.);
     nsamples = 0;
@@ -388,183 +320,275 @@ void StructFact::ComputeFFT(const MultiFab& variables,
 			    MultiFab& variables_dft_imag,
 			    const Geometry& geom) {
 
-  BL_PROFILE_VAR("StructFact::ComputeFFT()", ComputeFFT);
+    BL_PROFILE_VAR("StructFact::ComputeFFT()", ComputeFFT);
 
-  Box domain(geom.Domain());
-  const BoxArray& ba = variables.boxArray();
-  DistributionMapping dm = variables.DistributionMap();
-  
-  if (verbosity > 1) {
-    amrex::Print() << "BA " << ba << std::endl;
-  }
-
-  if (variables_dft_real.nGrow() != 0 || variables.nGrow() != 0) {
-    amrex::Error("StructFact::ComputeFFT() - Current implementation requires that both variables_temp[0] and variables_dft_real[0] have no ghost cells");
-  }
-
-  // We assume that all grids have the same size hence 
-  // we have the same nx,ny,nz on all ranks
-  int nx = ba[0].size()[0];
-  int ny = ba[0].size()[1];
-#if (AMREX_SPACEDIM == 2)
-  int nz = 1;
-#elif (AMREX_SPACEDIM == 3)
-  int nz = ba[0].size()[2];
+#ifdef AMREX_USE_CUDA
+    Print() << "Using cuFFT\n";
+#else
+    Print() << "Using FFTW\n";
 #endif
 
-  int nbx = domain.length(0) / nx;
-  int nby = domain.length(1) / ny;
-#if (AMREX_SPACEDIM == 2)
-  int nbz = 1;
-#elif (AMREX_SPACEDIM == 3)
-  int nbz = domain.length(2) / nz;
-#endif
-  int nboxes = nbx * nby * nbz;
-  if (verbosity > 1) {
-    amrex::Print() << "nx, ny, nz:\t" << nx << ", " << ny << ", " << nz << std::endl;
-    amrex::Print() << "Number of boxes:\t" << nboxes << "\tBA size:\t" << ba.size() << std::endl;
-  }
-  if (nboxes != ba.size())
-    amrex::Error("StructFact::ComputeFFT() - NBOXES NOT COMPUTED CORRECTLY");
+    bool is_flattened = false;
 
-  Vector<int> rank_mapping;
-  rank_mapping.resize(nboxes);
+    long npts;
 
-  DistributionMapping dmap = variables_dft_real.DistributionMap();
-
-//  Print() << "HACK FFT: " << ba << std::endl << dmap << std::endl << dm << std::endl;
-
-  for (int ib = 0; ib < nboxes; ++ib)
+    // Initialize the boxarray "ba_onegrid" from the single box "domain"
+    BoxArray ba_onegrid;
     {
-      int i = ba[ib].smallEnd(0) / nx;
-      int j = ba[ib].smallEnd(1) / ny;
+      Box domain = geom.Domain();
+      ba_onegrid.define(domain);
+
+      if (domain.bigEnd(AMREX_SPACEDIM-1) == 0) {
+          is_flattened = true;
+      }
+
 #if (AMREX_SPACEDIM == 2)
-      int k = 0;
+      npts = (domain.length(0)*domain.length(1));
 #elif (AMREX_SPACEDIM == 3)
-      int k = ba[ib].smallEnd(2) / nz;
+      npts = (domain.length(0)*domain.length(1)*domain.length(2));
 #endif
 
-      // This would be the "correct" local index if the data wasn't being transformed
-      int local_index = k*nbx*nby + j*nbx + i;
-
-      // This is what we [would] pass to dfft to compensate for the Fortran ordering
-      //      of amrex data in MultiFabs.
-      // int local_index = i*nby*nbz + j*nbz + k;
-
-      rank_mapping[local_index] = dmap[ib];
-      if (verbosity > 0)
-      	amrex::Print() << "LOADING RANK NUMBER " << dmap[ib] << " FOR GRID NUMBER " << ib 
-      		       << " WHICH IS LOCAL NUMBER " << local_index << std::endl;
     }
 
-  // FIXME: Assumes same grid spacing
+    Real sqrtnpts = std::sqrt(npts);
 
-  // Assume for now that nx = ny = nz
-#if (AMREX_SPACEDIM == 2)
-  int Ndims[3] = { 1, nby, nbx};
-  int     n[3] = { 1, domain.length(1), domain.length(0)};
-#elif (AMREX_SPACEDIM == 3)
-  int Ndims[3] = { nbz, nby, nbx };
-  int     n[3] = { domain.length(2), domain.length(1), domain.length(0)};
+    DistributionMapping dmap_onegrid(ba_onegrid);
+
+    // we will take one FFT at a time and copy the answer into the
+    // corresponding component
+    MultiFab variables_onegrid;
+    MultiFab variables_dft_real_onegrid;
+    MultiFab variables_dft_imag_onegrid;
+    variables_onegrid.define(ba_onegrid, dmap_onegrid, 1, 0);
+    variables_dft_real_onegrid.define(ba_onegrid, dmap_onegrid, 1, 0);
+    variables_dft_imag_onegrid.define(ba_onegrid, dmap_onegrid, 1, 0);
+
+//    fftw_mpi_init();
+
+#ifdef AMREX_USE_CUDA
+    using FFTplan = cufftHandle;
+    using FFTcomplex = cuDoubleComplex;
+#else
+    using FFTplan = fftw_plan;
+    using FFTcomplex = fftw_complex;
 #endif
-  MPI_Comm comm = ParallelDescriptor::Communicator();
-  hacc::Distribution d(comm,n,Ndims,&rank_mapping[0]);
 
-  if (verbosity > 0) {
-    Print() << "RANK MAPPING: \n";
-    for (int i=0; i<rank_mapping.size(); i++) {
-      Print() << "\t" << rank_mapping[i] << std::endl;
-    }
-  }
+    // contain to store FFT - note it is shrunk by "half" in x
+    Vector<std::unique_ptr<BaseFab<GpuComplex<Real> > > > spectral_field;
 
-  for (int dim=0; dim<NVAR; dim++) {
+    Vector<FFTplan> forward_plan;
 
-    bool comp_fft = false;
-    for (int i=0; i<NVARU; i++) {
-      if (dim == var_u[i]) {
-	comp_fft = true;
-	break;
-      }
-    }
+    // for CUDA builds we only need to build the plan once; track whether we did
+    bool built_plan = false;
+    
+    for (int comp=0; comp<NVAR; comp++) {
 
-    if(comp_fft) {
-   
-      for (MFIter mfi(variables_dft_real,false); mfi.isValid(); ++mfi) {
+        bool comp_fft = false;
+        for (int i=0; i<NVARU; i++) {
+            if (comp == var_u[i]) {
+                comp_fft = true;
+                break;
+            }
+        }
 
-        std::vector<complex_t, hacc::AlignedAllocator<complex_t, ALIGN> > a;
-	std::vector<complex_t, hacc::AlignedAllocator<complex_t, ALIGN> > b;
+	if (comp_fft == false) continue;
 
-	a.resize(nx*ny*nz);
-	b.resize(nx*ny*nz);
+        variables_onegrid.ParallelCopy(variables,comp,0,1);
 
-	// Print() << "HACK FFT: got here" << std::endl;
+        if (!built_plan) {
 
-        hacc::Dfft dfft(d);
-	dfft.makePlans(&a[0],&b[0],&a[0],&b[0]);
+            for (MFIter mfi(variables_onegrid); mfi.isValid(); ++mfi) {
 
-	// *******************************************
-	// Copy real data from Rhs into real part of a -- no ghost cells and
-	// put into C++ ordering (not Fortran)
-	// *******************************************
-	complex_t zero(0.0, 0.0);
-	size_t local_indx = 0;
-	for(size_t k=0; k<(size_t)nz; k++) {
-	  for(size_t j=0; j<(size_t)ny; j++) {
-	    for(size_t i=0; i<(size_t)nx; i++) {
+                // grab a single box including ghost cell range
+                Box realspace_bx = mfi.fabbox();
 
-	      complex_t temp(variables[mfi].dataPtr(dim)[local_indx],0.);
-	      a[local_indx] = temp;
-	      local_indx++;
+                // size of box including ghost cell range
+                IntVect fft_size = realspace_bx.length(); // This will be different for hybrid FFT
 
-	      // Print() << "HACK FFT: a[" << local_indx << "] = \t " << variables[mfi].dataPtr(dim)[local_indx] << std::endl;
+                // this is the size of the box, except the 0th component is 'halved plus 1'
+                IntVect spectral_bx_size = fft_size;
+                spectral_bx_size[0] = fft_size[0]/2 + 1;
 
+                // spectral box
+                Box spectral_bx = Box(IntVect(0), spectral_bx_size - IntVect(1));
+
+                spectral_field.emplace_back(new BaseFab<GpuComplex<Real> >(spectral_bx,1,
+                                                                       The_Device_Arena()));
+                spectral_field.back()->setVal<RunOn::Device>(0.0); // touch the memory
+
+                FFTplan fplan;
+
+#ifdef AMREX_USE_CUDA
+                if (is_flattened) {
+#if (AMREX_SPACEDIM == 2)
+                    cufftResult result = cufftPlan1d(&fplan, fft_size[0], CUFFT_D2Z, 1);
+                    if (result != CUFFT_SUCCESS) {
+                        amrex::AllPrint() << " cufftplan1d forward failed! Error: "
+                                          << cufftErrorToString(result) << "\n";
+                    }
+#elif (AMREX_SPACEDIM == 3)
+                    cufftResult result = cufftPlan2d(&fplan, fft_size[1], fft_size[0], CUFFT_D2Z);
+                    if (result != CUFFT_SUCCESS) {
+                        amrex::AllPrint() << " cufftplan2d forward failed! Error: "
+                                          << cufftErrorToString(result) << "\n";
+                    }
+#endif
+                } else {
+#if (AMREX_SPACEDIM == 2)
+                    cufftResult result = cufftPlan2d(&fplan, fft_size[1], fft_size[0], CUFFT_D2Z);
+                    if (result != CUFFT_SUCCESS) {
+                        amrex::AllPrint() << " cufftplan2d forward failed! Error: "
+                                          << cufftErrorToString(result) << "\n";
+                    }
+#elif (AMREX_SPACEDIM == 3)
+                    cufftResult result = cufftPlan3d(&fplan, fft_size[2], fft_size[1], fft_size[0], CUFFT_D2Z);
+                    if (result != CUFFT_SUCCESS) {
+                        amrex::AllPrint() << " cufftplan3d forward failed! Error: "
+                                          << cufftErrorToString(result) << "\n";
+                    }
+#endif
+                }
+#else // host
+
+                if (is_flattened) {
+#if (AMREX_SPACEDIM == 2)
+                    fplan = fftw_plan_dft_r2c_1d(fft_size[0],
+                                                 variables_onegrid[mfi].dataPtr(),
+                                                 reinterpret_cast<FFTcomplex*>
+                                                 (spectral_field.back()->dataPtr()),
+                                                 FFTW_ESTIMATE);
+#elif (AMREX_SPACEDIM == 3)
+                    fplan = fftw_plan_dft_r2c_2d(fft_size[1], fft_size[0],
+                                                 variables_onegrid[mfi].dataPtr(),
+                                                 reinterpret_cast<FFTcomplex*>
+                                                 (spectral_field.back()->dataPtr()),
+                                                 FFTW_ESTIMATE);
+#endif
+                } else {
+#if (AMREX_SPACEDIM == 2)
+                    fplan = fftw_plan_dft_r2c_2d(fft_size[1], fft_size[0],
+                                                 variables_onegrid[mfi].dataPtr(),
+                                                 reinterpret_cast<FFTcomplex*>
+                                                 (spectral_field.back()->dataPtr()),
+                                                 FFTW_ESTIMATE);
+#elif (AMREX_SPACEDIM == 3)
+                    fplan = fftw_plan_dft_r2c_3d(fft_size[2], fft_size[1], fft_size[0],
+                                                 variables_onegrid[mfi].dataPtr(),
+                                                 reinterpret_cast<FFTcomplex*>
+                                                 (spectral_field.back()->dataPtr()),
+                                                 FFTW_ESTIMATE);
+#endif
+                }
+#endif
+
+                forward_plan.push_back(fplan);
+            }
+
+	    built_plan = true;
+        
+        }
+
+        ParallelDescriptor::Barrier();
+
+        // ForwardTransform
+        for (MFIter mfi(variables_onegrid); mfi.isValid(); ++mfi) {
+            int i = mfi.LocalIndex();
+#ifdef AMREX_USE_CUDA
+            cufftSetStream(forward_plan[i], amrex::Gpu::gpuStream());
+            cufftResult result = cufftExecD2Z(forward_plan[i],
+                                              variables_onegrid[mfi].dataPtr(),
+                                              reinterpret_cast<FFTcomplex*>
+                                                  (spectral_field[i]->dataPtr()));
+            if (result != CUFFT_SUCCESS) {
+	      amrex::AllPrint() << " forward transform using cufftExec failed! Error: "
+				<< cufftErrorToString(result) << "\n";
 	    }
-	  }
-	}
+#else
+            fftw_execute(forward_plan[i]);
+#endif
+        }
 
-	//  *******************************************
-	//  Compute the forward transform
-	//  *******************************************
-	dfft.forward(&a[0]);
+        // copy data to a full-sized MultiFab
+        // this involves copying the complex conjugate from the half-sized field
+        // into the appropriate place in the full MultiFab
+        for (MFIter mfi(variables_dft_real_onegrid); mfi.isValid(); ++mfi) {
 
-	// Redistribute data from z-pencils in k-space back to blocks
-	d.redistribute_2_to_3(&a[0],&b[0],2);
-	
-	// Note: Scaling for inverse FFT
-	size_t global_size  = dfft.global_size();
-	
-	// Real pi = 4.0*std::atan(1.0);
-	Real fac = sqrt(1.0 / (Real)global_size);
+            Array4< GpuComplex<Real> > spectral = (*spectral_field[0]).array();
 
-	local_indx = 0;
-	for(size_t k=0; k<(size_t)nz; k++) {
-	  for(size_t j=0; j<(size_t)ny; j++) {
-	    for(size_t i=0; i<(size_t)nx; i++) {
+            Array4<Real> const& realpart = variables_dft_real_onegrid.array(mfi);
+            Array4<Real> const& imagpart = variables_dft_imag_onegrid.array(mfi);
 
-	      // Divide by 2 pi N
-	      variables_dft_real[mfi].dataPtr(dim)[local_indx] = fac * std::real(b[local_indx]);
-	      variables_dft_imag[mfi].dataPtr(dim)[local_indx] = fac * std::imag(b[local_indx]);
-	      local_indx++;
-	    }
-	  }
-	}
-      }
+            Box bx = mfi.fabbox();
+
+            amrex::ParallelFor(bx,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                if (i <= bx.length(0)/2) {
+                    // copy value
+                    realpart(i,j,k) = spectral(i,j,k).real();
+                    imagpart(i,j,k) = spectral(i,j,k).imag();
+                } else {
+                    // copy complex conjugate
+                    int iloc = bx.length(0)-i;
+                    int jloc, kloc;
+                    if (is_flattened) {
+#if (AMREX_SPACEDIM == 2)
+                        jloc = 0;
+#elif (AMREX_SPACEDIM == 3)
+                        jloc = (j == 0) ? 0 : bx.length(1)-j;
+#endif
+                        kloc = 0;
+                    } else {
+                        jloc = (j == 0) ? 0 : bx.length(1)-j;
+#if (AMREX_SPACEDIM == 2)
+                        kloc = 0;
+#elif (AMREX_SPACEDIM == 3)
+                        kloc = (k == 0) ? 0 : bx.length(2)-k;
+#endif
+                    }
+
+                    realpart(i,j,k) =  spectral(iloc,jloc,kloc).real();
+                    imagpart(i,j,k) = -spectral(iloc,jloc,kloc).imag();
+                }
+
+                realpart(i,j,k) /= sqrtnpts;
+                imagpart(i,j,k) /= sqrtnpts;
+            });
+
+            /*
+            amrex::ParallelFor(bx,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                std::cout << "HACKFFT " << i << " " << j << " " << k << " "
+                          << realpart(i,j,k) << " + " << imagpart(i,j,k) << "i"
+                          << std::endl;
+            });
+            */
+        }
+
+        variables_dft_real.ParallelCopy(variables_dft_real_onegrid,0,comp,1);
+        variables_dft_imag.ParallelCopy(variables_dft_imag_onegrid,0,comp,1);
+
     }
 
-  }
+    // destroy fft plan
+    for (int i = 0; i < forward_plan.size(); ++i) {
+#ifdef AMREX_USE_CUDA
+        cufftDestroy(forward_plan[i]);
+#else
+        fftw_destroy_plan(forward_plan[i]);
+#endif
+    }
 
-  bool write_data = false;
-  if (write_data) {
-    std::string plotname = "a_DFT_REAL";
-    VisMF::Write(variables_dft_real,plotname);
-  }
+//    fftw_mpi_cleanup();
+
 }
 
 void StructFact::WritePlotFile(const int step, const Real time, const Geometry& geom,
                                std::string plotfile_base,
                                const int& zero_avg) {
   
-  BL_PROFILE_VAR("StructFact::WritePlotFile()",WritePlotFile);
+  BL_PROFILE_VAR("StructFact::WritePlotFile()",StructFactWritePlotFile);
 
   MultiFab plotfile;
   Vector<std::string> varNames;
@@ -586,91 +610,77 @@ void StructFact::WritePlotFile(const int step, const Real time, const Geometry& 
   // Write out structure factor magnitude to plot file
   //////////////////////////////////////////////////////////////////////////////////
 
-  if (turbForcing != 1) {
-      std::string name = plotfile_base;
-      name += "_mag";
+  std::string name = plotfile_base;
+  name += "_mag";
   
-      const std::string plotfilename1 = amrex::Concatenate(name,step,9);
-      nPlot = NCOV;
-      plotfile.define(cov_mag.boxArray(), cov_mag.DistributionMap(), nPlot, 0);
-      varNames.resize(nPlot);
+  const std::string plotfilename1 = amrex::Concatenate(name,step,9);
+  nPlot = NCOV;
+  plotfile.define(cov_mag.boxArray(), cov_mag.DistributionMap(), nPlot, 0);
+  varNames.resize(nPlot);
 
-      for (int n=0; n<NCOV; n++) {
-          varNames[n] = cov_names[n];
-      }
+  for (int n=0; n<NCOV; n++) {
+      varNames[n] = cov_names[n];
+  }
   
-      MultiFab::Copy(plotfile, cov_mag, 0, 0, NCOV, 0); // copy structure factor into plotfile
+  MultiFab::Copy(plotfile, cov_mag, 0, 0, NCOV, 0); // copy structure factor into plotfile
 
-      Real dx = geom.CellSize(0);
-      Real pi = 3.1415926535897932;
-      Box domain = geom.Domain();
+  Real dx = geom.CellSize(0);
+  Real pi = 3.1415926535897932;
+  Box domain = geom.Domain();
 
-      RealBox real_box({AMREX_D_DECL(-pi/dx,-pi/dx,-pi/dx)},
-                       {AMREX_D_DECL( pi/dx, pi/dx, pi/dx)});
+  RealBox real_box({AMREX_D_DECL(-pi/dx,-pi/dx,-pi/dx)},
+                   {AMREX_D_DECL( pi/dx, pi/dx, pi/dx)});
   
-      // check bc_vel_lo/hi to determine the periodicity
-      Vector<int> is_periodic(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
-      for (int i=0; i<AMREX_SPACEDIM; ++i) {
-          is_periodic[i] = geom.isPeriodic(i);
-      }
+  // check bc_vel_lo/hi to determine the periodicity
+  Vector<int> is_periodic(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
+  for (int i=0; i<AMREX_SPACEDIM; ++i) {
+      is_periodic[i] = geom.isPeriodic(i);
+  }
 
-      Geometry geom2;
-      geom2.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
+  Geometry geom2;
+  geom2.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
     
-      // write a plotfile
-      WriteSingleLevelPlotfile(plotfilename1,plotfile,varNames,geom2,time,step);
+  // write a plotfile
+  WriteSingleLevelPlotfile(plotfilename1,plotfile,varNames,geom2,time,step);
   
-      //////////////////////////////////////////////////////////////////////////////////
-      // Write out real and imaginary components of structure factor to plot file
-      //////////////////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////////
+  // Write out real and imaginary components of structure factor to plot file
+  //////////////////////////////////////////////////////////////////////////////////
 
-      name = plotfile_base;
-      name += "_real_imag";
+  name = plotfile_base;
+  name += "_real_imag";
   
-      const std::string plotfilename2 = amrex::Concatenate(name,step,9);
-      nPlot = 2*NCOV;
-      plotfile.define(cov_mag.boxArray(), cov_mag.DistributionMap(), nPlot, 0);
-      varNames.resize(nPlot);
+  const std::string plotfilename2 = amrex::Concatenate(name,step,9);
+  nPlot = 2*NCOV;
+  plotfile.define(cov_mag.boxArray(), cov_mag.DistributionMap(), nPlot, 0);
+  varNames.resize(nPlot);
 
-      int cnt = 0; // keep a counter for plotfile variables
-      for (int n=0; n<NCOV; n++) {
-          varNames[cnt] = cov_names[cnt];
-          varNames[cnt] += "_real";
-          cnt++;
-      }
-
-      int index = 0;
-      for (int n=0; n<NCOV; n++) {
-          varNames[cnt] = cov_names[index];
-          varNames[cnt] += "_imag";
-          index++;
-          cnt++;
-      }
-
-      MultiFab::Copy(plotfile,cov_real_temp,0,0,   NCOV,0);
-      MultiFab::Copy(plotfile,cov_imag_temp,0,NCOV,NCOV,0);
-
-      // write a plotfile
-      WriteSingleLevelPlotfile(plotfilename2,plotfile,varNames,geom2,time,step);
+  int cnt = 0; // keep a counter for plotfile variables
+  for (int n=0; n<NCOV; n++) {
+      varNames[cnt] = cov_names[cnt];
+      varNames[cnt] += "_real";
+      cnt++;
   }
-  
-}
 
-void StructFact::StructOut(MultiFab& struct_out) {
-
-  BL_PROFILE_VAR("StructFact::StructOut()",StructOut);
-
-  if (struct_out.nComp() == cov_mag.nComp()) {
-    MultiFab::Copy(struct_out,cov_mag,0,0,cov_mag.nComp(),0);
-  } else {
-    amrex::Error("StructFact::StructOut() - Must have an equal number of components");
+  int index = 0;
+  for (int n=0; n<NCOV; n++) {
+      varNames[cnt] = cov_names[index];
+      varNames[cnt] += "_imag";
+      index++;
+      cnt++;
   }
+
+  MultiFab::Copy(plotfile,cov_real_temp,0,0,   NCOV,0);
+  MultiFab::Copy(plotfile,cov_imag_temp,0,NCOV,NCOV,0);
+
+  // write a plotfile
+  WriteSingleLevelPlotfile(plotfilename2,plotfile,varNames,geom2,time,step);
 }
 
 void StructFact::Finalize(MultiFab& cov_real_in, MultiFab& cov_imag_in,
                           const Geometry& geom, const int& zero_avg) {
 
-  BL_PROFILE_VAR("StructFact::Finalize()",Finalize);
+  BL_PROFILE_VAR("StructFact::Finalize()",StructFactFinalize);
   
   Real nsamples_inv = 1.0/(Real)nsamples;
   
@@ -695,9 +705,45 @@ void StructFact::Finalize(MultiFab& cov_real_in, MultiFab& cov_imag_in,
 
 }
 
+// Finalize covariances - scale & compute magnitude
+void StructFact::CallFinalize( const Geometry& geom,
+                               const int& zero_avg) {
+  
+  BL_PROFILE_VAR("CallFinalize()",CallFinalize);
+
+  // Build temp real & imag components
+  const BoxArray& ba = cov_mag.boxArray();
+  const DistributionMapping& dm = cov_mag.DistributionMap();
+
+  MultiFab cov_real_temp(ba, dm, NCOV, 0);
+  MultiFab cov_imag_temp(ba, dm, NCOV, 0);
+  MultiFab::Copy(cov_real_temp, cov_real, 0, 0, NCOV, 0);
+  MultiFab::Copy(cov_imag_temp, cov_imag, 0, 0, NCOV, 0);
+
+  // Finalize covariances - scale & compute magnitude
+  Finalize(cov_real_temp, cov_imag_temp, geom, zero_avg);
+}
+
+
+
 void StructFact::ShiftFFT(MultiFab& dft_out, const Geometry& geom, const int& zero_avg) {
 
   BL_PROFILE_VAR("StructFact::ShiftFFT()",ShiftFFT);
+
+  /*
+    Shifting rules:
+
+    For domains from (0,0,0) to (Nx-1,Ny-1,Nz-1)
+
+    For any cells with i index >= Nx/2, these values are complex conjugates of the corresponding
+    entry where (Nx-i,Ny-j,Nz-k) UNLESS that index is zero, in which case you use 0.
+
+    e.g. for an 8^3 domain, any cell with i index 
+
+    Cell (6,2,3) is complex conjugate of (2,6,5)
+
+    Cell (4,1,0) is complex conjugate of (4,7,0)  (note that the FFT is computed for 0 <= i <= Nx/2)
+  */
 
   BoxArray ba_onegrid;
   {
@@ -891,4 +937,36 @@ void StructFact::IntegratekShells(const int& step, const Geometry& geom) {
             turb << d << " " << phisum_vect[d] << std::endl;
         }
     }
+}
+
+void StructFact::AddToExternal(MultiFab& x_mag, MultiFab& x_realimag, const Geometry& geom, const int& zero_avg) {
+
+    BL_PROFILE_VAR("StructFact::AddToExternal",AddToExternal);
+
+    MultiFab plotfile;
+    int nPlot = 1;
+
+    // Build temp real & imag components
+    const BoxArray& ba = cov_mag.boxArray();
+    const DistributionMapping& dm = cov_mag.DistributionMap();
+
+    MultiFab cov_real_temp(ba, dm, NCOV, 0);
+    MultiFab cov_imag_temp(ba, dm, NCOV, 0);
+    MultiFab::Copy(cov_real_temp, cov_real, 0, 0, NCOV, 0);
+    MultiFab::Copy(cov_imag_temp, cov_imag, 0, 0, NCOV, 0);
+
+    // Finalize covariances - scale & compute magnitude
+    Finalize(cov_real_temp, cov_imag_temp, geom, zero_avg);
+
+    nPlot = NCOV;
+    plotfile.define(cov_mag.boxArray(), cov_mag.DistributionMap(), nPlot, 0);
+    MultiFab::Copy(plotfile, cov_mag, 0, 0, NCOV, 0); // copy structure factor into plotfile
+    MultiFab::Add(x_mag,plotfile,0,0,NCOV,0);
+
+    nPlot = 2*NCOV;
+    plotfile.define(cov_mag.boxArray(), cov_mag.DistributionMap(), nPlot, 0);
+    MultiFab::Copy(plotfile,cov_real_temp,0,0,   NCOV,0);
+    MultiFab::Copy(plotfile,cov_imag_temp,0,NCOV,NCOV,0);
+    MultiFab::Add(x_realimag,plotfile,0,0,2*NCOV,0);
+
 }

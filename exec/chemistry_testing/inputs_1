@@ -1,0 +1,49 @@
+
+    prob_lo = 0.0 0.0 0.0      
+    prob_hi = 160. 160. 160.
+
+    n_cells = 16 16 16
+    max_grid_size = 8 8 8
+
+    plot_int = -1
+
+    max_step = 2000
+    fixed_dt = 0.001
+
+    # 1 = cell-based update
+    # 2 = MultiFab-based update
+    prob_type = 1 
+
+    nspecies = 2
+    # molecular weights (i.e. per mol)
+    molmass = 14.0 16.0
+
+    k_B = 1.38064852e-16  # [units: cm2*g*s-2*K-1]
+    Runiv = 8.314462175e7
+
+    # initial total mass density
+    rho0 = 4.981615735115182e-22
+    # initial mass fractions
+    rhobar = 0.46666666667 0.53333333333
+
+
+# dimerization reaction
+# react1 : 2A -> A_2
+# react2 : A_2 -> 2A
+# spec1 = A
+# spec2 = A_2
+
+nreaction = 2
+
+rate_const = 0.3 0.5
+
+stoich_1R = 2 0
+stoich_1P = 0 1
+stoich_2R = 0 1
+stoich_2P = 2 0
+
+# 0 = Deterministic Chemistry
+# 1 = CLE (Chemical Langevin Equation)
+# 2 = SSA (Stochastic Simulation Algorithm)
+
+reaction_type = 0

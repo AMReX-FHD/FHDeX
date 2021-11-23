@@ -1,8 +1,8 @@
 #include "compressible_functions.H"
-
 #include "common_functions.H"
 
 using namespace common;
+using namespace compressible;
 
 void calculateTransportCoeffs(const MultiFab& prim_in, 
 			      MultiFab& eta_in, MultiFab& zeta_in, MultiFab& kappa_in,
@@ -50,9 +50,22 @@ void calculateTransportCoeffs(const MultiFab& prim_in,
             // compute mole fractions from mass fractions
             GetMolfrac(Yk_fixed, Xk_fixed);
 
-            IdealMixtureTransport(i,j,k, prim(i,j,k,0), prim(i,j,k,4), prim(i,j,k,5),
-                                  Yk_fixed, Xk_fixed, eta(i,j,k), kappa(i,j,k), zeta(i,j,k),
-                                  Dij, chi);
+            if (transport_type == 1) { // Giovangigli
+                IdealMixtureTransportGIO(i,j,k, prim(i,j,k,0), prim(i,j,k,4), prim(i,j,k,5),
+                                         Yk_fixed, eta(i,j,k), kappa(i,j,k), zeta(i,j,k),
+                                         Dij, chi);
+            }
+
+            else if (transport_type == 2) { // Waldmann-Valk
+                IdealMixtureTransportVW(i,j,k, prim(i,j,k,0), prim(i,j,k,4), prim(i,j,k,5),
+                                      Yk_fixed, Xk_fixed, eta(i,j,k), kappa(i,j,k), zeta(i,j,k),
+                                      Dij, chi);
+            }
+            else if (transport_type == 3) { // Hirschfelder-Curtiss-Bird for binary mixtures
+                IdealMixtureTransportHCBBin(i,j,k, prim(i,j,k,0), prim(i,j,k,4), prim(i,j,k,5),
+                                            Yk_fixed, Xk_fixed, eta(i,j,k), kappa(i,j,k), zeta(i,j,k),
+                                            Dij, chi);
+            }
 
             // want this multiplied by rho for all times
             for (int kk=0; kk<nspecies; ++kk) {

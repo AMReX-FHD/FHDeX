@@ -1,6 +1,6 @@
 # AMREX_HOME defines the directory in which we will find all the AMReX code.
 # If you set AMREX_HOME as an environment variable, this line will be ignored
-AMREX_HOME ?= ../../../../programs/amrex/
+AMREX_HOME ?= ../../../amrex/
 FHDeX ?= ../../
 FDSMC = $(FHDeX)/exec/DSMC
 
@@ -20,8 +20,8 @@ include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 VPATH_LOCATIONS   += .
 INCLUDE_LOCATIONS += .
 
-VPATH_LOCATIONS   += $(FIONS)
-INCLUDE_LOCATIONS += $(FIONS)
+VPATH_LOCATIONS   += $(FDSMC)
+INCLUDE_LOCATIONS += $(FDSMC)
 
 include $(FHDeX)/src_rng/Make.package
 VPATH_LOCATIONS   += $(FHDeX)/src_rng
@@ -35,9 +35,6 @@ include $(FHDeX)/src_common/Make.package
 VPATH_LOCATIONS   += $(FHDeX)/src_common/
 INCLUDE_LOCATIONS += $(FHDeX)/src_common/
 
-include $(FHDeX)/src_common/src_F90/Make.package
-VPATH_LOCATIONS   += $(FHDeX)/src_common/src_F90
-INCLUDE_LOCATIONS += $(FHDeX)/src_common/src_F90
 
 include $(FHDeX)/src_particles/MakeDSMC.package
 VPATH_LOCATIONS   += $(FHDeX)/src_particles/
@@ -53,7 +50,6 @@ include $(FDSMC)/Make.package
 include $(AMREX_HOME)/Src/Base/Make.package
 include $(AMREX_HOME)/Src/Boundary/Make.package
 include $(AMREX_HOME)/Src/AmrCore/Make.package
-include $(AMREX_HOME)/Src/LinearSolvers/MLMG/Make.package
 include $(AMREX_HOME)/Src/Particle/Make.package
 
 include $(AMREX_HOME)/Src/Extern/SWFFT/Make.package
@@ -77,7 +73,7 @@ LIBRARIES += -L$(FFTW_DIR) -lfftw3_mpi -lfftw3_omp -lfftw3 -lgomp
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.rules
 
-#DEFINES	+= -DDSMC=$(DSMC)				
+#DEFINES	+= -DDSMC=$(DSMC)
 
 ifeq ($(findstring cgpu, $(HOST)), cgpu)
 CXXFLAGS += $(FFTW)

@@ -3,7 +3,10 @@
 #include "AMReX_PlotFileUtil.H"
 #include "AMReX_PlotFileDataImpl.H"
 
-#include <sys/stat.h> 
+#include <sys/stat.h>
+#include <chrono>
+
+using namespace std::chrono;
 using namespace amrex;
 
 namespace {
@@ -17,7 +20,7 @@ namespace {
 void WriteCheckPoint(int step,
                      const amrex::Real time,
                      std::array< MultiFab, AMREX_SPACEDIM >& umac,
-                     const MultiFab& tracer, TurbForcing& turbforce)
+                     TurbForcing& turbforce)
 {
     // timer for profiling
     BL_PROFILE_VAR("WriteCheckPoint()",WriteCheckPoint);
@@ -27,7 +30,7 @@ void WriteCheckPoint(int step,
 
     amrex::Print() << "Writing checkpoint " << checkpointname << "\n";
 
-    BoxArray ba = tracer.boxArray();
+    BoxArray ba = convert(umac[0].boxArray(), IntVect::TheCellVector());
 
     // single level problem
     int nlevels = 1;
@@ -124,14 +127,12 @@ void WriteCheckPoint(int step,
     VisMF::Write(umac[2],
                  amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "wmac"));
 #endif
-    VisMF::Write(tracer,
-                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "tracer"));    
 }
 
 void ReadCheckPoint(int& step,
                     amrex::Real& time,
                     std::array< MultiFab, AMREX_SPACEDIM >& umac,
-                    MultiFab& tracer, TurbForcing& turbforce,
+                    TurbForcing& turbforce,
                     BoxArray& ba, DistributionMapping& dmap)
 {
     // timer for profiling
@@ -192,7 +193,6 @@ void ReadCheckPoint(int& step,
 #if (AMREX_SPACEDIM == 3)
         umac[2].define(convert(ba,nodal_flag_z), dmap, 1, 1);
 #endif
-        tracer.define(ba, dmap, 1, 1);
     }
 
     // C++ random number engine
@@ -203,29 +203,55 @@ void ReadCheckPoint(int& step,
     int n_ranks;
     MPI_Comm_size(MPI_COMM_WORLD, &n_ranks);
 
-    // don't read in all the rng states at once (overload filesystem)
-    // one at a time write out the rng states to different files, one for each MPI rank
-    for (int rank=0; rank<n_ranks; ++rank) {
+    if (seed < 0) {
 
-        if (comm_rank == rank) {
+#ifdef AMREX_USE_CUDA
+        Abort("Restart with negative seed not supported on GPU");
+#endif
+
+        // read in rng state from checkpoint
+        // don't read in all the rng states at once (overload filesystem)
+        // one at a time write out the rng states to different files, one for each MPI rank
+        for (int rank=0; rank<n_ranks; ++rank) {
+
+            if (comm_rank == rank) {
     
-            // create filename, e.g. chk0000005/rng0000002
-            std::string FileBase(checkpointname + "/rng");
-            std::string File = amrex::Concatenate(FileBase,comm_rank,7);
+                // create filename, e.g. chk0000005/rng0000002
+                std::string FileBase(checkpointname + "/rng");
+                std::string File = amrex::Concatenate(FileBase,comm_rank,7);
 
-            // read in contents
-            Vector<char> fileCharPtr;
-            ReadFile(File, fileCharPtr);
-            std::string fileCharPtrString(fileCharPtr.dataPtr());
-            std::istringstream is(fileCharPtrString, std::istringstream::in);
+                // read in contents
+                Vector<char> fileCharPtr;
+                ReadFile(File, fileCharPtr);
+                std::string fileCharPtrString(fileCharPtr.dataPtr());
+                std::istringstream is(fileCharPtrString, std::istringstream::in);
 
-            // restore random state
-            amrex::RestoreRandomState(is, 1, 0);
+                // restore random state
+                amrex::RestoreRandomState(is, 1, 0);
+
+            }
+
+            ParallelDescriptor::Barrier();
 
         }
 
-        ParallelDescriptor::Barrier();
-
+    } else if (seed == 0) {
+                
+        // initializes the seed for C++ random number calls based on the clock
+        auto now = time_point_cast<nanoseconds>(system_clock::now());
+        int randSeed = now.time_since_epoch().count();
+        // broadcast the same root seed to all processors
+        ParallelDescriptor::Bcast(&randSeed,1,ParallelDescriptor::IOProcessorNumber());
+        
+        InitRandom(randSeed+ParallelDescriptor::MyProc(),
+                   ParallelDescriptor::NProcs(),
+                   randSeed+ParallelDescriptor::MyProc());
+    }
+    else {
+        // initializes the seed for C++ random number calls
+        InitRandom(seed+ParallelDescriptor::MyProc(),
+                   ParallelDescriptor::NProcs(),
+                   seed+ParallelDescriptor::MyProc());
     }
 
     // read in the MultiFab data
@@ -237,8 +263,6 @@ void ReadCheckPoint(int& step,
     VisMF::Read(umac[2],
                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "wmac"));
 #endif
-    VisMF::Read(tracer,
-                amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "tracer"));
 }
 
 void

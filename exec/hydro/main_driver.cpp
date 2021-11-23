@@ -12,9 +12,7 @@
 
 #include "gmres_functions.H"
 
-#include "common_namespace_declarations.H"
 
-#include "gmres_namespace_declarations.H"
 
 #include <AMReX_VisMF.H>
 #include <AMReX_PlotFileUtil.H>
@@ -36,10 +34,6 @@ void main_driver(const char* argv)
     Real strt_time = ParallelDescriptor::second();
 
     std::string inputs_file = argv;
-
-    // read in parameters from inputs file into F90 modules
-    // we use "+1" because of amrex_string_c_to_f expects a null char termination
-    read_common_namelist(inputs_file.c_str(),inputs_file.size()+1);
 
     // copy contents of F90 modules to C++ namespaces
     InitializeCommonNamespace();
@@ -82,14 +76,18 @@ void main_driver(const char* argv)
 
         if (seed > 0) {
             // initializes the seed for C++ random number calls
-            InitRandom(seed+ParallelDescriptor::MyProc());
+            InitRandom(seed+ParallelDescriptor::MyProc(),
+                       ParallelDescriptor::NProcs(),
+                       seed+ParallelDescriptor::MyProc());
         } else if (seed == 0) {
             // initializes the seed for C++ random number calls based on the clock
             auto now = time_point_cast<nanoseconds>(system_clock::now());
             int randSeed = now.time_since_epoch().count();
             // broadcast the same root seed to all processors
             ParallelDescriptor::Bcast(&randSeed,1,ParallelDescriptor::IOProcessorNumber());
-            InitRandom(randSeed+ParallelDescriptor::MyProc());
+            InitRandom(randSeed+ParallelDescriptor::MyProc(),
+                       ParallelDescriptor::NProcs(),
+                       randSeed+ParallelDescriptor::MyProc());
         } else {
             Abort("Must supply non-negative seed");
         }
@@ -103,14 +101,11 @@ void main_driver(const char* argv)
     // object for turbulent forcing
     TurbForcing turbforce;
 
-    // tracer
-    MultiFab tracer;
-    
     // staggered velocities
     std::array< MultiFab, AMREX_SPACEDIM > umac;
     
     if (restart > 0) {
-        ReadCheckPoint(step_start,time,umac,tracer,turbforce,ba,dmap);
+        ReadCheckPoint(step_start,time,umac,turbforce,ba,dmap);
     }
     else {
 
@@ -134,12 +129,7 @@ void main_driver(const char* argv)
                      umac[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
                      umac[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
     
-        tracer.define(ba,dmap,1,1);
-        tracer.setVal(0.);
-
         InitVel(umac,geom);
-
-        InitTracer(tracer,geom);
 
         // temporary for addMomfluctuations and MacProj_hydro
         MultiFab rho(ba, dmap, 1, 1);
@@ -312,6 +302,7 @@ void main_driver(const char* argv)
     }
 
     MultiFab structFactMF(ba, dmap, structVars, 0);
+    structFactMF.setVal(0.);
 
     // need to use dVol for scaling
     Real dVol = (AMREX_SPACEDIM==2) ? dx[0]*dx[1]*cell_depth : dx[0]*dx[1]*dx[2];
@@ -347,30 +338,27 @@ void main_driver(const char* argv)
     ///////////////////////////////////////////
 
     StructFact structFactFlattened;
+    MultiFab FlattenedRotMaster;
 
     Geometry geom_flat;
 
     if(project_dir >= 0){
       MultiFab Flattened;  // flattened multifab defined below
 
-      // copy velocities into structFactMF
-      for(int d=0; d<AMREX_SPACEDIM; d++) {
-          ShiftFaceToCC(umac[d], 0, structFactMF, d, 1);
-      }
-
       // we are only calling ComputeVerticalAverage or ExtractSlice here to obtain
       // a built version of Flattened so can obtain what we need to build the
       // structure factor and geometry objects for flattened data
       if (slicepoint < 0) {
-          ComputeVerticalAverage(structFactMF, Flattened, geom, project_dir, 0, structVars);
+          ComputeVerticalAverage(structFactMF, Flattened, geom, project_dir, 0, 1);
       } else {
-          ExtractSlice(structFactMF, Flattened, geom, project_dir, 0, structVars);
+          ExtractSlice(structFactMF, Flattened, geom, project_dir, slicepoint, 0, 1);
       }
       // we rotate this flattened MultiFab to have normal in the z-direction since
-      // SWFFT only presently supports flattened MultiFabs with z-normal.
+      // our structure factor class assumes this for flattened
       MultiFab FlattenedRot = RotateFlattenedMF(Flattened);
       BoxArray ba_flat = FlattenedRot.boxArray();
       const DistributionMapping& dmap_flat = FlattenedRot.DistributionMap();
+      FlattenedRotMaster.define(ba_flat,dmap_flat,structVars,0);
       {
         IntVect dom_lo(AMREX_D_DECL(0,0,0));
         IntVect dom_hi;
@@ -458,7 +446,10 @@ void main_driver(const char* argv)
         s_pairA[d] = d;
         s_pairB[d] = d;
     }    
-    StructFact turbStructFact(ba,dmap,var_names,var_scaling,s_pairA,s_pairB);
+    StructFact turbStructFact;
+    if (turbForcing == 1) {
+        turbStructFact.define(ba,dmap,var_names,var_scaling,s_pairA,s_pairB);
+    }
     
     ///////////////////////////////////////////
 
@@ -479,19 +470,20 @@ void main_driver(const char* argv)
                 if (slicepoint < 0) {
                     ComputeVerticalAverage(structFactMF, Flattened, geom, project_dir, 0, structVars);
                 } else {
-                    ExtractSlice(structFactMF, Flattened, geom, project_dir, 0, structVars);
+                    ExtractSlice(structFactMF, Flattened, geom, project_dir, slicepoint, 0, structVars);
                 }
                 // we rotate this flattened MultiFab to have normal in the z-direction since
-                // SWFFT only presently supports flattened MultiFabs with z-normal.
+                // our structure factor class assumes this for flattened
                 MultiFab FlattenedRot = RotateFlattenedMF(Flattened);
-                structFactFlattened.FortStructure(FlattenedRot,geom_flat);
+                FlattenedRotMaster.ParallelCopy(FlattenedRot,0,0,structVars);
+                structFactFlattened.FortStructure(FlattenedRotMaster,geom_flat);
             }
         }
 
         // write out initial state
-        // write out umac, tracer, pres, and divergence to a plotfile
+        // write out umac, pres, and divergence to a plotfile
         if (plot_int > 0) {
-            WritePlotFile(0,time,geom,umac,tracer,pres);
+            WritePlotFile(0,time,geom,umac,pres);
             if (n_steps_skip == 0 && struct_fact_int > 0) {
                 structFact.WritePlotFile(0,0.,geom,"plt_SF");
                 if(project_dir >= 0) {
@@ -501,17 +493,44 @@ void main_driver(const char* argv)
         }
     }
     
-    // FIXME need to fill physical boundary condition ghost cells for tracer
-
     std::array< MultiFab, AMREX_SPACEDIM > umacTemp;
     AMREX_D_TERM(umacTemp[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
                  umacTemp[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
                  umacTemp[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););   
 
-    // storage for grad(U) for energy dissipation calculation
-    MultiFab gradU(ba,dmap,AMREX_SPACEDIM,0);
-    MultiFab ccTemp(ba,dmap,1,0);
+    // temporaries for energy dissipation calculation
+    MultiFab gradU;
+    MultiFab ccTemp;
+    std::array< MultiFab, AMREX_SPACEDIM > Lumac;
+    std::array< MultiFab, NUM_EDGE > curlU;
+    std::array< MultiFab, NUM_EDGE > curlUtemp;
+
+    if (turbForcing == 1) {
     
+        gradU.define(ba,dmap,AMREX_SPACEDIM,0);
+        ccTemp.define(ba,dmap,1,0);
+
+        AMREX_D_TERM(Lumac[0].define(convert(ba,nodal_flag_x), dmap, 1, 0);,
+                     Lumac[1].define(convert(ba,nodal_flag_y), dmap, 1, 0);,
+                     Lumac[2].define(convert(ba,nodal_flag_z), dmap, 1, 0););
+#if (AMREX_SPACEDIM == 3)
+        curlU[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
+        curlU[1].define(convert(ba,nodal_flag_xz), dmap, 1, 0);
+        curlU[2].define(convert(ba,nodal_flag_yz), dmap, 1, 0);
+#elif (AMREX_SPACEDIM == 2)
+        curlU[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
+#endif
+    
+#if (AMREX_SPACEDIM == 3)
+        curlUtemp[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
+        curlUtemp[1].define(convert(ba,nodal_flag_xz), dmap, 1, 0);
+        curlUtemp[2].define(convert(ba,nodal_flag_yz), dmap, 1, 0);
+#elif (AMREX_SPACEDIM == 2)
+        curlUtemp[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
+#endif
+
+    }
+
     ///////////////////////////////////////////
 
     //Time stepping loop
@@ -529,7 +548,7 @@ void main_driver(const char* argv)
 	}
 
 	// Advance umac
-        advance(umac,umacTemp,pres,tracer,mfluxdiv_stoch,
+        advance(umac,umacTemp,pres,mfluxdiv_stoch,
                 alpha_fc,beta,gamma,beta_ed,geom,dt,turbforce);
 
 	//////////////////////////////////////////////////
@@ -549,10 +568,10 @@ void main_driver(const char* argv)
                 if (slicepoint < 0) {
                     ComputeVerticalAverage(structFactMF, Flattened, geom, project_dir, 0, structVars);
                 } else {
-                    ExtractSlice(structFactMF, Flattened, geom, project_dir, 0, structVars);
+                    ExtractSlice(structFactMF, Flattened, geom, project_dir, slicepoint, 0, structVars);
                 }
                 // we rotate this flattened MultiFab to have normal in the z-direction since
-                // SWFFT only presently supports flattened MultiFabs with z-normal.
+                // our structure factor class assumes this for flattened
                 MultiFab FlattenedRot = RotateFlattenedMF(Flattened);
                 structFactFlattened.FortStructure(FlattenedRot,geom_flat);
             }
@@ -566,8 +585,8 @@ void main_driver(const char* argv)
         time = time + dt;
 
         if (plot_int > 0 && step%plot_int == 0) {
-            // write out umac, tracer, pres, and divergence to a plotfile
-            WritePlotFile(step,time,geom,umac,tracer,pres);
+            // write out umac, pres, and divergence to a plotfile
+            WritePlotFile(step,time,geom,umac,pres);
 
             // write out structure factor to plotfile
             if (step > n_steps_skip && struct_fact_int > 0) {
@@ -586,9 +605,7 @@ void main_driver(const char* argv)
                 }
                 // reset and compute structure factor
                 turbStructFact.FortStructure(structFactMF,geom,1);
-
-                // writing the plotfiles does the shifting and copying into cov_mag
-                turbStructFact.WritePlotFile(step,time,geom,"plt_Turb");
+                turbStructFact.CallFinalize(geom);
 
                 // integrate cov_mag over shells in k and write to file
                 turbStructFact.IntegratekShells(step,geom);
@@ -596,62 +613,104 @@ void main_driver(const char* argv)
         }
 
         if (chk_int > 0 && step%chk_int == 0) {
-            // write out umac and tracer to a checkpoint file
-            WriteCheckPoint(step,time,umac,tracer,turbforce);
+            // write out umac and to a checkpoint file
+            WriteCheckPoint(step,time,umac,turbforce);
         }
 
-        // compute kinetic energy integral( (1/2) * rho * U dot U dV)
-        Vector<Real> udotu(3);
-        Vector<Real> skew(3);
-        Vector<Real> kurt(3);
-        StagInnerProd(geom,umac,0,umac,0,umacTemp,udotu);
-        Print() << "Kinetic energy "
-		<< time << " "
-                << 0.5*dVol*( udotu[0] + udotu[1] + udotu[2] )
-                << std::endl;
+        if (turbForcing == 1) {
+        
+            // compute kinetic energy integral( (1/2) * rho * U dot U dV)
+            Vector<Real> udotu(3);
+            Vector<Real> skew(3);
+            Vector<Real> kurt(3);
+            StagInnerProd(umac,0,umac,0,umacTemp,udotu);
+            Print() << "Kinetic energy "
+                    << time << " "
+                    << 0.5*dVol*( udotu[0] + udotu[1] + udotu[2] )
+                    << std::endl;
 
-        // compute energy dissipation integral(eta grad(U) dot grad(U))
-        ComputeCentredGradFC(umac,gradU,geom);
-        for (int d=0; d<AMREX_SPACEDIM; ++d) {
-            CCInnerProd(gradU,d,gradU,d,ccTemp,udotu[d]);
-        }
-        Print() << "Energy dissipation "
-		<< time << " "
-                << visc_coef*dProb*( udotu[0] + udotu[1] + udotu[2] )
-                << std::endl;
-        //      << visc_coef*dVol*( udotu[0] + udotu[1] + udotu[2] )
-	//
-        for (int d=0; d<AMREX_SPACEDIM; ++d) {
-            CCMoments(gradU,d,ccTemp,3,skew[d]);
-        }
+            for (int i=0; i<AMREX_SPACEDIM; ++i) {
+                umac[i].FillBoundary(geom.periodicity());
+            }
 
-        Print() << "Skewness "
-		<< time << " "
-                << dProb*skew[0]/(pow(dProb*udotu[0],1.5)) << " "
-                << dProb*skew[1]/(pow(dProb*udotu[1],1.5)) << " "
+            // compute energy dissipation integral
+
+            // FORM 1 (incorrect): <du/dx*du/dx + dv/dy*dv/dy + dw/dz*dw/dz>
+
+            // compute gradU = [du/dx dv/dy dw/dz] at cell-centers
+            ComputeCentredGradFC(umac,gradU,geom);
+
+            // compute <du/dx*du/dx>, <dv/dy*dv/dy>, <dw/dz*dw/dx>
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                CCInnerProd(gradU,d,gradU,d,ccTemp,udotu[d]);
+            }
+
+            // compute <du/dx*du/dx + dv/dy*dv/dy + dw/dz*dw/dz>
+            Real FORM1 = visc_coef*dProb*( udotu[0] + udotu[1] + udotu[2] );
+
+            // compute this for the skewness and kurtosis calculations while we have
+            // gradU = [du/dx dv/dy dw/dz] at cell-centers
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                CCMoments(gradU,d,ccTemp,3,skew[d]);
+            }
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                CCMoments(gradU,d,ccTemp,4,kurt[d]);
+            }
+        
+            // FORM 2: <-u_j Lap(u_j)>
+        
+            // compute [Lap(u) Lap(v) Lap(w)]
+            ComputeStagLap(umac,Lumac,geom);
+
+            // compute <u*Lap(u)>, <v*Lap(v)>, <w*Lap(w)>
+            Vector<Real> uLapu(AMREX_SPACEDIM);
+            StagInnerProd(umac,0,Lumac,0,umacTemp,uLapu);
+
+            // compute <-u_j Lap(u_j)>
+            Real FORM2 = -visc_coef*dProb*( uLapu[0] + uLapu[1] + uLapu[2] );
+        
+            // FORM 3: <du_i/dx_j du_i/dx_j> using cell-centered and edge-centered
+
+            // FORM 4: <curl(V) dot (curl(V)> using cell-centered gradients
+
+            // FORM 5: <curl(V) dot (curl(V)> using edge-centered gradients
+            ComputeCurlFaceToEdge(umac,curlU,geom);
+            Vector<Real> curlUdotcurlU(NUM_EDGE);
+            EdgeInnerProd(curlU,0,curlU,0,curlUtemp,curlUdotcurlU);
+            Real FORM5 = (AMREX_SPACEDIM == 2) ? visc_coef*dProb*curlUdotcurlU[0]
+                : visc_coef*dProb*(curlUdotcurlU[0] + curlUdotcurlU[1] + curlUdotcurlU[2]);
+        
+            Print() << "Energy dissipation "
+                    << time << " "
+                    << FORM1 << " "
+                    << FORM2 << " "
+                    << FORM5
+                    << std::endl;
+
+            Print() << "Skewness "
+                    << time << " "
+                    << dProb*skew[0]/(pow(dProb*udotu[0],1.5)) << " "
+                    << dProb*skew[1]/(pow(dProb*udotu[1],1.5)) << " "
 #if (AMREX_SPACEDIM == 3)
-                << dProb*skew[2]/(pow(dProb*udotu[2],1.5))
+                    << dProb*skew[2]/(pow(dProb*udotu[2],1.5))
 #endif
-                << std::endl;
+                    << std::endl;
 
-        for (int d=0; d<AMREX_SPACEDIM; ++d) {
-            CCMoments(gradU,d,ccTemp,4,kurt[d]);
-        }
-
-        Print() << "Kurtosis "
-		<< time << " "
-                << dProb*kurt[0]/(pow(dProb*udotu[0],2.)) << " "
-                << dProb*kurt[1]/(pow(dProb*udotu[1],2.)) << " "
+            Print() << "Kurtosis "
+                    << time << " "
+                    << dProb*kurt[0]/(pow(dProb*udotu[0],2.)) << " "
+                    << dProb*kurt[1]/(pow(dProb*udotu[1],2.)) << " "
 #if (AMREX_SPACEDIM == 3)
-                << dProb*kurt[2]/(pow(dProb*udotu[2],2.))
+                    << dProb*kurt[2]/(pow(dProb*udotu[2],2.))
 #endif
-                << std::endl;
+                    << std::endl;
 
-        // use gradU as a temporary to store averaged velocities
-        AverageFaceToCC(umac,gradU,0);
-        for (int d=0; d<AMREX_SPACEDIM; ++d) {
-            Print() << "Sum of umac in direction " << d << "= "
-                    << gradU.sum(d) << std::endl;          
+            // use gradU as a temporary to store averaged velocities
+            AverageFaceToCC(umac,gradU,0);
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                Print() << "Sum of umac in direction " << d << "= "
+                        << gradU.sum(d) << std::endl;          
+            }
         }
         
         // MultiFab memory usage

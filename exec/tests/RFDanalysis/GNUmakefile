@@ -5,7 +5,6 @@ FHDeX ?= ../../../
 FIONS = $(FHDeX)/exec/tests/RFDanalysis
 
 DEBUG     = FALSE
-PROFILE   = FALSE
 USE_MPI   = TRUE
 USE_OMP   = FALSE
 USE_CUDA  = FALSE
@@ -28,9 +27,6 @@ include $(FHDeX)/src_rng/Make.package
 VPATH_LOCATIONS   += $(FHDeX)/src_rng
 INCLUDE_LOCATIONS += $(FHDeX)/src_rng
 
-include $(FHDeX)/src_rng/src_F90/Make.package
-VPATH_LOCATIONS   += $(FHDeX)/src_rng/src_F90
-INCLUDE_LOCATIONS += $(FHDeX)/src_rng/src_F90
 
 include $(FHDeX)/src_hydro/Make.package
 VPATH_LOCATIONS   += $(FHDeX)/src_hydro/
@@ -49,9 +45,6 @@ include $(FHDeX)/src_common/Make.package
 VPATH_LOCATIONS   += $(FHDeX)/src_common/
 INCLUDE_LOCATIONS += $(FHDeX)/src_common/
 
-include $(FHDeX)/src_common/src_F90/Make.package
-VPATH_LOCATIONS   += $(FHDeX)/src_common/src_F90
-INCLUDE_LOCATIONS += $(FHDeX)/src_common/src_F90
 
 include $(FHDeX)/src_particles/Make.package
 VPATH_LOCATIONS   += $(FHDeX)/src_particles/
@@ -83,30 +76,20 @@ include $(AMREX_HOME)/Src/LinearSolvers/C_CellMG/Make.package
 include $(AMREX_HOME)/Src/LinearSolvers/MLMG/Make.package
 include $(AMREX_HOME)/Src/Particle/Make.package
 
-include $(AMREX_HOME)/Src/Extern/SWFFT/Make.package
-INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Extern/SWFFT
-VPATH_LOCATIONS   += $(AMREX_HOME)/Src/Extern/SWFFT
-
-#ifeq ($(NERSC_HOST),) # check if NERSC_HOST is empty => hack to test if on cori
-#    LIBRARIES += -L$(FFTW_DIR) -lfftw3
-#    ifeq ($(USE_OMP), TRUE)
-#	LIBRARIES += -lfftw3_omp
-#    endif
-#    ifeq ($(USE_MPI), TRUE)
-#	LIBRARIES += -lfftw3_mpi
-#    endif
-#else
-#    $(info NERSC_HOST not empty => relying on compiler wrapper for fftw3)
-#endif
-
-LIBRARIES += -L$(FFTW_DIR) -lfftw3_mpi -lfftw3_omp -lfftw3 -lgomp
-#LIBRARIES += -L$(FFTW_DIR) -lfftw3
-
 include $(AMREX_HOME)/Tools/GNUMake/Make.rules
 
 ifeq ($(DSMC), TRUE)
   DEFINES += -DDSMC
 endif
 
-#DEFINES	+= -DDSMC=$(DSMC)				
+#DEFINES	+= -DDSMC=$(DSMC)
 
+ifeq ($(findstring cgpu, $(HOST)), cgpu)
+  CXXFLAGS += $(FFTW)
+endif
+
+ifeq ($(USE_CUDA),TRUE)
+  LIBRARIES += -lcufft
+else
+  LIBRARIES += -L$(FFTW_DIR) -lfftw3_mpi -lfftw3
+endif

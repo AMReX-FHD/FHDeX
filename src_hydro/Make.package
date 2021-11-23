@@ -9,5 +9,4 @@ CEXE_sources += Vorticity.cpp
 CEXE_sources += advance.cpp
 
 CEXE_headers += hydro_functions.H
-CEXE_headers += hydro_functions_F.H
 CEXE_headers += StochMomFlux.H

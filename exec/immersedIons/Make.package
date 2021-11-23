@@ -1,5 +1,4 @@
-CEXE_headers   += INS_functions.H
-
+CEXE_headers   += LocalFunctions.H
 CEXE_sources   += Checkpoint.cpp
 CEXE_sources   += particleGen.cpp
 CEXE_sources   += WritePlotFile.cpp

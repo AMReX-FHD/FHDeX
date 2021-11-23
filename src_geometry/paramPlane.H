@@ -74,6 +74,9 @@ typedef struct {
     double sourceLeft;
     double sourceRight;
 
+    double sinkLeft;
+    double sinkRight;
+
     double periodicity;
     double area;
 
@@ -102,6 +105,7 @@ typedef struct {
 } paramPlane;
 
 void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const Real* domainLo, const Real* domainHi);
+void BuildParamplanesPhonon(paramPlane* paramPlaneList, const int paramplanes, const Real* domainLo, const Real* domainHi);
 
 double getTheta(double nx, double ny, double nz);
 double getPhi(double nx, double ny, double nz);
