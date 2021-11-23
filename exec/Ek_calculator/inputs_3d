@@ -6,5 +6,5 @@
 
   plot_init_file = "plt0000005"
 
-  # prob_type specifies the component of velocity
+  # prob_type specifies the starting component of velocity in the plotfile
   prob_type = 3
