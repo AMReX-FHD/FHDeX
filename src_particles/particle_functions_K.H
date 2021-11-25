@@ -1548,10 +1548,10 @@ void get_mobility_diff_gpu(Real* nmob, Real* tmob, Real* nmobDer, Real* tmobDer,
 
     //The mobility is dimensionless but the derivative is dimensional. Fix this at some point.
 
-    mob_interp_gpu(z, awet, &tmobwet, &nmobwet, 0);
+    mob_interp_gpu(z, atotal, &tmobwet, &nmobwet, 0);
     mob_interp_gpu(z, atotal, &tmobtotal, &nmobtotal, 1);
 
-    mob_interp_der_gpu(z, awet, &tmobwetDer, &nmobwetDer, 0);
+    mob_interp_der_gpu(z, atotal, &tmobwetDer, &nmobwetDer, 0);
     mob_interp_der_gpu(z, atotal, &tmobtotalDer, &nmobtotalDer, 1);
 
     *tmob = std::max((tmobtotal*part.rdata(FHD_realData::totalDiff) - tmobwet*part.rdata(FHD_realData::wetDiff))/part.rdata(FHD_realData::dryDiff),0.0);
@@ -1597,8 +1597,8 @@ void get_explicit_mobility_gpu(Real* mob, Real* mobDer, FhdParticleContainer::Pa
        mob[2] = tmob;
 
        mobDer[0] = nmobDer;
-       mobDer[1] = tmobDer;               
-       mobDer[2] = tmobDer;
+       mobDer[1] = 0;               
+       mobDer[2] = 0;
 
        z = part.pos(0);
        if(z > (phi[0]-plo[0])/2.0)
@@ -1624,9 +1624,9 @@ void get_explicit_mobility_gpu(Real* mob, Real* mobDer, FhdParticleContainer::Pa
        mob[1] = nmob;               
        mob[2] = tmob;
 
-       mobDer[0] = tmobDer;
+       mobDer[0] = 0;
        mobDer[1] = nmobDer;               
-       mobDer[2] = tmobDer;
+       mobDer[2] = 0;
 
        z = part.pos(1);
        if(z > (phi[1]-plo[1])/2.0)
@@ -1643,7 +1643,7 @@ void get_explicit_mobility_gpu(Real* mob, Real* mobDer, FhdParticleContainer::Pa
     if((bc_vel_lo[2] == 2) && (bc_vel_hi[2] == 2))
     {
 
-       z = z = part.pos(2);;
+       z = part.pos(2);;
 
        if(z > (phi[2]-plo[2])/2.0)
        {
@@ -1656,8 +1656,8 @@ void get_explicit_mobility_gpu(Real* mob, Real* mobDer, FhdParticleContainer::Pa
        mob[1] = tmob;               
        mob[2] = nmob;
 
-       mobDer[0] = tmobDer;
-       mobDer[1] = tmobDer;               
+       mobDer[0] = 0;
+       mobDer[1] = 0;               
        mobDer[2] = nmobDer;
 
        z = part.pos(2);
@@ -1669,7 +1669,7 @@ void get_explicit_mobility_gpu(Real* mob, Real* mobDer, FhdParticleContainer::Pa
        }
     }
 
-    //Print() << "z, nmob, pos: " << z << ", " << nmob << ", " << part.pos(2) << "\n";
+    //std::cout << "z, tmob, pos: " << z << ", " << tmob << ", " << part.pos(2) << std::endl;
     //cin.get();
 }
 
@@ -1698,7 +1698,7 @@ void dry_gpu(Real dt, FhdParticleContainer::ParticleType& part, Real* dry_terms,
     dry_terms[1] = mb[1]*part.rdata(FHD_realData::dryDiff)*part.rdata(FHD_realData::forcey)/(k_B*T_init[0])+bfac[1];
     dry_terms[2] = mb[2]*part.rdata(FHD_realData::dryDiff)*part.rdata(FHD_realData::forcez)/(k_B*T_init[0])+bfac[2];
 
-    //std::cout << "terms: " << dry_terms[1] << ", " << mobDir[1]*part.rdata(FHD_realData::dryDiff) << std::endl;
+    //std::cout << "terms: " << dry_terms[0] << ", " << mobDir[1]*part.rdata(FHD_realData::dryDiff) << std::endl;
 
     if(dry_move_tog == 1)
     {

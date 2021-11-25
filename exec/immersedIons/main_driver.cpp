@@ -973,7 +973,7 @@ void main_driver(const char* argv)
 
         //if(istep == 1)
         //{
-        //    particles.SetPosition(1, prob_hi[0]*0.5, prob_lo[1]+1*dx[1], prob_hi[2]*0.5);
+        //    particles.SetPosition(1, prob_hi[0]*0.5, prob_lo[1]+2e-8, prob_hi[2]*0.5);
         //    //particles.SetPosition(2, prob_hi[0]*0.8, prob_hi[1]-2*dx[1], prob_hi[2]*0.5);
         //}
 
@@ -1003,7 +1003,7 @@ void main_driver(const char* argv)
             particles.ResetMarkers(0);
         }
 
-	//particles.SetForce(1,1,0,0);
+	//particles.SetForce(1,0,1,0);
 
 //        Real origin[3];
 //        origin[0] = prob_hi[0]/2.0;
