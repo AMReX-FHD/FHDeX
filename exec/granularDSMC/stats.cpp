@@ -22,6 +22,11 @@ void FhdParticleContainer::EvaluateStats(
   // Zero out heat flux and heat capacity
   mfQMeans.setVal(0.);
   mfcvlMeans.setVal(0.);
+  
+  // Zero out instaneous
+  mfcuInst.setVal(0.);
+  mfprimInst.setVal(0.);
+  mfcvlInst.setVal(0.);
 
   const int lev = 0;    
   for (FhdParIter pti(* this, lev); pti.isValid(); ++pti) {
@@ -396,6 +401,27 @@ void FhdParticleContainer::EvaluateStats(
 			// TODO: Add P and E variances
 			// TODO: Add variances by species
       });
+		// Record particle energy
+		amrex::ParallelFor(tile_box,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept 
+		{
+			const IntVect& iv = {i,j,k};
+			long imap = tile_box.index(iv);
+			for (int l=0; l<nspecies; l++)
+			{
+				const long np_spec = m_cell_vectors[l][grid_id][imap].size();
+				for (int m=0; m<np_spec; m++)
+				{
+					int pind = m_cell_vectors[l][grid_id][imap][m];
+					ParticleType ptemp = particles[pind];
+					ParticleType & p = ptemp;
+					Real u = p.rdata(FHD_realData::velx);
+					Real v = p.rdata(FHD_realData::vely);
+					Real w = p.rdata(FHD_realData::velz);
+					Real spdsq = u*u + v*v + w*w;
+					p.rdata(FHD_realData::E) = p.rdata(FHD_realData::mass)*spdsq;
+				}
+			}
+		});
   }
 
 

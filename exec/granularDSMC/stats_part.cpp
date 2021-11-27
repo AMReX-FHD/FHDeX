@@ -3,6 +3,7 @@ using namespace std;
 void FhdParticleContainer::EvaluateStatsPart(MultiFab& mfvmom)
 {
 	BL_PROFILE_VAR("EvaluateStatsPart()",EvaluateStats);
+	mfvmom.setVal(0.);
 	const int lev = 0; 
   for (FhdParIter pti(* this, lev); pti.isValid(); ++pti) {
       const int grid_id = pti.index();

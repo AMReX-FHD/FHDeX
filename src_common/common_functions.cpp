@@ -220,6 +220,7 @@ int                        common::plot_covars;
 int                        common::plot_cross;
 int												 common::plot_vmom;
 int												 common::plot_time;
+int												 common::ntimecor;
 int                        common::particle_motion;
 
 amrex::Real                common::turb_a;
@@ -561,6 +562,7 @@ void InitializeCommonNamespace() {
     plot_cross = 0;
     plot_vmom = 0;
     plot_time = 0;
+    ntimecor = 0;
     particle_motion = 0;
 
     // turblent forcing parameters
@@ -1019,6 +1021,7 @@ void InitializeCommonNamespace() {
     pp.query("plot_covars",plot_covars);
     pp.query("plot_cross",plot_cross);
     pp.query("plot_time",plot_time);
+    pp.query("ntimecor",ntimecor);
     pp.query("plot_vmom",plot_vmom);
     pp.query("particle_motion",particle_motion);
     pp.query("turb_a",turb_a);

@@ -49,8 +49,6 @@ void main_driver(const char* argv)
   
   // For time correlation functions
   // plot_time is the increments between correlations
-  int ntimecor = 201; // set as user input
-
   MultiFab rhotimecross, utimecross, Ktimecross;
   MultiFab rho_time, u_time, K_time;
 
@@ -80,8 +78,8 @@ void main_driver(const char* argv)
 		if (seed > 0)
 		{
 			InitRandom(seed+ParallelDescriptor::MyProc(),
-									ParallelDescriptor::NProcs(),
-									seed+ParallelDescriptor::MyProc());
+				ParallelDescriptor::NProcs(),
+				seed+ParallelDescriptor::MyProc());
 		}
 		else if (seed == 0)
 		{
@@ -333,14 +331,6 @@ void main_driver(const char* argv)
 		//////////////////////////////////////
 		if(istep==step)
 		{
-			if(reset_stats == 1)
-			{
-				cuMeans.setVal(0.);
-				primMeans.setVal(0.);
-				cuVars.setVal(0.);
-				primVars.setVal(0.);
-				coVars.setVal(0.);
-			}
 			particles.EvaluateStats(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
 				cvlInst,cvlMeans,QMeans,coVars,spatialCross1D,statsCount,time);
 			if(plot_vmom>0)
@@ -379,15 +369,12 @@ void main_driver(const char* argv)
 		{
 			if(istep%stat_int == 0)
 			{
-				cuInst.setVal(0.);
-				primInst.setVal(0.);
-				cvlInst.setVal(0.);
 				particles.EvaluateStats(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
 					cvlInst,cvlMeans,QMeans,coVars,spatialCross1D,statsCount,time);
 				vmom.setVal(0.);
     if (N <= 1) return;
 				particles.EvaluateStatsPart(vmom);
-				if(plot_time>0 && istep%plot_time == 0) {
+				if(plot_time>0 && istep%plot_time == 0 && ntimecor>0) {
 					particles.updateTimeData(cuInst,primInst,
 						rho_time,u_time,K_time,ntimecor);
 					if(statsTime>ntimecor)
