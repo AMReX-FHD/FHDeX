@@ -1,8 +1,9 @@
 #include "compressible_functions.H"
 #include "compressible_functions_stag.H"
 
-void InitConsVarStag(MultiFab& cons, std::array< MultiFab, AMREX_SPACEDIM >& momStag, 
-                     const MultiFab& prim, const amrex::Geometry geom) {
+void InitConsVarStag(MultiFab& cons,
+                     std::array< MultiFab, AMREX_SPACEDIM >& momStag,
+                     const amrex::Geometry geom) {
 
     const Real* dx_host = geom.CellSize();
     const RealBox& realDomain = geom.ProbDomain();
@@ -30,8 +31,29 @@ void InitConsVarStag(MultiFab& cons, std::array< MultiFab, AMREX_SPACEDIM >& mom
     Real pi = acos(-1.);
     Real Lf = realhi[0] - reallo[0];
 
+    // compute some values and overwrite based on prob_type
+        
+    // compute internal energy
+    Real intEnergy;
+    GpuArray<Real,MAX_SPECIES  > massvec;
+    for(int i=0;i<nspecies;i++) {
+        massvec[i] = rhobar[i];
+    }
+    GetEnergy(intEnergy, massvec, T_init[0]);
+
+    cons.setVal(0.0,0,nvars,ngc);
+    cons.setVal(rho0,0,1,ngc);           // density
+    cons.setVal(0,1,3,ngc);              // x/y/z momentum
+    cons.setVal(rho0*intEnergy,4,1,ngc); // total energy
+    for(int i=0;i<nspecies;i++) {
+        cons.setVal(rho0*rhobar[i],5+i,1,ngc); // mass densities
+    }
+
+    for (int d=0; d<AMREX_SPACEDIM; d++) { // staggered momentum & velocities
+        momStag[d].setVal(0.,ngc);
+    }
+    
     for ( MFIter mfi(cons); mfi.isValid(); ++mfi ) {
-        const Array4<const Real> pu = prim.array(mfi);
         const Array4<      Real> cu = cons.array(mfi);
 
         const Box& bx = mfi.tilebox();
@@ -72,7 +94,7 @@ void InitConsVarStag(MultiFab& cons, std::array< MultiFab, AMREX_SPACEDIM >& mom
                 }
 
                 Real pamb;
-                GetPressureGas(pamb, massvec, cu(i,j,k,0), pu(i,j,k,4));
+                GetPressureGas(pamb, massvec, cu(i,j,k,0), T_init[0]);
                 
                 Real molmix = 0.;
 
@@ -81,23 +103,23 @@ void InitConsVarStag(MultiFab& cons, std::array< MultiFab, AMREX_SPACEDIM >& mom
                 }
                 molmix = 1.0/molmix;
                 Real rgasmix = Runiv/molmix;
-                Real alpha = grav[2]/(rgasmix*pu(i,j,k,4));
+                Real alpha = grav[2]/(rgasmix*T_init[0]);
 
                 // rho = exponential in z-dir to init @ hydrostatic eqm.
                 // must satisfy system: dP/dz = -rho*g & P = rhogasmix*rho*T
                 // Assumes temp=const
-                cu(i,j,k,0) = pamb*exp(alpha*pos[2])/(rgasmix*pu(i,j,k,4));
+                cu(i,j,k,0) = pamb*exp(alpha*pos[2])/(rgasmix*T_init[0]);
                 
                 for (int l=0; l<nspecies; ++l) {
                     cu(i,j,k,5+l) = cu(i,j,k,0)*massvec[l];
                 }
 
                 Real intEnergy;
-                GetEnergy(intEnergy, massvec, pu(i,j,k,4));
+                GetEnergy(intEnergy, massvec, T_init[0]);
 
-                cu(i,j,k,4) = cu(i,j,k,0)*intEnergy + 0.5*cu(i,j,k,0)*(pu(i,j,k,1)*pu(i,j,k,1) +
-                                                                       pu(i,j,k,2)*pu(i,j,k,2) +
-                                                                       pu(i,j,k,3)*pu(i,j,k,3));
+                cu(i,j,k,4) = cu(i,j,k,0)*intEnergy + 0.5*(cu(i,j,k,1)*cu(i,j,k,1) +
+                                                           cu(i,j,k,2)*cu(i,j,k,2) +
+                                                           cu(i,j,k,3)*cu(i,j,k,3)) / cu(i,j,k,0);
             } else if (prob_type == 3) { // diffusion barrier
 
                 for (int l=0; l<nspecies; ++l) {
@@ -107,10 +129,10 @@ void InitConsVarStag(MultiFab& cons, std::array< MultiFab, AMREX_SPACEDIM >& mom
                 }
 
                 Real intEnergy;
-                GetEnergy(intEnergy, massvec, pu(i,j,k,4));
-                cu(i,j,k,4) = cu(i,j,k,0)*intEnergy + 0.5*cu(i,j,k,0)*(pu(i,j,k,1)*pu(i,j,k,1) +
-                                                                       pu(i,j,k,2)*pu(i,j,k,2) +
-                                                                       pu(i,j,k,3)*pu(i,j,k,3));
+                GetEnergy(intEnergy, massvec, T_init[0]);
+                cu(i,j,k,4) = cu(i,j,k,0)*intEnergy + 0.5*(cu(i,j,k,1)*cu(i,j,k,1) +
+                                                           cu(i,j,k,2)*cu(i,j,k,2) +
+                                                           cu(i,j,k,3)*cu(i,j,k,3)) / cu(i,j,k,0);
             } else if (prob_type == 4) { // Taylor Green Vortex
 
                 Real x=itVec[0];
@@ -287,6 +309,166 @@ void InitConsVarStag(MultiFab& cons, std::array< MultiFab, AMREX_SPACEDIM >& mom
                     
             } // prob type
 
+            else if (prob_type == 107) { // two-fluid Rayleigh Taylor. 0: lighter species; 1: heavier
+
+                // rhobar is the initial mass fraction at the bottom wall
+                // rho0 is the initial density at the bottom wall
+                // pamb is the resultant pressure at the bottom wall
+                Real pamb;
+                GetPressureGas(pamb, rhobar, rho0, T_init[0]);
+                Real rhoYk0B = rhobar[0]*rho0;
+                Real rhoYk1B = rhobar[1]*rho0;
+
+                if (relpos[2] < 0.0) { // bottom half
+
+                    cu(i,j,k,5+0) = rhoYk0B*exp(molmass[0]*grav[2]*pos[2]/Runiv/T_init[0]);
+                    cu(i,j,k,5+1) = rhoYk1B*exp(molmass[1]*grav[2]*pos[2]/Runiv/T_init[0]);
+                    cu(i,j,k,0) = cu(i,j,k,5+0) + cu(i,j,k,5+1);
+                    
+                    massvec[0] = cu(i,j,k,5+0)/cu(i,j,k,0);
+                    massvec[1] = cu(i,j,k,5+1)/cu(i,j,k,0);
+
+                    Real intEnergy;
+                    GetEnergy(intEnergy, massvec, T_init[0]);
+                    cu(i,j,k,4) = cu(i,j,k,0)*intEnergy + 0.5*(cu(i,j,k,1)*cu(i,j,k,1) +
+                                                               cu(i,j,k,2)*cu(i,j,k,2) +
+                                                               cu(i,j,k,3)*cu(i,j,k,3)) / cu(i,j,k,0);
+
+                }
+
+                else { // top half
+
+                    Real Lz = realhi[2] - reallo[2];
+
+                    cu(i,j,k,5+0) = rhoYk1B*(molmass[0]/molmass[1])*exp( (molmass[0]*grav[2]*pos[2]/Runiv/T_init[0]) + ((molmass[1]-molmass[0])*Lz*grav[2]/2.0/Runiv/T_init[0]) );
+                    cu(i,j,k,5+1) = rhoYk0B*(molmass[1]/molmass[0])*exp( (molmass[1]*grav[2]*pos[2]/Runiv/T_init[0]) + ((molmass[0]-molmass[1])*Lz*grav[2]/2.0/Runiv/T_init[0]) );
+                    cu(i,j,k,0) = cu(i,j,k,5+0) + cu(i,j,k,5+1);
+                    
+                    massvec[0] = cu(i,j,k,5+0)/cu(i,j,k,0);
+                    massvec[1] = cu(i,j,k,5+1)/cu(i,j,k,0);
+
+                    Real intEnergy;
+                    GetEnergy(intEnergy, massvec, T_init[0]);
+                    cu(i,j,k,4) = cu(i,j,k,0)*intEnergy + 0.5*(cu(i,j,k,1)*cu(i,j,k,1) +
+                                                               cu(i,j,k,2)*cu(i,j,k,2) +
+                                                               cu(i,j,k,3)*cu(i,j,k,3)) / cu(i,j,k,0);
+
+                }
+            
+           }
+
+            else if (prob_type == 108) { // two-fluid Rayleigh Taylor. 0: lighter species; 1: heavier
+
+                // rhobar, rho0 and T_init[0] set the ambient pressure at the top of the domain
+                Real pamb;
+                GetPressureGas(pamb,rhobar,rho0,T_init[0]);
+                
+                Real molmixT = 0.;
+                Real molmixB = 0.;
+                for (int l=0; l<nspecies; ++l) {
+                    molmixB = molmixB + bc_Yk_z_lo[l]/molmass[l];
+                    molmixT = molmixT + bc_Yk_z_hi[l]/molmass[l];
+                }
+                molmixB = 1.0/molmixB;
+                molmixT = 1.0/molmixT;
+                Real rgasmixB = Runiv/molmixB;
+                Real rgasmixT = Runiv/molmixT;
+
+                Real Lz = realhi[2] - reallo[2];
+                Real Lz2 = Lz/2.0;
+
+                // To set p = pamb at the top: solve for p_int, such that: pamb = p_int*exp(grav*Lz/2.0/rgasmixT/T)
+                // This comes from the ODE: dp/dz = p*g/(rgas*T)
+                // p_int is the interface pressure
+                // Also solve for p_bot, such that p_int = p_bot*exp(grav*Lz/2.0/rgasmixB/T)
+                Real p_int = pamb*exp(-1.0*grav[2]*Lz2/rgasmixT/T_init[0]);
+
+                Real p_bot = p_int*exp(-1.0*grav[2]*Lz2/rgasmixB/T_init[0]);
+
+                if (relpos[2] >= 0.0) { // top half
+                    Real press = p_int*exp(grav[2]*(pos[2]-Lz2)/rgasmixT/T_init[0]);
+                    Real density;
+                    GetDensity(press,density,T_init[0],bc_Yk_z_hi);
+                    cu(i,j,k,0) = density;
+                    for (int l=0;l<nspecies;l++) {
+                        cu(i,j,k,5+l) = density*bc_Yk_z_hi[l];
+                    }
+                    Real intEnergy;
+                    GetEnergy(intEnergy, bc_Yk_z_hi, T_init[0]);
+                    cu(i,j,k,4) = cu(i,j,k,0)*intEnergy + 0.5*(cu(i,j,k,1)*cu(i,j,k,1) +
+                                                               cu(i,j,k,2)*cu(i,j,k,2) +
+                                                               cu(i,j,k,3)*cu(i,j,k,3)) / cu(i,j,k,0);
+                }
+
+                else { // bottom half
+                    Real press = p_bot*exp(grav[2]*pos[2]/rgasmixB/T_init[0]);
+                    Real density;
+                    GetDensity(press,density,T_init[0],bc_Yk_z_lo);
+                    cu(i,j,k,0) = density;
+                    for (int l=0;l<nspecies;l++) {
+                        cu(i,j,k,5+l) = density*bc_Yk_z_lo[l];
+                    }
+                    Real intEnergy;
+                    GetEnergy(intEnergy, bc_Yk_z_lo, T_init[0]);
+                    cu(i,j,k,4) = cu(i,j,k,0)*intEnergy + 0.5*(cu(i,j,k,1)*cu(i,j,k,1) +
+                                                               cu(i,j,k,2)*cu(i,j,k,2) +
+                                                               cu(i,j,k,3)*cu(i,j,k,3)) / cu(i,j,k,0);
+                }
+            
+           }
+
+            else if (prob_type == 109) { // two-fluid Rayleigh Taylor (iso-density; vary temperature)
+
+                // rhobar, rho0 and T_init[0] set the ambient pressure at the top of the domain
+                Real pamb;
+                GetPressureGas(pamb,rhobar,rho0,T_init[0]);
+                
+                Real molmixT = 0.;
+                Real molmixB = 0.;
+                for (int l=0; l<nspecies; ++l) {
+                    molmixB = molmixB + bc_Yk_z_lo[l]/molmass[l];
+                    molmixT = molmixT + bc_Yk_z_hi[l]/molmass[l];
+                }
+                molmixB = 1.0/molmixB;
+                molmixT = 1.0/molmixT;
+                Real rgasmixB = Runiv/molmixB;
+                Real rgasmixT = Runiv/molmixT;
+
+                Real Lz = realhi[2] - reallo[2];
+                Real Lz2 = Lz/2.0;
+
+                // solve dp/dz = rho*g for a constant rho_top and rho_bottom
+                // given p = pamb at the top, get interface p_int and bottom p_bot
+                Real p_int = pamb - rho_hi[2]*grav[2]*Lz2;
+                Real p_bot = pamb - (rho_lo[2] + rho_hi[2])*grav[2]*Lz2;
+
+                if (relpos[2] >= 0.0) { // top half
+                    Real press = p_int + rho_hi[2]*grav[2]*(pos[2]-Lz2);
+                    cu(i,j,k,0) = rho_hi[2];
+                    for (int l=0;l<nspecies;l++) {
+                        cu(i,j,k,5+l) = rho_hi[2]*bc_Yk_z_hi[l];
+                    }
+                    Real temp = press/(rho_hi[2]*(Runiv/molmixT));
+                    Real intEnergy;
+                    GetEnergy(intEnergy, bc_Yk_z_hi, temp);
+                    cu(i,j,k,4) = cu(i,j,k,0)*intEnergy + 0.5*(cu(i,j,k,1)*cu(i,j,k,1) +
+                                                               cu(i,j,k,2)*cu(i,j,k,2) +
+                                                               cu(i,j,k,3)*cu(i,j,k,3)) / cu(i,j,k,0);
+                }
+                else { // bottom half
+                    Real press = p_bot + rho_lo[2]*grav[2]*pos[2];
+                    cu(i,j,k,0) = rho_lo[2];
+                    for (int l=0;l<nspecies;l++) {
+                        cu(i,j,k,5+l) = rho_lo[2]*bc_Yk_z_lo[l];
+                    }
+                    Real temp = press/(rho_lo[2]*(Runiv/molmixB));
+                    Real intEnergy;
+                    GetEnergy(intEnergy, bc_Yk_z_lo, temp);
+                    cu(i,j,k,4) = cu(i,j,k,0)*intEnergy + 0.5*(cu(i,j,k,1)*cu(i,j,k,1) +
+                                                               cu(i,j,k,2)*cu(i,j,k,2) +
+                                                               cu(i,j,k,3)*cu(i,j,k,3)) / cu(i,j,k,0);
+                }
+           }
         });
     } // end MFIter
 }

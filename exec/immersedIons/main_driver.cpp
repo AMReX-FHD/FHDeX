@@ -478,7 +478,6 @@ void main_driver(const char* argv)
                // std::cout << "Species " << i << " radius: " << ionParticle[i].d << std::endl;
 
             // compute wet diffusion from wetRad
-            Print() << "WETRAD: " << wetRad[i] << endl;
             ionParticle[i].wetDiff = (k_B*T_init[0])/(6*M_PI*wetRad[i]*visc_coef);
 
             if (all_dry == 1) {
@@ -788,7 +787,7 @@ void main_driver(const char* argv)
 
     if (restart < 0 && particle_restart < 0) {
         // create particles
-        if (sr_tog == 4) {
+        if (false) {
             //particles.InitParticlesFromFile(ionParticle, dxp);
         }
         else {
@@ -922,12 +921,19 @@ void main_driver(const char* argv)
     remove("bulkFlowEst");
     //Time stepping loop
 
-    if(ramp_step==1){
+
+
+    if(ramp_step==2){
+        dt = dt*1e-7;
+
+    }else if(ramp_step==1){
         dt = dt*1e-6;
+
     }else{
         dt = dt*1e-5;
     }
         
+    
 
     particles.initRankLists(simParticles);
 
@@ -939,7 +945,144 @@ void main_driver(const char* argv)
 
         // timer for time step
         Real time1 = ParallelDescriptor::second();
-        if(ramp_step==1)
+        
+        if(ramp_step==2)
+        {
+            if(istep == 50)
+            {
+                    dt = dt*2;
+                    
+                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+            }
+            
+            if(istep == 100)
+            {
+                    dt = dt*2;
+                    
+                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+            }
+
+            if(istep == 150)
+            {
+                    dt = dt*2;
+                    
+                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+            }
+
+
+            if(istep == 200)
+            {
+                    dt = dt*2;
+                    
+                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+            }
+
+            if(istep == 250)
+            {
+                    dt = dt*2;
+                    
+                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+            }
+
+            if(istep == 300)
+            {
+                    dt = dt*2;
+                    
+                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+            }
+            if(istep == 350)
+            {
+                    dt = dt*2;
+                    
+                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+            }
+
+            if(istep == 400)
+            {
+                    dt = dt*sqrt(5);
+                    
+                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+
+            }
+            
+            if(istep == 500)
+            {
+                    dt = dt*sqrt(5);
+                    
+                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+
+            }
+
+            if(istep == 600)
+            {
+                    dt = dt*sqrt(5);
+                    
+                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+
+            }
+
+            if(istep == 700)
+            {
+                    dt = dt*sqrt(5);
+                    
+                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+
+            }
+
+            if(istep == 800)
+            {
+                    dt = dt*sqrt(5);
+                    
+                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+            }
+
+            if(istep == 900)
+            {
+                    dt = dt*sqrt(5);
+                    
+                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+            }
+            if(istep == 1000)
+            {
+                    dt = dt*sqrt(5);
+                    
+                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+            }
+            if(istep == 1100)
+            {
+                    dt = dt*sqrt(5);
+                    
+                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+            }
+            
+            if(istep == 1200)
+            {
+                    dt = dt*sqrt(5);
+                    
+                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+            }if(istep == 1300)
+            {
+                    dt = dt*sqrt(5);
+                    
+                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+            }if(istep == 1400)
+            {
+                    dt = dt*sqrt(5);
+                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+            }if(istep == 1500)
+            {
+                    dt = dt*sqrt(5);
+                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+            }if(istep == 1600)
+            {
+                    dt = dt*sqrt(5);
+                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+            }if(istep == 1700)
+            {
+                    dt = dt*sqrt(5);
+                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+            }
+        }else if(ramp_step==1)
         {
             if(istep == 20)
             {
@@ -982,12 +1125,14 @@ void main_driver(const char* argv)
             {
                     dt = dt*5;
                     Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+
             }
             
             if(istep == 480)
             {
                     dt = dt*2;
                     Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+
             }
 
 
@@ -995,12 +1140,14 @@ void main_driver(const char* argv)
             {
                     dt = dt*5;
                     Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+
             }
 
             if(istep == 640)
             {
                     dt = dt*2;
                     Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+
             }
 
             if(istep == 720)
@@ -1047,12 +1194,11 @@ void main_driver(const char* argv)
             }
         }
 
+            //particles.SetPosition(1, prob_hi[0]*0.51, prob_hi[1]*(pow(0.5,istep)) + prob_hi[1]*1e-8, prob_hi[2]*0.51);
+            
+            //particles.SetPosition(1, prob_hi[0]*0.751, prob_hi[1]*0.8, prob_hi[2]*0.251);
+            //particles.SetPosition(2, prob_hi[0]*0.251, prob_hi[1]*0.23906250001, prob_hi[2]*0.751);
 
-
-        //if(istep == 1)
-        //{
-        //    particles.SetPosition(1, prob_hi[0]*0.5, prob_hi[1]*0.5, prob_hi[2]*0.5);
-        //}
     
         //Most of these functions are sensitive to the order of execution. We can fix this, but for now leave them in this order.
 
@@ -1225,10 +1371,10 @@ void main_driver(const char* argv)
             if ((n_steps_skip > 0 && istep == n_steps_skip) ||
                 (n_steps_skip < 0 && istep%n_steps_skip == 0) ) {
 
-                particles.MeanSqrCalc(0, 1);
+                //particles.MeanSqrCalc(0, 1);
             }
             else {
-                particles.MeanSqrCalc(0, 0);
+                //particles.MeanSqrCalc(0, 0);
             }
 
             Print() << "Finish move.\n";

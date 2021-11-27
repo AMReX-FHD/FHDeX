@@ -1,5 +1,3 @@
-
-
   # Problem specification
   prob_lo = 0.0 0.0 0.0      # physical lo coordinate
   prob_hi = 5.12e-4 5.12e-4 5.12e-4 # physical hi coordinate
@@ -47,7 +45,7 @@
 
   # Initial parameters
   k_B = 1.38064852e-16	# [units: cm2*g*s-2*K-1]
-  runiv = 8.314462175e7
+  Runiv = 8.314462175e7
   T_init = 300
   rho0 = 4.83e-4
 

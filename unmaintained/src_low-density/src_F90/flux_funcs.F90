@@ -1,7 +1,7 @@
 module flux_module
 
   use amrex_fort_module, only : amrex_real
-  use common_namelist_module, only : ngc, nvars, nprimvars, nspecies, molmass, cell_depth, k_b, runiv, bc_vel_lo, bc_vel_hi, n_cells, membrane_cell, visc_type, algorithm_type
+  use common_namelist_module, only : ngc, nvars, nprimvars, nspecies, molmass, cell_depth, k_b, Runiv, bc_vel_lo, bc_vel_hi, n_cells, membrane_cell, visc_type, algorithm_type
   use rng_functions_module
 
   implicit none

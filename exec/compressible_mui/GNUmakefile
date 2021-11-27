@@ -9,6 +9,7 @@ USE_OMP       = FALSE
 COMP          = gnu
 DIM           = 3
 TINY_PROFILE  = FALSE
+USE_MUI       = TRUE
 
 USE_PARTICLES = FALSE
 
@@ -58,3 +59,6 @@ else
   LIBRARIES += -L$(FFTW_DIR) -lfftw3_mpi -lfftw3
 endif
 
+ifeq ($(USE_MUI), TRUE)
+  DEFINES += -DMUI
+endif
