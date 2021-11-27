@@ -79,9 +79,9 @@ void main_driver(const char* argv)
 	{
 		if (seed > 0)
 		{
-                    InitRandom(seed+ParallelDescriptor::MyProc(),
-                               ParallelDescriptor::NProcs(),
-                               seed+ParallelDescriptor::MyProc());
+			InitRandom(seed+ParallelDescriptor::MyProc(),
+									ParallelDescriptor::NProcs(),
+									seed+ParallelDescriptor::MyProc());
 		}
 		else if (seed == 0)
 		{
@@ -89,9 +89,9 @@ void main_driver(const char* argv)
 			int randSeed = now.time_since_epoch().count();
 			// broadcast the same root seed to all processors
 			ParallelDescriptor::Bcast(&randSeed,1,ParallelDescriptor::IOProcessorNumber());
-                        InitRandom(randSeed+ParallelDescriptor::MyProc(),
-                                   ParallelDescriptor::NProcs(),
-                                   randSeed+ParallelDescriptor::MyProc());
+      InitRandom(randSeed+ParallelDescriptor::MyProc(),
+									ParallelDescriptor::NProcs(),
+									randSeed+ParallelDescriptor::MyProc());
 		}
 		else
 		{
@@ -385,6 +385,7 @@ void main_driver(const char* argv)
 				particles.EvaluateStats(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
 					cvlInst,cvlMeans,QMeans,coVars,spatialCross1D,statsCount,time);
 				vmom.setVal(0.);
+    if (N <= 1) return;
 				particles.EvaluateStatsPart(vmom);
 				if(plot_time>0 && istep%plot_time == 0) {
 					particles.updateTimeData(cuInst,primInst,
@@ -432,52 +433,52 @@ void main_driver(const char* argv)
 		// Structure Factor
 		//////////////////////////////////////
 
-//		if(istep > amrex::Math::abs(n_steps_skip) && struct_fact_int > 0 &&
-//			(istep-amrex::Math::abs(n_steps_skip))%struct_fact_int == 0)
-//		{
+		if(istep > amrex::Math::abs(n_steps_skip) && struct_fact_int > 0 &&
+			(istep-amrex::Math::abs(n_steps_skip))%struct_fact_int == 0)
+		{
 
-//			int cnt_sf, numvars_sf;
-//			cnt_sf = 0;
-//			// rho
-//			numvars_sf = 1;
-//			MultiFab::Copy(structFactPrimMF,primInst,0,cnt_sf,numvars_sf,0);
-//			cnt_sf += numvars_sf;
-//			// rho species
-//			for (int i=0;i<nspecies;i++)
-//			{
-//				numvars_sf = 1;
-//				MultiFab::Copy(structFactPrimMF,primInst,1+(i+1)*9,cnt_sf,numvars_sf,0);
-//				cnt_sf += numvars_sf;
-//			}
-//			// u, v, w
-//			numvars_sf = 3;
-//			MultiFab::Copy(structFactPrimMF,primInst,2,cnt_sf,numvars_sf,0);
-//			 cnt_sf += numvars_sf;
-//			// T
-//			numvars_sf = 1;
-//			MultiFab::Copy(structFactPrimMF,primInst,6,cnt_sf,numvars_sf,0);
-//			cnt_sf += numvars_sf;
-//			// T species
-//			for (int i=0;i<nspecies;i++)
-//			{
-//				numvars_sf = 1;
-//				MultiFab::Copy(structFactPrimMF,primInst,6+(i+1)*9,cnt_sf,numvars_sf,0);
-//				cnt_sf += numvars_sf;
-//			}
-//			// E
-//			numvars_sf = 1;
-//			MultiFab::Copy(structFactPrimMF,primInst,8,cnt_sf,numvars_sf,0);
-//			cnt_sf += numvars_sf;
+			int cnt_sf, numvars_sf;
+			cnt_sf = 0;
+			// rho
+			numvars_sf = 1;
+			MultiFab::Copy(structFactPrimMF,primInst,0,cnt_sf,numvars_sf,0);
+			cnt_sf += numvars_sf;
+			// rho species
+			for (int i=0;i<nspecies;i++)
+			{
+				numvars_sf = 1;
+				MultiFab::Copy(structFactPrimMF,primInst,1+(i+1)*9,cnt_sf,numvars_sf,0);
+				cnt_sf += numvars_sf;
+			}
+			// u, v, w
+			numvars_sf = 3;
+			MultiFab::Copy(structFactPrimMF,primInst,2,cnt_sf,numvars_sf,0);
+			 cnt_sf += numvars_sf;
+			// T
+			numvars_sf = 1;
+			MultiFab::Copy(structFactPrimMF,primInst,6,cnt_sf,numvars_sf,0);
+			cnt_sf += numvars_sf;
+			// T species
+			for (int i=0;i<nspecies;i++)
+			{
+				numvars_sf = 1;
+				MultiFab::Copy(structFactPrimMF,primInst,6+(i+1)*9,cnt_sf,numvars_sf,0);
+				cnt_sf += numvars_sf;
+			}
+			// E
+			numvars_sf = 1;
+			MultiFab::Copy(structFactPrimMF,primInst,8,cnt_sf,numvars_sf,0);
+			cnt_sf += numvars_sf;
 
-//			structFactPrim.FortStructure(structFactPrimMF,geom);
-//		}
+			structFactPrim.FortStructure(structFactPrimMF,geom);
+		}
 
-//		if(istep > amrex::Math::abs(n_steps_skip) &&
-//			struct_fact_int > 0 && plot_int > 0 &&
-//			istep%plot_int == 0)
-//		{
-//			structFactPrim.WritePlotFile(istep,time,geom,"plt_SF_prim");
-//		}
+		if(istep > amrex::Math::abs(n_steps_skip) &&
+			struct_fact_int > 0 && plot_int > 0 &&
+			istep%plot_int == 0)
+		{
+			structFactPrim.WritePlotFile(istep,time,geom,"plt_SF_prim");
+		}
 
 		//////////////////////////////////////
 		// Checkpoint
