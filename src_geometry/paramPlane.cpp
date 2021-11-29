@@ -1394,6 +1394,9 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
   	paramPlaneList[p].periodicity = 0;
     paramPlaneList[p].temperatureLeft  = T_init[0];
     paramPlaneList[p].temperatureRight = T_init[0];
+    paramPlaneList[p].t1 = T_init[0];
+    paramPlaneList[p].t2 = T_init[0];
+    paramPlaneList[p].freqt12 = 0.;
     paramPlaneList[p].velx = -1;
     paramPlaneList[p].vely = -1;
     paramPlaneList[p].velz = -1;
@@ -1446,6 +1449,10 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 			{
 				paramPlaneList[p].temperatureLeft = t_lo[i];
   			paramPlaneList[p].temperatureRight = t_lo[i];
+  			// Oscillating thermal walls
+				paramPlaneList[p].t1 = t_lo[i];
+  			paramPlaneList[p].t2 = t_hi[i];
+  			paramPlaneList[p].freqt12 = freq_t[i];
   		// Full slip
   		}
   		else if(bc_vel_lo[i] == 1)
@@ -1535,6 +1542,9 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
   	paramPlaneList[p+1].periodicity = 0;
     paramPlaneList[p+1].temperatureLeft  = T_init[0];
     paramPlaneList[p+1].temperatureRight = T_init[0];
+    paramPlaneList[p+1].t1 = T_init[0];
+    paramPlaneList[p+1].t2 = T_init[0];
+    paramPlaneList[p+1].freqt12 = 0.;
     paramPlaneList[p+1].velx = -1;
     paramPlaneList[p+1].vely = -1;
     paramPlaneList[p+1].velz = -1;
@@ -1586,6 +1596,10 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 			{
 				paramPlaneList[p+1].temperatureLeft = t_hi[i];
   			paramPlaneList[p+1].temperatureRight = t_hi[i];
+  			// Oscillating thermal walls
+				paramPlaneList[p+1].t1 = t_hi[i];
+  			paramPlaneList[p+1].t2 = t_lo[i];
+  			paramPlaneList[p+1].freqt12 = freq_t[i];
   		}
   		else if(bc_vel_hi[i] == 2) 
   		{
@@ -1864,3 +1878,34 @@ void BuildParamplanesPhonon(paramPlane* paramPlaneList, const int paramplanes, c
     }
     planeFile.close();
 }
+
+void update_Twall(paramPlane* paramPlaneList, const Real trun)
+{
+  for(int i=0; i<6; i++)
+  {
+  	Real t = trun*paramPlaneList[i].freqt12;
+  	paramPlaneList[i].temperatureLeft  = std::abs(cos(t))*(paramPlaneList[i].t2-paramPlaneList[i].t1)*0.5+(paramPlaneList[i].t2+paramPlaneList[i].t1)*0.5;
+  	paramPlaneList[i].temperatureRight = std::abs(cos(t))*(paramPlaneList[i].t2-paramPlaneList[i].t1)*0.5+(paramPlaneList[i].t2+paramPlaneList[i].t1)*0.5;
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

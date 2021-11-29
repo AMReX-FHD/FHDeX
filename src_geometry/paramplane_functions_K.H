@@ -111,14 +111,6 @@ void rotation(Real costheta, Real sintheta, Real cosphi, Real sinphi, Real *cx, 
     *cx = cxnew;
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
-void accelerate(Real *cx, Real *cy, Real *cz)
-{
-    *cx = *cx + grav[0]*fixed_dt;
-    *cy = *cy + grav[1]*fixed_dt;
-    *cz = *cz + grav[2]*fixed_dt;
-}
-
 // uncomment this once this routine is on a GPU device
 // then the amrex::Random() calls will need to be fixed
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
@@ -259,10 +251,6 @@ void app_bc_gpu(const paramPlane* surf, FhdParticleContainer::ParticleType& part
           rotation(surf->cosThetaRight, surf->sinThetaRight,
           surf->cosPhiRight, surf->sinPhiRight,
           &part.rdata(FHD_realData::velx), &part.rdata(FHD_realData::vely), &part.rdata(FHD_realData::velz));
-
-					accelerate(&part.rdata(FHD_realData::velx),
-						&part.rdata(FHD_realData::vely),
-						&part.rdata(FHD_realData::velz));
         }
       }
       else if(amrex::Random(engine) < surf->periodicity)
@@ -344,10 +332,6 @@ void app_bc_gpu(const paramPlane* surf, FhdParticleContainer::ParticleType& part
           rotation(surf->cosThetaLeft, surf->sinThetaLeft,
           surf->cosPhiLeft, surf->sinPhiLeft,
           &part.rdata(FHD_realData::velx), &part.rdata(FHD_realData::vely), &part.rdata(FHD_realData::velz));
-
-					accelerate(&part.rdata(FHD_realData::velx),
-						&part.rdata(FHD_realData::vely),
-						&part.rdata(FHD_realData::velz));
         }
 
       }
@@ -393,14 +377,6 @@ void app_bc_gpu(const paramPlane* surf, FhdParticleContainer::ParticleType& part
         }
       }
    }
-//   if(graphene_tog .eq. 1) then
-//      if(surf%boundary .eq. 6) then
-
-//      !print *, "new: ", part%vel(3)
-//      call surf_velocity(surf, part, time, oldvel, inttime)
-//   endif
-//   endif
-
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
@@ -574,8 +550,6 @@ void app_bc_phonon_gpu(const paramPlane* surf, FhdParticleContainer::ParticleTyp
         *push = 1;
       }
    }
-   
-
 }
 
 #endif

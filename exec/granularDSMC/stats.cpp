@@ -317,10 +317,10 @@ void FhdParticleContainer::EvaluateStats(
 			}
 
 			Real drho = delCon[0];
-			Real djx = delCon[1];
-			Real djy = delCon[2];
-			Real djz = delCon[3];
-			Real dK = delCon[4];
+			Real djx  = delCon[1];
+			Real djy  = delCon[2];
+			Real djz  = delCon[3];
+			Real dK   = delCon[4];
 
 			//Conserved Covariances
 			coVars(i,j,k,0)  = (coVars(i,j,k, 0)*stepsMinusOne+drho*djx)*osteps; // drho.dJx

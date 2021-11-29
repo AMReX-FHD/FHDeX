@@ -283,8 +283,8 @@ void FhdParticleContainer::CollideParticles(Real dt)
 					countedCollisions[speci] += 1;
 					countedCollisions[specj] += 1;
 
-					NCollAll += 1.0;
-					vreijrun += vreijmag;
+//					NCollAll += 1.0;
+//					vreijrun += vreijmag;
 					//vreijrun += vrmag;
 
 					vreijmag = vreijmag*(1.0+interproperties[specij].alpha)/massij;

@@ -97,6 +97,7 @@ AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::p_hi;
 
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::t_lo;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::t_hi;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::freq_t;
 
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::rho_lo;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::rho_hi;
@@ -155,7 +156,7 @@ amrex::Vector<amrex::Real>    common::density_weights;
 amrex::Vector<int>            common::shift_cc_to_boundary;
 
 int                           common::particle_placement;
-int			                  common::particle_input;
+int														common::particle_input;
 amrex::Vector<int>            common::particle_count;
 amrex::Vector<int>            common::p_move_tog;
 amrex::Vector<int>            common::p_force_tog;
@@ -210,8 +211,8 @@ int                        common::rfd_tog;
 AMREX_GPU_MANAGED int      common::dry_move_tog;
 AMREX_GPU_MANAGED int      common::sr_tog;
 int                        common::graphene_tog;
-int	                   common::thermostat_tog;
-int	                   common::zero_net_force;
+int	                		   common::thermostat_tog;
+int	               		 	   common::zero_net_force;
 
 int                        common::crange;
 
@@ -234,6 +235,12 @@ amrex::Real                common::turb_a;
 amrex::Real                common::turb_b;
 int                        common::turbForcing;
 
+amrex::Real                common::tbath;
+amrex::Real                common::mu_g;
+amrex::Real                common::beta_d;
+amrex::Real                common::gamma_d;
+amrex::Real                common::zeta;
+amrex::Real                common::sqrtzeta;
 
 void InitializeCommonNamespace() {
 
@@ -461,6 +468,7 @@ void InitializeCommonNamespace() {
 
         t_lo[i] = 0.;
         t_hi[i] = 0.;
+        freq_t[i] = 0.;
   
         rho_lo[i] = -1.;
         rho_hi[i] = -1.;
@@ -563,6 +571,12 @@ void InitializeCommonNamespace() {
     crange = 5;
     thermostat_tog = 0;
     zero_net_force = 0;
+    tbath = 0.;
+		mu_g = 0.;
+		beta_d = 0.;
+		gamma_d = 0.;
+		zeta = 0.;
+		sqrtzeta = 0.;
 
     // images (no default)
     for (int i=0; i<3; ++i) {
@@ -802,6 +816,11 @@ void InitializeCommonNamespace() {
     if (pp.queryarr("t_hi",temp,0,AMREX_SPACEDIM)) {
         for (int i=0; i<AMREX_SPACEDIM; ++i) {
             t_hi[i] = temp[i];
+        }
+    }
+    if (pp.queryarr("freq_t",temp,0,AMREX_SPACEDIM)) {
+        for (int i=0; i<AMREX_SPACEDIM; ++i) {
+            freq_t[i] = temp[i];
         }
     }
     if (pp.queryarr("rho_lo",temp,0,AMREX_SPACEDIM)) {
@@ -1061,6 +1080,11 @@ void InitializeCommonNamespace() {
     pp.query("turb_a",turb_a);
     pp.query("turb_b",turb_b);
     pp.query("turbForcing",turbForcing);
+    pp.query("tbath",tbath);
+    pp.query("mu_g",mu_g);
+    pp.query("beta_d",beta_d);
+    pp.query("gamma_d",gamma_d);
+    pp.query("zeta",zeta);
 
     if (nspecies > MAX_SPECIES) {
         Abort("InitializeCommonNamespace: nspecies > MAX_SPECIES");

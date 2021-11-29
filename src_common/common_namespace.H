@@ -151,6 +151,7 @@ namespace common {
 
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> t_lo;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> t_hi;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> freq_t;
 
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> rho_lo;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> rho_hi;
@@ -304,4 +305,11 @@ namespace common {
     extern amrex::Real                turb_b;
     extern int                        turbForcing;
 
+		// parameters for drag via Langevin eqn
+    extern amrex::Real								tbath;
+    extern amrex::Real								mu_g;
+    extern amrex::Real								beta_d;
+    extern amrex::Real								gamma_d;
+    extern amrex::Real								zeta;
+    extern amrex::Real								sqrtzeta;
 }

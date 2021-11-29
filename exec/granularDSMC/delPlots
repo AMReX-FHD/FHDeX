@@ -18,3 +18,5 @@ rm diffusionEst
 rm conductivityEst
 rm Backtrace.*
 rm threepm*
+rm *Cross*
+rm out

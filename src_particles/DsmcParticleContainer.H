@@ -105,7 +105,7 @@ public:
 	void InitCollisionCells();
 
 	void Source(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount);
-    void SourcePhonons(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount);
+	void SourcePhonons(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount);
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	// Main DSMC routines
@@ -115,7 +115,7 @@ public:
 	void CollideParticles(Real dt);
 
 	void MoveParticlesCPP(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount);
-    void MovePhononsCPP(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount, const int step);
+	void MovePhononsCPP(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount, const int step);
 	void externalForce(const Real dt);
 	void updateTimeStep(const Geometry& geom, Real& dt);
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -144,7 +144,7 @@ public:
 		const int steps,
 		Real time);
 		
-   void EvaluateStatsPhonon(MultiFab& cuInst,
+		void EvaluateStatsPhonon(MultiFab& cuInst,
 		MultiFab& cuMeans,
 		MultiFab& cuVars,
 		const int steps,

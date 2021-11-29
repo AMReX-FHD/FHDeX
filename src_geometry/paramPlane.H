@@ -101,6 +101,11 @@ typedef struct {
     double tension;
     double stiffness;
     double temperature;
+    
+    // For oscilating temperature field
+    double t1;
+    double t2;
+    double freqt12;
 
 } paramPlane;
 
@@ -109,5 +114,7 @@ void BuildParamplanesPhonon(paramPlane* paramPlaneList, const int paramplanes, c
 
 double getTheta(double nx, double ny, double nz);
 double getPhi(double nx, double ny, double nz);
+
+void update_Twall(paramPlane* paramPlaneList, const Real trun);
 
 #endif

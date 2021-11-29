@@ -306,19 +306,17 @@ void main_driver(const char* argv)
 	IO_int = std::max(IO_int,1);
 	max_step += step;
 	n_steps_skip += step;
-	int stat_int = 1;
 	Real tbegin, tend;
 	
 	// for geometry
 	fixed_dt = dt;
 	ParallelDescriptor::Bcast(&fixed_dt,1,ParallelDescriptor::IOProcessorNumber());
 	
-	
-	// DELEEETEEEEEEEE MEEEEEEEEEEe
 	particles.vreijrun = 0.0;
 	particles.NCollAll = 0.0;
 	particles.T0 = -1;
 	Print() << "dt: " << dt << "\n";
+	Real trun = step*dt;
 	for (int istep=step; istep<=max_step; ++istep)
 	{
 		if(istep%IO_int == 0)
@@ -356,37 +354,39 @@ void main_driver(const char* argv)
 		particles.CollideParticles(dt);
 		particles.Source(dt, paramPlaneList, paramPlaneCount);
 		//particles.externalForce(dt);
+
+		// Update 
+		trun += dt;
+		update_Twall(paramPlaneList, trun);
 		particles.MoveParticlesCPP(dt, paramPlaneList, paramPlaneCount);
 		//if(!dt_const) {
-		//	particles.updateTimeStep(geom,dt);
+		//	particles.updateTimeStep(geom,dt);N
 		//}
 
 		//////////////////////////////////////
 		// Stats
 		//////////////////////////////////////
 
-		if (istep >= amrex::Math::abs(n_steps_skip))
+		if (istep >= n_steps_skip)
 		{
-			if(istep%stat_int == 0)
+			particles.EvaluateStats(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
+				cvlInst,cvlMeans,QMeans,coVars,spatialCross1D,statsCount,time);
+			vmom.setVal(0.);
+
+			particles.EvaluateStatsPart(vmom);
+			if(plot_time>0 && istep%plot_time == 0 && ntimecor>0)
 			{
-				particles.EvaluateStats(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
-					cvlInst,cvlMeans,QMeans,coVars,spatialCross1D,statsCount,time);
-				vmom.setVal(0.);
-    if (N <= 1) return;
-				particles.EvaluateStatsPart(vmom);
-				if(plot_time>0 && istep%plot_time == 0 && ntimecor>0) {
-					particles.updateTimeData(cuInst,primInst,
-						rho_time,u_time,K_time,ntimecor);
-					if(statsTime>ntimecor)
-					{
-						particles.TimeCorrelation(rho_time, u_time, K_time,
-							rhotimecross,utimecross,Ktimecross,
-							ntimecor,statsTime-ntimecor);
-					}
-					statsTime++;
+				particles.updateTimeData(cuInst,primInst,
+					rho_time,u_time,K_time,ntimecor);
+				if(statsTime>ntimecor)
+				{
+					particles.TimeCorrelation(rho_time, u_time, K_time,
+						rhotimecross,utimecross,Ktimecross,
+						ntimecor,statsTime-ntimecor);
 				}
-				statsCount++;
+				statsTime++;
 			}
+			statsCount++;
 		}
 
 		//////////////////////////////////////

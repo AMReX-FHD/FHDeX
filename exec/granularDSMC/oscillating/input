@@ -1,0 +1,83 @@
+
+	# Problem specification
+	prob_lo =    0.0  0.0  0.0		# physical lo coordinate
+	prob_hi = 2000.0 40.0 40.0		# physical hi coordinate
+
+	n_cells 		  = 200 1 1
+	max_grid_size =   5 1 1
+	max_particle_tile_size = 256 256 256
+
+	# Time-step control
+	fixed_dt = 4.0 # lam_0/(10*v_0)
+
+	# Controls for number of steps between actions
+	max_step = 2000000
+	plot_int = 100000
+	plot_cross = 1
+	cross_cell = 160
+	plot_time = 5
+	n_steps_skip = 100000
+	struct_fact_int = 10
+
+	reset_stats = 1
+	restart = -1
+	chk_int = 500000
+
+	#particle initialization (-1 - no input; 1 - input provided)
+	particle_input = -1
+	particle_neff = 1e0
+
+	#Species info
+	#--------------
+	nspecies	=	1
+	mass			=	1e0
+	diameter	=	1e0
+	rho0			=	0.0125 # N = 40,000
+	Yk0				=	1.0
+	alpha_pp	=	1.000
+
+	# Stochastic parameters
+	seed    = 0
+	k_B     = 1e0 # v0 = sqrt(2kT/m) = sqrt(2)
+	T_init  = 1e0
+	variance_coef_mom = 1
+
+	# Boundary conditions:
+	# NOTE: setting bc_vel to periodic sets all the other bc's to periodic)
+	# bc_vel:   -1 = periodic  
+	#            1 = slip
+	#            2 = no-slip
+	#            3 = Lees Edwards
+	# bc_therm: -1 = periodic
+	#            1 = adiabatic
+	#            2 = isothermal (set with t_lo/hi in common namelist)
+	# bc_mass:  -1 = periodic
+	#            1 = wall
+	#            2 = reservoir (set bc_Yk or bc_Xk in compressible namelist)
+
+	bc_vel_lo   = -1 -1 -1
+	bc_vel_hi   = -1 -1 -1  
+	bc_therm_lo =  2 -1 -1
+	bc_therm_hi =  2 -1 -1
+	bc_mass_lo  = -1 -1 -1
+	bc_mass_hi  = -1 -1 -1
+
+	# Temperature if thermal BC specified
+	t_hi = 2 1 1
+	t_lo = 1 1 1
+	# freq_t = 0
+
+	# Total density at boundaries
+	# Set as same as the internal density
+	rho_hi = 0.0125 0.0125 0.0125
+	rho_lo = 0.0125 0.0125 0.0125
+
+	# Xk and Yk at the wall for Dirichlet (concentrations) - set one to zero
+	# Ordering: (species 1, x-dir), (species 2, x-dir), ... (species 1, y-dir), ... 
+
+	bc_Yk_x_lo = 1.0  1.0   # lo BC
+	bc_Yk_x_hi = 1.0  1.0   # hi BC
+	bc_Yk_y_lo = 1.0  1.0   # lo BC
+	bc_Yk_y_hi = 1.0  1.0   # hi BC
+	bc_Yk_z_lo = 1.0  1.0   # lo BC
+	bc_Yk_z_hi = 1.0  1.0   # hi BC
