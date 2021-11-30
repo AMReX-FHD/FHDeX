@@ -13,20 +13,16 @@
 
 	! Controls for number of steps between actions
 	max_step = 500000000
-    max_step = 200000000
 	plot_int = 10000000
 	plot_cross = 1
 	cross_cell = 60
 	plot_time = 5
-	n_steps_skip =  50000000
     n_steps_skip = 0
 	struct_fact_int = 10
 
-	reset_stats = 1
     reset_stats = -1
-	restart = -1
-    restart = 300000000
-	chk_int = 50000000
+    restart = 500000000
+	chk_int = 25000000
 
 	!particle initialization (-1 - no input; 1 - input provided)
 	particle_input = -1

@@ -17,12 +17,11 @@
 	plot_cross = 1
 	cross_cell = 60
 	plot_time = 5
-	n_steps_skip =  50000000
     n_steps_skip = 0
 	struct_fact_int = 10
 
     reset_stats = -1
-    restart = 300000000
+    restart = 875000000
 	chk_int = 25000000
 
 	!particle initialization (-1 - no input; 1 - input provided)
