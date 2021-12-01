@@ -104,6 +104,67 @@ void doLangevin(MultiFab& cons_in, MultiFab& prim_in,
                         rhoR[l] = cons(membrane_cell,j,k,5+l);
                     }
 
+                    // hard-coded for the case do_1d = 1 and nspecies = 2 (same species) -- copied from the old code for testing purpose
+                    if ((do_1D) and (nspecies==2)) {
+
+                        Real tl = TL;
+                        Real tr = TR;
+                        Real sqrttl = sqrtTL;
+                        Real sqrttr = sqrtTR;
+                        // species 1
+                        Real mm = molmass[0] / 6.02e23;
+                        Real fac5 = transmission[0]*(std::pow(k_B,2.5))*6.0/std::sqrt(2*mm*3.142);;
+                        Real fac3 = transmission[0]*(std::pow(k_B,1.5))*2.0/std::sqrt(2*mm*3.142);
+                        Real fac1 = transmission[0]*(std::pow(k_B,0.5))/std::sqrt(2*mm*3.142);
+                        Real rhol = rhoL[0];
+                        Real rhor = rhoR[0];
+                        Real um = fac3*(sqrttl*tl*rhol-sqrttr*tr*rhor);
+                        Real nm = fac1*(sqrttl*rhol-sqrttr*rhor);
+
+                        Real uv = fac5*(sqrttl*tl*tl*rhol+sqrttr*tr*tr*rhor);
+                        Real nv = fac1*(sqrttl*rhol+sqrttr*rhor);
+
+                        Real cross = fac3*(sqrttl*tl*rhol+sqrttr*tr*rhor);
+
+                        Real corr = cross/(std::sqrt(uv)*std::sqrt(nv));
+
+                        Real rn1 = amrex::RandomNormal(0.,1.);
+                        Real rn2 = amrex::RandomNormal(0.,1.);
+                        Real rn3 = rn1*corr + std::sqrt(1-pow(corr,2.))*rn2;
+                            
+                        xflux(membrane_cell,j,k,5)   = (dt*area*nm + std::sqrt(dt*area*mm*nv)*rn1)/vol; // species mass flux
+                        xflux(membrane_cell,j,k,0)  += (dt*area*nm + std::sqrt(dt*area*mm*nv)*rn1)/vol; // mass flux
+                        xflux(membrane_cell,j,k,4)  += (dt*area*um + std::sqrt(dt*area*mm*uv)*rn3)/(vol*mm);
+
+                        // species 2
+                        mm = molmass[1] / 6.02e23;
+                        fac5 = transmission[1]*(std::pow(k_B,2.5))*6.0/std::sqrt(2*mm*3.142);;
+                        fac3 = transmission[1]*(std::pow(k_B,1.5))*2.0/std::sqrt(2*mm*3.142);
+                        fac1 = transmission[1]*(std::pow(k_B,0.5))/std::sqrt(2*mm*3.142);
+                        rhol = rhoL[1];
+                        rhor = rhoR[1];
+                        um = fac3*(sqrttl*tl*rhol-sqrttr*tr*rhor);
+                        nm = fac1*(sqrttl*rhol-sqrttr*rhor);
+
+                        uv = fac5*(sqrttl*tl*tl*rhol+sqrttr*tr*tr*rhor);
+                        nv = fac1*(sqrttl*rhol+sqrttr*rhor);
+
+                        cross = fac3*(sqrttl*tl*rhol+sqrttr*tr*rhor);
+
+                        corr = cross/(std::sqrt(uv)*std::sqrt(nv));
+
+                        rn1 = amrex::RandomNormal(0.,1.);
+                        rn2 = amrex::RandomNormal(0.,1.);
+                        rn3 = rn1*corr + std::sqrt(1-pow(corr,2.))*rn2;
+                            
+                        xflux(membrane_cell,j,k,6)   = (dt*area*nm + std::sqrt(dt*area*mm*nv)*rn1)/vol; // species mass flux
+                        xflux(membrane_cell,j,k,0)  += (dt*area*nm + std::sqrt(dt*area*mm*nv)*rn1)/vol; // mass flux
+                        xflux(membrane_cell,j,k,4)  += (dt*area*um + std::sqrt(dt*area*mm*uv)*rn3)/(vol*mm);
+
+                    }
+                    
+                    // new membrane code for multispecies
+                    else {
                     // Compute effusive flux per species
                     for (int l=0;l<nspecies;++l) {
                         
@@ -334,6 +395,7 @@ void doLangevin(MultiFab& cons_in, MultiFab& prim_in,
                             }
                         }
 
+                    }
                     }
                 }
                 }
