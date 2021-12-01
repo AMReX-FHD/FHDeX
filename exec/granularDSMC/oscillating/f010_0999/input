@@ -65,7 +65,7 @@
 	# Temperature if thermal BC specified
 	t_hi = 2 1 1
 	t_lo = 1 1 1
-	freq_t = 0.0 0 0
+	freq_t = 0.10 0 0
 
 	# Total density at boundaries
 	# Set as same as the internal density

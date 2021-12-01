@@ -1884,8 +1884,8 @@ void update_Twall(paramPlane* paramPlaneList, const Real trun)
   for(int i=0; i<6; i++)
   {
   	Real t = trun*paramPlaneList[i].freqt12;
-  	paramPlaneList[i].temperatureLeft  = std::abs(cos(t))*(paramPlaneList[i].t2-paramPlaneList[i].t1)*0.5+(paramPlaneList[i].t2+paramPlaneList[i].t1)*0.5;
-  	paramPlaneList[i].temperatureRight = std::abs(cos(t))*(paramPlaneList[i].t2-paramPlaneList[i].t1)*0.5+(paramPlaneList[i].t2+paramPlaneList[i].t1)*0.5;
+  	paramPlaneList[i].temperatureLeft  = std::abs(cos(t))*(paramPlaneList[i].t2-paramPlaneList[i].t1)+paramPlaneList[i].t1;
+  	paramPlaneList[i].temperatureRight = std::abs(cos(t))*(paramPlaneList[i].t2-paramPlaneList[i].t1)+paramPlaneList[i].t1;
   }
 }
 
