@@ -179,9 +179,6 @@ void main_driver(const char* argv)
 
     std::string inputs_file = argv;
 
-    // read in parameters from inputs file into F90 modules
-    // we use "+1" because of amrex_string_c_to_f expects a null char termination
-    read_common_namelist(inputs_file.c_str(),inputs_file.size()+1);
     read_compressible_namelist(inputs_file.c_str(),inputs_file.size()+1);
     
     // copy contents of F90 modules to C++ namespaces
@@ -291,7 +288,9 @@ void main_driver(const char* argv)
     rng_initialize(&fhdSeed,&particleSeed,&selectorSeed,&thetaSeed,&phiSeed,&generalSeed);
 
     // initializes the seed for C++ random number calls
-    InitRandom(seed+ParallelDescriptor::MyProc());
+    InitRandom(seed+ParallelDescriptor::MyProc(),
+               ParallelDescriptor::NProcs(),
+               seed+ParallelDescriptor::MyProc());
 
     /////////////////////////////////////////
 

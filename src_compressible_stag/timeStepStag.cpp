@@ -154,13 +154,21 @@ void RK3stepStag(MultiFab& cu,
                  stochcen_B[2].setVal(0.0););
 
     // fill random numbers (can skip density component 0)
-    if (do_1D) { // need only for x- face 
+    if (do_1D) { // 1D need only for x- face 
         for(int i=1;i<nvars;i++) {
             MultiFabFillRandom(stochface_A[0], i, 1.0, geom);
             MultiFabFillRandom(stochface_B[0], i, 1.0, geom);
         }
     }
-    else {
+    else if (do_2D) { // 2D need only for x- and y- faces
+        for(int i=1;i<nvars;i++) {
+            MultiFabFillRandom(stochface_A[0], i, 1.0, geom);
+            MultiFabFillRandom(stochface_B[0], i, 1.0, geom);
+            MultiFabFillRandom(stochface_A[1], i, 1.0, geom);
+            MultiFabFillRandom(stochface_B[1], i, 1.0, geom);
+        }
+    }
+    else { // 3D
         for(int d=0;d<AMREX_SPACEDIM;d++) {
             for(int i=1;i<nvars;i++) {
                 MultiFabFillRandom(stochface_A[d], i, 1.0, geom);
@@ -169,7 +177,15 @@ void RK3stepStag(MultiFab& cu,
         }
     }
 
-    if (do_1D == 0) { // don't need this for 1D
+    if (do_1D) { // 1D no transverse shear fluxes
+    }
+    else if (do_2D) { // 2D only xy-shear
+        MultiFabFillRandom(stochedge_x_A[0], 0, 1.0, geom);
+        MultiFabFillRandom(stochedge_x_B[0], 0, 1.0, geom);
+        MultiFabFillRandom(stochedge_y_A[0], 0, 1.0, geom);
+        MultiFabFillRandom(stochedge_y_B[0], 0, 1.0, geom);
+    }
+    else { // 3D
         for (int i=0; i<2; i++) {
             MultiFabFillRandom(stochedge_x_A[i], 0, 1.0, geom);
             MultiFabFillRandom(stochedge_x_B[i], 0, 1.0, geom);
@@ -180,14 +196,20 @@ void RK3stepStag(MultiFab& cu,
         }
     }
 
-    if (do_1D) { // only 1D simulation -- do not need v_x and w_z stochastic terms
-        MultiFabFillRandom(stochcen_A[0], 0, 1.0, geom);
-        MultiFabFillRandom(stochcen_B[0], 0, 1.0, geom);
+    if (do_1D) { // 1D no v_x and w_z stochastic terms
+        MultiFabFillRandom(stochcen_A[0], 0, 1.0, geom, 1);
+        MultiFabFillRandom(stochcen_B[0], 0, 1.0, geom, 1);
     }
-    else {
+    else if (do_2D) { // 2D simulation no w_z stochastic term
+        MultiFabFillRandom(stochcen_A[0], 0, 2.0, geom, 1);
+        MultiFabFillRandom(stochcen_B[0], 0, 2.0, geom, 1);
+        MultiFabFillRandom(stochcen_A[1], 0, 2.0, geom, 1);
+        MultiFabFillRandom(stochcen_B[1], 0, 2.0, geom, 1);
+    }
+    else { // 3D
         for (int i=0; i<3; i++) {
-            MultiFabFillRandom(stochcen_A[i], 0, 2.0, geom);
-            MultiFabFillRandom(stochcen_B[i], 0, 2.0, geom);
+            MultiFabFillRandom(stochcen_A[i], 0, 2.0, geom, 1);
+            MultiFabFillRandom(stochcen_B[i], 0, 2.0, geom, 1);
         }
     }
 
@@ -240,7 +262,6 @@ void RK3stepStag(MultiFab& cu,
     }
     /////////////////////////////////////////////////////
 
-    // Compute transport coefs after setting BCs    
     calculateTransportCoeffs(prim, eta, zeta, kappa, chi, D);
 
     calculateFluxStag(cu, cumom, prim, vel, eta, zeta, kappa, chi, D, 
@@ -324,13 +345,14 @@ void RK3stepStag(MultiFab& cu,
         });
     }
 
-    // Set the correct momentum at the walls -- this is spurious after RK3 update beacuse of the \nabla P term 
+    // Set the correct momentum at the walls and ghost 
     for (int i=0; i<AMREX_SPACEDIM; i++) {
-        BCMomNormal(cupmom[i], vel[i], geom, i);
+        BCMassTempPress(prim, cup, geom, i);
+        BCMomNormal(cupmom[i], vel[i], cup, geom, i);
         BCMomTrans(cupmom[i], vel[i], geom, i);
     }
 
-    // Fill periodic boundaries for conserved variables
+    // Fill boundaries for conserved variables
     for (int d=0; d<AMREX_SPACEDIM; d++) {
         cupmom[d].FillBoundary(geom.periodicity());
     }
@@ -339,7 +361,7 @@ void RK3stepStag(MultiFab& cu,
     // Conserved to primitive conversion (also writes momemtun at cell centers as averages of neighboring faces)
     conservedToPrimitiveStag(prim, vel, cup, cupmom);
 
-    // Fill periodic boundaries for primitive variables (also do for conserved, since cell-centered momentum is written above)
+    // Fill boundaries for primitive variables (also do for conserved, since cell-centered momentum is written above)
     for (int d=0; d<AMREX_SPACEDIM; d++) {
         vel[d].FillBoundary(geom.periodicity());
     }
@@ -486,13 +508,14 @@ void RK3stepStag(MultiFab& cu,
         });
     }
         
-    // Set the correct momentum at the walls -- this is spurious after RK3 update beacuse of the \nabla P term 
+    // Set the correct momentum at the walls 
     for (int i=0; i<AMREX_SPACEDIM; i++) {
-        BCMomNormal(cup2mom[i], vel[i], geom, i);
+        BCMassTempPress(prim, cup2, geom, i);
+        BCMomNormal(cup2mom[i], vel[i], cup2, geom, i);
         BCMomTrans(cup2mom[i], vel[i], geom, i);
     }
 
-    // Fill periodic boundaries for conserved variables
+    // Fill  boundaries for conserved variables
     for (int d=0; d<AMREX_SPACEDIM; d++) {
         cup2mom[d].FillBoundary(geom.periodicity());
     }
@@ -501,7 +524,7 @@ void RK3stepStag(MultiFab& cu,
     // Conserved to primitive conversion (also writes momemtun at cell centers as averages of neighboring faces)
     conservedToPrimitiveStag(prim, vel, cup2, cup2mom);
 
-    // Fill periodic boundaries for primitive variables (also do for conserved, since cell-centered momentum is written above)
+    // Fill  boundaries for primitive variables (also do for conserved, since cell-centered momentum is written above)
     for (int d=0; d<AMREX_SPACEDIM; d++) {
         vel[d].FillBoundary(geom.periodicity());
     }
@@ -644,15 +667,14 @@ void RK3stepStag(MultiFab& cu,
         });
     }
 
-    //PrintFluxes(faceflux,edgeflux_x,edgeflux_y,edgeflux_z,cenflux,"");
-
-    // Set the correct momentum at the walls -- this is spurious after RK3 update beacuse of the \nabla P term 
+    // Set the correct momentum at the walls 
     for (int i=0; i<AMREX_SPACEDIM; i++) {
-        BCMomNormal(cumom[i], vel[i], geom, i);
+        BCMassTempPress(prim, cu, geom, i);
+        BCMomNormal(cumom[i], vel[i], cu, geom, i);
         BCMomTrans(cumom[i], vel[i], geom, i);
     }
 
-    // Fill periodic boundaries for conserved variables
+    // Fill  boundaries for conserved variables
     for (int d=0; d<AMREX_SPACEDIM; d++) {
         cumom[d].FillBoundary(geom.periodicity());
     }
@@ -661,19 +683,19 @@ void RK3stepStag(MultiFab& cu,
     // Conserved to primitive conversion (also writes momemtun at cell centers as averages of neighboring faces)
     conservedToPrimitiveStag(prim, vel, cu, cumom);
 
-    // Fill periodic boundaries for primitive variables (also do for conserved, since cell-centered momentum is written above)
+    // Fill  boundaries for primitive variables (also do for conserved, since cell-centered momentum is written above)
     for (int d=0; d<AMREX_SPACEDIM; d++) {
         vel[d].FillBoundary(geom.periodicity());
     }
     prim.FillBoundary(geom.periodicity());
     cu.FillBoundary(geom.periodicity()); 
 
-    // Correctly set momentum and velocity at the walls & temperature, pressure, density & mass/mole fractions in ghost cells
-    setBCStag(prim, cu, cumom, vel, geom);
-
     // Membrane setup
     if (membrane_cell >= 0) {
         doMembraneStag(cu,cumom,prim,vel,faceflux,geom,dt);
     }
+
+    // Correctly set momentum and velocity at the walls & temperature, pressure, density & mass/mole fractions in ghost cells
+    setBCStag(prim, cu, cumom, vel, geom);
 
 }

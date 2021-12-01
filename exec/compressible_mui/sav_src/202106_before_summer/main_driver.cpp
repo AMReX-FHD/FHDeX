@@ -215,9 +215,6 @@ void main_driver(const char* argv)
 
     std::string inputs_file = argv;
 
-    // read in parameters from inputs file into F90 modules
-    // we use "+1" because of amrex_string_c_to_f expects a null char termination
-    read_common_namelist(inputs_file.c_str(),inputs_file.size()+1);
     
     // copy contents of F90 modules to C++ namespaces
     InitializeCommonNamespace();
@@ -288,14 +285,18 @@ void main_driver(const char* argv)
 
         if (seed > 0) {
             // initializes the seed for C++ random number calls
-            InitRandom(seed+ParallelDescriptor::MyProc());
+            InitRandom(seed+ParallelDescriptor::MyProc(),
+                       ParallelDescriptor::NProcs(),
+                       seed+ParallelDescriptor::MyProc());
         } else if (seed == 0) {
             // initializes the seed for C++ random number calls based on the clock
             auto now = time_point_cast<nanoseconds>(system_clock::now());
             int randSeed = now.time_since_epoch().count();
             // broadcast the same root seed to all processors
             ParallelDescriptor::Bcast(&randSeed,1,ParallelDescriptor::IOProcessorNumber());
-            InitRandom(randSeed+ParallelDescriptor::MyProc());
+            InitRandom(randSeed+ParallelDescriptor::MyProc(),
+                       ParallelDescriptor::NProcs(),
+                       randSeed+ParallelDescriptor::MyProc());
         } else {
             Abort("Must supply non-negative seed");
         }
@@ -515,7 +516,7 @@ void main_driver(const char* argv)
       if (slicepoint < 0) {
           ComputeVerticalAverage(prim, primFlattened, geom, project_dir, 0, structVarsPrim);
       } else {
-          ExtractSlice(prim, primFlattened, geom, project_dir, 0, structVarsPrim);
+          ExtractSlice(prim, primFlattened, geom, project_dir, slicepoint, 0, structVarsPrim);
       }
       // we rotate this flattened MultiFab to have normal in the z-direction since
       // SWFFT only presently supports flattened MultiFabs with z-normal.
@@ -858,7 +859,7 @@ void main_driver(const char* argv)
                 if (slicepoint < 0) {
                     ComputeVerticalAverage(prim, primFlattened, geom, project_dir, 0, structVarsPrim);
                 } else {
-                    ExtractSlice(prim, primFlattened, geom, project_dir, 0, structVarsPrim);
+                    ExtractSlice(prim, primFlattened, geom, project_dir, slicepoint, 0, structVarsPrim);
                 }
                 // we rotate this flattened MultiFab to have normal in the z-direction since
                 // SWFFT only presently supports flattened MultiFabs with z-normal.

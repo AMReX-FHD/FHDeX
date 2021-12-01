@@ -9,6 +9,7 @@ USE_OMP       = FALSE
 COMP          = gnu
 DIM           = 3
 TINY_PROFILE  = FALSE
+USE_MUI       = TRUE
 
 USE_PARTICLES = FALSE
 
@@ -32,9 +33,6 @@ include ../../src_rng/Make.package
 VPATH_LOCATIONS   += ../../src_rng/
 INCLUDE_LOCATIONS += ../../src_rng/
 
-include ../../src_common/src_F90/Make.package
-VPATH_LOCATIONS   += ../../src_common/src_F90
-INCLUDE_LOCATIONS += ../../src_common/src_F90
 
 include ../../src_common/Make.package
 VPATH_LOCATIONS   += ../../src_common/
@@ -61,3 +59,6 @@ else
   LIBRARIES += -L$(FFTW_DIR) -lfftw3_mpi -lfftw3
 endif
 
+ifeq ($(USE_MUI), TRUE)
+  DEFINES += -DMUI
+endif

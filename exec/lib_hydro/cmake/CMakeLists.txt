@@ -40,12 +40,9 @@ message(" *** CMAKE_Fortran_FLAGS=${CMAKE_Fortran_FLAGS}")
 # include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 include_directories(
     ../../../src_common
-    ../../../src_common/src_F90
     ../../../src_rng
     ../../../src_gmres
-    ../../../src_gmres/src_F90
     ../../../src_hydro
-    ../../../src_hydro/src_F90
     ../../../src_immersed-boundary
     ../../../src_immersed-boundary/src_F90
     ../../../src_particles/
@@ -70,17 +67,8 @@ add_library(
     ../../../src_common/main_driver.cpp
     ../../../src_common/NormInnerProduct.cpp
 
-    ../../../src_common/src_F90/common_namelist.F90
-    ../../../src_common/src_F90/compute_averages.F90
-    ../../../src_common/src_F90/compute_basic_stats.F90
-    ../../../src_common/src_F90/init_funcs.F90
-
     ../../../src_rng/MultiFabFillRandom.cpp
     ../../../src_rng/bl_random_c.cpp
-
-    ../../../src_rng/src_F90/bl_random.F90
-    ../../../src_rng/src_F90/multifab_fill_random.F90
-    ../../../src_rng/src_F90/rng_functions.F90
 
     ../../../src_gmres/ApplyMatrix.cpp
     ../../../src_gmres/GMRES.cpp
@@ -91,8 +79,6 @@ add_library(
     ../../../src_gmres/Utility.cpp
     ../../../src_gmres/gmres_functions.cpp
 
-    ../../../src_gmres/src_F90/gmres_namelist.F90
-
     ../../../src_hydro/AddMFluctuations.cpp
     ../../../src_hydro/ConvertMToUmac.cpp
     ../../../src_hydro/HydroBCs.cpp
@@ -101,8 +87,6 @@ add_library(
     ../../../src_hydro/MkAdvSFluxdiv.cpp
     ../../../src_hydro/StochMomFlux.cpp
     ../../../src_hydro/advance.cpp
-
-    ../../../src_hydro/src_F90/hydro_bounds_mod.F90
 
     ../../../src_immersed-boundary/IBCore.cpp
     ../../../src_immersed-boundary/IBMarkerContainer.cpp
@@ -127,7 +111,6 @@ target_link_libraries(
 
 set(HEADERS
     ../../../src_common/common_functions.H
-    ../../../src_common/common_functions_F.H
     ../../../src_common/common_namespace.H
     ../../../src_common/species.H
 

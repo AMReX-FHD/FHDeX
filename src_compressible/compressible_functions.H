@@ -6,8 +6,10 @@
 #include <AMReX_ArrayLim.H>
 
 #include "common_functions.H"
+#include "compressible_namespace.H"
 
 using namespace amrex;
+using namespace compressible;
 
 // copy contents of compressible_params_module to C++ compressible namespace
 void InitializeCompressibleNamespace();
@@ -15,7 +17,7 @@ void InitializeCompressibleNamespace();
 // if gas heat capacities in the namelist are negative, calculate them using using dofs
 void GetHcGas();
 
-void InitConsVar(MultiFab& cons, const MultiFab& prim,
+void InitConsVar(MultiFab& cons,
                  const amrex::Geometry geom);
 
 void calculateFlux(const MultiFab& cons, const MultiFab& prim,
@@ -623,6 +625,140 @@ void D_GIO ( const GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& Dbin,
 }
 
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void D_GIO1 ( const Array2D<Real, 0, MAX_SPECIES-1, 0, MAX_SPECIES-1>& Dbin,
+             const GpuArray<Real,MAX_SPECIES>& Ykp,
+             const GpuArray<Real,MAX_SPECIES>& Xkp,
+             const Array4<Real>& D_tilde,
+             const int nspecies,
+             const int iloc,
+             const int jloc,
+             const int kloc)
+{
+    int i,j,k,ll;
+    Real term1, term2, Deltamat, scr;
+
+    GpuArray<Real,MAX_SPECIES*MAX_SPECIES> Diff_ij, Zmat, Pmat, Jmat, PJ, matrix1, matrix2;
+    GpuArray<Real,MAX_SPECIES> Di, Minv, Mmat;
+
+    int jmax = 3;
+
+    // Find Di matrix 
+    for (i=0; i<nspecies; ++i) {
+        term2 = 0.;
+        for (j=0; j<nspecies; ++j) {
+            if (j != i) {
+                term2 = term2 + Xkp[j]/Dbin(i,j);
+            }
+        }
+        Di[i] = (1.-Ykp[i])/term2;
+    }
+
+    // Compute Mmat and Minv
+    for (i=0; i<nspecies; ++i) {
+        Mmat[i] = Xkp[i]/Di[i];
+        Minv[i] = Di[i]/Xkp[i];
+    }
+
+    // Compute P matrix
+    for (i=0; i<nspecies; ++i) {
+        for (j=0; j<nspecies; ++j) {
+            Pmat[i*nspecies+j] = - Ykp[j];
+            if (i == j) {
+                Pmat[i*nspecies+j] =  Pmat[i*nspecies+j] + 1.;
+            }
+       }
+    }
+
+    // Compute Deltamat
+    for (i=0; i<nspecies; ++i) {
+        for (j=0; j<nspecies; ++j) {
+            if (i == j) {
+                term1 = 0.;
+                for (k=0; k<nspecies; ++k) {
+                    if (k != i) {
+                        term1 = term1 + Xkp[i]*Xkp[k]/Dbin(i,k);
+                    }
+                }
+                Deltamat = term1;
+            } else {
+                Deltamat = -Xkp[i]*Xkp[j]/Dbin(i,j);
+            }
+            Zmat[i*nspecies+j] = -Deltamat;
+        }
+    }
+
+    // Compute Zmat
+    for (i=0; i<nspecies; ++i) {
+        Zmat[i*nspecies+i] = Zmat[i*nspecies+i] + Mmat[i];
+    }
+
+    // Compute Jmat
+    for (i=0; i<nspecies; ++i) {
+        for (j=0; j<nspecies; ++j) {
+            Jmat[i*nspecies+j] = Minv[i]*Zmat[i*nspecies+j];
+        }
+    }
+
+    // Compute PJ
+    for (i=0; i<nspecies; ++i) {
+        for (j=0; j<nspecies; ++j) {
+            PJ[i*nspecies+j] = 0.;
+            for (k=0; k<nspecies; ++k) {
+                PJ[i*nspecies+j] = PJ[i*nspecies+j] + Pmat[i*nspecies+k]*Jmat[k*nspecies+j];
+            }
+        }
+    }
+
+    // Compute P M^-1 Pt; store it in matrix2
+    for (i=0; i<nspecies; ++i) {
+        for (j=0; j<nspecies; ++j) {
+            scr = 0.;
+            for (k=0; k<nspecies; ++k) {
+                scr = scr + Pmat[i*nspecies+k]*Minv[k]*Pmat[j*nspecies+k];
+                // notice the change in indices for Pmat to represent Pmat^t
+            }
+            matrix2[i*nspecies+j] = scr;
+            Diff_ij[i*nspecies+j] = scr;
+        }
+    }
+
+    if (jmax > 0) {
+
+        for (ll=0; ll<jmax; ++ll) {
+
+            // matrix1=0
+            for (i=0; i<nspecies; ++i) {
+                for (j=0; j<nspecies; ++j) {
+                    scr = 0.;
+                    for (k=0; k<nspecies; ++k) {
+                        scr = scr + PJ[i*nspecies+k]*Diff_ij[k*nspecies+j];
+                    }
+                    matrix1[i*nspecies+j] = scr+matrix2[i*nspecies+j];
+                }
+            }
+        
+            for (i=0; i<nspecies; ++i) {
+                for (j=0; j<nspecies; ++j) {
+                    Diff_ij[i*nspecies+j]=matrix1[i*nspecies+j];
+                }
+            }
+        }
+        
+    }
+
+    // Compute D_tilde
+    for (i=0; i<nspecies; ++i) {
+       for (j=0; j<nspecies; ++j) {
+           // indicies on LHS are switched due to C++/F90 memory layout
+           // this is the only location this needs to happen I believe
+           D_tilde(iloc,jloc,kloc,j*nspecies+i) = Diff_ij[i*nspecies+j]*Ykp[i];
+       }
+    }
+    
+}
+
+
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void LambdaLin ( const GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& Dbin,
@@ -888,18 +1024,20 @@ void ViscLin ( const GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& omega11,
     // stop
 }
 
+
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void IdealMixtureTransport ( int iloc, int jloc, int kloc,
-                             Real const density,
-                             Real const temperature,
-                             Real const pressure,
-                             const GpuArray<Real,MAX_SPECIES>& Yk,
-                             const GpuArray<Real,MAX_SPECIES>& Xk,
-                             Real& eta,
-                             Real& kappa,
-                             Real& zeta,
-                             const Array4<Real>& diff_ij,
-                             const Array4<Real>& chitil)
+// Transport Coefficients from Valk/Waldmann
+void IdealMixtureTransportVW ( int iloc, int jloc, int kloc,
+                               Real const density,
+                               Real const temperature,
+                               Real const pressure,
+                               const GpuArray<Real,MAX_SPECIES>& Yk,
+                               const GpuArray<Real,MAX_SPECIES>& Xk,
+                               Real& eta,
+                               Real& kappa,
+                               Real& zeta,
+                               const Array4<Real>& diff_ij,
+                               const Array4<Real>& chitil)
 {
     GpuArray<Real,MAX_SPECIES*MAX_SPECIES> Dbin;
     GpuArray<Real,MAX_SPECIES*MAX_SPECIES> omega11;
@@ -992,6 +1130,333 @@ void IdealMixtureTransport ( int iloc, int jloc, int kloc,
     // chitil = 0.0d0
 }
 
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+// Transport Coefficients from Giovangigli
+void IdealMixtureTransportGIO (int iloc, int jloc, int kloc,
+                               Real const density,
+                               Real const temperature,
+                               Real const pressure,
+                               const GpuArray<Real,MAX_SPECIES>& Yk,
+                               Real& eta,
+                               Real& kappa,
+                               Real& zeta,
+                               const Array4<Real>& diff_ij,
+                               const Array4<Real>& chitil)
+{
+    Array2D<Real, 0, MAX_SPECIES-1, 0, MAX_SPECIES-1> mu;
+    Array2D<Real, 0, MAX_SPECIES-1, 0, MAX_SPECIES-1> diam;
+    Array2D<Real, 0, MAX_SPECIES-1, 0, MAX_SPECIES-1> Dbin;
+    Array2D<Real, 0, MAX_SPECIES-1, 0, MAX_SPECIES-1> amat;
+
+    GpuArray<Real,MAX_SPECIES> molecular_mass;
+    GpuArray<Real,MAX_SPECIES> Xk;
+    GpuArray<Real,MAX_SPECIES> Xkp;
+    GpuArray<Real,MAX_SPECIES> Ykp;
+    GpuArray<Real,MAX_SPECIES> eta1;
+    GpuArray<Real,MAX_SPECIES> rhs;
+    GpuArray<Real,MAX_SPECIES> Bi;
+
+    Real mbar, Xksum, kT, AKL, BKL, CKL, fact1, sum1;
+    Real pi = 3.1415926535897932;
+
+    // compute molecular_mass by dividing molmass by Avogadro's
+    for (int n=0; n<nspecies; ++n) {
+        molecular_mass[n] = molmass[n]*(k_B/Runiv);;
+    }
+
+    // mixture molecular weight
+    mbar = 0.0;
+    for (int n=0; n<nspecies; ++n) {
+        mbar += Yk[n]/molecular_mass[n];
+    }
+    mbar = 1.0/mbar;
+            
+    // mole fracions
+    Xksum = 0.0;
+    for (int n=0; n<nspecies; ++n) {
+        Xk[n] = Yk[n]*mbar/molecular_mass[n];
+        Xksum += Xk[n];
+    }
+
+    // Perturb Xk for zero or negative values -- store in Xkp
+    for (int n=0; n<nspecies; ++n) {
+        Xkp[n] = Xk[n] + 1.0e-16*(Xksum/double(nspecies) - Xk[n]);
+    }
+
+    // Perturbed mass fractions Ykp
+    for (int n=0; n<nspecies; ++n) {
+        Ykp[n] = Xkp[n]*molecular_mass[n]/mbar;
+    }
+
+    for (int i=0; i<nspecies; ++i) {
+        for (int j=0; j<nspecies; ++j) {
+            diam(i,j) = 0.5*(diameter[i] + diameter[j]);
+            mu(i,j)   = molecular_mass[i]*molecular_mass[j]/(molecular_mass[i] + molecular_mass[j]);
+        }
+    }
+
+    // Binary Diffusion Coefficients
+    kT = k_B*temperature;
+    for (int i=0; i<nspecies; ++i) {
+        for (int j=0; j<nspecies; ++j) {
+            Dbin(i,j) = (3.0/16.0)*sqrt(2.0*pi*kT*kT*kT/mu(i,j))/(pressure*pi*diam(i,j)*diam(i,j));
+        }
+    }
+
+    AKL = 1.0;
+    BKL = 1.0;
+    CKL = 1.0;
+
+    // Viscosity
+    for (int i=0; i<nspecies; ++i) {
+        eta1[i] = 5.0/(16.0*diam(i,i)*diam(i,i))*sqrt(molecular_mass[i]*k_B*temperature/pi);
+    }
+
+    for (int i=0; i<nspecies; ++i) {
+        rhs[i] = Xkp[i];
+        Bi[i] = rhs[i];
+        for (int j=0; j<nspecies; ++j) {
+            if (i==j) {
+                amat(i,i) = Xkp[i]*Xkp[i]/eta1[i];
+                for (int k=0; k<nspecies; ++k) {
+                    if (k!=i) {
+                        amat(i,i) += 2.0*kT*Xkp[i]*Xkp[k]/(pressure*Dbin(i,k)*(molecular_mass[i]+molecular_mass[k]))*
+                                     (1.0+0.6*molecular_mass[k]/molecular_mass[i]*AKL);
+                    }
+                }
+            }
+            else {
+                amat(i,j) = 2.0*kT*Xkp[i]*Xkp[j]/(pressure*Dbin(i,j)*(molecular_mass[i]+molecular_mass[j]))*(0.6*AKL-1.0);
+            }
+        }
+    }
+
+    for (int j=0; j<nspecies-1; ++j) {
+        for (int i=j+1; i<nspecies; ++i) {
+            fact1 = amat(i,j)/amat(j,j);
+            for (int k=0; k<nspecies; ++k) {
+                amat(i,k) -= fact1*amat(j,k);
+            }
+            Bi[i] -= fact1*Bi[j];
+        }
+    }
+    Bi[nspecies-1] /= amat(nspecies-1,nspecies-1);
+
+    for (int i=nspecies-2; i>-1; --i) {
+        sum1 = 0.0;
+        for (int j=nspecies-1; j>i; --j) {
+            sum1 += amat(i,j)*Bi[j];
+        }
+        Bi[i] = (Bi[i] - sum1)/amat(i,i);
+    }
+
+    eta = 0.0;
+    for (int i=0; i<nspecies; ++i) {
+        eta += Xkp[i]*Bi[i];
+    }
+
+    // zero bulk viscosity for monoatomic HS
+    zeta = 0.;
+
+    // Thermal Conductivity
+    for (int i=0; i<nspecies; ++i) {
+        rhs[i] = 2.5*Xkp[i];
+        Bi[i] = rhs[i];
+        for (int j=0; j<nspecies; ++j) {
+            if (i==j) {
+                amat(i,i) = Xkp[i]*Xkp[i]/Dbin(i,j)*2.0*AKL;
+                for (int k=0; k<nspecies; ++k) {
+                    if (k!=i) {
+                        amat(i,i) += Xkp[i]*Xkp[k]/Dbin(i,k)*mu(i,k)/(molecular_mass[i]+molecular_mass[k])*
+                                     (7.5*molecular_mass[i]/molecular_mass[k]+6.25*molecular_mass[k]/molecular_mass[i]
+                                      -3.0*molecular_mass[k]/molecular_mass[i]*BKL+4.0*AKL);
+                    }
+                }
+            }
+            else {
+                amat(i,j) = -1.0*Xkp[i]*Xkp[j]/Dbin(i,j)*mu(i,j)/(molecular_mass[i]+molecular_mass[j])*(55.0/4.0-3.0*BKL-4.0*AKL);
+            }
+        }
+    }
+
+    for (int j=0; j<nspecies-1; ++j) {
+        for (int i=j+1; i<nspecies; ++i) {
+            fact1 = amat(i,j)/amat(j,j);
+            for (int k=0; k<nspecies; ++k) {
+                amat(i,k) -= fact1*amat(j,k);
+            }
+            Bi[i] -= fact1*Bi[j];
+        }
+    }
+    Bi[nspecies-1] /= amat(nspecies-1,nspecies-1);
+
+    for (int i=nspecies-2; i>-1; --i) {
+        sum1 = 0.0;
+        for (int j=nspecies-1; j>i; --j) {
+            sum1 += amat(i,j)*Bi[j];
+        }
+        Bi[i] = (Bi[i] - sum1)/amat(i,i);
+    }
+
+    kappa = 0.0;
+    for (int i=0; i<nspecies; ++i) {
+        kappa += rhs[i]*Bi[i];
+    }
+    kappa *= pressure/temperature;
+     
+    // Thermal Diffusion Ratios
+    for (int i=0; i<nspecies; ++i) {
+        chitil(iloc,jloc,kloc,i) = 0.0;
+        for (int j=0; j<nspecies; ++j) {
+            if (i==j) {
+                amat(i,i) = 0.0;
+                for (int k=0; k<nspecies; ++k) {
+                    if (k!=i) {
+                        amat(i,i) -= 0.5*Xkp[k]/Dbin(i,k)*molecular_mass[k]/(molecular_mass[i]+molecular_mass[k])*(6.0*CKL-5.0);
+                    }
+                }
+            }
+            else {
+                amat(i,j) = 0.5*Xkp[j]/Dbin(i,j)*molecular_mass[i]/(molecular_mass[i]+molecular_mass[j])*(6.0*CKL-5.0);
+            }
+        }
+    }
+
+    for (int i=0; i<nspecies; ++i) {
+        for (int j=0; j<nspecies; ++j) {
+            chitil(iloc,jloc,kloc,i) += amat(i,j)*Bi[j];
+        }
+    }
+
+    D_GIO1(Dbin,Ykp,Xkp,diff_ij,nspecies,iloc,jloc,kloc);
+}
+
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+// Transport Coefficients from Hirschfelder-Curtiss-Bird for Binary Mixtures
+void IdealMixtureTransportHCBBin ( int iloc, int jloc, int kloc,
+                                   Real const density,
+                                   Real const temperature,
+                                   Real const pressure,
+                                   const GpuArray<Real,MAX_SPECIES>& Yk,
+                                   const GpuArray<Real,MAX_SPECIES>& Xk,
+                                   Real& eta,
+                                   Real& kappa,
+                                   Real& zeta,
+                                   const Array4<Real>& diff_ij,
+                                   const Array4<Real>& chitil)
+{
+
+    // This routine calculates transport coefficients for a 
+    // binary mixtures of gases of monoatomic hard spheres
+    // The components 0 and 1 of Yk and Xk are the only relevant
+    // ones.
+    
+    GpuArray<Real,2> xxtr;
+    GpuArray<Real,2> yytr;
+    GpuArray<Real,2> molecular_mass;
+
+    Real pi = 3.1415926535897932;
+
+    // compute molecular_mass by dividing molmass by Avogadro's
+    for (int n=0; n<2; ++n) {
+        molecular_mass[n] = molmass[n]*(k_B/Runiv);;
+    }
+            
+    // mole fracions correction - EGLIB
+    for (int ii=0; ii<2; ++ii) {
+        Real sumXk = 0.;
+        for (int jj=0; jj<2; ++jj) {
+            sumXk += Xk[jj];
+        }
+        // GM: Why this factor of 1E-15???
+        xxtr[ii] = Xk[ii] + 1.e-15*(sumXk/2.0 - Xk[ii]);
+    }
+    
+    // molecular weight of mixture - EGLIB
+    Real MWmix = 0.;
+    for (int ii=0; ii<2; ++ii) {
+        MWmix += xxtr[ii]*molmass[ii];
+    }
+
+    // mass fractions correction - EGLIB
+    for (int ii=0; ii<2; ++ii) {
+        yytr[ii] = molmass[ii]/MWmix*xxtr[ii];
+    }
+
+    // Mass, diameter, concentration
+    Real m0 = molecular_mass[0];
+    Real m1 = molecular_mass[1];
+
+    Real d0 = diameter[0];
+    Real d1 = diameter[1];
+
+    Real mx = 2.0*m0*m1/(m0 + m1);
+    Real dx = 0.5*(d0 + d1);
+
+    Real conc = xxtr[1]; // c'
+    Real onc  = xxtr[0]; // 1-c'
+
+    // Viscosity
+    Real eta0 = (5.0/(16.0*d0*d0)) * sqrt(m0*k_B*temperature/pi);
+    Real eta1 = (5.0/(16.0*d1*d1)) * sqrt(m1*k_B*temperature/pi);
+    Real etax = (5.0/(16.0*dx*dx)) * sqrt(mx*k_B*temperature/pi);
+
+    Real Xeta = (onc*onc/eta0) + (2.0*conc*onc/etax) + (conc*conc/eta1);
+    Real Yeta = (3.0/5.0) * ( (onc*onc*m0)/(eta0*m1) + 
+                              (2.0*conc*onc*etax*(m0+m1)*(m0+m1))/(4.0*eta0*eta1*m0*m1) + 
+                              (conc*conc*m1)/(eta1*m0) );
+    Real Zeta = (3.0/5.0) * ( (onc*onc*m0/m1) + 2.0*conc*onc*( ((m0+m1)*(m0+m1)/(4.0*m0*m1))*((etax/eta0) + (etax/eta1)) - 1.0 ) + conc*conc*m1/m0 );
+
+    eta = 1.016*(1.0 + Zeta)/(Xeta + Yeta);
+
+    // Thermal conductivity
+    Real kappa0 = 15.0*k_B*eta0/(4.0*m0);
+    Real kappa1 = 15.0*k_B*eta1/(4.0*m1);
+    Real kappax = 15.0*k_B*etax/(4.0*mx);
+
+    Real U0 = 4.0/15.0 - 17.0*m0/(60.0*m1) + (m0-m1)*(m0-m1)/(2.0*m0*m1);
+    Real U1 = 4.0/15.0 - 17.0*m1/(60.0*m0) + (m0-m1)*(m0-m1)/(2.0*m0*m1);
+    Real UY = 4.0*(m0+m1)*(m0+m1)*kappax*kappax/(15.0*4.0*m0*m1*kappa0*kappa1) - 17.0/60.0 + 13.0*(m0-m1)*(m0-m1)/(32.0*m0*m1);
+    Real UZ = (4.0/15.0)* ( ((m0+m1)*(m0+m1)/(4.0*m0*m1))*((kappax/kappa0) + (kappax/kappa1)) - 1.0) - 17.0/60.0;
+
+    Real Xkappa = onc*onc/kappa0 + 2.0*conc*onc/kappax + conc*conc/kappa1;
+    Real Ykappa = onc*onc*U0/kappa0 + 2.0*conc*onc*UY/kappax + conc*conc*U1/kappa1;
+    Real Zkappa = onc*onc*U0 + 2.0*conc*onc*UZ + conc*conc*U1;
+
+    kappa = 1.025*(1.0 + Zkappa)/(Xkappa + Ykappa);
+
+    zeta = 0.0;
+
+    // Diffusion Coefficient
+    Real diff = 6.0*1.133*etax/(5.0*density);
+
+    // Thermal diffusion ratio (k_T)
+    Real S0 = (m0+m1)*kappax/(2.0*m1*kappa0) - 15*(m1-m0)/(8.0*m0) - 1.0;
+    Real S1 = (m0+m1)*kappax/(2.0*m0*kappa1) - 15*(m0-m1)/(8.0*m1) - 1.0;
+
+    Real thermal_diff = 1.299*conc*onc*(S1*conc - S0*onc)/(6.0*kappax*(Xkappa + Ykappa));
+
+    // Barodiffusion
+    Real baro_diff    = (m0 - m1)*yytr[1]*yytr[0]*(yytr[0]/m0 + yytr[1]/m1);
+
+    // Fill the Diffusion Matrix
+    Real mR = m0/m1;
+    Real diffO_tilde = mR*diff*yytr[1]*yytr[1]*yytr[1]/(yytr[0]*xxtr[1]*xxtr[1]);
+    Real diff1_tilde = mR*diff*yytr[1]*yytr[1]/(xxtr[1]*xxtr[1]);
+
+    diff_ij(iloc,jloc,kloc,0) =  1.0*yytr[0]*diffO_tilde;
+    diff_ij(iloc,jloc,kloc,1) = -1.0*yytr[0]*diffO_tilde;
+    diff_ij(iloc,jloc,kloc,2) = -1.0*yytr[0]*diff1_tilde;
+    diff_ij(iloc,jloc,kloc,3) =  1.0*yytr[0]*diff1_tilde;
+
+    // Fil the thermal diffusion ratio vector
+    thermal_diff = thermal_diff*mR*yytr[1]*yytr[1]/(xxtr[1]*xxtr[1]);
+    chitil(iloc,jloc,kloc,0) = -1.0*xxtr[1]*xxtr[1]*thermal_diff/(mR*xxtr[0]*yytr[1]*yytr[1]); 
+    chitil(iloc,jloc,kloc,1) =  1.0*xxtr[1]*thermal_diff/(mR*yytr[1]*yytr[1]);
+
+}
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void GetDensity ( const Real pressure,

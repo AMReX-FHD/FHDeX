@@ -1,34 +1,34 @@
-&common
-    prob_lo(1:3) = 0.0 0.0 0.0
-    prob_hi(1:3) = 1.28e-4 1.28e-4 1.28e-4
 
-    n_cells(1:3) = 16 16 16
-    max_grid_size(1:3) = 8 8 8
+    prob_lo = 0.0 0.0 0.0
+    prob_hi = 1.28e-4 1.28e-4 1.28e-4
+
+    n_cells = 16 16 16
+    max_grid_size = 8 8 8
 
     plot_int = -1
 
     max_step = 100000
     fixed_dt = 1e-12
 
-    ! 1 = cell-based update
-    ! 2 = MultiFab-based update
-    ! 3 = CLE RK3
-    ! 4 = CLE EM
+    # 1 = cell-based update
+    # 2 = MultiFab-based update
+    # 3 = CLE RK3
+    # 4 = CLE EM
     prob_type = 4 
 
     nspecies = 2
-    ! molecular weights (i.e. per mol)
+    # molecular weights (i.e. per mol)
     molmass = 46.0055 92.0110
 
-    k_B = 1.38064852e-16  ! [units: cm2*g*s-2*K-1]
+    k_B = 1.38064852e-16  # [units: cm2*g*s-2*K-1]
     Runiv = 8.314462175e7
 
-    ! initial total mass density
+    # initial total mass density
     rho0 = 1.855335e-03
-    ! initial mass fractions
-    !rhobar = 1.878679e-01 8.121321e-01 
+    # initial mass fractions
+    #rhobar = 1.878679e-01 8.121321e-01 
     rhobar = 0.5 0.5 
-/
+
 
 # dimerization reaction
 # react1 : 2A -> A_2
