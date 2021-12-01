@@ -536,6 +536,126 @@ void FhdParticleContainer::computeForcesCoulombGPU(long totalParticles) {
     Print() << "Finished Coulomb calculation\n";
 }
 
+void FhdParticleContainer::computeForcesSpringGPU(long totalParticles) {
+
+    BL_PROFILE_VAR("computeForcesSpring",computeForcesSpring);
+
+    using namespace amrex;
+    using common::permittivity;
+    using common::images;
+
+    Real k = 1.;
+    Real x0 = 1.e-8;
+
+    GpuArray<Real, 3> plo = {prob_lo[0], prob_lo[1], prob_lo[2]};
+    GpuArray<Real, 3> phi = {prob_hi[0], prob_hi[1], prob_hi[2]};
+
+    const int lev = 0;
+    double domx, domy, domz;
+
+    domx = (phi[0] - plo[0]);
+    domy = (phi[1] - plo[1]);
+    domz = (phi[2] - plo[2]);
+
+//    Real posx[totalParticles];
+    Gpu::ManagedVector<Real> posx;
+    posx.resize(totalParticles);
+    Real * posxPtr = posx.dataPtr();
+    
+    Gpu::ManagedVector<Real> posy;
+    posy.resize(totalParticles);
+    Real * posyPtr = posy.dataPtr();
+    
+    Gpu::ManagedVector<Real> posz;
+    posz.resize(totalParticles);
+    Real * poszPtr = posz.dataPtr();
+
+    Print() << "Calculating spring force for molecules\n";
+
+    // collect particle positions onto one processor
+    PullDown(0, posxPtr, -1, totalParticles);
+    PullDown(0, posyPtr, -2, totalParticles);
+    PullDown(0, poszPtr, -3, totalParticles);
+    PullDown(0, groupidPtr, FHD_intData::groupid, totalParticles);
+
+    int imag = (images == 0) ? 1 : images;
+
+    Real maxdist = 0.99*amrex::min(imag * domx,
+                                   //imag * domy,
+                                   imag * domz);
+
+
+    for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) {
+
+        const int grid_id = pti.index();
+        const int tile_id = pti.LocalTileIndex();
+
+        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+        auto& particles = particle_tile.GetArrayOfStructs();
+        const int np = particles.numParticles();
+
+       
+
+        auto pstruct = particles().dataPtr();
+       
+       
+       
+        // loop over particles
+//                for(int i = 0; i < np; i++)
+        AMREX_FOR_1D( np, i,
+        {
+
+            ParticleType & part = pstruct[i];
+
+	    if (part.idata(FHD_intData::groupid) == 1)
+	    { 
+               double dr2;
+               double rtdr2;
+               double dx;
+               double dy;
+               double dz;
+
+               for(int j = 0; j < totalParticles; j++)
+               {
+
+	           //TODO: find a way to figure out the particles before and after part in this group
+	           if (groupidPtr[j] == 1)
+	           {
+                       for(int ii = -images; ii <= images; ii++)
+                       {
+                          for(int jj = -images; jj <= images; jj++)
+	                  {
+                              for(int kk = -images; kk <= images; kk++)
+                              {
+
+                                 // get distance between particles
+                                 dx = part.pos(0)-posxPtr[j] - ii*domx;
+                                 dy = part.pos(1)-posyPtr[j] - jj*domy;
+                                 dz = part.pos(2)-poszPtr[j] - kk*domz;
+
+	               	         dr2 = dx*dx + dy*dy + dz*dz;
+                                 rtdr2 = sqrt(dr2);
+
+                 	         if (rtdr2 > 0.0)
+                                 {
+                                    part.rdata(FHD_realData::forcex) += k*(dx/rtdr2)*(rtdr2-x0);
+                                    part.rdata(FHD_realData::forcey) += k*(dy/rtdr2)*(rtdr2-x0);
+                                    part.rdata(FHD_realData::forcez) += k*(dz/rtdr2)*(rtdr2-x0);
+				 }
+	                      }
+	                  }
+	               }
+	           }
+	       }
+	    }
+        });
+    }
+    
+    Print() << "Finished spring force calculation\n";
+
+
+}
+
 
 void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const Real* dxE, const Geometry geomF,
                                     const std::array<MultiFab, AMREX_SPACEDIM>& umac, const std::array<MultiFab, AMREX_SPACEDIM>& efield,
