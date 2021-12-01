@@ -21,6 +21,10 @@ namespace multispec {
     extern AMREX_GPU_MANAGED int      use_lapack;
     extern AMREX_GPU_MANAGED int      use_multiphase;
     extern AMREX_GPU_MANAGED int      use_flory_huggins;
+    extern amrex::Array2D<amrex::Real,0,MAX_SPECIES-1,0,MAX_SPECIES-1>  fh_kappa;
+    extern amrex::Array2D<amrex::Real,0,MAX_SPECIES-1,0,MAX_SPECIES-1>  fh_chi;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> fh_monomers;
+    extern AMREX_GPU_MANAGED amrex::Real monomer_mass;
     extern AMREX_GPU_MANAGED amrex::Real kc_tension;
     extern AMREX_GPU_MANAGED amrex::Real alpha_gex;
     extern AMREX_GPU_MANAGED int      n_gex;

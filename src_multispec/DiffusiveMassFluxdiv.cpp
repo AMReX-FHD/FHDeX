@@ -69,7 +69,7 @@ void DiffusiveMassFlux(const MultiFab& rho,
     }
 
     if (use_flory_huggins == 1) {
-        ComputeFHHigherOrderTerm(molarconc,diff_mass_flux,kappa,geom);
+        ComputeFHHigherOrderTerm(molarconc,diff_mass_flux,geom);
     } else if (use_multiphase == 1) {
         ComputeHigherOrderTerm(molarconc,diff_mass_flux,geom);
     }
@@ -288,7 +288,6 @@ void ComputeHigherOrderTerm(const MultiFab& molarconc,
 }
 void ComputeFHHigherOrderTerm(const MultiFab& molarconc,
                             std::array<MultiFab,AMREX_SPACEDIM>& diff_mass_flux,
-                            Array2D<Real, 0, MAX_SPECIES-1, 0, MAX_SPECIES-1>& fh_kappa,
                             const Geometry& geom)
 {
     
@@ -344,12 +343,11 @@ void ComputeFHHigherOrderTerm(const MultiFab& molarconc,
                 * (twelveinv*dxinv*dxinv);
 #endif
         });
-    }
 
-    Array1D<Real,0,nspecies-1,kappa_lap>
 
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
+             Array1D<Real,0,MAX_SPECIES-1>   kappa_lap;
              for (int n=0; n<nspecies; n++){
                 kappa_lap(n)=0;
              }
@@ -359,9 +357,10 @@ void ComputeFHHigherOrderTerm(const MultiFab& molarconc,
                 }
              }
              for (int n=0; n<nspecies; n++){
-                lap(i,j,k,n) = fh_kappa_lap(n);
+                lap(i,j,k,n) = kappa_lap(n);
              }
         });
+    }
 
     for ( MFIter mfi(molarconc,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
 

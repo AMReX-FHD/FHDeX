@@ -194,8 +194,15 @@ void ComputeMolconcMolmtot(const MultiFab& rho,
 			   MultiFab& molarconc,
 			   MultiFab& molmtot);
 
+void ComputeMassfrac(const MultiFab& rho,
+			   const MultiFab& rhotot,
+			   MultiFab& massfrac);
+
 void ComputeGamma(const MultiFab& molarconc,
 		  const MultiFab& Hessian,
+		  MultiFab& Gamma);
+
+void ComputeFHGamma(const MultiFab& massfrac,
 		  MultiFab& Gamma);
 
 void ComputeRhoWChi(const MultiFab& rho,
@@ -298,7 +305,7 @@ void GetMolTot ( GpuArray<Real, MAX_SPECIES>& W,
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void GetMonomerTot ( GpuArray<Real, MAX_SPECIES>& W,
                 GpuArray<Real, MAX_SPECIES>& monomer_in,
-                Real& monomertot_in,
+                Real& monomertot,
                 int nspecies_in)
 {
     Real sumWOverN = 0.0;
@@ -307,7 +314,7 @@ void GetMonomerTot ( GpuArray<Real, MAX_SPECIES>& W,
         sumWOverN += W[n] / monomer_in[n];
     }
 
-    monomertot_in = 1.0 / sumWOverN;
+    monomertot = 1.0 / sumWOverN;
 }
 
 /**
@@ -471,22 +478,20 @@ void ComputeGammaLocal (
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void ComputeFHGamma (
+void ComputeFHGammaLocal (
                 GpuArray<Real, MAX_SPECIES>& massFrac,
-                Array1D<Real, 0, MAX_SPECIES-1>& NumMonomers,
-                Array2D<Real, 0, MAX_SPECIES-1, 0, MAX_SPECIES-1>& fh_chi,
                 Array2D<Real, 0, MAX_SPECIES-1, 0, MAX_SPECIES-1>& GammaN){
 
         Real Nbar;
 
-        GetMonomerTot ( massFrac, monomer_in, Nbar, nspecies);
+        GetMonomerTot ( massFrac, fh_monomers, Nbar, nspecies);
     
         for (int n=0; n<nspecies; n++){
            for (int m=0; m<nspecies; m++){
-              Real wn = std::max(std::min( massFrac[n],1),0);
+              Real wn = std::max(std::min( massFrac[n],1.),0.);
               GammaN(n,m) = Nbar*wn*fh_chi(n,m);
            }
-           GammaN(n,n) += Nbar/ monomer_in(n);
+           GammaN(n,n) += Nbar/ fh_monomers[n];
         }
 
 }
