@@ -74,13 +74,21 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
     // fill random numbers (can skip density component 0)
     for(int d=0;d<AMREX_SPACEDIM;d++) {
     	for(int i=1;i<nvars;i++) {
-    	    MultiFabFillRandom(stochFlux_A[d], i, 1.0, geom);
-	        MultiFabFillRandom(stochFlux_B[d], i, 1.0, geom);
+            Real variance;
+            if (i>=1 && i <= 3) {
+                variance = variance_coef_mom;
+            } else if (i == 4) {
+                variance = variance_coef_ener;
+            } else {
+                variance = variance_coef_mass;
+            }
+            MultiFabFillRandom(stochFlux_A[d], i, variance*variance, geom);
+            MultiFabFillRandom(stochFlux_B[d], i, variance*variance, geom);
         }
     }
 
-    MultiFabFillRandom(rancorn_A, 0, 1.0, geom);
-    MultiFabFillRandom(rancorn_B, 0, 1.0, geom);
+    MultiFabFillRandom(rancorn_A, 0, variance_coef_mom*variance_coef_mom, geom);
+    MultiFabFillRandom(rancorn_B, 0, variance_coef_mom*variance_coef_mom, geom);
 
     if (nreaction>0) {
         for (int m=0;m<nreaction;m++) {

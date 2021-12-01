@@ -31,9 +31,10 @@
 
   max_step = 100
   plot_int = 1
+  stats_int = 0
 
   # turn on energy dissipation diagnostic
-  turbForcing == 1
+  turbForcing = 1
 
   # Multispecies toggle
   # if algorithm_type = 1, single component

@@ -41,8 +41,10 @@ int                        common::plot_stag;
 std::string                common::plot_base_name;
 int                        common::chk_int;
 std::string                common::chk_base_name;
+std::string                common::plot_init_file;
 AMREX_GPU_MANAGED int      common::prob_type;
 int                        common::restart;
+int                        common::stats_int;
 int                        common::reset_stats;
 int                        common::particle_restart;
 int                        common::print_int;
@@ -60,6 +62,7 @@ AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::hcp;
 
 AMREX_GPU_MANAGED amrex::Real common::variance_coef_mom;
 AMREX_GPU_MANAGED amrex::Real common::variance_coef_mass;
+AMREX_GPU_MANAGED amrex::Real common::variance_coef_ener;
 AMREX_GPU_MANAGED amrex::Real common::k_B;
 AMREX_GPU_MANAGED amrex::Real common::h_bar;
 AMREX_GPU_MANAGED amrex::Real common::Runiv;
@@ -363,8 +366,10 @@ void InitializeCommonNamespace() {
     plot_base_name = "plt";
     chk_int = 0;
     chk_base_name = "chk";
+    plot_init_file = "";
     prob_type = 1;
     restart = -1;
+    stats_int = 1;
     reset_stats = 0;
     particle_restart = -1;
     print_int = 0;
@@ -396,6 +401,7 @@ void InitializeCommonNamespace() {
     // stochastic forcing amplitudes (1 for physical values, 0 to run them off)
     variance_coef_mom = 1.;
     variance_coef_mass = 1.;
+    variance_coef_ener = 1.;
     k_B = 1.38064852e-16;
     h_bar = 1.0546e-27;
     Runiv = 8.314462175e7;
@@ -658,8 +664,10 @@ void InitializeCommonNamespace() {
     pp.query("plot_base_name",plot_base_name);
     pp.query("chk_int",chk_int);
     pp.query("chk_base_name",chk_base_name);
+    pp.query("plot_init_file",plot_init_file);
     pp.query("prob_type",prob_type);
     pp.query("restart",restart);
+    pp.query("stats_int",stats_int);
     pp.query("reset_stats",reset_stats);
     pp.query("particle_restart",particle_restart);
     pp.query("print_int",print_int);
@@ -707,6 +715,7 @@ void InitializeCommonNamespace() {
     }
     pp.query("variance_coef_mom",variance_coef_mom);
     pp.query("variance_coef_mass",variance_coef_mass);
+    pp.query("variance_coef_ener",variance_coef_ener);
     pp.query("k_B",k_B);
     pp.query("h_bar",h_bar);
     pp.query("Runiv",Runiv);

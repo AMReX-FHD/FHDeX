@@ -1194,12 +1194,11 @@ void main_driver(const char* argv)
             }
         }
 
+            //particles.SetPosition(1, prob_hi[0]*0.51, prob_hi[1]*(pow(0.5,istep)) + prob_hi[1]*1e-8, prob_hi[2]*0.51);
+            
+            //particles.SetPosition(1, prob_hi[0]*0.751, prob_hi[1]*0.8, prob_hi[2]*0.251);
+            //particles.SetPosition(2, prob_hi[0]*0.251, prob_hi[1]*0.23906250001, prob_hi[2]*0.751);
 
-
-        //if(istep == 1)
-        //{
-        //    particles.SetPosition(1, prob_hi[0]*0.5, prob_hi[1]*0.5, prob_hi[2]*0.5);
-        //}
     
         //Most of these functions are sensitive to the order of execution. We can fix this, but for now leave them in this order.
 
