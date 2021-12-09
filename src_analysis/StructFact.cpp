@@ -862,10 +862,10 @@ void StructFact::IntegratekShells(const int& step, const Geometry& geom) {
 	        dist = dist+0.5;
                 int cell = int(dist);
                 for (int d=0; d<AMREX_SPACEDIM; ++d) {
-                    phisum_gpu[cell] += cov(i,j,k,d);
+		  amrex::HostDevice::Atomic::Add(&(phisum_gpu[cell]), cov(i,j,k,d));
 //		    phisum_large_gpu[idist]  += cov(i,j,k,d);
                 }
-                ++phicnt_gpu[cell];
+		amrex::HostDevice::Atomic::Add(&(phicnt_gpu[cell]),1);
  //               ++phicnt_large_gpu[idist];
             }
         });
