@@ -22,7 +22,7 @@ void InitializeMultispecNamespace();
 
 /////////////////////////////////////////////////////////////////////////////////
 // in ComputeDivReversibleStress.cpp
-void ComputeFHDivReversibleStress(std::array<MultiFab,AMREX_SPACEDIM>& div_reversible_stress,
+void ComputeDivFHReversibleStress(std::array<MultiFab,AMREX_SPACEDIM>& div_reversible_stress,
                                 const MultiFab& rhotot_in,
                                 MultiFab& rho_in,
                                 const Geometry& geom);
@@ -457,10 +457,21 @@ void ComputeGammaLocal (
             w2 = 0.0;
         }
 
-        GammaN(1,2) = w1 * n_gex * n_gex * alpha_gex * std::pow(w1,n_gex-1) * std::pow(w2,n_gex-1);
-        GammaN(2,1) = w2 * n_gex * n_gex * alpha_gex * std::pow(w2,n_gex-1) * std::pow(w1,n_gex-1);
-        GammaN(1,1) = 1.0 + w1 * n_gex * (n_gex-1) * alpha_gex * std::pow(w1,n_gex-2) * std::pow(w2,n_gex);
-        GammaN(2,2) = 1.0 + w2 * n_gex * (n_gex-1) * alpha_gex * std::pow(w2,n_gex-2) * std::pow(w1,n_gex);
+        if( n_gex == 1 ){
+
+           GammaN(1,2) = w1 * n_gex * n_gex * alpha_gex * std::pow(w1,n_gex-1) * std::pow(w2,n_gex-1);
+           GammaN(2,1) = w2 * n_gex * n_gex * alpha_gex * std::pow(w2,n_gex-1) * std::pow(w1,n_gex-1);
+           GammaN(1,1) = 1.0 ;
+           GammaN(2,2) = 1.0 ;
+
+        } else {
+
+           GammaN(1,2) = w1 * n_gex * n_gex * alpha_gex * std::pow(w1,n_gex-1) * std::pow(w2,n_gex-1);
+           GammaN(2,1) = w2 * n_gex * n_gex * alpha_gex * std::pow(w2,n_gex-1) * std::pow(w1,n_gex-1);
+           GammaN(1,1) = 1.0 + w1 * n_gex * (n_gex-1) * alpha_gex * std::pow(w1,n_gex-2) * std::pow(w2,n_gex);
+           GammaN(2,2) = 1.0 + w2 * n_gex * (n_gex-1) * alpha_gex * std::pow(w2,n_gex-2) * std::pow(w1,n_gex);
+
+        }
 
     } else {
 

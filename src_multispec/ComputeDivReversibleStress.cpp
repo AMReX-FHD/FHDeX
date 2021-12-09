@@ -2,7 +2,7 @@
 
 void ComputeDivFHReversibleStress(std::array<MultiFab,AMREX_SPACEDIM>& div_reversible_stress,
                                 const MultiFab& rhotot_in,
-                                Array2D<Real, 0, MAX_SPECIES-1, 0, MAX_SPECIES-1>& fh_kappa,
+//                                Array2D<Real, 0, MAX_SPECIES-1, 0, MAX_SPECIES-1>& fh_kappa,
                                 MultiFab& rho_in,
                                 const Geometry& geom)
 {

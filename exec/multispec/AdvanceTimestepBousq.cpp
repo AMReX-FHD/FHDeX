@@ -223,6 +223,15 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             MultiFab::Saxpy(gmres_rhs_v[d],1.,div_reversible_stress[d],0,0,1,0);
         }
+    } else if (use_flory_huggins ==1){
+
+        // compute reversible stress tensor ---added term
+        ComputeDivFHReversibleStress(div_reversible_stress,rhotot_old,rho_old,geom);
+
+        // add divergence of reversible stress to gmres_rhs_v
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            MultiFab::Saxpy(gmres_rhs_v[d],1.,div_reversible_stress[d],0,0,1,0);
+        }
 
     }
 
