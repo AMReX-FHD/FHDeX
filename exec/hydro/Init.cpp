@@ -34,8 +34,25 @@ void InitVel(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                      umac_onegrid[1].define(convert(ba_onegrid,nodal_flag_y), dm_onegrid, 1, 0);,
                      umac_onegrid[2].define(convert(ba_onegrid,nodal_flag_z), dm_onegrid, 1, 0););
 
-        // this should be auto-computed but will hard-code for now
-        int rr = 2;
+        // check to make sure refinement ratio is valid in the x-direction
+        int hi_x = bx_init_file.bigEnd(0) + 1;
+        int rr = n_cells[0] / hi_x;
+        if (n_cells[0] % hi_x != 0) {
+            Abort("Init.cpp prob_type 1; plotfile is not evenly divisible by n_cells in the x direction");
+        }
+
+        // check remaining dimensions
+        for (int i=1; i<AMREX_SPACEDIM; ++i) {
+            int hi = bx_init_file.bigEnd(i);
+            if (n_cells[i] / hi != rr) {
+                Abort("Init.cpp prob_type 1; refinement ratio not the same in all directions");
+            }
+            else if (n_cells[i] & hi != 0) {
+                Abort("Init.cpp prob_type 1; plotfile is not evenly divisible by n_cells in y or z direction");
+            }
+        }
+
+        Print() << "Initializing from a plotfile coarser by a factor of " << rr << std::endl;
         
         for (int i=0; i<AMREX_SPACEDIM; ++i) {
         
