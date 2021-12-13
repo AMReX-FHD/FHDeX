@@ -121,7 +121,7 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         }
     }
     
-    if (use_multiphase) {
+    if (use_multiphase || use_flory_huggins) {
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             div_reversible_stress[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 0);
         }
@@ -214,6 +214,7 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     
     // here is a reasonable place to call something to compute in reversible stress term
     // in this case want to get divergence so it looks like a add to rhs for stokes solver
+#if 0
     if (use_multiphase) {
 
         // compute reversible stress tensor ---added term
@@ -234,6 +235,8 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         }
 
     }
+
+#endif
 
     if (use_charged_fluid) {
 
@@ -472,12 +475,26 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         }
     }
 
+#if 0
+
     if (use_multiphase) {
 
         // compute reversible stress tensor ---added term (will add to gmres_rhs_v later)
         ComputeDivReversibleStress(div_reversible_stress,rhotot_new,rho_new,geom);
 
+    } else if (use_flory_huggins ==1){
+
+        // compute reversible stress tensor ---added term
+          ComputeDivFHReversibleStress(div_reversible_stress,rhotot_old,rho_old,geom);
+
+        // add divergence of reversible stress to gmres_rhs_v
+          for (int d=0; d<AMREX_SPACEDIM; ++d) {
+              MultiFab::Saxpy(gmres_rhs_v[d],1.,div_reversible_stress[d],0,0,1,0);
+          }
+
     }
+
+#endif
 
     if (use_charged_fluid) {
 

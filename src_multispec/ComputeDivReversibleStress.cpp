@@ -34,7 +34,9 @@ void ComputeDivFHReversibleStress(std::array<MultiFab,AMREX_SPACEDIM>& div_rever
 
         const Array4<Real>& node_grad_x = node_grad_x_mf.array(mfi);
         const Array4<Real>& node_grad_y = node_grad_y_mf.array(mfi);
+#if (AMREX_SPACEDIM == 3)            
         const Array4<Real>& node_grad_z = node_grad_z_mf.array(mfi);
+#endif
         const Array4<Real const>& c = conc.array(mfi);
         
         amrex::ParallelFor(bx, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept

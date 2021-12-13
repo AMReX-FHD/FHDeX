@@ -177,6 +177,7 @@ void InitializeMultispecNamespace() {
     pp.query("use_lapack",use_lapack);
     pp.query("use_multiphase",use_multiphase);
     pp.query("use_flory_huggins",use_flory_huggins);
+    pp.query("monomer_mass",monomer_mass);
     pp.query("kc_tension",kc_tension);
     pp.query("alpha_gex",alpha_gex);
     pp.query("n_gex",n_gex);
@@ -202,8 +203,10 @@ void InitializeMultispecNamespace() {
         }
     }
     if(use_flory_huggins == 1) {
+        std::cout << "made it here " << std::endl;
         for (int i=0; i<nspecies; ++i) {
             molmass[i] = fh_monomers[i]*monomer_mass;
+            std::cout << molmass[i] << " " << fh_monomers[i] << " " << monomer_mass << std::endl;
         }
     }
     if(pp.queryarr("c_init_1",temp)) {

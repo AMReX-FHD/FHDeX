@@ -29,6 +29,9 @@ void ComputeMolconcMolmtot(const MultiFab& rho_in,
 
             for (int n=0; n<nspecies; ++n ){
                 RhoN[n] = rho(i,j,k,n);
+                if(i==4 && j==4 ){
+                   std::cout << "molar " << n << " " << RhoN[n] << " " << molmass[n] << std::endl;
+                }
             }
 
             ComputeMolconcMolmtotLocal(nspecies,
@@ -40,6 +43,9 @@ void ComputeMolconcMolmtot(const MultiFab& rho_in,
 
             for (int n=0; n<nspecies; ++n ){
                 molarconc(i,j,k,n) = MolarConcN[n] ;
+                if(i==4 && j==4 ){
+                   std::cout << "molarcon " << n << " " << MolarConcN[n] << std::endl;
+                }
             }
 
         });
@@ -69,6 +75,9 @@ void ComputeMassfrac(const MultiFab& rho_in,
         {
 
             massfrac(i,j,k,n) = rho(i,j,k,n)/rhotot(i,j,k);
+            if(i==4 &&j==4){
+               std::cout << "mass frac" << n << " " << massfrac(i,j,k,n) << std::endl;
+            }
 
         });
     }
@@ -160,6 +169,9 @@ void ComputeFHGamma(const MultiFab& massfrac_in,
             for (int n=0; n<nspecies; ++n ){
                 for (int m=0; m<nspecies; ++m){
                     Gamma(i,j,k,n*nspecies+m) = GammaN(n,m);
+                    if(i==4 &&j==4){
+                       std::cout << n << " " << m << " " << Gamma(i,j,k,n*nspecies+m) << " " <<GammaN(n,m)<< std::endl;
+                    }
                 }
             }
         });
@@ -203,9 +215,15 @@ void ComputeRhoWChi(const MultiFab& rho_in,
 
                 rhoN[n] = rho(i,j,k,n);
                 MolarConcN[n] = molarconc(i,j,k,n);
+                    if(i==4 &&j==4){
+                      std::cout << " rho ,x " << n << " " << rhoN[n] << " " << MolarConcN[n] << std::endl;
+                    }
                 for (int m=0; m<nspecies; ++m){
                     rhoWchiN(m+1,n+1) = rhoWchi(i,j,k,n*nspecies+m);
                     D_barN(m+1,n+1) = D_bar(i,j,k,n*nspecies+m);
+                    if(i==4 &&j==4){
+                       std::cout << "in "<<  n << " " << m << " " << rhoWchiN(n+1,m+1)<< " " << D_barN(m+1,n+1) << std::endl;
+                    }
                 }
             }
 
@@ -220,6 +238,9 @@ void ComputeRhoWChi(const MultiFab& rho_in,
             for (int n=0; n<nspecies; ++n ){
                 for (int m=0; m<nspecies; ++m){
                     rhoWchi(i,j,k,n*nspecies+m) = rhoWchiN(m+1,n+1);
+                    if(i==4 &&j==4){
+                       std::cout << "rhowchi "<<  n << " " << m << " " << rhoWchi(i,j,k,n*nspecies+m) << " " <<rhoWchiN(n+1,m+1)<< std::endl;
+                    }
                 }
             }
         });
