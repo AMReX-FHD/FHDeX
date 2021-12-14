@@ -203,10 +203,8 @@ void InitializeMultispecNamespace() {
         }
     }
     if(use_flory_huggins == 1) {
-        std::cout << "made it here " << std::endl;
         for (int i=0; i<nspecies; ++i) {
             molmass[i] = fh_monomers[i]*monomer_mass;
-            std::cout << molmass[i] << " " << fh_monomers[i] << " " << monomer_mass << std::endl;
         }
     }
     if(pp.queryarr("c_init_1",temp)) {

@@ -68,6 +68,7 @@ void DiffusiveMassFlux(const MultiFab& rho,
       MatvecMul(diff_mass_flux[i], Gamma_face[i]);
     }
 
+
     if (use_flory_huggins == 1) {
         ComputeFHHigherOrderTerm(molarconc,diff_mass_flux,geom);
     } else if (use_multiphase == 1) {
@@ -159,9 +160,6 @@ void ComputeHigherOrderTerm(const MultiFab& molarconc,
                  2.*phi(i,j+1,k-1,n)+ 2.*phi(i-1,j,k-1,n)+2.*phi(i+1,j,k-1,n) + 2.*phi(i,j-1,k-1,n))
                 * (twelveinv*dxinv*dxinv);
 #endif
-       if( (i == 4 || i == 5) && j==2){
-        std::cout << n << " lap " << lap(i,j,k,n) << std::endl;
-       }
         });
     }
 
@@ -185,9 +183,6 @@ void ComputeHigherOrderTerm(const MultiFab& molarconc,
         {
             Real phiavg = 0.5*(amrex::max(amrex::min(phi(i,j,k,n),1.),0.) + amrex::max(amrex::min(phi(i-1,j,k,n),1.),0.));
             fluxx(i,j,k,n) = fluxx(i,j,k,n) - 0.5*kc_tension*  phiavg*( lap(i,j,k,n)-lap(i-1,j,k,n) ) * dxinv;
-       if( (i == 4 ) && j==2){
-        std::cout << n << " lap " << lap(i,j,k,n) << " " << lap(i-1,j,k,n) << " " << phiavg << " " << kc_tension*lap(i,j,k,n)<< " " << kc_tension*lap(i-1,j,k,n) << std::endl;
-       }
         },
                            bx_y, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
@@ -206,12 +201,12 @@ void ComputeHigherOrderTerm(const MultiFab& molarconc,
                            bx_y, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
             Real phiavg = 0.5*(amrex::max(amrex::min(phi(i,j,k,n),1.),0.) + amrex::max(amrex::min(phi(i,j-1,k,n),1.),0.));
-            fluxy(i,j,k,n) = fluxy(i,j,k,n) + phiavg* ( lap(i,j,k,n)-lap(i,j-1,k,n) ) * dxinv;
+            fluxy(i,j,k,n) = fluxy(i,j,k,n) -0.5*kc_tension* phiavg* ( lap(i,j,k,n)-lap(i,j-1,k,n) ) * dxinv;
         },
                            bx_z, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
             Real phiavg = 0.5*(amrex::max(amrex::min(phi(i,j,k,n),1.),0.) + amrex::max(amrex::min(phi(i,j,k-1,n),1.),0.));
-            fluxz(i,j,k,n) = fluxz(i,j,k,n) + phiavg*( lap(i,j,k,n)-lap(i,j,k-1,n) ) * dxinv;
+            fluxz(i,j,k,n) = fluxz(i,j,k,n) -0.5*kc_tension* phiavg*( lap(i,j,k,n)-lap(i,j,k-1,n) ) * dxinv;
         });
                            
 #endif
@@ -348,9 +343,6 @@ void ComputeFHHigherOrderTerm(const MultiFab& molarconc,
                  2.*phi(i,j+1,k-1,n)+ 2.*phi(i-1,j,k-1,n)+2.*phi(i+1,j,k-1,n) + 2.*phi(i,j-1,k-1,n))
                 * (twelveinv*dxinv*dxinv);
 #endif
-       if( (i == 4 || i == 5) && j==2){
-        std::cout << n << " lap " << lap(i,j,k,n) << std::endl;
-       }
         });
 
 
@@ -391,9 +383,6 @@ void ComputeFHHigherOrderTerm(const MultiFab& molarconc,
         {
             Real phiavg = 0.5*(amrex::max(amrex::min(phi(i,j,k,n),1.),0.) + amrex::max(amrex::min(phi(i-1,j,k,n),1.),0.));
             fluxx(i,j,k,n) = fluxx(i,j,k,n) +  phiavg*( lap(i,j,k,n)-lap(i-1,j,k,n) ) * dxinv;
-       if( (i == 4 ) && j==2){
-        std::cout << n << " lap " << lap(i,j,k,n) << " " << lap(i-1,j,k,n) << " " << phiavg << std::endl;
-       }
         },
                            bx_y, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {

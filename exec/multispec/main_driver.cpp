@@ -41,12 +41,9 @@ void main_driver(const char* argv)
 
     // copy contents of F90 modules to C++ namespaces
     InitializeCommonNamespace();
-    amrex::Print() << "out of common initializaion" << std::endl;
     InitializeMultispecNamespace();
-    amrex::Print() << "out of multispec initializaion" << std::endl;
     InitializeGmresNamespace();
 
-    amrex::Print() << "out of gmres initializaion" << std::endl;
 
     if (algorithm_type == 6) {
         RhototBCInit();
