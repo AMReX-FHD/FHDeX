@@ -41,30 +41,25 @@ void ComputeMassFluxdiv(MultiFab& rho,
   for (int d=0; d<AMREX_SPACEDIM; ++d) {
       sqrtLonsager_fc[d].define(convert(ba,nodal_flag_dir[d]), dmap, nspecies2, 0);
   }
-
-
-       
-  
   ComputeRhotot(rho,rhotot,1);
   
   // compute molmtot, molarconc (primitive variables) for 
   // each-cell from rho(conserved) 
   ComputeMolconcMolmtot(rho,rhotot,molarconc,molmtot);
 
-
-  if( use_flory_huggins == 1 ) 
+  if(use_flory_huggins == 1) {
       ComputeMassfrac(rho,rhotot,massfrac);
-
+  }
   
   // populate D_bar and Hessian matrix 
   ComputeMixtureProperties(rho,rhotot,D_bar,D_therm,Hessian);
 
   // compute Gamma from Hessian
 
-  if ( use_flory_huggins == 1 ){
-     ComputeFHGamma(massfrac,Gamma);
+  if (use_flory_huggins == 1) {
+      ComputeFHGamma(massfrac,Gamma);
   } else {
-     ComputeGamma(molarconc,Hessian,Gamma);
+      ComputeGamma(molarconc,Hessian,Gamma);
   }
 
   // compute rho*W*chi and zeta/Temp
@@ -75,10 +70,10 @@ void ComputeMassFluxdiv(MultiFab& rho,
   }
 
   // compute diffusive mass fluxes, "-F = rho*W*chi*Gamma*grad(x) - ..."
-  if ( use_flory_huggins == 1 ){
-     DiffusiveMassFluxdiv(rho,rhotot,massfrac,rhoWchi,Gamma,diff_mass_fluxdiv,diff_mass_flux,geom);
+  if (use_flory_huggins == 1) {
+      DiffusiveMassFluxdiv(rho,rhotot,massfrac,rhoWchi,Gamma,diff_mass_fluxdiv,diff_mass_flux,geom);
   } else {
-     DiffusiveMassFluxdiv(rho,rhotot,molarconc,rhoWchi,Gamma,diff_mass_fluxdiv,diff_mass_flux,geom);
+      DiffusiveMassFluxdiv(rho,rhotot,molarconc,rhoWchi,Gamma,diff_mass_fluxdiv,diff_mass_flux,geom);
   }
   
   // compute external forcing for manufactured solution and add to diff_mass_fluxdiv

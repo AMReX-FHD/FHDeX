@@ -439,7 +439,7 @@ void ComputeGammaLocal (
     //Local variables
     Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> X_xxT;
 
-     if ((use_multiphase == 1) && (nspecies == 2)){
+    if ((use_multiphase == 1) && (nspecies == 2)){
 
         // local to define Gamma matrix
         Real w1 = MolarConcN[0];

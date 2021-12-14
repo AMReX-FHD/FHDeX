@@ -56,7 +56,6 @@ void DiffusiveMassFlux(const MultiFab& rho,
     AverageCCToFace(rhoWchi, rhoWchi_face, 0, nspecies2, SPEC_BC_COMP, geom);
 
     // calculate face-centrered grad(molarconc) 
-
     ComputeGrad(molarconc, diff_mass_flux, 0, 0, nspecies, SPEC_BC_COMP, geom);
 
     // compute face-centered Gama from cell-centered values 
@@ -67,7 +66,6 @@ void DiffusiveMassFlux(const MultiFab& rho,
     for(i=0; i<AMREX_SPACEDIM; i++) {
       MatvecMul(diff_mass_flux[i], Gamma_face[i]);
     }
-
 
     if (use_flory_huggins == 1) {
         ComputeFHHigherOrderTerm(molarconc,diff_mass_flux,geom);
