@@ -180,12 +180,12 @@ void ComputeHigherOrderTerm(const MultiFab& molarconc,
         amrex::ParallelFor(bx_x, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
             Real phiavg = 0.5*(amrex::max(amrex::min(phi(i,j,k,n),1.),0.) + amrex::max(amrex::min(phi(i-1,j,k,n),1.),0.));
-            fluxx(i,j,k,n) = fluxx(i,j,k,n) - 0.5*kc_tension*  phiavg*( lap(i,j,k,n)-lap(i-1,j,k,n) ) * dxinv;
+            fluxx(i,j,k,n) = fluxx(i,j,k,n) - 0.5* kc_tension*phiavg*( lap(i,j,k,n)-lap(i-1,j,k,n) ) * dxinv;
         },
                            bx_y, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
             Real phiavg = 0.5*(amrex::max(amrex::min(phi(i,j,k,n),1.),0.) + amrex::max(amrex::min(phi(i,j-1,k,n),1.),0.));
-            fluxy(i,j,k,n) = fluxy(i,j,k,n) - 0.5*kc_tension* phiavg*( lap(i,j,k,n)-lap(i,j-1,k,n) ) * dxinv;
+            fluxy(i,j,k,n) = fluxy(i,j,k,n) - 0.5* kc_tension*phiavg*( lap(i,j,k,n)-lap(i,j-1,k,n) ) * dxinv;
         });
         
 #elif (AMREX_SPACEDIM == 3)
@@ -194,12 +194,12 @@ void ComputeHigherOrderTerm(const MultiFab& molarconc,
         amrex::ParallelFor(bx_x, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
             Real phiavg = 0.5*(amrex::max(amrex::min(phi(i,j,k,n),1.),0.) + amrex::max(amrex::min(phi(i-1,j,k,n),1.),0.));
-            fluxx(i,j,k,n) = fluxx(i,j,k,n) - 0.5*kc_tension* phiavg*( lap(i,j,k,n)-lap(i-1,j,k,n) ) * dxinv;
+            fluxx(i,j,k,n) = fluxx(i,j,k,n) - 0.5* kc_tension*phiavg*( lap(i,j,k,n)-lap(i-1,j,k,n) ) * dxinv;
         },
                            bx_y, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
             Real phiavg = 0.5*(amrex::max(amrex::min(phi(i,j,k,n),1.),0.) + amrex::max(amrex::min(phi(i,j-1,k,n),1.),0.));
-            fluxy(i,j,k,n) = fluxy(i,j,k,n) -0.5*kc_tension* phiavg* ( lap(i,j,k,n)-lap(i,j-1,k,n) ) * dxinv;
+            fluxy(i,j,k,n) = fluxy(i,j,k,n) - 0.5*kc_tension*phiavg*( lap(i,j,k,n)-lap(i,j-1,k,n) ) * dxinv;
         },
                            bx_z, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {

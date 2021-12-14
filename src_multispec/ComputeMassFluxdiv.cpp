@@ -46,10 +46,6 @@ void ComputeMassFluxdiv(MultiFab& rho,
   // compute molmtot, molarconc (primitive variables) for 
   // each-cell from rho(conserved) 
   ComputeMolconcMolmtot(rho,rhotot,molarconc,molmtot);
-
-  if(use_flory_huggins == 1) {
-      ComputeMassfrac(rho,rhotot,massfrac);
-  }
   
   // populate D_bar and Hessian matrix 
   ComputeMixtureProperties(rho,rhotot,D_bar,D_therm,Hessian);
@@ -57,6 +53,7 @@ void ComputeMassFluxdiv(MultiFab& rho,
   // compute Gamma from Hessian
 
   if (use_flory_huggins == 1) {
+      ComputeMassfrac(rho,rhotot,massfrac);
       ComputeFHGamma(massfrac,Gamma);
   } else {
       ComputeGamma(molarconc,Hessian,Gamma);
