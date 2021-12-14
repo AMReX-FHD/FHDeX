@@ -235,7 +235,6 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     }
 
-
     if (use_charged_fluid) {
 
         // compute old Lorentz force
@@ -473,7 +472,6 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         }
     }
 
-
     if (use_multiphase) {
 
         // compute reversible stress tensor ---added term (will add to gmres_rhs_v later)
@@ -485,7 +483,6 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
           ComputeDivFHReversibleStress(div_reversible_stress,rhotot_new,rho_new,geom);
 
     }
-
 
     if (use_charged_fluid) {
 
