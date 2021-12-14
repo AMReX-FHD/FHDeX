@@ -54,6 +54,7 @@ namespace common {
     extern std::string                plot_base_name;
     extern int                        chk_int;
     extern std::string                chk_base_name;
+    extern std::string                plot_init_file;
     extern AMREX_GPU_MANAGED int      prob_type;
     extern int                        restart;
     extern int                        stats_int;
