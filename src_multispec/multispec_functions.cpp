@@ -20,8 +20,8 @@ AMREX_GPU_MANAGED int                                       multispec::use_multi
 AMREX_GPU_MANAGED int                                       multispec::use_flory_huggins;
 AMREX_GPU_MANAGED amrex::Real                               multispec::kc_tension;
 AMREX_GPU_MANAGED amrex::Real                               multispec::alpha_gex;
-amrex::Array2D<Real,0,MAX_SPECIES-1,0,MAX_SPECIES-1>        multispec::fh_kappa;
-amrex::Array2D<Real,0,MAX_SPECIES-1,0,MAX_SPECIES-1>        multispec::fh_chi;
+AMREX_GPU_MANAGED amrex::Array2D<Real,0,MAX_SPECIES-1,0,MAX_SPECIES-1> multispec::fh_kappa;
+AMREX_GPU_MANAGED amrex::Array2D<Real,0,MAX_SPECIES-1,0,MAX_SPECIES-1> multispec::fh_chi;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> multispec::fh_monomers;
 AMREX_GPU_MANAGED amrex::Real                               multispec::monomer_mass;
 AMREX_GPU_MANAGED int                                       multispec::n_gex;
