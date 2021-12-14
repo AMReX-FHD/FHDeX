@@ -159,7 +159,8 @@ void ComputeFHGamma(const MultiFab& massfrac_in,
             // Write back to MultiFab
             for (int n=0; n<nspecies; ++n ){
                 for (int m=0; m<nspecies; ++m){
-                    Gamma(i,j,k,n*nspecies+m) = GammaN(n,m);
+                    // Gamma(i,j,k,n*nspecies+m) = GammaN(n,m);
+                    Gamma(i,j,k,m*nspecies+n) = GammaN(n,m);
                 }
             }
         });
