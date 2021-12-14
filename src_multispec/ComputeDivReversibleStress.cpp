@@ -48,12 +48,12 @@ void ComputeDivFHReversibleStress(std::array<MultiFab,AMREX_SPACEDIM>& div_rever
 
 #elif (AMREX_SPACEDIM == 3)
 
-            node_grad_x(i,j,k,n) = (c(i,j,k,n)-c(i-1,j,k,n)+c(i,j-1,k,n)-c(i-1,j-1,k,n)
-                                    +c(i,j,j-1,n)-c(i-1,j,j-1,n)+c(i,j-1,j-1,n)-c(i-1,j-1,j-1,n))/(4*dx[0]);
-            node_grad_y(i,j,k,n) = (c(i,j,k,n)-c(i,j-1,k,n)+c(i-1,j,k,n)-c(i-1,j-1,k,n)
-                                    +c(i,j,j-1,n)-c(i,j-1,j-1,n)+c(i-1,j,j-1,n)-c(i-1,j-1,j-1,n))/(4*dx[1]);
-            node_grad_z(i,j,k,n) = (c(i,j,k,n)-c(i,j,j-1,n)+c(i-1,j,k,n)-c(i-1,j,j-1,n)
-                                    +c(i,j-1,k,n)-c(i,j-1,j-1,n)+c(i-1,j-1,k,n)-c(i-1,j-1,j-1,n))/(4*dx[2]);
+            node_grad_x(i,j,k,n) = (c(i,j,k  ,n)-c(i-1,j,k  ,n)+c(i,j-1,k  ,n)-c(i-1,j-1,k  ,n)
+                                   +c(i,j,k-1,n)-c(i-1,j,k-1,n)+c(i,j-1,k-1,n)-c(i-1,j-1,k-1,n))/(4*dx[0]);
+            node_grad_y(i,j,k,n) = (c(i,j,k  ,n)-c(i,j-1,k  ,n)+c(i-1,j,k  ,n)-c(i-1,j-1,k  ,n)
+                                   +c(i,j,k-1,n)-c(i,j-1,k-1,n)+c(i-1,j,k-1,n)-c(i-1,j-1,k-1,n))/(4*dx[1]);
+            node_grad_z(i,j,k,n) = (c(i,j  ,k,n)-c(i,j  ,k-1,n)+c(i-1,j  ,k,n)-c(i-1,j  ,k-1,n)
+                                   +c(i,j-1,k,n)-c(i,j-1,k-1,n)+c(i-1,j-1,k,n)-c(i-1,j-1,k-1,n))/(4*dx[2]);
 #endif
         });
     }
@@ -93,8 +93,7 @@ void ComputeDivFHReversibleStress(std::array<MultiFab,AMREX_SPACEDIM>& div_rever
                   Real cby_local_minus = 0.25*(node_grad_y(i,j,k,m)+node_grad_y(i,j+1,k,m)+node_grad_y(i-1,j+1,k,m)+node_grad_y(i-1,j,k,m));
 
                   forcex(i,j,k) += scale_factor * fh_kappa(n,m)*( (node_grad_x(i,j+1,k,n)*node_grad_y(i,j+1,k,m) - node_grad_x(i,j,k,n)*node_grad_y(i,j,k,m))/dx[1] 
-                      +0.5*(cax_local_plus*cbx_local_plus-cay_local_plus*cby_local_plus
-                        -cax_local_minus*cbx_local_minus-cay_local_minus*cby_local_minus)/dx[0]);
+                      +0.5*(cax_local_plus*cbx_local_plus-cay_local_plus*cby_local_plus -cax_local_minus*cbx_local_minus+cay_local_minus*cby_local_minus)/dx[0]);
                }
             }
         },
@@ -112,8 +111,7 @@ void ComputeDivFHReversibleStress(std::array<MultiFab,AMREX_SPACEDIM>& div_rever
                   Real cby_local_minus = 0.25*(node_grad_y(i,j,k,m)+node_grad_y(i,j-1,k,m)+node_grad_y(i+1,j-1,k,m)+node_grad_y(i+1,j,k,m));
 
                   forcey(i,j,k) += scale_factor*fh_kappa(n,m)*((node_grad_x(i+1,j,k,n)*node_grad_y(i+1,j,k,m) - node_grad_x(i,j,k,n)*node_grad_y(i,j,k,m))/dx[0]
-                      +0.5*(cay_local_plus*cby_local_plus- cay_local_minus*cby_local_minus
-                            -cax_local_plus*cbx_local_plus+cax_local_minus*cbx_local_minus)/dx[1]);
+                      +0.5*(cay_local_plus*cby_local_plus- cay_local_minus*cby_local_minus-cax_local_plus*cbx_local_plus+cax_local_minus*cbx_local_minus)/dx[1]);
                }
             }
         });
@@ -125,50 +123,50 @@ void ComputeDivFHReversibleStress(std::array<MultiFab,AMREX_SPACEDIM>& div_rever
         {
             for( int n=0 ; n< nspecies; n++){
                for( int m=0 ; m< nspecies; m++){
-                  Real cax_local_plus = .125*(node_grad_x(i,j,k,n)+node_grad_x(i,j+1,k,n)+node_grad_x(i+1,j+1,k,n) 
-                                               +node_grad_x(i+1,j,k,n)+node_grad_x(i+1,j+1,k+1,n)+node_grad_x(i,j,k+1,n) 
-                                               +node_grad_x(i,j+1,k+1,n)+node_grad_x(i+1,j,k+1,n));
-                  Real cay_local_plus = .125*(node_grad_y(i,j,k,n)+node_grad_y(i,j+1,k,n)+node_grad_y(i+1,j+1,k,n) 
-                                               +node_grad_y(i+1,j,k,n)+node_grad_y(i+1,j+1,k+1,n)+node_grad_y(i,j,k+1,n) 
-                                               +node_grad_y(i,j+1,k+1,n)+node_grad_y(i+1,j,k+1,n));
-                  Real caz_local_plus = .125*(node_grad_z(i,j,k,n)+node_grad_z(i,j+1,k,n)+node_grad_z(i+1,j+1,k,n) 
-                                               +node_grad_z(i+1,j,k,n)+node_grad_z(i+1,j+1,k+1,n)+node_grad_z(i,j,k+1,n)+ 
-                                               node_grad_z(i,j+1,k+1,n)+node_grad_z(i+1,j,k+1,n));
-                  Real cax_local_minus = .125*(node_grad_x(i,j,k,n)+node_grad_x(i,j+1,k,n)+node_grad_x(i-1,j+1,k,n)+
-                                                node_grad_x(i-1,j,k,n)+node_grad_x(i,j,k+1,n)+node_grad_x(i,j+1,k+1,n)+
-                                                node_grad_x(i-1,j+1,k+1,n)+node_grad_x(i-1,j,k+1,n));
-                  Real cay_local_minus = .125*(node_grad_y(i,j,k,n)+node_grad_y(i,j+1,k,n)+node_grad_y(i-1,j+1,k,n)+
-                                                node_grad_y(i-1,j,k,n)+node_grad_y(i,j,k+1,n)+node_grad_y(i,j+1,k+1,n)+
-                                                node_grad_y(i-1,j+1,k+1,n)+node_grad_y(i-1,j,k+1,n));
-                  Real caz_local_minus = .125*(node_grad_z(i,j,k,n)+node_grad_z(i,j+1,k,n)+node_grad_z(i-1,j+1,k,n)
-                                                +node_grad_z(i-1,j,k,n)+node_grad_z(i,j,k+1,n)+node_grad_z(i,j+1,k+1,n)+
-                                                node_grad_z(i-1,j+1,k+1,n)+node_grad_z(i-1,j,k+1,n));
-                  Real cbx_local_plus = .125*(node_grad_x(i,j,k,m)+node_grad_x(i,j+1,k,m)+node_grad_x(i+1,j+1,k,m) 
-                                               +node_grad_x(i+1,j,k,m)+node_grad_x(i+1,j+1,k+1,m)+node_grad_x(i,j,k+1,m) 
-                                               +node_grad_x(i,j+1,k+1,m)+node_grad_x(i+1,j,k+1,m));
-                  Real cby_local_plus = .125*(node_grad_y(i,j,k,m)+node_grad_y(i,j+1,k,m)+node_grad_y(i+1,j+1,k,m) 
-                                               +node_grad_y(i+1,j,k,m)+node_grad_y(i+1,j+1,k+1,m)+node_grad_y(i,j,k+1,m) 
-                                               +node_grad_y(i,j+1,k+1,m)+node_grad_y(i+1,j,k+1,m));
-                  Real cbz_local_plus = .125*(node_grad_z(i,j,k,m)+node_grad_z(i,j+1,k,m)+node_grad_z(i+1,j+1,k,m) 
-                                               +node_grad_z(i+1,j,k,m)+node_grad_z(i+1,j+1,k+1,m)+node_grad_z(i,j,k+1,m)+ 
-                                               node_grad_z(i,j+1,k+1,m)+node_grad_z(i+1,j,k+1,m));
-                  Real cbx_local_minus = .125*(node_grad_x(i,j,k,m)+node_grad_x(i,j+1,k,m)+node_grad_x(i-1,j+1,k,m)+
-                                                node_grad_x(i-1,j,k,m)+node_grad_x(i,j,k+1,m)+node_grad_x(i,j+1,k+1,m)+
-                                                node_grad_x(i-1,j+1,k+1,m)+node_grad_x(i-1,j,k+1,m));
-                  Real cby_local_minus = .125*(node_grad_y(i,j,k,m)+node_grad_y(i,j+1,k,m)+node_grad_y(i-1,j+1,k,m)+
-                                                node_grad_y(i-1,j,k,m)+node_grad_y(i,j,k+1,m)+node_grad_y(i,j+1,k+1,m)+
-                                                node_grad_y(i-1,j+1,k+1,m)+node_grad_y(i-1,j,k+1,m));
-                  Real cbz_local_minus = .125*(node_grad_z(i,j,k,m)+node_grad_z(i,j+1,k,m)+node_grad_z(i-1,j+1,k,m)
-                                                +node_grad_z(i-1,j,k,m)+node_grad_z(i,j,k+1,m)+node_grad_z(i,j+1,k+1,m)+
-                                                node_grad_z(i-1,j+1,k+1,m)+node_grad_z(i-1,j,k+1,m));
 
-                  forcex(i,j,k) += scale_factor * fh_kappa(n,m)
-                      *( (.5*(node_grad_x(i,j+1,k,n)*node_grad_y(i,j+1,k,m) +node_grad_x(i,j+1,k+1,n)*node_grad_y(i,j+1,k+1,m)) 
-                       -  .5*(node_grad_x(i,j,k,n)*node_grad_y(i,j,k,m)+ node_grad_x(i,j,k+1,n)*node_grad_y(i,j,k+1,m)))/dx[1] 
-                       -(0.5*(cay_local_plus *cby_local_plus +caz_local_plus *cbz_local_plus -cax_local_plus *cbx_local_plus) 
-                        -0.5*(cay_local_minus*cby_local_minus+caz_local_minus*cbz_local_minus-cax_local_minus*cbx_local_minus))/(dx[0])  
-                      +(.5*(node_grad_x(i,j,k+1,n)*node_grad_z(i,j,k+1,m) + node_grad_x(i,j+1,k+1,n)*node_grad_x(i,j+1,k+1,m)) -
-                        .5*(node_grad_x(i,j,k,n)  *node_grad_z(i,j,k,m)   + node_grad_x(i,j+1,k,n)  *node_grad_x(i,j+1,k,m)))/dx[2]);
+                  Real cax_local_plus  = .125*(node_grad_x(i  ,j  ,k  ,n)+node_grad_x(i  ,j+1,k  ,n)+node_grad_x(i+1,j+1,k  ,n)+node_grad_x(i+1,j  ,k  ,n)
+                                              +node_grad_x(i  ,j  ,k+1,n)+node_grad_x(i  ,j+1,k+1,n)+node_grad_x(i+1,j+1,k+1,n)+node_grad_x(i+1,j  ,k+1,n));
+
+                  Real cax_local_minus = .125*(node_grad_x(i  ,j  ,k  ,n)+node_grad_x(i  ,j+1,k  ,n)+node_grad_x(i-1,j+1,k  ,n)+node_grad_x(i-1,j  ,k  ,n)
+                                              +node_grad_x(i  ,j  ,k+1,n)+node_grad_x(i  ,j+1,k+1,n)+node_grad_x(i-1,j+1,k+1,n)+node_grad_x(i-1,j  ,k+1,n));
+
+                  Real cay_local_plus  = .125*(node_grad_y(i  ,j  ,k  ,n)+node_grad_y(i  ,j+1,k  ,n)+node_grad_y(i+1,j+1,k  ,n)+node_grad_y(i+1,j  ,k  ,n)
+                                              +node_grad_y(i  ,j  ,k+1,n)+node_grad_y(i  ,j+1,k+1,n)+node_grad_y(i+1,j+1,k+1,n)+node_grad_y(i+1,j  ,k+1,n));
+
+                  Real cay_local_minus = .125*(node_grad_y(i  ,j  ,k  ,n)+node_grad_y(i  ,j+1,k  ,n)+node_grad_y(i-1,j+1,k  ,n)+node_grad_y(i-1,j  ,k  ,n)
+                                              +node_grad_y(i  ,j  ,k+1,n)+node_grad_y(i  ,j+1,k+1,n)+node_grad_y(i-1,j+1,k+1,n)+node_grad_y(i-1,j  ,k+1,n));
+
+                  Real caz_local_plus  = .125*(node_grad_z(i  ,j  ,k  ,n)+node_grad_z(i  ,j+1,k  ,n)+node_grad_z(i+1,j+1,k  ,n)+node_grad_z(i+1,j  ,k  ,n)
+                                              +node_grad_z(i  ,j  ,k+1,n)+node_grad_z(i  ,j+1,k+1,n)+node_grad_z(i+1,j+1,k+1,n)+node_grad_z(i+1,j  ,k+1,n));
+
+                  Real caz_local_minus = .125*(node_grad_z(i  ,j  ,k  ,n)+node_grad_z(i  ,j+1,k  ,n)+node_grad_z(i-1,j+1,k  ,n)+node_grad_z(i-1,j  ,k  ,n)
+                                              +node_grad_z(i  ,j  ,k+1,n)+node_grad_z(i  ,j+1,k+1,n)+node_grad_z(i-1,j+1,k+1,n)+node_grad_z(i-1,j  ,k+1,n));
+
+                  Real cbx_local_plus  = .125*(node_grad_x(i  ,j  ,k  ,m)+node_grad_x(i  ,j+1,k  ,m)+node_grad_x(i+1,j+1,k  ,m)+node_grad_x(i+1,j  ,k  ,m)
+                                              +node_grad_x(i  ,j  ,k+1,m)+node_grad_x(i  ,j+1,k+1,m)+node_grad_x(i+1,j+1,k+1,m)+node_grad_x(i+1,j  ,k+1,m));
+
+                  Real cbx_local_minus = .125*(node_grad_x(i  ,j  ,k  ,m)+node_grad_x(i  ,j+1,k  ,m)+node_grad_x(i-1,j+1,k  ,m)+node_grad_x(i-1,j  ,k  ,m)
+                                              +node_grad_x(i  ,j  ,k+1,m)+node_grad_x(i  ,j+1,k+1,m)+node_grad_x(i-1,j+1,k+1,m)+node_grad_x(i-1,j  ,k+1,m));
+
+                  Real cby_local_plus  = .125*(node_grad_y(i  ,j  ,k  ,m)+node_grad_y(i  ,j+1,k  ,m)+node_grad_y(i+1,j+1,k  ,m)+node_grad_y(i+1,j  ,k  ,m)
+                                              +node_grad_y(i  ,j  ,k+1,m)+node_grad_y(i  ,j+1,k+1,m)+node_grad_y(i+1,j+1,k+1,m)+node_grad_y(i+1,j  ,k+1,m));
+
+                  Real cby_local_minus = .125*(node_grad_y(i  ,j  ,k  ,m)+node_grad_y(i  ,j+1,k  ,m)+node_grad_y(i-1,j+1,k  ,m)+node_grad_y(i-1,j  ,k  ,m)
+                                              +node_grad_y(i  ,j  ,k+1,m)+node_grad_y(i  ,j+1,k+1,m)+node_grad_y(i-1,j+1,k+1,m)+node_grad_y(i-1,j  ,k+1,m));
+
+                  Real cbz_local_plus  = .125*(node_grad_z(i  ,j  ,k  ,m)+node_grad_z(i  ,j+1,k  ,m)+node_grad_z(i+1,j+1,k  ,m)+node_grad_z(i+1,j  ,k  ,m)
+                                              +node_grad_z(i  ,j  ,k+1,m)+node_grad_z(i  ,j+1,k+1,m)+node_grad_z(i+1,j+1,k+1,m)+node_grad_z(i+1,j  ,k+1,m));
+
+                  Real cbz_local_minus = .125*(node_grad_z(i  ,j  ,k  ,m)+node_grad_z(i  ,j+1,k  ,m)+node_grad_z(i-1,j+1,k  ,m)+node_grad_z(i-1,j  ,k  ,m)
+                                              +node_grad_z(i  ,j  ,k+1,m)+node_grad_z(i  ,j+1,k+1,m)+node_grad_z(i-1,j+1,k+1,m)+node_grad_z(i-1,j  ,k+1,m));
+
+                  forcex(i,j,k) += scale_factor * fh_kappa(n,m)*0.5*
+                      ( ((node_grad_x(i,j+1,k,n)*node_grad_y(i,j+1,k,m) + node_grad_x(i,j+1,k+1,n)*node_grad_y(i,j+1,k+1,m)) 
+                       - (node_grad_x(i,j  ,k,n)*node_grad_y(i,j  ,k,m) + node_grad_x(i,j  ,k+1,n)*node_grad_y(i,j  ,k+1,m)))/dx[1] 
+                       +((cax_local_plus *cbx_local_plus - caz_local_plus *cbz_local_plus -cay_local_plus *cby_local_plus) 
+                        -(cax_local_minus*cbx_local_minus- caz_local_minus*cbz_local_minus-cay_local_minus*cby_local_minus))/(dx[0])  
+                      + ((node_grad_x(i,j,k+1,n)*node_grad_z(i,j,k+1,m) + node_grad_x(i,j+1,k+1,n)*node_grad_z(i,j+1,k+1,m)) -
+                         (node_grad_x(i,j,k  ,n)*node_grad_z(i,j,k  ,m) + node_grad_x(i,j+1,k  ,n)*node_grad_z(i,j+1,k  ,m)))/dx[2]);
                   
                }
             }
@@ -177,53 +175,51 @@ void ComputeDivFHReversibleStress(std::array<MultiFab,AMREX_SPACEDIM>& div_rever
         {
             for( int n=0 ; n< nspecies; n++){
                for( int m=0 ; m< nspecies; m++){
-                  Real cax_local_plus = .125*(node_grad_x(i,j,k,n)+node_grad_x(i,j+1,k,n)+
-                                              node_grad_x(i+1,j+1,k,n)+node_grad_x(i+1,j,k,n)+node_grad_x(i+1,j+1,k+1,n)+
-                                              node_grad_x(i,j,k+1,n)+node_grad_x(i,j+1,k+1,n)+node_grad_x(i+1,j,k+1,n));
-                  Real cay_local_plus = .125*(node_grad_y(i,j,k,n)+node_grad_y(i,j+1,k,n)+node_grad_y(i+1,j+1,k,n)+
-                                              node_grad_y(i+1,j,k,n)+node_grad_y(i+1,j+1,k+1,n)+
-                                              node_grad_y(i,j,k+1,n)+node_grad_y(i,j+1,k+1,n)+node_grad_y(i+1,j,k+1,n));
-                  Real caz_local_plus = .125*(node_grad_z(i,j,k,n)+node_grad_z(i,j+1,k,n)+
-                                              node_grad_z(i+1,j+1,k,n)+node_grad_z(i+1,j,k,n)+node_grad_z(i+1,j+1,k+1,n)+
-                                              node_grad_z(i,j,k+1,n)+node_grad_z(i,j+1,k+1,n)+node_grad_z(i+1,j,k+1,n));
 
-                  Real cax_local_minus = .125*(node_grad_x(i,j,k,n)+node_grad_x(i,j-1,k,n)+
-                                               node_grad_x(i+1,j-1,k,n)+node_grad_x(i+1,j,k,n)+node_grad_x(i,j,k+1,n)+
-                                               node_grad_x(i,j-1,k+1,n)+node_grad_x(i+1,j-1,k+1,n)+node_grad_x(i+1,j,k+1,n));
-                  Real cay_local_minus = .125*(node_grad_y(i,j,k,n)+node_grad_y(i,j-1,k,n)+
-                                               node_grad_y(i+1,j-1,k,n)+node_grad_y(i+1,j,k,n)+node_grad_y(i,j,k+1,n)+
-                                               node_grad_y(i,j-1,k+1,n)+node_grad_y(i+1,j-1,k+1,n)+node_grad_y(i+1,j,k+1,n));
-                  Real caz_local_minus = .125*(node_grad_z(i,j,k,n)+node_grad_z(i,j-1,k,n)+
-                                               node_grad_z(i+1,j-1,k,n)+node_grad_z(i+1,j,k,n)+node_grad_z(i,j,k+1,n)+
-                                               node_grad_z(i,j-1,k+1,n)+node_grad_z(i+1,j-1,k+1,n)+node_grad_z(i+1,j,k+1,n));
+                  Real cax_local_plus  = .125*(node_grad_x(i  ,j  ,k  ,n)+node_grad_x(i  ,j+1,k  ,n)+node_grad_x(i+1,j+1,k  ,n)+node_grad_x(i+1,j  ,k  ,n)
+                                              +node_grad_x(i  ,j  ,k+1,n)+node_grad_x(i  ,j+1,k+1,n)+node_grad_x(i+1,j+1,k+1,n)+node_grad_x(i+1,j  ,k+1,n));
 
-                  Real cbx_local_plus = .125*(node_grad_x(i,j,k,m)+node_grad_x(i,j+1,k,m)+
-                                              node_grad_x(i+1,j+1,k,m)+node_grad_x(i+1,j,k,m)+node_grad_x(i+1,j+1,k+1,m)+
-                                              node_grad_x(i,j,k+1,m)+node_grad_x(i,j+1,k+1,m)+node_grad_x(i+1,j,k+1,m));
-                  Real cby_local_plus = .125*(node_grad_y(i,j,k,m)+node_grad_y(i,j+1,k,m)+node_grad_y(i+1,j+1,k,m)+
-                                              node_grad_y(i+1,j,k,m)+node_grad_y(i+1,j+1,k+1,m)+
-                                              node_grad_y(i,j,k+1,m)+node_grad_y(i,j+1,k+1,m)+node_grad_y(i+1,j,k+1,m));
-                  Real cbz_local_plus = .125*(node_grad_z(i,j,k,m)+node_grad_z(i,j+1,k,m)+
-                                              node_grad_z(i+1,j+1,k,m)+node_grad_z(i+1,j,k,m)+node_grad_z(i+1,j+1,k+1,m)+
-                                              node_grad_z(i,j,k+1,m)+node_grad_z(i,j+1,k+1,m)+node_grad_z(i+1,j,k+1,m));
+                  Real cax_local_minus = .125*(node_grad_x(i  ,j  ,k  ,n)+node_grad_x(i  ,j-1,k  ,n)+node_grad_x(i+1,j-1,k  ,n)+node_grad_x(i+1,j  ,k  ,n)
+                                              +node_grad_x(i  ,j  ,k+1,n)+node_grad_x(i  ,j-1,k+1,n)+node_grad_x(i+1,j-1,k+1,n)+node_grad_x(i+1,j  ,k+1,n));
 
-                  Real cbx_local_minus = .125*(node_grad_x(i,j,k,m)+node_grad_x(i,j-1,k,m)+
-                                               node_grad_x(i+1,j-1,k,m)+node_grad_x(i+1,j,k,m)+node_grad_x(i,j,k+1,m)+
-                                               node_grad_x(i,j-1,k+1,m)+node_grad_x(i+1,j-1,k+1,m)+node_grad_x(i+1,j,k+1,m));
-                  Real cby_local_minus = .125*(node_grad_y(i,j,k,m)+node_grad_y(i,j-1,k,m)+
-                                               node_grad_y(i+1,j-1,k,m)+node_grad_y(i+1,j,k,m)+node_grad_y(i,j,k+1,m)+
-                                               node_grad_y(i,j-1,k+1,m)+node_grad_y(i+1,j-1,k+1,m)+node_grad_y(i+1,j,k+1,m));
-                  Real cbz_local_minus = .125*(node_grad_z(i,j,k,m)+node_grad_z(i,j-1,k,m)+
-                                               node_grad_z(i+1,j-1,k,m)+node_grad_z(i+1,j,k,m)+node_grad_z(i,j,k+1,m)+
-                                               node_grad_z(i,j-1,k+1,m)+node_grad_z(i+1,j-1,k+1,m)+node_grad_z(i+1,j,k+1,m));
+                  Real cay_local_plus  = .125*(node_grad_y(i  ,j  ,k  ,n)+node_grad_y(i  ,j+1,k  ,n)+node_grad_y(i+1,j+1,k  ,n)+node_grad_y(i+1,j  ,k  ,n)
+                                              +node_grad_y(i  ,j  ,k+1,n)+node_grad_y(i  ,j+1,k+1,n)+node_grad_y(i+1,j+1,k+1,n)+node_grad_y(i+1,j  ,k+1,n));
 
-                  forcey(i,j,k) += scale_factor * fh_kappa(n,m)
-                      *( (.5*(node_grad_y(i+1,j,k,n)*node_grad_x(i+1,j,k,m) + node_grad_y(i+1,j,k+1,n)*node_grad_x(i+1,j,k+1,m)) 
-                       -  .5*(node_grad_y(i,j,k,n  )*node_grad_x(i,j,k,m)   + node_grad_y(i,j,k+1,n)*  node_grad_x(i,j,k+1,m)))/dx[0] 
-                       -(0.5*(cax_local_plus *cbx_local_plus +caz_local_plus *cbz_local_plus -cay_local_plus *cby_local_plus) 
-                        -0.5*(cax_local_minus*cbx_local_minus+caz_local_minus*cbz_local_minus-cay_local_minus*cby_local_minus))/(dx[1])  
-                      +(.5*(node_grad_y(i,j,k+1,n)*node_grad_z(i,j,k+1,m) + node_grad_y(i,j+1,k+1,n)*node_grad_z(i,j+1,k+1,m)) -
-                        .5*(node_grad_y(i,j,k,n)  *node_grad_z(i,j,k,m)   + node_grad_y(i,j+1,k,n)  *node_grad_z(i,j+1,k,m)))/dx[2]);
+                  Real cay_local_minus = .125*(node_grad_y(i  ,j  ,k  ,n)+node_grad_y(i  ,j-1,k  ,n)+node_grad_y(i+1,j-1,k  ,n)+node_grad_y(i+1,j  ,k  ,n)
+                                              +node_grad_y(i  ,j  ,k+1,n)+node_grad_y(i  ,j-1,k+1,n)+node_grad_y(i+1,j-1,k+1,n)+node_grad_y(i+1,j  ,k+1,n));
+
+                  Real caz_local_plus  = .125*(node_grad_z(i  ,j  ,k  ,n)+node_grad_z(i  ,j+1,k  ,n)+node_grad_z(i+1,j+1,k  ,n)+node_grad_z(i+1,j  ,k  ,n)
+                                              +node_grad_z(i  ,j  ,k+1,n)+node_grad_z(i  ,j+1,k+1,n)+node_grad_z(i+1,j+1,k+1,n)+node_grad_z(i+1,j  ,k+1,n));
+
+                  Real caz_local_minus = .125*(node_grad_z(i  ,j  ,k  ,n)+node_grad_z(i  ,j-1,k  ,n)+node_grad_z(i+1,j-1,k  ,n)+node_grad_z(i+1,j  ,k  ,n)
+                                              +node_grad_z(i  ,j  ,k+1,n)+node_grad_z(i  ,j-1,k+1,n)+node_grad_z(i+1,j-1,k+1,n)+node_grad_z(i+1,j  ,k+1,n));
+
+
+                  Real cbx_local_plus  = .125*(node_grad_x(i  ,j  ,k  ,m)+node_grad_x(i  ,j+1,k  ,m)+node_grad_x(i+1,j+1,k  ,m)+node_grad_x(i+1,j  ,k  ,m)
+                                              +node_grad_x(i  ,j  ,k+1,m)+node_grad_x(i  ,j+1,k+1,m)+node_grad_x(i+1,j+1,k+1,m)+node_grad_x(i+1,j  ,k+1,m));
+
+                  Real cbx_local_minus = .125*(node_grad_x(i  ,j  ,k  ,m)+node_grad_x(i  ,j-1,k  ,m)+node_grad_x(i+1,j-1,k  ,m)+node_grad_x(i+1,j  ,k  ,m)
+                                              +node_grad_x(i  ,j  ,k+1,m)+node_grad_x(i  ,j-1,k+1,m)+node_grad_x(i+1,j-1,k+1,m)+node_grad_x(i+1,j  ,k+1,m));
+
+                  Real cby_local_plus  = .125*(node_grad_y(i  ,j  ,k  ,m)+node_grad_y(i  ,j+1,k  ,m)+node_grad_y(i+1,j+1,k  ,m)+node_grad_y(i+1,j  ,k  ,m)
+                                              +node_grad_y(i  ,j  ,k+1,m)+node_grad_y(i  ,j+1,k+1,m)+node_grad_y(i+1,j+1,k+1,m)+node_grad_y(i+1,j  ,k+1,m));
+
+                  Real cby_local_minus = .125*(node_grad_y(i  ,j  ,k  ,m)+node_grad_y(i  ,j-1,k  ,m)+node_grad_y(i+1,j-1,k  ,m)+node_grad_y(i+1,j  ,k  ,m)
+                                              +node_grad_y(i  ,j  ,k+1,m)+node_grad_y(i  ,j-1,k+1,m)+node_grad_y(i+1,j-1,k+1,m)+node_grad_y(i+1,j  ,k+1,m));
+
+                  Real cbz_local_plus  = .125*(node_grad_z(i  ,j  ,k  ,m)+node_grad_z(i  ,j+1,k  ,m)+node_grad_z(i+1,j+1,k  ,m)+node_grad_z(i+1,j  ,k  ,m)
+                                              +node_grad_z(i  ,j  ,k+1,m)+node_grad_z(i  ,j+1,k+1,m)+node_grad_z(i+1,j+1,k+1,m)+node_grad_z(i+1,j  ,k+1,m));
+
+                  Real cbz_local_minus = .125*(node_grad_z(i  ,j  ,k  ,m)+node_grad_z(i  ,j-1,k  ,m)+node_grad_z(i+1,j-1,k  ,m)+node_grad_z(i+1,j  ,k  ,m)
+                                              +node_grad_z(i  ,j  ,k+1,m)+node_grad_z(i  ,j-1,k+1,m)+node_grad_z(i+1,j-1,k+1,m)+node_grad_z(i+1,j  ,k+1,m));
+
+                  forcey(i,j,k) += scale_factor * fh_kappa(n,m)*0.5* (
+                       ((node_grad_y(i+1,j,k,n)*node_grad_x(i+1,j,k,m) + node_grad_y(i+1,j,k+1,n)*node_grad_x(i+1,j,k+1,m)) 
+                       -(node_grad_y(i  ,j,k,n)*node_grad_x(i  ,j,k,m) + node_grad_y(i  ,j,k+1,n)*node_grad_x(i  ,j,k+1,m)))/dx[0] 
+                       +((cay_local_plus *cby_local_plus -caz_local_plus *cbz_local_plus -cax_local_plus *cbx_local_plus) 
+                        -(cay_local_minus*cby_local_minus-caz_local_minus*cbz_local_minus-cax_local_minus*cbx_local_minus))/dx[1]  
+                      +((node_grad_y(i,j,k+1,n)*node_grad_z(i,j,k+1,m) + node_grad_y(i+1,j,k+1,n)*node_grad_z(i+1,j,k+1,m)) -
+                        (node_grad_y(i,j,k  ,n)*node_grad_z(i,j,k  ,m) + node_grad_y(i+1,j,k  ,n)*node_grad_z(i+1,j,k  ,m)))/dx[2]);
                   
                }
             }
@@ -232,54 +228,52 @@ void ComputeDivFHReversibleStress(std::array<MultiFab,AMREX_SPACEDIM>& div_rever
         {
             for( int n=0 ; n< nspecies; n++){
                for( int m=0 ; m< nspecies; m++){
-                  Real cax_local_plus = .125*(node_grad_x(i,j,k,n)+node_grad_x(i,j+1,k,n)+
-                                              node_grad_x(i+1,j+1,k,n)+node_grad_x(i+1,j,k,n)+node_grad_x(i+1,j+1,k+1,n)+
-                                              node_grad_x(i,j,k+1,n)+node_grad_x(i,j+1,k+1,n)+node_grad_x(i+1,j,k+1,n));
-                  Real cay_local_plus = .125*(node_grad_y(i,j,k,n)+node_grad_y(i,j+1,k,n)+node_grad_y(i+1,j+1,k,n)+
-                                              node_grad_y(i+1,j,k,n)+node_grad_y(i+1,j+1,k+1,n)+node_grad_y(i,j,k+1,n)+
-                                              node_grad_y(i,j+1,k+1,n)+node_grad_y(i+1,j,k+1,n));
-                  Real caz_local_plus = .125*(node_grad_z(i,j,k,n)+node_grad_z(i,j+1,k,n)+node_grad_z(i+1,j+1,k,n)+
-                                              node_grad_z(i+1,j,k,n)+node_grad_z(i+1,j+1,k+1,n)+node_grad_z(i,j,k+1,n)+
-                                              node_grad_z(i,j+1,k+1,n)+node_grad_z(i+1,j,k+1,n));
 
-                  Real cax_local_minus = .125*(node_grad_x(i,j,k,n)+node_grad_x(i,j+1,k,n)+node_grad_x(i+1,j+1,k,n)+ 
-                                               node_grad_x(i+1,j,k,n)+node_grad_x(i,j,k-1,n)+node_grad_x(i,j+1,k-1,n) 
-                                              +node_grad_x(i+1,j+1,k-1,n)+node_grad_x(i+1,j,k-1,n));
-                  Real cay_local_minus = .125*(node_grad_y(i,j,k,n)+node_grad_y(i,j+1,k,n)+node_grad_y(i+1,j+1,k,n) 
-                                              +node_grad_y(i+1,j,k,n)+node_grad_y(i,j,k-1,n)+node_grad_y(i,j+1,k-1,n) 
-                                              +node_grad_y(i+1,j+1,k-1,n)+node_grad_y(i+1,j,k-1,n));
-                  Real caz_local_minus = .125*(node_grad_z(i,j,k,n)+node_grad_z(i,j+1,k,n)+node_grad_z(i+1,j+1,k,n) 
-                                              +node_grad_z(i+1,j,k,n)+node_grad_z(i,j,k-1,n)+node_grad_z(i,j+1,k-1,n) 
-                                              +node_grad_z(i+1,j+1,k-1,n)+node_grad_z(i+1,j,k-1,n));
+                  Real cax_local_plus  = .125*(node_grad_x(i  ,j  ,k  ,n)+node_grad_x(i  ,j+1,k  ,n)+node_grad_x(i+1,j+1,k  ,n)+node_grad_x(i+1,j  ,k  ,n)
+                                              +node_grad_x(i  ,j  ,k+1,n)+node_grad_x(i  ,j+1,k+1,n)+node_grad_x(i+1,j+1,k+1,n)+node_grad_x(i+1,j  ,k+1,n));
 
-                  Real cbx_local_plus = .125*(node_grad_x(i,j,k,m)+node_grad_x(i,j+1,k,m)+
-                                              node_grad_x(i+1,j+1,k,m)+node_grad_x(i+1,j,k,m)+node_grad_x(i+1,j+1,k+1,m)+
-                                              node_grad_x(i,j,k+1,m)+node_grad_x(i,j+1,k+1,m)+node_grad_x(i+1,j,k+1,m));
-                  Real cby_local_plus = .125*(node_grad_y(i,j,k,m)+node_grad_y(i,j+1,k,m)+node_grad_y(i+1,j+1,k,m)+
-                                              node_grad_y(i+1,j,k,m)+node_grad_y(i+1,j+1,k+1,m)+node_grad_y(i,j,k+1,m)+
-                                              node_grad_y(i,j+1,k+1,m)+node_grad_y(i+1,j,k+1,m));
-                  Real cbz_local_plus = .125*(node_grad_z(i,j,k,m)+node_grad_z(i,j+1,k,m)+node_grad_z(i+1,j+1,k,m)+
-                                              node_grad_z(i+1,j,k,m)+node_grad_z(i+1,j+1,k+1,m)+node_grad_z(i,j,k+1,m)+
-                                              node_grad_z(i,j+1,k+1,m)+node_grad_z(i+1,j,k+1,m));
+                  Real cax_local_minus = .125*(node_grad_x(i  ,j  ,k  ,n)+node_grad_x(i  ,j+1,k  ,n)+node_grad_x(i+1,j+1,k  ,n)+node_grad_x(i+1,j  ,k  ,n)
+                                              +node_grad_x(i  ,j  ,k-1,n)+node_grad_x(i  ,j+1,k-1,n)+node_grad_x(i+1,j+1,k-1,n)+node_grad_x(i+1,j  ,k-1,n));
 
-                  Real cbx_local_minus = .125*(node_grad_x(i,j,k,m)+node_grad_x(i,j+1,k,m)+node_grad_x(i+1,j+1,k,m)+ 
-                                               node_grad_x(i+1,j,k,m)+node_grad_x(i,j,k-1,m)+node_grad_x(i,j+1,k-1,m) 
-                                              +node_grad_x(i+1,j+1,k-1,m)+node_grad_x(i+1,j,k-1,m));
-                  Real cby_local_minus = .125*(node_grad_y(i,j,k,m)+node_grad_y(i,j+1,k,m)+node_grad_y(i+1,j+1,k,m) 
-                                              +node_grad_y(i+1,j,k,m)+node_grad_y(i,j,k-1,m)+node_grad_y(i,j+1,k-1,m) 
-                                              +node_grad_y(i+1,j+1,k-1,m)+node_grad_y(i+1,j,k-1,m));
-                  Real cbz_local_minus = .125*(node_grad_z(i,j,k,m)+node_grad_z(i,j+1,k,m)+node_grad_z(i+1,j+1,k,m) 
-                                              +node_grad_z(i+1,j,k,m)+node_grad_z(i,j,k-1,m)+node_grad_z(i,j+1,k-1,m) 
-                                              +node_grad_z(i+1,j+1,k-1,m)+node_grad_z(i+1,j,k-1,m));
+                  Real cay_local_plus  = .125*(node_grad_y(i  ,j  ,k  ,n)+node_grad_y(i  ,j+1,k  ,n)+node_grad_y(i+1,j+1,k  ,n)+node_grad_y(i+1,j  ,k  ,n)
+                                              +node_grad_y(i  ,j  ,k+1,n)+node_grad_y(i  ,j+1,k+1,n)+node_grad_y(i+1,j+1,k+1,n)+node_grad_y(i+1,j  ,k+1,n));
 
-                  forcez(i,j,k) += scale_factor * fh_kappa(n,m)
-                      *( (.5*(node_grad_z(i+1,j,k,n)*node_grad_x(i+1,j,k,m) + node_grad_z(i+1,j,k+1,n)*node_grad_x(i+1,j,k+1,m)) 
-                       -  .5*(node_grad_z(i,j,k,n  )*node_grad_x(i,j,k,m)   + node_grad_z(i,j,k+1,n)*  node_grad_x(i,j,k+1,m)))/dx[0] 
-                       -(0.5*(cax_local_plus *cbx_local_plus +cay_local_plus *cby_local_plus -caz_local_plus *cbz_local_plus) 
-                        -0.5*(cax_local_minus*cbx_local_minus+cay_local_minus*cby_local_minus-caz_local_minus*cbz_local_minus))/(dx[2])  
-                      +(.5*(node_grad_z(i,j,k+1,n)*node_grad_y(i,j,k+1,m) + node_grad_z(i,j+1,k+1,n)*node_grad_y(i,j+1,k+1,m)) -
-                        .5*(node_grad_z(i,j,k,n)  *node_grad_y(i,j,k,m)   + node_grad_z(i,j+1,k,n)  *node_grad_y(i,j+1,k,m)))/dx[1]);
-                  
+                  Real cay_local_minus = .125*(node_grad_y(i  ,j  ,k  ,n)+node_grad_y(i  ,j+1,k  ,n)+node_grad_y(i+1,j+1,k  ,n)+node_grad_y(i+1,j  ,k  ,n)
+                                              +node_grad_y(i  ,j  ,k-1,n)+node_grad_y(i  ,j+1,k-1,n)+node_grad_y(i+1,j+1,k-1,n)+node_grad_y(i+1,j  ,k-1,n));
+
+                  Real caz_local_plus  = .125*(node_grad_z(i  ,j  ,k  ,n)+node_grad_z(i  ,j+1,k  ,n)+node_grad_z(i+1,j+1,k  ,n)+node_grad_z(i+1,j  ,k  ,n)
+                                              +node_grad_z(i  ,j  ,k+1,n)+node_grad_z(i  ,j+1,k+1,n)+node_grad_z(i+1,j+1,k+1,n)+node_grad_z(i+1,j  ,k+1,n));
+
+                  Real caz_local_minus = .125*(node_grad_z(i  ,j  ,k  ,n)+node_grad_z(i  ,j+1,k  ,n)+node_grad_z(i+1,j+1,k  ,n)+node_grad_z(i+1,j  ,k  ,n)
+                                              +node_grad_z(i  ,j  ,k-1,n)+node_grad_z(i  ,j+1,k-1,n)+node_grad_z(i+1,j+1,k-1,n)+node_grad_z(i+1,j  ,k-1,n));
+
+                  Real cbx_local_plus  = .125*(node_grad_x(i  ,j  ,k  ,m)+node_grad_x(i  ,j+1,k  ,m)+node_grad_x(i+1,j+1,k  ,m)+node_grad_x(i+1,j  ,k  ,m)
+                                              +node_grad_x(i  ,j  ,k+1,m)+node_grad_x(i  ,j+1,k+1,m)+node_grad_x(i+1,j+1,k+1,m)+node_grad_x(i+1,j  ,k+1,m));
+
+                  Real cbx_local_minus = .125*(node_grad_x(i  ,j  ,k  ,m)+node_grad_x(i  ,j+1,k  ,m)+node_grad_x(i+1,j+1,k  ,m)+node_grad_x(i+1,j  ,k  ,m)
+                                              +node_grad_x(i  ,j  ,k-1,m)+node_grad_x(i  ,j+1,k-1,m)+node_grad_x(i+1,j+1,k-1,m)+node_grad_x(i+1,j  ,k-1,m));
+
+                  Real cby_local_plus  = .125*(node_grad_y(i  ,j  ,k  ,m)+node_grad_y(i  ,j+1,k  ,m)+node_grad_y(i+1,j+1,k  ,m)+node_grad_y(i+1,j  ,k  ,m)
+                                              +node_grad_y(i  ,j  ,k+1,m)+node_grad_y(i  ,j+1,k+1,m)+node_grad_y(i+1,j+1,k+1,m)+node_grad_y(i+1,j  ,k+1,m));
+
+                  Real cby_local_minus = .125*(node_grad_y(i  ,j  ,k  ,m)+node_grad_y(i  ,j+1,k  ,m)+node_grad_y(i+1,j+1,k  ,m)+node_grad_y(i+1,j  ,k  ,m)
+                                              +node_grad_y(i  ,j  ,k-1,m)+node_grad_y(i  ,j+1,k-1,m)+node_grad_y(i+1,j+1,k-1,m)+node_grad_y(i+1,j  ,k-1,m));
+
+                  Real cbz_local_plus  = .125*(node_grad_z(i  ,j  ,k  ,m)+node_grad_z(i  ,j+1,k  ,m)+node_grad_z(i+1,j+1,k  ,m)+node_grad_z(i+1,j  ,k  ,m)
+                                              +node_grad_z(i  ,j  ,k+1,m)+node_grad_z(i  ,j+1,k+1,m)+node_grad_z(i+1,j+1,k+1,m)+node_grad_z(i+1,j  ,k+1,m));
+
+                  Real cbz_local_minus = .125*(node_grad_z(i  ,j  ,k  ,m)+node_grad_z(i  ,j+1,k  ,m)+node_grad_z(i+1,j+1,k  ,m)+node_grad_z(i+1,j  ,k  ,m)
+                                              +node_grad_z(i  ,j  ,k-1,m)+node_grad_z(i  ,j+1,k-1,m)+node_grad_z(i+1,j+1,k-1,m)+node_grad_z(i+1,j  ,k-1,m));
+
+
+
+                  forcez(i,j,k) += scale_factor * fh_kappa(n,m) * 0.5 * (
+                       ((node_grad_z(i+1,j,k,n)*node_grad_x(i+1,j,k,m) + node_grad_z(i+1,j+1,k,n)*node_grad_x(i+1,j+1,k,m)) 
+                       -(node_grad_z(i  ,j,k,n)*node_grad_x(i  ,j,k,m) + node_grad_z(i  ,j+1,k,n)*node_grad_x(i  ,j+1,k,m)))/dx[0] 
+                      +((caz_local_plus *cbz_local_plus -cay_local_plus *cby_local_plus -cax_local_plus *cbx_local_plus) 
+                       -(caz_local_minus*cbz_local_minus-cay_local_minus*cby_local_minus-cax_local_minus*cbx_local_minus))/dx[2]  
+                      +((node_grad_z(i,j+1,k,n)*node_grad_y(i,j+1,k,m) + node_grad_z(i+1,j+1,k,n)*node_grad_y(i+1,j+1,k,m)) -
+                        (node_grad_z(i,j  ,k,n)*node_grad_y(i,j  ,k,m) + node_grad_z(i+1,j  ,k,n)*node_grad_y(i+1,j  ,k,m)))/dx[1]);
                   
                }
             }
