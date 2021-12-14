@@ -44,7 +44,6 @@ void main_driver(const char* argv)
     InitializeMultispecNamespace();
     InitializeGmresNamespace();
 
-
     if (algorithm_type == 6) {
         RhototBCInit();
     }
