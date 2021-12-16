@@ -363,7 +363,9 @@ void FhdParticleContainer::computeForcesNLGPU(const MultiFab& charge, const Mult
 
     if(doRedist != 0)
     {
+        cout << "Here before fillNeighbor.\n";
         fillNeighbors();
+        cout << "Here after fillNeighbor.\n";
 
         buildNeighborList(CHECK_PAIR{});
     }
@@ -380,7 +382,7 @@ void FhdParticleContainer::computeForcesNLGPU(const MultiFab& charge, const Mult
 
         if (sr_tog != 0)
         {
-
+            cout << "Here particle_function.\n";
             compute_forces_nl_gpu(particles, Np, Nn,
                               m_neighbor_list[lev][index], topList, bottomList, topListLength, bottomListLength, rcount, rdcount);           
         }
@@ -541,10 +543,9 @@ void FhdParticleContainer::computeForcesSpringGPU(long totalParticles) {
     BL_PROFILE_VAR("computeForcesSpring",computeForcesSpring);
 
     using namespace amrex;
-    using common::permittivity;
     using common::images;
 
-    Real k = 1.;
+    Real k = 4.e4;
     Real x0 = 1.e-8;
 
     GpuArray<Real, 3> plo = {prob_lo[0], prob_lo[1], prob_lo[2]};
@@ -570,14 +571,29 @@ void FhdParticleContainer::computeForcesSpringGPU(long totalParticles) {
     posz.resize(totalParticles);
     Real * poszPtr = posz.dataPtr();
 
+    Gpu::ManagedVector<int> groupid;
+    groupid.resize(totalParticles);
+    int * groupidPtr = groupid.dataPtr();
+    
+    Gpu::ManagedVector<int> prev;
+    prev.resize(totalParticles);
+    int * prevPtr = prev.dataPtr();
+    
+    Gpu::ManagedVector<int> next;
+    next.resize(totalParticles);
+    int * nextPtr = next.dataPtr();
+
     Print() << "Calculating spring force for molecules\n";
 
     // collect particle positions onto one processor
     PullDown(0, posxPtr, -1, totalParticles);
     PullDown(0, posyPtr, -2, totalParticles);
     PullDown(0, poszPtr, -3, totalParticles);
-    PullDown(0, groupidPtr, FHD_intData::groupid, totalParticles);
+    PullDownInt(0, groupidPtr, FHD_intData::groupid, totalParticles);
+    PullDownInt(0, prevPtr, FHD_intData::prev, totalParticles);
+    PullDownInt(0, nextPtr, FHD_intData::next, totalParticles);
 
+    //Print() << groupidPtr[1] << "\n";
     int imag = (images == 0) ? 1 : images;
 
     Real maxdist = 0.99*amrex::min(imag * domx,
@@ -607,7 +623,9 @@ void FhdParticleContainer::computeForcesSpringGPU(long totalParticles) {
 
             ParticleType & part = pstruct[i];
 
-	    if (part.idata(FHD_intData::groupid) == 1)
+	    cout << part.idata(FHD_intData::groupid) << "\n";
+
+	    if (part.idata(FHD_intData::groupid) > 0)
 	    { 
                double dr2;
                double rtdr2;
@@ -615,12 +633,12 @@ void FhdParticleContainer::computeForcesSpringGPU(long totalParticles) {
                double dy;
                double dz;
 
-               for(int j = 0; j < totalParticles; j++)
-               {
+               //for(int j = 0; j < totalParticles; j++)
+               //{
 
 	           //TODO: find a way to figure out the particles before and after part in this group
-	           if (groupidPtr[j] == 1)
-	           {
+	           //if (groupidPtr[j] == 1)
+	           //{
                        for(int ii = -images; ii <= images; ii++)
                        {
                           for(int jj = -images; jj <= images; jj++)
@@ -628,25 +646,56 @@ void FhdParticleContainer::computeForcesSpringGPU(long totalParticles) {
                               for(int kk = -images; kk <= images; kk++)
                               {
 
-                                 // get distance between particles
-                                 dx = part.pos(0)-posxPtr[j] - ii*domx;
-                                 dy = part.pos(1)-posyPtr[j] - jj*domy;
-                                 dz = part.pos(2)-poszPtr[j] - kk*domz;
+				 /* For now, one particle on the chain only interact with
+				  *   one particle before and one particle after. */
 
-	               	         dr2 = dx*dx + dy*dy + dz*dz;
-                                 rtdr2 = sqrt(dr2);
+	                         Print() << part.idata(FHD_intData::prev) << "\n";
+                                 // get distance with previous particle
+				 if (part.idata(FHD_intData::prev) > -1) 
+				 {
+                                    dx = part.pos(0)-posxPtr[part.idata(FHD_intData::prev)] - ii*domx;
+                                    dy = part.pos(1)-posyPtr[part.idata(FHD_intData::prev)] - jj*domy;
+                                    dz = part.pos(2)-poszPtr[part.idata(FHD_intData::prev)] - kk*domz;
 
-                 	         if (rtdr2 > 0.0)
-                                 {
-                                    part.rdata(FHD_realData::forcex) += k*(dx/rtdr2)*(rtdr2-x0);
-                                    part.rdata(FHD_realData::forcey) += k*(dy/rtdr2)*(rtdr2-x0);
-                                    part.rdata(FHD_realData::forcez) += k*(dz/rtdr2)*(rtdr2-x0);
+	               	            dr2 = dx*dx + dy*dy + dz*dz;
+                                    rtdr2 = sqrt(dr2);
+				    cout << rtdr2 << "\n";
+
+                 	            if (rtdr2 > 0.0)
+                                    {
+                                       part.rdata(FHD_realData::forcex) += k*(-dx/rtdr2)*(rtdr2-x0);
+                                       part.rdata(FHD_realData::forcey) += k*(-dy/rtdr2)*(rtdr2-x0);
+                                       part.rdata(FHD_realData::forcez) += k*(-dz/rtdr2)*(rtdr2-x0);
+				       cout << part.rdata(FHD_realData::forcex) << "\n";
+				    }
 				 }
+                                 
+	                         Print() << part.idata(FHD_intData::next) << "\n";
+				 // get distance with next particle
+				 if (part.idata(FHD_intData::next) > -1) 
+				 {
+                                    dx = part.pos(0)-posxPtr[part.idata(FHD_intData::next)] - ii*domx;
+                                    dy = part.pos(1)-posyPtr[part.idata(FHD_intData::next)] - jj*domy;
+                                    dz = part.pos(2)-poszPtr[part.idata(FHD_intData::next)] - kk*domz;
+
+	               	            dr2 = dx*dx + dy*dy + dz*dz;
+                                    rtdr2 = sqrt(dr2);
+				    cout << rtdr2 << "\n";
+
+                 	            if (rtdr2 > 0.0)
+                                    {
+                                       part.rdata(FHD_realData::forcex) += k*(-dx/rtdr2)*(rtdr2-x0);
+                                       part.rdata(FHD_realData::forcey) += k*(-dy/rtdr2)*(rtdr2-x0);
+                                       part.rdata(FHD_realData::forcez) += k*(-dz/rtdr2)*(rtdr2-x0);
+				       cout << part.rdata(FHD_realData::forcex) << "\n";
+				    }
+				 }
+
 	                      }
 	                  }
 	               }
-	           }
-	       }
+	           //}
+	       //}
 	    }
         });
     }

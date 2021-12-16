@@ -1236,7 +1236,7 @@ void main_driver(const char* argv)
 	
 
         if (sr_tog != 0 || es_tog==3) {
-
+            cout << "Here NL forces.\n";
             // compute short range forces (if sr_tog=1)
             // compute P3M short range correction (if es_tog=3)
             particles.computeForcesNLGPU(charge, RealCenteredCoords, dxp);
@@ -1255,6 +1255,8 @@ void main_driver(const char* argv)
             // compute pairwise Coulomb force (currently hard-coded to work with y-wall).
 	    particles.computeForcesCoulombGPU(simParticles);
 	}
+
+//	particles.computeForcesSpringGPU(simParticles);
 
         // compute other forces and spread to grid
         particles.SpreadIonsGPU(dx, dxp, geom, umac, efieldCC, source, sourceTemp);

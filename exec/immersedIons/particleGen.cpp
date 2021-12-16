@@ -48,6 +48,10 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
                         particleFile >> p.pos(2);
 
                         particleFile >> p.idata(FHD_intData::pinned);
+			
+			particleFile >> p.idata(FHD_intData::groupid);
+			particleFile >> p.idata(FHD_intData::prev);
+			particleFile >> p.idata(FHD_intData::next);
 
                         if(p.idata(FHD_intData::pinned) != 0)
                         {
@@ -61,6 +65,10 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
                         p.pos(2) = prob_lo[2] + amrex::Random()*(prob_hi[2]-prob_lo[2]);
 
                         p.idata(FHD_intData::pinned) = 0;
+
+                        p.idata(FHD_intData::groupid) = 0;
+                        p.idata(FHD_intData::prev) = -1;
+                        p.idata(FHD_intData::next) = -1;
 
                     }
 

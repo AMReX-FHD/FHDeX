@@ -138,7 +138,9 @@ struct FHD_intData {
         species,
         visible,
         pinned,
-	groupid,
+        groupid,
+        prev,
+        next,
         count
     };
 
@@ -151,7 +153,9 @@ struct FHD_intData {
             "species",
             "visible",
             "pinned",
-	    "groupid"
+	    "groupid",
+	    "prev",
+	    "next"
         };
     };
 };
@@ -265,6 +269,8 @@ public:
     void computeForcesNLGPU(const MultiFab& charge, const MultiFab& coords, const Real* dx);
 
     void computeForcesCoulombGPU(long totalParticles);
+
+    void computeForcesSpringGPU(long totalParticles);
 
     void MoveParticlesDSMC(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount,Real time, int* flux);
 
