@@ -263,7 +263,7 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, const paramPlane* par
 //    }
 
     ParallelDescriptor::ReduceIntSum(totalParts);
-	Print() << "Total particles: " << totalParts << "\n";
+	//Print() << "Total particles: " << totalParts << "\n";
 	
 	Redistribute();
 	SortParticles();
