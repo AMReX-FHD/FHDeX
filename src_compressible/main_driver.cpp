@@ -689,9 +689,7 @@ void main_driver(const char* argv)
                 
                // reset and compute structure factor
                turbStructFact.FortStructure(structFactMF,geom,1);
-
-               // writing the plotfiles does the shifting and copying into cov_mag
-               turbStructFact.WritePlotFile(step,time,geom,"plt_Turb");
+               turbStructFact.CallFinalize(geom);
 
                // integrate cov_mag over shells in k and write to file
                turbStructFact.IntegratekShells(step,geom);
@@ -761,7 +759,11 @@ void main_driver(const char* argv)
             // timer
             Real t1 = ParallelDescriptor::second();
 
+	    Print() << "HERE1\n";
+	    
             structFactPrim.WritePlotFile(step,time,geom,"plt_SF_prim");
+
+	    Print() << "HERE2\n";
             structFactCons.WritePlotFile(step,time,geom,"plt_SF_cons");
             if(project_dir >= 0) {
                 structFactPrimFlattened.WritePlotFile(step,time,geom_flat,"plt_SF_prim_Flattened");

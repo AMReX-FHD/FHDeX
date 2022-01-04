@@ -2,7 +2,6 @@
 
   # Problem specification
   prob_lo = 0.0 0.0 0.0       # physical lo coordinate
-  #prob_hi = 32.e-6 32.e-6 32.e-6 # physical hi coordinate
   prob_hi = 5.12 5.12 5.12
 
   # if prob_type = 0, zero initial velocity
@@ -12,8 +11,6 @@
   prob_type = 0
   
   # number of cells in domain
-  #n_cells = 32 32 32
-  #n_cells = 128 128 128
   n_cells = 64 64 64
   # max number of cells in a box
   max_grid_size = 32 32 32
@@ -22,9 +19,9 @@
   fixed_dt = 1.e-10
 
   # Controls for number of steps between actions
-  max_step = 1000
-  plot_int = 100
-  chk_int = 1000
+  max_step = 5
+  plot_int = 1
+  chk_int = -1
   restart = -1
 
   turbForcing = 1
@@ -49,8 +46,8 @@
   k_B = 1.3806488e-16
   T_init = 300.
 
-  struct_fact_int = 0
-  n_steps_skip = 30000
+  struct_fact_int = -1
+  n_steps_skip = 0
 
   # Boundary conditions
   # ----------------------

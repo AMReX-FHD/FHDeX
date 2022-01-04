@@ -22,7 +22,6 @@ PrintUsage (const char* progName)
             << progName << std::endl
             << " infile=<plotFileName>" << std::endl
             << " outfile=<base_output_filename> " << std::endl
-            << " nderivs=<# of 2nd-derivatives> " << std::endl
             << " nbins=<number of bins> " << std::endl
             << " range=<lo/hi end of range> " << std::endl
             << std::endl;
@@ -51,9 +50,8 @@ main (int   argc,
     std::string oFile;
     pp.get("outfile", oFile);
 
-    // how many 2nd-derivatives to take
-    int nderivs;
-    pp.get("nderivs", nderivs);
+    std::string oFile_save = oFile;
+
 
     // how many bins
     int nbins;
@@ -149,12 +147,18 @@ main (int   argc,
 
     // copy shifted velocity components from mf into mf_grown
     Copy(mf_grown,mf,AMREX_SPACEDIM,0,AMREX_SPACEDIM,0);
-    if(nderivs ==0) Copy(laplacian,mf,AMREX_SPACEDIM,0,AMREX_SPACEDIM,0);
+
+    for (int nderivs = 0 ; nderivs <5; nderivs++){
+
+
+    if(nderivs == 0){
+	    Copy(laplacian,mf,AMREX_SPACEDIM,0,AMREX_SPACEDIM,0);
+    } else {
 
     // fill ghost cells of mf_grown
     mf_grown.FillBoundary(geom.periodicity());
 
-    for (int m=0; m<nderivs; ++m) {
+//    for (int m=0; m<nderivs; ++m) {
     
         for ( MFIter mfi(mf_grown,false); mfi.isValid(); ++mfi ) {
 
@@ -183,6 +187,7 @@ main (int   argc,
 
         } // end MFIter
 
+
         // copy lap into mf_grown
         Copy(mf_grown,laplacian,0,0,AMREX_SPACEDIM,0);
 
@@ -192,6 +197,8 @@ main (int   argc,
     } // end loop over nderivs
         
     Vector<Real> L2(AMREX_SPACEDIM,0.);
+    for (int i=0; i<AMREX_SPACEDIM; i++)
+	    L2[i]=0.;
 
     for ( MFIter mfi(laplacian,false); mfi.isValid(); ++mfi ) {
 
@@ -251,6 +258,8 @@ main (int   argc,
     Real binwidth = 2.*range/nbins;
     amrex::Long count=0;
     amrex::Long totbin=0;
+    for (int ind=0 ; ind < nbins+1; ind++)
+	    bins[ind]=0;
 
     for ( MFIter mfi(laplacian,false); mfi.isValid(); ++mfi ) {
 
@@ -293,6 +302,7 @@ main (int   argc,
     }
     if (ParallelDescriptor::IOProcessor()) {
         std::ofstream outfile;
+	oFile = oFile_save;
         oFile +="_";
         oFile += std::to_string(nderivs);
         oFile += ".dat";
@@ -303,6 +313,7 @@ main (int   argc,
         }
     }
 
+}
 
 }
     amrex::Finalize();

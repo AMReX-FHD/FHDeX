@@ -17,7 +17,8 @@ TINY_PROFILE = FALSE
 
 ###################################################
 
-EBASE     = PDF
+#EBASE     = PDF
+EBASE     = PDF_all
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
