@@ -508,7 +508,7 @@ void FhdParticleContainer::Source(const Real dt, const paramPlane* paramPlaneLis
 						Real area = paramPlaneList[i].area/ParallelDescriptor::NProcs();
 						Real fluxMean = density*area*sqrt(properties[j].R*temp/(2.0*M_PI))/particle_neff;
 
-						//Print() << "density left: " << density << "\n";
+						Print() << "fluxmean right species " << j << " surface " << i << ": " << fluxMean << "\n";
 												
 						Real elapsedTime = -log(amrex::Random())/fluxMean;
                         int totalFluxInt = 0;
@@ -601,7 +601,7 @@ void FhdParticleContainer::Source(const Real dt, const paramPlane* paramPlaneLis
 						Real area = paramPlaneList[i].area/ParallelDescriptor::NProcs();
 						Real fluxMean = density*area*sqrt(properties[j].R*temp/(2.0*M_PI))/particle_neff;
 
-						//Print() << "fluxmean right: " << fluxMean << "\n";
+						Print() << "fluxmean right species " << j << " surface " << i << ": " << fluxMean << "\n";
 												
 						Real elapsedTime = -log(amrex::Random())/fluxMean;
                         int totalFluxInt = 0;
