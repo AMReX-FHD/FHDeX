@@ -253,6 +253,7 @@ public:
     void writeVel(int id);
 
     void MeanSqrCalc(int lev, int step);
+    void MeanSqrCalcCM(int lev, int step);
 
     void BuildCorrectionTable(const Real* dx, int setMeasureFinal);
 

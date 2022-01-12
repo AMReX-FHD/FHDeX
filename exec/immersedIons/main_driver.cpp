@@ -1236,7 +1236,6 @@ void main_driver(const char* argv)
 	
 
         if (sr_tog != 0 || es_tog==3) {
-            cout << "Here NL forces.\n";
             // compute short range forces (if sr_tog=1)
             // compute P3M short range correction (if es_tog=3)
             particles.computeForcesNLGPU(charge, RealCenteredCoords, dxp);
@@ -1373,10 +1372,10 @@ void main_driver(const char* argv)
             if ((n_steps_skip > 0 && istep == n_steps_skip) ||
                 (n_steps_skip < 0 && istep%n_steps_skip == 0) ) {
 
-                //particles.MeanSqrCalc(0, 1);
+                particles.MeanSqrCalcCM(0, 1);
             }
             else {
-                //particles.MeanSqrCalc(0, 0);
+                particles.MeanSqrCalcCM(0, 0);
             }
 
             Print() << "Finish move.\n";

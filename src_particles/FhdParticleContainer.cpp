@@ -363,10 +363,7 @@ void FhdParticleContainer::computeForcesNLGPU(const MultiFab& charge, const Mult
 
     if(doRedist != 0)
     {
-        cout << "Here before fillNeighbor.\n";
         fillNeighbors();
-        cout << "Here after fillNeighbor.\n";
-
         buildNeighborList(CHECK_PAIR{});
     }
 
@@ -382,9 +379,8 @@ void FhdParticleContainer::computeForcesNLGPU(const MultiFab& charge, const Mult
 
         if (sr_tog != 0)
         {
-            cout << "Here particle_function.\n";
             compute_forces_nl_gpu(particles, Np, Nn,
-                              m_neighbor_list[lev][index], topList, bottomList, topListLength, bottomListLength, rcount, rdcount);           
+            m_neighbor_list[lev][index], topList, bottomList, topListLength, bottomListLength, rcount, rdcount);           
         }
 
         if (es_tog==3)
@@ -2715,6 +2711,169 @@ FhdParticleContainer::MeanSqrCalc(int lev, int step) {
             {
                 std::string specname = Concatenate("msdEst_",i+1);
                 std::ofstream ofs(specname, std::ofstream::app);
+
+                if(stepstat[i]==0)
+                {
+                    ofs << std::endl;
+                }else if(stepstat[i]<(msd_len[i]+1))
+                {  
+                    ofs << travelTime[i] << "  " << sqrDispX[i] << "  " << sqrDispY[i] << "  "<< sqrDispZ[i] << "  "<< sqrDisp[i] << std::endl;
+                }
+        
+                ofs.close();
+            }
+        }
+    }
+    
+}
+
+void
+FhdParticleContainer::MeanSqrCalcCM(int lev, int step) {
+
+    BL_PROFILE_VAR("MeanSqrCalcCM()",MeanSqrCalcCM);
+
+    Real diffTotal = 0;
+    Real tt = 0.; // set to zero to protect against grids with no particles
+    long nTotal = 0;
+    Real sumPosQ[3] = {0,0,0};
+    Real sqrDispX[ngroups];
+    Real sqrDispY[ngroups];
+    Real sqrDispZ[ngroups];
+    Real sqrDisp[ngroups];
+    Real cmDispX[ngroups];
+    Real cmDispY[ngroups];
+    Real cmDispZ[ngroups];
+    Real cmDisp[ngroups];
+    Real travelTime[ngroups];
+    int groupCount[ngroups]; // represent how many particles are in group i
+    
+    int stepstat[ngroups];
+    
+    for(int i=0;i<ngroups;i++)
+    {
+        stepstat[i] = fmod(step-1,msd_int[i]);
+        cout << "remainder: " << stepstat[i] << endl;
+    }
+    
+    for(int i=0;i<ngroups;i++)
+    {
+        sqrDispX[i]=0;
+        sqrDispY[i]=0;
+        sqrDispZ[i]=0;
+        sqrDisp[i]=0;
+        cmDispX[i]=0;
+        cmDispY[i]=0;
+        cmDispZ[i]=0;
+        cmDisp[i]=0;
+        groupCount[i]=0;
+    }
+    
+
+
+        
+
+    for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
+
+        TileIndex index(pti.index(), pti.LocalTileIndex());
+
+        AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
+        long np = this->GetParticles(lev).at(index).numParticles();
+        nTotal += np;
+        
+        for (int i=0; i<np; ++i) {
+            ParticleType & part = particles[i];
+            int igroup = part.idata(FHD_intData::groupid)-1;
+
+            if(stepstat[igroup] == 0)
+            {
+                for (int d=0; d<AMREX_SPACEDIM; ++d){
+                    part.rdata(FHD_realData::ox + d) = part.rdata(FHD_realData::ax + d);
+                }
+                part.rdata(FHD_realData::travelTime) = 0;
+            }        
+        }
+
+	// calculate displacement of each particle in each group
+        for (int i=0; i<np; ++i) {
+            ParticleType & part = particles[i];
+
+            int igroup = part.idata(FHD_intData::groupid)-1;
+
+            Real dispX = part.rdata(FHD_realData::ax)-part.rdata(FHD_realData::ox);          
+            Real dispY = part.rdata(FHD_realData::ay)-part.rdata(FHD_realData::oy);
+            Real dispZ = part.rdata(FHD_realData::az)-part.rdata(FHD_realData::oz);
+
+            cmDispX[igroup] += dispX;
+            cmDispY[igroup] += dispY;
+            cmDispZ[igroup] += dispZ;
+            //cmDisp[igroup] += dispX + dispY + dispZ;
+
+            travelTime[igroup] = part.rdata(FHD_realData::travelTime);
+            groupCount[igroup]++;
+
+        }
+
+
+
+    }
+
+    for(int i=0;i<nspecies;i++)
+    {
+        Real temp = cmDispX[i];        
+        ParallelDescriptor::ReduceRealSum(temp);
+        cmDispX[i] = temp;
+
+        temp = cmDispY[i];        
+        ParallelDescriptor::ReduceRealSum(temp);
+        cmDispY[i] = temp;
+
+        temp = cmDispZ[i];        
+        ParallelDescriptor::ReduceRealSum(temp);
+        cmDispZ[i] = temp;
+
+        //temp = cmDisp[i];        
+        //ParallelDescriptor::ReduceRealSum(temp);
+        //cmDisp[i] = temp;
+
+        temp = travelTime[i];        
+        ParallelDescriptor::ReduceRealMax(temp);
+        travelTime[i] = temp;
+
+        int itemp = groupCount[i];        
+        ParallelDescriptor::ReduceIntSum(itemp);
+        groupCount[i] = itemp;
+
+    }
+
+    // square displacement
+    for(int i=0;i<ngroups;i++)
+    {
+        sqrDispX[i] = pow(cmDispX[i],2);
+        sqrDispY[i] = pow(cmDispY[i],2);
+        sqrDispZ[i] = pow(cmDispZ[i],2);
+        sqrDisp[i]  = sqrDispX[i]+sqrDispY[i]+sqrDispZ[i];
+
+	// for now we assume equal mass for each particle,
+	//   so CM displacement is difference between average locations.
+	//   Taking average here.
+        if(groupCount[i] != 0)
+        {
+            sqrDispX[i] /= pow(groupCount[i],2);
+            sqrDispY[i] /= pow(groupCount[i],2);
+            sqrDispZ[i] /= pow(groupCount[i],2);
+            sqrDisp[i] /= pow(groupCount[i],2);
+        }        
+    }
+
+
+    if(ParallelDescriptor::MyProc() == 0) {
+
+        for(int i=0;i<ngroups;i++)
+        {
+            if(msd_int[i] > 0)
+            {
+                std::string groupname = Concatenate("msdCMEst_",i+1);
+                std::ofstream ofs(groupname, std::ofstream::app);
 
                 if(stepstat[i]==0)
                 {
