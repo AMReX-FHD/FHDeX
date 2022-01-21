@@ -1196,8 +1196,8 @@ void BCMomNormal(MultiFab& mom_in, MultiFab& vel_in, MultiFab& cons_in,
             {
                 if (i < dom.smallEnd(0)) {
                     // set ghost velocity & momentum
-                    vel(i,j,k) = 0.0;
-                    mom(i,j,k) = 0.0;
+                    vel(i,j,k) = -2*mom(dom.smallEnd(0),j,k)/(cons(dom.smallEnd(0),j,k,0) + cons(dom.smallEnd(0)-1,j,k,0));
+                    mom(i,j,k) = -1*mom(dom.smallEnd(0),j,k);
                 }
                 else if (i == dom.smallEnd(0)) {
                     vel(i,j,k) = 2*mom(i,j,k)/(cons(i,j,k,0) + cons(i-1,j,k,0));
@@ -1228,8 +1228,8 @@ void BCMomNormal(MultiFab& mom_in, MultiFab& vel_in, MultiFab& cons_in,
             {        
                 if (i > dom.bigEnd(0)+1) {
                     // set ghost velocity & momentum
-                    vel(i,j,k) = 0.0;
-                    mom(i,j,k) = 0.0;
+                    vel(i,j,k) = -2*mom(dom.bigEnd(0)+1,j,k)/(cons(dom.bigEnd(0)+1,j,k,0) + cons(dom.bigEnd(0)+1-1,j,k,0));;
+                    mom(i,j,k) = -1*mom(dom.bigEnd(0)+1,j,k);
                 }           
                 else if (i == dom.bigEnd(0)+1) {
                     vel(i,j,k) = 2*mom(i,j,k)/(cons(i,j,k,0) + cons(i-1,j,k,0));
@@ -1922,9 +1922,9 @@ void BCRhoRhoE(MultiFab& cons_in, MultiFab& prim_in,
     }
 }
 
-void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array< MultiFab, 2 >& edgeflux_x_in,
-                   std::array< MultiFab, 2 >& edgeflux_y_in, std::array< MultiFab, 2 >& edgeflux_z_in,
-                   const amrex::Geometry geom)
+void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array< MultiFab, AMREX_SPACEDIM>& cenflux_in, 
+                   std::array< MultiFab, 2 >& edgeflux_x_in, std::array< MultiFab, 2 >& edgeflux_y_in, 
+                   std::array< MultiFab, 2 >& edgeflux_z_in, const amrex::Geometry geom)
 {
     BL_PROFILE_VAR("StochFluxStag()",StochFluxStag);
 
@@ -2348,7 +2348,7 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
         }
 
         ////////////////////////////////////////////////
-        // set Dufour
+        // set viscous heating
         // domain grown nodally based on faceflux_in[0] nodality (x)
         const Box& dom_x = amrex::convert(geom.Domain(), faceflux_in[0].ixType());
 
@@ -2423,7 +2423,7 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
         }
 
         ////////////////////////////////////////////////
-        // set Dufour
+        // set viscous heating
         // domain grown nodally based on faceflux_in[0] nodality (x)
         const Box& dom_x = amrex::convert(geom.Domain(), faceflux_in[0].ixType());
 
@@ -2498,7 +2498,7 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
         }
 
         ////////////////////////////////////////////////
-        // set Dufour
+        // set viscous heating
         // domain grown nodally based on faceflux_in[1] nodality (y)
         const Box& dom_y = amrex::convert(geom.Domain(), faceflux_in[1].ixType());
 
@@ -2573,7 +2573,7 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
         }
 
         ////////////////////////////////////////////////
-        // set Dufour
+        // set viscous heating
         // domain grown nodally based on faceflux_in[1] nodality (y)
         const Box& dom_y = amrex::convert(geom.Domain(), faceflux_in[1].ixType());
 
@@ -2648,7 +2648,7 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
         }
 
         ////////////////////////////////////////////////
-        // set Dufour
+        // set viscous heating
         // domain grown nodally based on faceflux_in[2] nodality (z)
         const Box& dom_z = amrex::convert(geom.Domain(), faceflux_in[2].ixType());
 
@@ -2723,7 +2723,7 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
         }
 
         ////////////////////////////////////////////////
-        // set Dufour
+        // set viscous heating
         // domain grown nodally based on faceflux_in[2] nodality (z)
         const Box& dom_z = amrex::convert(geom.Domain(), faceflux_in[2].ixType());
 
