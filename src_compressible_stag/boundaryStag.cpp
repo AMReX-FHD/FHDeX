@@ -468,7 +468,7 @@ void BCWallReservoirFluxStag(std::array< MultiFab, AMREX_SPACEDIM >& faceflux,
 
     // RESERVOIR BC: set the diffusive momentum flux to zero in the reservoir cells
     Box dom(geom.Domain());
-    for ( MFIter mfi(cenflux_in); mfi.isValid(); ++mfi) {
+    for ( MFIter mfi(cenflux_in[0]); mfi.isValid(); ++mfi) {
 
         const Box& bx = mfi.growntilebox(1);
 
@@ -2821,7 +2821,7 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
     //////////////////////////////////////////
     Box dom(geom.Domain());
     
-    for ( MFIter mfi(cenflux_in); mfi.isValid(); ++mfi) {
+    for ( MFIter mfi(cenflux_in[0]); mfi.isValid(); ++mfi) {
 
         const Box& bx = mfi.growntilebox(1);
 

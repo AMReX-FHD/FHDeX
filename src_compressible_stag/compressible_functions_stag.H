@@ -54,7 +54,7 @@ void setBCStag(MultiFab& prim_in, MultiFab& cons_in,
                  const amrex::Geometry geom);
 
 void BCWallReservoirFluxStag(std::array< MultiFab, AMREX_SPACEDIM >& faceflux,
-                             std::array< MultiFab, AMREX_SPACEDIM>& cenflux_in
+                             std::array< MultiFab, AMREX_SPACEDIM>& cenflux_in,
                              const amrex::Geometry geom);
 
 void BCMem(MultiFab& prim_in, MultiFab& cons_in,
