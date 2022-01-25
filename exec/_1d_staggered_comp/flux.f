@@ -1,9 +1,9 @@
       subroutine flux(fluxr,fluxrm,fluxe,fluxC,con,npts,
      1       rmom, rtemp, rspec, weight,
-     1       dx,dt,dorand,vcell,ndim,iper)
+     1       dx,dt,dorand,vcell,ndim,iper,iconc)
 
       implicit none
-      integer nloc,ndim,iper,npts
+      integer nloc,ndim,iper,npts,iconc
 
       parameter (nloc = 1006)
 
@@ -48,7 +48,7 @@
       double precision kxp
       double precision mxp,kTxp,kpxp
       real*8 cont1,cont2,cont3,cont4,rhot,ut,pt,compt,eta1,eta0
-      real*8 cont5,cont6,vt,wt,  keng, concfl
+      real*8 cont5,cont6,vt,wt,  keng, concfl, tsum
 
       real*8 etax,xeta,yeta,zeta,dxp,soret,vloc
       real*8 varflv,ctempp,concp,omcp,gradc,gradt
@@ -57,10 +57,10 @@
       integer jend,jstart
 
       double precision  mass0,mass1,d0,d1,cv0,cv1,rgas0,rgas1,kboltz,
-     1   etaC0,etaC1,kappaC0, kappaC1,Tleft,Tright,pi
+     1   etaC0,etaC1,kappaC0, kappaC1,Tleft,Tright,pi,cleft,cright
 
       common /params/ mass0,mass1,d0,d1,cv0,cv1,rgas0,rgas1,kboltz,
-     1   etaC0,etaC1,kappaC0, kappaC1,Tleft,Tright,pi
+     1   etaC0,etaC1,kappaC0, kappaC1,Tleft,Tright,pi,cleft,cright
 
 
        
@@ -110,12 +110,20 @@
              T(0) = Tleft
              T(npts+1) = Tright
 
-             comp(0) = comp(1)
-             comp(npts+1) = comp(npts)
              rho(0) = rho(1)
              rho(npts+1) = rho(npts)
              p(0) = p(1)
              p(npts+1) = p(npts)
+             if(iconc.eq.0)then
+                comp(0) = comp(1)
+                comp(npts+1) = comp(npts)
+             else
+                comp(0) = cleft
+                comp(npts+1) = cright
+               rho(0) = p(0)/(T(0)*(rgas1*comp(0)+rgas0*(1.d0-comp(0))))
+               rho(npts+1) = p(npts+1)/(T(npts+1)*
+     1              (rgas1*comp(npts+1)+rgas0*(1.d0-comp(npts+1))))
+             endif
              
              
              
@@ -182,9 +190,9 @@
  
         kappa(j) = (1.d0+zkap)/(xkap+ykap)
  
-        s0 = 0.5d0*(mass0+mass1)*kapx/(mass0*kap0) -
+        s0 = 0.5d0*(mass0+mass1)*kapx/(mass1*kap0) -
      1        15d0*(mass1-mass0)/(8.d0*mass0)-1.d0
-        s1 = 0.5d0*(mass0+mass1)*kapx/(mass1*kap1) +
+        s1 = 0.5d0*(mass0+mass1)*kapx/(mass0*kap1) +
      1        15d0*(mass1-mass0)/(8.d0*mass1)-1.d0
  
         dmudcm1 =  ratm/(ratm + (1.d0-ratm)*conc)**2*
@@ -290,12 +298,86 @@
               viscspec(npts+1) = viscspec(1)
           else
 
-             Jx = 0.d0
-             q(1) = 2.d0*kappa(0)*(T(1)-T(0))/dx
-            viscenef(1) = q(1) 
-            viscspec(1) =  Jx
-            viscenef(npts+1) = 2.d0*kappa(npts+1)*(T(npts+1)-T(npts))/dx
-            viscspec(npts+1) =  Jx
+            if(iconc.eq.0)then
+
+               Jx = 0.d0
+               q(1) = 2.d0*kappa(0)*(T(1)-T(0))/dx
+               viscenef(1) = q(1) 
+               viscspec(1) =  Jx
+               viscenef(npts+1) = 2.d0*kappa(npts+1)*
+     &          (T(npts+1)-T(npts))/dx
+               viscspec(npts+1) =  Jx
+            else
+
+               j=1
+
+               dxp = dfic(j-1)*rho(j-1)
+               kTxp = kT(j-1)/T(j-1)
+c              kpxp = 0.5d0*(kp(j-1)/p(j-1)+kp(j)/p(j))
+               kpxp = kp(j-1)/p(j-1)
+ 
+ 
+               Jx =2.d0* dxp*(comp(j)-comp(j-1))/dx
+     &                 + 2.d0*dxp*(kTxp*(T(j)-T(j-1))/dx +
+     &               2.d0*  kpxp*(p(j)-p(j-1))/dx)
+
+
+               soret = kTdmudc(j-1)
+               ctempp = comp(j-1)
+               ctemp = comp(j)
+
+        mxp = ctempp*(1.d0-ctempp)*(mass1*(1.d0-ctempp)
+     &           + mass0*ctempp)
+        mx = ctemp*(1.d0-ctemp)*(mass1*(1.d0-ctemp)
+     &           + mass0*ctemp)
+
+ 
+
+
+              q(j) = 2.d0*kappa(j-1)*
+     1               (T(j)-T(j-1))/dx
+
+             viscenef(j) = q(j) 
+     &     +(soret+ (cv1+rgas1-cv0-rgas0)*
+     &         T(j-1))*Jx
+
+             viscspec(j) =  Jx
+
+           j=npts+1
+
+
+           dxp = dfic(j)*rho(j)
+           kTxp = kT(j)/T(j)
+c          kpxp = 0.5d0*(kp(j-1)/p(j-1)+kp(j)/p(j))
+           kpxp = kp(j)/p(j)
+ 
+        Jx =2.d0* dxp*(comp(j)-comp(j-1))/dx
+     &      +2.d0* dxp*(kTxp*(T(j)-T(j-1))/dx +
+     &       2.d0* kpxp*(p(j)-p(j-1))/dx)
+
+
+        soret = kTdmudc(j)
+        ctempp = comp(j-1)
+        ctemp = comp(j)
+
+        mxp = ctempp*(1.d0-ctempp)*(mass1*(1.d0-ctempp)
+     &           + mass0*ctempp)
+        mx = ctemp*(1.d0-ctemp)*(mass1*(1.d0-ctemp)
+     &           + mass0*ctemp)
+
+ 
+
+
+              q(j) = 2.d0*kappa(j)*
+     1               (T(j)-T(j-1))/dx
+
+             viscenef(j) = q(j) 
+     &     +(soret+ (cv1+rgas1-cv0-rgas0)*
+     &         T(j))*Jx
+
+             viscspec(j) =  Jx
+
+            endif
           endif
 
 
@@ -341,7 +423,11 @@
 
         if(j.eq.1 .and. iper.eq.0)then
 
-        gradc = 0.d0
+        if(iconc.eq.0)then
+           gradc = 0.d0
+        else
+           gradc = gradc*sqrt(2.d0)
+        endif
         gradt = gradt*sqrt(2.d0)
 
         kxp = 2.d0* kappa(j-1)*kboltz*T(j-1)**2 
@@ -358,9 +444,14 @@
      &           + mass0*ctempp)
 
         dxp = 2.d0*dfic(j-1)   *rho(j-1)*mxp
+        tsum = Tleft
 
         elseif(j.eq.npts+1 .and. iper.eq.0)then
-        gradc = 0.d0
+        if(iconc.eq.0)then
+           gradc = 0.d0
+        else
+           gradc = gradc*sqrt(2.d0)
+        endif
         gradt = gradt*sqrt(2.d0)
 
         kxp = 2.d0*  kappa(j)*kboltz*T(j)**2
@@ -378,6 +469,7 @@
 
         dxp = 2.d0* dfic(j)  *rho(j)*mx
 
+        tsum = Tright
 
         else
 
@@ -404,6 +496,8 @@
         dxp = dfic(j-1)   *rho(j-1)*mxp
      &   + dfic(j)  *rho(j)*mx
 
+        tsum = 0.5d0*(T(j)+T(j-1))
+
         endif
  
  
@@ -411,7 +505,7 @@
         gradt = dorand * gradt*sqrt(kxp/(vcell*dt))
 
          ranenef(j) = gradt
-     &     +(0.5*(cv1+rgas1-cv0-rgas0)*(T(j)+T(j+1)) + soret)
+     &     +((cv1+rgas1-cv0-rgas0)*tsum + soret)
      &     *gradc
          ranspec(j) = gradc
 
@@ -438,10 +532,12 @@
          ranenef(npts+1) = ranenef(1)
          ranspec(npts+1) = ranspec(1)
       else
+         if(iconc.eq.0)then
          ranspec(1) = 0.d0
          ranspec(npts+1) = 0.d0
          viscspec(1) = 0.d0
          viscspec(npts+1) = 0.d0
+         endif
 
       endif
 
