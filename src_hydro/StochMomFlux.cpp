@@ -737,75 +737,41 @@ void StochMomFlux::StochMomFluxDiv(std::array< MultiFab, AMREX_SPACEDIM >& m_for
                      bx_z.growHi(2););
 
 #if (AMREX_SPACEDIM == 2)
-        if (increment == 1) {
-            amrex::ParallelFor(bx_x,bx_y,
-                               [=] AMREX_GPU_DEVICE (int i, int j, int k)
-            {
-                divx(i,j,k) += (flux_cc(i,j,k,0) - flux_cc(i-1,j,k,0) +
-                                flux_nd(i,j+1,k,0) - flux_nd(i,j,k,0)) * dxinv;
-            },
-                               [=] AMREX_GPU_DEVICE (int i, int j, int k)
-            {
-                divy(i,j,k) += (flux_nd(i+1,j,k,1) - flux_nd(i,j,k,1) +
-                                flux_cc(i,j,k,1) - flux_cc(i,j-1,k,1)) * dxinv;
-            });
-	}
-	else if (increment == 0) {
-            amrex::ParallelFor(bx_x,bx_y,
-                               [=] AMREX_GPU_DEVICE (int i, int j, int k)
-            {
-                divx(i,j,k) = (flux_cc(i,j,k,0) - flux_cc(i-1,j,k,0) +
-                               flux_nd(i,j+1,k,0) - flux_nd(i,j,k,0)) * dxinv;
-            },
-                               [=] AMREX_GPU_DEVICE (int i, int j, int k)
-            {
-                divy(i,j,k) = (flux_nd(i+1,j,k,1) - flux_nd(i,j,k,1) +
-                               flux_cc(i,j,k,1) - flux_cc(i,j-1,k,1)) * dxinv;
-            });
-	}
+        amrex::ParallelFor(bx_x,bx_y, [=] AMREX_GPU_DEVICE (int i, int j, int k)
+        {
+            divx(i,j,k) = increment*divx(i,j,k) +
+                (flux_cc(i,j,k,0) - flux_cc(i-1,j,k,0) +
+                 flux_nd(i,j+1,k,0) - flux_nd(i,j,k,0)) * dxinv;
+        },
+                                      [=] AMREX_GPU_DEVICE (int i, int j, int k)
+        {
+            divy(i,j,k) = increment*divy(i,j,k) +
+                (flux_nd(i+1,j,k,1) - flux_nd(i,j,k,1) +
+                 flux_cc(i,j,k,1) - flux_cc(i,j-1,k,1)) * dxinv;
+        });
+
 #elif (AMREX_SPACEDIM == 3)
-        if (increment == 1) {
-            amrex::ParallelFor(bx_x,bx_y,bx_z,
-                               [=] AMREX_GPU_DEVICE (int i, int j, int k)
-            {
-                divx(i,j,k) += (flux_cc(i,j,k,0) - flux_cc(i-1,j,k,0) +
-                                flux_xy(i,j+1,k,0) - flux_xy(i,j,k,0) +
-                                flux_xz(i,j,k+1,0) - flux_xz(i,j,k,0)) * dxinv;
-            },
-                               [=] AMREX_GPU_DEVICE (int i, int j, int k)
-            {
-                divy(i,j,k) += (flux_xy(i+1,j,k,1) - flux_xy(i,j,k,1) +
-                                flux_cc(i,j,k,1) - flux_cc(i,j-1,k,1) +
-                                flux_yz(i,j,k+1,0) - flux_yz(i,j,k,0)) * dxinv;
-            },
-                               [=] AMREX_GPU_DEVICE (int i, int j, int k)
-            {
-                divz(i,j,k) += (flux_xz(i+1,j,k,1) - flux_xz(i,j,k,1) +
-                                flux_yz(i,j+1,k,1) - flux_yz(i,j,k,1) +
-                                flux_cc(i,j,k,2) - flux_cc(i,j,k-1,2)) * dxinv;
-            });
-	}
-	else if (increment == 0) {
-            amrex::ParallelFor(bx_x,bx_y,bx_z,
-                               [=] AMREX_GPU_DEVICE (int i, int j, int k)
-            {
-                divx(i,j,k) = (flux_cc(i,j,k,0) - flux_cc(i-1,j,k,0) +
-                               flux_xy(i,j+1,k,0) - flux_xy(i,j,k,0) +
-                               flux_xz(i,j,k+1,0) - flux_xz(i,j,k,0)) * dxinv;
-            },
-                               [=] AMREX_GPU_DEVICE (int i, int j, int k)
-            {
-                divy(i,j,k) = (flux_xy(i+1,j,k,1) - flux_xy(i,j,k,1) +
-                               flux_cc(i,j,k,1) - flux_cc(i,j-1,k,1) +
-                               flux_yz(i,j,k+1,0) - flux_yz(i,j,k,0)) * dxinv;
-            },
-                               [=] AMREX_GPU_DEVICE (int i, int j, int k)
-            {
-                divz(i,j,k) = (flux_xz(i+1,j,k,1) - flux_xz(i,j,k,1) +
-                               flux_yz(i,j+1,k,1) - flux_yz(i,j,k,1) +
-                               flux_cc(i,j,k,2) - flux_cc(i,j,k-1,2)) * dxinv;
-            });
-	}
+        amrex::ParallelFor(bx_x,bx_y,bx_z, [=] AMREX_GPU_DEVICE (int i, int j, int k)
+        {
+            divx(i,j,k) = increment*divx(i,j,k) +
+                (flux_cc(i,j,k,0) - flux_cc(i-1,j,k,0) +
+                 flux_xy(i,j+1,k,0) - flux_xy(i,j,k,0) +
+                 flux_xz(i,j,k+1,0) - flux_xz(i,j,k,0)) * dxinv;
+        },
+                                           [=] AMREX_GPU_DEVICE (int i, int j, int k)
+        {
+            divy(i,j,k) = increment*divy(i,j,k) +
+                (flux_xy(i+1,j,k,1) - flux_xy(i,j,k,1) +
+                 flux_cc(i,j,k,1) - flux_cc(i,j-1,k,1) +
+                 flux_yz(i,j,k+1,0) - flux_yz(i,j,k,0)) * dxinv;
+        },
+                                           [=] AMREX_GPU_DEVICE (int i, int j, int k)
+        {
+            divz(i,j,k) = increment*divz(i,j,k) +
+                (flux_xz(i+1,j,k,1) - flux_xz(i,j,k,1) +
+                 flux_yz(i,j+1,k,1) - flux_yz(i,j,k,1) +
+                 flux_cc(i,j,k,2) - flux_cc(i,j,k-1,2)) * dxinv;
+        });
 #endif
     }
 
