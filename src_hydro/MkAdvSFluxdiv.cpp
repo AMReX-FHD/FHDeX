@@ -66,6 +66,12 @@ void MkAdvSFluxdiv(const std::array<MultiFab, AMREX_SPACEDIM>& umac_in,
      Real dx = geom.CellSize(0);
      Real dxinv = 1./dx;
 
+
+     // if not incrementing, initialize data to zero
+     if (increment == 0) {
+         s_update_in.setVal(0.,scomp,ncomp,0);
+     }
+     
      // Loop over boxes
      for (MFIter mfi(s_update_in); mfi.isValid(); ++mfi) {
 
