@@ -746,15 +746,13 @@ void StochMomFlux::StochMomFluxDiv(std::array< MultiFab, AMREX_SPACEDIM >& m_for
 #if (AMREX_SPACEDIM == 2)
         amrex::ParallelFor(bx_x,bx_y, [=] AMREX_GPU_DEVICE (int i, int j, int k)
         {
-            divx(i,j,k) +=
-                (flux_cc(i,j,k,0) - flux_cc(i-1,j,k,0) +
-                 flux_nd(i,j+1,k,0) - flux_nd(i,j,k,0)) * dxinv;
+            divx(i,j,k) += (flux_cc(i,j,k,0) - flux_cc(i-1,j,k,0) +
+                            flux_nd(i,j+1,k,0) - flux_nd(i,j,k,0)) * dxinv;
         },
                                       [=] AMREX_GPU_DEVICE (int i, int j, int k)
         {
-            divy(i,j,k) +=
-                (flux_nd(i+1,j,k,1) - flux_nd(i,j,k,1) +
-                 flux_cc(i,j,k,1) - flux_cc(i,j-1,k,1)) * dxinv;
+            divy(i,j,k) += (flux_nd(i+1,j,k,1) - flux_nd(i,j,k,1) +
+                            flux_cc(i,j,k,1) - flux_cc(i,j-1,k,1)) * dxinv;
         });
 
 #elif (AMREX_SPACEDIM == 3)
