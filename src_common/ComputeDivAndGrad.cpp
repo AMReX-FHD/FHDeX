@@ -11,6 +11,11 @@ void ComputeDiv(MultiFab& div,
 
     const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
 
+    // if not incrementing, initialize data to zero
+    if (increment == 0) {
+        div.setVal(0.,start_outcomp,ncomp,0);
+    }
+    
     for ( MFIter mfi(div,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
         
         const Box& bx = mfi.tilebox();
@@ -22,7 +27,7 @@ void ComputeDiv(MultiFab& div,
 
         amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-            div_fab(i,j,k,start_outcomp+n) = increment*div_fab(i,j,k,start_outcomp+n) +
+            div_fab(i,j,k,start_outcomp+n) +=
                 AMREX_D_TERM(  (phix_fab(i+1,j,k,start_incomp+n) - phix_fab(i,j,k,start_incomp+n)) / dx[0],
                              + (phiy_fab(i,j+1,k,start_incomp+n) - phiy_fab(i,j,k,start_incomp+n)) / dx[1],
                              + (phiz_fab(i,j,k+1,start_incomp+n) - phiz_fab(i,j,k,start_incomp+n)) / dx[2]);;
@@ -48,6 +53,13 @@ void ComputeGrad(const MultiFab & phi_in, std::array<MultiFab, AMREX_SPACEDIM> &
 
     const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
 
+    // if not incrementing, initialize data to zero
+    if (increment == 0) {
+        for (int dir=0; dir<AMREX_SPACEDIM; ++dir) {
+            gphi[dir].setVal(0.,start_outcomp,ncomp,0);
+        }
+    }
+    
     // Loop over boxes (note that mfi takes a cell-centered multifab as an argument)
     for ( MFIter mfi(phi_in,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
 
@@ -63,19 +75,16 @@ void ComputeGrad(const MultiFab & phi_in, std::array<MultiFab, AMREX_SPACEDIM> &
         
         amrex::ParallelFor(bx_x, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-            gphix(i,j,k,start_outcomp+n) = increment*gphix(i,j,k,start_outcomp+n) +
-                (phi(i,j,k,start_incomp+n)-phi(i-1,j,k,start_incomp+n)) / dx[0];
+            gphix(i,j,k,start_outcomp+n) += (phi(i,j,k,start_incomp+n)-phi(i-1,j,k,start_incomp+n)) / dx[0];
         },
                            bx_y, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-            gphiy(i,j,k,start_outcomp+n) = increment*gphiy(i,j,k,start_outcomp+n) +
-                (phi(i,j,k,start_incomp+n)-phi(i,j-1,k,start_incomp+n)) / dx[1];
+            gphiy(i,j,k,start_outcomp+n) += (phi(i,j,k,start_incomp+n)-phi(i,j-1,k,start_incomp+n)) / dx[1];
         }
 #if (AMREX_SPACEDIM == 3)
                          , bx_z, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-            gphiz(i,j,k,start_outcomp+n) = increment*gphiz(i,j,k,start_outcomp+n) +
-                (phi(i,j,k,start_incomp+n)-phi(i,j,k-1,start_incomp+n)) / dx[2];
+            gphiz(i,j,k,start_outcomp+n) += (phi(i,j,k,start_incomp+n)-phi(i,j,k-1,start_incomp+n)) / dx[2];
         }
 #endif
         );
@@ -89,8 +98,9 @@ void ComputeGrad(const MultiFab & phi_in, std::array<MultiFab, AMREX_SPACEDIM> &
                 amrex::ParallelFor(bx_x, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (i == lo) {
-                        gphix(i,j,k,start_outcomp+n) = increment*gphix(i,j,k,start_outcomp+n) +
-                            (phi(i,j,k,start_incomp+n)-phi(i-1,j,k,start_incomp+n)) / (0.5*dx[0]);
+                        // subtract off incorrect gradient from above, then add the correct gradient
+                        gphix(i,j,k,start_outcomp+n) -= (phi(i,j,k,start_incomp+n)-phi(i-1,j,k,start_incomp+n)) / dx[0];
+                        gphix(i,j,k,start_outcomp+n) += (phi(i,j,k,start_incomp+n)-phi(i-1,j,k,start_incomp+n)) / (0.5*dx[0]);
                     }
                 });
             }
@@ -102,8 +112,9 @@ void ComputeGrad(const MultiFab & phi_in, std::array<MultiFab, AMREX_SPACEDIM> &
                 amrex::ParallelFor(bx_x, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (i == hi) {
-                        gphix(i,j,k,start_outcomp+n) = increment*gphix(i,j,k,start_outcomp+n) +
-                            (phi(i,j,k,start_incomp+n)-phi(i-1,j,k,start_incomp+n)) / (0.5*dx[0]);
+                        // subtract off incorrect gradient from above, then add the correct gradient
+                        gphix(i,j,k,start_outcomp+n) -= (phi(i,j,k,start_incomp+n)-phi(i-1,j,k,start_incomp+n)) / dx[0];
+                        gphix(i,j,k,start_outcomp+n) += (phi(i,j,k,start_incomp+n)-phi(i-1,j,k,start_incomp+n)) / (0.5*dx[0]);
                     }
                 });
             }
@@ -115,8 +126,9 @@ void ComputeGrad(const MultiFab & phi_in, std::array<MultiFab, AMREX_SPACEDIM> &
                 amrex::ParallelFor(bx_y, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (j == lo) {
-                        gphiy(i,j,k,start_outcomp+n) = increment*gphiy(i,j,k,start_outcomp+n) +
-                            (phi(i,j,k,start_incomp+n)-phi(i,j-1,k,start_incomp+n)) / (0.5*dx[1]);
+                        // subtract off incorrect gradient from above, then add the correct gradient
+                        gphiy(i,j,k,start_outcomp+n) -= (phi(i,j,k,start_incomp+n)-phi(i,j-1,k,start_incomp+n)) / dx[1];
+                        gphiy(i,j,k,start_outcomp+n) += (phi(i,j,k,start_incomp+n)-phi(i,j-1,k,start_incomp+n)) / (0.5*dx[1]);
                     }
                 });
             }
@@ -128,8 +140,9 @@ void ComputeGrad(const MultiFab & phi_in, std::array<MultiFab, AMREX_SPACEDIM> &
                 amrex::ParallelFor(bx_y, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (j == hi) {
-                        gphiy(i,j,k,start_outcomp+n) = increment*gphiy(i,j,k,start_outcomp+n) +
-                            (phi(i,j,k,start_incomp+n)-phi(i,j-1,k,start_incomp+n)) / (0.5*dx[1]);
+                        // subtract off incorrect gradient from above, then add the correct gradient
+                        gphiy(i,j,k,start_outcomp+n) -= (phi(i,j,k,start_incomp+n)-phi(i,j-1,k,start_incomp+n)) / dx[1];
+                        gphiy(i,j,k,start_outcomp+n) += (phi(i,j,k,start_incomp+n)-phi(i,j-1,k,start_incomp+n)) / (0.5*dx[1]);
                     }
                 });
             }
@@ -142,8 +155,9 @@ void ComputeGrad(const MultiFab & phi_in, std::array<MultiFab, AMREX_SPACEDIM> &
                 amrex::ParallelFor(bx_z, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (k == lo) {
-                        gphiz(i,j,k,start_outcomp+n) = increment*gphiz(i,j,k,start_outcomp+n) +
-                            (phi(i,j,k,start_incomp+n)-phi(i,j,k-1,start_incomp+n)) / (0.5*dx[2]);
+                        // subtract off incorrect gradient from above, then add the correct gradient
+                        gphiz(i,j,k,start_outcomp+n) -= (phi(i,j,k,start_incomp+n)-phi(i,j,k-1,start_incomp+n)) / dx[2];
+                        gphiz(i,j,k,start_outcomp+n) += (phi(i,j,k,start_incomp+n)-phi(i,j,k-1,start_incomp+n)) / (0.5*dx[2]);
                     }
                 });
             }
@@ -155,8 +169,9 @@ void ComputeGrad(const MultiFab & phi_in, std::array<MultiFab, AMREX_SPACEDIM> &
                 amrex::ParallelFor(bx_z, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (k == hi) {
-                        gphiz(i,j,k,start_outcomp+n) = increment*gphiz(i,j,k,start_outcomp+n) +
-                            (phi(i,j,k,start_incomp+n)-phi(i,j,k-1,start_incomp+n)) / (0.5*dx[2]);
+                        // subtract off incorrect gradient from above, then add the correct gradient
+                        gphiz(i,j,k,start_outcomp+n) -= (phi(i,j,k,start_incomp+n)-phi(i,j,k-1,start_incomp+n)) / dx[2];
+                        gphiz(i,j,k,start_outcomp+n) += (phi(i,j,k,start_incomp+n)-phi(i,j,k-1,start_incomp+n)) / (0.5*dx[2]);
                     }
                 });
             }

@@ -712,6 +712,13 @@ void StochMomFlux::StochMomFluxDiv(std::array< MultiFab, AMREX_SPACEDIM >& m_for
     // calculate divergence and add to stoch_m_force
     Real dxinv = 1./(geom.CellSize()[0]);
 
+    // if not incrementing, initialize data to zero
+    if (increment == 0) {
+        for (int dir=0; dir<AMREX_SPACEDIM; ++dir) {
+            m_force[dir].setVal(0.,0,1,0);
+        }
+    }
+
     // Loop over boxes
     for (MFIter mfi(mflux_cc_weighted); mfi.isValid(); ++mfi) {
 
@@ -739,13 +746,13 @@ void StochMomFlux::StochMomFluxDiv(std::array< MultiFab, AMREX_SPACEDIM >& m_for
 #if (AMREX_SPACEDIM == 2)
         amrex::ParallelFor(bx_x,bx_y, [=] AMREX_GPU_DEVICE (int i, int j, int k)
         {
-            divx(i,j,k) = increment*divx(i,j,k) +
+            divx(i,j,k) +=
                 (flux_cc(i,j,k,0) - flux_cc(i-1,j,k,0) +
                  flux_nd(i,j+1,k,0) - flux_nd(i,j,k,0)) * dxinv;
         },
                                       [=] AMREX_GPU_DEVICE (int i, int j, int k)
         {
-            divy(i,j,k) = increment*divy(i,j,k) +
+            divy(i,j,k) +=
                 (flux_nd(i+1,j,k,1) - flux_nd(i,j,k,1) +
                  flux_cc(i,j,k,1) - flux_cc(i,j-1,k,1)) * dxinv;
         });
@@ -753,24 +760,21 @@ void StochMomFlux::StochMomFluxDiv(std::array< MultiFab, AMREX_SPACEDIM >& m_for
 #elif (AMREX_SPACEDIM == 3)
         amrex::ParallelFor(bx_x,bx_y,bx_z, [=] AMREX_GPU_DEVICE (int i, int j, int k)
         {
-            divx(i,j,k) = increment*divx(i,j,k) +
-                (flux_cc(i,j,k,0) - flux_cc(i-1,j,k,0) +
-                 flux_xy(i,j+1,k,0) - flux_xy(i,j,k,0) +
-                 flux_xz(i,j,k+1,0) - flux_xz(i,j,k,0)) * dxinv;
+            divx(i,j,k) += (flux_cc(i,j,k,0) - flux_cc(i-1,j,k,0) +
+                            flux_xy(i,j+1,k,0) - flux_xy(i,j,k,0) +
+                            flux_xz(i,j,k+1,0) - flux_xz(i,j,k,0)) * dxinv;
         },
                                            [=] AMREX_GPU_DEVICE (int i, int j, int k)
         {
-            divy(i,j,k) = increment*divy(i,j,k) +
-                (flux_xy(i+1,j,k,1) - flux_xy(i,j,k,1) +
-                 flux_cc(i,j,k,1) - flux_cc(i,j-1,k,1) +
-                 flux_yz(i,j,k+1,0) - flux_yz(i,j,k,0)) * dxinv;
+            divy(i,j,k) += (flux_xy(i+1,j,k,1) - flux_xy(i,j,k,1) +
+                            flux_cc(i,j,k,1) - flux_cc(i,j-1,k,1) +
+                            flux_yz(i,j,k+1,0) - flux_yz(i,j,k,0)) * dxinv;
         },
                                            [=] AMREX_GPU_DEVICE (int i, int j, int k)
         {
-            divz(i,j,k) = increment*divz(i,j,k) +
-                (flux_xz(i+1,j,k,1) - flux_xz(i,j,k,1) +
-                 flux_yz(i,j+1,k,1) - flux_yz(i,j,k,1) +
-                 flux_cc(i,j,k,2) - flux_cc(i,j,k-1,2)) * dxinv;
+            divz(i,j,k) += (flux_xz(i+1,j,k,1) - flux_xz(i,j,k,1) +
+                            flux_yz(i,j+1,k,1) - flux_yz(i,j,k,1) +
+                            flux_cc(i,j,k,2) - flux_cc(i,j,k-1,2)) * dxinv;
         });
 #endif
     }

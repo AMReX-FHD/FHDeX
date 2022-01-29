@@ -20,6 +20,11 @@ void MkAdvSFluxdiv_cc(const std::array<MultiFab, AMREX_SPACEDIM>& umac_in,
      Real dx = geom.CellSize(0);
      Real dxinv = 1./dx;
 
+     // if not incrementing, initialize data to zero
+     if (increment == 0) {
+         s_update_in.setVal(0.,scomp,ncomp,0);
+     }
+     
      // Loop over boxes
      for (MFIter mfi(s_in); mfi.isValid(); ++mfi) {
 
@@ -35,11 +40,11 @@ void MkAdvSFluxdiv_cc(const std::array<MultiFab, AMREX_SPACEDIM>& umac_in,
                       Array4<Real const> const& wmac = umac_in[2].array(mfi););
          amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
          {
-             s_update(i,j,k,scomp+n) = increment*s_update(i,j,k,scomp+n) +
-                 - dxinv*( 0.5*(s(i+1,j,k,scomp+n)+s(i,j,k,scomp+n))*umac(i+1,j,k) - 0.5*(s(i,j,k,scomp+n)+s(i-1,j,k,scomp+n))*umac(i,j,k) )
-                 - dxinv*( 0.5*(s(i,j+1,k,scomp+n)+s(i,j,k,scomp+n))*vmac(i,j+1,k) - 0.5*(s(i,j,k,scomp+n)+s(i,j-1,k,scomp+n))*vmac(i,j,k) )
+             s_update(i,j,k,scomp+n) -=
+                 + dxinv*( 0.5*(s(i+1,j,k,scomp+n)+s(i,j,k,scomp+n))*umac(i+1,j,k) - 0.5*(s(i,j,k,scomp+n)+s(i-1,j,k,scomp+n))*umac(i,j,k) )
+                 + dxinv*( 0.5*(s(i,j+1,k,scomp+n)+s(i,j,k,scomp+n))*vmac(i,j+1,k) - 0.5*(s(i,j,k,scomp+n)+s(i,j-1,k,scomp+n))*vmac(i,j,k) )
 #if (AMREX_SPACEDIM == 3)
-                 - dxinv*( 0.5*(s(i,j,k+1,scomp+n)+s(i,j,k,scomp+n))*wmac(i,j,k+1) - 0.5*(s(i,j,k,scomp+n)+s(i,j,k-1,scomp+n))*wmac(i,j,k) )
+                 + dxinv*( 0.5*(s(i,j,k+1,scomp+n)+s(i,j,k,scomp+n))*wmac(i,j,k+1) - 0.5*(s(i,j,k,scomp+n)+s(i,j,k-1,scomp+n))*wmac(i,j,k) )
 #endif
                  ;
          });
