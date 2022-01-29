@@ -197,6 +197,8 @@ void ComputeGrad(const MultiFab & phi_in, std::array<MultiFab, AMREX_SPACEDIM> &
                     amrex::ParallelFor(bx_x, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                     {
                         if (i == lo) {
+                            // subtract off incorrect gradient from above, then add the correct gradient
+                            gphix(i,j,k,start_outcomp+n) -= (phi(i,j,k,start_incomp+n)-phi(i-1,j,k,start_incomp+n)) / dx[0];
                             gphix(i,j,k,start_outcomp+n) += (phi(i,j,k,start_incomp+n)-phi(i-1,j,k,start_incomp+n)) / (0.5*dx[0]);
                         }
                     });
@@ -209,6 +211,8 @@ void ComputeGrad(const MultiFab & phi_in, std::array<MultiFab, AMREX_SPACEDIM> &
                     amrex::ParallelFor(bx_x, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                     {
                         if (i == hi) {
+                            // subtract off incorrect gradient from above, then add the correct gradient
+                            gphix(i,j,k,start_outcomp+n) -= (phi(i,j,k,start_incomp+n)-phi(i-1,j,k,start_incomp+n)) / dx[0];
                             gphix(i,j,k,start_outcomp+n) += (phi(i,j,k,start_incomp+n)-phi(i-1,j,k,start_incomp+n)) / (0.5*dx[0]);
                         }
                     });
@@ -221,6 +225,8 @@ void ComputeGrad(const MultiFab & phi_in, std::array<MultiFab, AMREX_SPACEDIM> &
                     amrex::ParallelFor(bx_y, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                     {
                         if (j == lo) {
+                            // subtract off incorrect gradient from above, then add the correct gradient
+                            gphiy(i,j,k,start_outcomp+n) -= (phi(i,j,k,start_incomp+n)-phi(i,j-1,k,start_incomp+n)) / dx[1];
                             gphiy(i,j,k,start_outcomp+n) += (phi(i,j,k,start_incomp+n)-phi(i,j-1,k,start_incomp+n)) / (0.5*dx[1]);
                         }
                     });
@@ -233,6 +239,8 @@ void ComputeGrad(const MultiFab & phi_in, std::array<MultiFab, AMREX_SPACEDIM> &
                     amrex::ParallelFor(bx_y, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                     {
                         if (j == hi) {
+                            // subtract off incorrect gradient from above, then add the correct gradient
+                            gphiy(i,j,k,start_outcomp+n) -= (phi(i,j,k,start_incomp+n)-phi(i,j-1,k,start_incomp+n)) / dx[1];
                             gphiy(i,j,k,start_outcomp+n) += (phi(i,j,k,start_incomp+n)-phi(i,j-1,k,start_incomp+n)) / (0.5*dx[1]);
                         }
                     });
@@ -246,6 +254,8 @@ void ComputeGrad(const MultiFab & phi_in, std::array<MultiFab, AMREX_SPACEDIM> &
                     amrex::ParallelFor(bx_z, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                     {
                         if (k == lo) {
+                            // subtract off incorrect gradient from above, then add the correct gradient
+                            gphiz(i,j,k,start_outcomp+n) -= (phi(i,j,k,start_incomp+n)-phi(i,j,k-1,start_incomp+n)) / dx[2];
                             gphiz(i,j,k,start_outcomp+n) += (phi(i,j,k,start_incomp+n)-phi(i,j,k-1,start_incomp+n)) / (0.5*dx[2]);
                         }
                     });
@@ -258,6 +268,8 @@ void ComputeGrad(const MultiFab & phi_in, std::array<MultiFab, AMREX_SPACEDIM> &
                     amrex::ParallelFor(bx_z, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                     {
                         if (k == hi) {
+                            // subtract off incorrect gradient from above, then add the correct gradient
+                            gphiz(i,j,k,start_outcomp+n) -= (phi(i,j,k,start_incomp+n)-phi(i,j,k-1,start_incomp+n)) / dx[2];
                             gphiz(i,j,k,start_outcomp+n) += (phi(i,j,k,start_incomp+n)-phi(i,j,k-1,start_incomp+n)) / (0.5*dx[2]);
                         }
                     });
