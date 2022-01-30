@@ -283,10 +283,14 @@ void setBCStag(MultiFab& prim_in, MultiFab& cons_in,
 }
 
 // set species and total density flux to zero for wall boundary conditions
-void BCWallSpeciesFluxStag(std::array< MultiFab, AMREX_SPACEDIM >& faceflux, const amrex::Geometry geom)
+// set the diffusive momentum flux to zero in the reservoir cells
+void BCWallReservoirFluxStag(std::array< MultiFab, AMREX_SPACEDIM >& faceflux, 
+                              std::array< MultiFab, AMREX_SPACEDIM>& cenflux_in,
+                             const amrex::Geometry geom)
 {
-    BL_PROFILE_VAR("BCWallSpeciesFluxStag()",BCWallSpeciesFluxStag);
+    BL_PROFILE_VAR("BCWallReservoirFluxStag()",BCWallReservoirFluxStag);
 
+    // Wall BC: set species and total density flux to zero for wall boundary conditions
     // LO X
     if (bc_mass_lo[0] == 1) {
 
@@ -461,6 +465,72 @@ void BCWallSpeciesFluxStag(std::array< MultiFab, AMREX_SPACEDIM >& faceflux, con
             }
         }
     }
+
+    // RESERVOIR BC: set the diffusive momentum flux to zero in the reservoir cells
+    Box dom(geom.Domain());
+    for ( MFIter mfi(cenflux_in[0]); mfi.isValid(); ++mfi) {
+
+        const Box& bx = mfi.growntilebox(1);
+
+        const Array4<Real>& cenx = cenflux_in[0].array(mfi);
+        const Array4<Real>& ceny = cenflux_in[1].array(mfi);
+        const Array4<Real>& cenz = cenflux_in[2].array(mfi);
+
+        // LO X
+        if ((bc_mass_lo[0] == 3) && (bx.smallEnd(0) < dom.smallEnd(0))) {
+            int lo = dom.smallEnd(0);
+            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                if (i < dom.smallEnd(0)) cenx(i,j,k) = 0.0;
+            });
+        }
+
+        // HI X
+        if ((bc_mass_hi[0] == 3) && (bx.bigEnd(0) > dom.bigEnd(0))) {
+            int hi = dom.bigEnd(0);
+            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                if (i > dom.bigEnd(0)) cenx(i,j,k) = 0.0;
+            });
+        }
+
+        // LO Y
+        if ((bc_mass_lo[1] == 3) && (bx.smallEnd(1) < dom.smallEnd(1))) {
+            int lo = dom.smallEnd(1);
+            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                if (j < dom.smallEnd(1)) ceny(i,j,k) = 0.0;
+            });
+        }
+
+        // HI Y
+        if ((bc_mass_hi[1] == 3) && (bx.bigEnd(1) > dom.bigEnd(1))) {
+            int hi = dom.bigEnd(1);
+            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                if (j > dom.bigEnd(1)) ceny(i,j,k) = 0.0;
+            });
+        }
+
+        // LO Z
+        if ((bc_mass_lo[2] == 3) && (bx.smallEnd(2) < dom.smallEnd(2))) {
+            int lo = dom.smallEnd(2);
+            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                if (k < dom.smallEnd(2)) cenz(i,j,k) = 0.0;
+            });
+        }
+
+        // HI Z
+        if ((bc_mass_hi[2] == 3) && (bx.bigEnd(2) > dom.bigEnd(2))) {
+            int hi = dom.bigEnd(2);
+            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                if (k > dom.bigEnd(2)) cenz(i,j,k) = 0.0;
+            });
+        }
+    }
+
 }
 
 // Set adiabatic slip boundary condition at the membrane 
@@ -1196,8 +1266,8 @@ void BCMomNormal(MultiFab& mom_in, MultiFab& vel_in, MultiFab& cons_in,
             {
                 if (i < dom.smallEnd(0)) {
                     // set ghost velocity & momentum
-                    vel(i,j,k) = 0.0;
-                    mom(i,j,k) = 0.0;
+                    vel(i,j,k) = -2*mom(dom.smallEnd(0),j,k)/(cons(dom.smallEnd(0),j,k,0) + cons(dom.smallEnd(0)-1,j,k,0));
+                    mom(i,j,k) = -1*mom(dom.smallEnd(0),j,k);
                 }
                 else if (i == dom.smallEnd(0)) {
                     vel(i,j,k) = 2*mom(i,j,k)/(cons(i,j,k,0) + cons(i-1,j,k,0));
@@ -1228,8 +1298,8 @@ void BCMomNormal(MultiFab& mom_in, MultiFab& vel_in, MultiFab& cons_in,
             {        
                 if (i > dom.bigEnd(0)+1) {
                     // set ghost velocity & momentum
-                    vel(i,j,k) = 0.0;
-                    mom(i,j,k) = 0.0;
+                    vel(i,j,k) = -2*mom(dom.bigEnd(0)+1,j,k)/(cons(dom.bigEnd(0)+1,j,k,0) + cons(dom.bigEnd(0)+1-1,j,k,0));;
+                    mom(i,j,k) = -1*mom(dom.bigEnd(0)+1,j,k);
                 }           
                 else if (i == dom.bigEnd(0)+1) {
                     vel(i,j,k) = 2*mom(i,j,k)/(cons(i,j,k,0) + cons(i-1,j,k,0));
@@ -1922,9 +1992,9 @@ void BCRhoRhoE(MultiFab& cons_in, MultiFab& prim_in,
     }
 }
 
-void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array< MultiFab, 2 >& edgeflux_x_in,
-                   std::array< MultiFab, 2 >& edgeflux_y_in, std::array< MultiFab, 2 >& edgeflux_z_in,
-                   const amrex::Geometry geom)
+void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array< MultiFab, AMREX_SPACEDIM>& cenflux_in, 
+                   std::array< MultiFab, 2 >& edgeflux_x_in, std::array< MultiFab, 2 >& edgeflux_y_in, 
+                   std::array< MultiFab, 2 >& edgeflux_z_in, const amrex::Geometry geom)
 {
     BL_PROFILE_VAR("StochFluxStag()",StochFluxStag);
 
@@ -2348,7 +2418,7 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
         }
 
         ////////////////////////////////////////////////
-        // set Dufour
+        // set viscous heating
         // domain grown nodally based on faceflux_in[0] nodality (x)
         const Box& dom_x = amrex::convert(geom.Domain(), faceflux_in[0].ixType());
 
@@ -2423,7 +2493,7 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
         }
 
         ////////////////////////////////////////////////
-        // set Dufour
+        // set viscous heating
         // domain grown nodally based on faceflux_in[0] nodality (x)
         const Box& dom_x = amrex::convert(geom.Domain(), faceflux_in[0].ixType());
 
@@ -2498,7 +2568,7 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
         }
 
         ////////////////////////////////////////////////
-        // set Dufour
+        // set viscous heating
         // domain grown nodally based on faceflux_in[1] nodality (y)
         const Box& dom_y = amrex::convert(geom.Domain(), faceflux_in[1].ixType());
 
@@ -2573,7 +2643,7 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
         }
 
         ////////////////////////////////////////////////
-        // set Dufour
+        // set viscous heating
         // domain grown nodally based on faceflux_in[1] nodality (y)
         const Box& dom_y = amrex::convert(geom.Domain(), faceflux_in[1].ixType());
 
@@ -2648,7 +2718,7 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
         }
 
         ////////////////////////////////////////////////
-        // set Dufour
+        // set viscous heating
         // domain grown nodally based on faceflux_in[2] nodality (z)
         const Box& dom_z = amrex::convert(geom.Domain(), faceflux_in[2].ixType());
 
@@ -2723,7 +2793,7 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
         }
 
         ////////////////////////////////////////////////
-        // set Dufour
+        // set viscous heating
         // domain grown nodally based on faceflux_in[2] nodality (z)
         const Box& dom_z = amrex::convert(geom.Domain(), faceflux_in[2].ixType());
 
@@ -2743,6 +2813,77 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
             }
         }
     }
+
+
+    //////////////////////////////////////////
+    // set stochastic momentum flux to zero in
+    // the reservoir cells
+    //////////////////////////////////////////
+    Box dom(geom.Domain());
+    
+    for ( MFIter mfi(cenflux_in[0]); mfi.isValid(); ++mfi) {
+
+        const Box& bx = mfi.growntilebox(1);
+
+        const Array4<Real>& cenx = cenflux_in[0].array(mfi);
+        const Array4<Real>& ceny = cenflux_in[1].array(mfi);
+        const Array4<Real>& cenz = cenflux_in[2].array(mfi);
+
+        // LO X
+        if ((bc_mass_lo[0] == 3) && (bx.smallEnd(0) < dom.smallEnd(0))) {
+            int lo = dom.smallEnd(0);
+            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                if (i < dom.smallEnd(0)) cenx(i,j,k) = 0.0;
+            });
+        }
+
+        // HI X
+        if ((bc_mass_hi[0] == 3) && (bx.bigEnd(0) > dom.bigEnd(0))) {
+            int hi = dom.bigEnd(0);
+            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                if (i > dom.bigEnd(0)) cenx(i,j,k) = 0.0;
+            });
+        }
+
+        // LO Y
+        if ((bc_mass_lo[1] == 3) && (bx.smallEnd(1) < dom.smallEnd(1))) {
+            int lo = dom.smallEnd(1);
+            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                if (j < dom.smallEnd(1)) ceny(i,j,k) = 0.0;
+            });
+        }
+
+        // HI Y
+        if ((bc_mass_hi[1] == 3) && (bx.bigEnd(1) > dom.bigEnd(1))) {
+            int hi = dom.bigEnd(1);
+            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                if (j > dom.bigEnd(1)) ceny(i,j,k) = 0.0;
+            });
+        }
+
+        // LO Z
+        if ((bc_mass_lo[2] == 3) && (bx.smallEnd(2) < dom.smallEnd(2))) {
+            int lo = dom.smallEnd(2);
+            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                if (k < dom.smallEnd(2)) cenz(i,j,k) = 0.0;
+            });
+        }
+
+        // HI Z
+        if ((bc_mass_hi[2] == 3) && (bx.bigEnd(2) > dom.bigEnd(2))) {
+            int hi = dom.bigEnd(2);
+            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                if (k > dom.bigEnd(2)) cenz(i,j,k) = 0.0;
+            });
+        }
+    }
+
 }
 
 void StochFluxMem(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array< MultiFab, 2 >& edgeflux_x_in,
