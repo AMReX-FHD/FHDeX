@@ -364,8 +364,8 @@ void EvaluateSpatialCorrelations1D(MultiFab& spatialCross1D,
                                    const int star_index);
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void Chol3D(Array2D<Real, 0, 3, 0, 3> A,
-            Array2D<Real, 0, 3, 0, 3> Adecomp)
+void Chol3D(Array2D<Real, 0, 3, 0, 3>& A,
+            Array2D<Real, 0, 3, 0, 3>& Adecomp)
 
 {
     GpuArray<Real,4> P;
@@ -414,8 +414,8 @@ void Chol3D(Array2D<Real, 0, 3, 0, 3> A,
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void Chol2D(Array2D<Real, 0, 2, 0, 2> A,
-            Array2D<Real, 0, 2, 0, 2> Adecomp)
+void Chol2D(Array2D<Real, 0, 2, 0, 2>& A,
+            Array2D<Real, 0, 2, 0, 2>& Adecomp)
 
 {
     GpuArray<Real,3> P;
@@ -464,8 +464,8 @@ void Chol2D(Array2D<Real, 0, 2, 0, 2> A,
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void Chol1D(Array2D<Real, 0, 1, 0, 1> A,
-            Array2D<Real, 0, 1, 0, 1> Adecomp)
+void Chol1D(Array2D<Real, 0, 1, 0, 1>& A,
+            Array2D<Real, 0, 1, 0, 1>& Adecomp)
 
 {
     GpuArray<Real,2> P;

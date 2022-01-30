@@ -171,9 +171,6 @@ void doLangevin(MultiFab& cons_in, MultiFab& prim_in,
                         
                         if (amrex::Math::abs(transmission[l]) >= 1.e-10) {
                         
-                            //amrex::Print(Print::AllProcs) << i << " " << j << " " << k << " " << l << " " << alpha[l] << " " << rhoL[l] << " " << rhoR[l] << " " << TL << " " << TR << " " << vyL << " " << vyR << " " << vzL << " " << vzR << std::endl;
-                            //printf("%d %g %g %g %g %g %g %g %g %g\n",l,alpha[l],rhoL[l],rhoR[l],TL,TR,vyL,vyR,vzL,vzR);
-                            
                             // Mean effusive accumulation
                             Real efffluxM = 0.0;
                             Real efffluxPy = 0.0;
@@ -231,15 +228,7 @@ void doLangevin(MultiFab& cons_in, MultiFab& prim_in,
                                     Delvar(0,1) = alpha[l]*(rhoL[l]*sqrtTL*meL + rhoR[l]*sqrtTR*meR);
                                     Delvar(1,0) = alpha[l]*(rhoL[l]*sqrtTL*meL + rhoR[l]*sqrtTR*meR);
 
-                                    amrex::Print(Print::AllProcs) << j << " " << k << " " <<  
-                                    Delvar(0,0) << " " << Delvar(0,1) <<  " " <<
-                                    Delvar(1,0) << " " << Delvar(1,1) << "\n";
-
                                     Chol1D(Delvar,sqrtVar);
-
-                                    amrex::Print(Print::AllProcs) << "Cholesky: " << 
-                                    sqrtVar(0,0) << " " << sqrtVar(0,1) <<  " " <<
-                                    sqrtVar(1,0) << " " << sqrtVar(1,1) << "\n";
 
                                     // Generate random numbers
                                     GpuArray<Real,2> rand; // Random normal numbers
@@ -293,8 +282,6 @@ void doLangevin(MultiFab& cons_in, MultiFab& prim_in,
 
                                     // Cholesky factorise the covariance matrix
                                     Array2D<Real, 0, 2, 0, 2> sqrtVar;
-                                    //amrex::Print(Print::AllProcs) << j << " " << k << " " << l << " " << TL << " " << TR << " " << rhoL[l] << " " << rhoR[l] << "\n";
-                                    //amrex::Print(Print::AllProcs) << j << " " << k << " " << l << " " << Delvar(0,0) << " " << Delvar(1,1) << " " << Delvar(2,2) << " " << Delvar(3,3) << " " << Delvar(0,1) << " " << Delvar(0,2) << " " << Delvar(0,3) << " " << Delvar(1,2) << " " << Delvar(1,3) << " " << Delvar(2,3) << "\n";
                                     Chol2D(Delvar,sqrtVar);
 
                                     // Generate random numbers
@@ -363,8 +350,6 @@ void doLangevin(MultiFab& cons_in, MultiFab& prim_in,
 
                                     // Cholesky factorise the covariance matrix
                                     Array2D<Real, 0, 3, 0, 3> sqrtVar;
-                                    //amrex::Print(Print::AllProcs) << j << " " << k << " " << l << " " << TL << " " << TR << " " << rhoL[l] << " " << rhoR[l] << "\n";
-                                    //amrex::Print(Print::AllProcs) << j << " " << k << " " << l << " " << Delvar(0,0) << " " << Delvar(1,1) << " " << Delvar(2,2) << " " << Delvar(3,3) << " " << Delvar(0,1) << " " << Delvar(0,2) << " " << Delvar(0,3) << " " << Delvar(1,2) << " " << Delvar(1,3) << " " << Delvar(2,3) << "\n";
                                     Chol3D(Delvar,sqrtVar);
 
                                     // Generate random numbers
