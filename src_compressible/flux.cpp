@@ -78,6 +78,17 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 
                 Real meanT = 0.5*(prim(i,j,k,4)+prim(i-1,j,k,4));
 
+                if ((i == 0) and (bc_mass_lo[0] != 3) and (bc_mass_lo[0] != -1)) { // ignore for reservoirs and periodic BC
+                    muxp = eta(i-1,j,k)*prim(i-1,j,k,4);
+                    kxp = kappa(i-1,j,k)*prim(i-1,j,k,4)*prim(i-1,j,k,4);
+                    meanT = prim(i-1,j,k,4);
+                }
+                if ((i == n_cells[0]) and (bc_mass_hi[0] != 3) and (bc_mass_hi[0] != -1)) { // ignore for reservoirs and periodic BC
+                    muxp = eta(i,j,k)*prim(i,j,k,4);
+                    kxp = kappa(i,j,k)*prim(i,j,k,4)*prim(i,j,k,4);
+                    meanT = prim(i,j,k,4);
+                }
+
                 // Weights for facial fluxes:
                 fweights[0] = 0; // No mass flux;
                 fweights[1]=sqrt(k_B*muxp*volinv*dtinv);
@@ -115,27 +126,115 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                                         eta(i,j-1,k)*prim(i,j-1,k,4) + eta(i-1,j-1,k)*prim(i-1,j-1,k,4) +
                                         eta(i,j,k)*prim(i,j,k,4) + eta(i-1,j,k)*prim(i-1,j,k,4) )/3.;
 
-                    if (amrex::Math::abs(visc_type) == 3) {
+                    if ((i == 0) and (bc_mass_lo[0] != 3) and (bc_mass_lo[0] != -1)) { // ignore for reservoirs and periodic BC
+                        muzepp = 0.5*(eta(i-1,j,k)*prim(i-1,j,k,4) +
+                                      eta(i-1,j+1,k)*prim(i-1,j+1,k,4) +
+                                      eta(i-1,j,k+1)*prim(i-1,j,k+1,4) +
+                                      eta(i-1,j+1,k+1)*prim(i-1,j+1,k+1,4) )/3.;
+                        
+                        muzemp = 0.5*(eta(i-1,j-1,k)*prim(i-1,j-1,k,4) +
+                                      eta(i-1,j,k)*prim(i-1,j,k,4) +
+                                      eta(i-1,j-1,k+1)*prim(i-1,j-1,k+1,4) +
+                                      eta(i-1,j,k+1)*prim(i-1,j,k+1,4) )/3.;
+                        
+                        muzepm = 0.5*(eta(i-1,j,k-1)*prim(i-1,j,k-1,4) +
+                                      eta(i-1,j+1,k-1)*prim(i-1,j+1,k-1,4) +
+                                      eta(i-1,j,k)*prim(i-1,j,k,4) +
+                                      eta(i-1,j+1,k)*prim(i-1,j+1,k,4) )/3.;
+                        
+                        muzemm = 0.5*(eta(i-1,j-1,k-1)*prim(i-1,j-1,k-1,4) +
+                                      eta(i-1,j,k-1)*prim(i-1,j,k-1,4) +
+                                      eta(i-1,j-1,k)*prim(i-1,j-1,k,4) +
+                                      eta(i-1,j,k)*prim(i-1,j,k,4) )/3.;
+                    }
+                    if ((i == n_cells[0]) and (bc_mass_hi[0] != 3) and (bc_mass_hi[0] != -1)) { // ignore for reservoirs and periodic BC
+                        muzepp = 0.5*(eta(i,j,k)*prim(i,j,k,4) +
+                                      eta(i,j+1,k)*prim(i,j+1,k,4) +
+                                      eta(i,j,k+1)*prim(i,j,k+1,4) +
+                                      eta(i,j+1,k+1)*prim(i,j+1,k+1,4) )/3.;
+                        
+                        muzemp = 0.5*(eta(i,j-1,k)*prim(i,j-1,k,4) +
+                                      eta(i,j,k)*prim(i,j,k,4) +
+                                      eta(i,j-1,k+1)*prim(i,j-1,k+1,4) +
+                                      eta(i,j,k+1)*prim(i,j,k+1,4) )/3.;
+                        
+                        muzepm = 0.5*(eta(i,j,k-1)*prim(i,j,k-1,4) +
+                                      eta(i,j+1,k-1)*prim(i,j+1,k-1,4) +
+                                      eta(i,j,k)*prim(i,j,k,4) +
+                                      eta(i,j+1,k)*prim(i,j+1,k,4) )/3.;
+                        
+                        muzemm = 0.5*(eta(i,j-1,k-1)*prim(i,j-1,k-1,4) +
+                                      eta(i,j,k-1)*prim(i,j,k-1,4) +
+                                      eta(i,j-1,k)*prim(i,j-1,k,4) +
+                                      eta(i,j,k)*prim(i,j,k,4) )/3.;
+                    }
 
-                        muzepp = muzepp + 0.25*(zeta(i,j,k)*prim(i,j,k,4) + zeta(i-1,j,k)*prim(i-1,j,k,4) +
-                                                zeta(i,j+1,k)*prim(i,j+1,k,4) + zeta(i-1,j+1,k)*prim(i-1,j+1,k,4) +
-                                                zeta(i,j,k+1)*prim(i,j,k+1,4) + zeta(i-1,j,k+1)*prim(i-1,j,k+1,4) +
-                                                zeta(i,j+1,k+1)*prim(i,j+1,k+1,4) + zeta(i-1,j+1,k+1)*prim(i-1,j+1,k+1,4) );
                         
-                        muzemp = muzemp + 0.25*(zeta(i,j-1,k)*prim(i,j-1,k,4) + zeta(i-1,j-1,k)*prim(i-1,j-1,k,4) +
-                                                zeta(i,j,k)*prim(i,j,k,4) + zeta(i-1,j,k)*prim(i-1,j,k,4) +
-                                                zeta(i,j-1,k+1)*prim(i,j-1,k+1,4) + zeta(i-1,j-1,k+1)*prim(i-1,j-1,k+1,4) +
-                                                zeta(i,j,k+1)*prim(i,j,k+1,4) + zeta(i-1,j,k+1)*prim(i-1,j,k+1,4) );
-                        
-                        muzepm = muzepm + 0.25*(zeta(i,j,k-1)*prim(i,j,k-1,4) + zeta(i-1,j,k-1)*prim(i-1,j,k-1,4) +
-                                                zeta(i,j+1,k-1)*prim(i,j+1,k-1,4) + zeta(i-1,j+1,k-1)*prim(i-1,j+1,k-1,4) +
-                                                zeta(i,j,k)*prim(i,j,k,4) + zeta(i-1,j,k)*prim(i-1,j,k,4) +
-                                                zeta(i,j+1,k)*prim(i,j+1,k,4) + zeta(i-1,j+1,k)*prim(i-1,j+1,k,4) );
-                        
-                        muzemm = muzemm + 0.25*(zeta(i,j-1,k-1)*prim(i,j-1,k-1,4) + zeta(i-1,j-1,k-1)*prim(i-1,j-1,k-1,4) +
-                                                zeta(i,j,k-1)*prim(i,j,k-1,4) + zeta(i-1,j,k-1)*prim(i-1,j,k-1,4) +
-                                                zeta(i,j-1,k)*prim(i,j-1,k,4) + zeta(i-1,j-1,k)*prim(i-1,j-1,k,4) +
-                                                zeta(i,j,k)*prim(i,j,k,4) + zeta(i-1,j,k)*prim(i-1,j,k,4) );
+
+                    if (amrex::Math::abs(visc_type) == 3) {
+                        if ((i == 0) and (bc_mass_lo[0] != 3) and (bc_mass_lo[0] != -1)) { // ignore for reservoirs and periodic BC
+                            muzepp += 0.5*(zeta(i-1,j,k)*prim(i-1,j,k,4) +
+                                          zeta(i-1,j+1,k)*prim(i-1,j+1,k,4) +
+                                          zeta(i-1,j,k+1)*prim(i-1,j,k+1,4) +
+                                          zeta(i-1,j+1,k+1)*prim(i-1,j+1,k+1,4) );
+                            
+                            muzemp += 0.5*(zeta(i-1,j-1,k)*prim(i-1,j-1,k,4) +
+                                          zeta(i-1,j,k)*prim(i-1,j,k,4) +
+                                          zeta(i-1,j-1,k+1)*prim(i-1,j-1,k+1,4) +
+                                          zeta(i-1,j,k+1)*prim(i-1,j,k+1,4) );
+                            
+                            muzepm += 0.5*(zeta(i-1,j,k-1)*prim(i-1,j,k-1,4) +
+                                          zeta(i-1,j+1,k-1)*prim(i-1,j+1,k-1,4) +
+                                          zeta(i-1,j,k)*prim(i-1,j,k,4) +
+                                          zeta(i-1,j+1,k)*prim(i-1,j+1,k,4) );
+                            
+                            muzemm += 0.5*(zeta(i-1,j-1,k-1)*prim(i-1,j-1,k-1,4) +
+                                          zeta(i-1,j,k-1)*prim(i-1,j,k-1,4) +
+                                          zeta(i-1,j-1,k)*prim(i-1,j-1,k,4) +
+                                          zeta(i-1,j,k)*prim(i-1,j,k,4) );
+                        }
+                        else if ((i == n_cells[0]) and (bc_mass_hi[0] != 3) and (bc_mass_hi[0] != -1)) { // ignore for reservoirs and periodic BC
+                            muzepp += 0.5*(zeta(i,j,k)*prim(i,j,k,4) +
+                                          zeta(i,j+1,k)*prim(i,j+1,k,4) +
+                                          zeta(i,j,k+1)*prim(i,j,k+1,4) +
+                                          zeta(i,j+1,k+1)*prim(i,j+1,k+1,4) );
+                            
+                            muzemp += 0.5*(zeta(i,j-1,k)*prim(i,j-1,k,4) +
+                                          zeta(i,j,k)*prim(i,j,k,4) +
+                                          zeta(i,j-1,k+1)*prim(i,j-1,k+1,4) +
+                                          zeta(i,j,k+1)*prim(i,j,k+1,4) );
+                            
+                            muzepm += 0.5*(zeta(i,j,k-1)*prim(i,j,k-1,4) +
+                                          zeta(i,j+1,k-1)*prim(i,j+1,k-1,4) +
+                                          zeta(i,j,k)*prim(i,j,k,4) +
+                                          zeta(i,j+1,k)*prim(i,j+1,k,4) );
+                            
+                            muzemm += 0.5*(zeta(i,j-1,k-1)*prim(i,j-1,k-1,4) +
+                                          zeta(i,j,k-1)*prim(i,j,k-1,4) +
+                                          zeta(i,j-1,k)*prim(i,j-1,k,4) +
+                                          zeta(i,j,k)*prim(i,j,k,4) );
+                        }
+                        else {
+                            muzepp += 0.25*(zeta(i,j,k)*prim(i,j,k,4) + zeta(i-1,j,k)*prim(i-1,j,k,4) +
+                                           zeta(i,j+1,k)*prim(i,j+1,k,4) + zeta(i-1,j+1,k)*prim(i-1,j+1,k,4) +
+                                           zeta(i,j,k+1)*prim(i,j,k+1,4) + zeta(i-1,j,k+1)*prim(i-1,j,k+1,4) +
+                                           zeta(i,j+1,k+1)*prim(i,j+1,k+1,4) + zeta(i-1,j+1,k+1)*prim(i-1,j+1,k+1,4) );
+                            
+                            muzemp += 0.25*(zeta(i,j-1,k)*prim(i,j-1,k,4) + zeta(i-1,j-1,k)*prim(i-1,j-1,k,4) +
+                                           zeta(i,j,k)*prim(i,j,k,4) + zeta(i-1,j,k)*prim(i-1,j,k,4) +
+                                           zeta(i,j-1,k+1)*prim(i,j-1,k+1,4) + zeta(i-1,j-1,k+1)*prim(i-1,j-1,k+1,4) +
+                                           zeta(i,j,k+1)*prim(i,j,k+1,4) + zeta(i-1,j,k+1)*prim(i-1,j,k+1,4) );
+                            
+                            muzepm += 0.25*(zeta(i,j,k-1)*prim(i,j,k-1,4) + zeta(i-1,j,k-1)*prim(i-1,j,k-1,4) +
+                                           zeta(i,j+1,k-1)*prim(i,j+1,k-1,4) + zeta(i-1,j+1,k-1)*prim(i-1,j+1,k-1,4) +
+                                           zeta(i,j,k)*prim(i,j,k,4) + zeta(i-1,j,k)*prim(i-1,j,k,4) +
+                                           zeta(i,j+1,k)*prim(i,j+1,k,4) + zeta(i-1,j+1,k)*prim(i-1,j+1,k,4) );
+                            
+                            muzemm += 0.25*(zeta(i,j-1,k-1)*prim(i,j-1,k-1,4) + zeta(i-1,j-1,k-1)*prim(i-1,j-1,k-1,4) +
+                                            zeta(i,j,k-1)*prim(i,j,k-1,4) + zeta(i-1,j,k-1)*prim(i-1,j,k-1,4) +
+                                            zeta(i,j-1,k)*prim(i,j-1,k,4) + zeta(i-1,j-1,k)*prim(i-1,j-1,k,4) +
+                                            zeta(i,j,k)*prim(i,j,k,4) + zeta(i-1,j,k)*prim(i-1,j,k,4) );
+                        }
                     }
 
                     Real factor_lo_y = 1.;
@@ -210,6 +309,17 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 Real phiflxshear = wiener[2]*(prim(i-1,j,k,2)+prim(i,j,k,2)) +
                                    wiener[3]*(prim(i-1,j,k,3)+prim(i,j,k,3));
 
+                if ((i == 0) and (bc_mass_lo[0] != 3) and (bc_mass_lo[0] != -1)) { // ignore for reservoirs and periodic BC
+                    phiflxdiag =  2.0*wiener[1]*prim(i-1,j,k,1);
+                    phiflxshear = 2.0*wiener[2]*prim(i-1,j,k,2) +
+                                  2.0*wiener[3]*prim(i-1,j,k,3);
+                }
+                if ((i == n_cells[0]) and (bc_mass_hi[0] != 3) and (bc_mass_hi[0] != -1)) { // ignore for reservoirs and periodic BC
+                    phiflxdiag =  2.0*wiener[1]*prim(i,j,k,1);
+                    phiflxshear = 2.0*wiener[2]*prim(i,j,k,2) +
+                                  2.0*wiener[3]*prim(i,j,k,3);
+                }
+
                 phiflxdiag = -0.5*phiflxdiag;
                 phiflxshear = -0.5*phiflxshear;
 
@@ -225,6 +335,12 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                     for (int ns=0; ns<nspecies; ++ns) {
                         yy[ns] = amrex::max(0.,amrex::min(1.,prim(i-1,j,k,6+ns)));
                         yyp[ns] = amrex::max(0.,amrex::min(1.,prim(i,j,k,6+ns)));
+                        if ((i == 0) and (bc_mass_lo[0] != 3) and (bc_mass_lo[0] != -1)) { // ignore for reservoirs and periodic BC
+                            yyp[ns] = amrex::max(0.,amrex::min(1.,prim(i-1,j,k,6+ns)));
+                        }
+                        if ((i == n_cells[0]) and (bc_mass_hi[0] != 3) and (bc_mass_hi[0] != -1)) { // ignore for reservoirs and periodic BC
+                            yy[ns] = amrex::max(0.,amrex::min(1.,prim(i,j,k,6+ns)));
+                        }
                     }
 
                     Real sumy = 0.;
@@ -251,6 +367,18 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                                                                  Dij(i,j,k,ll*nspecies+ns)*yyp[ll] +
                                                                 (Dij(i-1,j,k,ns*nspecies+ll)*yy[ns] +
                                                                  Dij(i,j,k,ns*nspecies+ll)*yyp[ns] ));
+                            if ((i == 0) and (bc_mass_lo[0] != 3) and (bc_mass_lo[0] != -1)) { // ignore for reservoirs and periodic BC
+                                DijY_edge[ns*nspecies+ll] = 0.5*(Dij(i-1,j,k,ll*nspecies+ns)*yy[ll] +
+                                                                     Dij(i-1,j,k,ll*nspecies+ns)*yyp[ll] +
+                                                                    (Dij(i-1,j,k,ns*nspecies+ll)*yy[ns] +
+                                                                     Dij(i-1,j,k,ns*nspecies+ll)*yyp[ns] ));
+                            }
+                            if ((i == n_cells[0]) and (bc_mass_hi[0] != 3) and (bc_mass_hi[0] != -1)) { // ignore for reservoirs and periodic BC
+                                DijY_edge[ns*nspecies+ll] = 0.5*(Dij(i,j,k,ll*nspecies+ns)*yy[ll] +
+                                                                     Dij(i,j,k,ll*nspecies+ns)*yyp[ll] +
+                                                                    (Dij(i,j,k,ns*nspecies+ll)*yy[ns] +
+                                                                     Dij(i,j,k,ns*nspecies+ll)*yyp[ns] ));
+                            }
 
                         }
                     }
@@ -281,8 +409,15 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                     Real soret = 0.;
 
                     for (int ns=0; ns<nspecies; ++ns) {
-                        soret = soret + (hk[ns] + Runiv*meanT/molmass[ns]
-                                         *0.5*(chi(i-1,j,k,ns)+chi(i,j,k,ns)))*wiener[5+ns];
+                        Real soret_s;
+                        soret_s = (hk[ns] + Runiv*meanT/molmass[ns]*0.5*(chi(i-1,j,k,ns)+chi(i,j,k,ns)))*wiener[5+ns];
+                        if ((i == 0) and (bc_mass_lo[0] != 3) and (bc_mass_lo[0] != -1)) { // ignore for reservoirs and periodic BC
+                            soret_s = (hk[ns] + Runiv*meanT/molmass[ns]*0.5*chi(i-1,j,k,ns))*wiener[5+ns];
+                        }
+                        if ((i == n_cells[0]) and (bc_mass_hi[0] != 3) and (bc_mass_hi[0] != -1)) { // ignore for reservoirs and periodic BC
+                            soret_s = (hk[ns] + Runiv*meanT/molmass[ns]*0.5*chi(i,j,k,ns))*wiener[5+ns];
+                        }
+                        soret = soret + soret_s;
                     }
                     fluxx(i,j,k,nvars+3) = fluxx(i,j,k,nvars+3) + soret;
                 }
@@ -306,6 +441,17 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 Real kyp = kappa(i,j,k)*prim(i,j,k,4)*prim(i,j,k,4) + kappa(i,j-1,k)*prim(i,j-1,k,4)*prim(i,j-1,k,4);
 
                 Real meanT = 0.5*(prim(i,j,k,4)+prim(i,j-1,k,4));
+
+                if ((j == 0) and (bc_mass_lo[1] != 3) and (bc_mass_lo[1] != -1)) { // ignore for reservoirs and periodic BC
+                    muyp = eta(i,j-1,k)*prim(i,j-1,k,4);
+                    kyp = kappa(i,j-1,k)*prim(i,j-1,k,4)*prim(i,j-1,k,4);
+                    meanT = prim(i,j-1,k,4);
+                }
+                if ((j == n_cells[1]) and (bc_mass_hi[1] != 3) and (bc_mass_hi[1] != -1)) { // ignore for reservoirs and periodic BC
+                    muyp = eta(i,j,k)*prim(i,j,k,4);
+                    kyp = kappa(i,j,k)*prim(i,j,k,4)*prim(i,j,k,4);
+                    meanT = prim(i,j,k,4);
+                }
 
                 // Weights for facial fluxes:
                 fweights[0] = 0; // No mass flux
@@ -344,27 +490,118 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                                         eta(i-1,j,k)*prim(i-1,j,k,4) + eta(i,j,k)*prim(i,j,k,4) +
                                         eta(i-1,j-1,k)*prim(i-1,j-1,k,4) + eta(i,j-1,k)*prim(i,j-1,k,4) )/3.;
 
+                    if ((j == 0) and (bc_mass_lo[1] != 3) and (bc_mass_lo[1] != -1)) { // ignore for reservoirs and periodic BC
+                        muzepp = 0.5*(eta(i+1,j-1,k)*prim(i+1,j-1,k,4) + 
+                                      eta(i,j-1,k)*prim(i,j-1,k,4) +
+                                      eta(i+1,j-1,k+1)*prim(i+1,j-1,k+1,4) + 
+                                      eta(i,j-1,k+1)*prim(i,j-1,k+1,4) )/3.;
+
+                        muzemp = 0.5*(eta(i-1,j-1,k)*prim(i-1,j-1,k,4) + 
+                                      eta(i,j-1,k)*prim(i,j-1,k,4) +
+                                      eta(i-1,j-1,k+1)*prim(i-1,j-1,k+1,4) + 
+                                      eta(i,j-1,k+1)*prim(i,j-1,k+1,4) )/3.;
+
+                        muzepm = 0.5*(eta(i+1,j-1,k-1)*prim(i+1,j-1,k-1,4) + 
+                                      eta(i,j-1,k-1)*prim(i,j-1,k-1,4) +
+                                      eta(i+1,j-1,k)*prim(i+1,j-1,k,4) + 
+                                      eta(i,j-1,k)*prim(i,j-1,k,4) )/3.;
+
+                        muzemm = 0.5*(eta(i-1,j-1,k-1)*prim(i-1,j-1,k-1,4) + 
+                                      eta(i,j-1,k-1)*prim(i,j-1,k-1,4) +
+                                      eta(i-1,j-1,k)*prim(i-1,j-1,k,4) + 
+                                      eta(i,j-1,k)*prim(i,j-1,k,4) )/3.;
+
+                    }
+                    if ((j == n_cells[1]) and (bc_mass_hi[1] != 3) and (bc_mass_hi[1] != -1)) { // ignore for reservoirs and periodic BC
+                        muzepp = 0.5*(eta(i+1,j,k)*prim(i+1,j,k,4) + 
+                                      eta(i,j,k)*prim(i,j,k,4) +
+                                      eta(i+1,j,k+1)*prim(i+1,j,k+1,4) + 
+                                      eta(i,j,k+1)*prim(i,j,k+1,4) )/3.;
+
+                        muzemp = 0.5*(eta(i-1,j,k)*prim(i-1,j,k,4) + 
+                                      eta(i,j,k)*prim(i,j,k,4) +
+                                      eta(i-1,j,k+1)*prim(i-1,j,k+1,4) + 
+                                      eta(i,j,k+1)*prim(i,j,k+1,4) )/3.;
+
+                        muzepm = 0.5*(eta(i+1,j,k-1)*prim(i+1,j,k-1,4) + 
+                                      eta(i,j,k-1)*prim(i,j,k-1,4) +
+                                      eta(i+1,j,k)*prim(i+1,j,k,4) + 
+                                      eta(i,j,k)*prim(i,j,k,4) )/3.;
+
+                        muzemm = 0.5*(eta(i-1,j,k-1)*prim(i-1,j,k-1,4) + 
+                                      eta(i,j,k-1)*prim(i,j,k-1,4) +
+                                      eta(i-1,j,k)*prim(i-1,j,k,4) + 
+                                      eta(i,j,k)*prim(i,j,k,4) )/3.;
+
+                    }
+
                     if (amrex::Math::abs(visc_type) == 3) {
 
-                        muzepp = muzepp + 0.25*(zeta(i+1,j-1,k)*prim(i+1,j-1,k,4) + zeta(i,j-1,k)*prim(i,j-1,k,4) +
-                                                zeta(i+1,j,k)*prim(i+1,j,k,4) + zeta(i,j,k)*prim(i,j,k,4) +
-                                                zeta(i+1,j-1,k+1)*prim(i+1,j-1,k+1,4) + zeta(i,j-1,k+1)*prim(i,j-1,k+1,4) +
-                                                zeta(i+1,j,k+1)*prim(i+1,j,k+1,4) + zeta(i,j,k+1)*prim(i,j,k+1,4) );
+                        if ((j == 0) and (bc_mass_lo[1] != 3) and (bc_mass_lo[1] != -1)) { // ignore for reservoirs and periodic BC
+                            muzepp += 0.5*(zeta(i+1,j-1,k)*prim(i+1,j-1,k,4) + 
+                                          zeta(i,j-1,k)*prim(i,j-1,k,4) +
+                                          zeta(i+1,j-1,k+1)*prim(i+1,j-1,k+1,4) + 
+                                          zeta(i,j-1,k+1)*prim(i,j-1,k+1,4) )/3.;
 
-                        muzemp = muzemp + 0.25*(zeta(i-1,j,k)*prim(i-1,j,k,4) + zeta(i,j,k)*prim(i,j,k,4) +
-                                                zeta(i-1,j-1,k)*prim(i-1,j-1,k,4) + zeta(i,j-1,k)*prim(i,j-1,k,4) +
-                                                zeta(i-1,j,k+1)*prim(i-1,j,k+1,4) + zeta(i,j,k+1)*prim(i,j,k+1,4) +
-                                                zeta(i-1,j-1,k+1)*prim(i-1,j-1,k+1,4) + zeta(i,j-1,k+1)*prim(i,j-1,k+1,4) );
+                            muzemp += 0.5*(zeta(i-1,j-1,k)*prim(i-1,j-1,k,4) + 
+                                          zeta(i,j-1,k)*prim(i,j-1,k,4) +
+                                          zeta(i-1,j-1,k+1)*prim(i-1,j-1,k+1,4) + 
+                                          zeta(i,j-1,k+1)*prim(i,j-1,k+1,4) )/3.;
 
-                        muzepm =  muzepm +0.25*(zeta(i+1,j-1,k-1)*prim(i+1,j-1,k-1,4) + zeta(i,j-1,k-1)*prim(i,j-1,k-1,4) +
-                                                zeta(i+1,j,k-1)*prim(i+1,j,k-1,4) + zeta(i,j,k-1)*prim(i,j,k-1,4) +
-                                                zeta(i+1,j-1,k)*prim(i+1,j-1,k,4) + zeta(i,j-1,k)*prim(i,j-1,k,4) +
-                                                zeta(i+1,j,k)*prim(i+1,j,k,4) + zeta(i,j,k)*prim(i,j,k,4) );
+                            muzepm += 0.5*(zeta(i+1,j-1,k-1)*prim(i+1,j-1,k-1,4) + 
+                                          zeta(i,j-1,k-1)*prim(i,j-1,k-1,4) +
+                                          zeta(i+1,j-1,k)*prim(i+1,j-1,k,4) + 
+                                          zeta(i,j-1,k)*prim(i,j-1,k,4) )/3.;
 
-                        muzemm = muzemm + 0.25*(zeta(i-1,j,k-1)*prim(i-1,j,k-1,4) + zeta(i,j,k-1)*prim(i,j,k-1,4) +
-                                                zeta(i-1,j-1,k-1)*prim(i-1,j-1,k-1,4) + zeta(i,j-1,k-1)*prim(i,j-1,k-1,4) +
-                                                zeta(i-1,j,k)*prim(i-1,j,k,4) + zeta(i,j,k)*prim(i,j,k,4) +
-                                                zeta(i-1,j-1,k)*prim(i-1,j-1,k,4) + zeta(i,j-1,k)*prim(i,j-1,k,4) );
+                            muzemm += 0.5*(zeta(i-1,j-1,k-1)*prim(i-1,j-1,k-1,4) + 
+                                          zeta(i,j-1,k-1)*prim(i,j-1,k-1,4) +
+                                          zeta(i-1,j-1,k)*prim(i-1,j-1,k,4) + 
+                                          zeta(i,j-1,k)*prim(i,j-1,k,4) )/3.;
+
+                        }
+                        else  if ((j == n_cells[1]) and (bc_mass_hi[1] != 3) and (bc_mass_hi[1] != -1)) { // ignore for reservoirs and periodic BC
+                            muzepp += 0.5*(zeta(i+1,j,k)*prim(i+1,j,k,4) + 
+                                          zeta(i,j,k)*prim(i,j,k,4) +
+                                          zeta(i+1,j,k+1)*prim(i+1,j,k+1,4) + 
+                                          zeta(i,j,k+1)*prim(i,j,k+1,4) )/3.;
+
+                            muzemp += 0.5*(zeta(i-1,j,k)*prim(i-1,j,k,4) + 
+                                          zeta(i,j,k)*prim(i,j,k,4) +
+                                          zeta(i-1,j,k+1)*prim(i-1,j,k+1,4) + 
+                                          zeta(i,j,k+1)*prim(i,j,k+1,4) )/3.;
+
+                            muzepm += 0.5*(zeta(i+1,j,k-1)*prim(i+1,j,k-1,4) + 
+                                          zeta(i,j,k-1)*prim(i,j,k-1,4) +
+                                          zeta(i+1,j,k)*prim(i+1,j,k,4) + 
+                                          zeta(i,j,k)*prim(i,j,k,4) )/3.;
+
+                            muzemm += 0.5*(zeta(i-1,j,k-1)*prim(i-1,j,k-1,4) + 
+                                          zeta(i,j,k-1)*prim(i,j,k-1,4) +
+                                          zeta(i-1,j,k)*prim(i-1,j,k,4) + 
+                                          zeta(i,j,k)*prim(i,j,k,4) )/3.;
+
+                        }
+                        else {  
+                            muzepp += 0.25*(zeta(i+1,j-1,k)*prim(i+1,j-1,k,4) + zeta(i,j-1,k)*prim(i,j-1,k,4) +
+                                           zeta(i+1,j,k)*prim(i+1,j,k,4) + zeta(i,j,k)*prim(i,j,k,4) +
+                                           zeta(i+1,j-1,k+1)*prim(i+1,j-1,k+1,4) + zeta(i,j-1,k+1)*prim(i,j-1,k+1,4) +
+                                           zeta(i+1,j,k+1)*prim(i+1,j,k+1,4) + zeta(i,j,k+1)*prim(i,j,k+1,4) );
+
+                            muzemp += 0.25*(zeta(i-1,j,k)*prim(i-1,j,k,4) + zeta(i,j,k)*prim(i,j,k,4) +
+                                           zeta(i-1,j-1,k)*prim(i-1,j-1,k,4) + zeta(i,j-1,k)*prim(i,j-1,k,4) +
+                                           zeta(i-1,j,k+1)*prim(i-1,j,k+1,4) + zeta(i,j,k+1)*prim(i,j,k+1,4) +
+                                           zeta(i-1,j-1,k+1)*prim(i-1,j-1,k+1,4) + zeta(i,j-1,k+1)*prim(i,j-1,k+1,4) );
+
+                            muzepm += 0.25*(zeta(i+1,j-1,k-1)*prim(i+1,j-1,k-1,4) + zeta(i,j-1,k-1)*prim(i,j-1,k-1,4) +
+                                           zeta(i+1,j,k-1)*prim(i+1,j,k-1,4) + zeta(i,j,k-1)*prim(i,j,k-1,4) +
+                                           zeta(i+1,j-1,k)*prim(i+1,j-1,k,4) + zeta(i,j-1,k)*prim(i,j-1,k,4) +
+                                           zeta(i+1,j,k)*prim(i+1,j,k,4) + zeta(i,j,k)*prim(i,j,k,4) );
+
+                            muzemm += 0.25*(zeta(i-1,j,k-1)*prim(i-1,j,k-1,4) + zeta(i,j,k-1)*prim(i,j,k-1,4) +
+                                                    zeta(i-1,j-1,k-1)*prim(i-1,j-1,k-1,4) + zeta(i,j-1,k-1)*prim(i,j-1,k-1,4) +
+                                                    zeta(i-1,j,k)*prim(i-1,j,k,4) + zeta(i,j,k)*prim(i,j,k,4) +
+                                                    zeta(i-1,j-1,k)*prim(i-1,j-1,k,4) + zeta(i,j-1,k)*prim(i,j-1,k,4) );
+                        }
                     }
 
                     Real factor_lo_x = 1.;
@@ -440,6 +677,17 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 Real phiflxshear = wiener[1]*(prim(i,j-1,k,1)+prim(i,j,k,1)) +
                                    wiener[3]*(prim(i,j-1,k,3)+prim(i,j,k,3));
 
+                if ((j == 0) and (bc_mass_lo[1] != 3) and (bc_mass_lo[1] != -1)) { // ignore for reservoirs and periodic BC
+                    phiflxdiag =  2.0*wiener[1]*prim(i,j-1,k,1);
+                    phiflxshear = 2.0*wiener[2]*prim(i,j-1,k,2) +
+                                  2.0*wiener[3]*prim(i,j-1,k,3);
+                }
+                if ((j == n_cells[1]) and (bc_mass_hi[1] != 3) and (bc_mass_hi[1] != -1)) { // ignore for reservoirs and periodic BC
+                    phiflxdiag =  2.0*wiener[1]*prim(i,j,k,1);
+                    phiflxshear = 2.0*wiener[2]*prim(i,j,k,2) +
+                                  2.0*wiener[3]*prim(i,j,k,3);
+                }
+
                 phiflxdiag = -0.5*phiflxdiag;
                 phiflxshear = -0.5*phiflxshear;
 
@@ -455,6 +703,12 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                     for (int ns=0; ns<nspecies; ++ns) {
                         yy[ns] = amrex::max(0.,amrex::min(1.,prim(i,j-1,k,6+ns)));
                         yyp[ns] = amrex::max(0.,amrex::min(1.,prim(i,j,k,6+ns)));
+                        if ((j == 0) and (bc_mass_lo[1] != 3) and (bc_mass_lo[1] != -1)) { // ignore for reservoirs and periodic BC
+                            yyp[ns] = amrex::max(0.,amrex::min(1.,prim(i,j-1,k,6+ns)));
+                        }
+                        if ((j == n_cells[1]) and (bc_mass_hi[1] != 3) and (bc_mass_hi[1] != -1)) { // ignore for reservoirs and periodic BC
+                            yy[ns] = amrex::max(0.,amrex::min(1.,prim(i,j,k,6+ns)));
+                        }
                     }
 
                     Real sumy = 0.;
@@ -482,6 +736,17 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                                                                 (Dij(i,j-1,k,ns*nspecies+ll)*yy[ns] +
                                                                  Dij(i,j,k,ns*nspecies+ll)*yyp[ns] ));
 
+                            if ((j == 0) and (bc_mass_lo[1] != 3) and (bc_mass_lo[1] != -1)) { // ignore for reservoirs and periodic BC
+                                DijY_edge[ns*nspecies+ll] = 0.5*(Dij(i,j-1,k,ll*nspecies+ns)*yy[ll] +
+                                                                     Dij(i,j-1,k,ll*nspecies+ns)*yyp[ll] +
+                                                                    (Dij(i,j-1,k,ns*nspecies+ll)*yy[ns] +
+                                                                     Dij(i,j-1,k,ns*nspecies+ll)*yyp[ns] ));
+                            }
+                            if ((j == n_cells[1]) and (bc_mass_hi[1] != 3) and (bc_mass_hi[1] != -1)) { // ignore for reservoirs and periodic BC
+                                DijY_edge[ns*nspecies+ll] = 0.5*(Dij(i,j,k,ll*nspecies+ns)*yy[ll] +
+                                                                     Dij(i,j,k,ll*nspecies+ns)*yyp[ll] +
+                                                                    (Dij(i,j,k,ns*nspecies+ll)*yy[ns] +
+                                                                     Dij(i,j,k,ns*nspecies+ll)*yyp[ns] ));
                         }
                     }
                     
@@ -511,8 +776,15 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                     Real soret = 0.;
 
                     for (int ns=0; ns<nspecies; ++ns) {
-                        soret = soret + (hk[ns] + Runiv*meanT/molmass[ns]
-                                         *0.5*(chi(i,j-1,k,ns)+chi(i,j,k,ns)))*wiener[5+ns];
+                        Real soret_s;
+                        soret_s = (hk[ns] + Runiv*meanT/molmass[ns]*0.5*(chi(i,j-1,k,ns)+chi(i,j,k,ns)))*wiener[5+ns];
+                        if ((j == 0) and (bc_mass_lo[1] != 3) and (bc_mass_lo[1] != -1)) { // ignore for reservoirs and periodic BC
+                            soret_s = (hk[ns] + Runiv*meanT/molmass[ns]*0.5*chi(i,j-1,k,ns))*wiener[5+ns];
+                        }
+                        if ((j == n_cells[1]) and (bc_mass_hi[1] != 3) and (bc_mass_hi[1] != -1)) { // ignore for reservoirs and periodic BC
+                            soret_s = (hk[ns] + Runiv*meanT/molmass[ns]*0.5*chi(i,j,k,ns))*wiener[5+ns];
+                        }
+                        soret = soret + soret_s;
                     }
                     fluxy(i,j,k,nvars+3) = fluxy(i,j,k,nvars+3) + soret;
                 }
@@ -536,6 +808,17 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                     Real kzp = kappa(i,j,k)*prim(i,j,k,4)*prim(i,j,k,4) + kappa(i,j,k-1)*prim(i,j,k-1,4)*prim(i,j,k-1,4);
 
                     Real meanT = 0.5*(prim(i,j,k,4)+prim(i,j,k-1,4));
+
+                    if ((k == 0) and (bc_mass_lo[2] != 3) and (bc_mass_lo[2] != -1)) { // ignore for reservoirs and periodic BC
+                        muzp = eta(i,j,k-1)*prim(i,j,k-1,4);
+                        kzp = kappa(i,j,k-1)*prim(i,j,k-1,4)*prim(i,j,k-1,4);
+                        meanT = prim(i,j,k-1,4);
+                    }
+                    if ((k == n_cells[2]) and (bc_mass_hi[2] != 3) and (bc_mass_hi[2] != -1)) { // ignore for reservoirs and periodic BC
+                        muzp = eta(i,j,k)*prim(i,j,k,4);
+                        kzp = kappa(i,j,k)*prim(i,j,k,4)*prim(i,j,k,4);
+                        meanT = prim(i,j,k,4);
+                    }
 
                     // Weights for facial fluxes:
                     fweights[0] = 0; // No mass flux
@@ -572,27 +855,118 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                                         eta(i-1,j-1,k-1)*prim(i-1,j-1,k-1,4) + eta(i,j-1,k-1)*prim(i,j-1,k-1,4) +
                                         eta(i-1,j,k-1)*prim(i-1,j,k-1,4) + eta(i,j,k-1)*prim(i,j,k-1,4) )/3.;
 
+                    if ((k == 0) and (bc_mass_lo[2] != 3) and (bc_mass_lo[2] != -1)) { // ignore for reservoirs and periodic BC
+                        muzepp = 0.5*(eta(i+1,j,k-1)*prim(i+1,j,k-1,4) + 
+                                      eta(i,j,k-1)*prim(i,j,k-1,4) +
+                                      eta(i+1,j+1,k-1)*prim(i+1,j+1,k-1,4) + 
+                                      eta(i,j+1,k-1)*prim(i,j+1,k-1,4) )/3.;
+
+                        muzemp = 0.5*(eta(i-1,j+1,k-1)*prim(i-1,j+1,k-1,4) + 
+                                      eta(i,j+1,k-1)*prim(i,j+1,k-1,4) +
+                                      eta(i-1,j,k-1)*prim(i-1,j,k-1,4) + 
+                                      eta(i,j,k-1)*prim(i,j,k-1,4) )/3.;
+
+                        muzepm = 0.5*(eta(i+1,j,k-1)*prim(i+1,j,k-1,4) + 
+                                      eta(i,j,k-1)*prim(i,j,k-1,4) +
+                                      eta(i+1,j-1,k-1)*prim(i+1,j-1,k-1,4) + 
+                                      eta(i,j-1,k-1)*prim(i,j-1,k-1,4) )/3.;
+
+                        muzemm = 0.5*(eta(i-1,j-1,k-1)*prim(i-1,j-1,k-1,4) + 
+                                      eta(i,j-1,k-1)*prim(i,j-1,k-1,4) +
+                                      eta(i-1,j,k-1)*prim(i-1,j,k-1,4) + 
+                                      eta(i,j,k-1)*prim(i,j,k-1,4) )/3.;
+
+                    }
+                    if ((k == n_cells[2]) and (bc_mass_hi[2] != 3) and (bc_mass_hi[2] != -1)) { // ignore for reservoirs and periodic BC
+                        muzepp = 0.25*(eta(i+1,j,k)*prim(i+1,j,k,4) + 
+                                       eta(i,j,k)*prim(i,j,k,4) +
+                                       eta(i+1,j+1,k)*prim(i+1,j+1,k,4) + 
+                                       eta(i,j+1,k)*prim(i,j+1,k,4) )/3.;
+
+                        muzemp = 0.25*(eta(i-1,j+1,k)*prim(i-1,j+1,k,4) + 
+                                       eta(i,j+1,k)*prim(i,j+1,k,4) +
+                                       eta(i-1,j,k)*prim(i-1,j,k,4) + 
+                                       eta(i,j,k)*prim(i,j,k,4) )/3.;
+
+                        muzepm = 0.25*(eta(i+1,j,k)*prim(i+1,j,k,4) + 
+                                       eta(i,j,k-2)*prim(i,j,k,4) +
+                                       eta(i+1,j-1,k)*prim(i+1,j-1,k,4) + 
+                                       eta(i,j-1,k-2)*prim(i,j-1,k,4) )/3.;
+
+                        muzemm = 0.25*(eta(i-1,j-1,k)*prim(i-1,j-1,k,4) + 
+                                       eta(i,j-1,k)*prim(i,j-1,k,4) +
+                                       eta(i-1,j,k)*prim(i-1,j,k,4) + 
+                                       eta(i,j,k)*prim(i,j,k,4) )/3.;
+
+                    }
+
                     if (amrex::Math::abs(visc_type) == 3) {
 
-                        muzepp = muzepp+ 0.25*(zeta(i+1,j,k-1)*prim(i+1,j,k-1,4) + zeta(i,j,k-1)*prim(i,j,k-1,4) +
-                                               zeta(i+1,j+1,k-1)*prim(i+1,j+1,k-1,4) + zeta(i,j+1,k-1)*prim(i,j+1,k-1,4) +
-                                               zeta(i+1,j,k)*prim(i+1,j,k,4) + zeta(i,j,k)*prim(i,j,k,4) +
-                                               zeta(i+1,j+1,k)*prim(i+1,j+1,k,4) + zeta(i,j+1,k)*prim(i,j+1,k,4) );
+                        if ((k == 0) and (bc_mass_lo[2] != 3) and (bc_mass_lo[2] != -1)) { // ignore for reservoirs and periodic BC
+                            muzepp += 0.5*(zeta(i+1,j,k-1)*prim(i+1,j,k-1,4) + 
+                                          zeta(i,j,k-1)*prim(i,j,k-1,4) +
+                                          zeta(i+1,j+1,k-1)*prim(i+1,j+1,k-1,4) + 
+                                          zeta(i,j+1,k-1)*prim(i,j+1,k-1,4) )/3.;
 
-                        muzemp = muzemp + 0.25*(zeta(i-1,j+1,k-1)*prim(i-1,j+1,k-1,4) + zeta(i,j+1,k-1)*prim(i,j+1,k-1,4) +
-                                                zeta(i-1,j,k-1)*prim(i-1,j,k-1,4) + zeta(i,j,k-1)*prim(i,j,k-1,4) +
-                                                zeta(i-1,j+1,k)*prim(i-1,j+1,k,4) + zeta(i,j+1,k)*prim(i,j+1,k,4) +
-                                                zeta(i-1,j,k)*prim(i-1,j,k,4) + zeta(i,j,k)*prim(i,j,k,4) );
+                            muzemp += 0.5*(zeta(i-1,j+1,k-1)*prim(i-1,j+1,k-1,4) + 
+                                          zeta(i,j+1,k-1)*prim(i,j+1,k-1,4) +
+                                          zeta(i-1,j,k-1)*prim(i-1,j,k-1,4) + 
+                                          zeta(i,j,k-1)*prim(i,j,k-1,4) )/3.;
 
-                        muzepm = muzepm + 0.25*(zeta(i+1,j,k)*prim(i+1,j,k,4) + zeta(i,j,k-2)*prim(i,j,k,4) +
-                                                zeta(i+1,j-1,k)*prim(i+1,j-1,k,4) + zeta(i,j-1,k-2)*prim(i,j-1,k,4) +
-                                                zeta(i+1,j,k-1)*prim(i+1,j,k-1,4) + zeta(i,j,k-1)*prim(i,j,k-1,4) +
-                                                zeta(i+1,j-1,k-1)*prim(i+1,j-1,k-1,4) + zeta(i,j-1,k-1)*prim(i,j-1,k-1,4) );
+                            muzepm += 0.5*(zeta(i+1,j,k-1)*prim(i+1,j,k-1,4) + 
+                                          zeta(i,j,k-1)*prim(i,j,k-1,4) +
+                                          zeta(i+1,j-1,k-1)*prim(i+1,j-1,k-1,4) + 
+                                          zeta(i,j-1,k-1)*prim(i,j-1,k-1,4) )/3.;
 
-                        muzemm = muzemm + 0.25*(zeta(i-1,j-1,k)*prim(i-1,j-1,k,4) + zeta(i,j-1,k)*prim(i,j-1,k,4) +
-                                                zeta(i-1,j,k)*prim(i-1,j,k,4) + zeta(i,j,k)*prim(i,j,k,4) +
-                                                zeta(i-1,j-1,k-1)*prim(i-1,j-1,k-1,4) + zeta(i,j-1,k-1)*prim(i,j-1,k-1,4) +
-                                                zeta(i-1,j,k-1)*prim(i-1,j,k-1,4) + zeta(i,j,k-1)*prim(i,j,k-1,4) );
+                            muzemm += 0.5*(zeta(i-1,j-1,k-1)*prim(i-1,j-1,k-1,4) + 
+                                          zeta(i,j-1,k-1)*prim(i,j-1,k-1,4) +
+                                          zeta(i-1,j,k-1)*prim(i-1,j,k-1,4) + 
+                                          zeta(i,j,k-1)*prim(i,j,k-1,4) )/3.;
+
+                        }
+                        if ((k == n_cells[2]) and (bc_mass_hi[2] != 3) and (bc_mass_hi[2] != -1)) { // ignore for reservoirs and periodic BC
+                            muzepp += 0.5*(zeta(i+1,j,k)*prim(i+1,j,k,4) + 
+                                           zeta(i,j,k)*prim(i,j,k,4) +
+                                           zeta(i+1,j+1,k)*prim(i+1,j+1,k,4) + 
+                                           zeta(i,j+1,k)*prim(i,j+1,k,4) )/3.;
+
+                            muzemp += 0.5*(zeta(i-1,j+1,k)*prim(i-1,j+1,k,4) + 
+                                           zeta(i,j+1,k)*prim(i,j+1,k,4) +
+                                           zeta(i-1,j,k)*prim(i-1,j,k,4) + 
+                                           zeta(i,j,k)*prim(i,j,k,4) )/3.;
+
+                            muzepm += 0.5*(zeta(i+1,j,k)*prim(i+1,j,k,4) + 
+                                           zeta(i,j,k-2)*prim(i,j,k,4) +
+                                           zeta(i+1,j-1,k)*prim(i+1,j-1,k,4) + 
+                                           zeta(i,j-1,k-2)*prim(i,j-1,k,4) )/3.;
+
+                            muzemm += 0.5*(zeta(i-1,j-1,k)*prim(i-1,j-1,k,4) + 
+                                           zeta(i,j-1,k)*prim(i,j-1,k,4) +
+                                           zeta(i-1,j,k)*prim(i-1,j,k,4) + 
+                                           zeta(i,j,k)*prim(i,j,k,4) )/3.;
+
+                        }
+                        else {
+                            muzepp += 0.25*(zeta(i+1,j,k-1)*prim(i+1,j,k-1,4) + zeta(i,j,k-1)*prim(i,j,k-1,4) +
+                                           zeta(i+1,j+1,k-1)*prim(i+1,j+1,k-1,4) + zeta(i,j+1,k-1)*prim(i,j+1,k-1,4) +
+                                           zeta(i+1,j,k)*prim(i+1,j,k,4) + zeta(i,j,k)*prim(i,j,k,4) +
+                                           zeta(i+1,j+1,k)*prim(i+1,j+1,k,4) + zeta(i,j+1,k)*prim(i,j+1,k,4) );
+
+                            muzemp += 0.25*(zeta(i-1,j+1,k-1)*prim(i-1,j+1,k-1,4) + zeta(i,j+1,k-1)*prim(i,j+1,k-1,4) +
+                                            zeta(i-1,j,k-1)*prim(i-1,j,k-1,4) + zeta(i,j,k-1)*prim(i,j,k-1,4) +
+                                            zeta(i-1,j+1,k)*prim(i-1,j+1,k,4) + zeta(i,j+1,k)*prim(i,j+1,k,4) +
+                                            zeta(i-1,j,k)*prim(i-1,j,k,4) + zeta(i,j,k)*prim(i,j,k,4) );
+
+                            muzepm += 0.25*(zeta(i+1,j,k)*prim(i+1,j,k,4) + zeta(i,j,k-2)*prim(i,j,k,4) +
+                                            zeta(i+1,j-1,k)*prim(i+1,j-1,k,4) + zeta(i,j-1,k-2)*prim(i,j-1,k,4) +
+                                            zeta(i+1,j,k-1)*prim(i+1,j,k-1,4) + zeta(i,j,k-1)*prim(i,j,k-1,4) +
+                                            zeta(i+1,j-1,k-1)*prim(i+1,j-1,k-1,4) + zeta(i,j-1,k-1)*prim(i,j-1,k-1,4) );
+
+                            muzemm += 0.25*(zeta(i-1,j-1,k)*prim(i-1,j-1,k,4) + zeta(i,j-1,k)*prim(i,j-1,k,4) +
+                                                    zeta(i-1,j,k)*prim(i-1,j,k,4) + zeta(i,j,k)*prim(i,j,k,4) +
+                                                    zeta(i-1,j-1,k-1)*prim(i-1,j-1,k-1,4) + zeta(i,j-1,k-1)*prim(i,j-1,k-1,4) +
+                                                    zeta(i-1,j,k-1)*prim(i-1,j,k-1,4) + zeta(i,j,k-1)*prim(i,j,k-1,4) );
+                        }
 
                     }
 
@@ -643,6 +1017,17 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                     Real phiflxshear = wiener[1]*(prim(i,j,k-1,1)+prim(i,j,k,1)) +
                                        wiener[2]*(prim(i,j,k-1,2)+prim(i,j,k,2));
 
+                    if ((k == 0) and (bc_mass_lo[2] != 3) and (bc_mass_lo[2] != -1)) { // ignore for reservoirs and periodic BC
+                        phiflxdiag =  2.0*wiener[1]*prim(i,j,k-1,1);
+                        phiflxshear = 2.0*wiener[2]*prim(i,j,k-1,2) +
+                                      2.0*wiener[3]*prim(i,j,k-1,3);
+                    }
+                    if ((k == n_cells[2]) and (bc_mass_hi[2] != 3) and (bc_mass_hi[2] != -1)) { // ignore for reservoirs and periodic BC
+                        phiflxdiag =  2.0*wiener[1]*prim(i,j,k,1);
+                        phiflxshear = 2.0*wiener[2]*prim(i,j,k,2) +
+                                      2.0*wiener[3]*prim(i,j,k,3);
+                    }
+
                     phiflxdiag = -0.5*phiflxdiag;
                     phiflxshear = -0.5*phiflxshear;
 
@@ -658,6 +1043,12 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                     for (int ns=0; ns<nspecies; ++ns) {
                         yy[ns] = amrex::max(0.,amrex::min(1.,prim(i,j,k-1,6+ns)));
                         yyp[ns] = amrex::max(0.,amrex::min(1.,prim(i,j,k,6+ns)));
+                        if ((k == 0) and (bc_mass_lo[2] != 3) and (bc_mass_lo[2] != -1)) { // ignore for reservoirs and periodic BC
+                            yyp[ns] = amrex::max(0.,amrex::min(1.,prim(i,j,k-1,6+ns)));
+                        }
+                        if ((k == n_cells[2]) and (bc_mass_hi[2] != 3) and (bc_mass_hi[2] != -1)) { // ignore for reservoirs and periodic BC
+                            yy[ns] = amrex::max(0.,amrex::min(1.,prim(i,j,k,6+ns)));
+                        }
                     }
 
                     Real sumy = 0.;
@@ -684,6 +1075,18 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                                                                  Dij(i,j,k,ll*nspecies+ns)*yyp[ll] +
                                                                 (Dij(i,j,k-1,ns*nspecies+ll)*yy[ns] +
                                                                  Dij(i,j,k,ns*nspecies+ll)*yyp[ns] ));
+                            if ((k == 0) and (bc_mass_lo[2] != 3) and (bc_mass_lo[2] != -1)) { // ignore for reservoirs and periodic BC
+                                DijY_edge[ns*nspecies+ll] = 0.5*(Dij(i,j,k-1,ll*nspecies+ns)*yy[ll] +
+                                                                     Dij(i,j,k-1,ll*nspecies+ns)*yyp[ll] +
+                                                                    (Dij(i,j,k-1,ns*nspecies+ll)*yy[ns] +
+                                                                     Dij(i,j,k-1,ns*nspecies+ll)*yyp[ns] ));
+                            }
+                            if ((k == n_cells[2]) and (bc_mass_hi[2] != 3) and (bc_mass_hi[2] != -1)) { // ignore for reservoirs and periodic BC
+                                DijY_edge[ns*nspecies+ll] = 0.5*(Dij(i,j,k,ll*nspecies+ns)*yy[ll] +
+                                                                     Dij(i,j,k,ll*nspecies+ns)*yyp[ll] +
+                                                                    (Dij(i,j,k,ns*nspecies+ll)*yy[ns] +
+                                                                     Dij(i,j,k,ns*nspecies+ll)*yyp[ns] ));
+                            }
 
                         }
                     }
@@ -715,8 +1118,15 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                     Real soret = 0.;
 
                     for (int ns=0; ns<nspecies; ++ns) {
-                        soret = soret + (hk[ns] + Runiv*meanT/molmass[ns]
-                                         *0.5*(chi(i,j,k-1,ns)+chi(i,j,k,ns)))*wiener[5+ns];
+                        Real soret_s;
+                        soret_s = (hk[ns] + Runiv*meanT/molmass[ns]*0.5*(chi(i,j,k-1,ns)+chi(i,j,k,ns)))*wiener[5+ns];
+                        if ((k == 0) and (bc_mass_lo[2] != 3) and (bc_mass_lo[2] != -1)) { // ignore for reservoirs and periodic BC
+                            soret_s = (hk[ns] + Runiv*meanT/molmass[ns]*0.5*chi(i,j,k-1,ns))*wiener[5+ns];
+                        }
+                        if ((k == n_cells[2]) and (bc_mass_hi[2] != 3) and (bc_mass_hi[2] != -1)) { // ignore for reservoirs and periodic BC
+                            soret_s = (hk[ns] + Runiv*meanT/molmass[ns]*0.5*chi(i,j,k,ns))*wiener[5+ns];
+                        }
+                        soret = soret + soret_s;
                     }
                     fluxz(i,j,k,nvars+3) = fluxz(i,j,k,nvars+3) + soret;
                     
