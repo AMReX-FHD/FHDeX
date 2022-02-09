@@ -541,8 +541,8 @@ void FhdParticleContainer::computeForcesSpringGPU(long totalParticles) {
     using namespace amrex;
     using common::images;
 
-    Real k = 4.e4;
-    Real x0 = 1.e-8;
+    //Real k = 2.e4;
+    //Real x0 = 1.e-8;
 
     GpuArray<Real, 3> plo = {prob_lo[0], prob_lo[1], prob_lo[2]};
     GpuArray<Real, 3> phi = {prob_hi[0], prob_hi[1], prob_hi[2]};
@@ -582,9 +582,9 @@ void FhdParticleContainer::computeForcesSpringGPU(long totalParticles) {
     Print() << "Calculating spring force for molecules\n";
 
     // collect particle positions onto one processor
-    PullDown(0, posxPtr, -1, totalParticles);
-    PullDown(0, posyPtr, -2, totalParticles);
-    PullDown(0, poszPtr, -3, totalParticles);
+    PullDown(0, posxPtr, FHD_realData::ax, totalParticles);
+    PullDown(0, posyPtr, FHD_realData::ay, totalParticles);
+    PullDown(0, poszPtr, FHD_realData::az, totalParticles);
     PullDownInt(0, groupidPtr, FHD_intData::groupid, totalParticles);
     PullDownInt(0, prevPtr, FHD_intData::prev, totalParticles);
     PullDownInt(0, nextPtr, FHD_intData::next, totalParticles);
@@ -595,7 +595,16 @@ void FhdParticleContainer::computeForcesSpringGPU(long totalParticles) {
     Real maxdist = 0.99*amrex::min(imag * domx,
                                    //imag * domy,
                                    imag * domz);
-
+    Real sumdr2[ngroups];
+    Real sumdx2[ngroups];
+    int nbonds[ngroups];
+    //Real travelTime[ngroups];
+    for (int i=0; i<ngroups; i++){
+        sumdr2[i]=0;
+        sumdx2[i]=0;
+        nbonds[i]=0;
+        //travelTime[ngroups]=0;
+    }
 
     for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) {
 
@@ -619,7 +628,7 @@ void FhdParticleContainer::computeForcesSpringGPU(long totalParticles) {
 
             ParticleType & part = pstruct[i];
 
-	    cout << part.idata(FHD_intData::groupid) << "\n";
+	    //cout << part.idata(FHD_intData::groupid) << "\n";
 
 	    if (part.idata(FHD_intData::groupid) > 0)
 	    { 
@@ -628,6 +637,9 @@ void FhdParticleContainer::computeForcesSpringGPU(long totalParticles) {
                double dx;
                double dy;
                double dz;
+
+               int igroup = part.idata(FHD_intData::groupid)-1;
+               //travelTime[igroup] = part.rdata(FHD_realData::travelTime);
 
                //for(int j = 0; j < totalParticles; j++)
                //{
@@ -645,45 +657,48 @@ void FhdParticleContainer::computeForcesSpringGPU(long totalParticles) {
 				 /* For now, one particle on the chain only interact with
 				  *   one particle before and one particle after. */
 
-	                         Print() << part.idata(FHD_intData::prev) << "\n";
+	                         //Print() << part.idata(FHD_intData::prev) << "\n";
                                  // get distance with previous particle
 				 if (part.idata(FHD_intData::prev) > -1) 
 				 {
-                                    dx = part.pos(0)-posxPtr[part.idata(FHD_intData::prev)] - ii*domx;
-                                    dy = part.pos(1)-posyPtr[part.idata(FHD_intData::prev)] - jj*domy;
-                                    dz = part.pos(2)-poszPtr[part.idata(FHD_intData::prev)] - kk*domz;
+                                    dx = part.rdata(FHD_realData::ax)-posxPtr[part.idata(FHD_intData::prev)] - ii*domx;
+                                    dy = part.rdata(FHD_realData::ay)-posyPtr[part.idata(FHD_intData::prev)] - jj*domy;
+                                    dz = part.rdata(FHD_realData::az)-poszPtr[part.idata(FHD_intData::prev)] - kk*domz;
 
 	               	            dr2 = dx*dx + dy*dy + dz*dz;
                                     rtdr2 = sqrt(dr2);
-				    cout << rtdr2 << "\n";
+				    //cout << rtdr2 << "\n";
+				    sumdx2[igroup] += (rtdr2-x0)*(rtdr2-x0);
+				    sumdr2[igroup] += dr2;
+				    nbonds[igroup]++;
 
                  	            if (rtdr2 > 0.0)
                                     {
                                        part.rdata(FHD_realData::forcex) += k*(-dx/rtdr2)*(rtdr2-x0);
                                        part.rdata(FHD_realData::forcey) += k*(-dy/rtdr2)*(rtdr2-x0);
                                        part.rdata(FHD_realData::forcez) += k*(-dz/rtdr2)*(rtdr2-x0);
-				       cout << part.rdata(FHD_realData::forcex) << "\n";
+				       //cout << part.rdata(FHD_realData::forcex) << "\n";
 				    }
 				 }
                                  
-	                         Print() << part.idata(FHD_intData::next) << "\n";
+	                         //Print() << part.idata(FHD_intData::next) << "\n";
 				 // get distance with next particle
 				 if (part.idata(FHD_intData::next) > -1) 
 				 {
-                                    dx = part.pos(0)-posxPtr[part.idata(FHD_intData::next)] - ii*domx;
-                                    dy = part.pos(1)-posyPtr[part.idata(FHD_intData::next)] - jj*domy;
-                                    dz = part.pos(2)-poszPtr[part.idata(FHD_intData::next)] - kk*domz;
+                                    dx = part.rdata(FHD_realData::ax)-posxPtr[part.idata(FHD_intData::next)] - ii*domx;
+                                    dy = part.rdata(FHD_realData::ay)-posyPtr[part.idata(FHD_intData::next)] - jj*domy;
+                                    dz = part.rdata(FHD_realData::az)-poszPtr[part.idata(FHD_intData::next)] - kk*domz;
 
 	               	            dr2 = dx*dx + dy*dy + dz*dz;
                                     rtdr2 = sqrt(dr2);
-				    cout << rtdr2 << "\n";
+				    //cout << rtdr2 << "\n";
 
                  	            if (rtdr2 > 0.0)
                                     {
                                        part.rdata(FHD_realData::forcex) += k*(-dx/rtdr2)*(rtdr2-x0);
                                        part.rdata(FHD_realData::forcey) += k*(-dy/rtdr2)*(rtdr2-x0);
                                        part.rdata(FHD_realData::forcez) += k*(-dz/rtdr2)*(rtdr2-x0);
-				       cout << part.rdata(FHD_realData::forcex) << "\n";
+				       //cout << part.rdata(FHD_realData::forcex) << "\n";
 				    }
 				 }
 
@@ -696,6 +711,36 @@ void FhdParticleContainer::computeForcesSpringGPU(long totalParticles) {
         });
     }
     
+    for(int i=0;i<ngroups;i++)
+    {
+        Real temp = sumdr2[i];        
+        ParallelDescriptor::ReduceRealSum(temp);
+        sumdr2[i] = temp;
+
+        temp = sumdx2[i];        
+        ParallelDescriptor::ReduceRealSum(temp);
+        sumdx2[i] = temp;
+
+        //temp = travelTime[i];        
+        //ParallelDescriptor::ReduceRealMax(temp);
+        //travelTime[i] = temp;
+
+        int itemp = nbonds[i];        
+        ParallelDescriptor::ReduceIntSum(itemp);
+        nbonds[i] = itemp;
+    }
+
+    if(ParallelDescriptor::MyProc() == 0) {
+
+       for(int i=0;i<ngroups;i++)
+       {
+           std::string specname = Concatenate("bondEst_",i+1);
+           std::ofstream ofs(specname, std::ofstream::app);
+
+           ofs << sumdr2[i] << "  " << sumdx2[i] << "  " << nbonds[i] << std::endl;
+       }
+    }
+
     Print() << "Finished spring force calculation\n";
 
 
@@ -2751,7 +2796,7 @@ FhdParticleContainer::MeanSqrCalcCM(int lev, int step) {
     
     for(int i=0;i<ngroups;i++)
     {
-        stepstat[i] = fmod(step-1,msd_int[i]);
+        stepstat[i] = fmod(step-1,msd_grp_int[i]);
         cout << "remainder: " << stepstat[i] << endl;
     }
     
@@ -2817,7 +2862,7 @@ FhdParticleContainer::MeanSqrCalcCM(int lev, int step) {
 
     }
 
-    for(int i=0;i<nspecies;i++)
+    for(int i=0;i<ngroups;i++)
     {
         Real temp = cmDispX[i];        
         ParallelDescriptor::ReduceRealSum(temp);
@@ -2870,7 +2915,7 @@ FhdParticleContainer::MeanSqrCalcCM(int lev, int step) {
 
         for(int i=0;i<ngroups;i++)
         {
-            if(msd_int[i] > 0)
+            if(msd_grp_int[i] > 0)
             {
                 std::string groupname = Concatenate("msdCMEst_",i+1);
                 std::ofstream ofs(groupname, std::ofstream::app);
@@ -2878,7 +2923,7 @@ FhdParticleContainer::MeanSqrCalcCM(int lev, int step) {
                 if(stepstat[i]==0)
                 {
                     ofs << std::endl;
-                }else if(stepstat[i]<(msd_len[i]+1))
+                }else if(stepstat[i]<(msd_grp_len[i]+1))
                 {  
                     ofs << travelTime[i] << "  " << sqrDispX[i] << "  " << sqrDispY[i] << "  "<< sqrDispZ[i] << "  "<< sqrDisp[i] << std::endl;
                 }

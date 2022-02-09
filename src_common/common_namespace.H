@@ -3,6 +3,7 @@ namespace common {
 //////////////
 #define MAX_SPECIES 8
 #define MAX_ELEMENT 28 // needs to be MAX_SPECIES*(MAX_SPECIES-1)/2
+#define MAX_GROUPS 20
 //////////////
     
     // misc global variables
@@ -75,6 +76,8 @@ namespace common {
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> e0;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> hcv;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> hcp;
+    extern AMREX_GPU_MANAGED amrex::Real k;
+    extern AMREX_GPU_MANAGED amrex::Real x0;
 
     // stochastic forcing amplitudes (1 for physical values, 0 to run them off)
     extern AMREX_GPU_MANAGED amrex::Real variance_coef_mom;
@@ -260,6 +263,8 @@ namespace common {
     
     extern AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_SPECIES> msd_int;
     extern AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_SPECIES> msd_len;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_GROUPS> msd_grp_int;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_GROUPS> msd_grp_len;
 
     extern int                        poisson_verbose;
     extern int                        poisson_bottom_verbose;

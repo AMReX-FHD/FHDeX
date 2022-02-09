@@ -60,6 +60,8 @@ AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::dof;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::e0;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::hcv;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::hcp;
+AMREX_GPU_MANAGED amrex::Real common::k;
+AMREX_GPU_MANAGED amrex::Real common::x0;
 
 AMREX_GPU_MANAGED amrex::Real common::variance_coef_mom;
 AMREX_GPU_MANAGED amrex::Real common::variance_coef_mass;
@@ -188,6 +190,9 @@ AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::rmax_wall;
 
 AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_SPECIES>         common::msd_int;
 AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_SPECIES>         common::msd_len;
+
+AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_GROUPS>         common::msd_grp_int;
+AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_GROUPS>         common::msd_grp_len;
 
 int                        common::poisson_verbose;
 int                        common::poisson_bottom_verbose;
@@ -352,6 +357,11 @@ void InitializeCommonNamespace() {
         msd_len[i] = 0;
     }
 
+    for (int i=0; i<MAX_GROUPS; ++i) {
+        msd_grp_int[i] = 0;
+        msd_grp_len[i] = 0;
+    }
+
     // Time-step control
     fixed_dt = 1.;
     cfl = 0.5;
@@ -384,6 +394,8 @@ void InitializeCommonNamespace() {
         rhobar[i] = 1.;
     }
     rho0 = 1.;
+    k = 2.e4;
+    x0 = 1.e-8;
 
     // Kinetic parameters
     nspecies = 2;
@@ -716,6 +728,9 @@ void InitializeCommonNamespace() {
             hcp[i] = temp[i];
         }
     }
+    pp.query("k",k);
+    pp.query("x0",x0);
+
     pp.query("variance_coef_mom",variance_coef_mom);
     pp.query("variance_coef_mass",variance_coef_mass);
     pp.query("variance_coef_ener",variance_coef_ener);
@@ -1021,6 +1036,18 @@ void InitializeCommonNamespace() {
             rmax_wall[i] = temp[i];
         }
     }
+
+    if (pp.queryarr("msd_grp_int",temp_int,0,ngroups)) {
+        for (int i=0; i<ngroups; ++i) {
+            msd_grp_int[i] = temp_int[i];
+        }
+    }
+    if (pp.queryarr("msd_grp_len",temp_int,0,ngroups)) {
+        for (int i=0; i<ngroups; ++i) {
+            msd_grp_len[i] = temp_int[i];
+	}
+    }
+
     pp.query("poisson_verbose",poisson_verbose);
     pp.query("poisson_bottom_verbose",poisson_bottom_verbose);
     pp.query("poisson_max_iter",poisson_max_iter);
