@@ -1991,6 +1991,11 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
     Real wgt2 = 1./12.;
     Real wgt1 = 0.5 + wgt2;
 
+    Real wgta = -0.2;
+    Real wgtb = 0.75;
+    Real wgtc = 0.5;
+    Real wgtd = -0.05;
+
     // Loop over boxes
     for ( MFIter mfi(cons_in); mfi.isValid(); ++mfi) {
 
@@ -2187,10 +2192,18 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                     for (int l=0; l<nspecies+5; ++l) {
                         conserved[l] = cons(i-1,j,k,l);
                     }
+                } else if ((i == 1) and is_lo_x_dirichlet_mass) {
+                    for (int l=0; l<nspecies+5; ++l) {
+                        conserved[l] = wgta*cons(i-2,j,k,l) + wgtb*cons(i-1,j,k,l) + wgtc*cons(i,j,k,l) + wgtd*cons(i+1,j,k,l);
+                    }
                 }
                 if ((i == n_cells[0]) and is_hi_x_dirichlet_mass) {
                     for (int l=0; l<nspecies+5; ++l) {
                         conserved[l] = cons(i,j,k,l);
+                    }
+                } else if ((i == n_cells[0]-1) and is_hi_x_dirichlet_mass) {
+                    for (int l=0; l<nspecies+5; ++l) {
+                        conserved[l] = wgta*cons(i+2,j,k,l) + wgtb*cons(i+1,j,k,l) + wgtc*cons(i,j,k,l) + wgtd*cons(i-1,j,k,l);
                     }
                 }
 
@@ -2243,10 +2256,18 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                     for (int l=0; l<nspecies+5; ++l) {
                         conserved[l] = cons(i,j-1,k,l);
                     }
+                } else if ((j == 1) and is_lo_y_dirichlet_mass) {
+                    for (int l=0; l<nspecies+5; ++l) {
+                        conserved[l] = wgta*cons(i,j-2,k,l) + wgtb*cons(i,j-1,k,l) + wgtc*cons(i,j,k,l) + wgtd*cons(i,j+1,k,l);
+                    }
                 }
                 if ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
                     for (int l=0; l<nspecies+5; ++l) {
                         conserved[l] = cons(i,j,k,l);
+                    }
+                } else if ((j == n_cells[1]-1) and is_hi_y_dirichlet_mass) {
+                    for (int l=0; l<nspecies+5; ++l) {
+                        conserved[l] = wgta*cons(i,j+1,k,l) + wgtb*cons(i,j+1,k,l) + wgtc*cons(i,j,k,l) + wgtd*cons(i,j-1,k,l);
                     }
                 }
 
@@ -2299,10 +2320,18 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                     for (int l=0; l<nspecies+5; ++l) {
                         conserved[l] = cons(i,j,k-1,l);
                     }
+                } else if ((k == 1) and is_lo_z_dirichlet_mass) {
+                    for (int l=0; l<nspecies+5; ++l) {
+                        conserved[l] = wgta*cons(i,j,k-1,l) + wgtb*cons(i,j,k-1,l) + wgtc*cons(i,j,k,l) + wgtd*cons(i,j,k+1,l);
+                    }
                 }
                 if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
                     for (int l=0; l<nspecies+5; ++l) {
                         conserved[l] = cons(i,j,k,l);
+                    }
+                } else if ((k == n_cells[2]-1) and is_hi_z_dirichlet_mass) {
+                    for (int l=0; l<nspecies+5; ++l) {
+                        conserved[l] = wgta*cons(i,j,k+1,l) + wgtb*cons(i,j,k+1,l) + wgtc*cons(i,j,k,l) + wgtd*cons(i,j,k-1,l);
                     }
                 }
 
