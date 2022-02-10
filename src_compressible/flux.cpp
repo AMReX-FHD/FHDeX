@@ -25,6 +25,14 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                  flux_in[1].setVal(0);,
                  flux_in[2].setVal(0););
 
+    // ignore for reservoirs and periodic BC
+    bool is_lo_x_dirichlet_mass = (bc_mass_lo[0] != 3) and (bc_mass_lo[0] != -1);
+    bool is_hi_x_dirichlet_mass = (bc_mass_hi[0] != 3) and (bc_mass_hi[0] != -1);
+    bool is_lo_y_dirichlet_mass = (bc_mass_lo[1] != 3) and (bc_mass_lo[1] != -1);
+    bool is_hi_y_dirichlet_mass = (bc_mass_hi[1] != 3) and (bc_mass_hi[1] != -1);
+    bool is_lo_z_dirichlet_mass = (bc_mass_lo[2] != 3) and (bc_mass_lo[2] != -1);
+    bool is_hi_z_dirichlet_mass = (bc_mass_hi[2] != 3) and (bc_mass_hi[2] != -1);
+
     ////////////////////
     // stochastic fluxes
     ////////////////////
@@ -78,12 +86,12 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 
                 Real meanT = 0.5*(prim(i,j,k,4)+prim(i-1,j,k,4));
 
-                if ((i == 0) and (bc_mass_lo[0] != 3) and (bc_mass_lo[0] != -1)) { // ignore for reservoirs and periodic BC
+                if ((i == 0) and is_lo_x_dirichlet_mass) { 
                     muxp = 2.0*eta(i-1,j,k)*prim(i-1,j,k,4);
                     kxp  = 2.0*kappa(i-1,j,k)*prim(i-1,j,k,4)*prim(i-1,j,k,4);
                     meanT = prim(i-1,j,k,4);
                 }
-                if ((i == n_cells[0]) and (bc_mass_hi[0] != 3) and (bc_mass_hi[0] != -1)) { // ignore for reservoirs and periodic BC
+                if ((i == n_cells[0]) and is_hi_x_dirichlet_mass) {
                     muxp = 2.0*eta(i,j,k)*prim(i,j,k,4);
                     kxp  = 2.0*kappa(i,j,k)*prim(i,j,k,4)*prim(i,j,k,4);
                     meanT = prim(i,j,k,4);
@@ -126,7 +134,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                                         eta(i,j-1,k)*prim(i,j-1,k,4) + eta(i-1,j-1,k)*prim(i-1,j-1,k,4) +
                                         eta(i,j,k)*prim(i,j,k,4) + eta(i-1,j,k)*prim(i-1,j,k,4) )/3.;
 
-                    if ((i == 0) and (bc_mass_lo[0] != 3) and (bc_mass_lo[0] != -1)) { // ignore for reservoirs and periodic BC
+                    if ((i == 0) and is_lo_x_dirichlet_mass) {
                         muzepp = 0.5*(eta(i-1,j,k)*prim(i-1,j,k,4) +
                                       eta(i-1,j+1,k)*prim(i-1,j+1,k,4) +
                                       eta(i-1,j,k+1)*prim(i-1,j,k+1,4) +
@@ -147,7 +155,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                                       eta(i-1,j-1,k)*prim(i-1,j-1,k,4) +
                                       eta(i-1,j,k)*prim(i-1,j,k,4) )/3.;
                     }
-                    if ((i == n_cells[0]) and (bc_mass_hi[0] != 3) and (bc_mass_hi[0] != -1)) { // ignore for reservoirs and periodic BC
+                    if ((i == n_cells[0]) and is_hi_x_dirichlet_mass) {
                         muzepp = 0.5*(eta(i,j,k)*prim(i,j,k,4) +
                                       eta(i,j+1,k)*prim(i,j+1,k,4) +
                                       eta(i,j,k+1)*prim(i,j,k+1,4) +
@@ -172,7 +180,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                         
 
                     if (amrex::Math::abs(visc_type) == 3) {
-                        if ((i == 0) and (bc_mass_lo[0] != 3) and (bc_mass_lo[0] != -1)) { // ignore for reservoirs and periodic BC
+                        if ((i == 0) and is_lo_x_dirichlet_mass) {
                             muzepp += 0.5*(zeta(i-1,j,k)*prim(i-1,j,k,4) +
                                           zeta(i-1,j+1,k)*prim(i-1,j+1,k,4) +
                                           zeta(i-1,j,k+1)*prim(i-1,j,k+1,4) +
@@ -193,7 +201,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                                           zeta(i-1,j-1,k)*prim(i-1,j-1,k,4) +
                                           zeta(i-1,j,k)*prim(i-1,j,k,4) );
                         }
-                        else if ((i == n_cells[0]) and (bc_mass_hi[0] != 3) and (bc_mass_hi[0] != -1)) { // ignore for reservoirs and periodic BC
+                        else if ((i == n_cells[0]) and is_hi_x_dirichlet_mass) {
                             muzepp += 0.5*(zeta(i,j,k)*prim(i,j,k,4) +
                                           zeta(i,j+1,k)*prim(i,j+1,k,4) +
                                           zeta(i,j,k+1)*prim(i,j,k+1,4) +
@@ -309,12 +317,12 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 Real phiflxshear = wiener[2]*(prim(i-1,j,k,2)+prim(i,j,k,2)) +
                                    wiener[3]*(prim(i-1,j,k,3)+prim(i,j,k,3));
 
-                if ((i == 0) and (bc_mass_lo[0] != 3) and (bc_mass_lo[0] != -1)) { // ignore for reservoirs and periodic BC
+                if ((i == 0) and is_lo_x_dirichlet_mass) {
                     phiflxdiag =  2.0*wiener[1]*prim(i-1,j,k,1);
                     phiflxshear = 2.0*wiener[2]*prim(i-1,j,k,2) +
                                   2.0*wiener[3]*prim(i-1,j,k,3);
                 }
-                if ((i == n_cells[0]) and (bc_mass_hi[0] != 3) and (bc_mass_hi[0] != -1)) { // ignore for reservoirs and periodic BC
+                if ((i == n_cells[0]) and is_hi_x_dirichlet_mass) {
                     phiflxdiag =  2.0*wiener[1]*prim(i,j,k,1);
                     phiflxshear = 2.0*wiener[2]*prim(i,j,k,2) +
                                   2.0*wiener[3]*prim(i,j,k,3);
@@ -335,10 +343,10 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                     for (int ns=0; ns<nspecies; ++ns) {
                         yy[ns] = amrex::max(0.,amrex::min(1.,prim(i-1,j,k,6+ns)));
                         yyp[ns] = amrex::max(0.,amrex::min(1.,prim(i,j,k,6+ns)));
-                        if ((i == 0) and (bc_mass_lo[0] != 3) and (bc_mass_lo[0] != -1)) { // ignore for reservoirs and periodic BC
+                        if ((i == 0) and is_lo_x_dirichlet_mass) {
                             yyp[ns] = amrex::max(0.,amrex::min(1.,prim(i-1,j,k,6+ns)));
                         }
-                        if ((i == n_cells[0]) and (bc_mass_hi[0] != 3) and (bc_mass_hi[0] != -1)) { // ignore for reservoirs and periodic BC
+                        if ((i == n_cells[0]) and is_hi_x_dirichlet_mass) {
                             yy[ns] = amrex::max(0.,amrex::min(1.,prim(i,j,k,6+ns)));
                         }
                     }
@@ -367,13 +375,13 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                                                                  Dij(i,j,k,ll*nspecies+ns)*yyp[ll] +
                                                                 (Dij(i-1,j,k,ns*nspecies+ll)*yy[ns] +
                                                                  Dij(i,j,k,ns*nspecies+ll)*yyp[ns] ));
-                            if ((i == 0) and (bc_mass_lo[0] != 3) and (bc_mass_lo[0] != -1)) { // ignore for reservoirs and periodic BC
+                            if ((i == 0) and is_lo_x_dirichlet_mass) {
                                 DijY_edge[ns*nspecies+ll] = 0.5*(Dij(i-1,j,k,ll*nspecies+ns)*yy[ll] +
                                                                      Dij(i-1,j,k,ll*nspecies+ns)*yyp[ll] +
                                                                     (Dij(i-1,j,k,ns*nspecies+ll)*yy[ns] +
                                                                      Dij(i-1,j,k,ns*nspecies+ll)*yyp[ns] ));
                             }
-                            if ((i == n_cells[0]) and (bc_mass_hi[0] != 3) and (bc_mass_hi[0] != -1)) { // ignore for reservoirs and periodic BC
+                            if ((i == n_cells[0]) and is_hi_x_dirichlet_mass) {
                                 DijY_edge[ns*nspecies+ll] = 0.5*(Dij(i,j,k,ll*nspecies+ns)*yy[ll] +
                                                                      Dij(i,j,k,ll*nspecies+ns)*yyp[ll] +
                                                                     (Dij(i,j,k,ns*nspecies+ll)*yy[ns] +
@@ -411,10 +419,10 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                     for (int ns=0; ns<nspecies; ++ns) {
                         Real soret_s;
                         soret_s = (hk[ns] + Runiv*meanT/molmass[ns]*0.5*(chi(i-1,j,k,ns)+chi(i,j,k,ns)))*wiener[5+ns];
-                        if ((i == 0) and (bc_mass_lo[0] != 3) and (bc_mass_lo[0] != -1)) { // ignore for reservoirs and periodic BC
+                        if ((i == 0) and is_lo_x_dirichlet_mass) {
                             soret_s = (hk[ns] + Runiv*meanT/molmass[ns]*chi(i-1,j,k,ns))*wiener[5+ns];
                         }
-                        if ((i == n_cells[0]) and (bc_mass_hi[0] != 3) and (bc_mass_hi[0] != -1)) { // ignore for reservoirs and periodic BC
+                        if ((i == n_cells[0]) and is_hi_x_dirichlet_mass) {
                             soret_s = (hk[ns] + Runiv*meanT/molmass[ns]*chi(i,j,k,ns))*wiener[5+ns];
                         }
                         soret = soret + soret_s;
@@ -442,12 +450,12 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 
                 Real meanT = 0.5*(prim(i,j,k,4)+prim(i,j-1,k,4));
 
-                if ((j == 0) and (bc_mass_lo[1] != 3) and (bc_mass_lo[1] != -1)) { // ignore for reservoirs and periodic BC
+                if ((j == 0) and is_lo_y_dirichlet_mass) {
                     muyp = 2.0*eta(i,j-1,k)*prim(i,j-1,k,4);
                     kyp  = 2.0*kappa(i,j-1,k)*prim(i,j-1,k,4)*prim(i,j-1,k,4);
                     meanT = prim(i,j-1,k,4);
                 }
-                if ((j == n_cells[1]) and (bc_mass_hi[1] != 3) and (bc_mass_hi[1] != -1)) { // ignore for reservoirs and periodic BC
+                if ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
                     muyp = 2.0*eta(i,j,k)*prim(i,j,k,4);
                     kyp  = 2.0*kappa(i,j,k)*prim(i,j,k,4)*prim(i,j,k,4);
                     meanT = prim(i,j,k,4);
@@ -490,7 +498,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                                         eta(i-1,j,k)*prim(i-1,j,k,4) + eta(i,j,k)*prim(i,j,k,4) +
                                         eta(i-1,j-1,k)*prim(i-1,j-1,k,4) + eta(i,j-1,k)*prim(i,j-1,k,4) )/3.;
 
-                    if ((j == 0) and (bc_mass_lo[1] != 3) and (bc_mass_lo[1] != -1)) { // ignore for reservoirs and periodic BC
+                    if ((j == 0) and is_lo_y_dirichlet_mass) {
                         muzepp = 0.5*(eta(i+1,j-1,k)*prim(i+1,j-1,k,4) + 
                                       eta(i,j-1,k)*prim(i,j-1,k,4) +
                                       eta(i+1,j-1,k+1)*prim(i+1,j-1,k+1,4) + 
@@ -512,7 +520,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                                       eta(i,j-1,k)*prim(i,j-1,k,4) )/3.;
 
                     }
-                    if ((j == n_cells[1]) and (bc_mass_hi[1] != 3) and (bc_mass_hi[1] != -1)) { // ignore for reservoirs and periodic BC
+                    if ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
                         muzepp = 0.5*(eta(i+1,j,k)*prim(i+1,j,k,4) + 
                                       eta(i,j,k)*prim(i,j,k,4) +
                                       eta(i+1,j,k+1)*prim(i+1,j,k+1,4) + 
@@ -537,7 +545,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 
                     if (amrex::Math::abs(visc_type) == 3) {
 
-                        if ((j == 0) and (bc_mass_lo[1] != 3) and (bc_mass_lo[1] != -1)) { // ignore for reservoirs and periodic BC
+                        if ((j == 0) and is_lo_y_dirichlet_mass) {
                             muzepp += 0.5*(zeta(i+1,j-1,k)*prim(i+1,j-1,k,4) + 
                                           zeta(i,j-1,k)*prim(i,j-1,k,4) +
                                           zeta(i+1,j-1,k+1)*prim(i+1,j-1,k+1,4) + 
@@ -559,7 +567,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                                           zeta(i,j-1,k)*prim(i,j-1,k,4) )/3.;
 
                         }
-                        else  if ((j == n_cells[1]) and (bc_mass_hi[1] != 3) and (bc_mass_hi[1] != -1)) { // ignore for reservoirs and periodic BC
+                        else  if ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
                             muzepp += 0.5*(zeta(i+1,j,k)*prim(i+1,j,k,4) + 
                                           zeta(i,j,k)*prim(i,j,k,4) +
                                           zeta(i+1,j,k+1)*prim(i+1,j,k+1,4) + 
@@ -677,12 +685,12 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 Real phiflxshear = wiener[1]*(prim(i,j-1,k,1)+prim(i,j,k,1)) +
                                    wiener[3]*(prim(i,j-1,k,3)+prim(i,j,k,3));
 
-                if ((j == 0) and (bc_mass_lo[1] != 3) and (bc_mass_lo[1] != -1)) { // ignore for reservoirs and periodic BC
+                if ((j == 0) and is_lo_y_dirichlet_mass) {
                     phiflxdiag =  2.0*wiener[2]*prim(i,j-1,k,2);
                     phiflxshear = 2.0*wiener[1]*prim(i,j-1,k,1) +
                                   2.0*wiener[3]*prim(i,j-1,k,3);
                 }
-                if ((j == n_cells[1]) and (bc_mass_hi[1] != 3) and (bc_mass_hi[1] != -1)) { // ignore for reservoirs and periodic BC
+                if ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
                     phiflxdiag =  2.0*wiener[2]*prim(i,j,k,2);
                     phiflxshear = 2.0*wiener[1]*prim(i,j,k,1) +
                                   2.0*wiener[3]*prim(i,j,k,3);
@@ -703,10 +711,10 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                     for (int ns=0; ns<nspecies; ++ns) {
                         yy[ns] = amrex::max(0.,amrex::min(1.,prim(i,j-1,k,6+ns)));
                         yyp[ns] = amrex::max(0.,amrex::min(1.,prim(i,j,k,6+ns)));
-                        if ((j == 0) and (bc_mass_lo[1] != 3) and (bc_mass_lo[1] != -1)) { // ignore for reservoirs and periodic BC
+                        if ((j == 0) and is_lo_y_dirichlet_mass) {
                             yyp[ns] = amrex::max(0.,amrex::min(1.,prim(i,j-1,k,6+ns)));
                         }
-                        if ((j == n_cells[1]) and (bc_mass_hi[1] != 3) and (bc_mass_hi[1] != -1)) { // ignore for reservoirs and periodic BC
+                        if ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
                             yy[ns] = amrex::max(0.,amrex::min(1.,prim(i,j,k,6+ns)));
                         }
                     }
@@ -736,13 +744,13 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                                                                 (Dij(i,j-1,k,ns*nspecies+ll)*yy[ns] +
                                                                  Dij(i,j,k,ns*nspecies+ll)*yyp[ns] ));
 
-                            if ((j == 0) and (bc_mass_lo[1] != 3) and (bc_mass_lo[1] != -1)) { // ignore for reservoirs and periodic BC
+                            if ((j == 0) and is_lo_y_dirichlet_mass) {
                                 DijY_edge[ns*nspecies+ll] = 0.5*(Dij(i,j-1,k,ll*nspecies+ns)*yy[ll] +
                                                                      Dij(i,j-1,k,ll*nspecies+ns)*yyp[ll] +
                                                                     (Dij(i,j-1,k,ns*nspecies+ll)*yy[ns] +
                                                                      Dij(i,j-1,k,ns*nspecies+ll)*yyp[ns] ));
                             }
-                            if ((j == n_cells[1]) and (bc_mass_hi[1] != 3) and (bc_mass_hi[1] != -1)) { // ignore for reservoirs and periodic BC
+                            if ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
                                 DijY_edge[ns*nspecies+ll] = 0.5*(Dij(i,j,k,ll*nspecies+ns)*yy[ll] +
                                                                      Dij(i,j,k,ll*nspecies+ns)*yyp[ll] +
                                                                     (Dij(i,j,k,ns*nspecies+ll)*yy[ns] +
@@ -779,10 +787,10 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                     for (int ns=0; ns<nspecies; ++ns) {
                         Real soret_s;
                         soret_s = (hk[ns] + Runiv*meanT/molmass[ns]*0.5*(chi(i,j-1,k,ns)+chi(i,j,k,ns)))*wiener[5+ns];
-                        if ((j == 0) and (bc_mass_lo[1] != 3) and (bc_mass_lo[1] != -1)) { // ignore for reservoirs and periodic BC
+                        if ((j == 0) and is_lo_y_dirichlet_mass) {
                             soret_s = (hk[ns] + Runiv*meanT/molmass[ns]*chi(i,j-1,k,ns))*wiener[5+ns];
                         }
-                        if ((j == n_cells[1]) and (bc_mass_hi[1] != 3) and (bc_mass_hi[1] != -1)) { // ignore for reservoirs and periodic BC
+                        if ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
                             soret_s = (hk[ns] + Runiv*meanT/molmass[ns]*chi(i,j,k,ns))*wiener[5+ns];
                         }
                         soret = soret + soret_s;
@@ -810,12 +818,12 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 
                     Real meanT = 0.5*(prim(i,j,k,4)+prim(i,j,k-1,4));
 
-                    if ((k == 0) and (bc_mass_lo[2] != 3) and (bc_mass_lo[2] != -1)) { // ignore for reservoirs and periodic BC
+                    if ((k == 0) and is_lo_z_dirichlet_mass) {
                         muzp = 2.0*eta(i,j,k-1)*prim(i,j,k-1,4);
                         kzp  = 2.0*kappa(i,j,k-1)*prim(i,j,k-1,4)*prim(i,j,k-1,4);
                         meanT = prim(i,j,k-1,4);
                     }
-                    if ((k == n_cells[2]) and (bc_mass_hi[2] != 3) and (bc_mass_hi[2] != -1)) { // ignore for reservoirs and periodic BC
+                    if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
                         muzp = 2.0*eta(i,j,k)*prim(i,j,k,4);
                         kzp  = 2.0*kappa(i,j,k)*prim(i,j,k,4)*prim(i,j,k,4);
                         meanT = prim(i,j,k,4);
@@ -856,7 +864,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                                         eta(i-1,j-1,k-1)*prim(i-1,j-1,k-1,4) + eta(i,j-1,k-1)*prim(i,j-1,k-1,4) +
                                         eta(i-1,j,k-1)*prim(i-1,j,k-1,4) + eta(i,j,k-1)*prim(i,j,k-1,4) )/3.;
 
-                    if ((k == 0) and (bc_mass_lo[2] != 3) and (bc_mass_lo[2] != -1)) { // ignore for reservoirs and periodic BC
+                    if ((k == 0) and is_lo_z_dirichlet_mass) {
                         muzepp = 0.5*(eta(i+1,j,k-1)*prim(i+1,j,k-1,4) + 
                                       eta(i,j,k-1)*prim(i,j,k-1,4) +
                                       eta(i+1,j+1,k-1)*prim(i+1,j+1,k-1,4) + 
@@ -878,7 +886,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                                       eta(i,j,k-1)*prim(i,j,k-1,4) )/3.;
 
                     }
-                    if ((k == n_cells[2]) and (bc_mass_hi[2] != 3) and (bc_mass_hi[2] != -1)) { // ignore for reservoirs and periodic BC
+                    if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
                         muzepp = 0.25*(eta(i+1,j,k)*prim(i+1,j,k,4) + 
                                        eta(i,j,k)*prim(i,j,k,4) +
                                        eta(i+1,j+1,k)*prim(i+1,j+1,k,4) + 
@@ -903,7 +911,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 
                     if (amrex::Math::abs(visc_type) == 3) {
 
-                        if ((k == 0) and (bc_mass_lo[2] != 3) and (bc_mass_lo[2] != -1)) { // ignore for reservoirs and periodic BC
+                        if ((k == 0) and is_lo_z_dirichlet_mass) {
                             muzepp += 0.5*(zeta(i+1,j,k-1)*prim(i+1,j,k-1,4) + 
                                           zeta(i,j,k-1)*prim(i,j,k-1,4) +
                                           zeta(i+1,j+1,k-1)*prim(i+1,j+1,k-1,4) + 
@@ -925,7 +933,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                                           zeta(i,j,k-1)*prim(i,j,k-1,4) )/3.;
 
                         }
-                        if ((k == n_cells[2]) and (bc_mass_hi[2] != 3) and (bc_mass_hi[2] != -1)) { // ignore for reservoirs and periodic BC
+                        if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
                             muzepp += 0.5*(zeta(i+1,j,k)*prim(i+1,j,k,4) + 
                                            zeta(i,j,k)*prim(i,j,k,4) +
                                            zeta(i+1,j+1,k)*prim(i+1,j+1,k,4) + 
@@ -1018,12 +1026,12 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                     Real phiflxshear = wiener[1]*(prim(i,j,k-1,1)+prim(i,j,k,1)) +
                                        wiener[2]*(prim(i,j,k-1,2)+prim(i,j,k,2));
 
-                    if ((k == 0) and (bc_mass_lo[2] != 3) and (bc_mass_lo[2] != -1)) { // ignore for reservoirs and periodic BC
+                    if ((k == 0) and is_lo_z_dirichlet_mass) {
                         phiflxdiag =  2.0*wiener[3]*prim(i,j,k-1,3);
                         phiflxshear = 2.0*wiener[1]*prim(i,j,k-1,1) +
                                       2.0*wiener[2]*prim(i,j,k-1,2);
                     }
-                    if ((k == n_cells[2]) and (bc_mass_hi[2] != 3) and (bc_mass_hi[2] != -1)) { // ignore for reservoirs and periodic BC
+                    if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
                         phiflxdiag =  2.0*wiener[3]*prim(i,j,k,3);
                         phiflxshear = 2.0*wiener[1]*prim(i,j,k,1) +
                                       2.0*wiener[2]*prim(i,j,k,2);
@@ -1044,10 +1052,10 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                     for (int ns=0; ns<nspecies; ++ns) {
                         yy[ns] = amrex::max(0.,amrex::min(1.,prim(i,j,k-1,6+ns)));
                         yyp[ns] = amrex::max(0.,amrex::min(1.,prim(i,j,k,6+ns)));
-                        if ((k == 0) and (bc_mass_lo[2] != 3) and (bc_mass_lo[2] != -1)) { // ignore for reservoirs and periodic BC
+                        if ((k == 0) and is_lo_z_dirichlet_mass) {
                             yyp[ns] = amrex::max(0.,amrex::min(1.,prim(i,j,k-1,6+ns)));
                         }
-                        if ((k == n_cells[2]) and (bc_mass_hi[2] != 3) and (bc_mass_hi[2] != -1)) { // ignore for reservoirs and periodic BC
+                        if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
                             yy[ns] = amrex::max(0.,amrex::min(1.,prim(i,j,k,6+ns)));
                         }
                     }
@@ -1076,13 +1084,13 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                                                                  Dij(i,j,k,ll*nspecies+ns)*yyp[ll] +
                                                                 (Dij(i,j,k-1,ns*nspecies+ll)*yy[ns] +
                                                                  Dij(i,j,k,ns*nspecies+ll)*yyp[ns] ));
-                            if ((k == 0) and (bc_mass_lo[2] != 3) and (bc_mass_lo[2] != -1)) { // ignore for reservoirs and periodic BC
+                            if ((k == 0) and is_lo_z_dirichlet_mass) {
                                 DijY_edge[ns*nspecies+ll] = 0.5*(Dij(i,j,k-1,ll*nspecies+ns)*yy[ll] +
                                                                      Dij(i,j,k-1,ll*nspecies+ns)*yyp[ll] +
                                                                     (Dij(i,j,k-1,ns*nspecies+ll)*yy[ns] +
                                                                      Dij(i,j,k-1,ns*nspecies+ll)*yyp[ns] ));
                             }
-                            if ((k == n_cells[2]) and (bc_mass_hi[2] != 3) and (bc_mass_hi[2] != -1)) { // ignore for reservoirs and periodic BC
+                            if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
                                 DijY_edge[ns*nspecies+ll] = 0.5*(Dij(i,j,k,ll*nspecies+ns)*yy[ll] +
                                                                      Dij(i,j,k,ll*nspecies+ns)*yyp[ll] +
                                                                     (Dij(i,j,k,ns*nspecies+ll)*yy[ns] +
@@ -1121,10 +1129,10 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                     for (int ns=0; ns<nspecies; ++ns) {
                         Real soret_s;
                         soret_s = (hk[ns] + Runiv*meanT/molmass[ns]*0.5*(chi(i,j,k-1,ns)+chi(i,j,k,ns)))*wiener[5+ns];
-                        if ((k == 0) and (bc_mass_lo[2] != 3) and (bc_mass_lo[2] != -1)) { // ignore for reservoirs and periodic BC
+                        if ((k == 0) and is_lo_z_dirichlet_mass) {
                             soret_s = (hk[ns] + Runiv*meanT/molmass[ns]*chi(i,j,k-1,ns))*wiener[5+ns];
                         }
-                        if ((k == n_cells[2]) and (bc_mass_hi[2] != 3) and (bc_mass_hi[2] != -1)) { // ignore for reservoirs and periodic BC
+                        if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
                             soret_s = (hk[ns] + Runiv*meanT/molmass[ns]*chi(i,j,k,ns))*wiener[5+ns];
                         }
                         soret = soret + soret_s;
@@ -1208,7 +1216,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 
             Real Qflux = kxp*(prim(i,j,k,4)-prim(i-1,j,k,4))/dx[0];
 
-            if ((i == 0) and (bc_mass_lo[0] != 3) and (bc_mass_lo[0] != -1)) { // ignore for reservoirs and periodic BC
+            if ((i == 0) and is_lo_x_dirichlet_mass) {
                 muxp = eta(i-1,j,k);
                 kxp  = kappa(i-1,j,k);
                 tauxxp = muxp*(prim(i,j,k,1) - prim(i-1,j,k,1))/(0.5*dx[0]);
@@ -1220,7 +1228,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                           +  tauzxp*(prim(i-1,j,k,3)));
                 Qflux = kxp*(prim(i,j,k,4)-prim(i-1,j,k,4))/(0.5*dx[0]);
             }
-            if ((i == n_cells[0]) and (bc_mass_hi[0] != 3) and (bc_mass_hi[0] != -1)) { // ignore for reservoirs and periodic BC
+            if ((i == n_cells[0]) and is_hi_x_dirichlet_mass) {
                 muxp = eta(i,j,k);
                 kxp  = kappa(i,j,k);
                 tauxxp = muxp*(prim(i,j,k,1) - prim(i-1,j,k,1))/(0.5*dx[0]);
@@ -1245,11 +1253,11 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 
             Real meanT = 0.5*(prim(i-1,j,k,4)+prim(i,j,k,4));
             Real meanP = 0.5*(prim(i-1,j,k,5)+prim(i,j,k,5));
-            if ((i == 0) and (bc_mass_lo[0] != 3) and (bc_mass_lo[0] != -1)) { // ignore for reservoirs and periodic BC
+            if ((i == 0) and is_lo_x_dirichlet_mass) {
                 meanT = prim(i-1,j,k,4);
                 meanP = prim(i-1,j,k,5);
             }
-            if ((i == n_cells[0]) and (bc_mass_hi[0] != 3) and (bc_mass_hi[0] != -1)) { // ignore for reservoirs and periodic BC
+            if ((i == n_cells[0]) and is_hi_x_dirichlet_mass) {
                 meanT = prim(i,j,k,4);
                 meanP = prim(i,j,k,5);
             }
@@ -1266,7 +1274,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                     Real ChiX = 0.5*(chi(i-1,j,k,ns)*prim(i-1,j,k,6+nspecies+ns)+chi(i,j,k,ns)*prim(i,j,k,6+nspecies+ns));
                     soret[ns] = ChiX*(prim(i,j,k,4)-prim(i-1,j,k,4))/dx[0]/meanT;
 
-                    if ((i == 0) and (bc_mass_lo[0] != 3) and (bc_mass_lo[0] != -1)) { // ignore for reservoirs and periodic BC
+                    if ((i == 0) and is_lo_x_dirichlet_mass) {
                         term1 = (prim(i,j,k,6+nspecies+ns)-prim(i-1,j,k,6+nspecies+ns))/(0.5*dx[0]);
                         meanXk[ns] = prim(i-1,j,k,6+nspecies+ns);
                         meanYk[ns] = prim(i-1,j,k,6+ns);
@@ -1275,7 +1283,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                         ChiX = chi(i-1,j,k,ns)*prim(i-1,j,k,6+nspecies+ns);
                         soret[ns] = ChiX*(prim(i,j,k,4)-prim(i-1,j,k,4))/(0.5*dx[0])/meanT;
                     }
-                    if ((i == n_cells[0]) and (bc_mass_hi[0] != 3) and (bc_mass_hi[0] != -1)) { // ignore for reservoirs and periodic BC
+                    if ((i == n_cells[0]) and is_hi_x_dirichlet_mass) {
                         term1 = (prim(i,j,k,6+nspecies+ns)-prim(i-1,j,k,6+nspecies+ns))/(0.5*dx[0]);
                         meanXk[ns] = prim(i,j,k,6+nspecies+ns);
                         meanYk[ns] = prim(i,j,k,6+ns);
@@ -1291,10 +1299,10 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                     Fk[kk] = 0.;
                     for (int ll=0; ll<nspecies; ++ll) {
                         Real Fks = half*(Dij(i-1,j,k,ll*nspecies+kk)+Dij(i,j,k,ll*nspecies+kk))*( dk[ll] +soret[ll]);
-                        if ((i == 0) and (bc_mass_lo[0] != 3) and (bc_mass_lo[0] != -1)) { // ignore for reservoirs and periodic BC
+                        if ((i == 0) and is_lo_x_dirichlet_mass) {
                             Fks = Dij(i-1,j,k,ll*nspecies+kk)*( dk[ll] +soret[ll]);
                         }
-                        if ((i == n_cells[0]) and (bc_mass_hi[0] != 3) and (bc_mass_hi[0] != -1)) { // ignore for reservoirs and periodic BC
+                        if ((i == n_cells[0]) and is_hi_x_dirichlet_mass) {
                             Fks = Dij(i,j,k,ll*nspecies+kk)*( dk[ll] +soret[ll]);
                         }
                         Fk[kk] = Fk[kk] - Fks;
@@ -1307,10 +1315,10 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 Real Q5 = 0.;
                 for (int ns=0; ns<nspecies; ++ns) {
                     Real Q5s = (hk[ns] + 0.5 * Runiv*meanT*(chi(i-1,j,k,ns)+chi(i,j,k,ns))/molmass[ns])*Fk[ns];
-                    if ((i == 0) and (bc_mass_lo[0] != 3) and (bc_mass_lo[0] != -1)) { // ignore for reservoirs and periodic BC
+                    if ((i == 0) and is_lo_x_dirichlet_mass) {
                         Q5s = (hk[ns] + Runiv*meanT*chi(i-1,j,k,ns)/molmass[ns])*Fk[ns];
                     }
-                    if ((i == n_cells[0]) and (bc_mass_hi[0] != 3) and (bc_mass_hi[0] != -1)) { // ignore for reservoirs and periodic BC
+                    if ((i == n_cells[0]) and is_hi_x_dirichlet_mass) {
                         Q5s = (hk[ns] + Runiv*meanT*chi(i,j,k,ns)/molmass[ns])*Fk[ns];   
                     }
                     Q5 = Q5 + Q5s;
@@ -1350,7 +1358,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 
             Real Qflux = kyp*(prim(i,j,k,4)-prim(i,j-1,k,4))/dx[1];
 
-            if ((j == 0) and (bc_mass_lo[1] != 3) and (bc_mass_lo[1] != -1)) { // ignore for reservoirs and periodic BC
+            if ((j == 0) and is_lo_y_dirichlet_mass) {
                 muyp = eta(i,j-1,k);
                 kyp  = kappa(i,j-1,k);
                 tauxyp = muyp*(prim(i,j,k,1) - prim(i,j-1,k,1))/(0.5*dx[1]);
@@ -1362,7 +1370,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                           +  tauzyp*(prim(i,j-1,k,3)));
                 Qflux = kyp*(prim(i,j,k,4)-prim(i,j-1,k,4))/(0.5*dx[1]);
             }
-            if ((j == n_cells[1]) and (bc_mass_hi[1] != 3) and (bc_mass_hi[1] != -1)) { // ignore for reservoirs and periodic BC
+            if ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
                 muyp = eta(i,j,k);
                 kyp  = kappa(i,j,k);
                 tauxyp = muyp*(prim(i,j,k,1) - prim(i,j-1,k,1))/(0.5*dx[1]);
@@ -1387,11 +1395,11 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 
             Real meanT = 0.5*(prim(i,j-1,k,4)+prim(i,j,k,4));
             Real meanP = 0.5*(prim(i,j-1,k,5)+prim(i,j,k,5));
-            if ((j == 0) and (bc_mass_lo[1] != 3) and (bc_mass_lo[1] != -1)) { // ignore for reservoirs and periodic BC
+            if ((j == 0) and is_lo_y_dirichlet_mass) {
                 meanT = prim(i,j-1,k,4);
                 meanP = prim(i,j-1,k,5);
             }
-            if ((j == n_cells[1]) and (bc_mass_hi[1] != 3) and (bc_mass_hi[1] != -1)) { // ignore for reservoirs and periodic BC
+            if ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
                 meanT = prim(i,j,k,4);
                 meanP = prim(i,j,k,5);
             }
@@ -1407,7 +1415,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                     Real ChiX = 0.5*(chi(i,j-1,k,ns)*prim(i,j-1,k,6+nspecies+ns)+chi(i,j,k,ns)*prim(i,j,k,6+nspecies+ns));
                     soret[ns] = ChiX*(prim(i,j,k,4)-prim(i,j-1,k,4))/dx[1]/meanT;
 
-                    if ((j == 0) and (bc_mass_lo[1] != 3) and (bc_mass_lo[1] != -1)) { // ignore for reservoirs and periodic BC
+                    if ((j == 0) and is_lo_y_dirichlet_mass) {
                         term1 = (prim(i,j,k,6+nspecies+ns)-prim(i,j-1,k,6+nspecies+ns))/(0.5*dx[1]);
                         meanXk[ns] = prim(i,j-1,k,6+nspecies+ns);
                         meanYk[ns] = prim(i,j-1,k,6+ns);
@@ -1416,7 +1424,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                         ChiX = chi(i,j-1,k,ns)*prim(i,j-1,k,6+nspecies+ns);
                         soret[ns] = ChiX*(prim(i,j,k,4)-prim(i,j-1,k,4))/(0.5*dx[1])/meanT;
                     }
-                    if ((j == n_cells[1]) and (bc_mass_hi[1] != 3) and (bc_mass_hi[1] != -1)) { // ignore for reservoirs and periodic BC
+                    if ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
                         term1 = (prim(i,j,k,6+nspecies+ns)-prim(i,j-1,k,6+nspecies+ns))/(0.5*dx[1]);
                         meanXk[ns] = prim(i,j,k,6+nspecies+ns);
                         meanYk[ns] = prim(i,j,k,6+ns);
@@ -1433,10 +1441,10 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                     Fk[kk] = 0.;
                     for (int ll=0; ll<nspecies; ++ll) {
                         Real Fks = half*(Dij(i,j-1,k,ll*nspecies+kk)+Dij(i,j,k,ll*nspecies+kk))*( dk[ll] +soret[ll]);
-                        if ((j == 0) and (bc_mass_lo[1] != 3) and (bc_mass_lo[1] != -1)) { // ignore for reservoirs and periodic BC
+                        if ((j == 0) and is_lo_y_dirichlet_mass) {
                             Fks = Dij(i,j-1,k,ll*nspecies+kk)*( dk[ll] +soret[ll]);
                         }
-                        if ((j == n_cells[1]) and (bc_mass_hi[1] != 3) and (bc_mass_hi[1] != -1)) { // ignore for reservoirs and periodic BC
+                        if ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
                             Fks = Dij(i,j,k,ll*nspecies+kk)*( dk[ll] +soret[ll]);
                         }
                         Fk[kk] = Fk[kk] - Fks;
@@ -1449,10 +1457,10 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 Real Q5 = 0.0;
                 for (int ns=0; ns<nspecies; ++ns) {
                     Real Q5s = (hk[ns] + 0.5 * Runiv*meanT*(chi(i,j-1,k,ns)+chi(i,j,k,ns))/molmass[ns])*Fk[ns];
-                    if ((j == 0) and (bc_mass_lo[1] != 3) and (bc_mass_lo[1] != -1)) { // ignore for reservoirs and periodic BC
+                    if ((j == 0) and is_lo_y_dirichlet_mass) {
                         Q5s = (hk[ns] + Runiv*meanT*chi(i,j-1,k,ns)/molmass[ns])*Fk[ns];
                     }
-                    if ((j == n_cells[1]) and (bc_mass_hi[1] != 3) and (bc_mass_hi[1] != -1)) { // ignore for reservoirs and periodic BC
+                    if ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
                         Q5s = (hk[ns] + Runiv*meanT*chi(i,j,k,ns)/molmass[ns])*Fk[ns];   
                     }
                     Q5 = Q5 + Q5s;
@@ -1495,7 +1503,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 
             Real Qflux = kzp*(prim(i,j,k,4)-prim(i,j,k-1,4))/dx[2];
 
-            if ((k == 0) and (bc_mass_lo[2] != 3) and (bc_mass_lo[2] != -1)) { // ignore for reservoirs and periodic BC
+            if ((k == 0) and is_lo_z_dirichlet_mass) {
                 muzp = eta(i,j,k-1);
                 kzp  = kappa(i,j,k-1);
                 tauxzp = muzp*(prim(i,j,k,1) - prim(i,j,k-1,1))/(0.5*dx[2]);
@@ -1507,7 +1515,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                           +  divzp*(prim(i,j,k-1,3)));
                 Qflux = kzp*(prim(i,j,k,4)-prim(i,j,k-1,4))/(0.5*dx[2]);
             }
-            if ((k == n_cells[2]) and (bc_mass_hi[2] != 3) and (bc_mass_hi[2] != -1)) { // ignore for reservoirs and periodic BC
+            if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
                 muzp = eta(i,j,k);
                 kzp  = kappa(i,j,k);
                 tauxzp = muzp*(prim(i,j,k,1) - prim(i,j,k-1,1))/(0.5*dx[2]);
@@ -1532,11 +1540,11 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 
             Real meanT = 0.5*(prim(i,j,k-1,4)+prim(i,j,k,4));
             Real meanP = 0.5*(prim(i,j,k-1,5)+prim(i,j,k,5));
-            if ((k == 0) and (bc_mass_lo[2] != 3) and (bc_mass_lo[2] != -1)) { // ignore for reservoirs and periodic BC
+            if ((k == 0) and is_lo_z_dirichlet_mass) {
                 meanT = prim(i,j,k-1,4);
                 meanP = prim(i,j,k-1,5);
             }
-            if ((k == n_cells[2]) and (bc_mass_hi[2] != 3) and (bc_mass_hi[2] != -1)) { // ignore for reservoirs and periodic BC
+            if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
                 meanT = prim(i,j,k,4);
                 meanP = prim(i,j,k,5);
             }
@@ -1553,7 +1561,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                     Real ChiX = 0.5*(chi(i,j,k,ns)*prim(i,j,k-1,6+nspecies+ns)+chi(i,j,k+1,ns)*prim(i,j,k,6+nspecies+ns));
                     soret[ns] = ChiX*(prim(i,j,k,4)-prim(i,j,k-1,4))/dx[2]/meanT;
 
-                    if ((k == 0) and (bc_mass_lo[2] != 3) and (bc_mass_lo[2] != -1)) { // ignore for reservoirs and periodic BC
+                    if ((k == 0) and is_lo_z_dirichlet_mass) {
                         term1 = (prim(i,j,k,6+nspecies+ns)-prim(i,j,k-1,6+nspecies+ns))/(0.5*dx[2]);
                         meanXk[ns] = prim(i,j,k-1,6+nspecies+ns);
                         meanYk[ns] = prim(i,j,k-1,6+ns);
@@ -1562,7 +1570,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                         ChiX = chi(i,j,k-1,ns)*prim(i,j,k-1,6+nspecies+ns);
                         soret[ns] = ChiX*(prim(i,j,k,4)-prim(i,j,k-1,4))/(0.5*dx[2])/meanT;
                     }
-                    if ((k == n_cells[2]) and (bc_mass_hi[2] != 3) and (bc_mass_hi[2] != -1)) { // ignore for reservoirs and periodic BC
+                    if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
                         term1 = (prim(i,j,k,6+nspecies+ns)-prim(i,j,k-1,6+nspecies+ns))/(0.5*dx[2]);
                         meanXk[ns] = prim(i,j,k,6+nspecies+ns);
                         meanYk[ns] = prim(i,j,k,6+ns);
@@ -1578,10 +1586,10 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                     Fk[kk] = 0.;
                     for (int ll=0; ll<nspecies; ++ll) {
                         Real Fks = half*(Dij(i,j,k-1,ll*nspecies+kk)+Dij(i,j,k,ll*nspecies+kk))*( dk[ll] +soret[ll]);
-                        if ((k == 0) and (bc_mass_lo[2] != 3) and (bc_mass_lo[2] != -1)) { // ignore for reservoirs and periodic BC
+                        if ((k == 0) and is_lo_z_dirichlet_mass) {
                             Fks = Dij(i,j,k-1,ll*nspecies+kk)*( dk[ll] +soret[ll]);
                         }
-                        if ((k == n_cells[2]) and (bc_mass_hi[2] != 3) and (bc_mass_hi[2] != -1)) { // ignore for reservoirs and periodic BC
+                        if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
                             Fks = Dij(i,j,k,ll*nspecies+kk)*( dk[ll] +soret[ll]);
                         }
                         Fk[kk] = Fk[kk] - Fks;
@@ -1594,10 +1602,10 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 Real Q5 = 0.0;
                 for (int ns=0; ns<nspecies; ++ns) {
                     Real Q5s = (hk[ns] + 0.5 * Runiv*meanT*(chi(i,j,k,ns)+chi(i,j,k,ns))/molmass[ns])*Fk[ns];
-                    if ((k == 0) and (bc_mass_lo[2] != 3) and (bc_mass_lo[2] != -1)) { // ignore for reservoirs and periodic BC
+                    if ((k == 0) and is_lo_z_dirichlet_mass) {
                         Q5s = (hk[ns] + Runiv*meanT*chi(i,j,k-1,ns)/molmass[ns])*Fk[ns];
                     }
-                    if ((k == n_cells[2]) and (bc_mass_hi[2] != 3) and (bc_mass_hi[2] != -1)) { // ignore for reservoirs and periodic BC
+                    if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
                         Q5s = (hk[ns] + Runiv*meanT*chi(i,j,k,ns)/molmass[ns])*Fk[ns];   
                     }
                     Q5 = Q5 + Q5s;
@@ -1636,37 +1644,37 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
             DX[1] = dx[1];
             DX[2] = dx[2];
             
-            if ((i == 0) and (bc_mass_lo[0] != 3) and (bc_mass_lo[0] != -1)) { // ignore for reservoirs and periodic BC
+            if ((i == 0) and is_lo_x_dirichlet_mass) {
                 DX[0] = 0.5*dx[0];
                 muxp = 0.25*(eta(i-1,j-1,k-1) + eta(i-1,j-1,k) + eta(i-1,j,k-1) + eta(i-1,j,k));
                 if (amrex::Math::abs(visc_type) == 3) zetaxp = 0.25*(zeta(i-1,j-1,k-1) + zeta(i-1,j-1,k) + zeta(i-1,j,k-1) + zeta(i-1,j,k));
                 else zetaxp = 0.;
             }
-            if ((i == n_cells[0]) and (bc_mass_hi[0] != 3) and (bc_mass_hi[0] != -1)) { // ignore for reservoirs and periodic BC
+            if ((i == n_cells[0]) and is_hi_x_dirichlet_mass) {
                 DX[0] = 0.5*dx[0];
                 muxp = 0.25*(eta(i,j-1,k-1) + eta(i,j-1,k) + eta(i,j,k-1) + eta(i,j,k));
                 if (amrex::Math::abs(visc_type) == 3) zetaxp = 0.25*(zeta(i,j-1,k-1) + zeta(i,j-1,k) + zeta(i,j,k-1) + zeta(i,j,k));
                 else zetaxp = 0.;
             }
-            if ((j == 0) and (bc_mass_lo[1] != 3) and (bc_mass_lo[1] != -1)) { // ignore for reservoirs and periodic BC
+            if ((j == 0) and is_lo_y_dirichlet_mass) {
                 DX[1] = 0.5*dx[1];
                 muxp = 0.25*(eta(i-1,j-1,k-1) + eta(i-1,j-1,k) + eta(i,j-1,k-1) + eta(i,j-1,k));
                 if (amrex::Math::abs(visc_type) == 3) zetaxp = 0.25*(zeta(i-1,j-1,k-1) + zeta(i-1,j-1,k) + zeta(i,j-1,k-1) + zeta(i,j-1,k));
                 else zetaxp = 0.;
             }
-            if ((j == n_cells[1]) and (bc_mass_hi[1] != 3) and (bc_mass_hi[1] != -1)) { // ignore for reservoirs and periodic BC
+            if ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
                 DX[1] = 0.5*dx[1];
                 muxp = 0.25*(eta(i-1,j,k-1) + eta(i-1,j,k) + eta(i,j,k-1) + eta(i,j,k));
                 if (amrex::Math::abs(visc_type) == 3) zetaxp = 0.25*(zeta(i-1,j,k-1) + zeta(i-1,j,k) + zeta(i,j,k-1) + zeta(i,j,k));
                 else zetaxp = 0.;
             }
-            if ((k == 0) and (bc_mass_lo[2] != 3) and (bc_mass_lo[2] != -1)) { // ignore for reservoirs and periodic BC
+            if ((k == 0) and is_lo_z_dirichlet_mass) {
                 DX[2] = 0.5*dx[2];
                 muxp = 0.25*(eta(i-1,j-1,k-1) + eta(i-1,j,k-1) + eta(i,j-1,k-1) + eta(i,j,k-1));
                 if (amrex::Math::abs(visc_type) == 3) zetaxp = 0.25*(zeta(i-1,j-1,k-1) + zeta(i-1,j,k-1) + zeta(i,j-1,k-1) + zeta(i,j,k-1));
                 else zetaxp = 0.;
             }
-            if ((k == n_cells[2]) and (bc_mass_hi[2] != 3) and (bc_mass_hi[2] != -1)) { // ignore for reservoirs and periodic BC
+            if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
                 DX[2] = 0.5*dx[2];
                 muxp = 0.25*(eta(i-1,j-1,k) + eta(i-1,j,k) + eta(i,j-1,k) + eta(i,j,k));
                 if (amrex::Math::abs(visc_type) == 3) zetaxp = 0.25*(zeta(i-1,j-1,k-1) + zeta(i-1,j,k-1) + zeta(i,j-1,k-1) + zeta(i,j,k-1));
@@ -1777,7 +1785,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 
             Real phiflx;
 
-            if ((i == 0) and (bc_mass_lo[0] != 3) and (bc_mass_lo[0] != -1)) { // ignore for reservoirs and periodic BC
+            if ((i == 0) and is_lo_x_dirichlet_mass) {
                 phiflx =  0.5*(visccorn(i,j+1,k+1)+visccorn(i,j,k+1) +
                             visccorn(i,j+1,k)+visccorn(i,j,k)
                             -(cornvy(i,j+1,k+1)+cornvy(i,j,k+1)+cornvy(i,j+1,k)+cornvy(i,j,k)  +
@@ -1793,7 +1801,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                             (prim(i-1,j,k,3));
 
             }
-            else if ((i == n_cells[0]) and (bc_mass_hi[0] != 3) and (bc_mass_hi[0] != -1)) { // ignore for reservoirs and periodic BC
+            else if ((i == n_cells[0]) and is_hi_x_dirichlet_mass) {
                 phiflx =  0.5*(visccorn(i,j+1,k+1)+visccorn(i,j,k+1) +
                             visccorn(i,j+1,k)+visccorn(i,j,k)
                             -(cornvy(i,j+1,k+1)+cornvy(i,j,k+1)+cornvy(i,j+1,k)+cornvy(i,j,k)  +
@@ -1846,7 +1854,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 
             Real phiflx;
 
-            if ((j == 0) and (bc_mass_lo[1] != 3) and (bc_mass_lo[1] != -1)) { // ignore for reservoirs and periodic BC
+            if ((j == 0) and is_lo_y_dirichlet_mass) {
             
                 phiflx = 0.5*(visccorn(i+1,j,k+1)+visccorn(i,j,k+1)+visccorn(i+1,j,k)+visccorn(i,j,k)
                                -(cornux(i+1,j,k+1)+cornux(i,j,k+1)+cornux(i+1,j,k)+cornux(i,j,k)  +
@@ -1862,7 +1870,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                             (prim(i,j-1,k,3));
 
             }
-            else if ((j == n_cells[1]) and (bc_mass_hi[1] != 3) and (bc_mass_hi[1] != -1)) { // ignore for reservoirs and periodic BC
+            else if ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
 
                 phiflx = 0.5*(visccorn(i+1,j,k+1)+visccorn(i,j,k+1)+visccorn(i+1,j,k)+visccorn(i,j,k)
                                -(cornux(i+1,j,k+1)+cornux(i,j,k+1)+cornux(i+1,j,k)+cornux(i,j,k)  +
@@ -1917,7 +1925,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 
             Real phiflx;
 
-            if ((k == 0) and (bc_mass_lo[2] != 3) and (bc_mass_lo[2] != -1)) { // ignore for reservoirs and periodic BC
+            if ((k == 0) and is_lo_z_dirichlet_mass) {
 
                 phiflx = 0.5*(visccorn(i+1,j+1,k)+visccorn(i,j+1,k)+visccorn(i+1,j,k)+visccorn(i,j,k)
                                -(cornvy(i+1,j+1,k)+cornvy(i+1,j,k)+cornvy(i,j+1,k)+cornvy(i,j,k)  +
@@ -1933,7 +1941,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                             (prim(i,j,k-1,2));
 
             }
-            else if ((k == n_cells[2]) and (bc_mass_hi[2] != 3) and (bc_mass_hi[2] != -1)) { // ignore for reservoirs and periodic BC
+            else if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
 
                 phiflx = 0.5*(visccorn(i+1,j+1,k)+visccorn(i,j+1,k)+visccorn(i+1,j,k)+visccorn(i,j,k)
                                -(cornvy(i+1,j+1,k)+cornvy(i+1,j,k)+cornvy(i,j+1,k)+cornvy(i,j,k)  +
@@ -2010,12 +2018,12 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 for (int l=0; l<nspecies+6; ++l) {
                     primitive[l] = wgt1*(prim(i,j,k,l)+prim(i-1,j,k,l)) - wgt2*(prim(i-2,j,k,l)+prim(i+1,j,k,l));
                 }
-                if ((i == 0) and (bc_mass_lo[0] != 3) and (bc_mass_lo[0] != -1)) { // ignore for reservoirs and periodic BC
+                if ((i == 0) and is_lo_x_dirichlet_mass) {
                     for (int l=0; l<nspecies+6; ++l) {
                         primitive[l] = prim(i-1,j,k,l);
                     }
                 }
-                if ((i == n_cells[0]) and (bc_mass_hi[0] != 3) and (bc_mass_hi[0] != -1)) { // ignore for reservoirs and periodic BC
+                if ((i == n_cells[0]) and is_hi_x_dirichlet_mass) {
                     for (int l=0; l<nspecies+6; ++l) {
                         primitive[l] = prim(i,j,k,l);
                     }
@@ -2063,12 +2071,12 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 for (int l=0; l<nspecies+6; ++l) {
                     primitive[l] = wgt1*(prim(i,j,k,l)+prim(i,j-1,k,l)) - wgt2*(prim(i,j-2,k,l)+prim(i,j+1,k,l));
                 }
-                if ((j == 0) and (bc_mass_lo[1] != 3) and (bc_mass_lo[1] != -1)) { // ignore for reservoirs and periodic BC
+                if ((j == 0) and is_lo_y_dirichlet_mass) {
                     for (int l=0; l<nspecies+6; ++l) {
                         primitive[l] = prim(i,j-1,k,l);
                     }
                 }
-                if ((j == n_cells[1]) and (bc_mass_hi[1] != 3) and (bc_mass_hi[1] != -1)) { // ignore for reservoirs and periodic BC
+                if ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
                     for (int l=0; l<nspecies+6; ++l) {
                         primitive[l] = prim(i,j,k,l);
                     }
@@ -2116,12 +2124,12 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 for (int l=0; l<nspecies+6; ++l) {
                     primitive[l] = wgt1*(prim(i,j,k,l)+prim(i,j,k-1,l)) - wgt2*(prim(i,j,k-2,l)+prim(i,j,k+1,l));
                 }
-                if ((k == 0) and (bc_mass_lo[2] != 3) and (bc_mass_lo[2] != -1)) { // ignore for reservoirs and periodic BC
+                if ((k == 0) and is_lo_z_dirichlet_mass) {
                     for (int l=0; l<nspecies+6; ++l) {
                         primitive[l] = prim(i,j,k-1,l);
                     }
                 }
-                if ((k == n_cells[2]) and (bc_mass_hi[2] != 3) and (bc_mass_hi[2] != -1)) { // ignore for reservoirs and periodic BC
+                if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
                     for (int l=0; l<nspecies+6; ++l) {
                         primitive[l] = prim(i,j,k,l);
                     }
@@ -2175,12 +2183,12 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 for (int l=0; l<nspecies+5; ++l) {
                     conserved[l] = wgt1*(cons(i,j,k,l)+cons(i-1,j,k,l)) - wgt2*(cons(i-2,j,k,l)+cons(i+1,j,k,l));
                 }
-                if ((i == 0) and (bc_mass_lo[0] != 3) and (bc_mass_lo[0] != -1)) { // ignore for reservoirs and periodic BC
+                if ((i == 0) and is_lo_x_dirichlet_mass) {
                     for (int l=0; l<nspecies+5; ++l) {
                         conserved[l] = cons(i-1,j,k,l);
                     }
                 }
-                if ((i == n_cells[0]) and (bc_mass_hi[0] != 3) and (bc_mass_hi[0] != -1)) { // ignore for reservoirs and periodic BC
+                if ((i == n_cells[0]) and is_hi_x_dirichlet_mass) {
                     for (int l=0; l<nspecies+5; ++l) {
                         conserved[l] = cons(i,j,k,l);
                     }
@@ -2231,12 +2239,12 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 for (int l=0; l<nspecies+5; ++l) {
                     conserved[l] = wgt1*(cons(i,j,k,l)+cons(i,j-1,k,l)) - wgt2*(cons(i,j-2,k,l)+cons(i,j+1,k,l));
                 }
-                if ((j == 0) and (bc_mass_lo[1] != 3) and (bc_mass_lo[1] != -1)) { // ignore for reservoirs and periodic BC
+                if ((j == 0) and is_lo_y_dirichlet_mass) {
                     for (int l=0; l<nspecies+5; ++l) {
                         conserved[l] = cons(i,j-1,k,l);
                     }
                 }
-                if ((j == n_cells[1]) and (bc_mass_hi[1] != 3) and (bc_mass_hi[1] != -1)) { // ignore for reservoirs and periodic BC
+                if ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
                     for (int l=0; l<nspecies+5; ++l) {
                         conserved[l] = cons(i,j,k,l);
                     }
@@ -2287,12 +2295,12 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 for (int l=0; l<nspecies+5; ++l) {
                     conserved[l] = wgt1*(cons(i,j,k,l)+cons(i,j,k-1,l)) - wgt2*(cons(i,j,k-2,l)+cons(i,j,k+1,l));
                 }
-                if ((k == 0) and (bc_mass_lo[2] != 3) and (bc_mass_lo[2] != -1)) { // ignore for reservoirs and periodic BC
+                if ((k == 0) and is_lo_z_dirichlet_mass) {
                     for (int l=0; l<nspecies+5; ++l) {
                         conserved[l] = cons(i,j,k-1,l);
                     }
                 }
-                if ((k == n_cells[2]) and (bc_mass_hi[2] != 3) and (bc_mass_hi[2] != -1)) { // ignore for reservoirs and periodic BC
+                if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
                     for (int l=0; l<nspecies+5; ++l) {
                         conserved[l] = cons(i,j,k,l);
                     }
