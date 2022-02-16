@@ -925,14 +925,52 @@ void main_driver(const char* argv)
 
     if(ramp_step==2){
         dt = dt*1e-7;
+	if(step < 100 && step > 50) dt = dt*2;
+        if(step < 150 && step > 100) dt = dt*4;
+        if(step < 200 && step > 150) dt = dt*8;
+        if(step < 250 && step > 200) dt = dt*16;
+        if(step < 300 && step > 250) dt = dt*32;
+        if(step < 350 && step > 300) dt = dt*64;
+        if(step < 400 && step > 350) dt = dt*128;
+        if(step < 500 && step > 400) dt = dt*128*sqrt(5);
+        if(step < 600 && step > 500) dt = dt*640;
+        if(step < 700 && step > 600) dt = dt*640*sqrt(5);
+        if(step < 800 && step > 700) dt = dt*3200;
+        if(step < 900 && step > 800) dt = dt*3200*sqrt(5);
+        if(step < 1000 && step > 900) dt = dt*16000;
+        if(step < 1100 && step > 1000) dt = dt*16000*sqrt(5);
+        if(step < 1200 && step > 1100) dt = dt*80000;
+        if(step < 1300 && step > 1200) dt = dt*80000*sqrt(5);
+        if(step < 1400 && step > 1300) dt = dt*400000;
+        if(step < 1500 && step > 1400) dt = dt*400000*sqrt(5);
+        if(step < 1600 && step > 1500) dt = dt*2000000;
+        if(step < 1700 && step > 1600) dt = dt*2000000*sqrt(5);
+        if(step > 1700) dt = dt*10000000;
 
     }else if(ramp_step==1){
         dt = dt*1e-6;
+	if(step < 40 && step > 20) dt = dt*2;
+        if(step < 80 && step > 40) dt = dt*10;
+        if(step < 160 && step > 80) dt = dt*50;
+        if(step < 240 && step > 160) dt = dt*100;
+        if(step < 320 && step > 240) dt = dt*500;
+        if(step < 400 && step > 320) dt = dt*1000;
+        if(step < 480 && step > 400) dt = dt*5000;
+        if(step < 560 && step > 480) dt = dt*10000;
+        if(step < 640 && step > 560) dt = dt*50000;
+        if(step < 720 && step > 640) dt = dt*100000;
+        if(step < 800 && step > 720) dt = dt*500000;
+        if(step > 800) dt = dt*1000000;
 
     }else{
         dt = dt*1e-5;
+	if(step < 40 && step > 20) dt = dt*10;
+        if(step < 60 && step > 40) dt = dt*100;
+        if(step < 80 && step > 60) dt = dt*1000;
+        if(step < 100 && step > 80) dt = dt*10000;
+        if(step > 100) dt = dt*100000;
     }
-        
+            
     
 
     particles.initRankLists(simParticles);
