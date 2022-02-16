@@ -635,7 +635,9 @@ void main_driver(const char* argv)
         // timer
         Real ts2 = ParallelDescriptor::second() - ts1;
         ParallelDescriptor::ReduceRealMax(ts2);
-    	amrex::Print() << "Advanced step " << step << " in " << ts2 << " seconds\n";
+        if (step%100 == 0) {
+    	      amrex::Print() << "Advanced step " << step << " in " << ts2 << " seconds\n";
+        }
         
         // compute mean and variances
         if (step > n_steps_skip && stats_int > 0 && step%stats_int == 0) {
@@ -650,7 +652,12 @@ void main_driver(const char* argv)
             // timer
             Real t2 = ParallelDescriptor::second() - t1;
             ParallelDescriptor::ReduceRealMax(t2);
-            amrex::Print() << "evaluateStats time " << t2 << " seconds\n";
+            if (step%100 == 0) {
+                amrex::Print() << "evaluateStats time " << t2 << " seconds\n";
+            }
+        }
+        if (step%100 == 0) {
+            amrex::Print() << "Mean Momentum (x, y, z): " << ComputeSpatialMean(cu, 1) << " " << ComputeSpatialMean(cu, 2) << " " << ComputeSpatialMean(cu, 3) << "\n";
         }
 
         // write a plotfile
@@ -934,8 +941,10 @@ void main_driver(const char* argv)
         ParallelDescriptor::ReduceLongMin(min_fab_megabytes, IOProc);
         ParallelDescriptor::ReduceLongMax(max_fab_megabytes, IOProc);
 
-        amrex::Print() << "High-water FAB megabyte spread across MPI nodes: ["
+        if (step%100 == 0) {
+            amrex::Print() << "High-water FAB megabyte spread across MPI nodes: ["
                        << min_fab_megabytes << " ... " << max_fab_megabytes << "]\n";
+        }
 
         min_fab_megabytes  = amrex::TotalBytesAllocatedInFabs()/1048576;
         max_fab_megabytes  = min_fab_megabytes;
@@ -943,8 +952,10 @@ void main_driver(const char* argv)
         ParallelDescriptor::ReduceLongMin(min_fab_megabytes, IOProc);
         ParallelDescriptor::ReduceLongMax(max_fab_megabytes, IOProc);
 
-        amrex::Print() << "Curent     FAB megabyte spread across MPI nodes: ["
+        if (step%100 == 0) {
+            amrex::Print() << "Curent     FAB megabyte spread across MPI nodes: ["
                        << min_fab_megabytes << " ... " << max_fab_megabytes << "]\n";
+        }
     }
 
     // timer
