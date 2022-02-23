@@ -515,6 +515,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                         }
                         if ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
                             yy[ns] = amrex::max(0.,amrex::min(1.,prim(i,j,k,6+ns)));
+                        }
                     }
 
                     Real sumy = 0.;
@@ -1014,6 +1015,20 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
             GpuArray<Real,MAX_SPECIES> hk;
             GpuArray<Real,MAX_SPECIES> soret;
 
+            Real kxp   = 0.5*(kappa(i-1,j,k)+kappa(i,j,k));
+            Real meanT = 0.5*(prim(i-1,j,k,4)+prim(i,j,k,4));
+            Real meanP = 0.5*(prim(i-1,j,k,5)+prim(i,j,k,5));
+            if ((i == 0) and is_lo_x_dirichlet_mass) {
+                kxp   = kappa(i-1,j,k);
+                meanT = prim(i-1,j,k,4);
+                meanP = prim(i-1,j,k,5);
+            }
+            if ((i == n_cells[0]) and is_hi_x_dirichlet_mass) {
+                kxp   = kappa(i,j,k);
+                meanT = prim(i,j,k,4);
+                meanP = prim(i,j,k,5);
+            }
+
             // viscous heating (automatically taken care of setting shear stress to zero above for 1D and 2D)
             // diagonal
             xflux(i,j,k,nvars+1) -= 0.5*velx(i,j,k)*(tauxx(i-1,j,k)+tauxx(i,j,k));
@@ -1044,20 +1059,6 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                 xflux(i,j,k,nvars) -= kxp*(prim(i,j,k,4)-prim(i-1,j,k,4))/dx[0];
             }
             xflux(i,j,k,nvars+2) = visc_shear_heat;
-
-            Real kxp   = 0.5*(kappa(i-1,j,k)+kappa(i,j,k));
-            Real meanT = 0.5*(prim(i-1,j,k,4)+prim(i,j,k,4));
-            Real meanP = 0.5*(prim(i-1,j,k,5)+prim(i,j,k,5));
-            if ((i == 0) and is_lo_x_dirichlet_mass) {
-                kxp   = kappa(i-1,j,k);
-                meanT = prim(i-1,j,k,4);
-                meanP = prim(i-1,j,k,5);
-            }
-            if ((i == n_cells[0]) and is_hi_x_dirichlet_mass) {
-                kxp   = kappa(i,j,k);
-                meanT = prim(i,j,k,4);
-                meanP = prim(i,j,k,5);
-            }
 
             if (algorithm_type == 2) {
 
@@ -1310,7 +1311,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                     }
                 }
                 else { // 3D
-                    Real kyp, meanT, meanP;
+                    Real kzp, meanT, meanP;
                     if ((k == 0) and is_lo_z_dirichlet_mass) {
                         kzp   = kappa(i,j,k-1);
                         meanT = prim(i,j,k-1,4);
@@ -1811,7 +1812,6 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                     cenz_w(i,j,k) += 0.25*(momz(i,j,k)+momz(i,j,k+1))*(velz(i,j,k)+velz(i,j,k+1)) + prim(i,j,k,5);
                 }
             });
-
         }
     }
 }
