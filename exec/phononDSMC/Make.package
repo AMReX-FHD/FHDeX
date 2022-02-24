@@ -1,0 +1,13 @@
+CEXE_headers   += INS_functions.H
+CEXE_headers   += Checkpoint.H
+CEXE_sources   += Checkpoint.cpp
+
+CEXE_sources   += stats.cpp
+CEXE_sources   += writePlotFile.cpp
+
+CEXE_sources   += particleGen.cpp
+CEXE_sources   += DsmcCollide.cpp
+CEXE_sources   += externalF.cpp
+CEXE_sources   += updateTimeStep.cpp
+
+#CEXE_sources   += globalVars.cpp

@@ -1,0 +1,95 @@
+  # 512^3
+  # Problem specification
+  prob_lo = -0.0314 -0.0314 -0.0314 # physical lo coordinate
+  prob_hi =  0.0314  0.0314  0.0314 # physical hi coordinate
+
+  # number of cells in domain
+  n_cells = 512 512 512
+  # max number of cells in a box
+  max_grid_size = 128 128 128
+
+  # 64^3
+  # Problem specification
+  prob_lo = -0.003925 -0.003925 -0.003925 # physical lo coordinate
+  prob_hi =  0.003925  0.003925  0.003925 # physical hi coordinate
+
+  # number of cells in domain
+  n_cells = 64 64 64
+  # max number of cells in a box
+  max_grid_size = 32 32 32
+
+  # Number of ghost cells, conserved, and primitive variables
+  # ---------------------
+  ngc = 2 2 2
+  nvars = 7
+  nprimvars = 10
+
+  # Time-step control
+  fixed_dt = 1.e-9
+
+  # Controls for number of steps between actions
+
+  max_step = 100
+  plot_int = 1
+  stats_int = 0
+
+  # turn on energy dissipation diagnostic
+  turbForcing = 1
+
+  # Multispecies toggle
+  # if algorithm_type = 1, single component
+  # if algorithm_type = 2, multispecies
+  algorithm_type = 2
+
+  # Viscous tensor form
+  # if visc_type = 1, L = not-symmetric (bulk viscosity = 0)
+  # if visc_type = 2, L = symmetric (bulk viscosity = 0)
+  # if visc_type = 3, L = symmetric + bulk viscosity
+  visc_type = 2
+
+  # Advection method
+  # if advection_type = 1, interpolate primitive quantities
+  # if advection_type = 2, interpolate conserved quantities
+  advection_type = 2
+
+  # Problem specification
+  # if prob_type = 4, Taylor-Green vortex
+  prob_type = 4
+
+  # Initial parameters
+  k_B = 1.38064852e-16	# [units: cm2*g*s-2*K-1]
+  Runiv = 8.314462175e7
+  T_init = 273.
+
+  struct_fact_int = -1
+  n_steps_skip = 0
+
+  seed = 1
+
+  # Boundary conditions:
+  # NOTE: setting bc_vel to periodic sets all the other bc's to periodic)
+  # bc_vel:   -1 = periodic  
+  #            1 = slip
+  #            2 = no-slip
+  # bc_mass:  -1 = periodic
+  #            1 = wall
+  #            2 = concentration (set bc_Yk or bc_Xk in compressible namelist)
+  #            3 = reservoir (set bc_Yk or bc_Xk in compressible namelist)
+  # bc_therm: -1 = periodic
+  #            1 = adiabatic
+  #            2 = isothermal (set with t_lo/hi in common namelist)
+  bc_vel_lo = -1 -1 -1
+  bc_vel_hi = -1 -1 -1
+
+  #Kinetic species info
+  #--------------
+  nspecies = 2
+
+  molmass = 39.948 39.948
+  diameter = 3.63e-8 3.63e-8
+
+  # Enter negative dof to use hcv & hcp values
+  dof =  3 3 3 3
+  hcv = -1 -1 -1 -1
+  hcp = -1 -1 -1 -1
+

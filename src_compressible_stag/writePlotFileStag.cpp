@@ -388,6 +388,68 @@ void WriteSpatialCross3D(const Vector<Real>& spatialCross, int step, const Geome
 
 void WriteSpatialCross1D(const amrex::MultiFab& spatialCross, int step, const Geometry& geom, const int ncross) 
 {
-    std::string file_prefix = "spatialCross1D_";
-    WriteHorizontalAverage(spatialCross,0,0,ncross,step,geom,file_prefix);
+    if (all_correl == 0) { // single spatial correlation file
+        std::string file_prefix = "spatialCross1D_";
+        WriteHorizontalAverage(spatialCross,0,0,ncross,step,geom,file_prefix);
+    }
+    else { // five spatial correlation files
+        for (int i=0; i<5; ++i) {
+            std::string file_prefix = std::to_string(i) + "_spatialCross1D_";
+            WriteHorizontalAverage(spatialCross,0,i*ncross,ncross,step,geom,file_prefix);
+        }
+    }
+}
+
+void WritePlotFilesSF_2D(const amrex::MultiFab& mag, const amrex::MultiFab& realimag, const amrex::Geometry& geom,
+                         const int step, const Real time, const amrex::Vector< std::string >& names, std::string plotfile_base) {
+
+      // Magnitude of the Structure Factor
+      std::string name = plotfile_base;
+      name += "_mag";
+      const std::string plotfilename1 = amrex::Concatenate(name,step,9);
+      
+      Real dx0 = geom.CellSize(0);
+      Real dx1 = geom.CellSize(1);
+      Real dx2 = geom.CellSize(2);
+      Real pi = 3.1415926535897932;
+      Box domain = geom.Domain();
+      RealBox real_box({AMREX_D_DECL(-pi/dx0,-pi/dx1,-pi/dx2)},
+                       {AMREX_D_DECL( pi/dx0, pi/dx1, pi/dx2)});
+      Vector<int> is_periodic(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
+      for (int i=0; i<AMREX_SPACEDIM; ++i) {
+          is_periodic[i] = geom.isPeriodic(i);
+      }
+      Geometry geom2;
+      geom2.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
+
+      Vector<std::string> varNames;
+      varNames.resize(names.size());
+      for (int n=0; n<names.size(); n++) {
+          varNames[n] = names[n];
+      }
+
+      WriteSingleLevelPlotfile(plotfilename1,mag,varNames,geom2,time,step);
+
+      // Components of the Structure Factor
+      name = plotfile_base;
+      name += "_real_imag";
+      const std::string plotfilename2 = amrex::Concatenate(name,step,9);
+
+      varNames.resize(2*names.size());
+      int cnt = 0; // keep a counter for plotfile variables
+      for (int n=0; n<names.size(); n++) {
+          varNames[cnt] = names[cnt];
+          varNames[cnt] += "_real";
+          cnt++;
+      }
+
+      int index = 0;
+      for (int n=0; n<names.size(); n++) {
+          varNames[cnt] = names[index];
+          varNames[cnt] += "_imag";
+          index++;
+          cnt++;
+      }
+
+      WriteSingleLevelPlotfile(plotfilename2,realimag,varNames,geom2,time,step);
 }

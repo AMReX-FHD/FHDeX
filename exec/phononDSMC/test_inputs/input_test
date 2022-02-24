@@ -1,0 +1,49 @@
+ # Problem specification
+  prob_lo = 0.0 0.0 0.0     			 	# physical lo coordinate
+  prob_hi = 0.08 0.08 0.01	# physical hi coordinate (cm)
+
+  n_cells = 80 80 10 # keep as powers of two
+  max_grid_size = 40 40 10
+  max_particle_tile_size = 256 256 256
+
+  # Time-step control
+  fixed_dt = 1e-9
+
+  # Controls for number of steps between actions
+  max_step =     10000
+  plot_int =     1000
+  n_steps_skip = -1000
+
+  reset_stats = 1
+  restart  = -1
+  chk_int  = -1
+
+  particle_neff = 1
+
+  #Species info
+  #--------------
+  nspecies   		=  2
+  phonon_sound_speed = 600000
+  
+  #Internal scattering parameters
+  #-------------------
+  tau_i = 2.95e45
+  tau_ta = 9.3e13
+  tau_la = 2.0e24
+
+  
+  # Stochastic parameters
+  seed    = 1
+  k_B     = 1.38064852e-16
+  T_init  = 3
+  h_bar   = 1.0546e-27
+  variance_coef_mom = 1
+
+#ignore these for now
+  bc_vel_lo   = -1 -1 -1
+  bc_vel_hi   = -1 -1 -1  
+  bc_therm_lo = -1 -1 -1
+  bc_therm_hi = -1 -1 -1
+  bc_mass_lo  = -1 -1 -1
+  bc_mass_hi  = -1 -1 -1
+  

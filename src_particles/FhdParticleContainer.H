@@ -171,6 +171,15 @@ struct FHD_realDataLW {
 };
 
 
+typedef struct {
+
+    Real x;
+    Real y;
+    Real z;
+
+} Triplet;
+
+
 class FhdParIter
     : public IBMarIterBase<FHD_realData::count, FHD_intData::count>
 {
@@ -237,7 +246,7 @@ public:
     void SetForce(int id, Real x, Real y, Real z);
     void writeVel(int id);
 
-    void MeanSqrCalc(int lev, int reset);
+    void MeanSqrCalc(int lev, int step);
 
     void BuildCorrectionTable(const Real* dx, int setMeasureFinal);
 
@@ -378,6 +387,12 @@ public:
     Real threepmMin[50];
     Real threepmPoints[50]; 
     Real threepmRange = 5; 
+    
+    int bottomListLength;
+    int topListLength;
+    
+    Triplet* bottomList;
+    Triplet* topList;
 
   //protected:
 

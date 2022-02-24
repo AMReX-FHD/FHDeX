@@ -1,7 +1,6 @@
 #!/bin/bash
 
 COMPDIR=../RUN
-#COMPDIR=../RUN_COadsPt111_eq_SF
 
 FILES=`ls`
 

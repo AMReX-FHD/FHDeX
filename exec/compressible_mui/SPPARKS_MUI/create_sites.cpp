@@ -43,7 +43,7 @@ enum{DUMMY,IARRAY,DARRAY};
 #define DELTALOCAL 10000
 #define DELTABUF 10000
 //#define EPSILON 0.0001
-#define EPSILON 1.e-10
+#define EPSILON 1.e-12
 
 /* ---------------------------------------------------------------------- */
 
@@ -222,10 +222,10 @@ void CreateSites::structured_lattice()
   // in periodic dims:
   // check that simulation box is integer multiple of lattice spacing
   
-  nx = static_cast<int> (domain->xprd / xlattice);
-  if (dimension >= 2) ny = static_cast<int> (domain->yprd / ylattice);
+  nx = static_cast<int> (round(domain->xprd / xlattice));
+  if (dimension >= 2) ny = static_cast<int> (round(domain->yprd / ylattice));
   else ny = 1;
-  if (dimension == 3) nz = static_cast<int> (domain->zprd / zlattice);
+  if (dimension == 3) nz = static_cast<int> (round(domain->zprd / zlattice));
   else nz = 1;
 
   if (xperiodic && 

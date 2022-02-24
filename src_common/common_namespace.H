@@ -54,8 +54,10 @@ namespace common {
     extern std::string                plot_base_name;
     extern int                        chk_int;
     extern std::string                chk_base_name;
+    extern std::string                plot_init_file;
     extern AMREX_GPU_MANAGED int      prob_type;
     extern int                        restart;
+    extern int                        stats_int;
     extern int                        reset_stats;
     extern int                        particle_restart;
     extern int                        print_int;
@@ -76,6 +78,7 @@ namespace common {
     // stochastic forcing amplitudes (1 for physical values, 0 to run them off)
     extern AMREX_GPU_MANAGED amrex::Real variance_coef_mom;
     extern AMREX_GPU_MANAGED amrex::Real variance_coef_mass;
+    extern AMREX_GPU_MANAGED amrex::Real variance_coef_ener;
     extern AMREX_GPU_MANAGED amrex::Real k_B;
     extern AMREX_GPU_MANAGED amrex::Real h_bar;
     extern AMREX_GPU_MANAGED amrex::Real Runiv;
@@ -131,7 +134,8 @@ namespace common {
     // BC specifications:
     // -1 = periodic
     //  1 = wall
-    //  2 = reservoir (Dirichlet values must be suppled by other means)
+    //  2 = concentration (for compressible codes), reservoir (for low Mach multispecies codes)
+    //  3 = reservoir (for compressible codes)
     extern AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>          bc_mass_lo;
     extern AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>          bc_mass_hi;
 
@@ -194,8 +198,12 @@ namespace common {
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> potential_lo;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> potential_hi;
 
+    extern int                        n_burn;
     extern int                        dsmc_boundaries;
     extern amrex::Real                phonon_sound_speed;
+    extern amrex::Real                tau_i;
+    extern amrex::Real                tau_la;
+    extern amrex::Real                tau_ta;
 
     // structure factor and radial/cartesian pair correlation function analysis
     extern int                        struct_fact_int;
@@ -243,11 +251,15 @@ namespace common {
     
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> Yk0;
 
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> offset_wall;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> rmin_wall;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> rmax_wall;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> eepsilon_wall;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> sigma_wall;
     extern AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_SPECIES> p_int_tog_wall;
+    
+    extern AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_SPECIES> msd_int;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_SPECIES> msd_len;
 
     extern int                        poisson_verbose;
     extern int                        poisson_bottom_verbose;
