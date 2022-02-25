@@ -825,14 +825,14 @@ void BCMassTempPress(MultiFab& prim_in,MultiFab& cons_in,const amrex::Geometry g
                 });
             }
 
-            // mass fractions, concentration
+            // mass fractions, concentration (set ghost equal to wall value)
             if (bc_mass_lo[0] == 2 && algorithm_type == 2) {
                 amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (i < dom.smallEnd(0)) {
                         for (int n=0; n<nspecies; ++n) {
-                            prim(i,j,k,6+n)          = 2.*bc_Yk_x_lo[n] - prim(2*lo-i-1,j,k,6+n);
-                            prim(i,j,k,6+nspecies+n) = 2.*bc_Xk_x_lo[n] - prim(2*lo-i-1,j,k,6+nspecies+n);
+                            prim(i,j,k,6+n)          = bc_Yk_x_lo[n];
+                            prim(i,j,k,6+nspecies+n) = bc_Xk_x_lo[n];
                         }
                     }
                 });
@@ -868,11 +868,11 @@ void BCMassTempPress(MultiFab& prim_in,MultiFab& cons_in,const amrex::Geometry g
                         }
                     }
                 });
-            } else if (bc_therm_lo[0] == 2) { // isothermal
+            } else if (bc_therm_lo[0] == 2) { // isothermal  (set ghost equal to wall value)
                 amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (i < dom.smallEnd(0)) {
-                        prim(i,j,k,4) = -prim(2*lo-i-1,j,k,4) + 2.*t_lo[0];
+                        prim(i,j,k,4) = t_lo[0];
                         prim(i,j,k,5) = prim(2*lo-i-1,j,k,5);
                     }
                 });
@@ -897,14 +897,14 @@ void BCMassTempPress(MultiFab& prim_in,MultiFab& cons_in,const amrex::Geometry g
                 });
             }
 
-            // mass fractions, concentration
+            // mass fractions, concentration  (set ghost equal to wall value)
             if (bc_mass_hi[0] == 2 && algorithm_type == 2) {
                 amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (i > dom.bigEnd(0)) {
                         for (int n=0; n<nspecies; ++n) {
-                            prim(i,j,k,6+n)          = 2.*bc_Yk_x_hi[n] - prim(2*hi-i+1,j,k,6+n);
-                            prim(i,j,k,6+nspecies+n) = 2.*bc_Xk_x_hi[n] - prim(2*hi-i+1,j,k,6+nspecies+n);
+                            prim(i,j,k,6+n)          = bc_Yk_x_hi[n];
+                            prim(i,j,k,6+nspecies+n) = bc_Xk_x_hi[n];
                         }
                     }
                 });
@@ -939,11 +939,11 @@ void BCMassTempPress(MultiFab& prim_in,MultiFab& cons_in,const amrex::Geometry g
                         }
                     }
                 });
-            } else if (bc_therm_hi[0] == 2) { // isothermal
+            } else if (bc_therm_hi[0] == 2) { // isothermal  (set ghost equal to wall value)
                 amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (i > dom.bigEnd(0)) {
-                        prim(i,j,k,4) = -prim(2*hi-i+1,j,k,4) + 2.*t_hi[0];
+                        prim(i,j,k,4) = t_hi[0];
                         prim(i,j,k,5) = prim(2*hi-i+1,j,k,5);
                     }
                 });
@@ -968,14 +968,14 @@ void BCMassTempPress(MultiFab& prim_in,MultiFab& cons_in,const amrex::Geometry g
                 });
             }
 
-            // mass fractions, concentration
+            // mass fractions, concentration (set ghost equal to wall value)
             if (bc_mass_lo[1] == 2 && algorithm_type == 2) {
                 amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (j < dom.smallEnd(1)) {
                         for (int n=0; n<nspecies; ++n) {
-                            prim(i,j,k,6+n)          = 2.*bc_Yk_y_lo[n] - prim(i,2*lo-j-1,k,6+n);
-                            prim(i,j,k,6+nspecies+n) = 2.*bc_Xk_y_lo[n] - prim(i,2*lo-j-1,k,6+nspecies+n);
+                            prim(i,j,k,6+n)          = bc_Yk_y_lo[n];
+                            prim(i,j,k,6+nspecies+n) = bc_Xk_y_lo[n];
                         }
                     }
                 });
@@ -1010,11 +1010,11 @@ void BCMassTempPress(MultiFab& prim_in,MultiFab& cons_in,const amrex::Geometry g
                         }
                     }
                 });
-            } else if (bc_therm_lo[1] == 2) { // isothermal
+            } else if (bc_therm_lo[1] == 2) { // isothermal (set ghost equal to wall value)
                 amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (j < dom.smallEnd(1)) {
-                        prim(i,j,k,4) = -prim(i,2*lo-j-1,k,4) + 2.*t_lo[1];
+                        prim(i,j,k,4) = t_lo[1];
                         prim(i,j,k,5) = prim(i,2*lo-j-1,k,5);
                     }
                 });
@@ -1041,14 +1041,14 @@ void BCMassTempPress(MultiFab& prim_in,MultiFab& cons_in,const amrex::Geometry g
                 });
             }
 
-            // mass fractions, concentration
+            // mass fractions, concentration (set ghost equal to wall value)
             if (bc_mass_hi[1] == 2 && algorithm_type == 2) {
                 amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (j > dom.bigEnd(1)) {
                         for (int n=0; n<nspecies; ++n) {
-                            prim(i,j,k,6+n)          = 2.*bc_Yk_y_hi[n] - prim(i,2*hi-j+1,k,6+n);
-                            prim(i,j,k,6+nspecies+n) = 2.*bc_Xk_y_hi[n] - prim(i,2*hi-j+1,k,6+nspecies+n);
+                            prim(i,j,k,6+n)          = bc_Yk_y_hi[n];
+                            prim(i,j,k,6+nspecies+n) = bc_Xk_y_hi[n];
                         }
                     }
                 });
@@ -1083,11 +1083,11 @@ void BCMassTempPress(MultiFab& prim_in,MultiFab& cons_in,const amrex::Geometry g
                         }
                     }
                 });
-            } else if (bc_therm_hi[1] == 2) { // isothermal
+            } else if (bc_therm_hi[1] == 2) { // isothermal (set ghost equal to wall value)
                 amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (j > dom.bigEnd(1)) {
-                        prim(i,j,k,4) = -prim(i,2*hi-j+1,k,4) + 2.*t_hi[1];
+                        prim(i,j,k,4) = t_hi[1];
                         prim(i,j,k,5) = prim(i,2*hi-j+1,k,5);
                     }
                 });
@@ -1112,14 +1112,14 @@ void BCMassTempPress(MultiFab& prim_in,MultiFab& cons_in,const amrex::Geometry g
                 });
             }
 
-            // mass fractions, concentration
+            // mass fractions, concentration (set ghost equal to wall value)
             if (bc_mass_lo[2] == 2 && algorithm_type == 2) {
                 amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (k < dom.smallEnd(2)) {
                         for (int n=0; n<nspecies; ++n) {
-                            prim(i,j,k,6+n)          = 2.*bc_Yk_z_lo[n] - prim(i,j,2*lo-k-1,6+n);
-                            prim(i,j,k,6+nspecies+n) = 2.*bc_Xk_z_lo[n] - prim(i,j,2*lo-k-1,6+nspecies+n);
+                            prim(i,j,k,6+n)          = bc_Yk_z_lo[n];
+                            prim(i,j,k,6+nspecies+n) = bc_Xk_z_lo[n];
                         }
                     }
                 });
@@ -1154,11 +1154,11 @@ void BCMassTempPress(MultiFab& prim_in,MultiFab& cons_in,const amrex::Geometry g
                         }
                     }
                 });
-            } else if (bc_therm_lo[2] == 2) { // isothermal
+            } else if (bc_therm_lo[2] == 2) { // isothermal (set ghost equal to wall value)
                 amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (k < dom.smallEnd(2)) {
-                        prim(i,j,k,4) = -prim(i,j,2*lo-k-1,4) + 2.*t_lo[2];
+                        prim(i,j,k,4) = t_lo[2];
                         prim(i,j,k,5) = prim(i,j,2*lo-k-1,5);
                     }
                 });
@@ -1185,14 +1185,14 @@ void BCMassTempPress(MultiFab& prim_in,MultiFab& cons_in,const amrex::Geometry g
                 });
             }
 
-            // mass fractions, concentration
+            // mass fractions, concentration (set ghost equal to wall value)
             if (bc_mass_hi[2] == 2 && algorithm_type == 2) {
                 amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (k > dom.bigEnd(2)) {
                         for (int n=0; n<nspecies; ++n) {
-                            prim(i,j,k,6+n)          = 2.*bc_Yk_z_hi[n] - prim(i,j,2*hi-k+1,6+n);
-                            prim(i,j,k,6+nspecies+n) = 2.*bc_Xk_z_hi[n] - prim(i,j,2*hi-k+1,6+nspecies+n);
+                            prim(i,j,k,6+n)          = bc_Yk_z_hi[n];
+                            prim(i,j,k,6+nspecies+n) = bc_Xk_z_hi[n];
                         }
                     }
                 });
@@ -1227,11 +1227,11 @@ void BCMassTempPress(MultiFab& prim_in,MultiFab& cons_in,const amrex::Geometry g
                         }
                     }
                 });
-            } else if (bc_therm_hi[2] == 2) { // isothermal
+            } else if (bc_therm_hi[2] == 2) { // isothermal (set ghost equal to wall value)
                 amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (k > dom.bigEnd(2)) {
-                        prim(i,j,k,4) = -prim(i,j,2*hi-k+1,4) + 2.*t_hi[2];
+                        prim(i,j,k,4) = t_hi[2];
                         prim(i,j,k,5) = prim(i,j,2*hi-k+1,5);
                     }
                 });
@@ -1279,9 +1279,9 @@ void BCMomNormal(MultiFab& mom_in, MultiFab& vel_in, MultiFab& cons_in,
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 if (i < dom.smallEnd(0)) {
-                    // set ghost velocity & momentum
-                    vel(i,j,k) = -vel(-i,j,k);
-                    mom(i,j,k) = -mom(-i,j,k);
+                    // set ghost velocity & momentum (set to wall value; no extrapolate)
+                    vel(i,j,k) = 0.0;
+                    mom(i,j,k) = 0.0;
                 }           
                 else if (i == dom.smallEnd(0)) {
                     // set normal velocity & momentum
@@ -1311,9 +1311,9 @@ void BCMomNormal(MultiFab& mom_in, MultiFab& vel_in, MultiFab& cons_in,
             amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {        
                 if (i > dom.bigEnd(0)+1) {
-                    // set ghost velocity & momentum
-                    vel(i,j,k) = -vel(2*dom.bigEnd(0)+2-i,j,k);
-                    mom(i,j,k) = -mom(2*dom.bigEnd(0)+2-i,j,k);
+                    // set ghost velocity & momentum (set to wall value; no extrapolate)
+                    vel(i,j,k) = 0.0;
+                    mom(i,j,k) = 0.0;
                 }           
                 else if (i == dom.bigEnd(0)+1) {
                     // set normal velocity & momentum
@@ -1343,9 +1343,9 @@ void BCMomNormal(MultiFab& mom_in, MultiFab& vel_in, MultiFab& cons_in,
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 if (j < dom.smallEnd(1)) {
-                    // set ghost velocity & momentum
-                    vel(i,j,k) = -vel(i,-j,k);
-                    mom(i,j,k) = -mom(i,-j,k);
+                    // set ghost velocity & momentum (set to wall value; no extrapolate)
+                    vel(i,j,k) = 0.0;
+                    mom(i,j,k) = 0.0;
                 }           
                 else if (j == dom.smallEnd(1)) {
                     // set normal velocity & momentum
@@ -1375,9 +1375,9 @@ void BCMomNormal(MultiFab& mom_in, MultiFab& vel_in, MultiFab& cons_in,
             amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {        
                 if (j > dom.bigEnd(1)+1) {
-                    // set ghost velocity & momentum
-                    vel(i,j,k) = -vel(i,2*dom.bigEnd(1)+2-j,k);
-                    mom(i,j,k) = -mom(i,2*dom.bigEnd(1)+2-j,k);
+                    // set ghost velocity & momentum (set to wall value; no extrapolate)
+                    vel(i,j,k) = 0.0;
+                    mom(i,j,k) = 0.0;
                 }           
                 else if (j == dom.bigEnd(1)+1) {
                     // set normal velocity & momentum
@@ -1407,9 +1407,9 @@ void BCMomNormal(MultiFab& mom_in, MultiFab& vel_in, MultiFab& cons_in,
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 if (k < dom.smallEnd(2)) {
-                    // set ghost velocity & momentum
-                    vel(i,j,k) = -vel(i,j,-k);
-                    mom(i,j,k) = -mom(i,j,-k);
+                    // set ghost velocity & momentum (set to wall value; no extrapolate)
+                    vel(i,j,k) = 0.0;
+                    mom(i,j,k) = 0.0;
                 }           
                 else if (k == dom.smallEnd(2)) {
                     // set normal velocity & momentum
@@ -1439,9 +1439,9 @@ void BCMomNormal(MultiFab& mom_in, MultiFab& vel_in, MultiFab& cons_in,
             amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {        
                 if (k > dom.bigEnd(2)+1) {
-                    // set ghost velocity & momentum
-                    vel(i,j,k) = -vel(i,j,2*dom.bigEnd(2)+2-k);
-                    mom(i,j,k) = -mom(i,j,2*dom.bigEnd(2)+2-k);
+                    // set ghost velocity & momentum (set to wall value; no extrapolate)
+                    vel(i,j,k) = 0.0;
+                    mom(i,j,k) = 0.0;
                 }           
                 else if (k == dom.bigEnd(2)+1) {
                     // set normal velocity & momentum
@@ -1480,7 +1480,7 @@ void BCMomTrans(MultiFab& mom_in, MultiFab& vel_in,
             Real fac;
             if (bc_mass_lo[0] == 3) {fac = 0.0;} // reservoir
             else if (bc_vel_lo[0] == 1) {fac = 1.0;} // slip
-            else if (bc_vel_lo[0] == 2) {fac = -1.0;} // no-slip
+            else if (bc_vel_lo[0] == 2) {fac = 0.0;} // no-slip (wall value in ghost cell)
             amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 if (i < dom.smallEnd(0)) {
@@ -1495,7 +1495,7 @@ void BCMomTrans(MultiFab& mom_in, MultiFab& vel_in,
             Real fac;
             if (bc_mass_hi[0] == 3) {fac = 0.0;} // reservoir
             else if (bc_vel_hi[0] == 1) {fac = 1.0;} // slip
-            else if (bc_vel_hi[0] == 2) {fac = -1.0;} // no-slip
+            else if (bc_vel_hi[0] == 2) {fac = 0.0;} // no-slip (wall value in ghost cell)
             amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 if (i > dom.bigEnd(0)) {
@@ -1510,7 +1510,7 @@ void BCMomTrans(MultiFab& mom_in, MultiFab& vel_in,
             Real fac;
             if (bc_mass_lo[1] == 3) {fac = 0.0;} // reservoir
             else if (bc_vel_lo[1] == 1) {fac = 1.0;} // slip
-            else if (bc_vel_lo[1] == 2) {fac = -1.0;} // no-slip
+            else if (bc_vel_lo[1] == 2) {fac = 0.0;} // no-slip (wall value in ghost cell)
             amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 if (j < dom.smallEnd(1)) {
@@ -1525,7 +1525,7 @@ void BCMomTrans(MultiFab& mom_in, MultiFab& vel_in,
             Real fac;
             if (bc_mass_hi[1] == 3) {fac = 0.0;} // reservoir
             else if (bc_vel_hi[1] == 1) {fac = 1.0;} // slip
-            else if (bc_vel_hi[1] == 2) {fac = -1.0;} // no-slip
+            else if (bc_vel_hi[1] == 2) {fac = 0.0;} // no-slip (wall value in ghost cell)
             amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 if (j > dom.bigEnd(1)) {
@@ -1540,7 +1540,7 @@ void BCMomTrans(MultiFab& mom_in, MultiFab& vel_in,
             Real fac;
             if (bc_mass_lo[2] == 3) {fac = 0.0;} // reservoir
             else if (bc_vel_lo[2] == 1) {fac = 1.0;} // slip
-            else if (bc_vel_lo[2] == 2) {fac = -1.0;} // no-slip
+            else if (bc_vel_lo[2] == 2) {fac = 0.0;} // no-slip (wall value in ghost cell)
             amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 if (k < dom.smallEnd(2)) {
@@ -1555,7 +1555,7 @@ void BCMomTrans(MultiFab& mom_in, MultiFab& vel_in,
             Real fac;
             if (bc_mass_hi[2] == 3) {fac = 0.0;} // reservoir
             else if (bc_vel_hi[2] == 1) {fac = 1.0;} // slip
-            else if (bc_vel_hi[2] == 2) {fac = -1.0;} // no-slip
+            else if (bc_vel_hi[2] == 2) {fac = 0.0;} // no-slip (wall value in ghost cell)
             amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 if (k > dom.bigEnd(2)) {
