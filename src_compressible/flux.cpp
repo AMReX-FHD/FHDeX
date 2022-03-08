@@ -2203,7 +2203,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                     }
                 } else if ((i == n_cells[0]-1) and is_hi_x_dirichlet_mass) {
                     for (int l=0; l<nspecies+5; ++l) {
-                        conserved[l] = wgta*cons(i+2,j,k,l) + wgtb*cons(i+1,j,k,l) + wgtc*cons(i,j,k,l) + wgtd*cons(i-1,j,k,l);
+                        conserved[l] = wgta*cons(i+1,j,k,l) + wgtb*cons(i,j,k,l) + wgtc*cons(i-1,j,k,l) + wgtd*cons(i-2,j,k,l);
                     }
                 }
 
@@ -2267,7 +2267,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                     }
                 } else if ((j == n_cells[1]-1) and is_hi_y_dirichlet_mass) {
                     for (int l=0; l<nspecies+5; ++l) {
-                        conserved[l] = wgta*cons(i,j+1,k,l) + wgtb*cons(i,j+1,k,l) + wgtc*cons(i,j,k,l) + wgtd*cons(i,j-1,k,l);
+                        conserved[l] = wgta*cons(i,j+1,k,l) + wgtb*cons(i,j,k,l) + wgtc*cons(i,j-1,k,l) + wgtd*cons(i,j-2,k,l);
                     }
                 }
 
@@ -2322,7 +2322,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                     }
                 } else if ((k == 1) and is_lo_z_dirichlet_mass) {
                     for (int l=0; l<nspecies+5; ++l) {
-                        conserved[l] = wgta*cons(i,j,k-1,l) + wgtb*cons(i,j,k-1,l) + wgtc*cons(i,j,k,l) + wgtd*cons(i,j,k+1,l);
+                        conserved[l] = wgta*cons(i,j,k-2,l) + wgtb*cons(i,j,k-1,l) + wgtc*cons(i,j,k,l) + wgtd*cons(i,j,k+1,l);
                     }
                 }
                 if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
@@ -2331,7 +2331,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                     }
                 } else if ((k == n_cells[2]-1) and is_hi_z_dirichlet_mass) {
                     for (int l=0; l<nspecies+5; ++l) {
-                        conserved[l] = wgta*cons(i,j,k+1,l) + wgtb*cons(i,j,k+1,l) + wgtc*cons(i,j,k,l) + wgtd*cons(i,j,k-1,l);
+                        conserved[l] = wgta*cons(i,j,k+1,l) + wgtb*cons(i,j,k,l) + wgtc*cons(i,j,k-1,l) + wgtd*cons(i,j,k-2,l);
                     }
                 }
 
