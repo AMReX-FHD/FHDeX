@@ -1991,10 +1991,10 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
     Real wgt2 = 1./12.;
     Real wgt1 = 0.5 + wgt2;
 
-    Real wgta = -0.2;
-    Real wgtb = 0.75;
+    Real wgta = 0.;//-0.2;
+    Real wgtb = 0.5;//0.75;
     Real wgtc = 0.5;
-    Real wgtd = -0.05;
+    Real wgtd = 0.;//-0.05;
 
     // Loop over boxes
     for ( MFIter mfi(cons_in); mfi.isValid(); ++mfi) {
