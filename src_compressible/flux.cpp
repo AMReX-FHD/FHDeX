@@ -1988,7 +1988,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
     // hyperbolic fluxes
     ////////////////////
 
-    Real wgt2 = 1./12.;
+    Real wgt2 = 0.;//1./12.;
     Real wgt1 = 0.5 + wgt2;
 
     Real wgta = 0.;//-0.2;
