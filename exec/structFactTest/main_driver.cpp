@@ -78,8 +78,7 @@ void main_driver(const char* argv)
     var_scaling[1] = 1./dVol;
     var_scaling[2] = 1./dVol;
     
-    MultiFab struct_cc;
-    struct_cc.define(ba, dmap, 2, 0);
+    MultiFab struct_cc(ba, dmap, 2, 0);
 
     // WRITE INIT ROUTINE
     struct_cc.setVal(0.);
@@ -98,6 +97,19 @@ void main_driver(const char* argv)
             else if (n == 1) {
                 struct_fab(i,j,k,n) = 0.5*sqrt(i+j+k);
             }
+
+            // hooks to specify any function
+            /*
+            Real x = prob_lo[0] + (i+0.5)*dx[0];
+            Real y = prob_lo[0] + (i+0.5)*dx[0];
+            Real z = prob_lo[0] + (i+0.5)*dx[0];
+
+            if (n == 0) {
+                struct_fab(i,j,k,n) = 1.;
+            }
+            */
+
+            
         });
 
     }
@@ -117,6 +129,24 @@ void main_driver(const char* argv)
     s_pairB[2] = 1;
 
     StructFact structFact(ba,dmap,var_names,var_scaling,s_pairA,s_pairB);
+
+    /////////////////////////////////
+    // take an FFT and write them out
+    MultiFab dft_real(ba, dmap, 2, 0);
+    MultiFab dft_imag(ba, dmap, 2, 0);
+    structFact.ComputeFFT(struct_cc,dft_real,dft_imag,geom);
+
+    WriteSingleLevelPlotfile("plt_real", dft_real, {"var1", "var2"}, geom, 0., 0);
+    WriteSingleLevelPlotfile("plt_imag", dft_imag, {"var1", "var2"}, geom, 0., 0);
+
+    // magnitude
+    MultiFab::Multiply(dft_real,dft_real,0,0,2,0);
+    MultiFab::Multiply(dft_imag,dft_imag,0,0,2,0);
+    MultiFab::Add(dft_real,dft_imag,0,0,2,0);
+    SqrtMF(dft_real);
+    WriteSingleLevelPlotfile("plt_mag", dft_real, {"var1", "var2"}, geom, 0., 0);
+    /////////////////////////////////
+
     
     structFact.FortStructure(struct_cc,geom);
       
