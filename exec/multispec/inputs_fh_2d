@@ -20,8 +20,10 @@
   fixed_dt = 2.e-13
 
   # Controls for number of steps between actions
-  max_step = 10
-  plot_int= 1
+  max_step = 300000
+  plot_int= 1000
+  chk_int = 5000
+  restart = 200000
 
   # Viscous friction L phi operator
   # if abs(visc_type) = 1, L = div beta grad
@@ -29,13 +31,15 @@
   # if abs(visc_type) = 3, L = div [ beta (grad + grad^T) + I (gamma - (2/3)*beta) div ]
   # positive = assume constant coefficients
   # negative = assume spatially-varying coefficients
-  visc_coef = 2.7	# [units: g*cm-1*s-1] dynamic (shear) viscosity of water
+  #visc_coef = 2.7	# [units: g*cm-1*s-1] dynamic (shear) viscosity of water
+  visc_coef = .01	# [units: g*cm-1*s-1] dynamic (shear) viscosity of water
   visc_type = 1
   
   # Stochastic parameters
-  seed = 1
-  variance_coef_mom = 1.
-  variance_coef_mass = 1.
+  #seed = 3409589
+  seed = 6898932
+  variance_coef_mom = 0.
+  variance_coef_mass = 0.
   initial_variance_mom = 0.
 
   k_B = 1.3806488e-16   # Boltzmann's constant [units: cm2*g*s-2*K-1]
@@ -72,15 +76,22 @@
 
   # Thermodynamic and transport properties:
   #----------------------
-  nspecies = 2
+  nspecies = 3
   #molmass = 2.4e-22 2.4e-22  # molecular masses for nspecies (mass per molecule, *not* molar mass)
-  fh_monomers = 1. 1.
+  fh_monomers = 1. 1. 1.
   monomer_mass = 2.4e-22
   use_flory_huggins = 1
-  fh_chi = 0. 4. 4. 0.
-  fh_kappa = 0. 4.e-12 4.e-12 0.
+  #fh_chi = 0. 4. 4. 0.
+  #fh_chi = 0. 40. 40. 0.
+  fh_chi = 0. 25. 25. 25. 0. 25. 25. 25. 0.
+  #fh_chi = 0. 10. 10. 0.
+  #fh_chi = 0. 1. 1. 0.
+  #fh_kappa = 0. 4.e-12 4.e-12 0.
+  #fh_kappa = 0. 8.e-12 8.e-12 0.
+  fh_kappa = 0. 10.e-12 10.e-12 1.e-11 0. 1.e-11 1.e-11 1.e-11 0
+  #fh_kappa = 0. 0.e-12 0.e-12 0.
 
-  rhobar = 1.38 1.38     # pure component densities for all species
+  rhobar = 1.38 1.38 1.38     # pure component densities for all species
   rho0 = 1.38
 
 
@@ -88,19 +99,20 @@
   is_ideal_mixture = 0
 
   # initial values for c
-  c_init_1 = 0.5 0.5
-  c_init_2 = 0.5 0.5
+  c_init_1 = 0.33 0.34 33
+  c_init_2 = 0.33 0.34 33
 
   # These are lower-triangules of symmetric matrices represented as vectors
   # Number of elements is (nspecies*(nspecies-1)/2)
   # The values are red row by row starting from top going down
   # (this allows easy addition/deletion of new species/rows)
   # So D_12; D_13, D_23; D_14, D_24, D_34; ...
-  Dbar = 5.e-8 # Maxwell-Stefan diffusion constant  
+  # Dbar = 5.e-8 # Maxwell-Stefan diffusion constant  
+  Dbar = 5.e-5 5.e-5 5.e-5 # Maxwell-Stefan diffusion constant  
 
   use_charged_fluid = 0
   dielectric_const = 9.2e-20
-  charge_per_mass = 0. 0.
+  charge_per_mass = 0. 0. 0.
 
   #use_multiphase = 1
   #alpha_gex = 4.

@@ -14,14 +14,17 @@
   n_cells = 48 48 48
   #n_cells = 8 8
   # max number of cells in a box
-  max_grid_size = 96 96 96
+  # max_grid_size = 96 96 96
+  max_grid_size = 48 24 24
 
   # Time-step control
   fixed_dt = 2.e-13
 
   # Controls for number of steps between actions
-  max_step = 10
-  plot_int= 1
+  max_step = 50000
+  plot_int = 1000
+  chk_int = 5000
+  restart = 25000
 
   # Viscous friction L phi operator
   # if abs(visc_type) = 1, L = div beta grad
@@ -29,7 +32,7 @@
   # if abs(visc_type) = 3, L = div [ beta (grad + grad^T) + I (gamma - (2/3)*beta) div ]
   # positive = assume constant coefficients
   # negative = assume spatially-varying coefficients
-  visc_coef = 2.7	# [units: g*cm-1*s-1] dynamic (shear) viscosity of water
+  visc_coef = 0.01   # [units: g*cm-1*s-1] dynamic (shear) viscosity of water
   visc_type = 1
   
   # Stochastic parameters
@@ -77,8 +80,8 @@
   fh_monomers = 1. 1.
   monomer_mass = 2.4e-22
   use_flory_huggins = 1
-  fh_chi = 0. 4. 4. 0.
-  fh_kappa = 0. 4.e-12 4.e-12 0.
+  fh_chi = 0. 25. 25. 0.
+  fh_kappa = 0. 10.e-12 10.e-12 0.
 
   rhobar = 1.38 1.38     # pure component densities for all species
   rho0 = 1.38
@@ -96,7 +99,7 @@
   # The values are red row by row starting from top going down
   # (this allows easy addition/deletion of new species/rows)
   # So D_12; D_13, D_23; D_14, D_24, D_34; ...
-  Dbar = 5.e-8 # Maxwell-Stefan diffusion constant  
+  Dbar = 5.e-5 # Maxwell-Stefan diffusion constant  
 
   use_charged_fluid = 0
   dielectric_const = 9.2e-20
