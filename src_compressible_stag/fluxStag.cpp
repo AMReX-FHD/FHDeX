@@ -88,6 +88,14 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
     bool is_lo_z_dirichlet_mass = (bc_mass_lo[2] != 3) and (bc_mass_lo[2] != -1);
     bool is_hi_z_dirichlet_mass = (bc_mass_hi[2] != 3) and (bc_mass_hi[2] != -1);
 
+    // flag for reservoir
+    bool is_lo_x_reservoir = bc_mass_lo[0] == 3;
+    bool is_hi_x_reservoir = bc_mass_hi[0] == 3;
+    bool is_lo_y_reservoir = bc_mass_lo[1] == 3;
+    bool is_hi_y_reservoir = bc_mass_hi[1] == 3;
+    bool is_lo_z_reservoir = bc_mass_lo[2] == 3;
+    bool is_hi_z_reservoir = bc_mass_hi[2] == 3;
+
     ////////////////////
     // stochastic fluxes
     ////////////////////
@@ -182,7 +190,16 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
 
                     Real traceZ = stochcenx_u(i,j,k);
 
-                    tauxx_stoch(i,j,k) = (fac1 * stochcenx_u(i,j,k)) + (fac2 * traceZ);
+                    // tauxx
+                    if ((i < 0) and is_lo_x_reservoir) {
+                        tauxx_stoch(i,j,k) = 0.0;
+                    }
+                    else if ((i > n_cells[0]-1) and is_hi_x_reservoir) {
+                        tauxx_stoch(i,j,k) = 0.0;
+                    }
+                    else {
+                        tauxx_stoch(i,j,k) = (fac1 * stochcenx_u(i,j,k)) + (fac2 * traceZ);
+                    }
                     tauyy_stoch(i,j,k) = 0.0;
                     tauzz_stoch(i,j,k) = 0.0;
                 }
@@ -193,8 +210,26 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
 
                     Real traceZ = stochcenx_u(i,j,k) + stochceny_v(i,j,k);
 
-                    tauxx_stoch(i,j,k) = (fac1 * stochcenx_u(i,j,k)) + (fac2 * traceZ);
-                    tauyy_stoch(i,j,k) = (fac1 * stochceny_v(i,j,k)) + (fac2 * traceZ);
+                    // tauxx
+                    if ((i < 0) and is_lo_x_reservoir) {
+                        tauxx_stoch(i,j,k) = 0.0;
+                    }
+                    else if ((i > n_cells[0]-1) and is_hi_x_reservoir) {
+                        tauxx_stoch(i,j,k) = 0.0;
+                    }
+                    else {
+                        tauxx_stoch(i,j,k) = (fac1 * stochcenx_u(i,j,k)) + (fac2 * traceZ);
+                    }
+                    // tauyy
+                    if ((j < 0) and is_lo_y_reservoir) {
+                        tauyy_stoch(i,j,k) = 0.0;
+                    }
+                    else if ((j > n_cells[1]-1) and is_hi_y_reservoir) {
+                        tauyy_stoch(i,j,k) = 0.0;
+                    }
+                    else {
+                        tauyy_stoch(i,j,k) = (fac1 * stochceny_v(i,j,k)) + (fac2 * traceZ);
+                    }
                     tauzz_stoch(i,j,k) = 0.0;
                 }
 
@@ -206,9 +241,36 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                  
                     Real traceZ = stochcenx_u(i,j,k) + stochceny_v(i,j,k) + stochcenz_w(i,j,k);
 
-                    tauxx_stoch(i,j,k) = (fac1 * stochcenx_u(i,j,k)) + (fac2 * traceZ);
-                    tauyy_stoch(i,j,k) = (fac1 * stochceny_v(i,j,k)) + (fac2 * traceZ);
-                    tauzz_stoch(i,j,k) = (fac1 * stochcenz_w(i,j,k)) + (fac2 * traceZ);
+                    // tauxx
+                    if ((i < 0) and is_lo_x_reservoir) {
+                        tauxx_stoch(i,j,k) = 0.0;
+                    }
+                    else if ((i > n_cells[0]-1) and is_hi_x_reservoir) {
+                        tauxx_stoch(i,j,k) = 0.0;
+                    }
+                    else {
+                        tauxx_stoch(i,j,k) = (fac1 * stochcenx_u(i,j,k)) + (fac2 * traceZ);
+                    }
+                    // tauyy
+                    if ((j < 0) and is_lo_y_reservoir) {
+                        tauyy_stoch(i,j,k) = 0.0;
+                    }
+                    else if ((j > n_cells[1]-1) and is_hi_y_reservoir) {
+                        tauyy_stoch(i,j,k) = 0.0;
+                    }
+                    else {
+                        tauyy_stoch(i,j,k) = (fac1 * stochceny_v(i,j,k)) + (fac2 * traceZ);
+                    }
+                    // tauyy
+                    if ((k < 0) and is_lo_z_reservoir) {
+                        tauzz_stoch(i,j,k) = 0.0;
+                    }
+                    else if ((k > n_cells[2]-1) and is_hi_z_reservoir) {
+                        tauzz_stoch(i,j,k) = 0.0;
+                    }
+                    else {
+                        tauzz_stoch(i,j,k) = (fac1 * stochcenz_w(i,j,k)) + (fac2 * traceZ);
+                    }
                 }
             });
 
@@ -437,7 +499,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                         if ((i == n_cells[0]) and is_hi_x_dirichlet_mass) {
                             soret_s = (hk[ns] + Runiv*meanT/molmass[ns]*chi(i,j,k,ns))*wiener[1+ns];
                         }
-                        soret = soret + soret_s;
+                        soret += soret_s;
                     }
                     xflux(i,j,k,nvars+3) = soret;
                 }
@@ -591,7 +653,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                         if ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
                             soret_s = (hk[ns] + Runiv*meanT/molmass[ns]*chi(i,j,k,ns))*wiener[1+ns];
                         }
-                        soret = soret + soret_s;
+                        soret += soret_s;
                     }
                     yflux(i,j,k,nvars+3) = soret;
                 }
@@ -746,7 +808,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                     if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
                         soret_s = (hk[ns] + Runiv*meanT/molmass[ns]*chi(i,j,k,ns))*wiener[1+ns];
                     }
-                    soret = soret + soret_s;
+                    soret += soret_s;
                 }
                 zflux(i,j,k,nvars+3) = soret;
                 
@@ -868,6 +930,12 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                   tauyy(i,j,k) = 0.0; 
                   tauzz(i,j,k) = 0.0;
                 }
+                if ((i < 0) and is_lo_x_reservoir) {
+                    tauxx(i,j,k) = 0.0;
+                }
+                if ((i > n_cells[0]-1) and is_hi_x_reservoir) {
+                    tauxx(i,j,k) = 0.0;
+                }
             }
             else if (do_2D) { // 2D
                 u_x = (velx(i+1,j,k) - velx(i,j,k))/dx[0];
@@ -883,6 +951,18 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                   tauxx(i,j,k) = 2*eta(i,j,k)*u_x + (0.0 - 2*eta(i,j,k)/3.)*div; 
                   tauyy(i,j,k) = 2*eta(i,j,k)*v_y + (0.0 - 2*eta(i,j,k)/3.)*div; 
                   tauzz(i,j,k) = 0.0;
+                }
+                if ((i < 0) and is_lo_x_reservoir) {
+                    tauxx(i,j,k) = 0.0;
+                }
+                if ((i > n_cells[0]-1) and is_hi_x_reservoir) {
+                    tauxx(i,j,k) = 0.0;
+                }
+                if ((j < 0) and is_lo_y_reservoir) {
+                    tauyy(i,j,k) = 0.0;
+                }
+                if ((j > n_cells[1]-1) and is_hi_y_reservoir) {
+                    tauyy(i,j,k) = 0.0;
                 }
             }
             else { // 3D
@@ -900,6 +980,24 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                   tauxx(i,j,k) = 2*eta(i,j,k)*u_x + (0.0 - 2*eta(i,j,k)/3.)*div; 
                   tauyy(i,j,k) = 2*eta(i,j,k)*v_y + (0.0 - 2*eta(i,j,k)/3.)*div; 
                   tauzz(i,j,k) = 2*eta(i,j,k)*w_z + (0.0 - 2*eta(i,j,k)/3.)*div;
+                }
+                if ((i < 0) and is_lo_x_reservoir) {
+                    tauxx(i,j,k) = 0.0;
+                }
+                if ((i > n_cells[0]-1) and is_hi_x_reservoir) {
+                    tauxx(i,j,k) = 0.0;
+                }
+                if ((j < 0) and is_lo_y_reservoir) {
+                    tauyy(i,j,k) = 0.0;
+                }
+                if ((j > n_cells[1]-1) and is_hi_y_reservoir) {
+                    tauyy(i,j,k) = 0.0;
+                }
+                if ((k < 0) and is_lo_z_reservoir) {
+                    tauzz(i,j,k) = 0.0;
+                }
+                if ((k > n_cells[2]-1) and is_hi_z_reservoir) {
+                    tauzz(i,j,k) = 0.0;
                 }
             }
 
@@ -1058,7 +1156,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                 // heat flux
                 xflux(i,j,k,nvars) -= kxp*(prim(i,j,k,4)-prim(i-1,j,k,4))/dx[0];
             }
-            xflux(i,j,k,nvars+2) = visc_shear_heat;
+            xflux(i,j,k,nvars+2) += visc_shear_heat;
 
             if (algorithm_type == 2) {
 
@@ -1103,7 +1201,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                         if ((i == n_cells[0]) and is_hi_x_dirichlet_mass) {
                             Fks = Dij(i,j,k,ll*nspecies+kk)*( dk[ll] +soret[ll]);
                         }
-                        Fk[kk] = Fk[kk] - Fks;
+                        Fk[kk] -= Fks;
                     }
                 }
 
@@ -1119,7 +1217,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                     if ((i == n_cells[0]) and is_hi_x_dirichlet_mass) {
                         Q5s = (hk[ns] + Runiv*meanT*chi(i,j,k,ns)/molmass[ns])*Fk[ns];   
                     }
-                    Q5 = Q5 + Q5s;
+                    Q5 += Q5s;
                 }
                 // heat conduction already included in flux(5)       
                 xflux(i,j,k,nvars+3) += Q5;
@@ -1158,11 +1256,11 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
             }
             else {
                 visc_shear_heat -= 0.25*((velx(i+1,j,k)+velx(i+1,j-1,k))*tauxy(i+1,j,k) 
-                    + (velx(i,j,k)+velx(i,j-1,k))*tauxy(i,j,k));
+                                        + (velx(i,j,k)+velx(i,j-1,k))*tauxy(i,j,k));
                 visc_shear_heat -= 0.25*((velz(i,j,k+1)+velz(i,j-1,k+1))*tauyz(i,j,k+1) 
                                         + (velz(i,j,k)+velz(i,j-1,k))*tauyz(i,j,k));
             }
-            yflux(i,j,k,nvars+2) = visc_shear_heat;
+            yflux(i,j,k,nvars+2) += visc_shear_heat;
 
             if (do_1D) { // 1D
                 yflux(i,j,k,nvars) -= 0.0;
@@ -1237,7 +1335,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                             if ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
                                 Fks = Dij(i,j,k,ll*nspecies+kk)*( dk[ll] +soret[ll]);
                             }
-                            Fk[kk] = Fk[kk] - Fks;
+                            Fk[kk] -= Fks;
                         }
                     }
 
@@ -1253,7 +1351,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                         if ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
                             Q5s = (hk[ns] + Runiv*meanT*chi(i,j,k,ns)/molmass[ns])*Fk[ns];   
                         }
-                        Q5 = Q5 + Q5s;
+                        Q5 += Q5s;
                     }
 
                     // heat conduction already included in flux(5)
@@ -1301,7 +1399,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                     visc_shear_heat -= 0.25*((vely(i,j+1,k-1)+vely(i,j+1,k))*tauyz(i,j+1,k) 
                                        + (vely(i,j,k)+vely(i,j,k-1))*tauyz(i,j,k));
                 }
-                zflux(i,j,k,nvars+2) = visc_shear_heat;
+                zflux(i,j,k,nvars+2) += visc_shear_heat;
 
                 if ((do_1D) or (do_2D)) { // works for 1D and 2D
                     zflux(i,j,k,nvars) -= 0.0;
@@ -1377,7 +1475,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                                 if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
                                     Fks = Dij(i,j,k,ll*nspecies+kk)*( dk[ll] +soret[ll]);
                                 }
-                                Fk[kk] = Fk[kk] - Fks;
+                                Fk[kk] -= Fks;
                             }
                         }
 
@@ -1393,7 +1491,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                             if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
                                 Q5s = (hk[ns] + Runiv*meanT*chi(i,j,k,ns)/molmass[ns])*Fk[ns];   
                             }
-                            Q5 = Q5 + Q5s;
+                            Q5 += Q5s;
                         }
 
                         // heat conduction already included in flux(5)
@@ -1441,377 +1539,379 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
     Real wgt1 = 0.5 + wgt2;
 
     // Loop over boxes
-    for ( MFIter mfi(cons_in); mfi.isValid(); ++mfi) {
+    if (advection_type =! 0 ) { // advection_type = 0 removes advective fluxes
+        for ( MFIter mfi(cons_in); mfi.isValid(); ++mfi) {
 
-        AMREX_D_TERM(const Array4<Real>& xflux = faceflux_in[0].array(mfi); ,
-                     const Array4<Real>& yflux = faceflux_in[1].array(mfi); ,
-                     const Array4<Real>& zflux = faceflux_in[2].array(mfi));
+            AMREX_D_TERM(const Array4<Real>& xflux = faceflux_in[0].array(mfi); ,
+                         const Array4<Real>& yflux = faceflux_in[1].array(mfi); ,
+                         const Array4<Real>& zflux = faceflux_in[2].array(mfi));
 
-        const Array4<Real>& edgex_v = edgeflux_x_in[0].array(mfi);
-        const Array4<Real>& edgex_w = edgeflux_x_in[1].array(mfi);
-        const Array4<Real>& edgey_u = edgeflux_y_in[0].array(mfi);
-        const Array4<Real>& edgey_w = edgeflux_y_in[1].array(mfi);
-        const Array4<Real>& edgez_u = edgeflux_z_in[0].array(mfi);
-        const Array4<Real>& edgez_v = edgeflux_z_in[1].array(mfi);
+            const Array4<Real>& edgex_v = edgeflux_x_in[0].array(mfi);
+            const Array4<Real>& edgex_w = edgeflux_x_in[1].array(mfi);
+            const Array4<Real>& edgey_u = edgeflux_y_in[0].array(mfi);
+            const Array4<Real>& edgey_w = edgeflux_y_in[1].array(mfi);
+            const Array4<Real>& edgez_u = edgeflux_z_in[0].array(mfi);
+            const Array4<Real>& edgez_v = edgeflux_z_in[1].array(mfi);
 
-        const Array4<Real>& cenx_u = cenflux_in[0].array(mfi);
-        const Array4<Real>& ceny_v = cenflux_in[1].array(mfi);
-        const Array4<Real>& cenz_w = cenflux_in[2].array(mfi);
+            const Array4<Real>& cenx_u = cenflux_in[0].array(mfi);
+            const Array4<Real>& ceny_v = cenflux_in[1].array(mfi);
+            const Array4<Real>& cenz_w = cenflux_in[2].array(mfi);
 
-        AMREX_D_TERM(Array4<Real const> const& momx = cumom_in[0].array(mfi);,
-                     Array4<Real const> const& momy = cumom_in[1].array(mfi);,
-                     Array4<Real const> const& momz = cumom_in[2].array(mfi););
+            AMREX_D_TERM(Array4<Real const> const& momx = cumom_in[0].array(mfi);,
+                         Array4<Real const> const& momy = cumom_in[1].array(mfi);,
+                         Array4<Real const> const& momz = cumom_in[2].array(mfi););
 
-        AMREX_D_TERM(Array4<Real const> const& velx = vel_in[0].array(mfi);,
-                     Array4<Real const> const& vely = vel_in[1].array(mfi);,
-                     Array4<Real const> const& velz = vel_in[2].array(mfi););
+            AMREX_D_TERM(Array4<Real const> const& velx = vel_in[0].array(mfi);,
+                         Array4<Real const> const& vely = vel_in[1].array(mfi);,
+                         Array4<Real const> const& velz = vel_in[2].array(mfi););
 
-        const Array4<const Real> prim = prim_in.array(mfi);
-        const Array4<const Real> cons = cons_in.array(mfi);
+            const Array4<const Real> prim = prim_in.array(mfi);
+            const Array4<const Real> cons = cons_in.array(mfi);
 
-        const Box& tbx = mfi.nodaltilebox(0);
-        const Box& tby = mfi.nodaltilebox(1);
-        const Box& tbz = mfi.nodaltilebox(2);
+            const Box& tbx = mfi.nodaltilebox(0);
+            const Box& tby = mfi.nodaltilebox(1);
+            const Box& tbz = mfi.nodaltilebox(2);
 
-        const Box & bx_xy = mfi.tilebox(nodal_flag_xy);
-        #if (AMREX_SPACEDIM == 3)
-        const Box & bx_xz = mfi.tilebox(nodal_flag_xz);
-        const Box & bx_yz = mfi.tilebox(nodal_flag_yz);
-        #endif
+            const Box & bx_xy = mfi.tilebox(nodal_flag_xy);
+            #if (AMREX_SPACEDIM == 3)
+            const Box & bx_xz = mfi.tilebox(nodal_flag_xz);
+            const Box & bx_yz = mfi.tilebox(nodal_flag_yz);
+            #endif
 
-        const Box& bx = mfi.growntilebox(1);
+            const Box& bx = mfi.growntilebox(1);
 
-        if (advection_type == 2) { // interpolate primitive quantities (fix this later for staggered grid -- Ishan)
-            
-            // Loop over the cells and compute fluxes
-            amrex::ParallelFor(tbx, tby, tbz,
-            [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-            
-                GpuArray<Real,MAX_SPECIES+5> conserved;
-                GpuArray<Real,MAX_SPECIES+6> primitive;
-                GpuArray<Real,MAX_SPECIES  > Yk;
-                    
-                for (int l=0; l<nspecies+6; ++l) {
-                    primitive[l] = wgt1*(prim(i,j,k,l)+prim(i-1,j,k,l)) - wgt2*(prim(i-2,j,k,l)+prim(i+1,j,k,l));
-                }
+            if (advection_type == 2) { // interpolate primitive quantities (fix this later for staggered grid -- Ishan)
+                
+                // Loop over the cells and compute fluxes
+                amrex::ParallelFor(tbx, tby, tbz,
+                [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                
+                    GpuArray<Real,MAX_SPECIES+5> conserved;
+                    GpuArray<Real,MAX_SPECIES+6> primitive;
+                    GpuArray<Real,MAX_SPECIES  > Yk;
+                        
+                    for (int l=0; l<nspecies+6; ++l) {
+                        primitive[l] = wgt1*(prim(i,j,k,l)+prim(i-1,j,k,l)) - wgt2*(prim(i-2,j,k,l)+prim(i+1,j,k,l));
+                    }
 
-                Real temp = primitive[4];
-                Real rho = primitive[0];
-                conserved[0] = rho;
+                    Real temp = primitive[4];
+                    Real rho = primitive[0];
+                    conserved[0] = rho;
 
-                // want sum of specden == rho
-                for (int n=0; n<nspecies; ++n) {
-                    Yk[n] = primitive[6+n];
-                }
-
-                Real intenergy;
-                GetEnergy(intenergy, Yk, temp);
-
-                Real vsqr = primitive[1]*primitive[1] + primitive[2]*primitive[2] + primitive[3]*primitive[3];
-
-                conserved[4] = rho*intenergy + 0.5*rho*vsqr;
-
-                xflux(i,j,k,0) += conserved[0]*primitive[1];
-                xflux(i,j,k,1) += conserved[0]*(primitive[1]*primitive[1])+primitive[5];
-                xflux(i,j,k,2) += conserved[0]*primitive[1]*primitive[2];
-                xflux(i,j,k,3) += conserved[0]*primitive[1]*primitive[3];
-
-                xflux(i,j,k,4) += primitive[1]*conserved[4] + primitive[5]*primitive[1];
-
-                if (algorithm_type == 2) { // Add advection of concentration
+                    // want sum of specden == rho
                     for (int n=0; n<nspecies; ++n) {
-                        xflux(i,j,k,5+n) += rho*primitive[6+n]*primitive[1];
+                        Yk[n] = primitive[6+n];
                     }
-                }
-            },
 
-            [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-            
-                GpuArray<Real,MAX_SPECIES+5> conserved;
-                GpuArray<Real,MAX_SPECIES+6> primitive;
-                GpuArray<Real,MAX_SPECIES  > Yk;
-                    
-                for (int l=0; l<nspecies+6; ++l) {
-                    primitive[l] = wgt1*(prim(i,j,k,l)+prim(i,j-1,k,l)) - wgt2*(prim(i,j-2,k,l)+prim(i,j+1,k,l));
-                }
+                    Real intenergy;
+                    GetEnergy(intenergy, Yk, temp);
 
-                Real temp = primitive[4];
-                Real rho = primitive[0];
-                conserved[0] = rho;
+                    Real vsqr = primitive[1]*primitive[1] + primitive[2]*primitive[2] + primitive[3]*primitive[3];
 
-                // want sum of specden == rho
-                for (int n=0; n<nspecies; ++n) {
-                    Yk[n] = primitive[6+n];
-                }
+                    conserved[4] = rho*intenergy + 0.5*rho*vsqr;
 
-                Real intenergy;
-                GetEnergy(intenergy, Yk, temp);
+                    xflux(i,j,k,0) += conserved[0]*primitive[1];
+                    xflux(i,j,k,1) += conserved[0]*(primitive[1]*primitive[1])+primitive[5];
+                    xflux(i,j,k,2) += conserved[0]*primitive[1]*primitive[2];
+                    xflux(i,j,k,3) += conserved[0]*primitive[1]*primitive[3];
 
-                Real vsqr = primitive[1]*primitive[1] + primitive[2]*primitive[2] + primitive[3]*primitive[3];
+                    xflux(i,j,k,4) += primitive[1]*conserved[4] + primitive[5]*primitive[1];
 
-                conserved[4] = rho*intenergy + 0.5*rho*vsqr;
+                    if (algorithm_type == 2) { // Add advection of concentration
+                        for (int n=0; n<nspecies; ++n) {
+                            xflux(i,j,k,5+n) += rho*primitive[6+n]*primitive[1];
+                        }
+                    }
+                },
 
-                yflux(i,j,k,0) += conserved[0]*primitive[2];
-                yflux(i,j,k,1) += conserved[0]*primitive[1]*primitive[2];
-                yflux(i,j,k,2) += conserved[0]*primitive[2]*primitive[2]+primitive[5];
-                yflux(i,j,k,3) += conserved[0]*primitive[3]*primitive[2];
+                [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                
+                    GpuArray<Real,MAX_SPECIES+5> conserved;
+                    GpuArray<Real,MAX_SPECIES+6> primitive;
+                    GpuArray<Real,MAX_SPECIES  > Yk;
+                        
+                    for (int l=0; l<nspecies+6; ++l) {
+                        primitive[l] = wgt1*(prim(i,j,k,l)+prim(i,j-1,k,l)) - wgt2*(prim(i,j-2,k,l)+prim(i,j+1,k,l));
+                    }
 
-                yflux(i,j,k,4) += primitive[2]*conserved[4] + primitive[5]*primitive[2];
+                    Real temp = primitive[4];
+                    Real rho = primitive[0];
+                    conserved[0] = rho;
 
-                if (algorithm_type == 2) { // Add advection of concentration
+                    // want sum of specden == rho
                     for (int n=0; n<nspecies; ++n) {
-                        yflux(i,j,k,5+n) += rho*primitive[6+n]*primitive[2];
+                        Yk[n] = primitive[6+n];
                     }
-                }
-            },
 
-            [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-            
-                GpuArray<Real,MAX_SPECIES+5> conserved;
-                GpuArray<Real,MAX_SPECIES+6> primitive;
-                GpuArray<Real,MAX_SPECIES  > Yk;
-                    
-                for (int l=0; l<nspecies+6; ++l) {
-                    primitive[l] = wgt1*(prim(i,j,k,l)+prim(i,j,k-1,l)) - wgt2*(prim(i,j,k-2,l)+prim(i,j,k+1,l));
-                }
+                    Real intenergy;
+                    GetEnergy(intenergy, Yk, temp);
 
-                Real temp = primitive[4];
-                Real rho = primitive[0];
-                conserved[0] = rho;
+                    Real vsqr = primitive[1]*primitive[1] + primitive[2]*primitive[2] + primitive[3]*primitive[3];
 
-                // want sum of specden == rho
-                for (int n=0; n<nspecies; ++n) {
-                    Yk[n] = primitive[6+n];
-                }
+                    conserved[4] = rho*intenergy + 0.5*rho*vsqr;
 
-                Real intenergy;
-                GetEnergy(intenergy, Yk, temp);
+                    yflux(i,j,k,0) += conserved[0]*primitive[2];
+                    yflux(i,j,k,1) += conserved[0]*primitive[1]*primitive[2];
+                    yflux(i,j,k,2) += conserved[0]*primitive[2]*primitive[2]+primitive[5];
+                    yflux(i,j,k,3) += conserved[0]*primitive[3]*primitive[2];
 
-                Real vsqr = primitive[1]*primitive[1] + primitive[2]*primitive[2] + primitive[3]*primitive[3];
+                    yflux(i,j,k,4) += primitive[2]*conserved[4] + primitive[5]*primitive[2];
 
-                conserved[4] = rho*intenergy + 0.5*rho*vsqr;
+                    if (algorithm_type == 2) { // Add advection of concentration
+                        for (int n=0; n<nspecies; ++n) {
+                            yflux(i,j,k,5+n) += rho*primitive[6+n]*primitive[2];
+                        }
+                    }
+                },
 
-                zflux(i,j,k,0) += conserved[0]*primitive[3];
-                zflux(i,j,k,1) += conserved[0]*primitive[1]*primitive[3];
-                zflux(i,j,k,2) += conserved[0]*primitive[2]*primitive[3];
-                zflux(i,j,k,3) += conserved[0]*primitive[3]*primitive[3]+primitive[5];
+                [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                
+                    GpuArray<Real,MAX_SPECIES+5> conserved;
+                    GpuArray<Real,MAX_SPECIES+6> primitive;
+                    GpuArray<Real,MAX_SPECIES  > Yk;
+                        
+                    for (int l=0; l<nspecies+6; ++l) {
+                        primitive[l] = wgt1*(prim(i,j,k,l)+prim(i,j,k-1,l)) - wgt2*(prim(i,j,k-2,l)+prim(i,j,k+1,l));
+                    }
 
-                zflux(i,j,k,4) += primitive[3]*conserved[4] + primitive[5]*primitive[3];
+                    Real temp = primitive[4];
+                    Real rho = primitive[0];
+                    conserved[0] = rho;
 
-                if (algorithm_type == 2) { // Add advection of concentration
+                    // want sum of specden == rho
                     for (int n=0; n<nspecies; ++n) {
-                        zflux(i,j,k,5+n) += rho*primitive[6+n]*primitive[3];
+                        Yk[n] = primitive[6+n];
                     }
-                }
 
-            });
-            
-        } else if (advection_type == 1) { // interpolate conserved quantitites
-          // this will work directly for 1D and 2D as all the velocities in the y- and z-directions are always zero
+                    Real intenergy;
+                    GetEnergy(intenergy, Yk, temp);
 
-            // 1. Loop over the face cells and compute fluxes (all conserved qtys. except momentum; i.e.,[0,4,5-nspecies])
-            amrex::ParallelFor(tbx, tby, tbz,
-            [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-            
-                xflux(i,j,k,0) += momx(i,j,k);
+                    Real vsqr = primitive[1]*primitive[1] + primitive[2]*primitive[2] + primitive[3]*primitive[3];
 
-                if ((i == 0) and is_lo_x_dirichlet_mass) {
-                    xflux(i,j,k,4) += cons(i-1,j,k,4)*velx(i,j,k) + prim(i-1,j,k,5)*velx(i,j,k);
+                    conserved[4] = rho*intenergy + 0.5*rho*vsqr;
+
+                    zflux(i,j,k,0) += conserved[0]*primitive[3];
+                    zflux(i,j,k,1) += conserved[0]*primitive[1]*primitive[3];
+                    zflux(i,j,k,2) += conserved[0]*primitive[2]*primitive[3];
+                    zflux(i,j,k,3) += conserved[0]*primitive[3]*primitive[3]+primitive[5];
+
+                    zflux(i,j,k,4) += primitive[3]*conserved[4] + primitive[5]*primitive[3];
 
                     if (algorithm_type == 2) { // Add advection of concentration
                         for (int n=0; n<nspecies; ++n) {
-                            xflux(i,j,k,5+n) += cons(i-1,j,k,5+n)*velx(i,j,k);
+                            zflux(i,j,k,5+n) += rho*primitive[6+n]*primitive[3];
                         }
                     }
-                }
-                else if ((i == n_cells[0]) and is_hi_x_dirichlet_mass) {
-                    xflux(i,j,k,4) += cons(i,j,k,4)*velx(i,j,k) + prim(i,j,k,5)*velx(i,j,k);
 
-                    if (algorithm_type == 2) { // Add advection of concentration
-                        for (int n=0; n<nspecies; ++n) {
-                            xflux(i,j,k,5+n) += cons(i,j,k,5+n)*velx(i,j,k);
+                });
+                
+            } else if (advection_type == 1) { // interpolate conserved quantitites
+              // this will work directly for 1D and 2D as all the velocities in the y- and z-directions are always zero
+
+                // 1. Loop over the face cells and compute fluxes (all conserved qtys. except momentum; i.e.,[0,4,5-nspecies])
+                amrex::ParallelFor(tbx, tby, tbz,
+                [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                
+                    xflux(i,j,k,0) += momx(i,j,k);
+
+                    if ((i == 0) and is_lo_x_dirichlet_mass) {
+                        xflux(i,j,k,4) += cons(i-1,j,k,4)*velx(i,j,k) + prim(i-1,j,k,5)*velx(i,j,k);
+
+                        if (algorithm_type == 2) { // Add advection of concentration
+                            for (int n=0; n<nspecies; ++n) {
+                                xflux(i,j,k,5+n) += cons(i-1,j,k,5+n)*velx(i,j,k);
+                            }
                         }
                     }
-                }
-                else {
-                    xflux(i,j,k,4) += 0.5*(cons(i-1,j,k,4)+cons(i,j,k,4))*velx(i,j,k) + 0.5*(prim(i-1,j,k,5)+prim(i,j,k,5))*velx(i,j,k);
+                    else if ((i == n_cells[0]) and is_hi_x_dirichlet_mass) {
+                        xflux(i,j,k,4) += cons(i,j,k,4)*velx(i,j,k) + prim(i,j,k,5)*velx(i,j,k);
 
-                    if (algorithm_type == 2) { // Add advection of concentration
-                        for (int n=0; n<nspecies; ++n) {
-                            xflux(i,j,k,5+n) += 0.5*(cons(i-1,j,k,5+n)+cons(i,j,k,5+n))*velx(i,j,k);
+                        if (algorithm_type == 2) { // Add advection of concentration
+                            for (int n=0; n<nspecies; ++n) {
+                                xflux(i,j,k,5+n) += cons(i,j,k,5+n)*velx(i,j,k);
+                            }
                         }
                     }
-                }
+                    else {
+                        xflux(i,j,k,4) += 0.5*(cons(i-1,j,k,4)+cons(i,j,k,4))*velx(i,j,k) + 0.5*(prim(i-1,j,k,5)+prim(i,j,k,5))*velx(i,j,k);
 
-                // also add the diffusive + stochastic contributions from heat flux, viscous heating and Dufour effects
-                xflux(i,j,k,4) += xflux(i,j,k,nvars) + xflux(i,j,k,nvars+1) + xflux(i,j,k,nvars+2) + xflux(i,j,k,nvars+3);
-            },
-
-            [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-            
-                yflux(i,j,k,0) += momy(i,j,k);
-
-                if ((j == 0) and is_lo_y_dirichlet_mass) {
-                    yflux(i,j,k,4) += cons(i,j-1,k,4)*vely(i,j,k) + prim(i,j-1,k,5)*vely(i,j,k);
-
-                    if (algorithm_type == 2) { // Add advection of concentration
-                        for (int n=0; n<nspecies; ++n) {
-                            yflux(i,j,k,5+n) += cons(i,j-1,k,5+n)*vely(i,j,k);
+                        if (algorithm_type == 2) { // Add advection of concentration
+                            for (int n=0; n<nspecies; ++n) {
+                                xflux(i,j,k,5+n) += 0.5*(cons(i-1,j,k,5+n)+cons(i,j,k,5+n))*velx(i,j,k);
+                            }
                         }
                     }
-                }
-                else if  ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
-                    yflux(i,j,k,4) += cons(i,j,k,4)*vely(i,j,k) + prim(i,j,k,5)*vely(i,j,k);
 
-                    if (algorithm_type == 2) { // Add advection of concentration
-                        for (int n=0; n<nspecies; ++n) {
-                            yflux(i,j,k,5+n) += cons(i,j,k,5+n)*vely(i,j,k);
+                    // also add the diffusive + stochastic contributions from heat flux, viscous heating and Dufour effects
+                    xflux(i,j,k,4) += xflux(i,j,k,nvars) + xflux(i,j,k,nvars+1) + xflux(i,j,k,nvars+2) + xflux(i,j,k,nvars+3);
+                },
+
+                [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                
+                    yflux(i,j,k,0) += momy(i,j,k);
+
+                    if ((j == 0) and is_lo_y_dirichlet_mass) {
+                        yflux(i,j,k,4) += cons(i,j-1,k,4)*vely(i,j,k) + prim(i,j-1,k,5)*vely(i,j,k);
+
+                        if (algorithm_type == 2) { // Add advection of concentration
+                            for (int n=0; n<nspecies; ++n) {
+                                yflux(i,j,k,5+n) += cons(i,j-1,k,5+n)*vely(i,j,k);
+                            }
                         }
                     }
-                }
-                else {
-                    yflux(i,j,k,4) += 0.5*(cons(i,j-1,k,4)+cons(i,j,k,4))*vely(i,j,k) + 0.5*(prim(i,j-1,k,5)+prim(i,j,k,5))*vely(i,j,k);
+                    else if  ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
+                        yflux(i,j,k,4) += cons(i,j,k,4)*vely(i,j,k) + prim(i,j,k,5)*vely(i,j,k);
 
-                    if (algorithm_type == 2) { // Add advection of concentration
-                        for (int n=0; n<nspecies; ++n) {
-                            yflux(i,j,k,5+n) += 0.5*(cons(i,j-1,k,5+n)+cons(i,j,k,5+n))*vely(i,j,k);
+                        if (algorithm_type == 2) { // Add advection of concentration
+                            for (int n=0; n<nspecies; ++n) {
+                                yflux(i,j,k,5+n) += cons(i,j,k,5+n)*vely(i,j,k);
+                            }
                         }
                     }
-                }
+                    else {
+                        yflux(i,j,k,4) += 0.5*(cons(i,j-1,k,4)+cons(i,j,k,4))*vely(i,j,k) + 0.5*(prim(i,j-1,k,5)+prim(i,j,k,5))*vely(i,j,k);
 
-                // also add the diffusive + stochastic contributions from heat flux, viscous heating and Dufour effects
-                yflux(i,j,k,4) += yflux(i,j,k,nvars) + yflux(i,j,k,nvars+1) + yflux(i,j,k,nvars+2) + yflux(i,j,k,nvars+3);
-            },
-
-            [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-
-                zflux(i,j,k,0) += momz(i,j,k);
-
-                if ((k == 0) and is_lo_z_dirichlet_mass) {
-                    zflux(i,j,k,4) += cons(i,j,k-1,4)*velz(i,j,k) + prim(i,j,k-1,5)*velz(i,j,k);
-
-                    if (algorithm_type == 2) { // Add advection of concentration
-                        for (int n=0; n<nspecies; ++n) {
-                            zflux(i,j,k,5+n) += cons(i,j,k-1,5+n)*velz(i,j,k);
+                        if (algorithm_type == 2) { // Add advection of concentration
+                            for (int n=0; n<nspecies; ++n) {
+                                yflux(i,j,k,5+n) += 0.5*(cons(i,j-1,k,5+n)+cons(i,j,k,5+n))*vely(i,j,k);
+                            }
                         }
                     }
-                }
-                else if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
-                    zflux(i,j,k,4) += cons(i,j,k,4)*velz(i,j,k) + prim(i,j,k,5)*velz(i,j,k);
 
-                    if (algorithm_type == 2) { // Add advection of concentration
-                        for (int n=0; n<nspecies; ++n) {
-                            zflux(i,j,k,5+n) += cons(i,j,k,5+n)*velz(i,j,k);
+                    // also add the diffusive + stochastic contributions from heat flux, viscous heating and Dufour effects
+                    yflux(i,j,k,4) += yflux(i,j,k,nvars) + yflux(i,j,k,nvars+1) + yflux(i,j,k,nvars+2) + yflux(i,j,k,nvars+3);
+                },
+
+                [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+
+                    zflux(i,j,k,0) += momz(i,j,k);
+
+                    if ((k == 0) and is_lo_z_dirichlet_mass) {
+                        zflux(i,j,k,4) += cons(i,j,k-1,4)*velz(i,j,k) + prim(i,j,k-1,5)*velz(i,j,k);
+
+                        if (algorithm_type == 2) { // Add advection of concentration
+                            for (int n=0; n<nspecies; ++n) {
+                                zflux(i,j,k,5+n) += cons(i,j,k-1,5+n)*velz(i,j,k);
+                            }
                         }
                     }
-                }
-                else {
-                    zflux(i,j,k,4) += 0.5*(cons(i,j,k-1,4)+cons(i,j,k,4))*velz(i,j,k) + 0.5*(prim(i,j,k-1,5)+prim(i,j,k,5))*velz(i,j,k);
+                    else if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
+                        zflux(i,j,k,4) += cons(i,j,k,4)*velz(i,j,k) + prim(i,j,k,5)*velz(i,j,k);
 
-                    if (algorithm_type == 2) { // Add advection of concentration
-                        for (int n=0; n<nspecies; ++n) {
-                            zflux(i,j,k,5+n) += 0.5*(cons(i,j,k-1,5+n)+cons(i,j,k,5+n))*velz(i,j,k);
+                        if (algorithm_type == 2) { // Add advection of concentration
+                            for (int n=0; n<nspecies; ++n) {
+                                zflux(i,j,k,5+n) += cons(i,j,k,5+n)*velz(i,j,k);
+                            }
                         }
                     }
-                }
+                    else {
+                        zflux(i,j,k,4) += 0.5*(cons(i,j,k-1,4)+cons(i,j,k,4))*velz(i,j,k) + 0.5*(prim(i,j,k-1,5)+prim(i,j,k,5))*velz(i,j,k);
 
-                // also add the diffusive + stochastic contributions from heat flux, viscous heating and Dufour effects
-                zflux(i,j,k,4) += zflux(i,j,k,nvars) + zflux(i,j,k,nvars+1) + zflux(i,j,k,nvars+2) + zflux(i,j,k,nvars+3);
-            });
+                        if (algorithm_type == 2) { // Add advection of concentration
+                            for (int n=0; n<nspecies; ++n) {
+                                zflux(i,j,k,5+n) += 0.5*(cons(i,j,k-1,5+n)+cons(i,j,k,5+n))*velz(i,j,k);
+                            }
+                        }
+                    }
 
-            // 2. Loop over the edge cells and compute fluxes (off-diagonal momentum terms)
-            amrex::ParallelFor(bx_xy, bx_xz, bx_yz,
-            [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-                // Pick boundary values for Dirichlet (stored in ghost)
-                // For corner cases (xy), x wall takes preference
-                Real y_u = 0.25*(momx(i,j-1,k)+momx(i,j,k))*(vely(i-1,j,k)+vely(i,j,k));
-                Real x_v = 0.25*(momy(i-1,j,k)+momy(i,j,k))*(velx(i,j-1,k)+velx(i,j,k));
-                if ((j == 0) and is_lo_y_dirichlet_mass) {
-                    y_u = 0.5*(momx(i,j-1,k))*(vely(i-1,j,k)+vely(i,j,k));
-                    x_v = 0.5*(momy(i-1,j,k)+momy(i,j,k))*(velx(i,j-1,k));
-                }
-                if ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
-                    y_u = 0.5*(momx(i,j,k))*(vely(i-1,j,k)+vely(i,j,k));
-                    x_v = 0.5*(momy(i-1,j,k)+momy(i,j,k))*(velx(i,j,k));
-                }
-                if ((i == 0) and is_lo_x_dirichlet_mass) {
-                    y_u = 0.5*(momx(i,j-1,k)+momx(i,j,k))*(vely(i-1,j,k));
-                    x_v = 0.5*(momy(i-1,j,k))*(velx(i,j-1,k)+velx(i,j,k));
-                }
-                if ((i == n_cells[0]) and is_hi_x_dirichlet_mass) {
-                    y_u = 0.5*(momx(i,j-1,k)+momx(i,j,k))*(vely(i,j,k));
-                    x_v = 0.5*(momy(i,j,k))*(velx(i,j-1,k)+velx(i,j,k));
-                }
-                edgey_u(i,j,k) += y_u;
-                edgex_v(i,j,k) += x_v;
-            },
-            [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-                Real z_u = 0.25*(momx(i,j,k-1)+momx(i,j,k))*(velz(i-1,j,k)+velz(i,j,k));
-                Real x_w = 0.25*(momz(i-1,j,k)+momz(i,j,k))*(velx(i,j,k-1)+velx(i,j,k));
-                // Pick boundary values for Dirichlet (stored in ghost)
-                // For corner cases (xz), x wall takes preference
-                if ((k == 0) and is_lo_z_dirichlet_mass) {
-                    z_u = 0.5*(momx(i,j,k-1))*(velz(i-1,j,k)+velz(i,j,k));
-                    x_w = 0.5*(momz(i-1,j,k)+momz(i,j,k))*(velx(i,j,k-1));
-                }
-                if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
-                    z_u = 0.5*(momx(i,j,k))*(velz(i-1,j,k)+velz(i,j,k));
-                    x_w = 0.5*(momz(i-1,j,k)+momz(i,j,k))*(velx(i,j,k));
-                }
-                if ((i == 0) and is_lo_x_dirichlet_mass) {
-                    z_u = 0.5*(momx(i,j,k-1)+momx(i,j,k))*(velz(i-1,j,k));
-                    x_w = 0.5*(momz(i-1,j,k))*(velx(i,j,k-1)+velx(i,j,k));
-                }
-                if ((i == n_cells[0]) and is_hi_x_dirichlet_mass) {
-                    z_u = 0.5*(momx(i,j,k-1)+momx(i,j,k))*(velz(i,j,k));
-                    x_w = 0.5*(momz(i,j,k))*(velx(i,j,k-1)+velx(i,j,k));
-                }
-                edgez_u(i,j,k) += z_u;
-                edgex_w(i,j,k) += x_w;
-            },
-            [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-                Real z_v = 0.25*(momy(i,j,k-1)+momy(i,j,k))*(velz(i,j-1,k)+velz(i,j,k));
-                Real y_w = 0.25*(momz(i,j-1,k)+momz(i,j,k))*(vely(i,j,k-1)+vely(i,j,k));
-                // Pick boundary values for Dirichlet (stored in ghost)
-                // For corner cases (yz), y wall takes preference
-                if ((k == 0) and is_lo_z_dirichlet_mass) {
-                    z_v = 0.5*(momy(i,j,k-1))*(velz(i,j-1,k)+velz(i,j,k));
-                    y_w = 0.5*(momz(i,j-1,k)+momz(i,j,k))*(vely(i,j,k-1));
-                }
-                if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
-                    z_v = 0.5*(momy(i,j,k))*(velz(i,j-1,k)+velz(i,j,k));
-                    y_w = 0.5*(momz(i,j-1,k)+momz(i,j,k))*(vely(i,j,k));
-                }
-                if ((j == 0) and is_lo_y_dirichlet_mass) {
-                    z_v = 0.5*(momy(i,j,k-1)+momy(i,j,k))*(velz(i,j-1,k));
-                    y_w = 0.5*(momz(i,j-1,k))*(vely(i,j,k-1)+vely(i,j,k));
-                }
-                if ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
-                    z_v = 0.5*(momy(i,j,k-1)+momy(i,j,k))*(velz(i,j,k));
-                    y_w = 0.5*(momz(i,j,k))*(vely(i,j,k-1)+vely(i,j,k));
-                }
-                edgez_v(i,j,k) += z_v;
-                edgey_w(i,j,k) += y_w;
-            });
+                    // also add the diffusive + stochastic contributions from heat flux, viscous heating and Dufour effects
+                    zflux(i,j,k,4) += zflux(i,j,k,nvars) + zflux(i,j,k,nvars+1) + zflux(i,j,k,nvars+2) + zflux(i,j,k,nvars+3);
+                });
 
-            // 3. Loop over the center cells and compute fluxes (diagonal momentum terms)
-            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
-                if (do_1D) { // 1D
-                    cenx_u(i,j,k) += 0.25*(momx(i,j,k)+momx(i+1,j,k))*(velx(i,j,k)+velx(i+1,j,k)) + prim(i,j,k,5);
-                    ceny_v(i,j,k) += 0.0;
-                    cenz_w(i,j,k) += 0.0;
-                }
-                else if (do_2D) { // 2D
-                    cenx_u(i,j,k) += 0.25*(momx(i,j,k)+momx(i+1,j,k))*(velx(i,j,k)+velx(i+1,j,k)) + prim(i,j,k,5);
-                    ceny_v(i,j,k) += 0.25*(momy(i,j,k)+momy(i,j+1,k))*(vely(i,j,k)+vely(i,j+1,k)) + prim(i,j,k,5);
-                    cenz_w(i,j,k) += 0.0;
-                }
-                else { // 3D
-                    cenx_u(i,j,k) += 0.25*(momx(i,j,k)+momx(i+1,j,k))*(velx(i,j,k)+velx(i+1,j,k)) + prim(i,j,k,5);
-                    ceny_v(i,j,k) += 0.25*(momy(i,j,k)+momy(i,j+1,k))*(vely(i,j,k)+vely(i,j+1,k)) + prim(i,j,k,5);
-                    cenz_w(i,j,k) += 0.25*(momz(i,j,k)+momz(i,j,k+1))*(velz(i,j,k)+velz(i,j,k+1)) + prim(i,j,k,5);
-                }
-            });
+                // 2. Loop over the edge cells and compute fluxes (off-diagonal momentum terms)
+                amrex::ParallelFor(bx_xy, bx_xz, bx_yz,
+                [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                    // Pick boundary values for Dirichlet (stored in ghost)
+                    // For corner cases (xy), x wall takes preference
+                    Real y_u = 0.25*(momx(i,j-1,k)+momx(i,j,k))*(vely(i-1,j,k)+vely(i,j,k));
+                    Real x_v = 0.25*(momy(i-1,j,k)+momy(i,j,k))*(velx(i,j-1,k)+velx(i,j,k));
+                    if ((j == 0) and is_lo_y_dirichlet_mass) {
+                        y_u = 0.5*(momx(i,j-1,k))*(vely(i-1,j,k)+vely(i,j,k));
+                        x_v = 0.5*(momy(i-1,j,k)+momy(i,j,k))*(velx(i,j-1,k));
+                    }
+                    if ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
+                        y_u = 0.5*(momx(i,j,k))*(vely(i-1,j,k)+vely(i,j,k));
+                        x_v = 0.5*(momy(i-1,j,k)+momy(i,j,k))*(velx(i,j,k));
+                    }
+                    if ((i == 0) and is_lo_x_dirichlet_mass) {
+                        y_u = 0.5*(momx(i,j-1,k)+momx(i,j,k))*(vely(i-1,j,k));
+                        x_v = 0.5*(momy(i-1,j,k))*(velx(i,j-1,k)+velx(i,j,k));
+                    }
+                    if ((i == n_cells[0]) and is_hi_x_dirichlet_mass) {
+                        y_u = 0.5*(momx(i,j-1,k)+momx(i,j,k))*(vely(i,j,k));
+                        x_v = 0.5*(momy(i,j,k))*(velx(i,j-1,k)+velx(i,j,k));
+                    }
+                    edgey_u(i,j,k) += y_u;
+                    edgex_v(i,j,k) += x_v;
+                },
+                [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                    Real z_u = 0.25*(momx(i,j,k-1)+momx(i,j,k))*(velz(i-1,j,k)+velz(i,j,k));
+                    Real x_w = 0.25*(momz(i-1,j,k)+momz(i,j,k))*(velx(i,j,k-1)+velx(i,j,k));
+                    // Pick boundary values for Dirichlet (stored in ghost)
+                    // For corner cases (xz), x wall takes preference
+                    if ((k == 0) and is_lo_z_dirichlet_mass) {
+                        z_u = 0.5*(momx(i,j,k-1))*(velz(i-1,j,k)+velz(i,j,k));
+                        x_w = 0.5*(momz(i-1,j,k)+momz(i,j,k))*(velx(i,j,k-1));
+                    }
+                    if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
+                        z_u = 0.5*(momx(i,j,k))*(velz(i-1,j,k)+velz(i,j,k));
+                        x_w = 0.5*(momz(i-1,j,k)+momz(i,j,k))*(velx(i,j,k));
+                    }
+                    if ((i == 0) and is_lo_x_dirichlet_mass) {
+                        z_u = 0.5*(momx(i,j,k-1)+momx(i,j,k))*(velz(i-1,j,k));
+                        x_w = 0.5*(momz(i-1,j,k))*(velx(i,j,k-1)+velx(i,j,k));
+                    }
+                    if ((i == n_cells[0]) and is_hi_x_dirichlet_mass) {
+                        z_u = 0.5*(momx(i,j,k-1)+momx(i,j,k))*(velz(i,j,k));
+                        x_w = 0.5*(momz(i,j,k))*(velx(i,j,k-1)+velx(i,j,k));
+                    }
+                    edgez_u(i,j,k) += z_u;
+                    edgex_w(i,j,k) += x_w;
+                },
+                [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                    Real z_v = 0.25*(momy(i,j,k-1)+momy(i,j,k))*(velz(i,j-1,k)+velz(i,j,k));
+                    Real y_w = 0.25*(momz(i,j-1,k)+momz(i,j,k))*(vely(i,j,k-1)+vely(i,j,k));
+                    // Pick boundary values for Dirichlet (stored in ghost)
+                    // For corner cases (yz), y wall takes preference
+                    if ((k == 0) and is_lo_z_dirichlet_mass) {
+                        z_v = 0.5*(momy(i,j,k-1))*(velz(i,j-1,k)+velz(i,j,k));
+                        y_w = 0.5*(momz(i,j-1,k)+momz(i,j,k))*(vely(i,j,k-1));
+                    }
+                    if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
+                        z_v = 0.5*(momy(i,j,k))*(velz(i,j-1,k)+velz(i,j,k));
+                        y_w = 0.5*(momz(i,j-1,k)+momz(i,j,k))*(vely(i,j,k));
+                    }
+                    if ((j == 0) and is_lo_y_dirichlet_mass) {
+                        z_v = 0.5*(momy(i,j,k-1)+momy(i,j,k))*(velz(i,j-1,k));
+                        y_w = 0.5*(momz(i,j-1,k))*(vely(i,j,k-1)+vely(i,j,k));
+                    }
+                    if ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
+                        z_v = 0.5*(momy(i,j,k-1)+momy(i,j,k))*(velz(i,j,k));
+                        y_w = 0.5*(momz(i,j,k))*(vely(i,j,k-1)+vely(i,j,k));
+                    }
+                    edgez_v(i,j,k) += z_v;
+                    edgey_w(i,j,k) += y_w;
+                });
+
+                // 3. Loop over the center cells and compute fluxes (diagonal momentum terms)
+                amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
+                    if (do_1D) { // 1D
+                        cenx_u(i,j,k) += 0.25*(momx(i,j,k)+momx(i+1,j,k))*(velx(i,j,k)+velx(i+1,j,k)) + prim(i,j,k,5);
+                        ceny_v(i,j,k) += 0.0;
+                        cenz_w(i,j,k) += 0.0;
+                    }
+                    else if (do_2D) { // 2D
+                        cenx_u(i,j,k) += 0.25*(momx(i,j,k)+momx(i+1,j,k))*(velx(i,j,k)+velx(i+1,j,k)) + prim(i,j,k,5);
+                        ceny_v(i,j,k) += 0.25*(momy(i,j,k)+momy(i,j+1,k))*(vely(i,j,k)+vely(i,j+1,k)) + prim(i,j,k,5);
+                        cenz_w(i,j,k) += 0.0;
+                    }
+                    else { // 3D
+                        cenx_u(i,j,k) += 0.25*(momx(i,j,k)+momx(i+1,j,k))*(velx(i,j,k)+velx(i+1,j,k)) + prim(i,j,k,5);
+                        ceny_v(i,j,k) += 0.25*(momy(i,j,k)+momy(i,j+1,k))*(vely(i,j,k)+vely(i,j+1,k)) + prim(i,j,k,5);
+                        cenz_w(i,j,k) += 0.25*(momz(i,j,k)+momz(i,j,k+1))*(velz(i,j,k)+velz(i,j,k+1)) + prim(i,j,k,5);
+                    }
+                });
+            }
         }
     }
 }
