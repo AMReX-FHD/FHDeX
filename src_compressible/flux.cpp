@@ -1988,13 +1988,8 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
     // hyperbolic fluxes
     ////////////////////
 
-    Real wgt2 = 0.;//1./12.;
+    Real wgt2 = 1./12.;
     Real wgt1 = 0.5 + wgt2;
-
-    Real wgta = 0.;//-0.2;
-    Real wgtb = 0.5;//0.75;
-    Real wgtc = 0.5;
-    Real wgtd = 0.;//-0.05;
 
     // Loop over boxes
     for ( MFIter mfi(cons_in); mfi.isValid(); ++mfi) {
@@ -2183,6 +2178,9 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 GpuArray<Real,MAX_SPECIES+5> conserved;
                 GpuArray<Real,MAX_SPECIES+6> primitive;
                 GpuArray<Real,MAX_SPECIES  > Yk;
+
+                GpuArray<Real,MAX_SPECIES+5> ghost_state_cons;
+                GpuArray<Real,2*MAX_SPECIES+6> ghost_state_prim;
     
                 // interpolate conserved quantities to faces
                 for (int l=0; l<nspecies+5; ++l) {
@@ -2193,8 +2191,50 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                         conserved[l] = cons(i-1,j,k,l);
                     }
                 } else if ((i == 1) and is_lo_x_dirichlet_mass) {
+
+                    // mass fractions, wall
+                    for (int n=6; n<nprimvars; ++n) {
+                        ghost_state_prim[n] = prim(0,j,k,n);
+                    }
+                    // temperature and pressure, isothermal
+                    ghost_state_prim[4] = -prim(0,j,k,4) + 2.*t_lo[0];
+                    ghost_state_prim[5] = prim(0,j,k,5);
+                    // slip momentum
+                    ghost_state_cons[1] = -cons(0,j,k,1);
+                    ghost_state_cons[2] = cons(0,j,k,2);
+                    ghost_state_cons[3] = cons(0,j,k,3);
+                    // slip velocity
+                    ghost_state_prim[1] = -prim(0,j,k,1);
+                    ghost_state_prim[2] = prim(0,j,k,2);
+                    ghost_state_prim[3] = prim(0,j,k,3);
+
+                    // thermal & species (+pressure) BCs must be enforced first
+                    GpuArray<Real,MAX_SPECIES> fracvec;
+                    for (int n=0; n<nspecies; ++n) {
+                        fracvec[n] = ghost_state_prim[6+n];
+                    }
+                    Real temp = ghost_state_prim[4];
+                    Real pt = ghost_state_prim[5];
+                    Real rho;
+                    Real intenergy;
+
+                    GetDensity(pt,rho,temp,fracvec);
+                    GetEnergy(intenergy,fracvec,temp);
+
+                    // total density depends on temperature
+                    ghost_state_prim[0] = rho;
+                    ghost_state_cons[0] = rho;
+                    for (int n=0; n<nspecies; ++n) {
+                        ghost_state_cons[5+n] = rho*ghost_state_prim[6+n];
+                    }
+
+                    // must be last BC enforced: depends on rho, vel, & temp
+                    ghost_state_cons[4] = rho*intenergy + 0.5*rho*(ghost_state_prim[1]*ghost_state_prim[1] + 
+                                                                   ghost_state_prim[2]*ghost_state_prim[2] +
+                                                                   ghost_state_prim[3]*ghost_state_prim[3]);
+                    
                     for (int l=0; l<nspecies+5; ++l) {
-                        conserved[l] = wgta*cons(i-2,j,k,l) + wgtb*cons(i-1,j,k,l) + wgtc*cons(i,j,k,l) + wgtd*cons(i+1,j,k,l);
+                        conserved[l] = wgt1*(cons(i,j,k,l)+cons(i-1,j,k,l)) - wgt2*(ghost_state_cons[l]+cons(i+1,j,k,l));
                     }
                 }
                 if ((i == n_cells[0]) and is_hi_x_dirichlet_mass) {
@@ -2202,8 +2242,52 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                         conserved[l] = cons(i,j,k,l);
                     }
                 } else if ((i == n_cells[0]-1) and is_hi_x_dirichlet_mass) {
+
+                    // mass fractions, wall
+                    for (int n=6; n<nprimvars; ++n) {
+                        ghost_state_prim[n] = prim(n_cells[0]-1,j,k,n);
+                    }
+                    // temperature and pressure, isothermal
+                    ghost_state_prim[4] = -prim(n_cells[0]-1,j,k,4) + 2.*t_hi[0];
+                    ghost_state_prim[5] = prim(n_cells[0]-1,j,k,5);
+                    // slip momentum
+                    ghost_state_cons[1] = -cons(n_cells[0]-1,j,k,1);
+                    ghost_state_cons[2] = cons(n_cells[0]-1,j,k,2);
+                    ghost_state_cons[3] = cons(n_cells[0]-1,j,k,3);
+                    // slip velocity
+                    ghost_state_prim[1] = -prim(n_cells[0]-1,j,k,1);
+                    ghost_state_prim[2] = prim(n_cells[0]-1,j,k,2);
+                    ghost_state_prim[3] = prim(n_cells[0]-1,j,k,3);
+
+                    // thermal & species (+pressure) BCs must be enforced first
+                    GpuArray<Real,MAX_SPECIES> fracvec;
+                    for (int n=0; n<nspecies; ++n) {
+                        fracvec[n] = ghost_state_prim[6+n];
+                    }
+                    Real temp = ghost_state_prim[4];
+                    Real pt = ghost_state_prim[5];
+                    Real rho;
+                    Real intenergy;
+
+                    GetDensity(pt,rho,temp,fracvec);
+                    GetEnergy(intenergy,fracvec,temp);
+
+                    // total density depends on temperature
+                    ghost_state_prim[0] = rho;
+                    ghost_state_cons[0] = rho;
+                    for (int n=0; n<nspecies; ++n) {
+                        ghost_state_cons[5+n] = rho*ghost_state_prim[6+n];
+                    }
+
+                    // must be last BC enforced: depends on rho, vel, & temp
+                    ghost_state_cons[4] = rho*intenergy + 0.5*rho*(ghost_state_prim[1]*ghost_state_prim[1] + 
+                                                                   ghost_state_prim[2]*ghost_state_prim[2] +
+                                                                   ghost_state_prim[3]*ghost_state_prim[3]);
+
+                    
+                    
                     for (int l=0; l<nspecies+5; ++l) {
-                        conserved[l] = wgta*cons(i+1,j,k,l) + wgtb*cons(i,j,k,l) + wgtc*cons(i-1,j,k,l) + wgtd*cons(i-2,j,k,l);
+                        conserved[l] = wgt1*(cons(i,j,k,l)+cons(i-1,j,k,l)) - wgt2*(cons(i-2,j,k,l)+ghost_state_cons[l]);
                     }
                 }
 
@@ -2247,6 +2331,9 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 GpuArray<Real,MAX_SPECIES+5> conserved;
                 GpuArray<Real,MAX_SPECIES+6> primitive;
                 GpuArray<Real,MAX_SPECIES  > Yk;
+
+                GpuArray<Real,MAX_SPECIES+5> ghost_state_cons;
+                GpuArray<Real,2*MAX_SPECIES+6> ghost_state_prim;
     
                 // interpolate conserved quantities to faces
                 for (int l=0; l<nspecies+5; ++l) {
@@ -2257,8 +2344,50 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                         conserved[l] = cons(i,j-1,k,l);
                     }
                 } else if ((j == 1) and is_lo_y_dirichlet_mass) {
+
+                    // mass fractions, wall
+                    for (int n=6; n<nprimvars; ++n) {
+                        ghost_state_prim[n] = prim(i,0,k,n);
+                    }
+                    // temperature and pressure, isothermal
+                    ghost_state_prim[4] = -prim(i,0,k,4) + 2.*t_lo[1];
+                    ghost_state_prim[5] = prim(i,0,k,5);
+                    // slip momentum
+                    ghost_state_cons[1] = cons(i,0,k,1);
+                    ghost_state_cons[2] = -cons(i,0,k,2);
+                    ghost_state_cons[3] = cons(i,0,k,3);
+                    // slip velocity
+                    ghost_state_prim[1] = prim(i,0,k,1);
+                    ghost_state_prim[2] = -prim(i,0,k,2);
+                    ghost_state_prim[3] = prim(i,0,k,3);
+
+                    // thermal & species (+pressure) BCs must be enforced first
+                    GpuArray<Real,MAX_SPECIES> fracvec;
+                    for (int n=0; n<nspecies; ++n) {
+                        fracvec[n] = ghost_state_prim[6+n];
+                    }
+                    Real temp = ghost_state_prim[4];
+                    Real pt = ghost_state_prim[5];
+                    Real rho;
+                    Real intenergy;
+
+                    GetDensity(pt,rho,temp,fracvec);
+                    GetEnergy(intenergy,fracvec,temp);
+
+                    // total density depends on temperature
+                    ghost_state_prim[0] = rho;
+                    ghost_state_cons[0] = rho;
+                    for (int n=0; n<nspecies; ++n) {
+                        ghost_state_cons[5+n] = rho*ghost_state_prim[6+n];
+                    }
+
+                    // must be last BC enforced: depends on rho, vel, & temp
+                    ghost_state_cons[4] = rho*intenergy + 0.5*rho*(ghost_state_prim[1]*ghost_state_prim[1] + 
+                                                                   ghost_state_prim[2]*ghost_state_prim[2] +
+                                                                   ghost_state_prim[3]*ghost_state_prim[3]);
+                        
                     for (int l=0; l<nspecies+5; ++l) {
-                        conserved[l] = wgta*cons(i,j-2,k,l) + wgtb*cons(i,j-1,k,l) + wgtc*cons(i,j,k,l) + wgtd*cons(i,j+1,k,l);
+                        conserved[l] = wgt1*(cons(i,j,k,l)+cons(i,j-1,k,l)) - wgt2*(ghost_state_cons[l]+cons(i,j+1,k,l));
                     }
                 }
                 if ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
@@ -2266,8 +2395,50 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                         conserved[l] = cons(i,j,k,l);
                     }
                 } else if ((j == n_cells[1]-1) and is_hi_y_dirichlet_mass) {
-                    for (int l=0; l<nspecies+5; ++l) {
-                        conserved[l] = wgta*cons(i,j+1,k,l) + wgtb*cons(i,j,k,l) + wgtc*cons(i,j-1,k,l) + wgtd*cons(i,j-2,k,l);
+
+                    // mass fractions, wall
+                    for (int n=6; n<nprimvars; ++n) {
+                        ghost_state_prim[n] = prim(i,n_cells[1]-1,k,n);
+                    }
+                    // temperature and pressure, isothermal
+                    ghost_state_prim[4] = -prim(i,n_cells[1]-1,k,4) + 2.*t_hi[1];
+                    ghost_state_prim[5] = prim(i,n_cells[1]-1,k,5);
+                    // slip momentum
+                    ghost_state_cons[1] = cons(i,n_cells[1]-1,k,1);
+                    ghost_state_cons[2] = -cons(i,n_cells[1]-1,k,2);
+                    ghost_state_cons[3] = cons(i,n_cells[1]-1,k,3);
+                    // slip velocity
+                    ghost_state_prim[1] = prim(i,n_cells[1]-1,k,1);
+                    ghost_state_prim[2] = -prim(i,n_cells[1]-1,k,2);
+                    ghost_state_prim[3] = prim(i,n_cells[1]-1,k,3);
+
+                    // thermal & species (+pressure) BCs must be enforced first
+                    GpuArray<Real,MAX_SPECIES> fracvec;
+                    for (int n=0; n<nspecies; ++n) {
+                        fracvec[n] = ghost_state_prim[6+n];
+                    }
+                    Real temp = ghost_state_prim[4];
+                    Real pt = ghost_state_prim[5];
+                    Real rho;
+                    Real intenergy;
+
+                    GetDensity(pt,rho,temp,fracvec);
+                    GetEnergy(intenergy,fracvec,temp);
+
+                    // total density depends on temperature
+                    ghost_state_prim[0] = rho;
+                    ghost_state_cons[0] = rho;
+                    for (int n=0; n<nspecies; ++n) {
+                        ghost_state_cons[5+n] = rho*ghost_state_prim[6+n];
+                    }
+
+                    // must be last BC enforced: depends on rho, vel, & temp
+                    ghost_state_cons[4] = rho*intenergy + 0.5*rho*(ghost_state_prim[1]*ghost_state_prim[1] + 
+                                                                   ghost_state_prim[2]*ghost_state_prim[2] +
+                                                                   ghost_state_prim[3]*ghost_state_prim[3]);
+                    
+                    for (int l=0; l<nspecies+5; ++l) {                        
+                        conserved[l] = wgt1*(cons(i,j,k,l)+cons(i,j-1,k,l)) - wgt2*(cons(i,j-2,k,l)+ghost_state_cons[l]);
                     }
                 }
 
@@ -2311,6 +2482,9 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 GpuArray<Real,MAX_SPECIES+5> conserved;
                 GpuArray<Real,MAX_SPECIES+6> primitive;
                 GpuArray<Real,MAX_SPECIES  > Yk;
+
+                GpuArray<Real,MAX_SPECIES+5> ghost_state_cons;
+                GpuArray<Real,2*MAX_SPECIES+6> ghost_state_prim;
     
                 // interpolate conserved quantities to faces
                 for (int l=0; l<nspecies+5; ++l) {
@@ -2321,8 +2495,50 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                         conserved[l] = cons(i,j,k-1,l);
                     }
                 } else if ((k == 1) and is_lo_z_dirichlet_mass) {
-                    for (int l=0; l<nspecies+5; ++l) {
-                        conserved[l] = wgta*cons(i,j,k-2,l) + wgtb*cons(i,j,k-1,l) + wgtc*cons(i,j,k,l) + wgtd*cons(i,j,k+1,l);
+
+                    // mass fractions, wall
+                    for (int n=6; n<nprimvars; ++n) {
+                        ghost_state_prim[n] = prim(i,j,0,n);
+                    }
+                    // temperature and pressure, isothermal
+                    ghost_state_prim[4] = -prim(i,j,0,4) + 2.*t_lo[2];
+                    ghost_state_prim[5] = prim(i,j,0,5);
+                    // slip momentum
+                    ghost_state_cons[1] = cons(i,j,0,1);
+                    ghost_state_cons[2] = cons(i,j,0,2);
+                    ghost_state_cons[3] = -cons(i,j,0,3);
+                    // slip velocity
+                    ghost_state_prim[1] = prim(i,j,0,1);
+                    ghost_state_prim[2] = prim(i,j,0,2);
+                    ghost_state_prim[3] = -prim(i,j,0,3);
+
+                    // thermal & species (+pressure) BCs must be enforced first
+                    GpuArray<Real,MAX_SPECIES> fracvec;
+                    for (int n=0; n<nspecies; ++n) {
+                        fracvec[n] = ghost_state_prim[6+n];
+                    }
+                    Real temp = ghost_state_prim[4];
+                    Real pt = ghost_state_prim[5];
+                    Real rho;
+                    Real intenergy;
+
+                    GetDensity(pt,rho,temp,fracvec);
+                    GetEnergy(intenergy,fracvec,temp);
+
+                    // total density depends on temperature
+                    ghost_state_prim[0] = rho;
+                    ghost_state_cons[0] = rho;
+                    for (int n=0; n<nspecies; ++n) {
+                        ghost_state_cons[5+n] = rho*ghost_state_prim[6+n];
+                    }
+
+                    // must be last BC enforced: depends on rho, vel, & temp
+                    ghost_state_cons[4] = rho*intenergy + 0.5*rho*(ghost_state_prim[1]*ghost_state_prim[1] + 
+                                                                   ghost_state_prim[2]*ghost_state_prim[2] +
+                                                                   ghost_state_prim[3]*ghost_state_prim[3]);
+                    
+                    for (int l=0; l<nspecies+5; ++l) {                        
+                        conserved[l] = wgt1*(cons(i,j,k,l)+cons(i,j,k-1,l)) - wgt2*(ghost_state_cons[l]+cons(i,j,k+1,l));
                     }
                 }
                 if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
@@ -2330,8 +2546,50 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                         conserved[l] = cons(i,j,k,l);
                     }
                 } else if ((k == n_cells[2]-1) and is_hi_z_dirichlet_mass) {
-                    for (int l=0; l<nspecies+5; ++l) {
-                        conserved[l] = wgta*cons(i,j,k+1,l) + wgtb*cons(i,j,k,l) + wgtc*cons(i,j,k-1,l) + wgtd*cons(i,j,k-2,l);
+
+                    // mass fractions, wall
+                    for (int n=6; n<nprimvars; ++n) {
+                        ghost_state_prim[n] = prim(i,j,n_cells[2]-1,n);
+                    }
+                    // temperature and pressure, isothermal
+                    ghost_state_prim[4] = -prim(i,j,n_cells[2]-1,4) + 2.*t_hi[2];
+                    ghost_state_prim[5] = prim(i,j,n_cells[2]-1,5);
+                    // slip momentum
+                    ghost_state_cons[1] = cons(i,j,n_cells[2]-1,1);
+                    ghost_state_cons[2] = cons(i,j,n_cells[2]-1,2);
+                    ghost_state_cons[3] = -cons(i,j,n_cells[2]-1,3);
+                    // slip velocity
+                    ghost_state_prim[1] = prim(i,j,n_cells[2]-1,1);
+                    ghost_state_prim[2] = prim(i,j,n_cells[2]-1,2);
+                    ghost_state_prim[3] = -prim(i,j,n_cells[2]-1,3);
+
+                    // thermal & species (+pressure) BCs must be enforced first
+                    GpuArray<Real,MAX_SPECIES> fracvec;
+                    for (int n=0; n<nspecies; ++n) {
+                        fracvec[n] = ghost_state_prim[6+n];
+                    }
+                    Real temp = ghost_state_prim[4];
+                    Real pt = ghost_state_prim[5];
+                    Real rho;
+                    Real intenergy;
+
+                    GetDensity(pt,rho,temp,fracvec);
+                    GetEnergy(intenergy,fracvec,temp);
+
+                    // total density depends on temperature
+                    ghost_state_prim[0] = rho;
+                    ghost_state_cons[0] = rho;
+                    for (int n=0; n<nspecies; ++n) {
+                        ghost_state_cons[5+n] = rho*ghost_state_prim[6+n];
+                    }
+
+                    // must be last BC enforced: depends on rho, vel, & temp
+                    ghost_state_cons[4] = rho*intenergy + 0.5*rho*(ghost_state_prim[1]*ghost_state_prim[1] + 
+                                                                   ghost_state_prim[2]*ghost_state_prim[2] +
+                                                                   ghost_state_prim[3]*ghost_state_prim[3]);
+                    
+                    for (int l=0; l<nspecies+5; ++l) {                        
+                        conserved[l] = wgt1*(cons(i,j,k,l)+cons(i,j,k-1,l)) - wgt2*(cons(i,j,k-2,l)+ghost_state_cons[l]);
                     }
                 }
 
