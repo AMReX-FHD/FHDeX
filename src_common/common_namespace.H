@@ -134,7 +134,8 @@ namespace common {
     // BC specifications:
     // -1 = periodic
     //  1 = wall
-    //  2 = reservoir (Dirichlet values must be suppled by other means)
+    //  2 = concentration (for compressible codes), reservoir (for low Mach multispecies codes)
+    //  3 = reservoir (for compressible codes)
     extern AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>          bc_mass_lo;
     extern AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>          bc_mass_hi;
 
