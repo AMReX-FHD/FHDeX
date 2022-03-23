@@ -97,6 +97,8 @@ typedef struct {
     double fzRightAv;
 
     int boundary;
+    
+    int species;
 
     double tension;
     double stiffness;

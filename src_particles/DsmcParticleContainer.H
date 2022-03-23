@@ -53,6 +53,7 @@ struct FHD_intData {
 		j,
 		k,
 		species,
+		newSpecies,
 		count
 	};
 
@@ -164,7 +165,7 @@ public:
 	Real ocollisionCellVol;
 	Real domainVol;
 	Real domSize[3];
-	Real dx[3];
+	//Real dx[3];
 
 	int getSpeciesIndex(int species1, int species2);
 
