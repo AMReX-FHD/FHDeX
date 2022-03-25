@@ -898,9 +898,9 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                                        eta(i,j,k)*prim(i,j,k,4) )/3.;
 
                         muzepm = 0.25*(eta(i+1,j,k)*prim(i+1,j,k,4) + 
-                                       eta(i,j,k-2)*prim(i,j,k,4) +
+                                       eta(i,j,k)*prim(i,j,k,4) +
                                        eta(i+1,j-1,k)*prim(i+1,j-1,k,4) + 
-                                       eta(i,j-1,k-2)*prim(i,j-1,k,4) )/3.;
+                                       eta(i,j-1,k)*prim(i,j-1,k,4) )/3.;
 
                         muzemm = 0.25*(eta(i-1,j-1,k)*prim(i-1,j-1,k,4) + 
                                        eta(i,j-1,k)*prim(i,j-1,k,4) +
@@ -945,9 +945,9 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                                            zeta(i,j,k)*prim(i,j,k,4) )/3.;
 
                             muzepm += 0.5*(zeta(i+1,j,k)*prim(i+1,j,k,4) + 
-                                           zeta(i,j,k-2)*prim(i,j,k,4) +
+                                           zeta(i,j,k)*prim(i,j,k,4) +
                                            zeta(i+1,j-1,k)*prim(i+1,j-1,k,4) + 
-                                           zeta(i,j-1,k-2)*prim(i,j-1,k,4) )/3.;
+                                           zeta(i,j-1,k)*prim(i,j-1,k,4) )/3.;
 
                             muzemm += 0.5*(zeta(i-1,j-1,k)*prim(i-1,j-1,k,4) + 
                                            zeta(i,j-1,k)*prim(i,j-1,k,4) +
@@ -1677,7 +1677,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
             if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
                 DX[2] = 0.5*dx[2];
                 muxp = 0.25*(eta(i-1,j-1,k) + eta(i-1,j,k) + eta(i,j-1,k) + eta(i,j,k));
-                if (amrex::Math::abs(visc_type) == 3) zetaxp = 0.25*(zeta(i-1,j-1,k-1) + zeta(i-1,j,k-1) + zeta(i,j-1,k-1) + zeta(i,j,k-1));
+                if (amrex::Math::abs(visc_type) == 3) zetaxp = 0.25*(zeta(i-1,j-1,k) + zeta(i-1,j,k) + zeta(i,j-1,k) + zeta(i,j,k));
                 else zetaxp = 0.;
             }
 
