@@ -138,6 +138,7 @@ struct FHD_intData {
         species,
         visible,
         pinned,
+        newSpecies,
         count
     };
 
