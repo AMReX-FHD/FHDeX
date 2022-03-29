@@ -134,7 +134,8 @@ namespace common {
     // BC specifications:
     // -1 = periodic
     //  1 = wall
-    //  2 = reservoir (Dirichlet values must be suppled by other means)
+    //  2 = concentration (for compressible codes), reservoir (for low Mach multispecies codes)
+    //  3 = reservoir (for compressible codes)
     extern AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>          bc_mass_lo;
     extern AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>          bc_mass_hi;
 
@@ -144,6 +145,14 @@ namespace common {
     //  2 = isothermal
     extern AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>          bc_therm_lo;
     extern AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>          bc_therm_hi;
+    
+    // BC specifications:
+    // -1 = don't change species, else change species to number
+    //  1 = wall
+    //  2 = reservoir (Dirichlet values must be suppled by other means)
+    extern AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>          bc_spec_lo;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>          bc_spec_hi;
+    
 
     // Pressure drop are periodic inflow/outflow walls (bc_[hi,lo]=-2).
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> p_lo;
