@@ -112,6 +112,7 @@ public:
 
 	void CalcSelections(Real dt);
 	void CollideParticles(Real dt);
+	void CollideParticles2(Real dt);
 
 	void MoveParticlesCPP(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount);
     void MovePhononsCPP(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount, const int step);

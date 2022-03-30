@@ -242,14 +242,26 @@ void app_bc_gpu(const paramPlane* surf, FhdParticleContainer::ParticleType& part
         
           if(surf->species > -1)
           {
-            //part.idata(FHD_intData::newSpecies) = surf->species;
-            if(amrex::Random()<0.5)
-            {
-                part.idata(FHD_intData::newSpecies) = 0;
-            }else
-            {
-                part.idata(FHD_intData::newSpecies) = 1;
-            }
+              if(amrex::Random(engine) > 0.1)
+              {
+                part.idata(FHD_intData::newSpecies) = surf->species;
+              }else
+              {
+                if(surf->species == 0)
+                {
+                    part.idata(FHD_intData::newSpecies) = 1;
+                }else
+                {
+                    part.idata(FHD_intData::newSpecies) = 0;
+                }
+              }
+/*            if(amrex::Random()<0.5)*/
+/*            {*/
+/*                part.idata(FHD_intData::newSpecies) = 0;*/
+/*            }else*/
+/*            {*/
+/*                part.idata(FHD_intData::newSpecies) = 1;*/
+/*            }*/
           }
         
                               //exit(1);
@@ -338,14 +350,26 @@ void app_bc_gpu(const paramPlane* surf, FhdParticleContainer::ParticleType& part
 
           if(surf->species > -1)
           {
-            //part.idata(FHD_intData::newSpecies) = surf->species;
-            if(amrex::Random()<0.5)
-            {
-                part.idata(FHD_intData::newSpecies) = 0;
-            }else
-            {
-                part.idata(FHD_intData::newSpecies) = 1;
-            }
+              if(amrex::Random(engine) > 0.1)
+              {
+                part.idata(FHD_intData::newSpecies) = surf->species;
+              }else
+              {
+                if(surf->species == 0)
+                {
+                    part.idata(FHD_intData::newSpecies) = 1;
+                }else
+                {
+                    part.idata(FHD_intData::newSpecies) = 0;
+                }
+              }
+/*            if(amrex::Random()<0.5)*/
+/*            {*/
+/*                part.idata(FHD_intData::newSpecies) = 0;*/
+/*            }else*/
+/*            {*/
+/*                part.idata(FHD_intData::newSpecies) = 1;*/
+/*            }*/
           }
         }
         else
