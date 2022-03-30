@@ -334,12 +334,20 @@ void ComputeFHHigherOrderTerm(const MultiFab& molarconc,
                 + 4.*( phi(i+1,j,k,n)-2.*phi(i,j,k,n)+phi(i-1,j,k,n) + phi(i,j+1,k,n)-2.*phi(i,j,k,n)+phi(i,j-1,k,n) ) * (sixth*dxinv*dxinv)
                 + ( phi(i+1,j+1,k,n)-2.*phi(i,j+1,k,n)+phi(i-1,j+1,k,n) + phi(i+1,j+1,k,n)-2.*phi(i+1,j,k,n)+phi(i+1,j-1,k,n) ) * (sixth*dxinv*dxinv);
 #elif (AMREX_SPACEDIM == 3)
+#if 1
+            lap(i,j,k,n) = 
+                 (phi(i+1,j,k,n)+ phi(i-1,j,k,n)+phi(i,j+1,k,n) + phi(i,j-1,k,n) + 
+                  phi(i,j,k+1,n)+ phi(i,j,k-1,n) - 6.*phi(i,j,k,n))
+                * (dxinv*dxinv);
+#endif
+#if 0
             lap(i,j,k,n) = ( phi(i-1,j+1,k+1,n)+ phi(i+1,j+1,k+1,n) + phi(i+1,j-1,k+1,n) + phi(i-1,j-1,k+1,n) +
                  2.*phi(i,j+1,k+1,n)+ 2.*phi(i-1,j,k+1,n)+2.*phi(i+1,j,k+1,n) + 2.*phi(i,j-1,k+1,n) + 
                   2.*phi(i-1,j+1,k,n)+2.*phi(i+1,j+1,k,n)-32.*phi(i,j,k,n)+2.*phi(i-1,j-1,k,n)+2.*phi(i+1,j-1,k,n)
                   + phi(i-1,j+1,k-1,n)+ phi(i+1,j+1,k-1,n) + phi(i+1,j-1,k-1,n) + phi(i-1,j-1,k-1,n) +
                  2.*phi(i,j+1,k-1,n)+ 2.*phi(i-1,j,k-1,n)+2.*phi(i+1,j,k-1,n) + 2.*phi(i,j-1,k-1,n))
                 * (twelveinv*dxinv*dxinv);
+#endif
 #endif
         });
 
