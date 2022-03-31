@@ -887,22 +887,22 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 
                     }
                     if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
-                        muzepp = 0.25*(eta(i+1,j,k)*prim(i+1,j,k,4) + 
+                        muzepp = 0.5*(eta(i+1,j,k)*prim(i+1,j,k,4) +
                                        eta(i,j,k)*prim(i,j,k,4) +
                                        eta(i+1,j+1,k)*prim(i+1,j+1,k,4) + 
                                        eta(i,j+1,k)*prim(i,j+1,k,4) )/3.;
 
-                        muzemp = 0.25*(eta(i-1,j+1,k)*prim(i-1,j+1,k,4) + 
+                        muzemp = 0.5*(eta(i-1,j+1,k)*prim(i-1,j+1,k,4) +
                                        eta(i,j+1,k)*prim(i,j+1,k,4) +
                                        eta(i-1,j,k)*prim(i-1,j,k,4) + 
                                        eta(i,j,k)*prim(i,j,k,4) )/3.;
 
-                        muzepm = 0.25*(eta(i+1,j,k)*prim(i+1,j,k,4) + 
+                        muzepm = 0.5*(eta(i+1,j,k)*prim(i+1,j,k,4) +
                                        eta(i,j,k)*prim(i,j,k,4) +
                                        eta(i+1,j-1,k)*prim(i+1,j-1,k,4) + 
                                        eta(i,j-1,k)*prim(i,j-1,k,4) )/3.;
 
-                        muzemm = 0.25*(eta(i-1,j-1,k)*prim(i-1,j-1,k,4) + 
+                        muzemm = 0.5*(eta(i-1,j-1,k)*prim(i-1,j-1,k,4) +
                                        eta(i,j-1,k)*prim(i,j-1,k,4) +
                                        eta(i-1,j,k)*prim(i-1,j,k,4) + 
                                        eta(i,j,k)*prim(i,j,k,4) )/3.;
