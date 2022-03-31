@@ -1234,33 +1234,33 @@ void main_driver(const char* argv)
 
 
             //particles.SetPosition(1, prob_hi[0]*0.51, prob_hi[1]*(pow(0.5,istep)) + prob_hi[1]*1e-8, prob_hi[2]*0.51);
-            Real x1 = 0.51*prob_hi[0];
-            Real y1 = 0.51*prob_hi[1];
-            Real z1 = 0.51*prob_hi[2];
+//            Real x1 = 0.51*prob_hi[0];
+//            Real y1 = 0.51*prob_hi[1];
+//            Real z1 = 0.51*prob_hi[2];
+//            
+//            particles.SetPosition(1,x1 ,y1, z1);
+//            particles.SetPosition(2,x1 ,y1, z1);
+//            
+//            x1 = 0.5*prob_hi[0] + (amrex::Random()-0.5)*(prob_hi[0]-prob_lo[0])*0.25;
+//            y1 = 0.1875*dxp[0];
+//            z1 = 0.5*prob_hi[2] + (amrex::Random()-0.5)*(prob_hi[2]-prob_lo[2])*0.25;
             
-            particles.SetPosition(1,x1 ,y1, z1);
-            particles.SetPosition(2,x1 ,y1, z1);
             
-            x1 = 0.5*prob_hi[0] + (amrex::Random()-0.5)*(prob_hi[0]-prob_lo[0])*0.25;
-            y1 = 0.1875*dxp[0];
-            z1 = 0.5*prob_hi[2] + (amrex::Random()-0.5)*(prob_hi[2]-prob_lo[2])*0.25;
-            
-            
-            Real costheta = 2.*amrex::Random() - 1.;
-            Real sintheta = sqrt(1. - costheta*costheta);
+//            Real costheta = 2.*amrex::Random() - 1.;
+//            Real sintheta = sqrt(1. - costheta*costheta);
 
-            Real phi = amrex::Random() * 2. * 3.14159265358979;
-            Real cosphi = std::cos(phi);
-            Real sinphi = std::sin(phi);
+//            Real phi = amrex::Random() * 2. * 3.14159265358979;
+//            Real cosphi = std::cos(phi);
+//            Real sinphi = std::sin(phi);
 
-            Real dr = 2*dxp[0];
+//            Real dr = 2*dxp[0];
 
-            Real x2 = x1 + dr*cosphi;
-            Real y2 = y1;
-            Real z2 = z1 + dr*sinphi;;
-            
-            particles.SetPosition(1,x1 ,y1, z1);
-            particles.SetPosition(2,x2 ,y2, z2);
+//            Real x2 = x1 + dr*cosphi;
+//            Real y2 = y1;
+//            Real z2 = z1 + dr*sinphi;;
+//            
+//            particles.SetPosition(1,x1 ,y1, z1);
+//            particles.SetPosition(2,x2 ,y2, z2);
 
     
         //Most of these functions are sensitive to the order of execution. We can fix this, but for now leave them in this order.
@@ -1565,7 +1565,7 @@ void main_driver(const char* argv)
                             potential, potentialM);
         }
 
-        particles.PrintParticles();
+        //particles.PrintParticles();
 
         // timer for time step
         Real time2 = ParallelDescriptor::second() - time1;
