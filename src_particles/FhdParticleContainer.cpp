@@ -598,11 +598,37 @@ void FhdParticleContainer::computeForcesSpringGPU(long totalParticles) {
     Real sumdr2[ngroups];
     Real sumdx2[ngroups];
     int nbonds[ngroups];
+    Real l_e2e_x[ngroups];
+    Real l_e2e_y[ngroups];
+    Real l_e2e_z[ngroups];
+    Real l2_e2e[ngroups];
+    Real pos_cmx[ngroups];
+    Real pos_cmy[ngroups];
+    Real pos_cmz[ngroups];
+    Real pos_cm[ngroups];
+    Real rg2x[ngroups];
+    Real rg2y[ngroups];
+    Real rg2z[ngroups];
+    Real rg2[ngroups];
+    int groupCount[ngroups];
     //Real travelTime[ngroups];
     for (int i=0; i<ngroups; i++){
         sumdr2[i]=0;
         sumdx2[i]=0;
         nbonds[i]=0;
+        l_e2e_x[i]=0;
+        l_e2e_y[i]=0;
+        l_e2e_z[i]=0;
+        l2_e2e[i]=0;
+	pos_cmx[i]=0;
+	pos_cmy[i]=0;
+	pos_cmz[i]=0;
+	pos_cm[i]=0;
+	rg2x[i]=0;
+	rg2y[i]=0;
+	rg2z[i]=0;
+	rg2[i]=0;
+	groupCount[i]=0;
         //travelTime[ngroups]=0;
     }
 
@@ -639,8 +665,31 @@ void FhdParticleContainer::computeForcesSpringGPU(long totalParticles) {
                double dz;
 
                int igroup = part.idata(FHD_intData::groupid)-1;
+	       // Calculate center of mass location in this for loop
+	       //   Currently need another loop to calculate radius of gyration
+	       //   TODO: calculate radius of gyration in this loop?
+	       pos_cmx[igroup] += part.rdata(FHD_realData::ax);
+	       pos_cmy[igroup] += part.rdata(FHD_realData::ay);
+	       pos_cmz[igroup] += part.rdata(FHD_realData::az);
+	       groupCount[igroup]++;
                //travelTime[igroup] = part.rdata(FHD_realData::travelTime);
 
+	       // Calculate end-to-end vector of a polymer
+	       if (part.idata(FHD_intData::prev) == -1)// This is the start of the polymer i
+	       {
+	          l_e2e_x[igroup] -= part.rdata(FHD_realData::ax);
+	          l_e2e_y[igroup] -= part.rdata(FHD_realData::ay);
+	          l_e2e_z[igroup] -= part.rdata(FHD_realData::az);
+
+	       }
+
+	       if (part.idata(FHD_intData::next) == -1)// This is the end of the polymer i
+	       {
+	          l_e2e_x[igroup] += part.rdata(FHD_realData::ax);
+	          l_e2e_y[igroup] += part.rdata(FHD_realData::ay);
+	          l_e2e_z[igroup] += part.rdata(FHD_realData::az);
+
+	       }
                //for(int j = 0; j < totalParticles; j++)
                //{
 
@@ -721,6 +770,20 @@ void FhdParticleContainer::computeForcesSpringGPU(long totalParticles) {
         ParallelDescriptor::ReduceRealSum(temp);
         sumdx2[i] = temp;
 
+        temp = l_e2e_x[i];        
+        ParallelDescriptor::ReduceRealSum(temp);
+        l_e2e_x[i] = temp;
+
+        temp = l_e2e_y[i];        
+        ParallelDescriptor::ReduceRealSum(temp);
+        l_e2e_y[i] = temp;
+
+        temp = l_e2e_z[i];        
+        ParallelDescriptor::ReduceRealSum(temp);
+        l_e2e_z[i] = temp;
+
+	l2_e2e[i] = l_e2e_x[i]*l_e2e_x[i] + l_e2e_y[i]*l_e2e_y[i] + l_e2e_z[i]*l_e2e_z[i];
+
         //temp = travelTime[i];        
         //ParallelDescriptor::ReduceRealMax(temp);
         //travelTime[i] = temp;
@@ -728,7 +791,91 @@ void FhdParticleContainer::computeForcesSpringGPU(long totalParticles) {
         int itemp = nbonds[i];        
         ParallelDescriptor::ReduceIntSum(itemp);
         nbonds[i] = itemp;
+
+        itemp = groupCount[i];        
+        ParallelDescriptor::ReduceIntSum(itemp);
+        groupCount[i] = itemp;
+
+        temp = pos_cmx[i];        
+        ParallelDescriptor::ReduceRealSum(temp);
+        pos_cmx[i] = temp;
+
+        temp = pos_cmy[i];        
+        ParallelDescriptor::ReduceRealSum(temp);
+        pos_cmy[i] = temp;
+
+        temp = pos_cmz[i];        
+        ParallelDescriptor::ReduceRealSum(temp);
+        pos_cmz[i] = temp;
+
+	if (groupCount[i] != 0)
+	{
+	   pos_cmx[i] /= groupCount[i];
+	   pos_cmy[i] /= groupCount[i];
+	   pos_cmz[i] /= groupCount[i];
+	}
     }
+
+    // Loop over all particles again to calculate radius of gyration with respect to center of mass
+    //   probably can be improved later
+    for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) {
+
+        const int grid_id = pti.index();
+        const int tile_id = pti.LocalTileIndex();
+
+        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+        auto& particles = particle_tile.GetArrayOfStructs();
+        const int np = particles.numParticles();
+
+       
+
+        auto pstruct = particles().dataPtr();
+       
+       
+       
+        AMREX_FOR_1D( np, i,
+        {
+	    
+	    ParticleType & part = pstruct[i];
+
+	    //cout << part.idata(FHD_intData::groupid) << "\n";
+
+	    if (part.idata(FHD_intData::groupid) > 0)
+	    { 
+               int igroup = part.idata(FHD_intData::groupid)-1;
+
+	       rg2x[igroup] += pow(part.rdata(FHD_realData::ax)-pos_cmx[igroup],2);
+	       rg2y[igroup] += pow(part.rdata(FHD_realData::ay)-pos_cmy[igroup],2);
+	       rg2z[igroup] += pow(part.rdata(FHD_realData::az)-pos_cmz[igroup],2);
+	    }
+
+	});
+    }
+
+    for(int i=0;i<ngroups;i++)
+    {
+        Real temp = rg2x[i];        
+        ParallelDescriptor::ReduceRealSum(temp);
+        rg2x[i] = temp;
+
+        temp = rg2y[i];        
+        ParallelDescriptor::ReduceRealSum(temp);
+        rg2y[i] = temp;
+
+        temp = rg2z[i];        
+        ParallelDescriptor::ReduceRealSum(temp);
+        rg2z[i] = temp;
+
+	rg2[i] = rg2x[i]+rg2y[i]+rg2z[i];
+
+	// For now we assume equal-mass monomers,
+	//   so it is a simple average
+	if (groupCount[i] != 0)
+	{
+	   rg2[i] /= groupCount[i];
+	}
+    }
+
 
     if(ParallelDescriptor::MyProc() == 0) {
 
@@ -737,7 +884,7 @@ void FhdParticleContainer::computeForcesSpringGPU(long totalParticles) {
            std::string specname = Concatenate("bondEst_",i+1);
            std::ofstream ofs(specname, std::ofstream::app);
 
-           ofs << sumdr2[i] << "  " << sumdx2[i] << "  " << nbonds[i] << std::endl;
+           ofs << sumdr2[i] << "  " << sumdx2[i] << "  " << l2_e2e[i] << "  " << rg2[i] << "  " << nbonds[i] << std::endl;
        }
     }
 
@@ -2781,6 +2928,10 @@ FhdParticleContainer::MeanSqrCalcCM(int lev, int step) {
     Real tt = 0.; // set to zero to protect against grids with no particles
     long nTotal = 0;
     Real sumPosQ[3] = {0,0,0};
+    Real monoDispX = 0;
+    Real monoDispY = 0;
+    Real monoDispZ = 0;
+    Real monoSqrDisp = 0;
     Real sqrDispX[ngroups];
     Real sqrDispY[ngroups];
     Real sqrDispZ[ngroups];
@@ -2856,11 +3007,30 @@ FhdParticleContainer::MeanSqrCalcCM(int lev, int step) {
             travelTime[igroup] = part.rdata(FHD_realData::travelTime);
             groupCount[igroup]++;
 
+	    if(igroup == floor(ngroups/2))
+	    {
+	        monoDispX = dispX;
+	        monoDispY = dispY;
+	        monoDispZ = dispZ;
+	    }
+
         }
 
 
 
     }
+
+    Real temp = monoDispX;        
+    ParallelDescriptor::ReduceRealSum(temp);
+    monoDispX = temp;
+
+    temp = monoDispY;        
+    ParallelDescriptor::ReduceRealSum(temp);
+    monoDispY = temp;
+    
+    temp = monoDispZ;        
+    ParallelDescriptor::ReduceRealSum(temp);
+    monoDispZ = temp;
 
     for(int i=0;i<ngroups;i++)
     {
@@ -2891,6 +3061,7 @@ FhdParticleContainer::MeanSqrCalcCM(int lev, int step) {
     }
 
     // square displacement
+    monoSqrDisp = monoDispX*monoDispX+monoDispY*monoDispY+monoDispZ*monoDispZ;
     for(int i=0;i<ngroups;i++)
     {
         sqrDispX[i] = pow(cmDispX[i],2);
@@ -2925,7 +3096,7 @@ FhdParticleContainer::MeanSqrCalcCM(int lev, int step) {
                     ofs << std::endl;
                 }else if(stepstat[i]<(msd_grp_len[i]+1))
                 {  
-                    ofs << travelTime[i] << "  " << sqrDispX[i] << "  " << sqrDispY[i] << "  "<< sqrDispZ[i] << "  "<< sqrDisp[i] << std::endl;
+                    ofs << travelTime[i] << "  " << sqrDispX[i] << "  " << sqrDispY[i] << "  "<< sqrDispZ[i] << "  "<< sqrDisp[i] << "  " << monoSqrDisp << std::endl;
                 }
         
                 ofs.close();
