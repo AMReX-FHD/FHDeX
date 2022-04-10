@@ -8,6 +8,8 @@
 
 #include "chemistry_functions.H"
 
+#include "MFsurfchem_functions.H"
+
 #include "chrono"
 
 #ifdef MUI
@@ -30,11 +32,14 @@ void main_driver(const char* argv)
     // read the inputs file for common
     InitializeCommonNamespace();
 
-    // read the inputs file for compressible 
+    // read the inputs file for compressible
     InitializeCompressibleNamespace();
 
     // read the inputs file for chemistry
     InitializeChemistryNamespace();
+
+    // read the inputs file for MFsurfchem
+    InitializeMFSurfchemNamespace();
 
 #ifdef MUI
     // read the inputs file for surfchem_mui
