@@ -44,6 +44,10 @@ void main_driver(const char* argv)
 #ifdef MUI
     // read the inputs file for surfchem_mui
     InitializeSurfChemMUINamespace();
+
+    if (ads_spec>=0) {
+        Abort("MFsurfchem cannot be used in compressible_mui");
+    }
 #endif
 
     if (nvars != AMREX_SPACEDIM + 2 + nspecies) {
