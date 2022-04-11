@@ -15,5 +15,6 @@ using namespace amrex;
 using namespace common;
 
 void InitializeMFSurfchemNamespace();
+void init_surfcov(MultiFab& surfcov);
 
 #endif

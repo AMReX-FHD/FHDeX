@@ -190,6 +190,13 @@ void main_driver(const char* argv)
     // 6+ns:6+2ns-1 (Xk;  mole fractions)
     MultiFab prim(ba,dmap,nprimvars,ngc);
 
+    MultiFab surfcov;
+    MultiFab dNadsdes;
+    if (ads_spec>=0) {
+        surfcov.define(ba,dmap,1,ngc);
+        dNadsdes.define(ba,dmap,1,ngc);
+    }
+
     //statistics    
     MultiFab cuMeans  (ba,dmap,nvars,ngc);
     MultiFab cuVars   (ba,dmap,nvars,ngc);
@@ -596,6 +603,8 @@ void main_driver(const char* argv)
 
     // initialize primitive variables
     conservedToPrimitive(prim, cu);
+
+    if (ads_spec>=0) init_surfcov(surfcov);
 
     // Set BC: 1) fill boundary 2) physical
     cu.FillBoundary(geom.periodicity());
