@@ -8,6 +8,8 @@
 
 #include "chemistry_functions.H"
 
+#include "MFsurfchem_functions.H"
+
 #include "chrono"
 
 #ifdef MUI
@@ -30,15 +32,22 @@ void main_driver(const char* argv)
     // read the inputs file for common
     InitializeCommonNamespace();
 
-    // read the inputs file for compressible 
+    // read the inputs file for compressible
     InitializeCompressibleNamespace();
 
     // read the inputs file for chemistry
     InitializeChemistryNamespace();
 
+    // read the inputs file for MFsurfchem
+    InitializeMFSurfchemNamespace();
+
 #ifdef MUI
     // read the inputs file for surfchem_mui
     InitializeSurfChemMUINamespace();
+
+    if (ads_spec>=0) {
+        Abort("MFsurfchem cannot be used in compressible_mui");
+    }
 #endif
 
     if (nvars != AMREX_SPACEDIM + 2 + nspecies) {
@@ -180,6 +189,13 @@ void main_driver(const char* argv)
     // 6:6+ns-1     (Yk;  mass fractions)
     // 6+ns:6+2ns-1 (Xk;  mole fractions)
     MultiFab prim(ba,dmap,nprimvars,ngc);
+
+    MultiFab surfcov;
+    MultiFab dNadsdes;
+    if (ads_spec>=0) {
+        surfcov.define(ba,dmap,1,ngc);
+        dNadsdes.define(ba,dmap,1,ngc);
+    }
 
     //statistics    
     MultiFab cuMeans  (ba,dmap,nvars,ngc);
@@ -587,6 +603,8 @@ void main_driver(const char* argv)
 
     // initialize primitive variables
     conservedToPrimitive(prim, cu);
+
+    if (ads_spec>=0) init_surfcov(surfcov);
 
     // Set BC: 1) fill boundary 2) physical
     cu.FillBoundary(geom.periodicity());
