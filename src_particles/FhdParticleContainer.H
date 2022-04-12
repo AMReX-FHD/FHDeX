@@ -150,7 +150,8 @@ struct FHD_intData {
             "k",
             "species",
             "visible",
-            "pinned"
+            "pinned",
+            "new_species"
         };
     };
 };

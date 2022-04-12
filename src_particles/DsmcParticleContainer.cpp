@@ -713,7 +713,7 @@ void FhdParticleContainer::Source(const Real dt, const paramPlane* paramPlaneLis
 	
 	for (MFIter mfi = MakeMFIter(lev, true); mfi.isValid(); ++mfi)
 	{
-		if(proc_enter && ParallelDescriptor::MyProc()==0)
+		if(proc_enter)
 		{
 			proc_enter = false;//Make sure this runs only once incase of tiling
 
@@ -730,8 +730,7 @@ void FhdParticleContainer::Source(const Real dt, const paramPlane* paramPlaneLis
 					{
 						Real density = paramPlaneList[i].densityRight[j];						
 						Real temp = paramPlaneList[i].temperatureRight;
-//						Real area = paramPlaneList[i].area/ParallelDescriptor::NProcs();
-						Real area = paramPlaneList[i].area;
+						Real area = paramPlaneList[i].area/ParallelDescriptor::NProcs();
 						Real fluxMean = density*area*sqrt(properties[j].R*temp/(2.0*M_PI))/particle_neff;
 
 						//cout << "R: " << properties[j].R << endl;
@@ -821,8 +820,7 @@ void FhdParticleContainer::Source(const Real dt, const paramPlane* paramPlaneLis
 					{
 						Real density = paramPlaneList[i].densityLeft[j];
 						Real temp = paramPlaneList[i].temperatureLeft;
-//						Real area = paramPlaneList[i].area/ParallelDescriptor::NProcs();
-						Real area = paramPlaneList[i].area;
+						Real area = paramPlaneList[i].area/ParallelDescriptor::NProcs();
 						Real fluxMean = density*area*sqrt(properties[j].R*temp/(2.0*M_PI))/particle_neff;
 
 						//cout << "R: " << properties[j].R << endl;
