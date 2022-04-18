@@ -634,12 +634,18 @@ void main_driver(const char* argv)
         // timer
         Real ts1 = ParallelDescriptor::second();
 
+        // sample surface chemistry (via either surfchem_mui or MFsurfchem)
+#ifdef MUI
+        mui_push(cu, prim, dx, uniface, step);
+#endif
+        if (ads_spec>=0) sample_MFsurfchem(cu, surfcov, dNadsdes, dx, dt);
+
+        // FHD
         RK3step(cu, cup, cup2, cup3, prim, source, eta, zeta, kappa, chi, D, flux,
                 stochFlux, cornx, corny, cornz, visccorn, rancorn, ranchem, geom, dt);
 
+        // update surface chemistry (via either surfchem_mui or MFsurfchem)
 #ifdef MUI
-        mui_push(cu, prim, dx, uniface, step);
-
         mui_fetch(cu, prim, dx, uniface, step);
 
         conservedToPrimitive(prim, cu);
@@ -649,6 +655,17 @@ void main_driver(const char* argv)
         prim.FillBoundary(geom.periodicity());
         setBC(prim, cu);
 #endif
+        if (ads_spec>=0) {
+
+            update_MFsurfchem(cu, surfcov, dNadsdes, dx, dt);
+
+            conservedToPrimitive(prim, cu);
+
+            // Set BC: 1) fill boundary 2) physical
+            cu.FillBoundary(geom.periodicity());
+            prim.FillBoundary(geom.periodicity());
+            setBC(prim, cu);
+        }
 
         // timer
         Real ts2 = ParallelDescriptor::second() - ts1;
@@ -697,6 +714,7 @@ void main_driver(const char* argv)
            // also horizontal average
            WriteHorizontalAverage(cu,2,0,5+nspecies,step,geom);
 #endif
+           if (ads_spec>=0) WriteHorizontalAverage(cu,2,0,5+nspecies,step,geom);
 
            // timer
            Real t2 = ParallelDescriptor::second() - t1;
