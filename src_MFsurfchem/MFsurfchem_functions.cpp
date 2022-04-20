@@ -62,3 +62,79 @@ void init_surfcov(MultiFab& surfcov)
 
     return;
 }
+
+void sample_MFsurfchem(MultiFab& cu, MultiFab& surfcov, MultiFab& dNadsdes,
+                       const amrex::Real* dx, const amrex::Real dt)
+{
+    for (MFIter mfi(cu,false); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.tilebox();
+        Dim3 lo = lbound(bx);
+        Dim3 hi = ubound(bx);
+        const Array4<Real> & cu_arr = cu.array(mfi);
+        const Array4<Real> & surfcov_arr = surfcov.array(mfi);
+        const Array4<Real> & dNadsdes_arr = dNadsdes.array(mfi);
+
+        // unless bx contains cells at the interface, skip
+        int k = 0;
+        if (k<lo.z || k>hi.z) continue;
+
+        double Ntot = surf_site_num_dens*dx[0]*dx[1];  // total number of reactive sites
+
+        for (int i = lo.x; i<=hi.x; ++i)
+        {
+            for (int j = lo.y; j<= hi.y; ++j)
+            {
+                double dens = cu_arr(i,j,k,5+ads_spec);   // mass density
+                dens *= AVONUM/molmass[ads_spec];         // number density
+
+                double theta = surfcov_arr(i,j,k,0);
+
+                double meanNads = ads_rate_const*dens*(1-theta)*Ntot*dt;
+                double Nads = meanNads + sqrt(meanNads)*RandomNormal(0.,1.);
+
+                double meanNdes = des_rate*theta*Ntot*dt;
+                double Ndes = meanNdes + sqrt(meanNdes)*RandomNormal(0.,1.);
+
+                dNadsdes_arr(i,j,k,0) = Nads-Ndes;
+            }
+        }
+    }
+
+    return;
+}
+
+void update_MFsurfchem(MultiFab& cu, MultiFab& surfcov, MultiFab& dNadsdes,
+                       const amrex::Real* dx, const amrex::Real dt)
+{
+    for (MFIter mfi(cu,false); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.tilebox();
+        Dim3 lo = lbound(bx);
+        Dim3 hi = ubound(bx);
+        const Array4<Real> & cu_arr = cu.array(mfi);
+        const Array4<Real> & surfcov_arr = surfcov.array(mfi);
+        const Array4<Real> & dNadsdes_arr = dNadsdes.array(mfi);
+
+        // unless bx contains cells at the interface, skip
+        int k = 0;
+        if (k<lo.z || k>hi.z) continue;
+
+        double Ntot = surf_site_num_dens*dx[0]*dx[1];  // total number of reactive sites
+        double factor = molmass[ads_spec]/AVONUM/(dx[0]*dx[1]*dx[2]);
+
+        for (int i = lo.x; i<=hi.x; ++i)
+        {
+            for (int j = lo.y; j<= hi.y; ++j)
+            {
+                double dN = dNadsdes_arr(i,j,k,0);
+
+                surfcov_arr(i,j,k,0) += dN/Ntot;
+                cu_arr(i,j,k,0) -= factor*dN;
+                cu_arr(i,j,k,5+ads_spec) -= factor*dN;
+            }
+        }
+    }
+
+    return;
+}
