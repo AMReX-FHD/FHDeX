@@ -26,25 +26,25 @@ class SoA(object, metaclass=multimeta):
 
         # Copy positions
         str_pos = self._pref + self._pos
-        self.px = np.array(data[str_pos + "x"])
-        self.py = np.array(data[str_pos + "y"])
-        self.pz = np.array(data[str_pos + "z"])
+        self.px = np.array(data["all", str_pos + "x"])
+        self.py = np.array(data["all", str_pos + "y"])
+        self.pz = np.array(data["all", str_pos + "z"])
 
         # Copy velocities
         if copy_v:
             str_vel = self._pref + self._vel
-            self.vx = np.array(data[str_vel + "x"])
-            self.vy = np.array(data[str_vel + "y"])
-            self.vz = np.array(data[str_vel + "z"])
+            self.vx = np.array(data["all", str_vel + "x"])
+            self.vy = np.array(data["all", str_vel + "y"])
+            self.vz = np.array(data["all", str_vel + "z"])
 
         # Copy particle ID
         if copy_id:
-            self.id    = np.array(data[self._pref + self._id],    dtype=int)
-            self.cpu   = np.array(data[self._pref + self._cpu],   dtype=int)
-            self.id_0  = np.array(data[self._pref + self._id_0],  dtype=int)
-            self.cpu_0 = np.array(data[self._pref + self._cpu_0], dtype=int)
-            self.id_1  = np.array(data[self._pref + self._id_1],  dtype=int)
-            self.cpu_1 = np.array(data[self._pref + self._cpu_1], dtype=int)
+            self.id    = np.array(data["all", self._pref + self._id],    dtype=int)
+            self.cpu   = np.array(data["all", self._pref + self._cpu],   dtype=int)
+            self.id_0  = np.array(data["all", self._pref + self._id_0],  dtype=int)
+            self.cpu_0 = np.array(data["all", self._pref + self._cpu_0], dtype=int)
+            self.id_1  = np.array(data["all", self._pref + self._id_1],  dtype=int)
+            self.cpu_1 = np.array(data["all", self._pref + self._cpu_1], dtype=int)
 
 
 

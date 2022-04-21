@@ -8,6 +8,8 @@
 
 #include "chemistry_functions.H"
 
+#include "MFsurfchem_functions.H"
+
 #include "chrono"
 
 #ifdef MUI
@@ -30,15 +32,22 @@ void main_driver(const char* argv)
     // read the inputs file for common
     InitializeCommonNamespace();
 
-    // read the inputs file for compressible 
+    // read the inputs file for compressible
     InitializeCompressibleNamespace();
 
     // read the inputs file for chemistry
     InitializeChemistryNamespace();
 
+    // read the inputs file for MFsurfchem
+    InitializeMFSurfchemNamespace();
+
 #ifdef MUI
     // read the inputs file for surfchem_mui
     InitializeSurfChemMUINamespace();
+
+    if (ads_spec>=0) {
+        Abort("MFsurfchem cannot be used in compressible_mui");
+    }
 #endif
 
     if (nvars != AMREX_SPACEDIM + 2 + nspecies) {
@@ -180,6 +189,13 @@ void main_driver(const char* argv)
     // 6:6+ns-1     (Yk;  mass fractions)
     // 6+ns:6+2ns-1 (Xk;  mole fractions)
     MultiFab prim(ba,dmap,nprimvars,ngc);
+
+    MultiFab surfcov;
+    MultiFab dNadsdes;
+    if (ads_spec>=0) {
+        surfcov.define(ba,dmap,1,ngc);
+        dNadsdes.define(ba,dmap,1,ngc);
+    }
 
     //statistics    
     MultiFab cuMeans  (ba,dmap,nvars,ngc);
@@ -588,6 +604,8 @@ void main_driver(const char* argv)
     // initialize primitive variables
     conservedToPrimitive(prim, cu);
 
+    if (ads_spec>=0) init_surfcov(surfcov);
+
     // Set BC: 1) fill boundary 2) physical
     cu.FillBoundary(geom.periodicity());
     prim.FillBoundary(geom.periodicity());
@@ -616,12 +634,18 @@ void main_driver(const char* argv)
         // timer
         Real ts1 = ParallelDescriptor::second();
 
+        // sample surface chemistry (via either surfchem_mui or MFsurfchem)
+#ifdef MUI
+        mui_push(cu, prim, dx, uniface, step);
+#endif
+        if (ads_spec>=0) sample_MFsurfchem(cu, surfcov, dNadsdes, dx, dt);
+
+        // FHD
         RK3step(cu, cup, cup2, cup3, prim, source, eta, zeta, kappa, chi, D, flux,
                 stochFlux, cornx, corny, cornz, visccorn, rancorn, ranchem, geom, dt);
 
+        // update surface chemistry (via either surfchem_mui or MFsurfchem)
 #ifdef MUI
-        mui_push(cu, prim, dx, uniface, step);
-
         mui_fetch(cu, prim, dx, uniface, step);
 
         conservedToPrimitive(prim, cu);
@@ -631,11 +655,24 @@ void main_driver(const char* argv)
         prim.FillBoundary(geom.periodicity());
         setBC(prim, cu);
 #endif
+        if (ads_spec>=0) {
+
+            update_MFsurfchem(cu, surfcov, dNadsdes, dx, dt);
+
+            conservedToPrimitive(prim, cu);
+
+            // Set BC: 1) fill boundary 2) physical
+            cu.FillBoundary(geom.periodicity());
+            prim.FillBoundary(geom.periodicity());
+            setBC(prim, cu);
+        }
 
         // timer
         Real ts2 = ParallelDescriptor::second() - ts1;
         ParallelDescriptor::ReduceRealMax(ts2);
-    	amrex::Print() << "Advanced step " << step << " in " << ts2 << " seconds\n";
+        if (step%100 == 0) {
+    	      amrex::Print() << "Advanced step " << step << " in " << ts2 << " seconds\n";
+        }
         
         // compute mean and variances
         if (step > n_steps_skip && stats_int > 0 && step%stats_int == 0) {
@@ -650,7 +687,12 @@ void main_driver(const char* argv)
             // timer
             Real t2 = ParallelDescriptor::second() - t1;
             ParallelDescriptor::ReduceRealMax(t2);
-            amrex::Print() << "evaluateStats time " << t2 << " seconds\n";
+            if (step%100 == 0) {
+                amrex::Print() << "evaluateStats time " << t2 << " seconds\n";
+            }
+        }
+        if (step%100 == 0) {
+            amrex::Print() << "Mean Momentum (x, y, z): " << ComputeSpatialMean(cu, 1) << " " << ComputeSpatialMean(cu, 2) << " " << ComputeSpatialMean(cu, 3) << "\n";
         }
 
         // write a plotfile
@@ -672,6 +714,7 @@ void main_driver(const char* argv)
            // also horizontal average
            WriteHorizontalAverage(cu,2,0,5+nspecies,step,geom);
 #endif
+           if (ads_spec>=0) WriteHorizontalAverage(cu,2,0,5+nspecies,step,geom);
 
            // timer
            Real t2 = ParallelDescriptor::second() - t1;
@@ -934,8 +977,10 @@ void main_driver(const char* argv)
         ParallelDescriptor::ReduceLongMin(min_fab_megabytes, IOProc);
         ParallelDescriptor::ReduceLongMax(max_fab_megabytes, IOProc);
 
-        amrex::Print() << "High-water FAB megabyte spread across MPI nodes: ["
+        if (step%100 == 0) {
+            amrex::Print() << "High-water FAB megabyte spread across MPI nodes: ["
                        << min_fab_megabytes << " ... " << max_fab_megabytes << "]\n";
+        }
 
         min_fab_megabytes  = amrex::TotalBytesAllocatedInFabs()/1048576;
         max_fab_megabytes  = min_fab_megabytes;
@@ -943,8 +988,10 @@ void main_driver(const char* argv)
         ParallelDescriptor::ReduceLongMin(min_fab_megabytes, IOProc);
         ParallelDescriptor::ReduceLongMax(max_fab_megabytes, IOProc);
 
-        amrex::Print() << "Curent     FAB megabyte spread across MPI nodes: ["
+        if (step%100 == 0) {
+            amrex::Print() << "Curent     FAB megabyte spread across MPI nodes: ["
                        << min_fab_megabytes << " ... " << max_fab_megabytes << "]\n";
+        }
     }
 
     // timer

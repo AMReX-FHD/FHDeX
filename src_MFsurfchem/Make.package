@@ -1,0 +1,4 @@
+CEXE_sources   += MFsurfchem_functions.cpp
+CEXE_headers   += MFsurfchem_functions.H
+
+CEXE_headers   += MFsurfchem_namespace.H
