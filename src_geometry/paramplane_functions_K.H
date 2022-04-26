@@ -240,21 +240,21 @@ void app_bc_gpu(const paramPlane* surf, FhdParticleContainer::ParticleType& part
           part.rdata(FHD_realData::velz) = -2.0*dotprod*surf->rnz + part.rdata(FHD_realData::velz);
  //                   cout << "POSTVEL: " << part.rdata(FHD_realData::velx) << ", " << part.rdata(FHD_realData::vely) << ", " << part.rdata(FHD_realData::velz) << endl;
         
-          if(surf->species > -1)
-          {
-              if(amrex::Random(engine) > 0.1)
-              {
-                part.idata(FHD_intData::newSpecies) = surf->species;
-              }else
-              {
-                if(surf->species == 0)
-                {
-                    part.idata(FHD_intData::newSpecies) = 1;
-                }else
-                {
-                    part.idata(FHD_intData::newSpecies) = 0;
-                }
-              }
+/*          if(surf->species > -1)*/
+/*          {*/
+/*              if(amrex::Random(engine) > 0.1)*/
+/*              {*/
+/*                part.idata(FHD_intData::newSpecies) = surf->species;*/
+/*              }else*/
+/*              {*/
+/*                if(surf->species == 0)*/
+/*                {*/
+/*                    part.idata(FHD_intData::newSpecies) = 1;*/
+/*                }else*/
+/*                {*/
+/*                    part.idata(FHD_intData::newSpecies) = 0;*/
+/*                }*/
+/*              }*/
 /*            if(amrex::Random()<0.5)*/
 /*            {*/
 /*                part.idata(FHD_intData::newSpecies) = 0;*/
@@ -262,7 +262,7 @@ void app_bc_gpu(const paramPlane* surf, FhdParticleContainer::ParticleType& part
 /*            {*/
 /*                part.idata(FHD_intData::newSpecies) = 1;*/
 /*            }*/
-          }
+/*          }*/
         
                               //exit(1);
         }
@@ -348,21 +348,21 @@ void app_bc_gpu(const paramPlane* surf, FhdParticleContainer::ParticleType& part
           part.rdata(FHD_realData::velz) = -2.0*dotprod*surf->lnz + part.rdata(FHD_realData::velz);
 //                    cout << "POSTVEL: " << part.rdata(FHD_realData::velx) << ", " << part.rdata(FHD_realData::vely) << ", " << part.rdata(FHD_realData::velz) << endl;
 
-          if(surf->species > -1)
-          {
-              if(amrex::Random(engine) > 0.1)
-              {
-                part.idata(FHD_intData::newSpecies) = surf->species;
-              }else
-              {
-                if(surf->species == 0)
-                {
-                    part.idata(FHD_intData::newSpecies) = 1;
-                }else
-                {
-                    part.idata(FHD_intData::newSpecies) = 0;
-                }
-              }
+/*          if(surf->species > -1)*/
+/*          {*/
+/*              if(amrex::Random(engine) > 0.1)*/
+/*              {*/
+/*                part.idata(FHD_intData::newSpecies) = surf->species;*/
+/*              }else*/
+/*              {*/
+/*                if(surf->species == 0)*/
+/*                {*/
+/*                    part.idata(FHD_intData::newSpecies) = 1;*/
+/*                }else*/
+/*                {*/
+/*                    part.idata(FHD_intData::newSpecies) = 0;*/
+/*                }*/
+/*              }*/
 /*            if(amrex::Random()<0.5)*/
 /*            {*/
 /*                part.idata(FHD_intData::newSpecies) = 0;*/
@@ -370,7 +370,7 @@ void app_bc_gpu(const paramPlane* surf, FhdParticleContainer::ParticleType& part
 /*            {*/
 /*                part.idata(FHD_intData::newSpecies) = 1;*/
 /*            }*/
-          }
+/*          }*/
         }
         else
         {
