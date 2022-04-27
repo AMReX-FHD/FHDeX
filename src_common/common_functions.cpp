@@ -1128,12 +1128,14 @@ void InitializeCommonNamespace() {
     if (wallspeed_y_hi[1] != 0.) {
         Abort("wallspeed_y_hi[1] must be 0");
     }
+#if (AMREX_SPACEDIM == 3)
     if (wallspeed_z_lo[2] != 0.) {
         Abort("wallspeed_z_lo[2] must be 0");
     }
     if (wallspeed_z_hi[2] != 0.) {
         Abort("wallspeed_z_hi[2] must be 0");
     }
+#endif
     
     
 }
