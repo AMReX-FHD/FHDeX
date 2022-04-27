@@ -359,6 +359,15 @@ void MultiFabPhysBCMacVel(MultiFab& vel, const Geometry& geom, int dim) {
 
     int ng = vel.nGrow();
 
+    // figure out which component of velocity we are dealing with
+    int dir = -1;
+    for (int i=0; i<AMREX_SPACEDIM; ++i) {
+        if (vel.is_nodal(i)) {
+            dir = i;
+            break;
+        }
+    }
+
     for (MFIter mfi(vel); mfi.isValid(); ++mfi) {
 
         Box bx = mfi.growntilebox(ng);
