@@ -67,6 +67,25 @@ void GMRES::Solve (std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & 
 
     Vector<Real> inner_prod_vel(AMREX_SPACEDIM);
     Real inner_prod_pres;
+
+    //////////////////////////////////////
+    // account for inhomogeneous boundary conditions, e.g., moving walls
+    // use r_u, tmp_u, r_p, tmp_p as temporary storage
+
+    r_p.setVal(0.);
+
+    for (int i=0; i<AMREX_SPACEDIM; ++i ) {
+        r_u[i].setVal(0.);
+        MultiFabPhysBCMacVel(r_u[i], geom, i);
+    }
+
+    ApplyMatrix(tmp_u, tmp_p, r_u, r_p,
+                alpha_fc, beta, beta_ed, gamma, theta_alpha, geom);
+
+    for (int i=0; i<AMREX_SPACEDIM; ++i) {
+        MultiFab::Subtract(b_u[i], tmp_u[i], 0, 0, 1, 0);
+    }
+    //////////////////////////////////////
     
     //////////////////////////////////////
 

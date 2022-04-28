@@ -121,34 +121,6 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
   if (turbForcing == 1) {
       turbforce.AddTurbForcing(gmres_rhs_u,dt,1);
   }
-
-  //////////////////////////////////////
-  // account for moving walls
-  std::array< MultiFab, AMREX_SPACEDIM > zeromac;
-  AMREX_D_TERM(zeromac[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
-               zeromac[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
-               zeromac[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
-  std::array< MultiFab, AMREX_SPACEDIM > Lzeromac;
-  AMREX_D_TERM(Lzeromac[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
-               Lzeromac[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
-               Lzeromac[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
-
-  MultiFab zeropres(ba,dmap,1,1);
-  MultiFab Lzeropres(ba,dmap,1,1);
-  zeropres.setVal(0.);
-
-  for (int i=0; i<AMREX_SPACEDIM; ++i ) {
-      zeromac[i].setVal(0.);
-      MultiFabPhysBCMacVel(zeromac[i], geom, i);
-  }
-
-  ApplyMatrix(Lzeromac, Lzeropres, zeromac, zeropres,
-              alpha_fc, beta, beta_ed, gamma, theta_alpha, geom);
-
-  for (int i=0; i<AMREX_SPACEDIM; ++i) {
-      MultiFab::Subtract(gmres_rhs_u[i], Lzeromac[i], 0, 0, 1, 0);
-  }
-  //////////////////////////////////////
     
   // initial guess for new solution
   // for pressure use previous solution as initial guess
@@ -233,13 +205,6 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
   if (turbForcing == 1) {
       turbforce.AddTurbForcing(gmres_rhs_u,dt,0);
   }
-
-  //////////////////////////////////////
-  // account for moving walls
-  for (int i=0; i<AMREX_SPACEDIM; ++i) {
-      MultiFab::Subtract(gmres_rhs_u[i], Lzeromac[i], 0, 0, 1, 0);
-  }
-  //////////////////////////////////////
 
   // initial guess for new solution
   // for pressure use previous solution as initial guess
