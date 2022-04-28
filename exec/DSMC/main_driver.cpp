@@ -341,7 +341,7 @@ void main_driver(const char* argv)
 		}
 		tend = ParallelDescriptor::second() - tbegin;
 		ParallelDescriptor::ReduceRealMax(tend);
-		if(istep%1000==0)
+		if(istep%100==0)
 		{
 		    amrex::Print() << "Advanced step " << istep << " in " << tend << " seconds\n";
 		}

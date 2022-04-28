@@ -170,10 +170,10 @@ main (int   argc,
             for (auto j = lo.y; j <= hi.y; ++j) {
             for (auto i = lo.x; i <= hi.x; ++i) {
 
-                lap(i,j,k,n) =  (vel(i+1,j,k,n) - 2.*vel(i,j,k,n) + vel(i-1,j,k,n)) / (dx[0]*dx[0])
-                               +(vel(i,j+1,k,n) - 2.*vel(i,j,k,n) + vel(i,j-1,k,n)) / (dx[1]*dx[1])
+                lap(i,j,k,n) = -(vel(i+1,j,k,n) - 2.*vel(i,j,k,n) + vel(i-1,j,k,n)) / (dx[0]*dx[0])
+                               -(vel(i,j+1,k,n) - 2.*vel(i,j,k,n) + vel(i,j-1,k,n)) / (dx[1]*dx[1])
 #if (AMREX_SPACEDIM == 3)
-                               +(vel(i,j,k+1,n) - 2.*vel(i,j,k,n) + vel(i,j,k+1,n)) / (dx[2]*dx[2])
+                               -(vel(i,j,k+1,n) - 2.*vel(i,j,k,n) + vel(i,j,k+1,n)) / (dx[2]*dx[2])
 #endif
                     ;
             }

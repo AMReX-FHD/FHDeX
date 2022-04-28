@@ -11,9 +11,9 @@
   prob_type = 0
 
   # number of cells in domain
-  n_cells = 32 16 16
+  n_cells = 64 32 32
   # max number of cells in a box
-  max_grid_size = 16 8 8
+  max_grid_size = 32 32 32
 
   # Time-step control
   fixed_dt = 1e-5
@@ -53,8 +53,8 @@
   # ----------------------
   # BC specifications:
   # -1 = periodic, 2 = no-slip wall, -2 = periodic pressure
-  bc_vel_lo = -1 -1 -1
-  bc_vel_hi = -1 -1 -1
+  bc_vel_lo = -1  2  2
+  bc_vel_hi = -1  2  2
 
   p_lo  = 0 -.1  0
   p_hi  = 0  .1  0
@@ -96,7 +96,7 @@
   contains_flagellum = true
 
 
-
+/
 
 &ib_flagellum
 
@@ -110,4 +110,4 @@
   k_spring   = 1e-3
   k_driving  = 1e-3
 
-
+/

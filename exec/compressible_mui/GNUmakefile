@@ -25,6 +25,10 @@ include ../../src_chemistry/Make.package
 VPATH_LOCATIONS   += ../../src_chemistry/
 INCLUDE_LOCATIONS += ../../src_chemistry/
 
+include ../../src_MFsurfchem/Make.package
+VPATH_LOCATIONS   += ../../src_MFsurfchem/
+INCLUDE_LOCATIONS += ../../src_MFsurfchem/
+
 include ../../src_surfchem_mui/Make.package
 VPATH_LOCATIONS   += ../../src_surfchem_mui/
 INCLUDE_LOCATIONS += ../../src_surfchem_mui/

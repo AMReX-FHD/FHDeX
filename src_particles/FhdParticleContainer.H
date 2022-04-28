@@ -147,6 +147,7 @@ struct FHD_intData {
         groupid,
         prev,
         next,
+        newSpecies,
         count
     };
 
@@ -162,6 +163,7 @@ struct FHD_intData {
 	    "groupid",
 	    "prev",
 	    "next"
+            "new_species"
         };
     };
 };

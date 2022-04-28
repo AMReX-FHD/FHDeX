@@ -512,6 +512,39 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
            	paramPlaneList[0].temperatureRight = t_lo[0];
         }		 
 	}
+	else if(bc_vel_lo[0] == 4)
+	{
+		paramPlaneList[0].periodicity = 0;
+		paramPlaneList[0].porosityLeft = 0;
+		paramPlaneList[0].porosityRight = 0;
+		paramPlaneList[0].sourceRight = 0;
+     	paramPlaneList[0].sourceLeft = 0;
+     	paramPlaneList[0].sinkLeft = 0;
+    	paramPlaneList[0].sinkRight = 0;
+    	paramPlaneList[0].specularityRight 	= 0;
+
+		for (int l=0; l<nspecies; l++)
+		{    	
+           	paramPlaneList[0].temperatureRight = t_lo[0];
+        }		 
+	}
+	else if(bc_vel_lo[0] == 5)
+	{
+		paramPlaneList[0].periodicity = 0;
+		paramPlaneList[0].porosityLeft = 0;
+		paramPlaneList[0].porosityRight = 0;
+		paramPlaneList[0].sourceRight = 0;
+     	paramPlaneList[0].sourceLeft = 0;
+     	paramPlaneList[0].sinkLeft = 0;
+    	paramPlaneList[0].sinkRight = 0;
+    	paramPlaneList[0].specularityRight 	= 1;
+	   	paramPlaneList[0].species 	= bc_spec_lo[0];
+
+		for (int l=0; l<nspecies; l++)
+		{    	
+           	paramPlaneList[0].temperatureRight = t_lo[0];
+        }		 
+	}
 	else
 	{
 		paramPlaneList[0].periodicity = 0;
@@ -600,6 +633,41 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 		for (int l=0; l<nspecies; l++)
 		{    	
         	paramPlaneList[1].densityLeft[l] = bc_Xk_x_hi[l]*n_hi[0];
+           	paramPlaneList[1].temperatureLeft = t_hi[0];
+        }  
+  }
+  else if(bc_vel_hi[0] == 4)
+  {
+		paramPlaneList[1].periodicity = 0;
+		paramPlaneList[1].porosityLeft = 0;
+		paramPlaneList[1].porosityRight = 0;
+		paramPlaneList[1].sourceRight = 0;
+     	paramPlaneList[1].sourceLeft = 0;
+     	paramPlaneList[1].sinkLeft = 0;
+    	paramPlaneList[1].sinkRight = 0;
+    	paramPlaneList[1].specularityLeft = 0;
+
+		for (int l=0; l<nspecies; l++)
+		{    	
+
+           	paramPlaneList[1].temperatureLeft = t_hi[0];
+        }  
+  }
+  else if(bc_vel_hi[0] == 5)
+  {
+		paramPlaneList[1].periodicity = 0;
+		paramPlaneList[1].porosityLeft = 0;
+		paramPlaneList[1].porosityRight = 0;
+		paramPlaneList[1].sourceRight = 0;
+     	paramPlaneList[1].sourceLeft = 0;
+     	paramPlaneList[1].sinkLeft = 0;
+    	paramPlaneList[1].sinkRight = 0;
+    	paramPlaneList[1].specularityLeft = 1;
+	   	paramPlaneList[1].species = bc_spec_hi[0];
+
+		for (int l=0; l<nspecies; l++)
+		{    	
+
            	paramPlaneList[1].temperatureLeft = t_hi[0];
         }  
   }

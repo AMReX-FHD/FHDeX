@@ -53,6 +53,7 @@ struct FHD_intData {
 		j,
 		k,
 		species,
+		newSpecies,
 		count
 	};
 
@@ -111,6 +112,7 @@ public:
 
 	void CalcSelections(Real dt);
 	void CollideParticles(Real dt);
+	void CollideParticles2(Real dt);
 
 	void MoveParticlesCPP(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount);
     void MovePhononsCPP(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount, const int step);
@@ -164,7 +166,7 @@ public:
 	Real ocollisionCellVol;
 	Real domainVol;
 	Real domSize[3];
-	Real dx[3];
+	//Real dx[3];
 
 	int getSpeciesIndex(int species1, int species2);
 

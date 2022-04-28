@@ -357,118 +357,144 @@ void InitConsVarStag(MultiFab& cons,
             
            }
 
-            else if (prob_type == 108) { // two-fluid Rayleigh Taylor. 0: lighter species; 1: heavier
+           else if (prob_type == 108) { // two-fluid Rayleigh Taylor. 0: lighter species; 1: heavier
 
-                // rhobar, rho0 and T_init[0] set the ambient pressure at the top of the domain
-                Real pamb;
-                GetPressureGas(pamb,rhobar,rho0,T_init[0]);
-                
-                Real molmixT = 0.;
-                Real molmixB = 0.;
-                for (int l=0; l<nspecies; ++l) {
-                    molmixB = molmixB + bc_Yk_z_lo[l]/molmass[l];
-                    molmixT = molmixT + bc_Yk_z_hi[l]/molmass[l];
-                }
-                molmixB = 1.0/molmixB;
-                molmixT = 1.0/molmixT;
-                Real rgasmixB = Runiv/molmixB;
-                Real rgasmixT = Runiv/molmixT;
+               // rhobar, rho0 and T_init[0] set the ambient pressure at the top of the domain
+               Real pamb;
+               GetPressureGas(pamb,rhobar,rho0,T_init[0]);
+               
+               Real molmixT = 0.;
+               Real molmixB = 0.;
+               for (int l=0; l<nspecies; ++l) {
+                   molmixB = molmixB + bc_Yk_z_lo[l]/molmass[l];
+                   molmixT = molmixT + bc_Yk_z_hi[l]/molmass[l];
+               }
+               molmixB = 1.0/molmixB;
+               molmixT = 1.0/molmixT;
+               Real rgasmixB = Runiv/molmixB;
+               Real rgasmixT = Runiv/molmixT;
 
-                Real Lz = realhi[2] - reallo[2];
-                Real Lz2 = Lz/2.0;
+               Real Lz = realhi[2] - reallo[2];
+               Real Lz2 = Lz/2.0;
 
-                // To set p = pamb at the top: solve for p_int, such that: pamb = p_int*exp(grav*Lz/2.0/rgasmixT/T)
-                // This comes from the ODE: dp/dz = p*g/(rgas*T)
-                // p_int is the interface pressure
-                // Also solve for p_bot, such that p_int = p_bot*exp(grav*Lz/2.0/rgasmixB/T)
-                Real p_int = pamb*exp(-1.0*grav[2]*Lz2/rgasmixT/T_init[0]);
+               // To set p = pamb at the top: solve for p_int, such that: pamb = p_int*exp(grav*Lz/2.0/rgasmixT/T)
+               // This comes from the ODE: dp/dz = p*g/(rgas*T)
+               // p_int is the interface pressure
+               // Also solve for p_bot, such that p_int = p_bot*exp(grav*Lz/2.0/rgasmixB/T)
+               Real p_int = pamb*exp(-1.0*grav[2]*Lz2/rgasmixT/T_init[0]);
 
-                Real p_bot = p_int*exp(-1.0*grav[2]*Lz2/rgasmixB/T_init[0]);
+               Real p_bot = p_int*exp(-1.0*grav[2]*Lz2/rgasmixB/T_init[0]);
 
-                if (relpos[2] >= 0.0) { // top half
-                    Real press = p_int*exp(grav[2]*(pos[2]-Lz2)/rgasmixT/T_init[0]);
-                    Real density;
-                    GetDensity(press,density,T_init[0],bc_Yk_z_hi);
-                    cu(i,j,k,0) = density;
-                    for (int l=0;l<nspecies;l++) {
-                        cu(i,j,k,5+l) = density*bc_Yk_z_hi[l];
-                    }
-                    Real intEnergy;
-                    GetEnergy(intEnergy, bc_Yk_z_hi, T_init[0]);
-                    cu(i,j,k,4) = cu(i,j,k,0)*intEnergy + 0.5*(cu(i,j,k,1)*cu(i,j,k,1) +
-                                                               cu(i,j,k,2)*cu(i,j,k,2) +
-                                                               cu(i,j,k,3)*cu(i,j,k,3)) / cu(i,j,k,0);
-                }
+               if (relpos[2] >= 0.0) { // top half
+                   Real press = p_int*exp(grav[2]*(pos[2]-Lz2)/rgasmixT/T_init[0]);
+                   Real density;
+                   GetDensity(press,density,T_init[0],bc_Yk_z_hi);
+                   cu(i,j,k,0) = density;
+                   for (int l=0;l<nspecies;l++) {
+                       cu(i,j,k,5+l) = density*bc_Yk_z_hi[l];
+                   }
+                   Real intEnergy;
+                   GetEnergy(intEnergy, bc_Yk_z_hi, T_init[0]);
+                   cu(i,j,k,4) = cu(i,j,k,0)*intEnergy + 0.5*(cu(i,j,k,1)*cu(i,j,k,1) +
+                                                              cu(i,j,k,2)*cu(i,j,k,2) +
+                                                              cu(i,j,k,3)*cu(i,j,k,3)) / cu(i,j,k,0);
+               }
 
-                else { // bottom half
-                    Real press = p_bot*exp(grav[2]*pos[2]/rgasmixB/T_init[0]);
-                    Real density;
-                    GetDensity(press,density,T_init[0],bc_Yk_z_lo);
-                    cu(i,j,k,0) = density;
-                    for (int l=0;l<nspecies;l++) {
-                        cu(i,j,k,5+l) = density*bc_Yk_z_lo[l];
-                    }
-                    Real intEnergy;
-                    GetEnergy(intEnergy, bc_Yk_z_lo, T_init[0]);
-                    cu(i,j,k,4) = cu(i,j,k,0)*intEnergy + 0.5*(cu(i,j,k,1)*cu(i,j,k,1) +
-                                                               cu(i,j,k,2)*cu(i,j,k,2) +
-                                                               cu(i,j,k,3)*cu(i,j,k,3)) / cu(i,j,k,0);
-                }
-            
+               else { // bottom half
+                   Real press = p_bot*exp(grav[2]*pos[2]/rgasmixB/T_init[0]);
+                   Real density;
+                   GetDensity(press,density,T_init[0],bc_Yk_z_lo);
+                   cu(i,j,k,0) = density;
+                   for (int l=0;l<nspecies;l++) {
+                       cu(i,j,k,5+l) = density*bc_Yk_z_lo[l];
+                   }
+                   Real intEnergy;
+                   GetEnergy(intEnergy, bc_Yk_z_lo, T_init[0]);
+                   cu(i,j,k,4) = cu(i,j,k,0)*intEnergy + 0.5*(cu(i,j,k,1)*cu(i,j,k,1) +
+                                                              cu(i,j,k,2)*cu(i,j,k,2) +
+                                                              cu(i,j,k,3)*cu(i,j,k,3)) / cu(i,j,k,0);
+               }
+           
            }
 
-            else if (prob_type == 109) { // two-fluid Rayleigh Taylor (iso-density; vary temperature)
+           else if (prob_type == 109) { // two-fluid Rayleigh Taylor (iso-density; vary temperature)
 
-                // rhobar, rho0 and T_init[0] set the ambient pressure at the top of the domain
-                Real pamb;
-                GetPressureGas(pamb,rhobar,rho0,T_init[0]);
-                
-                Real molmixT = 0.;
-                Real molmixB = 0.;
-                for (int l=0; l<nspecies; ++l) {
-                    molmixB = molmixB + bc_Yk_z_lo[l]/molmass[l];
-                    molmixT = molmixT + bc_Yk_z_hi[l]/molmass[l];
-                }
-                molmixB = 1.0/molmixB;
-                molmixT = 1.0/molmixT;
-                Real rgasmixB = Runiv/molmixB;
-                Real rgasmixT = Runiv/molmixT;
+               // rhobar, rho0 and T_init[0] set the ambient pressure at the top of the domain
+               Real pamb;
+               GetPressureGas(pamb,rhobar,rho0,T_init[0]);
+               
+               Real molmixT = 0.;
+               Real molmixB = 0.;
+               for (int l=0; l<nspecies; ++l) {
+                   molmixB = molmixB + bc_Yk_z_lo[l]/molmass[l];
+                   molmixT = molmixT + bc_Yk_z_hi[l]/molmass[l];
+               }
+               molmixB = 1.0/molmixB;
+               molmixT = 1.0/molmixT;
+               Real rgasmixB = Runiv/molmixB;
+               Real rgasmixT = Runiv/molmixT;
 
-                Real Lz = realhi[2] - reallo[2];
-                Real Lz2 = Lz/2.0;
+               Real Lz = realhi[2] - reallo[2];
+               Real Lz2 = Lz/2.0;
 
-                // solve dp/dz = rho*g for a constant rho_top and rho_bottom
-                // given p = pamb at the top, get interface p_int and bottom p_bot
-                Real p_int = pamb - rho_hi[2]*grav[2]*Lz2;
-                Real p_bot = pamb - (rho_lo[2] + rho_hi[2])*grav[2]*Lz2;
+               // solve dp/dz = rho*g for a constant rho_top and rho_bottom
+               // given p = pamb at the top, get interface p_int and bottom p_bot
+               Real p_int = pamb - rho_hi[2]*grav[2]*Lz2;
+               Real p_bot = pamb - (rho_lo[2] + rho_hi[2])*grav[2]*Lz2;
 
-                if (relpos[2] >= 0.0) { // top half
-                    Real press = p_int + rho_hi[2]*grav[2]*(pos[2]-Lz2);
-                    cu(i,j,k,0) = rho_hi[2];
-                    for (int l=0;l<nspecies;l++) {
-                        cu(i,j,k,5+l) = rho_hi[2]*bc_Yk_z_hi[l];
-                    }
-                    Real temp = press/(rho_hi[2]*(Runiv/molmixT));
-                    Real intEnergy;
-                    GetEnergy(intEnergy, bc_Yk_z_hi, temp);
-                    cu(i,j,k,4) = cu(i,j,k,0)*intEnergy + 0.5*(cu(i,j,k,1)*cu(i,j,k,1) +
-                                                               cu(i,j,k,2)*cu(i,j,k,2) +
-                                                               cu(i,j,k,3)*cu(i,j,k,3)) / cu(i,j,k,0);
-                }
-                else { // bottom half
-                    Real press = p_bot + rho_lo[2]*grav[2]*pos[2];
-                    cu(i,j,k,0) = rho_lo[2];
-                    for (int l=0;l<nspecies;l++) {
-                        cu(i,j,k,5+l) = rho_lo[2]*bc_Yk_z_lo[l];
-                    }
-                    Real temp = press/(rho_lo[2]*(Runiv/molmixB));
-                    Real intEnergy;
-                    GetEnergy(intEnergy, bc_Yk_z_lo, temp);
-                    cu(i,j,k,4) = cu(i,j,k,0)*intEnergy + 0.5*(cu(i,j,k,1)*cu(i,j,k,1) +
-                                                               cu(i,j,k,2)*cu(i,j,k,2) +
-                                                               cu(i,j,k,3)*cu(i,j,k,3)) / cu(i,j,k,0);
-                }
+               if (relpos[2] >= 0.0) { // top half
+                   Real press = p_int + rho_hi[2]*grav[2]*(pos[2]-Lz2);
+                   cu(i,j,k,0) = rho_hi[2];
+                   for (int l=0;l<nspecies;l++) {
+                       cu(i,j,k,5+l) = rho_hi[2]*bc_Yk_z_hi[l];
+                   }
+                   Real temp = press/(rho_hi[2]*(Runiv/molmixT));
+                   Real intEnergy;
+                   GetEnergy(intEnergy, bc_Yk_z_hi, temp);
+                   cu(i,j,k,4) = cu(i,j,k,0)*intEnergy + 0.5*(cu(i,j,k,1)*cu(i,j,k,1) +
+                                                              cu(i,j,k,2)*cu(i,j,k,2) +
+                                                              cu(i,j,k,3)*cu(i,j,k,3)) / cu(i,j,k,0);
+               }
+               else { // bottom half
+                   Real press = p_bot + rho_lo[2]*grav[2]*pos[2];
+                   cu(i,j,k,0) = rho_lo[2];
+                   for (int l=0;l<nspecies;l++) {
+                       cu(i,j,k,5+l) = rho_lo[2]*bc_Yk_z_lo[l];
+                   }
+                   Real temp = press/(rho_lo[2]*(Runiv/molmixB));
+                   Real intEnergy;
+                   GetEnergy(intEnergy, bc_Yk_z_lo, temp);
+                   cu(i,j,k,4) = cu(i,j,k,0)*intEnergy + 0.5*(cu(i,j,k,1)*cu(i,j,k,1) +
+                                                              cu(i,j,k,2)*cu(i,j,k,2) +
+                                                              cu(i,j,k,3)*cu(i,j,k,3)) / cu(i,j,k,0);
+               }
            }
+
+           else if (prob_type == 110) { // setup a linearly varying concentration profile from boundar/reservoir BC (x-direction)
+               Real x = itVec[0];
+               Real Lx = realhi[0] - reallo[0];
+
+               for (int l=0;l<nspecies;l++) {
+                  Yk[l] = bc_Yk_x_lo[l] + x*(bc_Yk_x_hi[l] - bc_Yk_x_lo[l])/Lx;
+               }
+
+               Real pressure;
+               for (int ns=0;ns<nspecies;++ns) massvec[ns] = rhobar[ns];
+               GetPressureGas(pressure,massvec,rho0,T_init[0]);
+
+               Real density;
+               GetDensity(pressure,density,T_init[0],Yk);
+               cu(i,j,k,0) = density;
+
+               for (int ns=0;ns<nspecies;++ns) cu(i,j,k,5+ns) = density*Yk[ns];
+
+               Real intEnergy;
+               GetEnergy(intEnergy, Yk, T_init[0]);
+               cu(i,j,k,4) = density*intEnergy;
+           }
+
+
+
         });
     } // end MFIter
 }

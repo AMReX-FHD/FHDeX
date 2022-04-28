@@ -239,6 +239,31 @@ void app_bc_gpu(const paramPlane* surf, FhdParticleContainer::ParticleType& part
           part.rdata(FHD_realData::vely) = -2.0*dotprod*surf->rny + part.rdata(FHD_realData::vely);
           part.rdata(FHD_realData::velz) = -2.0*dotprod*surf->rnz + part.rdata(FHD_realData::velz);
  //                   cout << "POSTVEL: " << part.rdata(FHD_realData::velx) << ", " << part.rdata(FHD_realData::vely) << ", " << part.rdata(FHD_realData::velz) << endl;
+        
+/*          if(surf->species > -1)*/
+/*          {*/
+/*              if(amrex::Random(engine) > 0.1)*/
+/*              {*/
+/*                part.idata(FHD_intData::newSpecies) = surf->species;*/
+/*              }else*/
+/*              {*/
+/*                if(surf->species == 0)*/
+/*                {*/
+/*                    part.idata(FHD_intData::newSpecies) = 1;*/
+/*                }else*/
+/*                {*/
+/*                    part.idata(FHD_intData::newSpecies) = 0;*/
+/*                }*/
+/*              }*/
+/*            if(amrex::Random()<0.5)*/
+/*            {*/
+/*                part.idata(FHD_intData::newSpecies) = 0;*/
+/*            }else*/
+/*            {*/
+/*                part.idata(FHD_intData::newSpecies) = 1;*/
+/*            }*/
+/*          }*/
+        
                               //exit(1);
         }
         else
@@ -322,6 +347,30 @@ void app_bc_gpu(const paramPlane* surf, FhdParticleContainer::ParticleType& part
           part.rdata(FHD_realData::vely) = -2.0*dotprod*surf->lny + part.rdata(FHD_realData::vely);
           part.rdata(FHD_realData::velz) = -2.0*dotprod*surf->lnz + part.rdata(FHD_realData::velz);
 //                    cout << "POSTVEL: " << part.rdata(FHD_realData::velx) << ", " << part.rdata(FHD_realData::vely) << ", " << part.rdata(FHD_realData::velz) << endl;
+
+/*          if(surf->species > -1)*/
+/*          {*/
+/*              if(amrex::Random(engine) > 0.1)*/
+/*              {*/
+/*                part.idata(FHD_intData::newSpecies) = surf->species;*/
+/*              }else*/
+/*              {*/
+/*                if(surf->species == 0)*/
+/*                {*/
+/*                    part.idata(FHD_intData::newSpecies) = 1;*/
+/*                }else*/
+/*                {*/
+/*                    part.idata(FHD_intData::newSpecies) = 0;*/
+/*                }*/
+/*              }*/
+/*            if(amrex::Random()<0.5)*/
+/*            {*/
+/*                part.idata(FHD_intData::newSpecies) = 0;*/
+/*            }else*/
+/*            {*/
+/*                part.idata(FHD_intData::newSpecies) = 1;*/
+/*            }*/
+/*          }*/
         }
         else
         {
@@ -425,7 +474,7 @@ void app_bc_phonon_gpu(const paramPlane* surf, FhdParticleContainer::ParticleTyp
         {
             //Specular
           (*specCount)++;
-          Real dotprod = part.rdata(FHD_realData::velx)*surf->rnx + part.rdata(FHD_realData::vely)*surf->rny
+          dotprod = part.rdata(FHD_realData::velx)*surf->rnx + part.rdata(FHD_realData::vely)*surf->rny
           	+ part.rdata(FHD_realData::velz)*surf->rnz;
 
           part.rdata(FHD_realData::velx) = -2.0*dotprod*surf->rnx + part.rdata(FHD_realData::velx);
@@ -435,9 +484,14 @@ void app_bc_phonon_gpu(const paramPlane* surf, FhdParticleContainer::ParticleTyp
         }else
         {
             //Lambert cosine law
-          cosineLawHemisphere(surf->cosThetaRight, surf->sinThetaRight, surf->cosPhiRight, surf->sinPhiRight,
-                            &part.rdata(FHD_realData::velx),&part.rdata(FHD_realData::vely), &part.rdata(FHD_realData::velz), speed, 
+
+          randomHemisphere(surf->cosThetaRight, surf->sinThetaRight, surf->cosPhiRight, surf->sinPhiRight,
+                            &part.rdata(FHD_realData::velx),&part.rdata(FHD_realData::vely), &part.rdata(FHD_realData::velz), 
                             engine);        
+            
+/*          cosineLawHemisphere(surf->cosThetaRight, surf->sinThetaRight, surf->cosPhiRight, surf->sinPhiRight,*/
+/*                            &part.rdata(FHD_realData::velx),&part.rdata(FHD_realData::vely), &part.rdata(FHD_realData::velz), speed, */
+/*                            engine);        */
         
         }
       }
@@ -507,7 +561,7 @@ void app_bc_phonon_gpu(const paramPlane* surf, FhdParticleContainer::ParticleTyp
         {
             //Specular
           (*specCount)++;
-          Real dotprod = part.rdata(FHD_realData::velx)*surf->lnx + part.rdata(FHD_realData::vely)*surf->lny
+          dotprod = part.rdata(FHD_realData::velx)*surf->lnx + part.rdata(FHD_realData::vely)*surf->lny
           	+ part.rdata(FHD_realData::velz)*surf->lnz;
 
           part.rdata(FHD_realData::velx) = -2.0*dotprod*surf->lnx + part.rdata(FHD_realData::velx);
@@ -517,8 +571,12 @@ void app_bc_phonon_gpu(const paramPlane* surf, FhdParticleContainer::ParticleTyp
         }else
         {
             //Lambert cosine law 
-          cosineLawHemisphere(surf->cosThetaLeft, surf->sinThetaLeft, surf->cosPhiLeft, surf->sinPhiLeft,
-                &part.rdata(FHD_realData::velx),&part.rdata(FHD_realData::vely), &part.rdata(FHD_realData::velz), speed, 
+/*          cosineLawHemisphere(surf->cosThetaLeft, surf->sinThetaLeft, surf->cosPhiLeft, surf->sinPhiLeft,*/
+/*                &part.rdata(FHD_realData::velx),&part.rdata(FHD_realData::vely), &part.rdata(FHD_realData::velz), speed, */
+/*                engine);*/
+                
+            randomHemisphere(surf->cosThetaLeft, surf->sinThetaLeft, surf->cosPhiLeft, surf->sinPhiLeft,
+                &part.rdata(FHD_realData::velx),&part.rdata(FHD_realData::vely), &part.rdata(FHD_realData::velz), 
                 engine);       
         }
         
