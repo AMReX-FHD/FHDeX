@@ -3107,6 +3107,213 @@ FhdParticleContainer::MeanSqrCalcCM(int lev, int step) {
 }
 
 void
+FhdParticleContainer::stressP(int lev, int step) {
+
+    BL_PROFILE_VAR("stressP()",stressP);
+
+    Real diffTotal = 0;
+    Real tt = 0.; // set to zero to protect against grids with no particles
+    long nTotal = 0;
+
+    // stress tensor (times volume) of interparticle force in the order of xx, yy, zz, xy, xz, yz
+    Real sumRFxx[ngroups]; 
+    Real sumRFyy[ngroups];
+    Real sumRFzz[ngroups];
+    Real sumRFxy[ngroups];
+    Real sumRFxz[ngroups];
+    Real sumRFyz[ngroups];
+
+    // calculate stressP after resetting stats
+    Real sumoRFxx[ngroups];
+    Real sumoRFyy[ngroups];
+    Real sumoRFzz[ngroups];
+    Real sumoRFxy[ngroups];
+    Real sumoRFxz[ngroups];
+    Real sumoRFyz[ngroups];
+
+    Real travelTime[ngroups];
+    int groupCount[ngroups]; // represent how many particles are in group i
+    
+    int stepstat[ngroups];
+    
+    for(int i=0;i<ngroups;i++)
+    {
+        stepstat[i] = fmod(step-1,msd_grp_int[i]);
+        cout << "remainder: " << stepstat[i] << endl;
+    }
+    
+    for(int i=0;i<ngroups;i++)
+    {
+        sumRFxx[i] = 0;
+        sumRFyy[i] = 0;
+        sumRFzz[i] = 0;
+        sumRFxy[i] = 0;
+        sumRFxz[i] = 0;
+        sumRFyz[i] = 0;
+
+        sumoRFxx[i] = 0;
+        sumoRFyy[i] = 0;
+        sumoRFzz[i] = 0;
+        sumoRFxy[i] = 0;
+        sumoRFxz[i] = 0;
+        sumoRFyz[i] = 0;
+	
+	groupCount[i] = 0;
+    }
+
+
+    for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
+
+        TileIndex index(pti.index(), pti.LocalTileIndex());
+
+        AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
+        long np = this->GetParticles(lev).at(index).numParticles();
+        nTotal += np;
+        
+        for (int i=0; i<np; ++i) {
+            ParticleType & part = particles[i];
+            int igroup = part.idata(FHD_intData::groupid)-1;
+
+            if(stepstat[igroup] == 0)
+            {
+
+                for (int d=0; d<AMREX_SPACEDIM; ++d){
+                    part.rdata(FHD_realData::ox + d) = part.rdata(FHD_realData::ax + d);
+                    part.rdata(FHD_realData::oforcex + d) = part.rdata(FHD_realData::forcex + d);
+
+		    //cout << part.rdata(FHD_realData::ox + d) << endl;
+		    //cout << part.rdata(FHD_realData::oforcex + d) << endl;
+                }
+
+                part.rdata(FHD_realData::travelTime) = 0;
+            }        
+        }
+
+	// calculate rF of each particle in each group
+        for (int i=0; i<np; ++i) {
+            ParticleType & part = particles[i];
+
+	    //cout << part.rdata(FHD_realData::oforcex) << endl;
+	    //cout << part.rdata(FHD_realData::ox) << endl;
+	    //cout << part.rdata(FHD_realData::oforcey) << endl;
+	    //cout << part.rdata(FHD_realData::oy) << endl;
+            int igroup = part.idata(FHD_intData::groupid)-1;
+
+	    sumRFxx[igroup] += part.rdata(FHD_realData::forcex)*part.rdata(FHD_realData::ax);
+	    sumRFyy[igroup] += part.rdata(FHD_realData::forcey)*part.rdata(FHD_realData::ay);
+	    sumRFzz[igroup] += part.rdata(FHD_realData::forcez)*part.rdata(FHD_realData::az);
+	    sumRFxy[igroup] += part.rdata(FHD_realData::forcex)*part.rdata(FHD_realData::ay);
+	    sumRFxz[igroup] += part.rdata(FHD_realData::forcex)*part.rdata(FHD_realData::az);
+	    sumRFyz[igroup] += part.rdata(FHD_realData::forcey)*part.rdata(FHD_realData::az);
+	    //cout << sumRFxx[igroup] << endl;
+
+	    sumoRFxx[igroup] += part.rdata(FHD_realData::oforcex)*part.rdata(FHD_realData::ox);
+	    sumoRFyy[igroup] += part.rdata(FHD_realData::oforcey)*part.rdata(FHD_realData::oy);
+	    sumoRFzz[igroup] += part.rdata(FHD_realData::oforcez)*part.rdata(FHD_realData::oz);
+	    sumoRFxy[igroup] += part.rdata(FHD_realData::oforcex)*part.rdata(FHD_realData::oy);
+	    sumoRFxz[igroup] += part.rdata(FHD_realData::oforcex)*part.rdata(FHD_realData::oz);
+	    sumoRFyz[igroup] += part.rdata(FHD_realData::oforcey)*part.rdata(FHD_realData::oz);
+	    //cout << sumoRFxx[igroup] << endl;
+
+            travelTime[igroup] = part.rdata(FHD_realData::travelTime);
+            groupCount[igroup]++;
+        }
+
+
+
+    }
+
+    for(int i=0;i<ngroups;i++)
+    {
+        Real temp = sumRFxx[i];        
+        ParallelDescriptor::ReduceRealSum(temp);
+        sumRFxx[i] = temp;
+
+        temp = sumRFyy[i];        
+        ParallelDescriptor::ReduceRealSum(temp);
+        sumRFyy[i] = temp;
+
+        temp = sumRFzz[i];        
+        ParallelDescriptor::ReduceRealSum(temp);
+        sumRFzz[i] = temp;
+
+        temp = sumRFxy[i];        
+        ParallelDescriptor::ReduceRealSum(temp);
+        sumRFxy[i] = temp;
+
+        temp = sumRFxz[i];        
+        ParallelDescriptor::ReduceRealSum(temp);
+        sumRFxz[i] = temp;
+	
+        temp = sumRFyz[i];        
+        ParallelDescriptor::ReduceRealSum(temp);
+        sumRFyz[i] = temp;
+
+	//if (stepstat[i]==0)
+	//{
+	   temp = sumoRFxx[i];        
+           ParallelDescriptor::ReduceRealSum(temp);
+           sumoRFxx[i] = temp;
+
+           temp = sumoRFyy[i];        
+           ParallelDescriptor::ReduceRealSum(temp);
+           sumoRFyy[i] = temp;
+
+           temp = sumoRFzz[i];        
+           ParallelDescriptor::ReduceRealSum(temp);
+           sumoRFzz[i] = temp;
+
+           temp = sumoRFxy[i];        
+           ParallelDescriptor::ReduceRealSum(temp);
+           sumoRFxy[i] = temp;
+
+           temp = sumoRFxz[i];        
+           ParallelDescriptor::ReduceRealSum(temp);
+           sumoRFxz[i] = temp;
+	   
+           temp = sumoRFyz[i];        
+           ParallelDescriptor::ReduceRealSum(temp);
+           sumoRFyz[i] = temp;
+	//}
+
+        temp = travelTime[i];        
+        ParallelDescriptor::ReduceRealMax(temp);
+        travelTime[i] = temp;
+
+        int itemp = groupCount[i];        
+        ParallelDescriptor::ReduceIntSum(itemp);
+        groupCount[i] = itemp;
+
+    }
+   // cout << sumoRFyy[0] << endl;
+
+
+    if(ParallelDescriptor::MyProc() == 0) {
+        //cout << sumoRFyy[0] << endl;
+
+        for(int i=0;i<ngroups;i++)
+        {
+            if(msd_grp_int[i] > 0)
+            {
+                std::string groupname = Concatenate("stressPEst_",i+1);
+                std::ofstream ofs(groupname, std::ofstream::app);
+
+                if(stepstat[i]==0)
+                {
+                    ofs << std::endl;
+                }else if(stepstat[i]<(msd_grp_len[i]+1))
+                {  
+                    ofs << travelTime[i] << "  " << sumRFxx[i]*sumoRFxx[i] << "  " << sumRFyy[i]*sumoRFyy[i] << "  "<< sumRFzz[i]*sumoRFzz[i] << "  "<< sumRFxy[i]*sumoRFxy[i] << "  " << sumRFxz[i]*sumoRFxz[i] << "  " << sumRFyz[i]*sumoRFyz[i] << std::endl;
+                }
+        
+                ofs.close();
+            }
+        }
+    }
+    
+}
+
+void
 FhdParticleContainer::GetAllParticlePositions(Real* posx, Real* posy, Real* posz, int totalParticles) {
 
 

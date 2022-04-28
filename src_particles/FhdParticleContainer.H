@@ -53,6 +53,9 @@ struct FHD_realData {
         ax,
         ay,
         az,
+        oforcex,
+        oforcey,
+        oforcez,
         travelTime,
         diffAv,
         stepCount,
@@ -108,6 +111,9 @@ struct FHD_realData {
         "ax",
         "ay",
         "az",
+        "oforcex",
+        "oforcey",
+        "oforcez",
         "travelTime",
         "diffAv",
         "stepCount",
@@ -254,6 +260,7 @@ public:
 
     void MeanSqrCalc(int lev, int step);
     void MeanSqrCalcCM(int lev, int step);
+    void stressP(int lev, int step);
 
     void BuildCorrectionTable(const Real* dx, int setMeasureFinal);
 

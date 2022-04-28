@@ -1411,9 +1411,11 @@ void main_driver(const char* argv)
                 (n_steps_skip < 0 && istep%n_steps_skip == 0) ) {
 
                 particles.MeanSqrCalcCM(0, 1);
+                particles.stressP(0, 1);
             }
             else {
                 particles.MeanSqrCalcCM(0, 0);
+                particles.stressP(0, 0);
             }
 
             Print() << "Finish move.\n";
