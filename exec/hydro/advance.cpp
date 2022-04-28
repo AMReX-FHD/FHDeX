@@ -121,7 +121,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
   if (turbForcing == 1) {
       turbforce.AddTurbForcing(gmres_rhs_u,dt,1);
   }
-    
+
   // initial guess for new solution
   // for pressure use previous solution as initial guess
   for (int d=0; d<AMREX_SPACEDIM; d++) {
