@@ -162,7 +162,7 @@ struct FHD_intData {
             "pinned",
 	    "groupid",
 	    "prev",
-	    "next"
+	    "next",
             "new_species"
         };
     };
