@@ -504,10 +504,10 @@ void main_driver(const char* argv)
                 << " wet radius: " << wetRad[i] << "\n"
                 << " dry radius: " << (k_B*T_init[0])/(6*3.14159265359*(ionParticle[i].dryDiff)*visc_coef) << "\n";
 
-        //if (ionParticle[i].dryDiff < 0) {
-        //    Print() << "Negative dry diffusion in species " << i << "\n";
-        //    Abort();
-        //}
+        if (ionParticle[i].dryDiff < 0) {
+            Print() << "Negative dry diffusion in species " << i << "\n";
+            Abort();
+        }
 
         ionParticle[i].Neff = particle_neff; // From DSMC, this will be set to 1 for electolyte calcs
         ionParticle[i].R = k_B/ionParticle[i].m; //used a lot in kinetic stats cals, bu not otherwise necessary for electrolytes
