@@ -974,6 +974,7 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
 
 void FhdParticleContainer::SpreadIonsGPU(const Real* dxFluid, const Real* dxE, const Geometry geomF,
                                       const std::array<MultiFab, AMREX_SPACEDIM>& umac,
+				      const std::array<MultiFab, AMREX_SPACEDIM>& coords,
                                       std::array<MultiFab, AMREX_SPACEDIM>& efield,
                                       std::array<MultiFab, AMREX_SPACEDIM>& source,
                                       std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp)
@@ -1007,14 +1008,16 @@ void FhdParticleContainer::SpreadIonsGPU(const Real* dxFluid, const Real* dxE, c
         emf_gpu(particles,
                       efield[0][pti], efield[1][pti], efield[2][pti],
                       ZFILL(plo), ZFILL(dxE));
-        if(fluid_tog != 0)
-        {
-            spread_ions_fhd_gpu(particles,                         
-                             sourceTemp[0][pti], sourceTemp[1][pti], sourceTemp[2][pti],
-                             ZFILL(plo),
-                             ZFILL(dxFluid));
-        }
 
+    }
+
+    if(fluid_tog != 0)
+    {
+        //spread_ions_fhd_gpu(particles,                         
+        //                 sourceTemp[0][pti], sourceTemp[1][pti], sourceTemp[2][pti],
+        //                 ZFILL(plo),
+        //                 ZFILL(dxFluid));
+        SpreadMarkersGpu(lev, sourceTemp, coords, dx, 1);
     }
 
     if(fluid_tog != 0)
@@ -1048,6 +1051,7 @@ void FhdParticleContainer::SpreadIonsGPU(const Real* dxFluid, const Real* dxE, c
 
 void FhdParticleContainer::SpreadIonsGPU(const Real* dxFluid, const Geometry geomF,
                                       const std::array<MultiFab, AMREX_SPACEDIM>& umac,
+				      const std::array<MultiFab, AMREX_SPACEDIM>& coords,
                                       std::array<MultiFab, AMREX_SPACEDIM>& source,
                                       std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp)
 {
@@ -1064,25 +1068,26 @@ void FhdParticleContainer::SpreadIonsGPU(const Real* dxFluid, const Geometry geo
 #endif
 
 
-    for (FhdParIter pti(*this, lev); pti.isValid(); ++pti)
-    {
-        const int grid_id = pti.index();
-        const int tile_id = pti.LocalTileIndex();
-        const Box& tile_box  = pti.tilebox();
-        
-        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
-        auto& particles = particle_tile.GetArrayOfStructs();
-        const int np = particles.numParticles();
+    //for (FhdParIter pti(*this, lev); pti.isValid(); ++pti)
+    //{
+    //    const int grid_id = pti.index();
+    //    const int tile_id = pti.LocalTileIndex();
+    //    const Box& tile_box  = pti.tilebox();
+    //    
+    //    auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+    //    auto& particles = particle_tile.GetArrayOfStructs();
+    //    const int np = particles.numParticles();
 
         if(fluid_tog != 0)
         {
-            spread_ions_fhd_gpu(particles,                         
-                             sourceTemp[0][pti], sourceTemp[1][pti], sourceTemp[2][pti],
-                             ZFILL(plo),
-                             ZFILL(dxFluid));
+            //spread_ions_fhd_gpu(particles,                         
+            //                 sourceTemp[0][pti], sourceTemp[1][pti], sourceTemp[2][pti],
+            //                 ZFILL(plo),
+            //                 ZFILL(dxFluid));
+	    SpreadMarkersGpu(lev, sourceTemp, coords, dx, 1);
         }
 
-    }
+    //}
 
     if(fluid_tog != 0)
     {  

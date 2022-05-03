@@ -504,10 +504,10 @@ void main_driver(const char* argv)
                 << " wet radius: " << wetRad[i] << "\n"
                 << " dry radius: " << (k_B*T_init[0])/(6*3.14159265359*(ionParticle[i].dryDiff)*visc_coef) << "\n";
 
-        if (ionParticle[i].dryDiff < 0) {
-            Print() << "Negative dry diffusion in species " << i << "\n";
-            Abort();
-        }
+        //if (ionParticle[i].dryDiff < 0) {
+        //    Print() << "Negative dry diffusion in species " << i << "\n";
+        //    Abort();
+        //}
 
         ionParticle[i].Neff = particle_neff; // From DSMC, this will be set to 1 for electolyte calcs
         ionParticle[i].R = k_B/ionParticle[i].m; //used a lot in kinetic stats cals, bu not otherwise necessary for electrolytes
@@ -1233,7 +1233,7 @@ void main_driver(const char* argv)
         }
 
 
-            //particles.SetPosition(1, prob_hi[0]*0.51, prob_hi[1]*(pow(0.5,istep)) + prob_hi[1]*1e-8, prob_hi[2]*0.51);
+            //particles.SetPosition(1, prob_hi[0]*0.5, prob_hi[1]*0.5, prob_hi[2]*0.5);
 //            Real x1 = 0.51*prob_hi[0];
 //            Real y1 = 0.51*prob_hi[1];
 //            Real z1 = 0.51*prob_hi[2];
@@ -1319,8 +1319,10 @@ void main_driver(const char* argv)
 	    particles.computeForcesCoulombGPU(simParticles);
 	}
 
+        Print() << "Before spreading.\n";
         // compute other forces and spread to grid
-        particles.SpreadIonsGPU(dx, dxp, geom, umac, efieldCC, source, sourceTemp);
+        particles.SpreadIonsGPU(dx, dxp, geom, umac, RealFaceCoords, efieldCC, source, sourceTemp);
+        Print() << "After spreading.\n";
 
         //particles.BuildCorrectionTable(dxp,1);
 
@@ -1400,7 +1402,7 @@ void main_driver(const char* argv)
                         sourceTemp[d].setVal(0.0);      // reset source terms
                     }
 
-                particles.SpreadIonsGPU(dx, geom, umac, source, sourceTemp);
+                particles.SpreadIonsGPU(dx, geom, umac, RealFaceCoords, source, sourceTemp);
 
                 MultiFab::Add(source[0],sourceRFD[0],0,0,sourceRFD[0].nComp(),sourceRFD[0].nGrow());
                 MultiFab::Add(source[1],sourceRFD[1],0,0,sourceRFD[1].nComp(),sourceRFD[1].nGrow());
