@@ -37,7 +37,7 @@ public:
            const DistributionMapping& dmap_in,
            const Geometry& geom_in);
 
-    void Solve (std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
+    void Solve (std::array<MultiFab, AMREX_SPACEDIM> & b_u, MultiFab & b_p,
                 std::array<MultiFab, AMREX_SPACEDIM> & x_u, MultiFab & x_p,
                 std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
                 MultiFab & beta, std::array<MultiFab, NUM_EDGE> & beta_ed,
