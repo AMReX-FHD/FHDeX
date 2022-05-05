@@ -1233,7 +1233,8 @@ void main_driver(const char* argv)
         }
 
 
-            //particles.SetPosition(1, prob_hi[0]*0.5, prob_hi[1]*0.5, prob_hi[2]*0.5);
+//            particles.SetPosition(1, prob_hi[0]*0.501, prob_hi[1]*0.501, prob_hi[2]*0.501);
+//            particles.SetForce(1,1,0,0);
 //            Real x1 = 0.51*prob_hi[0];
 //            Real y1 = 0.51*prob_hi[1];
 //            Real z1 = 0.51*prob_hi[2];
@@ -1319,10 +1320,8 @@ void main_driver(const char* argv)
 	    particles.computeForcesCoulombGPU(simParticles);
 	}
 
-        Print() << "Before spreading.\n";
         // compute other forces and spread to grid
         particles.SpreadIonsGPU(dx, dxp, geom, umac, RealFaceCoords, efieldCC, source, sourceTemp);
-        Print() << "After spreading.\n";
 
         //particles.BuildCorrectionTable(dxp,1);
 
@@ -1567,7 +1566,7 @@ void main_driver(const char* argv)
                             potential, potentialM);
         }
 
-        //particles.PrintParticles();
+        particles.PrintParticles();
 
         // timer for time step
         Real time2 = ParallelDescriptor::second() - time1;
