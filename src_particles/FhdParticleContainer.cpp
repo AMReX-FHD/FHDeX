@@ -1017,7 +1017,7 @@ void FhdParticleContainer::SpreadIonsGPU(const Real* dxFluid, const Real* dxE, c
         //                 sourceTemp[0][pti], sourceTemp[1][pti], sourceTemp[2][pti],
         //                 ZFILL(plo),
         //                 ZFILL(dxFluid));
-        SpreadMarkersGpu(lev, sourceTemp, coords, dx, 1);
+        SpreadMarkersGpu(lev, sourceTemp, coords, dxFluid, 1);
     }
 
     if(fluid_tog != 0)
@@ -1084,7 +1084,7 @@ void FhdParticleContainer::SpreadIonsGPU(const Real* dxFluid, const Geometry geo
             //                 sourceTemp[0][pti], sourceTemp[1][pti], sourceTemp[2][pti],
             //                 ZFILL(plo),
             //                 ZFILL(dxFluid));
-	    SpreadMarkersGpu(lev, sourceTemp, coords, dx, 1);
+	    SpreadMarkersGpu(lev, sourceTemp, coords, dxFluid, 1);
         }
 
     //}
