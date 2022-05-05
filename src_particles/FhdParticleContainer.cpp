@@ -1331,6 +1331,7 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
 
 void FhdParticleContainer::SpreadIonsGPU(const Real* dxFluid, const Real* dxE, const Geometry geomF,
                                       const std::array<MultiFab, AMREX_SPACEDIM>& umac,
+                                      const std::array<MultiFab, AMREX_SPACEDIM>& coords,
                                       std::array<MultiFab, AMREX_SPACEDIM>& efield,
                                       std::array<MultiFab, AMREX_SPACEDIM>& source,
                                       std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp)
@@ -1364,14 +1365,16 @@ void FhdParticleContainer::SpreadIonsGPU(const Real* dxFluid, const Real* dxE, c
         emf_gpu(particles,
                       efield[0][pti], efield[1][pti], efield[2][pti],
                       ZFILL(plo), ZFILL(dxE));
-        if(fluid_tog != 0)
-        {
-            spread_ions_fhd_gpu(particles,                         
-                             sourceTemp[0][pti], sourceTemp[1][pti], sourceTemp[2][pti],
-                             ZFILL(plo),
-                             ZFILL(dxFluid));
-        }
 
+    }
+
+    if(fluid_tog != 0)
+    {
+        //spread_ions_fhd_gpu(particles,                         
+        //                 sourceTemp[0][pti], sourceTemp[1][pti], sourceTemp[2][pti],
+        //                 ZFILL(plo),
+        //                 ZFILL(dxFluid));
+	SpreadMarkersGpu(lev, sourceTemp, coords, dx, 1);
     }
 
     if(fluid_tog != 0)
@@ -1405,6 +1408,7 @@ void FhdParticleContainer::SpreadIonsGPU(const Real* dxFluid, const Real* dxE, c
 
 void FhdParticleContainer::SpreadIonsGPU(const Real* dxFluid, const Geometry geomF,
                                       const std::array<MultiFab, AMREX_SPACEDIM>& umac,
+                                      const std::array<MultiFab, AMREX_SPACEDIM>& coords,
                                       std::array<MultiFab, AMREX_SPACEDIM>& source,
                                       std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp)
 {
@@ -1421,25 +1425,26 @@ void FhdParticleContainer::SpreadIonsGPU(const Real* dxFluid, const Geometry geo
 #endif
 
 
-    for (FhdParIter pti(*this, lev); pti.isValid(); ++pti)
-    {
-        const int grid_id = pti.index();
-        const int tile_id = pti.LocalTileIndex();
-        const Box& tile_box  = pti.tilebox();
-        
-        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
-        auto& particles = particle_tile.GetArrayOfStructs();
-        const int np = particles.numParticles();
+    //for (FhdParIter pti(*this, lev); pti.isValid(); ++pti)
+    //{
+    //    const int grid_id = pti.index();
+    //    const int tile_id = pti.LocalTileIndex();
+    //    const Box& tile_box  = pti.tilebox();
+    //    
+    //    auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+    //    auto& particles = particle_tile.GetArrayOfStructs();
+    //    const int np = particles.numParticles();
 
         if(fluid_tog != 0)
         {
-            spread_ions_fhd_gpu(particles,                         
-                             sourceTemp[0][pti], sourceTemp[1][pti], sourceTemp[2][pti],
-                             ZFILL(plo),
-                             ZFILL(dxFluid));
+            //spread_ions_fhd_gpu(particles,                         
+            //                 sourceTemp[0][pti], sourceTemp[1][pti], sourceTemp[2][pti],
+            //                 ZFILL(plo),
+            //                 ZFILL(dxFluid));
+	    SpreadMarkersGpu(lev, sourceTemp, coords, dx, 1);
         }
 
-    }
+    //}
 
     if(fluid_tog != 0)
     {  
@@ -3141,6 +3146,11 @@ FhdParticleContainer::stressP(int lev, int step) {
     Real travelTime[ngroups];
     int groupCount[ngroups]; // represent how many particles are in group i
     
+    Real sumPinForcex = 0.;
+    Real sumPinForcey = 0.;
+    Real sumPinForcez = 0.;
+    Real realtime;
+    
     int stepstat[ngroups];
     
     for(int i=0;i<ngroups;i++)
@@ -3224,6 +3234,14 @@ FhdParticleContainer::stressP(int lev, int step) {
 
             travelTime[igroup] = part.rdata(FHD_realData::travelTime);
             groupCount[igroup]++;
+
+	    if (part.idata(FHD_intData::pinned)==1)
+	    {
+	       sumPinForcex += part.rdata(FHD_realData::forcex);
+	       sumPinForcey += part.rdata(FHD_realData::forcey);
+	       sumPinForcez += part.rdata(FHD_realData::forcez);
+	       realtime = part.rdata(FHD_realData::travelTime);
+	    }
         }
 
 
@@ -3287,12 +3305,28 @@ FhdParticleContainer::stressP(int lev, int step) {
         ParallelDescriptor::ReduceRealMax(temp);
         travelTime[i] = temp;
 
+        temp = realtime;        
+        ParallelDescriptor::ReduceRealMax(temp);
+        realtime = temp;
+
         int itemp = groupCount[i];        
         ParallelDescriptor::ReduceIntSum(itemp);
         groupCount[i] = itemp;
 
     }
    // cout << sumoRFyy[0] << endl;
+
+   Real temp = sumPinForcex;        
+   ParallelDescriptor::ReduceRealSum(temp);
+   sumPinForcex = temp;
+
+   temp = sumPinForcey;        
+   ParallelDescriptor::ReduceRealSum(temp);
+   sumPinForcey = temp;
+
+   temp = sumPinForcez;        
+   ParallelDescriptor::ReduceRealSum(temp);
+   sumPinForcez = temp;
 
 
     if(ParallelDescriptor::MyProc() == 0) {
@@ -3316,6 +3350,14 @@ FhdParticleContainer::stressP(int lev, int step) {
                 ofs.close();
             }
         }
+
+        std::string filename = "pinForceEst";
+        std::ofstream ofs(filename, std::ofstream::app);
+        
+        ofs << realtime << "  " << sumPinForcex  << "  " << sumPinForcey << "  "<< sumPinForcez << std::endl;
+        
+        ofs.close();
+
     }
     
 }

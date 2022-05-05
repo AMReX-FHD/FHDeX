@@ -1321,7 +1321,7 @@ void main_driver(const char* argv)
 	particles.computeForcesSpringGPU(simParticles);
 
         // compute other forces and spread to grid
-        particles.SpreadIonsGPU(dx, dxp, geom, umac, efieldCC, source, sourceTemp);
+        particles.SpreadIonsGPU(dx, dxp, geom, umac, RealFaceCoords, efieldCC, source, sourceTemp);
 
         //particles.BuildCorrectionTable(dxp,1);
 
@@ -1346,45 +1346,50 @@ void main_driver(const char* argv)
 
                 Real check;
 
-//                particles.clearMobilityMatrix();
-//                for(int ii=115;ii<=2194;ii++)
-//                {
-//                    particles.SetForce(ii,1,0,0);
-//                    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-//                        source    [d].setVal(0.0);      // reset source terms
-//                        sourceTemp[d].setVal(0.0);      // reset source terms
-//                    }
-//                    particles.SpreadIonsGPU(dx, dxp, geom, umac, efieldCC, source, sourceTemp);                
-//                    advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
-//                    particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
-//                    particles.fillMobilityMatrix(ii,0);
+		// Calculate mobility matrix for pinned particles
+		//   if discos-particle wall is regular, we can just calculate mobility matrix on one particle and shift it around.
+                particles.clearMobilityMatrix();
+                for(int ii=1;ii<=particles.getTotalPinnedMarkers();ii++)
+                {
+                    particles.SetForce(ii,1,0,0);
+                    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                        source    [d].setVal(0.0);      // reset source terms
+                        sourceTemp[d].setVal(0.0);      // reset source terms
+                    }
+                    particles.SpreadIonsGPU(dx, dxp, geom, umac, RealFaceCoords, efieldCC, source, sourceTemp);                
+                    advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
+                    particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
+                    particles.fillMobilityMatrix(ii,0);
 
-//                    particles.SetForce(ii,0,1,0);
-//                    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-//                        source    [d].setVal(0.0);      // reset source terms
-//                        sourceTemp[d].setVal(0.0);      // reset source terms
-//                    }
-//                    particles.SpreadIonsGPU(dx, dxp, geom, umac, efieldCC, source, sourceTemp);                
-//                    advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
-//                    particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
-//                    particles.fillMobilityMatrix(ii,1);
+                    particles.SetForce(ii,0,1,0);
+                    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                        source    [d].setVal(0.0);      // reset source terms
+                        sourceTemp[d].setVal(0.0);      // reset source terms
+                    }
+                    particles.SpreadIonsGPU(dx, dxp, geom, umac, RealFaceCoords, efieldCC, source, sourceTemp);                
+                    advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
+                    particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
+                    particles.fillMobilityMatrix(ii,1);
 
-//                    particles.SetForce(ii,0,0,1);
-//                    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-//                        source    [d].setVal(0.0);      // reset source terms
-//                        sourceTemp[d].setVal(0.0);      // reset source terms
-//                    }
-//                    particles.SpreadIonsGPU(dx, dxp, geom, umac, efieldCC, source, sourceTemp);                
-//                    advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
-//                    particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
-//                    particles.fillMobilityMatrix(ii,2);
+                    particles.SetForce(ii,0,0,1);
+                    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                        source    [d].setVal(0.0);      // reset source terms
+                        sourceTemp[d].setVal(0.0);      // reset source terms
+                    }
+                    particles.SpreadIonsGPU(dx, dxp, geom, umac, RealFaceCoords, efieldCC, source, sourceTemp);                
+                    advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
+                    particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
+                    particles.fillMobilityMatrix(ii,2);
 
 
-//                }
-//                particles.writeMat();
+                }
+                particles.writeMat();
 
-//                particles.invertMatrix();
+                particles.invertMatrix();
 
+		// Load calculated mobility matrix; should comment out the part which calculates it
+		//Print() << particles.getTotalPinnedMarkers() << endl;
+//		particles.loadPinMatrix(particles.getTotalPinnedMarkers(), "invOut");
 
                 MultiFab::Add(source[0],sourceRFD[0],0,0,sourceRFD[0].nComp(),sourceRFD[0].nGrow());
                 MultiFab::Add(source[1],sourceRFD[1],0,0,sourceRFD[1].nComp(),sourceRFD[1].nGrow());
@@ -1401,7 +1406,7 @@ void main_driver(const char* argv)
                         sourceTemp[d].setVal(0.0);      // reset source terms
                     }
 
-                particles.SpreadIonsGPU(dx, geom, umac, source, sourceTemp);
+                particles.SpreadIonsGPU(dx, geom, umac, RealFaceCoords, source, sourceTemp);
 
                 MultiFab::Add(source[0],sourceRFD[0],0,0,sourceRFD[0].nComp(),sourceRFD[0].nGrow());
                 MultiFab::Add(source[1],sourceRFD[1],0,0,sourceRFD[1].nComp(),sourceRFD[1].nGrow());
