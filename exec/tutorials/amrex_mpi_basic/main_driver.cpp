@@ -20,7 +20,7 @@ void main_driver(const char * argv) {
 
     // copy contents of F90 modules to C++ namespaces NOTE: any changes to
     // global settings in fortran/c++ after this point need to be synchronized
-    InitializeCommonNamespace();
+    // InitializeCommonNamespace();
 
     // Get my current MPI rank and communicator size
     int rank   = ParallelDescriptor::MyProc();
@@ -35,7 +35,14 @@ void main_driver(const char * argv) {
     Print() << std::endl;
 
     // Add local rank and communicate with all other ranks
-    r_vect[rank] = rank;
+    r_vect[rank] = rank + 10;
+
+    // Only one element (per rank) added
+    std::cout << "[" << rank << "] r_vect = ";
+    for (auto & i:r_vect) std::cout << i << " ";
+    std::cout << std::endl;
+
+    // MPI Comms
     ParallelDescriptor::ReduceIntSum(
         // MPI communicator needs a list of references to where the data goes
         Vector<std::reference_wrapper<int>>(begin(r_vect), end(r_vect))
