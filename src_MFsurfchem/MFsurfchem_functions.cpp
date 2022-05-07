@@ -63,7 +63,7 @@ void init_surfcov(MultiFab& surfcov)
     return;
 }
 
-void sample_MFsurfchem(MultiFab& cu, MultiFab& surfcov, MultiFab& dNadsdes,
+void sample_MFsurfchem(MultiFab& cu, MultiFab& prim, MultiFab& surfcov, MultiFab& dNadsdes,
                        const amrex::Real* dx, const amrex::Real dt)
 {
     for (MFIter mfi(cu,false); mfi.isValid(); ++mfi)
@@ -72,6 +72,7 @@ void sample_MFsurfchem(MultiFab& cu, MultiFab& surfcov, MultiFab& dNadsdes,
         Dim3 lo = lbound(bx);
         Dim3 hi = ubound(bx);
         const Array4<Real> & cu_arr = cu.array(mfi);
+        const Array4<Real> & prim_arr = prim.array(mfi);
         const Array4<Real> & surfcov_arr = surfcov.array(mfi);
         const Array4<Real> & dNadsdes_arr = dNadsdes.array(mfi);
 
