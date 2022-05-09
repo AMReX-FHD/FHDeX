@@ -10,6 +10,8 @@
 
 #include "chemistry_functions.H"
 
+#include "MFsurfchem_functions.H"
+
 #include "chrono"
 
 using namespace std::chrono;
@@ -38,6 +40,12 @@ void main_driver(const char* argv)
     if (nprimvars != AMREX_SPACEDIM + 3 + 2*nspecies) {
         Abort("nprimvars must be equal to AMREX_SPACEDIM + 3 + 2*nspecies");
     }
+
+    // read the inputs file for chemistry
+    InitializeChemistryNamespace();
+
+    // read the inputs file for MFsurfchem
+    InitializeMFSurfchemNamespace();
 
     int step_start, statsCount;
     amrex::Real time;
@@ -129,6 +137,10 @@ void main_driver(const char* argv)
   
     //primative quantaties
     MultiFab prim;
+
+    // MFsurfchem
+    MultiFab surfcov;
+    MultiFab dNadsdes;
 
     //statistics    
     MultiFab cuMeans;
@@ -587,6 +599,11 @@ void main_driver(const char* argv)
         // 6+ns:6+2ns-1 (Xk;  mole fractions)
         prim.define(ba,dmap,nprimvars,ngc);
 
+        if (ads_spec>=0) {
+            surfcov.define(ba,dmap,1,ngc);
+            dNadsdes.define(ba,dmap,1,ngc);
+        }
+
         cuMeans.define(ba,dmap,nvars,ngc);
         cuVars.define(ba,dmap,nvars,ngc);
         cuMeans.setVal(0.0);
@@ -796,6 +813,8 @@ void main_driver(const char* argv)
         }
         conservedToPrimitiveStag(prim, vel, cu, cumom);
 
+        if (ads_spec>=0) init_surfcov(surfcov);
+
         // Set BC: 1) fill boundary 2) physical (How to do for staggered? -- Ishan)
         cu.FillBoundary(geom.periodicity());
         prim.FillBoundary(geom.periodicity());
@@ -892,9 +911,26 @@ void main_driver(const char* argv)
 
         // timer
         Real ts1 = ParallelDescriptor::second();
-    
+
+        // sample surface chemistry
+        if (ads_spec>=0) sample_MFsurfchem(cu, prim, surfcov, dNadsdes, dx, dt);
+
+        // FHD
         RK3stepStag(cu, cumom, prim, vel, source, eta, zeta, kappa, chi, D, 
             faceflux, edgeflux_x, edgeflux_y, edgeflux_z, cenflux, geom, dt, step);
+
+        // update surface chemistry
+        if (ads_spec>=0) {
+
+            update_MFsurfchem(cu, surfcov, dNadsdes, dx, dt);
+
+            conservedToPrimitive(prim, cu);
+
+            // Set BC: 1) fill boundary 2) physical
+            cu.FillBoundary(geom.periodicity());
+            prim.FillBoundary(geom.periodicity());
+            setBC(prim, cu);
+        }
 
         // timer
         Real ts2 = ParallelDescriptor::second() - ts1;
