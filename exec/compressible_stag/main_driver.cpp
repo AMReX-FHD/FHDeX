@@ -379,7 +379,7 @@ void main_driver(const char* argv)
         else {
             ReadCheckPoint3D(step_start, time, statsCount, geom, domain, cu, cuMeans, cuVars, prim,
                              primMeans, primVars, cumom, cumomMeans, cumomVars, 
-                             vel, velMeans, velVars, coVars, spatialCross3D, ncross, ba, dmap);
+                             vel, velMeans, velVars, coVars, surfcov, ads_spec, spatialCross3D, ncross, ba, dmap);
         }
 
         if (reset_stats == 1) statsCount = 1;
@@ -396,6 +396,10 @@ void main_driver(const char* argv)
         kappa.setVal(1.0,0,1,ngc);
         chi.setVal(1.0,0,nspecies,ngc);
         D.setVal(1.0,0,nspecies*nspecies,ngc);
+        
+        if (ads_spec>=0) {
+            dNadsdes.define(ba,dmap,1,0);
+        }
 
         if ((plot_cross) and (do_1D==0) and (do_2D==0)) {
             if (ParallelDescriptor::IOProcessor()) outfile.open(filename, std::ios::app);
@@ -600,8 +604,8 @@ void main_driver(const char* argv)
         prim.define(ba,dmap,nprimvars,ngc);
 
         if (ads_spec>=0) {
-            surfcov.define(ba,dmap,1,ngc);
-            dNadsdes.define(ba,dmap,1,ngc);
+            surfcov.define(ba,dmap,1,0);
+            dNadsdes.define(ba,dmap,1,0);
         }
 
         cuMeans.define(ba,dmap,nvars,ngc);
@@ -1250,7 +1254,7 @@ void main_driver(const char* argv)
             else {
                 WriteCheckPoint3D(step, time, statsCount, geom, cu, cuMeans, cuVars, prim,
                                   primMeans, primVars, cumom, cumomMeans, cumomVars, 
-                                  vel, velMeans, velVars, coVars, spatialCross3D, ncross);
+                                  vel, velMeans, velVars, coVars, surfcov, ads_spec, spatialCross3D, ncross);
             }
         }
 
