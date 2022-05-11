@@ -1017,7 +1017,7 @@ void FhdParticleContainer::SpreadIonsGPU(const Real* dxFluid, const Real* dxE, c
         //                 sourceTemp[0][pti], sourceTemp[1][pti], sourceTemp[2][pti],
         //                 ZFILL(plo),
         //                 ZFILL(dxFluid));
-        //std::cout << "Spreading 1!\n";
+
         SpreadMarkersGpu(lev, sourceTemp, coords, dxFluid, 1);
     }
 
