@@ -70,6 +70,9 @@ typedef struct {
     double temperatureRight;
     double momentumConsRight;
     double densityRight[MAX_SPECIES];
+    
+    double massFluxRight[MAX_SPECIES];
+    double massFluxLeft[MAX_SPECIES];
 
     double sourceLeft;
     double sourceRight;
@@ -98,7 +101,7 @@ typedef struct {
 
     int boundary;
     
-    int species;
+    double species[5];
 
     double tension;
     double stiffness;

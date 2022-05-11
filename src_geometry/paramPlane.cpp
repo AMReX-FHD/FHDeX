@@ -162,7 +162,7 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 	}
 
 	// Mass Inflow at z-lo
-	if(bc_vel_lo[2]==3)
+	if(bc_vel_lo[2]==3 || bc_vel_lo[2]==5 || bc_vel_lo[2]==6)
 	{
 		// Mass densities defined
 		if(rho_lo[2]>=0)
@@ -229,7 +229,7 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 	}
 
 	// Mass Inflow at x-hi
-	if(bc_vel_hi[0]==3)
+	if(bc_vel_hi[0]==3 || bc_vel_hi[0]==5 || bc_vel_hi[0]==6)
 	{
 		// Mass densities defined
 		if(rho_hi[0]>=0)
@@ -496,12 +496,17 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 
 		// paramPlaneList[0].x0 = domainLo[0] + sigma[0]/2.0;
 	}
-	else if(bc_vel_lo[0] == 3)
+	else if(bc_vel_lo[0] == 3 || bc_vel_lo[0] == 6)
 	{
 		paramPlaneList[0].periodicity = 0;
 		paramPlaneList[0].porosityLeft = 0;
 		paramPlaneList[0].porosityRight = 1;
-		paramPlaneList[0].sourceRight = 1;
+		if(bc_vel_lo[0] == 3)
+		{
+		    paramPlaneList[0].sourceRight = 1;
+		}else{
+		    paramPlaneList[0].sourceRight = 2;
+		}		
      	paramPlaneList[0].sourceLeft = 0;
      	paramPlaneList[0].sinkLeft = 0;
     	paramPlaneList[0].sinkRight = 1;
@@ -538,12 +543,14 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
      	paramPlaneList[0].sinkLeft = 0;
     	paramPlaneList[0].sinkRight = 0;
     	paramPlaneList[0].specularityRight 	= 1;
-	   	paramPlaneList[0].species 	= bc_spec_lo[0];
-
+        
+        Real total_n0 = 0;
 		for (int l=0; l<nspecies; l++)
 		{    	
            	paramPlaneList[0].temperatureRight = t_lo[0];
-        }		 
+   		   	paramPlaneList[0].species[l] = bc_Yk_x_lo[l];
+        }
+              		 
 	}
 	else
 	{
@@ -620,13 +627,18 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 
     //  paramPlaneList[1].x0 = domainHi[0] - sigma[0]/2.0;
   }
-  else if(bc_vel_hi[0] == 3)
+  else if(bc_vel_hi[0] == 3 || bc_vel_hi[0] == 6)
   {
 		paramPlaneList[1].periodicity = 0;
 		paramPlaneList[1].porosityLeft = 1;
 		paramPlaneList[1].porosityRight = 0;
 		paramPlaneList[1].sourceRight = 0;
-     	paramPlaneList[1].sourceLeft = 1;
+		if(bc_vel_hi[0] == 3)
+		{
+		    paramPlaneList[1].sourceLeft = 1;
+		}else{
+		    paramPlaneList[1].sourceLeft = 2;
+		}		
      	paramPlaneList[1].sinkLeft = 1;
     	paramPlaneList[1].sinkRight = 0;
 
@@ -663,13 +675,16 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
      	paramPlaneList[1].sinkLeft = 0;
     	paramPlaneList[1].sinkRight = 0;
     	paramPlaneList[1].specularityLeft = 1;
-	   	paramPlaneList[1].species = bc_spec_hi[0];
 
+        Real total_n0 = 0;
 		for (int l=0; l<nspecies; l++)
 		{    	
 
            	paramPlaneList[1].temperatureLeft = t_hi[0];
-        }  
+   		   	paramPlaneList[1].species[l] = bc_Yk_x_hi[l];
+
+        }
+
   }
   else
   {

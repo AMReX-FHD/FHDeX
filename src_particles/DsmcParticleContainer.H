@@ -63,7 +63,8 @@ struct FHD_intData {
 			"i",
 			"j",
 			"k",
-			"species"
+			"species",
+			"newSpecies"
 		};
 	};
 };
@@ -103,7 +104,7 @@ public:
 	void ReInitParticles();
 	void InitCollisionCells();
 
-	void Source(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount);
+	void Source(const Real dt, paramPlane* paramPlaneList, const int paramPlaneCount, MultiFab& mfcuInst);
     void SourcePhonons(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount);
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -114,7 +115,7 @@ public:
 	void CollideParticles(Real dt);
 	void CollideParticles2(Real dt);
 
-	void MoveParticlesCPP(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount);
+	void MoveParticlesCPP(const Real dt, paramPlane* paramPlaneList, const int paramPlaneCount);
     void MovePhononsCPP(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount, const int step);
 	void externalForce(const Real dt);
 	void updateTimeStep(const Geometry& geom, Real& dt);
