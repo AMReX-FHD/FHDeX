@@ -96,7 +96,8 @@ void GMRES::Solve (std::array<MultiFab, AMREX_SPACEDIM> & b_u, MultiFab & b_p,
 
         for (int i=0; i<AMREX_SPACEDIM; ++i ) {
             r_u[i].setVal(0.);
-            MultiFabPhysBCMacVel(r_u[i], geom, i);
+            int is_inhomogeneous = 1;
+            MultiFabPhysBCMacVel(r_u[i], geom, i, is_inhomogeneous);
         }
 
         ApplyMatrix(tmp_u, tmp_p, r_u, r_p,
