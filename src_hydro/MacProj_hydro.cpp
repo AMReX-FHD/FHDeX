@@ -116,7 +116,8 @@ MacProj_hydro (std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
       // Do apply BCs so that all ghost cells are filled
       MultiFabPhysBCDomainVel(umac[d], geom, d);
-      MultiFabPhysBCMacVel(umac[d], geom, d);
+      int is_inhomogeneous = 1;
+      MultiFabPhysBCMacVel(umac[d], geom, d, is_inhomogeneous);
     }
 }
 
