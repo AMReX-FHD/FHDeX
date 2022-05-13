@@ -91,17 +91,19 @@ void GMRES::Solve (std::array<MultiFab, AMREX_SPACEDIM> & b_u, MultiFab & b_p,
         // then apply the operator
         // subtract the result from the rhs
 
+        int is_inhomogeneous = 1;
+        
         r_p.setVal(0.);
         MultiFabPhysBC(r_p, geom, 0, 1, PRES_BC_COMP);
 
         for (int i=0; i<AMREX_SPACEDIM; ++i ) {
             r_u[i].setVal(0.);
-            int is_inhomogeneous = 1;
             MultiFabPhysBCMacVel(r_u[i], geom, i, is_inhomogeneous);
         }
 
         ApplyMatrix(tmp_u, tmp_p, r_u, r_p,
-                    alpha_fc, beta, beta_ed, gamma, theta_alpha, geom);
+                    alpha_fc, beta, beta_ed, gamma, theta_alpha, geom,
+                    is_inhomogeneous);
 
         MultiFab::Subtract(b_p, tmp_p, 0, 0, 1, 0);
         for (int i=0; i<AMREX_SPACEDIM; ++i) {
