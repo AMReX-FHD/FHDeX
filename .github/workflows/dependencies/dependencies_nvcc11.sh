@@ -26,6 +26,15 @@ echo "deb https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x8
 
 sudo add-apt-repository "deb https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/ /"
 sudo apt-get update
-sudo apt-get install -y cuda-11-2
+sudo apt-get install -y \
+    cuda-command-line-tools-11-2 \
+    cuda-compiler-11-2           \
+    cuda-cupti-dev-11-2          \
+    cuda-minimal-build-11-2      \
+    cuda-nvml-dev-11-2           \
+    cuda-nvtx-11-2               \
+    libcurand-dev-11-2           \
+    libcufft-dev-11-2
+sudo ln -s cuda-11.2 /usr/local/cuda
 
 
