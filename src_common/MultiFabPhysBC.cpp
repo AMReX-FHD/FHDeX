@@ -373,70 +373,118 @@ void MultiFabPhysBCMacVel(MultiFab& vel, const Geometry& geom, int dim) {
         // bc_vel check is to see if we have a wall bc
         // bx/dom comparison is to see if the grid touches a wall 
         if ((dim != 0) && (bc_vel_lo[0] == 1 || bc_vel_lo[0] == 2) && (bx.smallEnd(0) < dom.smallEnd(0))) {
-            const Real fac = (bc_vel_lo[0] == 1) ? 1. : -1.;
-            amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-            {
-                if (i < dom.smallEnd(0)) {
-                    data(i,j,k) = fac*data(-i-1,j,k);
-                }
-            });
+            if (bc_vel_lo[0] == 1) { // slip
+                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    if (i < dom.smallEnd(0)) {
+                        data(i,j,k) = data(-i-1,j,k);
+                    }
+                });
+            } else if (bc_vel_lo[0] == 2) { // no-slip
+                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    if (i < dom.smallEnd(0)) {
+                        data(i,j,k) = 2.*wallspeed_x_lo[dim] - data(-i-1,j,k);
+                    }
+                });
+            }
         }
 
         if ((dim != 0) && (bc_vel_lo[0] == 1 || bc_vel_hi[0] == 2) && (bx.bigEnd(0) > dom.bigEnd(0))) {
-            const Real fac = (bc_vel_hi[0] == 1) ? 1. : -1.;
-            amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-            {
-                if (i > dom.bigEnd(0)) {
-                    data(i,j,k) = fac*data(2*dom.bigEnd(0)-i+1,j,k);
-                }
-            });
+            if (bc_vel_hi[0] == 1) { // slip
+                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    if (i > dom.bigEnd(0)) {
+                        data(i,j,k) = data(2*dom.bigEnd(0)-i+1,j,k);
+                    }
+                });
+            } else if (bc_vel_hi[0] == 2) { // no-slip
+                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    if (i > dom.bigEnd(0)) {
+                        data(i,j,k) = 2.*wallspeed_x_hi[dim] - data(2*dom.bigEnd(0)-i+1,j,k);
+                    }
+                });
+            }
         }
+        
 #if (AMREX_SPACEDIM >= 2)
-
         //___________________________________________________________________________
         // Apply y-physbc to data
         if ((dim != 1) && (bc_vel_lo[1] == 1 || bc_vel_lo[1] == 2) && (bx.smallEnd(1) < dom.smallEnd(1))) {
-            const Real fac = (bc_vel_lo[1] == 1) ? 1. : -1.;
-            amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-            {
-                if (j < dom.smallEnd(1)) {
-                    data(i,j,k) = fac*data(i,-j-1,k);
-                }
-            });
+            if (bc_vel_lo[1] == 1) { // slip
+                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    if (j < dom.smallEnd(1)) {
+                        data(i,j,k) = data(i,-j-1,k);
+                    }
+                });
+            } else if (bc_vel_lo[1] == 2) { // no-slip
+                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    if (j < dom.smallEnd(1)) {
+                        data(i,j,k) = 2.*wallspeed_y_lo[dim] - data(i,-j-1,k);
+                    }
+                });
+            }
         }
 
         if ((dim != 1) && (bc_vel_hi[1] == 1 || bc_vel_hi[1] == 2) && (bx.bigEnd(1) > dom.bigEnd(1))) {
-            const Real fac = (bc_vel_hi[1] == 1) ? 1. : -1.;
-            amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-            {
-                if (j > dom.bigEnd(1)) {
-                    data(i,j,k) = fac*data(i,2*dom.bigEnd(1)-j+1,k);
-                }
-            });
+            if (bc_vel_hi[1] == 1) { // slip
+                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    if (j > dom.bigEnd(1)) {
+                        data(i,j,k) = data(i,2*dom.bigEnd(1)-j+1,k);
+                    }
+                });
+            } else if (bc_vel_hi[1] == 2) { // no-slip
+                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    if (j > dom.bigEnd(1)) {
+                        data(i,j,k) = 2.*wallspeed_y_hi[dim] - data(i,2*dom.bigEnd(1)-j+1,k);
+                    }
+                });
+            }
         }
 #endif
 
+#if (AMREX_SPACEDIM >= 3)
         //___________________________________________________________________________
         // Apply z-physbc to data
-#if (AMREX_SPACEDIM >= 3)
         if ((dim != 2) && (bc_vel_lo[2] == 1 || bc_vel_lo[2] == 2) && (bx.smallEnd(2) < dom.smallEnd(2))) {
-            const Real fac = (bc_vel_lo[2] == 1) ? 1. : -1.;
-            amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-            {
-                if (k < dom.smallEnd(2)) {
-                    data(i,j,k) = fac*data(i,j,-k-1);
-                }
-            });
+            if (bc_vel_lo[2] == 1) { // slip
+                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    if (k < dom.smallEnd(2)) {
+                        data(i,j,k) = data(i,j,-k-1);
+                    }
+                });
+            } else if (bc_vel_lo[2] == 2) { // no-slip
+                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    if (k < dom.smallEnd(2)) {
+                        data(i,j,k) = 2.*wallspeed_z_lo[dim] - data(i,j,-k-1);
+                    }
+                });
+            }
         }
 
         if ((dim != 2) && (bc_vel_hi[2] == 1 || bc_vel_hi[2] == 2) && (bx.bigEnd(2) > dom.bigEnd(2))) {
-            const Real fac = (bc_vel_hi[2] == 1) ? 1. : -1.;
-            amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-            {
-                if (k > dom.bigEnd(2)) {
-                    data(i,j,k) = fac*data(i,j,2*dom.bigEnd(2)-k+1);
-                }
-            });
+            if (bc_vel_hi[2] == 1) { // slip
+                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    if (k > dom.bigEnd(2)) {
+                        data(i,j,k) = data(i,j,2*dom.bigEnd(2)-k+1);
+                    }
+                });
+            } else if (bc_vel_hi[2] == 2) { // no-slip
+                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    if (k > dom.bigEnd(2)) {
+                        data(i,j,k) = 2.*wallspeed_z_hi[dim] - data(i,j,2*dom.bigEnd(2)-k+1);
+                    }
+                });
+            }
         }
 #endif
         
