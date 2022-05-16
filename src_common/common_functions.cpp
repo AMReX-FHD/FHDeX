@@ -1147,23 +1147,23 @@ void InitializeCommonNamespace() {
     }
 
     if (wallspeed_x_lo[0] != 0.) {
-        Abort("wallspeed_x_lo[0] must be 0");
+        Abort("you are specifying a normal velocity on a wall; wallspeed_x_lo[0] must be 0");
     }
     if (wallspeed_x_hi[0] != 0.) {
-        Abort("wallspeed_x_hi[0] must be 0");
+        Abort("you are specifying a normal velocity on a wall; wallspeed_x_hi[0] must be 0");
     }
     if (wallspeed_y_lo[1] != 0.) {
-        Abort("wallspeed_y_lo[1] must be 0");
+        Abort("you are specifying a normal velocity on a wall; wallspeed_y_lo[1] must be 0");
     }
     if (wallspeed_y_hi[1] != 0.) {
-        Abort("wallspeed_y_hi[1] must be 0");
+        Abort("you are specifying a normal velocity on a wall; wallspeed_y_hi[1] must be 0");
     }
 #if (AMREX_SPACEDIM == 3)
     if (wallspeed_z_lo[2] != 0.) {
-        Abort("wallspeed_z_lo[2] must be 0");
+        Abort("you are specifying a normal velocity on a wall; wallspeed_z_lo[2] must be 0");
     }
     if (wallspeed_z_hi[2] != 0.) {
-        Abort("wallspeed_z_hi[2] must be 0");
+        Abort("you are specifying a normal velocity on a wall; wallspeed_z_hi[2] must be 0");
     }
 #endif
     

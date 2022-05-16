@@ -143,6 +143,8 @@ void WriteCheckPoint3D(int step,
                        const std::array<MultiFab, AMREX_SPACEDIM>& velMeans,
                        const std::array<MultiFab, AMREX_SPACEDIM>& velVars,
                        const amrex::MultiFab& coVars,
+                       const amrex::MultiFab& surfcov,
+                       int ads_spec,
                        const Vector<Real>& spatialCross, int ncross);
 
 void ReadCheckPoint3D(int& step,
@@ -163,6 +165,8 @@ void ReadCheckPoint3D(int& step,
                       std::array<MultiFab, AMREX_SPACEDIM>& velMeans,
                       std::array<MultiFab, AMREX_SPACEDIM>& velVars,
                       amrex::MultiFab& coVars,
+                      amrex::MultiFab& surfcov,
+                      int ads_spec,
                       Vector<Real>& spatialCross, int ncross,
                       BoxArray& ba, DistributionMapping& dmap);
 

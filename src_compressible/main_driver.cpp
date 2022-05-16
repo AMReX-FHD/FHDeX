@@ -638,7 +638,7 @@ void main_driver(const char* argv)
 #ifdef MUI
         mui_push(cu, prim, dx, uniface, step);
 #endif
-        if (ads_spec>=0) sample_MFsurfchem(cu, surfcov, dNadsdes, dx, dt);
+        if (ads_spec>=0) sample_MFsurfchem(cu, prim, surfcov, dNadsdes, dx, dt);
 
         // FHD
         RK3step(cu, cup, cup2, cup3, prim, source, eta, zeta, kappa, chi, D, flux,

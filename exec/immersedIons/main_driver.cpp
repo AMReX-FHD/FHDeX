@@ -1233,7 +1233,8 @@ void main_driver(const char* argv)
         }
 
 
-            //particles.SetPosition(1, prob_hi[0]*0.51, prob_hi[1]*(pow(0.5,istep)) + prob_hi[1]*1e-8, prob_hi[2]*0.51);
+//            particles.SetPosition(1, prob_hi[0]*0.501, prob_hi[1]*0.501, prob_hi[2]*0.501);
+//            particles.SetForce(1,1,0,0);
 //            Real x1 = 0.51*prob_hi[0];
 //            Real y1 = 0.51*prob_hi[1];
 //            Real z1 = 0.51*prob_hi[2];
@@ -1574,7 +1575,7 @@ void main_driver(const char* argv)
                             potential, potentialM);
         }
 
-        //particles.PrintParticles();
+        particles.PrintParticles();
 
         // timer for time step
         Real time2 = ParallelDescriptor::second() - time1;

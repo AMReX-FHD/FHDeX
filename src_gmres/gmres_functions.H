@@ -27,7 +27,8 @@ void ApplyMatrix(std::array<MultiFab, AMREX_SPACEDIM> & b_u,
                  const std::array<MultiFab, NUM_EDGE> & beta_ed,
                  const MultiFab & gamma,
                  const Real & theta_alpha,
-                 const Geometry & geom);
+                 const Geometry & geom,
+                 int is_inhomogeneous = 0);
 
 void UpdateSol(std::array<MultiFab, AMREX_SPACEDIM> & x_u,
                MultiFab & x_p,

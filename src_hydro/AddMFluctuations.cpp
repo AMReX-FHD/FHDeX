@@ -95,6 +95,7 @@ void addMomFluctuations_stag(std::array< MultiFab, AMREX_SPACEDIM >& m_old,
     for (int i=0; i<AMREX_SPACEDIM; i++) {
         m_old[i].FillBoundary(geom.periodicity());
         MultiFabPhysBCDomainVel(m_old[i], geom,i);
-        MultiFabPhysBCMacVel(m_old[i], geom, i);
+        int is_inhomogeneous = 1;
+        MultiFabPhysBCMacVel(m_old[i], geom, i, is_inhomogeneous);
     }
 }
