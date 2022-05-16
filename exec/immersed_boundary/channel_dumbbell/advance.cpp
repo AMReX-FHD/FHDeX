@@ -181,7 +181,8 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     for (int i=0; i<AMREX_SPACEDIM; i++) {
         umac[i].FillBoundary(geom.periodicity());
         MultiFabPhysBCDomainVel(umac[i], geom, i);
-        MultiFabPhysBCMacVel(umac[i], geom, i);
+        int is_inhomogeneous = 1;
+        MultiFabPhysBCMacVel(umac[i], geom, i, is_inhomogeneous);
     }
 
 
@@ -234,7 +235,8 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     for (int i=0; i<AMREX_SPACEDIM; i++) {
         uMom[i].FillBoundary(geom.periodicity());
         MultiFabPhysBCDomainVel(uMom[i], geom, i);
-        MultiFabPhysBCMacVel(uMom[i], geom, i);
+        int is_inhomogeneous = 1;
+        MultiFabPhysBCMacVel(uMom[i], geom, i, is_inhomogeneous);
     }
 
     MkAdvMFluxdiv(umac, uMom, advFluxdiv, dx, 0);
@@ -381,14 +383,15 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     for (int d=0; d<AMREX_SPACEDIM; d++) {
         umacNew[d].FillBoundary(geom.periodicity());
         MultiFabPhysBCDomainVel(umacNew[d], geom, d);
-        MultiFabPhysBCMacVel(umacNew[d], geom, d);
+        int is_inhomogeneous = 1;
+        MultiFabPhysBCMacVel(umacNew[d], geom, d, is_inhomogeneous);
 
         MultiFab::Copy(uMom[d], umacNew[d], 0, 0, 1, 0);
         uMom[d].mult(1.0, 1);
 
         uMom[d].FillBoundary(geom.periodicity());
         MultiFabPhysBCDomainVel(uMom[d], geom, d);
-        MultiFabPhysBCMacVel(uMom[d], geom, d);
+        MultiFabPhysBCMacVel(uMom[d], geom, d, is_inhomogeneous);
     }
 
     MkAdvMFluxdiv(umacNew,uMom,advFluxdivPred,dx,0);
