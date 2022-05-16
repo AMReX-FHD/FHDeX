@@ -820,7 +820,7 @@ void FhdParticleContainer::Source(const Real dt, paramPlane* paramPlaneList, con
 						}
 
 					}
-				}else if(paramPlaneList[i].sourceRight == 2)
+				}else if(paramPlaneList[i].sourceRight == 2 || paramPlaneList[i].sourceRight == 3)
 				{
                     Real totalMass = 0;
                     int rankTotalParticles = 0;
@@ -855,6 +855,7 @@ void FhdParticleContainer::Source(const Real dt, paramPlane* paramPlaneList, con
                        
 						for(int k=0;k<particleFluxInt[j];k++)
 						{
+							
 							Real uCoord = amrex::Random()*paramPlaneList[i].uTop;
 							Real vCoord = amrex::Random()*paramPlaneList[i].vTop;
 
@@ -903,31 +904,31 @@ void FhdParticleContainer::Source(const Real dt, paramPlane* paramPlaneList, con
 
 					}
 
-                    Real comX = 0;
-                    Real comY = 0;
-                    Real comZ = 0;
-                    Real tMass = 0;
-                                        
-					for(int l=0; l<rankTotalParticles; l++)
-					{
-    					comX += partList[l].rdata(FHD_realData::velx)*partList[l].rdata(FHD_realData::mass);
-    					comY += partList[l].rdata(FHD_realData::vely)*partList[l].rdata(FHD_realData::mass);
-    					comZ += partList[l].rdata(FHD_realData::velz)*partList[l].rdata(FHD_realData::mass);    					    					
-    					tMass += partList[l].rdata(FHD_realData::mass);
-    			    }
-    			    
-    			    ParallelDescriptor::ReduceRealSum(comX);
-    			    ParallelDescriptor::ReduceRealSum(comY);
-    			    ParallelDescriptor::ReduceRealSum(comZ);
-    			    ParallelDescriptor::ReduceRealSum(totalMass);    			        			        			    
-    			    
-    			    comX /= tMass;
-    			    comY /= tMass;
-    			    comZ /= tMass;
-    			    
-    			    //Print() << "COM res: " << comX << ", " << comY << ", " << comZ << endl;
-    			    //Print() << "COM cell: " << cuInst(0,0,0,1)/cuInst(0,0,0,0) << ", " << cuInst(0,0,0,1)/cuInst(0,0,0,0) << ", " << cuInst(0,0,0,1)/cuInst(0,0,0,0) << endl;
-					
+//                    Real comX = 0;
+//                    Real comY = 0;
+//                    Real comZ = 0;
+//                    Real tMass = 0;
+//                                        
+//					for(int l=0; l<rankTotalParticles; l++)
+//					{
+//    					comX += partList[l].rdata(FHD_realData::velx)*partList[l].rdata(FHD_realData::mass);
+//    					comY += partList[l].rdata(FHD_realData::vely)*partList[l].rdata(FHD_realData::mass);
+//    					comZ += partList[l].rdata(FHD_realData::velz)*partList[l].rdata(FHD_realData::mass);    					    					
+//    					tMass += partList[l].rdata(FHD_realData::mass);
+//    			    }
+//    			    
+//    			    ParallelDescriptor::ReduceRealSum(comX);
+//    			    ParallelDescriptor::ReduceRealSum(comY);
+//    			    ParallelDescriptor::ReduceRealSum(comZ);
+//    			    ParallelDescriptor::ReduceRealSum(totalMass);    			        			        			    
+//    			    
+//    			    comX /= tMass;
+//    			    comY /= tMass;
+//    			    comZ /= tMass;
+//    			    
+//    			    //Print() << "COM res: " << comX << ", " << comY << ", " << comZ << endl;
+//    			    //Print() << "COM cell: " << cuInst(0,0,0,1)/cuInst(0,0,0,0) << ", " << cuInst(0,0,0,1)/cuInst(0,0,0,0) << ", " << cuInst(0,0,0,1)/cuInst(0,0,0,0) << endl;
+//					
 					for(int l=0; l<rankTotalParticles; l++)
 					{
     					particle_tile.push_back(partList[l]);
