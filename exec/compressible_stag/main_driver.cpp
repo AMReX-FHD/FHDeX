@@ -817,7 +817,7 @@ void main_driver(const char* argv)
         }
         conservedToPrimitiveStag(prim, vel, cu, cumom);
 
-        if (ads_spec>=0) init_surfcov(surfcov);
+        if (ads_spec>=0) init_surfcov(surfcov, dx);
 
         // Set BC: 1) fill boundary 2) physical (How to do for staggered? -- Ishan)
         cu.FillBoundary(geom.periodicity());
