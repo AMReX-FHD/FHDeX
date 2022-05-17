@@ -11,7 +11,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                    std::array<MultiFab, AMREX_SPACEDIM>& cornz_in,
                    MultiFab& visccorn_in,
                    MultiFab& rancorn_in,
-                   const amrex::Geometry geom,
+                   const amrex::Geometry& geom,
 		   const amrex::Vector< amrex::Real >& stoch_weights,
                    const amrex::Real dt)
 {
