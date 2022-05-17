@@ -173,7 +173,8 @@ void InitialProjection(std::array< MultiFab, AMREX_SPACEDIM >& umac,
             // set normal velocity of physical domain boundaries
             MultiFabPhysBCDomainVel(umac[i],geom,i);
             // set transverse velocity behind physical boundaries
-            MultiFabPhysBCMacVel(umac[i],geom,i);
+            int is_inhomogeneous = 1;
+            MultiFabPhysBCMacVel(umac[i],geom,i,is_inhomogeneous);
             // fill periodic and interior ghost cells
             umac[i].FillBoundary(geom.periodicity());
         }
