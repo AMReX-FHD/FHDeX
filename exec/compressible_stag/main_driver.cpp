@@ -984,17 +984,18 @@ void main_driver(const char* argv)
         if (do_1D) {
             evaluateStatsStag1D(cu, cuMeans, cuVars, prim, primMeans, primVars, vel, 
                                 velMeans, velVars, cumom, cumomMeans, cumomVars, coVars,
-                                spatialCross1D, ncross, statsCount);
+                                spatialCross1D, ncross, statsCount, geom);
         }
         else if (do_2D) {
             evaluateStatsStag2D(cu, cuMeans, cuVars, prim, primMeans, primVars, vel, 
                                 velMeans, velVars, cumom, cumomMeans, cumomVars, coVars,
-                                spatialCross2D, ncross, statsCount);
+                                spatialCross2D, ncross, statsCount, geom);
         }
         else {
             evaluateStatsStag3D(cu, cuMeans, cuVars, prim, primMeans, primVars, vel, 
                                 velMeans, velVars, cumom, cumomMeans, cumomVars, coVars,
-                                dataSliceMeans_xcross, spatialCross3D, ncross, domain, statsCount);
+                                dataSliceMeans_xcross, spatialCross3D, ncross, domain,
+                                statsCount, geom);
         }
         statsCount++;
         if (step%100 == 0) {
