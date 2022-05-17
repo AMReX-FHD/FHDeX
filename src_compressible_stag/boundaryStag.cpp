@@ -255,7 +255,7 @@ void SetupCWallStag() {
 void setBCStag(MultiFab& prim_in, MultiFab& cons_in,
                  std::array< MultiFab, AMREX_SPACEDIM >& cumom_in,
                  std::array< MultiFab, AMREX_SPACEDIM >& vel_in,
-                 const amrex::Geometry geom)
+                 const amrex::Geometry& geom)
 {
     BL_PROFILE_VAR("setBCStag()",setBCStag);
 
@@ -286,7 +286,7 @@ void setBCStag(MultiFab& prim_in, MultiFab& cons_in,
 // set the diffusive momentum flux to zero in the reservoir cells
 void BCWallReservoirFluxStag(std::array< MultiFab, AMREX_SPACEDIM >& faceflux, 
                               std::array< MultiFab, AMREX_SPACEDIM>& cenflux_in,
-                             const amrex::Geometry geom)
+                             const amrex::Geometry& geom)
 {
     BL_PROFILE_VAR("BCWallReservoirFluxStag()",BCWallReservoirFluxStag);
 
@@ -537,7 +537,7 @@ void BCWallReservoirFluxStag(std::array< MultiFab, AMREX_SPACEDIM >& faceflux,
 void BCMem(MultiFab& prim_in, MultiFab& cons_in,
            std::array< MultiFab, AMREX_SPACEDIM >& cumom_in,
            std::array< MultiFab, AMREX_SPACEDIM >& vel_in,
-           const amrex::Geometry geom) 
+           const amrex::Geometry& geom) 
 {
     BL_PROFILE_VAR("BCMem()",BCMem);
 
@@ -794,7 +794,7 @@ void BCMem(MultiFab& prim_in, MultiFab& cons_in,
 }
 
 // Set mass, pressure and temperature on ghost cells based on BCs
-void BCMassTempPress(MultiFab& prim_in,MultiFab& cons_in,const amrex::Geometry geom,int dim)
+void BCMassTempPress(MultiFab& prim_in,MultiFab& cons_in,const amrex::Geometry& geom,int dim)
 {
     BL_PROFILE_VAR("BCMassTempPress()",BCMassTempPress);
 
@@ -1244,7 +1244,7 @@ void BCMassTempPress(MultiFab& prim_in,MultiFab& cons_in,const amrex::Geometry g
 // Set normal momemntum and velocity on the boundary and ghost cells of the 
 // staggered grid based on slip/no-slip BCs
 void BCMomNormal(MultiFab& mom_in, MultiFab& vel_in, MultiFab& cons_in,
-                 const amrex::Geometry geom, int dim)
+                 const amrex::Geometry& geom, int dim)
 {
     BL_PROFILE_VAR("BCMomNormal()",BCMomNormal);
 
@@ -1457,7 +1457,7 @@ void BCMomNormal(MultiFab& mom_in, MultiFab& vel_in, MultiFab& cons_in,
 // Set transverse momemntum and velocity on the boundary and ghost cells of the 
 // staggered grid based on slip/no-slip BCs
 void BCMomTrans(MultiFab& mom_in, MultiFab& vel_in,
-                 const amrex::Geometry geom, int dim)
+                 const amrex::Geometry& geom, int dim)
 {
     BL_PROFILE_VAR("BCMomTrans()",BCMomTrans);
     
@@ -1571,7 +1571,7 @@ void BCMomTrans(MultiFab& mom_in, MultiFab& vel_in,
 // Set density and energy density on BCs 
 void BCRhoRhoE(MultiFab& cons_in, MultiFab& prim_in, 
                std::array< MultiFab, AMREX_SPACEDIM >& cumom_in, 
-               const amrex::Geometry geom)
+               const amrex::Geometry& geom)
 {
     BL_PROFILE_VAR("BCRhoRhoE()",BCRhoRhoE);
 
@@ -1994,7 +1994,7 @@ void BCRhoRhoE(MultiFab& cons_in, MultiFab& prim_in,
 
 void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array< MultiFab, AMREX_SPACEDIM>& cenflux_in, 
                    std::array< MultiFab, 2 >& edgeflux_x_in, std::array< MultiFab, 2 >& edgeflux_y_in, 
-                   std::array< MultiFab, 2 >& edgeflux_z_in, const amrex::Geometry geom)
+                   std::array< MultiFab, 2 >& edgeflux_z_in, const amrex::Geometry& geom)
 {
     BL_PROFILE_VAR("StochFluxStag()",StochFluxStag);
 
