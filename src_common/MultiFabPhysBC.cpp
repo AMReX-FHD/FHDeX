@@ -347,7 +347,7 @@ void MultiFabPhysBCDomainVel(MultiFab& vel, const Geometry& geom, int dim) {
 // Set the value of tranverse ghost cells to +/- the reflection of the interior
 // (+ for slip walls, - for no-slip).
 // We fill all the ghost cells - they are needed for Perskin kernels.
-void MultiFabPhysBCMacVel(MultiFab& vel, const Geometry& geom, int dim) {
+void MultiFabPhysBCMacVel(MultiFab& vel, const Geometry& geom, int dim, int is_inhomogeneous) {
 
     BL_PROFILE_VAR("MultiFabPhysBCMacVel()",MultiFabPhysBCMacVel);
     
@@ -384,7 +384,7 @@ void MultiFabPhysBCMacVel(MultiFab& vel, const Geometry& geom, int dim) {
                 amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (i < dom.smallEnd(0)) {
-                        data(i,j,k) = 2.*wallspeed_x_lo[dim] - data(-i-1,j,k);
+                        data(i,j,k) = is_inhomogeneous*2.*wallspeed_x_lo[dim] - data(-i-1,j,k);
                     }
                 });
             }
@@ -402,7 +402,7 @@ void MultiFabPhysBCMacVel(MultiFab& vel, const Geometry& geom, int dim) {
                 amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (i > dom.bigEnd(0)) {
-                        data(i,j,k) = 2.*wallspeed_x_hi[dim] - data(2*dom.bigEnd(0)-i+1,j,k);
+                        data(i,j,k) = is_inhomogeneous*2.*wallspeed_x_hi[dim] - data(2*dom.bigEnd(0)-i+1,j,k);
                     }
                 });
             }
@@ -423,7 +423,7 @@ void MultiFabPhysBCMacVel(MultiFab& vel, const Geometry& geom, int dim) {
                 amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (j < dom.smallEnd(1)) {
-                        data(i,j,k) = 2.*wallspeed_y_lo[dim] - data(i,-j-1,k);
+                        data(i,j,k) = is_inhomogeneous*2.*wallspeed_y_lo[dim] - data(i,-j-1,k);
                     }
                 });
             }
@@ -441,7 +441,7 @@ void MultiFabPhysBCMacVel(MultiFab& vel, const Geometry& geom, int dim) {
                 amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (j > dom.bigEnd(1)) {
-                        data(i,j,k) = 2.*wallspeed_y_hi[dim] - data(i,2*dom.bigEnd(1)-j+1,k);
+                        data(i,j,k) = is_inhomogeneous*2.*wallspeed_y_hi[dim] - data(i,2*dom.bigEnd(1)-j+1,k);
                     }
                 });
             }
@@ -463,7 +463,7 @@ void MultiFabPhysBCMacVel(MultiFab& vel, const Geometry& geom, int dim) {
                 amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (k < dom.smallEnd(2)) {
-                        data(i,j,k) = 2.*wallspeed_z_lo[dim] - data(i,j,-k-1);
+                        data(i,j,k) = is_inhomogeneous*2.*wallspeed_z_lo[dim] - data(i,j,-k-1);
                     }
                 });
             }
@@ -481,7 +481,7 @@ void MultiFabPhysBCMacVel(MultiFab& vel, const Geometry& geom, int dim) {
                 amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (k > dom.bigEnd(2)) {
-                        data(i,j,k) = 2.*wallspeed_z_hi[dim] - data(i,j,2*dom.bigEnd(2)-k+1);
+                        data(i,j,k) = is_inhomogeneous*2.*wallspeed_z_hi[dim] - data(i,j,2*dom.bigEnd(2)-k+1);
                     }
                 });
             }
