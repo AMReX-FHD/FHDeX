@@ -18,17 +18,24 @@ void evaluateStatsStag3D(MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
                          Vector<Real>& dataSliceMeans_xcross,
                          Vector<Real>& spatialCross3D, const int ncross,
                          const amrex::Box& domain,
-                         const int steps)
+                         const int steps,
+                         const Geometry& geom)
 {
     BL_PROFILE_VAR("evaluateStatsStag3D()",evaluateStatsStag3D);
     
     //// Evaluate Means
-    if (plot_means) EvaluateStatsMeans(cons,consMean,prim_in,primMean,vel,velMean,cumom,cumomMean,steps);
+    if (plot_means) {
+        EvaluateStatsMeans(cons,consMean,prim_in,primMean,vel,velMean,cumom,cumomMean,steps);
+        consMean.FillBoundary(geom.periodicity());
+        primMean.FillBoundary(geom.periodicity());
+    }
 
     //// Evaluate Variances and Covariances
     if ((plot_vars) or (plot_covars)) {
         EvaluateVarsCoVars(cons,consMean,consVar,prim_in,primMean,primVar,velMean,velVar,
                            cumom,cumomMean,cumomVar,coVar,steps);
+        consVar.FillBoundary(geom.periodicity());
+        primVar.FillBoundary(geom.periodicity());
     }
 
     //// Evaluate Spatial Correlations
@@ -73,17 +80,24 @@ void evaluateStatsStag2D(MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
                          std::array<MultiFab, AMREX_SPACEDIM>& cumomVar,
                          MultiFab& coVar, 
                          MultiFab& spatialCross2D, const int ncross,
-                         const int steps)
+                         const int steps,
+                         const Geometry& geom)
 {
     BL_PROFILE_VAR("evaluateStatsStag2D()",evaluateStatsStag2D);
     
     //// Evaluate Means
-    if (plot_means) EvaluateStatsMeans(cons,consMean,prim_in,primMean,vel,velMean,cumom,cumomMean,steps);
+    if (plot_means) {
+        EvaluateStatsMeans(cons,consMean,prim_in,primMean,vel,velMean,cumom,cumomMean,steps);
+        consMean.FillBoundary(geom.periodicity());
+        primMean.FillBoundary(geom.periodicity());
+    }
 
     //// Evaluate Variances and Covariances
     if ((plot_vars) or (plot_covars)) {
         EvaluateVarsCoVars(cons,consMean,consVar,prim_in,primMean,primVar,velMean,velVar,
                            cumom,cumomMean,cumomVar,coVar,steps);
+        consVar.FillBoundary(geom.periodicity());
+        primVar.FillBoundary(geom.periodicity());
     }
 
     //// Evaluate Spatial Correlations (do later)
@@ -114,17 +128,24 @@ void evaluateStatsStag1D(MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
                          std::array<MultiFab, AMREX_SPACEDIM>& cumomVar,
                          MultiFab& coVar, 
                          MultiFab& spatialCross1D, const int ncross,
-                         const int steps)
+                         const int steps,
+                         const Geometry& geom)
 {
     BL_PROFILE_VAR("evaluateStatsStag1D()",evaluateStatsStag1D);
     
     //// Evaluate Means
-    if (plot_means) EvaluateStatsMeans(cons,consMean,prim_in,primMean,vel,velMean,cumom,cumomMean,steps);
+    if (plot_means) {
+        EvaluateStatsMeans(cons,consMean,prim_in,primMean,vel,velMean,cumom,cumomMean,steps);
+        consMean.FillBoundary(geom.periodicity());
+        primMean.FillBoundary(geom.periodicity());
+    }
 
     //// Evaluate Variances and Covariances
     if ((plot_vars) or (plot_covars)) {
         EvaluateVarsCoVars(cons,consMean,consVar,prim_in,primMean,primVar,velMean,velVar,
                            cumom,cumomMean,cumomVar,coVar,steps);
+        consVar.FillBoundary(geom.periodicity());
+        primVar.FillBoundary(geom.periodicity());
     }
 
     //// Evaluate Spatial Correlations

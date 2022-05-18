@@ -604,7 +604,7 @@ void main_driver(const char* argv)
     // initialize primitive variables
     conservedToPrimitive(prim, cu);
 
-    if (ads_spec>=0) init_surfcov(surfcov);
+    if (ads_spec>=0) init_surfcov(surfcov, dx);
 
     // Set BC: 1) fill boundary 2) physical
     cu.FillBoundary(geom.periodicity());

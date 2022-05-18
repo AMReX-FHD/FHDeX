@@ -18,7 +18,7 @@ using namespace common;
 
 void InitializeMFSurfchemNamespace();
 
-void init_surfcov(MultiFab& surfcov);
+void init_surfcov(MultiFab& surfcov, const amrex::Real* dx);
 
 void sample_MFsurfchem(MultiFab& cu, MultiFab& prim, MultiFab& surfcov, MultiFab& dNadsdes, const amrex::Real* dx, const amrex::Real dt);
 

@@ -39,7 +39,7 @@ void InitializeMFSurfchemNamespace()
     return;
 }
 
-void init_surfcov(MultiFab& surfcov)
+void init_surfcov(MultiFab& surfcov, const amrex::Real* dx)
 {
     for (MFIter mfi(surfcov,false); mfi.isValid(); ++mfi)
     {
@@ -48,10 +48,12 @@ void init_surfcov(MultiFab& surfcov)
         Dim3 hi = ubound(bx);
         const Array4<Real> & surfcov_arr = surfcov.array(mfi);
 
+        amrex::Real Ntot = surf_site_num_dens*dx[0]*dx[1];  // total number of reactive sites
+
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             if (k==0) {
-                surfcov_arr(i,j,k,0) = surfcov0;
+                surfcov_arr(i,j,k,0) = RandomPoisson(Ntot*surfcov0)/Ntot;
             } else {
                 surfcov_arr(i,j,k,0) = 0.;
             }
@@ -85,10 +87,12 @@ void sample_MFsurfchem(MultiFab& cu, MultiFab& prim, MultiFab& surfcov, MultiFab
                 amrex::Real theta = surfcov_arr(i,j,k,0);
 
                 amrex::Real meanNads = ads_rate_const*dens*(1-theta)*Ntot*dt;
-                amrex::Real Nads = meanNads + sqrt(meanNads)*RandomNormal(0.,1.);
+                //amrex::Real Nads = meanNads + sqrt(meanNads)*RandomNormal(0.,1.);
+                amrex::Real Nads = RandomPoisson(meanNads);
 
                 amrex::Real meanNdes = des_rate*theta*Ntot*dt;
-                amrex::Real Ndes = meanNdes + sqrt(meanNdes)*RandomNormal(0.,1.);
+                //amrex::Real Ndes = meanNdes + sqrt(meanNdes)*RandomNormal(0.,1.);
+                amrex::Real Ndes = RandomPoisson(meanNdes);
 
                 dNadsdes_arr(i,j,k,0) = Nads-Ndes;
             }

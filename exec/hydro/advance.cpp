@@ -62,7 +62,10 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
   ///////////////////////////////////////////
 
   for (int d=0; d<AMREX_SPACEDIM; ++d) {
-    umac[d].FillBoundary(geom.periodicity());
+      MultiFabPhysBCDomainVel(umac[d], geom, d);
+      int is_inhomogeneous = 1;
+      MultiFabPhysBCMacVel(umac[d], geom, d, is_inhomogeneous);
+      umac[d].FillBoundary(geom.periodicity());
   }
 
   //////////////////////////////////////////////////
@@ -151,7 +154,10 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
   // Compute predictor advective term
   for (int d=0; d<AMREX_SPACEDIM; d++) {
-    umacNew[d].FillBoundary(geom.periodicity());
+      MultiFabPhysBCDomainVel(umacNew[d], geom, d);
+      int is_inhomogeneous = 1;
+      MultiFabPhysBCMacVel(umacNew[d], geom, d, is_inhomogeneous);
+      umacNew[d].FillBoundary(geom.periodicity());
   }
 
   /*
@@ -222,6 +228,17 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
   for (int d=0; d<AMREX_SPACEDIM; d++) {
     MultiFab::Copy(umac[d], umacNew[d], 0, 0, 1, 0);
   }
+
+  // these calls are redundant with the calls at the beginning of the time step
+  // except for diagnostics which can rely on the ghost cells for stencils such
+  // as vorticity
+  for (int d=0; d<AMREX_SPACEDIM; d++) {
+      MultiFabPhysBCDomainVel(umac[d], geom, d);
+      int is_inhomogeneous = 1;
+      MultiFabPhysBCMacVel(umac[d], geom, d, is_inhomogeneous);
+      umac[d].FillBoundary(geom.periodicity());
+  }
+  
   //////////////////////////////////////////////////
 
 }
