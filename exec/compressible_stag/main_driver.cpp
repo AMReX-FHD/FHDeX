@@ -942,7 +942,7 @@ void main_driver(const char* argv)
             prim.FillBoundary(geom.periodicity());
             cu.FillBoundary(geom.periodicity());
 
-            setBCStag(prim, cu, cumom, vel);
+            setBCStag(prim, cu, cumom, vel, geom);
         }
 
         // timer
