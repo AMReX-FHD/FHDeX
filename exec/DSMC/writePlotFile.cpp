@@ -174,7 +174,7 @@ void writePlotFile(const MultiFab& mfcuInst,
 
     // Primitive Variances
     varNames[cnt++] = "nVar";
-    varNames[cnt++] = "rhoVar";
+    varNames[cnt++] = "rhoVarP";
     varNames[cnt++] = "uVar";
     varNames[cnt++] = "vVar";
     varNames[cnt++] = "wVar";

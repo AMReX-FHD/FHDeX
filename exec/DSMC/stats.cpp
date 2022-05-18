@@ -725,14 +725,15 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
                 spatialCross(i,j,k,31) = (spatialCross(i,j,k,31)*stepsMinusOne + delGcross*deljz)*osteps;  // <delG(x*)deljz(x)>
                 spatialCross(i,j,k,32) = (spatialCross(i,j,k,32)*stepsMinusOne + delKcross*delG)*osteps;   // <delK(x*)delG(x)>
                 spatialCross(i,j,k,33) = (spatialCross(i,j,k,33)*stepsMinusOne + delGcross*delK)*osteps;   // <delG(x*)delK(x)>
+                spatialCross(i,j,k,34) = (spatialCross(i,j,k,34)*stepsMinusOne + delTcross*delT)*osteps;   // <delT(x*)delT(x)>
 
                 // <delT(x*)delT(x)> = (1/cv*/cv/<rho(x)>/<rho(x*)>)(<delK*delK> + <delG*delG> - <delG*delK> - <delK*delG> 
                 //                      + <Q><Q*><delrho*delrho> - <Q*><delrho*delK> - <Q><delK*delrho> 
                 //											+ <Q*><delrho*delG> + <Q><delG*delrho>)
-                spatialCross(i,j,k,34) = (cvinvcross*cvinv/(meanrhocross*meanrho))*
-									(spatialCross(i,j,k,1) + spatialCross(i,j,k,21) - spatialCross(i,j,k,22) - spatialCross(i,j,k,23) 
-									+ qmean*qmeancross*spatialCross(i,j,k,0) - qmeancross*spatialCross(i,j,k,17) - qmean*spatialCross(i,j,k,8)
-									+ qmeancross*spatialCross(i,j,k,24) + qmean*spatialCross(i,j,k,25));
+//                spatialCross(i,j,k,34) = (cvinvcross*cvinv/(meanrhocross*meanrho))*
+//									(spatialCross(i,j,k,1) + spatialCross(i,j,k,21) - spatialCross(i,j,k,22) - spatialCross(i,j,k,23) 
+//									+ qmean*qmeancross*spatialCross(i,j,k,0) - qmeancross*spatialCross(i,j,k,17) - qmean*spatialCross(i,j,k,8)
+//									+ qmeancross*spatialCross(i,j,k,24) + qmean*spatialCross(i,j,k,25));
 
                 // <delT(x*)delrho(x)> = (1/cv/<rho(x*)>)*(<delK*delrho> - <delG*delrho> - <Q*><delrhodelrho*>)
                 spatialCross(i,j,k,35) = (cvinvcross/meanrhocross)*
