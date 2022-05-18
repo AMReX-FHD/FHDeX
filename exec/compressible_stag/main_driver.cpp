@@ -928,12 +928,21 @@ void main_driver(const char* argv)
 
             update_MFsurfchem(cu, surfcov, dNadsdes, dx, dt);
 
-            conservedToPrimitive(prim, cu);
+            for (int d=0; d<AMREX_SPACEDIM; d++) {
+                cumom[d].FillBoundary(geom.periodicity());
+            }
+            cu.FillBoundary(geom.periodicity());
+
+            conservedToPrimitiveStag(prim, vel, cu, cumom);
 
             // Set BC: 1) fill boundary 2) physical
-            cu.FillBoundary(geom.periodicity());
+            for (int d=0; d<AMREX_SPACEDIM; d++) {
+                vel[d].FillBoundary(geom.periodicity());
+            }
             prim.FillBoundary(geom.periodicity());
-            setBC(prim, cu);
+            cu.FillBoundary(geom.periodicity());
+
+            setBCStag(prim, cu, cumom, vel);
         }
 
         // timer
