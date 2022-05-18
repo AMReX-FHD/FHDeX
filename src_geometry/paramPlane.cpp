@@ -27,7 +27,7 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 	Real yl = prob_hi[1] - prob_lo[1];
 	Real zl = prob_hi[2] - prob_lo[2];
 	
-	if(bc_vel_lo[0]==3)
+	if(bc_vel_lo[0]==3 || bc_vel_lo[0]==5 || bc_vel_lo[0]==6 || bc_vel_lo[0]==7)
 	{
 		// Mass densities defined
 		if(rho_lo[0]>=0)
@@ -229,7 +229,7 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 	}
 
 	// Mass Inflow at x-hi
-	if(bc_vel_hi[0]==3 || bc_vel_hi[0]==5 || bc_vel_hi[0]==6)
+	if(bc_vel_hi[0]==3 || bc_vel_hi[0]==5 || bc_vel_hi[0]==6 || bc_vel_hi[0]==7)
 	{
 		// Mass densities defined
 		if(rho_hi[0]>=0)
@@ -496,7 +496,7 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 
 		// paramPlaneList[0].x0 = domainLo[0] + sigma[0]/2.0;
 	}
-	else if(bc_vel_lo[0] == 3 || bc_vel_lo[0] == 6)
+	else if(bc_vel_lo[0] == 3 || bc_vel_lo[0] == 6 || bc_vel_lo[0] == 7)
 	{
 		paramPlaneList[0].periodicity = 0;
 		paramPlaneList[0].porosityLeft = 0;
@@ -504,9 +504,13 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 		if(bc_vel_lo[0] == 3)
 		{
 		    paramPlaneList[0].sourceRight = 1;
-		}else{
+		}else if(bc_vel_lo[0] == 6)
+		{
 		    paramPlaneList[0].sourceRight = 2;
-		}		
+		}else
+		{
+		    paramPlaneList[0].sourceRight = 3;
+		}
      	paramPlaneList[0].sourceLeft = 0;
      	paramPlaneList[0].sinkLeft = 0;
     	paramPlaneList[0].sinkRight = 1;
@@ -627,7 +631,7 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 
     //  paramPlaneList[1].x0 = domainHi[0] - sigma[0]/2.0;
   }
-  else if(bc_vel_hi[0] == 3 || bc_vel_hi[0] == 6)
+  else if(bc_vel_hi[0] == 3 || bc_vel_hi[0] == 6 || bc_vel_hi[0] == 7)
   {
 		paramPlaneList[1].periodicity = 0;
 		paramPlaneList[1].porosityLeft = 1;
@@ -636,8 +640,12 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 		if(bc_vel_hi[0] == 3)
 		{
 		    paramPlaneList[1].sourceLeft = 1;
-		}else{
+		}else if(bc_vel_hi[1] == 6)
+		{
 		    paramPlaneList[1].sourceLeft = 2;
+		}else
+		{
+		    paramPlaneList[1].sourceLeft = 3;
 		}		
      	paramPlaneList[1].sinkLeft = 1;
     	paramPlaneList[1].sinkRight = 0;

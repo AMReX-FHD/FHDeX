@@ -820,7 +820,86 @@ void FhdParticleContainer::Source(const Real dt, paramPlane* paramPlaneList, con
 						}
 
 					}
-				}else if(paramPlaneList[i].sourceRight == 2 || paramPlaneList[i].sourceRight == 3)
+				}else if(paramPlaneList[i].sourceRight == 3)
+				{
+                    Real srtV = 0;
+					for(int j=nspecies-1; j>=0; j--)
+					{
+					    Real temp = paramPlaneList[i].temperatureRight;
+  						Real srtVTemp = sqrt(properties[j].R*temp);
+  						if(srtVTemp > srtV){srtV = srtVTemp;}
+					}
+					Real depth = 6.0*srtV*dt;
+					Real area = paramPlaneList[i].area/ParallelDescriptor::NProcs();
+					Real vol = depth*area;
+					
+					for(int j=nspecies-1; j>=0; j--)
+					{
+						Real density = paramPlaneList[i].densityRight[j];												
+                        int totalAttemptsInt = amrex::RandomPoisson(density*vol);
+                        
+                        //Print() << "Attempting " << density << ", " << sqrt(area) << ", " << depth << endl;
+
+                        int generated = 0;
+						for(int k=0;k<totalAttemptsInt;k++)
+						{
+							ParticleType p;
+							Real srt = sqrt(properties[j].R*paramPlaneList[i].temperatureRight);
+							p.rdata(FHD_realData::velz) = srt*amrex::RandomNormal(0.,1.);
+							Real wCoord = -amrex::Random()*depth;
+							Real projPos = wCoord + dt*p.rdata(FHD_realData::velz);
+							
+							if(projPos > 0)
+                            {
+							    Real uCoord = amrex::Random()*paramPlaneList[i].uTop;
+							    Real vCoord = amrex::Random()*paramPlaneList[i].vTop;
+
+							    p.id() = ParticleType::NextID();
+
+							    p.cpu() = ParallelDescriptor::MyProc();
+							    p.idata(FHD_intData::sorted) = -1;
+
+							    p.idata(FHD_intData::species) = j;
+							    p.idata(FHD_intData::newSpecies) = -1;
+
+							    p.pos(0) = paramPlaneList[i].x0 + paramPlaneList[i].ux*uCoord + paramPlaneList[i].vx*vCoord;
+							    p.pos(1) = paramPlaneList[i].y0 + paramPlaneList[i].uy*uCoord + paramPlaneList[i].vy*vCoord;
+							    p.pos(2) = paramPlaneList[i].z0 + paramPlaneList[i].uz*uCoord + paramPlaneList[i].vz*vCoord;
+
+							    p.pos(0) = p.pos(0) + smallNumber*paramPlaneList[i].rnx;
+							    p.pos(1) = p.pos(1) + smallNumber*paramPlaneList[i].rny;
+							    p.pos(2) = p.pos(2) + smallNumber*paramPlaneList[i].rnz;
+							    
+							    p.rdata(FHD_realData::boostx) = 0;
+							    p.rdata(FHD_realData::boosty) = 0;
+							    p.rdata(FHD_realData::boostz) = 0;
+							    
+							    p.rdata(FHD_realData::mass) = mass[j];
+
+							    p.idata(FHD_intData::i) = -100;
+							    p.idata(FHD_intData::j) = -100;
+							    p.idata(FHD_intData::k) = -100;
+
+							    p.rdata(FHD_realData::R) = properties[j].R;
+							    p.rdata(FHD_realData::timeFrac) = (dt + wCoord/p.rdata(FHD_realData::velz))/dt;
+
+							    p.rdata(FHD_realData::velx) = srt*amrex::RandomNormal(0.,1.);
+							    p.rdata(FHD_realData::vely) = srt*amrex::RandomNormal(0.,1.);
+
+
+							    const paramPlane surf = paramPlaneList[i];
+
+							    rotation(surf.cosThetaRight, surf.sinThetaRight, surf.cosPhiRight, surf.sinPhiRight,
+								    &p.rdata(FHD_realData::velx), &p.rdata(FHD_realData::vely), &p.rdata(FHD_realData::velz));							    
+
+							    particle_tile.push_back(p);
+							    generated++;
+							}
+						}
+						//Print() << "Generated " << generated << endl;
+
+					}
+				}else if(paramPlaneList[i].sourceRight == 2)
 				{
                     Real totalMass = 0;
                     int rankTotalParticles = 0;
@@ -833,6 +912,9 @@ void FhdParticleContainer::Source(const Real dt, paramPlane* paramPlaneList, con
 					{
                         totalMass += paramPlaneList[i].massFluxRight[j];
                     }
+                    
+                    Print() << "Total mass out: " << totalMass << endl;
+                    
                     for(int j=nspecies-1; j>=0; j--)
 					{
                         massFluxReal[j] = bc_Yk_x_lo[j]*totalMass/((double)ParallelDescriptor::NProcs());
@@ -935,8 +1017,10 @@ void FhdParticleContainer::Source(const Real dt, paramPlane* paramPlaneList, con
     			    }
 					    
 			    }
-                else if(paramPlaneList[i].sourceLeft == 1)
+			    
+                if(paramPlaneList[i].sourceLeft == 1)
 				{
+					Print() << "Type 1\n";
 					for(int j=nspecies-1; j>=0; j--)
 					{
 						Real density = paramPlaneList[i].densityLeft[j];
@@ -998,6 +1082,81 @@ void FhdParticleContainer::Source(const Real dt, paramPlane* paramPlaneList, con
 						}
 
                         
+					}
+				}else if(paramPlaneList[i].sourceLeft == 3)
+				{
+					Real srtV = 0;
+					for(int j=nspecies-1; j>=0; j--)
+					{
+					    Real temp = paramPlaneList[i].temperatureLeft;
+  						Real srtVTemp = sqrt(properties[j].R*temp);
+  						if(srtVTemp > srtV){srtV = srtVTemp;}
+					}
+					Real depth = 6.0*srtV*dt;
+					Real area = paramPlaneList[i].area/ParallelDescriptor::NProcs();
+					Real vol = depth*area;
+					
+					for(int j=nspecies-1; j>=0; j--)
+					{
+						Real density = paramPlaneList[i].densityLeft[j];						
+
+                        int totalAttemptsInt = amrex::RandomPoisson(density*vol);
+
+						for(int k=0;k<totalAttemptsInt;k++)
+						{
+							ParticleType p;
+							Real srt = sqrt(properties[j].R*paramPlaneList[i].temperatureRight);
+							p.rdata(FHD_realData::velz) = srt*amrex::RandomNormal(0.,1.);
+							Real wCoord = -amrex::Random()*depth;
+							Real projPos = wCoord + dt*p.rdata(FHD_realData::velz);
+							
+							if(projPos > 0)
+                            {
+							    Real uCoord = amrex::Random()*paramPlaneList[i].uTop;
+							    Real vCoord = amrex::Random()*paramPlaneList[i].vTop;
+
+							    p.id() = ParticleType::NextID();
+
+							    p.cpu() = ParallelDescriptor::MyProc();
+							    p.idata(FHD_intData::sorted) = -1;
+
+							    p.idata(FHD_intData::species) = j;
+							    p.idata(FHD_intData::newSpecies) = -1;
+
+							    p.pos(0) = paramPlaneList[i].x0 + paramPlaneList[i].ux*uCoord + paramPlaneList[i].vx*vCoord;
+							    p.pos(1) = paramPlaneList[i].y0 + paramPlaneList[i].uy*uCoord + paramPlaneList[i].vy*vCoord;
+							    p.pos(2) = paramPlaneList[i].z0 + paramPlaneList[i].uz*uCoord + paramPlaneList[i].vz*vCoord;
+
+							    p.pos(0) = p.pos(0) + smallNumber*paramPlaneList[i].lnx;
+							    p.pos(1) = p.pos(1) + smallNumber*paramPlaneList[i].lny;
+							    p.pos(2) = p.pos(2) + smallNumber*paramPlaneList[i].lnz;
+							    
+							    p.rdata(FHD_realData::boostx) = 0;
+							    p.rdata(FHD_realData::boosty) = 0;
+							    p.rdata(FHD_realData::boostz) = 0;
+							    
+							    p.rdata(FHD_realData::mass) = mass[j];
+
+							    p.idata(FHD_intData::i) = -100;
+							    p.idata(FHD_intData::j) = -100;
+							    p.idata(FHD_intData::k) = -100;
+
+							    p.rdata(FHD_realData::R) = properties[j].R;
+							    p.rdata(FHD_realData::timeFrac) = (dt + wCoord/p.rdata(FHD_realData::velz))/dt;
+
+							    p.rdata(FHD_realData::velx) = srt*amrex::RandomNormal(0.,1.);
+							    p.rdata(FHD_realData::vely) = srt*amrex::RandomNormal(0.,1.);
+
+
+							    const paramPlane surf = paramPlaneList[i];
+
+							    rotation(surf.cosThetaLeft, surf.sinThetaLeft, surf.cosPhiLeft, surf.sinPhiLeft,
+								    &p.rdata(FHD_realData::velx), &p.rdata(FHD_realData::vely), &p.rdata(FHD_realData::velz));							    
+
+							    particle_tile.push_back(p);
+							}
+						}
+
 					}
 				}else if(paramPlaneList[i].sourceLeft == 2)
 				{
