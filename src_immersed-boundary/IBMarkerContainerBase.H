@@ -78,6 +78,12 @@ public:
         return pti.GetArrayOfStructs().numParticles();
     };
 
+    // Get the next particle ID -- can be used to find the number of particles
+    // initialized on this GPU already
+    int NextID() {
+        return ParticleType::NextID();
+    }
+
     // Get total number of markers accross all ranks.
     int getTotalMarkers(){
         return totalMarkers;
