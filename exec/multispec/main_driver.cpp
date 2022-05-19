@@ -1,3 +1,4 @@
+#include "main_driver.H"
 
 #include "multispec_test_functions.H"
 
@@ -209,6 +210,8 @@ void main_driver(const char* argv)
     MultiFab diff_mass_fluxdiv(ba, dmap, nspecies, 0);
     MultiFab eta              (ba, dmap, 1       , 1);
     MultiFab kappa            (ba, dmap, 1       , 1);
+    MultiFab pressure_jump    (ba, dmap, 1       , 0);
+
     
     /////////////////////////////////////////
 
@@ -386,6 +389,9 @@ void main_driver(const char* argv)
         }
     }
 
+    // initialize pressure jump
+    pressure_jump.setVal(0.);
+
     ///////////////////////////////////////////
     // Initialize structure factor object for analysis
     ///////////////////////////////////////////
@@ -497,7 +503,7 @@ void main_driver(const char* argv)
         
         // write initial plotfile and structure factor
         if (plot_int > 0) {
-            WritePlotFile(0,0.,geom,umac,rhotot_old,rho_old,pi,charge_old,Epot);
+            WritePlotFile(0,0.,geom,umac,rhotot_old,rho_old,pi,pressure_jump,charge_old,Epot);
             if (n_steps_skip == 0 && struct_fact_int > 0) {
                 structFact.WritePlotFile(0,0.,geom,"plt_SF");
             }
@@ -581,7 +587,7 @@ void main_driver(const char* argv)
 
         // write plotfile at specific intervals
         if (plot_int > 0 && istep%plot_int == 0) {
-            WritePlotFile(istep,time,geom,umac,rhotot_new,rho_new,pi,charge_new,Epot);
+            WritePlotFile(istep,time,geom,umac,rhotot_new,rho_new,pi,pressure_jump,charge_new,Epot);
             if (istep > n_steps_skip && struct_fact_int > 0) {
                 structFact.WritePlotFile(istep,time,geom,"plt_SF");
             }
