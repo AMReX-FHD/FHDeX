@@ -214,7 +214,7 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     
     // here is a reasonable place to call something to compute in reversible stress term
     // in this case want to get divergence so it looks like a add to rhs for stokes solver
-    if (use_multiphase == 1 ) {
+    if (use_multiphase) {
 
         // compute reversible stress tensor ---added term
         ComputeDivReversibleStress(div_reversible_stress,rhotot_old,rho_old,geom);
