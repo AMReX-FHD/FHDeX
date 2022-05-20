@@ -259,6 +259,16 @@ void FillRhoRhototGhost(MultiFab& rho, MultiFab& rhotot, const Geometry& geom);
 void FillRhototGhost(MultiFab& rhotot_in, const MultiFab& conc_in, const Geometry& geom);
 
 /////////////////////////////////////////////////////////////////////////////////
+// in PressureJump.cpp
+
+void PressureJump(const MultiFab& press, 
+   	          const MultiFab& rho,
+                  const MultiFab& rhotot,
+                  const MultiFab& Temp,
+                  MultiFab& pressure_jump,
+		  const Geometry& geom);
+
+/////////////////////////////////////////////////////////////////////////////////
 // Device calls from  MassFluxUtil.cpp
 
 

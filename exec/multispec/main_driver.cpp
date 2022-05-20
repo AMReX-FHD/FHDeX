@@ -548,7 +548,7 @@ void main_driver(const char* argv)
                                  pi,eta,eta_ed,kappa,Temp,Temp_ed,
                                  diff_mass_fluxdiv,stoch_mass_fluxdiv,stoch_mass_flux,
                                  grad_Epot_old,grad_Epot_new,
-                                 charge_old,charge_new,Epot,permittivity,
+                                 charge_old,charge_new,Epot,permittivity,pressure_jump,
                                  sMassFlux,sMomFlux,
                                  dt,time,istep,geom);
         }

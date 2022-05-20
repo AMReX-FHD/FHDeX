@@ -31,6 +31,7 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                           MultiFab& charge_new,
                           MultiFab& Epot,
                           MultiFab& permittivity,
+                          MultiFab& pressure_jump,
                           StochMassFlux& sMassFlux,
                           StochMomFlux& sMomFlux,
                           const Real& dt,
@@ -717,6 +718,9 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         // fill periodic and interior ghost cells
         umac[i].FillBoundary(geom.periodicity());
     }
+
+    // compute pressure jump
+    PressureJump(pi,rho_new,rhotot_new,Temp,pressure_jump,geom);
 
     // restore eta and kappa
     eta.mult  (2.,0,1,1);
