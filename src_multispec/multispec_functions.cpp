@@ -17,8 +17,13 @@ AMREX_GPU_MANAGED int                                       multispec::is_noniso
 AMREX_GPU_MANAGED int                                       multispec::is_ideal_mixture;
 int                                                         multispec::use_lapack;
 AMREX_GPU_MANAGED int                                       multispec::use_multiphase;
+AMREX_GPU_MANAGED int                                       multispec::use_flory_huggins;
 AMREX_GPU_MANAGED amrex::Real                               multispec::kc_tension;
 AMREX_GPU_MANAGED amrex::Real                               multispec::alpha_gex;
+AMREX_GPU_MANAGED amrex::Array2D<Real,0,MAX_SPECIES-1,0,MAX_SPECIES-1> multispec::fh_kappa;
+AMREX_GPU_MANAGED amrex::Array2D<Real,0,MAX_SPECIES-1,0,MAX_SPECIES-1> multispec::fh_chi;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> multispec::fh_monomers;
+AMREX_GPU_MANAGED amrex::Real                               multispec::monomer_mass;
 AMREX_GPU_MANAGED int                                       multispec::n_gex;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> multispec::c_init_1;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> multispec::c_init_2;
@@ -68,6 +73,7 @@ void InitializeMultispecNamespace() {
     is_nonisothermal = 0;   // If T Soret effect will be included
     use_lapack = 0;         // Use LAPACK or iterative method for diffusion matrix (recommend False)
     use_multiphase = 0;     // for RTIL
+    use_flory_huggins = 0;   // for flory huggins
     kc_tension = 0;         // for RTIL
     alpha_gex = 0;          // for RTIL
     n_gex = 1;              // for RTIL
@@ -170,11 +176,37 @@ void InitializeMultispecNamespace() {
     pp.query("is_nonisothermal",is_nonisothermal);
     pp.query("use_lapack",use_lapack);
     pp.query("use_multiphase",use_multiphase);
+    pp.query("use_flory_huggins",use_flory_huggins);
+    pp.query("monomer_mass",monomer_mass);
     pp.query("kc_tension",kc_tension);
     pp.query("alpha_gex",alpha_gex);
     pp.query("n_gex",n_gex);
     pp.query("chi_iterations",chi_iterations);
     pp.query("temp_type",temp_type);
+    if(pp.queryarr("fh_kappa",temp)) {
+        for (int i=0; i<nspecies; ++i) {
+        for (int j=0; j<nspecies; ++j) {
+            fh_kappa(i,j) = temp[i*nspecies+j];
+        }
+        }
+    }
+    if(pp.queryarr("fh_chi",temp)) {
+        for (int i=0; i<nspecies; ++i) {
+        for (int j=0; j<nspecies; ++j) {
+            fh_chi(i,j) = temp[i*nspecies+j];
+        }
+        }
+    }
+    if(pp.queryarr("fh_monomers",temp)) {
+        for (int i=0; i<nspecies; ++i) {
+            fh_monomers[i] = temp[i];
+        }
+    }
+    if(use_flory_huggins == 1) {
+        for (int i=0; i<nspecies; ++i) {
+            molmass[i] = fh_monomers[i]*monomer_mass;
+        }
+    }
     if(pp.queryarr("c_init_1",temp)) {
         for (int i=0; i<nspecies; ++i) {
             c_init_1[i] = temp[i];

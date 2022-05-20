@@ -111,6 +111,7 @@ namespace common {
     extern amrex::Vector<amrex::Real> u_init;
     extern amrex::Real                perturb_width;
     extern AMREX_GPU_MANAGED amrex::Real smoothing_width;
+    extern AMREX_GPU_MANAGED amrex::Real radius_cyl;
     extern amrex::Real                initial_variance_mom;
     extern amrex::Real                initial_variance_mass;
     extern amrex::Real                domega;

@@ -78,6 +78,7 @@ int                        common::stoch_stress_form;
 amrex::Vector<amrex::Real> common::u_init;
 amrex::Real                common::perturb_width;
 AMREX_GPU_MANAGED amrex::Real common::smoothing_width;
+AMREX_GPU_MANAGED amrex::Real common::radius_cyl;
 amrex::Real                common::initial_variance_mom;
 amrex::Real                common::initial_variance_mass;
 amrex::Real                common::domega;
@@ -448,6 +449,7 @@ void InitializeCommonNamespace() {
     u_init[1] = 0.;
     perturb_width = 0.;
     smoothing_width = 1.;
+    radius_cyl = 0.;
     initial_variance_mom = 0.;
     initial_variance_mass = 0.;
     domega = 0.;
@@ -752,6 +754,7 @@ void InitializeCommonNamespace() {
     pp.queryarr("u_init",u_init,0,2);
     pp.query("perturb_width",perturb_width);
     pp.query("smoothing_width",smoothing_width);
+    pp.query("radius_cyl",radius_cyl);
     pp.query("initial_variance_mom",initial_variance_mom);
     pp.query("initial_variance_mass",initial_variance_mass);
     pp.query("domega",domega);

@@ -22,6 +22,14 @@ void InitializeMultispecNamespace();
 
 /////////////////////////////////////////////////////////////////////////////////
 // in ComputeDivReversibleStress.cpp
+void ComputeDivFHReversibleStress(std::array<MultiFab,AMREX_SPACEDIM>& div_reversible_stress,
+                                const MultiFab& rhotot_in,
+                                MultiFab& rho_in,
+                                const Geometry& geom);
+
+
+/////////////////////////////////////////////////////////////////////////////////
+// in ComputeDivReversibleStress.cpp
 void ComputeDivReversibleStress(std::array<MultiFab,AMREX_SPACEDIM>& div_reversible_stress,
                                 const MultiFab& rhotot_in,
                                 MultiFab& rho_in,
@@ -47,6 +55,10 @@ void ComputeMassFluxdiv(MultiFab& rho,
                         const int& zero_initial_Epot=1);
 
 void ComputeHigherOrderTerm(const MultiFab& molarconc,
+                            std::array<MultiFab,AMREX_SPACEDIM>& diff_mass_flux,
+                            const Geometry& geom);
+
+void ComputeFHHigherOrderTerm(const MultiFab& molarconc,
                             std::array<MultiFab,AMREX_SPACEDIM>& diff_mass_flux,
                             const Geometry& geom);
 
@@ -182,8 +194,15 @@ void ComputeMolconcMolmtot(const MultiFab& rho,
 			   MultiFab& molarconc,
 			   MultiFab& molmtot);
 
+void ComputeMassfrac(const MultiFab& rho,
+			   const MultiFab& rhotot,
+			   MultiFab& massfrac);
+
 void ComputeGamma(const MultiFab& molarconc,
 		  const MultiFab& Hessian,
+		  MultiFab& Gamma);
+
+void ComputeFHGamma(const MultiFab& massfrac,
 		  MultiFab& Gamma);
 
 void ComputeRhoWChi(const MultiFab& rho,
@@ -240,6 +259,16 @@ void FillRhoRhototGhost(MultiFab& rho, MultiFab& rhotot, const Geometry& geom);
 void FillRhototGhost(MultiFab& rhotot_in, const MultiFab& conc_in, const Geometry& geom);
 
 /////////////////////////////////////////////////////////////////////////////////
+// in PressureJump.cpp
+
+void PressureJump(const MultiFab& press, 
+   	          const MultiFab& rho,
+                  const MultiFab& rhotot,
+                  const MultiFab& Temp,
+                  MultiFab& pressure_jump,
+		  const Geometry& geom);
+
+/////////////////////////////////////////////////////////////////////////////////
 // Device calls from  MassFluxUtil.cpp
 
 
@@ -273,6 +302,29 @@ void GetMolTot ( GpuArray<Real, MAX_SPECIES>& W,
     }
 
     molmtot_in = 1.0 / sumWOverN;
+}
+
+/**
+ * \brief Compute total molar mass
+ *
+ * \param[in] W Mass fractions.
+ * \param[in] molmass_in
+ * \param[in] nspecies_in Number of species
+ * \param[out] molmtot Total molar mass
+ */
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void GetMonomerTot ( GpuArray<Real, MAX_SPECIES>& W,
+                GpuArray<Real, MAX_SPECIES>& monomer_in,
+                Real& monomertot,
+                int nspecies_in)
+{
+    Real sumWOverN = 0.0;
+
+    for (int n=0; n<nspecies_in; ++n){
+        sumWOverN += W[n] / monomer_in[n];
+    }
+
+    monomertot = 1.0 / sumWOverN;
 }
 
 /**
@@ -415,10 +467,21 @@ void ComputeGammaLocal (
             w2 = 0.0;
         }
 
-        GammaN(1,2) = w1 * n_gex * n_gex * alpha_gex * std::pow(w1,n_gex-1) * std::pow(w2,n_gex-1);
-        GammaN(2,1) = w2 * n_gex * n_gex * alpha_gex * std::pow(w2,n_gex-1) * std::pow(w1,n_gex-1);
-        GammaN(1,1) = 1.0 + w1 * n_gex * (n_gex-1) * alpha_gex * std::pow(w1,n_gex-2) * std::pow(w2,n_gex);
-        GammaN(2,2) = 1.0 + w2 * n_gex * (n_gex-1) * alpha_gex * std::pow(w2,n_gex-2) * std::pow(w1,n_gex);
+        if( n_gex == 1 ){
+
+           GammaN(1,2) = w1 * n_gex * n_gex * alpha_gex * std::pow(w1,n_gex-1) * std::pow(w2,n_gex-1);
+           GammaN(2,1) = w2 * n_gex * n_gex * alpha_gex * std::pow(w2,n_gex-1) * std::pow(w1,n_gex-1);
+           GammaN(1,1) = 1.0 ;
+           GammaN(2,2) = 1.0 ;
+
+        } else {
+
+           GammaN(1,2) = w1 * n_gex * n_gex * alpha_gex * std::pow(w1,n_gex-1) * std::pow(w2,n_gex-1);
+           GammaN(2,1) = w2 * n_gex * n_gex * alpha_gex * std::pow(w2,n_gex-1) * std::pow(w1,n_gex-1);
+           GammaN(1,1) = 1.0 + w1 * n_gex * (n_gex-1) * alpha_gex * std::pow(w1,n_gex-2) * std::pow(w2,n_gex);
+           GammaN(2,2) = 1.0 + w2 * n_gex * (n_gex-1) * alpha_gex * std::pow(w2,n_gex-2) * std::pow(w1,n_gex);
+
+        }
 
     } else {
 
@@ -433,6 +496,25 @@ void ComputeGammaLocal (
         GammaIPlusMatmul(GammaN, X_xxT, HessianN);
 
     }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void ComputeFHGammaLocal (
+                GpuArray<Real, MAX_SPECIES>& massFrac,
+                Array2D<Real, 0, MAX_SPECIES-1, 0, MAX_SPECIES-1>& GammaN){
+
+        Real Nbar;
+
+        GetMonomerTot ( massFrac, fh_monomers, Nbar, nspecies);
+    
+        for (int n=0; n<nspecies; n++){
+           for (int m=0; m<nspecies; m++){
+              Real wn = std::max(std::min( massFrac[n],1.),0.);
+              GammaN(n,m) = Nbar*wn*fh_chi(n,m);
+           }
+           GammaN(n,n) += Nbar/ fh_monomers[n];
+        }
+
 }
 
 
