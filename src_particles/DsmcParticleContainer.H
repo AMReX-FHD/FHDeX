@@ -150,6 +150,8 @@ public:
 		Real time);
 
 	void OutputParticles();
+	
+	void zeroCells();
 		
 
   //Real Tg0[MAX_SPECIES];

@@ -913,7 +913,7 @@ void FhdParticleContainer::Source(const Real dt, paramPlane* paramPlaneList, con
                         totalMass += paramPlaneList[i].massFluxRight[j];
                     }
                     
-                    Print() << "Total mass out: " << totalMass << endl;
+                    //Print() << "Total mass out: " << totalMass << endl;
                     
                     for(int j=nspecies-1; j>=0; j--)
 					{
@@ -926,10 +926,12 @@ void FhdParticleContainer::Source(const Real dt, paramPlane* paramPlaneList, con
                     for(int j=nspecies-1; j>=0; j--)
 					{
                         paramPlaneList[i].massFluxRight[j] = bc_Yk_x_lo[j]*residual;
+                        //paramPlaneList[i].massFluxRight[j] = 0;
                     }
                     
                     ParticleType partList[rankTotalParticles];
                     int partCount = 0;
+                    Real generatedMass = 0;
 					for(int j=nspecies-1; j>=0; j--)
 					{
 						
@@ -962,6 +964,8 @@ void FhdParticleContainer::Source(const Real dt, paramPlane* paramPlaneList, con
 							partList[partCount].rdata(FHD_realData::boostz) = 0;
 							
 							partList[partCount].rdata(FHD_realData::mass) = mass[j];
+							
+							generatedMass += mass[j];
 
 							partList[partCount].idata(FHD_intData::i) = -100;
 							partList[partCount].idata(FHD_intData::j) = -100;
@@ -984,33 +988,14 @@ void FhdParticleContainer::Source(const Real dt, paramPlane* paramPlaneList, con
 
 						}
 
+                        ParallelDescriptor::ReduceRealSum(paramPlaneList[i].massFluxRight[j]);
 					}
 
-//                    Real comX = 0;
-//                    Real comY = 0;
-//                    Real comZ = 0;
-//                    Real tMass = 0;
-//                                        
-//					for(int l=0; l<rankTotalParticles; l++)
-//					{
-//    					comX += partList[l].rdata(FHD_realData::velx)*partList[l].rdata(FHD_realData::mass);
-//    					comY += partList[l].rdata(FHD_realData::vely)*partList[l].rdata(FHD_realData::mass);
-//    					comZ += partList[l].rdata(FHD_realData::velz)*partList[l].rdata(FHD_realData::mass);    					    					
-//    					tMass += partList[l].rdata(FHD_realData::mass);
-//    			    }
-//    			    
-//    			    ParallelDescriptor::ReduceRealSum(comX);
-//    			    ParallelDescriptor::ReduceRealSum(comY);
-//    			    ParallelDescriptor::ReduceRealSum(comZ);
-//    			    ParallelDescriptor::ReduceRealSum(totalMass);    			        			        			    
-//    			    
-//    			    comX /= tMass;
-//    			    comY /= tMass;
-//    			    comZ /= tMass;
-//    			    
-//    			    //Print() << "COM res: " << comX << ", " << comY << ", " << comZ << endl;
-//    			    //Print() << "COM cell: " << cuInst(0,0,0,1)/cuInst(0,0,0,0) << ", " << cuInst(0,0,0,1)/cuInst(0,0,0,0) << ", " << cuInst(0,0,0,1)/cuInst(0,0,0,0) << endl;
-//					
+			
+                    ParallelDescriptor::ReduceRealSum(generatedMass);					
+					//Print() << "Total mass in: " << generatedMass << endl;
+
+				
 					for(int l=0; l<rankTotalParticles; l++)
 					{
     					particle_tile.push_back(partList[l]);
@@ -1020,7 +1005,7 @@ void FhdParticleContainer::Source(const Real dt, paramPlane* paramPlaneList, con
 			    
                 if(paramPlaneList[i].sourceLeft == 1)
 				{
-					Print() << "Type 1\n";
+					//Print() << "Type 1\n";
 					for(int j=nspecies-1; j>=0; j--)
 					{
 						Real density = paramPlaneList[i].densityLeft[j];
@@ -1183,6 +1168,7 @@ void FhdParticleContainer::Source(const Real dt, paramPlane* paramPlaneList, con
                     for(int j=nspecies-1; j>=0; j--)
 					{
                         paramPlaneList[i].massFluxLeft[j] = bc_Yk_x_hi[j]*residual;
+                        //paramPlaneList[i].massFluxLeft[j] = 0;
                     }
                     
                     ParticleType partList[rankTotalParticles];
@@ -1242,8 +1228,12 @@ void FhdParticleContainer::Source(const Real dt, paramPlane* paramPlaneList, con
                             partCount++;
 						}
 
+                        ParallelDescriptor::ReduceRealSum(paramPlaneList[i].massFluxLeft[j]);
                         
 					}
+					
+			
+                    					
 					for(int l=0; l<rankTotalParticles; l++)
 					{
     					particle_tile.push_back(partList[l]);
@@ -1432,90 +1422,81 @@ void FhdParticleContainer::SourcePhonons(const Real dt, const paramPlane* paramP
 	SortParticles();
 }
 
-/*
-void FhdParticleContainer::EvaluateStats(MultiFab& particleInstant, MultiFab& particleMeans,
-                                         MultiFab& particleVars, const Real delt, int steps)
+void FhdParticleContainer::zeroCells()
 {
-    BL_PROFILE_VAR("EvaluateStats()",EvaluateStats);
-    
-    const int lev = 0;
-    
-    BoxArray ba = particleMeans.boxArray();
-    long cellcount = ba.numPts();
+	BL_PROFILE_VAR("zeroCells()",zeroCells);
+	int lev = 0;
+	for(MFIter mfi(mfvrmax); mfi.isValid(); ++mfi)
+	{
+		const Box& tile_box  = mfi.tilebox();
+		const int grid_id = mfi.index();
+		const int tile_id = mfi.LocalTileIndex();
+		auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+		auto& particles = particle_tile.GetArrayOfStructs();
 
-    const Real* dx = Geom(lev).CellSize();
-    const Real dxInv = 1.0/dx[0];
-    const Real cellVolInv = 1.0/(dx[0]*dx[0]*dx[0]);
+		const Array4<Real> & arrvrmax = mfvrmax.array(mfi);
+		const Array4<Real> & arrselect = mfselect.array(mfi);
 
-    const Real stepsInv = 1.0/steps;
-    const int stepsMinusOne = steps-1;
+		//const long np = particles.numParticles();
+		//amrex::ParallelForRNG(tile_box,
+		//	[=] AMREX_GPU_DEVICE (int i, int j, int k, amrex::RandomEngine const& engine) noexcept {
+		IntVect smallEnd = tile_box.smallEnd();
+		IntVect bigEnd = tile_box.bigEnd();
 
-    // zero instantaneous values
-    particleInstant.setVal(0.);
-    
-    for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) 
-    {
+		for (int i = smallEnd[0]; i <= bigEnd[0]; i++) {
+		for (int j = smallEnd[1]; j <= bigEnd[1]; j++) {
+		for (int k = smallEnd[2]; k <= bigEnd[2]; k++) {
 
-	PairIndex index(pti.index(), pti.LocalTileIndex());
-        const int np = this->GetParticles(lev)[index].numRealParticles();
-	auto& plev = this->GetParticles(lev);
-	auto& ptile = plev[index];
-	auto& aos   = ptile.GetArrayOfStructs();
-        const Box& tile_box  = pti.tilebox();
-        ParticleType* particles = aos().dataPtr();
+			const IntVect& iv = {i,j,k};
+			long imap = tile_box.index(iv);
 
-        GpuArray<int, 3> bx_lo = {tile_box.loVect()[0], tile_box.loVect()[1], tile_box.loVect()[2]};
-        GpuArray<int, 3> bx_hi = {tile_box.hiVect()[0], tile_box.hiVect()[1], tile_box.hiVect()[2]};
-
-        Array4<Real> part_inst = particleInstant[pti].array();
-        Array4<Real> part_mean = particleMeans[pti].array();
-        Array4<Real> part_var = particleVars[pti].array();
-
-        AMREX_FOR_1D( np, ni,
-        {
-            ParticleType & part = particles[ni];
-
-            int i = floor(part.pos(0)*dxInv);
-            int j = floor(part.pos(1)*dxInv);
-            int k = floor(part.pos(2)*dxInv);
-            
-            amrex::Gpu::Atomic::Add(&part_inst(i,j,k,0), 1.0);
-
-            for(int l=0;l<nspecies;l++)
-            {
-
-            }
-
-        });
-
-        amrex::ParallelFor(tile_box,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-        {
-
-            part_inst(i,j,k,1) = part_inst(i,j,k,1)*cellVolInv;
-             
-        });
-
-        amrex::ParallelFor(tile_box,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-        {
-
-            part_mean(i,j,k,1)  = (part_mean(i,j,k,1)*stepsMinusOne + part_inst(i,j,k,1))*stepsInv;
-
-            for(int l=0;l<nspecies;l++)
-            {
-
-            }
-             
-        });
-
-        amrex::ParallelFor(tile_box,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-        {
-
-            Real del1 = part_inst(i,j,k,1) - part_mean(i,j,k,1);
-
-            part_var(i,j,k,1)  = (part_var(i,j,k,1)*stepsMinusOne + del1*del1)*stepsInv;            
-        });
-
-    }
-
+			int np[nspecies];
+			
+			Real uComVel=0;
+			Real vComVel=0;
+			Real wComVel=0;
+			
+			Real cellMass = 0;
+			
+			for(int i_spec = 0; i_spec<nspecies; i_spec++)
+			{
+			    np[i_spec] = m_cell_vectors[i_spec][grid_id][imap].size();
+			    for(int i_cell = 0; i_cell<np[i_spec]; i_cell++)
+			    {
+			        int pindex = m_cell_vectors[i_spec][grid_id][imap][i_cell];
+       				ParticleType & p = particles[pindex];
+       				
+       				uComVel += p.rdata(FHD_realData::mass)*p.rdata(FHD_realData::velx);
+       				vComVel += p.rdata(FHD_realData::mass)*p.rdata(FHD_realData::vely);
+       				wComVel += p.rdata(FHD_realData::mass)*p.rdata(FHD_realData::velz);
+       				
+       				cellMass += p.rdata(FHD_realData::mass); 				
+       							        
+			    }
+			
+			}
+			
+			uComVel /= cellMass;		
+			vComVel /= cellMass;
+			wComVel /= cellMass;
+			
+			for(int i_spec = 0; i_spec<nspecies; i_spec++)
+			{
+			    for(int i_cell = 0; i_cell<np[i_spec]; i_cell++)
+			    {
+			        int pindex = m_cell_vectors[i_spec][grid_id][imap][i_cell];
+       				ParticleType & p = particles[pindex];
+       				
+       				p.rdata(FHD_realData::velx) -= uComVel;
+       				p.rdata(FHD_realData::vely) -= vComVel;
+       				p.rdata(FHD_realData::velz) -= wComVel;       				       				
+       							        
+			    }
+			
+			}
+			
+		}
+		}
+		}
+	}
 }
-*/
