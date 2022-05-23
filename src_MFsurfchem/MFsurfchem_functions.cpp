@@ -1,7 +1,7 @@
 #include "MFsurfchem_functions.H"
 #include "AMReX_ParmParse.H"
 
-AMREX_GPU_MANAGED int MFsurfchem::ads_spec;
+AMREX_GPU_MANAGED int MFsurfchem::n_ads_spec;
 AMREX_GPU_MANAGED amrex::Real MFsurfchem::surfcov0;
 AMREX_GPU_MANAGED amrex::Real MFsurfchem::surf_site_num_dens;
 
@@ -13,12 +13,12 @@ void InitializeMFSurfchemNamespace()
     // extract inputs parameters
     ParmParse pp;
 
-    ads_spec = -1;
-    // get the species number that undergoes adsoprtion/desorption 
-    pp.query("ads_spec",ads_spec);
+    n_ads_spec = 0;
+    // get the number of species that undergoes adsoprtion/desorption
+    pp.query("n_ads_spec",n_ads_spec);
 
-    // if ads_spec is set to -1 or not defined in the inputs file, quit the routine
-    if (ads_spec==-1) return;
+    // if n_ads_spec is set to 0 or not defined in the inputs file, quit the routine
+    if (n_ads_spec==0) return;
 
     surfcov0 = 0.;
     // get initial surface coverage
@@ -53,9 +53,13 @@ void init_surfcov(MultiFab& surfcov, const amrex::Real* dx)
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             if (k==0) {
-                surfcov_arr(i,j,k,0) = RandomPoisson(Ntot*surfcov0)/Ntot;
+                for (int m=0;m<n_ads_spec;m++) {
+                    surfcov_arr(i,j,k,m) = RandomPoisson(Ntot*surfcov0/n_ads_spec)/Ntot;
+                }
             } else {
-                surfcov_arr(i,j,k,0) = 0.;
+                for (int m=0;m<n_ads_spec;m++) {
+                    surfcov_arr(i,j,k,m) = 0.;
+                }
             }
         });
     }
@@ -81,20 +85,25 @@ void sample_MFsurfchem(MultiFab& cu, MultiFab& prim, MultiFab& surfcov, MultiFab
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             if (k==0) {
-                amrex::Real dens = cu_arr(i,j,k,5+ads_spec);   // mass density
-                dens *= AVONUM/molmass[ads_spec];         // number density
+                amrex:: Real sumtheta = 0.;
+                for (int m=0;m<n_ads_spec;m++) {
+                    sumtheta += surfcov_arr(i,j,k,m);
+                }
 
-                amrex::Real theta = surfcov_arr(i,j,k,0);
+                for (int m=0;m<n_ads_spec;m++) {
+                    amrex::Real dens = cu_arr(i,j,k,5+m);   // mass density
+                    dens *= AVONUM/molmass[m];              // number density
 
-                amrex::Real meanNads = ads_rate_const*dens*(1-theta)*Ntot*dt;
-                //amrex::Real Nads = meanNads + sqrt(meanNads)*RandomNormal(0.,1.);
-                amrex::Real Nads = RandomPoisson(meanNads);
+                    amrex::Real theta = surfcov_arr(i,j,k,m);
 
-                amrex::Real meanNdes = des_rate*theta*Ntot*dt;
-                //amrex::Real Ndes = meanNdes + sqrt(meanNdes)*RandomNormal(0.,1.);
-                amrex::Real Ndes = RandomPoisson(meanNdes);
+                    amrex::Real meanNads = ads_rate_const*dens*(1-sumtheta)*Ntot*dt;
+                    amrex::Real Nads = RandomPoisson(meanNads);
 
-                dNadsdes_arr(i,j,k,0) = Nads-Ndes;
+                    amrex::Real meanNdes = des_rate*theta*Ntot*dt;
+                    amrex::Real Ndes = RandomPoisson(meanNdes);
+
+                    dNadsdes_arr(i,j,k,m) = Nads-Ndes;
+                }
             }
         });
     }
@@ -115,16 +124,18 @@ void update_MFsurfchem(MultiFab& cu, MultiFab& surfcov, MultiFab& dNadsdes,
         const Array4<Real> & dNadsdes_arr = dNadsdes.array(mfi);
 
         amrex::Real Ntot = surf_site_num_dens*dx[0]*dx[1];  // total number of reactive sites
-        amrex::Real factor = molmass[ads_spec]/AVONUM/(dx[0]*dx[1]*dx[2]);
 
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             if (k==0) {
-                amrex::Real dN = dNadsdes_arr(i,j,k,0);
+                for (int m=0;m<n_ads_spec;m++) {
+                    amrex::Real dN = dNadsdes_arr(i,j,k,m);
+                    amrex::Real factor = molmass[m]/AVONUM/(dx[0]*dx[1]*dx[2]);
 
-                surfcov_arr(i,j,k,0) += dN/Ntot;
-                cu_arr(i,j,k,0) -= factor*dN;
-                cu_arr(i,j,k,5+ads_spec) -= factor*dN;
+                    surfcov_arr(i,j,k,m) += dN/Ntot;
+                    cu_arr(i,j,k,m) -= factor*dN;
+                    cu_arr(i,j,k,5+m) -= factor*dN;
+                }
             }
         });
     }
