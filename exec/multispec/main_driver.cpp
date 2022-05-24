@@ -137,7 +137,6 @@ void main_driver(const char* argv)
         if (fixed_dt <= 0.) {
             Abort("main_driver.cpp: only fixed_dt > 0 supported");
         }
-        dt = fixed_dt;
 
         // Initialize the boxarray "ba" from the single box "bx"
         ba.define(domain);
@@ -166,6 +165,9 @@ void main_driver(const char* argv)
             Epot.define(ba, dmap, 1, 1);
         }
     }
+
+    // moved this to here so can change dt from value in checkpoint
+    dt = fixed_dt;
     
     // data structures to help with reservoirs
     // 
