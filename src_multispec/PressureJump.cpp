@@ -29,6 +29,11 @@ void PressureJump(const MultiFab& press,
                 	lap_phi_beta = ( (rho(i+1,j,k,beta) -2*rho(i,j,k,beta) + rho(i-1,j,k,beta))/(dx[0]*dx[0])
             		               + (rho(i,j+1,k,beta) -2*rho(i,j,k,beta) + rho(i,j-1,k,beta))/(dx[1]*dx[1])
 				       ) / rhotot(i,j,k);
+#if (AMREX_SPACEDIM == 3)
+                        lap_phi_beta += (rho(i,j,k+1,beta)-2*rho(i,j,k,beta)+rho(i,j,k-1,beta))
+			                /rhotot(i,j,k)/(dx[2]*dx[2]);
+#endif
+
             	        summation += phi_alpha * fh_kappa(alpha,beta) * lap_phi_beta;
                 }
             }
