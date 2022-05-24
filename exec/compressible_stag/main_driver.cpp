@@ -1008,7 +1008,7 @@ void main_driver(const char* argv)
         }
         statsCount++;
         if (step%100 == 0) {
-            amrex::Print() << "Mean Momentum (x, y, z): " << ComputeSpatialMean(cumom[0], 0) << " " << ComputeSpatialMean(cumom[1], 0) << " " << ComputeSpatialMean(cumom[2], 0) << "\n";
+            amrex::Print() << "Mean Density: " << ComputeSpatialMean(cu, 0) << " Mean Momentum (x):" << ComputeSpatialMean(cumom[0], 0) << " Mean Energy:" << ComputeSpatialMean(cu, 4) << "\n";
         }
 
         // write a plotfile
