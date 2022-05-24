@@ -16,7 +16,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                        std::array< MultiFab, 2 >& stochedge_y_in,
                        std::array< MultiFab, 2 >& stochedge_z_in,
                        std::array< MultiFab, AMREX_SPACEDIM>& stochcen_in,
-                       const amrex::Geometry geom,
+                       const amrex::Geometry& geom,
 		                   const amrex::Vector< amrex::Real >& stoch_weights,
 		                   const amrex::Real dt)
 {
@@ -437,7 +437,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                         if ((i == n_cells[0]) and is_hi_x_dirichlet_mass) {
                             soret_s = (hk[ns] + Runiv*meanT/molmass[ns]*chi(i,j,k,ns))*wiener[1+ns];
                         }
-                        soret = soret + soret_s;
+                        soret += soret_s;
                     }
                     xflux(i,j,k,nvars+3) = soret;
                 }
@@ -591,7 +591,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                         if ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
                             soret_s = (hk[ns] + Runiv*meanT/molmass[ns]*chi(i,j,k,ns))*wiener[1+ns];
                         }
-                        soret = soret + soret_s;
+                        soret += soret_s;
                     }
                     yflux(i,j,k,nvars+3) = soret;
                 }
@@ -746,7 +746,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                     if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
                         soret_s = (hk[ns] + Runiv*meanT/molmass[ns]*chi(i,j,k,ns))*wiener[1+ns];
                     }
-                    soret = soret + soret_s;
+                    soret += soret_s;
                 }
                 zflux(i,j,k,nvars+3) = soret;
                 
@@ -1058,7 +1058,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                 // heat flux
                 xflux(i,j,k,nvars) -= kxp*(prim(i,j,k,4)-prim(i-1,j,k,4))/dx[0];
             }
-            xflux(i,j,k,nvars+2) = visc_shear_heat;
+            xflux(i,j,k,nvars+2) += visc_shear_heat;
 
             if (algorithm_type == 2) {
 
@@ -1103,7 +1103,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                         if ((i == n_cells[0]) and is_hi_x_dirichlet_mass) {
                             Fks = Dij(i,j,k,ll*nspecies+kk)*( dk[ll] +soret[ll]);
                         }
-                        Fk[kk] = Fk[kk] - Fks;
+                        Fk[kk] -= Fks;
                     }
                 }
 
@@ -1119,7 +1119,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                     if ((i == n_cells[0]) and is_hi_x_dirichlet_mass) {
                         Q5s = (hk[ns] + Runiv*meanT*chi(i,j,k,ns)/molmass[ns])*Fk[ns];   
                     }
-                    Q5 = Q5 + Q5s;
+                    Q5 += Q5s;
                 }
                 // heat conduction already included in flux(5)       
                 xflux(i,j,k,nvars+3) += Q5;
@@ -1158,11 +1158,11 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
             }
             else {
                 visc_shear_heat -= 0.25*((velx(i+1,j,k)+velx(i+1,j-1,k))*tauxy(i+1,j,k) 
-                    + (velx(i,j,k)+velx(i,j-1,k))*tauxy(i,j,k));
+                                        + (velx(i,j,k)+velx(i,j-1,k))*tauxy(i,j,k));
                 visc_shear_heat -= 0.25*((velz(i,j,k+1)+velz(i,j-1,k+1))*tauyz(i,j,k+1) 
                                         + (velz(i,j,k)+velz(i,j-1,k))*tauyz(i,j,k));
             }
-            yflux(i,j,k,nvars+2) = visc_shear_heat;
+            yflux(i,j,k,nvars+2) += visc_shear_heat;
 
             if (do_1D) { // 1D
                 yflux(i,j,k,nvars) -= 0.0;
@@ -1237,7 +1237,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                             if ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
                                 Fks = Dij(i,j,k,ll*nspecies+kk)*( dk[ll] +soret[ll]);
                             }
-                            Fk[kk] = Fk[kk] - Fks;
+                            Fk[kk] -= Fks;
                         }
                     }
 
@@ -1253,7 +1253,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                         if ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
                             Q5s = (hk[ns] + Runiv*meanT*chi(i,j,k,ns)/molmass[ns])*Fk[ns];   
                         }
-                        Q5 = Q5 + Q5s;
+                        Q5 += Q5s;
                     }
 
                     // heat conduction already included in flux(5)
@@ -1301,7 +1301,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                     visc_shear_heat -= 0.25*((vely(i,j+1,k-1)+vely(i,j+1,k))*tauyz(i,j+1,k) 
                                        + (vely(i,j,k)+vely(i,j,k-1))*tauyz(i,j,k));
                 }
-                zflux(i,j,k,nvars+2) = visc_shear_heat;
+                zflux(i,j,k,nvars+2) += visc_shear_heat;
 
                 if ((do_1D) or (do_2D)) { // works for 1D and 2D
                     zflux(i,j,k,nvars) -= 0.0;
@@ -1377,7 +1377,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                                 if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
                                     Fks = Dij(i,j,k,ll*nspecies+kk)*( dk[ll] +soret[ll]);
                                 }
-                                Fk[kk] = Fk[kk] - Fks;
+                                Fk[kk] -= Fks;
                             }
                         }
 
@@ -1393,7 +1393,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                             if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
                                 Q5s = (hk[ns] + Runiv*meanT*chi(i,j,k,ns)/molmass[ns])*Fk[ns];   
                             }
-                            Q5 = Q5 + Q5s;
+                            Q5 += Q5s;
                         }
 
                         // heat conduction already included in flux(5)

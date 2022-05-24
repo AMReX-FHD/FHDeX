@@ -106,6 +106,7 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
             int icon = 5; int iprim = 9; int icvl = 1;
             cvlInst(i,j,k,0) = 0;
 
+
             for (int l=0; l<nspecies; l++) {
                 long np_spec = m_cell_vectors[l][grid_id][imap].size();
                 //long np_spec = cell_vecs[l][grid_id][imap].size();
@@ -167,11 +168,27 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
 
                 Real vsqb = pow(u,2.)+pow(v,2.)+pow(w,2.);
                 Real cv = cvlInst(i,j,k,icvl);
-                
-								primInst(i,j,k,iprim+6) = (K/rho - 0.5*vsqb)/cv;  // T_l
-								
-								Real T = primInst(i,j,k,iprim+6);
-                primInst(i,j,k,6) += T*n;
+  
+				primInst(i,j,k,iprim+6) = (K/rho - 0.5*vsqb)/cv;  // T_l
+
+                             
+//                uTemp = uTemp/np_spec;
+//                vTemp = vTemp/np_spec;
+//                wTemp = wTemp/np_spec;
+////                
+//                primInst(i,j,k,iprim+6) = 0;
+////								
+//				for (int m=0; m<np_spec; m++) {
+//                    int pind = m_cell_vectors[l][grid_id][imap][m];
+//                    ParticleType & p = particles[pind];
+//                    
+//                    primInst(i,j,k,iprim+6) += (p.rdata(FHD_realData::velx) - uTemp)*(p.rdata(FHD_realData::velx) - uTemp) + (p.rdata(FHD_realData::vely) - vTemp)*(p.rdata(FHD_realData::vely) - vTemp)
+//                                                + (p.rdata(FHD_realData::velz) - wTemp)*(p.rdata(FHD_realData::velz) - wTemp);
+//                }
+//                primInst(i,j,k,iprim+6) = primInst(i,j,k,iprim+6)*mass/(3.0*k_B*np_spec);
+//								
+				Real T = primInst(i,j,k,iprim+6);
+                //primInst(i,j,k,6) += T*n;
                 
                 primInst(i,j,k,iprim+7) = rho*(k_B/mass)*T;  // P_l
                 primInst(i,j,k,7) += primInst(i,j,k,iprim+7);  // P
@@ -181,6 +198,54 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
                 primInst(i,j,k,8) += primInst(i,j,k,iprim+8);
                 icon += 5; iprim += 9; icvl++;
             }
+            
+            
+            Real uTemp = 0;
+            Real vTemp = 0;
+            Real wTemp = 0;
+            Real massTotal = 0;
+            
+            int specTotal = 0;
+            
+            for (int l=nspecies-1; l>=0; l--) {
+                long np_spec = m_cell_vectors[l][grid_id][imap].size();
+                
+                for (int m=0; m<np_spec; m++) {
+                    int pind = m_cell_vectors[l][grid_id][imap][m];
+                    //int pind = 1;
+                    ParticleType & p = particles[pind];
+                    
+                    uTemp += propertiesPtr[l].mass*p.rdata(FHD_realData::velx);
+                    vTemp += propertiesPtr[l].mass*p.rdata(FHD_realData::vely);
+                    wTemp += propertiesPtr[l].mass*p.rdata(FHD_realData::velz);
+                    specTotal++;
+                    massTotal +=propertiesPtr[l].mass;
+                }
+                
+            }
+
+            uTemp /= massTotal;
+            vTemp /= massTotal;
+            wTemp /= massTotal;
+           
+            primInst(i,j,k,6) = 0;
+            
+            for (int l=nspecies-1; l>=0; l--) {
+                long np_spec = m_cell_vectors[l][grid_id][imap].size();
+                
+                for (int m=0; m<np_spec; m++) {
+                    int pind = m_cell_vectors[l][grid_id][imap][m];
+                    //int pind = 1;
+                    ParticleType & p = particles[pind];
+                    
+                    primInst(i,j,k,6) += propertiesPtr[l].mass*((p.rdata(FHD_realData::velx) - primMeans(i,j,k,2))*(p.rdata(FHD_realData::velx) - primMeans(i,j,k,2)) + (p.rdata(FHD_realData::vely) - primMeans(i,j,k,3))*(p.rdata(FHD_realData::vely) - primMeans(i,j,k,3))
+                                                + (p.rdata(FHD_realData::velz) - primMeans(i,j,k,4))*(p.rdata(FHD_realData::velz) - primMeans(i,j,k,4)));
+                }                
+            }
+           
+            
+            primInst(i,j,k,6) = primInst(i,j,k,6)/(3.0*k_B*specTotal);
+            
 
 			Real rho = cuInst(i,j,k,0);
 			Real jx = cuInst(i,j,k,1);
@@ -193,32 +258,42 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
             primInst(i,j,k,3) = jy/rho;  // v
             primInst(i,j,k,4) = jz/rho;  // w
 
-			Real u = primInst(i,j,k,iprim+2);
-			Real v = primInst(i,j,k,iprim+3);
-			Real w = primInst(i,j,k,iprim+4);
+
+			Real u = primInst(i,j,k,2);
+			Real v = primInst(i,j,k,3);
+			Real w = primInst(i,j,k,4);
+			
 
 			primInst(i,j,k,5) = u*jx+v*jy+w*jz;  // G
 
-            primInst(i,j,k,6) /= n;  // Mixture T
+            //primInst(i,j,k,6) /= n;  // Mixture T
 
             // Energy Density
             cvlInst(i,j,k,0) /= rho;
             Real vsqb = pow(u,2.)+pow(v,2.)+pow(w,2.);
             Real cv = cvlInst(i,j,k,0);
+            
+            
         });
 
         //////////////////////////////////////
         // Means
         //////////////////////////////////////
+
         amrex::ParallelFor(tile_box,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept 
         {
+            const IntVect& iv = {i,j,k};
+            long imap = tile_box.index(iv);
+            
+
+
             for (int l=0; l<ncon; l++) {
                 cuMeans(i,j,k,l) = (cuMeans(i,j,k,l)*stepsMinusOne+cuInst(i,j,k,l))*osteps;
             }
-
+                       
             // Zero out hydrodynamic means that are sums of partials
             primMeans(i,j,k,0) = 0.0;
-            primMeans(i,j,k,6) = 0.0;
+            //primMeans(i,j,k,6) = 0.0;
             primMeans(i,j,k,7) = 0.0;
             primMeans(i,j,k,8) = 0.0;
             int iprim = 9; int icon = 5; int icvl = 1;
@@ -255,10 +330,12 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
 
                 Real vsqb = pow(u,2)+pow(v,2)+pow(w,2);
 
-                primMeans(i,j,k,iprim+6) = (K/rho-vsqb*0.5)/cv;
+                //primMeans(i,j,k,iprim+6) = (K/rho-vsqb*0.5)/cv;
+                
+                
 
                 Real T = primMeans(i,j,k,iprim+6);
-                primMeans(i,j,k,6) += T*n;
+                //primMeans(i,j,k,6) += T*n;
 
                 primMeans(i,j,k,iprim+7) = rho*(k_B/mass)*T;
                 primMeans(i,j,k,7) += primMeans(i,j,k,iprim+7);
@@ -281,16 +358,36 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
             primMeans(i,j,k,3)  = jy/rho; // v
             primMeans(i,j,k,4)  = jz/rho; // w
 
-						Real u = primMeans(i,j,k,2);
-						Real v = primMeans(i,j,k,3);
-						Real w = primMeans(i,j,k,4);
+			Real u = primMeans(i,j,k,2);
+			Real v = primMeans(i,j,k,3);
+			Real w = primMeans(i,j,k,4);
 
             primMeans(i,j,k,5) = u*jx+v*jy+w*jz; // G
             cvlMeans(i,j,k,0) /= rho;
             Real cv = cvlMeans(i,j,k,0);
             
             Real vsqb = pow(u,2.)+pow(v,2.)+pow(w,2.);
-            primMeans(i,j,k,6) /= n; // T
+            //primMeans(i,j,k,6) /= n; // T
+            
+            Real tTemp = 0;
+            int specTotal = 0;
+            for (int l=nspecies-1; l>=0; l--) {
+                long np_spec = m_cell_vectors[l][grid_id][imap].size();
+                
+                for (int m=0; m<np_spec; m++) {
+                    int pind = m_cell_vectors[l][grid_id][imap][m];
+                    //int pind = 1;
+                    ParticleType & p = particles[pind];
+                    
+                    tTemp += propertiesPtr[l].mass*((p.rdata(FHD_realData::velx) - u)*(p.rdata(FHD_realData::velx) - u) + (p.rdata(FHD_realData::vely) - v)*(p.rdata(FHD_realData::vely) - v)
+                                                + (p.rdata(FHD_realData::velz) - w)*(p.rdata(FHD_realData::velz) - w));
+                    specTotal++;
+                }                
+            }
+            
+            tTemp = tTemp/(3.0*k_B*specTotal);
+            
+            primMeans(i,j,k,6)  = (primMeans(i,j,k,6)*stepsMinusOne+tTemp)*osteps;
         });
 
         //////////////////////////////////////

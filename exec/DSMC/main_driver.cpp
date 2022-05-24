@@ -8,6 +8,7 @@
 #include "iostream"
 #include "fstream"
 #include "DsmcParticleContainer.H"
+#include "paramplane_functions_K.H"
 #include <AMReX_MultiFab.H>
 #include <AMReX_PlotFileUtil.H>
 
@@ -281,7 +282,7 @@ void main_driver(const char* argv)
 //			coVars,spatialCross1D,particles,geom,time,ncross,0);
 //	}
 	
-	
+	zeroMassFlux(paramPlaneList, paramPlaneCount);
 	
 	for (int istep=step; istep<=max_step; ++istep)
 	{
@@ -289,11 +290,11 @@ void main_driver(const char* argv)
 
 		particles.CalcSelections(dt);
 		particles.CollideParticles(dt);
-		particles.Source(dt, paramPlaneList, paramPlaneCount);
+		particles.Source(dt, paramPlaneList, paramPlaneCount, cuInst);
 		//particles.externalForce(dt);
 		particles.MoveParticlesCPP(dt, paramPlaneList, paramPlaneCount);
 		//particles.updateTimeStep(geom,dt);
-
+        reduceMassFlux(paramPlaneList, paramPlaneCount);
 
 		particles.EvaluateStats(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
 					cvlInst,cvlMeans,QMeans,coVars,spatialCross1D,statsCount++,time);
@@ -343,7 +344,7 @@ void main_driver(const char* argv)
 		ParallelDescriptor::ReduceRealMax(tend);
 		if(istep%100==0)
 		{
-		    amrex::Print() << "Advanced step " << istep << " in " << tend << " seconds\n";
+		    amrex::Print() << "Advanced step " << istep << " in " << tend << " seconds. " << particles.simParticles << " particles.\n";
 		}
 
 		time += dt;

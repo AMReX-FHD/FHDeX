@@ -26,7 +26,7 @@ GMRES::GMRES (const BoxArray& ba_in,
 }
 
 
-void GMRES::Solve (std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
+void GMRES::Solve (std::array<MultiFab, AMREX_SPACEDIM> & b_u, MultiFab & b_p,
                    std::array<MultiFab, AMREX_SPACEDIM> & x_u, MultiFab & x_p,
                    std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
                    MultiFab & beta, std::array<MultiFab, NUM_EDGE> & beta_ed,
@@ -67,6 +67,50 @@ void GMRES::Solve (std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & 
 
     Vector<Real> inner_prod_vel(AMREX_SPACEDIM);
     Real inner_prod_pres;
+
+    //////////////////////////////////////
+    // account for inhomogeneous boundary conditions, e.g., moving walls
+    // use r_u, tmp_u, r_p, tmp_p as temporary storage
+
+    bool inhomogeneous_fix = false;
+    for (int i=0; i<AMREX_SPACEDIM; ++i) {
+        if (wallspeed_x_lo[i] != 0.) inhomogeneous_fix = true;
+        if (wallspeed_x_hi[i] != 0.) inhomogeneous_fix = true;
+        if (wallspeed_y_lo[i] != 0.) inhomogeneous_fix = true;
+        if (wallspeed_y_hi[i] != 0.) inhomogeneous_fix = true;
+#if (AMREX_SPACEDIM == 3)
+        if (wallspeed_z_lo[i] != 0.) inhomogeneous_fix = true;
+        if (wallspeed_z_hi[i] != 0.) inhomogeneous_fix = true;
+#endif
+    }
+
+    if (inhomogeneous_fix) {
+
+        // fill MultiFabs for velocity and pressure to zero
+        // then fill ghost cells
+        // then apply the operator
+        // subtract the result from the rhs
+
+        int is_inhomogeneous = 1;
+        
+        r_p.setVal(0.);
+        MultiFabPhysBC(r_p, geom, 0, 1, PRES_BC_COMP);
+
+        for (int i=0; i<AMREX_SPACEDIM; ++i ) {
+            r_u[i].setVal(0.);
+            MultiFabPhysBCMacVel(r_u[i], geom, i, is_inhomogeneous);
+        }
+
+        ApplyMatrix(tmp_u, tmp_p, r_u, r_p, alpha_fc, beta, beta_ed, gamma, theta_alpha, geom,
+                    is_inhomogeneous);
+
+        MultiFab::Subtract(b_p, tmp_p, 0, 0, 1, 0);
+        for (int i=0; i<AMREX_SPACEDIM; ++i) {
+            MultiFab::Subtract(b_u[i], tmp_u[i], 0, 0, 1, 0);
+        }
+
+    }
+    //////////////////////////////////////
     
     //////////////////////////////////////
 

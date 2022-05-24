@@ -207,7 +207,7 @@ amrex::Real compute_p3m_force_mag (amrex::Real r, amrex::Real dx, amrex::Real dy
         
         mag  = m*r_cell_frac + vals4[r_cell];
 
-        //Print()  << scientific << setprecision(15) << "MAGGPU: " << m << ", " << r_cell_frac << ", " << vals4[r_cell] << ", " << r_cell << "\n";
+        //cout  << scientific << setprecision(15) << "MAGGPU: " << m << ", " << r_cell_frac << ", " << vals4[r_cell] << ", " << r_cell << "\n";
     }
     else
     {
@@ -965,7 +965,7 @@ void collect_charge_gpu (FhdParticleContainer::AoS& aos, FArrayBox& charge, F f,
     {
         FhdParticleContainer::ParticleType& p = pstruct[ip];
 
-        Real qm = p.rdata(FHD_realData::q)/permittivity;
+        Real qm = -p.rdata(FHD_realData::q)/permittivity;
 
         Real w[3][twoks];
         int indices[3][twoks];

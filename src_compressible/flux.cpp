@@ -11,7 +11,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                    std::array<MultiFab, AMREX_SPACEDIM>& cornz_in,
                    MultiFab& visccorn_in,
                    MultiFab& rancorn_in,
-                   const amrex::Geometry geom,
+                   const amrex::Geometry& geom,
 		   const amrex::Vector< amrex::Real >& stoch_weights,
                    const amrex::Real dt)
 {
@@ -887,22 +887,22 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 
                     }
                     if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
-                        muzepp = 0.25*(eta(i+1,j,k)*prim(i+1,j,k,4) + 
+                        muzepp = 0.5*(eta(i+1,j,k)*prim(i+1,j,k,4) +
                                        eta(i,j,k)*prim(i,j,k,4) +
                                        eta(i+1,j+1,k)*prim(i+1,j+1,k,4) + 
                                        eta(i,j+1,k)*prim(i,j+1,k,4) )/3.;
 
-                        muzemp = 0.25*(eta(i-1,j+1,k)*prim(i-1,j+1,k,4) + 
+                        muzemp = 0.5*(eta(i-1,j+1,k)*prim(i-1,j+1,k,4) +
                                        eta(i,j+1,k)*prim(i,j+1,k,4) +
                                        eta(i-1,j,k)*prim(i-1,j,k,4) + 
                                        eta(i,j,k)*prim(i,j,k,4) )/3.;
 
-                        muzepm = 0.25*(eta(i+1,j,k)*prim(i+1,j,k,4) + 
-                                       eta(i,j,k-2)*prim(i,j,k,4) +
+                        muzepm = 0.5*(eta(i+1,j,k)*prim(i+1,j,k,4) +
+                                       eta(i,j,k)*prim(i,j,k,4) +
                                        eta(i+1,j-1,k)*prim(i+1,j-1,k,4) + 
-                                       eta(i,j-1,k-2)*prim(i,j-1,k,4) )/3.;
+                                       eta(i,j-1,k)*prim(i,j-1,k,4) )/3.;
 
-                        muzemm = 0.25*(eta(i-1,j-1,k)*prim(i-1,j-1,k,4) + 
+                        muzemm = 0.5*(eta(i-1,j-1,k)*prim(i-1,j-1,k,4) +
                                        eta(i,j-1,k)*prim(i,j-1,k,4) +
                                        eta(i-1,j,k)*prim(i-1,j,k,4) + 
                                        eta(i,j,k)*prim(i,j,k,4) )/3.;
@@ -945,9 +945,9 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                                            zeta(i,j,k)*prim(i,j,k,4) )/3.;
 
                             muzepm += 0.5*(zeta(i+1,j,k)*prim(i+1,j,k,4) + 
-                                           zeta(i,j,k-2)*prim(i,j,k,4) +
+                                           zeta(i,j,k)*prim(i,j,k,4) +
                                            zeta(i+1,j-1,k)*prim(i+1,j-1,k,4) + 
-                                           zeta(i,j-1,k-2)*prim(i,j-1,k,4) )/3.;
+                                           zeta(i,j-1,k)*prim(i,j-1,k,4) )/3.;
 
                             muzemm += 0.5*(zeta(i-1,j-1,k)*prim(i-1,j-1,k,4) + 
                                            zeta(i,j-1,k)*prim(i,j-1,k,4) +
@@ -1677,7 +1677,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
             if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
                 DX[2] = 0.5*dx[2];
                 muxp = 0.25*(eta(i-1,j-1,k) + eta(i-1,j,k) + eta(i,j-1,k) + eta(i,j,k));
-                if (amrex::Math::abs(visc_type) == 3) zetaxp = 0.25*(zeta(i-1,j-1,k-1) + zeta(i-1,j,k-1) + zeta(i,j-1,k-1) + zeta(i,j,k-1));
+                if (amrex::Math::abs(visc_type) == 3) zetaxp = 0.25*(zeta(i-1,j-1,k) + zeta(i-1,j,k) + zeta(i,j-1,k) + zeta(i,j,k));
                 else zetaxp = 0.;
             }
 
@@ -2203,7 +2203,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                     }
                 } else if ((i == n_cells[0]-1) and is_hi_x_dirichlet_mass) {
                     for (int l=0; l<nspecies+5; ++l) {
-                        conserved[l] = wgta*cons(i+2,j,k,l) + wgtb*cons(i+1,j,k,l) + wgtc*cons(i,j,k,l) + wgtd*cons(i-1,j,k,l);
+                        conserved[l] = wgta*cons(i+1,j,k,l) + wgtb*cons(i,j,k,l) + wgtc*cons(i-1,j,k,l) + wgtd*cons(i-2,j,k,l);
                     }
                 }
 
@@ -2267,7 +2267,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                     }
                 } else if ((j == n_cells[1]-1) and is_hi_y_dirichlet_mass) {
                     for (int l=0; l<nspecies+5; ++l) {
-                        conserved[l] = wgta*cons(i,j+1,k,l) + wgtb*cons(i,j+1,k,l) + wgtc*cons(i,j,k,l) + wgtd*cons(i,j-1,k,l);
+                        conserved[l] = wgta*cons(i,j+1,k,l) + wgtb*cons(i,j,k,l) + wgtc*cons(i,j-1,k,l) + wgtd*cons(i,j-2,k,l);
                     }
                 }
 
@@ -2322,7 +2322,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                     }
                 } else if ((k == 1) and is_lo_z_dirichlet_mass) {
                     for (int l=0; l<nspecies+5; ++l) {
-                        conserved[l] = wgta*cons(i,j,k-1,l) + wgtb*cons(i,j,k-1,l) + wgtc*cons(i,j,k,l) + wgtd*cons(i,j,k+1,l);
+                        conserved[l] = wgta*cons(i,j,k-2,l) + wgtb*cons(i,j,k-1,l) + wgtc*cons(i,j,k,l) + wgtd*cons(i,j,k+1,l);
                     }
                 }
                 if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
@@ -2331,7 +2331,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                     }
                 } else if ((k == n_cells[2]-1) and is_hi_z_dirichlet_mass) {
                     for (int l=0; l<nspecies+5; ++l) {
-                        conserved[l] = wgta*cons(i,j,k+1,l) + wgtb*cons(i,j,k+1,l) + wgtc*cons(i,j,k,l) + wgtd*cons(i,j,k-1,l);
+                        conserved[l] = wgta*cons(i,j,k+1,l) + wgtb*cons(i,j,k,l) + wgtc*cons(i,j,k-1,l) + wgtd*cons(i,j,k-2,l);
                     }
                 }
 

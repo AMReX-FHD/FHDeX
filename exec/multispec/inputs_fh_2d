@@ -14,7 +14,7 @@
   n_cells = 48 48
   #n_cells = 8 8
   # max number of cells in a box
-  max_grid_size = 96 96
+  max_grid_size = 24 24
 
   # Time-step control
   fixed_dt = 2.e-13
@@ -23,7 +23,7 @@
   max_step = 300000
   plot_int= 1000
   chk_int = 5000
-  restart = 200000
+  # restart = 200000
 
   # Viscous friction L phi operator
   # if abs(visc_type) = 1, L = div beta grad
@@ -38,8 +38,8 @@
   # Stochastic parameters
   #seed = 3409589
   seed = 6898932
-  variance_coef_mom = 0.
-  variance_coef_mass = 0.
+  variance_coef_mom = 1.
+  variance_coef_mass = 1.
   initial_variance_mom = 0.
 
   k_B = 1.3806488e-16   # Boltzmann's constant [units: cm2*g*s-2*K-1]

@@ -146,6 +146,14 @@ namespace common {
     //  2 = isothermal
     extern AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>          bc_therm_lo;
     extern AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>          bc_therm_hi;
+    
+    // BC specifications:
+    // -1 = don't change species, else change species to number
+    //  1 = wall
+    //  2 = reservoir (Dirichlet values must be suppled by other means)
+    extern AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>          bc_spec_lo;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>          bc_spec_hi;
+    
 
     // Pressure drop are periodic inflow/outflow walls (bc_[hi,lo]=-2).
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> p_lo;
@@ -174,7 +182,12 @@ namespace common {
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> bc_Xk_z_lo;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> bc_Xk_z_hi;
 
-
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> wallspeed_x_lo;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> wallspeed_y_lo;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> wallspeed_z_lo;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> wallspeed_x_hi;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> wallspeed_y_hi;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> wallspeed_z_hi;
 
     extern AMREX_GPU_MANAGED amrex::Real bc_rhotot_x_lo;
     extern AMREX_GPU_MANAGED amrex::Real bc_rhotot_x_hi;
