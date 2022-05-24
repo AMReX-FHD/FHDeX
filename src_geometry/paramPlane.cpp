@@ -27,8 +27,8 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 	Real yl = prob_hi[1] - prob_lo[1];
 	Real zl = prob_hi[2] - prob_lo[2];
 	
-	if(bc_vel_lo[0]==3 || bc_vel_lo[0]==5 || bc_vel_lo[0]==6 || bc_vel_lo[0]==7)
-	{
+//	if(bc_vel_lo[0]==3 || bc_vel_lo[0]==5 || bc_vel_lo[0]==6 || bc_vel_lo[0]==7)
+//	{
 		// Mass densities defined
 		if(rho_lo[0]>=0)
 		{
@@ -92,11 +92,11 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 		{
 			Abort("Neither mass nor number density defined");
 		}
-	}
+//	}
 
 	// Mass Inflow at y-lo
-	if(bc_vel_lo[1]==3)
-	{
+//	if(bc_vel_lo[1]==3)
+//	{
 		// Mass densities defined
 		if(rho_lo[1]>=0)
 		{
@@ -159,11 +159,11 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 		{
 			Abort("Neither mass nor number density defined");
 		}
-	}
+//	}
 
 	// Mass Inflow at z-lo
-	if(bc_vel_lo[2]==3 || bc_vel_lo[2]==5 || bc_vel_lo[2]==6)
-	{
+//	if(bc_vel_lo[2]==3 || bc_vel_lo[2]==5 || bc_vel_lo[2]==6)
+//	{
 		// Mass densities defined
 		if(rho_lo[2]>=0)
 		{
@@ -226,11 +226,11 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 		{
 			Abort("Neither mass nor number density defined");
 		}
-	}
+//	}
 
 	// Mass Inflow at x-hi
-	if(bc_vel_hi[0]==3 || bc_vel_hi[0]==5 || bc_vel_hi[0]==6 || bc_vel_hi[0]==7)
-	{
+//	if(bc_vel_hi[0]==3 || bc_vel_hi[0]==5 || bc_vel_hi[0]==6 || bc_vel_hi[0]==7)
+//	{
 		// Mass densities defined
 		if(rho_hi[0]>=0)
 		{
@@ -294,11 +294,11 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 		{
 			Abort("Neither mass nor number density defined");
 		}
-	}
+//	}
 
 	// Mass Inflow at y-hi
-	if(bc_vel_hi[1]==3)
-	{
+//	if(bc_vel_hi[1]==3)
+//	{
 		// Mass densities defined
 		if(rho_hi[1]>=0)
 		{
@@ -361,11 +361,11 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 		{
 			Abort("Neither mass nor number density defined");
 		}
-	}
+//	}
 
 	// Mass Inflow at z-hi
-	if(bc_vel_hi[2]==3)
-	{
+//	if(bc_vel_hi[2]==3)
+//	{
 		// Mass densities defined
 		if(rho_hi[2]>=0)
 		{
@@ -428,7 +428,7 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 		{
 			Abort("Neither mass nor number density defined");
 		}
-	}
+//	}
 
 	//Domain boundaries
 	for(int i=0; i<6; i++)

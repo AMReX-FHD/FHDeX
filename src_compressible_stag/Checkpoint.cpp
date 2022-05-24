@@ -41,7 +41,7 @@ void WriteCheckPoint3D(int step,
                        const std::array<MultiFab, AMREX_SPACEDIM>& velVars,
                        const amrex::MultiFab& coVars,
                        const amrex::MultiFab& surfcov,
-                       int ads_spec,
+                       int n_ads_spec,
                        const Vector<Real>& spatialCross, int ncross)
 {
     // timer for profiling
@@ -207,7 +207,7 @@ void WriteCheckPoint3D(int step,
     VisMF::Write(coVars,
                  amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "coVars"));
 
-    if (ads_spec>=0) {
+    if (n_ads_spec>0) {
         // surfcov
         VisMF::Write(surfcov,
                      amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "surfcov"));
@@ -591,7 +591,7 @@ void ReadCheckPoint3D(int& step,
                      std::array<MultiFab, AMREX_SPACEDIM>& velVars,
                      amrex::MultiFab& coVars,
                      amrex::MultiFab& surfcov,
-                     int ads_spec,
+                     int n_ads_spec,
                      Vector<Real>& spatialCross,
                      int ncross,
                      BoxArray& ba, DistributionMapping& dmap)
@@ -688,9 +688,9 @@ void ReadCheckPoint3D(int& step,
         // coVars
         coVars.define(ba,dmap,26,0);
         
-        if (ads_spec>=0) {
+        if (n_ads_spec>0) {
             // surfcov
-            surfcov.define(ba,dmap,1,0);
+            surfcov.define(ba,dmap,n_ads_spec,0);
         }
 
     }
@@ -767,8 +767,8 @@ void ReadCheckPoint3D(int& step,
     Read_Copy_MF_Checkpoint(cumom[1],"cumomy",checkpointname,ba_old,dmap_old,1,1,1);
     Read_Copy_MF_Checkpoint(cumom[2],"cumomz",checkpointname,ba_old,dmap_old,1,1,2);
 
-    if (ads_spec>=0 ){
-        Read_Copy_MF_Checkpoint(surfcov,"surfcov",checkpointname,ba_old,dmap_old,1,0);
+    if (n_ads_spec>0) {
+        Read_Copy_MF_Checkpoint(surfcov,"surfcov",checkpointname,ba_old,dmap_old,n_ads_spec,0);
     }
 
     // Set all stats to zero if reset stats, else read

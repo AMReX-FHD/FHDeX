@@ -379,7 +379,7 @@ void main_driver(const char* argv)
         else {
             ReadCheckPoint3D(step_start, time, statsCount, geom, domain, cu, cuMeans, cuVars, prim,
                              primMeans, primVars, cumom, cumomMeans, cumomVars, 
-                             vel, velMeans, velVars, coVars, surfcov, ads_spec, spatialCross3D, ncross, ba, dmap);
+                             vel, velMeans, velVars, coVars, surfcov, n_ads_spec, spatialCross3D, ncross, ba, dmap);
         }
 
         if (reset_stats == 1) statsCount = 1;
@@ -397,8 +397,8 @@ void main_driver(const char* argv)
         chi.setVal(1.0,0,nspecies,ngc);
         D.setVal(1.0,0,nspecies*nspecies,ngc);
         
-        if (ads_spec>=0) {
-            dNadsdes.define(ba,dmap,1,0);
+        if (n_ads_spec>0) {
+            dNadsdes.define(ba,dmap,n_ads_spec,0);
         }
 
         if ((plot_cross) and (do_1D==0) and (do_2D==0)) {
@@ -603,9 +603,9 @@ void main_driver(const char* argv)
         // 6+ns:6+2ns-1 (Xk;  mole fractions)
         prim.define(ba,dmap,nprimvars,ngc);
 
-        if (ads_spec>=0) {
-            surfcov.define(ba,dmap,1,0);
-            dNadsdes.define(ba,dmap,1,0);
+        if (n_ads_spec>0) {
+            surfcov.define(ba,dmap,n_ads_spec,0);
+            dNadsdes.define(ba,dmap,n_ads_spec,0);
         }
 
         cuMeans.define(ba,dmap,nvars,ngc);
@@ -817,7 +817,7 @@ void main_driver(const char* argv)
         }
         conservedToPrimitiveStag(prim, vel, cu, cumom);
 
-        if (ads_spec>=0) init_surfcov(surfcov, dx);
+        if (n_ads_spec>0) init_surfcov(surfcov, dx);
 
         // Set BC: 1) fill boundary 2) physical (How to do for staggered? -- Ishan)
         cu.FillBoundary(geom.periodicity());
@@ -917,14 +917,14 @@ void main_driver(const char* argv)
         Real ts1 = ParallelDescriptor::second();
 
         // sample surface chemistry
-        if (ads_spec>=0) sample_MFsurfchem(cu, prim, surfcov, dNadsdes, dx, dt);
+        if (n_ads_spec>0) sample_MFsurfchem(cu, prim, surfcov, dNadsdes, dx, dt);
 
         // FHD
         RK3stepStag(cu, cumom, prim, vel, source, eta, zeta, kappa, chi, D, 
             faceflux, edgeflux_x, edgeflux_y, edgeflux_z, cenflux, geom, dt, step);
 
         // update surface chemistry
-        if (ads_spec>=0) {
+        if (n_ads_spec>0) {
 
             update_MFsurfchem(cu, surfcov, dNadsdes, dx, dt);
 
@@ -1264,7 +1264,7 @@ void main_driver(const char* argv)
             else {
                 WriteCheckPoint3D(step, time, statsCount, geom, cu, cuMeans, cuVars, prim,
                                   primMeans, primVars, cumom, cumomMeans, cumomVars, 
-                                  vel, velMeans, velVars, coVars, surfcov, ads_spec, spatialCross3D, ncross);
+                                  vel, velMeans, velVars, coVars, surfcov, n_ads_spec, spatialCross3D, ncross);
             }
         }
 
