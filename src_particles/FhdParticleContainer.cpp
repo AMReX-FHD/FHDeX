@@ -2350,7 +2350,7 @@ FhdParticleContainer::PrintParticles()
         {
             ParticleType & part = particles[i];
 
-            if(part.idata(FHD_intData::pinned) != 0)
+            if(part.idata(FHD_intData::pinned) == 0)
             {
 
             double bigM  = part.rdata(FHD_realData::totalDiff)/(T_init[0]*k_B);
@@ -2575,9 +2575,9 @@ FhdParticleContainer::fillMobilityMatrix(int id, int comp)
        
         pinMatrix[(i+2)*matrixSize +j] += velpin[i+2];
 
-        Print() << "MAT: " << i*matrixSize +j << ", " << pinMatrix[i*matrixSize+j] << std::endl;
-        Print() << "MAT: " << (i+1)*matrixSize +j << ", " << pinMatrix[(i+1)*matrixSize+j] << std::endl;
-        Print() << "MAT: " << (i+2)*matrixSize +j << ", " << pinMatrix[(i+2)*matrixSize+j] << std::endl;
+        Print() << "MAT: (" << i << "," << j << "), " << pinMatrix[i*matrixSize+j] << std::endl;
+        Print() << "MAT: (" << (i+1) << "," << j << "), " << pinMatrix[(i+1)*matrixSize+j] << std::endl;
+        Print() << "MAT: (" << (i+2) << "," << j << "), " << pinMatrix[(i+2)*matrixSize+j] << std::endl;
     }
 
 //    Print() << "Real ID: " << realID << std::endl;
@@ -2739,7 +2739,7 @@ FhdParticleContainer::invertMatrix()
             {
                 //ofs2 << setprecision(15) << inv[i*N + j] << std::endl;
                 Real element = inv[i*N + j];
-		Print() << "INV: " << i*N +j << ", " << inv[i*N+j] << std::endl;
+		Print() << "INV: (" << i << "," << j << "), " << inv[i*N+j] << std::endl;
                 ofs.write( reinterpret_cast<char*>( &element ), sizeof element );
 
             }

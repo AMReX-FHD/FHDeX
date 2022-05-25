@@ -1398,9 +1398,8 @@ void main_driver(const char* argv)
                 particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
                 particles.velNorm();
 
-		//particles.PrintParticles();
-
                 particles.pinnedParticleInversion();
+		particles.PrintParticles();
 
                 for (int d=0; d<AMREX_SPACEDIM; ++d) {
                         source    [d].setVal(0.0);      // reset source terms
