@@ -4,7 +4,7 @@
 void GradPressureCorrection(const MultiFab& rho_in,
                             const MultiFab& rhotot_in,
 	 	            const MultiFab& Temp,
-			    MultiFab& lap_phi_beta_in,
+			    MultiFab& correction_in,
 			    std::array< MultiFab, AMREX_SPACEDIM >& grad_rhs,
 		            const Geometry& geom,
 			    int increment)
@@ -24,7 +24,7 @@ void GradPressureCorrection(const MultiFab& rho_in,
         const Array4<const Real>& rho = rho_in.array(mfi);
         const Array4<const Real>& rhotot = rhotot_in.array(mfi);
         const Array4<const Real>& T = Temp.array(mfi);
-        const Array4<      Real>& lap_phi_beta = lap_phi_beta_in.array(mfi);
+        const Array4<      Real>& correction = correction_in.array(mfi);
 
         AMREX_D_TERM(const Array4<Real> & grad_rhs_x = grad_rhs[0].array(mfi);,
                      const Array4<Real> & grad_rhs_y = grad_rhs[1].array(mfi);,
@@ -34,90 +34,42 @@ void GradPressureCorrection(const MultiFab& rho_in,
                      const Box & bx_y = mfi.nodaltilebox(1);,
                      const Box & bx_z = mfi.nodaltilebox(2););
 
-        // compute laplacian
-        amrex::ParallelFor(bx, nspecies, [=] AMREX_GPU_DEVICE(int i, int j, int k, int n){
+        // compute correction term
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k){
 
-            lap_phi_beta(i,j,k,n) = ( (rho(i+1,j,k,n) -2*rho(i,j,k,n) + rho(i-1,j,k,n))/(dx[0]*dx[0])
-                                    + (rho(i,j+1,k,n) -2*rho(i,j,k,n) + rho(i,j-1,k,n))/(dx[1]*dx[1])
-	    		            ) / rhotot(i,j,k);
+            Real phi_alpha, lap_phi_beta;
+            Real summation = 0.;
+            for (int alpha = 0; alpha < nspecies; ++alpha){
+                for (int beta = 0; beta < nspecies; ++beta){
+                        phi_alpha = rho(i,j,k,alpha) / rhotot(i,j,k);
+                        lap_phi_beta = ( (rho(i+1,j,k,beta) -2*rho(i,j,k,beta) + rho(i-1,j,k,beta))/(dx[0]*dx[0])
+                                       + (rho(i,j+1,k,beta) -2*rho(i,j,k,beta) + rho(i,j-1,k,beta))/(dx[1]*dx[1])
+                                       ) / rhotot(i,j,k);
 #if (AMREX_SPACEDIM == 3)
-            lap_phi_beta(i,j,k,n) += (rho(i,j,k+1,n)-2*rho(i,j,k,n)+rho(i,j,k-1,n))
-	                             /rhotot(i,j,k)/(dx[2]*dx[2]);
+                        lap_phi_beta += (rho(i,j,k+1,beta)-2*rho(i,j,k,beta)+rho(i,j,k-1,beta))
+                                        /rhotot(i,j,k)/(dx[2]*dx[2]);
 #endif
-        });
 
-	amrex::ParallelFor(bx_x, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-        {
-            Real phi_alpha;
-            Real grad_phi_alpha_x;
-	    Real grad_lap_phi_beta_x;
-	    Real grad_summation = 0.;
-
-	    // temporarily fill grad_rhs with summation values
-            for (int alpha = 0; alpha < nspecies; ++alpha)
-	    {
-                for (int beta = 0; beta < nspecies; ++beta)
-		{
-		        phi_alpha = rho(i,j,k,alpha) / rhotot(i,j,k);
-			grad_phi_alpha_x = ( rho(i,j,k,alpha) - rho(i-1,j,k,alpha) ) / dx[0] 
-			                   / rhotot(i,j,k);
-			grad_lap_phi_beta_x = (lap_phi_beta(i,j,k,beta)-lap_phi_beta(i-1,j,k,beta))/dx[0];
-			grad_summation += fh_kappa(alpha,beta) * (
-                                          phi_alpha*grad_lap_phi_beta_x +
-                                          grad_phi_alpha_x*lap_phi_beta(i,j,k,beta) );
+                        summation += phi_alpha * fh_kappa(alpha,beta) * lap_phi_beta;
                 }
             }
-	    // compute correction term
-	    grad_rhs_x(i,j,k) += rho0*k_B*T(i,j,k) / monomer_mass * grad_summation;
+            correction(i,j,k) = - rho0*k_B*T(i,j,k) / monomer_mass * summation;
+
+        });
+
+	// take gradient
+	amrex::ParallelFor(bx_x, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+	    grad_rhs_x(i,j,k) += (correction(i,j,k) - correction(i-1,j,k))/dx[0];
         });
 	amrex::ParallelFor(bx_y, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            Real phi_alpha;
-            Real grad_phi_alpha_y;
-	    Real grad_lap_phi_beta_y;
-	    Real grad_summation = 0.;
-
-	    // temporarily fill grad_rhs with summation values
-            for (int alpha = 0; alpha < nspecies; ++alpha)
-	    {
-                for (int beta = 0; beta < nspecies; ++beta)
-		{
-		        phi_alpha = rho(i,j,k,alpha) / rhotot(i,j,k);
-			grad_phi_alpha_y = ( rho(i,j,k,alpha) - rho(i,j-1,k,alpha) ) / dx[1] 
-			                   / rhotot(i,j,k);
-			grad_lap_phi_beta_y = (lap_phi_beta(i,j,k,beta)-lap_phi_beta(i,j-1,k,beta))/dx[1];
-			grad_summation += fh_kappa(alpha,beta) * (
-                                          phi_alpha*grad_lap_phi_beta_y +
-                                          grad_phi_alpha_y*lap_phi_beta(i,j,k,beta) );
-                }
-            }
-	    // compute correction term
-	    grad_rhs_y(i,j,k) += rho0*k_B*T(i,j,k) / monomer_mass * grad_summation;
+	    grad_rhs_y(i,j,k) += (correction(i,j,k) - correction(i,j-1,k))/dx[1];
         });
 #if (AMREX_SPACEDIM == 3)
 	amrex::ParallelFor(bx_z, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            Real phi_alpha;
-            Real grad_phi_alpha;
-	    Real grad_lap_phi_beta_z;
-	    Real grad_summation = 0.;
-
-	    // temporarily fill grad_rhs with summation values
-            for (int alpha = 0; alpha < nspecies; ++alpha)
-	    {
-                for (int beta = 0; beta < nspecies; ++beta)
-		{
-		        phi_alpha = rho(i,j,k,alpha) / rhotot(i,j,k);
-			grad_phi_alpha_z = ( rho(i,j,k,alpha) - rho(i,j,k-1,alpha) ) / dx[2] 
-			                   / rhotot(i,j,k);
-			grad_lap_phi_beta_z = (lap_phi_beta(i,j,k,beta)-lap_phi_beta(i,j,k-1,beta))/dx[2];
-			grad_summation += fh_kappa(alpha,beta) * (
-                                          phi_alpha*grad_lap_phi_beta_y +
-                                          grad_phi_alpha_z*lap_phi_beta(i,j,k,beta) );
-                }
-            }
-	    // compute correction term
-	    grad_rhs_z(i,j,k) += rho0*k_B*T(i,j,k) / monomer_mass * grad_summation;
+	    grad_rhs_z(i,j,k) += (correction(i,j,k) - correction(i,j,k-1))/dx[2];
         });
 #endif
 
