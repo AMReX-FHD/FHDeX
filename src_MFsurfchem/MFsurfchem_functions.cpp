@@ -50,11 +50,11 @@ void init_surfcov(MultiFab& surfcov, const amrex::Real* dx)
 
         amrex::Real Ntot = surf_site_num_dens*dx[0]*dx[1];  // total number of reactive sites
 
-        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        amrex::ParallelForRNG(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k, RandomEngine const& engine) noexcept
         {
             if (k==0) {
                 for (int m=0;m<n_ads_spec;m++) {
-                    surfcov_arr(i,j,k,m) = RandomPoisson(Ntot*surfcov0/n_ads_spec)/Ntot;
+		  surfcov_arr(i,j,k,m) = RandomPoisson(Ntot*surfcov0/n_ads_spec,engine)/Ntot;
                 }
             } else {
                 for (int m=0;m<n_ads_spec;m++) {
@@ -82,7 +82,7 @@ void sample_MFsurfchem(MultiFab& cu, MultiFab& prim, MultiFab& surfcov, MultiFab
 
         amrex::Real Ntot = surf_site_num_dens*dx[0]*dx[1];  // total number of reactive sites
 
-        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        amrex::ParallelForRNG(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k, RandomEngine const& engine) noexcept
         {
             if (k==0) {
                 amrex:: Real sumtheta = 0.;
@@ -97,10 +97,10 @@ void sample_MFsurfchem(MultiFab& cu, MultiFab& prim, MultiFab& surfcov, MultiFab
                     amrex::Real theta = surfcov_arr(i,j,k,m);
 
                     amrex::Real meanNads = ads_rate_const*dens*(1-sumtheta)*Ntot*dt;
-                    amrex::Real Nads = RandomPoisson(meanNads);
+                    amrex::Real Nads = RandomPoisson(meanNads,engine);
 
                     amrex::Real meanNdes = des_rate*theta*Ntot*dt;
-                    amrex::Real Ndes = RandomPoisson(meanNdes);
+                    amrex::Real Ndes = RandomPoisson(meanNdes,engine);
 
                     dNadsdes_arr(i,j,k,m) = Nads-Ndes;
                 }
