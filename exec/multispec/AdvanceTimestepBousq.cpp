@@ -65,6 +65,7 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     MultiFab adv_mass_fluxdiv(ba,dmap,nspecies,0);
     MultiFab gmres_rhs_p     (ba,dmap,       1,0);
     MultiFab dpi             (ba,dmap,       1,1);
+    MultiFab lap_phi         (ba,dmap,nspecies,1);
     
     std::array< MultiFab, AMREX_SPACEDIM > umac_old;
     std::array< MultiFab, AMREX_SPACEDIM > mtemp;
@@ -80,6 +81,13 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     std::array< MultiFab, AMREX_SPACEDIM > rhotot_fc_old;
     std::array< MultiFab, AMREX_SPACEDIM > rhotot_fc_new;
     std::array< MultiFab, AMREX_SPACEDIM > diff_mass_flux;
+
+    std::array< MultiFab, AMREX_SPACEDIM > grad_phi;
+    std::array< MultiFab, AMREX_SPACEDIM > grad_lap_phi;
+
+    // copies of RHS for comupting pressure correction
+    MultiFab gmres_rhs_p_2     (ba,dmap,       1,0);
+    std::array< MultiFab, AMREX_SPACEDIM > gmres_rhs_v_2;
 
     // only used when variance_coef_mass>0 and midpoint_stoch_mass_flux_type=2
     MultiFab stoch_mass_fluxdiv_old;
@@ -100,12 +108,15 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         diff_mom_fluxdiv_new[d].define(convert(ba,nodal_flag_dir[d]), dmap,        1, 0);
         stoch_mom_fluxdiv[d]   .define(convert(ba,nodal_flag_dir[d]), dmap,        1, 0);
         gmres_rhs_v[d]         .define(convert(ba,nodal_flag_dir[d]), dmap,        1, 0);
+        gmres_rhs_v_2[d]       .define(convert(ba,nodal_flag_dir[d]), dmap,        1, 0);
         dumac[d]               .define(convert(ba,nodal_flag_dir[d]), dmap,        1, 1);
         gradpi[d]              .define(convert(ba,nodal_flag_dir[d]), dmap,        1, 0);
         rho_fc[d]              .define(convert(ba,nodal_flag_dir[d]), dmap, nspecies, 0);
         rhotot_fc_old[d]       .define(convert(ba,nodal_flag_dir[d]), dmap,        1, 1);
         rhotot_fc_new[d]       .define(convert(ba,nodal_flag_dir[d]), dmap,        1, 1);
         diff_mass_flux[d]      .define(convert(ba,nodal_flag_dir[d]), dmap, nspecies, 0);
+        grad_phi[d]            .define(convert(ba,nodal_flag_dir[d]), dmap, nspecies, 0);
+        grad_lap_phi[d]        .define(convert(ba,nodal_flag_dir[d]), dmap, nspecies, 0);
     }
 
     // for ito interpretation we need to save stoch_mass_fluxdiv_old 
@@ -689,6 +700,55 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     }
     dpi.setVal(0.);
 
+
+    pressure_jump.setVal(0.);
+    lap_phi.setVal(0.);
+
+    /*// THIS IS IDEAL BUT FOR SOME REASON ISN'T WORKING
+    // if computing pressure correction before projecting
+    // then add gradient of correction term to rhs v before solving
+    if (pressure_jump_projection) {
+        GradPressureCorrection(rho_new,rhotot_new,Temp,
+			       lap_phi,gmres_rhs_v,geom,1);
+    }
+    */
+
+    // Works but way slower and messier
+    // if computing pressure correction before projecting
+    // then add gradient of correction term to rhs v before solving
+    if (pressure_jump_projection) {
+        // make a copy of right hand sides
+        MultiFab::Copy(gmres_rhs_p_2,gmres_rhs_p,0,0,1,0);
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            MultiFab::Copy(gmres_rhs_v_2[d],gmres_rhs_v[d],0,0,1,0);
+        }
+
+        GradPressureCorrection(rho_new,rhotot_new,Temp,
+			       lap_phi,gmres_rhs_v_2,geom,1);
+
+	//// using pressure_jump as temporary MultiFab
+        //GradPressureCorrection2(rho_new,rhotot_new,Temp,grad_phi,grad_lap_phi,
+	//		       pressure_jump,gmres_rhs_v_2,geom,1);
+
+        // zero gmres_rhs_v on physical boundaries
+        ZeroEdgevalPhysical(gmres_rhs_v_2, geom, 0, 1);
+        
+        // call gmres to compute delta v and delta pi
+        gmres.Solve(gmres_rhs_v_2, gmres_rhs_p_2, dumac, dpi, rhotot_fc_new, eta, eta_ed,
+                    kappa, theta_alpha, geom, norm_pre_rhs);
+
+        // store pressure jump
+        MultiFab::Copy(pressure_jump,pi,0,0,1,0);
+        MultiFab::Add(pressure_jump,dpi,0,0,1,0);
+        
+        // reset the initial guess to zero
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            dumac[d].setVal(0.);
+        }
+        dpi.setVal(0.);
+    }
+    
+
     // zero gmres_rhs_v on physical boundaries
     ZeroEdgevalPhysical(gmres_rhs_v, geom, 0, 1);
 
@@ -719,8 +779,10 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         umac[i].FillBoundary(geom.periodicity());
     }
 
-    // compute pressure jump
-    PressureJump(pi,rho_new,rhotot_new,Temp,pressure_jump,geom);
+    // compute pressure jump if didn't already
+    if (!pressure_jump_projection) {
+        PressureJump(pi,rho_new,rhotot_new,Temp,pressure_jump,geom);
+    }
 
     // restore eta and kappa
     eta.mult  (2.,0,1,1);

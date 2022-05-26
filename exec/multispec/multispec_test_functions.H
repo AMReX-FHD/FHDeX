@@ -111,6 +111,7 @@ void WritePlotFile(const int step,
                    const MultiFab& rhotot,
 		   const MultiFab& rho,
                    const MultiFab& pres,
+                   const MultiFab& pressure_jump,
                    const MultiFab& charge,
                    const MultiFab& Epot);
 

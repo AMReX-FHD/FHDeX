@@ -55,6 +55,9 @@ amrex::Real                                                 multispec::L_pos;
 amrex::Real                                                 multispec::L_trans;
 amrex::Real                                                 multispec::L_zero;
 
+// pressure jump computation
+AMREX_GPU_MANAGED int                                       multispec::pressure_jump_projection;
+
 void InitializeMultispecNamespace() {
 
     E_ext_value.resize(AMREX_SPACEDIM);
@@ -78,6 +81,8 @@ void InitializeMultispecNamespace() {
     alpha_gex = 0;          // for RTIL
     n_gex = 1;              // for RTIL
     chi_iterations = 10;    // number of iterations used in Dbar2chi_iterative
+
+    pressure_jump_projection = 0;   // compute pressure correction diagnosity before projection
 
     // Initial and boundary conditions 
     //----------------------
@@ -183,6 +188,7 @@ void InitializeMultispecNamespace() {
     pp.query("n_gex",n_gex);
     pp.query("chi_iterations",chi_iterations);
     pp.query("temp_type",temp_type);
+    pp.query("pressure_jump_projection",pressure_jump_projection);
     if(pp.queryarr("fh_kappa",temp)) {
         for (int i=0; i<nspecies; ++i) {
         for (int j=0; j<nspecies; ++j) {

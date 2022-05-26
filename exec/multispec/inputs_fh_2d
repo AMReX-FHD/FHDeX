@@ -7,7 +7,13 @@
   cell_depth = 0.5e-7
 
   # refer to Init.cpp
-  prob_type = 2
+  prob_type = 7
+
+  # radius cylinder for probtype 7
+  radius_cyl = 0.24e-5
+
+  # projection correction flag
+  pressure_jump_projection = 1;
   
   # number of cells in domain
   #n_cells = 192 192
@@ -34,12 +40,14 @@
   #visc_coef = 2.7	# [units: g*cm-1*s-1] dynamic (shear) viscosity of water
   visc_coef = .01	# [units: g*cm-1*s-1] dynamic (shear) viscosity of water
   visc_type = 1
-  
+
   # Stochastic parameters
   #seed = 3409589
   seed = 6898932
-  variance_coef_mom = 1.
-  variance_coef_mass = 1.
+
+  # set variance parameters to 0 to turn off noise
+  variance_coef_mom = 0.
+  variance_coef_mass = 0.
   initial_variance_mom = 0.
 
   k_B = 1.3806488e-16   # Boltzmann's constant [units: cm2*g*s-2*K-1]
@@ -91,16 +99,16 @@
   fh_kappa = 0. 10.e-12 10.e-12 1.e-11 0. 1.e-11 1.e-11 1.e-11 0
   #fh_kappa = 0. 0.e-12 0.e-12 0.
 
-  rhobar = 1.38 1.38 1.38     # pure component densities for all species
-  rho0 = 1.38
-
-
+  #rhobar = 1.38 1.38 1.38     # pure component densities for all species
+  #rho0 = 1.38
+  rhobar = 1. 1. 1.
+  rho0 = 1.
 
   is_ideal_mixture = 0
 
   # initial values for c
-  c_init_1 = 0.33 0.34 33
-  c_init_2 = 0.33 0.34 33
+  c_init_1 = 0.5 0.5 0.0
+  c_init_2 = 0.0 0.0 1.0
 
   # These are lower-triangules of symmetric matrices represented as vectors
   # Number of elements is (nspecies*(nspecies-1)/2)

@@ -208,7 +208,7 @@ void main_driver(const char* argv)
     MultiFab diff_mass_fluxdiv(ba, dmap, nspecies, 0);
     MultiFab eta              (ba, dmap, 1       , 1);
     MultiFab kappa            (ba, dmap, 1       , 1);
-    MultiFab pressure_jump    (ba, dmap, 1       , 0);
+    MultiFab pressure_jump    (ba, dmap, 1       , 1);
 
     
     /////////////////////////////////////////
