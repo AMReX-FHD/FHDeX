@@ -157,7 +157,6 @@ void main_driver(const char * argv) {
     for (auto & i:mpi_markers) Print() << i << " ";
     Print() << std::endl;
 
-
     // Just for fun, print out the max runtime
     Real stop_time = ParallelDescriptor::second() - strt_time;
     ParallelDescriptor::ReduceRealMax(stop_time);

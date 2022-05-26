@@ -259,6 +259,8 @@ public:
 
     void PullDown(int lev, Real * list, int element, int totalParticles);
 
+    void PullDown(int lev, Real * list, int element);
+
     void PullDownInt(int lev, int * list, int element, int totalParticles);
 
     void PushUpAdd(int lev, Real * list, int element, int totalParticles);
@@ -285,7 +287,6 @@ protected:
     void ReadStaticParameters();
 
     Real integrate_es(Real beta_in, int w_in);
-   
 
     AmrCore * m_amr_core;
 
@@ -300,13 +301,13 @@ protected:
 
 
     static inline Gpu::ManagedDeviceVector<Real> norm_es;
-    
+
 
 private:
 
     // Positions on faces
     Vector<std::array<MultiFab, AMREX_SPACEDIM>> face_coords;
-   
+
 
 
 

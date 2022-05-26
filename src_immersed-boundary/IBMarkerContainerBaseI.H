@@ -494,7 +494,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::PullDown(
 
         if (element >= 0) {
 
-                //std::cout << "Proc " << ParallelDescriptor::MyProc() << " 1a start\n";
+            //std::cout << "Proc " << ParallelDescriptor::MyProc() << " 1a start\n";
             AMREX_FOR_1D( np, i,
             {
                 ParticleType & part = particles[i];
@@ -502,21 +502,21 @@ void IBMarkerContainerBase<StructReal, StructInt>::PullDown(
                 
                 list[id-1] = particles[i].rdata(StructReal::radius + element);
             });
-                //std::cout << "Proc " << ParallelDescriptor::MyProc() << " 1a finish\n";
+            //std::cout << "Proc " << ParallelDescriptor::MyProc() << " 1a finish\n";
 
         } else {
 
-                //std::cout << "Proc " << ParallelDescriptor::MyProc() << " 1b start\n";
+            //std::cout << "Proc " << ParallelDescriptor::MyProc() << " 1b start\n";
             AMREX_FOR_1D( np, i,
             {
                 ParticleType & part = particles[i];
                 int id = part.id();
                 list[id-1] = part.pos((-element)-1);
 
-              //  std::cout << "Proc " << ParallelDescriptor::MyProc() << " storing " << part.pos((-element)-1)
-              //                               << " from " << i << " in position " << id-1 << std::endl;
+            //  std::cout << "Proc " << ParallelDescriptor::MyProc() << " storing " << part.pos((-element)-1)
+            //                               << " from " << i << " in position " << id-1 << std::endl;
             });
-              //std::cout << "Proc " << ParallelDescriptor::MyProc() << " 1b finish\n";
+            //std::cout << "Proc " << ParallelDescriptor::MyProc() << " 1b finish\n";
         }
 
     }
@@ -539,6 +539,71 @@ void IBMarkerContainerBase<StructReal, StructInt>::PullDown(
     //std::cout << "Proc " << ParallelDescriptor::MyProc() << " 3\n";
     
 }
+
+
+// void IBMarkerContainerBase<StructReal, StructInt>::UpdatePIDMap() {
+// template <typename StructReal, typename StructInt>
+// 
+// 
+// }
+
+template <typename StructReal, typename StructInt>
+void IBMarkerContainerBase<StructReal, StructInt>::PullDown(
+            int lev, Real * list, int element
+) {
+    // timer for profiling
+    BL_PROFILE_VAR("PullDown()",PullDown);
+
+    int total_particles = this->NextID() - 1;
+
+    for (int i = 0; i < total_particles; ++i) {
+        //std::cout << i << " of " << total_particles << std::endl;
+        list[i] = 0;
+    }
+
+    int rank = ParallelDescriptor::MyProc();
+    int size = ParallelDescriptor::NProcs();
+    Vector<int> num_ids(size);
+    num_ids[rank] = this->NextID() - 1;
+    ParallelDescriptor::ReduceIntSum(
+        Vector<std::reference_wrapper<int>>(begin(num_ids), end(num_ids))
+    );
+
+    for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
+        PairIndex index(pti.index(), pti.LocalTileIndex());
+        const int np = this->GetParticles(lev)[index].numRealParticles();
+        auto & plev  = this->GetParticles(lev);
+        auto & ptile = plev[index];
+        auto & aos   = ptile.GetArrayOfStructs();
+        ParticleType * particles = aos().dataPtr();
+
+        if (element >= 0) {
+
+            AMREX_FOR_1D(np, i, {
+                ParticleType & part = particles[i];
+                int id = part.id();
+                
+                list[id-1] = particles[i].rdata(StructReal::radius + element);
+            });
+
+        } else {
+            AMREX_FOR_1D(np, i, {
+                ParticleType & part = particles[i];
+                int id = part.id();
+                list[id-1] = part.pos((-element)-1);
+            });
+        }
+
+    }
+
+    Real temp;
+    for (int i=0; i<total_particles; ++i) {
+        temp = list[i];
+        ParallelDescriptor::ReduceRealSum(temp);
+        list[i] = temp;
+    }
+}
+
 
 template <typename StructReal, typename StructInt>
 void IBMarkerContainerBase<StructReal, StructInt>::PullDownInt(
