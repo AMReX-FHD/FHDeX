@@ -7,6 +7,8 @@
 
 #include "compressible_functions_stag.H"
 
+#include "MFsurfchem_functions.H"
+
 #include "common_namespace.H"
 
 #include "chrono"
@@ -41,7 +43,8 @@ void WriteCheckPoint3D(int step,
                        const std::array<MultiFab, AMREX_SPACEDIM>& velVars,
                        const amrex::MultiFab& coVars,
                        const amrex::MultiFab& surfcov,
-                       int n_ads_spec,
+                       const amrex::MultiFab& surfcovMeans,
+                       const amrex::MultiFab& surfcovVars,
                        const Vector<Real>& spatialCross, int ncross)
 {
     // timer for profiling
@@ -211,6 +214,10 @@ void WriteCheckPoint3D(int step,
         // surfcov
         VisMF::Write(surfcov,
                      amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "surfcov"));
+        VisMF::Write(surfcovMeans,
+                     amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "surfcovMeans"));
+        VisMF::Write(surfcovVars,
+                     amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "surfcovVars"));
     }
 }
 
@@ -591,7 +598,8 @@ void ReadCheckPoint3D(int& step,
                      std::array<MultiFab, AMREX_SPACEDIM>& velVars,
                      amrex::MultiFab& coVars,
                      amrex::MultiFab& surfcov,
-                     int n_ads_spec,
+                     amrex::MultiFab& surfcovMeans,
+                     amrex::MultiFab& surfcovVars,
                      Vector<Real>& spatialCross,
                      int ncross,
                      BoxArray& ba, DistributionMapping& dmap)
@@ -691,6 +699,8 @@ void ReadCheckPoint3D(int& step,
         if (n_ads_spec>0) {
             // surfcov
             surfcov.define(ba,dmap,n_ads_spec,0);
+            surfcovMeans.define(ba,dmap,n_ads_spec,0);
+            surfcovVars.define(ba,dmap,n_ads_spec,0);
         }
 
     }
@@ -784,6 +794,12 @@ void ReadCheckPoint3D(int& step,
             cumomVars[d].setVal(0.);
         }
         coVars.setVal(0.0);
+        if (n_ads_spec>0) {
+            for (int m=0;m<n_ads_spec;m++) {
+                surfcovMeans.setVal(0.0);
+                surfcovVars.setVal(0.0);
+            }
+        }
     }
     else {
         Read_Copy_MF_Checkpoint(cuMeans,"cuMeans",checkpointname,ba_old,dmap_old,nvars,1);
@@ -807,6 +823,11 @@ void ReadCheckPoint3D(int& step,
         Read_Copy_MF_Checkpoint(cumomVars[0],"cumomvarx",checkpointname,ba_old,dmap_old,1,0,0);
         Read_Copy_MF_Checkpoint(cumomVars[1],"cumomvary",checkpointname,ba_old,dmap_old,1,0,1);
         Read_Copy_MF_Checkpoint(cumomVars[2],"cumomvarz",checkpointname,ba_old,dmap_old,1,0,2);
+
+        if (n_ads_spec>0) {
+            Read_Copy_MF_Checkpoint(surfcovMeans,"surfcovMeans",checkpointname,ba_old,dmap_old,n_ads_spec,0);
+            Read_Copy_MF_Checkpoint(surfcovVars,"surfcovVars",checkpointname,ba_old,dmap_old,n_ads_spec,0);
+        }
     }
 
     // FillBoundaries
