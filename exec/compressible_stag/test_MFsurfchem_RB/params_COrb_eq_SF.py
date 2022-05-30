@@ -106,9 +106,9 @@ k2ads = sprob*rcol2
 kdes = 1.25e15*math.exp(-1.514/(8.617e-5*temp))
 theta1 = k1ads/(k1ads+k2ads+kdes)
 theta2 = k2ads/(k1ads+k2ads+kdes)
-vartheta1 = (kdes+k2ads)*k1ads/(kdes+k1ads+k2ads)**2/Ntot
-vartheta2 = (kdes+k1ads)*k2ads/(kdes+k1ads+k2ads)**2/Ntot
-covtheta = -k1ads*k2ads/(kdes+k1ads+k2ads)**2/Ntot
+vartheta1 = (kdes+k2ads)*k1ads/(kdes+k1ads+k2ads)**2/n1s
+vartheta2 = (kdes+k1ads)*k2ads/(kdes+k1ads+k2ads)**2/n1s
+covtheta = -k1ads*k2ads/(kdes+k1ads+k2ads)**2/n1s
 
 print "- rcol1 = %e" % rcol1
 print "- k1ads = %e (rate)" % k1ads
@@ -124,7 +124,7 @@ print "- Var[theta2]: %e" % vartheta2
 print "- Cov[theta1,theta2]: %e" % covtheta
 print "- E[theta1+theta2]: %e" % (theta1+theta2)
 print "- Var[theta1+theta2]: %e" % (vartheta1+vartheta2+2*covtheta)
-print "- theta*(1-theta)/Ntot: %e\n" % ((theta1+theta2)*(1-theta1-theta2)/Ntot)
+print "- theta*(1-theta)/Ntot: %e\n" % ((theta1+theta2)*(1-theta1-theta2)/n1s)
 
 ##########
 
