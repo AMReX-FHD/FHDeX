@@ -112,7 +112,7 @@ void sample_MFsurfchem(MultiFab& cu, MultiFab& prim, MultiFab& surfcov, MultiFab
 }
 
 void update_MFsurfchem(MultiFab& cu, MultiFab& surfcov, MultiFab& dNadsdes,
-                       const amrex::Real* dx, const amrex::Real dt)
+                       const amrex::Real* dx)
 {
     for (MFIter mfi(cu,false); mfi.isValid(); ++mfi)
     {
@@ -133,7 +133,7 @@ void update_MFsurfchem(MultiFab& cu, MultiFab& surfcov, MultiFab& dNadsdes,
                     amrex::Real factor = molmass[m]/AVONUM/(dx[0]*dx[1]*dx[2]);
 
                     surfcov_arr(i,j,k,m) += dN/Ntot;
-                    cu_arr(i,j,k,m) -= factor*dN;
+                    cu_arr(i,j,k,0) -= factor*dN;
                     cu_arr(i,j,k,5+m) -= factor*dN;
                 }
             }
