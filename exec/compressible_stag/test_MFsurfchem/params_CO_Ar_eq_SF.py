@@ -107,7 +107,8 @@ print "- rcol = %e" % rcol
 print "- k1ads = %e (rate)" % k1ads
 print "- k1ads/n1 (rate const) = %e" % (k1ads/n1)
 print "- k1des = %e" % k1des
-print "- eq coverage of spec1: %e\n" % theta1
+print "- E[theta]: %e" % theta1
+print "- Var[theta]: %e\n" % (theta1*(1-theta1)/n1s)
 
 ##########
 
