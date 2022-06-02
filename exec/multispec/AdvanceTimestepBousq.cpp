@@ -704,15 +704,16 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     pressure_jump.setVal(0.);
     lap_phi.setVal(0.);
 
-    /*// THIS IS IDEAL BUT FOR SOME REASON ISN'T WORKING
+    /*
+    // THIS IS IDEAL BUT FOR SOME REASON ISN'T WORKING
     // if computing pressure correction before projecting
     // then add gradient of correction term to rhs v before solving
     if (pressure_jump_projection) {
         GradPressureCorrection(rho_new,rhotot_new,Temp,
-			       lap_phi,gmres_rhs_v,geom,1);
+			       gmres_rhs_v,geom,1);
     }
     */
-
+    
     // Works but way slower and messier
     // if computing pressure correction before projecting
     // then add gradient of correction term to rhs v before solving
@@ -724,11 +725,7 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         }
 
         GradPressureCorrection(rho_new,rhotot_new,Temp,
-			       lap_phi,gmres_rhs_v_2,geom,1);
-
-	//// using pressure_jump as temporary MultiFab
-        //GradPressureCorrection2(rho_new,rhotot_new,Temp,grad_phi,grad_lap_phi,
-	//		       pressure_jump,gmres_rhs_v_2,geom,1);
+			       gmres_rhs_v_2,geom,1);
 
         // zero gmres_rhs_v on physical boundaries
         ZeroEdgevalPhysical(gmres_rhs_v_2, geom, 0, 1);

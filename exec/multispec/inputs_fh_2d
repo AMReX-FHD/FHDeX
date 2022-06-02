@@ -13,7 +13,7 @@
   radius_cyl = 0.24e-5
 
   # projection correction flag
-  pressure_jump_projection = 1;
+  pressure_jump_projection = 1
   
   # number of cells in domain
   #n_cells = 192 192

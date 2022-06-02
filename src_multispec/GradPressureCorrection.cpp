@@ -4,7 +4,6 @@
 void GradPressureCorrection(const MultiFab& rho_in,
                             const MultiFab& rhotot_in,
 	 	            const MultiFab& Temp,
-			    MultiFab& correction_in,
 			    std::array< MultiFab, AMREX_SPACEDIM >& grad_rhs,
 		            const Geometry& geom,
 			    int increment)
@@ -12,6 +11,11 @@ void GradPressureCorrection(const MultiFab& rho_in,
     BL_PROFILE_VAR("GradPressureCorrection()",GradPressureCorrection);
 
     const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
+
+    // create temp multifab for pressure correction
+    BoxArray ba = rho_in.boxArray();
+    DistributionMapping dmap = rho_in.DistributionMap();
+    MultiFab correction_mf(ba, dmap, 1, 1);
 
     // make sure grad rhs is zero initially if not incrementing
     if (increment==0)
@@ -24,7 +28,7 @@ void GradPressureCorrection(const MultiFab& rho_in,
         const Array4<const Real>& rho = rho_in.array(mfi);
         const Array4<const Real>& rhotot = rhotot_in.array(mfi);
         const Array4<const Real>& T = Temp.array(mfi);
-        const Array4<      Real>& correction = correction_in.array(mfi);
+        const Array4<      Real>& correction = correction_mf.array(mfi);
 
         AMREX_D_TERM(const Array4<Real> & grad_rhs_x = grad_rhs[0].array(mfi);,
                      const Array4<Real> & grad_rhs_y = grad_rhs[1].array(mfi);,
@@ -53,7 +57,7 @@ void GradPressureCorrection(const MultiFab& rho_in,
                         summation += phi_alpha * fh_kappa(alpha,beta) * lap_phi_beta;
                 }
             }
-            correction(i,j,k) = - rho0*k_B*T(i,j,k) / monomer_mass * summation;
+            correction(i,j,k) = rho0*k_B*T(i,j,k) / monomer_mass * summation;
 
         });
 

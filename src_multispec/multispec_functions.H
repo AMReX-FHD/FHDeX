@@ -274,7 +274,6 @@ void PressureJump(const MultiFab& press,
 void GradPressureCorrection(const MultiFab& rho,
 			    const MultiFab& rhotot,
                             const MultiFab& Temp,
-                            MultiFab& pressure_jump,
                             std::array<MultiFab,AMREX_SPACEDIM>& grad_rhs,
 		            const Geometry& geom,
 			    int increment);
