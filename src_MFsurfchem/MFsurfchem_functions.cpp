@@ -90,13 +90,15 @@ void sample_MFsurfchem(MultiFab& cu, MultiFab& prim, MultiFab& surfcov, MultiFab
                     sumtheta += surfcov_arr(i,j,k,m);
                 }
 
+                amrex:: Real tempratio = prim_arr(i,j,k,4)/T_init[0];
+
                 for (int m=0;m<n_ads_spec;m++) {
                     amrex::Real dens = cu_arr(i,j,k,5+m);   // mass density
                     dens *= AVONUM/molmass[m];              // number density
 
                     amrex::Real theta = surfcov_arr(i,j,k,m);
 
-                    amrex::Real meanNads = ads_rate_const*dens*(1-sumtheta)*Ntot*dt;
+                    amrex::Real meanNads = ads_rate_const*dens*(1-sumtheta)*Ntot*dt*pow(tempratio,-0.5*dof[m]);
                     amrex::Real Nads = RandomPoisson(meanNads,engine);
 
                     amrex::Real meanNdes = des_rate*theta*Ntot*dt;
