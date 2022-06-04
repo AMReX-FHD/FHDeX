@@ -3,9 +3,9 @@
 exec=../../../../FBoxLib/Tools/Postprocessing/F_Src/faverage.Linux.gfortran.exe
 outfile=res.ads
 tmpfile=tmp.ads
-plotfile=ads_var.png
+plotfile=ads.png
 pyscr=ads.py
-plotscr=ads_var.plt
+plotscr=ads.plt
 
 pltfiles=`ls -d plt0*`
 
@@ -23,6 +23,7 @@ done
 
 rm $tmpfile
 
+grep "E\[theta\]" $outfile  > ${outfile}_mean
 grep "Var\[theta\]" $outfile  > ${outfile}_var
 
 gnuplot $plotscr
