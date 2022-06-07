@@ -24,19 +24,11 @@ void GradPressureCorrection(const MultiFab& rho_in,
 
     for(MFIter mfi(rho_in,TilingIfNotGPU()); mfi.isValid(); ++mfi){
 
-        const Box& bx = mfi.validbox();
+        const Box& bx = mfi.growntilebox(1);
         const Array4<const Real>& rho = rho_in.array(mfi);
         const Array4<const Real>& rhotot = rhotot_in.array(mfi);
         const Array4<const Real>& T = Temp.array(mfi);
         const Array4<      Real>& correction = correction_mf.array(mfi);
-
-        AMREX_D_TERM(const Array4<Real> & grad_rhs_x = grad_rhs[0].array(mfi);,
-                     const Array4<Real> & grad_rhs_y = grad_rhs[1].array(mfi);,
-                     const Array4<Real> & grad_rhs_z = grad_rhs[2].array(mfi););
-
-        AMREX_D_TERM(const Box & bx_x = mfi.nodaltilebox(0);,
-                     const Box & bx_y = mfi.nodaltilebox(1);,
-                     const Box & bx_z = mfi.nodaltilebox(2););
 
         // compute correction term
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k){
@@ -60,6 +52,20 @@ void GradPressureCorrection(const MultiFab& rho_in,
             correction(i,j,k) = rho0*k_B*T(i,j,k) / monomer_mass * summation;
 
         });
+
+    }
+
+
+    for(MFIter mfi(rho_in,TilingIfNotGPU()); mfi.isValid(); ++mfi){
+        AMREX_D_TERM(const Array4<Real> & grad_rhs_x = grad_rhs[0].array(mfi);,
+                     const Array4<Real> & grad_rhs_y = grad_rhs[1].array(mfi);,
+                     const Array4<Real> & grad_rhs_z = grad_rhs[2].array(mfi););
+
+        AMREX_D_TERM(const Box & bx_x = mfi.nodaltilebox(0);,
+                     const Box & bx_y = mfi.nodaltilebox(1);,
+                     const Box & bx_z = mfi.nodaltilebox(2););
+
+        const Array4<Real>& correction = correction_mf.array(mfi);
 
 	// take gradient
 	amrex::ParallelFor(bx_x, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept

@@ -694,7 +694,6 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     }
     dpi.setVal(0.);
 
-    // FOR SOME REASON ISN'T WORKING
     // if computing pressure correction before projecting
     // then add gradient of correction term to rhs v before solving
     if (pressure_jump_projection) {
