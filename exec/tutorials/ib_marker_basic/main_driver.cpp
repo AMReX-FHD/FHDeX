@@ -120,7 +120,6 @@ void main_driver(const char * argv) {
         Print() << "l_link= " << l_link      << std::endl;
         Print() << "x_0=    " << x_0         << std::endl;
 
-
         // using fourier modes => first two nodes reserved as "anchor"
         int N_markers = immbdy::contains_fourier ? N+1 : N;
 
@@ -139,23 +138,24 @@ void main_driver(const char * argv) {
         ib_mc.InitList(0, marker_radii, marker_positions, i_ib);
     }
 
+    ib_mc.UpdatePIDMap();
     ib_mc.fillNeighbors();
     ib_mc.PrintMarkerData(0);
     BL_PROFILE_VAR_STOP(create_markers);
 
-    int rank = ParallelDescriptor::MyProc();
     int size = ParallelDescriptor::NProcs();
-    Vector<int> mpi_markers(size);
-    mpi_markers[rank] = ib_mc.NextID() - 1;
-    ParallelDescriptor::ReduceIntSum(
-        Vector<std::reference_wrapper<int>>(
-            begin(mpi_markers), end(mpi_markers)
-        )
-    );
+    auto & num_ids = ib_mc.getNumIDs();
+    auto & cpu_offset = ib_mc.getCPUOffset();
 
-    Print() << "mpi_markers = ";
-    for (auto & i:mpi_markers) Print() << i << " ";
+
+    Print() << "num_ids = ";
+    for (auto & i:num_ids) Print() << i << " ";
     Print() << std::endl;
+
+    Print() << "cpu_offset = ";
+    for (auto & i:cpu_offset) Print() << i << " ";
+    Print() << std::endl;
+
 
     // Just for fun, print out the max runtime
     Real stop_time = ParallelDescriptor::second() - strt_time;

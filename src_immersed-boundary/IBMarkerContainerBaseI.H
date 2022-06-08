@@ -274,9 +274,9 @@ void IBMarkerContainerBase<StructReal, StructInt>::initRankLists(int totalM)
 
     totalMarkers = totalM; 
 
-    ranksIdSorted.resize(totalMarkers,0);
-    idsRankSorted.resize(totalMarkers,0);
-    rankTotals.resize(ParallelDescriptor::NProcs(),0);
+    ranksIdSorted.resize(totalMarkers, 0);
+    idsRankSorted.resize(totalMarkers, 0);
+    rankTotals.resize(ParallelDescriptor::NProcs(), 0);
     
     const int lev = 0;
 
@@ -289,7 +289,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::initRankLists(int totalM)
 	auto& aos   = ptile.GetArrayOfStructs();
 	ParticleType* particles = aos().dataPtr();
 
-        //THIS DOES NOT COMPILE WITH CUDA?
+        // THIS DOES NOT COMPILE WITH CUDA?
         for(int i=0; i<np;i++)
         {
             ParticleType & part = particles[i];
@@ -299,8 +299,8 @@ void IBMarkerContainerBase<StructReal, StructInt>::initRankLists(int totalM)
         }
     }
 
-//    ParallelDescriptor::ReduceIntSum(idsRankSorted);
-//    ParallelDescriptor::ReduceIntSum(rankTotals);
+    // ParallelDescriptor::ReduceIntSum(idsRankSorted);
+    // ParallelDescriptor::ReduceIntSum(rankTotals);
 
     for (int i=0; i<totalMarkers; ++i) {
         int temp = idsRankSorted[i];
@@ -315,6 +315,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::initRankLists(int totalM)
     }
 
 }
+
 
 template <typename StructReal, typename StructInt>
 void IBMarkerContainerBase<StructReal, StructInt>::loadPinMatrix(int totalP, char* filename) 
@@ -541,11 +542,26 @@ void IBMarkerContainerBase<StructReal, StructInt>::PullDown(
 }
 
 
-// void IBMarkerContainerBase<StructReal, StructInt>::UpdatePIDMap() {
-// template <typename StructReal, typename StructInt>
-// 
-// 
-// }
+template <typename StructReal, typename StructInt>
+void IBMarkerContainerBase<StructReal, StructInt>::UpdatePIDMap() {
+
+    int rank = ParallelDescriptor::MyProc();
+    int size = ParallelDescriptor::NProcs();
+
+    // Number of IDs associated with this rank
+    num_ids[rank] = this->NextID() - 1;
+
+    ParallelDescriptor::ReduceIntSum(
+        Vector<std::reference_wrapper<int>>(begin(num_ids), end(num_ids))
+    );
+
+    int offset = 0;
+    for (int i=0; i < size; i++) {
+        cpu_offset[i] = offset;
+        offset += num_ids[i];
+    }
+}
+
 
 template <typename StructReal, typename StructInt>
 void IBMarkerContainerBase<StructReal, StructInt>::PullDown(
@@ -2154,10 +2170,15 @@ void IBMarkerContainerBase<StructReal, StructInt>::InitInternals(int ngrow) {
 
     /****************************************************************************
      *                                                                          *
-     * Fill auxiallry data used by interpolsation                               *
+     * Fill auxiallry data used by interpolation                                *
      *   -> face_coords: the face-centered coordinates used by the fluid grids  *
      *                                                                          *
      ***************************************************************************/
+
+    // Number of particle IDs for each rank:
+    num_ids.resize(ParallelDescriptor::NProcs(), 0);
+    // Offset of each rank in the particle list
+    cpu_offset.resize(ParallelDescriptor::NProcs(), 0);
 
     // TODO: this is only assuming 1 fluid level (level 0)
     int lev = 0;
@@ -2169,8 +2190,18 @@ void IBMarkerContainerBase<StructReal, StructInt>::InitInternals(int ngrow) {
     // Determine the minimal ngrow (which depends on the kernel order): This
     // needs to be AT LEAST 1 larger than the `gs` value used in
     // [spread,interpolate]_kernel
-    int ngc_min_fluid = *(std::max_element(common::pkernel_fluid.begin(), common::pkernel_fluid.begin()+common::nspecies)) == 3 ? 3 : 5; // GALEN - FLUID KERNEL
-    int ngc_min_es    = *(std::max_element(common::pkernel_es.begin(), common::pkernel_es.begin()+common::nspecies)) == 3 ? 3 : 5;
+    int ngc_min_fluid = * (
+        std::max_element(
+            common::pkernel_fluid.begin(),
+            common::pkernel_fluid.begin() + common::nspecies
+        )
+    ) == 3 ? 3 : 5; // GALEN - FLUID KERNEL
+    int ngc_min_es = * (
+        std::max_element(
+            common::pkernel_es.begin(),
+            common::pkernel_es.begin() + common::nspecies
+        )
+    ) == 3 ? 3 : 5;
 
     // Let's be on the safe side and use the larger out of the
     // fluid/electro-static kernels
@@ -2185,15 +2216,13 @@ void IBMarkerContainerBase<StructReal, StructInt>::InitInternals(int ngrow) {
     const Geometry & geom = this->Geom(lev);
     FindFaceCoords(face_coords[lev], geom);
    
-    //Vector<Real> IBMarkerContainerBase<StructReal, StructInt>::norm_es;
     norm_es.resize(common::nspecies);
     for (int i=0; i<common::nspecies; ++i) {
-        norm_es[i] = integrate_es(common::eskernel_beta[i], common::eskernel_fluid[i]);
-        //std::cout << "normalization factor " << i << " are " << IBMarkerContainerBase::norm_es[i] << std::endl;
+        norm_es[i] = integrate_es(
+            common::eskernel_beta[i], common::eskernel_fluid[i]
+        );
     }
-
 }
-
 
 
 template <typename StructReal, typename StructInt>
@@ -2229,6 +2258,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::ReadStaticParameters() {
         initialized = true;
     }
 }
+
 
 template <typename StructReal, typename StructInt>
 Real IBMarkerContainerBase<StructReal, StructInt>::integrate_es(Real beta_in, int w_in) {
