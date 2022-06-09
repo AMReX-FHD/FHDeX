@@ -39,7 +39,7 @@ void InitializeMFSurfchemNamespace()
     // get desoprtion rate
     pp.getarr("des_rate",des_rate_tmp,0,n_ads_spec);
     for (int m=0;m<n_ads_spec;m++) des_rate[m] = des_rate_tmp[m];
-    
+
     return;
 }
 
@@ -52,11 +52,11 @@ void init_surfcov(MultiFab& surfcov, const amrex::Real* dx)
         Dim3 hi = ubound(bx);
         const Array4<Real> & surfcov_arr = surfcov.array(mfi);
 
-        amrex::ParallelForRNG(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k, RandomEngine const& engine) noexcept
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             if (k==0) {
                 for (int m=0;m<n_ads_spec;m++) {
-		            surfcov_arr(i,j,k,m) = surfcov0[m];
+                    surfcov_arr(i,j,k,m) = surfcov0[m];
                 }
             } else {
                 for (int m=0;m<n_ads_spec;m++) {

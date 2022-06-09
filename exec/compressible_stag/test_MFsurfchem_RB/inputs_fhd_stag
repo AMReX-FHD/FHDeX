@@ -9,6 +9,7 @@ prob_hi = 6.72e-05 5.819691e-05 6.72e-05 # physical hi coordinate
 
 # Number of ghost cells, conserved, and primitive variables
 # ---------------------
+
 ngc = 2 2 2
 nvars = 7
 nprimvars = 10
