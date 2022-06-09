@@ -1,5 +1,6 @@
 CEXE_headers   += main_driver_F.H
 F90EXE_sources += init_s_funcs.F90
+F90EXE_sources += init_funcs.F90
 
 CEXE_sources   += advance.cpp
 CEXE_sources   += WritePlotFile.cpp

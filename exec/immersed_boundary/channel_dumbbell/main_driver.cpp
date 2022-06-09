@@ -126,30 +126,30 @@ void main_driver(const char * argv) {
     const Real * dx = geom.CellSize();
 
 
-    //___________________________________________________________________________
-    // Initialize random number generators
-    const int n_rngs = 1;
+    // //___________________________________________________________________________
+    // // Initialize random number generators
+    // const int n_rngs = 1;
 
-    // this seems really random :P
-    int fhdSeed      = 1;
-    int particleSeed = 2;
-    int selectorSeed = 3;
-    int thetaSeed    = 4;
-    int phiSeed      = 5;
-    int generalSeed  = 6;
+    // // this seems really random :P
+    // int fhdSeed      = 1;
+    // int particleSeed = 2;
+    // int selectorSeed = 3;
+    // int thetaSeed    = 4;
+    // int phiSeed      = 5;
+    // int generalSeed  = 6;
 
-    // each CPU gets a different random seed
-    const int proc = ParallelDescriptor::MyProc();
-    fhdSeed      += proc;
-    particleSeed += proc;
-    selectorSeed += proc;
-    thetaSeed    += proc;
-    phiSeed      += proc;
-    generalSeed  += proc;
+    // // each CPU gets a different random seed
+    // const int proc = ParallelDescriptor::MyProc();
+    // fhdSeed      += proc;
+    // particleSeed += proc;
+    // selectorSeed += proc;
+    // thetaSeed    += proc;
+    // phiSeed      += proc;
+    // generalSeed  += proc;
 
-    // initialize rngs
-    rng_initialize( & fhdSeed, & particleSeed, & selectorSeed,
-                    & thetaSeed, & phiSeed, & generalSeed);
+    // // initialize rngs
+    // rng_initialize( & fhdSeed, & particleSeed, & selectorSeed,
+    //                 & thetaSeed, & phiSeed, & generalSeed);
 
 
 
@@ -338,18 +338,13 @@ void main_driver(const char * argv) {
     for ( MFIter mfi(beta); mfi.isValid(); ++mfi ) {
         const Box& bx = mfi.validbox();
 
-        AMREX_D_TERM(dm=0; init_vel(BL_TO_FORTRAN_BOX(bx),
-                                    BL_TO_FORTRAN_ANYD(umac[0][mfi]), geom.CellSize(),
-                                    geom.ProbLo(), geom.ProbHi() ,&dm,
-                                    ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));,
-                     dm=1; init_vel(BL_TO_FORTRAN_BOX(bx),
-                                    BL_TO_FORTRAN_ANYD(umac[1][mfi]), geom.CellSize(),
-                                    geom.ProbLo(), geom.ProbHi() ,&dm,
-                                    ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));,
-                     dm=2; init_vel(BL_TO_FORTRAN_BOX(bx),
-                                    BL_TO_FORTRAN_ANYD(umac[2][mfi]), geom.CellSize(),
-                                    geom.ProbLo(), geom.ProbHi() ,&dm,
-                                    ZFILL(realDomain.lo()), ZFILL(realDomain.hi())););
+        // initialize velocity
+        for (int d=0; d<AMREX_SPACEDIM; ++d)
+             init_vel(BL_TO_FORTRAN_BOX(bx),
+                      BL_TO_FORTRAN_ANYD(umac[d][mfi]), geom.CellSize(),
+                      geom.ProbLo(), geom.ProbHi(), & d,
+                      ZFILL(realDomain.lo()), ZFILL(realDomain.hi()),
+                      &prob_type);
 
         // initialize tracer
         init_s_vel(BL_TO_FORTRAN_BOX(bx),
