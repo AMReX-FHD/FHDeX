@@ -21,25 +21,37 @@ void InitializeMFSurfchemNamespace()
     // if n_ads_spec is set to 0 or not defined in the inputs file, quit the routine
     if (n_ads_spec==0) return;
 
+    // load default values to surfcov0 array
+    for (int m=0;m<n_ads_spec;m++) surfcov0[m] = 0.;
+    
     std::vector<amrex::Real> surfcov0_tmp(MAX_SPECIES);
     // get initial surface coverage
-    pp.getarr("surfcov0",surfcov0_tmp,0,n_ads_spec);
-    for (int m=0;m<n_ads_spec;m++) surfcov0[m] = surfcov0_tmp[m];
-
+    if (pp.queryarr("surfcov0",surfcov0_tmp,0,n_ads_spec)){
+        for (int m=0;m<n_ads_spec;m++) surfcov0[m] = surfcov0_tmp[m];
+    }
+    
     surf_site_num_dens = 0.;
     // get number density of adsorption sites on the lattice
     pp.query("surf_site_num_dens",surf_site_num_dens);
 
+    // load default values to ads_rate_const array
+    for (int m=0;m<n_ads_spec;m++) ads_rate_const[m] = 0.;
+
     std::vector<amrex::Real> ads_rate_const_tmp(MAX_SPECIES);
     // get adsorption rate const 
-    pp.getarr("ads_rate_const",ads_rate_const_tmp,0,n_ads_spec);
-    for (int m=0;m<n_ads_spec;m++) ads_rate_const[m] = ads_rate_const_tmp[m];
+    if (pp.queryarr("ads_rate_const",ads_rate_const_tmp,0,n_ads_spec)){
+        for (int m=0;m<n_ads_spec;m++) ads_rate_const[m] = ads_rate_const_tmp[m];
+    }
+    
+    // load default values to des_rate array
+    for (int m=0;m<n_ads_spec;m++) des_rate[m] = 0.;
 
     std::vector<amrex::Real> des_rate_tmp(MAX_SPECIES);
-    // get desoprtion rate
-    pp.getarr("des_rate",des_rate_tmp,0,n_ads_spec);
-    for (int m=0;m<n_ads_spec;m++) des_rate[m] = des_rate_tmp[m];
-
+    // get desorption rate
+    if (pp.queryarr("des_rate",des_rate_tmp,0,n_ads_spec)){
+        for (int m=0;m<n_ads_spec;m++) des_rate[m] = des_rate_tmp[m];
+    }
+    
     return;
 }
 
