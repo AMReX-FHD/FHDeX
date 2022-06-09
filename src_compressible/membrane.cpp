@@ -2,7 +2,7 @@
 #include "common_functions.H"
 
 void doMembrane(MultiFab& cons, MultiFab& prim, std::array<MultiFab, AMREX_SPACEDIM>& flux,
-                const amrex::Geometry geom, const amrex::Real* dx, const amrex::Real dt)
+                const amrex::Geometry& geom, const amrex::Real* dx, const amrex::Real dt)
 {
     BL_PROFILE_VAR("doMembrane()",doMembrane);
     

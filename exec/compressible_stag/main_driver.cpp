@@ -10,6 +10,8 @@
 
 #include "chemistry_functions.H"
 
+#include "MFsurfchem_functions.H"
+
 #include "chrono"
 
 using namespace std::chrono;
@@ -38,6 +40,12 @@ void main_driver(const char* argv)
     if (nprimvars != AMREX_SPACEDIM + 3 + 2*nspecies) {
         Abort("nprimvars must be equal to AMREX_SPACEDIM + 3 + 2*nspecies");
     }
+
+    // read the inputs file for chemistry
+    InitializeChemistryNamespace();
+
+    // read the inputs file for MFsurfchem
+    InitializeMFSurfchemNamespace();
 
     int step_start, statsCount;
     amrex::Real time;
@@ -130,6 +138,10 @@ void main_driver(const char* argv)
     //primative quantaties
     MultiFab prim;
 
+    // MFsurfchem
+    MultiFab surfcov;
+    MultiFab dNadsdes;
+
     //statistics    
     MultiFab cuMeans;
     MultiFab cuVars;
@@ -138,6 +150,9 @@ void main_driver(const char* argv)
     MultiFab primVars;
 
     MultiFab coVars;
+
+    MultiFab surfcovMeans;
+    MultiFab surfcovVars;
 
     std::array< MultiFab, AMREX_SPACEDIM > velMeans;
     std::array< MultiFab, AMREX_SPACEDIM > velVars;
@@ -367,7 +382,7 @@ void main_driver(const char* argv)
         else {
             ReadCheckPoint3D(step_start, time, statsCount, geom, domain, cu, cuMeans, cuVars, prim,
                              primMeans, primVars, cumom, cumomMeans, cumomVars, 
-                             vel, velMeans, velVars, coVars, spatialCross3D, ncross, ba, dmap);
+                             vel, velMeans, velVars, coVars, surfcov, surfcovMeans, surfcovVars, spatialCross3D, ncross, ba, dmap);
         }
 
         if (reset_stats == 1) statsCount = 1;
@@ -384,6 +399,10 @@ void main_driver(const char* argv)
         kappa.setVal(1.0,0,1,ngc);
         chi.setVal(1.0,0,nspecies,ngc);
         D.setVal(1.0,0,nspecies*nspecies,ngc);
+        
+        if (n_ads_spec>0) {
+            dNadsdes.define(ba,dmap,n_ads_spec,0);
+        }
 
         if ((plot_cross) and (do_1D==0) and (do_2D==0)) {
             if (ParallelDescriptor::IOProcessor()) outfile.open(filename, std::ios::app);
@@ -587,6 +606,11 @@ void main_driver(const char* argv)
         // 6+ns:6+2ns-1 (Xk;  mole fractions)
         prim.define(ba,dmap,nprimvars,ngc);
 
+        if (n_ads_spec>0) {
+            surfcov.define(ba,dmap,n_ads_spec,0);
+            dNadsdes.define(ba,dmap,n_ads_spec,0);
+        }
+
         cuMeans.define(ba,dmap,nvars,ngc);
         cuVars.define(ba,dmap,nvars,ngc);
         cuMeans.setVal(0.0);
@@ -626,6 +650,13 @@ void main_driver(const char* argv)
         // 25: <rhoYkH velx>
         coVars.define(ba,dmap,26,0);
         coVars.setVal(0.0);
+
+        if (n_ads_spec>0) {
+            surfcovMeans.define(ba,dmap,n_ads_spec,0);
+            surfcovVars.define(ba,dmap,n_ads_spec,0);
+            surfcovMeans.setVal(0.0);
+            surfcovVars.setVal(0.0);
+        }
 
         for (int d=0; d<AMREX_SPACEDIM; d++) {
             velMeans[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 0);
@@ -796,6 +827,8 @@ void main_driver(const char* argv)
         }
         conservedToPrimitiveStag(prim, vel, cu, cumom);
 
+        if (n_ads_spec>0) init_surfcov(surfcov, dx);
+
         // Set BC: 1) fill boundary 2) physical (How to do for staggered? -- Ishan)
         cu.FillBoundary(geom.periodicity());
         prim.FillBoundary(geom.periodicity());
@@ -808,7 +841,7 @@ void main_driver(const char* argv)
         
         if (plot_int > 0) {
             WritePlotFileStag(0, 0.0, geom, cu, cuMeans, cuVars, cumom, cumomMeans, cumomVars, 
-                          prim, primMeans, primVars, vel, velMeans, velVars, coVars, eta, kappa);
+                          prim, primMeans, primVars, vel, velMeans, velVars, coVars, surfcov, surfcovMeans, surfcovVars, eta, kappa);
 
             if (plot_cross) {
                 if (do_1D) {
@@ -892,9 +925,35 @@ void main_driver(const char* argv)
 
         // timer
         Real ts1 = ParallelDescriptor::second();
-    
+
+        // sample surface chemistry
+        if (n_ads_spec>0) sample_MFsurfchem(cu, prim, surfcov, dNadsdes, dx, dt);
+
+        // FHD
         RK3stepStag(cu, cumom, prim, vel, source, eta, zeta, kappa, chi, D, 
             faceflux, edgeflux_x, edgeflux_y, edgeflux_z, cenflux, geom, dt, step);
+
+        // update surface chemistry
+        if (n_ads_spec>0) {
+
+            update_MFsurfchem(cu, surfcov, dNadsdes, dx);
+
+            for (int d=0; d<AMREX_SPACEDIM; d++) {
+                cumom[d].FillBoundary(geom.periodicity());
+            }
+            cu.FillBoundary(geom.periodicity());
+
+            conservedToPrimitiveStag(prim, vel, cu, cumom);
+
+            // Set BC: 1) fill boundary 2) physical
+            for (int d=0; d<AMREX_SPACEDIM; d++) {
+                vel[d].FillBoundary(geom.periodicity());
+            }
+            prim.FillBoundary(geom.periodicity());
+            cu.FillBoundary(geom.periodicity());
+
+            setBCStag(prim, cu, cumom, vel, geom);
+        }
 
         // timer
         Real ts2 = ParallelDescriptor::second() - ts1;
@@ -924,6 +983,12 @@ void main_driver(const char* argv)
             }
 
             coVars.setVal(0.0);
+
+            if (n_ads_spec>0) {
+                surfcovMeans.setVal(0.0);
+                surfcovVars.setVal(0.0);
+            }
+
             if (do_1D) {
                 spatialCross1D.setVal(0.0);
             }
@@ -944,21 +1009,25 @@ void main_driver(const char* argv)
         if (do_1D) {
             evaluateStatsStag1D(cu, cuMeans, cuVars, prim, primMeans, primVars, vel, 
                                 velMeans, velVars, cumom, cumomMeans, cumomVars, coVars,
-                                spatialCross1D, ncross, statsCount);
+                                surfcov, surfcovMeans, surfcovVars,
+                                spatialCross1D, ncross, statsCount, geom);
         }
         else if (do_2D) {
             evaluateStatsStag2D(cu, cuMeans, cuVars, prim, primMeans, primVars, vel, 
                                 velMeans, velVars, cumom, cumomMeans, cumomVars, coVars,
-                                spatialCross2D, ncross, statsCount);
+                                surfcov, surfcovMeans, surfcovVars,
+                                spatialCross2D, ncross, statsCount, geom);
         }
         else {
             evaluateStatsStag3D(cu, cuMeans, cuVars, prim, primMeans, primVars, vel, 
                                 velMeans, velVars, cumom, cumomMeans, cumomVars, coVars,
-                                dataSliceMeans_xcross, spatialCross3D, ncross, domain, statsCount);
+                                surfcov, surfcovMeans, surfcovVars,
+                                dataSliceMeans_xcross, spatialCross3D, ncross, domain,
+                                statsCount, geom);
         }
         statsCount++;
         if (step%100 == 0) {
-            amrex::Print() << "Mean Momentum (x, y, z): " << ComputeSpatialMean(cumom[0], 0) << " " << ComputeSpatialMean(cumom[1], 0) << " " << ComputeSpatialMean(cumom[2], 0) << "\n";
+            amrex::Print() << "Mean Density: " << ComputeSpatialMean(cu, 0) << " Mean Momentum (x):" << ComputeSpatialMean(cumom[0], 0) << " Mean Energy:" << ComputeSpatialMean(cu, 4) << "\n";
         }
 
         // write a plotfile
@@ -976,7 +1045,7 @@ void main_driver(const char* argv)
              //yzAverage(cuMeans, cuVars, primMeans, primVars, spatialCross,
              //          cuMeansAv, cuVarsAv, primMeansAv, primVarsAv, spatialCrossAv);
             WritePlotFileStag(step, time, geom, cu, cuMeans, cuVars, cumom, cumomMeans, cumomVars,
-                              prim, primMeans, primVars, vel, velMeans, velVars, coVars, eta, kappa);
+                              prim, primMeans, primVars, vel, velMeans, velVars, coVars, surfcov, surfcovMeans, surfcovVars, eta, kappa);
 
             if (plot_cross) {
                 if (do_1D) {
@@ -1214,7 +1283,7 @@ void main_driver(const char* argv)
             else {
                 WriteCheckPoint3D(step, time, statsCount, geom, cu, cuMeans, cuVars, prim,
                                   primMeans, primVars, cumom, cumomMeans, cumomVars, 
-                                  vel, velMeans, velVars, coVars, spatialCross3D, ncross);
+                                  vel, velMeans, velVars, coVars, surfcov, surfcovMeans, surfcovVars, spatialCross3D, ncross);
             }
         }
 

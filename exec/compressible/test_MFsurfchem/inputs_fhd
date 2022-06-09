@@ -98,9 +98,9 @@ plot_vars = 1
 
 # MFsurfchem
 
-# adsorption species number (starting from 0)
-# ads_spec = -1 (no adsorption species)
-ads_spec = 0
+# number of adsorption species
+# n_ads_spec = 0 (if no adsorption species)
+n_ads_spec = 1
 
 # initial surface coverage
 surfcov0 = 2.053333e-01

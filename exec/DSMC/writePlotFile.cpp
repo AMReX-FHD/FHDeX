@@ -174,7 +174,7 @@ void writePlotFile(const MultiFab& mfcuInst,
 
     // Primitive Variances
     varNames[cnt++] = "nVar";
-    varNames[cnt++] = "rhoVar";
+    varNames[cnt++] = "rhoVarP";
     varNames[cnt++] = "uVar";
     varNames[cnt++] = "vVar";
     varNames[cnt++] = "wVar";
@@ -185,7 +185,7 @@ void writePlotFile(const MultiFab& mfcuInst,
 
     for(int ispec=0;ispec<nspecies;ispec++) {
       varNames[cnt++] = amrex::Concatenate("nVar_",ispec,2);
-      varNames[cnt++] = amrex::Concatenate("rhoVar_",ispec,2);
+      varNames[cnt++] = amrex::Concatenate("rhoVarP_",ispec,2);
       varNames[cnt++] = amrex::Concatenate("uVar_",ispec,2);
       varNames[cnt++] = amrex::Concatenate("vVar_",ispec,2);
       varNames[cnt++] = amrex::Concatenate("wVar_",ispec,2);

@@ -1,7 +1,10 @@
 #include "compressible_functions.H"
 #include "compressible_functions_stag.H"
 
+#include "MFsurfchem_functions.H"
+
 #include "common_functions.H"
+
 
 ///////////////////////////////////////////
 // Evaluate Stats for the 3D case /////////
@@ -15,20 +18,28 @@ void evaluateStatsStag3D(MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
                          std::array<MultiFab, AMREX_SPACEDIM>& cumomMean,
                          std::array<MultiFab, AMREX_SPACEDIM>& cumomVar,
                          MultiFab& coVar, 
+                         MultiFab& theta, MultiFab& thetaMean, MultiFab& thetaVar,
                          Vector<Real>& dataSliceMeans_xcross,
                          Vector<Real>& spatialCross3D, const int ncross,
                          const amrex::Box& domain,
-                         const int steps)
+                         const int steps,
+                         const Geometry& geom)
 {
     BL_PROFILE_VAR("evaluateStatsStag3D()",evaluateStatsStag3D);
     
     //// Evaluate Means
-    if (plot_means) EvaluateStatsMeans(cons,consMean,prim_in,primMean,vel,velMean,cumom,cumomMean,steps);
+    if (plot_means) {
+        EvaluateStatsMeans(cons,consMean,prim_in,primMean,vel,velMean,cumom,cumomMean,theta,thetaMean,steps);
+        consMean.FillBoundary(geom.periodicity());
+        primMean.FillBoundary(geom.periodicity());
+    }
 
     //// Evaluate Variances and Covariances
     if ((plot_vars) or (plot_covars)) {
         EvaluateVarsCoVars(cons,consMean,consVar,prim_in,primMean,primVar,velMean,velVar,
-                           cumom,cumomMean,cumomVar,coVar,steps);
+                           cumom,cumomMean,cumomVar,coVar,theta,thetaMean,thetaVar,steps);
+        consVar.FillBoundary(geom.periodicity());
+        primVar.FillBoundary(geom.periodicity());
     }
 
     //// Evaluate Spatial Correlations
@@ -72,18 +83,26 @@ void evaluateStatsStag2D(MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
                          std::array<MultiFab, AMREX_SPACEDIM>& cumomMean,
                          std::array<MultiFab, AMREX_SPACEDIM>& cumomVar,
                          MultiFab& coVar, 
+                         MultiFab& theta, MultiFab& thetaMean, MultiFab& thetaVar,
                          MultiFab& spatialCross2D, const int ncross,
-                         const int steps)
+                         const int steps,
+                         const Geometry& geom)
 {
     BL_PROFILE_VAR("evaluateStatsStag2D()",evaluateStatsStag2D);
     
     //// Evaluate Means
-    if (plot_means) EvaluateStatsMeans(cons,consMean,prim_in,primMean,vel,velMean,cumom,cumomMean,steps);
+    if (plot_means) {
+        EvaluateStatsMeans(cons,consMean,prim_in,primMean,vel,velMean,cumom,cumomMean,theta,thetaMean,steps);
+        consMean.FillBoundary(geom.periodicity());
+        primMean.FillBoundary(geom.periodicity());
+    }
 
     //// Evaluate Variances and Covariances
     if ((plot_vars) or (plot_covars)) {
         EvaluateVarsCoVars(cons,consMean,consVar,prim_in,primMean,primVar,velMean,velVar,
-                           cumom,cumomMean,cumomVar,coVar,steps);
+                           cumom,cumomMean,cumomVar,coVar,theta,thetaMean,thetaVar,steps);
+        consVar.FillBoundary(geom.periodicity());
+        primVar.FillBoundary(geom.periodicity());
     }
 
     //// Evaluate Spatial Correlations (do later)
@@ -113,18 +132,26 @@ void evaluateStatsStag1D(MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
                          std::array<MultiFab, AMREX_SPACEDIM>& cumomMean,
                          std::array<MultiFab, AMREX_SPACEDIM>& cumomVar,
                          MultiFab& coVar, 
+                         MultiFab& theta, MultiFab& thetaMean, MultiFab& thetaVar,
                          MultiFab& spatialCross1D, const int ncross,
-                         const int steps)
+                         const int steps,
+                         const Geometry& geom)
 {
     BL_PROFILE_VAR("evaluateStatsStag1D()",evaluateStatsStag1D);
     
     //// Evaluate Means
-    if (plot_means) EvaluateStatsMeans(cons,consMean,prim_in,primMean,vel,velMean,cumom,cumomMean,steps);
+    if (plot_means) {
+        EvaluateStatsMeans(cons,consMean,prim_in,primMean,vel,velMean,cumom,cumomMean,theta,thetaMean,steps);
+        consMean.FillBoundary(geom.periodicity());
+        primMean.FillBoundary(geom.periodicity());
+    }
 
     //// Evaluate Variances and Covariances
     if ((plot_vars) or (plot_covars)) {
         EvaluateVarsCoVars(cons,consMean,consVar,prim_in,primMean,primVar,velMean,velVar,
-                           cumom,cumomMean,cumomVar,coVar,steps);
+                           cumom,cumomMean,cumomVar,coVar,theta,thetaMean,thetaVar,steps);
+        consVar.FillBoundary(geom.periodicity());
+        primVar.FillBoundary(geom.periodicity());
     }
 
     //// Evaluate Spatial Correlations
@@ -169,6 +196,7 @@ void EvaluateStatsMeans(MultiFab& cons, MultiFab& consMean,
                         std::array<MultiFab, AMREX_SPACEDIM>& velMean,
                         const std::array<MultiFab, AMREX_SPACEDIM>& cumom,
                         std::array<MultiFab, AMREX_SPACEDIM>& cumomMean,
+                        MultiFab& theta, MultiFab& thetaMean,
                         const int steps)
 {
     BL_PROFILE_VAR("EvaluateStatsMeans()",EvaluateStatsMeans);
@@ -203,6 +231,9 @@ void EvaluateStatsMeans(MultiFab& cons, MultiFab& consMean,
         const Array4<      Real> momxmeans = cumomMean[0].array(mfi);
         const Array4<      Real> momymeans = cumomMean[1].array(mfi);
         const Array4<      Real> momzmeans = cumomMean[2].array(mfi);
+
+        const Array4<      Real> surfcov      = (n_ads_spec>0) ? theta.array(mfi) : cons.array(mfi);
+        const Array4<      Real> surfcovmeans = (n_ads_spec>0) ? thetaMean.array(mfi) : consMean.array(mfi);
 
         // update mean momentum
         amrex::ParallelFor(tbx, tby, tbz,
@@ -269,6 +300,11 @@ void EvaluateStatsMeans(MultiFab& cons, MultiFab& consMean,
             //primmeans(i,j,k,5) = (primmeans(i,j,k,5)*stepsminusone + prim(i,j,k,5))*stepsinv; // Pmean
             GetPressureGas(primmeans(i,j,k,5), fracvec, cumeans(i,j,k,0), primmeans(i,j,k,4)); // Pmean
 
+            if (n_ads_spec>0) {
+                for (int m=0; m<n_ads_spec; ++m) {
+                    surfcovmeans(i,j,k,m) = (surfcovmeans(i,j,k,m)*stepsminusone + surfcov(i,j,k,m))*stepsinv;
+                }
+            }
         });
 
         // update mean velocities
@@ -303,6 +339,7 @@ void EvaluateVarsCoVars(const MultiFab& cons, const MultiFab& consMean, MultiFab
                         const std::array<MultiFab, AMREX_SPACEDIM>& cumomMean,
                         std::array<MultiFab, AMREX_SPACEDIM>& cumomVar,
                         MultiFab& coVar,
+                        const MultiFab& theta, const MultiFab& thetaMean, MultiFab& thetaVar,
                         const int steps)
 {
     BL_PROFILE_VAR("EvaluateVarsCoVars()",EvaluateVarsCoVars);
@@ -343,6 +380,10 @@ void EvaluateVarsCoVars(const MultiFab& cons, const MultiFab& consMean, MultiFab
         const Array4<      Real> momxvars  = cumomVar[0].array(mfi);
         const Array4<      Real> momyvars  = cumomVar[1].array(mfi);
         const Array4<      Real> momzvars  = cumomVar[2].array(mfi);
+
+        const Array4<const Real> surfcov      = (n_ads_spec>0) ? theta.array(mfi) : cons.array(mfi);
+        const Array4<const Real> surfcovmeans = (n_ads_spec>0) ? thetaMean.array(mfi) : consMean.array(mfi);
+        const Array4<      Real> surfcovvars  = (n_ads_spec>0) ? thetaVar.array(mfi) : consVar.array(mfi);
 
         // update momentum and velocity variances
         amrex::ParallelFor(tbx, tby, tbz,
@@ -439,18 +480,18 @@ void EvaluateVarsCoVars(const MultiFab& cons, const MultiFab& consMean, MultiFab
 
             Real delg = vx*deljx + vy*deljy + vz*deljz;
 
-            primvars(i,j,k,nprimvars)   = (primvars(i,j,k,nprimvars)*stepsminusone + delg*delg)*stepsinv; // gvar
+            primvars(i,j,k,nprimvars+0) = (primvars(i,j,k,nprimvars+0)*stepsminusone + delg*delg)*stepsinv; // gvar
             primvars(i,j,k,nprimvars+1) = (primvars(i,j,k,nprimvars+1)*stepsminusone + delg*delenergy)*stepsinv; // kgcross
             primvars(i,j,k,nprimvars+2) = (primvars(i,j,k,nprimvars+2)*stepsminusone + delrho*delenergy)*stepsinv; // krcross
             primvars(i,j,k,nprimvars+3) = (primvars(i,j,k,nprimvars+3)*stepsminusone + delrho*delg)*stepsinv; // rgcross
 
-            //primvars(i,j,k,4) = (primvars(i,j,k,4)*stepsminusone + cvinv*cvinv*densitymeaninv*densitymeaninv*
-            //                     (cuvars(i,j,k,4) + primvars(i,j,k,nprimvars) - 2*primvars(i,j,k,nprimvars+1)
-            //                      + qmean*(qmean*cuvars(i,j,k,0) - 2*primvars(i,j,k,nprimvars+2) + 2*primvars(i,j,k,nprimvars+3))))*stepsinv; // <T T>
-            //
-            // use instantaneous value until fixed for multispecies
+            primvars(i,j,k,nprimvars+4) = (primvars(i,j,k,nprimvars+4)*stepsminusone + cvinv*cvinv*densitymeaninv*densitymeaninv*
+                                 (cuvars(i,j,k,4) + primvars(i,j,k,nprimvars+0) - 2*primvars(i,j,k,nprimvars+1)
+                                  + qmean*(qmean*cuvars(i,j,k,0) - 2*primvars(i,j,k,nprimvars+2) + 2*primvars(i,j,k,nprimvars+3))))*stepsinv; // <T T>
+            
+            // use instantaneous value (the above presumably does not work for multispecies)
             Real delT = prim(i,j,k,4) - primmeans(i,j,k,4);
-            primvars(i,j,k,4)   = (primvars(i,j,k,4)*stepsminusone + delT*delT)*stepsinv;
+            primvars(i,j,k,4)   = (primvars(i,j,k,4)*stepsminusone + delT*delT)*stepsinv; // <T T> -- direct
 
             //Real deltemp = (delenergy - delg - qmean*delrho)*cvinv*densitymeaninv;
             Real deltemp = delT; 
@@ -481,6 +522,13 @@ void EvaluateVarsCoVars(const MultiFab& cons, const MultiFab& consMean, MultiFab
             covars(i,j,k,23) = (covars(i,j,k,23)*stepsminusone + delYk[nspecies-1]*delvelx)*stepsinv; // <Ykheaviest velx>
             covars(i,j,k,24) = (covars(i,j,k,24)*stepsminusone + delrhoYk[0]*delvelx)*stepsinv; // <rhoYklightest velx>
             covars(i,j,k,25) = (covars(i,j,k,25)*stepsminusone + delrhoYk[nspecies-1]*delvelx)*stepsinv; // <rhoYkheaviest velx>
+
+            if (n_ads_spec>0) {
+                for (int m=0; m<n_ads_spec; ++m) {
+                    Real delsurfcov = surfcov(i,j,k,m) - surfcovmeans(i,j,k,m);
+                    surfcovvars(i,j,k,m) = (surfcovvars(i,j,k,m)*stepsminusone + delsurfcov*delsurfcov)*stepsinv;
+                }
+            }
         });
 
     } // end MFIter

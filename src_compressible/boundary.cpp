@@ -1209,7 +1209,7 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
 }
 
 // set species and total density flux to zero for wall boundary conditions
-void BCWallSpeciesFlux(std::array< MultiFab, AMREX_SPACEDIM >& faceflux, const amrex::Geometry geom)
+void BCWallSpeciesFlux(std::array< MultiFab, AMREX_SPACEDIM >& faceflux, const amrex::Geometry& geom)
 {
     BL_PROFILE_VAR("BCWallSpeciesFlux()",BCWallSpeciesFlux);
 
@@ -1390,7 +1390,7 @@ void BCWallSpeciesFlux(std::array< MultiFab, AMREX_SPACEDIM >& faceflux, const a
 }
 
 void StochFlux(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in,
-               const amrex::Geometry geom) {
+               const amrex::Geometry& geom) {
 
 
     BL_PROFILE_VAR("StochFlux()",StochFlux);
@@ -1970,7 +1970,7 @@ void StochFlux(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in,
 }
 
 void MembraneFlux(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in,
-                  const amrex::Geometry geom) {
+                  const amrex::Geometry& geom) {
 
     BL_PROFILE_VAR("MembraneFlux()",MembraneFlux);
 

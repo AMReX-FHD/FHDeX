@@ -1060,7 +1060,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadKernelGpu(const AoS& ao
    
                       }
 
-                      
+                      //std::cout << "Adding " << p.rdata(StructReal::forcex + 0) << ", " << weight*invvol << std::endl;
                       amrex::Gpu::Atomic::Add(&fout_x(i,j,k), p.rdata(StructReal::forcex + 0)*weight*invvol);
                       amrex::Gpu::Atomic::Add(&fweights_x(i,j,k), weight);
                     }
@@ -1184,6 +1184,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadMarkersGpu(
             f_weights_fab[d] = & f_weights[d][pti];
             coords_fab[d]    = & coords[d][pti];
         }
+
         SpreadKernelGpu(particles, tile_box, f_out_fab, f_weights_fab, coords_fab, dx, & ghost);
     }
 }
