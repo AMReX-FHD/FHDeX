@@ -9,6 +9,7 @@ prob_hi = 6.72e-05 5.819691e-05 6.72e-05 # physical hi coordinate
 
 # Number of ghost cells, conserved, and primitive variables
 # ---------------------
+
 ngc = 2 2 2
 nvars = 7
 nprimvars = 10
@@ -103,11 +104,11 @@ plot_vars = 1
 n_ads_spec = 2
 
 # initial surface coverage
-surfcov0 = 2.700994e-01
+surfcov0 = 1.350497e-01 1.350497e-01
 # number density of adsorption sites on the lattice
 surf_site_num_dens = 1.472832e+15
 
 # adsorption rate = ads_rate_const * num_dens
 # desoprtion rate = des_rate
-ads_rate_const = 1.475765e-12
-des_rate = 2.926784e+07
+ads_rate_const = 1.475765e-12 1.475765e-12
+des_rate = 2.926784e+07 2.926784e+07
