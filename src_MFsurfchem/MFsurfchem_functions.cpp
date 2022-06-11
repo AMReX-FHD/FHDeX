@@ -9,6 +9,9 @@ AMREX_GPU_MANAGED amrex::Real MFsurfchem::surf_site_num_dens;
 AMREX_GPU_MANAGED GpuArray<amrex::Real, MAX_SPECIES> MFsurfchem::ads_rate_const;
 AMREX_GPU_MANAGED GpuArray<amrex::Real, MAX_SPECIES> MFsurfchem::des_rate;
 
+// temperature correction exponent
+#define BETA    0.5
+
 void InitializeMFSurfchemNamespace()
 {
     // extract inputs parameters
@@ -112,7 +115,7 @@ void sample_MFsurfchem(MultiFab& cu, MultiFab& prim, MultiFab& surfcov, MultiFab
 
                     amrex::Real theta = surfcov_arr(i,j,k,m);
 
-                    amrex::Real meanNads = ads_rate_const[m]*dens*(1-sumtheta)*Ntot*dt*pow(tempratio,-0.5*dof[m]);
+                    amrex::Real meanNads = ads_rate_const[m]*dens*(1-sumtheta)*Ntot*dt*pow(tempratio,BETA);
                     amrex::Real Nads = RandomPoisson(meanNads,engine);
 
                     amrex::Real meanNdes = des_rate[m]*theta*Ntot*dt;
@@ -146,11 +149,13 @@ void update_MFsurfchem(MultiFab& cu, MultiFab& surfcov, MultiFab& dNadsdes,
             if (k==0) {
                 for (int m=0;m<n_ads_spec;m++) {
                     amrex::Real dN = dNadsdes_arr(i,j,k,m);
-                    amrex::Real factor = molmass[m]/AVONUM/(dx[0]*dx[1]*dx[2]);
+                    amrex::Real factor1 = molmass[m]/AVONUM/(dx[0]*dx[1]*dx[2]);
+                    amrex::Real factor2 = (BETA*k_B*T_init[0]+(e0[m]+hcv[m]*T_init[0])*molmass[m]/AVONUM)/(dx[0]*dx[1]*dx[2]);
 
                     surfcov_arr(i,j,k,m) += dN/Ntot;
-                    cu_arr(i,j,k,0) -= factor*dN;
-                    cu_arr(i,j,k,5+m) -= factor*dN;
+                    cu_arr(i,j,k,0) -= factor1*dN;
+                    cu_arr(i,j,k,5+m) -= factor1*dN;
+                    cu_arr(i,j,k,4) -= factor2*dN;
                 }
             }
         });
