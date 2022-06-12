@@ -2088,7 +2088,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::PrintMarkerData(int lev) cons
     // ParIter skips tiles without particles => Iterate over MultiFab instead
     // of ParticleIter. Note also that AmrexParticleContainer uses strange
     // tiling => don't turn off tiling (particles are stored in tile)
-    for(MFIter pti = this->MakeMFIter(lev, true); pti.isValid(); ++pti) {
+    for(MFIter pti = this->MakeMFIter(lev, this->do_tiling); pti.isValid(); ++pti) {
         // MuliFabs are indexed using a pair: (BoxArray index, tile index):
         TileIndex index(pti.index(), pti.LocalTileIndex());
 
@@ -2233,12 +2233,12 @@ void IBMarkerContainerBase<StructReal, StructInt>::ReadStaticParameters() {
     if (!initialized) {
         ParmParse pp("particles");
 
-#ifndef AMREX_USE_GPU
-        // AMReX default is false => enable by default
-        this->do_tiling = true;
-        // Allow user to overwrite
-        pp.query("do_tiling",  this->do_tiling);
-#endif
+//#ifndef AMREX_USE_GPU
+//        // AMReX default is false => enable by default
+//        this->do_tiling = true;
+//        // Allow user to overwrite
+//        pp.query("do_tiling",  this->do_tiling);
+//#endif
         
         // If tiling is enabled, make sure that the tile size is at least the
         // number of ghost cells (otherwise strange things happen)
