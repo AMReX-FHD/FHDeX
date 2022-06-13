@@ -100,7 +100,12 @@ public:
         return cpu_offset[cpu];
     }
 
+    int getTotalNumIDs() {
+        return total_num_ids;
+    }
+
     // Get total number of markers accross all ranks.
+    // TODO: clean up this version
     int getTotalMarkers(){
         return totalMarkers;
     };
@@ -279,9 +284,11 @@ public:
 
     void PullDown(int lev, Real * list, int element, int totalParticles);
 
-    void PullDown(int lev, Real * list, int element);
+    void PullDown(int lev, Vector<Real> & list, int element);
 
     void PullDownInt(int lev, int * list, int element, int totalParticles);
+
+    void PullDownInt(int lev, Vector<int> & list, int element);
 
     void PushUpAdd(int lev, Real * list, int element, int totalParticles);
 
@@ -331,8 +338,9 @@ private:
     Gpu::ManagedDeviceVector<int> num_ids;
     // Offset of each rank in the particle list
     Gpu::ManagedDeviceVector<int> cpu_offset;
+    // Number of markers -- TODO: deal with duplicaton with totalMarkers
+    int total_num_ids;
 };
-
 
 
 #include "IBMarkerContainerBaseI.H"

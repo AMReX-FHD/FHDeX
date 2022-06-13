@@ -147,7 +147,6 @@ void main_driver(const char * argv) {
     auto & num_ids = ib_mc.getNumIDs();
     auto & cpu_offset = ib_mc.getCPUOffset();
 
-
     Print() << "num_ids = ";
     for (auto & i:num_ids) Print() << i << " ";
     Print() << std::endl;
@@ -156,6 +155,37 @@ void main_driver(const char * argv) {
     for (auto & i:cpu_offset) Print() << i << " ";
     Print() << std::endl;
 
+    Vector<Real> pos_x(ib_mc.getTotalNumIDs());
+    ib_mc.PullDown(0, pos_x, -1);
+    Vector<Real> pos_y(ib_mc.getTotalNumIDs());
+    ib_mc.PullDown(0, pos_y, -2);
+    Vector<Real> pos_z(ib_mc.getTotalNumIDs());
+    ib_mc.PullDown(0, pos_z, -3);
+
+    Print() << "pos_x = ";
+    for (auto & i:pos_x) Print() << i << " ";
+    Print() << std::endl;
+
+    Print() << "pos_y = ";
+    for (auto & i:pos_y) Print() << i << " ";
+    Print() << std::endl;
+
+    Print() << "pos_z = ";
+    for (auto & i:pos_z) Print() << i << " ";
+    Print() << std::endl;
+
+    Vector<int> ids(ib_mc.getTotalNumIDs());
+    ib_mc.PullDownInt(0, ids, -1);
+    Vector<int> cpus(ib_mc.getTotalNumIDs());
+    ib_mc.PullDownInt(0, cpus, -2);
+
+     Print() << "ids = ";
+    for (auto & i:ids) Print() << i << " ";
+    Print() << std::endl;
+
+    Print() << "cpus = ";
+    for (auto & i:cpus) Print() << i << " ";
+    Print() << std::endl;
 
     // Just for fun, print out the max runtime
     Real stop_time = ParallelDescriptor::second() - strt_time;

@@ -500,7 +500,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::PullDown(
             {
                 ParticleType & part = particles[i];
                 int id = part.id();
-                
+                //TODO: Why "radius"?!
                 list[id-1] = particles[i].rdata(StructReal::radius + element);
             });
             //std::cout << "Proc " << ParallelDescriptor::MyProc() << " 1a finish\n";
@@ -545,6 +545,8 @@ void IBMarkerContainerBase<StructReal, StructInt>::PullDown(
 template <typename StructReal, typename StructInt>
 void IBMarkerContainerBase<StructReal, StructInt>::UpdatePIDMap() {
 
+    BL_PROFILE_VAR("UpdatePIDMap()", UpdatePIDMap);
+
     int rank = ParallelDescriptor::MyProc();
     int size = ParallelDescriptor::NProcs();
 
@@ -560,30 +562,19 @@ void IBMarkerContainerBase<StructReal, StructInt>::UpdatePIDMap() {
         cpu_offset[i] = offset;
         offset += num_ids[i];
     }
+
+    total_num_ids = offset;
 }
 
 
 template <typename StructReal, typename StructInt>
 void IBMarkerContainerBase<StructReal, StructInt>::PullDown(
-            int lev, Real * list, int element
+            int lev, Vector<Real> & list, int element
 ) {
     // timer for profiling
-    BL_PROFILE_VAR("PullDown()",PullDown);
+    BL_PROFILE_VAR("PullDown()", PullDown);
 
-    int total_particles = this->NextID() - 1;
-
-    for (int i = 0; i < total_particles; ++i) {
-        //std::cout << i << " of " << total_particles << std::endl;
-        list[i] = 0;
-    }
-
-    int rank = ParallelDescriptor::MyProc();
-    int size = ParallelDescriptor::NProcs();
-    Vector<int> num_ids(size);
-    num_ids[rank] = this->NextID() - 1;
-    ParallelDescriptor::ReduceIntSum(
-        Vector<std::reference_wrapper<int>>(begin(num_ids), end(num_ids))
-    );
+    for (int i = 0; i < total_num_ids; ++i) { list[i] = 0;}
 
     for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
         PairIndex index(pti.index(), pti.LocalTileIndex());
@@ -594,30 +585,30 @@ void IBMarkerContainerBase<StructReal, StructInt>::PullDown(
         ParticleType * particles = aos().dataPtr();
 
         if (element >= 0) {
-
             AMREX_FOR_1D(np, i, {
                 ParticleType & part = particles[i];
-                int id = part.id();
-                
-                list[id-1] = particles[i].rdata(StructReal::radius + element);
-            });
+                int id  = part.id();
+                int cpu = part.cpu();
 
+                // Particle IDs start at 1, CPUs at 0 -- urgh!
+                list[id-1 + cpu_offset[cpu]] = particles[i].rdata(element);
+            });
         } else {
             AMREX_FOR_1D(np, i, {
                 ParticleType & part = particles[i];
-                int id = part.id();
-                list[id-1] = part.pos((-element)-1);
+                int id  = part.id();
+                int cpu = part.cpu();
+
+                // Particle IDs start at 1, CPUs at 0 -- urgh!
+                list[id-1 + cpu_offset[cpu]] = part.pos((-element)-1);
             });
         }
 
     }
 
-    Real temp;
-    for (int i=0; i<total_particles; ++i) {
-        temp = list[i];
-        ParallelDescriptor::ReduceRealSum(temp);
-        list[i] = temp;
-    }
+    ParallelDescriptor::ReduceRealSum(
+        Vector<std::reference_wrapper<Real>>(begin(list), end(list))
+    );
 }
 
 
@@ -652,6 +643,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::PullDownInt(
                 ParticleType & part = particles[i];
                 int id = part.id();
                 //std::cout << id << " of " << totalParticles << std::endl;
+                // TODO: Why "sorted"?
                 list[id-1] = particles[i].idata(StructInt::sorted + element);
             });
 
@@ -685,6 +677,55 @@ void IBMarkerContainerBase<StructReal, StructInt>::PullDownInt(
 }
 
 
+template <typename StructReal, typename StructInt>
+void IBMarkerContainerBase<StructReal, StructInt>::PullDownInt(
+            int lev, Vector<int> & list, int element
+) {
+    // timer for profiling
+    BL_PROFILE_VAR("PullDownInt()", PullDownInt);
+
+    for (int i = 0; i < total_num_ids; ++i) { list[i] = 0;}
+
+    for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
+        PairIndex index(pti.index(), pti.LocalTileIndex());
+        const int np = this->GetParticles(lev)[index].numRealParticles();
+        auto & plev  = this->GetParticles(lev);
+        auto & ptile = plev[index];
+        auto & aos   = ptile.GetArrayOfStructs();
+        ParticleType * particles = aos().dataPtr();
+
+        if (element >= 0) {
+            AMREX_FOR_1D(np, i, {
+                ParticleType & part = particles[i];
+                int id  = part.id();
+                int cpu = part.cpu();
+
+                // Particle IDs start at 1, CPUs at 0 -- urgh!
+                list[id-1 + cpu_offset[cpu]] = particles[i].idata(element);
+            });
+        } else {
+            AMREX_FOR_1D(np, i, {
+                ParticleType & part = particles[i];
+                int id  = part.id();
+                int cpu = part.cpu();
+
+                // Particle IDs start at 1, CPUs at 0 -- urgh!
+                if (element == -1) {
+                    list[id-1 + cpu_offset[cpu]] = part.id();
+                } else if (element == -2) {
+                    list[id-1 + cpu_offset[cpu]] = part.cpu();
+                } else {
+                    list[id-1 + cpu_offset[cpu]] = -1;
+                }
+            });
+        }
+
+    }
+
+    ParallelDescriptor::ReduceIntSum(
+        Vector<std::reference_wrapper<int>>(begin(list), end(list))
+    );
+}
 
 template <typename StructReal, typename StructInt>
 void IBMarkerContainerBase<StructReal, StructInt>::PushUpAdd(
