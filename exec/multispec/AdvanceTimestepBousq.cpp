@@ -31,6 +31,7 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                           MultiFab& charge_new,
                           MultiFab& Epot,
                           MultiFab& permittivity,
+                          std::array< MultiFab, AMREX_SPACEDIM >& gibbs_duhem,
                           MultiFab& pressure_jump,
                           StochMassFlux& sMassFlux,
                           StochMomFlux& sMomFlux,
@@ -736,6 +737,10 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     if (!pressure_jump_projection) {
         PressureJump(pi,rho_new,rhotot_new,Temp,pressure_jump,geom);
     }
+
+    // compute gibbs duhem pressure gradient
+    GradPressureCorrection(rho_new,rhotot_new,Temp,
+       gibbs_duhem,geom,0);
 
     // restore eta and kappa
     eta.mult  (2.,0,1,1);
