@@ -371,7 +371,7 @@ int IBMarkerContainer::ConnectedMarkers(
             ParticleType *& prev_marker,     ParticleType *& next_marker
         ) {
 
-    BL_PROFILE_VAR("IBMarkerContainer::ConnectedMarkers", FindNeighbors);
+    BL_PROFILE("IBMarkerContainer::ConnectedMarkers");
 
     // Get marker data
     AoS & particles = GetParticles(lev).at(tile).GetArrayOfStructs();
@@ -424,8 +424,7 @@ int IBMarkerContainer::ConnectedMarkers(
     } else {
         return -1;
     }
-
-    BL_PROFILE_VAR_STOP(FindNeighbors);
+//    BL_PROFILE_VAR_STOP(FindNeighbors);
 }
 
 
