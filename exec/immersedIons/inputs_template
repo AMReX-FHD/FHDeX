@@ -16,6 +16,8 @@
 
   # Time-step control
   fixed_dt = 1e-13                          # 1e-13 is too large 
+  
+  ramp_step = 0
 
   # Controls for number of steps between actions
   max_step = 500
@@ -28,7 +30,7 @@
   radialdist_int = 0
   cartdist_int = 0
   binsize = 0.5e-8
-  searchDist = 4.e-7
+  searchDist = 1.e-7
 
   all_dry = 0
   fluid_tog = 1 # 0=Do nothing, 1=Do stokes solve, 2=Do low Mach solve
@@ -63,7 +65,7 @@
 
   #Species info
   #--------------
-  nspecies = 2
+  nspecies = 1
   mass = 5.887e-23 5.887e-23 5.887e-23
   diameter = -2.488e-8 -2.488e-8 -2.488e-8
   qval = -1.6e-19 8.7e-21 0

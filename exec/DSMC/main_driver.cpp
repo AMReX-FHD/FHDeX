@@ -244,6 +244,13 @@ void main_driver(const char* argv)
 	{
 		var_scaling[d] = 1./(dx[0]*dx[1]*dx[2]);
 	}
+	
+	    // Standard 3D structure factors
+        StructFact structFactPrim;
+        StructFact structFactCons;
+        MultiFab structFactPrimMF;
+        MultiFab structFactConsMF;
+	
 
 	// Collision Cell Vars
 	particles.mfselect.define(ba, dmap, nspecies*nspecies, 0);
@@ -270,7 +277,7 @@ void main_driver(const char* argv)
 	zeroMassFlux(paramPlaneList, paramPlaneCount);
 	
     //Initial condition
-    spatialCross1D.setVal(0.);
+        spatialCross1D.setVal(0.);
 	cuMeans.setVal(0.);
 	primMeans.setVal(0.);
 	cuVars.setVal(0.);
@@ -291,12 +298,12 @@ void main_driver(const char* argv)
 		tbegin = ParallelDescriptor::second();
 
 		particles.CalcSelections(dt);
-		//particles.CollideParticles(dt);
+		particles.CollideParticles(dt);
 		particles.Source(dt, paramPlaneList, paramPlaneCount, cuInst);
 		//particles.externalForce(dt);
 		particles.MoveParticlesCPP(dt, paramPlaneList, paramPlaneCount);
 		//particles.updateTimeStep(geom,dt);
-        reduceMassFlux(paramPlaneList, paramPlaneCount);
+                //reduceMassFlux(paramPlaneList, paramPlaneCount);
 
 		particles.EvaluateStats(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
 					cvlInst,cvlMeans,QMeans,coVars,spatialCross1D,statsCount++,time);

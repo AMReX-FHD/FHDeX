@@ -27,8 +27,8 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 	Real yl = prob_hi[1] - prob_lo[1];
 	Real zl = prob_hi[2] - prob_lo[2];
 	
-//	if(bc_vel_lo[0]==3 || bc_vel_lo[0]==5 || bc_vel_lo[0]==6 || bc_vel_lo[0]==7)
-//	{
+  if(bc_vel_lo[0]==3 || bc_vel_lo[0]==5 || bc_vel_lo[0]==6 || bc_vel_lo[0]==7)
+  {
 		// Mass densities defined
 		if(rho_lo[0]>=0)
 		{
@@ -428,7 +428,7 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 		{
 			Abort("Neither mass nor number density defined");
 		}
-//	}
+  }
 
 	//Domain boundaries
 	for(int i=0; i<6; i++)

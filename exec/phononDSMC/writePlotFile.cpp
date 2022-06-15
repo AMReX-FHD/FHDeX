@@ -22,7 +22,7 @@ void writePlotFile(const MultiFab& mfcuInst,
     amrex::DistributionMapping dmap = mfcuInst.DistributionMap();
 
     std::string pltcu    = amrex::Concatenate("pltcu",step,12);
-    std::string pltpart   = amrex::Concatenate("pltpart",step,12);
+    std::string pltpart   = amrex::Concatenate("plt",step,12);
 
     amrex::MultiFab mfcuplt(ba, dmap, 2*ncon, 0);
     amrex::Vector<std::string> cuNames(2*ncon);

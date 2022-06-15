@@ -1566,7 +1566,7 @@ void main_driver(const char* argv)
                             potential, potentialM);
         }
 
-        particles.PrintParticles();
+        //particles.PrintParticles();
 
         // timer for time step
         Real time2 = ParallelDescriptor::second() - time1;
