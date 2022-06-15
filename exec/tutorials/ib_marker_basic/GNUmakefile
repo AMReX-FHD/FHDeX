@@ -27,10 +27,6 @@ include ./Make.package
 VPATH_LOCATIONS   += .
 INCLUDE_LOCATIONS += .
 
-include ../src_models/Make.package
-VPATH_LOCATIONS   += ../src_models
-INCLUDE_LOCATIONS += ../src_models
-
 include ../../../src_hydro/Make.package
 VPATH_LOCATIONS   += ../../../src_hydro/
 INCLUDE_LOCATIONS += ../../../src_hydro/
@@ -71,9 +67,3 @@ include $(AMREX_HOME)/Tools/GNUMake/Make.rules
 ifeq ($(findstring cgpu, $(HOST)), cgpu)
   CXXFLAGS += $(FFTW)
 endif
-
-# ifeq ($(USE_CUDA),TRUE)
-#   LIBRARIES += -lcufft
-# else
-#   LIBRARIES += -L$(FFTW_DIR) -lfftw3_mpi -lfftw3
-# endif

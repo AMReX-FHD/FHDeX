@@ -2,7 +2,7 @@
 
 DIR1=./
 DIR2=../test_MFsurfchem
-FILES="params_CO_Ar_eq_SF.py inputs_fhd_stag run.sh zavg.sh zavg.plt clean.sh"
+FILES="params_CO_Ar_eq_SF.py inputs_fhd_stag run.sh zavg.sh zavg.plt ads.sh ads.py ads.plt clean.sh"
 
 for file in $FILES
 do

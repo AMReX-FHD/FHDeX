@@ -9,6 +9,7 @@ prob_hi = 6.72e-05 5.819691e-05 6.72e-05 # physical hi coordinate
 
 # Number of ghost cells, conserved, and primitive variables
 # ---------------------
+
 ngc = 2 2 2
 nvars = 7
 nprimvars = 10
@@ -53,7 +54,7 @@ prob_type = 1
 # Initial parameters
 k_B = 1.38064852e-16	# [units: cm2*g*s-2*K-1]
 T_init = 1000
-rho0 = 4.766943e-04
+rho0 = 3.413466e-04
 
 struct_fact_int = 0
 n_steps_skip = 100000
@@ -84,12 +85,12 @@ t_lo = 1000 1000 1000
 #--------------
 nspecies = 2
 
-molmass = 28.01 39.95
-diameter = 3.76e-8 3.63e-8
-rhobar = 0.05 0.95
+molmass = 28.01 28.01 
+diameter = 3.76e-8 3.76e-8 
+rhobar = 0.5 0.5
 
 # Enter negative dof to use hcv & hcp values
-dof = 5 3
+dof = 5 5 
 hcv = -1 -1
 hcp = -1 -1
 
@@ -100,14 +101,14 @@ plot_vars = 1
 
 # number of adsorption species
 # n_ads_spec = 0 (if no adsorption species)
-n_ads_spec = 1
+n_ads_spec = 2
 
 # initial surface coverage
-surfcov0 = 2.053333e-01
+surfcov0 = 1.350497e-01 1.350497e-01
 # number density of adsorption sites on the lattice
 surf_site_num_dens = 1.472832e+15
 
 # adsorption rate = ads_rate_const * num_dens
 # desoprtion rate = des_rate
-ads_rate_const = 1.475765e-11
-des_rate = 2.926784e+07
+ads_rate_const = 1.475765e-12 1.475765e-12
+des_rate = 2.926784e+07 2.926784e+07

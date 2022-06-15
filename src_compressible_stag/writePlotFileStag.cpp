@@ -4,6 +4,8 @@
 
 #include "compressible_functions_stag.H"
 
+#include "MFsurfchem_functions.H"
+
 void WritePlotFileStag(int step,
                        const amrex::Real time,
                        const amrex::Geometry& geom,
@@ -20,6 +22,9 @@ void WritePlotFileStag(int step,
                        const std::array<MultiFab, AMREX_SPACEDIM>& velMeans,
                        const std::array<MultiFab, AMREX_SPACEDIM>& velVars,
                        const amrex::MultiFab& coVars,
+                       const amrex::MultiFab& surfcov,
+                       const amrex::MultiFab& surfcovMeans,
+                       const amrex::MultiFab& surfcovVars,
                        const amrex::MultiFab& eta,
                        const amrex::MultiFab& kappa)
 {
@@ -41,6 +46,8 @@ void WritePlotFileStag(int step,
     nplot += 3;
     nplot += 2;
 
+    if (n_ads_spec>0) nplot += n_ads_spec;
+
     // mean values
     // cu: [rho, jx, jy, jz, rhoE, rhoYk] -- nvars
     // shifted [jx, jy, jz] -- 3
@@ -53,7 +60,10 @@ void WritePlotFileStag(int step,
         nplot += 5 + 2*nspecies;
         nplot += 3;
         nplot += 3;
+
+        if (n_ads_spec>0) nplot += n_ads_spec;
     }
+
     
     // variances
     // cu: [rho, jx, jy, jz, rhoE, rhoYk] -- nvars
@@ -65,6 +75,8 @@ void WritePlotFileStag(int step,
         nplot += 3;
         nplot += 9 + nspecies;
         nplot += 3;
+
+        if (n_ads_spec>0) nplot += n_ads_spec;
     }
    
     // co-variances -- see the list in main_driver
@@ -122,6 +134,14 @@ void WritePlotFileStag(int step,
     amrex::MultiFab::Copy(plotfile,kappa,0,cnt,numvars,0);
     cnt+=numvars;
 
+    // instantaneous
+    // surfcov -- n_ads_spec
+    if (n_ads_spec>0) {
+        numvars = n_ads_spec;
+        amrex::MultiFab::Copy(plotfile,surfcov,0,cnt,numvars,0);
+        cnt+=numvars;
+    }
+
     if (plot_means == 1) {
     
         // cu: [rho, jx, jy, jz, rhoE, rhoYk] -- nvars
@@ -150,6 +170,13 @@ void WritePlotFileStag(int step,
         numvars = 3;
         amrex::MultiFab::Copy(plotfile,primMeans,nprimvars,cnt,numvars,0);
         cnt+=numvars;
+
+        // surfcov -- n_ads_spec
+        if (n_ads_spec>0) {
+            numvars = n_ads_spec;
+            amrex::MultiFab::Copy(plotfile,surfcovMeans,0,cnt,numvars,0);
+            cnt+=numvars;
+        }
     }
 
     if (plot_vars == 1) {
@@ -195,6 +222,13 @@ void WritePlotFileStag(int step,
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             ShiftFaceToCC(velVars[d],0,plotfile,cnt,1);
             ++cnt;
+        }
+
+        // surfcov -- n_ads_spec
+        if (n_ads_spec>0) {
+            numvars = n_ads_spec;
+            amrex::MultiFab::Copy(plotfile,surfcovVars,0,cnt,numvars,0);
+            cnt+=numvars;
         }
     }
 
@@ -246,6 +280,14 @@ void WritePlotFileStag(int step,
     varNames[cnt++] = "eta";
     varNames[cnt++] = "kappa";
 
+    if (n_ads_spec>0) {
+        x = "surfcov_";
+        for (i=0; i<n_ads_spec; i++) {
+            varNames[cnt] = x;
+            varNames[cnt++] += 48+i;
+        }
+    }
+
     if (plot_means == 1) {
         varNames[cnt++] = "rhoMean";
         varNames[cnt++] = "jxMeanCC";
@@ -287,6 +329,14 @@ void WritePlotFileStag(int step,
         varNames[cnt++] = "uxMeanCOM";
         varNames[cnt++] = "uyMeanCOM";
         varNames[cnt++] = "uzMeanCOM";
+
+        if (n_ads_spec>0) {
+            x = "surfcovMean_";
+            for (i=0; i<n_ads_spec; i++) {
+                varNames[cnt] = x;
+                varNames[cnt++] += 48+i;
+            }
+        }
     }
 
     if (plot_vars == 1) {
@@ -325,6 +375,14 @@ void WritePlotFileStag(int step,
         varNames[cnt++] = "uxVarFACE";
         varNames[cnt++] = "uyVarFACE";
         varNames[cnt++] = "uzVarFACE";
+
+        if (n_ads_spec>0) {
+            x = "surfcovVar_";
+            for (i=0; i<n_ads_spec; i++) {
+                varNames[cnt] = x;
+                varNames[cnt++] += 48+i;
+            }
+        }
     }
 
     if (plot_covars == 1) {
@@ -355,6 +413,8 @@ void WritePlotFileStag(int step,
         varNames[cnt++] = "rhoYkL-vx";
         varNames[cnt++] = "rhoYkH-vx";
     }
+
+    AMREX_ASSERT(cnt==nplot);
 
     // write a plotfile
     // timer

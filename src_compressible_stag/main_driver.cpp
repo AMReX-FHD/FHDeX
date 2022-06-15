@@ -151,6 +151,9 @@ void main_driver(const char* argv)
 
     MultiFab coVars;
 
+    MultiFab surfcovMeans;
+    MultiFab surfcovVars;
+
     std::array< MultiFab, AMREX_SPACEDIM > velMeans;
     std::array< MultiFab, AMREX_SPACEDIM > velVars;
     std::array< MultiFab, AMREX_SPACEDIM > cumomMeans;
@@ -379,7 +382,7 @@ void main_driver(const char* argv)
         else {
             ReadCheckPoint3D(step_start, time, statsCount, geom, domain, cu, cuMeans, cuVars, prim,
                              primMeans, primVars, cumom, cumomMeans, cumomVars, 
-                             vel, velMeans, velVars, coVars, surfcov, n_ads_spec, spatialCross3D, ncross, ba, dmap);
+                             vel, velMeans, velVars, coVars, surfcov, surfcovMeans, surfcovVars, spatialCross3D, ncross, ba, dmap);
         }
 
         if (reset_stats == 1) statsCount = 1;
@@ -648,6 +651,13 @@ void main_driver(const char* argv)
         coVars.define(ba,dmap,26,0);
         coVars.setVal(0.0);
 
+        if (n_ads_spec>0) {
+            surfcovMeans.define(ba,dmap,n_ads_spec,0);
+            surfcovVars.define(ba,dmap,n_ads_spec,0);
+            surfcovMeans.setVal(0.0);
+            surfcovVars.setVal(0.0);
+        }
+
         for (int d=0; d<AMREX_SPACEDIM; d++) {
             velMeans[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 0);
             cumomMeans[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 0);
@@ -831,7 +841,7 @@ void main_driver(const char* argv)
         
         if (plot_int > 0) {
             WritePlotFileStag(0, 0.0, geom, cu, cuMeans, cuVars, cumom, cumomMeans, cumomVars, 
-                          prim, primMeans, primVars, vel, velMeans, velVars, coVars, eta, kappa);
+                          prim, primMeans, primVars, vel, velMeans, velVars, coVars, surfcov, surfcovMeans, surfcovVars, eta, kappa);
 
             if (plot_cross) {
                 if (do_1D) {
@@ -926,7 +936,7 @@ void main_driver(const char* argv)
         // update surface chemistry
         if (n_ads_spec>0) {
 
-            update_MFsurfchem(cu, surfcov, dNadsdes, dx, dt);
+            update_MFsurfchem(cu, surfcov, dNadsdes, dx);
 
             for (int d=0; d<AMREX_SPACEDIM; d++) {
                 cumom[d].FillBoundary(geom.periodicity());
@@ -973,6 +983,12 @@ void main_driver(const char* argv)
             }
 
             coVars.setVal(0.0);
+
+            if (n_ads_spec>0) {
+                surfcovMeans.setVal(0.0);
+                surfcovVars.setVal(0.0);
+            }
+
             if (do_1D) {
                 spatialCross1D.setVal(0.0);
             }
@@ -993,22 +1009,25 @@ void main_driver(const char* argv)
         if (do_1D) {
             evaluateStatsStag1D(cu, cuMeans, cuVars, prim, primMeans, primVars, vel, 
                                 velMeans, velVars, cumom, cumomMeans, cumomVars, coVars,
+                                surfcov, surfcovMeans, surfcovVars,
                                 spatialCross1D, ncross, statsCount, geom);
         }
         else if (do_2D) {
             evaluateStatsStag2D(cu, cuMeans, cuVars, prim, primMeans, primVars, vel, 
                                 velMeans, velVars, cumom, cumomMeans, cumomVars, coVars,
+                                surfcov, surfcovMeans, surfcovVars,
                                 spatialCross2D, ncross, statsCount, geom);
         }
         else {
             evaluateStatsStag3D(cu, cuMeans, cuVars, prim, primMeans, primVars, vel, 
                                 velMeans, velVars, cumom, cumomMeans, cumomVars, coVars,
+                                surfcov, surfcovMeans, surfcovVars,
                                 dataSliceMeans_xcross, spatialCross3D, ncross, domain,
                                 statsCount, geom);
         }
         statsCount++;
         if (step%100 == 0) {
-            amrex::Print() << "Mean Momentum (x, y, z): " << ComputeSpatialMean(cumom[0], 0) << " " << ComputeSpatialMean(cumom[1], 0) << " " << ComputeSpatialMean(cumom[2], 0) << "\n";
+            amrex::Print() << "Mean Density: " << ComputeSpatialMean(cu, 0) << " Mean Momentum (x):" << ComputeSpatialMean(cumom[0], 0) << " Mean Energy:" << ComputeSpatialMean(cu, 4) << "\n";
         }
 
         // write a plotfile
@@ -1026,7 +1045,7 @@ void main_driver(const char* argv)
              //yzAverage(cuMeans, cuVars, primMeans, primVars, spatialCross,
              //          cuMeansAv, cuVarsAv, primMeansAv, primVarsAv, spatialCrossAv);
             WritePlotFileStag(step, time, geom, cu, cuMeans, cuVars, cumom, cumomMeans, cumomVars,
-                              prim, primMeans, primVars, vel, velMeans, velVars, coVars, eta, kappa);
+                              prim, primMeans, primVars, vel, velMeans, velVars, coVars, surfcov, surfcovMeans, surfcovVars, eta, kappa);
 
             if (plot_cross) {
                 if (do_1D) {
@@ -1264,7 +1283,7 @@ void main_driver(const char* argv)
             else {
                 WriteCheckPoint3D(step, time, statsCount, geom, cu, cuMeans, cuVars, prim,
                                   primMeans, primVars, cumom, cumomMeans, cumomVars, 
-                                  vel, velMeans, velVars, coVars, surfcov, n_ads_spec, spatialCross3D, ncross);
+                                  vel, velMeans, velVars, coVars, surfcov, surfcovMeans, surfcovVars, spatialCross3D, ncross);
             }
         }
 

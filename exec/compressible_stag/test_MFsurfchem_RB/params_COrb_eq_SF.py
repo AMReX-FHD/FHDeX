@@ -10,12 +10,12 @@ Navo = 6.0221409e23         # Avogadro constant
 
 # molecular weights
 M1 = 28.01    # CO
-M2 = 39.95    # Ar
+M2 = 28.01    # CO
 print "- molecular masses: [%.4f, %.4f]" % (M1,M2)
 
 # mass fractions
-Y1 = 0.05
-Y2 = 0.95
+Y1 = 0.50
+Y2 = 0.50
 print "- mass fractions: [%.3f, %.3f]" % (Y1,Y2)
 
 # mole fractions
@@ -98,17 +98,33 @@ print "- number of gas molecules of spec2 in dv = %.3e\n" % N2
 
 ##########
 
-rcol = math.sqrt(kB*temp/2/math.pi/m1)*n1*(lat_const**2*math.sqrt(3)/2)
-k1ads = rcol
-k1des = 1.25e15*math.exp(-1.514/(8.617e-5*temp))
-theta1 = k1ads/(k1ads+k1des)
+rcol1 = math.sqrt(kB*temp/2/math.pi/m1)*n1*(lat_const**2*math.sqrt(3)/2)
+rcol2 = math.sqrt(kB*temp/2/math.pi/m1)*n2*(lat_const**2*math.sqrt(3)/2)
+sprob = 0.1
+k1ads = sprob*rcol1
+k2ads = sprob*rcol2
+kdes = 1.25e15*math.exp(-1.514/(8.617e-5*temp))
+theta1 = k1ads/(k1ads+k2ads+kdes)
+theta2 = k2ads/(k1ads+k2ads+kdes)
+vartheta1 = (kdes+k2ads)*k1ads/(kdes+k1ads+k2ads)**2/n1s
+vartheta2 = (kdes+k1ads)*k2ads/(kdes+k1ads+k2ads)**2/n1s
+covtheta = -k1ads*k2ads/(kdes+k1ads+k2ads)**2/n1s
 
-print "- rcol = %e" % rcol
+print "- rcol1 = %e" % rcol1
 print "- k1ads = %e (rate)" % k1ads
 print "- k1ads/n1 (rate const) = %e" % (k1ads/n1)
-print "- k1des = %e" % k1des
-print "- E[theta]: %e" % theta1
-print "- Var[theta]: %e\n" % (theta1*(1-theta1)/n1s)
+print "- rcol2 = %e" % rcol1
+print "- k2ads = %e (rate)" % k2ads
+print "- k2ads/n2 (rate const) = %e" % (k2ads/n2)
+print "- kdes = %e" % kdes
+print "- E[theta1]: %e" % theta1
+print "- E[theta2]: %e" % theta2
+print "- Var[theta1]: %e" % vartheta1
+print "- Var[theta2]: %e" % vartheta2
+print "- Cov[theta1,theta2]: %e" % covtheta
+print "- E[theta1+theta2]: %e" % (theta1+theta2)
+print "- Var[theta1+theta2]: %e" % (vartheta1+vartheta2+2*covtheta)
+print "- theta*(1-theta)/Ntot: %e\n" % ((theta1+theta2)*(1-theta1-theta2)/n1s)
 
 ##########
 
@@ -116,9 +132,9 @@ dt = 1.e-12
 
 print "- dt (FHD) = %e" % dt
 print "- max mean number of ads events per dxFHD*dyFHD per dt = %e" % (n1s*k1ads*dt)
-print "- eq mean number of ads events per dxFHD*dyFHD per dt = %e" % (n1s*k1ads*dt*(1-theta1))
-print "- max mean number of des events per dxFHD*dyFHD per dt = %e" % (n1s*k1des*dt)
-print "- eq mean number of des events per dxFHD*dyFHD per dt = %e\n" % (n1s*k1des*dt*theta1)
+print "- eq mean number of ads events per dxFHD*dyFHD per dt = %e" % (n1s*k1ads*dt*(1-theta1-theta2))
+print "- max mean number of des events per dxFHD*dyFHD per dt = %e" % (n1s*kdes*dt)
+print "- eq mean number of des events per dxFHD*dyFHD per dt = %e\n" % (n1s*kdes*dt*theta1)
 
 ##########
 
@@ -133,7 +149,7 @@ drhosq = drho1sq+drho2sq
 djasq = rho*kB*temp/dv
 
 dof1 = 5
-dof2 = 3
+dof2 = 5 
 e01 = 0.
 e02 = 0.
 
@@ -176,7 +192,7 @@ print "dEsq*dv    (+/-50%%) = %e\t%e\t%e\t%e" % (dEsq*dv,2*dEsq*dv,0.5*dEsq*dv,1
 print "dTsq*dv    (+/-25%%) = %e\t%e\t%e\t%e\n" % (dTsq*dv,2*dTsq*dv,0.75*dTsq*dv,1.25*dTsq*dv)
 
 d1 = 3.76e-8
-d2 = 3.63e-8
+d2 = 3.76e-8
 d12 = (d1+d2)/2
 D12 = 3./16*math.sqrt(2*math.pi*kB**3*(m1+m2)/m1/m2)/math.pi/d12**2*temp*math.sqrt(temp)/pres
 
