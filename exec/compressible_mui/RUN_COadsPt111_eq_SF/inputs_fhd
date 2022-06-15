@@ -98,4 +98,3 @@ plot_vars = 1
 
 # surfchem_mui
 nspec_mui = 1
-mom_inertia = 1.456061e-39
