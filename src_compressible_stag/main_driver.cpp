@@ -936,7 +936,7 @@ void main_driver(const char* argv)
         // update surface chemistry
         if (n_ads_spec>0) {
 
-            update_MFsurfchem(cu, surfcov, dNadsdes, dx);
+            update_MFsurfchem(cu, prim, surfcov, dNadsdes, dx);
 
             for (int d=0; d<AMREX_SPACEDIM; d++) {
                 cumom[d].FillBoundary(geom.periodicity());
