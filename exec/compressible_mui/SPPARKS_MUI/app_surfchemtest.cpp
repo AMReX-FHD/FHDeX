@@ -311,6 +311,7 @@ void AppSurfchemtest::input_app(char *command, int narg, char **arg)
         if (strcmp(arg[5],"rate") == 0) ads_is_rate = true;
         else error->all(FLERR,"Illegal event command");
       }
+      ads_beta[nads] = 0.5;
       if (narg == 7) { // beta implementation
         if (strcmp(arg[5],"beta") == 0) ads_beta[nads] = atof(arg[6]);
         else error->all(FLERR,"Illegal event command"); 
@@ -677,7 +678,6 @@ void AppSurfchemtest::setup_app()
   }
   for (int m = 0; m < nads; m++) {
     adscount[m] = 0;
-    ads_beta[m] = 0.5; // beta default value
   }
   for (int m = 0; m < ndes; m++) {
     descount[m] = 0;
