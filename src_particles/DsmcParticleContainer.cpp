@@ -325,6 +325,7 @@ void FhdParticleContainer::MovePhononsCPP(const Real dt, const paramPlane* param
 			runtime = dt*part.rdata(FHD_realData::timeFrac);
 			while(runtime > 0)
 			{
+				//Print() << "Pre " << part.id() << ": " << part.rdata(FHD_realData::velx + 0) << ", " << part.rdata(FHD_realData::velx + 1) << ", " << part.rdata(FHD_realData::velx + 2) << endl;
 				find_inter_gpu(part, runtime, paramPlaneList, paramPlaneCount,
 					&intsurf, &inttime, &intside, ZFILL(plo), ZFILL(phi));
 				
@@ -343,12 +344,12 @@ void FhdParticleContainer::MovePhononsCPP(const Real dt, const paramPlane* param
                     for (int d=0; d<AMREX_SPACEDIM; ++d)
 				    {
 					    part.pos(d) += inttime * part.rdata(FHD_realData::velx + d)*adj;
-				    }
+		            }
                     if(intsurf > 0)
 				    {
 					    //find_inter indexes from 1 to maintain compatablity with fortran version
 					    const paramPlane& surf = paramPlaneList[intsurf-1];
-          
+                        //Print() << "Hitting " << intsurf << endl;
 					    Real posAlt[3];
 
 					    for (int d=0; d<AMREX_SPACEDIM; ++d)
@@ -357,6 +358,7 @@ void FhdParticleContainer::MovePhononsCPP(const Real dt, const paramPlane* param
 					    }
 					    
 					    app_bc_phonon_gpu(&surf, part, intside, domSize, &push, &runtime, step, &count, &specCount, engine);
+   					    //Print() << "Post " << part.id() << ": " << part.rdata(FHD_realData::velx + 0) << ", " << part.rdata(FHD_realData::velx + 1) << ", " << part.rdata(FHD_realData::velx + 2) << endl;
                         if(part.id() == -1)
                         {
                             delCount[part.idata(FHD_intData::species)]++;
@@ -1331,6 +1333,8 @@ void FhdParticleContainer::SourcePhonons(const Real dt, const paramPlane* paramP
                             p.rdata(FHD_realData::omega) = plankDist(surf.temperatureLeft, engine);
                             //I hope this is right?
                             p.rdata(FHD_realData::lambda) = phonon_sound_speed*2.0*M_PI/p.rdata(FHD_realData::omega);
+                            
+                            //Print() << "Gen " << p.id() << ": " << p.rdata(FHD_realData::velx + 0) << ", " << p.rdata(FHD_realData::velx + 1) << ", " << p.rdata(FHD_realData::velx + 2) << endl;
 
                             //cout << "velx: " << p.rdata(FHD_realData::velx) << "\n";
 

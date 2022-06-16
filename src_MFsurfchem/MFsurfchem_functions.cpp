@@ -130,7 +130,7 @@ void sample_MFsurfchem(MultiFab& cu, MultiFab& prim, MultiFab& surfcov, MultiFab
     return;
 }
 
-void update_MFsurfchem(MultiFab& cu, MultiFab& surfcov, MultiFab& dNadsdes,
+void update_MFsurfchem(MultiFab& cu, MultiFab& prim, MultiFab& surfcov, MultiFab& dNadsdes,
                        const amrex::Real* dx)
 {
     for (MFIter mfi(cu,false); mfi.isValid(); ++mfi)
@@ -139,6 +139,7 @@ void update_MFsurfchem(MultiFab& cu, MultiFab& surfcov, MultiFab& dNadsdes,
         Dim3 lo = lbound(bx);
         Dim3 hi = ubound(bx);
         const Array4<Real> & cu_arr = cu.array(mfi);
+        const Array4<Real> & prim_arr = prim.array(mfi);
         const Array4<Real> & surfcov_arr = surfcov.array(mfi);
         const Array4<Real> & dNadsdes_arr = dNadsdes.array(mfi);
 
@@ -147,10 +148,13 @@ void update_MFsurfchem(MultiFab& cu, MultiFab& surfcov, MultiFab& dNadsdes,
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             if (k==0) {
+
+                amrex::Real T_inst = prim_arr(i,j,k,4);
+
                 for (int m=0;m<n_ads_spec;m++) {
                     amrex::Real dN = dNadsdes_arr(i,j,k,m);
                     amrex::Real factor1 = molmass[m]/AVONUM/(dx[0]*dx[1]*dx[2]);
-                    amrex::Real factor2 = (BETA*k_B*T_init[0]+(e0[m]+hcv[m]*T_init[0])*molmass[m]/AVONUM)/(dx[0]*dx[1]*dx[2]);
+                    amrex::Real factor2 = (BETA*k_B*T_inst+(e0[m]+hcv[m]*T_inst)*molmass[m]/AVONUM)/(dx[0]*dx[1]*dx[2]);
 
                     surfcov_arr(i,j,k,m) += dN/Ntot;
                     cu_arr(i,j,k,0) -= factor1*dN;
