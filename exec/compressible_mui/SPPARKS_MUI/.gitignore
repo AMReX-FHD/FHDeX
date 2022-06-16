@@ -1,0 +1,14 @@
+*.cpp
+*.h
+*.py
+Make.sh
+Makefile
+Makefile.lib
+Makefile.shlib
+Package.csh
+lattice.py
+main.kmc_only
+spk_mui
+viz.py
+MAKE/
+Obj_mui/
