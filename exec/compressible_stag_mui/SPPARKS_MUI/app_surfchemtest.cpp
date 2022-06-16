@@ -311,7 +311,7 @@ void AppSurfchemtest::input_app(char *command, int narg, char **arg)
         if (strcmp(arg[5],"rate") == 0) ads_is_rate = true;
         else error->all(FLERR,"Illegal event command");
       }
-      ads_beta[nads] = 0.5;
+      ads_beta[nads] = 0.;
       if (narg == 7) { // beta implementation
         if (strcmp(arg[5],"beta") == 0) ads_beta[nads] = atof(arg[6]);
         else error->all(FLERR,"Illegal event command"); 
@@ -756,6 +756,7 @@ double AppSurfchemtest::site_propensity(int i)
   // adsorption events
 
   double adspropensity;
+  double tempratio = temp[i]/temperature;
 
   for (m = 0; m < nads; m++) {
     if (type[i] != adstype[m] || element[i] != adsinput[m]) continue;
@@ -763,7 +764,6 @@ double AppSurfchemtest::site_propensity(int i)
     if (ads_is_rate) adspropensity = adsrate[m];
     else
     {
-      double tempratio = temperature/temp[i];
       if (adsoutput[m]==SPEC1) adspropensity = adsrate[m]*density1[i]*pow(tempratio,ads_beta[m]); // beta
       else if (adsoutput[m]==SPEC2) adspropensity = adsrate[m]*density2[i]*pow(tempratio,ads_beta[m]);
       else if (adsoutput[m]==SPEC3) adspropensity = adsrate[m]*density3[i]*pow(tempratio,ads_beta[m]);
