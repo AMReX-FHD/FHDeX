@@ -76,7 +76,7 @@ AppSurfchemtest::AppSurfchemtest(SPPARKS *spk, int narg, char **arg) :
 
   // reaction lists
   none = ntwo = nthree = nads = ndes = ndissocads = nassocdes = 0;
-  srate = drate = trate = adsrate = desrate = dadsrate = adesrate = NULL;
+  srate = drate = trate = adsrate = ads_beta = desrate = dadsrate = adesrate = NULL; // beta implementation
   spropensity = dpropensity = tpropensity = adespropensity = NULL;   // no adspropensity/dadspropensity/despropensity
   stype = sinput = soutput = NULL;
   dtype = dinput = doutput = NULL;
@@ -113,6 +113,7 @@ AppSurfchemtest::~AppSurfchemtest()
   memory->destroy(drate);
   memory->destroy(trate);
   memory->destroy(adsrate);
+  memory->destroy(ads_beta);
   memory->destroy(desrate);
   memory->destroy(dadsrate);
   memory->destroy(adesrate);
@@ -305,10 +306,14 @@ void AppSurfchemtest::input_app(char *command, int narg, char **arg)
       nthree++;
 
     } else if (rstyle == 4) {   // adsorption
-      if (narg < 5 || narg > 6) error->all(FLERR,"Illegal event command");
+      if (narg < 5 || narg > 7) error->all(FLERR,"Illegal event command");
       if (narg == 6) {
         if (strcmp(arg[5],"rate") == 0) ads_is_rate = true;
         else error->all(FLERR,"Illegal event command");
+      }
+      if (narg == 7) { // beta implementation
+        if (strcmp(arg[5],"beta") == 0) ads_beta[nads] = atof(arg[6]);
+        else error->all(FLERR,"Illegal event command"); 
       }
       if (strcmp(arg[1],"siteA") == 0) adstype[nads] = SITEA;
       else if (strcmp(arg[1],"siteB") == 0) adstype[nads] = SITEB;
@@ -672,6 +677,7 @@ void AppSurfchemtest::setup_app()
   }
   for (int m = 0; m < nads; m++) {
     adscount[m] = 0;
+    ads_beta[m] = 0.5; // beta default value
   }
   for (int m = 0; m < ndes; m++) {
     descount[m] = 0;
@@ -757,11 +763,12 @@ double AppSurfchemtest::site_propensity(int i)
     if (ads_is_rate) adspropensity = adsrate[m];
     else
     {
-      if (adsoutput[m]==SPEC1) adspropensity = adsrate[m]*density1[i];
-      else if (adsoutput[m]==SPEC2) adspropensity = adsrate[m]*density2[i];
-      else if (adsoutput[m]==SPEC3) adspropensity = adsrate[m]*density3[i];
-      else if (adsoutput[m]==SPEC4) adspropensity = adsrate[m]*density4[i];
-      else if (adsoutput[m]==SPEC5) adspropensity = adsrate[m]*density5[i];
+      double tempratio = temperature/temp[i];
+      if (adsoutput[m]==SPEC1) adspropensity = adsrate[m]*density1[i]*pow(tempratio,ads_beta[m]); // beta
+      else if (adsoutput[m]==SPEC2) adspropensity = adsrate[m]*density2[i]*pow(tempratio,ads_beta[m]);
+      else if (adsoutput[m]==SPEC3) adspropensity = adsrate[m]*density3[i]*pow(tempratio,ads_beta[m]);
+      else if (adsoutput[m]==SPEC4) adspropensity = adsrate[m]*density4[i]*pow(tempratio,ads_beta[m]);
+      else if (adsoutput[m]==SPEC5) adspropensity = adsrate[m]*density5[i]*pow(tempratio,ads_beta[m]);
     }
 
     add_event(i,4,m,adspropensity,-1,-1);
@@ -1035,6 +1042,7 @@ void AppSurfchemtest::grow_reactions(int rstyle)
   } else if (rstyle == 4) {
     int n = nads + 1;
     memory->grow(adsrate,n,"app/surfchemtest:adsrate");
+    memory->grow(ads_beta,n,"app/surfchemtest:ads_beta");
     memory->grow(adstype,n,"app/surfchemtest:adstype");
     memory->grow(adsinput,n,"app/surfchemtest:adsinput");
     memory->grow(adsoutput,n,"app/surfchemtest:adsoutput");
