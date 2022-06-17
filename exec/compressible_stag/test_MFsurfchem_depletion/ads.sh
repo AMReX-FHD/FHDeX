@@ -20,5 +20,5 @@ done
 rm $tmpfile
 
 gnuplot -persist <<-EOFMarker
-    plot "$outfile" u 0:2 w l
+    plot [:][0:0.25] "$outfile" u 0:2 w l, 0.205
 EOFMarker
