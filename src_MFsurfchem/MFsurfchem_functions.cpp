@@ -9,6 +9,8 @@ AMREX_GPU_MANAGED amrex::Real MFsurfchem::surf_site_num_dens;
 AMREX_GPU_MANAGED GpuArray<amrex::Real, MAX_SPECIES> MFsurfchem::ads_rate_const;
 AMREX_GPU_MANAGED GpuArray<amrex::Real, MAX_SPECIES> MFsurfchem::des_rate;
 
+AMREX_GPU_MANAGED int MFsurfchem::stoch_MFsurfchem;
+
 // temperature correction exponent
 #define BETA    0.5
 
@@ -54,6 +56,9 @@ void InitializeMFSurfchemNamespace()
     if (pp.queryarr("des_rate",des_rate_tmp,0,n_ads_spec)){
         for (int m=0;m<n_ads_spec;m++) des_rate[m] = des_rate_tmp[m];
     }
+    
+    stoch_MFsurfchem = 1; // default value 
+    pp.query("stoch_MFsurfchem",stoch_MFsurfchem);
     
     return;
 }
@@ -116,10 +121,20 @@ void sample_MFsurfchem(MultiFab& cu, MultiFab& prim, MultiFab& surfcov, MultiFab
                     amrex::Real theta = surfcov_arr(i,j,k,m);
 
                     amrex::Real meanNads = ads_rate_const[m]*dens*(1-sumtheta)*Ntot*dt*pow(tempratio,BETA);
-                    amrex::Real Nads = RandomPoisson(meanNads,engine);
+                    
+                    amrex::Real Nads = 0.;
+                    if (stoch_MFsurfchem==0) {
+                        Nads = meanNads;
+                    }
+                    else Nads = RandomPoisson(meanNads,engine);
 
                     amrex::Real meanNdes = des_rate[m]*theta*Ntot*dt;
-                    amrex::Real Ndes = RandomPoisson(meanNdes,engine);
+                    
+                    amrex::Real Ndes = 0.;
+                    if (stoch_MFsurfchem==0) {
+                        Ndes = meanNdes;
+                    }
+                    else Ndes = RandomPoisson(meanNdes,engine);
 
                     dNadsdes_arr(i,j,k,m) = Nads-Ndes;
                 }
