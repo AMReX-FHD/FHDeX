@@ -57,6 +57,7 @@ amrex::Real                                                 multispec::L_zero;
 
 // pressure jump computation
 AMREX_GPU_MANAGED int                                       multispec::pressure_jump_projection;
+AMREX_GPU_MANAGED int                                       multispec::gibbs_duhem_kappa_flag;
 
 void InitializeMultispecNamespace() {
 
@@ -83,6 +84,7 @@ void InitializeMultispecNamespace() {
     chi_iterations = 10;    // number of iterations used in Dbar2chi_iterative
 
     pressure_jump_projection = 0;   // compute pressure correction diagnosity before projection
+    gibbs_duhem_kappa_flag = 1;   // compute pressure correction diagnosity before projection
 
     // Initial and boundary conditions 
     //----------------------
@@ -189,6 +191,7 @@ void InitializeMultispecNamespace() {
     pp.query("chi_iterations",chi_iterations);
     pp.query("temp_type",temp_type);
     pp.query("pressure_jump_projection",pressure_jump_projection);
+    pp.query("gibbs_duhem_kappa_flag",gibbs_duhem_kappa_flag);
     if(pp.queryarr("fh_kappa",temp)) {
         for (int i=0; i<nspecies; ++i) {
         for (int j=0; j<nspecies; ++j) {

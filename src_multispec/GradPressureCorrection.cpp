@@ -6,7 +6,8 @@ void GradPressureCorrection(const MultiFab& rho_in,
 	 	            const MultiFab& Temp,
 			    std::array< MultiFab, AMREX_SPACEDIM >& grad_rhs,
 		            const Geometry& geom,
-			    int increment)
+			    int increment,
+			    int kappa_on)
 {
     BL_PROFILE_VAR("GradPressureCorrection()",GradPressureCorrection);
 
@@ -55,7 +56,9 @@ void GradPressureCorrection(const MultiFab& rho_in,
 #endif
 
                    if (gibbs_duhem)
-		       mu(i,j,k,alpha) += fh_chi(alpha,beta)*phi_beta + fh_kappa(alpha,beta)*lap_phi_beta;
+		       mu(i,j,k,alpha) += fh_chi(alpha,beta)*phi_beta;
+		   if (gibbs_duhem && kappa_on)
+		       mu(i,j,k,alpha) += fh_kappa(alpha,beta)*lap_phi_beta;
 
                    else
                        summation += phi_alpha * fh_kappa(alpha,beta) * lap_phi_beta;

@@ -699,7 +699,7 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // then add gradient of correction term to rhs v before solving
     if (pressure_jump_projection) {
         GradPressureCorrection(rho_new,rhotot_new,Temp,
-			       gmres_rhs_v,geom,1);
+			       gmres_rhs_v,geom,1,0);
     }
     
     // zero gmres_rhs_v on physical boundaries
@@ -740,7 +740,7 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     // compute gibbs duhem pressure gradient
     GradPressureCorrection(rho_new,rhotot_new,Temp,
-       gibbs_duhem,geom,0);
+       gibbs_duhem,geom,0,gibbs_duhem_kappa_flag);
 
     // restore eta and kappa
     eta.mult  (2.,0,1,1);

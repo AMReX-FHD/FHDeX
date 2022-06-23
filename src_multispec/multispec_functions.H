@@ -276,7 +276,8 @@ void GradPressureCorrection(const MultiFab& rho,
                             const MultiFab& Temp,
                             std::array<MultiFab,AMREX_SPACEDIM>& grad_rhs,
 		            const Geometry& geom,
-			    int increment);
+			    int increment,
+			    int kappa_flag);
 
 /////////////////////////////////////////////////////////////////////////////////
 // Device calls from  MassFluxUtil.cpp
