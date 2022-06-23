@@ -25,6 +25,8 @@ void mui_push(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface2
 
 void mui_fetch(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface2d &uniface, const int step);
 
+void mui_fetch_surfcov(MultiFab& surfcov, const amrex::Real* dx, mui::uniface2d &uniface, const int step);
+
 void mui_announce_send_recv_span(mui::uniface2d &uniface, MultiFab& mf, const Real* dx);
 
 #endif

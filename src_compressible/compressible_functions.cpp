@@ -7,6 +7,7 @@ AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> compressible::transm
 AMREX_GPU_MANAGED int compressible::do_1D;
 AMREX_GPU_MANAGED int compressible::do_2D;
 AMREX_GPU_MANAGED int compressible::all_correl;
+AMREX_GPU_MANAGED int compressible::nspec_surfcov = 0;
 
 void InitializeCompressibleNamespace()
 {

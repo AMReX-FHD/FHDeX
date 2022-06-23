@@ -1320,6 +1320,31 @@ void AppSurfchemtest::mui_push(int narg, char **arg)
       for (int i=0;i<nlocal;i++) {
         spk->uniface->push("CH_Vz",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},Vz[i]);
       }
+    } else if (strcmp(arg[k],"surfcov1") == 0) {
+      for (int i=0;i<nlocal;i++) {
+        int is_occ = (element[i]==1) ? 1. : 0.;
+        spk->uniface->push("CH_surfcov1",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},is_occ);
+      }
+    } else if (strcmp(arg[k],"surfcov2") == 0) {
+      for (int i=0;i<nlocal;i++) {
+        int is_occ = (element[i]==2) ? 1. : 0.;
+        spk->uniface->push("CH_surfcov2",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},is_occ);
+      }
+    } else if (strcmp(arg[k],"surfcov3") == 0) {
+      for (int i=0;i<nlocal;i++) {
+        int is_occ = (element[i]==3) ? 1. : 0.;
+        spk->uniface->push("CH_surfcov3",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},is_occ);
+      }
+    } else if (strcmp(arg[k],"surfcov4") == 0) {
+      for (int i=0;i<nlocal;i++) {
+        int is_occ = (element[i]==4) ? 1. : 0.;
+        spk->uniface->push("CH_surfcov4",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},is_occ);
+      }
+    } else if (strcmp(arg[k],"surfcov5") == 0) {
+      for (int i=0;i<nlocal;i++) {
+        int is_occ = (element[i]==5) ? 1. : 0.;
+        spk->uniface->push("CH_surfcov5",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},is_occ);
+      }
     } else {
       error->all(FLERR,"Illegal mui_push command");
     }

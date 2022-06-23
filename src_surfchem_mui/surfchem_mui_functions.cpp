@@ -137,6 +137,56 @@ void mui_fetch(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface
     return;
 }
 
+void mui_fetch_surfcov(MultiFab& surfcov, const amrex::Real* dx, mui::uniface2d &uniface, const int step)
+{
+    mui::sampler_kmc_fhd2d<int> s({dx[0],dx[1]});
+    mui::chrono_sampler_exact2d t;
+
+    for (MFIter mfi(surfcov,false); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.tilebox();
+        Dim3 lo = lbound(bx);
+        Dim3 hi = ubound(bx);
+        const Array4<Real> & surfcov_arr = surfcov.array(mfi);
+
+        // unless bx contains cells at the interface, skip 
+        // ad-hoc fix to avoid memory leakage
+        int k = 0;
+        if (k<lo.z || k>hi.z)
+        {
+            double x = prob_lo[0]+(lo.x+0.5)*dx[0];
+            double y = prob_lo[1]+(lo.y+0.5)*dx[1];
+
+            uniface.fetch("CH_surfcov1",{x,y},step,s,t);
+
+            continue;
+        }
+
+        for (int i = lo.x; i<=hi.x; ++i)
+        {
+            for (int j = lo.y; j<= hi.y; ++j)
+            {
+                double x = prob_lo[0]+(i+0.5)*dx[0];
+                double y = prob_lo[1]+(j+0.5)*dx[1];
+
+                for (int n = 0; n < nspec_mui; ++n)
+                {
+                    std::string channel;
+
+                    channel = "CH_surfcov";
+                    channel += '0'+(n+1);   // assuming nspec_mui<10
+                    int Nspectot = uniface.fetch(channel,{x,y},step,s,t);
+                    surfcov_arr(i,j,k,n) = Nspectot;
+                }
+            }
+        }
+    }
+
+    uniface.forget(step);
+
+    return;
+}
+
 void mui_announce_send_recv_span(mui::uniface2d &uniface,MultiFab& mf,const Real* dx)
 {
     // find the lo and hi points of a square that covers all boxes assigned to the MPI process
