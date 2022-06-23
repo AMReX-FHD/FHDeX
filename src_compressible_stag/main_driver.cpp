@@ -980,6 +980,8 @@ void main_driver(const char* argv)
 #ifdef MUI
         mui_fetch(cu, prim, dx, uniface, step);
 
+        mui_fetch_surfcov(surfcov, dx, uniface, step);
+
         for (int d=0; d<AMREX_SPACEDIM; d++) {
             cumom[d].FillBoundary(geom.periodicity());
         }
@@ -1047,7 +1049,7 @@ void main_driver(const char* argv)
 
             coVars.setVal(0.0);
 
-            if (n_ads_spec>0) {
+            if (nspec_surfcov>0) {
                 surfcovMeans.setVal(0.0);
                 surfcovVars.setVal(0.0);
             }
@@ -1105,8 +1107,8 @@ void main_driver(const char* argv)
         }
 
         if (writePlt) {
-             //yzAverage(cuMeans, cuVars, primMeans, primVars, spatialCross,
-             //          cuMeansAv, cuVarsAv, primMeansAv, primVarsAv, spatialCrossAv);
+            //yzAverage(cuMeans, cuVars, primMeans, primVars, spatialCross,
+            //          cuMeansAv, cuVarsAv, primMeansAv, primVarsAv, spatialCrossAv);
             WritePlotFileStag(step, time, geom, cu, cuMeans, cuVars, cumom, cumomMeans, cumomVars,
                               prim, primMeans, primVars, vel, velMeans, velVars, coVars, surfcov, surfcovMeans, surfcovVars, eta, kappa);
 

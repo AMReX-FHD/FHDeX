@@ -1,8 +1,6 @@
 #include "compressible_functions.H"
 #include "compressible_functions_stag.H"
 
-#include "MFsurfchem_functions.H"
-
 #include "common_functions.H"
 
 
@@ -232,8 +230,8 @@ void EvaluateStatsMeans(MultiFab& cons, MultiFab& consMean,
         const Array4<      Real> momymeans = cumomMean[1].array(mfi);
         const Array4<      Real> momzmeans = cumomMean[2].array(mfi);
 
-        const Array4<      Real> surfcov      = (n_ads_spec>0) ? theta.array(mfi) : cons.array(mfi);
-        const Array4<      Real> surfcovmeans = (n_ads_spec>0) ? thetaMean.array(mfi) : consMean.array(mfi);
+        const Array4<      Real> surfcov      = (nspec_surfcov>0) ? theta.array(mfi) : cons.array(mfi);
+        const Array4<      Real> surfcovmeans = (nspec_surfcov>0) ? thetaMean.array(mfi) : consMean.array(mfi);
 
         // update mean momentum
         amrex::ParallelFor(tbx, tby, tbz,
@@ -300,8 +298,8 @@ void EvaluateStatsMeans(MultiFab& cons, MultiFab& consMean,
             //primmeans(i,j,k,5) = (primmeans(i,j,k,5)*stepsminusone + prim(i,j,k,5))*stepsinv; // Pmean
             GetPressureGas(primmeans(i,j,k,5), fracvec, cumeans(i,j,k,0), primmeans(i,j,k,4)); // Pmean
 
-            if (n_ads_spec>0) {
-                for (int m=0; m<n_ads_spec; ++m) {
+            if (nspec_surfcov>0) {
+                for (int m=0; m<nspec_surfcov; ++m) {
                     surfcovmeans(i,j,k,m) = (surfcovmeans(i,j,k,m)*stepsminusone + surfcov(i,j,k,m))*stepsinv;
                 }
             }
@@ -381,9 +379,9 @@ void EvaluateVarsCoVars(const MultiFab& cons, const MultiFab& consMean, MultiFab
         const Array4<      Real> momyvars  = cumomVar[1].array(mfi);
         const Array4<      Real> momzvars  = cumomVar[2].array(mfi);
 
-        const Array4<const Real> surfcov      = (n_ads_spec>0) ? theta.array(mfi) : cons.array(mfi);
-        const Array4<const Real> surfcovmeans = (n_ads_spec>0) ? thetaMean.array(mfi) : consMean.array(mfi);
-        const Array4<      Real> surfcovvars  = (n_ads_spec>0) ? thetaVar.array(mfi) : consVar.array(mfi);
+        const Array4<const Real> surfcov      = (nspec_surfcov>0) ? theta.array(mfi) : cons.array(mfi);
+        const Array4<const Real> surfcovmeans = (nspec_surfcov>0) ? thetaMean.array(mfi) : consMean.array(mfi);
+        const Array4<      Real> surfcovvars  = (nspec_surfcov>0) ? thetaVar.array(mfi) : consVar.array(mfi);
 
         // update momentum and velocity variances
         amrex::ParallelFor(tbx, tby, tbz,
@@ -523,8 +521,8 @@ void EvaluateVarsCoVars(const MultiFab& cons, const MultiFab& consMean, MultiFab
             covars(i,j,k,24) = (covars(i,j,k,24)*stepsminusone + delrhoYk[0]*delvelx)*stepsinv; // <rhoYklightest velx>
             covars(i,j,k,25) = (covars(i,j,k,25)*stepsminusone + delrhoYk[nspecies-1]*delvelx)*stepsinv; // <rhoYkheaviest velx>
 
-            if (n_ads_spec>0) {
-                for (int m=0; m<n_ads_spec; ++m) {
+            if (nspec_surfcov>0) {
+                for (int m=0; m<nspec_surfcov; ++m) {
                     Real delsurfcov = surfcov(i,j,k,m) - surfcovmeans(i,j,k,m);
                     surfcovvars(i,j,k,m) = (surfcovvars(i,j,k,m)*stepsminusone + delsurfcov*delsurfcov)*stepsinv;
                 }
