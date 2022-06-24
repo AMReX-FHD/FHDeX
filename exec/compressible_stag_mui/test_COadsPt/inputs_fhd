@@ -40,9 +40,9 @@ visc_type = 2
 # Advection method
 # if advection_type = 1, interpolate primitive quantities
 # if advection_type = 2, interpolate conserved quantities
-advection_type = 2
+advection_type = 1
 
-transport_type = 2
+transport_type = 1
 
 # Problem specification
 # if prob_type = 1, constant species concentration
