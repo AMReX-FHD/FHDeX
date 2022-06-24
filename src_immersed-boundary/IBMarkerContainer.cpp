@@ -722,3 +722,12 @@ Vector<IBM_info> IBMarkerContainer::IBMarkerInfo(int lev, bool unique) const {
 
     return info;
 }
+
+void IBMarkerContainer::UpdatePIDMap() {
+    // Calls UpdatePIDMap from base class (IBMarkerContainerBase)
+    IBMarkerContainerBase<IBMReal, IBMInt>::UpdatePIDMap();
+
+    // Fill sorted_map based on the results from the previous call
+    Print() << "Hi There!" << std::endl;
+}
+

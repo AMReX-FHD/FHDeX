@@ -110,7 +110,6 @@ public:
         ::MyConstIBMarIter;
 
 
-
     IBMarkerContainer(AmrCore * amr_core, int n_nbhd);
     IBMarkerContainer(const Geometry & geom, const DistributionMapping & dmap,
                       const BoxArray & ba, int n_nbhd);
@@ -222,7 +221,7 @@ public:
                                   bool unique = false) const;
     Vector<IBM_info> IBMarkerInfo(int lev, bool unique = false) const;
 
-
+    void UpdatePIDMap();
 
 
     static bool use_neighbor_list;
@@ -243,6 +242,7 @@ public:
 private:
 
     int n_list;
+    Vector<std::pair<int, int>> sorted_map;
 };
 
 

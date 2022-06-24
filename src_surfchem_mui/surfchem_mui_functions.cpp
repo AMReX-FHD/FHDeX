@@ -1,6 +1,8 @@
 #include "surfchem_mui_functions.H"
 #include "AMReX_ParmParse.H"
 
+#define BETA 0.5
+
 AMREX_GPU_MANAGED int surfchem_mui::nspec_mui;
 
 void InitializeSurfChemMUINamespace()
@@ -51,6 +53,10 @@ void mui_push(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface2
 
                     uniface.push(channel,{x,y},dens);
                 }
+
+                channel = "CH_temp";
+                double temp = prim_arr(i,j,k,4);
+                uniface.push(channel,{x,y},temp);
             }
         }
     }
@@ -96,7 +102,6 @@ void mui_fetch(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface
             {
                 double x = prob_lo[0]+(i+0.5)*dx[0];
                 double y = prob_lo[1]+(j+0.5)*dx[1];
-                double dV = dx[0]*dx[1]*dx[2];
 
                 for (int n = 0; n < nspec_mui; ++n)
                 {
@@ -111,12 +116,17 @@ void mui_fetch(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface
                     channel += '0'+(n+1);   // assuming nspec_mui<10
                     dc = uniface.fetch(channel,{x,y},step,s,t);
 
-                    double mass = molmass[n]/AVONUM;
-
                     // update
 
-                    cu_arr(i,j,k,0) += (dc-ac)*mass/dV;
-                    cu_arr(i,j,k,5+n) += (dc-ac)*mass/dV;
+                    amrex::Real dN = ac-dc;
+                    amrex::Real T_inst = prim_arr(i,j,k,4);
+                    amrex::Real factor1 = molmass[n]/AVONUM/(dx[0]*dx[1]*dx[2]);
+                    amrex::Real factor2 = (BETA*k_B*T_inst+(e0[n]+hcv[n]*T_inst)*molmass[n]/AVONUM)/(dx[0]*dx[1]*dx[2]);
+
+                    cu_arr(i,j,k,0) -= factor1*dN;
+                    cu_arr(i,j,k,5+n) -= factor1*dN;
+                    cu_arr(i,j,k,4) -= factor2*dN;
+
                 }
             }
         }

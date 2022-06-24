@@ -14,6 +14,10 @@
 
 #include "chrono"
 
+#ifdef MUI
+#include "surfchem_mui_functions.H"
+#endif
+
 using namespace std::chrono;
 using namespace amrex;
 
@@ -46,6 +50,15 @@ void main_driver(const char* argv)
 
     // read the inputs file for MFsurfchem
     InitializeMFSurfchemNamespace();
+
+#ifdef MUI
+    // read the inputs file for surfchem_mui
+    InitializeSurfChemMUINamespace();
+
+    if (n_ads_spec>0) {
+        Abort("MFsurfchem cannot be used in compressible_mui");
+    }
+#endif
 
     int step_start, statsCount;
     amrex::Real time;
@@ -866,6 +879,13 @@ void main_driver(const char* argv)
 
     } // end t=0 setup
 
+#ifdef MUI
+    // MUI setting
+    mui::uniface2d uniface( "mpi://FHD-side/FHD-KMC-coupling" );
+
+    mui_announce_send_recv_span(uniface,cu,dx);
+#endif
+
     /////////////////////////////////////////////////
     // Initialize Fluxes and Sources
     /////////////////////////////////////////////////
@@ -927,13 +947,36 @@ void main_driver(const char* argv)
         Real ts1 = ParallelDescriptor::second();
 
         // sample surface chemistry
+#ifdef MUI
+        mui_push(cu, prim, dx, uniface, step);
+#endif
         if (n_ads_spec>0) sample_MFsurfchem(cu, prim, surfcov, dNadsdes, dx, dt);
 
         // FHD
         RK3stepStag(cu, cumom, prim, vel, source, eta, zeta, kappa, chi, D, 
             faceflux, edgeflux_x, edgeflux_y, edgeflux_z, cenflux, geom, dt, step);
 
-        // update surface chemistry
+        // update surface chemistry (via either surfchem_mui or MFsurfchem)
+#ifdef MUI
+        mui_fetch(cu, prim, dx, uniface, step);
+
+        for (int d=0; d<AMREX_SPACEDIM; d++) {
+            cumom[d].FillBoundary(geom.periodicity());
+        }
+        cu.FillBoundary(geom.periodicity());
+
+        conservedToPrimitiveStag(prim, vel, cu, cumom);
+
+        // Set BC: 1) fill boundary 2) physical
+        for (int d=0; d<AMREX_SPACEDIM; d++) {
+            vel[d].FillBoundary(geom.periodicity());
+        }
+        prim.FillBoundary(geom.periodicity());
+        cu.FillBoundary(geom.periodicity());
+
+        setBCStag(prim, cu, cumom, vel, geom);
+#endif
+
         if (n_ads_spec>0) {
 
             update_MFsurfchem(cu, prim, surfcov, dNadsdes, dx);
