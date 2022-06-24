@@ -221,6 +221,10 @@ public:
                                   bool unique = false) const;
     Vector<IBM_info> IBMarkerInfo(int lev, bool unique = false) const;
 
+    const Vector<std::pair<int, int>> & get_sorted_map() const {
+        return sorted_map;
+    }
+
     void UpdatePIDMap();
 
 

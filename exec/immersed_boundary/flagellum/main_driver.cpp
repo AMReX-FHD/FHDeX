@@ -518,6 +518,7 @@ void main_driver(const char * argv) {
         ib_mc.InitList(0, marker_radii, marker_positions, i_ib);
     }
 
+    ib_mc.UpdatePIDMap();
     ib_mc.fillNeighbors();
     ib_mc.PrintMarkerData(0);
     BL_PROFILE_VAR_STOP(CREATEMARKERS);
