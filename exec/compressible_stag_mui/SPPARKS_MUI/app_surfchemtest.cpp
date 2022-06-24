@@ -534,6 +534,9 @@ void AppSurfchemtest::input_app(char *command, int narg, char **arg)
   } else if (strcmp(command,"mui_fetch_agg") == 0) {
     if (narg < 2) error->all(FLERR,"Illegal mui_fetch_agg command");
     mui_fetch_agg(narg,arg);
+  } else if (strcmp(command,"mui_commit") == 0) {
+    if (narg < 1) error->all(FLERR,"Illegal mui_commit command");
+    mui_commit(narg,arg);
   } else if (strcmp(command,"mui_fhd_lattice_size") == 0) {
     if (narg != 2) error->all(FLERR,"Illegal mul_fhd_lattice_size command");
     mui_fhd_lattice_size_x = atof(arg[0]);
@@ -1355,7 +1358,7 @@ void AppSurfchemtest::mui_push(int narg, char **arg)
     }
   }
 
-  spk->uniface->commit(timestamp);
+  // spk->uniface->commit(timestamp);
 
   return;
 }
@@ -1401,8 +1404,22 @@ void AppSurfchemtest::mui_push_agg(int narg, char **arg)
     }
   }
 
-  spk->uniface->commit(timestamp);
+  // spk->uniface->commit(timestamp);
 
+  return;
+}
+
+void AppSurfchemtest::mui_commit(int narg, char **arg)
+{
+  int timestamp = atoi(arg[0]);
+
+  if (domain->me == 0 && screen) {
+    fprintf(screen,"** DEBUG: mui commit at timestamp %d\n",timestamp);
+    fflush(screen);
+  }
+  
+  spk->uniface->commit(timestamp);
+  
   return;
 }
 

@@ -132,13 +132,16 @@ void mui_fetch(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface
         }
     }
 
-    uniface.forget(step);
+    // uniface.forget(step);
 
     return;
 }
 
 void mui_fetch_surfcov(MultiFab& surfcov, const amrex::Real* dx, mui::uniface2d &uniface, const int step)
 {
+
+    surfcov.setVal(0.);
+
     mui::sampler_kmc_fhd2d<int> s({dx[0],dx[1]});
     mui::chrono_sampler_exact2d t;
 
@@ -182,7 +185,7 @@ void mui_fetch_surfcov(MultiFab& surfcov, const amrex::Real* dx, mui::uniface2d 
         }
     }
 
-    uniface.forget(step);
+    // uniface.forget(step);
 
     return;
 }
