@@ -49,6 +49,7 @@ transport_type = 1
 # if prob_type = 2, Rayleigh-Taylor instability
 # if prob_type = 3, diffusion barrier
 prob_type = 1
+stoch_stress_form = 0
 
 # Initial parameters
 k_B = 1.38064852e-16	# [units: cm2*g*s-2*K-1]
@@ -111,3 +112,6 @@ surf_site_num_dens = 1.472832e+15
 # desoprtion rate = des_rate
 ads_rate_const = 1.475765e-11
 des_rate = 2.926784e+07
+
+# stoch_MFsurfchem = 0 (deterministic case)
+stoch_MFsurfchem = 0
