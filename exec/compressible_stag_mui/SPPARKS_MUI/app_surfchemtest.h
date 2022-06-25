@@ -89,6 +89,7 @@ class AppSurfchemtest : public AppLattice {
   void mui_push_agg(int,char **);
   void mui_fetch_agg(int,char **);
   void mui_commit(int,char **);
+  void mui_forget(int,char **);
   double mui_fhd_lattice_size_x;
   double mui_fhd_lattice_size_y;
   double mui_kmc_lattice_offset_x;

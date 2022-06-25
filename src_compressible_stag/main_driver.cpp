@@ -867,6 +867,8 @@ void main_driver(const char* argv)
         mui_announce_send_recv_span(uniface,cu,dx);
 
         mui_fetch_surfcov(surfcov, dx, uniface, 0);
+
+        mui_forget(uniface, 0);
 #endif
 
         // Set BC: 1) fill boundary 2) physical (How to do for staggered? -- Ishan)
@@ -969,6 +971,8 @@ void main_driver(const char* argv)
         // sample surface chemistry
 #ifdef MUI
         mui_push(cu, prim, dx, uniface, step);
+
+        mui_commit(uniface, step);
 #endif
         if (n_ads_spec>0) sample_MFsurfchem(cu, prim, surfcov, dNadsdes, dx, dt);
 
@@ -981,6 +985,8 @@ void main_driver(const char* argv)
         mui_fetch(cu, prim, dx, uniface, step);
 
         mui_fetch_surfcov(surfcov, dx, uniface, step);
+
+        mui_forget(uniface, step);
 
         for (int d=0; d<AMREX_SPACEDIM; d++) {
             cumom[d].FillBoundary(geom.periodicity());
