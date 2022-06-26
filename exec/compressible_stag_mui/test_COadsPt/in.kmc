@@ -65,14 +65,13 @@ diag_style  surfchemtest stats yes list vac spec1 spec2
 
 mui_init_agg
 
-mui_push 0 surfcov1
+mui_push 0 one occ1
 mui_commit 0
 
 variable ts loop ${nstep}
 label ts_loop
     # MPI_FETCH
     mui_fetch_agg ${ts} density1 temp
-
     mui_forget ${ts}
 
     ##### if imagefreq
@@ -94,8 +93,7 @@ label ts_loop
     # MPI_PUSH
     label jump_label2
     mui_push_agg ${ts} ac1 dc1
-    mui_push ${ts} surfcov1
-
+    mui_push ${ts} one occ1
     mui_commit ${ts}
 next ts 
 jump in.kmc ts_loop
