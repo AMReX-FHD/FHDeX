@@ -14,7 +14,7 @@ using namespace immbdy;
 using namespace immbdy_md;
 using namespace ib_flagellum;
 
-using namespace std;
+//using namespace std;
 
 
 void constrain_ibm_marker(IBMarkerContainer & ib_mc, int ib_lev, int component) {
@@ -147,7 +147,7 @@ void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
 
     // Get sorted ibs list
     vector<pair<int, int>> sorted_ibs = ib_mc.get_sorted_map();    
- 
+    vector<int> reduced_ibs = ib_mc.get_reduced_map();
 
     int index_start = 0;
 
@@ -256,13 +256,9 @@ void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
             int i_ib    = mark.idata(IBMInt::cpu_1);  // flagellum #
             int N       = ib_flagellum::n_marker[i_ib];
 
-            //find the right ib flagellum in sorted_ibs
-	    //std::vector<int>::iterator gx = std::find(sorted_ibs.begin(), sorted_ibs.end(), i_ib);
-            //auto gx = std::find(sorted_ibs.begin(), sorted_ibs.end(), i_ib); 	    
-	    //actual index in PullDown vectors
-	    //int i_c = sorted_ibs[std::distance(sorted_ibs.begin(), gx) + id].second;
+            //int i_c = id + std::distance(sorted_ibs.begin(), std::find_if(sorted_ibs.begin(), sorted_ibs.end(), [&](const auto& pair) { return pair.first == i_ib; }));
 
-            int i_c = id + std::distance(sorted_ibs.begin(), std::find_if(sorted_ibs.begin(), sorted_ibs.end(), [&](const auto& pair) { return pair.first == i_ib; }));
+	    int i_c = sorted_ibs[id + reduced_ibs[i_ib]].second; 
 
 	    Print() << "Adding forces to particles..." << std::endl;
 
