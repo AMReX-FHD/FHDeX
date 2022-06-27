@@ -534,6 +534,12 @@ void AppSurfchemtest::input_app(char *command, int narg, char **arg)
   } else if (strcmp(command,"mui_fetch_agg") == 0) {
     if (narg < 2) error->all(FLERR,"Illegal mui_fetch_agg command");
     mui_fetch_agg(narg,arg);
+  } else if (strcmp(command,"mui_commit") == 0) {
+    if (narg < 1) error->all(FLERR,"Illegal mui_commit command");
+    mui_commit(narg,arg);
+  } else if (strcmp(command,"mui_forget") == 0) {
+    if (narg < 1) error->all(FLERR,"Illegal mui_forget command");
+    mui_forget(narg,arg);
   } else if (strcmp(command,"mui_fhd_lattice_size") == 0) {
     if (narg != 2) error->all(FLERR,"Illegal mul_fhd_lattice_size command");
     mui_fhd_lattice_size_x = atof(arg[0]);
@@ -1320,6 +1326,35 @@ void AppSurfchemtest::mui_push(int narg, char **arg)
       for (int i=0;i<nlocal;i++) {
         spk->uniface->push("CH_Vz",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},Vz[i]);
       }
+    } else if (strcmp(arg[k],"occ1") == 0) {
+      for (int i=0;i<nlocal;i++) {
+        int is_occ = (element[i]==1) ? 1 : 0;
+        spk->uniface->push("CH_occ1",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},is_occ);
+      }
+    } else if (strcmp(arg[k],"occ2") == 0) {
+      for (int i=0;i<nlocal;i++) {
+        int is_occ = (element[i]==2) ? 1 : 0;
+        spk->uniface->push("CH_occ2",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},is_occ);
+      }
+    } else if (strcmp(arg[k],"occ3") == 0) {
+      for (int i=0;i<nlocal;i++) {
+        int is_occ = (element[i]==3) ? 1 : 0;
+        spk->uniface->push("CH_occ3",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},is_occ);
+      }
+    } else if (strcmp(arg[k],"occ4") == 0) {
+      for (int i=0;i<nlocal;i++) {
+        int is_occ = (element[i]==4) ? 1 : 0;
+        spk->uniface->push("CH_occ4",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},is_occ);
+      }
+    } else if (strcmp(arg[k],"occ5") == 0) {
+      for (int i=0;i<nlocal;i++) {
+        int is_occ = (element[i]==5) ? 1 : 0;
+        spk->uniface->push("CH_occ5",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},is_occ);
+      }
+    } else if (strcmp(arg[k],"one") == 0) {
+      for (int i=0;i<nlocal;i++) {
+        spk->uniface->push("CH_one",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},1);
+      }
     } else {
       error->all(FLERR,"Illegal mui_push command");
     }
@@ -1329,8 +1364,6 @@ void AppSurfchemtest::mui_push(int narg, char **arg)
       fflush(screen);
     }
   }
-
-  spk->uniface->commit(timestamp);
 
   return;
 }
@@ -1366,6 +1399,23 @@ void AppSurfchemtest::mui_push_agg(int narg, char **arg)
       // push for each FHD domain
       for (int n=0;n<nlocalFHDcell;n++)
         spk->uniface->push("CH_dc1",{xFHD[n],yFHD[n]},MUIintval[n]);
+    } else if (strcmp(arg[k],"occ1") == 0) {
+      // compute the sum over each FHD domain
+      for (int n=0;n<nlocalFHDcell;n++) MUIintval[n] = 0;
+      for (int i=0;i<nlocal;i++) {
+        int is_occ = (element[i]==1) ? 1 : 0;
+        MUIintval[localFHDcell[i]] += is_occ;
+      }
+      // push for each FHD domain
+      for (int n=0;n<nlocalFHDcell;n++)
+        spk->uniface->push("CH_occ1",{xFHD[n],yFHD[n]},MUIintval[n]);
+    } else if (strcmp(arg[k],"one") == 0) {
+      // compute the sum over each FHD domain
+      for (int n=0;n<nlocalFHDcell;n++) MUIintval[n] = 0;
+      for (int i=0;i<nlocal;i++) MUIintval[localFHDcell[i]]++;
+      // push for each FHD domain
+      for (int n=0;n<nlocalFHDcell;n++)
+        spk->uniface->push("CH_one",{xFHD[n],yFHD[n]},MUIintval[n]);
     } else {
       error->all(FLERR,"Illegal mui_push_agg command");
     }
@@ -1376,7 +1426,19 @@ void AppSurfchemtest::mui_push_agg(int narg, char **arg)
     }
   }
 
+  return;
+}
+
+void AppSurfchemtest::mui_commit(int narg, char **arg)
+{
+  int timestamp = atoi(arg[0]);
+
   spk->uniface->commit(timestamp);
+
+  if (domain->me == 0 && screen) {
+    fprintf(screen,"** DEBUG: mui commit at timestamp %d\n",timestamp);
+    fflush(screen);
+  }
 
   return;
 }
@@ -1436,8 +1498,6 @@ void AppSurfchemtest::mui_fetch(int narg, char **arg)
     }
   }
 
-  spk->uniface->forget(timestamp);
-
   return;
 }
 
@@ -1492,8 +1552,21 @@ void AppSurfchemtest::mui_fetch_agg(int narg, char **arg)
     }
   }
 
+  return;
+}
+
+void AppSurfchemtest::mui_forget(int narg, char **arg)
+{
+  int timestamp = atoi(arg[0]);
+
   spk->uniface->forget(timestamp);
+
+  if (domain->me == 0 && screen) {
+    fprintf(screen,"** DEBUG: mui forget at timestamp %d\n",timestamp);
+    fflush(screen);
+  }
 
   return;
 }
+
 #endif
