@@ -1399,6 +1399,23 @@ void AppSurfchemtest::mui_push_agg(int narg, char **arg)
       // push for each FHD domain
       for (int n=0;n<nlocalFHDcell;n++)
         spk->uniface->push("CH_dc1",{xFHD[n],yFHD[n]},MUIintval[n]);
+    } else if (strcmp(arg[k],"occ1") == 0) {
+      // compute the sum over each FHD domain
+      for (int n=0;n<nlocalFHDcell;n++) MUIintval[n] = 0;
+      for (int i=0;i<nlocal;i++) {
+        int is_occ = (element[i]==1) ? 1 : 0;
+        MUIintval[localFHDcell[i]] += is_occ;
+      }
+      // push for each FHD domain
+      for (int n=0;n<nlocalFHDcell;n++)
+        spk->uniface->push("CH_occ1",{xFHD[n],yFHD[n]},MUIintval[n]);
+    } else if (strcmp(arg[k],"one") == 0) {
+      // compute the sum over each FHD domain
+      for (int n=0;n<nlocalFHDcell;n++) MUIintval[n] = 0;
+      for (int i=0;i<nlocal;i++) MUIintval[localFHDcell[i]]++;
+      // push for each FHD domain
+      for (int n=0;n<nlocalFHDcell;n++)
+        spk->uniface->push("CH_one",{xFHD[n],yFHD[n]},MUIintval[n]);
     } else {
       error->all(FLERR,"Illegal mui_push_agg command");
     }
