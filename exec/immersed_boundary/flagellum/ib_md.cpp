@@ -14,9 +14,6 @@ using namespace immbdy;
 using namespace immbdy_md;
 using namespace ib_flagellum;
 
-//using namespace std;
-
-
 void constrain_ibm_marker(IBMarkerContainer & ib_mc, int ib_lev, int component) {
 
     BL_PROFILE_VAR("constrain_ibm_marker", TIMER_CONSTRAIN_IBM_MARKER);
@@ -146,8 +143,8 @@ void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
     Vector<Real> fz(ib_mc.getTotalNumIDs());
 
     // Get sorted ibs list
-    vector<pair<int, int>> sorted_ibs = ib_mc.get_sorted_map();    
-    vector<int> reduced_ibs = ib_mc.get_reduced_map();
+    std::vector<std::pair<int, int>> sorted_ibs = ib_mc.get_sorted_map();    
+    std::vector<int> reduced_ibs = ib_mc.get_reduced_map();
 
     int index_start = 0;
 
