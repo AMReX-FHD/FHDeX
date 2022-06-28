@@ -80,11 +80,9 @@ void init_surfcov(MultiFab& surfcov, const amrex::Real* dx)
                     int Nocc = 0; // number of occupied sites
                     for (int n=0;n<Ntot;n++) {
                         amrex::Real u = amrex::Random(engine);
-                        if (u<surfcov0[0]) {
-                            Nocc++;
-                            surfcov_arr(i,j,k,0) = Nocc/Ntot;
-                        }
+                        if (u<surfcov0[0]) Nocc++;
                     }
+                    surfcov_arr(i,j,k,0) = Nocc/Ntot;
                 } else {
                     for (int m=0;m<n_ads_spec;m++) {
                         surfcov_arr(i,j,k,m) = surfcov0[m];
