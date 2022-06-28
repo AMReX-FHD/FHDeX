@@ -1,3 +1,3 @@
 #!/bin/bash
 
-rm -rf log.* plt* Backtrace*
+rm -rf log.* plt* res.* *.png Backtrace*

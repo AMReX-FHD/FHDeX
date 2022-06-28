@@ -1,7 +1,7 @@
 #!/bin/bash
 
 SPKSCR=in.kmc
-FHDSCR=inputs_fhd
+FHDSCR=inputs_fhd_stag
 SPKSEED=$RANDOM
 
 # check kmc executable
