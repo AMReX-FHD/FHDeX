@@ -76,34 +76,32 @@ void init_surfcov(MultiFab& surfcov, const amrex::Real* dx)
         for (int m=0;m<n_ads_spec;m++) sum_surfcov0[m] = 0.;
 
         sum_surfcov0[0] = surfcov0[0];
-        for (int m=0;m<n_ads_spec;m++)
+        for (int m=1;m<n_ads_spec;m++)
         {
-            for (int n=m+1;n<n_ads_spec;n++) sum_surfcov0[n] = sum_surfcov0[m] + surfcov0[n];
+            sum_surfcov0[m] = sum_surfcov0[m-1] + surfcov0[m];
         }
-
-        for (int m=0;m<n_ads_spec;m++) amrex::Print() << sum_surfcov0[m] << std::endl;
 
         amrex::ParallelForRNG(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k, RandomEngine const& engine) noexcept
         {
             if (k==0) 
             {
-               amrex::Real Ntot = surf_site_num_dens*dx[0]*dx[1];  // total number of reactive sites
-               std::vector<int> Nocc(n_ads_spec);
+                amrex::Real Ntot = rint(surf_site_num_dens*dx[0]*dx[1]);  // total number of reactive sites
+                std::vector<int> Nocc(n_ads_spec);
                
-               for (int m=0;m<n_ads_spec;m<m++) Nocc[m] = 0;
-               for (int n=0;n<Ntot;n++) 
-               {
-                   amrex::Real u = amrex::Random(engine);
-                   for (int m=0;m<n_ads_spec;m<m++)
-                   {
-                       if (u<sum_surfcov0[m])
-                       {
-                           Nocc[m] = Nocc[m] + 1;
-                           break;
-                       }
-                   }
-               }
-               for (int m=0;m<n_ads_spec;m++) surfcov_arr(i,j,k,m) = Nocc[m]/Ntot;
+                for (int m=0;m<n_ads_spec;m++) Nocc[m] = 0;
+                for (int n=0;n<Ntot;n++) 
+                {
+                    amrex::Real u = amrex::Random(engine);
+                    for (int m=0;m<n_ads_spec;m++)
+                    {
+                        if (u<sum_surfcov0[m])
+                        {
+                            Nocc[m] = Nocc[m] + 1;
+                            break;
+                        }
+                    }
+                }
+                for (int m=0;m<n_ads_spec;m++) surfcov_arr(i,j,k,m) = Nocc[m]/Ntot;
             } 
             else 
             {
