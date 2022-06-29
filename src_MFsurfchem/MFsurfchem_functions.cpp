@@ -73,13 +73,9 @@ void init_surfcov(MultiFab& surfcov, const amrex::Real* dx)
         const Array4<Real> & surfcov_arr = surfcov.array(mfi);
 
         std::vector<amrex::Real> sum_surfcov0(n_ads_spec);
-        for (int m=0;m<n_ads_spec;m++) sum_surfcov0[m] = 0.;
-
         sum_surfcov0[0] = surfcov0[0];
         for (int m=1;m<n_ads_spec;m++)
-        {
             sum_surfcov0[m] = sum_surfcov0[m-1] + surfcov0[m];
-        }
 
         amrex::ParallelForRNG(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k, RandomEngine const& engine) noexcept
         {
@@ -89,6 +85,7 @@ void init_surfcov(MultiFab& surfcov, const amrex::Real* dx)
                 std::vector<int> Nocc(n_ads_spec);
                
                 for (int m=0;m<n_ads_spec;m++) Nocc[m] = 0;
+
                 for (int n=0;n<Ntot;n++) 
                 {
                     amrex::Real u = amrex::Random(engine);
@@ -96,19 +93,17 @@ void init_surfcov(MultiFab& surfcov, const amrex::Real* dx)
                     {
                         if (u<sum_surfcov0[m])
                         {
-                            Nocc[m] = Nocc[m] + 1;
+                            Nocc[m]++;
                             break;
                         }
                     }
                 }
+
                 for (int m=0;m<n_ads_spec;m++) surfcov_arr(i,j,k,m) = Nocc[m]/Ntot;
             } 
             else 
             {
-                for (int m=0;m<n_ads_spec;m++) 
-                {
-                    surfcov_arr(i,j,k,m) = 0.;
-                }
+                for (int m=0;m<n_ads_spec;m++) surfcov_arr(i,j,k,m) = 0.;
             }
         });
     }
