@@ -2,7 +2,7 @@
 
 DIR1=./
 DIR2=../test_COadsPt
-FILES="clean.sh diff.sh in.kmc inputs_fhd run.sh"
+FILES="inputs_fhd_stag run.sh zavg.sh zavg.plt ads.sh ads.py ads.plt clean.sh"
 
 for file in $FILES
 do

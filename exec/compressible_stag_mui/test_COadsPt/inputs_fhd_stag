@@ -5,7 +5,7 @@ seed = 0
 
 # Problem specification
 prob_lo = 0.0 0.0 0.0 # physical lo coordinate
-prob_hi = 3.36e-05 2.909845e-05 4.3008e-3 # physical hi coordinate
+prob_hi = 3.36e-05 2.909845e-05 3.36e-05 # physical hi coordinate
 
 # Number of ghost cells, conserved, and primitive variables
 # ---------------------
@@ -14,17 +14,17 @@ nvars = 7
 nprimvars = 10
 
 # number of cells in domain
-n_cells = 4 4 512
+n_cells = 4 4 4
 # max number of cells in a box
-max_grid_size = 4 4 16
+max_grid_size = 4 4 4
 
 # Time-step control
 fixed_dt = 1.e-12
 
 # Controls for number of steps between actions
 
-max_step = 500000
-plot_int = 5000
+max_step = 100000
+plot_int = 1000
 
 # Multispecies toggle
 # if algorithm_type = 1, single component
@@ -93,21 +93,8 @@ dof = 5 3
 hcv = -1 -1
 hcp = -1 -1
 
-plot_means = 0
-plot_vars = 0
+plot_means = 1
+plot_vars = 1
 
-# MFsurfchem
-
-# number of adsorption species
-# n_ads_spec = 0 (if no adsorption species)
-n_ads_spec = 1
-
-# initial surface coverage
-surfcov0 = 0 
-# number density of adsorption sites on the lattice
-surf_site_num_dens = 1.472832e+15
-
-# adsorption rate = ads_rate_const * num_dens
-# desoprtion rate = des_rate
-ads_rate_const = 1.475765e-11
-des_rate = 2.926784e+07
+# surfchem_mui
+nspec_mui = 1
