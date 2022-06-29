@@ -137,10 +137,22 @@ void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
     Vector<int> ibs(ib_mc.getTotalNumIDs());
     ib_mc.PullDownInt(0, ibs, IBMInt::cpu_1);
 
+    Print() << "real_id = ";
+    for (auto & i:ids) Print() << i << " ";
+    Print() << std::endl;
+
+    Print() << "number of flagellum = ";
+    for (auto & i:ibs) Print() << i << " ";
+    Print() << std::endl;
+   
+
     //Vectors for storing forces in each direction
     Vector<Real> fx(ib_mc.getTotalNumIDs());
+    for (auto & x:fx) x = 0.;
     Vector<Real> fy(ib_mc.getTotalNumIDs());
+    for (auto & x:fy) x = 0.;
     Vector<Real> fz(ib_mc.getTotalNumIDs());
+    for (auto & x:fz) x = 0.;
 
     // Get sorted ibs list
     std::vector<std::pair<int, int>> sorted_ibs = ib_mc.get_sorted_map();    
@@ -184,12 +196,12 @@ void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
 			Print() << "Updating spring forces..." << std::endl;
 
                         //update spring forces between previous/minus and current markers
-                        fx[i_m] += fm_0 * r_m[1];   fy[i_m] += fm_0 * r_m[2];   fz[i_m] += fm_0 * r_m[3];
-                        fx[i_c] -= fm_0 * r_m[1];   fy[i_c] -= fm_0 * r_m[2];   fz[i_c] -= fm_0 * r_m[3];
+                        fx[i_m] += fm_0 * r_m[0];   fy[i_m] += fm_0 * r_m[1];   fz[i_m] += fm_0 * r_m[2];
+                        fx[i_c] -= fm_0 * r_m[0];   fy[i_c] -= fm_0 * r_m[1];   fz[i_c] -= fm_0 * r_m[2];
 
                         //update spring forces between next/plus and current markers
-                        fx[i_c] += fp_0 * r_p[1];   fy[i_c] += fp_0 * r_p[2];   fz[i_c] += fp_0 * r_p[3];
-                        fx[i_p] -= fp_0 * r_p[1];   fy[i_p] -= fp_0 * r_p[2];   fz[i_p] -= fp_0 * r_p[3];
+                        fx[i_c] += fp_0 * r_p[0];   fy[i_c] += fp_0 * r_p[1];   fz[i_c] += fp_0 * r_p[2];
+                        fx[i_p] -= fp_0 * r_p[0];   fy[i_p] -= fp_0 * r_p[1];   fz[i_p] -= fp_0 * r_p[2];
                 }
 
                 // update bending forces for curent, minus/prev, and next/plus
@@ -197,9 +209,9 @@ void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
 			Vector<RealVect> marker_positions = equil_pos(i_ib, time, geom);
                         RealVect target_pos = marker_positions[ids[i_c]];
 
-                        fx[i_c] += k_driv*(target_pos[1] - pos_x[i_c]);
-                        fy[i_c] += k_driv*(target_pos[2] - pos_y[i_c]);
-                        fz[i_c] += k_driv*(target_pos[3] - pos_z[i_c]);
+                        fx[i_c] += k_driv*(target_pos[0] - pos_x[i_c]);
+                        fy[i_c] += k_driv*(target_pos[1] - pos_y[i_c]);
+                        fz[i_c] += k_driv*(target_pos[2] - pos_z[i_c]);
 
                 } else {                        // for harmonic waveform of Taylor lines
 
@@ -229,9 +241,9 @@ void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
                                 driving_f(f, f_p, f_m, r, r_p, r_m, driv_u, th, k_driv);
 
                                 // updating the force on the minus, current, and plus particles.
-                                fx[i_m] += f_m[1];   fy[i_m] += f_m[2];   fz[i_m] += f_m[3];
-                                fx[i_c] += f[1];     fy[i_c] += f[2];     fz[i_c] += f[3];
-                                fx[i_p] += f_p[1];   fy[i_p] += f_p[2];   fz[i_p] += f_p[3];
+                                fx[i_m] += f_m[0];   fy[i_m] += f_m[1];   fz[i_m] += f_m[2];
+                                fx[i_c] += f[0];     fy[i_c] += f[1];     fz[i_c] += f[2];
+                                fx[i_p] += f_p[0];   fy[i_p] += f_p[1];   fz[i_p] += f_p[2];
                          }
                 }
        }
