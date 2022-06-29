@@ -714,7 +714,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::PullDownInt(
                     list[id-1 + cpu_offset[cpu]] = part.id();
                 } else if (element == -2) {
                     list[id-1 + cpu_offset[cpu]] = part.cpu();
-                } else {
+                } else{
                     list[id-1 + cpu_offset[cpu]] = -1;
                 }
             });

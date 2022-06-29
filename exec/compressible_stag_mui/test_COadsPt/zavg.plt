@@ -1,13 +1,19 @@
 set terminal png enhanced size 1200, 960
 set output "zavg.png"
 
-val1=3.093067e-11
-val2=2.384732e+09
-val3=1.061837e+02
-val4=9.181427e-02
+# 300x150
+val1=6.068741e-11
+val2=1.117179e+09
+val3=1.691011e+02
+val4=1.282197e-01
+# 300x173
+#val1 = 5.261914e-11
+#val2 = 9.686527e+08
+#val3 = 1.466195e+02
+#val4 = 0.1111731
 
 dz = 8.4e-6
-ncell = 8
+ncell = 4
 
 set multiplot
 set size 0.5,0.5

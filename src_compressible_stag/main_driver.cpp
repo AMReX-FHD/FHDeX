@@ -56,8 +56,17 @@ void main_driver(const char* argv)
     InitializeSurfChemMUINamespace();
 
     if (n_ads_spec>0) {
-        Abort("MFsurfchem cannot be used in compressible_mui");
+        Abort("MFsurfchem cannot be used in compressible_stag_mui");
     }
+
+    if (nspec_mui<1) {
+        Abort("nspec_mui must be at least one.");
+    }
+
+    if (restart>0) {
+        Abort("restart not supported in compressible_stag_mui");
+    }
+
 #endif
 
     int step_start, statsCount;
@@ -119,6 +128,11 @@ void main_driver(const char* argv)
             Abort("Must supply non-negative seed");
         }
     }
+
+#ifdef MUI
+    // init MUI
+    mui::uniface2d uniface( "mpi://FHD-side/FHD-KMC-coupling" );
+#endif
 
     /////////////////////////////////////////
 
@@ -415,6 +429,7 @@ void main_driver(const char* argv)
         
         if (n_ads_spec>0) {
             dNadsdes.define(ba,dmap,n_ads_spec,0);
+            nspec_surfcov = n_ads_spec;
         }
 
         if ((plot_cross) and (do_1D==0) and (do_2D==0)) {
@@ -622,7 +637,13 @@ void main_driver(const char* argv)
         if (n_ads_spec>0) {
             surfcov.define(ba,dmap,n_ads_spec,0);
             dNadsdes.define(ba,dmap,n_ads_spec,0);
+            nspec_surfcov = n_ads_spec;
         }
+
+#ifdef MUI
+        surfcov.define(ba,dmap,nspec_mui,0);
+        nspec_surfcov = nspec_mui;
+#endif
 
         cuMeans.define(ba,dmap,nvars,ngc);
         cuVars.define(ba,dmap,nvars,ngc);
@@ -664,9 +685,9 @@ void main_driver(const char* argv)
         coVars.define(ba,dmap,26,0);
         coVars.setVal(0.0);
 
-        if (n_ads_spec>0) {
-            surfcovMeans.define(ba,dmap,n_ads_spec,0);
-            surfcovVars.define(ba,dmap,n_ads_spec,0);
+        if (nspec_surfcov>0) {
+            surfcovMeans.define(ba,dmap,nspec_surfcov,0);
+            surfcovVars.define(ba,dmap,nspec_surfcov,0);
             surfcovMeans.setVal(0.0);
             surfcovVars.setVal(0.0);
         }
@@ -842,6 +863,14 @@ void main_driver(const char* argv)
 
         if (n_ads_spec>0) init_surfcov(surfcov, dx);
 
+#ifdef MUI
+        mui_announce_send_recv_span(uniface,cu,dx);
+
+        mui_fetch_surfcov(surfcov, dx, uniface, 0);
+
+        mui_forget(uniface, 0);
+#endif
+
         // Set BC: 1) fill boundary 2) physical (How to do for staggered? -- Ishan)
         cu.FillBoundary(geom.periodicity());
         prim.FillBoundary(geom.periodicity());
@@ -878,13 +907,6 @@ void main_driver(const char* argv)
         statsCount = 1;
 
     } // end t=0 setup
-
-#ifdef MUI
-    // MUI setting
-    mui::uniface2d uniface( "mpi://FHD-side/FHD-KMC-coupling" );
-
-    mui_announce_send_recv_span(uniface,cu,dx);
-#endif
 
     /////////////////////////////////////////////////
     // Initialize Fluxes and Sources
@@ -949,6 +971,8 @@ void main_driver(const char* argv)
         // sample surface chemistry
 #ifdef MUI
         mui_push(cu, prim, dx, uniface, step);
+
+        mui_commit(uniface, step);
 #endif
         if (n_ads_spec>0) sample_MFsurfchem(cu, prim, surfcov, dNadsdes, dx, dt);
 
@@ -959,6 +983,10 @@ void main_driver(const char* argv)
         // update surface chemistry (via either surfchem_mui or MFsurfchem)
 #ifdef MUI
         mui_fetch(cu, prim, dx, uniface, step);
+
+        mui_fetch_surfcov(surfcov, dx, uniface, step);
+
+        mui_forget(uniface, step);
 
         for (int d=0; d<AMREX_SPACEDIM; d++) {
             cumom[d].FillBoundary(geom.periodicity());
@@ -1027,7 +1055,7 @@ void main_driver(const char* argv)
 
             coVars.setVal(0.0);
 
-            if (n_ads_spec>0) {
+            if (nspec_surfcov>0) {
                 surfcovMeans.setVal(0.0);
                 surfcovVars.setVal(0.0);
             }
@@ -1085,8 +1113,8 @@ void main_driver(const char* argv)
         }
 
         if (writePlt) {
-             //yzAverage(cuMeans, cuVars, primMeans, primVars, spatialCross,
-             //          cuMeansAv, cuVarsAv, primMeansAv, primVarsAv, spatialCrossAv);
+            //yzAverage(cuMeans, cuVars, primMeans, primVars, spatialCross,
+            //          cuMeansAv, cuVarsAv, primMeansAv, primVarsAv, spatialCrossAv);
             WritePlotFileStag(step, time, geom, cu, cuMeans, cuVars, cumom, cumomMeans, cumomVars,
                               prim, primMeans, primVars, vel, velMeans, velVars, coVars, surfcov, surfcovMeans, surfcovVars, eta, kappa);
 
