@@ -23,7 +23,7 @@ void writePlotFile(const MultiFab& mfcuInst,
     BL_PROFILE_VAR("writePlotFile()",writePlotFile);
 
     int ncon    = (nspecies+1)*5;
-    int nprim   = (nspecies+1)*9;
+    int nprim   = (nspecies+1)*10;
     int ncovar  = 25;
     int nvars   = ncovar + ncon + nprim + ncross; // covariances + prim. vars + cons. vars
 
@@ -109,6 +109,7 @@ void writePlotFile(const MultiFab& mfcuInst,
     primNames[cnt++] = "TInstant";
     primNames[cnt++] = "PInstant";
     primNames[cnt++] = "EInstant";
+    primNames[cnt++] = "cInstant";
 
     for(int ispec=0;ispec<nspecies;ispec++) {
       primNames[cnt++] = amrex::Concatenate("nInstant_",ispec,2);
@@ -120,6 +121,7 @@ void writePlotFile(const MultiFab& mfcuInst,
       primNames[cnt++] = amrex::Concatenate("TInstant_",ispec,2);
       primNames[cnt++] = amrex::Concatenate("PInstant_",ispec,2);
       primNames[cnt++] = amrex::Concatenate("EInstant_",ispec,2);
+      primNames[cnt++] = amrex::Concatenate("cInstant_",ispec,2);
     }
     MultiFab::Copy(mfprimplt, mfprimInst, 0, nprim*0, nprim, 0);
 
@@ -133,6 +135,7 @@ void writePlotFile(const MultiFab& mfcuInst,
     primNames[cnt++] = "TMean";
     primNames[cnt++] = "PMean";
     primNames[cnt++] = "EMean";
+    primNames[cnt++] = "cMean";
 
     for(int ispec=0;ispec<nspecies;ispec++) {
       primNames[cnt++] = amrex::Concatenate("nMean_",ispec,2);
@@ -144,6 +147,7 @@ void writePlotFile(const MultiFab& mfcuInst,
       primNames[cnt++] = amrex::Concatenate("TMean_",ispec,2);
       primNames[cnt++] = amrex::Concatenate("PMean_",ispec,2);
       primNames[cnt++] = amrex::Concatenate("EMean_",ispec,2);
+      primNames[cnt++] = amrex::Concatenate("cMean_",ispec,2);
     }
     MultiFab::Copy(mfprimplt, mfprimMeans, 0, nprim*1, nprim, 0);
     WriteSingleLevelPlotfile(pltprim, mfprimplt, primNames, geom, time, step);
@@ -182,6 +186,7 @@ void writePlotFile(const MultiFab& mfcuInst,
     varNames[cnt++] = "TVar";
     varNames[cnt++] = "PVar";
     varNames[cnt++] = "EVar";
+    varNames[cnt++] = "cVar";
 
     for(int ispec=0;ispec<nspecies;ispec++) {
       varNames[cnt++] = amrex::Concatenate("nVar_",ispec,2);
@@ -193,6 +198,7 @@ void writePlotFile(const MultiFab& mfcuInst,
       varNames[cnt++] = amrex::Concatenate("TVar_",ispec,2);
       varNames[cnt++] = amrex::Concatenate("PVar_",ispec,2);
       varNames[cnt++] = amrex::Concatenate("EVar_",ispec,2);
+      varNames[cnt++] = amrex::Concatenate("cVar_",ispec,2);
     }
     MultiFab::Copy(mfvarplt, mfprimVars, 0, istart, nprim, 0);
     istart += nprim;
