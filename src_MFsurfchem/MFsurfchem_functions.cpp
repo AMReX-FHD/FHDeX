@@ -72,16 +72,38 @@ void init_surfcov(MultiFab& surfcov, const amrex::Real* dx)
         Dim3 hi = ubound(bx);
         const Array4<Real> & surfcov_arr = surfcov.array(mfi);
 
-        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        GpuArray<Real,MAX_SPECIES> sum_surfcov0;
+        sum_surfcov0[0] = surfcov0[0];
+        for (int m=1;m<n_ads_spec;m++)
+            sum_surfcov0[m] = sum_surfcov0[m-1] + surfcov0[m];
+
+        amrex::ParallelForRNG(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k, RandomEngine const& engine) noexcept
         {
-            if (k==0) {
-                for (int m=0;m<n_ads_spec;m++) {
-                    surfcov_arr(i,j,k,m) = surfcov0[m];
+            if (k==0) 
+            {
+                amrex::Real Ntot = rint(surf_site_num_dens*dx[0]*dx[1]);  // total number of reactive sites
+                GpuArray<int,MAX_SPECIES> Nocc;
+               
+                for (int m=0;m<n_ads_spec;m++) Nocc[m] = 0;
+
+                for (int n=0;n<Ntot;n++) 
+                {
+                    amrex::Real u = amrex::Random(engine);
+                    for (int m=0;m<n_ads_spec;m++)
+                    {
+                        if (u<sum_surfcov0[m])
+                        {
+                            Nocc[m]++;
+                            break;
+                        }
+                    }
                 }
-            } else {
-                for (int m=0;m<n_ads_spec;m++) {
-                    surfcov_arr(i,j,k,m) = 0.;
-                }
+
+                for (int m=0;m<n_ads_spec;m++) surfcov_arr(i,j,k,m) = Nocc[m]/Ntot;
+            } 
+            else 
+            {
+                for (int m=0;m<n_ads_spec;m++) surfcov_arr(i,j,k,m) = 0.;
             }
         });
     }
