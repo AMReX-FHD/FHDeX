@@ -82,7 +82,7 @@ void init_surfcov(MultiFab& surfcov, const amrex::Real* dx)
             if (k==0) 
             {
                 amrex::Real Ntot = rint(surf_site_num_dens*dx[0]*dx[1]);  // total number of reactive sites
-                std::vector<int> Nocc(n_ads_spec);
+                GpuArray<int,MAX_SPECIES> Nocc;
                
                 for (int m=0;m<n_ads_spec;m++) Nocc[m] = 0;
 
