@@ -6,6 +6,7 @@ MUI_HOME ?= ../../src_mui/
 DEBUG         = FALSE
 USE_MPI       = TRUE
 USE_OMP       = FALSE
+USE_CUDA      = FALSE
 COMP          = gnu
 DIM           = 3
 TINY_PROFILE  = FALSE
@@ -14,8 +15,13 @@ USE_MUI       = TRUE
 USE_PARTICLES = FALSE
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
+
 VPATH_LOCATIONS   += .
 INCLUDE_LOCATIONS += .
+
+include ../../src_compressible_stag/Make.package
+VPATH_LOCATIONS   += ../../src_compressible_stag/
+INCLUDE_LOCATIONS += ../../src_compressible_stag/
 
 include ../../src_compressible/Make.package
 VPATH_LOCATIONS   += ../../src_compressible/

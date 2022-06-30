@@ -722,3 +722,28 @@ Vector<IBM_info> IBMarkerContainer::IBMarkerInfo(int lev, bool unique) const {
 
     return info;
 }
+
+
+
+void IBMarkerContainer::UpdatePIDMap() {
+    // Calls UpdatePIDMap from base class (IBMarkerContainerBase)
+    IBMarkerContainerBase<IBMReal, IBMInt>::UpdatePIDMap();
+
+    // Fill sorted_map based on the sorted ib flagellum list
+    Print() << "Hi There!" << std::endl;
+ 
+    Vector<int> ibs(getTotalNumIDs());
+    PullDownInt(0, ibs, IBMInt::cpu_1);    
+
+    for (int i = 0; i < ibs.size(); ++i) {
+            sorted_map.push_back(std::make_pair(ibs[i], i));
+    }       
+ 
+    sort(sorted_map.begin(), sorted_map.end());
+
+    Print() << "Flagellum number\t" << "index in PullDown Vector" << std::endl;
+    for (int i = 0; i < ibs.size(); i++) {
+             Print() << sorted_map[i].first << "\t" << sorted_map[i].second << std::endl;
+    }        
+}
+

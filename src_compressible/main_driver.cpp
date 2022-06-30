@@ -657,7 +657,7 @@ void main_driver(const char* argv)
 #endif
         if (n_ads_spec>0) {
 
-            update_MFsurfchem(cu, surfcov, dNadsdes, dx);
+            update_MFsurfchem(cu, prim, surfcov, dNadsdes, dx);
 
             conservedToPrimitive(prim, cu);
 

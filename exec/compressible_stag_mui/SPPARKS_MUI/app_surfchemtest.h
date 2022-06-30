@@ -55,7 +55,7 @@ class AppSurfchemtest : public AppLattice {
   // hence different in each cell and we do not use propensity variable
   // adding desorption reactions is exactly same as the first-order reaction case
   int none,ntwo,nthree,nads,ndes,ndissocads,nassocdes;
-  double *srate,*drate,*trate,*adsrate,*desrate,*dadsrate,*adesrate;
+  double *srate,*drate,*trate,*adsrate,*ads_beta,*desrate,*dadsrate,*adesrate; // beta implementation
   bool ads_is_rate,dads_is_rate;
   double *spropensity,*dpropensity,*tpropensity,*adespropensity;
   int *stype,**dtype,**ttype,*adstype,*destype,**dadstype,**adestype;
@@ -88,6 +88,8 @@ class AppSurfchemtest : public AppLattice {
   void mui_fetch(int,char **);
   void mui_push_agg(int,char **);
   void mui_fetch_agg(int,char **);
+  void mui_commit(int,char **);
+  void mui_forget(int,char **);
   double mui_fhd_lattice_size_x;
   double mui_fhd_lattice_size_y;
   double mui_kmc_lattice_offset_x;
