@@ -72,7 +72,7 @@ void init_surfcov(MultiFab& surfcov, const amrex::Real* dx)
         Dim3 hi = ubound(bx);
         const Array4<Real> & surfcov_arr = surfcov.array(mfi);
 
-        std::vector<amrex::Real> sum_surfcov0(n_ads_spec);
+        GpuArray<Real,MAX_SPECIES> sum_surfcov0;
         sum_surfcov0[0] = surfcov0[0];
         for (int m=1;m<n_ads_spec;m++)
             sum_surfcov0[m] = sum_surfcov0[m-1] + surfcov0[m];
