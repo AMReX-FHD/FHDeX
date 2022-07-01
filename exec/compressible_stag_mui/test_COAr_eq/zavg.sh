@@ -7,7 +7,7 @@ pltfile=${pltfiles[-1]}
 
 outfile=res.zavg
 
-$exec -p $pltfile -o $outfile -v 9 rhoVar rhoEVar TVarDirect jxVarFACE jyVarFACE jzVarFACE jxVarCC jyVarCC jzVarCC
+$exec -p $pltfile -o $outfile -v 9 rhoYkVar_0 rhoEVar TVarDirect jxVarFACE jyVarFACE jzVarFACE jxVarCC jyVarCC jzVarCC
 
 gnuplot zavg.plt
 eog zavg.png
