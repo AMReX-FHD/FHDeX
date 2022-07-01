@@ -93,7 +93,7 @@ label ts_loop
     # MPI_PUSH
     label jump_label2
     mui_push_agg ${ts} ac1 dc1
-    mui_push_agg ${ts} one occ1
+    mui_push_agg ${ts} occ1
     mui_commit ${ts}
 next ts 
 jump in.kmc ts_loop

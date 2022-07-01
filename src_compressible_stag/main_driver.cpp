@@ -166,8 +166,12 @@ void main_driver(const char* argv)
     MultiFab prim;
 
     // MFsurfchem
-    MultiFab surfcov;
+    MultiFab surfcov;       // also used in surfchem_mui for stats and plotfiles
     MultiFab dNadsdes;
+
+#ifdef MUI
+    MultiFab Ntot;          // saves total number of sites
+#endif
 
     //statistics    
     MultiFab cuMeans;
@@ -178,8 +182,8 @@ void main_driver(const char* argv)
 
     MultiFab coVars;
 
-    MultiFab surfcovMeans;
-    MultiFab surfcovVars;
+    MultiFab surfcovMeans;  // used in either MFsurfchem or surfchem_mui
+    MultiFab surfcovVars;   // used in either MFsurfchem or surfchem_mui
 
     std::array< MultiFab, AMREX_SPACEDIM > velMeans;
     std::array< MultiFab, AMREX_SPACEDIM > velVars;
@@ -642,6 +646,7 @@ void main_driver(const char* argv)
 
 #ifdef MUI
         surfcov.define(ba,dmap,nspec_mui,0);
+        Ntot.define(ba,dmap,1,0);
         nspec_surfcov = nspec_mui;
 #endif
 
@@ -866,7 +871,9 @@ void main_driver(const char* argv)
 #ifdef MUI
         mui_announce_send_recv_span(uniface,cu,dx);
 
-        mui_fetch_surfcov(surfcov, dx, uniface, 0);
+        mui_fetch_Ntot(Ntot, dx, uniface, 0);
+
+        mui_fetch_surfcov(Ntot, surfcov, dx, uniface, 0);
 
         mui_forget(uniface, 0);
 #endif
@@ -984,7 +991,7 @@ void main_driver(const char* argv)
 #ifdef MUI
         mui_fetch(cu, prim, dx, uniface, step);
 
-        mui_fetch_surfcov(surfcov, dx, uniface, step);
+        mui_fetch_surfcov(Ntot, surfcov, dx, uniface, step);
 
         mui_forget(uniface, step);
 
