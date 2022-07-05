@@ -45,6 +45,10 @@ void main_driver(const char* argv)
         Abort("nprimvars must be equal to AMREX_SPACEDIM + 3 + 2*nspecies");
     }
 
+    if (advection_type != 2) {
+        Abort("only interpolation of conserved quantities works for advective fluxes in the staggered code. this corresponds to advection_type = 2");
+    }
+
     // read the inputs file for chemistry
     InitializeChemistryNamespace();
 
