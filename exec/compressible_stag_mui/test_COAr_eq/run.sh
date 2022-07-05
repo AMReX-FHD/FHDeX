@@ -43,4 +43,3 @@ echo "mpirun -np 4 $exec1 -var SEED $SPKSEED -screen none < $SPKSCR : -np 1 $exe
 mpirun -np 4 $exec1 -var SEED $SPKSEED -screen none < $SPKSCR : -np 1 $exec2 $FHDSCR > log.fhd &
 
 echo "try \"tail -f log.fhd\""
-echo "try \"./coverage.sh"
