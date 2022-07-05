@@ -31,7 +31,7 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
     const int lev = 0;
     
     int ncon  = (nspecies+1)*5;
-    int nprim = (nspecies+1)*9;
+    int nprim = (nspecies+1)*10;
         
     for (FhdParIter pti(* this, lev); pti.isValid(); ++pti) {
         const int grid_id = pti.index();
@@ -69,6 +69,7 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
           6  - T   (T_ns)
           7  - P   (P_ns)
           8  - E   (E_ns)
+          9  - c   (c_ns) (per species only)
         */
 
 
@@ -103,7 +104,7 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
         {
             const IntVect& iv = {i,j,k};
             long imap = tile_box.index(iv);
-            int icon = 5; int iprim = 9; int icvl = 1;
+            int icon = 5; int iprim = 10; int icvl = 1;
             cvlInst(i,j,k,0) = 0;
 
 
@@ -196,7 +197,7 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
                 // E not correct
                 primInst(i,j,k,iprim+8) = 0.5*rho*vsqb+rho*cv*T;  // E_l
                 primInst(i,j,k,8) += primInst(i,j,k,iprim+8);
-                icon += 5; iprim += 9; icvl++;
+                icon += 5; iprim += 10; icvl++;
             }
             
             
@@ -228,6 +229,8 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
             vTemp /= massTotal;
             wTemp /= massTotal;
            
+            
+            //Total temperature
             primInst(i,j,k,6) = 0;
             
             for (int l=nspecies-1; l>=0; l--) {
@@ -273,6 +276,15 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
             Real vsqb = pow(u,2.)+pow(v,2.)+pow(w,2.);
             Real cv = cvlInst(i,j,k,0);
             
+            // Concentrations
+            primInst(i,j,k,9) = 1;
+            iprim = 10;
+            for (int l=0; l<nspecies; l++) {
+ 
+                primInst(i,j,k,iprim+9) = primInst(i,j,k,iprim+1)/primInst(i,j,k,1);                                   
+                iprim += 10;
+            }
+            
             
         });
 
@@ -285,7 +297,7 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
             const IntVect& iv = {i,j,k};
             long imap = tile_box.index(iv);
             
-
+            primMeans(i,j,k,9) = 1;
 
             for (int l=0; l<ncon; l++) {
                 cuMeans(i,j,k,l) = (cuMeans(i,j,k,l)*stepsMinusOne+cuInst(i,j,k,l))*osteps;
@@ -296,7 +308,7 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
             //primMeans(i,j,k,6) = 0.0;
             primMeans(i,j,k,7) = 0.0;
             primMeans(i,j,k,8) = 0.0;
-            int iprim = 9; int icon = 5; int icvl = 1;
+            int iprim = 10; int icon = 5; int icvl = 1;
             
             cvlMeans(i,j,k,0) = 0.;
             for(int l=0; l<nspecies; l++) { 
@@ -342,7 +354,9 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
                 primMeans(i,j,k,iprim+8) = vsqb*rho+cv*rho*T;
                 primMeans(i,j,k,8) += primMeans(i,j,k,iprim+8);
                 
-                iprim += 9; icon += 5; icvl++;
+                primMeans(i,j,k,l) = (primMeans(i,j,k,iprim+9)*stepsMinusOne+primInst(i,j,k,iprim+9))*osteps;                                   
+                
+                iprim += 10; icon += 5; icvl++;
             }
 
             // Evaluate Primitive Means from Conserved Means
@@ -388,6 +402,7 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
             tTemp = tTemp/(3.0*k_B*specTotal);
             
             primMeans(i,j,k,6)  = (primMeans(i,j,k,6)*stepsMinusOne+tTemp)*osteps;
+            
         });
 
         //////////////////////////////////////

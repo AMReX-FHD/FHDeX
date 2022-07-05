@@ -140,20 +140,17 @@ void mui_fetch(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface
     return;
 }
 
-void mui_fetch_surfcov(MultiFab& surfcov, const amrex::Real* dx, mui::uniface2d &uniface, const int step)
+void mui_fetch_Ntot(MultiFab& Ntot, const amrex::Real* dx, mui::uniface2d &uniface, const int step)
 {
-    // reset surfcov to zero
-    surfcov.setVal(0.);
-
     mui::sampler_kmc_fhd2d<int> s({dx[0],dx[1]});
     mui::chrono_sampler_exact2d t;
 
-    for (MFIter mfi(surfcov,false); mfi.isValid(); ++mfi)
+    for (MFIter mfi(Ntot,false); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
         Dim3 lo = lbound(bx);
         Dim3 hi = ubound(bx);
-        const Array4<Real> & surfcov_arr = surfcov.array(mfi);
+        const Array4<Real> & Ntot_arr = Ntot.array(mfi);
 
         // unless bx contains the bottom layer, there is nothing to update
         // however, to avoid memory leakage, we do an ad-hoc fix
@@ -168,7 +165,7 @@ void mui_fetch_surfcov(MultiFab& surfcov, const amrex::Real* dx, mui::uniface2d 
             continue;
         }
 
-        // if bx contains the bottom layer, need to update surfcov
+        // if bx contains the bottom layer, need to update Ntot
         for (int i = lo.x; i<=hi.x; ++i)
         {
             for (int j = lo.y; j<= hi.y; ++j)
@@ -176,8 +173,50 @@ void mui_fetch_surfcov(MultiFab& surfcov, const amrex::Real* dx, mui::uniface2d 
                 double x = prob_lo[0]+(i+0.5)*dx[0];
                 double y = prob_lo[1]+(j+0.5)*dx[1];
 
-                // total number of reactive sites
-                int Ntot = uniface.fetch("CH_one",{x,y},step,s,t);
+                Ntot_arr(i,j,k,0) = uniface.fetch("CH_one",{x,y},step,s,t);
+            }
+        }
+    }
+
+    return;
+}
+
+void mui_fetch_surfcov(MultiFab& Ntot, MultiFab& surfcov, const amrex::Real* dx, mui::uniface2d &uniface, const int step)
+{
+    // reset surfcov to zero
+    surfcov.setVal(0.);
+
+    mui::sampler_kmc_fhd2d<int> s({dx[0],dx[1]});
+    mui::chrono_sampler_exact2d t;
+
+    for (MFIter mfi(surfcov,false); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.tilebox();
+        Dim3 lo = lbound(bx);
+        Dim3 hi = ubound(bx);
+        const Array4<Real> & surfcov_arr = surfcov.array(mfi);
+        const Array4<Real> & Ntot_arr = Ntot.array(mfi);
+
+        // unless bx contains the bottom layer, there is nothing to update
+        // however, to avoid memory leakage, we do an ad-hoc fix
+        int k = 0;
+        if (k<lo.z || k>hi.z)
+        {
+            double x = prob_lo[0]+(lo.x+0.5)*dx[0];
+            double y = prob_lo[1]+(lo.y+0.5)*dx[1];
+
+            uniface.fetch("CH_occ",{x,y},step,s,t);
+
+            continue;
+        }
+
+        // if bx contains the bottom layer, need to update surfcov
+        for (int i = lo.x; i<=hi.x; ++i)
+        {
+            for (int j = lo.y; j<= hi.y; ++j)
+            {
+                double x = prob_lo[0]+(i+0.5)*dx[0];
+                double y = prob_lo[1]+(j+0.5)*dx[1];
 
                 // to compute surfcov for each species
                 // get the number of sites occupied by the species
@@ -188,7 +227,7 @@ void mui_fetch_surfcov(MultiFab& surfcov, const amrex::Real* dx, mui::uniface2d 
                     channel = "CH_occ";
                     channel += '0'+(n+1);   // assuming nspec_mui<10
                     int Nocc = uniface.fetch(channel,{x,y},step,s,t);
-                    surfcov_arr(i,j,k,n) = Nocc/(double)Ntot;
+                    surfcov_arr(i,j,k,n) = Nocc/Ntot_arr(i,j,k,0);
                 }
             }
         }

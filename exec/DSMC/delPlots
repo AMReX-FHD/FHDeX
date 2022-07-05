@@ -3,3 +3,4 @@ rm -r pltpart*
 rm -r pltprim*
 rm -r pltcu*
 rm -r spatialCross1D*
+rm -r plt_SF_prim_*
