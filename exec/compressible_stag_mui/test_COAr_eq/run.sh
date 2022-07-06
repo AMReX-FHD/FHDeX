@@ -1,7 +1,7 @@
 #!/bin/bash
 
 SPKSCR=in.kmc
-FHDSCR=inputs_fhd
+FHDSCR=inputs_fhd_stag
 SPKSEED=$RANDOM
 
 # check kmc executable
@@ -43,4 +43,3 @@ echo "mpirun -np 4 $exec1 -var SEED $SPKSEED -screen none < $SPKSCR : -np 1 $exe
 mpirun -np 4 $exec1 -var SEED $SPKSEED -screen none < $SPKSCR : -np 1 $exec2 $FHDSCR > log.fhd &
 
 echo "try \"tail -f log.fhd\""
-echo "try \"./coverage.sh"

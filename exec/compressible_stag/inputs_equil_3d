@@ -35,8 +35,8 @@
   visc_type = 2
 
   # Advection method
-  # if advection_type = 1, interpolate primitive quantities
   # if advection_type = 2, interpolate conserved quantities
+  # if advection_type = 1, interpolate primitive quantities
   advection_type = 2
 
   # Problem specification
