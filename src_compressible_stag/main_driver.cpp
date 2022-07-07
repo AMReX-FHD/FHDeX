@@ -870,7 +870,7 @@ void main_driver(const char* argv)
         }
         conservedToPrimitiveStag(prim, vel, cu, cumom);
 
-        if (n_ads_spec>0) init_surfcov(surfcov, dx);
+        if (n_ads_spec>0) init_surfcov(surfcov, geom);
 
 #ifdef MUI
         mui_announce_send_recv_span(uniface,cu,dx);
@@ -985,7 +985,7 @@ void main_driver(const char* argv)
 
         mui_commit(uniface, step);
 #endif
-        if (n_ads_spec>0) sample_MFsurfchem(cu, prim, surfcov, dNadsdes, dx, dt);
+        if (n_ads_spec>0) sample_MFsurfchem(cu, prim, surfcov, dNadsdes, geom, dt);
 
         // FHD
         RK3stepStag(cu, cumom, prim, vel, source, eta, zeta, kappa, chi, D, 
@@ -1018,7 +1018,7 @@ void main_driver(const char* argv)
 
         if (n_ads_spec>0) {
 
-            update_MFsurfchem(cu, prim, surfcov, dNadsdes, dx);
+            update_MFsurfchem(cu, prim, surfcov, dNadsdes, geom);
 
             for (int d=0; d<AMREX_SPACEDIM; d++) {
                 cumom[d].FillBoundary(geom.periodicity());

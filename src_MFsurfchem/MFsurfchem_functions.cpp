@@ -63,8 +63,11 @@ void InitializeMFSurfchemNamespace()
     return;
 }
 
-void init_surfcov(MultiFab& surfcov, const amrex::Real* dx)
+void init_surfcov(MultiFab& surfcov, const amrex::Geometry& geom)
 {
+
+    const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
+    
     for (MFIter mfi(surfcov,false); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
@@ -112,8 +115,11 @@ void init_surfcov(MultiFab& surfcov, const amrex::Real* dx)
 }
 
 void sample_MFsurfchem(MultiFab& cu, MultiFab& prim, MultiFab& surfcov, MultiFab& dNadsdes,
-                       const amrex::Real* dx, const amrex::Real dt)
+                       const amrex::Geometry& geom, const amrex::Real dt)
 {
+    
+    const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
+    
     for (MFIter mfi(cu,false); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
@@ -167,8 +173,10 @@ void sample_MFsurfchem(MultiFab& cu, MultiFab& prim, MultiFab& surfcov, MultiFab
 }
 
 void update_MFsurfchem(MultiFab& cu, MultiFab& prim, MultiFab& surfcov, MultiFab& dNadsdes,
-                       const amrex::Real* dx)
+                       const amrex::Geometry& geom)
 {
+    const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
+
     for (MFIter mfi(cu,false); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
@@ -180,7 +188,6 @@ void update_MFsurfchem(MultiFab& cu, MultiFab& prim, MultiFab& surfcov, MultiFab
         const Array4<Real> & dNadsdes_arr = dNadsdes.array(mfi);
 
         amrex::Real Ntot = surf_site_num_dens*dx[0]*dx[1];  // total number of reactive sites
-
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             if (k==0) {

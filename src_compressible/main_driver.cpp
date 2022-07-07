@@ -604,7 +604,7 @@ void main_driver(const char* argv)
     // initialize primitive variables
     conservedToPrimitive(prim, cu);
 
-    if (n_ads_spec>0) init_surfcov(surfcov, dx);
+    if (n_ads_spec>0) init_surfcov(surfcov, geom);
 
     // Set BC: 1) fill boundary 2) physical
     cu.FillBoundary(geom.periodicity());
@@ -638,7 +638,7 @@ void main_driver(const char* argv)
 #ifdef MUI
         mui_push(cu, prim, dx, uniface, step);
 #endif
-        if (n_ads_spec>0) sample_MFsurfchem(cu, prim, surfcov, dNadsdes, dx, dt);
+        if (n_ads_spec>0) sample_MFsurfchem(cu, prim, surfcov, dNadsdes, geom, dt);
 
         // FHD
         RK3step(cu, cup, cup2, cup3, prim, source, eta, zeta, kappa, chi, D, flux,
@@ -657,7 +657,7 @@ void main_driver(const char* argv)
 #endif
         if (n_ads_spec>0) {
 
-            update_MFsurfchem(cu, prim, surfcov, dNadsdes, dx);
+            update_MFsurfchem(cu, prim, surfcov, dNadsdes, geom);
 
             conservedToPrimitive(prim, cu);
 
