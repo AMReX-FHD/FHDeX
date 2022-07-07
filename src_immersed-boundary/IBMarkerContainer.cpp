@@ -729,9 +729,6 @@ void IBMarkerContainer::UpdatePIDMap() {
     // Calls UpdatePIDMap from base class (IBMarkerContainerBase)
     IBMarkerContainerBase<IBMReal, IBMInt>::UpdatePIDMap();
 
-    // Fill sorted_map based on the sorted ib flagellum list
-    Print() << "Hi There!" << std::endl;
- 
     Vector<int> ibs(getTotalNumIDs());
     PullDownInt(0, ibs, IBMInt::cpu_1);    
 
@@ -744,6 +741,18 @@ void IBMarkerContainer::UpdatePIDMap() {
     Print() << "Flagellum number\t" << "index in PullDown Vector" << std::endl;
     for (int i = 0; i < ibs.size(); i++) {
              Print() << sorted_map[i].first << "\t" << sorted_map[i].second << std::endl;
-    }        
-}
+    }
 
+    //Create a reduced vector storing only the beginning index of each flagellum in the sorted map 
+  
+    int n_ibs =1 + ibs[std::distance(ibs.begin(), std::max_element(ibs.begin(), ibs.end()))];
+    
+    for (int i=0; i<n_ibs; i++) {    
+	    reduced_map.push_back(std::distance(sorted_map.begin(), std::find_if(sorted_map.begin(), sorted_map.end(), [&](const auto& pair) { return pair.first == i; })));
+    }
+
+    Print() << "Flagellum number\t" << "Beginning index in the sorted map" << std::endl;
+    for (int i = 0; i < n_ibs; i++) {
+             Print() << i << "\t" << reduced_map[i] << std::endl;
+    }
+}

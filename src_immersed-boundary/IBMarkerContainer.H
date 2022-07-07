@@ -225,6 +225,11 @@ public:
         return sorted_map;
     }
 
+    const Vector<int> & get_reduced_map() const {
+        return reduced_map;
+    }
+
+
     void UpdatePIDMap();
 
 
@@ -247,6 +252,7 @@ private:
 
     int n_list;
     Vector<std::pair<int, int>> sorted_map;
+    Vector<int> reduced_map;
 };
 
 
