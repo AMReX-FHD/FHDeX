@@ -28,14 +28,20 @@ using namespace SPPARKS_NS;
 
 int main(int argc, char **argv)
 {
-  //MPI_Init(&argc,&argv);
 #ifdef MUI
   MPI_Comm comm = mui::mpi_split_by_app(argc,argv);
   mui::uniface2d uniface( "mpi://KMC-side/FHD-KMC-coupling" );
-  //SPPARKS *spk = new SPPARKS(argc,argv,MPI_COMM_WORLD);
+#ifdef SLURM
+  // expected args for MUI-SLURM: exec %t %o inputs_file ...
+  // since %t and %o were already used by mpi_split_by_app
+  // we remove them from args list
+  argc -= 2;
+  for (int i=1;i<argc;i++) argv[i] = argv[i+2];
+#endif
   SPPARKS *spk = new SPPARKS(argc,argv,comm);
   spk->uniface = &uniface;
 #else
+  // nonmui
   MPI_Init(&argc,&argv);
   SPPARKS *spk = new SPPARKS(argc,argv,MPI_COMM_WORLD);
 #endif

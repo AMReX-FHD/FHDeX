@@ -6,12 +6,12 @@ SHELL = /bin/sh
 # compiler/linker settings
 # specify flags and libraries needed for your compiler
 
-CC = CC
+CC = mpicxx
 CCFLAGS = -O -std=c++11
 SHFLAGS = -fPIC
 DEPFLAGS = -M
 
-LINK = CC	
+LINK = mpicxx
 LINKFLAGS = -O
 LIB =
 SIZE = size
