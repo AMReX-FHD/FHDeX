@@ -241,10 +241,10 @@ Real integral(Real beta_in, int w_in)
 
 struct KernelES
 {
-    KernelES(Real beta_in, int w_in) : beta(beta_in), w(w_in) {}
+    //KernelES(Real beta_in, int w_in) : beta(beta_in), w(w_in) {}
 
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
-    Real operator() (Real r_in) const noexcept
+    Real operator() (Real r_in, Real beta, int w) const noexcept
     {
         Real kernel_es;
         Real r = r_in;
@@ -264,9 +264,9 @@ struct KernelES
         return kernel_es;
     }
 
-    private:
-        Real beta;
-        int w;
+    //private:
+    //    Real beta;
+    //    int w;
 
 };
 #endif

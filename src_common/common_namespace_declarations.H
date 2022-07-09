@@ -53,8 +53,8 @@ amrex::Vector<int>         common::dof;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::hcv;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::hcp;
 
-amrex::Real                common::variance_coef_mom;
-amrex::Real                common::variance_coef_mass;
+AMREX_GPU_MANAGED amrex::Real common::variance_coef_mom;
+AMREX_GPU_MANAGED amrex::Real common::variance_coef_mass;
 AMREX_GPU_MANAGED amrex::Real common::k_B;
 AMREX_GPU_MANAGED amrex::Real common::Runiv;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::T_init;
@@ -67,7 +67,7 @@ int                        common::seed_diffusion;
 int                        common::seed_reaction;
 int                        common::seed_init_mass;
 int                        common::seed_init_momentum;
-amrex::Real                common::visc_coef;
+AMREX_GPU_MANAGED amrex::Real common::visc_coef;
 AMREX_GPU_MANAGED int      common::visc_type;
 int                        common::advection_type;
 int                        common::filtering_width;
@@ -80,14 +80,14 @@ amrex::Real                common::initial_variance_mass;
 amrex::Real                common::domega;
 
 
-amrex::Vector<int>         common::bc_vel_lo;
-amrex::Vector<int>         common::bc_vel_hi;
-amrex::Vector<int>         common::bc_es_lo;
-amrex::Vector<int>         common::bc_es_hi;
-amrex::Vector<int>         common::bc_mass_lo;
-amrex::Vector<int>         common::bc_mass_hi;
-amrex::Vector<int>         common::bc_therm_lo;
-amrex::Vector<int>         common::bc_therm_hi;
+AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>         common::bc_vel_lo;
+AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>         common::bc_vel_hi;
+AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>         common::bc_es_lo;
+AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>         common::bc_es_hi;
+AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>         common::bc_mass_lo;
+AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>         common::bc_mass_hi;
+AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>         common::bc_therm_lo;
+AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>         common::bc_therm_hi;
 
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::p_lo;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::p_hi;
@@ -164,10 +164,10 @@ int                        common::poisson_max_iter;
 amrex::Real                common::poisson_rel_tol;
 AMREX_GPU_MANAGED amrex::Real common::permittivity;
 int                        common::induced_charge_eo;
-int                        common::zero_eps_on_wall_type;
+AMREX_GPU_MANAGED int         common::zero_eps_on_wall_type;
 AMREX_GPU_MANAGED amrex::Real common::zero_eps_wall_left_end;
 AMREX_GPU_MANAGED amrex::Real common::zero_eps_wall_right_start;
-int                        common::wall_mob;
+AMREX_GPU_MANAGED int         common::wall_mob;
 
 amrex::Real                common::particle_grid_refine;
 amrex::Real                common::es_grid_refine;
@@ -179,7 +179,7 @@ int                        common::es_tog;
 int                        common::drag_tog;
 int                        common::move_tog;
 int                        common::rfd_tog;
-int                        common::dry_move_tog;
+AMREX_GPU_MANAGED int      common::dry_move_tog;
 AMREX_GPU_MANAGED int      common::sr_tog;
 int                        common::graphene_tog;
 int	                   common::thermostat_tog;
@@ -188,9 +188,9 @@ int	                   common::zero_net_force;
 int                        common::crange;
 
 AMREX_GPU_MANAGED int      common::images;
-amrex::Vector<amrex::Real> common::eamp;
-amrex::Vector<amrex::Real> common::efreq;
-amrex::Vector<amrex::Real> common::ephase;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::eamp;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::efreq;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::ephase;
 
 int                        common::plot_ascii;
 int                        common::plot_means;

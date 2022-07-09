@@ -1,6 +1,6 @@
 namespace common {
 
-#define MAX_SPECIES 4
+#define MAX_SPECIES 8
     
     // misc global variables
     extern amrex::IntVect nodal_flag;
@@ -70,8 +70,8 @@ namespace common {
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> hcp;
 
     // stochastic forcing amplitudes (1 for physical values, 0 to run them off)
-    extern amrex::Real                variance_coef_mom;
-    extern amrex::Real                variance_coef_mass;
+    extern AMREX_GPU_MANAGED amrex::Real variance_coef_mom;
+    extern AMREX_GPU_MANAGED amrex::Real variance_coef_mass;
     extern AMREX_GPU_MANAGED amrex::Real k_B;
     extern AMREX_GPU_MANAGED amrex::Real Runiv;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> T_init;
@@ -103,7 +103,7 @@ namespace common {
     // if abs(visc_type) = 3, L = div [ beta (grad + grad^T) + I (gamma - (2/3)*beta) div ]
     // positive = assume constant coefficients
     // negative = assume spatially-varying coefficients
-    extern amrex::Real                visc_coef;
+    extern AMREX_GPU_MANAGED amrex::Real visc_coef;
     extern AMREX_GPU_MANAGED int      visc_type;
 
     // Stochastic momentum flux controls:
@@ -124,29 +124,29 @@ namespace common {
     // -1 = periodic
     //  1 = slip
     //  2 = no-slip
-    extern amrex::Vector<int>          bc_vel_lo;
-    extern amrex::Vector<int>          bc_vel_hi;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>          bc_vel_lo;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>          bc_vel_hi;
 
     // BC specifications:
     // -1 = periodic
     //  1 = Dirichlet
     //  2 = Neumann
-    extern amrex::Vector<int>          bc_es_lo;
-    extern amrex::Vector<int>          bc_es_hi;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>          bc_es_lo;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>          bc_es_hi;
 
     // BC specifications:
     // -1 = periodic
     //  1 = wall
     //  2 = reservoir (Dirichlet values must be suppled by other means)
-    extern amrex::Vector<int>          bc_mass_lo;
-    extern amrex::Vector<int>          bc_mass_hi;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>          bc_mass_lo;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>          bc_mass_hi;
 
     // BC specifications:
     // -1 = periodic
     //  1 = adiabatic
     //  2 = isothermal
-    extern amrex::Vector<int>          bc_therm_lo;
-    extern amrex::Vector<int>          bc_therm_hi;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>          bc_therm_lo;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>          bc_therm_hi;
 
     // Pressure drop are periodic inflow/outflow walls (bc_[hi,lo]=-2).
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> p_lo;
@@ -228,10 +228,10 @@ namespace common {
 
     extern AMREX_GPU_MANAGED amrex::Real permittivity;
     extern int                        induced_charge_eo;
-    extern int                        zero_eps_on_wall_type;
+    extern AMREX_GPU_MANAGED int         zero_eps_on_wall_type;
     extern AMREX_GPU_MANAGED amrex::Real zero_eps_wall_left_end;
     extern AMREX_GPU_MANAGED amrex::Real zero_eps_wall_right_start;
-    extern int                        wall_mob;
+    extern AMREX_GPU_MANAGED int         wall_mob;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES*MAX_SPECIES> rmin;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES*MAX_SPECIES> rmax;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES*MAX_SPECIES> eepsilon;
@@ -261,7 +261,7 @@ namespace common {
     extern int                        drag_tog;
     extern int                        move_tog;
     extern int                        rfd_tog;
-    extern int                        dry_move_tog;
+    extern AMREX_GPU_MANAGED int      dry_move_tog;
     extern AMREX_GPU_MANAGED int      sr_tog;
     extern int                        graphene_tog;
     extern int                        crange;
@@ -269,9 +269,9 @@ namespace common {
     extern int                        zero_net_force;
 
     extern AMREX_GPU_MANAGED int      images;
-    extern amrex::Vector<amrex::Real> eamp;
-    extern amrex::Vector<amrex::Real> efreq;
-    extern amrex::Vector<amrex::Real> ephase;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> eamp;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> efreq;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> ephase;
 
     extern int                        plot_ascii;
     extern int                        plot_means;

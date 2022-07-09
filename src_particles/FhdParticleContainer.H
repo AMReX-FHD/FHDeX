@@ -102,6 +102,7 @@ struct FHD_intData {
         species,
         visible,
         pinned,
+	newSpecies,
         count
     };
 
@@ -224,7 +225,7 @@ public:
                                     const std::array<MultiFab, AMREX_SPACEDIM>& RealFaceCoords,
                                     std::array<MultiFab, AMREX_SPACEDIM>& source,
                                     std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
-                                    const paramPlane* paramPlaneList, const int paramPlaneCount, int sw);
+                                    paramPlane* paramPlaneList, const int paramPlaneCount, int sw);
 
 
     void SpreadIons(const Real dt, const Real* dxFluid, const Real* dxE, const Geometry geomF,

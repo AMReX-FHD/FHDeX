@@ -3,6 +3,7 @@
 
 #include <AMReX.H>
 #include <AMReX_MultiFab.H>
+#include <common_namespace.H>
 
 using namespace amrex;
 
@@ -92,8 +93,19 @@ typedef struct {
     double specularityRight;
     double temperatureRight;
     double momentumConsRight;
+    double densityRight[MAX_SPECIES];
+
+    double massFluxRight[MAX_SPECIES];
+    double massFluxLeft[MAX_SPECIES];
+
+    double sourceLeft;
+    double sourceRight;
+
+    double sinkLeft;
+    double sinkRight;
 
     double periodicity;
+    double area;
 
     double fxLeft;
     double fyLeft;
@@ -112,6 +124,8 @@ typedef struct {
     double fzRightAv;
 
     int boundary;
+
+    double species[5];
 
     double tension;
     double stiffness;
