@@ -6,7 +6,7 @@
 
 #include <IBMarkerMD.H>
 
-#include <bits/stdc++.h>
+// #include <bits/stdc++.h>
 
 using namespace amrex;
 
@@ -155,7 +155,7 @@ void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
     for (auto & x:fz) x = 0.;
 
     // Get sorted ibs list
-    std::vector<std::pair<int, int>> sorted_ibs = ib_mc.get_sorted_map();    
+    std::vector<std::tuple<int, int, int>> sorted_ibs = ib_mc.get_sorted_map();
     std::vector<int> reduced_ibs = ib_mc.get_reduced_map();
 
     int index_start = 0;
@@ -171,18 +171,57 @@ void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
     	Real k_spr  = ib_flagellum::k_spring[i_ib];
     	Real k_driv = ib_flagellum::k_driving[i_ib]; 
 
+        for (int ind = index_start; ind <(index_start + N - 1); ++ind){
+            int i_0 = IBMarkerContainer::storage_idx(sorted_ibs[ind]);
+            int i_1 = IBMarkerContainer::storage_idx(sorted_ibs[ind+1]);
+
+            // Print() << "I_0 = " << i_0 << " I_1 = " << i_1 << " PL = " << geom.ProbLength(0)/2 << std::endl;
+
+            if ((pos_x[i_1] - pos_x[i_0]) < -geom.ProbLength(0)/2) {
+                // Print() << "X " << pos_x[i_1] << "-" << pos_x[i_0] << "=" << pos_x[i_1] - pos_x[i_0] << std::endl;
+                pos_x[i_1] = pos_x[i_1] + geom.ProbLength(0);
+                // Print() << "X " << pos_x[i_1] << std::endl;
+            }
+
+            if ((pos_x[i_1] - pos_x[i_0]) > geom.ProbLength(0)/2) {
+                // Print() << "X " << pos_x[i_1] << "-" << pos_x[i_0] << "=" << pos_x[i_1] - pos_x[i_0] << std::endl;
+                pos_x[i_1] = pos_x[i_1] - geom.ProbLength(0);
+                // Print() << "X " << pos_x[i_1] << std::endl;
+            }
+
+            if ((pos_y[i_1] - pos_y[i_0]) < -geom.ProbLength(1)/2) {
+                pos_y[i_1] = pos_y[i_1] + geom.ProbLength(1);
+            }
+
+            if ((pos_y[i_1] - pos_y[i_0]) > geom.ProbLength(1)/2) {
+                pos_y[i_1] = pos_y[i_1] - geom.ProbLength(1);
+            }
+
+            if ((pos_z[i_1] - pos_z[i_0]) < -geom.ProbLength(2)/2) {
+                pos_z[i_1] = pos_z[i_1] + geom.ProbLength(2);
+            }
+
+            if ((pos_z[i_1] - pos_z[i_0]) > geom.ProbLength(2)/2) {
+                pos_z[i_1] = pos_z[i_1] - geom.ProbLength(2);
+            }
+        }
+
+
         for (int ind=index_start; ind < index_start+N; ++ind ) {    //going through the sorted ibs index
 
                 //Getting index for the current marker in the PullDown Vectors
-                int i_c = sorted_ibs[ind].second;
+                int i_c = IBMarkerContainer::storage_idx(sorted_ibs[ind]);
 
-                if(sorted_ibs[ind].first != i_ib) Abort("Mismatched flagella detected in predictor!!! flee for your lunch!");
+                if(IBMarkerContainer::immbdy_idx(sorted_ibs[ind]) != i_ib) {
+                    Print() << IBMarkerContainer::immbdy_idx(sorted_ibs[ind]) << " i_ib = " << i_ib << std::endl;
+                    Abort("Mismatched flagella detected in predictor!!! flee for your lunch!");
+                }
 
                 if(ind>index_start and ind<index_start+N-1) {   //exclude the first and last marker on the flagellum that doesn't have either next or previous marker
                        //Getting indexes for the previous/minus and next/plus markers in the PullDown Vectors
 
-                        int i_p = sorted_ibs[ind+1].second;
-                        int i_m = sorted_ibs[ind-1].second;
+                        int i_p = IBMarkerContainer::storage_idx(sorted_ibs[ind+1]);
+                        int i_m = IBMarkerContainer::storage_idx(sorted_ibs[ind-1]);
 
                         RealVect      pos = {pos_x[i_c],   pos_y[i_c],   pos_z[i_c]};
                         RealVect next_pos = {pos_x[i_p],   pos_y[i_p],   pos_z[i_p]};
@@ -219,8 +258,8 @@ void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
  
  				Print() << "Updating bending forces..." << std::endl;
 
-                                int i_p = sorted_ibs[ind+1].second;
-                                int i_m = sorted_ibs[ind-1].second;
+                                int i_p = IBMarkerContainer::storage_idx(sorted_ibs[ind+1]);
+                                int i_m = IBMarkerContainer::storage_idx(sorted_ibs[ind-1]);
 
                                 RealVect      pos = {pos_x[i_c], pos_y[i_c], pos_z[i_c]};
                                 RealVect next_pos = {pos_x[i_p], pos_y[i_p], pos_z[i_p]};
@@ -267,7 +306,7 @@ void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
 
             //int i_c = id + std::distance(sorted_ibs.begin(), std::find_if(sorted_ibs.begin(), sorted_ibs.end(), [&](const auto& pair) { return pair.first == i_ib; }));
 
-	    int i_c = sorted_ibs[id + reduced_ibs[i_ib]].second; 
+	    int i_c = IBMarkerContainer::storage_idx(sorted_ibs[id + reduced_ibs[i_ib]]);
 
 	    Print() << "Adding forces to particles..." << std::endl;
 
@@ -475,8 +514,8 @@ Vector<RealVect> equil_pos(
     Real nx, ny;
     next_node_z(nx, ny, x, y, tx, ty, l_link);
     // Compute periodic offset. Will work as long as winding number = 1
-    Real x_period = x;
-    Real y_period = y;
+    Real x_period = nx;
+    Real y_period = ny;
     if (geom.isPeriodic(0))
         x_period = x < geom.ProbHi(0) ? nx : nx - geom.ProbLength(0);
     if (geom.isPeriodic(1))
