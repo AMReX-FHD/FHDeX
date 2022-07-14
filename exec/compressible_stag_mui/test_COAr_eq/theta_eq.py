@@ -34,11 +34,11 @@ sol2 = (-b+math.sqrt(b**2-4*a*c))/2/a
 
 dtheta_eq = Ntot/(Ntot+Ncellz*meandens*dv/meantheta/(1-meantheta))*dtheta0
 
-print "theta0    = %f" % surfcov0
-print "theta_bar = %f" % meantheta
+print("theta0    = %f" % surfcov0)
+print("theta_bar = %f" % meantheta)
 
-print "dtheta0   = %f (%.2f%%)" % (dtheta0,dtheta0/meantheta*100)
-print "dtheta_eq = %f (%.2f%%)" % (dtheta_eq,dtheta_eq/meantheta*100)
-print "sol1 sol2 = %f %f" % (sol1,sol2)
+print("dtheta0   = %f (%.2f%%)" % (dtheta0,dtheta0/meantheta*100))
+print("dtheta_eq = %f (%.2f%%)" % (dtheta_eq,dtheta_eq/meantheta*100))
+print("sol1 sol2 = %f %f" % (sol1,sol2))
 
-print "theta_eq  = %f" % (meantheta+dtheta_eq)
+print("theta_eq  = %f" % (meantheta+dtheta_eq))
