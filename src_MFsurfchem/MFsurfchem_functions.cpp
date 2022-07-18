@@ -63,7 +63,6 @@ void InitializeMFSurfchemNamespace()
 
     stoch_MFsurfchem = 1; // default value
     pp.query("stoch_MFsurfchem",stoch_MFsurfchem);
-    
     return;
 }
 
