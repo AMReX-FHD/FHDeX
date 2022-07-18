@@ -12,7 +12,6 @@ AMREX_GPU_MANAGED GpuArray<amrex::Real, MAX_SPECIES> MFsurfchem::des_rate;
 AMREX_GPU_MANAGED int MFsurfchem::stoch_surfcov0;
 AMREX_GPU_MANAGED int MFsurfchem::stoch_MFsurfchem;
 
-
 // temperature correction exponent
 #define BETA    0.5
 
