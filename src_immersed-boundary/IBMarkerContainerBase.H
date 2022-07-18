@@ -81,7 +81,7 @@ public:
     // Get the next particle ID -- can be used to find the number of particles
     // initialized on this GPU already
     int NextID() {
-        return ParticleType::NextID();
+        return ParticleType::the_next_id;
     }
 
     const Gpu::ManagedDeviceVector<int> & getNumIDs() {

@@ -221,7 +221,19 @@ public:
                                   bool unique = false) const;
     Vector<IBM_info> IBMarkerInfo(int lev, bool unique = false) const;
 
-    const Vector<std::pair<int, int>> & get_sorted_map() const {
+    static int immbdy_idx(const std::tuple<int, int, int> & t) {
+        return std::get<0>(t);
+    }
+
+    static int marker_idx(const std::tuple<int, int, int> & t) {
+        return std::get<1>(t);
+    }
+
+    static int storage_idx(const std::tuple<int, int, int> & t) {
+        return std::get<2>(t);
+    }
+
+    const Vector<std::tuple<int, int, int>> & get_sorted_map() const {
         return sorted_map;
     }
 
@@ -251,7 +263,7 @@ public:
 private:
 
     int n_list;
-    Vector<std::pair<int, int>> sorted_map;
+    Vector<std::tuple<int, int, int>> sorted_map;
     Vector<int> reduced_map;
 };
 
