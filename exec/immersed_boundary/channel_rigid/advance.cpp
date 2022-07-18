@@ -160,7 +160,8 @@ void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
     for (int i=0; i<AMREX_SPACEDIM; i++) {
         umac[i].FillBoundary(geom.periodicity());
         MultiFabPhysBCDomainVel(umac[i], i, geom, i);
-        MultiFabPhysBCMacVel(umac[i], i, geom, i);
+        int is_inhomogeneous = 1;
+        MultiFabPhysBCMacVel(umac[i], i, geom, i, is_inhomogeneous);
     }
 
 
@@ -378,7 +379,8 @@ void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
         // momentum boundary conditions
         uMom[d].FillBoundary(geom.periodicity());
         MultiFabPhysBCDomainVel(uMom[d], d, geom, d);
-        MultiFabPhysBCMacVel(uMom[d], d, geom, d);
+        int is_inhomogeneous = 1;
+        MultiFabPhysBCMacVel(uMom[d], d, geom, d, is_inhomogeneous);
     }
 
     // advective momentum flux terms
@@ -471,7 +473,8 @@ void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
      for (int d=0; d<AMREX_SPACEDIM; d++) {
         umacNew[d].FillBoundary(geom.periodicity());
         MultiFabPhysBCDomainVel(umacNew[d], d, geom, d);
-        MultiFabPhysBCMacVel(umacNew[d], d, geom, d);
+        int is_inhomogeneous = 1;
+        MultiFabPhysBCMacVel(umacNew[d], d, geom, d, is_inhomogeneous);
 
         MultiFab::Copy(uMom[d], umacNew[d], 0, 0, 1, 1);
 
@@ -481,7 +484,8 @@ void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
         // momentum boundary conditions
         uMom[d].FillBoundary(geom.periodicity());
         MultiFabPhysBCDomainVel(uMom[d], d, geom, d);
-        MultiFabPhysBCMacVel(uMom[d], d, geom, d);
+        int is_inhomogeneous = 1;
+        MultiFabPhysBCMacVel(uMom[d], d, geom, d, is_inhomogeneous);
      }
 
     // advective momentum flux terms

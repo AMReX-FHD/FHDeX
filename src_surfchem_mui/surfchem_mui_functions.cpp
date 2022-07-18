@@ -3,8 +3,6 @@
 
 AMREX_GPU_MANAGED int surfchem_mui::nspec_mui;
 
-AMREX_GPU_MANAGED GpuArray<amrex::Real, MAX_SPECIES> surfchem_mui::mom_inertia;
-
 void InitializeSurfChemMUINamespace()
 {
     // extract inputs parameters
@@ -12,11 +10,6 @@ void InitializeSurfChemMUINamespace()
 
     // number of species involved in mui (via adsorption/desorption)
     pp.get("nspec_mui",nspec_mui);
-
-    // get moment of inertia (used only for diatomic molecules with dof = 5 and e0 = 0)
-    std::vector<amrex::Real> mi_tmp(MAX_SPECIES);
-    pp.getarr("mom_inertia",mi_tmp,0,nspec_mui);
-    for (int n=0; n<nspec_mui; n++) mom_inertia[n] = mi_tmp[n];
 
     return;
 }
@@ -58,12 +51,6 @@ void mui_push(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface2
 
                     uniface.push(channel,{x,y},dens);
                 }
-
-                channel = "CH_temp";
-                uniface.push(channel,{x,y},prim_arr(i,j,k,4));
-
-                channel = "CH_Vz";
-                uniface.push(channel,{x,y},prim_arr(i,j,k,3));
             }
         }
     }
@@ -71,54 +58,6 @@ void mui_push(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface2
     uniface.commit(step);
 
     return;
-}
-
-// Ref: Garcia and Wagner
-//      Generation of the Maxwellian inflow distribution
-//      J. Comput. Phys. 217, 693-708 (2006)
-// see Table 1 (page 705)
-// Here we assume the normal direction is z
-// input: a = Vz/vT where vT=sqrt(2kT/m)
-// output: z --> compute vz=(a-z)*vT
-double sample_Maxwell_inflow_normal(double a)
-{
-    double z;
-
-    if (a<=0)
-    {
-        while (true)
-        {
-            z = -sqrt(a*a-log(Random()));
-            if ((a-z)/(-z)>Random()) break;
-        }
-    }
-    else
-    {
-        double arpi = a*sqrt(M_PI);
-
-        while (true)
-        {
-            double u = Random();
-
-            if (arpi/(arpi+1+a*a) > u)
-            {
-                z = -fabs(RandomNormal(0.,1.))/sqrt(2.);
-                break;
-            }
-            else if ((arpi+1)/(arpi+1+a*a) > u)
-            {
-                z = -sqrt(-log(Random()));
-                break;
-            }
-            else
-            {
-                z = (1-sqrt(Random()))*a;
-                if (exp(-z*z)>Random()) break;
-            }
-        }
-    }
-
-    return z;
 }
 
 void mui_fetch(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface2d &uniface, const int step)
@@ -159,13 +98,6 @@ void mui_fetch(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface
                 double y = prob_lo[1]+(j+0.5)*dx[1];
                 double dV = dx[0]*dx[1]*dx[2];
 
-                double Vx = prim_arr(i,j,k,1);
-                double Vy = prim_arr(i,j,k,2);
-                double Vz = prim_arr(i,j,k,3);
-
-                double temp_gas = prim_arr(i,j,k,4);
-                double temp_wall = t_lo[2];
-
                 for (int n = 0; n < nspec_mui; ++n)
                 {
                     std::string channel;
@@ -181,95 +113,10 @@ void mui_fetch(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface
 
                     double mass = molmass[n]/AVONUM;
 
-                    double vT = sqrt(2*k_B*temp_gas/mass);
-                    double aratio = Vz/vT;
-                    double kBTm_gas = k_B*temp_gas/mass;
-                    double sqrtkBTm_gas = sqrt(kBTm_gas);
-
-                    double kBTm_wall = k_B*temp_wall/mass;
-                    double sqrtkBTm_wall = sqrt(kBTm_wall);
-
-                    double vx,vy,vz;
-                    double dmomx,dmomy,dmomz,derg;
-
-                    dmomx = dmomy = dmomz = derg = 0.;
-
-                    // sample incoming velocities and compute translational energy change
-                    for (int l=0;l<ac;l++)
-                    {
-                        //vx = RandomNormal(0.,sqrtkBTm_gas);
-                        //vy = RandomNormal(0.,sqrtkBTm_gas);
-                        //vz = sqrt(-2.*kBTm_gas*log(1.-Random()));
-                        vx = Vx + RandomNormal(0.,sqrtkBTm_gas);
-                        vy = Vy + RandomNormal(0.,sqrtkBTm_gas);
-                        vz = (aratio-sample_Maxwell_inflow_normal(aratio))*vT;
-
-                        dmomx -= mass*vx;
-                        dmomy -= mass*vy;
-                        dmomz -= mass*vz;
-                        derg  -= 0.5*mass*(vx*vx+vy*vy+vz*vz);
-                    }
-
-                    // sample outgoing velocities and compute translational energy change
-                    for (int l=0;l<dc;l++)
-                    {
-                        vx = RandomNormal(0.,sqrtkBTm_wall);
-                        vy = RandomNormal(0.,sqrtkBTm_wall);
-                        vz = sqrt(-2.*kBTm_wall*log(1.-Random()));
-
-                        dmomx += mass*vx;
-                        dmomy += mass*vy;
-                        dmomz += mass*vz;
-                        derg  += 0.5*mass*(vx*vx+vy*vy+vz*vz);
-                    }
-
-                    // sample non-translational energy change
-                    if (e0[n]!=0.)
-                    {
-                        amrex::Abort("Currently, only the case with e0 = 0 is implemented.");
-                    }
-
-                    if (dof[n]!=3 && dof[n]!=5)
-                    {
-                        amrex::Abort("Currently, only the monoatomic and diatomic cases are implemented.");
-                    }
-
-                    if (dof[n]==5 && e0[n]==0.)
-                    // in this case (i.e. diatomic molecules), non-translational energy = rotational energy
-                    // in the monoatomic case, non-translational energy = 0
-                    {
-                        double kBTI_gas = k_B*temp_gas/mom_inertia[n];
-                        double kBTI_wall = k_B*temp_wall/mom_inertia[n];
-                        double sqrtkBTI_gas = sqrt(kBTI_gas);
-                        double sqrtkBTI_wall = sqrt(kBTI_wall);
-                        double omegax,omegay;
-
-                        for (int l=0;l<ac;l++)
-                        {
-                            // angular velocity (diatomic)
-                            omegax = RandomNormal(0.,sqrtkBTI_gas);
-                            omegay = RandomNormal(0.,sqrtkBTI_gas);
-                            derg -= 0.5*mom_inertia[n]*(omegax*omegax+omegay*omegay);
-                        }
-
-                        for (int l=0;l<dc;l++)
-                        {
-                            // angular velocity (diatomic)
-                            omegax = RandomNormal(0.,sqrtkBTI_wall);
-                            omegay = RandomNormal(0.,sqrtkBTI_wall);
-                            derg += 0.5*mom_inertia[n]*(omegax*omegax+omegay*omegay);
-                        }
-                    }
-
                     // update
 
                     cu_arr(i,j,k,0) += (dc-ac)*mass/dV;
                     cu_arr(i,j,k,5+n) += (dc-ac)*mass/dV;
-
-                    cu_arr(i,j,k,1) += dmomx/dV;
-                    cu_arr(i,j,k,2) += dmomy/dV;
-                    cu_arr(i,j,k,3) += dmomz/dV;
-                    cu_arr(i,j,k,4) += derg/dV;
                 }
             }
         }

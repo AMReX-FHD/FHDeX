@@ -1,0 +1,113 @@
+# random number seed
+# 0 = unpredictable seed based on clock
+# positive = fixed seed
+seed = 0
+
+# Problem specification
+prob_lo = 0.0 0.0 0.0 # physical lo coordinate
+prob_hi = 6.72e-05 5.819691e-05 6.72e-05 # physical hi coordinate
+
+# Number of ghost cells, conserved, and primitive variables
+# ---------------------
+ngc = 2 2 2
+nvars = 7
+nprimvars = 10
+
+# number of cells in domain
+n_cells = 8 8 8
+# max number of cells in a box
+max_grid_size = 4 4 4
+
+# Time-step control
+fixed_dt = 1.e-12
+
+# Controls for number of steps between actions
+
+max_step = 1000000
+plot_int = 100000
+
+# Multispecies toggle
+# if algorithm_type = 1, single component
+# if algorithm_type = 2, multispecies
+algorithm_type = 2
+
+# Viscous tensor form
+# if visc_type = 1, L = not-symmetric (bulk viscosity = 0)
+# if visc_type = 2, L = symmetric (bulk viscosity = 0)
+# if visc_type = 3, L = symmetric + bulk viscosity
+visc_type = 2
+
+# Advection method
+# if advection_type = 1, interpolate primitive quantities
+# if advection_type = 2, interpolate conserved quantities
+advection_type = 1
+
+transport_type = 1
+
+# Problem specification
+# if prob_type = 1, constant species concentration
+# if prob_type = 2, Rayleigh-Taylor instability
+# if prob_type = 3, diffusion barrier
+prob_type = 1
+
+# Initial parameters
+k_B = 1.38064852e-16	# [units: cm2*g*s-2*K-1]
+T_init = 1000
+rho0 = 4.766943e-04
+
+struct_fact_int = 0
+n_steps_skip = 100000
+
+# Boundary conditions:
+# NOTE: setting bc_vel to periodic sets all the other bc's to periodic)
+# bc_vel:   -1 = periodic
+#            1 = slip
+#            2 = no-slip
+# bc_mass:  -1 = periodic
+#            1 = wall
+#            2 = reservoir (set bc_Yk or bc_Xk in compressible namelist)
+# bc_therm: -1 = periodic
+#            1 = adiabatic
+#            2 = isothermal (set with t_lo/hi in common namelist)
+bc_vel_lo   = -1 -1 2
+bc_vel_hi   = -1 -1 2
+bc_mass_lo  = -1 -1 1
+bc_mass_hi  = -1 -1 1
+bc_therm_lo = -1 -1 2
+bc_therm_hi = -1 -1 2
+
+# Temperature if thermal BC specified
+t_hi = 1000 1000 1000
+t_lo = 1000 1000 1000
+
+#Kinetic species info
+#--------------
+nspecies = 2
+
+molmass = 28.01 39.95
+diameter = 3.76e-8 3.63e-8
+rhobar = 0.05 0.95
+
+# Enter negative dof to use hcv & hcp values
+dof = 5 3
+hcv = -1 -1
+hcp = -1 -1
+
+plot_means = 1
+plot_vars = 1
+
+# MFsurfchem
+
+# adsorption species number (starting from 0)
+# ads_spec = -1 (no adsorption species)
+ads_spec = 0
+
+# initial surface coverage
+surfcov0 = 2.053333e-01
+# number density of adsorption sites on the lattice
+surf_site_num_dens = 1.472832e+15
+
+# adsorption rate = ads_rate_const * num_dens
+# desoprtion rate = des_rate
+ads_rate_const = 1.475765e-11
+des_rate = 2.926784e+07

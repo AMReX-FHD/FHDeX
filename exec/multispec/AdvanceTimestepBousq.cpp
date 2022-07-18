@@ -214,7 +214,7 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     
     // here is a reasonable place to call something to compute in reversible stress term
     // in this case want to get divergence so it looks like a add to rhs for stokes solver
-    if (use_multiphase == 1 ) {
+    if (use_multiphase) {
 
         // compute reversible stress tensor ---added term
         ComputeDivReversibleStress(div_reversible_stress,rhotot_old,rho_old,geom);
@@ -267,7 +267,8 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         // set normal velocity of physical domain boundaries
         MultiFabPhysBCDomainVel(umac[i],geom,i);
         // set transverse velocity behind physical boundaries
-        MultiFabPhysBCMacVel(umac[i],geom,i);
+        int is_inhomogeneous = 1;
+        MultiFabPhysBCMacVel(umac[i],geom,i,is_inhomogeneous);
         // fill periodic and interior ghost cells
         umac[i].FillBoundary(geom.periodicity());
     }
@@ -338,7 +339,8 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         // set normal velocity of physical domain boundaries
         MultiFabPhysBCDomainVel(umac[i],geom,i);
         // set transverse velocity behind physical boundaries
-        MultiFabPhysBCMacVel(umac[i],geom,i);
+        int is_inhomogeneous = 1;
+        MultiFabPhysBCMacVel(umac[i],geom,i,is_inhomogeneous);
         // fill periodic and interior ghost cells
         umac[i].FillBoundary(geom.periodicity());
     }
@@ -647,7 +649,8 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         // set normal velocity of physical domain boundaries
         MultiFabPhysBCDomainVel(umac[i],geom,i);
         // set transverse velocity behind physical boundaries
-        MultiFabPhysBCMacVel(umac[i],geom,i);
+        int is_inhomogeneous = 1;
+        MultiFabPhysBCMacVel(umac[i],geom,i,is_inhomogeneous);
         // fill periodic and interior ghost cells
         umac[i].FillBoundary(geom.periodicity());
     }
@@ -709,7 +712,8 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         // set normal velocity of physical domain boundaries
         MultiFabPhysBCDomainVel(umac[i],geom,i);
         // set transverse velocity behind physical boundaries
-        MultiFabPhysBCMacVel(umac[i],geom,i);
+        int is_inhomogeneous = 1;
+        MultiFabPhysBCMacVel(umac[i],geom,i,is_inhomogeneous);
         // fill periodic and interior ghost cells
         umac[i].FillBoundary(geom.periodicity());
     }

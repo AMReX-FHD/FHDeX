@@ -7,7 +7,7 @@ USE_MPI   = TRUE
 USE_OMP   = FALSE
 USE_CUDA  = FALSE
 COMP      = gnu
-DIM       = 3
+DIM       = 2
 DSMC      = FALSE
 
 TINY_PROFILE = TRUE

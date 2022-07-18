@@ -2,8 +2,7 @@
 
   # Problem specification
   prob_lo = 0.      0.       0. # physical lo coordinate
-  #prob_hi = 9.6e-7 9.6e-7 9.6e-7  # physical hi coordinate
-  prob_hi = 1.2e-6 1.2e-6 1.2e-6  # physical hi coordinate
+  prob_hi = 4.8e-6 2.4e-6 2.4e-6  # physical hi coordinate
 
   # cell_depth = 0.5e-7
 
@@ -12,21 +11,20 @@
   
   # number of cells in domain
   #n_cells = 192 192
-  #n_cells = 192 192 192
-  n_cells = 24 24 24
+  n_cells = 96 48 48
   #n_cells = 8 8
   # max number of cells in a box
-  max_grid_size = 96 96 96
-  #max_grid_size = 24 24 24
+  #max_grid_size = 96 96 96
+  max_grid_size = 24 24 24
 
   # Time-step control
   fixed_dt = 1.e-14
 
   # Controls for number of steps between actions
-  max_step = 100000
-  plot_int = 100
+  max_step = 300000
+  plot_int = 1000
   chk_int = 1000
-  restart = -1
+  restart = 283000
 
   # Viscous friction L phi operator
   # if abs(visc_type) = 1, L = div beta grad
@@ -82,7 +80,7 @@
   fh_monomers = 1. 1.
   monomer_mass = 2.4e-22
   use_flory_huggins = 1
-  fh_chi = 0. 25. 25. 0.
+  fh_chi = 0. 10. 10. 0.
   fh_kappa = 0. 4.e-14 4.e-14 0.
 
   rhobar = 1.38 1.38     # pure component densities for all species

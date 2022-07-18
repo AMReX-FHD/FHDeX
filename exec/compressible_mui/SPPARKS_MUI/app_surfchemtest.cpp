@@ -73,7 +73,6 @@ AppSurfchemtest::AppSurfchemtest(SPPARKS *spk, int narg, char **arg) :
 
   ads_is_rate = false;
   dads_is_rate = false;
-  des_is_temp_dep = false;
 
   // reaction lists
   none = ntwo = nthree = nads = ndes = ndissocads = nassocdes = 0;
@@ -344,11 +343,7 @@ void AppSurfchemtest::input_app(char *command, int narg, char **arg)
       nads++;
       
     } else if (rstyle == 5) {   // desorption
-      if (narg < 5 || narg > 6) error->all(FLERR,"Illegal event command");
-      if (narg == 6) {
-        if (strcmp(arg[5],"temp_dep") == 0) des_is_temp_dep = true;
-        else error->all(FLERR,"Illegal event commnd");
-      }
+      if (narg != 5) error->all(FLERR,"Illegal event command");
       if (strcmp(arg[1],"siteA") == 0) destype[ndes] = SITEA;
       else if (strcmp(arg[1],"siteB") == 0) destype[ndes] = SITEB;
       else if (strcmp(arg[1],"siteC") == 0) destype[ndes] = SITEC;
@@ -762,27 +757,11 @@ double AppSurfchemtest::site_propensity(int i)
     if (ads_is_rate) adspropensity = adsrate[m];
     else
     {
-      // propensity for adsorption = adsrate * num_dens * temp_correction * Vz_correction
-
-      // 1. adsrate * num_dens
       if (adsoutput[m]==SPEC1) adspropensity = adsrate[m]*density1[i];
       else if (adsoutput[m]==SPEC2) adspropensity = adsrate[m]*density2[i];
       else if (adsoutput[m]==SPEC3) adspropensity = adsrate[m]*density3[i];
       else if (adsoutput[m]==SPEC4) adspropensity = adsrate[m]*density4[i];
       else if (adsoutput[m]==SPEC5) adspropensity = adsrate[m]*density5[i];
-
-      // 2. temperature correction
-      adspropensity *= sqrt(temp[i]/temperature);
-
-      // 3. Vz correction
-      // Ref: Garcia and Wagner
-      //      Generation of the Maxwellian inflow distribution
-      //      J. Comput. Phys. 217, 693-708 (2006)
-      // see the last equation in page 703
-      // Here we assume the normal direction is z
-      double vT = sqrt(2*1.38064852e-16*temp[i]/4.65116981903e-23);
-      double aratio = Vz[i]/vT;
-      adspropensity *= exp(-aratio*aratio) + sqrt(M_PI)*aratio*(1+erf(aratio));
     }
 
     add_event(i,4,m,adspropensity,-1,-1);
@@ -796,11 +775,7 @@ double AppSurfchemtest::site_propensity(int i)
   for (m = 0; m < ndes; m++) {
     if (type[i] != destype[m] || element[i] != desinput[m]) continue;
 
-    if (des_is_temp_dep)
-    {
-      despropensity = desrate[m]*std::sqrt(temp[i]/temperature);
-    }
-    else despropensity = desrate[m];
+    despropensity = desrate[m];
 
     add_event(i,5,m,despropensity,-1,-1);
     proball += despropensity;

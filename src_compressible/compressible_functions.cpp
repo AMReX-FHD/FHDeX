@@ -79,7 +79,7 @@ void GetHcGas() {
 
 
 void InitConsVar(MultiFab& cons,
-                 const amrex::Geometry geom) {
+                 const amrex::Geometry& geom) {
 
     const Real* dx_host = geom.CellSize();
     const RealBox& realDomain = geom.ProbDomain();

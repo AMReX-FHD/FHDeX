@@ -18,7 +18,7 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
              std::array<MultiFab, AMREX_SPACEDIM>& corny,
              std::array<MultiFab, AMREX_SPACEDIM>& cornz,
              MultiFab& visccorn, MultiFab& rancorn, MultiFab& ranchem,
-             const amrex::Geometry geom, const amrex::Real dt)
+             const amrex::Geometry& geom, const amrex::Real dt)
 {
     BL_PROFILE_VAR("RK3step()",RK3step);
     

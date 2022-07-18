@@ -6,7 +6,7 @@
 
 void WritePlotFileStag(int step,
                        const amrex::Real time,
-                       const amrex::Geometry geom,
+                       const amrex::Geometry& geom,
                        const amrex::MultiFab& cu,
                        const amrex::MultiFab& cuMeans,
                        const amrex::MultiFab& cuVars,
@@ -58,12 +58,12 @@ void WritePlotFileStag(int step,
     // variances
     // cu: [rho, jx, jy, jz, rhoE, rhoYk] -- nvars
     // shifted [jx, jy, jz] -- 3
-    // prim: [vx, vy, vz, T, Yk, gvar, kgcross, krcorss, rgcross] -- 8 + nspecies
+    // prim: [vx, vy, vz, Tdirect, Yk, gvar, kgcross, krcorss, rgcross, T] -- 9 + nspecies
     // shifted: [vx, vy, vz] -- 3
     if (plot_vars == 1) {
         nplot += nvars;
         nplot += 3;
-        nplot += 8 + nspecies;
+        nplot += 9 + nspecies;
         nplot += 3;
     }
    
@@ -187,6 +187,9 @@ void WritePlotFileStag(int step,
         // <delrho delg>
         amrex::MultiFab::Copy(plotfile,primVars,nprimvars+3,cnt,1,0);
         ++cnt;
+        // <delT delT> -- direct computation
+        amrex::MultiFab::Copy(plotfile,primVars,nprimvars+4,cnt,1,0);
+        ++cnt;
 
         // shifted: [vx, vy, vz] -- 3
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
@@ -305,7 +308,7 @@ void WritePlotFileStag(int step,
         varNames[cnt++] = "uxVarCC";
         varNames[cnt++] = "uyVarCC";
         varNames[cnt++] = "uzVarCC";
-        varNames[cnt++] = "TVar";
+        varNames[cnt++] = "TVarDirect";
 
         x = "YkVar_";
         for (i=0; i<nspecies; i++) {
@@ -317,6 +320,7 @@ void WritePlotFileStag(int step,
         varNames[cnt++] = "g-energy";
         varNames[cnt++] = "rho-energy";
         varNames[cnt++] = "rho-g";
+        varNames[cnt++] = "TVar";
 
         varNames[cnt++] = "uxVarFACE";
         varNames[cnt++] = "uyVarFACE";

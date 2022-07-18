@@ -56,7 +56,7 @@ class AppSurfchemtest : public AppLattice {
   // adding desorption reactions is exactly same as the first-order reaction case
   int none,ntwo,nthree,nads,ndes,ndissocads,nassocdes;
   double *srate,*drate,*trate,*adsrate,*desrate,*dadsrate,*adesrate;
-  bool ads_is_rate,dads_is_rate,des_is_temp_dep;
+  bool ads_is_rate,dads_is_rate;
   double *spropensity,*dpropensity,*tpropensity,*adespropensity;
   int *stype,**dtype,**ttype,*adstype,*destype,**dadstype,**adestype;
   int *sinput,**dinput,**tinput,*adsinput,*desinput,**dadsinput,**adesinput;

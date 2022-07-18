@@ -3,7 +3,7 @@
 
 void InitConsVarStag(MultiFab& cons,
                      std::array< MultiFab, AMREX_SPACEDIM >& momStag,
-                     const amrex::Geometry geom) {
+                     const amrex::Geometry& geom) {
 
     const Real* dx_host = geom.CellSize();
     const RealBox& realDomain = geom.ProbDomain();
