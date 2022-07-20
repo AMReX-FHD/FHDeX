@@ -9,6 +9,7 @@ AMREX_GPU_MANAGED amrex::Real MFsurfchem::surf_site_num_dens;
 AMREX_GPU_MANAGED GpuArray<amrex::Real, MAX_SPECIES> MFsurfchem::ads_rate_const;
 AMREX_GPU_MANAGED GpuArray<amrex::Real, MAX_SPECIES> MFsurfchem::des_rate;
 
+AMREX_GPU_MANAGED int MFsurfchem::stoch_surfcov0;
 AMREX_GPU_MANAGED int MFsurfchem::stoch_MFsurfchem;
 
 // temperature correction exponent
@@ -57,9 +58,11 @@ void InitializeMFSurfchemNamespace()
         for (int m=0;m<n_ads_spec;m++) des_rate[m] = des_rate_tmp[m];
     }
 
+    stoch_surfcov0 = 1; // default value
+    pp.query("stoch_surfcov0",stoch_surfcov0);
+
     stoch_MFsurfchem = 1; // default value
     pp.query("stoch_MFsurfchem",stoch_MFsurfchem);
-
     return;
 }
 
@@ -68,6 +71,13 @@ void init_surfcov(MultiFab& surfcov, const amrex::Geometry& geom)
 
     const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
     
+    GpuArray<Real,MAX_SPECIES> sum_surfcov0;
+    if (stoch_surfcov0==1) {
+        sum_surfcov0[0] = surfcov0[0];
+        for (int m=1;m<n_ads_spec;m++)
+            sum_surfcov0[m] = sum_surfcov0[m-1] + surfcov0[m];
+    }
+
     for (MFIter mfi(surfcov,false); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
@@ -75,37 +85,30 @@ void init_surfcov(MultiFab& surfcov, const amrex::Geometry& geom)
         Dim3 hi = ubound(bx);
         const Array4<Real> & surfcov_arr = surfcov.array(mfi);
 
-        GpuArray<Real,MAX_SPECIES> sum_surfcov0;
-        sum_surfcov0[0] = surfcov0[0];
-        for (int m=1;m<n_ads_spec;m++)
-            sum_surfcov0[m] = sum_surfcov0[m-1] + surfcov0[m];
-
         amrex::ParallelForRNG(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k, RandomEngine const& engine) noexcept
         {
-            if (k==0) 
-            {
-                amrex::Real Ntot = rint(surf_site_num_dens*dx[0]*dx[1]);  // total number of reactive sites
-                GpuArray<int,MAX_SPECIES> Nocc;
+            if (k==0) {
+                if (stoch_surfcov0==1) {
+                    amrex::Real Ntot = rint(surf_site_num_dens*dx[0]*dx[1]);  // total number of reactive sites
+                    GpuArray<int,MAX_SPECIES> Nocc;
                
-                for (int m=0;m<n_ads_spec;m++) Nocc[m] = 0;
+                    for (int m=0;m<n_ads_spec;m++) Nocc[m] = 0;
 
-                for (int n=0;n<Ntot;n++) 
-                {
-                    amrex::Real u = amrex::Random(engine);
-                    for (int m=0;m<n_ads_spec;m++)
-                    {
-                        if (u<sum_surfcov0[m])
-                        {
-                            Nocc[m]++;
-                            break;
+                    for (int n=0;n<Ntot;n++) {
+                        amrex::Real u = amrex::Random(engine);
+                        for (int m=0;m<n_ads_spec;m++) {
+                            if (u<sum_surfcov0[m]) {
+                                Nocc[m]++;
+                                break;
+                            }
                         }
                     }
-                }
 
-                for (int m=0;m<n_ads_spec;m++) surfcov_arr(i,j,k,m) = Nocc[m]/Ntot;
-            } 
-            else 
-            {
+                    for (int m=0;m<n_ads_spec;m++) surfcov_arr(i,j,k,m) = Nocc[m]/Ntot;
+                } else {
+                    for (int m=0;m<n_ads_spec;m++) surfcov_arr(i,j,k,m) = surfcov0[m];
+                }
+            } else {
                 for (int m=0;m<n_ads_spec;m++) surfcov_arr(i,j,k,m) = 0.;
             }
         });
