@@ -6,13 +6,13 @@
 
 #include <IBMarkerMD.H>
 
+// #include <bits/stdc++.h>
+
 using namespace amrex;
 
 using namespace immbdy;
 using namespace immbdy_md;
 using namespace ib_flagellum;
-
-
 
 void constrain_ibm_marker(IBMarkerContainer & ib_mc, int ib_lev, int component) {
 
@@ -62,7 +62,6 @@ void anchor_first_marker(IBMarkerContainer & ib_mc, int ib_lev, int component) {
 
     BL_PROFILE_VAR_STOP(TIMER_ANCHOR_FIRST_MARKER);
 }
-
 
 
 Real theta(Real amp_ramp, Real time, int i_ib, int index_marker) {
@@ -138,14 +137,30 @@ void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
     Vector<int> ibs(ib_mc.getTotalNumIDs());
     ib_mc.PullDownInt(0, ibs, IBMInt::cpu_1);
 
+    Print() << "real_id = ";
+    for (auto & i:ids) Print() << i << " ";
+    Print() << std::endl;
+
+    Print() << "number of flagellum = ";
+    for (auto & i:ibs) Print() << i << " ";
+    Print() << std::endl;
+   
+
     //Vectors for storing forces in each direction
     Vector<Real> fx(ib_mc.getTotalNumIDs());
+    for (auto & x:fx) x = 0.;
     Vector<Real> fy(ib_mc.getTotalNumIDs());
+    for (auto & x:fy) x = 0.;
     Vector<Real> fz(ib_mc.getTotalNumIDs());
+    for (auto & x:fz) x = 0.;
 
-    int id_start = 0;
+    // Get sorted ibs list
+    std::vector<std::tuple<int, int, int>> sorted_ibs = ib_mc.get_sorted_map();
+    std::vector<int> reduced_ibs = ib_mc.get_reduced_map();
 
-    for (int i_ib=0; i_ib < n_immbdy; ++i_ib) {
+    int index_start = 0;
+
+    for (int i_ib=0; i_ib < n_immbdy; ++i_ib) {   
 
         if (n_marker[i_ib] <= 0) continue;
 
@@ -154,71 +169,124 @@ void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
     	Real l_link = L/(N-1);
 
     	Real k_spr  = ib_flagellum::k_spring[i_ib];
-    	Real k_driv = ib_flagellum::k_driving[i_ib];    
-	
-	for (int i_id=id_start; i_id < id_start+N; ++i_id ) {
+    	Real k_driv = ib_flagellum::k_driving[i_ib]; 
 
-		if(ibs[i_id] != i_ib) Abort("mismatched flagella detected in predictor!!! flee for your lunch!");	
-                
-		if(i_id>id_start and i_id<id_start+N-1) {   //exclude the first and last markers on the flagellum that doesn't have either next or previous marker
-			RealVect      pos = {pos_x[i_id],   pos_y[i_id],   pos_z[i_id]};
-			RealVect next_pos = {pos_x[i_id+1], pos_y[i_id+1], pos_z[i_id+1]};
-			RealVect prev_pos = {pos_x[i_id-1], pos_y[i_id-1], pos_z[i_id-1]};
-		
-			RealVect r_p = next_pos - pos, r_m = pos - prev_pos;
+        for (int ind = index_start; ind <(index_start + N - 1); ++ind){
+            int i_0 = IBMarkerContainer::storage_idx(sorted_ibs[ind]);
+            int i_1 = IBMarkerContainer::storage_idx(sorted_ibs[ind+1]);
 
-                	Real lp_m = r_m.vectorLength(),         lp_p = r_p.vectorLength();
-                	Real fm_0 = k_spr * (lp_m-l_link)/lp_m, fp_0 = k_spr * (lp_p-l_link)/lp_p;
+            // Print() << "I_0 = " << i_0 << " I_1 = " << i_1 << " PL = " << geom.ProbLength(0)/2 << std::endl;
 
-			//update spring forces between previous/minus and current markers 
-                	fx[i_id-1] += fm_0 * r_m[1];   fy[i_id-1] += fm_0 * r_m[2];   fz[i_id-1] += fm_0 * r_m[3];  
-                	fx[i_id]   -= fm_0 * r_m[1];   fy[i_id]   -= fm_0 * r_m[2];   fz[i_id]   -= fm_0 * r_m[3];
+            if ((pos_x[i_1] - pos_x[i_0]) < -geom.ProbLength(0)/2) {
+                // Print() << "X " << pos_x[i_1] << "-" << pos_x[i_0] << "=" << pos_x[i_1] - pos_x[i_0] << std::endl;
+                pos_x[i_1] = pos_x[i_1] + geom.ProbLength(0);
+                // Print() << "X " << pos_x[i_1] << std::endl;
+            }
 
-   			//update spring forces between next/plus and current markers
-                	fx[i_id]   += fp_0 * r_p[1];   fy[i_id]   += fp_0 * r_p[2];   fz[i_id]   += fp_0 * r_p[3];
-                	fx[i_id+1] -= fp_0 * r_p[1];   fy[i_id+1] -= fp_0 * r_p[2];   fz[i_id+1] -= fp_0 * r_p[3];
-        	}
+            if ((pos_x[i_1] - pos_x[i_0]) > geom.ProbLength(0)/2) {
+                // Print() << "X " << pos_x[i_1] << "-" << pos_x[i_0] << "=" << pos_x[i_1] - pos_x[i_0] << std::endl;
+                pos_x[i_1] = pos_x[i_1] - geom.ProbLength(0);
+                // Print() << "X " << pos_x[i_1] << std::endl;
+            }
 
-            // update bending forces for curent, minus/prev, and next/plus
-        	if(immbdy::contains_fourier) {  //for periodic waveform of flagellum in Fourier series
-                	Vector<RealVect> marker_positions = equil_pos(i_ib, time, geom);
-                	//int marker_seq_id                 = mark.idata(IBMInt::id_1);
-                	RealVect target_pos               = marker_positions[ids[i_id]];
-		
-			fx[i_id] += k_driv*(target_pos[1] - pos_x[i_id]);
-                        fy[i_id] += k_driv*(target_pos[2] - pos_y[i_id]);
-                        fz[i_id] += k_driv*(target_pos[3] - pos_z[i_id]);
-		  
-                } else {                        // for harmonic waveform of Taylor lines  
-                    
-		    	if(i_id>id_start and i_id<id_start+N-1) {   //exclude the first and last markers on the flagellum that doesn't have either next or previous marker
+            if ((pos_y[i_1] - pos_y[i_0]) < -geom.ProbLength(1)/2) {
+                pos_y[i_1] = pos_y[i_1] + geom.ProbLength(1);
+            }
 
-	                        RealVect      pos = {pos_x[i_id],   pos_y[i_id],   pos_z[i_id]};
-        	                RealVect next_pos = {pos_x[i_id+1], pos_y[i_id+1], pos_z[i_id+1]};
-                	        RealVect prev_pos = {pos_x[i_id-1], pos_y[i_id-1], pos_z[i_id-1]};
+            if ((pos_y[i_1] - pos_y[i_0]) > geom.ProbLength(1)/2) {
+                pos_y[i_1] = pos_y[i_1] - geom.ProbLength(1);
+            }
 
-				const RealVect & r = pos, & r_m = prev_pos, & r_p = next_pos;
+            if ((pos_z[i_1] - pos_z[i_0]) < -geom.ProbLength(2)/2) {
+                pos_z[i_1] = pos_z[i_1] + geom.ProbLength(2);
+            }
 
-				// Set bending forces to zero before passing to 'driving_f'
-            		        RealVect f_p = RealVect{AMREX_D_DECL(0., 0., 0.)};
-                    		RealVect f   = RealVect{AMREX_D_DECL(0., 0., 0.)};
-                    		RealVect f_m = RealVect{AMREX_D_DECL(0., 0., 0.)};
+            if ((pos_z[i_1] - pos_z[i_0]) > geom.ProbLength(2)/2) {
+                pos_z[i_1] = pos_z[i_1] - geom.ProbLength(2);
+            }
+        }
 
-                    		// calling the active bending force calculation
 
-                    		Real th = theta(
-                            			driv_amp, time, i_ib, ids[i_id] - 1
-                        		       );
-                    		driving_f(f, f_p, f_m, r, r_p, r_m, driv_u, th, k_driv);
+        for (int ind=index_start; ind < index_start+N; ++ind ) {    //going through the sorted ibs index
 
-		                // updating the force on the minus, current, and plus particles.
-                 		fx[i_id-1] += f_m[1];   fy[i_id-1] += f_m[2];   fz[i_id-1] += f_m[3];
-                                fx[i_id]   += f[1];     fy[i_id]   += f[2];     fz[i_id]  += f[3];
-                                fx[i_id+1] += f_p[1];   fy[i_id+1] += f_p[2];   fz[i_id+1] += f_p[3];
-                         } 
-		}
+                //Getting index for the current marker in the PullDown Vectors
+                int i_c = IBMarkerContainer::storage_idx(sorted_ibs[ind]);
+
+                if(IBMarkerContainer::immbdy_idx(sorted_ibs[ind]) != i_ib) {
+                    Print() << IBMarkerContainer::immbdy_idx(sorted_ibs[ind]) << " i_ib = " << i_ib << std::endl;
+                    Abort("Mismatched flagella detected in predictor!!! flee for your lunch!");
+                }
+
+                if(ind>index_start and ind<index_start+N-1) {   //exclude the first and last marker on the flagellum that doesn't have either next or previous marker
+                       //Getting indexes for the previous/minus and next/plus markers in the PullDown Vectors
+
+                        int i_p = IBMarkerContainer::storage_idx(sorted_ibs[ind+1]);
+                        int i_m = IBMarkerContainer::storage_idx(sorted_ibs[ind-1]);
+
+                        RealVect      pos = {pos_x[i_c],   pos_y[i_c],   pos_z[i_c]};
+                        RealVect next_pos = {pos_x[i_p],   pos_y[i_p],   pos_z[i_p]};
+                        RealVect prev_pos = {pos_x[i_m],   pos_y[i_m],   pos_z[i_m]};
+
+                        RealVect r_p = next_pos - pos, r_m = pos - prev_pos;
+
+                        Real lp_m = r_m.vectorLength(),         lp_p = r_p.vectorLength();
+                        Real fm_0 = k_spr * (lp_m-l_link)/lp_m, fp_0 = k_spr * (lp_p-l_link)/lp_p;
+
+			Print() << "Updating spring forces..." << std::endl;
+
+                        //update spring forces between previous/minus and current markers
+                        fx[i_m] += fm_0 * r_m[0];   fy[i_m] += fm_0 * r_m[1];   fz[i_m] += fm_0 * r_m[2];
+                        fx[i_c] -= fm_0 * r_m[0];   fy[i_c] -= fm_0 * r_m[1];   fz[i_c] -= fm_0 * r_m[2];
+
+                        //update spring forces between next/plus and current markers
+                        fx[i_c] += fp_0 * r_p[0];   fy[i_c] += fp_0 * r_p[1];   fz[i_c] += fp_0 * r_p[2];
+                        fx[i_p] -= fp_0 * r_p[0];   fy[i_p] -= fp_0 * r_p[1];   fz[i_p] -= fp_0 * r_p[2];
+                }
+
+                // update bending forces for curent, minus/prev, and next/plus
+                if(immbdy::contains_fourier) {  //for periodic waveform of flagellum in Fourier series
+			Vector<RealVect> marker_positions = equil_pos(i_ib, time, geom);
+                        RealVect target_pos = marker_positions[ids[i_c]];
+
+                        fx[i_c] += k_driv*(target_pos[0] - pos_x[i_c]);
+                        fy[i_c] += k_driv*(target_pos[1] - pos_y[i_c]);
+                        fz[i_c] += k_driv*(target_pos[2] - pos_z[i_c]);
+
+                } else {                        // for harmonic waveform of Taylor lines
+
+                        if(ind>index_start and ind<index_start+N-1) {   //exclude the first and last markers on the flagellum that doesn't have either next or previous marker
+ 
+ 				Print() << "Updating bending forces..." << std::endl;
+
+                                int i_p = IBMarkerContainer::storage_idx(sorted_ibs[ind+1]);
+                                int i_m = IBMarkerContainer::storage_idx(sorted_ibs[ind-1]);
+
+                                RealVect      pos = {pos_x[i_c], pos_y[i_c], pos_z[i_c]};
+                                RealVect next_pos = {pos_x[i_p], pos_y[i_p], pos_z[i_p]};
+                                RealVect prev_pos = {pos_x[i_m], pos_y[i_m], pos_z[i_m]};
+
+                                const RealVect & r = pos, & r_m = prev_pos, & r_p = next_pos;
+
+                                // Set bending forces to zero before passing to 'driving_f'
+                                RealVect f_p = RealVect{AMREX_D_DECL(0., 0., 0.)};
+                                RealVect f   = RealVect{AMREX_D_DECL(0., 0., 0.)};
+                                RealVect f_m = RealVect{AMREX_D_DECL(0., 0., 0.)};
+
+                                // calling the active bending force calculation
+
+                                Real th = theta(
+                                                driv_amp, time, i_ib, ids[i_c] - 1
+                                               );
+                                driving_f(f, f_p, f_m, r, r_p, r_m, driv_u, th, k_driv);
+
+                                // updating the force on the minus, current, and plus particles.
+                                fx[i_m] += f_m[0];   fy[i_m] += f_m[1];   fz[i_m] += f_m[2];
+                                fx[i_c] += f[0];     fy[i_c] += f[1];     fz[i_c] += f[2];
+                                fx[i_p] += f_p[0];   fy[i_p] += f_p[1];   fz[i_p] += f_p[2];
+                         }
+                }
        }
-       id_start += N;
+       index_start += N;
     }	
 		
     // Fianlly, Iterating through all markers and add forces
@@ -236,17 +304,15 @@ void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
             int i_ib    = mark.idata(IBMInt::cpu_1);  // flagellum #
             int N       = ib_flagellum::n_marker[i_ib];
 
-            //find the right ib flagellum (# sorted already) in the pulled-down vector
-	    std::vector<int>::iterator gx = std::find(ibs.begin(), ibs.end(), i_ib);
-	    if (gx != ibs.end()) Print() << "Good news: Flagellum " << i_ib << " Found in PullDown Vector!" << std::endl;
-		else                   Abort("Bad news: Flagellum Not Found in PullDown Vector!");
-	    int start_index = std::distance(ibs.begin(), gx);
+            //int i_c = id + std::distance(sorted_ibs.begin(), std::find_if(sorted_ibs.begin(), sorted_ibs.end(), [&](const auto& pair) { return pair.first == i_ib; }));
 
-	    if(ids[id_start] > 0) Abort("mismatched markers/flagella detected in predictor!!! flee for your lunch!");
+	    int i_c = IBMarkerContainer::storage_idx(sorted_ibs[id + reduced_ibs[i_ib]]);
 
-	    mark.rdata(IBMReal::forcex) += fx[start_index + id];
-            mark.rdata(IBMReal::forcey) += fy[start_index + id];
-            mark.rdata(IBMReal::forcez) += fz[start_index + id];
+	    Print() << "Adding forces to particles..." << std::endl;
+
+	    mark.rdata(IBMReal::forcex) += fx[i_c];
+            mark.rdata(IBMReal::forcey) += fy[i_c];
+            mark.rdata(IBMReal::forcez) += fz[i_c];
 	}
     }
     BL_PROFILE_VAR_STOP(UpdateForces);
@@ -448,8 +514,8 @@ Vector<RealVect> equil_pos(
     Real nx, ny;
     next_node_z(nx, ny, x, y, tx, ty, l_link);
     // Compute periodic offset. Will work as long as winding number = 1
-    Real x_period = x;
-    Real y_period = y;
+    Real x_period = nx;
+    Real y_period = ny;
     if (geom.isPeriodic(0))
         x_period = x < geom.ProbHi(0) ? nx : nx - geom.ProbLength(0);
     if (geom.isPeriodic(1))

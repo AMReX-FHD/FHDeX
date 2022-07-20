@@ -1,19 +1,32 @@
-#include <chrono>
+#include <main_driver.H>
+#include <main_driver_F.H>
 
-#include <AMReX.H>
-#include <AMReX_Vector.H>
-#include <AMReX_ParallelDescriptor.H>
-
+#include <hydro_functions.H>
+#include <StochMomFlux.H>
 #include <common_functions.H>
+
+#include <gmres_functions.H>
+
 #include <ib_functions.H>
+
 #include <immbdy_namespace.H>
+#include <AMReX_VisMF.H>
+#include <AMReX_PlotFileUtil.H>
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_MultiFabUtil.H>
 
 #include <IBMarkerContainer.H>
+//#include <IBMarkerMD.H>
+
+#include "chrono"
+
+#include <bits/stdc++.h>
+using namespace std;
 
 using namespace std::chrono;
 using namespace amrex;
-
 using namespace immbdy;
+//using namespace immbdy_md;
 using namespace ib_flagellum;
 
 
@@ -179,13 +192,164 @@ void main_driver(const char * argv) {
     Vector<int> cpus(ib_mc.getTotalNumIDs());
     ib_mc.PullDownInt(0, cpus, -2);
 
-     Print() << "ids = ";
+    Print() << "ids = ";
     for (auto & i:ids) Print() << i << " ";
     Print() << std::endl;
 
     Print() << "cpus = ";
     for (auto & i:cpus) Print() << i << " ";
     Print() << std::endl;
+
+
+    //id_1 records actual ids on a given ib flagellum
+    Vector<int> id1s(ib_mc.getTotalNumIDs());
+    ib_mc.PullDownInt(0, id1s, IBMInt::id_1);
+    //cpu_1 records the order of ib flagellum when generated
+    Vector<int> ibs(ib_mc.getTotalNumIDs());
+    ib_mc.PullDownInt(0, ibs, IBMInt::cpu_1);
+
+    Print() << "real_id = ";
+    for (auto & i:id1s) Print() << i << " ";
+    Print() << std::endl;
+
+    Print() << "number of flagellum = ";
+    for (auto & i:ibs) Print() << i << " ";
+    Print() << std::endl;
+
+     // Get sorted ibs list
+    vector<pair<int, int>> sorted_ibs = ib_mc.get_sorted_map();
+    
+//   	vector<pair<int, int>> sorted_ibs;
+
+//    	for (int i = 0; i < ibs.size(); ++i) {
+//        	sorted_ibs.push_back(make_pair(ibs[i], i));
+//    	}
+
+//    	sort(sorted_ibs.begin(), sorted_ibs.end());
+
+    	Print() << "Flagellum number\t" << "index in PullDown Vector" << std::endl;
+	for (int i = 0; i < ibs.size(); i++) {
+      		 Print() << sorted_ibs[i].first << "\t" << sorted_ibs[i].second << std::endl;
+    	}
+   
+
+    //Vectors for storing forces in each direction
+    Vector<Real> fx(ib_mc.getTotalNumIDs());
+    Vector<Real> fy(ib_mc.getTotalNumIDs());
+    Vector<Real> fz(ib_mc.getTotalNumIDs());
+
+    int index_start = 0;
+
+    for (int i_ib=0; i_ib < n_immbdy; ++i_ib) {
+
+        if (n_marker[i_ib] <= 0) continue;
+
+        int N       = ib_flagellum::n_marker[i_ib];
+        Real L      = ib_flagellum::length[i_ib];
+        Real l_link = L/(N-1);
+
+        Real k_spr  = ib_flagellum::k_spring[i_ib];
+        Real k_driv = ib_flagellum::k_driving[i_ib];
+
+        for (int ind=index_start; ind < index_start+N; ++ind ) {    //going through the sorted ibs index
+
+	        //Getting index for the current marker in the PullDown Vectors
+		int i_c = sorted_ibs[ind].second;
+
+	       	if(sorted_ibs[ind].first != i_ib) Abort("Mismatched flagella detected in predictor!!! flee for your lunch!");                  
+
+                if(ind>index_start and ind<index_start+N-1) {   //exclude the first and last marker on the flagellum that doesn't have either next or previous marker
+	               //Getting indexes for the previous/minus and next/plus markers in the PullDown Vectors
+
+			int i_p = sorted_ibs[ind+1].second;
+			int i_m = sorted_ibs[ind-1].second;
+
+                        RealVect      pos = {pos_x[i_c],   pos_y[i_c],   pos_z[i_c]};
+                        RealVect next_pos = {pos_x[i_p],   pos_y[i_p],   pos_z[i_p]};
+                        RealVect prev_pos = {pos_x[i_m],   pos_y[i_m],   pos_z[i_m]};
+
+                        RealVect r_p = next_pos - pos, r_m = pos - prev_pos;
+
+                        Real lp_m = r_m.vectorLength(),         lp_p = r_p.vectorLength();
+                        Real fm_0 = k_spr * (lp_m-l_link)/lp_m, fp_0 = k_spr * (lp_p-l_link)/lp_p;
+
+                        //update spring forces between previous/minus and current markers
+                        fx[i_m] += fm_0 * r_m[1];   fy[i_m] += fm_0 * r_m[2];   fz[i_m] += fm_0 * r_m[3];
+                        fx[i_c] -= fm_0 * r_m[1];   fy[i_c] -= fm_0 * r_m[2];   fz[i_c] -= fm_0 * r_m[3];
+
+                        //update spring forces between next/plus and current markers
+                        fx[i_c] += fp_0 * r_p[1];   fy[i_c] += fp_0 * r_p[2];   fz[i_c] += fp_0 * r_p[3];
+                        fx[i_p] -= fp_0 * r_p[1];   fy[i_p] -= fp_0 * r_p[2];   fz[i_p] -= fp_0 * r_p[3];
+                }
+
+            // update bending forces for curent, minus/prev, and next/plus
+                if(immbdy::contains_fourier) {  //for periodic waveform of flagellum in Fourier series
+                        Vector<RealVect> marker_positions(N); // =  equil_pos(i_ib, 0, geom);
+                        //int marker_seq_id                 = mark.idata(IBMInt::id_1);
+                        RealVect target_pos               = marker_positions[ids[i_c]];
+
+                        fx[i_c] += k_driv*(target_pos[1] - pos_x[i_c]);
+                        fy[i_c] += k_driv*(target_pos[2] - pos_y[i_c]);
+                        fz[i_c] += k_driv*(target_pos[3] - pos_z[i_c]);
+
+              } else {                        // for harmonic waveform of Taylor lines
+
+                        if(ind>index_start and ind<index_start+N-1) {   //exclude the first and last markers on the flagellum that doesn't have either next or previous marker
+
+	                        int i_p = sorted_ibs[ind+1].second;
+	                        int i_m = sorted_ibs[ind-1].second;
+
+                                RealVect      pos = {pos_x[i_c], pos_y[i_c], pos_z[i_c]};
+                                RealVect next_pos = {pos_x[i_p], pos_y[i_p], pos_z[i_p]};
+                                RealVect prev_pos = {pos_x[i_m], pos_y[i_m], pos_z[i_m]};
+
+                                const RealVect & r = pos, & r_m = prev_pos, & r_p = next_pos;
+
+                                // Set bending forces to zero before passing to 'driving_f'
+                                RealVect f_p = RealVect{AMREX_D_DECL(0., 0., 0.)};
+                                RealVect f   = RealVect{AMREX_D_DECL(0., 0., 0.)};
+                                RealVect f_m = RealVect{AMREX_D_DECL(0., 0., 0.)};
+
+                                // calling the active bending force calculation
+
+//                                Real th = theta(
+//                                                driv_amp, time, i_ib, ids[i_c] - 1
+//                                               );
+//                                driving_f(f, f_p, f_m, r, r_p, r_m, driv_u, th, k_driv);
+
+                                // updating the force on the minus, current, and plus particles.
+                                fx[i_m] += f_m[1];   fy[i_m] += f_m[2];   fz[i_m] += f_m[3];
+                                fx[i_c] += f[1];     fy[i_c] += f[2];     fz[i_c] += f[3];
+                                fx[i_p] += f_p[1];   fy[i_p] += f_p[2];   fz[i_p] += f_p[3];
+                         }
+                }
+       }
+       index_start += N;
+    }
+
+    Print() << "force in x = ";
+    for (auto & i:fx) Print() << i << " ";
+    Print() << std::endl;
+
+    Print() << "force in y = ";
+    for (auto & i:fy) Print() << i << " ";
+    Print() << std::endl;
+
+    Print() << "force in z = ";
+    for (auto & i:fz) Print() << i << " ";
+    Print() << std::endl;
+
+   
+//   for (int i=0; i<ib_mc.getTotalNumIDs(); i++) { 
+//    	std::vector<int>::iterator gx = std::find(sorted_ibs.begin(), sorted_ibs.end(), i_ib);
+                    
+   //actual index in PullDown vectors
+//    int i_c = sorted.ibs[std::distance(sorted_ibs.begin(), gx) + id].second;
+
+//    Print() << "Adding forces to particles..." << std::endl;
+
+  
+
 
     // Just for fun, print out the max runtime
     Real stop_time = ParallelDescriptor::second() - strt_time;
