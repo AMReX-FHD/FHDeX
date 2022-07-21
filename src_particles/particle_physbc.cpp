@@ -42,7 +42,7 @@ void MultiFabPhysBCCharge(MultiFab& charge, const Geometry& geom) {
             });
         }
 
-        if ((bc_es_lo[0] == 1 || bc_es_hi[0] == 2) && (bx.bigEnd(0) >= dom.bigEnd(0))) {
+        if ((bc_es_hi[0] == 1 || bc_es_hi[0] == 2) && (bx.bigEnd(0) >= dom.bigEnd(0))) {
             const Real fac = (bc_es_hi[0] == 1) ? -1. : 1.;
             amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
@@ -149,7 +149,7 @@ void MultiFabPhysBCDomainStress(MultiFab& stress, const Geometry& geom, int dim)
                 });
             }
             
-            if ((bc_vel_lo[0] == 1 || bc_vel_hi[0] == 2) && (bx.bigEnd(0) >= dom.bigEnd(0)+1)) {
+            if ((bc_vel_hi[0] == 1 || bc_vel_hi[0] == 2) && (bx.bigEnd(0) >= dom.bigEnd(0)+1)) {
                 const Real fac = (bc_vel_hi[0] == 1) ? 1. : -1.;
                 amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
@@ -280,7 +280,7 @@ void MultiFabPhysBCMacStress(MultiFab& stress, const Geometry& geom, int dim) {
                 });
             }
             
-            if ((bc_vel_lo[0] == 1 || bc_vel_hi[0] == 2) && (bx.bigEnd(0) >= dom.bigEnd(0))) {
+            if ((bc_vel_hi[0] == 1 || bc_vel_hi[0] == 2) && (bx.bigEnd(0) >= dom.bigEnd(0))) {
                 const Real fac = (bc_vel_hi[0] == 1) ? 1. : -1.;
                 amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {

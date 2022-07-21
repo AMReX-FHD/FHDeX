@@ -14,6 +14,7 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
 
     bool proc0_enter = true;
     int pinnedParticles = 0;
+    Real y_lo_wall = 0.0;
         
     for (MFIter mfi = MakeMFIter(lev, true); mfi.isValid(); ++mfi) {
         
@@ -56,6 +57,7 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
                         if(p.idata(FHD_intData::pinned) != 0)
                         {
                                 pinnedParticles++;
+				y_lo_wall = p.pos(1); 
                         }
                     }else
                     {
@@ -163,6 +165,7 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
 
 
     ParallelDescriptor::ReduceIntSum(pinnedParticles);
+    ParallelDescriptor::ReduceRealSum(y_lo_wall);
 
     Print() << "Loaded " << pinnedParticles << " pinned particles." << std::endl;
 
@@ -172,6 +175,7 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
     }
 
     totalPinnedMarkers = pinnedParticles;
+    pinned_y = y_lo_wall;
 
     Redistribute();
     //clearNeighbors();
@@ -191,6 +195,7 @@ void FhdParticleContainer::ReInitParticles()
 
     bool proc0_enter = true;
     int pinnedParticles = 0;
+    Real y_lo_wall = 0.0;
 
     //Note we are resetting the particle ID count here, this is only valid if one rank is doing the generating.
     ParticleType::NextID(1);
@@ -217,6 +222,7 @@ void FhdParticleContainer::ReInitParticles()
 	        auto& p = pstruct[i];
                 if(p.idata(FHD_intData::pinned) != 0) {
                     pinnedParticles++;
+		    y_lo_wall = p.pos(1); 
                 }
             }
         }
@@ -227,6 +233,7 @@ void FhdParticleContainer::ReInitParticles()
     Print() << "Loaded " << pinnedParticles << " pinned particles." << std::endl;
 
     totalPinnedMarkers = pinnedParticles;
+    pinned_y = y_lo_wall;
 
     if(pinnedParticles > 0)
     {

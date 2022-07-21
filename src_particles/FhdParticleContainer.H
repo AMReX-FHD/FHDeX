@@ -239,6 +239,7 @@ public:
 
     void forceFunction(Real dt);
     void velNorm();
+    void velAddShear();
     void pinForce();
     void potentialDistribution(long totalParticles, const int step, const species* particleInfo);
 

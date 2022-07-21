@@ -93,6 +93,7 @@ public:
     void pinnedParticleInversion();
 
     int getTotalPinnedMarkers();
+    Real getPinnedY();
 
     //___________________________________________________________________________
     // Static spreading operators applied to raw data arrays
@@ -270,6 +271,12 @@ public:
 
     std::array<MultiFab, AMREX_SPACEDIM> f_weights;
 
+    GpuArray<Real, 3> wallspeed_x_lo_real;
+    GpuArray<Real, 3> wallspeed_y_lo_real;
+    GpuArray<Real, 3> wallspeed_z_lo_real;
+    GpuArray<Real, 3> wallspeed_x_hi_real;
+    GpuArray<Real, 3> wallspeed_y_hi_real;
+    GpuArray<Real, 3> wallspeed_z_hi_real;
 
 protected:
 
@@ -292,6 +299,7 @@ protected:
     int totalMarkers;
     int totalPinnedMarkers; 
 
+    Real pinned_y;
 
     static inline Gpu::ManagedDeviceVector<Real> norm_es;
     
