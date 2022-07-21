@@ -64,13 +64,12 @@ void main_driver(const char* argv)
     }
 
     if (nspec_mui<1) {
-        Abort("nspec_mui must be at least one.");
+        Abort("nspec_mui must be at least one");
     }
 
     if (restart>0) {
         Abort("restart not supported in compressible_stag_mui");
     }
-
 #endif
 
     int step_start, statsCount;
@@ -873,8 +872,6 @@ void main_driver(const char* argv)
         if (n_ads_spec>0) init_surfcov(surfcov, geom);
 
 #ifdef MUI
-        mui_announce_send_recv_span(uniface,cu,dx);
-
         mui_fetch_Ntot(Ntot, dx, uniface, 0);
 
         mui_fetch_surfcov(Ntot, surfcov, dx, uniface, 0);

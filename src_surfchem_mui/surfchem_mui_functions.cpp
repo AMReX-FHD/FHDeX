@@ -174,6 +174,8 @@ void mui_fetch_Ntot(MultiFab& Ntot, const amrex::Real* dx, mui::uniface2d &unifa
                 double y = prob_lo[1]+(j+0.5)*dx[1];
 
                 Ntot_arr(i,j,k,0) = uniface.fetch("CH_one",{x,y},step,s,t);
+
+                AllPrint() << "Ntot(" << i << "," << j << ")= " << Ntot_arr(i,j,k,0) << "\n";
             }
         }
     }
@@ -205,7 +207,7 @@ void mui_fetch_surfcov(MultiFab& Ntot, MultiFab& surfcov, const amrex::Real* dx,
             double x = prob_lo[0]+(lo.x+0.5)*dx[0];
             double y = prob_lo[1]+(lo.y+0.5)*dx[1];
 
-            uniface.fetch("CH_occ",{x,y},step,s,t);
+            uniface.fetch("CH_occ1",{x,y},step,s,t);
 
             continue;
         }
