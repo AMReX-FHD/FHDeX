@@ -97,6 +97,7 @@ AppSurfchemtest::AppSurfchemtest(SPPARKS *spk, int narg, char **arg) :
   MUIintval = NULL;
   MUIdblval = NULL;
   localFHDcell = NULL;
+  nlocalFHDcell_world = NULL;
 #endif
 }
 
@@ -696,6 +697,37 @@ void AppSurfchemtest::setup_app()
     adespropensity[m] = adesrate[m];
     adescount[m] = 0;
   }
+
+  reaction_summary_log();
+}
+
+void AppSurfchemtest::reaction_summary_log()
+{
+  if (domain->me == 0) {
+    fprintf(logfile,"** reaction summary **\n");
+
+    fprintf(logfile,"- nads = %d\n",nads);
+    for (int i=0;i<nads;i++) {
+      char sitechar = 'A'+adstype[i]-1;
+      fprintf(logfile,"ads%d: [%c] %d -> %d, %e",i,sitechar,adsinput[i],adsoutput[i],adsrate[i]);
+      if (ads_is_rate) fprintf(logfile," (rate), ");
+      else fprintf(logfile," (rate const), ");
+      fprintf(logfile,"beta= %f\n",ads_beta[i]);
+    }
+
+    fprintf(logfile,"- ndes = %d\n",ndes);
+    for (int i=0;i<ndes;i++) {
+      char sitechar = 'A'+destype[i]-1;
+      fprintf(logfile,"des%d: [%c] %d -> %d, %e\n",i,sitechar,desinput[i],desoutput[i],desrate[i]);
+    }
+
+    fprintf(logfile,"- none = %d\n",none);
+    fprintf(logfile,"- ntwo = %d\n",ntwo);
+    fprintf(logfile,"- nthree = %d\n",nthree);
+    fprintf(logfile,"- ndissocads = %d\n",ndissocads);
+    fprintf(logfile,"- nassocdes = %d\n",nassocdes);
+  }
+
 }
 
 /* ----------------------------------------------------------------------

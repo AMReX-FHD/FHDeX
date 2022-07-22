@@ -33,6 +33,7 @@ class AppSurfchemtest : public AppLattice {
   void grow_app();
   void init_app();
   void setup_app();
+  void reaction_summary_log();
 
   double site_energy(int);
   void site_event_rejection(int, class RandomPark *) {}
