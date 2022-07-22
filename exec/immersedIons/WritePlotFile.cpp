@@ -243,6 +243,7 @@ void WritePlotFile(int step,
     int_comp_names.push_back("species");
     int_comp_names.push_back("visible");
     int_comp_names.push_back("pinned");
+    int_comp_names.push_back("newSpecies");
 //    int_comp_names.push_back("count");
 
     Vector<int> write_real_comp = {
@@ -303,7 +304,8 @@ void WritePlotFile(int step,
         0, // k
         1,  // species
         1,  // visible
-        1  // pinned
+        1,  // pinned
+        1  // newSpecies
     };
 
     t1 = ParallelDescriptor::second();
