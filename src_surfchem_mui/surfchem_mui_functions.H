@@ -21,6 +21,8 @@ using namespace common;
 
 void InitializeSurfChemMUINamespace();
 
+void mui_print_MF_bottom(MultiFab& mf,int n,double factor,int step, const char *str1,const char *str2);
+
 void mui_push(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface2d &uniface, const int step);
 
 void mui_commit(mui::uniface2d &uniface, const int step);

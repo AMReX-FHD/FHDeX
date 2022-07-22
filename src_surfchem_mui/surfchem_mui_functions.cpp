@@ -16,6 +16,31 @@ void InitializeSurfChemMUINamespace()
     return;
 }
 
+void mui_print_MF_bottom(MultiFab& mf,int n,double factor,int step, const char *str1,const char *str2)
+{
+    Print() << "** mui_print_MF_bottom: " << str1 << " at step " << step << " **\n";
+
+    for (MFIter mfi(mf,false); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.tilebox();
+        Dim3 lo = lbound(bx);
+        Dim3 hi = ubound(bx);
+        const Array4<Real> & mf_arr = mf.array(mfi);
+
+        // unless bx contains cells at the interface, skip
+        int k = 0;
+        if (k<lo.z || k>hi.z) continue;
+
+        for (int i = lo.x; i<=hi.x; ++i)
+        {
+            for (int j = lo.y; j<= hi.y; ++j)
+            {
+                AllPrint() << str2 << " " << i << " " << j << " " << factor*mf_arr(i,j,k,n) << "\n";
+            }
+        }
+    }
+}
+
 void mui_push(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface2d &uniface, const int step)
 // this routine pushes the following information to MUI
 // - species number densities and temperature of FHD cells contacting the interface
@@ -121,6 +146,12 @@ void mui_fetch(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface
                     channel += '0'+(n+1);   // assuming nspec_mui<10
                     dc = uniface.fetch(channel,{x,y},step,s,t);
 
+                    // debugging
+                    //if (step==10)
+                    //{
+                    //    AllPrint() << "PRINT_acdc " << i << " " << j << " " << ac << " " << dc << "\n";
+                    //}
+
                     // update
 
                     amrex::Real dN = ac-dc;
@@ -131,7 +162,6 @@ void mui_fetch(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface
                     cu_arr(i,j,k,0) -= factor1*dN;
                     cu_arr(i,j,k,5+n) -= factor1*dN;
                     cu_arr(i,j,k,4) -= factor2*dN;
-
                 }
             }
         }

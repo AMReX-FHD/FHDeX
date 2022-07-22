@@ -84,6 +84,8 @@ class AppSurfchemtest : public AppLattice {
 
 #ifdef MUI
   void mui_init_agg();
+  void mui_print_MUIdblval(int step,const char *str1,const char *str2);
+  void mui_print_MUIintval(int step,const char *str1,const char *str2);
   void mui_push(int,char **);
   void mui_fetch(int,char **);
   void mui_push_agg(int,char **);
@@ -101,6 +103,8 @@ class AppSurfchemtest : public AppLattice {
   int *MUIintval;           // temp int array for MUI push/fetch
   double *MUIdblval;        // temp double array for MUI push/fetch
   int *localFHDcell;        // map from local KMC site to FHD cell
+  int *nlocalFHDcell_world; // array of nlocalFHDcell for all procs (allocated only for domain->me for debugging purposes)
+
 #endif
 };
 

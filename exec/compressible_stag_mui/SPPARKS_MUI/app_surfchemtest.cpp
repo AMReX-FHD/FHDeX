@@ -158,6 +158,7 @@ AppSurfchemtest::~AppSurfchemtest()
   delete [] MUIintval;
   delete [] MUIdblval;
   delete [] localFHDcell;
+  if (domain->me == 0) delete [] nlocalFHDcell_world;
 #endif
 }
 
@@ -1088,9 +1089,9 @@ void AppSurfchemtest::grow_reactions(int rstyle)
 
 void AppSurfchemtest::mui_init_agg()
 {
-  assert(nlocal>0);
-  assert(mui_fhd_lattice_size_x>0);
-  assert(mui_fhd_lattice_size_y>0);
+    assert(nlocal>0);
+    assert(mui_fhd_lattice_size_x>0);
+    assert(mui_fhd_lattice_size_y>0);
 
 /*
     // announce span
@@ -1124,7 +1125,7 @@ void AppSurfchemtest::mui_init_agg()
 
     // create maps between KMC sites and FHD cells
 
-    // 1. nlocalFHDcell
+    // 1. nlocalFHDcell, nlocalFHDcell_world
 
     int nFHDcellx = rint((domain->boxxhi-domain->boxxlo)/mui_fhd_lattice_size_x);
     int nFHDcelly = rint((domain->boxyhi-domain->boxylo)/mui_fhd_lattice_size_y);
@@ -1154,23 +1155,14 @@ void AppSurfchemtest::mui_init_agg()
         if (cntKMCsite[nx][ny] > 0) cntFHDcell++;
     nlocalFHDcell = cntFHDcell;
 
-    vector<int> nlocalFHDcell_world;
+    if (domain->me == 0) nlocalFHDcell_world = new int[domain->nprocs];
+
+    MPI_Gather(&nlocalFHDcell,1,MPI_INT,nlocalFHDcell_world,1,MPI_INT,0,world);
+
     if (domain->me == 0) {
-        // put my nlocalFHDcell first
-        nlocalFHDcell_world.push_back(nlocalFHDcell);
-        // nlocalFHDcell for other procs
-        int data;
-        for (int i=1;i<domain->nprocs;i++) {
-            MPI_Recv(&data,1,MPI_INT,i,0,world,MPI_STATUS_IGNORE);
-            nlocalFHDcell_world.push_back(data);
-        }
-        // output
         for (int i=0;i<domain->nprocs;i++) {
             fprintf(logfile,"- rank %d: nlocalFHDcell = %d\n",i,nlocalFHDcell_world[i]);
         }
-    }
-    else {
-        MPI_Send(&nlocalFHDcell,1,MPI_INT,0,0,world);
     }
 
     // 2. xFHD, yFHD
@@ -1262,6 +1254,58 @@ void AppSurfchemtest::mui_init_agg()
 
     MUIintval = new int[nlocalFHDcell];
     MUIdblval = new double[nlocalFHDcell];
+
+    if (domain->me == 0) fflush(logfile);
+}
+
+void AppSurfchemtest::mui_print_MUIdblval(int step,const char *str1,const char *str2)
+{
+    if (domain->me == 0)
+    {
+        // first print my vals
+        fprintf(logfile,"** MUIdblval for %s at step %d **\n",str1,step);
+        for (int j=0;j<nlocalFHDcell;j++)
+            fprintf(logfile,"%s %d %d %e\n",str2,domain->me,j,MUIdblval[j]);
+        // other procs
+        for (int i=1;i<domain->nprocs;i++)
+        {
+            double * data = new double[nlocalFHDcell_world[i]];
+            MPI_Recv(data,nlocalFHDcell_world[i],MPI_DOUBLE,i,0,world,MPI_STATUS_IGNORE);
+            for (int j=0;j<nlocalFHDcell;j++)
+                fprintf(logfile,"%s %d %d %e\n",str2,i,j,data[j]);
+            delete [] data;
+        }
+        fflush(logfile);
+    }
+    else
+    {
+        MPI_Send(MUIdblval,nlocalFHDcell,MPI_DOUBLE,0,0,world);
+    }
+}
+
+void AppSurfchemtest::mui_print_MUIintval(int step,const char *str1,const char *str2)
+{
+    if (domain->me == 0)
+    {
+        // first print my vals
+        fprintf(logfile,"** MUIintval for %s at step %d **\n",str1,step);
+        for (int j=0;j<nlocalFHDcell;j++)
+            fprintf(logfile,"%s %d %d %d\n",str2,domain->me,j,MUIintval[j]);
+        // other procs
+        for (int i=1;i<domain->nprocs;i++)
+        {
+            int * data = new int[nlocalFHDcell_world[i]];
+            MPI_Recv(data,nlocalFHDcell_world[i],MPI_INT,i,0,world,MPI_STATUS_IGNORE);
+            for (int j=0;j<nlocalFHDcell;j++)
+                fprintf(logfile,"%s %d %d %d\n",str2,i,j,data[j]);
+            delete [] data;
+        }
+        fflush(logfile);
+    }
+    else
+    {
+        MPI_Send(MUIintval,nlocalFHDcell,MPI_INT,0,0,world);
+    }
 }
 
 void AppSurfchemtest::mui_push(int narg, char **arg)
@@ -1475,6 +1519,8 @@ void AppSurfchemtest::mui_push_agg(int narg, char **arg)
       // push for each FHD domain
       for (int n=0;n<nlocalFHDcell;n++)
         spk->uniface->push("CH_ac1",{xFHD[n],yFHD[n]},MUIintval[n]);
+      // debugging
+      //if (timestamp==10) mui_print_MUIintval(timestamp,"ac1","PRINT");
     } else if (strcmp(arg[k],"dc1") == 0) {
       // compute the sum over each FHD domain
       for (int n=0;n<nlocalFHDcell;n++) MUIintval[n] = 0;
@@ -1485,6 +1531,8 @@ void AppSurfchemtest::mui_push_agg(int narg, char **arg)
       // push for each FHD domain
       for (int n=0;n<nlocalFHDcell;n++)
         spk->uniface->push("CH_dc1",{xFHD[n],yFHD[n]},MUIintval[n]);
+      // debugging
+      //if (timestamp==10) mui_print_MUIintval(timestamp,"dc1","PRINT");
     } else if (strcmp(arg[k],"occ1") == 0) {
       // compute the sum over each FHD domain
       for (int n=0;n<nlocalFHDcell;n++) MUIintval[n] = 0;
@@ -1611,6 +1659,8 @@ void AppSurfchemtest::mui_fetch_agg(int narg, char **arg)
       // distribute info to each KMC site
       for (int i=0;i<nlocal;i++)
         density1[i] = MUIdblval[localFHDcell[i]];
+      // debugging
+      //if (timestamp==10) mui_print_MUIdblval(timestamp,"recvd dens1","PRINT");
     }
     else if (strcmp(arg[k],"temp") == 0) {
       // get info for each FHD cell
@@ -1619,6 +1669,8 @@ void AppSurfchemtest::mui_fetch_agg(int narg, char **arg)
       // distribute info to each KMC site
       for (int i=0;i<nlocal;i++)
         temp[i] = MUIdblval[localFHDcell[i]];
+      // debugging
+      //if (timestamp==10) mui_print_MUIdblval(timestamp,"recvd temp","PRINT");
     }
     else if (strcmp(arg[k],"Vz") == 0) {
       // get info for each FHD cell
