@@ -12,6 +12,8 @@ AMREX_GPU_MANAGED GpuArray<amrex::Real, MAX_SPECIES> MFsurfchem::des_rate;
 AMREX_GPU_MANAGED int MFsurfchem::stoch_surfcov0;
 AMREX_GPU_MANAGED int MFsurfchem::stoch_MFsurfchem;
 
+int MFsurfchem::struct_fact_surfcov_int;
+
 // temperature correction exponent
 #define BETA    0.5
 
@@ -63,6 +65,10 @@ void InitializeMFSurfchemNamespace()
 
     stoch_MFsurfchem = 1; // default value
     pp.query("stoch_MFsurfchem",stoch_MFsurfchem);
+
+    struct_fact_surfcov_int = -1; // default value
+    pp.query("struct_fact_surfcov_int",struct_fact_surfcov_int);
+    
     return;
 }
 
