@@ -7,7 +7,7 @@
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void pre_check_gpu(FhdParticleContainer::ParticleType& part, const Real delt, const paramPlane* paramplanes, 
-                                                const int ns, int* flag, const Real* phi, const Real* plo, Real* inttime)
+                                                const int ns, int* flag, const GpuArray<Real, 3>& phi, const GpuArray<Real, 3>& plo, Real* inttime)
 {
     Real proj[3];
     Real box1lo[3];
@@ -65,6 +65,8 @@ void find_inter_gpu(FhdParticleContainer::ParticleType& part, const Real delt, c
 	*inttime = delt;
 	*intsurf = -1;
 	Real uval, vval, tval;
+	
+	//pre_check_gpu(part, delt, paramplanes, ns, &flag, phi, plo, inttime);
 
 	if(flag == 0)
 	{
@@ -610,10 +612,10 @@ void app_bc_phonon_gpu(const paramPlane* surf, FhdParticleContainer::ParticleTyp
     {
       if(amrex::Random(engine) < surf->momentumConsRight)
       {
-           std::string plotfilename = std::to_string(surf->boundary) + "_" + std::to_string(ParallelDescriptor::MyProc()) + amrex::Concatenate("_particles_right_",step,12);
-           std::ofstream ofs(plotfilename, std::ios::app);
-           ofs << part.pos(0) << " " << part.pos(1) << " " << part.pos(2) << " " << part.rdata(FHD_realData::velx) << " " << part.rdata(FHD_realData::vely) << " " << part.rdata(FHD_realData::velz) << " " << part.rdata(FHD_realData::omega) << std::endl;
-           ofs.close();
+/*           std::string plotfilename = std::to_string(surf->boundary) + "_" + std::to_string(ParallelDescriptor::MyProc()) + amrex::Concatenate("_particles_right_",step,12);*/
+/*           std::ofstream ofs(plotfilename, std::ios::app);*/
+/*           ofs << part.pos(0) << " " << part.pos(1) << " " << part.pos(2) << " " << part.rdata(FHD_realData::velx) << " " << part.rdata(FHD_realData::vely) << " " << part.rdata(FHD_realData::velz) << " " << part.rdata(FHD_realData::omega) << std::endl;*/
+/*           ofs.close();*/
       }    
       
       if(amrex::Random(engine) < surf->sinkRight)
@@ -702,10 +704,10 @@ void app_bc_phonon_gpu(const paramPlane* surf, FhdParticleContainer::ParticleTyp
     {
       if(amrex::Random(engine) < surf->momentumConsLeft)
       {
-           std::string plotfilename = std::to_string(surf->boundary) + "_" + std::to_string(ParallelDescriptor::MyProc()) + amrex::Concatenate("_particles_left_",step,12);
-           std::ofstream ofs(plotfilename, std::ios::app);
-           ofs << part.pos(0) << " " << part.pos(1) << " " << part.pos(2) << " " << part.rdata(FHD_realData::velx) << " " << part.rdata(FHD_realData::vely) << " " << part.rdata(FHD_realData::velz) << " " << part.rdata(FHD_realData::omega) << std::endl;
-           ofs.close();
+/*           std::string plotfilename = std::to_string(surf->boundary) + "_" + std::to_string(ParallelDescriptor::MyProc()) + amrex::Concatenate("_particles_left_",step,12);*/
+/*           std::ofstream ofs(plotfilename, std::ios::app);*/
+/*           ofs << part.pos(0) << " " << part.pos(1) << " " << part.pos(2) << " " << part.rdata(FHD_realData::velx) << " " << part.rdata(FHD_realData::vely) << " " << part.rdata(FHD_realData::velz) << " " << part.rdata(FHD_realData::omega) << std::endl;*/
+/*           ofs.close();*/
       }    
       if(amrex::Random(engine) < surf->sinkLeft)
       {

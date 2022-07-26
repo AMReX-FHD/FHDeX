@@ -27,9 +27,9 @@ include $(FHDeX)/src_rng/Make.package
 VPATH_LOCATIONS   += $(FHDeX)/src_rng
 INCLUDE_LOCATIONS += $(FHDeX)/src_rng
 
-include $(FHDeX)/src_analysis/Make.package
-VPATH_LOCATIONS   += $(FHDeX)/src_analysis/
-INCLUDE_LOCATIONS += $(FHDeX)/src_analysis/
+#include $(FHDeX)/src_analysis/Make.package
+#VPATH_LOCATIONS   += $(FHDeX)/src_analysis/
+#INCLUDE_LOCATIONS += $(FHDeX)/src_analysis/
 
 include $(FHDeX)/src_common/Make.package
 VPATH_LOCATIONS   += $(FHDeX)/src_common/

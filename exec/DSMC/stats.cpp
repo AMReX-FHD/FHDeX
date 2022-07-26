@@ -87,15 +87,10 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
 		
 		dsmcSpecies* propertiesPtr = properties;
 		
-		//ParticleType* particlesPtr = particles.dataPtr();		
-		//std::map<int, std::vector<Gpu::ManagedVector<int> > >* m_cell_vectorsPtr = m_cell_vectors;
-		//std::map<int, std::vector<Gpu::ManagedVector<int> > >* m_cell_vectors[MAX_SPECIES];
-		
-		//Real * cell_vecs = m_cell_vectors[1][grid_id].data();
-		
 		Real ocollisionCellVolTmp = ocollisionCellVol;
 		
-		
+		auto inds = m_bins.permutationPtr();
+        auto offs = m_bins.offsetsPtr();
         //////////////////////////////////////
         // Primitve and Conserved Instantaneous Values
         //////////////////////////////////////
@@ -109,9 +104,12 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
 
 
             for (int l=0; l<nspecies; l++) {
-                long np_spec = m_cell_vectors[l][grid_id][imap].size();
-                //long np_spec = cell_vecs[l][grid_id][imap].size();
-                //const long np_spec = 1;
+                unsigned int np_spec = getBinSize(offs,iv,l,tile_box);
+                unsigned int* cellList = getCellList(inds,offs,iv,l,tile_box);
+                //long np_spec2 = m_cell_vectors[l][grid_id][imap].size();
+                
+                //cout << "old: " << np_spec2 << ", new: " << np_spec << endl;
+                
                 Real mass = propertiesPtr[l].mass*propertiesPtr[l].Neff;
                 Real moV  = propertiesPtr[l].mass*ocollisionCellVolTmp;
                 //Real mass =1;
@@ -128,13 +126,14 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
 
                 // Read particle data
                 for (int m=0; m<np_spec; m++) {
-                    int pind = m_cell_vectors[l][grid_id][imap][m];
-                    //int pind = 1;
+                    //int pind1 = m_cell_vectors[l][grid_id][imap][m];
+                    int pind = cellList[m];
+
                     ParticleType & p = particles[pind];
                     Real u = p.rdata(FHD_realData::velx);
                     Real v = p.rdata(FHD_realData::vely);
                     Real w = p.rdata(FHD_realData::velz);
-
+                    
                     cuInst(i,j,k,icon+1) += u;
                     cuInst(i,j,k,icon+2) += v;
                     cuInst(i,j,k,icon+3) += w;
@@ -156,11 +155,13 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
 
                 // Total Conserved Vars
                 for (int m=0; m<5; m++) {cuInst(i,j,k,m) += cuInst(i,j,k,icon+m);}
-
-                primInst(i,j,k,iprim+2) = jx/rho;  // u_l
-                primInst(i,j,k,iprim+3) = jy/rho;  // v_l
-                primInst(i,j,k,iprim+4) = jz/rho;  // w_l
-
+                
+                if(rho != 0)
+                {
+                    primInst(i,j,k,iprim+2) = jx/rho;  // u_l
+                    primInst(i,j,k,iprim+3) = jy/rho;  // v_l
+                    primInst(i,j,k,iprim+4) = jz/rho;  // w_l
+                }
 				Real u = primInst(i,j,k,iprim+2);
 				Real v = primInst(i,j,k,iprim+3);
 				Real w = primInst(i,j,k,iprim+4);
@@ -209,11 +210,13 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
             int specTotal = 0;
             
             for (int l=nspecies-1; l>=0; l--) {
-                long np_spec = m_cell_vectors[l][grid_id][imap].size();
-                
+                //long np_spec = m_cell_vectors[l][grid_id][imap].size();
+                unsigned int np_spec = getBinSize(offs,iv,l,tile_box);
+                unsigned int* cellList = getCellList(inds,offs,iv,l,tile_box);
                 for (int m=0; m<np_spec; m++) {
-                    int pind = m_cell_vectors[l][grid_id][imap][m];
-                    //int pind = 1;
+                    //int pind = m_cell_vectors[l][grid_id][imap][m];
+                    int pind = cellList[m]; 
+                    
                     ParticleType & p = particles[pind];
                     
                     uTemp += propertiesPtr[l].mass*p.rdata(FHD_realData::velx);
@@ -224,21 +227,24 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
                 }
                 
             }
-
-            uTemp /= massTotal;
-            vTemp /= massTotal;
-            wTemp /= massTotal;
+            if(massTotal != 0)
+            {
+                uTemp /= massTotal;
+                vTemp /= massTotal;
+                wTemp /= massTotal;
+            }
            
             
             //Total temperature
             primInst(i,j,k,6) = 0;
             
             for (int l=nspecies-1; l>=0; l--) {
-                long np_spec = m_cell_vectors[l][grid_id][imap].size();
-                
+                //long np_spec = m_cell_vectors[l][grid_id][imap].size();
+                unsigned int np_spec = getBinSize(offs,iv,l,tile_box);
+                unsigned int* cellList = getCellList(inds,offs,iv,l,tile_box);
                 for (int m=0; m<np_spec; m++) {
-                    int pind = m_cell_vectors[l][grid_id][imap][m];
-                    //int pind = 1;
+                    //int pind = m_cell_vectors[l][grid_id][imap][m];
+                    int pind = cellList[m]; 
                     ParticleType & p = particles[pind];
                     
                     primInst(i,j,k,6) += propertiesPtr[l].mass*((p.rdata(FHD_realData::velx) - primMeans(i,j,k,2))*(p.rdata(FHD_realData::velx) - primMeans(i,j,k,2)) + (p.rdata(FHD_realData::vely) - primMeans(i,j,k,3))*(p.rdata(FHD_realData::vely) - primMeans(i,j,k,3))
@@ -386,10 +392,12 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
             Real tTemp = 0;
             int specTotal = 0;
             for (int l=nspecies-1; l>=0; l--) {
-                long np_spec = m_cell_vectors[l][grid_id][imap].size();
-                
+                //long np_spec = m_cell_vectors[l][grid_id][imap].size();
+                unsigned int np_spec = getBinSize(offs,iv,l,tile_box);
+                unsigned int* cellList = getCellList(inds,offs,iv,l,tile_box);
                 for (int m=0; m<np_spec; m++) {
-                    int pind = m_cell_vectors[l][grid_id][imap][m];
+                    //int pind = m_cell_vectors[l][grid_id][imap][m];
+                    int pind = cellList[m]; 
                     //int pind = 1;
                     ParticleType & p = particles[pind];
                     
@@ -442,10 +450,15 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
           24 - dw.dT
         */
         
+        Gpu::DeviceVector<Real> delConExt(ncon, 0.);
+        Real* delCon = delConExt.data();
+        
         amrex::ParallelFor(tile_box,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             // Conserved Variances
-            Vector<Real> delCon(ncon, 0.0);
+            //Vector<Real> delCon(ncon, 0.0);
+            //Real delCon[ncon];
+            
             for (int l=0; l<ncon; l++) {
                 delCon[l]        = cuInst(i,j,k,l) - cuMeans(i,j,k,l);
                 cuVars(i,j,k,l)  = (cuVars(i,j,k,l)*stepsMinusOne+delCon[l]*delCon[l])*osteps;
