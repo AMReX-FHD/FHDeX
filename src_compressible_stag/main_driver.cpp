@@ -822,24 +822,11 @@ void main_driver(const char* argv)
             // we wanted dom_hi[AMREX_SPACEDIM-1] to be equal to 0
             // and need to transmute the other indices depending on project_dir
 #if (AMREX_SPACEDIM == 2)
-            if (project_dir == 0) {
-                dom_hi[0] = n_cells[1]-1;
-            }
-            else if (project_dir == 1) {
-                dom_hi[0] = n_cells[0]-1;
-            }
+            dom_hi[0] = n_cells[0]-1;
             dom_hi[1] = 0;
 #elif (AMREX_SPACEDIM == 3)
-            if (project_dir == 0) {
-                dom_hi[0] = n_cells[1]-1;
-                dom_hi[1] = n_cells[2]-1;
-            } else if (project_dir == 1) {
-                dom_hi[0] = n_cells[0]-1;
-                dom_hi[1] = n_cells[2]-1;
-            } else if (project_dir == 2) {
-                dom_hi[0] = n_cells[0]-1;
-                dom_hi[1] = n_cells[1]-1;
-            }
+            dom_hi[0] = n_cells[0]-1;
+            dom_hi[1] = n_cells[1]-1;
             dom_hi[2] = 0;
 #endif
             Box domain(dom_lo, dom_hi);
@@ -847,28 +834,13 @@ void main_driver(const char* argv)
             // This defines the physical box
             Vector<Real> projected_hi(AMREX_SPACEDIM);
 
-            // yes you could simplify this code but for now
-            // these are written out fully to better understand what is happening
-            // we wanted projected_hi[AMREX_SPACEDIM-1] to be equal to dx[projected_dir]
-            // and need to transmute the other indices depending on project_dir
+            // HARD-CODED wall is in z (3D) or y (2D)
 #if (AMREX_SPACEDIM == 2)
-            if (project_dir == 0) {
-                projected_hi[0] = prob_hi[1];
-            } else if (project_dir == 1) {
-                projected_hi[0] = prob_hi[0];
-            }
+            projected_hi[0] = prob_hi[0];
             projected_hi[1] = prob_hi[project_dir] / n_cells[project_dir];
 #elif (AMREX_SPACEDIM == 3)
-            if (project_dir == 0) {
-                projected_hi[0] = prob_hi[1];
-                projected_hi[1] = prob_hi[2];
-            } else if (project_dir == 1) {
-                projected_hi[0] = prob_hi[0];
-                projected_hi[1] = prob_hi[2];
-            } else if (project_dir == 2) {
-                projected_hi[0] = prob_hi[0];
-                projected_hi[1] = prob_hi[1];
-            }
+            projected_hi[0] = prob_hi[0];
+            projected_hi[1] = prob_hi[1];
             projected_hi[2] = prob_hi[project_dir] / n_cells[project_dir];
 #endif
 
@@ -880,7 +852,6 @@ void main_driver(const char* argv)
         }
 
         structFactSurfcovFlattened.define(ba_flat,dmap_flat,surfcov_var_names,var_scaling_surfcov);
-
 
     }
         
@@ -1320,6 +1291,7 @@ void main_driver(const char* argv)
 
             MultiFab surfcovFlattened;
             ExtractSlice(surfcov, surfcovFlattened, geom, 2, 0, 0, n_ads_spec);
+            
             // we rotate this flattened MultiFab to have normal in the z-direction since
             // our structure factor class assumes this for flattened
             MultiFab surfcovFlattenedRot = RotateFlattenedMF(surfcovFlattened);
@@ -1327,7 +1299,7 @@ void main_driver(const char* argv)
             structFactSurfcovFlattened.FortStructure(surfcovFlattenedRotMaster,geom_flat_surfcov);
 
             if (plot_int > 0 && step%plot_int == 0) {
-                structFactSurfcovFlattened.WritePlotFile(step,time,geom_flat,"plt_SF_surfcov_Flattened");
+                structFactSurfcovFlattened.WritePlotFile(step,time,geom_flat_surfcov,"plt_SF_surfcov_Flattened");
             }
         }
 
