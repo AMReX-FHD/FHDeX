@@ -274,6 +274,7 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, paramPlane* paramPlan
 	
 	Redistribute();
 	SortParticles();
+	SortParticlesDB();
 }
 
 void FhdParticleContainer::MovePhononsCPP(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount, const int step)
@@ -437,6 +438,7 @@ void FhdParticleContainer::MovePhononsCPP(const Real dt, const paramPlane* param
 	
 	Redistribute();
 	SortParticles();
+	SortParticlesDB();
 }
 
 void FhdParticleContainer::SortParticles()
@@ -516,6 +518,95 @@ void FhdParticleContainer::SortParticles()
 	}
 }
 
+
+void FhdParticleContainer::SortParticlesDB()
+{
+
+	int lev = 0;
+
+	const Real* dx = Geom(lev).CellSize();
+    const GpuArray<Real, 3> dxInv = Geom(lev).InvCellSizeArray();
+	//const Real* plo = Geom(lev).ProbLo();
+	//const Real* phi = Geom(lev).ProbHi();
+	const GpuArray<Real, 3> plo = Geom(lev).ProbLoArray();
+    const GpuArray<Real, 3> phi = Geom(lev).ProbHiArray();
+	
+    for (FhdParIter pti(* this, lev); pti.isValid(); ++pti)
+	{
+		const int grid_id = pti.index();
+		const int tile_id = pti.LocalTileIndex();
+		const Box& tile_box  = pti.tilebox();
+    	const Box& tile_box2  = pti.tilebox();
+
+		auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+		auto& particles = particle_tile.GetArrayOfStructs();
+		const long np = particles.numParticles();
+		auto pstruct_ptr = particles().dataPtr();
+		
+		auto cellLo = tile_box.smallEnd();
+		auto cellHi = tile_box.bigEnd();
+		
+
+		int ncells = (cellHi[0]-cellLo[0]+1)*(cellHi[1]-cellLo[1]+1)*(cellHi[2]-cellLo[2]+1);
+		int nbins = ncells*nspecies;
+//		int specCount[nspecies];
+//		
+//		for (int i = 0; i < np; ++ i) 
+//	    {
+//		    int spec = particles[i].idata(FHD_intData::species);
+//		    specCount[spec]++;
+//		}
+		
+//		if(ParallelDescriptor::MyProc()==1)
+//        {
+//            AllPrint() << "lo: " << cellLo << ", hi: " << cellHi << ", ncells: " << ncells << endl;
+//            AllPrint() << "lo index: " << tile_box.index(cellLo) << endl;
+
+//        }
+		
+		m_bins.build(np, pstruct_ptr, nbins, getBin{plo, dxInv, tile_box, ncells});
+        auto inds = m_bins.permutationPtr();
+        auto offs = m_bins.offsetsPtr();
+//        
+        if(ParallelDescriptor::MyProc()==1)
+        {
+//            AllPrint() << "lo: " << cellLo << ", hi: " << cellHi << ", ncells: " << ncells << endl;
+//           
+//            //auto iv = {4
+//            for(int i=0;i<5;i++)
+//            {
+//                AllPrint() << "off: " << offs[i] << endl;
+
+//            }
+//            
+//            //AllPrint() << "test cell: " << getParticleCell(particles[inds[i]], plo, dxInv, tile_box) << " map: " << tile_box.index(getParticleCell(particles[inds[i]], plo, dxInv, tile_box)) << endl;        
+//            for(int i=0;i<5;i++)
+//            {
+//                AllPrint() << "part: " << inds[i] << ", order: " << particles[inds[i]].idata(FHD_intData::sorted) << ", spec: " << particles[inds[i]].idata(FHD_intData::species)
+//                        << ", cell: " << particles[inds[i]].idata(FHD_intData::i) << ", " <<particles[inds[i]].idata(FHD_intData::j) << ", " << particles[inds[i]].idata(FHD_intData::k) << endl;
+//                AllPrint() << "pos: " << particles[inds[i]].pos(0) << ", " << particles[inds[i]].pos(1) << ", " << particles[inds[i]].pos(2) << ", " << endl;
+//                AllPrint() << "cell: " << getPartCell(particles[inds[i]], plo, dxInv, tile_box) << " imap: " << tile_box.index(getPartCell(particles[inds[i]], plo, dxInv, tile_box)) << endl;
+//                AllPrint() << "bin: " << getBin{plo, dxInv, tile_box, ncells}(particles[inds[i]]) << endl;
+//            }
+//            
+//            unsigned int* cellList = getCellList(inds,offs,cellLo,1,tile_box);
+//            unsigned int listSize = getBinSize(offs,cellLo,1,tile_box);
+//            AllPrint() << "size: " << listSize << " list: ";
+//            for(int i=0; i<listSize;i++)
+//            {
+//                AllPrint() << cellList[i] << " ";
+//            }
+//            AllPrint() << endl;
+//            long np_spec = m_cell_vectors[1][grid_id][tile_box.index(cellLo)].size();
+//            AllPrint() << "old size: " << np_spec << endl;
+        }
+
+        
+    }
+
+
+
+}
 
 //void FhdParticleContainer::SpecChange(FhdParticleContainer::ParticleType& part) {
 //	int lev = 0;
@@ -1250,6 +1341,7 @@ void FhdParticleContainer::Source(const Real dt, paramPlane* paramPlaneList, con
 	}
 	Redistribute();
 	SortParticles();
+    SortParticlesDB();
 }
 
 void FhdParticleContainer::SourcePhonons(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount) {
@@ -1424,6 +1516,7 @@ void FhdParticleContainer::SourcePhonons(const Real dt, const paramPlane* paramP
 	}
 	Redistribute();
 	SortParticles();
+	SortParticlesDB();
 }
 
 void FhdParticleContainer::zeroCells()

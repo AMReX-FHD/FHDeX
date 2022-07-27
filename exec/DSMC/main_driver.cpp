@@ -1,7 +1,7 @@
 #include "LocalFunctions.H"
 #include "species.H"
 #include "paramPlane.H"
-#include "StructFact.H"
+//#include "StructFact.H"
 #include "particle_functions.H"
 #include "Checkpoint.H"
 #include "chrono"
@@ -280,7 +280,7 @@ void main_driver(const char* argv)
         
         
     structFactPrimMF.define(ba, dmap, structVarsPrim, 0);
-    StructFact structFactPrim(ba,dmap,primNames,var_scaling_prim);
+    //StructFact structFactPrim(ba,dmap,primNames,var_scaling_prim);
 
 
 
@@ -292,8 +292,9 @@ void main_driver(const char* argv)
 	particles.mfvrmax.define(ba, dmap, nspecies*nspecies, 0);
 	particles.mfvrmax.setVal(0.);
 
+    Print() << "init particles\n";
 	particles.InitParticles(dt);
-
+    Print() << "init cells\n";
 	particles.InitCollisionCells();
 
 	Real init_time = ParallelDescriptor::second() - strt_time;
@@ -316,6 +317,8 @@ void main_driver(const char* argv)
 	primVars.setVal(0.);
 	coVars.setVal(0.);
 
+	//particles.SortParticlesDB();
+    Print() << "start eval\n";
 	particles.EvaluateStats(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
 		cvlInst,cvlMeans,QMeans,coVars,spatialCross1D,statsCount++,time);
     int stepTemp = 0;
@@ -328,9 +331,11 @@ void main_driver(const char* argv)
 	for (int istep=step; istep<=max_step; ++istep)
 	{
 		tbegin = ParallelDescriptor::second();
-
+		
+		//particles.SortParticlesDB();
+        Print() << "start select\n";
 		particles.CalcSelections(dt);
-
+        Print() << "start collide\n";
 		particles.CollideParticles(dt);
 
 		particles.Source(dt, paramPlaneList, paramPlaneCount, cuInst);
@@ -339,7 +344,7 @@ void main_driver(const char* argv)
 		particles.MoveParticlesCPP(dt, paramPlaneList, paramPlaneCount);
 		//particles.updateTimeStep(geom,dt);
                 //reduceMassFlux(paramPlaneList, paramPlaneCount);
-
+        particles.SortParticlesDB();
 		particles.EvaluateStats(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
 					cvlInst,cvlMeans,QMeans,coVars,spatialCross1D,statsCount++,time);
 
@@ -376,7 +381,7 @@ void main_driver(const char* argv)
 	        //PrintMF(structFactPrimMF,0,-1);
   	        //PrintMF(primInst,1,1);
 	        
-            structFactPrim.FortStructure(structFactPrimMF,geom);
+            //structFactPrim.FortStructure(structFactPrimMF,geom);
 		
 		}
 
@@ -385,7 +390,7 @@ void main_driver(const char* argv)
 			writePlotFile(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
 				coVars,spatialCross1D,particles,geom,time,ncross,istep);
 				
-			structFactPrim.WritePlotFile(istep,time,geom,"plt_SF_prim");
+			//structFactPrim.WritePlotFile(istep,time,geom,"plt_SF_prim");
 		}
 		
         if ((n_steps_skip > 0 && istep == n_steps_skip) || (n_steps_skip < 0 && istep%n_steps_skip == 0) ) {
@@ -408,7 +413,7 @@ void main_driver(const char* argv)
 		}
 		tend = ParallelDescriptor::second() - tbegin;
 		ParallelDescriptor::ReduceRealMax(tend);
-		if(istep%100==0)
+		if(istep%1==0)
 		{
 		    amrex::Print() << "Advanced step " << istep << " of " << max_step << " in " << tend << " seconds. " << particles.simParticles << " particles.\n";
 		}
