@@ -42,3 +42,11 @@ print("dtheta_eq = %f (%.2f%%)" % (dtheta_eq,dtheta_eq/meantheta*100))
 print("sol1 sol2 = %f %f" % (sol1,sol2))
 
 print("theta_eq  = %f" % (meantheta+dtheta_eq))
+
+neq = meandens-Ntot/(Ncellz*dv)*(dtheta_eq-dtheta0)
+m1 =  4.651170e-23
+print("n_eq = %e" % neq)
+print("rhoY1_eq = %e" % (m1*neq))
+
+print("total CO (initial) = %e" % (meandens*dv*Ncellx*Ncelly*Ncellz+Ntot*surfcov0*Ncellx*Ncelly))
+print("total CO (eq)      = %e" % (neq*dv*Ncellx*Ncelly*Ncellz+Ntot*(meantheta+dtheta_eq)*Ncellx*Ncelly))
