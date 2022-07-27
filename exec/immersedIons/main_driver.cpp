@@ -135,7 +135,7 @@ void main_driver(const char* argv)
 
     // MF for charge mean and variance
     MultiFab chargeM;
-    int nCor = 25;
+    int nCor = 100;
 
     if (restart < 0) {
 
