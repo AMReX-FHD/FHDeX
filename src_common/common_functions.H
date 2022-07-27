@@ -240,4 +240,22 @@ void CCL2Norm(const MultiFab & m1,
 
 MultiFab RotateFlattenedMF(MultiFab const& mf);
 
+
+///////////////////////////
+// in time_correlation.cpp
+
+void TimeCorrelation(
+        const MultiFab& mffield_time,
+        MultiFab& mffieldtimeCross,
+	MultiFab& mffieldInt,
+        const int nCor,
+        const int steps,
+	const Real* dx);
+
+void updateTimeData(
+        MultiFab& mfcuInst,
+        MultiFab& mffield_time,
+        const int nCor);
+
+
 #endif

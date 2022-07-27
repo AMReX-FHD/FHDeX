@@ -62,6 +62,7 @@ namespace common {
     extern int                        particle_restart;
     extern int                        print_int;
     extern int                        project_eos_int;
+   // extern int 			      nCor;
 
     // Physical parameters
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> grav;

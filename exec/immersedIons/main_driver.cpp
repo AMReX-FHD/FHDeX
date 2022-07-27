@@ -113,6 +113,11 @@ void main_driver(const char* argv)
     // note if we are restarting, these are defined and initialized to the checkpoint data
     std::array< MultiFab, AMREX_SPACEDIM > umac;
     std::array< MultiFab, AMREX_SPACEDIM > umacM;    // mean
+    std::array< MultiFab, AMREX_SPACEDIM > fieldcross;
+    std::array< MultiFab, AMREX_SPACEDIM > field_time;
+    std::array< MultiFab, AMREX_SPACEDIM > fieldInt;
+    std::array< MultiFab, AMREX_SPACEDIM > gradu;
+    std::array< MultiFab, AMREX_SPACEDIM > Stress;
 
     std::array< MultiFab, AMREX_SPACEDIM > touched;
 
@@ -130,7 +135,8 @@ void main_driver(const char* argv)
 
     // MF for charge mean and variance
     MultiFab chargeM;
-    
+    int nCor = 25;
+
     if (restart < 0) {
 
         if (seed > 0) {
@@ -160,14 +166,26 @@ void main_driver(const char* argv)
 
         // how boxes are distrubuted among MPI processes
         dmap.define(ba);
-        
+      
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             umac [d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ang);
-            touched[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ang);
+            fieldcross [d].define(convert(ba,nodal_flag_dir[d]), dmap, nCor, ang);
+	    field_time [d].define(convert(ba,nodal_flag_dir[d]), dmap, nCor, ang);
+	    gradu [d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ang);
+            Stress [d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ang);
+	    fieldInt [d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ang);
+	    touched[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ang);
             umacM[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
             umac [d].setVal(0.);
-            umacM[d].setVal(0.);
+            field_time [d].setVal(0.);
+	    fieldcross [d].setVal(0.);
+	    fieldInt [d].setVal(0.);
+	    gradu [d].setVal(0.);
+	    Stress [d].setVal(0.);
+	    umacM[d].setVal(0.);
         }
+
+
 
         pres.define(ba,dmap,1,1);
         pres.setVal(0.);
@@ -1202,34 +1220,34 @@ void main_driver(const char* argv)
         }else
         {
         
-            if(istep == 20)
-            {
-                    dt = dt*10;
-                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
-            }
-            if(istep == 40)
-            {
-                    dt = dt*10;
-                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
-            }
-
-            if(istep == 60)
-            {
-                    dt = dt*10;
-                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
-            }
-
-            if(istep == 80)
-            {
-                    dt = dt*10;
-                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
-            }
-
-            if(istep == 100)
-            {
-                    dt = dt*10;
-                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
-            }
+//            if(istep == 20)
+//            {
+//                    dt = dt*10;
+//                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+//            }
+//            if(istep == 40)
+//            {
+//                    dt = dt*10;
+//                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+//            }
+//
+//            if(istep == 60)
+//            {
+ //                   dt = dt*10;
+ //                   Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+//            }
+//
+//            if(istep == 80)
+//            {
+//                    dt = dt*10;
+//                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+//            }
+//
+//            if(istep == 100)
+//            {
+//                    dt = dt*10;
+//                    Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
+//            }
         }
 
 
@@ -1413,6 +1431,10 @@ void main_driver(const char* argv)
 
             }else
             {
+//		for (int d=0; d<AMREX_SPACEDIM; ++d) {
+  //      	    umac[d].setVal(0.0);
+    //   		 }
+	    
                 advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
 
             }
@@ -1461,7 +1483,12 @@ void main_driver(const char* argv)
 
             for (int d=0; d<AMREX_SPACEDIM; ++d) {
                 umacM[d].setVal(0.);
+		field_time[d].setVal(0.);
+		fieldcross[d].setVal(0.);
             }
+	     
+
+
                 
             Print() << "Resetting stat collection.\n";
 
@@ -1509,6 +1536,82 @@ void main_driver(const char* argv)
         }
         ComputeBasicStats(potential, potentialM, 0, 0, statsCount);
         ComputeBasicStats(charge   , chargeM   , 0, 0, statsCount);
+
+
+	//ComputeCentredGradFC(umac,
+          //                MultiFab & gradu,
+            //              const Geometry & geom);
+        for ( MFIter mfi(umac[0]); mfi.isValid(); ++mfi)
+        {
+
+       		 const Array4<const Real> test_umaci     = umac[0].array(mfi);
+		 Print() << "umaci test  is " << test_umaci(3,16,2) << "\n";
+//		 Print() << "umaci test  is " << test_umaci(3,6,2) << "\n";
+//		 Print() << "umaci test  is " << test_umaci(3,16,12) << "\n";
+//		 Print() << "umaci test  is " << test_umaci(30,1,12) << "\n";
+//		 Print() << "umaci test  is " << test_umaci(30,16,2) << "\n";
+//		 Print() << "umaci test  is " << test_umaci(4,6,2) << "\n";
+//                 Print() << "umaci test  is " << test_umaci(23,16,22) << "\n";
+//                 Print() << "umaci test  is " << test_umaci(13,6,12) << "\n";
+//                 Print() << "umaci test  is " << test_umaci(30,1,1) << "\n";
+//                 Print() << "umaci test  is " << test_umaci(3,1,25) << "\n";
+
+
+	}
+	ComputeCentredGradCompDir(umac[0], //computes u_i,j
+                               gradu[0],
+			       1,
+                               0,
+     			       0,
+                              geom);
+       ComputeCentredGradCompDir(umac[1], //computes u_j,i
+                              gradu[1],
+                              0,
+                               0,
+                               0,
+                               geom);
+
+	for ( MFIter mfi(gradu[1]); mfi.isValid(); ++mfi)
+        {
+                const Box& bx = mfi.validbox();
+		const Array4<const Real> umaci               = umac[0].array(mfi);
+		const Array4<const Real> umacj		     = umac[1].array(mfi);
+                const Array4<const Real> gradui              = gradu[0].array(mfi);
+                const Array4<const Real> graduj              = gradu[1].array(mfi);
+		Array4< Real> stress                         = Stress[0].array(mfi);
+                amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                       
+               		 stress(i,j,k) = gradui(i,j,k); //+graduj(i,j,k); //sigma_ij = mu(u_i,j + u_j,i)
+                        
+                });
+//	Print() << "umaci  is " << umaci(30,16,12) << "\n";	
+//	Print() << "umacj  is " << umacj(30,16,12) << "\n";
+//	Print() << "gradui is " << gradui(30,16,12) << "\n";
+//        Print() << "graduj is " << graduj(3,6,2) << "\n";
+//	Print() << "Stress is " << stress(30,16,12) << "\n";
+//	Print() << "Stress is " << stress(3,6,2) << "\n";
+//	Print() << "Stress is " << stress(3,16,12) << "\n";
+//	Print() << "Stress is " << stress(30,1,2) << "\n";
+
+//
+        }	
+	//for (int d=0; d<AMREX_SPACEDIM; ++d) {
+		updateTimeData(
+                       Stress[0],
+                       field_time[0],
+                       nCor);
+
+
+		TimeCorrelation(
+			field_time[0],
+			fieldcross[0],
+			fieldInt[0],
+			nCor,
+			statsCount,
+			dx);
+//}	 
+
 
         //Don't forget to add a remove(filename) so it doesn't append to old data
         OutputVolumeMean(umac[0], 0, domainVol, "bulkFlowEst", geom);
