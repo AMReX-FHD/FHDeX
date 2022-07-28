@@ -1489,68 +1489,110 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
             amrex::ParallelFor(tbx, tby, tbz,
             [=] AMREX_GPU_DEVICE (int i, int j, int k) {
             
+                // add density advection
                 xflux(i,j,k,0) += momx(i,j,k);
 
-                Real pressure, temperature, rho, intenergy; 
+                Real meanT; 
                 GpuArray<Real,MAX_SPECIES> Yk;
+                GpuArray<Real,MAX_SPECIES> hk;
 
                 if ((i == 0) and is_lo_x_dirichlet_mass) {
-                    if (algorithm_type == 2) { // Get concentration
+
+                    // temperature at the face
+                    meanT = prim(i-1,j,k,4);
+                    
+                    // enthalpy at the face
+                    GetEnthalpies(meanT, hk);
+
+                    // add enthalpy advection to energy flux (Q_adv = mom*(\sum_k(Yk*hk) + KE/rho))
+                    if (algorithm_type == 2) {
                         for (int n=0; n<nspecies; ++n) {
                             Yk[n] = prim(i-1,j,k,6+n);
+                            xflux(i,j,k,4) += momx(i,j,k)*Yk[n]*hk[n];
+                            xflux(i,j,k,5+n) += Yk[n]*momx(i,j,k); // Add advection of concentration
                         }
                     }
-                    pressure = prim(i-1,j,k,5);
-                    temperature = prim(i-1,j,k,4);
 
-                    GetDensity(pressure,rho,temperature,Yk);
-                    GetEnergy(intenergy,Yk,temperature);
+                    // Evaluate KE/rho = 1/2(v.v) on neighboring cells of this face
+                    Real ke_rho_P = 0.; // i
+                    Real ke_rho_M = 0.; // i-1
+                    ke_rho_P += (momx(i+1,j,k) + momx(i,j,k))*(momx(i+1,j,k) + momx(i,j,k));
+                    ke_rho_P += (momy(i,j+1,k) + momy(i,j,k))*(momy(i,j+1,k) + momy(i,j,k));
+                    ke_rho_P += (momz(i,j,k+1) + momz(i,j,k))*(momz(i,j,k+1) + momz(i,j,k));
+                    ke_rho_P *= (0.125/cons(i,j,k,0)/cons(i,j,k,0));
+                    ke_rho_M += (momx(i,j,k) + momx(i-1,j,k))*(momx(i,j,k) + momx(i-1,j,k));
+                    ke_rho_M += (momy(i-1,j+1,k) + momy(i-1,j,k))*(momy(i-1,j+1,k) + momy(i-1,j,k));
+                    ke_rho_M += (momz(i-1,j,k+1) + momz(i-1,j,k))*(momz(i-1,j,k+1) + momz(i-1,j,k));
+                    ke_rho_M *= (0.125/cons(i-1,j,k,0)/cons(i-1,j,k,0));
 
-                    Real kinenergy = 0.;
-                    kinenergy += momx(i,j,k)*momx(i,j,k)*0.5;
-                    kinenergy += (momy(i,j+1,k) + momy(i,j,k))*(momy(i,j+1,k) + momy(i,j,k));
-                    kinenergy += (momz(i,j,k+1) + momz(i,j,k))*(momz(i,j,k+1) + momz(i,j,k));
-                    kinenergy *= (0.125/cons(i,j,k,0));
+                    // add mom*KE/rho to energy flux
+                    xflux(i,j,k,4) += momx(i,j,k)*0.5*(ke_rho_P+ke_rho_M);
 
-
-
-                    xflux(i,j,k,4) += cons(i-1,j,k,4)*velx(i,j,k) + prim(i-1,j,k,5)*velx(i,j,k);
-
-                    if (algorithm_type == 2) { // Add advection of concentration
-                        for (int n=0; n<nspecies; ++n) {
-                            xflux(i,j,k,5+n) += Yk[n]*momx(i,j,k);
-                        }
-                    }
                 }
                 else if ((i == n_cells[0]) and is_hi_x_dirichlet_mass) {
-                    if (algorithm_type == 2) { // Get concentration
+
+                    // temperature at the face
+                    meanT = prim(i,j,k,4);
+                    
+                    // enthalpy at the face
+                    GetEnthalpies(meanT, hk);
+
+                    // add enthalpy advection to energy flux (Q_adv = mom*(\sum_k(Yk*hk) + KE/rho))
+                    if (algorithm_type == 2) {
                         for (int n=0; n<nspecies; ++n) {
                             Yk[n] = prim(i,j,k,6+n);
+                            xflux(i,j,k,4) += momx(i,j,k)*Yk[n]*hk[n];
+                            xflux(i,j,k,5+n) += Yk[n]*momx(i,j,k); // Add advection of concentration
                         }
                     }
 
-                    xflux(i,j,k,4) += cons(i,j,k,4)*velx(i,j,k) + prim(i,j,k,5)*velx(i,j,k);
+                    // Evaluate KE/rho = 1/2(v.v) on neighboring cells of this face
+                    Real ke_rho_P = 0.; // i
+                    Real ke_rho_M = 0.; // i-1
+                    ke_rho_P += (momx(i+1,j,k) + momx(i,j,k))*(momx(i+1,j,k) + momx(i,j,k));
+                    ke_rho_P += (momy(i,j+1,k) + momy(i,j,k))*(momy(i,j+1,k) + momy(i,j,k));
+                    ke_rho_P += (momz(i,j,k+1) + momz(i,j,k))*(momz(i,j,k+1) + momz(i,j,k));
+                    ke_rho_P *= (0.125/cons(i,j,k,0)/cons(i,j,k,0));
+                    ke_rho_M += (momx(i,j,k) + momx(i-1,j,k))*(momx(i,j,k) + momx(i-1,j,k));
+                    ke_rho_M += (momy(i-1,j+1,k) + momy(i-1,j,k))*(momy(i-1,j+1,k) + momy(i-1,j,k));
+                    ke_rho_M += (momz(i-1,j,k+1) + momz(i-1,j,k))*(momz(i-1,j,k+1) + momz(i-1,j,k));
+                    ke_rho_M *= (0.125/cons(i-1,j,k,0)/cons(i-1,j,k,0));
 
-                    if (algorithm_type == 2) { // Add advection of concentration
-                        for (int n=0; n<nspecies; ++n) {
-                            xflux(i,j,k,5+n) += Yk[n]*momx(i,j,k);
-                        }
-                    }
+                    // add mom*KE/rho to energy flux
+                    xflux(i,j,k,4) += momx(i,j,k)*0.5*(ke_rho_P+ke_rho_M);
                 }
                 else {
-                    if (algorithm_type == 2) { // Get concentration
+
+                    // temperature at the face
+                    meanT = 0.5*(prim(i-1,j,k,4) + prim(i,j,k,4));
+                    
+                    // enthalpy at the face
+                    GetEnthalpies(meanT, hk);
+
+                    // add enthalpy advection to energy flux (Q_adv = mom*(\sum_k(Yk*hk) + KE/rho))
+                    if (algorithm_type == 2) {
                         for (int n=0; n<nspecies; ++n) {
                             Yk[n] = 0.5*(prim(i-1,j,k,6+n)+prim(i,j,k,6+n));
+                            xflux(i,j,k,4) += momx(i,j,k)*Yk[n]*hk[n];
+                            xflux(i,j,k,5+n) += Yk[n]*momx(i,j,k); // Add advection of concentration
                         }
                     }
 
-                    xflux(i,j,k,4) += 0.5*(cons(i-1,j,k,4)+cons(i,j,k,4))*velx(i,j,k) + 0.5*(prim(i-1,j,k,5)+prim(i,j,k,5))*velx(i,j,k);
+                    // Evaluate KE/rho = 1/2(v.v) on neighboring cells of this face
+                    Real ke_rho_P = 0.; // i
+                    Real ke_rho_M = 0.; // i-1
+                    ke_rho_P += (momx(i+1,j,k) + momx(i,j,k))*(momx(i+1,j,k) + momx(i,j,k));
+                    ke_rho_P += (momy(i,j+1,k) + momy(i,j,k))*(momy(i,j+1,k) + momy(i,j,k));
+                    ke_rho_P += (momz(i,j,k+1) + momz(i,j,k))*(momz(i,j,k+1) + momz(i,j,k));
+                    ke_rho_P *= (0.125/cons(i,j,k,0)/cons(i,j,k,0));
+                    ke_rho_M += (momx(i,j,k) + momx(i-1,j,k))*(momx(i,j,k) + momx(i-1,j,k));
+                    ke_rho_M += (momy(i-1,j+1,k) + momy(i-1,j,k))*(momy(i-1,j+1,k) + momy(i-1,j,k));
+                    ke_rho_M += (momz(i-1,j,k+1) + momz(i-1,j,k))*(momz(i-1,j,k+1) + momz(i-1,j,k));
+                    ke_rho_M *= (0.125/cons(i-1,j,k,0)/cons(i-1,j,k,0));
 
-                    if (algorithm_type == 2) { // Add advection of concentration
-                        for (int n=0; n<nspecies; ++n) {
-                            xflux(i,j,k,5+n) += Yk[n]*momx(i,j,k);
-                        }
-                    }
+                    // add mom*KE/rho to energy flux
+                    xflux(i,j,k,4) += momx(i,j,k)*0.5*(ke_rho_P+ke_rho_M);
+
                 }
 
                 // also add the diffusive + stochastic contributions from heat flux, viscous heating and Dufour effects
@@ -1559,34 +1601,111 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
 
             [=] AMREX_GPU_DEVICE (int i, int j, int k) {
             
+                // add density advection
                 yflux(i,j,k,0) += momy(i,j,k);
 
-                if ((j == 0) and is_lo_y_dirichlet_mass) {
-                    yflux(i,j,k,4) += cons(i,j-1,k,4)*vely(i,j,k) + prim(i,j-1,k,5)*vely(i,j,k);
+                Real meanT; 
+                GpuArray<Real,MAX_SPECIES> Yk;
+                GpuArray<Real,MAX_SPECIES> hk;
 
-                    if (algorithm_type == 2) { // Add advection of concentration
+                if ((j == 0) and is_lo_y_dirichlet_mass) {
+
+                    // temperature at the face
+                    meanT = prim(i,j-1,k,4);
+                    
+                    // enthalpy at the face
+                    GetEnthalpies(meanT, hk);
+
+                    // add enthalpy advection to energy flux (Q_adv = mom*(\sum_k(Yk*hk) + KE/rho))
+                    if (algorithm_type == 2) {
                         for (int n=0; n<nspecies; ++n) {
-                            yflux(i,j,k,5+n) += prim(i,j-1,k,6+n)*momy(i,j,k);
+                            Yk[n] = prim(i,j-1,k,6+n);
+                            yflux(i,j,k,4) += momy(i,j,k)*Yk[n]*hk[n];
+                            yflux(i,j,k,5+n) += Yk[n]*momy(i,j,k); // Add advection of concentration
                         }
                     }
+
+                    // Evaluate KE/rho = 1/2(v.v) on neighboring cells of this face
+                    Real ke_rho_P = 0.; // i
+                    Real ke_rho_M = 0.; // i-1
+                    ke_rho_P += (momx(i+1,j,k) + momx(i,j,k))*(momx(i+1,j,k) + momx(i,j,k));
+                    ke_rho_P += (momy(i,j+1,k) + momy(i,j,k))*(momy(i,j+1,k) + momy(i,j,k));
+                    ke_rho_P += (momz(i,j,k+1) + momz(i,j,k))*(momz(i,j,k+1) + momz(i,j,k));
+                    ke_rho_P *= (0.125/cons(i,j,k,0)/cons(i,j,k,0));
+                    ke_rho_M += (momx(i+1,j-1,k) + momx(i,j-1,k))*(momx(i+1,j-1,k) + momx(i,j-1,k));
+                    ke_rho_M += (momy(i,j,k) + momy(i,j-1,k))*(momy(i,j,k) + momy(i,j-1,k));
+                    ke_rho_M += (momz(i,j-1,k+1) + momz(i,j-1,k))*(momz(i,j-1,k+1) + momz(i,j-1,k));
+                    ke_rho_M *= (0.125/cons(i,j-1,k,0)/cons(i,j-1,k,0));
+
+                    // add mom*KE/rho to energy flux
+                    yflux(i,j,k,4) += momy(i,j,k)*0.5*(ke_rho_P+ke_rho_M);
+
                 }
                 else if  ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
-                    yflux(i,j,k,4) += cons(i,j,k,4)*vely(i,j,k) + prim(i,j,k,5)*vely(i,j,k);
 
-                    if (algorithm_type == 2) { // Add advection of concentration
+                    // temperature at the face
+                    meanT = prim(i,j,k,4);
+                    
+                    // enthalpy at the face
+                    GetEnthalpies(meanT, hk);
+
+                    // add enthalpy advection to energy flux (Q_adv = mom*(\sum_k(Yk*hk) + KE/rho))
+                    if (algorithm_type == 2) {
                         for (int n=0; n<nspecies; ++n) {
-                            yflux(i,j,k,5+n) += prim(i,j,k,6+n)*momy(i,j,k);
+                            Yk[n] = prim(i,j,k,6+n);
+                            yflux(i,j,k,4) += momy(i,j,k)*Yk[n]*hk[n];
+                            yflux(i,j,k,5+n) += Yk[n]*momy(i,j,k); // Add advection of concentration
                         }
                     }
+
+                    // Evaluate KE/rho = 1/2(v.v) on neighboring cells of this face
+                    Real ke_rho_P = 0.; // i
+                    Real ke_rho_M = 0.; // i-1
+                    ke_rho_P += (momx(i+1,j,k) + momx(i,j,k))*(momx(i+1,j,k) + momx(i,j,k));
+                    ke_rho_P += (momy(i,j+1,k) + momy(i,j,k))*(momy(i,j+1,k) + momy(i,j,k));
+                    ke_rho_P += (momz(i,j,k+1) + momz(i,j,k))*(momz(i,j,k+1) + momz(i,j,k));
+                    ke_rho_P *= (0.125/cons(i,j,k,0)/cons(i,j,k,0));
+                    ke_rho_M += (momx(i+1,j-1,k) + momx(i,j-1,k))*(momx(i+1,j-1,k) + momx(i,j-1,k));
+                    ke_rho_M += (momy(i,j,k) + momy(i,j-1,k))*(momy(i,j,k) + momy(i,j-1,k));
+                    ke_rho_M += (momz(i,j-1,k+1) + momz(i,j-1,k))*(momz(i,j-1,k+1) + momz(i,j-1,k));
+                    ke_rho_M *= (0.125/cons(i,j-1,k,0)/cons(i,j-1,k,0));
+
+                    // add mom*KE/rho to energy flux
+                    yflux(i,j,k,4) += momy(i,j,k)*0.5*(ke_rho_P+ke_rho_M);
+
                 }
                 else {
-                    yflux(i,j,k,4) += 0.5*(cons(i,j-1,k,4)+cons(i,j,k,4))*vely(i,j,k) + 0.5*(prim(i,j-1,k,5)+prim(i,j,k,5))*vely(i,j,k);
 
-                    if (algorithm_type == 2) { // Add advection of concentration
+                    // temperature at the face
+                    meanT = 0.5*(prim(i,j-1,k,4) + prim(i,j,k,4));
+                    
+                    // enthalpy at the face
+                    GetEnthalpies(meanT, hk);
+
+                    // add enthalpy advection to energy flux (Q_adv = mom*(\sum_k(Yk*hk) + KE/rho))
+                    if (algorithm_type == 2) {
                         for (int n=0; n<nspecies; ++n) {
-                            yflux(i,j,k,5+n) += 0.5*(prim(i,j-1,k,6+n)+prim(i,j,k,6+n))*momy(i,j,k);
+                            Yk[n] = 0.5*(prim(i,j-1,k,6+n) + prim(i,j,k,6+n));
+                            yflux(i,j,k,4) += momy(i,j,k)*Yk[n]*hk[n];
+                            yflux(i,j,k,5+n) += Yk[n]*momy(i,j,k); // Add advection of concentration
                         }
                     }
+
+                    // Evaluate KE/rho = 1/2(v.v) on neighboring cells of this face
+                    Real ke_rho_P = 0.; // i
+                    Real ke_rho_M = 0.; // i-1
+                    ke_rho_P += (momx(i+1,j,k) + momx(i,j,k))*(momx(i+1,j,k) + momx(i,j,k));
+                    ke_rho_P += (momy(i,j+1,k) + momy(i,j,k))*(momy(i,j+1,k) + momy(i,j,k));
+                    ke_rho_P += (momz(i,j,k+1) + momz(i,j,k))*(momz(i,j,k+1) + momz(i,j,k));
+                    ke_rho_P *= (0.125/cons(i,j,k,0)/cons(i,j,k,0));
+                    ke_rho_M += (momx(i+1,j-1,k) + momx(i,j-1,k))*(momx(i+1,j-1,k) + momx(i,j-1,k));
+                    ke_rho_M += (momy(i,j,k) + momy(i,j-1,k))*(momy(i,j,k) + momy(i,j-1,k));
+                    ke_rho_M += (momz(i,j-1,k+1) + momz(i,j-1,k))*(momz(i,j-1,k+1) + momz(i,j-1,k));
+                    ke_rho_M *= (0.125/cons(i,j-1,k,0)/cons(i,j-1,k,0));
+
+                    // add mom*KE/rho to energy flux
+                    yflux(i,j,k,4) += momy(i,j,k)*0.5*(ke_rho_P+ke_rho_M);
+
                 }
 
                 // also add the diffusive + stochastic contributions from heat flux, viscous heating and Dufour effects
@@ -1595,34 +1714,111 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
 
             [=] AMREX_GPU_DEVICE (int i, int j, int k) {
 
+                // add density advection
                 zflux(i,j,k,0) += momz(i,j,k);
 
-                if ((k == 0) and is_lo_z_dirichlet_mass) {
-                    zflux(i,j,k,4) += cons(i,j,k-1,4)*velz(i,j,k) + prim(i,j,k-1,5)*velz(i,j,k);
+                Real meanT; 
+                GpuArray<Real,MAX_SPECIES> Yk;
+                GpuArray<Real,MAX_SPECIES> hk;
 
-                    if (algorithm_type == 2) { // Add advection of concentration
+                if ((k == 0) and is_lo_z_dirichlet_mass) {
+
+                    // temperature at the face
+                    meanT = prim(i,j,k-1,4);
+                    
+                    // enthalpy at the face
+                    GetEnthalpies(meanT, hk);
+
+                    // add enthalpy advection to energy flux (Q_adv = mom*(\sum_k(Yk*hk) + KE/rho))
+                    if (algorithm_type == 2) {
                         for (int n=0; n<nspecies; ++n) {
-                            zflux(i,j,k,5+n) += prim(i,j,k-1,6+n)*momz(i,j,k);
+                            Yk[n] = prim(i,j,k-1,6+n);
+                            zflux(i,j,k,4) += momz(i,j,k)*Yk[n]*hk[n];
+                            zflux(i,j,k,5+n) += Yk[n]*momz(i,j,k); // Add advection of concentration
                         }
                     }
+
+                    // Evaluate KE/rho = 1/2(v.v) on neighboring cells of this face
+                    Real ke_rho_P = 0.; // i
+                    Real ke_rho_M = 0.; // i-1
+                    ke_rho_P += (momx(i+1,j,k) + momx(i,j,k))*(momx(i+1,j,k) + momx(i,j,k));
+                    ke_rho_P += (momy(i,j+1,k) + momy(i,j,k))*(momy(i,j+1,k) + momy(i,j,k));
+                    ke_rho_P += (momz(i,j,k+1) + momz(i,j,k))*(momz(i,j,k+1) + momz(i,j,k));
+                    ke_rho_P *= (0.125/cons(i,j,k,0)/cons(i,j,k,0));
+                    ke_rho_M += (momx(i+1,j,k-1) + momx(i,j,k-1))*(momx(i+1,j,k-1) + momx(i,j,k-1));
+                    ke_rho_M += (momy(i,j+1,k-1) + momy(i,j,k-1))*(momy(i,j+1,k-1) + momy(i,j,k-1));
+                    ke_rho_M += (momz(i,j,k) + momz(i,j,k-1))*(momz(i,j,k) + momz(i,j,k-1));
+                    ke_rho_M *= (0.125/cons(i,j-1,k,0)/cons(i,j-1,k,0));
+
+                    // add mom*KE/rho to energy flux
+                    zflux(i,j,k,4) += momz(i,j,k)*0.5*(ke_rho_P+ke_rho_M);
+
                 }
                 else if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
-                    zflux(i,j,k,4) += cons(i,j,k,4)*velz(i,j,k) + prim(i,j,k,5)*velz(i,j,k);
 
-                    if (algorithm_type == 2) { // Add advection of concentration
+                    // temperature at the face
+                    meanT = prim(i,j,k,4);
+                    
+                    // enthalpy at the face
+                    GetEnthalpies(meanT, hk);
+
+                    // add enthalpy advection to energy flux (Q_adv = mom*(\sum_k(Yk*hk) + KE/rho))
+                    if (algorithm_type == 2) {
                         for (int n=0; n<nspecies; ++n) {
-                            zflux(i,j,k,5+n) += prim(i,j,k,6+n)*momz(i,j,k);
+                            Yk[n] = prim(i,j,k,6+n);
+                            zflux(i,j,k,4) += momz(i,j,k)*Yk[n]*hk[n];
+                            zflux(i,j,k,5+n) += Yk[n]*momz(i,j,k); // Add advection of concentration
                         }
                     }
+
+                    // Evaluate KE/rho = 1/2(v.v) on neighboring cells of this face
+                    Real ke_rho_P = 0.; // i
+                    Real ke_rho_M = 0.; // i-1
+                    ke_rho_P += (momx(i+1,j,k) + momx(i,j,k))*(momx(i+1,j,k) + momx(i,j,k));
+                    ke_rho_P += (momy(i,j+1,k) + momy(i,j,k))*(momy(i,j+1,k) + momy(i,j,k));
+                    ke_rho_P += (momz(i,j,k+1) + momz(i,j,k))*(momz(i,j,k+1) + momz(i,j,k));
+                    ke_rho_P *= (0.125/cons(i,j,k,0)/cons(i,j,k,0));
+                    ke_rho_M += (momx(i+1,j,k-1) + momx(i,j,k-1))*(momx(i+1,j,k-1) + momx(i,j,k-1));
+                    ke_rho_M += (momy(i,j+1,k-1) + momy(i,j,k-1))*(momy(i,j+1,k-1) + momy(i,j,k-1));
+                    ke_rho_M += (momz(i,j,k) + momz(i,j,k-1))*(momz(i,j,k) + momz(i,j,k-1));
+                    ke_rho_M *= (0.125/cons(i,j-1,k,0)/cons(i,j-1,k,0));
+
+                    // add mom*KE/rho to energy flux
+                    zflux(i,j,k,4) += momz(i,j,k)*0.5*(ke_rho_P+ke_rho_M);
+
                 }
                 else {
-                    zflux(i,j,k,4) += 0.5*(cons(i,j,k-1,4)+cons(i,j,k,4))*velz(i,j,k) + 0.5*(prim(i,j,k-1,5)+prim(i,j,k,5))*velz(i,j,k);
 
-                    if (algorithm_type == 2) { // Add advection of concentration
+                    // temperature at the face
+                    meanT = 0.5*(prim(i,j,k-1,4) + prim(i,j,k,4));
+                    
+                    // enthalpy at the face
+                    GetEnthalpies(meanT, hk);
+
+                    // add enthalpy advection to energy flux (Q_adv = mom*(\sum_k(Yk*hk) + KE/rho))
+                    if (algorithm_type == 2) {
                         for (int n=0; n<nspecies; ++n) {
-                            zflux(i,j,k,5+n) += 0.5*(prim(i,j,k-1,6+n)+prim(i,j,k,6+n))*momz(i,j,k);
+                            Yk[n] = 0.5*(prim(i,j,k-1,6+n) + prim(i,j,k,6+n));
+                            zflux(i,j,k,4) += momz(i,j,k)*Yk[n]*hk[n];
+                            zflux(i,j,k,5+n) += Yk[n]*momz(i,j,k); // Add advection of concentration
                         }
                     }
+
+                    // Evaluate KE/rho = 1/2(v.v) on neighboring cells of this face
+                    Real ke_rho_P = 0.; // i
+                    Real ke_rho_M = 0.; // i-1
+                    ke_rho_P += (momx(i+1,j,k) + momx(i,j,k))*(momx(i+1,j,k) + momx(i,j,k));
+                    ke_rho_P += (momy(i,j+1,k) + momy(i,j,k))*(momy(i,j+1,k) + momy(i,j,k));
+                    ke_rho_P += (momz(i,j,k+1) + momz(i,j,k))*(momz(i,j,k+1) + momz(i,j,k));
+                    ke_rho_P *= (0.125/cons(i,j,k,0)/cons(i,j,k,0));
+                    ke_rho_M += (momx(i+1,j,k-1) + momx(i,j,k-1))*(momx(i+1,j,k-1) + momx(i,j,k-1));
+                    ke_rho_M += (momy(i,j+1,k-1) + momy(i,j,k-1))*(momy(i,j+1,k-1) + momy(i,j,k-1));
+                    ke_rho_M += (momz(i,j,k) + momz(i,j,k-1))*(momz(i,j,k) + momz(i,j,k-1));
+                    ke_rho_M *= (0.125/cons(i,j-1,k,0)/cons(i,j-1,k,0));
+
+                    // add mom*KE/rho to energy flux
+                    zflux(i,j,k,4) += momz(i,j,k)*0.5*(ke_rho_P+ke_rho_M);
+
                 }
 
                 // also add the diffusive + stochastic contributions from heat flux, viscous heating and Dufour effects
@@ -1723,7 +1919,9 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                 }
             });
             
-        } else if (advection_type == 2) { // interpolate conserved quantitites
+        } 
+
+        else if (advection_type == 2) { // interpolate conserved quantitites
           // this will work directly for 1D and 2D as all the velocities in the y- and z-directions are always zero
 
             // 1. Loop over the face cells and compute fluxes (all conserved qtys. except momentum; i.e.,[0,4,5-nspecies])
