@@ -1551,8 +1551,6 @@ void AppSurfchemtest::mui_push_agg(int narg, char **arg)
       // push for each FHD domain
       for (int n=0;n<nlocalFHDcell;n++)
         spk->uniface->push("CH_ac1",{xFHD[n],yFHD[n]},MUIintval[n]);
-      // debugging
-      //if (timestamp==10) mui_print_MUIintval(timestamp,"ac1","PRINT");
     } else if (strcmp(arg[k],"dc1") == 0) {
       // compute the sum over each FHD domain
       for (int n=0;n<nlocalFHDcell;n++) MUIintval[n] = 0;
@@ -1563,8 +1561,6 @@ void AppSurfchemtest::mui_push_agg(int narg, char **arg)
       // push for each FHD domain
       for (int n=0;n<nlocalFHDcell;n++)
         spk->uniface->push("CH_dc1",{xFHD[n],yFHD[n]},MUIintval[n]);
-      // debugging
-      //if (timestamp==10) mui_print_MUIintval(timestamp,"dc1","PRINT");
     } else if (strcmp(arg[k],"occ1") == 0) {
       // compute the sum over each FHD domain
       for (int n=0;n<nlocalFHDcell;n++) MUIintval[n] = 0;
@@ -1691,8 +1687,6 @@ void AppSurfchemtest::mui_fetch_agg(int narg, char **arg)
       // distribute info to each KMC site
       for (int i=0;i<nlocal;i++)
         density1[i] = MUIdblval[localFHDcell[i]];
-      // debugging
-      //if (timestamp==10) mui_print_MUIdblval(timestamp,"recvd dens1","PRINT");
     }
     else if (strcmp(arg[k],"temp") == 0) {
       // get info for each FHD cell
@@ -1701,8 +1695,6 @@ void AppSurfchemtest::mui_fetch_agg(int narg, char **arg)
       // distribute info to each KMC site
       for (int i=0;i<nlocal;i++)
         temp[i] = MUIdblval[localFHDcell[i]];
-      // debugging
-      //if (timestamp==10) mui_print_MUIdblval(timestamp,"recvd temp","PRINT");
     }
     else if (strcmp(arg[k],"Vz") == 0) {
       // get info for each FHD cell

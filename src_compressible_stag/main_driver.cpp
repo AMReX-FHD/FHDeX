@@ -835,13 +835,6 @@ void main_driver(const char* argv)
 #ifdef MUI
         mui_push(cu, prim, dx, uniface, step);
 
-        // debugging
-        //if (step==10)
-        //{
-        //    mui_print_MF_bottom(cu,5,6.02214076e23/28.01,step,"dens1","PRINT");
-        //    mui_print_MF_bottom(prim,4,1,step,"temp","PRINT");
-        //}
-
         mui_commit(uniface, step);
 #endif
         if (n_ads_spec>0) sample_MFsurfchem(cu, prim, surfcov, dNadsdes, geom, dt);

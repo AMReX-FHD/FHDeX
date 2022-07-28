@@ -146,12 +146,6 @@ void mui_fetch(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface
                     channel += '0'+(n+1);   // assuming nspec_mui<10
                     dc = uniface.fetch(channel,{x,y},step,s,t);
 
-                    // debugging
-                    //if (step==10)
-                    //{
-                    //    AllPrint() << "PRINT_acdc " << i << " " << j << " " << ac << " " << dc << "\n";
-                    //}
-
                     // update
 
                     amrex::Real dN = ac-dc;
