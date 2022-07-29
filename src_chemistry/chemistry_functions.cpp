@@ -334,7 +334,7 @@ AMREX_GPU_HOST_DEVICE void advance_reaction_SSA_cell(GpuArray<amrex::Real,MAX_SP
         u2 *= rTotal;
 
         // find which reaction has occured
-        int which_reaction;
+        int which_reaction=0;
         amrex::Real rSum = 0.;
         for (int m=0; m<nreaction; m++)
         {

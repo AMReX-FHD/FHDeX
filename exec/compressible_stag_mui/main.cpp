@@ -1,16 +1,25 @@
 #include <AMReX.H>
+#include <AMReX_MPMD.H>
 
+#ifdef MUI
 // additional header files needed by MUI
 #include <mpi.h>
 #include <lib_mpi_split.h>
 #include <mui.h>
+#else
+#include <AMReX_MPMD.H>
+#endif
 
 // function declaration
 void main_driver (const char* argv);
 
 int main (int argc, char* argv[])
 {
+#ifdef MUI
     MPI_Comm comm = mui::mpi_split_by_app( argc, argv );
+#else
+    MPI_Comm comm = amrex::MPMD::Initialize(argc, argv);
+#endif
 
 #ifdef SLURM
     // expected args: exec %t %o inputs_file ...
@@ -29,6 +38,10 @@ int main (int argc, char* argv[])
     main_driver(argv[1]);
 
     amrex::Finalize();
+
+#ifdef USE_AMREX_MPMD
+    amrex::MPMD::Finalize();
+#endif
 
     return 0;
 }

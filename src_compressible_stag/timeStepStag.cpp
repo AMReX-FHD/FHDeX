@@ -17,7 +17,7 @@ void RK3stepStag(MultiFab& cu,
                  std::array< MultiFab, 2 >& edgeflux_y,
                  std::array< MultiFab, 2 >& edgeflux_z,
                  std::array< MultiFab, AMREX_SPACEDIM>& cenflux,
-                 const amrex::Geometry& geom, const amrex::Real dt, const int step)
+                 const amrex::Geometry& geom, const amrex::Real dt, const int /*step*/)
 {
     BL_PROFILE_VAR("RK3stepStag()",RK3stepStag);
 

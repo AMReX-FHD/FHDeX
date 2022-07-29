@@ -3,6 +3,7 @@
 #include "compressible_functions_stag.H"
 
 #include <AMReX_Vector.H>
+#include <AMReX_MPMD.H>
 
 #include "rng_functions.H"
 
@@ -14,8 +15,9 @@
 
 #include "chrono"
 
-#ifdef MUI
+#if defined(MUI) || defined(USE_AMREX_MPMD)
 #include "surfchem_mui_functions.H"
+using namespace surfchem_mui;
 #endif
 
 using namespace std::chrono;
@@ -55,7 +57,7 @@ void main_driver(const char* argv)
     // read the inputs file for MFsurfchem
     InitializeMFSurfchemNamespace();
 
-#ifdef MUI
+#if defined(MUI) || defined(USE_AMREX_MPMD)
     // read the inputs file for surfchem_mui
     InitializeSurfChemMUINamespace();
 
@@ -172,8 +174,12 @@ void main_driver(const char* argv)
     MultiFab surfcov;       // also used in surfchem_mui for stats and plotfiles
     MultiFab dNadsdes;
 
-#ifdef MUI
+#if defined(MUI) || defined(USE_AMREX_MPMD)
     MultiFab Ntot;          // saves total number of sites
+#endif
+
+#if defined(USE_AMREX_MPMD)
+    std::unique_ptr<MPMD::Copier> mpmd_copier;
 #endif
 
     //statistics    
@@ -237,7 +243,7 @@ void main_driver(const char* argv)
 
     Real dt = fixed_dt;
     const Real* dx = geom.CellSize();
-    const RealBox& realDomain = geom.ProbDomain();
+    //const RealBox& realDomain = geom.ProbDomain();
 
     std::string filename = "crossMeans";
     std::ofstream outfile;
@@ -502,7 +508,7 @@ void main_driver(const char* argv)
             nspec_surfcov = n_ads_spec;
         }
 
-#ifdef MUI
+#if defined(MUI) || defined(USE_AMREX_MPMD)
         surfcov.define(ba,dmap,nspec_mui,0);
         Ntot.define(ba,dmap,1,0);
         nspec_surfcov = nspec_mui;
@@ -592,12 +598,18 @@ void main_driver(const char* argv)
 
         if (n_ads_spec>0) init_surfcov(surfcov, geom);
 
-#ifdef MUI
+#if defined(MUI)
         mui_fetch_Ntot(Ntot, dx, uniface, 0);
 
         mui_fetch_surfcov(Ntot, surfcov, dx, uniface, 0);
 
         mui_forget(uniface, 0);
+
+#elif defined(USE_AMREX_MPMD)
+        mpmd_copier = std::make_unique<MPMD::Copier>(Ntot.boxArray(),
+                                                     Ntot.DistributionMap());
+        amrex_fetch_Ntot(Ntot, *mpmd_copier);
+        amrex_fetch_surfcov(Ntot, surfcov, *mpmd_copier);
 #endif
 
         // Set BC: 1) fill boundary 2) physical (How to do for staggered? -- Ishan)
@@ -832,10 +844,12 @@ void main_driver(const char* argv)
         Real ts1 = ParallelDescriptor::second();
 
         // sample surface chemistry
-#ifdef MUI
+#if defined(MUI)
         mui_push(cu, prim, dx, uniface, step);
 
         mui_commit(uniface, step);
+#elif defined(USE_AMREX_MPMD)
+        amrex_push(cu, prim, *mpmd_copier);
 #endif
         if (n_ads_spec>0) sample_MFsurfchem(cu, prim, surfcov, dNadsdes, geom, dt);
 
@@ -844,12 +858,17 @@ void main_driver(const char* argv)
             faceflux, edgeflux_x, edgeflux_y, edgeflux_z, cenflux, geom, dt, step);
 
         // update surface chemistry (via either surfchem_mui or MFsurfchem)
-#ifdef MUI
+#if defined(MUI) || defined(USE_AMREX_MPMD)
+#if defined(MUI)
         mui_fetch(cu, prim, dx, uniface, step);
 
         mui_fetch_surfcov(Ntot, surfcov, dx, uniface, step);
 
         mui_forget(uniface, step);
+#elif defined(USE_AMREX_MPMD)
+        amrex_fetch(cu, prim, geom.CellSizeArray(), *mpmd_copier);
+        amrex_fetch_surfcov(Ntot, surfcov, *mpmd_copier);
+#endif
 
         for (int d=0; d<AMREX_SPACEDIM; d++) {
             cumom[d].FillBoundary(geom.periodicity());

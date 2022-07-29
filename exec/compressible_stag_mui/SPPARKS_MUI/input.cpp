@@ -29,7 +29,11 @@
 #include "error.h"
 #include "memory.h"
 
+#ifdef USE_AMREX_MPMD
+#include "app_surfchemtest.h"
+#else
 #include "style_app.h"
+#endif
 #include "style_command.h"
 #include "style_diag.h"
 #include "style_solve.h"
@@ -648,7 +652,11 @@ void Input::app_style()
 #define APP_CLASS
 #define AppStyle(key,Class) \
   else if (strcmp(arg[0],#key) == 0) app = new Class(spk,narg,arg);
+#ifdef USE_AMREX_MPMD
+#include "app_surfchemtest.h"
+#else
 #include "style_app.h"
+#endif
 #undef APP_CLASS
 
   else error->all(FLERR,"Illegal app_style command");
