@@ -16,6 +16,31 @@ void InitializeSurfChemMUINamespace()
     return;
 }
 
+void mui_print_MF_bottom(MultiFab& mf,int n,double factor,int step, const char *str1,const char *str2)
+{
+    Print() << "** mui_print_MF_bottom: " << str1 << " at step " << step << " **\n";
+
+    for (MFIter mfi(mf,false); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.tilebox();
+        Dim3 lo = lbound(bx);
+        Dim3 hi = ubound(bx);
+        const Array4<Real> & mf_arr = mf.array(mfi);
+
+        // unless bx contains cells at the interface, skip
+        int k = 0;
+        if (k<lo.z || k>hi.z) continue;
+
+        for (int i = lo.x; i<=hi.x; ++i)
+        {
+            for (int j = lo.y; j<= hi.y; ++j)
+            {
+                AllPrint() << str2 << " " << i << " " << j << " " << factor*mf_arr(i,j,k,n) << "\n";
+            }
+        }
+    }
+}
+
 void mui_push(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface2d &uniface, const int step)
 // this routine pushes the following information to MUI
 // - species number densities and temperature of FHD cells contacting the interface
@@ -131,7 +156,6 @@ void mui_fetch(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface
                     cu_arr(i,j,k,0) -= factor1*dN;
                     cu_arr(i,j,k,5+n) -= factor1*dN;
                     cu_arr(i,j,k,4) -= factor2*dN;
-
                 }
             }
         }
@@ -174,6 +198,8 @@ void mui_fetch_Ntot(MultiFab& Ntot, const amrex::Real* dx, mui::uniface2d &unifa
                 double y = prob_lo[1]+(j+0.5)*dx[1];
 
                 Ntot_arr(i,j,k,0) = uniface.fetch("CH_one",{x,y},step,s,t);
+
+                AllPrint() << "Ntot(" << i << "," << j << ")= " << Ntot_arr(i,j,k,0) << "\n";
             }
         }
     }
@@ -205,7 +231,7 @@ void mui_fetch_surfcov(MultiFab& Ntot, MultiFab& surfcov, const amrex::Real* dx,
             double x = prob_lo[0]+(lo.x+0.5)*dx[0];
             double y = prob_lo[1]+(lo.y+0.5)*dx[1];
 
-            uniface.fetch("CH_occ",{x,y},step,s,t);
+            uniface.fetch("CH_occ1",{x,y},step,s,t);
 
             continue;
         }

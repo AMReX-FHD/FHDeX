@@ -11,8 +11,8 @@ lattice     tri ${lat_const}
 
 variable    n1x equal 300
 variable    n1y equal 150
-variable    n2x equal 4
-variable    n2y equal 4
+variable    n2x equal 8
+variable    n2y equal 8
 variable    Nx equal ${n1x}*${n2x}
 variable    Ny equal ${n1y}*${n2y}
 

@@ -323,6 +323,26 @@ void AppLattice::init()
 
 /* ---------------------------------------------------------------------- */
 
+
+void AppLattice::setup2()
+{
+  // app-specific setup, before propensities are computed
+
+  setup_app();
+
+  // initialize propensities for KMC solver within each set
+  // comm insures ghost sites are up to date
+
+  if (solve) {
+    comm->all();
+    for (int i = 0; i < nset; i++) {
+      for (int m = 0; m < set[i].nlocal; m++)
+        set[i].propensity[m] = site_propensity(set[i].site2i[m]);
+      set[i].solve->init(set[i].nlocal,set[i].propensity);
+    }
+  }
+}
+
 void AppLattice::setup()
 {
   // app-specific setup, before propensities are computed
@@ -336,7 +356,7 @@ void AppLattice::setup()
     comm->all();
     for (int i = 0; i < nset; i++) {
       for (int m = 0; m < set[i].nlocal; m++)
-	set[i].propensity[m] = site_propensity(set[i].site2i[m]);
+        set[i].propensity[m] = site_propensity(set[i].site2i[m]);
       set[i].solve->init(set[i].nlocal,set[i].propensity);
     }
   }

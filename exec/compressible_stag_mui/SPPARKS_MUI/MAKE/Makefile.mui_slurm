@@ -21,6 +21,10 @@ ARFLAGS = -rc
 SHLIBFLAGS = -shared
 
 # ---------------------------------------------------------------------
+
+MUI_INC = -DMUI -DSLURM -I../../../../src_mui
+
+# ---------------------------------------------------------------------
 # SPPARKS-specific settings
 # specify settings for SPPARKS features you will use
 
@@ -50,7 +54,7 @@ JPG_LIB = -lpng -ljpeg
 # build rules and dependencies
 # no need to edit this section
 
-EXTRA_INC = $(SPK_INC) $(MPI_INC) $(JPG_INC)
+EXTRA_INC = $(MUI_INC) $(SPK_INC) $(MPI_INC) $(JPG_INC)
 EXTRA_PATH = $(MPI_PATH) $(JPG_PATH)
 EXTRA_LIB = $(MPI_LIB) $(JPG_LIB)
 

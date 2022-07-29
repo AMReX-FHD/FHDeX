@@ -135,6 +135,7 @@ void App::run(int narg, char **arg)
 
   timer->init();
   if (preflag || first_run) setup(); // turn off setup() call for multiple runs
+  else setup2();
   first_run = 0;
 
   if (stoptime > time) iterate();

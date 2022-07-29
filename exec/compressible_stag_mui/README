@@ -1,0 +1,40 @@
+** FHD-KMC coupling **
+
+1. git repo
+ - git clone https://github.com/AMReX-FHD/FHDeX.git
+ - most recent development is in the branch "compressible_stag_mui"
+
+2. compile FHD
+ - go to the directory "FHDeX/exec/compressible_stag_mui"
+ - "make -j8" will give you the executable "main3d.gnu.MPI.ex"
+ - if you use a slurm scheduler (e.g. on cori or pinnacles), set "USE_SLURM = TRUE" in "GNUmakefile"
+
+3. complie SPPARKS
+ - go to the directory "FHDeX/exec/compressible_stag_mui/SPPARKS_MUI"
+ - "make -j8 mui" will give you the executable "spk_mui"
+ - if you use a slurm scheduler (e.g. on cori or pinnacles), use "make -j8 mui_slurm", whcih will give you "spk_mui_slurm"
+
+4. example execution (on a local machine i.e. without slurm)
+
+ - go to the directory "FHDeX/exec/compressible_stag_mui/test_COAr_eq"
+ - execute "./run.sh" 
+
+ - to check FHD:     "tail -f log.fhd" 
+ - to check SPPARKS: "tail -f log.spparks" 
+
+ - to change the numbers of MPI processes, edit "run.sh": "mpirun -np 1 ... : -np 1 ..." 
+ - to change the number of time steps, edit 
+   = "inputs_fhd_stag": "max_step = 10"
+   = "in.kmc": "variable nstep equal 10"
+
+ - if you use a slurm scheduler (e.g. on cori or pinnacles), go to the directory "FHDeX/exec/compressible_stag_mui/test_COAr_eq_slurm"
+
+5. relevant directories
+
+ - FHD's "main.cpp" is located under "FHDeX/exec/compressible_stag_mui"
+ - FHD's "main_driver.cpp" is located under "FHDeX/src_compressible_stag"
+ - SPPARKS's "main.cpp" is located under "FHDeX/exec/compressible_stag_mui/SPPARKS_MUI"
+
+ - MUI library is located under "FHDeX/src_mui"
+ - MUI-relevant routines for FHD are located under "FHDeX/src_surfchem_mui"
+ - MUI-relevant routines for SPPARKS are located in the file "FHDeX/exec/compressible_stag_mui/SPPARKS_MUI/app_surfchemtest.cpp"

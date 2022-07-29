@@ -62,6 +62,8 @@ class App : protected Pointers {
   virtual void stats_header(char *strtmp) {strtmp[0] = '\0';};
   virtual void *extract_app(char *) {return NULL;}
 
+  virtual void setup2() {}
+
  protected:
   int first_run;
   double nextoutput;
