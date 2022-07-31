@@ -129,10 +129,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
 
             const Array4<Real>& stochedgex_v = stochedge_x_in[0].array(mfi);
             const Array4<Real>& stochedgex_w = stochedge_x_in[1].array(mfi);
-            const Array4<Real>& stochedgey_u = stochedge_y_in[0].array(mfi);
             const Array4<Real>& stochedgey_w = stochedge_y_in[1].array(mfi);
-            const Array4<Real>& stochedgez_u = stochedge_z_in[0].array(mfi);
-            const Array4<Real>& stochedgez_v = stochedge_z_in[1].array(mfi);
 
             const Array4<Real>& stochcenx_u = stochcen_in[0].array(mfi);
             const Array4<Real>& stochceny_v = stochcen_in[1].array(mfi);
@@ -143,7 +140,6 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                          Array4<Real const> const& velz = vel_in[2].array(mfi););
 
             const Array4<const Real> prim = prim_in.array(mfi);
-            const Array4<const Real> cons = cons_in.array(mfi);
 
             const Array4<const Real> eta   = eta_in.array(mfi);
             const Array4<const Real> zeta  = zeta_in.array(mfi);
@@ -154,9 +150,6 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
             const Box& tbx = mfi.nodaltilebox(0);
             const Box& tby = mfi.nodaltilebox(1);
             const Box& tbz = mfi.nodaltilebox(2);
-
-            IntVect nd(AMREX_D_DECL(1,1,1));
-            const Box& tbn = mfi.tilebox(nd);
 
             const Box & bx_xy = mfi.tilebox(nodal_flag_xy);
             #if (AMREX_SPACEDIM == 3)
@@ -201,7 +194,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                 else { // 3D
 
                     if (amrex::Math::abs(visc_type) == 3) {
-                      Real fac2 = sqrt(k_B * zetaT * volinv * dtinv / 3.0) - sqrt(2.0 * k_B * etaT * volinv * dtinv)/3.0;
+                      fac2 = sqrt(k_B * zetaT * volinv * dtinv / 3.0) - sqrt(2.0 * k_B * etaT * volinv * dtinv)/3.0;
                     }
                  
                     Real traceZ = stochcenx_u(i,j,k) + stochceny_v(i,j,k) + stochcenz_w(i,j,k);
@@ -816,16 +809,11 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                      const Array4<Real> tauyz = tau_diagoff[1].array(mfi);,
                      const Array4<Real> tauxz = tau_diagoff[2].array(mfi););
 
-        AMREX_D_TERM(Array4<Real const> const& momx = cumom_in[0].array(mfi);,
-                     Array4<Real const> const& momy = cumom_in[1].array(mfi);,
-                     Array4<Real const> const& momz = cumom_in[2].array(mfi););
-
         AMREX_D_TERM(Array4<Real const> const& velx = vel_in[0].array(mfi);,
                      Array4<Real const> const& vely = vel_in[1].array(mfi);,
                      Array4<Real const> const& velz = vel_in[2].array(mfi););
 
         const Array4<const Real> prim = prim_in.array(mfi);
-        const Array4<const Real> cons = cons_in.array(mfi);
         
         const Array4<const Real> eta   = eta_in.array(mfi);
         const Array4<const Real> zeta  = zeta_in.array(mfi);
@@ -836,9 +824,6 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
         const Box& tbx = mfi.nodaltilebox(0);
         const Box& tby = mfi.nodaltilebox(1);
         const Box& tbz = mfi.nodaltilebox(2);
-
-        IntVect nd(AMREX_D_DECL(1,1,1));
-        const Box& tbn = mfi.tilebox(nd);
 
         const Box & bx_xy = mfi.tilebox(nodal_flag_xy);
         #if (AMREX_SPACEDIM == 3)
