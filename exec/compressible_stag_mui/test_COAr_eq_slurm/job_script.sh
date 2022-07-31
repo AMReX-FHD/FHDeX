@@ -1,9 +1,9 @@
 #! /bin/bash -l
-#SBATCH --nodes=1
-#SBATCH --ntasks-per-node=56
-#SBATCH --partition test
-#SBATCH --time=0-00:30:00
+#SBATCH --nodes=2
+#SBATCH --ntasks-per-node=55
+#SBATCH --partition dept.appliedmath
+#SBATCH --time=90:00:00
 
 # COMMANDS HERE
 
-srun -n 56 -l --multi-prog mpmd.conf
+srun -n 110 -l --multi-prog mpmd.conf
