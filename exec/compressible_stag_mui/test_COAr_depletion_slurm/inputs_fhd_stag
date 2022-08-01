@@ -5,7 +5,7 @@ seed = 0
 
 # Problem specification
 prob_lo = 0.0 0.0 0.0 # physical lo coordinate
-prob_hi = 3.36e-05 2.909845e-05 4.3008e-3 # physical hi coordinate
+prob_hi = 6.720000e-05 5.819691e-05 8.601600e-03 # physical hi coordinate
 
 # Number of ghost cells, conserved, and primitive variables
 # ---------------------
@@ -14,9 +14,9 @@ nvars = 7
 nprimvars = 10
 
 # number of cells in domain
-n_cells = 4 4 512
+n_cells = 8 8 1024
 # max number of cells in a box
-max_grid_size = 4 4 16
+max_grid_size = 8 8 16
 
 # Time-step control
 fixed_dt = 1.e-12
@@ -53,7 +53,7 @@ prob_type = 1
 # Initial parameters
 k_B = 1.38064852e-16	# [units: cm2*g*s-2*K-1]
 T_init = 1000
-rho0 = 4.799649e-04
+rho0 = 4.783296e-04
 
 struct_fact_int = 0
 n_steps_skip = 0
@@ -86,7 +86,7 @@ nspecies = 2
 
 molmass = 28.01 39.95
 diameter = 3.76e-8 3.63e-8
-rhobar = 5.647352e-02 9.435265e-01
+rhobar = 5.324783e-02 9.467522e-01
 
 # Enter negative dof to use hcv & hcp values
 dof = 5 3

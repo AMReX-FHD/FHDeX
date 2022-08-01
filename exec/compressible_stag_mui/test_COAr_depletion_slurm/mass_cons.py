@@ -2,11 +2,11 @@ import sys
 import numpy as np
 import math
 
-file = sys.argv[1] 
+file = sys.argv[1]
 
-Ncellx = 4
-Ncelly = 4
-Ncellz = 512
+Ncellx = 8
+Ncelly = 8
+Ncellz = 1024
 
 dx = 8.4e-6
 dy = math.sqrt(3)/2*dx
