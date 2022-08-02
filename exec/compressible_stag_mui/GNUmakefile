@@ -11,6 +11,7 @@ COMP          = gnu
 DIM           = 3
 TINY_PROFILE  = FALSE
 USE_MUI       = TRUE
+USE_SLURM     = FALSE
 
 USE_PARTICLES = FALSE
 
@@ -71,4 +72,8 @@ endif
 
 ifeq ($(USE_MUI), TRUE)
   DEFINES += -DMUI
+endif
+
+ifeq ($(USE_SLURM), TRUE)
+  DEFINES += -DSLURM
 endif

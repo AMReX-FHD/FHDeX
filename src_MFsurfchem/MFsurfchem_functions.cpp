@@ -68,7 +68,6 @@ void InitializeMFSurfchemNamespace()
 
 void init_surfcov(MultiFab& surfcov, const amrex::Geometry& geom)
 {
-
     const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
     
     GpuArray<Real,MAX_SPECIES> sum_surfcov0;

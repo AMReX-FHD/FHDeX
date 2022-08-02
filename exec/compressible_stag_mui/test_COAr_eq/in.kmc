@@ -71,11 +71,9 @@ label ts_loop
     mui_forget ${ts}
 
     # RUN KMC
-    label jump_label1
     run ${Trun} pre no post no
 
     # MPI_PUSH
-    label jump_label2
     mui_push_agg ${ts} ac1 dc1 occ1
     mui_commit ${ts}
 next ts 

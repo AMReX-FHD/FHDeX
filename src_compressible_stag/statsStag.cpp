@@ -219,9 +219,6 @@ void EvaluateStatsMeans(MultiFab& cons, MultiFab& consMean,
         const Array4<      Real> velxmeans = velMean[0].array(mfi);
         const Array4<      Real> velymeans = velMean[1].array(mfi);
         const Array4<      Real> velzmeans = velMean[2].array(mfi);
-        const Array4<const Real> velx      = vel[0].array(mfi);
-        const Array4<const Real> vely      = vel[1].array(mfi);
-        const Array4<const Real> velz      = vel[2].array(mfi);
 
         const Array4<const Real> momx      = cumom[0].array(mfi);
         const Array4<const Real> momy      = cumom[1].array(mfi);
@@ -663,9 +660,6 @@ void GetPencilCross(amrex::Gpu::DeviceVector<Real>& data_xcross_in,
     for ( MFIter mfi(prim_in); mfi.isValid(); ++mfi) {
 
         const Box& bx = mfi.validbox();
-
-        const auto lo = amrex::lbound(bx);
-        const auto hi = amrex::ubound(bx);
 
         const Array4<const Real> cumeans   = consMean.array(mfi);
         const Array4<const Real> primmeans = primMean.array(mfi);
@@ -1178,17 +1172,12 @@ void EvaluateSpatialCorrelations1D(MultiFab& spatialCross1D,
 
         const Box& bx = mfi.validbox();
 
-        const auto lo = amrex::lbound(bx);
-        const auto hi = amrex::ubound(bx);
-
         const Array4<const Real> cumeans   = consMean.array(mfi);
         const Array4<const Real> primmeans = primMean.array(mfi);
         const Array4<const Real> prim      = prim_in.array(mfi);
         const Array4<const Real> cu        = cons.array(mfi);
 
         const Array4<const Real> velx      = vel[0].array(mfi);
-        const Array4<const Real> vely      = vel[1].array(mfi);
-        const Array4<const Real> velz      = vel[2].array(mfi);
         const Array4<const Real> velxmeans = velMean[0].array(mfi);
         const Array4<const Real> velymeans = velMean[1].array(mfi);
         const Array4<const Real> velzmeans = velMean[2].array(mfi);
