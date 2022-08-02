@@ -15,6 +15,7 @@ outfile=res.zavg_$pltfile
 $exec -p $pltfile -o $outfile -v 2 rhoYkInstant_0 rhoYkInstant_1
 
 gnuplot -persist <<-EOFMarker
-    rhoY1mean = 2.383472e-05
-    plot [:][0:2.5e-5] "$outfile" u 1:2 w l, rhoY1mean
+    init_rho1 = 2.547001e-05
+    mean_rho1 = 2.383472e-05
+    plot [:][0:3e-5] "$outfile" u 1:2 w l, init_rho1, mean_rho1
 EOFMarker
