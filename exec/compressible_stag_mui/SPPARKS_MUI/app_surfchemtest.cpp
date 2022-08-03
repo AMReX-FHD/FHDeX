@@ -26,6 +26,10 @@
 #include "mui.h"
 #endif
 
+#if defined(USE_AMREX_MPMD)
+#include <AMReX_MPMD.H>
+#endif
+
 #include <vector>
 
 #ifdef MUI
@@ -520,7 +524,7 @@ void AppSurfchemtest::input_app(char *command, int narg, char **arg)
     }  else error->all(FLERR,"Illegal event command");
   }
 
-#ifdef MUI
+#if defined(MUI)
     else if (strcmp(command,"mui_init_agg") == 0) {
     if (narg != 0) error->all(FLERR,"Illegal mui_init_agg command");
     mui_init_agg();
@@ -550,7 +554,26 @@ void AppSurfchemtest::input_app(char *command, int narg, char **arg)
     if (narg != 2) error->all(FLERR,"Illegal mui_kmc_lattice_offset command");
     mui_kmc_lattice_offset_x = atof(arg[0]);
     mui_kmc_lattice_offset_y = atof(arg[1]);
-  } 
+  }
+#elif defined(USE_AMREX_MPMD)
+  else if (strcmp(command,"amrex_init_agg") == 0) {
+    if (narg != 0) error->all(FLERR,"Illegal amrex_init_agg command");
+    amrex_init_agg();
+  } else if (strcmp(command,"amrex_push_agg") == 0) {
+    if (narg < 2) error->all(FLERR,"Illegal amrex_push_agg command");
+    amrex_push_agg(narg,arg);
+  } else if (strcmp(command,"amrex_fetch_agg") == 0) {
+    if (narg < 2) error->all(FLERR,"Illegal amrex_fetch_agg command");
+    amrex_fetch_agg(narg,arg);
+  } else if (strcmp(command,"amrex_fhd_lattice_size") == 0) {
+    if (narg != 2) error->all(FLERR,"Illegal amrex_fhd_lattice_size command");
+    amrex_fhd_lattice_size_x = atof(arg[0]);
+    amrex_fhd_lattice_size_y = atof(arg[1]);
+  } else if (strcmp(command,"amrex_kmc_lattice_offset") == 0) {
+    if (narg != 2) error->all(FLERR,"Illegal amrex_kmc_lattice_offset command");
+    amrex_kmc_lattice_offset_x = atof(arg[0]);
+    amrex_kmc_lattice_offset_y = atof(arg[1]);
+  }
 #endif
 
   else error->all(FLERR,"Unrecognized command");
@@ -1113,7 +1136,7 @@ void AppSurfchemtest::grow_reactions(int rstyle)
   }
 }
 
-#ifdef MUI
+#if defined(MUI)
 
 /* ----------------------------------------------------------------------
    MUI routines 
@@ -1729,6 +1752,304 @@ void AppSurfchemtest::mui_forget(int narg, char **arg)
   }
 
   return;
+}
+
+#elif defined(USE_AMREX_MPMD)
+
+void AppSurfchemtest::amrex_init_agg ()
+{
+    AMREX_ASSERT(nlocal>0);
+    AMREX_ASSERT(amrex_fhd_lattice_size_x>0);
+    AMREX_ASSERT(amrex_fhd_lattice_size_y>0);
+
+    // 1. nlocalFHDcell, nlocalFHDcell_world
+
+    int nFHDcellx = std::rint((domain->boxxhi-domain->boxxlo)/amrex_fhd_lattice_size_x);
+    int nFHDcelly = std::rint((domain->boxyhi-domain->boxylo)/amrex_fhd_lattice_size_y);
+
+    if (domain->me == 0) {
+        std::fprintf(logfile,"(boxx, boxy) = %e %e\n",domain->boxxhi-domain->boxxlo,domain->boxyhi-domain->boxylo);
+        std::fprintf(logfile,"(amrex_fhd_lattice_size_x, amrex_fhd_lattice_size_y) = %e %e\n",amrex_fhd_lattice_size_x,amrex_fhd_lattice_size_y);
+        std::fprintf(logfile,"(nFHDcellx, nFHDcelly) = %d %d\n",nFHDcellx,nFHDcelly);
+    }
+
+    amrex::Vector<amrex::Vector<int>> cntKMCsite
+        (nFHDcellx,amrex::Vector<int>(nFHDcelly,0));
+    amrex::Vector<amrex::Vector<double>> sum1
+        (nFHDcellx,amrex::Vector<double>(nFHDcelly,0.));
+    amrex::Vector<amrex::Vector<double>> sum2
+        (nFHDcellx,amrex::Vector<double>(nFHDcelly,0.));
+
+    for (int i = 0; i < nlocal; i++) {
+        int nx = std::floor((xyz[i][0]+amrex_kmc_lattice_offset_x)
+                            /amrex_fhd_lattice_size_x);
+        int ny = std::floor((xyz[i][1]+amrex_kmc_lattice_offset_y)
+                            /amrex_fhd_lattice_size_y);
+        cntKMCsite[nx][ny]++;
+        sum1[nx][ny] += xyz[i][0]+amrex_kmc_lattice_offset_x;
+        sum2[nx][ny] += xyz[i][1]+amrex_kmc_lattice_offset_y;
+    }
+
+    int cntFHDcell = 0;
+    for (int nx = 0; nx < nFHDcellx; nx++) {
+        for (int ny = 0; ny < nFHDcelly; ny++) {
+            if (cntKMCsite[nx][ny] > 0) cntFHDcell++;
+        }
+    }
+    nlocalFHDcell = cntFHDcell;
+
+    if (domain->me == 0) {
+        nlocalFHDcell_world.resize(domain->nprocs);
+    }
+
+    MPI_Gather(&nlocalFHDcell,1,MPI_INT,nlocalFHDcell_world.data(),1,MPI_INT,0,world);
+
+    if (domain->me == 0) {
+        for (int i=0;i<domain->nprocs;i++) {
+            std::fprintf(logfile, "- rank %d: nlocalFHDcell = %d\n",
+                         i, nlocalFHDcell_world[i]);
+        }
+    }
+
+    // 2. xFHD, yFHD
+
+    xFHD.resize(nlocalFHDcell);
+    yFHD.resize(nlocalFHDcell);
+
+    amrex::Vector<amrex::Vector<int>> FHDcell(nFHDcellx,amrex::Vector<int>(nFHDcelly,-1));
+
+    cntFHDcell = 0;
+    for (int nx = 0; nx < nFHDcellx; nx++) {
+        for (int ny = 0; ny < nFHDcelly; ny++) {
+            if (cntKMCsite[nx][ny] > 0) {
+                FHDcell[nx][ny] = cntFHDcell;
+                xFHD[cntFHDcell] = sum1[nx][ny]/cntKMCsite[nx][ny];
+                yFHD[cntFHDcell] = sum2[nx][ny]/cntKMCsite[nx][ny];
+                cntFHDcell++;
+            }
+        }
+    }
+    AMREX_ASSERT(cntFHDcell==nlocalFHDcell);
+
+    if (domain->me == 0) {
+        // output my info first
+        std::fprintf(logfile,"** rank %d **\n",domain->me);
+        for (int j=0;j<nlocalFHDcell;j++) {
+            std::fprintf(logfile,"- (xFHD[%d], yFHD[%d]) = %e %e\n",j,j,xFHD[j],yFHD[j]);
+        }
+        // output for other procs
+        for (int i=1;i<domain->nprocs;i++) {
+            amrex::Vector<double> data1(nlocalFHDcell_world[i]);
+            amrex::Vector<double> data2(nlocalFHDcell_world[i]);
+
+            MPI_Recv(data1.data(),data1.size(),MPI_DOUBLE,i,0,world,MPI_STATUS_IGNORE);
+            MPI_Recv(data2.data(),data2.size(),MPI_DOUBLE,i,1,world,MPI_STATUS_IGNORE);
+
+            std::fprintf(logfile,"** rank %d **\n",i);
+            for (int j=0;j<nlocalFHDcell_world[i];j++) {
+                std::fprintf(logfile,"- (xFHD[%d], yFHD[%d]) = %e %e\n",
+                             j,j,data1[j],data2[j]);
+            }
+        }
+    }
+    else {
+        MPI_Send(xFHD.data(),nlocalFHDcell,MPI_DOUBLE,0,0,world);
+        MPI_Send(yFHD.data(),nlocalFHDcell,MPI_DOUBLE,0,1,world);
+    }
+
+    // 3. localFHDcell, AMREXintval, AMREXdblval
+
+    localFHDcell.resize(nlocal);
+
+    for (int i = 0; i < nlocal; i++) {
+        int nx = std::floor((xyz[i][0]+amrex_kmc_lattice_offset_x)
+                            /amrex_fhd_lattice_size_x);
+        int ny = std::floor((xyz[i][1]+amrex_kmc_lattice_offset_y)
+                            /amrex_fhd_lattice_size_y);
+        AMREX_ASSERT(nx>=0 && nx<nFHDcellx && ny>=0 && ny<nFHDcelly);
+        localFHDcell[i] = FHDcell[nx][ny];
+    }
+
+    amrex::Vector<int> cntKMCsite2(nlocalFHDcell,0);
+    for (int i = 0; i < nlocal; i++) cntKMCsite2[localFHDcell[i]]++;
+
+    if (domain->me == 0) {
+        // output my info first
+        std::fprintf(logfile,"** rank %d **\n",domain->me);
+        for (int j=0;j<nlocalFHDcell;j++) {
+            std::fprintf(logfile,"- FHDcell %d has %d KMC sites\n",j,cntKMCsite2[j]);
+        }
+        // output for other procs
+        for (int i=1;i<domain->nprocs;i++) {
+            amrex::Vector<int> data(nlocalFHDcell_world[i]);
+
+            MPI_Recv(data.data(),data.size(),MPI_INT,i,0,world,MPI_STATUS_IGNORE);
+
+            std::fprintf(logfile,"** rank %d **\n",i);
+            for (int j=0;j<nlocalFHDcell_world[i];j++) {
+                std::fprintf(logfile,"- FHDcell %d has %d KMC sites\n",j,data[j]);
+            }
+        }
+    }
+    else {
+        MPI_Send(cntKMCsite2.data(),nlocalFHDcell,MPI_INT,0,0,world);
+    }
+
+    intval.resize(nlocalFHDcell);
+    dblval.resize(nlocalFHDcell);
+
+    if (domain->me == 0) std::fflush(logfile);
+
+    AMREX_ALWAYS_ASSERT(domain->dimension == 2);
+
+    double dx = amrex_fhd_lattice_size_x;
+    double dy = amrex_fhd_lattice_size_y;
+    int xlo = static_cast<int>(std::floor((domain->subxlo-domain->boxxlo+0.5*dx)/dx));
+    int ylo = static_cast<int>(std::floor((domain->subylo-domain->boxylo+0.5*dy)/dy));
+    int xhi = static_cast<int>(std::floor((domain->subxhi-domain->boxxlo-0.5*dx)/dx));
+    int yhi = static_cast<int>(std::floor((domain->subyhi-domain->boxylo-0.5*dy)/dy));
+    amrex::Vector<amrex::Box> box{amrex::Box(amrex::IntVect(xlo,ylo,0),
+                                             amrex::IntVect(xhi,yhi,0))};
+    amrex::AllGatherBoxes(box);
+    amrex::BoxArray ba(box.data(), box.size());
+    amrex::Vector<int> proc;
+    proc.push_back(amrex::ParallelDescriptor::MyProc());
+    amrex::Vector<int> allprocs(amrex::ParallelDescriptor::NProcs());
+    amrex::ParallelAllGather::AllGather(proc.data(), 1, allprocs.data(),
+                                        amrex::ParallelDescriptor::Communicator());
+    amrex::DistributionMapping dmap(std::move(allprocs));
+    mf.define(ba, dmap, 1, 0, amrex::MFInfo().SetArena(amrex::The_Cpu_Arena()));
+    imf.define(ba, dmap, 1, 0, amrex::MFInfo().SetArena(amrex::The_Cpu_Arena()));
+
+    mpmd_copier = std::make_unique<amrex::MPMD::Copier>(ba, dmap);
+}
+
+void AppSurfchemtest::amrex_push_agg(int narg, char **arg)
+{
+    int timestamp = atoi(arg[0]);
+
+    if (domain->me == 0 && screen) {
+        std::fprintf(screen,"** DEBUG: amrex_push_agg at timestamp %d\n",timestamp);
+        std::fflush(screen);
+    }
+
+    for (int k=1;k<narg;k++)
+    {
+        if (std::strcmp(arg[k],"ac1") == 0) {
+            // compute the sum over each FHD domain
+            for (int n=0;n<nlocalFHDcell;n++) intval[n] = 0;
+            for (int i=0;i<nlocal;i++) {
+                intval[localFHDcell[i]] += ac1[i];
+                ac1[i] = 0;
+            }
+            amrex_send_intval();
+        } else if (std::strcmp(arg[k],"dc1") == 0) {
+            // compute the sum over each FHD domain
+            for (int n=0;n<nlocalFHDcell;n++) intval[n] = 0;
+            for (int i=0;i<nlocal;i++) {
+                intval[localFHDcell[i]] += dc1[i];
+                dc1[i] = 0;
+            }
+            amrex_send_intval();
+        } else if (std::strcmp(arg[k],"occ1") == 0) {
+            // compute the sum over each FHD domain
+            for (int n=0;n<nlocalFHDcell;n++) intval[n] = 0;
+            for (int i=0;i<nlocal;i++) {
+                int is_occ = (element[i]==1) ? 1 : 0;
+                intval[localFHDcell[i]] += is_occ;
+            }
+            amrex_send_intval();
+        } else if (std::strcmp(arg[k],"one") == 0) {
+            // compute the sum over each FHD domain
+            for (int n=0;n<nlocalFHDcell;n++) intval[n] = 0;
+            for (int i=0;i<nlocal;i++) intval[localFHDcell[i]]++;
+            amrex_send_intval();
+        } else {
+            error->all(FLERR,"Illegal amrex_push_agg command");
+        }
+
+        if (domain->me == 0 && screen) {
+            std::fprintf(screen,"** DEBUG: %s pushed\n",arg[k]);
+            std::fflush(screen);
+        }
+    }
+}
+
+void AppSurfchemtest::amrex_fetch_agg(int narg, char **arg)
+{
+    int timestamp = atoi(arg[0]);
+
+    if (domain->me == 0 && screen) {
+        std::fprintf(screen,"** DEBUG: amrex_fetch_agg at timestamp %d\n",timestamp);
+        std::fflush(screen);
+    }
+
+    if (amrex_fhd_lattice_size_x <= 0. || amrex_fhd_lattice_size_y <= 0.)
+        error->all(FLERR,"amrex_fhd_lattice_size must be set as two positive numbers");
+
+    for (int k=1;k<narg;k++)
+    {
+        if (std::strcmp(arg[k],"density1") == 0) {
+            amrex_recv_dblval();
+            // distribute info to each KMC site
+            for (int i=0;i<nlocal;i++)
+                density1[i] = dblval[localFHDcell[i]];
+        }
+        else if (std::strcmp(arg[k],"temp") == 0) {
+            amrex_recv_dblval();
+            // distribute info to each KMC site
+            for (int i=0;i<nlocal;i++)
+                temp[i] = dblval[localFHDcell[i]];
+        }
+        else if (std::strcmp(arg[k],"Vz") == 0) {
+            amrex_recv_dblval();
+            // distribute info to each KMC site
+            for (int i=0;i<nlocal;i++)
+                Vz[i] = dblval[localFHDcell[i]];
+        }
+        else {
+            error->all(FLERR,"Illegal amrex_fetch_agg command");
+        }
+
+        if (domain->me == 0 && screen) {
+            std::fprintf(screen,"** DEBUG: %s fetched\n",arg[k]);
+            std::fflush(screen);
+        }
+    }
+}
+
+void AppSurfchemtest::amrex_send_intval()
+{
+    for (amrex::MFIter mfi(imf); mfi.isValid(); ++mfi) {
+        amrex::Box const& b = mfi.validbox();
+        int const ylen = b.length(1);
+        int const offset = b.smallEnd(1) + b.smallEnd(0) * ylen;
+        amrex::Array4<int> const& ifab = imf.array(mfi);
+        int const* p = intval.data();
+        amrex::LoopOnCpu(b, [&] (int i, int j, int) noexcept
+        {
+            ifab(i,j,0) = p[j+i*ylen-offset];
+        });
+    }
+
+    mpmd_copier->send(imf,0,1);
+}
+
+void AppSurfchemtest::amrex_recv_dblval()
+{
+    mpmd_copier->recv(mf,0,1);
+
+    for (amrex::MFIter mfi(mf); mfi.isValid(); ++mfi) {
+        amrex::Box const& b = mfi.validbox();
+        int const ylen = b.length(1);
+        int const offset = b.smallEnd(1) + b.smallEnd(0) * ylen;
+        amrex::Array4<amrex::Real const> const& fab = mf.const_array(mfi);
+        double* p = dblval.data();
+        amrex::LoopOnCpu(b, [&] (int i, int j, int) noexcept
+        {
+            p[j+i*ylen-offset] = fab(i,j,0);
+        });
+    }
 }
 
 #endif

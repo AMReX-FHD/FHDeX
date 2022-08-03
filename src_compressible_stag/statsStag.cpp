@@ -82,7 +82,7 @@ void evaluateStatsStag2D(MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
                          std::array<MultiFab, AMREX_SPACEDIM>& cumomVar,
                          MultiFab& coVar, 
                          MultiFab& theta, MultiFab& thetaMean, MultiFab& thetaVar,
-                         MultiFab& spatialCross2D, const int ncross,
+                         MultiFab& /*spatialCross2D*/, const int /*ncross*/,
                          const int steps,
                          const Geometry& geom)
 {
@@ -190,7 +190,7 @@ void evaluateStatsStag1D(MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
 ///////////////////////
 void EvaluateStatsMeans(MultiFab& cons, MultiFab& consMean,
                         MultiFab& prim_in, MultiFab& primMean,
-                        const std::array<MultiFab, AMREX_SPACEDIM>& vel,
+                        const std::array<MultiFab, AMREX_SPACEDIM>& /*vel*/,
                         std::array<MultiFab, AMREX_SPACEDIM>& velMean,
                         const std::array<MultiFab, AMREX_SPACEDIM>& cumom,
                         std::array<MultiFab, AMREX_SPACEDIM>& cumomMean,
@@ -711,7 +711,7 @@ void EvaluateSpatialCorrelations3D(Vector<Real>& spatialCross,
                                    amrex::Gpu::HostVector<Real>& prim_avg, 
                                    amrex::Gpu::HostVector<Real>& primmeans_avg, 
                                    const int steps,
-                                   const int nstats,
+                                   const int /*nstats*/,
                                    const int ncross)
 {
     

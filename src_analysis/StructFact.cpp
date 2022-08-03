@@ -63,19 +63,19 @@ void StructFact::define(const BoxArray& ba_in, const DistributionMapping& dmap_i
 
     NVAR = var_names.size();
 
-    Vector<int> s_pairA(NVAR*(NVAR+1)/2);
-    Vector<int> s_pairB(NVAR*(NVAR+1)/2);
+    Vector<int> l_s_pairA(NVAR*(NVAR+1)/2);
+    Vector<int> l_s_pairB(NVAR*(NVAR+1)/2);
 
     int counter=0;
     for (int i=0; i<NVAR; ++i) {
         for (int j=i; j<NVAR; ++j) {
-            s_pairA[counter] = j;
-            s_pairB[counter] = i;
+            l_s_pairA[counter] = j;
+            l_s_pairB[counter] = i;
             ++counter;
         }
     }      
 
-    define(ba_in, dmap_in, var_names, var_scaling_in, s_pairA, s_pairB, verbosity_in);
+    define(ba_in, dmap_in, var_names, var_scaling_in, l_s_pairA, l_s_pairB, verbosity_in);
 
 }
 
@@ -806,7 +806,7 @@ void StructFact::ShiftFFT(MultiFab& dft_out, const Geometry& geom, const int& ze
 }
 
 // integrate cov_mag over k shells
-void StructFact::IntegratekShells(const int& step, const Geometry& geom) {
+void StructFact::IntegratekShells(const int& step, const Geometry& /*geom*/) {
 
     BL_PROFILE_VAR("StructFact::IntegratekShells",IntegratekShells);
 
@@ -816,7 +816,7 @@ void StructFact::IntegratekShells(const int& step, const Geometry& geom) {
     }
 
     int npts = n_cells[0]/2-1;
-    int npts_sq = npts*npts;
+    //int npts_sq = npts*npts;
 
     Gpu::DeviceVector<Real> phisum_vect(npts);
     Gpu::DeviceVector<int>  phicnt_vect(npts);

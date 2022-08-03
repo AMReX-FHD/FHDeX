@@ -21,6 +21,12 @@ AppStyle(surfchemtest,AppSurfchemtest)
 
 #include "app_lattice.h"
 
+#if defined(USE_AMREX_MPMD)
+#include <AMReX_MultiFab.H>
+#include <AMReX_iMultiFab.H>
+#include <AMReX_MPMD.H>
+#endif
+
 namespace SPPARKS_NS {
 
 class AppSurfchemtest : public AppLattice {
@@ -83,7 +89,8 @@ class AppSurfchemtest : public AppLattice {
   void add_event(int, int, int, double, int, int);
   void grow_reactions(int);
 
-#ifdef MUI
+#if defined(MUI)
+
   void mui_init_agg();
   void mui_print_MUIdblval(int step,const char *str1,const char *str2);
   void mui_print_MUIintval(int step,const char *str1,const char *str2);
@@ -106,6 +113,32 @@ class AppSurfchemtest : public AppLattice {
   int *localFHDcell;        // map from local KMC site to FHD cell
   int *nlocalFHDcell_world; // array of nlocalFHDcell for all procs (allocated only for domain->me for debugging purposes)
 
+#elif defined(USE_AMREX_MPMD)
+
+  void amrex_init_agg ();
+  void amrex_push_agg(int,char **);
+  void amrex_fetch_agg(int,char **);
+
+  double amrex_fhd_lattice_size_x;
+  double amrex_fhd_lattice_size_y;
+  double amrex_kmc_lattice_offset_x;
+  double amrex_kmc_lattice_offset_y;
+
+  int nlocalFHDcell;               // number of FHD cells overlapping with local domain
+  amrex::Vector<double> xFHD;      // x-coord of COM of each overlapping FHD cell region
+  amrex::Vector<double> yFHD;      // y-coord of COM of each overlapping FHD cell region
+  amrex::Vector<int> intval;       // temp int array for MUI push/fetch
+  amrex::Vector<double> dblval;    // temp double array for MUI push/fetch
+  amrex::Vector<int> localFHDcell; // map from local KMC site to FHD cell
+  // array of nlocalFHDcell for all procs (allocated only for domain->me for
+  // debugging purposes)
+  amrex::Vector<int> nlocalFHDcell_world;
+  amrex::MultiFab mf;
+  amrex::iMultiFab imf;
+  std::unique_ptr<amrex::MPMD::Copier> mpmd_copier;
+
+    void amrex_send_intval();
+    void amrex_recv_dblval();
 #endif
 };
 
