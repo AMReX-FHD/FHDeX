@@ -363,6 +363,29 @@ void InitConsVar(MultiFab& cons,
                     
             } // prob type
 
+           else if (prob_type == 111) { // pressure and density checkerboard pattern
+
+               for (int ns=0;ns<nspecies;++ns) massvec[ns] = rhobar[ns];
+               Real intEnergy;
+               GetEnergy(intEnergy, massvec, T_init[0]);
+
+               // Set checkerboarded density -- will automatically set checkerboarded pressure for same T, Y
+               Real rhomin = rho0*0.5;
+               Real rhomax = rho0*1.5;
+
+               if ((i+j+k) % 2 == 0) {
+                   cu(i,j,k,0) = rhomin;
+                   for (int ns=0;ns<nspecies;++ns) cu(i,j,k,5+ns) = rhomin*massvec[ns];
+                   cu(i,j,k,4) = rhomin*intEnergy;
+               }
+               else {
+                   cu(i,j,k,0) = rhomax;
+                   for (int ns=0;ns<nspecies;++ns) cu(i,j,k,5+ns) = rhomax*massvec[ns];
+                   cu(i,j,k,4) = rhomax*intEnergy;
+               }
+
+           }
+
         });
     } // end MFIter
 
