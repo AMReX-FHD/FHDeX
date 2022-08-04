@@ -80,8 +80,6 @@ void init_surfcov(MultiFab& surfcov, const amrex::Geometry& geom)
     for (MFIter mfi(surfcov,false); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
-        Dim3 lo = lbound(bx);
-        Dim3 hi = ubound(bx);
         const Array4<Real> & surfcov_arr = surfcov.array(mfi);
 
         amrex::ParallelForRNG(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k, RandomEngine const& engine) noexcept
@@ -125,8 +123,6 @@ void sample_MFsurfchem(MultiFab& cu, MultiFab& prim, MultiFab& surfcov, MultiFab
     for (MFIter mfi(cu,false); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
-        Dim3 lo = lbound(bx);
-        Dim3 hi = ubound(bx);
         const Array4<Real> & cu_arr = cu.array(mfi);
         const Array4<Real> & prim_arr = prim.array(mfi);
         const Array4<Real> & surfcov_arr = surfcov.array(mfi);
@@ -182,8 +178,6 @@ void update_MFsurfchem(MultiFab& cu, MultiFab& prim, MultiFab& surfcov, MultiFab
     for (MFIter mfi(cu,false); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
-        Dim3 lo = lbound(bx);
-        Dim3 hi = ubound(bx);
         const Array4<Real> & cu_arr = cu.array(mfi);
         const Array4<Real> & prim_arr = prim.array(mfi);
         const Array4<Real> & surfcov_arr = surfcov.array(mfi);

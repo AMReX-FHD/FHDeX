@@ -8,7 +8,7 @@
 
 
 
-void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
+void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& /*cup3*/,
              MultiFab& prim, MultiFab& source,
              MultiFab& eta, MultiFab& zeta, MultiFab& kappa,
              MultiFab& chi, MultiFab& D,

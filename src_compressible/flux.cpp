@@ -12,7 +12,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                    MultiFab& visccorn_in,
                    MultiFab& rancorn_in,
                    const amrex::Geometry& geom,
-		   const amrex::Vector< amrex::Real >& stoch_weights,
+		   const amrex::Vector< amrex::Real >& /*stoch_weights*/,
                    const amrex::Real dt)
 {
     BL_PROFILE_VAR("calculateFlux()",calculateFlux);
@@ -54,7 +54,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                          const Array4<Real>& ranfluxz = stochFlux_in[2].array(mfi));
 
             const Array4<const Real> prim = prim_in.array(mfi);
-            const Array4<const Real> cons = cons_in.array(mfi);
+            // const Array4<const Real> cons = cons_in.array(mfi);
 
             const Array4<const Real> rancorn = rancorn_in.array(mfi);
         
@@ -1162,7 +1162,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                      const Array4<Real>& fluxz = flux_in[2].array(mfi));
 
         const Array4<const Real> prim = prim_in.array(mfi);
-        const Array4<const Real> cons = cons_in.array(mfi);
+        // const Array4<const Real> cons = cons_in.array(mfi);
         
         const Array4<const Real> eta   = eta_in.array(mfi);
         const Array4<const Real> zeta  = zeta_in.array(mfi);

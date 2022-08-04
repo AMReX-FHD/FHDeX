@@ -14,11 +14,11 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                        std::array< MultiFab, AMREX_SPACEDIM>& stochface_in,
                        std::array< MultiFab, 2 >& stochedge_x_in,
                        std::array< MultiFab, 2 >& stochedge_y_in,
-                       std::array< MultiFab, 2 >& stochedge_z_in,
+                       std::array< MultiFab, 2 >& /*stochedge_z_in*/,
                        std::array< MultiFab, AMREX_SPACEDIM>& stochcen_in,
                        const amrex::Geometry& geom,
-		                   const amrex::Vector< amrex::Real >& stoch_weights,
-		                   const amrex::Real dt)
+                       const amrex::Vector< amrex::Real >& /*stoch_weights*/,
+                       const amrex::Real dt)
 {
     BL_PROFILE_VAR("calculateFluxStag()",calculateFluxStag);
     

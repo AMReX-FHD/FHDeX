@@ -1,0 +1,2 @@
+CEXE_sources   += surfchem_mui_functions.cpp
+CEXE_headers   += surfchem_mui_functions.H
