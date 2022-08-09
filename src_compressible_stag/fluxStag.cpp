@@ -1468,8 +1468,8 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
 
         /**********************************************/
         // Advection Models (advection_type)
-        // Type 0: species flux = j*Y; energy flux = j*(E + p/rho)
-        // Type 1: species flux = j*Y; energy flux = j*(sum_{k}h_k*Y_k + 0.5*u.u)
+        // Type 1: species flux = j*Y; energy flux = j*(E + p/rho)
+        // Type 0: species flux = j*Y; energy flux = j*(sum_{k}h_k*Y_k + 0.5*u.u)
         // Type 2: species flux = v*(\rho Y); energy flux = v*(\rhoE + p)
         // Type -1: species flux = turn off advective fluxes
         // this will work directly for 1D and 2D as all the velocities in the y- and z-directions are always zero
@@ -1514,7 +1514,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                 meanE = 0.5*(cons(i-1,j,k,4) + cons(i,j,k,4))/meanRho;
 
                 // add energy flux
-                if (advection_type == 0) {
+                if (advection_type == 1) {
                     xflux(i,j,k,4) += momx(i,j,k)*(meanE + (meanP/meanRho));
                 }
                 else if (advection_type == 2) {
@@ -1533,14 +1533,14 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                             xflux(i,j,k,5+n) += 0.5*(cons(i-1,j,k,5+n)+cons(i,j,k,5+n))*velx(i,j,k);
                         }
 
-                        // enthalpy advection (advection_type == 1)
-                        if (advection_type == 1) {
+                        // enthalpy advection (advection_type == 0)
+                        if (advection_type == 0) {
                             xflux(i,j,k,4) += momx(i,j,k)*Yk[n]*hk[n];
                         }
                     }
                 }
 
-                if (advection_type == 1) {
+                if (advection_type == 0) {
                     // Evaluate KE/rho = 1/2(v.v) on neighboring cells of this face
                     Real ke_rho_P = 0.; // i
                     Real ke_rho_M = 0.; // i-1
@@ -1601,7 +1601,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                 meanE = 0.5*(cons(i,j-1,k,4) + cons(i,j,k,4))/meanRho;
 
                 // add energy flux
-                if (advection_type == 0) {
+                if (advection_type == 1) {
                     yflux(i,j,k,4) += momy(i,j,k)*(meanE + (meanP/meanRho));
                 }
                 else if (advection_type == 2) {
@@ -1620,14 +1620,14 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                             yflux(i,j,k,5+n) += 0.5*(cons(i,j-1,k,5+n)+cons(i,j,k,5+n))*vely(i,j,k);
                         }
 
-                        // enthalpy advection (advection_type == 1)
-                        if (advection_type == 1) {
+                        // enthalpy advection (advection_type == 0)
+                        if (advection_type == 0) {
                             yflux(i,j,k,4) += momy(i,j,k)*Yk[n]*hk[n];
                         }
                     }
                 }
 
-                if (advection_type == 1) {
+                if (advection_type == 0) {
                     // Evaluate KE/rho = 1/2(v.v) on neighboring cells of this face
                     Real ke_rho_P = 0.; // i
                     Real ke_rho_M = 0.; // i-1
@@ -1687,7 +1687,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                 meanE = 0.5*(cons(i,j,k-1,4) + cons(i,j,k,4))/meanRho;
 
                 // add energy flux
-                if (advection_type == 0) {
+                if (advection_type == 1) {
                     zflux(i,j,k,4) += momz(i,j,k)*(meanE + (meanP/meanRho));
                 }
                 else if (advection_type == 2) {
@@ -1706,14 +1706,14 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                             zflux(i,j,k,5+n) += 0.5*(cons(i,j,k-1,5+n)+cons(i,j,k,5+n))*velz(i,j,k);
                         }
 
-                        // enthalpy advection (advection_type == 1)
-                        if (advection_type == 1) {
+                        // enthalpy advection (advection_type == 0)
+                        if (advection_type == 0) {
                             zflux(i,j,k,4) += momz(i,j,k)*Yk[n]*hk[n];
                         }
                     }
                 }
 
-                if (advection_type == 1) {
+                if (advection_type == 0) {
                     // Evaluate KE/rho = 1/2(v.v) on neighboring cells of this face
                     Real ke_rho_P = 0.; // i
                     Real ke_rho_M = 0.; // i-1
