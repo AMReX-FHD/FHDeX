@@ -136,6 +136,8 @@ class AppSurfchemtest : public AppLattice {
   amrex::MultiFab mf;
   amrex::iMultiFab imf;
   std::unique_ptr<amrex::MPMD::Copier> mpmd_copier;
+  std::unique_ptr<amrex::MultiFab> mf2;
+  std::unique_ptr<amrex::iMultiFab> imf2;
 
     void amrex_send_intval();
     void amrex_recv_dblval();
