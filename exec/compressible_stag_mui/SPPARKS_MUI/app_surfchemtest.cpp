@@ -1902,49 +1902,47 @@ void AppSurfchemtest::amrex_init_agg ()
 
     AMREX_ALWAYS_ASSERT(domain->dimension == 2);
 
+    amrex::Vector<int> proc;
+    proc.push_back(amrex::ParallelDescriptor::MyProc());
+    amrex::Vector<int> allprocs(amrex::ParallelDescriptor::NProcs());
+    amrex::ParallelAllGather::AllGather(proc.data(), 1, allprocs.data(),
+                                        amrex::ParallelDescriptor::Communicator());
+    amrex::DistributionMapping dmap2(std::move(allprocs));
+
     double dx = amrex_fhd_lattice_size_x;
     double dy = amrex_fhd_lattice_size_y;
+    auto xmm = std::minmax_element(xFHD.begin(), xFHD.end());
+    auto ymm = std::minmax_element(yFHD.begin(), yFHD.end());
+    int xlo = static_cast<int>(std::floor((*xmm.first -domain->boxxlo)/dx));
+    int ylo = static_cast<int>(std::floor((*ymm.first -domain->boxylo)/dy));
+    int xhi = static_cast<int>(std::floor((*xmm.second-domain->boxxlo)/dx));
+    int yhi = static_cast<int>(std::floor((*ymm.second-domain->boxylo)/dy));
+    AMREX_ALWAYS_ASSERT(nlocalFHDcell==(xhi-xlo+1)*(yhi-ylo+1));
+    amrex::Vector<amrex::Box> box{amrex::Box(amrex::IntVect(xlo,ylo,0),
+                                             amrex::IntVect(xhi,yhi,0))};
+    amrex::AllGatherBoxes(box);
+    amrex::BoxArray ba2(box.data(), box.size());
+
     amrex::BoxArray ba;
-    {
-        int xlo = static_cast<int>(std::floor((domain->subxlo-domain->boxxlo+0.5*dx)/dx));
-        int ylo = static_cast<int>(std::floor((domain->subylo-domain->boxylo+0.5*dy)/dy));
-        int xhi = static_cast<int>(std::floor((domain->subxhi-domain->boxxlo-0.5*dx)/dx));
-        int yhi = static_cast<int>(std::floor((domain->subyhi-domain->boxylo-0.5*dy)/dy));
-        amrex::Vector<amrex::Box> box{amrex::Box(amrex::IntVect(xlo,ylo,0),
-                                                 amrex::IntVect(xhi,yhi,0))};
-        amrex::AllGatherBoxes(box);
-        ba = amrex::BoxArray(box.data(), box.size());
-        amrex::Vector<int> proc;
-        proc.push_back(amrex::ParallelDescriptor::MyProc());
-        amrex::Vector<int> allprocs(amrex::ParallelDescriptor::NProcs());
-        amrex::ParallelAllGather::AllGather(proc.data(), 1, allprocs.data(),
-                                            amrex::ParallelDescriptor::Communicator());
-        amrex::DistributionMapping dmap(std::move(allprocs));
-        mf.define(ba, dmap, 1, 0, amrex::MFInfo().SetArena(amrex::The_Cpu_Arena()));
-        imf.define(ba, dmap, 1, 0, amrex::MFInfo().SetArena(amrex::The_Cpu_Arena()));
-
-        mpmd_copier = std::make_unique<amrex::MPMD::Copier>(ba, dmap);
+    amrex::DistributionMapping dmap;
+    amrex::Box domainbox = ba2.minimalBox();
+    if (domainbox.numPts() == ba2.numPts()) {
+        ba = ba2;
+        dmap = dmap2;
+    } else {
+        mf2 = std::make_unique<amrex::MultiFab>(ba2, dmap2, 1, 0,
+                                  amrex::MFInfo().SetArena(amrex::The_Cpu_Arena()));
+        imf2 = std::make_unique<amrex::iMultiFab>(ba2, dmap2, 1, 0,
+                                  amrex::MFInfo().SetArena(amrex::The_Cpu_Arena()));
+        ba = amrex::BoxArray(domainbox);
+        ba.maxSize(16);
+        dmap = amrex::DistributionMapping(ba);
     }
 
-    {
-        auto xmm = std::minmax_element(xFHD.begin(), xFHD.end());
-        auto ymm = std::minmax_element(yFHD.begin(), yFHD.end());
-        int xlo = static_cast<int>(std::floor((*xmm.first -domain->boxxlo)/dx));
-        int ylo = static_cast<int>(std::floor((*ymm.first -domain->boxylo)/dy));
-        int xhi = static_cast<int>(std::floor((*xmm.second-domain->boxxlo)/dx));
-        int yhi = static_cast<int>(std::floor((*ymm.second-domain->boxylo)/dy));
-        AMREX_ALWAYS_ASSERT(nlocalFHDcell==(xhi-xlo+1)*(yhi-ylo+1));
-        amrex::Vector<amrex::Box> box{amrex::Box(amrex::IntVect(xlo,ylo,0),
-                                                 amrex::IntVect(xhi,yhi,0))};
-        amrex::AllGatherBoxes(box);
-        amrex::BoxArray ba2(box.data(), box.size());
-        if (ba2 != ba) {
-            mf2 = std::make_unique<amrex::MultiFab>(ba2, mf.DistributionMap(), 1, 0,
-                                                    amrex::MFInfo().SetArena(amrex::The_Cpu_Arena()));
-            imf2 = std::make_unique<amrex::iMultiFab>(ba2, imf.DistributionMap(), 1, 0,
-                                                      amrex::MFInfo().SetArena(amrex::The_Cpu_Arena()));
-        }
-    }
+    mf.define(ba, dmap, 1, 0, amrex::MFInfo().SetArena(amrex::The_Cpu_Arena()));
+    imf.define(ba, dmap, 1, 0, amrex::MFInfo().SetArena(amrex::The_Cpu_Arena()));
+
+    mpmd_copier = std::make_unique<amrex::MPMD::Copier>(ba, dmap);
 }
 
 void AppSurfchemtest::amrex_push_agg(int narg, char **arg)
