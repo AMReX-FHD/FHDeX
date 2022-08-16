@@ -72,7 +72,7 @@ int                        common::barodiffusion_type;
 int                        common::seed;
 AMREX_GPU_MANAGED amrex::Real common::visc_coef;
 AMREX_GPU_MANAGED int      common::visc_type;
-int                        common::advection_type;
+AMREX_GPU_MANAGED int      common::advection_type;
 int                        common::filtering_width;
 int                        common::stoch_stress_form;
 amrex::Vector<amrex::Real> common::u_init;

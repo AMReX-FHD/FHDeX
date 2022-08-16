@@ -24,7 +24,7 @@ namespace
 	    (std::numeric_limits<std::uint_fast32_t>::min(),
 	     std::numeric_limits<std::uint_fast32_t>::max());
 
-	std::uint_fast32_t r;
+	std::uint_fast32_t r=0;
 	std::set<std::uint_fast32_t> seeds;
 
 #ifdef _OPENMP
@@ -228,7 +228,8 @@ extern "C"
 
     void hg_genrand_sp (float* rn, BLRngEngine* rng)
     {    
-	constexpr float fac = (1.0f - std::numeric_limits<float>::epsilon()) / std::mt19937::max();
+	constexpr float fac = (1.0f - std::numeric_limits<float>::epsilon())
+            / static_cast<float>(std::mt19937::max());
 
 	// compile time check!
 	static_assert(std::mt19937::min() == 0, "hg_genrand_sp: std::mt19937::min() != 0");

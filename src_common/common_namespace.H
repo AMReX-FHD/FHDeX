@@ -88,7 +88,7 @@ namespace common {
 
     // Algorithm control / selection
     extern AMREX_GPU_MANAGED int      algorithm_type;
-    extern int                        advection_type;
+    extern AMREX_GPU_MANAGED int      advection_type;
     extern int                        barodiffusion_type;
 
     // random number seed

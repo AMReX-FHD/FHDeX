@@ -478,7 +478,6 @@ void BCWallReservoirFluxStag(std::array< MultiFab, AMREX_SPACEDIM >& faceflux,
 
         // LO X
         if ((bc_mass_lo[0] == 3) && (bx.smallEnd(0) < dom.smallEnd(0))) {
-            int lo = dom.smallEnd(0);
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 if (i < dom.smallEnd(0)) cenx(i,j,k) = 0.0;
@@ -487,7 +486,6 @@ void BCWallReservoirFluxStag(std::array< MultiFab, AMREX_SPACEDIM >& faceflux,
 
         // HI X
         if ((bc_mass_hi[0] == 3) && (bx.bigEnd(0) > dom.bigEnd(0))) {
-            int hi = dom.bigEnd(0);
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 if (i > dom.bigEnd(0)) cenx(i,j,k) = 0.0;
@@ -496,7 +494,6 @@ void BCWallReservoirFluxStag(std::array< MultiFab, AMREX_SPACEDIM >& faceflux,
 
         // LO Y
         if ((bc_mass_lo[1] == 3) && (bx.smallEnd(1) < dom.smallEnd(1))) {
-            int lo = dom.smallEnd(1);
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 if (j < dom.smallEnd(1)) ceny(i,j,k) = 0.0;
@@ -505,7 +502,6 @@ void BCWallReservoirFluxStag(std::array< MultiFab, AMREX_SPACEDIM >& faceflux,
 
         // HI Y
         if ((bc_mass_hi[1] == 3) && (bx.bigEnd(1) > dom.bigEnd(1))) {
-            int hi = dom.bigEnd(1);
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 if (j > dom.bigEnd(1)) ceny(i,j,k) = 0.0;
@@ -514,7 +510,6 @@ void BCWallReservoirFluxStag(std::array< MultiFab, AMREX_SPACEDIM >& faceflux,
 
         // LO Z
         if ((bc_mass_lo[2] == 3) && (bx.smallEnd(2) < dom.smallEnd(2))) {
-            int lo = dom.smallEnd(2);
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 if (k < dom.smallEnd(2)) cenz(i,j,k) = 0.0;
@@ -523,7 +518,6 @@ void BCWallReservoirFluxStag(std::array< MultiFab, AMREX_SPACEDIM >& faceflux,
 
         // HI Z
         if ((bc_mass_hi[2] == 3) && (bx.bigEnd(2) > dom.bigEnd(2))) {
-            int hi = dom.bigEnd(2);
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 if (k > dom.bigEnd(2)) cenz(i,j,k) = 0.0;
@@ -2431,7 +2425,7 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
             const Box& b = bx & dom_xlo;
             Array4<Real> const& flux = (faceflux_in[0]).array(mfi);
             if (b.ok()) {
-                amrex::ParallelFor(b, AMREX_SPACEDIM, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     flux(i,j,k,nvars+2) *= factor; 
                 });
@@ -2506,7 +2500,7 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
             const Box& b = bx & dom_xhi;
             Array4<Real> const& flux = (faceflux_in[0]).array(mfi);
             if (b.ok()) {
-                amrex::ParallelFor(b, AMREX_SPACEDIM, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     flux(i,j,k,nvars+2) *= factor; 
                 });
@@ -2581,7 +2575,7 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
             const Box& b = bx & dom_ylo;
             Array4<Real> const& flux = (faceflux_in[1]).array(mfi);
             if (b.ok()) {
-                amrex::ParallelFor(b, AMREX_SPACEDIM, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     flux(i,j,k,nvars+2) *= factor; 
                 });
@@ -2656,7 +2650,7 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
             const Box& b = bx & dom_yhi;
             Array4<Real> const& flux = (faceflux_in[1]).array(mfi);
             if (b.ok()) {
-                amrex::ParallelFor(b, AMREX_SPACEDIM, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     flux(i,j,k,nvars+2) *= factor; 
                 });
@@ -2731,7 +2725,7 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
             const Box& b = bx & dom_zlo;
             Array4<Real> const& flux = (faceflux_in[2]).array(mfi);
             if (b.ok()) {
-                amrex::ParallelFor(b, AMREX_SPACEDIM, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     flux(i,j,k,nvars+2) *= factor; 
                 });
@@ -2806,7 +2800,7 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
             const Box& b = bx & dom_zhi;
             Array4<Real> const& flux = (faceflux_in[2]).array(mfi);
             if (b.ok()) {
-                amrex::ParallelFor(b, AMREX_SPACEDIM, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     flux(i,j,k,nvars+2) *= factor; 
                 });
@@ -2831,7 +2825,6 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
 
         // LO X
         if ((bc_mass_lo[0] == 3) && (bx.smallEnd(0) < dom.smallEnd(0))) {
-            int lo = dom.smallEnd(0);
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 if (i < dom.smallEnd(0)) cenx(i,j,k) = 0.0;
@@ -2840,7 +2833,6 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
 
         // HI X
         if ((bc_mass_hi[0] == 3) && (bx.bigEnd(0) > dom.bigEnd(0))) {
-            int hi = dom.bigEnd(0);
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 if (i > dom.bigEnd(0)) cenx(i,j,k) = 0.0;
@@ -2849,7 +2841,6 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
 
         // LO Y
         if ((bc_mass_lo[1] == 3) && (bx.smallEnd(1) < dom.smallEnd(1))) {
-            int lo = dom.smallEnd(1);
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 if (j < dom.smallEnd(1)) ceny(i,j,k) = 0.0;
@@ -2858,7 +2849,6 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
 
         // HI Y
         if ((bc_mass_hi[1] == 3) && (bx.bigEnd(1) > dom.bigEnd(1))) {
-            int hi = dom.bigEnd(1);
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 if (j > dom.bigEnd(1)) ceny(i,j,k) = 0.0;
@@ -2867,7 +2857,6 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
 
         // LO Z
         if ((bc_mass_lo[2] == 3) && (bx.smallEnd(2) < dom.smallEnd(2))) {
-            int lo = dom.smallEnd(2);
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 if (k < dom.smallEnd(2)) cenz(i,j,k) = 0.0;
@@ -2876,7 +2865,6 @@ void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array
 
         // HI Z
         if ((bc_mass_hi[2] == 3) && (bx.bigEnd(2) > dom.bigEnd(2))) {
-            int hi = dom.bigEnd(2);
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 if (k > dom.bigEnd(2)) cenz(i,j,k) = 0.0;

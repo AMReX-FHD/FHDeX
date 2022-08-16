@@ -894,7 +894,7 @@ void LambdaLin ( const GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& Dbin,
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void ThermalDiff ( int iloc, int jloc, int kloc,
-                   const GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& sigma11,
+                   const GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& /*sigma11*/,
                    const GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& a_ij1,
                    const GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& a_ij2,
                    const GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& alphabar,
@@ -1031,7 +1031,7 @@ void IdealMixtureTransportVW ( int iloc, int jloc, int kloc,
                                Real const density,
                                Real const temperature,
                                Real const pressure,
-                               const GpuArray<Real,MAX_SPECIES>& Yk,
+                               const GpuArray<Real,MAX_SPECIES>& /*Yk*/,
                                const GpuArray<Real,MAX_SPECIES>& Xk,
                                Real& eta,
                                Real& kappa,
@@ -1134,7 +1134,7 @@ void IdealMixtureTransportVW ( int iloc, int jloc, int kloc,
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 // Transport Coefficients from Giovangigli
 void IdealMixtureTransportGIO (int iloc, int jloc, int kloc,
-                               Real const density,
+                               Real const /*density*/,
                                Real const temperature,
                                Real const pressure,
                                const GpuArray<Real,MAX_SPECIES>& Yk,
@@ -1338,8 +1338,8 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void IdealMixtureTransportHCBBin ( int iloc, int jloc, int kloc,
                                    Real const density,
                                    Real const temperature,
-                                   Real const pressure,
-                                   const GpuArray<Real,MAX_SPECIES>& Yk,
+                                   Real const /*pressure*/,
+                                   const GpuArray<Real,MAX_SPECIES>& /*Yk*/,
                                    const GpuArray<Real,MAX_SPECIES>& Xk,
                                    Real& eta,
                                    Real& kappa,
@@ -1439,7 +1439,7 @@ void IdealMixtureTransportHCBBin ( int iloc, int jloc, int kloc,
     Real thermal_diff = 1.299*conc*onc*(S1*conc - S0*onc)/(6.0*kappax*(Xkappa + Ykappa));
 
     // Barodiffusion
-    Real baro_diff    = (m0 - m1)*yytr[1]*yytr[0]*(yytr[0]/m0 + yytr[1]/m1);
+    // Real baro_diff    = (m0 - m1)*yytr[1]*yytr[0]*(yytr[0]/m0 + yytr[1]/m1);
 
     // Fill the Diffusion Matrix
     Real mR = m0/m1;
