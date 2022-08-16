@@ -36,7 +36,15 @@ void FhdParticleContainer::EvaluateStatsPhonon(MultiFab& mfcuInst,
         Array4<Real> cuMeans  = mfcuMeans[pti].array();
         Array4<Real> cuVars  = mfcuVars[pti].array();
 		
-		dsmcSpecies* propertiesPtr = properties;
+		//dsmcSpecies* propertiesPtr = properties;
+		GpuArray<dsmcSpecies, MAX_SPECIES> propertiesTmp;
+		for(int i=0;i<nspecies;i++)
+		{
+		    propertiesTmp[i].mass = properties[i].mass;
+   		    propertiesTmp[i].Neff = properties[i].Neff;
+   		    propertiesTmp[i].R = properties[i].R;
+		    //Print() << "in: " << properties[i].mass << ", out: " << propertiesTmp[i].mass << endl;
+		}
 		
 		Real ocollisionCellVolTmp = ocollisionCellVol;
 		

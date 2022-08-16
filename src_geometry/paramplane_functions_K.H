@@ -19,36 +19,20 @@ void pre_check_gpu(FhdParticleContainer::ParticleType& part, const Real delt, co
     {
         proj[d] = part.pos(d) + delt*part.rdata(FHD_realData::velx + 0);
     }
-
+    
     for (int d=0; d<AMREX_SPACEDIM; ++d)
     {
         box1lo[d] = plo[d];
         box1hi[d] = phi[d];
 
-        box2lo[d] = plo[d];
-        box2hi[d] = phi[d];
     }
 
-    if(  (part.pos(0) < box1hi[0]) && (part.pos(1) < box1hi[1]) &&
-	    (part.pos(2) < box1hi[2]) && (part.pos(0) > box1lo[0]) &&
-	    (part.pos(1) > box1lo[1]) && (part.pos(2) > box1lo[2])  )
-    {
-        if(  (proj[0] < box1hi[0]) && (proj[1] < box1hi[1]) &&
+    if(  (proj[0] < box1hi[0]) && (proj[1] < box1hi[1]) &&
         	(proj[2] < box1hi[2]) && (proj[0] > box1lo[0]) &&
         	(proj[1] > box1lo[1]) && (proj[2] > box1lo[2]) )
-        {
+      {
             *flag = 1;
-        }
-    }
-    else  //started in box 2
-    {
-        if(  (proj[0] < box2hi[0]) && (proj[1] < box2hi[1]) &&
-        	(proj[2] < box2hi[2]) && (proj[0] > box2lo[0]) &&
-        	(proj[1] > box2lo[1]) && (proj[2] > box2lo[2]) )
-        {
-            *flag = 1;
-        }
-    }
+      } 
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
@@ -61,12 +45,14 @@ AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void find_inter_gpu(FhdParticleContainer::ParticleType& part, const Real delt, const paramPlane* paramplanes, const int ns, int* intsurf,
                         Real* inttime, int* intside, const GpuArray<Real, 3>& phi, const GpuArray<Real, 3>& plo)
 {
+
+    //BL_PROFILE_VAR("find_inter_gpu()", find_inter_gpu);
 	int flag = 0;
 	*inttime = delt;
 	*intsurf = -1;
 	Real uval, vval, tval;
 	
-	//pre_check_gpu(part, delt, paramplanes, ns, &flag, phi, plo, inttime);
+	pre_check_gpu(part, delt, paramplanes, ns, &flag, phi, plo, inttime);
 
 	if(flag == 0)
 	{
@@ -269,6 +255,8 @@ void zeroMassFlux(paramPlane* paramPlaneList, const int paramplanes)
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void app_bc_gpu(paramPlane* surf, FhdParticleContainer::ParticleType& part, int intside, Real* domsize, int *push, Real *runtime, Real inttime, amrex::RandomEngine const& engine)
 {
+
+    //BL_PROFILE_VAR("app_bc_gpu()", app_bc_gpu);
     if(intside == 1)
     {
       if(amrex::Random(engine) < surf->sinkRight)
@@ -612,10 +600,10 @@ void app_bc_phonon_gpu(const paramPlane* surf, FhdParticleContainer::ParticleTyp
     {
       if(amrex::Random(engine) < surf->momentumConsRight)
       {
-/*           std::string plotfilename = std::to_string(surf->boundary) + "_" + std::to_string(ParallelDescriptor::MyProc()) + amrex::Concatenate("_particles_right_",step,12);*/
-/*           std::ofstream ofs(plotfilename, std::ios::app);*/
-/*           ofs << part.pos(0) << " " << part.pos(1) << " " << part.pos(2) << " " << part.rdata(FHD_realData::velx) << " " << part.rdata(FHD_realData::vely) << " " << part.rdata(FHD_realData::velz) << " " << part.rdata(FHD_realData::omega) << std::endl;*/
-/*           ofs.close();*/
+           std::string plotfilename = std::to_string(surf->boundary) + "_" + std::to_string(ParallelDescriptor::MyProc()) + amrex::Concatenate("_particles_right_",step,12);
+           std::ofstream ofs(plotfilename, std::ios::app);
+           ofs << part.pos(0) << " " << part.pos(1) << " " << part.pos(2) << " " << part.rdata(FHD_realData::velx) << " " << part.rdata(FHD_realData::vely) << " " << part.rdata(FHD_realData::velz) << " " << part.rdata(FHD_realData::omega) << std::endl;
+           ofs.close();
       }    
       
       if(amrex::Random(engine) < surf->sinkRight)
@@ -704,10 +692,10 @@ void app_bc_phonon_gpu(const paramPlane* surf, FhdParticleContainer::ParticleTyp
     {
       if(amrex::Random(engine) < surf->momentumConsLeft)
       {
-/*           std::string plotfilename = std::to_string(surf->boundary) + "_" + std::to_string(ParallelDescriptor::MyProc()) + amrex::Concatenate("_particles_left_",step,12);*/
-/*           std::ofstream ofs(plotfilename, std::ios::app);*/
-/*           ofs << part.pos(0) << " " << part.pos(1) << " " << part.pos(2) << " " << part.rdata(FHD_realData::velx) << " " << part.rdata(FHD_realData::vely) << " " << part.rdata(FHD_realData::velz) << " " << part.rdata(FHD_realData::omega) << std::endl;*/
-/*           ofs.close();*/
+           std::string plotfilename = std::to_string(surf->boundary) + "_" + std::to_string(ParallelDescriptor::MyProc()) + amrex::Concatenate("_particles_left_",step,12);
+           std::ofstream ofs(plotfilename, std::ios::app);
+           ofs << part.pos(0) << " " << part.pos(1) << " " << part.pos(2) << " " << part.rdata(FHD_realData::velx) << " " << part.rdata(FHD_realData::vely) << " " << part.rdata(FHD_realData::velz) << " " << part.rdata(FHD_realData::omega) << std::endl;
+           ofs.close();
       }    
       if(amrex::Random(engine) < surf->sinkLeft)
       {

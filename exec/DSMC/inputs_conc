@@ -4,15 +4,15 @@
 	prob_hi = 0.00320512 0.00040064 2.504e-05  # physical hi coordinate (cm)
 
 	n_cells = 256 32 4 # keep as powers of two
-	max_grid_size = 16 32 4
-#	max_grid_size = 256 32 4
+#	max_grid_size = 16 32 4
+	max_grid_size = 256 32 4
 	max_particle_tile_size = 256 256 256
 
 	# Time-step control
 	fixed_dt = 1e-10                        # overwritten
 
 	# Controls for number of steps between actions
-	max_step     = 0
+	max_step     = 100000
 	plot_int     =  5000
 	cross_cell   =  32
 	plot_cross   =  1

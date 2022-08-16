@@ -2,6 +2,8 @@ namespace common {
 
 //////////////
 #define MAX_SPECIES 8
+#define ADJ 0.99999
+#define ADJALT 0.00002
 #define MAX_ELEMENT 28 // needs to be MAX_SPECIES*(MAX_SPECIES-1)/2
 //////////////
     

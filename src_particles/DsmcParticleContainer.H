@@ -154,7 +154,7 @@ struct getBin
 
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-int mapBin(unsigned int* offArray, IntVect iv, int spec, Box domain)
+int mapBin(IntVect iv, int spec, Box domain)
 {
     auto cellLo = domain.smallEnd();
 	auto cellHi = domain.bigEnd();
@@ -175,14 +175,14 @@ int mapBin(unsigned int* offArray, IntVect iv, int spec, Box domain)
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int getBinSize(unsigned int* offArray, IntVect iv, int spec, Box domain)
 {
-    int bin = mapBin(offArray, iv, spec, domain);
+    int bin = mapBin(iv, spec, domain);
     return offArray[bin+1]-offArray[bin];
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 unsigned int* getCellList(unsigned int* permArray, unsigned int* offArray, IntVect iv, int spec, Box domain)
 {
-    int bin = mapBin(offArray, iv, spec, domain);
+    int bin = mapBin(iv, spec, domain);
     return &permArray[offArray[bin]];
 }
 
@@ -261,8 +261,9 @@ public:
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Scalars
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	dsmcSpecies properties[MAX_SPECIES];
-	dsmcInterSpecies interproperties[MAX_SPECIES*MAX_SPECIES];
+
+	GpuArray<dsmcSpecies, MAX_SPECIES> properties;
+	GpuArray<dsmcInterSpecies, MAX_SPECIES*MAX_SPECIES> interproperties;
 
 	long realParticles;
 	long simParticles;
