@@ -313,6 +313,7 @@ void ComputeFHHigherOrderTerm(const MultiFab& molarconc,
     Box dom(geom.Domain());
     
     MultiFab laplacian(ba, dmap, nspecies, 1);
+    MultiFab TotMono(ba, dmap, 1, 1);
 
     Real dxinv = 1./dx[0];
     Real twodxinv = 2.*dxinv;
@@ -324,6 +325,7 @@ void ComputeFHHigherOrderTerm(const MultiFab& molarconc,
         const Box& bx = mfi.growntilebox(1);
 
         const Array4<Real>& lap = laplacian.array(mfi);
+        const Array4<Real>& Nbar = TotMono.array(mfi);
         
         const Array4<Real const>& phi = molarconc.array(mfi);
 
@@ -349,6 +351,19 @@ void ComputeFHHigherOrderTerm(const MultiFab& molarconc,
                 * (twelveinv*dxinv*dxinv);
 #endif
 #endif
+        });
+
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+             GpuArray<Real,MAX_SPECIES>   Wn;
+             for (int n=0; n<nspecies; n++){
+                Wn[n]=phi(i,j,k,n);
+             }
+
+             amrex::Real nbarloc;
+             GetMonomerTot(Wn,fh_monomers,nbarloc,nspecies);
+
+             Nbar(i,j,k) = nbarloc;
         });
 
 
@@ -378,6 +393,7 @@ void ComputeFHHigherOrderTerm(const MultiFab& molarconc,
         const Array4<Real const>& phi = molarconc.array(mfi);
         
         const Array4<Real>& lap = laplacian.array(mfi);
+        const Array4<Real>& Nbar = TotMono.array(mfi);
         
         AMREX_D_TERM(const Box & bx_x = mfi.nodaltilebox(0);,
                      const Box & bx_y = mfi.nodaltilebox(1);,
@@ -387,12 +403,12 @@ void ComputeFHHigherOrderTerm(const MultiFab& molarconc,
         
         amrex::ParallelFor(bx_x, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-            Real phiavg = 0.5*(amrex::max(amrex::min(phi(i,j,k,n),1.),0.) + amrex::max(amrex::min(phi(i-1,j,k,n),1.),0.));
+            Real phiavg = 0.5*(amrex::max(amrex::min(phi(i,j,k,n),1.),0.)*Nbar(i,j,k) + amrex::max(amrex::min(phi(i-1,j,k,n),1.),0.)*Nbar(i-1,j,k));
             fluxx(i,j,k,n) = fluxx(i,j,k,n) +  phiavg*( lap(i,j,k,n)-lap(i-1,j,k,n) ) * dxinv;
         },
                            bx_y, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-            Real phiavg = 0.5*(amrex::max(amrex::min(phi(i,j,k,n),1.),0.) + amrex::max(amrex::min(phi(i,j-1,k,n),1.),0.));
+            Real phiavg = 0.5*(amrex::max(amrex::min(phi(i,j,k,n),1.),0.)*Nbar(i,j,k) + amrex::max(amrex::min(phi(i,j-1,k,n),1.),0.)*Nbar(i,j,k));
             fluxy(i,j,k,n) = fluxy(i,j,k,n) + phiavg*( lap(i,j,k,n)-lap(i,j-1,k,n) ) * dxinv;
         });
         
@@ -401,17 +417,17 @@ void ComputeFHHigherOrderTerm(const MultiFab& molarconc,
         
         amrex::ParallelFor(bx_x, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-            Real phiavg = 0.5*(amrex::max(amrex::min(phi(i,j,k,n),1.),0.) + amrex::max(amrex::min(phi(i-1,j,k,n),1.),0.));
+            Real phiavg = 0.5*(amrex::max(amrex::min(phi(i,j,k,n),1.),0.)*Nbar(i,j,k) + amrex::max(amrex::min(phi(i-1,j,k,n),1.),0.)*Nbar(i-1,j,k));
             fluxx(i,j,k,n) = fluxx(i,j,k,n) + phiavg*( lap(i,j,k,n)-lap(i-1,j,k,n) ) * dxinv;
         },
                            bx_y, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-            Real phiavg = 0.5*(amrex::max(amrex::min(phi(i,j,k,n),1.),0.) + amrex::max(amrex::min(phi(i,j-1,k,n),1.),0.));
+            Real phiavg = 0.5*(amrex::max(amrex::min(phi(i,j,k,n),1.),0.)*Nbar(i,j,k) + amrex::max(amrex::min(phi(i,j-1,k,n),1.),0.)*Nbar(i,j-1,k));
             fluxy(i,j,k,n) = fluxy(i,j,k,n) + phiavg* ( lap(i,j,k,n)-lap(i,j-1,k,n) ) * dxinv;
         },
                            bx_z, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-            Real phiavg = 0.5*(amrex::max(amrex::min(phi(i,j,k,n),1.),0.) + amrex::max(amrex::min(phi(i,j,k-1,n),1.),0.));
+            Real phiavg = 0.5*(amrex::max(amrex::min(phi(i,j,k,n),1.),0.)*Nbar(i,j,k) + amrex::max(amrex::min(phi(i,j,k-1,n),1.),0.)*Nbar(i,j,k-1));
             fluxz(i,j,k,n) = fluxz(i,j,k,n) + phiavg*( lap(i,j,k,n)-lap(i,j,k-1,n) ) * dxinv;
         });
                            

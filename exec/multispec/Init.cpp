@@ -77,6 +77,55 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                 }
                 
             });
+        } else if (prob_type == 6) {
+
+            /*
+              cylinder with radius = 1/4 of domain in x
+              c=c_init_1(:) inside, c=c_init_2(:) outside
+              can be discontinous or smooth depending on smoothing_width
+            */
+            //Real rad = L[0] / 8.;
+	    Real rad = L[1]/8.;
+	    amrex::Print() << "smoothing width " << smoothing_width << " radius " << rad << std::endl;
+            
+            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                Real x,y,z;
+                AMREX_D_TERM(x = prob_lo[0] + (i+0.5)*dx[0] - center[0];,
+                             y = prob_lo[1] + (j+0.5)*dx[1] - center[1];,
+                             z = prob_lo[2] + (k+0.5)*dx[2] - center[2];);
+
+                Real r = (AMREX_SPACEDIM == 2) ? std::sqrt(x*x+y*y) : std::sqrt(x*x+y*y+z*z);
+
+                if (smoothing_width == 0.) {
+
+                    // discontinuous interface
+                    if (r < rad) {
+                        for (int n=0; n<nspecies; ++n) {
+                            c(i,j,k,n) = c_init_1[n];
+                        }
+                    } else {
+                        for (int n=0; n<nspecies; ++n) {
+                            c(i,j,k,n) = c_init_2[n];
+                        }
+                    }
+                    
+                } else {
+                    // smooth interface
+                    //    c(i,j,k,1) = c_init_1[0] + (c_init_2[0]-c_init_1[0]) *
+                    //        0.5*(1. - std::tanh((r-rad)/(smoothing_width*dx[0])));
+                        c(i,j,k,0) = c_init_1[0] + (c_init_2[0]-c_init_1[0]) *
+                            (1.- std::tanh(y/(smoothing_width*dx[0])))
+                          * 0.25*(1. + std::tanh((r-rad)/(smoothing_width*dx[0])));
+                        c(i,j,k,2) = c_init_1[0] + (c_init_2[0]-c_init_1[0]) *
+                            (1.+ std::tanh(y/(smoothing_width*dx[0])))
+                          * 0.25*(1. + std::tanh((r-rad)/(smoothing_width*dx[0])));
+                    //    c(i,j,k,2) = 1.-c(i,j,k,0)-c(i,j,k,1);
+                        c(i,j,k,1) = 1.-c(i,j,k,0)-c(i,j,k,2);
+                     
+                }
+                
+            });
         } else if (prob_type == 7) {
 
             /*

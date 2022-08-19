@@ -158,6 +158,9 @@ void main_driver(const char* argv)
             }
         }
 
+//      added by JBB to allow reset of dt on restart
+        if (fixed_dt >0) dt=fixed_dt;
+
         rho_old.define   (ba, dmap, nspecies, ng_s);
         rhotot_old.define(ba, dmap, 1       , ng_s);
         pi.define        (ba, dmap, 1       , 1);
