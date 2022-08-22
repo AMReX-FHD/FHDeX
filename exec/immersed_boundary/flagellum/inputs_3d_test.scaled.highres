@@ -38,7 +38,8 @@
   visc_type = 1
 
   # Stochastic parameters
-  variance_coef_mom = 1.
+  # variance_coef_mom = 1.
+  variance_coef_mom = 0.
   initial_variance_mom = 0.
 
   k_B = 1.38064852e-16	# [units: cm2*g*s-2*K-1]
@@ -97,7 +98,7 @@
   contains_flagellum = true
 
 
-
+/
 
 &ib_flagellum
 
@@ -111,4 +112,4 @@
   k_spring   = 2e-3
   k_driving  = 2e-3
 
-
+/

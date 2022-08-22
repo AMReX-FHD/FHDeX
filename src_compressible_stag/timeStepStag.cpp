@@ -17,7 +17,7 @@ void RK3stepStag(MultiFab& cu,
                  std::array< MultiFab, 2 >& edgeflux_y,
                  std::array< MultiFab, 2 >& edgeflux_z,
                  std::array< MultiFab, AMREX_SPACEDIM>& cenflux,
-                 const amrex::Geometry geom, const amrex::Real dt, const int step)
+                 const amrex::Geometry& geom, const amrex::Real dt, const int /*step*/)
 {
     BL_PROFILE_VAR("RK3stepStag()",RK3stepStag);
 
@@ -690,12 +690,12 @@ void RK3stepStag(MultiFab& cu,
     prim.FillBoundary(geom.periodicity());
     cu.FillBoundary(geom.periodicity()); 
 
-    // Correctly set momentum and velocity at the walls & temperature, pressure, density & mass/mole fractions in ghost cells
-    setBCStag(prim, cu, cumom, vel, geom);
-
     // Membrane setup
     if (membrane_cell >= 0) {
         doMembraneStag(cu,cumom,prim,vel,faceflux,geom,dt);
     }
+
+    // Correctly set momentum and velocity at the walls & temperature, pressure, density & mass/mole fractions in ghost cells
+    setBCStag(prim, cu, cumom, vel, geom);
 
 }

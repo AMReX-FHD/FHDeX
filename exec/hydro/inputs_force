@@ -2,8 +2,7 @@
 
   # Problem specification
   prob_lo = 0.0 0.0 0.0       # physical lo coordinate
-  #prob_hi = 32.e-6 32.e-6 32.e-6 # physical hi coordinate
-  prob_hi = 1024.e-6 1024.e-6 1024.e-6 # physical hi coordinate
+  prob_hi = 5.12 5.12 5.12
 
   # if prob_type = 0, zero initial velocity
   # if prob_type = 1, vortex
@@ -12,18 +11,17 @@
   prob_type = 0
   
   # number of cells in domain
-  #n_cells = 32 32 32
-  n_cells = 128 128 128
+  n_cells = 64 64 64
   # max number of cells in a box
-  max_grid_size = 64 64 64
+  max_grid_size = 32 32 32
 
   # Time-step control
   fixed_dt = 1.e-10
 
   # Controls for number of steps between actions
-  max_step = 1
+  max_step = 5
   plot_int = 1
-  chk_int = 1000
+  chk_int = -1
   restart = -1
 
   turbForcing = 1
@@ -35,21 +33,21 @@
   # positive = assume constant coefficients
   # negative = assume spatially-varying coefficients
   # visc_coef = 1.
-  visc_coef = .01
+  visc_coef = .02
   visc_type = 1
 
   # Stochastic parameters
   variance_coef_mom = 0.
   initial_variance_mom = 0.
 
-  turb_a = 1.d7
-  turb_b = 3.d13
+  turb_a = 10.
+  turb_b = 10.
 
   k_B = 1.3806488e-16
   T_init = 300.
 
-  struct_fact_int = 0
-  n_steps_skip = 30000
+  struct_fact_int = -1
+  n_steps_skip = 0
 
   # Boundary conditions
   # ----------------------

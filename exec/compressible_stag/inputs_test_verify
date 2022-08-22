@@ -35,8 +35,8 @@
   visc_type = 2
 
   # Advection method
-  # if advection_type = 1, interpolate primitive quantities
   # if advection_type = 2, interpolate conserved quantities
+  # if advection_type = 1, interpolate primitive quantities
   advection_type = 2
 
   # Problem specification
@@ -60,7 +60,8 @@
   #            2 = no-slip
   # bc_mass:  -1 = periodic
   #            1 = wall
-  #            2 = reservoir (set bc_Yk or bc_Xk in compressible namelist)
+  #            2 = concentration (set bc_Yk or bc_Xk in compressible namelist)
+  #            3 = reservoir (set bc_Yk or bc_Xk in compressible namelist)
   # bc_therm: -1 = periodic
   #            1 = adiabatic
   #            2 = isothermal (set with t_lo/hi in common namelist)

@@ -2,6 +2,8 @@ namespace common {
 
 //////////////
 #define MAX_SPECIES 8
+#define ADJ 0.99999
+#define ADJALT 0.00002
 #define MAX_ELEMENT 28 // needs to be MAX_SPECIES*(MAX_SPECIES-1)/2
 //////////////
     
@@ -54,8 +56,10 @@ namespace common {
     extern std::string                plot_base_name;
     extern int                        chk_int;
     extern std::string                chk_base_name;
+    extern std::string                plot_init_file;
     extern AMREX_GPU_MANAGED int      prob_type;
     extern int                        restart;
+    extern int                        stats_int;
     extern int                        reset_stats;
     extern int                        particle_restart;
     extern int                        print_int;
@@ -76,6 +80,7 @@ namespace common {
     // stochastic forcing amplitudes (1 for physical values, 0 to run them off)
     extern AMREX_GPU_MANAGED amrex::Real variance_coef_mom;
     extern AMREX_GPU_MANAGED amrex::Real variance_coef_mass;
+    extern AMREX_GPU_MANAGED amrex::Real variance_coef_ener;
     extern AMREX_GPU_MANAGED amrex::Real k_B;
     extern AMREX_GPU_MANAGED amrex::Real h_bar;
     extern AMREX_GPU_MANAGED amrex::Real Runiv;
@@ -83,7 +88,7 @@ namespace common {
 
     // Algorithm control / selection
     extern AMREX_GPU_MANAGED int      algorithm_type;
-    extern int                        advection_type;
+    extern AMREX_GPU_MANAGED int      advection_type;
     extern int                        barodiffusion_type;
 
     // random number seed
@@ -131,7 +136,8 @@ namespace common {
     // BC specifications:
     // -1 = periodic
     //  1 = wall
-    //  2 = reservoir (Dirichlet values must be suppled by other means)
+    //  2 = concentration (for compressible codes), reservoir (for low Mach multispecies codes)
+    //  3 = reservoir (for compressible codes)
     extern AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>          bc_mass_lo;
     extern AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>          bc_mass_hi;
 
@@ -141,6 +147,14 @@ namespace common {
     //  2 = isothermal
     extern AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>          bc_therm_lo;
     extern AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>          bc_therm_hi;
+    
+    // BC specifications:
+    // -1 = don't change species, else change species to number
+    //  1 = wall
+    //  2 = reservoir (Dirichlet values must be suppled by other means)
+    extern AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>          bc_spec_lo;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>          bc_spec_hi;
+    
 
     // Pressure drop are periodic inflow/outflow walls (bc_[hi,lo]=-2).
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> p_lo;
@@ -169,7 +183,12 @@ namespace common {
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> bc_Xk_z_lo;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> bc_Xk_z_hi;
 
-
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> wallspeed_x_lo;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> wallspeed_y_lo;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> wallspeed_z_lo;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> wallspeed_x_hi;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> wallspeed_y_hi;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> wallspeed_z_hi;
 
     extern AMREX_GPU_MANAGED amrex::Real bc_rhotot_x_lo;
     extern AMREX_GPU_MANAGED amrex::Real bc_rhotot_x_hi;
@@ -253,6 +272,9 @@ namespace common {
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> eepsilon_wall;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> sigma_wall;
     extern AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_SPECIES> p_int_tog_wall;
+    
+    extern AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_SPECIES> msd_int;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_SPECIES> msd_len;
 
     extern int                        poisson_verbose;
     extern int                        poisson_bottom_verbose;

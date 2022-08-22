@@ -137,7 +137,8 @@ void main_driver(const char* argv)
     planeFile.close();
 
 	int paramPlaneCount = fileCount;
-	paramPlane paramPlaneList[paramPlaneCount];
+	paramPlane* paramPlaneList;
+	paramPlaneList = new paramPlane[paramPlaneCount];
 	BuildParamplanesPhonon(paramPlaneList,paramPlaneCount,realDomain.lo(),realDomain.hi());
 
 	// Particle tile size

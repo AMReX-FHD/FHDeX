@@ -7,14 +7,13 @@
 #include <StochMomFlux.H>
 //#include <StructFact.H>
 
-
 #include <common_functions.H>
 
 #include <gmres_functions.H>
 
 #include <ib_functions.H>
 
-
+#include <AMReX_ParmParse.H>
 
 #include <immbdy_namespace.H>
 // Comment out if getting `duplicate symbols` error duing linking
@@ -30,11 +29,7 @@
 #include "chrono"
 
 using namespace std::chrono;
-
-
 using namespace amrex;
-
-
 using namespace immbdy;
 using namespace immbdy_md;
 using namespace ib_flagellum;
@@ -195,6 +190,16 @@ void main_driver(const char * argv) {
 
     BL_PROFILE_VAR("main_driver()", main_driver);
 
+    //Moved from scr_common/main.cpp
+    {
+        amrex::ParmParse pp("particles");
+#ifdef AMREX_USE_GPU
+        bool particles_do_tiling = true;
+#else
+        bool particles_do_tiling = false;
+#endif
+        pp.queryAdd("do_tiling", particles_do_tiling);
+    }
 
     /****************************************************************************
      *                                                                          *
@@ -518,6 +523,7 @@ void main_driver(const char * argv) {
         ib_mc.InitList(0, marker_radii, marker_positions, i_ib);
     }
 
+    ib_mc.UpdatePIDMap();
     ib_mc.fillNeighbors();
     ib_mc.PrintMarkerData(0);
     BL_PROFILE_VAR_STOP(CREATEMARKERS);
@@ -555,7 +561,8 @@ void main_driver(const char * argv) {
     for (int i=0; i<AMREX_SPACEDIM; i++) {
         umac[i].FillBoundary(geom.periodicity());
         MultiFabPhysBCDomainVel(umac[i], geom, i);
-        MultiFabPhysBCMacVel(umac[i], geom, i);
+        int is_inhomogeneous = 1;
+        MultiFabPhysBCMacVel(umac[i], geom, i, is_inhomogeneous);
     }
 
     BL_PROFILE_VAR_STOP(ICwork);

@@ -1,5 +1,6 @@
 rm -r chk*
 rm -r pltpart*
 rm -r pltcu*
+rm -r plt*
 rm -r *_particles_right*
 rm -r *_particles_left*

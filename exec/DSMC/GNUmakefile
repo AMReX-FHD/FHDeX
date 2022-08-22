@@ -2,7 +2,7 @@
 # If you set AMREX_HOME as an environment variable, this line will be ignored
 AMREX_HOME ?= ../../../../1-CodePackage/amrex/
 FHDeX ?= ../../
-FDSMC = $(FHDeX)/exec/DSMC
+FDSMC = .
 
 DEBUG     = FALSE
 PROFILE   = FALSE
@@ -52,9 +52,9 @@ include $(AMREX_HOME)/Src/Boundary/Make.package
 include $(AMREX_HOME)/Src/AmrCore/Make.package
 include $(AMREX_HOME)/Src/Particle/Make.package
 
-include $(AMREX_HOME)/Src/Extern/SWFFT/Make.package
-INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Extern/SWFFT
-VPATH_LOCATIONS   += $(AMREX_HOME)/Src/Extern/SWFFT
+#include $(AMREX_HOME)/Src/Extern/SWFFT/Make.package
+#INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Extern/SWFFT
+#VPATH_LOCATIONS   += $(AMREX_HOME)/Src/Extern/SWFFT
 
 #ifeq ($(NERSC_HOST),) # check if NERSC_HOST is empty => hack to test if on cori
 #    LIBRARIES += -L$(FFTW_DIR) -lfftw3
@@ -68,7 +68,7 @@ VPATH_LOCATIONS   += $(AMREX_HOME)/Src/Extern/SWFFT
 #    $(info NERSC_HOST not empty => relying on compiler wrapper for fftw3)
 #endif
 
-LIBRARIES += -L$(FFTW_DIR) -lfftw3_mpi -lfftw3_omp -lfftw3 -lgomp
+#LIBRARIES += -L$(FFTW_DIR) -lfftw3_mpi -lfftw3_omp -lfftw3 -lgomp
 #LIBRARIES += -L$(FFTW_DIR) -lfftw3
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.rules
@@ -76,5 +76,11 @@ include $(AMREX_HOME)/Tools/GNUMake/Make.rules
 #DEFINES	+= -DDSMC=$(DSMC)
 
 ifeq ($(findstring cgpu, $(HOST)), cgpu)
-CXXFLAGS += $(FFTW)
+  CXXFLAGS += $(FFTW)
+endif
+
+ifeq ($(USE_CUDA),TRUE)
+  LIBRARIES += -lcufft
+else
+  LIBRARIES += -L$(FFTW_DIR) -lfftw3_mpi -lfftw3
 endif

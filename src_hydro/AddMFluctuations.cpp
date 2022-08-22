@@ -83,7 +83,7 @@ void addMomFluctuations_stag(std::array< MultiFab, AMREX_SPACEDIM >& m_old,
         // Ensure zero total momentum
         Vector<Real> av_mom;
         // take staggered sum & divide by number of cells
-        SumStag(geom,m_old,0,av_mom,true);
+        SumStag(m_old,av_mom,true);
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             // subtract off average
             m_old[d].plus(-av_mom[d],1);
@@ -95,6 +95,7 @@ void addMomFluctuations_stag(std::array< MultiFab, AMREX_SPACEDIM >& m_old,
     for (int i=0; i<AMREX_SPACEDIM; i++) {
         m_old[i].FillBoundary(geom.periodicity());
         MultiFabPhysBCDomainVel(m_old[i], geom,i);
-        MultiFabPhysBCMacVel(m_old[i], geom, i);
+        int is_inhomogeneous = 1;
+        MultiFabPhysBCMacVel(m_old[i], geom, i, is_inhomogeneous);
     }
 }
