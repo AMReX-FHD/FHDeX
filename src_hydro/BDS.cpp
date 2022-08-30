@@ -22,7 +22,6 @@ void BDS_ComputeAofs(MultiFab& aofs,
                      MultiFab const& divu,
                      BCRec const* d_bc,
                      Geometry const& geom,
-                     Vector<int>& iconserv,
                      const Real dt,
                      const bool is_velocity)
 {
@@ -32,26 +31,9 @@ void BDS_ComputeAofs(MultiFab& aofs,
 
     bool fluxes_are_area_weighted = true;
 
-    // Make a device copy of the iconserv vector for use in kernels
-    Gpu::DeviceVector<int> iconserv_d(iconserv.size());
-    Gpu::copy(Gpu::hostToDevice, iconserv.begin(), iconserv.end(), iconserv_d.begin());
-    int const* iconserv_ptr = iconserv_d.data();
-
-    // If we need convective form, we must also compute div(u_mac)
+    // This should go away once the conservative=false stuff is removed
     MultiFab divu_mac(state.boxArray(),state.DistributionMap(),1,0);;
-    for (Long i = 0; i < iconserv.size(); ++i)
-    {
-        if (!iconserv[i])
-        {
-            Array<MultiFab const*,AMREX_SPACEDIM> u;
-            AMREX_D_TERM(u[0] = &umac;,
-                         u[1] = &vmac;,
-                         u[2] = &wmac;);
-            amrex::computeDivergence(divu_mac,u,geom);
-
-            break;
-        }
-    }
+    divu_mac.setVal(0.);
 
 #if (AMREX_SPACEDIM==2)
     if ( geom.IsRZ() )
@@ -90,7 +72,7 @@ void BDS_ComputeAofs(MultiFab& aofs,
                                    AMREX_D_DECL(u, v, w),
                                    divu.array(mfi),
                                    fq.array(mfi, fq_comp),
-                                   geom, dt, d_bc, iconserv_ptr,
+                                   geom, dt, d_bc,
                                    is_velocity);
         }
 
@@ -115,27 +97,12 @@ void BDS_ComputeAofs(MultiFab& aofs,
                                        mult, fluxes_are_area_weighted);
         */
 
-
-        // Compute the convective form if needed and
         // flip the sign to return div
         auto const& aofs_arr  = aofs.array(mfi, aofs_comp);
         auto const& divu_arr  = divu_mac.array(mfi);
         amrex::ParallelFor(bx, ncomp, [=]
         AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-            if (!iconserv_ptr[n])
-            {
-                Real q = xed(i,j,k,n) + xed(i+1,j,k,n)
-                       + yed(i,j,k,n) + yed(i,j+1,k,n);
-#if (AMREX_SPACEDIM == 2)
-                q *= 0.25;
-#else
-                q += zed(i,j,k,n) + zed(i,j,k+1,n);
-                q /= 6.0;
-#endif
-                aofs_arr(i,j,k,n) += q*divu_arr(i,j,k);
-            }
-
             aofs_arr( i, j, k, n ) *=  - 1.0;
         });
 
@@ -167,7 +134,6 @@ void BDS_ComputeAofs(MultiFab& aofs,
  * \param [in]     fq          Array4 for forces, starting at component of interest
  * \param [in]     geom        Level geometry.
  * \param [in]     l_dt        Time step.
- * \param [in]     iconserv    Indicates conservative dimensions.
  * \param [in]     is_velocity Indicates a component is velocity so boundary conditions can
  *                             be properly addressed. The header hydro_constants.H
  *                             defines the component positon by [XY]VEL macro.
@@ -184,7 +150,7 @@ void BDS_ComputeEdgeState(Box const& bx, int ncomp,
                           Array4<Real const> const& fq,
                           Geometry geom,
                           Real l_dt,
-                          BCRec const* pbc, int const* iconserv,
+                          BCRec const* pbc,
                           const bool is_velocity)
 {
     // For now, loop on components here
@@ -202,7 +168,6 @@ void BDS_ComputeEdgeState(Box const& bx, int ncomp,
         BDS_ComputeConc(bx, geom, icomp,
                          q, xedge, yedge, slopefab.array(),
                          umac, vmac, divu, fq,
-                         iconserv,
                          l_dt, pbc, is_velocity);
     }
 }
@@ -474,7 +439,6 @@ Real eval(const Real s,
  * \param [in]     umac        Array4 for u-face velocity.
  * \param [in]     vmac        Array4 for v-face velocity.
  * \param [in]     force       Array4 for forces.
- * \param [in]     iconserv    Indicates conservative dimensions.
  * \param [in]     dt          Time step.
  * \param [in]     is_velocity Indicates a component is velocity so boundary conditions can
  *                             be properly addressed. The header hydro_constants.H
@@ -493,7 +457,6 @@ void BDS_ComputeConc(Box const& bx,
                      Array4<Real const> const& vmac,
                      Array4<Real const> const& divu,
                      Array4<Real const> const& force,
-                     int const* iconserv,
                      const Real dt, BCRec const* pbc,
                      const bool is_velocity)
 {
@@ -586,11 +549,7 @@ void BDS_ComputeConc(Box const& bx,
         xedge_tmp = eval(s(i+ioff,j,k,icomp),slope_tmp,del);
 
         // source term
-        if (iconserv[icomp]) {
-            xedge_tmp = xedge_tmp*(1. - dt2*ux(i+ioff,j,k));
-        } else {
-            xedge_tmp = xedge_tmp*(1. + dt2*vy(i+ioff,j,k));
-        }
+        xedge_tmp = xedge_tmp*(1. - dt2*ux(i+ioff,j,k));
         if (force) {
             xedge_tmp += dt2*force(i+ioff,j,k,icomp);
         }
@@ -644,9 +603,7 @@ void BDS_ComputeConc(Box const& bx,
         gamma = (val1+val2+val3)/3.;
 
         // source term
-        if (iconserv[icomp]) {
-            gamma = gamma*(1. - dt3*divu(i+ioff,j+joff,k));
-        }
+        gamma = gamma*(1. - dt3*divu(i+ioff,j+joff,k));
 
         ///////////////////////////////////////////////
         // correct sedgex with \Gamma^{y+}
@@ -705,9 +662,7 @@ void BDS_ComputeConc(Box const& bx,
         gamma = (val1+val2+val3)/3.;
 
         // source term
-        if (iconserv[icomp]) {
-            gamma = gamma*(1. - dt3*divu(i+ioff,j+joff,k));
-        }
+        gamma = gamma*(1. - dt3*divu(i+ioff,j+joff,k));
 
         ///////////////////////////////////////////////
         // correct sedgex with \Gamma^{y-}
@@ -770,11 +725,7 @@ void BDS_ComputeConc(Box const& bx,
         yedge_tmp = eval(s(i,j+joff,k,icomp),slope_tmp,del);
 
         // source term
-        if (iconserv[icomp]) {
-            yedge_tmp = yedge_tmp*(1. - dt2*vy(i,j+joff,k));
-        } else {
-            yedge_tmp = yedge_tmp*(1. + dt2*ux(i,j+joff,k));
-        }
+        yedge_tmp = yedge_tmp*(1. - dt2*vy(i,j+joff,k));
         if (force) {
             yedge_tmp += dt2*force(i,j+joff,k,icomp);
         }
@@ -828,9 +779,7 @@ void BDS_ComputeConc(Box const& bx,
         gamma = (val1+val2+val3)/3.;
 
         // source term
-        if (iconserv[icomp]) {
-            gamma = gamma*(1. - dt3*divu(i+ioff,j+joff,k));
-        }
+        gamma = gamma*(1. - dt3*divu(i+ioff,j+joff,k));
 
         ///////////////////////////////////////////////
         // correct sedgey with \Gamma^{x+}
@@ -888,9 +837,7 @@ void BDS_ComputeConc(Box const& bx,
         gamma = (val1+val2+val3)/3.;
 
         // source term
-        if (iconserv[icomp]) {
-            gamma = gamma*(1. - dt3*divu(i+ioff,j+joff,k));
-        }
+        gamma = gamma*(1. - dt3*divu(i+ioff,j+joff,k));
 
         ///////////////////////////////////////////////
         // correct sedgey with \Gamma^{x-}
@@ -920,7 +867,6 @@ void BDS_ComputeConc(Box const& bx,
  * \param [in]     fq          Array4 for forces, starting at component of interest
  * \param [in]     geom        Level geometry.
  * \param [in]     l_dt        Time step.
- * \param [in]     iconserv    Indicates conservative dimensions.
  * \param [in]     is_velocity Indicates a component is velocity so boundary conditions can
  *                             be properly addressed. The header hydro_constants.H
  *                             defines the component positon by [XYZ]VEL macro.
@@ -938,7 +884,7 @@ void BDS_ComputeEdgeState(Box const& bx, int ncomp,
                           Array4<Real const> const& fq,
                           Geometry geom,
                           Real l_dt,
-                          BCRec const* pbc, int const* iconserv,
+                          BCRec const* pbc,
                           const bool is_velocity)
 {
     // For now, loop on components here
@@ -957,7 +903,6 @@ void BDS_ComputeEdgeState(Box const& bx, int ncomp,
                          q, xedge, yedge, zedge,
                          slopefab.array(),
                          umac, vmac, wmac, divu, fq,
-                         iconserv,
                          l_dt, pbc, is_velocity);
     }
 }
@@ -1421,7 +1366,6 @@ Real eval (const Real s,
  * \param [in]     vmac        Array4 for v-face velocity.
  * \param [in]     wmac        Array4 for z-face velocity.
  * \param [in]     force       Array4 for forces.
- * \param [in]     iconserv    Indicates conservative dimensions.
  * \param [in]     dt          Time step.
  * \param [in]     is_velocity Indicates a component is velocity so boundary conditions can
  *                             be properly addressed. The header hydro_constants.H
@@ -1443,7 +1387,6 @@ void BDS_ComputeConc(Box const& bx,
                      Array4<Real const> const& wmac,
                      Array4<Real const> const& divu,
                      Array4<Real const> const& force,
-                     int const* iconserv,
                      const Real dt, BCRec const* pbc,
                      const bool is_velocity)
 {
@@ -1550,11 +1493,7 @@ void BDS_ComputeConc(Box const& bx,
         xedge_tmp = eval(s(i+ioff,j,k,icomp),slope_tmp,del);
 
         // source term
-        if (iconserv[icomp]) {
-            xedge_tmp = xedge_tmp*(1. - dt2*ux(i+ioff,j,k));
-        } else {
-            xedge_tmp = xedge_tmp*(1. + dt2*(vy(i+ioff,j,k)+wz(i+ioff,j,k)));
-        }
+        xedge_tmp = xedge_tmp*(1. - dt2*ux(i+ioff,j,k));
         if (force) {
             xedge_tmp += dt2*force(i+ioff,j,k,icomp);
         }
@@ -1612,11 +1551,7 @@ void BDS_ComputeConc(Box const& bx,
         gamma = (val1+val2+val3)/3.0;
 
         // source term
-        if (iconserv[icomp]) {
-            gamma = gamma*(1. - dt3*(ux(i+ioff,j+joff,k)+vy(i+ioff,j+joff,k)));
-        } else {
-            gamma = gamma*(1. + dt3*wz(i+ioff,j+joff,k));
-        }
+        gamma = gamma*(1. - dt3*(ux(i+ioff,j+joff,k)+vy(i+ioff,j+joff,k)));
 
         ////////////////////////////////////////////////
         // correct \Gamma^{y+} with \Gamma^{y+,z+}
@@ -1688,9 +1623,7 @@ void BDS_ComputeConc(Box const& bx,
         gamma2 = -0.8*val1 + 0.45*(val2+val3+val4+val5);
 
         // divu source term
-        if (iconserv[icomp]) {
-            gamma2 = gamma2*(1. - dt4*divu(i+ioff,j+joff,k+koff));
-        }
+        gamma2 = gamma2*(1. - dt4*divu(i+ioff,j+joff,k+koff));
 
         gamma2 = gamma2 * wmac(i+ioff,j+joff,k+1);
 
@@ -1766,9 +1699,7 @@ void BDS_ComputeConc(Box const& bx,
         gamma2 = -0.8*val1 + 0.45*(val2+val3+val4+val5);
 
         // divu source term
-        if (iconserv[icomp]) {
-            gamma2 = gamma2*(1. - dt4*divu(i+ioff,j+joff,k+koff));
-        }
+        gamma2 = gamma2*(1. - dt4*divu(i+ioff,j+joff,k+koff));
 
         gamma2 = gamma2 * wmac(i+ioff,j+joff,k);
 
@@ -1833,11 +1764,7 @@ void BDS_ComputeConc(Box const& bx,
         gamma = (val1+val2+val3)/3.0;
 
         // source term
-        if (iconserv[icomp]) {
-            gamma = gamma*(1. - dt3*(ux(i+ioff,j+joff,k)+vy(i+ioff,j+joff,k)));
-        } else {
-            gamma = gamma*(1. + dt3*wz(i+ioff,j+joff,k));
-        }
+        gamma = gamma*(1. - dt3*(ux(i+ioff,j+joff,k)+vy(i+ioff,j+joff,k)));
 
         ////////////////////////////////////////////////
         // correct \Gamma^{y-} with \Gamma^{y-,z+}
@@ -1909,9 +1836,7 @@ void BDS_ComputeConc(Box const& bx,
         gamma2 = -0.8*val1 + 0.45*(val2+val3+val4+val5);
 
         // divu source term
-        if (iconserv[icomp]) {
-            gamma2 = gamma2*(1. - dt4*divu(i+ioff,j+joff,k+koff));
-        }
+        gamma2 = gamma2*(1. - dt4*divu(i+ioff,j+joff,k+koff));
 
         gamma2 = gamma2 * wmac(i+ioff,j+joff,k+1);
 
@@ -1987,9 +1912,7 @@ void BDS_ComputeConc(Box const& bx,
         gamma2 = -0.8*val1 + 0.45*(val2+val3+val4+val5);
 
         // divu source term
-        if (iconserv[icomp]) {
-            gamma2 = gamma2*(1. - dt4*divu(i+ioff,j+joff,k+koff));
-        }
+        gamma2 = gamma2*(1. - dt4*divu(i+ioff,j+joff,k+koff));
 
         gamma2 = gamma2 * wmac(i+ioff,j+joff,k);
 
@@ -2054,11 +1977,7 @@ void BDS_ComputeConc(Box const& bx,
         gamma = (val1+val2+val3)/3.0;
 
         // source term
-        if (iconserv[icomp]) {
-            gamma = gamma*(1. - dt3*(ux(i+ioff,j,k+koff)+wz(i+ioff,j,k+koff)));
-        } else {
-            gamma = gamma*(1. + dt3*vy(i+ioff,j,k+koff));
-        }
+        gamma = gamma*(1. - dt3*(ux(i+ioff,j,k+koff)+wz(i+ioff,j,k+koff)));
 
         ////////////////////////////////////////////////
         // correct \Gamma^{z+} with \Gamma^{z+,y+}
@@ -2130,9 +2049,7 @@ void BDS_ComputeConc(Box const& bx,
         gamma2 = -0.8*val1 + 0.45*(val2+val3+val4+val5);
 
         // divu source term
-        if (iconserv[icomp]) {
-            gamma2 = gamma2*(1. - dt4*divu(i+ioff,j+joff,k+koff));
-        }
+        gamma2 = gamma2*(1. - dt4*divu(i+ioff,j+joff,k+koff));
 
         gamma2 = gamma2 * vmac(i+ioff,j+1,k+koff);
 
@@ -2208,9 +2125,7 @@ void BDS_ComputeConc(Box const& bx,
         gamma2 = -0.8*val1 + 0.45*(val2+val3+val4+val5);
 
         // divu source term
-        if (iconserv[icomp]) {
-            gamma2 = gamma2*(1. - dt4*divu(i+ioff,j+joff,k+koff));
-        }
+        gamma2 = gamma2*(1. - dt4*divu(i+ioff,j+joff,k+koff));
 
         gamma2 = gamma2 * vmac(i+ioff,j,k+koff);
 
@@ -2275,11 +2190,7 @@ void BDS_ComputeConc(Box const& bx,
         gamma = (val1+val2+val3)/3.0;
 
         // source term
-        if (iconserv[icomp]) {
-            gamma = gamma*(1. - dt3*(ux(i+ioff,j,k+koff)+wz(i+ioff,j,k+koff)));
-        } else {
-            gamma = gamma*(1. + dt3*vy(i+ioff,j,k+koff));
-        }
+        gamma = gamma*(1. - dt3*(ux(i+ioff,j,k+koff)+wz(i+ioff,j,k+koff)));
 
         ////////////////////////////////////////////////
         // correct \Gamma^{z-} with \Gamma^{z-,y+}
@@ -2351,9 +2262,7 @@ void BDS_ComputeConc(Box const& bx,
         gamma2 = -0.8*val1 + 0.45*(val2+val3+val4+val5);
 
         // divu source term
-        if (iconserv[icomp]) {
-            gamma2 = gamma2*(1. - dt4*divu(i+ioff,j+joff,k+koff));
-        }
+        gamma2 = gamma2*(1. - dt4*divu(i+ioff,j+joff,k+koff));
 
         gamma2 = gamma2 * vmac(i+ioff,j+1,k+koff);
 
@@ -2429,9 +2338,7 @@ void BDS_ComputeConc(Box const& bx,
         gamma2 = -0.8*val1 + 0.45*(val2+val3+val4+val5);
 
         // divu source term
-        if (iconserv[icomp]) {
-            gamma2 = gamma2*(1. - dt4*divu(i+ioff,j+joff,k+koff));
-        }
+        gamma2 = gamma2*(1. - dt4*divu(i+ioff,j+joff,k+koff));
 
         gamma2 = gamma2 * vmac(i+ioff,j,k+koff);
 
@@ -2503,11 +2410,7 @@ void BDS_ComputeConc(Box const& bx,
         yedge_tmp = eval(s(i,j+joff,k,icomp),slope_tmp,del);
 
         // source term
-        if (iconserv[icomp]) {
-            yedge_tmp = yedge_tmp*(1. - dt2*vy(i,j+joff,k));
-        } else {
-            yedge_tmp = yedge_tmp*(1. + dt2*(ux(i,j+joff,k)+wz(i,j+joff,k)));
-        }
+        yedge_tmp = yedge_tmp*(1. - dt2*vy(i,j+joff,k));
         if (force) {
             yedge_tmp += dt2*force(i,j+joff,k,icomp);
         }
@@ -2564,11 +2467,7 @@ void BDS_ComputeConc(Box const& bx,
         gamma = (val1+val2+val3)/3.0;
 
         // source term
-        if (iconserv[icomp]) {
-            gamma = gamma*(1. - dt3*(vy(i+ioff,j+joff,k)+ux(i+ioff,j+joff,k)));
-        } else {
-            gamma = gamma*(1. + dt3*wz(i+ioff,j+joff,k));
-        }
+        gamma = gamma*(1. - dt3*(vy(i+ioff,j+joff,k)+ux(i+ioff,j+joff,k)));
 
         ////////////////////////////////////////////////
         // correct \Gamma^{x+} with \Gamma^{x+,z+}
@@ -2640,9 +2539,7 @@ void BDS_ComputeConc(Box const& bx,
         gamma2 = -0.8*val1 + 0.45*(val2+val3+val4+val5);
 
         // divu source term
-        if (iconserv[icomp]) {
-            gamma2 = gamma2*(1. - dt4*divu(i+ioff,j+joff,k+koff));
-        }
+        gamma2 = gamma2*(1. - dt4*divu(i+ioff,j+joff,k+koff));
 
         gamma2 = gamma2 * wmac(i+ioff,j+joff,k+1);
 
@@ -2718,9 +2615,7 @@ void BDS_ComputeConc(Box const& bx,
         gamma2 = -0.8*val1 + 0.45*(val2+val3+val4+val5);
 
         // divu source term
-        if (iconserv[icomp]) {
-            gamma2 = gamma2*(1. - dt4*divu(i+ioff,j+joff,k+koff));
-        }
+        gamma2 = gamma2*(1. - dt4*divu(i+ioff,j+joff,k+koff));
 
         gamma2 = gamma2 * wmac(i+ioff,j+joff,k);
 
@@ -2785,11 +2680,7 @@ void BDS_ComputeConc(Box const& bx,
         gamma = (val1+val2+val3)/3.0;
 
         // source term
-        if (iconserv[icomp]) {
-            gamma = gamma*(1. - dt3*(vy(i+ioff,j+joff,k)+ux(i+ioff,j+joff,k)));
-        } else {
-            gamma = gamma*(1. + dt3*wz(i+ioff,j+joff,k));
-        }
+        gamma = gamma*(1. - dt3*(vy(i+ioff,j+joff,k)+ux(i+ioff,j+joff,k)));
 
         ////////////////////////////////////////////////
         // correct \Gamma^{x-} with \Gamma^{x-,z+}
@@ -2861,9 +2752,7 @@ void BDS_ComputeConc(Box const& bx,
         gamma2 = -0.8*val1 + 0.45*(val2+val3+val4+val5);
 
         // divu source term
-        if (iconserv[icomp]) {
-            gamma2 = gamma2*(1. - dt4*divu(i+ioff,j+joff,k+koff));
-        }
+        gamma2 = gamma2*(1. - dt4*divu(i+ioff,j+joff,k+koff));
 
         gamma2 = gamma2 * wmac(i+ioff,j+joff,k+1);
 
@@ -2939,9 +2828,7 @@ void BDS_ComputeConc(Box const& bx,
         gamma2 = -0.8*val1 + 0.45*(val2+val3+val4+val5);
 
         // divu source term
-        if (iconserv[icomp]) {
-            gamma2 = gamma2*(1. - dt4*divu(i+ioff,j+joff,k+koff));
-        }
+        gamma2 = gamma2*(1. - dt4*divu(i+ioff,j+joff,k+koff));
 
         gamma2 = gamma2 * wmac(i+ioff,j+joff,k);
 
@@ -3006,11 +2893,7 @@ void BDS_ComputeConc(Box const& bx,
         gamma = (val1+val2+val3)/3.0;
 
         // source term
-        if (iconserv[icomp]) {
-            gamma = gamma*(1. - dt3*(vy(i,j+joff,k+koff)+wz(i,j+joff,k+koff)));
-        } else {
-            gamma = gamma*(1. + dt3*ux(i,j+joff,k+koff));
-        }
+        gamma = gamma*(1. - dt3*(vy(i,j+joff,k+koff)+wz(i,j+joff,k+koff)));
 
         ////////////////////////////////////////////////
         // correct \Gamma^{z+} with \Gamma^{z+,x+}
@@ -3082,9 +2965,7 @@ void BDS_ComputeConc(Box const& bx,
         gamma2 = -0.8*val1 + 0.45*(val2+val3+val4+val5);
 
         // divu source term
-        if (iconserv[icomp]) {
-            gamma2 = gamma2*(1. - dt4*divu(i+ioff,j+joff,k+koff));
-        }
+        gamma2 = gamma2*(1. - dt4*divu(i+ioff,j+joff,k+koff));
 
         gamma2 = gamma2 * umac(i+1,j+joff,k+koff);
 
@@ -3160,9 +3041,7 @@ void BDS_ComputeConc(Box const& bx,
         gamma2 = -0.8*val1 + 0.45*(val2+val3+val4+val5);
 
         // divu source term
-        if (iconserv[icomp]) {
-            gamma2 = gamma2*(1. - dt4*divu(i+ioff,j+joff,k+koff));
-        }
+        gamma2 = gamma2*(1. - dt4*divu(i+ioff,j+joff,k+koff));
 
         gamma2 = gamma2 * umac(i,j+joff,k+koff);
 
@@ -3227,11 +3106,7 @@ void BDS_ComputeConc(Box const& bx,
         gamma = (val1+val2+val3)/3.0;
 
         // source term
-        if (iconserv[icomp]) {
-            gamma = gamma*(1. - dt3*(vy(i,j+joff,k+koff)+wz(i,j+joff,k+koff)));
-        } else {
-            gamma = gamma*(1. + dt3*ux(i,j+joff,k+koff));
-        }
+        gamma = gamma*(1. - dt3*(vy(i,j+joff,k+koff)+wz(i,j+joff,k+koff)));
 
         ////////////////////////////////////////////////
         // correct \Gamma^{z-} with \Gamma^{z-,x+}
@@ -3303,9 +3178,7 @@ void BDS_ComputeConc(Box const& bx,
         gamma2 = -0.8*val1 + 0.45*(val2+val3+val4+val5);
 
         // divu source term
-        if (iconserv[icomp]) {
-            gamma2 = gamma2*(1. - dt4*divu(i+ioff,j+joff,k+koff));
-        }
+        gamma2 = gamma2*(1. - dt4*divu(i+ioff,j+joff,k+koff));
 
         gamma2 = gamma2 * umac(i+1,j+joff,k+koff);
 
@@ -3381,9 +3254,7 @@ void BDS_ComputeConc(Box const& bx,
         gamma2 = -0.8*val1 + 0.45*(val2+val3+val4+val5);
 
         // divu source term
-        if (iconserv[icomp]) {
-            gamma2 = gamma2*(1. - dt4*divu(i+ioff,j+joff,k+koff));
-        }
+        gamma2 = gamma2*(1. - dt4*divu(i+ioff,j+joff,k+koff));
 
         gamma2 = gamma2 * umac(i,j+joff,k+koff);
 
@@ -3455,11 +3326,7 @@ void BDS_ComputeConc(Box const& bx,
 
 
         // source term
-        if (iconserv[icomp]) {
-            zedge_tmp = zedge_tmp*(1. - dt2*wz(i,j,k+koff));
-        } else {
-            zedge_tmp = zedge_tmp*(1. + dt2*(ux(i,j,k+koff)+vy(i,j,k+koff)));
-        }
+        zedge_tmp = zedge_tmp*(1. - dt2*wz(i,j,k+koff));
         if (force) {
             zedge_tmp += dt2*force(i,j,k+koff,icomp);
         }
@@ -3517,11 +3384,7 @@ void BDS_ComputeConc(Box const& bx,
         gamma = (val1+val2+val3)/3.0;
 
         // source term
-        if (iconserv[icomp]) {
-            gamma = gamma*(1. - dt3*(wz(i+ioff,j,k+koff)+ux(i+ioff,j,k+koff)));
-        } else {
-            gamma = gamma*(1. + dt3*vy(i+ioff,j,k+koff));
-        }
+        gamma = gamma*(1. - dt3*(wz(i+ioff,j,k+koff)+ux(i+ioff,j,k+koff)));
 
         ////////////////////////////////////////////////
         // correct \Gamma^{x+} with \Gamma^{x+,y+}
@@ -3593,9 +3456,7 @@ void BDS_ComputeConc(Box const& bx,
         gamma2 = -0.8*val1 + 0.45*(val2+val3+val4+val5);
 
         // divu source term
-        if (iconserv[icomp]) {
-            gamma2 = gamma2*(1. - dt4*divu(i+ioff,j+joff,k+koff));
-        }
+        gamma2 = gamma2*(1. - dt4*divu(i+ioff,j+joff,k+koff));
 
         gamma2 = gamma2 * vmac(i+ioff,j+1,k+koff);
 
@@ -3671,9 +3532,7 @@ void BDS_ComputeConc(Box const& bx,
         gamma2 = -0.8*val1 + 0.45*(val2+val3+val4+val5);
 
         // divu source term
-        if (iconserv[icomp]) {
-            gamma2 = gamma2*(1. - dt4*divu(i+ioff,j+joff,k+koff));
-        }
+        gamma2 = gamma2*(1. - dt4*divu(i+ioff,j+joff,k+koff));
 
         gamma2 = gamma2 * vmac(i+ioff,j,k+koff);
 
@@ -3738,11 +3597,7 @@ void BDS_ComputeConc(Box const& bx,
         gamma = (val1+val2+val3)/3.0;
 
         // source term
-        if (iconserv[icomp]) {
-            gamma = gamma*(1. - dt3*(wz(i+ioff,j,k+koff)+ux(i+ioff,j,k+koff)));
-        } else {
-            gamma = gamma*(1. + dt3*vy(i+ioff,j,k+koff));
-        }
+        gamma = gamma*(1. - dt3*(wz(i+ioff,j,k+koff)+ux(i+ioff,j,k+koff)));
 
         ////////////////////////////////////////////////
         // correct \Gamma^{x-} with \Gamma^{x-,y+}
@@ -3814,9 +3669,7 @@ void BDS_ComputeConc(Box const& bx,
         gamma2 = -0.8*val1 + 0.45*(val2+val3+val4+val5);
 
         // divu source term
-        if (iconserv[icomp]) {
-            gamma2 = gamma2*(1. - dt4*divu(i+ioff,j+joff,k+koff));
-        }
+        gamma2 = gamma2*(1. - dt4*divu(i+ioff,j+joff,k+koff));
 
         gamma2 = gamma2 * vmac(i+ioff,j+1,k+koff);
 
@@ -3892,9 +3745,7 @@ void BDS_ComputeConc(Box const& bx,
         gamma2 = -0.8*val1 + 0.45*(val2+val3+val4+val5);
 
         // divu source term
-        if (iconserv[icomp]) {
-            gamma2 = gamma2*(1. - dt4*divu(i+ioff,j+joff,k+koff));
-        }
+        gamma2 = gamma2*(1. - dt4*divu(i+ioff,j+joff,k+koff));
 
         gamma2 = gamma2 * vmac(i+ioff,j,k+koff);
 
@@ -3959,11 +3810,7 @@ void BDS_ComputeConc(Box const& bx,
         gamma = (val1+val2+val3)/3.0;
 
         // source term
-        if (iconserv[icomp]) {
-            gamma = gamma*(1. - dt3*(wz(i,j+joff,k+koff)+vy(i,j+joff,k+koff)));
-        } else {
-            gamma = gamma*(1. + dt3*ux(i,j+joff,k+koff));
-        }
+        gamma = gamma*(1. - dt3*(wz(i,j+joff,k+koff)+vy(i,j+joff,k+koff)));
 
         ////////////////////////////////////////////////
         // correct \Gamma^{y+} with \Gamma^{y+,x+}
@@ -4035,9 +3882,7 @@ void BDS_ComputeConc(Box const& bx,
         gamma2 = -0.8*val1 + 0.45*(val2+val3+val4+val5);
 
         // divu source term
-        if (iconserv[icomp]) {
-            gamma2 = gamma2*(1. - dt4*divu(i+ioff,j+joff,k+koff));
-        }
+        gamma2 = gamma2*(1. - dt4*divu(i+ioff,j+joff,k+koff));
 
         gamma2 = gamma2 * umac(i+1,j+joff,k+koff);
 
@@ -4113,9 +3958,7 @@ void BDS_ComputeConc(Box const& bx,
         gamma2 = -0.8*val1 + 0.45*(val2+val3+val4+val5);
 
         // divu source term
-        if (iconserv[icomp]) {
-            gamma2 = gamma2*(1. - dt4*divu(i+ioff,j+joff,k+koff));
-        }
+        gamma2 = gamma2*(1. - dt4*divu(i+ioff,j+joff,k+koff));
 
         gamma2 = gamma2 * umac(i,j+joff,k+koff);
 
@@ -4180,11 +4023,7 @@ void BDS_ComputeConc(Box const& bx,
         gamma = (val1+val2+val3)/3.0;
 
         // source term
-        if (iconserv[icomp]) {
-            gamma = gamma*(1. - dt3*(wz(i,j+joff,k+koff)+vy(i,j+joff,k+koff)));
-        } else {
-            gamma = gamma*(1. + dt3*ux(i,j+joff,k+koff));
-        }
+        gamma = gamma*(1. - dt3*(wz(i,j+joff,k+koff)+vy(i,j+joff,k+koff)));
 
         ////////////////////////////////////////////////
         // correct \Gamma^{y-} with \Gamma^{y-,x+};
@@ -4256,9 +4095,7 @@ void BDS_ComputeConc(Box const& bx,
         gamma2 = -0.8*val1 + 0.45*(val2+val3+val4+val5);
 
         // divu source term
-        if (iconserv[icomp]) {
-            gamma2 = gamma2*(1. - dt4*divu(i+ioff,j+joff,k+koff));
-        }
+        gamma2 = gamma2*(1. - dt4*divu(i+ioff,j+joff,k+koff));
 
         gamma2 = gamma2 * umac(i+1,j+joff,k+koff);
 
@@ -4334,9 +4171,7 @@ void BDS_ComputeConc(Box const& bx,
         gamma2 = -0.8*val1 + 0.45*(val2+val3+val4+val5);
 
         // divu source term
-        if (iconserv[icomp]) {
-            gamma2 = gamma2*(1. - dt4*divu(i+ioff,j+joff,k+koff));
-        }
+        gamma2 = gamma2*(1. - dt4*divu(i+ioff,j+joff,k+koff));
 
         gamma2 = gamma2 * umac(i,j+joff,k+koff);
 

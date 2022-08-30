@@ -53,7 +53,6 @@ void BDS_ComputeAofs(MultiFab& aofs,
                      MultiFab const& divu,
                      BCRec const* d_bc,
                      Geometry const& geom,
-                     Vector<int>& iconserv,
                      const Real dt,
                      const bool is_velocity);
 
@@ -73,7 +72,7 @@ void BDS_ComputeEdgeState(Box const& bx, int ncomp,
                           Array4<Real const> const& fq,
                           Geometry geom,
                           Real l_dt,
-                          BCRec const* pbc, int const* iconserv,
+                          BCRec const* pbc,
                           const bool is_velocity);
 
 void BDS_ComputeSlopes(Box const& bx,
@@ -100,7 +99,6 @@ void BDS_ComputeConc(Box const& bx,
 #endif
                      Array4<Real const> const& divu,
                      Array4<Real const> const& force,
-                     int const* iconserv,
                      const Real dt, BCRec const* pbc,
                      const bool is_velocity);
 
