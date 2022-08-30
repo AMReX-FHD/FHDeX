@@ -53,8 +53,7 @@ void BDS_ComputeAofs(MultiFab& aofs,
                      MultiFab const& divu,
                      BCRec const* d_bc,
                      Geometry const& geom,
-                     const Real dt,
-                     const bool is_velocity);
+                     const Real dt);
 
 void BDS_ComputeEdgeState(Box const& bx, int ncomp,
                           Array4<Real const> const& q,
@@ -72,8 +71,7 @@ void BDS_ComputeEdgeState(Box const& bx, int ncomp,
                           Array4<Real const> const& fq,
                           Geometry geom,
                           Real l_dt,
-                          BCRec const* pbc,
-                          const bool is_velocity);
+                          BCRec const* pbc);
 
 void BDS_ComputeSlopes(Box const& bx,
                        const Geometry& geom,
@@ -95,12 +93,11 @@ void BDS_ComputeConc(Box const& bx,
                      Array4<Real const> const& umac,
                      Array4<Real const> const& vmac,
 #if (AMREX_SPACEDIM == 3)
-                          Array4<Real const> const& wmac,
+                     Array4<Real const> const& wmac,
 #endif
                      Array4<Real const> const& divu,
                      Array4<Real const> const& force,
-                     const Real dt, BCRec const* pbc,
-                     const bool is_velocity);
+                     const Real dt, BCRec const* pbc);
 
 /////////////////////////////////////////////////////////////////////////////////
 // in ConvertMToUmac.cpp

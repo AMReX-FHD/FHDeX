@@ -22,8 +22,7 @@ void BDS_ComputeAofs(MultiFab& aofs,
                      MultiFab const& divu,
                      BCRec const* d_bc,
                      Geometry const& geom,
-                     const Real dt,
-                     const bool is_velocity)
+                     const Real dt)
 {
 
     BL_PROFILE("BDS_ComputeAofs()");
@@ -72,8 +71,7 @@ void BDS_ComputeAofs(MultiFab& aofs,
                                    AMREX_D_DECL(u, v, w),
                                    divu.array(mfi),
                                    fq.array(mfi, fq_comp),
-                                   geom, dt, d_bc,
-                                   is_velocity);
+                                   geom, dt, d_bc);
         }
 
 
@@ -134,9 +132,6 @@ void BDS_ComputeAofs(MultiFab& aofs,
  * \param [in]     fq          Array4 for forces, starting at component of interest
  * \param [in]     geom        Level geometry.
  * \param [in]     l_dt        Time step.
- * \param [in]     is_velocity Indicates a component is velocity so boundary conditions can
- *                             be properly addressed. The header hydro_constants.H
- *                             defines the component positon by [XY]VEL macro.
  *
  */
 
@@ -150,8 +145,7 @@ void BDS_ComputeEdgeState(Box const& bx, int ncomp,
                           Array4<Real const> const& fq,
                           Geometry geom,
                           Real l_dt,
-                          BCRec const* pbc,
-                          const bool is_velocity)
+                          BCRec const* pbc)
 {
     // For now, loop on components here
     for( int icomp = 0; icomp < ncomp; ++icomp)
@@ -168,7 +162,7 @@ void BDS_ComputeEdgeState(Box const& bx, int ncomp,
         BDS_ComputeConc(bx, geom, icomp,
                          q, xedge, yedge, slopefab.array(),
                          umac, vmac, divu, fq,
-                         l_dt, pbc, is_velocity);
+                         l_dt, pbc);
     }
 }
 
@@ -440,9 +434,6 @@ Real eval(const Real s,
  * \param [in]     vmac        Array4 for v-face velocity.
  * \param [in]     force       Array4 for forces.
  * \param [in]     dt          Time step.
- * \param [in]     is_velocity Indicates a component is velocity so boundary conditions can
- *                             be properly addressed. The header hydro_constants.H
- *                             defines the component positon by [XY]VEL macro.
  *
  */
 
@@ -457,8 +448,7 @@ void BDS_ComputeConc(Box const& bx,
                      Array4<Real const> const& vmac,
                      Array4<Real const> const& divu,
                      Array4<Real const> const& force,
-                     const Real dt, BCRec const* pbc,
-                     const bool is_velocity)
+                     const Real dt, BCRec const* pbc)
 {
     Box const& gbx = amrex::grow(bx,1);
     GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
@@ -867,9 +857,6 @@ void BDS_ComputeConc(Box const& bx,
  * \param [in]     fq          Array4 for forces, starting at component of interest
  * \param [in]     geom        Level geometry.
  * \param [in]     l_dt        Time step.
- * \param [in]     is_velocity Indicates a component is velocity so boundary conditions can
- *                             be properly addressed. The header hydro_constants.H
- *                             defines the component positon by [XYZ]VEL macro.
  */
 
 void BDS_ComputeEdgeState(Box const& bx, int ncomp,
@@ -884,8 +871,7 @@ void BDS_ComputeEdgeState(Box const& bx, int ncomp,
                           Array4<Real const> const& fq,
                           Geometry geom,
                           Real l_dt,
-                          BCRec const* pbc,
-                          const bool is_velocity)
+                          BCRec const* pbc)
 {
     // For now, loop on components here
     for( int icomp = 0; icomp < ncomp; ++icomp)
@@ -903,7 +889,7 @@ void BDS_ComputeEdgeState(Box const& bx, int ncomp,
                          q, xedge, yedge, zedge,
                          slopefab.array(),
                          umac, vmac, wmac, divu, fq,
-                         l_dt, pbc, is_velocity);
+                         l_dt, pbc);
     }
 }
 
@@ -1367,10 +1353,6 @@ Real eval (const Real s,
  * \param [in]     wmac        Array4 for z-face velocity.
  * \param [in]     force       Array4 for forces.
  * \param [in]     dt          Time step.
- * \param [in]     is_velocity Indicates a component is velocity so boundary conditions can
- *                             be properly addressed. The header hydro_constants.H
- *                             defines the component positon by [XYZ]VEL macro.
- *
  *
  */
 
@@ -1387,8 +1369,7 @@ void BDS_ComputeConc(Box const& bx,
                      Array4<Real const> const& wmac,
                      Array4<Real const> const& divu,
                      Array4<Real const> const& force,
-                     const Real dt, BCRec const* pbc,
-                     const bool is_velocity)
+                     const Real dt, BCRec const* pbc)
 {
     Box const& gbx = amrex::grow(bx,1);
     GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
