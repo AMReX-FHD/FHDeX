@@ -29,6 +29,82 @@ void addMomFluctuations_stag(std::array< MultiFab, AMREX_SPACEDIM >&,
                              const Geometry& geom);
 
 /////////////////////////////////////////////////////////////////////////////////
+// in BDS.cpp
+
+void BDS_ComputeAofs(MultiFab& aofs,
+                     const int aofs_comp,
+                     const int ncomp,
+                     MultiFab const& state,
+                     const int state_comp,
+                     AMREX_D_DECL( MultiFab const& umac,
+                                   MultiFab const& vmac,
+                                   MultiFab const& wmac),
+                     AMREX_D_DECL( MultiFab& xedge,
+                                   MultiFab& yedge,
+                                   MultiFab& zedge),
+                     const int  edge_comp,
+                     const bool known_edgestate,
+                     AMREX_D_DECL( MultiFab& xfluxes,
+                                   MultiFab& yfluxes,
+                                   MultiFab& zfluxes),
+                     int fluxes_comp,
+                     MultiFab const& fq,
+                     const int fq_comp,
+                     MultiFab const& divu,
+                     BCRec const* d_bc,
+                     Geometry const& geom,
+                     Vector<int>& iconserv,
+                     const Real dt,
+                     const bool is_velocity);
+
+void BDS_ComputeEdgeState(Box const& bx, int ncomp,
+                          Array4<Real const> const& q,
+                          Array4<Real      > const& xedge,
+                          Array4<Real      > const& yedge,
+#if (AMREX_SPACEDIM == 3)
+                          Array4<Real      > const& zedge,
+#endif
+                          Array4<Real const> const& umac,
+                          Array4<Real const> const& vmac,
+#if (AMREX_SPACEDIM == 3)
+                          Array4<Real const> const& wmac,
+#endif
+                          Array4<Real const> const& divu,
+                          Array4<Real const> const& fq,
+                          Geometry geom,
+                          Real l_dt,
+                          BCRec const* pbc, int const* iconserv,
+                          const bool is_velocity);
+
+void BDS_ComputeSlopes(Box const& bx,
+                       const Geometry& geom,
+                       int icomp,
+                       Array4<Real const> const& s,
+                       Array4<Real      > const& slopes,
+                       BCRec const* pbc);
+
+void BDS_ComputeConc(Box const& bx,
+                     const Geometry& geom,
+                     int icomp,
+                     Array4<Real const> const& s,
+                     Array4<Real      > const& sedgex,
+                     Array4<Real      > const& sedgey,
+#if (AMREX_SPACEDIM == 3)
+                     Array4<Real      > const& sedgez,
+#endif
+                     Array4<Real const> const& slopes,
+                     Array4<Real const> const& umac,
+                     Array4<Real const> const& vmac,
+#if (AMREX_SPACEDIM == 3)
+                          Array4<Real const> const& wmac,
+#endif
+                     Array4<Real const> const& divu,
+                     Array4<Real const> const& force,
+                     int const* iconserv,
+                     const Real dt, BCRec const* pbc,
+                     const bool is_velocity);
+
+/////////////////////////////////////////////////////////////////////////////////
 // in ConvertMToUmac.cpp
 
 void ConvertMToUmac(const std::array< MultiFab, AMREX_SPACEDIM >& s_fc,
