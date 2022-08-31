@@ -12,10 +12,6 @@ void BDS_ComputeAofs(MultiFab& aofs,
                                    MultiFab& yedge,
                                    MultiFab& zedge),
                      const int  edge_comp,
-                     AMREX_D_DECL( MultiFab& xfluxes,
-                                   MultiFab& yfluxes,
-                                   MultiFab& zfluxes),
-                     int fluxes_comp,
                      MultiFab const& fq,
                      const int fq_comp,
                      MultiFab const& divu,
@@ -26,8 +22,6 @@ void BDS_ComputeAofs(MultiFab& aofs,
 
     BL_PROFILE("BDS_ComputeAofs()");
     amrex::ignore_unused(divu);
-
-    bool fluxes_are_area_weighted = true;
 
 #if (AMREX_SPACEDIM==2)
     if ( geom.IsRZ() )
@@ -47,10 +41,6 @@ void BDS_ComputeAofs(MultiFab& aofs,
         //
         // Get handlers to Array4
         //
-        AMREX_D_TERM( const auto& fx = xfluxes.array(mfi,fluxes_comp);,
-                      const auto& fy = yfluxes.array(mfi,fluxes_comp);,
-                      const auto& fz = zfluxes.array(mfi,fluxes_comp););
-
         AMREX_D_TERM( const auto& xed = xedge.array(mfi,edge_comp);,
                       const auto& yed = yedge.array(mfi,edge_comp);,
                       const auto& zed = zedge.array(mfi,edge_comp););
