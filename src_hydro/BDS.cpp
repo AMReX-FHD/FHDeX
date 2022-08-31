@@ -6,7 +6,6 @@ void BDS_ComputeAofs(MultiFab& s_update,
                      MultiFab const& state,
 		     std::array< MultiFab, AMREX_SPACEDIM >& umac,
                      MultiFab const& fq,
-                     BCRec const* d_bc,
                      Geometry const& geom,
                      const Real dt)
 {
@@ -53,12 +52,12 @@ void BDS_ComputeAofs(MultiFab& s_update,
                       const auto& v = umac[1].const_array(mfi);,
                       const auto& w = umac[2].const_array(mfi););
 
-        BDS_ComputeEdgeState(bx, ncomp,
+        BDS_ComputeEdgeState(bx, ncomp, bccomp,
                              state.array(mfi),
                              AMREX_D_DECL(sedgex, sedgey, sedgez),
                              AMREX_D_DECL(u, v, w),
                              fq.array(mfi),
-                             geom, dt, d_bc);	
+                             geom, dt);
 	
 	// flip the sign to return div
         auto const& s_update_arr  = s_update.array(mfi);
@@ -105,7 +104,7 @@ void BDS_ComputeAofs(MultiFab& s_update,
  *
  */
 
-void BDS_ComputeEdgeState(Box const& bx, int ncomp,
+void BDS_ComputeEdgeState(Box const& bx, int ncomp, int bccomp,
                           Array4<Real const> const& q,
                           Array4<Real      > const& xedge,
                           Array4<Real      > const& yedge,
@@ -113,8 +112,7 @@ void BDS_ComputeEdgeState(Box const& bx, int ncomp,
                           Array4<Real const> const& vmac,
                           Array4<Real const> const& fq,
                           Geometry geom,
-                          Real l_dt,
-                          BCRec const* pbc)
+                          Real l_dt)
 {
     // For now, loop on components here
     for( int icomp = 0; icomp < ncomp; ++icomp)
@@ -124,14 +122,12 @@ void BDS_ComputeEdgeState(Box const& bx, int ncomp,
         FArrayBox slopefab(bxg1,3);
         Elixir slopeeli = slopefab.elixir();
 
-        BDS_ComputeSlopes(bx, geom, icomp,
-                           q, slopefab.array(),
-                           pbc);
+        BDS_ComputeSlopes(bx, geom, icomp, bccomp,
+                           q, slopefab.array());
 
-        BDS_ComputeConc(bx, geom, icomp,
+        BDS_ComputeConc(bx, geom, icomp, bccomp,
                          q, xedge, yedge, slopefab.array(),
-                         umac, vmac, fq,
-                         l_dt, pbc);
+                         umac, vmac, fq, l_dt);
     }
 }
 
@@ -148,10 +144,9 @@ void BDS_ComputeEdgeState(Box const& bx, int ncomp,
 
 void BDS_ComputeSlopes(Box const& bx,
                        const Geometry& geom,
-                       int icomp,
+                       int icomp, int bccomp,
                        Array4<Real const> const& s,
-                       Array4<Real      > const& slopes,
-                       BCRec const* pbc)
+                       Array4<Real      > const& slopes)
 {
     constexpr amrex::Real eps = 1.0e-8;
     constexpr bool limit_slopes = true;
@@ -172,19 +167,15 @@ void BDS_ComputeSlopes(Box const& bx,
     const auto dlo = amrex::lbound(domain);
     const auto dhi = amrex::ubound(domain);
 
-    auto bc = pbc[icomp];
+    // compute mathematical boundary conditions
+    Vector<int> bc_lo(AMREX_SPACEDIM);
+    Vector<int> bc_hi(AMREX_SPACEDIM);
+    BCPhysToMath(bccomp,bc_lo,bc_hi);
 
-    // Abort for cell-centered BC types
-    if ( bc.lo(0) == BCType::reflect_even || bc.lo(0) == BCType::reflect_odd || bc.lo(0) == BCType::hoextrapcc ||
-         bc.hi(0) == BCType::reflect_even || bc.hi(0) == BCType::reflect_odd || bc.hi(0) == BCType::hoextrapcc ||
-         bc.lo(1) == BCType::reflect_even || bc.lo(1) == BCType::reflect_odd || bc.lo(1) == BCType::hoextrapcc ||
-         bc.hi(1) == BCType::reflect_even || bc.hi(1) == BCType::reflect_odd || bc.hi(1) == BCType::hoextrapcc )
-        amrex::Abort("BDS_Slopes: Unsupported BC type. Supported types are int_dir, ext_dir, foextrap, and hoextrap");
-
-    bool lo_x_physbc = (bc.lo(0) == BCType::foextrap || bc.lo(0) == BCType::hoextrap || bc.lo(0) == BCType::ext_dir) ? true : false;
-    bool hi_x_physbc = (bc.hi(0) == BCType::foextrap || bc.hi(0) == BCType::hoextrap || bc.hi(0) == BCType::ext_dir) ? true : false;
-    bool lo_y_physbc = (bc.lo(1) == BCType::foextrap || bc.lo(1) == BCType::hoextrap || bc.lo(1) == BCType::ext_dir) ? true : false;
-    bool hi_y_physbc = (bc.hi(1) == BCType::foextrap || bc.hi(1) == BCType::hoextrap || bc.hi(1) == BCType::ext_dir) ? true : false;
+    bool lo_x_physbc = (bc_lo[0] == FOEXTRAP || bc_lo[0] == EXT_DIR) ? true : false;
+    bool hi_x_physbc = (bc_hi[0] == FOEXTRAP || bc_hi[0] == EXT_DIR) ? true : false;
+    bool lo_y_physbc = (bc_lo[1] == FOEXTRAP || bc_lo[1] == EXT_DIR) ? true : false;
+    bool hi_y_physbc = (bc_hi[1] == FOEXTRAP || bc_hi[1] == EXT_DIR) ? true : false;
 
     // bicubic interpolation to corner points
     // (i,j,k) refers to lower corner of cell
@@ -408,7 +399,7 @@ Real eval(const Real s,
 
 void BDS_ComputeConc(Box const& bx,
                      const Geometry& geom,
-                     int icomp,
+                     int icomp, int bccomp,
                      Array4<Real const> const& s,
                      Array4<Real      > const& sedgex,
                      Array4<Real      > const& sedgey,
@@ -416,7 +407,7 @@ void BDS_ComputeConc(Box const& bx,
                      Array4<Real const> const& umac,
                      Array4<Real const> const& vmac,
                      Array4<Real const> const& force,
-                     const Real dt, BCRec const* pbc)
+                     const Real dt)
 {
     Box const& gbx = amrex::grow(bx,1);
     GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
@@ -438,11 +429,15 @@ void BDS_ComputeConc(Box const& bx,
     const auto dlo = amrex::lbound(domain);
     const auto dhi = amrex::ubound(domain);
 
-    auto bc = pbc[icomp];
-    bool lo_x_physbc = (bc.lo(0) == BCType::foextrap || bc.lo(0) == BCType::hoextrap || bc.lo(0) == BCType::ext_dir) ? true : false;
-    bool hi_x_physbc = (bc.hi(0) == BCType::foextrap || bc.hi(0) == BCType::hoextrap || bc.hi(0) == BCType::ext_dir) ? true : false;
-    bool lo_y_physbc = (bc.lo(1) == BCType::foextrap || bc.lo(1) == BCType::hoextrap || bc.lo(1) == BCType::ext_dir) ? true : false;
-    bool hi_y_physbc = (bc.hi(1) == BCType::foextrap || bc.hi(1) == BCType::hoextrap || bc.hi(1) == BCType::ext_dir) ? true : false;
+    // compute mathematical boundary conditions
+    Vector<int> bc_lo(AMREX_SPACEDIM);
+    Vector<int> bc_hi(AMREX_SPACEDIM);
+    BCPhysToMath(bccomp,bc_lo,bc_hi);
+
+    bool lo_x_physbc = (bc_lo[0] == FOEXTRAP || bc_lo[0] == EXT_DIR) ? true : false;
+    bool hi_x_physbc = (bc_hi[0] == FOEXTRAP || bc_hi[0] == EXT_DIR) ? true : false;
+    bool lo_y_physbc = (bc_lo[1] == FOEXTRAP || bc_lo[1] == EXT_DIR) ? true : false;
+    bool hi_y_physbc = (bc_hi[1] == FOEXTRAP || bc_hi[1] == EXT_DIR) ? true : false;
 
     // compute cell-centered ux, vy
     ParallelFor(gbx, [=] AMREX_GPU_DEVICE (int i, int j, int k){
@@ -827,7 +822,7 @@ void BDS_ComputeConc(Box const& bx,
  * \param [in]     l_dt        Time step.
  */
 
-void BDS_ComputeEdgeState(Box const& bx, int ncomp,
+void BDS_ComputeEdgeState(Box const& bx, int ncomp, int bccomp,
                           Array4<Real const> const& q,
                           Array4<Real      > const& xedge,
                           Array4<Real      > const& yedge,
@@ -837,8 +832,7 @@ void BDS_ComputeEdgeState(Box const& bx, int ncomp,
                           Array4<Real const> const& wmac,
                           Array4<Real const> const& fq,
                           Geometry geom,
-                          Real l_dt,
-                          BCRec const* pbc)
+                          Real l_dt)
 {
     // For now, loop on components here
     for( int icomp = 0; icomp < ncomp; ++icomp)
@@ -848,15 +842,14 @@ void BDS_ComputeEdgeState(Box const& bx, int ncomp,
         FArrayBox slopefab(bxg1,7);
         Elixir slopeeli = slopefab.elixir();
 
-        BDS_ComputeSlopes(bx, geom, icomp,
-                           q, slopefab.array(),
-                           pbc);
+        BDS_ComputeSlopes(bx, geom, icomp, bccomp,
+                           q, slopefab.array());
 
-        BDS_ComputeConc(bx, geom, icomp,
+        BDS_ComputeConc(bx, geom, icomp, bccomp,
                          q, xedge, yedge, zedge,
                          slopefab.array(),
                          umac, vmac, wmac, fq,
-                         l_dt, pbc);
+                         l_dt);
     }
 }
 
@@ -873,10 +866,9 @@ void BDS_ComputeEdgeState(Box const& bx, int ncomp,
 
 void BDS_ComputeSlopes(Box const& bx,
                        const Geometry& geom,
-                       int icomp,
+                       int icomp, int bccomp,
                        Array4<Real const> const& s,
-                       Array4<Real      > const& slopes,
-                       BCRec const* pbc)
+                       Array4<Real      > const& slopes)
 {
     constexpr amrex::Real eps = 1.0e-8;
     constexpr bool limit_slopes = true;
@@ -903,23 +895,17 @@ void BDS_ComputeSlopes(Box const& bx,
     const auto dlo = amrex::lbound(domain);
     const auto dhi = amrex::ubound(domain);
 
-    auto bc = pbc[icomp];
+    // compute mathematical boundary conditions
+    Vector<int> bc_lo(AMREX_SPACEDIM);
+    Vector<int> bc_hi(AMREX_SPACEDIM);
+    BCPhysToMath(bccomp,bc_lo,bc_hi);
 
-    // Abort for cell-centered BC types
-    if ( bc.lo(0) == BCType::reflect_even || bc.lo(0) == BCType::reflect_odd || bc.lo(0) == BCType::hoextrapcc ||
-         bc.hi(0) == BCType::reflect_even || bc.hi(0) == BCType::reflect_odd || bc.hi(0) == BCType::hoextrapcc ||
-         bc.lo(1) == BCType::reflect_even || bc.lo(1) == BCType::reflect_odd || bc.lo(1) == BCType::hoextrapcc ||
-         bc.hi(1) == BCType::reflect_even || bc.hi(1) == BCType::reflect_odd || bc.hi(1) == BCType::hoextrapcc ||
-         bc.lo(2) == BCType::reflect_even || bc.lo(2) == BCType::reflect_odd || bc.lo(2) == BCType::hoextrapcc ||
-         bc.hi(2) == BCType::reflect_even || bc.hi(2) == BCType::reflect_odd || bc.hi(2) == BCType::hoextrapcc )
-        amrex::Abort("BDS_Slopes: Unsupported BC type. Supported types are int_dir, ext_dir, foextrap, and hoextrap");
-
-    bool lo_x_physbc = (bc.lo(0) == BCType::foextrap || bc.lo(0) == BCType::hoextrap || bc.lo(0) == BCType::ext_dir) ? true : false;
-    bool hi_x_physbc = (bc.hi(0) == BCType::foextrap || bc.hi(0) == BCType::hoextrap || bc.hi(0) == BCType::ext_dir) ? true : false;
-    bool lo_y_physbc = (bc.lo(1) == BCType::foextrap || bc.lo(1) == BCType::hoextrap || bc.lo(1) == BCType::ext_dir) ? true : false;
-    bool hi_y_physbc = (bc.hi(1) == BCType::foextrap || bc.hi(1) == BCType::hoextrap || bc.hi(1) == BCType::ext_dir) ? true : false;
-    bool lo_z_physbc = (bc.lo(2) == BCType::foextrap || bc.lo(2) == BCType::hoextrap || bc.lo(2) == BCType::ext_dir) ? true : false;
-    bool hi_z_physbc = (bc.hi(2) == BCType::foextrap || bc.hi(2) == BCType::hoextrap || bc.hi(2) == BCType::ext_dir) ? true : false;
+    bool lo_x_physbc = (bc_lo[0] == FOEXTRAP || bc_lo[0] == EXT_DIR) ? true : false;
+    bool hi_x_physbc = (bc_hi[0] == FOEXTRAP || bc_hi[0] == EXT_DIR) ? true : false;
+    bool lo_y_physbc = (bc_lo[1] == FOEXTRAP || bc_lo[1] == EXT_DIR) ? true : false;
+    bool hi_y_physbc = (bc_hi[1] == FOEXTRAP || bc_hi[1] == EXT_DIR) ? true : false;
+    bool lo_z_physbc = (bc_lo[2] == FOEXTRAP || bc_lo[2] == EXT_DIR) ? true : false;
+    bool hi_z_physbc = (bc_hi[2] == FOEXTRAP || bc_hi[2] == EXT_DIR) ? true : false;
 
     // tricubic interpolation to corner points
     // (i,j,k) refers to lower corner of cell
@@ -1325,7 +1311,7 @@ Real eval (const Real s,
 
 void BDS_ComputeConc(Box const& bx,
                      const Geometry& geom,
-                     int icomp,
+                     int icomp, int bccomp,
                      Array4<Real const> const& s,
                      Array4<Real      > const& sedgex,
                      Array4<Real      > const& sedgey,
@@ -1335,7 +1321,7 @@ void BDS_ComputeConc(Box const& bx,
                      Array4<Real const> const& vmac,
                      Array4<Real const> const& wmac,
                      Array4<Real const> const& force,
-                     const Real dt, BCRec const* pbc)
+                     const Real dt)
 {
     Box const& gbx = amrex::grow(bx,1);
     GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
@@ -1364,13 +1350,17 @@ void BDS_ComputeConc(Box const& bx,
     const auto dlo = amrex::lbound(domain);
     const auto dhi = amrex::ubound(domain);
 
-    auto bc = pbc[icomp];
-    bool lo_x_physbc = (bc.lo(0) == BCType::foextrap || bc.lo(0) == BCType::hoextrap || bc.lo(0) == BCType::ext_dir) ? true : false;
-    bool hi_x_physbc = (bc.hi(0) == BCType::foextrap || bc.hi(0) == BCType::hoextrap || bc.hi(0) == BCType::ext_dir) ? true : false;
-    bool lo_y_physbc = (bc.lo(1) == BCType::foextrap || bc.lo(1) == BCType::hoextrap || bc.lo(1) == BCType::ext_dir) ? true : false;
-    bool hi_y_physbc = (bc.hi(1) == BCType::foextrap || bc.hi(1) == BCType::hoextrap || bc.hi(1) == BCType::ext_dir) ? true : false;
-    bool lo_z_physbc = (bc.lo(2) == BCType::foextrap || bc.lo(2) == BCType::hoextrap || bc.lo(2) == BCType::ext_dir) ? true : false;
-    bool hi_z_physbc = (bc.hi(2) == BCType::foextrap || bc.hi(2) == BCType::hoextrap || bc.hi(2) == BCType::ext_dir) ? true : false;
+    // compute mathematical boundary conditions
+    Vector<int> bc_lo(AMREX_SPACEDIM);
+    Vector<int> bc_hi(AMREX_SPACEDIM);
+    BCPhysToMath(bccomp,bc_lo,bc_hi);
+
+    bool lo_x_physbc = (bc_lo[0] == FOEXTRAP || bc_lo[0] == EXT_DIR) ? true : false;
+    bool hi_x_physbc = (bc_hi[0] == FOEXTRAP || bc_hi[0] == EXT_DIR) ? true : false;
+    bool lo_y_physbc = (bc_lo[1] == FOEXTRAP || bc_lo[1] == EXT_DIR) ? true : false;
+    bool hi_y_physbc = (bc_hi[1] == FOEXTRAP || bc_hi[1] == EXT_DIR) ? true : false;
+    bool lo_z_physbc = (bc_lo[2] == FOEXTRAP || bc_lo[2] == EXT_DIR) ? true : false;
+    bool hi_z_physbc = (bc_hi[2] == FOEXTRAP || bc_hi[2] == EXT_DIR) ? true : false;
 
     ParallelFor(gbx, [=] AMREX_GPU_DEVICE (int i, int j, int k){
           ux(i,j,k) = (umac(i+1,j,k) - umac(i,j,k)) / hx;

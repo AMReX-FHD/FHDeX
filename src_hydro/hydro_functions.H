@@ -37,11 +37,10 @@ void BDS_ComputeAofs(MultiFab& s_update,
                      MultiFab const& state,
 		     std::array< MultiFab, AMREX_SPACEDIM >& umac,
                      MultiFab const& fq,
-                     BCRec const* d_bc,
                      Geometry const& geom,
                      const Real dt);
 
-void BDS_ComputeEdgeState(Box const& bx, int ncomp,
+void BDS_ComputeEdgeState(Box const& bx, int ncomp, int bccomp,
                           Array4<Real const> const& q,
                           Array4<Real      > const& xedge,
                           Array4<Real      > const& yedge,
@@ -55,19 +54,17 @@ void BDS_ComputeEdgeState(Box const& bx, int ncomp,
 #endif
                           Array4<Real const> const& fq,
                           Geometry geom,
-                          Real l_dt,
-                          BCRec const* pbc);
+                          Real l_dt);
 
 void BDS_ComputeSlopes(Box const& bx,
                        const Geometry& geom,
-                       int icomp,
+                       int icomp, int bccomp,
                        Array4<Real const> const& s,
-                       Array4<Real      > const& slopes,
-                       BCRec const* pbc);
+                       Array4<Real      > const& slopes);
 
 void BDS_ComputeConc(Box const& bx,
                      const Geometry& geom,
-                     int icomp,
+                     int icomp, int bccomp,
                      Array4<Real const> const& s,
                      Array4<Real      > const& sedgex,
                      Array4<Real      > const& sedgey,
@@ -81,7 +78,7 @@ void BDS_ComputeConc(Box const& bx,
                      Array4<Real const> const& wmac,
 #endif
                      Array4<Real const> const& force,
-                     const Real dt, BCRec const* pbc);
+                     const Real dt);
 
 /////////////////////////////////////////////////////////////////////////////////
 // in ConvertMToUmac.cpp
