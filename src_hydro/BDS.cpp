@@ -12,7 +12,6 @@ void BDS_ComputeAofs(MultiFab& aofs,
                                    MultiFab& yedge,
                                    MultiFab& zedge),
                      const int  edge_comp,
-                     const bool known_edgestate,
                      AMREX_D_DECL( MultiFab& xfluxes,
                                    MultiFab& yfluxes,
                                    MultiFab& zfluxes),
@@ -29,10 +28,6 @@ void BDS_ComputeAofs(MultiFab& aofs,
     amrex::ignore_unused(divu);
 
     bool fluxes_are_area_weighted = true;
-
-    // This should go away once the conservative=false stuff is removed
-    MultiFab divu_mac(state.boxArray(),state.DistributionMap(),1,0);;
-    divu_mac.setVal(0.);
 
 #if (AMREX_SPACEDIM==2)
     if ( geom.IsRZ() )
@@ -64,17 +59,13 @@ void BDS_ComputeAofs(MultiFab& aofs,
                       const auto& v = vmac.const_array(mfi);,
                       const auto& w = wmac.const_array(mfi););
 
-        if ( !known_edgestate ) {
-            BDS_ComputeEdgeState( bx, ncomp,
-                                   state.array(mfi, state_comp),
-                                   AMREX_D_DECL(xed, yed, zed),
-                                   AMREX_D_DECL(u, v, w),
-                                   divu.array(mfi),
-                                   fq.array(mfi, fq_comp),
-                                   geom, dt, d_bc);
-        }
-
-
+        BDS_ComputeEdgeState(bx, ncomp,
+                             state.array(mfi, state_comp),
+                             AMREX_D_DECL(xed, yed, zed),
+                             AMREX_D_DECL(u, v, w),
+                             divu.array(mfi),
+                             fq.array(mfi, fq_comp),
+                             geom, dt, d_bc);
 
         // Compute -div instead of computing div -- this is just for consistency
         // with the way we HAVE to do it for EB (because redistribution operates on
@@ -97,7 +88,6 @@ void BDS_ComputeAofs(MultiFab& aofs,
 
         // flip the sign to return div
         auto const& aofs_arr  = aofs.array(mfi, aofs_comp);
-        auto const& divu_arr  = divu_mac.array(mfi);
         amrex::ParallelFor(bx, ncomp, [=]
         AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
