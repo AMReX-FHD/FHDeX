@@ -31,21 +31,12 @@ void addMomFluctuations_stag(std::array< MultiFab, AMREX_SPACEDIM >&,
 /////////////////////////////////////////////////////////////////////////////////
 // in BDS.cpp
 
-void BDS_ComputeAofs(MultiFab& aofs,
-                     const int aofs_comp,
+void BDS_ComputeAofs(MultiFab& s_update,
                      const int ncomp,
+		     const int bccomp,
                      MultiFab const& state,
-                     const int state_comp,
-                     AMREX_D_DECL( MultiFab const& umac,
-                                   MultiFab const& vmac,
-                                   MultiFab const& wmac),
-                     AMREX_D_DECL( MultiFab& xedge,
-                                   MultiFab& yedge,
-                                   MultiFab& zedge),
-                     const int  edge_comp,
+		     std::array< MultiFab, AMREX_SPACEDIM >& umac,
                      MultiFab const& fq,
-                     const int fq_comp,
-                     MultiFab const& divu,
                      BCRec const* d_bc,
                      Geometry const& geom,
                      const Real dt);
@@ -62,7 +53,6 @@ void BDS_ComputeEdgeState(Box const& bx, int ncomp,
 #if (AMREX_SPACEDIM == 3)
                           Array4<Real const> const& wmac,
 #endif
-                          Array4<Real const> const& divu,
                           Array4<Real const> const& fq,
                           Geometry geom,
                           Real l_dt,
@@ -90,7 +80,6 @@ void BDS_ComputeConc(Box const& bx,
 #if (AMREX_SPACEDIM == 3)
                      Array4<Real const> const& wmac,
 #endif
-                     Array4<Real const> const& divu,
                      Array4<Real const> const& force,
                      const Real dt, BCRec const* pbc);
 
