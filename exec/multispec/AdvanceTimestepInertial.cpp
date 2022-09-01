@@ -427,7 +427,7 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 	}
 	rho_update.setVal(0.);
 	
-	BDS(rho_update, nspecies, SPEC_BC_COMP, rho_old, umac, bds_force, geom, dt);
+	BDS(rho_update, nspecies, SPEC_BC_COMP, rho_old, umac_tmp, bds_force, geom, dt);
     }
     else {
         Abort("Invalid advection_type");
