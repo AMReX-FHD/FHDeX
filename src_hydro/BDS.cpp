@@ -1,13 +1,13 @@
 #include "hydro_functions.H"
 
-void BDS_ComputeAofs(MultiFab& s_update,
-                     const int ncomp,
-                     const int bccomp,
-                     MultiFab const& state,
-		     std::array< MultiFab, AMREX_SPACEDIM >& umac,
-                     MultiFab const& fq,
-                     Geometry const& geom,
-                     const Real dt)
+void BDS(MultiFab& s_update,
+	 const int ncomp,
+	 const int bccomp,
+	 MultiFab const& state,
+	 std::array< MultiFab, AMREX_SPACEDIM >& umac,
+	 MultiFab const& fq,
+	 Geometry const& geom,
+	 const Real dt)
 {
 
     BL_PROFILE("BDS_ComputeAofs()");
@@ -149,7 +149,7 @@ void BDS_ComputeSlopes(Box const& bx,
                        Array4<Real      > const& slopes)
 {
     constexpr amrex::Real eps = 1.0e-8;
-    constexpr bool limit_slopes = true;
+    bool limit_slopes = (advection_type == 2) ? true : false;
 
     // Define container for the nodal interpolated state
     Box const& ngbx = amrex::grow(amrex::convert(bx,IntVect(AMREX_D_DECL(1,1,1))),1);
@@ -871,7 +871,7 @@ void BDS_ComputeSlopes(Box const& bx,
                        Array4<Real      > const& slopes)
 {
     constexpr amrex::Real eps = 1.0e-8;
-    constexpr bool limit_slopes = true;
+    bool limit_slopes = (advection_type == 2) ? true : false;
 
     // Define container for the nodal interpolated state
     Box const& ngbx = amrex::grow(amrex::convert(bx,IntVect(AMREX_D_DECL(1,1,1))),1);

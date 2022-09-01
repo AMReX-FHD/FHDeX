@@ -128,11 +128,14 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     }
 
     // add A^n to rho_update
-    if (advection_type >= 1) {
-        Abort("AdvanceTimestepInterial: bds not supported");
+    if (advection_type == 0) {
+        MkAdvSFluxdiv(umac,rho_fc,rho_update,geom,0,nspecies,true);
+    }
+    else if (advection_type == 1 || advection_type == 2) {
+
     }
     else {
-        MkAdvSFluxdiv(umac,rho_fc,rho_update,geom,0,nspecies,true);
+      Abort("Invalid advection_type");
     }
    
     // set rho_new = rho_old + dt * (A^n + D^n + St^n)
@@ -386,10 +389,7 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     
     // rho_update already contains D^{*,n+1} + St^{*,n+1} for rho from above
     // add A^{*,n+1} for rho to rho_update
-    if (advection_type >= 1) {
-        Abort("AdvanceTimestepInterial: bds not supported");
-    }
-    else {
+    if (advection_type == 0) {
         MkAdvSFluxdiv(umac,rho_fc,rho_update,geom,0,nspecies,true);
 
         // snew = s^{n+1} 
@@ -397,6 +397,12 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         MultiFab::Add(rho_new,rho_old,0,0,nspecies,0);
         MultiFab::Saxpy(rho_new,dt,rho_update,0,0,nspecies,0);
         rho_new.mult(0.5,0,nspecies,0);        
+    }
+    else if (advection_type == 1 || advection_type == 2) {
+      
+    }
+    else {
+      Abort("Invalid advection_type");
     }
     
     // need to project rho onto eos here and use this rho to compute S
