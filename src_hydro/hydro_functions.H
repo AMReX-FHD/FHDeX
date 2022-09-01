@@ -31,14 +31,14 @@ void addMomFluctuations_stag(std::array< MultiFab, AMREX_SPACEDIM >&,
 /////////////////////////////////////////////////////////////////////////////////
 // in BDS.cpp
 
-void BDS_ComputeAofs(MultiFab& s_update,
-                     const int ncomp,
-		     const int bccomp,
-                     MultiFab const& state,
-		     std::array< MultiFab, AMREX_SPACEDIM >& umac,
-                     MultiFab const& fq,
-                     Geometry const& geom,
-                     const Real dt);
+void BDS(MultiFab& s_update,
+	 const int ncomp,
+	 const int bccomp,
+	 MultiFab const& state,
+	 std::array< MultiFab, AMREX_SPACEDIM >& umac,
+	 MultiFab const& fq,
+	 Geometry const& geom,
+	 const Real dt);
 
 void BDS_ComputeEdgeState(Box const& bx, int ncomp, int bccomp,
                           Array4<Real const> const& q,

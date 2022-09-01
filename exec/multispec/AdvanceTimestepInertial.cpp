@@ -53,6 +53,10 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     Real norm_pre_rhs;
 
     MultiFab rho_update (ba,dmap,nspecies,0);
+    MultiFab bds_force;
+    if (advection_type > 0) {
+      bds_force.define(ba,dmap,nspecies,1);
+    }
     MultiFab gmres_rhs_p(ba,dmap,       1,0);
     MultiFab dpi        (ba,dmap,       1,1);
 
@@ -69,6 +73,7 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     std::array< MultiFab, AMREX_SPACEDIM > rho_fc;
     std::array< MultiFab, AMREX_SPACEDIM > diff_mass_flux;
     std::array< MultiFab, AMREX_SPACEDIM > total_mass_flux;
+    std::array< MultiFab, AMREX_SPACEDIM > umac_tmp;
 
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         mold[d]             .define(convert(ba,nodal_flag_dir[d]), dmap,        1, 1);
@@ -84,6 +89,9 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         rho_fc[d]           .define(convert(ba,nodal_flag_dir[d]), dmap, nspecies, 0);
         diff_mass_flux[d]   .define(convert(ba,nodal_flag_dir[d]), dmap, nspecies, 0);
         total_mass_flux[d]  .define(convert(ba,nodal_flag_dir[d]), dmap, nspecies, 0);
+	if (advection_type > 0) {
+  	  umac_tmp[d].define(convert(ba,nodal_flag_dir[d]), dmap,        1, 1);
+	}
     }
     
     // only used when use_charged_fluid=T
@@ -97,9 +105,12 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         }
     }
     
-
     // make copies of old quantities
-    // copy umac into umac_tmp if using bds
+    if (advection_type > 0) {
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+    	  MultiFab::Copy(umac_tmp[d],umac[d],0,0,1,1);
+	}
+    }
 
     //////////////////////////////////////////////
     /// Step 1 - Calculate Predictor Diffusive and Stochastic Fluxes
@@ -132,7 +143,12 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         MkAdvSFluxdiv(umac,rho_fc,rho_update,geom,0,nspecies,true);
     }
     else if (advection_type == 1 || advection_type == 2) {
+        bds_force.setVal(0.);
+	MultiFab::Copy(bds_force,rho_update,0,0,nspecies,0);
+	bds_force.FillBoundary(geom.periodicity());
 
+	BDS(rho_update, nspecies, SPEC_BC_COMP, rho_old, umac, bds_force, geom, dt);
+      
     }
     else {
       Abort("Invalid advection_type");
@@ -399,10 +415,22 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         rho_new.mult(0.5,0,nspecies,0);        
     }
     else if (advection_type == 1 || advection_type == 2) {
-      
+
+        // bds force currently contains D^n + St^n
+        // add D^{*,n+1} + St^{*,n+1} and then multiply by 1/2
+        MultiFab::Add(bds_force,rho_update,0,0,nspecies,0);
+	bds_force.mult(0.5,0,nspecies,0);
+	bds_force.FillBoundary(geom.periodicity());
+	for (int d=0; d<AMREX_SPACEDIM; ++d) {
+	  MultiFab::Add(umac_tmp[d],umac[d],0,0,1,1);
+	  umac_tmp[d].mult(0.5,0,1,1);
+	}
+	rho_update.setVal(0.);
+	
+	BDS(rho_update, nspecies, SPEC_BC_COMP, rho_old, umac, bds_force, geom, dt);
     }
     else {
-      Abort("Invalid advection_type");
+        Abort("Invalid advection_type");
     }
     
     // need to project rho onto eos here and use this rho to compute S
