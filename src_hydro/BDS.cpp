@@ -30,7 +30,7 @@ void BDS(MultiFab& s_update,
     
     std::array< MultiFab, AMREX_SPACEDIM > sedge;
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
-      sedge[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
+      sedge[d].define(convert(ba,nodal_flag_dir[d]), dmap, ncomp, 1);
     }
 
 #ifdef AMREX_USE_OMP
