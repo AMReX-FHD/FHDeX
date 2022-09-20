@@ -111,11 +111,13 @@ void ComputeHigherOrderTerm(const MultiFab& molarconc,
     DistributionMapping dmap = molarconc.DistributionMap();
     const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
 
-    if (dx[0] != dx[1]) {
+//    if (dx[0] != dx[1]) {
+    if (std::abs(dx[0]-dx[1]) > 1.e-14*dx[0] ){
         Abort("ComputeHigherOrderTerm needs dx=dy=dz");
     }
 #if (AMREX_SPACEDIM == 3)
-    if (dx[0] != dx[2]) {
+//    if (dx[0] != dx[2]) {
+    if (std::abs(dx[0]-dx[2]) > 1.e-14*dx[0] ){
         Abort("ComputeHigherOrderTerm needs dx=dy=dz");
     }
 #endif
