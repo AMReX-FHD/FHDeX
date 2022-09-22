@@ -24,7 +24,7 @@ void init_phi (int i, int j, int k,
     if( x > 0.){
     phi(i,j,k) = 1. ;
     } else {
-    phi(i,j,k) = 0 ;
+    phi(i,j,k) = 0.5;
     }
 }
 
