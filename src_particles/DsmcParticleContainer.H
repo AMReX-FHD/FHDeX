@@ -54,6 +54,7 @@ struct FHD_intData {
 		k,
 		species,
 		newSpecies,
+		fluxRec,
 		count
 	};
 
@@ -64,14 +65,15 @@ struct FHD_intData {
 			"j",
 			"k",
 			"species",
-			"newSpecies"
+			"newSpecies",
+			"fluxRec"
 		};
 	};
 };
 
 typedef struct {
 	int type;
-	int total;
+	long total;
 	double mass;
 	double radius;
 	double n0;

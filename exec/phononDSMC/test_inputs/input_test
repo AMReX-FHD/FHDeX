@@ -3,7 +3,7 @@
   prob_hi = 0.08 0.08 0.01	# physical hi coordinate (cm)
 
   n_cells = 80 80 10 # keep as powers of two
-  max_grid_size = 40 40 10
+  max_grid_size = 80 80 10
   max_particle_tile_size = 256 256 256
 
   # Time-step control

@@ -341,8 +341,8 @@ void main_driver(const char* argv)
 		//particles.updateTimeStep(geom,dt);
                 //reduceMassFlux(paramPlaneList, paramPlaneCount);
         
-		particles.EvaluateStats(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
-					cvlInst,cvlMeans,QMeans,coVars,spatialCross1D,statsCount++,time);
+//		particles.EvaluateStats(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
+//					cvlInst,cvlMeans,QMeans,coVars,spatialCross1D,statsCount++,time);
 
 		//////////////////////////////////////
 		// PlotFile
@@ -409,7 +409,7 @@ void main_driver(const char* argv)
 		}
 		tend = ParallelDescriptor::second() - tbegin;
 		ParallelDescriptor::ReduceRealMax(tend);
-		if(istep%100==0)
+		if(istep%1==0)
 		{
 		    amrex::Print() << "Advanced step " << istep << " of " << max_step << " in " << tend << " seconds. " << particles.simParticles << " particles.\n";
 		}
