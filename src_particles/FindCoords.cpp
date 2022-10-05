@@ -5,7 +5,7 @@ void FindFaceCoords(std::array<MultiFab, AMREX_SPACEDIM> & RealFaceCoords,
 {
     BL_PROFILE_VAR("FindFaceCoords()", FindFaceCoords);
 
-    const Real* dx = geom.CellSize();
+    const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
 
     for (MFIter mfi(RealFaceCoords[0]); mfi.isValid(); ++mfi) {
 
@@ -56,7 +56,7 @@ void FindCenterCoords(MultiFab & RealCenterCoords, const Geometry & geom)
 {
     BL_PROFILE_VAR("FindCenterCoords()", FindCenterCoords);
 
-    const Real * dx  = geom.CellSize();
+    const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
 
     for (MFIter mfi(RealCenterCoords); mfi.isValid(); ++mfi) {
 
