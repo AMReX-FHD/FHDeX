@@ -737,7 +737,9 @@ void app_bc_phonon_gpu(const paramPlane* surf, FhdParticleContainer::ParticleTyp
 /*           std::ofstream ofs(plotfilename, std::ios::app);*/
 /*           ofs << part.pos(0) << " " << part.pos(1) << " " << part.pos(2) << " " << part.rdata(FHD_realData::velx) << " " << part.rdata(FHD_realData::vely) << " " << part.rdata(FHD_realData::velz) << " " << part.rdata(FHD_realData::omega) << std::endl;*/
 /*           ofs.close();*/
+           // cout << "BC: " << surf->boundary << endl;
             part.idata(FHD_intData::fluxRec) = -surf->boundary;
+         //   cout << "BC2: " << part.idata(FHD_intData::fluxRec) << endl;
       }
       
       if(amrex::Random(engine) < surf->sinkLeft)
