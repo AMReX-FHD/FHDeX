@@ -1967,7 +1967,7 @@ void BuildParamplanesPhonon(paramPlane* paramPlaneList, const int paramplanes, c
             paramPlaneList[i].zPosRecRight = new double[WRITE_BUFFER];                        
             paramPlaneList[i].freqRecRight = new double[WRITE_BUFFER];
         }
-        if(paramPlaneList[i].momentumConsRight > 0)
+        if(paramPlaneList[i].momentumConsLeft > 0)
         {
             paramPlaneList[i].xVelRecLeft = new double[WRITE_BUFFER];
             paramPlaneList[i].yVelRecLeft = new double[WRITE_BUFFER];

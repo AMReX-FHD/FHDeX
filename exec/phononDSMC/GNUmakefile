@@ -40,7 +40,7 @@ include $(FHDeX)/src_particles/MakeDSMC.package
 VPATH_LOCATIONS   += $(FHDeX)/src_particles/
 INCLUDE_LOCATIONS += $(FHDeX)/src_particles/
 
-include $(FHDeX)/src_geometry/Make.package
+include $(FHDeX)/src_geometry/MakeDSMC.package
 VPATH_LOCATIONS   += $(FHDeX)/src_geometry
 INCLUDE_LOCATIONS += $(FHDeX)/src_geometry
 

@@ -185,7 +185,7 @@ void main_driver(const char* argv)
 
 		particles.MovePhononsCPP(dt, paramPlaneList, paramPlaneCount, writeStep, istep);
 
-		//particles.EvaluateStatsPhonon(cuInst,cuMeans,cuVars,statsCount++,time);
+		particles.EvaluateStatsPhonon(cuInst,cuMeans,cuVars,statsCount++,time);
 
 		//////////////////////////////////////
 		// PlotFile
