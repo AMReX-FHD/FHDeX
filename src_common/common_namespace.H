@@ -89,6 +89,9 @@ namespace common {
 
     // Algorithm control / selection
     extern AMREX_GPU_MANAGED int      algorithm_type;
+    // 0 = centered
+    // 1 = unlimited bilinear bds
+    // 2 = limited bilinear bds
     extern AMREX_GPU_MANAGED int      advection_type;
     extern int                        barodiffusion_type;
 

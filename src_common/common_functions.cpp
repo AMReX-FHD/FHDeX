@@ -422,6 +422,9 @@ void InitializeCommonNamespace() {
 
     // Algorithm control / selection
     algorithm_type = 0;
+    // 0 = centered
+    // 1 = unlimited bilinear bds
+    // 2 = limited bilinear bds
     advection_type = 0;
     barodiffusion_type = 0;
 
