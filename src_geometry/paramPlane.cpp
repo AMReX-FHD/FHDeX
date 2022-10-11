@@ -1953,7 +1953,31 @@ void BuildParamplanesPhonon(paramPlane* paramPlaneList, const int paramplanes, c
         paramPlaneList[i].fxRightAv = 0;
         paramPlaneList[i].fyRightAv = 0;
         paramPlaneList[i].fzRightAv = 0;
-       
+        
+        paramPlaneList[i].recCountRight = 0;
+        paramPlaneList[i].recCountLeft = 0;
+        
+        if(paramPlaneList[i].momentumConsRight > 0)
+        {
+            paramPlaneList[i].xVelRecRight = new double[WRITE_BUFFER];
+            paramPlaneList[i].yVelRecRight = new double[WRITE_BUFFER];
+            paramPlaneList[i].zVelRecRight = new double[WRITE_BUFFER];                        
+            paramPlaneList[i].xPosRecRight = new double[WRITE_BUFFER];
+            paramPlaneList[i].yPosRecRight = new double[WRITE_BUFFER];
+            paramPlaneList[i].zPosRecRight = new double[WRITE_BUFFER];                        
+            paramPlaneList[i].freqRecRight = new double[WRITE_BUFFER];
+        }
+        if(paramPlaneList[i].momentumConsRight > 0)
+        {
+            paramPlaneList[i].xVelRecLeft = new double[WRITE_BUFFER];
+            paramPlaneList[i].yVelRecLeft = new double[WRITE_BUFFER];
+            paramPlaneList[i].zVelRecLeft = new double[WRITE_BUFFER];                        
+            paramPlaneList[i].xPosRecLeft = new double[WRITE_BUFFER];
+            paramPlaneList[i].yPosRecLeft = new double[WRITE_BUFFER];
+            paramPlaneList[i].zPosRecLeft = new double[WRITE_BUFFER];
+            paramPlaneList[i].freqRecLeft = new double[WRITE_BUFFER];                                   
+        }
+
 
     }
     planeFile.close();

@@ -2,6 +2,7 @@
 
 // #include "particle_functions_K.H"
 #include "paramplane_functions_K.H"
+#include "paramplane_phonon_functions_K.H"
 #include <math.h>
 using namespace std;
 FhdParticleContainer::FhdParticleContainer(const Geometry & geom, const DistributionMapping & dmap,
@@ -499,23 +500,66 @@ void FhdParticleContainer::MovePhononsCPP(const Real dt, const paramPlane* param
 
 		});
 				
-//		for (int i = 0; i < np; i++)
-//		{
-//		    ParticleType & part = particles[i];
-//		    if(part.idata(FHD_intData::fluxRec) > 0)
-//		    {
-//    		    //cout << "fluxRec: " << part.idata(FHD_intData::fluxRec) << endl;
+		for (int i = 0; i < np; i++)
+		{
+		    ParticleType & part = particles[i];
+		    if(part.idata(FHD_intData::fluxRec) > 0)
+		    {
+//    		    cout << "fluxRec: " << part.idata(FHD_intData::fluxRec) << endl;
 //		        std::string plotfilename = std::to_string(part.idata(FHD_intData::fluxRec)) + "_" + std::to_string(ParallelDescriptor::MyProc()) + amrex::Concatenate("_particles_right_",step,12);
 //                std::ofstream ofs(plotfilename, std::ios::app);
 //                ofs << part.pos(0) << " " << part.pos(1) << " " << part.pos(2) << " " << part.rdata(FHD_realData::velx) << " " << part.rdata(FHD_realData::vely) << " " << part.rdata(FHD_realData::velz) << " " << part.rdata(FHD_realData::omega) << std::endl;
 //                ofs.close();
-//            }else if(part.idata(FHD_intData::fluxRec) < 0)
-//		    {
-//		        //cout << "fluxRec: " << part.idata(FHD_intData::fluxRec) << endl;
+                int surfnum = part.idata(FHD_intData::fluxRec)-1;
+                int surfcount = paramPlaneListPtr[surfnum].recCountRight;
+                
+                paramPlaneListPtr[surfnum].xVelRecRight[surfcount] = part.rdata(FHD_realData::velx);
+                paramPlaneListPtr[surfnum].yVelRecRight[surfcount] = part.rdata(FHD_realData::vely);
+                paramPlaneListPtr[surfnum].zVelRecRight[surfcount] = part.rdata(FHD_realData::velz);
+                
+                paramPlaneListPtr[surfnum].xPosRecRight[surfcount] = part.pos(0);
+                paramPlaneListPtr[surfnum].yPosRecRight[surfcount] = part.pos(1);
+                paramPlaneListPtr[surfnum].zPosRecRight[surfcount] = part.pos(2);
+                
+                paramPlaneListPtr[surfnum].freqRecRight[surfcount] = part.rdata(FHD_realData::omega);
+                   
+                paramPlaneListPtr[surfnum].recCountRight++;
+                
+                if(paramPlaneListPtr[surfnum].recCountRight == WRITE_BUFFER)
+                {
+                    for(int j=0; j <WRITE_BUFFER;j++)
+                    {
+                                        
+		                std::string plotfilename = std::to_string(surfnum+1) + "_" + std::to_string(ParallelDescriptor::MyProc()) + amrex::Concatenate("_particles_right_",step,12);
+                        std::ofstream ofs(plotfilename, std::ios::app);
+                        ofs << paramPlaneListPtr[surfnum].xPosRecRight[j] << " " << paramPlaneListPtr[surfnum].yPosRecRight[j] << " " << paramPlaneListPtr[surfnum].zPosRecRight[j] 
+                            << " " << paramPlaneListPtr[surfnum].xVelRecRight[j] << " " << paramPlaneListPtr[surfnum].yVelRecRight[j] << " " << paramPlaneListPtr[surfnum].zVelRecRight[j]
+                            << " " << paramPlaneListPtr[surfnum].freqRecRight[j] << std::endl;
+                        ofs.close();
+                     }
+                     paramPlaneListPtr[surfnum].recCountRight = 0;  
+                
+                }
+                
+            }else if(part.idata(FHD_intData::fluxRec) < 0)
+		    {
+		        //cout << "fluxRec: " << part.idata(FHD_intData::fluxRec) << endl;
 //		        std::string plotfilename = std::to_string(-part.idata(FHD_intData::fluxRec)) + "_" + std::to_string(ParallelDescriptor::MyProc()) + amrex::Concatenate("_particles_left_",step,12);
 //                std::ofstream ofs(plotfilename, std::ios::app);
 //                ofs << part.pos(0) << " " << part.pos(1) << " " << part.pos(2) << " " << part.rdata(FHD_realData::velx) << " " << part.rdata(FHD_realData::vely) << " " << part.rdata(FHD_realData::velz) << " " << part.rdata(FHD_realData::omega) << std::endl;
 //                ofs.close();
+//                paramPlaneListPtr[part.idata(FHD_intData::fluxRec)-1].xVelRecLeft[recCountLeft] = part.rdata(FHD_realData::velx);
+//                paramPlaneListPtr[part.idata(FHD_intData::fluxRec)-1].yVelRecLeft[recCountLeft] = part.rdata(FHD_realData::vely);
+//                paramPlaneListPtr[part.idata(FHD_intData::fluxRec)-1].zVelRecLeft[recCountLeft] = part.rdata(FHD_realData::velz);                
+//                recCountLeft++;
+            }
+		}
+//		for (int i = 0; i < paramPlaneCount; i++)
+//		{
+//		    if(paramPlaneList[i].recCountRight > WRITE_BUFFER-2np)
+//		    {
+//		        for(int j = 0; j < paramPlaneList[i].recCountRight){}
+
 //            }
 //		}
 	}
