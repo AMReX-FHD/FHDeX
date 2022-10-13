@@ -4,7 +4,7 @@ namespace common {
 #define MAX_SPECIES 8
 #define ADJ 0.99999
 #define ADJALT 0.00002
-#define WRITE_BUFFER 20000
+#define WRITE_BUFFER 1000
 #define MAX_ELEMENT 28 // needs to be MAX_SPECIES*(MAX_SPECIES-1)/2
 //////////////
     

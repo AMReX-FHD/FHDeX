@@ -322,7 +322,7 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, paramPlane* paramPlan
 	SortParticlesDB();
 }
 
-void FhdParticleContainer::MovePhononsCPP(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount, const int step, const int istep)
+void FhdParticleContainer::MovePhononsCPP(const Real dt, paramPlane* paramPlaneList, const int paramPlaneCount, const int step, const int istep)
 {
 	BL_PROFILE_VAR("MoveParticlesCPP()", MoveParticlesCPP);
 
@@ -356,6 +356,7 @@ void FhdParticleContainer::MovePhononsCPP(const Real dt, const paramPlane* param
 
 	}
 	paramPlane* paramPlaneListPtr = paramPlaneListTmp.data();
+	//paramPlane* paramPlaneListPtr = &paramPlaneList[0];
 	
 	int totalParts = 0;
 
@@ -499,7 +500,7 @@ void FhdParticleContainer::MovePhononsCPP(const Real dt, const paramPlane* param
 
 
 		});
-				
+		//Print() << "Pre buffer size: " << paramPlaneList[1].recCountRight << endl;		
 		for (int i = 0; i < np; i++)
 		{
 		    ParticleType & part = particles[i];
@@ -507,33 +508,36 @@ void FhdParticleContainer::MovePhononsCPP(const Real dt, const paramPlane* param
 		    {
 
                 int surfnum = part.idata(FHD_intData::fluxRec)-1;
-                int surfcount = paramPlaneListPtr[surfnum].recCountRight;
+                int surfcount = paramPlaneList[surfnum].recCountRight;
                 
-                paramPlaneListPtr[surfnum].xVelRecRight[surfcount] = part.rdata(FHD_realData::velx);
-                paramPlaneListPtr[surfnum].yVelRecRight[surfcount] = part.rdata(FHD_realData::vely);
-                paramPlaneListPtr[surfnum].zVelRecRight[surfcount] = part.rdata(FHD_realData::velz);
+                paramPlaneList[surfnum].xVelRecRight[surfcount] = part.rdata(FHD_realData::velx);
+                paramPlaneList[surfnum].yVelRecRight[surfcount] = part.rdata(FHD_realData::vely);
+                paramPlaneList[surfnum].zVelRecRight[surfcount] = part.rdata(FHD_realData::velz);
                 
-                paramPlaneListPtr[surfnum].xPosRecRight[surfcount] = part.pos(0);
-                paramPlaneListPtr[surfnum].yPosRecRight[surfcount] = part.pos(1);
-                paramPlaneListPtr[surfnum].zPosRecRight[surfcount] = part.pos(2);
+                paramPlaneList[surfnum].xPosRecRight[surfcount] = part.pos(0);
+                paramPlaneList[surfnum].yPosRecRight[surfcount] = part.pos(1);
+                paramPlaneList[surfnum].zPosRecRight[surfcount] = part.pos(2);
                 
-                paramPlaneListPtr[surfnum].freqRecRight[surfcount] = part.rdata(FHD_realData::omega);
+                //Print() << "Buffering " << paramPlaneList[surfnum].yPosRecRight[surfcount] << " to surf " << surfnum << endl;
+                
+                paramPlaneList[surfnum].freqRecRight[surfcount] = part.rdata(FHD_realData::omega);
                    
-                paramPlaneListPtr[surfnum].recCountRight++;
+                paramPlaneList[surfnum].recCountRight++;
                 
-                if(paramPlaneListPtr[surfnum].recCountRight == WRITE_BUFFER)
+                if(paramPlaneList[surfnum].recCountRight == WRITE_BUFFER)
                 {
+	                //Print() << "Writing on step " << istep << "\n";
+	                std::string plotfilename = std::to_string(surfnum+1) + "_" + std::to_string(ParallelDescriptor::MyProc()) + amrex::Concatenate("_particles_right_",step,12);
+                    std::ofstream ofs(plotfilename, std::ios::app);
+
                     for(int j=0; j <WRITE_BUFFER;j++)
-                    {
-                                        
-		                std::string plotfilename = std::to_string(surfnum+1) + "_" + std::to_string(ParallelDescriptor::MyProc()) + amrex::Concatenate("_particles_right_",step,12);
-                        std::ofstream ofs(plotfilename, std::ios::app);
-                        ofs << paramPlaneListPtr[surfnum].xPosRecRight[j] << " " << paramPlaneListPtr[surfnum].yPosRecRight[j] << " " << paramPlaneListPtr[surfnum].zPosRecRight[j] 
-                            << " " << paramPlaneListPtr[surfnum].xVelRecRight[j] << " " << paramPlaneListPtr[surfnum].yVelRecRight[j] << " " << paramPlaneListPtr[surfnum].zVelRecRight[j]
-                            << " " << paramPlaneListPtr[surfnum].freqRecRight[j] << std::endl;
-                        ofs.close();
+                    {                                        
+                        ofs << paramPlaneList[surfnum].xPosRecRight[j] << " " << paramPlaneList[surfnum].yPosRecRight[j] << " " << paramPlaneList[surfnum].zPosRecRight[j] 
+                            << " " << paramPlaneList[surfnum].xVelRecRight[j] << " " << paramPlaneList[surfnum].yVelRecRight[j] << " " << paramPlaneList[surfnum].zVelRecRight[j]
+                            << " " << paramPlaneList[surfnum].freqRecRight[j] << std::endl;
                      }
-                     paramPlaneListPtr[surfnum].recCountRight = 0;  
+                     ofs.close();
+                     paramPlaneList[surfnum].recCountRight = 0;  
                 
                 }
                 
@@ -541,37 +545,40 @@ void FhdParticleContainer::MovePhononsCPP(const Real dt, const paramPlane* param
 		    {
 
                 int surfnum = -part.idata(FHD_intData::fluxRec)-1;
-                int surfcount = paramPlaneListPtr[surfnum].recCountLeft;
+                int surfcount = paramPlaneList[surfnum].recCountLeft;
                 
-                paramPlaneListPtr[surfnum].xVelRecLeft[surfcount] = part.rdata(FHD_realData::velx);
-                paramPlaneListPtr[surfnum].yVelRecLeft[surfcount] = part.rdata(FHD_realData::vely);
-                paramPlaneListPtr[surfnum].zVelRecLeft[surfcount] = part.rdata(FHD_realData::velz);
+                paramPlaneList[surfnum].xVelRecLeft[surfcount] = part.rdata(FHD_realData::velx);
+                paramPlaneList[surfnum].yVelRecLeft[surfcount] = part.rdata(FHD_realData::vely);
+                paramPlaneList[surfnum].zVelRecLeft[surfcount] = part.rdata(FHD_realData::velz);
                 
-                paramPlaneListPtr[surfnum].xPosRecLeft[surfcount] = part.pos(0);
-                paramPlaneListPtr[surfnum].yPosRecLeft[surfcount] = part.pos(1);
-                paramPlaneListPtr[surfnum].zPosRecLeft[surfcount] = part.pos(2);
+                paramPlaneList[surfnum].xPosRecLeft[surfcount] = part.pos(0);
+                paramPlaneList[surfnum].yPosRecLeft[surfcount] = part.pos(1);
+                paramPlaneList[surfnum].zPosRecLeft[surfcount] = part.pos(2);
                 
-                paramPlaneListPtr[surfnum].freqRecLeft[surfcount] = part.rdata(FHD_realData::omega);
+                paramPlaneList[surfnum].freqRecLeft[surfcount] = part.rdata(FHD_realData::omega);
                    
-                paramPlaneListPtr[surfnum].recCountLeft++;
+                paramPlaneList[surfnum].recCountLeft++;
                 
-                if(paramPlaneListPtr[surfnum].recCountLeft == WRITE_BUFFER)
+                if(paramPlaneList[surfnum].recCountLeft == WRITE_BUFFER)
                 {
+                    std::string plotfilename = std::to_string(surfnum+1) + "_" + std::to_string(ParallelDescriptor::MyProc()) + amrex::Concatenate("_particles_left_",step,12);
+                    std::ofstream ofs(plotfilename, std::ios::app);
                     for(int j=0; j <WRITE_BUFFER;j++)
                     {
-                                        
-		                std::string plotfilename = std::to_string(surfnum+1) + "_" + std::to_string(ParallelDescriptor::MyProc()) + amrex::Concatenate("_particles_left_",step,12);
-                        std::ofstream ofs(plotfilename, std::ios::app);
-                        ofs << paramPlaneListPtr[surfnum].xPosRecLeft[j] << " " << paramPlaneListPtr[surfnum].yPosRecLeft[j] << " " << paramPlaneListPtr[surfnum].zPosRecLeft[j] 
-                            << " " << paramPlaneListPtr[surfnum].xVelRecLeft[j] << " " << paramPlaneListPtr[surfnum].yVelRecLeft[j] << " " << paramPlaneListPtr[surfnum].zVelRecLeft[j]
-                            << " " << paramPlaneListPtr[surfnum].freqRecLeft[j] << std::endl;
-                        ofs.close();
+                                       
+                        ofs << paramPlaneList[surfnum].xPosRecLeft[j] << " " << paramPlaneList[surfnum].yPosRecLeft[j] << " " << paramPlaneList[surfnum].zPosRecLeft[j] 
+                            << " " << paramPlaneList[surfnum].xVelRecLeft[j] << " " << paramPlaneList[surfnum].yVelRecLeft[j] << " " << paramPlaneList[surfnum].zVelRecLeft[j]
+                            << " " << paramPlaneList[surfnum].freqRecLeft[j] << std::endl;
+
                      }
-                     paramPlaneListPtr[surfnum].recCountLeft = 0;  
+                     ofs.close();
+                     paramPlaneList[surfnum].recCountLeft = 0;  
                 
                 }
-            }
+            }            
 		}
+	    //Print() << "Post buffer size: " << paramPlaneList[1].recCountRight << endl;
+		
 
 	}
 	
@@ -1569,7 +1576,7 @@ void FhdParticleContainer::SourcePhonons(const Real dt, const paramPlane* paramP
 						{
 							totalFluxInt++;
 						}
-						
+						//Print() << "Flux: " << totalFluxInt << endl;
 						//auto old_size = particle_tile.GetArrayOfStructs().size();
                         //auto new_size = old_size + totalFluxInt;
                         //particle_tile.resize(new_size);
