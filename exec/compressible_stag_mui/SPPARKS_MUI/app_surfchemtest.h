@@ -71,6 +71,9 @@ class AppSurfchemtest : public AppLattice {
   int *scount,*dcount,*tcount,*adscount,*descount,*dadscount,*adescount;
   int *dadsadsorbate,*adesdesorbate;
 
+  bool *neighboring_diff,*neighboring_des,*neighboring_ades;
+  double V_neighbor[4][4][6][6];
+
   struct Event {           // one event for an owned site
     int style;             // reaction style = SINGLE,DOUBLE,TRIPLE
     int which;             // which reaction of this type
