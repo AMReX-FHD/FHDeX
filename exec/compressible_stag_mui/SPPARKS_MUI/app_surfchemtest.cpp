@@ -92,6 +92,17 @@ AppSurfchemtest::AppSurfchemtest(SPPARKS *spk, int narg, char **arg) :
   scount = dcount = tcount = adscount = descount = dadscount = adescount = NULL;
   dadsadsorbate = adesdesorbate = NULL;
 
+  neighboring_diff = neighboring_des = neighboring_ades = NULL;
+  for (int i = 0; i < 4; i++) {
+    for (int j = 0; j < 4; j++) {
+      for (int k = 0; k < 6; k++) {
+	for (int l = 0; l < 6; l++) {
+		V_neighbor[i][j][k][l] = 0.0;
+	}
+      }
+    }
+  }
+
 #ifdef MUI
   mui_fhd_lattice_size_x = mui_fhd_lattice_size_y = -1.;
   mui_kmc_lattice_offset_x = mui_kmc_lattice_offset_y = 0.;
@@ -156,6 +167,10 @@ AppSurfchemtest::~AppSurfchemtest()
   memory->destroy(adescount);
   memory->destroy(dadsadsorbate);
   memory->destroy(adesdesorbate);
+
+  memory->destroy(neighboring_diff);
+  memory->destroy(neighboring_des);
+  memory->destroy(neighboring_ades);
  
 #ifdef MUI 
   delete [] xFHD;
@@ -171,14 +186,42 @@ AppSurfchemtest::~AppSurfchemtest()
 
 void AppSurfchemtest::input_app(char *command, int narg, char **arg)
 {
-  if (strcmp(command,"event") == 0) {
+  if (strcmp(command,"neighbor") == 0) {
+    if (narg != 5) error->all(FLERR,"Illegal event command");
+    int i,j,k,l;
+    if (strcmp(arg[0],"siteA") == 0) i = SITEA;
+    else if (strcmp(arg[0],"siteB") == 0) i = SITEB;
+    else if (strcmp(arg[0],"siteC") == 0) i = SITEC;
+    else error->all(FLERR,"Illegal event command"); 
+    if (strcmp(arg[1],"siteA") == 0) j = SITEA;
+    else if (strcmp(arg[1],"siteB") == 0) j = SITEB;
+    else if (strcmp(arg[1],"siteC") == 0) j = SITEC;
+    else error->all(FLERR,"Illegal event command");
+    if (strcmp(arg[2],"spec1") == 0) k = SPEC1;
+    else if (strcmp(arg[2],"spec2") == 0) k = SPEC2;
+    else if (strcmp(arg[2],"sepc3") == 0) k = SPEC3;
+    else if (strcmp(arg[2],"sepc4") == 0) k = SPEC4;
+    else if (strcmp(arg[2],"sepc5") == 0) k = SPEC5;
+    else if (strcmp(arg[2],"vac") == 0) k = VACANCY;
+    else error->all(FLERR,"Illegal event command");
+    if (strcmp(arg[3],"spec1") == 0) l = SPEC1;
+    else if (strcmp(arg[3],"spec2") == 0) l = SPEC2;
+    else if (strcmp(arg[3],"sepc3") == 0) l = SPEC3;
+    else if (strcmp(arg[3],"sepc4") == 0) l = SPEC4;
+    else if (strcmp(arg[3],"sepc5") == 0) l = SPEC5;
+    else if (strcmp(arg[3],"vac") == 0) l = VACANCY;
+    else error->all(FLERR,"Illegal event command");
+    V_neighbor[i][j][k][l] = atof(arg[4]);
+    V_neighbor[j][i][l][k] = atof(arg[4]);
+  } 
+
+  else if (strcmp(command,"event") == 0) {
     if (narg < 1) error->all(FLERR,"Illegal event command");
     int rstyle = atoi(arg[0]);
     grow_reactions(rstyle);
 
     if (rstyle == 1) {
       if (narg != 5) error->all(FLERR,"Illegal event command");
-
       if (strcmp(arg[1],"siteA") == 0) stype[none] = SITEA;
       else if (strcmp(arg[1],"siteB") == 0) stype[none] = SITEB;
       else if (strcmp(arg[1],"siteC") == 0) stype[none] = SITEC;
@@ -204,8 +247,14 @@ void AppSurfchemtest::input_app(char *command, int narg, char **arg)
       none++;
       
     } else if (rstyle == 2) {
-      if (narg != 8) error->all(FLERR,"Illegal event command");
-
+      if (narg < 8 || narg > 9) error->all(FLERR,"Illegal event command");
+      if (narg == 9) {
+	if (strcmp(arg[8],"neighbor") == 0) neighboring_diff[ntwo] = true;
+	else error->all(FLERR,"Illegal event command");
+      }
+      else {
+	neighboring_diff[ntwo] = false;
+      }
       if (strcmp(arg[1],"siteA") == 0) dtype[ntwo][0] = SITEA;
       else if (strcmp(arg[1],"siteB") == 0) dtype[ntwo][0] = SITEB;
       else if (strcmp(arg[1],"siteC") == 0) dtype[ntwo][0] = SITEC;
@@ -355,7 +404,14 @@ void AppSurfchemtest::input_app(char *command, int narg, char **arg)
       nads++;
       
     } else if (rstyle == 5) {   // desorption
-      if (narg != 5) error->all(FLERR,"Illegal event command");
+      if (narg < 5 || narg > 6) error->all(FLERR,"Illegal event command");
+      if (narg == 6) {
+	if (strcmp(arg[5],"neighbor") == 0) neighboring_des[ndes] = true;
+	else error->all(FLERR,"Illegal event command");
+      }
+      else {
+	neighboring_des[ndes] = false;
+      }
       if (strcmp(arg[1],"siteA") == 0) destype[ndes] = SITEA;
       else if (strcmp(arg[1],"siteB") == 0) destype[ndes] = SITEB;
       else if (strcmp(arg[1],"siteC") == 0) destype[ndes] = SITEC;
@@ -457,8 +513,14 @@ void AppSurfchemtest::input_app(char *command, int narg, char **arg)
       ndissocads++;
 
     } else if (rstyle == 7) { // associative desorption
-      if (narg != 9) error->all(FLERR,"Illegal event command");
-
+      if (narg < 9 || narg > 10) error->all(FLERR,"Illegal event command");
+      if (narg == 10) {
+	if (strcmp(arg[9],"neighbor") == 0) neighboring_ades[nassocdes] = true;
+	else error->all(FLERR,"Illegal event command");
+      }
+      else {
+	neighboring_ades[nassocdes] = false;
+      }
       if (strcmp(arg[1],"siteA") == 0) adestype[nassocdes][0] = SITEA;
       else if (strcmp(arg[1],"siteB") == 0) adestype[nassocdes][0] = SITEB;
       else if (strcmp(arg[1],"siteC") == 0) adestype[nassocdes][0] = SITEC;
@@ -769,7 +831,7 @@ double AppSurfchemtest::site_energy(int i)
 
 double AppSurfchemtest::site_propensity(int i)
 {
-  int j,k,m;
+  int j,k,l,m;
 
   // valid single, double, triple events are in tabulated lists
   // propensity for each event is input by user
@@ -777,6 +839,8 @@ double AppSurfchemtest::site_propensity(int i)
   clear_events(i);
 
   double proball = 0.0;
+  double V_int;
+  double kB = 0.00008618; // eV/K
 
   // single-site events
 
@@ -793,8 +857,30 @@ double AppSurfchemtest::site_propensity(int i)
     for (m = 0; m < ntwo; m++) {
       if (type[i] != dtype[m][0] || element[i] != dinput[m][0]) continue;
       if (type[j] != dtype[m][1] || element[j] != dinput[m][1]) continue;
-      add_event(i,2,m,dpropensity[m],j,-1);
-      proball += dpropensity[m];
+
+      if (neighboring_diff[m]) { // diffusion
+	V_int = 0.0;
+	for (int x = 0; x < numneigh[i]; x++) {
+	  k = neighbor[i][x];
+	  V_int += -2*V_neighbor[type[i]][type[k]][element[i]][element[k]];
+	}
+	for (int y = 0; y < numneigh[j]; y++) {
+	  l = neighbor[j][y];
+	  V_int += 2*V_neighbor[type[j]][type[l]][element[i]][element[l]];
+	}
+	if (V_int > 0) {
+	  add_event(i,2,m,dpropensity[m]*exp(-V_int/(kB*temperature)),j,-1);
+	  proball += dpropensity[m]*exp(-V_int/(kB*temperature));
+	}
+	else {
+	  add_event(i,2,m,dpropensity[m],j,-1);
+	  proball += dpropensity[m];
+	}
+      }
+      else {
+        add_event(i,2,m,dpropensity[m],j,-1);
+        proball += dpropensity[m];
+      }
     }
   }
 
@@ -846,6 +932,14 @@ double AppSurfchemtest::site_propensity(int i)
 
     despropensity = desrate[m];
 
+    if (neighboring_des[m]) {
+      V_int = 0.0;
+      for (int k = 0; k < numneigh[i]; k++) {
+	j = neighbor[i][k];
+	V_int += 2*V_neighbor[type[i]][type[j]][element[i]][element[j]];
+      }
+      despropensity = desrate[m]*exp(V_int/(kB*temperature));
+    }
     add_event(i,5,m,despropensity,-1,-1);
     proball += despropensity;
   }
@@ -879,8 +973,24 @@ double AppSurfchemtest::site_propensity(int i)
     for (m = 0; m < nassocdes; m++) {
       if (type[i] != adestype[m][0] || element[i] != adesinput[m][0]) continue;
       if (type[j] != adestype[m][1] || element[j] != adesinput[m][1]) continue;
-      add_event(i,7,m,adespropensity[m],j,-1);
-      proball += adespropensity[m];
+      if (neighboring_ades[m]) {
+	V_int = 0.0;
+	for (int x = 0; x < numneigh[i]; x++) {
+	  k = neighbor[i][x];
+	  V_int += 2*V_neighbor[type[i]][type[k]][element[i]][element[k]];
+	}
+	for (int y = 0; y < numneigh[j]; y++) {
+	  l = neighbor[j][y];
+	  V_int += 2*V_neighbor[type[j]][type[l]][element[j]][element[l]];
+	}
+	V_int -= 4*V_neighbor[type[i]][type[j]][element[i]][element[j]];
+	add_event(i,7,m,adespropensity[m]*exp(V_int/(kB*temperature)),j,-1);
+	proball += adespropensity[m]*exp(V_int/(kB*temperature));
+      }
+      else {
+	add_event(i,7,m,adespropensity[m],j,-1);
+  	proball += adespropensity[m];
+      }
     }
   }
 
@@ -1092,6 +1202,7 @@ void AppSurfchemtest::grow_reactions(int rstyle)
     dinput = memory->grow(dinput,n,2,"app/surfchemtest:dinput");
     doutput = memory->grow(doutput,n,2,"app/surfchemtest:doutput");
     memory->grow(dcount,n,"app/surfchemtest:dcount");
+    memory->grow(neighboring_diff,n,"app/surfchemtest:neighboring_diff");
 
   } else if (rstyle == 3) {
     int n = nthree + 1;
@@ -1116,6 +1227,7 @@ void AppSurfchemtest::grow_reactions(int rstyle)
     memory->grow(desinput,n,"app/surfchemtest:desinput");
     memory->grow(desoutput,n,"app/surfchemtest:desoutput");
     memory->grow(descount,n,"app/surfchemtest:descount");
+    memory->grow(neighboring_des,n,"app/surfchemtest:neighboring_des");
   } else if (rstyle == 6) {
     int n = ndissocads + 1;
     memory->grow(dadsrate,n,"app/surfchemtest:dadsrate");
@@ -1133,6 +1245,7 @@ void AppSurfchemtest::grow_reactions(int rstyle)
     adesoutput = memory->grow(adesoutput,n,2,"app/surfchemtest:adesoutput");
     memory->grow(adescount,n,"app/surfchemtest:adescount");
     memory->grow(adesdesorbate,n,"app/surfchemtest:adesdesorbate");
+    memory->grow(neighboring_ades,n,"app/surfchemtest:neighboring_ades");
   }
 }
 

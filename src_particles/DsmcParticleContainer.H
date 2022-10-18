@@ -54,6 +54,7 @@ struct FHD_intData {
 		k,
 		species,
 		newSpecies,
+		fluxRec,
 		count
 	};
 
@@ -64,14 +65,15 @@ struct FHD_intData {
 			"j",
 			"k",
 			"species",
-			"newSpecies"
+			"newSpecies",
+			"fluxRec"
 		};
 	};
 };
 
 typedef struct {
 	int type;
-	int total;
+	long total;
 	double mass;
 	double radius;
 	double n0;
@@ -219,7 +221,7 @@ public:
 	void CollideParticles2(Real dt);
 
 	void MoveParticlesCPP(const Real dt, paramPlane* paramPlaneList, const int paramPlaneCount);
-    void MovePhononsCPP(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount, const int step);
+    void MovePhononsCPP(const Real dt, paramPlane* paramPlaneList, const int paramPlaneCount, const int step, const int istep);
 	void externalForce(const Real dt);
 	void updateTimeStep(const Geometry& geom, Real& dt);
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

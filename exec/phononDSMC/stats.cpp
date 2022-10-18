@@ -48,6 +48,9 @@ void FhdParticleContainer::EvaluateStatsPhonon(MultiFab& mfcuInst,
 		
 		Real ocollisionCellVolTmp = ocollisionCellVol;
 		
+    	auto inds = m_bins.permutationPtr();
+        auto offs = m_bins.offsetsPtr();
+		
 		
         //////////////////////////////////////
         // Primitve and Conserved Instantaneous Values
@@ -59,13 +62,16 @@ void FhdParticleContainer::EvaluateStatsPhonon(MultiFab& mfcuInst,
             long imap = tile_box.index(iv);
 
             for (int l=0; l<nspecies; l++) {
-                long np_spec = m_cell_vectors[l][grid_id][imap].size();
+               // long np_spec = m_cell_vectors[l][grid_id][imap].size();
+                unsigned int np_spec = getBinSize(offs,iv,l,tile_box);
+                unsigned int* cellList = getCellList(inds,offs,iv,l,tile_box);
                 
                 cuInst(i,j,k,0) += np_spec;
 
                 // Read particle data
                 for (int m=0; m<np_spec; m++) {
-                    int pind = m_cell_vectors[l][grid_id][imap][m];
+                    //int pind = m_cell_vectors[l][grid_id][imap][m];
+                    int pind = cellList[m];
                     //int pind = 1;
                     ParticleType & p = particles[pind];
                     
@@ -99,10 +105,10 @@ void FhdParticleContainer::EvaluateStatsPhonon(MultiFab& mfcuInst,
         amrex::ParallelFor(tile_box,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             // Conserved Variances
-            Vector<Real> delCon(ncon, 0.0);
+            //Vector<Real> delCon(ncon, 0.0);
             for (int l=0; l<ncon; l++) {
-                delCon[l]        = cuInst(i,j,k,l) - cuMeans(i,j,k,l);
-                cuVars(i,j,k,l)  = (cuVars(i,j,k,l)*stepsMinusOne+delCon[l]*delCon[l])*osteps;
+                Real delCon        = cuInst(i,j,k,l) - cuMeans(i,j,k,l);
+                cuVars(i,j,k,l)  = (cuVars(i,j,k,l)*stepsMinusOne+delCon*delCon)*osteps;
             }
             
         });

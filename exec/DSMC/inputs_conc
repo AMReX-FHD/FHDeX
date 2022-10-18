@@ -1,24 +1,24 @@
 # System: Isothermal boundaries with gradient of (200k/mm) with Ar
 	# Problem specification
 	prob_lo = 0.0 0.0 0.0	           # physical lo coordinate
-	prob_hi = 0.00320512 0.00040064 2.504e-05  # physical hi coordinate (cm)
+	prob_hi = 0.00320512 0.00040064 1.252e-7  # physical hi coordinate (cm)
 
-	n_cells = 256 32 4 # keep as powers of two
+	n_cells = 256 32 4 
 #	max_grid_size = 16 32 4
 	max_grid_size = 256 32 4
 	max_particle_tile_size = 256 256 256
 
 	# Time-step control
-	fixed_dt = 1e-10                        # overwritten
+	fixed_dt = 1.2e-10                        # overwritten
 
 	# Controls for number of steps between actions
-	max_step     = 100000
-	plot_int     =  5000
+	max_step     = 100000000
+	plot_int     =  1000000
 	cross_cell   =  32
 	plot_cross   =  1
-	n_steps_skip =  20000
+	n_steps_skip =  2000000
 	
-	struct_fact_int = 2
+	struct_fact_int = 1
     project_dir = 2
   
 	reset_stats = 1
@@ -27,7 +27,7 @@
 
 	#particle initialization (-1 - no input; 1 - input provided)
 	particle_input = -1
-	particle_neff = 600e0
+	particle_neff = 1e0
 
 	#Species info
 	#--------------
@@ -92,8 +92,8 @@
 	# Xk and Yk at the wall for Dirichlet (concentrations) - set one to zero
 	# Ordering: (species 1, x-dir), (species 2, x-dir), ... (species 1, y-dir), ... 
 
-	bc_Yk_x_lo = 0.08 0.92  # lo BC
-	bc_Yk_x_hi = 0.92 0.08  # hi BC
+	bc_Yk_x_lo = 0.25 0.75  # lo BC
+	bc_Yk_x_hi = 0.75 0.25  # hi BC
 	bc_Yk_y_lo = 1.0  1.0   # lo BC
 	bc_Yk_y_hi = 1.0  1.0   # hi BC
 	bc_Yk_z_lo = 1.0  1.0   # lo BC
