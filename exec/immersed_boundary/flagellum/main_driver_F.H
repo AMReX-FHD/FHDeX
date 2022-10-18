@@ -22,12 +22,12 @@ void init_s_vel(const int * lo, const int * hi,
 ///////////////////////////
 // in init_funcs.F90
 
-    void init_vel(const int* lo, const int* hi,
-                  amrex_real* data, const int* dlo, const int* dhi,
-                  const amrex_real* dx, const amrex_real* prob_lo,
-                  const amrex_real* prob_hi, const int* di,
-                  const amrex::Real* real_lo, const amrex::Real* real_hi,
-                  const int* prob_type);
+void init_vel(const int* lo, const int* hi,
+              amrex_real* data, const int* dlo, const int* dhi,
+              const amrex_real* dx, const amrex_real* prob_lo,
+              const amrex_real* prob_hi, const int* di,
+              const amrex::Real* real_lo, const amrex::Real* real_hi,
+              const int* prob_type);
 
 #ifdef __cplusplus
 }

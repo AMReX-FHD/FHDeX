@@ -25,9 +25,9 @@ using namespace amrex;
 
 class StructFact {
 
-    int NVAR = 1;        // Number of variable
-    int NVARU = NVAR;    // Number of unique variables
-    int NCOV = 1;        // Number of covariances (lower diagonal of matrix - by default)
+    int NVAR = 1;        // Number of variables, as defined by the size of var_names
+    int NVARU = NVAR;    // Number of variables we actually need to take the FFT of
+    int NCOV = 1;        // Number of covariances
 
     int verbosity = 0;
 
@@ -58,21 +58,27 @@ public:
     MultiFab cov_mag;
 
     StructFact();
-    
+
+    StructFact(const amrex::BoxArray&, const amrex::DistributionMapping&, 
+               const amrex::Vector< std::string >&,
+               const amrex::Vector< amrex::Real >&,
+               const int& verbosity=0);
+
     StructFact(const amrex::BoxArray&, const amrex::DistributionMapping&, 
                const amrex::Vector< std::string >&,
                const amrex::Vector< amrex::Real >&,
                const amrex::Vector< int >&, const amrex::Vector< int >&,
                const int& verbosity=0);
 
-    StructFact(const amrex::BoxArray&, const amrex::DistributionMapping&, 
-               const amrex::Vector< std::string >&,
-               const amrex::Vector< amrex::Real >&,
-               const int& verbosity=0);
+    void define(const amrex::BoxArray&, const amrex::DistributionMapping&, 
+                const amrex::Vector< std::string >&,
+                const amrex::Vector< amrex::Real >&,
+                const int& verbosity=0);
 
     void define(const amrex::BoxArray&, const amrex::DistributionMapping&, 
                 const amrex::Vector< std::string >&,
                 const amrex::Vector< amrex::Real >&,
+                const amrex::Vector< int >&, const amrex::Vector< int >&,
                 const int& verbosity=0);
 
     void FortStructure(const amrex::MultiFab&, const amrex::Geometry&,
@@ -88,6 +94,8 @@ public:
     
     void Finalize(amrex::MultiFab&, amrex::MultiFab&, const Geometry& geom,
                   const int& zero_avg=1);
+
+    void CallFinalize(const Geometry& geom, const int& zero_avg=1);
     
     void ShiftFFT(amrex::MultiFab&,  const Geometry& geom,
                   const int& zero_avg=1);

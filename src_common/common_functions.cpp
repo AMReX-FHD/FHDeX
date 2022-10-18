@@ -41,8 +41,10 @@ int                        common::plot_stag;
 std::string                common::plot_base_name;
 int                        common::chk_int;
 std::string                common::chk_base_name;
+std::string                common::plot_init_file;
 AMREX_GPU_MANAGED int      common::prob_type;
 int                        common::restart;
+int                        common::stats_int;
 int                        common::reset_stats;
 int                        common::particle_restart;
 int                        common::print_int;
@@ -60,6 +62,7 @@ AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::hcp;
 
 AMREX_GPU_MANAGED amrex::Real common::variance_coef_mom;
 AMREX_GPU_MANAGED amrex::Real common::variance_coef_mass;
+AMREX_GPU_MANAGED amrex::Real common::variance_coef_ener;
 AMREX_GPU_MANAGED amrex::Real common::k_B;
 AMREX_GPU_MANAGED amrex::Real common::h_bar;
 AMREX_GPU_MANAGED amrex::Real common::Runiv;
@@ -69,7 +72,7 @@ int                        common::barodiffusion_type;
 int                        common::seed;
 AMREX_GPU_MANAGED amrex::Real common::visc_coef;
 AMREX_GPU_MANAGED int      common::visc_type;
-int                        common::advection_type;
+AMREX_GPU_MANAGED int      common::advection_type;
 int                        common::filtering_width;
 int                        common::stoch_stress_form;
 amrex::Vector<amrex::Real> common::u_init;
@@ -88,6 +91,10 @@ AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>         common::bc_mass_l
 AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>         common::bc_mass_hi;
 AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>         common::bc_therm_lo;
 AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>         common::bc_therm_hi;
+AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>         common::bc_spec_lo;
+AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>         common::bc_spec_hi;
+
+
 
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::p_lo;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::p_hi;
@@ -116,6 +123,13 @@ AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::bc_Xk_y_lo;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::bc_Xk_y_hi;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::bc_Xk_z_lo;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::bc_Xk_z_hi;
+
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::wallspeed_x_lo;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::wallspeed_y_lo;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::wallspeed_z_lo;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::wallspeed_x_hi;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::wallspeed_y_hi;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::wallspeed_z_hi;
 
 AMREX_GPU_MANAGED amrex::Real common::bc_rhotot_x_lo;
 AMREX_GPU_MANAGED amrex::Real common::bc_rhotot_x_hi;
@@ -181,6 +195,9 @@ AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::sigma_wall;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::rmin_wall;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::offset_wall;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::rmax_wall;
+
+AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_SPECIES>         common::msd_int;
+AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_SPECIES>         common::msd_len;
 
 int                        common::poisson_verbose;
 int                        common::poisson_bottom_verbose;
@@ -338,6 +355,12 @@ void InitializeCommonNamespace() {
     
     // p_int_tog_wall (no default)
     particle_neff = 1;
+    
+    
+    for (int i=0; i<MAX_SPECIES; ++i) {
+        msd_int[i] = 0;
+        msd_len[i] = 0;
+    }
 
     // Time-step control
     fixed_dt = 1.;
@@ -354,8 +377,10 @@ void InitializeCommonNamespace() {
     plot_base_name = "plt";
     chk_int = 0;
     chk_base_name = "chk";
+    plot_init_file = "";
     prob_type = 1;
     restart = -1;
+    stats_int = 1;
     reset_stats = 0;
     particle_restart = -1;
     print_int = 0;
@@ -387,6 +412,7 @@ void InitializeCommonNamespace() {
     // stochastic forcing amplitudes (1 for physical values, 0 to run them off)
     variance_coef_mom = 1.;
     variance_coef_mass = 1.;
+    variance_coef_ener = 1.;
     k_B = 1.38064852e-16;
     h_bar = 1.0546e-27;
     Runiv = 8.314462175e7;
@@ -396,6 +422,9 @@ void InitializeCommonNamespace() {
 
     // Algorithm control / selection
     algorithm_type = 0;
+    // 0 = centered
+    // 1 = unlimited bilinear bds
+    // 2 = limited bilinear bds
     advection_type = 0;
     barodiffusion_type = 0;
 
@@ -436,6 +465,8 @@ void InitializeCommonNamespace() {
         bc_mass_hi[i] = 0;
         bc_therm_lo[i] = 0;
         bc_therm_hi[i] = 0;
+        bc_spec_lo[i] = -1;
+        bc_spec_hi[i] = -1;
 
         // Pressure drop are periodic inflow/outflow walls (bc_[hi,lo]=-2).
         p_lo[i] = 0.;
@@ -466,8 +497,12 @@ void InitializeCommonNamespace() {
     }
 
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
-        n_lo[i] = -1.;
-        n_hi[i] = -1.;
+        wallspeed_x_lo[i] = 0.;
+        wallspeed_y_lo[i] = 0.;
+        wallspeed_z_lo[i] = 0.;
+        wallspeed_x_hi[i] = 0.;
+        wallspeed_y_hi[i] = 0.;
+        wallspeed_z_hi[i] = 0.;
     }
 
     // Each no-slip wall may be moving with a specified tangential
@@ -649,8 +684,10 @@ void InitializeCommonNamespace() {
     pp.query("plot_base_name",plot_base_name);
     pp.query("chk_int",chk_int);
     pp.query("chk_base_name",chk_base_name);
+    pp.query("plot_init_file",plot_init_file);
     pp.query("prob_type",prob_type);
     pp.query("restart",restart);
+    pp.query("stats_int",stats_int);
     pp.query("reset_stats",reset_stats);
     pp.query("particle_restart",particle_restart);
     pp.query("print_int",print_int);
@@ -698,6 +735,7 @@ void InitializeCommonNamespace() {
     }
     pp.query("variance_coef_mom",variance_coef_mom);
     pp.query("variance_coef_mass",variance_coef_mass);
+    pp.query("variance_coef_ener",variance_coef_ener);
     pp.query("k_B",k_B);
     pp.query("h_bar",h_bar);
     pp.query("Runiv",Runiv);
@@ -748,6 +786,16 @@ void InitializeCommonNamespace() {
     if (pp.queryarr("bc_mass_hi",temp_int,0,AMREX_SPACEDIM)) {
         for (int i=0; i<AMREX_SPACEDIM; ++i) {
             bc_mass_hi[i] = temp_int[i];
+        }
+    }
+    if (pp.queryarr("bc_spec_lo",temp_int,0,AMREX_SPACEDIM)) {
+        for (int i=0; i<AMREX_SPACEDIM; ++i) {
+            bc_spec_lo[i] = temp_int[i];
+        }
+    }
+    if (pp.queryarr("bc_spec_hi",temp_int,0,AMREX_SPACEDIM)) {
+        for (int i=0; i<AMREX_SPACEDIM; ++i) {
+            bc_spec_hi[i] = temp_int[i];
         }
     }
     if (pp.queryarr("bc_therm_lo",temp_int,0,AMREX_SPACEDIM)) {
@@ -865,6 +913,38 @@ void InitializeCommonNamespace() {
             bc_Xk_z_hi[i] = temp[i];
         }
     }
+
+    if (pp.queryarr("wallspeed_x_lo",temp,0,AMREX_SPACEDIM)) {
+        for (int i=0; i<AMREX_SPACEDIM; ++i) {
+            wallspeed_x_lo[i] = temp[i];
+        }
+    }
+    if (pp.queryarr("wallspeed_y_lo",temp,0,AMREX_SPACEDIM)) {
+        for (int i=0; i<AMREX_SPACEDIM; ++i) {
+            wallspeed_y_lo[i] = temp[i];
+        }
+    }
+    if (pp.queryarr("wallspeed_z_lo",temp,0,AMREX_SPACEDIM)) {
+        for (int i=0; i<AMREX_SPACEDIM; ++i) {
+            wallspeed_z_lo[i] = temp[i];
+        }
+    }
+    if (pp.queryarr("wallspeed_x_hi",temp,0,AMREX_SPACEDIM)) {
+        for (int i=0; i<AMREX_SPACEDIM; ++i) {
+            wallspeed_x_hi[i] = temp[i];
+        }
+    }
+    if (pp.queryarr("wallspeed_y_hi",temp,0,AMREX_SPACEDIM)) {
+        for (int i=0; i<AMREX_SPACEDIM; ++i) {
+            wallspeed_y_hi[i] = temp[i];
+        }
+    }
+    if (pp.queryarr("wallspeed_z_hi",temp,0,AMREX_SPACEDIM)) {
+        for (int i=0; i<AMREX_SPACEDIM; ++i) {
+            wallspeed_z_hi[i] = temp[i];
+        }
+    }
+
     pp.query("bc_rhotot_x_lo",bc_rhotot_x_lo);
     pp.query("bc_rhotot_x_lo",bc_rhotot_x_hi);
     pp.query("bc_rhotot_y_lo",bc_rhotot_y_lo);
@@ -965,6 +1045,16 @@ void InitializeCommonNamespace() {
             p_int_tog_wall[i] = temp_int[i];
         }
     }
+    if (pp.queryarr("msd_int",temp_int,0,nspecies)) {
+        for (int i=0; i<nspecies; ++i) {
+            msd_int[i] = temp_int[i];
+        }
+    }
+    if (pp.queryarr("msd_len",temp_int,0,nspecies)) {
+        for (int i=0; i<nspecies; ++i) {
+            msd_len[i] = temp_int[i];
+        }
+    }
     if (pp.queryarr("eepsilon_wall",temp,0,nspecies)) {
         for (int i=0; i<nspecies; ++i) {
             eepsilon_wall[i] = temp[i];
@@ -1028,5 +1118,27 @@ void InitializeCommonNamespace() {
     if (nspecies > MAX_SPECIES) {
         Abort("InitializeCommonNamespace: nspecies > MAX_SPECIES");
     }
+
+    if (wallspeed_x_lo[0] != 0.) {
+        Abort("you are specifying a normal velocity on a wall; wallspeed_x_lo[0] must be 0");
+    }
+    if (wallspeed_x_hi[0] != 0.) {
+        Abort("you are specifying a normal velocity on a wall; wallspeed_x_hi[0] must be 0");
+    }
+    if (wallspeed_y_lo[1] != 0.) {
+        Abort("you are specifying a normal velocity on a wall; wallspeed_y_lo[1] must be 0");
+    }
+    if (wallspeed_y_hi[1] != 0.) {
+        Abort("you are specifying a normal velocity on a wall; wallspeed_y_hi[1] must be 0");
+    }
+#if (AMREX_SPACEDIM == 3)
+    if (wallspeed_z_lo[2] != 0.) {
+        Abort("you are specifying a normal velocity on a wall; wallspeed_z_lo[2] must be 0");
+    }
+    if (wallspeed_z_hi[2] != 0.) {
+        Abort("you are specifying a normal velocity on a wall; wallspeed_z_hi[2] must be 0");
+    }
+#endif
+    
     
 }

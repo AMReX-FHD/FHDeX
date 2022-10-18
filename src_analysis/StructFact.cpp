@@ -28,6 +28,21 @@ std::string cufftErrorToString (const cufftResult& err)
 StructFact::StructFact()
 {}
 
+// var_names contains the names of all variables under consideration
+// this constructor computes the covariances of all possible pairs of variables
+// var_scaling must be sized to match the total number of pairs of variables
+StructFact::StructFact(const BoxArray& ba_in, const DistributionMapping& dmap_in,
+		       const Vector< std::string >& var_names,
+		       const Vector< Real >& var_scaling_in,
+		       const int& verbosity_in) {
+
+    this->define(ba_in,dmap_in,var_names,var_scaling_in,verbosity_in);
+
+}
+
+// var_names contains the names of all variables under consideration
+// this constructor compute the covariances of the pairs of variables defined in s_pairA/B_in
+// var_scaling must be sized to match the total number of pairs of variables
 StructFact::StructFact(const BoxArray& ba_in, const DistributionMapping& dmap_in,
 		       const Vector< std::string >& var_names,
 		       const Vector< Real >& var_scaling_in,
@@ -35,12 +50,48 @@ StructFact::StructFact(const BoxArray& ba_in, const DistributionMapping& dmap_in
 		       const Vector< int >& s_pairB_in,
 		       const int& verbosity_in) {
 
-  BL_PROFILE_VAR("StructFact::StructFact_constructor1()",StructFact_constructor1);
+    this->define(ba_in,dmap_in,var_names,var_scaling_in,s_pairA_in,s_pairB_in,verbosity_in);
+
+}
+
+
+// this builds a list of all possible pairs of variables and calls define()
+void StructFact::define(const BoxArray& ba_in, const DistributionMapping& dmap_in,
+                        const Vector< std::string >& var_names,
+                        const Vector< Real >& var_scaling_in,
+                        const int& verbosity_in) {
+
+    NVAR = var_names.size();
+
+    Vector<int> l_s_pairA(NVAR*(NVAR+1)/2);
+    Vector<int> l_s_pairB(NVAR*(NVAR+1)/2);
+
+    int counter=0;
+    for (int i=0; i<NVAR; ++i) {
+        for (int j=i; j<NVAR; ++j) {
+            l_s_pairA[counter] = j;
+            l_s_pairB[counter] = i;
+            ++counter;
+        }
+    }      
+
+    define(ba_in, dmap_in, var_names, var_scaling_in, l_s_pairA, l_s_pairB, verbosity_in);
+
+}
+
+void StructFact::define(const BoxArray& ba_in, const DistributionMapping& dmap_in,
+                        const Vector< std::string >& var_names,
+                        const Vector< Real >& var_scaling_in,
+                        const Vector< int >& s_pairA_in,
+                        const Vector< int >& s_pairB_in,
+                        const int& verbosity_in) {
+
+  BL_PROFILE_VAR("StructFact::define()",StructFactDefine);
 
   verbosity = verbosity_in;
   
-  if (s_pairA_in.size() != s_pairA_in.size())
-        amrex::Error("StructFact::StructFact() - Must have an equal number of components");
+  if (s_pairA_in.size() != s_pairB_in.size())
+        amrex::Error("StructFact::define() - Must have an equal number of components");
 
   NVAR = var_names.size();
 
@@ -50,7 +101,7 @@ StructFact::StructFact(const BoxArray& ba_in, const DistributionMapping& dmap_in
   NCOV = s_pairA_in.size();
 
   if ( NCOV != var_scaling_in.size() )
-      amrex::Error("StructFact::StructFact() Constructor 1 - NCOV != var_scaling_in.size()");
+      amrex::Error("StructFact::define() - NCOV != var_scaling_in.size()");
 
   scaling.resize(NCOV);
   for (int n=0; n<NCOV; n++) {
@@ -104,9 +155,11 @@ StructFact::StructFact(const BoxArray& ba_in, const DistributionMapping& dmap_in
     }
   }
 
+  /*
   for (int n=0; n<NVARU; n++) {
     Print() << "HACK 1: vector (" << n << ") = " << varu_temp[n] << std::endl;
   }
+  */
 
   // Identify number of repeats
   int N_dup = 0;
@@ -134,139 +187,15 @@ StructFact::StructFact(const BoxArray& ba_in, const DistributionMapping& dmap_in
   NVARU = N_u;
   
   for (int n=0; n<NCOV; n++) {
-    Print() << "HACK 2: pairs (" << n << ") = " << s_pairA[n] << ", " << s_pairB[n] << std::endl;
+    Print() << "SF pairs (" << n << ") = " << s_pairA[n] << ", " << s_pairB[n] << std::endl;
   }
-  Print() << "HACK: NCOV = " << NCOV << std::endl;
+  Print() << "SF numPairs = " << NCOV << std::endl;
 
   for (int n=0; n<NCOV; n++) {
     if(s_pairA[n]<0 || s_pairA[n]>=NVAR || s_pairB[n]<0 || s_pairB[n]>=NVAR)
        amrex::Error("StructFact::StructFact() - Invalid pair select values: must be between 0 and (num of varibles - 1)");
   }
   //////////////////////////////////////////////////////
-
-  // Note that we are defining with NO ghost cells
-
-  cov_real.define(ba_in, dmap_in, NCOV, 0);
-  cov_imag.define(ba_in, dmap_in, NCOV, 0);
-  cov_mag.define( ba_in, dmap_in, NCOV, 0);
-  cov_real.setVal(0.0);
-  cov_imag.setVal(0.0);
-  cov_mag.setVal( 0.0);
-
-  cov_names.resize(NCOV);
-  std::string x;
-  int cnt = 0;
-  for (int n=0; n<NCOV; n++) {
-    x = "struct_fact";
-    x += '_';
-    x += var_names[s_pairB[n]];
-    x += '_';
-    x += var_names[s_pairA[n]];
-    cov_names[cnt] = x;
-    cnt++;
-  }
-}
-
-StructFact::StructFact(const BoxArray& ba_in, const DistributionMapping& dmap_in,
-		       const Vector< std::string >& var_names,
-		       const Vector< Real >& var_scaling_in,
-		       const int& verbosity_in) {
-  
-  BL_PROFILE_VAR("StructFact::StructFact_constructor2()",StructFact_constructor2);
-
-  verbosity = verbosity_in;
-  
-  NVAR = var_names.size();
-  NCOV = NVAR*(NVAR+1)/2;
-
-  if ( NCOV != var_scaling_in.size() )
-      amrex::Error("StructFact::StructFact() Constructor 2 -  NCOV != var_scaling_in.size()");
-
-  scaling.resize(NCOV);
-  for (int n=0; n<NCOV; n++) {
-      scaling[n] = 1.0/var_scaling_in[n];
-  }
-  
-  s_pairA.resize(NCOV);
-  s_pairB.resize(NCOV);
-  
-  // all variables are selected in this constructor
-  NVARU = NVAR;
-  var_u.resize(NVARU);
-  for (int n=0; n<NVARU; n++) {
-    var_u[n] = n;
-  }
-  
-  int index = 0;
-  for (int j=0; j<NVAR; j++) {
-    for (int i=j; i<NVAR; i++) {
-      s_pairA[index] = i;
-      s_pairB[index] = j;
-      index++;
-    }
-  }
-
-  // Note that we are defining with NO ghost cells
-
-  cov_real.define(ba_in, dmap_in, NCOV, 0);
-  cov_imag.define(ba_in, dmap_in, NCOV, 0);
-  cov_mag.define( ba_in, dmap_in, NCOV, 0);
-  cov_real.setVal(0.0);
-  cov_imag.setVal(0.0);
-  cov_mag.setVal( 0.0);
-
-  cov_names.resize(NCOV);
-  std::string x;
-  int cnt = 0;
-  for (int n=0; n<NCOV; n++) {
-    x = "struct_fact";
-    x += '_';
-    x += var_names[s_pairB[n]];
-    x += '_';
-    x += var_names[s_pairA[n]];
-    cov_names[cnt] = x;
-    cnt++;
-  }
-}
-
-void StructFact::define(const BoxArray& ba_in, const DistributionMapping& dmap_in,
-                        const Vector< std::string >& var_names,
-                        const Vector< Real >& var_scaling_in,
-                        const int& verbosity_in) {
-  
-  BL_PROFILE_VAR("StructFact::define()",StructFactDefine);
-
-  verbosity = verbosity_in;
-  
-  NVAR = var_names.size();
-  NCOV = NVAR*(NVAR+1)/2;
-
-  if ( NCOV != var_scaling_in.size() )
-      amrex::Error("StructFact::define() -  NCOV != var_scaling_in.size()");
-
-  scaling.resize(NCOV);
-  for (int n=0; n<NCOV; n++) {
-      scaling[n] = 1.0/var_scaling_in[n];
-  }
-  
-  s_pairA.resize(NCOV);
-  s_pairB.resize(NCOV);
-  
-  // all variables are selected in this constructor
-  NVARU = NVAR;
-  var_u.resize(NVARU);
-  for (int n=0; n<NVARU; n++) {
-    var_u[n] = n;
-  }
-  
-  int index = 0;
-  for (int j=0; j<NVAR; j++) {
-    for (int i=j; i<NVAR; i++) {
-      s_pairA[index] = i;
-      s_pairB[index] = j;
-      index++;
-    }
-  }
 
   // Note that we are defining with NO ghost cells
 
@@ -681,75 +610,73 @@ void StructFact::WritePlotFile(const int step, const Real time, const Geometry& 
   // Write out structure factor magnitude to plot file
   //////////////////////////////////////////////////////////////////////////////////
 
-  if (turbForcing != 1) {
-      std::string name = plotfile_base;
-      name += "_mag";
+  std::string name = plotfile_base;
+  name += "_mag";
   
-      const std::string plotfilename1 = amrex::Concatenate(name,step,9);
-      nPlot = NCOV;
-      plotfile.define(cov_mag.boxArray(), cov_mag.DistributionMap(), nPlot, 0);
-      varNames.resize(nPlot);
+  const std::string plotfilename1 = amrex::Concatenate(name,step,9);
+  nPlot = NCOV;
+  plotfile.define(cov_mag.boxArray(), cov_mag.DistributionMap(), nPlot, 0);
+  varNames.resize(nPlot);
 
-      for (int n=0; n<NCOV; n++) {
-          varNames[n] = cov_names[n];
-      }
-  
-      MultiFab::Copy(plotfile, cov_mag, 0, 0, NCOV, 0); // copy structure factor into plotfile
-
-      Real dx = geom.CellSize(0);
-      Real pi = 3.1415926535897932;
-      Box domain = geom.Domain();
-
-      RealBox real_box({AMREX_D_DECL(-pi/dx,-pi/dx,-pi/dx)},
-                       {AMREX_D_DECL( pi/dx, pi/dx, pi/dx)});
-  
-      // check bc_vel_lo/hi to determine the periodicity
-      Vector<int> is_periodic(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
-      for (int i=0; i<AMREX_SPACEDIM; ++i) {
-          is_periodic[i] = geom.isPeriodic(i);
-      }
-
-      Geometry geom2;
-      geom2.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
-    
-      // write a plotfile
-      WriteSingleLevelPlotfile(plotfilename1,plotfile,varNames,geom2,time,step);
-  
-      //////////////////////////////////////////////////////////////////////////////////
-      // Write out real and imaginary components of structure factor to plot file
-      //////////////////////////////////////////////////////////////////////////////////
-
-      name = plotfile_base;
-      name += "_real_imag";
-  
-      const std::string plotfilename2 = amrex::Concatenate(name,step,9);
-      nPlot = 2*NCOV;
-      plotfile.define(cov_mag.boxArray(), cov_mag.DistributionMap(), nPlot, 0);
-      varNames.resize(nPlot);
-
-      int cnt = 0; // keep a counter for plotfile variables
-      for (int n=0; n<NCOV; n++) {
-          varNames[cnt] = cov_names[cnt];
-          varNames[cnt] += "_real";
-          cnt++;
-      }
-
-      int index = 0;
-      for (int n=0; n<NCOV; n++) {
-          varNames[cnt] = cov_names[index];
-          varNames[cnt] += "_imag";
-          index++;
-          cnt++;
-      }
-
-      MultiFab::Copy(plotfile,cov_real_temp,0,0,   NCOV,0);
-      MultiFab::Copy(plotfile,cov_imag_temp,0,NCOV,NCOV,0);
-
-      // write a plotfile
-      WriteSingleLevelPlotfile(plotfilename2,plotfile,varNames,geom2,time,step);
+  for (int n=0; n<NCOV; n++) {
+      varNames[n] = cov_names[n];
   }
   
+  MultiFab::Copy(plotfile, cov_mag, 0, 0, NCOV, 0); // copy structure factor into plotfile
+
+  Real dx = geom.CellSize(0);
+  Real pi = 3.1415926535897932;
+  Box domain = geom.Domain();
+
+  RealBox real_box({AMREX_D_DECL(-pi/dx,-pi/dx,-pi/dx)},
+                   {AMREX_D_DECL( pi/dx, pi/dx, pi/dx)});
+  
+  // check bc_vel_lo/hi to determine the periodicity
+  Vector<int> is_periodic(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
+  for (int i=0; i<AMREX_SPACEDIM; ++i) {
+      is_periodic[i] = geom.isPeriodic(i);
+  }
+
+  Geometry geom2;
+  geom2.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
+    
+  // write a plotfile
+  WriteSingleLevelPlotfile(plotfilename1,plotfile,varNames,geom2,time,step);
+  
+  //////////////////////////////////////////////////////////////////////////////////
+  // Write out real and imaginary components of structure factor to plot file
+  //////////////////////////////////////////////////////////////////////////////////
+
+  name = plotfile_base;
+  name += "_real_imag";
+  
+  const std::string plotfilename2 = amrex::Concatenate(name,step,9);
+  nPlot = 2*NCOV;
+  plotfile.define(cov_mag.boxArray(), cov_mag.DistributionMap(), nPlot, 0);
+  varNames.resize(nPlot);
+
+  int cnt = 0; // keep a counter for plotfile variables
+  for (int n=0; n<NCOV; n++) {
+      varNames[cnt] = cov_names[cnt];
+      varNames[cnt] += "_real";
+      cnt++;
+  }
+
+  int index = 0;
+  for (int n=0; n<NCOV; n++) {
+      varNames[cnt] = cov_names[index];
+      varNames[cnt] += "_imag";
+      index++;
+      cnt++;
+  }
+
+  MultiFab::Copy(plotfile,cov_real_temp,0,0,   NCOV,0);
+  MultiFab::Copy(plotfile,cov_imag_temp,0,NCOV,NCOV,0);
+
+  // write a plotfile
+  WriteSingleLevelPlotfile(plotfilename2,plotfile,varNames,geom2,time,step);
 }
+
 void StructFact::Finalize(MultiFab& cov_real_in, MultiFab& cov_imag_in,
                           const Geometry& geom, const int& zero_avg) {
 
@@ -777,6 +704,27 @@ void StructFact::Finalize(MultiFab& cov_real_in, MultiFab& cov_imag_in,
   SqrtMF(cov_mag);
 
 }
+
+// Finalize covariances - scale & compute magnitude
+void StructFact::CallFinalize( const Geometry& geom,
+                               const int& zero_avg) {
+  
+  BL_PROFILE_VAR("CallFinalize()",CallFinalize);
+
+  // Build temp real & imag components
+  const BoxArray& ba = cov_mag.boxArray();
+  const DistributionMapping& dm = cov_mag.DistributionMap();
+
+  MultiFab cov_real_temp(ba, dm, NCOV, 0);
+  MultiFab cov_imag_temp(ba, dm, NCOV, 0);
+  MultiFab::Copy(cov_real_temp, cov_real, 0, 0, NCOV, 0);
+  MultiFab::Copy(cov_imag_temp, cov_imag, 0, 0, NCOV, 0);
+
+  // Finalize covariances - scale & compute magnitude
+  Finalize(cov_real_temp, cov_imag_temp, geom, zero_avg);
+}
+
+
 
 void StructFact::ShiftFFT(MultiFab& dft_out, const Geometry& geom, const int& zero_avg) {
 
@@ -858,7 +806,7 @@ void StructFact::ShiftFFT(MultiFab& dft_out, const Geometry& geom, const int& ze
 }
 
 // integrate cov_mag over k shells
-void StructFact::IntegratekShells(const int& step, const Geometry& geom) {
+void StructFact::IntegratekShells(const int& step, const Geometry& /*geom*/) {
 
     BL_PROFILE_VAR("StructFact::IntegratekShells",IntegratekShells);
 
@@ -868,7 +816,7 @@ void StructFact::IntegratekShells(const int& step, const Geometry& geom) {
     }
 
     int npts = n_cells[0]/2-1;
-    int npts_sq = npts*npts;
+    //int npts_sq = npts*npts;
 
     Gpu::DeviceVector<Real> phisum_vect(npts);
     Gpu::DeviceVector<int>  phicnt_vect(npts);
@@ -914,10 +862,10 @@ void StructFact::IntegratekShells(const int& step, const Geometry& geom) {
 	        dist = dist+0.5;
                 int cell = int(dist);
                 for (int d=0; d<AMREX_SPACEDIM; ++d) {
-                    phisum_gpu[cell] += cov(i,j,k,d);
+		  amrex::HostDevice::Atomic::Add(&(phisum_gpu[cell]), cov(i,j,k,d));
 //		    phisum_large_gpu[idist]  += cov(i,j,k,d);
                 }
-                ++phicnt_gpu[cell];
+		amrex::HostDevice::Atomic::Add(&(phicnt_gpu[cell]),1);
  //               ++phicnt_large_gpu[idist];
             }
         });

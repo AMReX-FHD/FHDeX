@@ -26,7 +26,7 @@ GMRES::GMRES (const BoxArray& ba_in,
 }
 
 
-void GMRES::Solve (std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
+void GMRES::Solve (std::array<MultiFab, AMREX_SPACEDIM> & b_u, MultiFab & b_p,
                    std::array<MultiFab, AMREX_SPACEDIM> & x_u, MultiFab & x_p,
                    std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
                    MultiFab & beta, std::array<MultiFab, NUM_EDGE> & beta_ed,
@@ -67,6 +67,50 @@ void GMRES::Solve (std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & 
 
     Vector<Real> inner_prod_vel(AMREX_SPACEDIM);
     Real inner_prod_pres;
+
+    //////////////////////////////////////
+    // account for inhomogeneous boundary conditions, e.g., moving walls
+    // use r_u, tmp_u, r_p, tmp_p as temporary storage
+
+    bool inhomogeneous_fix = false;
+    for (int i=0; i<AMREX_SPACEDIM; ++i) {
+        if (wallspeed_x_lo[i] != 0.) inhomogeneous_fix = true;
+        if (wallspeed_x_hi[i] != 0.) inhomogeneous_fix = true;
+        if (wallspeed_y_lo[i] != 0.) inhomogeneous_fix = true;
+        if (wallspeed_y_hi[i] != 0.) inhomogeneous_fix = true;
+#if (AMREX_SPACEDIM == 3)
+        if (wallspeed_z_lo[i] != 0.) inhomogeneous_fix = true;
+        if (wallspeed_z_hi[i] != 0.) inhomogeneous_fix = true;
+#endif
+    }
+
+    if (inhomogeneous_fix) {
+
+        // fill MultiFabs for velocity and pressure to zero
+        // then fill ghost cells
+        // then apply the operator
+        // subtract the result from the rhs
+
+        int is_inhomogeneous = 1;
+        
+        r_p.setVal(0.);
+        MultiFabPhysBC(r_p, geom, 0, 1, PRES_BC_COMP);
+
+        for (int i=0; i<AMREX_SPACEDIM; ++i ) {
+            r_u[i].setVal(0.);
+            MultiFabPhysBCMacVel(r_u[i], geom, i, is_inhomogeneous);
+        }
+
+        ApplyMatrix(tmp_u, tmp_p, r_u, r_p, alpha_fc, beta, beta_ed, gamma, theta_alpha, geom,
+                    is_inhomogeneous);
+
+        MultiFab::Subtract(b_p, tmp_p, 0, 0, 1, 0);
+        for (int i=0; i<AMREX_SPACEDIM; ++i) {
+            MultiFab::Subtract(b_u[i], tmp_u[i], 0, 0, 1, 0);
+        }
+
+    }
+    //////////////////////////////////////
     
     //////////////////////////////////////
 
@@ -107,7 +151,7 @@ void GMRES::Solve (std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & 
 
 
     // preconditioned norm_b: norm_pre_b
-    StagL2Norm(geom, tmp_u, 0, scr_u, norm_u);
+    StagL2Norm(tmp_u, 0, scr_u, norm_u);
     CCL2Norm(tmp_p, 0, scr_p, norm_p);
     norm_p       = p_norm_weight*norm_p;
     norm_pre_b   = sqrt(norm_u*norm_u + norm_p*norm_p);
@@ -115,7 +159,7 @@ void GMRES::Solve (std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & 
 
 
     // calculate the l2 norm of rhs
-    StagL2Norm(geom, b_u, 0, scr_u, norm_u);
+    StagL2Norm(b_u, 0, scr_u, norm_u);
     CCL2Norm(b_p, 0, scr_p, norm_p);
     norm_p = p_norm_weight*norm_p;
     norm_b = sqrt(norm_u*norm_u + norm_p*norm_p);
@@ -172,7 +216,7 @@ void GMRES::Solve (std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & 
 
         //_______________________________________________________________________
         // un-preconditioned residuals
-        StagL2Norm(geom, tmp_u, 0, scr_u, norm_u_noprecon);
+        StagL2Norm(tmp_u, 0, scr_u, norm_u_noprecon);
         CCL2Norm(tmp_p, 0, scr_p, norm_p_noprecon);
         norm_p_noprecon   = p_norm_weight*norm_p_noprecon;
         norm_resid_Stokes = sqrt(norm_u_noprecon*norm_u_noprecon + norm_p_noprecon*norm_p_noprecon);
@@ -204,7 +248,7 @@ void GMRES::Solve (std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & 
 
 
         // resid = sqrt(dot_product(r, r))
-        StagL2Norm(geom, r_u, 0, scr_u, norm_u);
+        StagL2Norm(r_u, 0, scr_u, norm_u);
         CCL2Norm(r_p, 0, scr_p, norm_p);
         norm_p     = p_norm_weight*norm_p;
         norm_resid = sqrt(norm_u*norm_u + norm_p*norm_p);
@@ -338,7 +382,7 @@ void GMRES::Solve (std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & 
             for (int k=0; k<=i; ++k) {
                 // H(k,i) = dot_product(w, V(k))
                 //        = dot_product(w_u, V_u(k))+dot_product(w_p, V_p(k))
-                StagInnerProd(geom,w_u, 0, V_u, k, scr_u, inner_prod_vel);
+                StagInnerProd(w_u, 0, V_u, k, scr_u, inner_prod_vel);
                 CCInnerProd(w_p, 0, V_p, k, scr_p, inner_prod_pres);
                 H[k][i] = std::accumulate(inner_prod_vel.begin(), inner_prod_vel.end(), 0.) 
                           + pow(p_norm_weight, 2.0)*inner_prod_pres;
@@ -357,7 +401,7 @@ void GMRES::Solve (std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & 
             }
 
             // H(i+1,i) = norm(w)
-            StagL2Norm(geom, w_u, 0, scr_u, norm_u);
+            StagL2Norm(w_u, 0, scr_u, norm_u);
             CCL2Norm(w_p, 0, scr_p, norm_p);
             norm_p    = p_norm_weight*norm_p;
             H[i+1][i] = sqrt(norm_u*norm_u + norm_p*norm_p);

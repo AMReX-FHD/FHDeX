@@ -1,0 +1,1 @@
+CEXE_sources += $(filter-out main.cpp,$(notdir $(wildcard SPPARKS_MUI/*.cpp))) main_spk.cpp

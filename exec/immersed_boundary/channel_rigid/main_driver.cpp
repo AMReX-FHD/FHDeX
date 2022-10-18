@@ -351,7 +351,8 @@ void main_driver(const char * argv) {
     for (int i=0; i<AMREX_SPACEDIM; i++) {
         umac[i].FillBoundary(geom.periodicity());
         MultiFabPhysBCDomainVel(umac[i], i, geom, i);
-        MultiFabPhysBCMacVel(umac[i], i, geom, i);
+        int is_inhomogeneous = 1;
+        MultiFabPhysBCMacVel(umac[i], i, geom, i, is_inhomogeneous);
     }
 
 

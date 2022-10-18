@@ -77,7 +77,9 @@ void FhdParticleContainer::InitParticles(Real & dt)
 						p.cpu() = ParallelDescriptor::MyProc();
 						p.idata(FHD_intData::sorted) = -1;
 						p.idata(FHD_intData::species) = i_spec;
+						p.idata(FHD_intData::newSpecies) = -1;
 						p.rdata(FHD_realData::R) = R;
+						p.rdata(FHD_realData::mass) = properties[i_spec].mass;
 						p.rdata(FHD_realData::timeFrac) = 1;
 						p.pos(0) = prob_lo[0] + amrex::Random()*(prob_hi[0]-prob_lo[0]);
 						p.pos(1) = prob_lo[1] + amrex::Random()*(prob_hi[1]-prob_lo[1]);
@@ -116,29 +118,30 @@ void FhdParticleContainer::InitParticles(Real & dt)
 				// Zero out the bulk velocities
 				// Only do if no restart provided for particles
 				// VCOM by species
-				for(int i_spec=0; i_spec < nspecies; i_spec++)
-				{
-					long npi = properties[i_spec].total;
-					u[i_spec] = u[i_spec]/npi;
-					v[i_spec] = v[i_spec]/npi;
-					w[i_spec] = w[i_spec]/npi;
-				}
+//				for(int i_spec=0; i_spec < nspecies; i_spec++)
+//				{
+//					long npi = properties[i_spec].total;
+//					u[i_spec] = u[i_spec]/npi;
+//					v[i_spec] = v[i_spec]/npi;
+//					w[i_spec] = w[i_spec]/npi;
+//				}
 
-				const int np = particles.numParticles();
-				for(int i = 0; i < np; i++)
-				{
-					ParticleType & part = particles[i];
-					int i_spec = part.idata(FHD_intData::species);
-					part.rdata(FHD_realData::velx) = part.rdata(FHD_realData::velx)-u[i_spec];
-					part.rdata(FHD_realData::vely) = part.rdata(FHD_realData::vely)-v[i_spec];
-					part.rdata(FHD_realData::velz) = part.rdata(FHD_realData::velz)-w[i_spec];
-				}
+//				const int np = particles.numParticles();
+//				for(int i = 0; i < np; i++)
+//				{
+//					ParticleType & part = particles[i];
+//					int i_spec = part.idata(FHD_intData::species);
+//					part.rdata(FHD_realData::velx) = part.rdata(FHD_realData::velx)-u[i_spec];
+//					part.rdata(FHD_realData::vely) = part.rdata(FHD_realData::vely)-v[i_spec];
+//					part.rdata(FHD_realData::velz) = part.rdata(FHD_realData::velz)-w[i_spec];
+//				}
 			}
 		}
 	}
 
 	ParallelDescriptor::Bcast(&spdmax,1,ParallelDescriptor::IOProcessorNumber());
 	mfvrmax.setVal(spdmax);
+    Print() << "Max speed: " << spdmax << endl;
 
 //	if(ParallelDescriptor::MyProc() == 0) {
 //		dt  = umax*n_cells[0]/(prob_hi[0]-prob_lo[0]);
@@ -149,57 +152,59 @@ void FhdParticleContainer::InitParticles(Real & dt)
 //	ParallelDescriptor::Bcast(&dt,1,ParallelDescriptor::IOProcessorNumber());
 //	amrex::Print() << "My dt " << dt << "\n";
 
-	Redistribute();
-	SortParticles();
+    Redistribute();
+	//SortParticles();
+	SortParticlesDB();
 	
 	// Zero bulk velocities in each cell
-	for (FhdParIter pti(* this, lev); pti.isValid(); ++pti)
-	{
-		const int grid_id = pti.index();
-		const int tile_id = pti.LocalTileIndex();
-		const Box& tile_box  = pti.tilebox();
+//	for (FhdParIter pti(* this, lev); pti.isValid(); ++pti)
+//	{
+//		const int grid_id = pti.index();
+//		const int tile_id = pti.LocalTileIndex();
+//		const Box& tile_box  = pti.tilebox();
 
-		auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
-		auto& particles = particle_tile.GetArrayOfStructs();
-		const long np = particles.numParticles();
+//		auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+//		auto& particles = particle_tile.GetArrayOfStructs();
+//		const long np = particles.numParticles();
 
-		IntVect smallEnd = tile_box.smallEnd();
-		IntVect bigEnd = tile_box.bigEnd();
-	
-		for (int i = smallEnd[0]; i <= bigEnd[0]; i++) {
-		for (int j = smallEnd[1]; j <= bigEnd[1]; j++) {
-		for (int k = smallEnd[2]; k <= bigEnd[2]; k++) {
-			const IntVect& iv = {i,j,k};
-			long imap = tile_box.index(iv);
-			for (int niter=0; niter<3; niter++) {
-			for (int ispec=0; ispec<nspecies; ispec++){
-				Real ucom=0., vcom=0., wcom=0.;
-				int np = m_cell_vectors[ispec][grid_id][imap].size();
-				double lmass = properties[ispec].mass;
-				for (int ip = 0; ip<np; ip++) {
-					int ipart = m_cell_vectors[ispec][grid_id][imap][ip];
-					ParticleType & part = particles[ipart];
-					ucom += part.rdata(FHD_realData::velx);
-					vcom += part.rdata(FHD_realData::vely);
-					wcom += part.rdata(FHD_realData::velz);
-				}
-				ucom /= (double)np;
-				vcom /= (double)np;
-				wcom /= (double)np;
-				for (int ip = 0; ip<np; ip++)
-				{
-					int ipart = m_cell_vectors[ispec][grid_id][imap][ip];
-					ParticleType & part = particles[ipart];
-					part.rdata(FHD_realData::velx) = part.rdata(FHD_realData::velx) - ucom;
-					part.rdata(FHD_realData::vely) = part.rdata(FHD_realData::vely) - vcom;
-					part.rdata(FHD_realData::velz) = part.rdata(FHD_realData::velz) - wcom;
-				}
-			}
-			}
-		}
-		}
-		}
-	}
+//		IntVect smallEnd = tile_box.smallEnd();
+//		IntVect bigEnd = tile_box.bigEnd();
+//	
+//		for (int i = smallEnd[0]; i <= bigEnd[0]; i++) {
+//		for (int j = smallEnd[1]; j <= bigEnd[1]; j++) {
+//		for (int k = smallEnd[2]; k <= bigEnd[2]; k++) {
+//			const IntVect& iv = {i,j,k};
+//			long imap = tile_box.index(iv);
+//			for (int niter=0; niter<3; niter++) {
+//			for (int ispec=0; ispec<nspecies; ispec++){
+//				Real ucom=0., vcom=0., wcom=0.;
+//				int np = m_cell_vectors[ispec][grid_id][imap].size();
+//				double lmass = properties[ispec].mass;
+//				for (int ip = 0; ip<np; ip++) {
+//					int ipart = m_cell_vectors[ispec][grid_id][imap][ip];
+//					ParticleType & part = particles[ipart];
+//					ucom += part.rdata(FHD_realData::velx);
+//					vcom += part.rdata(FHD_realData::vely);
+//					wcom += part.rdata(FHD_realData::velz);
+//				}
+//				ucom /= (double)np;
+//				vcom /= (double)np;
+//				wcom /= (double)np;
+//				//Print() << "ucom cell " << i << ": " << ucom << endl;
+//				for (int ip = 0; ip<np; ip++)
+//				{
+//					int ipart = m_cell_vectors[ispec][grid_id][imap][ip];
+//					ParticleType & part = particles[ipart];
+//					part.rdata(FHD_realData::velx) = part.rdata(FHD_realData::velx) - ucom;
+//					part.rdata(FHD_realData::vely) = part.rdata(FHD_realData::vely) - vcom;
+//					part.rdata(FHD_realData::velz) = part.rdata(FHD_realData::velz) - wcom;
+//				}
+//			}
+//			}
+//		}
+//		}
+//		}
+//	}
 }
 
 void FhdParticleContainer::ReInitParticles()
@@ -211,7 +216,7 @@ void FhdParticleContainer::ReInitParticles()
 	bool proc0_enter = true;
 
 	std::array<Real, 3> vpart = {0.,0.,0.};
-	Real u,v,w;
+	//Real u,v,w;
 	Real spd, spdmax = 0.;
 
 	for (MFIter mfi = MakeMFIter(lev, true); mfi.isValid(); ++mfi)
@@ -247,6 +252,7 @@ void FhdParticleContainer::ReInitParticles()
 	}
 
 	ParallelDescriptor::Bcast(&spdmax,1,ParallelDescriptor::IOProcessorNumber());
+
 	mfvrmax.setVal(spdmax);
 
 	Redistribute();

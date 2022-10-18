@@ -542,7 +542,7 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
                                     const std::array<MultiFab, AMREX_SPACEDIM>& RealFaceCoords,
                                     std::array<MultiFab, AMREX_SPACEDIM>& source,
                                     std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
-                                    const paramPlane* paramPlaneList, const int paramPlaneCount, int sw)
+                                    paramPlane* paramPlaneList, const int paramPlaneCount, int sw)
 {
     BL_PROFILE_VAR("MoveIons()",MoveIons);
 
@@ -654,14 +654,14 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
                             if(intsurf > 0)
                             {
 
-                                const paramPlane& surf = paramPlaneList[intsurf-1]; //find_inter indexes from 1 to maintain compatablity with fortran version
+                                paramPlane& surf = paramPlaneList[intsurf-1]; //find_inter indexes from 1 to maintain compatablity with fortran version
 
                                 if(surf.periodicity == 0)
                                 {
                                    Real dummy = 1;
                                    //std::cout << "Pre: " << part.rdata(FHD_realData::velx) << ", " << part.rdata(FHD_realData::vely) << ", " << part.rdata(FHD_realData::velz) << ", " << intside << "\n";
                                    //app_bc(&surf, &part, &intside, domsize, &push, &dummy, &dummy);
-                                   app_bc_gpu(&surf, part, intside, pdomsize, &push, &runtime, dummy, engine);
+                                   //app_bc_gpu(&surf, part, intside, pdomsize, &push, &runtime, dummy, engine);
                                    //std::cout << "Post: " << part.rdata(FHD_realData::velx) << ", " << part.rdata(FHD_realData::vely) << ", " << part.rdata(FHD_realData::velz) << ", " << intside << "\n";
 
                                    runtime = runtime - inttime;
@@ -864,7 +864,7 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
                     runtime = runtime - inttime;
                     if(intsurf > 0)
                     {
-                        const paramPlane& surf = paramPlaneList[intsurf-1];//find_inter indexes from 1 to maintain compatablity with fortran version
+                        paramPlane& surf = paramPlaneList[intsurf-1];//find_inter indexes from 1 to maintain compatablity with fortran version
 
                         Real dummy = 1;
                         //app_bc(&surf, &part, &intside, domsize, &push, &dummy, &dummy);
@@ -974,6 +974,7 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
 
 void FhdParticleContainer::SpreadIonsGPU(const Real* dxFluid, const Real* dxE, const Geometry geomF,
                                       const std::array<MultiFab, AMREX_SPACEDIM>& umac,
+				      const std::array<MultiFab, AMREX_SPACEDIM>& coords,
                                       std::array<MultiFab, AMREX_SPACEDIM>& efield,
                                       std::array<MultiFab, AMREX_SPACEDIM>& source,
                                       std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp)
@@ -1007,14 +1008,17 @@ void FhdParticleContainer::SpreadIonsGPU(const Real* dxFluid, const Real* dxE, c
         emf_gpu(particles,
                       efield[0][pti], efield[1][pti], efield[2][pti],
                       ZFILL(plo), ZFILL(dxE));
-        if(fluid_tog != 0)
-        {
-            spread_ions_fhd_gpu(particles,                         
-                             sourceTemp[0][pti], sourceTemp[1][pti], sourceTemp[2][pti],
-                             ZFILL(plo),
-                             ZFILL(dxFluid));
-        }
 
+    }
+
+    if(fluid_tog != 0)
+    {
+        //spread_ions_fhd_gpu(particles,                         
+        //                 sourceTemp[0][pti], sourceTemp[1][pti], sourceTemp[2][pti],
+        //                 ZFILL(plo),
+        //                 ZFILL(dxFluid));
+
+        SpreadMarkersGpu(lev, sourceTemp, coords, dxFluid, 1);
     }
 
     if(fluid_tog != 0)
@@ -1048,6 +1052,7 @@ void FhdParticleContainer::SpreadIonsGPU(const Real* dxFluid, const Real* dxE, c
 
 void FhdParticleContainer::SpreadIonsGPU(const Real* dxFluid, const Geometry geomF,
                                       const std::array<MultiFab, AMREX_SPACEDIM>& umac,
+				      const std::array<MultiFab, AMREX_SPACEDIM>& coords,
                                       std::array<MultiFab, AMREX_SPACEDIM>& source,
                                       std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp)
 {
@@ -1064,25 +1069,26 @@ void FhdParticleContainer::SpreadIonsGPU(const Real* dxFluid, const Geometry geo
 #endif
 
 
-    for (FhdParIter pti(*this, lev); pti.isValid(); ++pti)
-    {
-        const int grid_id = pti.index();
-        const int tile_id = pti.LocalTileIndex();
-        const Box& tile_box  = pti.tilebox();
-        
-        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
-        auto& particles = particle_tile.GetArrayOfStructs();
-        const int np = particles.numParticles();
+    //for (FhdParIter pti(*this, lev); pti.isValid(); ++pti)
+    //{
+    //    const int grid_id = pti.index();
+    //    const int tile_id = pti.LocalTileIndex();
+    //    const Box& tile_box  = pti.tilebox();
+    //    
+    //    auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+    //    auto& particles = particle_tile.GetArrayOfStructs();
+    //    const int np = particles.numParticles();
 
         if(fluid_tog != 0)
         {
-            spread_ions_fhd_gpu(particles,                         
-                             sourceTemp[0][pti], sourceTemp[1][pti], sourceTemp[2][pti],
-                             ZFILL(plo),
-                             ZFILL(dxFluid));
+            //spread_ions_fhd_gpu(particles,                         
+            //                 sourceTemp[0][pti], sourceTemp[1][pti], sourceTemp[2][pti],
+            //                 ZFILL(plo),
+            //                 ZFILL(dxFluid));
+	    SpreadMarkersGpu(lev, sourceTemp, coords, dxFluid, 1);
         }
 
-    }
+    //}
 
     if(fluid_tog != 0)
     {  
@@ -1991,12 +1997,19 @@ FhdParticleContainer::PrintParticles()
             {
 
             double bigM  = part.rdata(FHD_realData::totalDiff)/(T_init[0]*k_B);
+            double absForce = sqrt(part.rdata(FHD_realData::forcex)*part.rdata(FHD_realData::forcex) + part.rdata(FHD_realData::forcey)*part.rdata(FHD_realData::forcey) + part.rdata(FHD_realData::forcez)*part.rdata(FHD_realData::forcez));
 
-            std::cout << scientific << setprecision(15) << "Particle " << ParallelDescriptor::MyProc() << ", " << part.id() << ", force: " << part.rdata(FHD_realData::forcex) << ", " << part.rdata(FHD_realData::forcey) << ", " << part.rdata(FHD_realData::forcez) << std::endl;
+            std::cout << scientific << setprecision(15) << "Particle " << ParallelDescriptor::MyProc() << ", " << part.id() << ", force: " << part.rdata(FHD_realData::forcex) << ", " << part.rdata(FHD_realData::forcey) << ", " << part.rdata(FHD_realData::forcez) << ", " << absForce << std::endl;
             std::cout << scientific << setprecision(15) << "Particle " << ParallelDescriptor::MyProc() << ", " << part.id() << ", position/q: " << part.pos(0) << ", " << part.pos(1) << ", " << part.pos(2) << ", " << part.rdata(FHD_realData::q) << std::endl;
             std::cout << scientific << setprecision(15) << "Particle " << ParallelDescriptor::MyProc() << ", " << part.id() << ", vel: " << part.rdata(FHD_realData::velx) << ", " << part.rdata(FHD_realData::vely) << ", " << part.rdata(FHD_realData::velz) << std::endl;
-            std::cout << scientific << setprecision(15) << "Particle " << ParallelDescriptor::MyProc() << ", " << part.id() << ", normalised mobility: " << (part.rdata(FHD_realData::velx)/part.rdata(FHD_realData::forcex))/bigM << ", " << (part.rdata(FHD_realData::vely)/part.rdata(FHD_realData::forcey))/bigM
-                                                                                                                                                                         << ", " << (part.rdata(FHD_realData::velz)/part.rdata(FHD_realData::forcez))/bigM << std::endl;
+            std::cout << scientific << setprecision(15) << "Particle " << ParallelDescriptor::MyProc() << ", " << part.id() << ", normalised mobility: " << (part.rdata(FHD_realData::velx)/part.rdata(FHD_realData::forcex))/bigM << ", " << (part.rdata(FHD_realData::vely)/part.rdata(FHD_realData::forcey))/bigM << ", " << (part.rdata(FHD_realData::velz)/part.rdata(FHD_realData::forcez))/bigM << std::endl;
+
+            if(part.id() == 1)
+            {
+                std::string filename = "threepmForce";
+                std::ofstream ofs(filename, std::ofstream::app);
+                ofs << part.rdata(FHD_realData::forcey) << ", " << absForce << std::endl;                                                                                                                                                   
+            }
             }
         }
     }
@@ -2418,7 +2431,7 @@ FhdParticleContainer::writeMat()
 }
 
 void
-FhdParticleContainer::MeanSqrCalc(int lev, int reset) {
+FhdParticleContainer::MeanSqrCalc(int lev, int step) {
 
     BL_PROFILE_VAR("MeanSqrCalc()",MeanSqrCalc);
 
@@ -2433,6 +2446,14 @@ FhdParticleContainer::MeanSqrCalc(int lev, int reset) {
     Real travelTime[nspecies];
     int specCount[nspecies];
     
+    int stepstat[nspecies];
+    
+    for(int i=0;i<nspecies;i++)
+    {
+        stepstat[i] = fmod(step-1,msd_int[i]);
+        cout << "remainder: " << stepstat[i] << endl;
+    }
+    
     for(int i=0;i<nspecies;i++)
     {
         sqrDispX[i]=0;
@@ -2441,6 +2462,10 @@ FhdParticleContainer::MeanSqrCalc(int lev, int reset) {
         sqrDisp[i]=0;
         specCount[i]=0;
     }
+    
+
+
+        
 
     for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
 
@@ -2449,6 +2474,19 @@ FhdParticleContainer::MeanSqrCalc(int lev, int reset) {
         AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
         long np = this->GetParticles(lev).at(index).numParticles();
         nTotal += np;
+        
+        for (int i=0; i<np; ++i) {
+            ParticleType & part = particles[i];
+            int spec = part.idata(FHD_intData::species)-1;
+
+            if(stepstat[spec] == 0)
+            {
+                for (int d=0; d<AMREX_SPACEDIM; ++d){
+                    part.rdata(FHD_realData::ox + d) = part.rdata(FHD_realData::ax + d);
+                }
+                part.rdata(FHD_realData::travelTime) = 0;
+            }        
+        }
 
         for (int i=0; i<np; ++i) {
             ParticleType & part = particles[i];
@@ -2470,21 +2508,7 @@ FhdParticleContainer::MeanSqrCalc(int lev, int reset) {
         }
 
 
-        if(reset == 1)
-        {
-            for (int i=0; i<np; ++i) {
-                ParticleType & part = particles[i];
-                int spec = part.idata(FHD_intData::species)-1;
 
-                if(spec != 0)
-                {
-                    for (int d=0; d<AMREX_SPACEDIM; ++d){
-                        part.rdata(FHD_realData::ox + d) = part.rdata(FHD_realData::ax + d);
-                    }
-                    part.rdata(FHD_realData::travelTime) = 0;
-                }
-            }
-        }
     }
 
     for(int i=0;i<nspecies;i++)
@@ -2531,17 +2555,21 @@ FhdParticleContainer::MeanSqrCalc(int lev, int reset) {
 
         for(int i=0;i<nspecies;i++)
         {
-            std::string specname = Concatenate("msdEst_",i+1);
-            std::ofstream ofs(specname, std::ofstream::app);
-    
-            ofs << travelTime[i] << "  " << sqrDispX[i] << "  " << sqrDispY[i] << "  "<< sqrDispZ[i] << "  "<< sqrDisp[i] << std::endl;
-
-            if(reset == 1)
+            if(msd_int[i] > 0)
             {
-                ofs << std::endl;
-            }
+                std::string specname = Concatenate("msdEst_",i+1);
+                std::ofstream ofs(specname, std::ofstream::app);
+
+                if(stepstat[i]==0)
+                {
+                    ofs << std::endl;
+                }else if(stepstat[i]<(msd_len[i]+1))
+                {  
+                    ofs << travelTime[i] << "  " << sqrDispX[i] << "  " << sqrDispY[i] << "  "<< sqrDispZ[i] << "  "<< sqrDisp[i] << std::endl;
+                }
         
-            ofs.close();
+                ofs.close();
+            }
         }
     }
     

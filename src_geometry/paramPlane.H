@@ -70,6 +70,9 @@ typedef struct {
     double temperatureRight;
     double momentumConsRight;
     double densityRight[MAX_SPECIES];
+    
+    double massFluxRight[MAX_SPECIES];
+    double massFluxLeft[MAX_SPECIES];
 
     double sourceLeft;
     double sourceRight;
@@ -97,10 +100,34 @@ typedef struct {
     double fzRightAv;
 
     int boundary;
+    
+    double species[5];
 
     double tension;
     double stiffness;
     double temperature;
+    
+    double* xVelRecLeft;
+    double* yVelRecLeft;
+    double* zVelRecLeft;
+    
+    double* xVelRecRight;
+    double* yVelRecRight;
+    double* zVelRecRight;
+    
+    double* xPosRecLeft;
+    double* yPosRecLeft;
+    double* zPosRecLeft;
+    
+    double* xPosRecRight;
+    double* yPosRecRight;
+    double* zPosRecRight;
+    
+    double* freqRecRight;
+    double* freqRecLeft;
+    
+    int recCountRight;
+    int recCountLeft;
 
 } paramPlane;
 

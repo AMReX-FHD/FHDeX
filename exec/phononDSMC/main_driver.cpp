@@ -137,7 +137,8 @@ void main_driver(const char* argv)
     planeFile.close();
 
 	int paramPlaneCount = fileCount;
-	paramPlane paramPlaneList[paramPlaneCount];
+	paramPlane* paramPlaneList;
+	paramPlaneList = new paramPlane[paramPlaneCount];
 	BuildParamplanesPhonon(paramPlaneList,paramPlaneCount,realDomain.lo(),realDomain.hi());
 
 	// Particle tile size
@@ -161,6 +162,8 @@ void main_driver(const char* argv)
 	int cRange = 0;
 	FhdParticleContainer particles(geom, dmap, ba, cRange);
 
+	//particles.InitParticles(dt);
+
 	Real init_time = ParallelDescriptor::second() - strt_time;
 	ParallelDescriptor::ReduceRealMax(init_time);
 	amrex::Print() << "Initialization time = " << init_time << " seconds " << std::endl;
@@ -180,7 +183,7 @@ void main_driver(const char* argv)
 
 		particles.SourcePhonons(dt, paramPlaneList, paramPlaneCount);
 
-		particles.MovePhononsCPP(dt, paramPlaneList, paramPlaneCount, writeStep);
+		particles.MovePhononsCPP(dt, paramPlaneList, paramPlaneCount, writeStep, istep);
 
 		particles.EvaluateStatsPhonon(cuInst,cuMeans,cuVars,statsCount++,time);
 
@@ -209,7 +212,7 @@ void main_driver(const char* argv)
         }
 		tend = ParallelDescriptor::second() - tbegin;
 		ParallelDescriptor::ReduceRealMax(tend);
-		if(istep%1==0)
+		if(istep%100==0)
 		{
 		    amrex::Print() << "Advanced step " << istep << " in " << tend << " seconds\n";
 		}

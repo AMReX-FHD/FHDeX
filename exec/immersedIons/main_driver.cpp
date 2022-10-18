@@ -917,7 +917,7 @@ void main_driver(const char* argv)
 
 
 //    // Writes instantaneous flow field and some other stuff? Check with Guy.
-    WritePlotFileHydro(0, time, geom, umac, pres, umacM);
+    //WritePlotFileHydro(0, time, geom, umac, pres, umacM);
     remove("bulkFlowEst");
     //Time stepping loop
 
@@ -925,14 +925,52 @@ void main_driver(const char* argv)
 
     if(ramp_step==2){
         dt = dt*1e-7;
+	if(step < 100 && step > 50) dt = dt*2;
+        if(step < 150 && step > 100) dt = dt*4;
+        if(step < 200 && step > 150) dt = dt*8;
+        if(step < 250 && step > 200) dt = dt*16;
+        if(step < 300 && step > 250) dt = dt*32;
+        if(step < 350 && step > 300) dt = dt*64;
+        if(step < 400 && step > 350) dt = dt*128;
+        if(step < 500 && step > 400) dt = dt*128*sqrt(5);
+        if(step < 600 && step > 500) dt = dt*640;
+        if(step < 700 && step > 600) dt = dt*640*sqrt(5);
+        if(step < 800 && step > 700) dt = dt*3200;
+        if(step < 900 && step > 800) dt = dt*3200*sqrt(5);
+        if(step < 1000 && step > 900) dt = dt*16000;
+        if(step < 1100 && step > 1000) dt = dt*16000*sqrt(5);
+        if(step < 1200 && step > 1100) dt = dt*80000;
+        if(step < 1300 && step > 1200) dt = dt*80000*sqrt(5);
+        if(step < 1400 && step > 1300) dt = dt*400000;
+        if(step < 1500 && step > 1400) dt = dt*400000*sqrt(5);
+        if(step < 1600 && step > 1500) dt = dt*2000000;
+        if(step < 1700 && step > 1600) dt = dt*2000000*sqrt(5);
+        if(step > 1700) dt = dt*10000000;
 
     }else if(ramp_step==1){
         dt = dt*1e-6;
+	if(step < 40 && step > 20) dt = dt*2;
+        if(step < 80 && step > 40) dt = dt*10;
+        if(step < 160 && step > 80) dt = dt*50;
+        if(step < 240 && step > 160) dt = dt*100;
+        if(step < 320 && step > 240) dt = dt*500;
+        if(step < 400 && step > 320) dt = dt*1000;
+        if(step < 480 && step > 400) dt = dt*5000;
+        if(step < 560 && step > 480) dt = dt*10000;
+        if(step < 640 && step > 560) dt = dt*50000;
+        if(step < 720 && step > 640) dt = dt*100000;
+        if(step < 800 && step > 720) dt = dt*500000;
+        if(step > 800) dt = dt*1000000;
 
     }else{
         dt = dt*1e-5;
+	if(step < 40 && step > 20) dt = dt*10;
+        if(step < 60 && step > 40) dt = dt*100;
+        if(step < 80 && step > 60) dt = dt*1000;
+        if(step < 100 && step > 80) dt = dt*10000;
+        if(step > 100) dt = dt*100000;
     }
-        
+            
     
 
     particles.initRankLists(simParticles);
@@ -1195,11 +1233,36 @@ void main_driver(const char* argv)
         }
 
 
+//            particles.SetPosition(1, prob_hi[0]*0.501, prob_hi[1]*0.501, prob_hi[2]*0.501);
+//            particles.SetForce(1,1,0,0);
+//            Real x1 = 0.51*prob_hi[0];
+//            Real y1 = 0.51*prob_hi[1];
+//            Real z1 = 0.51*prob_hi[2];
+//            
+//            particles.SetPosition(1,x1 ,y1, z1);
+//            particles.SetPosition(2,x1 ,y1, z1);
+//            
+//            x1 = 0.5*prob_hi[0] + (amrex::Random()-0.5)*(prob_hi[0]-prob_lo[0])*0.25;
+//            y1 = 0.1875*dxp[0];
+//            z1 = 0.5*prob_hi[2] + (amrex::Random()-0.5)*(prob_hi[2]-prob_lo[2])*0.25;
+            
+            
+//            Real costheta = 2.*amrex::Random() - 1.;
+//            Real sintheta = sqrt(1. - costheta*costheta);
 
-        //if(istep == 1)
-        //{
-        //    particles.SetPosition(1, prob_hi[0]*0.5, prob_hi[1]*0.5, prob_hi[2]*0.5);
-        //}
+//            Real phi = amrex::Random() * 2. * 3.14159265358979;
+//            Real cosphi = std::cos(phi);
+//            Real sinphi = std::sin(phi);
+
+//            Real dr = 2*dxp[0];
+
+//            Real x2 = x1 + dr*cosphi;
+//            Real y2 = y1;
+//            Real z2 = z1 + dr*sinphi;;
+//            
+//            particles.SetPosition(1,x1 ,y1, z1);
+//            particles.SetPosition(2,x2 ,y2, z2);
+
     
         //Most of these functions are sensitive to the order of execution. We can fix this, but for now leave them in this order.
 
@@ -1258,7 +1321,7 @@ void main_driver(const char* argv)
 	}
 
         // compute other forces and spread to grid
-        particles.SpreadIonsGPU(dx, dxp, geom, umac, efieldCC, source, sourceTemp);
+        particles.SpreadIonsGPU(dx, dxp, geom, umac, RealFaceCoords, efieldCC, source, sourceTemp);
 
         //particles.BuildCorrectionTable(dxp,1);
 
@@ -1338,7 +1401,7 @@ void main_driver(const char* argv)
                         sourceTemp[d].setVal(0.0);      // reset source terms
                     }
 
-                particles.SpreadIonsGPU(dx, geom, umac, source, sourceTemp);
+                particles.SpreadIonsGPU(dx, geom, umac, RealFaceCoords, source, sourceTemp);
 
                 MultiFab::Add(source[0],sourceRFD[0],0,0,sourceRFD[0].nComp(),sourceRFD[0].nGrow());
                 MultiFab::Add(source[1],sourceRFD[1],0,0,sourceRFD[1].nComp(),sourceRFD[1].nGrow());
