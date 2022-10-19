@@ -112,11 +112,11 @@ MacProj_hydro (std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     // fill periodic ghost cells
     for (int d = 0; d < AMREX_SPACEDIM; d++) {
-      umac[d].FillBoundary(geom.periodicity());
-
       // Do apply BCs so that all ghost cells are filled
       MultiFabPhysBCDomainVel(umac[d], geom, d);
-      MultiFabPhysBCMacVel(umac[d], geom, d);
+      int is_inhomogeneous = 1;
+      MultiFabPhysBCMacVel(umac[d], geom, d, is_inhomogeneous);
+      umac[d].FillBoundary(geom.periodicity());
     }
 }
 

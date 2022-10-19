@@ -1,6 +1,6 @@
 #include "common_functions.H"
 
-void PrintMF (const MultiFab& MF)
+void PrintMF (const MultiFab& MF, int comp_lo, int comp_hi)
 {
     BL_PROFILE_VAR("PrintMF()",PrintMF);
 
@@ -26,11 +26,19 @@ void PrintMF (const MultiFab& MF)
             std::cout << std::endl;
 
             const Array4<const Real> MF_arr = MF.array(i);
-
-            for (auto comp = 0; comp < MF.nComp(); ++comp) {
+            int comp_top;
+            if(comp_hi < 0)
+            {
+                comp_top = MF.nComp()-1;
+            }else
+            {
+                comp_top = comp_hi;            
+            }
+            
             for (auto k = lo[2]; k <= hi[2]; ++k) {
             for (auto j = lo[1]; j <= hi[1]; ++j) {
             for (auto ii = lo[0]; ii <= hi[0]; ++ii) {
+            for (auto comp = comp_lo; comp <= comp_top; ++comp) {
 #if (AMREX_SPACEDIM == 2)
                 std::cout << "i, j, comp" << " "
                           << ii << " " << j << " " << comp

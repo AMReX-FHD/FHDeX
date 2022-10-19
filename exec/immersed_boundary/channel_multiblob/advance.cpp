@@ -182,7 +182,8 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     for (int i=0; i<AMREX_SPACEDIM; i++) {
         umac[i].FillBoundary(geom.periodicity());
         MultiFabPhysBCDomainVel(umac[i], geom, i);
-        MultiFabPhysBCMacVel(umac[i], geom, i);
+        int is_inhomogeneous = 1;
+        MultiFabPhysBCMacVel(umac[i], geom, i, is_inhomogeneous);
     }
 
 
@@ -234,7 +235,8 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         MultiFab::Copy(umac_buffer[d], umac[d], 0, 0, 1, umac[d].nGrow());
         umac_buffer[d].FillBoundary(geom.periodicity());
         MultiFabPhysBCDomainVel(umac[d], geom, d);
-        MultiFabPhysBCMacVel(umac[d], geom, d);
+        int is_inhomogeneous = 1;
+        MultiFabPhysBCMacVel(umac[d], geom, d, is_inhomogeneous);
     }
 
     ib_mbc.ResetPredictor(ib_lev);
@@ -309,7 +311,8 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
         uMom[d].FillBoundary(geom.periodicity());
         MultiFabPhysBCDomainVel(uMom[d], geom, d);
-        MultiFabPhysBCMacVel(uMom[d], geom, d);
+        int is_inhomogeneous = 1;
+        MultiFabPhysBCMacVel(uMom[d], geom, d, is_inhomogeneous);
     }
 
     // Compute advective fluxes: advFluxdiv = - D(\rho uu^n) = - D(u^n uMom)
@@ -363,7 +366,8 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         umacNew[d].FillBoundary(geom.periodicity());
         MultiFabPhysBCDomainVel(umacNew[d], geom, d);
-        MultiFabPhysBCMacVel(umacNew[d], geom, d);
+        int is_inhomogeneous = 1;
+        MultiFabPhysBCMacVel(umacNew[d], geom, d, is_inhomogeneous);
     }
 
 
@@ -385,7 +389,8 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         MultiFab::Copy(umacNew_buffer[d], umacNew[d], 0, 0, 1, umacNew[d].nGrow());
         umacNew_buffer[d].FillBoundary(geom.periodicity());
         MultiFabPhysBCDomainVel(umacNew[d], geom, d);
-        MultiFabPhysBCMacVel(umacNew[d], geom, d);
+        int is_inhomogeneous = 1;
+        MultiFabPhysBCMacVel(umacNew[d], geom, d, is_inhomogeneous);
     }
 
     ib_mbc.ResetMarkers(ib_lev);
@@ -514,7 +519,8 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
         uMom[d].FillBoundary(geom.periodicity());
         MultiFabPhysBCDomainVel(uMom[d], geom, d);
-        MultiFabPhysBCMacVel(uMom[d], geom, d);
+        int is_inhomogeneous = 1;
+        MultiFabPhysBCMacVel(uMom[d], geom, d, is_inhomogeneous);
     }
 
     // Compute advective fluxes for the corrector:

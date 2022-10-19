@@ -79,6 +79,7 @@ void FhdParticleContainer::InitParticles(Real & dt)
 						p.idata(FHD_intData::species) = i_spec;
 						p.idata(FHD_intData::newSpecies) = -1;
 						p.rdata(FHD_realData::R) = R;
+						p.rdata(FHD_realData::mass) = properties[i_spec].mass;
 						p.rdata(FHD_realData::timeFrac) = 1;
 						p.pos(0) = prob_lo[0] + amrex::Random()*(prob_hi[0]-prob_lo[0]);
 						p.pos(1) = prob_lo[1] + amrex::Random()*(prob_hi[1]-prob_lo[1]);
@@ -140,7 +141,7 @@ void FhdParticleContainer::InitParticles(Real & dt)
 
 	ParallelDescriptor::Bcast(&spdmax,1,ParallelDescriptor::IOProcessorNumber());
 	mfvrmax.setVal(spdmax);
-    cout << "Max speed: " << spdmax << endl;
+    Print() << "Max speed: " << spdmax << endl;
 
 //	if(ParallelDescriptor::MyProc() == 0) {
 //		dt  = umax*n_cells[0]/(prob_hi[0]-prob_lo[0]);
@@ -151,8 +152,9 @@ void FhdParticleContainer::InitParticles(Real & dt)
 //	ParallelDescriptor::Bcast(&dt,1,ParallelDescriptor::IOProcessorNumber());
 //	amrex::Print() << "My dt " << dt << "\n";
 
-	Redistribute();
-	SortParticles();
+    Redistribute();
+	//SortParticles();
+	SortParticlesDB();
 	
 	// Zero bulk velocities in each cell
 //	for (FhdParIter pti(* this, lev); pti.isValid(); ++pti)

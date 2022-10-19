@@ -7,6 +7,7 @@ AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> compressible::transm
 AMREX_GPU_MANAGED int compressible::do_1D;
 AMREX_GPU_MANAGED int compressible::do_2D;
 AMREX_GPU_MANAGED int compressible::all_correl;
+AMREX_GPU_MANAGED int compressible::nspec_surfcov = 0;
 
 void InitializeCompressibleNamespace()
 {
@@ -79,7 +80,7 @@ void GetHcGas() {
 
 
 void InitConsVar(MultiFab& cons,
-                 const amrex::Geometry geom) {
+                 const amrex::Geometry& geom) {
 
     const Real* dx_host = geom.CellSize();
     const RealBox& realDomain = geom.ProbDomain();
@@ -105,21 +106,23 @@ void InitConsVar(MultiFab& cons,
     Real Lf = realhi[0] - reallo[0];
 
     // compute some values and overwrite based on prob_type
-    
-    // compute internal energy
-    Real intEnergy;
-    GpuArray<Real,MAX_SPECIES> massvec;
-    for(int i=0;i<nspecies;i++) {
-        massvec[i] = rhobar[i];
-    }
-    GetEnergy(intEnergy, massvec, T_init[0]);
+ 
+    {   
+        // compute internal energy
+        Real intEnergy;
+        GpuArray<Real,MAX_SPECIES> massvec;
+        for(int i=0;i<nspecies;i++) {
+            massvec[i] = rhobar[i];
+        }
+        GetEnergy(intEnergy, massvec, T_init[0]);
 
-    cons.setVal(0.0,0,nvars,ngc);
-    cons.setVal(rho0,0,1,ngc);           // density
-    cons.setVal(0,1,3,ngc);              // x/y/z momentum
-    cons.setVal(rho0*intEnergy,4,1,ngc); // total energy
-    for(int i=0;i<nspecies;i++) {
-        cons.setVal(rho0*rhobar[i],5+i,1,ngc); // mass densities
+        cons.setVal(0.0,0,nvars,ngc);
+        cons.setVal(rho0,0,1,ngc);           // density
+        cons.setVal(0,1,3,ngc);              // x/y/z momentum
+        cons.setVal(rho0*intEnergy,4,1,ngc); // total energy
+        for(int i=0;i<nspecies;i++) {
+            cons.setVal(rho0*rhobar[i],5+i,1,ngc); // mass densities
+        }
     }
 
     for ( MFIter mfi(cons); mfi.isValid(); ++mfi ) {
@@ -359,6 +362,29 @@ void InitConsVar(MultiFab& cons,
                     }
                     
             } // prob type
+
+           else if (prob_type == 111) { // pressure and density checkerboard pattern
+
+               for (int ns=0;ns<nspecies;++ns) massvec[ns] = rhobar[ns];
+               Real intEnergy;
+               GetEnergy(intEnergy, massvec, T_init[0]);
+
+               // Set checkerboarded density -- will automatically set checkerboarded pressure for same T, Y
+               Real rhomin = rho0*0.5;
+               Real rhomax = rho0*1.5;
+
+               if ((i+j+k) % 2 == 0) {
+                   cu(i,j,k,0) = rhomin;
+                   for (int ns=0;ns<nspecies;++ns) cu(i,j,k,5+ns) = rhomin*massvec[ns];
+                   cu(i,j,k,4) = rhomin*intEnergy;
+               }
+               else {
+                   cu(i,j,k,0) = rhomax;
+                   for (int ns=0;ns<nspecies;++ns) cu(i,j,k,5+ns) = rhomax*massvec[ns];
+                   cu(i,j,k,4) = rhomax*intEnergy;
+               }
+
+           }
 
         });
     } // end MFIter

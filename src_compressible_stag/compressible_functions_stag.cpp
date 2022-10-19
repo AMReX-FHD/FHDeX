@@ -3,7 +3,7 @@
 
 void InitConsVarStag(MultiFab& cons,
                      std::array< MultiFab, AMREX_SPACEDIM >& momStag,
-                     const amrex::Geometry geom) {
+                     const amrex::Geometry& geom) {
 
     const Real* dx_host = geom.CellSize();
     const RealBox& realDomain = geom.ProbDomain();
@@ -33,24 +33,26 @@ void InitConsVarStag(MultiFab& cons,
 
     // compute some values and overwrite based on prob_type
         
-    // compute internal energy
-    Real intEnergy;
-    GpuArray<Real,MAX_SPECIES  > massvec;
-    for(int i=0;i<nspecies;i++) {
-        massvec[i] = rhobar[i];
-    }
-    GetEnergy(intEnergy, massvec, T_init[0]);
+    { // Put the following in a block to avoid warnings on shadowing
+        // compute internal energy
+        Real intEnergy;
+        GpuArray<Real,MAX_SPECIES  > massvec;
+        for(int i=0;i<nspecies;i++) {
+            massvec[i] = rhobar[i];
+        }
+        GetEnergy(intEnergy, massvec, T_init[0]);
 
-    cons.setVal(0.0,0,nvars,ngc);
-    cons.setVal(rho0,0,1,ngc);           // density
-    cons.setVal(0,1,3,ngc);              // x/y/z momentum
-    cons.setVal(rho0*intEnergy,4,1,ngc); // total energy
-    for(int i=0;i<nspecies;i++) {
-        cons.setVal(rho0*rhobar[i],5+i,1,ngc); // mass densities
-    }
+        cons.setVal(0.0,0,nvars,ngc);
+        cons.setVal(rho0,0,1,ngc);           // density
+        cons.setVal(0,1,3,ngc);              // x/y/z momentum
+        cons.setVal(rho0*intEnergy,4,1,ngc); // total energy
+        for(int i=0;i<nspecies;i++) {
+            cons.setVal(rho0*rhobar[i],5+i,1,ngc); // mass densities
+        }
 
-    for (int d=0; d<AMREX_SPACEDIM; d++) { // staggered momentum & velocities
-        momStag[d].setVal(0.,ngc);
+        for (int d=0; d<AMREX_SPACEDIM; d++) { // staggered momentum & velocities
+            momStag[d].setVal(0.,ngc);
+        }
     }
     
     for ( MFIter mfi(cons); mfi.isValid(); ++mfi ) {
@@ -431,8 +433,8 @@ void InitConsVarStag(MultiFab& cons,
                }
                molmixB = 1.0/molmixB;
                molmixT = 1.0/molmixT;
-               Real rgasmixB = Runiv/molmixB;
-               Real rgasmixT = Runiv/molmixT;
+               //Real rgasmixB = Runiv/molmixB;
+               //Real rgasmixT = Runiv/molmixT;
 
                Real Lz = realhi[2] - reallo[2];
                Real Lz2 = Lz/2.0;
@@ -491,6 +493,29 @@ void InitConsVarStag(MultiFab& cons,
                Real intEnergy;
                GetEnergy(intEnergy, Yk, T_init[0]);
                cu(i,j,k,4) = density*intEnergy;
+           }
+
+           else if (prob_type == 111) { // pressure and density checkerboard pattern
+
+               for (int ns=0;ns<nspecies;++ns) massvec[ns] = rhobar[ns];
+               Real intEnergy;
+               GetEnergy(intEnergy, massvec, T_init[0]);
+
+               // Set checkerboarded density -- will automatically set checkerboarded pressure for same T, Y
+               Real rhomin = rho0*0.5;
+               Real rhomax = rho0*1.5;
+
+               if ((i+j+k) % 2 == 0) {
+                   cu(i,j,k,0) = rhomin;
+                   for (int ns=0;ns<nspecies;++ns) cu(i,j,k,5+ns) = rhomin*massvec[ns];
+                   cu(i,j,k,4) = rhomin*intEnergy;
+               }
+               else {
+                   cu(i,j,k,0) = rhomax;
+                   for (int ns=0;ns<nspecies;++ns) cu(i,j,k,5+ns) = rhomax*massvec[ns];
+                   cu(i,j,k,4) = rhomax*intEnergy;
+               }
+
            }
 
 

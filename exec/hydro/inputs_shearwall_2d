@@ -1,0 +1,82 @@
+
+
+  # Problem specification
+  prob_lo = 0.0 0.0       # physical lo coordinate
+  prob_hi = 3200. 3200.   # physical hi coordinate
+
+  # if prob_type = 0, zero initial velocity
+  # if prob_type = 1, vortex
+  # if prob_type = 2, KH - sine
+  # if prob_type = 3, KH - smooth
+  prob_type = 0
+  
+  # number of cells in domain
+  n_cells = 32 32
+  # max number of cells in a box
+  max_grid_size = 16 16
+
+  # Time-step control
+  fixed_dt = 10
+
+  # Controls for number of steps between actions
+  max_step = 10000
+  plot_int = 100
+
+  # Viscous friction L phi operator
+  # if abs(visc_type) = 1, L = div beta grad
+  # if abs(visc_type) = 2, L = div [ beta (grad + grad^T) ]
+  # if abs(visc_type) = 3, L = div [ beta (grad + grad^T) + I (gamma - (2/3)*beta) div ]
+  # positive = assume constant coefficients
+  # negative = assume spatially-varying coefficients
+  # visc_coef = 1.
+  visc_coef = 1.
+  visc_type = 1
+
+  # Stochastic parameters
+  variance_coef_mom = 0.
+  initial_variance_mom = 0.
+
+  k_B = 1.
+  T_init = 1.
+
+  # Boundary conditions
+  # ----------------------
+  # BC specifications:
+  # -1 = periodic
+  #  1 = slip
+  #  2 = no-slip
+  bc_vel_lo = 2 2
+  bc_vel_hi = 2 2
+
+  wallspeed_y_hi = 1. 0.
+
+
+
+  mg_verbose = 0                  # multigrid verbosity
+
+  # Staggered multigrid solver parameters
+  stag_mg_verbosity = 0          # verbosity
+  stag_mg_max_vcycles = 1         # max number of v-cycles
+  stag_mg_minwidth = 2            # length of box at coarsest multigrid level
+  stag_mg_bottom_solver = 0       # bottom solver type
+  # 0 = smooths only, controlled by mg_nsmooths_bottom
+  # 4 = Fancy bottom solve that coarsens additionally
+  #     and then applies stag_mg_nsmooths_bottom smooths
+  stag_mg_nsmooths_down = 2  # number of smooths at each level on the way down
+  stag_mg_nsmooths_up = 2    # number of smooths at each level on the way up
+  stag_mg_nsmooths_bottom = 8     # number of smooths at the bottom
+  stag_mg_max_bottom_nlevels = 10 # for stag_mg_bottom_solver 4, number of additional levels of multigrid
+  stag_mg_omega = 1.            # weightee-jacobi omega coefficient
+  stag_mg_smoother = 1            # 0 = jacobi; 1 = 2*dm-color Gauss-Seidel
+  stag_mg_rel_tol = 1.e-9         # relative tolerance stopping criteria
+
+
+  # GMRES solver parameters
+  gmres_rel_tol = 1.e-12                # relative tolerance stopping criteria
+  gmres_abs_tol = 0                     # absolute tolerance stopping criteria
+  gmres_verbose = 1                     # gmres verbosity; if greater than 1, more residuals will be printed out
+  gmres_max_outer = 20                  # max number of outer iterations
+  gmres_max_inner = 5                   # max number of inner iterations, or restart number
+  gmres_max_iter = 100                  # max number of gmres iterations
+  gmres_min_iter = 1                    # min number of gmres iterations
+

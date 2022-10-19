@@ -13,7 +13,7 @@ using namespace compressible;
 
 void WritePlotFileStag(int step,
                        const Real time,
-                       const Geometry geom,
+                       const Geometry& geom,
                        const MultiFab& cu,
                        const MultiFab& cuMeans,
                        const MultiFab& cuVars,
@@ -27,6 +27,9 @@ void WritePlotFileStag(int step,
                        const std::array<MultiFab, AMREX_SPACEDIM>& velMeans,
                        const std::array<MultiFab, AMREX_SPACEDIM>& velVars,
                        const MultiFab& coVars,
+                       const MultiFab& surfcov,
+                       const MultiFab& surfcovMeans,
+                       const MultiFab& surfcovVars,
                        const MultiFab& eta, 
                        const MultiFab& kappa);
 
@@ -42,7 +45,7 @@ void conservedToPrimitiveStag(MultiFab& prim_in, std::array<MultiFab, AMREX_SPAC
 
 void InitConsVarStag(MultiFab& cons,
                      std::array< MultiFab, AMREX_SPACEDIM >& momStag,
-                     const amrex::Geometry geom);
+                     const amrex::Geometry& geom);
 
 void SetupBCStag();
 
@@ -51,32 +54,32 @@ void SetupCWallStag();
 void setBCStag(MultiFab& prim_in, MultiFab& cons_in,
                  std::array< MultiFab, AMREX_SPACEDIM >& cumom_in,
                  std::array< MultiFab, AMREX_SPACEDIM >& vel_in,
-                 const amrex::Geometry geom);
+                 const amrex::Geometry& geom);
 
 void BCWallReservoirFluxStag(std::array< MultiFab, AMREX_SPACEDIM >& faceflux,
                              std::array< MultiFab, AMREX_SPACEDIM>& cenflux_in,
-                             const amrex::Geometry geom);
+                             const amrex::Geometry& geom);
 
 void BCMem(MultiFab& prim_in, MultiFab& cons_in,
            std::array< MultiFab, AMREX_SPACEDIM >& cumom_in,
            std::array< MultiFab, AMREX_SPACEDIM >& vel_in,
-           const amrex::Geometry geom);
+           const amrex::Geometry& geom);
 
-void BCMassTempPress(MultiFab& prim_in,MultiFab& cons_in,const amrex::Geometry geom,int dim);
+void BCMassTempPress(MultiFab& prim_in,MultiFab& cons_in,const amrex::Geometry& geom,int dim);
 
 void BCMomNormal(MultiFab& mom_in, MultiFab& vel_in, MultiFab& cons_in,
-                 const amrex::Geometry geom, int dim);
+                 const amrex::Geometry& geom, int dim);
 
 void BCMomTrans(MultiFab& mom_in, MultiFab& vel_in,
-                 const amrex::Geometry geom, int dim);
+                 const amrex::Geometry& geom, int dim);
 
 void BCRhoRhoE(MultiFab& cons_in, MultiFab& prim_in, 
                std::array< MultiFab, AMREX_SPACEDIM >& cumom_in, 
-               const amrex::Geometry geom);
+               const amrex::Geometry& geom);
 
 void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array< MultiFab, AMREX_SPACEDIM>& cenflux_in, 
                    std::array< MultiFab, 2 >& edgeflux_x_in, std::array< MultiFab, 2 >& edgeflux_y_in, 
-                   std::array< MultiFab, 2 >& edgeflux_z_in, const amrex::Geometry geom);
+                   std::array< MultiFab, 2 >& edgeflux_z_in, const amrex::Geometry& geom);
 
 void StochFluxMem(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array< MultiFab, 2 >& edgeflux_x_in,
                    std::array< MultiFab, 2 >& edgeflux_y_in, std::array< MultiFab, 2 >& edgeflux_z_in);
@@ -92,7 +95,7 @@ void RK3stepStag(MultiFab& cu,
                  std::array< MultiFab, 2 >& edgeflux_y,
                  std::array< MultiFab, 2 >& edgeflux_z,
                  std::array< MultiFab, AMREX_SPACEDIM>& cenflux,
-                 const amrex::Geometry geom, const amrex::Real dt, const int step);
+                 const amrex::Geometry& geom, const amrex::Real dt, const int step);
 
 void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMREX_SPACEDIM >& momStag_in, 
                        const MultiFab& prim_in, const std::array< MultiFab, AMREX_SPACEDIM >& velStag_in,
@@ -108,7 +111,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                        std::array< MultiFab, 2 >& stochedge_y_in,
                        std::array< MultiFab, 2 >& stochedge_z_in,
                        std::array< MultiFab, AMREX_SPACEDIM>& stochcen_in,
-                       const amrex::Geometry geom,
+                       const amrex::Geometry& geom,
 		                   const amrex::Vector< amrex::Real >& stoch_weights,
 		                   const amrex::Real dt);
 
@@ -117,11 +120,11 @@ void doMembraneStag(MultiFab& cons,
                     MultiFab& prim, 
                     std::array< MultiFab, AMREX_SPACEDIM >& vel,
                     std::array<MultiFab, AMREX_SPACEDIM>& faceflux,
-                    const amrex::Geometry geom, const amrex::Real dt);
+                    const amrex::Geometry& geom, const amrex::Real dt);
 
 void doLangevin(MultiFab& cons_in, MultiFab& prim_in,
                 std::array<MultiFab, AMREX_SPACEDIM>& faceflux,
-                const amrex::Geometry geom,
+                const amrex::Geometry& geom,
                 const amrex::Real dt);
 
 void applyEffusion(std::array<MultiFab, AMREX_SPACEDIM>& faceflux, MultiFab& cons);
@@ -129,7 +132,7 @@ void applyEffusion(std::array<MultiFab, AMREX_SPACEDIM>& faceflux, MultiFab& con
 void WriteCheckPoint3D(int step,
                        const amrex::Real time,
                        int statsCount,
-                       const amrex::Geometry geom,
+                       const amrex::Geometry& geom,
                        const amrex::MultiFab& cu,
                        const amrex::MultiFab& cuMeans,
                        const amrex::MultiFab& cuVars,
@@ -143,12 +146,15 @@ void WriteCheckPoint3D(int step,
                        const std::array<MultiFab, AMREX_SPACEDIM>& velMeans,
                        const std::array<MultiFab, AMREX_SPACEDIM>& velVars,
                        const amrex::MultiFab& coVars,
+                       const amrex::MultiFab& surfcov,
+                       const amrex::MultiFab& surfcovMeans,
+                       const amrex::MultiFab& surfcovVars,
                        const Vector<Real>& spatialCross, int ncross);
 
 void ReadCheckPoint3D(int& step,
                       amrex::Real& time,
                       int& statsCount,
-                      amrex::Geometry geom,
+                      amrex::Geometry& geom,
                       const amrex::Box& domain,
                       amrex::MultiFab& cu,
                       amrex::MultiFab& cuMeans,
@@ -163,13 +169,16 @@ void ReadCheckPoint3D(int& step,
                       std::array<MultiFab, AMREX_SPACEDIM>& velMeans,
                       std::array<MultiFab, AMREX_SPACEDIM>& velVars,
                       amrex::MultiFab& coVars,
+                      amrex::MultiFab& surfcov,
+                      amrex::MultiFab& surfcovMeans,
+                      amrex::MultiFab& surfcovVars,
                       Vector<Real>& spatialCross, int ncross,
                       BoxArray& ba, DistributionMapping& dmap);
 
 void WriteCheckPoint2D(int step,
                        const amrex::Real time,
                        int statsCount,
-                       const amrex::Geometry geom,
+                       const amrex::Geometry& geom,
                        const amrex::MultiFab& cu,
                        const amrex::MultiFab& cuMeans,
                        const amrex::MultiFab& cuVars,
@@ -188,7 +197,7 @@ void WriteCheckPoint2D(int step,
 void ReadCheckPoint2D(int& step,
                        amrex::Real& time,
                        int& statsCount,
-                       amrex::Geometry geom,
+                       amrex::Geometry& geom,
                        const amrex::Box& domain,
                        amrex::MultiFab& cu,
                        amrex::MultiFab& cuMeans,
@@ -209,7 +218,7 @@ void ReadCheckPoint2D(int& step,
 void WriteCheckPoint1D(int step,
                        const amrex::Real time,
                        int statsCount,
-                       const amrex::Geometry geom,
+                       const amrex::Geometry& geom,
                        const amrex::MultiFab& cu,
                        const amrex::MultiFab& cuMeans,
                        const amrex::MultiFab& cuVars,
@@ -228,7 +237,7 @@ void WriteCheckPoint1D(int step,
 void ReadCheckPoint1D(int& step,
                        amrex::Real& time,
                        int& statsCount,
-                       amrex::Geometry geom,
+                       amrex::Geometry& geom,
                        const amrex::Box& domain,
                        amrex::MultiFab& cu,
                        amrex::MultiFab& cuMeans,
@@ -266,10 +275,12 @@ void evaluateStatsStag3D(MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
                          std::array<MultiFab, AMREX_SPACEDIM>& cumomMean,
                          std::array<MultiFab, AMREX_SPACEDIM>& cumomVar,
                          MultiFab& coVar, 
+                         MultiFab& theta, MultiFab& thetaMean, MultiFab& thetaVar,
                          Vector<Real>& dataSliceMeans_xcross,
                          Vector<Real>& spatialCross3D, const int ncross,
                          const amrex::Box& domain,
-                         const int steps);
+                         const int steps,
+                         const Geometry& geom);
 
 void evaluateStatsStag2D(MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
                          MultiFab& prim_in, MultiFab& primMean, MultiFab& primVar,
@@ -280,8 +291,10 @@ void evaluateStatsStag2D(MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
                          std::array<MultiFab, AMREX_SPACEDIM>& cumomMean,
                          std::array<MultiFab, AMREX_SPACEDIM>& cumomVar,
                          MultiFab& coVar, 
+                         MultiFab& theta, MultiFab& thetaMean, MultiFab& thetaVar,
                          MultiFab& spatialCross2D, const int ncross,
-                         const int steps);
+                         const int steps,
+                         const Geometry& geom);
 
 void evaluateStatsStag1D(MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
                          MultiFab& prim_in, MultiFab& primMean, MultiFab& primVar,
@@ -292,8 +305,10 @@ void evaluateStatsStag1D(MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
                          std::array<MultiFab, AMREX_SPACEDIM>& cumomMean,
                          std::array<MultiFab, AMREX_SPACEDIM>& cumomVar,
                          MultiFab& coVar, 
+                         MultiFab& theta, MultiFab& thetaMean, MultiFab& thetaVar,
                          MultiFab& spatialCross1D, const int ncross,
-                         const int steps);
+                         const int steps,
+                         const Geometry& geom);
 
 void EvaluateStatsMeans(MultiFab& cons, MultiFab& consMean,
                         MultiFab& prim_in, MultiFab& primMean,
@@ -301,6 +316,7 @@ void EvaluateStatsMeans(MultiFab& cons, MultiFab& consMean,
                         std::array<MultiFab, AMREX_SPACEDIM>& velMean,
                         const std::array<MultiFab, AMREX_SPACEDIM>& cumom,
                         std::array<MultiFab, AMREX_SPACEDIM>& cumomMean,
+                        MultiFab& theta, MultiFab& thetaMean,
                         const int steps);
 
 void EvaluateVarsCoVars(const MultiFab& cons, const MultiFab& consMean, MultiFab& consVar,
@@ -311,6 +327,7 @@ void EvaluateVarsCoVars(const MultiFab& cons, const MultiFab& consMean, MultiFab
                         const std::array<MultiFab, AMREX_SPACEDIM>& cumomMean,
                         std::array<MultiFab, AMREX_SPACEDIM>& cumomVar,
                         MultiFab& coVar,
+                        const MultiFab& theta, const MultiFab& thetaMean, MultiFab& thetaVar,
                         const int steps);
 
 void GetSliceAverageCross(Vector<Real>& dataAvMeans_x,

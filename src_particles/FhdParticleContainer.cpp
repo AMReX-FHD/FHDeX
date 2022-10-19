@@ -542,7 +542,7 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
                                     const std::array<MultiFab, AMREX_SPACEDIM>& RealFaceCoords,
                                     std::array<MultiFab, AMREX_SPACEDIM>& source,
                                     std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
-                                    const paramPlane* paramPlaneList, const int paramPlaneCount, int sw)
+                                    paramPlane* paramPlaneList, const int paramPlaneCount, int sw)
 {
     BL_PROFILE_VAR("MoveIons()",MoveIons);
 
@@ -654,14 +654,14 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
                             if(intsurf > 0)
                             {
 
-                                const paramPlane& surf = paramPlaneList[intsurf-1]; //find_inter indexes from 1 to maintain compatablity with fortran version
+                                paramPlane& surf = paramPlaneList[intsurf-1]; //find_inter indexes from 1 to maintain compatablity with fortran version
 
                                 if(surf.periodicity == 0)
                                 {
                                    Real dummy = 1;
                                    //std::cout << "Pre: " << part.rdata(FHD_realData::velx) << ", " << part.rdata(FHD_realData::vely) << ", " << part.rdata(FHD_realData::velz) << ", " << intside << "\n";
                                    //app_bc(&surf, &part, &intside, domsize, &push, &dummy, &dummy);
-                                   app_bc_gpu(&surf, part, intside, pdomsize, &push, &runtime, dummy, engine);
+                                   //app_bc_gpu(&surf, part, intside, pdomsize, &push, &runtime, dummy, engine);
                                    //std::cout << "Post: " << part.rdata(FHD_realData::velx) << ", " << part.rdata(FHD_realData::vely) << ", " << part.rdata(FHD_realData::velz) << ", " << intside << "\n";
 
                                    runtime = runtime - inttime;
@@ -864,7 +864,7 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
                     runtime = runtime - inttime;
                     if(intsurf > 0)
                     {
-                        const paramPlane& surf = paramPlaneList[intsurf-1];//find_inter indexes from 1 to maintain compatablity with fortran version
+                        paramPlane& surf = paramPlaneList[intsurf-1];//find_inter indexes from 1 to maintain compatablity with fortran version
 
                         Real dummy = 1;
                         //app_bc(&surf, &part, &intside, domsize, &push, &dummy, &dummy);
@@ -974,6 +974,7 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
 
 void FhdParticleContainer::SpreadIonsGPU(const Real* dxFluid, const Real* dxE, const Geometry geomF,
                                       const std::array<MultiFab, AMREX_SPACEDIM>& umac,
+				      const std::array<MultiFab, AMREX_SPACEDIM>& coords,
                                       std::array<MultiFab, AMREX_SPACEDIM>& efield,
                                       std::array<MultiFab, AMREX_SPACEDIM>& source,
                                       std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp)
@@ -1007,14 +1008,17 @@ void FhdParticleContainer::SpreadIonsGPU(const Real* dxFluid, const Real* dxE, c
         emf_gpu(particles,
                       efield[0][pti], efield[1][pti], efield[2][pti],
                       ZFILL(plo), ZFILL(dxE));
-        if(fluid_tog != 0)
-        {
-            spread_ions_fhd_gpu(particles,                         
-                             sourceTemp[0][pti], sourceTemp[1][pti], sourceTemp[2][pti],
-                             ZFILL(plo),
-                             ZFILL(dxFluid));
-        }
 
+    }
+
+    if(fluid_tog != 0)
+    {
+        //spread_ions_fhd_gpu(particles,                         
+        //                 sourceTemp[0][pti], sourceTemp[1][pti], sourceTemp[2][pti],
+        //                 ZFILL(plo),
+        //                 ZFILL(dxFluid));
+
+        SpreadMarkersGpu(lev, sourceTemp, coords, dxFluid, 1);
     }
 
     if(fluid_tog != 0)
@@ -1048,6 +1052,7 @@ void FhdParticleContainer::SpreadIonsGPU(const Real* dxFluid, const Real* dxE, c
 
 void FhdParticleContainer::SpreadIonsGPU(const Real* dxFluid, const Geometry geomF,
                                       const std::array<MultiFab, AMREX_SPACEDIM>& umac,
+				      const std::array<MultiFab, AMREX_SPACEDIM>& coords,
                                       std::array<MultiFab, AMREX_SPACEDIM>& source,
                                       std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp)
 {
@@ -1064,25 +1069,26 @@ void FhdParticleContainer::SpreadIonsGPU(const Real* dxFluid, const Geometry geo
 #endif
 
 
-    for (FhdParIter pti(*this, lev); pti.isValid(); ++pti)
-    {
-        const int grid_id = pti.index();
-        const int tile_id = pti.LocalTileIndex();
-        const Box& tile_box  = pti.tilebox();
-        
-        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
-        auto& particles = particle_tile.GetArrayOfStructs();
-        const int np = particles.numParticles();
+    //for (FhdParIter pti(*this, lev); pti.isValid(); ++pti)
+    //{
+    //    const int grid_id = pti.index();
+    //    const int tile_id = pti.LocalTileIndex();
+    //    const Box& tile_box  = pti.tilebox();
+    //    
+    //    auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+    //    auto& particles = particle_tile.GetArrayOfStructs();
+    //    const int np = particles.numParticles();
 
         if(fluid_tog != 0)
         {
-            spread_ions_fhd_gpu(particles,                         
-                             sourceTemp[0][pti], sourceTemp[1][pti], sourceTemp[2][pti],
-                             ZFILL(plo),
-                             ZFILL(dxFluid));
+            //spread_ions_fhd_gpu(particles,                         
+            //                 sourceTemp[0][pti], sourceTemp[1][pti], sourceTemp[2][pti],
+            //                 ZFILL(plo),
+            //                 ZFILL(dxFluid));
+	    SpreadMarkersGpu(lev, sourceTemp, coords, dxFluid, 1);
         }
 
-    }
+    //}
 
     if(fluid_tog != 0)
     {  
