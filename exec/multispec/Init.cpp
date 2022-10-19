@@ -347,8 +347,8 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
               c=c_init_1(:) inside, c=c_init_2(:) outside
               can be discontinous or smooth depending on smoothing_width
             */
-            Real l1 = L[1] / 3.;
-            Real l2 = 2.*l1;
+            Real l1 = L[1] / 4.;
+            Real l2 = 3.*l1;
 
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
@@ -379,7 +379,7 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                     for (int n=0; n<nspecies; ++n) {
                         c(i,j,k,n) = c_init_1[n] +
                             (c_init_2[n] - c_init_1[n])*
-                            (1./(1.+std::exp(-smoothing_width*(y-l1))) - 1./(1.+std::exp(-smoothing_width*(y-l2))));
+                            (1./(1.+std::exp(-(y-l1)/(smoothing_width*dx[0]))) - 1./(1.+std::exp(-(y-l2)/(smoothing_width*dx[0]))));
                     }
                 }
             });

@@ -77,7 +77,8 @@ void ComputeMassFluxdiv(MultiFab& rho,
   // we should move this to occur before the call to compute_mass_fluxdiv and into
   // the advance_timestep routines
   // external_source(rho,diff_mass_fluxdiv,stage_time,geom);
-  if (prob_type == 4 || prob_type == 5) {
+  //if (prob_type == 4 || prob_type == 5) {
+  if (prob_type == 5) {
       Abort("ComputMassFluxdiv: external source not implemented yet for this prob_type");
   }
 
