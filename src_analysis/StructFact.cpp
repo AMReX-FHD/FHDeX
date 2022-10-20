@@ -305,6 +305,205 @@ void StructFact::FortStructure(const MultiFab& variables, const Geometry& geom,
   
 }
 
+void StructFact::DynStructureDens(const MultiFab& variables, 
+		                  const MultiFab& variables0_dft_real, 
+				  const MultiFab& variables0_dft_imag,
+		                  const Geometry& geom,
+                                  const Real& ktarg,
+                                  const int& reset,
+				  const int& zero_avg) {
+
+  BL_PROFILE_VAR("StructFact::DynStructureDens()",DynStructureDens);
+
+  Real kminx = 2*M_PI/(prob_hi[0]-prob_lo[0]);
+  Real kminy = 2*M_PI/(prob_hi[1]-prob_lo[1]);
+  Real kminz = 2*M_PI/(prob_hi[2]-prob_lo[2]);
+  Real kmin = amrex::min(kminx,kminy,kminz);
+//  Print() << "kmin is " << kmin << std::endl;
+//  Print() << "ktarg/kmin is " << ktarg/kmin << std::endl;
+//  Print() << "ceil is " << ceil(ktarg/kmin) << std::endl;
+//  Print() << "floor is " << floor(ktarg/kmin) << std::endl;
+
+  const BoxArray& ba = variables.boxArray();
+  const DistributionMapping& dm = variables.DistributionMap();
+  Box domain = geom.Domain();
+
+  MultiFab variables_dft_real, variables_dft_imag;
+  variables_dft_real.define(ba, dm, 1, 0);
+  variables_dft_imag.define(ba, dm, 1, 0);
+
+  ComputeFFT(variables, variables_dft_real, variables_dft_imag, geom);
+
+  // temporary storage built on BoxArray and DistributionMapping of "variables"
+  // One case where "variables" and "dsf_real/imag/mag" may have different DistributionMappings
+  // is for flattened MFs with one grid newly built flattened MFs may be on a different
+  // processor than the flattened MF used to build cov_real/imag/mag
+  // or in general, problems that are not perfectly load balanced
+  // For now, DSF only focuses on one component, (number) density
+  dsf_real.define(ba, dm, 1, 0);
+  dsf_imag.define(ba, dm, 1, 0);
+  dsf_real.setVal(0.0);
+  dsf_imag.setVal(0.0);
+
+  MultiFab dsf_temp;
+  dsf_temp.define(ba, dm, 1, 0);
+
+  // temporary storage built on BoxArray and DistributionMapping of "dsf_real/imag/mag"
+  MultiFab dsf_temp2;
+  dsf_temp2.define(dsf_real.boxArray(), dsf_real.DistributionMap(), 1, 0);
+
+  // Compute temporary real and imaginary components of covariance
+
+  // Real component of covariance
+  dsf_temp.setVal(0.0);
+  MultiFab::AddProduct(dsf_temp,variables_dft_real,0,variables0_dft_real,0,0,1,0);
+  MultiFab::AddProduct(dsf_temp,variables_dft_imag,0,variables0_dft_imag,0,0,1,0);
+
+  // copy into a MF with same ba and dm as cov_real/imag/mag
+  dsf_temp2.ParallelCopy(dsf_temp,0,0,1);
+
+  if (reset == 1) {
+      MultiFab::Copy(dsf_real,dsf_temp2,0,0,1,0);
+  } else {
+      MultiFab::Add(dsf_real,dsf_temp2,0,0,1,0);
+  }
+
+  // Imaginary component of covariance
+  dsf_temp.setVal(0.0);
+  MultiFab::AddProduct(dsf_temp,variables0_dft_imag,0,variables_dft_real,0,0,1,0);
+  dsf_temp.mult(-1.0,0);
+  MultiFab::AddProduct(dsf_temp,variables0_dft_real,0,variables_dft_imag,0,0,1,0);
+
+  // copy into a MF with same ba and dm as cov_real/imag/mag
+  dsf_temp2.ParallelCopy(dsf_temp,0,0,1);
+
+  if (reset == 1) {
+      MultiFab::Copy(dsf_imag,dsf_temp2,0,0,1,0);
+  } else {
+      MultiFab::Add(dsf_imag,dsf_temp2,0,0,1,0);
+  }
+
+  // shift MF so that (0,0,0) wavevector is at the center
+  ShiftFFT(dsf_real,geom,zero_avg);
+  ShiftFFT(dsf_imag,geom,zero_avg);
+
+  // Initialize 3 reduce operations, in the order of sum_real, sum_imag, kcount
+  ReduceOps<ReduceOpSum, ReduceOpSum, ReduceOpSum> reduce_op3;
+  ReduceData<Real, Real, int> reduce_data3(reduce_op3);
+  using ReduceTuple = typename decltype(reduce_data3)::Type;
+
+  Real sum_real_tile = 0;
+  Real sum_imag_tile = 0;
+  int kcount_tile = 0;
+
+  // calculate for specific k
+  for (MFIter mfi(variables_dft_real); mfi.isValid(); ++mfi) {
+
+            Array4<Real> const& realpart = dsf_real.array(mfi);
+            Array4<Real> const& imagpart = dsf_imag.array(mfi);
+
+            //Array4<Real> const& realpart_chk = variables_dft_real.array(mfi);
+            //Array4<Real> const& imagpart_chk = variables_dft_imag.array(mfi);
+            //Array4<const Real> realpart0_chk = variables0_dft_real.array(mfi);
+            //Array4<const Real> imagpart0_chk = variables0_dft_imag.array(mfi);
+
+            Box bx = mfi.fabbox();
+
+	    reduce_op3.eval(bx, reduce_data3, 
+	    [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
+            //amrex::ParallelFor(bx,
+            //[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+
+                    Real sum_real = 0;
+                    Real sum_imag = 0;
+                    int kcount = 0;
+
+		    //if (i==47 && j==17 && k==17){
+	            //   std::cout << "checking a random point (47,17,17): " << realpart_chk(47,17,17) << " at Rank " << ParallelDescriptor::MyProc() <<std::endl;
+	            //   std::cout << "checking a random point (47,17,17) for variables0: " << realpart0_chk(47,17,17) << " at Rank " << ParallelDescriptor::MyProc() << std::endl;
+	            //   std::cout << "checking a random point (47,17,17) for dsf: " << realpart(47,17,17) << " at Rank " << ParallelDescriptor::MyProc() << std::endl;
+		    //}
+                    int nx = domain.length(0);
+                    int nxh = (nx+1)/2;
+                    int ny = domain.length(1);
+                    int nyh = (ny+1)/2;
+#if (AMREX_SPACEDIM == 3)
+                    int nz = domain.length(2);
+                    int nzh = (nz+1)/2;
+#endif
+
+		    // calculate kx, ky, kz
+		    int kx = i-nxh;
+		    int ky = j-nyh;
+		    int kz = 0;
+#if (AMREX_SPACEDIM == 3)
+		    kz = k-nzh;
+#endif
+
+		    // find the bin of q
+		    if (sqrt(kx*kx+ky*ky+kz*kz) <= ceil(ktarg/kmin) && 
+		        sqrt(kx*kx+ky*ky+kz*kz) >= floor(ktarg/kmin))
+		    {
+		        sum_real += realpart(i,j,k);
+			sum_imag += imagpart(i,j,k);
+			kcount++;
+			std::cout << "matching wavevector for k: (" << i << "," << j << "," << k << ")" << std::endl;
+		    }
+		    return {sum_real, sum_imag, kcount};
+            });
+
+	    // Get the value of the reduce sum on one processor
+	    sum_real_tile = amrex::get<0>(reduce_data3.value());
+	    sum_imag_tile = amrex::get<1>(reduce_data3.value());
+	    kcount_tile = amrex::get<2>(reduce_data3.value());
+  }
+
+  int itemp = kcount_tile;
+  ParallelDescriptor::ReduceIntSum(itemp);
+  kcount_tile = itemp;
+  Print() << "number of wavevectors for this k is " << kcount_tile << std::endl;
+
+  Real temp = sum_real_tile;
+  ParallelDescriptor::ReduceRealSum(temp);
+  sum_real_tile = temp/kcount_tile;
+  
+  temp = sum_imag_tile;
+  ParallelDescriptor::ReduceRealSum(temp);
+  sum_imag_tile = temp/kcount_tile;
+
+  if(ParallelDescriptor::MyProc() == 0) {
+       //cout << sumoRFyy[0] << endl;
+
+       //for(int i=0;i<ngroups;i++)
+       //{
+           if(msd_grp_int[0] > 0)
+           {
+               std::string groupname = Concatenate("dsfEst_",0) + Concatenate("_ktarg",floor(ktarg/kmin));
+               std::ofstream ofs(groupname, std::ofstream::app);
+
+               //if(stepstat[0]==0)
+               //{
+               //    ofs << std::endl;
+               //}else if(stepstat[i]<(msd_grp_len[0]+1))
+               {
+                   ofs << sum_real_tile << "  " << sum_imag_tile << std::endl;
+               }
+
+               ofs.close();
+           }
+       //}
+
+  }
+
+  if (reset == 1) {
+      nsamples = 1;
+  } else {
+      nsamples++;
+  }
+
+}
+
 void StructFact::Reset() {
 
     BL_PROFILE_VAR("StructFact::Reset()", StructFactReset);

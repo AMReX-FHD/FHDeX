@@ -131,6 +131,10 @@ void main_driver(const char* argv)
     // MF for charge mean and variance
     MultiFab chargeM;
     
+    // variables that save FFT (real and imag parts) at t0
+    MultiFab struct_cc_numdens0_real;
+    MultiFab struct_cc_numdens0_imag;
+
     if (restart < 0) {
 
         if (seed > 0) {
@@ -241,13 +245,17 @@ void main_driver(const char* argv)
         
         chargeM.define(bp, dmap, 1, 1);  // mean
         chargeM.setVal(0);
+
+        struct_cc_numdens0_real.define(bc, dmap, 1, 0);
+        struct_cc_numdens0_imag.define(bc, dmap, 1, 0);
     }
     else {
         
         // restart from checkpoint
         ReadCheckPoint(step,time,statsCount,umac,umacM,pres,
                        particleMeans,particleVars,chargeM,
-                       potential,potentialM);
+                       potential,potentialM,
+		       struct_cc_numdens0_real,struct_cc_numdens0_imag);
 
         // grab DistributionMap from umac
         dmap = umac[0].DistributionMap();
@@ -551,6 +559,8 @@ void main_driver(const char* argv)
 
     // see the variable list used above above for particleMeans
     MultiFab particleInstant(bc, dmap, 8+nspecies, 0);
+    // also initialize a MultiFab to store variables at t0, which is used in dynamic structure factor
+    MultiFab particleInstant0(bc, dmap, 8+nspecies, 0);
     
     //-----------------------------
     //  Hydro setup
@@ -889,6 +899,42 @@ void main_driver(const char* argv)
         external[d].define(bp, dmap, 1, ngp);
     }
     
+    ///////////////////////////////////////////
+    // structure factor for numdens-numdens
+    ///////////////////////////////////////////
+
+    // names of variables in struct_cc_dens
+    Vector< std::string > var_names_dens(1);
+    var_names_dens[0] = "dens";
+
+    // multifab that stores real t0 data on which FFT will be performed
+    MultiFab struct_cc_numdens0;
+    struct_cc_numdens0.define(bc, dmap, 1, 0);
+
+    // variables that store FFT at current time t
+    MultiFab struct_cc_numdens;
+    struct_cc_numdens.define(bc, dmap, 1, 0);
+
+    // these are the number of pairs we want to report
+    int nvar_sf_numdens = 1;
+    amrex::Vector< int > s_pairA_numdens(nvar_sf_numdens);
+    amrex::Vector< int > s_pairB_numdens(nvar_sf_numdens);
+
+    // Select which variable pairs to include in structure factor:
+    s_pairA_numdens[0] = 0; // numdens-numdens
+    s_pairB_numdens[0] = 0;
+
+    Vector<Real> scaling_numdens(nvar_sf_numdens);
+    for (int i=0; i<nvar_sf_numdens; ++i) {
+        scaling_numdens[i] = 1.;
+    }
+
+    StructFact structFact_numdens(bc,dmap,var_names_dens,scaling_numdens,
+                                 s_pairA_numdens,s_pairB_numdens);
+
+    //// number of pairs for numdens-numdens, used for copying particle stats multifab
+    //// declaration of StructFact is inside FhdParticleContainer::DynStructFact
+    //int nvar_sf_numdens = 1;
 
 
     ///////////////////////////////////////////
@@ -961,11 +1007,24 @@ void main_driver(const char* argv)
     StructFact structFact_vel(ba,dmap,var_names_vel,scaling_vel,
                               s_pairA_vel,s_pairB_vel);
 
+    // vectors used for dsf
+    Gpu::ManagedVector<Real> posx;
+    posx.resize(simParticles);
+    Real * posxPtr = posx.dataPtr();
+
+    Gpu::ManagedVector<Real> posy;
+    posy.resize(simParticles);
+    Real * posyPtr = posy.dataPtr();
+
+    Gpu::ManagedVector<Real> posz;
+    posz.resize(simParticles);
+    Real * poszPtr = posz.dataPtr();
 
 
 //    // Writes instantaneous flow field and some other stuff? Check with Guy.
     //WritePlotFileHydro(0, time, geom, umac, pres, umacM);
     remove("bulkFlowEst");
+    remove("partPos");
     //Time stepping loop
 
 
@@ -1374,7 +1433,8 @@ void main_driver(const char* argv)
 	    particles.computeForcesCoulombGPU(simParticles);
 	}
 
-	particles.computeForcesSpringGPU(simParticles);
+	//particles.computeForcesSpringGPU(simParticles);
+	particles.computeForcesFENEGPU(simParticles);
 
         // compute other forces and spread to grid
         particles.SpreadIonsGPU(dx, dxp, geom, umac, RealFaceCoords, efieldCC, source, sourceTemp);
@@ -1527,6 +1587,26 @@ void main_driver(const char* argv)
 	MultiFab::Add(umac[2],externalV[2],0,0,externalV[2].nComp(),externalV[2].nGrow());
 	*/
 
+        // collect particle positions onto one processor
+	particles.GetAllParticlePositions(posxPtr,posyPtr,poszPtr,simParticles);
+        if (dsf_flag == 1)
+        {
+	   if (ParallelDescriptor::MyProc()==0){
+              std::string filename = "partPos";
+              std::ofstream ofs2(filename, std::ofstream::app);
+              //ofstream ofs( filename, ios::binary );
+   
+              for (int i=0;i<simParticles;i++)
+              {
+                  ofs2 << i << " " << posxPtr[i] << " " << posyPtr[i] << " " << poszPtr[i] << std::endl;
+              }
+   
+              ofs2.close();
+              //ofs.close();
+              Print() << "Finished writing particle positions.\n";
+	   }
+        }
+
         /*
         // FIXME - AJN
         // NOTE: this stats resetting should eventually be moved to *after* the statsCount++ line below
@@ -1585,6 +1665,28 @@ void main_driver(const char* argv)
         // compute particle fields, means, anv variances
         // also write out time-averaged current to currentEst
         particles.EvaluateStats(particleInstant, particleMeans, ionParticle[0], dt,statsCount);
+	
+	if (dsf_fft) {
+	   // save t0 stats
+	   if ((n_steps_skip > 0 && istep == n_steps_skip) ||
+               (n_steps_skip < 0 && istep%n_steps_skip == 0) ||
+	       istep == 1) {
+
+               Print() << "resetting dsf stats at " << istep << " step.\n";
+	       MultiFab::Copy(struct_cc_numdens0, particleInstant, 0, 0, nvar_sf_numdens, 0);
+	       structFact_numdens.ComputeFFT(struct_cc_numdens0, struct_cc_numdens0_real, struct_cc_numdens0_imag,geomC);
+
+           }
+
+	   // compute dynamic structure factor, using particleInstant and particleInstant0
+           MultiFab::Copy(struct_cc_numdens, particleInstant, 0, 0, nvar_sf_numdens, 0);
+	   structFact_numdens.DynStructureDens(struct_cc_numdens, 
+	   		                 struct_cc_numdens0_real, struct_cc_numdens0_imag, 
+	   			         geomC, ktarg);
+
+           Print() << "Finish dynamic structure factor.\n";
+	}
+
 
         // compute the mean and variance of umac
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
@@ -1646,7 +1748,8 @@ void main_driver(const char* argv)
         if (chk_int > 0 && istep%chk_int == 0) {
             WriteCheckPoint(istep, time, statsCount, umac, umacM, pres,
                             particles, particleMeans, particleVars, chargeM,
-                            potential, potentialM);
+                            potential, potentialM,
+			    struct_cc_numdens0_real, struct_cc_numdens0_imag);
         }
 
         //particles.PrintParticles();

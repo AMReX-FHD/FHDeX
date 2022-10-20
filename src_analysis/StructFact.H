@@ -57,6 +57,10 @@ public:
     // Vector of MultiFabs containing final magnitude of covariances
     MultiFab cov_mag;
 
+    // Vector stores real and imaginary component of dynamic structure factor
+    MultiFab dsf_real;
+    MultiFab dsf_imag;
+
     StructFact();
 
     StructFact(const amrex::BoxArray&, const amrex::DistributionMapping&, 
@@ -83,6 +87,10 @@ public:
 
     void FortStructure(const amrex::MultiFab&, const amrex::Geometry&,
                        const int& reset=0);
+
+    void DynStructureDens(const amrex::MultiFab&, 
+		          const amrex::MultiFab&, const amrex::MultiFab&,
+		          const amrex::Geometry&, const Real& ktarg, const int& reset=0, const int& zero_avg=1);
 
     void Reset();
     

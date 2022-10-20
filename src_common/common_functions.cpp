@@ -159,8 +159,11 @@ int                           common::struct_fact_int;
 int                           common::radialdist_int;
 int                           common::cartdist_int;
 int                           common::n_steps_skip;
+int                           common::dsf_flag;
+int                           common::dsf_fft;
 AMREX_GPU_MANAGED amrex::Real common::binSize;
 AMREX_GPU_MANAGED amrex::Real common::searchDist;
+AMREX_GPU_MANAGED amrex::Real common::ktarg;
 int                           common::project_dir;
 int                           common::slicepoint;
 amrex::Vector<int>            common::max_grid_projection;
@@ -539,8 +542,11 @@ void InitializeCommonNamespace() {
     radialdist_int = 0;
     cartdist_int = 0;
     n_steps_skip = 0;
+    dsf_flag = 0;
+    dsf_fft = 0;
     binSize = 0.;
     searchDist = 0.;
+    ktarg = 0.;
 
     // projection
     project_dir = -1;
@@ -978,6 +984,7 @@ void InitializeCommonNamespace() {
             potential_hi[i] = temp[i];
         }
     }
+    pp.query("ktarg",ktarg);
     pp.query("dsmc_boundaries",dsmc_boundaries);
     pp.query("n_burn",n_burn);
     pp.query("phonon_sound_speed",phonon_sound_speed);
@@ -988,6 +995,8 @@ void InitializeCommonNamespace() {
     pp.query("radialdist_int",radialdist_int);
     pp.query("cartdist_int",cartdist_int);
     pp.query("n_steps_skip",n_steps_skip);
+    pp.query("dsf_flag",dsf_flag);
+    pp.query("dsf_fft",dsf_fft);
     pp.query("binSize",binSize);
     pp.query("searchDist",searchDist);
     pp.query("project_dir",project_dir);

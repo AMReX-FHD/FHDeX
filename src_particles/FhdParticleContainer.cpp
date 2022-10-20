@@ -3,6 +3,7 @@
 #include "particle_functions_K.H"
 #include "paramplane_functions_K.H"
 #include <math.h>
+#include "StructFact.H"
 
 bool FhdParticleContainer::use_neighbor_list  {true};
 bool FhdParticleContainer::sort_neighbor_list {false};
@@ -608,6 +609,365 @@ void FhdParticleContainer::computeForcesCoulombGPU(long totalParticles) {
     Print() << "Finished Coulomb calculation\n";
 }
 
+void FhdParticleContainer::computeForcesFENEGPU(long totalParticles) {
+
+    BL_PROFILE_VAR("computeForcesFENE()",computeForcesFENE);
+
+    using namespace amrex;
+    using common::images;
+
+    GpuArray<Real, 3> plo = {prob_lo[0], prob_lo[1], prob_lo[2]};
+    GpuArray<Real, 3> phi = {prob_hi[0], prob_hi[1], prob_hi[2]};
+
+    const int lev = 0;
+    double domx, domy, domz;
+
+    domx = (phi[0] - plo[0]);
+    domy = (phi[1] - plo[1]);
+    domz = (phi[2] - plo[2]);
+
+//    Real posx[totalParticles];
+    Gpu::ManagedVector<Real> posx;
+    posx.resize(totalParticles);
+    Real * posxPtr = posx.dataPtr();
+    
+    Gpu::ManagedVector<Real> posy;
+    posy.resize(totalParticles);
+    Real * posyPtr = posy.dataPtr();
+    
+    Gpu::ManagedVector<Real> posz;
+    posz.resize(totalParticles);
+    Real * poszPtr = posz.dataPtr();
+
+    Gpu::ManagedVector<int> groupid;
+    groupid.resize(totalParticles);
+    int * groupidPtr = groupid.dataPtr();
+    
+    Gpu::ManagedVector<int> prev;
+    prev.resize(totalParticles);
+    int * prevPtr = prev.dataPtr();
+    
+    Gpu::ManagedVector<int> next;
+    next.resize(totalParticles);
+    int * nextPtr = next.dataPtr();
+
+    Print() << "Calculating FENE force for molecules\n";
+
+    // collect particle positions onto one processor
+    PullDown(0, posxPtr, FHD_realData::ax, totalParticles);
+    PullDown(0, posyPtr, FHD_realData::ay, totalParticles);
+    PullDown(0, poszPtr, FHD_realData::az, totalParticles);
+    PullDownInt(0, groupidPtr, FHD_intData::groupid, totalParticles);
+    PullDownInt(0, prevPtr, FHD_intData::prev, totalParticles);
+    PullDownInt(0, nextPtr, FHD_intData::next, totalParticles);
+
+    //Print() << groupidPtr[1] << "\n";
+    int imag = (images == 0) ? 1 : images;
+
+    Real maxdist = 0.99*amrex::min(imag * domx,
+                                   imag * domy,
+                                   imag * domz);
+    Real sumdr2[ngroups];
+    Real sumdx2[ngroups];
+    int nbonds[ngroups];
+    Real l_e2e_x[ngroups];
+    Real l_e2e_y[ngroups];
+    Real l_e2e_z[ngroups];
+    Real l2_e2e[ngroups];
+    Real pos_cmx[ngroups];
+    Real pos_cmy[ngroups];
+    Real pos_cmz[ngroups];
+    Real pos_cm[ngroups];
+    Real rg2x[ngroups];
+    Real rg2y[ngroups];
+    Real rg2z[ngroups];
+    Real rg2[ngroups];
+    int groupCount[ngroups];
+    //Real travelTime[ngroups];
+    for (int i=0; i<ngroups; i++){
+        sumdr2[i]=0;
+        sumdx2[i]=0;
+        nbonds[i]=0;
+        l_e2e_x[i]=0;
+        l_e2e_y[i]=0;
+        l_e2e_z[i]=0;
+        l2_e2e[i]=0;
+	pos_cmx[i]=0;
+	pos_cmy[i]=0;
+	pos_cmz[i]=0;
+	pos_cm[i]=0;
+	rg2x[i]=0;
+	rg2y[i]=0;
+	rg2z[i]=0;
+	rg2[i]=0;
+	groupCount[i]=0;
+        //travelTime[ngroups]=0;
+    }
+
+    for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) {
+
+        const int grid_id = pti.index();
+        const int tile_id = pti.LocalTileIndex();
+
+        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+        auto& particles = particle_tile.GetArrayOfStructs();
+        const int np = particles.numParticles();
+
+        auto pstruct = particles().dataPtr();
+       
+        // loop over particles
+//                for(int i = 0; i < np; i++)
+        AMREX_FOR_1D( np, i,
+        {
+
+            ParticleType & part = pstruct[i];
+
+	    //cout << part.idata(FHD_intData::groupid) << "\n";
+
+	    if (part.idata(FHD_intData::groupid) > 0)
+	    { 
+               double dr2;
+               double rtdr2;
+	       double rlogarg;
+               double dx;
+               double dy;
+               double dz;
+
+               int igroup = part.idata(FHD_intData::groupid)-1;
+	       // Calculate center of mass location in this for loop
+	       //   Currently need another loop to calculate radius of gyration
+	       //   TODO: calculate radius of gyration in this loop?
+	       pos_cmx[igroup] += part.rdata(FHD_realData::ax);
+	       pos_cmy[igroup] += part.rdata(FHD_realData::ay);
+	       pos_cmz[igroup] += part.rdata(FHD_realData::az);
+	       groupCount[igroup]++;
+               //travelTime[igroup] = part.rdata(FHD_realData::travelTime);
+
+	       // Calculate end-to-end vector of a polymer
+	       if (part.idata(FHD_intData::prev) == -1)// This is the start of the polymer i
+	       {
+	          l_e2e_x[igroup] -= part.rdata(FHD_realData::ax);
+	          l_e2e_y[igroup] -= part.rdata(FHD_realData::ay);
+	          l_e2e_z[igroup] -= part.rdata(FHD_realData::az);
+
+	       }
+
+	       if (part.idata(FHD_intData::next) == -1)// This is the end of the polymer i
+	       {
+	          l_e2e_x[igroup] += part.rdata(FHD_realData::ax);
+	          l_e2e_y[igroup] += part.rdata(FHD_realData::ay);
+	          l_e2e_z[igroup] += part.rdata(FHD_realData::az);
+
+	       }
+               //for(int j = 0; j < totalParticles; j++)
+               //{
+
+	           //TODO: find a way to figure out the particles before and after part in this group
+	           //if (groupidPtr[j] == 1)
+	           //{
+                       for(int ii = -images; ii <= images; ii++)
+                       {
+                          for(int jj = -images; jj <= images; jj++)
+	                  {
+                              for(int kk = -images; kk <= images; kk++)
+                              {
+
+				 /* For now, one particle on the chain only interact with
+				  *   one particle before and one particle after. */
+
+	                         //Print() << part.idata(FHD_intData::prev) << "\n";
+                                 // get distance with previous particle
+				 if (part.idata(FHD_intData::prev) > -1) 
+				 {
+                                    dx = part.rdata(FHD_realData::ax)-posxPtr[part.idata(FHD_intData::prev)] - ii*domx;
+                                    dy = part.rdata(FHD_realData::ay)-posyPtr[part.idata(FHD_intData::prev)] - jj*domy;
+                                    dz = part.rdata(FHD_realData::az)-poszPtr[part.idata(FHD_intData::prev)] - kk*domz;
+
+	               	            dr2 = dx*dx + dy*dy + dz*dz;
+                                    rtdr2 = sqrt(dr2);
+				    rlogarg = 1.0 - dr2/x0/x0;
+				    //cout << rtdr2 << "\n";
+				    sumdx2[igroup] += (rtdr2-x0)*(rtdr2-x0);
+				    sumdr2[igroup] += dr2;
+				    nbonds[igroup]++;
+
+				    if (rlogarg < 0.1) {
+				       cout << "FENE bond too long" << "\n";
+				       rlogarg = 0.1;
+				    } 
+                                    part.rdata(FHD_realData::forcex) += -k*dx/rlogarg;
+                                    part.rdata(FHD_realData::forcey) += -k*dy/rlogarg;
+                                    part.rdata(FHD_realData::forcez) += -k*dz/rlogarg;
+				    //cout << part.rdata(FHD_realData::forcex) << "\n";
+				 }
+                                 
+	                         //Print() << part.idata(FHD_intData::next) << "\n";
+				 // get distance with next particle
+				 if (part.idata(FHD_intData::next) > -1) 
+				 {
+                                    dx = part.rdata(FHD_realData::ax)-posxPtr[part.idata(FHD_intData::next)] - ii*domx;
+                                    dy = part.rdata(FHD_realData::ay)-posyPtr[part.idata(FHD_intData::next)] - jj*domy;
+                                    dz = part.rdata(FHD_realData::az)-poszPtr[part.idata(FHD_intData::next)] - kk*domz;
+
+	               	            dr2 = dx*dx + dy*dy + dz*dz;
+                                    rtdr2 = sqrt(dr2);
+				    rlogarg = 1.0 - dr2/x0/x0;
+				    //cout << rtdr2 << "\n";
+
+				    if (rlogarg < 0.1) {
+				       cout << "FENE bond too long" << "\n";
+				       if (rlogarg <= -3.0) {
+					  cout << "Bad FENE bond" << "\n";
+				       }
+				       rlogarg = 0.1;
+				    } 
+                                    part.rdata(FHD_realData::forcex) += -k*dx/rlogarg;
+                                    part.rdata(FHD_realData::forcey) += -k*dy/rlogarg;
+                                    part.rdata(FHD_realData::forcez) += -k*dz/rlogarg;
+				    //cout << part.rdata(FHD_realData::forcex) << "\n";
+				    
+				 }
+
+	                      }
+	                  }
+	               }
+	           //}
+	       //}
+	    }
+        });
+    }
+    
+    for(int i=0;i<ngroups;i++)
+    {
+        Real temp = sumdr2[i];        
+        ParallelDescriptor::ReduceRealSum(temp);
+        sumdr2[i] = temp;
+
+        temp = sumdx2[i];        
+        ParallelDescriptor::ReduceRealSum(temp);
+        sumdx2[i] = temp;
+
+        temp = l_e2e_x[i];        
+        ParallelDescriptor::ReduceRealSum(temp);
+        l_e2e_x[i] = temp;
+
+        temp = l_e2e_y[i];        
+        ParallelDescriptor::ReduceRealSum(temp);
+        l_e2e_y[i] = temp;
+
+        temp = l_e2e_z[i];        
+        ParallelDescriptor::ReduceRealSum(temp);
+        l_e2e_z[i] = temp;
+
+	l2_e2e[i] = l_e2e_x[i]*l_e2e_x[i] + l_e2e_y[i]*l_e2e_y[i] + l_e2e_z[i]*l_e2e_z[i];
+
+        //temp = travelTime[i];        
+        //ParallelDescriptor::ReduceRealMax(temp);
+        //travelTime[i] = temp;
+
+        int itemp = nbonds[i];        
+        ParallelDescriptor::ReduceIntSum(itemp);
+        nbonds[i] = itemp;
+
+        itemp = groupCount[i];        
+        ParallelDescriptor::ReduceIntSum(itemp);
+        groupCount[i] = itemp;
+
+        temp = pos_cmx[i];        
+        ParallelDescriptor::ReduceRealSum(temp);
+        pos_cmx[i] = temp;
+
+        temp = pos_cmy[i];        
+        ParallelDescriptor::ReduceRealSum(temp);
+        pos_cmy[i] = temp;
+
+        temp = pos_cmz[i];        
+        ParallelDescriptor::ReduceRealSum(temp);
+        pos_cmz[i] = temp;
+
+	if (groupCount[i] != 0)
+	{
+	   pos_cmx[i] /= groupCount[i];
+	   pos_cmy[i] /= groupCount[i];
+	   pos_cmz[i] /= groupCount[i];
+	}
+    }
+
+    // Loop over all particles again to calculate radius of gyration with respect to center of mass
+    //   probably can be improved later
+    for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) {
+
+        const int grid_id = pti.index();
+        const int tile_id = pti.LocalTileIndex();
+
+        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+        auto& particles = particle_tile.GetArrayOfStructs();
+        const int np = particles.numParticles();
+
+       
+
+        auto pstruct = particles().dataPtr();
+       
+       
+       
+        AMREX_FOR_1D( np, i,
+        {
+	    
+	    ParticleType & part = pstruct[i];
+
+	    //cout << part.idata(FHD_intData::groupid) << "\n";
+
+	    if (part.idata(FHD_intData::groupid) > 0)
+	    { 
+               int igroup = part.idata(FHD_intData::groupid)-1;
+
+	       rg2x[igroup] += pow(part.rdata(FHD_realData::ax)-pos_cmx[igroup],2);
+	       rg2y[igroup] += pow(part.rdata(FHD_realData::ay)-pos_cmy[igroup],2);
+	       rg2z[igroup] += pow(part.rdata(FHD_realData::az)-pos_cmz[igroup],2);
+	    }
+
+	});
+    }
+
+    for(int i=0;i<ngroups;i++)
+    {
+        Real temp = rg2x[i];        
+        ParallelDescriptor::ReduceRealSum(temp);
+        rg2x[i] = temp;
+
+        temp = rg2y[i];        
+        ParallelDescriptor::ReduceRealSum(temp);
+        rg2y[i] = temp;
+
+        temp = rg2z[i];        
+        ParallelDescriptor::ReduceRealSum(temp);
+        rg2z[i] = temp;
+
+	rg2[i] = rg2x[i]+rg2y[i]+rg2z[i];
+
+	// For now we assume equal-mass monomers,
+	//   so it is a simple average
+	if (groupCount[i] != 0)
+	{
+	   rg2[i] /= groupCount[i];
+	}
+    }
+
+
+    if(ParallelDescriptor::MyProc() == 0) {
+
+       for(int i=0;i<ngroups;i++)
+       {
+           std::string specname = Concatenate("bondEst_",i+1);
+           std::ofstream ofs(specname, std::ofstream::app);
+
+           ofs << sumdr2[i] << "  " << sumdx2[i] << "  " << l2_e2e[i] << "  " << rg2[i] << "  " << nbonds[i] << std::endl;
+       }
+    }
+
+    Print() << "Finished FENE calculation\n";
+}
+
 void FhdParticleContainer::computeForcesSpringGPU(long totalParticles) {
 
     BL_PROFILE_VAR("computeForcesSpring",computeForcesSpring);
@@ -617,6 +977,7 @@ void FhdParticleContainer::computeForcesSpringGPU(long totalParticles) {
 
     //Real k = 2.e4;
     //Real x0 = 1.e-8;
+    Real b = sqrt(3*k_B*T_init[0]/k);
 
     GpuArray<Real, 3> plo = {prob_lo[0], prob_lo[1], prob_lo[2]};
     GpuArray<Real, 3> phi = {prob_hi[0], prob_hi[1], prob_hi[2]};
@@ -790,6 +1151,9 @@ void FhdParticleContainer::computeForcesSpringGPU(long totalParticles) {
 
 	               	            dr2 = dx*dx + dy*dy + dz*dz;
                                     rtdr2 = sqrt(dr2);
+				    if (rtdr2 > b*2+x0) {
+				       cout << "Bad Hookian bond" << "\n";
+				    }
 				    //cout << rtdr2 << "\n";
 				    sumdx2[igroup] += (rtdr2-x0)*(rtdr2-x0);
 				    sumdr2[igroup] += dr2;
@@ -814,6 +1178,9 @@ void FhdParticleContainer::computeForcesSpringGPU(long totalParticles) {
 
 	               	            dr2 = dx*dx + dy*dy + dz*dz;
                                     rtdr2 = sqrt(dr2);
+				    if (rtdr2 > b*2+x0) {
+				       cout << "Bad Hookian bond" << "\n";
+				    }
 				    //cout << rtdr2 << "\n";
 
                  	            if (rtdr2 > 0.0)
@@ -3205,193 +3572,6 @@ FhdParticleContainer::MeanSqrCalcCM(int lev, int step) {
 }
 
 void
-FhdParticleContainer::DynStructFact(int lev, Real k, int step) {
-
-    BL_PROFILE_VAR("DynStructFact()",DynStructFact);
-
-    Real diffTotal = 0;
-    Real tt = 0.; // set to zero to protect against grids with no particles
-    long nTotal = 0;
-    Real sumPosQ[3] = {0,0,0};
-    Real monoDispX = 0;
-    Real monoDispY = 0;
-    Real monoDispZ = 0;
-    Real monoSqrDisp = 0;
-    Real sqrDispX[ngroups];
-    Real sqrDispY[ngroups];
-    Real sqrDispZ[ngroups];
-    Real sqrDisp[ngroups];
-    Real cmDispX[ngroups];
-    Real cmDispY[ngroups];
-    Real cmDispZ[ngroups];
-    Real cmDisp[ngroups];
-    Real travelTime[ngroups];
-    int groupCount[ngroups]; // represent how many particles are in group i
-    
-    int stepstat[ngroups];
-    
-    for(int i=0;i<ngroups;i++)
-    {
-        stepstat[i] = fmod(step-1,msd_grp_int[i]);
-        cout << "remainder: " << stepstat[i] << endl;
-    }
-    
-    for(int i=0;i<ngroups;i++)
-    {
-        sqrDispX[i]=0;
-        sqrDispY[i]=0;
-        sqrDispZ[i]=0;
-        sqrDisp[i]=0;
-        cmDispX[i]=0;
-        cmDispY[i]=0;
-        cmDispZ[i]=0;
-        cmDisp[i]=0;
-        groupCount[i]=0;
-    }
-    
-
-
-        
-
-    for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
-
-        TileIndex index(pti.index(), pti.LocalTileIndex());
-
-        AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
-        long np = this->GetParticles(lev).at(index).numParticles();
-        nTotal += np;
-        
-        for (int i=0; i<np; ++i) {
-            ParticleType & part = particles[i];
-            int igroup = part.idata(FHD_intData::groupid)-1;
-
-            if(stepstat[igroup] == 0)
-            {
-                for (int d=0; d<AMREX_SPACEDIM; ++d){
-                    part.rdata(FHD_realData::ox + d) = part.rdata(FHD_realData::ax + d);
-                }
-                part.rdata(FHD_realData::travelTime) = 0;
-            }        
-        }
-
-	// calculate displacement of each particle in each group
-        for (int i=0; i<np; ++i) {
-            ParticleType & part = particles[i];
-
-            int igroup = part.idata(FHD_intData::groupid)-1;
-
-            Real dispX = part.rdata(FHD_realData::ax)-part.rdata(FHD_realData::ox);          
-            Real dispY = part.rdata(FHD_realData::ay)-part.rdata(FHD_realData::oy);
-            Real dispZ = part.rdata(FHD_realData::az)-part.rdata(FHD_realData::oz);
-
-            cmDispX[igroup] += dispX;
-            cmDispY[igroup] += dispY;
-            cmDispZ[igroup] += dispZ;
-            //cmDisp[igroup] += dispX + dispY + dispZ;
-
-            travelTime[igroup] = part.rdata(FHD_realData::travelTime);
-            groupCount[igroup]++;
-
-	    if(igroup == floor(ngroups/2))
-	    {
-	        monoDispX = dispX;
-	        monoDispY = dispY;
-	        monoDispZ = dispZ;
-	    }
-
-        }
-
-
-
-    }
-
-    Real temp = monoDispX;        
-    ParallelDescriptor::ReduceRealSum(temp);
-    monoDispX = temp;
-
-    temp = monoDispY;        
-    ParallelDescriptor::ReduceRealSum(temp);
-    monoDispY = temp;
-    
-    temp = monoDispZ;        
-    ParallelDescriptor::ReduceRealSum(temp);
-    monoDispZ = temp;
-
-    for(int i=0;i<ngroups;i++)
-    {
-        Real temp = cmDispX[i];        
-        ParallelDescriptor::ReduceRealSum(temp);
-        cmDispX[i] = temp;
-
-        temp = cmDispY[i];        
-        ParallelDescriptor::ReduceRealSum(temp);
-        cmDispY[i] = temp;
-
-        temp = cmDispZ[i];        
-        ParallelDescriptor::ReduceRealSum(temp);
-        cmDispZ[i] = temp;
-
-        //temp = cmDisp[i];        
-        //ParallelDescriptor::ReduceRealSum(temp);
-        //cmDisp[i] = temp;
-
-        temp = travelTime[i];        
-        ParallelDescriptor::ReduceRealMax(temp);
-        travelTime[i] = temp;
-
-        int itemp = groupCount[i];        
-        ParallelDescriptor::ReduceIntSum(itemp);
-        groupCount[i] = itemp;
-
-    }
-
-    // square displacement
-    monoSqrDisp = monoDispX*monoDispX+monoDispY*monoDispY+monoDispZ*monoDispZ;
-    for(int i=0;i<ngroups;i++)
-    {
-        sqrDispX[i] = pow(cmDispX[i],2);
-        sqrDispY[i] = pow(cmDispY[i],2);
-        sqrDispZ[i] = pow(cmDispZ[i],2);
-        sqrDisp[i]  = sqrDispX[i]+sqrDispY[i]+sqrDispZ[i];
-
-	// for now we assume equal mass for each particle,
-	//   so CM displacement is difference between average locations.
-	//   Taking average here.
-        if(groupCount[i] != 0)
-        {
-            sqrDispX[i] /= pow(groupCount[i],2);
-            sqrDispY[i] /= pow(groupCount[i],2);
-            sqrDispZ[i] /= pow(groupCount[i],2);
-            sqrDisp[i] /= pow(groupCount[i],2);
-        }        
-    }
-
-
-    if(ParallelDescriptor::MyProc() == 0) {
-
-        for(int i=0;i<ngroups;i++)
-        {
-            if(msd_grp_int[i] > 0)
-            {
-                std::string groupname = Concatenate("msdCMEst_",i+1);
-                std::ofstream ofs(groupname, std::ofstream::app);
-
-                if(stepstat[i]==0)
-                {
-                    ofs << std::endl;
-                }else if(stepstat[i]<(msd_grp_len[i]+1))
-                {  
-                    ofs << travelTime[i] << "  " << sqrDispX[i] << "  " << sqrDispY[i] << "  "<< sqrDispZ[i] << "  "<< sqrDisp[i] << "  " << monoSqrDisp << std::endl;
-                }
-        
-                ofs.close();
-            }
-        }
-    }
-    
-}
-
-void
 FhdParticleContainer::stressP(int lev, int step) {
 
     BL_PROFILE_VAR("stressP()",stressP);
@@ -3646,137 +3826,139 @@ FhdParticleContainer::GetAllParticlePositions(Real* posx, Real* posy, Real* posz
 
 }
 
-void FhdParticleContainer::GetWaveVectors() {
-
-    int qmaxx = n_cells[0];
-    int qmaxy = n_cells[1];
-    int qmaxz = n_cells[2];
-
-    Real wavearray[qmaxx*qmaxy*qmaxz, 5];
-    Real temparray[qmaxx*qmaxy*qmaxz, 5];
-
-    for(int i=0;i<qmaxx*qmaxy*qmaxz;i++)
-    {
-        wavearray[i][0] = 0;
-        wavearray[i][1] = 0;
-        wavearray[i][2] = 0;
-        wavearray[i][3] = 0;
-        wavearray[i][4] = 0;
-
-        temparray[i][0] = 0;
-        temparray[i][1] = 0;
-        temparray[i][2] = 0;
-        temparray[i][3] = 0;
-        temparray[i][4] = 0;
-	
-    }
-
-    int counter = 0;
-    for(int k=0; k<qmaxz; k++){
-	for(int j=0; j<(int)amrex::Math::floor(sqrt(qmaxy*qmaxy-k*k)); j++){
-            for(int i=0; i<(int)amrex::Math::floor(sqrt(qmaxx*qmaxx-k*k-j*j)); i++){
-                Real qsq = i*i + j*j + k*k;
-                wavearray[counter][0] = i;
-                wavearray[counter][1] = j;
-                wavearray[counter][2] = k;
-                wavearray[counter][3] = qsq;
-                counter++;
-	    }
-	}
-    }
-
-    Real sortarray[counter];
-    int sortind[counter];
-
-    for(int i=0; i<counter; i++)
-    {
-        sortarray[i] = wavearray[i][3];
-        
-    }
-
-    merge_sort(sortarray,sortind);
-
-
-    for(int i=0; i<counter; i++)
-    {
-        temparray[i][0] = sortarray[sortind[i]][0];
-        temparray[i][1] = sortarray[sortind[i]][1];
-        temparray[i][2] = sortarray[sortind[i]][2];
-        temparray[i][3] = sortarray[sortind[i]][3];
-        
-    }
-
-    wavearray = temparray;
-
-    int flag[counter];
-    for(int i=1; i<counter; i++) 
-    {
-	    flag[i] = 0;
-    }
-
-    int val = -1;
-    int binnum = 0;
-    int bookmark;
-    for(int i=1; i<counter; i++)
-    {
-      if (wavearray[i][4] == val) {
-         for(int j=bookmark; j<i-1; j++) {
-            if (((wavearray[i][0] == wavearray[j][0]) && 
-                 (wavearray[i][1] == wavearray[j][1]) && 
-                 (wavearray[i][2] == wavearray[j][2])     ) ||
-                 ((-wavearray[i][0] == wavearray[j][0]) &&
-                  (-wavearray[i][1] == wavearray[j][1]) &&
-                  (-wavearray[i][2] == wavearray[j][2])     )) {
-                  flag[i] = 1;
-                  break;
-	    }
-	 }
-      }else{
-         val = wavearray[i][4];
-         binnum = binnum + 1;
-         bookmark = i;
-      }
-    }
-    int newcounter = 0;
-    for(int i=1; i<counter; i++) {
-	    temparray[i][0] = 0;
-	    temparray[i][1] = 0;
-	    temparray[i][2] = 0;
-	    temparray[i][3] = 0;
-	    temparray[i][4] = 0;
-    }
-    for(int i=1; i<counter; i++) {
-       if (flag[i] == 0) {
-          newcounter = newcounter + 1;
-          temparray[newcounter][0] = wavearray[i][0];
-          temparray[newcounter][1] = wavearray[i][1];
-          temparray[newcounter][2] = wavearray[i][2];
-          temparray[newcounter][3] = wavearray[i][3];
-          temparray[newcounter][4] = wavearray[i][4];
-       }
-    }
-    wavearray = temparray;
-
-    int multiplicity[newcounter];
-    Real msq_by_bin[newcounter];
-    for(int i=1; i<newcounter; i++) {
-	    multiplicity(i) = 0;
-    }
-    binnum = 0;
-    val = -1;
-    for(int i=1; i<newcounter; i++) {
-       if (wavearray[i][3] == val) {
-          wavearray[i][4] = binnum;
-          multiplicity[binnum] = multiplicity[binnum] + 1;
-          msq_by_bin[binnum] = wavearray[i][3]; // wasteful but correct
-       }else{
-          binnum = binnum + 1;
-          wavearray[i][4] = binnum;
-          multiplicity[binnum] = 1;
-          val = wavearray[i][3];
-       }
-    }
-}
+//// get all wave vectors corresponding to the cells
+//// will be used for particle-based dynamic structure factor
+//void FhdParticleContainer::GetWaveVectors() {
+//
+//    int qmaxx = n_cells[0];
+//    int qmaxy = n_cells[1];
+//    int qmaxz = n_cells[2];
+//
+//    Real wavearray[qmaxx*qmaxy*qmaxz, 5];
+//    Real temparray[qmaxx*qmaxy*qmaxz, 5];
+//
+//    for(int i=0;i<qmaxx*qmaxy*qmaxz;i++)
+//    {
+//        wavearray[i][0] = 0;
+//        wavearray[i][1] = 0;
+//        wavearray[i][2] = 0;
+//        wavearray[i][3] = 0;
+//        wavearray[i][4] = 0;
+//
+//        temparray[i][0] = 0;
+//        temparray[i][1] = 0;
+//        temparray[i][2] = 0;
+//        temparray[i][3] = 0;
+//        temparray[i][4] = 0;
+//	
+//    }
+//
+//    int counter = 0;
+//    for(int k=0; k<qmaxz; k++){
+//	for(int j=0; j<(int)amrex::Math::floor(sqrt(qmaxy*qmaxy-k*k)); j++){
+//            for(int i=0; i<(int)amrex::Math::floor(sqrt(qmaxx*qmaxx-k*k-j*j)); i++){
+//                Real qsq = i*i + j*j + k*k;
+//                wavearray[counter][0] = i;
+//                wavearray[counter][1] = j;
+//                wavearray[counter][2] = k;
+//                wavearray[counter][3] = qsq;
+//                counter++;
+//	    }
+//	}
+//    }
+//
+//    Real sortarray[counter];
+//    int sortind[counter];
+//
+//    for(int i=0; i<counter; i++)
+//    {
+//        sortarray[i] = wavearray[i][3];
+//        
+//    }
+//
+//    merge_sort(sortarray,sortind);
+//
+//
+//    for(int i=0; i<counter; i++)
+//    {
+//        temparray[i][0] = sortarray[sortind[i]][0];
+//        temparray[i][1] = sortarray[sortind[i]][1];
+//        temparray[i][2] = sortarray[sortind[i]][2];
+//        temparray[i][3] = sortarray[sortind[i]][3];
+//        
+//    }
+//
+//    wavearray = temparray;
+//
+//    int flag[counter];
+//    for(int i=1; i<counter; i++) 
+//    {
+//	    flag[i] = 0;
+//    }
+//
+//    int val = -1;
+//    int binnum = 0;
+//    int bookmark;
+//    for(int i=1; i<counter; i++)
+//    {
+//      if (wavearray[i][4] == val) {
+//         for(int j=bookmark; j<i-1; j++) {
+//            if (((wavearray[i][0] == wavearray[j][0]) && 
+//                 (wavearray[i][1] == wavearray[j][1]) && 
+//                 (wavearray[i][2] == wavearray[j][2])     ) ||
+//                 ((-wavearray[i][0] == wavearray[j][0]) &&
+//                  (-wavearray[i][1] == wavearray[j][1]) &&
+//                  (-wavearray[i][2] == wavearray[j][2])     )) {
+//                  flag[i] = 1;
+//                  break;
+//	    }
+//	 }
+//      }else{
+//         val = wavearray[i][4];
+//         binnum = binnum + 1;
+//         bookmark = i;
+//      }
+//    }
+//    int newcounter = 0;
+//    for(int i=1; i<counter; i++) {
+//	    temparray[i][0] = 0;
+//	    temparray[i][1] = 0;
+//	    temparray[i][2] = 0;
+//	    temparray[i][3] = 0;
+//	    temparray[i][4] = 0;
+//    }
+//    for(int i=1; i<counter; i++) {
+//       if (flag[i] == 0) {
+//          newcounter = newcounter + 1;
+//          temparray[newcounter][0] = wavearray[i][0];
+//          temparray[newcounter][1] = wavearray[i][1];
+//          temparray[newcounter][2] = wavearray[i][2];
+//          temparray[newcounter][3] = wavearray[i][3];
+//          temparray[newcounter][4] = wavearray[i][4];
+//       }
+//    }
+//    wavearray = temparray;
+//
+//    int multiplicity[newcounter];
+//    Real msq_by_bin[newcounter];
+//    for(int i=1; i<newcounter; i++) {
+//	    multiplicity(i) = 0;
+//    }
+//    binnum = 0;
+//    val = -1;
+//    for(int i=1; i<newcounter; i++) {
+//       if (wavearray[i][3] == val) {
+//          wavearray[i][4] = binnum;
+//          multiplicity[binnum] = multiplicity[binnum] + 1;
+//          msq_by_bin[binnum] = wavearray[i][3]; // wasteful but correct
+//       }else{
+//          binnum = binnum + 1;
+//          wavearray[i][4] = binnum;
+//          multiplicity[binnum] = 1;
+//          val = wavearray[i][3];
+//       }
+//    }
+//}
 
 void
 FhdParticleContainer::BuildCorrectionTable(const Real* dx, int setMeasureFinal) {

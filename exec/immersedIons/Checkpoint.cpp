@@ -28,7 +28,9 @@ void WriteCheckPoint(int step,
                      const MultiFab& particleVars,
                      const MultiFab& chargeM,
                      const MultiFab& potential,
-                     const MultiFab& potentialM)
+                     const MultiFab& potentialM,
+	             const MultiFab& struct_cc_numdens0_real,
+		     const MultiFab& struct_cc_numdens0_imag)
 {
     // timer for profiling
     BL_PROFILE_VAR("WriteCheckPoint()",WriteCheckPoint);
@@ -174,6 +176,12 @@ void WriteCheckPoint(int step,
     VisMF::Write(potentialM,
                  amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "potentialM"));
     
+    // initial dsf state
+    VisMF::Write(struct_cc_numdens0_real,
+                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "struct_cc_numdens0_real"));
+    VisMF::Write(struct_cc_numdens0_imag,
+                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "struct_cc_numdens0_imag"));
+
     // checkpoint particles
     particles.Checkpoint(checkpointname,"particle");
 }
@@ -188,7 +196,9 @@ void ReadCheckPoint(int& step,
                     MultiFab& particleVars,
                     MultiFab& chargeM,
                     MultiFab& potential,
-                    MultiFab& potentialM)
+                    MultiFab& potentialM,
+	            MultiFab& struct_cc_numdens0_real,
+		    MultiFab& struct_cc_numdens0_imag)
 {
     // timer for profiling
     BL_PROFILE_VAR("ReadCheckPoint()",ReadCheckPoint);
@@ -396,6 +406,12 @@ void ReadCheckPoint(int& step,
                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "potential"));
     VisMF::Read(potentialM,
                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "potentialM"));
+    
+    // initial dsf state
+    VisMF::Read(struct_cc_numdens0_real,
+                amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "struct_cc_numdens0_real"));
+    VisMF::Read(struct_cc_numdens0_imag,
+                amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "struct_cc_numdens0_imag"));
 }
 
 void ReadCheckPointParticles(FhdParticleContainer& particles, species* particleInfo, const Real* dxp) {

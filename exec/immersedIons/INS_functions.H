@@ -50,7 +50,9 @@ void WriteCheckPoint(int step,
                      const MultiFab& particleVars,
                      const MultiFab& chargeM,
                      const MultiFab& potential,
-                     const MultiFab& potentialM);
+                     const MultiFab& potentialM,
+		     const MultiFab& struct_cc_numdens0_real,
+		     const MultiFab& struct_cc_numdens0_imag);
 
 void ReadCheckPoint(int& step,
                     amrex::Real& time,
@@ -62,7 +64,9 @@ void ReadCheckPoint(int& step,
                     MultiFab& particleVars,
                     MultiFab& chargeM,
                     MultiFab& potential,
-                    MultiFab& potentialM);
+                    MultiFab& potentialM,
+		    MultiFab& struct_cc_numdens0_real,
+		    MultiFab& struct_cc_numdens0_imag);
 
 void ReadCheckPointParticles(FhdParticleContainer& particles, species* particleInfo, const Real* dxp);
 

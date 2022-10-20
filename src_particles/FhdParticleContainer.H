@@ -282,6 +282,7 @@ public:
     void computeForcesCoulombGPU(long totalParticles);
 
     void computeForcesSpringGPU(long totalParticles);
+    void computeForcesFENEGPU(long totalParticles);
 
     void MoveParticlesDSMC(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount,Real time, int* flux);
 

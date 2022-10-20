@@ -76,8 +76,8 @@ namespace common {
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> e0;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> hcv;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> hcp;
-    extern AMREX_GPU_MANAGED amrex::Real k;
-    extern AMREX_GPU_MANAGED amrex::Real x0;
+    extern AMREX_GPU_MANAGED amrex::Real k; // spring constant for polymers
+    extern AMREX_GPU_MANAGED amrex::Real x0; // rest length for polymer bonds
 
     // stochastic forcing amplitudes (1 for physical values, 0 to run them off)
     extern AMREX_GPU_MANAGED amrex::Real variance_coef_mom;
@@ -227,8 +227,11 @@ namespace common {
     extern int                        radialdist_int;
     extern int                        cartdist_int;
     extern int                        n_steps_skip;
+    extern int                        dsf_flag;
+    extern int                        dsf_fft;
     extern AMREX_GPU_MANAGED amrex::Real binSize;
     extern AMREX_GPU_MANAGED amrex::Real searchDist;    
+    extern AMREX_GPU_MANAGED amrex::Real ktarg; // target wave number for dynamic structure factor   
 
     // projection 
     extern int                        project_dir;
