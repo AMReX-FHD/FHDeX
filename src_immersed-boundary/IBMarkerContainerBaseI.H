@@ -553,9 +553,9 @@ void IBMarkerContainerBase<StructReal, StructInt>::UpdatePIDMap() {
     // Number of IDs associated with this rank
     num_ids[rank] = this->NextID() - 1;
 
-    ParallelDescriptor::ReduceIntSum(
-        Vector<std::reference_wrapper<int>>(begin(num_ids), end(num_ids))
-    );
+/*    ParallelDescriptor::ReduceIntSum(*/
+/*        Vector<std::reference_wrapper<int>>(begin(num_ids), end(num_ids))*/
+/*    );*/
 
     int offset = 0;
     for (int i=0; i < size; i++) {
