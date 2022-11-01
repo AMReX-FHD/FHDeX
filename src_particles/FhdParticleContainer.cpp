@@ -1142,10 +1142,15 @@ void FhdParticleContainer::RadialDistribution(long totalParticles, const int ste
 
     // collect particle positions onto one processor
     PullDown(0, posx, -1, totalParticles);
+    Print() << "HERE1\n";
     PullDown(0, posy, -2, totalParticles);
+        Print() << "HERE2\n";
     PullDown(0, posz, -3, totalParticles);
+        Print() << "HERE3\n";
     PullDown(0, charge, 27, totalParticles);
+        Print() << "HERE4\n";
     PullDownInt(0, species, 4, totalParticles);
+        Print() << "HERE5\n";
     
     // outer radial extent
     totalDist = totalBins*binSize;
