@@ -184,6 +184,7 @@ AMREX_GPU_MANAGED int      common::sr_tog;
 int                        common::graphene_tog;
 int	                   common::thermostat_tog;
 int	                   common::zero_net_force;
+AMREX_GPU_MANAGED int	   common::body_force;
 
 int                        common::crange;
 
@@ -191,6 +192,7 @@ AMREX_GPU_MANAGED int      common::images;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::eamp;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::efreq;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::ephase;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::F_body;
 
 int                        common::plot_ascii;
 int                        common::plot_means;

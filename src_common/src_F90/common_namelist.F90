@@ -193,11 +193,13 @@ module common_namelist_module
   integer,            save :: crange
   integer,            save :: thermostat_tog
   integer,            save :: zero_net_force
+  integer,            save :: body_force
 
   integer,            save :: images
   double precision,   save :: eamp(3)
   double precision,   save :: efreq(3)
   double precision,   save :: ephase(3)
+  double precision,   save :: F_body(3)
 
   integer,            save :: plot_ascii
   integer,            save :: plot_means
@@ -427,12 +429,14 @@ module common_namelist_module
   namelist /common/ crange
   namelist /common/ thermostat_tog
   namelist /common/ zero_net_force
+  namelist /common/ body_force
 
 
   namelist /common/ images
   namelist /common/ eamp
   namelist /common/ efreq
   namelist /common/ ephase
+  namelist /common/ F_body
 
   namelist /common/ plot_ascii
   namelist /common/ plot_means
@@ -601,6 +605,7 @@ contains
     graphene_tog = 0
     thermostat_tog = 0
     zero_net_force = 0
+    body_force = 0
 
     all_dry = 0
     particle_neff = 1
@@ -610,6 +615,7 @@ contains
     eamp(:) =  0
     efreq(:) = 0
     ephase(:) = 0
+    F_body(:) = 0
     induced_charge_eo = 0
     zero_eps_on_wall_type = 0
 
@@ -686,7 +692,7 @@ contains
                                          particle_grid_refine_in, es_grid_refine_in, diff_in, all_dry_in, &
                                          fluid_tog_in, es_tog_in, drag_tog_in, move_tog_in, rfd_tog_in, &
                                          dry_move_tog_in, sr_tog_in, graphene_tog_in, crange_in, &
-                                         thermostat_tog_in, zero_net_force_in, images_in, eamp_in, efreq_in, ephase_in, &
+                                         thermostat_tog_in, zero_net_force_in, body_force_in, images_in, eamp_in, efreq_in, ephase_in, F_body_in, &
                                          plot_ascii_in, plot_means_in, plot_vars_in, &
                                          solve_chem_in, diffcoeff_in, scaling_factor_in, &
                                          source_strength_in, regrid_int_in, do_reflux_in, particle_motion_in, &
@@ -859,11 +865,13 @@ contains
     integer,                intent(inout) :: graphene_tog_in
     integer,                intent(inout) :: thermostat_tog_in
     integer,                intent(inout) :: zero_net_force_in
+    integer,                intent(inout) :: body_force_in
 
     integer,                intent(inout) :: images_in
     double precision,       intent(inout) :: eamp_in(3)
     double precision,       intent(inout) :: efreq_in(3)
     double precision,       intent(inout) :: ephase_in(3)
+    double precision,       intent(inout) :: F_body_in(3)
 
     integer,                intent(inout) :: plot_ascii_in
     integer,                intent(inout) :: plot_means_in
@@ -1040,11 +1048,13 @@ contains
     graphene_tog_in = graphene_tog
     thermostat_tog_in = thermostat_tog
     zero_net_force_in = zero_net_force
+    body_force_in = body_force
 
     images_in = images
     eamp_in = eamp
     efreq_in = efreq
     ephase_in = ephase
+    F_body_in = F_body
 
     plot_ascii_in = plot_ascii
     plot_means_in = plot_means

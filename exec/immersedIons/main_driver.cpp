@@ -701,6 +701,15 @@ void main_driver(const char* argv)
         touched[d].setVal(0.0);
     }
 
+    // uniform body force (Poiseuille)
+    std::array< MultiFab, AMREX_SPACEDIM > FbU;
+    AMREX_D_TERM(FbU[0].define(convert(ba,nodal_flag_x), dmap, 1, ang);,
+                 FbU[1].define(convert(ba,nodal_flag_y), dmap, 1, ang);,
+                 FbU[2].define(convert(ba,nodal_flag_z), dmap, 1, ang););
+    FbU[0].setVal(F_body[0]); 
+    FbU[1].setVal(F_body[1]); 
+    FbU[2].setVal(F_body[2]); 
+
     //Define parametric paramplanes for particle interaction - declare array for paramplanes and then define properties in BuildParamplanes
 
     // AJN - we don't understand why you need this for ions
@@ -1044,6 +1053,12 @@ void main_driver(const char* argv)
         particles.SpreadIonsGPU(dx, dxp, geom, umac, efieldCC, source, sourceTemp);
 
         //particles.BuildCorrectionTable(dxp,1);
+
+	if (body_force == 1) {
+           MultiFab::Add(source[0],FbU[0],0,0,FbU[0].nComp(),FbU[0].nGrow());
+           MultiFab::Add(source[1],FbU[1],0,0,FbU[1].nComp(),FbU[1].nGrow());
+           MultiFab::Add(source[2],FbU[2],0,0,FbU[2].nComp(),FbU[2].nGrow());
+	}
 
         if ((variance_coef_mom != 0.0) && fluid_tog != 0) {
             // compute the random numbers needed for the stochastic momentum forcing

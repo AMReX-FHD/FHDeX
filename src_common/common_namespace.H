@@ -267,11 +267,13 @@ namespace common {
     extern int                        crange;
     extern int                        thermostat_tog;
     extern int                        zero_net_force;
+    extern AMREX_GPU_MANAGED int      body_force;
 
     extern AMREX_GPU_MANAGED int      images;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> eamp;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> efreq;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> ephase;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> F_body;
 
     extern int                        plot_ascii;
     extern int                        plot_means;

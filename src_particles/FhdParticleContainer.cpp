@@ -1796,6 +1796,9 @@ void FhdParticleContainer::EvaluateStats(MultiFab& particleInstant,
         amrex::ParallelFor(tile_box,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             Real membersInv = 1.0/part_inst(i,j,k,0);
+	    if (part_inst(i,j,k,0)==0) {
+	       membersInv = 0.0;
+	    }
 
             part_inst(i,j,k,1) = part_inst(i,j,k,1)*cellVolInv;
 
