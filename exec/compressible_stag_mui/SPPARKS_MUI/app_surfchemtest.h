@@ -62,7 +62,7 @@ class AppSurfchemtest : public AppLattice {
   // hence different in each cell and we do not use propensity variable
   // adding desorption reactions is exactly same as the first-order reaction case
   int none,ntwo,nthree,nads,ndes,ndissocads,nassocdes;
-  double *srate,*drate,*trate,*adsrate,*ads_beta,*desrate,*dadsrate,*adesrate; // beta implementation
+  double *srate,*drate,*trate,*adsrate,*ads_beta,*dads_beta,*desrate,*dadsrate,*adesrate; // beta implementation
   bool ads_is_rate,dads_is_rate;
   double *spropensity,*dpropensity,*tpropensity,*adespropensity;
   int *stype,**dtype,**ttype,*adstype,*destype,**dadstype,**adestype;
