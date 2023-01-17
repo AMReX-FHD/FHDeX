@@ -210,8 +210,8 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                 {
                     if (i < 0) {
                         for (int n=0; n<nspecies; ++n) {
-                            prim(i,j,k,6+n)          = bc_Yk_x_lo[n];
-                            prim(i,j,k,6+nspecies+n) = bc_Xk_x_lo[n];
+                            prim(i,j,k,6+n)          = 2.*bc_Yk_x_lo[n] - prim(2*lo-i-1,j,k,6+n);
+                            prim(i,j,k,6+nspecies+n) = 2.*bc_Xk_x_lo[n] - prim(2*lo-i-1,j,k,6+nspecies+n);
                         }
                     }
                 });
@@ -233,6 +233,7 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                             prim(i,j,k,5) = p_lo[0]; // set ghost cell equal to reservoir pressure
                         }
                     }
+
                 });
             }
 
@@ -250,7 +251,7 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                 amrex::ParallelFor(gbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (i < 0) {
-                        prim(i,j,k,4) = t_lo[0];
+                        prim(i,j,k,4) = -prim(2*lo-i-1,j,k,4) + 2.*t_lo[0];
                         prim(i,j,k,5) = prim(2*lo-i-1,j,k,5);
                     }
                 });
@@ -276,7 +277,7 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                             fracvec[n] = prim(i,j,k,6+n);
                         }
                         Real temp = prim(i,j,k,4);
-                        // Real pt = prim(i,j,k,5);
+                        Real pt = prim(i,j,k,5);
                         Real rho = prim(i,j,k,0);
                         Real intenergy;
 
@@ -301,11 +302,11 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                 {
                     if (i < 0) {
 
-                        cons(i,j,k,1) = 0.0;
+                        cons(i,j,k,1) = -cons(2*lo-i-1,j,k,1);
                         cons(i,j,k,2) = cons(2*lo-i-1,j,k,2);
                         cons(i,j,k,3) = cons(2*lo-i-1,j,k,3);
 
-                        prim(i,j,k,1) = 0.0;
+                        prim(i,j,k,1) = -prim(2*lo-i-1,j,k,1);
                         prim(i,j,k,2) = prim(2*lo-i-1,j,k,2);
                         prim(i,j,k,3) = prim(2*lo-i-1,j,k,3);
 
@@ -342,9 +343,9 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                 {
                     if (i < 0) {
 
-                        prim(i,j,k,1) = 0.0; 
-                        prim(i,j,k,2) = 0.0; 
-                        prim(i,j,k,3) = 0.0; 
+                        prim(i,j,k,1) = -prim(2*lo-i-1,j,k,1);
+                        prim(i,j,k,2) = -prim(2*lo-i-1,j,k,2);
+                        prim(i,j,k,3) = -prim(2*lo-i-1,j,k,3);
                    
                         // thermal & species (+pressure) BCs must be enforced first
                         GpuArray<Real,MAX_SPECIES> fracvec;
@@ -405,8 +406,8 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                 {
                     if (i > n_cells[0]-1) {
                         for (int n=0; n<nspecies; ++n) {
-                            prim(i,j,k,6+n)          = bc_Yk_x_hi[n];
-                            prim(i,j,k,6+nspecies+n) = bc_Xk_x_hi[n];
+                            prim(i,j,k,6+n)          = 2.*bc_Yk_x_hi[n] - prim(2*hi-i+1,j,k,6+n);
+                            prim(i,j,k,6+nspecies+n) = 2.*bc_Xk_x_hi[n] - prim(2*hi-i+1,j,k,6+nspecies+n);
                         }
                     }
                 });
@@ -445,7 +446,7 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                 amrex::ParallelFor(gbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (i > n_cells[0]-1) {
-                        prim(i,j,k,4) = t_hi[0];
+                        prim(i,j,k,4) = -prim(2*hi-i+1,j,k,4) + 2.*t_hi[0];
                         prim(i,j,k,5) = prim(2*hi-i+1,j,k,5);
                     }
                 });
@@ -472,7 +473,7 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                             fracvec[n] = prim(i,j,k,6+n);
                         }
                         Real temp = prim(i,j,k,4);
-                        // Real pt = prim(i,j,k,5);
+                        Real pt = prim(i,j,k,5);
                         Real rho = prim(i,j,k,0);
                         Real intenergy;
 
@@ -491,16 +492,17 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                                                                  prim(i,j,k,3)*prim(i,j,k,3));
                     }
                 });
-            } else if (bc_vel_hi[0] == 1) { // slip
+            }
+            else if (bc_vel_hi[0] == 1) { // slip
                 amrex::ParallelFor(gbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (i > n_cells[0]-1) {
 
-                        cons(i,j,k,1) = 0.0;
+                        cons(i,j,k,1) = -cons(2*hi-i+1,j,k,1);
                         cons(i,j,k,2) = cons(2*hi-i+1,j,k,2);
                         cons(i,j,k,3) = cons(2*hi-i+1,j,k,3);
 
-                        prim(i,j,k,1) = 0.0;
+                        prim(i,j,k,1) = -prim(2*hi-i+1,j,k,1);
                         prim(i,j,k,2) = prim(2*hi-i+1,j,k,2);
                         prim(i,j,k,3) = prim(2*hi-i+1,j,k,3);
 
@@ -533,13 +535,14 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                     }
                 });
             } else if (bc_vel_hi[0] == 2) { // no slip
+
                 amrex::ParallelFor(gbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (i > n_cells[0]-1) {
 
-                        prim(i,j,k,1) = 0.0;
-                        prim(i,j,k,2) = 0.0;
-                        prim(i,j,k,3) = 0.0;
+                        prim(i,j,k,1) = -prim(2*hi-i+1,j,k,1);
+                        prim(i,j,k,2) = -prim(2*hi-i+1,j,k,2);
+                        prim(i,j,k,3) = -prim(2*hi-i+1,j,k,3);
                    
                         // thermal & species (+pressure) BCs must be enforced first
                         GpuArray<Real,MAX_SPECIES> fracvec;
@@ -598,8 +601,8 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                 {
                     if (j < 0) {
                         for (int n=0; n<nspecies; ++n) {
-                            prim(i,j,k,6+n)          = bc_Yk_y_lo[n];
-                            prim(i,j,k,6+nspecies+n) = bc_Xk_y_lo[n];
+                            prim(i,j,k,6+n)          = 2.*bc_Yk_y_lo[n] - prim(i,2*lo-j-1,k,6+n);
+                            prim(i,j,k,6+nspecies+n) = 2.*bc_Xk_y_lo[n] - prim(i,2*lo-j-1,k,6+nspecies+n);
                         }
                     }
                 });
@@ -638,7 +641,7 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                 amrex::ParallelFor(gbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (j < 0) {
-                        prim(i,j,k,4) = t_lo[1];
+                        prim(i,j,k,4) = -prim(i,2*lo-j-1,k,4) + 2.*t_lo[1];
                         prim(i,j,k,5) = prim(i,2*lo-j-1,k,5);
                     }
                 });
@@ -653,11 +656,11 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                     if (j < 0) {
 
                         cons(i,j,k,1) = cons(i,2*lo-j-1,k,1);
-                        cons(i,j,k,2) = 0.0;
+                        cons(i,j,k,2) = -cons(i,2*lo-j-1,k,2);
                         cons(i,j,k,3) = cons(i,2*lo-j-1,k,3);
 
                         prim(i,j,k,1) = prim(i,2*lo-j-1,k,1);
-                        prim(i,j,k,2) = 0.0;
+                        prim(i,j,k,2) = -prim(i,2*lo-j-1,k,2);
                         prim(i,j,k,3) = prim(i,2*lo-j-1,k,3);
 
                         // thermal & species (+pressure) BCs must be enforced first
@@ -693,9 +696,9 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                 {
                     if (j < 0) {
 
-                        prim(i,j,k,1) = 0.0;
-                        prim(i,j,k,2) = 0.0;
-                        prim(i,j,k,3) = 0.0;
+                        prim(i,j,k,1) = -prim(i,2*lo-j-1,k,1);
+                        prim(i,j,k,2) = -prim(i,2*lo-j-1,k,2);
+                        prim(i,j,k,3) = -prim(i,2*lo-j-1,k,3);
                    
                         // thermal & species (+pressure) BCs must be enforced first
                         GpuArray<Real,MAX_SPECIES> fracvec;
@@ -756,8 +759,8 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                 {
                     if (j > n_cells[1]-1) {
                         for (int n=0; n<nspecies; ++n) {
-                            prim(i,j,k,6+n)          = bc_Yk_y_hi[n];
-                            prim(i,j,k,6+nspecies+n) = bc_Xk_y_hi[n];
+                            prim(i,j,k,6+n)          = 2.*bc_Yk_y_hi[n] - prim(i,2*hi-j+1,k,6+n);
+                            prim(i,j,k,6+nspecies+n) = 2.*bc_Xk_y_hi[n] - prim(i,2*hi-j+1,k,6+nspecies+n);
                         }
                     }
                 });
@@ -796,7 +799,7 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                 amrex::ParallelFor(gbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (j > n_cells[1]-1) {
-                        prim(i,j,k,4) = t_hi[1];
+                        prim(i,j,k,4) = -prim(i,2*hi-j+1,k,4) + 2.*t_hi[1];
                         prim(i,j,k,5) = prim(i,2*hi-j+1,k,5);
                     }
                 });
@@ -811,11 +814,11 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                     if (j > n_cells[1]-1) {
 
                         cons(i,j,k,1) = cons(i,2*hi-j+1,k,1);
-                        cons(i,j,k,2) = 0.0;
+                        cons(i,j,k,2) = -cons(i,2*hi-j+1,k,2);
                         cons(i,j,k,3) = cons(i,2*hi-j+1,k,3);
 
                         prim(i,j,k,1) = prim(i,2*hi-j+1,k,1);
-                        prim(i,j,k,2) = 0.0;
+                        prim(i,j,k,2) = -prim(i,2*hi-j+1,k,2);
                         prim(i,j,k,3) = prim(i,2*hi-j+1,k,3);
 
                         // thermal & species (+pressure) BCs must be enforced first
@@ -852,9 +855,9 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                 {
                     if (j > n_cells[1]-1) {
 
-                        prim(i,j,k,1) = 0.0;
-                        prim(i,j,k,2) = 0.0;
-                        prim(i,j,k,3) = 0.0;
+                        prim(i,j,k,1) = -prim(i,2*hi-j+1,k,1);
+                        prim(i,j,k,2) = -prim(i,2*hi-j+1,k,2);
+                        prim(i,j,k,3) = -prim(i,2*hi-j+1,k,3);
                    
                         // thermal & species (+pressure) BCs must be enforced first
                         GpuArray<Real,MAX_SPECIES> fracvec;
@@ -913,8 +916,8 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                 {
                     if (k < 0) {
                         for (int n=0; n<nspecies; ++n) {
-                            prim(i,j,k,6+n)          = bc_Yk_z_lo[n];
-                            prim(i,j,k,6+nspecies+n) = bc_Xk_z_lo[n];
+                            prim(i,j,k,6+n)          = 2.*bc_Yk_z_lo[n] - prim(i,j,2*lo-k-1,6+n);
+                            prim(i,j,k,6+nspecies+n) = 2.*bc_Xk_z_lo[n] - prim(i,j,2*lo-k-1,6+nspecies+n);
                         }
                     }
                 });
@@ -954,7 +957,7 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                 amrex::ParallelFor(gbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (k < 0) {
-                        prim(i,j,k,4) = t_lo[2];
+                        prim(i,j,k,4) = -prim(i,j,2*lo-k-1,4) + 2.*t_lo[2];
                         prim(i,j,k,5) = prim(i,j,2*lo-k-1,5);
                     }
                 });
@@ -970,11 +973,11 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
 
                         cons(i,j,k,1) = cons(i,j,2*lo-k-1,1);
                         cons(i,j,k,2) = cons(i,j,2*lo-k-1,2);
-                        cons(i,j,k,3) = 0.0;
+                        cons(i,j,k,3) = -cons(i,j,2*lo-k-1,3);
 
                         prim(i,j,k,1) = prim(i,j,2*lo-k-1,1);
                         prim(i,j,k,2) = prim(i,j,2*lo-k-1,2);
-                        prim(i,j,k,3) = 0.0;;
+                        prim(i,j,k,3) = -prim(i,j,2*lo-k-1,3);
 
                         // thermal & species (+pressure) BCs must be enforced first
                         GpuArray<Real,MAX_SPECIES> fracvec;
@@ -1009,9 +1012,9 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                 {
                     if (k < 0) {
 
-                        prim(i,j,k,1) = 0.0;
-                        prim(i,j,k,2) = 0.0;
-                        prim(i,j,k,3) = 0.0;
+                        prim(i,j,k,1) = -prim(i,j,2*lo-k-1,1);
+                        prim(i,j,k,2) = -prim(i,j,2*lo-k-1,2);
+                        prim(i,j,k,3) = -prim(i,j,2*lo-k-1,3);
                    
                         // thermal & species (+pressure) BCs must be enforced first
                         GpuArray<Real,MAX_SPECIES> fracvec;
@@ -1072,8 +1075,8 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                 {
                     if (k > n_cells[2]-1) {
                         for (int n=0; n<nspecies; ++n) {
-                            prim(i,j,k,6+n)          = bc_Yk_z_hi[n];
-                            prim(i,j,k,6+nspecies+n) = bc_Xk_z_hi[n];
+                            prim(i,j,k,6+n)          = 2.*bc_Yk_z_hi[n] - prim(i,j,2*hi-k+1,6+n);
+                            prim(i,j,k,6+nspecies+n) = 2.*bc_Xk_z_hi[n] - prim(i,j,2*hi-k+1,6+nspecies+n);
                         }
                     }
                 });
@@ -1112,7 +1115,7 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                 amrex::ParallelFor(gbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (k > n_cells[2]-1) {
-                        prim(i,j,k,4) = t_hi[2];
+                        prim(i,j,k,4) = -prim(i,j,2*hi-k+1,4) + 2.*t_hi[2];
                         prim(i,j,k,5) = prim(i,j,2*hi-k+1,5);
                     }
                 });
@@ -1128,11 +1131,11 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
 
                         cons(i,j,k,1) = cons(i,j,2*hi-k+1,1);
                         cons(i,j,k,2) = cons(i,j,2*hi-k+1,2);
-                        cons(i,j,k,3) = 0.0;
+                        cons(i,j,k,3) = -cons(i,j,2*hi-k+1,3);
 
                         prim(i,j,k,1) = prim(i,j,2*hi-k+1,1);
                         prim(i,j,k,2) = prim(i,j,2*hi-k+1,2);
-                        prim(i,j,k,3) = 0.0;
+                        prim(i,j,k,3) = -prim(i,j,2*hi-k+1,3);
 
                         // thermal & species (+pressure) BCs must be enforced first
                         GpuArray<Real,MAX_SPECIES> fracvec;
@@ -1168,9 +1171,9 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                 {
                     if (k > n_cells[2]-1) {
 
-                        prim(i,j,k,1) = 0.0;
-                        prim(i,j,k,2) = 0.0;
-                        prim(i,j,k,3) = 0.0;
+                        prim(i,j,k,1) = -prim(i,j,2*hi-k+1,1);
+                        prim(i,j,k,2) = -prim(i,j,2*hi-k+1,2);
+                        prim(i,j,k,3) = -prim(i,j,2*hi-k+1,3);
                    
                         // thermal & species (+pressure) BCs must be enforced first
                         GpuArray<Real,MAX_SPECIES> fracvec;
@@ -1774,18 +1777,19 @@ void StochFlux(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in,
             const Box& b = bx & dom_xlo;
             Array4<Real> const& flux = (faceflux_in[0]).array(mfi);
             if (b.ok()) {
-                amrex::ParallelFor(b, AMREX_SPACEDIM, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
-                    if (n == 0) {
-                        // normal velocity
-                        flux(i,j,k,1+n) *= sqrtTwo;
-                        // viscous heating (diagonal & shear)
-                        flux(i,j,k,nvars+1) *= sqrtTwo;
-                        flux(i,j,k,nvars+2) *= factor;
-                    } else {
-                        // transverse velocity
-                        flux(i,j,k,1+n) *= factor;
-                    }
+                    flux(i,j,k,nvars+2) *= factor;
+                    flux(i,j,k,2) *= factor;
+                    flux(i,j,k,3) *= factor;
+                    //if (n == 0) {
+                    //    // normal velocity
+                    //    // flux(i,j,k,1+n) *= sqrtTwo;
+                    //    // viscous heating (diagonal & shear)
+                    //    // flux(i,j,k,nvars+1) *= sqrtTwo;
+                    //} else {
+                    //    // transverse velocity
+                    //}
                 });
             }
         }
@@ -1810,18 +1814,21 @@ void StochFlux(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in,
             const Box& b = bx & dom_xhi;
             Array4<Real> const& flux = (faceflux_in[0]).array(mfi);
             if (b.ok()) {
-                amrex::ParallelFor(b, AMREX_SPACEDIM, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
-                    if (n == 0) {
-                        // normal velocity
-                        flux(i,j,k,1+n) *= sqrtTwo;
-                        // viscous heating (diagonal & shear)
-                        flux(i,j,k,nvars+1) *= sqrtTwo;
-                        flux(i,j,k,nvars+2) *= factor;
-                    } else {
-                        // transverse velocity
-                        flux(i,j,k,1+n) *= factor;
-                    }
+                    flux(i,j,k,nvars+2) *= factor;
+                    flux(i,j,k,2) *= factor;
+                    flux(i,j,k,3) *= factor;
+                    //if (n == 0) {
+                    //    // normal velocity
+                    //    // flux(i,j,k,1+n) *= sqrtTwo;
+                    //    // viscous heating (diagonal & shear)
+                    //    // flux(i,j,k,nvars+1) *= sqrtTwo;
+                    //    flux(i,j,k,nvars+2) *= factor;
+                    //} else {
+                    //    // transverse velocity
+                    //    flux(i,j,k,1+n) *= factor;
+                    //}
                 });
             }
         }
@@ -1846,18 +1853,19 @@ void StochFlux(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in,
             const Box& b = bx & dom_ylo;
             Array4<Real> const& flux = (faceflux_in[1]).array(mfi);
             if (b.ok()) {
-                amrex::ParallelFor(b, AMREX_SPACEDIM, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
-                    if (n == 1) {
-                        // normal velocity
-                        flux(i,j,k,1+n) *= sqrtTwo;
-                        // viscous heating (diagonal & shear)
-                        flux(i,j,k,nvars+1) *= sqrtTwo;
-                        flux(i,j,k,nvars+2) *= factor;
-                    } else {
-                        // transverse velocity
-                        flux(i,j,k,1+n) *= factor;
-                    }
+                    flux(i,j,k,nvars+2) *= factor;
+                    flux(i,j,k,1) *= factor;
+                    flux(i,j,k,3) *= factor;
+                    //if (n == 1) {
+                    //    // normal velocity
+                    //    // flux(i,j,k,1+n) *= sqrtTwo;
+                    //    // viscous heating (diagonal & shear)
+                    //    // flux(i,j,k,nvars+1) *= sqrtTwo;
+                    //} else {
+                    //    // transverse velocity
+                    //}
                 });
             }
         }
@@ -1882,18 +1890,19 @@ void StochFlux(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in,
             const Box& b = bx & dom_yhi;
             Array4<Real> const& flux = (faceflux_in[1]).array(mfi);
             if (b.ok()) {
-                amrex::ParallelFor(b, AMREX_SPACEDIM, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
-                    if (n == 1) {
-                        // normal velocity
-                        flux(i,j,k,1+n) *= sqrtTwo;
-                        // viscous heating (diagonal & shear)
-                        flux(i,j,k,nvars+1) *= sqrtTwo;
-                        flux(i,j,k,nvars+2) *= factor;
-                    } else {
-                        // transverse velocity
-                        flux(i,j,k,1+n) *= factor;
-                    }
+                    flux(i,j,k,nvars+2) *= factor;
+                    flux(i,j,k,1) *= factor;
+                    flux(i,j,k,3) *= factor;
+                    //if (n == 1) {
+                    //    // normal velocity
+                    //    // flux(i,j,k,1+n) *= sqrtTwo;
+                    //    // viscous heating (diagonal & shear)
+                    //    // flux(i,j,k,nvars+1) *= sqrtTwo;
+                    //} else {
+                    //    // transverse velocity
+                    //}
                 });
             }
         }
@@ -1918,18 +1927,19 @@ void StochFlux(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in,
             const Box& b = bx & dom_zlo;
             Array4<Real> const& flux = (faceflux_in[2]).array(mfi);
             if (b.ok()) {
-                amrex::ParallelFor(b, AMREX_SPACEDIM, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
-                    if (n == 2) {
-                        // normal velocity
-                        flux(i,j,k,1+n) *= sqrtTwo;
-                        // viscous heating (diagonal & shear)
-                        flux(i,j,k,nvars+1) *= sqrtTwo;
-                        flux(i,j,k,nvars+2) *= factor;
-                    } else {
-                        // transverse velocity
-                        flux(i,j,k,1+n) *= factor;
-                    }
+                    flux(i,j,k,nvars+2) *= factor;
+                    flux(i,j,k,1) *= factor;
+                    flux(i,j,k,2) *= factor;
+                    //if (n == 2) {
+                    //    // normal velocity
+                    //    // flux(i,j,k,1+n) *= sqrtTwo;
+                    //    // viscous heating (diagonal & shear)
+                    //    // flux(i,j,k,nvars+1) *= sqrtTwo;
+                    //} else {
+                    //    // transverse velocity
+                    //}
                 });
             }
         }
@@ -1951,18 +1961,19 @@ void StochFlux(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in,
             const Box& b = bx & dom_zhi;
             Array4<Real> const& flux = (faceflux_in[2]).array(mfi);
             if (b.ok()) {
-                amrex::ParallelFor(b, AMREX_SPACEDIM, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
-                    if (n == 2) {
-                        // normal velocity
-                        flux(i,j,k,1+n) *= sqrtTwo;
-                        // viscous heating (diagonal & shear)
-                        flux(i,j,k,nvars+1) *= sqrtTwo;
-                        flux(i,j,k,nvars+2) *= factor;
-                    } else {
-                        // transverse velocity
-                        flux(i,j,k,1+n) *= factor;
-                    }
+                    flux(i,j,k,nvars+2) *= factor;
+                    flux(i,j,k,1) *= factor;
+                    flux(i,j,k,2) *= factor;
+                    //if (n == 2) {
+                    //    // normal velocity
+                    //    // flux(i,j,k,1+n) *= sqrtTwo;
+                    //    // viscous heating (diagonal & shear)
+                    //    // flux(i,j,k,nvars+1) *= sqrtTwo;
+                    //} else {
+                    //    // transverse velocity
+                    //}
                 });
             }
         }
