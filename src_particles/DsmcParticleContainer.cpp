@@ -592,16 +592,16 @@ void FhdParticleContainer::MovePhononsCPP(const Real dt, paramPlane* paramPlaneL
 //        }
 //    }
 
+	int scatterCountInt = scatterCountPtr[0];
+	int countInt = countPtr[0];
+	int specCountInt = specCountPtr[0];
+	ParallelDescriptor::ReduceIntSum(scatterCountInt);
+	ParallelDescriptor::ReduceIntSum(totalParts);
+	ParallelDescriptor::ReduceIntSum(countInt);
+	ParallelDescriptor::ReduceIntSum(specCountInt);
+
 	if(istep%100==0)
 	{
-        int scatterCountInt = scatterCountPtr[0];
-        int countInt = countPtr[0];
-        int specCountInt = specCountPtr[0];
-        
-        ParallelDescriptor::ReduceIntSum(scatterCountInt);
-        ParallelDescriptor::ReduceIntSum(totalParts);
-        ParallelDescriptor::ReduceIntSum(countInt);
-        ParallelDescriptor::ReduceIntSum(specCountInt);
 	    Print() << "Total particles: " << totalParts << "\n";
         Print() << "Internal scattering events: " << scatterCountInt << "\n";
         if(countInt != 0)
@@ -614,6 +614,20 @@ void FhdParticleContainer::MovePhononsCPP(const Real dt, paramPlane* paramPlaneL
 	SortParticlesDB();
 	//SortParticles();
 
+	if (ParallelDescriptor::MyProc() == 0){
+		std::string plotfilename = "totalparts";
+		std::fstream ofs;
+		ofs.open(plotfilename, std::ios::app);
+		if (!ofs){
+			std::ofstream ofs(plotfilename, std::ios::app);
+			ofs << totalParts << std::endl;
+			ofs.close();
+		}
+		else{
+			ofs << totalParts << std::endl;
+			ofs.close();
+		}
+	}
 }
 
 void FhdParticleContainer::SortParticles()

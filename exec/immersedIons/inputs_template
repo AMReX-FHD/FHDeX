@@ -92,7 +92,8 @@
 
   eamp = -1.5125e13 0 0 #external electric field properties
   efreq = 0 0 0
-  ephase = 0 0 0     
+  ephase = 0 0 0
+  body_force_density = 0 0 0      
 
   # Poisson solver parameters -- there are more options which we can add to the namespace later
   #-------------------

@@ -230,6 +230,7 @@ AMREX_GPU_MANAGED int      common::images;
 amrex::Vector<amrex::Real> common::eamp;
 amrex::Vector<amrex::Real> common::efreq;
 amrex::Vector<amrex::Real> common::ephase;
+amrex::Vector<amrex::Real> common::body_force_density;
 
 int                        common::plot_ascii;
 int                        common::plot_means;
@@ -305,6 +306,8 @@ void InitializeCommonNamespace() {
     eamp.resize(3);    
     efreq.resize(3);
     ephase.resize(3);
+    body_force_density.resize(3);
+    
 
     // specify default values first, then read in values from inputs file
 
@@ -586,6 +589,8 @@ void InitializeCommonNamespace() {
         eamp[i] = 0.;
         efreq[i] = 0.;
         ephase[i] = 0.;
+        body_force_density[i] = 0.;
+        
     }
 
     // plot_ascii (no default)
@@ -1105,6 +1110,7 @@ void InitializeCommonNamespace() {
     pp.queryarr("eamp",eamp,0,3);
     pp.queryarr("efreq",efreq,0,3);
     pp.queryarr("ephase",ephase,0,3);
+    pp.queryarr("body_force_density",body_force_density,0,3);
     pp.query("plot_ascii",plot_ascii);
     pp.query("plot_means",plot_means);
     pp.query("plot_vars",plot_vars);

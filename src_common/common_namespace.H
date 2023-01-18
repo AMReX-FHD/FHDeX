@@ -308,6 +308,8 @@ namespace common {
     extern amrex::Vector<amrex::Real> eamp;
     extern amrex::Vector<amrex::Real> efreq;
     extern amrex::Vector<amrex::Real> ephase;
+    
+    extern amrex::Vector<amrex::Real> body_force_density;
 
     extern int                        plot_ascii;
     extern int                        plot_means;
