@@ -154,7 +154,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                         }
                     }
                     if (bc_vel_hi[0] == 1 || bc_vel_hi[0] == 2) {
-                        if (i == n_cells[0]-1) {
+                        if (i == n_cells[0]) {
                             wiener[1] *= std::sqrt(2.0);
                             factor_hi_x = std::sqrt(2.0);
                         }
@@ -399,7 +399,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                         }
                     }
                     if (bc_vel_hi[1] == 1 || bc_vel_hi[1] == 2) {
-                        if (j == n_cells[1]-1) {
+                        if (j == n_cells[1]) {
                             wiener[2] *= std::sqrt(2.0);
                             factor_hi_y = std::sqrt(2.0);
                         }
@@ -644,7 +644,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                         }
                     }
                     if (bc_vel_hi[2] == 1 || bc_vel_hi[2] == 2) {
-                        if (k == n_cells[2]-1) {
+                        if (k == n_cells[2]) {
                             wiener[3] *= std::sqrt(2.0);
                             factor_hi_z = std::sqrt(2.0);
                         }
