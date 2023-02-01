@@ -78,6 +78,28 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
                    MultiFab& spatialCross, MultiFab& miscStats, Real* miscVals,
                    const int steps, const Real* dx);
 
+void evaluateStats3D(MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
+                     MultiFab& prim_in, MultiFab& primMean, MultiFab& primVar,
+                     MultiFab& coVar, Vector<Real>& spatialCross3D, const int ncross,
+                     const amrex::Box& domain, const int steps, const Geometry& geom);
+
+void EvaluateStatsMeans(MultiFab& cons, MultiFab& consMean,
+                        MultiFab& prim_in, MultiFab& primMean,
+                        const int steps);
+
+void EvaluateVarsCoVars(const MultiFab& cons, const MultiFab& consMean, MultiFab& consVar,
+                        const MultiFab& prim_in, const MultiFab& primMean, MultiFab& primVar,
+                        MultiFab& coVar,const int steps);
+
+void EvaluateSpatialCorrelations3D(Vector<Real>& spatialCross,
+                                   amrex::Gpu::HostVector<Real>& cu_avg, 
+                                   amrex::Gpu::HostVector<Real>& cumeans_avg, 
+                                   amrex::Gpu::HostVector<Real>& prim_avg, 
+                                   amrex::Gpu::HostVector<Real>& primmeans_avg, 
+                                   const int steps,
+                                   const int /*nstats*/,
+                                   const int ncross);
+
 void doMembrane(MultiFab& cons, MultiFab& prim, std::array<MultiFab, AMREX_SPACEDIM>& flux,
                 const Geometry& geom, const Real* dx, const Real dt);
 
@@ -93,6 +115,8 @@ void WritePlotFile(int step,
                    const MultiFab& spatialCross,
                    const MultiFab& eta, 
 		   const MultiFab& kappa);
+
+void WriteSpatialCross3D(const Vector<Real>& spatialCross, int step, const Geometry& geom, const int ncross);
 
 void yzAverage(const MultiFab& consMean, 
                const MultiFab& consVar, 

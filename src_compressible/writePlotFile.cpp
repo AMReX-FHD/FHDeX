@@ -190,3 +190,27 @@ void WritePlotFile(int step,
     amrex::Print() << "Time spent writing plotfile " << t2 << std::endl;
 
 }
+
+void WriteSpatialCross3D(const Vector<Real>& spatialCross, int step, const Geometry& geom, const int ncross) 
+{
+    if (ParallelDescriptor::IOProcessor()) {
+
+        // write out spatial correlation
+        std::string filename = amrex::Concatenate("spatialCross",step,9);
+        std::ofstream outfile;
+        outfile.open(filename);
+
+        // cell size
+        Real h = geom.CellSize(0);
+    
+        for (auto i=0; i<n_cells[0]; ++i) {
+            outfile << prob_lo[0] + (i+0.5)*h << " "; 
+            for (auto n=0; n<ncross; ++n) {
+                outfile << std::setprecision(16) << spatialCross[i*ncross+n] << " ";
+            }
+            outfile << std::endl;
+        }
+        outfile.close();
+    }
+}
+
