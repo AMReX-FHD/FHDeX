@@ -8,6 +8,8 @@ AMREX_GPU_MANAGED int compressible::do_1D;
 AMREX_GPU_MANAGED int compressible::do_2D;
 AMREX_GPU_MANAGED int compressible::all_correl;
 AMREX_GPU_MANAGED int compressible::nspec_surfcov = 0;
+AMREX_GPU_MANAGED int compressible::int_extrap;
+AMREX_GPU_MANAGED int compressible::bc_extrap;
 
 void InitializeCompressibleNamespace()
 {
@@ -61,6 +63,11 @@ void InitializeCompressibleNamespace()
     // options for spatial correlations at multiple x*
     all_correl = 0;
     pp.query("all_correl",all_correl);
+
+    int_extrap = 1;
+    pp.query("int_extrap",int_extrap);
+    bc_extrap = 1;
+    pp.query("bc_extrap",bc_extrap);
 
 
     return;

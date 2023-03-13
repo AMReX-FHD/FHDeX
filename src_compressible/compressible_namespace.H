@@ -7,6 +7,8 @@ namespace compressible {
     extern AMREX_GPU_MANAGED int do_2D;
     extern AMREX_GPU_MANAGED int all_correl;
     extern AMREX_GPU_MANAGED int nspec_surfcov;
+    extern AMREX_GPU_MANAGED int bc_extrap;
+    extern AMREX_GPU_MANAGED int int_extrap;
 
 }
 
