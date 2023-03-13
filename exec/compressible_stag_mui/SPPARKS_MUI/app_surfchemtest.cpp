@@ -80,7 +80,7 @@ AppSurfchemtest::AppSurfchemtest(SPPARKS *spk, int narg, char **arg) :
 
   // reaction lists
   none = ntwo = nthree = nads = ndes = ndissocads = nassocdes = 0;
-  srate = drate = trate = adsrate = ads_beta = desrate = dadsrate = adesrate = NULL; // beta implementation
+  srate = drate = trate = adsrate = ads_beta = dads_beta = desrate = dadsrate = adesrate = NULL; // beta implementation
   spropensity = dpropensity = tpropensity = adespropensity = NULL;   // no adspropensity/dadspropensity/despropensity
   stype = sinput = soutput = NULL;
   dtype = dinput = doutput = NULL;
@@ -130,6 +130,7 @@ AppSurfchemtest::~AppSurfchemtest()
   memory->destroy(trate);
   memory->destroy(adsrate);
   memory->destroy(ads_beta);
+  memory->destroy(dads_beta);
   memory->destroy(desrate);
   memory->destroy(dadsrate);
   memory->destroy(adesrate);
@@ -445,9 +446,14 @@ void AppSurfchemtest::input_app(char *command, int narg, char **arg)
       ndes++;
      
     } else if (rstyle == 6) { // disassociative adsorption
-      if (narg < 9 || narg > 10) error->all(FLERR,"Illegal event command");
+      if (narg < 9 || narg > 11) error->all(FLERR,"Illegal event command");
       if (narg == 10) {
         if (strcmp(arg[9],"rate") == 0) dads_is_rate = true;
+        else error->all(FLERR,"Illegal event command");
+      }
+      dads_beta[ndissocads] = 0.;
+      if (narg == 11) { // beta implementation
+        if (strcmp(arg[9],"beta") == 0) dads_beta[ndissocads] = atof(arg[10]);
         else error->all(FLERR,"Illegal event command");
       }
       if (strcmp(arg[1],"siteA") == 0) dadstype[ndissocads][0] = SITEA;
@@ -955,11 +961,11 @@ double AppSurfchemtest::site_propensity(int i)
       if (type[j] != dadstype[m][1] || element[j] != dadsinput[m][1]) continue;
       if (dads_is_rate) dadspropensity = dadsrate[m];
       else {
-        if (dadsadsorbate[m]==SPEC1) dadspropensity = dadsrate[m]*density1[i];
-        else if (dadsadsorbate[m]==SPEC2) dadspropensity = dadsrate[m]*density2[i];
-        else if (dadsadsorbate[m]==SPEC3) dadspropensity = dadsrate[m]*density3[i];
-        else if (dadsadsorbate[m]==SPEC4) dadspropensity = dadsrate[m]*density4[i];
-        else if (dadsadsorbate[m]==SPEC5) dadspropensity = dadsrate[m]*density5[i];
+        if (dadsadsorbate[m]==SPEC1) dadspropensity = dadsrate[m]*density1[i]*pow(tempratio,dads_beta[m]);
+        else if (dadsadsorbate[m]==SPEC2) dadspropensity = dadsrate[m]*density2[i]*pow(tempratio,dads_beta[m]);
+        else if (dadsadsorbate[m]==SPEC3) dadspropensity = dadsrate[m]*density3[i]*pow(tempratio,dads_beta[m]);
+        else if (dadsadsorbate[m]==SPEC4) dadspropensity = dadsrate[m]*density4[i]*pow(tempratio,dads_beta[m]);
+        else if (dadsadsorbate[m]==SPEC5) dadspropensity = dadsrate[m]*density5[i]*pow(tempratio,dads_beta[m]);
       }
       add_event(i,6,m,dadspropensity,j,-1);
       proball += dadspropensity;
@@ -1231,6 +1237,7 @@ void AppSurfchemtest::grow_reactions(int rstyle)
   } else if (rstyle == 6) {
     int n = ndissocads + 1;
     memory->grow(dadsrate,n,"app/surfchemtest:dadsrate");
+    memory->grow(dads_beta,n,"app/surfchemtest:dads_beta");
     dadstype = memory->grow(dadstype,n,2,"app/surfchemtest:dadstype");
     dadsinput = memory->grow(dadsinput,n,2,"app/surfchemtest:dadsinput");
     dadsoutput = memory->grow(dadsoutput,n,2,"app/surfchemtest:dadsoutput");
@@ -2077,6 +2084,14 @@ void AppSurfchemtest::amrex_push_agg(int narg, char **arg)
                 ac1[i] = 0;
             }
             amrex_send_intval();
+        } else if (std::strcmp(arg[k],"ac2") == 0) {
+            // compute the sum over each FHD domain
+            for (int n=0;n<nlocalFHDcell;n++) intval[n] = 0;
+            for (int i=0;i<nlocal;i++) {
+                intval[localFHDcell[i]] += ac2[i];
+                ac2[i] = 0;
+            }
+            amrex_send_intval();
         } else if (std::strcmp(arg[k],"dc1") == 0) {
             // compute the sum over each FHD domain
             for (int n=0;n<nlocalFHDcell;n++) intval[n] = 0;
@@ -2085,11 +2100,59 @@ void AppSurfchemtest::amrex_push_agg(int narg, char **arg)
                 dc1[i] = 0;
             }
             amrex_send_intval();
+        } else if (std::strcmp(arg[k],"dc2") == 0) {
+            // compute the sum over each FHD domain
+            for (int n=0;n<nlocalFHDcell;n++) intval[n] = 0;
+            for (int i=0;i<nlocal;i++) {
+                intval[localFHDcell[i]] += dc2[i];
+                dc2[i] = 0;
+            }
+            amrex_send_intval();
+        } else if (std::strcmp(arg[k],"dac1") == 0) {
+            // compute the sum over each FHD domain
+            for (int n=0;n<nlocalFHDcell;n++) intval[n] = 0;
+            for (int i=0;i<nlocal;i++) {
+                intval[localFHDcell[i]] += dac1[i];
+                dac1[i] = 0;
+            }
+            amrex_send_intval();
+        } else if (std::strcmp(arg[k],"dac2") == 0) {
+            // compute the sum over each FHD domain
+            for (int n=0;n<nlocalFHDcell;n++) intval[n] = 0;
+            for (int i=0;i<nlocal;i++) {
+                intval[localFHDcell[i]] += dac2[i];
+                dac2[i] = 0;
+            }
+            amrex_send_intval();
+        } else if (std::strcmp(arg[k],"adc1") == 0) {
+            // compute the sum over each FHD domain
+            for (int n=0;n<nlocalFHDcell;n++) intval[n] = 0;
+            for (int i=0;i<nlocal;i++) {
+                intval[localFHDcell[i]] += adc1[i];
+                adc1[i] = 0;
+            }
+            amrex_send_intval();
+        } else if (std::strcmp(arg[k],"adc2") == 0) {
+            // compute the sum over each FHD domain
+            for (int n=0;n<nlocalFHDcell;n++) intval[n] = 0;
+            for (int i=0;i<nlocal;i++) {
+                intval[localFHDcell[i]] += adc2[i];
+                adc2[i] = 0;
+            }
+            amrex_send_intval();
         } else if (std::strcmp(arg[k],"occ1") == 0) {
             // compute the sum over each FHD domain
             for (int n=0;n<nlocalFHDcell;n++) intval[n] = 0;
             for (int i=0;i<nlocal;i++) {
                 int is_occ = (element[i]==1) ? 1 : 0;
+                intval[localFHDcell[i]] += is_occ;
+            }
+            amrex_send_intval();
+        } else if (std::strcmp(arg[k],"occ2") == 0) {
+            // compute the sum over each FHD domain
+            for (int n=0;n<nlocalFHDcell;n++) intval[n] = 0;
+            for (int i=0;i<nlocal;i++) {
+                int is_occ = (element[i]==2) ? 1 : 0;
                 intval[localFHDcell[i]] += is_occ;
             }
             amrex_send_intval();
@@ -2128,6 +2191,12 @@ void AppSurfchemtest::amrex_fetch_agg(int narg, char **arg)
             // distribute info to each KMC site
             for (int i=0;i<nlocal;i++)
                 density1[i] = dblval[localFHDcell[i]];
+        }
+        else if (std::strcmp(arg[k],"density2") == 0) {
+            amrex_recv_dblval();
+            // distribute info to each KMC site
+            for (int i=0;i<nlocal;i++)
+                density2[i] = dblval[localFHDcell[i]];
         }
         else if (std::strcmp(arg[k],"temp") == 0) {
             amrex_recv_dblval();
