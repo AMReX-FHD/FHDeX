@@ -25,7 +25,7 @@
 using namespace SPPARKS_NS;
 
 enum{VACANCY,SPEC1,SPEC2,SPEC3,SPEC4,SPEC5};  // removed ZERO and moved VACANCY to first item   // same as AppSurfchemtest
-enum{VAC,SP1,SP2,SP3,SP4,SP5,EVENTS,ONE,TWO,THREE,ADS,DES,DISSOCADS,ASSOCDES}; // moved VAC to first item
+enum{VAC,SP1,SP2,SP3,SP4,SP5,EVENTS,ONE,TWO,THREE,ADS,DES,DISSOCADS,ASSOCDES,REACTION,RXNTOTAL}; // moved VAC to first item
 
 /* ---------------------------------------------------------------------- */
 
@@ -82,6 +82,7 @@ void DiagSurfchemtest::init()
   int ndes = appsurfchemtest->ndes;
   int ndissocads = appsurfchemtest->ndissocads;
   int nassocdes = appsurfchemtest->nassocdes;
+  int nreaction = appsurfchemtest->nreaction;
 
   for (int i = 0; i < nlist; i++) {
     if (strcmp(list[i],"spec1") == 0) which[i] = SP1;
@@ -91,6 +92,7 @@ void DiagSurfchemtest::init()
     else if (strcmp(list[i],"spec5") == 0) which[i] = SP5;
     else if (strcmp(list[i],"vac") == 0) which[i] = VAC;
     else if (strcmp(list[i],"events") == 0) which[i] = EVENTS;
+    else if (strcmp(list[i],"reaction") == 0) which[i] = RXNTOTAL;
     else if (list[i][0] == 's') {
       which[i] = ONE;
       int n = atoi(&list[i][1]);
@@ -133,6 +135,12 @@ void DiagSurfchemtest::init()
       if (n < 1 || n > nassocdes)
         error->all(FLERR,"Invalid value setting in diag_style surfchemtest");
       index[i] = n - 1;
+    } else if (list[i][0] == 'R') {
+      which[i] = REACTION;
+      int n = atoi(&list[i][1]);
+      if (n < 1 || n > nreaction)
+        error->all(FLERR,"Invalid value setting in diag_style surfchemtest");
+      index[i] = n - 1;
     } else error->all(FLERR,"Invalid value setting in diag_style surfchemtest");
   }
 
@@ -172,7 +180,8 @@ void DiagSurfchemtest::compute()
     else if (which[i] == DES) ivalue = appsurfchemtest->descount[index[i]];
     else if (which[i] == DISSOCADS) ivalue = appsurfchemtest->dadscount[index[i]];
     else if (which[i] == ASSOCDES) ivalue = appsurfchemtest->adescount[index[i]];
-    
+    else if (which[i] == REACTION) ivalue = appsurfchemtest->rxncount[index[i]];
+    else if (which[i] == RXNTOTAL) ivalue = appsurfchemtest->rxnsumcount;
     MPI_Allreduce(&ivalue,&ivector[i],1,MPI_INT,MPI_SUM,world);
   }
 }
@@ -182,7 +191,7 @@ void DiagSurfchemtest::compute()
 void DiagSurfchemtest::stats(char *str)
 {
   for (int i = 0; i < nlist; i++) {
-    sprintf(str," %d",ivector[i]);
+    sprintf(str,"\t%d",ivector[i]);
     str += strlen(str);
   }
 }
@@ -192,7 +201,7 @@ void DiagSurfchemtest::stats(char *str)
 void DiagSurfchemtest::stats_header(char *str)
 {
   for (int i = 0; i < nlist; i++) {
-    sprintf(str," %s",list[i]);
+    sprintf(str,"\t%s",list[i]);
     str += strlen(str);
   }
 }
