@@ -37,6 +37,8 @@ void ComputeMassFluxdiv(MultiFab& rho,
  // if( use_flory_huggins == 1 ) 
   MultiFab massfrac(       ba, dmap, nspecies , ng);  // molar concentration
 
+ // rhoWchi.setVal(0.);
+
   std::array< MultiFab, AMREX_SPACEDIM > sqrtLonsager_fc;
   for (int d=0; d<AMREX_SPACEDIM; ++d) {
       sqrtLonsager_fc[d].define(convert(ba,nodal_flag_dir[d]), dmap, nspecies2, 0);

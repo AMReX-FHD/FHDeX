@@ -323,6 +323,7 @@ void ComputeFHHigherOrderTerm(const MultiFab& molarconc,
     Real twodxinv = 2.*dxinv;
     Real sixth = 1./6.;
     Real twelveinv = 1./12.;
+    Real one44inv = 1./144.;
     
     for ( MFIter mfi(laplacian,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
         
@@ -340,19 +341,29 @@ void ComputeFHHigherOrderTerm(const MultiFab& molarconc,
                 + 4.*( phi(i+1,j,k,n)-2.*phi(i,j,k,n)+phi(i-1,j,k,n) + phi(i,j+1,k,n)-2.*phi(i,j,k,n)+phi(i,j-1,k,n) ) * (sixth*dxinv*dxinv)
                 + ( phi(i+1,j+1,k,n)-2.*phi(i,j+1,k,n)+phi(i-1,j+1,k,n) + phi(i+1,j+1,k,n)-2.*phi(i+1,j,k,n)+phi(i+1,j-1,k,n) ) * (sixth*dxinv*dxinv);
 #elif (AMREX_SPACEDIM == 3)
-#if 1
+#if 0
             lap(i,j,k,n) = 
                  (phi(i+1,j,k,n)+ phi(i-1,j,k,n)+phi(i,j+1,k,n) + phi(i,j-1,k,n) + 
                   phi(i,j,k+1,n)+ phi(i,j,k-1,n) - 6.*phi(i,j,k,n))
                 * (dxinv*dxinv);
 #endif
 #if 0
-            lap(i,j,k,n) = ( phi(i-1,j+1,k+1,n)+ phi(i+1,j+1,k+1,n) + phi(i+1,j-1,k+1,n) + phi(i-1,j-1,k+1,n) +
-                 2.*phi(i,j+1,k+1,n)+ 2.*phi(i-1,j,k+1,n)+2.*phi(i+1,j,k+1,n) + 2.*phi(i,j-1,k+1,n) + 
-                  2.*phi(i-1,j+1,k,n)+2.*phi(i+1,j+1,k,n)-32.*phi(i,j,k,n)+2.*phi(i-1,j-1,k,n)+2.*phi(i+1,j-1,k,n)
-                  + phi(i-1,j+1,k-1,n)+ phi(i+1,j+1,k-1,n) + phi(i+1,j-1,k-1,n) + phi(i-1,j-1,k-1,n) +
-                 2.*phi(i,j+1,k-1,n)+ 2.*phi(i-1,j,k-1,n)+2.*phi(i+1,j,k-1,n) + 2.*phi(i,j-1,k-1,n))
+            lap(i,j,k,n) = ( phi(i-1,j+1,k+1,n) + phi(i+1,j+1,k+1,n) + phi(i+1,j-1,k+1,n) +  phi(i-1,j-1,k+1,n) +
+                          2.*phi(i,j+1,k+1,n)+ 2.*phi(i-1,j,k+1,n)+ 2.*phi(i+1,j,k+1,n) + 2.*phi(i,j-1,k+1,n) + 
+                          2.*phi(i-1,j+1,k,n)+2.* phi(i+1,j+1,k,n)-32.*phi(i,j,k,n)+2.*      phi(i-1,j-1,k,n)+2.*phi(i+1,j-1,k,n)
+                           + phi(i-1,j+1,k-1,n)+  phi(i+1,j+1,k-1,n) + phi(i+1,j-1,k-1,n) +  phi(i-1,j-1,k-1,n) +
+                          2.*phi(i,j+1,k-1,n)+ 2.*phi(i-1,j,k-1,n)+2.* phi(i+1,j,k-1,n) + 2.*phi(i,j-1,k-1,n))
                 * (twelveinv*dxinv*dxinv);
+#endif
+#if 1
+            lap(i,j,k,n) = ( 3.*( phi(i-1,j+1,k+1,n) + phi(i+1,j+1,k+1,n) + phi(i+1,j-1,k+1,n) +  phi(i-1,j-1,k+1,n) +
+                                + phi(i-1,j+1,k-1,n)+  phi(i+1,j+1,k-1,n) + phi(i+1,j-1,k-1,n) +  phi(i-1,j-1,k-1,n)) +
+                           18.* ( phi(i,j+1,k+1,n)+ phi(i-1,j,k+1,n)+ phi(i+1,j,k+1,n) + phi(i,j-1,k+1,n) + 
+                                  phi(i-1,j+1,k,n)+ phi(i+1,j+1,k,n)+ phi(i-1,j-1,k,n) + phi(i+1,j-1,k,n) +
+                                  phi(i,j+1,k-1,n)+ phi(i-1,j,k-1,n)+ phi(i+1,j,k-1,n) + phi(i,j-1,k-1,n))+
+			   60. * (phi(i-1,j,k,n)+   phi(i+1,j,k,n)+   phi(i,j-1,k,n) +   phi(i,j+1,k,n) + phi(i,j,k-1,n) + phi(i,j,k+1,n))
+		            -600.*phi(i,j,k,n))
+                * (one44inv*dxinv*dxinv);
 #endif
 #endif
         });
