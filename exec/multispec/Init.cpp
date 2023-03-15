@@ -335,14 +335,13 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 	       thin film
             */
             //Real rad = L[0] / 8.;
-	    Real rad = radius_cyl;
 	    int nsub = 10;
 	    Real factor = nsub;
 	    Real dxsub = dx[0]/factor;
 	    Real dysub = dx[1]/factor;
 	    Real dzsub = dx[2]/factor;
             Real x,y,z;
-	    amrex::Print() << "smoothing width " << smoothing_width << " radius " << rad << std::endl;
+	    amrex::Print() << "smoothing width " << smoothing_width << " film_thickness " << film_thickness << std::endl;
             
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
@@ -359,7 +358,7 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                 if (smoothing_width == 0.) {
 
                     // discontinuous interface
-                    if (y < rad) {
+                    if (y < film_thickness) {
                         for (int n=0; n<nspecies; ++n) {
                             c(i,j,k,n) += c_init_1[n];
                         }
@@ -373,7 +372,7 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                     // smooth interface
                     for (int n=0; n<nspecies; ++n) {
                         c(i,j,k,n) += c_init_1[n] + (c_init_2[n]-c_init_1[n]) *
-                            0.5*(1. + std::tanh((y-rad)/(smoothing_width*dx[0])));
+                            0.5*(1. + std::tanh((y-film_thickness)/(smoothing_width*dx[0])));
                     }
                 }
              }    
