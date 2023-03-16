@@ -325,6 +325,8 @@ public:
 
     void invertMatrix();
     
+    void TwoParticleCorrelation();
+    
     void GetAllParticlePositions(Real* posx, Real* posy, Real* posz, int totalParticles);
 
 
