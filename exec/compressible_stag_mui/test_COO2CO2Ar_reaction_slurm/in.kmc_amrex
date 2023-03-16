@@ -1,0 +1,107 @@
+app_style   surfchemtest
+seed        ${SEED}
+
+dimension   2
+boundary    p p p
+
+variable    lat_const_x       equal 6.43e-8
+variable    lat_const_y       equal 3.12e-8
+
+#lattice     none
+lattice     sq/4n 3
+
+variable    n1x equal 150
+variable    n1y equal 300
+variable    n2x equal 4
+variable    n2y equal 4
+variable    Nx equal ${n1x}*${n2x}
+variable    Ny equal ${n1y}*${n2y}
+
+#region      sys_domain block 0 ${Nx} 0 ${Ny} -0.5 0.5
+#create_box  sys_domain
+#create_sites    box 
+read_sites  data.strips
+
+sector      yes tstop 1.e-12
+solve_style tree
+
+temperature 600.
+
+variable    dxFHD 	equal ${n1x}*${lat_const_x}
+variable    dyFHD 	equal ${n1y}*${lat_const_y}
+variable    lat_off_x	equal ${lat_const_x}/4
+variable    lat_off_y   equal ${lat_const_y}/4
+
+amrex_fhd_lattice_size   ${dxFHD}     ${dyFHD}
+amrex_kmc_lattice_offset ${lat_off_x} ${lat_off_y}
+
+###########################
+
+# i1:       1 (siteA) 2 (siteB) 3 (siteC)
+# i2:       0 (vac) 1 (spec1) 2 (spec2) 3 (spec3) 4 (spec4) 5 (spec5)
+# i3 - i7:  ac1-ac5 = number of adsorption events of the species at the site
+# i8 - i12: dc1-dc5 = number of desoprtion events of the species at the site
+# d1 - d5:  density1-5 = number density of the fluid cell right above the site 
+# d6:       temperature
+
+# siteA = br / siteB = cus / spec1 = CO / spec2 = O2
+# Adsorption
+event       4 siteA vac   1.689029e-11 spec1 beta 0.5
+event       4 siteB vac   1.689029e-11 spec1 beta 0.5
+event       6 siteA siteA vac   vac   7.901118e-12 spec2 spec2 spec2 beta 0.5 #half
+event       6 siteA siteB vac   vac   1.580224e-11 spec2 spec2 spec2 beta 0.5
+event       6 siteB siteA vac   vac   1.580224e-11 spec2 spec2 spec2 beta 0.5
+event       6 siteB siteB vac   vac   7.901118e-12 spec2 spec2 spec2 beta 0.5 #half
+
+# Desorption
+event       5 siteA spec1 5.487788e+04 vac
+event       5 siteB spec1 1.812877e+07 vac
+event       7 siteA siteA spec2 spec2 4.122516e-21 vac   vac   spec2 #half
+event       7 siteA siteB spec2 spec2 6.787859e-10 vac   vac   spec2
+event       7 siteB siteA spec2 spec2 6.787859e-10 vac   vac   spec2
+event       7 siteB siteB spec2 spec2 2.794109e+01 vac   vac   spec2 #half
+
+# Reaction
+event       8 siteA siteA spec1 spec2 1.589288e+00 vac   vac   spec3
+event       8 siteA siteB spec1 spec2 1.198950e+06 vac   vac   spec3
+event       8 siteB siteA spec1 spec2 5.250170e+02 vac   vac   spec3
+event       8 siteB siteB spec1 spec2 1.734380e+05 vac   vac   spec3
+
+# Diffusion
+event       2 siteA siteA spec1 vac   1.145896e+08 vac   spec1
+event       2 siteA siteB spec1 vac   4.598069e-01 vac   spec1
+event       2 siteB siteA spec1 vac   1.518960e+02 vac   spec1
+event       2 siteB siteB spec1 vac   6.651484e-02 vac   spec1
+event       2 siteA siteA spec2 vac   1.657632e+07 vac   spec2
+event       2 siteA siteB spec2 vac   6.095043e-07 vac   spec2
+event       2 siteB siteA spec2 vac   5.017846e+04 vac   spec2
+event       2 siteB siteB spec2 vac   4.598069e-01 vac   spec2
+
+###########################
+
+variable    Trun     equal 1.e-12
+variable    nstep    equal 100000
+
+variable    Tstat  equal ${nstep}*${Trun}
+variable    Tsite  equal ${nstep}*${Trun}/100
+stats       ${Tstat}
+
+dump        3 sites ${Tsite} sites_*.txt id site i1 i2
+diag_style  surfchemtest stats yes list vac spec1 spec2 R1 R2 R3 R4 reaction
+
+amrex_init_agg
+
+amrex_push_agg 0 one occ1 occ2 occ3
+
+variable ts loop ${nstep}
+label ts_loop
+    # MPI_FETCH
+    amrex_fetch_agg ${ts} density1 density2 density3 temp
+
+    # RUN KMC
+    run ${Trun} pre no post no
+
+    # MPI_PUSH
+    amrex_push_agg ${ts} ac1 dc1 dac2 adc2 adc3 occ1 occ2 occ3
+next ts 
+jump in.kmc_amrex ts_loop

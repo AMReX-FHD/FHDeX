@@ -61,17 +61,17 @@ class AppSurfchemtest : public AppLattice {
   // however, propensity for adsorption depends on number density of gas phase
   // hence different in each cell and we do not use propensity variable
   // adding desorption reactions is exactly same as the first-order reaction case
-  int none,ntwo,nthree,nads,ndes,ndissocads,nassocdes;
-  double *srate,*drate,*trate,*adsrate,*ads_beta,*desrate,*dadsrate,*adesrate; // beta implementation
+  int none,ntwo,nthree,nads,ndes,ndissocads,nassocdes,nreaction,rxnsumcount;
+  double *srate,*drate,*trate,*adsrate,*ads_beta,*dads_beta,*desrate,*dadsrate,*adesrate,*rxnrate; // beta implementation
   bool ads_is_rate,dads_is_rate;
-  double *spropensity,*dpropensity,*tpropensity,*adespropensity;
-  int *stype,**dtype,**ttype,*adstype,*destype,**dadstype,**adestype;
-  int *sinput,**dinput,**tinput,*adsinput,*desinput,**dadsinput,**adesinput;
-  int *soutput,**doutput,**toutput,*adsoutput,*desoutput,**dadsoutput,**adesoutput;
-  int *scount,*dcount,*tcount,*adscount,*descount,*dadscount,*adescount;
-  int *dadsadsorbate,*adesdesorbate;
+  double *spropensity,*dpropensity,*tpropensity,*adespropensity,*rxnpropensity;
+  int *stype,**dtype,**ttype,*adstype,*destype,**dadstype,**adestype,**rxntype;
+  int *sinput,**dinput,**tinput,*adsinput,*desinput,**dadsinput,**adesinput,**rxninput;
+  int *soutput,**doutput,**toutput,*adsoutput,*desoutput,**dadsoutput,**adesoutput,**rxnoutput;
+  int *scount,*dcount,*tcount,*adscount,*descount,*dadscount,*adescount,*rxncount;
+  int *dadsadsorbate,*adesdesorbate,*reactionsorbate;
 
-  bool *neighboring_diff,*neighboring_des,*neighboring_ades;
+  bool *neighboring_diff,*neighboring_des,*neighboring_ades,*neighboring_rxn;
   double V_neighbor[4][4][6][6];
 
   struct Event {           // one event for an owned site
