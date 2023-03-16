@@ -341,7 +341,7 @@ void main_driver(const char* argv)
     */
 
     // initialize eta and kappa
-    eta.setVal(visc_coef);
+    ComputeEta(rho_old, rhotot_old, eta);
     kappa.setVal(0.);
     // replace with more general initialization routine
     //
@@ -352,7 +352,7 @@ void main_driver(const char* argv)
     else {
         AverageCCToEdge(eta,eta_ed,0,1,SPEC_BC_COMP,geom);
     }
-
+    
     // now that we have eta, we can initialize the inhomogeneous velocity bc's
     // set inhomogeneous velocity bc's to values supplied in inhomogeneous_bc_val
     //

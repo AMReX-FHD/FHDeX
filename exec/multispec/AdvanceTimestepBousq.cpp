@@ -422,8 +422,12 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     }
 
     // compute (eta,kappa)^{n+1/2}
-    if (mixture_type != 0) {
-        Abort("AdvanceTimestepBousq mixture_type != 0");
+    ComputeEta(rho_new, rhotot_new, eta);
+    if (AMREX_SPACEDIM == 2) {
+        AverageCCToNode(eta,eta_ed[0],0,1,SPEC_BC_COMP,geom);
+    }
+    else {
+        AverageCCToEdge(eta,eta_ed,0,1,SPEC_BC_COMP,geom);
     }
 
     //////////////////////////////////////////////
@@ -560,12 +564,14 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
             Abort("AdvanceTimestepInertial dielectric_type != 0");
         }
     }
-
-    /*
-    // compute (eta,kappa)^{n+1}
-    call compute_eta_kappa(mla,eta,eta_ed,kappa,rho_new,rhotot_new,Temp,dx, &
-                           the_bc_tower%bc_tower_array)
-    */
+    
+    ComputeEta(rho_new, rhotot_new, eta);
+    if (AMREX_SPACEDIM == 2) {
+        AverageCCToNode(eta,eta_ed[0],0,1,SPEC_BC_COMP,geom);
+    }
+    else {
+        AverageCCToEdge(eta,eta_ed,0,1,SPEC_BC_COMP,geom);
+    }
 
     //////////////////////////////////////////////
     // Step 6: solve for v^{n+1} and pi^{n+1/2} using GMRES
