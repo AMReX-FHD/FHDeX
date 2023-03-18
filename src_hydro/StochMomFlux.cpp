@@ -30,14 +30,14 @@ StochMomFlux::StochMomFlux(BoxArray ba_in, DistributionMapping dmap_in, Geometry
 
     // Here we store all the random number stages at all spatial locations
     for (int i=0; i<n_rngs; ++i) {
-        mflux_cc[i].define(ba_in, dmap_in, AMREX_SPACEDIM, amrex::max(2,filtering_width));
+        mflux_cc[i].define(ba_in, dmap_in, AMREX_SPACEDIM, amrex::max(1,filtering_width));
         mflux_cc[i].setVal(0.);
 #if (AMREX_SPACEDIM == 2)
         mflux_ed[i][0].define(convert(ba_in,nodal_flag), dmap_in, ncomp_ed, filtering_width);
 #elif (AMREX_SPACEDIM == 3)
-        mflux_ed[i][0].define(convert(ba_in,nodal_flag_xy), dmap_in, ncomp_ed, amrex::max(1,filtering_width));
-        mflux_ed[i][1].define(convert(ba_in,nodal_flag_xz), dmap_in, ncomp_ed, amrex::max(1,filtering_width));
-        mflux_ed[i][2].define(convert(ba_in,nodal_flag_yz), dmap_in, ncomp_ed, amrex::max(1,filtering_width));
+        mflux_ed[i][0].define(convert(ba_in,nodal_flag_xy), dmap_in, ncomp_ed, amrex::max(0,filtering_width));
+        mflux_ed[i][1].define(convert(ba_in,nodal_flag_xz), dmap_in, ncomp_ed, amrex::max(0,filtering_width));
+        mflux_ed[i][2].define(convert(ba_in,nodal_flag_yz), dmap_in, ncomp_ed, amrex::max(0,filtering_width));
 #endif
         for (int d=0; d<NUM_EDGE; ++d) {
             mflux_ed[i][d].setVal(0.);
@@ -45,14 +45,14 @@ StochMomFlux::StochMomFlux(BoxArray ba_in, DistributionMapping dmap_in, Geometry
     }
 
     // Temporary storage for linear combinations of random number stages
-    mflux_cc_weighted.define(ba_in, dmap_in, AMREX_SPACEDIM, amrex::max(2,filtering_width));
+    mflux_cc_weighted.define(ba_in, dmap_in, AMREX_SPACEDIM, amrex::max(1,filtering_width));
     mflux_cc_weighted.setVal(0.);
 #if (AMREX_SPACEDIM == 2)
     mflux_ed_weighted[0].define(convert(ba_in,nodal_flag), dmap_in, ncomp_ed, filtering_width);
 #elif (AMREX_SPACEDIM == 3)
-    mflux_ed_weighted[0].define(convert(ba_in,nodal_flag_xy), dmap_in, ncomp_ed, amrex::max(1,filtering_width));
-    mflux_ed_weighted[1].define(convert(ba_in,nodal_flag_xz), dmap_in, ncomp_ed, amrex::max(1,filtering_width));
-    mflux_ed_weighted[2].define(convert(ba_in,nodal_flag_yz), dmap_in, ncomp_ed, amrex::max(1,filtering_width));
+    mflux_ed_weighted[0].define(convert(ba_in,nodal_flag_xy), dmap_in, ncomp_ed, amrex::max(0,filtering_width));
+    mflux_ed_weighted[1].define(convert(ba_in,nodal_flag_xz), dmap_in, ncomp_ed, amrex::max(0,filtering_width));
+    mflux_ed_weighted[2].define(convert(ba_in,nodal_flag_yz), dmap_in, ncomp_ed, amrex::max(0,filtering_width));
     for (int d=0; d<NUM_EDGE; ++d) {
         mflux_ed_weighted[d].setVal(0.);
     }
