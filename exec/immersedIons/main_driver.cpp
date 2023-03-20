@@ -1268,7 +1268,7 @@ void main_driver(const char* argv)
 
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             external[d].setVal(eamp[d]*cos(efreq[d]*time + ephase[d]));  // external field
-            source    [d].setVal(0.0);      // reset source terms
+            source    [d].setVal(body_force_density[d]);      // reset source terms
             sourceTemp[d].setVal(0.0);      // reset source terms
             sourceRFD[d].setVal(0.0);      // reset source terms
             particles.ResetMarkers(0);
@@ -1318,7 +1318,7 @@ void main_driver(const char* argv)
         if (es_tog==2) {
             // compute pairwise Coulomb force (currently hard-coded to work with y-wall).
 	    particles.computeForcesCoulombGPU(simParticles);
-	}
+	     }
 
         // compute other forces and spread to grid
         particles.SpreadIonsGPU(dx, dxp, geom, umac, RealFaceCoords, efieldCC, source, sourceTemp);
@@ -1337,6 +1337,11 @@ void main_driver(const char* argv)
                 sMflux.StochMomFluxDiv(stochMfluxdivC,0,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
             }
         }
+        
+        
+        MultiFab::Add(source[0],sourceRFD[0],0,0,sourceRFD[0].nComp(),sourceRFD[0].nGrow());
+        MultiFab::Add(source[1],sourceRFD[1],0,0,sourceRFD[1].nComp(),sourceRFD[1].nGrow());
+        MultiFab::Add(source[2],sourceRFD[2],0,0,sourceRFD[2].nComp(),sourceRFD[2].nGrow());
 
 
         if (fluid_tog == 1) {
@@ -1384,11 +1389,6 @@ void main_driver(const char* argv)
 //                particles.writeMat();
 
 //                particles.invertMatrix();
-
-
-                MultiFab::Add(source[0],sourceRFD[0],0,0,sourceRFD[0].nComp(),sourceRFD[0].nGrow());
-                MultiFab::Add(source[1],sourceRFD[1],0,0,sourceRFD[1].nComp(),sourceRFD[1].nGrow());
-                MultiFab::Add(source[2],sourceRFD[2],0,0,sourceRFD[2].nComp(),sourceRFD[2].nGrow());
 
                 advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
                 particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
@@ -1566,7 +1566,7 @@ void main_driver(const char* argv)
                             potential, potentialM);
         }
 
-        particles.PrintParticles();
+        //particles.PrintParticles();
 
         // timer for time step
         Real time2 = ParallelDescriptor::second() - time1;

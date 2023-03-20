@@ -1,0 +1,37 @@
+* this file:            README
+
+* serial execution      run.sh (mpirun)
+    -> output               scrout
+* parallel execution    submit_job.sh (sbatch)
+                        job_script.sh (for Pinnacles:--partition pi.ckim103 or dept.appliedmath) 
+    -> output               slurm-*.out
+
+* FHD inputs file       inputs_fhd_stag
+    -> output               plt*
+* parameter analysis    params_COAr_eq.py
+
+* clean-up              clean.sh
+* comparison            diff.sh
+
+---analysis codes--- 
+* var: rho1,rhoE,temp,j zavg.sh
+                        zavg.plt (5%, check val1, val2, val3, val4, ncellx, ncelly, ncellz, dz)
+    -> output               zavg.png
+                            res.zavg
+* mean: rho1            zavg_rhoY1mean.sh
+                        zavg_rhoY1mean.plt (1%, check val, ncellx, ncelly, ncellz, dz)
+    -> output               zavg_rhoY1mean.png
+                            res.zavg_rhoY1mean
+* surface coverage      ads.sh
+                        ads.py (check Ncellx, Ncelly, meantheta1, vartheta1)
+                        ads.plt (check val1, val2)
+    -> output               ads.png
+                            res.ads
+                            res.ads_mean
+                            res.ads_var
+* mass conservation     mass_cons.sh
+                        mass_cons.py (check Ncellx, Ncelly, Ncellz, dx, dy, dz, Ntot, mass)
+    -> output               res.mass_cons
+* actual eq surf cov    theta_eq.sh
+                        theta_eq.py (Ncellx, Ncelly, Ncellz, dx, dy, dz, Ntot, meandens, meantheta)
+    -> output               res.theta_eq

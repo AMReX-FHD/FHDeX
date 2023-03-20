@@ -217,10 +217,10 @@ void IBParticleContainer::ReadStaticParameters() {
     if (!initialized) {
         ParmParse pp("particles");
 
-        // AMReX default is false => enable by default
-        do_tiling = true;
-        // Allow user to overwrite
-        pp.query("do_tiling",  do_tiling);
+ //       // AMReX default is false => enable by default
+ //       do_tiling = true;
+ //       // Allow user to overwrite
+ //       pp.query("do_tiling",  do_tiling);
 
         // If tiling is enabled, make sure that the tile size is at least the
         // number of ghost cells (otherwise strange things happen)

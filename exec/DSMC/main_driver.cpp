@@ -41,9 +41,12 @@ void main_driver(const char* argv)
 	// For long-range temperature-related correlations
 	MultiFab cvlMeans, cvlInst, QMeans;
 	
-    int ncross = 38+nspecies*nspecies;
+    int ncross = 38+nspecies*nspecies + nspecies;
     MultiFab spatialCross1D;
 	
+	int iprim = 10;
+    int nprim = (nspecies+1)*iprim;
+
 
 	if (seed > 0)
 	{
@@ -124,7 +127,7 @@ void main_driver(const char* argv)
 			... (repeat for each species)
 		*/
 
-		int nprim = (nspecies+1)*9;
+
 		primInst.define(ba, dmap, nprim, 0); primInst.setVal(0.);
 		primMeans.define(ba, dmap, nprim, 0); primMeans.setVal(0.);
 		primVars.define(ba, dmap, ncon+nprim, 0); primVars.setVal(0.);
@@ -244,6 +247,42 @@ void main_driver(const char* argv)
 	{
 		var_scaling[d] = 1./(dx[0]*dx[1]*dx[2]);
 	}
+	
+    // Standard 3D structure factors
+
+    MultiFab structFactPrimMF;
+    int structVarsPrim = (nspecies+1)*4;
+    
+    Vector< std::string > primNames;
+    primNames.resize(structVarsPrim);
+    std::string x;
+
+    int cnt=0;
+
+    primNames[cnt++] = "rhoInstant";
+    primNames[cnt++] = "uInstant";
+    primNames[cnt++] = "vInstant";
+    primNames[cnt++] = "cInstant";
+
+    for(int ispec=0;ispec<nspecies;ispec++) {
+
+      primNames[cnt++] = amrex::Concatenate("rhoInstant_",ispec,2);
+      primNames[cnt++] = amrex::Concatenate("uInstant_",ispec,2);
+      primNames[cnt++] = amrex::Concatenate("vInstant_",ispec,2);
+      primNames[cnt++] = amrex::Concatenate("cInstant_",ispec,2);
+    }
+        
+    Vector<Real> var_scaling_prim;
+    var_scaling_prim.resize(structVarsPrim*(structVarsPrim+1)/2);
+    for (int d=0; d<var_scaling_prim.size(); ++d) {
+        var_scaling_prim[d] = 1./(dx[0]*dx[1]*dx[2]);
+    }
+        
+        
+    structFactPrimMF.define(ba, dmap, structVarsPrim, 0);
+    StructFact structFactPrim(ba,dmap,primNames,var_scaling_prim);
+
+
 
 	// Collision Cell Vars
 	particles.mfselect.define(ba, dmap, nspecies*nspecies, 0);
@@ -253,8 +292,9 @@ void main_driver(const char* argv)
 	particles.mfvrmax.define(ba, dmap, nspecies*nspecies, 0);
 	particles.mfvrmax.setVal(0.);
 
+    Print() << "init particles\n";
 	particles.InitParticles(dt);
-
+    Print() << "init cells\n";
 	particles.InitCollisionCells();
 
 	Real init_time = ParallelDescriptor::second() - strt_time;
@@ -266,38 +306,43 @@ void main_driver(const char* argv)
 	Real tbegin, tend;
 	
 	
-    //Initial condition
-//    spatialCross1D.setVal(0.);
-//	cuMeans.setVal(0.);
-//	primMeans.setVal(0.);
-//	cuVars.setVal(0.);
-//	primVars.setVal(0.);
-//	coVars.setVal(0.);
-
-//	particles.EvaluateStats(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
-//		cvlInst,cvlMeans,QMeans,coVars,spatialCross1D,statsCount++,time);
-
-//	if(plot_int > 0) {
-//		writePlotFile(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
-//			coVars,spatialCross1D,particles,geom,time,ncross,0);
-//	}
-	
+	particles.zeroCells();
 	zeroMassFlux(paramPlaneList, paramPlaneCount);
+	
+    //Initial condition
+        spatialCross1D.setVal(0.);
+	cuMeans.setVal(0.);
+	primMeans.setVal(0.);
+	cuVars.setVal(0.);
+	primVars.setVal(0.);
+	coVars.setVal(0.);
+
+	//particles.SortParticlesDB();
+	particles.EvaluateStats(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
+		cvlInst,cvlMeans,QMeans,coVars,spatialCross1D,statsCount++,time);
+    int stepTemp = 0;
+
+	writePlotFile(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
+			coVars,spatialCross1D,particles,geom,time,ncross,stepTemp);
+
+	
 	
 	for (int istep=step; istep<=max_step; ++istep)
 	{
 		tbegin = ParallelDescriptor::second();
-
+		
 		particles.CalcSelections(dt);
 		particles.CollideParticles(dt);
-		particles.Source(dt, paramPlaneList, paramPlaneCount, cuInst);
+
+		//particles.Source(dt, paramPlaneList, paramPlaneCount, cuInst);
+		
 		//particles.externalForce(dt);
 		particles.MoveParticlesCPP(dt, paramPlaneList, paramPlaneCount);
 		//particles.updateTimeStep(geom,dt);
-        reduceMassFlux(paramPlaneList, paramPlaneCount);
-
-		particles.EvaluateStats(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
-					cvlInst,cvlMeans,QMeans,coVars,spatialCross1D,statsCount++,time);
+                //reduceMassFlux(paramPlaneList, paramPlaneCount);
+        
+//		particles.EvaluateStats(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
+//					cvlInst,cvlMeans,QMeans,coVars,spatialCross1D,statsCount++,time);
 
 		//////////////////////////////////////
 		// PlotFile
@@ -315,11 +360,33 @@ void main_driver(const char* argv)
 				writePlt = ((istep+1)%plot_int == 0);
 			}
 		}
+		
+		if (istep > n_steps_skip && struct_fact_int > 0 && (istep-n_steps_skip)%struct_fact_int == 0) {
+
+
+  		    for(int l=0;l<=nspecies;l++)
+  		    {
+	            MultiFab::Copy(structFactPrimMF, primInst, l*iprim+1, l*4+0, 1, 0);
+	            MultiFab::Copy(structFactPrimMF, primInst, l*iprim+2, l*4+1, 1, 0);
+	            MultiFab::Copy(structFactPrimMF, primInst, l*iprim+3, l*4+2, 1, 0);
+	            MultiFab::Copy(structFactPrimMF, primInst, l*iprim+9, l*4+3, 1, 0);
+	            
+	            //Print() << l*iprim+1 << " -> " << l*4+0 << endl;
+	        }
+	        
+	        //PrintMF(structFactPrimMF,0,-1);
+  	        //PrintMF(primInst,1,1);
+	        
+            structFactPrim.FortStructure(structFactPrimMF,geom);
+		
+		}
 
 		if ((plot_int > 0 && istep%plot_int==0))
 		{
 			writePlotFile(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
 				coVars,spatialCross1D,particles,geom,time,ncross,istep);
+				
+			structFactPrim.WritePlotFile(istep,time,geom,"plt_SF_prim");
 		}
 		
         if ((n_steps_skip > 0 && istep == n_steps_skip) || (n_steps_skip < 0 && istep%n_steps_skip == 0) ) {
@@ -342,9 +409,9 @@ void main_driver(const char* argv)
 		}
 		tend = ParallelDescriptor::second() - tbegin;
 		ParallelDescriptor::ReduceRealMax(tend);
-		if(istep%100==0)
+		if(istep%1==0)
 		{
-		    amrex::Print() << "Advanced step " << istep << " in " << tend << " seconds. " << particles.simParticles << " particles.\n";
+		    amrex::Print() << "Advanced step " << istep << " of " << max_step << " in " << tend << " seconds. " << particles.simParticles << " particles.\n";
 		}
 
 		time += dt;

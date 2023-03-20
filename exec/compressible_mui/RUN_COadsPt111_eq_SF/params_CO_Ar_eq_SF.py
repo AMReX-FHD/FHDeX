@@ -64,9 +64,9 @@ dy = n1y*lat_const*math.sqrt(3)
 dz = dx
 dv = dx*dy*dz
 
-n2x = 8
-n2y = 8
-n2z = 8
+n2x = 4
+n2y = 4
+n2z = 4
 
 Lx = n2x*dx
 Ly = n2y*dy
