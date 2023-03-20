@@ -35,9 +35,9 @@ StochMomFlux::StochMomFlux(BoxArray ba_in, DistributionMapping dmap_in, Geometry
 #if (AMREX_SPACEDIM == 2)
         mflux_ed[i][0].define(convert(ba_in,nodal_flag), dmap_in, ncomp_ed, filtering_width);
 #elif (AMREX_SPACEDIM == 3)
-        mflux_ed[i][0].define(convert(ba_in,nodal_flag_xy), dmap_in, ncomp_ed, amrex::max(0,filtering_width));
-        mflux_ed[i][1].define(convert(ba_in,nodal_flag_xz), dmap_in, ncomp_ed, amrex::max(0,filtering_width));
-        mflux_ed[i][2].define(convert(ba_in,nodal_flag_yz), dmap_in, ncomp_ed, amrex::max(0,filtering_width));
+        mflux_ed[i][0].define(convert(ba_in,nodal_flag_xy), dmap_in, ncomp_ed, filtering_width);
+        mflux_ed[i][1].define(convert(ba_in,nodal_flag_xz), dmap_in, ncomp_ed, filtering_width);
+        mflux_ed[i][2].define(convert(ba_in,nodal_flag_yz), dmap_in, ncomp_ed, filtering_width);
 #endif
         for (int d=0; d<NUM_EDGE; ++d) {
             mflux_ed[i][d].setVal(0.);
@@ -50,9 +50,9 @@ StochMomFlux::StochMomFlux(BoxArray ba_in, DistributionMapping dmap_in, Geometry
 #if (AMREX_SPACEDIM == 2)
     mflux_ed_weighted[0].define(convert(ba_in,nodal_flag), dmap_in, ncomp_ed, filtering_width);
 #elif (AMREX_SPACEDIM == 3)
-    mflux_ed_weighted[0].define(convert(ba_in,nodal_flag_xy), dmap_in, ncomp_ed, amrex::max(0,filtering_width));
-    mflux_ed_weighted[1].define(convert(ba_in,nodal_flag_xz), dmap_in, ncomp_ed, amrex::max(0,filtering_width));
-    mflux_ed_weighted[2].define(convert(ba_in,nodal_flag_yz), dmap_in, ncomp_ed, amrex::max(0,filtering_width));
+    mflux_ed_weighted[0].define(convert(ba_in,nodal_flag_xy), dmap_in, ncomp_ed, filtering_width);
+    mflux_ed_weighted[1].define(convert(ba_in,nodal_flag_xz), dmap_in, ncomp_ed, filtering_width);
+    mflux_ed_weighted[2].define(convert(ba_in,nodal_flag_yz), dmap_in, ncomp_ed, filtering_width);
     for (int d=0; d<NUM_EDGE; ++d) {
         mflux_ed_weighted[d].setVal(0.);
     }
@@ -83,24 +83,24 @@ void StochMomFlux::fillMomStochastic() {
 
         case 0: // Non-symmetric
             for (int n=0; n<AMREX_SPACEDIM; ++n) {
-                MultiFabFillRandom(mflux_cc[i],n,1.0,geom,2);
+                MultiFabFillRandom(mflux_cc[i],n,1.0,geom);
             }
 
             for (int d=0; d<NUM_EDGE; ++d) {
                 for (int n=0; n<ncomp_ed; ++n) {
-                    MultiFabFillRandom(mflux_ed[i][d],n,1.0,geom,1);
+                    MultiFabFillRandom(mflux_ed[i][d],n,1.0,geom);
                 }
             }
             break;
 
         default: // Symmetric
             for (int n=0; n<AMREX_SPACEDIM; ++n) {
-                MultiFabFillRandom(mflux_cc[i],n,2.0,geom,2);
+                MultiFabFillRandom(mflux_cc[i],n,2.0,geom);
             }
 
             for (int d=0; d<NUM_EDGE; ++d) {
-                MultiFabFillRandom(mflux_ed[i][d],0,1.0,geom,1);
-                MultiFab::Copy(mflux_ed[i][d], mflux_ed[i][d], 0, 1, ncomp_ed-1, 1);
+                MultiFabFillRandom(mflux_ed[i][d],0,1.0,geom);
+                MultiFab::Copy(mflux_ed[i][d], mflux_ed[i][d], 0, 1, ncomp_ed-1, 0);
             }
             break;
         }
