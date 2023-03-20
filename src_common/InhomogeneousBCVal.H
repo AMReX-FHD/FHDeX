@@ -4,7 +4,7 @@ Real InhomogeneousBCVal ( int comp,
                           Real x,
                           Real y,
                           Real z,
-                          Real time)
+                          Real /*time*/)
 {
     if (comp == PRES_BC_COMP) {
 
@@ -126,4 +126,4 @@ Real InhomogeneousBCVal ( int comp,
     }
     
     return 0.;
-};
+}

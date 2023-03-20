@@ -2,6 +2,9 @@ namespace common {
 
 //////////////
 #define MAX_SPECIES 8
+#define ADJ 0.99999
+#define ADJALT 0.00002
+#define WRITE_BUFFER 1000
 #define MAX_ELEMENT 28 // needs to be MAX_SPECIES*(MAX_SPECIES-1)/2
 //////////////
     
@@ -86,7 +89,10 @@ namespace common {
 
     // Algorithm control / selection
     extern AMREX_GPU_MANAGED int      algorithm_type;
-    extern int                        advection_type;
+    // 0 = centered
+    // 1 = unlimited bilinear bds
+    // 2 = limited bilinear bds
+    extern AMREX_GPU_MANAGED int      advection_type;
     extern int                        barodiffusion_type;
 
     // random number seed
@@ -305,6 +311,8 @@ namespace common {
     extern amrex::Vector<amrex::Real> eamp;
     extern amrex::Vector<amrex::Real> efreq;
     extern amrex::Vector<amrex::Real> ephase;
+    
+    extern amrex::Vector<amrex::Real> body_force_density;
 
     extern int                        plot_ascii;
     extern int                        plot_means;

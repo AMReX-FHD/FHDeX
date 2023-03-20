@@ -152,8 +152,9 @@ void FhdParticleContainer::InitParticles(Real & dt)
 //	ParallelDescriptor::Bcast(&dt,1,ParallelDescriptor::IOProcessorNumber());
 //	amrex::Print() << "My dt " << dt << "\n";
 
-	Redistribute();
-	SortParticles();
+    Redistribute();
+	//SortParticles();
+	SortParticlesDB();
 	
 	// Zero bulk velocities in each cell
 //	for (FhdParIter pti(* this, lev); pti.isValid(); ++pti)

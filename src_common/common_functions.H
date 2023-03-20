@@ -114,7 +114,7 @@ void ComputeDivCC(const MultiFab& vel_in,
     
 ///////////////////////////
 // in Debug.cpp
-void PrintMF(const MultiFab& MF);
+void PrintMF(const MultiFab& MF, int comp_lo, int comp_hi);
 
 void outputMFAscii(const MultiFab& output, std::string filename);
 

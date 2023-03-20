@@ -40,7 +40,7 @@ include $(FHDeX)/src_particles/MakeDSMC.package
 VPATH_LOCATIONS   += $(FHDeX)/src_particles/
 INCLUDE_LOCATIONS += $(FHDeX)/src_particles/
 
-include $(FHDeX)/src_geometry/Make.package
+include $(FHDeX)/src_geometry/MakeDSMC.package
 VPATH_LOCATIONS   += $(FHDeX)/src_geometry
 INCLUDE_LOCATIONS += $(FHDeX)/src_geometry
 
@@ -70,8 +70,12 @@ LIBRARIES += -L$(FFTW_DIR) -lfftw3_mpi -lfftw3_omp -lfftw3 -lgomp
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.rules
 
-#DEFINES	+= -DDSMC=$(DSMC)
-
 ifeq ($(findstring cgpu, $(HOST)), cgpu)
-CXXFLAGS += $(FFTW)
+  CXXFLAGS += $(FFTW)
+endif
+
+ifeq ($(USE_CUDA),TRUE)
+  LIBRARIES += -lcufft
+else
+  LIBRARIES += -L$(FFTW_DIR) -lfftw3_mpi -lfftw3
 endif

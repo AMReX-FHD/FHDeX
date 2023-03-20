@@ -29,6 +29,58 @@ void addMomFluctuations_stag(std::array< MultiFab, AMREX_SPACEDIM >&,
                              const Geometry& geom);
 
 /////////////////////////////////////////////////////////////////////////////////
+// in BDS.cpp
+
+void BDS(MultiFab& s_update,
+	 const int ncomp,
+	 const int bccomp,
+	 MultiFab const& state,
+	 std::array< MultiFab, AMREX_SPACEDIM >& umac,
+	 MultiFab const& fq,
+	 Geometry const& geom,
+	 const Real dt);
+
+void BDS_ComputeEdgeState(Box const& bx, int ncomp, int bccomp,
+                          Array4<Real const> const& q,
+                          Array4<Real      > const& xedge,
+                          Array4<Real      > const& yedge,
+#if (AMREX_SPACEDIM == 3)
+                          Array4<Real      > const& zedge,
+#endif
+                          Array4<Real const> const& umac,
+                          Array4<Real const> const& vmac,
+#if (AMREX_SPACEDIM == 3)
+                          Array4<Real const> const& wmac,
+#endif
+                          Array4<Real const> const& fq,
+                          Geometry geom,
+                          Real l_dt);
+
+void BDS_ComputeSlopes(Box const& bx,
+                       const Geometry& geom,
+                       int icomp, int bccomp,
+                       Array4<Real const> const& s,
+                       Array4<Real      > const& slopes);
+
+void BDS_ComputeConc(Box const& bx,
+                     const Geometry& geom,
+                     int icomp, int bccomp,
+                     Array4<Real const> const& s,
+                     Array4<Real      > const& sedgex,
+                     Array4<Real      > const& sedgey,
+#if (AMREX_SPACEDIM == 3)
+                     Array4<Real      > const& sedgez,
+#endif
+                     Array4<Real const> const& slopes,
+                     Array4<Real const> const& umac,
+                     Array4<Real const> const& vmac,
+#if (AMREX_SPACEDIM == 3)
+                     Array4<Real const> const& wmac,
+#endif
+                     Array4<Real const> const& force,
+                     const Real dt);
+
+/////////////////////////////////////////////////////////////////////////////////
 // in ConvertMToUmac.cpp
 
 void ConvertMToUmac(const std::array< MultiFab, AMREX_SPACEDIM >& s_fc,
