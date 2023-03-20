@@ -743,6 +743,9 @@ void main_driver(const char* argv)
 
         // Evaluate Statistics
         if (do_1D) {
+            evaluateStats3D(cu, cuMeans, cuVars, prim, primMeans, primVars, coVars,
+                                spatialCross3D, ncross, domain,
+                                statsCount, geom);
         //    evaluateStats1D(cu, cuMeans, cuVars, prim, primMeans, primVars, coVars,
         //                        spatialCross1D, ncross, statsCount, geom);
         }

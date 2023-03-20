@@ -103,6 +103,11 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 fweights[2]=fweights[1];
                 fweights[3]=fweights[1];
                 fweights[4]=sqrt(k_B*kxp*volinv*dtinv);
+                if (do_1D) {
+                    fweights[1] = sqrt(3.0)*(2.0/3.0)*(sqrt(k_B * muxp * volinv * dtinv));
+                    fweights[2] = 0.0;
+                    fweights[3] = 0.0;
+                }
 
                 // Construct the random increments
                 for (int n=0; n<5; ++n) {
@@ -289,11 +294,13 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                     }
                     
                     // Random "divergence" stress
-                    wiener[1] = wiener[1] + factor_lo_x*factor_hi_x*
-                                            0.25*nweight*(factor_hi_y*factor_hi_z*sqrt(muzepp)*rancorn(i,j+1,k+1) +
-                                                          factor_lo_y*factor_hi_z*sqrt(muzemp)*rancorn(i,j,k+1) +
-                                                          factor_hi_y*factor_lo_z*sqrt(muzepm)*rancorn(i,j+1,k) + 
-                                                          factor_lo_y*factor_lo_z*sqrt(muzemm)*rancorn(i,j,k));
+                    if (!do_1D) {
+                        wiener[1] = wiener[1] + factor_lo_x*factor_hi_x*
+                                                0.25*nweight*(factor_hi_y*factor_hi_z*sqrt(muzepp)*rancorn(i,j+1,k+1) +
+                                                              factor_lo_y*factor_hi_z*sqrt(muzemp)*rancorn(i,j,k+1) +
+                                                              factor_hi_y*factor_lo_z*sqrt(muzepm)*rancorn(i,j+1,k) + 
+                                                              factor_lo_y*factor_lo_z*sqrt(muzemm)*rancorn(i,j,k));
+                    }
 
                 } else if (n_cells_z == 1) {
 
@@ -487,6 +494,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 // Construct the random increments
                 for (int n=0; n<5; ++n) {
                     wiener[n] = fweights[n]*ranfluxy(i,j,k,n);
+                    if (do_1D) wiener[n] = 0.0;
                 }
 
                 Real nweight=sqrt(k_B*volinv*dtinv);
@@ -678,6 +686,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                                                           factor_hi_x*factor_lo_z*sqrt(muzepm)*rancorn(i+1,j,k) +
                                                           factor_lo_x*factor_lo_z*sqrt(muzemm)*rancorn(i,j,k));
 
+                    if (do_1D) wiener[2] = 0.0;
                 } else if (n_cells_z == 1) {
                     
                     Abort("n_cells_z==1 case for stoch flux not written");
@@ -807,7 +816,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                     for (int ns=0; ns<nspecies; ++ns) {
                         for (int ll=0; ll<=ns; ++ll) {
                             fweights[5+ll]=sqrt(k_B*MWmix*volinv/(Runiv*dt))*sqD[ns*nspecies+ll];
-                            wiener[5+ns] = wiener[5+ns] + fweights[5+ll]*ranfluxy(i,j,k,5+ll);
+                            if (!do_1D) wiener[5+ns] = wiener[5+ns] + fweights[5+ll]*ranfluxy(i,j,k,5+ll);
                         }
                         fluxy(i,j,k,5+ns) = wiener[5+ns];
                     }
@@ -871,6 +880,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                     // Construct the random increments
                     for (int n=0; n<5; ++n) {
                         wiener[n] = fweights[n]*ranfluxz(i,j,k,n);
+                        if (do_1D) wiener[n] = 0.0;
                     }
                 
                     Real nweight=sqrt(k_B*volinv*dtinv);
@@ -1061,6 +1071,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                                                           factor_hi_x*factor_lo_y*sqrt(muzepm)*rancorn(i+1,j,k) +
                                                           factor_lo_x*factor_lo_y*sqrt(muzemm)*rancorn(i,j,k));
 
+                    if (do_1D) wiener[3] = 0.0;
                     for (int n=1; n<4; ++n) {
                         fluxz(i,j,k,n) = fluxz(i,j,k,n) + wiener[n];
                     }
@@ -1165,7 +1176,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                     for (int ns=0; ns<nspecies; ++ns) {
                         for (int ll=0; ll<=ns; ++ll) {
                             fweights[5+ll]=sqrt(k_B*MWmix*volinv/(Runiv*dt))*sqD[ns*nspecies+ll];
-                            wiener[5+ns] = wiener[5+ns] + fweights[5+ll]*ranfluxz(i,j,k,5+ll);
+                            if (!do_1D) wiener[5+ns] = wiener[5+ns] + fweights[5+ll]*ranfluxz(i,j,k,5+ll);
                         }
                         fluxz(i,j,k,5+ns) = wiener[5+ns];
                     }
@@ -1251,9 +1262,17 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
             Real muxp = half*(eta(i,j,k) + eta(i-1,j,k));
             Real kxp = half*(kappa(i,j,k) + kappa(i-1,j,k));
 
-            Real tauxxp = muxp*(prim(i,j,k,1) - prim(i-1,j,k,1))/dx[0];
-            Real tauyxp = muxp*(prim(i,j,k,2) - prim(i-1,j,k,2))/dx[0];
-            Real tauzxp = muxp*(prim(i,j,k,3) - prim(i-1,j,k,3))/dx[0];
+            Real tauxxp, tauyxp, tauzxp;
+            if (do_1D) {
+                tauxxp = (4.0/3.0)*muxp*(prim(i,j,k,1) - prim(i-1,j,k,1))/dx[0];
+                tauyxp = 0.0;
+                tauzxp = 0.0;
+            }
+            else {
+                tauxxp = muxp*(prim(i,j,k,1) - prim(i-1,j,k,1))/dx[0];
+                tauyxp = muxp*(prim(i,j,k,2) - prim(i-1,j,k,2))/dx[0];
+                tauzxp = muxp*(prim(i,j,k,3) - prim(i-1,j,k,3))/dx[0];
+            }
 
             Real divxp = 0.;
 
@@ -1267,9 +1286,16 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
             if ((i == 0) and is_lo_x_dirichlet_mass) {
                 muxp = eta(i-1,j,k);
                 kxp  = kappa(i-1,j,k);
-                tauxxp = muxp*(prim(i,j,k,1) - prim(i-1,j,k,1))/(0.5*dx[0]);
-                tauyxp = muxp*(prim(i,j,k,2) - prim(i-1,j,k,2))/(0.5*dx[0]);
-                tauzxp = muxp*(prim(i,j,k,3) - prim(i-1,j,k,3))/(0.5*dx[0]);
+                if (!do_1D) {
+                    tauxxp = muxp*(prim(i,j,k,1) - prim(i-1,j,k,1))/(0.5*dx[0]);
+                    tauyxp = muxp*(prim(i,j,k,2) - prim(i-1,j,k,2))/(0.5*dx[0]);
+                    tauzxp = muxp*(prim(i,j,k,3) - prim(i-1,j,k,3))/(0.5*dx[0]);
+                }
+                else {
+                    tauxxp = (4.0/3.0)*muxp*(prim(i,j,k,1) - prim(i-1,j,k,1))/(0.5*dx[0]);
+                    tauyxp = 0.0;
+                    tauzxp = 0.0;
+                }
                 phiflx = 2.0*(tauxxp*(prim(i-1,j,k,1))
                           +  divxp*(prim(i-1,j,k,1))
                           +  tauyxp*(prim(i-1,j,k,2))
@@ -1279,9 +1305,16 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
             if ((i == n_cells[0]) and is_hi_x_dirichlet_mass) {
                 muxp = eta(i,j,k);
                 kxp  = kappa(i,j,k);
-                tauxxp = muxp*(prim(i,j,k,1) - prim(i-1,j,k,1))/(0.5*dx[0]);
-                tauyxp = muxp*(prim(i,j,k,2) - prim(i-1,j,k,2))/(0.5*dx[0]);
-                tauzxp = muxp*(prim(i,j,k,3) - prim(i-1,j,k,3))/(0.5*dx[0]);
+                if (!do_1D) {
+                    tauxxp = muxp*(prim(i,j,k,1) - prim(i-1,j,k,1))/(0.5*dx[0]);
+                    tauyxp = muxp*(prim(i,j,k,2) - prim(i-1,j,k,2))/(0.5*dx[0]);
+                    tauzxp = muxp*(prim(i,j,k,3) - prim(i-1,j,k,3))/(0.5*dx[0]);
+                }
+                else {
+                    tauxxp = (4.0/3.0)*muxp*(prim(i,j,k,1) - prim(i-1,j,k,1))/(0.5*dx[0]);
+                    tauyxp = 0.0;
+                    tauzxp = 0.0;
+                }
                 phiflx = 2.0*(tauxxp*(prim(i,j,k,1))
                           +  divxp*(prim(i,j,k,1))
                           +  tauyxp*(prim(i,j,k,2))
@@ -1396,6 +1429,11 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
             Real tauxyp =  muyp*(prim(i,j,k,1) - prim(i,j-1,k,1))/dx[1];
             Real tauyyp =  muyp*(prim(i,j,k,2) - prim(i,j-1,k,2))/dx[1];
             Real tauzyp =  muyp*(prim(i,j,k,3) - prim(i,j-1,k,3))/dx[1];
+            if (do_1D) {
+                tauxyp = 0.0;
+                tauyyp = 0.0;
+                tauzyp = 0.0;
+            }
 
             Real divyp = 0.;
 
@@ -1412,6 +1450,11 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 tauxyp = muyp*(prim(i,j,k,1) - prim(i,j-1,k,1))/(0.5*dx[1]);
                 tauyyp = muyp*(prim(i,j,k,2) - prim(i,j-1,k,2))/(0.5*dx[1]);
                 tauzyp = muyp*(prim(i,j,k,3) - prim(i,j-1,k,3))/(0.5*dx[1]);
+                if (do_1D) {
+                    tauxyp = 0.0;
+                    tauyyp = 0.0;
+                    tauzyp = 0.0;
+                }
                 phiflx = 2.0*(tauxyp*(prim(i,j-1,k,1))
                           +  tauyyp*(prim(i,j-1,k,2))
                           +  divyp*(prim(i,j-1,k,2))
@@ -1424,6 +1467,11 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 tauxyp = muyp*(prim(i,j,k,1) - prim(i,j-1,k,1))/(0.5*dx[1]);
                 tauyyp = muyp*(prim(i,j,k,2) - prim(i,j-1,k,2))/(0.5*dx[1]);
                 tauzyp = muyp*(prim(i,j,k,3) - prim(i,j-1,k,3))/(0.5*dx[1]);
+                if (do_1D) {
+                    tauxyp = 0.0;
+                    tauyyp = 0.0;
+                    tauzyp = 0.0;
+                }
                 phiflx = 2.0*(tauxyp*(prim(i,j,k,1))
                           +  tauyyp*(prim(i,j,k,2))
                           +  divyp*(prim(i,j,k,2))
@@ -1436,6 +1484,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
             fluxy(i,j,k,3) = fluxy(i,j,k,3) - tauzyp;
 
             // heat flux
+            if (do_1D) Qflux = 0.0;
             fluxy(i,j,k,nvars) = fluxy(i,j,k,nvars) - Qflux;
 
             // viscous heating
@@ -1516,9 +1565,11 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 
                 // heat conduction already included in flux(5)
 
+                if (do_1D) Q5 = 0.0;
                 fluxy(i,j,k,nvars+3) = fluxy(i,j,k,nvars+3) + Q5;
 
                 for (int ns=0; ns<nspecies; ++ns) {
+                    if (do_1D) Fk[ns] = 0.0;
                     fluxy(i,j,k,5+ns) = fluxy(i,j,k,5+ns) + Fk[ns];
                 }
             }
@@ -1541,6 +1592,11 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
             Real tauxzp =  muzp*(prim(i,j,k,1) - prim(i,j,k-1,1))/dx[2];
             Real tauyzp =  muzp*(prim(i,j,k,2) - prim(i,j,k-1,2))/dx[2];
             Real tauzzp =  muzp*(prim(i,j,k,3) - prim(i,j,k-1,3))/dx[2];
+            if (do_1D) {
+                tauxzp = 0.0;
+                tauyzp = 0.0;
+                tauzzp = 0.0;
+            }
 
             Real divzp = 0.;
 
@@ -1557,6 +1613,11 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 tauxzp = muzp*(prim(i,j,k,1) - prim(i,j,k-1,1))/(0.5*dx[2]);
                 tauyzp = muzp*(prim(i,j,k,2) - prim(i,j,k-1,2))/(0.5*dx[2]);
                 tauzzp = muzp*(prim(i,j,k,3) - prim(i,j,k-1,3))/(0.5*dx[2]);
+                if (do_1D) {
+                    tauxzp = 0.0;
+                    tauyzp = 0.0;
+                    tauzzp = 0.0;
+                }
                 phiflx = 2.0*(tauxzp*(prim(i,j,k-1,1))
                           +  tauyzp*(prim(i,j,k-1,2))
                           +  tauzzp*(prim(i,j,k-1,3))
@@ -1569,6 +1630,11 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 tauxzp = muzp*(prim(i,j,k,1) - prim(i,j,k-1,1))/(0.5*dx[2]);
                 tauyzp = muzp*(prim(i,j,k,2) - prim(i,j,k-1,2))/(0.5*dx[2]);
                 tauzzp = muzp*(prim(i,j,k,3) - prim(i,j,k-1,3))/(0.5*dx[2]);
+                if (do_1D) {
+                    tauxzp = 0.0;
+                    tauyzp = 0.0;
+                    tauzzp = 0.0;
+                }
                 phiflx = 2.0*(tauxzp*(prim(i,j,k,1))
                           +  tauyzp*(prim(i,j,k,2))
                           +  tauzzp*(prim(i,j,k,3))
@@ -1581,6 +1647,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
             fluxz(i,j,k,3) = fluxz(i,j,k,3) - (tauzzp+divzp);
 
             // heat flux
+            if (do_1D) Qflux = 0.0;
             fluxz(i,j,k,nvars) = fluxz(i,j,k,nvars) - Qflux;
 
             // viscous heating
@@ -1660,9 +1727,11 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 }
 
                 // heat conduction already included in flux(5)
+                if (do_1D) Q5 = 0.0;
                 fluxz(i,j,k,nvars+3) = fluxz(i,j,k,nvars+3) + Q5;
 
                 for (int ns=0; ns<nspecies; ++ns) {
+                    if (do_1D) Fk[ns] = 0.0;
                     fluxz(i,j,k,5+ns) = fluxz(i,j,k,5+ns) + Fk[ns];
                 }
             }
@@ -1670,7 +1739,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
             } // n_cells_z test
         });
 
-        if (n_cells_z > 1) {
+        if ((n_cells_z > 1) and (!do_1D)) {
         
         amrex::ParallelFor(tbn,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
@@ -1815,217 +1884,219 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 
         } // n_cells_z test
         
-        amrex::ParallelFor(tbx, tby, tbz,
-        [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-                               
-            fluxx(i,j,k,1) = fluxx(i,j,k,1) - 0.25*(visccorn(i,j+1,k+1)+visccorn(i,j,k+1) +
-                                                      visccorn(i,j+1,k)+visccorn(i,j,k)); // Viscous "divergence" stress
+        if (!do_1D) {
+            amrex::ParallelFor(tbx, tby, tbz,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                                   
+                fluxx(i,j,k,1) = fluxx(i,j,k,1) - 0.25*(visccorn(i,j+1,k+1)+visccorn(i,j,k+1) +
+                                                          visccorn(i,j+1,k)+visccorn(i,j,k)); // Viscous "divergence" stress
 
-            fluxx(i,j,k,1) = fluxx(i,j,k,1) + .25*  
-                (cornvy(i,j+1,k+1)+cornvy(i,j,k+1)+cornvy(i,j+1,k)+cornvy(i,j,k)  +
-                 cornwz(i,j+1,k+1)+cornwz(i,j,k+1)+cornwz(i,j+1,k)+cornwz(i,j,k));
+                fluxx(i,j,k,1) = fluxx(i,j,k,1) + .25*  
+                    (cornvy(i,j+1,k+1)+cornvy(i,j,k+1)+cornvy(i,j+1,k)+cornvy(i,j,k)  +
+                     cornwz(i,j+1,k+1)+cornwz(i,j,k+1)+cornwz(i,j+1,k)+cornwz(i,j,k));
 
-            fluxx(i,j,k,2) = fluxx(i,j,k,2) - .25*  
-                (cornuy(i,j+1,k+1)+cornuy(i,j,k+1)+cornuy(i,j+1,k)+cornuy(i,j,k));
+                fluxx(i,j,k,2) = fluxx(i,j,k,2) - .25*  
+                    (cornuy(i,j+1,k+1)+cornuy(i,j,k+1)+cornuy(i,j+1,k)+cornuy(i,j,k));
 
-            fluxx(i,j,k,3) = fluxx(i,j,k,3) - .25*  
-                (cornuz(i,j+1,k+1)+cornuz(i,j,k+1)+cornuz(i,j+1,k)+cornuz(i,j,k));
+                fluxx(i,j,k,3) = fluxx(i,j,k,3) - .25*  
+                    (cornuz(i,j+1,k+1)+cornuz(i,j,k+1)+cornuz(i,j+1,k)+cornuz(i,j,k));
 
-            Real phiflx;
+                Real phiflx;
 
-            if ((i == 0) and is_lo_x_dirichlet_mass) {
-                phiflx =  0.5*(visccorn(i,j+1,k+1)+visccorn(i,j,k+1) +
-                            visccorn(i,j+1,k)+visccorn(i,j,k)
-                            -(cornvy(i,j+1,k+1)+cornvy(i,j,k+1)+cornvy(i,j+1,k)+cornvy(i,j,k)  +
-                              cornwz(i,j+1,k+1)+cornwz(i,j,k+1)+cornwz(i,j+1,k)+cornwz(i,j,k))) *
-                            (prim(i-1,j,k,1));
+                if ((i == 0) and is_lo_x_dirichlet_mass) {
+                    phiflx =  0.5*(visccorn(i,j+1,k+1)+visccorn(i,j,k+1) +
+                                visccorn(i,j+1,k)+visccorn(i,j,k)
+                                -(cornvy(i,j+1,k+1)+cornvy(i,j,k+1)+cornvy(i,j+1,k)+cornvy(i,j,k)  +
+                                  cornwz(i,j+1,k+1)+cornwz(i,j,k+1)+cornwz(i,j+1,k)+cornwz(i,j,k))) *
+                                (prim(i-1,j,k,1));
 
-                phiflx = phiflx + .5*  
-                            (cornuy(i,j+1,k+1)+cornuy(i,j,k+1)+cornuy(i,j+1,k)+cornuy(i,j,k)) *
-                            (prim(i-1,j,k,2));
+                    phiflx = phiflx + .5*  
+                                (cornuy(i,j+1,k+1)+cornuy(i,j,k+1)+cornuy(i,j+1,k)+cornuy(i,j,k)) *
+                                (prim(i-1,j,k,2));
 
-                phiflx = phiflx + .5*  
-                            (cornuz(i,j+1,k+1)+cornuz(i,j,k+1)+cornuz(i,j+1,k)+cornuz(i,j,k)) *
-                            (prim(i-1,j,k,3));
+                    phiflx = phiflx + .5*  
+                                (cornuz(i,j+1,k+1)+cornuz(i,j,k+1)+cornuz(i,j+1,k)+cornuz(i,j,k)) *
+                                (prim(i-1,j,k,3));
 
-            }
-            else if ((i == n_cells[0]) and is_hi_x_dirichlet_mass) {
-                phiflx =  0.5*(visccorn(i,j+1,k+1)+visccorn(i,j,k+1) +
-                            visccorn(i,j+1,k)+visccorn(i,j,k)
-                            -(cornvy(i,j+1,k+1)+cornvy(i,j,k+1)+cornvy(i,j+1,k)+cornvy(i,j,k)  +
-                              cornwz(i,j+1,k+1)+cornwz(i,j,k+1)+cornwz(i,j+1,k)+cornwz(i,j,k))) *
-                            (prim(i,j,k,1));
+                }
+                else if ((i == n_cells[0]) and is_hi_x_dirichlet_mass) {
+                    phiflx =  0.5*(visccorn(i,j+1,k+1)+visccorn(i,j,k+1) +
+                                visccorn(i,j+1,k)+visccorn(i,j,k)
+                                -(cornvy(i,j+1,k+1)+cornvy(i,j,k+1)+cornvy(i,j+1,k)+cornvy(i,j,k)  +
+                                  cornwz(i,j+1,k+1)+cornwz(i,j,k+1)+cornwz(i,j+1,k)+cornwz(i,j,k))) *
+                                (prim(i,j,k,1));
 
-                phiflx = phiflx + .5*  
-                            (cornuy(i,j+1,k+1)+cornuy(i,j,k+1)+cornuy(i,j+1,k)+cornuy(i,j,k)) *
-                            (prim(i,j,k,2));
+                    phiflx = phiflx + .5*  
+                                (cornuy(i,j+1,k+1)+cornuy(i,j,k+1)+cornuy(i,j+1,k)+cornuy(i,j,k)) *
+                                (prim(i,j,k,2));
 
-                phiflx = phiflx + .5*  
-                            (cornuz(i,j+1,k+1)+cornuz(i,j,k+1)+cornuz(i,j+1,k)+cornuz(i,j,k)) *
-                            (prim(i,j,k,3));
-
-            }
-            else {
-                phiflx =  0.25*(visccorn(i,j+1,k+1)+visccorn(i,j,k+1) +
-                            visccorn(i,j+1,k)+visccorn(i,j,k)
-                            -(cornvy(i,j+1,k+1)+cornvy(i,j,k+1)+cornvy(i,j+1,k)+cornvy(i,j,k)  +
-                              cornwz(i,j+1,k+1)+cornwz(i,j,k+1)+cornwz(i,j+1,k)+cornwz(i,j,k))) *
-                            (prim(i-1,j,k,1)+prim(i,j,k,1));
-
-                phiflx = phiflx + .25*  
-                            (cornuy(i,j+1,k+1)+cornuy(i,j,k+1)+cornuy(i,j+1,k)+cornuy(i,j,k)) *
-                            (prim(i-1,j,k,2)+prim(i,j,k,2));
-
-                phiflx = phiflx + .25*  
-                            (cornuz(i,j+1,k+1)+cornuz(i,j,k+1)+cornuz(i,j+1,k)+cornuz(i,j,k)) *
-                            (prim(i-1,j,k,3)+prim(i,j,k,3));
-
-            }
-
-            fluxx(i,j,k,nvars+1) = fluxx(i,j,k,nvars+1)-0.5*phiflx;
-        },
-
-        [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-
-            fluxy(i,j,k,2) = fluxy(i,j,k,2) -
-                0.25*(visccorn(i+1,j,k+1)+visccorn(i,j,k+1)+visccorn(i+1,j,k)+visccorn(i,j,k));
-
-            fluxy(i,j,k,2) = fluxy(i,j,k,2) + .25*
-                (cornux(i+1,j,k+1)+cornux(i,j,k+1)+cornux(i+1,j,k)+cornux(i,j,k)  +
-                 cornwz(i+1,j,k+1)+cornwz(i,j,k+1)+cornwz(i+1,j,k)+cornwz(i,j,k));
-
-            fluxy(i,j,k,1) = fluxy(i,j,k,1) - .25*  
-                (cornvx(i+1,j,k+1)+cornvx(i,j,k+1)+cornvx(i+1,j,k)+cornvx(i,j,k));
-
-            fluxy(i,j,k,3) = fluxy(i,j,k,3) - .25*  
-                (cornvz(i+1,j,k+1)+cornvz(i,j,k+1)+cornvz(i+1,j,k)+cornvz(i,j,k));
-
-            Real phiflx;
-
-            if ((j == 0) and is_lo_y_dirichlet_mass) {
-            
-                phiflx = 0.5*(visccorn(i+1,j,k+1)+visccorn(i,j,k+1)+visccorn(i+1,j,k)+visccorn(i,j,k)
-                               -(cornux(i+1,j,k+1)+cornux(i,j,k+1)+cornux(i+1,j,k)+cornux(i,j,k)  +
-                                 cornwz(i+1,j,k+1)+cornwz(i,j,k+1)+cornwz(i+1,j,k)+cornwz(i,j,k))) *
-                              (prim(i,j-1,k,2));
-
-                phiflx = phiflx + .5*  
-                            (cornvx(i+1,j,k+1)+cornvx(i,j,k+1)+cornvx(i+1,j,k)+cornvx(i,j,k)) *
-                            (prim(i,j-1,k,1));
-
-                phiflx = phiflx + .5*  
-                            (cornvz(i+1,j,k+1)+cornvz(i,j,k+1)+cornvz(i+1,j,k)+cornvz(i,j,k)) *
-                            (prim(i,j-1,k,3));
-
-            }
-            else if ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
-
-                phiflx = 0.5*(visccorn(i+1,j,k+1)+visccorn(i,j,k+1)+visccorn(i+1,j,k)+visccorn(i,j,k)
-                               -(cornux(i+1,j,k+1)+cornux(i,j,k+1)+cornux(i+1,j,k)+cornux(i,j,k)  +
-                                 cornwz(i+1,j,k+1)+cornwz(i,j,k+1)+cornwz(i+1,j,k)+cornwz(i,j,k))) *
-                              (prim(i,j,k,2));
-
-                phiflx = phiflx + .5*  
-                            (cornvx(i+1,j,k+1)+cornvx(i,j,k+1)+cornvx(i+1,j,k)+cornvx(i,j,k)) *
-                            (prim(i,j,k,1));
-
-                phiflx = phiflx + .5*  
-                            (cornvz(i+1,j,k+1)+cornvz(i,j,k+1)+cornvz(i+1,j,k)+cornvz(i,j,k)) *
-                            (prim(i,j,k,3));
-
-            }
-            else {
-                phiflx = 0.25*(visccorn(i+1,j,k+1)+visccorn(i,j,k+1)+visccorn(i+1,j,k)+visccorn(i,j,k)
-                               -(cornux(i+1,j,k+1)+cornux(i,j,k+1)+cornux(i+1,j,k)+cornux(i,j,k)  +
-                                 cornwz(i+1,j,k+1)+cornwz(i,j,k+1)+cornwz(i+1,j,k)+cornwz(i,j,k))) *
-                              (prim(i,j-1,k,2)+prim(i,j,k,2));
-
-                phiflx = phiflx + .25*  
-                            (cornvx(i+1,j,k+1)+cornvx(i,j,k+1)+cornvx(i+1,j,k)+cornvx(i,j,k)) *
-                            (prim(i,j-1,k,1)+prim(i,j,k,1));
-
-                phiflx = phiflx + .25*  
-                            (cornvz(i+1,j,k+1)+cornvz(i,j,k+1)+cornvz(i+1,j,k)+cornvz(i,j,k)) *
-                            (prim(i,j-1,k,3)+prim(i,j,k,3));
-
-            }
-
-            fluxy(i,j,k,nvars+1) = fluxy(i,j,k,nvars+1)-0.5*phiflx;
-            
-        },
-
-        [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-
-            if (n_cells_z > 1) {
-            
-            fluxz(i,j,k,3) = fluxz(i,j,k,3) -
-                0.25*(visccorn(i+1,j+1,k)+visccorn(i,j+1,k)+visccorn(i+1,j,k)+visccorn(i,j,k));
-
-            fluxz(i,j,k,3) = fluxz(i,j,k,3) + .25*  
-                (cornvy(i+1,j+1,k)+cornvy(i+1,j,k)+cornvy(i,j+1,k)+cornvy(i,j,k)  +
-                 cornux(i+1,j+1,k)+cornux(i+1,j,k)+cornux(i,j+1,k)+cornux(i,j,k));
-
-            fluxz(i,j,k,1) = fluxz(i,j,k,1) - .25*  
-                (cornwx(i+1,j+1,k)+cornwx(i+1,j,k)+cornwx(i,j+1,k)+cornwx(i,j,k));
-
-            fluxz(i,j,k,2) = fluxz(i,j,k,2) - .25*  
-                (cornwy(i+1,j+1,k)+cornwy(i+1,j,k)+cornwy(i,j+1,k)+cornwy(i,j,k));
-
-            Real phiflx;
-
-            if ((k == 0) and is_lo_z_dirichlet_mass) {
-
-                phiflx = 0.5*(visccorn(i+1,j+1,k)+visccorn(i,j+1,k)+visccorn(i+1,j,k)+visccorn(i,j,k)
-                               -(cornvy(i+1,j+1,k)+cornvy(i+1,j,k)+cornvy(i,j+1,k)+cornvy(i,j,k)  +
-                                 cornux(i+1,j+1,k)+cornux(i+1,j,k)+cornux(i,j+1,k)+cornux(i,j,k))) * 
-                                (prim(i,j,k-1,3));
-
-                phiflx = phiflx + .5*  
-                            (cornwx(i+1,j+1,k)+cornwx(i+1,j,k)+cornwx(i,j+1,k)+cornwx(i,j,k))*
-                            (prim(i,j,k-1,1));
-
-                phiflx = phiflx + .5*  
-                            (cornwy(i+1,j+1,k)+cornwy(i+1,j,k)+cornwy(i,j+1,k)+cornwy(i,j,k)) *
-                            (prim(i,j,k-1,2));
-
-            }
-            else if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
-
-                phiflx = 0.5*(visccorn(i+1,j+1,k)+visccorn(i,j+1,k)+visccorn(i+1,j,k)+visccorn(i,j,k)
-                               -(cornvy(i+1,j+1,k)+cornvy(i+1,j,k)+cornvy(i,j+1,k)+cornvy(i,j,k)  +
-                                 cornux(i+1,j+1,k)+cornux(i+1,j,k)+cornux(i,j+1,k)+cornux(i,j,k))) * 
+                    phiflx = phiflx + .5*  
+                                (cornuz(i,j+1,k+1)+cornuz(i,j,k+1)+cornuz(i,j+1,k)+cornuz(i,j,k)) *
                                 (prim(i,j,k,3));
 
-                phiflx = phiflx + .5*  
-                            (cornwx(i+1,j+1,k)+cornwx(i+1,j,k)+cornwx(i,j+1,k)+cornwx(i,j,k))*
-                            (prim(i,j,k,1));
+                }
+                else {
+                    phiflx =  0.25*(visccorn(i,j+1,k+1)+visccorn(i,j,k+1) +
+                                visccorn(i,j+1,k)+visccorn(i,j,k)
+                                -(cornvy(i,j+1,k+1)+cornvy(i,j,k+1)+cornvy(i,j+1,k)+cornvy(i,j,k)  +
+                                  cornwz(i,j+1,k+1)+cornwz(i,j,k+1)+cornwz(i,j+1,k)+cornwz(i,j,k))) *
+                                (prim(i-1,j,k,1)+prim(i,j,k,1));
 
-                phiflx = phiflx + .5*  
-                            (cornwy(i+1,j+1,k)+cornwy(i+1,j,k)+cornwy(i,j+1,k)+cornwy(i,j,k)) *
-                            (prim(i,j,k,2));
+                    phiflx = phiflx + .25*  
+                                (cornuy(i,j+1,k+1)+cornuy(i,j,k+1)+cornuy(i,j+1,k)+cornuy(i,j,k)) *
+                                (prim(i-1,j,k,2)+prim(i,j,k,2));
 
-            }
-            else {
-                phiflx = 0.25*(visccorn(i+1,j+1,k)+visccorn(i,j+1,k)+visccorn(i+1,j,k)+visccorn(i,j,k)
-                               -(cornvy(i+1,j+1,k)+cornvy(i+1,j,k)+cornvy(i,j+1,k)+cornvy(i,j,k)  +
-                                 cornux(i+1,j+1,k)+cornux(i+1,j,k)+cornux(i,j+1,k)+cornux(i,j,k))) * 
-                                (prim(i,j,k-1,3)+prim(i,j,k,3));
+                    phiflx = phiflx + .25*  
+                                (cornuz(i,j+1,k+1)+cornuz(i,j,k+1)+cornuz(i,j+1,k)+cornuz(i,j,k)) *
+                                (prim(i-1,j,k,3)+prim(i,j,k,3));
 
-                phiflx = phiflx + .25*  
-                            (cornwx(i+1,j+1,k)+cornwx(i+1,j,k)+cornwx(i,j+1,k)+cornwx(i,j,k))*
-                            (prim(i,j,k-1,1)+prim(i,j,k,1));
+                }
 
-                phiflx = phiflx + .25*  
-                            (cornwy(i+1,j+1,k)+cornwy(i+1,j,k)+cornwy(i,j+1,k)+cornwy(i,j,k)) *
-                            (prim(i,j,k-1,2)+prim(i,j,k,2));
+                fluxx(i,j,k,nvars+1) = fluxx(i,j,k,nvars+1)-0.5*phiflx;
+            },
 
-            }
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) {
 
-            fluxz(i,j,k,nvars+1) = fluxz(i,j,k,nvars+1)-0.5*phiflx;
+                fluxy(i,j,k,2) = fluxy(i,j,k,2) -
+                    0.25*(visccorn(i+1,j,k+1)+visccorn(i,j,k+1)+visccorn(i+1,j,k)+visccorn(i,j,k));
 
-            }
-            
-        });
+                fluxy(i,j,k,2) = fluxy(i,j,k,2) + .25*
+                    (cornux(i+1,j,k+1)+cornux(i,j,k+1)+cornux(i+1,j,k)+cornux(i,j,k)  +
+                     cornwz(i+1,j,k+1)+cornwz(i,j,k+1)+cornwz(i+1,j,k)+cornwz(i,j,k));
+
+                fluxy(i,j,k,1) = fluxy(i,j,k,1) - .25*  
+                    (cornvx(i+1,j,k+1)+cornvx(i,j,k+1)+cornvx(i+1,j,k)+cornvx(i,j,k));
+
+                fluxy(i,j,k,3) = fluxy(i,j,k,3) - .25*  
+                    (cornvz(i+1,j,k+1)+cornvz(i,j,k+1)+cornvz(i+1,j,k)+cornvz(i,j,k));
+
+                Real phiflx;
+
+                if ((j == 0) and is_lo_y_dirichlet_mass) {
+                
+                    phiflx = 0.5*(visccorn(i+1,j,k+1)+visccorn(i,j,k+1)+visccorn(i+1,j,k)+visccorn(i,j,k)
+                                   -(cornux(i+1,j,k+1)+cornux(i,j,k+1)+cornux(i+1,j,k)+cornux(i,j,k)  +
+                                     cornwz(i+1,j,k+1)+cornwz(i,j,k+1)+cornwz(i+1,j,k)+cornwz(i,j,k))) *
+                                  (prim(i,j-1,k,2));
+
+                    phiflx = phiflx + .5*  
+                                (cornvx(i+1,j,k+1)+cornvx(i,j,k+1)+cornvx(i+1,j,k)+cornvx(i,j,k)) *
+                                (prim(i,j-1,k,1));
+
+                    phiflx = phiflx + .5*  
+                                (cornvz(i+1,j,k+1)+cornvz(i,j,k+1)+cornvz(i+1,j,k)+cornvz(i,j,k)) *
+                                (prim(i,j-1,k,3));
+
+                }
+                else if ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
+
+                    phiflx = 0.5*(visccorn(i+1,j,k+1)+visccorn(i,j,k+1)+visccorn(i+1,j,k)+visccorn(i,j,k)
+                                   -(cornux(i+1,j,k+1)+cornux(i,j,k+1)+cornux(i+1,j,k)+cornux(i,j,k)  +
+                                     cornwz(i+1,j,k+1)+cornwz(i,j,k+1)+cornwz(i+1,j,k)+cornwz(i,j,k))) *
+                                  (prim(i,j,k,2));
+
+                    phiflx = phiflx + .5*  
+                                (cornvx(i+1,j,k+1)+cornvx(i,j,k+1)+cornvx(i+1,j,k)+cornvx(i,j,k)) *
+                                (prim(i,j,k,1));
+
+                    phiflx = phiflx + .5*  
+                                (cornvz(i+1,j,k+1)+cornvz(i,j,k+1)+cornvz(i+1,j,k)+cornvz(i,j,k)) *
+                                (prim(i,j,k,3));
+
+                }
+                else {
+                    phiflx = 0.25*(visccorn(i+1,j,k+1)+visccorn(i,j,k+1)+visccorn(i+1,j,k)+visccorn(i,j,k)
+                                   -(cornux(i+1,j,k+1)+cornux(i,j,k+1)+cornux(i+1,j,k)+cornux(i,j,k)  +
+                                     cornwz(i+1,j,k+1)+cornwz(i,j,k+1)+cornwz(i+1,j,k)+cornwz(i,j,k))) *
+                                  (prim(i,j-1,k,2)+prim(i,j,k,2));
+
+                    phiflx = phiflx + .25*  
+                                (cornvx(i+1,j,k+1)+cornvx(i,j,k+1)+cornvx(i+1,j,k)+cornvx(i,j,k)) *
+                                (prim(i,j-1,k,1)+prim(i,j,k,1));
+
+                    phiflx = phiflx + .25*  
+                                (cornvz(i+1,j,k+1)+cornvz(i,j,k+1)+cornvz(i+1,j,k)+cornvz(i,j,k)) *
+                                (prim(i,j-1,k,3)+prim(i,j,k,3));
+
+                }
+
+                fluxy(i,j,k,nvars+1) = fluxy(i,j,k,nvars+1)-0.5*phiflx;
+                
+            },
+
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+
+                if (n_cells_z > 1) {
+                
+                fluxz(i,j,k,3) = fluxz(i,j,k,3) -
+                    0.25*(visccorn(i+1,j+1,k)+visccorn(i,j+1,k)+visccorn(i+1,j,k)+visccorn(i,j,k));
+
+                fluxz(i,j,k,3) = fluxz(i,j,k,3) + .25*  
+                    (cornvy(i+1,j+1,k)+cornvy(i+1,j,k)+cornvy(i,j+1,k)+cornvy(i,j,k)  +
+                     cornux(i+1,j+1,k)+cornux(i+1,j,k)+cornux(i,j+1,k)+cornux(i,j,k));
+
+                fluxz(i,j,k,1) = fluxz(i,j,k,1) - .25*  
+                    (cornwx(i+1,j+1,k)+cornwx(i+1,j,k)+cornwx(i,j+1,k)+cornwx(i,j,k));
+
+                fluxz(i,j,k,2) = fluxz(i,j,k,2) - .25*  
+                    (cornwy(i+1,j+1,k)+cornwy(i+1,j,k)+cornwy(i,j+1,k)+cornwy(i,j,k));
+
+                Real phiflx;
+
+                if ((k == 0) and is_lo_z_dirichlet_mass) {
+
+                    phiflx = 0.5*(visccorn(i+1,j+1,k)+visccorn(i,j+1,k)+visccorn(i+1,j,k)+visccorn(i,j,k)
+                                   -(cornvy(i+1,j+1,k)+cornvy(i+1,j,k)+cornvy(i,j+1,k)+cornvy(i,j,k)  +
+                                     cornux(i+1,j+1,k)+cornux(i+1,j,k)+cornux(i,j+1,k)+cornux(i,j,k))) * 
+                                    (prim(i,j,k-1,3));
+
+                    phiflx = phiflx + .5*  
+                                (cornwx(i+1,j+1,k)+cornwx(i+1,j,k)+cornwx(i,j+1,k)+cornwx(i,j,k))*
+                                (prim(i,j,k-1,1));
+
+                    phiflx = phiflx + .5*  
+                                (cornwy(i+1,j+1,k)+cornwy(i+1,j,k)+cornwy(i,j+1,k)+cornwy(i,j,k)) *
+                                (prim(i,j,k-1,2));
+
+                }
+                else if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
+
+                    phiflx = 0.5*(visccorn(i+1,j+1,k)+visccorn(i,j+1,k)+visccorn(i+1,j,k)+visccorn(i,j,k)
+                                   -(cornvy(i+1,j+1,k)+cornvy(i+1,j,k)+cornvy(i,j+1,k)+cornvy(i,j,k)  +
+                                     cornux(i+1,j+1,k)+cornux(i+1,j,k)+cornux(i,j+1,k)+cornux(i,j,k))) * 
+                                    (prim(i,j,k,3));
+
+                    phiflx = phiflx + .5*  
+                                (cornwx(i+1,j+1,k)+cornwx(i+1,j,k)+cornwx(i,j+1,k)+cornwx(i,j,k))*
+                                (prim(i,j,k,1));
+
+                    phiflx = phiflx + .5*  
+                                (cornwy(i+1,j+1,k)+cornwy(i+1,j,k)+cornwy(i,j+1,k)+cornwy(i,j,k)) *
+                                (prim(i,j,k,2));
+
+                }
+                else {
+                    phiflx = 0.25*(visccorn(i+1,j+1,k)+visccorn(i,j+1,k)+visccorn(i+1,j,k)+visccorn(i,j,k)
+                                   -(cornvy(i+1,j+1,k)+cornvy(i+1,j,k)+cornvy(i,j+1,k)+cornvy(i,j,k)  +
+                                     cornux(i+1,j+1,k)+cornux(i+1,j,k)+cornux(i,j+1,k)+cornux(i,j,k))) * 
+                                    (prim(i,j,k-1,3)+prim(i,j,k,3));
+
+                    phiflx = phiflx + .25*  
+                                (cornwx(i+1,j+1,k)+cornwx(i+1,j,k)+cornwx(i,j+1,k)+cornwx(i,j,k))*
+                                (prim(i,j,k-1,1)+prim(i,j,k,1));
+
+                    phiflx = phiflx + .25*  
+                                (cornwy(i+1,j+1,k)+cornwy(i+1,j,k)+cornwy(i,j+1,k)+cornwy(i,j,k)) *
+                                (prim(i,j,k-1,2)+prim(i,j,k,2));
+
+                }
+
+                fluxz(i,j,k,nvars+1) = fluxz(i,j,k,nvars+1)-0.5*phiflx;
+
+                }
+                
+            });
+        }
         
     }
 
@@ -2150,126 +2221,130 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 
             [=] AMREX_GPU_DEVICE (int i, int j, int k) {
             
-                GpuArray<Real,MAX_SPECIES+5> conserved;
-                GpuArray<Real,MAX_SPECIES+6> primitive;
-                GpuArray<Real,MAX_SPECIES  > Yk;
-                    
-                for (int l=0; l<nspecies+6; ++l) {
-                    primitive[l] = wgt1*(prim(i,j,k,l)+prim(i,j-1,k,l)) - wgt2*(prim(i,j-2,k,l)+prim(i,j+1,k,l));
-                }
-                if ((j == 0) and is_lo_y_dirichlet_mass) {
+                if (!do_1D) {
+                    GpuArray<Real,MAX_SPECIES+5> conserved;
+                    GpuArray<Real,MAX_SPECIES+6> primitive;
+                    GpuArray<Real,MAX_SPECIES  > Yk;
+                        
                     for (int l=0; l<nspecies+6; ++l) {
-                        primitive[l] = prim(i,j-1,k,l);
+                        primitive[l] = wgt1*(prim(i,j,k,l)+prim(i,j-1,k,l)) - wgt2*(prim(i,j-2,k,l)+prim(i,j+1,k,l));
                     }
-                }
-                if ((j == 1) and is_lo_y_dirichlet_mass) {
-                    for (int l=0; l<nspecies+6; ++l) {
-                        primitive[l] = wgta*prim(i,j-2,k,l) + wgtb*prim(i,j-1,k,l) + wgtc*prim(i,j,k,l) + wgtd*prim(i,j+1,k,l);
+                    if ((j == 0) and is_lo_y_dirichlet_mass) {
+                        for (int l=0; l<nspecies+6; ++l) {
+                            primitive[l] = prim(i,j-1,k,l);
+                        }
                     }
-                }
-                if ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
-                    for (int l=0; l<nspecies+6; ++l) {
-                        primitive[l] = prim(i,j,k,l);
+                    if ((j == 1) and is_lo_y_dirichlet_mass) {
+                        for (int l=0; l<nspecies+6; ++l) {
+                            primitive[l] = wgta*prim(i,j-2,k,l) + wgtb*prim(i,j-1,k,l) + wgtc*prim(i,j,k,l) + wgtd*prim(i,j+1,k,l);
+                        }
                     }
-                }
-                if ((j == n_cells[1]-1) and is_hi_y_dirichlet_mass) {
-                    for (int l=0; l<nspecies+6; ++l) {
-                        primitive[l] = wgta*prim(i,j+1,k,l) + wgtb*prim(i,j,k,l) + wgtc*prim(i,j-1,k,l) + wgtd*prim(i,j-2,k,l);
+                    if ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
+                        for (int l=0; l<nspecies+6; ++l) {
+                            primitive[l] = prim(i,j,k,l);
+                        }
                     }
-                }
+                    if ((j == n_cells[1]-1) and is_hi_y_dirichlet_mass) {
+                        for (int l=0; l<nspecies+6; ++l) {
+                            primitive[l] = wgta*prim(i,j+1,k,l) + wgtb*prim(i,j,k,l) + wgtc*prim(i,j-1,k,l) + wgtd*prim(i,j-2,k,l);
+                        }
+                    }
 
-                Real temp = primitive[4];
-                Real rho = primitive[0];
-                conserved[0] = rho;
+                    Real temp = primitive[4];
+                    Real rho = primitive[0];
+                    conserved[0] = rho;
 
-                // want sum of specden == rho
-                for (int n=0; n<nspecies; ++n) {
-                    Yk[n] = primitive[6+n];
-                }
-
-                Real intenergy;
-                GetEnergy(intenergy, Yk, temp);
-
-                Real vsqr = primitive[1]*primitive[1] + primitive[2]*primitive[2] + primitive[3]*primitive[3];
-
-                conserved[4] = rho*intenergy + 0.5*rho*vsqr;
-
-                yflux(i,j,k,0) += conserved[0]*primitive[2];
-                yflux(i,j,k,1) += conserved[0]*primitive[1]*primitive[2];
-                yflux(i,j,k,2) += conserved[0]*primitive[2]*primitive[2]+primitive[5];
-                yflux(i,j,k,3) += conserved[0]*primitive[3]*primitive[2];
-
-                yflux(i,j,k,4) += primitive[2]*conserved[4] + primitive[5]*primitive[2];
-
-                // also add the diffusive + stochastic contributions from heat flux, viscous heating and Dufour effects
-                yflux(i,j,k,4) += yflux(i,j,k,nvars) + yflux(i,j,k,nvars+1) + yflux(i,j,k,nvars+2) + yflux(i,j,k,nvars+3);
-
-                if (algorithm_type == 2) { // Add advection of concentration
+                    // want sum of specden == rho
                     for (int n=0; n<nspecies; ++n) {
-                        yflux(i,j,k,5+n) += rho*primitive[6+n]*primitive[2];
+                        Yk[n] = primitive[6+n];
+                    }
+
+                    Real intenergy;
+                    GetEnergy(intenergy, Yk, temp);
+
+                    Real vsqr = primitive[1]*primitive[1] + primitive[2]*primitive[2] + primitive[3]*primitive[3];
+
+                    conserved[4] = rho*intenergy + 0.5*rho*vsqr;
+
+                    yflux(i,j,k,0) += conserved[0]*primitive[2];
+                    yflux(i,j,k,1) += conserved[0]*primitive[1]*primitive[2];
+                    yflux(i,j,k,2) += conserved[0]*primitive[2]*primitive[2]+primitive[5];
+                    yflux(i,j,k,3) += conserved[0]*primitive[3]*primitive[2];
+
+                    yflux(i,j,k,4) += primitive[2]*conserved[4] + primitive[5]*primitive[2];
+
+                    // also add the diffusive + stochastic contributions from heat flux, viscous heating and Dufour effects
+                    yflux(i,j,k,4) += yflux(i,j,k,nvars) + yflux(i,j,k,nvars+1) + yflux(i,j,k,nvars+2) + yflux(i,j,k,nvars+3);
+
+                    if (algorithm_type == 2) { // Add advection of concentration
+                        for (int n=0; n<nspecies; ++n) {
+                            yflux(i,j,k,5+n) += rho*primitive[6+n]*primitive[2];
+                        }
                     }
                 }
             },
 
             [=] AMREX_GPU_DEVICE (int i, int j, int k) {
             
-                GpuArray<Real,MAX_SPECIES+5> conserved;
-                GpuArray<Real,MAX_SPECIES+6> primitive;
-                GpuArray<Real,MAX_SPECIES  > Yk;
-                    
-                for (int l=0; l<nspecies+6; ++l) {
-                    primitive[l] = wgt1*(prim(i,j,k,l)+prim(i,j,k-1,l)) - wgt2*(prim(i,j,k-2,l)+prim(i,j,k+1,l));
-                }
-                if ((k == 0) and is_lo_z_dirichlet_mass) {
+                if (!do_1D) {
+                    GpuArray<Real,MAX_SPECIES+5> conserved;
+                    GpuArray<Real,MAX_SPECIES+6> primitive;
+                    GpuArray<Real,MAX_SPECIES  > Yk;
+                        
                     for (int l=0; l<nspecies+6; ++l) {
-                        primitive[l] = prim(i,j,k-1,l);
+                        primitive[l] = wgt1*(prim(i,j,k,l)+prim(i,j,k-1,l)) - wgt2*(prim(i,j,k-2,l)+prim(i,j,k+1,l));
                     }
-                }
-                if ((k == 1) and is_lo_z_dirichlet_mass) {
-                    for (int l=0; l<nspecies+6; ++l) {
-                        primitive[l] = wgta*prim(i,j,k-2,l) + wgtb*prim(i,j,k-1,l) + wgtc*prim(i,j,k,l) + wgtd*prim(i,j,k+1,l);
+                    if ((k == 0) and is_lo_z_dirichlet_mass) {
+                        for (int l=0; l<nspecies+6; ++l) {
+                            primitive[l] = prim(i,j,k-1,l);
+                        }
                     }
-                }
-                if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
-                    for (int l=0; l<nspecies+6; ++l) {
-                        primitive[l] = prim(i,j,k,l);
+                    if ((k == 1) and is_lo_z_dirichlet_mass) {
+                        for (int l=0; l<nspecies+6; ++l) {
+                            primitive[l] = wgta*prim(i,j,k-2,l) + wgtb*prim(i,j,k-1,l) + wgtc*prim(i,j,k,l) + wgtd*prim(i,j,k+1,l);
+                        }
                     }
-                }
-                if ((k == n_cells[2]-1) and is_hi_z_dirichlet_mass) {
-                    for (int l=0; l<nspecies+6; ++l) {
-                        primitive[l] = wgta*prim(i,j,k+1,l) + wgtb*prim(i,j,k,l) + wgtc*prim(i,j,k-1,l) + wgtd*prim(i,j,k-2,l);
+                    if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
+                        for (int l=0; l<nspecies+6; ++l) {
+                            primitive[l] = prim(i,j,k,l);
+                        }
                     }
-                }
+                    if ((k == n_cells[2]-1) and is_hi_z_dirichlet_mass) {
+                        for (int l=0; l<nspecies+6; ++l) {
+                            primitive[l] = wgta*prim(i,j,k+1,l) + wgtb*prim(i,j,k,l) + wgtc*prim(i,j,k-1,l) + wgtd*prim(i,j,k-2,l);
+                        }
+                    }
 
-                Real temp = primitive[4];
-                Real rho = primitive[0];
-                conserved[0] = rho;
+                    Real temp = primitive[4];
+                    Real rho = primitive[0];
+                    conserved[0] = rho;
 
-                // want sum of specden == rho
-                for (int n=0; n<nspecies; ++n) {
-                    Yk[n] = primitive[6+n];
-                }
-
-                Real intenergy;
-                GetEnergy(intenergy, Yk, temp);
-
-                Real vsqr = primitive[1]*primitive[1] + primitive[2]*primitive[2] + primitive[3]*primitive[3];
-
-                conserved[4] = rho*intenergy + 0.5*rho*vsqr;
-
-                zflux(i,j,k,0) += conserved[0]*primitive[3];
-                zflux(i,j,k,1) += conserved[0]*primitive[1]*primitive[3];
-                zflux(i,j,k,2) += conserved[0]*primitive[2]*primitive[3];
-                zflux(i,j,k,3) += conserved[0]*primitive[3]*primitive[3]+primitive[5];
-
-                zflux(i,j,k,4) += primitive[3]*conserved[4] + primitive[5]*primitive[3];
-
-                // also add the diffusive + stochastic contributions from heat flux, viscous heating and Dufour effects
-                zflux(i,j,k,4) += zflux(i,j,k,nvars) + zflux(i,j,k,nvars+1) + zflux(i,j,k,nvars+2) + zflux(i,j,k,nvars+3);
-
-                if (algorithm_type == 2) { // Add advection of concentration
+                    // want sum of specden == rho
                     for (int n=0; n<nspecies; ++n) {
-                        zflux(i,j,k,5+n) += rho*primitive[6+n]*primitive[3];
+                        Yk[n] = primitive[6+n];
+                    }
+
+                    Real intenergy;
+                    GetEnergy(intenergy, Yk, temp);
+
+                    Real vsqr = primitive[1]*primitive[1] + primitive[2]*primitive[2] + primitive[3]*primitive[3];
+
+                    conserved[4] = rho*intenergy + 0.5*rho*vsqr;
+
+                    zflux(i,j,k,0) += conserved[0]*primitive[3];
+                    zflux(i,j,k,1) += conserved[0]*primitive[1]*primitive[3];
+                    zflux(i,j,k,2) += conserved[0]*primitive[2]*primitive[3];
+                    zflux(i,j,k,3) += conserved[0]*primitive[3]*primitive[3]+primitive[5];
+
+                    zflux(i,j,k,4) += primitive[3]*conserved[4] + primitive[5]*primitive[3];
+
+                    // also add the diffusive + stochastic contributions from heat flux, viscous heating and Dufour effects
+                    zflux(i,j,k,4) += zflux(i,j,k,nvars) + zflux(i,j,k,nvars+1) + zflux(i,j,k,nvars+2) + zflux(i,j,k,nvars+3);
+
+                    if (algorithm_type == 2) { // Add advection of concentration
+                        for (int n=0; n<nspecies; ++n) {
+                            zflux(i,j,k,5+n) += rho*primitive[6+n]*primitive[3];
+                        }
                     }
                 }
 
