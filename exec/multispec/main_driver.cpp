@@ -44,6 +44,10 @@ void main_driver(const char* argv)
     InitializeMultispecNamespace();
     InitializeGmresNamespace();
 
+    if (visc_type < 0 && mixture_type != 0) {
+      Abort("negative visc_type and non-zero mixture_type not compatible");
+    }
+    
     if (algorithm_type == 6) {
         RhototBCInit();
     }
