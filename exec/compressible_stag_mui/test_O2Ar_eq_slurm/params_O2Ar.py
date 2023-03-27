@@ -76,7 +76,7 @@ print("- number density of spec2 = %e\n" % n2)
 lat_const = 3.0e-8  # lattice constant of Pt(111)
 Nucx = 150          # number of unit cells in dx
 Nucy = 300          # number of unit cells in dy
-Ntot = Nucx*Nucy  # total number of sites per dx*dy (2 sites per unit cell) 
+Ntot = Nucx*Nucy    # total number of sites per dx*dy (2 sites per unit cell)
 
 dx = Nucx*lat_const*2
 dy = Nucy*lat_const
@@ -85,7 +85,7 @@ dv = dx*dy*dz
 
 Ncellx = 4
 Ncelly = 4
-Ncellz = 4
+Ncellz = 100
 Ncell = Ncellx*Ncelly*Ncellz
 
 Lx = Ncellx*dx
