@@ -6,7 +6,6 @@ val2 = 7.787790e+08     # for rhoE
 val3 = 1.196888e+02     # for temp
 val4 = 9.107377e-02     # for jx, jy, jz
 
-
 ncellx = 4
 ncelly = 4
 ncellz = 100

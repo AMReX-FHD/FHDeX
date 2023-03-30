@@ -146,6 +146,14 @@ print("- std of eq fluct in theta1 (system): %e (%f%%)\n" % (std_theta1_eq_sys,s
 
 ##########
 
+print("** if starts from clean surface **")
+rho1init = rho1+0.5*m1*Ntot*theta1_eq/dv/Ncellz
+print("- rho1init = %e, Y1init = %e" % (rho1init,rho1init/(rho1init+rho2)))
+print("- rho2     = %e, Y2init = %e" % (rho2,rho2/(rho1init+rho2)))
+print("- rho      = %e\n" % (rho1init+rho2))
+
+##########
+
 dof1 = 5
 dof2 = 3
 e01 = 0.
