@@ -18,5 +18,5 @@ void advance (amrex::MultiFab& phi_old,
               amrex::Geometry const& geom,
               Vector<BCRec> const& BoundaryCondition);
 
-void init_phi (amrex::MultiFab& phi_new, amrex::Geometry const& geom);
+void init_phi (amrex::MultiFab& phi_new, amrex::Geometry const& geom, amrex::Real npts_scale);
 #endif

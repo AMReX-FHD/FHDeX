@@ -40,7 +40,8 @@ void advance (MultiFab& phi_old,
     const auto dom_lo = lbound(domain_bx);
     const auto dom_hi = ubound(domain_bx);
 
-    Real variance = dxinv*dyinv/(npts_scale*dt);
+    //Real variance = dxinv*dyinv/(npts_scale*dt);
+    Real variance = dxinv*dyinv/dt;
  
 #if(AMREX_SPACEDIM > 2)
     variance *=dzinv;
@@ -126,7 +127,7 @@ void advance (MultiFab& phi_old,
     }
 }
 
-void init_phi(amrex::MultiFab& phi_new, amrex::Geometry const& geom){
+void init_phi(amrex::MultiFab& phi_new, amrex::Geometry const& geom, amrex::Real npts_scale){
 
     GpuArray<Real,AMREX_SPACEDIM> dx = geom.CellSizeArray();
     GpuArray<Real,AMREX_SPACEDIM> prob_lo = geom.ProbLoArray();
@@ -140,7 +141,7 @@ void init_phi(amrex::MultiFab& phi_new, amrex::Geometry const& geom){
         amrex::ParallelFor(vbx,
         [=] AMREX_GPU_DEVICE(int i, int j, int k)
         {
-            init_phi(i,j,k,phiNew,dx,prob_lo);
+            init_phi(i,j,k,phiNew,dx,prob_lo, npts_scale);
         });
     }
 }

@@ -7,7 +7,8 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void init_phi (int i, int j, int k,
                amrex::Array4<amrex::Real> const& phi,
                GpuArray<amrex::Real,AMREX_SPACEDIM> const& dx,
-               GpuArray<amrex::Real,AMREX_SPACEDIM> const& prob_lo)
+               GpuArray<amrex::Real,AMREX_SPACEDIM> const& prob_lo,
+               amrex::Real npts_scale)
 {
     using amrex::Real;;
 
@@ -21,10 +22,10 @@ void init_phi (int i, int j, int k,
     Real r2 = ((x-Real(0.25))*(x-Real(0.25))+(y-Real(0.25))*(y-Real(0.25)))/Real(0.01);
 #endif
     phi(i,j,k) = Real(1.) + std::exp(-r2);
-    if( x > 0.){
-    phi(i,j,k) = 1. ;
+    if( x > 0.5){
+    phi(i,j,k) = 1.5*npts_scale;
     } else {
-    phi(i,j,k) = 0.5;
+    phi(i,j,k) = 0.5*npts_scale;
     }
 }
 
@@ -64,7 +65,11 @@ void compute_flux_x (int i, int j, int k,
     }
     else
     {
-	amrex::Real phiavg = 2.*(phi(i,j,k)*phi(i-1,j,k))/(phi(i,j,k)+phi(i-1,j,k)+1.e-16);
+//	amrex::Real phiavg = 2.*(phi(i,j,k)*phi(i-1,j,k))/(phi(i,j,k)+phi(i-1,j,k)+1.e-16);
+        Real phip = std::max(phi(i,j,k),0.);
+        Real phim = std::max(phi(i-1,j,k),0.);
+	amrex::Real phiavg = 2.*(phip*phim)/(phip+phim+1.e-16);
+        phiavg = 0.;
         fluxx(i,j,k) = 0.5*(phi(i,j,k)-phi(i-1,j,k)) * dxinv
 	  + stochfluxx(i,j,k) * std::sqrt(phiavg);
     }
@@ -105,7 +110,10 @@ void compute_flux_y (int i, int j, int k,
     }
     else
     {
-	amrex::Real phiavg = 2.*(phi(i,j,k)*phi(i,j-1,k))/(phi(i,j,k)+phi(i,j-1,k)+1.e-16);
+//	amrex::Real phiavg = 2.*(phi(i,j,k)*phi(i,j-1,k))/(phi(i,j,k)+phi(i,j-1,k)+1.e-16);
+        Real phip = std::max(phi(i,j,k),0.);
+        Real phim = std::max(phi(i,j-1,k),0.);
+	amrex::Real phiavg = 2.*(phip*phim)/(phip+phim+1.e-16);
         fluxy(i,j,k) = 0.5*(phi(i,j,k)-phi(i,j-1,k)) * dyinv
 	+ stochfluxy(i,j,k)* std::sqrt(phiavg);
     }
@@ -148,7 +156,10 @@ void compute_flux_z (int i, int j, int k,
     }
     else
     {
-	amrex::Real phiavg = 2.*(phi(i,j,k)*phi(i,j,k-1))/(phi(i,j,k)+phi(i,j,k-1)+1.e-16);
+//	amrex::Real phiavg = 2.*(phi(i,j,k)*phi(i,j,k-1))/(phi(i,j,k)+phi(i,j,k-1)+1.e-16);
+        Real phip = std::max(phi(i,j,k),0.);
+        Real phim = std::max(phi(i,j,k-1),0.);
+	amrex::Real phiavg = 2.*(phip*phim)/(phip+phim+1.e-16);
         fluxz(i,j,k) = 0.5*(phi(i,j,k)-phi(i,j,k-1)) * dzinv
 	 +stochfluxz(i,j,k) * std::sqrt(phiavg);
     }
