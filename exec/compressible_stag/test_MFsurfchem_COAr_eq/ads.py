@@ -16,7 +16,7 @@ s2 = data[0][4]
 meantheta1 = 2.053333e-01
 vartheta1 = 1.813017e-06
  
-print "E[theta]   = %e\tstd= %e" % (x1,s1/math.sqrt(Ncellx*Ncelly))
-print "expected   = %e" % meantheta1
-print "Var[theta] = %e\tstd= %e" % (x2,s2/math.sqrt(Ncellx*Ncelly))
-print "expected   = %e" % vartheta1
+print("E[theta]   = %e\tstd= %e" % (x1,s1/math.sqrt(Ncellx*Ncelly)))
+print("expected   = %e" % meantheta1)
+print("Var[theta] = %e\tstd= %e" % (x2,s2/math.sqrt(Ncellx*Ncelly)))
+print("expected   = %e" % vartheta1)

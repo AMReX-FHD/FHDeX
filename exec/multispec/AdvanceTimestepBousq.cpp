@@ -121,7 +121,7 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         }
     }
     
-    if (use_multiphase) {
+    if (use_multiphase || use_flory_huggins) {
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             div_reversible_stress[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 0);
         }
@@ -218,6 +218,15 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
         // compute reversible stress tensor ---added term
         ComputeDivReversibleStress(div_reversible_stress,rhotot_old,rho_old,geom);
+
+        // add divergence of reversible stress to gmres_rhs_v
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            MultiFab::Saxpy(gmres_rhs_v[d],1.,div_reversible_stress[d],0,0,1,0);
+        }
+    } else if (use_flory_huggins ==1){
+
+        // compute reversible stress tensor ---added term
+        ComputeDivFHReversibleStress(div_reversible_stress,rhotot_old,rho_old,geom);
 
         // add divergence of reversible stress to gmres_rhs_v
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
@@ -470,6 +479,11 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         // compute reversible stress tensor ---added term (will add to gmres_rhs_v later)
         ComputeDivReversibleStress(div_reversible_stress,rhotot_new,rho_new,geom);
 
+    } else if (use_flory_huggins ==1){
+
+        // compute reversible stress tensor ---added term
+          ComputeDivFHReversibleStress(div_reversible_stress,rhotot_new,rho_new,geom);
+
     }
 
     if (use_charged_fluid) {
@@ -604,7 +618,7 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         // call mk_grav_force_bousq(mla,gmres_rhs_v,.true.,rho_fc,the_bc_tower)
     }
 
-    if (use_multiphase) {
+    if (use_multiphase || use_flory_huggins) {
         // add divergence of reversible stress to gmres_rhs_v
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             MultiFab::Saxpy(gmres_rhs_v[d],1.,div_reversible_stress[d],0,0,1,0);

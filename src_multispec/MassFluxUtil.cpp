@@ -46,6 +46,34 @@ void ComputeMolconcMolmtot(const MultiFab& rho_in,
     }
 }
 
+void ComputeMassfrac(const MultiFab& rho_in,
+			   const MultiFab& rhotot_in,
+			   MultiFab& massfrac_in)
+{
+
+    BL_PROFILE_VAR("ComputeMassfrac()",ComputeMassfrac);
+
+    int ng = massfrac_in.nGrow();
+
+    // Loop over boxes
+    for (MFIter mfi(rho_in,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
+
+        // Create cell-centered box
+        const Box& bx = mfi.growntilebox(ng);
+
+        const Array4<const Real>& rho = rho_in.array(mfi);
+        const Array4<const Real>& rhotot = rhotot_in.array(mfi);
+        const Array4<      Real>& massfrac = massfrac_in.array(mfi);
+
+        amrex::ParallelFor(bx, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+        {
+
+            massfrac(i,j,k,n) = rho(i,j,k,n)/rhotot(i,j,k);
+
+        });
+    }
+}
+
 void ComputeGamma(const MultiFab& molarconc_in,
 		      const MultiFab& Hessian_in,
           MultiFab& Gamma_in)
@@ -93,6 +121,52 @@ void ComputeGamma(const MultiFab& molarconc_in,
         });
     }
 }
+
+void ComputeFHGamma(const MultiFab& massfrac_in,
+          MultiFab& Gamma_in)
+{
+
+    BL_PROFILE_VAR("ComputeFHGamma()",ComputeFHGamma);
+
+    int ng = Gamma_in.nGrow();
+
+    // Loop over boxes
+    for (MFIter mfi(Gamma_in,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
+
+        // Create cell-centered box
+        const Box& bx = mfi.growntilebox(ng);
+
+        const Array4<const Real>& massfrac = massfrac_in.array(mfi);
+        const Array4<      Real>& Gamma = Gamma_in.array(mfi);
+
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+
+            GpuArray<Real, MAX_SPECIES> MassfracN;
+            Array2D<Real, 0, MAX_SPECIES-1, 0, MAX_SPECIES-1> GammaN;
+
+            // Read MultiFab data into arrays
+            for (int n=0; n<nspecies; ++n ){
+                MassfracN[n] = massfrac(i,j,k,n);
+
+                for (int m=0; m<nspecies; ++m){
+                    GammaN(n,m) = Gamma(i,j,k,n*nspecies+m);
+                }
+            }
+
+            ComputeFHGammaLocal(MassfracN, GammaN);
+
+            // Write back to MultiFab
+            for (int n=0; n<nspecies; ++n ){
+                for (int m=0; m<nspecies; ++m){
+                    // Gamma(i,j,k,n*nspecies+m) = GammaN(n,m);
+                    Gamma(i,j,k,m*nspecies+n) = GammaN(n,m);
+                }
+            }
+        });
+    }
+}
+
 
 void ComputeRhoWChi(const MultiFab& rho_in,
 		    const MultiFab& rhotot_in,

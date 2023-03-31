@@ -34,12 +34,15 @@ void ComputeMassFluxdiv(MultiFab& rho,
   MultiFab D_bar(           ba, dmap, nspecies2, ng);  // D_bar-matrix
   MultiFab D_therm(         ba, dmap, nspecies2, ng);  // DT-matrix
   MultiFab zeta_by_Temp(    ba, dmap, nspecies2, ng);  // for Thermo-diffusion
+ // if( use_flory_huggins == 1 ) 
+  MultiFab massfrac(       ba, dmap, nspecies , ng);  // molar concentration
+
+ // rhoWchi.setVal(0.);
 
   std::array< MultiFab, AMREX_SPACEDIM > sqrtLonsager_fc;
   for (int d=0; d<AMREX_SPACEDIM; ++d) {
       sqrtLonsager_fc[d].define(convert(ba,nodal_flag_dir[d]), dmap, nspecies2, 0);
   }
-  
   ComputeRhotot(rho,rhotot,1);
   
   // compute molmtot, molarconc (primitive variables) for 
@@ -50,7 +53,13 @@ void ComputeMassFluxdiv(MultiFab& rho,
   ComputeMixtureProperties(rho,rhotot,D_bar,D_therm,Hessian);
 
   // compute Gamma from Hessian
-  ComputeGamma(molarconc,Hessian,Gamma);
+
+  if (use_flory_huggins == 1) {
+      ComputeMassfrac(rho,rhotot,massfrac);
+      ComputeFHGamma(massfrac,Gamma);
+  } else {
+      ComputeGamma(molarconc,Hessian,Gamma);
+  }
 
   // compute rho*W*chi and zeta/Temp
   ComputeRhoWChi(rho,rhotot,molarconc,rhoWchi,D_bar);
@@ -60,7 +69,11 @@ void ComputeMassFluxdiv(MultiFab& rho,
   }
 
   // compute diffusive mass fluxes, "-F = rho*W*chi*Gamma*grad(x) - ..."
-  DiffusiveMassFluxdiv(rho,rhotot,molarconc,rhoWchi,Gamma,diff_mass_fluxdiv,diff_mass_flux,geom);
+  if (use_flory_huggins == 1) {
+      DiffusiveMassFluxdiv(rho,rhotot,massfrac,rhoWchi,Gamma,diff_mass_fluxdiv,diff_mass_flux,geom);
+  } else {
+      DiffusiveMassFluxdiv(rho,rhotot,molarconc,rhoWchi,Gamma,diff_mass_fluxdiv,diff_mass_flux,geom);
+  }
   
   // compute external forcing for manufactured solution and add to diff_mass_fluxdiv
   // we should move this to occur before the call to compute_mass_fluxdiv and into

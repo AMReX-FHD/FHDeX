@@ -110,7 +110,14 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
     remove("conductivityEst");
     remove("currentEst");
     remove("nearestNeighbour");
-
+    
+    remove("part1X");
+    remove("part1Y");
+    remove("part1Z");
+    remove("part2X");
+    remove("part2Y");            
+    remove("part2Z");
+    
     Real dr = threepmRange/threepmBins;
 
     threepmVals[0] = 0;
@@ -582,7 +589,6 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
     if(all_dry != 1)
     {
     InterpolateMarkersGpu(0, dxFluid, umac, RealFaceCoords,check);
-
     if(move_tog == 2)
     {
         //// Set up reducing operation across gpu (instead of ParallelFor)
@@ -749,7 +755,7 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
 	    ParticleType* particles = aos().dataPtr();
             long np = this->GetParticles(lev).at(index).numParticles();
 
-            amrex::ParallelForRNG(np, [=] AMREX_GPU_DEVICE (int i, amrex::RandomEngine const& engine) noexcept
+        amrex::ParallelForRNG(np, [=] AMREX_GPU_DEVICE (int i, amrex::RandomEngine const& engine) noexcept
             //for (int i = 0; i < np; ++ i) 
 	    {
                 ParticleType & part = particles[i];
@@ -2021,6 +2027,47 @@ FhdParticleContainer::PrintParticles()
 }
 
 void
+FhdParticleContainer::TwoParticleCorrelation()
+{
+    BL_PROFILE_VAR("TwoParticleCorrelation()",PrintParticles);
+    
+    int lev =0;
+
+    for(FhdParIter pti(* this, lev); pti.isValid(); ++pti)
+    {
+        PairIndex index(pti.index(), pti.LocalTileIndex());
+
+        AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
+        long np = this->GetParticles(lev).at(index).numParticles();
+        
+        for(int i=0;i < np;i++)
+        {
+
+            ParticleType & part = particles[i];
+
+            string fileX = Concatenate("partX", part.id());
+            string fileY = Concatenate("partY", part.id());
+            string fileZ = Concatenate("partZ", part.id());
+ 
+            std::ofstream ofs1(fileX, std::ofstream::app);
+            ofs1 << setprecision(15) << part.rdata(FHD_realData::velx) << std::endl;                                                                                                                                                   
+
+            std::ofstream ofs2(fileY, std::ofstream::app);
+            ofs2 << setprecision(15) << part.rdata(FHD_realData::vely) << std::endl;                                                                                                                                                   
+        
+            std::ofstream ofs3(fileZ, std::ofstream::app);
+            ofs3 << setprecision(15) << part.rdata(FHD_realData::velz) << std::endl;
+                
+            ofs1.close();
+            ofs2.close();
+            ofs3.close(); 
+
+        }
+
+    }
+}
+
+void
 FhdParticleContainer::SetPosition(int id, Real x, Real y, Real z)
 {
     BL_PROFILE_VAR("SetPosition()",SetPosition);
@@ -2046,7 +2093,7 @@ FhdParticleContainer::SetPosition(int id, Real x, Real y, Real z)
                 part.pos(1) = y;
                 part.pos(2) = z;
 
-                std::cout << "Rank " << ParallelDescriptor::MyProc() << " particle " << id << " moving to " << x << ", " << y << ", " << z << std::endl;
+                //std::cout << "Rank " << ParallelDescriptor::MyProc() << " particle " << id << " moving to " << x << ", " << y << ", " << z << std::endl;
             }
         }
     }
