@@ -27,6 +27,14 @@ void init_phi (int i, int j, int k,
     } else {
     phi(i,j,k) = 0.5*npts_scale;
     }
+    if(i==4 && j ==4)
+    {
+       phi(i,j,k) = 1./(dx[0]*dx[1]);
+    }
+    else
+    {
+       phi(i,j,k) = 0;;
+    }
 }
 
 
@@ -69,7 +77,6 @@ void compute_flux_x (int i, int j, int k,
         Real phip = std::max(phi(i,j,k),0.);
         Real phim = std::max(phi(i-1,j,k),0.);
 	amrex::Real phiavg = 2.*(phip*phim)/(phip+phim+1.e-16);
-        phiavg = 0.;
         fluxx(i,j,k) = 0.5*(phi(i,j,k)-phi(i-1,j,k)) * dxinv
 	  + stochfluxx(i,j,k) * std::sqrt(phiavg);
     }
