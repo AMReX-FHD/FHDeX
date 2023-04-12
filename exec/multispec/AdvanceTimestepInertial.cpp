@@ -53,6 +53,10 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     Real norm_pre_rhs;
 
     MultiFab rho_update (ba,dmap,nspecies,0);
+    MultiFab bds_force;
+    if (advection_type > 0) {
+      bds_force.define(ba,dmap,nspecies,1);
+    }
     MultiFab gmres_rhs_p(ba,dmap,       1,0);
     MultiFab dpi        (ba,dmap,       1,1);
 
@@ -69,6 +73,7 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     std::array< MultiFab, AMREX_SPACEDIM > rho_fc;
     std::array< MultiFab, AMREX_SPACEDIM > diff_mass_flux;
     std::array< MultiFab, AMREX_SPACEDIM > total_mass_flux;
+    std::array< MultiFab, AMREX_SPACEDIM > umac_tmp;
 
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         mold[d]             .define(convert(ba,nodal_flag_dir[d]), dmap,        1, 1);
@@ -84,6 +89,9 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         rho_fc[d]           .define(convert(ba,nodal_flag_dir[d]), dmap, nspecies, 0);
         diff_mass_flux[d]   .define(convert(ba,nodal_flag_dir[d]), dmap, nspecies, 0);
         total_mass_flux[d]  .define(convert(ba,nodal_flag_dir[d]), dmap, nspecies, 0);
+	if (advection_type > 0) {
+  	  umac_tmp[d].define(convert(ba,nodal_flag_dir[d]), dmap,        1, 1);
+	}
     }
     
     // only used when use_charged_fluid=T
@@ -97,9 +105,12 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         }
     }
     
-
     // make copies of old quantities
-    // copy umac into umac_tmp if using bds
+    if (advection_type > 0) {
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+    	  MultiFab::Copy(umac_tmp[d],umac[d],0,0,1,1);
+	}
+    }
 
     //////////////////////////////////////////////
     /// Step 1 - Calculate Predictor Diffusive and Stochastic Fluxes
@@ -128,11 +139,19 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     }
 
     // add A^n to rho_update
-    if (advection_type >= 1) {
-        Abort("AdvanceTimestepInterial: bds not supported");
+    if (advection_type == 0) {
+        MkAdvSFluxdiv(umac,rho_fc,rho_update,geom,0,nspecies,true);
+    }
+    else if (advection_type == 1 || advection_type == 2) {
+        bds_force.setVal(0.);
+	MultiFab::Copy(bds_force,rho_update,0,0,nspecies,0);
+	bds_force.FillBoundary(geom.periodicity());
+
+	BDS(rho_update, nspecies, SPEC_BC_COMP, rho_old, umac, bds_force, geom, dt);
+      
     }
     else {
-        MkAdvSFluxdiv(umac,rho_fc,rho_update,geom,0,nspecies,true);
+      Abort("Invalid advection_type");
     }
    
     // set rho_new = rho_old + dt * (A^n + D^n + St^n)
@@ -283,7 +302,8 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         // set normal velocity of physical domain boundaries
         MultiFabPhysBCDomainVel(umac[i],geom,i);
         // set transverse velocity behind physical boundaries
-        MultiFabPhysBCMacVel(umac[i],geom,i);
+        int is_inhomogeneous = 1;
+        MultiFabPhysBCMacVel(umac[i],geom,i,is_inhomogeneous);
         // fill periodic and interior ghost cells
         umac[i].FillBoundary(geom.periodicity());
     }
@@ -369,7 +389,8 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         // set normal velocity of physical domain boundaries
         MultiFabPhysBCDomainVel(umac[i],geom,i);
         // set transverse velocity behind physical boundaries
-        MultiFabPhysBCMacVel(umac[i],geom,i);
+        int is_inhomogeneous = 1;
+        MultiFabPhysBCMacVel(umac[i],geom,i,is_inhomogeneous);
         // fill periodic and interior ghost cells
         umac[i].FillBoundary(geom.periodicity());
     }
@@ -384,10 +405,7 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     
     // rho_update already contains D^{*,n+1} + St^{*,n+1} for rho from above
     // add A^{*,n+1} for rho to rho_update
-    if (advection_type >= 1) {
-        Abort("AdvanceTimestepInterial: bds not supported");
-    }
-    else {
+    if (advection_type == 0) {
         MkAdvSFluxdiv(umac,rho_fc,rho_update,geom,0,nspecies,true);
 
         // snew = s^{n+1} 
@@ -395,6 +413,24 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         MultiFab::Add(rho_new,rho_old,0,0,nspecies,0);
         MultiFab::Saxpy(rho_new,dt,rho_update,0,0,nspecies,0);
         rho_new.mult(0.5,0,nspecies,0);        
+    }
+    else if (advection_type == 1 || advection_type == 2) {
+
+        // bds force currently contains D^n + St^n
+        // add D^{*,n+1} + St^{*,n+1} and then multiply by 1/2
+        MultiFab::Add(bds_force,rho_update,0,0,nspecies,0);
+	bds_force.mult(0.5,0,nspecies,0);
+	bds_force.FillBoundary(geom.periodicity());
+	for (int d=0; d<AMREX_SPACEDIM; ++d) {
+	  MultiFab::Add(umac_tmp[d],umac[d],0,0,1,1);
+	  umac_tmp[d].mult(0.5,0,1,1);
+	}
+	rho_update.setVal(0.);
+	
+	BDS(rho_update, nspecies, SPEC_BC_COMP, rho_old, umac_tmp, bds_force, geom, dt);
+    }
+    else {
+        Abort("Invalid advection_type");
     }
     
     // need to project rho onto eos here and use this rho to compute S
@@ -549,7 +585,8 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         // set normal velocity of physical domain boundaries
         MultiFabPhysBCDomainVel(umac[i],geom,i);
         // set transverse velocity behind physical boundaries
-        MultiFabPhysBCMacVel(umac[i],geom,i);
+        int is_inhomogeneous = 1;
+        MultiFabPhysBCMacVel(umac[i],geom,i,is_inhomogeneous);
         // fill periodic and interior ghost cells
         umac[i].FillBoundary(geom.periodicity());
     }
@@ -619,7 +656,8 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         // set normal velocity of physical domain boundaries
         MultiFabPhysBCDomainVel(umac[i],geom,i);
         // set transverse velocity behind physical boundaries
-        MultiFabPhysBCMacVel(umac[i],geom,i);
+        int is_inhomogeneous = 1;
+        MultiFabPhysBCMacVel(umac[i],geom,i,is_inhomogeneous);
         // fill periodic and interior ghost cells
         umac[i].FillBoundary(geom.periodicity());
     }

@@ -45,7 +45,7 @@ void main_driver(const char* argv)
     // read the inputs file for surfchem_mui
     InitializeSurfChemMUINamespace();
 
-    if (ads_spec>=0) {
+    if (n_ads_spec>0) {
         Abort("MFsurfchem cannot be used in compressible_mui");
     }
 #endif
@@ -192,9 +192,9 @@ void main_driver(const char* argv)
 
     MultiFab surfcov;
     MultiFab dNadsdes;
-    if (ads_spec>=0) {
-        surfcov.define(ba,dmap,1,ngc);
-        dNadsdes.define(ba,dmap,1,ngc);
+    if (n_ads_spec>0) {
+        surfcov.define(ba,dmap,n_ads_spec,ngc);
+        dNadsdes.define(ba,dmap,n_ads_spec,ngc);
     }
 
     //statistics    
@@ -604,7 +604,7 @@ void main_driver(const char* argv)
     // initialize primitive variables
     conservedToPrimitive(prim, cu);
 
-    if (ads_spec>=0) init_surfcov(surfcov);
+    if (n_ads_spec>0) init_surfcov(surfcov, geom);
 
     // Set BC: 1) fill boundary 2) physical
     cu.FillBoundary(geom.periodicity());
@@ -638,7 +638,7 @@ void main_driver(const char* argv)
 #ifdef MUI
         mui_push(cu, prim, dx, uniface, step);
 #endif
-        if (ads_spec>=0) sample_MFsurfchem(cu, surfcov, dNadsdes, dx, dt);
+        if (n_ads_spec>0) sample_MFsurfchem(cu, prim, surfcov, dNadsdes, geom, dt);
 
         // FHD
         RK3step(cu, cup, cup2, cup3, prim, source, eta, zeta, kappa, chi, D, flux,
@@ -655,9 +655,9 @@ void main_driver(const char* argv)
         prim.FillBoundary(geom.periodicity());
         setBC(prim, cu);
 #endif
-        if (ads_spec>=0) {
+        if (n_ads_spec>0) {
 
-            update_MFsurfchem(cu, surfcov, dNadsdes, dx, dt);
+            update_MFsurfchem(cu, prim, surfcov, dNadsdes, geom);
 
             conservedToPrimitive(prim, cu);
 
@@ -714,7 +714,7 @@ void main_driver(const char* argv)
            // also horizontal average
            WriteHorizontalAverage(cu,2,0,5+nspecies,step,geom);
 #endif
-           if (ads_spec>=0) WriteHorizontalAverage(cu,2,0,5+nspecies,step,geom);
+           if (n_ads_spec>0) WriteHorizontalAverage(cu,2,0,5+nspecies,step,geom);
 
            // timer
            Real t2 = ParallelDescriptor::second() - t1;

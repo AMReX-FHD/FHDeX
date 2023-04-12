@@ -1233,7 +1233,8 @@ void main_driver(const char* argv)
         }
 
 
-            //particles.SetPosition(1, prob_hi[0]*0.51, prob_hi[1]*(pow(0.5,istep)) + prob_hi[1]*1e-8, prob_hi[2]*0.51);
+//            particles.SetPosition(1, prob_hi[0]*0.501, prob_hi[1]*0.501, prob_hi[2]*0.501);
+//            particles.SetForce(1,1,0,0);
 //            Real x1 = 0.51*prob_hi[0];
 //            Real y1 = 0.51*prob_hi[1];
 //            Real z1 = 0.51*prob_hi[2];
@@ -1267,7 +1268,7 @@ void main_driver(const char* argv)
 
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             external[d].setVal(eamp[d]*cos(efreq[d]*time + ephase[d]));  // external field
-            source    [d].setVal(0.0);      // reset source terms
+            source    [d].setVal(body_force_density[d]);      // reset source terms
             sourceTemp[d].setVal(0.0);      // reset source terms
             sourceRFD[d].setVal(0.0);      // reset source terms
             particles.ResetMarkers(0);
@@ -1317,10 +1318,10 @@ void main_driver(const char* argv)
         if (es_tog==2) {
             // compute pairwise Coulomb force (currently hard-coded to work with y-wall).
 	    particles.computeForcesCoulombGPU(simParticles);
-	}
+	     }
 
         // compute other forces and spread to grid
-        particles.SpreadIonsGPU(dx, dxp, geom, umac, efieldCC, source, sourceTemp);
+        particles.SpreadIonsGPU(dx, dxp, geom, umac, RealFaceCoords, efieldCC, source, sourceTemp);
 
         //particles.BuildCorrectionTable(dxp,1);
 
@@ -1336,6 +1337,11 @@ void main_driver(const char* argv)
                 sMflux.StochMomFluxDiv(stochMfluxdivC,0,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
             }
         }
+        
+        
+        MultiFab::Add(source[0],sourceRFD[0],0,0,sourceRFD[0].nComp(),sourceRFD[0].nGrow());
+        MultiFab::Add(source[1],sourceRFD[1],0,0,sourceRFD[1].nComp(),sourceRFD[1].nGrow());
+        MultiFab::Add(source[2],sourceRFD[2],0,0,sourceRFD[2].nComp(),sourceRFD[2].nGrow());
 
 
         if (fluid_tog == 1) {
@@ -1384,11 +1390,6 @@ void main_driver(const char* argv)
 
 //                particles.invertMatrix();
 
-
-                MultiFab::Add(source[0],sourceRFD[0],0,0,sourceRFD[0].nComp(),sourceRFD[0].nGrow());
-                MultiFab::Add(source[1],sourceRFD[1],0,0,sourceRFD[1].nComp(),sourceRFD[1].nGrow());
-                MultiFab::Add(source[2],sourceRFD[2],0,0,sourceRFD[2].nComp(),sourceRFD[2].nGrow());
-
                 advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
                 particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
                 particles.velNorm();
@@ -1400,7 +1401,7 @@ void main_driver(const char* argv)
                         sourceTemp[d].setVal(0.0);      // reset source terms
                     }
 
-                particles.SpreadIonsGPU(dx, geom, umac, source, sourceTemp);
+                particles.SpreadIonsGPU(dx, geom, umac, RealFaceCoords, source, sourceTemp);
 
                 MultiFab::Add(source[0],sourceRFD[0],0,0,sourceRFD[0].nComp(),sourceRFD[0].nGrow());
                 MultiFab::Add(source[1],sourceRFD[1],0,0,sourceRFD[1].nComp(),sourceRFD[1].nGrow());

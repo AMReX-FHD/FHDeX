@@ -14,7 +14,8 @@ void ApplyMatrix(std::array<MultiFab, AMREX_SPACEDIM> & b_u,
                  const std::array<MultiFab, NUM_EDGE> & beta_ed,
                  const MultiFab                       & gamma,
                  const Real                           & theta_alpha,
-                 const Geometry & geom) {
+                 const Geometry                       & geom,
+                 int                                    is_inhomogeneous) {
 
     BL_PROFILE_VAR("ApplyMatrix()", ApplyMatrix);
 
@@ -45,7 +46,7 @@ void ApplyMatrix(std::array<MultiFab, AMREX_SPACEDIM> & b_u,
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
         x_u[i].FillBoundary(geom.periodicity());
         MultiFabPhysBCDomainVel(x_u[i], geom,i);
-        MultiFabPhysBCMacVel(x_u[i], geom,i);
+        MultiFabPhysBCMacVel(x_u[i], geom, i, is_inhomogeneous);
     }
 
     x_p.FillBoundary(geom.periodicity());

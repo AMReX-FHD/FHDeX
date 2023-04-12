@@ -72,12 +72,15 @@ int                        common::barodiffusion_type;
 int                        common::seed;
 AMREX_GPU_MANAGED amrex::Real common::visc_coef;
 AMREX_GPU_MANAGED int      common::visc_type;
-int                        common::advection_type;
+AMREX_GPU_MANAGED int      common::advection_type;
 int                        common::filtering_width;
 int                        common::stoch_stress_form;
 amrex::Vector<amrex::Real> common::u_init;
 amrex::Real                common::perturb_width;
 AMREX_GPU_MANAGED amrex::Real common::smoothing_width;
+AMREX_GPU_MANAGED amrex::Real common::radius_cyl;
+AMREX_GPU_MANAGED amrex::Real common::radius_outer;
+AMREX_GPU_MANAGED amrex::Real common::film_thickness;
 amrex::Real                common::initial_variance_mom;
 amrex::Real                common::initial_variance_mass;
 amrex::Real                common::domega;
@@ -123,6 +126,13 @@ AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::bc_Xk_y_lo;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::bc_Xk_y_hi;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::bc_Xk_z_lo;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::bc_Xk_z_hi;
+
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::wallspeed_x_lo;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::wallspeed_y_lo;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::wallspeed_z_lo;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::wallspeed_x_hi;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::wallspeed_y_hi;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::wallspeed_z_hi;
 
 AMREX_GPU_MANAGED amrex::Real common::bc_rhotot_x_lo;
 AMREX_GPU_MANAGED amrex::Real common::bc_rhotot_x_hi;
@@ -223,6 +233,7 @@ AMREX_GPU_MANAGED int      common::images;
 amrex::Vector<amrex::Real> common::eamp;
 amrex::Vector<amrex::Real> common::efreq;
 amrex::Vector<amrex::Real> common::ephase;
+amrex::Vector<amrex::Real> common::body_force_density;
 
 int                        common::plot_ascii;
 int                        common::plot_means;
@@ -298,6 +309,8 @@ void InitializeCommonNamespace() {
     eamp.resize(3);    
     efreq.resize(3);
     ephase.resize(3);
+    body_force_density.resize(3);
+    
 
     // specify default values first, then read in values from inputs file
 
@@ -415,6 +428,9 @@ void InitializeCommonNamespace() {
 
     // Algorithm control / selection
     algorithm_type = 0;
+    // 0 = centered
+    // 1 = unlimited bilinear bds
+    // 2 = limited bilinear bds
     advection_type = 0;
     barodiffusion_type = 0;
 
@@ -441,6 +457,9 @@ void InitializeCommonNamespace() {
     u_init[1] = 0.;
     perturb_width = 0.;
     smoothing_width = 1.;
+    radius_cyl = 0.;
+    radius_outer = 0.;
+    film_thickness = 0.;
     initial_variance_mom = 0.;
     initial_variance_mass = 0.;
     domega = 0.;
@@ -487,8 +506,12 @@ void InitializeCommonNamespace() {
     }
 
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
-        n_lo[i] = -1.;
-        n_hi[i] = -1.;
+        wallspeed_x_lo[i] = 0.;
+        wallspeed_y_lo[i] = 0.;
+        wallspeed_z_lo[i] = 0.;
+        wallspeed_x_hi[i] = 0.;
+        wallspeed_y_hi[i] = 0.;
+        wallspeed_z_hi[i] = 0.;
     }
 
     // Each no-slip wall may be moving with a specified tangential
@@ -572,6 +595,8 @@ void InitializeCommonNamespace() {
         eamp[i] = 0.;
         efreq[i] = 0.;
         ephase[i] = 0.;
+        body_force_density[i] = 0.;
+        
     }
 
     // plot_ascii (no default)
@@ -741,6 +766,9 @@ void InitializeCommonNamespace() {
     pp.queryarr("u_init",u_init,0,2);
     pp.query("perturb_width",perturb_width);
     pp.query("smoothing_width",smoothing_width);
+    pp.query("radius_cyl",radius_cyl);
+    pp.query("radius_outer",radius_outer);
+    pp.query("film_thickness",film_thickness);
     pp.query("initial_variance_mom",initial_variance_mom);
     pp.query("initial_variance_mass",initial_variance_mass);
     pp.query("domega",domega);
@@ -899,6 +927,38 @@ void InitializeCommonNamespace() {
             bc_Xk_z_hi[i] = temp[i];
         }
     }
+
+    if (pp.queryarr("wallspeed_x_lo",temp,0,AMREX_SPACEDIM)) {
+        for (int i=0; i<AMREX_SPACEDIM; ++i) {
+            wallspeed_x_lo[i] = temp[i];
+        }
+    }
+    if (pp.queryarr("wallspeed_y_lo",temp,0,AMREX_SPACEDIM)) {
+        for (int i=0; i<AMREX_SPACEDIM; ++i) {
+            wallspeed_y_lo[i] = temp[i];
+        }
+    }
+    if (pp.queryarr("wallspeed_z_lo",temp,0,AMREX_SPACEDIM)) {
+        for (int i=0; i<AMREX_SPACEDIM; ++i) {
+            wallspeed_z_lo[i] = temp[i];
+        }
+    }
+    if (pp.queryarr("wallspeed_x_hi",temp,0,AMREX_SPACEDIM)) {
+        for (int i=0; i<AMREX_SPACEDIM; ++i) {
+            wallspeed_x_hi[i] = temp[i];
+        }
+    }
+    if (pp.queryarr("wallspeed_y_hi",temp,0,AMREX_SPACEDIM)) {
+        for (int i=0; i<AMREX_SPACEDIM; ++i) {
+            wallspeed_y_hi[i] = temp[i];
+        }
+    }
+    if (pp.queryarr("wallspeed_z_hi",temp,0,AMREX_SPACEDIM)) {
+        for (int i=0; i<AMREX_SPACEDIM; ++i) {
+            wallspeed_z_hi[i] = temp[i];
+        }
+    }
+
     pp.query("bc_rhotot_x_lo",bc_rhotot_x_lo);
     pp.query("bc_rhotot_x_lo",bc_rhotot_x_hi);
     pp.query("bc_rhotot_y_lo",bc_rhotot_y_lo);
@@ -1059,6 +1119,7 @@ void InitializeCommonNamespace() {
     pp.queryarr("eamp",eamp,0,3);
     pp.queryarr("efreq",efreq,0,3);
     pp.queryarr("ephase",ephase,0,3);
+    pp.queryarr("body_force_density",body_force_density,0,3);
     pp.query("plot_ascii",plot_ascii);
     pp.query("plot_means",plot_means);
     pp.query("plot_vars",plot_vars);
@@ -1072,5 +1133,27 @@ void InitializeCommonNamespace() {
     if (nspecies > MAX_SPECIES) {
         Abort("InitializeCommonNamespace: nspecies > MAX_SPECIES");
     }
+
+    if (wallspeed_x_lo[0] != 0.) {
+        Abort("you are specifying a normal velocity on a wall; wallspeed_x_lo[0] must be 0");
+    }
+    if (wallspeed_x_hi[0] != 0.) {
+        Abort("you are specifying a normal velocity on a wall; wallspeed_x_hi[0] must be 0");
+    }
+    if (wallspeed_y_lo[1] != 0.) {
+        Abort("you are specifying a normal velocity on a wall; wallspeed_y_lo[1] must be 0");
+    }
+    if (wallspeed_y_hi[1] != 0.) {
+        Abort("you are specifying a normal velocity on a wall; wallspeed_y_hi[1] must be 0");
+    }
+#if (AMREX_SPACEDIM == 3)
+    if (wallspeed_z_lo[2] != 0.) {
+        Abort("you are specifying a normal velocity on a wall; wallspeed_z_lo[2] must be 0");
+    }
+    if (wallspeed_z_hi[2] != 0.) {
+        Abort("you are specifying a normal velocity on a wall; wallspeed_z_hi[2] must be 0");
+    }
+#endif
+    
     
 }

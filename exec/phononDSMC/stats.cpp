@@ -36,9 +36,20 @@ void FhdParticleContainer::EvaluateStatsPhonon(MultiFab& mfcuInst,
         Array4<Real> cuMeans  = mfcuMeans[pti].array();
         Array4<Real> cuVars  = mfcuVars[pti].array();
 		
-		dsmcSpecies* propertiesPtr = properties;
+		//dsmcSpecies* propertiesPtr = properties;
+		GpuArray<dsmcSpecies, MAX_SPECIES> propertiesTmp;
+		for(int i=0;i<nspecies;i++)
+		{
+		    propertiesTmp[i].mass = properties[i].mass;
+   		    propertiesTmp[i].Neff = properties[i].Neff;
+   		    propertiesTmp[i].R = properties[i].R;
+		    //Print() << "in: " << properties[i].mass << ", out: " << propertiesTmp[i].mass << endl;
+		}
 		
 		Real ocollisionCellVolTmp = ocollisionCellVol;
+		
+    	auto inds = m_bins.permutationPtr();
+        auto offs = m_bins.offsetsPtr();
 		
 		
         //////////////////////////////////////
@@ -51,13 +62,16 @@ void FhdParticleContainer::EvaluateStatsPhonon(MultiFab& mfcuInst,
             long imap = tile_box.index(iv);
 
             for (int l=0; l<nspecies; l++) {
-                long np_spec = m_cell_vectors[l][grid_id][imap].size();
+               // long np_spec = m_cell_vectors[l][grid_id][imap].size();
+                unsigned int np_spec = getBinSize(offs,iv,l,tile_box);
+                unsigned int* cellList = getCellList(inds,offs,iv,l,tile_box);
                 
                 cuInst(i,j,k,0) += np_spec;
 
                 // Read particle data
                 for (int m=0; m<np_spec; m++) {
-                    int pind = m_cell_vectors[l][grid_id][imap][m];
+                    //int pind = m_cell_vectors[l][grid_id][imap][m];
+                    int pind = cellList[m];
                     //int pind = 1;
                     ParticleType & p = particles[pind];
                     
@@ -91,10 +105,10 @@ void FhdParticleContainer::EvaluateStatsPhonon(MultiFab& mfcuInst,
         amrex::ParallelFor(tile_box,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             // Conserved Variances
-            Vector<Real> delCon(ncon, 0.0);
+            //Vector<Real> delCon(ncon, 0.0);
             for (int l=0; l<ncon; l++) {
-                delCon[l]        = cuInst(i,j,k,l) - cuMeans(i,j,k,l);
-                cuVars(i,j,k,l)  = (cuVars(i,j,k,l)*stepsMinusOne+delCon[l]*delCon[l])*osteps;
+                Real delCon        = cuInst(i,j,k,l) - cuMeans(i,j,k,l);
+                cuVars(i,j,k,l)  = (cuVars(i,j,k,l)*stepsMinusOne+delCon*delCon)*osteps;
             }
             
         });

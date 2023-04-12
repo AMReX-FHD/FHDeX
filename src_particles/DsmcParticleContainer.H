@@ -54,6 +54,7 @@ struct FHD_intData {
 		k,
 		species,
 		newSpecies,
+		fluxRec,
 		count
 	};
 
@@ -63,14 +64,16 @@ struct FHD_intData {
 			"i",
 			"j",
 			"k",
-			"species"
+			"species",
+			"newSpecies",
+			"fluxRec"
 		};
 	};
 };
 
 typedef struct {
 	int type;
-	int total;
+	long total;
 	double mass;
 	double radius;
 	double n0;
@@ -84,6 +87,108 @@ typedef struct {
 	double alpha;
 	double csx;
 } dsmcInterSpecies;
+
+template <typename P>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+IntVect getPartCell (P const& p,
+                         amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
+                         amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi,
+                         const Box& domain) noexcept
+{
+    IntVect iv = IntVect(
+        AMREX_D_DECL(int(amrex::Math::floor((p.pos(0)-plo[0])*dxi[0])),
+                     int(amrex::Math::floor((p.pos(1)-plo[1])*dxi[1])),
+                     int(amrex::Math::floor((p.pos(2)-plo[2])*dxi[2]))));
+    //iv -= domain.smallEnd();
+    return iv;
+}
+
+template <typename P>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+IntVect getPartCell2 (P const& p,
+                         amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
+                         amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi,
+                         const Box& domain) noexcept
+{
+    IntVect iv = IntVect(
+        AMREX_D_DECL(int(amrex::Math::floor((p.pos(0)-plo[0])*dxi[0])),
+                     int(amrex::Math::floor((p.pos(1)-plo[1])*dxi[1])),
+                     int(amrex::Math::floor((p.pos(2)-plo[2])*dxi[2]))));
+    cout << "pos: " << p.pos(0) << ", plo: " << plo[0] << ", dxi: " << dxi[0] << endl;
+    return iv;
+}
+
+/*template <typename P>*/
+/*AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE*/
+/*void getCellList (int* cellList, int* permArray, int* offArray, IntVect* cell, int spec) noexcept*/
+/*{*/
+/*    */
+/*}*/
+
+struct getBin
+{
+    GpuArray<Real,AMREX_SPACEDIM> plo;
+    GpuArray<Real,AMREX_SPACEDIM> dxi;
+    Box domain;
+    int ncells;
+
+    template <typename ParticleType>
+    AMREX_GPU_HOST_DEVICE
+    unsigned int operator() (const ParticleType& p) const noexcept
+    {
+        //Box tbx;
+        auto iv = getPartCell(p, plo, dxi, domain);
+        //auto tid = getTileIndex(iv, box, true, bin_size, tbx);
+        long imap = domain.index(iv);
+        int spec = p.idata(FHD_intData::species);
+        int map = imap;
+        if(spec > 0)
+        {
+            for(int i=0;i<spec;i++)
+            {
+                map += ncells;   
+            }
+        }            
+        //Print() << "map: " << map << ", spec: " << spec << endl;
+        return static_cast<unsigned int>(map);
+    }
+};
+
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+int mapBin(IntVect iv, int spec, Box domain)
+{
+    auto cellLo = domain.smallEnd();
+	auto cellHi = domain.bigEnd();
+	int ncells = (cellHi[0]-cellLo[0]+1)*(cellHi[1]-cellLo[1]+1)*(cellHi[2]-cellLo[2]+1);
+
+    long imap = domain.index(iv);
+    int map = imap;
+    if(spec > 0)
+    {
+        for(int i=0;i<spec;i++)
+        {
+            map += ncells;   
+        }
+    }
+    return map;        
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+int getBinSize(unsigned int* offArray, IntVect iv, int spec, Box domain)
+{
+    int bin = mapBin(iv, spec, domain);
+    return offArray[bin+1]-offArray[bin];
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+unsigned int* getCellList(unsigned int* permArray, unsigned int* offArray, IntVect iv, int spec, Box domain)
+{
+    int bin = mapBin(iv, spec, domain);
+    return &permArray[offArray[bin]];
+}
+
+
 
 class FhdParticleContainer
 	: public amrex::NeighborParticleContainer<FHD_realData::count, FHD_intData::count>
@@ -103,19 +208,20 @@ public:
 	void ReInitParticles();
 	void InitCollisionCells();
 
-	void Source(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount);
+	void Source(const Real dt, paramPlane* paramPlaneList, const int paramPlaneCount, MultiFab& mfcuInst);
     void SourcePhonons(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount);
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	// Main DSMC routines
 	void SortParticles();
+	void SortParticlesDB();
 
 	void CalcSelections(Real dt);
 	void CollideParticles(Real dt);
 	void CollideParticles2(Real dt);
 
-	void MoveParticlesCPP(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount);
-    void MovePhononsCPP(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount, const int step);
+	void MoveParticlesCPP(const Real dt, paramPlane* paramPlaneList, const int paramPlaneCount);
+    void MovePhononsCPP(const Real dt, paramPlane* paramPlaneList, const int paramPlaneCount, const int step, const int istep);
 	void externalForce(const Real dt);
 	void updateTimeStep(const Geometry& geom, Real& dt);
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -149,14 +255,17 @@ public:
 		Real time);
 
 	void OutputParticles();
+	
+	void zeroCells();
 		
 
   //Real Tg0[MAX_SPECIES];
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Scalars
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	dsmcSpecies properties[MAX_SPECIES];
-	dsmcInterSpecies interproperties[MAX_SPECIES*MAX_SPECIES];
+
+	GpuArray<dsmcSpecies, MAX_SPECIES> properties;
+	GpuArray<dsmcInterSpecies, MAX_SPECIES*MAX_SPECIES> interproperties;
 
 	long realParticles;
 	long simParticles;
@@ -181,9 +290,11 @@ public:
 
 protected:
     // used to store vectors of particle indices on a cell-by-cell basis
-    std::map<int, std::vector<Gpu::ManagedVector<int> > > m_cell_vectors[MAX_SPECIES];
+    std::map<int, std::vector<vector<int> > > m_cell_vectors[MAX_SPECIES];
     //std::vector<std::map<int, std::vector<Gpu::ManagedVector<int> > >> m_cell_vectors;
     //std::vector<std::vector<Gpu::ManagedVector<int>>>  m_cell_vectors[MAX_SPECIES];
+    
+    DenseBins<ParticleType> m_bins;
 };
 
 

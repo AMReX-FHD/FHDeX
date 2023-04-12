@@ -784,6 +784,316 @@ void StochMomFlux::StochMomFluxDiv(std::array< MultiFab, AMREX_SPACEDIM >& m_for
     }
 }
 
+
+// compute stochastic momentum flux divergence
+void StochMomFlux::StochMomFluxDivOrder3(std::array< MultiFab, AMREX_SPACEDIM >& m_force,
+                                   const int& increment,
+                                   const MultiFab& eta_cc,
+                                   const std::array< MultiFab, NUM_EDGE >& eta_ed,
+                                   const MultiFab& temp_cc,
+                                   const std::array< MultiFab, NUM_EDGE >& temp_ed,
+                                   const Vector< amrex::Real >& weights,
+                                   const amrex::Real& dt) {
+
+    BL_PROFILE_VAR("StochMomFluxDiv()",StochMomFluxDiv);
+
+    // Take linear combination of mflux multifabs at each stage
+    StochMomFlux::weightMomflux(weights);
+
+    // Multiply weighted mflux (cc & edge) by sqrt(eta*temperature)
+    StochMomFlux::multbyVarSqrtEtaTemp(eta_cc,eta_ed,temp_cc,temp_ed,dt);
+
+    // multiply noise stored in mflux_ed_weighted
+    // on walls by 0 (for slip) or sqrt(2) (for no-slip)
+    StochMomFlux::MomFluxBC();
+
+    // sync up random numbers at boundaries and ghost cells
+    for (int d=0; d<NUM_EDGE; ++d) {
+        mflux_ed_weighted[d].OverrideSync(geom.periodicity());
+        mflux_ed_weighted[d].FillBoundary(geom.periodicity());
+    }
+    mflux_cc_weighted.FillBoundary(geom.periodicity());
+
+    if (filtering_width > 0) {
+        Abort("StochMomFlux: filtering_width != 0 not fully implemented yet");
+        // need calls to filter_stoch_m_flux for mflux_ed and mflux_cc
+        /*
+
+         */
+        mflux_cc_weighted.FillBoundary(geom.periodicity());
+    }
+
+    // calculate divergence and add to stoch_m_force
+    Real dxinv = 1./(geom.CellSize()[0]);
+
+    // if not incrementing, initialize data to zero
+    if (increment == 0) {
+        for (int dir=0; dir<AMREX_SPACEDIM; ++dir) {
+            m_force[dir].setVal(0.,0,1,0);
+        }
+    }
+   
+    // Loop over boxes
+    for (MFIter mfi(mflux_cc_weighted); mfi.isValid(); ++mfi) {
+
+        const Array4<Real const> & flux_cc = mflux_cc_weighted.array(mfi);
+#if (AMREX_SPACEDIM == 2)
+        const Array4<Real const> & flux_nd = mflux_ed_weighted[0].array(mfi);
+#elif (AMREX_SPACEDIM == 3)
+        const Array4<Real const> & flux_xy = mflux_ed_weighted[0].array(mfi);
+        const Array4<Real const> & flux_xz = mflux_ed_weighted[1].array(mfi);
+        const Array4<Real const> & flux_yz = mflux_ed_weighted[2].array(mfi);
+#endif
+
+        AMREX_D_TERM(const Array4<Real> & divx = m_force[0].array(mfi);,
+                     const Array4<Real> & divy = m_force[1].array(mfi);,
+                     const Array4<Real> & divz = m_force[2].array(mfi););
+
+        AMREX_D_TERM(Box bx_x = mfi.validbox();,
+                     Box bx_y = mfi.validbox();,
+                     Box bx_z = mfi.validbox(););
+
+        AMREX_D_TERM(bx_x.growHi(0);,
+                     bx_y.growHi(1);,
+                     bx_z.growHi(2););
+                     
+        AMREX_D_TERM(const auto xlo = lbound(bx_x);,
+                 const auto ylo = lbound(bx_y);,
+                 const auto zlo = lbound(bx_z););
+
+        AMREX_D_TERM(const auto xhi = ubound(bx_x);,
+                 const auto yhi = ubound(bx_y);,
+                 const auto zhi = ubound(bx_z););
+                 
+        Real nineOver8 = 9.0/8.0;
+        Real oneOver24 = 1.0/24.0;
+        
+        Real preFac = sqrt(2.0/(nineOver8*nineOver8 + oneOver24*oneOver24));
+
+
+#if (AMREX_SPACEDIM == 2)
+        amrex::ParallelFor(bx_x,bx_y, [=] AMREX_GPU_DEVICE (int i, int j, int k)
+        {
+            divx(i,j,k) += (flux_cc(i,j,k,0) - flux_cc(i-1,j,k,0) +
+                            flux_nd(i,j+1,k,0) - flux_nd(i,j,k,0)) * dxinv;
+        },
+                                      [=] AMREX_GPU_DEVICE (int i, int j, int k)
+        {
+            divy(i,j,k) += (flux_nd(i+1,j,k,1) - flux_nd(i,j,k,1) +
+                            flux_cc(i,j,k,1) - flux_cc(i,j-1,k,1)) * dxinv;
+        });
+
+#elif (AMREX_SPACEDIM == 3)
+        amrex::ParallelFor(bx_x,bx_y,bx_z, [=] AMREX_GPU_DEVICE (int i, int j, int k)
+        {
+//            if(i==xlo.x || i==xhi.x || j==xlo.y || j==xhi.y || k==xlo.z || k==xhi.z)
+//            {
+//                divx(i,j,k) += (flux_cc(i,j,k,0) - flux_cc(i-1,j,k,0) +
+//                                flux_xy(i,j+1,k,0) - flux_xy(i,j,k,0) +
+//                                flux_xz(i,j,k+1,0) - flux_xz(i,j,k,0)) * dxinv;
+//            }else
+//            {
+                divx(i,j,k) += preFac*(nineOver8*flux_cc(i,j,k,0) - nineOver8*flux_cc(i-1,j,k,0) - oneOver24*flux_cc(i+1,j,k,0) + oneOver24*flux_cc(i-2,j,k,0) +
+                     nineOver8*flux_xy(i,j+1,k,0) -  nineOver8*flux_xy(i,j,k,0) - oneOver24*flux_xy(i,j+2,k,0) + oneOver24*flux_xy(i,j-1,k,0) +
+                    nineOver8*flux_xz(i,j,k+1,0) - nineOver8*flux_xz(i,j,k,0) - oneOver24*flux_xz(i,j,k+2,0) + oneOver24*flux_xz(i,j,k-1,0)) * dxinv;
+            
+//            }
+        },
+        [=] AMREX_GPU_DEVICE (int i, int j, int k)
+        {
+//            if(i==ylo.x || i==yhi.x || j==ylo.y || j==yhi.y || k==ylo.z || k==yhi.z)
+//            {
+//                divy(i,j,k) += (flux_xy(i+1,j,k,1) - flux_xy(i,j,k,1) +
+//                                flux_cc(i,j,k,1) - flux_cc(i,j-1,k,1) +
+//                                flux_yz(i,j,k+1,0) - flux_yz(i,j,k,0)) * dxinv;
+//            }else
+//            {
+                divy(i,j,k) += preFac*(nineOver8*flux_xy(i+1,j,k,1) - nineOver8*flux_xy(i,j,k,1) - oneOver24*flux_xy(i+2,j,k,1) + oneOver24*flux_xy(i-1,j,k,1) +
+                                nineOver8*flux_cc(i,j,k,1) - nineOver8*flux_cc(i,j-1,k,1) - oneOver24*flux_cc(i,j+1,k,1) + oneOver24*flux_cc(i,j-2,k,1) +
+                                nineOver8*flux_yz(i,j,k+1,0) - nineOver8*flux_yz(i,j,k,0) - oneOver24*flux_yz(i,j,k+2,0) + oneOver24*flux_yz(i,j,k-1,0)) * dxinv;
+//            }
+        },
+        [=] AMREX_GPU_DEVICE (int i, int j, int k)
+        {
+//            if(i==zlo.x || i==zhi.x || j==zlo.y || j==zhi.y || k==zlo.z || k==zhi.z)
+//            {
+//                divz(i,j,k) += (flux_xz(i+1,j,k,1) - flux_xz(i,j,k,1) + 
+//                                flux_yz(i,j+1,k,1) - flux_yz(i,j,k,1) +
+//                                flux_cc(i,j,k,2) - flux_cc(i,j,k-1,2)) * dxinv;
+
+//            }else
+//            {
+                divz(i,j,k) += preFac*(nineOver8*flux_xz(i+1,j,k,1) - nineOver8*flux_xz(i,j,k,1) - oneOver24*flux_xz(i+2,j,k,1) + oneOver24*flux_xz(i-1,j,k,1) + 
+                                nineOver8*flux_yz(i,j+1,k,1) - nineOver8*flux_yz(i,j,k,1) - oneOver24*flux_yz(i,j+2,k,1) + oneOver24*flux_yz(i,j-1,k,1) +
+                                nineOver8*flux_cc(i,j,k,2) - nineOver8*flux_cc(i,j,k-1,2) - oneOver24*flux_cc(i,j,k+1,2) + oneOver24*flux_cc(i,j,k-2,2)) * dxinv;
+//            }
+        });
+#endif
+    }
+
+    // m_force does not have ghost cells
+    // set the value on physical boundaries to zero
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        MultiFabPhysBCDomainVel(m_force[d], geom, d);
+    }
+}
+
+
+// compute stochastic momentum flux divergence
+void StochMomFlux::StochMomFluxDivOrder3Split(std::array< MultiFab, AMREX_SPACEDIM >& m_force,
+                                   const int& increment,
+                                   const MultiFab& eta_cc,
+                                   const std::array< MultiFab, NUM_EDGE >& eta_ed,
+                                   const MultiFab& temp_cc,
+                                   const std::array< MultiFab, NUM_EDGE >& temp_ed,
+                                   const Vector< amrex::Real >& weights,
+                                   const amrex::Real& dt) {
+
+    BL_PROFILE_VAR("StochMomFluxDiv()",StochMomFluxDiv);
+
+    // Take linear combination of mflux multifabs at each stage
+    StochMomFlux::weightMomflux(weights);
+
+    // Multiply weighted mflux (cc & edge) by sqrt(eta*temperature)
+    StochMomFlux::multbyVarSqrtEtaTemp(eta_cc,eta_ed,temp_cc,temp_ed,dt);
+
+    // multiply noise stored in mflux_ed_weighted
+    // on walls by 0 (for slip) or sqrt(2) (for no-slip)
+    StochMomFlux::MomFluxBC();
+
+    // sync up random numbers at boundaries and ghost cells
+    for (int d=0; d<NUM_EDGE; ++d) {
+        mflux_ed_weighted[d].OverrideSync(geom.periodicity());
+        mflux_ed_weighted[d].FillBoundary(geom.periodicity());
+    }
+    mflux_cc_weighted.FillBoundary(geom.periodicity());
+
+    if (filtering_width > 0) {
+        Abort("StochMomFlux: filtering_width != 0 not fully implemented yet");
+        // need calls to filter_stoch_m_flux for mflux_ed and mflux_cc
+        /*
+
+         */
+        mflux_cc_weighted.FillBoundary(geom.periodicity());
+    }
+
+    // calculate divergence and add to stoch_m_force
+    Real dxinv = 1./(geom.CellSize()[0]);
+
+    // if not incrementing, initialize data to zero
+    if (increment == 0) {
+        for (int dir=0; dir<AMREX_SPACEDIM; ++dir) {
+            m_force[dir].setVal(0.,0,1,0);
+        }
+    }
+   
+    // Loop over boxes
+    for (MFIter mfi(mflux_cc_weighted); mfi.isValid(); ++mfi) {
+
+        const Array4<Real const> & flux_cc = mflux_cc_weighted.array(mfi);
+#if (AMREX_SPACEDIM == 2)
+        const Array4<Real const> & flux_nd = mflux_ed_weighted[0].array(mfi);
+#elif (AMREX_SPACEDIM == 3)
+        const Array4<Real const> & flux_xy = mflux_ed_weighted[0].array(mfi);
+        const Array4<Real const> & flux_xz = mflux_ed_weighted[1].array(mfi);
+        const Array4<Real const> & flux_yz = mflux_ed_weighted[2].array(mfi);
+#endif
+
+        AMREX_D_TERM(const Array4<Real> & divx = m_force[0].array(mfi);,
+                     const Array4<Real> & divy = m_force[1].array(mfi);,
+                     const Array4<Real> & divz = m_force[2].array(mfi););
+
+        AMREX_D_TERM(Box bx_x = mfi.validbox();,
+                     Box bx_y = mfi.validbox();,
+                     Box bx_z = mfi.validbox(););
+
+        AMREX_D_TERM(bx_x.growHi(0);,
+                     bx_y.growHi(1);,
+                     bx_z.growHi(2););
+                     
+        AMREX_D_TERM(const auto xlo = lbound(bx_x);,
+                 const auto ylo = lbound(bx_y);,
+                 const auto zlo = lbound(bx_z););
+
+        AMREX_D_TERM(const auto xhi = ubound(bx_x);,
+                 const auto yhi = ubound(bx_y);,
+                 const auto zhi = ubound(bx_z););
+                 
+        Real nineOver8 = 9.0/8.0;
+        Real oneOver24 = 1.0/24.0;
+        
+        Real preFac = sqrt(1.0/(nineOver8*nineOver8 + oneOver24*oneOver24));
+        
+        int splitCell = 250;
+
+
+#if (AMREX_SPACEDIM == 2)
+        amrex::ParallelFor(bx_x,bx_y, [=] AMREX_GPU_DEVICE (int i, int j, int k)
+        {
+            divx(i,j,k) += (flux_cc(i,j,k,0) - flux_cc(i-1,j,k,0) +
+                            flux_nd(i,j+1,k,0) - flux_nd(i,j,k,0)) * dxinv;
+        },
+                                      [=] AMREX_GPU_DEVICE (int i, int j, int k)
+        {
+            divy(i,j,k) += (flux_nd(i+1,j,k,1) - flux_nd(i,j,k,1) +
+                            flux_cc(i,j,k,1) - flux_cc(i,j-1,k,1)) * dxinv;
+        });
+
+#elif (AMREX_SPACEDIM == 3)
+        amrex::ParallelFor(bx_x,bx_y,bx_z, [=] AMREX_GPU_DEVICE (int i, int j, int k)
+        {
+            if(i<splitCell || i==xhi.x || j==xlo.y || j==xhi.y || k==xlo.z || k==xhi.z )
+            {
+                divx(i,j,k) += (flux_cc(i,j,k,0) - flux_cc(i-1,j,k,0) +
+                                flux_xy(i,j+1,k,0) - flux_xy(i,j,k,0) +
+                                flux_xz(i,j,k+1,0) - flux_xz(i,j,k,0)) * dxinv;
+            }else
+            {
+                divx(i,j,k) += preFac*(nineOver8*flux_cc(i,j,k,0) - nineOver8*flux_cc(i-1,j,k,0) - oneOver24*flux_cc(i+1,j,k,0) + oneOver24*flux_cc(i-2,j,k,0) +
+                     nineOver8*flux_xy(i,j+1,k,0) -  nineOver8*flux_xy(i,j,k,0) - oneOver24*flux_xy(i,j+2,k,0) + oneOver24*flux_xy(i,j-1,k,0) +
+                    nineOver8*flux_xz(i,j,k+1,0) - nineOver8*flux_xz(i,j,k,0) - oneOver24*flux_xz(i,j,k+2,0) + oneOver24*flux_xz(i,j,k-1,0)) * dxinv;
+            
+            }
+        },
+        [=] AMREX_GPU_DEVICE (int i, int j, int k)
+        {
+            if(i==ylo.x || i==yhi.x || j==ylo.y || j==yhi.y || k==ylo.z || k==yhi.z)
+            {
+                divy(i,j,k) += (flux_xy(i+1,j,k,1) - flux_xy(i,j,k,1) +
+                                flux_cc(i,j,k,1) - flux_cc(i,j-1,k,1) +
+                                flux_yz(i,j,k+1,0) - flux_yz(i,j,k,0)) * dxinv;
+            }else
+            {
+                divy(i,j,k) += preFac*(nineOver8*flux_xy(i+1,j,k,1) - nineOver8*flux_xy(i,j,k,1) - oneOver24*flux_xy(i+2,j,k,1) + oneOver24*flux_xy(i-1,j,k,1) +
+                                nineOver8*flux_cc(i,j,k,1) - nineOver8*flux_cc(i,j-1,k,1) - oneOver24*flux_cc(i,j+1,k,1) + oneOver24*flux_cc(i,j-2,k,1) +
+                                nineOver8*flux_yz(i,j,k+1,0) - nineOver8*flux_yz(i,j,k,0) - oneOver24*flux_yz(i,j,k+2,0) + oneOver24*flux_yz(i,j,k-1,0)) * dxinv;
+            }
+        },
+        [=] AMREX_GPU_DEVICE (int i, int j, int k)
+        {
+            if(i==zlo.x || i==zhi.x || j==zlo.y || j==zhi.y || k==zlo.z || k==zhi.z)
+            {
+                divz(i,j,k) += (flux_xz(i+1,j,k,1) - flux_xz(i,j,k,1) + 
+                                flux_yz(i,j+1,k,1) - flux_yz(i,j,k,1) +
+                                flux_cc(i,j,k,2) - flux_cc(i,j,k-1,2)) * dxinv;
+
+            }else
+            {
+                divz(i,j,k) += preFac*(nineOver8*flux_xz(i+1,j,k,1) - nineOver8*flux_xz(i,j,k,1) - oneOver24*flux_xz(i+2,j,k,1) + oneOver24*flux_xz(i-1,j,k,1) + 
+                                nineOver8*flux_yz(i,j+1,k,1) - nineOver8*flux_yz(i,j,k,1) - oneOver24*flux_yz(i,j+2,k,1) + oneOver24*flux_yz(i,j-1,k,1) +
+                                nineOver8*flux_cc(i,j,k,2) - nineOver8*flux_cc(i,j,k-1,2) - oneOver24*flux_cc(i,j,k+1,2) + oneOver24*flux_cc(i,j,k-2,2)) * dxinv;
+            }
+        });
+#endif
+    }
+
+    // m_force does not have ghost cells
+    // set the value on physical boundaries to zero
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        MultiFabPhysBCDomainVel(m_force[d], geom, d);
+    }
+}
+
 // utility to write out random number MultiFabs to plotfiles
 void StochMomFlux::writeMFs(std::array< MultiFab, AMREX_SPACEDIM >& mfluxdiv) {
     

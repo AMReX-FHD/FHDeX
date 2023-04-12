@@ -137,7 +137,6 @@ void main_driver(const char* argv)
         if (fixed_dt <= 0.) {
             Abort("main_driver.cpp: only fixed_dt > 0 supported");
         }
-        dt = fixed_dt;
 
         // Initialize the boxarray "ba" from the single box "bx"
         ba.define(domain);
@@ -159,6 +158,9 @@ void main_driver(const char* argv)
             }
         }
 
+//      added by JBB to allow reset of dt on restart
+        if (fixed_dt >0) dt=fixed_dt;
+
         rho_old.define   (ba, dmap, nspecies, ng_s);
         rhotot_old.define(ba, dmap, 1       , ng_s);
         pi.define        (ba, dmap, 1       , 1);
@@ -166,6 +168,9 @@ void main_driver(const char* argv)
             Epot.define(ba, dmap, 1, 1);
         }
     }
+
+    // moved this to here so can change dt from value in checkpoint
+    dt = fixed_dt;
     
     // data structures to help with reservoirs
     // 
@@ -359,7 +364,8 @@ void main_driver(const char* argv)
         // set normal velocity of physical domain boundaries
         MultiFabPhysBCDomainVel(umac[i],geom,i);
         // set transverse velocity behind physical boundaries
-        MultiFabPhysBCMacVel(umac[i],geom,i);
+        int is_inhomogeneous = 1;
+        MultiFabPhysBCMacVel(umac[i],geom,i,is_inhomogeneous);
         // fill periodic and interior ghost cells
         umac[i].FillBoundary(geom.periodicity());
         // protect against roundoff issues and sync up
@@ -377,7 +383,8 @@ void main_driver(const char* argv)
                 // set normal velocity of physical domain boundaries
                 MultiFabPhysBCDomainVel(umac[i],geom,i);
                 // set transverse velocity behind physical boundaries
-                MultiFabPhysBCMacVel(umac[i],geom,i);
+                int is_inhomogeneous = 1;
+                MultiFabPhysBCMacVel(umac[i],geom,i,is_inhomogeneous);
                 // fill periodic and interior ghost cells
                 umac[i].FillBoundary(geom.periodicity());
             }

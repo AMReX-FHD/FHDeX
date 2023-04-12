@@ -9,7 +9,7 @@ void doMembraneStag(MultiFab& cons,
                     MultiFab& prim, 
                     std::array< MultiFab, AMREX_SPACEDIM >& vel,
                     std::array<MultiFab, AMREX_SPACEDIM>& faceflux,
-                    const amrex::Geometry geom, const amrex::Real dt)
+                    const amrex::Geometry& geom, const amrex::Real dt)
 {
     BL_PROFILE_VAR("doMembraneStag()",doMembraneStag);
 
@@ -32,7 +32,7 @@ void doMembraneStag(MultiFab& cons,
 
 void doLangevin(MultiFab& cons_in, MultiFab& prim_in,
                 std::array<MultiFab, AMREX_SPACEDIM>& faceflux,
-                const amrex::Geometry geom,
+                const amrex::Geometry& geom,
                 const amrex::Real dt)
 {
 

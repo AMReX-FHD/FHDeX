@@ -18,10 +18,10 @@ using namespace common;
 
 void InitializeMFSurfchemNamespace();
 
-void init_surfcov(MultiFab& surfcov);
+void init_surfcov(MultiFab& surfcov, const amrex::Geometry& geom);
 
-void sample_MFsurfchem(MultiFab& cu, MultiFab& surfcov, MultiFab& dNadsdes, const amrex::Real* dx, const amrex::Real dt);
+void sample_MFsurfchem(MultiFab& cu, MultiFab& prim, MultiFab& surfcov, MultiFab& dNadsdes, const amrex::Geometry& geom, const amrex::Real dt);
 
-void update_MFsurfchem(MultiFab& cu, MultiFab& surfcov, MultiFab& dNadsdes, const amrex::Real* dx, const amrex::Real dt);
+void update_MFsurfchem(MultiFab& cu, MultiFab& prim, MultiFab& surfcov, MultiFab& dNadsdes, const amrex::Geometry& geom);
 
 #endif
