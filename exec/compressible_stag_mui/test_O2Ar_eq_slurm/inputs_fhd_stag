@@ -5,7 +5,7 @@ seed = 0
 
 # Problem specification
 prob_lo = 0.0 0.0 0.0 # physical lo coordinate
-prob_hi = 3.60e-05 3.60e-05 3.60e-05 # physical hi coordinate
+prob_hi = 3.60e-05 3.60e-05 9.00e-04 # physical hi coordinate
 
 # Number of ghost cells, conserved, and primitive variables
 # ---------------------
@@ -14,9 +14,9 @@ nvars = 7
 nprimvars = 10
 
 # number of cells in domain
-n_cells = 4 4 4
+n_cells = 4 4 100
 # max number of cells in a box
-max_grid_size = 4 4 1
+max_grid_size = 4 4 4
 
 # Time-step control
 fixed_dt = 1.e-12
