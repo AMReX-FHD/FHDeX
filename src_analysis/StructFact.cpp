@@ -323,9 +323,9 @@ void StructFact::ComputeFFT(const MultiFab& variables,
     BL_PROFILE_VAR("StructFact::ComputeFFT()", ComputeFFT);
 
 #ifdef AMREX_USE_CUDA
-    Print() << "Using cuFFT\n";
+    //Print() << "Using cuFFT\n";
 #else
-    Print() << "Using FFTW\n";
+    //Print() << "Using FFTW\n";
 #endif
 
     bool is_flattened = false;

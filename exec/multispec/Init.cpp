@@ -78,11 +78,10 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
             });
         } else if (prob_type == 3) {
 
-            Real rad1 = L[0]/4.;
-            Real rad2 = L[0]/16.;
-            Real shift1 = -L[0]/5.;
-            // Real shift2 = L[0]/4.;
-            Real shift2 = L[0]/8.;
+            Real rad1 = 0.0119;
+            Real rad2 = 0.00294;
+            Real shift1 = 1.1*rad1;
+            Real shift2 = 2.2*rad1 + rad2;
             Real velbub = 100.;
 
 
@@ -117,10 +116,10 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                 Real x2,y2,z2;
                 AMREX_D_TERM(x = prob_lo[0] + (i+0.5)*dx[0] - center[0];,
                              y = prob_lo[1] + (j+0.5)*dx[1] - center[1];,
-                             z = prob_lo[2] + (k+0.5)*dx[2] - center[2]-shift1;);
+                             z = prob_lo[2] + (k+0.5)*dx[2] -shift1;);
                 AMREX_D_TERM(x2 = prob_lo[0] + (i+0.5)*dx[0] - center[0];,
                              y2 = prob_lo[1] + (j+0.5)*dx[1] - center[1];,
-                             z2 = prob_lo[2] + (k+0.5)*dx[2] - center[2]-shift2;);
+                             z2 = prob_lo[2] + (k+0.5)*dx[2] -shift2;);
 
                 Real r1 = (AMREX_SPACEDIM == 2) ? std::sqrt(x*x+y*y) : std::sqrt(x*x+y*y+z*z);
                 Real r2 = (AMREX_SPACEDIM == 2) ? std::sqrt(x2*x2+y2*y2) : std::sqrt(x2*x2+y2*y2+z2*z2);
@@ -161,7 +160,7 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                 Real x2,y2,z2;
                 AMREX_D_TERM(x2 = prob_lo[0] + (i+0.5)*dx[0] - center[0];,
                              y2 = prob_lo[1] + (j+0.5)*dx[1] - center[1];,
-                             z2 = prob_lo[2] + (k)*dx[2] - center[2]-shift2;);
+                             z2 = prob_lo[2] + (k)*dx[2] - shift2;);
 
                 Real r2 = (AMREX_SPACEDIM == 2) ? std::sqrt(x2*x2+y2*y2) : std::sqrt(x2*x2+y2*y2+z2*z2);
                 if (r2 < rad2) {

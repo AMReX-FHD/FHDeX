@@ -963,7 +963,7 @@ void main_driver(const char* argv)
         if(step > 800) dt = dt*1000000;
 
     }else{
-        dt = dt*1e-5;
+        //dt = dt*1e-5;
 	if(step < 40 && step > 20) dt = dt*10;
         if(step < 60 && step > 40) dt = dt*100;
         if(step < 80 && step > 60) dt = dt*1000;
@@ -1199,7 +1199,7 @@ void main_driver(const char* argv)
                     dt = dt*2;
                     Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
             }
-        }else
+          }else
         {
         
             if(istep == 20)
@@ -1234,13 +1234,62 @@ void main_driver(const char* argv)
 
 
 //            particles.SetPosition(1, prob_hi[0]*0.501, prob_hi[1]*0.501, prob_hi[2]*0.501);
-//            particles.SetForce(1,1,0,0);
-//            Real x1 = 0.51*prob_hi[0];
-//            Real y1 = 0.51*prob_hi[1];
-//            Real z1 = 0.51*prob_hi[2];
+//              particles.SetForce(1,1,0,0);
+//          int kk =1;
+//          //Print() << "Moving " << ionParticle[0].total << " particles.\n";
+//          while(kk<ionParticle[0].total)
+//          {
+////            Real x1 = prob_lo[0] + 0.25*(prob_hi[0]-prob_lo[0]) + amrex::Random()*(prob_hi[0]-prob_lo[0])/2.0;
+//            Real x1 = prob_lo[0] + amrex::Random()*(prob_hi[0]-prob_lo[0]);
+//            Real y1 = prob_lo[1] + amrex::Random()*(prob_hi[1]-prob_lo[1]);
+//            Real z1 = prob_lo[2] + amrex::Random()*(prob_hi[2]-prob_lo[2]);
+////          
+////            Real seprad = ionParticle[0].d/2.0;
+////  
+////            Real x2 = x1 + 0.0*ionParticle[0].d/2.0;
+////            Real y2 = y1;
+////            Real z2 = z1;
+//////            
+//            particles.SetPosition(kk,x1 ,y1, z1);
+////            particles.SetPosition(kk+1,x2 ,y2, z2);
 //            
-//            particles.SetPosition(1,x1 ,y1, z1);
-//            particles.SetPosition(2,x1 ,y1, z1);
+//           // Print() << "Seperating particles " << kk << " and " << kk+1 << " by " << (x1 -x2)/seprad << " radii.\n";
+//            
+//            kk = kk+2;
+//            
+
+//          }
+
+//          kk =1;          
+//          while(kk<ionParticle[0].total)
+//          {
+//            Real xPos[ionParticle[0].total];
+//            Real yPos[ionParticle[0].total];
+//            Real zPos[ionParticle[0].total];
+//            
+//            particles.PullDown(0, xPos, -1, ionParticle[0].total);
+//            particles.PullDown(0, yPos, -2, ionParticle[0].total);
+//            particles.PullDown(0, zPos, -3, ionParticle[0].total);
+//            
+//            Real x1 = xPos[kk-1];
+//            Real y1 = yPos[kk-1];
+//            Real z1 = zPos[kk-1];
+////          
+//            Real seprad = ionParticle[0].d/2.0;
+//  
+//            Real x2 = x1 + 6.0*ionParticle[0].d/2.0;
+//            Real y2 = y1;
+//            Real z2 = z1;
+//////            
+////            particles.SetPosition(kk,x1 ,y1, z1);
+//            particles.SetPosition(kk+1,x2 ,y2, z2);
+//            
+//           // Print() << "Seperating particles " << kk << " and " << kk+1 << " by " << (x1 -x2)/seprad << " radii.\n";
+//            
+//            kk = kk+2;
+//            
+
+//          }
 //            
 //            x1 = 0.5*prob_hi[0] + (amrex::Random()-0.5)*(prob_hi[0]-prob_lo[0])*0.25;
 //            y1 = 0.1875*dxp[0];
@@ -1287,7 +1336,7 @@ void main_driver(const char* argv)
             // set velx/y/z and forcex/y/z for each particle to zero
             particles.ResetMarkers(0);
         }
-	    //particles.SetForce(1,1,0,0);
+//	    particles.SetForce(1,0.00001,0,0);
 //        Real origin[3];
 //        origin[0] = prob_hi[0]/2.0;
 //        origin[1] = prob_hi[1]/2.0;
@@ -1330,6 +1379,8 @@ void main_driver(const char* argv)
             sMflux.fillMomStochastic();
 
             // compute stochastic momentum force
+            //sMflux.StochMomFluxDivWideSplit(stochMfluxdiv,0,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
+            //sMflux.StochMomFluxDivOrder3(stochMfluxdiv,0,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
             sMflux.StochMomFluxDiv(stochMfluxdiv,0,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
 
             // integrator containing inertial terms and predictor/corrector requires 2 RNG stages
@@ -1421,6 +1472,10 @@ void main_driver(const char* argv)
         else if (fluid_tog == 2) {
             Abort("Don't use fluid_tog=2 (inertial Low Mach solver)");
         }
+       
+        //Real check;
+        //particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords,check);
+        //particles.TwoParticleCorrelation();
 
         // total particle move (1=single step, 2=midpoint)
         if (move_tog != 0)
@@ -1443,6 +1498,7 @@ void main_driver(const char* argv)
 
             Print() << "Finish move.\n";
         }
+
 
         /*
         // FIXME - AJN
@@ -1566,7 +1622,7 @@ void main_driver(const char* argv)
                             potential, potentialM);
         }
 
-        //particles.PrintParticles();
+//        particles.PrintParticles();
 
         // timer for time step
         Real time2 = ParallelDescriptor::second() - time1;

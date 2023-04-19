@@ -73,6 +73,16 @@ typedef struct {
     
     double massFluxRight[MAX_SPECIES];
     double massFluxLeft[MAX_SPECIES];
+    
+    double xMomFluxRight[MAX_SPECIES];
+    double xMomFluxLeft[MAX_SPECIES];
+    double yMomFluxRight[MAX_SPECIES];
+    double yMomFluxLeft[MAX_SPECIES];
+    double zMomFluxRight[MAX_SPECIES];
+    double zMomFluxLeft[MAX_SPECIES];  
+    
+    double energyFluxRight[MAX_SPECIES];
+    double energyFluxLeft[MAX_SPECIES];      
 
     double sourceLeft;
     double sourceRight;
