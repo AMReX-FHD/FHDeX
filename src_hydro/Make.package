@@ -8,6 +8,8 @@ CEXE_sources += StochMomFlux.cpp
 CEXE_sources += MacProj_hydro.cpp
 CEXE_sources += Vorticity.cpp
 CEXE_sources += advance.cpp
+CEXE_sources += hydroAMR.cpp
 
 CEXE_headers += hydro_functions.H
 CEXE_headers += StochMomFlux.H
+CEXE_headers += hydroAMR.H
