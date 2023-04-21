@@ -246,7 +246,9 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         if (grav[d] != 0.) any_grav = true;
     }
     if (any_grav) {
-        MultiFab::Saxpy(gmres_rhs_v[d],grav[d],rhotot_fc_old[d],0,0,1,0);
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+	    MultiFab::Saxpy(gmres_rhs_v[d],grav[d],rhotot_fc_old[d],0,0,1,0);
+	}
     }
 
     // compute (eta,kappa)^{*,n+1}
