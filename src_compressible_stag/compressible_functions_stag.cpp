@@ -57,8 +57,143 @@ void InitConsVarStag(MultiFab& cons,
     
     for ( MFIter mfi(cons); mfi.isValid(); ++mfi ) {
         const Array4<      Real> cu = cons.array(mfi);
+        
+        AMREX_D_TERM(const Array4<Real>& momx = momStag[0].array(mfi);,
+                     const Array4<Real>& momy = momStag[1].array(mfi);,
+                     const Array4<Real>& momz = momStag[2].array(mfi););
 
         const Box& bx = mfi.tilebox();
+        const Box& xbx = mfi.tilebox(momStag[0].ixType().toIntVect());
+        const Box& ybx = mfi.tilebox(momStag[1].ixType().toIntVect());
+        const Box& zbx = mfi.tilebox(momStag[2].ixType().toIntVect());
+        
+        amrex::ParallelFor(xbx, ybx, zbx,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+
+            GpuArray<Real,AMREX_SPACEDIM> itVec;
+            GpuArray<Real,AMREX_SPACEDIM> pos;
+            GpuArray<Real,AMREX_SPACEDIM> relpos;
+
+            GpuArray<Real,MAX_SPECIES> massvec;
+
+            AMREX_D_TERM(itVec[0] = (i+0.0)*dx[0]; ,
+                         itVec[1] = (j+0.5)*dx[1]; ,
+                         itVec[2] = (k+0.5)*dx[2]);
+            
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                pos[d] = reallo[d] + itVec[d];
+                relpos[d] = pos[d] - center[d];
+            }
+
+            if (prob_type == 4) { // Taylor-Green Vortex
+                
+                if (mach0 < 0.0) amrex::Abort("need an initial mach number via mach0 parameter in inputs file"); 
+                Real x=itVec[0];
+                Real y=itVec[1];
+                Real z=itVec[2];
+                Real Lx = realhi[0] - reallo[0];
+                Real Ly = realhi[1] - reallo[1];
+                Real Lz = realhi[2] - reallo[2];
+
+                // problem scale
+                Real molmix = 0.;
+                for (int ns=0;ns<nspecies;++ns) massvec[ns] = rhobar[ns];
+                for (int ns=0; ns<nspecies; ++ns) molmix += massvec[ns]/molmass[ns];
+                molmix = 1./molmix;
+                Real sound_speed = sqrt((Runiv/molmix)*T_init[0]); // spound speed
+                Real vel_scale = mach0*sound_speed; // speed scale
+                Real press_scale; GetPressureGas(press_scale, massvec, rho0, T_init[0]); // pressure scale
+                Real press = press_scale + (rho0*vel_scale*vel_scale/16.0) * (cos(4.*pi*x/Lx) + cos(4.*pi*y/Ly)) * (cos(4.*pi*z/Lz) + 2.0); // cell pressure
+                Real rho; GetDensity(press, rho, T_init[0], massvec); // cell density
+                Real ux = vel_scale * sin(2.*pi*x/Lx) * cos(2.*pi*y/Ly) * cos(2.*pi*z/Lz); // x-face velocity
+                momx(i,j,k) = rho*ux; // x-face momentum
+            }
+
+        },
+
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+
+            GpuArray<Real,AMREX_SPACEDIM> itVec;
+            GpuArray<Real,AMREX_SPACEDIM> pos;
+            GpuArray<Real,AMREX_SPACEDIM> relpos;
+
+            GpuArray<Real,MAX_SPECIES> massvec;
+
+            AMREX_D_TERM(itVec[0] = (i+0.5)*dx[0]; ,
+                         itVec[1] = (j+0.0)*dx[1]; ,
+                         itVec[2] = (k+0.5)*dx[2]);
+            
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                pos[d] = reallo[d] + itVec[d];
+                relpos[d] = pos[d] - center[d];
+            }
+
+            if (prob_type == 4) { // Taylor-Green Vortex
+                
+                Real x=itVec[0];
+                Real y=itVec[1];
+                Real z=itVec[2];
+                Real Lx = realhi[0] - reallo[0];
+                Real Ly = realhi[1] - reallo[1];
+                Real Lz = realhi[2] - reallo[2];
+
+                // problem scale
+                Real molmix = 0.;
+                for (int ns=0;ns<nspecies;++ns) massvec[ns] = rhobar[ns];
+                for (int ns=0; ns<nspecies; ++ns) molmix += massvec[ns]/molmass[ns];
+                molmix = 1./molmix;
+                Real sound_speed = sqrt((Runiv/molmix)*T_init[0]); // spound speed
+                Real vel_scale = mach0*sound_speed; // speed scale
+                Real press_scale; GetPressureGas(press_scale, massvec, rho0, T_init[0]); // pressure scale
+                Real press = press_scale + (rho0*vel_scale*vel_scale/16.0) * (cos(4.*pi*x/Lx) + cos(4.*pi*y/Ly)) * (cos(4.*pi*z/Lz) + 2.0); // cell pressure
+                Real rho; GetDensity(press, rho, T_init[0], massvec); // cell density
+                Real uy = -vel_scale * cos(2.*pi*x/Lx) * sin(2.*pi*y/Ly) * cos(2.*pi*z/Lz); // y-face velocity
+                momy(i,j,k) = rho*uy; // y-face momentum
+            }
+
+        },
+
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+
+            GpuArray<Real,AMREX_SPACEDIM> itVec;
+            GpuArray<Real,AMREX_SPACEDIM> pos;
+            GpuArray<Real,AMREX_SPACEDIM> relpos;
+
+            GpuArray<Real,MAX_SPECIES> massvec;
+
+            AMREX_D_TERM(itVec[0] = (i+0.5)*dx[0]; ,
+                         itVec[1] = (j+0.5)*dx[1]; ,
+                         itVec[2] = (k+0.0)*dx[2]);
+            
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                pos[d] = reallo[d] + itVec[d];
+                relpos[d] = pos[d] - center[d];
+            }
+
+            if (prob_type == 4) { // Taylor-Green Vortex
+                
+                Real x=itVec[0];
+                Real y=itVec[1];
+                Real z=itVec[2];
+                Real Lx = realhi[0] - reallo[0];
+                Real Ly = realhi[1] - reallo[1];
+                Real Lz = realhi[2] - reallo[2];
+
+                // problem scale
+                Real molmix = 0.;
+                for (int ns=0;ns<nspecies;++ns) massvec[ns] = rhobar[ns];
+                for (int ns=0; ns<nspecies; ++ns) molmix += massvec[ns]/molmass[ns];
+                molmix = 1./molmix;
+                Real sound_speed = sqrt((Runiv/molmix)*T_init[0]); // spound speed
+                Real vel_scale = mach0*sound_speed; // speed scale
+                Real press_scale; GetPressureGas(press_scale, massvec, rho0, T_init[0]); // pressure scale
+                Real press = press_scale + (rho0*vel_scale*vel_scale/16.0) * (cos(4.*pi*x/Lx) + cos(4.*pi*y/Ly)) * (cos(4.*pi*z/Lz) + 2.0); // cell pressure
+                Real rho; GetDensity(press, rho, T_init[0], massvec); // cell density
+                Real uz = 0.0; // z-face velocity
+                momz(i,j,k) = rho*uz; // z-face momentum
+            }
+
+        });
 
         amrex::ParallelFor(bx,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
@@ -136,23 +271,39 @@ void InitConsVarStag(MultiFab& cons,
                                                            cu(i,j,k,2)*cu(i,j,k,2) +
                                                            cu(i,j,k,3)*cu(i,j,k,3)) / cu(i,j,k,0);
             } else if (prob_type == 4) { // Taylor Green Vortex
-
+                
                 Real x=itVec[0];
                 Real y=itVec[1];
                 Real z=itVec[2];
+                Real Lx = realhi[0] - reallo[0];
+                Real Ly = realhi[1] - reallo[1];
+                Real Lz = realhi[2] - reallo[2];
 
-                cu(i,j,k,0) = 1.784e-3;
-                cu(i,j,k,1) =  velscale*cu(i,j,k,0)*sin(2.*pi*x/Lf)*cos(2.*pi*y/Lf)*cos(2.*pi*z/Lf);
-                cu(i,j,k,2) = -velscale*cu(i,j,k,0)*cos(2.*pi*x/Lf)*sin(2.*pi*y/Lf)*cos(2.*pi*z/Lf);
-                cu(i,j,k,3) = 0.;
-                Real pres = 1.01325e6+cu(i,j,k,0)*velscale*velscale*cos(2.*pi*x/Lf)*cos(4.*pi*y/Lf)*(cos(4.*pi*z/Lf)+2.);
-                cu(i,j,k,4) = pres/(5./3.-1.) + 0.5*(cu(i,j,k,1)*cu(i,j,k,1) +
-                                                     cu(i,j,k,2)*cu(i,j,k,2) +
-                                                     cu(i,j,k,3)*cu(i,j,k,3)) / cu(i,j,k,0);
-                cu(i,j,k,5) = cu(i,j,k,0);
-                cu(i,j,k,6) = 0.;
+                // problem scale
+                GpuArray<Real,MAX_SPECIES> massvec;
+                Real molmix = 0.;
+                for (int ns=0;ns<nspecies;++ns) massvec[ns] = rhobar[ns];
+                for (int ns=0; ns<nspecies; ++ns) molmix += massvec[ns]/molmass[ns];
+                molmix = 1./molmix;
+                Real sound_speed = sqrt((Runiv/molmix)*T_init[0]); // spound speed
+                Real vel_scale = mach0*sound_speed; // speed scale
+                Real press_scale; GetPressureGas(press_scale, massvec, rho0, T_init[0]); // pressure scale
+                Real press = press_scale + (rho0*vel_scale*vel_scale/16.0) * (cos(4.*pi*x/Lx) + cos(4.*pi*y/Ly)) * (cos(4.*pi*z/Lz) + 2.0); // cell pressure
+                Real rho; GetDensity(press, rho, T_init[0], massvec); // cell density
+
+                cu(i,j,k,0) = rho;
+                for (int ns=0;ns<nspecies;++ns) cu(i,j,k,5+ns) = cu(i,j,k,0)*massvec[ns]; 
+                Real intEnergy;
+                GetEnergy(intEnergy, massvec, T_init[0]);
+
+                cu(i,j,k,1) = 0.5*(momx(i+1,j,k) + momx(i,j,k));
+                cu(i,j,k,2) = 0.5*(momy(i,j+1,k) + momx(i,j,k));
+                cu(i,j,k,3) = 0.5*(momz(i,j,k+1) + momx(i,j,k));
+                cu(i,j,k,4) = cu(i,j,k,0)*intEnergy + 0.5*(cu(i,j,k,1)*cu(i,j,k,1) +
+                                                              cu(i,j,k,2)*cu(i,j,k,2) +
+                                                              cu(i,j,k,3)*cu(i,j,k,3)) / cu(i,j,k,0);
                 
-            } else if (prob_type == 5) { // Taylor Green Vortex
+            } else if (prob_type == 5) {
 
                 Real intEnergy;
                 

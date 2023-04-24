@@ -1,7 +1,7 @@
 namespace common {
 
 //////////////
-#define MAX_SPECIES 8
+#define MAX_SPECIES 2
 #define ADJ 0.99999
 #define ADJALT 0.00002
 #define WRITE_BUFFER 1000
@@ -72,6 +72,7 @@ namespace common {
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> molmass;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> rhobar;
     extern AMREX_GPU_MANAGED amrex::Real rho0;
+    extern AMREX_GPU_MANAGED amrex::Real mach0; // initial mach number
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> diameter;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> dof;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> e0;

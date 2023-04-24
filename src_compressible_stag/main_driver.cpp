@@ -590,10 +590,10 @@ void main_driver(const char* argv)
         InitConsVarStag(cu,cumom,geom); // Need to add for staggered -- Ishan
 
         // initialize primitive variables
-        prim.setVal(0.0,0,nprimvars,ngc);
-        for (int d=0; d<AMREX_SPACEDIM; d++) { // staggered momentum & velocities
-            vel[d].setVal(0.,ngc);
-        }
+        //prim.setVal(0.0,0,nprimvars,ngc);
+        //for (int d=0; d<AMREX_SPACEDIM; d++) { // staggered momentum & velocities
+        //    vel[d].setVal(0.,ngc);
+        //}
         conservedToPrimitiveStag(prim, vel, cu, cumom);
 
         if (n_ads_spec>0) init_surfcov(surfcov, geom);
@@ -980,7 +980,7 @@ void main_driver(const char* argv)
         }
         statsCount++;
         if (step%100 == 0) {
-            amrex::Print() << "Mean Density: " << ComputeSpatialMean(cu, 0) << " Mean Momentum (x):" << ComputeSpatialMean(cumom[0], 0) << " Mean Energy:" << ComputeSpatialMean(cu, 4) << "\n";
+            amrex::Print() << "Mean Density: " << ComputeSpatialMean(cu, 0) << " Mean Momentum (x):" << ComputeSpatialMean(cumom[0], 0) <<  " Mean Momentum (y):" << ComputeSpatialMean(cumom[1], 0) <<  " Mean Momentum (z):" << ComputeSpatialMean(cumom[2], 0) <<" Mean Energy:" << ComputeSpatialMean(cu, 4) << "\n";
         }
 
         // write a plotfile

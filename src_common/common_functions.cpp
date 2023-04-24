@@ -54,6 +54,7 @@ AMREX_GPU_MANAGED int      common::nspecies;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::molmass;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::rhobar;
 AMREX_GPU_MANAGED amrex::Real common::rho0;
+AMREX_GPU_MANAGED amrex::Real common::mach0;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::diameter;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::dof;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::e0;
@@ -400,6 +401,7 @@ void InitializeCommonNamespace() {
         rhobar[i] = 1.;
     }
     rho0 = 1.;
+    mach0 = -1.0;
 
     // Kinetic parameters
     nspecies = 2;
@@ -719,6 +721,7 @@ void InitializeCommonNamespace() {
         }
     }
     pp.query("rho0",rho0);
+    pp.query("mach0",mach0);
     if (pp.queryarr("diameter",temp,0,nspecies)) {
         for (int i=0; i<nspecies; ++i) {
             diameter[i] = temp[i];
