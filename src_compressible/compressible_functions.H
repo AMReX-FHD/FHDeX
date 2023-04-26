@@ -198,6 +198,25 @@ void GetPressureGas ( Real& pressure,
     pressure = density*(Runiv/molmix)*temp;
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void GetSoundSpeed (Real& c, 
+                    const GpuArray<Real,MAX_SPECIES>& Yk,
+                    Real const temp)
+{
+    Real molmix = 0.;
+    Real cvmix = 0.;
+    Real cpmix = 0.;
+
+    for (int n=0; n<nspecies; ++n) {
+        molmix += Yk[n]/molmass[n];
+        cvmix += Yk[n]*hcv[n];
+        cpmix += Yk[n]*hcp[n];
+    }
+    molmix = 1./molmix;
+    Real gamma = cpmix/cvmix;
+
+    c = sqrt(gamma*(Runiv/molmix)*temp);
+}
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void Decomp ( int const neq,

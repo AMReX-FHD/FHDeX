@@ -243,10 +243,18 @@ void main_driver(const char* argv)
 
     Real dt = fixed_dt;
     const Real* dx = geom.CellSize();
-    //const RealBox& realDomain = geom.ProbDomain();
+    const RealBox& realDomain = geom.ProbDomain();
+    Real sys_volume = 1.0;
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        sys_volume *= (realDomain.hi(d) - realDomain.lo(d));
+    }
 
     std::string filename = "crossMeans";
     std::ofstream outfile;
+
+    std::string turbfilename = "turbstats";
+    std::ofstream turboutfile;
+    std::array< MultiFab, AMREX_SPACEDIM > macTemp;
 
     /////////////////////////////////////////////
     // Setup Structure factor variables & scaling
@@ -448,6 +456,16 @@ void main_driver(const char* argv)
         if ((plot_cross) and (do_1D==0) and (do_2D==0)) {
             if (ParallelDescriptor::IOProcessor()) outfile.open(filename, std::ios::app);
         }
+
+        if (turbForcing == 1) { // temporary fab for turbulent
+            if (ParallelDescriptor::IOProcessor()) {
+                turboutfile.open(turbfilename, std::ios::app);
+                turboutfile << "time " << "kin. energy " << std::endl;
+            }
+            AMREX_D_TERM(macTemp[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
+                         macTemp[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
+                         macTemp[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););   
+        }
     }
 
     else {
@@ -580,6 +598,16 @@ void main_driver(const char* argv)
         else if (do_2D) {
             spatialCross2D.define(ba,dmap,ncross,0);
             spatialCross2D.setVal(0.0);
+        }
+
+        if (turbForcing == 1) { // temporary fab for turbulent
+            if (ParallelDescriptor::IOProcessor()) {
+                turboutfile.open(turbfilename);
+                turboutfile << "time " << "kin. energy " << std::endl;
+            }
+            AMREX_D_TERM(macTemp[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
+                         macTemp[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
+                         macTemp[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););   
         }
 
         ///////////////////////////////////////////
@@ -983,6 +1011,17 @@ void main_driver(const char* argv)
             amrex::Print() << "Mean Density: " << ComputeSpatialMean(cu, 0) << " Mean Momentum (x):" << ComputeSpatialMean(cumom[0], 0) <<  " Mean Momentum (y):" << ComputeSpatialMean(cumom[1], 0) <<  " Mean Momentum (z):" << ComputeSpatialMean(cumom[2], 0) <<" Mean Energy:" << ComputeSpatialMean(cu, 4) << "\n";
         }
 
+
+        // turbulent outputs
+        if ((turbForcing == 1) and (step%100 == 0)) {
+            // kinetic energy
+            Vector<Real> rhouu(3);
+            StagInnerProd(cumom,0,vel,0,macTemp,rhouu);
+            turboutfile << time << " "
+                    << 0.5*( rhouu[0] + rhouu[1] + rhouu[2] )
+                    << std::endl;
+        }
+
         // write a plotfile
         bool writePlt = false;
         if (plot_int > 0) {
@@ -1276,6 +1315,9 @@ void main_driver(const char* argv)
     }
 
     if (ParallelDescriptor::IOProcessor()) outfile.close();
+    if (turbForcing == 1) {
+        if (ParallelDescriptor::IOProcessor()) turboutfile.close();
+    }
 
     // timer
     Real stop_time = ParallelDescriptor::second() - strt_time;

@@ -74,8 +74,6 @@ void InitConsVarStag(MultiFab& cons,
             GpuArray<Real,AMREX_SPACEDIM> pos;
             GpuArray<Real,AMREX_SPACEDIM> relpos;
 
-            GpuArray<Real,MAX_SPECIES> massvec;
-
             AMREX_D_TERM(itVec[0] = (i+0.0)*dx[0]; ,
                          itVec[1] = (j+0.5)*dx[1]; ,
                          itVec[2] = (k+0.5)*dx[2]);
@@ -96,15 +94,11 @@ void InitConsVarStag(MultiFab& cons,
                 Real Lz = realhi[2] - reallo[2];
 
                 // problem scale
-                Real molmix = 0.;
-                for (int ns=0;ns<nspecies;++ns) massvec[ns] = rhobar[ns];
-                for (int ns=0; ns<nspecies; ++ns) molmix += massvec[ns]/molmass[ns];
-                molmix = 1./molmix;
-                Real sound_speed = sqrt((Runiv/molmix)*T_init[0]); // spound speed
+                Real sound_speed; GetSoundSpeed(sound_speed, rhobar, T_init[0]);
                 Real vel_scale = mach0*sound_speed; // speed scale
-                Real press_scale; GetPressureGas(press_scale, massvec, rho0, T_init[0]); // pressure scale
+                Real press_scale; GetPressureGas(press_scale, rhobar, rho0, T_init[0]); // pressure scale
                 Real press = press_scale + (rho0*vel_scale*vel_scale/16.0) * (cos(4.*pi*x/Lx) + cos(4.*pi*y/Ly)) * (cos(4.*pi*z/Lz) + 2.0); // cell pressure
-                Real rho; GetDensity(press, rho, T_init[0], massvec); // cell density
+                Real rho = rho0; // GetDensity(press, rho, T_init[0], rhobar); // cell density
                 Real ux = vel_scale * sin(2.*pi*x/Lx) * cos(2.*pi*y/Ly) * cos(2.*pi*z/Lz); // x-face velocity
                 momx(i,j,k) = rho*ux; // x-face momentum
             }
@@ -116,8 +110,6 @@ void InitConsVarStag(MultiFab& cons,
             GpuArray<Real,AMREX_SPACEDIM> itVec;
             GpuArray<Real,AMREX_SPACEDIM> pos;
             GpuArray<Real,AMREX_SPACEDIM> relpos;
-
-            GpuArray<Real,MAX_SPECIES> massvec;
 
             AMREX_D_TERM(itVec[0] = (i+0.5)*dx[0]; ,
                          itVec[1] = (j+0.0)*dx[1]; ,
@@ -138,15 +130,11 @@ void InitConsVarStag(MultiFab& cons,
                 Real Lz = realhi[2] - reallo[2];
 
                 // problem scale
-                Real molmix = 0.;
-                for (int ns=0;ns<nspecies;++ns) massvec[ns] = rhobar[ns];
-                for (int ns=0; ns<nspecies; ++ns) molmix += massvec[ns]/molmass[ns];
-                molmix = 1./molmix;
-                Real sound_speed = sqrt((Runiv/molmix)*T_init[0]); // spound speed
+                Real sound_speed; GetSoundSpeed(sound_speed, rhobar, T_init[0]);
                 Real vel_scale = mach0*sound_speed; // speed scale
-                Real press_scale; GetPressureGas(press_scale, massvec, rho0, T_init[0]); // pressure scale
+                Real press_scale; GetPressureGas(press_scale, rhobar, rho0, T_init[0]); // pressure scale
                 Real press = press_scale + (rho0*vel_scale*vel_scale/16.0) * (cos(4.*pi*x/Lx) + cos(4.*pi*y/Ly)) * (cos(4.*pi*z/Lz) + 2.0); // cell pressure
-                Real rho; GetDensity(press, rho, T_init[0], massvec); // cell density
+                Real rho = rho0; //GetDensity(press, rho, T_init[0], rhobar); // cell density
                 Real uy = -vel_scale * cos(2.*pi*x/Lx) * sin(2.*pi*y/Ly) * cos(2.*pi*z/Lz); // y-face velocity
                 momy(i,j,k) = rho*uy; // y-face momentum
             }
@@ -158,8 +146,6 @@ void InitConsVarStag(MultiFab& cons,
             GpuArray<Real,AMREX_SPACEDIM> itVec;
             GpuArray<Real,AMREX_SPACEDIM> pos;
             GpuArray<Real,AMREX_SPACEDIM> relpos;
-
-            GpuArray<Real,MAX_SPECIES> massvec;
 
             AMREX_D_TERM(itVec[0] = (i+0.5)*dx[0]; ,
                          itVec[1] = (j+0.5)*dx[1]; ,
@@ -180,15 +166,11 @@ void InitConsVarStag(MultiFab& cons,
                 Real Lz = realhi[2] - reallo[2];
 
                 // problem scale
-                Real molmix = 0.;
-                for (int ns=0;ns<nspecies;++ns) massvec[ns] = rhobar[ns];
-                for (int ns=0; ns<nspecies; ++ns) molmix += massvec[ns]/molmass[ns];
-                molmix = 1./molmix;
-                Real sound_speed = sqrt((Runiv/molmix)*T_init[0]); // spound speed
+                Real sound_speed; GetSoundSpeed(sound_speed, rhobar, T_init[0]);
                 Real vel_scale = mach0*sound_speed; // speed scale
-                Real press_scale; GetPressureGas(press_scale, massvec, rho0, T_init[0]); // pressure scale
+                Real press_scale; GetPressureGas(press_scale, rhobar, rho0, T_init[0]); // pressure scale
                 Real press = press_scale + (rho0*vel_scale*vel_scale/16.0) * (cos(4.*pi*x/Lx) + cos(4.*pi*y/Ly)) * (cos(4.*pi*z/Lz) + 2.0); // cell pressure
-                Real rho; GetDensity(press, rho, T_init[0], massvec); // cell density
+                Real rho = rho0; //GetDensity(press, rho, T_init[0], rhobar); // cell density
                 Real uz = 0.0; // z-face velocity
                 momz(i,j,k) = rho*uz; // z-face momentum
             }
@@ -280,21 +262,16 @@ void InitConsVarStag(MultiFab& cons,
                 Real Lz = realhi[2] - reallo[2];
 
                 // problem scale
-                GpuArray<Real,MAX_SPECIES> massvec;
-                Real molmix = 0.;
-                for (int ns=0;ns<nspecies;++ns) massvec[ns] = rhobar[ns];
-                for (int ns=0; ns<nspecies; ++ns) molmix += massvec[ns]/molmass[ns];
-                molmix = 1./molmix;
-                Real sound_speed = sqrt((Runiv/molmix)*T_init[0]); // spound speed
+                Real sound_speed; GetSoundSpeed(sound_speed, rhobar, T_init[0]);
                 Real vel_scale = mach0*sound_speed; // speed scale
-                Real press_scale; GetPressureGas(press_scale, massvec, rho0, T_init[0]); // pressure scale
+                Real press_scale; GetPressureGas(press_scale, rhobar, rho0, T_init[0]); // pressure scale
                 Real press = press_scale + (rho0*vel_scale*vel_scale/16.0) * (cos(4.*pi*x/Lx) + cos(4.*pi*y/Ly)) * (cos(4.*pi*z/Lz) + 2.0); // cell pressure
-                Real rho; GetDensity(press, rho, T_init[0], massvec); // cell density
+                Real rho = rho0; //GetDensity(press, rho, T_init[0], rhobar); // cell density
 
                 cu(i,j,k,0) = rho;
-                for (int ns=0;ns<nspecies;++ns) cu(i,j,k,5+ns) = cu(i,j,k,0)*massvec[ns]; 
+                for (int ns=0;ns<nspecies;++ns) cu(i,j,k,5+ns) = cu(i,j,k,0)*rhobar[ns]; 
                 Real intEnergy;
-                GetEnergy(intEnergy, massvec, T_init[0]);
+                GetEnergy(intEnergy, rhobar, T_init[0]);
 
                 cu(i,j,k,1) = 0.5*(momx(i+1,j,k) + momx(i,j,k));
                 cu(i,j,k,2) = 0.5*(momy(i,j+1,k) + momx(i,j,k));
