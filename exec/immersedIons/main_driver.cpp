@@ -127,6 +127,11 @@ void main_driver(const char* argv)
     Real dtinv = 1.0/dt;
     
     hydroAMR hydroGrid(ang, is_periodic.data(), dt);
+    
+    IntVect patch_lo(AMREX_D_DECL(           120,            10,            120));
+    IntVect patch_hi(AMREX_D_DECL(130, 20, 130));
+    
+    hydroGrid.addPatch(patch_lo,patch_hi, dt);
 
     // MFs for storing particle statistics
     // A lot of these relate to gas kinetics, but many are still useful so leave in for now.
@@ -169,6 +174,8 @@ void main_driver(const char* argv)
 
         // how boxes are distrubuted among MPI processes
         dmap.define(ba);
+
+        Vector<int> pMap = dmap.ProcessorMap();
 
         bc = ba;
         bp = ba;

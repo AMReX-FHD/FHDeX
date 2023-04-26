@@ -41,7 +41,9 @@ hydroAMR::hydroAMR(int ang, int * is_periodic, Real dt) {
     Real dtinv = 1.0/dt;
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         alpha_fc[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
+        mask_fc[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
         alpha_fc[d].setVal(dtinv);
+        mask_fc[d].setVal(0);
     }
     
     // beta cell centred
@@ -59,10 +61,14 @@ hydroAMR::hydroAMR(int ang, int * is_periodic, Real dt) {
 
 #if (AMREX_SPACEDIM == 2)
     beta_ed[0].define(convert(ba,nodal_flag), dmap, 1, 1);
+    mask_ed[0].define(convert(ba,nodal_flag), dmap, 1, 1);
 #elif (AMREX_SPACEDIM == 3)
     beta_ed[0].define(convert(ba,nodal_flag_xy), dmap, 1, 1);
     beta_ed[1].define(convert(ba,nodal_flag_xz), dmap, 1, 1);
     beta_ed[2].define(convert(ba,nodal_flag_yz), dmap, 1, 1);
+    mask_ed[0].define(convert(ba,nodal_flag_xy), dmap, 1, 1);
+    mask_ed[1].define(convert(ba,nodal_flag_xz), dmap, 1, 1);
+    mask_ed[2].define(convert(ba,nodal_flag_yz), dmap, 1, 1);
 #endif
     
 #if (AMREX_SPACEDIM == 2)
@@ -81,13 +87,15 @@ hydroAMR::hydroAMR(int ang, int * is_periodic, Real dt) {
         eta_ed[d] .setVal(visc_coef);
         temp_ed[d].setVal(T_init[0]);
         beta_ed[d].setVal(visc_coef);
+        mask_ed[d].setVal(0);
     }
     
-    npatches = 0;     
+    npatches = 0;
+    pg = 1;     
 
 }
 
-void hydroAMR::addPatch(IntVect patch_lo, IntVect patch_hi) {
+void hydroAMR::addPatch(IntVect patch_lo, IntVect patch_hi, Real dt) {
 
     npatches++;
         
@@ -97,11 +105,116 @@ void hydroAMR::addPatch(IntVect patch_lo, IntVect patch_hi) {
     dmap_patches.resize(npatches);
     
     domain_patches[npatches-1].setSmall(patch_lo);
-    domain_patches[npatches-1].setBig(patch_hi);    
+    domain_patches[npatches-1].setBig(patch_hi);
+
+    const Real* dx = geom.CellSize();
+
+    RealBox patchRealDomain({AMREX_D_DECL(patch_lo[0]*dx[0],patch_lo[1]*dx[1],patch_lo[2]*dx[2])},
+                       {AMREX_D_DECL(patch_hi[0]*dx[0],patch_hi[1]*dx[1],patch_hi[2]*dx[2])});
+
+    Vector<int> patch_periodic  (AMREX_SPACEDIM,0);
+                       
+    geom_patches[npatches-1].define(domain_patches[npatches-1] ,&patchRealDomain,CoordSys::cartesian,patch_periodic.data());
+       
+    BoxList bl = ba.boxList();
+    BoxList bl_patch(domain_patches[npatches-1]);
+    bl.intersect(bl_patch);
+    ba_patches[npatches-1].define(bl);
+
+    Vector<int> dm;
     
-    umac_patches.resize(npatches); 
+    for(int i=0; i<ba_patches[npatches-1].size(); i++)
+    {
+        for(int j=0; j<ba.size(); j++)
+        {
+            Box testBox = ba[j];
+            Box testPatch = ba_patches[npatches-1][i];
+            if(testBox.contains(testPatch))
+            {
+                dm.push_back(dmap[j]);
+            }
+        }
+    }
+    
+    dmap_patches[npatches-1].define(dm);
+
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        for ( MFIter mfi(mask_fc[d]); mfi.isValid(); ++mfi ) {
+
+            Box tile_box  = mfi.growntilebox(pg);
+
+            Array4<int> mask_data = mask_fc[d].array(mfi);
+
+            amrex::ParallelFor(tile_box,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                mask_data(i,j,k,0) = npatches;        
+            });
+
+        }
+    }
+    
+    ba_patches[npatches-1].refine(2);
+
+    //mask_fc_patches.resize(npatches);
+    alpha_fc_patches.resize(npatches);
+
+    BoxArray ba_patch = ba_patches[npatches-1];
+    DistributionMapping dmap_patch = dmap_patches[npatches-1];
+
+    Real dtinv = 1.0/dt;
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        alpha_fc_patches[npatches-1][d].define(convert(ba_patch,nodal_flag_dir[d]), dmap_patch, 1, 1);
+       // mask_fc_patches[npatches-1][d].define(convert(ba_patch,nodal_flag_dir[d]), dmap_patch, 1, 1);
+        alpha_fc_patches[npatches-1][d].setVal(dtinv);
+        //mask_fc_patches[npatches-1][d].setVal(0);
+    }
+
+
+
+//    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+//        for ( MFIter mfi(mask_fc_patches[npatches-1][d]); mfi.isValid(); ++mfi ) {
+
+//            Box tile_box  = mfi.growntilebox(pg);
+
+//            Array4<int> mask_data = mask_fc_patches[npatches-1][d].array(mfi);
+
+//            amrex::ParallelFor(tile_box,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+//            {
+//                
+//            });
+
+//        }
+//    }
+
+    Print() << convert(ba,nodal_flag_dir[0]) << std::endl;    
+    Print() << convert(ba_patches[npatches-1],nodal_flag_dir[0]) << std::endl;
+    
+    Print() << dmap << std::endl;
+    Print() << dmap_patches[npatches-1] << std::endl;
+
+    umac_patches.resize(npatches);
+    umacNew_patches.resize(npatches);
+    source_patches.resize(npatches);
+    sourceRFD_patches.resize(npatches);
+    sourceTemp_patches.resize(npatches);
+    umacM_patches.resize(npatches);
+
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        umac_patches[npatches-1][d].define(convert(ba_patch,nodal_flag_dir[d]), dmap_patch, 1, 1);
+        umacNew_patches[npatches-1][d].define(convert(ba_patch,nodal_flag_dir[d]), dmap_patch, 1, 1);
+        source_patches[npatches-1][d].define(convert(ba_patch,nodal_flag_dir[d]), dmap_patch, 1, 1);
+        sourceRFD_patches[npatches-1][d].define(convert(ba_patch,nodal_flag_dir[d]), dmap_patch, 1, 1);
+        sourceTemp_patches[npatches-1][d].define(convert(ba_patch,nodal_flag_dir[d]), dmap_patch, 1, 1);
+        umacM_patches[npatches-1][d].define(convert(ba_patch,nodal_flag_dir[d]), dmap_patch, 1, 1);
+        umac_patches[npatches-1][d].setVal(0.);
+        source_patches[npatches-1][d].setVal(0.);
+        sourceRFD_patches[npatches-1][d].setVal(0.);
+        sourceTemp_patches[npatches-1][d].setVal(0.);                        
+        umacM_patches[npatches-1][d].setVal(0.);
+    }
 
 }
+
 
 
 

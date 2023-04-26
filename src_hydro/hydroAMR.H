@@ -3,6 +3,8 @@
 
 #include <AMReX.H>
 #include <AMReX_MultiFab.H>
+#include <AMReX_MultiFabUtil.H>
+#include <AMReX_ArrayLim.H>
 
 #include "common_functions.H"
 
@@ -22,7 +24,9 @@ public:
     Vector<std::array< MultiFab, AMREX_SPACEDIM > >    umacM_patches;
     Vector<std::array< MultiFab, NUM_EDGE       > >  beta_ed_patches; // nodal in 2D, edge in 3D
     Vector<std::array< MultiFab, NUM_EDGE       > >  eta_ed_patches;
-    Vector<std::array< MultiFab, NUM_EDGE       > >  temp_ed_patches;        
+    Vector<std::array< MultiFab, NUM_EDGE       > >  temp_ed_patches;
+    //Vector<std::array< iMultiFab, AMREX_SPACEDIM > >    mask_fc_patches;
+    //Vector<std::array< iMultiFab, NUM_EDGE       > >  mask_ed_patches;         
     
 
     Vector<MultiFab>  beta_patches;
@@ -35,6 +39,7 @@ public:
     Vector<DistributionMapping>  dmap_patches;        
    
     int npatches;
+    int pg;
     
     std::array< MultiFab, AMREX_SPACEDIM > umac;
     std::array< MultiFab, AMREX_SPACEDIM > umacNew;    
@@ -46,6 +51,9 @@ public:
     std::array< MultiFab, NUM_EDGE>  beta_ed;
     std::array< MultiFab, NUM_EDGE >  eta_ed;
     std::array< MultiFab, NUM_EDGE > temp_ed;
+    
+    std::array< iMultiFab, AMREX_SPACEDIM > mask_fc;
+    std::array< iMultiFab, NUM_EDGE > mask_ed;
     
     MultiFab pres;
     MultiFab gamma;
@@ -61,7 +69,7 @@ public:
     
     hydroAMR(int ang, int * is_periodic, Real dt);
     
-    void addPatch(IntVect patch_lo, IntVect patch_hi);
+    void addPatch(IntVect patch_lo, IntVect patch_hi, Real dt);
     
 };
 

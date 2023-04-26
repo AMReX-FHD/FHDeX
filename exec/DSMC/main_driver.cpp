@@ -306,8 +306,8 @@ void main_driver(const char* argv)
 	Real tbegin, tend;
 	
 	
-	particles.zeroCells();
-	zeroMassFlux(paramPlaneList, paramPlaneCount);
+	//particles.zeroCells();
+	//zeroMassFlux(paramPlaneList, paramPlaneCount);
 	
     //Initial condition
     spatialCross1D.setVal(0.);
@@ -437,7 +437,7 @@ void main_driver(const char* argv)
 		}
 		tend = ParallelDescriptor::second() - tbegin;
 		ParallelDescriptor::ReduceRealMax(tend);
-		if(istep%100==0)
+		if(istep%1==0)
 		{
 		    amrex::Print() << "Advanced step " << istep << " of " << max_step << " in " << tend << " seconds. " << particles.simParticles << " particles.\n";
 		}
