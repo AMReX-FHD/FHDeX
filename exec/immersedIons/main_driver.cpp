@@ -132,7 +132,7 @@ void main_driver(const char* argv)
     //IntVect patch_hi(AMREX_D_DECL(13, 14, 12));
 
     IntVect patch_lo(AMREX_D_DECL(           0,            0,            0));
-    IntVect patch_hi(AMREX_D_DECL(7, 15, 15));
+    IntVect patch_hi(AMREX_D_DECL(15, 6, 15));
     
     hydroGrid.addPatch(patch_lo,patch_hi, dt);
     

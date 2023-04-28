@@ -898,25 +898,48 @@ void StagMGSolver::StagProlongation(const std::array< MultiFab, AMREX_SPACEDIM >
     BL_PROFILE_VAR("StagProlongation()",StagProlongation);
     //MFIter mfi_c(phi_c_in[0],TilingIfNotGPU())
     // loop over boxes (note we are not passing in a cell-centered MultiFab)
-    MFIter mfi_c(phi_c_in[0],TilingIfNotGPU());
-    mfi_c.allowMultipleMFIters(true);
-    for ( MFIter mfi(phi_f_in[0],TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
+    MFIter mfi_t(phi_c_in[0],TilingIfNotGPU());
+    mfi_t.allowMultipleMFIters(true);
+//    for ( MFIter mfi(phi_f_in[0],TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
+    for ( MFIter mfi(phi_f_in[0]); mfi.isValid(); ++mfi ) {
 
-        // since the MFIter is built on a nodal MultiFab we need to build the
+    for ( MFIter mfi_c(phi_c_in[0]); mfi_c.isValid(); ++mfi_c ) {
+
+          // since the MFIter is built on a nodal MultiFab we need to build the
         // nodal tileboxes for each direction in this way
         AMREX_D_TERM(Box bx_x = mfi.tilebox(nodal_flag_x);,
                      Box bx_y = mfi.tilebox(nodal_flag_y);,
                      Box bx_z = mfi.tilebox(nodal_flag_z););
-        
-        AMREX_D_TERM(Array4<Real const> const& phix_c = phi_c_in[0].array(mfi);,
-                     Array4<Real const> const& phiy_c = phi_c_in[1].array(mfi);,
-                     Array4<Real const> const& phiz_c = phi_c_in[2].array(mfi););
-        Print() << "Here!\n";
-        AMREX_D_TERM(Array4<Real> const& phix_f = phi_f_in[0].array(mfi_c);,
-                     Array4<Real> const& phiy_f = phi_f_in[1].array(mfi_c);,
-                     Array4<Real> const& phiz_f = phi_f_in[2].array(mfi_c););
                      
-        ++mfi_c;
+        AMREX_D_TERM(Box bx_c_x = mfi_c.tilebox(nodal_flag_x);,
+                     Box bx_c_y = mfi_c.tilebox(nodal_flag_y);,
+                     Box bx_c_z = mfi_c.tilebox(nodal_flag_z););
+
+        Box bx_check = mfi.validbox();
+        IntVect lo_bx(bx_check.smallEnd());
+        IntVect hi_bx(bx_check.bigEnd()-nodal_flag_x);
+        Box bx(lo_bx,hi_bx);
+
+        Box bx_c_check = mfi_c.validbox();
+        IntVect lo_bx_c(bx_c_check.smallEnd());
+        IntVect hi_bx_c(bx_c_check.bigEnd()-nodal_flag_x);
+        Box bx_c(lo_bx_c,hi_bx_c);
+
+        bx.coarsen(2);
+        
+        if(bx_c.contains(bx.smallEnd()))
+        {
+        //Print() << "Found " << bx.smallEnd() << " in " << bx_c.smallEnd()  << "-" << bx_c.bigEnd() << std::endl;
+        
+        
+        AMREX_D_TERM(Array4<Real const> const& phix_c = phi_c_in[0].array(mfi_c);,
+                     Array4<Real const> const& phiy_c = phi_c_in[1].array(mfi_c);,
+                     Array4<Real const> const& phiz_c = phi_c_in[2].array(mfi_c););
+
+        AMREX_D_TERM(Array4<Real> const& phix_f = phi_f_in[0].array(mfi);,
+                     Array4<Real> const& phiy_f = phi_f_in[1].array(mfi);,
+                     Array4<Real> const& phiz_f = phi_f_in[2].array(mfi););
+                     
 
 #if (AMREX_SPACEDIM == 2)
         amrex::ParallelFor(bx_x, bx_y, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
@@ -1043,7 +1066,9 @@ void StagMGSolver::StagProlongation(const std::array< MultiFab, AMREX_SPACEDIM >
                     + one32*  phiz_c(i/2+ioff,j/2+joff,k/2+1);
             }
         });
+        }
 #endif
+    }
     }
 }
 
