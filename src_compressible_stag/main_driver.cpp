@@ -283,6 +283,9 @@ void main_driver(const char* argv)
     Vector < StructFact > structFactConsArray;
     MultiFab master_2D_rot_prim;
     MultiFab master_2D_rot_cons;
+
+    // Structure factor for compressible turbulence
+    StructFact turbStructFact;
     
     Geometry geom_flat;
     Geometry geom_flat_2D;
@@ -410,6 +413,52 @@ void main_driver(const char* argv)
         var_scaling_cons[d] = 1./(dx[0]*dx[1]*dx[2]);
     }
 
+    //////////////////////////////////////////////////////////////
+    // structure factor variables names and scaling for turbulence
+    // variables are velocities
+    //////////////////////////////////////////////////////////////
+    int structVarsTurb = AMREX_SPACEDIM;
+    
+    Vector< std::string > var_names_turb;
+    var_names_turb.resize(structVarsTurb);
+    
+    cnt = 0;
+
+    // velx, vely, velz
+    for (int d=0; d<AMREX_SPACEDIM; d++) {
+      x = "vel";
+      x += (120+d);
+      var_names_turb[cnt++] = x;
+    }
+
+    MultiFab structFactMFTurb;
+
+    // need to use dVol for scaling
+    Real dVol = (AMREX_SPACEDIM==2) ? dx[0]*dx[1]*cell_depth : dx[0]*dx[1]*dx[2];
+    Real dProb = (AMREX_SPACEDIM==2) ? n_cells[0]*n_cells[1] : n_cells[0]*n_cells[1]*n_cells[2];
+    dProb = 1./dProb;
+    
+    Vector<Real> var_scaling_turb(structVarsTurb*(structVarsTurb+1)/2);
+    for (int d=0; d<var_scaling_turb.size(); ++d) {
+        var_scaling_turb[d] = 1./dVol;
+    }
+
+    // option to compute only specified pairs
+    amrex::Vector< int > s_pairA_turb(AMREX_SPACEDIM);
+    amrex::Vector< int > s_pairB_turb(AMREX_SPACEDIM);
+
+    var_scaling_turb.resize(AMREX_SPACEDIM);
+    for (int d=0; d<var_scaling_turb.size(); ++d) {
+        var_scaling_turb[d] = 1./dVol;
+    }
+    
+    // Select which variable pairs to include in structure factor:
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        s_pairA_turb[d] = d;
+        s_pairB_turb[d] = d;
+    }    
+
+    //////////////////////////////////////////////////////////////
 
     /////////////////////////////////////////////
     // Initialize based on fresh start or restart
@@ -686,6 +735,11 @@ void main_driver(const char* argv)
         
     structFactConsMF.define(ba, dmap, structVarsCons, 0);
     structFactCons.define(ba,dmap,cons_var_names,var_scaling_cons);
+    
+    if (turbForcing == 1) {
+        structFactMFTurb.define(ba, dmap, structVarsTurb, 0);
+        turbStructFact.define(ba,dmap,var_names_turb,var_scaling_turb,s_pairA_turb,s_pairB_turb);
+    }
         
     // structure factor class for vertically-averaged dataset
     if (project_dir >= 0) {
@@ -1011,8 +1065,7 @@ void main_driver(const char* argv)
             amrex::Print() << "Mean Density: " << ComputeSpatialMean(cu, 0) << " Mean Momentum (x):" << ComputeSpatialMean(cumom[0], 0) <<  " Mean Momentum (y):" << ComputeSpatialMean(cumom[1], 0) <<  " Mean Momentum (z):" << ComputeSpatialMean(cumom[2], 0) <<" Mean Energy:" << ComputeSpatialMean(cu, 4) << "\n";
         }
 
-
-        // turbulent outputs
+        // turbulence outputs
         if ((turbForcing == 1) and (step%100 == 0)) {
             // kinetic energy
             Vector<Real> rhouu(3);
@@ -1057,6 +1110,22 @@ void main_driver(const char* argv)
                     }
                 }
             }
+
+            // compressible turbulence structure factor snapshot
+            if (turbForcing == 1) {
+                // copy velocities into structFactMF
+                for(int d=0; d<AMREX_SPACEDIM; d++) {
+                    ShiftFaceToCC(vel[d], 0, structFactMFTurb, d, 1);
+                }
+                // reset and compute structure factor
+                turbStructFact.FortStructure(structFactMFTurb,geom,1);
+                turbStructFact.CallFinalize(geom);
+
+                // integrate cov_mag over shells in k and write to file
+                turbStructFact.IntegratekShells(step,geom);
+
+            }
+
         }
 
         // collect a snapshot for structure factor
@@ -1257,6 +1326,8 @@ void main_driver(const char* argv)
 
             }
         }
+
+
         
 
         // write checkpoint file
