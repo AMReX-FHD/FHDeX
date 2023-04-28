@@ -128,10 +128,16 @@ void main_driver(const char* argv)
     
     hydroAMR hydroGrid(ang, is_periodic.data(), dt);
     
-    IntVect patch_lo(AMREX_D_DECL(           120,            10,            120));
-    IntVect patch_hi(AMREX_D_DECL(130, 20, 130));
+    //IntVect patch_lo(AMREX_D_DECL(           3,            9,            4));
+    //IntVect patch_hi(AMREX_D_DECL(13, 14, 12));
+
+    IntVect patch_lo(AMREX_D_DECL(           0,            0,            0));
+    IntVect patch_hi(AMREX_D_DECL(7, 15, 15));
     
     hydroGrid.addPatch(patch_lo,patch_hi, dt);
+    
+    StagMGSolver intPro;
+    intPro.StagProlongation(hydroGrid.umac, hydroGrid.umac_patches[0]);
 
     // MFs for storing particle statistics
     // A lot of these relate to gas kinetics, but many are still useful so leave in for now.

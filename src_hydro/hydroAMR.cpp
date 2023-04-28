@@ -118,25 +118,70 @@ void hydroAMR::addPatch(IntVect patch_lo, IntVect patch_hi, Real dt) {
        
     BoxList bl = ba.boxList();
     BoxList bl_patch(domain_patches[npatches-1]);
-    bl.intersect(bl_patch);
-    ba_patches[npatches-1].define(bl);
-
-    Vector<int> dm;
+    Box b_patch(domain_patches[npatches-1]);
+    //Vector<Box> boxVec(bl.size());
+    BoxList bl_patch_new;
+    //Box b_temp;
+    //Print() << bl_patch << std::endl;
     
-    for(int i=0; i<ba_patches[npatches-1].size(); i++)
+    for(int i=0; i<bl.size(); i++)
     {
-        for(int j=0; j<ba.size(); j++)
-        {
-            Box testBox = ba[j];
-            Box testPatch = ba_patches[npatches-1][i];
-            if(testBox.contains(testPatch))
-            {
-                dm.push_back(dmap[j]);
-            }
-        }
+//        int k=0;
+//        for(int j=0; j<ba.size(); j++)
+//        {
+              Box b = bl.data()[i];
+              BoxList bl_temp(bl.data()[i]);
+              if(b.intersects(b_patch))
+              {
+                bl_temp.intersect(b_patch);
+                bl_patch_new.push_back(b);
+                Print() << bl_temp << std::endl;
+              }else
+              {
+                    IntVect dom_zero(b.smallEnd());
+                    Box null_box(dom_zero, dom_zero);
+                    bl_patch_new.push_back(null_box);
+              }
+              
+              //if(
+              
+              //Print() << bl_temp << std::endl;
+//            if(testBox.contains(testPatch))
+//            {
+//                dm[k]=dmap[j];
+//                k++;
+//                //dm.push_back(dmap[j]);
+//            }
+//        }
     }
     
-    dmap_patches[npatches-1].define(dm);
+    //bl.intersect(bl_patch);
+    //bl.join(bl);
+    ba_patches[npatches-1].define(bl_patch_new);
+
+//    Print() << ba_patches[npatches-1].size() << std::endl;
+
+//    Vector<int> dm(ba.size(),0);
+//   // Vector<int> dm;
+//    
+//    for(int i=0; i<ba_patches[npatches-1].size(); i++)
+//    {
+//        int k=0;
+//        for(int j=0; j<ba.size(); j++)
+//        {
+//            Box testBox = ba[j];
+//            Box testPatch = ba_patches[npatches-1][i];
+//            if(testBox.contains(testPatch))
+//            {
+//                dm[k]=dmap[j];
+//                k++;
+//                //dm.push_back(dmap[j]);
+//            }
+//        }
+//    }
+//    
+//    dmap_patches[npatches-1].define(dm);
+    dmap_patches[npatches-1] = dmap;
 
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         for ( MFIter mfi(mask_fc[d]); mfi.isValid(); ++mfi ) {
