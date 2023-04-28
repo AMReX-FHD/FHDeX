@@ -117,6 +117,7 @@ void hydroAMR::addPatch(IntVect patch_lo, IntVect patch_hi, Real dt) {
     geom_patches[npatches-1].define(domain_patches[npatches-1] ,&patchRealDomain,CoordSys::cartesian,patch_periodic.data());
        
     BoxList bl = ba.boxList();
+    BoxList bl_patch_tmp = ba.boxList();
     BoxList bl_patch(domain_patches[npatches-1]);
     Box b_patch(domain_patches[npatches-1]);
     //Vector<Box> boxVec(bl.size());
@@ -124,40 +125,40 @@ void hydroAMR::addPatch(IntVect patch_lo, IntVect patch_hi, Real dt) {
     //Box b_temp;
     //Print() << bl_patch << std::endl;
     
-    for(int i=0; i<bl.size(); i++)
-    {
-//        int k=0;
-//        for(int j=0; j<ba.size(); j++)
-//        {
-              Box b = bl.data()[i];
-              BoxList bl_temp(bl.data()[i]);
-              if(b.intersects(b_patch))
-              {
-                bl_temp.intersect(b_patch);
-                bl_patch_new.push_back(b);
+//    for(int i=0; i<bl.size(); i++)
+//    {
+////        int k=0;
+////        for(int j=0; j<ba.size(); j++)
+////        {
+//              Box b = bl.data()[i];
+//              BoxList bl_temp(bl.data()[i]);
+//              if(b.intersects(b_patch))
+//              {
+//                bl_temp.intersect(b_patch);
+//                bl_patch_new.push_back(bl_temp.data()[0]);
 
-              }else
-              {
-                   // IntVect dom_zero(b.smallEnd());
-                   // Box null_box(dom_zero, dom_zero);
-                   // bl_patch_new.push_back(null_box);
-              }
-              
-              //if(
-              
-              //Print() << bl_temp << std::endl;
-//            if(testBox.contains(testPatch))
-//            {
-//                dm[k]=dmap[j];
-//                k++;
-//                //dm.push_back(dmap[j]);
-//            }
-//        }
-    }
+//              }else
+//              {
+//                   // IntVect dom_zero(b.smallEnd());
+//                   // Box null_box(dom_zero, dom_zero);
+//                   // bl_patch_new.push_back(null_box);
+//              }
+//              
+//              //if(
+//              
+//              //Print() << bl_temp << std::endl;
+////            if(testBox.contains(testPatch))
+////            {
+////                dm[k]=dmap[j];
+////                k++;
+////                //dm.push_back(dmap[j]);
+////            }
+////        }
+//    }
     
-    //bl.intersect(bl_patch);
+    bl_patch_tmp.intersect(bl_patch);
     //bl.join(bl);
-    ba_patches[npatches-1].define(bl_patch_new);
+    ba_patches[npatches-1].define(bl_patch);
 
 //    Print() << ba_patches[npatches-1].size() << std::endl;
 
@@ -233,10 +234,10 @@ void hydroAMR::addPatch(IntVect patch_lo, IntVect patch_hi, Real dt) {
 
     Print() << ba << std::endl;    
     Print() << ba_patches[npatches-1] << std::endl;
-    
-    Print() << convert(ba,nodal_flag_dir[0]) << std::endl;    
-    Print() << convert(ba_patches[npatches-1],nodal_flag_dir[0]) << std::endl;
-    
+//    
+//    Print() << convert(ba,nodal_flag_dir[0]) << std::endl;    
+//    Print() << convert(ba_patches[npatches-1],nodal_flag_dir[0]) << std::endl;
+//    
     Print() << dmap << std::endl;
     Print() << dmap_patches[npatches-1] << std::endl;
 

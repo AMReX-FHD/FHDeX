@@ -907,13 +907,6 @@ void StagMGSolver::StagProlongation(const std::array< MultiFab, AMREX_SPACEDIM >
 
           // since the MFIter is built on a nodal MultiFab we need to build the
         // nodal tileboxes for each direction in this way
-        AMREX_D_TERM(Box bx_x = mfi.tilebox(nodal_flag_x);,
-                     Box bx_y = mfi.tilebox(nodal_flag_y);,
-                     Box bx_z = mfi.tilebox(nodal_flag_z););
-                     
-        AMREX_D_TERM(Box bx_c_x = mfi_c.tilebox(nodal_flag_x);,
-                     Box bx_c_y = mfi_c.tilebox(nodal_flag_y);,
-                     Box bx_c_z = mfi_c.tilebox(nodal_flag_z););
 
         Box bx_check = mfi.validbox();
         IntVect lo_bx(bx_check.smallEnd());
@@ -929,7 +922,15 @@ void StagMGSolver::StagProlongation(const std::array< MultiFab, AMREX_SPACEDIM >
         
         if(bx_c.contains(bx.smallEnd()))
         {
-        //Print() << "Found " << bx.smallEnd() << " in " << bx_c.smallEnd()  << "-" << bx_c.bigEnd() << std::endl;
+        Print() << "Found " << bx.smallEnd() << " in " << bx_c.smallEnd()  << "-" << bx_c.bigEnd() << std::endl;
+
+        AMREX_D_TERM(Box bx_x = mfi.tilebox(nodal_flag_x);,
+                     Box bx_y = mfi.tilebox(nodal_flag_y);,
+                     Box bx_z = mfi.tilebox(nodal_flag_z););
+                     
+        AMREX_D_TERM(Box bx_c_x = mfi_c.tilebox(nodal_flag_x);,
+                     Box bx_c_y = mfi_c.tilebox(nodal_flag_y);,
+                     Box bx_c_z = mfi_c.tilebox(nodal_flag_z););
         
         
         AMREX_D_TERM(Array4<Real const> const& phix_c = phi_c_in[0].array(mfi_c);,
