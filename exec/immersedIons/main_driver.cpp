@@ -36,35 +36,11 @@ void main_driver(const char* argv)
     int step = 1;
     Real time = 0.;
     int statsCount = 1;
-
-    /*
-      Terms prepended with a 'C' are related to the particle grid; only used for finding neighbor lists
-      Those with 'P' are for the electostatic grid.
-      Those without are for the fluid grid.
-      The particle grid and es grids are created as a corsening or refinement of the fluid grid.
-    */
-
-    // BoxArray for the fluid
-    BoxArray ba;
-
-    // BoxArray for the particles
-    BoxArray bc;
-
-    // BoxArray electrostatic grid
-    BoxArray bp;
     
-    // Box for the fluid
-    IntVect dom_lo(AMREX_D_DECL(           0,            0,            0));
-    IntVect dom_hi(AMREX_D_DECL(n_cells[0]-1, n_cells[1]-1, n_cells[2]-1));
-    Box domain(dom_lo, dom_hi);
+    Real dt = fixed_dt;
+    Real dtinv = 1.0/dt;
     
-    // how boxes are distrubuted among MPI processes
-    DistributionMapping dmap;
-
-    // set number of ghost cells to fit whole peskin kernel
-    // AJN - for perdictor/corrector do we need one more ghost cell if the predictor pushes
-    //       a particle into a ghost region?
-    int ang = 1;
+        int ang = 1;
     for(int i=0;i<nspecies;i++)
     {
         int tempang = 1;
@@ -123,21 +99,53 @@ void main_driver(const char* argv)
         }
     }
     
-    Real dt = fixed_dt;
-    Real dtinv = 1.0/dt;
-    
     hydroAMR hydroGrid(ang, is_periodic.data(), dt);
     
-    //IntVect patch_lo(AMREX_D_DECL(           3,            9,            4));
-    //IntVect patch_hi(AMREX_D_DECL(13, 14, 12));
+    hydroGrid.initData();
+    
+    IntVect patch0_lo(AMREX_D_DECL(           2,            2,            2));
+    IntVect patch0_hi(AMREX_D_DECL(30, 30, 30));
+    
+    IntVect patch1_lo(AMREX_D_DECL(           20,            20,            20));
+    IntVect patch1_hi(AMREX_D_DECL(40,40, 40));
+    
+    hydroGrid.addPatch(patch0_lo, patch0_hi);
+    
+    hydroGrid.updateGrid();
+    
+    hydroGrid.addPatch(patch1_lo, patch1_hi);
+    
+    hydroGrid.updateGrid();
+    
+    DistributionMapping dmap = hydroGrid.DistributionMap(0);
 
-    IntVect patch_lo(AMREX_D_DECL(           1,            1,            1));
-    IntVect patch_hi(AMREX_D_DECL(6, 6, 6));
+    /*
+      Terms prepended with a 'C' are related to the particle grid; only used for finding neighbor lists
+      Those with 'P' are for the electostatic grid.
+      Those without are for the fluid grid.
+      The particle grid and es grids are created as a corsening or refinement of the fluid grid.
+    */
+
+    // BoxArray for the fluid
+    BoxArray ba = hydroGrid.boxArray(0);;
+
+    // BoxArray for the particles
+    BoxArray bc;
+
+    // BoxArray electrostatic grid
+    BoxArray bp;
     
-    hydroGrid.addPatch(patch_lo,patch_hi, dt);
     
-    StagMGSolver intPro;
-    intPro.StagProlongation(hydroGrid.umac, hydroGrid.umac_patches[0]);
+    // Box for the fluid
+    IntVect dom_lo(AMREX_D_DECL(           0,            0,            0));
+    IntVect dom_hi(AMREX_D_DECL(n_cells[0]-1, n_cells[1]-1, n_cells[2]-1));
+    Box domain(dom_lo, dom_hi);
+    
+    
+    //hydroGrid.addPatch(patch_lo,patch_hi, dt);
+    
+    //StagMGSolver intPro;
+    //intPro.StagProlongation(hydroGrid.umac, hydroGrid.umac_patches[0]);
 
     // MFs for storing particle statistics
     // A lot of these relate to gas kinetics, but many are still useful so leave in for now.
@@ -172,16 +180,16 @@ void main_driver(const char* argv)
         }
 
         // Initialize the boxarray "ba" from the single box "bx"
-        ba.define(domain);
+        //ba.define(domain);
 
         // Break up boxarray "ba" into chunks no larger than "max_grid_size" along a direction
         // note we are converting "Vector<int> max_grid_size" to an IntVect
-        ba.maxSize(IntVect(max_grid_size));
+        //ba.maxSize(IntVect(max_grid_size));
 
         // how boxes are distrubuted among MPI processes
-        dmap.define(ba);
+        //dmap.define(ba);
 
-        Vector<int> pMap = dmap.ProcessorMap();
+        //Vector<int> pMap = dmap.ProcessorMap();
 
         bc = ba;
         bp = ba;
@@ -1196,9 +1204,9 @@ void main_driver(const char* argv)
 
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             external[d].setVal(eamp[d]*cos(efreq[d]*time + ephase[d]));  // external field
-            hydroGrid.source    [d].setVal(body_force_density[d]);      // reset source terms
-            hydroGrid.sourceTemp[d].setVal(0.0);      // reset source terms
-            hydroGrid.sourceRFD[d].setVal(0.0);      // reset source terms
+            hydroGrid.source[0]    [d].setVal(body_force_density[d]);      // reset source terms
+            hydroGrid.sourceTemp[0][d].setVal(0.0);      // reset source terms
+            hydroGrid.sourceRFD[0][d].setVal(0.0);      // reset source terms
             particles.ResetMarkers(0);
         }
 
@@ -1206,7 +1214,7 @@ void main_driver(const char* argv)
 
         if (rfd_tog==1) {
             // Apply RFD force to fluid
-            particles.RFD(0, dx, hydroGrid.sourceRFD, RealFaceCoords);
+            particles.RFD(0, dx, hydroGrid.sourceRFD[0], RealFaceCoords);
             particles.ResetMarkers(0);
         }
         else {
@@ -1237,7 +1245,7 @@ void main_driver(const char* argv)
 	     }
 
         // compute other forces and spread to grid
-        particles.SpreadIonsGPU(dx, dxp, geom, hydroGrid.umac, RealFaceCoords, efieldCC, hydroGrid.source, hydroGrid.sourceTemp);
+        particles.SpreadIonsGPU(dx, dxp, geom, hydroGrid.umac[0], RealFaceCoords, efieldCC, hydroGrid.source[0], hydroGrid.sourceTemp[0]);
 
         //particles.BuildCorrectionTable(dxp,1);
 
@@ -1248,18 +1256,18 @@ void main_driver(const char* argv)
             // compute stochastic momentum force
             //sMflux.StochMomFluxDivWideSplit(stochMfluxdiv,0,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
             //sMflux.StochMomFluxDivOrder3(stochMfluxdiv,0,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
-            sMflux.StochMomFluxDiv(stochMfluxdiv,0,hydroGrid.eta_cc,hydroGrid.eta_ed,hydroGrid.temp_cc,hydroGrid.temp_ed,weights,dt);
+            sMflux.StochMomFluxDiv(stochMfluxdiv,0,hydroGrid.eta_cc[0],hydroGrid.eta_ed[0],hydroGrid.temp_cc[0],hydroGrid.temp_ed[0],weights,dt);
 
             // integrator containing inertial terms and predictor/corrector requires 2 RNG stages
             if (fluid_tog ==2) {
-                sMflux.StochMomFluxDiv(stochMfluxdivC,0,hydroGrid.eta_cc,hydroGrid.eta_ed,hydroGrid.temp_cc,hydroGrid.temp_ed,weights,dt);
+                sMflux.StochMomFluxDiv(stochMfluxdivC,0,hydroGrid.eta_cc[0],hydroGrid.eta_ed[0],hydroGrid.temp_cc[0],hydroGrid.temp_ed[0],weights,dt);
             }
         }
         
         
-        MultiFab::Add(hydroGrid.source[0],hydroGrid.sourceRFD[0],0,0,hydroGrid.sourceRFD[0].nComp(),hydroGrid.sourceRFD[0].nGrow());
-        MultiFab::Add(hydroGrid.source[1],hydroGrid.sourceRFD[1],0,0,hydroGrid.sourceRFD[1].nComp(),hydroGrid.sourceRFD[1].nGrow());
-        MultiFab::Add(hydroGrid.source[2],hydroGrid.sourceRFD[2],0,0,hydroGrid.sourceRFD[2].nComp(),hydroGrid.sourceRFD[2].nGrow());
+        MultiFab::Add(hydroGrid.source[0][0],hydroGrid.sourceRFD[0][0],0,0,hydroGrid.sourceRFD[0][0].nComp(),hydroGrid.sourceRFD[0][0].nGrow());
+        MultiFab::Add(hydroGrid.source[0][1],hydroGrid.sourceRFD[0][1],0,0,hydroGrid.sourceRFD[0][1].nComp(),hydroGrid.sourceRFD[0][1].nGrow());
+        MultiFab::Add(hydroGrid.source[0][2],hydroGrid.sourceRFD[0][2],0,0,hydroGrid.sourceRFD[0][2].nComp(),hydroGrid.sourceRFD[0][2].nGrow());
 
 
         if (fluid_tog == 1) {
@@ -1308,30 +1316,30 @@ void main_driver(const char* argv)
 
 //                particles.invertMatrix();
 
-                advanceStokes(hydroGrid.umac,hydroGrid.pres, stochMfluxdiv,hydroGrid.source, hydroGrid.alpha_fc,hydroGrid.beta,hydroGrid.gamma,hydroGrid.beta_ed,geom,dt);
-                particles.InterpolateMarkersGpu(0, dx, hydroGrid.umac, RealFaceCoords, check);
+                advanceStokes(hydroGrid.umac[0],hydroGrid.pres[0], stochMfluxdiv,hydroGrid.source[0], hydroGrid.alpha_fc[0],hydroGrid.beta[0],hydroGrid.gamma[0],hydroGrid.beta_ed[0],geom,dt);
+                particles.InterpolateMarkersGpu(0, dx, hydroGrid.umac[0], RealFaceCoords, check);
                 particles.velNorm();
 
                 particles.pinnedParticleInversion();
 
                 for (int d=0; d<AMREX_SPACEDIM; ++d) {
-                        hydroGrid.source    [d].setVal(0.0);      // reset source terms
-                        hydroGrid.sourceTemp[d].setVal(0.0);      // reset source terms
+                        hydroGrid.source    [0][d].setVal(0.0);      // reset source terms
+                        hydroGrid.sourceTemp[0][d].setVal(0.0);      // reset source terms
                     }
 
-                particles.SpreadIonsGPU(dx, geom, hydroGrid.umac, RealFaceCoords, hydroGrid.source, hydroGrid.sourceTemp);
+                particles.SpreadIonsGPU(dx, geom, hydroGrid.umac[0], RealFaceCoords, hydroGrid.source[0], hydroGrid.sourceTemp[0]);
 
-                MultiFab::Add(hydroGrid.source[0],hydroGrid.sourceRFD[0],0,0,hydroGrid.sourceRFD[0].nComp(),hydroGrid.sourceRFD[0].nGrow());
-                MultiFab::Add(hydroGrid.source[1],hydroGrid.sourceRFD[1],0,0,hydroGrid.sourceRFD[1].nComp(),hydroGrid.sourceRFD[1].nGrow());
-                MultiFab::Add(hydroGrid.source[2],hydroGrid.sourceRFD[2],0,0,hydroGrid.sourceRFD[2].nComp(),hydroGrid.sourceRFD[2].nGrow());
+                MultiFab::Add(hydroGrid.source[0][0],hydroGrid.sourceRFD[0][0],0,0,hydroGrid.sourceRFD[0][0].nComp(),hydroGrid.sourceRFD[0][0].nGrow());
+                MultiFab::Add(hydroGrid.source[0][1],hydroGrid.sourceRFD[0][1],0,0,hydroGrid.sourceRFD[0][1].nComp(),hydroGrid.sourceRFD[0][1].nGrow());
+                MultiFab::Add(hydroGrid.source[0][2],hydroGrid.sourceRFD[0][2],0,0,hydroGrid.sourceRFD[0][2].nComp(),hydroGrid.sourceRFD[0][2].nGrow());
 
-                advanceStokes(hydroGrid.umac,hydroGrid.pres,stochMfluxdiv,hydroGrid.source,hydroGrid.alpha_fc,hydroGrid.beta,hydroGrid.gamma,hydroGrid.beta_ed,geom,dt);
-                particles.InterpolateMarkersGpu(0, dx, hydroGrid.umac, RealFaceCoords, check);
+                advanceStokes(hydroGrid.umac[0],hydroGrid.pres[0],stochMfluxdiv,hydroGrid.source[0],hydroGrid.alpha_fc[0],hydroGrid.beta[0],hydroGrid.gamma[0],hydroGrid.beta_ed[0],geom,dt);
+                particles.InterpolateMarkersGpu(0, dx, hydroGrid.umac[0], RealFaceCoords, check);
                 particles.velNorm();
 
             }else
             {
-                advanceStokes(hydroGrid.umac,hydroGrid.pres,stochMfluxdiv,hydroGrid.source,hydroGrid.alpha_fc,hydroGrid.beta,hydroGrid.gamma,hydroGrid.beta_ed,geom,dt);
+                advanceStokes(hydroGrid.umac[0],hydroGrid.pres[0],stochMfluxdiv,hydroGrid.source[0],hydroGrid.alpha_fc[0],hydroGrid.beta[0],hydroGrid.gamma[0],hydroGrid.beta_ed[0],geom,dt);
 
             }
 
@@ -1349,7 +1357,7 @@ void main_driver(const char* argv)
         {
             //Calls wet ion interpolation and movement.
 
-            particles.MoveIonsCPP(dt, dx, dxp, geom, hydroGrid.umac, efield, RealFaceCoords, hydroGrid.source, hydroGrid.sourceTemp, pparamPlaneList,
+            particles.MoveIonsCPP(dt, dx, dxp, geom, hydroGrid.umac[0], efield, RealFaceCoords, hydroGrid.source[0], hydroGrid.sourceTemp[0], pparamPlaneList,
                                paramPlaneCount, 3 /*this number currently does nothing, but we will use it later*/);
 
             // reset statistics after step n_steps_skip
@@ -1383,7 +1391,7 @@ void main_driver(const char* argv)
             particleMeans.setVal(0.0);
 
             for (int d=0; d<AMREX_SPACEDIM; ++d) {
-                hydroGrid.umacM[d].setVal(0.);
+                hydroGrid.umacM[0][d].setVal(0.);
             }
                 
             Print() << "Resetting stat collection.\n";
@@ -1428,7 +1436,7 @@ void main_driver(const char* argv)
 
         // compute the mean and variance of umac
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
-            ComputeBasicStats(hydroGrid.umac[d], hydroGrid.umacM[d], 0, 0, statsCount);
+            ComputeBasicStats(hydroGrid.umac[0][d], hydroGrid.umacM[0][d], 0, 0, statsCount);
         }
         ComputeBasicStats(potential, potentialM, 0, 0, statsCount);
         ComputeBasicStats(charge   , chargeM   , 0, 0, statsCount);
@@ -1450,7 +1458,7 @@ void main_driver(const char* argv)
 
             // velocity
             for (int d=0; d<AMREX_SPACEDIM; ++d) {
-                ShiftFaceToCC(hydroGrid.umac[d],0,struct_cc_vel,d,1);
+                ShiftFaceToCC(hydroGrid.umac[0][d],0,struct_cc_vel,d,1);
             }
             structFact_vel.FortStructure(struct_cc_vel,geom);
             
@@ -1480,11 +1488,11 @@ void main_driver(const char* argv)
                           charge, chargeM, potential, potentialM, efieldCC);
 
             // Writes instantaneous flow field and some other stuff? Check with Guy.
-            WritePlotFileHydro(istep, time, geom, hydroGrid.umac, hydroGrid.pres, hydroGrid.umacM);
+            WritePlotFileHydro(istep, time, geom, hydroGrid.umac[0], hydroGrid.pres[0], hydroGrid.umacM[0]);
         }
 
         if (chk_int > 0 && istep%chk_int == 0) {
-            WriteCheckPoint(istep, time, statsCount, hydroGrid.umac, hydroGrid.umacM, hydroGrid.pres,
+            WriteCheckPoint(istep, time, statsCount, hydroGrid.umac[0], hydroGrid.umacM[0], hydroGrid.pres[0],
                             particles, particleMeans, particleVars, chargeM,
                             potential, potentialM);
         }

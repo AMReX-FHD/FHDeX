@@ -5,71 +5,82 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_ArrayLim.H>
+#include <AMReX_AmrCore.H>
 
 #include "common_functions.H"
 
 using namespace amrex;
 
-class hydroAMR {
-
-
+class hydroAMR 
+    : public amrex::AmrCore
+{
 public:
 
-    Vector<std::array< MultiFab, AMREX_SPACEDIM > > alpha_fc_patches;
-    Vector<std::array< MultiFab, AMREX_SPACEDIM > >   source_patches;
-    Vector<std::array< MultiFab, AMREX_SPACEDIM > >   sourceTemp_patches;
-    Vector<std::array< MultiFab, AMREX_SPACEDIM > >   sourceRFD_patches;
-    Vector<std::array< MultiFab, AMREX_SPACEDIM > >     umac_patches;
-    Vector<std::array< MultiFab, AMREX_SPACEDIM > >     umacNew_patches;
-    Vector<std::array< MultiFab, AMREX_SPACEDIM > >    umacM_patches;
-    Vector<std::array< MultiFab, NUM_EDGE       > >  beta_ed_patches; // nodal in 2D, edge in 3D
-    Vector<std::array< MultiFab, NUM_EDGE       > >  eta_ed_patches;
-    Vector<std::array< MultiFab, NUM_EDGE       > >  temp_ed_patches;
-    //Vector<std::array< iMultiFab, AMREX_SPACEDIM > >    mask_fc_patches;
-    //Vector<std::array< iMultiFab, NUM_EDGE       > >  mask_ed_patches;         
-    
+    Vector<std::array< MultiFab, AMREX_SPACEDIM >> umac;
+    Vector<std::array< MultiFab, AMREX_SPACEDIM >> umacNew;    
+    Vector<std::array< MultiFab, AMREX_SPACEDIM >> umacM;
+    Vector<std::array< MultiFab, AMREX_SPACEDIM >> alpha_fc;
+    Vector<std::array< MultiFab, AMREX_SPACEDIM >> source;
+    Vector<std::array< MultiFab, AMREX_SPACEDIM >> sourceTemp;
+    Vector<std::array< MultiFab, AMREX_SPACEDIM >> sourceRFD;
+    Vector<std::array< MultiFab, NUM_EDGE>>  beta_ed;
+    Vector<std::array< MultiFab, NUM_EDGE >>  eta_ed;
+    Vector<std::array< MultiFab, NUM_EDGE >> temp_ed;
 
-    Vector<MultiFab>  beta_patches;
-    Vector<MultiFab> gamma_patches;
-    Vector<MultiFab>  pres_patches;
-
-    Vector<Geometry>  geom_patches;
-    Vector<Box>  domain_patches;
-    Vector<BoxArray>  ba_patches;
-    Vector<DistributionMapping>  dmap_patches;        
+    iMultiFab cc_mask;
    
     int npatches;
+    int nlevels=2;
     int pg;
+    int ng;
+    int dt;
     
-    std::array< MultiFab, AMREX_SPACEDIM > umac;
-    std::array< MultiFab, AMREX_SPACEDIM > umacNew;    
-    std::array< MultiFab, AMREX_SPACEDIM > umacM;
-    std::array< MultiFab, AMREX_SPACEDIM > alpha_fc;
-    std::array< MultiFab, AMREX_SPACEDIM > source;
-    std::array< MultiFab, AMREX_SPACEDIM > sourceTemp;
-    std::array< MultiFab, AMREX_SPACEDIM > sourceRFD;
-    std::array< MultiFab, NUM_EDGE>  beta_ed;
-    std::array< MultiFab, NUM_EDGE >  eta_ed;
-    std::array< MultiFab, NUM_EDGE > temp_ed;
+    bool init = true;
     
-    std::array< iMultiFab, AMREX_SPACEDIM > mask_fc;
-    std::array< iMultiFab, NUM_EDGE > mask_ed;
+//    std::array< iMultiFab, AMREX_SPACEDIM > mask_fc;
+//    std::array< iMultiFab, NUM_EDGE > mask_ed;
     
-    MultiFab pres;
-    MultiFab gamma;
-    MultiFab beta;    
-    MultiFab eta_cc;
-    MultiFab temp_cc;    
+    Vector<MultiFab> pres;
+    Vector<MultiFab> gamma;
+    Vector<MultiFab> beta;    
+    Vector<MultiFab> eta_cc;
+    Vector<MultiFab> temp_cc;    
 
-    Geometry geom;
-    Box domain;
-    BoxArray ba;
-    DistributionMapping dmap;
+//    Vector<Geometry> geom;
+//    Vector<Box> domain;
+//    Vector<BoxArray> ba;
+//    Vector<DistributionMapping> dmap;
 
     
-    hydroAMR(int ang, int * is_periodic, Real dt);
+    hydroAMR(int ang, int * is_periodic, Real dt_in);
+
+    void initData();
+    void updateGrid();
     
-    void addPatch(IntVect patch_lo, IntVect patch_hi, Real dt);
+    void addPatch(IntVect patch_lo, IntVect patch_hi);
+    
+    virtual void MakeNewLevelFromCoarse (int lev, amrex::Real time, const amrex::BoxArray& ba,
+                                         const amrex::DistributionMapping& dm) override;
+
+    // Remake an existing level using provided BoxArray and DistributionMapping and
+    // fill with existing fine and coarse data.
+    // overrides the pure virtual function in AmrCore
+    virtual void RemakeLevel (int lev, amrex::Real time, const amrex::BoxArray& ba,
+                              const amrex::DistributionMapping& dm) override;
+
+    // Delete level data
+    // overrides the pure virtual function in AmrCore
+    virtual void ClearLevel (int lev) override;
+
+    // Make a new level from scratch using provided BoxArray and DistributionMapping.
+    // Only used during initialization.
+    // overrides the pure virtual function in AmrCore
+    virtual void MakeNewLevelFromScratch (int lev, amrex::Real time, const amrex::BoxArray& ba,
+                                          const amrex::DistributionMapping& dm) override;
+
+    // tag all cells for refinement
+    // overrides the pure virtual function in AmrCore
+    virtual void ErrorEst (int lev, amrex::TagBoxArray& tags, amrex::Real time, int ngrow) override;
     
 };
 
