@@ -686,3 +686,21 @@ void PrintFluxes(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array< 
     outputMFAscii(cenflux_in[1],ceny);
     outputMFAscii(cenflux_in[2],cenz);
 }
+
+
+void ComputeSoundSpeed(MultiFab& sound_speed_in, const MultiFab& prim_in)
+{
+    for ( MFIter mfi(prim_in); mfi.isValid(); ++mfi ) {
+        const Array4<const Real> prim = prim_in.array(mfi);
+        const Array4<      Real> sound_speed = sound_speed_in.array(mfi);
+        const Box& bx = mfi.tilebox();
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+            Real T = prim(i,j,k,4);
+            GpuArray<Real,MAX_SPECIES> Yk;
+            for (int ns=0; ns<nspecies; ++ns) {
+                Yk[ns] = prim(i,j,k,6+ns);
+            }
+            GetSoundSpeed(sound_speed(i,j,k),Yk,T);
+        });
+    } // end MFIter
+}

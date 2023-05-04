@@ -375,4 +375,5 @@ void EvaluateSpatialCorrelations1D(MultiFab& spatialCross1D,
                                    const int ncross,
                                    const int star_index);
 
+void ComputeSoundSpeed(MultiFab& sound_speed_in, const MultiFab& prim_in);
 #endif
