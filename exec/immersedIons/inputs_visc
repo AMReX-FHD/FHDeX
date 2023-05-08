@@ -40,7 +40,7 @@
 
   # Controls for number of steps between actions
   max_step = 1
-  plot_int = 10
+  plot_int = 1
   plot_ascii = 0
   struct_fact_int = -1
   n_steps_skip = 100

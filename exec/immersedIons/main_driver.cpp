@@ -110,9 +110,6 @@ void main_driver(const char* argv)
     IntVect patch1_hi(AMREX_D_DECL(40,40, 40));
     
     hydroGrid.addPatch(patch0_lo, patch0_hi);
-    
-    hydroGrid.updateGrid();
-    
     hydroGrid.addPatch(patch1_lo, patch1_hi);
     
     hydroGrid.updateGrid();
@@ -312,7 +309,8 @@ void main_driver(const char* argv)
     RealBox realDomain({AMREX_D_DECL(prob_lo[0],prob_lo[1],prob_lo[2])},
                        {AMREX_D_DECL(prob_hi[0],prob_hi[1],prob_hi[2])});
 
-    Geometry geom (domain ,&realDomain,CoordSys::cartesian,is_periodic.  data());
+   // Geometry geom (domain ,&realDomain,CoordSys::cartesian,is_periodic.  data());
+    Geometry geom = hydroGrid.Geom(0);
     Geometry geomC(domainC,&realDomain,CoordSys::cartesian,is_periodic_c.data());
     Geometry geomP(domainP,&realDomain,CoordSys::cartesian,is_periodic_p.data());
 
@@ -1468,7 +1466,7 @@ void main_driver(const char* argv)
                 structFact_vel   .WritePlotFile(istep,time,geom ,"plt_SF_vel");
             }
         }
-
+        hydroGrid.FillFine();
         // FIXME - AJN: at the moment we are writing out plotfile plot_int-1 also
         // because the time-averaging for the fields resets at n_steps_skip
         // see the FIXME - AJN note above
@@ -1489,6 +1487,7 @@ void main_driver(const char* argv)
 
             // Writes instantaneous flow field and some other stuff? Check with Guy.
             WritePlotFileHydro(istep, time, geom, hydroGrid.umac[0], hydroGrid.pres[0], hydroGrid.umacM[0]);
+            WritePlotFileHydro(istep, time, hydroGrid.Geom(1), hydroGrid.umac[1], hydroGrid.pres[1], hydroGrid.umacM[1],1);
         }
 
         if (chk_int > 0 && istep%chk_int == 0) {

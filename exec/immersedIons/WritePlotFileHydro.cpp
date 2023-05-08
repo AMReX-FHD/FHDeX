@@ -3,6 +3,7 @@
 #include "AMReX_MultiFab.H"
 
 #include "common_functions.H"
+#include "INS_functions.H"
 
 
 
@@ -13,10 +14,29 @@ void WritePlotFileHydro(int step,
 		   const MultiFab& pres,
                    std::array< MultiFab, AMREX_SPACEDIM >& umacM)
 {
+
+    WritePlotFileHydro(step, time, geom, umac, pres, umacM,0);
+
+}
+
+
+void WritePlotFileHydro(int step,
+                   const amrex::Real time,
+                   const amrex::Geometry geom,
+                   std::array< MultiFab, AMREX_SPACEDIM >& umac,
+		   const MultiFab& pres,
+                   std::array< MultiFab, AMREX_SPACEDIM >& umacM, int lev)
+{
     
     BL_PROFILE_VAR("WritePlotFileHydro()",WritePlotFileHydro);
     
-    const std::string plotfilename = Concatenate("plt",step,9);
+    std::string plotfilename;
+    if(lev == 0)
+    {
+        plotfilename = Concatenate("plt",step,9);
+    }else{
+        plotfilename = Concatenate("pltfine",step,9);
+    }
 
     BoxArray ba = pres.boxArray();
     DistributionMapping dmap = pres.DistributionMap();

@@ -9,6 +9,28 @@
 
 #include "common_functions.H"
 
+#ifndef BCFILL_H
+#define BCFILL_H
+
+#include <AMReX_FArrayBox.H>
+#include <AMReX_Geometry.H>
+#include <AMReX_PhysBCFunct.H>
+
+struct AmrCoreFill
+{
+    AMREX_GPU_DEVICE
+    void operator() (const amrex::IntVect& /*iv*/, amrex::Array4<amrex::Real> const& /*data*/,
+                     const int /*dcomp*/, const int /*numcomp*/,
+                     amrex::GeometryData const& /*geom*/, const amrex::Real /*time*/,
+                     const amrex::BCRec* /*bcr*/, const int /*bcomp*/,
+                     const int /*orig_comp*/) const
+        {
+            // do something for external Dirichlet (BCType::ext_dir)
+        }
+};
+
+#endif
+
 using namespace amrex;
 
 class hydroAMR 
@@ -34,6 +56,8 @@ public:
     int pg;
     int ng;
     int dt;
+
+    amrex::Vector<amrex::BCRec> bcs;
     
     bool init = true;
     
@@ -56,8 +80,10 @@ public:
 
     void initData();
     void updateGrid();
-    
+    void FillFine();    
     void addPatch(IntVect patch_lo, IntVect patch_hi);
+
+    void FillCoarsePatch(Vector<MultiFab>& mf);
     
     virtual void MakeNewLevelFromCoarse (int lev, amrex::Real time, const amrex::BoxArray& ba,
                                          const amrex::DistributionMapping& dm) override;

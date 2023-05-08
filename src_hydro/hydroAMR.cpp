@@ -1,6 +1,8 @@
 #include "gmres_functions.H"
 #include "common_functions.H"
 #include "hydroAMR.H"
+#include <AMReX_FillPatchUtil.H>
+#include <AMReX_PhysBCFunct.H>
 
 using namespace amrex;
 
@@ -41,6 +43,33 @@ hydroAMR::hydroAMR(int ang, int * is_periodic, Real dt_in) : AmrCore() {
 
     ng = ang;
     dt = dt_in;
+
+    int bc_lo[] = {BCType::int_dir, BCType::int_dir, BCType::int_dir};
+    int bc_hi[] = {BCType::int_dir, BCType::int_dir, BCType::int_dir};
+
+    bcs.resize(1);     // Setup 1-component
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+    {
+        // lo-side BCs
+        if (bc_lo[idim] == BCType::int_dir  ||  // periodic uses "internal Dirichlet"
+            bc_lo[idim] == BCType::foextrap ||  // first-order extrapolation
+            bc_lo[idim] == BCType::ext_dir ) {  // external Dirichlet
+            bcs[0].setLo(idim, bc_lo[idim]);
+        }
+        else {
+            amrex::Abort("Invalid bc_lo");
+        }
+
+        // hi-side BCSs
+        if (bc_hi[idim] == BCType::int_dir  ||  // periodic uses "internal Dirichlet"
+            bc_hi[idim] == BCType::foextrap ||  // first-order extrapolation
+            bc_hi[idim] == BCType::ext_dir ) {  // external Dirichlet
+            bcs[0].setHi(idim, bc_hi[idim]);
+        }
+        else {
+            amrex::Abort("Invalid bc_hi");
+        }
+    }
 
 
 //    domain[0].setSmall(dom_lo);
@@ -204,6 +233,42 @@ void hydroAMR::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba,
 }
 
 
+void
+hydroAMR::FillFine()
+{
+    FillCoarsePatch(pres);
+}
+
+void
+hydroAMR::FillCoarsePatch(Vector<MultiFab>& mf)
+{
+    //BL_ASSERT(lev > 0);
+
+    Interpolater* mapper = &cell_cons_interp;
+
+    Real time=0;
+
+    if(Gpu::inLaunchRegion())
+    {
+        GpuBndryFuncFab<AmrCoreFill> gpu_bndry_func(AmrCoreFill{});
+        PhysBCFunct<GpuBndryFuncFab<AmrCoreFill> > cphysbc(geom[0],bcs,gpu_bndry_func);
+        PhysBCFunct<GpuBndryFuncFab<AmrCoreFill> > fphysbc(geom[1],bcs,gpu_bndry_func);
+
+        amrex::InterpFromCoarseLevel(mf[1], time, mf[0], 0, 0, 1, geom[0], geom[1],
+                                     cphysbc, 0, fphysbc, 0, refRatio(0),
+                                     mapper, bcs, 0);
+    }
+    else
+    {
+        CpuBndryFuncFab bndry_func(nullptr);  // Without EXT_DIR, we can pass a nullptr.
+        PhysBCFunct<CpuBndryFuncFab> cphysbc(geom[0],bcs,bndry_func);
+        PhysBCFunct<CpuBndryFuncFab> fphysbc(geom[1],bcs,bndry_func);
+
+        amrex::InterpFromCoarseLevel(mf[1], time, mf[0], 0, 0, 1, geom[0], geom[1],
+                                     cphysbc, 0, fphysbc, 0, refRatio(0),
+                                     mapper, bcs, 0);
+    }
+}
 
 
 void
@@ -226,6 +291,8 @@ hydroAMR::ClearLevel (int lev)
 {
        Print() << "CL\n";
 }
+
+
 
 
 
