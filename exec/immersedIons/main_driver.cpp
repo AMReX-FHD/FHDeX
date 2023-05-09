@@ -288,9 +288,7 @@ void main_driver(const char* argv)
     }
 
     // Domain boxes for particle and electrostatic grids
-    Box domainC = domain;
-    Box domainP = domain;
-    
+
     // particle grid and es grid_refine: <1 = refine, >1 = coarsen.
     // assume only powers of 2 for now
     // note particle grid BoxArray was handled above
