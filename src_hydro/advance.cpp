@@ -51,7 +51,7 @@ void advanceStokes(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         MultiFab::Add(gmres_rhs_u[d], sourceTerms[d], 0, 0, 1, 0);
     }
 
-
+    PrintMF(gmres_rhs_u[0],0,0);
 
     if (zero_net_force == 1)
     {

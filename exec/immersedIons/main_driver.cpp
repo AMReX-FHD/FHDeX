@@ -1274,7 +1274,6 @@ void main_driver(const char* argv)
         MultiFab::Add(hydroGrid.source[0][1],hydroGrid.sourceRFD[0][1],0,0,hydroGrid.sourceRFD[0][1].nComp(),hydroGrid.sourceRFD[0][1].nGrow());
         MultiFab::Add(hydroGrid.source[0][2],hydroGrid.sourceRFD[0][2],0,0,hydroGrid.sourceRFD[0][2].nComp(),hydroGrid.sourceRFD[0][2].nGrow());
 
-
         if (fluid_tog == 1) {
 
             if(particles.getTotalPinnedMarkers() != 0)

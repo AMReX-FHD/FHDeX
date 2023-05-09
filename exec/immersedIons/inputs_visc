@@ -6,7 +6,7 @@
   
   amr.v              = 1
   
-  amr.n_cell          = 32 32 32
+  amr.n_cell          = 8 8 8
   amr.max_level       = 1       # maximum level number allowed -- 
                               # number of levels = max_level + 1
 
@@ -16,16 +16,16 @@
   amr.blocking_factor_y = 1
   amr.blocking_factor_z = 1
 
-  amr.max_grid_size   = 32
+  amr.max_grid_size   = 8
 
 
   # Problem specification
   prob_lo = 0.0 0.0 0.0      # physical lo coordinate
   prob_hi = 1e-5 1e-5 1e-5      # physical hi coordinate
     
-  n_cells = 32 32 32
+  n_cells = 8 8 8
   # max number of cells in a box
-  max_grid_size = 32 32 16
+  max_grid_size = 8 8 4
   max_particle_tile_size = 256 256 256 # set to zero to use max_grid_size, setting a very large number will also use max grid size, but will also ensure that refined es and particle grids will do the same.
 
   # above settings are for fluid grid. EM and particle grid (the grid for finding neighbour lists) are coarsened or refined off these grids. <1 = refine, >1 = coarsen.

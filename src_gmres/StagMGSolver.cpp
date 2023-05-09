@@ -1043,7 +1043,6 @@ void StagMGSolver::StagProlongation(const std::array< MultiFab, AMREX_SPACEDIM >
     }
 }
 
-
 AMREX_GPU_HOST_DEVICE
 inline
 void stag_mg_update_visc_p1 (Box const& tbx,
