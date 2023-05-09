@@ -109,10 +109,10 @@ void main_driver(const char* argv)
     IntVect patch1_lo(AMREX_D_DECL(           20,            20,            20));
     IntVect patch1_hi(AMREX_D_DECL(40,40, 40));
     
-    hydroGrid.addPatch(patch0_lo, patch0_hi);
-    hydroGrid.addPatch(patch1_lo, patch1_hi);
+    //hydroGrid.addPatch(patch0_lo, patch0_hi);
+    //hydroGrid.addPatch(patch1_lo, patch1_hi);
     
-    hydroGrid.updateGrid();
+    //hydroGrid.updateGrid();
     
     DistributionMapping dmap = hydroGrid.DistributionMap(0);
 
@@ -1466,7 +1466,7 @@ void main_driver(const char* argv)
                 structFact_vel   .WritePlotFile(istep,time,geom ,"plt_SF_vel");
             }
         }
-        hydroGrid.FillFine();
+        //hydroGrid.FillFine();
         // FIXME - AJN: at the moment we are writing out plotfile plot_int-1 also
         // because the time-averaging for the fields resets at n_steps_skip
         // see the FIXME - AJN note above
@@ -1487,7 +1487,7 @@ void main_driver(const char* argv)
 
             // Writes instantaneous flow field and some other stuff? Check with Guy.
             WritePlotFileHydro(istep, time, geom, hydroGrid.umac[0], hydroGrid.pres[0], hydroGrid.umacM[0]);
-            WritePlotFileHydro(istep, time, hydroGrid.Geom(1), hydroGrid.umac[1], hydroGrid.pres[1], hydroGrid.umacM[1],1);
+            //WritePlotFileHydro(istep, time, hydroGrid.Geom(1), hydroGrid.umac[1], hydroGrid.pres[1], hydroGrid.umacM[1],1);
         }
 
         if (chk_int > 0 && istep%chk_int == 0) {
