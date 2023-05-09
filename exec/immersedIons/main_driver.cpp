@@ -124,7 +124,8 @@ void main_driver(const char* argv)
     */
 
     // BoxArray for the fluid
-    BoxArray ba = hydroGrid.boxArray(0);;
+    BoxArray ba = hydroGrid.boxArray(0);
+    
 
     // BoxArray for the particles
     BoxArray bc;
@@ -137,6 +138,8 @@ void main_driver(const char* argv)
     IntVect dom_lo(AMREX_D_DECL(           0,            0,            0));
     IntVect dom_hi(AMREX_D_DECL(n_cells[0]-1, n_cells[1]-1, n_cells[2]-1));
     Box domain(dom_lo, dom_hi);
+    Box domainC(dom_lo, dom_hi);
+    Box domainP(dom_lo, dom_hi);
     
     
     //hydroGrid.addPatch(patch_lo,patch_hi, dt);
@@ -188,8 +191,8 @@ void main_driver(const char* argv)
 
         //Vector<int> pMap = dmap.ProcessorMap();
 
-        bc = ba;
-        bp = ba;
+        bc.define(domainC);
+        bp.define(domainP);
         
         // particle grid_refine: <1 = refine, >1 = coarsen.
         // assume only powers of 2 for now
@@ -520,7 +523,7 @@ void main_driver(const char* argv)
         // round up particles so there are the same number in each box;
         // we have to divide them into whole numbers of particles somehow. 
         if (particle_count[i] >= 0) {
-            ionParticle[i].ppb = (double)particle_count[i]/(double)ba.size();
+            ionParticle[i].ppb = (double)particle_count[i]/(double)hydroGrid.boxArray(0).size();
             ionParticle[i].total = particle_count[i];
             ionParticle[i].n0 = ionParticle[i].total/domainVol;
             
@@ -564,15 +567,15 @@ void main_driver(const char* argv)
     std::array< MultiFab, AMREX_SPACEDIM >  stochMfluxdiv;
     std::array< MultiFab, AMREX_SPACEDIM >  stochMfluxdivC;
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        stochMfluxdiv [d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 0);
-        stochMfluxdivC[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 0);
+        stochMfluxdiv [d].define(convert(hydroGrid.boxArray(0),nodal_flag_dir[d]), hydroGrid.DistributionMap(0), 1, 0);
+        stochMfluxdivC[d].define(convert(hydroGrid.boxArray(0),nodal_flag_dir[d]), hydroGrid.DistributionMap(0), 1, 0);
         stochMfluxdiv [d].setVal(0.0);
         stochMfluxdivC[d].setVal(0.0);
     }
 
     // Declare object of StochMomFlux class
     int n_rngs = 1; // we only need 1 stage of random numbers
-    StochMomFlux sMflux (ba,dmap,geom,n_rngs);
+    StochMomFlux sMflux (hydroGrid.boxArray(0),hydroGrid.DistributionMap(0),geom,n_rngs);
 
     // weights for random number stages
     Vector< amrex::Real> weights;
@@ -583,9 +586,9 @@ void main_driver(const char* argv)
 
     // staggered real coordinates - fluid grid
     std::array< MultiFab, AMREX_SPACEDIM > RealFaceCoords;
-    AMREX_D_TERM(RealFaceCoords[0].define(convert(ba,nodal_flag_x), dmap, AMREX_SPACEDIM, ang);,
-                 RealFaceCoords[1].define(convert(ba,nodal_flag_y), dmap, AMREX_SPACEDIM, ang);,
-                 RealFaceCoords[2].define(convert(ba,nodal_flag_z), dmap, AMREX_SPACEDIM, ang););
+    AMREX_D_TERM(RealFaceCoords[0].define(convert(hydroGrid.boxArray(0),nodal_flag_x), hydroGrid.DistributionMap(0), AMREX_SPACEDIM, ang);,
+                 RealFaceCoords[1].define(convert(hydroGrid.boxArray(0),nodal_flag_y), hydroGrid.DistributionMap(0), AMREX_SPACEDIM, ang);,
+                 RealFaceCoords[2].define(convert(hydroGrid.boxArray(0),nodal_flag_z), hydroGrid.DistributionMap(0), AMREX_SPACEDIM, ang););
 
 
 
@@ -668,7 +671,7 @@ void main_driver(const char* argv)
 
     int cRange = (int)ceil(max_range/dxc[0]);
 
-    FhdParticleContainer particles(geomC, geom, dmap, bc, ba, cRange, ang);
+    FhdParticleContainer particles(geomC, geom, hydroGrid.DistributionMap(0), bc, hydroGrid.boxArray(0), cRange, ang);
 
     if (restart < 0 && particle_restart < 0) {
         // create particles
@@ -692,41 +695,41 @@ void main_driver(const char* argv)
 
     // cell centered real coordinates - es grid
     MultiFab RealCenteredCoords;
-    RealCenteredCoords.define(bp, dmap, AMREX_SPACEDIM, ngp);
+    RealCenteredCoords.define(bp, hydroGrid.DistributionMap(0), AMREX_SPACEDIM, ngp);
 
     FindCenterCoords(RealCenteredCoords, geomP);
 
     //charage density for RHS of Poisson Eq.
-    MultiFab charge(bp, dmap, 1, ngp);
+    MultiFab charge(bp, hydroGrid.DistributionMap(0), 1, ngp);
     charge.setVal(0);
 
     // temporary used to help collect charge
-    MultiFab chargeTemp(bp, dmap, 1, ngp);
+    MultiFab chargeTemp(bp, hydroGrid.DistributionMap(0), 1, ngp);
     chargeTemp.setVal(0);
 
     //mass density on ES grid - not necessary
-    MultiFab massFrac(bp, dmap, 1, 1);
-    MultiFab massFracTemp(bp, dmap, 1, 1);
+    MultiFab massFrac(bp, hydroGrid.DistributionMap(0), 1, 1);
+    MultiFab massFracTemp(bp, hydroGrid.DistributionMap(0), 1, 1);
     massFrac.setVal(0);
     massFracTemp.setVal(0);
 
     //Staggered electric fields
     std::array< MultiFab, AMREX_SPACEDIM > efield;
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        efield[d].define(convert(bp,nodal_flag_dir[d]), dmap, 1, ngp);
+        efield[d].define(convert(bp,nodal_flag_dir[d]), hydroGrid.DistributionMap(0), 1, ngp);
     }
 
     //Centred electric fields (using an array instead of a multi-component MF)
     std::array< MultiFab, AMREX_SPACEDIM > efieldCC;
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        efieldCC[d].define(bp, dmap, 1, ngp);
+        efieldCC[d].define(bp, hydroGrid.DistributionMap(0), 1, ngp);
         efieldCC[d].setVal(0.);
     }
 
     // external field
     std::array< MultiFab, AMREX_SPACEDIM > external;
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        external[d].define(bp, dmap, 1, ngp);
+        external[d].define(bp, hydroGrid.DistributionMap(0), 1, ngp);
     }
     
     ///////////////////////////////////////////
@@ -796,7 +799,7 @@ void main_driver(const char* argv)
         scaling_vel[i] = 1.;
     }
 
-    StructFact structFact_vel(ba,dmap,var_names_vel,scaling_vel,
+    StructFact structFact_vel(hydroGrid.boxArray(0),dmap,var_names_vel,scaling_vel,
                               s_pairA_vel,s_pairB_vel);
 
 

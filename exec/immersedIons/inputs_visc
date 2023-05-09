@@ -37,7 +37,7 @@
   fixed_dt = 1e-13
 
   # Controls for number of steps between actions
-  max_step = 5
+  max_step = 1
   plot_int = 5
   plot_ascii = 0
   struct_fact_int = -1
@@ -56,7 +56,7 @@
   drag_tog = 0 # Apply drag force to fluid
   rfd_tog = 0 # Apply RFD force to fluid
   move_tog = 2 # # Total particle move. 0 = off, 1 = single step, 2 = midpoint
-  dry_move_tog = 1 # Dry particle move
+  dry_move_tog = 0 # Dry particle move
   wall_mob = 0 #0= no dry adjustment to mobility due to walls, 1=Infinte plane, 2=other model
   sr_tog = 0 # 1=Short range LJ forces without walls, 2= with walls, 3=Wall with alternative model
  
