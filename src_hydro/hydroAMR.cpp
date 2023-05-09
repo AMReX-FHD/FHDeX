@@ -202,7 +202,7 @@ void hydroAMR::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba,
 
 #if (AMREX_SPACEDIM == 2)
     beta_ed[lev][0].define(convert(ba,nodal_flag), dm, 1, 1);
-    ed_mask[lev].define(convert(ba,nodal_flag), dm, 1, 1);
+    //ed_mask[lev].define(convert(ba,nodal_flag), dm, 1, 1);
 #elif (AMREX_SPACEDIM == 3)
     beta_ed[lev][0].define(convert(ba,nodal_flag_xy), dm, 1, 1);
     beta_ed[lev][1].define(convert(ba,nodal_flag_xz), dm, 1, 1);

@@ -897,17 +897,15 @@ void StagMGSolver::StagProlongation(const std::array< MultiFab, AMREX_SPACEDIM >
 
     BL_PROFILE_VAR("StagProlongation()",StagProlongation);
 
+    // loop over boxes (note we are not passing in a cell-centered MultiFab)
     for ( MFIter mfi(phi_f_in[0],TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
 
-
-          // since the MFIter is built on a nodal MultiFab we need to build the
+        // since the MFIter is built on a nodal MultiFab we need to build the
         // nodal tileboxes for each direction in this way
-
         AMREX_D_TERM(Box bx_x = mfi.tilebox(nodal_flag_x);,
                      Box bx_y = mfi.tilebox(nodal_flag_y);,
                      Box bx_z = mfi.tilebox(nodal_flag_z););
-        
-        
+
         AMREX_D_TERM(Array4<Real const> const& phix_c = phi_c_in[0].array(mfi);,
                      Array4<Real const> const& phiy_c = phi_c_in[1].array(mfi);,
                      Array4<Real const> const& phiz_c = phi_c_in[2].array(mfi););
@@ -915,7 +913,6 @@ void StagMGSolver::StagProlongation(const std::array< MultiFab, AMREX_SPACEDIM >
         AMREX_D_TERM(Array4<Real> const& phix_f = phi_f_in[0].array(mfi);,
                      Array4<Real> const& phiy_f = phi_f_in[1].array(mfi);,
                      Array4<Real> const& phiz_f = phi_f_in[2].array(mfi););
-                     
 
 #if (AMREX_SPACEDIM == 2)
         amrex::ParallelFor(bx_x, bx_y, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
@@ -1042,11 +1039,10 @@ void StagMGSolver::StagProlongation(const std::array< MultiFab, AMREX_SPACEDIM >
                     + one32*  phiz_c(i/2+ioff,j/2+joff,k/2+1);
             }
         });
-        
 #endif
-    
     }
 }
+
 
 AMREX_GPU_HOST_DEVICE
 inline

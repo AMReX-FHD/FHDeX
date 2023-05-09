@@ -320,7 +320,7 @@ void main_driver(const char* argv)
     Geometry geomC(domainC,&realDomain,CoordSys::cartesian,is_periodic_c.data());
     Geometry geomP(domainP,&realDomain,CoordSys::cartesian,is_periodic_p.data());
 
-    const Real* dx = geom.CellSize();
+    const Real* dx = hydroGrid.Geom(0).CellSize();
     const Real* dxc = geomC.CellSize();
     const Real* dxp = geomP.CellSize();
 
@@ -575,10 +575,11 @@ void main_driver(const char* argv)
         stochMfluxdiv [d].setVal(0.0);
         stochMfluxdivC[d].setVal(0.0);
     }
-
+    Print() << "new ba: " << hydroGrid.boxArray(0) << endl;
+    Print() << "new dm: " << hydroGrid.DistributionMap(0) << endl;
     // Declare object of StochMomFlux class
     int n_rngs = 1; // we only need 1 stage of random numbers
-    StochMomFlux sMflux (hydroGrid.boxArray(0),hydroGrid.DistributionMap(0),geom,n_rngs);
+    StochMomFlux sMflux (hydroGrid.boxArray(0),hydroGrid.DistributionMap(0),hydroGrid.Geom(0),n_rngs);
 
     // weights for random number stages
     Vector< amrex::Real> weights;
@@ -674,7 +675,7 @@ void main_driver(const char* argv)
 
     int cRange = (int)ceil(max_range/dxc[0]);
 
-    FhdParticleContainer particles(geomC, geom, hydroGrid.DistributionMap(0), bc, hydroGrid.boxArray(0), cRange, ang);
+    FhdParticleContainer particles(geomC, hydroGrid.Geom(0), hydroGrid.DistributionMap(0), bc, hydroGrid.boxArray(0), cRange, ang);
 
     if (restart < 0 && particle_restart < 0) {
         // create particles
@@ -690,7 +691,7 @@ void main_driver(const char* argv)
     }
 
     //Find coordinates of cell faces (fluid grid). May be used for interpolating fields to particle locations
-    FindFaceCoords(RealFaceCoords, geom); //May not be necessary to pass Geometry?
+    FindFaceCoords(RealFaceCoords, hydroGrid.Geom(0)); //May not be necessary to pass Geometry?
     
     //----------------------    
     // Electrostatic setup
@@ -1249,7 +1250,7 @@ void main_driver(const char* argv)
 	     }
 
         // compute other forces and spread to grid
-        particles.SpreadIonsGPU(dx, dxp, geom, hydroGrid.umac[0], RealFaceCoords, efieldCC, hydroGrid.source[0], hydroGrid.sourceTemp[0]);
+        particles.SpreadIonsGPU(dx, dxp, hydroGrid.Geom(0), hydroGrid.umac[0], RealFaceCoords, efieldCC, hydroGrid.source[0], hydroGrid.sourceTemp[0]);
 
         //particles.BuildCorrectionTable(dxp,1);
 
@@ -1320,7 +1321,7 @@ void main_driver(const char* argv)
 
 //                particles.invertMatrix();
 
-                advanceStokes(hydroGrid.umac[0],hydroGrid.pres[0], stochMfluxdiv,hydroGrid.source[0], hydroGrid.alpha_fc[0],hydroGrid.beta[0],hydroGrid.gamma[0],hydroGrid.beta_ed[0],geom,dt);
+                advanceStokes(hydroGrid.umac[0],hydroGrid.pres[0], stochMfluxdiv,hydroGrid.source[0], hydroGrid.alpha_fc[0],hydroGrid.beta[0],hydroGrid.gamma[0],hydroGrid.beta_ed[0],hydroGrid.Geom(0),dt);
                 particles.InterpolateMarkersGpu(0, dx, hydroGrid.umac[0], RealFaceCoords, check);
                 particles.velNorm();
 
@@ -1331,19 +1332,19 @@ void main_driver(const char* argv)
                         hydroGrid.sourceTemp[0][d].setVal(0.0);      // reset source terms
                     }
 
-                particles.SpreadIonsGPU(dx, geom, hydroGrid.umac[0], RealFaceCoords, hydroGrid.source[0], hydroGrid.sourceTemp[0]);
+                particles.SpreadIonsGPU(dx, hydroGrid.Geom(0), hydroGrid.umac[0], RealFaceCoords, hydroGrid.source[0], hydroGrid.sourceTemp[0]);
 
                 MultiFab::Add(hydroGrid.source[0][0],hydroGrid.sourceRFD[0][0],0,0,hydroGrid.sourceRFD[0][0].nComp(),hydroGrid.sourceRFD[0][0].nGrow());
                 MultiFab::Add(hydroGrid.source[0][1],hydroGrid.sourceRFD[0][1],0,0,hydroGrid.sourceRFD[0][1].nComp(),hydroGrid.sourceRFD[0][1].nGrow());
                 MultiFab::Add(hydroGrid.source[0][2],hydroGrid.sourceRFD[0][2],0,0,hydroGrid.sourceRFD[0][2].nComp(),hydroGrid.sourceRFD[0][2].nGrow());
 
-                advanceStokes(hydroGrid.umac[0],hydroGrid.pres[0],stochMfluxdiv,hydroGrid.source[0],hydroGrid.alpha_fc[0],hydroGrid.beta[0],hydroGrid.gamma[0],hydroGrid.beta_ed[0],geom,dt);
+                advanceStokes(hydroGrid.umac[0],hydroGrid.pres[0],stochMfluxdiv,hydroGrid.source[0],hydroGrid.alpha_fc[0],hydroGrid.beta[0],hydroGrid.gamma[0],hydroGrid.beta_ed[0],hydroGrid.Geom(0),dt);
                 particles.InterpolateMarkersGpu(0, dx, hydroGrid.umac[0], RealFaceCoords, check);
                 particles.velNorm();
 
             }else
             {
-                advanceStokes(hydroGrid.umac[0],hydroGrid.pres[0],stochMfluxdiv,hydroGrid.source[0],hydroGrid.alpha_fc[0],hydroGrid.beta[0],hydroGrid.gamma[0],hydroGrid.beta_ed[0],geom,dt);
+                advanceStokes(hydroGrid.umac[0],hydroGrid.pres[0],stochMfluxdiv,hydroGrid.source[0],hydroGrid.alpha_fc[0],hydroGrid.beta[0],hydroGrid.gamma[0],hydroGrid.beta_ed[0],hydroGrid.Geom(0),dt);
 
             }
 
@@ -1361,7 +1362,7 @@ void main_driver(const char* argv)
         {
             //Calls wet ion interpolation and movement.
 
-            particles.MoveIonsCPP(dt, dx, dxp, geom, hydroGrid.umac[0], efield, RealFaceCoords, hydroGrid.source[0], hydroGrid.sourceTemp[0], pparamPlaneList,
+            particles.MoveIonsCPP(dt, dx, dxp, hydroGrid.Geom(0), hydroGrid.umac[0], efield, RealFaceCoords, hydroGrid.source[0], hydroGrid.sourceTemp[0], pparamPlaneList,
                                paramPlaneCount, 3 /*this number currently does nothing, but we will use it later*/);
 
             // reset statistics after step n_steps_skip
@@ -1464,12 +1465,12 @@ void main_driver(const char* argv)
             for (int d=0; d<AMREX_SPACEDIM; ++d) {
                 ShiftFaceToCC(hydroGrid.umac[0][d],0,struct_cc_vel,d,1);
             }
-            structFact_vel.FortStructure(struct_cc_vel,geom);
+            structFact_vel.FortStructure(struct_cc_vel,hydroGrid.Geom(0));
             
             // plot structure factor on plot_int
             if (istep%plot_int == 0) {
                 structFact_charge.WritePlotFile(istep,time,geomP,"plt_SF_charge");
-                structFact_vel   .WritePlotFile(istep,time,geom ,"plt_SF_vel");
+                structFact_vel   .WritePlotFile(istep,time,hydroGrid.Geom(0) ,"plt_SF_vel");
             }
         }
         //hydroGrid.FillFine();
@@ -1487,12 +1488,12 @@ void main_driver(const char* argv)
         }
         if (writePlt) {
             // This write particle data and associated fields and electrostatic fields
-            WritePlotFile(istep, time, geom, geomC, geomP,
+            WritePlotFile(istep, time, hydroGrid.Geom(0), geomC, geomP,
                           particleInstant, particleMeans, particles,
                           charge, chargeM, potential, potentialM, efieldCC);
 
             // Writes instantaneous flow field and some other stuff? Check with Guy.
-            WritePlotFileHydro(istep, time, geom, hydroGrid.umac[0], hydroGrid.pres[0], hydroGrid.umacM[0]);
+            WritePlotFileHydro(istep, time, hydroGrid.Geom(0), hydroGrid.umac[0], hydroGrid.pres[0], hydroGrid.umacM[0]);
             //WritePlotFileHydro(istep, time, hydroGrid.Geom(1), hydroGrid.umac[1], hydroGrid.pres[1], hydroGrid.umacM[1],1);
         }
 
