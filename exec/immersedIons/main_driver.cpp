@@ -963,7 +963,7 @@ void main_driver(const char* argv)
         if(step > 800) dt = dt*1000000;
 
     }else{
-        //dt = dt*1e-5;
+        dt = dt*1e-5;
 	if(step < 40 && step > 20) dt = dt*10;
         if(step < 60 && step > 40) dt = dt*100;
         if(step < 80 && step > 60) dt = dt*1000;
