@@ -194,6 +194,11 @@ void main_driver(const char* argv)
         bc.define(domainC);
         bp.define(domainP);
         
+        bc.maxSize(IntVect(max_grid_size));
+        bp.maxSize(IntVect(max_grid_size));
+
+
+        
         // particle grid_refine: <1 = refine, >1 = coarsen.
         // assume only powers of 2 for now
         if (particle_grid_refine < 1) {
