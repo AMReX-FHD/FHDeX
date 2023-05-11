@@ -310,7 +310,7 @@ void main_driver(const char* argv)
 	zeroMassFlux(paramPlaneList, paramPlaneCount);
 	
     //Initial condition
-        spatialCross1D.setVal(0.);
+    spatialCross1D.setVal(0.);
 	cuMeans.setVal(0.);
 	primMeans.setVal(0.);
 	cuVars.setVal(0.);
@@ -336,14 +336,62 @@ void main_driver(const char* argv)
 
 		//particles.Source(dt, paramPlaneList, paramPlaneCount, cuInst);
 		
+		if(istep%2!=0)
+        {        
+		    particles.EvaluateStats(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
+					cvlInst,cvlMeans,QMeans,coVars,spatialCross1D,statsCount++,time);
+					
+			if (istep > n_steps_skip && struct_fact_int > 0 && (istep-n_steps_skip)%struct_fact_int == 0) {
+
+
+      		    for(int l=0;l<=nspecies;l++)
+      		    {
+	                MultiFab::Copy(structFactPrimMF, primInst, l*iprim+1, l*4+0, 1, 0);
+	                MultiFab::Copy(structFactPrimMF, primInst, l*iprim+2, l*4+1, 1, 0);
+	                MultiFab::Copy(structFactPrimMF, primInst, l*iprim+3, l*4+2, 1, 0);
+	                MultiFab::Copy(structFactPrimMF, primInst, l*iprim+9, l*4+3, 1, 0);
+	                
+	                //Print() << l*iprim+1 << " -> " << l*4+0 << endl;
+	            }
+	            
+	            //PrintMF(structFactPrimMF,0,-1);
+      	        //PrintMF(primInst,1,1);
+	            
+                structFactPrim.FortStructure(structFactPrimMF,geom);
+		
+		    }
+        }
+		
 		//particles.externalForce(dt);
 		particles.MoveParticlesCPP(dt, paramPlaneList, paramPlaneCount);
 		//particles.updateTimeStep(geom,dt);
                 //reduceMassFlux(paramPlaneList, paramPlaneCount);
-        
-//		particles.EvaluateStats(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
-//					cvlInst,cvlMeans,QMeans,coVars,spatialCross1D,statsCount++,time);
 
+        if(istep%2==0)
+        {        
+		    particles.EvaluateStats(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
+					cvlInst,cvlMeans,QMeans,coVars,spatialCross1D,statsCount++,time);
+					
+			if (istep > n_steps_skip && struct_fact_int > 0 && (istep-n_steps_skip)%struct_fact_int == 0) {
+
+
+      		    for(int l=0;l<=nspecies;l++)
+      		    {
+	                MultiFab::Copy(structFactPrimMF, primInst, l*iprim+1, l*4+0, 1, 0);
+	                MultiFab::Copy(structFactPrimMF, primInst, l*iprim+2, l*4+1, 1, 0);
+	                MultiFab::Copy(structFactPrimMF, primInst, l*iprim+3, l*4+2, 1, 0);
+	                MultiFab::Copy(structFactPrimMF, primInst, l*iprim+9, l*4+3, 1, 0);
+	                
+	                //Print() << l*iprim+1 << " -> " << l*4+0 << endl;
+	            }
+	            
+	            //PrintMF(structFactPrimMF,0,-1);
+      	        //PrintMF(primInst,1,1);
+	            
+                structFactPrim.FortStructure(structFactPrimMF,geom);
+		
+		    }
+        }
 		//////////////////////////////////////
 		// PlotFile
 		//////////////////////////////////////
@@ -359,26 +407,6 @@ void main_driver(const char* argv)
 			{
 				writePlt = ((istep+1)%plot_int == 0);
 			}
-		}
-		
-		if (istep > n_steps_skip && struct_fact_int > 0 && (istep-n_steps_skip)%struct_fact_int == 0) {
-
-
-  		    for(int l=0;l<=nspecies;l++)
-  		    {
-	            MultiFab::Copy(structFactPrimMF, primInst, l*iprim+1, l*4+0, 1, 0);
-	            MultiFab::Copy(structFactPrimMF, primInst, l*iprim+2, l*4+1, 1, 0);
-	            MultiFab::Copy(structFactPrimMF, primInst, l*iprim+3, l*4+2, 1, 0);
-	            MultiFab::Copy(structFactPrimMF, primInst, l*iprim+9, l*4+3, 1, 0);
-	            
-	            //Print() << l*iprim+1 << " -> " << l*4+0 << endl;
-	        }
-	        
-	        //PrintMF(structFactPrimMF,0,-1);
-  	        //PrintMF(primInst,1,1);
-	        
-            structFactPrim.FortStructure(structFactPrimMF,geom);
-		
 		}
 
 		if ((plot_int > 0 && istep%plot_int==0))
@@ -409,7 +437,7 @@ void main_driver(const char* argv)
 		}
 		tend = ParallelDescriptor::second() - tbegin;
 		ParallelDescriptor::ReduceRealMax(tend);
-		if(istep%1==0)
+		if(istep%100==0)
 		{
 		    amrex::Print() << "Advanced step " << istep << " of " << max_step << " in " << tend << " seconds. " << particles.simParticles << " particles.\n";
 		}

@@ -93,7 +93,7 @@ void main_main ()
         ba.maxSize(max_grid_size);
 
        // This defines the physical box, [-1,1] in each direction.
-        RealBox real_box({AMREX_D_DECL(-1.0,-1.0,-1.0)},
+        RealBox real_box({AMREX_D_DECL( 0.0, 0.0, 0.0)},
                          {AMREX_D_DECL( 1.0, 1.0, 1.0)});
 
         // This defines a Geometry object
@@ -143,7 +143,7 @@ void main_main ()
 
     GpuArray<Real,AMREX_SPACEDIM> dx = geom.CellSizeArray();
 
-    init_phi(phi_new, geom);
+    init_phi(phi_new, geom,npts_scale);
 
     //Boundary conditions are assigned to phi_old such that the ghost cells at the boundary will
     //be filled to satisfy those conditions.
@@ -186,9 +186,9 @@ void main_main ()
         }
     }
 
-    Real coeff = AMREX_D_TERM(   1./(dx[0]*dx[0]),
-                               + 1./(dx[1]*dx[1]),
-                               + 1./(dx[2]*dx[2]) );
+    Real coeff = AMREX_D_TERM(   2./(dx[0]*dx[0]),
+                               + 2./(dx[1]*dx[1]),
+                               + 2./(dx[2]*dx[2]) );
     Real dt = cfl/(2.0*coeff);
 
     amrex::Print() << "dt = " << dt << " dx = " << dx[0] << std::endl;
@@ -206,19 +206,15 @@ void main_main ()
 
     // build the flux multifabs
     Array<MultiFab, AMREX_SPACEDIM> flux;
+    std::array< MultiFab, AMREX_SPACEDIM > stochFlux;
     for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
     {
         // flux(dir) has one component, zero ghost cells, and is nodal in direction dir
         BoxArray edge_ba = ba;
         edge_ba.surroundingNodes(dir);
         flux[dir].define(edge_ba, dm, 1, 0);
+        stochFlux[dir].define(edge_ba, dm, 1, 0);
     }
-
-        //stochastic fluxes
-    std::array< MultiFab, AMREX_SPACEDIM > stochFlux;
-    AMREX_D_TERM(stochFlux[0].define(convert(ba,nodal_flag_x), dm, 1, 0);,
-                 stochFlux[1].define(convert(ba,nodal_flag_y), dm, 1, 0);,
-                 stochFlux[2].define(convert(ba,nodal_flag_z), dm, 1, 0););
 
     AMREX_D_TERM(stochFlux[0].setVal(0.0);,
                  stochFlux[1].setVal(0.0);,
@@ -241,10 +237,12 @@ void main_main ()
         {
             const std::string& pltfile = amrex::Concatenate("plt",n,5);
             WriteSingleLevelPlotfile(pltfile, phi_new, {"phi"}, geom, time, n);
+        }
 
 //	    amrex::Real Ephi=0.;
 //	    amrex::Real Ephi2=0.;
 	    Vector<Real> Ephi(2,0.);
+            Real Ephimin = npts_scale;
 	    for ( MFIter mfi(phi_old); mfi.isValid(); ++mfi )
             {
                 const Box& vbx = mfi.validbox();
@@ -258,6 +256,7 @@ void main_main ()
                for (auto i = lo.x; i <= hi.x; ++i) {
 		   Ephi[0] += phiNew(i,j,k);
 		   Ephi[1] += phiNew(i,j,k)*phiNew(i,j,k);
+                   Ephimin = std::min(Ephimin,phiNew(i,j,k));
                 }
                 }
                 }
@@ -267,13 +266,18 @@ void main_main ()
 
             const int IOProc = ParallelDescriptor::IOProcessorNumber();
             ParallelDescriptor::ReduceRealSum(Ephi.dataPtr(),2);
+            ParallelDescriptor::ReduceRealMin(Ephimin);
 	    amrex::Real scale = n_cell*n_cell;
+	    amrex::Real scale2 =  AMREX_D_TERM( dx[0],
+                               * dx[1],
+                               * dx[2] );
 
-            amrex::Print() << "phi varaince = " << Ephi[1]/scale - (Ephi[0]*Ephi[0]
+            amrex::Print() << "phi variance = " << Ephi[1]/scale - (Ephi[0]*Ephi[0]
 			    /(scale*scale)) << std::endl;
+            amrex::Print() << "phi integral = " << Ephi[0]*scale2 << std::endl;
+            amrex::Print() << "phi min = " << Ephimin << std::endl;
 
                 
-        }
     }
 
     // Call the timer again and compute the maximum difference between the start time and stop time
