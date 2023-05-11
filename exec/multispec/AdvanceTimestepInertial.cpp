@@ -525,8 +525,8 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // add gravity term
     if (any_grav) {
          for (int d=0; d<AMREX_SPACEDIM; ++d) {
-           
- 
+             MultiFab::Saxpy(gmres_rhs_v[d],0.5*grav[d],rhotot_fc_old[d],0,0,1,0);
+             MultiFab::Saxpy(gmres_rhs_v[d],0.5*grav[d],rhotot_fc_new[d],0,0,1,0);
         }
 
     }
