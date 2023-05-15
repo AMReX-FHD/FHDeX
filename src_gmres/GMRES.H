@@ -27,9 +27,24 @@ class GMRES {
     MultiFab tmp_p;
     MultiFab scr_p;
     MultiFab V_p;
+    
+    std::array< MultiFab, AMREX_SPACEDIM > rF_u;
+    std::array< MultiFab, AMREX_SPACEDIM > wF_u;
+    std::array< MultiFab, AMREX_SPACEDIM > tmpF_u;
+    std::array< MultiFab, AMREX_SPACEDIM > scrF_u;
+    std::array< MultiFab, AMREX_SPACEDIM > VF_u;
+    std::array< MultiFab, AMREX_SPACEDIM > alphainvF_fc;
+
+    MultiFab rF_p;
+    MultiFab wF_p;
+    MultiFab tmpF_p;
+    MultiFab scrF_p;
+    MultiFab VF_p;
 
     StagMGSolver StagSolver;
     Precon Pcon;
+    
+    int nlevels;
 
 public:
 
@@ -37,14 +52,28 @@ public:
            const DistributionMapping& dmap_in,
            const Geometry& geom_in);
 
+    GMRES (const BoxArray& ba_in,
+           const DistributionMapping& dmap_in,
+           const Geometry& geom_in,
+           const BoxArray& baF_in,
+           const DistributionMapping& dmapF_in,
+           const Geometry& geomF_in, int nlev);
+           
+    void define(const BoxArray& ba_in,
+           const DistributionMapping& dmap_in,
+           const Geometry& geom_in,
+           const BoxArray& baF_in,
+           const DistributionMapping& dmapF_in,
+           const Geometry& geomF_in, int nlev);           
+
     void Solve (std::array<MultiFab, AMREX_SPACEDIM> & b_u, MultiFab & b_p,
                 std::array<MultiFab, AMREX_SPACEDIM> & x_u, MultiFab & x_p,
                 std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
                 MultiFab & beta, std::array<MultiFab, NUM_EDGE> & beta_ed,
                 MultiFab & gamma,
                 Real theta_alpha,
-                const Geometry & geom,
-                Real & norm_pre_rhs);
+                Geometry & geom,
+                Real & norm_pre_rhs, int nlev = 1);
 };
 
 #endif

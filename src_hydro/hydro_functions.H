@@ -144,7 +144,7 @@ void advanceStokes(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
 	       MultiFab& beta,
                MultiFab& gamma,
 	       std::array< MultiFab, NUM_EDGE >& beta_ed,
-	       const Geometry geom, const Real& dt);
+	       Geometry geom, const Real& dt);
 
 void advanceLowMach(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
 	       std::array< MultiFab, AMREX_SPACEDIM >& umacNew,
@@ -154,7 +154,7 @@ void advanceLowMach(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
 	       std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
 	       const MultiFab& beta, const MultiFab& gamma,
 	       const std::array< MultiFab, NUM_EDGE >& beta_ed,
-	       const Geometry geom, const Real& dt);
+	       Geometry geom, const Real& dt);
 
 /////////////////////////////////////////////////////////////////////////////////
 // in Vorticity.cpp

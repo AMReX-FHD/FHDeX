@@ -99,20 +99,20 @@ void main_driver(const char* argv)
         }
     }
     
-    hydroAMR hydroGrid(ang, is_periodic.data(), dt);
+    hydroAMR hydroGrid(ang, is_periodic.data(), fixed_dt);
     
     hydroGrid.initData();
     
     IntVect patch0_lo(AMREX_D_DECL(           2,            2,            2));
     IntVect patch0_hi(AMREX_D_DECL(30, 30, 30));
     
-    IntVect patch1_lo(AMREX_D_DECL(           20,            20,            20));
-    IntVect patch1_hi(AMREX_D_DECL(40,40, 40));
+    IntVect patch1_lo(AMREX_D_DECL(           5,            5,            5));
+    IntVect patch1_hi(AMREX_D_DECL(10,10, 10));
     
     //hydroGrid.addPatch(patch0_lo, patch0_hi);
-    //hydroGrid.addPatch(patch1_lo, patch1_hi);
+    hydroGrid.addPatch(patch1_lo, patch1_hi);
     
-    //hydroGrid.updateGrid();
+    hydroGrid.updateGrid();
     
     DistributionMapping dmap = hydroGrid.DistributionMap(0);
 
@@ -191,13 +191,14 @@ void main_driver(const char* argv)
 
         //Vector<int> pMap = dmap.ProcessorMap();
 
-        bc.define(domainC);
-        bp.define(domainP);
+        //bc.define(domainC);
+        //bp.define(domainP);
         
-        bc.maxSize(IntVect(max_grid_size));
-        bp.maxSize(IntVect(max_grid_size));
-
-
+        //bc.maxSize(IntVect(max_grid_size));
+        //bp.maxSize(IntVect(max_grid_size));
+        
+        bc = ba;
+        bp = ba;
         
         // particle grid_refine: <1 = refine, >1 = coarsen.
         // assume only powers of 2 for now
@@ -567,19 +568,19 @@ void main_driver(const char* argv)
 
     // mflux divergence, staggered in x,y,z
     // Define mfluxdiv predictor/corrector multifabs
-    std::array< MultiFab, AMREX_SPACEDIM >  stochMfluxdiv;
+
     std::array< MultiFab, AMREX_SPACEDIM >  stochMfluxdivC;
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        stochMfluxdiv [d].define(convert(hydroGrid.boxArray(0),nodal_flag_dir[d]), hydroGrid.DistributionMap(0), 1, 0);
+
         stochMfluxdivC[d].define(convert(hydroGrid.boxArray(0),nodal_flag_dir[d]), hydroGrid.DistributionMap(0), 1, 0);
-        stochMfluxdiv [d].setVal(0.0);
+
         stochMfluxdivC[d].setVal(0.0);
     }
-    Print() << "new ba: " << hydroGrid.boxArray(0) << endl;
-    Print() << "new dm: " << hydroGrid.DistributionMap(0) << endl;
+ 
     // Declare object of StochMomFlux class
     int n_rngs = 1; // we only need 1 stage of random numbers
-    StochMomFlux sMflux (hydroGrid.boxArray(0),hydroGrid.DistributionMap(0),hydroGrid.Geom(0),n_rngs);
+    StochMomFlux sMfluxC (hydroGrid.boxArray(0),hydroGrid.DistributionMap(0),hydroGrid.Geom(0),n_rngs);
+    StochMomFlux sMfluxF (hydroGrid.boxArray(1),hydroGrid.DistributionMap(1),hydroGrid.Geom(1),n_rngs);
 
     // weights for random number stages
     Vector< amrex::Real> weights;
@@ -1256,16 +1257,15 @@ void main_driver(const char* argv)
 
         if ((variance_coef_mom != 0.0) && fluid_tog != 0) {
             // compute the random numbers needed for the stochastic momentum forcing
-            sMflux.fillMomStochastic();
-
-            // compute stochastic momentum force
-            //sMflux.StochMomFluxDivWideSplit(stochMfluxdiv,0,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
-            //sMflux.StochMomFluxDivOrder3(stochMfluxdiv,0,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
-            sMflux.StochMomFluxDiv(stochMfluxdiv,0,hydroGrid.eta_cc[0],hydroGrid.eta_ed[0],hydroGrid.temp_cc[0],hydroGrid.temp_ed[0],weights,dt);
+            sMfluxC.fillMomStochastic();
+            sMfluxC.StochMomFluxDiv(hydroGrid.stochMfluxdiv[0],0,hydroGrid.eta_cc[0],hydroGrid.eta_ed[0],hydroGrid.temp_cc[0],hydroGrid.temp_ed[0],weights,dt);
+            
+            sMfluxF.fillMomStochastic();
+            sMfluxF.StochMomFluxDiv(hydroGrid.stochMfluxdiv[1],0,hydroGrid.eta_cc[1],hydroGrid.eta_ed[1],hydroGrid.temp_cc[1],hydroGrid.temp_ed[1],weights,dt);
 
             // integrator containing inertial terms and predictor/corrector requires 2 RNG stages
             if (fluid_tog ==2) {
-                sMflux.StochMomFluxDiv(stochMfluxdivC,0,hydroGrid.eta_cc[0],hydroGrid.eta_ed[0],hydroGrid.temp_cc[0],hydroGrid.temp_ed[0],weights,dt);
+                sMfluxC.StochMomFluxDiv(stochMfluxdivC,0,hydroGrid.eta_cc[0],hydroGrid.eta_ed[0],hydroGrid.temp_cc[0],hydroGrid.temp_ed[0],weights,dt);
             }
         }
         
@@ -1273,6 +1273,8 @@ void main_driver(const char* argv)
         MultiFab::Add(hydroGrid.source[0][0],hydroGrid.sourceRFD[0][0],0,0,hydroGrid.sourceRFD[0][0].nComp(),hydroGrid.sourceRFD[0][0].nGrow());
         MultiFab::Add(hydroGrid.source[0][1],hydroGrid.sourceRFD[0][1],0,0,hydroGrid.sourceRFD[0][1].nComp(),hydroGrid.sourceRFD[0][1].nGrow());
         MultiFab::Add(hydroGrid.source[0][2],hydroGrid.sourceRFD[0][2],0,0,hydroGrid.sourceRFD[0][2].nComp(),hydroGrid.sourceRFD[0][2].nGrow());
+
+        hydroGrid.updateAlpha(0,dt);
 
         if (fluid_tog == 1) {
 
@@ -1320,7 +1322,7 @@ void main_driver(const char* argv)
 
 //                particles.invertMatrix();
 
-                advanceStokes(hydroGrid.umac[0],hydroGrid.pres[0], stochMfluxdiv,hydroGrid.source[0], hydroGrid.alpha_fc[0],hydroGrid.beta[0],hydroGrid.gamma[0],hydroGrid.beta_ed[0],hydroGrid.Geom(0),dt);
+                advanceStokes(hydroGrid.umac[0],hydroGrid.pres[0], hydroGrid.stochMfluxdiv[0],hydroGrid.source[0], hydroGrid.alpha_fc[0],hydroGrid.beta[0],hydroGrid.gamma[0],hydroGrid.beta_ed[0],hydroGrid.Geom(0),dt);
                 particles.InterpolateMarkersGpu(0, dx, hydroGrid.umac[0], RealFaceCoords, check);
                 particles.velNorm();
 
@@ -1337,13 +1339,14 @@ void main_driver(const char* argv)
                 MultiFab::Add(hydroGrid.source[0][1],hydroGrid.sourceRFD[0][1],0,0,hydroGrid.sourceRFD[0][1].nComp(),hydroGrid.sourceRFD[0][1].nGrow());
                 MultiFab::Add(hydroGrid.source[0][2],hydroGrid.sourceRFD[0][2],0,0,hydroGrid.sourceRFD[0][2].nComp(),hydroGrid.sourceRFD[0][2].nGrow());
 
-                advanceStokes(hydroGrid.umac[0],hydroGrid.pres[0],stochMfluxdiv,hydroGrid.source[0],hydroGrid.alpha_fc[0],hydroGrid.beta[0],hydroGrid.gamma[0],hydroGrid.beta_ed[0],hydroGrid.Geom(0),dt);
+                advanceStokes(hydroGrid.umac[0],hydroGrid.pres[0],hydroGrid.stochMfluxdiv[0],hydroGrid.source[0],hydroGrid.alpha_fc[0],hydroGrid.beta[0],hydroGrid.gamma[0],hydroGrid.beta_ed[0],hydroGrid.Geom(0),dt);
                 particles.InterpolateMarkersGpu(0, dx, hydroGrid.umac[0], RealFaceCoords, check);
                 particles.velNorm();
 
             }else
             {
-                advanceStokes(hydroGrid.umac[0],hydroGrid.pres[0],stochMfluxdiv,hydroGrid.source[0],hydroGrid.alpha_fc[0],hydroGrid.beta[0],hydroGrid.gamma[0],hydroGrid.beta_ed[0],hydroGrid.Geom(0),dt);
+                //advanceStokes(hydroGrid.umac[0],hydroGrid.pres[0],hydroGrid.stochMfluxdiv[0],hydroGrid.source[0],hydroGrid.alpha_fc[0],hydroGrid.beta[0],hydroGrid.gamma[0],hydroGrid.beta_ed[0],hydroGrid.Geom(0),dt);
+                hydroGrid.advanceStokes();
 
             }
 
@@ -1472,7 +1475,9 @@ void main_driver(const char* argv)
                 structFact_vel   .WritePlotFile(istep,time,hydroGrid.Geom(0) ,"plt_SF_vel");
             }
         }
-        //hydroGrid.FillFine();
+        hydroGrid.FillFine();
+        
+        //PrintMF(hydroGrid.umac[0][0],0,0);
         // FIXME - AJN: at the moment we are writing out plotfile plot_int-1 also
         // because the time-averaging for the fields resets at n_steps_skip
         // see the FIXME - AJN note above
@@ -1492,8 +1497,9 @@ void main_driver(const char* argv)
                           charge, chargeM, potential, potentialM, efieldCC);
 
             // Writes instantaneous flow field and some other stuff? Check with Guy.
-            WritePlotFileHydro(istep, time, hydroGrid.Geom(0), hydroGrid.umac[0], hydroGrid.pres[0], hydroGrid.umacM[0]);
+            //WritePlotFileHydro(istep, time, hydroGrid.Geom(0), hydroGrid.umac[0], hydroGrid.pres[0], hydroGrid.umacM[0]);
             //WritePlotFileHydro(istep, time, hydroGrid.Geom(1), hydroGrid.umac[1], hydroGrid.pres[1], hydroGrid.umacM[1],1);
+            hydroGrid.WritePlotFile(time, istep);
         }
 
         if (chk_int > 0 && istep%chk_int == 0) {

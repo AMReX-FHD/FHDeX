@@ -3,6 +3,7 @@
 #include "hydroAMR.H"
 #include <AMReX_FillPatchUtil.H>
 #include <AMReX_PhysBCFunct.H>
+#include <AMReX_PlotFileUtil.H>
 
 using namespace amrex;
 
@@ -17,6 +18,7 @@ hydroAMR::hydroAMR(int ang, int * is_periodic, Real dt_in) : AmrCore() {
     //ba.resize(nlevels);
     //dmap.resize(nlevels);
     pres.resize(nlevels);
+    plot_mf.resize(nlevels);
     geom.resize(nlevels);
     alpha_fc.resize(nlevels);
     source.resize(nlevels);
@@ -37,9 +39,13 @@ hydroAMR::hydroAMR(int ang, int * is_periodic, Real dt_in) : AmrCore() {
     source.resize(nlevels);
     sourceTemp.resize(nlevels);
     sourceRFD.resize(nlevels);
+    stochMfluxdiv.resize(nlevels);
     beta_ed.resize(nlevels);
     eta_ed.resize(nlevels);
     temp_ed.resize(nlevels);
+    
+    gmres_rhs_p.resize(nlevels);
+    gmres_rhs_u.resize(nlevels);    
 
     ng = ang;
     dt = dt_in;
@@ -86,6 +92,16 @@ void hydroAMR::initData ()
 {
     const Real time = 0.0;
     InitFromScratch(time);
+
+}
+
+void hydroAMR::updateAlpha(int lev, Real dt)
+{
+
+    Real dtinv = 1.0/dt;
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        alpha_fc[lev][d].setVal(dtinv);
+    }
 
 }
 
@@ -159,20 +175,28 @@ void hydroAMR::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba,
             umacNew[lev][d].define(convert(ba,nodal_flag_dir[d]), dm, 1, ng);
             source[lev][d].define(convert(ba,nodal_flag_dir[d]), dm, 1, ng);
             sourceRFD[lev][d].define(convert(ba,nodal_flag_dir[d]), dm, 1, ng);
+            stochMfluxdiv[lev][d].define(convert(ba,nodal_flag_dir[d]), dm, 1, ng);
             sourceTemp[lev][d].define(convert(ba,nodal_flag_dir[d]), dm, 1, ng);
-            umacM[lev][d].define(convert(ba,nodal_flag_dir[d]), dm, 1, 1);
-            //fc_mask[d].define(convert(ba,nodal_flag_dir[d]), dm, 1, ng);
+            umacM[lev][d].define(convert(ba,nodal_flag_dir[d]), dm, 1, 1);            
+            gmres_rhs_u[lev][d].define(convert(ba,nodal_flag_dir[d]), dm, 1, 1);
 
+            stochMfluxdiv[lev][d].setVal(0.);
             umac[lev][d].setVal(0.);
             source[lev][d].setVal(0.);
             sourceRFD[lev][d].setVal(0.);
             sourceTemp[lev][d].setVal(0.);                        
             umacM[lev][d].setVal(0.);
+            gmres_rhs_u[lev][d].setVal(0.);
             //fc_mask[d].setVal(0);
     }
     
     pres[lev].define(ba,dm,1,1);
     pres[lev].setVal(0.);
+    
+    gmres_rhs_p[lev].define(ba,dm,1,1);
+    gmres_rhs_p[lev].setVal(0.);
+    
+    plot_mf[lev].define(ba,dm,nplot,1);
     
 //    RealBox realDomain({AMREX_D_DECL(prob_lo[0],prob_lo[1],prob_lo[2])},
 //                       {AMREX_D_DECL(prob_hi[0],prob_hi[1],prob_hi[2])});
@@ -236,27 +260,33 @@ void hydroAMR::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba,
 void
 hydroAMR::FillFine()
 {
-    FillCoarsePatch(pres);
+    FillCoarsePatchCell(pres);
+    FillCoarsePatchFace(umac);
 }
 
 void
-hydroAMR::FillCoarsePatch(Vector<MultiFab>& mf)
+hydroAMR::FillCoarsePatchCell(Vector<MultiFab>& mf)
 {
     //BL_ASSERT(lev > 0);
 
-    Interpolater* mapper = &cell_cons_interp;
+    //Interpolater* mapper = &cell_cons_interp;
+    CellConservativeLinear mapper;
+    
 
     Real time=0;
+    //const char br;
 
     if(Gpu::inLaunchRegion())
     {
         GpuBndryFuncFab<AmrCoreFill> gpu_bndry_func(AmrCoreFill{});
         PhysBCFunct<GpuBndryFuncFab<AmrCoreFill> > cphysbc(geom[0],bcs,gpu_bndry_func);
         PhysBCFunct<GpuBndryFuncFab<AmrCoreFill> > fphysbc(geom[1],bcs,gpu_bndry_func);
+        
+        //PhysBCFunctNoOp cphysbc, fphysbc;
 
         amrex::InterpFromCoarseLevel(mf[1], time, mf[0], 0, 0, 1, geom[0], geom[1],
                                      cphysbc, 0, fphysbc, 0, refRatio(0),
-                                     mapper, bcs, 0);
+                                     &mapper, bcs, 0);
     }
     else
     {
@@ -266,8 +296,174 @@ hydroAMR::FillCoarsePatch(Vector<MultiFab>& mf)
 
         amrex::InterpFromCoarseLevel(mf[1], time, mf[0], 0, 0, 1, geom[0], geom[1],
                                      cphysbc, 0, fphysbc, 0, refRatio(0),
-                                     mapper, bcs, 0);
+                                     &mapper, bcs, 0);
     }
+}
+
+void
+hydroAMR::FillCoarsePatchFace(Vector<std::array< MultiFab, AMREX_SPACEDIM >>& mf)
+{
+    //BL_ASSERT(lev > 0);
+
+    //Interpolater* mapper = &cell_cons_interp;
+    Interpolater* mapper = &face_divfree_interp;
+    //FaceDivFree mapper;
+    
+    std::array< MultiFab*, AMREX_SPACEDIM > mfCoarse;
+    std::array< MultiFab*, AMREX_SPACEDIM > mfFine;
+    
+    mfCoarse = GetArrOfPtrs(mf[0]);
+    mfFine = GetArrOfPtrs(mf[1]);
+    
+    Real time=0;
+
+    if(Gpu::inLaunchRegion())
+    {
+        GpuBndryFuncFab<AmrCoreFill> gpu_bndry_func(AmrCoreFill{});
+        PhysBCFunct<GpuBndryFuncFab<AmrCoreFill> > cphysbc(geom[0],bcs,gpu_bndry_func);
+        PhysBCFunct<GpuBndryFuncFab<AmrCoreFill> > fphysbc(geom[1],bcs,gpu_bndry_func);
+
+        Array<PhysBCFunct<GpuBndryFuncFab<AmrCoreFill>>,AMREX_SPACEDIM> cp = {AMREX_D_DECL(cphysbc,cphysbc,cphysbc)};
+        Array<PhysBCFunct<GpuBndryFuncFab<AmrCoreFill>>,AMREX_SPACEDIM> fp = {AMREX_D_DECL(fphysbc,fphysbc,fphysbc)};
+        
+        Array<Vector<BCRec>,AMREX_SPACEDIM> bcr = {AMREX_D_DECL(bcs,bcs,bcs)};
+        
+        amrex::InterpFromCoarseLevel(mfFine, time, mfCoarse, 0, 0, 1, geom[0], geom[1],
+                                     cp, 0, fp, 0, refRatio(0),
+                                     mapper, bcr, 0);
+
+    }
+    else
+    {
+        CpuBndryFuncFab bndry_func(nullptr);  // Without EXT_DIR, we can pass a nullptr.
+        PhysBCFunct<CpuBndryFuncFab> cphysbc(geom[0],bcs,bndry_func);
+        PhysBCFunct<CpuBndryFuncFab> fphysbc(geom[1],bcs,bndry_func);
+        
+        Array<PhysBCFunct<CpuBndryFuncFab>,AMREX_SPACEDIM> cp = {AMREX_D_DECL(cphysbc,cphysbc,cphysbc)};
+        Array<PhysBCFunct<CpuBndryFuncFab>,AMREX_SPACEDIM> fp = {AMREX_D_DECL(fphysbc,fphysbc,fphysbc)};
+        
+        Array<Vector<BCRec>,AMREX_SPACEDIM> bcr = {AMREX_D_DECL(bcs,bcs,bcs)};
+        
+        amrex::InterpFromCoarseLevel(mfFine, time, mfCoarse, 0, 0, 1, geom[0], geom[1],
+                                     cp, 0, fp, 0, refRatio(0),
+                                     mapper, bcr, 0);
+
+    }
+
+
+}
+
+void
+hydroAMR::advanceStokes()
+{
+    BL_PROFILE_VAR("hydroAMR::advanceStokes()",hydroadvance);
+          
+    Real theta_alpha = 0.;
+    Real norm_pre_rhs;
+    
+    for(int lev=0;lev<nlevels;++lev)
+    {
+        gmres_rhs_p[lev].setVal(0.);
+        
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        gmres_rhs_u[lev][d].setVal(0.);
+
+        }
+    }
+
+
+    //////////////////////////////////////////////////
+    for(int lev=0;lev<nlevels;++lev)
+    { 
+    // add stochastic forcing to gmres_rhs_u
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            MultiFab::Add(gmres_rhs_u[lev][d], stochMfluxdiv[lev][d], 0, 0, 1, 0);
+            MultiFab::Add(gmres_rhs_u[lev][d], source[lev][d], 0, 0, 1, 0);
+        }
+    }
+
+//    if (zero_net_force == 1)
+//    {
+//        Vector<Real> mean_stress_umac(AMREX_SPACEDIM);
+
+//        SumStag(gmres_rhs_u,mean_stress_umac,true);
+
+//        Print() << "correcting mean force: " << mean_stress_umac[0]*(prob_hi[0]-prob_lo[0])*(prob_hi[1]-prob_lo[1])*(prob_hi[2]-prob_lo[2]);
+
+//        for (int d=1; d<AMREX_SPACEDIM; ++d) {
+//            Print() << ", " << mean_stress_umac[d]*(prob_hi[0]-prob_lo[0])*(prob_hi[1]-prob_lo[1])*(prob_hi[2]-prob_lo[2]);
+//        }
+
+//        Print() << "\n";
+
+//        Print() << "test force: " << sourceTerms[0].sum()*(prob_hi[0]-prob_lo[0])*(prob_hi[1]-prob_lo[1])*(prob_hi[2]-prob_lo[2]);
+
+//        for (int d=1; d<AMREX_SPACEDIM; ++d) {
+//            Print() << ", " << sourceTerms[d].sum()*(prob_hi[0]-prob_lo[0])*(prob_hi[1]-prob_lo[1])*(prob_hi[2]-prob_lo[2]);
+//        }
+
+//        Print() << "\n";
+
+//        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+//            if (geom.isPeriodic(d)) {
+//                gmres_rhs_u[d].plus(-mean_stress_umac[d],0,1,0);
+//            }
+//        }
+//    }
+//    
+    //PrintMF(alpha_fc[0],0,0);
+      
+    // call GMRES
+    //GMRES gmres(grids[0],dmap[0],geom[0],grids[1],dmap[1],geom[1],nlevels);
+    GMRES gmres(grids[0],dmap[0],geom[0],grids[1],dmap[1],geom[1],nlevels);
+    gmres.Solve(gmres_rhs_u[0],gmres_rhs_p[0],umac[0],pres[0],
+                alpha_fc[0],beta[0],beta_ed[0],gamma[0],theta_alpha,geom[0],norm_pre_rhs);
+
+    for (int i=0; i<AMREX_SPACEDIM; i++) {
+        MultiFabPhysBCDomainVel(umac[0][i], geom[0], i);
+        int is_inhomogeneous = 1;
+        MultiFabPhysBCMacVel(umac[0][i], geom[0], i, is_inhomogeneous);
+        umac[0][i].FillBoundary(geom[0].periodicity());
+    }
+}
+
+void
+hydroAMR::WritePlotFile(Real time, int step)
+{
+    int num_output_comp = 1 + AMREX_SPACEDIM;
+    int num_levels = pres.size();
+    //IntVect cc_flag = IntVect::TheZeroVector();
+    Vector<std::unique_ptr<MultiFab> > output_cc(num_levels);
+    
+    for (int lev = 0; lev < nlevels; ++lev) {
+        const BoxArray& cc_ba = pres[lev].boxArray();
+        output_cc[lev].reset(new MultiFab(cc_ba,pres[lev].DistributionMap(), num_output_comp, 0));
+        MultiFab::Copy(*output_cc[lev], pres[lev], 0, 0, 1, 0);
+        AverageFaceToCC(umac[lev][0],*output_cc[lev],0,1);
+        AverageFaceToCC(umac[lev][1],*output_cc[lev],1,2);
+        AverageFaceToCC(umac[lev][2],*output_cc[lev],2,3);        
+    }
+
+    Vector<std::string> varnames;
+    varnames.push_back("pressure");
+    varnames.push_back("velx");
+    varnames.push_back("vely");
+    varnames.push_back("velz");
+
+    Vector<int> level_steps;
+    level_steps.push_back(step);
+    level_steps.push_back(step);
+
+    int output_levs = num_levels;
+
+    Vector<IntVect> outputRR(output_levs);
+    for (int lev = 0; lev < output_levs; ++lev) {
+        outputRR[lev] = IntVect(AMREX_D_DECL(2, 2, 2));
+    }
+
+    const std::string& pltfile = amrex::Concatenate("plt", step, 9);
+    WriteMultiLevelPlotfile(pltfile, output_levs, GetVecOfConstPtrs(output_cc),
+                            varnames, geom, 0.0, level_steps, outputRR);                                   
 }
 
 

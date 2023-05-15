@@ -4,7 +4,32 @@ GMRES::GMRES (const BoxArray& ba_in,
               const DistributionMapping& dmap_in,
               const Geometry& geom_in) {
 
+    define(ba_in, dmap_in, geom_in, ba_in, dmap_in, geom_in,1);
+   
+}
+
+
+GMRES::GMRES (const BoxArray& ba_in,
+              const DistributionMapping& dmap_in,
+              const Geometry& geom_in,
+              const BoxArray& baF_in,
+              const DistributionMapping& dmapF_in,
+              const Geometry& geomF_in, int nlev) {
+
+    define(ba_in, dmap_in, geom_in, baF_in, dmapF_in, geomF_in,nlev);
+}
+
+void
+GMRES::define (const BoxArray& ba_in,
+              const DistributionMapping& dmap_in,
+              const Geometry& geom_in,
+              const BoxArray& baF_in,
+              const DistributionMapping& dmapF_in,
+              const Geometry& geomF_in, int nlev) {
+
     BL_PROFILE_VAR("GMRES::GMRES()", GMRES);
+    
+    nlevels = nlev;
     
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         r_u[d]        .define(convert(ba_in, nodal_flag_dir[d]), dmap_in, 1,                 1);
@@ -20,11 +45,29 @@ GMRES::GMRES (const BoxArray& ba_in,
     tmp_p.define(ba_in, dmap_in,                  1, 0);
     scr_p.define(ba_in, dmap_in,                  1, 0);
     V_p.define  (ba_in, dmap_in,gmres_max_inner + 1, 0); // Krylov vectors
+    
+    if(nlevels>1)
+    {
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            rF_u[d]        .define(convert(baF_in, nodal_flag_dir[d]), dmapF_in, 1,                 1);
+            wF_u[d]        .define(convert(baF_in, nodal_flag_dir[d]), dmapF_in, 1,                 0);
+            tmpF_u[d]      .define(convert(baF_in, nodal_flag_dir[d]), dmapF_in, 1,                 0);
+            scrF_u[d]      .define(convert(baF_in, nodal_flag_dir[d]), dmapF_in, 1,                 0);
+            VF_u[d]        .define(convert(baF_in, nodal_flag_dir[d]), dmapF_in, gmres_max_inner+1, 0);
+            alphainvF_fc[d].define(convert(baF_in, nodal_flag_dir[d]), dmapF_in, 1, 0);
+        }
+
+        rF_p.define  (baF_in, dmapF_in,                  1, 1);
+        wF_p.define  (baF_in, dmapF_in,                  1, 0);
+        tmpF_p.define(baF_in, dmapF_in,                  1, 0);
+        scrF_p.define(baF_in, dmapF_in,                  1, 0);
+        VF_p.define  (baF_in, dmapF_in,gmres_max_inner + 1, 0); // Krylov vectors
+    
+    }
 
     StagSolver.Define(ba_in,dmap_in,geom_in);
     Pcon.Define(ba_in,dmap_in,geom_in);
 }
-
 
 void GMRES::Solve (std::array<MultiFab, AMREX_SPACEDIM> & b_u, MultiFab & b_p,
                    std::array<MultiFab, AMREX_SPACEDIM> & x_u, MultiFab & x_p,
@@ -32,8 +75,8 @@ void GMRES::Solve (std::array<MultiFab, AMREX_SPACEDIM> & b_u, MultiFab & b_p,
                    MultiFab & beta, std::array<MultiFab, NUM_EDGE> & beta_ed,
                    MultiFab & gamma,
                    Real theta_alpha,
-                   const Geometry & geom,
-                   Real & norm_pre_rhs)
+                   Geometry & geom,
+                   Real & norm_pre_rhs, int nlev)
 {
 
     BL_PROFILE_VAR("GMRES::Solve()", GMRES_Solve);

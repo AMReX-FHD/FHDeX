@@ -35,9 +35,9 @@ void PrintMF (const MultiFab& MF, int comp_lo, int comp_hi)
                 comp_top = comp_hi;            
             }
             
-            for (auto k = lo[2]; k <= hi[2]; ++k) {
-            for (auto j = lo[1]; j <= hi[1]; ++j) {
-            for (auto ii = lo[0]; ii <= hi[0]; ++ii) {
+            for (auto k = lo[2]-MF.nGrow(2); k <= hi[2]+MF.nGrow(2); ++k) {
+            for (auto j = lo[1]-MF.nGrow(1); j <= hi[1]+MF.nGrow(1); ++j) {
+            for (auto ii = lo[0]-MF.nGrow(0); ii <= hi[0]+MF.nGrow(0); ++ii) {
             for (auto comp = comp_lo; comp <= comp_top; ++comp) {
 #if (AMREX_SPACEDIM == 2)
                 std::cout << "i, j, comp" << " "
@@ -56,7 +56,7 @@ void PrintMF (const MultiFab& MF, int comp_lo, int comp_hi)
             }
             }
         }
-        
+
         // add this barrier so only one grid gets printed out at a time
         ParallelDescriptor::Barrier();
         

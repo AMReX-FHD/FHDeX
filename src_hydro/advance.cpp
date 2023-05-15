@@ -20,7 +20,7 @@ void advanceStokes(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                    MultiFab& beta,
                    MultiFab& gamma,
                    std::array< MultiFab, NUM_EDGE >& beta_ed,
-                   const Geometry geom, const Real& dt)
+                   Geometry geom, const Real& dt)
 {
     BL_PROFILE_VAR("advanceStokes()",advance);
           
@@ -51,8 +51,6 @@ void advanceStokes(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         MultiFab::Add(gmres_rhs_u[d], sourceTerms[d], 0, 0, 1, 0);
     }
 
-    PrintMF(gmres_rhs_u[0],0,0);
-
     if (zero_net_force == 1)
     {
         Vector<Real> mean_stress_umac(AMREX_SPACEDIM);
@@ -81,6 +79,8 @@ void advanceStokes(std::array< MultiFab, AMREX_SPACEDIM >& umac,
             }
         }
     }
+    
+    //PrintMF(alpha_fc[0],0,0);
       
     // call GMRES
     GMRES gmres(ba,dmap,geom);
@@ -95,6 +95,9 @@ void advanceStokes(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     }
 }
 
+
+
+
 void advanceLowMach(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
 	       std::array< MultiFab, AMREX_SPACEDIM >& umacNew,
 	       MultiFab& pres, MultiFab& tracer,
@@ -103,7 +106,7 @@ void advanceLowMach(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
                std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
 	       const MultiFab& beta, const MultiFab& gamma,
 	       const std::array< MultiFab, NUM_EDGE >& beta_ed,
-	       const Geometry geom, const Real& dt)
+	       Geometry geom, const Real& dt)
 {
 
   BL_PROFILE_VAR("advance()",advance);

@@ -1,5 +1,31 @@
 #include "common_functions.H"
 
+void AverageFaceToCC(const MultiFab& face_in, MultiFab& cc_in, int dir, int cc_comp)
+{
+
+    BL_PROFILE_VAR("AverageFaceToCC()",AverageFaceToCC);
+
+    // Loop over boxes (note that mfi takes a cell-centered multifab as an argument)
+    for (MFIter mfi(cc_in,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
+
+        const Box& bx = mfi.tilebox();
+
+        Array4<Real const> const& face = face_in.array(mfi);
+
+        Array4<Real> const& cc = cc_in.array(mfi);
+
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            if(dir==0){
+                cc(i,j,k,cc_comp  ) = 0.5*(face(i+1,j,k) + face(i,j,k));}
+            else if(dir==1){
+                cc(i,j,k,cc_comp) = 0.5*(face(i,j+1,k) + face(i,j,k));}
+            else{
+                cc(i,j,k,cc_comp) = 0.5*(face(i,j,k+1) + face(i,j,k));}
+        });
+    }
+}
+
 void AverageFaceToCC(const std::array<MultiFab, AMREX_SPACEDIM>& face_in,
                      MultiFab& cc_in, int cc_comp)
 {
