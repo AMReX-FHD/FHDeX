@@ -609,6 +609,7 @@ void FhdParticleContainer::computeForcesCoulombGPU(long totalParticles) {
     Print() << "Finished Coulomb calculation\n";
 }
 
+/* currently commented out for bond representations WIP
 void FhdParticleContainer::computeForcesFENEGPU(long totalParticles) {
 
     BL_PROFILE_VAR("computeForcesFENE()",computeForcesFENE);
@@ -772,8 +773,8 @@ void FhdParticleContainer::computeForcesFENEGPU(long totalParticles) {
                               for(int kk = -images; kk <= images; kk++)
                               {
 
-				 /* For now, one particle on the chain only interact with
-				  *   one particle before and one particle after. */
+				 // For now, one particle on the chain only interact with
+				 //   one particle before and one particle after. 
 
 	                         //Print() << part.idata(FHD_intData::prev) << "\n";
                                  // get distance with previous particle
@@ -967,7 +968,9 @@ void FhdParticleContainer::computeForcesFENEGPU(long totalParticles) {
 
     Print() << "Finished FENE calculation\n";
 }
+*/
 
+/* currently commented out for bond representations WIP
 void FhdParticleContainer::computeForcesSpringGPU(long totalParticles) {
 
     BL_PROFILE_VAR("computeForcesSpring",computeForcesSpring);
@@ -1138,8 +1141,8 @@ void FhdParticleContainer::computeForcesSpringGPU(long totalParticles) {
                               for(int kk = -images; kk <= images; kk++)
                               {
 
-				 /* For now, one particle on the chain only interact with
-				  *   one particle before and one particle after. */
+				 // For now, one particle on the chain only interact with
+				 //   one particle before and one particle after. 
 
 	                         //Print() << part.idata(FHD_intData::prev) << "\n";
                                  // get distance with previous particle
@@ -1331,6 +1334,145 @@ void FhdParticleContainer::computeForcesSpringGPU(long totalParticles) {
 
     Print() << "Finished spring force calculation\n";
 
+
+}
+*/
+
+void FhdParticleContainer::computeForcesBondGPU(long totalParticles) {
+
+    BL_PROFILE_VAR("computeForcesSpring",computeForcesSpring);
+
+    using namespace amrex;
+
+    const int lev = 0;
+
+//    Real posx[totalParticles];
+    //Gpu::ManagedVector<Real> posx;
+    //posx.resize(totalParticles);
+    //Real * posxPtr = posx.dataPtr();
+    //
+    //Gpu::ManagedVector<Real> posy;
+    //posy.resize(totalParticles);
+    //Real * posyPtr = posy.dataPtr();
+    //
+    //Gpu::ManagedVector<Real> posz;
+    //posz.resize(totalParticles);
+    //Real * poszPtr = posz.dataPtr();
+
+    //Gpu::ManagedVector<int> groupid;
+    //groupid.resize(totalParticles);
+    //int * groupidPtr = groupid.dataPtr();
+    Vector<Real> posxVec;
+    Vector<Real> posyVec;
+    Vector<Real> poszVec;
+    Vector<int> groupidVec;
+
+    Print() << "Calculating spring force for molecules\n";
+
+    // collect particle positions onto one processor
+    PullDown(0, posxVec, FHD_realData::ax);
+    PullDown(0, posyVec, FHD_realData::ay);
+    PullDown(0, poszVec, FHD_realData::az);
+    PullDownInt(0, groupidVec, FHD_intData::groupid);
+
+    //Print() << groupidPtr[1] << "\n";
+
+    /*----outside-for-loop method: building force vectors-------------------------------------------------------------------------*/
+    //Vectors for storing forces in each direction
+    //Vector<Real> fx(totalParticles);
+    //for (auto & x:fx) x = 0.;
+    //Vector<Real> fy(totalParticles);
+    //for (auto & x:fy) x = 0.;
+    //Vector<Real> fz(totalParticles);
+    //for (auto & x:fz) x = 0.;
+
+    //// calculate force vectors on rank 0, and update particle attributes using MPI/GPU
+    ////   requires bond input file have no repeated bonds, e.g. input file only has 1-2, no 2-1
+    ////   we use id_global as the indices for the force vectors
+    //for (int i_part=0; i_part<totalParticles; i_part++) { // i_part is the id_global for atom1
+
+    //    int p1 = id_global_map[i_part]; // p1 is the mapped index for atom1 based on PID Map
+
+    //    for (int i_bond=head_index[i_part]; i_bond<head_index[i_part+1]; i_bond++) { // head_index stores atom2 that is bonded to atom1, where atom1 is sorted based on id_global with ascending order
+
+    //        int p2 = id_global_map[bond_atom[i_bond]]; // bond_atom[i_bond] is the id_global for atom2; p2 is the mapped index for atom2 based on PID Map
+
+    //        Real k = bond_type[i_bond];
+    //        Real dx = posxVec[p1] - posxVec[p2];
+    //        Real dy = posyVec[p1] - posyVec[p2];
+    //        Real dz = poszVec[p1] - poszVec[p2];
+    //        Real dr2 = dx*dx + dy*dy + dz*dz;
+    //        Real rtdr2 = sqrt(dr2);
+
+    //        if (rtdr2 > 0.0)
+    //        {
+    //           RealVect f_bond;
+
+    //           if (bond_tog = 1) { // hookian bond
+    //               f_bond = bond_hookian_vec(dx, dy, dz, rtdr2, k, x0);
+    //           } else if (bond_tog == 2) { // FENE bond
+    //               f_bond = bond_fene_vec(dx, dy, dz, rtdr2, k, x0);
+    //           }
+
+    //           fx[i_part] += f_bond[0];
+    //           fy[i_part] += f_bond[1];
+    //           fz[i_part] += f_bond[2];
+    //           
+    //           fx[bond_atom[i_bond]] -= f_bond[0];
+    //           fy[bond_atom[i_bond]] -= f_bond[1];
+    //           fz[bond_atom[i_bond]] -= f_bond[2];
+    //           //cout << part.rdata(FHD_realData::forcex) << "\n";
+    //        }
+    //    }
+    //}
+    /*----outside-for-loop method: end building force vectors-------------------------------------------------------------------------*/
+
+    for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) {
+
+        const int grid_id = pti.index();
+        const int tile_id = pti.LocalTileIndex();
+
+        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+        auto& particles = particle_tile.GetArrayOfStructs();
+        const int np = particles.numParticles();
+
+        auto pstruct = particles().dataPtr();
+       
+	/*----outside-for-loop method: updating particle attributes-------------------------------------------------------------------------*/
+        // loop over particles
+        //AMREX_FOR_1D( np, i,
+        //{
+
+        //    ParticleType & part = pstruct[i];
+
+	//    //cout << part.idata(FHD_intData::groupid) << "\n";
+
+	//    if (part.idata(FHD_intData::groupid) > 0)
+	//    { 
+	//       // update using force vector (no calculation here) 
+        //       part.rdata(FHD_realData::forcex) += fx[part.idata(FHD_intData::id_global)];
+        //       part.rdata(FHD_realData::forcey) += fy[part.idata(FHD_intData::id_global)];
+        //       part.rdata(FHD_realData::forcez) += fz[part.idata(FHD_intData::id_global)];
+
+	//    }
+	//});
+	/*----outside-for-loop method: end updating particle attributes-------------------------------------------------------------------------*/
+
+	/*----inside-for-loop method: updating particle attributes-------------------------------------------------------------------------*/
+	/* this section celculates bond forces inside the for loop
+	 * there may be a few ways to do so:
+	 * 1) init particles using full bond input file, which has repeated bond info, e.g. has both 1-2 and 2-1
+	 * 2) not using full bond list, but simultaneously update forces of two bonds associated with the bond. Race condition?
+	 * using 1) for now...
+	 */
+	
+        if (bond_tog != 0)
+        {
+	    compute_forces_bond_gpu(particles, np, id_global_map, posxVec, posyVec, poszVec);
+        }	
+	/*----inside-for-loop method: updating particle attributes-------------------------------------------------------------------------*/
+	
+    }
 
 }
 
@@ -4168,4 +4310,21 @@ void FhdParticleContainer::PostRestart()
 {
     BL_PROFILE_VAR("PostRestart()",PostRestart);
     
+}
+
+void FhdParticleContainer::UpdatePIDMap() {
+    // Calls UpdatePIDMap from base class (IBMarkerContainerBase)
+    IBMarkerContainerBase<FHD_realData, FHD_intData>::UpdatePIDMap();
+
+    //Gpu::ManagedVector<int> globalid;
+    //globalid.resize(totalParticles);
+    //int * globalidPtr = globalid.dataPtr();
+    Vector<int> globalidVec;
+
+    PullDownInt(0, globalidVec, FHD_intData::id_global);
+    
+    for (int i=0; i<globalidVec.size(); i++) {
+        id_global_map.insert(std::make_pair(globalidVec[i],i));
+    }
+
 }

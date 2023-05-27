@@ -4,6 +4,7 @@ namespace common {
 #define MAX_SPECIES 8
 #define MAX_ELEMENT 28 // needs to be MAX_SPECIES*(MAX_SPECIES-1)/2
 #define MAX_GROUPS 20
+#define MAX_BONDS 12
 //////////////
     
     // misc global variables
@@ -68,6 +69,7 @@ namespace common {
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> grav;
     extern AMREX_GPU_MANAGED int nspecies;
     extern AMREX_GPU_MANAGED int ngroups;
+    extern AMREX_GPU_MANAGED int nbonds;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> molmass;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> rhobar;
     extern AMREX_GPU_MANAGED amrex::Real rho0;
@@ -302,6 +304,7 @@ namespace common {
     extern int                        rfd_tog;
     extern AMREX_GPU_MANAGED int      dry_move_tog;
     extern AMREX_GPU_MANAGED int      sr_tog;
+    extern AMREX_GPU_MANAGED int      bond_tog;
     extern int                        graphene_tog;
     extern int                        crange;
     extern int                        thermostat_tog;

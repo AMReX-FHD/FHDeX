@@ -52,6 +52,7 @@ int                        common::project_eos_int;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::grav;
 AMREX_GPU_MANAGED int      common::nspecies;
 AMREX_GPU_MANAGED int      common::ngroups;
+AMREX_GPU_MANAGED int      common::nbonds;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::molmass;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::rhobar;
 AMREX_GPU_MANAGED amrex::Real common::rho0;
@@ -229,6 +230,7 @@ int                        common::move_tog;
 int                        common::rfd_tog;
 AMREX_GPU_MANAGED int      common::dry_move_tog;
 AMREX_GPU_MANAGED int      common::sr_tog;
+AMREX_GPU_MANAGED int      common::bond_tog;
 int                        common::graphene_tog;
 int	                   common::thermostat_tog;
 int	                   common::zero_net_force;
@@ -418,6 +420,7 @@ void InitializeCommonNamespace() {
         diameter[i] = 1.;
     }
     ngroups = 0;
+    nbonds = 0;
 
     // dof (no default)
     for (int i=0; i<MAX_SPECIES; ++i) {
@@ -593,6 +596,7 @@ void InitializeCommonNamespace() {
     // rfd_tog (no default)
     // dry_move_tog (no default)
     // sr_tog (no default)
+    // bond_tog (no default)
     graphene_tog = 0;
     crange = 5;
     thermostat_tog = 0;
@@ -642,6 +646,7 @@ void InitializeCommonNamespace() {
 
     pp.query("nspecies",nspecies);
     pp.query("ngroups",ngroups);
+    pp.query("nbonds",nbonds);
     
     if (pp.queryarr("prob_lo",temp)) {
         for (int i=0; i<3; ++i) {
@@ -1133,6 +1138,7 @@ void InitializeCommonNamespace() {
     pp.query("rfd_tog",rfd_tog);
     pp.query("dry_move_tog",dry_move_tog);
     pp.query("sr_tog",sr_tog);
+    pp.query("bond_tog",bond_tog);
     pp.query("graphene_tog",graphene_tog);
     pp.query("thermostat_tog",thermostat_tog);
     pp.query("zero_net_force",zero_net_force);

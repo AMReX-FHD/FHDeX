@@ -1434,7 +1434,8 @@ void main_driver(const char* argv)
 	}
 
 	//particles.computeForcesSpringGPU(simParticles);
-	particles.computeForcesFENEGPU(simParticles);
+	//particles.computeForcesFENEGPU(simParticles);
+	particles.computeForcesBondGPU(simParticles);
 
         // compute other forces and spread to grid
         particles.SpreadIonsGPU(dx, dxp, geom, umac, RealFaceCoords, efieldCC, source, sourceTemp);

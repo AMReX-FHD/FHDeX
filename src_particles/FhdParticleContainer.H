@@ -66,8 +66,20 @@ struct FHD_realData {
         sigma,
         eepsilon,
         potential,
-	    p3m_radius,
+	p3m_radius,
         spring,
+        bond1,
+	bond2,
+	bond3,
+	bond4,
+	bond5,
+	bond6,
+	bond7,
+	bond8,
+	bond9,
+	bond10,
+	bond11,
+	bond12,
         omega,
         lambda,
         count    // Awesome little trick! (only works if first field is 0)
@@ -92,42 +104,54 @@ struct FHD_realData {
             "pred_forcey",
             "pred_forcez",
             "vx",
-        "vy",
-        "vz",
-        "fx",
-        "fy",
-        "fz",
-        "ux",
-        "uy",
-        "uz",
-        "mass",
-        "R",
-        "q",
-        "accelFactor",
-        "dragFactor",
-        "ox",
-        "oy",
-        "oz",
-        "ax",
-        "ay",
-        "az",
-        "oforcex",
-        "oforcey",
-        "oforcez",
-        "travelTime",
-        "diffAv",
-        "stepCount",
-        "multi",
-        "dryDiff",
-        "wetDiff",
-        "totalDiff",
-        "sigma",
-        "eepsilon",
-        "potential",
-	    "p3m_radius",
-        "spring",
-        "omega",
-        "lambda"
+            "vy",
+            "vz",
+            "fx",
+            "fy",
+            "fz",
+            "ux",
+            "uy",
+            "uz",
+            "mass",
+            "R",
+            "q",
+            "accelFactor",
+            "dragFactor",
+            "ox",
+            "oy",
+            "oz",
+            "ax",
+            "ay",
+            "az",
+            "oforcex",
+            "oforcey",
+            "oforcez",
+            "travelTime",
+            "diffAv",
+            "stepCount",
+            "multi",
+            "dryDiff",
+            "wetDiff",
+            "totalDiff",
+            "sigma",
+            "eepsilon",
+            "potential",
+     	    "p3m_radius",
+            "spring",
+	    "bond1", 
+	    "bond2", 
+	    "bond3", 
+	    "bond4", 
+	    "bond5", 
+	    "bond6", 
+	    "bond7", 
+	    "bond8", 
+	    "bond9", 
+	    "bond10", 
+	    "bond11", 
+	    "bond12", 
+            "omega",
+            "lambda"
         };
     };
 };
@@ -138,6 +162,7 @@ struct FHD_intData {
     //Analogous to particle intData (p.m_data)
     enum {
         sorted,
+	id_global,
         i,
         j,
         k,
@@ -145,15 +170,28 @@ struct FHD_intData {
         visible,
         pinned,
         groupid,
-        prev,
-        next,
+//        prev,
+//        next,
+        bond1,
+	bond2,
+	bond3,
+	bond4,
+	bond5,
+	bond6,
+	bond7,
+	bond8,
+	bond9,
+	bond10,
+	bond11,
+	bond12,
         newSpecies,
         count
     };
 
     static Vector<std::string> names() {
         return Vector<std::string> {
-            "soted",
+            "sorted",
+            "id_global",
             "i",
             "j",
             "k",
@@ -161,8 +199,20 @@ struct FHD_intData {
             "visible",
             "pinned",
 	    "groupid",
-	    "prev",
-	    "next",
+//	    "prev",
+//	    "next",
+	    "bond1", 
+	    "bond2", 
+	    "bond3", 
+	    "bond4", 
+	    "bond5", 
+	    "bond6", 
+	    "bond7", 
+	    "bond8", 
+	    "bond9", 
+	    "bond10", 
+	    "bond11", 
+	    "bond12", 
             "new_species"
         };
     };
@@ -283,6 +333,7 @@ public:
 
     void computeForcesSpringGPU(long totalParticles);
     void computeForcesFENEGPU(long totalParticles);
+    void computeForcesBondGPU(long totalParticles);
 
     void MoveParticlesDSMC(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount,Real time, int* flux);
 
@@ -366,6 +417,8 @@ public:
 
     void ReBin();
 
+    void UpdatePIDMap();
+
     static bool use_neighbor_list;
     static bool sort_neighbor_list;
 
@@ -426,6 +479,9 @@ public:
     // primitive data for passing the above into Fortran
     std::map<int, amrex::BaseFab<int> > m_vector_size;
     std::map<int, amrex::BaseFab<int*> > m_vector_ptrs;
+
+    // mapping id() and cpu() to global id
+    std::map<int,int> id_global_map;
 
     // used to keep track of whether we need to rebuild the above or not
     bool m_vectors_initialized = false;

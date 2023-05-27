@@ -328,6 +328,64 @@ void repulsive_force_grid (      FhdParticleContainer::ParticleType& p1, amrex::
     //cout << "force: " << p1.rdata(FHD_realData::forcex) << ", " << p1.rdata(FHD_realData::forcey) << ", " << p1.rdata(FHD_realData::forcez) << endl;
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void bond_fene (      FhdParticleContainer::ParticleType& part1,
+                      amrex::Real dx, amrex::Real dy, amrex::Real dz, amrex::Real dr, amrex::Real k, amrex::Real x0)
+{
+
+    const Real dr2 = dr*dr;
+    const Real rtdr2 = sqrt(dr2);
+    const Real rlogarg = 1.0 - dr2/x0/x0;
+
+    part1.rdata(FHD_realData::forcex) += -k*dx*rlogarg;
+    part1.rdata(FHD_realData::forcey) += -k*dy*rlogarg;
+    part1.rdata(FHD_realData::forcez) += -k*dz*rlogarg;
+    
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+RealVect bond_fene_vec (     amrex::Real dx, amrex::Real dy, amrex::Real dz, amrex::Real dr, amrex::Real k, amrex::Real x0)
+{
+
+    const Real dr2 = dr*dr;
+    const Real rtdr2 = sqrt(dr2);
+    const Real rlogarg = 1.0 - dr2/x0/x0;
+
+    RealVect f_bond = {dx, dy, dz};
+    f_bond *= -k*rlogarg;
+    
+    return f_bond;
+    
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void bond_hookian (      FhdParticleContainer::ParticleType& part1,
+			 amrex::Real dx, amrex::Real dy, amrex::Real dz, amrex::Real dr, amrex::Real k, amrex::Real x0)
+{
+
+    const Real dr2 = dr*dr;
+    const Real rtdr2 = sqrt(dr2);
+    
+    part1.rdata(FHD_realData::forcex) += k*(-dx/rtdr2)*(rtdr2-x0);
+    part1.rdata(FHD_realData::forcey) += k*(-dy/rtdr2)*(rtdr2-x0);
+    part1.rdata(FHD_realData::forcez) += k*(-dz/rtdr2)*(rtdr2-x0);
+    
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+RealVect bond_hookian_vec (      amrex::Real dx, amrex::Real dy, amrex::Real dz, amrex::Real dr, amrex::Real k, amrex::Real x0)
+{
+
+    const Real dr2 = dr*dr;
+    const Real rtdr2 = sqrt(dr2);
+
+    RealVect f_bond = {dx, dy, dz};
+    f_bond *= -k/rtdr2*(rtdr2-x0);
+
+    return f_bond;
+    
+}
+
 template <typename T>
 amrex::Gpu::DeviceVector<T> getDeviceVector (const amrex::Vector<T>& vec)
 {
@@ -832,6 +890,78 @@ void compute_forces_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
 
     rcount = rcount_d.dataValue();
     rdcount = rdcount_d.dataValue();
+}
+
+void compute_forces_bond_gpu (FhdParticleContainer::AoS& aos, int Np, std::map<int,int> id_global_map,
+		              Vector<Real>& posxVec, Vector<Real>& posyVec, Vector<Real>& poszVec)
+{
+
+    GpuArray<Real, 3> plo = {prob_lo[0], prob_lo[1], prob_lo[2]};
+    GpuArray<Real, 3> phi = {prob_hi[0], prob_hi[1], prob_hi[2]};
+
+    double domx, domy, domz;
+
+    domx = (phi[0] - plo[0]);
+    domy = (phi[1] - plo[1]);
+    domz = (phi[2] - plo[2]);
+
+    Real b = sqrt(3*k_B*T_init[0]/k);
+
+    int imag = (images == 0) ? 1 : images;
+
+    Real maxdist = 0.99*amrex::min(imag * domx,
+                                   //imag * domy,
+                                   imag * domz);
+
+    FhdParticleContainer::ParticleType* pstruct = aos().dataPtr();
+
+    // loop over particles
+    //for(int i = 0; i < Np; i++)
+    AMREX_FOR_1D(Np, i, 
+    {
+	FhdParticleContainer::ParticleType & part = pstruct[i];
+
+        //cout << part.idata(FHD_intData::groupid) << "\n";
+
+        if (part.idata(FHD_intData::groupid) > 0)
+        { 
+            for(int ii = -images; ii <= images; ii++)
+            {
+                for(int jj = -images; jj <= images; jj++)
+                {
+                    for(int kk = -images; kk <= images; kk++)
+                    {
+                        for (int i_bond=0; i_bond<MAX_BONDS; i_bond++) 
+                        {
+                            if (part.idata(FHD_intData::bond1+i_bond) > 0) {
+                               Real dx = part.rdata(FHD_realData::ax)-posxVec[id_global_map[part.idata(FHD_intData::bond1+i_bond)]] - ii*domx;
+                               Real dy = part.rdata(FHD_realData::ay)-posyVec[id_global_map[part.idata(FHD_intData::bond1+i_bond)]] - jj*domy;
+                               Real dz = part.rdata(FHD_realData::az)-poszVec[id_global_map[part.idata(FHD_intData::bond1+i_bond)]] - kk*domz;
+                               Real dr2 = dx*dx + dy*dy + dz*dz;
+                               Real rtdr2 = sqrt(dr2);
+
+                               if (rtdr2 > b*2+x0) {
+                                  cout << "Bad Hookian bond" << "\n";
+                               }
+                               //cout << rtdr2 << "\n";
+
+                               if (rtdr2 > 0.0)
+                               {
+	     	                   if (bond_tog == 1) {
+                                       bond_hookian(part, dx, dy, dz, rtdr2, k, x0); 
+	     		           } else if (bond_tog == 2) {
+	     	                       bond_fene(part, dx, dy, dz, rtdr2, k, x0);
+	     		           }
+                                  //cout << part.rdata(FHD_realData::forcex) << "\n";
+                               }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    });
+
 }
 
 template <typename F>
