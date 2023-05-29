@@ -15,6 +15,7 @@
 #include "electrostatic.H"
 
 #include "particle_functions.H"
+#include "common_functions.H"
 
 #include "chrono"
 
@@ -106,13 +107,25 @@ void main_driver(const char* argv)
     IntVect patch0_lo(AMREX_D_DECL(           2,            2,            2));
     IntVect patch0_hi(AMREX_D_DECL(30, 30, 30));
     
-    IntVect patch1_lo(AMREX_D_DECL(           5,            5,            5));
+    IntVect patch1_lo(AMREX_D_DECL(           5,           5,            5));
     IntVect patch1_hi(AMREX_D_DECL(10,10, 10));
     
     //hydroGrid.addPatch(patch0_lo, patch0_hi);
     hydroGrid.addPatch(patch1_lo, patch1_hi);
     
     hydroGrid.updateGrid();
+    
+   
+    //hydroGrid.source[0][0].setVal(-10);
+    //FillMF(hydroGrid.umac[1][0]);
+    //FaceFillCoarse(hydroGrid.umac,1);
+
+
+   // PrintMFLine(hydroGrid.umac[0][0],0,0,7,7);
+   
+    //VelFillCoarse(hydroGrid.umac);
+    
+    //PrintMFLine(hydroGrid.umac[0][0],0,0,8,8);
     
     DistributionMapping dmap = hydroGrid.DistributionMap(0);
 
@@ -580,7 +593,7 @@ void main_driver(const char* argv)
     // Declare object of StochMomFlux class
     int n_rngs = 1; // we only need 1 stage of random numbers
     StochMomFlux sMfluxC (hydroGrid.boxArray(0),hydroGrid.DistributionMap(0),hydroGrid.Geom(0),n_rngs);
-    StochMomFlux sMfluxF (hydroGrid.boxArray(1),hydroGrid.DistributionMap(1),hydroGrid.Geom(1),n_rngs);
+    //StochMomFlux sMfluxF (hydroGrid.boxArray(1),hydroGrid.DistributionMap(1),hydroGrid.Geom(1),n_rngs);
 
     // weights for random number stages
     Vector< amrex::Real> weights;
@@ -1260,8 +1273,8 @@ void main_driver(const char* argv)
             sMfluxC.fillMomStochastic();
             sMfluxC.StochMomFluxDiv(hydroGrid.stochMfluxdiv[0],0,hydroGrid.eta_cc[0],hydroGrid.eta_ed[0],hydroGrid.temp_cc[0],hydroGrid.temp_ed[0],weights,dt);
             
-            sMfluxF.fillMomStochastic();
-            sMfluxF.StochMomFluxDiv(hydroGrid.stochMfluxdiv[1],0,hydroGrid.eta_cc[1],hydroGrid.eta_ed[1],hydroGrid.temp_cc[1],hydroGrid.temp_ed[1],weights,dt);
+            //sMfluxF.fillMomStochastic();
+            //sMfluxF.StochMomFluxDiv(hydroGrid.stochMfluxdiv[1],0,hydroGrid.eta_cc[1],hydroGrid.eta_ed[1],hydroGrid.temp_cc[1],hydroGrid.temp_ed[1],weights,dt);
 
             // integrator containing inertial terms and predictor/corrector requires 2 RNG stages
             if (fluid_tog ==2) {
@@ -1475,7 +1488,7 @@ void main_driver(const char* argv)
                 structFact_vel   .WritePlotFile(istep,time,hydroGrid.Geom(0) ,"plt_SF_vel");
             }
         }
-        hydroGrid.FillFine();
+        //hydroGrid.FillFine();
         
         //PrintMF(hydroGrid.umac[0][0],0,0);
         // FIXME - AJN: at the moment we are writing out plotfile plot_int-1 also

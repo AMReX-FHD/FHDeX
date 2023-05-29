@@ -3,71 +3,66 @@
 GMRES::GMRES (const BoxArray& ba_in,
               const DistributionMapping& dmap_in,
               const Geometry& geom_in) {
-
-    define(ba_in, dmap_in, geom_in, ba_in, dmap_in, geom_in,1);
+              
+    const Vector<BoxArray> ba(1,ba_in);
+    const Vector<DistributionMapping> dmap(1,dmap_in);
+    const Vector<Geometry> geom(1,geom_in);
+    
+    define(ba, dmap, geom,1);
    
 }
 
+GMRES::GMRES (const Vector<BoxArray>& ba_in,
+              const Vector<DistributionMapping>& dmap_in,
+              const Vector<Geometry>& geom_in, int nlev) {
 
-GMRES::GMRES (const BoxArray& ba_in,
-              const DistributionMapping& dmap_in,
-              const Geometry& geom_in,
-              const BoxArray& baF_in,
-              const DistributionMapping& dmapF_in,
-              const Geometry& geomF_in, int nlev) {
-
-    define(ba_in, dmap_in, geom_in, baF_in, dmapF_in, geomF_in,nlev);
+    define(ba_in, dmap_in, geom_in,1);
 }
-
 void
-GMRES::define (const BoxArray& ba_in,
-              const DistributionMapping& dmap_in,
-              const Geometry& geom_in,
-              const BoxArray& baF_in,
-              const DistributionMapping& dmapF_in,
-              const Geometry& geomF_in, int nlev) {
+GMRES::define (const Vector<BoxArray>& ba_in,
+              const Vector<DistributionMapping>& dmap_in,
+              const Vector<Geometry>& geom_in, int nlev) {
 
     BL_PROFILE_VAR("GMRES::GMRES()", GMRES);
     
     nlevels = nlev;
     
-    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        r_u[d]        .define(convert(ba_in, nodal_flag_dir[d]), dmap_in, 1,                 1);
-        w_u[d]        .define(convert(ba_in, nodal_flag_dir[d]), dmap_in, 1,                 0);
-        tmp_u[d]      .define(convert(ba_in, nodal_flag_dir[d]), dmap_in, 1,                 0);
-        scr_u[d]      .define(convert(ba_in, nodal_flag_dir[d]), dmap_in, 1,                 0);
-        V_u[d]        .define(convert(ba_in, nodal_flag_dir[d]), dmap_in, gmres_max_inner+1, 0);
-        alphainv_fc[d].define(convert(ba_in, nodal_flag_dir[d]), dmap_in, 1, 0);
-    }
+    r_u.resize(nlevels);
+    w_u.resize(nlevels);
+    tmp_u.resize(nlevels);
+    scr_u.resize(nlevels);
+    V_u.resize(nlevels);
+    alphainv_fc.resize(nlevels);
 
-    r_p.define  (ba_in, dmap_in,                  1, 1);
-    w_p.define  (ba_in, dmap_in,                  1, 0);
-    tmp_p.define(ba_in, dmap_in,                  1, 0);
-    scr_p.define(ba_in, dmap_in,                  1, 0);
-    V_p.define  (ba_in, dmap_in,gmres_max_inner + 1, 0); // Krylov vectors
+    r_p.resize(nlevels);
+    w_p.resize(nlevels);
+    tmp_p.resize(nlevels);
+    scr_p.resize(nlevels);
+    V_p.resize(nlevels);
     
-    if(nlevels>1)
+    for(int lev=0;lev<nlevels;++lev)
     {
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
-            rF_u[d]        .define(convert(baF_in, nodal_flag_dir[d]), dmapF_in, 1,                 1);
-            wF_u[d]        .define(convert(baF_in, nodal_flag_dir[d]), dmapF_in, 1,                 0);
-            tmpF_u[d]      .define(convert(baF_in, nodal_flag_dir[d]), dmapF_in, 1,                 0);
-            scrF_u[d]      .define(convert(baF_in, nodal_flag_dir[d]), dmapF_in, 1,                 0);
-            VF_u[d]        .define(convert(baF_in, nodal_flag_dir[d]), dmapF_in, gmres_max_inner+1, 0);
-            alphainvF_fc[d].define(convert(baF_in, nodal_flag_dir[d]), dmapF_in, 1, 0);
+            r_u[lev][d]        .define(convert(ba_in[lev], nodal_flag_dir[d]), dmap_in[lev], 1,                 1);
+            w_u[lev][d]        .define(convert(ba_in[lev], nodal_flag_dir[d]), dmap_in[lev], 1,                 0);
+            tmp_u[lev][d]      .define(convert(ba_in[lev], nodal_flag_dir[d]), dmap_in[lev], 1,                 0);
+            scr_u[lev][d]      .define(convert(ba_in[lev], nodal_flag_dir[d]), dmap_in[lev], 1,                 0);
+            V_u[lev][d]        .define(convert(ba_in[lev], nodal_flag_dir[d]), dmap_in[lev], gmres_max_inner+1, 0);
+            alphainv_fc[lev][d].define(convert(ba_in[lev], nodal_flag_dir[d]), dmap_in[lev], 1, 0);
         }
 
-        rF_p.define  (baF_in, dmapF_in,                  1, 1);
-        wF_p.define  (baF_in, dmapF_in,                  1, 0);
-        tmpF_p.define(baF_in, dmapF_in,                  1, 0);
-        scrF_p.define(baF_in, dmapF_in,                  1, 0);
-        VF_p.define  (baF_in, dmapF_in,gmres_max_inner + 1, 0); // Krylov vectors
-    
+        r_p[lev].define  (ba_in[lev], dmap_in[lev],                  1, 1);
+        w_p[lev].define  (ba_in[lev], dmap_in[lev],                  1, 0);
+        tmp_p[lev].define(ba_in[lev], dmap_in[lev],                  1, 0);
+        scr_p[lev].define(ba_in[lev], dmap_in[lev],                  1, 0);
+        V_p[lev].define  (ba_in[lev], dmap_in[lev], gmres_max_inner + 1, 0); // Krylov vectors
     }
+    
 
-    StagSolver.Define(ba_in,dmap_in,geom_in);
-    Pcon.Define(ba_in,dmap_in,geom_in);
+    StagSolver.Define(ba_in[0],dmap_in[0],geom_in[0]);
+    Pcon.Define(ba_in[0],dmap_in[0],geom_in[0]);
 }
+
 
 void GMRES::Solve (std::array<MultiFab, AMREX_SPACEDIM> & b_u, MultiFab & b_p,
                    std::array<MultiFab, AMREX_SPACEDIM> & x_u, MultiFab & x_p,
@@ -76,6 +71,58 @@ void GMRES::Solve (std::array<MultiFab, AMREX_SPACEDIM> & b_u, MultiFab & b_p,
                    MultiFab & gamma,
                    Real theta_alpha,
                    Geometry & geom,
+                   Real & norm_pre_rhs)
+{
+
+    std::array<MultiFab, AMREX_SPACEDIM>* b_up = &b_u;
+    std::array<MultiFab, AMREX_SPACEDIM>* x_up = &x_u;
+    std::array<MultiFab, NUM_EDGE>* beta_edp = &beta_ed;    
+    std::array<MultiFab, AMREX_SPACEDIM>* alpha_fcp = &alpha_fc;
+         
+    MultiFab* b_pp = &b_p;
+    MultiFab* x_pp = &x_p;
+    MultiFab* gammap = &gamma;   
+    MultiFab* betap = &beta;             
+    Geometry* geomp = &geom;     
+        
+    Solve(b_up,b_pp,x_up,x_pp,alpha_fcp,betap,beta_edp,gammap,theta_alpha,geomp,norm_pre_rhs,1);
+
+
+}
+
+void GMRES::Solve (Vector<std::array<MultiFab, AMREX_SPACEDIM>> & b_u, Vector<MultiFab> & b_p,
+                   Vector<std::array<MultiFab, AMREX_SPACEDIM>> & x_u, Vector<MultiFab> & x_p,
+                   Vector<std::array<MultiFab, AMREX_SPACEDIM>> & alpha_fc,
+                   Vector<MultiFab> & beta, Vector<std::array<MultiFab, NUM_EDGE>> & beta_ed,
+                   Vector<MultiFab> & gamma,
+                   Real theta_alpha,
+                   Vector<Geometry> & geom,
+                   Real & norm_pre_rhs)
+{
+
+    std::array<MultiFab, AMREX_SPACEDIM>* b_up = &b_u[0];
+    std::array<MultiFab, AMREX_SPACEDIM>* x_up = &x_u[0];
+    std::array<MultiFab, NUM_EDGE>* beta_edp = &beta_ed[0];    
+    std::array<MultiFab, AMREX_SPACEDIM>* alpha_fcp = &alpha_fc[0];
+         
+    MultiFab* b_pp = &b_p[0];
+    MultiFab* x_pp = &x_p[0];
+    MultiFab* gammap = &gamma[0];   
+    MultiFab* betap = &beta[0];             
+    Geometry* geomp = &geom[0];          
+        
+    Solve(b_up,b_pp,x_up,x_pp,alpha_fcp,betap,beta_edp,gammap,theta_alpha,geomp,norm_pre_rhs,gamma.size());
+
+
+}
+
+void GMRES::Solve (std::array<MultiFab, AMREX_SPACEDIM>* & b_u, MultiFab* & b_p,
+                   std::array<MultiFab, AMREX_SPACEDIM>* & x_u, MultiFab* & x_p,
+                   std::array<MultiFab, AMREX_SPACEDIM>* & alpha_fc,
+                   MultiFab* & beta, std::array<MultiFab, NUM_EDGE>* & beta_ed,
+                   MultiFab* & gamma,
+                   Real theta_alpha,
+                   Geometry* & geom,
                    Real & norm_pre_rhs, int nlev)
 {
 
@@ -136,20 +183,20 @@ void GMRES::Solve (std::array<MultiFab, AMREX_SPACEDIM> & b_u, MultiFab & b_p,
 
         int is_inhomogeneous = 1;
         
-        r_p.setVal(0.);
-        MultiFabPhysBC(r_p, geom, 0, 1, PRES_BC_COMP);
+        r_p[0].setVal(0.);
+        MultiFabPhysBC(r_p[0], geom[0], 0, 1, PRES_BC_COMP);
 
         for (int i=0; i<AMREX_SPACEDIM; ++i ) {
-            r_u[i].setVal(0.);
-            MultiFabPhysBCMacVel(r_u[i], geom, i, is_inhomogeneous);
+            r_u[0][i].setVal(0.);
+            MultiFabPhysBCMacVel(r_u[0][i], geom[0], i, is_inhomogeneous);
         }
 
-        ApplyMatrix(tmp_u, tmp_p, r_u, r_p, alpha_fc, beta, beta_ed, gamma, theta_alpha, geom,
+        ApplyMatrix(tmp_u, tmp_p, r_u, r_p, alpha_fc, beta, beta_ed, gamma, theta_alpha, geom, nlevels,
                     is_inhomogeneous);
 
-        MultiFab::Subtract(b_p, tmp_p, 0, 0, 1, 0);
+        MultiFab::Subtract(b_p[0], tmp_p[0], 0, 0, 1, 0);
         for (int i=0; i<AMREX_SPACEDIM; ++i) {
-            MultiFab::Subtract(b_u[i], tmp_u[i], 0, 0, 1, 0);
+            MultiFab::Subtract(b_u[0][i], tmp_u[0][i], 0, 0, 1, 0);
         }
 
     }
@@ -164,46 +211,50 @@ void GMRES::Solve (std::array<MultiFab, AMREX_SPACEDIM> & b_u, MultiFab & b_p,
      ***************************************************************************/
 
     // set alphainv_fc to 1/alpha_fc
-    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        alphainv_fc[d].setVal(1.);
-        alphainv_fc[d].divide(alpha_fc[d],0,1,0);
-    }
+    for(int lev=0;lev<nlevels;++lev)
+    {
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            alphainv_fc[lev][d].setVal(1.);
+            alphainv_fc[lev][d].divide(alpha_fc[lev][d],0,1,0);
+        }
+    
 
     // apply scaling factor
-    if (scale_factor != 1.) {
-        theta_alpha = theta_alpha*scale_factor;
+        if (scale_factor != 1.) {
+            theta_alpha = theta_alpha*scale_factor;
 
-        // we will solve for scale*x_p so we need to scale the initial guess
-        x_p.mult(scale_factor, 0, 1, x_p.nGrow());
+            // we will solve for scale*x_p so we need to scale the initial guess
+            x_p[lev].mult(scale_factor, 0, 1, x_p[lev].nGrow());
 
-        // scale the rhs:
-        for (int d=0; d<AMREX_SPACEDIM; ++d)
-            b_u[d].mult(scale_factor,0,1,b_u[d].nGrow());
+            // scale the rhs:
+            for (int d=0; d<AMREX_SPACEDIM; ++d)
+                b_u[lev][d].mult(scale_factor,0,1,b_u[lev][d].nGrow());
 
-        // scale the viscosities:
-        beta.mult(scale_factor, 0, 1, beta.nGrow());
-        gamma.mult(scale_factor, 0, 1, gamma.nGrow());
-        for (int d=0; d<NUM_EDGE; ++d)
-            beta_ed[d].mult(scale_factor, 0, 1, beta_ed[d].nGrow());
+            // scale the viscosities:
+            beta[lev].mult(scale_factor, 0, 1, beta[lev].nGrow());
+            gamma[lev].mult(scale_factor, 0, 1, gamma[lev].nGrow());
+            for (int d=0; d<NUM_EDGE; ++d)
+                beta_ed[lev][d].mult(scale_factor, 0, 1, beta_ed[lev][d].nGrow());
+        }
     }
 
 
     // First application of preconditioner
-    Pcon.Apply(b_u, b_p, tmp_u, tmp_p, alpha_fc, alphainv_fc,
-               beta, beta_ed, gamma, theta_alpha, geom, StagSolver);
+    Pcon.Apply(b_u[0], b_p[0], tmp_u[0], tmp_p[0], alpha_fc[0], alphainv_fc[0],
+               beta[0], beta_ed[0], gamma[0], theta_alpha, geom[0], StagSolver);
 
 
     // preconditioned norm_b: norm_pre_b
-    StagL2Norm(tmp_u, 0, scr_u, norm_u);
-    CCL2Norm(tmp_p, 0, scr_p, norm_p);
+    StagL2Norm(tmp_u[0], 0, scr_u[0], norm_u);
+    CCL2Norm(tmp_p[0], 0, scr_p[0], norm_p);
     norm_p       = p_norm_weight*norm_p;
     norm_pre_b   = sqrt(norm_u*norm_u + norm_p*norm_p);
     norm_pre_rhs = norm_pre_b;
 
 
-    // calculate the l2 norm of rhs
-    StagL2Norm(b_u, 0, scr_u, norm_u);
-    CCL2Norm(b_p, 0, scr_p, norm_p);
+//    // calculate the l2 norm of rhs
+    StagL2Norm(b_u[0], 0, scr_u[0], norm_u);
+    CCL2Norm(b_p[0], 0, scr_p[0], norm_p);
     norm_p = p_norm_weight*norm_p;
     norm_b = sqrt(norm_u*norm_u + norm_p*norm_p);
 
@@ -218,9 +269,9 @@ void GMRES::Solve (std::array<MultiFab, AMREX_SPACEDIM> & b_u, MultiFab & b_p,
 
     if (norm_b <= gmres_abs_tol) {
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
-            x_u[d].setVal(0.);
+            x_u[0][d].setVal(0.);
         }
-        x_p.setVal(0.);
+        x_p[0].setVal(0.);
 
         if (gmres_verbose >= 1) {
             Print() << "GMRES.cpp: converged in 0 iterations since rhs=0" << std::endl;
@@ -231,9 +282,9 @@ void GMRES::Solve (std::array<MultiFab, AMREX_SPACEDIM> & b_u, MultiFab & b_p,
 
 
 
-    ///////////////////
-    // begin outer iteration
-    ///////////////////
+//    ///////////////////
+//    // begin outer iteration
+//    ///////////////////
 
 
 
@@ -246,21 +297,21 @@ void GMRES::Solve (std::array<MultiFab, AMREX_SPACEDIM> & b_u, MultiFab & b_p,
         // Compute tmp = b - Ax
 
         // Calculate tmp = Ax
-        ApplyMatrix(tmp_u, tmp_p, x_u, x_p, alpha_fc, beta, beta_ed, gamma, theta_alpha, geom);
+        ApplyMatrix(tmp_u, tmp_p, x_u, x_p, alpha_fc, beta, beta_ed, gamma, theta_alpha, geom, nlevels);
 
         // tmp = b - Ax
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
-            MultiFab::Subtract(tmp_u[d], b_u[d], 0, 0, 1, 0);
-            tmp_u[d].mult(-1., 0, 1, 0);
+            MultiFab::Subtract(tmp_u[0][d], b_u[0][d], 0, 0, 1, 0);
+            tmp_u[0][d].mult(-1., 0, 1, 0);
         }
-        MultiFab::Subtract(tmp_p, b_p, 0, 0, 1, 0);
-        tmp_p.mult(-1., 0, 1, 0);
+        MultiFab::Subtract(tmp_p[0], b_p[0], 0, 0, 1, 0);
+        tmp_p[0].mult(-1., 0, 1, 0);
 
 
         //_______________________________________________________________________
         // un-preconditioned residuals
-        StagL2Norm(tmp_u, 0, scr_u, norm_u_noprecon);
-        CCL2Norm(tmp_p, 0, scr_p, norm_p_noprecon);
+        StagL2Norm(tmp_u[0], 0, scr_u[0], norm_u_noprecon);
+        CCL2Norm(tmp_p[0], 0, scr_p[0], norm_p_noprecon);
         norm_p_noprecon   = p_norm_weight*norm_p_noprecon;
         norm_resid_Stokes = sqrt(norm_u_noprecon*norm_u_noprecon + norm_p_noprecon*norm_p_noprecon);
 
@@ -286,13 +337,13 @@ void GMRES::Solve (std::array<MultiFab, AMREX_SPACEDIM> & b_u, MultiFab & b_p,
         //_______________________________________________________________________
         // solve for r = M^{-1} tmp
         // We should not be counting these toward the number of mg cycles performed
-        Pcon.Apply(tmp_u, tmp_p, r_u, r_p, alpha_fc, alphainv_fc,
-                   beta, beta_ed, gamma, theta_alpha, geom, StagSolver);
+        Pcon.Apply(tmp_u[0], tmp_p[0], r_u[0], r_p[0], alpha_fc[0], alphainv_fc[0],
+                   beta[0], beta_ed[0], gamma[0], theta_alpha, geom[0], StagSolver);
 
 
         // resid = sqrt(dot_product(r, r))
-        StagL2Norm(r_u, 0, scr_u, norm_u);
-        CCL2Norm(r_p, 0, scr_p, norm_p);
+        StagL2Norm(r_u[0], 0, scr_u[0], norm_u);
+        CCL2Norm(r_p[0], 0, scr_p[0], norm_p);
         norm_p     = p_norm_weight*norm_p;
         norm_resid = sqrt(norm_u*norm_u + norm_p*norm_p);
 
@@ -371,11 +422,11 @@ void GMRES::Solve (std::array<MultiFab, AMREX_SPACEDIM> & b_u, MultiFab & b_p,
         //_______________________________________________________________________
         // Create the first basis in Krylov space: V(1) = r / norm(r)
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
-            MultiFab::Copy(V_u[d], r_u[d], 0, 0, 1, 0);
-            V_u[d].mult(1./norm_resid, 0, 1, 0);
+            MultiFab::Copy(V_u[0][d], r_u[0][d], 0, 0, 1, 0);
+            V_u[0][d].mult(1./norm_resid, 0, 1, 0);
         }
-        MultiFab::Copy(V_p, r_p, 0, 0, 1, 0);
-        V_p.mult(1./norm_resid, 0, 1, 0);
+        MultiFab::Copy(V_p[0], r_p[0], 0, 0, 1, 0);
+        V_p[0].mult(1./norm_resid, 0, 1, 0);
 
         // s = norm(r) * e_0
         std::fill(s.begin(), s.end(), 0.);
@@ -408,16 +459,16 @@ void GMRES::Solve (std::array<MultiFab, AMREX_SPACEDIM> & b_u, MultiFab & b_p,
             // tmp=A*V(i)
             // use r_p and r_u as temporaries to hold ith component of V
             for (int d=0; d<AMREX_SPACEDIM; ++d)
-                MultiFab::Copy(r_u[d], V_u[d], i, 0, 1, 0);
-            MultiFab::Copy(r_p, V_p, i, 0, 1, 0);
+                MultiFab::Copy(r_u[0][d], V_u[0][d], i, 0, 1, 0);
+            MultiFab::Copy(r_p[0], V_p[0], i, 0, 1, 0);
 
-            ApplyMatrix(tmp_u, tmp_p, r_u, r_p, alpha_fc, beta, beta_ed, gamma, theta_alpha, geom);
+            ApplyMatrix(tmp_u, tmp_p, r_u, r_p, alpha_fc, beta, beta_ed, gamma, theta_alpha, geom, nlevels);
 
 
             //___________________________________________________________________
             // w = M^{-1} A*V(i)
-            Pcon.Apply(tmp_u, tmp_p, w_u, w_p, alpha_fc, alphainv_fc,
-                       beta, beta_ed, gamma, theta_alpha, geom, StagSolver);
+            Pcon.Apply(tmp_u[0], tmp_p[0], w_u[0], w_p[0], alpha_fc[0], alphainv_fc[0],
+                       beta[0], beta_ed[0], gamma[0], theta_alpha, geom[0], StagSolver);
 
 
             //___________________________________________________________________
@@ -425,8 +476,8 @@ void GMRES::Solve (std::array<MultiFab, AMREX_SPACEDIM> & b_u, MultiFab & b_p,
             for (int k=0; k<=i; ++k) {
                 // H(k,i) = dot_product(w, V(k))
                 //        = dot_product(w_u, V_u(k))+dot_product(w_p, V_p(k))
-                StagInnerProd(w_u, 0, V_u, k, scr_u, inner_prod_vel);
-                CCInnerProd(w_p, 0, V_p, k, scr_p, inner_prod_pres);
+                StagInnerProd(w_u[0], 0, V_u[0], k, scr_u[0], inner_prod_vel);
+                CCInnerProd(w_p[0], 0, V_p[0], k, scr_p[0], inner_prod_pres);
                 H[k][i] = std::accumulate(inner_prod_vel.begin(), inner_prod_vel.end(), 0.) 
                           + pow(p_norm_weight, 2.0)*inner_prod_pres;
 
@@ -434,18 +485,18 @@ void GMRES::Solve (std::array<MultiFab, AMREX_SPACEDIM> & b_u, MultiFab & b_p,
                 // w = w - H(k,i) * V(k)
                 // use tmp_u and tmp_p as temporaries to hold kth component of V(k)
                 for (int d=0; d<AMREX_SPACEDIM; ++d) {
-                    MultiFab::Copy(tmp_u[d], V_u[d], k, 0, 1, 0);
-                    tmp_u[d].mult(H[k][i], 0, 1, 0);
-                    MultiFab::Subtract(w_u[d], tmp_u[d], 0, 0, 1, 0);
+                    MultiFab::Copy(tmp_u[0][d], V_u[0][d], k, 0, 1, 0);
+                    tmp_u[0][d].mult(H[k][i], 0, 1, 0);
+                    MultiFab::Subtract(w_u[0][d], tmp_u[0][d], 0, 0, 1, 0);
                 }
-                MultiFab::Copy(tmp_p, V_p, k, 0, 1, 0);
-                tmp_p.mult(H[k][i], 0, 1, 0);
-                MultiFab::Subtract(w_p,tmp_p, 0, 0, 1, 0);
+                MultiFab::Copy(tmp_p[0], V_p[0], k, 0, 1, 0);
+                tmp_p[0].mult(H[k][i], 0, 1, 0);
+                MultiFab::Subtract(w_p[0],tmp_p[0], 0, 0, 1, 0);
             }
 
             // H(i+1,i) = norm(w)
-            StagL2Norm(w_u, 0, scr_u, norm_u);
-            CCL2Norm(w_p, 0, scr_p, norm_p);
+            StagL2Norm(w_u[0], 0, scr_u[0], norm_u);
+            CCL2Norm(w_p[0], 0, scr_p[0], norm_p);
             norm_p    = p_norm_weight*norm_p;
             H[i+1][i] = sqrt(norm_u*norm_u + norm_p*norm_p);
 
@@ -454,11 +505,11 @@ void GMRES::Solve (std::array<MultiFab, AMREX_SPACEDIM> & b_u, MultiFab & b_p,
             // V(i+1) = w / H(i+1,i)
             if (H[i+1][i] != 0.) {
                 for (int d=0; d<AMREX_SPACEDIM; ++d) {
-                    MultiFab::Copy(V_u[d], w_u[d], 0, i + 1, 1, 0);
-                    V_u[d].mult(1./H[i+1][i], i + 1, 1, 0);
+                    MultiFab::Copy(V_u[0][d], w_u[0][d], 0, i + 1, 1, 0);
+                    V_u[0][d].mult(1./H[i+1][i], i + 1, 1, 0);
                 }
-                MultiFab::Copy(V_p, w_p, 0, i + 1, 1, 0);
-                V_p.mult(1./H[i+1][i], i + 1, 1, 0);
+                MultiFab::Copy(V_p[0], w_p[0], 0, i + 1, 1, 0);
+                V_p[0].mult(1./H[i+1][i], i + 1, 1, 0);
             } else {
                 Abort("GMRES.cpp: error in orthogonalization");
             }
@@ -500,7 +551,7 @@ void GMRES::Solve (std::array<MultiFab, AMREX_SPACEDIM> & b_u, MultiFab & b_p,
         SolveUTriangular(i_copy-1, H, s, y);
 
         // then, x = x + dot(V(1:i),y(1:i))
-        UpdateSol(x_u,x_p,V_u,V_p,y,i_copy);
+        UpdateSol(x_u[0],x_p[0],V_u[0],V_p[0],y,i_copy);
 
     } while (true); // end of outer loop (do iter=1,gmres_max_outer)
 
@@ -508,7 +559,7 @@ void GMRES::Solve (std::array<MultiFab, AMREX_SPACEDIM> & b_u, MultiFab & b_p,
     //       just enough to destroy the asymmetry in time-advancement codes that
     //       ultimately causes lack of convergence in subsequent gmres calls
     for (int d=0; d<AMREX_SPACEDIM; ++d)
-        x_u[d].OverrideSync(geom.periodicity());
+        x_u[0][d].OverrideSync(geom[0].periodicity());
 
 
     // apply scaling factor
@@ -516,17 +567,17 @@ void GMRES::Solve (std::array<MultiFab, AMREX_SPACEDIM> & b_u, MultiFab & b_p,
         theta_alpha = theta_alpha/scale_factor;
         // the solution we got is scale*x_p
 
-        x_p.mult(1./scale_factor, 0, 1, x_p.nGrow());
+        x_p[0].mult(1./scale_factor, 0, 1, x_p[0].nGrow());
         // unscale the rhs
 
         for (int d=0; d<AMREX_SPACEDIM; ++d)
-            b_u[d].mult(1./scale_factor,0,1,b_u[d].nGrow());
+            b_u[0][d].mult(1./scale_factor,0,1,b_u[0][d].nGrow());
 
         // unscale the viscosities
-        beta.mult(1./scale_factor, 0, 1, beta.nGrow());
-        gamma.mult(1./scale_factor, 0, 1, gamma.nGrow());
+        beta[0].mult(1./scale_factor, 0, 1, beta[0].nGrow());
+        gamma[0].mult(1./scale_factor, 0, 1, gamma[0].nGrow());
         for (int d=0; d<NUM_EDGE; ++d)
-            beta_ed[d].mult(1./scale_factor, 0, 1, beta_ed[d].nGrow());
+            beta_ed[0][d].mult(1./scale_factor, 0, 1, beta_ed[0][d].nGrow());
     }
 
     if (gmres_verbose >= 1) {

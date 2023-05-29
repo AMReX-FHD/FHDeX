@@ -22,7 +22,9 @@
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_ArrayLim.H>
 #include <AMReX_BC_TYPES.H>
-
+#include "hydroAMR.H"
+#include <AMReX_FillPatchUtil.H>
+#include <AMReX_PhysBCFunct.H>
 #include "common_namespace.H"
 
 using namespace common;
@@ -113,13 +115,30 @@ void ComputeDivCC(const MultiFab& vel_in,
                    MultiFab& div_in,
                    int outcomp,
                    const Geometry & geom);
+                   
+///////////////////////////
+// in InterpCoarsen.cpp
+void FaceFillCoarse(Vector<std::array< MultiFab, AMREX_SPACEDIM >>& mf, int map);
+void FaceFillCoarse(std::array<MultiFab, AMREX_SPACEDIM>* & mf, int map);
+void FaceFillCoarse(std::array<MultiFab*, AMREX_SPACEDIM> & mfCoarse,std::array<MultiFab*, AMREX_SPACEDIM> & mfFine, int map);
+
+void FaceFillFine(Vector<std::array< MultiFab, AMREX_SPACEDIM >>& mf, Vector<Geometry> geom,Vector<amrex::BCRec> bcs, int map);
+void FaceFillFine(std::array<MultiFab, AMREX_SPACEDIM>* & mf, Vector<Geometry> geom,Vector<amrex::BCRec> bcs, int map);
+void FaceFillFine(std::array<MultiFab*, AMREX_SPACEDIM> & mfCoarse,std::array<MultiFab*, AMREX_SPACEDIM> & mfFine, Vector<Geometry> geom,Vector<amrex::BCRec> bcs, int map);
+
+void FaceFillGhost(Vector<std::array< MultiFab, AMREX_SPACEDIM >>& mf, Vector<Geometry> geom,Vector<amrex::BCRec> bcs, int map);
+void FaceFillGhost(std::array<MultiFab, AMREX_SPACEDIM>* & mf, Vector<Geometry> geom,Vector<amrex::BCRec> bcs, int map);
+void FaceFillGhost(std::array<MultiFab*, AMREX_SPACEDIM> & mfCoarse,std::array<MultiFab*, AMREX_SPACEDIM> & mfFine, Vector<Geometry> geom,Vector<amrex::BCRec> bcs, int map);
+
+void CellFillFine(Vector<MultiFab>& mf, Vector<Geometry> geom, Vector<amrex::BCRec>  bcs);
+void CellFillCoarse(Vector<MultiFab>& mf, Vector<Geometry> geom);
     
 ///////////////////////////
 // in Debug.cpp
 void PrintMF(const MultiFab& MF, int comp_lo, int comp_hi);
-
+void PrintMFLine (const MultiFab& MF, int comp_lo, int comp_hi, int j, int k);
 void outputMFAscii(const MultiFab& output, std::string filename);
-
+void FillMF (MultiFab& MF);
 ///////////////////////////
 // in SqrtMF.cpp
 void SqrtMF(MultiFab& MF);
