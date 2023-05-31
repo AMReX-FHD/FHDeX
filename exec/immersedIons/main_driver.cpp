@@ -593,7 +593,7 @@ void main_driver(const char* argv)
     // Declare object of StochMomFlux class
     int n_rngs = 1; // we only need 1 stage of random numbers
     StochMomFlux sMfluxC (hydroGrid.boxArray(0),hydroGrid.DistributionMap(0),hydroGrid.Geom(0),n_rngs);
-    //StochMomFlux sMfluxF (hydroGrid.boxArray(1),hydroGrid.DistributionMap(1),hydroGrid.Geom(1),n_rngs);
+    StochMomFlux sMfluxF (hydroGrid.boxArray(1),hydroGrid.DistributionMap(1),hydroGrid.Geom(1),n_rngs);
 
     // weights for random number stages
     Vector< amrex::Real> weights;
@@ -1273,8 +1273,8 @@ void main_driver(const char* argv)
             sMfluxC.fillMomStochastic();
             sMfluxC.StochMomFluxDiv(hydroGrid.stochMfluxdiv[0],0,hydroGrid.eta_cc[0],hydroGrid.eta_ed[0],hydroGrid.temp_cc[0],hydroGrid.temp_ed[0],weights,dt);
             
-            //sMfluxF.fillMomStochastic();
-            //sMfluxF.StochMomFluxDiv(hydroGrid.stochMfluxdiv[1],0,hydroGrid.eta_cc[1],hydroGrid.eta_ed[1],hydroGrid.temp_cc[1],hydroGrid.temp_ed[1],weights,dt);
+            sMfluxF.fillMomStochastic();
+            sMfluxF.StochMomFluxDiv(hydroGrid.stochMfluxdiv[1],0,hydroGrid.eta_cc[1],hydroGrid.eta_ed[1],hydroGrid.temp_cc[1],hydroGrid.temp_ed[1],weights,dt);
 
             // integrator containing inertial terms and predictor/corrector requires 2 RNG stages
             if (fluid_tog ==2) {

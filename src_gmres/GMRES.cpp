@@ -16,7 +16,7 @@ GMRES::GMRES (const Vector<BoxArray>& ba_in,
               const Vector<DistributionMapping>& dmap_in,
               const Vector<Geometry>& geom_in, int nlev) {
 
-    define(ba_in, dmap_in, geom_in,1);
+    define(ba_in, dmap_in, geom_in,nlev);
 }
 void
 GMRES::define (const Vector<BoxArray>& ba_in,
@@ -40,6 +40,8 @@ GMRES::define (const Vector<BoxArray>& ba_in,
     scr_p.resize(nlevels);
     V_p.resize(nlevels);
     
+    Print() << "GMRES defining " << nlevels << " levels\n";
+    
     for(int lev=0;lev<nlevels;++lev)
     {
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
@@ -60,7 +62,7 @@ GMRES::define (const Vector<BoxArray>& ba_in,
     
 
     StagSolver.Define(ba_in[0],dmap_in[0],geom_in[0]);
-    Pcon.Define(ba_in[0],dmap_in[0],geom_in[0]);
+    Pcon.Define(ba_in,dmap_in,geom_in);
 }
 
 
@@ -240,8 +242,8 @@ void GMRES::Solve (std::array<MultiFab, AMREX_SPACEDIM>* & b_u, MultiFab* & b_p,
 
 
     // First application of preconditioner
-    Pcon.Apply(b_u[0], b_p[0], tmp_u[0], tmp_p[0], alpha_fc[0], alphainv_fc[0],
-               beta[0], beta_ed[0], gamma[0], theta_alpha, geom[0], StagSolver);
+    Pcon.Apply(b_u, b_p, tmp_u, tmp_p, alpha_fc, alphainv_fc,
+               beta, beta_ed, gamma, theta_alpha, geom, StagSolver);
 
 
     // preconditioned norm_b: norm_pre_b

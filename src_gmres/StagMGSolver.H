@@ -64,7 +64,14 @@ public:
                const std::array<MultiFab, AMREX_SPACEDIM> & phiorig_fc,
                const Real & theta);
     
-
+    void TopSolve(std::array<MultiFab, AMREX_SPACEDIM>* & alpha_fc,
+                 MultiFab* & beta_cc,
+                 std::array<MultiFab, NUM_EDGE>* & beta_ed,
+                 MultiFab* & gamma_cc,
+                 std::array<MultiFab, AMREX_SPACEDIM>* & phi_fc,
+                 std::array<MultiFab, AMREX_SPACEDIM>* & rhs_fc,
+                 Geometry* & geom,
+                 const Real & theta_alpha, int downup);
     // compute the number of multigrid levels assuming minwidth is the length of the
     // smallest dimension of the smallest grid at the coarsest multigrid level
     int ComputeNlevsMG(const BoxArray & ba);

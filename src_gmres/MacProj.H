@@ -23,12 +23,24 @@ public:
     void Define(const BoxArray& ba,
                 const DistributionMapping& dmap,
                 const Geometry& geom);
+                
+    void Define(const Vector<BoxArray>& ba,
+                const Vector<DistributionMapping>& dmap,
+                const Vector<Geometry>& geom, int nlev);
 
-    void Solve(const std::array<MultiFab, AMREX_SPACEDIM>& alphainv_fc,
+    void Solve(std::array<MultiFab, AMREX_SPACEDIM>& alphainv_fc,
                MultiFab& mac_rhs,
                MultiFab& phi,
-               const Geometry& geom,
+               Geometry& geom,
                bool full_solve=false);
+               
+   void Solve(std::array<MultiFab, AMREX_SPACEDIM>* & alphainv_fc,
+                MultiFab* & mac_rhs,
+                MultiFab* & phi,
+                Geometry* & geom,
+                bool full_solve=false);
+               
+    int nlevels;
     
 };
 

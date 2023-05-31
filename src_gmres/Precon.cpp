@@ -5,12 +5,12 @@ Precon::Precon() {}
 
 void Precon::Define(const Vector<BoxArray>& ba_in,
               const Vector<DistributionMapping>& dmap_in,
-              const Vector<Geometry>& geom_in, int nlev) {
+              const Vector<Geometry>& geom_in) {
 
-    nlevels = nlev;
-    phi.resize(2);
-    mac_rhs.resize(2);
-    gradp.resize(2);
+    nlevels = ba_in.size();
+    phi.resize(nlevels);
+    mac_rhs.resize(nlevels);
+    gradp.resize(nlevels);
     
     for(int lev=0;lev<nlevels;++lev)
     {
@@ -22,7 +22,7 @@ void Precon::Define(const Vector<BoxArray>& ba_in,
         }
     }
     
-    macproj.Define(ba_in[0],dmap_in[0],geom_in[0]);    
+    macproj.Define(ba_in,dmap_in,geom_in, nlevels);    
    
 }
 
@@ -74,7 +74,30 @@ void Precon::Apply(std::array<MultiFab, AMREX_SPACEDIM> & b_u,
     MultiFab* betap = &beta;             
     Geometry* geomp = &geom;     
         
-    Apply(b_up,b_pp,x_up,x_pp,alpha_fcp,alphainv_fcp,betap,beta_edp,gammap,theta_alpha,geomp,1, StagSolver);
+    Apply(b_up,b_pp,x_up,x_pp,alpha_fcp,alphainv_fcp,betap,beta_edp,gammap,theta_alpha,geomp, StagSolver);
+
+
+}
+
+void Precon::Apply(std::array<MultiFab, AMREX_SPACEDIM>* & b_u,
+                   MultiFab*                             & b_p,
+                   Vector<std::array<MultiFab, AMREX_SPACEDIM>> & x_u,
+                   Vector<MultiFab>                             & x_p,
+                   std::array<MultiFab, AMREX_SPACEDIM>* & alpha_fc,
+                   Vector<std::array<MultiFab, AMREX_SPACEDIM>> & alphainv_fc,
+                   MultiFab*                             & beta, 
+                   std::array<MultiFab, NUM_EDGE>*      & beta_ed,
+                   MultiFab*                            & gamma,
+                   const Real                           & theta_alpha,
+                   Geometry*                            & geom,
+                   StagMGSolver& StagSolver)
+{
+
+    std::array<MultiFab, AMREX_SPACEDIM>* x_up = &x_u[0];
+    std::array<MultiFab, AMREX_SPACEDIM>* alphainv_fcp = &alphainv_fc[0];
+    MultiFab* x_pp = &x_p[0];    
+        
+    Apply(b_u,b_p,x_up,x_pp,alpha_fc,alphainv_fcp,beta,beta_ed,gamma,theta_alpha,geom,StagSolver);
 
 
 }
@@ -91,7 +114,6 @@ void Precon::Apply(std::array<MultiFab, AMREX_SPACEDIM>* & b_u,
                    MultiFab*                            & gamma,
                    const Real                           & theta_alpha,
                    Geometry*                            & geom,
-                   int                                    nlevels,
                    StagMGSolver& StagSolver)
 {
 
@@ -134,17 +156,28 @@ void Precon::Apply(std::array<MultiFab, AMREX_SPACEDIM>* & b_u,
         ////////////////////
 
         // x_u^star = A^{-1} b_u
+        if(nlevels>1)
+        {
+            StagSolver.TopSolve(alpha_fc,beta,beta_ed,gamma,x_u,b_u,geom,theta_alpha,0);
+        }
         StagSolver.Solve(alpha_fc[0],beta[0],beta_ed[0],gamma[0],x_u[0],b_u[0],theta_alpha);
+        if(nlevels>1)
+        {
+            StagSolver.TopSolve(alpha_fc,beta,beta_ed,gamma,x_u,b_u,geom,theta_alpha,1);
+        }
 
         ////////////////////
         // STEP 2: Construct RHS for pressure Poisson problem
         ////////////////////
 
         // set mac_rhs = D(x_u^star)
-        ComputeDiv(mac_rhs[0],x_u[0],0,0,1,geom[0],0);
+        for(int lev=0;lev<nlevels;++lev)
+        {
+            ComputeDiv(mac_rhs[lev],x_u[lev],0,0,1,geom[lev],0);
 
         // add b_p to mac_rhs
-        MultiFab::Add(mac_rhs[0],b_p[0],0,0,1,0);
+            MultiFab::Add(mac_rhs[lev],b_p[lev],0,0,1,0);
+        }
 
         ////////////////////
         // STEP 3: Compute x_u
@@ -152,7 +185,7 @@ void Precon::Apply(std::array<MultiFab, AMREX_SPACEDIM>* & b_u,
 
         // use multigrid to solve for Phi
         // x_u^star is only passed in to get a norm for absolute residual criteria
-        macproj.Solve(alphainv_fc[0],mac_rhs[0],phi[0],geom[0]);
+        macproj.Solve(alphainv_fc,mac_rhs,&phi[0],geom);
 
         // x_u = x_u^star - (alpha I)^-1 grad Phi
         SubtractWeightedGradP(x_u[0],alphainv_fc[0],phi[0],gradp[0],geom[0]);

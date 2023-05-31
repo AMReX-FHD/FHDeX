@@ -29,7 +29,7 @@ public:
                 
     void Define(const Vector<BoxArray>& ba_in,
               const Vector<DistributionMapping>& dmap_in,
-              const Vector<Geometry>& geom_in, int nlev);
+              const Vector<Geometry>& geom_in);
 
 
     void Apply(std::array<MultiFab, AMREX_SPACEDIM> & b_u,
@@ -46,6 +46,19 @@ public:
                
    void Apply(std::array<MultiFab, AMREX_SPACEDIM>* & b_u,
                    MultiFab*                             & b_p,
+                   Vector<std::array<MultiFab, AMREX_SPACEDIM>> & x_u,
+                   Vector<MultiFab>                             & x_p,
+                   std::array<MultiFab, AMREX_SPACEDIM>* & alpha_fc,
+                   Vector<std::array<MultiFab, AMREX_SPACEDIM>> & alphainv_fc,
+                   MultiFab*                             & beta, 
+                   std::array<MultiFab, NUM_EDGE>*      & beta_ed,
+                   MultiFab*                            & gamma,
+                   const Real                           & theta_alpha,
+                   Geometry*                            & geom,
+                   StagMGSolver& StagSolver);
+               
+   void Apply(std::array<MultiFab, AMREX_SPACEDIM>* & b_u,
+                   MultiFab*                             & b_p,
                    std::array<MultiFab, AMREX_SPACEDIM>* & x_u,
                    MultiFab*                             & x_p,
                    std::array<MultiFab, AMREX_SPACEDIM>* & alpha_fc,
@@ -55,7 +68,6 @@ public:
                    MultiFab*                            & gamma,
                    const Real                           & theta_alpha,
                    Geometry*                            & geom,
-                   int                                    nlevels,
                    StagMGSolver& StagSolver);
 };
 

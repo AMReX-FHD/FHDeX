@@ -97,7 +97,126 @@ void StagMGSolver::Define(const BoxArray& ba_in,
     
 }
 
+void StagMGSolver::TopSolve(std::array<MultiFab, AMREX_SPACEDIM>* & alpha_fc,
+                         MultiFab* & beta_cc,
+                         std::array<MultiFab, NUM_EDGE>* & beta_ed,
+                         MultiFab* & gamma_cc,
+                         std::array<MultiFab, AMREX_SPACEDIM>* & phi_fc,
+                         std::array<MultiFab, AMREX_SPACEDIM>* & rhs_fc,
+                         Geometry* & geom,
+                         const Real & theta_alpha, int downup)
+{
+    
+    std::array<MultiFab, AMREX_SPACEDIM> Lphi_fc_top;
+    std::array<MultiFab, AMREX_SPACEDIM> alpha_fc_top;
+    
+    Vector<Real> resid0(AMREX_SPACEDIM);
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        BoxArray ba_top = phi_fc[1][d].boxArray();
+        DistributionMapping dmap_top = phi_fc[1][d].DistributionMap();
+        Lphi_fc_top[d].define(convert(ba_top, nodal_flag), dmap_top, 1, 1);
+        alpha_fc_top[d].define(convert(ba_top, nodal_flag), dmap_top, 1, 1);
+    }
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        MultiFab::Copy(alpha_fc_top[d],alpha_fc[1][d],0,0,1,0);
+        alpha_fc_top[d].mult(theta_alpha,0,1,0);
+    }
+    
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
 
+        // fill periodic ghost cells
+        phi_fc[1][d].FillBoundary(geom[0].periodicity());
+    }
+    if(downup==0)
+    {
+        FaceFillCoarse(phi_fc,0);
+        FaceFillGhost(phi_fc,geom,0);
+    }else
+    {
+        FaceFillFine(phi_fc,geom,0);
+    }
+
+    StagApplyOp(geom[1],beta_cc[1],gamma_cc[1],beta_ed[1],
+                phi_fc[1],Lphi_fc_top,alpha_fc_top,geom[1].CellSize(),1.);
+                
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        // compute Lphi - rhs
+        MultiFab::Subtract(Lphi_fc_top[d],rhs_fc[1][d],0,0,1,1);
+
+        // compute L0 norm of Lphi - rhs
+        resid0[d] = Lphi_fc_top[d].norm0();
+// FIXME - need to write an L2 norm for staggered fields
+//        resid0_l2[d] = Lphi_fc_mg[0][d].norm2();
+        //if (stag_mg_verbosity >= 2) {
+            Print() << "Top residual " << d << " " << resid0[d] << std::endl;
+        //}
+    }
+    
+    int color_start, color_end;
+    if (stag_mg_smoother == 0) {
+        color_start = 0;
+        color_end = 0;
+    }
+    else {
+        color_start = 1;
+        color_end = 2*AMREX_SPACEDIM;
+    }
+    for (int m=1; m<=stag_mg_nsmooths_down; ++m) {
+
+        // do the smooths
+        for (int color=color_start; color<=color_end; ++color) {
+
+            // the form of weighted Jacobi we are using is
+            // phi^{k+1} = phi^k + omega*D^{-1}*(rhs-Lphi)
+            // where D is the diagonal matrix containing the diagonal elements of L
+
+            // compute Lphi
+            StagApplyOp(geom[1],beta_cc[1],gamma_cc[1],beta_ed[1],
+                        phi_fc[1],Lphi_fc_top,alpha_fc_top,geom[1].CellSize(),1.,color);
+
+            // update phi = phi + omega*D^{-1}*(rhs-Lphi)
+            StagMGUpdate(phi_fc[1],rhs_fc[1],Lphi_fc_top,alpha_fc_top,
+                         beta_cc[1],beta_ed[1],gamma_cc[1],geom[1].CellSize(),color);
+
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+
+                // set values on physical boundaries
+                //MultiFabPhysBCDomainVel(phi_fc_mg[n][d], geom_mg[n],d);
+
+                // fill periodic ghost cells
+                phi_fc[1][d].FillBoundary(geom[1].periodicity());
+
+                // fill physical ghost cells
+                //MultiFabPhysBCMacVel(phi_fc_mg[n][d], geom_mg[n],d);
+            }
+
+        } // end loop over colors
+
+        // print out residual
+//        if (stag_mg_verbosity >= 4) {
+
+//            // compute Lphi
+//            StagApplyOp(geom_mg[n],beta_cc_mg[n],gamma_cc_mg[n],beta_ed_mg[n],
+//                        phi_fc_mg[n],Lphi_fc_mg[n],alpha_fc_mg[n],dx_mg[n].data(),1.);
+
+//            // now subtract the rest of the RHS from Lphi.
+//            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+//                // compute Lphi - rhs, and report residual
+//                MultiFab::Subtract(Lphi_fc_mg[n][d],rhs_fc_mg[n][d],0,0,1,0);
+//                resid_temp = Lphi_fc_mg[n][d].norm0();
+//                Print() << "Residual for comp " << d << " after    smooth " << m << " at level "
+//                        << n << " " << resid_temp << std::endl;
+//            }
+//        }
+
+    }
+    if(downup==0)
+    {
+        FaceFillCoarse(phi_fc,0);
+    }
+    
+    
+}
 // solve "(theta*alpha*I - L) phi = rhs" using multigrid with Gauss-Seidel relaxation
 // if amrex::Math::abs(visc_type) = 1, L = div beta grad
 // if amrex::Math::abs(visc_type) = 2, L = div [ beta (grad + grad^T) ]

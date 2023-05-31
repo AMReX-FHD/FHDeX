@@ -15,19 +15,6 @@ using namespace amrex;
 class GMRES {
 
     
-    Vector<std::array< MultiFab, AMREX_SPACEDIM >> r_u;
-    Vector<std::array< MultiFab, AMREX_SPACEDIM >> w_u;
-    Vector<std::array< MultiFab, AMREX_SPACEDIM >> tmp_u;
-    Vector<std::array< MultiFab, AMREX_SPACEDIM >> scr_u;
-    Vector<std::array< MultiFab, AMREX_SPACEDIM >> V_u;
-    Vector<std::array< MultiFab, AMREX_SPACEDIM >> alphainv_fc;
-
-    Vector<MultiFab> r_p;
-    Vector<MultiFab> w_p;
-    Vector<MultiFab> tmp_p;
-    Vector<MultiFab> scr_p;
-    Vector<MultiFab> V_p;
-    
 /*    std::array< MultiFab, AMREX_SPACEDIM > rF_u;*/
 /*    std::array< MultiFab, AMREX_SPACEDIM > wF_u;*/
 /*    std::array< MultiFab, AMREX_SPACEDIM > tmpF_u;*/
@@ -47,6 +34,20 @@ class GMRES {
     int nlevels;
 
 public:
+
+    Vector<std::array< MultiFab, AMREX_SPACEDIM >> tmp_u;
+    Vector<std::array< MultiFab, AMREX_SPACEDIM >> r_u;
+    Vector<std::array< MultiFab, AMREX_SPACEDIM >> w_u;
+
+    Vector<std::array< MultiFab, AMREX_SPACEDIM >> scr_u;
+    Vector<std::array< MultiFab, AMREX_SPACEDIM >> V_u;
+    Vector<std::array< MultiFab, AMREX_SPACEDIM >> alphainv_fc;
+
+    Vector<MultiFab> r_p;
+    Vector<MultiFab> w_p;
+    Vector<MultiFab> tmp_p;
+    Vector<MultiFab> scr_p;
+    Vector<MultiFab> V_p;
 
     GMRES (const BoxArray& ba_in,
            const DistributionMapping& dmap_in,
