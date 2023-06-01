@@ -825,6 +825,8 @@ void main_driver(const char* argv)
         ReadCheckPointParticles(particles, ionParticle, dxp);
     }
 
+    particles.UpdatePIDMap();
+
     //Find coordinates of cell faces (fluid grid). May be used for interpolating fields to particle locations
     FindFaceCoords(RealFaceCoords, geom); //May not be necessary to pass Geometry?
 
@@ -1023,6 +1025,10 @@ void main_driver(const char* argv)
 
 //    // Writes instantaneous flow field and some other stuff? Check with Guy.
     //WritePlotFileHydro(0, time, geom, umac, pres, umacM);
+    WritePlotFile(0, time, geom, geomC, geomP,
+                  particleInstant, particleMeans, particles,
+                  charge, chargeM, potential, potentialM, efieldCC);
+
     remove("bulkFlowEst");
     remove("partPos");
     //Time stepping loop

@@ -1340,7 +1340,7 @@ void FhdParticleContainer::computeForcesSpringGPU(long totalParticles) {
 
 void FhdParticleContainer::computeForcesBondGPU(long totalParticles) {
 
-    BL_PROFILE_VAR("computeForcesSpring",computeForcesSpring);
+    BL_PROFILE_VAR("computeForcesBond",computeForcesBond);
 
     using namespace amrex;
 
@@ -1362,12 +1362,12 @@ void FhdParticleContainer::computeForcesBondGPU(long totalParticles) {
     //Gpu::ManagedVector<int> groupid;
     //groupid.resize(totalParticles);
     //int * groupidPtr = groupid.dataPtr();
-    Vector<Real> posxVec;
-    Vector<Real> posyVec;
-    Vector<Real> poszVec;
-    Vector<int> groupidVec;
+    Vector<Real> posxVec(totalParticles);
+    Vector<Real> posyVec(totalParticles);
+    Vector<Real> poszVec(totalParticles);
+    Vector<int> groupidVec(totalParticles);
 
-    Print() << "Calculating spring force for molecules\n";
+    Print() << "Calculating bond force for molecules\n";
 
     // collect particle positions onto one processor
     PullDown(0, posxVec, FHD_realData::ax);
@@ -4319,7 +4319,7 @@ void FhdParticleContainer::UpdatePIDMap() {
     //Gpu::ManagedVector<int> globalid;
     //globalid.resize(totalParticles);
     //int * globalidPtr = globalid.dataPtr();
-    Vector<int> globalidVec;
+    Vector<int> globalidVec(getTotalNumIDs());
 
     PullDownInt(0, globalidVec, FHD_intData::id_global);
     

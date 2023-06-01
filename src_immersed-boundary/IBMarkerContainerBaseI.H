@@ -384,7 +384,9 @@ void IBMarkerContainerBase<StructReal, StructInt>::loadBonds(int totalP, char* f
     atom_current = -1;
 
     std::ifstream bondFile(filename); // bond file is generated so that atom2 >= atom1
-    for(int i_bond=0; i_bond < common::nbonds; i_bond++) {
+    std::string line;
+    while (std::getline(bondFile, line)) {
+    //for(int i_bond=0; i_bond < common::nbonds; i_bond++) {
 
         bondFile >> atom1;
         bondFile >> atom2;
@@ -393,11 +395,11 @@ void IBMarkerContainerBase<StructReal, StructInt>::loadBonds(int totalP, char* f
         if(atom1>atom_current) 
 	{
 	    atom_current = atom1;
-            head_index[atom_current] = i_bond;
+            head_index[atom_current] = bcount;
         }
 
-        bond_type[i_bond] = k_bond;
-        bond_atom[i_bond] = atom2;
+        bond_type[bcount] = k_bond;
+        bond_atom[bcount] = atom2;
         num_bond[atom1]++;
 
         bcount++;
