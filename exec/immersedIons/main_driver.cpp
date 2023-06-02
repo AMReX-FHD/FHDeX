@@ -1469,47 +1469,56 @@ void main_driver(const char* argv)
 
                 Real check;
 
-		/* Uncomment this section to calculate mobility matrix for pinned particles; this should only run for 1 step
+		/* */
+		// Uncomment this section to calculate mobility matrix for pinned particles; this should only run for 1 step
 		//   if discos-particle wall is regular, we can just calculate mobility matrix on one particle and shift it around.
-//                particles.clearMobilityMatrix();
-//                for(int ii=1;ii<=particles.getTotalPinnedMarkers();ii++)
-//                {
-//                    particles.SetForce(ii,1,0,0);
-//                    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-//                        source    [d].setVal(0.0);      // reset source terms
-//                        sourceTemp[d].setVal(0.0);      // reset source terms
-//                    }
-//                    particles.SpreadIonsGPU(dx, dxp, geom, umac, RealFaceCoords, efieldCC, source, sourceTemp);                
-//                    advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
-//                    particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
-//                    particles.fillMobilityMatrix(ii,0);
-//                    particles.PrintParticles();
-//
-//                    particles.SetForce(ii,0,1,0);
-//                    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-//                        source    [d].setVal(0.0);      // reset source terms
-//                        sourceTemp[d].setVal(0.0);      // reset source terms
-//                    }
-//                    particles.SpreadIonsGPU(dx, dxp, geom, umac, RealFaceCoords, efieldCC, source, sourceTemp);                
-//                    advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
-//                    particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
-//                    particles.fillMobilityMatrix(ii,1);
-//
-//                    particles.SetForce(ii,0,0,1);
-//                    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-//                        source    [d].setVal(0.0);      // reset source terms
-//                        sourceTemp[d].setVal(0.0);      // reset source terms
-//                    }
-//                    particles.SpreadIonsGPU(dx, dxp, geom, umac, RealFaceCoords, efieldCC, source, sourceTemp);                
-//                    advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
-//                    particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
-//                    particles.fillMobilityMatrix(ii,2);
-//
-//
-//                }
-//                particles.writeMat();
-//
-//                particles.invertMatrix();*/
+		if (pinMatrix_tog == 1)
+		{
+                    particles.clearMobilityMatrix();
+                    for(int ii=1;ii<=particles.getTotalPinnedMarkers();ii++)
+                    {
+                        int id_global_pinned = particles.pinnedParticlesIDGlobal[ii];
+
+                        particles.SetForce(id_global_pinned,1,0,0,particles.id_global_map);
+                        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                            source    [d].setVal(0.0);      // reset source terms
+                            sourceTemp[d].setVal(0.0);      // reset source terms
+                        }
+                        particles.SpreadIonsGPU(dx, dxp, geom, umac, RealFaceCoords, efieldCC, source, sourceTemp);                
+                        advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
+                        particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
+                        particles.fillMobilityMatrix(id_global_pinned,0,particles.id_global_map);
+                        particles.PrintParticles();
+
+                        particles.SetForce(id_global_pinned,0,1,0,particles.id_global_map);
+                        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                            source    [d].setVal(0.0);      // reset source terms
+                            sourceTemp[d].setVal(0.0);      // reset source terms
+                        }
+                        particles.SpreadIonsGPU(dx, dxp, geom, umac, RealFaceCoords, efieldCC, source, sourceTemp);                
+                        advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
+                        particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
+                        particles.fillMobilityMatrix(id_global_pinned,1,particles.id_global_map);
+
+                        particles.SetForce(id_global_pinned,0,0,1,particles.id_global_map);
+                        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                            source    [d].setVal(0.0);      // reset source terms
+                            sourceTemp[d].setVal(0.0);      // reset source terms
+                        }
+                        particles.SpreadIonsGPU(dx, dxp, geom, umac, RealFaceCoords, efieldCC, source, sourceTemp);                
+                        advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
+                        particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
+                        particles.fillMobilityMatrix(id_global_pinned,2,particles.id_global_map);
+
+
+                    }
+                    particles.writeMat();
+
+                    particles.invertMatrix();
+
+		    Abort("Finish calculating pinned mobility matrix, thus program aborts. To use pinned mobility matrix, set pinMatrix_tog=0 and rerun");
+		}
+                /* */             
 
 	
                 MultiFab::Add(source[0],sourceRFD[0],0,0,sourceRFD[0].nComp(),sourceRFD[0].nGrow());
@@ -1525,7 +1534,7 @@ void main_driver(const char* argv)
 		
 		//particles.PrintParticles();
 
-                particles.pinnedParticleInversion();
+                particles.pinnedParticleInversion(particles.id_global_map);
 		particles.PrintParticles();
 
                 for (int d=0; d<AMREX_SPACEDIM; ++d) {
@@ -1549,6 +1558,7 @@ void main_driver(const char* argv)
 
             }else
             {
+		// TODO: still missing RFD here?
                 advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
 		//MultiFab::Add(umac[0],externalV[0],0,0,externalV[0].nComp(),externalV[0].nGrow());
 		//MultiFab::Add(umac[1],externalV[1],0,0,externalV[0].nComp(),externalV[1].nGrow());

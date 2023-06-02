@@ -336,7 +336,7 @@ template <typename StructReal, typename StructInt>
 void IBMarkerContainerBase<StructReal, StructInt>::loadPinMatrix(int totalP, char* filename) 
 {
     // timer for profiling
-    BL_PROFILE_VAR("initRankLists()",initRankLists);
+    BL_PROFILE_VAR("loadPinMatrix()",loadPinMatrix);
 
     totalPinnedMarkers = totalP; 
 
@@ -346,6 +346,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::loadPinMatrix(int totalP, cha
 
     //std::ifstream matFile("invOut");
 
+    // this loop is in the order of id_pulldown
     for(int i=0; i<pow(3*totalP,2); i++)
     {
         double read;
@@ -532,6 +533,107 @@ void IBMarkerContainerBase<StructReal, StructInt>::pinnedParticleInversion()
     }
 }
 
+//Find a more efficient way to do this...
+//Using new pulldown. Need id_global_map that maps id_global to id_pulldown
+template <typename StructReal, typename StructInt>
+void IBMarkerContainerBase<StructReal, StructInt>::pinnedParticleInversion(const std::map<int,int>& id_global_map) 
+{
+   // Print() << "inv1, " << totalMarkers;
+    Vector<Real> velx(totalMarkers);
+    Vector<Real> vely(totalMarkers);
+    Vector<Real> velz(totalMarkers);
+    Vector<int>  pinned(totalMarkers);
+    Real  forcex[totalMarkers];
+    Real  forcey[totalMarkers];
+    Real  forcez[totalMarkers];
+
+    PullDown(0, velx, StructReal::velx);
+    PullDown(0, vely, StructReal::vely);
+    PullDown(0, velz, StructReal::velz);
+    PullDownInt(0, pinned, StructInt::pinned);
+  //  Print() << "inv2\n";
+    
+    Real rhs[totalPinnedMarkers*3];
+    Real lhs[totalPinnedMarkers*3];
+    int k = 0;
+    Real rhsNorm = 0;
+    // this loop is looping over id_pulldown
+    for(int i=0;i<totalMarkers;i++)
+    {
+        if(pinned[i] == 1)
+        {
+            rhs[k] = -velx[i];
+            rhs[k+1] = -vely[i];
+            rhs[k+2] = -velz[i];
+
+           // Print() << velx[i] << ", " << vely[i] << ", " << velz[i] << std::endl;
+          //  Print() << rhs[k] << ", " << rhs[k+1] << ", " << rhs[k+2] << std::endl;
+            rhsNorm = rhsNorm + rhs[k]*rhs[k] + rhs[k+1]*rhs[k+1] + rhs[k+2]*rhs[k+2];
+
+            k = k+3;
+        }
+    }
+    //Print() << "rhsNorm: " << sqrt(rhsNorm) << std::endl;
+    //Print() << 3*totalPinnedMarkers << std::endl;
+    for(int i=0;i<(3*totalPinnedMarkers);i++)
+    {
+        lhs[i]=0;
+        for(int j=0;j<(3*totalPinnedMarkers);j++)
+        {
+            lhs[i] = lhs[i] + pinMatrix[i*3*totalPinnedMarkers + j]*rhs[j];
+            //Print() << i << ", " << j << ", " << i*3*totalPinnedMarkers + j << ", " << pinMatrix[i*totalPinnedMarkers + j] << std::endl;
+
+        }
+        //Print() << "LHS debug " << i <<  ", " << lhs[i] << std::endl;
+    }
+
+    k=0;
+    // this loop is looping over id_pulldown
+    for(int i=0;i<totalMarkers;i++)
+    {
+        if(pinned[i] == 1)
+        {
+            forcex[i] = lhs[k];
+            forcey[i] = lhs[k+1];
+            forcez[i] = lhs[k+2];
+
+            k = k+3;
+
+            //Print() << forcex[i] << ", " << forcey[i] << ", " << forcez[i] << std::endl;
+        }
+
+    }
+
+    int lev=0;
+    for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
+
+        PairIndex index(pti.index(), pti.LocalTileIndex());
+        const int np = this->GetParticles(lev)[index].numRealParticles();
+        auto& plev = this->GetParticles(lev);
+        auto& ptile = plev[index];
+        auto& aos   = ptile.GetArrayOfStructs();
+        ParticleType* particles = aos().dataPtr();
+
+        AMREX_FOR_1D( np, i,
+//        for(int i=0; i<np; i++)
+        {
+            ParticleType & part = particles[i];
+            if(part.idata(StructInt::pinned) == 1)
+            {
+	        // map id_global back to id_pulldown, and update
+	        int id_pulldown = id_global_map.at(part.idata(StructInt::id_global));
+                part.rdata(StructReal::forcex) = forcex[id_pulldown];
+                part.rdata(StructReal::forcey) = forcey[id_pulldown];
+                part.rdata(StructReal::forcez) = forcez[id_pulldown];
+
+                //Print() << part.id() << ", " << part.rdata(StructReal::forcex) << ", " << part.rdata(StructReal::forcey) << ", " << part.rdata(StructReal::forcez) << std::endl;
+            }
+
+        }
+        );
+
+    }
+}
 
 template <typename StructReal, typename StructInt>
 void IBMarkerContainerBase<StructReal, StructInt>::PullDown(

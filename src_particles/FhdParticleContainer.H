@@ -294,6 +294,7 @@ public:
     void potentialDistribution(long totalParticles, const int step, const species* particleInfo);
 
     void fillMobilityMatrix(int id, int comp);
+    void fillMobilityMatrix(int id, int comp, const std::map<int,int>& id_global_map);
     void clearMobilityMatrix();
     void writeMat();
 
@@ -307,9 +308,13 @@ public:
     
     void PrintParticles();
     void SetPosition(int id, Real x, Real y, Real z);
+    void SetPosition(int id, Real x, Real y, Real z, const std::map<int,int>& id_global_map);
     void SetVel(int id, Real x, Real y, Real z);
+    void SetVel(int id, Real x, Real y, Real z, const std::map<int,int>& id_global_map);
     void SetForce(int id, Real x, Real y, Real z);
+    void SetForce(int id, Real x, Real y, Real z, const std::map<int,int>& id_global_map);
     void writeVel(int id);
+    void writeVel(int id, const std::map<int,int>& id_global_map);
 
     void MeanSqrCalc(int lev, int step);
     void MeanSqrCalcCM(int lev, int step);
@@ -480,8 +485,11 @@ public:
     std::map<int, amrex::BaseFab<int> > m_vector_size;
     std::map<int, amrex::BaseFab<int*> > m_vector_ptrs;
 
-    // mapping id() and cpu() to global id
+    // mapping id_pulldown (which uses id() and cpu()) to global id
     std::map<int,int> id_global_map;
+
+    // used to store vector of particle id_global for pinned particles
+    amrex::Vector<int> pinnedParticlesIDGlobal;
 
     // used to keep track of whether we need to rebuild the above or not
     bool m_vectors_initialized = false;

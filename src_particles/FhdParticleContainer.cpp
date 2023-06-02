@@ -2946,25 +2946,26 @@ FhdParticleContainer::PrintParticles()
             if(part.idata(FHD_intData::pinned) == 0)
             {
 
-            double bigM  = part.rdata(FHD_realData::totalDiff)/(T_init[0]*k_B);
-            double absForce = sqrt(part.rdata(FHD_realData::forcex)*part.rdata(FHD_realData::forcex) + part.rdata(FHD_realData::forcey)*part.rdata(FHD_realData::forcey) + part.rdata(FHD_realData::forcez)*part.rdata(FHD_realData::forcez));
+                double bigM  = part.rdata(FHD_realData::totalDiff)/(T_init[0]*k_B);
+                double absForce = sqrt(part.rdata(FHD_realData::forcex)*part.rdata(FHD_realData::forcex) + part.rdata(FHD_realData::forcey)*part.rdata(FHD_realData::forcey) + part.rdata(FHD_realData::forcez)*part.rdata(FHD_realData::forcez));
 
-            std::cout << scientific << setprecision(15) << "Particle " << ParallelDescriptor::MyProc() << ", " << part.id() << ", force: " << part.rdata(FHD_realData::forcex) << ", " << part.rdata(FHD_realData::forcey) << ", " << part.rdata(FHD_realData::forcez) << ", " << absForce << std::endl;
-            std::cout << scientific << setprecision(15) << "Particle " << ParallelDescriptor::MyProc() << ", " << part.id() << ", position/q: " << part.pos(0) << ", " << part.pos(1) << ", " << part.pos(2) << ", " << part.rdata(FHD_realData::q) << std::endl;
-            std::cout << scientific << setprecision(15) << "Particle " << ParallelDescriptor::MyProc() << ", " << part.id() << ", vel: " << part.rdata(FHD_realData::velx) << ", " << part.rdata(FHD_realData::vely) << ", " << part.rdata(FHD_realData::velz) << std::endl;
-            std::cout << scientific << setprecision(15) << "Particle " << ParallelDescriptor::MyProc() << ", " << part.id() << ", normalised mobility: " << (part.rdata(FHD_realData::velx)/part.rdata(FHD_realData::forcex))/bigM << ", " << (part.rdata(FHD_realData::vely)/part.rdata(FHD_realData::forcey))/bigM << ", " << (part.rdata(FHD_realData::velz)/part.rdata(FHD_realData::forcez))/bigM << std::endl;
+                std::cout << scientific << setprecision(15) << "Particle " << ParallelDescriptor::MyProc() << ", " << part.id() << ", force: " << part.rdata(FHD_realData::forcex) << ", " << part.rdata(FHD_realData::forcey) << ", " << part.rdata(FHD_realData::forcez) << ", " << absForce << std::endl;
+                std::cout << scientific << setprecision(15) << "Particle " << ParallelDescriptor::MyProc() << ", " << part.id() << ", position/q: " << part.pos(0) << ", " << part.pos(1) << ", " << part.pos(2) << ", " << part.rdata(FHD_realData::q) << std::endl;
+                std::cout << scientific << setprecision(15) << "Particle " << ParallelDescriptor::MyProc() << ", " << part.id() << ", vel: " << part.rdata(FHD_realData::velx) << ", " << part.rdata(FHD_realData::vely) << ", " << part.rdata(FHD_realData::velz) << std::endl;
+                std::cout << scientific << setprecision(15) << "Particle " << ParallelDescriptor::MyProc() << ", " << part.id() << ", normalised mobility: " << (part.rdata(FHD_realData::velx)/part.rdata(FHD_realData::forcex))/bigM << ", " << (part.rdata(FHD_realData::vely)/part.rdata(FHD_realData::forcey))/bigM << ", " << (part.rdata(FHD_realData::velz)/part.rdata(FHD_realData::forcez))/bigM << std::endl;
 
-            if(part.id() == 1)
-            {
-                std::string filename = "threepmForce";
-                std::ofstream ofs(filename, std::ofstream::app);
-                ofs << part.rdata(FHD_realData::forcey) << ", " << absForce << std::endl;                                                                                                                                                   
-            }
+                if(part.idata(FHD_intData::id_global) == 0)
+                {
+                    std::string filename = "threepmForce";
+                    std::ofstream ofs(filename, std::ofstream::app);
+                    ofs << part.rdata(FHD_realData::forcey) << ", " << absForce << std::endl;                                                                                                                                                   
+                }
             }
         }
     }
 }
 
+// this method is suitable for the case in which particles are generated on Rank 0, i.e. id_global=id_pulldown
 void
 FhdParticleContainer::SetPosition(int id, Real x, Real y, Real z)
 {
@@ -3001,6 +3002,45 @@ FhdParticleContainer::SetPosition(int id, Real x, Real y, Real z)
     fillNeighbors();
 }
 
+// new version which matches the new pulldown
+// using id_global here because it is easier to vector of pinned particles from input file
+void
+FhdParticleContainer::SetPosition(int id, Real x, Real y, Real z, const std::map<int,int>& id_global_map)
+{
+    BL_PROFILE_VAR("SetPosition()",SetPosition);
+    
+    int lev =0;
+
+
+    for(FhdParIter pti(* this, lev); pti.isValid(); ++pti)
+    {
+        PairIndex index(pti.index(), pti.LocalTileIndex());
+
+        AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
+        long np = this->GetParticles(lev).at(index).numParticles();
+
+        for(int i=0;i < np;i++)
+        {
+
+            ParticleType & part = particles[i];
+
+            if(part.idata(FHD_intData::id_global) == id)
+            {
+                part.pos(0) = x;
+                part.pos(1) = y;
+                part.pos(2) = z;
+
+                std::cout << "Rank " << ParallelDescriptor::MyProc() << " particle " << id << " moving to " << x << ", " << y << ", " << z << std::endl;
+            }
+        }
+    }
+    
+    clearNeighbors();
+    Redistribute();
+    fillNeighbors();
+}
+
+// this method is suitable for the case in which particles are generated on Rank 0, i.e. id_global=id_pulldown
 void
 FhdParticleContainer::SetVel(int id, Real x, Real y, Real z)
 {
@@ -3031,6 +3071,39 @@ FhdParticleContainer::SetVel(int id, Real x, Real y, Real z)
     }
 }
 
+// new version which matches the new pulldown
+// using id_global here because it is easier to vector of pinned particles from input file
+void
+FhdParticleContainer::SetVel(int id, Real x, Real y, Real z, const std::map<int,int>& id_global_map)
+{
+    BL_PROFILE_VAR("SetVel()",SetVel);
+    
+    int lev =0;
+
+    for(FhdParIter pti(* this, lev); pti.isValid(); ++pti)
+    {
+        PairIndex index(pti.index(), pti.LocalTileIndex());
+
+        AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
+        long np = this->GetParticles(lev).at(index).numParticles();
+
+        for(int i=0;i < np;i++)
+        {
+
+            ParticleType & part = particles[i];
+
+            if(part.idata(FHD_intData::id_global) == id)
+            {
+                part.rdata(FHD_realData::velx) = x;
+                part.rdata(FHD_realData::vely) = y;
+                part.rdata(FHD_realData::velz) = z;
+            }
+            std::cout << "Rank " << ParallelDescriptor::MyProc() << " particle " << id << " moving to " << x << ", " << y << ", " << z << std::endl;
+        }
+    }
+}
+
+// this method is suitable for the case in which particles are generated on Rank 0, i.e. id_global=id_pulldown
 void
 FhdParticleContainer::SetForce(int id, Real x, Real y, Real z)
 {
@@ -3067,6 +3140,44 @@ FhdParticleContainer::SetForce(int id, Real x, Real y, Real z)
     }
 }
 
+// new version which matches the new pulldown
+// using id_global here because it is easier to vector of pinned particles from input file
+void
+FhdParticleContainer::SetForce(int id, Real x, Real y, Real z, const std::map<int,int>& id_global_map)
+{
+    BL_PROFILE_VAR("SetForce()",SetVel);
+    
+    int lev =0;
+
+    for(FhdParIter pti(* this, lev); pti.isValid(); ++pti)
+    {
+        PairIndex index(pti.index(), pti.LocalTileIndex());
+
+        AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
+        long np = this->GetParticles(lev).at(index).numParticles();
+
+        for(int i=0;i < np;i++)
+        {
+
+            ParticleType & part = particles[i];
+
+            if(part.idata(FHD_intData::id_global) == id)
+            {
+                part.rdata(FHD_realData::forcex) = x;
+                part.rdata(FHD_realData::forcey) = y;
+                part.rdata(FHD_realData::forcez) = z;
+                std::cout << "Rank " << ParallelDescriptor::MyProc() << " particle " << id << " forcing with " << x << ", " << y << ", " << z << std::endl;
+            }else
+            {
+                part.rdata(FHD_realData::forcex) = 0;
+                part.rdata(FHD_realData::forcey) = 0;
+                part.rdata(FHD_realData::forcez) = 0;
+
+            }
+        }
+    }
+}
+
 void
 FhdParticleContainer::clearMobilityMatrix()
 {
@@ -3086,7 +3197,7 @@ FhdParticleContainer::clearMobilityMatrix()
 
 }
 
-
+// this method is suitable for the case in which particles are generated on Rank 0, i.e. id_global=id_pulldown
 void
 FhdParticleContainer::fillMobilityMatrix(int id, int comp)
 {
@@ -3115,8 +3226,8 @@ FhdParticleContainer::fillMobilityMatrix(int id, int comp)
         AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
         long np = this->GetParticles(lev).at(index).numParticles();
 
-//        AMREX_FOR_1D( np, i,
-        for(int i=0;i<np;i++)
+        AMREX_FOR_1D( np, i,
+//        for(int i=0;i<np;i++)
         {
             ParticleType & part = particles[i];
 
@@ -3125,7 +3236,7 @@ FhdParticleContainer::fillMobilityMatrix(int id, int comp)
             velz[part.id()-1] = part.rdata(FHD_realData::velz);
 
         }
-//        );
+        );
 
     }
     
@@ -3180,6 +3291,104 @@ FhdParticleContainer::fillMobilityMatrix(int id, int comp)
 
 }
 
+// new version which matches the new pulldown
+// using id_global here because it is easier to vector of pinned particles from input file
+void
+FhdParticleContainer::fillMobilityMatrix(int id, int comp, const std::map<int,int>& id_global_map)
+{
+    
+    int lev = 0;
+
+    Vector<Real> velx(totalMarkers);
+    Vector<Real> vely(totalMarkers);
+    Vector<Real> velz(totalMarkers);
+    Vector<int>  pinned(totalMarkers);
+    Real  forcex[totalMarkers];
+    Real  forcey[totalMarkers];
+    Real  forcez[totalMarkers];
+
+    int idMap[totalMarkers];
+
+    PullDown(0, velx, FHD_realData::velx);
+    PullDown(0, vely, FHD_realData::vely);
+    PullDown(0, velz, FHD_realData::velz);
+    PullDownInt(0, pinned, FHD_intData::pinned);
+
+    for(FhdParIter pti(* this, lev); pti.isValid(); ++pti)
+    {
+        PairIndex index(pti.index(), pti.LocalTileIndex());
+
+        AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
+        long np = this->GetParticles(lev).at(index).numParticles();
+
+        AMREX_FOR_1D( np, i,
+//        for(int i=0;i<np;i++)
+        {
+            ParticleType & part = particles[i];
+	    int id_pulldown = id_global_map.at(part.idata(FHD_intData::id_global));
+
+            velx[id_pulldown] = part.rdata(FHD_realData::velx);
+            vely[id_pulldown] = part.rdata(FHD_realData::vely);
+            velz[id_pulldown] = part.rdata(FHD_realData::velz);
+
+        }
+        );
+
+    }
+    
+    Real velpin[totalPinnedMarkers*3];
+    int k = 0;
+
+    for(int i=0;i<totalMarkers;i++)
+    {
+        if(pinned[i] == 1)
+        {
+            velpin[k] = velx[i];
+            velpin[k+1] = vely[i];
+            velpin[k+2] = velz[i];
+
+            k = k+3;
+        }
+    }
+
+    k=1;
+    for(int i=0;i<totalMarkers;i++)
+    {
+        if(pinned[i] == 1)
+        {
+            idMap[i] = k;
+            k++;
+        }
+    }
+
+    int id_pulldown = id_global_map.at(id);
+    int realID = idMap[id_pulldown];
+
+    int matrixSize = 3*totalPinnedMarkers;
+
+    for(int i=0;i<matrixSize;i=i+3)
+    {
+        int j = 3*(realID-1) + comp;
+
+        pinMatrix[i*matrixSize +j] += velpin[i];
+
+        pinMatrix[(i+1)*matrixSize +j] += velpin[i+1];
+       
+        pinMatrix[(i+2)*matrixSize +j] += velpin[i+2];
+
+        Print() << "MAT: (" << i << "," << j << "), " << pinMatrix[i*matrixSize+j] << std::endl;
+        Print() << "MAT: (" << (i+1) << "," << j << "), " << pinMatrix[(i+1)*matrixSize+j] << std::endl;
+        Print() << "MAT: (" << (i+2) << "," << j << "), " << pinMatrix[(i+2)*matrixSize+j] << std::endl;
+    }
+
+//    Print() << "Real ID: " << realID << std::endl;
+//    Print() << "MAT: " << pinMatrix[0] << std::endl;
+//    Print() << "MAT: " << pinMatrix[2*matrixSize] << std::endl;
+
+
+}
+
+// this method is suitable for the case in which particles are generated on Rank 0, i.e. id_global=id_pulldown
 void
 FhdParticleContainer::writeVel(int id)
 {
@@ -3228,13 +3437,62 @@ FhdParticleContainer::writeVel(int id)
     }
 }
 
+// new version which matches the new pulldown
+// using id_global here because it is easier to vector of pinned particles from input file
+void
+FhdParticleContainer::writeVel(int id, const std::map<int,int>& id_global_map)
+{
+    
+    int lev =0;
 
+    Real x = 0;
+    Real y = 0;
+    Real z = 0;
 
+    for(FhdParIter pti(* this, lev); pti.isValid(); ++pti)
+    {
+        PairIndex index(pti.index(), pti.LocalTileIndex());
+
+        AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
+        long np = this->GetParticles(lev).at(index).numParticles();
+
+        for(int i=0;i < np;i++)
+        {
+
+            ParticleType & part = particles[i];
+
+            if(part.idata(FHD_intData::id_global) == id)
+            {
+                x = part.rdata(FHD_realData::velx);
+                y = part.rdata(FHD_realData::vely);
+                z = part.rdata(FHD_realData::velz);
+            }
+        }
+    }
+
+    ParallelDescriptor::ReduceRealSum(x);
+    ParallelDescriptor::ReduceRealSum(y);
+    ParallelDescriptor::ReduceRealSum(z);
+
+    if(ParallelDescriptor::MyProc() == 0) {
+
+        std::string filename = "velOut";
+        std::ofstream ofs(filename, std::ofstream::app);
+    
+        ofs << x << std::endl;
+        ofs << y << std::endl;
+        ofs << z << std::endl;
+        
+        ofs.close();
+    }
+}
+
+// all indices in this method should correspond to id_pulldown order
 void
 FhdParticleContainer::invertMatrix() 
 {
     // timer for profiling
-    BL_PROFILE_VAR("invertMatrix()",initRankLists);
+    BL_PROFILE_VAR("invertMatrix()",invertMatrix);
 
 
     if(ParallelDescriptor::MyProc() == 0) {             
@@ -3349,7 +3607,6 @@ FhdParticleContainer::invertMatrix()
     
 }
 
-
 void
 FhdParticleContainer::writeMat()
 {
@@ -3370,7 +3627,7 @@ FhdParticleContainer::writeMat()
             {
                 //ofs << setprecision(15) << pinMatrix[i*matrixSize +j] << std::endl;
 
-                Real element = pinMatrix[i*matrixSize +j];
+                Real element = pinMatrix[i*matrixSize +j]; // Mat is written with id_pulldown order, since it's using pinMatrix.
                 ofs.write( reinterpret_cast<char*>( &element ), sizeof element );
 
             }
@@ -4312,6 +4569,7 @@ void FhdParticleContainer::PostRestart()
     
 }
 
+// Map id_global to index in the pulldown'd vector (with new pulldown that uses id() and cpu())
 void FhdParticleContainer::UpdatePIDMap() {
     // Calls UpdatePIDMap from base class (IBMarkerContainerBase)
     IBMarkerContainerBase<FHD_realData, FHD_intData>::UpdatePIDMap();

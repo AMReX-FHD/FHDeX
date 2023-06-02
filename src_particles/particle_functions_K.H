@@ -892,7 +892,7 @@ void compute_forces_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
     rdcount = rdcount_d.dataValue();
 }
 
-void compute_forces_bond_gpu (FhdParticleContainer::AoS& aos, int Np, std::map<int,int> id_global_map,
+void compute_forces_bond_gpu (FhdParticleContainer::AoS& aos, int Np, std::map<int,int>& id_global_map,
 		              Vector<Real>& posxVec, Vector<Real>& posyVec, Vector<Real>& poszVec)
 {
 

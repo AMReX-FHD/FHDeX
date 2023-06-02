@@ -123,6 +123,7 @@ public:
     void initRankLists(int totalM);
     void loadPinMatrix(int totalP, char* filename);
     void pinnedParticleInversion();
+    void pinnedParticleInversion(const std::map<int,int>& id_global_map);
 
     int getTotalPinnedMarkers();
     Real getPinnedY();

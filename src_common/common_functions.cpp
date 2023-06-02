@@ -231,6 +231,7 @@ int                        common::rfd_tog;
 AMREX_GPU_MANAGED int      common::dry_move_tog;
 AMREX_GPU_MANAGED int      common::sr_tog;
 AMREX_GPU_MANAGED int      common::bond_tog;
+AMREX_GPU_MANAGED int      common::pinMatrix_tog;
 int                        common::graphene_tog;
 int	                   common::thermostat_tog;
 int	                   common::zero_net_force;
@@ -597,6 +598,7 @@ void InitializeCommonNamespace() {
     // dry_move_tog (no default)
     // sr_tog (no default)
     // bond_tog (no default)
+    pinMatrix_tog = 0;
     graphene_tog = 0;
     crange = 5;
     thermostat_tog = 0;
@@ -1139,6 +1141,7 @@ void InitializeCommonNamespace() {
     pp.query("dry_move_tog",dry_move_tog);
     pp.query("sr_tog",sr_tog);
     pp.query("bond_tog",bond_tog);
+    pp.query("pinMatrix_tog",pinMatrix_tog);
     pp.query("graphene_tog",graphene_tog);
     pp.query("thermostat_tog",thermostat_tog);
     pp.query("zero_net_force",zero_net_force);

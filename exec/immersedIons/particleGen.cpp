@@ -22,6 +22,7 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
     int totalParticles = 0;
     int pinnedParticles = 0;
     Real y_lo_wall = 0.0;
+    amrex::Vector<int> pinnedLocalParticlesIDGlobal;
     bool proc0_enter = true;
 
     // calculate accumulate number of particles for species.
@@ -116,6 +117,7 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
                     {
                         pinnedParticles++;
 	                y_lo_wall = p.pos(1); 
+			pinnedLocalParticlesIDGlobal.push_back(p.idata(FHD_intData::id_global));
                     }
 
                     p.rdata(FHD_realData::spring) = 0;
@@ -335,8 +337,13 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
     }
     ParallelDescriptor::ReduceIntSum(pinnedParticles);
     ParallelDescriptor::ReduceRealSum(y_lo_wall);
+    ParallelDescriptor::Gather(pinnedLocalParticlesIDGlobal,0);
 
-    Print() << "Loaded " << pinnedParticles << " pinned particles." << std::endl;
+    if (pinnedParticles != pinnedParticlesIDGlobal.size()) {
+        Abort("Total number of pinned particles mismatch.");
+    } else {
+        Print() << "Loaded " << pinnedParticles << " pinned particles." << std::endl;
+    }
 
     if(pinnedParticles > 0)
     {
@@ -345,6 +352,7 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
 
     totalPinnedMarkers = pinnedParticles;
     pinned_y = y_lo_wall;
+    pinnedParticlesIDGlobal = pinnedLocalParticlesIDGlobal;
 
 
     Redistribute();
