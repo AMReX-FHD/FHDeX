@@ -22,7 +22,6 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
     int totalParticles = 0;
     int pinnedParticles = 0;
     Real y_lo_wall = 0.0;
-    amrex::Vector<int> pinnedLocalParticlesIDGlobal;
     bool proc0_enter = true;
 
     // calculate accumulate number of particles for species.
@@ -70,6 +69,13 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
                 particleFile >> buf_pos0;                       
                 particleFile >> buf_pos1;
                 particleFile >> buf_pos2;
+                particleFile >> buf_species;
+                particleFile >> buf_pinned;
+	        particleFile >> buf_groupid;
+
+		if (buf_pinned == 1) {
+		    pinnedParticlesIDGlobal.push_back(buf_id);
+		}
 
 	        RealVect buf_pos = RealVect{buf_pos0, buf_pos1, buf_pos2};
 
@@ -94,11 +100,11 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
 	            p.pos(1) = buf_pos[1];
 	            p.pos(2) = buf_pos[2];
 
-                    particleFile >> p.idata(FHD_intData::species);
+                    p.idata(FHD_intData::species) = buf_species;
 
-                    particleFile >> p.idata(FHD_intData::pinned);
+                    p.idata(FHD_intData::pinned) = buf_pinned;
 	
-	            particleFile >> p.idata(FHD_intData::groupid);
+	            p.idata(FHD_intData::groupid) = buf_groupid;
 	            //particleFile >> p.idata(FHD_intData::prev);
 	            //particleFile >> p.idata(FHD_intData::next);
 	            for(int i=0; i<MAX_BONDS; i++)
@@ -117,7 +123,6 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
                     {
                         pinnedParticles++;
 	                y_lo_wall = p.pos(1); 
-			pinnedLocalParticlesIDGlobal.push_back(p.idata(FHD_intData::id_global));
                     }
 
                     p.rdata(FHD_realData::spring) = 0;
@@ -204,10 +209,10 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
 
 
 	        }else {
-	            // skip the next three entries because this particle is not in the current tile
-                    particleFile >> buf_species;
-                    particleFile >> buf_pinned;
-	            particleFile >> buf_groupid;
+	            //// skip the next three entries because this particle is not in the current tile
+                    //particleFile >> buf_species;
+                    //particleFile >> buf_pinned;
+	            //particleFile >> buf_groupid;
 	            continue;
 	        }
 
@@ -337,7 +342,6 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
     }
     ParallelDescriptor::ReduceIntSum(pinnedParticles);
     ParallelDescriptor::ReduceRealSum(y_lo_wall);
-    ParallelDescriptor::Gather(pinnedLocalParticlesIDGlobal,0);
 
     if (pinnedParticles != pinnedParticlesIDGlobal.size()) {
         Abort("Total number of pinned particles mismatch.");
@@ -352,8 +356,6 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
 
     totalPinnedMarkers = pinnedParticles;
     pinned_y = y_lo_wall;
-    pinnedParticlesIDGlobal = pinnedLocalParticlesIDGlobal;
-
 
     Redistribute();
     //clearNeighbors();

@@ -108,6 +108,11 @@ void main_driver(const char* argv)
         ngp = 4;
     } 
 
+    // TODO: need a better way to determine ghost cells for bonds
+    if (bond_tog != 0) {
+        ngp = std::max(ngp, 6);
+    }
+
     // staggered velocities
     // umac needs extra ghost cells for Peskin kernels
     // note if we are restarting, these are defined and initialized to the checkpoint data
@@ -1475,7 +1480,7 @@ void main_driver(const char* argv)
 		if (pinMatrix_tog == 1)
 		{
                     particles.clearMobilityMatrix();
-                    for(int ii=1;ii<=particles.getTotalPinnedMarkers();ii++)
+                    for(int ii=0;ii<particles.getTotalPinnedMarkers();ii++)
                     {
                         int id_global_pinned = particles.pinnedParticlesIDGlobal[ii];
 
@@ -1488,7 +1493,8 @@ void main_driver(const char* argv)
                         advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
                         particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
                         particles.fillMobilityMatrix(id_global_pinned,0,particles.id_global_map);
-                        particles.PrintParticles();
+
+                        //particles.PrintParticles();
 
                         particles.SetForce(id_global_pinned,0,1,0,particles.id_global_map);
                         for (int d=0; d<AMREX_SPACEDIM; ++d) {
@@ -1535,7 +1541,8 @@ void main_driver(const char* argv)
 		//particles.PrintParticles();
 
                 particles.pinnedParticleInversion(particles.id_global_map);
-		particles.PrintParticles();
+
+		//particles.PrintParticles();
 
                 for (int d=0; d<AMREX_SPACEDIM; ++d) {
                         source    [d].setVal(0.0);      // reset source terms
@@ -1554,6 +1561,7 @@ void main_driver(const char* argv)
 		//MultiFab::Add(umac[2],externalV[2],0,0,externalV[2].nComp(),externalV[2].nGrow());
                 particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
                 particles.velNorm();
+
 		//particles.PrintParticles();
 
             }else
@@ -1580,7 +1588,8 @@ void main_driver(const char* argv)
                                paramPlaneCount, 3 /*this number currently does nothing, but we will use it later*/);
 
 	    
-	    particles.PrintParticles();
+	    //particles.PrintParticles();
+	    
             // reset statistics after step n_steps_skip
             // if n_steps_skip is negative, we use it as an interval
             if ((n_steps_skip > 0 && istep == n_steps_skip) ||

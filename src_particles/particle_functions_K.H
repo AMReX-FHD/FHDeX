@@ -939,6 +939,7 @@ void compute_forces_bond_gpu (FhdParticleContainer::AoS& aos, int Np, std::map<i
                                Real dz = part.rdata(FHD_realData::az)-poszVec[id_global_map[part.idata(FHD_intData::bond1+i_bond)]] - kk*domz;
                                Real dr2 = dx*dx + dy*dy + dz*dz;
                                Real rtdr2 = sqrt(dr2);
+			       Real k_spring = part.rdata(FHD_realData::bond1+i_bond);
 
                                if (rtdr2 > b*2+x0) {
                                   cout << "Bad Hookian bond" << "\n";
@@ -948,9 +949,9 @@ void compute_forces_bond_gpu (FhdParticleContainer::AoS& aos, int Np, std::map<i
                                if (rtdr2 > 0.0)
                                {
 	     	                   if (bond_tog == 1) {
-                                       bond_hookian(part, dx, dy, dz, rtdr2, k, x0); 
+                                       bond_hookian(part, dx, dy, dz, rtdr2, k_spring, x0); 
 	     		           } else if (bond_tog == 2) {
-	     	                       bond_fene(part, dx, dy, dz, rtdr2, k, x0);
+	     	                       bond_fene(part, dx, dy, dz, rtdr2, k_spring, x0);
 	     		           }
                                   //cout << part.rdata(FHD_realData::forcex) << "\n";
                                }
