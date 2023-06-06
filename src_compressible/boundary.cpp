@@ -276,7 +276,7 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                             fracvec[n] = prim(i,j,k,6+n);
                         }
                         Real temp = prim(i,j,k,4);
-                        Real pt = prim(i,j,k,5);
+                        // Real pt = prim(i,j,k,5);
                         Real rho = prim(i,j,k,0);
                         Real intenergy;
 
@@ -472,7 +472,7 @@ void setBC(MultiFab& prim_in, MultiFab& cons_in)
                             fracvec[n] = prim(i,j,k,6+n);
                         }
                         Real temp = prim(i,j,k,4);
-                        Real pt = prim(i,j,k,5);
+                        // Real pt = prim(i,j,k,5);
                         Real rho = prim(i,j,k,0);
                         Real intenergy;
 
@@ -1970,22 +1970,18 @@ void StochFlux(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in,
 }
 
 void MembraneFlux(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in,
-                  const amrex::Geometry& geom) {
+                  const amrex::Geometry& /*geom*/) {
 
     BL_PROFILE_VAR("MembraneFlux()",MembraneFlux);
 
     // Loop over boxes
     for (MFIter mfi(faceflux_in[0]); mfi.isValid(); ++mfi) {
 
-        AMREX_D_TERM(const Array4<Real> & xflux = (faceflux_in[0]).array(mfi);,
-                     const Array4<Real> & yflux = (faceflux_in[1]).array(mfi);,
-                     const Array4<Real> & zflux = (faceflux_in[2]).array(mfi););
+        const Array4<Real> & xflux = (faceflux_in[0]).array(mfi);
 
         // since the MFIter is built on a nodal MultiFab we need to build the
         // nodal tileboxes for each direction in this way
-        AMREX_D_TERM(Box bx_x = mfi.tilebox(nodal_flag_x);,
-                     Box bx_y = mfi.tilebox(nodal_flag_y);,
-                     Box bx_z = mfi.tilebox(nodal_flag_z););
+        Box bx_x = mfi.tilebox(nodal_flag_x);
 
         if (bx_x.smallEnd(0) == membrane_cell || bx_x.bigEnd(0) == membrane_cell) {
 

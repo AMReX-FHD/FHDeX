@@ -11,8 +11,8 @@ lattice     tri ${lat_const}
 
 variable    n1x equal 300
 variable    n1y equal 150
-variable    n2x equal 8
-variable    n2y equal 8
+variable    n2x equal 4
+variable    n2y equal 4
 variable    Nx equal ${n1x}*${n2x}
 variable    Ny equal ${n1y}*${n2y}
 
@@ -48,7 +48,7 @@ set         i2 value 1 fraction 2.053333e-01     # equilibrium coverage
 
 #event       4 siteA vac   7.562496e+06 spec1 rate       # adsorption of spec1 (rate)
 event       4 siteA vac   1.475765e-11 spec1            # adsorption of spec1 (rate const)
-event       5 siteA spec1 2.926784e+07 vac temp_dep     # desorption of spec1
+event       5 siteA spec1 2.926784e+07 vac              # desorption of spec1
 
 ###########################
 
@@ -68,7 +68,7 @@ mui_init_agg
 variable ts loop ${nstep}
 label ts_loop
     # MPI_FETCH
-    mui_fetch_agg   ${ts} density1 temp Vz
+    mui_fetch_agg   ${ts} density1
 
     ##### if imagefreq
     variable reminder equal ${ts}-${imagfreq}*floor(${ts}/${imagfreq})

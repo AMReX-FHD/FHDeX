@@ -95,7 +95,7 @@
 
   contains_flagellum = true
 
-
+&end
 
 
 &ib_flagellum
@@ -110,4 +110,4 @@
   k_spring   = 1e-3
   k_driving  = 1e-3
 
-
+&end
