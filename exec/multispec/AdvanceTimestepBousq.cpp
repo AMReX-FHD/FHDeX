@@ -132,6 +132,13 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         MultiFab::Copy(umac_old[d],umac[d],0,0,1,1);
     }
 
+    // bds-specific MultiFabs
+    MultiFab rho_tmp;
+    MultiFab rho_update;
+    MultiFab bds_force;
+    MultiFab rho_nd;
+    std::array< MultiFab, AMREX_SPACEDIM > umac_tmp;      
+    
     //////////////////////////////////////////////
     // Step 1: solve for v^{n+1,*} and pi^{n+1/2,*} using GMRES
     //////////////////////////////////////////////
@@ -363,16 +370,64 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     end if
     */
 
-    if (advection_type >= 1) {
+    if (advection_type == 1 || advection_type == 2) {
 
-        Abort("AdvanceTimestepBousq.cpp advection_type >= 1 not supported");
+      // bds advection
+      rho_tmp.define(ba,dmap,nspecies,rho_old.nGrow());
+      rho_update.define(ba,dmap,nspecies,0);
+      bds_force.define(ba,dmap,nspecies,1);
+      rho_nd.define(convert(ba,nodal_flag),dmap,nspecies,1);
+      for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        umac_tmp[d].define(convert(ba,nodal_flag_dir[d]),dmap,1,1);
+      }
 
-    } else {
+      for (int d=0; d<AMREX_SPACEDIM; ++d ) {
+	// create average of umac^n and umac^{n+1,*}
+	umac_tmp[d].setVal(0.,0,1,1);
+	MultiFab::Saxpy(umac_tmp[d],0.5,umac_old[d],0,0,1,1);
+	MultiFab::Saxpy(umac_tmp[d],0.5,umac    [d],0,0,1,1);	
+      }
+
+      // add the diff/stoch/react terms to rho_update
+      MultiFab::Copy(rho_update,diff_mass_fluxdiv,0,0,nspecies,0);
+      if (variance_coef_mass != 0.){
+	MultiFab::Add(rho_update,stoch_mass_fluxdiv,0,0,nspecies,0);
+      }
+      /*
+      if (nreactions > 0) {
+	// call multifab_plus_plus_c(rho_update(n),1,chem_rate(n),1,nspecies,0)
+      }
+      */
+
+      // set to zero to make sure ghost cells behind physical boundaries don't have NaNs
+      bds_force.setVal(0,0,1,1);
+      MultiFab::Copy(bds_force,rho_update,0,0,nspecies,0);
+      bds_force.FillBoundary(geom.periodicity());
+
+       //    ! the input rho_tmp needs to have ghost cells filled with multifab_physbc_extrap
+       //    ! instead of multifab_physbc
+       //    do n=1,nlevs
+       //       call multifab_copy(rho_tmp(n),rho_old(n),rho_tmp(n)%ng)
+       //       call multifab_physbc_extrap(rho_tmp(n),1,c_bc_comp,nspecies, &
+       //                                   the_bc_tower%bc_tower_array(n))
+       //    end do
+
+       //    call average_cc_to_node(nlevs,rho_old,rho_nd,1,c_bc_comp,nspecies,the_bc_tower%bc_tower_array)
+
+       //    ! bds increments rho_update with the advection term
+       //    call bds(mla,umac_tmp,rho_tmp,rho_update,bds_force,rho_fc,rho_nd,dx,0.5d0*dt,1, &
+       //             nspecies,c_bc_comp,the_bc_tower,proj_type_in=proj_type)
+      
+    } else if (advection_type == 0) {
 
         // compute adv_mass_fluxdiv = -rho_i^n * v^n and then
         // increment adv_mass_fluxdiv by -rho_i^n * v^{n+1,*}
         MkAdvSFluxdiv(umac_old,rho_fc,adv_mass_fluxdiv,geom,0,nspecies,false);
         MkAdvSFluxdiv(umac    ,rho_fc,adv_mass_fluxdiv,geom,0,nspecies,true);
+    } else {      
+
+      Abort("Invalid advection_type");
+
     }
 
     //////////////////////////////////////////////
