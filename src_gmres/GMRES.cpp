@@ -83,11 +83,25 @@ void GMRES::Solve (std::array<MultiFab, AMREX_SPACEDIM> & b_u, MultiFab & b_p,
          
     MultiFab* b_pp = &b_p;
     MultiFab* x_pp = &x_p;
-    MultiFab* gammap = &gamma;   
-    MultiFab* betap = &beta;             
-    Geometry* geomp = &geom;     
+    MultiFab* gammap = &gamma;
+    MultiFab* betap = &beta;
+    Geometry* geomp = &geom;
+    
+    MultiFab cc_mask;
+    std::array< MultiFab, AMREX_SPACEDIM > fc_mask;
+    
+    cc_mask.define(gamma.boxArray(),gamma.DistributionMap(), 1, 0);
+    cc_mask.setVal(1);
+    for(int d=0; d<AMREX_SPACEDIM; ++d) {
+
+        fc_mask[d].define(convert(x_u[d].boxArray(),nodal_flag_dir[d]), x_u[d].DistributionMap(), 1, 0);
+        fc_mask[d].setVal(1);       
+    }
+    
+    MultiFab* cc_maskp = &cc_mask;
+    std::array<MultiFab, AMREX_SPACEDIM>* fc_maskp = &fc_mask;
         
-    Solve(b_up,b_pp,x_up,x_pp,alpha_fcp,betap,beta_edp,gammap,theta_alpha,geomp,norm_pre_rhs,1);
+    Solve(b_up,b_pp,x_up,x_pp,alpha_fcp,betap,beta_edp,gammap,cc_maskp,fc_maskp,theta_alpha,geomp,norm_pre_rhs,1);
 
 
 }
@@ -97,6 +111,8 @@ void GMRES::Solve (Vector<std::array<MultiFab, AMREX_SPACEDIM>> & b_u, Vector<Mu
                    Vector<std::array<MultiFab, AMREX_SPACEDIM>> & alpha_fc,
                    Vector<MultiFab> & beta, Vector<std::array<MultiFab, NUM_EDGE>> & beta_ed,
                    Vector<MultiFab> & gamma,
+                   Vector<MultiFab> & cc_mask,
+                   Vector<std::array<MultiFab, AMREX_SPACEDIM>> & fc_mask,                   
                    Real theta_alpha,
                    Vector<Geometry> & geom,
                    Real & norm_pre_rhs)
@@ -106,14 +122,16 @@ void GMRES::Solve (Vector<std::array<MultiFab, AMREX_SPACEDIM>> & b_u, Vector<Mu
     std::array<MultiFab, AMREX_SPACEDIM>* x_up = &x_u[0];
     std::array<MultiFab, NUM_EDGE>* beta_edp = &beta_ed[0];    
     std::array<MultiFab, AMREX_SPACEDIM>* alpha_fcp = &alpha_fc[0];
+    std::array<MultiFab, AMREX_SPACEDIM>* fc_maskp = &fc_mask[0];    
          
     MultiFab* b_pp = &b_p[0];
     MultiFab* x_pp = &x_p[0];
-    MultiFab* gammap = &gamma[0];   
+    MultiFab* gammap = &gamma[0];
+    MultiFab* cc_maskp = &cc_mask[0];      
     MultiFab* betap = &beta[0];             
     Geometry* geomp = &geom[0];          
         
-    Solve(b_up,b_pp,x_up,x_pp,alpha_fcp,betap,beta_edp,gammap,theta_alpha,geomp,norm_pre_rhs,gamma.size());
+    Solve(b_up,b_pp,x_up,x_pp,alpha_fcp,betap,beta_edp,gammap,cc_maskp,fc_maskp,theta_alpha,geomp,norm_pre_rhs,gamma.size());
 
 
 }
@@ -123,6 +141,8 @@ void GMRES::Solve (std::array<MultiFab, AMREX_SPACEDIM>* & b_u, MultiFab* & b_p,
                    std::array<MultiFab, AMREX_SPACEDIM>* & alpha_fc,
                    MultiFab* & beta, std::array<MultiFab, NUM_EDGE>* & beta_ed,
                    MultiFab* & gamma,
+                   MultiFab* & cc_mask,                   
+                   std::array<MultiFab, AMREX_SPACEDIM>* & fc_mask,                   
                    Real theta_alpha,
                    Geometry* & geom,
                    Real & norm_pre_rhs, int nlev)
@@ -243,7 +263,7 @@ void GMRES::Solve (std::array<MultiFab, AMREX_SPACEDIM>* & b_u, MultiFab* & b_p,
 
     // First application of preconditioner
     Pcon.Apply(b_u, b_p, tmp_u, tmp_p, alpha_fc, alphainv_fc,
-               beta, beta_ed, gamma, theta_alpha, geom, StagSolver);
+               beta, beta_ed, gamma, cc_mask, fc_mask, theta_alpha, geom, StagSolver);
 
 
     // preconditioned norm_b: norm_pre_b

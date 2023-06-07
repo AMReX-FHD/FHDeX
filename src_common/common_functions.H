@@ -124,16 +124,27 @@ void FaceFillCoarse(std::array<MultiFab*, AMREX_SPACEDIM> & mfCoarse,std::array<
 
 void FaceFillFine(Vector<std::array< MultiFab, AMREX_SPACEDIM >>& mf, Vector<Geometry> geom,Vector<amrex::BCRec> bcs, int map);
 void FaceFillFine(std::array<MultiFab, AMREX_SPACEDIM>* & mf, Vector<Geometry> geom,Vector<amrex::BCRec> bcs, int map);
+void FaceFillFine(Vector<std::array< MultiFab, AMREX_SPACEDIM >>& mf, Vector<Geometry> geom, int map);
 void FaceFillFine(std::array<MultiFab, AMREX_SPACEDIM>* & mf, Geometry* geom, int map);
 void FaceFillFine(std::array<MultiFab*, AMREX_SPACEDIM> & mfCoarse,std::array<MultiFab*, AMREX_SPACEDIM> & mfFine, Geometry* geom,Vector<amrex::BCRec> bcs, int map);
 
 void FaceFillGhost(Vector<std::array< MultiFab, AMREX_SPACEDIM >>& mf, Vector<Geometry> geom,Vector<amrex::BCRec> bcs, int map);
 void FaceFillGhost(std::array<MultiFab, AMREX_SPACEDIM>* & mf, Vector<Geometry> geom,Vector<amrex::BCRec> bcs, int map);
 void FaceFillGhost(std::array<MultiFab, AMREX_SPACEDIM>* & mf, Geometry* geom, int map);
+void FaceFillGhost(Vector<std::array< MultiFab, AMREX_SPACEDIM >>& mf, Vector<Geometry> geom, int map);
 void FaceFillGhost(std::array<MultiFab*, AMREX_SPACEDIM> & mfCoarse,std::array<MultiFab*, AMREX_SPACEDIM> & mfFine, Geometry* geom,Vector<amrex::BCRec> bcs, int map);
 
-void CellFillFine(Vector<MultiFab>& mf, Vector<Geometry> geom, Vector<amrex::BCRec>  bcs);
 void CellFillCoarse(Vector<MultiFab>& mf, Vector<Geometry> geom);
+void CellFillCoarse(Vector<MultiFab>& mf, Geometry* geom);
+void CellFillCoarse(MultiFab* & mf, Geometry* geom);
+
+void CellFillFineCellFillFine(MultiFab* & mfFine, MultiFab* & mfCoarse, Geometry* geom);
+void CellFillFine(MultiFab* & mfFine, MultiFab* & mfCoarse, Geometry* geom, Vector<amrex::BCRec>  bcs);
+
+void CellFillGhost(Vector<MultiFab> & mf, Vector<Geometry> & geom);
+void CellFillGhost(Vector<MultiFab> & mf, Geometry* geom);
+void CellFillGhost(MultiFab* & mf, Geometry* geom);
+void CellFillGhost(MultiFab* & mfFine, MultiFab* & mfCoarse, Geometry* geom);
     
 ///////////////////////////
 // in Debug.cpp
@@ -154,6 +165,9 @@ Real ComputeSpatialMean(MultiFab& mf, const int& incomp);
 Real ComputeSpatialVariance(MultiFab& mf, const int& incomp);
 
 void ComputeBasicStats(MultiFab & instant, MultiFab & means, 
+                const int incomp, const int outcomp, const int steps);
+                
+void ComputeBasicStats(MultiFab & instant, MultiFab & means, MultiFab & vars, 
                 const int incomp, const int outcomp, const int steps);
 
 void OutputVolumeMean(const MultiFab & instant, const int comp, const Real domainVol, std::string filename, const Geometry geom);

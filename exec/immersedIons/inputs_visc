@@ -6,26 +6,26 @@
   
   amr.v              = 1
   
-  amr.n_cell          = 16 16 16
+  amr.n_cell          = 64 64 64
   amr.max_level       = 1       # maximum level number allowed -- 
                               # number of levels = max_level + 1
 
   amr.ref_ratio       = 2 2 2 2 # refinement ratio between levels
   
-  amr.blocking_factor_x = 1
-  amr.blocking_factor_y = 1
-  amr.blocking_factor_z = 1
+  amr.blocking_factor_x = 4
+  amr.blocking_factor_y = 4
+  amr.blocking_factor_z = 4
 
-  amr.max_grid_size   = 16
+  amr.max_grid_size   = 32
 
 
   # Problem specification
   prob_lo = 0.0 0.0 0.0      # physical lo coordinate
   prob_hi = 1e-5 1e-5 1e-5      # physical hi coordinate
     
-  n_cells = 16 16 16
+  n_cells = 64 64 64
   # max number of cells in a box
-  max_grid_size = 16 16 16
+  max_grid_size = 64 64 32
   max_particle_tile_size = 256 256 256 # set to zero to use max_grid_size, setting a very large number will also use max grid size, but will also ensure that refined es and particle grids will do the same.
 
   # above settings are for fluid grid. EM and particle grid (the grid for finding neighbour lists) are coarsened or refined off these grids. <1 = refine, >1 = coarsen.
@@ -37,11 +37,11 @@
   fixed_dt = 1e-13
 
   # Controls for number of steps between actions
-  max_step = 1
-  plot_int = 1
+  max_step = 200
+  plot_int = 100
   plot_ascii = 0
   struct_fact_int = -1
-  n_steps_skip = 1
+  n_steps_skip = 100
   chk_int  = -1
 
   radialdist_int = 0
@@ -51,7 +51,7 @@
 
   # Toggles 0=off, 1=on
   all_dry = 0
-  fluid_tog = 1 # 0=Do nothing, 1=Do stokes solve, 2=Do low Mach solve
+  fluid_tog = 0 # 0=Do nothing, 1=Do stokes solve, 2=Do low Mach solve
   es_tog = 3 # Do electrostatic solve 0=off, 1=Poisson, 2=Pairwise Coulomb (Doesn't work in parallel), 3=PPPM
   drag_tog = 0 # Apply drag force to fluid
   rfd_tog = 1 # Apply RFD force to fluid

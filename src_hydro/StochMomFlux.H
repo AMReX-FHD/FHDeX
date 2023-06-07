@@ -30,7 +30,7 @@ public:
 
     // initialize n_rngs, geom
     // build MultiFabs to hold random numbers
-    StochMomFlux(BoxArray,DistributionMapping,Geometry,int);
+    StochMomFlux(BoxArray,DistributionMapping,Geometry,int, int gs=0);
 
     // fill mflux_cc and mflux_ed with random numbers
     void fillMomStochastic();

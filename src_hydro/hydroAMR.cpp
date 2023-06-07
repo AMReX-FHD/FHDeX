@@ -31,10 +31,14 @@ hydroAMR::hydroAMR(int ang, int * is_periodic, Real dt_in) : AmrCore() {
     beta.resize(nlevels);
     eta_cc.resize(nlevels);
     temp_cc.resize(nlevels);
+    
+    cc_mask.resize(nlevels);
+    fc_mask.resize(nlevels);
 
     umac.resize(nlevels);
     umacNew.resize(nlevels);    
     umacM.resize(nlevels);
+    umacV.resize(nlevels);    
     alpha_fc.resize(nlevels);
     source.resize(nlevels);
     sourceTemp.resize(nlevels);
@@ -110,6 +114,35 @@ void hydroAMR::updateGrid ()
     const Real time = 0.0;
     regrid(0,time);
     
+    BoxArray bac = boxArray(0);
+    BoxArray baf = boxArray(1);
+
+    cc_mask[0].define(bac,DistributionMap(0), 1, 0);
+    cc_mask[0].setVal(1);
+    for(int d=0; d<AMREX_SPACEDIM; ++d) {
+
+        fc_mask[0][d].define(convert(bac,nodal_flag_dir[d]), DistributionMap(0), 1, 0);
+        fc_mask[0][d].setVal(1);       
+    }
+    
+    if(nlevels>1)
+    {
+        cc_mask[1].define(baf.coarsen(2),DistributionMap(0), 1, 0);
+        cc_mask[1].setVal(0);
+        cc_mask[0].ParallelCopy(cc_mask[1], 0, 0, 1, 0, 0);
+        cc_mask[1].setVal(1);
+        for(int d=0; d<AMREX_SPACEDIM; ++d) {
+            fc_mask[1][d].define(convert(baf.coarsen(2),nodal_flag_dir[d]), DistributionMap(0), 1, 0);
+            fc_mask[1][d].setVal(0);
+            fc_mask[0][d].ParallelCopy(fc_mask[1][d], 0, 0, 1, 0, 0);
+            fc_mask[1][d].setVal(1);
+        }
+
+        
+    }
+    
+   
+    
 }
 
 void
@@ -118,15 +151,15 @@ hydroAMR::ErrorEst (int lev, TagBoxArray& tags, Real /*time*/, int /*ngrow*/)
     if(init)
     {
         init = false;
-        cc_mask.define(boxArray(0),DistributionMap(0),1,0);
-        cc_mask.setVal(0);
+        mask.define(boxArray(0),DistributionMap(0),1,0);
+        mask.setVal(0);
     }else
     {
-        for (MFIter mfi(cc_mask,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        for (MFIter mfi(mask,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
             const Box& bx  = mfi.tilebox();
             const auto tagfab  = tags.array(mfi);
-            const auto maskfab = cc_mask.array(mfi);
+            const auto maskfab = mask.array(mfi);
 
             const int   tagval = TagBox::SET;
 
@@ -145,10 +178,10 @@ hydroAMR::ErrorEst (int lev, TagBoxArray& tags, Real /*time*/, int /*ngrow*/)
 
 void hydroAMR::addPatch(IntVect patch_lo, IntVect patch_hi) {
 
-        for (MFIter mfi(cc_mask,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        for (MFIter mfi(mask,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
             const Box& bx  = mfi.tilebox();
-            const auto maskfab = cc_mask.array(mfi);
+            const auto maskfab = mask.array(mfi);
 
             amrex::ParallelFor(bx,
             [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
@@ -178,6 +211,7 @@ void hydroAMR::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba,
             stochMfluxdiv[lev][d].define(convert(ba,nodal_flag_dir[d]), dm, 1, ng);
             sourceTemp[lev][d].define(convert(ba,nodal_flag_dir[d]), dm, 1, ng);
             umacM[lev][d].define(convert(ba,nodal_flag_dir[d]), dm, 1, 1);            
+            umacV[lev][d].define(convert(ba,nodal_flag_dir[d]), dm, 1, 1);            
             gmres_rhs_u[lev][d].define(convert(ba,nodal_flag_dir[d]), dm, 1, 1);
 
             stochMfluxdiv[lev][d].setVal(0.);
@@ -186,6 +220,7 @@ void hydroAMR::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba,
             sourceRFD[lev][d].setVal(0.);
             sourceTemp[lev][d].setVal(0.);                        
             umacM[lev][d].setVal(0.);
+            umacV[lev][d].setVal(0.);
             gmres_rhs_u[lev][d].setVal(0.);
             //fc_mask[d].setVal(0);
     }
@@ -216,7 +251,7 @@ void hydroAMR::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba,
     gamma[lev].define(ba, dm, 1, 1);
     gamma[lev].setVal(0.);
 
-    //cc_mask.define(ba, dm, 1, 1);
+
 
     eta_cc[lev].define(ba, dm, 1, 1);
     temp_cc[lev].define(ba, dm, 1, 1);
@@ -416,7 +451,7 @@ hydroAMR::advanceStokes()
     // call GMRES
     GMRES gmres(grids,dmap,geom,nlevels);
     gmres.Solve(gmres_rhs_u,gmres_rhs_p,umac,pres,
-                alpha_fc,beta,beta_ed,gamma,theta_alpha,geom,norm_pre_rhs);
+                alpha_fc,beta,beta_ed,gamma,cc_mask,fc_mask,theta_alpha,geom,norm_pre_rhs);
 
 
 //    GMRES gmres(grids[0],dmap[0],geom[0]);
@@ -467,7 +502,7 @@ hydroAMR::WritePlotFile(Real time, int step)
         outputRR[lev] = IntVect(AMREX_D_DECL(2, 2, 2));
     }
 
-    const std::string& pltfile = amrex::Concatenate("plt", step, 9);
+    const std::string& pltfile = amrex::Concatenate("pltML", step, 9);
     WriteMultiLevelPlotfile(pltfile, output_levs, GetVecOfConstPtrs(output_cc),
                             varnames, geom, 0.0, level_steps, outputRR);                                   
 }

@@ -34,6 +34,12 @@ public:
                Geometry& geom,
                bool full_solve=false);
                
+    void Solve(std::array<MultiFab, AMREX_SPACEDIM>* & alphainv_fc,
+                    Vector<MultiFab>& mac_rhs,
+                    Vector<MultiFab>& phi,
+                    Geometry* & geom,
+                    bool full_solve=false);
+               
    void Solve(std::array<MultiFab, AMREX_SPACEDIM>* & alphainv_fc,
                 MultiFab* & mac_rhs,
                 MultiFab* & phi,

@@ -116,12 +116,15 @@ void StagMGSolver::TopSolve(std::array<MultiFab, AMREX_SPACEDIM>* & alpha_fc,
         DistributionMapping dmap_top = phi_fc[1][d].DistributionMap();
         Lphi_fc_top[d].define(convert(ba_top, nodal_flag), dmap_top, 1, 1);
         alpha_fc_top[d].define(convert(ba_top, nodal_flag), dmap_top, 1, 1);
+        Lphi_fc_top[d].setVal(0.0);
+        alpha_fc_top[d].setVal(0.0);
     }
+
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         MultiFab::Copy(alpha_fc_top[d],alpha_fc[1][d],0,0,1,0);
         alpha_fc_top[d].mult(theta_alpha,0,1,0);
     }
-    
+        
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
 
         // fill periodic ghost cells
@@ -139,18 +142,18 @@ void StagMGSolver::TopSolve(std::array<MultiFab, AMREX_SPACEDIM>* & alpha_fc,
     StagApplyOp(geom[1],beta_cc[1],gamma_cc[1],beta_ed[1],
                 phi_fc[1],Lphi_fc_top,alpha_fc_top,geom[1].CellSize(),1.);
                 
-    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        // compute Lphi - rhs
-        MultiFab::Subtract(Lphi_fc_top[d],rhs_fc[1][d],0,0,1,1);
+//    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+//        // compute Lphi - rhs
+//        MultiFab::Subtract(Lphi_fc_top[d],rhs_fc[1][d],0,0,1,1);
 
-        // compute L0 norm of Lphi - rhs
-        resid0[d] = Lphi_fc_top[d].norm0();
-// FIXME - need to write an L2 norm for staggered fields
-//        resid0_l2[d] = Lphi_fc_mg[0][d].norm2();
-        //if (stag_mg_verbosity >= 2) {
-            Print() << "Top residual " << d << " " << resid0[d] << std::endl;
-        //}
-    }
+//        // compute L0 norm of Lphi - rhs
+//        resid0[d] = Lphi_fc_top[d].norm0();
+//// FIXME - need to write an L2 norm for staggered fields
+////        resid0_l2[d] = Lphi_fc_mg[0][d].norm2();
+//        //if (stag_mg_verbosity >= 2) {
+//            Print() << "Top residual " << d << " " << resid0[d] << std::endl;
+//        //}
+//    }
     
     int color_start, color_end;
     if (stag_mg_smoother == 0) {
@@ -169,15 +172,16 @@ void StagMGSolver::TopSolve(std::array<MultiFab, AMREX_SPACEDIM>* & alpha_fc,
             // the form of weighted Jacobi we are using is
             // phi^{k+1} = phi^k + omega*D^{-1}*(rhs-Lphi)
             // where D is the diagonal matrix containing the diagonal elements of L
-
+            //PrintMFLine(phi_fc[0][0],0,0,5,5);
+            //PrintMFLine(phi_fc[1][0],0,0,12,12); 
             // compute Lphi
             StagApplyOp(geom[1],beta_cc[1],gamma_cc[1],beta_ed[1],
                         phi_fc[1],Lphi_fc_top,alpha_fc_top,geom[1].CellSize(),1.,color);
-
+            //PrintMFLine(phi_fc[1][0],0,0,12,12); 
             // update phi = phi + omega*D^{-1}*(rhs-Lphi)
             StagMGUpdate(phi_fc[1],rhs_fc[1],Lphi_fc_top,alpha_fc_top,
                          beta_cc[1],beta_ed[1],gamma_cc[1],geom[1].CellSize(),color);
-
+            
             for (int d=0; d<AMREX_SPACEDIM; ++d) {
 
                 // set values on physical boundaries
@@ -210,12 +214,11 @@ void StagMGSolver::TopSolve(std::array<MultiFab, AMREX_SPACEDIM>* & alpha_fc,
 //        }
 
     }
-    if(downup==0)
-    {
-        FaceFillCoarse(phi_fc,0);
-    }
     
-    
+   
+
+    FaceFillCoarse(phi_fc,0);
+    FaceFillGhost(phi_fc,geom,0);        
 }
 // solve "(theta*alpha*I - L) phi = rhs" using multigrid with Gauss-Seidel relaxation
 // if amrex::Math::abs(visc_type) = 1, L = div beta grad
@@ -1952,7 +1955,6 @@ void StagMGSolver::StagMGUpdate (std::array< MultiFab, AMREX_SPACEDIM >& phi_fc,
     }
 
     GpuArray<Real,AMREX_SPACEDIM> dx_gpu{AMREX_D_DECL(dx[0], dx[1], dx[2])};
-
     // loop over boxes (make sure mfi takes a cell-centered multifab as an argument)
     for ( MFIter mfi(beta_cc,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
 
@@ -2096,4 +2098,5 @@ void StagMGSolver::StagMGUpdate (std::array< MultiFab, AMREX_SPACEDIM >& phi_fc,
             });
         }
     }
+
 }

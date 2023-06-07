@@ -107,8 +107,8 @@ void main_driver(const char* argv)
     IntVect patch0_lo(AMREX_D_DECL(           2,            2,            2));
     IntVect patch0_hi(AMREX_D_DECL(30, 30, 30));
     
-    IntVect patch1_lo(AMREX_D_DECL(           5,           5,            5));
-    IntVect patch1_hi(AMREX_D_DECL(10,10, 10));
+    IntVect patch1_lo(AMREX_D_DECL(           20,           20,            20));
+    IntVect patch1_hi(AMREX_D_DECL(40,40, 40));
     
     //hydroGrid.addPatch(patch0_lo, patch0_hi);
     hydroGrid.addPatch(patch1_lo, patch1_hi);
@@ -116,16 +116,30 @@ void main_driver(const char* argv)
     hydroGrid.updateGrid();
     
    
-    //hydroGrid.source[0][0].setVal(-10);
-    //FillMF(hydroGrid.umac[1][0]);
-    //FaceFillCoarse(hydroGrid.umac,1);
+//    hydroGrid.pres[0].setVal(-10);
+//    hydroGrid.pres[1].setVal(5);
+//    
+//    hydroGrid.umac[0][0].setVal(-10);
+//    hydroGrid.umac[1][0].setVal(5);
+//    
+//    FaceFillCoarse(hydroGrid.umac,1);    
+//    FaceFillGhost(hydroGrid.umac,hydroGrid.Geom(),1);
+//    //FillMF(hydroGrid.umac[1][0]);
+//    
+//    //PrintMFLine(hydroGrid.umac[0][0],0,0,5,5);
+//    //PrintMFLine(hydroGrid.umac[1][0],0,0,12,12);
 
-
-   // PrintMFLine(hydroGrid.umac[0][0],0,0,7,7);
-   
-    //VelFillCoarse(hydroGrid.umac);
-    
-    //PrintMFLine(hydroGrid.umac[0][0],0,0,8,8);
+//    CellFillCoarse(hydroGrid.pres,hydroGrid.Geom());
+//    CellFillGhost(hydroGrid.pres,hydroGrid.Geom());
+//    PrintMFLine(hydroGrid.pres[0],0,0,5,5);
+//    PrintMFLine(hydroGrid.pres[1],0,0,12,12);
+//   
+//    //CellFillGhost(hydroGrid.pres,hydroGrid.Geom());
+//    
+//    //PrintMFLine(hydroGrid.pres[1],0,0,12,12);
+//    //VelFillCoarse(hydroGrid.umac);
+//    
+//    //PrintMFLine(hydroGrid.umac[0][0],0,0,8,8);
     
     DistributionMapping dmap = hydroGrid.DistributionMap(0);
 
@@ -1268,26 +1282,34 @@ void main_driver(const char* argv)
 
         //particles.BuildCorrectionTable(dxp,1);
 
-        if ((variance_coef_mom != 0.0) && fluid_tog != 0) {
+//        if ((variance_coef_mom != 0.0) && fluid_tog != 0) {
             // compute the random numbers needed for the stochastic momentum forcing
             sMfluxC.fillMomStochastic();
             sMfluxC.StochMomFluxDiv(hydroGrid.stochMfluxdiv[0],0,hydroGrid.eta_cc[0],hydroGrid.eta_ed[0],hydroGrid.temp_cc[0],hydroGrid.temp_ed[0],weights,dt);
             
             sMfluxF.fillMomStochastic();
             sMfluxF.StochMomFluxDiv(hydroGrid.stochMfluxdiv[1],0,hydroGrid.eta_cc[1],hydroGrid.eta_ed[1],hydroGrid.temp_cc[1],hydroGrid.temp_ed[1],weights,dt);
+            
+
+            FaceFillCoarse(hydroGrid.stochMfluxdiv,1);
+            //FaceFillGhost(hydroGrid.stochMfluxdiv,hydroGrid.Geom(),0);
+            
 
             // integrator containing inertial terms and predictor/corrector requires 2 RNG stages
             if (fluid_tog ==2) {
                 sMfluxC.StochMomFluxDiv(stochMfluxdivC,0,hydroGrid.eta_cc[0],hydroGrid.eta_ed[0],hydroGrid.temp_cc[0],hydroGrid.temp_ed[0],weights,dt);
             }
-        }
+//        }
         
         
         MultiFab::Add(hydroGrid.source[0][0],hydroGrid.sourceRFD[0][0],0,0,hydroGrid.sourceRFD[0][0].nComp(),hydroGrid.sourceRFD[0][0].nGrow());
         MultiFab::Add(hydroGrid.source[0][1],hydroGrid.sourceRFD[0][1],0,0,hydroGrid.sourceRFD[0][1].nComp(),hydroGrid.sourceRFD[0][1].nGrow());
         MultiFab::Add(hydroGrid.source[0][2],hydroGrid.sourceRFD[0][2],0,0,hydroGrid.sourceRFD[0][2].nComp(),hydroGrid.sourceRFD[0][2].nGrow());
 
-        hydroGrid.updateAlpha(0,dt);
+        for(int lev=0;lev<hydroGrid.nlevels;++lev)
+        {
+            hydroGrid.updateAlpha(lev,dt);
+        }
 
         if (fluid_tog == 1) {
 
@@ -1412,6 +1434,7 @@ void main_driver(const char* argv)
 
             for (int d=0; d<AMREX_SPACEDIM; ++d) {
                 hydroGrid.umacM[0][d].setVal(0.);
+                hydroGrid.umacV[0][d].setVal(0.);                
             }
                 
             Print() << "Resetting stat collection.\n";
@@ -1456,7 +1479,7 @@ void main_driver(const char* argv)
 
         // compute the mean and variance of umac
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
-            ComputeBasicStats(hydroGrid.umac[0][d], hydroGrid.umacM[0][d], 0, 0, statsCount);
+            ComputeBasicStats(hydroGrid.stochMfluxdiv[0][d], hydroGrid.umacM[0][d], hydroGrid.umacV[0][d], 0, 0, statsCount);
         }
         ComputeBasicStats(potential, potentialM, 0, 0, statsCount);
         ComputeBasicStats(charge   , chargeM   , 0, 0, statsCount);
@@ -1510,7 +1533,7 @@ void main_driver(const char* argv)
                           charge, chargeM, potential, potentialM, efieldCC);
 
             // Writes instantaneous flow field and some other stuff? Check with Guy.
-            //WritePlotFileHydro(istep, time, hydroGrid.Geom(0), hydroGrid.umac[0], hydroGrid.pres[0], hydroGrid.umacM[0]);
+            WritePlotFileHydro(istep, time, hydroGrid.Geom(0), hydroGrid.umac[0], hydroGrid.umacV[0], hydroGrid.pres[0], hydroGrid.umacM[0]);
             //WritePlotFileHydro(istep, time, hydroGrid.Geom(1), hydroGrid.umac[1], hydroGrid.pres[1], hydroGrid.umacM[1],1);
             hydroGrid.WritePlotFile(time, istep);
         }

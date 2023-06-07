@@ -5,38 +5,21 @@
 #include "common_functions.H"
 #include "INS_functions.H"
 
-
-
 void WritePlotFileHydro(int step,
                    const amrex::Real time,
                    const amrex::Geometry geom,
                    std::array< MultiFab, AMREX_SPACEDIM >& umac,
-		   const MultiFab& pres,
+                   std::array< MultiFab, AMREX_SPACEDIM >& forcing,
+		           const MultiFab& pres,
                    std::array< MultiFab, AMREX_SPACEDIM >& umacM)
-{
-
-    WritePlotFileHydro(step, time, geom, umac, pres, umacM,0);
-
-}
-
-
-void WritePlotFileHydro(int step,
-                   const amrex::Real time,
-                   const amrex::Geometry geom,
-                   std::array< MultiFab, AMREX_SPACEDIM >& umac,
-		   const MultiFab& pres,
-                   std::array< MultiFab, AMREX_SPACEDIM >& umacM, int lev)
 {
     
     BL_PROFILE_VAR("WritePlotFileHydro()",WritePlotFileHydro);
     
     std::string plotfilename;
-    if(lev == 0)
-    {
-        plotfilename = Concatenate("plt",step,9);
-    }else{
-        plotfilename = Concatenate("pltfine",step,9);
-    }
+
+    plotfilename = Concatenate("plt",step,9);
+ 
 
     BoxArray ba = pres.boxArray();
     DistributionMapping dmap = pres.DistributionMap();
@@ -46,7 +29,7 @@ void WritePlotFileHydro(int step,
     // plot pressure
     // plot divergence
     // staggered velocity means
-    int nPlot = 3*AMREX_SPACEDIM+2;
+    int nPlot = 4*AMREX_SPACEDIM+2;
 
     MultiFab plotfile(ba, dmap, nPlot, 0);
     
@@ -63,6 +46,12 @@ void WritePlotFileHydro(int step,
 
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
         std::string x = "shifted_vel";
+        x += (120+i);
+        varNames[cnt++] = x;
+    }
+    
+    for (int i=0; i<AMREX_SPACEDIM; ++i) {
+        std::string x = "shifted_forcing";
         x += (120+i);
         varNames[cnt++] = x;
     }
@@ -86,6 +75,11 @@ void WritePlotFileHydro(int step,
     // shift staggered velocities to cell-centers and copy into plotfile
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
         ShiftFaceToCC(umac[i],0,plotfile,cnt,1);
+        cnt++;
+    }
+    // shift staggered forcing to cell-centers and copy into plotfile
+    for (int i=0; i<AMREX_SPACEDIM; ++i) {
+        ShiftFaceToCC(forcing[i],0,plotfile,cnt,1);
         cnt++;
     }
 

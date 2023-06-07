@@ -43,11 +43,13 @@ public:
     Vector<std::array< MultiFab, AMREX_SPACEDIM >> umac;
     Vector<std::array< MultiFab, AMREX_SPACEDIM >> umacNew;    
     Vector<std::array< MultiFab, AMREX_SPACEDIM >> umacM;
+    Vector<std::array< MultiFab, AMREX_SPACEDIM >> umacV;    
     Vector<std::array< MultiFab, AMREX_SPACEDIM >> alpha_fc;
     Vector<std::array< MultiFab, AMREX_SPACEDIM >> source;
     Vector<std::array< MultiFab, AMREX_SPACEDIM >> sourceTemp;
     Vector<std::array< MultiFab, AMREX_SPACEDIM >> sourceRFD;
     Vector<std::array< MultiFab, AMREX_SPACEDIM >> stochMfluxdiv;
+    Vector<std::array< MultiFab, AMREX_SPACEDIM >> fc_mask;
     Vector<std::array< MultiFab, NUM_EDGE>>  beta_ed;
     Vector<std::array< MultiFab, NUM_EDGE >>  eta_ed;
     Vector<std::array< MultiFab, NUM_EDGE >> temp_ed;
@@ -55,7 +57,8 @@ public:
     Vector<std::array< MultiFab, AMREX_SPACEDIM >> gmres_rhs_u;
    
 
-    iMultiFab cc_mask;
+
+    iMultiFab mask;
    
     int npatches;
     int nlevels=2;
@@ -76,7 +79,7 @@ public:
     Vector<MultiFab> beta;    
     Vector<MultiFab> eta_cc;
     Vector<MultiFab> temp_cc;
-    
+    Vector<MultiFab> cc_mask;
     Vector<MultiFab> gmres_rhs_p;
     
     Vector<MultiFab> plot_mf;

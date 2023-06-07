@@ -76,7 +76,31 @@ void MacProj::Solve(std::array<MultiFab, AMREX_SPACEDIM>& alphainv_fc,
     MultiFab* phip = &phi;
     Geometry* geomp = &geom;
     
-    Solve(alphainv_fcp, mac_rhsp, phip, geomp);
+    if(full_solve==false)
+    {
+        Solve(alphainv_fcp, mac_rhsp, phip, geomp);
+    }else
+    {
+        Solve(alphainv_fcp, mac_rhsp, phip, geomp, true);    
+    }
+}
+
+void MacProj::Solve(std::array<MultiFab, AMREX_SPACEDIM>* & alphainv_fc,
+                    Vector<MultiFab>& mac_rhs,
+                    Vector<MultiFab>& phi,
+                    Geometry* & geom,
+                    bool full_solve)
+{
+    MultiFab* mac_rhsp = &mac_rhs[0];
+    MultiFab* phip = &phi[0];
+    
+    if(full_solve==false)
+    {
+        Solve(alphainv_fc, mac_rhsp, phip, geom);
+    }else
+    {
+        Solve(alphainv_fc, mac_rhsp, phip, geom, true);
+    }
 }
 
 

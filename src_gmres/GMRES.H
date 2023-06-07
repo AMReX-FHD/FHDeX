@@ -67,24 +67,28 @@ public:
                    std::array<MultiFab, AMREX_SPACEDIM>* & alpha_fc,
                    MultiFab* & beta, std::array<MultiFab, NUM_EDGE>* & beta_ed,
                    MultiFab* & gamma,
+                   MultiFab* & cc_mask,                   
+                   std::array<MultiFab, AMREX_SPACEDIM>* & fc_mask,                   
                    Real theta_alpha,
                    Geometry* & geom,
                    Real & norm_pre_rhs, int nlev);
 
     void Solve (std::array<MultiFab, AMREX_SPACEDIM> & b_u, MultiFab & b_p,
-                std::array<MultiFab, AMREX_SPACEDIM> & x_u, MultiFab & x_p,
-                std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
-                MultiFab & beta, std::array<MultiFab, NUM_EDGE> & beta_ed,
-                MultiFab & gamma,
-                Real theta_alpha,
-                Geometry & geom,
-                Real & norm_pre_rhs);
+                   std::array<MultiFab, AMREX_SPACEDIM> & x_u, MultiFab & x_p,
+                   std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
+                   MultiFab & beta, std::array<MultiFab, NUM_EDGE> & beta_ed,
+                   MultiFab & gamma,
+                   Real theta_alpha,
+                   Geometry & geom,
+                   Real & norm_pre_rhs);
                 
    void Solve (Vector<std::array<MultiFab, AMREX_SPACEDIM>> & b_u, Vector<MultiFab> & b_p,
                    Vector<std::array<MultiFab, AMREX_SPACEDIM>> & x_u, Vector<MultiFab> & x_p,
                    Vector<std::array<MultiFab, AMREX_SPACEDIM>> & alpha_fc,
                    Vector<MultiFab> & beta, Vector<std::array<MultiFab, NUM_EDGE>> & beta_ed,
                    Vector<MultiFab> & gamma,
+                   Vector<MultiFab> & cc_mask,
+                   Vector<std::array<MultiFab, AMREX_SPACEDIM>> & fc_mask,                   
                    Real theta_alpha,
                    Vector<Geometry> & geom,
                    Real & norm_pre_rhs);

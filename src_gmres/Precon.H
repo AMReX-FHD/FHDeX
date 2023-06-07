@@ -22,7 +22,7 @@ class Precon {
 public:
 
     Precon();
-
+   
     void Define(const BoxArray& ba_in,
                 const DistributionMapping& dmap_in,
                 const Geometry& geom_in);
@@ -53,6 +53,8 @@ public:
                    MultiFab*                             & beta, 
                    std::array<MultiFab, NUM_EDGE>*      & beta_ed,
                    MultiFab*                            & gamma,
+                   MultiFab*                            & cc_mask,
+                   std::array<MultiFab, AMREX_SPACEDIM>* & fc_mask,                                    
                    const Real                           & theta_alpha,
                    Geometry*                            & geom,
                    StagMGSolver& StagSolver);
@@ -66,6 +68,8 @@ public:
                    MultiFab*                             & beta, 
                    std::array<MultiFab, NUM_EDGE>*      & beta_ed,
                    MultiFab*                            & gamma,
+                   MultiFab*                            & cc_mask,
+                   std::array<MultiFab, AMREX_SPACEDIM>* & fc_mask,                     
                    const Real                           & theta_alpha,
                    Geometry*                            & geom,
                    StagMGSolver& StagSolver);

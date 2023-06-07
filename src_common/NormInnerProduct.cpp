@@ -102,6 +102,8 @@ void SumStag(const std::array<MultiFab, AMREX_SPACEDIM>& m1,
   }
 }
 
+
+
 void SumEdge(const std::array<MultiFab, NUM_EDGE>& m1,
 	     amrex::Vector<amrex::Real>& sum,
 	     const bool& divide_by_ncells)
