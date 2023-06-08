@@ -133,10 +133,8 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     }
 
     // bds-specific MultiFabs
-    MultiFab rho_tmp;
     MultiFab rho_update;
     MultiFab bds_force;
-    MultiFab rho_nd;
     std::array< MultiFab, AMREX_SPACEDIM > umac_tmp;      
     
     //////////////////////////////////////////////
@@ -373,10 +371,8 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     if (advection_type == 1 || advection_type == 2) {
 
       // bds advection
-      rho_tmp.define(ba,dmap,nspecies,rho_old.nGrow());
       rho_update.define(ba,dmap,nspecies,0);
       bds_force.define(ba,dmap,nspecies,1);
-      rho_nd.define(convert(ba,nodal_flag),dmap,nspecies,1);
       for (int d=0; d<AMREX_SPACEDIM; ++d) {
         umac_tmp[d].define(convert(ba,nodal_flag_dir[d]),dmap,1,1);
       }
@@ -385,7 +381,7 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 	// create average of umac^n and umac^{n+1,*}
 	umac_tmp[d].setVal(0.,0,1,1);
 	MultiFab::Saxpy(umac_tmp[d],0.5,umac_old[d],0,0,1,1);
-	MultiFab::Saxpy(umac_tmp[d],0.5,umac    [d],0,0,1,1);	
+	MultiFab::Saxpy(umac_tmp[d],0.5,umac    [d],0,0,1,1);
       }
 
       // add the diff/stoch/react terms to rho_update
@@ -423,12 +419,10 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     /// Step 3: density prediction to t^{n+1/2}
     //////////////////////////////////////////////
 
-    if (advection_type >= 1) {
-        /*
-        do n=1,nlevs
-          call multifab_saxpy_4(rho_new(n),rho_old(n),0.5d0*dt,rho_update(n))
-        end do
-        */
+    if (advection_type == 1 || advection_type == 2) {
+
+        MultiFab::LinComb(rho_new,1.,rho_old,0,0.5*dt,rho_update,0,0,nspecies,0);
+ 
     } else {
 
         // compute rho_i^{n+1/2} (store in rho_new)
@@ -574,14 +568,10 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // Step 5: density integration to t^{n+1}
     //////////////////////////////////////////////
 
-    if (advection_type >= 1) {
+    if (advection_type == 1 || advection_type == 2) {
 
-        /*
-        do n=1,nlevs
-           call multifab_saxpy_4(rho_new(n),rho_old(n),dt,rho_update(n))
-        end do
-        */
-
+        MultiFab::LinComb(rho_new,1.,rho_old,0,0.5*dt,rho_update,0,0,nspecies,0);
+ 
     } else {
 
         // compute rho_i^{n+1}
