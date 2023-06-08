@@ -22,8 +22,14 @@ max_grid_size = 4 4 8
 fixed_dt = 1.e-12
 
 # Controls for number of steps between actions
-max_step = 10000
+# First run (equilibration) set max_step = 10000, set nreaction = 0 (no reaction)
+# Second run set max_step = 20000, set nreaction = 2 (see below)
+max_step = 10000 # Comment (uncomment) this if restart = 10000 (-1)
+#max_step = 20000  # Comment (uncomment) this if restart = -1 (10000)
 plot_int = 100
+chk_int  = 10000
+restart  = -1    # Comment (uncomment) this if max_step = 20000 (10000)
+#restart = 10000   # Comment (uncomment) this if max_step = 10000 (20000)
 
 # Multispecies toggle
 # if algorithm_type = 1, single component
@@ -102,7 +108,8 @@ plot_vars = 1
 # spec1 = A
 # spec2 = A_2
 
-nreaction = 2
+nreaction = 0 # Comment (uncomment) this if max_step = 20000 (10000)
+#nreaction = 2  # Comment (uncomment) this if max_step = 10000 (20000)
 
 T0_chem = 350
 
