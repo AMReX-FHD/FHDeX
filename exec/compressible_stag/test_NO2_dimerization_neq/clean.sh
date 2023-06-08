@@ -1,3 +1,3 @@
 #!/bin/bash
 
-rm -rf slurm-*.out plt* res.* Backtrace*
+rm -rf slurm-*.out plt* chk* res.* Backtrace*
