@@ -404,19 +404,8 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
       MultiFab::Copy(bds_force,rho_update,0,0,nspecies,0);
       bds_force.FillBoundary(geom.periodicity());
 
-       //    ! the input rho_tmp needs to have ghost cells filled with multifab_physbc_extrap
-       //    ! instead of multifab_physbc
-       //    do n=1,nlevs
-       //       call multifab_copy(rho_tmp(n),rho_old(n),rho_tmp(n)%ng)
-       //       call multifab_physbc_extrap(rho_tmp(n),1,c_bc_comp,nspecies, &
-       //                                   the_bc_tower%bc_tower_array(n))
-       //    end do
-
-       //    call average_cc_to_node(nlevs,rho_old,rho_nd,1,c_bc_comp,nspecies,the_bc_tower%bc_tower_array)
-
-       //    ! bds increments rho_update with the advection term
-       //    call bds(mla,umac_tmp,rho_tmp,rho_update,bds_force,rho_fc,rho_nd,dx,0.5d0*dt,1, &
-       //             nspecies,c_bc_comp,the_bc_tower,proj_type_in=proj_type)
+      // bds increments rho_update with the advection term
+      BDS(rho_update, nspecies, SPEC_BC_COMP, rho_old, umac_tmp, bds_force, geom, 0.5*dt);
       
     } else if (advection_type == 0) {
 
@@ -555,9 +544,26 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     end if
     */
 
-    if (advection_type >= 1) {
+    if (advection_type == 1 || advection_type == 2) {
 
-    } else {
+      // add the diff/stoch/react terms to rho_update
+      MultiFab::Copy(rho_update,diff_mass_fluxdiv,0,0,nspecies,0);
+      if (variance_coef_mass != 0.) {
+	MultiFab::Add(rho_update,stoch_mass_fluxdiv,0,0,nspecies,0);
+      }
+      /*
+      if (nreactions > 0) {
+	call multifab_plus_plus_c(rho_update(n),1,chem_rate(n),1,nspecies,0)
+      }
+      */
+
+      bds_force.setVal(0,0,1,1);
+      MultiFab::Copy(bds_force,rho_update,0,0,nspecies,0);
+      bds_force.FillBoundary(geom.periodicity());
+      
+      BDS(rho_update, nspecies, SPEC_BC_COMP, rho_old, umac_tmp, bds_force, geom, dt);
+							       
+    } else if (advection_type == 0) {
         // compute adv_mass_fluxdiv = -rho_i^{n+1/2} * v^n and
         // increment adv_mass_fluxdiv by -rho_i^{n+1/2} * v^{n+1,*}
         MkAdvSFluxdiv(umac_old,rho_fc,adv_mass_fluxdiv,geom,0,nspecies,false);
