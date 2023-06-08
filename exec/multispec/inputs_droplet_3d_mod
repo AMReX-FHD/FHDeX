@@ -36,7 +36,7 @@
   variance_coef_mass = 0.0
   initial_variance_mom = 0.
   
-  #advection_type = 1
+  advection_type = 2
   algorithm_type = 6
 
   k_B = 1.3807e-16            	# [units: cm2*g*s-2*K-1]
