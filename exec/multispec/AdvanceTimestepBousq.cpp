@@ -199,7 +199,10 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         Abort("AdvanceTimestepBousq.cpp gravity not implemented");
     }
 
-    if (variance_coef_mass != 0.) {
+
+    // don't fill new rngs on first step since we did this in the initial projection
+    // already and need the RHS to be consistent
+    if (variance_coef_mass != 0. && istep != 1) {
         sMassFlux.fillMassStochastic();
     }
 
