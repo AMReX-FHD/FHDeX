@@ -39,10 +39,6 @@ void InitialProjection(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     if (algorithm_type == 2) {
         Abort("InitialProjection.cpp: should not call initial_projection for overdamped scheme");
     }
-
-    if (algorithm_type == 6) {
-        Abort("InitialProjection.cpp: should not call initial_projection for Boussinesq algorithm 6");
-    }
     
     BoxArray ba = rho.boxArray();
     DistributionMapping dmap = rho.DistributionMap();
