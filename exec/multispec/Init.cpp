@@ -500,9 +500,9 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                 } else {
                     // smooth interface
                     // not coded for this
-                        c(i,j,k,0) = bub1[0] + (1.-2.*bub1[0]) *
+                        c(i,j,k,0) = bub1[0] + (1.-bub2[0]-2.*bub1[0]) *
                             0.5*(1. + std::tanh((r1-rad1)/(smoothing_width*dx[0])));
-                        c(i,j,k,1) = bub2[1] + (1.-2.*bub2[1]) *
+                        c(i,j,k,1) = bub2[1] + (1.-bub1[1]-2.*bub2[1]) *
                             0.5*(1. + std::tanh((r2-rad2)/(smoothing_width*dx[0])));
                         c(i,j,k,2) = 1.-c(i,j,k,0)-c(i,j,k,1);
                    // for (int n=0; n<nspecies; ++n) {
