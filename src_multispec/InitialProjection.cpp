@@ -88,8 +88,11 @@ void InitialProjection(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     //
     //
     //
-    
-    if (variance_coef_mass != 0.) {
+
+    // don't fill random numbers for Boussinesq (algorithm_type=6)
+    // since rhobars are equal the RHS of constraint is zero regardless
+    // by not filling we preserve the random number sequences for regression purposes
+    if (variance_coef_mass != 0. && algorithm_type != 6) {
         sMassFlux.fillMassStochastic();
     }
         
