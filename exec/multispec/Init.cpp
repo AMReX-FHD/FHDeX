@@ -435,8 +435,9 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
             Real rad1 = 0.0119;
             Real rad2 = 0.00294;
-            Real shift1 = 1.1*rad1;
-            Real shift2 = 2.2*rad1 + rad2;
+            rad1 = 0.01;
+            Real shift1 = 1.2*rad1;
+            Real shift2 = 2.4*rad1 + rad2;
             Real velbub = 100.;
 
 
@@ -444,15 +445,15 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
             Real bub2[3];
             Real back[3];
 
-            bub1[0]=1.;
-            bub1[1]=0.;
-            bub1[2]=0.;
-            bub2[0]=0.;
-            bub2[1]=1.;
-            bub2[2]=0.;
-            back[0]=0.;
-            back[1]=0.;
-            back[2]=1.;
+            bub1[0]=0.98;
+            bub1[1]=0.01;
+            bub1[2]=0.01;
+            bub2[0]=0.01;
+            bub2[1]=0.98;
+            bub2[2]=0.01;
+            back[0]=0.01;
+            back[1]=0.01;
+            back[2]=0.98;
 /*
             bub1[0]=.8;
             bub1[1]=.1;
@@ -499,10 +500,15 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                 } else {
                     // smooth interface
                     // not coded for this
-                    for (int n=0; n<nspecies; ++n) {
-                        c(i,j,k,n) = c_init_1[n] + (c_init_2[n]-c_init_1[n]) *
-                            0.5*(1. + std::tanh((r1-rad1)/smoothing_width*dx[0]));
-                    }
+                        c(i,j,k,0) = bub1[0] + (1.-bub2[0]-2.*bub1[0]) *
+                            0.5*(1. + std::tanh((r1-rad1)/(smoothing_width*dx[0])));
+                        c(i,j,k,1) = bub2[1] + (1.-bub1[1]-2.*bub2[1]) *
+                            0.5*(1. + std::tanh((r2-rad2)/(smoothing_width*dx[0])));
+                        c(i,j,k,2) = 1.-c(i,j,k,0)-c(i,j,k,1);
+                   // for (int n=0; n<nspecies; ++n) {
+                   //     c(i,j,k,n) = c_init_1[n] + (c_init_2[n]-c_init_1[n]) *
+                   //        0.5*(1. + std::tanh((r1-rad1)/smoothing_width*dx[0]));
+                   // }
                 }
                 
             });
