@@ -46,7 +46,7 @@ void InitialProjection(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     Real dt_eff;
     
     Vector<Real> weights;
-    if (algorithm_type == 5) {
+    if (algorithm_type == 5 || algorithm_type == 6) {
         weights = {1., 0.};
         // for midpoint scheme where predictor goes to t^{n+1/2}
         dt_eff = 0.5*dt;
@@ -94,7 +94,7 @@ void InitialProjection(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     }
         
     ComputeMassFluxdiv(rho,rhotot,Temp,diff_mass_fluxdiv,stoch_mass_fluxdiv,
-                       diff_mass_flux,stoch_mass_flux,sMassFlux,dt,time,geom,weights,
+                       diff_mass_flux,stoch_mass_flux,sMassFlux,dt_eff,time,geom,weights,
                        charge_old,grad_Epot_old,Epot,permittivity);
 
     // assumble total fluxes to be used in reservoirs
