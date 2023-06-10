@@ -80,6 +80,16 @@ void BDS_ComputeConc(Box const& bx,
                      Array4<Real const> const& force,
                      const Real dt);
 
+// project edge states to satisfy EOS
+void BDS_Proj(Box const& bx,
+	      int ncomp,
+	      Array4<Real> const& sedgex,
+	      Array4<Real> const& sedgey
+#if (AMREX_SPACEDIM == 3)
+	      , Array4<Real> const& sedgez
+#endif
+	      );
+
 /////////////////////////////////////////////////////////////////////////////////
 // in ConvertMToUmac.cpp
 

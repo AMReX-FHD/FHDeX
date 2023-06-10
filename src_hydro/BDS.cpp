@@ -129,6 +129,9 @@ void BDS_ComputeEdgeState(Box const& bx, int ncomp, int bccomp,
                          q, xedge, yedge, slopefab.array(),
                          umac, vmac, fq, l_dt);
     }
+
+    // project edge states to satisfy EOS
+    BDS_Proj(bx,ncomp,xedge,yedge);
 }
 
 /**
@@ -851,6 +854,9 @@ void BDS_ComputeEdgeState(Box const& bx, int ncomp, int bccomp,
                          umac, vmac, wmac, fq,
                          l_dt);
     }
+
+    // project edge states to satisfy EOS
+    BDS_Proj(bx,ncomp,xedge,yedge,zedge);
 }
 
 /**
@@ -4123,3 +4129,55 @@ void BDS_ComputeConc(Box const& bx,
     });
 }
 #endif
+
+// project edge states to satisfy EOS
+void BDS_Proj(Box const& bx,
+	      int ncomp,
+	      Array4<Real> const& sedgex,
+	      Array4<Real> const& sedgey
+#if (AMREX_SPACEDIM == 3)
+	      , Array4<Real> const& sedgez
+#endif
+	      )
+{
+
+   Box const& xbx = amrex::surroundingNodes(bx,0);
+   ParallelFor(xbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+
+     GpuArray<Real, MAX_SPECIES> sedge;
+     for (int n=0; n<ncomp; ++n) {
+       sedge[n] = sedgex(i,j,k,n);
+     }
+
+     //     BDS_Proj_local(sedge,ncomp);
+     
+     for (int n=0; n<ncomp; ++n) {
+       sedgex(i,j,k,n) = sedge[n];
+     }
+     
+   });
+
+   Box const& ybx = amrex::surroundingNodes(bx,1);
+   ParallelFor(ybx, [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+
+
+   });
+
+#if (AMREX_SPACEDIM == 3)
+   Box const& zbx = amrex::surroundingNodes(bx,2);
+   ParallelFor(zbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+
+
+   });
+#endif
+
+}
+
+
+
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+void BDS_Proj_local (GpuArray<Real,MAX_SPECIES> sedge,
+		     int ncomp)
+{
+
+}
