@@ -113,6 +113,36 @@ void BDS_Proj_local (GpuArray<Real,MAX_SPECIES>& sedge,
         
     } else if (proj_type == 2) { // L2 projection onto the linear EOS constraint for low Mach models
 
+        Abort("Code up and test BDS_Proj proj_type=2");
+        
+#if 0
+       ! compute mass fractions, w_i = rho_i / rho
+       temp = 0.d0
+       do comp=1,ncomp
+          temp = temp + sedge(comp)
+       end do
+       do comp=1,ncomp
+          w(comp) = sedge(comp)/temp
+       end do
+
+       ! rhobar_sq = (sum_i (w_i/rhobar_i^2))^-1
+       rhobar_sq = 0.d0
+       do comp=1,ncomp
+          rhobar_sq = rhobar_sq + w(comp)/rhobar(comp)**2
+       end do
+       rhobar_sq = 1.d0/rhobar_sq
+
+       ! delta_eos = sum_l (rho_l/rhobar_l) - 1
+       delta_eos = -1.d0
+       do comp=1,ncomp
+          delta_eos = delta_eos + sedge(comp)/rhobar(comp)
+       end do
+
+       do comp=1,ncomp
+          sedge(comp) = sedge(comp) - w(comp)*(rhobar_sq/rhobar(comp))*delta_eos
+       end do
+#endif
+        
     } else if (proj_type == 3) { // Ensure sum(rho)=rho0 for Boussinesq models
 
         Real sumw = 0.;
@@ -126,6 +156,21 @@ void BDS_Proj_local (GpuArray<Real,MAX_SPECIES>& sedge,
         
     } else if (proj_type == 4) { // Ensure sum(rho)=rho0
 
+        Abort("Code up and test BDS_Proj proj_type=4");
+
+#if 0
+       ! and also sum(z*rho)=0 for electroneutral Boussinesq models
+
+       ! Ensure sum(z*rho)=0
+       z = charge_per_mass(1:ncomp)
+       sedge = sedge - sum(sedge*z) / sum(z*z) * z
+
+       ! Now ensure sum(rho)=rho0 while preserving sum(z*rho)=0
+       w = sedge/rho0 ! Mass fractions
+       sedge = rho0 * (w/sum(w))
+       !write(*,*) "z^T*rho=", sum(sedge*z), " 1^T*w-1=", sum(sedge/rho0)-1.0d0
+#endif
+                                                       
     } else {
         Abort("BDS_Proj: invalid proj_type");
     }

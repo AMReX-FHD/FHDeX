@@ -36,7 +36,7 @@
   variance_coef_mass = 0.0
   initial_variance_mom = 0.
   
-  advection_type = 1
+  advection_type = 2
 
   k_B = 1.            	# [units: cm2*g*s-2*K-1]
   T_init = 1. 	# [units: K]
