@@ -7,7 +7,8 @@ void BDS(MultiFab& s_update,
 	 std::array< MultiFab, AMREX_SPACEDIM >& umac,
 	 MultiFab const& fq,
 	 Geometry const& geom,
-	 const Real dt)
+	 const Real dt,
+         const int proj_type)
 {
 
     BL_PROFILE("BDS_ComputeAofs()");
@@ -57,7 +58,7 @@ void BDS(MultiFab& s_update,
                              AMREX_D_DECL(sedgex, sedgey, sedgez),
                              AMREX_D_DECL(u, v, w),
                              fq.array(mfi),
-                             geom, dt);
+                             geom, dt, proj_type);
 	
 	// flip the sign to return div
         auto const& s_update_arr  = s_update.array(mfi);
@@ -104,7 +105,9 @@ void BDS(MultiFab& s_update,
  *
  */
 
-void BDS_ComputeEdgeState(Box const& bx, int ncomp, int bccomp,
+void BDS_ComputeEdgeState(Box const& bx,
+                          int ncomp,
+                          int bccomp,
                           Array4<Real const> const& q,
                           Array4<Real      > const& xedge,
                           Array4<Real      > const& yedge,
@@ -112,7 +115,8 @@ void BDS_ComputeEdgeState(Box const& bx, int ncomp, int bccomp,
                           Array4<Real const> const& vmac,
                           Array4<Real const> const& fq,
                           Geometry geom,
-                          Real l_dt)
+                          Real l_dt,
+                          const int proj_type)
 {
     // For now, loop on components here
     for( int icomp = 0; icomp < ncomp; ++icomp)
@@ -131,7 +135,7 @@ void BDS_ComputeEdgeState(Box const& bx, int ncomp, int bccomp,
     }
 
     // project edge states to satisfy EOS
-    BDS_Proj(bx,ncomp,xedge,yedge);
+    BDS_Proj(bx,ncomp,xedge,yedge,proj_type);
 }
 
 /**
@@ -825,7 +829,9 @@ void BDS_ComputeConc(Box const& bx,
  * \param [in]     l_dt        Time step.
  */
 
-void BDS_ComputeEdgeState(Box const& bx, int ncomp, int bccomp,
+void BDS_ComputeEdgeState(Box const& bx,
+                          int ncomp,
+                          int bccomp,
                           Array4<Real const> const& q,
                           Array4<Real      > const& xedge,
                           Array4<Real      > const& yedge,
@@ -835,7 +841,8 @@ void BDS_ComputeEdgeState(Box const& bx, int ncomp, int bccomp,
                           Array4<Real const> const& wmac,
                           Array4<Real const> const& fq,
                           Geometry geom,
-                          Real l_dt)
+                          Real l_dt,
+                          const int proj_type)
 {
     // For now, loop on components here
     for( int icomp = 0; icomp < ncomp; ++icomp)
@@ -856,7 +863,7 @@ void BDS_ComputeEdgeState(Box const& bx, int ncomp, int bccomp,
     }
 
     // project edge states to satisfy EOS
-    BDS_Proj(bx,ncomp,xedge,yedge,zedge);
+    BDS_Proj(bx,ncomp,xedge,yedge,zedge,proj_type);
 }
 
 /**
@@ -4131,14 +4138,14 @@ void BDS_ComputeConc(Box const& bx,
 #endif
 
 // project edge states to satisfy EOS
-void BDS_Proj(Box const& bx,
+void BDS_Proj(const Box& bx,
 	      int ncomp,
 	      Array4<Real> const& sedgex,
-	      Array4<Real> const& sedgey
+	      Array4<Real> const& sedgey,
 #if (AMREX_SPACEDIM == 3)
-	      , Array4<Real> const& sedgez
+	      Array4<Real> const& sedgez,
 #endif
-	      )
+	      const int proj_type)
 {
 
    Box const& xbx = amrex::surroundingNodes(bx,0);
@@ -4149,7 +4156,7 @@ void BDS_Proj(Box const& bx,
        sedge[n] = sedgex(i,j,k,n);
      }
 
-     //     BDS_Proj_local(sedge,ncomp);
+     BDS_Proj_local(sedge,ncomp,proj_type);
      
      for (int n=0; n<ncomp; ++n) {
        sedgex(i,j,k,n) = sedge[n];
@@ -4160,6 +4167,17 @@ void BDS_Proj(Box const& bx,
    Box const& ybx = amrex::surroundingNodes(bx,1);
    ParallelFor(ybx, [=] AMREX_GPU_DEVICE (int i, int j, int k) {
 
+     GpuArray<Real, MAX_SPECIES> sedge;
+     for (int n=0; n<ncomp; ++n) {
+       sedge[n] = sedgey(i,j,k,n);
+     }
+
+     BDS_Proj_local(sedge,ncomp,proj_type);
+     
+     for (int n=0; n<ncomp; ++n) {
+       sedgey(i,j,k,n) = sedge[n];
+     }
+
 
    });
 
@@ -4167,17 +4185,19 @@ void BDS_Proj(Box const& bx,
    Box const& zbx = amrex::surroundingNodes(bx,2);
    ParallelFor(zbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) {
 
+     GpuArray<Real, MAX_SPECIES> sedge;
+     for (int n=0; n<ncomp; ++n) {
+       sedge[n] = sedgez(i,j,k,n);
+     }
+
+     BDS_Proj_local(sedge,ncomp,proj_type);
+     
+     for (int n=0; n<ncomp; ++n) {
+       sedgez(i,j,k,n) = sedge[n];
+     }
+
 
    });
 #endif
-
-}
-
-
-
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-void BDS_Proj_local (GpuArray<Real,MAX_SPECIES> sedge,
-		     int ncomp)
-{
 
 }

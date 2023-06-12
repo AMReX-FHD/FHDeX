@@ -38,9 +38,12 @@ void BDS(MultiFab& s_update,
 	 std::array< MultiFab, AMREX_SPACEDIM >& umac,
 	 MultiFab const& fq,
 	 Geometry const& geom,
-	 const Real dt);
+	 const Real dt,
+         const int proj_type = 0);
 
-void BDS_ComputeEdgeState(Box const& bx, int ncomp, int bccomp,
+void BDS_ComputeEdgeState(Box const& bx,
+                          int ncomp,
+                          int bccomp,
                           Array4<Real const> const& q,
                           Array4<Real      > const& xedge,
                           Array4<Real      > const& yedge,
@@ -54,17 +57,20 @@ void BDS_ComputeEdgeState(Box const& bx, int ncomp, int bccomp,
 #endif
                           Array4<Real const> const& fq,
                           Geometry geom,
-                          Real l_dt);
+                          Real l_dt,
+                          const int proj_type);
 
 void BDS_ComputeSlopes(Box const& bx,
                        const Geometry& geom,
-                       int icomp, int bccomp,
+                       int icomp,
+                       int bccomp,
                        Array4<Real const> const& s,
                        Array4<Real      > const& slopes);
 
 void BDS_ComputeConc(Box const& bx,
                      const Geometry& geom,
-                     int icomp, int bccomp,
+                     int icomp,
+                     int bccomp,
                      Array4<Real const> const& s,
                      Array4<Real      > const& sedgex,
                      Array4<Real      > const& sedgey,
@@ -81,14 +87,50 @@ void BDS_ComputeConc(Box const& bx,
                      const Real dt);
 
 // project edge states to satisfy EOS
-void BDS_Proj(Box const& bx,
-	      int ncomp,
+void BDS_Proj(const Box& bx,
+	      const int ncomp,
 	      Array4<Real> const& sedgex,
-	      Array4<Real> const& sedgey
+	      Array4<Real> const& sedgey,
 #if (AMREX_SPACEDIM == 3)
-	      , Array4<Real> const& sedgez
+	      Array4<Real> const& sedgez,
 #endif
-	      );
+	      const int proj_type);
+
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+void BDS_Proj_local (GpuArray<Real,MAX_SPECIES>& sedge,
+		     const int& ncomp,
+                     const int& proj_type)
+{
+
+    GpuArray<Real, MAX_SPECIES> w;
+    GpuArray<Real, MAX_SPECIES> z;
+    
+    Real rhobar_sq, delta_eos, temp;
+
+    if (proj_type == 0) {
+        
+        // do nothing
+        
+    } else if (proj_type == 2) { // L2 projection onto the linear EOS constraint for low Mach models
+
+    } else if (proj_type == 3) { // Ensure sum(rho)=rho0 for Boussinesq models
+
+        Real sumw = 0.;
+        for (int n=0; n<ncomp; ++n) {
+            w[n] = sedge[n] / rho0;
+            sumw += w[n];
+        }
+        for (int n=0; n<ncomp; ++n) {
+            sedge[n] = rho0* w[n] / sumw;
+        }
+        
+    } else if (proj_type == 4) { // Ensure sum(rho)=rho0
+
+    } else {
+        Abort("BDS_Proj: invalid proj_type");
+    }
+
+}
 
 /////////////////////////////////////////////////////////////////////////////////
 // in ConvertMToUmac.cpp

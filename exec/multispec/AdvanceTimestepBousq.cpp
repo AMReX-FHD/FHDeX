@@ -55,6 +55,7 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     // For BDS we need to project edge states onto constraints
     // int proj_type = (use_charged_fluid && electroneutral) ? 4 : 3;
+    int proj_type = 3;
     
     Real theta_alpha = 1./dt;
 
@@ -401,7 +402,7 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
       bds_force.FillBoundary(geom.periodicity());
 
       // bds increments rho_update with the advection term
-      BDS(rho_update, nspecies, SPEC_BC_COMP, rho_old, umac_tmp, bds_force, geom, 0.5*dt);
+      BDS(rho_update, nspecies, SPEC_BC_COMP, rho_old, umac_tmp, bds_force, geom, 0.5*dt, proj_type);
       
     } else if (advection_type == 0) {
 
@@ -555,7 +556,7 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
       MultiFab::Copy(bds_force,rho_update,0,0,nspecies,0);
       bds_force.FillBoundary(geom.periodicity());
       
-      BDS(rho_update, nspecies, SPEC_BC_COMP, rho_old, umac_tmp, bds_force, geom, dt);
+      BDS(rho_update, nspecies, SPEC_BC_COMP, rho_old, umac_tmp, bds_force, geom, dt, proj_type);
 							       
     } else if (advection_type == 0) {
         // compute adv_mass_fluxdiv = -rho_i^{n+1/2} * v^n and

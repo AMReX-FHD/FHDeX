@@ -149,7 +149,7 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 	MultiFab::Copy(bds_force,rho_update,0,0,nspecies,0);
 	bds_force.FillBoundary(geom.periodicity());
 
-	BDS(rho_update, nspecies, SPEC_BC_COMP, rho_old, umac, bds_force, geom, dt);
+	BDS(rho_update, nspecies, SPEC_BC_COMP, rho_old, umac, bds_force, geom, dt, 2);
       
     }
     else {
@@ -429,7 +429,7 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 	}
 	rho_update.setVal(0.);
 	
-	BDS(rho_update, nspecies, SPEC_BC_COMP, rho_old, umac_tmp, bds_force, geom, dt);
+	BDS(rho_update, nspecies, SPEC_BC_COMP, rho_old, umac_tmp, bds_force, geom, dt, 2);
     }
     else {
         Abort("Invalid advection_type");
