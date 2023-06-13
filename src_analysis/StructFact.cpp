@@ -323,12 +323,10 @@ void StructFact::ComputeFFT(const MultiFab& variables,
     BL_PROFILE_VAR("StructFact::ComputeFFT()", ComputeFFT);
 
 #ifdef AMREX_USE_CUDA
-    //Print() << "Using cuFFT\n";
+    Print() << "Using cuFFT\n";
 #else
-    //Print() << "Using FFTW\n";
+    Print() << "Using FFTW\n";
 #endif
-
-    bool is_flattened = false;
 
     long npts;
 
@@ -337,10 +335,6 @@ void StructFact::ComputeFFT(const MultiFab& variables,
     {
       Box domain = geom.Domain();
       ba_onegrid.define(domain);
-
-      if (domain.bigEnd(AMREX_SPACEDIM-1) == 0) {
-          is_flattened = true;
-      }
 
 #if (AMREX_SPACEDIM == 2)
       npts = (domain.length(0)*domain.length(1));
@@ -362,8 +356,6 @@ void StructFact::ComputeFFT(const MultiFab& variables,
     variables_onegrid.define(ba_onegrid, dmap_onegrid, 1, 0);
     variables_dft_real_onegrid.define(ba_onegrid, dmap_onegrid, 1, 0);
     variables_dft_imag_onegrid.define(ba_onegrid, dmap_onegrid, 1, 0);
-
-//    fftw_mpi_init();
 
 #ifdef AMREX_USE_CUDA
     using FFTplan = cufftHandle;
@@ -419,21 +411,6 @@ void StructFact::ComputeFFT(const MultiFab& variables,
                 FFTplan fplan;
 
 #ifdef AMREX_USE_CUDA
-                if (is_flattened) {
-#if (AMREX_SPACEDIM == 2)
-                    cufftResult result = cufftPlan1d(&fplan, fft_size[0], CUFFT_D2Z, 1);
-                    if (result != CUFFT_SUCCESS) {
-                        amrex::AllPrint() << " cufftplan1d forward failed! Error: "
-                                          << cufftErrorToString(result) << "\n";
-                    }
-#elif (AMREX_SPACEDIM == 3)
-                    cufftResult result = cufftPlan2d(&fplan, fft_size[1], fft_size[0], CUFFT_D2Z);
-                    if (result != CUFFT_SUCCESS) {
-                        amrex::AllPrint() << " cufftplan2d forward failed! Error: "
-                                          << cufftErrorToString(result) << "\n";
-                    }
-#endif
-                } else {
 #if (AMREX_SPACEDIM == 2)
                     cufftResult result = cufftPlan2d(&fplan, fft_size[1], fft_size[0], CUFFT_D2Z);
                     if (result != CUFFT_SUCCESS) {
@@ -447,24 +424,9 @@ void StructFact::ComputeFFT(const MultiFab& variables,
                                           << cufftErrorToString(result) << "\n";
                     }
 #endif
-                }
+
 #else // host
 
-                if (is_flattened) {
-#if (AMREX_SPACEDIM == 2)
-                    fplan = fftw_plan_dft_r2c_1d(fft_size[0],
-                                                 variables_onegrid[mfi].dataPtr(),
-                                                 reinterpret_cast<FFTcomplex*>
-                                                 (spectral_field.back()->dataPtr()),
-                                                 FFTW_ESTIMATE);
-#elif (AMREX_SPACEDIM == 3)
-                    fplan = fftw_plan_dft_r2c_2d(fft_size[1], fft_size[0],
-                                                 variables_onegrid[mfi].dataPtr(),
-                                                 reinterpret_cast<FFTcomplex*>
-                                                 (spectral_field.back()->dataPtr()),
-                                                 FFTW_ESTIMATE);
-#endif
-                } else {
 #if (AMREX_SPACEDIM == 2)
                     fplan = fftw_plan_dft_r2c_2d(fft_size[1], fft_size[0],
                                                  variables_onegrid[mfi].dataPtr(),
@@ -478,7 +440,7 @@ void StructFact::ComputeFFT(const MultiFab& variables,
                                                  (spectral_field.back()->dataPtr()),
                                                  FFTW_ESTIMATE);
 #endif
-                }
+
 #endif
 
                 forward_plan.push_back(fplan);
@@ -531,22 +493,14 @@ void StructFact::ComputeFFT(const MultiFab& variables,
                     // copy complex conjugate
                     int iloc = bx.length(0)-i;
                     int jloc, kloc;
-                    if (is_flattened) {
-#if (AMREX_SPACEDIM == 2)
-                        jloc = 0;
-#elif (AMREX_SPACEDIM == 3)
-                        jloc = (j == 0) ? 0 : bx.length(1)-j;
-#endif
-                        kloc = 0;
-                    } else {
-                        jloc = (j == 0) ? 0 : bx.length(1)-j;
-#if (AMREX_SPACEDIM == 2)
-                        kloc = 0;
-#elif (AMREX_SPACEDIM == 3)
-                        kloc = (k == 0) ? 0 : bx.length(2)-k;
-#endif
-                    }
 
+                    jloc = (j == 0) ? 0 : bx.length(1)-j;
+#if (AMREX_SPACEDIM == 2)
+                    kloc = 0;
+#elif (AMREX_SPACEDIM == 3)
+                    kloc = (k == 0) ? 0 : bx.length(2)-k;
+#endif
+                    
                     realpart(i,j,k) =  spectral(iloc,jloc,kloc).real();
                     imagpart(i,j,k) = -spectral(iloc,jloc,kloc).imag();
                 }
@@ -554,16 +508,6 @@ void StructFact::ComputeFFT(const MultiFab& variables,
                 realpart(i,j,k) /= sqrtnpts;
                 imagpart(i,j,k) /= sqrtnpts;
             });
-
-            /*
-            amrex::ParallelFor(bx,
-            [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-            {
-                std::cout << "HACKFFT " << i << " " << j << " " << k << " "
-                          << realpart(i,j,k) << " + " << imagpart(i,j,k) << "i"
-                          << std::endl;
-            });
-            */
         }
 
         variables_dft_real.ParallelCopy(variables_dft_real_onegrid,0,comp,1);
@@ -579,8 +523,6 @@ void StructFact::ComputeFFT(const MultiFab& variables,
         fftw_destroy_plan(forward_plan[i]);
 #endif
     }
-
-//    fftw_mpi_cleanup();
 
 }
 
@@ -802,171 +744,5 @@ void StructFact::ShiftFFT(MultiFab& dft_out, const Geometry& geom, const int& ze
 
     dft_out.ParallelCopy(dft_onegrid, 0, d, 1);
   }
-
-}
-
-// integrate cov_mag over k shells
-void StructFact::IntegratekShells(const int& step, const Geometry& /*geom*/) {
-
-    BL_PROFILE_VAR("StructFact::IntegratekShells",IntegratekShells);
-
-    GpuArray<int,AMREX_SPACEDIM> center;
-    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        center[d] = n_cells[d]/2;
-    }
-
-    int npts = n_cells[0]/2-1;
-    //int npts_sq = npts*npts;
-
-    Gpu::DeviceVector<Real> phisum_vect(npts);
-    Gpu::DeviceVector<int>  phicnt_vect(npts);
-
-//    Gpu::DeviceVector<Real> phisum_vect_large(npts_sq);
-//    Gpu::DeviceVector<int>  phicnt_vect_large(npts_sq);
-
-    for (int d=0; d<npts; ++d) {
-        phisum_vect[d] = 0.;
-        phicnt_vect[d] = 0;
-    }
-
-//    for (int d=0; d<npts_sq; ++d) {
-//        phisum_vect_large[d] = 0.;
-//        phicnt_vect_large[d] = 0;
-//    }
-    
-    Real* phisum_gpu = phisum_vect.dataPtr();  // pointer to data
-    int*  phicnt_gpu = phicnt_vect.dataPtr();  // pointer to data
-    
-  //  Real* phisum_large_gpu = phisum_vect_large.dataPtr();  // pointer to data
- //   int*  phicnt_large_gpu = phicnt_vect_large.dataPtr();  // pointer to data
-
-    // only consider cells that are within 15k of the center point
-    
-    for ( MFIter mfi(cov_mag,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
-        
-        const Box& bx = mfi.tilebox();
-
-        const Array4<Real> & cov = cov_mag.array(mfi);
-
-        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-        {
-            int ilen = amrex::Math::abs(i-center[0]);
-            int jlen = amrex::Math::abs(j-center[1]);
-            int klen = (AMREX_SPACEDIM == 3) ? amrex::Math::abs(k-center[2]) : 0;
-
-            Real dist = (ilen*ilen + jlen*jlen + klen*klen);
- //           int idist = (ilen*ilen + jlen*jlen + klen*klen);
-            dist = std::sqrt(dist);
-            
-            if ( dist <= center[0]-0.5) {
-	        dist = dist+0.5;
-                int cell = int(dist);
-                for (int d=0; d<AMREX_SPACEDIM; ++d) {
-		  amrex::HostDevice::Atomic::Add(&(phisum_gpu[cell]), cov(i,j,k,d));
-//		    phisum_large_gpu[idist]  += cov(i,j,k,d);
-                }
-		amrex::HostDevice::Atomic::Add(&(phicnt_gpu[cell]),1);
- //               ++phicnt_large_gpu[idist];
-            }
-        });
-    }
-        
-    for (int d=1; d<npts; ++d) {
-        ParallelDescriptor::ReduceRealSum(phisum_vect[d]);
-        ParallelDescriptor::ReduceIntSum(phicnt_vect[d]);
-    }
-        
-#if 0
-    for (int d=1; d<npts_sq; ++d) {
-        ParallelDescriptor::ReduceRealSum(phisum_vect_large[d]);
-        ParallelDescriptor::ReduceIntSum(phicnt_vect_large[d]);
-    }
-
-    if (ParallelDescriptor::IOProcessor()) {
-        std::ofstream turb_disc;
-        std::string turbNamedisc = "turb_disc";
-        turbNamedisc += std::to_string(step);
-        turbNamedisc += ".txt";
-        
-        turb_disc.open(turbNamedisc);
-        for (int d=1; d<npts_sq; ++d) {
-	    if(phicnt_vect_large[d]>0) {
-		Real dreal = d;
-                turb_disc << sqrt(dreal) << " " << 4.*M_PI*d*phisum_vect_large[d]/phicnt_vect_large[d] << std::endl;
-	    }
-        }
-    }
-
-    Real dk = 1.;
-    if (ParallelDescriptor::IOProcessor()) {
-        std::ofstream turb_alt;
-        std::string turbNamealt = "turb_alt";
-        turbNamealt += std::to_string(step);
-        turbNamealt += ".txt";
-        
-        turb_alt.open(turbNamealt);
-        for (int d=1; d<npts; ++d) {
-            turb_alt << d << " " << phisum_vect[d] << std::endl;
-        }
-    }
-#endif
-
-    Real dk = 1.;
-    
-#if (AMREX_SPACEDIM == 2)
-    for (int d=1; d<npts; ++d) {
-      //  phisum_vect[d] *= 2.*M_PI*d*dk*dk/phicnt_vect[d];
-        phisum_vect[d] *= 2.*M_PI*(d*dk+.5*dk*dk)/phicnt_vect[d];
-    }
-#else
-    for (int d=1; d<npts; ++d) {
-      //  phisum_vect[d] *= 4.*M_PI*(d*d)*dk*dk*dk/phicnt_vect[d];
-      //  phisum_vect[d] *= 4.*M_PI*(d*d*dk+d*dk*dk+dk*dk*dk/3.)/phicnt_vect[d];
-        phisum_vect[d] *= 4.*M_PI*(d*d*dk+dk*dk*dk/12.)/phicnt_vect[d];
-    }
-#endif
-    if (ParallelDescriptor::IOProcessor()) {
-        std::ofstream turb;
-        std::string turbBaseName = "turb";
-        //turbName += std::to_string(step);
-        std::string turbName = Concatenate(turbBaseName,step,7);
-        turbName += ".txt";
-        
-        turb.open(turbName);
-        for (int d=1; d<npts; ++d) {
-            turb << d << " " << phisum_vect[d] << std::endl;
-        }
-    }
-}
-
-void StructFact::AddToExternal(MultiFab& x_mag, MultiFab& x_realimag, const Geometry& geom, const int& zero_avg) {
-
-    BL_PROFILE_VAR("StructFact::AddToExternal",AddToExternal);
-
-    MultiFab plotfile;
-    int nPlot = 1;
-
-    // Build temp real & imag components
-    const BoxArray& ba = cov_mag.boxArray();
-    const DistributionMapping& dm = cov_mag.DistributionMap();
-
-    MultiFab cov_real_temp(ba, dm, NCOV, 0);
-    MultiFab cov_imag_temp(ba, dm, NCOV, 0);
-    MultiFab::Copy(cov_real_temp, cov_real, 0, 0, NCOV, 0);
-    MultiFab::Copy(cov_imag_temp, cov_imag, 0, 0, NCOV, 0);
-
-    // Finalize covariances - scale & compute magnitude
-    Finalize(cov_real_temp, cov_imag_temp, geom, zero_avg);
-
-    nPlot = NCOV;
-    plotfile.define(cov_mag.boxArray(), cov_mag.DistributionMap(), nPlot, 0);
-    MultiFab::Copy(plotfile, cov_mag, 0, 0, NCOV, 0); // copy structure factor into plotfile
-    MultiFab::Add(x_mag,plotfile,0,0,NCOV,0);
-
-    nPlot = 2*NCOV;
-    plotfile.define(cov_mag.boxArray(), cov_mag.DistributionMap(), nPlot, 0);
-    MultiFab::Copy(plotfile,cov_real_temp,0,0,   NCOV,0);
-    MultiFab::Copy(plotfile,cov_imag_temp,0,NCOV,NCOV,0);
-    MultiFab::Add(x_realimag,plotfile,0,0,2*NCOV,0);
 
 }
