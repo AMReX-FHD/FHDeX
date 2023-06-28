@@ -251,7 +251,7 @@ void main_driver(const char* argv)
             });
 
         }
-
+        height.FillBoundary(geom.periodicity());
     
         if (plot_int > 0 && istep%plot_int == 0)
         {
