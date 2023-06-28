@@ -34,6 +34,14 @@ void main_driver(const char* argv)
     // surface tension "gamma" is stored in h_bar
     Real h0 = rho0;
     Real gamma = h_bar;
+
+    // algorithm_type = 0 (2D, default)
+    // algorithm_type = 1 (1D)
+    int do_1d = (algorithm_type == 1) ? 1 : 0;
+
+    // set fac_1d = 1. for 2D
+    // set fac_1d = 0. for 1D
+    Real fac_1d = (do_1d == 1) ? 0. : 1.;
     
     /////////////////////////////////////////
     // Initialize random number seed on all processors/GPUs
@@ -156,8 +164,8 @@ void main_driver(const char* argv)
 
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
-                L(i,j,k) = ( h(i-1,j,k) - 2.*h(i,j,k) + h(i+1,j,k) ) / (dx[0]*dx[0])
-                         + ( h(i,j-1,k) - 2.*h(i,j,k) + h(i,j+1,k) ) / (dx[1]*dx[1]);
+                L(i,j,k) =          ( h(i-1,j,k) - 2.*h(i,j,k) + h(i+1,j,k) ) / (dx[0]*dx[0])
+                         + fac_1d * ( h(i,j-1,k) - 2.*h(i,j,k) + h(i,j+1,k) ) / (dx[1]*dx[1]);
             });
         }
         Laph.FillBoundary(geom.periodicity());
@@ -227,8 +235,8 @@ void main_driver(const char* argv)
             },
                                [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
-                fluxy(i,j,k) = std::sqrt(ConstNoise*std::pow(hfacey(i,j,k),3.) / (dt*dVol)) * randfacey(i,j,k)
-                    + Const3dx * std::pow(hfacey(i,j,k),3.)*gradLhy(i,j,k);
+                fluxy(i,j,k) = fac_1d * (std::sqrt(ConstNoise*std::pow(hfacey(i,j,k),3.) / (dt*dVol)) * randfacey(i,j,k)
+                                         + Const3dx * std::pow(hfacey(i,j,k),3.)*gradLhy(i,j,k) );
             });
 
         }
