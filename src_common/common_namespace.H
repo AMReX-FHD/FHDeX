@@ -6,6 +6,7 @@ namespace common {
 #define ADJALT 0.00002
 #define WRITE_BUFFER 1000
 #define MAX_ELEMENT 28 // needs to be MAX_SPECIES*(MAX_SPECIES-1)/2
+#define MAX_BONDS 12
 //////////////
     
     // misc global variables
