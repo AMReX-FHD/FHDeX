@@ -41,6 +41,7 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
 
     for (MFIter mfi = MakeMFIter(lev, true); mfi.isValid(); ++mfi) {
         
+	pinnedParticlesIDGlobal.clear();
         const Box& tile_box  = mfi.tilebox();
         const RealBox tile_realbox{tile_box, geom.CellSize(), geom.ProbLo()};
         const int grid_id = mfi.index();
@@ -110,10 +111,13 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
 	            for(int i=0; i<MAX_BONDS; i++)
 	            {
 			if (i<num_bond[p.idata(FHD_intData::id_global)]) {
-                           p.rdata(FHD_realData::bond1 + i) = bond_type[head_index[p.idata(FHD_intData::id_global)]+i];
+                           p.rdata(FHD_realData::bondCoeff1_1 + i) = bond_coeff1[head_index[p.idata(FHD_intData::id_global)]+i];
+                           p.rdata(FHD_realData::bondCoeff2_1 + i) = bond_coeff2[head_index[p.idata(FHD_intData::id_global)]+i];
                            p.idata(FHD_intData::bond1 + i) = bond_atom[head_index[p.idata(FHD_intData::id_global)]+i];
+			   std::cout << "id_global=" << p.idata(FHD_intData::id_global) << "; " << "bond=" << p.idata(FHD_intData::bond1 + i) << ", k=" << p.rdata(FHD_realData::bondCoeff1_1+i) << ", x0=" << p.rdata(FHD_realData::bondCoeff2_1+i) << "\n";
 			} else {
-                           p.rdata(FHD_realData::bond1 + i) = 0.;
+                           p.rdata(FHD_realData::bondCoeff1_1 + i) = 0.;
+                           p.rdata(FHD_realData::bondCoeff2_1 + i) = 0.;
                            p.idata(FHD_intData::bond1 + i) = -1;
 			}
 
@@ -121,6 +125,7 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
 
                     if(p.idata(FHD_intData::pinned) != 0)
                     {
+		        //pinnedParticlesIDGlobal.push_back(p.idata(FHD_intData::id_global));
                         pinnedParticles++;
 	                y_lo_wall = p.pos(1); 
                     }
@@ -224,6 +229,7 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
             //TODO: generate random particles in parallel. May need to turn off tiling?
             if(ParallelDescriptor::MyProc() == 0 && mfi.LocalTileIndex() == 0 && proc0_enter) {
 		int i = 0;
+		proc0_enter = false;
                 for(int i_spec=0; i_spec < nspecies; i_spec++) {
 	            for(int i_part=0; i_part<particleInfo[i_spec].total;i_part++) {
                         ParticleType p;
@@ -234,6 +240,14 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
                         p.cpu() = ParallelDescriptor::MyProc();
 	                p.idata(FHD_intData::id_global) = i;
 			i++;
+
+                        for(int i=0; i<MAX_BONDS; i++)
+	                {
+		            p.rdata(FHD_realData::bondCoeff1_1 + i) = 0.;
+                            p.rdata(FHD_realData::bondCoeff2_1 + i) = 0.;
+                            p.idata(FHD_intData::bond1 + i) = -1;
+
+	                }
 
                         p.pos(0) = prob_lo[0] + amrex::Random()*(prob_hi[0]-prob_lo[0]);
                         p.pos(1) = prob_lo[1] + amrex::Random()*(prob_hi[1]-prob_lo[1]);
@@ -336,6 +350,7 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
 
     ParallelDescriptor::ReduceIntSum(pcount);
     if (pcount != totalParticles) {
+	Print() << "pcount	totalParticles: " << pcount << "	" << totalParticles << endl;
         Abort("Total number of particles mismatch; some particles missing.");
     } else {
         Print() << "Total number of generated particles: " << pcount << std::endl;
@@ -344,6 +359,7 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
     ParallelDescriptor::ReduceRealSum(y_lo_wall);
 
     if (pinnedParticles != pinnedParticlesIDGlobal.size()) {
+	Print() << pinnedParticles << " pinned particles loaded." << std::endl;
         Abort("Total number of pinned particles mismatch.");
     } else {
         Print() << "Loaded " << pinnedParticles << " pinned particles." << std::endl;
@@ -378,7 +394,7 @@ void FhdParticleContainer::ReInitParticles()
     Real y_lo_wall = 0.0;
 
     //Note we are resetting the particle ID count here, this is only valid if one rank is doing the generating.
-    ParticleType::NextID(1);
+    //ParticleType::NextID(1);
         
     for (MFIter mfi = MakeMFIter(lev, true); mfi.isValid(); ++mfi) {
         

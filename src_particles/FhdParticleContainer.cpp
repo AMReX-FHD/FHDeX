@@ -1427,48 +1427,48 @@ void FhdParticleContainer::computeForcesBondGPU(long totalParticles) {
     //}
     /*----outside-for-loop method: end building force vectors-------------------------------------------------------------------------*/
 
-    for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) {
+    if (bond_tog != 0)
+    {
+        for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) {
 
-        const int grid_id = pti.index();
-        const int tile_id = pti.LocalTileIndex();
+            const int grid_id = pti.index();
+            const int tile_id = pti.LocalTileIndex();
 
-        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
-        auto& particles = particle_tile.GetArrayOfStructs();
-        const int np = particles.numParticles();
+            auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+            auto& particles = particle_tile.GetArrayOfStructs();
+            const int np = particles.numParticles();
 
-        auto pstruct = particles().dataPtr();
-       
-	/*----outside-for-loop method: updating particle attributes-------------------------------------------------------------------------*/
-        // loop over particles
-        //AMREX_FOR_1D( np, i,
-        //{
+            auto pstruct = particles().dataPtr();
+           
+            /*----outside-for-loop method: updating particle attributes-------------------------------------------------------------------------*/
+            // loop over particles
+            //AMREX_FOR_1D( np, i,
+            //{
 
-        //    ParticleType & part = pstruct[i];
+            //    ParticleType & part = pstruct[i];
 
-	//    //cout << part.idata(FHD_intData::groupid) << "\n";
+            //    //cout << part.idata(FHD_intData::groupid) << "\n";
 
-	//    if (part.idata(FHD_intData::groupid) > 0)
-	//    { 
-	//       // update using force vector (no calculation here) 
-        //       part.rdata(FHD_realData::forcex) += fx[part.idata(FHD_intData::id_global)];
-        //       part.rdata(FHD_realData::forcey) += fy[part.idata(FHD_intData::id_global)];
-        //       part.rdata(FHD_realData::forcez) += fz[part.idata(FHD_intData::id_global)];
+            //    if (part.idata(FHD_intData::groupid) > 0)
+            //    { 
+            //       // update using force vector (no calculation here) 
+            //       part.rdata(FHD_realData::forcex) += fx[part.idata(FHD_intData::id_global)];
+            //       part.rdata(FHD_realData::forcey) += fy[part.idata(FHD_intData::id_global)];
+            //       part.rdata(FHD_realData::forcez) += fz[part.idata(FHD_intData::id_global)];
 
-	//    }
-	//});
-	/*----outside-for-loop method: end updating particle attributes-------------------------------------------------------------------------*/
+            //    }
+            //});
+            /*----outside-for-loop method: end updating particle attributes-------------------------------------------------------------------------*/
 
-	/*----inside-for-loop method: updating particle attributes-------------------------------------------------------------------------*/
-	/* this section celculates bond forces inside the for loop
-	 * there may be a few ways to do so:
-	 * 1) init particles using full bond input file, which has repeated bond info, e.g. has both 1-2 and 2-1
-	 * 2) not using full bond list, but simultaneously update forces of two bonds associated with the bond. Race condition?
-	 * using 1) for now...
-	 */
-	
-        if (bond_tog != 0)
-        {
-	    compute_forces_bond_gpu(particles, np, id_global_map, posxVec, posyVec, poszVec);
+            /*----inside-for-loop method: updating particle attributes-------------------------------------------------------------------------*/
+            /* this section celculates bond forces inside the for loop
+             * there may be a few ways to do so:
+             * 1) init particles using full bond input file, which has repeated bond info, e.g. has both 1-2 and 2-1
+             * 2) not using full bond list, but simultaneously update forces of two bonds associated with the bond. Race condition?
+             * using 1) for now...
+             */
+            
+            compute_forces_bond_gpu(particles, np, id_global_map, posxVec, posyVec, poszVec);
         }	
 	/*----inside-for-loop method: updating particle attributes-------------------------------------------------------------------------*/
 	
@@ -2949,10 +2949,10 @@ FhdParticleContainer::PrintParticles()
                 double bigM  = part.rdata(FHD_realData::totalDiff)/(T_init[0]*k_B);
                 double absForce = sqrt(part.rdata(FHD_realData::forcex)*part.rdata(FHD_realData::forcex) + part.rdata(FHD_realData::forcey)*part.rdata(FHD_realData::forcey) + part.rdata(FHD_realData::forcez)*part.rdata(FHD_realData::forcez));
 
-                std::cout << scientific << setprecision(15) << "Particle " << ParallelDescriptor::MyProc() << ", " << part.id() << ", force: " << part.rdata(FHD_realData::forcex) << ", " << part.rdata(FHD_realData::forcey) << ", " << part.rdata(FHD_realData::forcez) << ", " << absForce << std::endl;
-                std::cout << scientific << setprecision(15) << "Particle " << ParallelDescriptor::MyProc() << ", " << part.id() << ", position/q: " << part.pos(0) << ", " << part.pos(1) << ", " << part.pos(2) << ", " << part.rdata(FHD_realData::q) << std::endl;
-                std::cout << scientific << setprecision(15) << "Particle " << ParallelDescriptor::MyProc() << ", " << part.id() << ", vel: " << part.rdata(FHD_realData::velx) << ", " << part.rdata(FHD_realData::vely) << ", " << part.rdata(FHD_realData::velz) << std::endl;
-                std::cout << scientific << setprecision(15) << "Particle " << ParallelDescriptor::MyProc() << ", " << part.id() << ", normalised mobility: " << (part.rdata(FHD_realData::velx)/part.rdata(FHD_realData::forcex))/bigM << ", " << (part.rdata(FHD_realData::vely)/part.rdata(FHD_realData::forcey))/bigM << ", " << (part.rdata(FHD_realData::velz)/part.rdata(FHD_realData::forcez))/bigM << std::endl;
+                std::cout << scientific << setprecision(15) << "Particle " << ParallelDescriptor::MyProc() << ", " << part.idata(FHD_intData::id_global) << ", force: " << part.rdata(FHD_realData::forcex) << ", " << part.rdata(FHD_realData::forcey) << ", " << part.rdata(FHD_realData::forcez) << ", " << absForce << std::endl;
+                std::cout << scientific << setprecision(15) << "Particle " << ParallelDescriptor::MyProc() << ", " << part.idata(FHD_intData::id_global) << ", position/q: " << part.pos(0) << ", " << part.pos(1) << ", " << part.pos(2) << ", " << part.rdata(FHD_realData::q) << std::endl;
+                std::cout << scientific << setprecision(15) << "Particle " << ParallelDescriptor::MyProc() << ", " << part.idata(FHD_intData::id_global) << ", vel: " << part.rdata(FHD_realData::velx) << ", " << part.rdata(FHD_realData::vely) << ", " << part.rdata(FHD_realData::velz) << std::endl;
+                std::cout << scientific << setprecision(15) << "Particle " << ParallelDescriptor::MyProc() << ", " << part.idata(FHD_intData::id_global) << ", normalised mobility: " << (part.rdata(FHD_realData::velx)/part.rdata(FHD_realData::forcex))/bigM << ", " << (part.rdata(FHD_realData::vely)/part.rdata(FHD_realData::forcey))/bigM << ", " << (part.rdata(FHD_realData::velz)/part.rdata(FHD_realData::forcez))/bigM << std::endl;
 
                 if(part.idata(FHD_intData::id_global) == 0)
                 {
@@ -3167,13 +3167,13 @@ FhdParticleContainer::SetForce(int id, Real x, Real y, Real z, const std::map<in
                 part.rdata(FHD_realData::forcey) = y;
                 part.rdata(FHD_realData::forcez) = z;
                 std::cout << "Rank " << ParallelDescriptor::MyProc() << " particle " << id << " forcing with " << x << ", " << y << ", " << z << std::endl;
-            }else
-            {
-                part.rdata(FHD_realData::forcex) = 0;
-                part.rdata(FHD_realData::forcey) = 0;
-                part.rdata(FHD_realData::forcez) = 0;
+            }//else
+            //{
+            //    part.rdata(FHD_realData::forcex) = 0;
+            //    part.rdata(FHD_realData::forcey) = 0;
+            //    part.rdata(FHD_realData::forcez) = 0;
 
-            }
+            //}
         }
     }
 }
@@ -3363,6 +3363,7 @@ FhdParticleContainer::fillMobilityMatrix(int id, int comp, const std::map<int,in
 
     int id_pulldown = id_global_map.at(id);
     int realID = idMap[id_pulldown];
+    Print() << realID << "\n";
 
     int matrixSize = 3*totalPinnedMarkers;
 
@@ -4583,6 +4584,7 @@ void FhdParticleContainer::UpdatePIDMap() {
     
     for (int i=0; i<globalidVec.size(); i++) {
         id_global_map.insert(std::make_pair(globalidVec[i],i));
+	//Print() << "id_global and id_pulldown " << globalidVec[i] << " " << i << std::endl;
     }
 
 }

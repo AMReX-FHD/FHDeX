@@ -335,11 +335,19 @@ void bond_fene (      FhdParticleContainer::ParticleType& part1,
 
     const Real dr2 = dr*dr;
     const Real rtdr2 = sqrt(dr2);
-    const Real rlogarg = 1.0 - dr2/x0/x0;
+    Real rlogarg = 1.0 - dr2/x0/x0;
+    
+    if (rlogarg < 0.1) {
+       cout << "FENE bond too long" << "\n";
+       if (rlogarg <= -3.0) {
+          cout << "Bad FENE bond" << "\n";
+       } 
+       rlogarg = 0.1;
+    }
 
-    part1.rdata(FHD_realData::forcex) += -k*dx*rlogarg;
-    part1.rdata(FHD_realData::forcey) += -k*dy*rlogarg;
-    part1.rdata(FHD_realData::forcez) += -k*dz*rlogarg;
+    part1.rdata(FHD_realData::forcex) += -k*dx/rlogarg;
+    part1.rdata(FHD_realData::forcey) += -k*dy/rlogarg;
+    part1.rdata(FHD_realData::forcez) += -k*dz/rlogarg;
     
 }
 
@@ -349,10 +357,18 @@ RealVect bond_fene_vec (     amrex::Real dx, amrex::Real dy, amrex::Real dz, amr
 
     const Real dr2 = dr*dr;
     const Real rtdr2 = sqrt(dr2);
-    const Real rlogarg = 1.0 - dr2/x0/x0;
+    Real rlogarg = 1.0 - dr2/x0/x0;
+
+    if (rlogarg < 0.1) {
+       cout << "FENE bond too long" << "\n";
+       if (rlogarg <= -3.0) {
+          cout << "Bad FENE bond" << "\n";
+       } 
+       rlogarg = 0.1;
+    }
 
     RealVect f_bond = {dx, dy, dz};
-    f_bond *= -k*rlogarg;
+    f_bond *= -k/rlogarg;
     
     return f_bond;
     
@@ -925,41 +941,52 @@ void compute_forces_bond_gpu (FhdParticleContainer::AoS& aos, int Np, std::map<i
 
         if (part.idata(FHD_intData::groupid) > 0)
         { 
-            for(int ii = -images; ii <= images; ii++)
-            {
-                for(int jj = -images; jj <= images; jj++)
-                {
-                    for(int kk = -images; kk <= images; kk++)
-                    {
+            //for(int ii = -images; ii <= images; ii++)
+            //{
+            //    for(int jj = -images; jj <= images; jj++)
+            //    {
+            //        for(int kk = -images; kk <= images; kk++)
+            //        {
                         for (int i_bond=0; i_bond<MAX_BONDS; i_bond++) 
                         {
-                            if (part.idata(FHD_intData::bond1+i_bond) > 0) {
-                               Real dx = part.rdata(FHD_realData::ax)-posxVec[id_global_map[part.idata(FHD_intData::bond1+i_bond)]] - ii*domx;
-                               Real dy = part.rdata(FHD_realData::ay)-posyVec[id_global_map[part.idata(FHD_intData::bond1+i_bond)]] - jj*domy;
-                               Real dz = part.rdata(FHD_realData::az)-poszVec[id_global_map[part.idata(FHD_intData::bond1+i_bond)]] - kk*domz;
+                            if (part.idata(FHD_intData::bond1+i_bond) >= 0) {
+			       //std::cout << "id_global bond bond_pulldown: " << part.idata(FHD_intData::id_global) << " " << part.idata(FHD_intData::bond1+i_bond) << " " << id_global_map[part.idata(FHD_intData::bond1+i_bond)] << std::endl;
+                               Real dx = part.rdata(FHD_realData::ax)-posxVec[id_global_map[part.idata(FHD_intData::bond1+i_bond)]];
+                               Real dy = part.rdata(FHD_realData::ay)-posyVec[id_global_map[part.idata(FHD_intData::bond1+i_bond)]];
+                               Real dz = part.rdata(FHD_realData::az)-poszVec[id_global_map[part.idata(FHD_intData::bond1+i_bond)]];
+			       //if (dx < -domx/2) dx = dx+domx;
+			       //if (dy < -domy/2) dy = dy+domy;
+			       //if (dz < -domz/2) dz = dz+domz;
+			       //if (dx > domx/2) dx = dx-domx;
+			       //if (dy > domy/2) dy = dy-domy;
+			       //if (dz > domz/2) dz = dz-domz;
+
                                Real dr2 = dx*dx + dy*dy + dz*dz;
                                Real rtdr2 = sqrt(dr2);
-			       Real k_spring = part.rdata(FHD_realData::bond1+i_bond);
+			       //std::cout << "dr " << rtdr2 << std::endl;
+			       Real k_spring = part.rdata(FHD_realData::bondCoeff1_1+i_bond);
+			       Real x0_spring = part.rdata(FHD_realData::bondCoeff2_1+i_bond);
 
-                               if (rtdr2 > b*2+x0) {
-                                  cout << "Bad Hookian bond" << "\n";
-                               }
-                               //cout << rtdr2 << "\n";
 
                                if (rtdr2 > 0.0)
                                {
 	     	                   if (bond_tog == 1) {
-                                       bond_hookian(part, dx, dy, dz, rtdr2, k_spring, x0); 
+                                       if (rtdr2 > b*2+x0) {
+                                          cout << "Bad Hookian bond" << "\n";
+                                       }
+                                       //cout << rtdr2 << "\n";
+				       //
+                                       bond_hookian(part, dx, dy, dz, rtdr2, k, x0); 
 	     		           } else if (bond_tog == 2) {
-	     	                       bond_fene(part, dx, dy, dz, rtdr2, k_spring, x0);
+	     	                       bond_fene(part, dx, dy, dz, rtdr2, k, x0);
 	     		           }
                                   //cout << part.rdata(FHD_realData::forcex) << "\n";
                                }
                             }
                         }
-                    }
-                }
-            }
+            //        }
+            //    }
+            //}
         }
     });
 

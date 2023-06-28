@@ -374,12 +374,13 @@ void IBMarkerContainerBase<StructReal, StructInt>::loadBonds(int totalP, char* f
     BL_PROFILE_VAR("loadBonds()",loadBonds);
     
     int atom1, atom2, atom_current;
-    Real k_bond;
+    Real k_bond, x0_bond;
 
     head_index.resize(totalP,0);
     num_bond.resize(totalP,0);
     bond_atom.resize(common::nbonds,0);
-    bond_type.resize(common::nbonds,0);
+    bond_coeff1.resize(common::nbonds,0);
+    bond_coeff2.resize(common::nbonds,0);
 
     int bcount = 0;
     atom_current = -1;
@@ -388,10 +389,15 @@ void IBMarkerContainerBase<StructReal, StructInt>::loadBonds(int totalP, char* f
     std::string line;
     while (std::getline(bondFile, line)) {
     //for(int i_bond=0; i_bond < common::nbonds; i_bond++) {
+    
+	std::istringstream ss(line);
 
-        bondFile >> atom1;
-        bondFile >> atom2;
-        bondFile >> k_bond;
+        ss >> atom1;
+        ss >> atom2;
+        ss >> k_bond;
+        ss >> x0_bond;
+
+        //Print() << atom1 << " " << atom2 << " " << k_bond << std::endl;
 
         if(atom1>atom_current) 
 	{
@@ -399,9 +405,10 @@ void IBMarkerContainerBase<StructReal, StructInt>::loadBonds(int totalP, char* f
             head_index[atom_current] = bcount;
         }
 
-        bond_type[bcount] = k_bond;
+        bond_coeff1[bcount] = k_bond;
+        bond_coeff2[bcount] = x0_bond;
         bond_atom[bcount] = atom2;
-        num_bond[atom1]++;
+        num_bond[atom1] = num_bond[atom1]+1;
 
         bcount++;
     }
@@ -413,6 +420,10 @@ void IBMarkerContainerBase<StructReal, StructInt>::loadBonds(int totalP, char* f
     }
 
     bondFile.close();
+    
+    for (int i=0; i<totalP; i++) {
+        Print() << i << " of " << totalP << ": " << head_index[i] << " " << num_bond[i] << std::endl;
+    }
 
 }
 

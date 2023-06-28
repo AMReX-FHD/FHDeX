@@ -298,6 +298,10 @@ void ReadCheckPoint(int& step,
         else if (*(std::max_element(eskernel_fluid.begin(),eskernel_fluid.begin()+nspecies)) > 0) {
             ngp = static_cast<int>(floor(*(std::max_element(eskernel_fluid.begin(),eskernel_fluid.begin()+nspecies)))/2+1);
         }
+	//// TODO: need a better way to determine ghost cells for bonds
+        //if (bond_tog != 0) {
+        //    ngp = std::max(ngp, 6);
+        //}
 
         chargeM.define(bp,dm,1,1);
         potential.define(bp,dm,1,ngp);

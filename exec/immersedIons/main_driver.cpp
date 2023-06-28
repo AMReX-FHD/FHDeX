@@ -94,6 +94,9 @@ void main_driver(const char* argv)
             ang = tempang;
         }   
     }
+    //if (bond_tog != 0) {
+    //    ang = std::max(ang, 8);
+    //}
     
     int ngp = 1;
     // using maximum number of peskin kernel points to determine the ghost cells for the whole grid.
@@ -108,10 +111,10 @@ void main_driver(const char* argv)
         ngp = 4;
     } 
 
-    // TODO: need a better way to determine ghost cells for bonds
-    if (bond_tog != 0) {
-        ngp = std::max(ngp, 6);
-    }
+    //// TODO: need a better way to determine ghost cells for bonds
+    //if (bond_tog != 0) {
+    //    ngp = std::max(ngp, 6);
+    //}
 
     // staggered velocities
     // umac needs extra ghost cells for Peskin kernels
@@ -832,6 +835,10 @@ void main_driver(const char* argv)
 
     particles.UpdatePIDMap();
 
+    for (int i=0; i<simParticles; i++) {
+        Print() << "id_global and id_pulldown " << i << " " << particles.id_global_map[i] << std::endl;
+    }
+
     //Find coordinates of cell faces (fluid grid). May be used for interpolating fields to particle locations
     FindFaceCoords(RealFaceCoords, geom); //May not be necessary to pass Geometry?
 
@@ -1350,8 +1357,8 @@ void main_driver(const char* argv)
         }
 
 
-//            particles.SetPosition(1, prob_hi[0]*0.501, prob_hi[1]*0.501, prob_hi[2]*0.501);
-//            particles.SetForce(1,1,0,0);
+//            particles.SetPosition(1, prob_hi[0]*0.50+0.5*dx[0], prob_hi[1]*0.50+0.5*dx[1], prob_hi[2]*0.50+3.5*dx[2], particles.id_global_map);
+//            particles.SetPosition(0, prob_hi[0]*0.50+0.5*dx[0], prob_hi[1]*0.50+0.5*dx[1], prob_hi[2]*0.50-0.5*dx[2], particles.id_global_map);
 //            Real x1 = 0.51*prob_hi[0];
 //            Real y1 = 0.51*prob_hi[1];
 //            Real z1 = 0.51*prob_hi[2];
@@ -1446,7 +1453,12 @@ void main_driver(const char* argv)
 
 	//particles.computeForcesSpringGPU(simParticles);
 	//particles.computeForcesFENEGPU(simParticles);
-	particles.computeForcesBondGPU(simParticles);
+	if (bond_tog != 0) {
+	    particles.computeForcesBondGPU(simParticles);
+	}
+
+	//particles.SetForce(1,0,0,-1, particles.id_global_map);
+        //particles.SetForce(0,0,0,1, particles.id_global_map);
 
         // compute other forces and spread to grid
         particles.SpreadIonsGPU(dx, dxp, geom, umac, RealFaceCoords, efieldCC, source, sourceTemp);
@@ -1465,6 +1477,11 @@ void main_driver(const char* argv)
                 sMflux.StochMomFluxDiv(stochMfluxdivC,0,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
             }
         }
+
+
+        MultiFab::Add(source[0],sourceRFD[0],0,0,sourceRFD[0].nComp(),sourceRFD[0].nGrow());
+        MultiFab::Add(source[1],sourceRFD[1],0,0,sourceRFD[1].nComp(),sourceRFD[1].nGrow());
+        MultiFab::Add(source[2],sourceRFD[2],0,0,sourceRFD[2].nComp(),sourceRFD[2].nGrow());
 
 
         if (fluid_tog == 1) {
@@ -1522,14 +1539,11 @@ void main_driver(const char* argv)
 
                     particles.invertMatrix();
 
-		    Abort("Finish calculating pinned mobility matrix, thus program aborts. To use pinned mobility matrix, set pinMatrix_tog=0 and rerun");
+		    if(ParallelDescriptor::MyProc() == 0) {
+		        Abort("Finish calculating pinned mobility matrix, thus program aborts. To use pinned mobility matrix, set pinMatrix_tog=0 and rerun");
+		    }
 		}
                 /* */             
-
-	
-                MultiFab::Add(source[0],sourceRFD[0],0,0,sourceRFD[0].nComp(),sourceRFD[0].nGrow());
-                MultiFab::Add(source[1],sourceRFD[1],0,0,sourceRFD[1].nComp(),sourceRFD[1].nGrow());
-                MultiFab::Add(source[2],sourceRFD[2],0,0,sourceRFD[2].nComp(),sourceRFD[2].nGrow());
 
                 advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
 		//MultiFab::Add(umac[0],externalVU[0],0,0,externalVU[0].nComp(),externalVU[0].nGrow());
