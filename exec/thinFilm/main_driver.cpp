@@ -29,6 +29,12 @@ void main_driver(const char* argv)
 
     InitializeCommonNamespace();
 
+    // copy objects from namelist to temporary variables
+    // equilibrium height "h0" is stored in rho0
+    // surface tension "gamma" is stored in h_bar
+    Real h0 = rho0;
+    Real gamma = h_bar;
+    
     /////////////////////////////////////////
     // Initialize random number seed on all processors/GPUs
     /////////////////////////////////////////
@@ -71,6 +77,8 @@ void main_driver(const char* argv)
 
     const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
 
+    Real dVol = dx[0]*dx[1];
+    
     // make BoxArray and Geometry
     BoxArray ba;
 
@@ -88,33 +96,173 @@ void main_driver(const char* argv)
     dmap.define(ba);
 
     MultiFab height(ba, dmap, 1, 1);
+    MultiFab Laph  (ba, dmap, 1, 1);
 
+    std::array< MultiFab, AMREX_SPACEDIM > hface;
+    std::array< MultiFab, AMREX_SPACEDIM > gradLh;
+    std::array< MultiFab, AMREX_SPACEDIM > flux;
+    std::array< MultiFab, AMREX_SPACEDIM > randface;
+    
+    AMREX_D_TERM(hface[0]   .define(convert(ba,nodal_flag_x), dmap, 1, 0);,
+                 hface[1]   .define(convert(ba,nodal_flag_y), dmap, 1, 0);,
+                 hface[2]   .define(convert(ba,nodal_flag_z), dmap, 1, 0););
+    AMREX_D_TERM(gradLh[0]  .define(convert(ba,nodal_flag_x), dmap, 1, 0);,
+                 gradLh[1]  .define(convert(ba,nodal_flag_y), dmap, 1, 0);,
+                 gradLh[2]  .define(convert(ba,nodal_flag_z), dmap, 1, 0););
+    AMREX_D_TERM(flux[0]    .define(convert(ba,nodal_flag_x), dmap, 1, 0);,
+                 flux[1]    .define(convert(ba,nodal_flag_y), dmap, 1, 0);,
+                 flux[2]    .define(convert(ba,nodal_flag_z), dmap, 1, 0););
+    AMREX_D_TERM(randface[0].define(convert(ba,nodal_flag_x), dmap, 1, 0);,
+                 randface[1].define(convert(ba,nodal_flag_y), dmap, 1, 0);,
+                 randface[2].define(convert(ba,nodal_flag_z), dmap, 1, 0););
 
-    // copy objects from namelist to temporary variables
-    // equilibrium height "h0" is stored in rho0
-    // surface tension "gamma" is stored in h_bar
-    Real h0 = rho0;
-    Real gamma = h_bar;
+    // initialize height
+    height.setVal(h0);
     
     // Physical time constant for dimensional time
     Real t0 = 3.0*visc_coef*h0/gamma;
+
+    // constant factor in noise term
+    Real ConstNoise = 2.*k_B*T_init[0] / (3.*visc_coef);
+    Real Const3dx = gamma / (3.*visc_coef);
     
     Real time = 0.;
-    Real dt = 0.4 * (t0/std::pow(h0,4)) * std::pow(dx[0],4) / 16.;
+    Real dt = 0.1 * (t0/std::pow(h0,4)) * std::pow(dx[0],4) / 16.;
+    
+    if (plot_int > 0)
+    {
+        int step = 0;
+        const std::string& pltfile = amrex::Concatenate("plt",step,5);
+        WriteSingleLevelPlotfile(pltfile, height, {"height"}, geom, time, 0);
+    }
     
     // Time stepping loop
     for(int istep=1; istep<=max_step; ++istep) {
 
+        // timer
+        Real step_strt_time = ParallelDescriptor::second();
+    
+        // fill random numbers
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            MultiFabFillRandom(randface[d], 0, variance_coef_mass, geom);
+        }
 
-
-
-
-
-
-
-
+        // compute Laph
+        for ( MFIter mfi(Laph,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
         
+            const Box& bx = mfi.tilebox();
+            const Array4<Real> & L = Laph.array(mfi);
+            const Array4<Real> & h = height.array(mfi);
 
+            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                L(i,j,k) = ( h(i-1,j,k) - 2.*h(i,j,k) + h(i+1,j,k) ) / (dx[0]*dx[0])
+                         + ( h(i,j-1,k) - 2.*h(i,j,k) + h(i,j+1,k) ) / (dx[1]*dx[1]);
+            });
+        }
+        Laph.FillBoundary(geom.periodicity());
+    
+        // compute hface and grad(Laph)
+        for ( MFIter mfi(height,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
+
+            AMREX_D_TERM(const Box & bx_x = mfi.nodaltilebox(0);,
+                         const Box & bx_y = mfi.nodaltilebox(1);,
+                         const Box & bx_z = mfi.nodaltilebox(2););
+        
+            AMREX_D_TERM(const Array4<Real> & hfacex = hface[0].array(mfi);,
+                         const Array4<Real> & hfacey = hface[1].array(mfi);,
+                         const Array4<Real> & hfacez = hface[2].array(mfi););
+        
+            AMREX_D_TERM(const Array4<Real> & gradLhx = gradLh[0].array(mfi);,
+                         const Array4<Real> & gradLhy = gradLh[1].array(mfi);,
+                         const Array4<Real> & gradLhz = gradLh[2].array(mfi););
+            
+            const Array4<Real> & h = height.array(mfi);
+
+            amrex::ParallelFor(bx_x, bx_y,
+                               [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                hfacex(i,j,k) = 0.5*( h(i-1,j,k) + h(i,j,k) );
+                gradLhx(i,j,k) = ( h(i,j,k) - h(i-1,j,k) ) / dx[0];
+            },
+                               [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                hfacey(i,j,k) = 0.5*( h(i,j-1,k) + h(i,j,k) );
+                gradLhy(i,j,k) = ( h(i,j,k) - h(i,j-1,k) ) / dx[1];
+            });
+
+        }
+
+        // compute flux
+    
+        // compute hface and grad(Laph)
+        for ( MFIter mfi(height,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
+
+            AMREX_D_TERM(const Box & bx_x = mfi.nodaltilebox(0);,
+                         const Box & bx_y = mfi.nodaltilebox(1);,
+                         const Box & bx_z = mfi.nodaltilebox(2););
+        
+            AMREX_D_TERM(const Array4<Real> & hfacex = hface[0].array(mfi);,
+                         const Array4<Real> & hfacey = hface[1].array(mfi);,
+                         const Array4<Real> & hfacez = hface[2].array(mfi););
+        
+            AMREX_D_TERM(const Array4<Real> & gradLhx = gradLh[0].array(mfi);,
+                         const Array4<Real> & gradLhy = gradLh[1].array(mfi);,
+                         const Array4<Real> & gradLhz = gradLh[2].array(mfi););
+        
+            AMREX_D_TERM(const Array4<Real> & fluxx = flux[0].array(mfi);,
+                         const Array4<Real> & fluxy = flux[1].array(mfi);,
+                         const Array4<Real> & fluxz = flux[2].array(mfi););
+        
+            AMREX_D_TERM(const Array4<Real> & randfacex = randface[0].array(mfi);,
+                         const Array4<Real> & randfacey = randface[1].array(mfi);,
+                         const Array4<Real> & randfacez = randface[2].array(mfi););
+
+            amrex::ParallelFor(bx_x, bx_y,
+                               [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                fluxx(i,j,k) = std::sqrt(ConstNoise*std::pow(hfacex(i,j,k),3.) / (dt*dVol)) * randfacex(i,j,k)
+                    + Const3dx * std::pow(hfacex(i,j,k),3.)*gradLhx(i,j,k);
+            },
+                               [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                fluxy(i,j,k) = std::sqrt(ConstNoise*std::pow(hfacey(i,j,k),3.) / (dt*dVol)) * randfacey(i,j,k)
+                    + Const3dx * std::pow(hfacey(i,j,k),3.)*gradLhy(i,j,k);
+            });
+
+        }
+
+        // update height using forward Euler
+        for ( MFIter mfi(height,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
+
+            const Box& bx = mfi.tilebox();
+        
+            AMREX_D_TERM(const Array4<Real> & fluxx = flux[0].array(mfi);,
+                         const Array4<Real> & fluxy = flux[1].array(mfi);,
+                         const Array4<Real> & fluxz = flux[2].array(mfi););
+            
+            const Array4<Real> & h = height.array(mfi);
+
+            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                h(i,j,k) -= dt * ( (fluxx(i+1,j,k) - fluxx(i,j,k)) / dx[0]
+                                  +(fluxy(i,j+1,k) - fluxy(i,j,k)) / dx[1] );
+            });
+
+        }
+
+    
+        if (plot_int > 0 && istep%plot_int == 0)
+        {
+            const std::string& pltfile = amrex::Concatenate("plt",istep,5);
+            WriteSingleLevelPlotfile(pltfile, height, {"height"}, geom, time, 0);
+        }
+        
+        Real step_stop_time = ParallelDescriptor::second() - step_strt_time;
+        ParallelDescriptor::ReduceRealMax(step_stop_time);
+        amrex::Print() << "Time step " << istep << " complted in " << step_stop_time
+                       << " seconds " << std::endl;
+    
         // MultiFab memory usage
         const int IOProc = ParallelDescriptor::IOProcessorNumber();
 
@@ -142,6 +290,6 @@ void main_driver(const char* argv)
     // and stop time over all processors
     Real stop_time = ParallelDescriptor::second() - strt_time;
     ParallelDescriptor::ReduceRealMax(stop_time);
-    amrex::Print() << "Run time = " << stop_time << std::endl;
+    amrex::Print() << "Run time = " << stop_time << " seconds " << std::endl;
 
 }

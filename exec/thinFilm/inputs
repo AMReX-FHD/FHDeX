@@ -1,13 +1,13 @@
 
 
   # Problem specification
-  prob_lo = 0.      0.        # physical lo coordinate
-  prob_hi = 0.96e-5 0.96e-5   # physical hi coordinate
+  prob_lo = 0.       0.       # physical lo coordinate
+  prob_hi = 13.04e-9 13.04e-9 # physical hi coordinate
   
   # number of cells in domain
-  n_cells = 64 64
+  n_cells = 32 32
   # max number of cells in a box
-  max_grid_size = 32 32
+  max_grid_size = 16 16
 
   # Controls for number of steps between actions
   max_step = 10000
@@ -15,7 +15,6 @@
   
   # Stochastic parameters
   seed = 1
-  variance_coef_mom = 1.
   variance_coef_mass = 1.
 
   k_B = 1.38e-23   # Boltzmann's constant [units: J/K]
