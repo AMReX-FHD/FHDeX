@@ -177,18 +177,19 @@ void main_driver(const char* argv)
                          const Array4<Real> & gradLhy = gradLh[1].array(mfi);,
                          const Array4<Real> & gradLhz = gradLh[2].array(mfi););
             
+            const Array4<Real> & L = Laph.array(mfi);
             const Array4<Real> & h = height.array(mfi);
 
             amrex::ParallelFor(bx_x, bx_y,
                                [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 hfacex(i,j,k) = 0.5*( h(i-1,j,k) + h(i,j,k) );
-                gradLhx(i,j,k) = ( h(i,j,k) - h(i-1,j,k) ) / dx[0];
+                gradLhx(i,j,k) = ( L(i,j,k) - L(i-1,j,k) ) / dx[0];
             },
                                [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 hfacey(i,j,k) = 0.5*( h(i,j-1,k) + h(i,j,k) );
-                gradLhy(i,j,k) = ( h(i,j,k) - h(i,j-1,k) ) / dx[1];
+                gradLhy(i,j,k) = ( L(i,j,k) - L(i,j-1,k) ) / dx[1];
             });
 
         }
