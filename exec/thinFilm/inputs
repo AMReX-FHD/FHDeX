@@ -1,0 +1,36 @@
+
+
+  # Problem specification
+  prob_lo = 0.      0.        # physical lo coordinate
+  prob_hi = 0.96e-5 0.96e-5   # physical hi coordinate
+  
+  # number of cells in domain
+  n_cells = 64 64
+  # max number of cells in a box
+  max_grid_size = 32 32
+
+  # Controls for number of steps between actions
+  max_step = 10000
+  plot_int= 100
+  
+  # Stochastic parameters
+  seed = 1
+  variance_coef_mom = 1.
+  variance_coef_mass = 1.
+
+  k_B = 1.38e-23   # Boltzmann's constant [units: J/K]
+  T_init = 85.     # [units: K]
+
+  visc_coef = 2.44e-4  # dynamic viscosity [units: kg/m s]
+  h_bar = 1.52e-2       # surface tension [N/m]
+  rho0  = 4.85e-9       # equilibrium height [m]
+
+  # Boundary conditions
+  # ----------------------
+  # BC specifications:
+
+  # -1 = periodic
+  #  1 =
+  #  2 = 
+  bc_mass_lo = -1 -1
+  bc_mass_hi = -1 -1
