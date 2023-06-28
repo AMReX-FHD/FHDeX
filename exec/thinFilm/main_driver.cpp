@@ -252,7 +252,9 @@ void main_driver(const char* argv)
 
         }
         height.FillBoundary(geom.periodicity());
-    
+
+        time += dt;
+        
         if (plot_int > 0 && istep%plot_int == 0)
         {
             const std::string& pltfile = amrex::Concatenate("plt",istep,5);
