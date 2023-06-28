@@ -69,6 +69,7 @@ namespace common {
     // Physical parameters
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> grav;
     extern AMREX_GPU_MANAGED int nspecies;
+    extern AMREX_GPU_MANAGED int nbonds;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> molmass;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> rhobar;
     extern AMREX_GPU_MANAGED amrex::Real rho0;
