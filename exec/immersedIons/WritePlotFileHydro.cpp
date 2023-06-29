@@ -9,7 +9,7 @@ void WritePlotFileHydro(int step,
                    const amrex::Real time,
                    const amrex::Geometry geom,
                    std::array< MultiFab, AMREX_SPACEDIM >& umac,
-                   std::array< MultiFab, AMREX_SPACEDIM >& forcing,
+                   std::array< MultiFab, AMREX_SPACEDIM >& umacV,
 		           const MultiFab& pres,
                    std::array< MultiFab, AMREX_SPACEDIM >& umacM)
 {
@@ -51,7 +51,7 @@ void WritePlotFileHydro(int step,
     }
     
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
-        std::string x = "shifted_forcing";
+        std::string x = "shifted_vel_variance";
         x += (120+i);
         varNames[cnt++] = x;
     }
@@ -79,7 +79,7 @@ void WritePlotFileHydro(int step,
     }
     // shift staggered forcing to cell-centers and copy into plotfile
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
-        ShiftFaceToCC(forcing[i],0,plotfile,cnt,1);
+        ShiftFaceToCC(umacV[i],0,plotfile,cnt,1);
         cnt++;
     }
 

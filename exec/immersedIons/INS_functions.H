@@ -31,7 +31,7 @@ void WritePlotFileHydro(int step,
                         const amrex::Real time,
                         const amrex::Geometry geom,
                         std::array< MultiFab, AMREX_SPACEDIM >& umac,
-                        std::array< MultiFab, AMREX_SPACEDIM >& forcing,                        
+                        std::array< MultiFab, AMREX_SPACEDIM >& umacV,                        
                         const MultiFab& pres,
                         std::array< MultiFab, AMREX_SPACEDIM >& umacM);
 

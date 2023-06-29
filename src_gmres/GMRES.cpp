@@ -266,18 +266,54 @@ void GMRES::Solve (std::array<MultiFab, AMREX_SPACEDIM>* & b_u, MultiFab* & b_p,
                beta, beta_ed, gamma, cc_mask, fc_mask, theta_alpha, geom, StagSolver);
 
 
-    // preconditioned norm_b: norm_pre_b
-    StagL2Norm(tmp_u[0], 0, scr_u[0], norm_u);
-    CCL2Norm(tmp_p[0], 0, scr_p[0], norm_p);
+//    // preconditioned norm_b: norm_pre_b
+//    StagL2Norm(tmp_u[0], 0, scr_u[0], norm_u);
+//    CCL2Norm(tmp_p[0], 0, scr_p[0], norm_p);
+//    norm_p       = p_norm_weight*norm_p;
+//    norm_pre_b   = sqrt(norm_u*norm_u + norm_p*norm_p);
+//    norm_pre_rhs = norm_pre_b;
+
+
+////    // calculate the l2 norm of rhs
+//    StagL2Norm(b_u[0], 0, scr_u[0], norm_u);
+//    CCL2Norm(b_p[0], 0, scr_p[0], norm_p);
+//    norm_p = p_norm_weight*norm_p;
+//    norm_b = sqrt(norm_u*norm_u + norm_p*norm_p);
+    
+    
+    
+    norm_u=0;
+    norm_p=0;    
+           
+    for(int lev=0;lev<nlevels;++lev)
+    {
+        Real norm_temp;    
+        StagL2Norm(tmp_u[lev], 0, scr_u[lev], norm_temp);
+        norm_u+= norm_temp*norm_temp;
+        CCL2Norm(tmp_p[lev], 0, scr_p[lev], norm_temp);
+        norm_p+= norm_temp*norm_temp;
+    }
+    norm_u = sqrt(norm_u);
+    norm_p = sqrt(norm_p);    
     norm_p       = p_norm_weight*norm_p;
     norm_pre_b   = sqrt(norm_u*norm_u + norm_p*norm_p);
     norm_pre_rhs = norm_pre_b;
 
 
-//    // calculate the l2 norm of rhs
-    StagL2Norm(b_u[0], 0, scr_u[0], norm_u);
-    CCL2Norm(b_p[0], 0, scr_p[0], norm_p);
-    norm_p = p_norm_weight*norm_p;
+    norm_u=0;
+    norm_p=0;
+    //    // calculate the l2 norm of rhs
+    for(int lev=0;lev<nlevels;++lev)
+    {    
+        Real norm_temp;
+        StagL2Norm(b_u[lev], 0, scr_u[lev], norm_temp);
+        norm_u+= norm_temp*norm_temp;        
+        CCL2Norm(b_p[lev], 0, scr_p[lev], norm_temp);
+        norm_p+= norm_temp*norm_temp;
+    }
+    norm_u = sqrt(norm_u);
+    norm_p = sqrt(norm_p);                  
+    norm_p = p_norm_weight*norm_p;              
     norm_b = sqrt(norm_u*norm_u + norm_p*norm_p);
 
 
@@ -302,8 +338,14 @@ void GMRES::Solve (std::array<MultiFab, AMREX_SPACEDIM>* & b_u, MultiFab* & b_p,
     }
 
 
+//Copying result of preconditioner and stopping gmres
+//    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+//        MultiFab::Copy(x_u[0][d], tmp_u[0][d], 0, 0, 1, 0);
+//    }
 
+//    MultiFab::Copy(x_p[0], tmp_p[0], 0, 0, 1, 0);
 
+//    return;
 //    ///////////////////
 //    // begin outer iteration
 //    ///////////////////
@@ -319,15 +361,25 @@ void GMRES::Solve (std::array<MultiFab, AMREX_SPACEDIM>* & b_u, MultiFab* & b_p,
         // Compute tmp = b - Ax
 
         // Calculate tmp = Ax
+        if(nlevels>1)
+        {
+           FaceFillCoarse(x_u,0);
+           FaceFillGhost(x_u,geom,0);
+           CellFillCoarse(x_p, geom);
+           CellFillGhost(x_p,geom);
+        }
         ApplyMatrix(tmp_u, tmp_p, x_u, x_p, alpha_fc, beta, beta_ed, gamma, theta_alpha, geom, nlevels);
 
         // tmp = b - Ax
-        for (int d=0; d<AMREX_SPACEDIM; ++d) {
-            MultiFab::Subtract(tmp_u[0][d], b_u[0][d], 0, 0, 1, 0);
-            tmp_u[0][d].mult(-1., 0, 1, 0);
+        for(int lev=0;lev<nlevels;++lev)
+        {
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                MultiFab::Subtract(tmp_u[lev][d], b_u[lev][d], 0, 0, 1, 0);
+                tmp_u[lev][d].mult(-1., 0, 1, 0);
+            }
+            MultiFab::Subtract(tmp_p[lev], b_p[lev], 0, 0, 1, 0);
+            tmp_p[lev].mult(-1., 0, 1, 0);
         }
-        MultiFab::Subtract(tmp_p[0], b_p[0], 0, 0, 1, 0);
-        tmp_p[0].mult(-1., 0, 1, 0);
 
 
         //_______________________________________________________________________
@@ -359,10 +411,17 @@ void GMRES::Solve (std::array<MultiFab, AMREX_SPACEDIM>* & b_u, MultiFab* & b_p,
         //_______________________________________________________________________
         // solve for r = M^{-1} tmp
         // We should not be counting these toward the number of mg cycles performed
-        Pcon.Apply(tmp_u[0], tmp_p[0], r_u[0], r_p[0], alpha_fc[0], alphainv_fc[0],
-                   beta[0], beta_ed[0], gamma[0], theta_alpha, geom[0], StagSolver);
+        Pcon.Apply(tmp_u, tmp_p, r_u, r_p, alpha_fc, alphainv_fc,
+               beta, beta_ed, gamma, cc_mask, fc_mask, theta_alpha, geom, StagSolver);
+               
+            //Copying result of preconditioner and stopping gmres
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                MultiFab::Copy(x_u[0][d], r_u[0][d], 0, 0, 1, 0);
+            }
 
-
+            MultiFab::Copy(x_p[0], r_p[0], 0, 0, 1, 0);     
+            return;               
+               
         // resid = sqrt(dot_product(r, r))
         StagL2Norm(r_u[0], 0, scr_u[0], norm_u);
         CCL2Norm(r_p[0], 0, scr_p[0], norm_p);
@@ -443,17 +502,19 @@ void GMRES::Solve (std::array<MultiFab, AMREX_SPACEDIM>* & b_u, MultiFab* & b_p,
 
         //_______________________________________________________________________
         // Create the first basis in Krylov space: V(1) = r / norm(r)
-        for (int d=0; d<AMREX_SPACEDIM; ++d) {
-            MultiFab::Copy(V_u[0][d], r_u[0][d], 0, 0, 1, 0);
-            V_u[0][d].mult(1./norm_resid, 0, 1, 0);
+        for(int lev=0; lev<nlevels; ++lev)
+        {
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                MultiFab::Copy(V_u[lev][d], r_u[lev][d], 0, 0, 1, 0);
+                V_u[lev][d].mult(1./norm_resid, 0, 1, 0);
+            }
+            MultiFab::Copy(V_p[lev], r_p[lev], 0, 0, 1, 0);
+            V_p[lev].mult(1./norm_resid, 0, 1, 0);
+
+            // s = norm(r) * e_0
+            std::fill(s.begin(), s.end(), 0.);
+            s[lev] = norm_resid;
         }
-        MultiFab::Copy(V_p[0], r_p[0], 0, 0, 1, 0);
-        V_p[0].mult(1./norm_resid, 0, 1, 0);
-
-        // s = norm(r) * e_0
-        std::fill(s.begin(), s.end(), 0.);
-        s[0] = norm_resid;
-
 
 
         ///////////////////////
@@ -480,17 +541,20 @@ void GMRES::Solve (std::array<MultiFab, AMREX_SPACEDIM>* & b_u, MultiFab* & b_p,
             //___________________________________________________________________
             // tmp=A*V(i)
             // use r_p and r_u as temporaries to hold ith component of V
-            for (int d=0; d<AMREX_SPACEDIM; ++d)
-                MultiFab::Copy(r_u[0][d], V_u[0][d], i, 0, 1, 0);
-            MultiFab::Copy(r_p[0], V_p[0], i, 0, 1, 0);
+            for(int lev=0; lev<nlevels; ++lev)
+            {
+                for (int d=0; d<AMREX_SPACEDIM; ++d)
+                    MultiFab::Copy(r_u[lev][d], V_u[lev][d], i, 0, 1, 0);
+                MultiFab::Copy(r_p[lev], V_p[lev], i, 0, 1, 0);
+            }
 
             ApplyMatrix(tmp_u, tmp_p, r_u, r_p, alpha_fc, beta, beta_ed, gamma, theta_alpha, geom, nlevels);
 
 
             //___________________________________________________________________
             // w = M^{-1} A*V(i)
-            Pcon.Apply(tmp_u[0], tmp_p[0], w_u[0], w_p[0], alpha_fc[0], alphainv_fc[0],
-                       beta[0], beta_ed[0], gamma[0], theta_alpha, geom[0], StagSolver);
+            Pcon.Apply(tmp_u, tmp_p, w_u, w_p, alpha_fc, alphainv_fc,
+                       beta, beta_ed, gamma, cc_mask, fc_mask, theta_alpha, geom, StagSolver);
 
 
             //___________________________________________________________________

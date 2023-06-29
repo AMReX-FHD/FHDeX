@@ -356,7 +356,26 @@ void CellFillCoarse(MultiFab* & mf, Geometry* geom)
 
 }
 
-void CellFillFine(MultiFab* & mfCoarse, MultiFab* & mfFine, Geometry* geom)
+void CellFillCoarse(MultiFab & mfFine, Geometry geomFine, MultiFab & mfCoarse, Geometry geomCoarse)
+{
+    BL_PROFILE_VAR("CellFillCoarse()",CellFillCoarse);
+
+    const IntVect ratio(AMREX_D_DECL(2,2,2));    
+    amrex::average_down(mfFine,mfCoarse, geomFine, geomCoarse,0,1,ratio);
+
+}
+
+void CellFillFine(Vector<MultiFab>& mf, Geometry* geom)
+{   
+
+    MultiFab* mfCoarse = &mf[0];    
+    MultiFab* mfFine = &mf[1];
+    
+    CellFillFine(mfCoarse, mfFine, geom);
+}    
+
+
+void CellFillFine(MultiFab* & mfCoarse, MultiFab* & mfFine, Geometry*  geom)
 {   
     amrex::Vector<amrex::BCRec> bcs(1);
     

@@ -22,7 +22,8 @@ void Precon::Define(const Vector<BoxArray>& ba_in,
         }
     }
     
-    macproj.Define(ba_in,dmap_in,geom_in, nlevels);    
+//    macproj.Define(ba_in,dmap_in,geom_in, nlevels);    
+    macproj.Define(ba_in[0],dmap_in[0],geom_in[0]);    
    
 }
 
@@ -118,6 +119,33 @@ void Precon::Apply(std::array<MultiFab, AMREX_SPACEDIM>* & b_u,
 
 }
 
+void Precon::Apply(Vector<std::array<MultiFab, AMREX_SPACEDIM>> & b_u,
+                   Vector<MultiFab>                             & b_p,
+                   Vector<std::array<MultiFab, AMREX_SPACEDIM>> & x_u,
+                   Vector<MultiFab>                             & x_p,
+                   std::array<MultiFab, AMREX_SPACEDIM>*        & alpha_fc,
+                   Vector<std::array<MultiFab, AMREX_SPACEDIM>> & alphainv_fc,
+                   MultiFab*                                    & beta, 
+                   std::array<MultiFab, NUM_EDGE>*              & beta_ed,
+                   MultiFab*                                    & gamma,
+                   MultiFab*                                    & cc_mask,
+                   std::array<MultiFab, AMREX_SPACEDIM>*        & fc_mask,                   
+                   const Real                                   & theta_alpha,
+                   Geometry*                                    & geom,
+                   StagMGSolver& StagSolver)
+{
+
+    std::array<MultiFab, AMREX_SPACEDIM>* b_up = &b_u[0];
+    std::array<MultiFab, AMREX_SPACEDIM>* x_up = &x_u[0];
+    std::array<MultiFab, AMREX_SPACEDIM>* alphainv_fcp = &alphainv_fc[0];
+    MultiFab* b_pp = &b_p[0];
+    MultiFab* x_pp = &x_p[0];        
+        
+    Apply(b_up,b_pp,x_up,x_pp,alpha_fc,alphainv_fcp,beta,beta_ed,gamma,cc_mask, fc_mask, theta_alpha,geom,StagSolver);
+
+
+}
+
 
 void Precon::Apply(std::array<MultiFab, AMREX_SPACEDIM>* & b_u,
                    MultiFab*                             & b_p,
@@ -179,20 +207,23 @@ void Precon::Apply(std::array<MultiFab, AMREX_SPACEDIM>* & b_u,
 
         if(nlevels>1)
         {
-            StagSolver.TopSolve(alpha_fc,beta,beta_ed,gamma,x_u,b_u,geom,theta_alpha,0);
+
+           FaceFillCoarse(b_u,1);
+           FaceFillGhost(b_u,geom,1);    
+           StagSolver.TopSolve(alpha_fc,beta,beta_ed,gamma,x_u,b_u,geom,theta_alpha,0);
         }
         StagSolver.Solve(alpha_fc[0],beta[0],beta_ed[0],gamma[0],x_u[0],b_u[0],theta_alpha);
         if(nlevels>1)
         {
-            StagSolver.TopSolve(alpha_fc,beta,beta_ed,gamma,x_u,b_u,geom,theta_alpha,1);
+           StagSolver.TopSolve(alpha_fc,beta,beta_ed,gamma,x_u,b_u,geom,theta_alpha,1);
+           FaceFillCoarse(x_u,0);
+           FaceFillGhost(x_u,geom,0);
         }
 
         ////////////////////
         // STEP 2: Construct RHS for pressure Poisson problem
         ////////////////////
-        
-
-
+      
 
         // set mac_rhs = D(x_u^star)
         for(int lev=0;lev<nlevels;++lev)
@@ -202,12 +233,7 @@ void Precon::Apply(std::array<MultiFab, AMREX_SPACEDIM>* & b_u,
         // add b_p to mac_rhs
             MultiFab::Add(mac_rhs[lev],b_p[lev],0,0,1,0);
         }
-        
-        if(nlevels>1)
-        {
-            CellFillCoarse(mac_rhs,geom);
-            CellFillGhost(mac_rhs,geom);    
-        }
+       
 
         ////////////////////
         // STEP 3: Compute x_u
@@ -215,10 +241,10 @@ void Precon::Apply(std::array<MultiFab, AMREX_SPACEDIM>* & b_u,
 
         // use multigrid to solve for Phi
         // x_u^star is only passed in to get a norm for absolute residual criteria
-        macproj.Solve(alphainv_fc,mac_rhs,phi,geom);
+        macproj.Solve(alphainv_fc[0],mac_rhs[0],phi[0],geom[0]);
         if(nlevels>1)
         {
-            CellFillCoarse(phi,geom);
+            CellFillFine(phi, geom);
             CellFillGhost(phi,geom);    
         }
         // x_u = x_u^star - (alpha I)^-1 grad Phi
@@ -226,11 +252,7 @@ void Precon::Apply(std::array<MultiFab, AMREX_SPACEDIM>* & b_u,
         {
             SubtractWeightedGradP(x_u[lev],alphainv_fc[lev],phi[lev],gradp[lev],geom[lev]);
         }
-        if(nlevels>1)
-        {
-            FaceFillCoarse(x_u,0);
-            FaceFillGhost(x_u,geom,0);    
-        }
+
         ////////////////////
         // STEP 4: Compute x_p by applying the Schur complement approximation
         ////////////////////
@@ -266,7 +288,7 @@ void Precon::Apply(std::array<MultiFab, AMREX_SPACEDIM>* & b_u,
                     // multiply by c=2; x_p = -2*beta L_alpha Phi
                     for(int lev=0;lev<nlevels;++lev)
                     {
-                        x_p[0].mult(2.,0,1,0);
+                        x_p[lev].mult(2.,0,1,0);
                     }
                 }
             }
@@ -287,9 +309,9 @@ void Precon::Apply(std::array<MultiFab, AMREX_SPACEDIM>* & b_u,
             for(int lev=0;lev<nlevels;++lev)
             {   
                 // multiply Phi by theta_alpha            
-                phi[0].mult(theta_alpha,0,1,0);
+                phi[lev].mult(theta_alpha,0,1,0);
                 // add theta_alpha*Phi to x_p
-                MultiFab::Add(x_p[0],phi[0],0,0,1,0);                
+                MultiFab::Add(x_p[lev],phi[lev],0,0,1,0);                
             }
 
         }
@@ -299,6 +321,12 @@ void Precon::Apply(std::array<MultiFab, AMREX_SPACEDIM>* & b_u,
     }
     else {
         Abort("StagApplyOp: unsupposed precon_type");
+    }
+    
+    if(nlevels>1)
+    {
+        //FaceFillCoarse(x_u,0);
+        CellFillGhost(x_p,geom);    
     }
 
     ////////////////////
@@ -317,20 +345,42 @@ void Precon::Apply(std::array<MultiFab, AMREX_SPACEDIM>* & b_u,
         {
             MultiFab::Multiply(x_u[0][d],fc_mask[0][d],0,0,1,0);
         }
-        SumStag(x_u[0],mean_val_umac,true);
-        SumCC(x_p[0],0,mean_val_pres,true);
         
-        Vector<Real> mean_val_umac_t = mean_val_umac;
-        Real         mean_val_pres_t = mean_val_pres;
+        MultiFab::Multiply(x_p[0],cc_mask[0],0,0,1,0);
         
-        SumStag(x_u[1],mean_val_umac_t,true);
-        SumCC(x_p[1],0,mean_val_pres_t,true);
+        SumStag(x_u[0],mean_val_umac,false);
+        SumCC(x_p[0],0,mean_val_pres,false);
+        
+        Vector<Real> mean_val_umac_t(AMREX_SPACEDIM);
+        Real         mean_val_pres_t;
+        
+        SumStag(x_u[1],mean_val_umac_t,false);
+        SumCC(x_p[1],0,mean_val_pres_t,false);
+        
+        BoxArray ba_xuc = x_u[0][0].boxArray();
+        ba_xuc.enclosedCells();
+        long numpts_xuc = ba_xuc.numPts();
+        BoxArray ba_xuf = x_u[1][0].boxArray();
+        ba_xuf.enclosedCells();
+        long numpts_xuf = ba_xuf.numPts();  
         
         for(int d=0;d<AMREX_SPACEDIM;++d)
         {
-            mean_val_umac[d] = mean_val_umac[d]+mean_val_umac_t[d];
+            mean_val_umac[d] = (numpts_xuc*mean_val_umac[d]+numpts_xuf*mean_val_umac_t[d])/(numpts_xuc+numpts_xuf);
         }
-        mean_val_pres = mean_val_pres+mean_val_pres_t;        
+        
+        BoxArray ba_xpc = x_p[0].boxArray();
+        ba_xpc.enclosedCells();
+        long numpts_xpc = ba_xpc.numPts();
+        BoxArray ba_xpf = x_p[1].boxArray();
+        ba_xpf.enclosedCells();
+        long numpts_xpf = ba_xpf.numPts();
+        
+        mean_val_pres = (numpts_xpc*mean_val_pres + numpts_xpf*mean_val_pres_t)/(numpts_xpc+numpts_xpf);
+        
+        FaceFillCoarse(x_u,0);
+        CellFillCoarse(x_p,geom);
+    
     }
 
     for(int lev=0;lev<nlevels;++lev)

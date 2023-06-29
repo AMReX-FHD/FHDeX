@@ -58,6 +58,21 @@ public:
                    const Real                           & theta_alpha,
                    Geometry*                            & geom,
                    StagMGSolver& StagSolver);
+                   
+    void Apply    (Vector<std::array<MultiFab, AMREX_SPACEDIM>> & b_u,
+                   Vector<MultiFab>                             & b_p,
+                   Vector<std::array<MultiFab, AMREX_SPACEDIM>> & x_u,
+                   Vector<MultiFab>                             & x_p,
+                   std::array<MultiFab, AMREX_SPACEDIM>* & alpha_fc,
+                   Vector<std::array<MultiFab, AMREX_SPACEDIM>> & alphainv_fc,
+                   MultiFab*                             & beta, 
+                   std::array<MultiFab, NUM_EDGE>*      & beta_ed,
+                   MultiFab*                            & gamma,
+                   MultiFab*                            & cc_mask,
+                   std::array<MultiFab, AMREX_SPACEDIM>* & fc_mask,                   
+                   const Real                           & theta_alpha,
+                   Geometry*                            & geom,
+                   StagMGSolver& StagSolver);
                
    void Apply(std::array<MultiFab, AMREX_SPACEDIM>* & b_u,
                    MultiFab*                             & b_p,

@@ -53,6 +53,7 @@ public:
     Vector<std::array< MultiFab, NUM_EDGE>>  beta_ed;
     Vector<std::array< MultiFab, NUM_EDGE >>  eta_ed;
     Vector<std::array< MultiFab, NUM_EDGE >> temp_ed;
+    Vector<std::array< MultiFab, AMREX_SPACEDIM >> faceCoords;    
     
     Vector<std::array< MultiFab, AMREX_SPACEDIM >> gmres_rhs_u;
    

@@ -137,8 +137,10 @@ void FaceFillGhost(std::array<MultiFab*, AMREX_SPACEDIM> & mfCoarse,std::array<M
 void CellFillCoarse(Vector<MultiFab>& mf, Vector<Geometry> geom);
 void CellFillCoarse(Vector<MultiFab>& mf, Geometry* geom);
 void CellFillCoarse(MultiFab* & mf, Geometry* geom);
+void CellFillCoarse(MultiFab & mfFine, Geometry geomFine, MultiFab & mfCoarse, Geometry geomCoarse);
 
-void CellFillFineCellFillFine(MultiFab* & mfFine, MultiFab* & mfCoarse, Geometry* geom);
+void CellFillFine(Vector<MultiFab>& mf, Geometry* geom);
+void CellFillFine(MultiFab* & mfFine, MultiFab* & mfCoarse, Geometry* geom);
 void CellFillFine(MultiFab* & mfFine, MultiFab* & mfCoarse, Geometry* geom, Vector<amrex::BCRec>  bcs);
 
 void CellFillGhost(Vector<MultiFab> & mf, Vector<Geometry> & geom);
