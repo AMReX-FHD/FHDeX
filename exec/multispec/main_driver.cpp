@@ -137,7 +137,6 @@ void main_driver(const char* argv)
         if (fixed_dt <= 0.) {
             Abort("main_driver.cpp: only fixed_dt > 0 supported");
         }
-        dt = fixed_dt;
 
         // Initialize the boxarray "ba" from the single box "bx"
         ba.define(domain);
@@ -159,6 +158,9 @@ void main_driver(const char* argv)
             }
         }
 
+//      added by JBB to allow reset of dt on restart
+        if (fixed_dt >0) dt=fixed_dt;
+
         rho_old.define   (ba, dmap, nspecies, ng_s);
         rhotot_old.define(ba, dmap, 1       , ng_s);
         pi.define        (ba, dmap, 1       , 1);
@@ -166,6 +168,9 @@ void main_driver(const char* argv)
             Epot.define(ba, dmap, 1, 1);
         }
     }
+
+    // moved this to here so can change dt from value in checkpoint
+    dt = fixed_dt;
     
     // data structures to help with reservoirs
     // 
@@ -467,7 +472,7 @@ void main_driver(const char* argv)
       From this perspective it may be useful to keep initial_projection even in overdamped
       because different gmres tolerances may be needed in the first step than in the rest
     */
-    if (algorithm_type != 2 && algorithm_type != 6) {
+    if (algorithm_type != 2) {
         InitialProjection(umac,rho_old,rhotot_old,diff_mass_fluxdiv,stoch_mass_fluxdiv,
                           stoch_mass_flux,sMassFlux,Temp,eta,eta_ed,dt,time,geom,
                           charge_old,grad_Epot_old,Epot,permittivity);
@@ -520,6 +525,7 @@ void main_driver(const char* argv)
         */
 
     }
+    
 
     // Time stepping loop
     for(int istep=init_step; istep<=max_step; ++istep) {

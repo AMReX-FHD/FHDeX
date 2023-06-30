@@ -2,7 +2,7 @@
 # If you set AMREX_HOME as an environment variable, this line will be ignored
 AMREX_HOME ?= ../../../amrex/
 FHDeX ?= ../../
-FIONS = $(FHDeX)/exec/immersedIons
+FIONS = .
 
 DEBUG     = FALSE
 USE_MPI   = TRUE
@@ -57,8 +57,8 @@ VPATH_LOCATIONS   += $(FHDeX)/src_electrostatic
 INCLUDE_LOCATIONS += $(FHDeX)/src_electrostatic
 
 include $(FHDeX)/src_immersed-boundary/MakeBase.package
-VPATH_LOCATIONS   += $(FHDeX)src_immersed-boundary
-INCLUDE_LOCATIONS += $(FHDeX)src_immersed-boundary
+VPATH_LOCATIONS   += $(FHDeX)/src_immersed-boundary
+INCLUDE_LOCATIONS += $(FHDeX)/src_immersed-boundary
 
 include $(FIONS)/Make.package
 

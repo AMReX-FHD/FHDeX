@@ -2,7 +2,7 @@ set terminal png enhanced size 1200, 960
 set output "zavg.png"
 
 #val1=6.068741e-11  # for rho (total mass density)
-val1=2.159752e-12   # for rho1 
+val1=2.159752e-12   # for rho1
 val2=1.117179e+09   # for rhoE
 val3=1.691011e+02   # for temp
 val4=1.282197e-01   # for jx, jy, jz

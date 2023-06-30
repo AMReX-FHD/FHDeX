@@ -81,7 +81,7 @@ public:
     // Get the next particle ID -- can be used to find the number of particles
     // initialized on this GPU already
     int NextID() {
-        return ParticleType::NextID();
+        return ParticleType::the_next_id;
     }
 
     const Gpu::ManagedDeviceVector<int> & getNumIDs() {
@@ -109,6 +109,9 @@ public:
     int getTotalMarkers(){
         return totalMarkers;
     };
+
+    // Load bonds from data file.
+    void loadBonds(int totalP, char* filename);
 
 
     /****************************************************************************
@@ -320,6 +323,12 @@ protected:
     Gpu::ManagedDeviceVector<int> ranksIdSorted;
     Gpu::ManagedDeviceVector<int> idsRankSorted;
     Gpu::ManagedDeviceVector<int> rankTotals;
+
+    Gpu::ManagedDeviceVector<int> head_index;
+    Gpu::ManagedDeviceVector<int> num_bond;
+    Gpu::ManagedDeviceVector<int> bond_atom;
+    Gpu::ManagedDeviceVector<amrex::Real> bond_coeff1;
+    Gpu::ManagedDeviceVector<amrex::Real> bond_coeff2;
 
     Gpu::ManagedDeviceVector<amrex::Real> pinMatrix;
 

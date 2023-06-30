@@ -21,6 +21,12 @@ AppStyle(surfchemtest,AppSurfchemtest)
 
 #include "app_lattice.h"
 
+#if defined(USE_AMREX_MPMD)
+#include <AMReX_MultiFab.H>
+#include <AMReX_iMultiFab.H>
+#include <AMReX_MPMD.H>
+#endif
+
 namespace SPPARKS_NS {
 
 class AppSurfchemtest : public AppLattice {
@@ -33,6 +39,7 @@ class AppSurfchemtest : public AppLattice {
   void grow_app();
   void init_app();
   void setup_app();
+  void reaction_summary_log();
 
   double site_energy(int);
   void site_event_rejection(int, class RandomPark *) {}
@@ -54,15 +61,18 @@ class AppSurfchemtest : public AppLattice {
   // however, propensity for adsorption depends on number density of gas phase
   // hence different in each cell and we do not use propensity variable
   // adding desorption reactions is exactly same as the first-order reaction case
-  int none,ntwo,nthree,nads,ndes,ndissocads,nassocdes;
-  double *srate,*drate,*trate,*adsrate,*ads_beta,*desrate,*dadsrate,*adesrate; // beta implementation
+  int none,ntwo,nthree,nads,ndes,ndissocads,nassocdes,nreaction,rxnsumcount;
+  double *srate,*drate,*trate,*adsrate,*ads_beta,*dads_beta,*desrate,*dadsrate,*adesrate,*rxnrate; // beta implementation
   bool ads_is_rate,dads_is_rate;
-  double *spropensity,*dpropensity,*tpropensity,*adespropensity;
-  int *stype,**dtype,**ttype,*adstype,*destype,**dadstype,**adestype;
-  int *sinput,**dinput,**tinput,*adsinput,*desinput,**dadsinput,**adesinput;
-  int *soutput,**doutput,**toutput,*adsoutput,*desoutput,**dadsoutput,**adesoutput;
-  int *scount,*dcount,*tcount,*adscount,*descount,*dadscount,*adescount;
-  int *dadsadsorbate,*adesdesorbate;
+  double *spropensity,*dpropensity,*tpropensity,*adespropensity,*rxnpropensity;
+  int *stype,**dtype,**ttype,*adstype,*destype,**dadstype,**adestype,**rxntype;
+  int *sinput,**dinput,**tinput,*adsinput,*desinput,**dadsinput,**adesinput,**rxninput;
+  int *soutput,**doutput,**toutput,*adsoutput,*desoutput,**dadsoutput,**adesoutput,**rxnoutput;
+  int *scount,*dcount,*tcount,*adscount,*descount,*dadscount,*adescount,*rxncount;
+  int *dadsadsorbate,*adesdesorbate,*reactionsorbate;
+
+  bool *neighboring_diff,*neighboring_des,*neighboring_ades,*neighboring_rxn;
+  double V_neighbor[4][4][6][6];
 
   struct Event {           // one event for an owned site
     int style;             // reaction style = SINGLE,DOUBLE,TRIPLE
@@ -82,8 +92,11 @@ class AppSurfchemtest : public AppLattice {
   void add_event(int, int, int, double, int, int);
   void grow_reactions(int);
 
-#ifdef MUI
+#if defined(MUI)
+
   void mui_init_agg();
+  void mui_print_MUIdblval(int step,const char *str1,const char *str2);
+  void mui_print_MUIintval(int step,const char *str1,const char *str2);
   void mui_push(int,char **);
   void mui_fetch(int,char **);
   void mui_push_agg(int,char **);
@@ -101,6 +114,36 @@ class AppSurfchemtest : public AppLattice {
   int *MUIintval;           // temp int array for MUI push/fetch
   double *MUIdblval;        // temp double array for MUI push/fetch
   int *localFHDcell;        // map from local KMC site to FHD cell
+  int *nlocalFHDcell_world; // array of nlocalFHDcell for all procs (allocated only for domain->me for debugging purposes)
+
+#elif defined(USE_AMREX_MPMD)
+
+  void amrex_init_agg ();
+  void amrex_push_agg(int,char **);
+  void amrex_fetch_agg(int,char **);
+
+  double amrex_fhd_lattice_size_x;
+  double amrex_fhd_lattice_size_y;
+  double amrex_kmc_lattice_offset_x;
+  double amrex_kmc_lattice_offset_y;
+
+  int nlocalFHDcell;               // number of FHD cells overlapping with local domain
+  amrex::Vector<double> xFHD;      // x-coord of COM of each overlapping FHD cell region
+  amrex::Vector<double> yFHD;      // y-coord of COM of each overlapping FHD cell region
+  amrex::Vector<int> intval;       // temp int array for MUI push/fetch
+  amrex::Vector<double> dblval;    // temp double array for MUI push/fetch
+  amrex::Vector<int> localFHDcell; // map from local KMC site to FHD cell
+  // array of nlocalFHDcell for all procs (allocated only for domain->me for
+  // debugging purposes)
+  amrex::Vector<int> nlocalFHDcell_world;
+  amrex::MultiFab mf;
+  amrex::iMultiFab imf;
+  std::unique_ptr<amrex::MPMD::Copier> mpmd_copier;
+  std::unique_ptr<amrex::MultiFab> mf2;
+  std::unique_ptr<amrex::iMultiFab> imf2;
+
+    void amrex_send_intval();
+    void amrex_recv_dblval();
 #endif
 };
 

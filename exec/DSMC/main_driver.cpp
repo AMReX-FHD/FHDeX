@@ -41,9 +41,12 @@ void main_driver(const char* argv)
 	// For long-range temperature-related correlations
 	MultiFab cvlMeans, cvlInst, QMeans;
 	
-    int ncross = 38+nspecies*nspecies;
+    int ncross = 38+nspecies*nspecies + nspecies;
     MultiFab spatialCross1D;
 	
+	int iprim = 10;
+    int nprim = (nspecies+1)*iprim;
+
 
 	if (seed > 0)
 	{
@@ -124,7 +127,7 @@ void main_driver(const char* argv)
 			... (repeat for each species)
 		*/
 
-		int nprim = (nspecies+1)*10;
+
 		primInst.define(ba, dmap, nprim, 0); primInst.setVal(0.);
 		primMeans.define(ba, dmap, nprim, 0); primMeans.setVal(0.);
 		primVars.define(ba, dmap, ncon+nprim, 0); primVars.setVal(0.);
@@ -246,7 +249,7 @@ void main_driver(const char* argv)
 	}
 	
     // Standard 3D structure factors
-    StructFact structFactPrim;
+
     MultiFab structFactPrimMF;
     int structVarsPrim = (nspecies+1)*4;
     
@@ -277,67 +280,9 @@ void main_driver(const char* argv)
         
         
     structFactPrimMF.define(ba, dmap, structVarsPrim, 0);
-    structFactPrim.define(ba,dmap,primNames,var_scaling_prim);
-
-	StructFact structFactPrimFlattened;    
-    MultiFab master_project_rot_prim;
-
-    Geometry geom_flat;
-    BoxArray ba_flat;
-    DistributionMapping dmap_flat;
+    StructFact structFactPrim(ba,dmap,primNames,var_scaling_prim);
 
 
-    if (project_dir >= 0) {
-
-        
-        MultiFab X, XRot;
-        ComputeVerticalAverage(primInst, X, geom, project_dir, 0, nprimvars);
-        XRot = RotateFlattenedMF(X);
-        ba_flat = XRot.boxArray();
-        dmap_flat = XRot.DistributionMap();
-        master_project_rot_prim.define(ba_flat,dmap_flat,structVarsPrim,0);
-
-        IntVect dom_lo_flat(AMREX_D_DECL(0,0,0));
-        IntVect dom_hi_flat;
-
-        if (project_dir == 0) {
-            dom_hi_flat[0] = n_cells[1]-1;
-            dom_hi_flat[1] = n_cells[2]-1;
-            dom_hi_flat[2] = 0;
-        } else if (project_dir == 1) {
-            dom_hi_flat[0] = n_cells[0]-1;
-            dom_hi_flat[1] = n_cells[2]-1;
-            dom_hi_flat[2] = 0;
-        } else if (project_dir == 2) {
-            dom_hi_flat[0] = n_cells[0]-1;
-            dom_hi_flat[1] = n_cells[1]-1;
-            dom_hi_flat[2] = 0;
-        }
-        Box domain_flat(dom_lo_flat, dom_hi_flat);
-
-        // This defines the physical box
-        Vector<Real> projected_hi(AMREX_SPACEDIM);
-        for (int d=0; d<AMREX_SPACEDIM; d++) {
-            projected_hi[d] = prob_hi[d];
-        }
-        if (project_dir == 0) {
-            projected_hi[0] = prob_hi[1];
-            projected_hi[1] = prob_hi[2];
-        } else if (project_dir == 1) {
-            projected_hi[1] = prob_hi[2];
-        }
-
-        projected_hi[AMREX_SPACEDIM-1] = prob_hi[project_dir] / n_cells[project_dir];
-
-        RealBox real_box_flat({AMREX_D_DECL(     prob_lo[0],     prob_lo[1],     prob_lo[2])},
-                         {AMREX_D_DECL(projected_hi[0],projected_hi[1],projected_hi[2])});
-
-        // This defines a Geometry object
-        geom_flat.define(domain_flat,&real_box_flat,CoordSys::cartesian,is_periodic.data());
-        
-    }
-    StructFact structFactPrimVerticalAverage;
-    structFactPrimVerticalAverage.define(ba_flat,dmap_flat,primNames,var_scaling_prim,2);
 
 	// Collision Cell Vars
 	particles.mfselect.define(ba, dmap, nspecies*nspecies, 0);
@@ -347,8 +292,9 @@ void main_driver(const char* argv)
 	particles.mfvrmax.define(ba, dmap, nspecies*nspecies, 0);
 	particles.mfvrmax.setVal(0.);
 
+    Print() << "init particles\n";
 	particles.InitParticles(dt);
-
+    Print() << "init cells\n";
 	particles.InitCollisionCells();
 
 	Real init_time = ParallelDescriptor::second() - strt_time;
@@ -364,13 +310,14 @@ void main_driver(const char* argv)
 	zeroMassFlux(paramPlaneList, paramPlaneCount);
 	
     //Initial condition
-        spatialCross1D.setVal(0.);
+    spatialCross1D.setVal(0.);
 	cuMeans.setVal(0.);
 	primMeans.setVal(0.);
 	cuVars.setVal(0.);
 	primVars.setVal(0.);
 	coVars.setVal(0.);
 
+	//particles.SortParticlesDB();
 	particles.EvaluateStats(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
 		cvlInst,cvlMeans,QMeans,coVars,spatialCross1D,statsCount++,time);
     int stepTemp = 0;
@@ -383,18 +330,68 @@ void main_driver(const char* argv)
 	for (int istep=step; istep<=max_step; ++istep)
 	{
 		tbegin = ParallelDescriptor::second();
-
+		
 		particles.CalcSelections(dt);
 		particles.CollideParticles(dt);
-		particles.Source(dt, paramPlaneList, paramPlaneCount, cuInst);
+
+		//particles.Source(dt, paramPlaneList, paramPlaneCount, cuInst);
+		
+		if(istep%2!=0)
+        {        
+		    particles.EvaluateStats(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
+					cvlInst,cvlMeans,QMeans,coVars,spatialCross1D,statsCount++,time);
+					
+			if (istep > n_steps_skip && struct_fact_int > 0 && (istep-n_steps_skip)%struct_fact_int == 0) {
+
+
+      		    for(int l=0;l<=nspecies;l++)
+      		    {
+	                MultiFab::Copy(structFactPrimMF, primInst, l*iprim+1, l*4+0, 1, 0);
+	                MultiFab::Copy(structFactPrimMF, primInst, l*iprim+2, l*4+1, 1, 0);
+	                MultiFab::Copy(structFactPrimMF, primInst, l*iprim+3, l*4+2, 1, 0);
+	                MultiFab::Copy(structFactPrimMF, primInst, l*iprim+9, l*4+3, 1, 0);
+	                
+	                //Print() << l*iprim+1 << " -> " << l*4+0 << endl;
+	            }
+	            
+	            //PrintMF(structFactPrimMF,0,-1);
+      	        //PrintMF(primInst,1,1);
+	            
+                structFactPrim.FortStructure(structFactPrimMF,geom);
+		
+		    }
+        }
+		
 		//particles.externalForce(dt);
 		particles.MoveParticlesCPP(dt, paramPlaneList, paramPlaneCount);
 		//particles.updateTimeStep(geom,dt);
                 //reduceMassFlux(paramPlaneList, paramPlaneCount);
 
-		particles.EvaluateStats(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
+        if(istep%2==0)
+        {        
+		    particles.EvaluateStats(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
 					cvlInst,cvlMeans,QMeans,coVars,spatialCross1D,statsCount++,time);
+					
+			if (istep > n_steps_skip && struct_fact_int > 0 && (istep-n_steps_skip)%struct_fact_int == 0) {
 
+
+      		    for(int l=0;l<=nspecies;l++)
+      		    {
+	                MultiFab::Copy(structFactPrimMF, primInst, l*iprim+1, l*4+0, 1, 0);
+	                MultiFab::Copy(structFactPrimMF, primInst, l*iprim+2, l*4+1, 1, 0);
+	                MultiFab::Copy(structFactPrimMF, primInst, l*iprim+3, l*4+2, 1, 0);
+	                MultiFab::Copy(structFactPrimMF, primInst, l*iprim+9, l*4+3, 1, 0);
+	                
+	                //Print() << l*iprim+1 << " -> " << l*4+0 << endl;
+	            }
+	            
+	            //PrintMF(structFactPrimMF,0,-1);
+      	        //PrintMF(primInst,1,1);
+	            
+                structFactPrim.FortStructure(structFactPrimMF,geom);
+		
+		    }
+        }
 		//////////////////////////////////////
 		// PlotFile
 		//////////////////////////////////////
@@ -411,28 +408,13 @@ void main_driver(const char* argv)
 				writePlt = ((istep+1)%plot_int == 0);
 			}
 		}
-		
-		if (istep > n_steps_skip && struct_fact_int > 0 && (istep-n_steps_skip)%struct_fact_int == 0) {
-
-
-  		    for(int l=0;l<=nspecies;l++)
-  		    {
-	            MultiFab::Copy(structFactPrimMF, primInst, l*nspecies+1, l*4+0, 1, 0);
-	            MultiFab::Copy(structFactPrimMF, primInst, l*nspecies+2, l*4+1, 1, 0);
-	            MultiFab::Copy(structFactPrimMF, primInst, l*nspecies+3, l*4+2, 1, 0);
-	            MultiFab::Copy(structFactPrimMF, primInst, l*nspecies+9, l*4+3, 1, 0);
-	        }
-	        
-            structFactPrim.FortStructure(structFactPrimMF,geom);
-		
-		}
 
 		if ((plot_int > 0 && istep%plot_int==0))
 		{
 			writePlotFile(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
 				coVars,spatialCross1D,particles,geom,time,ncross,istep);
 				
-			structFactPrim.WritePlotFile(step,time,geom,"plt_SF_prim");
+			structFactPrim.WritePlotFile(istep,time,geom,"plt_SF_prim");
 		}
 		
         if ((n_steps_skip > 0 && istep == n_steps_skip) || (n_steps_skip < 0 && istep%n_steps_skip == 0) ) {

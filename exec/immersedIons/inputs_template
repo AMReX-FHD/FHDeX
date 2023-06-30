@@ -4,9 +4,9 @@
   prob_lo = 0.0 0.0 0.0      # physical lo coordinate
   prob_hi = 13.06e-07 13.06e-07 6.53e-07     # physical hi coordinate (from Jing's paper; lateral dimesions are smaller)
     
-  n_cells = 64 64 32                  # leads to 50% dry + 50% wet
+  n_cells = 16 16 8                 # leads to 50% dry + 50% wet
   # max number of cells in a box
-  max_grid_size = 32 32 16
+  max_grid_size = 16 16 8
   max_particle_tile_size = 256 256 256 # set to zero to use max_grid_size, setting a very large number will also use max grid size, but will also ensure that refined es and particle grids will do the same.
 
   # above settings are for fluid grid. EM and particle grid (the grid for finding neighbour lists) are coarsened or refined off these grids. <1 = refine, >1 = coarsen.
@@ -36,10 +36,10 @@
   fluid_tog = 1 # 0=Do nothing, 1=Do stokes solve, 2=Do low Mach solve
   es_tog = 0 # Do electrostatic solve 0=off, 1=Poisson, 2=Pairwise Coulomb (Doesn't work in parallel), 3=PPPM
   drag_tog = 0 # Apply drag force to fluid
-  rfd_tog = 1 # Apply RFD force to fluid
-  move_tog = 2 # # Total particle move. 0 = off, 1 = single step, 2 = midpoint
-  dry_move_tog = 1 # Dry particle move 0 = off, 1 = on, 2 = on but without dry stochastic drift correction
-  wall_mob = 1 #0= no dry adjustment to mobility due to walls, 1=Infinte plane, 2=other model
+  rfd_tog = 0 # Apply RFD force to fluid
+  move_tog = 0 # # Total particle move. 0 = off, 1 = single step, 2 = midpoint
+  dry_move_tog = 0 # Dry particle move 0 = off, 1 = on, 2 = on but without dry stochastic drift correction
+  wall_mob = 0 #0= no dry adjustment to mobility due to walls, 1=Infinte plane, 2=other model
   sr_tog = 0 # 0=No short range forces, 1=Short range LJ forces without walls, 2= with walls, 3=Wall with alternative model
  
   # Fluid info
@@ -57,7 +57,7 @@
   # 1 = spread evenly per cell (not implemented yet), 2 = spread randomly over domain
   particle_placement = 1
   # -1 = calculate based on n0
-  particle_count = 87 1600
+  particle_count = 0 0
   # real particles per simulator particle
   particle_neff = 1
   # ignore if particle_count is positive
@@ -92,7 +92,8 @@
 
   eamp = -1.5125e13 0 0 #external electric field properties
   efreq = 0 0 0
-  ephase = 0 0 0     
+  ephase = 0 0 0
+  body_force_density = 0 0 0      
 
   # Poisson solver parameters -- there are more options which we can add to the namespace later
   #-------------------
@@ -110,10 +111,10 @@
   eskernel_beta = 8 8 # beta is [1,3]*eskernel_fluid with 0.1 increment
   
   # Stochastic parameters
-  seed = 0
+  seed = 1
   k_B = 1.38064852e-16
   T_init = 300.00
-  variance_coef_mom = 1
+  variance_coef_mom = 0.1
    
   
   # Boundary conditions
@@ -133,10 +134,10 @@
 
 
   # GMRES solver parameters
-  gmres_rel_tol = 1.e-7                # relative tolerance stopping criteria
+  gmres_rel_tol = 1.e-8                # relative tolerance stopping criteria
   gmres_abs_tol = 0                     # absolute tolerance stopping criteria
   gmres_verbose =  1                    # gmres verbosity; if greater than 1, more residuals will be printed out
-  gmres_max_outer = 20                  # max number of outer iterations
-  gmres_max_inner = 5                   # max number of inner iterations, or restart number
-  gmres_max_iter = 100                  # max number of gmres iterations
+  gmres_max_outer = 40                  # max number of outer iterations
+  gmres_max_inner = 20                   # max number of inner iterations, or restart number
+  gmres_max_iter = 200                  # max number of gmres iterations
   gmres_min_iter = 1                    # min number of gmres iterations

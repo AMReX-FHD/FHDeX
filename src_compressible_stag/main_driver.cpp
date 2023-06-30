@@ -3,6 +3,7 @@
 #include "compressible_functions_stag.H"
 
 #include <AMReX_Vector.H>
+#include <AMReX_MPMD.H>
 
 #include "rng_functions.H"
 
@@ -14,8 +15,9 @@
 
 #include "chrono"
 
-#ifdef MUI
+#if defined(MUI) || defined(USE_AMREX_MPMD)
 #include "surfchem_mui_functions.H"
+using namespace surfchem_mui;
 #endif
 
 using namespace std::chrono;
@@ -45,9 +47,9 @@ void main_driver(const char* argv)
         Abort("nprimvars must be equal to AMREX_SPACEDIM + 3 + 2*nspecies");
     }
 
-    if (advection_type != 2) {
-        Abort("only interpolation of conserved quantities works for advective fluxes in the staggered code. this corresponds to advection_type = 2");
-    }
+    //if (advection_type != 2) {
+    //    Abort("only interpolation of conserved quantities works for advective fluxes in the staggered code. this corresponds to advection_type = 2");
+    //}
 
     // read the inputs file for chemistry
     InitializeChemistryNamespace();
@@ -55,7 +57,7 @@ void main_driver(const char* argv)
     // read the inputs file for MFsurfchem
     InitializeMFSurfchemNamespace();
 
-#ifdef MUI
+#if defined(MUI) || defined(USE_AMREX_MPMD)
     // read the inputs file for surfchem_mui
     InitializeSurfChemMUINamespace();
 
@@ -64,13 +66,12 @@ void main_driver(const char* argv)
     }
 
     if (nspec_mui<1) {
-        Abort("nspec_mui must be at least one.");
+        Abort("nspec_mui must be at least one");
     }
 
     if (restart>0) {
         Abort("restart not supported in compressible_stag_mui");
     }
-
 #endif
 
     int step_start, statsCount;
@@ -173,8 +174,12 @@ void main_driver(const char* argv)
     MultiFab surfcov;       // also used in surfchem_mui for stats and plotfiles
     MultiFab dNadsdes;
 
-#ifdef MUI
+#if defined(MUI) || defined(USE_AMREX_MPMD)
     MultiFab Ntot;          // saves total number of sites
+#endif
+
+#if defined(USE_AMREX_MPMD)
+    std::unique_ptr<MPMD::Copier> mpmd_copier;
 #endif
 
     //statistics    
@@ -238,7 +243,7 @@ void main_driver(const char* argv)
 
     Real dt = fixed_dt;
     const Real* dx = geom.CellSize();
-    const RealBox& realDomain = geom.ProbDomain();
+    //const RealBox& realDomain = geom.ProbDomain();
 
     std::string filename = "crossMeans";
     std::ofstream outfile;
@@ -443,151 +448,6 @@ void main_driver(const char* argv)
         if ((plot_cross) and (do_1D==0) and (do_2D==0)) {
             if (ParallelDescriptor::IOProcessor()) outfile.open(filename, std::ios::app);
         }
-
-        ///////////////////////////////////////////
-        // Setup Structure factor
-        ///////////////////////////////////////////
-
-        structFactPrimMF.define(ba, dmap, structVarsPrim, 0);
-        structFactPrim.define(ba,dmap,prim_var_names,var_scaling_prim);
-        
-        structFactConsMF.define(ba, dmap, structVarsCons, 0);
-        structFactCons.define(ba,dmap,cons_var_names,var_scaling_cons);
-        
-        // structure factor class for vertically-averaged dataset
-        if (project_dir >= 0) {
-
-
-            {
-                MultiFab X, XRot;
-                ComputeVerticalAverage(prim, X, geom, project_dir, 0, nprimvars);
-                XRot = RotateFlattenedMF(X);
-                ba_flat = XRot.boxArray();
-                dmap_flat = XRot.DistributionMap();
-                master_project_rot_prim.define(ba_flat,dmap_flat,structVarsPrim,0);
-                master_project_rot_cons.define(ba_flat,dmap_flat,structVarsCons,0);
-
-                IntVect dom_lo_flat(AMREX_D_DECL(0,0,0));
-                IntVect dom_hi_flat;
-#if (AMREX_SPACEDIM == 2)
-                if (project_dir == 0) {
-                    dom_hi_flat[0] = n_cells[1]-1;
-                    dom_hi_flat[1] = 0;
-                }
-                else if (project_dir == 1) {
-                    dom_hi_flat[0] = n_cells[0]-1;
-                    dom_hi_flat[1] = 0;
-                }
-#elif (AMREX_SPACEDIM == 3)
-                if (project_dir == 0) {
-                    dom_hi_flat[0] = n_cells[1]-1;
-                    dom_hi_flat[1] = n_cells[2]-1;
-                    dom_hi_flat[2] = 0;
-                } else if (project_dir == 1) {
-                    dom_hi_flat[0] = n_cells[0]-1;
-                    dom_hi_flat[1] = n_cells[2]-1;
-                    dom_hi_flat[2] = 0;
-                } else if (project_dir == 2) {
-                    dom_hi_flat[0] = n_cells[0]-1;
-                    dom_hi_flat[1] = n_cells[1]-1;
-                    dom_hi_flat[2] = 0;
-                }
-#endif
-                Box domain_flat(dom_lo_flat, dom_hi_flat);
-
-                // This defines the physical box
-                Vector<Real> projected_hi(AMREX_SPACEDIM);
-                for (int d=0; d<AMREX_SPACEDIM; d++) {
-                    projected_hi[d] = prob_hi[d];
-                }
-#if (AMREX_SPACEDIM == 2)
-                if (project_dir == 0) {
-                    projected_hi[0] = prob_hi[1];
-                }
-#elif (AMREX_SPACEDIM == 3)
-                if (project_dir == 0) {
-                    projected_hi[0] = prob_hi[1];
-                    projected_hi[1] = prob_hi[2];
-                } else if (project_dir == 1) {
-                    projected_hi[1] = prob_hi[2];
-                }
-#endif
-        
-                projected_hi[AMREX_SPACEDIM-1] = prob_hi[project_dir] / n_cells[project_dir];
-
-                RealBox real_box_flat({AMREX_D_DECL(     prob_lo[0],     prob_lo[1],     prob_lo[2])},
-                                 {AMREX_D_DECL(projected_hi[0],projected_hi[1],projected_hi[2])});
-          
-                // This defines a Geometry object
-                geom_flat.define(domain_flat,&real_box_flat,CoordSys::cartesian,is_periodic.data());
-
-                amrex::Print() << "nx, ny, nz:\t" << ba_flat[0].size()[0] << ", " << ba_flat[0].size()[1]  << ", " << ba_flat[0].size()[2] << std::endl;
-                amrex::Print() << "Lx, Ly, Lz:\t" << domain_flat.length(0)  << ", " << domain_flat.length(1)  << ", " << domain_flat.length(2) << std::endl;
-                amrex::Print() << "nbx, nby, nbz:\t" << domain_flat.length(0)/ba_flat[0].size()[0] << ", " << domain_flat.length(1)/ba_flat[0].size()[1]  << ", " 
-                               << domain_flat.length(2)/ba_flat[0].size()[2] << std::endl;
-            }
-
-            if (do_slab_sf == 0) {
-                structFactPrimVerticalAverage.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim,2);
-                structFactConsVerticalAverage.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons,2);
-            }
-            else {
-                structFactPrimVerticalAverage0.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim);
-                structFactPrimVerticalAverage1.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim);
-                structFactConsVerticalAverage0.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons);
-                structFactConsVerticalAverage1.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons);
-            }
-    
-        }
-
-        if (do_2D) { // 2D is coded only for XY plane
-
-            {
-                MultiFab X, XRot;
-                ExtractSlice(prim, X, geom, 2, 0, 0, nprimvars);
-                XRot = RotateFlattenedMF(X);
-                ba_flat_2D = XRot.boxArray();
-                dmap_flat_2D = XRot.DistributionMap();
-                master_2D_rot_prim.define(ba_flat_2D,dmap_flat_2D,structVarsPrim,0);
-                master_2D_rot_cons.define(ba_flat_2D,dmap_flat_2D,structVarsCons,0);
-
-                IntVect dom_lo_flat(AMREX_D_DECL(0,0,0));
-                IntVect dom_hi_flat;
-                dom_hi_flat[0] = n_cells[0]-1;
-                dom_hi_flat[1] = n_cells[1]-1;
-                dom_hi_flat[2] = 0;
-                Box domain_flat(dom_lo_flat, dom_hi_flat);
-
-                // This defines the physical box
-                Vector<Real> projected_hi(AMREX_SPACEDIM);
-                for (int d=0; d<AMREX_SPACEDIM; d++) {
-                    projected_hi[d] = prob_hi[d];
-                }
-                projected_hi[AMREX_SPACEDIM-1] = prob_hi[2] / n_cells[2];
-
-                RealBox real_box_flat({AMREX_D_DECL(     prob_lo[0],     prob_lo[1],     prob_lo[2])},
-                                 {AMREX_D_DECL(projected_hi[0],projected_hi[1],projected_hi[2])});
-          
-                // This defines a Geometry object
-                geom_flat_2D.define(domain_flat,&real_box_flat,CoordSys::cartesian,is_periodic.data());
-
-                amrex::Print() << "nx, ny, nz:\t" << ba_flat_2D[0].size()[0] << ", " << ba_flat_2D[0].size()[1]  << ", " << ba_flat_2D[0].size()[2] << std::endl;
-                amrex::Print() << "Lx, Ly, Lz:\t" << domain_flat.length(0)  << ", " << domain_flat.length(1)  << ", " << domain_flat.length(2) << std::endl;
-                amrex::Print() << "nbx, nby, nbz:\t" << domain_flat.length(0)/ba_flat_2D[0].size()[0] << ", " << domain_flat.length(1)/ba_flat_2D[0].size()[1]  << ", " 
-                           << domain_flat.length(2)/ba_flat_2D[0].size()[2] << std::endl;
-            }
-
-            structFactPrimArray.resize(n_cells[2]);
-            structFactConsArray.resize(n_cells[2]);
-
-            for (int i = 0; i < n_cells[2]; ++i) { 
-                structFactPrimArray[i].define(ba_flat_2D,dmap_flat_2D,prim_var_names,var_scaling_prim,2);
-                structFactConsArray[i].define(ba_flat_2D,dmap_flat_2D,cons_var_names,var_scaling_cons,2);
-            }
-
-
-        }
-
     }
 
     else {
@@ -648,7 +508,7 @@ void main_driver(const char* argv)
             nspec_surfcov = n_ads_spec;
         }
 
-#ifdef MUI
+#if defined(MUI) || defined(USE_AMREX_MPMD)
         surfcov.define(ba,dmap,nspec_mui,0);
         Ntot.define(ba,dmap,1,0);
         nspec_surfcov = nspec_mui;
@@ -723,140 +583,6 @@ void main_driver(const char* argv)
         }
 
         ///////////////////////////////////////////
-        // Setup Structure factor
-        ///////////////////////////////////////////
-
-        structFactPrimMF.define(ba, dmap, structVarsPrim, 0);
-        structFactPrim.define(ba,dmap,prim_var_names,var_scaling_prim);
-        
-        structFactConsMF.define(ba, dmap, structVarsCons, 0);
-        structFactCons.define(ba,dmap,cons_var_names,var_scaling_cons);
-        
-        // structure factor class for vertically-averaged dataset
-        if (project_dir >= 0) {
-
-            {
-                MultiFab X, XRot;
-                ComputeVerticalAverage(prim, X, geom, project_dir, 0, nprimvars);
-                XRot = RotateFlattenedMF(X);
-                ba_flat = XRot.boxArray();
-                dmap_flat = XRot.DistributionMap();
-                master_project_rot_prim.define(ba_flat,dmap_flat,structVarsPrim,0);
-                master_project_rot_cons.define(ba_flat,dmap_flat,structVarsCons,0);
-
-                IntVect dom_lo_flat(AMREX_D_DECL(0,0,0));
-                IntVect dom_hi_flat;
-#if (AMREX_SPACEDIM == 2)
-                if (project_dir == 0) {
-                    dom_hi_flat[0] = n_cells[1]-1;
-                    dom_hi_flat[1] = 0;
-                }
-                else if (project_dir == 1) {
-                    dom_hi_flat[0] = n_cells[0]-1;
-                    dom_hi_flat[1] = 0;
-                }
-#elif (AMREX_SPACEDIM == 3)
-                if (project_dir == 0) {
-                    dom_hi_flat[0] = n_cells[1]-1;
-                    dom_hi_flat[1] = n_cells[2]-1;
-                    dom_hi_flat[2] = 0;
-                } else if (project_dir == 1) {
-                    dom_hi_flat[0] = n_cells[0]-1;
-                    dom_hi_flat[1] = n_cells[2]-1;
-                    dom_hi_flat[2] = 0;
-                } else if (project_dir == 2) {
-                    dom_hi_flat[0] = n_cells[0]-1;
-                    dom_hi_flat[1] = n_cells[1]-1;
-                    dom_hi_flat[2] = 0;
-                }
-#endif
-                Box domain_flat(dom_lo_flat, dom_hi_flat);
-
-                // This defines the physical box
-                Vector<Real> projected_hi(AMREX_SPACEDIM);
-                for (int d=0; d<AMREX_SPACEDIM; d++) {
-                    projected_hi[d] = prob_hi[d];
-                }
-#if (AMREX_SPACEDIM == 2)
-                if (project_dir == 0) {
-                    projected_hi[0] = prob_hi[1];
-                }
-#elif (AMREX_SPACEDIM == 3)
-                if (project_dir == 0) {
-                    projected_hi[0] = prob_hi[1];
-                    projected_hi[1] = prob_hi[2];
-                } else if (project_dir == 1) {
-                    projected_hi[1] = prob_hi[2];
-                }
-#endif
-        
-                projected_hi[AMREX_SPACEDIM-1] = prob_hi[project_dir] / n_cells[project_dir];
-
-                RealBox real_box_flat({AMREX_D_DECL(     prob_lo[0],     prob_lo[1],     prob_lo[2])},
-                                 {AMREX_D_DECL(projected_hi[0],projected_hi[1],projected_hi[2])});
-          
-                // This defines a Geometry object
-                geom_flat.define(domain_flat,&real_box_flat,CoordSys::cartesian,is_periodic.data());
-
-            }
-
-            if (do_slab_sf == 0) {
-                structFactPrimVerticalAverage.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim,2);
-                structFactConsVerticalAverage.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons,2);
-            }
-            else {
-                structFactPrimVerticalAverage0.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim);
-                structFactPrimVerticalAverage1.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim);
-                structFactConsVerticalAverage0.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons);
-                structFactConsVerticalAverage1.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons);
-            }
-    
-        }
-
-        if (do_2D) { // 2D is coded only for XY plane
-
-            {
-                MultiFab X, XRot;
-                ExtractSlice(prim, X, geom, 2, 0, 0, nprimvars);
-                XRot = RotateFlattenedMF(X);
-                ba_flat_2D = XRot.boxArray();
-                dmap_flat_2D = XRot.DistributionMap();
-                master_2D_rot_prim.define(ba_flat_2D,dmap_flat_2D,structVarsPrim,0);
-                master_2D_rot_cons.define(ba_flat_2D,dmap_flat_2D,structVarsCons,0);
-
-                IntVect dom_lo_flat(AMREX_D_DECL(0,0,0));
-                IntVect dom_hi_flat;
-                dom_hi_flat[0] = n_cells[0]-1;
-                dom_hi_flat[1] = n_cells[1]-1;
-                dom_hi_flat[2] = 0;
-                Box domain_flat(dom_lo_flat, dom_hi_flat);
-
-                // This defines the physical box
-                Vector<Real> projected_hi(AMREX_SPACEDIM);
-                for (int d=0; d<AMREX_SPACEDIM; d++) {
-                    projected_hi[d] = prob_hi[d];
-                }
-                projected_hi[AMREX_SPACEDIM-1] = prob_hi[2] / n_cells[2];
-
-                RealBox real_box_flat({AMREX_D_DECL(     prob_lo[0],     prob_lo[1],     prob_lo[2])},
-                                 {AMREX_D_DECL(projected_hi[0],projected_hi[1],projected_hi[2])});
-          
-                // This defines a Geometry object
-                geom_flat_2D.define(domain_flat,&real_box_flat,CoordSys::cartesian,is_periodic.data());
-
-            }
-
-            structFactPrimArray.resize(n_cells[2]);
-            structFactConsArray.resize(n_cells[2]);
-
-            for (int i = 0; i < n_cells[2]; ++i) { 
-                structFactPrimArray[i].define(ba_flat_2D,dmap_flat_2D,prim_var_names,var_scaling_prim,2);
-                structFactConsArray[i].define(ba_flat_2D,dmap_flat_2D,cons_var_names,var_scaling_cons,2);
-            }
-
-        }
-
-        ///////////////////////////////////////////
         // Initialize everything
         ///////////////////////////////////////////
 
@@ -870,16 +596,20 @@ void main_driver(const char* argv)
         }
         conservedToPrimitiveStag(prim, vel, cu, cumom);
 
-        if (n_ads_spec>0) init_surfcov(surfcov, dx);
+        if (n_ads_spec>0) init_surfcov(surfcov, geom);
 
-#ifdef MUI
-        mui_announce_send_recv_span(uniface,cu,dx);
-
+#if defined(MUI)
         mui_fetch_Ntot(Ntot, dx, uniface, 0);
 
         mui_fetch_surfcov(Ntot, surfcov, dx, uniface, 0);
 
         mui_forget(uniface, 0);
+
+#elif defined(USE_AMREX_MPMD)
+        mpmd_copier = std::make_unique<MPMD::Copier>(Ntot.boxArray(),
+                                                     Ntot.DistributionMap());
+        amrex_fetch_Ntot(Ntot, *mpmd_copier);
+        amrex_fetch_surfcov(Ntot, surfcov, *mpmd_copier);
 #endif
 
         // Set BC: 1) fill boundary 2) physical (How to do for staggered? -- Ishan)
@@ -919,6 +649,140 @@ void main_driver(const char* argv)
 
     } // end t=0 setup
 
+    ///////////////////////////////////////////
+    // Setup Structure factor
+    ///////////////////////////////////////////
+
+    structFactPrimMF.define(ba, dmap, structVarsPrim, 0);
+    structFactPrim.define(ba,dmap,prim_var_names,var_scaling_prim);
+        
+    structFactConsMF.define(ba, dmap, structVarsCons, 0);
+    structFactCons.define(ba,dmap,cons_var_names,var_scaling_cons);
+        
+    // structure factor class for vertically-averaged dataset
+    if (project_dir >= 0) {
+
+        {
+            MultiFab X, XRot;
+            ComputeVerticalAverage(prim, X, geom, project_dir, 0, nprimvars);
+            XRot = RotateFlattenedMF(X);
+            ba_flat = XRot.boxArray();
+            dmap_flat = XRot.DistributionMap();
+            master_project_rot_prim.define(ba_flat,dmap_flat,structVarsPrim,0);
+            master_project_rot_cons.define(ba_flat,dmap_flat,structVarsCons,0);
+
+            IntVect dom_lo_flat(AMREX_D_DECL(0,0,0));
+            IntVect dom_hi_flat;
+#if (AMREX_SPACEDIM == 2)
+            if (project_dir == 0) {
+                dom_hi_flat[0] = n_cells[1]-1;
+                dom_hi_flat[1] = 0;
+            }
+            else if (project_dir == 1) {
+                dom_hi_flat[0] = n_cells[0]-1;
+                dom_hi_flat[1] = 0;
+            }
+#elif (AMREX_SPACEDIM == 3)
+            if (project_dir == 0) {
+                dom_hi_flat[0] = n_cells[1]-1;
+                dom_hi_flat[1] = n_cells[2]-1;
+                dom_hi_flat[2] = 0;
+            } else if (project_dir == 1) {
+                dom_hi_flat[0] = n_cells[0]-1;
+                dom_hi_flat[1] = n_cells[2]-1;
+                dom_hi_flat[2] = 0;
+            } else if (project_dir == 2) {
+                dom_hi_flat[0] = n_cells[0]-1;
+                dom_hi_flat[1] = n_cells[1]-1;
+                dom_hi_flat[2] = 0;
+            }
+#endif
+            Box domain_flat(dom_lo_flat, dom_hi_flat);
+
+            // This defines the physical box
+            Vector<Real> projected_hi(AMREX_SPACEDIM);
+            for (int d=0; d<AMREX_SPACEDIM; d++) {
+                projected_hi[d] = prob_hi[d];
+            }
+#if (AMREX_SPACEDIM == 2)
+            if (project_dir == 0) {
+                projected_hi[0] = prob_hi[1];
+            }
+#elif (AMREX_SPACEDIM == 3)
+            if (project_dir == 0) {
+                projected_hi[0] = prob_hi[1];
+                projected_hi[1] = prob_hi[2];
+            } else if (project_dir == 1) {
+                projected_hi[1] = prob_hi[2];
+            }
+#endif
+        
+            projected_hi[AMREX_SPACEDIM-1] = prob_hi[project_dir] / n_cells[project_dir];
+
+            RealBox real_box_flat({AMREX_D_DECL(     prob_lo[0],     prob_lo[1],     prob_lo[2])},
+                                  {AMREX_D_DECL(projected_hi[0],projected_hi[1],projected_hi[2])});
+          
+            // This defines a Geometry object
+            geom_flat.define(domain_flat,&real_box_flat,CoordSys::cartesian,is_periodic.data());
+
+        }
+
+        if (do_slab_sf == 0) {
+            structFactPrimVerticalAverage.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim,2);
+            structFactConsVerticalAverage.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons,2);
+        }
+        else {
+            structFactPrimVerticalAverage0.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim);
+            structFactPrimVerticalAverage1.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim);
+            structFactConsVerticalAverage0.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons);
+            structFactConsVerticalAverage1.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons);
+        }
+    
+    }
+
+    if (do_2D) { // 2D is coded only for XY plane
+
+        {
+            MultiFab X, XRot;
+            ExtractSlice(prim, X, geom, 2, 0, 0, nprimvars);
+            XRot = RotateFlattenedMF(X);
+            ba_flat_2D = XRot.boxArray();
+            dmap_flat_2D = XRot.DistributionMap();
+            master_2D_rot_prim.define(ba_flat_2D,dmap_flat_2D,structVarsPrim,0);
+            master_2D_rot_cons.define(ba_flat_2D,dmap_flat_2D,structVarsCons,0);
+
+            IntVect dom_lo_flat(AMREX_D_DECL(0,0,0));
+            IntVect dom_hi_flat;
+            dom_hi_flat[0] = n_cells[0]-1;
+            dom_hi_flat[1] = n_cells[1]-1;
+            dom_hi_flat[2] = 0;
+            Box domain_flat(dom_lo_flat, dom_hi_flat);
+
+            // This defines the physical box
+            Vector<Real> projected_hi(AMREX_SPACEDIM);
+            for (int d=0; d<AMREX_SPACEDIM; d++) {
+                projected_hi[d] = prob_hi[d];
+            }
+            projected_hi[AMREX_SPACEDIM-1] = prob_hi[2] / n_cells[2];
+
+            RealBox real_box_flat({AMREX_D_DECL(     prob_lo[0],     prob_lo[1],     prob_lo[2])},
+                                  {AMREX_D_DECL(projected_hi[0],projected_hi[1],projected_hi[2])});
+          
+            // This defines a Geometry object
+            geom_flat_2D.define(domain_flat,&real_box_flat,CoordSys::cartesian,is_periodic.data());
+
+        }
+
+        structFactPrimArray.resize(n_cells[2]);
+        structFactConsArray.resize(n_cells[2]);
+
+        for (int i = 0; i < n_cells[2]; ++i) { 
+            structFactPrimArray[i].define(ba_flat_2D,dmap_flat_2D,prim_var_names,var_scaling_prim,2);
+            structFactConsArray[i].define(ba_flat_2D,dmap_flat_2D,cons_var_names,var_scaling_cons,2);
+        }
+
+    }
+
     /////////////////////////////////////////////////
     // Initialize Fluxes and Sources
     /////////////////////////////////////////////////
@@ -926,6 +790,9 @@ void main_driver(const char* argv)
     // external source term - possibly for later
     MultiFab source(ba,dmap,nprimvars,ngc);
     source.setVal(0.0);
+
+    MultiFab ranchem;
+    if (nreaction>0) ranchem.define(ba,dmap,nreaction,ngc);
 
     //fluxes (except momentum) at faces
     // need +4 to separate out heat, viscous heating (diagonal vs shear)  and Dufour contributions to the energy flux
@@ -980,24 +847,31 @@ void main_driver(const char* argv)
         Real ts1 = ParallelDescriptor::second();
 
         // sample surface chemistry
-#ifdef MUI
+#if defined(MUI)
         mui_push(cu, prim, dx, uniface, step);
 
         mui_commit(uniface, step);
+#elif defined(USE_AMREX_MPMD)
+        amrex_push(cu, prim, *mpmd_copier);
 #endif
-        if (n_ads_spec>0) sample_MFsurfchem(cu, prim, surfcov, dNadsdes, dx, dt);
+        if (n_ads_spec>0) sample_MFsurfchem(cu, prim, surfcov, dNadsdes, geom, dt);
 
         // FHD
         RK3stepStag(cu, cumom, prim, vel, source, eta, zeta, kappa, chi, D, 
-            faceflux, edgeflux_x, edgeflux_y, edgeflux_z, cenflux, geom, dt, step);
+            faceflux, edgeflux_x, edgeflux_y, edgeflux_z, cenflux, ranchem, geom, dt, step);
 
         // update surface chemistry (via either surfchem_mui or MFsurfchem)
-#ifdef MUI
+#if defined(MUI) || defined(USE_AMREX_MPMD)
+#if defined(MUI)
         mui_fetch(cu, prim, dx, uniface, step);
 
         mui_fetch_surfcov(Ntot, surfcov, dx, uniface, step);
 
         mui_forget(uniface, step);
+#elif defined(USE_AMREX_MPMD)
+        amrex_fetch(cu, prim, geom.CellSizeArray(), *mpmd_copier);
+        amrex_fetch_surfcov(Ntot, surfcov, *mpmd_copier);
+#endif
 
         for (int d=0; d<AMREX_SPACEDIM; d++) {
             cumom[d].FillBoundary(geom.periodicity());
@@ -1018,7 +892,7 @@ void main_driver(const char* argv)
 
         if (n_ads_spec>0) {
 
-            update_MFsurfchem(cu, prim, surfcov, dNadsdes, dx);
+            update_MFsurfchem(cu, prim, surfcov, dNadsdes, geom);
 
             for (int d=0; d<AMREX_SPACEDIM; d++) {
                 cumom[d].FillBoundary(geom.periodicity());

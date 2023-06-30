@@ -40,6 +40,7 @@ class AppLattice : public App {
   void input(char *, int, char **);
   void init();
   void setup();
+  void setup2();
   void iterate();
   virtual bigint memory_usage();
 

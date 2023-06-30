@@ -28,7 +28,7 @@ namespace {
 void WriteCheckPoint3D(int step,
                        const amrex::Real time,
                        int statsCount,
-                       const amrex::Geometry& geom,
+                       const amrex::Geometry& /*geom*/,
                        const amrex::MultiFab& cu,
                        const amrex::MultiFab& cuMeans,
                        const amrex::MultiFab& cuVars,
@@ -224,7 +224,7 @@ void WriteCheckPoint3D(int step,
 void WriteCheckPoint2D(int step,
                        const amrex::Real time,
                        int statsCount,
-                       const amrex::Geometry& geom,
+                       const amrex::Geometry& /*geom*/,
                        const amrex::MultiFab& cu,
                        const amrex::MultiFab& cuMeans,
                        const amrex::MultiFab& cuVars,
@@ -238,7 +238,7 @@ void WriteCheckPoint2D(int step,
                        const std::array<MultiFab, AMREX_SPACEDIM>& velMeans,
                        const std::array<MultiFab, AMREX_SPACEDIM>& velVars,
                        const amrex::MultiFab& coVars,
-                       const amrex::MultiFab& spatialCross, int ncross)
+                       const amrex::MultiFab& spatialCross, int /*ncross*/)
 {
     // timer for profiling
     BL_PROFILE_VAR("WriteCheckPoint2D()",WriteCheckPoint2D);
@@ -403,7 +403,7 @@ void WriteCheckPoint2D(int step,
 void WriteCheckPoint1D(int step,
                        const amrex::Real time,
                        int statsCount,
-                       const amrex::Geometry& geom,
+                       const amrex::Geometry& /*geom*/,
                        const amrex::MultiFab& cu,
                        const amrex::MultiFab& cuMeans,
                        const amrex::MultiFab& cuVars,
@@ -417,7 +417,7 @@ void WriteCheckPoint1D(int step,
                        const std::array<MultiFab, AMREX_SPACEDIM>& velMeans,
                        const std::array<MultiFab, AMREX_SPACEDIM>& velVars,
                        const amrex::MultiFab& coVars,
-                       const amrex::MultiFab& spatialCross, int ncross)
+                       const amrex::MultiFab& spatialCross, int /*ncross*/)
 {
     // timer for profiling
     BL_PROFILE_VAR("WriteCheckPoint1D()",WriteCheckPoint1D);

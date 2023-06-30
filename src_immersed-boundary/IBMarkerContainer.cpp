@@ -64,7 +64,6 @@ void IBMarkerContainer::InitList(int lev,
     int total_np = 0;
 
 
-
     //__________________________________________________________________________
     // First sweep: generate particles in their respective cores. Do not link
     // yet because linkage target could be a neighbor particle (which aren't
@@ -152,53 +151,52 @@ void IBMarkerContainer::InitList(int lev,
     // list is its linkage identifier => sweep list to link up particles
     // properly
 
-
     Redistribute();
     clearNeighbors();
-    fillNeighbors();
+    // fillNeighbors();
 
-    for (IBMarIter pti(*this, lev); pti.isValid(); ++pti) {
+    // for (IBMarIter pti(*this, lev); pti.isValid(); ++pti) {
 
-        // Get marker data (local to current thread)
-        PairIndex index(pti.index(), pti.LocalTileIndex());
-        AoS & markers = GetParticles(lev).at(index).GetArrayOfStructs();
+    //     // Get marker data (local to current thread)
+    //     PairIndex index(pti.index(), pti.LocalTileIndex());
+    //     AoS & markers = GetParticles(lev).at(index).GetArrayOfStructs();
 
-        // Get neighbor marker data (from neighboring threads)
-        ParticleVector & nbhd_data = GetNeighbors(lev, pti.index(), pti.LocalTileIndex()).GetArrayOfStructs()();
+    //     // Get neighbor marker data (from neighboring threads)
+    //     ParticleVector & nbhd_data = GetNeighbors(lev, pti.index(), pti.LocalTileIndex()).GetArrayOfStructs()();
 
-        long np = pti.numParticles();
-        long nn = nbhd_data.size();
+    //     long np = pti.numParticles();
+    //     long nn = nbhd_data.size();
 
-        // Sweep over particles, check N^2 candidates for previous list member
-        for (int i=0; i<np; ++i) {
+    //     // Sweep over particles, check N^2 candidates for previous list member
+    //     for (int i=0; i<np; ++i) {
 
-            ParticleType & mark = markers[i];
+    //         ParticleType & mark = markers[i];
 
-            // Check other (real) particles in tile
-            for (int j=0; j<np; ++j) {
+    //         // Check other (real) particles in tile
+    //         for (int j=0; j<np; ++j) {
 
-                const ParticleType & other = markers[j];
-                if ((mark.idata(IBMInt::id_1) == other.idata(IBMInt::id_1) + 1)
-                    && (mark.idata(IBMInt::cpu_1) == other.idata(IBMInt::cpu_1)))
-                {
-                    mark.idata(IBMInt::id_0)  = other.id();
-                    mark.idata(IBMInt::cpu_0) = other.cpu();
-                }
-            }
+    //             const ParticleType & other = markers[j];
+    //             if ((mark.idata(IBMInt::id_1) == other.idata(IBMInt::id_1) + 1)
+    //                 && (mark.idata(IBMInt::cpu_1) == other.idata(IBMInt::cpu_1)))
+    //             {
+    //                 mark.idata(IBMInt::id_0)  = other.id();
+    //                 mark.idata(IBMInt::cpu_0) = other.cpu();
+    //             }
+    //         }
 
-            // Check neighbor particles
-            for (int j=0; j<nn; ++j) {
+    //         // Check neighbor particles
+    //         for (int j=0; j<nn; ++j) {
 
-                const ParticleType & other = nbhd_data[j];
-                if ((mark.idata(IBMInt::id_1) == other.idata(IBMInt::id_1) + 1)
-                    && (mark.idata(IBMInt::cpu_1) == other.idata(IBMInt::cpu_1)))
-                {
-                    mark.idata(IBMInt::id_0)  = other.id();
-                    mark.idata(IBMInt::cpu_0) = other.cpu();
-                }
-            }
-        }
-    }
+    //             const ParticleType & other = nbhd_data[j];
+    //             if ((mark.idata(IBMInt::id_1) == other.idata(IBMInt::id_1) + 1)
+    //                 && (mark.idata(IBMInt::cpu_1) == other.idata(IBMInt::cpu_1)))
+    //             {
+    //                 mark.idata(IBMInt::id_0)  = other.id();
+    //                 mark.idata(IBMInt::cpu_0) = other.cpu();
+    //             }
+    //         }
+    //     }
+    // }
 }
 
 
@@ -732,15 +730,21 @@ void IBMarkerContainer::UpdatePIDMap() {
     Vector<int> ibs(getTotalNumIDs());
     PullDownInt(0, ibs, IBMInt::cpu_1);    
 
+    Vector<int> ids(getTotalNumIDs());
+    PullDownInt(0, ids, IBMInt::id_1);
+
     for (int i = 0; i < ibs.size(); ++i) {
-            sorted_map.push_back(std::make_pair(ibs[i], i));
+            sorted_map.push_back(std::make_tuple(ibs[i], ids[i], i));
     }       
  
     sort(sorted_map.begin(), sorted_map.end());
 
     Print() << "Flagellum number\t" << "index in PullDown Vector" << std::endl;
     for (int i = 0; i < ibs.size(); i++) {
-             Print() << sorted_map[i].first << "\t" << sorted_map[i].second << std::endl;
+             Print() << immbdy_idx(sorted_map[i])
+             << "\t" << marker_idx(sorted_map[i])
+             << "\t" << storage_idx(sorted_map[i])
+             << std::endl;
     }
 
     //Create a reduced vector storing only the beginning index of each flagellum in the sorted map 
@@ -748,7 +752,7 @@ void IBMarkerContainer::UpdatePIDMap() {
     int n_ibs =1 + ibs[std::distance(ibs.begin(), std::max_element(ibs.begin(), ibs.end()))];
     
     for (int i=0; i<n_ibs; i++) {    
-	    reduced_map.push_back(std::distance(sorted_map.begin(), std::find_if(sorted_map.begin(), sorted_map.end(), [&](const auto& pair) { return pair.first == i; })));
+	    reduced_map.push_back(std::distance(sorted_map.begin(), std::find_if(sorted_map.begin(), sorted_map.end(), [&](const auto & t) { return immbdy_idx(t) == i; })));
     }
 
     Print() << "Flagellum number\t" << "Beginning index in the sorted map" << std::endl;
