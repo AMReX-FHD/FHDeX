@@ -2,7 +2,7 @@
   # mean free path (Ar): lambda = 6.26e-6 cm
   # dx = dy = dz = 2*lambda = 1.252e-5
   prob_lo = 0.0 0.0 0.0      # physical lo coordinate
-  prob_hi = 0.0080128 0.0080128 0.0080128 # physical hi coordinate
+  prob_hi = 0.080128 0.080128 0.080128 # physical hi coordinate
 
   # Number of ghost cells, conserved, and primitive variables
   # ---------------------
@@ -12,12 +12,12 @@
   nprimvars = 10
 
   # number of cells in domain
-  n_cells = 128 12 128
+  n_cells = 128 128 128
   # max number of cells in a box
   max_grid_size = 128 128 128
 
   # Time-step control
-  fixed_dt = 1e-10
+  fixed_dt = 5e-9
   stoch_stress_form = 1
 
   # Controls for number of steps between actions
