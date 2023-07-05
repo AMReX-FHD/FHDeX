@@ -51,6 +51,7 @@ int                        common::print_int;
 int                        common::project_eos_int;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::grav;
 AMREX_GPU_MANAGED int      common::nspecies;
+AMREX_GPU_MANAGED int      common::nbonds;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::molmass;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::rhobar;
 AMREX_GPU_MANAGED amrex::Real common::rho0;
@@ -409,6 +410,7 @@ void InitializeCommonNamespace() {
         molmass[i] = 1.;
         diameter[i] = 1.;
     }
+    nbonds = 0;
 
     // dof (no default)
     for (int i=0; i<MAX_SPECIES; ++i) {
@@ -637,6 +639,7 @@ void InitializeCommonNamespace() {
     // pp.getarr and queryarr("string",inputs,start_indx,count); can be used for arrays
 
     pp.query("nspecies",nspecies);
+    pp.query("nbonds",nbonds);
     
     if (pp.queryarr("prob_lo",temp)) {
         for (int i=0; i<3; ++i) {

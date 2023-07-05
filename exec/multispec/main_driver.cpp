@@ -472,7 +472,7 @@ void main_driver(const char* argv)
       From this perspective it may be useful to keep initial_projection even in overdamped
       because different gmres tolerances may be needed in the first step than in the rest
     */
-    if (algorithm_type != 2 && algorithm_type != 6) {
+    if (algorithm_type != 2) {
         InitialProjection(umac,rho_old,rhotot_old,diff_mass_fluxdiv,stoch_mass_fluxdiv,
                           stoch_mass_flux,sMassFlux,Temp,eta,eta_ed,dt,time,geom,
                           charge_old,grad_Epot_old,Epot,permittivity);

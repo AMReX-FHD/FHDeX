@@ -945,6 +945,9 @@ void main_driver(const char* argv)
     MultiFab source(ba,dmap,nprimvars,ngc);
     source.setVal(0.0);
 
+    MultiFab ranchem;
+    if (nreaction>0) ranchem.define(ba,dmap,nreaction,ngc);
+
     //fluxes (except momentum) at faces
     // need +4 to separate out heat, viscous heating (diagonal vs shear)  and Dufour contributions to the energy flux
     // stacked at the end (see below)
@@ -1009,7 +1012,7 @@ void main_driver(const char* argv)
 
         // FHD
         RK3stepStag(cu, cumom, prim, vel, source, eta, zeta, kappa, chi, D, 
-            faceflux, edgeflux_x, edgeflux_y, edgeflux_z, cenflux, geom, dt, step);
+            faceflux, edgeflux_x, edgeflux_y, edgeflux_z, cenflux, ranchem, geom, dt, step);
 
         // update surface chemistry (via either surfchem_mui or MFsurfchem)
 #if defined(MUI) || defined(USE_AMREX_MPMD)
