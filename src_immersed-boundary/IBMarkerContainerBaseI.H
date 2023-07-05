@@ -159,6 +159,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::RFD(
     Real deltaover2 = delta/2.0;
     Real force = variance_coef_mom*k_B*T_init[0]/delta;
     //Real force = k_B*T_init[0]/delta;
+    const Geometry & geom = this->Geom(0);
 
     for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
 
@@ -278,6 +279,10 @@ void IBMarkerContainerBase<StructReal, StructInt>::RFD(
         });
 
     }
+
+    f_out[0].SumBoundary(geom.periodicity());
+    f_out[1].SumBoundary(geom.periodicity());
+    f_out[2].SumBoundary(geom.periodicity());
 }
 
 

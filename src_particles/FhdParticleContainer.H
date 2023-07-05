@@ -424,6 +424,7 @@ public:
     void invertMatrix();
     
     void GetAllParticlePositions(Real* posx, Real* posy, Real* posz, int totalParticles);
+    void GetAllParticlePositions(Vector<Real>& posxVec, Vector<Real>& posyVec, Vector<Real>& poszVec);
 
 
     /****************************************************************************

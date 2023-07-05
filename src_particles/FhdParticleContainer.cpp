@@ -1370,9 +1370,9 @@ void FhdParticleContainer::computeForcesBondGPU(long totalParticles) {
     Print() << "Calculating bond force for molecules\n";
 
     // collect particle positions onto one processor
-    PullDown(0, posxVec, FHD_realData::ax);
-    PullDown(0, posyVec, FHD_realData::ay);
-    PullDown(0, poszVec, FHD_realData::az);
+    PullDown(0, posxVec, -1);
+    PullDown(0, posyVec, -2);
+    PullDown(0, poszVec, -3);
     PullDownInt(0, groupidVec, FHD_intData::groupid);
 
     //Print() << groupidPtr[1] << "\n";
@@ -4223,6 +4223,17 @@ FhdParticleContainer::GetAllParticlePositions(Real* posx, Real* posy, Real* posz
     PullDown(0, posx, -1, totalParticles);
     PullDown(0, posy, -2, totalParticles);
     PullDown(0, posz, -3, totalParticles);
+
+}
+
+void
+FhdParticleContainer::GetAllParticlePositions(Vector<Real>& posxVec, Vector<Real>& posyVec, Vector<Real>& poszVec) {
+
+
+    // collect particle positions onto one processor
+    PullDown(0, posxVec, -1);
+    PullDown(0, posyVec, -2);
+    PullDown(0, poszVec, -3);
 
 }
 

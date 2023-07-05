@@ -1025,14 +1025,17 @@ void main_driver(const char* argv)
     Gpu::ManagedVector<Real> posx;
     posx.resize(simParticles);
     Real * posxPtr = posx.dataPtr();
+    Vector<Real> posxVec(simParticles);
 
     Gpu::ManagedVector<Real> posy;
     posy.resize(simParticles);
     Real * posyPtr = posy.dataPtr();
+    Vector<Real> posyVec(simParticles);
 
     Gpu::ManagedVector<Real> posz;
     posz.resize(simParticles);
     Real * poszPtr = posz.dataPtr();
+    Vector<Real> poszVec(simParticles);
 
 
 //    // Writes instantaneous flow field and some other stuff? Check with Guy.
@@ -1046,7 +1049,7 @@ void main_driver(const char* argv)
     //Time stepping loop
 
 
-
+    int init_step = step;
     if(ramp_step==2){
         dt = dt*1e-7;
 	if(step < 100 && step > 50) dt = dt*2;
@@ -1628,17 +1631,17 @@ void main_driver(const char* argv)
 	*/
 
         // collect particle positions onto one processor
-	particles.GetAllParticlePositions(posxPtr,posyPtr,poszPtr,simParticles);
+	particles.GetAllParticlePositions(posxVec,posyVec,poszVec);
         if (dsf_flag == 1)
         {
 	   if (ParallelDescriptor::MyProc()==0){
-              std::string filename = "partPos";
+              std::string filename = Concatenate("partPos_restart", init_step, 9);
               std::ofstream ofs2(filename, std::ofstream::app);
               //ofstream ofs( filename, ios::binary );
    
               for (int i=0;i<simParticles;i++)
               {
-                  ofs2 << i << " " << posxPtr[i] << " " << posyPtr[i] << " " << poszPtr[i] << std::endl;
+                  ofs2 << istep << " " << i << " " << posxVec[i] << " " << posyVec[i] << " " << poszVec[i] << std::endl;
               }
    
               ofs2.close();

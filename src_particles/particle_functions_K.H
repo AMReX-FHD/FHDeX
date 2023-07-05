@@ -951,15 +951,15 @@ void compute_forces_bond_gpu (FhdParticleContainer::AoS& aos, int Np, std::map<i
                         {
                             if (part.idata(FHD_intData::bond1+i_bond) >= 0) {
 			       //std::cout << "id_global bond bond_pulldown: " << part.idata(FHD_intData::id_global) << " " << part.idata(FHD_intData::bond1+i_bond) << " " << id_global_map[part.idata(FHD_intData::bond1+i_bond)] << std::endl;
-                               Real dx = part.rdata(FHD_realData::ax)-posxVec[id_global_map[part.idata(FHD_intData::bond1+i_bond)]];
-                               Real dy = part.rdata(FHD_realData::ay)-posyVec[id_global_map[part.idata(FHD_intData::bond1+i_bond)]];
-                               Real dz = part.rdata(FHD_realData::az)-poszVec[id_global_map[part.idata(FHD_intData::bond1+i_bond)]];
-			       //if (dx < -domx/2) dx = dx+domx;
-			       //if (dy < -domy/2) dy = dy+domy;
-			       //if (dz < -domz/2) dz = dz+domz;
-			       //if (dx > domx/2) dx = dx-domx;
-			       //if (dy > domy/2) dy = dy-domy;
-			       //if (dz > domz/2) dz = dz-domz;
+                               Real dx = part.pos(0)-posxVec[id_global_map[part.idata(FHD_intData::bond1+i_bond)]];
+                               Real dy = part.pos(1)-posyVec[id_global_map[part.idata(FHD_intData::bond1+i_bond)]];
+                               Real dz = part.pos(2)-poszVec[id_global_map[part.idata(FHD_intData::bond1+i_bond)]];
+			       if (dx < -domx/2) dx = dx+domx;
+			       if (dy < -domy/2) dy = dy+domy;
+			       if (dz < -domz/2) dz = dz+domz;
+			       if (dx > domx/2) dx = dx-domx;
+			       if (dy > domy/2) dy = dy-domy;
+			       if (dz > domz/2) dz = dz-domz;
 
                                Real dr2 = dx*dx + dy*dy + dz*dz;
                                Real rtdr2 = sqrt(dr2);
