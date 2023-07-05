@@ -424,9 +424,9 @@ void main_driver(const char* argv)
 
     //////////////////////////////////////////////////////////////
     // structure factor variables names and scaling for turbulence
-    // variables are velocities
+    // variables are velocities, density, pressure and temperature
     //////////////////////////////////////////////////////////////
-    int structVarsTurb = AMREX_SPACEDIM;
+    int structVarsTurb = AMREX_SPACEDIM+3;
     
     Vector< std::string > var_names_turb;
     var_names_turb.resize(structVarsTurb);
@@ -439,6 +439,9 @@ void main_driver(const char* argv)
       x += (120+d);
       var_names_turb[cnt++] = x;
     }
+    var_names_turb[cnt++] = "rho";
+    var_names_turb[cnt++] = "temp";
+    var_names_turb[cnt++] = "press";
 
     MultiFab structFactMFTurb;
 
@@ -453,8 +456,8 @@ void main_driver(const char* argv)
     }
 
     // option to compute only specified pairs
-    amrex::Vector< int > s_pairA_turb(AMREX_SPACEDIM);
-    amrex::Vector< int > s_pairB_turb(AMREX_SPACEDIM);
+    amrex::Vector< int > s_pairA_turb(AMREX_SPACEDIM+3); // vx, vy, vz, rho, P , T
+    amrex::Vector< int > s_pairB_turb(AMREX_SPACEDIM+3); // vx, vy, vz, rho, P , T
 
     var_scaling_turb.resize(AMREX_SPACEDIM);
     for (int d=0; d<var_scaling_turb.size(); ++d) {
@@ -462,7 +465,7 @@ void main_driver(const char* argv)
     }
     
     // Select which variable pairs to include in structure factor:
-    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+    for (int d=0; d<AMREX_SPACEDIM+3; ++d) {
         s_pairA_turb[d] = d;
         s_pairB_turb[d] = d;
     }    
@@ -1307,16 +1310,30 @@ void main_driver(const char* argv)
 
             // compressible turbulence structure factor snapshot
             if (turbForcing == 1) {
-                // copy velocities into structFactMF
+
+                cnt = 0;
+
+                // copy velocities into structFactMFTurb
                 for(int d=0; d<AMREX_SPACEDIM; d++) {
                     ShiftFaceToCC(vel[d], 0, structFactMFTurb, d, 1);
+                    cnt++;
                 }
+                // copy density, pressure and temperature into structFactMFTurb
+                MultiFab::Copy(structFactMFTurb, prim, 0, cnt, 1, 0);
+                cnt++;
+                MultiFab::Copy(structFactMFTurb, prim, 4, cnt, 1, 0);
+                cnt++;
+                MultiFab::Copy(structFactMFTurb, prim, 5, cnt, 1, 0);
+
                 // reset and compute structure factor
                 turbStructFact.FortStructure(structFactMFTurb,geom,1);
                 turbStructFact.CallFinalize(geom);
 
-                // integrate cov_mag over shells in k and write to file
+                // integrate cov_mag over shells in k and write to file (energy spectrum)
                 turbStructFact.IntegratekShells(step,geom);
+
+                // integrate cov_mag over shells in k and write to file (for rho, press, temp)
+                turbStructFact.IntegratekShellsMisc(step,geom);
 
             }
 

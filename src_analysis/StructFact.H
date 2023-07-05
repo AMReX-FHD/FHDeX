@@ -102,6 +102,8 @@ public:
 
     void IntegratekShells(const int& step, const amrex::Geometry& geom);
 
+    void IntegratekShellsMisc(const int& step, const amrex::Geometry& geom);
+
     void AddToExternal(amrex::MultiFab& x_mag, amrex::MultiFab& x_realimag, const amrex::Geometry&, const int& zero_avg=1);
 
     int get_ncov() const { return NCOV; }
