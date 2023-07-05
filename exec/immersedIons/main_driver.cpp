@@ -1530,14 +1530,9 @@ void main_driver(const char* argv)
             if (fluid_tog ==2) {
                 sMflux.StochMomFluxDiv(stochMfluxdivC,0,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
             }
-        }
+	}
         
         
-        MultiFab::Add(source[0],sourceRFD[0],0,0,sourceRFD[0].nComp(),sourceRFD[0].nGrow());
-        MultiFab::Add(source[1],sourceRFD[1],0,0,sourceRFD[1].nComp(),sourceRFD[1].nGrow());
-        MultiFab::Add(source[2],sourceRFD[2],0,0,sourceRFD[2].nComp(),sourceRFD[2].nGrow());
-
-
         MultiFab::Add(source[0],sourceRFD[0],0,0,sourceRFD[0].nComp(),sourceRFD[0].nGrow());
         MultiFab::Add(source[1],sourceRFD[1],0,0,sourceRFD[1].nComp(),sourceRFD[1].nGrow());
         MultiFab::Add(source[2],sourceRFD[2],0,0,sourceRFD[2].nComp(),sourceRFD[2].nGrow());
