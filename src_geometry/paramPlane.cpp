@@ -27,8 +27,8 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 	Real yl = prob_hi[1] - prob_lo[1];
 	Real zl = prob_hi[2] - prob_lo[2];
 	
-	if(bc_vel_lo[0]==3)
-	{
+  if(bc_vel_lo[0]==3 || bc_vel_lo[0]==5 || bc_vel_lo[0]==6 || bc_vel_lo[0]==7)
+  {
 		// Mass densities defined
 		if(rho_lo[0]>=0)
 		{
@@ -92,11 +92,11 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 		{
 			Abort("Neither mass nor number density defined");
 		}
-	}
+//	}
 
 	// Mass Inflow at y-lo
-	if(bc_vel_lo[1]==3)
-	{
+//	if(bc_vel_lo[1]==3)
+//	{
 		// Mass densities defined
 		if(rho_lo[1]>=0)
 		{
@@ -159,11 +159,11 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 		{
 			Abort("Neither mass nor number density defined");
 		}
-	}
+//	}
 
 	// Mass Inflow at z-lo
-	if(bc_vel_lo[2]==3 || bc_vel_lo[2]==5 || bc_vel_lo[2]==6)
-	{
+//	if(bc_vel_lo[2]==3 || bc_vel_lo[2]==5 || bc_vel_lo[2]==6)
+//	{
 		// Mass densities defined
 		if(rho_lo[2]>=0)
 		{
@@ -226,11 +226,11 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 		{
 			Abort("Neither mass nor number density defined");
 		}
-	}
+//	}
 
 	// Mass Inflow at x-hi
-	if(bc_vel_hi[0]==3 || bc_vel_hi[0]==5 || bc_vel_hi[0]==6)
-	{
+//	if(bc_vel_hi[0]==3 || bc_vel_hi[0]==5 || bc_vel_hi[0]==6 || bc_vel_hi[0]==7)
+//	{
 		// Mass densities defined
 		if(rho_hi[0]>=0)
 		{
@@ -294,11 +294,11 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 		{
 			Abort("Neither mass nor number density defined");
 		}
-	}
+//	}
 
 	// Mass Inflow at y-hi
-	if(bc_vel_hi[1]==3)
-	{
+//	if(bc_vel_hi[1]==3)
+//	{
 		// Mass densities defined
 		if(rho_hi[1]>=0)
 		{
@@ -361,11 +361,11 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 		{
 			Abort("Neither mass nor number density defined");
 		}
-	}
+//	}
 
 	// Mass Inflow at z-hi
-	if(bc_vel_hi[2]==3)
-	{
+//	if(bc_vel_hi[2]==3)
+//	{
 		// Mass densities defined
 		if(rho_hi[2]>=0)
 		{
@@ -428,7 +428,7 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 		{
 			Abort("Neither mass nor number density defined");
 		}
-	}
+  }
 
 	//Domain boundaries
 	for(int i=0; i<6; i++)
@@ -496,7 +496,7 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 
 		// paramPlaneList[0].x0 = domainLo[0] + sigma[0]/2.0;
 	}
-	else if(bc_vel_lo[0] == 3 || bc_vel_lo[0] == 6)
+	else if(bc_vel_lo[0] == 3 || bc_vel_lo[0] == 6 || bc_vel_lo[0] == 7)
 	{
 		paramPlaneList[0].periodicity = 0;
 		paramPlaneList[0].porosityLeft = 0;
@@ -504,9 +504,13 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 		if(bc_vel_lo[0] == 3)
 		{
 		    paramPlaneList[0].sourceRight = 1;
-		}else{
+		}else if(bc_vel_lo[0] == 6)
+		{
 		    paramPlaneList[0].sourceRight = 2;
-		}		
+		}else
+		{
+		    paramPlaneList[0].sourceRight = 3;
+		}
      	paramPlaneList[0].sourceLeft = 0;
      	paramPlaneList[0].sinkLeft = 0;
     	paramPlaneList[0].sinkRight = 1;
@@ -627,7 +631,7 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 
     //  paramPlaneList[1].x0 = domainHi[0] - sigma[0]/2.0;
   }
-  else if(bc_vel_hi[0] == 3 || bc_vel_hi[0] == 6)
+  else if(bc_vel_hi[0] == 3 || bc_vel_hi[0] == 6 || bc_vel_hi[0] == 7)
   {
 		paramPlaneList[1].periodicity = 0;
 		paramPlaneList[1].porosityLeft = 1;
@@ -636,8 +640,12 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 		if(bc_vel_hi[0] == 3)
 		{
 		    paramPlaneList[1].sourceLeft = 1;
-		}else{
+		}else if(bc_vel_hi[1] == 6)
+		{
 		    paramPlaneList[1].sourceLeft = 2;
+		}else
+		{
+		    paramPlaneList[1].sourceLeft = 3;
 		}		
      	paramPlaneList[1].sinkLeft = 1;
     	paramPlaneList[1].sinkRight = 0;
@@ -1945,7 +1953,31 @@ void BuildParamplanesPhonon(paramPlane* paramPlaneList, const int paramplanes, c
         paramPlaneList[i].fxRightAv = 0;
         paramPlaneList[i].fyRightAv = 0;
         paramPlaneList[i].fzRightAv = 0;
-       
+        
+        paramPlaneList[i].recCountRight = 0;
+        paramPlaneList[i].recCountLeft = 0;
+        
+        if(paramPlaneList[i].momentumConsRight > 0)
+        {
+            paramPlaneList[i].xVelRecRight = new double[WRITE_BUFFER];
+            paramPlaneList[i].yVelRecRight = new double[WRITE_BUFFER];
+            paramPlaneList[i].zVelRecRight = new double[WRITE_BUFFER];                        
+            paramPlaneList[i].xPosRecRight = new double[WRITE_BUFFER];
+            paramPlaneList[i].yPosRecRight = new double[WRITE_BUFFER];
+            paramPlaneList[i].zPosRecRight = new double[WRITE_BUFFER];                        
+            paramPlaneList[i].freqRecRight = new double[WRITE_BUFFER];
+        }
+        if(paramPlaneList[i].momentumConsLeft > 0)
+        {
+            paramPlaneList[i].xVelRecLeft = new double[WRITE_BUFFER];
+            paramPlaneList[i].yVelRecLeft = new double[WRITE_BUFFER];
+            paramPlaneList[i].zVelRecLeft = new double[WRITE_BUFFER];                        
+            paramPlaneList[i].xPosRecLeft = new double[WRITE_BUFFER];
+            paramPlaneList[i].yPosRecLeft = new double[WRITE_BUFFER];
+            paramPlaneList[i].zPosRecLeft = new double[WRITE_BUFFER];
+            paramPlaneList[i].freqRecLeft = new double[WRITE_BUFFER];                                   
+        }
+
 
     }
     planeFile.close();

@@ -94,7 +94,7 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
 
                     p.idata(FHD_intData::sorted) = 0;
                     p.id()  = ParticleType::NextID();
- //                   std::cout << "ID: " << p.id() << "\n";
+                    //std::cout << "ID: " << p.id() << "\n";
                     p.cpu() = ParallelDescriptor::MyProc();
 	            p.idata(FHD_intData::id_global) = buf_id;
 	            p.pos(0) = buf_pos[0];

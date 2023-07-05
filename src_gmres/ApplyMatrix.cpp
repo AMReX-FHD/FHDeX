@@ -46,7 +46,7 @@ void ApplyMatrix(std::array<MultiFab, AMREX_SPACEDIM> & b_u,
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
         x_u[i].FillBoundary(geom.periodicity());
         MultiFabPhysBCDomainVel(x_u[i], geom,i);
-        MultiFabPhysBCMacVel(x_u[i], geom,i,is_inhomogeneous);
+        MultiFabPhysBCMacVel(x_u[i], geom, i, is_inhomogeneous);
     }
 
     x_p.FillBoundary(geom.periodicity());

@@ -1,5 +1,6 @@
 #include "compressible_functions.H"
 #include "compressible_functions_stag.H"
+#include "chemistry_functions.H"
 
 #include "common_functions.H"
 
@@ -17,7 +18,8 @@ void RK3stepStag(MultiFab& cu,
                  std::array< MultiFab, 2 >& edgeflux_y,
                  std::array< MultiFab, 2 >& edgeflux_z,
                  std::array< MultiFab, AMREX_SPACEDIM>& cenflux,
-                 const amrex::Geometry geom, const amrex::Real dt, const int step)
+                 MultiFab& ranchem,
+                 const amrex::Geometry& geom, const amrex::Real dt, const int /*step*/)
 {
     BL_PROFILE_VAR("RK3stepStag()",RK3stepStag);
 
@@ -153,6 +155,16 @@ void RK3stepStag(MultiFab& cu,
                  stochcen_B[1].setVal(0.0);,
                  stochcen_B[2].setVal(0.0););
 
+    // chemistry
+    MultiFab ranchem_A;
+    MultiFab ranchem_B;
+    if (nreaction>0) {
+        ranchem_A.define(ranchem.boxArray(), ranchem.DistributionMap(), nreaction, 0);
+        ranchem_B.define(ranchem.boxArray(), ranchem.DistributionMap(), nreaction, 0);
+    }
+
+
+
     // fill random numbers (can skip density component 0)
     if (do_1D) { // 1D need only for x- face 
         for(int i=1;i<nvars;i++) {
@@ -213,6 +225,13 @@ void RK3stepStag(MultiFab& cu,
         }
     }
 
+    if (nreaction>0) {
+        for (int m=0;m<nreaction;m++) {
+            MultiFabFillRandom(ranchem_A, m, 1.0, geom);
+            MultiFabFillRandom(ranchem_B, m, 1.0, geom);
+        }
+    }
+
     /////////////////////////////////////////////////////
 
     /////////////////////////////////////////////////////
@@ -268,6 +287,15 @@ void RK3stepStag(MultiFab& cu,
         faceflux, edgeflux_x, edgeflux_y, edgeflux_z, cenflux, 
         stochface, stochedge_x, stochedge_y, stochedge_z, stochcen, 
         geom, stoch_weights,dt);
+
+    if (nreaction>0) {
+        MultiFab::LinComb(ranchem,
+            stoch_weights[0], ranchem_A, 0,
+            stoch_weights[1], ranchem_B, 0,
+            0, nreaction, 0);
+
+        compute_chemistry_source_CLE(dt, dx[0]*dx[1]*dx[2], prim, source, ranchem);
+    }
 
     for ( MFIter mfi(cu,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
         
@@ -427,6 +455,15 @@ void RK3stepStag(MultiFab& cu,
         stochface, stochedge_x, stochedge_y, stochedge_z, stochcen, 
         geom, stoch_weights,dt);
 
+    if (nreaction>0) {
+        MultiFab::LinComb(ranchem,
+            stoch_weights[0], ranchem_A, 0,
+            stoch_weights[1], ranchem_B, 0,
+            0, nreaction, 0);
+
+        compute_chemistry_source_CLE(dt, dx[0]*dx[1]*dx[2], prim, source, ranchem);
+    }
+
     for ( MFIter mfi(cu,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
         
         const Box& bx = mfi.tilebox();
@@ -584,11 +621,20 @@ void RK3stepStag(MultiFab& cu,
             0, 1, 1);
     }
     ///////////////////////////////////////////////////////////
-
+    
     calculateFluxStag(cup2, cup2mom, prim, vel, eta, zeta, kappa, chi, D, 
         faceflux, edgeflux_x, edgeflux_y, edgeflux_z, cenflux, 
         stochface, stochedge_x, stochedge_y, stochedge_z, stochcen, 
         geom, stoch_weights,dt);
+
+    if (nreaction>0) {
+        MultiFab::LinComb(ranchem,
+            stoch_weights[0], ranchem_A, 0,
+            stoch_weights[1], ranchem_B, 0,
+            0, nreaction, 0);
+
+        compute_chemistry_source_CLE(dt, dx[0]*dx[1]*dx[2], prim, source, ranchem);
+    }
 
     for ( MFIter mfi(cu,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
         

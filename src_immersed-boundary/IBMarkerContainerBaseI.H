@@ -158,7 +158,6 @@ void IBMarkerContainerBase<StructReal, StructInt>::RFD(
     Real delta = 1e-4*dx[0];
     Real deltaover2 = delta/2.0;
     Real force = variance_coef_mom*k_B*T_init[0]/delta;
-    //Real force = k_B*T_init[0]/delta;
     const Geometry & geom = this->Geom(0);
 
     for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
@@ -373,11 +372,11 @@ void IBMarkerContainerBase<StructReal, StructInt>::loadPinMatrix(int totalP, cha
 
 // load bond info into two giant arrays, one for bonded particle IDs and one for bond type
 template <typename StructReal, typename StructInt>
-void IBMarkerContainerBase<StructReal, StructInt>::loadBonds(int totalP, char* filename) 
+void IBMarkerContainerBase<StructReal, StructInt>::loadBonds(int totalP, char* filename)
 {
     // timer for profiling
     BL_PROFILE_VAR("loadBonds()",loadBonds);
-    
+
     int atom1, atom2, atom_current;
     Real k_bond, x0_bond;
 
@@ -394,8 +393,8 @@ void IBMarkerContainerBase<StructReal, StructInt>::loadBonds(int totalP, char* f
     std::string line;
     while (std::getline(bondFile, line)) {
     //for(int i_bond=0; i_bond < common::nbonds; i_bond++) {
-    
-	std::istringstream ss(line);
+
+        std::istringstream ss(line);
 
         ss >> atom1;
         ss >> atom2;
@@ -404,9 +403,9 @@ void IBMarkerContainerBase<StructReal, StructInt>::loadBonds(int totalP, char* f
 
         //Print() << atom1 << " " << atom2 << " " << k_bond << std::endl;
 
-        if(atom1>atom_current) 
-	{
-	    atom_current = atom1;
+        if(atom1>atom_current)
+        {
+            atom_current = atom1;
             head_index[atom_current] = bcount;
         }
 
@@ -417,7 +416,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::loadBonds(int totalP, char* f
 
         bcount++;
     }
-    
+
     if (bcount != common::nbonds) {
         Abort("Missing bond info!");
     } else {
@@ -425,7 +424,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::loadBonds(int totalP, char* f
     }
 
     bondFile.close();
-    
+
     for (int i=0; i<totalP; i++) {
         Print() << i << " of " << totalP << ": " << head_index[i] << " " << num_bond[i] << std::endl;
     }
@@ -738,7 +737,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::UpdatePIDMap() {
     num_ids[rank] = this->NextID() - 1;
 
     ParallelDescriptor::ReduceIntSum(
-        Vector<std::reference_wrapper<int>>(begin(num_ids), end(num_ids))
+        Vector<std::reference_wrapper<int>>(std::begin(num_ids), std::end(num_ids))
     );
 
     int offset = 0;
@@ -757,6 +756,11 @@ void IBMarkerContainerBase<StructReal, StructInt>::PullDown(
 ) {
     // timer for profiling
     BL_PROFILE_VAR("PullDown()", PullDown);
+    
+//    Gpu::ManagedDeviceVector<int> cpu_offset;
+//    Gpu::ManagedDeviceVector<int> cpu_offset;
+    
+    int* cpu_offset_ptr = cpu_offset.data();
 
     for (int i = 0; i < total_num_ids; ++i) { list[i] = 0;}
 
@@ -775,7 +779,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::PullDown(
                 int cpu = part.cpu();
 
                 // Particle IDs start at 1, CPUs at 0 -- urgh!
-                list[id-1 + cpu_offset[cpu]] = particles[i].rdata(element);
+                list[id-1 + cpu_offset_ptr[cpu]] = particles[i].rdata(element);
             });
         } else {
             AMREX_FOR_1D(np, i, {
@@ -784,7 +788,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::PullDown(
                 int cpu = part.cpu();
 
                 // Particle IDs start at 1, CPUs at 0 -- urgh!
-                list[id-1 + cpu_offset[cpu]] = part.pos((-element)-1);
+                list[id-1 + cpu_offset_ptr[cpu]] = part.pos((-element)-1);
             });
         }
 
@@ -867,6 +871,8 @@ void IBMarkerContainerBase<StructReal, StructInt>::PullDownInt(
 ) {
     // timer for profiling
     BL_PROFILE_VAR("PullDownInt()", PullDownInt);
+    
+    int* cpu_offset_ptr = cpu_offset.data();
 
     for (int i = 0; i < total_num_ids; ++i) { list[i] = 0;}
 
@@ -885,7 +891,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::PullDownInt(
                 int cpu = part.cpu();
 
                 // Particle IDs start at 1, CPUs at 0 -- urgh!
-                list[id-1 + cpu_offset[cpu]] = particles[i].idata(element);
+                list[id-1 + cpu_offset_ptr[cpu]] = particles[i].idata(element);
             });
         } else {
             AMREX_FOR_1D(np, i, {
@@ -895,11 +901,11 @@ void IBMarkerContainerBase<StructReal, StructInt>::PullDownInt(
 
                 // Particle IDs start at 1, CPUs at 0 -- urgh!
                 if (element == -1) {
-                    list[id-1 + cpu_offset[cpu]] = part.id();
+                    list[id-1 + cpu_offset_ptr[cpu]] = part.id();
                 } else if (element == -2) {
-                    list[id-1 + cpu_offset[cpu]] = part.cpu();
+                    list[id-1 + cpu_offset_ptr[cpu]] = part.cpu();
                 } else{
-                    list[id-1 + cpu_offset[cpu]] = -1;
+                    list[id-1 + cpu_offset_ptr[cpu]] = -1;
                 }
             });
         }
@@ -2516,10 +2522,8 @@ void IBMarkerContainerBase<StructReal, StructInt>::InitInternals(int ngrow) {
     const Geometry & geom = this->Geom(lev);
     FindFaceCoords(face_coords[lev], geom);
    
-    //Vector<Real> IBMarkerContainerBase<StructReal, StructInt>::norm_es;
     norm_es.resize(common::nspecies);
     for (int i=0; i<common::nspecies; ++i) {
-        //std::cout << "normalization factor " << i << " are " << IBMarkerContainerBase::norm_es[i] << std::endl;
         norm_es[i] = integrate_es(
             common::eskernel_beta[i], common::eskernel_fluid[i]
         );
@@ -2534,12 +2538,12 @@ void IBMarkerContainerBase<StructReal, StructInt>::ReadStaticParameters() {
     if (!initialized) {
         ParmParse pp("particles");
 
-#ifndef AMREX_USE_GPU
-        // AMReX default is false => enable by default
-        this->do_tiling = true;
-        // Allow user to overwrite
-        pp.query("do_tiling",  this->do_tiling);
-#endif
+//#ifndef AMREX_USE_GPU
+//        // AMReX default is false => enable by default
+//        this->do_tiling = true;
+//        // Allow user to overwrite
+//        pp.query("do_tiling",  this->do_tiling);
+//#endif
         
         // If tiling is enabled, make sure that the tile size is at least the
         // number of ghost cells (otherwise strange things happen)

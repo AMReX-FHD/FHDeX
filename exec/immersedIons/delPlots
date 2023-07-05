@@ -18,3 +18,7 @@ rm diffusionEst
 rm conductivityEst
 rm Backtrace.*
 rm threepm*
+rm *_ascii_*
+rm partX*
+rm partY*
+rm partZ*
