@@ -13,9 +13,11 @@
   algorithm_type = 1
 
   # Controls for number of steps between actions
-  max_step = 10000
-  plot_int= 100
-  
+  max_step = 100000
+  plot_int = 10000
+
+  n_steps_skip = 10000
+
   # Stochastic parameters
   seed = 1
   variance_coef_mass = 1.
@@ -24,8 +26,8 @@
   T_init = 85.     # [units: K]
 
   visc_coef = 2.44e-4  # dynamic viscosity [units: kg/m s]
-  h_bar = 1.52e-2       # surface tension [N/m]
-  rho0  = 4.85e-9       # equilibrium height [m]
+  h_bar = 1.52e-2       # "gamma" surface tension [N/m]
+  rho0  = 4.85e-9       # "h0" equilibrium height [m]
 
   # Boundary conditions
   # ----------------------

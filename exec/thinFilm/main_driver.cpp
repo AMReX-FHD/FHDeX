@@ -105,6 +105,11 @@ void main_driver(const char* argv)
 
     MultiFab height(ba, dmap, 1, 1);
     MultiFab Laph  (ba, dmap, 1, 1);
+    
+    MultiFab dheight   (ba, dmap, 1, 0);
+    MultiFab dheight2sum(ba, dmap, 1, 0);
+    MultiFab dheight2avg(ba, dmap, 1, 0);
+    dheight2sum.setVal(0.);
 
     std::array< MultiFab, AMREX_SPACEDIM > hface;
     std::array< MultiFab, AMREX_SPACEDIM > gradLh;
@@ -136,6 +141,8 @@ void main_driver(const char* argv)
     
     Real time = 0.;
     Real dt = 0.1 * (t0/std::pow(h0,4)) * std::pow(dx[0],4) / 16.;
+
+    int stats_count = 0;
     
     if (plot_int > 0)
     {
@@ -231,12 +238,13 @@ void main_driver(const char* argv)
                                [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 fluxx(i,j,k) = std::sqrt(ConstNoise*std::pow(hfacex(i,j,k),3.) / (dt*dVol)) * randfacex(i,j,k)
-                    + Const3dx * std::pow(hfacex(i,j,k),3.)*gradLhx(i,j,k);
+                               + Const3dx * std::pow(hfacex(i,j,k),3.)*gradLhx(i,j,k);
             },
                                [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
-                fluxy(i,j,k) = fac_1d * (std::sqrt(ConstNoise*std::pow(hfacey(i,j,k),3.) / (dt*dVol)) * randfacey(i,j,k)
-                                         + Const3dx * std::pow(hfacey(i,j,k),3.)*gradLhy(i,j,k) );
+                fluxy(i,j,k) = fac_1d * (
+                               std::sqrt(ConstNoise*std::pow(hfacey(i,j,k),3.) / (dt*dVol)) * randfacey(i,j,k)
+                               + Const3dx * std::pow(hfacey(i,j,k),3.)*gradLhy(i,j,k) );
             });
 
         }
@@ -262,11 +270,32 @@ void main_driver(const char* argv)
         height.FillBoundary(geom.periodicity());
 
         time += dt;
-        
+
+        // plotfile
         if (plot_int > 0 && istep%plot_int == 0)
         {
-            const std::string& pltfile = amrex::Concatenate("plt",istep,5);
+            const std::string& pltfile = amrex::Concatenate("plt",istep,8);
             WriteSingleLevelPlotfile(pltfile, height, {"height"}, geom, time, 0);
+        }
+
+        // statistics
+        if (istep > n_steps_skip) {
+
+            dheight.setVal(h0);
+            MultiFab::Subtract(dheight, height, 0, 0, 1, 0);
+            MultiFab::Multiply(dheight, dheight, 0, 0, 1, 0);
+            MultiFab::Add(dheight2sum, dheight, 0, 0, 1, 0);
+            ++stats_count;
+            MultiFab::Copy(dheight2avg, dheight2sum, 0, 0, 1, 0);
+
+            Real stats_count_inv = 1./stats_count;
+            dheight2avg.mult( stats_count_inv, 0, 1, 0);
+        
+            if (plot_int > 0 && istep%plot_int == 0)
+            {
+                const std::string& pltfile = amrex::Concatenate("var",istep,8);
+                WriteSingleLevelPlotfile(pltfile, dheight2avg, {"var"}, geom, time, 0);
+            }
         }
         
         Real step_stop_time = ParallelDescriptor::second() - step_strt_time;
