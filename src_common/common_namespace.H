@@ -325,8 +325,11 @@ namespace common {
     extern int                        particle_motion;
 
     // parameters for turbulent forcing example
-    extern amrex::Real                turb_a;
-    extern amrex::Real                turb_b;
-    extern int                        turbForcing;
+    extern AMREX_GPU_MANAGED amrex::Real turb_a;
+    extern AMREX_GPU_MANAGED amrex::Real turb_b;
+    extern AMREX_GPU_MANAGED amrex::Real turb_c;
+    extern AMREX_GPU_MANAGED amrex::Real turb_d;
+    extern AMREX_GPU_MANAGED amrex::Real turb_alpha;
+    extern AMREX_GPU_MANAGED int         turbForcing;
 
 }

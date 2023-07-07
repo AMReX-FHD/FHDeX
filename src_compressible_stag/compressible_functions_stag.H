@@ -7,6 +7,7 @@
 
 #include "common_functions.H"
 #include "compressible_functions.H"
+#include "TurbForcingComp.H"
 
 using namespace amrex;
 using namespace compressible;
@@ -96,7 +97,7 @@ void RK3stepStag(MultiFab& cu,
                  std::array< MultiFab, 2 >& edgeflux_z,
                  std::array< MultiFab, AMREX_SPACEDIM>& cenflux,
                  MultiFab& ranchem,
-                 const amrex::Geometry& geom, const amrex::Real dt, const int step);
+                 const amrex::Geometry& geom, const amrex::Real dt, const int step, TurbForcingComp* turbforce);
 
 void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMREX_SPACEDIM >& momStag_in, 
                        const MultiFab& prim_in, const std::array< MultiFab, AMREX_SPACEDIM >& velStag_in,

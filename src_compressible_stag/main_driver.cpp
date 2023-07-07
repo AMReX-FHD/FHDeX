@@ -8,6 +8,7 @@
 #include "rng_functions.H"
 
 #include "StructFact.H"
+#include "TurbForcingComp.H"
 
 #include "chemistry_functions.H"
 
@@ -471,6 +472,14 @@ void main_driver(const char* argv)
     }    
 
     //////////////////////////////////////////////////////////////
+    
+    // object for turbulence forcing
+    TurbForcingComp turbforce;
+
+    // copy the object to the device and pass a device pointer
+    TurbForcingComp* tbforce = (TurbForcingComp*)The_Arena()->alloc(sizeof(TurbForcingComp));
+    Gpu::htod_memcpy_async(tbforce, &turbforce, sizeof(TurbForcingComp));
+    Gpu::streamSynchronize();
 
     /////////////////////////////////////////////
     // Initialize based on fresh start or restart
@@ -797,6 +806,12 @@ void main_driver(const char* argv)
         time = 0.;
         statsCount = 1;
 
+        // define turbulence forcing object
+        if (turbForcing == 1) {
+          tbforce->define(ba,dmap,turb_a,turb_b,turb_c,turb_d,turb_alpha);
+        }
+
+
     } // end t=0 setup
 
     ///////////////////////////////////////////
@@ -993,6 +1008,12 @@ void main_driver(const char* argv)
     AMREX_D_TERM(cenflux[0].define(ba,dmap,1,1);, // 0-2: rhoU, rhoV, rhoW
                  cenflux[1].define(ba,dmap,1,1);,
                  cenflux[2].define(ba,dmap,1,1););
+    
+
+    // Initialize Turbulence Forcing Object
+    if (turbForcing == 1) {
+      tbforce->Initialize(geom);
+    }
                 
     /////////////////////////////////////////////////
     //Time stepping loop
@@ -1015,7 +1036,7 @@ void main_driver(const char* argv)
 
         // FHD
         RK3stepStag(cu, cumom, prim, vel, source, eta, zeta, kappa, chi, D, 
-            faceflux, edgeflux_x, edgeflux_y, edgeflux_z, cenflux, ranchem, geom, dt, step);
+            faceflux, edgeflux_x, edgeflux_y, edgeflux_z, cenflux, ranchem, geom, dt, step, tbforce);
 
         // update surface chemistry (via either surfchem_mui or MFsurfchem)
 #if defined(MUI) || defined(USE_AMREX_MPMD)
