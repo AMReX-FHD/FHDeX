@@ -148,7 +148,7 @@ void main_driver(const char* argv)
     if (plot_int > 0)
     {
         int step = 0;
-        const std::string& pltfile = amrex::Concatenate("plt",step,5);
+        const std::string& pltfile = amrex::Concatenate("plt",step,8);
         WriteSingleLevelPlotfile(pltfile, height, {"height"}, geom, time, 0);
     }
     
