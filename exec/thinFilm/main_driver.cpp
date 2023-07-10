@@ -121,6 +121,7 @@ void main_driver(const char* argv)
 
     MultiFab height(ba, dmap, 1, 1);
     MultiFab Laph  (ba, dmap, 1, 1);
+    Laph.setVal(0.); // prevent intermediate NaN calculations behind physical boundaries
     
     MultiFab dheight   (ba, dmap, 1, 0);
     MultiFab dheight2sum(ba, dmap, 1, 0);
@@ -128,6 +129,7 @@ void main_driver(const char* argv)
     dheight2sum.setVal(0.);
 
     std::array< MultiFab, AMREX_SPACEDIM > hface;
+    std::array< MultiFab, AMREX_SPACEDIM > gradh;
     std::array< MultiFab, AMREX_SPACEDIM > gradLh;
     std::array< MultiFab, AMREX_SPACEDIM > flux;
     std::array< MultiFab, AMREX_SPACEDIM > randface;
@@ -135,6 +137,9 @@ void main_driver(const char* argv)
     AMREX_D_TERM(hface[0]   .define(convert(ba,nodal_flag_x), dmap, 1, 0);,
                  hface[1]   .define(convert(ba,nodal_flag_y), dmap, 1, 0);,
                  hface[2]   .define(convert(ba,nodal_flag_z), dmap, 1, 0););
+    AMREX_D_TERM(gradh[0]   .define(convert(ba,nodal_flag_x), dmap, 1, 0);,
+                 gradh[1]   .define(convert(ba,nodal_flag_y), dmap, 1, 0);,
+                 gradh[2]   .define(convert(ba,nodal_flag_z), dmap, 1, 0););
     AMREX_D_TERM(gradLh[0]  .define(convert(ba,nodal_flag_x), dmap, 1, 0);,
                  gradLh[1]  .define(convert(ba,nodal_flag_y), dmap, 1, 0);,
                  gradLh[2]  .define(convert(ba,nodal_flag_z), dmap, 1, 0););
@@ -177,6 +182,85 @@ void main_driver(const char* argv)
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             MultiFabFillRandom(randface[d], 0, variance_coef_mass, geom);
         }
+    
+        // compute hface and gradh
+        for ( MFIter mfi(height,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
+
+            AMREX_D_TERM(const Box & bx_x = mfi.nodaltilebox(0);,
+                         const Box & bx_y = mfi.nodaltilebox(1);,
+                         const Box & bx_z = mfi.nodaltilebox(2););
+        
+            AMREX_D_TERM(const Array4<Real> & hfacex = hface[0].array(mfi);,
+                         const Array4<Real> & hfacey = hface[1].array(mfi);,
+                         const Array4<Real> & hfacez = hface[2].array(mfi););
+        
+            AMREX_D_TERM(const Array4<Real> & gradhx = gradh[0].array(mfi);,
+                         const Array4<Real> & gradhy = gradh[1].array(mfi);,
+                         const Array4<Real> & gradhz = gradh[2].array(mfi););
+            
+            const Array4<Real> & L = Laph.array(mfi);
+            const Array4<Real> & h = height.array(mfi);
+
+            amrex::ParallelFor(bx_x, bx_y,
+                               [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                hfacex(i,j,k) = 0.5*( h(i-1,j,k) + h(i,j,k) );
+                gradhx(i,j,k) = ( h(i,j,k) - h(i-1,j,k) ) / dx[0];
+            },
+                               [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                hfacey(i,j,k) = 0.5*( h(i,j-1,k) + h(i,j,k) );
+                gradhy(i,j,k) = ( h(i,j,k) - h(i,j-1,k) ) / dx[1];
+            });
+
+            // fix gradh at physical boundaries
+            // no need to fix hface since we zero the total fluxes later
+            
+            // dh/dx = 0, x-faces
+            if (bc_mass_lo[0] == 0 || bc_mass_hi[0] == 0) {
+                amrex::ParallelFor(bx_x, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    // lo
+                    if (bc_mass_lo[0] == 0 && i==0)          gradhx(i,j,k) = 0.;
+                    // hi
+                    if (bc_mass_hi[0] == 0 && i==n_cells[0]) gradhx(i,j,k) = 0.;
+                });
+            }
+
+            // h = h0, xfaces
+            if (bc_mass_lo[0] == 1 || bc_mass_hi[0] == 1) {
+                amrex::ParallelFor(bx_x, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    // lo
+                    if (bc_mass_lo[0] == 1 && i==0)          gradhx(i,j,k) = (h(i,j,k) - h0) / (0.5*dx[0]);
+                    // hi
+                    if (bc_mass_hi[0] == 1 && i==n_cells[0]) gradhx(i,j,k) = (h0 - h(i-1,j,k)) / (0.5*dx[0]);
+                });
+            }
+
+            // dh/dx = 0, y-faces
+            if (bc_mass_lo[1] == 0 || bc_mass_hi[1] == 0) {
+                amrex::ParallelFor(bx_x, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    // lo
+                    if (bc_mass_lo[1] == 0 && j==0)          gradhy(i,j,k) = 0.;
+                    // hi
+                    if (bc_mass_hi[1] == 0 && j==n_cells[1]) gradhy(i,j,k) = 0.;
+                });
+            }
+
+            // h = h0, yfaces
+            if (bc_mass_lo[1] == 1 || bc_mass_hi[1] == 1) {
+                amrex::ParallelFor(bx_x, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    // lo
+                    if (bc_mass_lo[1] == 1 && j==0)          gradhy(i,j,k) = (h(i,j,k) - h0) / (0.5*dx[1]);
+                    // hi
+                    if (bc_mass_hi[1] == 1 && j==n_cells[1]) gradhy(i,j,k) = (h0 - h(i,j-1,k)) / (0.5*dx[1]);
+                });
+            }
+
+        }
 
         // compute Laph
         for ( MFIter mfi(Laph,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
@@ -184,16 +268,20 @@ void main_driver(const char* argv)
             const Box& bx = mfi.tilebox();
             const Array4<Real> & L = Laph.array(mfi);
             const Array4<Real> & h = height.array(mfi);
+        
+            AMREX_D_TERM(const Array4<Real> & gradhx = gradh[0].array(mfi);,
+                         const Array4<Real> & gradhy = gradh[1].array(mfi);,
+                         const Array4<Real> & gradhz = gradh[2].array(mfi););
 
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
-                L(i,j,k) = x_flux_fac * ( h(i-1,j,k) - 2.*h(i,j,k) + h(i+1,j,k) ) / (dx[0]*dx[0])
-                         + y_flux_fac * ( h(i,j-1,k) - 2.*h(i,j,k) + h(i,j+1,k) ) / (dx[1]*dx[1]);
+                L(i,j,k) = x_flux_fac * (gradhx(i+1,j,k) - gradhx(i,j,k)) / dx[0]
+                         + y_flux_fac * (gradhy(i,j+1,k) - gradhy(i,j,k)) / dx[1];
             });
         }
         Laph.FillBoundary(geom.periodicity());
-    
-        // compute hface and grad(Laph)
+
+        // compute gradLh
         for ( MFIter mfi(height,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
 
             AMREX_D_TERM(const Box & bx_x = mfi.nodaltilebox(0);,
@@ -214,88 +302,15 @@ void main_driver(const char* argv)
             amrex::ParallelFor(bx_x, bx_y,
                                [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
-                hfacex(i,j,k) = 0.5*( h(i-1,j,k) + h(i,j,k) );
                 gradLhx(i,j,k) = ( L(i,j,k) - L(i-1,j,k) ) / dx[0];
             },
                                [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
-                hfacey(i,j,k) = 0.5*( h(i,j-1,k) + h(i,j,k) );
                 gradLhy(i,j,k) = ( L(i,j,k) - L(i,j-1,k) ) / dx[1];
             });
-
-            // dh/dx = 0, x-faces
-            if (bc_mass_lo[0] == 0 || bc_mass_hi[0] == 0) {
-                amrex::ParallelFor(bx_x, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-                {
-                    // lo
-                    if (bc_mass_lo[0] == 0 && i==0) {
-                        hfacex(i,j,k) = h(i,j,k);
-                        gradLhx(i,j,k) = 0.;
-                    }
-                    // hi
-                    if (bc_mass_hi[0] == 0 && i==n_cells[0]) {
-                        hfacex(i,j,k) = h(i-1,j,k);
-                        gradLhx(i,j,k) = 0.;
-                    }
-                });
-            }
-
-            // h = h0, xfaces
-            if (bc_mass_lo[0] == 1 || bc_mass_hi[0] == 1) {
-                amrex::ParallelFor(bx_x, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-                {
-                    // lo
-                    if (bc_mass_lo[0] == 0 && i==0) {
-                        hfacex(i,j,k) = h0;
-                        gradLhx(i,j,k) = 0.;
-                    }
-                    // hi
-                    if (bc_mass_hi[0] == 0 && i==n_cells[0]) {
-                        hfacex(i,j,k) = h0;
-                        gradLhx(i,j,k) = 0.;
-                    }
-                });
-            }
-
-            // dh/dx = 0, y-faces
-            if (bc_mass_lo[1] == 0 || bc_mass_hi[1] == 0) {
-                amrex::ParallelFor(bx_x, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-                {
-                    // lo
-                    if (bc_mass_lo[1] == 0 && j==0) {
-                        hfacey(i,j,k) = h(i,j,k);
-                        gradLhy(i,j,k) = 0.;
-                    }
-                    // hi
-                    if (bc_mass_hi[1] == 0 && j==n_cells[1]) {
-                        hfacey(i,j,k) = h(i,j-1,k);
-                        gradLhy(i,j,k) = 0.;
-                    }
-                });
-            }
-
-            // h = h0, yfaces
-            if (bc_mass_lo[1] == 1 || bc_mass_hi[1] == 1) {
-                amrex::ParallelFor(bx_x, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-                {
-                    // lo
-                    if (bc_mass_lo[1] == 0 && j==0) {
-                        hfacey(i,j,k) = h0;
-                        gradLhy(i,j,k) = 0.;
-                    }
-                    // hi
-                    if (bc_mass_hi[1] == 0 && j==n_cells[1]) {
-                        hfacey(i,j,k) = h0;
-                        gradLhy(i,j,k) = 0.;
-                    }
-                });
-            }
-
         }
 
         // compute flux
-    
-        // compute hface and grad(Laph)
         for ( MFIter mfi(height,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
 
             AMREX_D_TERM(const Box & bx_x = mfi.nodaltilebox(0);,
@@ -332,66 +347,37 @@ void main_driver(const char* argv)
                                + Const3dx * std::pow(hfacey(i,j,k),3.)*gradLhy(i,j,k) );
             });
 
-            // dh/dx = 0, x-faces
-            if (bc_mass_lo[0] == 0 || bc_mass_hi[0] == 0) {
+            // lo x-faces
+            if (bc_mass_lo[0] == 0 || bc_mass_lo[0] == 1) {
                 amrex::ParallelFor(bx_x, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
-                    // lo
-                    if (bc_mass_lo[0] == 0 && i==0) {
-                        fluxx(i,j,k) = 0.;
-                    }
-                    // hi
-                    if (bc_mass_hi[0] == 0 && i==n_cells[0]) {
-                        fluxx(i,j,k) = 0.;
-                    }
+                    if (i==0) fluxx(i,j,k) = 0.;
                 });
             }
 
-            // h = h0, xfaces
-            if (bc_mass_lo[0] == 1 || bc_mass_hi[0] == 1) {
+            // hi x-faces
+            if (bc_mass_hi[0] == 0 || bc_mass_hi[0] == 1) {
                 amrex::ParallelFor(bx_x, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
-                    // lo
-                    if (bc_mass_lo[0] == 0 && i==0) {
-                        fluxx(i,j,k) = 0.;
-                    }
-                    // hi
-                    if (bc_mass_hi[0] == 0 && i==n_cells[0]) {
-                        fluxx(i,j,k) = 0.;
-                    }
+                    if (i==n_cells[0]) fluxx(i,j,k) = 0.;
                 });
             }
 
-            // dh/dx = 0, y-faces
-            if (bc_mass_lo[1] == 0 || bc_mass_hi[1] == 0) {
-                amrex::ParallelFor(bx_x, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            // lo y-faces
+            if (bc_mass_lo[1] == 0 || bc_mass_lo[1] == 1) {
+                amrex::ParallelFor(bx_y, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
-                    // lo
-                    if (bc_mass_lo[1] == 0 && j==0) {
-                        fluxy(i,j,k) = 0.;
-                    }
-                    // hi
-                    if (bc_mass_hi[1] == 0 && j==n_cells[1]) {
-                        fluxy(i,j,k) = 0.;
-                    }
+                    if (j==0) fluxy(i,j,k) = 0.;
                 });
             }
 
-            // h = h0, yfaces
-            if (bc_mass_lo[1] == 1 || bc_mass_hi[1] == 1) {
-                amrex::ParallelFor(bx_x, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            // hi y-faces
+            if (bc_mass_hi[1] == 0 || bc_mass_hi[1] == 1) {
+                amrex::ParallelFor(bx_y, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
-                    // lo
-                    if (bc_mass_lo[1] == 0 && j==0) {
-                        fluxy(i,j,k) = 0.;
-                    }
-                    // hi
-                    if (bc_mass_hi[1] == 0 && j==n_cells[1]) {
-                        fluxy(i,j,k) = 0.;
-                    }
+                    if (j==n_cells[1]) fluxy(i,j,k) = 0.;
                 });
             }
-
         }
 
         // update height using forward Euler
