@@ -72,7 +72,22 @@ void main_driver(const char* argv)
     /////////////////////////////////////////
     
     // is the problem periodic?
-    Vector<int> is_periodic(AMREX_SPACEDIM,1);  // set to 1 (periodic) by default
+    Vector<int> is_periodic(AMREX_SPACEDIM,0);  // set to 0 (non-periodic) by default
+
+    // boundary conditions controlled by bc_mass_lo/hi
+    // -1 = periodic
+    //  0 = 90 degree contact angle, dh/dn=0
+    //  1 = pinned, h=h0
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        if (bc_mass_lo[d] == -1 && bc_mass_hi[d] != -1 ||
+            bc_mass_lo[d] != -1 && bc_mass_hi[d] == -1) {
+            Abort("Error: specified periodic and non-periodic in the same directionality");
+        }
+        // set periodic
+        if (bc_mass_lo[d] == -1) {
+            is_periodic[d] = 1;
+        }
+    }
         
     // This defines the physical box, [-1,1] in each direction.
     RealBox real_box({AMREX_D_DECL(prob_lo[0],prob_lo[1],prob_lo[2])},
@@ -208,6 +223,74 @@ void main_driver(const char* argv)
                 gradLhy(i,j,k) = ( L(i,j,k) - L(i,j-1,k) ) / dx[1];
             });
 
+            // dh/dx = 0, x-faces
+            if (bc_mass_lo[0] == 0 || bc_mass_hi[0] == 0) {
+                amrex::ParallelFor(bx_x, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    // lo
+                    if (bc_mass_lo[0] == 0 && i==0) {
+                        hfacex(i,j,k) = h(i,j,k);
+                        gradLhx(i,j,k) = 0.;
+                    }
+                    // hi
+                    if (bc_mass_hi[0] == 0 && i==n_cells[0]) {
+                        hfacex(i,j,k) = h(i-1,j,k);
+                        gradLhx(i,j,k) = 0.;
+                    }
+                });
+            }
+
+            // h = h0, xfaces
+            if (bc_mass_lo[0] == 1 || bc_mass_hi[0] == 1) {
+                amrex::ParallelFor(bx_x, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    // lo
+                    if (bc_mass_lo[0] == 0 && i==0) {
+                        hfacex(i,j,k) = h0;
+                        gradLhx(i,j,k) = 0.;
+                    }
+                    // hi
+                    if (bc_mass_hi[0] == 0 && i==n_cells[0]) {
+                        hfacex(i,j,k) = h0;
+                        gradLhx(i,j,k) = 0.;
+                    }
+                });
+            }
+
+            // dh/dx = 0, y-faces
+            if (bc_mass_lo[1] == 0 || bc_mass_hi[1] == 0) {
+                amrex::ParallelFor(bx_x, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    // lo
+                    if (bc_mass_lo[1] == 0 && j==0) {
+                        hfacey(i,j,k) = h(i,j,k);
+                        gradLhy(i,j,k) = 0.;
+                    }
+                    // hi
+                    if (bc_mass_hi[1] == 0 && j==n_cells[1]) {
+                        hfacey(i,j,k) = h(i,j-1,k);
+                        gradLhy(i,j,k) = 0.;
+                    }
+                });
+            }
+
+            // h = h0, yfaces
+            if (bc_mass_lo[1] == 1 || bc_mass_hi[1] == 1) {
+                amrex::ParallelFor(bx_x, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    // lo
+                    if (bc_mass_lo[1] == 0 && j==0) {
+                        hfacey(i,j,k) = h0;
+                        gradLhy(i,j,k) = 0.;
+                    }
+                    // hi
+                    if (bc_mass_hi[1] == 0 && j==n_cells[1]) {
+                        hfacey(i,j,k) = h0;
+                        gradLhy(i,j,k) = 0.;
+                    }
+                });
+            }
+
         }
 
         // compute flux
@@ -248,6 +331,66 @@ void main_driver(const char* argv)
                                std::sqrt(ConstNoise*std::pow(hfacey(i,j,k),3.) / (dt*dVol)) * randfacey(i,j,k)
                                + Const3dx * std::pow(hfacey(i,j,k),3.)*gradLhy(i,j,k) );
             });
+
+            // dh/dx = 0, x-faces
+            if (bc_mass_lo[0] == 0 || bc_mass_hi[0] == 0) {
+                amrex::ParallelFor(bx_x, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    // lo
+                    if (bc_mass_lo[0] == 0 && i==0) {
+                        fluxx(i,j,k) = 0.;
+                    }
+                    // hi
+                    if (bc_mass_hi[0] == 0 && i==n_cells[0]) {
+                        fluxx(i,j,k) = 0.;
+                    }
+                });
+            }
+
+            // h = h0, xfaces
+            if (bc_mass_lo[0] == 1 || bc_mass_hi[0] == 1) {
+                amrex::ParallelFor(bx_x, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    // lo
+                    if (bc_mass_lo[0] == 0 && i==0) {
+                        fluxx(i,j,k) = 0.;
+                    }
+                    // hi
+                    if (bc_mass_hi[0] == 0 && i==n_cells[0]) {
+                        fluxx(i,j,k) = 0.;
+                    }
+                });
+            }
+
+            // dh/dx = 0, y-faces
+            if (bc_mass_lo[1] == 0 || bc_mass_hi[1] == 0) {
+                amrex::ParallelFor(bx_x, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    // lo
+                    if (bc_mass_lo[1] == 0 && j==0) {
+                        fluxy(i,j,k) = 0.;
+                    }
+                    // hi
+                    if (bc_mass_hi[1] == 0 && j==n_cells[1]) {
+                        fluxy(i,j,k) = 0.;
+                    }
+                });
+            }
+
+            // h = h0, yfaces
+            if (bc_mass_lo[1] == 1 || bc_mass_hi[1] == 1) {
+                amrex::ParallelFor(bx_x, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    // lo
+                    if (bc_mass_lo[1] == 0 && j==0) {
+                        fluxy(i,j,k) = 0.;
+                    }
+                    // hi
+                    if (bc_mass_hi[1] == 0 && j==n_cells[1]) {
+                        fluxy(i,j,k) = 0.;
+                    }
+                });
+            }
 
         }
 

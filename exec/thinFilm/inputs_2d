@@ -36,7 +36,8 @@
   # BC specifications:
 
   # -1 = periodic
-  #  1 =
-  #  2 = 
+  #  0 = 90 degree contact angle, dh/dn=0
+  #  1 = pinned, h=h0
+  # note for 1D, the non-periodic direction bc doesn't matter
   bc_mass_lo = -1 -1
   bc_mass_hi = -1 -1
