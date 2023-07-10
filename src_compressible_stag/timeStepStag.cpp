@@ -169,7 +169,7 @@ void RK3stepStag(MultiFab& cu,
     // turbulence -- calculate random velocity forcing
     std::array< MultiFab, AMREX_SPACEDIM > turb_vel_f_o;
     std::array< MultiFab, AMREX_SPACEDIM > turb_vel_f;
-    if (turbForcing == 1) {
+    if (turbForcing > 1) {
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             turb_vel_f_o[d].define(convert(cu.boxArray(),nodal_flag_dir[d]), cu.DistributionMap(), 1, 0);
             turb_vel_f_o[d].setVal(0.);
@@ -369,7 +369,7 @@ void RK3stepStag(MultiFab& cu,
                     -dt*(edgey_u(i,j+1,k) - edgey_u(i,j,k))/dx[1]
                     -dt*(edgez_u(i,j,k+1) - edgez_u(i,j,k))/dx[2]
                     +0.5*dt*grav[0]*(cu_fab(i-1,j,k,0)+cu_fab(i,j,k,0));
-            if (turbForcing==1) mompx(i,j,k) += 0.5*dt*(cu_fab(i-1,j,k,0)+cu_fab(i,j,k,0))*turbvf_x(i,j,k);
+            if (turbForcing > 1) mompx(i,j,k) += 0.5*dt*(cu_fab(i-1,j,k,0)+cu_fab(i,j,k,0))*turbvf_x(i,j,k);
         },
         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
             mompy(i,j,k) = momy(i,j,k)
@@ -377,7 +377,7 @@ void RK3stepStag(MultiFab& cu,
                     -dt*(ceny_v(i,j,k) - ceny_v(i,j-1,k))/dx[1]
                     -dt*(edgez_v(i,j,k+1) - edgez_v(i,j,k))/dx[2]
                     +0.5*dt*grav[1]*(cu_fab(i,j-1,k,0)+cu_fab(i,j,k,0));
-            if (turbForcing==1) mompy(i,j,k) += 0.5*dt*(cu_fab(i,j-1,k,0)+cu_fab(i,j,k,0))*turbvf_y(i,j,k);
+            if (turbForcing > 1) mompy(i,j,k) += 0.5*dt*(cu_fab(i,j-1,k,0)+cu_fab(i,j,k,0))*turbvf_y(i,j,k);
         },
         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
             mompz(i,j,k) = momz(i,j,k)
@@ -385,7 +385,7 @@ void RK3stepStag(MultiFab& cu,
                     -dt*(edgey_w(i,j+1,k) - edgey_w(i,j,k))/dx[1]
                     -dt*(cenz_w(i,j,k) - cenz_w(i,j,k-1))/dx[2]
                     +0.5*dt*grav[2]*(cu_fab(i,j,k-1,0)+cu_fab(i,j,k,0));
-            if (turbForcing==1) mompz(i,j,k) += 0.5*dt*(cu_fab(i,j,k-1,0)+cu_fab(i,j,k,0))*turbvf_z(i,j,k);
+            if (turbForcing > 1) mompz(i,j,k) += 0.5*dt*(cu_fab(i,j,k-1,0)+cu_fab(i,j,k,0))*turbvf_z(i,j,k);
         });
         
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
@@ -393,7 +393,7 @@ void RK3stepStag(MultiFab& cu,
             cup_fab(i,j,k,4) += 0.5 * dt * (  grav[0]*(momx(i+1,j,k)+momx(i,j,k))
                                             + grav[1]*(momy(i,j+1,k)+momy(i,j,k))
                                             + grav[2]*(momz(i,j,k+1)+momz(i,j,k)) );
-            if (turbForcing==1) {
+            if (turbForcing > 1) {
                 cup_fab(i,j,k,4) += 0.5 * dt * (  turbvf_x(i+1,j,k)*momx(i+1,j,k) + momx(i,j,k)*turbvf_x(i,j,k)
                                                 + turbvf_y(i,j+1,k)*momy(i,j+1,k) + momy(i,j,k)*turbvf_y(i,j,k)
                                                 + turbvf_z(i,j,k+1)*momz(i,j,k+1) + momz(i,j,k)*turbvf_z(i,j,k) );
@@ -557,7 +557,7 @@ void RK3stepStag(MultiFab& cu,
                     -0.25*dt*(edgey_u(i,j+1,k) - edgey_u(i,j,k))/dx[1]
                     -0.25*dt*(edgez_u(i,j,k+1) - edgez_u(i,j,k))/dx[2]
                     +0.5*0.25*dt*grav[0]*(cup_fab(i-1,j,k,0)+cup_fab(i,j,k,0));
-            if (turbForcing==1) momp2x(i,j,k) += 0.5*dt*(cup_fab(i-1,j,k,0)+cup_fab(i,j,k,0))*(turbvf_x_o(i,j,k) + 0.25*(turbvf_x(i,j,k)-turbvf_x_o(i,j,k)));
+            if (turbForcing > 1) momp2x(i,j,k) += 0.5*dt*(cup_fab(i-1,j,k,0)+cup_fab(i,j,k,0))*(turbvf_x_o(i,j,k) + 0.25*(turbvf_x(i,j,k)-turbvf_x_o(i,j,k)));
         },
         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
             momp2y(i,j,k) = 0.25*3.0*momy(i,j,k) + 0.25*mompy(i,j,k)
@@ -565,7 +565,7 @@ void RK3stepStag(MultiFab& cu,
                     -0.25*dt*(ceny_v(i,j,k) - ceny_v(i,j-1,k))/dx[1]
                     -0.25*dt*(edgez_v(i,j,k+1) - edgez_v(i,j,k))/dx[2]
                     +0.5*0.25*dt*grav[1]*(cup_fab(i,j-1,k,0)+cup_fab(i,j,k,0));
-            if (turbForcing==1) momp2y(i,j,k) += 0.5*dt*(cup_fab(i,j-1,k,0)+cup_fab(i,j,k,0))*(turbvf_y_o(i,j,k) + 0.25*(turbvf_y(i,j,k)-turbvf_y_o(i,j,k)));
+            if (turbForcing > 1) momp2y(i,j,k) += 0.5*dt*(cup_fab(i,j-1,k,0)+cup_fab(i,j,k,0))*(turbvf_y_o(i,j,k) + 0.25*(turbvf_y(i,j,k)-turbvf_y_o(i,j,k)));
         },
         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
             momp2z(i,j,k) = 0.25*3.0*momz(i,j,k) + 0.25*mompz(i,j,k)
@@ -573,7 +573,7 @@ void RK3stepStag(MultiFab& cu,
                     -0.25*dt*(edgey_w(i,j+1,k) - edgey_w(i,j,k))/dx[1]
                     -0.25*dt*(cenz_w(i,j,k) - cenz_w(i,j,k-1))/dx[2]
                     +0.5*0.25*dt*grav[2]*(cup_fab(i,j,k-1,0)+cup_fab(i,j,k,0));
-            if (turbForcing==1) momp2z(i,j,k) += 0.5*dt*(cup_fab(i,j,k-1,0)+cup_fab(i,j,k,0))*(turbvf_z_o(i,j,k) + 0.25*(turbvf_z(i,j,k)-turbvf_z_o(i,j,k)));
+            if (turbForcing > 1) momp2z(i,j,k) += 0.5*dt*(cup_fab(i,j,k-1,0)+cup_fab(i,j,k,0))*(turbvf_z_o(i,j,k) + 0.25*(turbvf_z(i,j,k)-turbvf_z_o(i,j,k)));
         });
         
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
@@ -581,7 +581,7 @@ void RK3stepStag(MultiFab& cu,
             cup2_fab(i,j,k,4) += 0.5 * 0.25 * dt * (  grav[0]*(mompx(i+1,j,k)+mompx(i,j,k))
                                                     + grav[1]*(mompy(i,j+1,k)+mompy(i,j,k))
                                                     + grav[2]*(mompz(i,j,k+1)+mompz(i,j,k)) );
-            if (turbForcing==1) {
+            if (turbForcing > 1) {
                 cup2_fab(i,j,k,4) += 0.5 * dt * (  (turbvf_x_o(i+1,j,k) + 0.25*(turbvf_x(i+1,j,k)-turbvf_x_o(i+1,j,k)))*momx(i+1,j,k) + momx(i,j,k)*(turbvf_x_o(i,j,k) + 0.25*(turbvf_x(i,j,k)-turbvf_x_o(i,j,k)))
                                                  + (turbvf_y_o(i,j+1,k) + 0.25*(turbvf_y(i,j+1,k)-turbvf_y_o(i,j+1,k)))*momy(i,j+1,k) + momy(i,j,k)*(turbvf_y_o(i,j,k) + 0.25*(turbvf_y(i,j,k)-turbvf_y_o(i,j,k)))
                                                  + (turbvf_z_o(i,j,k+1) + 0.25*(turbvf_z(i,j,k+1)-turbvf_z_o(i,j,k+1)))*momz(i,j,k+1) + momz(i,j,k)*(turbvf_z_o(i,j,k) + 0.25*(turbvf_z(i,j,k)-turbvf_z_o(i,j,k))) );
@@ -741,7 +741,7 @@ void RK3stepStag(MultiFab& cu,
                   -(2./3.)*dt*(edgey_u(i,j+1,k) - edgey_u(i,j,k))/dx[1]
                   -(2./3.)*dt*(edgez_u(i,j,k+1) - edgez_u(i,j,k))/dx[2]
                   +0.5*(2./3.)*dt*grav[0]*(cup2_fab(i-1,j,k,0)+cup2_fab(i,j,k,0));
-            if (turbForcing==1) momx(i,j,k) += 0.5*dt*(cup2_fab(i-1,j,k,0)+cup2_fab(i,j,k,0))*(turbvf_x_o(i,j,k) + (2./3.)*(turbvf_x(i,j,k)-turbvf_x_o(i,j,k)));
+            if (turbForcing > 1) momx(i,j,k) += 0.5*dt*(cup2_fab(i-1,j,k,0)+cup2_fab(i,j,k,0))*(turbvf_x_o(i,j,k) + (2./3.)*(turbvf_x(i,j,k)-turbvf_x_o(i,j,k)));
         },
         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
             momy(i,j,k) = (2./3.)*(0.5*momy(i,j,k) + momp2y(i,j,k))
@@ -749,7 +749,7 @@ void RK3stepStag(MultiFab& cu,
                   -(2./3.)*dt*(ceny_v(i,j,k) - ceny_v(i,j-1,k))/dx[1]
                   -(2./3.)*dt*(edgez_v(i,j,k+1) - edgez_v(i,j,k))/dx[2]
                   +0.5*(2/3.)*dt*grav[1]*(cup2_fab(i,j-1,k,0)+cup2_fab(i,j,k,0));
-            if (turbForcing==1) momy(i,j,k) += 0.5*dt*(cup2_fab(i,j-1,k,0)+cup2_fab(i,j,k,0))*(turbvf_y_o(i,j,k) + (2./3.)*(turbvf_y(i,j,k)-turbvf_y_o(i,j,k)));
+            if (turbForcing > 1) momy(i,j,k) += 0.5*dt*(cup2_fab(i,j-1,k,0)+cup2_fab(i,j,k,0))*(turbvf_y_o(i,j,k) + (2./3.)*(turbvf_y(i,j,k)-turbvf_y_o(i,j,k)));
         },
         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
             momz(i,j,k) = (2./3.)*(0.5*momz(i,j,k) + momp2z(i,j,k))
@@ -757,7 +757,7 @@ void RK3stepStag(MultiFab& cu,
                   -(2./3.)*dt*(edgey_w(i,j+1,k) - edgey_w(i,j,k))/dx[1]
                   -(2./3.)*dt*(cenz_w(i,j,k) - cenz_w(i,j,k-1))/dx[2]
                   +0.5*(2./3.)*dt*grav[2]*(cup2_fab(i,j,k-1,0)+cup2_fab(i,j,k,0));
-            if (turbForcing==1) momz(i,j,k) += 0.5*dt*(cup2_fab(i,j,k-1,0)+cup2_fab(i,j,k,0))*(turbvf_z_o(i,j,k) + (2./3.)*(turbvf_z(i,j,k)-turbvf_z_o(i,j,k)));
+            if (turbForcing > 1) momz(i,j,k) += 0.5*dt*(cup2_fab(i,j,k-1,0)+cup2_fab(i,j,k,0))*(turbvf_z_o(i,j,k) + (2./3.)*(turbvf_z(i,j,k)-turbvf_z_o(i,j,k)));
         });
         
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
@@ -765,7 +765,7 @@ void RK3stepStag(MultiFab& cu,
             cu_fab(i,j,k,4) += 0.5 * (2./3.) * dt * (  grav[0]*(momp2x(i+1,j,k)+momp2x(i,j,k))
                                                     + grav[1]*(momp2y(i,j+1,k)+momp2y(i,j,k))
                                                     + grav[2]*(momp2z(i,j,k+1)+momp2z(i,j,k)) );
-            if (turbForcing==1) {
+            if (turbForcing > 1) {
                 cu_fab(i,j,k,4) += 0.5 * dt * (  (turbvf_x_o(i+1,j,k) + (2./3.)*(turbvf_x(i+1,j,k)-turbvf_x_o(i+1,j,k)))*momp2x(i+1,j,k) + momp2x(i,j,k)*(turbvf_x_o(i,j,k) + (2./3.)*(turbvf_x(i,j,k)-turbvf_x_o(i,j,k)))
                                                + (turbvf_y_o(i,j+1,k) + (2./3.)*(turbvf_y(i,j+1,k)-turbvf_y_o(i,j+1,k)))*momp2y(i,j+1,k) + momp2y(i,j,k)*(turbvf_y_o(i,j,k) + (2./3.)*(turbvf_y(i,j,k)-turbvf_y_o(i,j,k)))
                                                + (turbvf_z_o(i,j,k+1) + (2./3.)*(turbvf_z(i,j,k+1)-turbvf_z_o(i,j,k+1)))*momp2z(i,j,k+1) + momp2z(i,j,k)*(turbvf_z_o(i,j,k) + (2./3.)*(turbvf_z(i,j,k)-turbvf_z_o(i,j,k))) );

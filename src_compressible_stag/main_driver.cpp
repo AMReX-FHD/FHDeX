@@ -527,16 +527,9 @@ void main_driver(const char* argv)
             if (ParallelDescriptor::IOProcessor()) outfile.open(filename, std::ios::app);
         }
 
-        if (turbForcing == 1) { // temporary fab for turbulent
+        if (turbForcing >= 1) { // temporary fab for turbulent
             if (ParallelDescriptor::IOProcessor()) {
                 turboutfile.open(turbfilename, std::ios::app);
-                turboutfile << "step " << "time " << "turbKE " << "RMSu " 
-                            << "<c> " << "TaylorLen " << "TaylorRe " << "TaylorMa "
-                            << "skew1 " << "skew2 " << "skew3 " << "skew "
-                            << "kurt1 " << "kurt2 " << "kurt3 " << "kurt "
-                            << "eps_s " << "eps_d " << "eps_d/eps_s "
-                            << "kolm_s " << "kolm_t"  
-                            << std::endl;
             }
             AMREX_D_TERM(macTemp[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
                          macTemp[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
@@ -701,7 +694,7 @@ void main_driver(const char* argv)
             spatialCross2D.setVal(0.0);
         }
 
-        if (turbForcing == 1) { // temporary fab for turbulent
+        if (turbForcing >= 1) { // temporary fab for turbulent
             if (ParallelDescriptor::IOProcessor()) {
                 turboutfile.open(turbfilename);
                 turboutfile << "step " << "time " << "turbKE " << "RMSu " 
@@ -807,7 +800,7 @@ void main_driver(const char* argv)
         statsCount = 1;
 
         // define turbulence forcing object
-        if (turbForcing == 1) {
+        if (turbForcing > 1) {
           tbforce->define(ba,dmap,turb_a,turb_b,turb_c,turb_d,turb_alpha);
         }
 
@@ -950,7 +943,7 @@ void main_driver(const char* argv)
         }
     }
     
-    if (turbForcing == 1) {
+    if (turbForcing >= 1) {
         structFactMFTurb.define(ba, dmap, structVarsTurb, 0);
         turbStructFact.define(ba,dmap,var_names_turb,var_scaling_turb,s_pairA_turb,s_pairB_turb);
     }
@@ -1011,7 +1004,7 @@ void main_driver(const char* argv)
     
 
     // Initialize Turbulence Forcing Object
-    if (turbForcing == 1) {
+    if (turbForcing > 1) {
       tbforce->Initialize(geom);
     }
                 
@@ -1167,7 +1160,7 @@ void main_driver(const char* argv)
         }
 
         // turbulence outputs
-        if ((turbForcing == 1) and (step%1000 == 0)) {
+        if ((turbForcing >= 1) and (step%1000 == 0)) {
 
             for (int i=0; i<AMREX_SPACEDIM; ++i) {
                 vel[i].FillBoundary(geom.periodicity());
@@ -1330,7 +1323,7 @@ void main_driver(const char* argv)
             }
 
             // compressible turbulence structure factor snapshot
-            if (turbForcing == 1) {
+            if (turbForcing >= 1) {
 
                 cnt = 0;
 
@@ -1615,7 +1608,7 @@ void main_driver(const char* argv)
     }
 
     if (ParallelDescriptor::IOProcessor()) outfile.close();
-    if (turbForcing == 1) {
+    if (turbForcing >= 1) {
         if (ParallelDescriptor::IOProcessor()) turboutfile.close();
     }
 
