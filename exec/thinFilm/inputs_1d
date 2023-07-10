@@ -9,8 +9,10 @@
   # max number of cells in a box
   max_grid_size = 16 16
 
-  # 1 = 1D; each row is an independent trial
-  algorithm_type = 1
+  # algorithm_type = 0 (1D in x; each row is an independent trial)
+  # algorithm_type = 1 (1D in y; each col is an independent trial)
+  # algorithm_type = 2 (2D)
+  algorithm_type = 0
 
   # Controls for number of steps between actions
   max_step = 10000000

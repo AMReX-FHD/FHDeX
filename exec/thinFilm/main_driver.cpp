@@ -35,13 +35,14 @@ void main_driver(const char* argv)
     Real h0 = rho0;
     Real gamma = h_bar;
 
-    // algorithm_type = 0 (2D, default)
-    // algorithm_type = 1 (1D)
-    int do_1d = (algorithm_type == 1) ? 1 : 0;
+    // algorithm_type = 0 (1D in x; each row is an independent trial)
+    // algorithm_type = 1 (1D in y; each col is an independent trial)
+    // algorithm_type = 2 (2D)
+    int do_1d_x = (algorithm_type == 0) ? 1 : 0;
+    int do_1d_y = (algorithm_type == 1) ? 1 : 0;
 
-    // set fac_1d = 1. for 2D
-    // set fac_1d = 0. for 1D
-    Real fac_1d = (do_1d == 1) ? 0. : 1.;
+    Real y_flux_fac = (do_1d_x == 1) ? 0. : 1.; // 1D in x; set y fluxes to zero
+    Real x_flux_fac = (do_1d_y == 1) ? 0. : 1.; // 1D in x; set y fluxes to zero
     
     /////////////////////////////////////////
     // Initialize random number seed on all processors/GPUs
@@ -171,8 +172,8 @@ void main_driver(const char* argv)
 
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
-                L(i,j,k) =          ( h(i-1,j,k) - 2.*h(i,j,k) + h(i+1,j,k) ) / (dx[0]*dx[0])
-                         + fac_1d * ( h(i,j-1,k) - 2.*h(i,j,k) + h(i,j+1,k) ) / (dx[1]*dx[1]);
+                L(i,j,k) = x_flux_fac * ( h(i-1,j,k) - 2.*h(i,j,k) + h(i+1,j,k) ) / (dx[0]*dx[0])
+                         + y_flux_fac * ( h(i,j-1,k) - 2.*h(i,j,k) + h(i,j+1,k) ) / (dx[1]*dx[1]);
             });
         }
         Laph.FillBoundary(geom.periodicity());
@@ -237,12 +238,13 @@ void main_driver(const char* argv)
             amrex::ParallelFor(bx_x, bx_y,
                                [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
-                fluxx(i,j,k) = std::sqrt(ConstNoise*std::pow(hfacex(i,j,k),3.) / (dt*dVol)) * randfacex(i,j,k)
-                               + Const3dx * std::pow(hfacex(i,j,k),3.)*gradLhx(i,j,k);
+                fluxx(i,j,k) = x_flux_fac * (
+                               std::sqrt(ConstNoise*std::pow(hfacex(i,j,k),3.) / (dt*dVol)) * randfacex(i,j,k)
+                               + Const3dx * std::pow(hfacex(i,j,k),3.)*gradLhx(i,j,k) );
             },
                                [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
-                fluxy(i,j,k) = fac_1d * (
+                fluxy(i,j,k) = y_flux_fac * (
                                std::sqrt(ConstNoise*std::pow(hfacey(i,j,k),3.) / (dt*dVol)) * randfacey(i,j,k)
                                + Const3dx * std::pow(hfacey(i,j,k),3.)*gradLhy(i,j,k) );
             });
