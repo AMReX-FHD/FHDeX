@@ -240,7 +240,7 @@ void main_driver(const char* argv)
 
             // dh/dx = 0, y-faces
             if (bc_mass_lo[1] == 0 || bc_mass_hi[1] == 0) {
-                amrex::ParallelFor(bx_x, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                amrex::ParallelFor(bx_y, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     // lo
                     if (bc_mass_lo[1] == 0 && j==0)          gradhy(i,j,k) = 0.;
@@ -251,7 +251,7 @@ void main_driver(const char* argv)
 
             // h = h0, yfaces
             if (bc_mass_lo[1] == 1 || bc_mass_hi[1] == 1) {
-                amrex::ParallelFor(bx_x, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                amrex::ParallelFor(bx_y, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     // lo
                     if (bc_mass_lo[1] == 1 && j==0)          gradhy(i,j,k) = (h(i,j,k) - h0) / (0.5*dx[1]);
