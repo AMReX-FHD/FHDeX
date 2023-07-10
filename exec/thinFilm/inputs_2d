@@ -10,11 +10,11 @@
   max_grid_size = 16 16
 
   # Controls for number of steps between actions
-  max_step = 100000
-  plot_int = 10000
+  max_step = 10000000
+  plot_int = 1000000
 
-  n_steps_skip = 10000
-  
+  n_steps_skip = 1000000
+
   # Stochastic parameters
   seed = 1
   variance_coef_mass = 1.
