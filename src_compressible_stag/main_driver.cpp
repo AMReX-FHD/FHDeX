@@ -451,7 +451,7 @@ void main_driver(const char* argv)
     Real dProb = (AMREX_SPACEDIM==2) ? n_cells[0]*n_cells[1] : n_cells[0]*n_cells[1]*n_cells[2];
     dProb = 1./dProb;
     
-    Vector<Real> var_scaling_turb(structVarsTurb*(structVarsTurb+1)/2);
+    Vector<Real> var_scaling_turb(structVarsTurb);
     for (int d=0; d<var_scaling_turb.size(); ++d) {
         var_scaling_turb[d] = 1./dVol;
     }
@@ -460,11 +460,6 @@ void main_driver(const char* argv)
     amrex::Vector< int > s_pairA_turb(AMREX_SPACEDIM+3); // vx, vy, vz, rho, P , T
     amrex::Vector< int > s_pairB_turb(AMREX_SPACEDIM+3); // vx, vy, vz, rho, P , T
 
-    var_scaling_turb.resize(AMREX_SPACEDIM);
-    for (int d=0; d<var_scaling_turb.size(); ++d) {
-        var_scaling_turb[d] = 1./dVol;
-    }
-    
     // Select which variable pairs to include in structure factor:
     for (int d=0; d<AMREX_SPACEDIM+3; ++d) {
         s_pairA_turb[d] = d;
