@@ -135,32 +135,39 @@ void ApplyMatrix(std::array<MultiFab, AMREX_SPACEDIM>* & b_u,
     //b_u - gmres_rhs_u
     //x_u - umac
     //
-    if(nlevels >0)
-    {
-        //0->div free, 1->conservative
-        //FaceFillCoarse(x_u,0);
-        //FaceFillGhost(x_u,0);
-    } 
+
     if (gmres_spatial_order == 2) {
         for(int lev=0;lev<nlevels;++lev)
         {
+            //b_u is output
             StagApplyOp(geom[lev], beta[lev], gamma[lev], beta_ed[lev], x_u[lev], b_u[lev], alpha_fc[lev], geom[lev].CellSize(), theta_alpha);
         }
     }
     else if (gmres_spatial_order == 4) {
         Abort("ApplyMatrix.cpp: gmres_spatial_order=4 not supported yet");
     }
-
+    if(nlevels>1)
+    {
+        FaceFillCoarse(b_u,1);
+        FaceFillGhost(b_u,geom,2);
+    } 
     // compute G x_p and add to b_u
     if (gmres_spatial_order == 2) {
         for(int lev=0;lev<nlevels;++lev)
         {
             int bcc = (lev==0)? PRES_BC_COMP : 100;
+            //b_u is output
             ComputeGrad(x_p[lev], b_u[lev], 0, 0, 1, bcc, geom[lev], 1);
         }
     }
     else if (gmres_spatial_order == 4) {
         Abort("ApplyMatrix.cpp: gmres_spatial_order=4 not supported yet");
+    }
+    if(nlevels>1)
+    {
+        //0->div free, 1->conservative
+        FaceFillCoarse(b_u,0);
+        FaceFillGhost(b_u,geom,2);
     }
 
     // set b_p = -D x_u
@@ -168,6 +175,12 @@ void ApplyMatrix(std::array<MultiFab, AMREX_SPACEDIM>* & b_u,
     {
         ComputeDiv(b_p[lev], x_u[lev], 0, 0, 1, geom[lev], 0);
         b_p[lev].mult(-1., 0, 1, 0);
+    }
+    if(nlevels>1)
+    {
+        //0->div free, 1->conservative
+        CellFillCoarse(b_p,geom);
+        CellFillGhost(b_p,geom);
     }
 }
 

@@ -452,16 +452,14 @@ hydroAMR::advanceStokes()
     //PrintMF(alpha_fc[0],0,0);
       
     // call GMRES
-//    GMRES gmres(grids,dmap,geom,nlevels);
-//    gmres.Solve(gmres_rhs_u,gmres_rhs_p,umac,pres,
-//                alpha_fc,beta,beta_ed,gamma,cc_mask,fc_mask,theta_alpha,geom,norm_pre_rhs);
+    GMRES gmres(grids,dmap,geom,nlevels);
+    gmres.Solve(gmres_rhs_u,gmres_rhs_p,umac,pres,
+                alpha_fc,beta,beta_ed,gamma,cc_mask,fc_mask,theta_alpha,geom,norm_pre_rhs);
 
-
-    GMRES gmres(grids[0],dmap[0],geom[0]);
-    gmres.Solve(gmres_rhs_u[0],gmres_rhs_p[0],umac[0],pres[0],
-                alpha_fc[0],beta[0],beta_ed[0],gamma[0],theta_alpha,geom[0],norm_pre_rhs);
+//    GMRES gmres(grids[0],dmap[0],geom[0]);
+//    gmres.Solve(gmres_rhs_u[0],gmres_rhs_p[0],umac[0],pres[0],
+//                alpha_fc[0],beta[0],beta_ed[0],gamma[0],theta_alpha,geom[0],norm_pre_rhs);
                 
-
 
     for (int i=0; i<AMREX_SPACEDIM; i++) {
         MultiFabPhysBCDomainVel(umac[0][i], geom[0], i);

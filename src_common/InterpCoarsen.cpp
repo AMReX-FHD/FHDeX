@@ -77,7 +77,7 @@ void FaceFillCoarse(std::array<MultiFab*, AMREX_SPACEDIM> & mfCoarse,std::array<
                              + 0.0625* ( phix_f_fab(2*i+1,2*j,2*k  ) + phix_f_fab(2*i+1,2*j+1,2*k  )
                                         +phix_f_fab(2*i+1,2*j,2*k+1) + phix_f_fab(2*i+1,2*j+1,2*k+1) )
                              + 0.0625* ( phix_f_fab(2*i-1,2*j,2*k  ) + phix_f_fab(2*i-1,2*j+1,2*k  )
-                                        +phix_f_fab(2*i-1,2*j,2*k+1) + phix_f_fab(2*i-1,2*j+1,2*k+1) );
+                                        +phix_f_fab(2*i-1,2*j,2*k+1) + phix_f_fab(2*i-1,2*j+1,2*k+1) );                            
         },
                            [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
@@ -141,6 +141,13 @@ void FaceFillFine(Vector<std::array< MultiFab, AMREX_SPACEDIM >>& mf, Vector<Geo
     FaceFillFine(mfp,geomp,map);
 }
 
+void FaceFillFine(Vector<std::array< MultiFab, AMREX_SPACEDIM >>& mf, Geometry* geom, int map)
+{
+    std::array<MultiFab, AMREX_SPACEDIM>* mfp = &mf[0];
+    
+    FaceFillFine(mfp,geom,map);
+}
+
 void FaceFillFine(std::array<MultiFab, AMREX_SPACEDIM>* & mf, Geometry* geom, int map)
 {
 
@@ -181,53 +188,178 @@ void FaceFillFine(std::array<MultiFab, AMREX_SPACEDIM>* & mf, Geometry* geom, in
     FaceFillFine(mfCoarse,mfFine, geom, bcs, map);
 }
 
-void FaceFillFine(std::array<MultiFab*, AMREX_SPACEDIM> & mfCoarse,std::array<MultiFab*, AMREX_SPACEDIM> & mfFine, Geometry* geom,Vector<amrex::BCRec>  bcs, int map)
+void FaceFillFine(std::array<MultiFab*, AMREX_SPACEDIM> & mfCoarse, std::array<MultiFab*, AMREX_SPACEDIM> & mfFine, Geometry* geom,Vector<amrex::BCRec>  bcs, int map)
 {
     BL_PROFILE_VAR("VelFillFine()",VelFillFine);
     
     Interpolater* mapper;
     
-    if(map==0)
+    if(map==1 || map==0)
     {
-        mapper = &face_divfree_interp;
+        if(map==0)
+        {
+            mapper = &face_divfree_interp;
+        }else
+        {
+            mapper = &face_linear_interp;
+        }
+        
+        Real time=0;
+
+        if(Gpu::inLaunchRegion())
+        {
+            GpuBndryFuncFab<AmrCoreFill> gpu_bndry_func(AmrCoreFill{});
+            PhysBCFunct<GpuBndryFuncFab<AmrCoreFill> > cphysbc(geom[0],bcs,gpu_bndry_func);
+            PhysBCFunct<GpuBndryFuncFab<AmrCoreFill> > fphysbc(geom[1],bcs,gpu_bndry_func);
+
+            Array<PhysBCFunct<GpuBndryFuncFab<AmrCoreFill>>,AMREX_SPACEDIM> cp = {AMREX_D_DECL(cphysbc,cphysbc,cphysbc)};
+            Array<PhysBCFunct<GpuBndryFuncFab<AmrCoreFill>>,AMREX_SPACEDIM> fp = {AMREX_D_DECL(fphysbc,fphysbc,fphysbc)};
+            
+            Array<Vector<BCRec>,AMREX_SPACEDIM> bcr = {AMREX_D_DECL(bcs,bcs,bcs)};
+            
+            amrex::InterpFromCoarseLevel(mfFine, time, mfCoarse, 0, 0, 1, geom[0], geom[1],
+                                         cp, 0, fp, 0, {2,2,2},
+                                         mapper, bcr, 0);
+
+        }
+        else
+        {
+            CpuBndryFuncFab bndry_func(nullptr);  // Without EXT_DIR, we can pass a nullptr.
+            PhysBCFunct<CpuBndryFuncFab> cphysbc(geom[0],bcs,bndry_func);
+            PhysBCFunct<CpuBndryFuncFab> fphysbc(geom[1],bcs,bndry_func);
+            
+            Array<PhysBCFunct<CpuBndryFuncFab>,AMREX_SPACEDIM> cp = {AMREX_D_DECL(cphysbc,cphysbc,cphysbc)};
+            Array<PhysBCFunct<CpuBndryFuncFab>,AMREX_SPACEDIM> fp = {AMREX_D_DECL(fphysbc,fphysbc,fphysbc)};
+            
+            Array<Vector<BCRec>,AMREX_SPACEDIM> bcr = {AMREX_D_DECL(bcs,bcs,bcs)};
+            
+            amrex::InterpFromCoarseLevel(mfFine, time, mfCoarse, 0, 0, 1, geom[0], geom[1],
+                                         cp, 0, fp, 0, {2,2,2},
+                                         mapper, bcr, 0);
+
+        }
     }else
     {
-        mapper = &face_linear_interp;
-    }
+        
+        std::array< MultiFab, AMREX_SPACEDIM > coarseTemp;
+        const BoxArray& fine_BA = mfFine[0]->boxArray();
+        BoxArray coarsened_BA = fine_BA;
+        coarsened_BA.coarsen(2);
+        
+        int gc = mfFine[0]->nGrow();
+        
+        for(int d=0;d<AMREX_SPACEDIM;d++)
+        {
+            
+            coarseTemp[d].define(convert(coarsened_BA,nodal_flag_dir[d]), mfFine[d]->DistributionMap(), 1, gc);
+            coarseTemp[d].ParallelCopy(mfCoarse[d][0], 0, 0, 1, gc, gc);
+        }
+        
+        // loop over boxes (note we are not passing in a cell-centered MultiFab)
+        for ( MFIter mfi(mfFine[0][0],TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
+
+            // since the MFIter is built on a nodal MultiFab we need to build the
+            // nodal tileboxes for each direction in this way
+            AMREX_D_TERM(Box bx_x = mfi.tilebox(nodal_flag_x,{gc,gc,gc});,
+                         Box bx_y = mfi.tilebox(nodal_flag_y,{gc,gc,gc});,
+                         Box bx_z = mfi.tilebox(nodal_flag_z,{gc,gc,gc}););
+
+            AMREX_D_TERM(Array4<Real const> const& phix_c = coarseTemp[0].array(mfi);,
+                         Array4<Real const> const& phiy_c = coarseTemp[1].array(mfi);,
+                         Array4<Real const> const& phiz_c = coarseTemp[2].array(mfi););
+
+            AMREX_D_TERM(Array4<Real> const& phix_f = mfFine[0]->array(mfi);,
+                         Array4<Real> const& phiy_f = mfFine[1]->array(mfi);,
+                         Array4<Real> const& phiz_f = mfFine[2]->array(mfi););
+                                                
+            Real nine16 = 9./16.;
+            Real three16 = 3./16.;
+            Real one16 = 1./16.;
+            Real nine32 = 9./32.;
+            Real three32 = 3./32.;
+            Real one32 = 1./32.;
+        
+            amrex::ParallelFor(bx_x, bx_y, bx_z, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+
+                int joff = pow(-1,j%2+1);
+                int koff = pow(-1,k%2+1);
+
+                if (i%2 == 0) {
+                    // bilinear in the yz plane
+                    phix_f(i,j,k) = phix_f(i,j,k)
+                        + nine16 *phix_c(i/2,j/2     ,k/2     )
+                        + three16*phix_c(i/2,j/2+joff,k/2     )
+                        + three16*phix_c(i/2,j/2     ,k/2+koff)
+                        + one16  *phix_c(i/2,j/2+joff,k/2+koff);
+                } else {
+                    // bilinear in the yz plane, linear in x
+                    phix_f(i,j,k) = phix_f(i,j,k)
+                        + nine32 *phix_c(i/2  ,j/2     ,k/2     )
+                        + three32*phix_c(i/2  ,j/2+joff,k/2     )
+                        + three32*phix_c(i/2  ,j/2     ,k/2+koff)
+                        + one32  *phix_c(i/2  ,j/2+joff,k/2+koff)
+                        + nine32 *phix_c(i/2+1,j/2     ,k/2     )
+                        + three32*phix_c(i/2+1,j/2+joff,k/2     )
+                        + three32*phix_c(i/2+1,j/2     ,k/2+koff)
+                        + one32  *phix_c(i/2+1,j/2+joff,k/2+koff);
+                }
+            },
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                
+                int ioff = pow(-1,i%2+1);
+                int koff = pow(-1,k%2+1);
+
+                if (j%2 == 0) {
+                    // bilinear in the xz plane
+                    phiy_f(i,j,k) = phiy_f(i,j,k)
+                        + nine16* phiy_c(i/2     ,j/2,k/2     )
+                        + three16*phiy_c(i/2+ioff,j/2,k/2     )
+                        + three16*phiy_c(i/2     ,j/2,k/2+koff)
+                        + one16*  phiy_c(i/2+ioff,j/2,k/2+koff);
+                } else {
+                    // bilinear in the yz plane, linear in y
+                    phiy_f(i,j,k) = phiy_f(i,j,k)
+                        + nine32* phiy_c(i/2     ,j/2  ,k/2     )
+                        + three32*phiy_c(i/2+ioff,j/2  ,k/2     )
+                        + three32*phiy_c(i/2     ,j/2  ,k/2+koff)
+                        + one32*  phiy_c(i/2+ioff,j/2  ,k/2+koff)
+                        + nine32* phiy_c(i/2     ,j/2+1,k/2     )
+                        + three32*phiy_c(i/2+ioff,j/2+1,k/2     )
+                        + three32*phiy_c(i/2     ,j/2+1,k/2+koff)
+                        + one32*  phiy_c(i/2+ioff,j/2+1,k/2+koff);
+                }
+            },
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                
+                int ioff = pow(-1,i%2+1);
+                int joff = pow(-1,j%2+1);
+
+                if (k%2 == 0) {
+                    // bilinear in the xy plane
+                    phiz_f(i,j,k) = phiz_f(i,j,k)
+                        + nine16* phiz_c(i/2     ,j/2     ,k/2)
+                        + three16*phiz_c(i/2+ioff,j/2     ,k/2)
+                        + three16*phiz_c(i/2     ,j/2+joff,k/2)
+                        + one16*  phiz_c(i/2+ioff,j/2+joff,k/2);
+                } else {
+                    // bilinear in the xy plane, linear in z
+                    phiz_f(i,j,k) = phiz_f(i,j,k)
+                        + nine32* phiz_c(i/2     ,j/2     ,k/2  )
+                        + three32*phiz_c(i/2+ioff,j/2     ,k/2  )
+                        + three32*phiz_c(i/2     ,j/2+joff,k/2  )
+                        + one32*  phiz_c(i/2+ioff,j/2+joff,k/2  )
+                        + nine32* phiz_c(i/2     ,j/2     ,k/2+1)
+                        + three32*phiz_c(i/2+ioff,j/2     ,k/2+1)
+                        + three32*phiz_c(i/2     ,j/2+joff,k/2+1)
+                        + one32*  phiz_c(i/2+ioff,j/2+joff,k/2+1);
+                }
+            });
+        }    
     
-    Real time=0;
-
-    if(Gpu::inLaunchRegion())
-    {
-        GpuBndryFuncFab<AmrCoreFill> gpu_bndry_func(AmrCoreFill{});
-        PhysBCFunct<GpuBndryFuncFab<AmrCoreFill> > cphysbc(geom[0],bcs,gpu_bndry_func);
-        PhysBCFunct<GpuBndryFuncFab<AmrCoreFill> > fphysbc(geom[1],bcs,gpu_bndry_func);
-
-        Array<PhysBCFunct<GpuBndryFuncFab<AmrCoreFill>>,AMREX_SPACEDIM> cp = {AMREX_D_DECL(cphysbc,cphysbc,cphysbc)};
-        Array<PhysBCFunct<GpuBndryFuncFab<AmrCoreFill>>,AMREX_SPACEDIM> fp = {AMREX_D_DECL(fphysbc,fphysbc,fphysbc)};
-        
-        Array<Vector<BCRec>,AMREX_SPACEDIM> bcr = {AMREX_D_DECL(bcs,bcs,bcs)};
-        
-        amrex::InterpFromCoarseLevel(mfFine, time, mfCoarse, 0, 0, 1, geom[0], geom[1],
-                                     cp, 0, fp, 0, {2,2,2},
-                                     mapper, bcr, 0);
-
-    }
-    else
-    {
-        CpuBndryFuncFab bndry_func(nullptr);  // Without EXT_DIR, we can pass a nullptr.
-        PhysBCFunct<CpuBndryFuncFab> cphysbc(geom[0],bcs,bndry_func);
-        PhysBCFunct<CpuBndryFuncFab> fphysbc(geom[1],bcs,bndry_func);
-        
-        Array<PhysBCFunct<CpuBndryFuncFab>,AMREX_SPACEDIM> cp = {AMREX_D_DECL(cphysbc,cphysbc,cphysbc)};
-        Array<PhysBCFunct<CpuBndryFuncFab>,AMREX_SPACEDIM> fp = {AMREX_D_DECL(fphysbc,fphysbc,fphysbc)};
-        
-        Array<Vector<BCRec>,AMREX_SPACEDIM> bcr = {AMREX_D_DECL(bcs,bcs,bcs)};
-        
-        amrex::InterpFromCoarseLevel(mfFine, time, mfCoarse, 0, 0, 1, geom[0], geom[1],
-                                     cp, 0, fp, 0, {2,2,2},
-                                     mapper, bcr, 0);
-
+    
     }
 
 }
@@ -267,6 +399,13 @@ void FaceFillGhost(Vector<std::array< MultiFab, AMREX_SPACEDIM >>& mf, Vector<Ge
     Geometry* geomp = &geom[0];
     
     FaceFillGhost(mfp,geomp,map);
+}
+
+void FaceFillGhost(Vector<std::array< MultiFab, AMREX_SPACEDIM >>& mf, Geometry* geom, int map)
+{
+    std::array<MultiFab, AMREX_SPACEDIM>* mfp = &mf[0];
+    
+    FaceFillGhost(mfp,geom,map);
 }
 
 void FaceFillGhost(std::array<MultiFab, AMREX_SPACEDIM>* & mf, Geometry* geom, int map)
@@ -351,8 +490,33 @@ void CellFillCoarse(MultiFab* & mf, Geometry* geom)
 {
     BL_PROFILE_VAR("CellFillCoarse()",CellFillCoarse);
 
-    const IntVect ratio(AMREX_D_DECL(2,2,2));    
-    amrex::average_down(mf[1],mf[0], geom[1], geom[0],0,1,ratio);
+    //const IntVect ratio(AMREX_D_DECL(2,2,2));    
+    //amrex::average_down(mf[1],mf[0], geom[1], geom[0],0,1,ratio);
+    MultiFab coarseTemp;
+    const BoxArray& fine_BA = mf[1].boxArray();
+    BoxArray coarsened_BA = fine_BA;
+    coarsened_BA.coarsen(2);
+           
+    coarseTemp.define(coarsened_BA, mf[1].DistributionMap(), 1, 0);
+    
+    for ( MFIter mfi(coarseTemp,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
+
+        // Get the index space of the valid region
+        const Box& bx = mfi.tilebox();
+
+        Array4<Real      > const& phi_c_fab = coarseTemp.array(mfi);
+        Array4<Real const> const& phi_f_fab = mf[1].array(mfi);
+
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            phi_c_fab(i,j,k) = 0.125*(  phi_f_fab(2*i,2*j  ,2*k  ) + phi_f_fab(2*i+1,2*j  ,2*k  )
+                                      + phi_f_fab(2*i,2*j+1,2*k  ) + phi_f_fab(2*i+1,2*j+1,2*k  )
+                                      + phi_f_fab(2*i,2*j  ,2*k+1) + phi_f_fab(2*i+1,2*j  ,2*k+1)
+                                      + phi_f_fab(2*i,2*j+1,2*k+1) + phi_f_fab(2*i+1,2*j+1,2*k+1) );
+        });
+
+    }
+    mf[0].ParallelCopy(coarseTemp, 0, 0, 1, 0,0);
 
 }
 
@@ -361,7 +525,9 @@ void CellFillCoarse(MultiFab & mfFine, Geometry geomFine, MultiFab & mfCoarse, G
     BL_PROFILE_VAR("CellFillCoarse()",CellFillCoarse);
 
     const IntVect ratio(AMREX_D_DECL(2,2,2));    
-    amrex::average_down(mfFine,mfCoarse, geomFine, geomCoarse,0,1,ratio);
+    //amrex::average_down(mfFine,mfCoarse, geomFine, geomCoarse,0,1,ratio);
+    
+    
 
 }
 

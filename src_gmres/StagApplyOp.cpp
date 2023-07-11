@@ -84,7 +84,6 @@ void stag_applyop_visc_p1 (Box const& tbx,
 	}
         AMREX_PRAGMA_SIMD
         for (int i = xlo.x+ioff; i <= xhi.x; i+=offset) {
-
             Lphix(i,j,k) = phix(i,j,k)*(theta_alpha*alphax(i,j,k) + term1)
                 -(phix(i+1,j,k)+phix(i-1,j,k))*term2
                 -(phix(i,j+1,k)+phix(i,j-1,k))*term3

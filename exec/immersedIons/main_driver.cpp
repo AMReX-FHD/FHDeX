@@ -1145,9 +1145,6 @@ void main_driver(const char* argv)
             }
         }
 
-
-            particles.SetPosition(1, prob_hi[0]*0.501, prob_hi[1]*0.501, prob_hi[2]*0.501);
-            particles.SetForce(1,1,0,0);
 //          int kk =1;
 //          //Print() << "Moving " << ionParticle[0].total << " particles.\n";
 //          while(kk<ionParticle[0].total)
@@ -1247,7 +1244,8 @@ void main_driver(const char* argv)
             // set velx/y/z and forcex/y/z for each particle to zero
             particles.ResetMarkers(0);
         }
-
+        particles.SetPosition(1, prob_hi[0]*0.49, prob_hi[1]*0.49, prob_hi[2]*0.49);
+        particles.SetForce(1,1,0,0);
 
         if (sr_tog != 0 || es_tog==3) {
 
@@ -1304,6 +1302,7 @@ void main_driver(const char* argv)
         MultiFab::Add(hydroGrid.source[0][2],hydroGrid.sourceRFD[0][2],0,0,hydroGrid.sourceRFD[0][2].nComp(),hydroGrid.sourceRFD[0][2].nGrow());
         
         FaceFillCoarse(hydroGrid.source,1);
+        //FaceFillGhost(hydroGrid.source,hydroGrid.Geom(),2);        
 
         for(int lev=0;lev<hydroGrid.nlevels;++lev)
         {

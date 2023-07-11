@@ -108,7 +108,7 @@
 
   images = 0    #if pairwise Coulomb interactions have been selected, this is the number of periodic images to use
 
-  eamp = 1.e10 0 0  #external electric field properties
+  eamp = 0 0 0  #external electric field properties
   efreq = 0 0 0
   ephase = 0 0 0     
 
@@ -154,6 +154,6 @@
   gmres_abs_tol = 0                     # absolute tolerance stopping criteria
   gmres_verbose =  1                    # gmres verbosity; if greater than 1, more residuals will be printed out
   gmres_max_outer = 1                  # max number of outer iterations
-  gmres_max_inner = 200                   # max number of inner iterations, or restart number
+  gmres_max_inner = 5                   # max number of inner iterations, or restart number
   gmres_max_iter = 100                  # max number of gmres iterations
   gmres_min_iter = 1                    # min number of gmres iterations

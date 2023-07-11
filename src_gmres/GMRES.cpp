@@ -46,8 +46,8 @@ GMRES::define (const Vector<BoxArray>& ba_in,
     {
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             r_u[lev][d]        .define(convert(ba_in[lev], nodal_flag_dir[d]), dmap_in[lev], 1,                 1);
-            w_u[lev][d]        .define(convert(ba_in[lev], nodal_flag_dir[d]), dmap_in[lev], 1,                 0);
-            tmp_u[lev][d]      .define(convert(ba_in[lev], nodal_flag_dir[d]), dmap_in[lev], 1,                 0);
+            w_u[lev][d]        .define(convert(ba_in[lev], nodal_flag_dir[d]), dmap_in[lev], 1,                 1);
+            tmp_u[lev][d]      .define(convert(ba_in[lev], nodal_flag_dir[d]), dmap_in[lev], 1,                 1);
             scr_u[lev][d]      .define(convert(ba_in[lev], nodal_flag_dir[d]), dmap_in[lev], 1,                 0);
             V_u[lev][d]        .define(convert(ba_in[lev], nodal_flag_dir[d]), dmap_in[lev], gmres_max_inner+1, 0);
             alphainv_fc[lev][d].define(convert(ba_in[lev], nodal_flag_dir[d]), dmap_in[lev], 1, 0);
@@ -212,7 +212,6 @@ void GMRES::Solve (std::array<MultiFab, AMREX_SPACEDIM>* & b_u, MultiFab* & b_p,
             r_u[0][i].setVal(0.);
             MultiFabPhysBCMacVel(r_u[0][i], geom[0], i, is_inhomogeneous);
         }
-
         ApplyMatrix(tmp_u, tmp_p, r_u, r_p, alpha_fc, beta, beta_ed, gamma, theta_alpha, geom, nlevels,
                     is_inhomogeneous);
 
@@ -264,7 +263,15 @@ void GMRES::Solve (std::array<MultiFab, AMREX_SPACEDIM>* & b_u, MultiFab* & b_p,
     // First application of preconditioner
     Pcon.Apply(b_u, b_p, tmp_u, tmp_p, alpha_fc, alphainv_fc,
                beta, beta_ed, gamma, cc_mask, fc_mask, theta_alpha, geom, StagSolver);
+               
+                       //Copying result of preconditioner and stopping gmres
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            MultiFab::Copy(x_u[0][d], tmp_u[0][d], 0, 0, 1, 0);
+        }
 
+        MultiFab::Copy(x_p[0], tmp_p[0], 0, 0, 1, 0);
+
+        return;  
 
 //    // preconditioned norm_b: norm_pre_b
 //    StagL2Norm(tmp_u[0], 0, scr_u[0], norm_u);
@@ -285,7 +292,8 @@ void GMRES::Solve (std::array<MultiFab, AMREX_SPACEDIM>* & b_u, MultiFab* & b_p,
     norm_u=0;
     norm_p=0;    
            
-    for(int lev=0;lev<nlevels;++lev)
+    //for(int lev=0;lev<nlevels;++lev)
+    for(int lev=0;lev<1;++lev)
     {
         Real norm_temp;    
         StagL2Norm(tmp_u[lev], 0, scr_u[lev], norm_temp);
@@ -303,7 +311,8 @@ void GMRES::Solve (std::array<MultiFab, AMREX_SPACEDIM>* & b_u, MultiFab* & b_p,
     norm_u=0;
     norm_p=0;
     //    // calculate the l2 norm of rhs
-    for(int lev=0;lev<nlevels;++lev)
+    //for(int lev=0;lev<nlevels;++lev)
+    for(int lev=0;lev<1;++lev)    
     {    
         Real norm_temp;
         StagL2Norm(b_u[lev], 0, scr_u[lev], norm_temp);
@@ -338,14 +347,6 @@ void GMRES::Solve (std::array<MultiFab, AMREX_SPACEDIM>* & b_u, MultiFab* & b_p,
     }
 
 
-//Copying result of preconditioner and stopping gmres
-//    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-//        MultiFab::Copy(x_u[0][d], tmp_u[0][d], 0, 0, 1, 0);
-//    }
-
-//    MultiFab::Copy(x_p[0], tmp_p[0], 0, 0, 1, 0);
-
-//    return;
 //    ///////////////////
 //    // begin outer iteration
 //    ///////////////////
@@ -361,14 +362,8 @@ void GMRES::Solve (std::array<MultiFab, AMREX_SPACEDIM>* & b_u, MultiFab* & b_p,
         // Compute tmp = b - Ax
 
         // Calculate tmp = Ax
-        if(nlevels>1)
-        {
-           FaceFillCoarse(x_u,0);
-           FaceFillGhost(x_u,geom,0);
-           CellFillCoarse(x_p, geom);
-           CellFillGhost(x_p,geom);
-        }
-        ApplyMatrix(tmp_u, tmp_p, x_u, x_p, alpha_fc, beta, beta_ed, gamma, theta_alpha, geom, nlevels);
+
+        ApplyMatrix(tmp_u, tmp_p, x_u, x_p, alpha_fc, beta, beta_ed, gamma, theta_alpha, geom, nlevels);          
 
         // tmp = b - Ax
         for(int lev=0;lev<nlevels;++lev)
@@ -413,14 +408,8 @@ void GMRES::Solve (std::array<MultiFab, AMREX_SPACEDIM>* & b_u, MultiFab* & b_p,
         // We should not be counting these toward the number of mg cycles performed
         Pcon.Apply(tmp_u, tmp_p, r_u, r_p, alpha_fc, alphainv_fc,
                beta, beta_ed, gamma, cc_mask, fc_mask, theta_alpha, geom, StagSolver);
-               
-            //Copying result of preconditioner and stopping gmres
-            for (int d=0; d<AMREX_SPACEDIM; ++d) {
-                MultiFab::Copy(x_u[0][d], r_u[0][d], 0, 0, 1, 0);
-            }
-
-            MultiFab::Copy(x_p[0], r_p[0], 0, 0, 1, 0);     
-            return;               
+              
+    
                
         // resid = sqrt(dot_product(r, r))
         StagL2Norm(r_u[0], 0, scr_u[0], norm_u);
@@ -513,10 +502,16 @@ void GMRES::Solve (std::array<MultiFab, AMREX_SPACEDIM>* & b_u, MultiFab* & b_p,
 
             // s = norm(r) * e_0
             std::fill(s.begin(), s.end(), 0.);
-            s[lev] = norm_resid;
+            s[0] = norm_resid;
         }
 
-
+        if(nlevels>1)
+        {
+            FaceFillCoarse(V_u,0);
+            //FaceFillGhost(V_u,geom,2);
+            CellFillCoarse(V_p,geom);
+            //CellFillGhost(V_p,geom);
+        }
         ///////////////////////
         // begin inner iteration
         ///////////////////////
@@ -545,18 +540,20 @@ void GMRES::Solve (std::array<MultiFab, AMREX_SPACEDIM>* & b_u, MultiFab* & b_p,
             {
                 for (int d=0; d<AMREX_SPACEDIM; ++d)
                     MultiFab::Copy(r_u[lev][d], V_u[lev][d], i, 0, 1, 0);
+                    
                 MultiFab::Copy(r_p[lev], V_p[lev], i, 0, 1, 0);
             }
+            
 
             ApplyMatrix(tmp_u, tmp_p, r_u, r_p, alpha_fc, beta, beta_ed, gamma, theta_alpha, geom, nlevels);
-
-
+           
             //___________________________________________________________________
             // w = M^{-1} A*V(i)
+                    
             Pcon.Apply(tmp_u, tmp_p, w_u, w_p, alpha_fc, alphainv_fc,
                        beta, beta_ed, gamma, cc_mask, fc_mask, theta_alpha, geom, StagSolver);
-
-
+                                                   
+            
             //___________________________________________________________________
             // Form Hessenberg matrix H
             for (int k=0; k<=i; ++k) {
@@ -579,6 +576,7 @@ void GMRES::Solve (std::array<MultiFab, AMREX_SPACEDIM>* & b_u, MultiFab* & b_p,
                 tmp_p[0].mult(H[k][i], 0, 1, 0);
                 MultiFab::Subtract(w_p[0],tmp_p[0], 0, 0, 1, 0);
             }
+                 
 
             // H(i+1,i) = norm(w)
             StagL2Norm(w_u[0], 0, scr_u[0], norm_u);
@@ -606,7 +604,6 @@ void GMRES::Solve (std::array<MultiFab, AMREX_SPACEDIM>* & b_u, MultiFab* & b_p,
             LeastSquares(i, H, cs, sn, s);
             norm_resid_est = amrex::Math::abs(s[i+1]);
 
-
             //___________________________________________________________________
             // Print verbose output
             if (gmres_verbose >= 2) {
@@ -614,7 +611,6 @@ void GMRES::Solve (std::array<MultiFab, AMREX_SPACEDIM>* & b_u, MultiFab* & b_p,
                         << norm_resid_est/norm_init_resid << "  "
                         << norm_resid_est/norm_pre_b << std::endl;
             }
-
 
             //___________________________________________________________________
             // Inner loop termination condition
@@ -626,11 +622,10 @@ void GMRES::Solve (std::array<MultiFab, AMREX_SPACEDIM>* & b_u, MultiFab* & b_p,
                     break; // exit InnerLoop
                 }
             }
+            
 
         } // end of inner loop
-
-
-
+        
         //_______________________________________________________________________
         // Update the solution
         // first, solve for y

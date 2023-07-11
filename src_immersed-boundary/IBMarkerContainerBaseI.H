@@ -1007,7 +1007,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadKernelGpu(const AoS& ao
     {
         const ParticleType& p = pstruct[ip];
         //Real norm_es = integral(eskernel_beta[p.idata(StructInt::species)-1], eskernel_fluid[p.idata(StructInt::species)-1]);
-
+    
         int lo_dim[3];
         int hi_dim[3];
         int gs;
@@ -1101,20 +1101,19 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadKernelGpu(const AoS& ao
                          {
                             weight*=Kernel6P()(pos_grid[ii]);
                          }
-			 else if (eskernel_fluid[p.idata(StructInt::species)-1] > 0)
+			             else if (eskernel_fluid[p.idata(StructInt::species)-1] > 0)
                          {
                             weight*=KernelES()(pos_grid[ii],eskernel_beta[p.idata(StructInt::species)-1], eskernel_fluid[p.idata(StructInt::species)-1])/norm_ptr[p.idata(StructInt::species)-1];
                          }
    
                       }
 
-                      //std::cout << "Adding " << p.rdata(StructReal::forcex + 0) << ", " << weight*invvol << std::endl;
+                      //std::cout << "In: " << i << ", " << j << ", " << k << ", " << p.rdata(StructReal::forcex + 0) << ", " << weight*invvol << std::endl;
                       amrex::Gpu::Atomic::Add(&fout_x(i,j,k), p.rdata(StructReal::forcex + 0)*weight*invvol);
-                      amrex::Gpu::Atomic::Add(&fweights_x(i,j,k), weight);
+                      //amrex::Gpu::Atomic::Add(&fweights_x(i,j,k), weight);
                     }
                 }
             }
-
             // y-components
             for (int k = lo_dim[2] ; k < hi_dim[2]; ++k) {
                 for (int j = lo_dim[1] ; j < hi_dim[1]+1; ++j) {
@@ -1153,7 +1152,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadKernelGpu(const AoS& ao
                       
 
                      amrex::Gpu::Atomic::Add(&fout_y(i,j,k), p.rdata(StructReal::forcex + 1)*weight*invvol);
-                      amrex::Gpu::Atomic::Add(&fweights_y(i,j,k), weight);
+                      //amrex::Gpu::Atomic::Add(&fweights_y(i,j,k), weight);
                     }
                 }
             }
@@ -1195,12 +1194,13 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadKernelGpu(const AoS& ao
 
                       
 
-                     amrex::Gpu::Atomic::Add(&fout_z(i,j,k), p.rdata(StructReal::forcex + 2)*weight*invvol);
-                      amrex::Gpu::Atomic::Add(&fweights_z(i,j,k), weight);
+                      amrex::Gpu::Atomic::Add(&fout_z(i,j,k), p.rdata(StructReal::forcex + 2)*weight*invvol);
+                      //amrex::Gpu::Atomic::Add(&fweights_z(i,j,k), weight);
                     }
                 }
             }
         }
+
     });
 }   
 

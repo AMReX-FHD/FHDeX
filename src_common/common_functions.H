@@ -126,12 +126,14 @@ void FaceFillFine(Vector<std::array< MultiFab, AMREX_SPACEDIM >>& mf, Vector<Geo
 void FaceFillFine(std::array<MultiFab, AMREX_SPACEDIM>* & mf, Vector<Geometry> geom,Vector<amrex::BCRec> bcs, int map);
 void FaceFillFine(Vector<std::array< MultiFab, AMREX_SPACEDIM >>& mf, Vector<Geometry> geom, int map);
 void FaceFillFine(std::array<MultiFab, AMREX_SPACEDIM>* & mf, Geometry* geom, int map);
+void FaceFillFine(Vector<std::array< MultiFab, AMREX_SPACEDIM >>& mf, Geometry* geom, int map);
 void FaceFillFine(std::array<MultiFab*, AMREX_SPACEDIM> & mfCoarse,std::array<MultiFab*, AMREX_SPACEDIM> & mfFine, Geometry* geom,Vector<amrex::BCRec> bcs, int map);
 
 void FaceFillGhost(Vector<std::array< MultiFab, AMREX_SPACEDIM >>& mf, Vector<Geometry> geom,Vector<amrex::BCRec> bcs, int map);
 void FaceFillGhost(std::array<MultiFab, AMREX_SPACEDIM>* & mf, Vector<Geometry> geom,Vector<amrex::BCRec> bcs, int map);
 void FaceFillGhost(std::array<MultiFab, AMREX_SPACEDIM>* & mf, Geometry* geom, int map);
 void FaceFillGhost(Vector<std::array< MultiFab, AMREX_SPACEDIM >>& mf, Vector<Geometry> geom, int map);
+void FaceFillGhost(Vector<std::array< MultiFab, AMREX_SPACEDIM >>& mf, Geometry* geom, int map);
 void FaceFillGhost(std::array<MultiFab*, AMREX_SPACEDIM> & mfCoarse,std::array<MultiFab*, AMREX_SPACEDIM> & mfFine, Geometry* geom,Vector<amrex::BCRec> bcs, int map);
 
 void CellFillCoarse(Vector<MultiFab>& mf, Vector<Geometry> geom);
