@@ -12,6 +12,12 @@ public:
         GpuArray<Real,132> forcing_C; // compressional forcing
     };
     
+    struct KVEC {
+        GpuArray<int,22> kx{1, 0, 0, 1, 1, 0, 1, 2, 0, 0, 2, 2, 1, 0, 1, 0, 2, 1, 1, 2, 2, 0};
+        GpuArray<int,22> ky{0, 1, 0, 1, 0, 1, 1, 0, 2, 0, 1, 0, 2, 2, 0, 1, 1, 2, 1, 2, 0, 2};
+        GpuArray<int,22> kz{0, 0, 1, 0, 1, 1, 1, 0, 0, 2, 0, 1, 0, 1, 2, 2, 1, 1, 2, 0, 2, 2};
+    };
+    
     TurbForcingComp();
     
     void define(BoxArray ba_in, DistributionMapping dmap_in,
@@ -23,7 +29,7 @@ public:
                         const Real& dt,
                         const int& update);
 
-    Real getU(const int& i);
+    std::tuple<amrex::Real, amrex::Real> getU(const int& i);
 
     void setU(const int& i, Real x);
 
