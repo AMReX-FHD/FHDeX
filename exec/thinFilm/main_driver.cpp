@@ -18,6 +18,10 @@ void main_driver(const char* argv)
   
     BL_PROFILE_VAR("main_driver()",main_driver);
 
+    if (AMREX_SPACEDIM != 2) {
+        Abort("Must build/run with DIM=2");
+    }
+    
     // store the current time so we can later compute total run time.
     Real strt_time = ParallelDescriptor::second();
 
@@ -122,30 +126,34 @@ void main_driver(const char* argv)
     MultiFab height(ba, dmap, 1, 1);
     MultiFab Laph  (ba, dmap, 1, 1);
     Laph.setVal(0.); // prevent intermediate NaN calculations behind physical boundaries
-    
-    MultiFab dheight   (ba, dmap, 1, 0);
+
+    // for statsitics
+    MultiFab dheight    (ba, dmap, 1, 0);
     MultiFab dheight2sum(ba, dmap, 1, 0);
     MultiFab dheight2avg(ba, dmap, 1, 0);
     dheight2sum.setVal(0.);
 
-    std::array< MultiFab, AMREX_SPACEDIM > hface;
-    std::array< MultiFab, AMREX_SPACEDIM > gradh;
-    std::array< MultiFab, AMREX_SPACEDIM > gradLh;
-    std::array< MultiFab, AMREX_SPACEDIM > flux;
-    std::array< MultiFab, AMREX_SPACEDIM > randface;
-    
+    std::array< MultiFab, AMREX_SPACEDIM > hface;    
     AMREX_D_TERM(hface[0]   .define(convert(ba,nodal_flag_x), dmap, 1, 0);,
                  hface[1]   .define(convert(ba,nodal_flag_y), dmap, 1, 0);,
                  hface[2]   .define(convert(ba,nodal_flag_z), dmap, 1, 0););
+    
+    std::array< MultiFab, AMREX_SPACEDIM > gradh;
     AMREX_D_TERM(gradh[0]   .define(convert(ba,nodal_flag_x), dmap, 1, 0);,
                  gradh[1]   .define(convert(ba,nodal_flag_y), dmap, 1, 0);,
                  gradh[2]   .define(convert(ba,nodal_flag_z), dmap, 1, 0););
-    AMREX_D_TERM(gradLh[0]  .define(convert(ba,nodal_flag_x), dmap, 1, 0);,
-                 gradLh[1]  .define(convert(ba,nodal_flag_y), dmap, 1, 0);,
-                 gradLh[2]  .define(convert(ba,nodal_flag_z), dmap, 1, 0););
+    
+    std::array< MultiFab, AMREX_SPACEDIM > gradLaph;
+    AMREX_D_TERM(gradLaph[0].define(convert(ba,nodal_flag_x), dmap, 1, 0);,
+                 gradLaph[1].define(convert(ba,nodal_flag_y), dmap, 1, 0);,
+                 gradLaph[2].define(convert(ba,nodal_flag_z), dmap, 1, 0););
+    
+    std::array< MultiFab, AMREX_SPACEDIM > flux;
     AMREX_D_TERM(flux[0]    .define(convert(ba,nodal_flag_x), dmap, 1, 0);,
                  flux[1]    .define(convert(ba,nodal_flag_y), dmap, 1, 0);,
                  flux[2]    .define(convert(ba,nodal_flag_z), dmap, 1, 0););
+    
+    std::array< MultiFab, AMREX_SPACEDIM > randface;
     AMREX_D_TERM(randface[0].define(convert(ba,nodal_flag_x), dmap, 1, 0);,
                  randface[1].define(convert(ba,nodal_flag_y), dmap, 1, 0);,
                  randface[2].define(convert(ba,nodal_flag_z), dmap, 1, 0););
@@ -280,27 +288,27 @@ void main_driver(const char* argv)
         }
         Laph.FillBoundary(geom.periodicity());
 
-        // compute gradLh
+        // compute gradLaph
         for ( MFIter mfi(height,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
 
             AMREX_D_TERM(const Box & bx_x = mfi.nodaltilebox(0);,
                          const Box & bx_y = mfi.nodaltilebox(1);,
                          const Box & bx_z = mfi.nodaltilebox(2););
         
-            AMREX_D_TERM(const Array4<Real> & gradLhx = gradLh[0].array(mfi);,
-                         const Array4<Real> & gradLhy = gradLh[1].array(mfi);,
-                         const Array4<Real> & gradLhz = gradLh[2].array(mfi););
+            AMREX_D_TERM(const Array4<Real> & gradLaphx = gradLaph[0].array(mfi);,
+                         const Array4<Real> & gradLaphy = gradLaph[1].array(mfi);,
+                         const Array4<Real> & gradLaphz = gradLaph[2].array(mfi););
             
             const Array4<Real> & L = Laph.array(mfi);
 
             amrex::ParallelFor(bx_x, bx_y,
                                [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
-                gradLhx(i,j,k) = ( L(i,j,k) - L(i-1,j,k) ) / dx[0];
+                gradLaphx(i,j,k) = ( L(i,j,k) - L(i-1,j,k) ) / dx[0];
             },
                                [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
-                gradLhy(i,j,k) = ( L(i,j,k) - L(i,j-1,k) ) / dx[1];
+                gradLaphy(i,j,k) = ( L(i,j,k) - L(i,j-1,k) ) / dx[1];
             });
         }
 
@@ -315,9 +323,9 @@ void main_driver(const char* argv)
                          const Array4<Real> & hfacey = hface[1].array(mfi);,
                          const Array4<Real> & hfacez = hface[2].array(mfi););
         
-            AMREX_D_TERM(const Array4<Real> & gradLhx = gradLh[0].array(mfi);,
-                         const Array4<Real> & gradLhy = gradLh[1].array(mfi);,
-                         const Array4<Real> & gradLhz = gradLh[2].array(mfi););
+            AMREX_D_TERM(const Array4<Real> & gradLaphx = gradLaph[0].array(mfi);,
+                         const Array4<Real> & gradLaphy = gradLaph[1].array(mfi);,
+                         const Array4<Real> & gradLaphz = gradLaph[2].array(mfi););
         
             AMREX_D_TERM(const Array4<Real> & fluxx = flux[0].array(mfi);,
                          const Array4<Real> & fluxy = flux[1].array(mfi);,
@@ -332,13 +340,13 @@ void main_driver(const char* argv)
             {
                 fluxx(i,j,k) = x_flux_fac * (
                                std::sqrt(ConstNoise*std::pow(hfacex(i,j,k),3.) / (dt*dVol)) * randfacex(i,j,k)
-                               + Const3dx * std::pow(hfacex(i,j,k),3.)*gradLhx(i,j,k) );
+                               + Const3dx * std::pow(hfacex(i,j,k),3.)*gradLaphx(i,j,k) );
             },
                                [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 fluxy(i,j,k) = y_flux_fac * (
                                std::sqrt(ConstNoise*std::pow(hfacey(i,j,k),3.) / (dt*dVol)) * randfacey(i,j,k)
-                               + Const3dx * std::pow(hfacey(i,j,k),3.)*gradLhy(i,j,k) );
+                               + Const3dx * std::pow(hfacey(i,j,k),3.)*gradLaphy(i,j,k) );
             });
 
             // lo x-faces
