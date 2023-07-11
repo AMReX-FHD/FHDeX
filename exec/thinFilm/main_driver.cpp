@@ -198,7 +198,6 @@ void main_driver(const char* argv)
                          const Array4<Real> & gradhy = gradh[1].array(mfi);,
                          const Array4<Real> & gradhz = gradh[2].array(mfi););
             
-            const Array4<Real> & L = Laph.array(mfi);
             const Array4<Real> & h = height.array(mfi);
 
             amrex::ParallelFor(bx_x, bx_y,
@@ -264,10 +263,10 @@ void main_driver(const char* argv)
 
         // compute Laph
         for ( MFIter mfi(Laph,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
-        
+
             const Box& bx = mfi.tilebox();
+
             const Array4<Real> & L = Laph.array(mfi);
-            const Array4<Real> & h = height.array(mfi);
         
             AMREX_D_TERM(const Array4<Real> & gradhx = gradh[0].array(mfi);,
                          const Array4<Real> & gradhy = gradh[1].array(mfi);,
@@ -288,16 +287,11 @@ void main_driver(const char* argv)
                          const Box & bx_y = mfi.nodaltilebox(1);,
                          const Box & bx_z = mfi.nodaltilebox(2););
         
-            AMREX_D_TERM(const Array4<Real> & hfacex = hface[0].array(mfi);,
-                         const Array4<Real> & hfacey = hface[1].array(mfi);,
-                         const Array4<Real> & hfacez = hface[2].array(mfi););
-        
             AMREX_D_TERM(const Array4<Real> & gradLhx = gradLh[0].array(mfi);,
                          const Array4<Real> & gradLhy = gradLh[1].array(mfi);,
                          const Array4<Real> & gradLhz = gradLh[2].array(mfi););
             
             const Array4<Real> & L = Laph.array(mfi);
-            const Array4<Real> & h = height.array(mfi);
 
             amrex::ParallelFor(bx_x, bx_y,
                                [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
