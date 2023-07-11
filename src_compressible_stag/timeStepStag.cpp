@@ -178,6 +178,10 @@ void RK3stepStag(MultiFab& cu,
         }
         turbforce->CalcTurbForcingComp(turb_vel_f_o,dt,0);
         turbforce->CalcTurbForcingComp(turb_vel_f,dt,1);
+//        for (int i=0; i<132; ++i) {
+//            auto [f_sol, f_comp] = turbforce->getU(i);
+//            amrex::AllPrint() << i << " " << f_sol << " " << f_comp << std::endl;
+//        }
     }
 
 
@@ -313,6 +317,34 @@ void RK3stepStag(MultiFab& cu,
         compute_chemistry_source_CLE(dt, dx[0]*dx[1]*dx[2], prim, source, ranchem);
     }
 
+    ReduceOps<ReduceOpSum> reduce_op;
+    ReduceData<Real> reduce_data0(reduce_op);
+    using ReduceTuple = typename decltype(reduce_data0)::Type;
+
+    amrex::Real energy_in = amrex::Real(0.0);
+    if (turbForcing == 2) { // random forcing tubulence : get average energy input
+        for ( MFIter mfi(cu,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
+            const Box& bx = mfi.tilebox();
+            AMREX_D_TERM(const Array4<Real>& momx = cumom[0].array(mfi);,
+                         const Array4<Real>& momy = cumom[1].array(mfi);,
+                         const Array4<Real>& momz = cumom[2].array(mfi););
+            AMREX_D_TERM(const Array4<Real>& turbvf_x = turb_vel_f[0].array(mfi);,
+                         const Array4<Real>& turbvf_y = turb_vel_f[1].array(mfi);,
+                         const Array4<Real>& turbvf_z = turb_vel_f[2].array(mfi););
+            reduce_op.eval(bx, reduce_data0,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
+            {
+                return {0.5* (turbvf_x(i+1,j,k)*momx(i+1,j,k) + momx(i,j,k)*turbvf_x(i,j,k) +
+                              turbvf_y(i,j+1,k)*momy(i,j+1,k) + momy(i,j,k)*turbvf_y(i,j,k) +
+                              turbvf_z(i,j,k+1)*momz(i,j,k+1) + momz(i,j,k)*turbvf_z(i,j,k) )};
+            });
+        }
+        energy_in = amrex::get<0>(reduce_data0.value());
+        ParallelDescriptor::ReduceRealSum(energy_in);
+        energy_in = energy_in/(n_cells[0]*n_cells[1]*n_cells[2]);
+    }
+
+
     for ( MFIter mfi(cu,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
         
         const Box& bx = mfi.tilebox();
@@ -393,10 +425,11 @@ void RK3stepStag(MultiFab& cu,
             cup_fab(i,j,k,4) += 0.5 * dt * (  grav[0]*(momx(i+1,j,k)+momx(i,j,k))
                                             + grav[1]*(momy(i,j+1,k)+momy(i,j,k))
                                             + grav[2]*(momz(i,j,k+1)+momz(i,j,k)) );
-            if (turbForcing > 1) {
+            if (turbForcing == 2) {
                 cup_fab(i,j,k,4) += 0.5 * dt * (  turbvf_x(i+1,j,k)*momx(i+1,j,k) + momx(i,j,k)*turbvf_x(i,j,k)
                                                 + turbvf_y(i,j+1,k)*momy(i,j+1,k) + momy(i,j,k)*turbvf_y(i,j,k)
                                                 + turbvf_z(i,j,k+1)*momz(i,j,k+1) + momz(i,j,k)*turbvf_z(i,j,k) );
+                cup_fab(i,j,k,4) -= dt * energy_in; // remove the average input energy from random turbulent forcing
             }
         });
     }
@@ -491,7 +524,34 @@ void RK3stepStag(MultiFab& cu,
 
         compute_chemistry_source_CLE(dt, dx[0]*dx[1]*dx[2], prim, source, ranchem);
     }
-
+    
+    ReduceData<Real> reduce_data1(reduce_op);
+    amrex::Real energyp_in = amrex::Real(0.0);
+    if (turbForcing == 2) { // random forcing tubulence : get average energy input
+        for ( MFIter mfi(cu,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
+            const Box& bx = mfi.tilebox();
+            AMREX_D_TERM(const Array4<Real>& mompx = cupmom[0].array(mfi);,
+                         const Array4<Real>& mompy = cupmom[1].array(mfi);,
+                         const Array4<Real>& mompz = cupmom[2].array(mfi););
+            AMREX_D_TERM(const Array4<Real>& turbvf_x = turb_vel_f[0].array(mfi);,
+                         const Array4<Real>& turbvf_y = turb_vel_f[1].array(mfi);,
+                         const Array4<Real>& turbvf_z = turb_vel_f[2].array(mfi););
+            AMREX_D_TERM(const Array4<Real>& turbvf_x_o = turb_vel_f_o[0].array(mfi);,
+                         const Array4<Real>& turbvf_y_o = turb_vel_f_o[1].array(mfi);,
+                         const Array4<Real>& turbvf_z_o = turb_vel_f_o[2].array(mfi););
+            reduce_op.eval(bx, reduce_data1,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
+            {
+                return {0.5*(  (turbvf_x_o(i+1,j,k) + 0.25*(turbvf_x(i+1,j,k)-turbvf_x_o(i+1,j,k)))*mompx(i+1,j,k) + mompx(i,j,k)*(turbvf_x_o(i,j,k) + 0.25*(turbvf_x(i,j,k)-turbvf_x_o(i,j,k)))
+                             + (turbvf_y_o(i,j+1,k) + 0.25*(turbvf_y(i,j+1,k)-turbvf_y_o(i,j+1,k)))*mompy(i,j+1,k) + mompy(i,j,k)*(turbvf_y_o(i,j,k) + 0.25*(turbvf_y(i,j,k)-turbvf_y_o(i,j,k)))
+                             + (turbvf_z_o(i,j,k+1) + 0.25*(turbvf_z(i,j,k+1)-turbvf_z_o(i,j,k+1)))*mompz(i,j,k+1) + mompz(i,j,k)*(turbvf_z_o(i,j,k) + 0.25*(turbvf_z(i,j,k)-turbvf_z_o(i,j,k))) )};
+            });
+        }
+        energyp_in = amrex::get<0>(reduce_data1.value());
+        ParallelDescriptor::ReduceRealSum(energyp_in);
+        energyp_in = energyp_in/(n_cells[0]*n_cells[1]*n_cells[2]);
+    }
+    
     for ( MFIter mfi(cu,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
         
         const Box& bx = mfi.tilebox();
@@ -581,10 +641,11 @@ void RK3stepStag(MultiFab& cu,
             cup2_fab(i,j,k,4) += 0.5 * 0.25 * dt * (  grav[0]*(mompx(i+1,j,k)+mompx(i,j,k))
                                                     + grav[1]*(mompy(i,j+1,k)+mompy(i,j,k))
                                                     + grav[2]*(mompz(i,j,k+1)+mompz(i,j,k)) );
-            if (turbForcing > 1) {
-                cup2_fab(i,j,k,4) += 0.5 * dt * (  (turbvf_x_o(i+1,j,k) + 0.25*(turbvf_x(i+1,j,k)-turbvf_x_o(i+1,j,k)))*momx(i+1,j,k) + momx(i,j,k)*(turbvf_x_o(i,j,k) + 0.25*(turbvf_x(i,j,k)-turbvf_x_o(i,j,k)))
-                                                 + (turbvf_y_o(i,j+1,k) + 0.25*(turbvf_y(i,j+1,k)-turbvf_y_o(i,j+1,k)))*momy(i,j+1,k) + momy(i,j,k)*(turbvf_y_o(i,j,k) + 0.25*(turbvf_y(i,j,k)-turbvf_y_o(i,j,k)))
-                                                 + (turbvf_z_o(i,j,k+1) + 0.25*(turbvf_z(i,j,k+1)-turbvf_z_o(i,j,k+1)))*momz(i,j,k+1) + momz(i,j,k)*(turbvf_z_o(i,j,k) + 0.25*(turbvf_z(i,j,k)-turbvf_z_o(i,j,k))) );
+            if (turbForcing == 2) {
+                cup2_fab(i,j,k,4) += 0.5 * dt * (  (turbvf_x_o(i+1,j,k) + 0.25*(turbvf_x(i+1,j,k)-turbvf_x_o(i+1,j,k)))*mompx(i+1,j,k) + mompx(i,j,k)*(turbvf_x_o(i,j,k) + 0.25*(turbvf_x(i,j,k)-turbvf_x_o(i,j,k)))
+                                                 + (turbvf_y_o(i,j+1,k) + 0.25*(turbvf_y(i,j+1,k)-turbvf_y_o(i,j+1,k)))*mompy(i,j+1,k) + mompy(i,j,k)*(turbvf_y_o(i,j,k) + 0.25*(turbvf_y(i,j,k)-turbvf_y_o(i,j,k)))
+                                                 + (turbvf_z_o(i,j,k+1) + 0.25*(turbvf_z(i,j,k+1)-turbvf_z_o(i,j,k+1)))*mompz(i,j,k+1) + mompz(i,j,k)*(turbvf_z_o(i,j,k) + 0.25*(turbvf_z(i,j,k)-turbvf_z_o(i,j,k))) );
+                cup2_fab(i,j,k,4) -= dt * energyp_in; // remove the average input energy from random turbulent forcing
             }
         });
     }
@@ -679,6 +740,33 @@ void RK3stepStag(MultiFab& cu,
 
         compute_chemistry_source_CLE(dt, dx[0]*dx[1]*dx[2], prim, source, ranchem);
     }
+    
+    ReduceData<Real> reduce_data2(reduce_op);
+    amrex::Real energyp2_in = amrex::Real(0.0);
+    if (turbForcing == 2) { // random forcing tubulence : get average energy input
+        for ( MFIter mfi(cu,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
+            const Box& bx = mfi.tilebox();
+            AMREX_D_TERM(const Array4<Real>& momp2x = cup2mom[0].array(mfi);,
+                         const Array4<Real>& momp2y = cup2mom[1].array(mfi);,
+                         const Array4<Real>& momp2z = cup2mom[2].array(mfi););
+            AMREX_D_TERM(const Array4<Real>& turbvf_x = turb_vel_f[0].array(mfi);,
+                         const Array4<Real>& turbvf_y = turb_vel_f[1].array(mfi);,
+                         const Array4<Real>& turbvf_z = turb_vel_f[2].array(mfi););
+            AMREX_D_TERM(const Array4<Real>& turbvf_x_o = turb_vel_f_o[0].array(mfi);,
+                         const Array4<Real>& turbvf_y_o = turb_vel_f_o[1].array(mfi);,
+                         const Array4<Real>& turbvf_z_o = turb_vel_f_o[2].array(mfi););
+            reduce_op.eval(bx, reduce_data2,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
+            {
+                return {0.5*(  (turbvf_x_o(i+1,j,k) + (2./3.)*(turbvf_x(i+1,j,k)-turbvf_x_o(i+1,j,k)))*momp2x(i+1,j,k) + momp2x(i,j,k)*(turbvf_x_o(i,j,k) + (2./3.)*(turbvf_x(i,j,k)-turbvf_x_o(i,j,k)))
+                             + (turbvf_y_o(i,j+1,k) + (2./3.)*(turbvf_y(i,j+1,k)-turbvf_y_o(i,j+1,k)))*momp2y(i,j+1,k) + momp2y(i,j,k)*(turbvf_y_o(i,j,k) + (2./3.)*(turbvf_y(i,j,k)-turbvf_y_o(i,j,k)))
+                             + (turbvf_z_o(i,j,k+1) + (2./3.)*(turbvf_z(i,j,k+1)-turbvf_z_o(i,j,k+1)))*momp2z(i,j,k+1) + momp2z(i,j,k)*(turbvf_z_o(i,j,k) + (2./3.)*(turbvf_z(i,j,k)-turbvf_z_o(i,j,k))) )};
+            });
+        }
+        energyp2_in = amrex::get<0>(reduce_data2.value());
+        ParallelDescriptor::ReduceRealSum(energyp2_in);
+        energyp2_in = energyp2_in/(n_cells[0]*n_cells[1]*n_cells[2]);
+    }
 
     for ( MFIter mfi(cu,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
         
@@ -765,10 +853,11 @@ void RK3stepStag(MultiFab& cu,
             cu_fab(i,j,k,4) += 0.5 * (2./3.) * dt * (  grav[0]*(momp2x(i+1,j,k)+momp2x(i,j,k))
                                                     + grav[1]*(momp2y(i,j+1,k)+momp2y(i,j,k))
                                                     + grav[2]*(momp2z(i,j,k+1)+momp2z(i,j,k)) );
-            if (turbForcing > 1) {
+            if (turbForcing == 2) {
                 cu_fab(i,j,k,4) += 0.5 * dt * (  (turbvf_x_o(i+1,j,k) + (2./3.)*(turbvf_x(i+1,j,k)-turbvf_x_o(i+1,j,k)))*momp2x(i+1,j,k) + momp2x(i,j,k)*(turbvf_x_o(i,j,k) + (2./3.)*(turbvf_x(i,j,k)-turbvf_x_o(i,j,k)))
                                                + (turbvf_y_o(i,j+1,k) + (2./3.)*(turbvf_y(i,j+1,k)-turbvf_y_o(i,j+1,k)))*momp2y(i,j+1,k) + momp2y(i,j,k)*(turbvf_y_o(i,j,k) + (2./3.)*(turbvf_y(i,j,k)-turbvf_y_o(i,j,k)))
                                                + (turbvf_z_o(i,j,k+1) + (2./3.)*(turbvf_z(i,j,k+1)-turbvf_z_o(i,j,k+1)))*momp2z(i,j,k+1) + momp2z(i,j,k)*(turbvf_z_o(i,j,k) + (2./3.)*(turbvf_z(i,j,k)-turbvf_z_o(i,j,k))) );
+                cu_fab(i,j,k,4) -= dt * energyp2_in; // remove the average input energy from random turbulent forcing
             }
         });
     }
