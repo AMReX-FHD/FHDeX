@@ -169,13 +169,13 @@ void RK3stepStag(MultiFab& cu,
     // turbulence -- calculate random velocity forcing
     std::array< MultiFab, AMREX_SPACEDIM > turb_vel_f_o;
     std::array< MultiFab, AMREX_SPACEDIM > turb_vel_f;
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        turb_vel_f_o[d].define(convert(cu.boxArray(),nodal_flag_dir[d]), cu.DistributionMap(), 1, 0);
+        turb_vel_f_o[d].setVal(0.);
+        turb_vel_f[d].define(convert(cu.boxArray(),nodal_flag_dir[d]), cu.DistributionMap(), 1, 0);
+        turb_vel_f[d].setVal(0.);
+    }
     if (turbForcing > 1) {
-        for (int d=0; d<AMREX_SPACEDIM; ++d) {
-            turb_vel_f_o[d].define(convert(cu.boxArray(),nodal_flag_dir[d]), cu.DistributionMap(), 1, 0);
-            turb_vel_f_o[d].setVal(0.);
-            turb_vel_f[d].define(convert(cu.boxArray(),nodal_flag_dir[d]), cu.DistributionMap(), 1, 0);
-            turb_vel_f[d].setVal(0.);
-        }
         turbforce->CalcTurbForcingComp(turb_vel_f_o,dt,0);
         turbforce->CalcTurbForcingComp(turb_vel_f,dt,1);
 //        for (int i=0; i<132; ++i) {
