@@ -1,4 +1,5 @@
 
+#include "thinfilm_functions.H"
 #include "common_functions.H"
 #include "rng_functions.H"
 
@@ -10,7 +11,6 @@
 #include "chrono"
 
 using namespace std::chrono;
-
 
 // argv contains the name of the inputs file entered at the command line
 void main_driver(const char* argv)
@@ -32,12 +32,7 @@ void main_driver(const char* argv)
     std::string inputs_file = argv;
 
     InitializeCommonNamespace();
-
-    // copy objects from namelist to temporary variables
-    // equilibrium height "h0" is stored in rho0
-    // surface tension "gamma" is stored in h_bar
-    Real h0 = rho0;
-    Real gamma = h_bar;
+    InitializeThinfilmNamespace();
 
     // algorithm_type = 0 (1D in x; each row is an independent trial)
     // algorithm_type = 1 (1D in y; each col is an independent trial)
@@ -46,7 +41,7 @@ void main_driver(const char* argv)
     int do_1d_y = (algorithm_type == 1) ? 1 : 0;
 
     Real y_flux_fac = (do_1d_x == 1) ? 0. : 1.; // 1D in x; set y fluxes to zero
-    Real x_flux_fac = (do_1d_y == 1) ? 0. : 1.; // 1D in x; set y fluxes to zero
+    Real x_flux_fac = (do_1d_y == 1) ? 0. : 1.; // 1D in y; set x fluxes to zero
     
     /////////////////////////////////////////
     // Initialize random number seed on all processors/GPUs
@@ -81,7 +76,7 @@ void main_driver(const char* argv)
     // boundary conditions controlled by bc_mass_lo/hi
     // -1 = periodic
     //  0 = 90 degree contact angle, dh/dn=0
-    //  1 = pinned, h=h0
+    //  1 = pinned, h=thinfilm_h0
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         if (bc_mass_lo[d] == -1 && bc_mass_hi[d] != -1 ||
             bc_mass_lo[d] != -1 && bc_mass_hi[d] == -1) {
@@ -159,17 +154,17 @@ void main_driver(const char* argv)
                  randface[2].define(convert(ba,nodal_flag_z), dmap, 1, 0););
 
     // initialize height
-    height.setVal(h0);
+    height.setVal(thinfilm_h0);
     
     // Physical time constant for dimensional time
-    Real t0 = 3.0*visc_coef*h0/gamma;
+    Real t0 = 3.0*visc_coef*thinfilm_h0/thinfilm_gamma;
 
     // constant factor in noise term
     Real ConstNoise = 2.*k_B*T_init[0] / (3.*visc_coef);
-    Real Const3dx = gamma / (3.*visc_coef);
+    Real Const3dx = thinfilm_gamma / (3.*visc_coef);
     
     Real time = 0.;
-    Real dt = 0.1 * (t0/std::pow(h0,4)) * std::pow(dx[0],4) / 16.;
+    Real dt = 0.1 * (t0/std::pow(thinfilm_h0,4)) * std::pow(dx[0],4) / 16.;
 
     int stats_count = 0;
     
@@ -234,14 +229,14 @@ void main_driver(const char* argv)
                 });
             }
 
-            // h = h0, xfaces
+            // h = thinfilm_h0, xfaces
             if (bc_mass_lo[0] == 1 || bc_mass_hi[0] == 1) {
                 amrex::ParallelFor(bx_x, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     // lo
-                    if (bc_mass_lo[0] == 1 && i==0)          gradhx(i,j,k) = (h(i,j,k) - h0) / (0.5*dx[0]);
+                    if (bc_mass_lo[0] == 1 && i==0)          gradhx(i,j,k) = (h(i,j,k) - thinfilm_h0) / (0.5*dx[0]);
                     // hi
-                    if (bc_mass_hi[0] == 1 && i==n_cells[0]) gradhx(i,j,k) = (h0 - h(i-1,j,k)) / (0.5*dx[0]);
+                    if (bc_mass_hi[0] == 1 && i==n_cells[0]) gradhx(i,j,k) = (thinfilm_h0 - h(i-1,j,k)) / (0.5*dx[0]);
                 });
             }
 
@@ -256,14 +251,14 @@ void main_driver(const char* argv)
                 });
             }
 
-            // h = h0, yfaces
+            // h = thinfilm_h0, yfaces
             if (bc_mass_lo[1] == 1 || bc_mass_hi[1] == 1) {
                 amrex::ParallelFor(bx_y, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     // lo
-                    if (bc_mass_lo[1] == 1 && j==0)          gradhy(i,j,k) = (h(i,j,k) - h0) / (0.5*dx[1]);
+                    if (bc_mass_lo[1] == 1 && j==0)          gradhy(i,j,k) = (h(i,j,k) - thinfilm_h0) / (0.5*dx[1]);
                     // hi
-                    if (bc_mass_hi[1] == 1 && j==n_cells[1]) gradhy(i,j,k) = (h0 - h(i,j-1,k)) / (0.5*dx[1]);
+                    if (bc_mass_hi[1] == 1 && j==n_cells[1]) gradhy(i,j,k) = (thinfilm_h0 - h(i,j-1,k)) / (0.5*dx[1]);
                 });
             }
 
@@ -414,7 +409,8 @@ void main_driver(const char* argv)
         // statistics
         if (istep > n_steps_skip) {
 
-            dheight.setVal(h0);
+            // variance
+            dheight.setVal(thinfilm_h0);
             MultiFab::Subtract(dheight, height, 0, 0, 1, 0);
             MultiFab::Multiply(dheight, dheight, 0, 0, 1, 0);
             MultiFab::Add(dheight2sum, dheight, 0, 0, 1, 0);
@@ -429,6 +425,11 @@ void main_driver(const char* argv)
                 const std::string& pltfile = amrex::Concatenate("var",istep,8);
                 WriteSingleLevelPlotfile(pltfile, dheight2avg, {"var"}, geom, time, 0);
             }
+
+            // spatial correlation
+
+
+
         }
         
         Real step_stop_time = ParallelDescriptor::second() - step_strt_time;
