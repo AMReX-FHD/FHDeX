@@ -5,6 +5,9 @@
 AMREX_GPU_MANAGED amrex::Real thinfilm::thinfilm_h0;
 AMREX_GPU_MANAGED amrex::Real thinfilm::thinfilm_gamma;
 
+AMREX_GPU_MANAGED int thinfilm::thinfilm_icorr;
+AMREX_GPU_MANAGED int thinfilm::thinfilm_jcorr;
+
 void InitializeThinfilmNamespace() {
 
     BL_PROFILE_VAR("InitializeThinfilmNamespace()",InitializeThinfilmNameSpace);
@@ -13,5 +16,8 @@ void InitializeThinfilmNamespace() {
     
     pp.get("thinfilm_h0",thinfilm_h0);
     pp.get("thinfilm_gamma",thinfilm_gamma);
+
+    pp.get("thinfilm_icorr",thinfilm_icorr);
+    pp.get("thinfilm_icorr",thinfilm_jcorr);
     
 }
