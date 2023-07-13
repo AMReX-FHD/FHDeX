@@ -17,8 +17,8 @@
   fixed_dt = 0.000000025
 
   # Controls for number of steps between actions
-  max_step = 25
-  plot_int = 1
+  max_step = 1000
+  plot_int = 100
 
   # Viscous friction L phi operator
   # if abs(visc_type) = 1, L = div beta grad
@@ -124,7 +124,7 @@
 
 
   # GMRES solver parameters
-  gmres_rel_tol = 1.e-12                # relative tolerance stopping criteria
+  gmres_rel_tol = 1.e-10                # relative tolerance stopping criteria
   gmres_abs_tol = 0                     # absolute tolerance stopping criteria
   gmres_verbose = 1                     # gmres verbosity; if greater than 1, more residuals will be printed out
   gmres_max_outer = 200                  # max number of outer iterations
