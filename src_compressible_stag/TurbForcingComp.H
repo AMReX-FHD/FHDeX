@@ -31,7 +31,7 @@ public:
 
     std::tuple<amrex::Real, amrex::Real> getU(const int& i);
 
-    void setU(const int& i, Real x);
+    void setU(const int& i, Real fs, Real fc);
 
 private:
     

@@ -495,7 +495,7 @@ void main_driver(const char* argv)
         else {
             ReadCheckPoint3D(step_start, time, statsCount, geom, domain, cu, cuMeans, cuVars, prim,
                              primMeans, primVars, cumom, cumomMeans, cumomVars, 
-                             vel, velMeans, velVars, coVars, surfcov, surfcovMeans, surfcovVars, spatialCross3D, ncross, ba, dmap);
+                             vel, velMeans, velVars, coVars, surfcov, surfcovMeans, surfcovVars, spatialCross3D, ncross, tbforce, ba, dmap);
         }
 
         if (reset_stats == 1) statsCount = 1;
@@ -796,7 +796,7 @@ void main_driver(const char* argv)
 
         // define turbulence forcing object
         if (turbForcing > 1) {
-          tbforce->define(ba,dmap,turb_a,turb_b,turb_c,turb_d,turb_alpha);
+            tbforce->define(ba,dmap,turb_a,turb_b,turb_c,turb_d,turb_alpha);
         }
 
 
@@ -1000,7 +1000,7 @@ void main_driver(const char* argv)
 
     // Initialize Turbulence Forcing Object
     if (turbForcing > 1) {
-      tbforce->Initialize(geom);
+        tbforce->Initialize(geom);
     }
                 
     /////////////////////////////////////////////////
@@ -1563,7 +1563,7 @@ void main_driver(const char* argv)
             else {
                 WriteCheckPoint3D(step, time, statsCount, geom, cu, cuMeans, cuVars, prim,
                                   primMeans, primVars, cumom, cumomMeans, cumomVars, 
-                                  vel, velMeans, velVars, coVars, surfcov, surfcovMeans, surfcovVars, spatialCross3D, ncross);
+                                  vel, velMeans, velVars, coVars, surfcov, surfcovMeans, surfcovVars, spatialCross3D, ncross, tbforce);
             }
         }
 

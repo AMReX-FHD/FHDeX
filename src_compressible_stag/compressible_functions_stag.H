@@ -151,7 +151,8 @@ void WriteCheckPoint3D(int step,
                        const amrex::MultiFab& surfcov,
                        const amrex::MultiFab& surfcovMeans,
                        const amrex::MultiFab& surfcovVars,
-                       const Vector<Real>& spatialCross, int ncross);
+                       const Vector<Real>& spatialCross, int ncross,
+                       TurbForcingComp* turbforce);
 
 void ReadCheckPoint3D(int& step,
                       amrex::Real& time,
@@ -175,6 +176,7 @@ void ReadCheckPoint3D(int& step,
                       amrex::MultiFab& surfcovMeans,
                       amrex::MultiFab& surfcovVars,
                       Vector<Real>& spatialCross, int ncross,
+                      TurbForcingComp* turbforce,
                       BoxArray& ba, DistributionMapping& dmap);
 
 void WriteCheckPoint2D(int step,

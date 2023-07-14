@@ -269,6 +269,7 @@ std::tuple<amrex::Real, Real> TurbForcingComp::getU(const int& i) {
     return {forcing.forcing_S[i], forcing.forcing_C[i]};
 }
 
-void TurbForcingComp::setU(const int& i, Real x) {
-    return;
+void TurbForcingComp::setU(const int& i, Real fs, Real fc) {
+    forcing.forcing_S[i] = fs;
+    forcing.forcing_C[i] = fc;
 }
