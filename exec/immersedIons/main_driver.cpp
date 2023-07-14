@@ -1026,16 +1026,19 @@ void main_driver(const char* argv)
     posx.resize(simParticles);
     Real * posxPtr = posx.dataPtr();
     Vector<Real> posxVec(simParticles);
+    Vector<Real> axVec(simParticles);
 
     Gpu::ManagedVector<Real> posy;
     posy.resize(simParticles);
     Real * posyPtr = posy.dataPtr();
     Vector<Real> posyVec(simParticles);
+    Vector<Real> ayVec(simParticles);
 
     Gpu::ManagedVector<Real> posz;
     posz.resize(simParticles);
     Real * poszPtr = posz.dataPtr();
     Vector<Real> poszVec(simParticles);
+    Vector<Real> azVec(simParticles);
 
 
 //    // Writes instantaneous flow field and some other stuff? Check with Guy.
@@ -1686,7 +1689,7 @@ void main_driver(const char* argv)
 	*/
 
         // collect particle positions onto one processor
-	particles.GetAllParticlePositions(posxVec,posyVec,poszVec);
+	particles.GetAllParticlePositions(posxVec,posyVec,poszVec,axVec,ayVec,azVec);
         if (dsf_flag == 1)
         {
 	   if (ParallelDescriptor::MyProc()==0){
@@ -1696,7 +1699,7 @@ void main_driver(const char* argv)
    
               for (int i=0;i<simParticles;i++)
               {
-                  ofs2 << istep << " " << i << " " << posxVec[i] << " " << posyVec[i] << " " << poszVec[i] << std::endl;
+                  ofs2 << istep << " " << i << " " << posxVec[i] << " " << posyVec[i] << " " << poszVec[i] << " " << axVec[i] << " " << ayVec[i] << " " << azVec[i] << std::endl;
               }
    
               ofs2.close();

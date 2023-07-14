@@ -4280,13 +4280,16 @@ FhdParticleContainer::GetAllParticlePositions(Real* posx, Real* posy, Real* posz
 }
 
 void
-FhdParticleContainer::GetAllParticlePositions(Vector<Real>& posxVec, Vector<Real>& posyVec, Vector<Real>& poszVec) {
+FhdParticleContainer::GetAllParticlePositions(Vector<Real>& posxVec, Vector<Real>& posyVec, Vector<Real>& poszVec, Vector<Real>& axVec, Vector<Real>& ayVec, Vector<Real>& azVec) {
 
 
     // collect particle positions onto one processor
     PullDown(0, posxVec, -1);
     PullDown(0, posyVec, -2);
     PullDown(0, poszVec, -3);
+    PullDown(0, axVec, FHD_realData::ax);
+    PullDown(0, ayVec, FHD_realData::ay);
+    PullDown(0, azVec, FHD_realData::az);
 
 }
 

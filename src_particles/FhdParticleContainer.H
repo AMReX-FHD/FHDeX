@@ -426,7 +426,7 @@ public:
     void TwoParticleCorrelation();
     
     void GetAllParticlePositions(Real* posx, Real* posy, Real* posz, int totalParticles);
-    void GetAllParticlePositions(Vector<Real>& posxVec, Vector<Real>& posyVec, Vector<Real>& poszVec);
+    void GetAllParticlePositions(Vector<Real>& posxVec, Vector<Real>& posyVec, Vector<Real>& poszVec, Vector<Real>& axVec, Vector<Real>& ayVec, Vector<Real>& azVec);
 
 
     /****************************************************************************

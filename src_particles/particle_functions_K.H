@@ -976,9 +976,9 @@ void compute_forces_bond_gpu (FhdParticleContainer::AoS& aos, int Np, std::map<i
                                        }
                                        //cout << rtdr2 << "\n";
 				       //
-                                       bond_hookian(part, dx, dy, dz, rtdr2, k, x0); 
+                                       bond_hookian(part, dx, dy, dz, rtdr2, k_spring, x0_spring); 
 	     		           } else if (bond_tog == 2) {
-	     	                       bond_fene(part, dx, dy, dz, rtdr2, k, x0);
+	     	                       bond_fene(part, dx, dy, dz, rtdr2, k_spring, x0_spring);
 	     		           }
                                   //cout << part.rdata(FHD_realData::forcex) << "\n";
                                }
