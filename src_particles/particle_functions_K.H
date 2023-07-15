@@ -381,6 +381,9 @@ void bond_hookian (      FhdParticleContainer::ParticleType& part1,
 
     const Real dr2 = dr*dr;
     const Real rtdr2 = sqrt(dr2);
+    if (rtdr2 > 2*x0) {
+        cout << "Bad Hookean bond" << "\n";
+    }
     
     part1.rdata(FHD_realData::forcex) += k*(-dx/rtdr2)*(rtdr2-x0);
     part1.rdata(FHD_realData::forcey) += k*(-dy/rtdr2)*(rtdr2-x0);
@@ -394,6 +397,9 @@ RealVect bond_hookian_vec (      amrex::Real dx, amrex::Real dy, amrex::Real dz,
 
     const Real dr2 = dr*dr;
     const Real rtdr2 = sqrt(dr2);
+    if (rtdr2 > 2*x0) {
+        cout << "Bad Hookean bond" << "\n";
+    }
 
     RealVect f_bond = {dx, dy, dz};
     f_bond *= -k/rtdr2*(rtdr2-x0);
@@ -966,14 +972,15 @@ void compute_forces_bond_gpu (FhdParticleContainer::AoS& aos, int Np, std::map<i
 			       //std::cout << "dr " << rtdr2 << std::endl;
 			       Real k_spring = part.rdata(FHD_realData::bondCoeff1_1+i_bond);
 			       Real x0_spring = part.rdata(FHD_realData::bondCoeff2_1+i_bond);
+			       //cout << "k = " << k_spring << "; x0 = " << x0_spring << "\n";
 
 
                                if (rtdr2 > 0.0)
                                {
 	     	                   if (bond_tog == 1) {
-                                       if (rtdr2 > b*2+x0) {
-                                          cout << "Bad Hookian bond" << "\n";
-                                       }
+                                       //if (rtdr2 > b*2+x0_spring) {
+                                       //   cout << "Bad Hookian bond" << "\n";
+                                       //}
                                        //cout << rtdr2 << "\n";
 				       //
                                        bond_hookian(part, dx, dy, dz, rtdr2, k_spring, x0_spring); 
