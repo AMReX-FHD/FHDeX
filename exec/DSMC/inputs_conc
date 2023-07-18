@@ -1,25 +1,22 @@
-# System: Isothermal boundaries with gradient of (200k/mm) with Ar
+# mass conserving reservoir boundary, red-blue, gradient
 	# Problem specification
 	prob_lo = 0.0 0.0 0.0	           # physical lo coordinate
-	prob_hi = 0.00320512 0.00040064 1.252e-7  # physical hi coordinate (cm)
+	prob_hi = 3.84e-04 0.035e-04 0.035e-04  # physical hi coordinate (cm)
 
-	n_cells = 256 32 4 
-#	max_grid_size = 16 32 4
-	max_grid_size = 256 32 4
+	n_cells = 128 1 1 # keep as powers of two
+	max_grid_size = 8 1 1
 	max_particle_tile_size = 256 256 256
 
 	# Time-step control
-	fixed_dt = 1.2e-10                        # overwritten
+	fixed_dt = 3e-11                        # overwritten
 
 	# Controls for number of steps between actions
-	max_step     = 100000000
-	plot_int     =  1000000
+	max_step     =  100000000
+	plot_int     =  500000
 	cross_cell   =  32
 	plot_cross   =  1
-	n_steps_skip =  2000000
-	
-	struct_fact_int = 1
-    project_dir = 2
+	n_steps_skip =  500000
+	struct_fact_int = -1
   
 	reset_stats = 1
 	restart     = -1
@@ -32,11 +29,11 @@
 	#Species info
 	#--------------
 	nspecies	=  2
+	mass	=  3.35e-23 3.35e-23 # grams
 
-	mass	=  6.6358804e-23 6.6358804e-23 # grams
-	diameter	=  3.66e-08 3.66e-8 # cm
+	diameter	=  2.58e-08 2.58e-08 # cm
 
-    rho0	=  0.0017775409151219938
+	rho0	=  0.0008168866420349571   # set this negative to use number density or number of particles
 
 	Yk0	=  0.5 0.5  # mass fractions does not need to add to 1 exactly (handled)
 	particle_n0 = -1 -1
@@ -47,9 +44,9 @@
 	alpha_pp = 1.0 1.0 1.0 1.0
   
 	# Stochastic parameters
-	seed    = 1
+	seed    = 0
 	k_B     = 1.38064852e-16
-	T_init  = 273 273 # kT/m ~= 10
+	T_init  = 300 300 # kT/m ~= 10
 	variance_coef_mom = 1
 	
 	dsmc_boundaries = 0
@@ -67,7 +64,7 @@
 	#            2 = inflow (set bc_Yk or bc_Xk in compressible namelist)
 	#            3 = reservior (set bc_Yk or bc_Xk in compressible namelist)
 
-	bc_vel_lo   = 5 -1 -1  #-1: periodic, 2: specular, 3: flux generating reservoir, 4: thermal wall, 5: thermal species wall, 6: mass conserving flux generating reservoir, 7: volume generating reservoir
+	bc_vel_lo   = 5 -1 -1
 	bc_vel_hi   = 5 -1 -1  
 	bc_therm_lo = -1 -1 -1
 	bc_therm_hi = -1 -1 -1
@@ -78,22 +75,19 @@
 	bc_spec_hi = 0 -1 -1
   
 	# Temperature if thermal BC specified
-	#t_hi = 519 300 300
-	#t_lo = 273 300 300
-	t_hi = 273 273 273
-	t_lo = 273 273 273
-
+	t_hi = 300 300 300
+	t_lo = 300 300 300
   
 	# Total density at boundaries
 
-	rho_lo = 0.0013164897767288005 0 0
-	rho_hi = 0.0013164897767288005 0 0
-	  
+	rho_lo = 0.0008168866420349571 0 0
+	rho_hi = 0.0008168866420349571 0 0
+  
 	# Xk and Yk at the wall for Dirichlet (concentrations) - set one to zero
 	# Ordering: (species 1, x-dir), (species 2, x-dir), ... (species 1, y-dir), ... 
 
-	bc_Yk_x_lo = 0.25 0.75  # lo BC
-	bc_Yk_x_hi = 0.75 0.25  # hi BC
+	bc_Yk_x_lo = 0.06 0.94  # lo BC
+	bc_Yk_x_hi = 0.94 0.06  # hi BC
 	bc_Yk_y_lo = 1.0  1.0   # lo BC
 	bc_Yk_y_hi = 1.0  1.0   # hi BC
 	bc_Yk_z_lo = 1.0  1.0   # lo BC

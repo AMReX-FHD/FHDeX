@@ -75,6 +75,7 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     std::array< MultiFab, AMREX_SPACEDIM > total_mass_flux;
     std::array< MultiFab, AMREX_SPACEDIM > umac_tmp;
 
+
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         mold[d]             .define(convert(ba,nodal_flag_dir[d]), dmap,        1, 1);
         mtemp[d]            .define(convert(ba,nodal_flag_dir[d]), dmap,        1, 1);
@@ -89,6 +90,7 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         rho_fc[d]           .define(convert(ba,nodal_flag_dir[d]), dmap, nspecies, 0);
         diff_mass_flux[d]   .define(convert(ba,nodal_flag_dir[d]), dmap, nspecies, 0);
         total_mass_flux[d]  .define(convert(ba,nodal_flag_dir[d]), dmap, nspecies, 0);
+
 	if (advection_type > 0) {
   	  umac_tmp[d].define(convert(ba,nodal_flag_dir[d]), dmap,        1, 1);
 	}
@@ -147,7 +149,7 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 	MultiFab::Copy(bds_force,rho_update,0,0,nspecies,0);
 	bds_force.FillBoundary(geom.periodicity());
 
-	BDS(rho_update, nspecies, SPEC_BC_COMP, rho_old, umac, bds_force, geom, dt);
+	BDS(rho_update, nspecies, SPEC_BC_COMP, rho_old, umac, bds_force, geom, dt, 2);
       
     }
     else {
@@ -244,9 +246,9 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         if (grav[d] != 0.) any_grav = true;
     }
     if (any_grav) {
-        //
-        //
-        //
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+	    MultiFab::Saxpy(gmres_rhs_v[d],grav[d],rhotot_fc_old[d],0,0,1,0);
+	}
     }
 
     // compute (eta,kappa)^{*,n+1}
@@ -427,7 +429,7 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 	}
 	rho_update.setVal(0.);
 	
-	BDS(rho_update, nspecies, SPEC_BC_COMP, rho_old, umac_tmp, bds_force, geom, dt);
+	BDS(rho_update, nspecies, SPEC_BC_COMP, rho_old, umac_tmp, bds_force, geom, dt, 2);
     }
     else {
         Abort("Invalid advection_type");
@@ -522,9 +524,11 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     // add gravity term
     if (any_grav) {
-        //
-        //
-        //
+         for (int d=0; d<AMREX_SPACEDIM; ++d) {
+             MultiFab::Saxpy(gmres_rhs_v[d],0.5*grav[d],rhotot_fc_old[d],0,0,1,0);
+             MultiFab::Saxpy(gmres_rhs_v[d],0.5*grav[d],rhotot_fc_new[d],0,0,1,0);
+        }
+
     }
 
     // set inhomogeneous velocity bc's to values supplied in inhomogeneous_bc_val

@@ -11,7 +11,7 @@ DIM       = 2
 DSMC      = FALSE
 
 TINY_PROFILE = TRUE
-USE_PARTICLES = TRUE
+USE_PARTICLES = FALSE
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
