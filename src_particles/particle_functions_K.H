@@ -388,7 +388,14 @@ void bond_hookian (      FhdParticleContainer::ParticleType& part1,
     part1.rdata(FHD_realData::forcex) += k*(-dx/rtdr2)*(rtdr2-x0);
     part1.rdata(FHD_realData::forcey) += k*(-dy/rtdr2)*(rtdr2-x0);
     part1.rdata(FHD_realData::forcez) += k*(-dz/rtdr2)*(rtdr2-x0);
-    
+   
+    // added by GX to apply a point force to particle #??? on the test cube
+    // For now, 20% of the force that can cause 100% exntesion is applied. Change as needed.
+    // we can create a new particle species/group, say 2, in order to apply forces to specific particles if needed
+    if (part1.idata(FHD_intData::id_global)==???) {
+	part1.rdata(FHD_realData::forcex) += 0.2*k*x0;
+    }	    
+
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
