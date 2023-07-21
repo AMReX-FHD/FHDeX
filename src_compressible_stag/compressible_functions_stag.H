@@ -56,9 +56,6 @@ void setBCStag(MultiFab& prim_in, MultiFab& cons_in,
                  std::array< MultiFab, AMREX_SPACEDIM >& vel_in,
                  const amrex::Geometry& geom);
 
-void BCWallReservoirFluxStagMom(std::array< MultiFab, AMREX_SPACEDIM>& cenflux_in,
-                             const amrex::Geometry geom);
-
 void BCWallReservoirFluxStag(std::array< MultiFab, AMREX_SPACEDIM >& faceflux,
                              std::array< MultiFab, AMREX_SPACEDIM>& cenflux_in,
                              const amrex::Geometry& geom);
@@ -80,7 +77,7 @@ void BCRhoRhoE(MultiFab& cons_in, MultiFab& prim_in,
                std::array< MultiFab, AMREX_SPACEDIM >& cumom_in, 
                const amrex::Geometry& geom);
 
-void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in,
+void StochFluxStag(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array< MultiFab, AMREX_SPACEDIM>& cenflux_in, 
                    std::array< MultiFab, 2 >& edgeflux_x_in, std::array< MultiFab, 2 >& edgeflux_y_in, 
                    std::array< MultiFab, 2 >& edgeflux_z_in, const amrex::Geometry& geom);
 
@@ -132,6 +129,26 @@ void doLangevin(MultiFab& cons_in, MultiFab& prim_in,
                 const amrex::Real dt);
 
 void applyEffusion(std::array<MultiFab, AMREX_SPACEDIM>& faceflux, MultiFab& cons);
+
+void 
+computeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
+                        const std::array<MultiFab, AMREX_SPACEDIM>& vel0,
+                        std::array<MultiFab, AMREX_SPACEDIM>& cumom_res,
+                        std::array<MultiFab, AMREX_SPACEDIM>& faceflux_res,
+                        const amrex::Geometry& geom,
+                        const amrex::Real dt);
+
+void 
+ResetReservoirFluxes(std::array<MultiFab, AMREX_SPACEDIM>& faceflux,
+                     const std::array<MultiFab, AMREX_SPACEDIM>& faceflux_res,
+                     const amrex::Geometry& geom);
+
+void 
+ResetReservoirMom(std::array<MultiFab, AMREX_SPACEDIM>& cumom,
+                  const std::array<MultiFab, AMREX_SPACEDIM>& cumom_res,
+                  const amrex::Geometry& geom);
+
+
 
 void WriteCheckPoint3D(int step,
                        const amrex::Real time,

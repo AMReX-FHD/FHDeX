@@ -44,26 +44,6 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                  cenflux_in[1].setVal(0.0);,
                  cenflux_in[2].setVal(0.0););
 
-    // cenflux for stochastic
-    std::array< MultiFab, AMREX_SPACEDIM > cenflux_stoch;
-    AMREX_D_TERM(cenflux_stoch[0].define(cons_in.boxArray(),cons_in.DistributionMap(),1,1);,
-                 cenflux_stoch[1].define(cons_in.boxArray(),cons_in.DistributionMap(),1,1);,
-                 cenflux_stoch[2].define(cons_in.boxArray(),cons_in.DistributionMap(),1,1););
-
-    AMREX_D_TERM(cenflux_stoch[0].setVal(0.0);,
-                 cenflux_stoch[1].setVal(0.0);,
-                 cenflux_stoch[2].setVal(0.0););
-
-    // cenflux for diffusive
-    std::array< MultiFab, AMREX_SPACEDIM > cenflux_diff;
-    AMREX_D_TERM(cenflux_diff[0].define(cons_in.boxArray(),cons_in.DistributionMap(),1,1);,
-                 cenflux_diff[1].define(cons_in.boxArray(),cons_in.DistributionMap(),1,1);,
-                 cenflux_diff[2].define(cons_in.boxArray(),cons_in.DistributionMap(),1,1););
-
-    AMREX_D_TERM(cenflux_diff[0].setVal(0.0);,
-                 cenflux_diff[1].setVal(0.0);,
-                 cenflux_diff[2].setVal(0.0););
-
     std::array< MultiFab, AMREX_SPACEDIM > tau_diag; // diagonal stress (defined at cell centers)
     AMREX_D_TERM(tau_diag[0].define(cons_in.boxArray(),cons_in.DistributionMap(),1,ngc);,
                  tau_diag[1].define(cons_in.boxArray(),cons_in.DistributionMap(),1,ngc);,
@@ -131,9 +111,9 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
             const Array4<Real>& edgez_u = edgeflux_z_in[0].array(mfi);
             const Array4<Real>& edgez_v = edgeflux_z_in[1].array(mfi);
 
-            const Array4<Real>& cenx_u = cenflux_stoch[0].array(mfi);
-            const Array4<Real>& ceny_v = cenflux_stoch[1].array(mfi);
-            const Array4<Real>& cenz_w = cenflux_stoch[2].array(mfi);
+            const Array4<Real>& cenx_u = cenflux_in[0].array(mfi);
+            const Array4<Real>& ceny_v = cenflux_in[1].array(mfi);
+            const Array4<Real>& cenz_w = cenflux_in[2].array(mfi);
 
             const Array4<Real> tauxx_stoch = tau_diag_stoch[0].array(mfi);
             const Array4<Real> tauyy_stoch = tau_diag_stoch[1].array(mfi);
@@ -792,13 +772,11 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
 
 
         // Enforce flux boundary conditions
-        StochFluxStag(faceflux_in,edgeflux_x_in,edgeflux_y_in,edgeflux_z_in,geom);
+        StochFluxStag(faceflux_in,cenflux_in,edgeflux_x_in,edgeflux_y_in,edgeflux_z_in,geom);
         if (membrane_cell >= 0) {
             StochFluxMem(faceflux_in,edgeflux_x_in,edgeflux_y_in,edgeflux_z_in);
         }
 
-        // Set stochastic momentum flux zero for reservoir
-        BCWallReservoirFluxStagMom(cenflux_stoch,geom);
     }
         
     ////////////////////
@@ -819,9 +797,9 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
         const Array4<Real>& edgez_u = edgeflux_z_in[0].array(mfi);
         const Array4<Real>& edgez_v = edgeflux_z_in[1].array(mfi);
 
-        const Array4<Real>& cenx_u = cenflux_diff[0].array(mfi);
-        const Array4<Real>& ceny_v = cenflux_diff[1].array(mfi);
-        const Array4<Real>& cenz_w = cenflux_diff[2].array(mfi);
+        const Array4<Real>& cenx_u = cenflux_in[0].array(mfi);
+        const Array4<Real>& ceny_v = cenflux_in[1].array(mfi);
+        const Array4<Real>& cenz_w = cenflux_in[2].array(mfi);
 
         const Array4<Real> tauxx = tau_diag[0].array(mfi);
         const Array4<Real> tauyy = tau_diag[1].array(mfi);
@@ -1431,42 +1409,14 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
         
         // Loop over the center cells and compute fluxes (diagonal momentum terms)
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
-            cenx_u(i,j,k) = tauxx(i,j,k);
-            ceny_v(i,j,k) = tauyy(i,j,k);
-            cenz_w(i,j,k) = tauzz(i,j,k);
+            cenx_u(i,j,k) -= tauxx(i,j,k);
+            ceny_v(i,j,k) -= tauyy(i,j,k);
+            cenz_w(i,j,k) -= tauzz(i,j,k);
         });
     }
 
-    // Set species flux and Dufour flux zero in the ghost
-    BCWallReservoirFluxStag(faceflux_in,geom);
-
-    // Set diffusive momentum flux zero for reservoir
-    BCWallReservoirFluxStagMom(cenflux_diff,geom);
-
-    // add stochastic and diffusive diagonal momentum flux
-    for ( MFIter mfi(cons_in); mfi.isValid(); ++mfi) {
-
-        const Array4<Real>& cenx_u_t = cenflux_in[0].array(mfi);
-        const Array4<Real>& ceny_v_t = cenflux_in[1].array(mfi);
-        const Array4<Real>& cenz_w_t = cenflux_in[2].array(mfi);
-
-        const Array4<Real>& cenx_u_d = cenflux_diff[0].array(mfi);
-        const Array4<Real>& ceny_v_d = cenflux_diff[1].array(mfi);
-        const Array4<Real>& cenz_w_d = cenflux_diff[2].array(mfi);
-
-        const Array4<Real>& cenx_u_s = cenflux_stoch[0].array(mfi);
-        const Array4<Real>& ceny_v_s = cenflux_stoch[1].array(mfi);
-        const Array4<Real>& cenz_w_s = cenflux_stoch[2].array(mfi);
-
-        const Box& bx = mfi.growntilebox(1);
-
-        // Loop over the center cells and compute fluxes (diagonal momentum terms)
-        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
-            cenx_u_t(i,j,k) = cenx_u_s(i,j,k) - cenx_u_d(i,j,k);
-            ceny_v_t(i,j,k) = ceny_v_s(i,j,k) - ceny_v_d(i,j,k);
-            cenz_w_t(i,j,k) = cenz_w_s(i,j,k) - cenz_w_d(i,j,k);
-        });
-    }
+    // Set species flux to zero at the walls
+    BCWallReservoirFluxStag(faceflux_in,cenflux_in,geom);
 
     ////////////////////
     // hyperbolic fluxes

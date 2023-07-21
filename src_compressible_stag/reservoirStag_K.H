@@ -1,0 +1,114 @@
+#ifndef RESERVOIRSTAG_K_H_
+#define RESERVOIRSTAG_K_H_
+
+#include "compressible_functions_stag.H"
+#include "compressible_functions.H"
+#include "common_functions.H"
+#include "rng_functions.H"
+#include <math.h>
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+amrex::Real 
+random_cross_vel(const amrex::Real a, const amrex::Real vT, amrex::RandomEngine const& engine)
+{
+    constexpr amrex::Real sqrtPI = 1.77245385091;
+    constexpr amrex::Real small_number = 1.0e-13;
+
+    amrex::Real z;
+    amrex::Real v;
+    if (a > small_number) {
+        bool stop = false;
+        while (!stop) {
+            amrex::Real u = amrex::Random(engine);
+            if ((a*sqrtPI)/(a*sqrtPI + 1.0 + a*a) > u) {
+                z = (-1.0/sqrt(2.0))*std::abs(amrex::RandomNormal(0.1,1.0,engine));
+                stop = true;
+            }
+            else if ((a*sqrtPI + 1.0)/(a*sqrtPI + 1.0 + a*a) > u) {
+                z = -1.0*sqrt(-1.0*std::log(amrex::Random(engine)));
+                stop = true;
+            }
+            else {
+                z = a*(1.0-sqrt(amrex::Random(engine)));
+                if (exp(1.0*z*z) > amrex::Random(engine)) stop = true;
+            }
+        }
+        v = (a-z)*vT;
+    }
+    else if (a < -1.0*small_number) {
+        bool stop = false;
+        while (!stop) {
+            z = -1.0*sqrt(a*a - std::log(amrex::Random(engine)));
+            if (a > z*(1.0 - amrex::Random(engine))) stop = true;
+        }
+        v = (a-z)*vT;
+    }
+    else {
+        v = vT*sqrt(-1.0*std::log(amrex::Random(engine)));
+    }
+    return v;
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void
+poisson_process_reservoir(const amrex::GpuArray<amrex::Real,MAX_SPECIES>& mass,
+                          const amrex::GpuArray<amrex::Real,MAX_SPECIES>& rhoYk,
+                          const amrex::Real T, // temperature
+                          const amrex::Real V, // velocity
+                          const int nspec,
+                          const amrex::Real area,
+                          const amrex::Real kB,
+                          const amrex::Real dt,
+                          amrex::Real mass_cross,
+                          amrex::Real mom_cross,
+                          amrex::Real en_cross,
+                          amrex::GpuArray<amrex::Real,MAX_SPECIES>& spec_mass_cross,
+                          amrex::RandomEngine const& engine)
+
+{
+    constexpr amrex::Real sqrtPI = 1.77245385091;
+
+    amrex::GpuArray<amrex::Real,MAX_SPECIES> particle_rate;
+    amrex::GpuArray<amrex::Real,MAX_SPECIES> timer;
+    amrex::GpuArray<amrex::Real,MAX_SPECIES> thermal_speed;
+    amrex::GpuArray<amrex::Real,MAX_SPECIES> speed_ratio;
+    amrex::GpuArray<bool,MAX_SPECIES> stop_flag;
+    
+    for (int n=0;n<nspec;++n) {
+        thermal_speed[n] = sqrt(2.0*kB*T/mass[n]);
+        speed_ratio[n] = V/thermal_speed[n];
+        amrex::Real num_density = rhoYk[n]/mass[n];
+        particle_rate[n] = (1.0/(2.0*sqrtPI))*num_density*area*thermal_speed[n]*
+            (exp(-1.0*speed_ratio[n]*speed_ratio[n]) + speed_ratio[n]*sqrtPI*(1.0 + erf(speed_ratio[n])));
+        timer[n] = 0.0;
+        stop_flag[n] = false;
+    }
+
+    // Run Poisson Process
+    bool stop = false;
+    while(!stop) {
+        
+        // add a particle for each species (if stop[n] = false)
+        for (int n=0;n<nspec;++n) {
+            if (!stop_flag[n]) {
+                mass_cross += mass[n]; // add a particle crossing for total mass
+                spec_mass_cross[n] += mass[n]; // add a particle crossing for species mass
+                amrex::Real vel_rand = random_cross_vel(speed_ratio[n],thermal_speed[n],engine); // get random velocity
+                mom_cross += mass[n]*vel_rand; // add a particle crossing for total momentum
+                en_cross  += 0.5*mass[n]*vel_rand*vel_rand; // add a particle crossing for total energy
+            }
+        }
+
+        stop = true;
+        for (int n=0;n<nspec;++n) { // update dt for each species
+            if (!stop_flag[n]) {
+                amrex::Real rn   = amrex::Random(engine);
+                timer[n]        -= std::log(rn)/(particle_rate[n]);
+                if (timer[n] >= dt) stop_flag[n] = true;
+            }
+            stop = stop and stop_flag[n];
+        }
+    }
+}
+
+#endif

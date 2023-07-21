@@ -29,6 +29,16 @@ void RK3stepStag(MultiFab& cu,
     cup2.setVal(0.0,0,nvars,ngc);
     //cup.setVal(rho0,0,1,ngc);
     //cup2.setVal(rho0,0,1,ngc);
+    
+    // MFab for storing momentum and face fluxes from reservoir update
+    std::array< MultiFab, AMREX_SPACEDIM > cumom_res;
+    std::array< MultiFab, AMREX_SPACEDIM > faceflux_res;
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        cumom_res[d].define(convert(cu.boxArray(),nodal_flag_dir[d]), cu.DistributionMap(), 1, 0);
+        faceflux_res[d].define(convert(cu.boxArray(),nodal_flag_dir[d]), cu.DistributionMap(), nvars, 0);
+        cumom_res[d].setVal(0.0);
+        faceflux_res[d].setVal(0.0);
+    }
 
     std::array< MultiFab, AMREX_SPACEDIM > cupmom;
     std::array< MultiFab, AMREX_SPACEDIM > cup2mom;
@@ -280,13 +290,19 @@ void RK3stepStag(MultiFab& cu,
             0, 1, 1);
     }
     /////////////////////////////////////////////////////
-
+    // compute fluxes and momentum at the reservoir /////
+    // over an intergration step dt /////////////////////
+    if (do_reservoir) computeFluxMomReservoir(cu,prim,vel,cumom_res,faceflux_res,geom,dt);
+    /////////////////////////////////////////////////////
     calculateTransportCoeffs(prim, eta, zeta, kappa, chi, D);
 
     calculateFluxStag(cu, cumom, prim, vel, eta, zeta, kappa, chi, D, 
         faceflux, edgeflux_x, edgeflux_y, edgeflux_z, cenflux, 
         stochface, stochedge_x, stochedge_y, stochedge_z, stochcen, 
         geom, stoch_weights,dt);
+
+    // overwrite fluxes at the stochastic reservoir faces from reservoir update
+    if (do_reservoir) ResetReservoirFluxes(faceflux, faceflux_res, geom);
 
     if (nreaction>0) {
         MultiFab::LinComb(ranchem,
@@ -379,6 +395,9 @@ void RK3stepStag(MultiFab& cu,
         BCMomNormal(cupmom[i], vel[i], cup, geom, i);
         BCMomTrans(cupmom[i], vel[i], geom, i);
     }
+    
+    // overwrite momentum at the stochastic reservoir faces from reservoir update
+    if (do_reservoir) ResetReservoirMom(cupmom, cumom_res, geom);
 
     // Fill boundaries for conserved variables
     for (int d=0; d<AMREX_SPACEDIM; d++) {
@@ -454,6 +473,9 @@ void RK3stepStag(MultiFab& cu,
         faceflux, edgeflux_x, edgeflux_y, edgeflux_z, cenflux, 
         stochface, stochedge_x, stochedge_y, stochedge_z, stochcen, 
         geom, stoch_weights,dt);
+    
+    // overwrite fluxes at the stochastic reservoir faces from reservoir update
+    if (do_reservoir) ResetReservoirFluxes(faceflux, faceflux_res, geom);
 
     if (nreaction>0) {
         MultiFab::LinComb(ranchem,
@@ -545,12 +567,15 @@ void RK3stepStag(MultiFab& cu,
         });
     }
         
-    // Set the correct momentum at the walls 
+    // Set the correct momentum at the walls and ghost 
     for (int i=0; i<AMREX_SPACEDIM; i++) {
         BCMassTempPress(prim, cup2, geom, i);
         BCMomNormal(cup2mom[i], vel[i], cup2, geom, i);
         BCMomTrans(cup2mom[i], vel[i], geom, i);
     }
+    
+    // overwrite momentum at the stochastic reservoir faces from reservoir update
+    if (do_reservoir) ResetReservoirMom(cup2mom, cumom_res, geom);
 
     // Fill  boundaries for conserved variables
     for (int d=0; d<AMREX_SPACEDIM; d++) {
@@ -626,6 +651,9 @@ void RK3stepStag(MultiFab& cu,
         faceflux, edgeflux_x, edgeflux_y, edgeflux_z, cenflux, 
         stochface, stochedge_x, stochedge_y, stochedge_z, stochcen, 
         geom, stoch_weights,dt);
+    
+    // overwrite fluxes at the stochastic reservoir faces from reservoir update
+    if (do_reservoir) ResetReservoirFluxes(faceflux, faceflux_res, geom);
 
     if (nreaction>0) {
         MultiFab::LinComb(ranchem,
@@ -713,12 +741,15 @@ void RK3stepStag(MultiFab& cu,
         });
     }
 
-    // Set the correct momentum at the walls 
+    // Set the correct momentum at the walls and ghost 
     for (int i=0; i<AMREX_SPACEDIM; i++) {
         BCMassTempPress(prim, cu, geom, i);
         BCMomNormal(cumom[i], vel[i], cu, geom, i);
         BCMomTrans(cumom[i], vel[i], geom, i);
     }
+    
+    // overwrite momentum at the stochastic reservoir faces from reservoir update
+    if (do_reservoir) ResetReservoirMom(cumom, cumom_res, geom);
 
     // Fill  boundaries for conserved variables
     for (int d=0; d<AMREX_SPACEDIM; d++) {
