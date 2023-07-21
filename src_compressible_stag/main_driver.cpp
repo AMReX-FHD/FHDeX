@@ -913,8 +913,8 @@ void main_driver(const char* argv)
 
         // timer
         Real ts2 = ParallelDescriptor::second() - ts1;
-        ParallelDescriptor::ReduceRealMax(ts2);
-        if (step%100 == 0) {
+        ParallelDescriptor::ReduceRealMax(ts2, ParallelDescriptor::IOProcessorNumber());
+        if (step%1 == 0) {
             amrex::Print() << "Advanced step " << step << " in " << ts2 << " seconds\n";
         }
 
@@ -982,7 +982,7 @@ void main_driver(const char* argv)
                                 statsCount, geom);
         }
         statsCount++;
-        if (step%100 == 0) {
+        if (step%1 == 0) {
             amrex::Print() << "Mean Density: " << ComputeSpatialMean(cu, 0) << " Mean Momentum (x):" << ComputeSpatialMean(cumom[0], 0) << " Mean Energy:" << ComputeSpatialMean(cu, 4) << "\n";
         }
 
@@ -1245,8 +1245,8 @@ void main_driver(const char* argv)
 
         // timer
         Real aux2 = ParallelDescriptor::second() - aux1;
-        ParallelDescriptor::ReduceRealMax(aux2);
-        if (step%100 == 0) {
+        ParallelDescriptor::ReduceRealMax(aux2,  ParallelDescriptor::IOProcessorNumber());
+        if (step%1 == 0) {
             amrex::Print() << "Aux time (stats, struct fac, plotfiles) " << aux2 << " seconds\n";
         }
         
@@ -1261,7 +1261,7 @@ void main_driver(const char* argv)
         ParallelDescriptor::ReduceLongMin(min_fab_megabytes, IOProc);
         ParallelDescriptor::ReduceLongMax(max_fab_megabytes, IOProc);
 
-        if (step%100 == 0) {
+        if (step%1 == 0) {
             amrex::Print() << "High-water FAB megabyte spread across MPI nodes: ["
                            << min_fab_megabytes << " ... " << max_fab_megabytes << "]\n";
         }
@@ -1272,7 +1272,7 @@ void main_driver(const char* argv)
         ParallelDescriptor::ReduceLongMin(min_fab_megabytes, IOProc);
         ParallelDescriptor::ReduceLongMax(max_fab_megabytes, IOProc);
 
-        if (step%100 == 0) {
+        if (step%1 == 0) {
             amrex::Print() << "Curent     FAB megabyte spread across MPI nodes: ["
                            << min_fab_megabytes << " ... " << max_fab_megabytes << "]\n";
         }
@@ -1282,6 +1282,6 @@ void main_driver(const char* argv)
 
     // timer
     Real stop_time = ParallelDescriptor::second() - strt_time;
-    ParallelDescriptor::ReduceRealMax(stop_time);
+    ParallelDescriptor::ReduceRealMax(stop_time, ParallelDescriptor::IOProcessorNumber());
     amrex::Print() << "Run time = " << stop_time << std::endl;
 }

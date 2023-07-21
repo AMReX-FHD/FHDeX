@@ -790,9 +790,9 @@ void RK3stepStag(MultiFab& cu,
 //        }
     }
     Real aux2 = ParallelDescriptor::second() - aux1;
-    ParallelDescriptor::ReduceRealMax(aux2);
-    if (step%100 == 0) {
-        amrex::Print() << "Reservoir generator time: " << aux2 << " seconds\n";
+    ParallelDescriptor::ReduceRealMax(aux2,  ParallelDescriptor::IOProcessorNumber());
+    if (step%1 == 0) {
+        amrex::Print() << "Step: " << step << " Reservoir generator time: " << aux2 << " seconds\n";
     }
     /////////////////////////////////////////////////////
     
