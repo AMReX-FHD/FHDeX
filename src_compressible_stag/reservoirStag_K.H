@@ -9,7 +9,7 @@
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 amrex::Real 
-random_cross_vel(const amrex::Real a, const amrex::Real vT, amrex::RandomEngine const& engine)
+random_cross_vel(const amrex::Real& a, const amrex::Real& vT, amrex::RandomEngine const& engine)
 {
     constexpr amrex::Real sqrtPI = 1.77245385091;
     constexpr amrex::Real small_number = 1.0e-13;
@@ -53,19 +53,20 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void
 poisson_process_reservoir(const amrex::GpuArray<amrex::Real,MAX_SPECIES>& mass,
                           const amrex::GpuArray<amrex::Real,MAX_SPECIES>& rhoYk,
-                          const amrex::Real T, // temperature
-                          const amrex::Real V, // velocity
-                          const int nspec,
-                          const amrex::Real area,
-                          const amrex::Real kB,
-                          const amrex::Real dt,
-                          amrex::Real mass_cross,
-                          amrex::Real mom_cross,
-                          amrex::Real en_cross,
+                          const amrex::Real& T, // temperature
+                          const amrex::Real& V, // velocity
+                          const int& nspec,
+                          const amrex::Real& area,
+                          const amrex::Real& kB,
+                          const amrex::Real& dt,
+                          amrex::Real& mass_cross,
+                          amrex::Real& mom_cross,
+                          amrex::Real& en_cross,
                           amrex::GpuArray<amrex::Real,MAX_SPECIES>& spec_mass_cross,
                           amrex::RandomEngine const& engine)
 
 {
+    constexpr amrex::Real small_number = 1.0e-13;
     constexpr amrex::Real sqrtPI = 1.77245385091;
 
     amrex::GpuArray<amrex::Real,MAX_SPECIES> particle_rate;
@@ -78,8 +79,19 @@ poisson_process_reservoir(const amrex::GpuArray<amrex::Real,MAX_SPECIES>& mass,
         thermal_speed[n] = sqrt(2.0*kB*T/mass[n]);
         speed_ratio[n] = V/thermal_speed[n];
         amrex::Real num_density = rhoYk[n]/mass[n];
-        particle_rate[n] = (1.0/(2.0*sqrtPI))*num_density*area*thermal_speed[n]*
-            (exp(-1.0*speed_ratio[n]*speed_ratio[n]) + speed_ratio[n]*sqrtPI*(1.0 + erf(speed_ratio[n])));
+        if (std::abs(speed_ratio[n]) > small_number) {
+            particle_rate[n] = (1.0/(2.0*sqrtPI))*num_density*area*thermal_speed[n]*
+                (exp(-1.0*speed_ratio[n]*speed_ratio[n]) + speed_ratio[n]*sqrtPI*(1.0 + erf(speed_ratio[n])));
+            if (particle_rate[n] < 0.0) {
+                amrex::Abort("negative particle rate encountered");
+            }
+        }
+        else {
+            particle_rate[n] = (1.0/(2.0*sqrtPI))*num_density*area*thermal_speed[n];
+            if (particle_rate[n] < 0.0) {
+                amrex::Abort("negative particle rate encountered");
+            }
+        }
         timer[n] = 0.0;
         stop_flag[n] = false;
     }
@@ -103,7 +115,7 @@ poisson_process_reservoir(const amrex::GpuArray<amrex::Real,MAX_SPECIES>& mass,
         for (int n=0;n<nspec;++n) { // update dt for each species
             if (!stop_flag[n]) {
                 amrex::Real rn   = amrex::Random(engine);
-                timer[n]        -= std::log(rn)/(particle_rate[n]);
+                timer[n]         = timer[n] - std::log(rn)/(particle_rate[n]);
                 if (timer[n] >= dt) stop_flag[n] = true;
             }
             stop = stop and stop_flag[n];

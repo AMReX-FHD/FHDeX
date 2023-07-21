@@ -9,14 +9,14 @@
 // compute momentum and fluxes at the reservoir-FHD interface /////////////
 ///////////////////////////////////////////////////////////////////////////
 void 
-computeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
+ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
                         const std::array<MultiFab, AMREX_SPACEDIM>& vel0,
                         std::array<MultiFab, AMREX_SPACEDIM>& cumom_res,
                         std::array<MultiFab, AMREX_SPACEDIM>& faceflux_res,
                         const amrex::Geometry& geom,
                         const amrex::Real dt)
 {
-    BL_PROFILE_VAR("computeFluxMomReservoir()",computeFluxMomReservoir);
+    BL_PROFILE_VAR("ComputeFluxMomReservoir()",ComputeFluxMomReservoir);
 
     const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
     Box dom(geom.Domain());
@@ -113,6 +113,7 @@ computeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
         const Box& dom_xhi = amrex::bdryNode(dom_x, Orientation(0, Orientation::high));
 
         for (MFIter mfi(faceflux_res[0]); mfi.isValid(); ++mfi) {
+
             const Box& bx = mfi.fabbox();
             const Box& b = bx & dom_xhi;
             
@@ -139,12 +140,12 @@ computeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
                         spec_mass_cross[n] = 0.0;
                     }
                     poisson_process_reservoir(mass,rhoYk,T,V,nspecies,area,k_B,dt,mass_cross,mom_cross,en_cross,spec_mass_cross,engine);
-                    xflux(i,j,k,0) = mass_cross/(dt*area);// update mass flux
-                    xflux(i,j,k,4) = en_cross/(dt*area); // update energy flux
+                    xflux(i,j,k,0) = -1.0*mass_cross/(dt*area); // update mass flux
+                    xflux(i,j,k,4) = -1.0*en_cross/(dt*area); // update energy flux
                     for (int n=0;n<nspecies;++n) {
-                        xflux(i,j,k,5+n) = spec_mass_cross[n]/(dt*area);
+                        xflux(i,j,k,5+n) = -1.0*spec_mass_cross[n]/(dt*area); // update species flux
                     }
-                    xmom(i,j,k)    = mom_cross;
+                    xmom(i,j,k)    = -1.0*mom_cross;
 
                     // to reservoir
                     T = prim0(i-1,j,k,4);
@@ -528,6 +529,88 @@ ResetReservoirMom(std::array<MultiFab, AMREX_SPACEDIM>& cumom,
                 amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     zmom(i,j,k) = zmom_res(i,j,k);
+                });
+            }
+        }
+    }
+}
+
+
+///////////////////////////////////////////////////////////////////////////
+// Reflux conserved qtys at the cell next to reservoir ////////////////////
+///////////////////////////////////////////////////////////////////////////
+void 
+ReFluxCons(MultiFab& cu, const MultiFab& cu0,
+           const std::array<MultiFab, AMREX_SPACEDIM>& faceflux_res,
+           const std::array<MultiFab, AMREX_SPACEDIM>& faceflux_cont,
+           const amrex::Geometry& geom,
+           const amrex::Real dt)
+{
+    BL_PROFILE_VAR("ReFluxCons()",ReFluxCons);
+    
+    const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
+
+    // Reservoir in LO X
+    if (bc_mass_lo[0] == 4) {
+
+        // domain grown nodally based on faceflux_res[0] nodality (x)
+        const Box& dom_x = amrex::convert(geom.Domain(), faceflux_res[0].ixType());
+
+        // this is the x-lo domain boundary box (x nodality)
+        // Orientation(dir,Orientation)  -- Orientation can be ::low or ::high
+        const Box& dom_xlo = amrex::bdryNode(dom_x, Orientation(0, Orientation::low));
+
+        for (MFIter mfi(faceflux_res[0]); mfi.isValid(); ++mfi) {
+            const Box& bx = mfi.fabbox();
+            const Box& b = bx & dom_xlo;
+            
+            const Array4<const Real>& xflux_res  = (faceflux_res[0]).array(mfi);
+            const Array4<const Real>& xflux_cont = (faceflux_cont[0]).array(mfi);
+
+            const Array4<Real>& cons             = cu.array(mfi);
+            const Array4<const Real>& cons0      = cu0.array(mfi);
+
+            if (b.ok()) {
+                amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    cons(i,j,k,0) = cons0(i,j,k,0) - (dt/dx[0])*(xflux_cont(i,j,k,0) - xflux_res(i,j,k,0)); // correct density
+                    cons(i,j,k,4) = cons0(i,j,k,4) - (dt/dx[0])*(xflux_cont(i,j,k,4) - xflux_res(i,j,k,4)); // correct en. density
+                    for (int n=0;n<nspecies;++n) {
+                        cons(i,j,k,n+5) = cons0(i,j,k,n+5) - (dt/dx[0])*(xflux_cont(i,j,k,n+5) - xflux_res(i,j,k,n+5)); // correct species
+                    }
+                });
+            }
+        }
+    }
+
+    // Reservoir in HI X
+    if (bc_mass_hi[0] == 4) {
+
+        // domain grown nodally based on faceflux_res[0] nodality (x)
+        const Box& dom_x = amrex::convert(geom.Domain(), faceflux_res[0].ixType());
+
+        // this is the x-lo domain boundary box (x nodality)
+        // Orientation(dir,Orientation)  -- Orientation can be ::low or ::high
+        const Box& dom_xhi = amrex::bdryNode(dom_x, Orientation(0, Orientation::high));
+
+        for (MFIter mfi(faceflux_res[0]); mfi.isValid(); ++mfi) {
+            const Box& bx = mfi.fabbox();
+            const Box& b = bx & dom_xhi;
+            
+            const Array4<const Real>& xflux_res  = (faceflux_res[0]).array(mfi);
+            const Array4<const Real>& xflux_cont = (faceflux_cont[0]).array(mfi);
+
+            const Array4<Real>& cons             = cu.array(mfi);
+            const Array4<const Real>& cons0      = cu0.array(mfi);
+
+            if (b.ok()) {
+                amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    cons(i-1,j,k,0) = cons0(i-1,j,k,0) + (dt/dx[0])*(xflux_cont(i,j,k,0) - xflux_res(i,j,k,0)); // correct density
+                    cons(i-1,j,k,4) = cons0(i-1,j,k,4) + (dt/dx[0])*(xflux_cont(i,j,k,4) - xflux_res(i,j,k,4)); // correct en. density
+                    for (int n=0;n<nspecies;++n) {
+                        cons(i-1,j,k,n+5) = cons0(i-1,j,k,n+5) + (dt/dx[0])*(xflux_cont(i,j,k,n+5) - xflux_res(i,j,k,n+5)); // correct species
+                    }
                 });
             }
         }
