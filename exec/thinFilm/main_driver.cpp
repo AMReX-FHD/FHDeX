@@ -106,7 +106,7 @@ void main_driver(const char* argv)
     BoxArray ba;
 
     // how boxes are distrubuted among MPI processes
-    DistributionMapping dmap;    
+    DistributionMapping dmap;
 
     // Initialize the boxarray "ba" from the single box "bx"
     ba.define(domain);
@@ -137,9 +137,35 @@ void main_driver(const char* argv)
     MultiFab dheightstaravg(ba, dmap, 1, 0);
     dheightstarsum.setVal(0.);
 
+    MultiFab height_pencil;
+    MultiFab dheightstarsum_pencil;
     if (do_1d_x || do_1d_y) {
         // build pencil multifabs for 1d correlations
+    
+        // make BoxArray and Geometry
+        BoxArray ba_pencil;
 
+        // how boxes are distrubuted among MPI processes
+        DistributionMapping dmap_pencil;
+
+        // Initialize the boxarray "ba" from the single box "bx"
+        ba_pencil.define(domain);
+
+        int max_grid_size_pencil = (do_1d_x) ? n_cells[1] / ParallelDescriptor::NProcs() : n_cells[0] / ParallelDescriptor::NProcs();
+
+        // Break up boxarray "ba" into chunks no larger than "max_grid_size" along a direction
+        // note we are converting "Vector<int> max_grid_size" to an IntVect
+        if (do_1d_x) {
+            ba_pencil.maxSize(IntVect(n_cells[0],max_grid_size_pencil));
+        } else {
+            ba_pencil.maxSize(IntVect(max_grid_size_pencil,n_cells[1]));
+        }
+
+        // define DistributionMapping
+        dmap_pencil.define(ba_pencil);
+
+        height_pencil        .define(ba_pencil, dmap_pencil, 1, 0);
+        dheightstarsum_pencil.define(ba_pencil, dmap_pencil, 1, 0);;
         
     }    
 
@@ -453,6 +479,33 @@ void main_driver(const char* argv)
 
             if (do_1d_x || do_1d_y) {
                 // for 1D mode, find delta h at each row (column) at icorr (jcorr) for x-mode (y-mode)
+
+                // copy h into a pencil multifab
+                height_pencil.ParallelCopy(height,0,0,1);
+
+                // increment delta h^* * delta h
+                for ( MFIter mfi(height_pencil,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
+
+                    const Box& bx = mfi.tilebox();
+        
+                    const Array4<Real> & h = height_pencil.array(mfi);
+                    const Array4<Real> & dhstar = dheightstarsum_pencil.array(mfi);
+
+                    if (do_1d_x) {
+                        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                        {
+                            dhstar(i,j,k) += ( h(thinfilm_icorr,j,k)-thinfilm_h0 ) * ( h(i,j,k)-thinfilm_h0 );
+                        });
+                    } else {
+                        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                        {
+                            dhstar(i,j,k) += ( h(i,thinfilm_jcorr,k)-thinfilm_h0 ) * ( h(i,j,k)-thinfilm_h0 );
+                        });
+                    }
+                }
+
+                // copy sum of delta h^* * delta h to regular multifab
+                dheightstarsum.ParallelCopy(dheightstarsum_pencil,0,0,1);                
                 
             } else {
                 // for 2D mode, find delta h at point icorr,jcorr and compute correlation
@@ -481,19 +534,19 @@ void main_driver(const char* argv)
                 // compute delta h^* * delta h
                 dheight.mult(h_local, 0, 1, 0);
 
-                // compute sum and average of delta h^* * delta h
+                // compute sum of delta h^* * delta h
                 MultiFab::Add(dheightstarsum, dheight, 0, 0, 1, 0);
-                MultiFab::Copy(dheightstaravg, dheightstarsum, 0, 0, 1, 0);
-                dheightstaravg.mult( stats_count_inv, 0, 1, 0);
-        
-                if (plot_int > 0 && istep%plot_int == 0)
-                {
-                    const std::string& pltfile = amrex::Concatenate("star",istep,8);
-                    WriteSingleLevelPlotfile(pltfile, dheightstaravg, {"star"}, geom, time, 0);
-                }               
-
-
             }
+
+            // compute average of delta h^* * delta h
+            MultiFab::Copy(dheightstaravg, dheightstarsum, 0, 0, 1, 0);
+            dheightstaravg.mult( stats_count_inv, 0, 1, 0);
+        
+            if (plot_int > 0 && istep%plot_int == 0)
+            {
+                const std::string& pltfile = amrex::Concatenate("star",istep,8);
+                WriteSingleLevelPlotfile(pltfile, dheightstaravg, {"star"}, geom, time, 0);
+            }               
         }
         
         Real step_stop_time = ParallelDescriptor::second() - step_strt_time;
