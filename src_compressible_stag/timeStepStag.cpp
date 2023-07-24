@@ -771,21 +771,63 @@ void RK3stepStag(MultiFab& cu,
     // timer
     Real aux1 = ParallelDescriptor::second();
     if (do_reservoir) {
+//        {
+//            std::string plotfilename = "cumom_pre_" + std::to_string(step);
+//            std::ofstream ofs(plotfilename, std::ofstream::out);
+//            for (MFIter mfi(cumom[0]); mfi.isValid(); ++mfi) {
+//                ofs<<std::setprecision(16)<< (cumom[0])[mfi]<<std::endl;
+//            }
+//        }
+//        {
+//            std::string plotfilename = "cu_pre_" + std::to_string(step);
+//            std::ofstream ofs(plotfilename, std::ofstream::out);
+//            for (MFIter mfi(cu); mfi.isValid(); ++mfi) {
+//                ofs<<std::setprecision(16)<< (cu)[mfi]<<std::endl;
+//            }
+//        }
         ComputeFluxMomReservoir(cu0,prim0,vel0,cumom_res,faceflux_res,geom,dt); // compute fluxes and momentum from reservoir particle update
         ResetReservoirMom(cumom, cumom_res, geom); // set momentum at the reservoir interface to its value from particle update
         ReFluxCons(cu, cu0, faceflux_res, faceflux_cont, geom, dt); // reflux the conservative qtys in the adjacent cell from reservoir flux
 //        {
-//            std::string plotfilename = "fluxcont";
+//            std::string plotfilename = "cumom_post_" + std::to_string(step);
+//            std::ofstream ofs(plotfilename, std::ofstream::out);
+//            for (MFIter mfi(cumom[0]); mfi.isValid(); ++mfi) {
+//                ofs<<std::setprecision(16)<< (cumom[0])[mfi]<<std::endl;
+//            }
+//        }
+//        {
+//            std::string plotfilename = "cumom_res_" + std::to_string(step);
+//            std::ofstream ofs(plotfilename, std::ofstream::out);
+//            for (MFIter mfi(cumom_res[0]); mfi.isValid(); ++mfi) {
+//                ofs<<std::setprecision(16)<< (cumom_res[0])[mfi]<<std::endl;
+//            }
+//        }
+//        {
+//            std::string plotfilename = "fluxcont_" + std::to_string(step);
 //            std::ofstream ofs(plotfilename, std::ofstream::out);
 //            for (MFIter mfi(faceflux_cont[0]); mfi.isValid(); ++mfi) {
 //                ofs<<std::setprecision(16)<< (faceflux_cont[0])[mfi]<<std::endl;
 //            }
 //        }
 //        {
-//            std::string plotfilename = "fluxres";
+//            std::string plotfilename = "fluxres_" + std::to_string(step);
 //            std::ofstream ofs(plotfilename, std::ofstream::out);
 //            for (MFIter mfi(faceflux_res[0]); mfi.isValid(); ++mfi) {
 //                ofs<<std::setprecision(16)<< (faceflux_res[0])[mfi]<<std::endl;
+//            }
+//        }
+//        {
+//            std::string plotfilename = "cu_post_" + std::to_string(step);
+//            std::ofstream ofs(plotfilename, std::ofstream::out);
+//            for (MFIter mfi(cu); mfi.isValid(); ++mfi) {
+//                ofs<<std::setprecision(16)<< (cu)[mfi]<<std::endl;
+//            }
+//        }
+//        {
+//            std::string plotfilename = "cu0_" + std::to_string(step);
+//            std::ofstream ofs(plotfilename, std::ofstream::out);
+//            for (MFIter mfi(cu0); mfi.isValid(); ++mfi) {
+//                ofs<<std::setprecision(16)<< (cu0)[mfi]<<std::endl;
 //            }
 //        }
     }
@@ -816,8 +858,36 @@ void RK3stepStag(MultiFab& cu,
     if (membrane_cell >= 0) {
         doMembraneStag(cu,cumom,prim,vel,faceflux,geom,dt);
     }
+//    {
+//        std::string plotfilename = "cu_post1_" + std::to_string(step);
+//        std::ofstream ofs(plotfilename, std::ofstream::out);
+//        for (MFIter mfi(cu); mfi.isValid(); ++mfi) {
+//            ofs<<std::setprecision(16)<< (cu)[mfi]<<std::endl;
+//        }
+//    }
+//    {
+//        std::string plotfilename = "cumom_post1_" + std::to_string(step);
+//        std::ofstream ofs(plotfilename, std::ofstream::out);
+//        for (MFIter mfi(cumom[0]); mfi.isValid(); ++mfi) {
+//            ofs<<std::setprecision(16)<< (cumom[0])[mfi]<<std::endl;
+//        }
+//    }
 
     // Correctly set momentum and velocity at the walls & temperature, pressure, density & mass/mole fractions in ghost cells
     setBCStag(prim, cu, cumom, vel, geom);
+//    {
+//        std::string plotfilename = "cu_post2_" + std::to_string(step);
+//        std::ofstream ofs(plotfilename, std::ofstream::out);
+//        for (MFIter mfi(cu); mfi.isValid(); ++mfi) {
+//            ofs<<std::setprecision(16)<< (cu)[mfi]<<std::endl;
+//        }
+//    }
+//    {
+//        std::string plotfilename = "cumom_post2_" + std::to_string(step);
+//        std::ofstream ofs(plotfilename, std::ofstream::out);
+//        for (MFIter mfi(cumom[0]); mfi.isValid(); ++mfi) {
+//            ofs<<std::setprecision(16)<< (cumom[0])[mfi]<<std::endl;
+//        }
+//    }
 
 }

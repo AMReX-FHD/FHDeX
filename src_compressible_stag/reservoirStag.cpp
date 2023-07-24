@@ -35,6 +35,7 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
     if (bc_mass_lo[0] == 4) {
 
         Real area = dx[1]*dx[2];
+        Real vol  = dx[0]*dx[1]*dx[2];
 
         // domain grown nodally based on faceflux_res[0] nodality (x)
         const Box& dom_x = amrex::convert(geom.Domain(), faceflux_res[0].ixType());
@@ -76,7 +77,8 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
                     for (int n=0;n<nspecies;++n) {
                         xflux(i,j,k,5+n) = spec_mass_cross[n]/(dt*area); // update species flux
                     }
-                    xmom(i,j,k)    = mom_cross; // set face momentum
+                    xmom(i,j,k)    = mom_cross/vol; // set face momentum
+//                    amrex::AllPrint() << "LOX, FROM RES, T: " << T << " V: " << V << " mass: " << mass_cross << " en: " << en_cross << " mom: " << mom_cross/vol << std::endl;
 
                     // to reservoir
                     T = prim0(i,j,k,4);
@@ -94,7 +96,8 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
                     for (int n=0;n<nspecies;++n) {
                         xflux(i,j,k,5+n) -= spec_mass_cross[n]/(dt*area); // update species flux
                     }
-                    xmom(i,j,k)    -= mom_cross; // subtract momentum for particles going other way
+                    xmom(i,j,k)    -= mom_cross/vol; // subtract momentum for particles going other way
+//                    amrex::AllPrint() << "LOX, TO RES, T: " << T << " V: " << V << " mass: " << mass_cross << " en: " << en_cross << " mom: " << mom_cross/vol << std::endl;
                 });
             }
         }
@@ -104,6 +107,7 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
     if (bc_mass_hi[0] == 4) {
 
         Real area = dx[1]*dx[2];
+        Real vol  = dx[0]*dx[1]*dx[2];
 
         // domain grown nodally based on faceflux_res[0] nodality (x)
         const Box& dom_x = amrex::convert(geom.Domain(), faceflux_res[0].ixType());
@@ -145,7 +149,8 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
                     for (int n=0;n<nspecies;++n) {
                         xflux(i,j,k,5+n) = -1.0*spec_mass_cross[n]/(dt*area); // update species flux
                     }
-                    xmom(i,j,k)    = -1.0*mom_cross;
+                    xmom(i,j,k)    = -1.0*mom_cross/vol;
+//                    amrex::AllPrint() << "HIX, FROM RES, T: " << T << " V: " << V << " mass: " << mass_cross << " en: " << en_cross << " mom: " << mom_cross/vol << std::endl;
 
                     // to reservoir
                     T = prim0(i-1,j,k,4);
@@ -163,7 +168,8 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
                     for (int n=0;n<nspecies;++n) {
                         xflux(i,j,k,5+n) += spec_mass_cross[n]/(dt*area);
                     }
-                    xmom(i,j,k)    += mom_cross;  // add momentum for particles going other way
+                    xmom(i,j,k)    += mom_cross/vol;  // add momentum for particles going other way
+//                    amrex::AllPrint() << "HIX, TO RES, T: " << T << " V: " << V << " mass: " << mass_cross << " en: " << en_cross << " mom: " << mom_cross/vol << std::endl;
                 });
             }
         }
@@ -549,70 +555,54 @@ ReFluxCons(MultiFab& cu, const MultiFab& cu0,
     BL_PROFILE_VAR("ReFluxCons()",ReFluxCons);
     
     const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
+    Box dom(geom.Domain());
+    
+    for ( MFIter mfi(cu0); mfi.isValid(); ++mfi) {
 
-    // Reservoir in LO X
-    if (bc_mass_lo[0] == 4) {
+        const Box& bx = mfi.validbox();
 
-        // domain grown nodally based on faceflux_res[0] nodality (x)
-        const Box& dom_x = amrex::convert(geom.Domain(), faceflux_res[0].ixType());
+        AMREX_D_TERM(Array4<Real const> const& xflux_res = faceflux_res[0].array(mfi);,
+                     Array4<Real const> const& yflux_res = faceflux_res[1].array(mfi);,
+                     Array4<Real const> const& zflux_res = faceflux_res[2].array(mfi););
+        AMREX_D_TERM(Array4<Real const> const& xflux_cont = faceflux_cont[0].array(mfi);,
+                     Array4<Real const> const& yflux_cont = faceflux_cont[1].array(mfi);,
+                     Array4<Real const> const& zflux_cont = faceflux_cont[2].array(mfi););
 
-        // this is the x-lo domain boundary box (x nodality)
-        // Orientation(dir,Orientation)  -- Orientation can be ::low or ::high
-        const Box& dom_xlo = amrex::bdryNode(dom_x, Orientation(0, Orientation::low));
+        const Array4<Real>& cons             = cu.array(mfi);
+        const Array4<const Real>& cons0      = cu0.array(mfi);
 
-        for (MFIter mfi(faceflux_res[0]); mfi.isValid(); ++mfi) {
-            const Box& bx = mfi.fabbox();
-            const Box& b = bx & dom_xlo;
-            
-            const Array4<const Real>& xflux_res  = (faceflux_res[0]).array(mfi);
-            const Array4<const Real>& xflux_cont = (faceflux_cont[0]).array(mfi);
-
-            const Array4<Real>& cons             = cu.array(mfi);
-            const Array4<const Real>& cons0      = cu0.array(mfi);
-
-            if (b.ok()) {
-                amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-                {
-                    cons(i,j,k,0) = cons0(i,j,k,0) - (dt/dx[0])*(xflux_cont(i,j,k,0) - xflux_res(i,j,k,0)); // correct density
-                    cons(i,j,k,4) = cons0(i,j,k,4) - (dt/dx[0])*(xflux_cont(i,j,k,4) - xflux_res(i,j,k,4)); // correct en. density
+        // Reservoir in LO X
+        if ((bc_mass_lo[0] == 4) and (bx.smallEnd(0) <= dom.smallEnd(0))) {
+            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                if (i == dom.smallEnd(0)) {
+                    cons(i,j,k,0) = cons0(i,j,k,0) 
+                      - (dt/dx[0])*(xflux_cont(i,j,k,0) - xflux_res(i,j,k,0)); // correct density
+                    cons(i,j,k,4) = cons0(i,j,k,4) 
+                      - (dt/dx[0])*(xflux_cont(i,j,k,4) - xflux_res(i,j,k,4)); // correct en. density
                     for (int n=0;n<nspecies;++n) {
-                        cons(i,j,k,n+5) = cons0(i,j,k,n+5) - (dt/dx[0])*(xflux_cont(i,j,k,n+5) - xflux_res(i,j,k,n+5)); // correct species
+                        cons(i,j,k,n+5) = cons0(i,j,k,n+5) 
+                      - (dt/dx[0])*(xflux_cont(i,j,k,n+5) - xflux_res(i,j,k,n+5)); // correct species
                     }
-                });
-            }
+                }
+            });
         }
-    }
 
-    // Reservoir in HI X
-    if (bc_mass_hi[0] == 4) {
-
-        // domain grown nodally based on faceflux_res[0] nodality (x)
-        const Box& dom_x = amrex::convert(geom.Domain(), faceflux_res[0].ixType());
-
-        // this is the x-lo domain boundary box (x nodality)
-        // Orientation(dir,Orientation)  -- Orientation can be ::low or ::high
-        const Box& dom_xhi = amrex::bdryNode(dom_x, Orientation(0, Orientation::high));
-
-        for (MFIter mfi(faceflux_res[0]); mfi.isValid(); ++mfi) {
-            const Box& bx = mfi.fabbox();
-            const Box& b = bx & dom_xhi;
-            
-            const Array4<const Real>& xflux_res  = (faceflux_res[0]).array(mfi);
-            const Array4<const Real>& xflux_cont = (faceflux_cont[0]).array(mfi);
-
-            const Array4<Real>& cons             = cu.array(mfi);
-            const Array4<const Real>& cons0      = cu0.array(mfi);
-
-            if (b.ok()) {
-                amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-                {
-                    cons(i-1,j,k,0) = cons0(i-1,j,k,0) + (dt/dx[0])*(xflux_cont(i,j,k,0) - xflux_res(i,j,k,0)); // correct density
-                    cons(i-1,j,k,4) = cons0(i-1,j,k,4) + (dt/dx[0])*(xflux_cont(i,j,k,4) - xflux_res(i,j,k,4)); // correct en. density
+        // Reservoir in HI X
+        if ((bc_mass_hi[0] == 4) and (bx.bigEnd(0) >= dom.bigEnd(0))) {
+            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                if (i == dom.bigEnd(0)) {
+                    cons(i,j,k,0) = cons0(i,j,k,0) 
+                      + (dt/dx[0])*(xflux_cont(i+1,j,k,0) - xflux_res(i+1,j,k,0)); // correct density
+                    cons(i,j,k,4) = cons0(i,j,k,4) 
+                      + (dt/dx[0])*(xflux_cont(i+1,j,k,4) - xflux_res(i+1,j,k,4)); // correct en. density
                     for (int n=0;n<nspecies;++n) {
-                        cons(i-1,j,k,n+5) = cons0(i-1,j,k,n+5) + (dt/dx[0])*(xflux_cont(i,j,k,n+5) - xflux_res(i,j,k,n+5)); // correct species
+                        cons(i,j,k,n+5) = cons0(i,j,k,n+5) 
+                      + (dt/dx[0])*(xflux_cont(i+1,j,k,n+5) - xflux_res(i+1,j,k,n+5)); // correct species
                     }
-                });
-            }
+                }
+            });
         }
     }
 }

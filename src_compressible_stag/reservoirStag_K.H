@@ -21,7 +21,7 @@ random_cross_vel(const amrex::Real& a, const amrex::Real& vT, amrex::RandomEngin
         while (!stop) {
             amrex::Real u = amrex::Random(engine);
             if ((a*sqrtPI)/(a*sqrtPI + 1.0 + a*a) > u) {
-                z = (-1.0/sqrt(2.0))*std::abs(amrex::RandomNormal(0.1,1.0,engine));
+                z = -1.0*std::abs(amrex::RandomNormal(0.0,sqrt(0.5),engine));
                 stop = true;
             }
             else if ((a*sqrtPI + 1.0)/(a*sqrtPI + 1.0 + a*a) > u) {
@@ -106,6 +106,7 @@ poisson_process_reservoir(const amrex::GpuArray<amrex::Real,MAX_SPECIES>& mass,
                 mass_cross += mass[n]; // add a particle crossing for total mass
                 spec_mass_cross[n] += mass[n]; // add a particle crossing for species mass
                 amrex::Real vel_rand = random_cross_vel(speed_ratio[n],thermal_speed[n],engine); // get random velocity
+//                amrex::AllPrint() << vel_rand << " " << speed_ratio[n]*thermal_speed[n] << " " << thermal_speed[n] << std::endl;
                 mom_cross += mass[n]*vel_rand; // add a particle crossing for total momentum
                 en_cross  += 0.5*mass[n]*vel_rand*vel_rand; // add a particle crossing for total energy
             }
