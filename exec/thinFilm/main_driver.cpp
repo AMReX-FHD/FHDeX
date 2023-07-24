@@ -123,10 +123,25 @@ void main_driver(const char* argv)
     Laph.setVal(0.); // prevent intermediate NaN calculations behind physical boundaries
 
     // for statsitics
+
+    // delta h
     MultiFab dheight    (ba, dmap, 1, 0);
+
+    // variance
     MultiFab dheight2sum(ba, dmap, 1, 0);
     MultiFab dheight2avg(ba, dmap, 1, 0);
     dheight2sum.setVal(0.);
+
+    // spatial correlation
+    MultiFab dheightstarsum(ba, dmap, 1, 0);
+    MultiFab dheightstaravg(ba, dmap, 1, 0);
+    dheightstarsum.setVal(0.);
+
+    if (do_1d_x || do_1d_y) {
+        // build pencil multifabs for 1d correlations
+
+        
+    }    
 
     std::array< MultiFab, AMREX_SPACEDIM > hface;    
     AMREX_D_TERM(hface[0]   .define(convert(ba,nodal_flag_x), dmap, 1, 0);,
@@ -409,15 +424,22 @@ void main_driver(const char* argv)
         // statistics
         if (istep > n_steps_skip) {
 
+            ++stats_count;
+            Real stats_count_inv = 1./stats_count;
+
+            ///////////////////////
             // variance
+
+            // compute delta h
             dheight.setVal(thinfilm_h0);
             MultiFab::Subtract(dheight, height, 0, 0, 1, 0);
-            MultiFab::Multiply(dheight, dheight, 0, 0, 1, 0);
-            MultiFab::Add(dheight2sum, dheight, 0, 0, 1, 0);
-            ++stats_count;
-            MultiFab::Copy(dheight2avg, dheight2sum, 0, 0, 1, 0);
 
-            Real stats_count_inv = 1./stats_count;
+            // compute delta h * delta h
+            MultiFab::Multiply(dheight, dheight, 0, 0, 1, 0);
+
+            // compute sum and average of delta h * delta h
+            MultiFab::Add(dheight2sum, dheight, 0, 0, 1, 0);
+            MultiFab::Copy(dheight2avg, dheight2sum, 0, 0, 1, 0);
             dheight2avg.mult( stats_count_inv, 0, 1, 0);
         
             if (plot_int > 0 && istep%plot_int == 0)
@@ -426,10 +448,52 @@ void main_driver(const char* argv)
                 WriteSingleLevelPlotfile(pltfile, dheight2avg, {"var"}, geom, time, 0);
             }
 
+            ///////////////////////
             // spatial correlation
 
+            if (do_1d_x || do_1d_y) {
+                // for 1D mode, find delta h at each row (column) at icorr (jcorr) for x-mode (y-mode)
+                
+            } else {
+                // for 2D mode, find delta h at point icorr,jcorr and compute correlation
+                Real h_local = 0.;
+
+                for ( MFIter mfi(height,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
+
+                    const Box& bx = mfi.tilebox();
+                    
+                    const Array4<Real> & h = height.array(mfi);
+
+                    if (bx.strictly_contains(IntVect(thinfilm_icorr,thinfilm_jcorr))) {
+                        h_local += h(thinfilm_icorr,thinfilm_jcorr,0);
+                    }
+
+                }
+                ParallelDescriptor::ReduceRealSum(h_local);
+
+                // compute delta h^*
+                h_local -= thinfilm_h0;
+                
+                // compute delta h
+                dheight.setVal(thinfilm_h0);
+                MultiFab::Subtract(dheight, height, 0, 0, 1, 0);
+
+                // compute delta h^* * delta h
+                dheight.mult(h_local, 0, 1, 0);
+
+                // compute sum and average of delta h^* * delta h
+                MultiFab::Add(dheightstarsum, dheight, 0, 0, 1, 0);
+                MultiFab::Copy(dheightstaravg, dheightstarsum, 0, 0, 1, 0);
+                dheightstaravg.mult( stats_count_inv, 0, 1, 0);
+        
+                if (plot_int > 0 && istep%plot_int == 0)
+                {
+                    const std::string& pltfile = amrex::Concatenate("star",istep,8);
+                    WriteSingleLevelPlotfile(pltfile, dheightstaravg, {"star"}, geom, time, 0);
+                }               
 
 
+            }
         }
         
         Real step_stop_time = ParallelDescriptor::second() - step_strt_time;
