@@ -584,6 +584,10 @@ ReFluxCons(MultiFab& cu, const MultiFab& cu0,
                         cons(i,j,k,n+5) = cons0(i,j,k,n+5) 
                       - (dt/dx[0])*(xflux_cont(i,j,k,n+5) - xflux_res(i,j,k,n+5)); // correct species
                     }
+                    amrex::AllPrint() << i << " " << j << " " << k << " oldflux: " << xflux_cont(i,j,k,0) << " " << xflux_cont(i,j,k,4) << " " << xflux_cont(i,j,k,5) << " " << xflux_cont(i,j,k,6) << std::endl;
+                    amrex::AllPrint() << i << " " << j << " " << k << " newflux: " << xflux_res(i,j,k,0) << " " << xflux_res(i,j,k,4) << " " << xflux_res(i,j,k,5) << " " << xflux_res(i,j,k,6) << std::endl;
+                    amrex::AllPrint() << i << " " << j << " " << k << " oldcons: " << cons0(i,j,k,0) << " " << cons0(i,j,k,4) << " " << cons0(i,j,k,5) << " " << cons0(i,j,k,6) << std::endl;
+                    amrex::AllPrint() << i << " " << j << " " << k << " newcons: " << cons(i,j,k,0) << " " << cons(i,j,k,4) << " " << cons(i,j,k,5) << " " << cons(i,j,k,6) << std::endl;
                 }
             });
         }
@@ -601,6 +605,10 @@ ReFluxCons(MultiFab& cu, const MultiFab& cu0,
                         cons(i,j,k,n+5) = cons0(i,j,k,n+5) 
                       + (dt/dx[0])*(xflux_cont(i+1,j,k,n+5) - xflux_res(i+1,j,k,n+5)); // correct species
                     }
+                    amrex::AllPrint() << i << " " << j << " " << k << " oldflux: " << xflux_cont(i+1,j,k,0) << " " << xflux_cont(i+1,j,k,4) << " " << xflux_cont(i+1,j,k,5) << " " << xflux_cont(i+1,j,k,6) << std::endl;
+                    amrex::AllPrint() << i << " " << j << " " << k << " newflux: " << xflux_res(i+1,j,k,0) << " " << xflux_res(i+1,j,k,4) << " " << xflux_res(i+1,j,k,5) << " " << xflux_res(i+1,j,k,6) << std::endl;
+                    amrex::AllPrint() << i << " " << j << " " << k << " oldcons: " << cons0(i,j,k,0) << " " << cons0(i,j,k,4) << " " << cons0(i,j,k,5) << " " << cons0(i,j,k,6) << std::endl;
+                    amrex::AllPrint() << i << " " << j << " " << k << " newcons: " << cons(i,j,k,0) << " " << cons(i,j,k,4) << " " << cons(i,j,k,5) << " " << cons(i,j,k,6) << std::endl;
                 }
             });
         }
