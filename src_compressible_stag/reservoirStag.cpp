@@ -31,6 +31,12 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
         mass[l] = molmass[l]/(N_A);
     }
 
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        cumom_res[d].setVal(0.0);
+        faceflux_res[d].setVal(0.0);
+    }
+
+
     // Reservoir in LO X
     if (bc_mass_lo[0] == 4) {
 
@@ -62,33 +68,29 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
                     // from reservoir
                     Real T = prim0(i-1,j,k,4);
                     Real V = 0.5*(xvel0(i-1,j,k)+xvel0(i,j,k));
-                    Real mass_cross = 0.0; // total mass crossing at the reservoir interface
-                    Real mom_cross  = 0.0; // total momentum crossing at the reservoir interface
-                    Real en_cross   = 0.0; // total energy crossing at the reservoir interface
+                    V = 0.0;
+                    Real mass_cross; // total mass crossing at the reservoir interface
+                    Real mom_cross; // total momentum crossing at the reservoir interface
+                    Real en_cross; // total energy crossing at the reservoir interface
                     GpuArray<Real,MAX_SPECIES> spec_mass_cross;
                     GpuArray<Real,MAX_SPECIES> rhoYk;
                     for (int n=0;n<nspecies;++n) {
                         rhoYk[n] = cons0(i-1,j,k,5+n);
-                        spec_mass_cross[n] = 0.0;
                     }
                     poisson_process_reservoir(mass,rhoYk,T,V,nspecies,area,k_B,dt,mass_cross,mom_cross,en_cross,spec_mass_cross,engine);
-                    xflux(i,j,k,0) = mass_cross/(dt*area); // update mass flux
-                    xflux(i,j,k,4) = en_cross/(dt*area); // update energy flux
+                    xflux(i,j,k,0) += mass_cross/(dt*area); // update mass flux
+                    xflux(i,j,k,4) += en_cross/(dt*area); // update energy flux
                     for (int n=0;n<nspecies;++n) {
-                        xflux(i,j,k,5+n) = spec_mass_cross[n]/(dt*area); // update species flux
+                        xflux(i,j,k,5+n) += spec_mass_cross[n]/(dt*area); // update species flux
                     }
-                    xmom(i,j,k)    = mom_cross/vol; // set face momentum
-//                    amrex::AllPrint() << "LOX, FROM RES, T: " << T << " V: " << V << " mass: " << mass_cross << " en: " << en_cross << " mom: " << mom_cross/vol << std::endl;
+                    xmom(i,j,k)    += mom_cross/vol; // set face momentum
+                    //xmom(i,j,k)    += mass_cross/(dt*area); // set face momentum
 
                     // to reservoir
                     T = prim0(i,j,k,4);
-                    V = 0.5*(xvel0(i,j,k)+xvel0(i+1,j,k));
-                    mass_cross = 0.0; // total mass crossing at the reservoir interface
-                    mom_cross  = 0.0; // total momentum crossing at the reservoir interface
-                    en_cross   = 0.0; // total energy crossing at the reservoir interface
+                    V = -0.5*(xvel0(i,j,k)+xvel0(i+1,j,k));
                     for (int n=0;n<nspecies;++n) {
                         rhoYk[n] = cons0(i,j,k,5+n);
-                        spec_mass_cross[n] = 0.0;
                     }
                     poisson_process_reservoir(mass,rhoYk,T,V,nspecies,area,k_B,dt,mass_cross,mom_cross,en_cross,spec_mass_cross,engine);
                     xflux(i,j,k,0) -= mass_cross/(dt*area); // update mass flux
@@ -97,7 +99,7 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
                         xflux(i,j,k,5+n) -= spec_mass_cross[n]/(dt*area); // update species flux
                     }
                     xmom(i,j,k)    -= mom_cross/vol; // subtract momentum for particles going other way
-//                    amrex::AllPrint() << "LOX, TO RES, T: " << T << " V: " << V << " mass: " << mass_cross << " en: " << en_cross << " mom: " << mom_cross/vol << std::endl;
+                    //xmom(i,j,k)    -= mass_cross/(dt*area); // subtract momentum for particles going other way
                 });
             }
         }
@@ -133,34 +135,30 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
                 {
                     // from reservoir
                     Real T = prim0(i,j,k,4);
-                    Real V = 0.5*(xvel0(i,j,k)+xvel0(i+1,j,k));
-                    Real mass_cross = 0.0; // total mass crossing at the reservoir interface
-                    Real mom_cross  = 0.0; // total momentum crossing at the reservoir interface
-                    Real en_cross   = 0.0; // total energy crossing at the reservoir interface
+                    Real V = -0.5*(xvel0(i,j,k)+xvel0(i+1,j,k));
+                    V = 0.0;
+                    Real mass_cross; // total mass crossing at the reservoir interface
+                    Real mom_cross; // total momentum crossing at the reservoir interface
+                    Real en_cross; // total energy crossing at the reservoir interface
                     GpuArray<Real,MAX_SPECIES> spec_mass_cross;
                     GpuArray<Real,MAX_SPECIES> rhoYk;
                     for (int n=0;n<nspecies;++n) {
                         rhoYk[n] = cons0(i,j,k,5+n);
-                        spec_mass_cross[n] = 0.0;
                     }
                     poisson_process_reservoir(mass,rhoYk,T,V,nspecies,area,k_B,dt,mass_cross,mom_cross,en_cross,spec_mass_cross,engine);
-                    xflux(i,j,k,0) = -1.0*mass_cross/(dt*area); // update mass flux
-                    xflux(i,j,k,4) = -1.0*en_cross/(dt*area); // update energy flux
+                    xflux(i,j,k,0) -= mass_cross/(dt*area); // update mass flux
+                    xflux(i,j,k,4) -= en_cross/(dt*area); // update energy flux
                     for (int n=0;n<nspecies;++n) {
-                        xflux(i,j,k,5+n) = -1.0*spec_mass_cross[n]/(dt*area); // update species flux
+                        xflux(i,j,k,5+n) -= spec_mass_cross[n]/(dt*area); // update species flux
                     }
-                    xmom(i,j,k)    = -1.0*mom_cross/vol;
-//                    amrex::AllPrint() << "HIX, FROM RES, T: " << T << " V: " << V << " mass: " << mass_cross << " en: " << en_cross << " mom: " << mom_cross/vol << std::endl;
+                    xmom(i,j,k)    -= mom_cross/vol;
+                    //xmom(i,j,k)    -= mass_cross/(dt*area);
 
                     // to reservoir
                     T = prim0(i-1,j,k,4);
                     V = 0.5*(xvel0(i-1,j,k)+xvel0(i,j,k));
-                    mass_cross = 0.0; // total mass crossing at the reservoir interface
-                    mom_cross  = 0.0; // total momentum crossing at the reservoir interface
-                    en_cross   = 0.0; // total energy crossing at the reservoir interface
                     for (int n=0;n<nspecies;++n) {
                         rhoYk[n] = cons0(i-1,j,k,5+n);
-                        spec_mass_cross[n] = 0.0;
                     }
                     poisson_process_reservoir(mass,rhoYk,T,V,nspecies,area,k_B,dt,mass_cross,mom_cross,en_cross,spec_mass_cross,engine);
                     xflux(i,j,k,0) += mass_cross/(dt*area); // update mass flux
@@ -169,7 +167,7 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
                         xflux(i,j,k,5+n) += spec_mass_cross[n]/(dt*area);
                     }
                     xmom(i,j,k)    += mom_cross/vol;  // add momentum for particles going other way
-//                    amrex::AllPrint() << "HIX, TO RES, T: " << T << " V: " << V << " mass: " << mass_cross << " en: " << en_cross << " mom: " << mom_cross/vol << std::endl;
+                    //xmom(i,j,k)    += mass_cross/(dt*area);  // add momentum for particles going other way
                 });
             }
         }
@@ -584,10 +582,6 @@ ReFluxCons(MultiFab& cu, const MultiFab& cu0,
                         cons(i,j,k,n+5) = cons0(i,j,k,n+5) 
                       - (dt/dx[0])*(xflux_cont(i,j,k,n+5) - xflux_res(i,j,k,n+5)); // correct species
                     }
-                    amrex::AllPrint() << i << " " << j << " " << k << " oldflux: " << xflux_cont(i,j,k,0) << " " << xflux_cont(i,j,k,4) << " " << xflux_cont(i,j,k,5) << " " << xflux_cont(i,j,k,6) << std::endl;
-                    amrex::AllPrint() << i << " " << j << " " << k << " newflux: " << xflux_res(i,j,k,0) << " " << xflux_res(i,j,k,4) << " " << xflux_res(i,j,k,5) << " " << xflux_res(i,j,k,6) << std::endl;
-                    amrex::AllPrint() << i << " " << j << " " << k << " oldcons: " << cons0(i,j,k,0) << " " << cons0(i,j,k,4) << " " << cons0(i,j,k,5) << " " << cons0(i,j,k,6) << std::endl;
-                    amrex::AllPrint() << i << " " << j << " " << k << " newcons: " << cons(i,j,k,0) << " " << cons(i,j,k,4) << " " << cons(i,j,k,5) << " " << cons(i,j,k,6) << std::endl;
                 }
             });
         }
@@ -605,10 +599,6 @@ ReFluxCons(MultiFab& cu, const MultiFab& cu0,
                         cons(i,j,k,n+5) = cons0(i,j,k,n+5) 
                       + (dt/dx[0])*(xflux_cont(i+1,j,k,n+5) - xflux_res(i+1,j,k,n+5)); // correct species
                     }
-                    amrex::AllPrint() << i << " " << j << " " << k << " oldflux: " << xflux_cont(i+1,j,k,0) << " " << xflux_cont(i+1,j,k,4) << " " << xflux_cont(i+1,j,k,5) << " " << xflux_cont(i+1,j,k,6) << std::endl;
-                    amrex::AllPrint() << i << " " << j << " " << k << " newflux: " << xflux_res(i+1,j,k,0) << " " << xflux_res(i+1,j,k,4) << " " << xflux_res(i+1,j,k,5) << " " << xflux_res(i+1,j,k,6) << std::endl;
-                    amrex::AllPrint() << i << " " << j << " " << k << " oldcons: " << cons0(i,j,k,0) << " " << cons0(i,j,k,4) << " " << cons0(i,j,k,5) << " " << cons0(i,j,k,6) << std::endl;
-                    amrex::AllPrint() << i << " " << j << " " << k << " newcons: " << cons(i,j,k,0) << " " << cons(i,j,k,4) << " " << cons(i,j,k,5) << " " << cons(i,j,k,6) << std::endl;
                 }
             });
         }

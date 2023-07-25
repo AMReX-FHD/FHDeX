@@ -69,6 +69,13 @@ poisson_process_reservoir(const amrex::GpuArray<amrex::Real,MAX_SPECIES>& mass,
     constexpr amrex::Real small_number = 1.0e-13;
     constexpr amrex::Real sqrtPI = 1.77245385091;
 
+    mass_cross = 0.0;
+    mom_cross  = 0.0;
+    en_cross   = 0.0;
+    for (int n=0;n<nspecies;++n) {
+        spec_mass_cross[n] = 0.0;
+    }
+
     amrex::GpuArray<amrex::Real,MAX_SPECIES> particle_rate;
     amrex::GpuArray<amrex::Real,MAX_SPECIES> timer;
     amrex::GpuArray<amrex::Real,MAX_SPECIES> thermal_speed;
@@ -108,7 +115,8 @@ poisson_process_reservoir(const amrex::GpuArray<amrex::Real,MAX_SPECIES>& mass,
                 amrex::Real vel_rand = random_cross_vel(speed_ratio[n],thermal_speed[n],engine); // get random velocity
 //                amrex::AllPrint() << vel_rand << " " << speed_ratio[n]*thermal_speed[n] << " " << thermal_speed[n] << std::endl;
                 mom_cross += mass[n]*vel_rand; // add a particle crossing for total momentum
-                en_cross  += 0.5*mass[n]*vel_rand*vel_rand; // add a particle crossing for total energy
+                en_cross  += 0.5*mass[n]*(vel_rand)*(vel_rand); // add a particle crossing for total energy
+//                en_cross  += 0.5*mass[n]*(V-vel_rand)*(V-vel_rand); // add a particle crossing for total energy
             }
         }
 
