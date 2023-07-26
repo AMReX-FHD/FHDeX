@@ -199,7 +199,7 @@ void main_driver(const char* argv)
     std::array< MultiFab, AMREX_SPACEDIM > velVars;
     std::array< MultiFab, AMREX_SPACEDIM > cumomMeans;
     std::array< MultiFab, AMREX_SPACEDIM > cumomVars;
-    
+
     if ((plot_cross) and ((cross_cell < 0) or (cross_cell > n_cells[0]-1))) {
         Abort("Cross cell needs to be within the domain: 0 <= cross_cell <= n_cells[0] - 1");
     }
@@ -772,6 +772,9 @@ void main_driver(const char* argv)
         if (plot_int > 0) {
             WritePlotFileStag(0, 0.0, geom, cu, cuMeans, cuVars, cumom, cumomMeans, cumomVars, 
                           prim, primMeans, primVars, vel, velMeans, velVars, coVars, surfcov, surfcovMeans, surfcovVars, eta, kappa);
+            if (turbForcing > 0) {
+                EvaluateWritePlotFileVelGrad(0, 0.0, geom, vel);
+            }
 
             if (plot_cross) {
                 if (do_1D) {
@@ -1297,6 +1300,10 @@ void main_driver(const char* argv)
             //          cuMeansAv, cuVarsAv, primMeansAv, primVarsAv, spatialCrossAv);
             WritePlotFileStag(step, time, geom, cu, cuMeans, cuVars, cumom, cumomMeans, cumomVars,
                               prim, primMeans, primVars, vel, velMeans, velVars, coVars, surfcov, surfcovMeans, surfcovVars, eta, kappa);
+            
+            if (turbForcing > 0) {
+                EvaluateWritePlotFileVelGrad(step, time, geom, vel);
+            }
 
             if (plot_cross) {
                 if (do_1D) {
