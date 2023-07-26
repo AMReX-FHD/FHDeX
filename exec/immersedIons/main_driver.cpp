@@ -830,6 +830,9 @@ void main_driver(const char* argv)
         }
     }
     else {
+        if (!amrex::FileExists("num_ids")) {
+	   Abort("num_ids file is needed to use the new PullDown functions when checkpointing.");
+        }
         ReadCheckPointParticles(particles, ionParticle, dxp);
     }
 

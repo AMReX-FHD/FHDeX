@@ -734,11 +734,39 @@ void IBMarkerContainerBase<StructReal, StructInt>::UpdatePIDMap() {
     int size = ParallelDescriptor::NProcs();
 
     // Number of IDs associated with this rank
-    num_ids[rank] = this->NextID() - 1;
+    if (amrex::FileExists("num_ids")) {
+       std::ifstream numIDFile("num_ids");
+       for (int i_rank=0; i_rank<size; i_rank++) {
+           int buf_rank, buf_num_ids;
+           numIDFile >> buf_rank;
+           numIDFile >> buf_num_ids;        
+	   num_ids[buf_rank] = buf_num_ids;
+       }
+       numIDFile.close();
+       Print() << "Finished reading NextID info (for checkpoint).\n";
+    } else {
+       num_ids[rank] = this->NextID() - 1;
+       std::cout << "num_ids on rank " << rank << ": " << num_ids[rank] << std::endl;
 
-    ParallelDescriptor::ReduceIntSum(
-        Vector<std::reference_wrapper<int>>(std::begin(num_ids), std::end(num_ids))
-    );
+       ParallelDescriptor::ReduceIntSum(
+           Vector<std::reference_wrapper<int>>(std::begin(num_ids), std::end(num_ids))
+       );
+
+       if (ParallelDescriptor::MyProc()==0){
+          std::string filename = "num_ids";
+          std::ofstream ofs2(filename, std::ofstream::app);
+          //ofstream ofs( filename, ios::binary );
+
+          for (int i=0;i<size;i++)
+          {
+              ofs2 << i << " " << num_ids[i] << std::endl;
+          }
+
+          ofs2.close();
+          //ofs.close();
+          Print() << "Finished writing NextID info.\n";
+       }
+    }
 
     int offset = 0;
     for (int i=0; i < size; i++) {
