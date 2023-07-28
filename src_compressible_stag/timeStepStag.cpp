@@ -21,7 +21,7 @@ void RK3stepStag(MultiFab& cu,
                  std::array< MultiFab, AMREX_SPACEDIM>& cenflux,
                  MultiFab& ranchem,
                  const amrex::Geometry& geom, const amrex::Real dt, const int /*step*/,
-                 TurbForcingComp* turbforce)
+                 TurbForcingComp& turbforce)
 {
     BL_PROFILE_VAR("RK3stepStag()",RK3stepStag);
 
@@ -176,14 +176,9 @@ void RK3stepStag(MultiFab& cu,
         turb_vel_f[d].setVal(0.);
     }
     if (turbForcing > 1) {
-        turbforce->CalcTurbForcingComp(turb_vel_f_o,dt,0);
-        turbforce->CalcTurbForcingComp(turb_vel_f,dt,1);
-//        for (int i=0; i<132; ++i) {
-//            auto [f_sol, f_comp] = turbforce->getU(i);
-//            amrex::AllPrint() << i << " " << f_sol << " " << f_comp << std::endl;
-//        }
+        turbforce.CalcTurbForcingComp(turb_vel_f_o,dt,0);
+        turbforce.CalcTurbForcingComp(turb_vel_f,dt,1);
     }
-
 
     // fill random numbers (can skip density component 0)
     if (do_1D) { // 1D need only for x- face 

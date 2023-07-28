@@ -46,7 +46,7 @@ void WriteCheckPoint3D(int step,
                        const amrex::MultiFab& surfcovMeans,
                        const amrex::MultiFab& surfcovVars,
                        const Vector<Real>& spatialCross, int ncross,
-                       TurbForcingComp* turbforce)
+                       TurbForcingComp& turbforce)
 
 {
     // timer for profiling
@@ -115,7 +115,7 @@ void WriteCheckPoint3D(int step,
         // Write turbulent forcings
         if (turbForcing > 1) {
             for (int i=0; i<132; ++i) {
-                auto [f_sol, f_comp] = turbforce->getU(i);
+                auto [f_sol, f_comp] = turbforce.getU(i);
                 HeaderFile << f_sol << "\n";
                 HeaderFile << f_comp << "\n";
             }
@@ -612,7 +612,7 @@ void ReadCheckPoint3D(int& step,
                      amrex::MultiFab& surfcovVars,
                      Vector<Real>& spatialCross,
                      int ncross,
-                     TurbForcingComp* turbforce,
+                     TurbForcingComp& turbforce,
                      BoxArray& ba, DistributionMapping& dmap)
 {
     // timer for profiling
@@ -637,7 +637,7 @@ void ReadCheckPoint3D(int& step,
     dmap.define(ba, ParallelDescriptor::NProcs());
     
     if (turbForcing > 1) {
-        turbforce->define(ba,dmap,turb_a,turb_b,turb_c,turb_d,turb_alpha);
+        turbforce.define(ba,dmap,turb_a,turb_b,turb_c,turb_d,turb_alpha);
     }
 
     // Header
@@ -691,7 +691,7 @@ void ReadCheckPoint3D(int& step,
             for (int i=0; i<132; ++i) {
                 is >> fs_temp;
                 is >> fc_temp;
-                turbforce->setU(i,fs_temp,fc_temp);
+                turbforce.setU(i,fs_temp,fc_temp);
             }
         }
 

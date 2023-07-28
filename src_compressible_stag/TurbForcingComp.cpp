@@ -10,9 +10,15 @@ void TurbForcingComp::define(BoxArray ba_in, DistributionMapping dmap_in,
 {
     BL_PROFILE_VAR("TurbForcingComp::define()",TurbForcingCompDefine);
 
+    ForcingS.resize(132);
+    ForcingC.resize(132);
+    ForcingSold.resize(132);
+    ForcingCold.resize(132);
     for (int i=0; i<132; ++i) {
-        forcing.forcing_S[i] = 0.;
-        forcing.forcing_C[i] = 0.;
+        ForcingS[i] = 0.;
+        ForcingC[i] = 0.;
+        ForcingSold[i] = 0.;
+        ForcingCold[i] = 0.;
     }
     
     forcing_a = a_in;
@@ -42,17 +48,11 @@ void TurbForcingComp::Initialize(const Geometry& geom_in) {
 
     const GpuArray<Real,AMREX_SPACEDIM> dx = geom_in.CellSizeArray();
 
-    GpuArray<Real,AMREX_SPACEDIM> prob_lo_gpu;
-
-    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        prob_lo_gpu[d] = prob_lo[d];
-    }
+    GpuArray<Real,AMREX_SPACEDIM> prob_lo_gpu = geom_in.ProbLoArray();
     
-    KVEC kvec_gpu;
-    // copy the object to the device and pass a device pointer
-    KVEC* kvec_gpu_ptr = (KVEC*)The_Arena()->alloc(sizeof(KVEC));
-    Gpu::htod_memcpy_async(kvec_gpu_ptr, &kvec_gpu, sizeof(KVEC));
-    Gpu::streamSynchronize();
+    int* const AMREX_RESTRICT kx = GetKX();
+    int* const AMREX_RESTRICT ky = GetKY();
+    int* const AMREX_RESTRICT kz = GetKZ();
     
     // Loop over boxes
     for (MFIter mfi(sines[0],TilingIfNotGPU()); mfi.isValid(); ++mfi) {
@@ -76,47 +76,47 @@ void TurbForcingComp::Initialize(const Geometry& geom_in) {
                 Real x = prob_lo_gpu[0] + i*dx[0];
                 Real y = prob_lo_gpu[1] + (j+0.5)*dx[1];
                 for (int d=0; d<22; ++d) {
-                    sin_x(i,j,k,d) = std::sin(2.*pi*(kvec.kx[d]*x + kvec.ky[d]*y) / L);
-                    cos_x(i,j,k,d) = std::cos(2.*pi*(kvec.kx[d]*x + kvec.ky[d]*y) / L);
+                    sin_x(i,j,k,d) = std::sin(2.*pi*(kx[d]*x + ky[d]*y) / L);
+                    cos_x(i,j,k,d) = std::cos(2.*pi*(kx[d]*x + ky[d]*y) / L);
                 }
             },
             [=] AMREX_GPU_DEVICE (int i, int j, int k) {
                 Real x = prob_lo_gpu[0] + (i+0.5)*dx[0];
                 Real y = prob_lo_gpu[1] + j*dx[1];
                 for (int d=0; d<22; ++d) {
-                    sin_y(i,j,k,d) = std::sin(2.*pi*(kvec.kx[d]*x + kvec.ky[d]*y) / L);
-                    cos_y(i,j,k,d) = std::cos(2.*pi*(kvec.kx[d]*x + kvec.ky[d]*y) / L);
+                    sin_y(i,j,k,d) = std::sin(2.*pi*(kx[d]*x + ky[d]*y) / L);
+                    cos_y(i,j,k,d) = std::cos(2.*pi*(kx[d]*x + ky[d]*y) / L);
                 }
             });
 #elif (AMREX_SPACEDIM ==3)
-        amrex::ParallelFor(bx_x, bx_y, bx_z, [prob_lo_gpu,kvec_gpu_ptr,L,sin_x,cos_x,dx] AMREX_GPU_DEVICE (int i, int j, int k) {
+        amrex::ParallelFor(bx_x, bx_y, bx_z, [=] AMREX_GPU_DEVICE (int i, int j, int k) {
                 Real pi = 3.1415926535897932;
                 Real x = prob_lo_gpu[0] + i*dx[0];
                 Real y = prob_lo_gpu[1] + (j+0.5)*dx[1];
                 Real z = prob_lo_gpu[2] + (k+0.5)*dx[2];
                 for (int d=0; d<22; ++d) {
-                    sin_x(i,j,k,d) = std::sin(2.*pi*(kvec_gpu_ptr->kx[d]*x + kvec_gpu_ptr->ky[d]*y + kvec_gpu_ptr->kz[d]*z) / L);
-                    cos_x(i,j,k,d) = std::cos(2.*pi*(kvec_gpu_ptr->kx[d]*x + kvec_gpu_ptr->ky[d]*y + kvec_gpu_ptr->kz[d]*z) / L);
+                    sin_x(i,j,k,d) = std::sin(2.*pi*(kx[d]*x + ky[d]*y + kz[d]*z) / L);
+                    cos_x(i,j,k,d) = std::cos(2.*pi*(kx[d]*x + ky[d]*y + kz[d]*z) / L);
                 }
             },
-            [prob_lo_gpu,kvec_gpu_ptr,L,sin_y,cos_y,dx] AMREX_GPU_DEVICE (int i, int j, int k) {
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) {
                 Real pi = 3.1415926535897932;
                 Real x = prob_lo_gpu[0] + (i+0.5)*dx[0];
                 Real y = prob_lo_gpu[1] + j*dx[1];
                 Real z = prob_lo_gpu[2] + (k+0.5)*dx[2];
                 for (int d=0; d<22; ++d) {
-                    sin_y(i,j,k,d) = std::sin(2.*pi*(kvec_gpu_ptr->kx[d]*x + kvec_gpu_ptr->ky[d]*y + kvec_gpu_ptr->kz[d]*z) / L);
-                    cos_y(i,j,k,d) = std::cos(2.*pi*(kvec_gpu_ptr->kx[d]*x + kvec_gpu_ptr->ky[d]*y + kvec_gpu_ptr->kz[d]*z) / L);
+                    sin_y(i,j,k,d) = std::sin(2.*pi*(kx[d]*x + ky[d]*y + kz[d]*z) / L);
+                    cos_y(i,j,k,d) = std::cos(2.*pi*(kx[d]*x + ky[d]*y + kz[d]*z) / L);
                 }
             },
-            [prob_lo_gpu,kvec_gpu_ptr,L,sin_z,cos_z,dx] AMREX_GPU_DEVICE (int i, int j, int k) {
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) {
                 Real pi = 3.1415926535897932;
                 Real x = prob_lo_gpu[0] + (i+0.5)*dx[0];
                 Real y = prob_lo_gpu[1] + (j+0.5)*dx[1];
                 Real z = prob_lo_gpu[2] + k*dx[2];
                 for (int d=0; d<22; ++d) {
-                    sin_z(i,j,k,d) = std::sin(2.*pi*(kvec_gpu_ptr->kx[d]*x + kvec_gpu_ptr->ky[d]*y + kvec_gpu_ptr->kz[d]*z) / L);
-                    cos_z(i,j,k,d) = std::cos(2.*pi*(kvec_gpu_ptr->kx[d]*x + kvec_gpu_ptr->ky[d]*y + kvec_gpu_ptr->kz[d]*z) / L);
+                    sin_z(i,j,k,d) = std::sin(2.*pi*(kx[d]*x + ky[d]*y + kz[d]*z) / L);
+                    cos_z(i,j,k,d) = std::cos(2.*pi*(kx[d]*x + ky[d]*y + kz[d]*z) / L);
                 }
             });
 #endif
@@ -130,10 +130,15 @@ void TurbForcingComp::CalcTurbForcingComp(std::array< MultiFab, AMREX_SPACEDIM >
 {
 
     Real sqrtdt = std::sqrt(dt);
+    
+    Real* const AMREX_RESTRICT forcing_S = GetForcingS();
+    Real* const AMREX_RESTRICT forcing_C = GetForcingC();
+    
+    Real* const AMREX_RESTRICT forcing_Sold = GetForcingSOld();
+    Real* const AMREX_RESTRICT forcing_Cold = GetForcingCOld();
 
     // update U = U - a*dt + b*sqrt(dt)*Z
     if (update == 1) {
-        
         Vector<Real> rngs_s(132); // solenoidal
         Vector<Real> rngs_c(132); // comopressional
 
@@ -157,29 +162,16 @@ void TurbForcingComp::CalcTurbForcingComp(std::array< MultiFab, AMREX_SPACEDIM >
 
         // update forcing (OU)
         for (int i=0; i<132; ++i) {
-            forcing.forcing_S[i] += forcing_a*forcing.forcing_S[i]*dt + forcing_b*sqrtdt*rngs_s[i];
-            forcing.forcing_C[i] += forcing_c*forcing.forcing_C[i]*dt + forcing_d*sqrtdt*rngs_c[i];
+            forcing_S[i] = forcing_Sold[i] - forcing_a*forcing_Sold[i]*dt + forcing_b*sqrtdt*rngs_s[i];
+            forcing_C[i] = forcing_Cold[i] - forcing_c*forcing_Cold[i]*dt + forcing_d*sqrtdt*rngs_c[i];
         }
 
+        copy_new_forcing_to_old();
     }
 
-    
-    KVEC kvec_gpu;
-    // copy the object to the device and pass a device pointer
-    KVEC* kvec_gpu_ptr = (KVEC*)The_Arena()->alloc(sizeof(KVEC));
-    Gpu::htod_memcpy_async(kvec_gpu_ptr, &kvec_gpu, sizeof(KVEC));
-    Gpu::streamSynchronize();
-    
-    FORCING forcing_gpu;    
-    // copy the object to the device and pass a device pointer
-    FORCING* forcing_gpu_ptr = (FORCING*)The_Arena()->alloc(sizeof(FORCING));
-    Gpu::htod_memcpy_async(forcing_gpu_ptr, &forcing_gpu, sizeof(FORCING));
-    Gpu::streamSynchronize();
-    
-    for (int i=0; i<132; ++i) {
-        forcing_gpu_ptr->forcing_S[i] = forcing.forcing_S[i];
-        forcing_gpu_ptr->forcing_C[i] = forcing.forcing_C[i];
-    }
+    int* const AMREX_RESTRICT Kx = GetKX();
+    int* const AMREX_RESTRICT Ky = GetKY();
+    int* const AMREX_RESTRICT Kz = GetKZ();
 
     Real alpha_gpu = alpha;
 
@@ -212,53 +204,47 @@ void TurbForcingComp::CalcTurbForcingComp(std::array< MultiFab, AMREX_SPACEDIM >
             }
             );
 #elif (AMREX_SPACEDIM ==3)
-        amrex::ParallelFor(bx_x, bx_y, bx_z, [vel_x,kvec_gpu_ptr,forcing_gpu_ptr,alpha_gpu,sin_x,cos_x] AMREX_GPU_DEVICE (int i, int j, int k) {
+        amrex::ParallelFor(bx_x, bx_y, bx_z, [=] AMREX_GPU_DEVICE (int i, int j, int k) {
                 for (int d=0; d<22; ++d) {
-                    Real kx = kvec_gpu_ptr->kx[d];
-                    Real ky = kvec_gpu_ptr->ky[d];
-                    Real kz = kvec_gpu_ptr->kz[d];
+                    Real kx = Real(Kx[d]);
+                    Real ky = Real(Ky[d]);
+                    Real kz = Real(Kz[d]);
                     Real kk = kx*kx + ky*ky + kz*kz;
-                    vel_x(i,j,k) = alpha_gpu*cos_x(i,j,k,d)*
-                        (forcing_gpu_ptr->forcing_S[d]*(1.0-kx*kx/kk)    - forcing_gpu_ptr->forcing_S[d+22]*(kx*ky/kk)     - forcing_gpu_ptr->forcing_S[d+44]*(kx*kz/kk)); // solenoidal
-                    vel_x(i,j,k) += alpha_gpu*sin_x(i,j,k,d)*
-                        (forcing_gpu_ptr->forcing_S[d+66]*(1.0-kx*kx/kk) - forcing_gpu_ptr->forcing_S[d+88]*(kx*ky/kk)     - forcing_gpu_ptr->forcing_S[d+110]*(kx*kz/kk)); // solenoidal
-                    vel_x(i,j,k) += (1.0-alpha_gpu)*cos_x(i,j,k,d)*
-                        (forcing_gpu_ptr->forcing_C[d]*(kx*kx/kk)        + forcing_gpu_ptr->forcing_C[d+22]*(kx*ky/kk)     + forcing_gpu_ptr->forcing_C[d+44]*(kx*kz/kk)); // compressional
-                    vel_x(i,j,k) += (1.0-alpha_gpu)*sin_x(i,j,k,d)*
-                        (forcing_gpu_ptr->forcing_C[d+66]*(kx*kx/kk)     + forcing_gpu_ptr->forcing_C[d+88]*(kx*ky/kk)     + forcing_gpu_ptr->forcing_C[d+110]*(kx*kz/kk)); // compressional
+                    Real forcingScos = alpha_gpu*cos_x(i,j,k,d)*(forcing_S[d]*(1.0-kx*kx/kk)    - forcing_S[d+22]*(kx*ky/kk) - forcing_S[d+44]*(kx*kz/kk)); // solenoidal;
+                    Real forcingSsin = alpha_gpu*sin_x(i,j,k,d)*(forcing_S[d+66]*(1.0-kx*kx/kk) - forcing_S[d+88]*(kx*ky/kk) - forcing_S[d+110]*(kx*kz/kk)); // solenoidal;
+                    vel_x(i,j,k)    += forcingScos + forcingSsin;
+                    Real forcingCcos = (1.0-alpha_gpu)*cos_x(i,j,k,d)*(forcing_C[d]*(kx*kx/kk)    + forcing_C[d+22]*(kx*ky/kk) + forcing_C[d+44]*(kx*kz/kk)); // compressional
+                    Real forcingCsin = (1.0-alpha_gpu)*sin_x(i,j,k,d)*(forcing_C[d+66]*(kx*kx/kk) + forcing_C[d+88]*(kx*ky/kk) + forcing_C[d+110]*(kx*kz/kk)); // compressional
+                    vel_x(i,j,k)    += forcingCcos + forcingCsin;
                 }
             },
-            [vel_y,kvec_gpu_ptr,forcing_gpu_ptr,alpha_gpu,sin_y,cos_y] AMREX_GPU_DEVICE (int i, int j, int k) {
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) {
                 for (int d=0; d<22; ++d) {
-                    Real kx = kvec_gpu_ptr->kx[d];
-                    Real ky = kvec_gpu_ptr->ky[d];
-                    Real kz = kvec_gpu_ptr->kz[d];
+                    Real kx = Real(Kx[d]);
+                    Real ky = Real(Ky[d]);
+                    Real kz = Real(Kz[d]);
                     Real kk = kx*kx + ky*ky + kz*kz;
-                    vel_y(i,j,k) = alpha_gpu*cos_y(i,j,k,d)*
-                        (-forcing_gpu_ptr->forcing_S[d]*(kx*ky/kk)       + forcing_gpu_ptr->forcing_S[d+22]*(1.0-ky*ky/kk) - forcing_gpu_ptr->forcing_S[d+44]*(ky*kz/kk)); // solenoidal
-                    vel_y(i,j,k) += alpha_gpu*sin_y(i,j,k,d)*
-                        (-forcing_gpu_ptr->forcing_S[d+66]*(kx*ky/kk)    + forcing_gpu_ptr->forcing_S[d+88]*(1.0-ky*ky/kk) - forcing_gpu_ptr->forcing_S[d+110]*(ky*kz/kk)); // solenoidal
-                    vel_y(i,j,k) += (1.0-alpha_gpu)*cos_y(i,j,k,d)*
-                        (forcing_gpu_ptr->forcing_C[d]*(kx*ky/kk)        + forcing_gpu_ptr->forcing_C[d+22]*(ky*ky/kk)     + forcing_gpu_ptr->forcing_C[d+44]*(ky*kz/kk)); // compressional
-                    vel_y(i,j,k) += (1.0-alpha_gpu)*sin_y(i,j,k,d)*
-                        (forcing_gpu_ptr->forcing_C[d+66]*(kx*ky/kk)     + forcing_gpu_ptr->forcing_C[d+88]*(ky*ky/kk)     + forcing_gpu_ptr->forcing_C[d+110]*(ky*kz/kk)); // compressional
+                    Real forcingScos = alpha_gpu*cos_y(i,j,k,d)*(-forcing_S[d]*(kx*ky/kk)    + forcing_S[d+22]*(1.0-ky*ky/kk) - forcing_S[d+44]*(ky*kz/kk)); // solenoidal;
+                    Real forcingSsin = alpha_gpu*sin_y(i,j,k,d)*(-forcing_S[d+66]*(kx*ky/kk) + forcing_S[d+88]*(1.0-ky*ky/kk) - forcing_S[d+110]*(ky*kz/kk)); // solenoidal;
+                    vel_y(i,j,k)    += forcingScos + forcingSsin;
+                    Real forcingCcos = (1.0-alpha_gpu)*cos_y(i,j,k,d)*(forcing_C[d]*(kx*ky/kk)    + forcing_C[d+22]*(ky*ky/kk) + forcing_C[d+44]*(ky*kz/kk)); // compressional
+                    Real forcingCsin = (1.0-alpha_gpu)*sin_y(i,j,k,d)*(forcing_C[d+66]*(kx*ky/kk) + forcing_C[d+88]*(ky*ky/kk) + forcing_C[d+110]*(ky*kz/kk)); // compressional
+                    vel_y(i,j,k)    += forcingCcos + forcingCsin;
                 }
                 
             },
-            [vel_z,kvec_gpu_ptr,forcing_gpu_ptr,alpha_gpu,sin_z,cos_z] AMREX_GPU_DEVICE (int i, int j, int k) {
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) {
                 for (int d=0; d<22; ++d) {
-                    Real kx = kvec_gpu_ptr->kx[d];
-                    Real ky = kvec_gpu_ptr->ky[d];
-                    Real kz = kvec_gpu_ptr->kz[d];
+                    Real kx = Real(Kx[d]);
+                    Real ky = Real(Ky[d]);
+                    Real kz = Real(Kz[d]);
                     Real kk = kx*kx + ky*ky + kz*kz;
-                    vel_z(i,j,k) = alpha_gpu*cos_z(i,j,k,d)*
-                        (-forcing_gpu_ptr->forcing_S[d]*(kx*kz/kk)       - forcing_gpu_ptr->forcing_S[d+22]*(ky*kz/kk)     + forcing_gpu_ptr->forcing_S[d+44]*(1.0-kz*kz/kk)); // solenoidal
-                    vel_z(i,j,k) += alpha_gpu*sin_z(i,j,k,d)*
-                        (-forcing_gpu_ptr->forcing_S[d+66]*(kx*kz/kk)    - forcing_gpu_ptr->forcing_S[d+88]*(ky*kz/kk)     + forcing_gpu_ptr->forcing_S[d+110]*(1.0-kz*kz/kk)); // solenoidal
-                    vel_z(i,j,k) += (1.0-alpha_gpu)*cos_z(i,j,k,d)*
-                        (forcing_gpu_ptr->forcing_C[d]*(kx*kz/kk)        + forcing_gpu_ptr->forcing_C[d+22]*(ky*kz/kk)     + forcing_gpu_ptr->forcing_C[d+44]*(kz*kz/kk)    ); // compressional
-                    vel_z(i,j,k) += (1.0-alpha_gpu)*sin_z(i,j,k,d)*
-                        (forcing_gpu_ptr->forcing_C[d+66]*(kx*kz/kk)     + forcing_gpu_ptr->forcing_C[d+88]*(ky*kz/kk)     + forcing_gpu_ptr->forcing_C[d+110]*(kz*kz/kk)    ); // compressional
+                    Real forcingScos = alpha_gpu*cos_z(i,j,k,d)*(-forcing_S[d]*(kx*kz/kk)    - forcing_S[d+22]*(ky*kz/kk) + forcing_S[d+44]*(1.0-kz*kz/kk)); // solenoidal;
+                    Real forcingSsin = alpha_gpu*sin_z(i,j,k,d)*(-forcing_S[d+66]*(kx*kz/kk) - forcing_S[d+88]*(ky*kz/kk) + forcing_S[d+110]*(1.0-kz*kz/kk)); // solenoidal;
+                    vel_z(i,j,k)    += forcingScos + forcingSsin;
+                    Real forcingCcos = (1.0-alpha_gpu)*cos_z(i,j,k,d)*(forcing_C[d]*(kx*kz/kk)    + forcing_C[d+22]*(ky*kz/kk) + forcing_C[d+44]*(kz*kz/kk)); // compressional
+                    Real forcingCsin = (1.0-alpha_gpu)*sin_z(i,j,k,d)*(forcing_C[d+66]*(kx*kz/kk) + forcing_C[d+88]*(ky*kz/kk) + forcing_C[d+110]*(kz*kz/kk)); // compressional
+                    vel_z(i,j,k)    += forcingCcos + forcingCsin;
                 }                
             });
 #endif
@@ -266,10 +252,24 @@ void TurbForcingComp::CalcTurbForcingComp(std::array< MultiFab, AMREX_SPACEDIM >
 }
 
 std::tuple<amrex::Real, Real> TurbForcingComp::getU(const int& i) {
-    return {forcing.forcing_S[i], forcing.forcing_C[i]};
+    return {ForcingS[i], ForcingC[i]};
 }
 
 void TurbForcingComp::setU(const int& i, Real fs, Real fc) {
-    forcing.forcing_S[i] = fs;
-    forcing.forcing_C[i] = fc;
+    ForcingS[i] = fs;
+    ForcingC[i] = fc;
+}
+
+void TurbForcingComp::copy_new_forcing_to_old()
+{
+    Real* const AMREX_RESTRICT forcing_S = GetForcingS();
+    Real* const AMREX_RESTRICT forcing_C = GetForcingC();
+    
+    Real* const AMREX_RESTRICT forcing_Sold = GetForcingSOld();
+    Real* const AMREX_RESTRICT forcing_Cold = GetForcingCOld();
+        
+    for (int i=0; i<132; ++i) {
+        forcing_Sold[i] = forcing_S[i];
+        forcing_Cold[i] = forcing_C[i];
+    }
 }

@@ -102,7 +102,7 @@ void RK3stepStag(MultiFab& cu,
                  std::array< MultiFab, 2 >& edgeflux_z,
                  std::array< MultiFab, AMREX_SPACEDIM>& cenflux,
                  MultiFab& ranchem,
-                 const amrex::Geometry& geom, const amrex::Real dt, const int step, TurbForcingComp* turbforce);
+                 const amrex::Geometry& geom, const amrex::Real dt, const int step, TurbForcingComp& turbforce);
 
 void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMREX_SPACEDIM >& momStag_in, 
                        const MultiFab& prim_in, const std::array< MultiFab, AMREX_SPACEDIM >& velStag_in,
@@ -157,7 +157,7 @@ void WriteCheckPoint3D(int step,
                        const amrex::MultiFab& surfcovMeans,
                        const amrex::MultiFab& surfcovVars,
                        const Vector<Real>& spatialCross, int ncross,
-                       TurbForcingComp* turbforce);
+                       TurbForcingComp& turbforce);
 
 void ReadCheckPoint3D(int& step,
                       amrex::Real& time,
@@ -181,7 +181,7 @@ void ReadCheckPoint3D(int& step,
                       amrex::MultiFab& surfcovMeans,
                       amrex::MultiFab& surfcovVars,
                       Vector<Real>& spatialCross, int ncross,
-                      TurbForcingComp* turbforce,
+                      TurbForcingComp& turbforce,
                       BoxArray& ba, DistributionMapping& dmap);
 
 void WriteCheckPoint2D(int step,
@@ -385,4 +385,7 @@ void EvaluateSpatialCorrelations1D(MultiFab& spatialCross1D,
                                    const int star_index);
 
 void ComputeSoundSpeed(MultiFab& sound_speed_in, const MultiFab& prim_in);
+
+amrex::Real GetMaxAcousticCFL(const MultiFab& prim_in, const std::array<MultiFab, AMREX_SPACEDIM>& vel_in, const Real& dt, const Geometry& geom);
+
 #endif

@@ -704,3 +704,73 @@ void ComputeSoundSpeed(MultiFab& sound_speed_in, const MultiFab& prim_in)
         });
     } // end MFIter
 }
+
+amrex::Real GetMaxAcousticCFL(const MultiFab& prim_in, const std::array<MultiFab, AMREX_SPACEDIM>& vel_in, const Real& dt, const Geometry& geom)
+{
+    const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
+    
+    std::array< MultiFab, AMREX_SPACEDIM > CFL;
+    for (int d=0; d<AMREX_SPACEDIM; d++) {
+        CFL[d].define(convert(prim_in.boxArray(),nodal_flag_dir[d]), prim_in.DistributionMap(), 1, 0);
+        CFL[d].setVal(0.0);
+    }
+
+    for ( MFIter mfi(prim_in,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
+        
+        const Box& tbx = mfi.nodaltilebox(0);
+        const Box& tby = mfi.nodaltilebox(1);
+        const Box& tbz = mfi.nodaltilebox(2);
+
+        const Array4<Real const> & prim = prim_in.array(mfi);
+
+        AMREX_D_TERM(const Array4<Real>& cflx = CFL[0].array(mfi);,
+                     const Array4<Real>& cfly = CFL[1].array(mfi);,
+                     const Array4<Real>& cflz = CFL[2].array(mfi););
+
+
+        AMREX_D_TERM(Array4<Real const> const& velx = vel_in[0].array(mfi);,
+                     Array4<Real const> const& vely = vel_in[1].array(mfi);,
+                     Array4<Real const> const& velz = vel_in[2].array(mfi););
+
+        amrex::ParallelFor(tbx, tby, tbz,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+            Real temp = 0.5*(prim(i-1,j,k,4) + prim(i,j,k,4));
+            GpuArray<Real,MAX_SPECIES> Yk;
+            for (int ns=0; ns<nspecies; ++ns) {
+                Yk[ns] = 0.5*(prim(i-1,j,k,6+ns) + prim(i,j,k,6+ns));
+            }
+            Real sound_speed;
+            GetSoundSpeed(sound_speed,Yk,temp);
+            cflx(i,j,k) = (sound_speed + std::abs(velx(i,j,k)))*dt/dx[0];
+        },
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+            Real temp = 0.5*(prim(i,j-1,k,4) + prim(i,j,k,4));
+            GpuArray<Real,MAX_SPECIES> Yk;
+            for (int ns=0; ns<nspecies; ++ns) {
+                Yk[ns] = 0.5*(prim(i,j-1,k,6+ns) + prim(i,j,k,6+ns));
+            }
+            Real sound_speed;
+            GetSoundSpeed(sound_speed,Yk,temp);
+            cfly(i,j,k) = (sound_speed + std::abs(vely(i,j,k)))*dt/dx[1];
+        },
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+            Real temp = 0.5*(prim(i,j,k-1,4) + prim(i,j,k,4));
+            GpuArray<Real,MAX_SPECIES> Yk;
+            for (int ns=0; ns<nspecies; ++ns) {
+                Yk[ns] = 0.5*(prim(i,j,k-1,6+ns) + prim(i,j,k,6+ns));
+            }
+            Real sound_speed;
+            GetSoundSpeed(sound_speed,Yk,temp);
+            cflz(i,j,k) = (sound_speed + std::abs(velz(i,j,k)))*dt/dx[2];
+        });
+    }
+
+    Real cflx_max = CFL[0].max(0);
+    Real cfly_max = CFL[1].max(0);
+    Real cflz_max = CFL[2].max(0);
+
+    Real cfl_max = std::max(cflx_max, std::max(cfly_max, cflz_max));
+
+    return cfl_max;
+
+}

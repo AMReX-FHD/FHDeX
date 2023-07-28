@@ -471,11 +471,6 @@ void main_driver(const char* argv)
     // object for turbulence forcing
     TurbForcingComp turbforce;
 
-    // copy the object to the device and pass a device pointer
-    TurbForcingComp* tbforce = (TurbForcingComp*)The_Arena()->alloc(sizeof(TurbForcingComp));
-    Gpu::htod_memcpy_async(tbforce, &turbforce, sizeof(TurbForcingComp));
-    Gpu::streamSynchronize();
-
     /////////////////////////////////////////////
     // Initialize based on fresh start or restart
     /////////////////////////////////////////////
@@ -495,7 +490,7 @@ void main_driver(const char* argv)
         else {
             ReadCheckPoint3D(step_start, time, statsCount, geom, domain, cu, cuMeans, cuVars, prim,
                              primMeans, primVars, cumom, cumomMeans, cumomVars, 
-                             vel, velMeans, velVars, coVars, surfcov, surfcovMeans, surfcovVars, spatialCross3D, ncross, tbforce, ba, dmap);
+                             vel, velMeans, velVars, coVars, surfcov, surfcovMeans, surfcovVars, spatialCross3D, ncross, turbforce, ba, dmap);
         }
 
         if (reset_stats == 1) statsCount = 1;
@@ -799,7 +794,7 @@ void main_driver(const char* argv)
 
         // define turbulence forcing object
         if (turbForcing > 1) {
-            tbforce->define(ba,dmap,turb_a,turb_b,turb_c,turb_d,turb_alpha);
+            turbforce.define(ba,dmap,turb_a,turb_b,turb_c,turb_d,turb_alpha);
         }
 
 
@@ -1003,7 +998,7 @@ void main_driver(const char* argv)
 
     // Initialize Turbulence Forcing Object
     if (turbForcing > 1) {
-        tbforce->Initialize(geom);
+        turbforce.Initialize(geom);
     }
                 
     /////////////////////////////////////////////////
@@ -1027,7 +1022,7 @@ void main_driver(const char* argv)
 
         // FHD
         RK3stepStag(cu, cumom, prim, vel, source, eta, zeta, kappa, chi, D, 
-            faceflux, edgeflux_x, edgeflux_y, edgeflux_z, cenflux, ranchem, geom, dt, step, tbforce);
+            faceflux, edgeflux_x, edgeflux_y, edgeflux_z, cenflux, ranchem, geom, dt, step, turbforce);
 
         // update surface chemistry (via either surfchem_mui or MFsurfchem)
 #if defined(MUI) || defined(USE_AMREX_MPMD)
@@ -1570,7 +1565,7 @@ void main_driver(const char* argv)
             else {
                 WriteCheckPoint3D(step, time, statsCount, geom, cu, cuMeans, cuVars, prim,
                                   primMeans, primVars, cumom, cumomMeans, cumomVars, 
-                                  vel, velMeans, velVars, coVars, surfcov, surfcovMeans, surfcovVars, spatialCross3D, ncross, tbforce);
+                                  vel, velMeans, velVars, coVars, surfcov, surfcovMeans, surfcovVars, spatialCross3D, ncross, turbforce);
             }
         }
 
@@ -1606,6 +1601,11 @@ void main_driver(const char* argv)
         if (step%100 == 0) {
             amrex::Print() << "Curent     FAB megabyte spread across MPI nodes: ["
                            << min_fab_megabytes << " ... " << max_fab_megabytes << "]\n";
+        }
+
+        if ((step%100 == 0) and (turbForcing > 0)) {
+            amrex::Real cfl_max = GetMaxAcousticCFL(prim, vel, dt, geom);
+            amrex::Print() << "Max convective-acoustic CFL is: " << cfl_max << "\n";
         }
     }
 
