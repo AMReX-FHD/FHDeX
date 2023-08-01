@@ -14,12 +14,18 @@ void TurbForcingComp::define(BoxArray ba_in, DistributionMapping dmap_in,
     ForcingC.resize(132);
     ForcingSold.resize(132);
     ForcingCold.resize(132);
-    for (int i=0; i<132; ++i) {
-        ForcingS[i] = 0.;
-        ForcingC[i] = 0.;
-        ForcingSold[i] = 0.;
-        ForcingCold[i] = 0.;
-    }
+    Real* const AMREX_RESTRICT forcing_S = GetForcingS();
+    Real* const AMREX_RESTRICT forcing_C = GetForcingC();
+    Real* const AMREX_RESTRICT forcing_Sold = GetForcingSOld();
+    Real* const AMREX_RESTRICT forcing_Cold = GetForcingCOld();
+    amrex::ParallelFor(132, [forcing_S, forcing_C, forcing_Sold, forcing_Cold]
+    AMREX_GPU_DEVICE (int i) noexcept
+    {
+        forcing_S[i] = 0.;
+        forcing_C[i] = 0.;
+        forcing_Sold[i] = 0.;
+        forcing_Cold[i] = 0.;
+    });
     
     forcing_a = a_in;
     forcing_b = b_in;
@@ -139,32 +145,32 @@ void TurbForcingComp::CalcTurbForcingComp(std::array< MultiFab, AMREX_SPACEDIM >
 
     // update U = U - a*dt + b*sqrt(dt)*Z
     if (update == 1) {
-        Vector<Real> rngs_s(132); // solenoidal
-        Vector<Real> rngs_c(132); // comopressional
+        Gpu::DeviceVector<Real> rngs_s(132); // solenoidal
+        Gpu::DeviceVector<Real> rngs_c(132); // comopressional
+        Real* const AMREX_RESTRICT rngs_s_gpu = rngs_s.dataPtr();
+        Real* const AMREX_RESTRICT rngs_c_gpu = rngs_c.dataPtr();
 
-        if (ParallelDescriptor::IOProcessor()) {
-            // compute random numbers on IOProcessor
-            for (int i=0; i<132; ++i) {
-                rngs_s[i] = amrex::RandomNormal(0.,1.);
-                rngs_c[i] = amrex::RandomNormal(0.,1.);
-            }
-        }
-
-        // broadcast random numbers to all processors
-        amrex::BroadcastArray(rngs_s,
-                              ParallelDescriptor::MyProc(),
-                              ParallelDescriptor::IOProcessorNumber(),
-                              ParallelDescriptor::Communicator());
-        amrex::BroadcastArray(rngs_c,
-                              ParallelDescriptor::MyProc(),
-                              ParallelDescriptor::IOProcessorNumber(),
-                              ParallelDescriptor::Communicator());
+        amrex::ParallelForRNG(132, [rngs_s_gpu,rngs_c_gpu]
+        AMREX_GPU_DEVICE (int i, amrex::RandomEngine const& engine) noexcept
+        {
+            rngs_s_gpu[i] = amrex::RandomNormal(0.,1.,engine);
+            rngs_c_gpu[i] = amrex::RandomNormal(0.,1.,engine);
+        });
 
         // update forcing (OU)
-        for (int i=0; i<132; ++i) {
-            forcing_S[i] = forcing_Sold[i] - forcing_a*forcing_Sold[i]*dt + forcing_b*sqrtdt*rngs_s[i];
-            forcing_C[i] = forcing_Cold[i] - forcing_c*forcing_Cold[i]*dt + forcing_d*sqrtdt*rngs_c[i];
-        }
+        Real forcing_a_gpu = forcing_a;
+        Real forcing_b_gpu = forcing_b;
+        Real forcing_c_gpu = forcing_c;
+        Real forcing_d_gpu = forcing_d;
+        Real dt_gpu = dt;
+        Real sqrtdt_gpu = sqrtdt;
+        amrex::ParallelFor(132, [forcing_S, forcing_C, forcing_Sold, forcing_Cold, rngs_s_gpu, rngs_c_gpu, 
+                                 forcing_a_gpu, forcing_b_gpu, forcing_c_gpu, forcing_d_gpu, dt_gpu, sqrtdt_gpu]
+        AMREX_GPU_DEVICE (int i) noexcept
+        {
+            forcing_S[i] = forcing_Sold[i] - forcing_a_gpu*forcing_Sold[i]*dt_gpu + forcing_b_gpu*sqrtdt_gpu*rngs_s_gpu[i];
+            forcing_C[i] = forcing_Cold[i] - forcing_c_gpu*forcing_Cold[i]*dt_gpu + forcing_d_gpu*sqrtdt_gpu*rngs_c_gpu[i];
+        });
 
         copy_new_forcing_to_old();
     }
@@ -268,8 +274,10 @@ void TurbForcingComp::copy_new_forcing_to_old()
     Real* const AMREX_RESTRICT forcing_Sold = GetForcingSOld();
     Real* const AMREX_RESTRICT forcing_Cold = GetForcingCOld();
         
-    for (int i=0; i<132; ++i) {
+    amrex::ParallelFor(132, [forcing_S, forcing_C, forcing_Sold, forcing_Cold]
+    AMREX_GPU_DEVICE (int i) noexcept
+    {
         forcing_Sold[i] = forcing_S[i];
         forcing_Cold[i] = forcing_C[i];
-    }
+    });
 }
