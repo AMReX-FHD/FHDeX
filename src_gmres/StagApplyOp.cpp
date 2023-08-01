@@ -114,7 +114,7 @@ void stag_applyop_visc_p1 (Box const& tbx,
 	      -(phiy(i+1,j,k)+phiy(i-1,j,k))*term2*betacc(i,j,k)
 	      -(phiy(i,j+1,k)+phiy(i,j-1,k))*term3*betacc(i,j,k)
 #if (AMREX_SPACEDIM == 3)
-                -(phiy(i,j,k+1)+phiy(i,j,k-1))*term4
+ 	      -(phiy(i,j,k+1)+phiy(i,j,k-1))*term4*betacc(i,j,k)
 #endif
                 ;
         }
