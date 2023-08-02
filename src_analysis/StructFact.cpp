@@ -1,4 +1,3 @@
-
 #include "common_functions.H"
 #include "StructFact.H"
 
@@ -832,27 +831,31 @@ void StructFact::IntegratekShells(const int& step, const Geometry& /*geom*/) {
     int npts = n_cells[0]/2-1;
     //int npts_sq = npts*npts;
 
-    Gpu::DeviceVector<Real> phisum_vect(npts);
-    Gpu::DeviceVector<int>  phicnt_vect(npts);
+    Gpu::DeviceVector<Real> phisum_device(npts);
+    Gpu::DeviceVector<int>  phicnt_device(npts);
 
-//    Gpu::DeviceVector<Real> phisum_vect_large(npts_sq);
-//    Gpu::DeviceVector<int>  phicnt_vect_large(npts_sq);
+    Gpu::HostVector<Real> phisum_host(npts);
+    
+    Real* phisum_ptr = phisum_device.dataPtr();  // pointer to data
+    int*  phicnt_ptr = phicnt_device.dataPtr();  // pointer to data
 
-    for (int d=0; d<npts; ++d) {
-        phisum_vect[d] = 0.;
-        phicnt_vect[d] = 0;
-    }
+    amrex::ParallelFor(npts, [=] AMREX_GPU_DEVICE (int d) noexcept
+    {
+      phisum_ptr[d] = 0.;
+      phicnt_ptr[d] = 0;
+    });
+    
+
+//    Gpu::DeviceVector<Real> phisum_device_large(npts_sq);
+//    Gpu::DeviceVector<int>  phicnt_device_large(npts_sq);
 
 //    for (int d=0; d<npts_sq; ++d) {
-//        phisum_vect_large[d] = 0.;
-//        phicnt_vect_large[d] = 0;
+//        phisum_device_large[d] = 0.;
+//        phicnt_device_large[d] = 0;
 //    }
     
-    Real* phisum_gpu = phisum_vect.dataPtr();  // pointer to data
-    int*  phicnt_gpu = phicnt_vect.dataPtr();  // pointer to data
-    
-  //  Real* phisum_large_gpu = phisum_vect_large.dataPtr();  // pointer to data
- //   int*  phicnt_large_gpu = phicnt_vect_large.dataPtr();  // pointer to data
+  //  Real* phisum_large_gpu = phisum_device_large.dataPtr();  // pointer to data
+ //   int*  phicnt_large_gpu = phicnt_device_large.dataPtr();  // pointer to data
 
     // only consider cells that are within 15k of the center point
     
@@ -876,24 +879,24 @@ void StructFact::IntegratekShells(const int& step, const Geometry& /*geom*/) {
 	        dist = dist+0.5;
                 int cell = int(dist);
                 for (int d=0; d<AMREX_SPACEDIM; ++d) {
-		  amrex::HostDevice::Atomic::Add(&(phisum_gpu[cell]), cov(i,j,k,d));
+		  amrex::HostDevice::Atomic::Add(&(phisum_ptr[cell]), cov(i,j,k,d));
 //		    phisum_large_gpu[idist]  += cov(i,j,k,d);
                 }
-		amrex::HostDevice::Atomic::Add(&(phicnt_gpu[cell]),1);
+		amrex::HostDevice::Atomic::Add(&(phicnt_ptr[cell]),1);
  //               ++phicnt_large_gpu[idist];
             }
         });
     }
         
     for (int d=1; d<npts; ++d) {
-        ParallelDescriptor::ReduceRealSum(phisum_vect[d]);
-        ParallelDescriptor::ReduceIntSum(phicnt_vect[d]);
+        ParallelDescriptor::ReduceRealSum(phisum_device[d]);
+        ParallelDescriptor::ReduceIntSum(phicnt_device[d]);
     }
         
 #if 0
     for (int d=1; d<npts_sq; ++d) {
-        ParallelDescriptor::ReduceRealSum(phisum_vect_large[d]);
-        ParallelDescriptor::ReduceIntSum(phicnt_vect_large[d]);
+        ParallelDescriptor::ReduceRealSum(phisum_device_large[d]);
+        ParallelDescriptor::ReduceIntSum(phicnt_device_large[d]);
     }
 
     if (ParallelDescriptor::IOProcessor()) {
@@ -904,9 +907,9 @@ void StructFact::IntegratekShells(const int& step, const Geometry& /*geom*/) {
         
         turb_disc.open(turbNamedisc);
         for (int d=1; d<npts_sq; ++d) {
-	    if(phicnt_vect_large[d]>0) {
+	    if(phicnt_device_large[d]>0) {
 		Real dreal = d;
-                turb_disc << sqrt(dreal) << " " << 4.*M_PI*d*phisum_vect_large[d]/phicnt_vect_large[d] << std::endl;
+                turb_disc << sqrt(dreal) << " " << 4.*M_PI*d*phisum_device_large[d]/phicnt_device_large[d] << std::endl;
 	    }
         }
     }
@@ -920,7 +923,7 @@ void StructFact::IntegratekShells(const int& step, const Geometry& /*geom*/) {
         
         turb_alt.open(turbNamealt);
         for (int d=1; d<npts; ++d) {
-            turb_alt << d << " " << phisum_vect[d] << std::endl;
+            turb_alt << d << " " << phisum_device[d] << std::endl;
         }
     }
 #endif
@@ -928,17 +931,26 @@ void StructFact::IntegratekShells(const int& step, const Geometry& /*geom*/) {
     Real dk = 1.;
     
 #if (AMREX_SPACEDIM == 2)
-    for (int d=1; d<npts; ++d) {
-      //  phisum_vect[d] *= 2.*M_PI*d*dk*dk/phicnt_vect[d];
-        phisum_vect[d] *= 2.*M_PI*(d*dk+.5*dk*dk)/phicnt_vect[d];
-    }
+    amrex::ParallelFor(npts, [=] AMREX_GPU_DEVICE (int d) noexcept
+    {
+      if (d != 0) {
+  	  // phisum_ptr[d] *= 2.*M_PI*d*dk*dk/phicnt_ptr[d];
+	  phisum_ptr[d] *= 2.*M_PI*(d*dk+.5*dk*dk)/phicnt_ptr[d];
+      }
+    });
 #else
-    for (int d=1; d<npts; ++d) {
-      //  phisum_vect[d] *= 4.*M_PI*(d*d)*dk*dk*dk/phicnt_vect[d];
-      //  phisum_vect[d] *= 4.*M_PI*(d*d*dk+d*dk*dk+dk*dk*dk/3.)/phicnt_vect[d];
-        phisum_vect[d] *= 4.*M_PI*(d*d*dk+dk*dk*dk/12.)/phicnt_vect[d];
-    }
+    amrex::ParallelFor(npts, [=] AMREX_GPU_DEVICE (int d) noexcept
+    {
+        if (d != 0) {
+	    // phisum_ptr[d] *= 4.*M_PI*(d*d)*dk*dk*dk/phicnt_ptr[d];
+	    // phisum_ptr[d] *= 4.*M_PI*(d*d*dk+d*dk*dk+dk*dk*dk/3.)/phicnt_ptr[d];
+	    phisum_ptr[d] *= 4.*M_PI*(d*d*dk+dk*dk*dk/12.)/phicnt_ptr[d];
+	}
+    });
 #endif
+
+    Gpu::copy(Gpu::deviceToHost, phisum_device.begin(), phisum_device.end(), phisum_host.begin());
+    
     if (ParallelDescriptor::IOProcessor()) {
         std::ofstream turb;
         std::string turbBaseName = "turb";
@@ -948,7 +960,7 @@ void StructFact::IntegratekShells(const int& step, const Geometry& /*geom*/) {
         
         turb.open(turbName);
         for (int d=1; d<npts; ++d) {
-            turb << d << " " << phisum_vect[d] << std::endl;
+            turb << d << " " << phisum_host[d] << std::endl;
         }
     }
 }
