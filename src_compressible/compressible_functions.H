@@ -248,7 +248,7 @@ void Decomp ( int const neq,
         ip[k-1]=ip[i];
         ip[i]=j;
         if (apm < eps) {
-            std::printf("%e",a[(ip[neq-1]-1)*nspecies+neq-1]);
+           // std::printf("%e",a[(ip[neq-1]-1)*nspecies+neq-1]);
             Abort("singular matrix in decomp");
         }
         for (l=ip1-1; l<neq; ++l) {
@@ -262,7 +262,7 @@ void Decomp ( int const neq,
         }
     }
     if(std::abs(a[(ip[neq-1]-1)*nspecies+neq-1]) < eps) {
-            std::printf("%e",a[(ip[neq-1]-1)*nspecies+neq-1]);
+            //std::printf("%e",a[(ip[neq-1]-1)*nspecies+neq-1]);
             Abort("singular matrix in decomp");
     }
 }
@@ -297,7 +297,7 @@ void Decomp2 ( int const neq,
         ip[k-1]=ip[i];
         ip[i]=j;
         if (apm < eps) {
-            std::printf("%e",a[(ip[neq-1]-1)*2*nspecies+neq-1]);
+            //std::printf("%e",a[(ip[neq-1]-1)*2*nspecies+neq-1]);
             Abort("singular matrix in decomp");
         }
         for (l=ip1-1; l<neq; ++l) {
@@ -311,7 +311,7 @@ void Decomp2 ( int const neq,
         }
     }
     if(std::abs(a[(ip[neq-1]-1)*2*nspecies+neq-1]) < eps) {
-            std::printf("%e",a[(ip[neq-1]-1)*2*nspecies+neq-1]);
+            //std::printf("%e",a[(ip[neq-1]-1)*2*nspecies+neq-1]);
             Abort("singular matrix in decomp");
     }
             
@@ -426,7 +426,7 @@ void Decompnp ( int const neq,
         }
     }
     if (std::abs(a[(neq-1)*ndim+neq-1])<eps) {
-        std::printf("%e",a[(neq-1)*ndim+neq-1]);
+        //std::printf("%e",a[(neq-1)*ndim+neq-1]);
         Abort("singular matrix in decomp");
     }            
 }
