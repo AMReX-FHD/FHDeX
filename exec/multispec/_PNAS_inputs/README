@@ -1,0 +1,15 @@
+This directory contains the inputs files used for the results in "Fluctuating Hydrodynamics and
+the Rayleigh-Plateau Instability
+
+_thickness directory:  inputs to measure interface thickness at different chi
+
+_laplace directory:    inputs to measure interfacial tension from Laplace pressure
+
+inputs_spectrum:       inputs to measure capillary wave spectrum
+
+inputs_RayleighPlateau:  inputs for default Rayleigh Plateau simulations
+                         run with different seeds to create an ensemble
+                         for smaller runs reduce length and numoer of mesh points in z direction
+                             keeping mesh size the same
+
+inputs_high_schmidt:     inputs for default configure but with higher viscosity and Schmidt number

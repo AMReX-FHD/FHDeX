@@ -1,0 +1,2 @@
+CEXE_sources   += thinfilm_functions.cpp
+CEXE_headers   += thinfilm_functions.H thinfilm_namespace.H
