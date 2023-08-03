@@ -14,18 +14,13 @@ void TurbForcingComp::define(BoxArray ba_in, DistributionMapping dmap_in,
     ForcingC.resize(132);
     ForcingSold.resize(132);
     ForcingCold.resize(132);
-    Real* const AMREX_RESTRICT forcing_S = GetForcingS();
-    Real* const AMREX_RESTRICT forcing_C = GetForcingC();
-    Real* const AMREX_RESTRICT forcing_Sold = GetForcingSOld();
-    Real* const AMREX_RESTRICT forcing_Cold = GetForcingCOld();
-    amrex::ParallelFor(132, [forcing_S, forcing_C, forcing_Sold, forcing_Cold]
-    AMREX_GPU_DEVICE (int i) noexcept
-    {
-        forcing_S[i] = 0.;
-        forcing_C[i] = 0.;
-        forcing_Sold[i] = 0.;
-        forcing_Cold[i] = 0.;
-    });
+    
+    for (int i=0; i<132; ++i) {
+        ForcingS[i] = 0.;
+        ForcingC[i] = 0.;
+        ForcingSold[i] = 0.;
+        ForcingCold[i] = 0.;
+    }
     
     forcing_a = a_in;
     forcing_b = b_in;
@@ -56,10 +51,18 @@ void TurbForcingComp::Initialize(const Geometry& geom_in) {
 
     GpuArray<Real,AMREX_SPACEDIM> prob_lo_gpu = geom_in.ProbLoArray();
     
-    int* const AMREX_RESTRICT kx = GetKX();
-    int* const AMREX_RESTRICT ky = GetKY();
-    int* const AMREX_RESTRICT kz = GetKZ();
-    
+    Gpu::DeviceVector<int> kx_gpu(132);
+    Gpu::DeviceVector<int> ky_gpu(132);
+    Gpu::DeviceVector<int> kz_gpu(132);
+    Gpu::copyAsync(Gpu::hostToDevice, KX.begin(), KX.end(), kx_gpu.begin());
+    Gpu::copyAsync(Gpu::hostToDevice, KY.begin(), KY.end(), ky_gpu.begin());
+    Gpu::copyAsync(Gpu::hostToDevice, KZ.begin(), KZ.end(), kz_gpu.begin());
+    Gpu::Device::streamSynchronize();
+
+    int* const AMREX_RESTRICT kx = kx_gpu.dataPtr();
+    int* const AMREX_RESTRICT ky = ky_gpu.dataPtr();
+    int* const AMREX_RESTRICT kz = kz_gpu.dataPtr();
+
     // Loop over boxes
     for (MFIter mfi(sines[0],TilingIfNotGPU()); mfi.isValid(); ++mfi) {
 
@@ -95,7 +98,8 @@ void TurbForcingComp::Initialize(const Geometry& geom_in) {
                 }
             });
 #elif (AMREX_SPACEDIM ==3)
-        amrex::ParallelFor(bx_x, bx_y, bx_z, [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+        amrex::ParallelFor(bx_x, bx_y, bx_z, 
+            [kx,ky,kz,prob_lo_gpu,dx,L,sin_x,cos_x] AMREX_GPU_DEVICE (int i, int j, int k) {
                 Real pi = 3.1415926535897932;
                 Real x = prob_lo_gpu[0] + i*dx[0];
                 Real y = prob_lo_gpu[1] + (j+0.5)*dx[1];
@@ -105,7 +109,7 @@ void TurbForcingComp::Initialize(const Geometry& geom_in) {
                     cos_x(i,j,k,d) = std::cos(2.*pi*(kx[d]*x + ky[d]*y + kz[d]*z) / L);
                 }
             },
-            [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+            [kx,ky,kz,prob_lo_gpu,dx,L,sin_y,cos_y] AMREX_GPU_DEVICE (int i, int j, int k) {
                 Real pi = 3.1415926535897932;
                 Real x = prob_lo_gpu[0] + (i+0.5)*dx[0];
                 Real y = prob_lo_gpu[1] + j*dx[1];
@@ -115,7 +119,7 @@ void TurbForcingComp::Initialize(const Geometry& geom_in) {
                     cos_y(i,j,k,d) = std::cos(2.*pi*(kx[d]*x + ky[d]*y + kz[d]*z) / L);
                 }
             },
-            [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+            [kx,ky,kz,prob_lo_gpu,dx,L,sin_z,cos_z] AMREX_GPU_DEVICE (int i, int j, int k) {
                 Real pi = 3.1415926535897932;
                 Real x = prob_lo_gpu[0] + (i+0.5)*dx[0];
                 Real y = prob_lo_gpu[1] + (j+0.5)*dx[1];
@@ -137,48 +141,57 @@ void TurbForcingComp::CalcTurbForcingComp(std::array< MultiFab, AMREX_SPACEDIM >
 
     Real sqrtdt = std::sqrt(dt);
     
-    Real* const AMREX_RESTRICT forcing_S = GetForcingS();
-    Real* const AMREX_RESTRICT forcing_C = GetForcingC();
-    
-    Real* const AMREX_RESTRICT forcing_Sold = GetForcingSOld();
-    Real* const AMREX_RESTRICT forcing_Cold = GetForcingCOld();
-
     // update U = U - a*dt + b*sqrt(dt)*Z
     if (update == 1) {
-        Gpu::DeviceVector<Real> rngs_s(132); // solenoidal
-        Gpu::DeviceVector<Real> rngs_c(132); // comopressional
-        Real* const AMREX_RESTRICT rngs_s_gpu = rngs_s.dataPtr();
-        Real* const AMREX_RESTRICT rngs_c_gpu = rngs_c.dataPtr();
+        
+        Vector<Real> rngs_s(132); // solenoidal
+        Vector<Real> rngs_c(132); // comopressional
+        for (int i=0; i<132; ++i) {
+            rngs_s[i] = amrex::RandomNormal(0.,1.);
+            rngs_c[i] = amrex::RandomNormal(0.,1.);
+        }
 
-        amrex::ParallelForRNG(132, [rngs_s_gpu,rngs_c_gpu]
-        AMREX_GPU_DEVICE (int i, amrex::RandomEngine const& engine) noexcept
-        {
-            rngs_s_gpu[i] = amrex::RandomNormal(0.,1.,engine);
-            rngs_c_gpu[i] = amrex::RandomNormal(0.,1.,engine);
-        });
+        // broadcast random numbers to all processors
+        amrex::BroadcastArray(rngs_s,
+                              ParallelDescriptor::MyProc(),
+                              ParallelDescriptor::IOProcessorNumber(),
+                              ParallelDescriptor::Communicator());
+        amrex::BroadcastArray(rngs_c,
+                              ParallelDescriptor::MyProc(),
+                              ParallelDescriptor::IOProcessorNumber(),
+                              ParallelDescriptor::Communicator());
 
-        // update forcing (OU)
-        Real forcing_a_gpu = forcing_a;
-        Real forcing_b_gpu = forcing_b;
-        Real forcing_c_gpu = forcing_c;
-        Real forcing_d_gpu = forcing_d;
-        Real dt_gpu = dt;
-        Real sqrtdt_gpu = sqrtdt;
-        amrex::ParallelFor(132, [forcing_S, forcing_C, forcing_Sold, forcing_Cold, rngs_s_gpu, rngs_c_gpu, 
-                                 forcing_a_gpu, forcing_b_gpu, forcing_c_gpu, forcing_d_gpu, dt_gpu, sqrtdt_gpu]
-        AMREX_GPU_DEVICE (int i) noexcept
-        {
-            forcing_S[i] = forcing_Sold[i] - forcing_a_gpu*forcing_Sold[i]*dt_gpu + forcing_b_gpu*sqrtdt_gpu*rngs_s_gpu[i];
-            forcing_C[i] = forcing_Cold[i] - forcing_c_gpu*forcing_Cold[i]*dt_gpu + forcing_d_gpu*sqrtdt_gpu*rngs_c_gpu[i];
-        });
+        for (int i=0; i<132; ++i) {
+            
+            // update forcing (OU)
+            ForcingS[i] = ForcingSold[i] - forcing_a*ForcingSold[i]*dt + forcing_b*sqrtdt*rngs_s[i];
+            ForcingC[i] = ForcingCold[i] - forcing_c*ForcingCold[i]*dt + forcing_d*sqrtdt*rngs_c[i];
+            
+            // copy new to old
+            ForcingSold[i] = ForcingS[i];
+            ForcingCold[i] = ForcingC[i];
+        }
 
-        copy_new_forcing_to_old();
     }
 
-    int* const AMREX_RESTRICT Kx = GetKX();
-    int* const AMREX_RESTRICT Ky = GetKY();
-    int* const AMREX_RESTRICT Kz = GetKZ();
+    Gpu::DeviceVector<int> Kx_gpu(132);
+    Gpu::DeviceVector<int> Ky_gpu(132);
+    Gpu::DeviceVector<int> Kz_gpu(132);
+    Gpu::copyAsync(Gpu::hostToDevice, KX.begin(), KX.end(), Kx_gpu.begin());
+    Gpu::copyAsync(Gpu::hostToDevice, KY.begin(), KY.end(), Ky_gpu.begin());
+    Gpu::copyAsync(Gpu::hostToDevice, KZ.begin(), KZ.end(), Kz_gpu.begin());
+    Gpu::DeviceVector<Real> forcing_S_gpu(132);
+    Gpu::DeviceVector<Real> forcing_C_gpu(132);
+    Gpu::copyAsync(Gpu::hostToDevice, ForcingS.begin(), ForcingS.end(), forcing_S_gpu.begin());
+    Gpu::copyAsync(Gpu::hostToDevice, ForcingC.begin(), ForcingC.end(), forcing_C_gpu.begin());
+    Gpu::Device::streamSynchronize();
 
+    int* const AMREX_RESTRICT Kx = Kx_gpu.dataPtr();
+    int* const AMREX_RESTRICT Ky = Ky_gpu.dataPtr();
+    int* const AMREX_RESTRICT Kz = Kz_gpu.dataPtr();
+    Real* const AMREX_RESTRICT forcing_S = forcing_S_gpu.dataPtr();
+    Real* const AMREX_RESTRICT forcing_C = forcing_C_gpu.dataPtr();
+    
     Real alpha_gpu = alpha;
 
     // Loop over boxes
@@ -210,7 +223,8 @@ void TurbForcingComp::CalcTurbForcingComp(std::array< MultiFab, AMREX_SPACEDIM >
             }
             );
 #elif (AMREX_SPACEDIM ==3)
-        amrex::ParallelFor(bx_x, bx_y, bx_z, [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+        amrex::ParallelFor(bx_x, bx_y, bx_z, 
+            [Kx,Ky,Kz,forcing_S,forcing_C,alpha_gpu,vel_x,sin_x,cos_x] AMREX_GPU_DEVICE (int i, int j, int k) {
                 for (int d=0; d<22; ++d) {
                     Real kx = Real(Kx[d]);
                     Real ky = Real(Ky[d]);
@@ -224,7 +238,7 @@ void TurbForcingComp::CalcTurbForcingComp(std::array< MultiFab, AMREX_SPACEDIM >
                     vel_x(i,j,k)    += forcingCcos + forcingCsin;
                 }
             },
-            [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+            [Kx,Ky,Kz,forcing_S,forcing_C,alpha_gpu,vel_y,sin_y,cos_y] AMREX_GPU_DEVICE (int i, int j, int k) {
                 for (int d=0; d<22; ++d) {
                     Real kx = Real(Kx[d]);
                     Real ky = Real(Ky[d]);
@@ -239,7 +253,7 @@ void TurbForcingComp::CalcTurbForcingComp(std::array< MultiFab, AMREX_SPACEDIM >
                 }
                 
             },
-            [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+            [Kx,Ky,Kz,forcing_S,forcing_C,alpha_gpu,vel_z,sin_z,cos_z] AMREX_GPU_DEVICE (int i, int j, int k) {
                 for (int d=0; d<22; ++d) {
                     Real kx = Real(Kx[d]);
                     Real ky = Real(Ky[d]);
@@ -258,26 +272,15 @@ void TurbForcingComp::CalcTurbForcingComp(std::array< MultiFab, AMREX_SPACEDIM >
 }
 
 std::tuple<amrex::Real, Real> TurbForcingComp::getU(const int& i) {
-    return {ForcingS[i], ForcingC[i]};
+    
+    Real fs = ForcingS[i];
+    Real fc = ForcingC[i];
+    
+    return {fs, fc};
 }
 
 void TurbForcingComp::setU(const int& i, Real fs, Real fc) {
+    
     ForcingS[i] = fs;
     ForcingC[i] = fc;
-}
-
-void TurbForcingComp::copy_new_forcing_to_old()
-{
-    Real* const AMREX_RESTRICT forcing_S = GetForcingS();
-    Real* const AMREX_RESTRICT forcing_C = GetForcingC();
-    
-    Real* const AMREX_RESTRICT forcing_Sold = GetForcingSOld();
-    Real* const AMREX_RESTRICT forcing_Cold = GetForcingCOld();
-        
-    amrex::ParallelFor(132, [forcing_S, forcing_C, forcing_Sold, forcing_Cold]
-    AMREX_GPU_DEVICE (int i) noexcept
-    {
-        forcing_Sold[i] = forcing_S[i];
-        forcing_Cold[i] = forcing_C[i];
-    });
 }
