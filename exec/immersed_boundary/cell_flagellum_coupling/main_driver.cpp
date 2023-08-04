@@ -483,8 +483,11 @@ void main_driver(const char * argv) {
 
     // Initialize immersed boundary container for the cell body
     //
-    May use FhdParticleContainer::InitParticles from particles.dat 
+    // May use FhdParticleContainer::InitParticles from particles.dat 
     //
+
+    FhdParticleContainer particles(geom, geom, dmap, ba, ba, 0, 0);
+    particles.InitParticles(ionParticle, dx);
 
 
     // Initialize immersed boundary container for the flagella
@@ -494,7 +497,6 @@ void main_driver(const char * argv) {
 
         if (n_marker[i_ib] <= 0) continue;
         
-	int Npar = n_particle[i_ib];
         int N  = n_marker[i_ib];
         Real L = ib_flagellum::length[i_ib];
 
