@@ -212,7 +212,7 @@ void main_driver(const char* argv)
     if (plot_int > 0)
     {
         int step = 0;
-        const std::string& pltfile = amrex::Concatenate("plt",step,8);
+        const std::string& pltfile = amrex::Concatenate("plt",step,10);
         WriteSingleLevelPlotfile(pltfile, height, {"height"}, geom, time, 0);
     }
     
@@ -443,7 +443,7 @@ void main_driver(const char* argv)
         // plotfile
         if (plot_int > 0 && istep%plot_int == 0)
         {
-            const std::string& pltfile = amrex::Concatenate("plt",istep,8);
+            const std::string& pltfile = amrex::Concatenate("plt",istep,10);
             WriteSingleLevelPlotfile(pltfile, height, {"height"}, geom, time, 0);
         }
 
@@ -470,7 +470,7 @@ void main_driver(const char* argv)
         
             if (plot_int > 0 && istep%plot_int == 0)
             {
-                const std::string& pltfile = amrex::Concatenate("var",istep,8);
+                const std::string& pltfile = amrex::Concatenate("var",istep,10);
                 WriteSingleLevelPlotfile(pltfile, dheight2avg, {"var"}, geom, time, 0);
             }
 
@@ -544,7 +544,7 @@ void main_driver(const char* argv)
         
             if (plot_int > 0 && istep%plot_int == 0)
             {
-                const std::string& pltfile = amrex::Concatenate("star",istep,8);
+                const std::string& pltfile = amrex::Concatenate("star",istep,10);
                 WriteSingleLevelPlotfile(pltfile, dheightstaravg, {"star"}, geom, time, 0);
             }               
         }
