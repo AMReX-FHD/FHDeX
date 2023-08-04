@@ -6,6 +6,7 @@
 #include <common_namespace.H>
 #include <kernel_functions_K.H>
 #include <math.h>
+#include <iostream>
 
 /**
    Check if particle is near a boundary. Assumes boundary is parallel to either xy, zx, yz, plane
@@ -381,9 +382,9 @@ void bond_hookian (      FhdParticleContainer::ParticleType& part1,
 
     const Real dr2 = dr*dr;
     const Real rtdr2 = sqrt(dr2);
-    if (rtdr2 > 2*x0) {
-        cout << "Bad Hookean bond" << "\n";
-    }
+   // if (rtdr2 > 2*x0) {
+   //     cout << "Bad Hookean bond" << "\n";
+   // }
     
     part1.rdata(FHD_realData::forcex) += k*(-dx/rtdr2)*(rtdr2-x0);
     part1.rdata(FHD_realData::forcey) += k*(-dy/rtdr2)*(rtdr2-x0);
@@ -392,9 +393,9 @@ void bond_hookian (      FhdParticleContainer::ParticleType& part1,
     // added by GX to apply a point force to particle #??? on the test cube
     // For now, 20% of the force that can cause 100% exntesion is applied. Change as needed.
     // we can create a new particle species/group, say 2, in order to apply forces to specific particles if needed
-    if (part1.idata(FHD_intData::id_global)==???) {
-	part1.rdata(FHD_realData::forcex) += 0.2*k*x0;
-    }	    
+//    if (part1.idata(FHD_intData::id_global)==5) {
+//	part1.rdata(FHD_realData::forcex) += 0.01*k*x0;
+//    }	    
 
 }
 
@@ -404,9 +405,9 @@ RealVect bond_hookian_vec (      amrex::Real dx, amrex::Real dy, amrex::Real dz,
 
     const Real dr2 = dr*dr;
     const Real rtdr2 = sqrt(dr2);
-    if (rtdr2 > 2*x0) {
-        cout << "Bad Hookean bond" << "\n";
-    }
+ //   if (rtdr2 > 2*x0) {
+ //      cout << "Bad Hookean bond" << "\n";
+ //   }
 
     RealVect f_bond = {dx, dy, dz};
     f_bond *= -k/rtdr2*(rtdr2-x0);
@@ -988,20 +989,47 @@ void compute_forces_bond_gpu (FhdParticleContainer::AoS& aos, int Np, std::map<i
                                        //if (rtdr2 > b*2+x0_spring) {
                                        //   cout << "Bad Hookian bond" << "\n";
                                        //}
+				       //ok
                                        //cout << rtdr2 << "\n";
 				       //
                                        bond_hookian(part, dx, dy, dz, rtdr2, k_spring, x0_spring); 
 	     		           } else if (bond_tog == 2) {
 	     	                       bond_fene(part, dx, dy, dz, rtdr2, k_spring, x0_spring);
 	     		           }
-                                  //cout << part.rdata(FHD_realData::forcex) << "\n";
+				 
+				 //print magnitude forces for particles individually(fenix)
+				 	
+				Real fx =(part.rdata(FHD_realData::forcex))*(part.rdata(FHD_realData::forcex));
+				Real fy =(part.rdata(FHD_realData::forcey))*(part.rdata(FHD_realData::forcey));
+				Real fz =(part.rdata(FHD_realData::forcez))*(part.rdata(FHD_realData::forcez));
+
+			  	Real vx =(part.rdata(FHD_realData::velx))*(part.rdata(FHD_realData::velx));
+                                Real vy =(part.rdata(FHD_realData::vely))*(part.rdata(FHD_realData::vely));
+                                Real vz =(part.rdata(FHD_realData::velz))*(part.rdata(FHD_realData::velz));
+
+
+				Real  forcemag = sqrt(fx+fy+fz);
+			  	Real  velmag = sqrt(vx+vy+vz);
+		
+				//amrex::Print() << "id_global: " << part.idata(FHD_intData::id_global)<<"\n";  
+				
+				std::cout << "id_1: " << part.idata(FHD_intData::id_global) << " id_2: " << part.idata(FHD_intData::bond1+i_bond) << " force magnitude: "<< forcemag << " vel magnitute: " << velmag << std::endl; 
+				//amrex::Print() <<"vel magnitude: "<< velmag << "\n";
+
+			
+			//	 amrex::Print() <<"y:"<< part.rdata(FHD_realData::forcey) << "\n";
+
+			//	 amrex::Print() <<"y:"<< part.rdata(FHD_realData::forcey) << "\n";
+				
+			//     	 amrex::Print() <<"z:"<< part.rdata(FHD_realData::forcez) << "\n";
+			
                                }
-                            }
-                        }
-            //        }
-            //    }
-            //}
-        }
+			    }  
+			}
+                 //   }
+           //     }
+          //  }
+	}
     });
 
 }

@@ -4,6 +4,8 @@
 #include "paramplane_functions_K.H"
 #include <math.h>
 #include "StructFact.H"
+#include <iostream>
+#include <fstream>
 
 bool FhdParticleContainer::use_neighbor_list  {true};
 bool FhdParticleContainer::sort_neighbor_list {false};
@@ -224,6 +226,7 @@ void FhdParticleContainer::forceFunction(Real dt)
                 part.rdata(FHD_realData::forcey) = part.rdata(FHD_realData::forcey) - part.rdata(FHD_realData::spring)*radVec[1];
                 part.rdata(FHD_realData::forcez) = part.rdata(FHD_realData::forcez) - part.rdata(FHD_realData::spring)*radVec[2];
 
+
 //                part.rdata(FHD_realData::forcex) = part.rdata(FHD_realData::forcex) - kFac*radVec[0];
 //                part.rdata(FHD_realData::forcey) = part.rdata(FHD_realData::forcey) - kFac*radVec[1];
 //                part.rdata(FHD_realData::forcez) = part.rdata(FHD_realData::forcez) - kFac*radVec[2];
@@ -291,7 +294,7 @@ void FhdParticleContainer::pinForce()
                 part.rdata(FHD_realData::forcey) += -1.0*k_B*T_init[0]*part.rdata(FHD_realData::vely)/part.rdata(FHD_realData::wetDiff);
                 part.rdata(FHD_realData::forcez) += -1.0*k_B*T_init[0]*part.rdata(FHD_realData::velz)/part.rdata(FHD_realData::wetDiff);
 
-                Print() << part.rdata(FHD_realData::forcex) << ", " << part.rdata(FHD_realData::velx) << endl;
+               //Print() << part.rdata(FHD_realData::forcex) << ", " << part.rdata(FHD_realData::velx) << endl;
             }
 
          }
@@ -330,7 +333,8 @@ void FhdParticleContainer::velNorm()
                 Real velSqr = (pow(part.rdata(FHD_realData::velx),2) + pow(part.rdata(FHD_realData::vely),2) + pow(part.rdata(FHD_realData::velz),2));
             
                 velNtile += velSqr;
-                //Print() << "actual vel: " << part.rdata(FHD_realData::velx) << ", " << part.rdata(FHD_realData::vely) << ", " << part.rdata(FHD_realData::velz) << std::endl;
+//                Print() << "actual vel: " << part.rdata(FHD_realData::velx) << ", " << part.rdata(FHD_realData::vely) << ", " << part.rdata(FHD_realData::velz) << std::endl;
+		Print() << "actual vel: " << velSqr << "\n";
 
                 if(velSqr > maxStile)
                 {
@@ -344,6 +348,7 @@ void FhdParticleContainer::velNorm()
         velN += velNtile;
     }
 
+//  std::cout << "actual vel: " <<velSqr << std::endl;
 
     ParallelDescriptor::ReduceRealMax(maxS);
     ParallelDescriptor::ReduceRealSum(velN);
@@ -1476,7 +1481,44 @@ void FhdParticleContainer::computeForcesBondGPU(long totalParticles) {
              */
             
             compute_forces_bond_gpu(particles, np, id_global_map, posxVec, posyVec, poszVec);
-        }	
+	   
+	    /*----outside-for-loop method: updating particle attributes-------------------------------------------------------------------------*/
+            // loop over particles
+  //          AMREX_FOR_1D( np, i,
+ //         {
+//
+  //             ParticleType & part = pstruct[i];
+//		amrex::Print() << "id_global: " << part.idata(FHD_intData::id_global)<<"\n";
+     // 
+   //   		if (part.idata(FHD_intData::id_global) > 0)
+ //               { 
+//		 Real forcx =(part.rdata(FHD_realData::forcex))*(part.rdata(FHD_realData::forcex));
+//
+    //    	 Real forcy =(part.rdata(FHD_realData::forcey))*(part.rdata(FHD_realData::forcey));
+  //	     	 Real forcz =(part.rdata(FHD_realData::forcez))*(part.rdata(FHD_realData::forcez));
+//
+  //                     Real  forcemag = sqrt(forcx+forcy+forcz);
+//				 
+//			 amrex::Print() <<"force magnitude: "<< forcemag << "\n";
+//
+           }
+         //   }
+	    
+            /*----outside-for-loop method: end updating particle attributes-------------------------------------------------------------------------*/
+
+	//    Real forcx =(part.rdata(FHD_realData::forcex))*(part.rdata(FHD_realData::forcex));
+                        
+	//    Real forcy =(part.rdata(FHD_realData::forcey))*(part.rdata(FHD_realData::forcey));
+                             
+	//    Real forcz =(part.rdata(FHD_realData::forcez))*(part.rdata(FHD_realData::forcez));
+
+        //                      Real  forcemag = sqrt(forcx+forcy+forcz);
+
+        //                      amrex::Print() << "id_global: " << part.idata(FHD_intData::id_global)<<"\n";
+
+        //                      amrex::Print() <<"force magnitude: "<< forcemag << "\n";
+
+//        }	
 	/*----inside-for-loop method: updating particle attributes-------------------------------------------------------------------------*/
 	
     }
@@ -1849,6 +1891,11 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
 //                }
 
     //            Print() << part.id() << " vel: " << setprecision(15) << part.rdata(FHD_realData::velx) << " pos: " << part.pos(0) << "\n";
+    			          Real vx =(part.rdata(FHD_realData::velx))*(part.rdata(FHD_realData::velx));
+                	          Real vy =(part.rdata(FHD_realData::vely))*(part.rdata(FHD_realData::vely));
+                                  Real vz =(part.rdata(FHD_realData::velz))*(part.rdata(FHD_realData::velz));
+Real  velmag = sqrt(vx+vy+vz);
+std::cout << "id_global: " << part.idata(FHD_intData::id_global) << " velmag: " << velmag << "\n";
 
                 Real dist = dt*sqrt(part.rdata(FHD_realData::velx)*part.rdata(FHD_realData::velx) + part.rdata(FHD_realData::vely)*part.rdata(FHD_realData::vely) + part.rdata(FHD_realData::velz)*part.rdata(FHD_realData::velz))/part.rdata(FHD_realData::radius);
                 
@@ -4498,7 +4545,7 @@ FhdParticleContainer::BuildCorrectionTable(const Real* dx, int setMeasureFinal) 
 
             Real forceMag = sqrt(pow(part0.rdata(FHD_realData::forcex),2) + pow(part0.rdata(FHD_realData::forcey),2) + pow(part0.rdata(FHD_realData::forcez),2))*forceNorm;
 
-           // Print() << "ForceMag: " << forceNorm << std::endl;
+            Print() << "ForceMag: " << forceNorm << std::endl;
 
            // Print() << "currentPre: " << threepmVals[threepmCurrentBin] << std::endl;
 
@@ -4655,3 +4702,25 @@ void FhdParticleContainer::UpdatePIDMap() {
     }
 
 }
+
+
+
+// std::ofstream outputFile;
+   // outputFile.open("velocities.txt");
+
+ //   if (!outputFile.is_open()) 
+//{
+//	std::cerr<<"Error!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"<<std::endl;
+//	return 1;
+//}
+
+
+//outputFile << part.rdata(FHD_realData::velx) << ,  << part.rdata(FHD_realData::vely) << ,  << part.rdata(FHD_realData::velz) << "\n";
+//outputFile.close();
+
+//std::cout<<"Data written to blob.txt successfully." << std::endl;
+
+//return 0;
+
+//}
+
