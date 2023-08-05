@@ -339,7 +339,7 @@ void main_driver(const char* argv)
     double simParticles = 0;
     double wetRad[nspecies];
     double dxAv = (dx[0] + dx[1] + dx[2])/3.0; //This is probably the wrong way to do this.
-    std::string line;
+    //std::string line;
 
     for(int j=0;j<nspecies;j++) {
        if (pkernel_fluid[j] == 3) {
@@ -838,11 +838,80 @@ void main_driver(const char* argv)
         efieldCC[d].setVal(0.);
     }
 
-    // external field
-    std::array< MultiFab, AMREX_SPACEDIM > external;
+    // external field cell-centered
+    std::array< MultiFab, AMREX_SPACEDIM > externalCC;
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        external[d].define(bp, dmap, 1, ngp);
+        externalCC[d].define(bp, dmap, 1, ngp);
     }
+
+    // external field face-centered
+    std::array< MultiFab, AMREX_SPACEDIM > externalFC;
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        externalFC[d].define(convert(bp,nodal_flag_dir[d]), dmap, 1, ngp);
+    }
+
+    // Set beta_es and permittivity_fc equal to permittivity
+    std::array< MultiFab, AMREX_SPACEDIM > beta_es;
+    std::array< MultiFab, AMREX_SPACEDIM > permittivity_fc;
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        beta_es[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 0);
+        permittivity_fc[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 0);
+    }
+
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        beta_es[d].setVal(permittivity);
+        permittivity_fc[d].setVal(permittivity);
+    }
+
+    // Read in space-varying permittivity info
+    int i_mf, j_mf, k_mf;
+    Real new_permittivity;
+    std::map< IntVect, Real > permittivity_map;
+    int epscount = 0;
+
+    std::string filename = "epsilon_mem.dat";
+    std::ifstream permittivityFile(filename); // permittivity file for non-solvent part
+    std::string line;
+    while (std::getline(permittivityFile, line)) {
+        std::istringstream ss(line);
+        ss >> i_mf;
+        ss >> j_mf;
+        ss >> k_mf;
+        ss >> new_permittivity;
+        IntVect mf_idx = IntVect(AMREX_D_DECL(i_mf,j_mf,k_mf));
+        permittivity_map.insert(make_pair(mf_idx, new_permittivity));
+        epscount++;
+    }
+    Print() << "Loaded " << epscount << " cells of different permittivity." << std::endl;
+    permittivityFile.close();
+
+    // Update non-uniform permittivity
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        for (MFIter mfi(beta_es[d]); mfi.isValid(); ++mfi) {
+	    auto& d_fab = beta_es[d][mfi];
+#ifdef AMREX_USE_GPU
+            FArrayBox h_fab(d_fab.box(), The_Pinned_Arena());
+            auto const& h_data = h_fab.array();
+#else
+            auto const& h_data = d_fab.array();
+#endif
+            amrex::LoopOnCpu(d_fab.box(), [=] (int i, int j, int k)
+            {
+                auto search = permittivity_map.find(IntVect(i,j,k));
+                if (search != permittivity_map.end()) {
+                    h_data(i,j,k) = search->second;
+                } else {
+                    h_data(i,j,k) = permittivity; // default value from input file
+                }
+            });
+#ifdef AMREX_USE_GPU
+            Gpu::htod_memcpy_async(d_fab.dataPtr(), h_fab.dataPtr(), h_fab.nBytes());
+            Gpu::streamSynchronize();
+#endif
+
+	}
+    }
+
     
     ///////////////////////////////////////////
     // structure factor for charge-charge
@@ -1316,7 +1385,8 @@ void main_driver(const char* argv)
         //Most of these functions are sensitive to the order of execution. We can fix this, but for now leave them in this order.
 
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
-            external[d].setVal(eamp[d]*cos(efreq[d]*time + ephase[d]));  // external field
+            externalCC[d].setVal(eamp[d]*cos(efreq[d]*time + ephase[d]));  // external field
+            externalFC[d].setVal(eamp[d]*cos(efreq[d]*time + ephase[d]));  // staggered external field
             source    [d].setVal(body_force_density[d]);      // reset source terms
             sourceTemp[d].setVal(0.0);      // reset source terms
             sourceRFD[d].setVal(0.0);      // reset source terms
@@ -1362,7 +1432,7 @@ void main_driver(const char* argv)
         
         // do Poisson solve using 'charge' for RHS, and put potential in 'potential'.
         // Then calculate gradient and put in 'efieldCC', then add 'external'.
-        esSolve(potential, charge, efieldCC, external, geomP);
+        esSolve(potential, charge, efieldCC, permittivity_fc, beta_es, externalCC, externalFC, geomP);
 
         if (es_tog==2) {
             // compute pairwise Coulomb force (currently hard-coded to work with y-wall).

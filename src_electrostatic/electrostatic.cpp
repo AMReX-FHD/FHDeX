@@ -1,12 +1,17 @@
 #include "electrostatic.H"
 #include "common_functions.H"
 #include <AMReX_MLMG.H>
+#include <AMReX_MLABecLaplacian.H>
 
 using namespace amrex;
 
 void esSolve(MultiFab& potential, MultiFab& charge,
              std::array< MultiFab, AMREX_SPACEDIM >& efieldCC,
-             const std::array< MultiFab, AMREX_SPACEDIM >& external, const Geometry geom)
+	     const std::array< MultiFab, AMREX_SPACEDIM >& permittivity_fc,
+	     const std::array< MultiFab, AMREX_SPACEDIM >& beta_es,
+             const std::array< MultiFab, AMREX_SPACEDIM >& externalCC, 
+             const std::array< MultiFab, AMREX_SPACEDIM >& externalFC, 
+	     const Geometry geom)
 {
     BL_PROFILE_VAR("esSolve()",esSolve);
 
@@ -45,11 +50,35 @@ void esSolve(MultiFab& potential, MultiFab& charge,
             }
         }
 
+	potential.setVal(0.);
         const BoxArray& ba = charge.boxArray();
         const DistributionMapping& dmap = charge.DistributionMap();
 
+	// Copy charge in the RHS of Poisson Solver
+        MultiFab charge_unscaled(ba,dmap,1,charge.nGrow()); // create new charge (unscaled) MFab
+        MultiFab::Copy(charge_unscaled,charge,0,0,1,charge.nGrow()); // copy contents of charge/eps into charge
+        charge_unscaled.mult(permittivity,charge.nGrow()); // multiply the charge value by permittvity to get correct charge
+        MultiFab rhs(ba,dmap,1,0); // create RHS MFab
+        MultiFab::Copy(rhs,charge_unscaled,0,0,1,0); // Copy charge into rhs
+	
+	std::array< MultiFab, AMREX_SPACEDIM > epsE_ext;
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            epsE_ext[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 0);
+            MultiFab::Copy(epsE_ext[d],permittivity_fc[d],0,0,1,permittivity_fc[d].nGrow()); // copy contents of charge/eps into charge
+        }
+	
+        // compute epsilon*external (where epsilon is stored in permittivity_fc)
+        for (int i=0; i<AMREX_SPACEDIM; ++i) {
+            MultiFab::Multiply(epsE_ext[i],externalFC[i],0,0,1,0);
+        }
+
+        // compute div (epsilon*E_ext) and subtract it from the solver rhs
+        // only needed for spatially varying epsilon or external field
+        ComputeDiv(rhs,epsE_ext,0,0,1,geom,-1.,0);
+
         //create solver opject
-        MLPoisson linop({geom}, {ba}, {dmap});
+        //MLPoisson linop({geom}, {ba}, {dmap});
+	MLABecLaplacian linop({geom}, {ba}, {dmap});
  
         //set BCs
         linop.setDomainBC({AMREX_D_DECL(lo_linop_bc[0],
@@ -71,6 +100,12 @@ void esSolve(MultiFab& potential, MultiFab& charge,
         // be correct or the Poisson solver won't converge
         linop.setEnforceSingularSolvable(false);
 
+	// set alpha=0, beta=1 (will overwrite beta with epsilon next)
+        linop.setScalars(0.0, 1.0);
+
+        // set beta=epsilon
+        linop.setBCoeffs(0, amrex::GetArrOfConstPtrs(beta_es));
+
         //Multi Level Multi Grid
         MLMG mlmg(linop);
 
@@ -80,7 +115,7 @@ void esSolve(MultiFab& potential, MultiFab& charge,
         mlmg.setBottomVerbose(poisson_bottom_verbose);
         
         //Do solve
-        mlmg.solve({&potential}, {&charge}, poisson_rel_tol, 0.0);
+        mlmg.solve({&potential}, {&rhs}, poisson_rel_tol, 0.0);
             
         potential.FillBoundary(geom.periodicity());
         // set ghost cell values so electric field is calculated properly
@@ -88,19 +123,17 @@ void esSolve(MultiFab& potential, MultiFab& charge,
         MultiFabPotentialBC(potential, geom); 
 
         //Find e field, gradient from cell centers to faces
-        ComputeCentredGrad(potential, efieldCC, geom);
+        ComputeCentredGrad(potential, efieldCC, geom, -1.);
         
 
     }
 
     //Add external field on top, then fill boundaries, then setup BCs for peskin interpolation
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        efieldCC[d].mult(-1.0,efieldCC[d].nGrow());
-        MultiFab::Add(efieldCC[d], external[d], 0, 0, 1, efieldCC[d].nGrow());
+        //efieldCC[d].mult(-1.0,efieldCC[d].nGrow());
+        MultiFab::Add(efieldCC[d], externalCC[d], 0, 0, 1, efieldCC[d].nGrow());
         efieldCC[d].FillBoundary(geom.periodicity());
         MultiFabElectricBC(efieldCC[d], geom);
     }
 
 }
-
-

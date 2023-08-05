@@ -5,7 +5,7 @@
 void ComputeDiv(MultiFab& div,
                 const std::array<MultiFab, AMREX_SPACEDIM>& phi_fc,
                 int start_incomp, int start_outcomp, int ncomp,
-                const Geometry& geom, int increment)
+                const Geometry& geom, Real factor, int increment)
 {
     BL_PROFILE_VAR("ComputeDiv()",ComputeDiv);
 
@@ -27,10 +27,15 @@ void ComputeDiv(MultiFab& div,
 
         amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-            div_fab(i,j,k,start_outcomp+n) +=
+	    Real temp = 
                 AMREX_D_TERM(  (phix_fab(i+1,j,k,start_incomp+n) - phix_fab(i,j,k,start_incomp+n)) / dx[0],
                              + (phiy_fab(i,j+1,k,start_incomp+n) - phiy_fab(i,j,k,start_incomp+n)) / dx[1],
                              + (phiz_fab(i,j,k+1,start_incomp+n) - phiz_fab(i,j,k,start_incomp+n)) / dx[2]);;
+	    if (factor == 0.) {
+                div_fab(i,j,k,start_outcomp+n) += temp;
+	    } else {
+                div_fab(i,j,k,start_outcomp+n) += factor*temp;
+	    }
         });
     }
 }
@@ -183,7 +188,7 @@ void ComputeGrad(const MultiFab & phi_in, std::array<MultiFab, AMREX_SPACEDIM> &
 // Computes gradient at cell centres from cell centred data - ouputs to a three component mf.
 void ComputeCentredGrad(const MultiFab & phi,
                         std::array<MultiFab, AMREX_SPACEDIM> & gphi,
-                        const Geometry & geom)
+                        const Geometry & geom, Real factor)
 {
     BL_PROFILE_VAR("ComputeCentredGrad()",ComputeCentredGrad);
 
@@ -201,9 +206,9 @@ void ComputeCentredGrad(const MultiFab & phi,
 
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            AMREX_D_TERM(gphix_fab(i,j,k) = (phi_fab(i+1,j,k) - phi_fab(i-1,j,k) ) / (2.*dx[0]);,
-                         gphiy_fab(i,j,k) = (phi_fab(i,j+1,k) - phi_fab(i,j-1,k) ) / (2.*dx[1]);,
-                         gphiz_fab(i,j,k) = (phi_fab(i,j,k+1) - phi_fab(i,j,k-1) ) / (2.*dx[2]););
+            AMREX_D_TERM(gphix_fab(i,j,k) = factor*(phi_fab(i+1,j,k) - phi_fab(i-1,j,k) ) / (2.*dx[0]);,
+                         gphiy_fab(i,j,k) = factor*(phi_fab(i,j+1,k) - phi_fab(i,j-1,k) ) / (2.*dx[1]);,
+                         gphiz_fab(i,j,k) = factor*(phi_fab(i,j,k+1) - phi_fab(i,j,k-1) ) / (2.*dx[2]););
         });
     }
 }
