@@ -4,6 +4,7 @@
 #include "common_functions.H"
 #include "gmres_functions.H"
 #include "IBMarkerContainer.H"
+#include "FhdParticleContainer.H"
 
 
 
@@ -89,6 +90,7 @@ void advance_CN(std::array<MultiFab, AMREX_SPACEDIM> & umac,
 void advance_stokes(std::array<MultiFab, AMREX_SPACEDIM> & umac,
                     std::array<MultiFab, AMREX_SPACEDIM> & umacNew,
                     MultiFab & pres,
+                    FhdParticleContainer & particles,
                     IBMarkerContainer & ib_mc,
                     const std::array<MultiFab, AMREX_SPACEDIM> & mfluxdiv_predict,
                     const std::array<MultiFab, AMREX_SPACEDIM> & mfluxdiv_correct,
@@ -129,6 +131,7 @@ void WritePlotFile(const int step,
                    std::array< MultiFab, AMREX_SPACEDIM > & umac_avg,
                    std::array< MultiFab, AMREX_SPACEDIM > & force_ib,
                    const MultiFab & pres,
+                   const FhdParticleContainer & particles,
                    const IBMarkerContainer & ib_pc);
 
 #endif

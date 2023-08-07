@@ -15,12 +15,15 @@ void WritePlotFile(int step,
                    std::array< MultiFab, AMREX_SPACEDIM > & umac_avg,
                    std::array< MultiFab, AMREX_SPACEDIM > & force_ib,
                    const MultiFab& pres,
+                   const FhdParticleContainer & particles,
                    const IBMarkerContainer & ib_pc)
 {
 
     BL_PROFILE_VAR("WritePlotFile()", WritePlotFile);
 
-    const std::string plotfilename = Concatenate(plot_base_name,step,7);
+    const std::string plotfilename = Concatenate(plot_base_name,step,8);
+    const std::string cplotfilename = Concatenate("cplt",step,9);
+
 
     BoxArray ba = pres.boxArray();
     DistributionMapping dmap = pres.DistributionMap();
@@ -89,4 +92,16 @@ void WritePlotFile(int step,
     // add immersed boundary markers data to plot file
     ib_pc.WritePlotFile(plotfilename, "immbdy_markers",
                         IBMReal::names(), IBMInt::names());
+
+    Vector<int> write_real_comp(FHD_realData::count);
+    fill(write_real_comp.begin(), write_real_comp.end(), 1);
+    
+    Vector<int> write_int_comp(FHD_intData::count);
+    fill(write_int_comp.begin(), write_int_comp.end(), 1);
+ 
+    particles.WritePlotFile(
+        cplotfilename, "particles",
+        write_real_comp, write_int_comp,
+        FHD_realData::names(), FHD_intData::names()
+    );
 }

@@ -3,6 +3,7 @@ CEXE_sources   += advance_midpoint.cpp
 CEXE_sources   += advance_CN.cpp
 CEXE_sources   += advance_stokes.cpp
 CEXE_sources   += WritePlotFile.cpp
+CEXE_sources   += particleGen.cpp
 CEXE_headers   += main_driver.H
 
 CEXE_headers   += main_driver_F.H

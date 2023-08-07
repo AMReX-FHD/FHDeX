@@ -23,6 +23,7 @@ using namespace ib_flagellum;
 void advance_stokes(std::array<MultiFab, AMREX_SPACEDIM >& umac,
                     std::array<MultiFab, AMREX_SPACEDIM >& umacNew,
                     MultiFab& pres,
+		    FhdParticleContainer & particles,
                     IBMarkerContainer & ib_mc,
                     const std::array<MultiFab, AMREX_SPACEDIM>& mfluxdiv_predict,
                     const std::array<MultiFab, AMREX_SPACEDIM>& mfluxdiv_correct,
@@ -133,6 +134,12 @@ void advance_stokes(std::array<MultiFab, AMREX_SPACEDIM >& umac,
      ***************************************************************************/
 
 
+    // Interpolate immersed boundary for cell body particles
+    //
+    //
+    //
+    //
+
     //___________________________________________________________________________
     // Interpolate immersed boundary: J(u^(n+1/2))
     std::array<MultiFab, AMREX_SPACEDIM> umacNew_buffer;
@@ -149,6 +156,8 @@ void advance_stokes(std::array<MultiFab, AMREX_SPACEDIM >& umac,
     ib_mc.ResetMarkers(0);
     ib_mc.InterpolateMarkers(0, umacNew_buffer);
 
+    // Interpolate particles
+
 
     //___________________________________________________________________________
     // Move markers according to velocity: x^(n+1) = x^n + dt/2 J(u^(n+1/2))
@@ -157,6 +166,11 @@ void advance_stokes(std::array<MultiFab, AMREX_SPACEDIM >& umac,
     if(immbdy::contains_fourier)
         anchor_first_marker(ib_mc, ib_lev, IBMReal::velx);
     ib_mc.MoveMarkers(0, dt);
+
+    // Couple forces between ib_mc and paricles
+    // 1. Move flagellum markers
+    // 2. Move particles
+    // 3. Make anchor particles have same position as flagellum anchorpoints
 
     ib_mc.clearNeighbors(); // Important: clear neighbors before Redistribute
     ib_mc.Redistribute();   // Don't forget to send particles to the right CPU
@@ -172,6 +186,9 @@ void advance_stokes(std::array<MultiFab, AMREX_SPACEDIM >& umac,
     update_ibm_marker(driv_u, driv_amp, time, ib_mc, ib_lev,
                       IBMReal::forcex, false,
                       geom);
+
+    // Update forces in particles
+
     // Constrain it to move in the z = constant plane only
     constrain_ibm_marker(ib_mc, ib_lev, IBMReal::forcez);
     if(immbdy::contains_fourier)
@@ -179,6 +196,12 @@ void advance_stokes(std::array<MultiFab, AMREX_SPACEDIM >& umac,
     // Sum predictor forces added to neighbors back to the real markers
     ib_mc.sumNeighbors(IBMReal::forcex, AMREX_SPACEDIM, 0, 0);
 
+    // Force coupling between markers and particles: 
+    // 1. compute forces in ib_mc and particles seperately
+    // 2. sum up forces from respective anchor points
+    // 2.a add forces from ib_mc anchor to particle anchor
+    // 2.b add forces from particle anchor to ib_mc anchor
+    // 3. DON'T Double count (use original / independent forces in 2.a and 2.b)
 
     //___________________________________________________________________________
     // Spread forces to corrector: f^(n+1) = S(F^(n+1))
@@ -193,6 +216,7 @@ void advance_stokes(std::array<MultiFab, AMREX_SPACEDIM >& umac,
     for (int d=0; d<AMREX_SPACEDIM; ++d)
         fc_force_corr[d].SumBoundary(geom.periodicity());
 
+    // Spread particle forces
 
     //___________________________________________________________________________
     // Compute pressure, and pressure gradient due to the BC: gp = Gp

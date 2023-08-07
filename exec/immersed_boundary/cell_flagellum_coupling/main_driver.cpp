@@ -487,8 +487,11 @@ void main_driver(const char * argv) {
     //
 
     FhdParticleContainer particles(geom, geom, dmap, ba, ba, 0, 0);
-    particles.InitParticles(ionParticle, dx);
+    particles.InitParticles(particle_n0[0], dx);
 
+    particles.UpdatePIDMap(); //This is the PIDmapping without sorting.
+    Print() << "Initializing " << particle_n0[0] << " particles for cell body completed" << std::endl;
+    exit(0);
 
     // Initialize immersed boundary container for the flagella
     IBMarkerContainer ib_mc(geom, dmap, ba, ib_nghost);
@@ -615,7 +618,7 @@ void main_driver(const char * argv) {
     //___________________________________________________________________________
     // Write out initial state
     if (plot_int > 0) {
-        WritePlotFile(step, time, geom, umac, umac_avg, force_ib, pres, ib_mc);
+        WritePlotFile(step, time, geom, umac, umac_avg, force_ib, pres, particles, ib_mc);
     }
 
 
@@ -641,10 +644,11 @@ void main_driver(const char * argv) {
         // Advance umac
         // advance_CN(umac, umacNew, pres, ib_mc, mfluxdiv_predict, mfluxdiv_correct,
         //            alpha_fc, force_ib, beta, gamma, beta_ed, geom, dt, time);
-        advance_stokes(umac, umacNew, pres, ib_mc, mfluxdiv_predict, mfluxdiv_correct,
+        //advance_stokes(umac, umacNew, pres, ib_mc, mfluxdiv_predict, mfluxdiv_correct,
+        //               alpha_fc, force_ib, beta, gamma, beta_ed, geom, dt, time);
+
+ 	advance_stokes(umac, umacNew, pres, particles, ib_mc, mfluxdiv_predict, mfluxdiv_correct,
                        alpha_fc, force_ib, beta, gamma, beta_ed, geom, dt, time);
-
-
 
 
         //_______________________________________________________________________
@@ -678,7 +682,7 @@ void main_driver(const char * argv) {
             n_avg = 0;
 
             //write out umac & pres to a plotfile
-            WritePlotFile(step, time, geom, umac, umac_avg, force_ib, pres, ib_mc);
+            WritePlotFile(step, time, geom, umac, umac_avg, force_ib, pres, particles, ib_mc);
             setVal(umac_avg, 0.);
         }
     }
