@@ -133,13 +133,6 @@ void advance_stokes(std::array<MultiFab, AMREX_SPACEDIM >& umac,
      *                                                                          *
      ***************************************************************************/
 
-
-    // Interpolate immersed boundary for cell body particles
-    //
-    //
-    //
-    //
-
     //___________________________________________________________________________
     // Interpolate immersed boundary: J(u^(n+1/2))
     std::array<MultiFab, AMREX_SPACEDIM> umacNew_buffer;
@@ -156,8 +149,10 @@ void advance_stokes(std::array<MultiFab, AMREX_SPACEDIM >& umac,
     ib_mc.ResetMarkers(0);
     ib_mc.InterpolateMarkers(0, umacNew_buffer);
 
-    // Interpolate particles
-
+    // Interpolate particles for the cell body
+    particles.ResetMarkers(0);
+    particles.InterpolateMarkers(0, umacNew_buffer);
+    //particles.velNorm(); // need this?
 
     //___________________________________________________________________________
     // Move markers according to velocity: x^(n+1) = x^n + dt/2 J(u^(n+1/2))
@@ -187,12 +182,11 @@ void advance_stokes(std::array<MultiFab, AMREX_SPACEDIM >& umac,
                       IBMReal::forcex, false,
                       geom);
 
-    // Update forces in particles
-
     // Constrain it to move in the z = constant plane only
     constrain_ibm_marker(ib_mc, ib_lev, IBMReal::forcez);
     if(immbdy::contains_fourier)
-        anchor_first_marker(ib_mc, ib_lev, IBMReal::forcex);
+        anchor_first_marker(ib_mc, ib_lev, IBMReal::forcex); //will move this to anchor to the cell body
+
     // Sum predictor forces added to neighbors back to the real markers
     ib_mc.sumNeighbors(IBMReal::forcex, AMREX_SPACEDIM, 0, 0);
 
@@ -202,6 +196,11 @@ void advance_stokes(std::array<MultiFab, AMREX_SPACEDIM >& umac,
     // 2.a add forces from ib_mc anchor to particle anchor
     // 2.b add forces from particle anchor to ib_mc anchor
     // 3. DON'T Double count (use original / independent forces in 2.a and 2.b)
+
+    // Update bond forces on cell body particles
+    particles.computeForcesBondGPU(simParticles); 
+
+
 
     //___________________________________________________________________________
     // Spread forces to corrector: f^(n+1) = S(F^(n+1))

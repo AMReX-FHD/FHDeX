@@ -1,5 +1,3 @@
-
-
   # Problem specification
   prob_lo = 0.0   0.0   0.0        # physical lo coordinate
   prob_hi = 4.e-3 2.e-3 2.e-3      # physical hi coordinate
@@ -14,7 +12,7 @@
   n_cells       = 128 64 64
   # max number of cells in a box
   max_grid_size = 16 16 16
-  max_particle_tile_size = 0 0 0 # set to zero to use max_grid_size, setting a very large number will also use max grid size, but will also ensure that refined es and particle grids will do the same.
+  #max_particle_tile_size = 256 256 256
 
   # Time-step control
   fixed_dt = 1e-4
@@ -82,29 +80,24 @@
   gmres_max_inner = 20            # max number of inner iterations, or restart number
   gmres_max_iter = 400            # max number of gmres iterations
   gmres_min_iter = 1              # min number of gmres iterations
-
+  nspecies = 1
 
   #Peskin kernel (Currently 3, 4, & 6 implemented) (keep these the same for now)
   #--------
   pkernel_fluid = 4
 
   #cell body particle initialization
-  # 1 = use particles.dat file, 2 = spread randomly over domain
+  # 1 = use particles.dat file
   particle_placement = 1
   # -1 = calculate based on n0
   particle_count = 8
-  # real particles per simulator particle
-  particle_neff = 1
-  # ignore if particle_count is positive
-  particle_n0 = 3.011e20 # 0.5M
   # number of groups (polymer groups)
   ngroups = 1
   # number of bonds (be careful about whether there are repeated bonds)
   nbonds = 28
 
-  k = 1.0e-3
-  x0 = 8.0e-8
-
+  #k = 1.0e-3
+  #x0 = 8.0e-8
 
   # Flagellar markers
 
@@ -115,19 +108,22 @@
   contains_flagellum = true
   contains_fourier   = true
 
+&end
+
 
 &ib_flagellum
 
   n_marker  = 21
-  offset_0(:, 1) = 1.5e-3 1.e-3 1.e-3	# probably use this to place the cell body as well
+  offset_0(:, 1) = 1.5e-3 1.e-3 1.e-3
 
   amplitude  = 1e4
   frequency  = 1
-  length     = 1.6e-3
+  length     = 1.0e-3
   wavelength = .8e-3
   k_spring   = 1e-3
   k_driving  = 1e-3
 
-
   fourier_coef_len = 4
   chlamy_flagellum_datafile = "inputs_chlamy_data"
+
+&end
