@@ -761,10 +761,10 @@ void RK3stepStag(MultiFab& cu,
                                                     + grav[1]*(mompy(i,j+1,k)+mompy(i,j,k))
                                                     + grav[2]*(mompz(i,j,k+1)+mompz(i,j,k)) );
             if (turbForcing == 2) {
-                cup2_fab(i,j,k,4) += 0.5 * dt * (  (turbvf_x_o(i+1,j,k) + 0.25*(turbvf_x(i+1,j,k)-turbvf_x_o(i+1,j,k)))*mompx(i+1,j,k) + mompx(i,j,k)*(turbvf_x_o(i,j,k) + 0.25*(turbvf_x(i,j,k)-turbvf_x_o(i,j,k)))
+                cup2_fab(i,j,k,4) += 0.5 * 0.25 * dt * (  (turbvf_x_o(i+1,j,k) + 0.25*(turbvf_x(i+1,j,k)-turbvf_x_o(i+1,j,k)))*mompx(i+1,j,k) + mompx(i,j,k)*(turbvf_x_o(i,j,k) + 0.25*(turbvf_x(i,j,k)-turbvf_x_o(i,j,k)))
                                                  + (turbvf_y_o(i,j+1,k) + 0.25*(turbvf_y(i,j+1,k)-turbvf_y_o(i,j+1,k)))*mompy(i,j+1,k) + mompy(i,j,k)*(turbvf_y_o(i,j,k) + 0.25*(turbvf_y(i,j,k)-turbvf_y_o(i,j,k)))
                                                  + (turbvf_z_o(i,j,k+1) + 0.25*(turbvf_z(i,j,k+1)-turbvf_z_o(i,j,k+1)))*mompz(i,j,k+1) + mompz(i,j,k)*(turbvf_z_o(i,j,k) + 0.25*(turbvf_z(i,j,k)-turbvf_z_o(i,j,k))) );
-                cup2_fab(i,j,k,4) -= dt * energyp_in; // remove the average input energy from random turbulent forcing
+                cup2_fab(i,j,k,4) -= 0.25 * dt * energyp_in; // remove the average input energy from random turbulent forcing
             }
         });
     }
@@ -1035,10 +1035,10 @@ void RK3stepStag(MultiFab& cu,
                                                     + grav[1]*(momp2y(i,j+1,k)+momp2y(i,j,k))
                                                     + grav[2]*(momp2z(i,j,k+1)+momp2z(i,j,k)) );
             if (turbForcing == 2) {
-                cu_fab(i,j,k,4) += 0.5 * dt * (  (turbvf_x_o(i+1,j,k) + (2./3.)*(turbvf_x(i+1,j,k)-turbvf_x_o(i+1,j,k)))*momp2x(i+1,j,k) + momp2x(i,j,k)*(turbvf_x_o(i,j,k) + (2./3.)*(turbvf_x(i,j,k)-turbvf_x_o(i,j,k)))
+                cu_fab(i,j,k,4) += 0.5 * (2./3.) * dt * (  (turbvf_x_o(i+1,j,k) + (2./3.)*(turbvf_x(i+1,j,k)-turbvf_x_o(i+1,j,k)))*momp2x(i+1,j,k) + momp2x(i,j,k)*(turbvf_x_o(i,j,k) + (2./3.)*(turbvf_x(i,j,k)-turbvf_x_o(i,j,k)))
                                                + (turbvf_y_o(i,j+1,k) + (2./3.)*(turbvf_y(i,j+1,k)-turbvf_y_o(i,j+1,k)))*momp2y(i,j+1,k) + momp2y(i,j,k)*(turbvf_y_o(i,j,k) + (2./3.)*(turbvf_y(i,j,k)-turbvf_y_o(i,j,k)))
                                                + (turbvf_z_o(i,j,k+1) + (2./3.)*(turbvf_z(i,j,k+1)-turbvf_z_o(i,j,k+1)))*momp2z(i,j,k+1) + momp2z(i,j,k)*(turbvf_z_o(i,j,k) + (2./3.)*(turbvf_z(i,j,k)-turbvf_z_o(i,j,k))) );
-                cu_fab(i,j,k,4) -= dt * energyp2_in; // remove the average input energy from random turbulent forcing
+                cu_fab(i,j,k,4) -= (2./3.) * dt * energyp2_in; // remove the average input energy from random turbulent forcing
             }
         });
     }

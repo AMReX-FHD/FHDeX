@@ -1147,9 +1147,14 @@ void main_driver(const char* argv)
         }
         statsCount++;
         if (step%100 == 0) {
-            amrex::Print() << "Mean Density: " << ComputeSpatialMean(cu, 0) << " Mean Momentum (x):" << ComputeSpatialMean(cumom[0], 0) 
-                           <<  " Mean Momentum (y):" << ComputeSpatialMean(cumom[1], 0) <<  " Mean Momentum (z):" 
-                           << ComputeSpatialMean(cumom[2], 0) <<" Mean Energy:" << ComputeSpatialMean(cu, 4) << "\n";
+            amrex::Print() << "Mean Rho: "      << ComputeSpatialMean(cu, 0) 
+                           << " Mean Temp.:"    << ComputeSpatialMean(prim, 4)
+                           << " Mean Press.:"   << ComputeSpatialMean(prim, 5)
+                           << " Mean Mom. (x):" << ComputeSpatialMean(cumom[0], 0) 
+                           << " Mean Mom. (y):" << ComputeSpatialMean(cumom[1], 0) 
+                           << " Mean Mom. (z):" << ComputeSpatialMean(cumom[2], 0) 
+                           << " Mean En.:"      << ComputeSpatialMean(cu, 4) 
+                           << "\n";
         }
 
         // turbulence outputs
