@@ -965,7 +965,7 @@ void collect_charge_gpu (FhdParticleContainer::AoS& aos, FArrayBox& charge, F f,
     {
         FhdParticleContainer::ParticleType& p = pstruct[ip];
 
-        Real qm = -p.rdata(FHD_realData::q)/permittivity;
+        Real qm = p.rdata(FHD_realData::q)/permittivity;
 
         Real w[3][twoks];
         int indices[3][twoks];

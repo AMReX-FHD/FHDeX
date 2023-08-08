@@ -33,9 +33,10 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
 
  //           Print() << "SPEC TOTAL: " << particleInfo[0].total << "\n";
             for(int i_spec=0; i_spec < nspecies; i_spec++) {
-	        std::string filename = Concatenate("particles_",i_spec);
+	        std::string filename = Concatenate("particles_",i_spec,1);
 	        filename += ".dat";
                 std::ifstream particleFile(filename);
+		Print() << "reading particle file " << filename << std::endl;
                 for (int i_part=0; i_part<particleInfo[i_spec].total;i_part++) {
                     ParticleType p;
                     p.id()  = ParticleType::NextID();
