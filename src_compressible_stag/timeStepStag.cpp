@@ -311,11 +311,13 @@ void RK3stepStag(MultiFab& cu,
         geom, stoch_weights,dt);
 
     // add to the total continuum fluxes based on RK3 weight
+    Real aux1 = ParallelDescriptor::second();
     if (do_reservoir) {
-        for (int d=0;d<AMREX_SPACEDIM;++d) {
-            MultiFab::Saxpy(faceflux_cont[d],Real(1.0/6.0),faceflux[d],0,0,nvars,0);
-        }
+        ComputeFluxMomReservoir(cu,prim,vel,cumom_res,faceflux_res,geom,dt); // compute fluxes and momentum from reservoir particle update
+        ResetReservoirFluxes(faceflux, faceflux_res, geom); // reset fluxes in the FHD-reservoir interface from particle update
     }
+    Real aux2 = ParallelDescriptor::second() - aux1;
+    ParallelDescriptor::ReduceRealMax(aux2,  ParallelDescriptor::IOProcessorNumber());
 
     if (nreaction>0) {
         MultiFab::LinComb(ranchem,
@@ -409,6 +411,10 @@ void RK3stepStag(MultiFab& cu,
         BCMomTrans(cupmom[i], vel[i], geom, i);
     }
 
+    if (do_reservoir) {
+        ResetReservoirMom(cupmom, cumom_res, geom); // set momentum at the reservoir interface to its value from particle update
+    }
+
     // Fill boundaries for conserved variables
     for (int d=0; d<AMREX_SPACEDIM; d++) {
         cupmom[d].FillBoundary(geom.periodicity());
@@ -485,11 +491,13 @@ void RK3stepStag(MultiFab& cu,
         geom, stoch_weights,dt);
 
     // add to the total continuum fluxes based on RK3 weight
+    Real aux3 = ParallelDescriptor::second();
     if (do_reservoir) {
-        for (int d=0;d<AMREX_SPACEDIM;++d) {
-            MultiFab::Saxpy(faceflux_cont[d],Real(1.0/6.0),faceflux[d],0,0,nvars,0);
-        }
+        ComputeFluxMomReservoir(cup,prim,vel,cumom_res,faceflux_res,geom,0.25*dt); // compute fluxes and momentum from reservoir particle update
+        ResetReservoirFluxes(faceflux, faceflux_res, geom); // reset fluxes in the FHD-reservoir interface from particle update
     }
+    Real aux4 = ParallelDescriptor::second() - aux3;
+    ParallelDescriptor::ReduceRealMax(aux4,  ParallelDescriptor::IOProcessorNumber());
 
     if (nreaction>0) {
         MultiFab::LinComb(ranchem,
@@ -588,6 +596,10 @@ void RK3stepStag(MultiFab& cu,
         BCMomTrans(cup2mom[i], vel[i], geom, i);
     }
 
+    if (do_reservoir) {
+        ResetReservoirMom(cup2mom, cumom_res, geom); // set momentum at the reservoir interface to its value from particle update
+    }
+
     // Fill  boundaries for conserved variables
     for (int d=0; d<AMREX_SPACEDIM; d++) {
         cup2mom[d].FillBoundary(geom.periodicity());
@@ -664,11 +676,13 @@ void RK3stepStag(MultiFab& cu,
         geom, stoch_weights,dt);
     
     // add to the total continuum fluxes based on RK3 weight
+    Real aux5 = ParallelDescriptor::second();
     if (do_reservoir) {
-        for (int d=0;d<AMREX_SPACEDIM;++d) {
-            MultiFab::Saxpy(faceflux_cont[d],Real(2.0/3.0),faceflux[d],0,0,nvars,0);
-        }
+        ComputeFluxMomReservoir(cup2,prim,vel,cumom_res,faceflux_res,geom,(2.0/3.0)*dt); // compute fluxes and momentum from reservoir particle update
+        ResetReservoirFluxes(faceflux, faceflux_res, geom); // reset fluxes in the FHD-reservoir interface from particle update
     }
+    Real aux6 = ParallelDescriptor::second() - aux5;
+    ParallelDescriptor::ReduceRealMax(aux6,  ParallelDescriptor::IOProcessorNumber());
 
     if (nreaction>0) {
         MultiFab::LinComb(ranchem,
@@ -762,23 +776,27 @@ void RK3stepStag(MultiFab& cu,
         BCMomNormal(cumom[i], vel[i], cu, geom, i);
         BCMomTrans(cumom[i], vel[i], geom, i);
     }
-    
-    /////////////////////////////////////////////////////
-    // compute fluxes and momentum at the reservoir /////
-    // over an intergration step dt /////////////////////
-    // timer
-    Real aux1 = ParallelDescriptor::second();
+
     if (do_reservoir) {
-        ComputeFluxMomReservoir(cu0,prim0,vel0,cumom_res,faceflux_res,geom,dt); // compute fluxes and momentum from reservoir particle update
         ResetReservoirMom(cumom, cumom_res, geom); // set momentum at the reservoir interface to its value from particle update
-        ReFluxCons(cu, cu0, faceflux_res, faceflux_cont, geom, dt); // reflux the conservative qtys in the adjacent cell from reservoir flux
     }
-    Real aux2 = ParallelDescriptor::second() - aux1;
-    ParallelDescriptor::ReduceRealMax(aux2,  ParallelDescriptor::IOProcessorNumber());
-    if (step%1 == 0) {
-        amrex::Print() << "Step: " << step << " Reservoir generator time: " << aux2 << " seconds\n";
-    }
-    /////////////////////////////////////////////////////
+    
+//    /////////////////////////////////////////////////////
+//    // compute fluxes and momentum at the reservoir /////
+//    // over an intergration step dt /////////////////////
+//    // timer
+//    Real aux1 = ParallelDescriptor::second();
+//    if (do_reservoir) {
+//        ComputeFluxMomReservoir(cu0,prim0,vel0,cumom_res,faceflux_res,geom,dt); // compute fluxes and momentum from reservoir particle update
+//        ResetReservoirMom(cumom, cumom_res, geom); // set momentum at the reservoir interface to its value from particle update
+//        ReFluxCons(cu, cu0, faceflux_res, faceflux_cont, geom, dt); // reflux the conservative qtys in the adjacent cell from reservoir flux
+//    }
+//    Real aux2 = ParallelDescriptor::second() - aux1;
+//    ParallelDescriptor::ReduceRealMax(aux2,  ParallelDescriptor::IOProcessorNumber());
+//    if (step%1 == 0) {
+//        amrex::Print() << "Step: " << step << " Reservoir generator time: " << aux2 << " seconds\n";
+//    }
+//    /////////////////////////////////////////////////////
     
     // Fill  boundaries for conserved variables
     for (int d=0; d<AMREX_SPACEDIM; d++) {
@@ -803,4 +821,10 @@ void RK3stepStag(MultiFab& cu,
 
     // Correctly set momentum and velocity at the walls & temperature, pressure, density & mass/mole fractions in ghost cells
     setBCStag(prim, cu, cumom, vel, geom);
+
+    if (do_reservoir) {
+        if (step%100 == 0) {
+            amrex::Print() << "Step: " << step << " Reservoir generator time: " << aux2 + aux4 + aux6 << " seconds\n";
+        }
+    }
 }
