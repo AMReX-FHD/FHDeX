@@ -487,10 +487,10 @@ void main_driver(const char * argv) {
     //
 
     FhdParticleContainer particles(geom, geom, dmap, ba, ba, 0, 0);
-    particles.InitParticles(particle_n0[0], dx);
-
+    particles.InitParticles(particle_count[0], dx);
     particles.UpdatePIDMap(); //This is the PIDmapping without sorting.
-    Print() << "Initializing " << particle_n0[0] << " particles for cell body completed" << std::endl;
+
+    Print() << "Initializing " << particle_count[0] << " particles for cell body completed" << std::endl;
     exit(0);
 
     // Initialize immersed boundary container for the flagella
