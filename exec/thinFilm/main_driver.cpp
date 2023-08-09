@@ -205,7 +205,7 @@ void main_driver(const char* argv)
     Real Const3dx = thinfilm_gamma / (3.*visc_coef);
     
     Real time = 0.;
-    Real dt = 0.1 * (t0/std::pow(thinfilm_h0,4)) * std::pow(dx[0],4) / 16.;
+    Real dt = cfl * (t0/std::pow(thinfilm_h0,4)) * std::pow(dx[0],4) / 16.;
 
     int stats_count = 0;
     

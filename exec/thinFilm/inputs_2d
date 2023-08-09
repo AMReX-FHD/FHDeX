@@ -14,8 +14,11 @@
   # algorithm_type = 2 (2D)
   algorithm_type = 2
 
+  # time step
+  cfl = 0.1
+
   # Controls for number of steps between actions
-  max_step = 10000000
+  max_step = 100000000
   plot_int = 1000000
 
   n_steps_skip = 1000000
