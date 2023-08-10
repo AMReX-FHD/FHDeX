@@ -23,7 +23,7 @@ USE_PARTICLES = TRUE
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
-include ./Make.package
+# include ./Make.package
 VPATH_LOCATIONS   += .
 INCLUDE_LOCATIONS += .
 
@@ -34,6 +34,10 @@ INCLUDE_LOCATIONS += ../src_models
 include ../../../src_hydro/Make.package
 VPATH_LOCATIONS   += ../../../src_hydro/
 INCLUDE_LOCATIONS += ../../../src_hydro/
+
+include ../../../src_analysis/Make.package
+VPATH_LOCATIONS   += ../../../src_analysis/
+INCLUDE_LOCATIONS += ../../../src_analysis/
 
 include ../../../src_rng/Make.package
 VPATH_LOCATIONS   += ../../../src_rng/
@@ -56,9 +60,15 @@ include ../../../src_immersed-boundary/Make.package
 VPATH_LOCATIONS   += ../../../src_immersed-boundary
 INCLUDE_LOCATIONS += ../../../src_immersed-boundary
 
-include ../../../src_particles/MakeKernels.package
+include ../../../src_particles/Make.package
 VPATH_LOCATIONS   += ../../../src_particles
 INCLUDE_LOCATIONS += ../../../src_particles
+
+include ../../../src_geometry/Make.package
+VPATH_LOCATIONS   += ../../../src_geometry
+INCLUDE_LOCATIONS += ../../../src_geometry
+
+include ./Make.package
 
 include $(AMREX_HOME)/Src/Base/Make.package
 include $(AMREX_HOME)/Src/Boundary/Make.package
@@ -72,8 +82,8 @@ ifeq ($(findstring cgpu, $(HOST)), cgpu)
   CXXFLAGS += $(FFTW)
 endif
 
-# ifeq ($(USE_CUDA),TRUE)
-#   LIBRARIES += -lcufft
-# else
-#   LIBRARIES += -L$(FFTW_DIR) -lfftw3_mpi -lfftw3
-# endif
+ifeq ($(USE_CUDA),TRUE)
+  LIBRARIES += -lcufft
+else
+  LIBRARIES += -L$(FFTW_DIR) -lfftw3_mpi -lfftw3
+endif

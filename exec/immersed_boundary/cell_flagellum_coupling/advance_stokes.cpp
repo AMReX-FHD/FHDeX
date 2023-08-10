@@ -176,8 +176,8 @@ void advance_stokes(std::array<MultiFab, AMREX_SPACEDIM >& umac,
     // 1. Move flagellum markers.  
     // 2. Move particles
     // 3. Make anchor particles have same position as flagellum anchorpoints
-    Real anchor_markers[6]; //storing 2 positions or 6 coordinates of 2 anchored markers
-    anchor_markers = get_anchor_markers(ib_mc, ib_lev, IBMReal::pred_posx);
+    // Real anchor_markers[6]; //storing 2 positions or 6 coordinates of 2 anchored markers
+    Vector<Real> anchor_markers = get_anchor_markers(ib_mc, ib_lev, IBMReal::pred_posx);
     move_anchor_particles(particles, ib_lev, IBMReal::pred_posx, anchor_markers); //working on it
     //above two can be combined into one function...
     particles.Redistribute();
