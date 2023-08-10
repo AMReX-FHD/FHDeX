@@ -28,6 +28,10 @@ void constrain_ibm_marker(IBMarkerContainer & ib_mc, int ib_lev, int component);
 
 void anchor_first_marker(IBMarkerContainer & ib_mc, int ib_lev, int component);
 
+Real get_anchor_markers(IBMarkerContainer & ib_mc, int ib_lev, int component);
+
+void move_anchor_particles(FhdParticleContainer & particles, int ib_lev, int component, Real anchor_markers[6]);
+
 Real theta(Real amp_ramp, Real time, int i_ib, int index_marker);
 
 void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,

@@ -482,16 +482,13 @@ void main_driver(const char * argv) {
     
 
     // Initialize immersed boundary container for the cell body
-    //
-    // May use FhdParticleContainer::InitParticles from particles.dat 
-    //
-
     FhdParticleContainer particles(geom, geom, dmap, ba, ba, 0, 0);
     particles.InitParticles(particle_count[0], dx);
     particles.UpdatePIDMap(); //This is the PIDmapping without sorting.
+    //particles.fillNeighbors(); //Need this???
 
     Print() << "Initializing " << particle_count[0] << " particles for cell body completed" << std::endl;
-    exit(0);
+    //exit(0);
 
     // Initialize immersed boundary container for the flagella
     IBMarkerContainer ib_mc(geom, dmap, ba, ib_nghost);
@@ -526,7 +523,7 @@ void main_driver(const char * argv) {
         ib_mc.InitList(0, marker_radii, marker_positions, i_ib);
     }
 
-    ib_mc.UpdatePIDMap();
+    ib_mc.UpdatePIDMap();  //This is the one generating the sorted map from PullDown. 
     ib_mc.fillNeighbors();
     ib_mc.PrintMarkerData(0);
     BL_PROFILE_VAR_STOP(CREATEMARKERS);

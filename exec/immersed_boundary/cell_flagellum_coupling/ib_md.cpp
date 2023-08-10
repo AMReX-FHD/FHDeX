@@ -51,13 +51,6 @@ void anchor_first_marker(IBMarkerContainer & ib_mc, int ib_lev, int component) {
 
         long np = ib_mc.GetParticles(ib_lev).at(index).numParticles();
 
-
-	//change the following so that the first two markers are 'embedded'/'combined' on the cell body particles 
-	//
-	//
-	//
-	//
-
 	for (int i = 0; i < np; ++i) {
 
             ParticleType & mark = markers[i];
@@ -68,6 +61,66 @@ void anchor_first_marker(IBMarkerContainer & ib_mc, int ib_lev, int component) {
     }
 
     BL_PROFILE_VAR_STOP(TIMER_ANCHOR_FIRST_MARKER);
+}
+
+
+Real get_anchor_markers(IBMarkerContainer & ib_mc, int ib_lev, int component) {
+
+    //BL_PROFILE_VAR("get_anchor_markers", TIMER_GET_ANCHOR_MARKERS);
+
+    for (IBMarIter pti(ib_mc, ib_lev); pti.isValid(); ++pti) {
+
+        // Get marker data (local to current thread)
+        TileIndex index(pti.index(), pti.LocalTileIndex());
+        AoS & markers = ib_mc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
+
+        long np = ib_mc.GetParticles(ib_lev).at(index).numParticles();
+
+	Real get_anchor_markers[6]; //storing 6 coordinates of 2 anchored markers
+
+        for (int i = 0; i < np; ++i) {
+
+            ParticleType & mark = markers[i];
+
+            if(mark.idata(IBMInt::id_1) == 0)
+                for (int d=0; d<AMREX_SPACEDIM; ++d) get_anchor_markers[d] = mark.rdata(component + d) ;
+	    if(mark.idata(IBMInt::id_1) == 1)
+                for (int d=0; d<AMREX_SPACEDIM; ++d) get_anchor_markers[d+3] = mark.rdata(component + d) ;
+        }
+    }
+
+    Return get_anchor_markers;
+
+   //BL_PROFILE_VAR_STOP(TIMER_GET_ANCHOR_MARKERS);
+}
+
+
+void move_anchor_particles(FhdParticleContainer & particles, int ib_lev, int component, Real anchor_markers[6]) {
+
+    BL_PROFILE_VAR("move_anchor_particles", TIMER_MOVE_ANCHOR_PARTICLES);
+
+    for (IBMarIter pti(particles, ib_lev); pti.isValid(); ++pti) {
+
+        // Get particle data (local to current thread)
+        TileIndex index(pti.index(), pti.LocalTileIndex());
+        AoS & markers = particles.GetParticles(ib_lev).at(index).GetArrayOfStructs();
+
+        long np = particles.GetParticles(ib_lev).at(index).numParticles();
+
+        //Real get_anchor_markers[6]; //storing 6 coordinates of 2 anchored markers
+
+        for (int i = 0; i < np; ++i) {
+
+            ParticleType & mark = markers[i];
+
+            if(mark.idata(IBMInt::global_id) == 0)   //anchor particle in the inner layer of the cell body
+                for (int d=0; d<AMREX_SPACEDIM; ++d) mark.rdata(component + d) = anchor_markers[d];
+            if(mark.idata(IBMInt::global_id) == 1)   //anchor particle in the outer layer of the cell body
+                for (int d=0; d<AMREX_SPACEDIM; ++d) mark.rdata(component + d) = anchor_markers[d+3];
+        }
+    }
+
+   BL_PROFILE_VAR_STOP(TIMER_MOVE_ANCHOR_PARTICLES);
 }
 
 
