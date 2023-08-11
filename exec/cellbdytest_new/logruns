@@ -1,0 +1,102 @@
+This log will go through the inputs file that is change from the original testinputs folder from each run
+
+run #
+from here the 4 points of the cube is fix for these runs
+    00: default normal set up with crosslink place across diganolly:  first test of cross link: fail-subject disasppear after certain time step: estimate ~250
+        Updata : it jump all around the grid instead of disappearing
+    01: no force apply:  remove all cross link: still bouncing around the grid
+    02: set k to zero :  no movement observed
+    02: rerun with crosslink k=0, no forces applied
+    03: applied a x force direction : 0*k*x0 (vaule can be change in src_analysis line 396) results: no movement detected
+    03: rerun with same exe crosslink k=0, no forces applied, 
+    04: applied a x force direction : 0.1*k*x0, change forces of k to 0.0001 results: bouncing around the grid
+    04: rerun with the same condition with all crosslinks
+    05: change bond of particle k to 1, set forces to zero, with crosslinks
+    06: increase factor k by 10, set forces to zero, add all possible crosslinks
+    07: remove everything with only two particles, k=0.000001,
+Change settings to : 
+
+  all_dry = 0
+  fluid_tog = 1 # 0=Do nothing, 1=Do stokes solve, 2=Do low Mach solve
+  es_tog = 0 # Do electrostatic solve 0=off, 1=Poisson, 2=Pairwise Coulomb (Doesn't work in parallel), 3=PPPM
+  drag_tog = 0 # Apply drag force to fluid
+  rfd_tog = 0 # Apply RFD force to fluid
+  move_tog = 2 # # Total particle move. 0 = off, 1 = single step, 2 = midpoint
+  dry_move_tog = 1 # Dry particle move 0 = off, 1 = on, 2 = on but without dry stochastic drift correction
+  wall_mob = 0 #0= no dry adjustment to mobility due to walls, 1=Infinte plane, 2=other model
+  sr_tog = 0 # 0=No short range forces, 1=Short range LJ forces without walls, 2= with walls, 3=Wall with alternative model
+  bond_tog = 1 # 0=No bonds, 1=Hookian bonds, 2=FENE bonds
+  pinMatrix_tog = 0 # 0=normal runs, 1=calculate pinned mobility matrix for 1 step
+
+results: no movement
+
+    08: same condition as run07 except k=0.001 :no movement
+    09: same condition as run08 except drag_tog=1 :no movement
+    10: same condition as run10 except rfd_tog=1 : broke
+    11: same condition as run07 except with now 4 particle in a square formation : no movement
+    12: same condition as run11, crosslink the square : broke
+    13: same condition as run11, now 8 particle in a cube : no movement
+    14: same condition as run13, now add x force on particle number 5 : broke
+    15: same condition as run13, offset the cube to center : no movement
+
+summary overrall 1~15: increasing k,broke quicker, applying anyforces broke it quicker, rfd_tog broke it, removing crosslink seem to fix the issue no matter the k and
+                       adding crosslink cause it go break. 
+
+
+
+    16: same condition as 12 but offset it to the center, reduce grid size by half, offset one particles that's not fix by 0.5% to cause wiggling. Results wiggle but at 90~ time steps
+        it starts to accumulate forces and wander off.
+    17: same condition as run16, now with k=0.0001 10 times smaller, offset particle just reset to normal state and not moving anymore.
+    18: same condiiton as run17 now in 3D. Blow up after 40 steps
+    19: same condition as run17, now with smaller k=0.00001, results: particle move back to place.not wiggling
+    20: same condition but alter wetRad[j] in maindriver to match 
+       
+	specifically: line 376 in main.cpp in immersedIons
+	 Vector<Real> marker_radii(N_markers);
+	for (int i=0; i<marker_radii.size(); ++i) marker_radii[i] = 4*l_link;
+	l_link = the rest length or the distance between neighbouring particle
+       
+	 also set bond_tog !=0
+        ang to 6 due to ghostcell =4 * x0 /dx
+		
+	then set k to 0.001
+     21: same condition as run 20, decrease k to 0.0001
+     22: same condition as run 20, decrease k to 0.00001
+     23: same condition as run 21, increase ghost cell to 8, k=0.0001
+     24: same condition as run 23, change the pkernel to 6 and comment out the equation before
+     25: same condition as run 25, decrease k to 0.00001
+     26: decrease time step to 100, with writing plot file
+     27: release the pin particle, reduce time to plot every 1 step, discussion and lot of different criteria testing. 
+
+new settings for tog
+
+all_dry = 0
+  fluid_tog = 1 # 0=Do nothing, 1=Do stokes solve, 2=Do low Mach solve
+  es_tog = 0 # Do electrostatic solve 0=off, 1=Poisson, 2=Pairwise Coulomb (Doesn't work in parallel), 3=PPPM
+  drag_tog = 0 # Apply drag force to fluid
+  rfd_tog = 0 # Apply RFD force to fluid
+  move_tog = 1 # # Total particle move. 0 = off, 1 = single step, 2 = midpoint
+  dry_move_tog = 0 # Dry particle move 0 = off, 1 = on, 2 = on but without dry stochastic drift correction
+  wall_mob = 0 #0= no dry adjustment to mobility due to walls, 1=Infinte plane, 2=other model
+  sr_tog = 0 # 0=No short range forces, 1=Short range LJ forces without walls, 2= with walls, 3=Wall with alternative model
+  bond_tog = 1 # 0=No bonds, 1=Hookian bonds, 2=FENE bonds
+  pinMatrix_tog = 0 # 0=normal runs, 1=calculate pinned mobility matrix for 1 step
+
+conclusion seem to be a solver issue.
+
+    28~30: same setting as run27
+the following simulation will be run 28 2x, 29 3x , single face with cross link 30, without cross link 31
+ a cube with much bigger edge lengths -- maybe 2x, or 3x -- with cross links.
+- a single face (with and without cross links).
+
+Results: the longer the edge length , the quicker they fall apart.
+Related to Dry diffusion issues. Toggle dry move on and fluid tog to 0
+
+
+
+run31~32 doesn't really matter,
+
+run33: created a new the cell body as a sphere using spiral equation. Please read readmeplease.txt in python_sphere folder. The current setting for k and dt is the sweet spot. Please create a new folder from    that folder to experiment more
+
+
+	
