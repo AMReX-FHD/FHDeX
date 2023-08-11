@@ -492,6 +492,21 @@ void RK3stepStag(MultiFab& cu,
                 mompz(i,j,k) += dt*0.5*(cu_fab(i,j,k-1,0)+cu_fab(i,j,k,0))*aF_z;
             }
         });
+
+    }
+        
+    for ( MFIter mfi(cup,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
+        
+        const Box& bx = mfi.tilebox();
+        const Array4<Real> & cup_fab = cup.array(mfi);
+
+        AMREX_D_TERM(const Array4<Real>& momx = cumom[0].array(mfi);,
+                     const Array4<Real>& momy = cumom[1].array(mfi);,
+                     const Array4<Real>& momz = cumom[2].array(mfi););
+
+        AMREX_D_TERM(const Array4<Real>& turbvf_x_o = turb_vel_f_o[0].array(mfi);,
+                     const Array4<Real>& turbvf_y_o = turb_vel_f_o[1].array(mfi);,
+                     const Array4<Real>& turbvf_z_o = turb_vel_f_o[2].array(mfi););
         
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
@@ -792,6 +807,22 @@ void RK3stepStag(MultiFab& cu,
                 momp2z(i,j,k) += dt*0.5*(cup_fab(i,j,k-1,0)+cup_fab(i,j,k,0))*aF_z;
             }
         });
+
+    }
+        
+    for ( MFIter mfi(cup2,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
+        
+        const Box& bx = mfi.tilebox();
+        
+        const Array4<Real> & cup2_fab = cup2.array(mfi);
+
+        AMREX_D_TERM(const Array4<Real>& mompx = cupmom[0].array(mfi);,
+                     const Array4<Real>& mompy = cupmom[1].array(mfi);,
+                     const Array4<Real>& mompz = cupmom[2].array(mfi););
+
+        AMREX_D_TERM(const Array4<Real>& turbvf_x = turb_vel_f[0].array(mfi);,
+                     const Array4<Real>& turbvf_y = turb_vel_f[1].array(mfi);,
+                     const Array4<Real>& turbvf_z = turb_vel_f[2].array(mfi););
         
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
@@ -1094,6 +1125,26 @@ void RK3stepStag(MultiFab& cu,
                 momz(i,j,k) += dt*0.5*(cup2_fab(i,j,k-1,0)+cup2_fab(i,j,k,0))*aF_z;
             }
         });
+
+    }
+        
+    for ( MFIter mfi(cu,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
+        
+        const Box& bx = mfi.tilebox();
+
+        const Array4<Real> & cu_fab = cu.array(mfi);
+
+        AMREX_D_TERM(const Array4<Real>& momp2x = cup2mom[0].array(mfi);,
+                     const Array4<Real>& momp2y = cup2mom[1].array(mfi);,
+                     const Array4<Real>& momp2z = cup2mom[2].array(mfi););
+
+        AMREX_D_TERM(const Array4<Real>& turbvf_x = turb_vel_f[0].array(mfi);,
+                     const Array4<Real>& turbvf_y = turb_vel_f[1].array(mfi);,
+                     const Array4<Real>& turbvf_z = turb_vel_f[2].array(mfi););
+
+        AMREX_D_TERM(const Array4<Real>& turbvf_x_o = turb_vel_f_o[0].array(mfi);,
+                     const Array4<Real>& turbvf_y_o = turb_vel_f_o[1].array(mfi);,
+                     const Array4<Real>& turbvf_z_o = turb_vel_f_o[2].array(mfi););
         
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
