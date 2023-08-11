@@ -272,7 +272,7 @@ void FhdParticleContainer::velNorm()
                 Real velSqr = (pow(part.rdata(FHD_realData::velx),2) + pow(part.rdata(FHD_realData::vely),2) + pow(part.rdata(FHD_realData::velz),2));
             
                 velNtile += velSqr;
-                //Print() << velNtile << std::endl;
+                Print() << velNtile << std::endl;
 
                 if(velSqr > maxStile)
                 {
@@ -3598,11 +3598,15 @@ FhdParticleContainer::BuildCorrectionTable(const Real* dx, int setMeasureFinal) 
 
             Real forceNorm = -(dx[0]*dx[0])*ee/(part0.rdata(FHD_realData::q)*part1.rdata(FHD_realData::q));
 
-            //Print() << "Force: " << part0.rdata(FHD_realData::forcex) << ", " << part0.rdata(FHD_realData::forcey) << ", " << part0.rdata(FHD_realData::forcez) << std::endl;
+            amrex::Print() << "id_global: " << part.idata(FHD_intData::id_global)<<"\n";
+
+            Print() << "Force: " << part0.rdata(FHD_realData::forcex) << ", " << part0.rdata(FHD_realData::forcey) << ", " << part0.rdata(FHD_realData::forcez) << std::endl;
 
             Real forceMag = sqrt(pow(part0.rdata(FHD_realData::forcex),2) + pow(part0.rdata(FHD_realData::forcey),2) + pow(part0.rdata(FHD_realData::forcez),2))*forceNorm;
 
-           // Print() << "ForceMag: " << forceNorm << std::endl;
+            Print() << "ForceNorm: " << forceNorm << std::endl;
+
+	    Print() << "ForceMag: " << forceMag << std::endl;
 
            // Print() << "currentPre: " << threepmVals[threepmCurrentBin] << std::endl;
 

@@ -2,9 +2,9 @@
 
   # Problem specification
   prob_lo = 0.0 0.0 0.0      # physical lo coordination
-  prob_hi = 4.e-3 2.e-3 2.e-3      # physical hi coordinate
+  prob_hi = 2.e-3 1.e-3 1.e-3      # physical hi coordinate
     
-  n_cells = 128 64 64                   # leads to 50% dry + 50% wet
+  n_cells = 64 32 32                   # leads to 50% dry + 50% wet
   # max number of cells in a box
   max_grid_size = 16 16 16 
   max_particle_tile_size = 0 0 0 # set to zero to use max_grid_size, setting a very large number will also use max grid size, but will also ensure that refined es and particle grids will do the same.
@@ -19,7 +19,7 @@
 
   # Controls for number of steps between actions
   max_step = 500
-  plot_int = 100
+  plot_int = 20
   plot_ascii = 0
   struct_fact_int = -1
   n_steps_skip = -10000
@@ -38,11 +38,11 @@
   fluid_tog = 1 # 0=Do nothing, 1=Do stokes solve, 2=Do low Mach solve
   es_tog = 0 # Do electrostatic solve 0=off, 1=Poisson, 2=Pairwise Coulomb (Doesn't work in parallel), 3=PPPM
   drag_tog = 0 # Apply drag force to fluid
-  rfd_tog = 1 # Apply RFD force to fluid
+  rfd_tog = 0 # Apply RFD force to fluid
   move_tog = 2 # # Total particle move. 0 = off, 1 = single step, 2 = midpoint
   dry_move_tog = 1 # Dry particle move 0 = off, 1 = on, 2 = on but without dry stochastic drift correction
   wall_mob = 0 #0= no dry adjustment to mobility due to walls, 1=Infinte plane, 2=other model
-  sr_tog = 1 # 0=No short range forces, 1=Short range LJ forces without walls, 2= with walls, 3=Wall with alternative model
+  sr_tog = 0 # 0=No short range forces, 1=Short range LJ forces without walls, 2= with walls, 3=Wall with alternative model
   bond_tog = 1 # 0=No bonds, 1=Hookian bonds, 2=FENE bonds
   pinMatrix_tog = 0 # 0=normal runs, 1=calculate pinned mobility matrix for 1 step
  
@@ -69,7 +69,7 @@
   # number of groups (polymer groups)
   ngroups = 1
   # number of bonds (be careful about whether there are repeated bonds)
-  nbonds = 28
+  nbonds = 56
 
   k = 1.0e-3
   x0 = 8.0e-8
@@ -116,7 +116,7 @@
   
   #Peskin kernel (Currently 3, 4, & 6 implemented) (keep these the same for now)
   #--------
-  pkernel_fluid = 4  
+  pkernel_fluid = 6  
   pkernel_es = 4    
   eskernel_fluid = 4
   eskernel_beta = 8
