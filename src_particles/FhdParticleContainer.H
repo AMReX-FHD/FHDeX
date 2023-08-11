@@ -301,6 +301,8 @@ public:
     using MarkerIndex = typename IBMarkerContainerBase<FHD_realData, FHD_intData>
         ::PairIndex;
 
+    void InitParticles(int totalParticles, const Real* dxp);
+
     void InitParticles(species* particleInfo, const Real* dxp);
 
     void InitParticlesFromFile(species* particleInfo, const Real* dxp);
