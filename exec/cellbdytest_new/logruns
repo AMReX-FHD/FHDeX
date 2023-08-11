@@ -96,7 +96,7 @@ Related to Dry diffusion issues. Toggle dry move on and fluid tog to 0
 
 run31~32 doesn't really matter,
 
-run33: created a new the cell body as a sphere using spiral equation. Please read readmeplease.txt in python_sphere folder. The current setting for k and dt is the sweet spot. Please create a new folder from    that folder to experiment more
+run33: created a new the cell body as a sphere using spiral equation. Please read readmeplease.txt in python_sphere folder. The current setting for k and dt is the sweet spot. Please create a new folder from    that folder to experiment more. k= 3e-9 , dt=1e-09
 
 
 	
