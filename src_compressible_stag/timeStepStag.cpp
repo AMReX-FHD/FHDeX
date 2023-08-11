@@ -429,7 +429,7 @@ void RK3stepStag(MultiFab& cu,
 
     }
         
-    for ( MFIter mfi(cu,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
+    for ( MFIter mfi(cup,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
         
         const Box& bx = mfi.tilebox();
         const Array4<Real> & cup_fab = cup.array(mfi);
@@ -674,7 +674,7 @@ void RK3stepStag(MultiFab& cu,
 
     }
         
-    for ( MFIter mfi(cu,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
+    for ( MFIter mfi(cup2,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
         
         const Box& bx = mfi.tilebox();
         
