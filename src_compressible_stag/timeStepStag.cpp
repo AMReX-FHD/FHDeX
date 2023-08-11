@@ -426,7 +426,18 @@ void RK3stepStag(MultiFab& cu,
                     -dt*(cenz_w(i,j,k) - cenz_w(i,j,k-1))/dx[2]
                     +0.5*dt*grav[2]*(cu_fab(i,j,k-1,0)+cu_fab(i,j,k,0));
         });
+
+    }
         
+    for ( MFIter mfi(cu,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
+        
+        const Box& bx = mfi.tilebox();
+        const Array4<Real> & cup_fab = cup.array(mfi);
+
+        AMREX_D_TERM(const Array4<Real>& momx = cumom[0].array(mfi);,
+                     const Array4<Real>& momy = cumom[1].array(mfi);,
+                     const Array4<Real>& momz = cumom[2].array(mfi););
+
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             cup_fab(i,j,k,4) += 0.5 * dt * (  grav[0]*(momx(i+1,j,k)+momx(i,j,k))
@@ -660,7 +671,19 @@ void RK3stepStag(MultiFab& cu,
                     -0.25*dt*(cenz_w(i,j,k) - cenz_w(i,j,k-1))/dx[2]
                     +0.5*0.25*dt*grav[2]*(cup_fab(i,j,k-1,0)+cup_fab(i,j,k,0));
         });
+
+    }
         
+    for ( MFIter mfi(cu,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
+        
+        const Box& bx = mfi.tilebox();
+        
+        const Array4<Real> & cup2_fab = cup2.array(mfi);
+
+        AMREX_D_TERM(const Array4<Real>& mompx = cupmom[0].array(mfi);,
+                     const Array4<Real>& mompy = cupmom[1].array(mfi);,
+                     const Array4<Real>& mompz = cupmom[2].array(mfi););
+
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             cup2_fab(i,j,k,4) += 0.5 * 0.25 * dt * (  grav[0]*(mompx(i+1,j,k)+mompx(i,j,k))
@@ -890,7 +913,19 @@ void RK3stepStag(MultiFab& cu,
                   -(2./3.)*dt*(cenz_w(i,j,k) - cenz_w(i,j,k-1))/dx[2]
                   +0.5*(2./3.)*dt*grav[2]*(cup2_fab(i,j,k-1,0)+cup2_fab(i,j,k,0));
         });
+
+    }
         
+    for ( MFIter mfi(cu,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
+        
+        const Box& bx = mfi.tilebox();
+
+        const Array4<Real> & cu_fab = cu.array(mfi);
+
+        AMREX_D_TERM(const Array4<Real>& momp2x = cup2mom[0].array(mfi);,
+                     const Array4<Real>& momp2y = cup2mom[1].array(mfi);,
+                     const Array4<Real>& momp2z = cup2mom[2].array(mfi););
+
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             cu_fab(i,j,k,4) += 0.5 * (2./3.) * dt * (  grav[0]*(momp2x(i+1,j,k)+momp2x(i,j,k))
