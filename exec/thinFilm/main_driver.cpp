@@ -205,7 +205,17 @@ void main_driver(const char* argv)
     Real Const3dx = thinfilm_gamma / (3.*visc_coef);
     
     Real time = 0.;
-    Real dt = 0.1 * (t0/std::pow(thinfilm_h0,4)) * std::pow(dx[0],4) / 16.;
+
+    Real dx_min;
+    if (algorithm_type == 0) {
+      dx_min = dx[0];
+    } else if (algorithm_type == 1) {
+      dx_min = dx[1];
+    } else if (algorithm_type == 2) {
+      dx_min = std::min(dx[0],dx[1]);
+    }
+
+    Real dt = cfl * (t0/std::pow(thinfilm_h0,4)) * std::pow(dx_min,4) / 16.;
 
     int stats_count = 0;
     

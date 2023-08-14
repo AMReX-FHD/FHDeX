@@ -22,6 +22,6 @@ void InitializeThinfilmNamespace() {
     pp.get("thinfilm_gamma",thinfilm_gamma);
 
     pp.query("thinfilm_icorr",thinfilm_icorr);
-    pp.query("thinfilm_icorr",thinfilm_jcorr);
+    pp.query("thinfilm_jcorr",thinfilm_jcorr);
     
 }
