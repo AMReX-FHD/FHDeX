@@ -7,7 +7,6 @@ using namespace amrex;
 
 void esSolve(MultiFab& potential, MultiFab& charge,
              std::array< MultiFab, AMREX_SPACEDIM >& efieldCC,
-	     const std::array< MultiFab, AMREX_SPACEDIM >& permittivity_fc,
 	     const std::array< MultiFab, AMREX_SPACEDIM >& beta_es,
              const std::array< MultiFab, AMREX_SPACEDIM >& externalCC, 
              const std::array< MultiFab, AMREX_SPACEDIM >& externalFC, 
@@ -61,20 +60,23 @@ void esSolve(MultiFab& potential, MultiFab& charge,
         MultiFab rhs(ba,dmap,1,0); // create RHS MFab
         MultiFab::Copy(rhs,charge_unscaled,0,0,1,0); // Copy charge into rhs
 	
-	std::array< MultiFab, AMREX_SPACEDIM > epsE_ext;
+	std::array< MultiFab, AMREX_SPACEDIM > permittivity_fc;
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
-            epsE_ext[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 0);
-            MultiFab::Copy(epsE_ext[d],permittivity_fc[d],0,0,1,permittivity_fc[d].nGrow()); // copy contents of charge/eps into charge
+            permittivity_fc[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 0);
+            MultiFab::Copy(permittivity_fc[d],beta_es[d],0,0,1,beta_es[d].nGrow()); // copy contents of charge/eps into charge
         }
 	
         // compute epsilon*external (where epsilon is stored in permittivity_fc)
         for (int i=0; i<AMREX_SPACEDIM; ++i) {
-            MultiFab::Multiply(epsE_ext[i],externalFC[i],0,0,1,0);
+            MultiFab::Multiply(permittivity_fc[i],externalFC[i],0,0,1,0);
         }
 
         // compute div (epsilon*E_ext) and subtract it from the solver rhs
         // only needed for spatially varying epsilon or external field
-        ComputeDiv(rhs,epsE_ext,0,0,1,geom,-1.,0);
+	MultiFab div_corr(ba,dmap,1,0);
+        ComputeDiv(div_corr,permittivity_fc,0,0,1,geom,0);
+	div_corr.mult(-1., div_corr.nGrow());
+	MultiFab::Add(rhs, div_corr, 0, 0, 1, rhs.nGrow());
 
         //create solver opject
         //MLPoisson linop({geom}, {ba}, {dmap});
@@ -90,6 +92,7 @@ void esSolve(MultiFab& potential, MultiFab& charge,
 
         // fill in ghost cells with Dirichlet/Neumann values
         // the ghost cells will hold the value ON the boundary
+	potential.setVal(0.);
         MultiFabPotentialBC_solver(potential,geom);
 
         // tell MLPoisson about these potentially inhomogeneous BC values
@@ -123,14 +126,14 @@ void esSolve(MultiFab& potential, MultiFab& charge,
         MultiFabPotentialBC(potential, geom); 
 
         //Find e field, gradient from cell centers to faces
-        ComputeCentredGrad(potential, efieldCC, geom, -1.);
+        ComputeCentredGrad(potential, efieldCC, geom);
         
 
     }
 
     //Add external field on top, then fill boundaries, then setup BCs for peskin interpolation
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        //efieldCC[d].mult(-1.0,efieldCC[d].nGrow());
+        efieldCC[d].mult(-1.0,efieldCC[d].nGrow());
         MultiFab::Add(efieldCC[d], externalCC[d], 0, 0, 1, efieldCC[d].nGrow());
         efieldCC[d].FillBoundary(geom.periodicity());
         MultiFabElectricBC(efieldCC[d], geom);

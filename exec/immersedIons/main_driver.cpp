@@ -850,17 +850,11 @@ void main_driver(const char* argv)
         externalFC[d].define(convert(bp,nodal_flag_dir[d]), dmap, 1, ngp);
     }
 
-    // Set beta_es and permittivity_fc equal to permittivity
+    // Set beta_es equal to permittivity
     std::array< MultiFab, AMREX_SPACEDIM > beta_es;
-    std::array< MultiFab, AMREX_SPACEDIM > permittivity_fc;
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         beta_es[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 0);
-        permittivity_fc[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 0);
-    }
-
-    for (int d=0; d<AMREX_SPACEDIM; ++d) {
         beta_es[d].setVal(permittivity);
-        permittivity_fc[d].setVal(permittivity);
     }
 
     // Read in space-varying permittivity info
@@ -904,6 +898,8 @@ void main_driver(const char* argv)
                     h_data(i,j,k) = permittivity; // default value from input file
                 }
             });
+            //Print() << d_fab.array()(0,20,0) << std::endl;
+            //Print() << d_fab.array()(0,19,0) << std::endl;
 #ifdef AMREX_USE_GPU
             Gpu::htod_memcpy_async(d_fab.dataPtr(), h_fab.dataPtr(), h_fab.nBytes());
             Gpu::streamSynchronize();
@@ -1303,7 +1299,7 @@ void main_driver(const char* argv)
 
 
 //            particles.SetPosition(1, prob_hi[0]*0.501, prob_hi[1]*0.501, prob_hi[2]*0.501);
-//              particles.SetForce(1,1,0,0);
+//              particles.SetForce(1601,1,0,0);
 //          int kk =1;
 //          //Print() << "Moving " << ionParticle[0].total << " particles.\n";
 //          while(kk<ionParticle[0].total)
@@ -1406,7 +1402,7 @@ void main_driver(const char* argv)
             // set velx/y/z and forcex/y/z for each particle to zero
             particles.ResetMarkers(0);
         }
-//	    particles.SetForce(1,0.00001,0,0);
+//	    particles.SetForce(1601,1,0,0);
 //        Real origin[3];
 //        origin[0] = prob_hi[0]/2.0;
 //        origin[1] = prob_hi[1]/2.0;
@@ -1432,7 +1428,7 @@ void main_driver(const char* argv)
         
         // do Poisson solve using 'charge' for RHS, and put potential in 'potential'.
         // Then calculate gradient and put in 'efieldCC', then add 'external'.
-        esSolve(potential, charge, efieldCC, permittivity_fc, beta_es, externalCC, externalFC, geomP);
+        esSolve(potential, charge, efieldCC, beta_es, externalCC, externalFC, geomP);
 
         if (es_tog==2) {
             // compute pairwise Coulomb force (currently hard-coded to work with y-wall).
@@ -1471,45 +1467,51 @@ void main_driver(const char* argv)
             {         
 
                 Real check;
+		/*
+		// Uncomment this section to calculate mobility matrix for pinned particles; this should only run for 1 step
+		//   if discos-particle wall is regular, we can just calculate mobility matrix on one particle and shift it around.
+                particles.clearMobilityMatrix();
+                for(int ii=1;ii<=1600;ii++)
+                {
+                    particles.SetForce(ii,1,0,0);
+                    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                        source    [d].setVal(0.0);      // reset source terms
+                        sourceTemp[d].setVal(0.0);      // reset source terms
+                    }
+                    particles.SpreadIonsGPU(dx, dxp, geom, umac, RealFaceCoords, efieldCC, source, sourceTemp);                
+                    advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
+                    particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
+                    particles.fillMobilityMatrix(ii,0);
 
-//                particles.clearMobilityMatrix();
-//                for(int ii=115;ii<=2194;ii++)
-//                {
-//                    particles.SetForce(ii,1,0,0);
-//                    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-//                        source    [d].setVal(0.0);      // reset source terms
-//                        sourceTemp[d].setVal(0.0);      // reset source terms
-//                    }
-//                    particles.SpreadIonsGPU(dx, dxp, geom, umac, efieldCC, source, sourceTemp);                
-//                    advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
-//                    particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
-//                    particles.fillMobilityMatrix(ii,0);
+                    particles.SetForce(ii,0,1,0);
+                    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                        source    [d].setVal(0.0);      // reset source terms
+                        sourceTemp[d].setVal(0.0);      // reset source terms
+                    }
+                    particles.SpreadIonsGPU(dx, dxp, geom, umac, RealFaceCoords, efieldCC, source, sourceTemp);                
+                    advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
+                    particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
+                    particles.fillMobilityMatrix(ii,1);
 
-//                    particles.SetForce(ii,0,1,0);
-//                    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-//                        source    [d].setVal(0.0);      // reset source terms
-//                        sourceTemp[d].setVal(0.0);      // reset source terms
-//                    }
-//                    particles.SpreadIonsGPU(dx, dxp, geom, umac, efieldCC, source, sourceTemp);                
-//                    advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
-//                    particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
-//                    particles.fillMobilityMatrix(ii,1);
-
-//                    particles.SetForce(ii,0,0,1);
-//                    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-//                        source    [d].setVal(0.0);      // reset source terms
-//                        sourceTemp[d].setVal(0.0);      // reset source terms
-//                    }
-//                    particles.SpreadIonsGPU(dx, dxp, geom, umac, efieldCC, source, sourceTemp);                
-//                    advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
-//                    particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
-//                    particles.fillMobilityMatrix(ii,2);
+                    particles.SetForce(ii,0,0,1);
+                    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                        source    [d].setVal(0.0);      // reset source terms
+                        sourceTemp[d].setVal(0.0);      // reset source terms
+                    }
+                    particles.SpreadIonsGPU(dx, dxp, geom, umac, RealFaceCoords, efieldCC, source, sourceTemp);                
+                    advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
+                    particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
+                    particles.fillMobilityMatrix(ii,2);
 
 
-//                }
-//                particles.writeMat();
+                }
+                particles.writeMat();
 
-//                particles.invertMatrix();
+                particles.invertMatrix();
+		if (ParallelDescriptor::MyProc() == 0) {
+		    Abort("Finish calculating pinned mobility matrix, thus program aborts. To use pinned mobility matrix, uncomment this section and rerun");
+		}
+                */
 
                 advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
                 particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
@@ -1522,7 +1524,8 @@ void main_driver(const char* argv)
                         sourceTemp[d].setVal(0.0);      // reset source terms
                     }
 
-                particles.SpreadIonsGPU(dx, geom, umac, RealFaceCoords, source, sourceTemp);
+                //particles.SpreadIonsGPU(dx, geom, umac, RealFaceCoords, efieldCC, source, sourceTemp);
+                particles.SpreadIonsGPU(dx, dxp, geom, umac, RealFaceCoords, efieldCC, source, sourceTemp);                
 
                 MultiFab::Add(source[0],sourceRFD[0],0,0,sourceRFD[0].nComp(),sourceRFD[0].nGrow());
                 MultiFab::Add(source[1],sourceRFD[1],0,0,sourceRFD[1].nComp(),sourceRFD[1].nGrow());
