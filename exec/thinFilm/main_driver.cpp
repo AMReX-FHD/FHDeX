@@ -43,6 +43,17 @@ void main_driver(const char* argv)
     Real y_flux_fac = (do_1d_x == 1) ? 0. : 1.; // 1D in x; set y fluxes to zero
     Real x_flux_fac = (do_1d_y == 1) ? 0. : 1.; // 1D in y; set x fluxes to zero
     
+    if (do_1d_x) {
+        if (n_cells[0] > max_grid_size[0]) {
+            Abort("For 1D-x mode, max_grid_size[0] must be >= n_cells[0]");
+	}
+    }
+    if (do_1d_y) {
+        if (n_cells[1] > max_grid_size[1]) {
+            Abort("For 1D-y mode, max_grid_size[1] must be >= n_cells[1]");
+	}
+    }
+
     /////////////////////////////////////////
     // Initialize random number seed on all processors/GPUs
     /////////////////////////////////////////
@@ -136,38 +147,6 @@ void main_driver(const char* argv)
     MultiFab dheightstarsum(ba, dmap, 1, 0);
     MultiFab dheightstaravg(ba, dmap, 1, 0);
     dheightstarsum.setVal(0.);
-
-    MultiFab height_pencil;
-    MultiFab dheightstarsum_pencil;
-    if (do_1d_x || do_1d_y) {
-        // build pencil multifabs for 1d correlations
-    
-        // make BoxArray and Geometry
-        BoxArray ba_pencil;
-
-        // how boxes are distrubuted among MPI processes
-        DistributionMapping dmap_pencil;
-
-        // Initialize the boxarray "ba" from the single box "bx"
-        ba_pencil.define(domain);
-
-        int max_grid_size_pencil = (do_1d_x) ? n_cells[1] / ParallelDescriptor::NProcs() : n_cells[0] / ParallelDescriptor::NProcs();
-
-        // Break up boxarray "ba" into chunks no larger than "max_grid_size" along a direction
-        // note we are converting "Vector<int> max_grid_size" to an IntVect
-        if (do_1d_x) {
-            ba_pencil.maxSize(IntVect(n_cells[0],max_grid_size_pencil));
-        } else {
-            ba_pencil.maxSize(IntVect(max_grid_size_pencil,n_cells[1]));
-        }
-
-        // define DistributionMapping
-        dmap_pencil.define(ba_pencil);
-
-        height_pencil        .define(ba_pencil, dmap_pencil, 1, 0);
-        dheightstarsum_pencil.define(ba_pencil, dmap_pencil, 1, 0);;
-        
-    }    
 
     std::array< MultiFab, AMREX_SPACEDIM > hface;    
     AMREX_D_TERM(hface[0]   .define(convert(ba,nodal_flag_x), dmap, 1, 0);,
@@ -490,16 +469,13 @@ void main_driver(const char* argv)
             if (do_1d_x || do_1d_y) {
                 // for 1D mode, find delta h at each row (column) at icorr (jcorr) for x-mode (y-mode)
 
-                // copy h into a pencil multifab
-                height_pencil.ParallelCopy(height,0,0,1);
-
                 // increment delta h^* * delta h
-                for ( MFIter mfi(height_pencil,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
+                for ( MFIter mfi(height,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
 
                     const Box& bx = mfi.tilebox();
         
-                    const Array4<Real> & h = height_pencil.array(mfi);
-                    const Array4<Real> & dhstar = dheightstarsum_pencil.array(mfi);
+                    const Array4<Real> & h = height.array(mfi);
+                    const Array4<Real> & dhstar = dheightstarsum.array(mfi);
 
                     if (do_1d_x) {
                         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
@@ -514,9 +490,6 @@ void main_driver(const char* argv)
                     }
                 }
 
-                // copy sum of delta h^* * delta h to regular multifab
-                dheightstarsum.ParallelCopy(dheightstarsum_pencil,0,0,1);                
-                
             } else {
                 // for 2D mode, find delta h at point icorr,jcorr and compute correlation
                 Real h_local = 0.;
