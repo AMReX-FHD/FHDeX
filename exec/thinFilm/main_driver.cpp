@@ -575,6 +575,8 @@ void main_driver(const char* argv)
                 WriteSingleLevelPlotfile(pltfile, dheightstaravg, {"star"}, geom, time, 0);
             }
 
+            if (do_fft_diag == 1) {
+
             // take ffts of each strip, add to running sum
             if (do_1d_x || do_1d_y) {
 
@@ -726,6 +728,8 @@ void main_driver(const char* argv)
                 }
 
             } // end 1d fft diagnostic
+
+            } // end if test for fft diagnostic
 
         } // end loop over time steps
         
