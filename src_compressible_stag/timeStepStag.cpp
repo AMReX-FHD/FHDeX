@@ -507,7 +507,7 @@ void RK3stepStag(MultiFab& cu,
         AMREX_D_TERM(const Array4<Real>& turbvf_x_o = turb_vel_f_o[0].array(mfi);,
                      const Array4<Real>& turbvf_y_o = turb_vel_f_o[1].array(mfi);,
                      const Array4<Real>& turbvf_z_o = turb_vel_f_o[2].array(mfi););
-        
+
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             cup_fab(i,j,k,4) += 0.5 * dt * (  grav[0]*(momx(i+1,j,k)+momx(i,j,k))
@@ -823,7 +823,7 @@ void RK3stepStag(MultiFab& cu,
         AMREX_D_TERM(const Array4<Real>& turbvf_x = turb_vel_f[0].array(mfi);,
                      const Array4<Real>& turbvf_y = turb_vel_f[1].array(mfi);,
                      const Array4<Real>& turbvf_z = turb_vel_f[2].array(mfi););
-        
+
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             cup2_fab(i,j,k,4) += 0.5 * 0.25 * dt * (  grav[0]*(mompx(i+1,j,k)+mompx(i,j,k))
@@ -1145,7 +1145,7 @@ void RK3stepStag(MultiFab& cu,
         AMREX_D_TERM(const Array4<Real>& turbvf_x_o = turb_vel_f_o[0].array(mfi);,
                      const Array4<Real>& turbvf_y_o = turb_vel_f_o[1].array(mfi);,
                      const Array4<Real>& turbvf_z_o = turb_vel_f_o[2].array(mfi););
-        
+
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             cu_fab(i,j,k,4) += 0.5 * (2./3.) * dt * (  grav[0]*(momp2x(i+1,j,k)+momp2x(i,j,k))
