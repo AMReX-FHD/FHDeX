@@ -698,7 +698,7 @@ void main_driver(const char* argv)
 
                         ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                         {
-                            sum(i,j,k) += std::sqrt( spectral(i,j,k).real()*spectral(i,j,k).real() + spectral(i,j,k).imag()*spectral(i,j,k).imag() ) / sqrtnpts;
+                            sum(i,j,k) += ( spectral(i,j,k).real()*spectral(i,j,k).real() + spectral(i,j,k).imag()*spectral(i,j,k).imag() ) / sqrtnpts;
                             if (i == 0) sum(i,j,k) = 0.;
                         });
                     }
