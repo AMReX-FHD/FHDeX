@@ -209,7 +209,7 @@ void main_driver(const char* argv)
 
     // make the "1D" MultiFab x-based, regardless of whether problem is x or y-based
     IntVect dom_lo_flat(0,0);
-    IntVect dom_hi_flat(n_cells[algorithm_type],0);
+    IntVect dom_hi_flat(n_cells[algorithm_type]-1,0);
 
     Box domain_flat(dom_lo_flat,dom_hi_flat);
     BoxArray ba_flat_onegrid(domain_flat);
@@ -217,9 +217,9 @@ void main_driver(const char* argv)
     // use same dmap as height_onegrid so we can easily copy a strip into here
     MultiFab height_flat_onegrid(ba_flat_onegrid,dmap_onegrid,1,0);
 
-    // fft contains n_cell/2+1 points
+    // fft contains n_cell/2+1 points (index space 0 to n_cell/2
     IntVect dom_lo_fft(0,0);
-    IntVect dom_hi_fft(n_cells[algorithm_type]/2+1,0);
+    IntVect dom_hi_fft(n_cells[algorithm_type]/2,0);
     Box domain_fft(dom_lo_fft,dom_hi_fft);
     BoxArray ba_fft(domain_fft);
     
@@ -604,7 +604,7 @@ void main_driver(const char* argv)
                         } else {
                             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                             {
-                                h_flat(i,j,k) = h(strip,j,k);
+                                h_flat(i,j,k) = h(strip,i,k);  // convert column to row
                             });
                         }
 
@@ -625,7 +625,7 @@ void main_driver(const char* argv)
                     Real sqrtnpts = std::sqrt(npts);
     
                     // take fft of strip and add magnitude of result to fft_sum
-                    for (MFIter mfi(height_onegrid); mfi.isValid(); ++mfi) {
+                    for (MFIter mfi(height_flat_onegrid); mfi.isValid(); ++mfi) {
 
                         // grab a single box
                         Box realspace_bx = mfi.fabbox();
@@ -657,7 +657,7 @@ void main_driver(const char* argv)
 #else // host
 
                         fplan = fftw_plan_dft_r2c_1d(fft_size[0],
-                                                     height_onegrid[mfi].dataPtr(),
+                                                     height_flat_onegrid[mfi].dataPtr(),
                                                      reinterpret_cast<FFTcomplex*>
                                                      (spectral_field.back()->dataPtr()),
                                                      FFTW_ESTIMATE);
@@ -670,12 +670,12 @@ void main_driver(const char* argv)
                     ParallelDescriptor::Barrier();
 
                     // ForwardTransform
-                    for (MFIter mfi(height_onegrid); mfi.isValid(); ++mfi) {
+                    for (MFIter mfi(height_flat_onegrid); mfi.isValid(); ++mfi) {
                         int i = mfi.LocalIndex();
 #ifdef AMREX_USE_CUDA
                         cufftSetStream(forward_plan[i], Gpu::gpuStream());
                         cufftResult result = cufftExecD2Z(forward_plan[i],
-                                                          height_onegrid[mfi].dataPtr(),
+                                                          height_flat_onegrid[mfi].dataPtr(),
                                                           reinterpret_cast<FFTcomplex*>
                                                           (spectral_field[i]->dataPtr()));
                         if (result != CUFFT_SUCCESS) {
