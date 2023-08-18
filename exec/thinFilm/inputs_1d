@@ -14,9 +14,9 @@
 #  max_grid_size = 32 8  # max number of cells in a box
 #  thinfilm_icorr = 8  # used for 1d mode in x
 
- algorithm_type = 1
- max_grid_size = 8 32  # max number of cells in a box
- thinfilm_jcorr = 8  # used for 1d mode in y
+  algorithm_type = 1
+  max_grid_size = 8 32  # max number of cells in a box
+  thinfilm_jcorr = 8  # used for 1d mode in y
 
   # time step
   cfl = 0.1
@@ -26,6 +26,7 @@
   plot_int = 1000000
 
   n_steps_skip = 1000000
+  do_fft_diag = 0
 
   # Stochastic parameters
   seed = 1

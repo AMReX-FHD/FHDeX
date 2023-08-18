@@ -577,156 +577,158 @@ void main_driver(const char* argv)
 
             if (do_fft_diag == 1) {
 
-            // take ffts of each strip, add to running sum
-            if (do_1d_x || do_1d_y) {
+                // take ffts of each strip, add to running sum
+                if (do_1d_x || do_1d_y) {
 
-                // copy distributed data into 1D data
-                height_onegrid.ParallelCopy(height, 0, 0, 1);
+                    // copy distributed data into 1D data
+                    height_onegrid.ParallelCopy(height, 0, 0, 1);
 
-                int numstrips = do_1d_x ? n_cells[1] : n_cells[0];
+                    int numstrips = do_1d_x ? n_cells[1] : n_cells[0];
 
-                // work on each strip separately
-                for (int strip=0; strip<numstrips; ++strip) {
+                    // work on each strip separately
+                    for (int strip=0; strip<numstrips; ++strip) {
 
-                    // copy strip into flat multifab
-                    for ( MFIter mfi(height_flat_onegrid,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
+                        // copy strip into flat multifab
+                        for ( MFIter mfi(height_flat_onegrid,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
 
-                        const Array4<Real> & h = height_onegrid.array(mfi);
-                        const Array4<Real> & h_flat = height_flat_onegrid.array(mfi);
+                            const Array4<Real> & h = height_onegrid.array(mfi);
+                            const Array4<Real> & h_flat = height_flat_onegrid.array(mfi);
 
-                        const Box& bx = mfi.tilebox();
+                            const Box& bx = mfi.tilebox();
 
-                        if (do_1d_x) {
-                            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-                            {
-                                h_flat(i,j,k) = h(i,strip,k);
-                            });
-                        } else {
-                            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-                            {
-                                h_flat(i,j,k) = h(strip,i,k);  // convert column to row
-                            });
+                            if (do_1d_x) {
+                                amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                                {
+                                    h_flat(i,j,k) = h(i,strip,k);
+                                });
+                            } else {
+                                amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                                {
+                                    h_flat(i,j,k) = h(strip,i,k);  // convert column to row
+                                });
+                            }
+
                         }
 
-                    }
-
 #ifdef AMREX_USE_CUDA
-                    using FFTplan = cufftHandle;
-                    using FFTcomplex = cuDoubleComplex;
+                        using FFTplan = cufftHandle;
+                        using FFTcomplex = cuDoubleComplex;
 #else
-                    using FFTplan = fftw_plan;
-                    using FFTcomplex = fftw_complex;
+                        using FFTplan = fftw_plan;
+                        using FFTcomplex = fftw_complex;
 #endif
     
-                    Vector<std::unique_ptr<BaseFab<GpuComplex<Real> > > > spectral_field;
-                    Vector<FFTplan> forward_plan;
+                        Vector<std::unique_ptr<BaseFab<GpuComplex<Real> > > > spectral_field;
+                        Vector<FFTplan> forward_plan;
                     
-                    long npts = domain_flat.numPts();
-                    Real sqrtnpts = std::sqrt(npts);
+                        long npts = domain_flat.numPts();
+                        Real sqrtnpts = std::sqrt(npts);
     
-                    // take fft of strip and add magnitude of result to fft_sum
-                    for (MFIter mfi(height_flat_onegrid); mfi.isValid(); ++mfi) {
+                        // take fft of strip and add magnitude of result to fft_sum
+                        for (MFIter mfi(height_flat_onegrid); mfi.isValid(); ++mfi) {
 
-                        // grab a single box
-                        Box realspace_bx = mfi.fabbox();
+                            // grab a single box
+                            Box realspace_bx = mfi.fabbox();
 
-                        // size of box
-                        IntVect fft_size = realspace_bx.length(); // This will be different for FFTs of complex data
+                            // size of box
+                            IntVect fft_size = realspace_bx.length(); // This will be different for FFTs of complex data
 
-                        // this is the size of the box, except the 0th component is 'halved plus 1'
-                        IntVect spectral_bx_size = fft_size;
-                        spectral_bx_size[0] = fft_size[0]/2 + 1;
+                            // this is the size of the box, except the 0th component is 'halved plus 1'
+                            IntVect spectral_bx_size = fft_size;
+                            spectral_bx_size[0] = fft_size[0]/2 + 1;
 
-                        // spectral box
-                        Box spectral_bx = Box(IntVect(0), spectral_bx_size - IntVect(1));
+                            // spectral box
+                            Box spectral_bx = Box(IntVect(0), spectral_bx_size - IntVect(1));
 
-                        spectral_field.emplace_back(new BaseFab<GpuComplex<Real> >(spectral_bx,1,
-                                                                                   The_Device_Arena()));
-                        spectral_field.back()->setVal<RunOn::Device>(0.0); // touch the memory
+                            spectral_field.emplace_back(new BaseFab<GpuComplex<Real> >(spectral_bx,1,
+                                                                                       The_Device_Arena()));
+                            spectral_field.back()->setVal<RunOn::Device>(0.0); // touch the memory
 
-                        FFTplan fplan;
+                            FFTplan fplan;
 
 #ifdef AMREX_USE_CUDA
 
-                        cufftResult result = cufftPlan1d(&fplan, fft_size[0], CUFFT_D2Z, 1);
-                        if (result != CUFFT_SUCCESS) {
-                            AllPrint() << " cufftplan1d forward failed! Error: "
-                                       << cufftErrorToString(result) << "\n";
-                        }
+                            cufftResult result = cufftPlan1d(&fplan, fft_size[0], CUFFT_D2Z, 1);
+                            if (result != CUFFT_SUCCESS) {
+                                AllPrint() << " cufftplan1d forward failed! Error: "
+                                           << cufftErrorToString(result) << "\n";
+                            }
 
 #else // host
 
-                        fplan = fftw_plan_dft_r2c_1d(fft_size[0],
-                                                     height_flat_onegrid[mfi].dataPtr(),
-                                                     reinterpret_cast<FFTcomplex*>
-                                                     (spectral_field.back()->dataPtr()),
-                                                     FFTW_ESTIMATE);
+                            fplan = fftw_plan_dft_r2c_1d(fft_size[0],
+                                                         height_flat_onegrid[mfi].dataPtr(),
+                                                         reinterpret_cast<FFTcomplex*>
+                                                         (spectral_field.back()->dataPtr()),
+                                                         FFTW_ESTIMATE);
 
 #endif
 
-                        forward_plan.push_back(fplan);
-                    }
-
-                    ParallelDescriptor::Barrier();
-
-                    // ForwardTransform
-                    for (MFIter mfi(height_flat_onegrid); mfi.isValid(); ++mfi) {
-                        int i = mfi.LocalIndex();
-#ifdef AMREX_USE_CUDA
-                        cufftSetStream(forward_plan[i], Gpu::gpuStream());
-                        cufftResult result = cufftExecD2Z(forward_plan[i],
-                                                          height_flat_onegrid[mfi].dataPtr(),
-                                                          reinterpret_cast<FFTcomplex*>
-                                                          (spectral_field[i]->dataPtr()));
-                        if (result != CUFFT_SUCCESS) {
-                            AllPrint() << " forward transform using cufftExec failed! Error: "
-                                       << cufftErrorToString(result) << "\n";
+                            forward_plan.push_back(fplan);
                         }
-#else
-                        fftw_execute(forward_plan[i]);
-#endif
-                    }
 
-                    // add magnitude to sum
-                    for (MFIter mfi(fft_sum); mfi.isValid(); ++mfi) {
+                        ParallelDescriptor::Barrier();
 
-                        Array4< GpuComplex<Real> > spectral = (*spectral_field[0]).array();
-
-                        Array4<Real> const& sum = fft_sum.array(mfi);
-
-                        Box bx = mfi.fabbox();
-
-                        ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-                        {
-                            sum(i,j,k) += ( spectral(i,j,k).real()*spectral(i,j,k).real() + spectral(i,j,k).imag()*spectral(i,j,k).imag() ) / sqrtnpts;
-                            if (i == 0) sum(i,j,k) = 0.;
-                        });
-                    }
-
-                    // destroy fft plan
-                    for (int i = 0; i < forward_plan.size(); ++i) {
+                        // ForwardTransform
+                        for (MFIter mfi(height_flat_onegrid); mfi.isValid(); ++mfi) {
+                            int i = mfi.LocalIndex();
 #ifdef AMREX_USE_CUDA
-                        cufftDestroy(forward_plan[i]);
+                            cufftSetStream(forward_plan[i], Gpu::gpuStream());
+                            cufftResult result = cufftExecD2Z(forward_plan[i],
+                                                              height_flat_onegrid[mfi].dataPtr(),
+                                                              reinterpret_cast<FFTcomplex*>
+                                                              (spectral_field[i]->dataPtr()));
+                            if (result != CUFFT_SUCCESS) {
+                                AllPrint() << " forward transform using cufftExec failed! Error: "
+                                           << cufftErrorToString(result) << "\n";
+                            }
 #else
-                        fftw_destroy_plan(forward_plan[i]);
+                            fftw_execute(forward_plan[i]);
 #endif
+                        }
+
+                        // add magnitude to sum
+                        for (MFIter mfi(fft_sum); mfi.isValid(); ++mfi) {
+
+                            Array4< GpuComplex<Real> > spectral = (*spectral_field[0]).array();
+
+                            Array4<Real> const& sum = fft_sum.array(mfi);
+
+                            Box bx = mfi.fabbox();
+
+                            ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                            {
+                                sum(i,j,k) += ( spectral(i,j,k).real()*spectral(i,j,k).real() + spectral(i,j,k).imag()*spectral(i,j,k).imag() ) / sqrtnpts;
+                                if (i == 0) sum(i,j,k) = 0.;
+                            });
+                        }
+
+                        // destroy fft plan
+                        for (int i = 0; i < forward_plan.size(); ++i) {
+#ifdef AMREX_USE_CUDA
+                            cufftDestroy(forward_plan[i]);
+#else
+                            fftw_destroy_plan(forward_plan[i]);
+#endif
+                        }
                     }
+
+                    // write spectrum to plotfile
+                    if (plot_int > 0 && istep%plot_int == 0)
+                    {
+                        // compute fft_avg by dividing fft_sum by stats_count*numstrips
+                        MultiFab::Copy(fft_avg, fft_sum, 0, 0, 1, 0);
+
+                        Real stats_count_fft_inv = 1./(stats_count*numstrips);
+                        fft_avg.mult( stats_count_fft_inv, 0, 1, 0);
+
+                        const std::string& pltfile = amrex::Concatenate("fft",istep,10);
+                        WriteSingleLevelPlotfile(pltfile, fft_avg, {"fft"}, geom_fft, time, 0);
+                    }
+
+                } else {
+                    Abort("Power spectrum not implemented for 2D");
                 }
-
-                // write spectrum to plotfile
-                if (plot_int > 0 && istep%plot_int == 0)
-                {
-                    // compute fft_avg by dividing fft_sum by stats_count*numstrips
-                    MultiFab::Copy(fft_avg, fft_sum, 0, 0, 1, 0);
-
-                    Real stats_count_fft_inv = 1./(stats_count*numstrips);
-                    fft_avg.mult( stats_count_fft_inv, 0, 1, 0);
-
-                    const std::string& pltfile = amrex::Concatenate("fft",istep,10);
-                    WriteSingleLevelPlotfile(pltfile, fft_avg, {"fft"}, geom_fft, time, 0);
-                }
-
-            } // end 1d fft diagnostic
 
             } // end if test for fft diagnostic
 
