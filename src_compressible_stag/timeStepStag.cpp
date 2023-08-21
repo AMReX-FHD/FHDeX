@@ -167,107 +167,55 @@ void RK3stepStag(MultiFab& cu,
 
     // fill random numbers (can skip density component 0)
     if (do_1D) { // 1D need only for x- face 
-        FillRandomNormal(stochface_A[0], 0, nvars, 0.0, 1.0);
-        FillRandomNormal(stochface_B[0], 0, nvars, 0.0, 1.0);
-        stochface_A[0].OverrideSync(geom.periodicity());
-        stochface_B[0].OverrideSync(geom.periodicity());
-        stochface_A[0].FillBoundary(geom.periodicity());
-        stochface_B[0].FillBoundary(geom.periodicity());
+        MultiFabFillRandomNormal(stochface_A[0], 4, nvars-4, 0.0, 1.0, geom, true, true);
+        MultiFabFillRandomNormal(stochface_B[0], 4, nvars-4, 0.0, 1.0, geom, true, true);
     }
     else if (do_2D) { // 2D need only for x- and y- faces
-        FillRandomNormal(stochface_A[0], 0, nvars, 0.0, 1.0);
-        FillRandomNormal(stochface_B[0], 0, nvars, 0.0, 1.0);
-        FillRandomNormal(stochface_A[1], 0, nvars, 0.0, 1.0);
-        FillRandomNormal(stochface_B[1], 0, nvars, 0.0, 1.0);
-        stochface_A[0].OverrideSync(geom.periodicity());
-        stochface_B[0].OverrideSync(geom.periodicity());
-        stochface_A[1].OverrideSync(geom.periodicity());
-        stochface_B[1].OverrideSync(geom.periodicity());
-        stochface_A[0].FillBoundary(geom.periodicity());
-        stochface_B[0].FillBoundary(geom.periodicity());
-        stochface_A[1].FillBoundary(geom.periodicity());
-        stochface_B[1].FillBoundary(geom.periodicity());
+        MultiFabFillRandomNormal(stochface_A[0], 4, nvars-4, 0.0, 1.0, geom, true, true);
+        MultiFabFillRandomNormal(stochface_B[0], 4, nvars-4, 0.0, 1.0, geom, true, true);
+        MultiFabFillRandomNormal(stochface_A[1], 4, nvars-4, 0.0, 1.0, geom, true, true);
+        MultiFabFillRandomNormal(stochface_B[1], 4, nvars-4, 0.0, 1.0, geom, true, true);
     }
     else { // 3D
         for(int d=0;d<AMREX_SPACEDIM;d++) {
-            FillRandomNormal(stochface_A[d], 0, nvars, 0.0, 1.0);
-            FillRandomNormal(stochface_B[d], 0, nvars, 0.0, 1.0);
-            stochface_A[d].OverrideSync(geom.periodicity());
-            stochface_B[d].OverrideSync(geom.periodicity());
-            stochface_A[d].FillBoundary(geom.periodicity());
-            stochface_B[d].FillBoundary(geom.periodicity());
+            MultiFabFillRandomNormal(stochface_A[d], 4, nvars-4, 0.0, 1.0, geom, true, true);
+            MultiFabFillRandomNormal(stochface_B[d], 4, nvars-4, 0.0, 1.0, geom, true, true);
         }
     }
 
     if (do_1D) { // 1D no transverse shear fluxes
     }
     else if (do_2D) { // 2D only xy-shear
-        FillRandomNormal(stochedge_x_A[0], 0, 1, 0.0, 1.0);
-        FillRandomNormal(stochedge_x_B[0], 0, 1, 0.0, 1.0);
-        FillRandomNormal(stochedge_y_A[0], 0, 1, 0.0, 1.0);
-        FillRandomNormal(stochedge_y_B[0], 0, 1, 0.0, 1.0);
-        stochedge_x_A[0].OverrideSync(geom.periodicity());
-        stochedge_x_B[0].OverrideSync(geom.periodicity());
-        stochedge_y_A[0].OverrideSync(geom.periodicity());
-        stochedge_y_B[0].OverrideSync(geom.periodicity());
-        stochedge_x_A[0].FillBoundary(geom.periodicity());
-        stochedge_x_B[0].FillBoundary(geom.periodicity());
-        stochedge_y_A[0].FillBoundary(geom.periodicity());
-        stochedge_y_B[0].FillBoundary(geom.periodicity());
+        MultiFabFillRandomNormal(stochedge_x_A[0], 0, 1, 0.0, 1.0, geom, true, true);
+        MultiFabFillRandomNormal(stochedge_x_B[0], 0, 1, 0.0, 1.0, geom, true, true);
+        MultiFabFillRandomNormal(stochedge_y_A[0], 0, 1, 0.0, 1.0, geom, true, true);
+        MultiFabFillRandomNormal(stochedge_y_B[0], 0, 1, 0.0, 1.0, geom, true, true);
     }
     else { // 3D
         for (int i=0; i<2; i++) {
-            FillRandomNormal(stochedge_x_A[i], 0, 1, 0.0, 1.0);
-            FillRandomNormal(stochedge_x_B[i], 0, 1, 0.0, 1.0);
-            FillRandomNormal(stochedge_y_A[i], 0, 1, 0.0, 1.0);
-            FillRandomNormal(stochedge_y_B[i], 0, 1, 0.0, 1.0);
-            FillRandomNormal(stochedge_z_A[i], 0, 1, 0.0, 1.0);
-            FillRandomNormal(stochedge_z_B[i], 0, 1, 0.0, 1.0);
-            stochedge_x_A[i].OverrideSync(geom.periodicity());
-            stochedge_x_B[i].OverrideSync(geom.periodicity());
-            stochedge_y_A[i].OverrideSync(geom.periodicity());
-            stochedge_y_B[i].OverrideSync(geom.periodicity());
-            stochedge_z_A[i].OverrideSync(geom.periodicity());
-            stochedge_z_B[i].OverrideSync(geom.periodicity());
-            stochedge_x_A[i].FillBoundary(geom.periodicity());
-            stochedge_x_B[i].FillBoundary(geom.periodicity());
-            stochedge_y_A[i].FillBoundary(geom.periodicity());
-            stochedge_y_B[i].FillBoundary(geom.periodicity());
-            stochedge_z_A[i].FillBoundary(geom.periodicity());
-            stochedge_z_B[i].FillBoundary(geom.periodicity());
+            MultiFabFillRandomNormal(stochedge_x_A[i], 0, 1, 0.0, 1.0, geom, true, true);
+            MultiFabFillRandomNormal(stochedge_x_B[i], 0, 1, 0.0, 1.0, geom, true, true);
+            MultiFabFillRandomNormal(stochedge_y_A[i], 0, 1, 0.0, 1.0, geom, true, true);
+            MultiFabFillRandomNormal(stochedge_y_B[i], 0, 1, 0.0, 1.0, geom, true, true);
+            MultiFabFillRandomNormal(stochedge_z_A[i], 0, 1, 0.0, 1.0, geom, true, true);
+            MultiFabFillRandomNormal(stochedge_z_B[i], 0, 1, 0.0, 1.0, geom, true, true);
         }
     }
 
     if (do_1D) { // 1D no v_x and w_z stochastic terms
-        FillRandomNormal(stochcen_A[0], 0, 1, 0.0, 1.0);
-        FillRandomNormal(stochcen_B[0], 0, 1, 0.0, 1.0);
-        stochcen_A[0].OverrideSync(geom.periodicity());
-        stochcen_B[0].OverrideSync(geom.periodicity());
-        stochcen_A[0].FillBoundary(geom.periodicity());
-        stochcen_B[0].FillBoundary(geom.periodicity());
+        MultiFabFillRandomNormal(stochcen_A[0], 0, 1, 0.0, 1.0, geom, true, true);
+        MultiFabFillRandomNormal(stochcen_B[0], 0, 1, 0.0, 1.0, geom, true, true);
     }
     else if (do_2D) { // 2D simulation no w_z stochastic term
-        FillRandomNormal(stochcen_A[0], 0, 1, 0.0, sqrt(2.0));
-        FillRandomNormal(stochcen_B[0], 0, 1, 0.0, sqrt(2.0));
-        FillRandomNormal(stochcen_A[1], 0, 1, 0.0, sqrt(2.0));
-        FillRandomNormal(stochcen_B[1], 0, 1, 0.0, sqrt(2.0));
-        stochcen_A[0].OverrideSync(geom.periodicity());
-        stochcen_B[0].OverrideSync(geom.periodicity());
-        stochcen_A[1].OverrideSync(geom.periodicity());
-        stochcen_B[1].OverrideSync(geom.periodicity());
-        stochcen_A[0].FillBoundary(geom.periodicity());
-        stochcen_B[0].FillBoundary(geom.periodicity());
-        stochcen_A[1].FillBoundary(geom.periodicity());
-        stochcen_B[1].FillBoundary(geom.periodicity());
+        MultiFabFillRandomNormal(stochcen_A[0], 0, 1, 0.0, 2.0, geom, true, true);
+        MultiFabFillRandomNormal(stochcen_B[0], 0, 1, 0.0, 2.0, geom, true, true);
+        MultiFabFillRandomNormal(stochcen_A[1], 0, 1, 0.0, 2.0, geom, true, true);
+        MultiFabFillRandomNormal(stochcen_B[1], 0, 1, 0.0, 2.0, geom, true, true);
     }
     else { // 3D
         for (int i=0; i<3; i++) {
-            FillRandomNormal(stochcen_A[i], 0, 1, 0.0, sqrt(2.0));
-            FillRandomNormal(stochcen_B[i], 0, 1, 0.0, sqrt(2.0));
-            stochcen_A[i].OverrideSync(geom.periodicity());
-            stochcen_B[i].OverrideSync(geom.periodicity());
-            stochcen_A[i].FillBoundary(geom.periodicity());
-            stochcen_B[i].FillBoundary(geom.periodicity());
+            MultiFabFillRandomNormal(stochcen_A[i], 0, 1, 0.0, 2.0, geom, true, true);
+            MultiFabFillRandomNormal(stochcen_B[i], 0, 1, 0.0, 2.0, geom, true, true);
         }
     }
 
