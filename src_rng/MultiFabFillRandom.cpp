@@ -29,3 +29,40 @@ void MultiFabFillRandom(MultiFab& mf, const int& comp, const amrex::Real& varian
 
 //----------------------------------------
 }
+
+
+void MultiFabFillRandomNormal(MultiFab& mf, const int& scomp, const int& ncomp,
+                              const amrex::Real& mean, const amrex::Real& variance,
+                              const Geometry& geom, bool overridesync, bool fillboundary)
+{
+    BL_PROFILE_VAR("MultiFabFillRandomNormal()",MultiFabFillRandomNormal);
+
+    // FillRandomNormal requires standard deviation
+    amrex::Real stddev = sqrt(variance);
+    
+    FillRandomNormal(mf, scomp, ncomp, mean, stddev);
+
+    // overridesync
+    if (overridesync) mf.OverrideSync(geom.periodicity());
+
+    // fillboundary
+    if (fillboundary) mf.FillBoundary(geom.periodicity());
+}
+
+
+void MultiFabFillRandomUniform(MultiFab& mf, const int& scomp, const int& ncomp,
+                               const Geometry& geom, bool overridesync, bool fillboundary)
+{
+    BL_PROFILE_VAR("MultiFabFillRandomNormal()",MultiFabFillRandomNormal);
+
+    // FillRandomNormal requires standard deviation
+    FillRandom(mf, scomp, ncomp);
+
+    // overridesync
+    if (overridesync) mf.OverrideSync(geom.periodicity());
+
+    // fillboundary
+    if (fillboundary) mf.FillBoundary(geom.periodicity());
+}
+
+
