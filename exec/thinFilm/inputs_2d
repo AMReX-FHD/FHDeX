@@ -22,6 +22,7 @@
   plot_int = 1000000
 
   n_steps_skip = 1000000
+  do_fft_diag = 0
 
   # Stochastic parameters
   seed = 1

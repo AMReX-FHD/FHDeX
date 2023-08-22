@@ -12,4 +12,13 @@ using namespace amrex;
 
 void MultiFabFillRandom(MultiFab& mf, const int& comp, const Real& variance, const Geometry& geom, const int& ng=0);
 
+void MultiFabFillRandomNormal(MultiFab& mf, const int& scomp, const int& ncomp,
+                              const amrex::Real& mean, const amrex::Real& variance,
+                              const Geometry& geom, 
+                              bool overridesync = true, bool fillboundary = true);
+
+void MultiFabFillRandomUniform(MultiFab& mf, const int& scomp, const int& ncomp,
+                               const Geometry& geom, 
+                               bool overridesync = true, bool fillboundary = true);
+
 #endif
