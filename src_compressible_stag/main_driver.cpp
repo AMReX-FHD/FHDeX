@@ -8,7 +8,10 @@
 #include "rng_functions.H"
 
 #include "StructFact.H"
+
+#if defined(TURB)
 #include "TurbForcingComp.H"
+#endif
 
 #include "chemistry_functions.H"
 
@@ -253,6 +256,7 @@ void main_driver(const char* argv)
     std::string filename = "crossMeans";
     std::ofstream outfile;
 
+#if defined(TURB)
     // data structure for turbulence diagnostics
     std::string turbfilename = "turbstats";
     std::ofstream turboutfile;
@@ -265,6 +269,7 @@ void main_driver(const char* argv)
     std::array< MultiFab, NUM_EDGE > curlU;
     std::array< MultiFab, NUM_EDGE > eta_edge;
     std::array< MultiFab, NUM_EDGE > curlUtemp;
+#endif
 
     /////////////////////////////////////////////
     // Setup Structure factor variables & scaling
@@ -294,8 +299,10 @@ void main_driver(const char* argv)
     MultiFab master_2D_rot_prim;
     MultiFab master_2D_rot_cons;
 
+#if defined(TURB)
     // Structure factor for compressible turbulence
     StructFact turbStructFact;
+#endif
     
     Geometry geom_flat;
     Geometry geom_flat_2D;
@@ -427,6 +434,7 @@ void main_driver(const char* argv)
     // structure factor variables names and scaling for turbulence
     // variables are velocities, density, pressure and temperature
     //////////////////////////////////////////////////////////////
+#if defined(TURB)
     int structVarsTurb = AMREX_SPACEDIM+3;
     
     Vector< std::string > var_names_turb;
@@ -467,6 +475,7 @@ void main_driver(const char* argv)
     }    
 
     //////////////////////////////////////////////////////////////
+#endif
     
     // object for turbulence forcing
     TurbForcingComp turbforce;
@@ -517,6 +526,7 @@ void main_driver(const char* argv)
             if (ParallelDescriptor::IOProcessor()) outfile.open(filename, std::ios::app);
         }
 
+#if defined(TURB)
         if (turbForcing >= 1) { // temporary fab for turbulent
             if (ParallelDescriptor::IOProcessor()) {
                 turboutfile.open(turbfilename, std::ios::app);
@@ -550,6 +560,7 @@ void main_driver(const char* argv)
 #endif
 
         }
+#endif
     }
 
     else {
@@ -684,6 +695,7 @@ void main_driver(const char* argv)
             spatialCross2D.setVal(0.0);
         }
 
+#if defined(TURB)
         if (turbForcing >= 1) { // temporary fab for turbulent
             if (ParallelDescriptor::IOProcessor()) {
                 turboutfile.open(turbfilename);
@@ -723,6 +735,7 @@ void main_driver(const char* argv)
             curlUtemp[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
 #endif
         }
+#endif
 
         ///////////////////////////////////////////
         // Initialize everything
@@ -767,9 +780,11 @@ void main_driver(const char* argv)
         if (plot_int > 0) {
             WritePlotFileStag(0, 0.0, geom, cu, cuMeans, cuVars, cumom, cumomMeans, cumomVars, 
                           prim, primMeans, primVars, vel, velMeans, velVars, coVars, surfcov, surfcovMeans, surfcovVars, eta, kappa);
+#if defined(TURB)
             if (turbForcing > 0) {
                 EvaluateWritePlotFileVelGrad(0, 0.0, geom, vel);
             }
+#endif
 
             if (plot_cross) {
                 if (do_1D) {
@@ -792,10 +807,12 @@ void main_driver(const char* argv)
         time = 0.;
         statsCount = 1;
 
+#if defined(TURB)
         // define turbulence forcing object
         if (turbForcing > 1) {
             turbforce.define(ba,dmap,turb_a,turb_b,turb_c,turb_d,turb_alpha);
         }
+#endif
 
 
     } // end t=0 setup
@@ -936,10 +953,12 @@ void main_driver(const char* argv)
         }
     }
     
+#if defined(TURB)
     if (turbForcing >= 1) {
         structFactMFTurb.define(ba, dmap, structVarsTurb, 0);
         turbStructFact.define(ba,dmap,var_names_turb,var_scaling_turb,s_pairA_turb,s_pairB_turb);
     }
+#endif
 
     /////////////////////////////////////////////////
     // Initialize Fluxes and Sources
@@ -996,10 +1015,12 @@ void main_driver(const char* argv)
                  cenflux[2].define(ba,dmap,1,1););
     
 
+#if defined(TURB)
     // Initialize Turbulence Forcing Object
     if (turbForcing > 1) {
         turbforce.Initialize(geom);
     }
+#endif
                 
     /////////////////////////////////////////////////
     //Time stepping loop
@@ -1157,6 +1178,7 @@ void main_driver(const char* argv)
                            << "\n";
         }
 
+#if defined(TURB)
         // turbulence outputs
         if ((turbForcing >= 1) and (step%1000 == 0)) {
 
@@ -1283,6 +1305,7 @@ void main_driver(const char* argv)
             Real kolm_t = pow((eta_avg*eta_avg*eta_avg/(rho_avg*rho_avg*rho_avg*eps_t)),0.25);
             turboutfile << kolm_s << " " << kolm_t << std::endl;
         }
+#endif
 
         // write a plotfile
         bool writePlt = false;
@@ -1301,9 +1324,11 @@ void main_driver(const char* argv)
             WritePlotFileStag(step, time, geom, cu, cuMeans, cuVars, cumom, cumomMeans, cumomVars,
                               prim, primMeans, primVars, vel, velMeans, velVars, coVars, surfcov, surfcovMeans, surfcovVars, eta, kappa);
             
+#if defined(TURB)
             if (turbForcing > 0) {
                 EvaluateWritePlotFileVelGrad(step, time, geom, vel);
             }
+#endif
 
             if (plot_cross) {
                 if (do_1D) {
@@ -1324,6 +1349,7 @@ void main_driver(const char* argv)
                 }
             }
 
+#if defined(TURB)
             // compressible turbulence structure factor snapshot
             if (turbForcing >= 1) {
 
@@ -1352,6 +1378,7 @@ void main_driver(const char* argv)
                 turbStructFact.IntegratekShellsMisc(step,geom);
 
             }
+#endif
 
         }
 
@@ -1608,16 +1635,18 @@ void main_driver(const char* argv)
                            << min_fab_megabytes << " ... " << max_fab_megabytes << "]\n";
         }
 
-        if ((step%100 == 0) and (turbForcing > 0)) {
+        if (step%100 == 0) {
             amrex::Real cfl_max = GetMaxAcousticCFL(prim, vel, dt, geom);
             amrex::Print() << "Max convective-acoustic CFL is: " << cfl_max << "\n";
         }
     }
 
     if (ParallelDescriptor::IOProcessor()) outfile.close();
+#if defined(TURB)
     if (turbForcing >= 1) {
         if (ParallelDescriptor::IOProcessor()) turboutfile.close();
     }
+#endif
 
     // timer
     Real stop_time = ParallelDescriptor::second() - strt_time;

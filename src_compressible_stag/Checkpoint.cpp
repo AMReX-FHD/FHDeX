@@ -112,6 +112,7 @@ void WriteCheckPoint3D(int step,
             }
         }
 
+#if defined(TURB)
         // Write turbulent forcings
         if (turbForcing > 1) {
             for (int i=0; i<132; ++i) {
@@ -120,6 +121,7 @@ void WriteCheckPoint3D(int step,
                 HeaderFile << f_comp << "\n";
             }
         }
+#endif
     }
 
     // C++ random number engine
@@ -636,9 +638,11 @@ void ReadCheckPoint3D(int& step,
     ba.maxSize(IntVect(max_grid_size));
     dmap.define(ba, ParallelDescriptor::NProcs());
     
+#if defined(TURB)
     if (turbForcing > 1) {
         turbforce.define(ba,dmap,turb_a,turb_b,turb_c,turb_d,turb_alpha);
     }
+#endif
 
     // Header
     {
@@ -684,6 +688,7 @@ void ReadCheckPoint3D(int& step,
             }
         }
 
+#if defined(TURB)
         // Read in turbulent forcing
         if (turbForcing > 1) {
             Real fs_temp;
@@ -694,6 +699,7 @@ void ReadCheckPoint3D(int& step,
                 turbforce.setU(i,fs_temp,fc_temp);
             }
         }
+#endif
 
         // create old distribution mapping
         dmap_old.define(ba_old, ParallelDescriptor::NProcs());

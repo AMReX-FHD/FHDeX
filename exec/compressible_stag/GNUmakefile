@@ -11,6 +11,7 @@ DIM           = 3
 TINY_PROFILE  = FALSE
 
 USE_PARTICLES = FALSE
+DO_TURB 	  = FALSE
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
@@ -59,3 +60,8 @@ ifeq ($(USE_CUDA),TRUE)
 else
   LIBRARIES += -L$(FFTW_DIR) -lfftw3_mpi -lfftw3
 endif
+
+ifeq ($(DO_TURB), TRUE)
+  DEFINES += -DTURB
+endif
+
