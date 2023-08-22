@@ -65,7 +65,19 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
             if (b.ok()) {
                 amrex::ParallelForRNG(b, [=] AMREX_GPU_DEVICE (int i, int j, int k, amrex::RandomEngine const& engine) noexcept
                 {
-                    // from reservoir
+                    
+                    ////////////////// from reservoir //////////////////
+                    
+                    ////////////////////////////////////////////////////
+                    // number of particles in FHD cell (for correction)
+                    Real N = 0.0;
+                    GpuArray<Real,MAX_SPECIES> N_i;
+                    for (int n=0;n<nspecies;++n) {
+                        N_i[n] = vol*(cons0(i,j,k,5+n)/mass[n]);
+                        N += N_i[n];
+                    }
+                    ////////////////////////////////////////////////////
+                    
                     Real T = prim0(i-1,j,k,4);
                     Real V = 0.5*(xvel0(i-1,j,k)+xvel0(i,j,k));
                     V = 0.0;
@@ -78,15 +90,17 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
                         rhoYk[n] = cons0(i-1,j,k,5+n);
                     }
                     poisson_process_reservoir(mass,rhoYk,T,V,nspecies,area,k_B,dt,mass_cross,mom_cross,en_cross,spec_mass_cross,engine);
-                    xflux(i,j,k,0) += mass_cross/(dt*area); // update mass flux
-                    xflux(i,j,k,4) += en_cross/(dt*area); // update energy flux
+                    xflux(i,j,k,0) += (1.0 - (1.0/(12.0*N)))*mass_cross/(dt*area); // update mass flux
+                    xflux(i,j,k,4) += (1.0 + (1.0/( 4.0*N)))*en_cross/(dt*area); // update energy flux
                     for (int n=0;n<nspecies;++n) {
-                        xflux(i,j,k,5+n) += spec_mass_cross[n]/(dt*area); // update species flux
+                        xflux(i,j,k,5+n) += (1.0 - (1.0/(12.0*N)))*spec_mass_cross[n]/(dt*area); // update species flux
                     }
                     xmom(i,j,k)    += mom_cross/vol; // set face momentum
-                    //xmom(i,j,k)    += mass_cross/(dt*area); // set face momentum
+                    
+                    ////////////////////////////////////////////////////
 
-                    // to reservoir
+                    ////////////////// to reservoir ////////////////////
+
                     T = prim0(i,j,k,4);
                     V = -0.5*(xvel0(i,j,k)+xvel0(i+1,j,k));
                     for (int n=0;n<nspecies;++n) {
@@ -99,7 +113,8 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
                         xflux(i,j,k,5+n) -= spec_mass_cross[n]/(dt*area); // update species flux
                     }
                     xmom(i,j,k)    -= mom_cross/vol; // subtract momentum for particles going other way
-                    //xmom(i,j,k)    -= mass_cross/(dt*area); // subtract momentum for particles going other way
+                    
+                    ////////////////////////////////////////////////////
                 });
             }
         }
@@ -133,7 +148,19 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
             if (b.ok()) {
                 amrex::ParallelForRNG(b, [=] AMREX_GPU_DEVICE (int i, int j, int k, amrex::RandomEngine const& engine) noexcept
                 {
-                    // from reservoir
+                    
+                    ////////////////// from reservoir //////////////////
+                    
+                    ////////////////////////////////////////////////////
+                    // number of particles in FHD cell (for correction)
+                    Real N = 0.0;
+                    GpuArray<Real,MAX_SPECIES> N_i;
+                    for (int n=0;n<nspecies;++n) {
+                        N_i[n] = vol*(cons0(i-1,j,k,5+n)/mass[n]);
+                        N += N_i[n];
+                    }
+                    ////////////////////////////////////////////////////
+
                     Real T = prim0(i,j,k,4);
                     Real V = -0.5*(xvel0(i,j,k)+xvel0(i+1,j,k));
                     V = 0.0;
@@ -146,15 +173,17 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
                         rhoYk[n] = cons0(i,j,k,5+n);
                     }
                     poisson_process_reservoir(mass,rhoYk,T,V,nspecies,area,k_B,dt,mass_cross,mom_cross,en_cross,spec_mass_cross,engine);
-                    xflux(i,j,k,0) -= mass_cross/(dt*area); // update mass flux
-                    xflux(i,j,k,4) -= en_cross/(dt*area); // update energy flux
+                    xflux(i,j,k,0) -= (1.0 - (1.0/(12.0*N)))*mass_cross/(dt*area); // update mass flux
+                    xflux(i,j,k,4) -= (1.0 + (1.0/( 4.0*N)))*en_cross/(dt*area); // update energy flux
                     for (int n=0;n<nspecies;++n) {
-                        xflux(i,j,k,5+n) -= spec_mass_cross[n]/(dt*area); // update species flux
+                        xflux(i,j,k,5+n) -= (1.0 - (1.0/(12.0*N)))*spec_mass_cross[n]/(dt*area); // update species flux
                     }
                     xmom(i,j,k)    -= mom_cross/vol;
-                    //xmom(i,j,k)    -= mass_cross/(dt*area);
+                    
+                    ////////////////////////////////////////////////////
 
-                    // to reservoir
+                    ////////////////// to reservoir ////////////////////
+
                     T = prim0(i-1,j,k,4);
                     V = 0.5*(xvel0(i-1,j,k)+xvel0(i,j,k));
                     for (int n=0;n<nspecies;++n) {
@@ -167,18 +196,12 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
                         xflux(i,j,k,5+n) += spec_mass_cross[n]/(dt*area);
                     }
                     xmom(i,j,k)    += mom_cross/vol;  // add momentum for particles going other way
-                    //xmom(i,j,k)    += mass_cross/(dt*area);  // add momentum for particles going other way
+                    
+                    ////////////////////////////////////////////////////
                 });
             }
         }
     }
-
-//    faceflux_res[0].OverrideSync(geom.periodicity());
-//    faceflux_res[1].OverrideSync(geom.periodicity());
-//    faceflux_res[2].OverrideSync(geom.periodicity());
-//    cumom_res[0].OverrideSync(geom.periodicity());
-//    cumom_res[1].OverrideSync(geom.periodicity());
-//    cumom_res[2].OverrideSync(geom.periodicity());
 }
 
 ///////////////////////////////////////////////////////////////////////////
