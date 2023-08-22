@@ -34,24 +34,24 @@ void RK3stepStag(MultiFab& cu,
     // Reservoir stuff
     std::array< MultiFab, AMREX_SPACEDIM > cumom_res; // MFab for storing momentum from reservoir update
     std::array< MultiFab, AMREX_SPACEDIM > faceflux_res; // MFab for storing fluxes (face-based) from reservoir update
-    std::array< MultiFab, AMREX_SPACEDIM > faceflux_cont; // MFab for storing fluxes (face-based) from RK3 update
+//    std::array< MultiFab, AMREX_SPACEDIM > faceflux_cont; // MFab for storing fluxes (face-based) from RK3 update
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         cumom_res[d].define(convert(cu.boxArray(),nodal_flag_dir[d]), cu.DistributionMap(), 1, 0);
         faceflux_res[d].define(convert(cu.boxArray(),nodal_flag_dir[d]), cu.DistributionMap(), nvars, 0);
-        faceflux_cont[d].define(convert(cu.boxArray(),nodal_flag_dir[d]), cu.DistributionMap(), nvars, 0);
-        faceflux_cont[d].setVal(0.0);
+//        faceflux_cont[d].define(convert(cu.boxArray(),nodal_flag_dir[d]), cu.DistributionMap(), nvars, 0);
+//        faceflux_cont[d].setVal(0.0);
     }
 
     // Store cons, prim, vel from the start of the RK3 step
-    MultiFab cu0   (cu.boxArray(),cu.DistributionMap(),nvars,ngc);
-    MultiFab::Copy(cu0, cu, 0, 0, nvars, ngc);
-    MultiFab prim0 (cu.boxArray(),cu.DistributionMap(),nprimvars,ngc);
-    MultiFab::Copy(prim0, prim, 0, 0, nprimvars, ngc);
-    std::array< MultiFab, AMREX_SPACEDIM > vel0;
-    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        vel0[d].define(convert(cu.boxArray(),nodal_flag_dir[d]), cu.DistributionMap(), 1, ngc);
-        MultiFab::Copy(vel0[d], vel[d], 0, 0, 1, ngc);
-    }
+//    MultiFab cu0   (cu.boxArray(),cu.DistributionMap(),nvars,ngc);
+//    MultiFab::Copy(cu0, cu, 0, 0, nvars, ngc);
+//    MultiFab prim0 (cu.boxArray(),cu.DistributionMap(),nprimvars,ngc);
+//    MultiFab::Copy(prim0, prim, 0, 0, nprimvars, ngc);
+//    std::array< MultiFab, AMREX_SPACEDIM > vel0;
+//    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+//        vel0[d].define(convert(cu.boxArray(),nodal_flag_dir[d]), cu.DistributionMap(), 1, ngc);
+//        MultiFab::Copy(vel0[d], vel[d], 0, 0, 1, ngc);
+//    }
     // Reservoir stuff
     ////////////////////////////////////////////////////////////////////////////////////////////////////////
 
