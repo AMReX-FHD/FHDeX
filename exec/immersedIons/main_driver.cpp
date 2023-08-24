@@ -893,13 +893,44 @@ void main_driver(const char* argv)
             {
                 auto search = permittivity_map.find(IntVect(i,j,k));
                 if (search != permittivity_map.end()) {
-                    h_data(i,j,k) = search->second;
+		    if (d==0 && (i-1>=domain.smallEnd(0) && permittivity_map.find(IntVect(i-1,j,k))==permittivity_map.end())) {
+		        //h_data(i,j,k) = 2.0/(1.0/search->second+1.0/permittivity);
+		        h_data(i,j,k) = (search->second+permittivity)/2.0;
+		    } else if (d==1 && (j-1>=domain.smallEnd(1) && permittivity_map.find(IntVect(i,j-1,k))==permittivity_map.end())) {
+		        //h_data(i,j,k) = 2.0/(1.0/search->second+1.0/permittivity);
+			//Print() << "j in map: " << j << std::endl;
+		        h_data(i,j,k) = (search->second+permittivity)/2.0;
+		    } else if (d==2 && (k-1>=domain.smallEnd(2) && permittivity_map.find(IntVect(i,j,k-1))==permittivity_map.end())) {
+		        //h_data(i,j,k) = 2.0/(1.0/search->second+1.0/permittivity);
+		        h_data(i,j,k) = (search->second+permittivity)/2.0;
+                    } else {
+		        h_data(i,j,k) = search->second;
+		    }
+		} else if (d==0 && i==domain.bigEnd(0)+1 && permittivity_map.find(IntVect(domain.smallEnd(0),j,k))!=permittivity_map.end()) {
+                    h_data(i,j,k) = permittivity_map.find(IntVect(domain.smallEnd(0),j,k))->second;
+                } else if (d==1 && j==domain.bigEnd(1)+1 && permittivity_map.find(IntVect(i,domain.smallEnd(1),k))!=permittivity_map.end()) {
+                    h_data(i,j,k) = permittivity_map.find(IntVect(i,domain.smallEnd(1),k))->second;
+                } else if (d==2 && k==domain.bigEnd(2)+1 && permittivity_map.find(IntVect(i,j,domain.smallEnd(2)))!=permittivity_map.end()) {
+                    h_data(i,j,k) = permittivity_map.find(IntVect(i,j,domain.smallEnd(2)))->second;
+
+                } else if (d==0 && (i-1>=domain.smallEnd(0) && permittivity_map.find(IntVect(i-1,j,k))!=permittivity_map.end())) {
+		    //h_data(i,j,k) = 2.0/(1.0/permittivity_map.find(IntVect(i-1,j,k))->second+1.0/permittivity);
+		    h_data(i,j,k) = (permittivity_map.find(IntVect(i-1,j,k))->second+permittivity)/2.0;
+		} else if (d==1 && (j-1>=domain.smallEnd(1) && permittivity_map.find(IntVect(i,j-1,k))!=permittivity_map.end())) {
+		    //h_data(i,j,k) = 2.0/(1.0/permittivity_map.find(IntVect(i-1,j,k))->second+1.0/permittivity);
+		    //Print() << "j not in map: " << j << std::endl;
+		    h_data(i,j,k) = (permittivity_map.find(IntVect(i,j-1,k))->second+permittivity)/2.0;
+		} else if (d==2 && (k-1>=domain.smallEnd(2) && permittivity_map.find(IntVect(i,j,k-1))!=permittivity_map.end())) {
+		    //h_data(i,j,k) = 2.0/(1.0/permittivity_map.find(IntVect(i-1,j,k))->second+1.0/permittivity);
+		    h_data(i,j,k) = (permittivity_map.find(IntVect(i,j,k-1))->second+permittivity)/2.0;
+
+
                 } else {
                     h_data(i,j,k) = permittivity; // default value from input file
                 }
             });
-            //Print() << d_fab.array()(0,20,0) << std::endl;
-            //Print() << d_fab.array()(0,19,0) << std::endl;
+            //Print() << d_fab.array()(0,3,0) << std::endl;
+            //Print() << d_fab.array()(10,12,11) << std::endl;
 #ifdef AMREX_USE_GPU
             Gpu::htod_memcpy_async(d_fab.dataPtr(), h_fab.dataPtr(), h_fab.nBytes());
             Gpu::streamSynchronize();
@@ -907,7 +938,6 @@ void main_driver(const char* argv)
 
 	}
     }
-
     
     ///////////////////////////////////////////
     // structure factor for charge-charge
@@ -982,7 +1012,10 @@ void main_driver(const char* argv)
 
 
 //    // Writes instantaneous flow field and some other stuff? Check with Guy.
-    //WritePlotFileHydro(0, time, geom, umac, pres, umacM);
+    WritePlotFileHydro(0, time, geom, umac, pres, umacM);
+    WritePlotFile(0, time, geom, geomC, geomP,
+                  particleInstant, particleMeans, particles,
+                  charge, chargeM, potential, potentialM, efieldCC);
     remove("bulkFlowEst");
     //Time stepping loop
 
@@ -1467,51 +1500,53 @@ void main_driver(const char* argv)
             {         
 
                 Real check;
-		/*
+		/**/
 		// Uncomment this section to calculate mobility matrix for pinned particles; this should only run for 1 step
 		//   if discos-particle wall is regular, we can just calculate mobility matrix on one particle and shift it around.
-                particles.clearMobilityMatrix();
-                for(int ii=1;ii<=1600;ii++)
-                {
-                    particles.SetForce(ii,1,0,0);
-                    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-                        source    [d].setVal(0.0);      // reset source terms
-                        sourceTemp[d].setVal(0.0);      // reset source terms
+		if (pinMatrix_tog == 1) {
+                    particles.clearMobilityMatrix();
+                    for(int ii=1;ii<=ionParticle[0].total;ii++)
+                    {
+                        particles.SetForce(ii,1,0,0);
+                        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                            source    [d].setVal(0.0);      // reset source terms
+                            sourceTemp[d].setVal(0.0);      // reset source terms
+                        }
+                        particles.SpreadIonsGPU(dx, dxp, geom, umac, RealFaceCoords, efieldCC, source, sourceTemp);                
+                        advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
+                        particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
+                        particles.fillMobilityMatrix(ii,0);
+
+                        particles.SetForce(ii,0,1,0);
+                        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                            source    [d].setVal(0.0);      // reset source terms
+                            sourceTemp[d].setVal(0.0);      // reset source terms
+                        }
+                        particles.SpreadIonsGPU(dx, dxp, geom, umac, RealFaceCoords, efieldCC, source, sourceTemp);                
+                        advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
+                        particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
+                        particles.fillMobilityMatrix(ii,1);
+
+                        particles.SetForce(ii,0,0,1);
+                        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                            source    [d].setVal(0.0);      // reset source terms
+                            sourceTemp[d].setVal(0.0);      // reset source terms
+                        }
+                        particles.SpreadIonsGPU(dx, dxp, geom, umac, RealFaceCoords, efieldCC, source, sourceTemp);                
+                        advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
+                        particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
+                        particles.fillMobilityMatrix(ii,2);
+
+
                     }
-                    particles.SpreadIonsGPU(dx, dxp, geom, umac, RealFaceCoords, efieldCC, source, sourceTemp);                
-                    advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
-                    particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
-                    particles.fillMobilityMatrix(ii,0);
+                    particles.writeMat();
 
-                    particles.SetForce(ii,0,1,0);
-                    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-                        source    [d].setVal(0.0);      // reset source terms
-                        sourceTemp[d].setVal(0.0);      // reset source terms
-                    }
-                    particles.SpreadIonsGPU(dx, dxp, geom, umac, RealFaceCoords, efieldCC, source, sourceTemp);                
-                    advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
-                    particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
-                    particles.fillMobilityMatrix(ii,1);
-
-                    particles.SetForce(ii,0,0,1);
-                    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-                        source    [d].setVal(0.0);      // reset source terms
-                        sourceTemp[d].setVal(0.0);      // reset source terms
-                    }
-                    particles.SpreadIonsGPU(dx, dxp, geom, umac, RealFaceCoords, efieldCC, source, sourceTemp);                
-                    advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
-                    particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
-                    particles.fillMobilityMatrix(ii,2);
-
-
-                }
-                particles.writeMat();
-
-                particles.invertMatrix();
-		if (ParallelDescriptor::MyProc() == 0) {
-		    Abort("Finish calculating pinned mobility matrix, thus program aborts. To use pinned mobility matrix, uncomment this section and rerun");
+                    particles.invertMatrix();
+		    if (ParallelDescriptor::MyProc() == 0) {
+		        Abort("Finish calculating pinned mobility matrix, thus program aborts. To use pinned mobility matrix, uncomment this section and rerun");
+		    }
 		}
-                */
+                /**/
 
                 advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
                 particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);

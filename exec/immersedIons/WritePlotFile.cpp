@@ -35,7 +35,7 @@ void WritePlotFile(int step,
     // charge, chargeM
     // pot, potM
     // Ex, Ey, Ez
-    int enPlot = 6+AMREX_SPACEDIM;
+    int enPlot = 4+AMREX_SPACEDIM;
 
     int fnPlot = nspecies*AMREX_SPACEDIM;
 

@@ -106,7 +106,7 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
     }
 
     remove("velOut");
-    remove("matOut");
+    //remove("matOut");
     remove("conductivityEst");
     remove("currentEst");
     remove("nearestNeighbour");

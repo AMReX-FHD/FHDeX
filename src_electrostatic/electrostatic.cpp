@@ -2,6 +2,7 @@
 #include "common_functions.H"
 #include <AMReX_MLMG.H>
 #include <AMReX_MLABecLaplacian.H>
+#include "AMReX_VisMF.H"
 
 using namespace amrex;
 
@@ -138,5 +139,10 @@ void esSolve(MultiFab& potential, MultiFab& charge,
         efieldCC[d].FillBoundary(geom.periodicity());
         MultiFabElectricBC(efieldCC[d], geom);
     }
+
+    //VisMF::Write(beta_es[0], "beta_es0");
+    //VisMF::Write(beta_es[1], "beta_es1");
+    //VisMF::Write(beta_es[2], "beta_es2");
+    //Abort();
 
 }

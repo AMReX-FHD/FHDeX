@@ -330,9 +330,12 @@ void IBMarkerContainerBase<StructReal, StructInt>::loadPinMatrix(int totalP, cha
 
     totalPinnedMarkers = totalP; 
 
+    Print() << "here3" << std::endl;
     pinMatrix.resize(pow(3*totalP,2),0);
 
+    Print() << "here4" << std::endl;
     std::ifstream ifs("invOut", std::ios::binary);
+    if (!ifs.good()) return;
 
     //std::ifstream matFile("invOut");
 
