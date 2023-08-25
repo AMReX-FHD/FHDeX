@@ -9,42 +9,49 @@
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 amrex::Real 
-random_cross_vel(const amrex::Real& a, const amrex::Real& vT, amrex::RandomEngine const& engine)
+random_cross_vel(const amrex::Real& a, const amrex::Real& vT, bool tangential, amrex::Real Vtangential, 
+                 amrex::RandomEngine const& engine)
 {
     constexpr amrex::Real sqrtPI = 1.77245385091;
     constexpr amrex::Real small_number = 1.0e-13;
 
-    amrex::Real z;
     amrex::Real v;
-    if (a > small_number) {
-        bool stop = false;
-        while (!stop) {
-            amrex::Real u = amrex::Random(engine);
-            if ((a*sqrtPI)/(a*sqrtPI + 1.0 + a*a) > u) {
-                z = -1.0*std::abs(amrex::RandomNormal(0.0,sqrt(0.5),engine));
-                stop = true;
+    if (!tangential) { // normal velocity crossing
+        amrex::Real z;
+        if (a > small_number) { // a > 0
+            bool stop = false;
+            while (!stop) {
+                amrex::Real u = amrex::Random(engine);
+                if ((a*sqrtPI)/(a*sqrtPI + 1.0 + a*a) > u) {
+                    z = -1.0*std::abs(amrex::RandomNormal(0.0,sqrt(0.5),engine));
+                    stop = true;
+                }
+                else if ((a*sqrtPI + 1.0)/(a*sqrtPI + 1.0 + a*a) > u) {
+                    z = -1.0*sqrt(-1.0*std::log(amrex::Random(engine)));
+                    stop = true;
+                }
+                else {
+                    z = a*(1.0-sqrt(amrex::Random(engine)));
+                    if (exp(1.0*z*z) > amrex::Random(engine)) stop = true;
+                }
             }
-            else if ((a*sqrtPI + 1.0)/(a*sqrtPI + 1.0 + a*a) > u) {
-                z = -1.0*sqrt(-1.0*std::log(amrex::Random(engine)));
-                stop = true;
-            }
-            else {
-                z = a*(1.0-sqrt(amrex::Random(engine)));
-                if (exp(1.0*z*z) > amrex::Random(engine)) stop = true;
-            }
+            v = (a-z)*vT;
         }
-        v = (a-z)*vT;
-    }
-    else if (a < -1.0*small_number) {
-        bool stop = false;
-        while (!stop) {
-            z = -1.0*sqrt(a*a - std::log(amrex::Random(engine)));
-            if (a > z*(1.0 - amrex::Random(engine))) stop = true;
+        else if (a < -1.0*small_number) { // a < 0
+            bool stop = false;
+            while (!stop) {
+                z = -1.0*sqrt(a*a - std::log(amrex::Random(engine)));
+                if (a > z*(1.0 - amrex::Random(engine))) stop = true;
+            }
+            v = (a-z)*vT;
         }
-        v = (a-z)*vT;
+        else { // a = 0
+            v = vT*sqrt(-1.0*std::log(amrex::Random(engine)));
+        }
     }
-    else {
-        v = vT*sqrt(-1.0*std::log(amrex::Random(engine)));
+    else { // tangential velocity crossing
+        amrex::Real v;
+        v = Vtangential + vT*amrex::RandomNormal(0.0,sqrt(0.5),engine);
     }
     return v;
 }
@@ -54,15 +61,18 @@ void
 poisson_process_reservoir(const amrex::GpuArray<amrex::Real,MAX_SPECIES>& mass,
                           const amrex::GpuArray<amrex::Real,MAX_SPECIES>& rhoYk,
                           const amrex::Real& T, // temperature
-                          const amrex::Real& V, // velocity
+                          const amrex::Real& Vnormal, // normal velocity
                           const int& nspec,
                           const amrex::Real& area,
                           const amrex::Real& kB,
                           const amrex::Real& dt,
                           amrex::Real& mass_cross,
-                          amrex::Real& mom_cross,
+                          amrex::GpuArray<amrex::Real,3>& mom_cross,
                           amrex::Real& en_cross,
                           amrex::GpuArray<amrex::Real,MAX_SPECIES>& spec_mass_cross,
+                          int dim,         // dimension
+                          amrex::Real VT1, // tangential velocity 1
+                          amrex::Real VT2, // tangential velocity 2
                           amrex::RandomEngine const& engine)
 
 {
@@ -70,8 +80,10 @@ poisson_process_reservoir(const amrex::GpuArray<amrex::Real,MAX_SPECIES>& mass,
     constexpr amrex::Real sqrtPI = 1.77245385091;
 
     mass_cross = 0.0;
-    mom_cross  = 0.0;
     en_cross   = 0.0;
+    for (int n=0;n<3;++n) {
+        mom_cross[n] = 0.0;
+    }
     for (int n=0;n<nspecies;++n) {
         spec_mass_cross[n] = 0.0;
     }
@@ -84,7 +96,7 @@ poisson_process_reservoir(const amrex::GpuArray<amrex::Real,MAX_SPECIES>& mass,
     
     for (int n=0;n<nspec;++n) {
         thermal_speed[n] = sqrt(2.0*kB*T/mass[n]);
-        speed_ratio[n] = V/thermal_speed[n];
+        speed_ratio[n] = Vnormal/thermal_speed[n];
         amrex::Real num_density = rhoYk[n]/mass[n];
         if (std::abs(speed_ratio[n]) > small_number) {
             particle_rate[n] = (1.0/(2.0*sqrtPI))*num_density*area*thermal_speed[n]*
@@ -110,13 +122,27 @@ poisson_process_reservoir(const amrex::GpuArray<amrex::Real,MAX_SPECIES>& mass,
         // add a particle for each species (if stop[n] = false)
         for (int n=0;n<nspec;++n) {
             if (!stop_flag[n]) {
+                
+                // normal component
                 mass_cross += mass[n]; // add a particle crossing for total mass
                 spec_mass_cross[n] += mass[n]; // add a particle crossing for species mass
-                amrex::Real vel_rand = random_cross_vel(speed_ratio[n],thermal_speed[n],engine); // get random velocity
-//                amrex::AllPrint() << vel_rand << " " << speed_ratio[n]*thermal_speed[n] << " " << thermal_speed[n] << std::endl;
-                mom_cross += mass[n]*vel_rand; // add a particle crossing for total momentum
+                amrex::Real vel_rand = random_cross_vel(speed_ratio[n],thermal_speed[n],false,0.0,engine); // get random velocity
+                mom_cross[0] += mass[n]*vel_rand; // add a particle crossing for total momentum
                 en_cross  += 0.5*mass[n]*(vel_rand)*(vel_rand); // add a particle crossing for total energy
-//                en_cross  += 0.5*mass[n]*(V-vel_rand)*(V-vel_rand); // add a particle crossing for total energy
+
+                // tangential component 1
+                if (dim >= 2) {
+                    amrex::Real vel_rand = random_cross_vel(speed_ratio[n],thermal_speed[n],true,VT1,engine); // get random velocity
+                    mom_cross[1] += mass[n]*vel_rand; // add a particle crossing for total momentum
+                    en_cross  += 0.5*mass[n]*(vel_rand)*(vel_rand); // add a particle crossing for total energy
+                }
+
+                // tangential component 2
+                if (dim == 3) {
+                    amrex::Real vel_rand = random_cross_vel(speed_ratio[n],thermal_speed[n],true,VT2,engine); // get random velocity
+                    mom_cross[2] += mass[n]*vel_rand; // add a particle crossing for total momentum
+                    en_cross  += 0.5*mass[n]*(vel_rand)*(vel_rand); // add a particle crossing for total energy
+                }
             }
         }
 

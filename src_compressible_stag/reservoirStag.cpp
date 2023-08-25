@@ -36,12 +36,14 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
         faceflux_res[d].setVal(0.0);
     }
 
-
     // Reservoir in LO X
     if (bc_mass_lo[0] == 4) {
 
         Real area = dx[1]*dx[2];
         Real vol  = dx[0]*dx[1]*dx[2];
+
+        // face-based flux (mass and energy) and normal momentum /////
+        //////////////////////////////////////////////////////////////
 
         // domain grown nodally based on faceflux_res[0] nodality (x)
         const Box& dom_x = amrex::convert(geom.Domain(), faceflux_res[0].ixType());
@@ -58,6 +60,8 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
             const Array4<const Real> cons0   = cons0_in.array(mfi);
             const Array4<const Real> prim0   = prim0_in.array(mfi);
             const Array4<const Real>& xvel0  = (vel0[0]).array(mfi);
+            const Array4<const Real>& yvel0  = (vel0[1]).array(mfi);
+            const Array4<const Real>& zvel0  = (vel0[2]).array(mfi);
             
             const Array4<Real>& xmom  = (cumom_res[0]).array(mfi);
             const Array4<Real>& xflux = (faceflux_res[0]).array(mfi);
@@ -79,40 +83,90 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
                     ////////////////////////////////////////////////////
                     
                     Real T = prim0(i-1,j,k,4);
-                    Real V = 0.5*(xvel0(i-1,j,k)+xvel0(i,j,k));
-                    V = 0.0;
+                    Real Vx, Vy, Vz;
+                    Vx = 0.0; // normal
+                    Vy = 0.0;
+                    Vz = 0.0;
                     Real mass_cross; // total mass crossing at the reservoir interface
-                    Real mom_cross; // total momentum crossing at the reservoir interface
+                    GpuArray<Real,3> mom_cross; // total momentum crossing at the reservoir interface
                     Real en_cross; // total energy crossing at the reservoir interface
                     GpuArray<Real,MAX_SPECIES> spec_mass_cross;
                     GpuArray<Real,MAX_SPECIES> rhoYk;
                     for (int n=0;n<nspecies;++n) {
                         rhoYk[n] = cons0(i-1,j,k,5+n);
                     }
-                    poisson_process_reservoir(mass,rhoYk,T,V,nspecies,area,k_B,dt,mass_cross,mom_cross,en_cross,spec_mass_cross,engine);
+                    if (do_1D) {
+                        poisson_process_reservoir(mass,rhoYk,T,Vx,nspecies,area,k_B,dt,
+                                              mass_cross,mom_cross,en_cross,spec_mass_cross,1,Vy,Vz,engine);
+                    }
+                    else if (do_2D) {
+                        poisson_process_reservoir(mass,rhoYk,T,Vx,nspecies,area,k_B,dt,
+                                              mass_cross,mom_cross,en_cross,spec_mass_cross,2,Vy,Vz,engine);
+                    }
+                    else {
+                        poisson_process_reservoir(mass,rhoYk,T,Vx,nspecies,area,k_B,dt,
+                                              mass_cross,mom_cross,en_cross,spec_mass_cross,3,Vy,Vz,engine);
+                    }
                     xflux(i,j,k,0) += (1.0 - (1.0/(12.0*N)))*mass_cross/(dt*area); // update mass flux
                     xflux(i,j,k,4) += (1.0 + (1.0/( 4.0*N)))*en_cross/(dt*area); // update energy flux
                     for (int n=0;n<nspecies;++n) {
                         xflux(i,j,k,5+n) += (1.0 - (1.0/(12.0*N)))*spec_mass_cross[n]/(dt*area); // update species flux
                     }
-                    xmom(i,j,k)    += mom_cross/vol; // set face momentum
+                    
+                    if (do_1D) {
+                        xmom(i,j,k) += mom_cross[0]/vol;
+                    }
+                    else if (do_2D) {
+                        xmom(i,j,k) += mom_cross[0]/vol;
+                        xflux(i,j,k,1) += mom_cross[1]/dt/area; // tangential flux
+                    }
+                    else {
+                        xmom(i,j,k) += mom_cross[0]/vol;
+                        xflux(i,j,k,1) += mom_cross[1]/dt/area; // tangential flux
+                        xflux(i,j,k,2) += mom_cross[2]/dt/area; // tangential flux
+                    }
                     
                     ////////////////////////////////////////////////////
 
                     ////////////////// to reservoir ////////////////////
 
                     T = prim0(i,j,k,4);
-                    V = -0.5*(xvel0(i,j,k)+xvel0(i+1,j,k));
+                    Vx = -0.5*(xvel0(i,j,k)+xvel0(i+1,j,k));
+                    Vy =  0.5*(yvel0(i,j,k)+yvel0(i,j+1,k));
+                    Vz =  0.5*(zvel0(i,j,k)+zvel0(i,j,k+1));
                     for (int n=0;n<nspecies;++n) {
                         rhoYk[n] = cons0(i,j,k,5+n);
                     }
-                    poisson_process_reservoir(mass,rhoYk,T,V,nspecies,area,k_B,dt,mass_cross,mom_cross,en_cross,spec_mass_cross,engine);
+                    if (do_1D) {
+                        poisson_process_reservoir(mass,rhoYk,T,Vx,nspecies,area,k_B,dt,
+                                              mass_cross,mom_cross,en_cross,spec_mass_cross,1,Vy,Vz,engine);
+                    }
+                    else if (do_2D) {
+                        poisson_process_reservoir(mass,rhoYk,T,Vx,nspecies,area,k_B,dt,
+                                              mass_cross,mom_cross,en_cross,spec_mass_cross,2,Vy,Vz,engine);
+                    }
+                    else {
+                        poisson_process_reservoir(mass,rhoYk,T,Vx,nspecies,area,k_B,dt,
+                                              mass_cross,mom_cross,en_cross,spec_mass_cross,3,Vy,Vz,engine);
+                    }
                     xflux(i,j,k,0) -= mass_cross/(dt*area); // update mass flux
                     xflux(i,j,k,4) -= en_cross/(dt*area); // update energy flux
                     for (int n=0;n<nspecies;++n) {
                         xflux(i,j,k,5+n) -= spec_mass_cross[n]/(dt*area); // update species flux
                     }
-                    xmom(i,j,k)    -= mom_cross/vol; // subtract momentum for particles going other way
+                    
+                    if (do_1D) {
+                        xmom(i,j,k) -= mom_cross[0]/vol;
+                    }
+                    else if (do_2D) {
+                        xmom(i,j,k) -= mom_cross[0]/vol;
+                        xflux(i,j,k,1) -= mom_cross[1]/dt/area; // tangential flux
+                    }
+                    else {
+                        xmom(i,j,k) -= mom_cross[0]/vol;
+                        xflux(i,j,k,1) -= mom_cross[1]/dt/area; // tangential flux
+                        xflux(i,j,k,2) -= mom_cross[2]/dt/area; // tangential flux
+                    }
                     
                     ////////////////////////////////////////////////////
                 });
@@ -125,6 +179,9 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
 
         Real area = dx[1]*dx[2];
         Real vol  = dx[0]*dx[1]*dx[2];
+
+        // face-based flux (mass and energy) and normal momentum /////
+        //////////////////////////////////////////////////////////////
 
         // domain grown nodally based on faceflux_res[0] nodality (x)
         const Box& dom_x = amrex::convert(geom.Domain(), faceflux_res[0].ixType());
@@ -141,6 +198,8 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
             const Array4<const Real> cons0   = cons0_in.array(mfi);
             const Array4<const Real> prim0   = prim0_in.array(mfi);
             const Array4<const Real>& xvel0  = (vel0[0]).array(mfi);
+            const Array4<const Real>& yvel0  = (vel0[1]).array(mfi);
+            const Array4<const Real>& zvel0  = (vel0[2]).array(mfi);
             
             const Array4<Real>& xmom  = (cumom_res[0]).array(mfi);
             const Array4<Real>& xflux = (faceflux_res[0]).array(mfi);
@@ -162,42 +221,93 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
                     ////////////////////////////////////////////////////
 
                     Real T = prim0(i,j,k,4);
-                    Real V = -0.5*(xvel0(i,j,k)+xvel0(i+1,j,k));
-                    V = 0.0;
+                    Real Vx, Vy, Vz;
+                    Vx = 0.0; // normal
+                    Vy = 0.0;
+                    Vz = 0.0;
                     Real mass_cross; // total mass crossing at the reservoir interface
-                    Real mom_cross; // total momentum crossing at the reservoir interface
+                    GpuArray<Real,3> mom_cross; // total momentum crossing at the reservoir interface
                     Real en_cross; // total energy crossing at the reservoir interface
                     GpuArray<Real,MAX_SPECIES> spec_mass_cross;
                     GpuArray<Real,MAX_SPECIES> rhoYk;
                     for (int n=0;n<nspecies;++n) {
                         rhoYk[n] = cons0(i,j,k,5+n);
                     }
-                    poisson_process_reservoir(mass,rhoYk,T,V,nspecies,area,k_B,dt,mass_cross,mom_cross,en_cross,spec_mass_cross,engine);
+                    if (do_1D) {
+                        poisson_process_reservoir(mass,rhoYk,T,Vx,nspecies,area,k_B,dt,
+                                              mass_cross,mom_cross,en_cross,spec_mass_cross,1,Vy,Vz,engine);
+                    }
+                    else if (do_2D) {
+                        poisson_process_reservoir(mass,rhoYk,T,Vx,nspecies,area,k_B,dt,
+                                              mass_cross,mom_cross,en_cross,spec_mass_cross,2,Vy,Vz,engine);
+                    }
+                    else {
+                        poisson_process_reservoir(mass,rhoYk,T,Vx,nspecies,area,k_B,dt,
+                                              mass_cross,mom_cross,en_cross,spec_mass_cross,3,Vy,Vz,engine);
+                    }
                     xflux(i,j,k,0) -= (1.0 - (1.0/(12.0*N)))*mass_cross/(dt*area); // update mass flux
                     xflux(i,j,k,4) -= (1.0 + (1.0/( 4.0*N)))*en_cross/(dt*area); // update energy flux
                     for (int n=0;n<nspecies;++n) {
                         xflux(i,j,k,5+n) -= (1.0 - (1.0/(12.0*N)))*spec_mass_cross[n]/(dt*area); // update species flux
                     }
-                    xmom(i,j,k)    -= mom_cross/vol;
+                    
+                    if (do_1D) {
+                        xmom(i,j,k) -= mom_cross[0]/vol;
+                    }
+                    else if (do_2D) {
+                        xmom(i,j,k) -= mom_cross[0]/vol;
+                        xflux(i,j,k,1) -= mom_cross[1]/dt/area; // tangential flux
+                    }
+                    else {
+                        xmom(i,j,k) -= mom_cross[0]/vol;
+                        xflux(i,j,k,1) -= mom_cross[1]/dt/area; // tangential flux
+                        xflux(i,j,k,2) -= mom_cross[2]/dt/area; // tangential flux
+                    }
                     
                     ////////////////////////////////////////////////////
 
                     ////////////////// to reservoir ////////////////////
 
                     T = prim0(i-1,j,k,4);
-                    V = 0.5*(xvel0(i-1,j,k)+xvel0(i,j,k));
+                    Vx = 0.5*(xvel0(i-1,j,k)+xvel0(i,j,k));
+                    Vy = 0.5*(yvel0(i-1,j,k)+yvel0(i-1,j+1,k));
+                    Vz = 0.5*(zvel0(i-1,j,k)+zvel0(i-1,j,k+1));
                     for (int n=0;n<nspecies;++n) {
                         rhoYk[n] = cons0(i-1,j,k,5+n);
                     }
-                    poisson_process_reservoir(mass,rhoYk,T,V,nspecies,area,k_B,dt,mass_cross,mom_cross,en_cross,spec_mass_cross,engine);
+                    if (do_1D) {
+                        poisson_process_reservoir(mass,rhoYk,T,Vx,nspecies,area,k_B,dt,
+                                              mass_cross,mom_cross,en_cross,spec_mass_cross,1,Vy,Vz,engine);
+                    }
+                    else if (do_2D) {
+                        poisson_process_reservoir(mass,rhoYk,T,Vx,nspecies,area,k_B,dt,
+                                              mass_cross,mom_cross,en_cross,spec_mass_cross,2,Vy,Vz,engine);
+                    }
+                    else {
+                        poisson_process_reservoir(mass,rhoYk,T,Vx,nspecies,area,k_B,dt,
+                                              mass_cross,mom_cross,en_cross,spec_mass_cross,3,Vy,Vz,engine);
+                    }
                     xflux(i,j,k,0) += mass_cross/(dt*area); // update mass flux
                     xflux(i,j,k,4) += en_cross/(dt*area); // update energy flux
                     for (int n=0;n<nspecies;++n) {
                         xflux(i,j,k,5+n) += spec_mass_cross[n]/(dt*area);
                     }
-                    xmom(i,j,k)    += mom_cross/vol;  // add momentum for particles going other way
+                   
+                    if (do_1D) {
+                        xmom(i,j,k) += mom_cross[0]/vol;  // add momentum for particles going other way
+                    }
+                    else if (do_2D) {
+                        xmom(i,j,k) += mom_cross[0]/vol;  // add momentum for particles going other way
+                        xflux(i,j,k,1) += mom_cross[1]/dt/area; // tangential flux
+                    }
+                    else {
+                        xmom(i,j,k) += mom_cross[0]/vol;  // add momentum for particles going other way
+                        xflux(i,j,k,1) += mom_cross[1]/dt/area; // tangential flux
+                        xflux(i,j,k,2) += mom_cross[2]/dt/area; // tangential flux
+                    }
                     
                     ////////////////////////////////////////////////////
+                    
                 });
             }
         }
@@ -208,14 +318,19 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
 // reset fluxes at the reservoir-FHD interface ////////////////////////////
 ///////////////////////////////////////////////////////////////////////////
 void 
-ResetReservoirFluxes(std::array<MultiFab, AMREX_SPACEDIM>& faceflux,
-                     const std::array<MultiFab, AMREX_SPACEDIM>& faceflux_res,
+ResetReservoirFluxes(const std::array<MultiFab, AMREX_SPACEDIM>& faceflux_res,
+                     std::array<MultiFab, AMREX_SPACEDIM>& faceflux,
+                     std::array< MultiFab, 2 >& edgeflux_x,
+                     std::array< MultiFab, 2 >& edgeflux_y,
+                     std::array< MultiFab, 2 >& edgeflux_z,
                      const amrex::Geometry& geom)
 {
     BL_PROFILE_VAR("ResetReservoirFluxes()",ResetReservoirFluxes);
 
     // Reservoir in LO X
     if (bc_mass_lo[0] == 4) {
+
+        /////////////// reset energy and mass fluxes ////////////////////////////
 
         // domain grown nodally based on faceflux_res[0] nodality (x)
         const Box& dom_x = amrex::convert(geom.Domain(), faceflux[0].ixType());
@@ -242,10 +357,67 @@ ResetReservoirFluxes(std::array<MultiFab, AMREX_SPACEDIM>& faceflux,
                 });
             }
         }
+
+        ///////////////////////////////////////////////////////////////////////////
+        
+        /////////////// reset tangential momentum fluxes //////////////////////////
+        
+        if (do_1D) {
+        }
+        else { // works both for 2D and 3D
+
+            // domain grown nodally based on edgeflux_x[0] nodality (xy)
+            const Box& dom_xy = amrex::convert(geom.Domain(), edgeflux_x[0].ixType());
+
+            // this is the x-lo domain boundary box (xy nodality)
+            // Orientation(dir,Orientation)  -- Orientation can be ::low or ::high
+            const Box& dom_xy_xlo = amrex::bdryNode(dom_xy, Orientation(0, Orientation::low));
+
+            for (MFIter mfi(edgeflux_x[0]); mfi.isValid(); ++mfi) {
+                const Box& bx = mfi.fabbox();
+                const Box& b = bx & dom_xy_xlo;
+                Array4<Real> const& edgex_v = (edgeflux_x[0]).array(mfi);
+                const Array4<const Real>& xflux_res = (faceflux_res[0]).array(mfi);
+                if (b.ok()) {
+                    amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                    {
+                        edgex_v(i,j,k) = 0.5*(xflux_res(i,j,k,1) + xflux_res(i,j-1,k,1));
+                    });
+                }
+            }
+
+            if ((!do_1D) and (!do_2D)) { // z-momentum
+
+                // domain grown nodally based on edgeflux_x[1] nodality (xz)
+                const Box& dom_xz = amrex::convert(geom.Domain(), edgeflux_x[1].ixType());
+
+                // this is the x-lo domain boundary box (xz nodality)
+                // Orientation(dir,Orientation)  -- Orientation can be ::low or ::high
+                const Box& dom_xz_xlo = amrex::bdryNode(dom_xz, Orientation(0, Orientation::low));
+
+                for (MFIter mfi(edgeflux_x[1]); mfi.isValid(); ++mfi) {
+                    const Box& bx = mfi.fabbox();
+                    const Box& b = bx & dom_xz_xlo;
+                    Array4<Real> const& edgex_w = (edgeflux_x[1]).array(mfi);
+                    const Array4<const Real>& xflux_res = (faceflux_res[0]).array(mfi);
+                    if (b.ok()) {
+                        amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                        {
+                            edgex_w(i,j,k) = 0.5*(xflux_res(i,j,k,2) + xflux_res(i,j,k-1,2));
+                        });
+                    }
+                }
+            }
+        }
+
+        ///////////////////////////////////////////////////////////////////////////
+    
     }
 
     // Reservoir in HI X
     if (bc_mass_hi[0] == 4) {
+
+        /////////////// reset energy and mass fluxes ////////////////////////////
 
         // domain grown nodally based on faceflux_res[0] nodality (x)
         const Box& dom_x = amrex::convert(geom.Domain(), faceflux[0].ixType());
@@ -272,6 +444,60 @@ ResetReservoirFluxes(std::array<MultiFab, AMREX_SPACEDIM>& faceflux,
                 });
             }
         }
+
+        ///////////////////////////////////////////////////////////////////////////
+        
+        /////////////// reset tangential momentum fluxes //////////////////////////
+        
+        if (do_1D) {
+        }
+        else { // works both for 2D and 3D
+
+            // domain grown nodally based on edgeflux_x[0] nodality (xy)
+            const Box& dom_xy = amrex::convert(geom.Domain(), edgeflux_x[0].ixType());
+
+            // this is the x-lo domain boundary box (xy nodality)
+            // Orientation(dir,Orientation)  -- Orientation can be ::low or ::high
+            const Box& dom_xy_xhi = amrex::bdryNode(dom_xy, Orientation(0, Orientation::high));
+
+            for (MFIter mfi(edgeflux_x[0]); mfi.isValid(); ++mfi) {
+                const Box& bx = mfi.fabbox();
+                const Box& b = bx & dom_xy_xhi;
+                Array4<Real> const& edgex_v = (edgeflux_x[0]).array(mfi);
+                const Array4<const Real>& xflux_res = (faceflux_res[0]).array(mfi);
+                if (b.ok()) {
+                    amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                    {
+                        edgex_v(i,j,k) = 0.5*(xflux_res(i,j,k,1) + xflux_res(i,j-1,k,1));
+                    });
+                }
+            }
+
+            if ((!do_1D) and (!do_2D)) { // z-momentum
+
+                // domain grown nodally based on edgeflux_x[1] nodality (xz)
+                const Box& dom_xz = amrex::convert(geom.Domain(), edgeflux_x[1].ixType());
+
+                // this is the x-lo domain boundary box (xz nodality)
+                // Orientation(dir,Orientation)  -- Orientation can be ::low or ::high
+                const Box& dom_xz_xhi = amrex::bdryNode(dom_xz, Orientation(0, Orientation::high));
+
+                for (MFIter mfi(edgeflux_x[1]); mfi.isValid(); ++mfi) {
+                    const Box& bx = mfi.fabbox();
+                    const Box& b = bx & dom_xz_xhi;
+                    Array4<Real> const& edgex_w = (edgeflux_x[1]).array(mfi);
+                    const Array4<const Real>& xflux_res = (faceflux_res[0]).array(mfi);
+                    if (b.ok()) {
+                        amrex::ParallelFor(b, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                        {
+                            edgex_w(i,j,k) = 0.5*(xflux_res(i,j,k,2) + xflux_res(i,j,k-1,2));
+                        });
+                    }
+                }
+            }
+        }
+
+        ///////////////////////////////////////////////////////////////////////////
     }
 
     // Reservoir in LO Y

@@ -27,31 +27,15 @@ void RK3stepStag(MultiFab& cu,
     MultiFab cup2(cu.boxArray(),cu.DistributionMap(),nvars,ngc);
     cup.setVal(0.0,0,nvars,ngc);
     cup2.setVal(0.0,0,nvars,ngc);
-    //cup.setVal(rho0,0,1,ngc);
-    //cup2.setVal(rho0,0,1,ngc);
     
     ////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Reservoir stuff
     std::array< MultiFab, AMREX_SPACEDIM > cumom_res; // MFab for storing momentum from reservoir update
     std::array< MultiFab, AMREX_SPACEDIM > faceflux_res; // MFab for storing fluxes (face-based) from reservoir update
-//    std::array< MultiFab, AMREX_SPACEDIM > faceflux_cont; // MFab for storing fluxes (face-based) from RK3 update
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         cumom_res[d].define(convert(cu.boxArray(),nodal_flag_dir[d]), cu.DistributionMap(), 1, 0);
         faceflux_res[d].define(convert(cu.boxArray(),nodal_flag_dir[d]), cu.DistributionMap(), nvars, 0);
-//        faceflux_cont[d].define(convert(cu.boxArray(),nodal_flag_dir[d]), cu.DistributionMap(), nvars, 0);
-//        faceflux_cont[d].setVal(0.0);
     }
-
-    // Store cons, prim, vel from the start of the RK3 step
-//    MultiFab cu0   (cu.boxArray(),cu.DistributionMap(),nvars,ngc);
-//    MultiFab::Copy(cu0, cu, 0, 0, nvars, ngc);
-//    MultiFab prim0 (cu.boxArray(),cu.DistributionMap(),nprimvars,ngc);
-//    MultiFab::Copy(prim0, prim, 0, 0, nprimvars, ngc);
-//    std::array< MultiFab, AMREX_SPACEDIM > vel0;
-//    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-//        vel0[d].define(convert(cu.boxArray(),nodal_flag_dir[d]), cu.DistributionMap(), 1, ngc);
-//        MultiFab::Copy(vel0[d], vel[d], 0, 0, 1, ngc);
-//    }
     // Reservoir stuff
     ////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -114,10 +98,6 @@ void RK3stepStag(MultiFab& cu,
                  stochface_A[1].define(stochface[1].boxArray(), stochface[1].DistributionMap(), nvars, 0);,
                  stochface_A[2].define(stochface[2].boxArray(), stochface[2].DistributionMap(), nvars, 0););
 
-//    AMREX_D_TERM(stochface_A[0].setVal(0.0);,
-//                 stochface_A[1].setVal(0.0);,
-//                 stochface_A[2].setVal(0.0););
-    
     std::array< MultiFab, 2 > stochedge_x_A; 
     std::array< MultiFab, 2 > stochedge_y_A; 
     std::array< MultiFab, 2 > stochedge_z_A; 
@@ -131,18 +111,10 @@ void RK3stepStag(MultiFab& cu,
     stochedge_z_A[0].define(stochedge_z[0].boxArray(), stochedge_z[0].DistributionMap(), 1, 0);
     stochedge_z_A[1].define(stochedge_z[1].boxArray(), stochedge_z[1].DistributionMap(), 1, 0);
 
-//    stochedge_x_A[0].setVal(0.0); stochedge_x_A[1].setVal(0.0);
-//    stochedge_y_A[0].setVal(0.0); stochedge_y_A[1].setVal(0.0);
-//    stochedge_z_A[0].setVal(0.0); stochedge_z_A[1].setVal(0.0);
-
     std::array< MultiFab, AMREX_SPACEDIM > stochcen_A;
     AMREX_D_TERM(stochcen_A[0].define(stochcen[0].boxArray(),stochcen[0].DistributionMap(),1,1);,
                  stochcen_A[1].define(stochcen[1].boxArray(),stochcen[1].DistributionMap(),1,1);,
                  stochcen_A[2].define(stochcen[2].boxArray(),stochcen[2].DistributionMap(),1,1););
-
-//    AMREX_D_TERM(stochcen_A[0].setVal(0.0);,
-//                 stochcen_A[1].setVal(0.0);,
-//                 stochcen_A[2].setVal(0.0););
 
     // field "B"
     std::array< MultiFab, AMREX_SPACEDIM > stochface_B;
@@ -150,10 +122,6 @@ void RK3stepStag(MultiFab& cu,
                  stochface_B[1].define(stochface[1].boxArray(), stochface[1].DistributionMap(), nvars, 0);,
                  stochface_B[2].define(stochface[2].boxArray(), stochface[2].DistributionMap(), nvars, 0););
 
-//    AMREX_D_TERM(stochface_B[0].setVal(0.0);,
-//                 stochface_B[1].setVal(0.0);,
-//                 stochface_B[2].setVal(0.0););
-    
     std::array< MultiFab, 2 > stochedge_x_B; 
     std::array< MultiFab, 2 > stochedge_y_B; 
     std::array< MultiFab, 2 > stochedge_z_B; 
@@ -167,18 +135,10 @@ void RK3stepStag(MultiFab& cu,
     stochedge_z_B[0].define(stochedge_z[0].boxArray(), stochedge_z[0].DistributionMap(), 1, 0);
     stochedge_z_B[1].define(stochedge_z[1].boxArray(), stochedge_z[1].DistributionMap(), 1, 0);
 
-//    stochedge_x_B[0].setVal(0.0); stochedge_x_B[1].setVal(0.0);
-//    stochedge_y_B[0].setVal(0.0); stochedge_y_B[1].setVal(0.0);
-//    stochedge_z_B[0].setVal(0.0); stochedge_z_B[1].setVal(0.0);
-
     std::array< MultiFab, AMREX_SPACEDIM > stochcen_B;
     AMREX_D_TERM(stochcen_B[0].define(stochcen[0].boxArray(),stochcen[0].DistributionMap(),1,1);,
                  stochcen_B[1].define(stochcen[1].boxArray(),stochcen[1].DistributionMap(),1,1);,
                  stochcen_B[2].define(stochcen[2].boxArray(),stochcen[2].DistributionMap(),1,1););
-
-//    AMREX_D_TERM(stochcen_B[0].setVal(0.0);,
-//                 stochcen_B[1].setVal(0.0);,
-//                 stochcen_B[2].setVal(0.0););
 
     // chemistry
     MultiFab ranchem_A;
@@ -187,8 +147,6 @@ void RK3stepStag(MultiFab& cu,
         ranchem_A.define(ranchem.boxArray(), ranchem.DistributionMap(), nreaction, 0);
         ranchem_B.define(ranchem.boxArray(), ranchem.DistributionMap(), nreaction, 0);
     }
-
-
 
     // fill random numbers (can skip density component 0)
     if (do_1D) { // 1D need only for x- face 
@@ -258,19 +216,6 @@ void RK3stepStag(MultiFab& cu,
     // Set stochastic weights
     swgt2 = ( 2.0*std::sqrt(2.0) + 1.0*std::sqrt(3.0) ) / 5.0;
     stoch_weights = {swgt1, swgt2};
-
-    // apply weights (only energy and ns-1 species)
-//    AMREX_D_TERM(stochface[0].setVal(0.0);,
-//                 stochface[1].setVal(0.0);,
-//                 stochface[2].setVal(0.0););
-//
-//    stochedge_x[0].setVal(0.0); stochedge_x[1].setVal(0.0);
-//    stochedge_y[0].setVal(0.0); stochedge_y[1].setVal(0.0);
-//    stochedge_z[0].setVal(0.0); stochedge_z[1].setVal(0.0);
-//
-//    AMREX_D_TERM(stochcen[0].setVal(0.0);,
-//                 stochcen[1].setVal(0.0);,
-//                 stochcen[2].setVal(0.0););
 
     // fill stochastic face fluxes
     if (do_1D) { // 1D need only for x- face
@@ -372,8 +317,13 @@ void RK3stepStag(MultiFab& cu,
     // add to the total continuum fluxes based on RK3 weight
     Real aux1 = ParallelDescriptor::second();
     if (do_reservoir) {
-        ComputeFluxMomReservoir(cu,prim,vel,cumom_res,faceflux_res,geom,dt); // compute fluxes and momentum from reservoir particle update
-        ResetReservoirFluxes(faceflux, faceflux_res, geom); // reset fluxes in the FHD-reservoir interface from particle update
+        ComputeFluxMomReservoir(cu,prim,vel,cumom_res,
+                                faceflux_res,geom,dt); // compute fluxes and momentum from reservoir particle update
+        ResetReservoirFluxes(faceflux_res, faceflux,
+                             edgeflux_x,
+                             edgeflux_y,
+                             edgeflux_z,
+                             geom); // reset fluxes in the FHD-reservoir interface from particle update
     }
     Real aux2 = ParallelDescriptor::second() - aux1;
     ParallelDescriptor::ReduceRealMax(aux2,  ParallelDescriptor::IOProcessorNumber());
@@ -514,19 +464,6 @@ void RK3stepStag(MultiFab& cu,
     swgt2 = ( -4.0*std::sqrt(2.0) + 3.0*std::sqrt(3.0) ) / 5.0;
     stoch_weights = {swgt1, swgt2};
 
-    // apply weights (only energy and ns-1 species)
-//    AMREX_D_TERM(stochface[0].setVal(0.0);,
-//                 stochface[1].setVal(0.0);,
-//                 stochface[2].setVal(0.0););
-//
-//    stochedge_x[0].setVal(0.0); stochedge_x[1].setVal(0.0);
-//    stochedge_y[0].setVal(0.0); stochedge_y[1].setVal(0.0);
-//    stochedge_z[0].setVal(0.0); stochedge_z[1].setVal(0.0);
-//
-//    AMREX_D_TERM(stochcen[0].setVal(0.0);,
-//                 stochcen[1].setVal(0.0);,
-//                 stochcen[2].setVal(0.0););
-
     // fill stochastic face fluxes
     if (do_1D) { // 1D need only for x- face
 	    MultiFab::LinComb(stochface[0], 
@@ -625,8 +562,14 @@ void RK3stepStag(MultiFab& cu,
     // add to the total continuum fluxes based on RK3 weight
     Real aux3 = ParallelDescriptor::second();
     if (do_reservoir) {
-        ComputeFluxMomReservoir(cup,prim,vel,cumom_res,faceflux_res,geom,0.25*dt); // compute fluxes and momentum from reservoir particle update
-        ResetReservoirFluxes(faceflux, faceflux_res, geom); // reset fluxes in the FHD-reservoir interface from particle update
+        ComputeFluxMomReservoir(cup,prim,vel,cumom_res,
+                                faceflux_res,
+                                geom,0.25*dt); // compute fluxes and momentum from reservoir particle update
+        ResetReservoirFluxes(faceflux_res, faceflux,
+                             edgeflux_x,
+                             edgeflux_y,
+                             edgeflux_z,
+                             geom); // reset fluxes in the FHD-reservoir interface from particle update
     }
     Real aux4 = ParallelDescriptor::second() - aux3;
     ParallelDescriptor::ReduceRealMax(aux4,  ParallelDescriptor::IOProcessorNumber());
@@ -773,19 +716,6 @@ void RK3stepStag(MultiFab& cu,
     swgt2 = ( 1.0*std::sqrt(2.0) - 2.0*std::sqrt(3.0) ) / 10.0;
     stoch_weights = {swgt1, swgt2};
 
-    // apply weights (only energy and ns-1 species)
-//    AMREX_D_TERM(stochface[0].setVal(0.0);,
-//                 stochface[1].setVal(0.0);,
-//                 stochface[2].setVal(0.0););
-//
-//    stochedge_x[0].setVal(0.0); stochedge_x[1].setVal(0.0);
-//    stochedge_y[0].setVal(0.0); stochedge_y[1].setVal(0.0);
-//    stochedge_z[0].setVal(0.0); stochedge_z[1].setVal(0.0);
-//
-//    AMREX_D_TERM(stochcen[0].setVal(0.0);,
-//                 stochcen[1].setVal(0.0);,
-//                 stochcen[2].setVal(0.0););
-
     // fill stochastic face fluxes
     if (do_1D) { // 1D need only for x- face
 	    MultiFab::LinComb(stochface[0], 
@@ -884,8 +814,14 @@ void RK3stepStag(MultiFab& cu,
     // add to the total continuum fluxes based on RK3 weight
     Real aux5 = ParallelDescriptor::second();
     if (do_reservoir) {
-        ComputeFluxMomReservoir(cup2,prim,vel,cumom_res,faceflux_res,geom,(2.0/3.0)*dt); // compute fluxes and momentum from reservoir particle update
-        ResetReservoirFluxes(faceflux, faceflux_res, geom); // reset fluxes in the FHD-reservoir interface from particle update
+        ComputeFluxMomReservoir(cup2,prim,vel,cumom_res,
+                                faceflux_res,
+                                geom,(2.0/3.0)*dt); // compute fluxes and momentum from reservoir particle update
+        ResetReservoirFluxes(faceflux_res, faceflux,
+                             edgeflux_x,
+                             edgeflux_y,
+                             edgeflux_z,
+                             geom); // reset fluxes in the FHD-reservoir interface from particle update
     }
     Real aux6 = ParallelDescriptor::second() - aux5;
     ParallelDescriptor::ReduceRealMax(aux6,  ParallelDescriptor::IOProcessorNumber());
@@ -998,23 +934,6 @@ void RK3stepStag(MultiFab& cu,
     if (do_reservoir) {
         ResetReservoirMom(cumom, cumom_res, geom); // set momentum at the reservoir interface to its value from particle update
     }
-    
-//    /////////////////////////////////////////////////////
-//    // compute fluxes and momentum at the reservoir /////
-//    // over an intergration step dt /////////////////////
-//    // timer
-//    Real aux1 = ParallelDescriptor::second();
-//    if (do_reservoir) {
-//        ComputeFluxMomReservoir(cu0,prim0,vel0,cumom_res,faceflux_res,geom,dt); // compute fluxes and momentum from reservoir particle update
-//        ResetReservoirMom(cumom, cumom_res, geom); // set momentum at the reservoir interface to its value from particle update
-//        ReFluxCons(cu, cu0, faceflux_res, faceflux_cont, geom, dt); // reflux the conservative qtys in the adjacent cell from reservoir flux
-//    }
-//    Real aux2 = ParallelDescriptor::second() - aux1;
-//    ParallelDescriptor::ReduceRealMax(aux2,  ParallelDescriptor::IOProcessorNumber());
-//    if (step%1 == 0) {
-//        amrex::Print() << "Step: " << step << " Reservoir generator time: " << aux2 << " seconds\n";
-//    }
-//    /////////////////////////////////////////////////////
     
     // Fill  boundaries for conserved variables
     for (int d=0; d<AMREX_SPACEDIM; d++) {

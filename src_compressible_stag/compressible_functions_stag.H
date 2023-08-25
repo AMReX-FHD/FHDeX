@@ -138,9 +138,12 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
                         const amrex::Geometry& geom,
                         const amrex::Real dt);
 
-void 
-ResetReservoirFluxes(std::array<MultiFab, AMREX_SPACEDIM>& faceflux,
-                     const std::array<MultiFab, AMREX_SPACEDIM>& faceflux_res,
+void
+ResetReservoirFluxes(const std::array<MultiFab, AMREX_SPACEDIM>& faceflux_res,
+                     std::array<MultiFab, AMREX_SPACEDIM>& faceflux,
+                     std::array< MultiFab, 2 >& edgeflux_x,
+                     std::array< MultiFab, 2 >& edgeflux_y,
+                     std::array< MultiFab, 2 >& edgeflux_z,
                      const amrex::Geometry& geom);
 
 void 
