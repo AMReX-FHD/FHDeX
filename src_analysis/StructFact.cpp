@@ -357,7 +357,7 @@ void StructFact::ComputeFFT(const MultiFab& variables,
 #ifdef AMREX_USE_CUDA
     // Print() << "Using cuFFT\n";
 #elif AMREX_USE_HIP
-    amrex::AllPrint() << "Using rocFFT\n";
+    // Print() << "Using rocFFT\n";
 #else
     // Print() << "Using FFTW\n";
 #endif
@@ -567,8 +567,8 @@ void StructFact::ComputeFFT(const MultiFab& variables,
                                               reinterpret_cast<FFTcomplex*>
                                                   (spectral_field[i]->dataPtr()));
             if (result != CUFFT_SUCCESS) {
-	            amrex::AllPrint() << " forward transform using cufftExec failed! Error: "
-				<< cufftErrorToString(result) << "\n";
+                amrex::AllPrint() << " forward transform using cufftExec failed! Error: "
+                                  << cufftErrorToString(result) << "\n";
 	    }
 #elif AMREX_USE_HIP
             rocfft_execution_info execinfo = nullptr;
