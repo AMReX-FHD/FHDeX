@@ -1,4 +1,4 @@
-#ifndef _StructFact_H
+#ifndef _StructFact_H_
 #define _StructFact_H_
 
 #include <AMReX.H>
@@ -7,9 +7,10 @@
 #include <AMReX_VisMF.H>
 
 // These are for FFTW / cuFFT / rocFFT
-#ifdef defined(AMREX_USE_CUDA)
+
+#ifdef AMREX_USE_CUDA
 #include <cufft.h>
-#elif defined(AMREX_USE_HIP)
+#elif AMREX_USE_HIP
 #  if __has_include(<rocfft/rocfft.h>)  // ROCm 5.3+
 #    include <rocfft/rocfft.h>
 #  else
@@ -19,6 +20,7 @@
 #include <fftw3.h>
 #include <fftw3-mpi.h>
 #endif
+
 #include <AMReX_GpuComplex.H>
 
 #include <string>

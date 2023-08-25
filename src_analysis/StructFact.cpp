@@ -349,16 +349,17 @@ void StructFact::Reset() {
 void StructFact::ComputeFFT(const MultiFab& variables,
 			    MultiFab& variables_dft_real, 
 			    MultiFab& variables_dft_imag,
-			    const Geometry& geom) {
+			    const Geometry& geom) 
+{
 
     BL_PROFILE_VAR("StructFact::ComputeFFT()", ComputeFFT);
 
 #ifdef AMREX_USE_CUDA
-    //Print() << "Using cuFFT\n";
-#ifdef AMREX_USE_HIP
-    Print() << "Using rocFFT\n";
+    // Print() << "Using cuFFT\n";
+#elif AMREX_USE_HIP
+    amrex::AllPrint() << "Using rocFFT\n";
 #else
-    //Print() << "Using FFTW\n";
+    // Print() << "Using FFTW\n";
 #endif
 
     bool is_flattened = false;
@@ -487,13 +488,13 @@ void StructFact::ComputeFFT(const MultiFab& variables,
 #elif AMREX_USE_HIP // HIP
                 if (is_flattened) {
 #if (AMREX_SPACEDIM == 2)
-                    const std::size_t lengths[] = {fft_size[0]};
+                    const std::size_t lengths[] = {std::size_t(fft_size[0])};
                     rocfft_status result = rocfft_plan_create(&fplan, rocfft_placement_notinplace, 
                                                               rocfft_transform_type_real_forward, rocfft_precision_double,
                                                               1, lengths, 1, nullptr);
                     assert_rocfft_status("rocfft_plan_create", result);
 #elif (AMREX_SPACEDIM == 3)
-                    const std::size_t lengths[] = {fft_size[0],fft_size[1]};
+                    const std::size_t lengths[] = {std::size_t(fft_size[0]),std::size_t(fft_size[1])};
                     rocfft_status result = rocfft_plan_create(&fplan, rocfft_placement_notinplace, 
                                                               rocfft_transform_type_real_forward, rocfft_precision_double,
                                                               2, lengths, 1, nullptr);
@@ -501,13 +502,13 @@ void StructFact::ComputeFFT(const MultiFab& variables,
 #endif
                 } else {
 #if (AMREX_SPACEDIM == 2)
-                    const std::size_t lengths[] = {fft_size[0],fft_size[1]};
+                    const std::size_t lengths[] = {std::size_t(fft_size[0]),std::size_t(fft_size[1])};
                     rocfft_status result = rocfft_plan_create(&fplan, rocfft_placement_notinplace, 
                                                               rocfft_transform_type_real_forward, rocfft_precision_double,
                                                               2, lengths, 1, nullptr);
                     assert_rocfft_status("rocfft_plan_create", result);
 #elif (AMREX_SPACEDIM == 3)
-                    const std::size_t lengths[] = {fft_size[0],fft_size[1],fft_size[2]};
+                    const std::size_t lengths[] = {std::size_t(fft_size[0]),std::size_t(fft_size[1]),std::size_t(fft_size[2])};
                     rocfft_status result = rocfft_plan_create(&fplan, rocfft_placement_notinplace, 
                                                               rocfft_transform_type_real_forward, rocfft_precision_double,
                                                               3, lengths, 1, nullptr);
@@ -575,7 +576,7 @@ void StructFact::ComputeFFT(const MultiFab& variables,
             assert_rocfft_status("rocfft_execution_info_create", result);
 
             std::size_t buffersize = 0;
-            result = rocfft_plan_get_work_buffer_size(fft_plan.m_plan, &buffersize);
+            result = rocfft_plan_get_work_buffer_size(forward_plan[i], &buffersize);
             assert_rocfft_status("rocfft_plan_get_work_buffer_size", result);
 
             void* buffer = amrex::The_Arena()->alloc(buffersize);
@@ -585,9 +586,15 @@ void StructFact::ComputeFFT(const MultiFab& variables,
             result = rocfft_execution_info_set_stream(execinfo, amrex::Gpu::gpuStream());
             assert_rocfft_status("rocfft_execution_info_set_stream", result);
 
+            //result = rocfft_execute(forward_plan[i],
+            //                        (void**)&(variables_onegrid[mfi].dataPtr()), // in
+            //                        (void**)&(reinterpret_cast<FFTcomplex*>(spectral_field[i]->dataPtr())), // out
+            //                        execinfo);
+	    amrex::Real* variables_onegrid_ptr = variables_onegrid[mfi].dataPtr();
+	    FFTcomplex* spectral_field_ptr = reinterpret_cast<FFTcomplex*>(spectral_field[i]->dataPtr());
             result = rocfft_execute(forward_plan[i],
-                                    (void**)&(variables_onegrid[mfi].dataPtr()), // in
-                                    (void**)&(reinterpret_cast<FFTcomplex*>(spectral_field[i]->dataPtr())), // out
+                                    (void**) &variables_onegrid_ptr, // in
+                                    (void**) &spectral_field_ptr, // out
                                     execinfo);
             assert_rocfft_status("rocfft_execute", result);
             amrex::Gpu::streamSynchronize();
