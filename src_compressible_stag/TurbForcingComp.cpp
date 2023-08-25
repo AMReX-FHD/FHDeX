@@ -35,6 +35,8 @@ void TurbForcingComp::define(BoxArray ba_in, DistributionMapping dmap_in,
 }
 
 void TurbForcingComp::Initialize(const Geometry& geom_in) {
+    
+    BL_PROFILE_VAR("TurbForcingComp::Initialize()",TurbForcingCompInitialize);
 
     Real L = prob_hi[0] - prob_lo[0];
 
@@ -139,6 +141,8 @@ void TurbForcingComp::CalcTurbForcingComp(std::array< MultiFab, AMREX_SPACEDIM >
                                  const int& update)
 {
 
+    BL_PROFILE_VAR("TurbForcingComp::CalcTurbForcingComp()",TurbForcingCompCalcTurbForcingComp);
+
     Real sqrtdt = std::sqrt(dt);
     
     // update U = U - a*dt + b*sqrt(dt)*Z
@@ -177,11 +181,11 @@ void TurbForcingComp::CalcTurbForcingComp(std::array< MultiFab, AMREX_SPACEDIM >
     Gpu::DeviceVector<int> Kx_gpu(132);
     Gpu::DeviceVector<int> Ky_gpu(132);
     Gpu::DeviceVector<int> Kz_gpu(132);
+    Gpu::DeviceVector<Real> forcing_S_gpu(132);
+    Gpu::DeviceVector<Real> forcing_C_gpu(132);
     Gpu::copyAsync(Gpu::hostToDevice, KX.begin(), KX.end(), Kx_gpu.begin());
     Gpu::copyAsync(Gpu::hostToDevice, KY.begin(), KY.end(), Ky_gpu.begin());
     Gpu::copyAsync(Gpu::hostToDevice, KZ.begin(), KZ.end(), Kz_gpu.begin());
-    Gpu::DeviceVector<Real> forcing_S_gpu(132);
-    Gpu::DeviceVector<Real> forcing_C_gpu(132);
     Gpu::copyAsync(Gpu::hostToDevice, ForcingS.begin(), ForcingS.end(), forcing_S_gpu.begin());
     Gpu::copyAsync(Gpu::hostToDevice, ForcingC.begin(), ForcingC.end(), forcing_C_gpu.begin());
     Gpu::Device::streamSynchronize();
@@ -273,6 +277,8 @@ void TurbForcingComp::CalcTurbForcingComp(std::array< MultiFab, AMREX_SPACEDIM >
 
 std::tuple<amrex::Real, Real> TurbForcingComp::getU(const int& i) {
     
+    BL_PROFILE_VAR("TurbForcingComp::getU()",TurbForcingCompgetU);
+
     Real fs = ForcingS[i];
     Real fc = ForcingC[i];
     
@@ -281,6 +287,8 @@ std::tuple<amrex::Real, Real> TurbForcingComp::getU(const int& i) {
 
 void TurbForcingComp::setU(const int& i, Real fs, Real fc) {
     
+    BL_PROFILE_VAR("TurbForcingComp::setU()",TurbForcingCompsetU);
+
     ForcingS[i] = fs;
     ForcingC[i] = fc;
 }
