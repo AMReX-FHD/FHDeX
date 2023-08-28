@@ -37,6 +37,7 @@ void main_driver(const char* argv)
 
     std::string inputs_file = argv;
 
+    amrex::AllPrint() << "Compiled with support for maximum species = " << MAX_SPECIES << "\n";
     
     // copy contents of F90 modules to C++ namespaces
     InitializeCommonNamespace();

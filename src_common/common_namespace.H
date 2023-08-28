@@ -1,7 +1,7 @@
 namespace common {
 
 //////////////
-#define MAX_SPECIES 8
+// #define MAX_SPECIES 8
 #define ADJ 0.99999
 #define ADJALT 0.00002
 #define WRITE_BUFFER 1000

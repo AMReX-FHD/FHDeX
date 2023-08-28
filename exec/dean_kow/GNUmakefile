@@ -6,6 +6,7 @@ USE_MPI   = TRUE
 USE_OMP   = FALSE
 COMP      = gcc
 DIM       = 2
+MAX_SPEC      = 8
 
 USE_CUDA  = FALSE
 USE_HIP   = FALSE
@@ -33,3 +34,6 @@ INCLUDE_LOCATIONS += ../../src_common/
 include $(AMREX_HOME)/Src/Base/Make.package
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.rules
+
+MAXSPECIES := $(strip $(MAX_SPEC))
+DEFINES += -DMAX_SPECIES=$(MAXSPECIES)

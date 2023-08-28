@@ -1146,7 +1146,7 @@ void InitializeCommonNamespace() {
     pp.query("turbForcing",turbForcing);
 
     if (nspecies > MAX_SPECIES) {
-        Abort("InitializeCommonNamespace: nspecies > MAX_SPECIES");
+        Abort("InitializeCommonNamespace: nspecies > MAX_SPECIES; re-compile with a larger MAX_SPEC as a compiler input");
     }
 
     if (wallspeed_x_lo[0] != 0.) {

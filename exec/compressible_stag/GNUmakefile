@@ -10,6 +10,7 @@ USE_HIP       = FALSE
 COMP          = gnu
 DIM           = 3
 TINY_PROFILE  = FALSE
+MAX_SPEC      = 8
 
 USE_PARTICLES = FALSE
 DO_TURB 	  = FALSE
@@ -71,3 +72,5 @@ ifeq ($(DO_TURB), TRUE)
   DEFINES += -DTURB
 endif
 
+MAXSPECIES := $(strip $(MAX_SPEC))
+DEFINES += -DMAX_SPECIES=$(MAXSPECIES)
