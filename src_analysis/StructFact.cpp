@@ -1066,6 +1066,116 @@ void StructFact::IntegratekShells(const int& step, const Geometry& /*geom*/) {
     }
 }
 
+// integrate cov_mag over k shells for miscellaneous qtys (after energy spectrum)
+void StructFact::IntegratekShellsMisc(const int& step, const Geometry& /*geom*/) {
+
+    BL_PROFILE_VAR("StructFact::IntegratekShellsMisc",IntegratekShellsMisc);
+
+    int turbvars = NVAR - AMREX_SPACEDIM;
+
+    GpuArray<int,AMREX_SPACEDIM> center;
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        center[d] = n_cells[d]/2;
+    }
+
+    int npts = n_cells[0]/2-1;
+
+    Gpu::DeviceVector<Real> phisum_device(npts);
+    Gpu::DeviceVector<int>  phicnt_device(npts);
+
+    Gpu::HostVector<Real> phisum_host(npts);
+    
+    Real* phisum_ptr = phisum_device.dataPtr();  // pointer to data
+    int*  phicnt_ptr = phicnt_device.dataPtr();  // pointer to data
+
+    for (int var_ind = 0; var_ind < turbvars; var_ind++) {
+
+        amrex::ParallelFor(npts, [=] AMREX_GPU_DEVICE (int d) noexcept
+        {
+          phisum_ptr[d] = 0.;
+          phicnt_ptr[d] = 0;
+        });
+        
+        // only consider cells that are within 15k of the center point
+        
+        for ( MFIter mfi(cov_mag,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
+            
+            const Box& bx = mfi.tilebox();
+
+            const Array4<Real> & cov = cov_mag.array(mfi);
+
+            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                int ilen = amrex::Math::abs(i-center[0]);
+                int jlen = amrex::Math::abs(j-center[1]);
+                int klen = (AMREX_SPACEDIM == 3) ? amrex::Math::abs(k-center[2]) : 0;
+
+                Real dist = (ilen*ilen + jlen*jlen + klen*klen);
+                dist = std::sqrt(dist);
+                
+                if ( dist <= center[0]-0.5) {
+                    dist = dist+0.5;
+                    int cell = int(dist);
+                    amrex::HostDevice::Atomic::Add(&(phisum_ptr[cell]), cov(i,j,k,AMREX_SPACEDIM+var_ind));
+                    amrex::HostDevice::Atomic::Add(&(phicnt_ptr[cell]),1);
+                }
+            });
+        }
+            
+        for (int d=1; d<npts; ++d) {
+            ParallelDescriptor::ReduceRealSum(phisum_device[d]);
+            ParallelDescriptor::ReduceIntSum(phicnt_device[d]);
+        }
+            
+        Real dk = 1.;
+    
+#if (AMREX_SPACEDIM == 2)
+#if 0
+        for (int d=1; d<npts; ++d) {
+          //  phisum_vect[d] *= 2.*M_PI*d*dk*dk/phicnt_vect[d];
+            phisum_vect[d] *= 2.*M_PI*(d*dk+.5*dk*dk)/phicnt_vect[d];
+        }
+#endif
+        amrex::ParallelFor(npts, [=] AMREX_GPU_DEVICE (int d) noexcept
+        {
+          if (d != 0) {
+          // phisum_ptr[d] *= 2.*M_PI*d*dk*dk/phicnt_ptr[d];
+          phisum_ptr[d] *= 2.*M_PI*(d*dk+.5*dk*dk)/phicnt_ptr[d];
+          }
+        });
+#else
+#if 0
+        for (int d=1; d<npts; ++d) {
+          //  phisum_vect[d] *= 4.*M_PI*(d*d)*dk*dk*dk/phicnt_vect[d];
+          //  phisum_vect[d] *= 4.*M_PI*(d*d*dk+d*dk*dk+dk*dk*dk/3.)/phicnt_vect[d];
+            phisum_vect[d] *= 4.*M_PI*(d*d*dk+dk*dk*dk/12.)/phicnt_vect[d];
+        }
+#endif
+        amrex::ParallelFor(npts, [=] AMREX_GPU_DEVICE (int d) noexcept
+        {
+            if (d != 0) {
+            // phisum_ptr[d] *= 4.*M_PI*(d*d)*dk*dk*dk/phicnt_ptr[d];
+            // phisum_ptr[d] *= 4.*M_PI*(d*d*dk+d*dk*dk+dk*dk*dk/3.)/phicnt_ptr[d];
+            phisum_ptr[d] *= 4.*M_PI*(d*d*dk+dk*dk*dk/12.)/phicnt_ptr[d];
+            }
+        });
+#endif
+        Gpu::copy(Gpu::deviceToHost, phisum_device.begin(), phisum_device.end(), phisum_host.begin());
+        
+        if (ParallelDescriptor::IOProcessor()) {
+            std::ofstream turb;
+            std::string turbBaseName = "turb"+cov_names[AMREX_SPACEDIM+var_ind];
+            std::string turbName = Concatenate(turbBaseName,step,7);
+            turbName += ".txt";
+            
+            turb.open(turbName);
+            for (int d=1; d<npts; ++d) {
+                turb << d << " " << phisum_host[d] << std::endl;
+            }
+        }
+    }
+}
+
 void StructFact::AddToExternal(MultiFab& x_mag, MultiFab& x_realimag, const Geometry& geom, const int& zero_avg) {
 
     BL_PROFILE_VAR("StructFact::AddToExternal",AddToExternal);
