@@ -10,6 +10,8 @@ COMP      = gnu
 DIM       = 2
 DSMC      = FALSE
 MAX_SPEC      = 8
+# MAX_ELEM needs to be MAX_SPEC*(MAX_SPEC-1)/2
+MAX_ELEM      = 28
 
 TINY_PROFILE = TRUE
 USE_PARTICLES = FALSE
@@ -63,4 +65,7 @@ endif
 
 MAXSPECIES := $(strip $(MAX_SPEC))
 DEFINES += -DMAX_SPECIES=$(MAXSPECIES)
+
+MAXELEMENT := $(strip $(MAX_ELEM))
+DEFINES += -DMAX_ELEMENT=$(MAXELEMENT)
 
