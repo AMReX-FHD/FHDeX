@@ -1,11 +1,9 @@
 namespace common {
 
 //////////////
-#define MAX_SPECIES 8
 #define ADJ 0.99999
 #define ADJALT 0.00002
 #define WRITE_BUFFER 1000
-#define MAX_ELEMENT 28 // needs to be MAX_SPECIES*(MAX_SPECIES-1)/2
 #define MAX_BONDS 12
 //////////////
     
@@ -74,6 +72,7 @@ namespace common {
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> molmass;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> rhobar;
     extern AMREX_GPU_MANAGED amrex::Real rho0;
+    extern AMREX_GPU_MANAGED amrex::Real mach0; // initial mach number
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> diameter;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> dof;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> e0;
@@ -325,8 +324,11 @@ namespace common {
     extern int                        particle_motion;
 
     // parameters for turbulent forcing example
-    extern amrex::Real                turb_a;
-    extern amrex::Real                turb_b;
-    extern int                        turbForcing;
+    extern AMREX_GPU_MANAGED amrex::Real turb_a;
+    extern AMREX_GPU_MANAGED amrex::Real turb_b;
+    extern AMREX_GPU_MANAGED amrex::Real turb_c;
+    extern AMREX_GPU_MANAGED amrex::Real turb_d;
+    extern AMREX_GPU_MANAGED amrex::Real turb_alpha;
+    extern AMREX_GPU_MANAGED int         turbForcing;
 
 }

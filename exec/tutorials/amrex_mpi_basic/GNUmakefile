@@ -17,6 +17,7 @@ USE_CUDA  = FALSE
 COMP      = gnu
 DIM       = 3
 DSMC      = TRUE
+MAX_SPEC      = 8
 
 TINY_PROFILE = TRUE
 USE_PARTICLES = TRUE
@@ -67,3 +68,7 @@ include $(AMREX_HOME)/Tools/GNUMake/Make.rules
 ifeq ($(findstring cgpu, $(HOST)), cgpu)
   CXXFLAGS += $(FFTW)
 endif
+
+MAXSPECIES := $(strip $(MAX_SPEC))
+DEFINES += -DMAX_SPECIES=$(MAXSPECIES)
+
