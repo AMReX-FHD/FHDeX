@@ -853,7 +853,7 @@ void main_driver(const char* argv)
     // Set beta_es equal to permittivity
     std::array< MultiFab, AMREX_SPACEDIM > beta_es;
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        beta_es[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 0);
+        beta_es[d].define(convert(bp,nodal_flag_dir[d]), dmap, 1, 0);
         beta_es[d].setVal(permittivity);
     }
 
@@ -893,35 +893,35 @@ void main_driver(const char* argv)
             {
                 auto search = permittivity_map.find(IntVect(i,j,k));
                 if (search != permittivity_map.end()) {
-		    if (d==0 && (i-1>=domain.smallEnd(0) && permittivity_map.find(IntVect(i-1,j,k))==permittivity_map.end())) {
+		    if (d==0 && (i-1>=domainP.smallEnd(0) && permittivity_map.find(IntVect(i-1,j,k))==permittivity_map.end())) {
 		        //h_data(i,j,k) = 2.0/(1.0/search->second+1.0/permittivity);
 		        h_data(i,j,k) = (search->second+permittivity)/2.0;
-		    } else if (d==1 && (j-1>=domain.smallEnd(1) && permittivity_map.find(IntVect(i,j-1,k))==permittivity_map.end())) {
+		    } else if (d==1 && (j-1>=domainP.smallEnd(1) && permittivity_map.find(IntVect(i,j-1,k))==permittivity_map.end())) {
 		        //h_data(i,j,k) = 2.0/(1.0/search->second+1.0/permittivity);
 			//Print() << "j in map: " << j << std::endl;
 		        h_data(i,j,k) = (search->second+permittivity)/2.0;
-		    } else if (d==2 && (k-1>=domain.smallEnd(2) && permittivity_map.find(IntVect(i,j,k-1))==permittivity_map.end())) {
+		    } else if (d==2 && (k-1>=domainP.smallEnd(2) && permittivity_map.find(IntVect(i,j,k-1))==permittivity_map.end())) {
 		        //h_data(i,j,k) = 2.0/(1.0/search->second+1.0/permittivity);
 		        h_data(i,j,k) = (search->second+permittivity)/2.0;
                     } else {
 		        h_data(i,j,k) = search->second;
 		    }
-		} else if (d==0 && i==domain.bigEnd(0)+1 && permittivity_map.find(IntVect(domain.smallEnd(0),j,k))!=permittivity_map.end()) {
-                    h_data(i,j,k) = permittivity_map.find(IntVect(domain.smallEnd(0),j,k))->second;
-                } else if (d==1 && j==domain.bigEnd(1)+1 && permittivity_map.find(IntVect(i,domain.smallEnd(1),k))!=permittivity_map.end()) {
-                    h_data(i,j,k) = permittivity_map.find(IntVect(i,domain.smallEnd(1),k))->second;
-                } else if (d==2 && k==domain.bigEnd(2)+1 && permittivity_map.find(IntVect(i,j,domain.smallEnd(2)))!=permittivity_map.end()) {
-                    h_data(i,j,k) = permittivity_map.find(IntVect(i,j,domain.smallEnd(2)))->second;
+		} else if (d==0 && i==domainP.bigEnd(0)+1 && permittivity_map.find(IntVect(domainP.smallEnd(0),j,k))!=permittivity_map.end()) {
+                    h_data(i,j,k) = permittivity_map.find(IntVect(domainP.smallEnd(0),j,k))->second;
+                } else if (d==1 && j==domainP.bigEnd(1)+1 && permittivity_map.find(IntVect(i,domainP.smallEnd(1),k))!=permittivity_map.end()) {
+                    h_data(i,j,k) = permittivity_map.find(IntVect(i,domainP.smallEnd(1),k))->second;
+                } else if (d==2 && k==domainP.bigEnd(2)+1 && permittivity_map.find(IntVect(i,j,domainP.smallEnd(2)))!=permittivity_map.end()) {
+                    h_data(i,j,k) = permittivity_map.find(IntVect(i,j,domainP.smallEnd(2)))->second;
 
-                } else if (d==0 && (i-1>=domain.smallEnd(0) && permittivity_map.find(IntVect(i-1,j,k))!=permittivity_map.end())) {
+                } else if (d==0 && (i-1>=domainP.smallEnd(0) && permittivity_map.find(IntVect(i-1,j,k))!=permittivity_map.end())) {
 		    //h_data(i,j,k) = 2.0/(1.0/permittivity_map.find(IntVect(i-1,j,k))->second+1.0/permittivity);
 		    h_data(i,j,k) = (permittivity_map.find(IntVect(i-1,j,k))->second+permittivity)/2.0;
-		} else if (d==1 && (j-1>=domain.smallEnd(1) && permittivity_map.find(IntVect(i,j-1,k))!=permittivity_map.end())) {
-		    //h_data(i,j,k) = 2.0/(1.0/permittivity_map.find(IntVect(i-1,j,k))->second+1.0/permittivity);
+		} else if (d==1 && (j-1>=domainP.smallEnd(1) && permittivity_map.find(IntVect(i,j-1,k))!=permittivity_map.end())) {
+		    //h_data(i,j,k) = 2.0/(1.0/permittivity_map.find(IntVect(i,j-1,k))->second+1.0/permittivity);
 		    //Print() << "j not in map: " << j << std::endl;
 		    h_data(i,j,k) = (permittivity_map.find(IntVect(i,j-1,k))->second+permittivity)/2.0;
-		} else if (d==2 && (k-1>=domain.smallEnd(2) && permittivity_map.find(IntVect(i,j,k-1))!=permittivity_map.end())) {
-		    //h_data(i,j,k) = 2.0/(1.0/permittivity_map.find(IntVect(i-1,j,k))->second+1.0/permittivity);
+		} else if (d==2 && (k-1>=domainP.smallEnd(2) && permittivity_map.find(IntVect(i,j,k-1))!=permittivity_map.end())) {
+		    //h_data(i,j,k) = 2.0/(1.0/permittivity_map.find(IntVect(i,j,k-1))->second+1.0/permittivity);
 		    h_data(i,j,k) = (permittivity_map.find(IntVect(i,j,k-1))->second+permittivity)/2.0;
 
 
