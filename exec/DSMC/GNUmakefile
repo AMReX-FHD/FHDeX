@@ -11,6 +11,7 @@ USE_OMP   = FALSE
 USE_CUDA  = FALSE
 COMP      = gnu
 DIM       = 3
+MAX_SPEC      = 8
 
 TINY_PROFILE  = FALSE
 USE_PARTICLES = TRUE
@@ -84,3 +85,6 @@ ifeq ($(USE_CUDA),TRUE)
 else
   LIBRARIES += -L$(FFTW_DIR) -lfftw3_mpi -lfftw3
 endif
+
+MAXSPECIES := $(strip $(MAX_SPEC))
+DEFINES += -DMAX_SPECIES=$(MAXSPECIES)

@@ -7,6 +7,7 @@
 
 #include "common_functions.H"
 #include "compressible_functions.H"
+#include "TurbForcingComp.H"
 
 using namespace amrex;
 using namespace compressible;
@@ -39,6 +40,11 @@ void WriteSpatialCross1D(const MultiFab& spatialCross    , int step, const Geome
 
 void WritePlotFilesSF_2D(const amrex::MultiFab& mag, const amrex::MultiFab& realimag, const amrex::Geometry& geom,
                          const int step, const Real time, const amrex::Vector< std::string >& names, std::string plotfile_base);
+
+void EvaluateWritePlotFileVelGrad(int step,
+                                  const amrex::Real time,
+                                  const amrex::Geometry& geom,
+                                  const std::array<MultiFab, AMREX_SPACEDIM>& vel);
 
 void conservedToPrimitiveStag(MultiFab& prim_in, std::array<MultiFab, AMREX_SPACEDIM>& velStag_in,
                               MultiFab& cons_in, const std::array<MultiFab, AMREX_SPACEDIM>& momStag_in);
@@ -96,7 +102,7 @@ void RK3stepStag(MultiFab& cu,
                  std::array< MultiFab, 2 >& edgeflux_z,
                  std::array< MultiFab, AMREX_SPACEDIM>& cenflux,
                  MultiFab& ranchem,
-                 const amrex::Geometry& geom, const amrex::Real dt, const int step);
+                 const amrex::Geometry& geom, const amrex::Real dt, const int step, TurbForcingComp& turbforce);
 
 void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMREX_SPACEDIM >& momStag_in, 
                        const MultiFab& prim_in, const std::array< MultiFab, AMREX_SPACEDIM >& velStag_in,
@@ -179,7 +185,8 @@ void WriteCheckPoint3D(int step,
                        const amrex::MultiFab& surfcov,
                        const amrex::MultiFab& surfcovMeans,
                        const amrex::MultiFab& surfcovVars,
-                       const Vector<Real>& spatialCross, int ncross);
+                       const Vector<Real>& spatialCross, int ncross,
+                       TurbForcingComp& turbforce);
 
 void ReadCheckPoint3D(int& step,
                       amrex::Real& time,
@@ -203,6 +210,7 @@ void ReadCheckPoint3D(int& step,
                       amrex::MultiFab& surfcovMeans,
                       amrex::MultiFab& surfcovVars,
                       Vector<Real>& spatialCross, int ncross,
+                      TurbForcingComp& turbforce,
                       BoxArray& ba, DistributionMapping& dmap);
 
 void WriteCheckPoint2D(int step,
@@ -404,5 +412,9 @@ void EvaluateSpatialCorrelations1D(MultiFab& spatialCross1D,
                                    const int nstats,
                                    const int ncross,
                                    const int star_index);
+
+void ComputeSoundSpeed(MultiFab& sound_speed_in, const MultiFab& prim_in);
+
+amrex::Real GetMaxAcousticCFL(const MultiFab& prim_in, const std::array<MultiFab, AMREX_SPACEDIM>& vel_in, const Real& dt, const Geometry& geom);
 
 #endif
