@@ -95,7 +95,11 @@ public:
     void Reset();
     
     void ComputeFFT(const amrex::MultiFab&, amrex::MultiFab&,
-                    amrex::MultiFab&, const amrex::Geometry&);
+                    amrex::MultiFab&, const amrex::Geometry&,
+                    bool unpack=true);
+    
+    void InverseFFT(amrex::MultiFab&, const amrex::MultiFab&,
+                    const amrex::MultiFab&, const amrex::Geometry&);
     
     void WritePlotFile(const int, const amrex::Real, const amrex::Geometry&, 
                        std::string, const int& zero_avg=1);

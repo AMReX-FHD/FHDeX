@@ -1,0 +1,5 @@
+prob_type = 6
+prob_lo = 0.0 0.0 0.0
+prob_hi = 1.0 1.0 1.0
+n_cells = 8 8 8
+max_grid_size = 64 64 64
