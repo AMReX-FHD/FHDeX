@@ -42,6 +42,9 @@ class StructFact {
     // Total number of states to average over, updated by FortStructure()
     int nsamples = 0;
 
+    // decompose velocity field
+    bool decompose = false;
+
     // Vector containing covariance scaling
     Vector< Real > scaling;
 
@@ -64,6 +67,12 @@ public:
 
     // Vector of MultiFabs containing final magnitude of covariances
     MultiFab cov_mag;
+
+    // MultiFabs of real/imag for solenoidal/dilatational
+    MultiFab vel_sol_real;
+    MultiFab vel_sol_imag;
+    MultiFab vel_dil_real;
+    MultiFab vel_dil_imag;
 
     StructFact();
 
@@ -89,8 +98,22 @@ public:
                 const amrex::Vector< int >&, const amrex::Vector< int >&,
                 const int& verbosity=0);
 
+    void defineDecomp(const amrex::BoxArray&, const amrex::DistributionMapping&, 
+                      const amrex::Vector< std::string >&,
+                      const amrex::Vector< amrex::Real >&,
+                      const amrex::Vector< int >&,
+                      const amrex::Vector< int >&,
+                      const amrex::Geometry&);
+
     void FortStructure(const amrex::MultiFab&, const amrex::Geometry&,
                        const int& reset=0);
+
+    void FortStructureDecomp(const amrex::MultiFab& vel, const amrex::Geometry& geom,
+                             const int& reset=0);
+
+    void DecomposeVelFourier(const amrex::MultiFab& vel_dft_real, 
+                             const amrex::MultiFab& vel_dft_imag, 
+                             const amrex::Geometry& geom);
 
     void Reset();
     
@@ -100,6 +123,8 @@ public:
     
     void InverseFFT(amrex::MultiFab&, const amrex::MultiFab&,
                     const amrex::MultiFab&, const amrex::Geometry&);
+
+    void GetDecompVel(amrex::MultiFab&, const amrex::Geometry&); 
     
     void WritePlotFile(const int, const amrex::Real, const amrex::Geometry&, 
                        std::string, const int& zero_avg=1);
@@ -112,9 +137,12 @@ public:
     void ShiftFFT(amrex::MultiFab&,  const Geometry& geom,
                   const int& zero_avg=1);
 
-    void IntegratekShells(const int& step, const amrex::Geometry& geom);
+    void IntegratekShells(const int& step, const amrex::Geometry& geom, const std::string& name="");
 
-    void IntegratekShellsMisc(const int& step, const amrex::Geometry& geom);
+    void IntegratekShellsScalar(const int& step, const amrex::Geometry& geom, const amrex::Vector< std::string >& names);
+
+    void IntegratekShellsDecomp(const int& step, const amrex::Geometry& geom, 
+                                const std::string& name_sol="vel_sol", const std::string& name_dil="vel_dil");
 
     void AddToExternal(amrex::MultiFab& x_mag, amrex::MultiFab& x_realimag, const amrex::Geometry&, const int& zero_avg=1);
 

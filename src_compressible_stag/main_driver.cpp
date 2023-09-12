@@ -302,7 +302,9 @@ void main_driver(const char* argv)
 
 #if defined(TURB)
     // Structure factor for compressible turbulence
-    StructFact turbStructFact;
+    StructFact turbStructFactVelTotal; // total velocity
+    StructFact turbStructFactVelDecomp; // decomposed velocity
+    StructFact turbStructFactScalar; // scalars 
 #endif
     
     Geometry geom_flat;
@@ -431,51 +433,41 @@ void main_driver(const char* argv)
         var_scaling_cons[d] = 1./(dx[0]*dx[1]*dx[2]);
     }
 
+#if defined(TURB)
     //////////////////////////////////////////////////////////////
     // structure factor variables names and scaling for turbulence
     // variables are velocities, density, pressure and temperature
     //////////////////////////////////////////////////////////////
-#if defined(TURB)
-    int structVarsTurb = AMREX_SPACEDIM+3;
-    
-    Vector< std::string > var_names_turb;
-    var_names_turb.resize(structVarsTurb);
-    
-    cnt = 0;
-
-    // velx, vely, velz
-    for (int d=0; d<AMREX_SPACEDIM; d++) {
-      x = "vel";
-      x += (120+d);
-      var_names_turb[cnt++] = x;
-    }
-    var_names_turb[cnt++] = "rho";
-    var_names_turb[cnt++] = "temp";
-    var_names_turb[cnt++] = "press";
-
-    MultiFab structFactMFTurb;
-
     // need to use dVol for scaling
     Real dVol = (AMREX_SPACEDIM==2) ? dx[0]*dx[1]*cell_depth : dx[0]*dx[1]*dx[2];
-    Real dProb = (AMREX_SPACEDIM==2) ? n_cells[0]*n_cells[1] : n_cells[0]*n_cells[1]*n_cells[2];
+    Real dVolinv = 1.0/dVol;
+    Real dProb = (AMREX_SPACEDIM==2) ? n_cells[0]*n_cells[1] : 
+                                       n_cells[0]*n_cells[1]*n_cells[2];
     dProb = 1./dProb;
     
-    Vector<Real> var_scaling_turb(structVarsTurb);
-    for (int d=0; d<var_scaling_turb.size(); ++d) {
-        var_scaling_turb[d] = 1./dVol;
+    MultiFab structFactMFTurbVel;
+    MultiFab structFactMFTurbScalar;
+    MultiFab vel_decomp;
+
+    Vector< std::string > var_names_turbVelTotal{"ux","uy","uz"};
+    Vector<Real> var_scaling_turbVelTotal(3, dVolinv);
+    amrex::Vector< int > s_pairA_turbVelTotal(3);
+    amrex::Vector< int > s_pairB_turbVelTotal(3);
+    for (int d=0; d<3; ++d) {
+        s_pairA_turbVelTotal[d] = d;
+        s_pairB_turbVelTotal[d] = d;
     }
-
-    // option to compute only specified pairs
-    amrex::Vector< int > s_pairA_turb(AMREX_SPACEDIM+3); // vx, vy, vz, rho, P , T
-    amrex::Vector< int > s_pairB_turb(AMREX_SPACEDIM+3); // vx, vy, vz, rho, P , T
-
-    // Select which variable pairs to include in structure factor:
-    for (int d=0; d<AMREX_SPACEDIM+3; ++d) {
-        s_pairA_turb[d] = d;
-        s_pairB_turb[d] = d;
-    }    
-
-    //////////////////////////////////////////////////////////////
+    
+    Vector<Real> var_scaling_turbVelDecomp(6, dVolinv);
+    
+    Vector< std::string > var_names_turbScalar{"rho","tenp","press"};
+    Vector<Real> var_scaling_turbScalar(3, dVolinv);
+    amrex::Vector< int > s_pairA_turbScalar(3);
+    amrex::Vector< int > s_pairB_turbScalar(3);
+    for (int d=0; d<3; ++d) {
+        s_pairA_turbScalar[d] = d;
+        s_pairB_turbScalar[d] = d;
+    }
 #endif
     
     // object for turbulence forcing
@@ -956,8 +948,20 @@ void main_driver(const char* argv)
     
 #if defined(TURB)
     if (turbForcing >= 1) {
-        structFactMFTurb.define(ba, dmap, structVarsTurb, 0);
-        turbStructFact.define(ba,dmap,var_names_turb,var_scaling_turb,s_pairA_turb,s_pairB_turb);
+        
+        structFactMFTurbVel.define(ba, dmap, 3, 0);
+        structFactMFTurbScalar.define(ba, dmap, 6, 0);
+        vel_decomp.define(ba, dmap, 6, 0);
+
+        turbStructFactVelTotal.define(ba,dmap,
+                var_names_turbVelTotal,var_scaling_turbVelTotal,
+                s_pairA_turbVelTotal,s_pairB_turbVelTotal);
+        turbStructFactScalar.define(ba,dmap,
+                var_names_turbScalar,var_scaling_turbScalar,
+                s_pairA_turbScalar,s_pairB_turbScalar);
+        turbStructFactVelDecomp.defineDecomp(ba,dmap,
+                var_names_turbVelTotal,var_scaling_turbVelDecomp,
+                s_pairA_turbVelTotal,s_pairB_turbVelTotal,geom);
     }
 #endif
 
@@ -1179,9 +1183,87 @@ void main_driver(const char* argv)
                            << "\n";
         }
 
+
+        // write a plotfile
+        bool writePlt = false;
+        if (plot_int > 0) {
+            if (n_steps_skip >= 0) { // for positive n_steps_skip, write out at plot_int
+                writePlt = (step%plot_int == 0);
+            }
+            else if (n_steps_skip < 0) { // for negative n_steps_skip, write out at plot_int-1
+                writePlt = ((step+1)%plot_int == 0);
+            }
+        }
+        
+        if (writePlt) {
+            //yzAverage(cuMeans, cuVars, primMeans, primVars, spatialCross,
+            //          cuMeansAv, cuVarsAv, primMeansAv, primVarsAv, spatialCrossAv);
+            WritePlotFileStag(step, time, geom, cu, cuMeans, cuVars, cumom, cumomMeans, cumomVars,
+                              prim, primMeans, primVars, vel, velMeans, velVars, coVars, surfcov, surfcovMeans, surfcovVars, eta, kappa);
+            
+#if defined(TURB)
+            if (turbForcing > 0) {
+                EvaluateWritePlotFileVelGrad(step, time, geom, vel);
+            }
+#endif
+
+            if (plot_cross) {
+                if (do_1D) {
+                    WriteSpatialCross1D(spatialCross1D, step, geom, ncross);
+                }
+                else if (do_2D) {
+                //    WriteSpatialCross2D(spatialCross2D, step, geom, ncross); // (do later)
+                }
+                else {
+                    WriteSpatialCross3D(spatialCross3D, step, geom, ncross);
+                    if (ParallelDescriptor::IOProcessor()) {
+                        outfile << step << " ";
+                        for (auto l=0; l<2*nvars+8+2*nspecies; ++l) {
+                            outfile << dataSliceMeans_xcross[l] << " ";
+                        }
+                        outfile << std::endl;
+                    }
+                }
+            }
+
+#if defined(TURB)
+            // compressible turbulence structure factor snapshot
+            if (turbForcing >= 1) {
+
+                // copy velocities into structFactMFTurb
+                for(int d=0; d<AMREX_SPACEDIM; d++) {
+                    ShiftFaceToCC(vel[d], 0, structFactMFTurbVel, d, 1);
+                }
+                MultiFab::Copy(structFactMFTurbScalar, prim, 0, 0, 1, 0);
+                MultiFab::Copy(structFactMFTurbScalar, prim, 4, 1, 1, 0);
+                MultiFab::Copy(structFactMFTurbScalar, prim, 5, 2, 1, 0);
+                
+                 // decomposed velocities
+                    turbStructFactVelDecomp.FortStructureDecomp(structFactMFTurbVel,geom,1);
+                    turbStructFactVelDecomp.GetDecompVel(vel_decomp,geom);
+                    turbStructFactVelDecomp.CallFinalize(geom);
+                    turbStructFactVelDecomp.IntegratekShellsDecomp(step,geom,"vel_solenoid","vel_dilation");
+                
+                 // total velocity
+                    turbStructFactVelTotal.FortStructure(structFactMFTurbVel,geom,1);
+                    turbStructFactVelTotal.CallFinalize(geom);
+                    turbStructFactVelTotal.IntegratekShells(step,geom,"vel_total");
+                
+                 // scalars
+                    turbStructFactScalar.FortStructure(structFactMFTurbScalar,geom,1);
+                    turbStructFactScalar.CallFinalize(geom);
+                    turbStructFactScalar.IntegratekShellsScalar(step,geom,var_names_turbScalar);
+                
+
+            }
+#endif
+
+        }
+
+
 #if defined(TURB)
         // turbulence outputs
-        if ((turbForcing >= 1) and (step%1000 == 0)) {
+        if ((turbForcing >= 1) and (writePlt)) {
 
             for (int i=0; i<AMREX_SPACEDIM; ++i) {
                 vel[i].FillBoundary(geom.periodicity());
@@ -1229,7 +1311,7 @@ void main_driver(const char* argv)
             ccTemp.setVal(0.0);
             for (int d=0; d<AMREX_SPACEDIM; ++d) {
                 CCMoments(gradU,d,ccTempA,2,gradU2[d]);
-                MultiFab::Add(ccTemp,ccTempA,0,d,1,0);
+                MultiFab::Add(ccTemp,ccTempA,0,0,1,0);
                 gradU2[d] *= dProb; // <(du_i/dx_i)^2> each component
             }
             Real avg_mom2 = ComputeSpatialMean(ccTemp, 0); // <\sum_i (du_i/dx_i)^2>
@@ -1307,82 +1389,7 @@ void main_driver(const char* argv)
             turboutfile << kolm_s << " " << kolm_t << std::endl;
         }
 #endif
-
-        // write a plotfile
-        bool writePlt = false;
-        if (plot_int > 0) {
-            if (n_steps_skip >= 0) { // for positive n_steps_skip, write out at plot_int
-                writePlt = (step%plot_int == 0);
-            }
-            else if (n_steps_skip < 0) { // for negative n_steps_skip, write out at plot_int-1
-                writePlt = ((step+1)%plot_int == 0);
-            }
-        }
-
-        if (writePlt) {
-            //yzAverage(cuMeans, cuVars, primMeans, primVars, spatialCross,
-            //          cuMeansAv, cuVarsAv, primMeansAv, primVarsAv, spatialCrossAv);
-            WritePlotFileStag(step, time, geom, cu, cuMeans, cuVars, cumom, cumomMeans, cumomVars,
-                              prim, primMeans, primVars, vel, velMeans, velVars, coVars, surfcov, surfcovMeans, surfcovVars, eta, kappa);
-            
-#if defined(TURB)
-            if (turbForcing > 0) {
-                EvaluateWritePlotFileVelGrad(step, time, geom, vel);
-            }
-#endif
-
-            if (plot_cross) {
-                if (do_1D) {
-                    WriteSpatialCross1D(spatialCross1D, step, geom, ncross);
-                }
-                else if (do_2D) {
-                //    WriteSpatialCross2D(spatialCross2D, step, geom, ncross); // (do later)
-                }
-                else {
-                    WriteSpatialCross3D(spatialCross3D, step, geom, ncross);
-                    if (ParallelDescriptor::IOProcessor()) {
-                        outfile << step << " ";
-                        for (auto l=0; l<2*nvars+8+2*nspecies; ++l) {
-                            outfile << dataSliceMeans_xcross[l] << " ";
-                        }
-                        outfile << std::endl;
-                    }
-                }
-            }
-
-#if defined(TURB)
-            // compressible turbulence structure factor snapshot
-            if (turbForcing >= 1) {
-
-                cnt = 0;
-
-                // copy velocities into structFactMFTurb
-                for(int d=0; d<AMREX_SPACEDIM; d++) {
-                    ShiftFaceToCC(vel[d], 0, structFactMFTurb, d, 1);
-                    cnt++;
-                }
-                // copy density, pressure and temperature into structFactMFTurb
-                MultiFab::Copy(structFactMFTurb, prim, 0, cnt, 1, 0);
-                cnt++;
-                MultiFab::Copy(structFactMFTurb, prim, 4, cnt, 1, 0);
-                cnt++;
-                MultiFab::Copy(structFactMFTurb, prim, 5, cnt, 1, 0);
-
-                // reset and compute structure factor
-                turbStructFact.FortStructure(structFactMFTurb,geom,1);
-                turbStructFact.CallFinalize(geom);
-
-                // integrate cov_mag over shells in k and write to file (energy spectrum)
-                turbStructFact.IntegratekShells(step,geom);
-
-                // integrate cov_mag over shells in k and write to file (for rho, press, temp)
-                turbStructFact.IntegratekShellsMisc(step,geom);
-
-            }
-#endif
-
-        }
-
+        
         // collect a snapshot for structure factor
         if (step > amrex::Math::abs(n_steps_skip) && 
             struct_fact_int > 0 && 
