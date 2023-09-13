@@ -1,12 +1,10 @@
 
 
   # Problem specification
-  prob_lo = 0.      0.       0. # physical lo coordinate
-  #prob_hi = 9.6e-7 9.6e-7 9.6e-7  # physical hi coordinate
-  #prob_hi = 4.8e-6 4.8e-6 4.8e-6  # physical hi coordinate
-  prob_hi = 6.4e-6 6.4e-6 6.4e-6  # physical hi coordinate
+  prob_lo = 0.     0.     # physical lo coordinate
+  prob_hi = 6.4e-6 6.4e-6 # physical hi coordinate
 
-  # cell_depth = 0.5e-7
+  cell_depth = 1.e-7
 
   # refer to Init.cpp
   prob_type = 16
@@ -14,12 +12,12 @@
   plot_base_name= plt
   
   # number of cells in domain
-  n_cells = 64 64 64
+  n_cells = 64 64
   # max number of cells in a box
-  max_grid_size = 32 32 32
+  max_grid_size = 32 32
 
   # Time-step control
-  fixed_dt = 1.e-13
+  fixed_dt = 1.e-11
 
   # Controls for number of steps between actions
   max_step = 10000
@@ -35,6 +33,8 @@
   # negative = assume spatially-varying coefficients
   visc_coef = 0.002464   # [units: g*cm-1*s-1] dynamic (shear) viscosity of water
   visc_type = -2
+
+  mixture_type = 3
   
   # Stochastic parameters
   seed = 1
@@ -56,23 +56,23 @@
   # -1 = periodic
   #  1 = slip
   #  2 = no-slip
-  bc_vel_lo = -1 2 -1
-  bc_vel_hi = -1 2 -1
+  bc_vel_lo = -1 2
+  bc_vel_hi = -1 2
 
   # -1 = periodic
   #  1 = wall
   #  2 = reservoir (Dirichlet values must be suppled by other means)
-  bc_mass_lo = -1 1 -1
-  bc_mass_hi = -1 1 -1
+  bc_mass_lo = -1 1
+  bc_mass_hi = -1 1
 
   # -1 = periodic
   #  1 = Dirichlet
   #  2 = Neumann
-  bc_es_lo = -1 -1 -1
-  bc_es_hi = -1 -1 -1
+  bc_es_lo = -1 -1
+  bc_es_hi = -1 -1
 
-  potential_lo = 0. 0. 0.
-  potential_hi = 0. 0. 0.
+  potential_lo = 0. 0.
+  potential_hi = 0. 0.
 
   # Thermodynamic and transport properties:
   #----------------------
