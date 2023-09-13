@@ -1874,29 +1874,29 @@ void StructFact::DecomposeVelFourier(const amrex::MultiFab& vel_dft_real,
                         real(i,j,k,2)*GzC + imag(i,j,k,2)*GzR ;
 
             if (Lap < 1.0e-12) { // zero mode for no bulk motion
-                real_sol(i,j,k,0) = 0.0;
-                real_sol(i,j,k,1) = 0.0;
-                real_sol(i,j,k,2) = 0.0;
-                imag_sol(i,j,k,0) = 0.0;
-                imag_sol(i,j,k,1) = 0.0;
-                imag_sol(i,j,k,2) = 0.0;
+                real_dil(i,j,k,0) = 0.0;
+                real_dil(i,j,k,1) = 0.0;
+                real_dil(i,j,k,2) = 0.0;
+                imag_dil(i,j,k,0) = 0.0;
+                imag_dil(i,j,k,1) = 0.0;
+                imag_dil(i,j,k,2) = 0.0;
             }
             else {
-                // Solenoidal velocity 
-                real_sol(i,j,k,0) = (divR*GxR + divC*GxC) / Lap;
-                real_sol(i,j,k,1) = (divR*GyR + divC*GyC) / Lap;
-                real_sol(i,j,k,2) = (divR*GzR + divC*GzC) / Lap;
-                imag_sol(i,j,k,0) = (divC*GxR - divR*GxC) / Lap;
-                imag_sol(i,j,k,1) = (divC*GyR - divR*GyC) / Lap;
-                imag_sol(i,j,k,2) = (divC*GzR - divR*GzC) / Lap;
+                // Dilatational velocity 
+                real_dil(i,j,k,0) = (divR*GxR + divC*GxC) / Lap;
+                real_dil(i,j,k,1) = (divR*GyR + divC*GyC) / Lap;
+                real_dil(i,j,k,2) = (divR*GzR + divC*GzC) / Lap;
+                imag_dil(i,j,k,0) = (divC*GxR - divR*GxC) / Lap;
+                imag_dil(i,j,k,1) = (divC*GyR - divR*GyC) / Lap;
+                imag_dil(i,j,k,2) = (divC*GzR - divR*GzC) / Lap;
                 
                 // Solenoidal velocity
-                real_dil(i,j,k,0) = real(i,j,k,0) - real_sol(i,j,k,0);
-                real_dil(i,j,k,1) = real(i,j,k,1) - real_sol(i,j,k,1); 
-                real_dil(i,j,k,2) = real(i,j,k,2) - real_sol(i,j,k,2);
-                imag_dil(i,j,k,0) = imag(i,j,k,0) - imag_sol(i,j,k,0);
-                imag_dil(i,j,k,1) = imag(i,j,k,1) - imag_sol(i,j,k,1);
-                imag_dil(i,j,k,2) = imag(i,j,k,2) - imag_sol(i,j,k,2);
+                real_sol(i,j,k,0) = real(i,j,k,0) - real_dil(i,j,k,0);
+                real_sol(i,j,k,1) = real(i,j,k,1) - real_dil(i,j,k,1); 
+                real_sol(i,j,k,2) = real(i,j,k,2) - real_dil(i,j,k,2);
+                imag_sol(i,j,k,0) = imag(i,j,k,0) - imag_dil(i,j,k,0);
+                imag_sol(i,j,k,1) = imag(i,j,k,1) - imag_dil(i,j,k,1);
+                imag_sol(i,j,k,2) = imag(i,j,k,2) - imag_dil(i,j,k,2);
             }
         });
     }
