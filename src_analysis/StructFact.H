@@ -102,8 +102,7 @@ public:
                       const amrex::Vector< std::string >&,
                       const amrex::Vector< amrex::Real >&,
                       const amrex::Vector< int >&,
-                      const amrex::Vector< int >&,
-                      const amrex::Geometry&);
+                      const amrex::Vector< int >&);
 
     void FortStructure(const amrex::MultiFab&, const amrex::Geometry&,
                        const int& reset=0);

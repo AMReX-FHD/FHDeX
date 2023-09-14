@@ -256,8 +256,7 @@ void StructFact::defineDecomp(const amrex::BoxArray& ba_in,
                               const Vector< std::string >& /*var_names*/,
                               const amrex::Vector< amrex::Real >& var_scaling_in,
                               const Vector< int >& s_pairA_in,
-                              const Vector< int >& s_pairB_in,
-                              const amrex::Geometry& geom) 
+                              const Vector< int >& s_pairB_in)
 {
 
   BL_PROFILE_VAR("StructFact::defineDecomp()",StructFactDefineDecomp);
@@ -1400,7 +1399,8 @@ void StructFact::IntegratekShells(const int& step, const Geometry& /*geom*/, con
         center[d] = n_cells[d]/2;
     }
 
-    int npts = n_cells[0]/2-1;
+    //int npts = n_cells[0]/2-1;
+    int npts = n_cells[0]/2;
     //int npts_sq = npts*npts;
 
     Gpu::DeviceVector<Real> phisum_device(npts);
@@ -1550,7 +1550,8 @@ void StructFact::IntegratekShellsDecomp(const int& step,
         center[d] = n_cells[d]/2;
     }
 
-    int npts = n_cells[0]/2-1;
+    //int npts = n_cells[0]/2-1;
+    int npts = n_cells[0]/2;
     //int npts_sq = npts*npts;
 
     Gpu::DeviceVector<Real> phisum_sol_device(npts);
@@ -1674,7 +1675,8 @@ void StructFact::IntegratekShellsScalar(const int& step, const Geometry& /*geom*
         center[d] = n_cells[d]/2;
     }
 
-    int npts = n_cells[0]/2-1;
+    //int npts = n_cells[0]/2-1;
+    int npts = n_cells[0]/2;
 
     Gpu::DeviceVector<Real> phisum_device(npts);
     Gpu::DeviceVector<int>  phicnt_device(npts);

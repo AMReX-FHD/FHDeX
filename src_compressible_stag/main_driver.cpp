@@ -261,15 +261,8 @@ void main_driver(const char* argv)
     // data structure for turbulence diagnostics
     std::string turbfilename = "turbstats";
     std::ofstream turboutfile;
-    std::array< MultiFab, AMREX_SPACEDIM > macTemp;
-    MultiFab gradU;
-    MultiFab sound_speed;
-    MultiFab ccTemp;
-    MultiFab ccTempA;
-    MultiFab ccTempDiv;
-    std::array< MultiFab, NUM_EDGE > curlU;
-    std::array< MultiFab, NUM_EDGE > eta_edge;
-    std::array< MultiFab, NUM_EDGE > curlUtemp;
+    std::string turbfilenamedecomp = "turbstatsdecomp";
+    std::ofstream turboutfiledecomp;
 #endif
 
     /////////////////////////////////////////////
@@ -441,9 +434,6 @@ void main_driver(const char* argv)
     // need to use dVol for scaling
     Real dVol = (AMREX_SPACEDIM==2) ? dx[0]*dx[1]*cell_depth : dx[0]*dx[1]*dx[2];
     Real dVolinv = 1.0/dVol;
-    Real dProb = (AMREX_SPACEDIM==2) ? n_cells[0]*n_cells[1] : 
-                                       n_cells[0]*n_cells[1]*n_cells[2];
-    dProb = 1./dProb;
     
     MultiFab structFactMFTurbVel;
     MultiFab structFactMFTurbScalar;
@@ -523,35 +513,8 @@ void main_driver(const char* argv)
         if (turbForcing >= 1) { // temporary fab for turbulent
             if (ParallelDescriptor::IOProcessor()) {
                 turboutfile.open(turbfilename, std::ios::app);
+                turboutfiledecomp.open(turbfilenamedecomp, std::ios::app);
             }
-            AMREX_D_TERM(macTemp[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
-                         macTemp[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
-                         macTemp[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););   
-            gradU.define(ba,dmap,AMREX_SPACEDIM,0);
-            sound_speed.define(ba,dmap,1,0);
-            ccTemp.define(ba,dmap,1,0);
-            ccTempA.define(ba,dmap,1,0);
-            ccTempDiv.define(ba,dmap,1,0);
-#if (AMREX_SPACEDIM == 3)
-            curlU[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
-            curlU[1].define(convert(ba,nodal_flag_xz), dmap, 1, 0);
-            curlU[2].define(convert(ba,nodal_flag_yz), dmap, 1, 0);
-            eta_edge[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
-            eta_edge[1].define(convert(ba,nodal_flag_xz), dmap, 1, 0);
-            eta_edge[2].define(convert(ba,nodal_flag_yz), dmap, 1, 0);
-#elif (AMREX_SPACEDIM == 2)
-            curlU[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
-            eta_edge[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
-#endif
-    
-#if (AMREX_SPACEDIM == 3)
-            curlUtemp[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
-            curlUtemp[1].define(convert(ba,nodal_flag_xz), dmap, 1, 0);
-            curlUtemp[2].define(convert(ba,nodal_flag_yz), dmap, 1, 0);
-#elif (AMREX_SPACEDIM == 2)
-            curlUtemp[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
-#endif
-
         }
 #endif
     }
@@ -694,39 +657,21 @@ void main_driver(const char* argv)
                 turboutfile.open(turbfilename);
                 turboutfile << "step " << "time " << "turbKE " << "RMSu " 
                             << "<c> " << "TaylorLen " << "TaylorRe " << "TaylorMa "
-                            << "skew1 " << "skew2 " << "skew3 " << "skew "
-                            << "kurt1 " << "kurt2 " << "kurt3 " << "kurt "
+                            << "skew " << "kurt "
                             << "eps_s " << "eps_d " << "eps_d/eps_s "
-                            << "kolm_s " << "kolm_t"  
+                            << "kolm_s " << "kolm_s" << "kolm_t"
                             << std::endl;
+
+                turboutfiledecomp.open(turbfilenamedecomp);
+                turboutfiledecomp << "step " << "time " 
+                                  << "turbKE_s " << "turbKE_d " << "delta_turbKE "
+                                  << "u_rms_s " << "u_rms_d " << "delta_u_rms " 
+                                  << "TaylorMa_d "
+                                  << "skew_s " << "kurt_s "
+                                  << "skew_d " << "kurt_d "
+                                  << std::endl;
+
             }
-            AMREX_D_TERM(macTemp[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
-                         macTemp[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
-                         macTemp[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););   
-            gradU.define(ba,dmap,AMREX_SPACEDIM,0);
-            sound_speed.define(ba,dmap,1,0);
-            ccTemp.define(ba,dmap,1,0);
-            ccTempA.define(ba,dmap,1,0);
-            ccTempDiv.define(ba,dmap,1,0);
-#if (AMREX_SPACEDIM == 3)
-            curlU[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
-            curlU[1].define(convert(ba,nodal_flag_xz), dmap, 1, 0);
-            curlU[2].define(convert(ba,nodal_flag_yz), dmap, 1, 0);
-            eta_edge[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
-            eta_edge[1].define(convert(ba,nodal_flag_xz), dmap, 1, 0);
-            eta_edge[2].define(convert(ba,nodal_flag_yz), dmap, 1, 0);
-#elif (AMREX_SPACEDIM == 2)
-            curlU[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
-            eta_edge[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
-#endif
-    
-#if (AMREX_SPACEDIM == 3)
-            curlUtemp[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
-            curlUtemp[1].define(convert(ba,nodal_flag_xz), dmap, 1, 0);
-            curlUtemp[2].define(convert(ba,nodal_flag_yz), dmap, 1, 0);
-#elif (AMREX_SPACEDIM == 2)
-            curlUtemp[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
-#endif
         }
 #endif
 
@@ -775,7 +720,7 @@ void main_driver(const char* argv)
                           prim, primMeans, primVars, vel, velMeans, velVars, coVars, surfcov, surfcovMeans, surfcovVars, eta, kappa);
 #if defined(TURB)
             if (turbForcing > 0) {
-                EvaluateWritePlotFileVelGrad(0, 0.0, geom, vel);
+                EvaluateWritePlotFileVelGrad(0, 0.0, geom, vel, vel_decomp);
             }
 #endif
 
@@ -952,6 +897,7 @@ void main_driver(const char* argv)
         structFactMFTurbVel.define(ba, dmap, 3, 0);
         structFactMFTurbScalar.define(ba, dmap, 6, 0);
         vel_decomp.define(ba, dmap, 6, 0);
+        vel_decomp.setVal(0.0);
 
         turbStructFactVelTotal.define(ba,dmap,
                 var_names_turbVelTotal,var_scaling_turbVelTotal,
@@ -961,7 +907,7 @@ void main_driver(const char* argv)
                 s_pairA_turbScalar,s_pairB_turbScalar);
         turbStructFactVelDecomp.defineDecomp(ba,dmap,
                 var_names_turbVelTotal,var_scaling_turbVelDecomp,
-                s_pairA_turbVelTotal,s_pairB_turbVelTotal,geom);
+                s_pairA_turbVelTotal,s_pairB_turbVelTotal);
     }
 #endif
 
@@ -1203,7 +1149,7 @@ void main_driver(const char* argv)
             
 #if defined(TURB)
             if (turbForcing > 0) {
-                EvaluateWritePlotFileVelGrad(step, time, geom, vel);
+                EvaluateWritePlotFileVelGrad(step, time, geom, vel, vel_decomp);
             }
 #endif
 
@@ -1253,140 +1199,74 @@ void main_driver(const char* argv)
                     turbStructFactScalar.FortStructure(structFactMFTurbScalar,geom,1);
                     turbStructFactScalar.CallFinalize(geom);
                     turbStructFactScalar.IntegratekShellsScalar(step,geom,var_names_turbScalar);
-                
-
             }
 #endif
-
         }
 
 
 #if defined(TURB)
         // turbulence outputs
-        if ((turbForcing >= 1) and (writePlt)) {
+        if ((turbForcing >= 1) and (step%1000 == 0)) {
 
+            Real turbKE, c_speed, u_rms, taylor_len, taylor_Re, taylor_Ma,
+            skew, kurt, eps_s, eps_d, eps_ratio, kolm_s, kolm_d, kolm_t;
             for (int i=0; i<AMREX_SPACEDIM; ++i) {
                 vel[i].FillBoundary(geom.periodicity());
                 cumom[i].FillBoundary(geom.periodicity());
             }
+            GetTurbQty(vel, cumom, prim, eta, geom,
+                       turbKE, c_speed, u_rms,
+                       taylor_len, taylor_Re, taylor_Ma,
+                       skew, kurt,
+                       eps_s, eps_d, eps_ratio,
+                       kolm_s, kolm_d, kolm_t);
             
-            turboutfile << step << " " << time << " ";
-
-            Real temp;
-            Vector<Real> tempvec(3);
-            
-            Vector<Real> rhouu(3);
-            Vector<Real> uu(3);
-            Vector<Real> gradU2(3);
-            Vector<Real> gradU3(3);
-            Vector<Real> gradU4(3);
-            Vector<Real> eps_s_vec(3); // solenoidal dissipation
-            Real eps_d; // dilational dissipation
-            
-            // turbulent kinetic energy
-            StagInnerProd(cumom,0,vel,0,macTemp,rhouu);
-            rhouu[0] /= (n_cells[0]+1)*n_cells[1]*n_cells[2];
-            rhouu[1] /= (n_cells[1]+1)*n_cells[2]*n_cells[0];
-            rhouu[2] /= (n_cells[2]+1)*n_cells[0]*n_cells[1];
-            turboutfile << 0.5*( rhouu[0] + rhouu[1] + rhouu[2] ) << " ";
-
-            // RMS velocity
-            StagInnerProd(vel,0,vel,0,macTemp,uu);
-            uu[0] /= (n_cells[0]+1)*n_cells[1]*n_cells[2];
-            uu[1] /= (n_cells[1]+1)*n_cells[2]*n_cells[0];
-            uu[2] /= (n_cells[2]+1)*n_cells[0]*n_cells[1];
-            Real u_rms = sqrt((uu[0] + uu[1] + uu[2])/3.0);
+            turboutfile << step << " ";
+            turboutfile << time << " ";
+            turboutfile << turbKE << " ";
             turboutfile << u_rms << " ";
-
-            // compute gradU = [du/dx dv/dy dw/dz] at cell-centers
-            ComputeCentredGradFC(vel,gradU,geom);
-            ccTemp.setVal(0.0);
-            for (int d=0; d<AMREX_SPACEDIM; ++d) {
-                MultiFab::Add(ccTemp,gradU,d,0,1,0);
-            }
-            CCInnerProd(ccTemp,0,ccTemp,0,ccTempDiv,temp); // store (\sum_i du_i/dx_i)^2 MFab
-
-            // Compute Velocity gradient moment sum
-            // 2nd moment
-            ccTemp.setVal(0.0);
-            for (int d=0; d<AMREX_SPACEDIM; ++d) {
-                CCMoments(gradU,d,ccTempA,2,gradU2[d]);
-                MultiFab::Add(ccTemp,ccTempA,0,0,1,0);
-                gradU2[d] *= dProb; // <(du_i/dx_i)^2> each component
-            }
-            Real avg_mom2 = ComputeSpatialMean(ccTemp, 0); // <\sum_i (du_i/dx_i)^2>
-            
-            // 3rd moment
-            ccTemp.setVal(0.0);
-            for (int d=0; d<AMREX_SPACEDIM; ++d) {
-                CCMoments(gradU,d,ccTempA,3,gradU3[d]);
-                MultiFab::Add(ccTemp,ccTempA,0,0,1,0);
-                gradU3[d] *= dProb; // <(du_i/dx_i)^3> each component
-            }
-            Real avg_mom3 = ComputeSpatialMean(ccTemp, 0); //  <\sum_i (du_i/dx_i)^3>
-            
-            // 4th moment
-            ccTemp.setVal(0.0);
-            for (int d=0; d<AMREX_SPACEDIM; ++d) {
-                CCMoments(gradU,d,ccTempA,4,gradU4[d]);
-                MultiFab::Add(ccTemp,ccTempA,0,0,1,0);
-                gradU4[d] *= dProb; // <(du_i/dx_i)^4> each component
-            }
-            Real avg_mom4 = ComputeSpatialMean(ccTemp, 0); //  <\sum_i (du_i/dx_i)^4>
-
-            // Compute sound speed
-            ComputeSoundSpeed(sound_speed,prim);
-            Real c_avg = ComputeSpatialMean(sound_speed, 0);
-            turboutfile << c_avg << " ";
-            
-            // Taylor Microscale
-            Real taylor_lamda = u_rms/avg_mom2;
-            turboutfile << taylor_lamda << " " ;
-
-            // Taylor Reynolds Number & Turbulent Mach number
-            Real rho_avg = ComputeSpatialMean(cu, 0);
-            Real eta_avg = ComputeSpatialMean(eta, 0);
-            Real taylor_Re = rho_avg*taylor_lamda*u_rms/eta_avg;
-            Real taylor_Ma = sqrt(3.0)*u_rms/c_avg;
-            turboutfile << taylor_Re << " " << taylor_Ma << " ";
-
-            // Skewness
-            Real skew1 = gradU3[0]/pow(gradU2[0],1.5); // <(du_1/dx_1)^3>/<(du_1/dx_1)^2>^1.5
-            Real skew2 = gradU3[1]/pow(gradU2[1],1.5); // <(du_2/dx_2)^3>/<(du_2/dx_2)^2>^1.5
-            Real skew3 = gradU3[2]/pow(gradU2[2],1.5); // <(du_3/dx_3)^3>/<(du_3/dx_3)^2>^1.5
-            Real skew = avg_mom3/(pow(gradU2[0],1.5) + pow(gradU2[1],1.5) + pow(gradU2[2],1.5)); // <\sum_i (du_i/dx_i)^3> / (\sum_i <(du_i/dx_i)^2>^1.5)
-            turboutfile << skew1 << " " << skew2 << " " << skew3 << " " << skew << " ";
-            
-            // Kurtosis
-            Real kurt1 = gradU4[0]/pow(gradU2[0],2); // <(du_1/dx_1)^4>/<(du_1/dx_1)^2>^2
-            Real kurt2 = gradU4[1]/pow(gradU2[1],2); // <(du_2/dx_2)^4>/<(du_2/dx_2)^2>^2
-            Real kurt3 = gradU4[2]/pow(gradU2[2],2); // <(du_3/dx_3)^4>/<(du_3/dx_3)^2>^2
-            Real kurt =  avg_mom4/(pow(gradU2[0],2) + pow(gradU2[1],2) + pow(gradU2[2],2)); // <\sum_i (du_i/dx_i)^4> / (\sum_i <(du_i/dx_i)^2>^2)
-            turboutfile << kurt1 << " " << kurt2 << " " << kurt3 << " " << kurt << " ";
-
-            // Compute \omega (curl)
-            ComputeCurlFaceToEdge(vel,curlU,geom);
-            
-            // Solenoidal dissipation: <eta \omega_i \omega_i>/<rho>
-            AverageCCToEdge(eta,eta_edge,0,1,SPEC_BC_COMP,geom);
-            EdgeInnerProd(curlU,0,curlU,0,curlUtemp,tempvec);
-            EdgeInnerProd(curlUtemp,0,eta_edge,0,curlU,eps_s_vec);
-            eps_s_vec[0] /= (n_cells[0]+1)*(n_cells[1]+1)*n_cells[2];
-            eps_s_vec[1] /= (n_cells[0]+1)*(n_cells[2]+1)*n_cells[1];
-            eps_s_vec[2] /= (n_cells[1]+1)*(n_cells[2]+1)*n_cells[0];
-            Real eps_s = (eps_s_vec[0] + eps_s_vec[1] + eps_s_vec[2])/rho_avg;
+            turboutfile << c_speed << " ";
+            turboutfile << taylor_len << " " ;
+            turboutfile << taylor_Re << " "; 
+            turboutfile << taylor_Ma << " ";
+            turboutfile << skew << " ";
+            turboutfile << kurt << " ";
             turboutfile << eps_s << " ";
-
-            // Dilational dissipation (4/3)*<eta \sum_i (du_i/dx_i)^2>/<rho>
-            CCInnerProd(ccTempDiv,0,eta,0,ccTemp,eps_d);
-            eps_d *= (dProb*(4.0/3.0)/rho_avg);
-            turboutfile << eps_d << " " << eps_d/eps_s << " ";
-
-            // Kolmogorov scales
-            Real kolm_s = pow((eta_avg*eta_avg*eta_avg/(rho_avg*rho_avg*rho_avg*eps_s)),0.25);
-            Real eps_t = eps_s + eps_d;
-            Real kolm_t = pow((eta_avg*eta_avg*eta_avg/(rho_avg*rho_avg*rho_avg*eps_t)),0.25);
-            turboutfile << kolm_s << " " << kolm_t << std::endl;
+            turboutfile << eps_d << " "; 
+            turboutfile << eps_ratio << " ";
+            turboutfile << kolm_s << " ";
+            turboutfile << kolm_d << " ";
+            turboutfile << kolm_t;
+            turboutfile << std::endl;
+        }
+        
+        if ((turbForcing >= 1) and (writePlt)) {
+            Real turbKE_s, turbKE_d, delta_turbKE;
+            Real u_rms_s, u_rms_d, delta_u_rms;
+            Real taylor_Ma_d;
+            Real skew_s, kurt_s;
+            Real skew_d, kurt_d;
+            GetTurbQtyDecomp(vel_decomp, prim, geom,
+                             turbKE_s, turbKE_d, delta_turbKE,
+                             u_rms_s, u_rms_d, delta_u_rms,
+                             taylor_Ma_d,
+                             skew_s, kurt_s,
+                             skew_d, kurt_d);
+            
+            turboutfiledecomp << step << " ";
+            turboutfiledecomp << time << " ";
+            turboutfiledecomp << turbKE_s << " ";
+            turboutfiledecomp << turbKE_d << " ";
+            turboutfiledecomp << delta_turbKE << " ";
+            turboutfiledecomp << u_rms_s << " ";
+            turboutfiledecomp << u_rms_d << " ";
+            turboutfiledecomp << delta_u_rms << " ";
+            turboutfiledecomp << taylor_Ma_d << " ";
+            turboutfiledecomp << skew_s << " ";
+            turboutfiledecomp << kurt_s << " ";
+            turboutfiledecomp << skew_d << " ";
+            turboutfiledecomp << kurt_d;
+            turboutfiledecomp << std::endl;
         }
 #endif
         
@@ -1653,6 +1533,7 @@ void main_driver(const char* argv)
 #if defined(TURB)
     if (turbForcing >= 1) {
         if (ParallelDescriptor::IOProcessor()) turboutfile.close();
+        if (ParallelDescriptor::IOProcessor()) turboutfiledecomp.close();
     }
 #endif
 
