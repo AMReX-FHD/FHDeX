@@ -1399,7 +1399,6 @@ void StructFact::IntegratekShells(const int& step, const Geometry& /*geom*/, con
         center[d] = n_cells[d]/2;
     }
 
-    //int npts = n_cells[0]/2-1;
     int npts = n_cells[0]/2;
     //int npts_sq = npts*npts;
 
@@ -1675,7 +1674,6 @@ void StructFact::IntegratekShellsScalar(const int& step, const Geometry& /*geom*
         center[d] = n_cells[d]/2;
     }
 
-    //int npts = n_cells[0]/2-1;
     int npts = n_cells[0]/2;
 
     Gpu::DeviceVector<Real> phisum_device(npts);
