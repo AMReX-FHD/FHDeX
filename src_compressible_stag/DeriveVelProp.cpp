@@ -30,6 +30,7 @@ void GetTurbQty(std::array< MultiFab, AMREX_SPACEDIM >& vel,
     MultiFab ccTemp;
     MultiFab ccTempA;
     MultiFab ccTempDiv;
+    MultiFab eta_kin; // kinematic viscosity
     std::array< MultiFab, NUM_EDGE > curlU;
     std::array< MultiFab, NUM_EDGE > eta_edge;
     std::array< MultiFab, NUM_EDGE > curlUtemp;
@@ -41,6 +42,7 @@ void GetTurbQty(std::array< MultiFab, AMREX_SPACEDIM >& vel,
     ccTemp.define(prim.boxArray(),prim.DistributionMap(),1,0);
     ccTempA.define(prim.boxArray(),prim.DistributionMap(),1,0);
     ccTempDiv.define(prim.boxArray(),prim.DistributionMap(),1,0);
+    eta_kin.define(prim.boxArray(),prim.DistributionMap(),1,0);
 #if (AMREX_SPACEDIM == 3)
     curlU[0].define(convert(prim.boxArray(),nodal_flag_xy), prim.DistributionMap(), 1, 0);
     curlU[1].define(convert(prim.boxArray(),nodal_flag_xz), prim.DistributionMap(), 1, 0);
@@ -60,6 +62,18 @@ void GetTurbQty(std::array< MultiFab, AMREX_SPACEDIM >& vel,
 #elif (AMREX_SPACEDIM == 2)
     curlUtemp[0].define(convert(prim.boxArray(),nodal_flag_xy), prim.DistributionMap(), 1, 0);
 #endif
+
+    // Get Kinematic Viscosity
+    for ( MFIter mfi(eta,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
+        const Box& bx = mfi.tilebox();
+        const Array4<Real> & eta_kin_fab = eta_kin.array(mfi);
+        const Array4<const Real>& eta_fab = eta.array(mfi);
+        const Array4<const Real>& prim_fab = prim.array(mfi);
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            eta_kin_fab(i,j,k) = eta_fab(i,j,k) / prim_fab(i,j,k,0);
+        });
+    }
 
     // Setup temp variables
     Real temp;
@@ -100,6 +114,7 @@ void GetTurbQty(std::array< MultiFab, AMREX_SPACEDIM >& vel,
     // Compute Velocity gradient moment sum
     // 2nd moment
     ccTemp.setVal(0.0);
+    ccTempA.setVal(0.0);
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         CCMoments(gradU,d,ccTempA,2,gradU2[d]);
         MultiFab::Add(ccTemp,ccTempA,0,0,1,0);
@@ -126,13 +141,13 @@ void GetTurbQty(std::array< MultiFab, AMREX_SPACEDIM >& vel,
     Real avg_mom4 = ComputeSpatialMean(ccTemp, 0); //  <\sum_i (du_i/dx_i)^4>
             
     // Taylor Microscale
-    taylor_len = u_rms/avg_mom2;
+    taylor_len = sqrt(3.0)*u_rms/sqrt(avg_mom2); // from Wang et al., JFM, 2012
 
     // Taylor Reynolds Number & Turbulent Mach number
     Real rho_avg = ComputeSpatialMean(prim, 0);
     Real eta_avg = ComputeSpatialMean(eta, 0);
-    taylor_Re = rho_avg*taylor_len*u_rms/eta_avg;
-    taylor_Ma = sqrt(3.0)*u_rms/c_speed;
+    taylor_Re = rho_avg*taylor_len*u_rms/eta_avg; // from from John, Donzis, Sreenivasan, PRL 2019
+    taylor_Ma = sqrt(3.0)*u_rms/c_speed; // from John, Donzis, Sreenivasan, PRL 2019
 
     // Skewness
     //Real skew1 = gradU3[0]/pow(gradU2[0],1.5); // <(du_1/dx_1)^3>/<(du_1/dx_1)^2>^1.5
@@ -151,27 +166,28 @@ void GetTurbQty(std::array< MultiFab, AMREX_SPACEDIM >& vel,
     // Compute \omega (curl)
     ComputeCurlFaceToEdge(vel,curlU,geom);
     
-    // Solenoidal dissipation: <eta \omega_i \omega_i>/<rho>
-    AverageCCToEdge(eta,eta_edge,0,1,SPEC_BC_COMP,geom);
+    // Solenoidal dissipation: <eta_kin \omega_i \omega_i>/<rho>
+    AverageCCToEdge(eta_kin,eta_edge,0,1,SPEC_BC_COMP,geom);
     EdgeInnerProd(curlU,0,curlU,0,curlUtemp,tempvec);
     EdgeInnerProd(curlUtemp,0,eta_edge,0,curlU,eps_s_vec);
     eps_s_vec[0] /= (n_cells[0]+1)*(n_cells[1]+1)*n_cells[2];
     eps_s_vec[1] /= (n_cells[0]+1)*(n_cells[2]+1)*n_cells[1];
     eps_s_vec[2] /= (n_cells[1]+1)*(n_cells[2]+1)*n_cells[0];
-    eps_s = (eps_s_vec[0] + eps_s_vec[1] + eps_s_vec[2])/rho_avg;
+    eps_s = (eps_s_vec[0] + eps_s_vec[1] + eps_s_vec[2]);
 
-    // Dilational dissipation (4/3)*<eta \sum_i (du_i/dx_i)^2>/<rho>
-    CCInnerProd(ccTempDiv,0,eta,0,ccTemp,eps_d);
-    eps_d *= (dProb*(4.0/3.0)/rho_avg);
+    // Dilational dissipation (4/3)*<eta_kin (\sum_i du_i/dx_i)^2>/<rho>
+    CCInnerProd(ccTempDiv,0,eta_kin,0,ccTemp,eps_d);
+    eps_d *= dProb*(4.0/3.0);
 
     // Ratio of Dilational to Solenoidal dissipation
     eps_ratio = eps_d/eps_s;
     Real eps_t = eps_s + eps_d;
 
     // Kolmogorov scales
-    kolm_s = pow((eta_avg*eta_avg*eta_avg/(rho_avg*rho_avg*rho_avg*eps_s)),0.25);
-    kolm_d = pow((eta_avg*eta_avg*eta_avg/(rho_avg*rho_avg*rho_avg*eps_d)),0.25);
-    kolm_t = pow((eta_avg*eta_avg*eta_avg/(rho_avg*rho_avg*rho_avg*eps_t)),0.25);
+    Real eta_kin_avg = ComputeSpatialMean(eta_kin, 0);
+    kolm_s = pow((eta_kin_avg*eta_kin_avg*eta_kin_avg/eps_s),0.25);
+    kolm_d = pow((eta_kin_avg*eta_kin_avg*eta_kin_avg/eps_d),0.25);
+    kolm_t = pow((eta_kin_avg*eta_kin_avg*eta_kin_avg/eps_t),0.25);
 
 }
 #endif
