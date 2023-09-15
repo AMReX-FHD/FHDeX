@@ -9,11 +9,11 @@ void SumStag(const std::array<MultiFab, AMREX_SPACEDIM>& m1,
   // Initialize to zero
   std::fill(sum.begin(), sum.end(), 0.);
 
-  ReduceOps<ReduceOpSum> reduce_op;
-
   //////// x-faces
 
-  ReduceData<Real> reduce_datax(reduce_op);
+  ReduceOps<ReduceOpSum> reduce_opx;
+
+  ReduceData<Real> reduce_datax(reduce_opx);
   using ReduceTuple = typename decltype(reduce_datax)::Type;
 
   for (MFIter mfi(m1[0],TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -26,7 +26,7 @@ void SumStag(const std::array<MultiFab, AMREX_SPACEDIM>& m1,
       int xlo = bx_grid.smallEnd(0);
       int xhi = bx_grid.bigEnd(0);
 
-      reduce_op.eval(bx, reduce_datax,
+      reduce_opx.eval(bx, reduce_datax,
       [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
       {
           Real weight = (i>xlo && i<xhi) ? 1.0 : 0.5;
@@ -39,7 +39,9 @@ void SumStag(const std::array<MultiFab, AMREX_SPACEDIM>& m1,
 
   //////// y-faces
 
-  ReduceData<Real> reduce_datay(reduce_op);
+  ReduceOps<ReduceOpSum> reduce_opy;
+
+  ReduceData<Real> reduce_datay(reduce_opy);
 
   for (MFIter mfi(m1[1],TilingIfNotGPU()); mfi.isValid(); ++mfi)
   {
@@ -51,7 +53,7 @@ void SumStag(const std::array<MultiFab, AMREX_SPACEDIM>& m1,
       int ylo = bx_grid.smallEnd(1);
       int yhi = bx_grid.bigEnd(1);
 
-      reduce_op.eval(bx, reduce_datay,
+      reduce_opy.eval(bx, reduce_datay,
       [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
       {
           Real weight = (j>ylo && j<yhi) ? 1.0 : 0.5;
@@ -66,7 +68,9 @@ void SumStag(const std::array<MultiFab, AMREX_SPACEDIM>& m1,
 
   //////// z-faces
 
-  ReduceData<Real> reduce_dataz(reduce_op);
+  ReduceOps<ReduceOpSum> reduce_opz;
+
+  ReduceData<Real> reduce_dataz(reduce_opz);
 
   for (MFIter mfi(m1[2],TilingIfNotGPU()); mfi.isValid(); ++mfi)
   {
@@ -78,7 +82,7 @@ void SumStag(const std::array<MultiFab, AMREX_SPACEDIM>& m1,
       int zlo = bx_grid.smallEnd(2);
       int zhi = bx_grid.bigEnd(2);
 
-      reduce_op.eval(bx, reduce_dataz,
+      reduce_opz.eval(bx, reduce_dataz,
       [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
       {
           Real weight = (k>zlo && k<zhi) ? 1.0 : 0.5;
