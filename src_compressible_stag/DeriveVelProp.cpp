@@ -42,7 +42,7 @@ void GetTurbQty(std::array< MultiFab, AMREX_SPACEDIM >& vel,
     ccTemp.define(prim.boxArray(),prim.DistributionMap(),1,0);
     ccTempA.define(prim.boxArray(),prim.DistributionMap(),1,0);
     ccTempDiv.define(prim.boxArray(),prim.DistributionMap(),1,0);
-    eta_kin.define(prim.boxArray(),prim.DistributionMap(),1,0);
+    eta_kin.define(prim.boxArray(),prim.DistributionMap(),1,ngc);
 #if (AMREX_SPACEDIM == 3)
     curlU[0].define(convert(prim.boxArray(),nodal_flag_xy), prim.DistributionMap(), 1, 0);
     curlU[1].define(convert(prim.boxArray(),nodal_flag_xz), prim.DistributionMap(), 1, 0);
@@ -65,7 +65,8 @@ void GetTurbQty(std::array< MultiFab, AMREX_SPACEDIM >& vel,
 
     // Get Kinematic Viscosity
     for ( MFIter mfi(eta,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
-        const Box& bx = mfi.tilebox();
+        // grow the box by ngc
+        const Box& bx = amrex::grow(mfi.tilebox(), ngc);
         const Array4<Real> & eta_kin_fab = eta_kin.array(mfi);
         const Array4<const Real>& eta_fab = eta.array(mfi);
         const Array4<const Real>& prim_fab = prim.array(mfi);
