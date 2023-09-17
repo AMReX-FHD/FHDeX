@@ -90,6 +90,10 @@ void ComputeMixtureProperties(const MultiFab& rho,
 			      MultiFab& D_therm,
 			      MultiFab& Hessian);
 
+void ComputeEta(const MultiFab& rho_in,
+                const MultiFab& rhotot_in,
+                MultiFab& eta_in);
+
 /////////////////////////////////////////////////////////////////////////////////
 // in CorrectionFlux.cpp
 
