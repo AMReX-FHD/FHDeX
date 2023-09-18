@@ -6,19 +6,27 @@
   
   # number of cells in domain
   n_cells = 32 32
-  # max number of cells in a box
-  max_grid_size = 16 16
 
   # algorithm_type = 0 (1D in x; each row is an independent trial)
   # algorithm_type = 1 (1D in y; each col is an independent trial)
   # algorithm_type = 2 (2D)
-  algorithm_type = 0
+#  algorithm_type = 0
+#  max_grid_size = 32 8  # max number of cells in a box
+#  thinfilm_icorr = 8  # used for 1d mode in x
+
+  algorithm_type = 1
+  max_grid_size = 8 32  # max number of cells in a box
+  thinfilm_jcorr = 8  # used for 1d mode in y
+
+  # time step
+  cfl = 0.1
 
   # Controls for number of steps between actions
-  max_step = 10000000
+  max_step = 100000000
   plot_int = 1000000
 
   n_steps_skip = 1000000
+  do_fft_diag = 0
 
   # Stochastic parameters
   seed = 1
@@ -30,10 +38,6 @@
   visc_coef = 2.44e-4       # dynamic viscosity [units: kg/m s]
   thinfilm_gamma = 1.52e-2  # surface tension [N/m]
   thinfilm_h0   = 4.85e-9   # equilibrium height [m]
-
-  # correlation coordinates
-  thinfilm_icorr = 8  # used for 1d mode in x
-  thinfilm_jcorr = 8  # used for 1d mode in y
 
   # Boundary conditions
   # ----------------------

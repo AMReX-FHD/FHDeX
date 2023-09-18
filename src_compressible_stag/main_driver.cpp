@@ -9,6 +9,10 @@
 
 #include "StructFact.H"
 
+#if defined(TURB)
+#include "TurbForcingComp.H"
+#endif
+
 #include "chemistry_functions.H"
 
 #include "MFsurfchem_functions.H"
@@ -33,6 +37,7 @@ void main_driver(const char* argv)
 
     std::string inputs_file = argv;
 
+    amrex::AllPrint() << "Compiled with support for maximum species = " << MAX_SPECIES << "\n";
     
     // copy contents of F90 modules to C++ namespaces
     InitializeCommonNamespace();
@@ -198,7 +203,7 @@ void main_driver(const char* argv)
     std::array< MultiFab, AMREX_SPACEDIM > velVars;
     std::array< MultiFab, AMREX_SPACEDIM > cumomMeans;
     std::array< MultiFab, AMREX_SPACEDIM > cumomVars;
-    
+
     if ((plot_cross) and ((cross_cell < 0) or (cross_cell > n_cells[0]-1))) {
         Abort("Cross cell needs to be within the domain: 0 <= cross_cell <= n_cells[0] - 1");
     }
@@ -243,10 +248,29 @@ void main_driver(const char* argv)
 
     Real dt = fixed_dt;
     const Real* dx = geom.CellSize();
-    //const RealBox& realDomain = geom.ProbDomain();
+    const RealBox& realDomain = geom.ProbDomain();
+    Real sys_volume = 1.0;
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        sys_volume *= (realDomain.hi(d) - realDomain.lo(d));
+    }
 
     std::string filename = "crossMeans";
     std::ofstream outfile;
+
+#if defined(TURB)
+    // data structure for turbulence diagnostics
+    std::string turbfilename = "turbstats";
+    std::ofstream turboutfile;
+    std::array< MultiFab, AMREX_SPACEDIM > macTemp;
+    MultiFab gradU;
+    MultiFab sound_speed;
+    MultiFab ccTemp;
+    MultiFab ccTempA;
+    MultiFab ccTempDiv;
+    std::array< MultiFab, NUM_EDGE > curlU;
+    std::array< MultiFab, NUM_EDGE > eta_edge;
+    std::array< MultiFab, NUM_EDGE > curlUtemp;
+#endif
 
     /////////////////////////////////////////////
     // Setup Structure factor variables & scaling
@@ -275,6 +299,11 @@ void main_driver(const char* argv)
     Vector < StructFact > structFactConsArray;
     MultiFab master_2D_rot_prim;
     MultiFab master_2D_rot_cons;
+
+#if defined(TURB)
+    // Structure factor for compressible turbulence
+    StructFact turbStructFact;
+#endif
     
     Geometry geom_flat;
     Geometry geom_flat_2D;
@@ -402,6 +431,55 @@ void main_driver(const char* argv)
         var_scaling_cons[d] = 1./(dx[0]*dx[1]*dx[2]);
     }
 
+    //////////////////////////////////////////////////////////////
+    // structure factor variables names and scaling for turbulence
+    // variables are velocities, density, pressure and temperature
+    //////////////////////////////////////////////////////////////
+#if defined(TURB)
+    int structVarsTurb = AMREX_SPACEDIM+3;
+    
+    Vector< std::string > var_names_turb;
+    var_names_turb.resize(structVarsTurb);
+    
+    cnt = 0;
+
+    // velx, vely, velz
+    for (int d=0; d<AMREX_SPACEDIM; d++) {
+      x = "vel";
+      x += (120+d);
+      var_names_turb[cnt++] = x;
+    }
+    var_names_turb[cnt++] = "rho";
+    var_names_turb[cnt++] = "temp";
+    var_names_turb[cnt++] = "press";
+
+    MultiFab structFactMFTurb;
+
+    // need to use dVol for scaling
+    Real dVol = (AMREX_SPACEDIM==2) ? dx[0]*dx[1]*cell_depth : dx[0]*dx[1]*dx[2];
+    Real dProb = (AMREX_SPACEDIM==2) ? n_cells[0]*n_cells[1] : n_cells[0]*n_cells[1]*n_cells[2];
+    dProb = 1./dProb;
+    
+    Vector<Real> var_scaling_turb(structVarsTurb);
+    for (int d=0; d<var_scaling_turb.size(); ++d) {
+        var_scaling_turb[d] = 1./dVol;
+    }
+
+    // option to compute only specified pairs
+    amrex::Vector< int > s_pairA_turb(AMREX_SPACEDIM+3); // vx, vy, vz, rho, P , T
+    amrex::Vector< int > s_pairB_turb(AMREX_SPACEDIM+3); // vx, vy, vz, rho, P , T
+
+    // Select which variable pairs to include in structure factor:
+    for (int d=0; d<AMREX_SPACEDIM+3; ++d) {
+        s_pairA_turb[d] = d;
+        s_pairB_turb[d] = d;
+    }    
+
+    //////////////////////////////////////////////////////////////
+#endif
+    
+    // object for turbulence forcing
+    TurbForcingComp turbforce;
 
     /////////////////////////////////////////////
     // Initialize based on fresh start or restart
@@ -422,7 +500,7 @@ void main_driver(const char* argv)
         else {
             ReadCheckPoint3D(step_start, time, statsCount, geom, domain, cu, cuMeans, cuVars, prim,
                              primMeans, primVars, cumom, cumomMeans, cumomVars, 
-                             vel, velMeans, velVars, coVars, surfcov, surfcovMeans, surfcovVars, spatialCross3D, ncross, ba, dmap);
+                             vel, velMeans, velVars, coVars, surfcov, surfcovMeans, surfcovVars, spatialCross3D, ncross, turbforce, ba, dmap);
         }
 
         if (reset_stats == 1) statsCount = 1;
@@ -448,6 +526,42 @@ void main_driver(const char* argv)
         if ((plot_cross) and (do_1D==0) and (do_2D==0)) {
             if (ParallelDescriptor::IOProcessor()) outfile.open(filename, std::ios::app);
         }
+
+#if defined(TURB)
+        if (turbForcing >= 1) { // temporary fab for turbulent
+            if (ParallelDescriptor::IOProcessor()) {
+                turboutfile.open(turbfilename, std::ios::app);
+            }
+            AMREX_D_TERM(macTemp[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
+                         macTemp[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
+                         macTemp[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););   
+            gradU.define(ba,dmap,AMREX_SPACEDIM,0);
+            sound_speed.define(ba,dmap,1,0);
+            ccTemp.define(ba,dmap,1,0);
+            ccTempA.define(ba,dmap,1,0);
+            ccTempDiv.define(ba,dmap,1,0);
+#if (AMREX_SPACEDIM == 3)
+            curlU[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
+            curlU[1].define(convert(ba,nodal_flag_xz), dmap, 1, 0);
+            curlU[2].define(convert(ba,nodal_flag_yz), dmap, 1, 0);
+            eta_edge[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
+            eta_edge[1].define(convert(ba,nodal_flag_xz), dmap, 1, 0);
+            eta_edge[2].define(convert(ba,nodal_flag_yz), dmap, 1, 0);
+#elif (AMREX_SPACEDIM == 2)
+            curlU[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
+            eta_edge[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
+#endif
+    
+#if (AMREX_SPACEDIM == 3)
+            curlUtemp[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
+            curlUtemp[1].define(convert(ba,nodal_flag_xz), dmap, 1, 0);
+            curlUtemp[2].define(convert(ba,nodal_flag_yz), dmap, 1, 0);
+#elif (AMREX_SPACEDIM == 2)
+            curlUtemp[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
+#endif
+
+        }
+#endif
     }
 
     else {
@@ -582,6 +696,48 @@ void main_driver(const char* argv)
             spatialCross2D.setVal(0.0);
         }
 
+#if defined(TURB)
+        if (turbForcing >= 1) { // temporary fab for turbulent
+            if (ParallelDescriptor::IOProcessor()) {
+                turboutfile.open(turbfilename);
+                turboutfile << "step " << "time " << "turbKE " << "RMSu " 
+                            << "<c> " << "TaylorLen " << "TaylorRe " << "TaylorMa "
+                            << "skew1 " << "skew2 " << "skew3 " << "skew "
+                            << "kurt1 " << "kurt2 " << "kurt3 " << "kurt "
+                            << "eps_s " << "eps_d " << "eps_d/eps_s "
+                            << "kolm_s " << "kolm_t"  
+                            << std::endl;
+            }
+            AMREX_D_TERM(macTemp[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
+                         macTemp[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
+                         macTemp[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););   
+            gradU.define(ba,dmap,AMREX_SPACEDIM,0);
+            sound_speed.define(ba,dmap,1,0);
+            ccTemp.define(ba,dmap,1,0);
+            ccTempA.define(ba,dmap,1,0);
+            ccTempDiv.define(ba,dmap,1,0);
+#if (AMREX_SPACEDIM == 3)
+            curlU[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
+            curlU[1].define(convert(ba,nodal_flag_xz), dmap, 1, 0);
+            curlU[2].define(convert(ba,nodal_flag_yz), dmap, 1, 0);
+            eta_edge[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
+            eta_edge[1].define(convert(ba,nodal_flag_xz), dmap, 1, 0);
+            eta_edge[2].define(convert(ba,nodal_flag_yz), dmap, 1, 0);
+#elif (AMREX_SPACEDIM == 2)
+            curlU[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
+            eta_edge[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
+#endif
+    
+#if (AMREX_SPACEDIM == 3)
+            curlUtemp[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
+            curlUtemp[1].define(convert(ba,nodal_flag_xz), dmap, 1, 0);
+            curlUtemp[2].define(convert(ba,nodal_flag_yz), dmap, 1, 0);
+#elif (AMREX_SPACEDIM == 2)
+            curlUtemp[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
+#endif
+        }
+#endif
+
         ///////////////////////////////////////////
         // Initialize everything
         ///////////////////////////////////////////
@@ -590,10 +746,10 @@ void main_driver(const char* argv)
         InitConsVarStag(cu,cumom,geom); // Need to add for staggered -- Ishan
 
         // initialize primitive variables
-        prim.setVal(0.0,0,nprimvars,ngc);
-        for (int d=0; d<AMREX_SPACEDIM; d++) { // staggered momentum & velocities
-            vel[d].setVal(0.,ngc);
-        }
+        //prim.setVal(0.0,0,nprimvars,ngc);
+        //for (int d=0; d<AMREX_SPACEDIM; d++) { // staggered momentum & velocities
+        //    vel[d].setVal(0.,ngc);
+        //}
         conservedToPrimitiveStag(prim, vel, cu, cumom);
 
         if (n_ads_spec>0) init_surfcov(surfcov, geom);
@@ -625,6 +781,11 @@ void main_driver(const char* argv)
         if (plot_int > 0) {
             WritePlotFileStag(0, 0.0, geom, cu, cuMeans, cuVars, cumom, cumomMeans, cumomVars, 
                           prim, primMeans, primVars, vel, velMeans, velVars, coVars, surfcov, surfcovMeans, surfcovVars, eta, kappa);
+#if defined(TURB)
+            if (turbForcing > 0) {
+                EvaluateWritePlotFileVelGrad(0, 0.0, geom, vel);
+            }
+#endif
 
             if (plot_cross) {
                 if (do_1D) {
@@ -647,141 +808,158 @@ void main_driver(const char* argv)
         time = 0.;
         statsCount = 1;
 
+#if defined(TURB)
+        // define turbulence forcing object
+        if (turbForcing > 1) {
+            turbforce.define(ba,dmap,turb_a,turb_b,turb_c,turb_d,turb_alpha);
+        }
+#endif
+
+
     } // end t=0 setup
 
     ///////////////////////////////////////////
     // Setup Structure factor
     ///////////////////////////////////////////
 
-    structFactPrimMF.define(ba, dmap, structVarsPrim, 0);
-    structFactPrim.define(ba,dmap,prim_var_names,var_scaling_prim);
+    if (struct_fact_int > 0) {
+        structFactPrimMF.define(ba, dmap, structVarsPrim, 0);
+        structFactPrim.define(ba,dmap,prim_var_names,var_scaling_prim);
+            
+        structFactConsMF.define(ba, dmap, structVarsCons, 0);
+        structFactCons.define(ba,dmap,cons_var_names,var_scaling_cons);
         
-    structFactConsMF.define(ba, dmap, structVarsCons, 0);
-    structFactCons.define(ba,dmap,cons_var_names,var_scaling_cons);
-        
-    // structure factor class for vertically-averaged dataset
-    if (project_dir >= 0) {
+        // structure factor class for vertically-averaged dataset
+        if (project_dir >= 0) {
 
-        {
-            MultiFab X, XRot;
-            ComputeVerticalAverage(prim, X, geom, project_dir, 0, nprimvars);
-            XRot = RotateFlattenedMF(X);
-            ba_flat = XRot.boxArray();
-            dmap_flat = XRot.DistributionMap();
-            master_project_rot_prim.define(ba_flat,dmap_flat,structVarsPrim,0);
-            master_project_rot_cons.define(ba_flat,dmap_flat,structVarsCons,0);
+            {
+                MultiFab X, XRot;
+                ComputeVerticalAverage(prim, X, geom, project_dir, 0, nprimvars);
+                XRot = RotateFlattenedMF(X);
+                ba_flat = XRot.boxArray();
+                dmap_flat = XRot.DistributionMap();
+                master_project_rot_prim.define(ba_flat,dmap_flat,structVarsPrim,0);
+                master_project_rot_cons.define(ba_flat,dmap_flat,structVarsCons,0);
 
-            IntVect dom_lo_flat(AMREX_D_DECL(0,0,0));
-            IntVect dom_hi_flat;
+                IntVect dom_lo_flat(AMREX_D_DECL(0,0,0));
+                IntVect dom_hi_flat;
 #if (AMREX_SPACEDIM == 2)
-            if (project_dir == 0) {
-                dom_hi_flat[0] = n_cells[1]-1;
-                dom_hi_flat[1] = 0;
-            }
-            else if (project_dir == 1) {
-                dom_hi_flat[0] = n_cells[0]-1;
-                dom_hi_flat[1] = 0;
-            }
+                if (project_dir == 0) {
+                    dom_hi_flat[0] = n_cells[1]-1;
+                    dom_hi_flat[1] = 0;
+                }
+                else if (project_dir == 1) {
+                    dom_hi_flat[0] = n_cells[0]-1;
+                    dom_hi_flat[1] = 0;
+                }
 #elif (AMREX_SPACEDIM == 3)
-            if (project_dir == 0) {
-                dom_hi_flat[0] = n_cells[1]-1;
-                dom_hi_flat[1] = n_cells[2]-1;
-                dom_hi_flat[2] = 0;
-            } else if (project_dir == 1) {
-                dom_hi_flat[0] = n_cells[0]-1;
-                dom_hi_flat[1] = n_cells[2]-1;
-                dom_hi_flat[2] = 0;
-            } else if (project_dir == 2) {
+                if (project_dir == 0) {
+                    dom_hi_flat[0] = n_cells[1]-1;
+                    dom_hi_flat[1] = n_cells[2]-1;
+                    dom_hi_flat[2] = 0;
+                } else if (project_dir == 1) {
+                    dom_hi_flat[0] = n_cells[0]-1;
+                    dom_hi_flat[1] = n_cells[2]-1;
+                    dom_hi_flat[2] = 0;
+                } else if (project_dir == 2) {
+                    dom_hi_flat[0] = n_cells[0]-1;
+                    dom_hi_flat[1] = n_cells[1]-1;
+                    dom_hi_flat[2] = 0;
+                }
+#endif
+                Box domain_flat(dom_lo_flat, dom_hi_flat);
+
+                // This defines the physical box
+                Vector<Real> projected_hi(AMREX_SPACEDIM);
+                for (int d=0; d<AMREX_SPACEDIM; d++) {
+                    projected_hi[d] = prob_hi[d];
+                }
+#if (AMREX_SPACEDIM == 2)
+                if (project_dir == 0) {
+                    projected_hi[0] = prob_hi[1];
+                }
+#elif (AMREX_SPACEDIM == 3)
+                if (project_dir == 0) {
+                    projected_hi[0] = prob_hi[1];
+                    projected_hi[1] = prob_hi[2];
+                } else if (project_dir == 1) {
+                    projected_hi[1] = prob_hi[2];
+                }
+#endif
+        
+                projected_hi[AMREX_SPACEDIM-1] = prob_hi[project_dir] / n_cells[project_dir];
+
+                RealBox real_box_flat({AMREX_D_DECL(     prob_lo[0],     prob_lo[1],     prob_lo[2])},
+                                    {AMREX_D_DECL(projected_hi[0],projected_hi[1],projected_hi[2])});
+          
+                // This defines a Geometry object
+                geom_flat.define(domain_flat,&real_box_flat,CoordSys::cartesian,is_periodic.data());
+
+            }
+
+            if (do_slab_sf == 0) {
+                structFactPrimVerticalAverage.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim,2);
+                structFactConsVerticalAverage.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons,2);
+            }
+            else {
+                structFactPrimVerticalAverage0.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim);
+                structFactPrimVerticalAverage1.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim);
+                structFactConsVerticalAverage0.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons);
+                structFactConsVerticalAverage1.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons);
+            }
+    
+        }
+
+        if (do_2D) { // 2D is coded only for XY plane
+
+            {
+                MultiFab X, XRot;
+                ExtractSlice(prim, X, geom, 2, 0, 0, nprimvars);
+                XRot = RotateFlattenedMF(X);
+                ba_flat_2D = XRot.boxArray();
+                dmap_flat_2D = XRot.DistributionMap();
+                master_2D_rot_prim.define(ba_flat_2D,dmap_flat_2D,structVarsPrim,0);
+                master_2D_rot_cons.define(ba_flat_2D,dmap_flat_2D,structVarsCons,0);
+
+                IntVect dom_lo_flat(AMREX_D_DECL(0,0,0));
+                IntVect dom_hi_flat;
                 dom_hi_flat[0] = n_cells[0]-1;
                 dom_hi_flat[1] = n_cells[1]-1;
                 dom_hi_flat[2] = 0;
-            }
-#endif
-            Box domain_flat(dom_lo_flat, dom_hi_flat);
+                Box domain_flat(dom_lo_flat, dom_hi_flat);
 
-            // This defines the physical box
-            Vector<Real> projected_hi(AMREX_SPACEDIM);
-            for (int d=0; d<AMREX_SPACEDIM; d++) {
-                projected_hi[d] = prob_hi[d];
-            }
-#if (AMREX_SPACEDIM == 2)
-            if (project_dir == 0) {
-                projected_hi[0] = prob_hi[1];
-            }
-#elif (AMREX_SPACEDIM == 3)
-            if (project_dir == 0) {
-                projected_hi[0] = prob_hi[1];
-                projected_hi[1] = prob_hi[2];
-            } else if (project_dir == 1) {
-                projected_hi[1] = prob_hi[2];
-            }
-#endif
-        
-            projected_hi[AMREX_SPACEDIM-1] = prob_hi[project_dir] / n_cells[project_dir];
+                // This defines the physical box
+                Vector<Real> projected_hi(AMREX_SPACEDIM);
+                for (int d=0; d<AMREX_SPACEDIM; d++) {
+                    projected_hi[d] = prob_hi[d];
+                }
+                projected_hi[AMREX_SPACEDIM-1] = prob_hi[2] / n_cells[2];
 
-            RealBox real_box_flat({AMREX_D_DECL(     prob_lo[0],     prob_lo[1],     prob_lo[2])},
-                                  {AMREX_D_DECL(projected_hi[0],projected_hi[1],projected_hi[2])});
+                RealBox real_box_flat({AMREX_D_DECL(     prob_lo[0],     prob_lo[1],     prob_lo[2])},
+                                      {AMREX_D_DECL(projected_hi[0],projected_hi[1],projected_hi[2])});
           
-            // This defines a Geometry object
-            geom_flat.define(domain_flat,&real_box_flat,CoordSys::cartesian,is_periodic.data());
+                // This defines a Geometry object
+                geom_flat_2D.define(domain_flat,&real_box_flat,CoordSys::cartesian,is_periodic.data());
+
+            }
+
+            structFactPrimArray.resize(n_cells[2]);
+            structFactConsArray.resize(n_cells[2]);
+
+            for (int i = 0; i < n_cells[2]; ++i) { 
+                structFactPrimArray[i].define(ba_flat_2D,dmap_flat_2D,prim_var_names,var_scaling_prim,2);
+                structFactConsArray[i].define(ba_flat_2D,dmap_flat_2D,cons_var_names,var_scaling_cons,2);
+            }
 
         }
-
-        if (do_slab_sf == 0) {
-            structFactPrimVerticalAverage.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim,2);
-            structFactConsVerticalAverage.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons,2);
-        }
-        else {
-            structFactPrimVerticalAverage0.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim);
-            structFactPrimVerticalAverage1.define(ba_flat,dmap_flat,prim_var_names,var_scaling_prim);
-            structFactConsVerticalAverage0.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons);
-            structFactConsVerticalAverage1.define(ba_flat,dmap_flat,cons_var_names,var_scaling_cons);
-        }
+    }
     
+#if defined(TURB)
+    if (turbForcing >= 1) {
+        structFactMFTurb.define(ba, dmap, structVarsTurb, 0);
+        turbStructFact.define(ba,dmap,var_names_turb,var_scaling_turb,s_pairA_turb,s_pairB_turb);
     }
-
-    if (do_2D) { // 2D is coded only for XY plane
-
-        {
-            MultiFab X, XRot;
-            ExtractSlice(prim, X, geom, 2, 0, 0, nprimvars);
-            XRot = RotateFlattenedMF(X);
-            ba_flat_2D = XRot.boxArray();
-            dmap_flat_2D = XRot.DistributionMap();
-            master_2D_rot_prim.define(ba_flat_2D,dmap_flat_2D,structVarsPrim,0);
-            master_2D_rot_cons.define(ba_flat_2D,dmap_flat_2D,structVarsCons,0);
-
-            IntVect dom_lo_flat(AMREX_D_DECL(0,0,0));
-            IntVect dom_hi_flat;
-            dom_hi_flat[0] = n_cells[0]-1;
-            dom_hi_flat[1] = n_cells[1]-1;
-            dom_hi_flat[2] = 0;
-            Box domain_flat(dom_lo_flat, dom_hi_flat);
-
-            // This defines the physical box
-            Vector<Real> projected_hi(AMREX_SPACEDIM);
-            for (int d=0; d<AMREX_SPACEDIM; d++) {
-                projected_hi[d] = prob_hi[d];
-            }
-            projected_hi[AMREX_SPACEDIM-1] = prob_hi[2] / n_cells[2];
-
-            RealBox real_box_flat({AMREX_D_DECL(     prob_lo[0],     prob_lo[1],     prob_lo[2])},
-                                  {AMREX_D_DECL(projected_hi[0],projected_hi[1],projected_hi[2])});
-          
-            // This defines a Geometry object
-            geom_flat_2D.define(domain_flat,&real_box_flat,CoordSys::cartesian,is_periodic.data());
-
-        }
-
-        structFactPrimArray.resize(n_cells[2]);
-        structFactConsArray.resize(n_cells[2]);
-
-        for (int i = 0; i < n_cells[2]; ++i) { 
-            structFactPrimArray[i].define(ba_flat_2D,dmap_flat_2D,prim_var_names,var_scaling_prim,2);
-            structFactConsArray[i].define(ba_flat_2D,dmap_flat_2D,cons_var_names,var_scaling_cons,2);
-        }
-
-    }
+#endif
 
     /////////////////////////////////////////////////
     // Initialize Fluxes and Sources
@@ -836,6 +1014,14 @@ void main_driver(const char* argv)
     AMREX_D_TERM(cenflux[0].define(ba,dmap,1,1);, // 0-2: rhoU, rhoV, rhoW
                  cenflux[1].define(ba,dmap,1,1);,
                  cenflux[2].define(ba,dmap,1,1););
+    
+
+#if defined(TURB)
+    // Initialize Turbulence Forcing Object
+    if (turbForcing > 1) {
+        turbforce.Initialize(geom);
+    }
+#endif
                 
     /////////////////////////////////////////////////
     //Time stepping loop
@@ -858,7 +1044,7 @@ void main_driver(const char* argv)
 
         // FHD
         RK3stepStag(cu, cumom, prim, vel, source, eta, zeta, kappa, chi, D, 
-            faceflux, edgeflux_x, edgeflux_y, edgeflux_z, cenflux, ranchem, geom, dt, step);
+            faceflux, edgeflux_x, edgeflux_y, edgeflux_z, cenflux, ranchem, geom, dt, step, turbforce);
 
         // update surface chemistry (via either surfchem_mui or MFsurfchem)
 #if defined(MUI) || defined(USE_AMREX_MPMD)
@@ -983,8 +1169,144 @@ void main_driver(const char* argv)
         }
         statsCount++;
         if (step%100 == 0) {
-            amrex::Print() << "Mean Density: " << ComputeSpatialMean(cu, 0) << " Mean Momentum (x):" << ComputeSpatialMean(cumom[0], 0) << " Mean Energy:" << ComputeSpatialMean(cu, 4) << "\n";
+            amrex::Print() << "Mean Rho: "      << ComputeSpatialMean(cu, 0) 
+                           << " Mean Temp.:"    << ComputeSpatialMean(prim, 4)
+                           << " Mean Press.:"   << ComputeSpatialMean(prim, 5)
+                           << " Mean Mom. (x):" << ComputeSpatialMean(cumom[0], 0) 
+                           << " Mean Mom. (y):" << ComputeSpatialMean(cumom[1], 0) 
+                           << " Mean Mom. (z):" << ComputeSpatialMean(cumom[2], 0) 
+                           << " Mean En.:"      << ComputeSpatialMean(cu, 4) 
+                           << "\n";
         }
+
+#if defined(TURB)
+        // turbulence outputs
+        if ((turbForcing >= 1) and (step%1000 == 0)) {
+
+            for (int i=0; i<AMREX_SPACEDIM; ++i) {
+                vel[i].FillBoundary(geom.periodicity());
+                cumom[i].FillBoundary(geom.periodicity());
+            }
+            
+            turboutfile << step << " " << time << " ";
+
+            Real temp;
+            Vector<Real> tempvec(3);
+            
+            Vector<Real> rhouu(3);
+            Vector<Real> uu(3);
+            Vector<Real> gradU2(3);
+            Vector<Real> gradU3(3);
+            Vector<Real> gradU4(3);
+            Vector<Real> eps_s_vec(3); // solenoidal dissipation
+            Real eps_d; // dilational dissipation
+            
+            // turbulent kinetic energy
+            StagInnerProd(cumom,0,vel,0,macTemp,rhouu);
+            rhouu[0] /= (n_cells[0]+1)*n_cells[1]*n_cells[2];
+            rhouu[1] /= (n_cells[1]+1)*n_cells[2]*n_cells[0];
+            rhouu[2] /= (n_cells[2]+1)*n_cells[0]*n_cells[1];
+            turboutfile << 0.5*( rhouu[0] + rhouu[1] + rhouu[2] ) << " ";
+
+            // RMS velocity
+            StagInnerProd(vel,0,vel,0,macTemp,uu);
+            uu[0] /= (n_cells[0]+1)*n_cells[1]*n_cells[2];
+            uu[1] /= (n_cells[1]+1)*n_cells[2]*n_cells[0];
+            uu[2] /= (n_cells[2]+1)*n_cells[0]*n_cells[1];
+            Real u_rms = sqrt((uu[0] + uu[1] + uu[2])/3.0);
+            turboutfile << u_rms << " ";
+
+            // compute gradU = [du/dx dv/dy dw/dz] at cell-centers
+            ComputeCentredGradFC(vel,gradU,geom);
+            ccTemp.setVal(0.0);
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                MultiFab::Add(ccTemp,gradU,d,0,1,0);
+            }
+            CCInnerProd(ccTemp,0,ccTemp,0,ccTempDiv,temp); // store (\sum_i du_i/dx_i)^2 MFab
+
+            // Compute Velocity gradient moment sum
+            // 2nd moment
+            ccTemp.setVal(0.0);
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                CCMoments(gradU,d,ccTempA,2,gradU2[d]);
+                MultiFab::Add(ccTemp,ccTempA,0,d,1,0);
+                gradU2[d] *= dProb; // <(du_i/dx_i)^2> each component
+            }
+            Real avg_mom2 = ComputeSpatialMean(ccTemp, 0); // <\sum_i (du_i/dx_i)^2>
+            
+            // 3rd moment
+            ccTemp.setVal(0.0);
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                CCMoments(gradU,d,ccTempA,3,gradU3[d]);
+                MultiFab::Add(ccTemp,ccTempA,0,0,1,0);
+                gradU3[d] *= dProb; // <(du_i/dx_i)^3> each component
+            }
+            Real avg_mom3 = ComputeSpatialMean(ccTemp, 0); //  <\sum_i (du_i/dx_i)^3>
+            
+            // 4th moment
+            ccTemp.setVal(0.0);
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                CCMoments(gradU,d,ccTempA,4,gradU4[d]);
+                MultiFab::Add(ccTemp,ccTempA,0,0,1,0);
+                gradU4[d] *= dProb; // <(du_i/dx_i)^4> each component
+            }
+            Real avg_mom4 = ComputeSpatialMean(ccTemp, 0); //  <\sum_i (du_i/dx_i)^4>
+
+            // Compute sound speed
+            ComputeSoundSpeed(sound_speed,prim);
+            Real c_avg = ComputeSpatialMean(sound_speed, 0);
+            turboutfile << c_avg << " ";
+            
+            // Taylor Microscale
+            Real taylor_lamda = u_rms/avg_mom2;
+            turboutfile << taylor_lamda << " " ;
+
+            // Taylor Reynolds Number & Turbulent Mach number
+            Real rho_avg = ComputeSpatialMean(cu, 0);
+            Real eta_avg = ComputeSpatialMean(eta, 0);
+            Real taylor_Re = rho_avg*taylor_lamda*u_rms/eta_avg;
+            Real taylor_Ma = sqrt(3.0)*u_rms/c_avg;
+            turboutfile << taylor_Re << " " << taylor_Ma << " ";
+
+            // Skewness
+            Real skew1 = gradU3[0]/pow(gradU2[0],1.5); // <(du_1/dx_1)^3>/<(du_1/dx_1)^2>^1.5
+            Real skew2 = gradU3[1]/pow(gradU2[1],1.5); // <(du_2/dx_2)^3>/<(du_2/dx_2)^2>^1.5
+            Real skew3 = gradU3[2]/pow(gradU2[2],1.5); // <(du_3/dx_3)^3>/<(du_3/dx_3)^2>^1.5
+            Real skew = avg_mom3/(pow(gradU2[0],1.5) + pow(gradU2[1],1.5) + pow(gradU2[2],1.5)); // <\sum_i (du_i/dx_i)^3> / (\sum_i <(du_i/dx_i)^2>^1.5)
+            turboutfile << skew1 << " " << skew2 << " " << skew3 << " " << skew << " ";
+            
+            // Kurtosis
+            Real kurt1 = gradU4[0]/pow(gradU2[0],2); // <(du_1/dx_1)^4>/<(du_1/dx_1)^2>^2
+            Real kurt2 = gradU4[1]/pow(gradU2[1],2); // <(du_2/dx_2)^4>/<(du_2/dx_2)^2>^2
+            Real kurt3 = gradU4[2]/pow(gradU2[2],2); // <(du_3/dx_3)^4>/<(du_3/dx_3)^2>^2
+            Real kurt =  avg_mom4/(pow(gradU2[0],2) + pow(gradU2[1],2) + pow(gradU2[2],2)); // <\sum_i (du_i/dx_i)^4> / (\sum_i <(du_i/dx_i)^2>^2)
+            turboutfile << kurt1 << " " << kurt2 << " " << kurt3 << " " << kurt << " ";
+
+            // Compute \omega (curl)
+            ComputeCurlFaceToEdge(vel,curlU,geom);
+            
+            // Solenoidal dissipation: <eta \omega_i \omega_i>/<rho>
+            AverageCCToEdge(eta,eta_edge,0,1,SPEC_BC_COMP,geom);
+            EdgeInnerProd(curlU,0,curlU,0,curlUtemp,tempvec);
+            EdgeInnerProd(curlUtemp,0,eta_edge,0,curlU,eps_s_vec);
+            eps_s_vec[0] /= (n_cells[0]+1)*(n_cells[1]+1)*n_cells[2];
+            eps_s_vec[1] /= (n_cells[0]+1)*(n_cells[2]+1)*n_cells[1];
+            eps_s_vec[2] /= (n_cells[1]+1)*(n_cells[2]+1)*n_cells[0];
+            Real eps_s = (eps_s_vec[0] + eps_s_vec[1] + eps_s_vec[2])/rho_avg;
+            turboutfile << eps_s << " ";
+
+            // Dilational dissipation (4/3)*<eta \sum_i (du_i/dx_i)^2>/<rho>
+            CCInnerProd(ccTempDiv,0,eta,0,ccTemp,eps_d);
+            eps_d *= (dProb*(4.0/3.0)/rho_avg);
+            turboutfile << eps_d << " " << eps_d/eps_s << " ";
+
+            // Kolmogorov scales
+            Real kolm_s = pow((eta_avg*eta_avg*eta_avg/(rho_avg*rho_avg*rho_avg*eps_s)),0.25);
+            Real eps_t = eps_s + eps_d;
+            Real kolm_t = pow((eta_avg*eta_avg*eta_avg/(rho_avg*rho_avg*rho_avg*eps_t)),0.25);
+            turboutfile << kolm_s << " " << kolm_t << std::endl;
+        }
+#endif
 
         // write a plotfile
         bool writePlt = false;
@@ -1002,6 +1324,12 @@ void main_driver(const char* argv)
             //          cuMeansAv, cuVarsAv, primMeansAv, primVarsAv, spatialCrossAv);
             WritePlotFileStag(step, time, geom, cu, cuMeans, cuVars, cumom, cumomMeans, cumomVars,
                               prim, primMeans, primVars, vel, velMeans, velVars, coVars, surfcov, surfcovMeans, surfcovVars, eta, kappa);
+            
+#if defined(TURB)
+            if (turbForcing > 0) {
+                EvaluateWritePlotFileVelGrad(step, time, geom, vel);
+            }
+#endif
 
             if (plot_cross) {
                 if (do_1D) {
@@ -1021,6 +1349,38 @@ void main_driver(const char* argv)
                     }
                 }
             }
+
+#if defined(TURB)
+            // compressible turbulence structure factor snapshot
+            if (turbForcing >= 1) {
+
+                cnt = 0;
+
+                // copy velocities into structFactMFTurb
+                for(int d=0; d<AMREX_SPACEDIM; d++) {
+                    ShiftFaceToCC(vel[d], 0, structFactMFTurb, d, 1);
+                    cnt++;
+                }
+                // copy density, pressure and temperature into structFactMFTurb
+                MultiFab::Copy(structFactMFTurb, prim, 0, cnt, 1, 0);
+                cnt++;
+                MultiFab::Copy(structFactMFTurb, prim, 4, cnt, 1, 0);
+                cnt++;
+                MultiFab::Copy(structFactMFTurb, prim, 5, cnt, 1, 0);
+
+                // reset and compute structure factor
+                turbStructFact.FortStructure(structFactMFTurb,geom,1);
+                turbStructFact.CallFinalize(geom);
+
+                // integrate cov_mag over shells in k and write to file (energy spectrum)
+                turbStructFact.IntegratekShells(step,geom);
+
+                // integrate cov_mag over shells in k and write to file (for rho, press, temp)
+                turbStructFact.IntegratekShellsMisc(step,geom);
+
+            }
+#endif
+
         }
 
         // collect a snapshot for structure factor
@@ -1221,7 +1581,6 @@ void main_driver(const char* argv)
 
             }
         }
-        
 
         // write checkpoint file
         if (chk_int > 0 && step > 0 && step%chk_int == 0)
@@ -1239,7 +1598,7 @@ void main_driver(const char* argv)
             else {
                 WriteCheckPoint3D(step, time, statsCount, geom, cu, cuMeans, cuVars, prim,
                                   primMeans, primVars, cumom, cumomMeans, cumomVars, 
-                                  vel, velMeans, velVars, coVars, surfcov, surfcovMeans, surfcovVars, spatialCross3D, ncross);
+                                  vel, velMeans, velVars, coVars, surfcov, surfcovMeans, surfcovVars, spatialCross3D, ncross, turbforce);
             }
         }
 
@@ -1276,9 +1635,19 @@ void main_driver(const char* argv)
             amrex::Print() << "Curent     FAB megabyte spread across MPI nodes: ["
                            << min_fab_megabytes << " ... " << max_fab_megabytes << "]\n";
         }
+
+        if (step%100 == 0) {
+            amrex::Real cfl_max = GetMaxAcousticCFL(prim, vel, dt, geom);
+            amrex::Print() << "Max convective-acoustic CFL is: " << cfl_max << "\n";
+        }
     }
 
     if (ParallelDescriptor::IOProcessor()) outfile.close();
+#if defined(TURB)
+    if (turbForcing >= 1) {
+        if (ParallelDescriptor::IOProcessor()) turboutfile.close();
+    }
+#endif
 
     // timer
     Real stop_time = ParallelDescriptor::second() - strt_time;

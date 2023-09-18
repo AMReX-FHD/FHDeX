@@ -7,4 +7,6 @@ namespace thinfilm {
     extern AMREX_GPU_MANAGED int thinfilm_icorr;
     extern AMREX_GPU_MANAGED int thinfilm_jcorr;
 
+    extern AMREX_GPU_MANAGED int do_fft_diag;
+
 }

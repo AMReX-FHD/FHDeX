@@ -45,7 +45,9 @@ void WriteCheckPoint3D(int step,
                        const amrex::MultiFab& surfcov,
                        const amrex::MultiFab& surfcovMeans,
                        const amrex::MultiFab& surfcovVars,
-                       const Vector<Real>& spatialCross, int ncross)
+                       const Vector<Real>& spatialCross, int ncross,
+                       TurbForcingComp& turbforce)
+
 {
     // timer for profiling
     BL_PROFILE_VAR("WriteCheckPoint3D()",WriteCheckPoint3D);
@@ -104,12 +106,22 @@ void WriteCheckPoint3D(int step,
 
         // Write all the vectors associated with cross averages into the Header file
         if (plot_cross) {
-
             // spatialCross
             for (int i=0; i<n_cells[0]*ncross; i++) {
                 HeaderFile << std::setprecision(16) << spatialCross[i] << "\n";
             }
         }
+
+#if defined(TURB)
+        // Write turbulent forcings
+        if (turbForcing > 1) {
+            for (int i=0; i<132; ++i) {
+                auto [f_sol, f_comp] = turbforce.getU(i);
+                HeaderFile << f_sol << "\n";
+                HeaderFile << f_comp << "\n";
+            }
+        }
+#endif
     }
 
     // C++ random number engine
@@ -602,6 +614,7 @@ void ReadCheckPoint3D(int& step,
                      amrex::MultiFab& surfcovVars,
                      Vector<Real>& spatialCross,
                      int ncross,
+                     TurbForcingComp& turbforce,
                      BoxArray& ba, DistributionMapping& dmap)
 {
     // timer for profiling
@@ -624,6 +637,12 @@ void ReadCheckPoint3D(int& step,
     ba.define(domain);
     ba.maxSize(IntVect(max_grid_size));
     dmap.define(ba, ParallelDescriptor::NProcs());
+    
+#if defined(TURB)
+    if (turbForcing > 1) {
+        turbforce.define(ba,dmap,turb_a,turb_b,turb_c,turb_d,turb_alpha);
+    }
+#endif
 
     // Header
     {
@@ -668,6 +687,19 @@ void ReadCheckPoint3D(int& step,
                 }
             }
         }
+
+#if defined(TURB)
+        // Read in turbulent forcing
+        if (turbForcing > 1) {
+            Real fs_temp;
+            Real fc_temp;
+            for (int i=0; i<132; ++i) {
+                is >> fs_temp;
+                is >> fc_temp;
+                turbforce.setU(i,fs_temp,fc_temp);
+            }
+        }
+#endif
 
         // create old distribution mapping
         dmap_old.define(ba_old, ParallelDescriptor::NProcs());
