@@ -196,6 +196,29 @@ void main_driver(const char* argv)
 
     // initialize height
     height.setVal(thinfilm_h0);
+
+    Real time = 0.;
+
+    // update height using forward Euler
+    if(thinfilm_pertamp > 0.){
+       for ( MFIter mfi(height,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
+
+          const Box& bx = mfi.tilebox();
+            
+          const Array4<Real> & h = height.array(mfi);
+
+          amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+          {
+                h(i,j,k) += thinfilm_pertamp * thinfilm_h0*std::cos(2.*3.14159265358979323846264338327950288*(i+.5)*dx[0]/(prob_hi[0]-prob_lo[0]));
+                if(i==0 && j ==0){
+                     amrex::Print() << " HEIGHT " << time << " " << h(i,j,k)-thinfilm_h0 << std::endl;
+                }
+          });
+
+       }
+     }
+
+    height.FillBoundary(geom.periodicity());
     
     // Physical time constant for dimensional time
     Real t0 = 3.0*visc_coef*thinfilm_h0/thinfilm_gamma;
@@ -204,8 +227,7 @@ void main_driver(const char* argv)
     Real ConstNoise = 2.*k_B*T_init[0] / (3.*visc_coef);
     Real Const3dx = thinfilm_gamma / (3.*visc_coef);
     
-    Real time = 0.;
-    Real dt = 0.1 * (t0/std::pow(thinfilm_h0,4)) * std::pow(dx[0],4) / 16.;
+    Real dt = 0.25 * (t0/std::pow(thinfilm_h0,4)) * std::pow(dx[0],4) / 16.;
 
     int stats_count = 0;
     
@@ -248,11 +270,13 @@ void main_driver(const char* argv)
                                [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 hfacex(i,j,k) = 0.5*( h(i-1,j,k) + h(i,j,k) );
+                hfacex(i,j,k) = thinfilm_h0;
                 gradhx(i,j,k) = ( h(i,j,k) - h(i-1,j,k) ) / dx[0];
             },
                                [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 hfacey(i,j,k) = 0.5*( h(i,j-1,k) + h(i,j,k) );
+                hfacey(i,j,k) = thinfilm_h0;
                 gradhy(i,j,k) = ( h(i,j,k) - h(i,j-1,k) ) / dx[1];
             });
 
@@ -432,7 +456,7 @@ void main_driver(const char* argv)
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 h(i,j,k) -= dt * ( (fluxx(i+1,j,k) - fluxx(i,j,k)) / dx[0]
-                                  +(fluxy(i,j+1,k) - fluxy(i,j,k)) / dx[1] );
+                                  +(fluxy(i,j+1,k) - fluxy(i,j,k)) / dx[1]);
             });
 
         }
@@ -495,6 +519,10 @@ void main_driver(const char* argv)
                         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                         {
                             dhstar(i,j,k) += ( h(thinfilm_icorr,j,k)-thinfilm_h0 ) * ( h(i,j,k)-thinfilm_h0 );
+                            // HACK
+                            if(i==0 && j ==0 && thinfilm_pertamp > 0.){
+                                amrex::Print() << " HEIGHT " << time << " " << h(i,j,k)-thinfilm_h0 << std::endl;
+                            }
                         });
                     } else {
                         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
