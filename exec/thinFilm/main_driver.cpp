@@ -9,11 +9,15 @@
 
 #include "chrono"
 
+#if 0
+
 #ifdef AMREX_USE_CUDA
 #include <cufft.h>
 #else
 #include <fftw3.h>
 #include <fftw3-mpi.h>
+#endif
+
 #endif
 
 using namespace std::chrono;
@@ -575,6 +579,7 @@ void main_driver(const char* argv)
                 WriteSingleLevelPlotfile(pltfile, dheightstaravg, {"star"}, geom, time, 0);
             }
 
+#if 0
             if (do_fft_diag == 1) {
 
                 // take ffts of each strip, add to running sum
@@ -731,6 +736,7 @@ void main_driver(const char* argv)
                 }
 
             } // end if test for fft diagnostic
+#endif
 
         } // end loop over time steps
         
