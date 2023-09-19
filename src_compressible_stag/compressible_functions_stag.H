@@ -46,6 +46,14 @@ void EvaluateWritePlotFileVelGrad(int step,
                                   const amrex::Geometry& geom,
                                   const std::array<MultiFab, AMREX_SPACEDIM>& vel);
 
+#if defined(TURB)
+void EvaluateWritePlotFileVelGrad(int step,
+                                  const amrex::Real time,
+                                  const amrex::Geometry& geom,
+                                  const std::array<MultiFab, AMREX_SPACEDIM>& vel,
+                                  const amrex::MultiFab& vel_decomp);
+#endif
+
 void conservedToPrimitiveStag(MultiFab& prim_in, std::array<MultiFab, AMREX_SPACEDIM>& velStag_in,
                               MultiFab& cons_in, const std::array<MultiFab, AMREX_SPACEDIM>& momStag_in);
 
@@ -387,5 +395,28 @@ void EvaluateSpatialCorrelations1D(MultiFab& spatialCross1D,
 void ComputeSoundSpeed(MultiFab& sound_speed_in, const MultiFab& prim_in);
 
 amrex::Real GetMaxAcousticCFL(const MultiFab& prim_in, const std::array<MultiFab, AMREX_SPACEDIM>& vel_in, const Real& dt, const Geometry& geom);
+
+#if defined(TURB)
+void GetTurbQty(std::array< MultiFab, AMREX_SPACEDIM >& vel,
+                std::array< MultiFab, AMREX_SPACEDIM >& cumom,
+                MultiFab& prim,
+                MultiFab& eta,
+                const amrex::Geometry& geom,
+                Real& turbKE, Real& c_speed,
+                Real& u_rms,
+                Real& taylor_len, Real& taylor_Re, Real& taylor_Ma,
+                Real& skew, Real& kurt,
+                Real& eps_s, Real& eps_d, Real& eps_ratio,
+                Real& kolm_s, Real& kolm_d, Real& kolm_t);
+
+void GetTurbQtyDecomp(const MultiFab& vel_decomp,
+                      const MultiFab& prim,
+                      const amrex::Geometry& geom,
+                      Real& turbKE_s, Real& turbKE_d, Real& delta_turbKE,
+                      Real& u_rms_s, Real& u_rms_d, Real& delta_u_rms,
+                      Real& taylor_Ma_d,
+                      Real& skew_s, Real& kurt_s,
+                      Real& skew_d, Real& kurt_d);
+#endif
 
 #endif

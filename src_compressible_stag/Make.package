@@ -7,6 +7,7 @@ CEXE_sources += membraneStag.cpp
 CEXE_sources += writePlotFileStag.cpp
 CEXE_sources += Checkpoint.cpp
 CEXE_sources += TurbForcingComp.cpp
+CEXE_sources += DeriveVelProp.cpp
 
 CEXE_sources += compressible_functions_stag.cpp
 CEXE_headers += compressible_functions_stag.H
