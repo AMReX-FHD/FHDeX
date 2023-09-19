@@ -21,4 +21,4 @@ export CFLAGS="-I${ROCM_PATH}/include"
 export CXXFLAGS="-I${ROCM_PATH}/include -Wno-pass-failed"
 export LDFLAGS="-L${ROCM_PATH}/lib -lamdhip64 ${PE_MPICH_GTL_DIR_amd_gfx90a} -lmpi_gtl_hsa"
 
-make -j18 USE_CUDA=FALSE USE_HIP=TRUE DO_TURB=TRUE
+make -j18 USE_CUDA=FALSE USE_HIP=TRUE DO_TURB=TRUE MAX_SPEC=2

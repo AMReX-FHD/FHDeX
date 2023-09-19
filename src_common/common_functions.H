@@ -220,6 +220,12 @@ void CCMoments(const MultiFab & m1,
 		 const int & power,
 		 Real & prod_val);
 
+void FCMoments(const std::array<MultiFab, AMREX_SPACEDIM>& m1,
+		       const amrex::Vector<int>& comps,
+               std::array<MultiFab, AMREX_SPACEDIM>&  mscr,
+		       const int& power,
+		       amrex::Vector<amrex::Real>& prod_val);
+
 void StagL2Norm(const std::array<MultiFab, AMREX_SPACEDIM> & m1,
 		const int & comp,
                 std::array<MultiFab, AMREX_SPACEDIM>& mscr,
