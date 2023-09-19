@@ -1265,7 +1265,7 @@ ResetReservoirFluxes(const std::array<MultiFab, AMREX_SPACEDIM>& faceflux_res,
 
             // this is the x-lo domain boundary box (xy nodality)
             // Orientation(dir,Orientation)  -- Orientation can be ::low or ::high
-            const Box& dom_xz_zlo = amrex::bdryNode(dom_zy, Orientation(2, Orientation::low));
+            const Box& dom_xz_zlo = amrex::bdryNode(dom_xz, Orientation(2, Orientation::low));
 
             for (MFIter mfi(edgeflux_z[0]); mfi.isValid(); ++mfi) {
                 const Box& bx = mfi.fabbox();
@@ -1349,7 +1349,7 @@ ResetReservoirFluxes(const std::array<MultiFab, AMREX_SPACEDIM>& faceflux_res,
 
             // this is the x-lo domain boundary box (xy nodality)
             // Orientation(dir,Orientation)  -- Orientation can be ::low or ::high
-            const Box& dom_xz_zhi = amrex::bdryNode(dom_zy, Orientation(2, Orientation::high));
+            const Box& dom_xz_zhi = amrex::bdryNode(dom_xz, Orientation(2, Orientation::high));
 
             for (MFIter mfi(edgeflux_z[0]); mfi.isValid(); ++mfi) {
                 const Box& bx = mfi.fabbox();
