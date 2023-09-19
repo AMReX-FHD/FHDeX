@@ -165,12 +165,12 @@ ResetReservoirMom(std::array<MultiFab, AMREX_SPACEDIM>& cumom,
                   const std::array<MultiFab, AMREX_SPACEDIM>& cumom_res,
                   const amrex::Geometry& geom);
 
-void
-ReFluxCons(MultiFab& cu, const MultiFab& cu0,
-           const std::array<MultiFab, AMREX_SPACEDIM>& faceflux_res,
-           const std::array<MultiFab, AMREX_SPACEDIM>& faceflux_cont,
-           const amrex::Geometry& geom,
-           const amrex::Real dt);
+//void
+//ReFluxCons(MultiFab& cu, const MultiFab& cu0,
+//           const std::array<MultiFab, AMREX_SPACEDIM>& faceflux_res,
+//           const std::array<MultiFab, AMREX_SPACEDIM>& faceflux_cont,
+//           const amrex::Geometry& geom,
+//           const amrex::Real dt);
 
 
 void WriteCheckPoint3D(int step,

@@ -50,7 +50,6 @@ random_cross_vel(const amrex::Real& a, const amrex::Real& vT, bool tangential, a
         }
     }
     else { // tangential velocity crossing
-        amrex::Real v;
         v = Vtangential + vT*amrex::RandomNormal(0.0,sqrt(0.5),engine);
     }
     return v;
@@ -120,26 +119,27 @@ poisson_process_reservoir(const amrex::GpuArray<amrex::Real,MAX_SPECIES>& mass,
     while(!stop) {
         
         // add a particle for each species (if stop[n] = false)
+        amrex::Real vel_rand;
         for (int n=0;n<nspec;++n) {
             if (!stop_flag[n]) {
                 
                 // normal component
                 mass_cross += mass[n]; // add a particle crossing for total mass
                 spec_mass_cross[n] += mass[n]; // add a particle crossing for species mass
-                amrex::Real vel_rand = random_cross_vel(speed_ratio[n],thermal_speed[n],false,0.0,engine); // get random velocity
+                vel_rand = random_cross_vel(speed_ratio[n],thermal_speed[n],false,0.0,engine); // get random velocity
                 mom_cross[0] += mass[n]*vel_rand; // add a particle crossing for total momentum
                 en_cross  += 0.5*mass[n]*(vel_rand)*(vel_rand); // add a particle crossing for total energy
 
                 // tangential component 1
                 if (dim >= 2) {
-                    amrex::Real vel_rand = random_cross_vel(speed_ratio[n],thermal_speed[n],true,VT1,engine); // get random velocity
+                    vel_rand = random_cross_vel(speed_ratio[n],thermal_speed[n],true,VT1,engine); // get random velocity
                     mom_cross[1] += mass[n]*vel_rand; // add a particle crossing for total momentum
                     en_cross  += 0.5*mass[n]*(vel_rand)*(vel_rand); // add a particle crossing for total energy
                 }
 
                 // tangential component 2
                 if (dim == 3) {
-                    amrex::Real vel_rand = random_cross_vel(speed_ratio[n],thermal_speed[n],true,VT2,engine); // get random velocity
+                    vel_rand = random_cross_vel(speed_ratio[n],thermal_speed[n],true,VT2,engine); // get random velocity
                     mom_cross[2] += mass[n]*vel_rand; // add a particle crossing for total momentum
                     en_cross  += 0.5*mass[n]*(vel_rand)*(vel_rand); // add a particle crossing for total energy
                 }

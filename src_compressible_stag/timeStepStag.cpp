@@ -360,8 +360,8 @@ void RK3stepStag(MultiFab& cu,
         compute_chemistry_source_CLE(dt, dx[0]*dx[1]*dx[2], prim, source, ranchem);
     }
 
-    amrex::Real energy_in = amrex::Real(0.0);
 #if defined(TURB)
+    amrex::Real energy_in = amrex::Real(0.0);
     if (turbForcing == 2) { // random forcing tubulence : get average energy input
         ReduceOps<ReduceOpSum> reduce_op;
         ReduceData<Real> reduce_data(reduce_op);
@@ -687,8 +687,8 @@ void RK3stepStag(MultiFab& cu,
         compute_chemistry_source_CLE(dt, dx[0]*dx[1]*dx[2], prim, source, ranchem);
     }
     
-    amrex::Real energyp_in = amrex::Real(0.0);
 #if defined(TURB)
+    amrex::Real energyp_in = amrex::Real(0.0);
     if (turbForcing == 2) { // random forcing tubulence : get average energy input
         ReduceOps<ReduceOpSum> reduce_op;
         ReduceData<Real> reduce_data(reduce_op);
@@ -1021,8 +1021,8 @@ void RK3stepStag(MultiFab& cu,
         compute_chemistry_source_CLE(dt, dx[0]*dx[1]*dx[2], prim, source, ranchem);
     }
     
-    amrex::Real energyp2_in = amrex::Real(0.0);
 #if defined(TURB)
+    amrex::Real energyp2_in = amrex::Real(0.0);
     if (turbForcing == 2) { // random forcing tubulence : get average energy input
         ReduceOps<ReduceOpSum> reduce_op;
         ReduceData<Real> reduce_data(reduce_op);

@@ -22,9 +22,6 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
     Box dom(geom.Domain());
 
     Real N_A = Runiv/k_B; // Avagadro's number
-    Real vol = dx[0]*dx[1]*dx[2];
-    Real PI = 4.0*atan(1.0);
-    Real sqrtPI = sqrt(PI);
     
     GpuArray<Real,MAX_SPECIES> mass;
     for (int l=0;l<nspecies;++l) {
@@ -36,11 +33,13 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
         faceflux_res[d].setVal(0.0);
     }
 
+    Real area, vol;
+
     // Reservoir in LO X
     if (bc_mass_lo[0] == 4) {
 
-        Real area = dx[1]*dx[2];
-        Real vol  = dx[0]*dx[1]*dx[2];
+        area = dx[1]*dx[2];
+        vol  = dx[0]*dx[1]*dx[2];
 
         // face-based flux (mass and energy) and normal momentum /////
         //////////////////////////////////////////////////////////////
@@ -177,8 +176,8 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
     // Reservoir in HI X
     if (bc_mass_hi[0] == 4) {
 
-        Real area = dx[1]*dx[2];
-        Real vol  = dx[0]*dx[1]*dx[2];
+        area = dx[1]*dx[2];
+        vol  = dx[0]*dx[1]*dx[2];
 
         // face-based flux (mass and energy) and normal momentum /////
         //////////////////////////////////////////////////////////////
@@ -316,8 +315,8 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
     // Reservoir in LO Y
     if (bc_mass_lo[1] == 4) {
 
-        Real area = dx[0]*dx[2];
-        Real vol  = dx[0]*dx[1]*dx[2];
+        area = dx[0]*dx[2];
+        vol  = dx[0]*dx[1]*dx[2];
 
         // face-based flux (mass and energy) and normal momentum /////
         //////////////////////////////////////////////////////////////
@@ -454,8 +453,8 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
     // Reservoir in HI Y
     if (bc_mass_hi[1] == 4) {
 
-        Real area = dx[0]*dx[2];
-        Real vol  = dx[0]*dx[1]*dx[2];
+        area = dx[0]*dx[2];
+        vol  = dx[0]*dx[1]*dx[2];
 
         // face-based flux (mass and energy) and normal momentum /////
         //////////////////////////////////////////////////////////////
@@ -593,8 +592,8 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
     // Reservoir in LO Z
     if (bc_mass_lo[2] == 4) {
 
-        Real area = dx[0]*dx[1];
-        Real vol  = dx[0]*dx[1]*dx[2];
+        area = dx[0]*dx[1];
+        vol  = dx[0]*dx[1]*dx[2];
 
         // face-based flux (mass and energy) and normal momentum /////
         //////////////////////////////////////////////////////////////
@@ -731,8 +730,8 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
     // Reservoir in HI Z
     if (bc_mass_hi[2] == 4) {
 
-        Real area = dx[0]*dx[1];
-        Real vol  = dx[0]*dx[1]*dx[2];
+        area = dx[0]*dx[1];
+        vol  = dx[0]*dx[1]*dx[2];
 
         // face-based flux (mass and energy) and normal momentum /////
         //////////////////////////////////////////////////////////////
@@ -1565,65 +1564,65 @@ ResetReservoirMom(std::array<MultiFab, AMREX_SPACEDIM>& cumom,
 // Reflux conserved qtys at the cell next to reservoir ////////////////////
 // not used in the current implementation /////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////
-void 
-ReFluxCons(MultiFab& cu, const MultiFab& cu0,
-           const std::array<MultiFab, AMREX_SPACEDIM>& faceflux_res,
-           const std::array<MultiFab, AMREX_SPACEDIM>& faceflux_cont,
-           const amrex::Geometry& geom,
-           const amrex::Real dt)
-{
-    BL_PROFILE_VAR("ReFluxCons()",ReFluxCons);
-    
-    const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
-    Box dom(geom.Domain());
-    
-    for ( MFIter mfi(cu0); mfi.isValid(); ++mfi) {
-
-        const Box& bx = mfi.validbox();
-
-        AMREX_D_TERM(Array4<Real const> const& xflux_res = faceflux_res[0].array(mfi);,
-                     Array4<Real const> const& yflux_res = faceflux_res[1].array(mfi);,
-                     Array4<Real const> const& zflux_res = faceflux_res[2].array(mfi););
-        AMREX_D_TERM(Array4<Real const> const& xflux_cont = faceflux_cont[0].array(mfi);,
-                     Array4<Real const> const& yflux_cont = faceflux_cont[1].array(mfi);,
-                     Array4<Real const> const& zflux_cont = faceflux_cont[2].array(mfi););
-
-        const Array4<Real>& cons             = cu.array(mfi);
-        const Array4<const Real>& cons0      = cu0.array(mfi);
-
-        // Reservoir in LO X
-        if ((bc_mass_lo[0] == 4) and (bx.smallEnd(0) <= dom.smallEnd(0))) {
-            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-            {
-                if (i == dom.smallEnd(0)) {
-                    cons(i,j,k,0) = cons0(i,j,k,0) 
-                      - (dt/dx[0])*(xflux_cont(i,j,k,0) - xflux_res(i,j,k,0)); // correct density
-                    cons(i,j,k,4) = cons0(i,j,k,4) 
-                      - (dt/dx[0])*(xflux_cont(i,j,k,4) - xflux_res(i,j,k,4)); // correct en. density
-                    for (int n=0;n<nspecies;++n) {
-                        cons(i,j,k,n+5) = cons0(i,j,k,n+5) 
-                      - (dt/dx[0])*(xflux_cont(i,j,k,n+5) - xflux_res(i,j,k,n+5)); // correct species
-                    }
-                }
-            });
-        }
-
-        // Reservoir in HI X
-        if ((bc_mass_hi[0] == 4) and (bx.bigEnd(0) >= dom.bigEnd(0))) {
-            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-            {
-                if (i == dom.bigEnd(0)) {
-                    cons(i,j,k,0) = cons0(i,j,k,0) 
-                      + (dt/dx[0])*(xflux_cont(i+1,j,k,0) - xflux_res(i+1,j,k,0)); // correct density
-                    cons(i,j,k,4) = cons0(i,j,k,4) 
-                      + (dt/dx[0])*(xflux_cont(i+1,j,k,4) - xflux_res(i+1,j,k,4)); // correct en. density
-                    for (int n=0;n<nspecies;++n) {
-                        cons(i,j,k,n+5) = cons0(i,j,k,n+5) 
-                      + (dt/dx[0])*(xflux_cont(i+1,j,k,n+5) - xflux_res(i+1,j,k,n+5)); // correct species
-                    }
-                }
-            });
-        }
-    }
-}
+//void 
+//ReFluxCons(MultiFab& cu, const MultiFab& cu0,
+//           const std::array<MultiFab, AMREX_SPACEDIM>& faceflux_res,
+//           const std::array<MultiFab, AMREX_SPACEDIM>& faceflux_cont,
+//           const amrex::Geometry& geom,
+//           const amrex::Real dt)
+//{
+//    BL_PROFILE_VAR("ReFluxCons()",ReFluxCons);
+//    
+//    const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
+//    Box dom(geom.Domain());
+//    
+//    for ( MFIter mfi(cu0); mfi.isValid(); ++mfi) {
+//
+//        const Box& bx = mfi.validbox();
+//
+//        AMREX_D_TERM(Array4<Real const> const& xflux_res = faceflux_res[0].array(mfi);,
+//                     Array4<Real const> const& yflux_res = faceflux_res[1].array(mfi);,
+//                     Array4<Real const> const& zflux_res = faceflux_res[2].array(mfi););
+//        AMREX_D_TERM(Array4<Real const> const& xflux_cont = faceflux_cont[0].array(mfi);,
+//                     Array4<Real const> const& yflux_cont = faceflux_cont[1].array(mfi);,
+//                     Array4<Real const> const& zflux_cont = faceflux_cont[2].array(mfi););
+//
+//        const Array4<Real>& cons             = cu.array(mfi);
+//        const Array4<const Real>& cons0      = cu0.array(mfi);
+//
+//        // Reservoir in LO X
+//        if ((bc_mass_lo[0] == 4) and (bx.smallEnd(0) <= dom.smallEnd(0))) {
+//            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+//            {
+//                if (i == dom.smallEnd(0)) {
+//                    cons(i,j,k,0) = cons0(i,j,k,0) 
+//                      - (dt/dx[0])*(xflux_cont(i,j,k,0) - xflux_res(i,j,k,0)); // correct density
+//                    cons(i,j,k,4) = cons0(i,j,k,4) 
+//                      - (dt/dx[0])*(xflux_cont(i,j,k,4) - xflux_res(i,j,k,4)); // correct en. density
+//                    for (int n=0;n<nspecies;++n) {
+//                        cons(i,j,k,n+5) = cons0(i,j,k,n+5) 
+//                      - (dt/dx[0])*(xflux_cont(i,j,k,n+5) - xflux_res(i,j,k,n+5)); // correct species
+//                    }
+//                }
+//            });
+//        }
+//
+//        // Reservoir in HI X
+//        if ((bc_mass_hi[0] == 4) and (bx.bigEnd(0) >= dom.bigEnd(0))) {
+//            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+//            {
+//                if (i == dom.bigEnd(0)) {
+//                    cons(i,j,k,0) = cons0(i,j,k,0) 
+//                      + (dt/dx[0])*(xflux_cont(i+1,j,k,0) - xflux_res(i+1,j,k,0)); // correct density
+//                    cons(i,j,k,4) = cons0(i,j,k,4) 
+//                      + (dt/dx[0])*(xflux_cont(i+1,j,k,4) - xflux_res(i+1,j,k,4)); // correct en. density
+//                    for (int n=0;n<nspecies;++n) {
+//                        cons(i,j,k,n+5) = cons0(i,j,k,n+5) 
+//                      + (dt/dx[0])*(xflux_cont(i+1,j,k,n+5) - xflux_res(i+1,j,k,n+5)); // correct species
+//                    }
+//                }
+//            });
+//        }
+//    }
+//}
 
