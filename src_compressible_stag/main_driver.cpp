@@ -37,7 +37,7 @@ void main_driver(const char* argv)
 
     std::string inputs_file = argv;
 
-    amrex::AllPrint() << "Compiled with support for maximum species = " << MAX_SPECIES << "\n";
+    amrex::Print() << "Compiled with support for maximum species = " << MAX_SPECIES << "\n";
     
     // copy contents of F90 modules to C++ namespaces
     InitializeCommonNamespace();
@@ -1488,68 +1488,6 @@ void main_driver(const char* argv)
                                   vel, velMeans, velVars, coVars, surfcov, surfcovMeans, surfcovVars, spatialCross3D, ncross, turbforce);
             }
         }
-
-//        // reservoir debug output
-//      Box dom(geom.Domain());
-//      
-//      for ( MFIter mfi(cu); mfi.isValid(); ++mfi) {
-//
-//          const Box& bx = mfi.validbox();
-//          const auto lo = amrex::lbound(bx);
-//          const auto hi = amrex::ubound(bx);
-//
-//          AMREX_D_TERM(Array4<Real const> const& xmom = cumom[0].array(mfi);,
-//                       Array4<Real const> const& ymom = cumom[1].array(mfi);,
-//                       Array4<Real const> const& zmom = cumom[2].array(mfi););
-//
-//          const Array4<const Real>& cufab       = cu.array(mfi);
-//          const Array4<const Real>& primfab     = prim.array(mfi);
-//
-//          // Reservoir in LO X
-//          if ((bc_mass_lo[0] == 4) and (bx.smallEnd(0) <= dom.smallEnd(0))) {
-//              for (auto k = lo.z; k <= hi.z; ++k) {
-//              for (auto j = lo.y; j <= hi.y; ++j) {
-//              for (auto i = lo.x; i <= hi.x; ++i) {
-//                  if (i == dom.smallEnd(0) and (j==0) and (k==0)) {
-//                      Real dens = cufab(i,j,k,0);
-//                      Real en = cufab(i,j,k,4);
-//                      Real rho1 = cufab(i,j,k,5);
-//                      Real rho2 = cufab(i,j,k,6);
-//                      Real temp = primfab(i,j,k,4);
-//                      Real press = primfab(i,j,k,5);
-//                      Real moment = xmom(i,j,k);
-//                    if (ParallelDescriptor::IOProcessor()) {
-//                      outfilereslo << dens << " " << en << " " << rho1 << " " << rho2 << " " << temp << " " << press << " " << moment << std::endl;
-//                    }
-//                  }
-//              }
-//              }
-//              }
-//          }
-//
-//          // Reservoir in HI X
-//          if ((bc_mass_hi[0] == 4) and (bx.bigEnd(0) >= dom.bigEnd(0))) {
-//              for (auto k = lo.z; k <= hi.z; ++k) {
-//              for (auto j = lo.y; j <= hi.y; ++j) {
-//              for (auto i = lo.x; i <= hi.x; ++i) {
-//                  if (i == dom.bigEnd(0) and (j==0) and (k==0)) {
-//                      Real dens = cufab(i,j,k,0);
-//                      Real en = cufab(i,j,k,4);
-//                      Real rho1 = cufab(i,j,k,5);
-//                      Real rho2 = cufab(i,j,k,6);
-//                      Real temp = primfab(i,j,k,4);
-//                      Real press = primfab(i,j,k,5);
-//                      Real moment = xmom(i+1,j,k);
-//                    if (ParallelDescriptor::IOProcessor()) {
-//                      outfilereshi << dens << " " << en << " " << rho1 << " " << rho2 << " " << temp << " " << press << " " << moment << std::endl;
-//                    }
-//                  }
-//              }
-//              }
-//              }
-//          }
-//      }
-
 
         // timer
         Real aux2 = ParallelDescriptor::second() - aux1;

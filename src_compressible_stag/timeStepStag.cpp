@@ -334,9 +334,12 @@ void RK3stepStag(MultiFab& cu,
         stochface, stochedge_x, stochedge_y, stochedge_z, stochcen, 
         geom, stoch_weights,dt);
 
+    // reservoir timers
+    Real aux1, aux2, aux3, aux4, aux5, aux6; 
+    
     // add to the total continuum fluxes based on RK3 weight
-    Real aux1 = ParallelDescriptor::second();
     if (do_reservoir) {
+        aux1 = ParallelDescriptor::second();
         ComputeFluxMomReservoir(cu,prim,vel,cumom_res,
                                 faceflux_res,geom,dt); // compute fluxes and momentum from reservoir particle update
         ResetReservoirFluxes(faceflux_res, faceflux,
@@ -344,9 +347,9 @@ void RK3stepStag(MultiFab& cu,
                              edgeflux_y,
                              edgeflux_z,
                              geom); // reset fluxes in the FHD-reservoir interface from particle update
+        aux2 = ParallelDescriptor::second() - aux1;
+        ParallelDescriptor::ReduceRealMax(aux2,  ParallelDescriptor::IOProcessorNumber());
     }
-    Real aux2 = ParallelDescriptor::second() - aux1;
-    ParallelDescriptor::ReduceRealMax(aux2,  ParallelDescriptor::IOProcessorNumber());
 
     if (nreaction>0) {
         MultiFab::LinComb(ranchem,
@@ -661,8 +664,8 @@ void RK3stepStag(MultiFab& cu,
         geom, stoch_weights,dt);
 
     // add to the total continuum fluxes based on RK3 weight
-    Real aux3 = ParallelDescriptor::second();
     if (do_reservoir) {
+        aux3 = ParallelDescriptor::second();
         ComputeFluxMomReservoir(cup,prim,vel,cumom_res,
                                 faceflux_res,
                                 geom,0.25*dt); // compute fluxes and momentum from reservoir particle update
@@ -671,9 +674,9 @@ void RK3stepStag(MultiFab& cu,
                              edgeflux_y,
                              edgeflux_z,
                              geom); // reset fluxes in the FHD-reservoir interface from particle update
+        aux4 = ParallelDescriptor::second() - aux3;
+        ParallelDescriptor::ReduceRealMax(aux4,  ParallelDescriptor::IOProcessorNumber());
     }
-    Real aux4 = ParallelDescriptor::second() - aux3;
-    ParallelDescriptor::ReduceRealMax(aux4,  ParallelDescriptor::IOProcessorNumber());
 
     if (nreaction>0) {
         MultiFab::LinComb(ranchem,
@@ -995,8 +998,8 @@ void RK3stepStag(MultiFab& cu,
         geom, stoch_weights,dt);
     
     // add to the total continuum fluxes based on RK3 weight
-    Real aux5 = ParallelDescriptor::second();
     if (do_reservoir) {
+        aux5 = ParallelDescriptor::second();
         ComputeFluxMomReservoir(cup2,prim,vel,cumom_res,
                                 faceflux_res,
                                 geom,(2.0/3.0)*dt); // compute fluxes and momentum from reservoir particle update
@@ -1005,9 +1008,9 @@ void RK3stepStag(MultiFab& cu,
                              edgeflux_y,
                              edgeflux_z,
                              geom); // reset fluxes in the FHD-reservoir interface from particle update
+        aux6 = ParallelDescriptor::second() - aux5;
+        ParallelDescriptor::ReduceRealMax(aux6,  ParallelDescriptor::IOProcessorNumber());
     }
-    Real aux6 = ParallelDescriptor::second() - aux5;
-    ParallelDescriptor::ReduceRealMax(aux6,  ParallelDescriptor::IOProcessorNumber());
 
     if (nreaction>0) {
         MultiFab::LinComb(ranchem,
