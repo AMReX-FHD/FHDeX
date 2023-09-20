@@ -37,7 +37,7 @@ void main_driver(const char* argv)
 
     std::string inputs_file = argv;
 
-    amrex::AllPrint() << "Compiled with support for maximum species = " << MAX_SPECIES << "\n";
+    amrex::Print() << "Compiled with support for maximum species = " << MAX_SPECIES << "\n";
     
     // copy contents of F90 modules to C++ namespaces
     InitializeCommonNamespace();
@@ -1049,7 +1049,7 @@ void main_driver(const char* argv)
 
         // timer
         Real ts2 = ParallelDescriptor::second() - ts1;
-        ParallelDescriptor::ReduceRealMax(ts2);
+        ParallelDescriptor::ReduceRealMax(ts2, ParallelDescriptor::IOProcessorNumber());
         if (step%100 == 0) {
             amrex::Print() << "Advanced step " << step << " in " << ts2 << " seconds\n";
         }
@@ -1491,7 +1491,7 @@ void main_driver(const char* argv)
 
         // timer
         Real aux2 = ParallelDescriptor::second() - aux1;
-        ParallelDescriptor::ReduceRealMax(aux2);
+        ParallelDescriptor::ReduceRealMax(aux2,  ParallelDescriptor::IOProcessorNumber());
         if (step%100 == 0) {
             amrex::Print() << "Aux time (stats, struct fac, plotfiles) " << aux2 << " seconds\n";
         }
@@ -1539,6 +1539,6 @@ void main_driver(const char* argv)
 
     // timer
     Real stop_time = ParallelDescriptor::second() - strt_time;
-    ParallelDescriptor::ReduceRealMax(stop_time);
+    ParallelDescriptor::ReduceRealMax(stop_time, ParallelDescriptor::IOProcessorNumber());
     amrex::Print() << "Run time = " << stop_time << std::endl;
 }

@@ -421,7 +421,7 @@ void WritePlotFileStag(int step,
     WriteSingleLevelPlotfile(plotfilename,plotfile,varNames,geom,time,step);
     
     Real t2 = ParallelDescriptor::second() - t1;
-    ParallelDescriptor::ReduceRealMax(t2);
+    ParallelDescriptor::ReduceRealMax(t2,  ParallelDescriptor::IOProcessorNumber());
     amrex::Print() << "Time spent writing plotfile " << t2 << std::endl;
 }
 
