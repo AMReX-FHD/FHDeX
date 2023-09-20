@@ -75,6 +75,12 @@ void calculateTransportCoeffs(const MultiFab& prim_in,
                 }
             }
 
+            // set bulk viscosity
+            if (amrex::Math::abs(visc_type) == 3) {
+                zeta(i,j,k) = zeta_ratio * eta(i,j,k);
+            }
+
+
         });
     }
 }
