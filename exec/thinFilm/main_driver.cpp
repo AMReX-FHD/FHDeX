@@ -185,6 +185,23 @@ void main_driver(const char* argv)
 
     // initialize height
     height.setVal(thinfilm_h0);
+
+    // update height using forward Euler
+    if (thinfilm_pertamp > 0.) {
+        for ( MFIter mfi(height,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
+
+            const Box& bx = mfi.tilebox();
+            const Array4<Real> & h = height.array(mfi);
+
+            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                h(i,j,k) += thinfilm_pertamp * thinfilm_h0*std::cos(2.*M_PI*(i+.5)*dx[0]/(prob_hi[0]-prob_lo[0]));
+            });
+
+        }
+    }
+
+    height.FillBoundary(geom.periodicity());
     
     // Physical time constant for dimensional time
     Real t0 = 3.0*visc_coef*thinfilm_h0/thinfilm_gamma;
@@ -192,7 +209,7 @@ void main_driver(const char* argv)
     // constant factor in noise term
     Real ConstNoise = 2.*k_B*T_init[0] / (3.*visc_coef);
     Real Const3dx = thinfilm_gamma / (3.*visc_coef);
-    
+
     Real time = 0.;
 
     Real dx_min;
@@ -205,36 +222,50 @@ void main_driver(const char* argv)
     }
 
     //////////////////////////////////////
-    // data structures to take 1D ffts for 1D mode
+    // for ASCII writeout and 1D ffts in 1D mode
     BoxArray ba_onegrid(domain);
     DistributionMapping dmap_onegrid(ba_onegrid);
 
     MultiFab height_onegrid(ba_onegrid, dmap_onegrid, 1, 0);
 
-    // make the "1D" MultiFab x-based, regardless of whether problem is x or y-based
-    IntVect dom_lo_flat(0,0);
-    IntVect dom_hi_flat(n_cells[algorithm_type]-1,0);
+    // data structures to take 1D ffts in 1D mode
+    MultiFab height_flat_onegrid;
+    MultiFab fft_sum;
+    MultiFab fft_avg;
 
-    Box domain_flat(dom_lo_flat,dom_hi_flat);
-    BoxArray ba_flat_onegrid(domain_flat);
+    Geometry geom_fft;
 
-    // use same dmap as height_onegrid so we can easily copy a strip into here
-    MultiFab height_flat_onegrid(ba_flat_onegrid,dmap_onegrid,1,0);
+    long npts_flat;
 
-    // fft contains n_cell/2+1 points (index space 0 to n_cell/2
-    IntVect dom_lo_fft(0,0);
-    IntVect dom_hi_fft(n_cells[algorithm_type]/2,0);
-    Box domain_fft(dom_lo_fft,dom_hi_fft);
-    BoxArray ba_fft(domain_fft);
+    if (algorithm_type == 0 || algorithm_type == 1) {
+        // make the "1D" MultiFab x-based, regardless of whether problem is x or y-based
+        IntVect dom_lo_flat(0,0);
+        IntVect dom_hi_flat(n_cells[algorithm_type]-1,0);
+
+        Box domain_flat(dom_lo_flat,dom_hi_flat);
+        BoxArray ba_flat_onegrid(domain_flat);
+
+        npts_flat = domain_flat.numPts();
+        
+        // use same dmap as height_onegrid so we can easily copy a strip into here
+        height_flat_onegrid.define(ba_flat_onegrid,dmap_onegrid,1,0);
+
+        // fft contains n_cell/2+1 points (index space 0 to n_cell/2
+        IntVect dom_lo_fft(0,0);
+        IntVect dom_hi_fft(n_cells[algorithm_type]/2,0);
+        Box domain_fft(dom_lo_fft,dom_hi_fft);
+        BoxArray ba_fft(domain_fft);
     
-    // magnitude of fft, sum and average
-    // use same dmap as height_onegrid
-    MultiFab fft_sum(ba_fft,dmap_onegrid,1,0);
-    MultiFab fft_avg(ba_fft,dmap_onegrid,1,0);
+        // magnitude of fft, sum and average
+        // use same dmap as height_onegrid
+        fft_sum.define(ba_fft,dmap_onegrid,1,0);
+        fft_avg.define(ba_fft,dmap_onegrid,1,0);
 
-    fft_sum.setVal(0.);
+        fft_sum.setVal(0.);
 
-    Geometry geom_fft(domain_fft,&real_box,CoordSys::cartesian,is_periodic.data());
+        geom_fft.define(domain_fft,&real_box,CoordSys::cartesian,is_periodic.data());
+    }
+    
     //////////////////////////////////////
 
     // time step
@@ -465,7 +496,7 @@ void main_driver(const char* argv)
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 h(i,j,k) -= dt * ( (fluxx(i+1,j,k) - fluxx(i,j,k)) / dx[0]
-                                  +(fluxy(i,j+1,k) - fluxy(i,j,k)) / dx[1] );
+                                  +(fluxy(i,j+1,k) - fluxy(i,j,k)) / dx[1]);
             });
 
         }
@@ -478,6 +509,37 @@ void main_driver(const char* argv)
         {
             const std::string& pltfile = amrex::Concatenate("plt",istep,10);
             WriteSingleLevelPlotfile(pltfile, height, {"height"}, geom, time, 0);
+
+            // ASCII
+
+            // copy distributed data into 1D data
+            height_onegrid.ParallelCopy(height, 0, 0, 1);
+
+            for ( MFIter mfi(height_onegrid,false); mfi.isValid(); ++mfi ) {
+
+                std::ofstream hstream;
+                std::string heightBaseName = "height";
+
+                std::string heightName = Concatenate(heightBaseName,istep,10);
+                heightName += ".txt";
+        
+                hstream.open(heightName);
+                
+                const Box& bx = mfi.validbox();
+                const auto lo = amrex::lbound(bx);
+                const auto hi = amrex::ubound(bx);
+
+                const Array4<Real>& mfdata = height_onegrid.array(mfi);
+
+                for (auto j = lo.y; j <= hi.y; ++j) {
+                for (auto i = lo.x; i <= hi.x; ++i) {
+                    hstream << std::setprecision(15) << mfdata(i,j,0) << " ";
+                }
+                hstream << "\n";
+                }
+
+            } // end MFIter
+            
         }
 
         // statistics
@@ -626,8 +688,7 @@ void main_driver(const char* argv)
                         Vector<std::unique_ptr<BaseFab<GpuComplex<Real> > > > spectral_field;
                         Vector<FFTplan> forward_plan;
                     
-                        long npts = domain_flat.numPts();
-                        Real sqrtnpts = std::sqrt(npts);
+                        Real sqrtnpts_flat = std::sqrt(npts_flat);
     
                         // take fft of strip and add magnitude of result to fft_sum
                         for (MFIter mfi(height_flat_onegrid); mfi.isValid(); ++mfi) {
@@ -703,7 +764,7 @@ void main_driver(const char* argv)
 
                             ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                             {
-                                sum(i,j,k) += ( spectral(i,j,k).real()*spectral(i,j,k).real() + spectral(i,j,k).imag()*spectral(i,j,k).imag() ) / sqrtnpts;
+                                sum(i,j,k) += ( spectral(i,j,k).real()*spectral(i,j,k).real() + spectral(i,j,k).imag()*spectral(i,j,k).imag() ) / sqrtnpts_flat;
                                 if (i == 0) sum(i,j,k) = 0.;
                             });
                         }

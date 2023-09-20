@@ -8,6 +8,7 @@ AMREX_GPU_MANAGED int compressible::do_1D;
 AMREX_GPU_MANAGED int compressible::do_2D;
 AMREX_GPU_MANAGED int compressible::all_correl;
 AMREX_GPU_MANAGED int compressible::nspec_surfcov = 0;
+AMREX_GPU_MANAGED bool compressible::do_reservoir = false;
 
 void InitializeCompressibleNamespace()
 {
@@ -62,6 +63,12 @@ void InitializeCompressibleNamespace()
     all_correl = 0;
     pp.query("all_correl",all_correl);
 
+
+    // do reservoir?
+    if ((bc_mass_lo[0] == 4) or (bc_mass_lo[1] == 4) or (bc_mass_lo[2] == 4) or
+        (bc_mass_hi[0] == 4) or (bc_mass_hi[1] == 4) or (bc_mass_hi[2] == 4)) {
+        do_reservoir = true;
+    }
 
     return;
 }

@@ -252,8 +252,13 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     }
 
     // compute (eta,kappa)^{*,n+1}
-    //
-    //
+    ComputeEta(rho_new, rhotot_new, eta);
+    if (AMREX_SPACEDIM == 2) {
+        AverageCCToNode(eta,eta_ed[0],0,1,SPEC_BC_COMP,geom);
+    }
+    else {
+        AverageCCToEdge(eta,eta_ed,0,1,SPEC_BC_COMP,geom);
+    }
 
     // set inhomogeneous velocity bc's to values supplied in inhomogeneous_bc_val
     //
@@ -464,8 +469,13 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     }
 
     // compute (eta,kappa)^{n+1}
-    //
-    //
+    ComputeEta(rho_new, rhotot_new, eta);
+    if (AMREX_SPACEDIM == 2) {
+        AverageCCToNode(eta,eta_ed[0],0,1,SPEC_BC_COMP,geom);
+    }
+    else {
+        AverageCCToEdge(eta,eta_ed,0,1,SPEC_BC_COMP,geom);
+    }
 
     //////////////////////////////////////////////
     // Step 6 - Calculate Diffusive and Stochastic Fluxes
@@ -528,7 +538,6 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
              MultiFab::Saxpy(gmres_rhs_v[d],0.5*grav[d],rhotot_fc_old[d],0,0,1,0);
              MultiFab::Saxpy(gmres_rhs_v[d],0.5*grav[d],rhotot_fc_new[d],0,0,1,0);
         }
-
     }
 
     // set inhomogeneous velocity bc's to values supplied in inhomogeneous_bc_val
