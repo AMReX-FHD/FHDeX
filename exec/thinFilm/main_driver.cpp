@@ -505,6 +505,37 @@ void main_driver(const char* argv)
         {
             const std::string& pltfile = amrex::Concatenate("plt",istep,10);
             WriteSingleLevelPlotfile(pltfile, height, {"height"}, geom, time, 0);
+
+            // ASCII
+
+            // copy distributed data into 1D data
+            height_onegrid.ParallelCopy(height, 0, 0, 1);
+
+            for ( MFIter mfi(height_onegrid,false); mfi.isValid(); ++mfi ) {
+
+                std::ofstream hstream;
+                std::string heightBaseName = "height";
+
+                std::string heightName = Concatenate(heightBaseName,istep,10);
+                heightName += ".txt";
+        
+                hstream.open(heightName);
+                
+                const Box& bx = mfi.validbox();
+                const auto lo = amrex::lbound(bx);
+                const auto hi = amrex::ubound(bx);
+
+                const Array4<Real>& mfdata = height_onegrid.array(mfi);
+
+                for (auto j = lo.y; j <= hi.y; ++j) {
+                for (auto i = lo.x; i <= hi.x; ++i) {
+                    hstream << std::setprecision(15) << mfdata(i,j,0) << " ";
+                }
+                hstream << "\n";
+                }
+
+            } // end MFIter
+            
         }
 
         // statistics
