@@ -5,8 +5,6 @@
 #include "AMReX_PlotFileUtil.H"
 #include "AMReX_BoxArray.H"
 
-#if defined(USE_HEFFTE)
-#else
 #ifdef AMREX_USE_CUDA
 std::string cufftError (const cufftResult& err)
 {
@@ -53,22 +51,21 @@ std::string rocfftError (const rocfft_status err)
 void rocfft_status (std::string const& name, rocfft_status status)
 {
     if (status != rocfft_status_success) {
-        amrex::AllPrint() <<  name + " failed! Error: " + rocfftErrorToString(status) << "\n";;
+        amrex::AllPrint() <<  name + " failed! Error: " + rocfftError(status) << "\n";;
     }
 }
-#endif
 #endif
 
 #if defined(USE_HEFFTE)
 void TurbSpectrumScalar(const MultiFab& variables, 
                         const amrex::Geometry& geom, 
                         const int& step, 
-                        const amrex::Vector<amrex::Real>& var_scaling,
+                        const amrex::Vector<amrex::Real>& scaling,
                         const amrex::Vector< std::string >& var_names)
 {
     BL_PROFILE_VAR("TurbSpectrumScalar()",TurbSpectrumScalar);
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(variables.nComp() == var_names.size(), "TurbSpectrumScalar: must have same number variable names as components of input MultiFab");
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(variables.nComp() == var_scaling.size(), "TurbSpectrumScalar: must have same number variable scaling as components of input MultiFab");
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(variables.nComp() == scaling.size(), "TurbSpectrumScalar: must have same number variable scaling as components of input MultiFab");
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(variables.local_size() == 1, "TurbSpectrumScalar: Must have one Box per MPI process when using heFFTe");
 
     int ncomp = MFTurbVel.nComp();
@@ -146,7 +143,7 @@ void TurbSpectrumScalar(const MultiFab& variables,
         ParallelDescriptor::Barrier();
 
         // Integrate spectra over k-shells
-        IntegrateKScalar(spectral_field,var_names[comp],var_scaling[comp],c_local_box,sqrtnpts);
+        IntegrateKScalar(spectral_field,var_names[comp],scaling[comp],c_local_box,sqrtnpts,step);
 
     }
     
@@ -156,7 +153,8 @@ void TurbSpectrumScalar(const MultiFab& variables,
 void IntegrateKScalar(BaseFab<GpuComplex<Real> >& spectral_field,
                       const std::string& name, const Real& scaling,
                       const Box& c_local_box,
-                      const Real& sqrtnpts)
+                      const Real& sqrtnpts,
+                      const int& step)
 
 {
     int npts = n_cells[0]/2;
@@ -233,7 +231,7 @@ void TurbSpectrumVelDecomp(const MultiFab& vel,
                            MultiFab& vel_decomp,
                            const amrex::Geometry& geom,
                            const int& step,
-                           const amrex::Real& var_scaling,
+                           const amrex::Real& scaling,
                            const amrex::Vector< std::string >& var_names)
 {
     BL_PROFILE_VAR("TurbSpectrumVelDecomp()",TurbSpectrumVelDecomp);
@@ -377,30 +375,29 @@ void TurbSpectrumVelDecomp(const MultiFab& vel,
                    spectral_tz(i,j,k).real()*GzC + spectral_tz(i,j,k).imag()*GzR ;
 
        if (Lap < 1.0e-12) { // zero mode for no bulk motion
-           spectral_dx(i,j,k).real() = 0.0;
-           spectral_dy(i,j,k).real() = 0.0;
-           spectral_dz(i,j,k).real() = 0.0;
-           spectral_dx(i,j,k).imag() = 0.0;
-           spectral_dy(i,j,k).imag() = 0.0;
-           spectral_dz(i,j,k).imag() = 0.0;
+           spectral_dx(i,j,k) *= 0.0;
+           spectral_dy(i,j,k) *= 0.0;
+           spectral_dz(i,j,k) *= 0.0;
        }
        else {
 
            // Dilatational velocity 
-           spectral_dx(i,j,k).real() = (divR*GxR + divC*GxC) / Lap;
-           spectral_dy(i,j,k).real() = (divR*GyR + divC*GyC) / Lap;
-           spectral_dz(i,j,k).real() = (divR*GzR + divC*GzC) / Lap;
-           spectral_dx(i,j,k).imag() = (divC*GxR - divR*GxC) / Lap;
-           spectral_dy(i,j,k).imag() = (divC*GyR - divR*GyC) / Lap;
-           spectral_dz(i,j,k).imag() = (divC*GzR - divR*GzC) / Lap;
+           GpuComplex<Real> copy_dx((divR*GxR + divC*GxC) / Lap, 
+                                    (divC*GxR - divR*GxC) / Lap);
+           spectral_dx(i,j,k) = copy_dx;
+
+           GpuComplex<Real> copy_dy((divR*GyR + divC*GyC) / Lap,
+                                    (divC*GyR - divR*GyC) / Lap);
+           spectral_dy(i,j,k) = copy_dy;
+
+           GpuComplex<Real> copy_dz((divR*GzR + divC*GzC) / Lap,
+                                    (divC*GzR - divR*GzC) / Lap);
+           spectral_dz(i,j,k) = copy_dz;
            
            // Solenoidal velocity
-           spectral_sx(i,j,k).real() = spectral_tx(i,j,k).real() - spectral_dx(i,j,k).real();
-           spectral_sy(i,j,k).real() = spectral_ty(i,j,k).real() - spectral_dy(i,j,k).real(); 
-           spectral_sz(i,j,k).real() = spectral_tz(i,j,k).real() - spectral_dz(i,j,k).real();
-           spectral_sx(i,j,k).imag() = spectral_tx(i,j,k).imag() - spectral_dx(i,j,k).imag();
-           spectral_sy(i,j,k).imag() = spectral_ty(i,j,k).imag() - spectral_dy(i,j,k).imag();
-           spectral_sz(i,j,k).imag() = spectral_tz(i,j,k).imag() - spectral_dz(i,j,k).imag();
+           spectral_sx(i,j,k) = spectral_tx(i,j,k) - spectral_dx(i,j,k);
+           spectral_sy(i,j,k) = spectral_ty(i,j,k) - spectral_dy(i,j,k); 
+           spectral_sz(i,j,k) = spectral_tz(i,j,k) - spectral_dz(i,j,k);
        }
 
     });
@@ -408,9 +405,9 @@ void TurbSpectrumVelDecomp(const MultiFab& vel,
     ParallelDescriptor::Barrier();
 
     // Integrate K spectrum for velocities
-    IntegrateKVelocity(spectral_field_T,"turb_total",     scaling,c_local_box);
-    IntegrateKVelocity(spectral_field_S,"turb_solenoidal",scaling,c_local_box);
-    IntegrateKVelocity(spectral_field_D,"turb_dilational",scaling,c_local_box);
+    IntegrateKVelocity(spectral_field_T,"turb_total",     scaling,c_local_box,step);
+    IntegrateKVelocity(spectral_field_S,"turb_solenoidal",scaling,c_local_box,step);
+    IntegrateKVelocity(spectral_field_D,"turb_dilational",scaling,c_local_box,step);
     
     // setup plan for inverse FFT
     heffte_plan fplanR;
@@ -452,7 +449,8 @@ void TurbSpectrumVelDecomp(const MultiFab& vel,
 
 void IntegrateKVelocity(BaseFab<GpuComplex<Real> >& spectral_field,
                         const std::string& name, const Real& scaling,
-                        const Box& c_local_box)
+                        const Box& c_local_box,
+                        const int& step)
 
 {
     int npts = n_cells[0]/2;
@@ -540,14 +538,14 @@ void IntegrateKVelocity(BaseFab<GpuComplex<Real> >& spectral_field,
 void TurbSpectrumScalar(const MultiFab& variables, 
                         const amrex::Geometry& geom, 
                         const int& step, 
-                        const amrex::Vector<amrex::Real>& var_scaling,
+                        const amrex::Vector<amrex::Real>& scaling,
                         const amrex::Vector< std::string >& var_names)
 {
     BL_PROFILE_VAR("TurbSpectrumScalar()",TurbSpectrumScalar);
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(variables.nComp() == var_names.size(), "TurbSpectrumScalar: must have same number variable names as components of input MultiFab");
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(variables.nComp() == var_scaling.size(), "TurbSpectrumScalar: must have same number variable scaling as components of input MultiFab");
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(variables.nComp() == scaling.size(), "TurbSpectrumScalar: must have same number variable scaling as components of input MultiFab");
     
-    int ncomp = MFTurbVel.nComp();
+    int ncomp = variables.nComp();
 
     long npts;
 
@@ -562,7 +560,7 @@ void TurbSpectrumScalar(const MultiFab& variables,
     DistributionMapping dmap_onegrid(ba_onegrid);
     MultiFab variables_onegrid;
     variables_onegrid.define(ba_onegrid, dmap_onegrid, ncomp, 0);
-    variables_onegrid.ParallelCopy(vel,0,0,ncomp);
+    variables_onegrid.ParallelCopy(variables,0,0,ncomp);
 
 #ifdef AMREX_USE_CUDA
     using FFTplan = cufftHandle;
@@ -575,15 +573,19 @@ void TurbSpectrumScalar(const MultiFab& variables,
     using FFTcomplex = fftw_complex;
 #endif
 
+
+    // size of box including ghost cell range
+    IntVect fft_size;
+    
     // contain to store FFT - note it is shrunk by "half" in x
     Vector<std::unique_ptr<BaseFab<GpuComplex<Real> > > > spectral_field;
     for (MFIter mfi(variables_onegrid); mfi.isValid(); ++mfi) {
 
         // grab a single box including ghost cell range
         Box realspace_bx = mfi.fabbox();
-
+        
         // size of box including ghost cell range
-        IntVect fft_size = realspace_bx.length(); // This will be different for hybrid FFT
+        fft_size = realspace_bx.length(); // This will be different for hybrid FFT
 
         // this is the size of the box, except the 0th component is 'halved plus 1'
         IntVect spectral_bx_size = fft_size;
@@ -609,7 +611,7 @@ void TurbSpectrumScalar(const MultiFab& variables,
                 cufftResult result = cufftPlan3d(&fplan, fft_size[2], fft_size[1], fft_size[0], CUFFT_D2Z);
                 if (result != CUFFT_SUCCESS) {
                     amrex::AllPrint() << " cufftplan3d forward failed! Error: "
-                                      << cufftErrorToString(result) << "\n";
+                                      << cufftError(result) << "\n";
                 }
                 built_plan = true;
 #elif AMREX_USE_HIP // HIP
@@ -643,7 +645,7 @@ void TurbSpectrumScalar(const MultiFab& variables,
                                                   (spectral_field[i]->dataPtr(comp)));
             if (result != CUFFT_SUCCESS) {
                 amrex::AllPrint() << " forward transform using cufftExec failed! Error: "
-                                  << cufftErrorToString(result) << "\n";
+                                  << cufftError(result) << "\n";
 	    }
 #elif AMREX_USE_HIP
             rocfft_execution_info execinfo = nullptr;
@@ -678,7 +680,7 @@ void TurbSpectrumScalar(const MultiFab& variables,
         }
 
         // Integrate spectra over k-shells
-        IntegrateKScalar(spectral_field,variables_onegrid,var_names[comp],var_scaling[comp],sqrtnpts);
+        IntegrateKScalar(spectral_field,variables_onegrid,var_names[comp],scaling[comp],sqrtnpts,step);
     }
     
     // destroy fft plan
@@ -698,7 +700,8 @@ void IntegrateKScalar(Vector<std::unique_ptr<BaseFab<GpuComplex<Real> > > >& spe
                       const MultiFab& variables_onegrid,
                       const std::string& name,
                       const Real& scaling,
-                      const Real& sqrtnpts)
+                      const Real& sqrtnpts,
+                      const int& step)
 
 {
     int npts = n_cells[0]/2;
@@ -781,7 +784,7 @@ void TurbSpectrumVelDecomp(const MultiFab& vel,
                            MultiFab& vel_decomp,
                            const amrex::Geometry& geom, 
                            const int& step, 
-                           const amrex::Real& var_scaling,
+                           const amrex::Real& scaling,
                            const amrex::Vector< std::string >& var_names)
 {
     BL_PROFILE_VAR("TurbSpectrumVelDecomp()",TurbSpectrumVelDecomp);
@@ -816,6 +819,9 @@ void TurbSpectrumVelDecomp(const MultiFab& vel,
     using FFTcomplex = fftw_complex;
 #endif
 
+    // size of box including ghost cell range
+    IntVect fft_size;
+    
     // contain to store FFT - note it is shrunk by "half" in x
     Vector<std::unique_ptr<BaseFab<GpuComplex<Real> > > > spectral_field;
     Vector<std::unique_ptr<BaseFab<GpuComplex<Real> > > > spectral_field_S;
@@ -826,7 +832,7 @@ void TurbSpectrumVelDecomp(const MultiFab& vel,
         Box realspace_bx = mfi.fabbox();
 
         // size of box including ghost cell range
-        IntVect fft_size = realspace_bx.length(); // This will be different for hybrid FFT
+        fft_size = realspace_bx.length(); // This will be different for hybrid FFT
 
         // this is the size of the box, except the 0th component is 'halved plus 1'
         IntVect spectral_bx_size = fft_size;
@@ -860,7 +866,7 @@ void TurbSpectrumVelDecomp(const MultiFab& vel,
                 cufftResult result = cufftPlan3d(&fplan, fft_size[2], fft_size[1], fft_size[0], CUFFT_D2Z);
                 if (result != CUFFT_SUCCESS) {
                     amrex::AllPrint() << " cufftplan3d forward failed! Error: "
-                                      << cufftErrorToString(result) << "\n";
+                                      << cufftError(result) << "\n";
                 }
                 built_plan = true;
 #elif AMREX_USE_HIP // HIP
@@ -894,7 +900,7 @@ void TurbSpectrumVelDecomp(const MultiFab& vel,
                                                   (spectral_field[i]->dataPtr(comp)));
             if (result != CUFFT_SUCCESS) {
                 amrex::AllPrint() << " forward transform using cufftExec failed! Error: "
-                                  << cufftErrorToString(result) << "\n";
+                                  << cufftError(result) << "\n";
 	        }
 #elif AMREX_USE_HIP
             rocfft_execution_info execinfo = nullptr;
@@ -977,12 +983,9 @@ void TurbSpectrumVelDecomp(const MultiFab& vel,
            }
 
            // Scale Total velocity FFT components
-           spectral_tx(i,j,k).real() *= (1.0/sqrtnpts);
-           spectral_ty(i,j,k).real() *= (1.0/sqrtnpts);
-           spectral_tz(i,j,k).real() *= (1.0/sqrtnpts);
-           spectral_tx(i,j,k).imag() *= (1.0/sqrtnpts);
-           spectral_ty(i,j,k).imag() *= (1.0/sqrtnpts);
-           spectral_tz(i,j,k).imag() *= (1.0/sqrtnpts);
+           spectral_tx(i,j,k) *= (1.0/sqrtnpts);
+           spectral_ty(i,j,k) *= (1.0/sqrtnpts);
+           spectral_tz(i,j,k) *= (1.0/sqrtnpts);
 
            // Inverse Laplacian
            Real Lap = GxR*GxR + GxC*GxC + GyR*GyR + GyC*GyC + GzR*GzR + GzC*GzC;
@@ -996,29 +999,28 @@ void TurbSpectrumVelDecomp(const MultiFab& vel,
                        spectral_tz(i,j,k).real()*GzC + spectral_tz(i,j,k).imag()*GzR ;
 
            if (Lap < 1.0e-12) { // zero mode for no bulk motion
-               spectral_dx(i,j,k).real() = 0.0;
-               spectral_dy(i,j,k).real() = 0.0;
-               spectral_dz(i,j,k).real() = 0.0;
-               spectral_dx(i,j,k).imag() = 0.0;
-               spectral_dy(i,j,k).imag() = 0.0;
-               spectral_dz(i,j,k).imag() = 0.0;
+               spectral_dx(i,j,k) *= 0.0;
+               spectral_dy(i,j,k) *= 0.0;
+               spectral_dz(i,j,k) *= 0.0;
            }
            else {
                // Dilatational velocity 
-               spectral_dx(i,j,k).real() = (divR*GxR + divC*GxC) / Lap;
-               spectral_dy(i,j,k).real() = (divR*GyR + divC*GyC) / Lap;
-               spectral_dz(i,j,k).real() = (divR*GzR + divC*GzC) / Lap;
-               spectral_dx(i,j,k).imag() = (divC*GxR - divR*GxC) / Lap;
-               spectral_dy(i,j,k).imag() = (divC*GyR - divR*GyC) / Lap;
-               spectral_dz(i,j,k).imag() = (divC*GzR - divR*GzC) / Lap;
+               GpuComplex<Real> copy_dx((divR*GxR + divC*GxC) / Lap, 
+                                        (divC*GxR - divR*GxC) / Lap);
+               spectral_dx(i,j,k) = copy_dx;
+
+               GpuComplex<Real> copy_dy((divR*GyR + divC*GyC) / Lap,
+                                        (divC*GyR - divR*GyC) / Lap);
+               spectral_dy(i,j,k) = copy_dy;
+
+               GpuComplex<Real> copy_dz((divR*GzR + divC*GzC) / Lap,
+                                        (divC*GzR - divR*GzC) / Lap);
+               spectral_dz(i,j,k) = copy_dz;
                
                // Solenoidal velocity
-               spectral_sx(i,j,k).real() = spectral_tx(i,j,k).real() - spectral_dx(i,j,k).real();
-               spectral_sy(i,j,k).real() = spectral_ty(i,j,k).real() - spectral_dy(i,j,k).real(); 
-               spectral_sz(i,j,k).real() = spectral_tz(i,j,k).real() - spectral_dz(i,j,k).real();
-               spectral_sx(i,j,k).imag() = spectral_tx(i,j,k).imag() - spectral_dx(i,j,k).imag();
-               spectral_sy(i,j,k).imag() = spectral_ty(i,j,k).imag() - spectral_dy(i,j,k).imag();
-               spectral_sz(i,j,k).imag() = spectral_tz(i,j,k).imag() - spectral_dz(i,j,k).imag();
+               spectral_sx(i,j,k) = spectral_tx(i,j,k) - spectral_dx(i,j,k);
+               spectral_sy(i,j,k) = spectral_ty(i,j,k) - spectral_dy(i,j,k); 
+               spectral_sz(i,j,k) = spectral_tz(i,j,k) - spectral_dz(i,j,k);
            }
         });
     }
@@ -1026,9 +1028,9 @@ void TurbSpectrumVelDecomp(const MultiFab& vel,
     ParallelDescriptor::Barrier();
 
     // Integrate K spectrum for velocities
-    IntegrateKVelocity(spectral_field  , vel_onegrid, "turb_total"     ,scaling);
-    IntegrateKVelocity(spectral_field_S, vel_onegrid, "turb_solenoidal",scaling);
-    IntegrateKVelocity(spectral_field_D, vel_onegrid, "turb_dilational",scaling);
+    IntegrateKVelocity(spectral_field  , vel_onegrid, "turb_total"     ,scaling,step);
+    IntegrateKVelocity(spectral_field_S, vel_onegrid, "turb_solenoidal",scaling,step);
+    IntegrateKVelocity(spectral_field_D, vel_onegrid, "turb_dilational",scaling,step);
 
     // Create one-grid array to store IFFT velocities
     MultiFab vel_decomp_onegrid;
@@ -1047,7 +1049,7 @@ void TurbSpectrumVelDecomp(const MultiFab& vel,
                 cufftResult result = cufftPlan3d(&fplan, fft_size[2], fft_size[1], fft_size[0], CUFFT_Z2D);
                 if (result != CUFFT_SUCCESS) {
                     amrex::AllPrint() << " cufftplan3d forward failed! Error: "
-                                      << cufftErrorToString(result) << "\n";
+                                      << cufftError(result) << "\n";
                 }
                 built_plan = true;
 #elif AMREX_USE_HIP // HIP
@@ -1081,7 +1083,7 @@ void TurbSpectrumVelDecomp(const MultiFab& vel,
                                               vel_decomp_onegrid[mfi].dataPtr(comp));
             if (result != CUFFT_SUCCESS) {
                 amrex::AllPrint() << " forward transform using cufftExec failed! Error: "
-                                  << cufftErrorToString(result) << "\n";
+                                  << cufftError(result) << "\n";
 	        }
 #elif AMREX_USE_HIP
             rocfft_execution_info execinfo = nullptr;
@@ -1140,7 +1142,7 @@ void TurbSpectrumVelDecomp(const MultiFab& vel,
                 cufftResult result = cufftPlan3d(&fplan, fft_size[2], fft_size[1], fft_size[0], CUFFT_Z2D);
                 if (result != CUFFT_SUCCESS) {
                     amrex::AllPrint() << " cufftplan3d forward failed! Error: "
-                                      << cufftErrorToString(result) << "\n";
+                                      << cufftError(result) << "\n";
                 }
                 built_plan = true;
 #elif AMREX_USE_HIP // HIP
@@ -1174,7 +1176,7 @@ void TurbSpectrumVelDecomp(const MultiFab& vel,
                                               vel_decomp_onegrid[mfi].dataPtr(comp+3));
             if (result != CUFFT_SUCCESS) {
                 amrex::AllPrint() << " forward transform using cufftExec failed! Error: "
-                                  << cufftErrorToString(result) << "\n";
+                                  << cufftError(result) << "\n";
 	        }
 #elif AMREX_USE_HIP
             rocfft_execution_info execinfo = nullptr;
@@ -1228,7 +1230,8 @@ void TurbSpectrumVelDecomp(const MultiFab& vel,
 void IntegrateKVelocity(Vector<std::unique_ptr<BaseFab<GpuComplex<Real> > > >& spectral_field,
                         const MultiFab& vel_onegrid,
                         const std::string& name,
-                        const Real& scaling)
+                        const Real& scaling,
+                        const int& step)
 {
     int npts = n_cells[0]/2;
     

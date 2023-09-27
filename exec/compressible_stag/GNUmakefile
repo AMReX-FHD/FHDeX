@@ -14,6 +14,7 @@ MAX_SPEC      = 8
 
 USE_PARTICLES = FALSE
 DO_TURB 	  = FALSE
+USE_HEFFTE    = FALSE
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
@@ -53,8 +54,16 @@ INCLUDE_LOCATIONS += ../../src_analysis/
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.rules
 
-ifeq ($(findstring cgpu, $(HOST)), cgpu)
-  CXXFLAGS += $(FFTW)
+ifeq ($(USE_HEFFTE),TRUE)
+  ifeq ($(USE_CUDA),TRUE)
+    HEFFTE_HOME ?= ../../../heffte/build_gpu
+  else
+    HEFFTE_HOME ?= ../../../heffte/build
+  endif
+  libraries += -lheffte
+  VPATH_LOCATIONS += $(HEFFTE_HOME)/include
+  INCLUDE_LOCATIONS += $(HEFFTE_HOME)/include
+  LIBRARY_LOCATIONS += $(HEFFTE_HOME)/lib
 endif
 
 ifeq ($(USE_CUDA),TRUE)

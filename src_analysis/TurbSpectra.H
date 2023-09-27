@@ -35,8 +35,6 @@
 
 using namespace amrex;
 
-#if defined(USE_HEFFTE)
-#else
 #ifdef AMREX_USE_CUDA
 std::string cufftError (const cufftResult& err);
 #endif
@@ -44,26 +42,29 @@ std::string cufftError (const cufftResult& err);
 std::string rocfftError (const rocfft_status err);
 void rocfft_status (std::string const& name, rocfft_status status);
 #endif
-#endif
 
 #if defined(USE_HEFFTE)
 void IntegrateKScalar(BaseFab<GpuComplex<Real> >& spectral_field,
                       const std::string& name, const Real& scaling,
                       const Box& c_local_box,
-                      const Real& sqrtnpts);
+                      const Real& sqrtnpts,
+                      const int& step);
 void IntegrateKVelocity(BaseFab<GpuComplex<Real> >& spectral_field,
                         const std::string& name, const Real& scaling,
-                        const Box& c_local_box);
+                        const Box& c_local_box,
+                        const int& step);
 #else
 void IntegrateKScalar(Vector<std::unique_ptr<BaseFab<GpuComplex<Real> > > >& spectral_field,
                       const MultiFab& variables_onegrid,
                       const std::string& name,
                       const Real& scaling,
-                      const Real& sqrtnpts);
+                      const Real& sqrtnpts,
+                      const int& step);
 void IntegrateKVelocity(Vector<std::unique_ptr<BaseFab<GpuComplex<Real> > > >& spectral_field,
                         const MultiFab& vel_onegrid,
                         const std::string& name,
-                        const Real& scaling);
+                        const Real& scaling,
+                        const int& step);
 #endif
 
 void TurbSpectrumScalar(const MultiFab& variables, 

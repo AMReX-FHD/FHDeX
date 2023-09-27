@@ -38,7 +38,7 @@ void main_driver(const char* argv)
 
     std::string inputs_file = argv;
 
-    amrex::AllPrint() << "Compiled with support for maximum species = " << MAX_SPECIES << "\n";
+    amrex::Print() << "Compiled with support for maximum species = " << MAX_SPECIES << "\n";
     
     // copy contents of F90 modules to C++ namespaces
     InitializeCommonNamespace();
@@ -260,10 +260,16 @@ void main_driver(const char* argv)
 
 #if defined(TURB)
     // data structure for turbulence diagnostics
+    MultiFab MFTurbScalar;
+    MultiFab MFTurbVel;
+    MultiFab vel_decomp;
     std::string turbfilename = "turbstats";
     std::ofstream turboutfile;
     std::string turbfilenamedecomp = "turbstatsdecomp";
     std::ofstream turboutfiledecomp;
+    // need to use dVol for scaling
+    Real dVol = (AMREX_SPACEDIM==2) ? dx[0]*dx[1]*cell_depth : dx[0]*dx[1]*dx[2];
+    Real dVolinv = 1.0/dVol;
 #endif
 
     /////////////////////////////////////////////
@@ -1135,11 +1141,13 @@ void main_driver(const char* argv)
                 
                 // decomposed velocities
                 Vector< std::string > var_names_turbVel{"vel_total","vel_solenoidal","vel_dilation"};
-                TurbSpectrumVelDecomp(MFTurbVel, vel_decomp, geom, step, var_names_turbVel);
+                Real scaling_turb_veldecomp = dVolinv;
+                TurbSpectrumVelDecomp(MFTurbVel, vel_decomp, geom, step, scaling_turb_veldecomp, var_names_turbVel);
                 
                 // scalars
                 Vector< std::string > var_names_turbScalar{"rho","tenp","press"};
-                TurbSpectrumScalar(MFTurbScalar, geom, step, var_names_turbScalar);
+                Vector<Real> scaling_turb_scalar(3, dVolinv);
+                TurbSpectrumScalar(MFTurbScalar, geom, step, scaling_turb_scalar, var_names_turbScalar);
             }
 #endif
         }
