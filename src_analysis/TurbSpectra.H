@@ -8,9 +8,9 @@
 
 // These are for heFFTe / FFTW / cuFFT / rocFFT
 
-#if defined(USE_HEFFTE)
+#if defined(HEFFTE)
 #include <heffte.h>
-#else
+#endif
 #ifdef AMREX_USE_CUDA
 #include <cufft.h>
 #elif AMREX_USE_HIP
@@ -22,7 +22,6 @@
 #else
 #include <fftw3.h>
 #include <fftw3-mpi.h>
-#endif
 #endif
 
 #include <AMReX_GpuComplex.H>
@@ -43,7 +42,7 @@ std::string rocfftError (const rocfft_status err);
 void rocfft_status (std::string const& name, rocfft_status status);
 #endif
 
-#if defined(USE_HEFFTE)
+#if defined(HEFFTE)
 void IntegrateKScalar(BaseFab<GpuComplex<Real> >& spectral_field,
                       const std::string& name, const Real& scaling,
                       const Box& c_local_box,

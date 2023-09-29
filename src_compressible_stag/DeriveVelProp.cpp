@@ -485,9 +485,9 @@ void EvaluateWritePlotFileVelGrad(int step,
         
         const Box& bx = mfi.tilebox();
         
-        const Array4<Real>             out = output.array(mfi);
+        const Array4<      Real>&             out   = output.array(mfi);
 
-        const Array4<const Real>  v_decomp = vel_decomp.array(mfi);
+        const Array4<const Real>&  v_decomp         = vel_decomp.array(mfi);
         
         AMREX_D_TERM(Array4<Real const> const& velx = vel[0].array(mfi);,
                      Array4<Real const> const& vely = vel[1].array(mfi);,
@@ -495,11 +495,16 @@ void EvaluateWritePlotFileVelGrad(int step,
 
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            for (int n=0;n<6;++n) {
-                out(i,j,k,n) = v_decomp(i,j,k,n);
-            }
-            out(i,j,k,6) = sqrt(out(i,j,k,0)*out(i,j,k,0) + out(i,j,k,1)*out(i,j,k,1) + out(i,j,k,2)*out(i,j,k,2)); // mag solenoidal
-            out(i,j,k,7) = sqrt(out(i,j,k,3)*out(i,j,k,3) + out(i,j,k,4)*out(i,j,k,4) + out(i,j,k,5)*out(i,j,k,5)); // mag dilatational
+            
+            out(i,j,k,0) = v_decomp(i,j,k,0);
+            out(i,j,k,1) = v_decomp(i,j,k,1);
+            out(i,j,k,2) = v_decomp(i,j,k,2);
+            out(i,j,k,3) = v_decomp(i,j,k,3);
+            out(i,j,k,4) = v_decomp(i,j,k,4);
+            out(i,j,k,5) = v_decomp(i,j,k,5);
+
+            out(i,j,k,6) = std::sqrt(out(i,j,k,0)*out(i,j,k,0) + out(i,j,k,1)*out(i,j,k,1) + out(i,j,k,2)*out(i,j,k,2)); // mag solenoidal
+            out(i,j,k,7) = std::sqrt(out(i,j,k,3)*out(i,j,k,3) + out(i,j,k,4)*out(i,j,k,4) + out(i,j,k,5)*out(i,j,k,5)); // mag dilatational
 
             // divergence
             out(i,j,k,8) = (velx(i+1,j,k) - velx(i,j,k))/dx[0] +
@@ -549,7 +554,7 @@ void EvaluateWritePlotFileVelGrad(int step,
             Real w3_pp  = u32_pp - u23_pp;
 
             // vorticity magnitude: sqrt(w1*w1 + w2*w2 + w3*w3)
-            out(i,j,k,9) = sqrt(0.25*(w1_mm*w1_mm + w1_mp*w1_mp + w1_pm*w1_pm + w1_pp*w1_pp +
+            out(i,j,k,9) = std::sqrt(0.25*(w1_mm*w1_mm + w1_mp*w1_mp + w1_pm*w1_pm + w1_pp*w1_pp +
                                       w2_mm*w2_mm + w2_mp*w2_mp + w2_pm*w2_pm + w2_pp*w2_pp +
                                       w3_mm*w3_mm + w3_mp*w3_mp + w3_pm*w3_pm + w3_pp*w3_pp));
         });

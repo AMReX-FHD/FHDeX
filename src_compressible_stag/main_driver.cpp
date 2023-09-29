@@ -684,11 +684,6 @@ void main_driver(const char* argv)
         if (plot_int > 0) {
             WritePlotFileStag(0, 0.0, geom, cu, cuMeans, cuVars, cumom, cumomMeans, cumomVars, 
                           prim, primMeans, primVars, vel, velMeans, velVars, coVars, surfcov, surfcovMeans, surfcovVars, eta, kappa);
-#if defined(TURB)
-            if (turbForcing > 0) {
-                EvaluateWritePlotFileVelGrad(0, 0.0, geom, vel, vel_decomp);
-            }
-#endif
 
             if (plot_cross) {
                 if (do_1D) {
@@ -720,6 +715,15 @@ void main_driver(const char* argv)
 
 
     } // end t=0 setup
+    
+#if defined(TURB)
+    if (turbForcing >= 1) {
+        MFTurbVel.define(ba, dmap, 3, 0);
+        MFTurbScalar.define(ba, dmap, 3, 0);
+        vel_decomp.define(ba, dmap, 6, 0);
+        vel_decomp.setVal(0.0);
+    }
+#endif
 
     ///////////////////////////////////////////
     // Setup Structure factor
@@ -856,15 +860,6 @@ void main_driver(const char* argv)
 
         }
     }
-    
-#if defined(TURB)
-    if (turbForcing >= 1) {
-        MFTurbVel.define(ba, dmap, 3, 0);
-        MFTurbScalar.define(ba, dmap, 6, 0);
-        vel_decomp.define(ba, dmap, 6, 0);
-        vel_decomp.setVal(0.0);
-    }
-#endif
 
     /////////////////////////////////////////////////
     // Initialize Fluxes and Sources
@@ -1145,7 +1140,7 @@ void main_driver(const char* argv)
                 TurbSpectrumVelDecomp(MFTurbVel, vel_decomp, geom, step, scaling_turb_veldecomp, var_names_turbVel);
                 
                 // scalars
-                Vector< std::string > var_names_turbScalar{"rho","tenp","press"};
+                Vector< std::string > var_names_turbScalar{"rho","temp","press"};
                 Vector<Real> scaling_turb_scalar(3, dVolinv);
                 TurbSpectrumScalar(MFTurbScalar, geom, step, scaling_turb_scalar, var_names_turbScalar);
             }

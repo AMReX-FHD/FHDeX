@@ -74,11 +74,15 @@ else ifeq ($(USE_HIP),TRUE)
   LIBRARY_LOCATIONS += $(ROC_PATH)/rocfft/lib
   LIBRARIES += -L$(ROC_PATH)/rocfft/lib -lrocfft
 else
-  LIBRARIES += -L$(FFTW_DIR) -lfftw3_mpi -lfftw3
+  LIBRARIES += -L$(FFTW_DIR) -lfftw3_mpi -lfftw3 -lfftw3f
 endif
 
 ifeq ($(DO_TURB), TRUE)
   DEFINES += -DTURB
+endif
+
+ifeq ($(USE_HEFFTE), TRUE)
+  DEFINES += -DHEFFTE
 endif
 
 MAXSPECIES := $(strip $(MAX_SPEC))
