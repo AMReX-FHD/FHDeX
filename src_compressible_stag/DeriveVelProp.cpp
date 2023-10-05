@@ -567,8 +567,8 @@ void EvaluateWritePlotFileVelGrad(int step,
     varNames[1] = "uy_s";
     varNames[2] = "uz_s";
     varNames[3] = "ux_d";
-    varNames[4] = "ux_d";
-    varNames[5] = "uy_d";
+    varNames[4] = "uy_d";
+    varNames[5] = "uz_d";
     varNames[6] = "umag_s";
     varNames[7] = "umag_d";
     varNames[8] = "div";

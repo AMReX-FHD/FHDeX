@@ -43,27 +43,33 @@ void rocfft_status (std::string const& name, rocfft_status status);
 #endif
 
 #if defined(HEFFTE)
-void IntegrateKScalar(BaseFab<GpuComplex<Real> >& spectral_field,
+void IntegrateKScalar(const BaseFab<GpuComplex<Real> >& spectral_field,
                       const std::string& name, const Real& scaling,
                       const Box& c_local_box,
                       const Real& sqrtnpts,
-                      const int& step);
-void IntegrateKVelocity(BaseFab<GpuComplex<Real> >& spectral_field,
+                      const int& step,
+                      const int& comp);
+void IntegrateKVelocity(const BaseFab<GpuComplex<Real> >& spectral_field,
                         const std::string& name, const Real& scaling,
                         const Box& c_local_box,
                         const int& step);
 #else
-void IntegrateKScalar(Vector<std::unique_ptr<BaseFab<GpuComplex<Real> > > >& spectral_field,
+void IntegrateKScalar(const Vector<std::unique_ptr<BaseFab<GpuComplex<Real> > > >& spectral_field,
                       const MultiFab& variables_onegrid,
                       const std::string& name,
                       const Real& scaling,
                       const Real& sqrtnpts,
-                      const int& step);
-void IntegrateKVelocity(Vector<std::unique_ptr<BaseFab<GpuComplex<Real> > > >& spectral_field,
+                      const int& step,
+                      const int& comp);
+void IntegrateKVelocity(const Vector<std::unique_ptr<BaseFab<GpuComplex<Real> > > >& spectral_fieldx,
+                        const Vector<std::unique_ptr<BaseFab<GpuComplex<Real> > > >& spectral_fieldy,
+                        const Vector<std::unique_ptr<BaseFab<GpuComplex<Real> > > >& spectral_fieldz,
                         const MultiFab& vel_onegrid,
                         const std::string& name,
                         const Real& scaling,
                         const int& step);
+void InverseFFTVel(Vector<std::unique_ptr<BaseFab<GpuComplex<Real> > > >& spectral_field, 
+                   MultiFab& vel_decomp_onegrid, const IntVect& fft_size);
 #endif
 
 void TurbSpectrumScalar(const MultiFab& variables, 

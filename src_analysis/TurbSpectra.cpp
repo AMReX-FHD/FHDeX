@@ -136,7 +136,7 @@ void TurbSpectrumScalar(const MultiFab& variables,
         ParallelDescriptor::Barrier();
 
         // Integrate spectra over k-shells
-        IntegrateKScalar(spectral_field,var_names[comp],scaling[comp],c_local_box,sqrtnpts,step);
+        IntegrateKScalar(spectral_field,var_names[comp],scaling[comp],c_local_box,sqrtnpts,step,comp);
     }
 #else // not heFFTe
     int ncomp = variables.nComp();
@@ -153,8 +153,7 @@ void TurbSpectrumScalar(const MultiFab& variables,
     Real sqrtnpts = std::sqrt(npts);
     DistributionMapping dmap_onegrid(ba_onegrid);
     MultiFab variables_onegrid;
-    variables_onegrid.define(ba_onegrid, dmap_onegrid, ncomp, 0);
-    variables_onegrid.ParallelCopy(variables,0,0,ncomp);
+    variables_onegrid.define(ba_onegrid, dmap_onegrid, 1, 0);
 
 #ifdef AMREX_USE_CUDA
     using FFTplan = cufftHandle;
@@ -173,32 +172,33 @@ void TurbSpectrumScalar(const MultiFab& variables,
     
     // contain to store FFT - note it is shrunk by "half" in x
     Vector<std::unique_ptr<BaseFab<GpuComplex<Real> > > > spectral_field;
-    for (MFIter mfi(variables_onegrid); mfi.isValid(); ++mfi) {
-
-        // grab a single box including ghost cell range
-        Box realspace_bx = mfi.fabbox();
-        
-        // size of box including ghost cell range
-        fft_size = realspace_bx.length(); // This will be different for hybrid FFT
-
-        // this is the size of the box, except the 0th component is 'halved plus 1'
-        IntVect spectral_bx_size = fft_size;
-        spectral_bx_size[0] = fft_size[0]/2 + 1;
-
-        // spectral box
-        Box spectral_bx = Box(IntVect(0), spectral_bx_size - IntVect(1));
-
-        spectral_field.emplace_back(new BaseFab<GpuComplex<Real> >(spectral_bx,ncomp,
-                                                               The_Device_Arena()));
-        spectral_field.back()->setVal<RunOn::Device>(0.0); // touch the memory
-    }
-
-    // for CUDA builds we only need to build the plan once; track whether we did
     Vector<FFTplan> forward_plan;
     bool built_plan = false;
+    
+    // for CUDA builds we only need to build the plan once; track whether we did
     for (int comp=0; comp<ncomp; ++comp) {
+        
+        variables_onegrid.ParallelCopy(variables,comp,0,1);
+        
         if (!built_plan) {
             for (MFIter mfi(variables_onegrid); mfi.isValid(); ++mfi) {
+
+                // grab a single box including ghost cell range
+                Box realspace_bx = mfi.fabbox();
+                
+                // size of box including ghost cell range
+                fft_size = realspace_bx.length(); 
+
+                // size of the box, except the 0th component is 'halved plus 1'
+                IntVect spectral_bx_size = fft_size;
+                spectral_bx_size[0] = fft_size[0]/2 + 1;
+
+                // spectral box
+                Box spectral_bx = Box(IntVect(0), spectral_bx_size - IntVect(1));
+
+                spectral_field.emplace_back(new BaseFab<GpuComplex<Real> >(spectral_bx,1,
+                                                                    The_Device_Arena()));
+                spectral_field.back()->setVal<RunOn::Device>(0.0); // touch the memory
                 FFTplan fplan;
 
 #ifdef AMREX_USE_CUDA // CUDA
@@ -207,23 +207,23 @@ void TurbSpectrumScalar(const MultiFab& variables,
                     amrex::AllPrint() << " cufftplan3d forward failed! Error: "
                                       << cufftError(result) << "\n";
                 }
-                built_plan = true;
 #elif AMREX_USE_HIP // HIP
                 const std::size_t lengths[] = {std::size_t(fft_size[0]),std::size_t(fft_size[1]),std::size_t(fft_size[2])};
                 rocfft_status result = rocfft_plan_create(&fplan, rocfft_placement_notinplace, 
                                                           rocfft_transform_type_real_forward, rocfft_precision_double,
                                                           3, lengths, 1, nullptr);
                 assert_rocfft_status("rocfft_plan_create", result);
-                built_plan = true;
 #else // host
                 fplan = fftw_plan_dft_r2c_3d(fft_size[2], fft_size[1], fft_size[0],
-                                              variables_onegrid[mfi].dataPtr(comp),
+                                              variables_onegrid[mfi].dataPtr(),
                                               reinterpret_cast<FFTcomplex*>
-                                              (spectral_field.back()->dataPtr(comp)),
+                                              (spectral_field.back()->dataPtr()),
                                               FFTW_ESTIMATE);
 #endif
                 forward_plan.push_back(fplan);
             }
+            
+            built_plan = true;
         }
         
         ParallelDescriptor::Barrier();
@@ -234,13 +234,13 @@ void TurbSpectrumScalar(const MultiFab& variables,
 #ifdef AMREX_USE_CUDA
             cufftSetStream(forward_plan[i], amrex::Gpu::gpuStream());
             cufftResult result = cufftExecD2Z(forward_plan[i],
-                                              variables_onegrid[mfi].dataPtr(comp),
+                                              variables_onegrid[mfi].dataPtr(),
                                               reinterpret_cast<FFTcomplex*>
-                                                  (spectral_field[i]->dataPtr(comp)));
+                                                  (spectral_field[i]->dataPtr()));
             if (result != CUFFT_SUCCESS) {
                 amrex::AllPrint() << " forward transform using cufftExec failed! Error: "
                                   << cufftError(result) << "\n";
-	    }
+	        }
 #elif AMREX_USE_HIP
             rocfft_execution_info execinfo = nullptr;
             rocfft_status result = rocfft_execution_info_create(&execinfo);
@@ -257,8 +257,8 @@ void TurbSpectrumScalar(const MultiFab& variables,
             result = rocfft_execution_info_set_stream(execinfo, amrex::Gpu::gpuStream());
             assert_rocfft_status("rocfft_execution_info_set_stream", result);
 
-	        amrex::Real* variables_onegrid_ptr = variables_onegrid[mfi].dataPtr(comp);
-	        FFTcomplex* spectral_field_ptr = reinterpret_cast<FFTcomplex*>(spectral_field[i]->dataPtr(comp));
+	        amrex::Real* variables_onegrid_ptr = variables_onegrid[mfi].dataPtr();
+	        FFTcomplex* spectral_field_ptr = reinterpret_cast<FFTcomplex*>(spectral_field[i]->dataPtr());
             result = rocfft_execute(forward_plan[i],
                                     (void**) &variables_onegrid_ptr, // in
                                     (void**) &spectral_field_ptr, // out
@@ -274,7 +274,7 @@ void TurbSpectrumScalar(const MultiFab& variables,
         }
 
         // Integrate spectra over k-shells
-        IntegrateKScalar(spectral_field,variables_onegrid,var_names[comp],scaling[comp],sqrtnpts,step);
+        IntegrateKScalar(spectral_field,variables_onegrid,var_names[comp],scaling[comp],sqrtnpts,step,comp);
     }
     
     // destroy fft plan
@@ -460,9 +460,9 @@ void TurbSpectrumVelDecomp(const MultiFab& vel,
     ParallelDescriptor::Barrier();
 
     // Integrate K spectrum for velocities
-    IntegrateKVelocity(spectral_field_T,"turb_total",     scaling,c_local_box,step);
-    IntegrateKVelocity(spectral_field_S,"turb_solenoidal",scaling,c_local_box,step);
-    IntegrateKVelocity(spectral_field_D,"turb_dilational",scaling,c_local_box,step);
+    IntegrateKVelocity(spectral_field_T,"vel_total",     scaling,c_local_box,step);
+    IntegrateKVelocity(spectral_field_S,"vel_solenoidal",scaling,c_local_box,step);
+    IntegrateKVelocity(spectral_field_D,"vel_dilational",scaling,c_local_box,step);
     
     // inverse Fourier transform solenoidal and dilatational components 
     {
@@ -512,8 +512,7 @@ void TurbSpectrumVelDecomp(const MultiFab& vel,
     Real sqrtnpts = std::sqrt(npts);
     DistributionMapping dmap_onegrid(ba_onegrid);
     MultiFab vel_onegrid;
-    vel_onegrid.define(ba_onegrid, dmap_onegrid, 3, 0);
-    vel_onegrid.ParallelCopy(vel,0,0,3);
+    vel_onegrid.define(ba_onegrid, dmap_onegrid, 1, 0);
 
 #ifdef AMREX_USE_CUDA
     using FFTplan = cufftHandle;
@@ -530,81 +529,83 @@ void TurbSpectrumVelDecomp(const MultiFab& vel,
     IntVect fft_size;
     
     // contain to store FFT - note it is shrunk by "half" in x
-    Vector<std::unique_ptr<BaseFab<GpuComplex<Real> > > > spectral_field;
-    Vector<std::unique_ptr<BaseFab<GpuComplex<Real> > > > spectral_field_S;
-    Vector<std::unique_ptr<BaseFab<GpuComplex<Real> > > > spectral_field_D;
-    for (MFIter mfi(vel_onegrid); mfi.isValid(); ++mfi) {
+    Vector<std::unique_ptr<BaseFab<GpuComplex<Real> > > > spectral_fieldx;
+    Vector<std::unique_ptr<BaseFab<GpuComplex<Real> > > > spectral_fieldy;
+    Vector<std::unique_ptr<BaseFab<GpuComplex<Real> > > > spectral_fieldz;
+    Vector<std::unique_ptr<BaseFab<GpuComplex<Real> > > > spectral_field_Sx;
+    Vector<std::unique_ptr<BaseFab<GpuComplex<Real> > > > spectral_field_Sy;
+    Vector<std::unique_ptr<BaseFab<GpuComplex<Real> > > > spectral_field_Sz;
+    Vector<std::unique_ptr<BaseFab<GpuComplex<Real> > > > spectral_field_Dx;
+    Vector<std::unique_ptr<BaseFab<GpuComplex<Real> > > > spectral_field_Dy;
+    Vector<std::unique_ptr<BaseFab<GpuComplex<Real> > > > spectral_field_Dz;
+    
+    // x-velocity
+    {
+        Vector<FFTplan> forward_plan;
+        vel_onegrid.ParallelCopy(vel,0,0,1);
+        for (MFIter mfi(vel_onegrid); mfi.isValid(); ++mfi) {
+            
+            // grab a single box including ghost cell range
+            Box realspace_bx = mfi.fabbox();
 
-        // grab a single box including ghost cell range
-        Box realspace_bx = mfi.fabbox();
+            // size of box including ghost cell range
+            fft_size = realspace_bx.length(); // This will be different for hybrid FFT
 
-        // size of box including ghost cell range
-        fft_size = realspace_bx.length(); // This will be different for hybrid FFT
+            // this is the size of the box, except the 0th component is 'halved plus 1'
+            IntVect spectral_bx_size = fft_size;
+            spectral_bx_size[0] = fft_size[0]/2 + 1;
 
-        // this is the size of the box, except the 0th component is 'halved plus 1'
-        IntVect spectral_bx_size = fft_size;
-        spectral_bx_size[0] = fft_size[0]/2 + 1;
+            // spectral box
+            Box spectral_bx = Box(IntVect(0), spectral_bx_size - IntVect(1));
 
-        // spectral box
-        Box spectral_bx = Box(IntVect(0), spectral_bx_size - IntVect(1));
+            spectral_fieldx.emplace_back(new BaseFab<GpuComplex<Real> >(spectral_bx,1,
+                                                                   The_Device_Arena()));
+            spectral_fieldx.back()->setVal<RunOn::Device>(0.0); // touch the memory
 
-        spectral_field.emplace_back(new BaseFab<GpuComplex<Real> >(spectral_bx,3,
-                                                               The_Device_Arena()));
-        spectral_field.back()->setVal<RunOn::Device>(0.0); // touch the memory
+            spectral_field_Sx.emplace_back(new BaseFab<GpuComplex<Real> >(spectral_bx,1,
+                                                                   The_Device_Arena()));
+            spectral_field_Sx.back()->setVal<RunOn::Device>(0.0); // touch the memory
 
-        spectral_field_S.emplace_back(new BaseFab<GpuComplex<Real> >(spectral_bx,3,
-                                                               The_Device_Arena()));
-        spectral_field_S.back()->setVal<RunOn::Device>(0.0); // touch the memory
+            spectral_field_Dx.emplace_back(new BaseFab<GpuComplex<Real> >(spectral_bx,1,
+                                                                   The_Device_Arena()));
+            spectral_field_Dx.back()->setVal<RunOn::Device>(0.0); // touch the memory
 
-        spectral_field_D.emplace_back(new BaseFab<GpuComplex<Real> >(spectral_bx,3,
-                                                               The_Device_Arena()));
-        spectral_field_D.back()->setVal<RunOn::Device>(0.0); // touch the memory
-    }
-
-    // for CUDA builds we only need to build the plan once; track whether we did
-    Vector<FFTplan> forward_plan;
-    bool built_plan = false;
-    for (int comp=0; comp<3; comp++) {
-        if (!built_plan) {
-            for (MFIter mfi(vel_onegrid); mfi.isValid(); ++mfi) {
-                FFTplan fplan;
+            FFTplan fplan;
 
 #ifdef AMREX_USE_CUDA // CUDA
-                cufftResult result = cufftPlan3d(&fplan, fft_size[2], fft_size[1], fft_size[0], CUFFT_D2Z);
-                if (result != CUFFT_SUCCESS) {
-                    amrex::AllPrint() << " cufftplan3d forward failed! Error: "
-                                      << cufftError(result) << "\n";
-                }
-                built_plan = true;
-#elif AMREX_USE_HIP // HIP
-                const std::size_t lengths[] = {std::size_t(fft_size[0]),std::size_t(fft_size[1]),std::size_t(fft_size[2])};
-                rocfft_status result = rocfft_plan_create(&fplan, rocfft_placement_notinplace, 
-                                                          rocfft_transform_type_real_forward, rocfft_precision_double,
-                                                          3, lengths, 1, nullptr);
-                assert_rocfft_status("rocfft_plan_create", result);
-                built_plan = true;
-#else // host
-                fplan = fftw_plan_dft_r2c_3d(fft_size[2], fft_size[1], fft_size[0],
-                                                  vel_onegrid[mfi].dataPtr(comp),
-                                                  reinterpret_cast<FFTcomplex*>
-                                                  (spectral_field.back()->dataPtr(comp)),
-                                                  FFTW_ESTIMATE);
-#endif
-               forward_plan.push_back(fplan);
+            cufftResult result = cufftPlan3d(&fplan, fft_size[2], fft_size[1], fft_size[0], CUFFT_D2Z);
+            if (result != CUFFT_SUCCESS) {
+                amrex::AllPrint() << " cufftplan3d forward failed! Error: "
+                                  << cufftError(result) << "\n";
             }
+#elif AMREX_USE_HIP // HIP
+            const std::size_t lengths[] = {std::size_t(fft_size[0]),std::size_t(fft_size[1]),std::size_t(fft_size[2])};
+            rocfft_status result = rocfft_plan_create(&fplan, rocfft_placement_notinplace, 
+                                                      rocfft_transform_type_real_forward, rocfft_precision_double,
+                                                      3, lengths, 1, nullptr);
+            assert_rocfft_status("rocfft_plan_create", result);
+            built_plan = true;
+#else // host
+            fplan = fftw_plan_dft_r2c_3d(fft_size[2], fft_size[1], fft_size[0],
+                                              vel_onegrid[mfi].dataPtr(),
+                                              reinterpret_cast<FFTcomplex*>
+                                              (spectral_fieldx.back()->dataPtr()),
+                                              FFTW_ESTIMATE);
+#endif
+            forward_plan.push_back(fplan);
         }
 
         ParallelDescriptor::Barrier();
-
+        
         // ForwardTransform
         for (MFIter mfi(vel_onegrid); mfi.isValid(); ++mfi) {
             int i = mfi.LocalIndex();
 #ifdef AMREX_USE_CUDA
             cufftSetStream(forward_plan[i], amrex::Gpu::gpuStream());
             cufftResult result = cufftExecD2Z(forward_plan[i],
-                                              vel_onegrid[mfi].dataPtr(comp),
+                                              vel_onegrid[mfi].dataPtr(),
                                               reinterpret_cast<FFTcomplex*>
-                                                  (spectral_field[i]->dataPtr(comp)));
+                                                  (spectral_fieldx[i]->dataPtr()));
             if (result != CUFFT_SUCCESS) {
                 amrex::AllPrint() << " forward transform using cufftExec failed! Error: "
                                   << cufftError(result) << "\n";
@@ -625,8 +626,8 @@ void TurbSpectrumVelDecomp(const MultiFab& vel,
             result = rocfft_execution_info_set_stream(execinfo, amrex::Gpu::gpuStream());
             assert_rocfft_status("rocfft_execution_info_set_stream", result);
 
-	        amrex::Real* vel_onegrid_ptr = vel_onegrid[mfi].dataPtr(comp);
-	        FFTcomplex* spectral_field_ptr = reinterpret_cast<FFTcomplex*>(spectral_field[i]->dataPtr(comp));
+	        amrex::Real* vel_onegrid_ptr = vel_onegrid[mfi].dataPtr();
+	        FFTcomplex* spectral_field_ptr = reinterpret_cast<FFTcomplex*>(spectral_fieldx[i]->dataPtr());
             result = rocfft_execute(forward_plan[i],
                                     (void**) &vel_onegrid_ptr, // in
                                     (void**) &spectral_field_ptr, // out
@@ -640,32 +641,266 @@ void TurbSpectrumVelDecomp(const MultiFab& vel,
             fftw_execute(forward_plan[i]);
 #endif
         }
-    }
-    
-    // destroy fft plan
-    for (int i = 0; i < forward_plan.size(); ++i) {
+        
+        // destroy fft plan
+        for (int i = 0; i < forward_plan.size(); ++i) {
 #ifdef AMREX_USE_CUDA
-        cufftDestroy(forward_plan[i]);
+            cufftDestroy(forward_plan[i]);
 #elif AMREX_USE_HIP
-        rocfft_plan_destroy(forward_plan[i]);
+            rocfft_plan_destroy(forward_plan[i]);
 #else
-        fftw_destroy_plan(forward_plan[i]);
+            fftw_destroy_plan(forward_plan[i]);
 #endif
-    }
+        }
+    
+    } // end x-vel
+
+    // y-velocity
+    {
+        Vector<FFTplan> forward_plan;
+        vel_onegrid.ParallelCopy(vel,1,0,1);
+        for (MFIter mfi(vel_onegrid); mfi.isValid(); ++mfi) {
+            
+            // grab a single box including ghost cell range
+            Box realspace_bx = mfi.fabbox();
+
+            // size of box including ghost cell range
+            fft_size = realspace_bx.length(); // This will be different for hybrid FFT
+
+            // this is the size of the box, except the 0th component is 'halved plus 1'
+            IntVect spectral_bx_size = fft_size;
+            spectral_bx_size[0] = fft_size[0]/2 + 1;
+
+            // spectral box
+            Box spectral_bx = Box(IntVect(0), spectral_bx_size - IntVect(1));
+
+            spectral_fieldy.emplace_back(new BaseFab<GpuComplex<Real> >(spectral_bx,1,
+                                                                   The_Device_Arena()));
+            spectral_fieldy.back()->setVal<RunOn::Device>(0.0); // touch the memory
+
+            spectral_field_Sy.emplace_back(new BaseFab<GpuComplex<Real> >(spectral_bx,1,
+                                                                   The_Device_Arena()));
+            spectral_field_Sy.back()->setVal<RunOn::Device>(0.0); // touch the memory
+
+            spectral_field_Dy.emplace_back(new BaseFab<GpuComplex<Real> >(spectral_bx,1,
+                                                                   The_Device_Arena()));
+            spectral_field_Dy.back()->setVal<RunOn::Device>(0.0); // touch the memory
+
+            FFTplan fplan;
+
+#ifdef AMREX_USE_CUDA // CUDA
+            cufftResult result = cufftPlan3d(&fplan, fft_size[2], fft_size[1], fft_size[0], CUFFT_D2Z);
+            if (result != CUFFT_SUCCESS) {
+                amrex::AllPrint() << " cufftplan3d forward failed! Error: "
+                                  << cufftError(result) << "\n";
+            }
+#elif AMREX_USE_HIP // HIP
+            const std::size_t lengths[] = {std::size_t(fft_size[0]),std::size_t(fft_size[1]),std::size_t(fft_size[2])};
+            rocfft_status result = rocfft_plan_create(&fplan, rocfft_placement_notinplace, 
+                                                      rocfft_transform_type_real_forward, rocfft_precision_double,
+                                                      3, lengths, 1, nullptr);
+            assert_rocfft_status("rocfft_plan_create", result);
+            built_plan = true;
+#else // host
+            fplan = fftw_plan_dft_r2c_3d(fft_size[2], fft_size[1], fft_size[0],
+                                              vel_onegrid[mfi].dataPtr(),
+                                              reinterpret_cast<FFTcomplex*>
+                                              (spectral_fieldy.back()->dataPtr()),
+                                              FFTW_ESTIMATE);
+#endif
+            forward_plan.push_back(fplan);
+        }
+
+        ParallelDescriptor::Barrier();
+        
+        // ForwardTransform
+        for (MFIter mfi(vel_onegrid); mfi.isValid(); ++mfi) {
+            int i = mfi.LocalIndex();
+#ifdef AMREX_USE_CUDA
+            cufftSetStream(forward_plan[i], amrex::Gpu::gpuStream());
+            cufftResult result = cufftExecD2Z(forward_plan[i],
+                                              vel_onegrid[mfi].dataPtr(),
+                                              reinterpret_cast<FFTcomplex*>
+                                                  (spectral_fieldy[i]->dataPtr()));
+            if (result != CUFFT_SUCCESS) {
+                amrex::AllPrint() << " forward transform using cufftExec failed! Error: "
+                                  << cufftError(result) << "\n";
+	        }
+#elif AMREX_USE_HIP
+            rocfft_execution_info execinfo = nullptr;
+            rocfft_status result = rocfft_execution_info_create(&execinfo);
+            assert_rocfft_status("rocfft_execution_info_create", result);
+
+            std::size_t buffersize = 0;
+            result = rocfft_plan_get_work_buffer_size(forward_plan[i], &buffersize);
+            assert_rocfft_status("rocfft_plan_get_work_buffer_size", result);
+
+            void* buffer = amrex::The_Arena()->alloc(buffersize);
+            result = rocfft_execution_info_set_work_buffer(execinfo, buffer, buffersize);
+            assert_rocfft_status("rocfft_execution_info_set_work_buffer", result);
+
+            result = rocfft_execution_info_set_stream(execinfo, amrex::Gpu::gpuStream());
+            assert_rocfft_status("rocfft_execution_info_set_stream", result);
+
+	        amrex::Real* vel_onegrid_ptr = vel_onegrid[mfi].dataPtr();
+	        FFTcomplex* spectral_field_ptr = reinterpret_cast<FFTcomplex*>(spectral_fieldy[i]->dataPtr());
+            result = rocfft_execute(forward_plan[i],
+                                    (void**) &vel_onegrid_ptr, // in
+                                    (void**) &spectral_field_ptr, // out
+                                    execinfo);
+            assert_rocfft_status("rocfft_execute", result);
+            amrex::Gpu::streamSynchronize();
+            amrex::The_Arena()->free(buffer);
+            result = rocfft_execution_info_destroy(execinfo);
+            assert_rocfft_status("rocfft_execution_info_destroy", result);
+#else
+            fftw_execute(forward_plan[i]);
+#endif
+        }
+        
+        // destroy fft plan
+        for (int i = 0; i < forward_plan.size(); ++i) {
+#ifdef AMREX_USE_CUDA
+            cufftDestroy(forward_plan[i]);
+#elif AMREX_USE_HIP
+            rocfft_plan_destroy(forward_plan[i]);
+#else
+            fftw_destroy_plan(forward_plan[i]);
+#endif
+        }
+    
+    } // end y-vel
+    
+    // z-velocity
+    {
+        Vector<FFTplan> forward_plan;
+        vel_onegrid.ParallelCopy(vel,2,0,1);
+        for (MFIter mfi(vel_onegrid); mfi.isValid(); ++mfi) {
+            
+            // grab a single box including ghost cell range
+            Box realspace_bx = mfi.fabbox();
+
+            // size of box including ghost cell range
+            fft_size = realspace_bx.length(); // This will be different for hybrid FFT
+
+            // this is the size of the box, except the 0th component is 'halved plus 1'
+            IntVect spectral_bx_size = fft_size;
+            spectral_bx_size[0] = fft_size[0]/2 + 1;
+
+            // spectral box
+            Box spectral_bx = Box(IntVect(0), spectral_bx_size - IntVect(1));
+
+            spectral_fieldz.emplace_back(new BaseFab<GpuComplex<Real> >(spectral_bx,1,
+                                                                   The_Device_Arena()));
+            spectral_fieldz.back()->setVal<RunOn::Device>(0.0); // touch the memory
+
+            spectral_field_Sz.emplace_back(new BaseFab<GpuComplex<Real> >(spectral_bx,1,
+                                                                   The_Device_Arena()));
+            spectral_field_Sz.back()->setVal<RunOn::Device>(0.0); // touch the memory
+
+            spectral_field_Dz.emplace_back(new BaseFab<GpuComplex<Real> >(spectral_bx,1,
+                                                                   The_Device_Arena()));
+            spectral_field_Dz.back()->setVal<RunOn::Device>(0.0); // touch the memory
+
+            FFTplan fplan;
+
+#ifdef AMREX_USE_CUDA // CUDA
+            cufftResult result = cufftPlan3d(&fplan, fft_size[2], fft_size[1], fft_size[0], CUFFT_D2Z);
+            if (result != CUFFT_SUCCESS) {
+                amrex::AllPrint() << " cufftplan3d forward failed! Error: "
+                                  << cufftError(result) << "\n";
+            }
+#elif AMREX_USE_HIP // HIP
+            const std::size_t lengths[] = {std::size_t(fft_size[0]),std::size_t(fft_size[1]),std::size_t(fft_size[2])};
+            rocfft_status result = rocfft_plan_create(&fplan, rocfft_placement_notinplace, 
+                                                      rocfft_transform_type_real_forward, rocfft_precision_double,
+                                                      3, lengths, 1, nullptr);
+            assert_rocfft_status("rocfft_plan_create", result);
+            built_plan = true;
+#else // host
+            fplan = fftw_plan_dft_r2c_3d(fft_size[2], fft_size[1], fft_size[0],
+                                              vel_onegrid[mfi].dataPtr(),
+                                              reinterpret_cast<FFTcomplex*>
+                                              (spectral_fieldz.back()->dataPtr()),
+                                              FFTW_ESTIMATE);
+#endif
+            forward_plan.push_back(fplan);
+        }
+
+        ParallelDescriptor::Barrier();
+        
+        // ForwardTransform
+        for (MFIter mfi(vel_onegrid); mfi.isValid(); ++mfi) {
+            int i = mfi.LocalIndex();
+#ifdef AMREX_USE_CUDA
+            cufftSetStream(forward_plan[i], amrex::Gpu::gpuStream());
+            cufftResult result = cufftExecD2Z(forward_plan[i],
+                                              vel_onegrid[mfi].dataPtr(),
+                                              reinterpret_cast<FFTcomplex*>
+                                                  (spectral_fieldz[i]->dataPtr()));
+            if (result != CUFFT_SUCCESS) {
+                amrex::AllPrint() << " forward transform using cufftExec failed! Error: "
+                                  << cufftError(result) << "\n";
+	        }
+#elif AMREX_USE_HIP
+            rocfft_execution_info execinfo = nullptr;
+            rocfft_status result = rocfft_execution_info_create(&execinfo);
+            assert_rocfft_status("rocfft_execution_info_create", result);
+
+            std::size_t buffersize = 0;
+            result = rocfft_plan_get_work_buffer_size(forward_plan[i], &buffersize);
+            assert_rocfft_status("rocfft_plan_get_work_buffer_size", result);
+
+            void* buffer = amrex::The_Arena()->alloc(buffersize);
+            result = rocfft_execution_info_set_work_buffer(execinfo, buffer, buffersize);
+            assert_rocfft_status("rocfft_execution_info_set_work_buffer", result);
+
+            result = rocfft_execution_info_set_stream(execinfo, amrex::Gpu::gpuStream());
+            assert_rocfft_status("rocfft_execution_info_set_stream", result);
+
+	        amrex::Real* vel_onegrid_ptr = vel_onegrid[mfi].dataPtr();
+	        FFTcomplex* spectral_field_ptr = reinterpret_cast<FFTcomplex*>(spectral_fieldz[i]->dataPtr());
+            result = rocfft_execute(forward_plan[i],
+                                    (void**) &vel_onegrid_ptr, // in
+                                    (void**) &spectral_field_ptr, // out
+                                    execinfo);
+            assert_rocfft_status("rocfft_execute", result);
+            amrex::Gpu::streamSynchronize();
+            amrex::The_Arena()->free(buffer);
+            result = rocfft_execution_info_destroy(execinfo);
+            assert_rocfft_status("rocfft_execution_info_destroy", result);
+#else
+            fftw_execute(forward_plan[i]);
+#endif
+        }
+        
+        // destroy fft plan
+        for (int i = 0; i < forward_plan.size(); ++i) {
+#ifdef AMREX_USE_CUDA
+            cufftDestroy(forward_plan[i]);
+#elif AMREX_USE_HIP
+            rocfft_plan_destroy(forward_plan[i]);
+#else
+            fftw_destroy_plan(forward_plan[i]);
+#endif
+        }
+    
+    } // end x-vel
+    
 
     // Decompose velocity field into solenoidal and dilatational
     for ( MFIter mfi(vel_onegrid,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
 
         const Box& bx = mfi.tilebox();
-        Array4< GpuComplex<Real> > spectral_tx = (*spectral_field[0])  .array(0,1);
-        Array4< GpuComplex<Real> > spectral_ty = (*spectral_field[0])  .array(1,1);
-        Array4< GpuComplex<Real> > spectral_tz = (*spectral_field[0])  .array(2,1);
-        Array4< GpuComplex<Real> > spectral_sx = (*spectral_field_S[0]).array(0,1);
-        Array4< GpuComplex<Real> > spectral_sy = (*spectral_field_S[0]).array(1,1);
-        Array4< GpuComplex<Real> > spectral_sz = (*spectral_field_S[0]).array(2,1);
-        Array4< GpuComplex<Real> > spectral_dx = (*spectral_field_D[0]).array(0,1);
-        Array4< GpuComplex<Real> > spectral_dy = (*spectral_field_D[0]).array(1,1);
-        Array4< GpuComplex<Real> > spectral_dz = (*spectral_field_D[0]).array(2,1);
+        Array4< GpuComplex<Real> > spectral_tx = (*spectral_fieldx[0])  .array();
+        Array4< GpuComplex<Real> > spectral_ty = (*spectral_fieldy[0])  .array();
+        Array4< GpuComplex<Real> > spectral_tz = (*spectral_fieldz[0])  .array();
+        Array4< GpuComplex<Real> > spectral_sx = (*spectral_field_Sx[0]).array();
+        Array4< GpuComplex<Real> > spectral_sy = (*spectral_field_Sy[0]).array();
+        Array4< GpuComplex<Real> > spectral_sz = (*spectral_field_Sz[0]).array();
+        Array4< GpuComplex<Real> > spectral_dx = (*spectral_field_Dx[0]).array();
+        Array4< GpuComplex<Real> > spectral_dy = (*spectral_field_Dy[0]).array();
+        Array4< GpuComplex<Real> > spectral_dz = (*spectral_field_Dz[0]).array();
             
         amrex::ParallelFor(bx,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
@@ -676,7 +911,7 @@ void TurbSpectrumVelDecomp(const MultiFab& vel,
 
            Real GxR, GxC, GyR, GyC, GzR, GzC;
            
-           if (i <= nx/2) { 
+           if (i <= nx/2) {
                // Gradient Operators
                GxR = (cos(2.0*M_PI*i/nx)-1.0)/dx[0];
                GxC = (sin(2.0*M_PI*i/nx)-0.0)/dx[0];
@@ -684,50 +919,47 @@ void TurbSpectrumVelDecomp(const MultiFab& vel,
                GyC = (sin(2.0*M_PI*j/ny)-0.0)/dx[1];
                GzR = (cos(2.0*M_PI*k/nz)-1.0)/dx[2];
                GzC = (sin(2.0*M_PI*k/nz)-0.0)/dx[2];
-           }
-           else { // conjugate
-                amrex::Abort("check the code; i should not go beyond bx.length(0)/2");
-           }
 
-           // Scale Total velocity FFT components
-           spectral_tx(i,j,k) *= (1.0/sqrtnpts);
-           spectral_ty(i,j,k) *= (1.0/sqrtnpts);
-           spectral_tz(i,j,k) *= (1.0/sqrtnpts);
+               // Scale Total velocity FFT components
+               spectral_tx(i,j,k) *= (1.0/sqrtnpts);
+               spectral_ty(i,j,k) *= (1.0/sqrtnpts);
+               spectral_tz(i,j,k) *= (1.0/sqrtnpts);
 
-           // Inverse Laplacian
-           Real Lap = GxR*GxR + GxC*GxC + GyR*GyR + GyC*GyC + GzR*GzR + GzC*GzC;
+               // Inverse Laplacian
+               Real Lap = GxR*GxR + GxC*GxC + GyR*GyR + GyC*GyC + GzR*GzR + GzC*GzC;
 
-           // Divergence of vel
-           Real divR = spectral_tx(i,j,k).real()*GxR - spectral_tx(i,j,k).imag()*GxC +
-                       spectral_ty(i,j,k).real()*GyR - spectral_ty(i,j,k).imag()*GyC +
-                       spectral_tz(i,j,k).real()*GzR - spectral_tz(i,j,k).imag()*GzC ;
-           Real divC = spectral_tx(i,j,k).real()*GxC + spectral_tx(i,j,k).imag()*GxR +
-                       spectral_ty(i,j,k).real()*GyC + spectral_ty(i,j,k).imag()*GyR +
-                       spectral_tz(i,j,k).real()*GzC + spectral_tz(i,j,k).imag()*GzR ;
+               // Divergence of vel
+               Real divR = spectral_tx(i,j,k).real()*GxR - spectral_tx(i,j,k).imag()*GxC +
+                           spectral_ty(i,j,k).real()*GyR - spectral_ty(i,j,k).imag()*GyC +
+                           spectral_tz(i,j,k).real()*GzR - spectral_tz(i,j,k).imag()*GzC ;
+               Real divC = spectral_tx(i,j,k).real()*GxC + spectral_tx(i,j,k).imag()*GxR +
+                           spectral_ty(i,j,k).real()*GyC + spectral_ty(i,j,k).imag()*GyR +
+                           spectral_tz(i,j,k).real()*GzC + spectral_tz(i,j,k).imag()*GzR ;
 
-           if (Lap < 1.0e-12) { // zero mode for no bulk motion
-               spectral_dx(i,j,k) *= 0.0;
-               spectral_dy(i,j,k) *= 0.0;
-               spectral_dz(i,j,k) *= 0.0;
-           }
-           else {
-               // Dilatational velocity 
-               GpuComplex<Real> copy_dx((divR*GxR + divC*GxC) / Lap, 
-                                        (divC*GxR - divR*GxC) / Lap);
-               spectral_dx(i,j,k) = copy_dx;
+               if (Lap < 1.0e-12) { // zero mode for no bulk motion
+                   spectral_dx(i,j,k) *= 0.0;
+                   spectral_dy(i,j,k) *= 0.0;
+                   spectral_dz(i,j,k) *= 0.0;
+               }
+               else {
+                   // Dilatational velocity 
+                   GpuComplex<Real> copy_dx((divR*GxR + divC*GxC) / Lap, 
+                                            (divC*GxR - divR*GxC) / Lap);
+                   spectral_dx(i,j,k) = copy_dx;
 
-               GpuComplex<Real> copy_dy((divR*GyR + divC*GyC) / Lap,
-                                        (divC*GyR - divR*GyC) / Lap);
-               spectral_dy(i,j,k) = copy_dy;
+                   GpuComplex<Real> copy_dy((divR*GyR + divC*GyC) / Lap,
+                                            (divC*GyR - divR*GyC) / Lap);
+                   spectral_dy(i,j,k) = copy_dy;
 
-               GpuComplex<Real> copy_dz((divR*GzR + divC*GzC) / Lap,
-                                        (divC*GzR - divR*GzC) / Lap);
-               spectral_dz(i,j,k) = copy_dz;
-               
-               // Solenoidal velocity
-               spectral_sx(i,j,k) = spectral_tx(i,j,k) - spectral_dx(i,j,k);
-               spectral_sy(i,j,k) = spectral_ty(i,j,k) - spectral_dy(i,j,k); 
-               spectral_sz(i,j,k) = spectral_tz(i,j,k) - spectral_dz(i,j,k);
+                   GpuComplex<Real> copy_dz((divR*GzR + divC*GzC) / Lap,
+                                            (divC*GzR - divR*GzC) / Lap);
+                   spectral_dz(i,j,k) = copy_dz;
+                   
+                   // Solenoidal velocity
+                   spectral_sx(i,j,k) = spectral_tx(i,j,k) - spectral_dx(i,j,k);
+                   spectral_sy(i,j,k) = spectral_ty(i,j,k) - spectral_dy(i,j,k); 
+                   spectral_sz(i,j,k) = spectral_tz(i,j,k) - spectral_dz(i,j,k);
+               }
            }
         });
     }
@@ -735,212 +967,73 @@ void TurbSpectrumVelDecomp(const MultiFab& vel,
     ParallelDescriptor::Barrier();
 
     // Integrate K spectrum for velocities
-    IntegrateKVelocity(spectral_field  , vel_onegrid, "turb_total"     ,scaling,step);
-    IntegrateKVelocity(spectral_field_S, vel_onegrid, "turb_solenoidal",scaling,step);
-    IntegrateKVelocity(spectral_field_D, vel_onegrid, "turb_dilational",scaling,step);
+    IntegrateKVelocity(spectral_fieldx,   spectral_fieldy,   spectral_fieldz,   vel_onegrid, "vel_total"     ,scaling,step);
+    IntegrateKVelocity(spectral_field_Sx, spectral_field_Sy, spectral_field_Sz, vel_onegrid, "vel_solenoidal",scaling,step);
+    IntegrateKVelocity(spectral_field_Dx, spectral_field_Dy, spectral_field_Dz, vel_onegrid, "vel_dilatational",scaling,step);
 
-    // Create one-grid array to store IFFT velocities
-    MultiFab vel_decomp_onegrid;
-    vel_decomp_onegrid.define(ba_onegrid, dmap_onegrid, 6, 0);
-    vel_decomp_onegrid.setVal(0.0);;
-    
-    // Inverse FFT to get solenoidal velocity 
-    Vector<FFTplan> backward_planS;
-    built_plan = false;
-    for (int comp=0; comp<3; comp++) {
-        if (!built_plan) {
-            for (MFIter mfi(vel_decomp_onegrid); mfi.isValid(); ++mfi) {
-                FFTplan fplan;
 
-#ifdef AMREX_USE_CUDA // CUDA
-                cufftResult result = cufftPlan3d(&fplan, fft_size[2], fft_size[1], fft_size[0], CUFFT_Z2D);
-                if (result != CUFFT_SUCCESS) {
-                    amrex::AllPrint() << " cufftplan3d forward failed! Error: "
-                                      << cufftError(result) << "\n";
-                }
-                built_plan = true;
-#elif AMREX_USE_HIP // HIP
-                const std::size_t lengths[] = {std::size_t(fft_size[0]),std::size_t(fft_size[1]),std::size_t(fft_size[2])};
-                rocfft_status result = rocfft_plan_create(&fplan, rocfft_placement_notinplace, 
-                                                          rocfft_transform_type_real_inverse, rocfft_precision_double,
-                                                          3, lengths, 1, nullptr);
-                assert_rocfft_status("rocfft_plan_create", result);
-                built_plan = true;
-#else // host
-                fplan = fftw_plan_dft_c2r_3d(fft_size[2], fft_size[1], fft_size[0],
-                                             reinterpret_cast<FFTcomplex*>
-                                             (spectral_field_S.back()->dataPtr(comp)),
-                                             vel_decomp_onegrid[mfi].dataPtr(comp),
-                                             FFTW_ESTIMATE);
-#endif
-               backward_planS.push_back(fplan);
-            }
-        }
-
-        ParallelDescriptor::Barrier();
-
-        // Backward Transform
-        for (MFIter mfi(vel_decomp_onegrid); mfi.isValid(); ++mfi) {
-            int i = mfi.LocalIndex();
-#ifdef AMREX_USE_CUDA
-            cufftSetStream(backward_planS[i], amrex::Gpu::gpuStream());
-            cufftResult result = cufftExecZ2D(backward_planS[i],
-                                              reinterpret_cast<FFTcomplex*>
-                                                  (spectral_field_S[i]->dataPtr(comp)),
-                                              vel_decomp_onegrid[mfi].dataPtr(comp));
-            if (result != CUFFT_SUCCESS) {
-                amrex::AllPrint() << " forward transform using cufftExec failed! Error: "
-                                  << cufftError(result) << "\n";
-	        }
-#elif AMREX_USE_HIP
-            rocfft_execution_info execinfo = nullptr;
-            rocfft_status result = rocfft_execution_info_create(&execinfo);
-            assert_rocfft_status("rocfft_execution_info_create", result);
-
-            std::size_t buffersize = 0;
-            result = rocfft_plan_get_work_buffer_size(backward_planS[i], &buffersize);
-            assert_rocfft_status("rocfft_plan_get_work_buffer_size", result);
-
-            void* buffer = amrex::The_Arena()->alloc(buffersize);
-            result = rocfft_execution_info_set_work_buffer(execinfo, buffer, buffersize);
-            assert_rocfft_status("rocfft_execution_info_set_work_buffer", result);
-
-            result = rocfft_execution_info_set_stream(execinfo, amrex::Gpu::gpuStream());
-            assert_rocfft_status("rocfft_execution_info_set_stream", result);
-
-	        amrex::Real* vel_onegrid_ptr = vel_decomp_onegrid[mfi].dataPtr(comp);
-	        FFTcomplex* spectral_field_ptr = reinterpret_cast<FFTcomplex*>(spectral_field_S[i]->dataPtr(comp));
-            result = rocfft_execute(backward_planS[i],
-                                    (void**) &vel_onegrid_ptr, // in
-                                    (void**) &spectral_field_ptr, // out
-                                    execinfo);
-            assert_rocfft_status("rocfft_execute", result);
-            amrex::Gpu::streamSynchronize();
-            amrex::The_Arena()->free(buffer);
-            result = rocfft_execution_info_destroy(execinfo);
-            assert_rocfft_status("rocfft_execution_info_destroy", result);
-#else
-            fftw_execute(backward_planS[i]);
-#endif
-        }
+    // Inverse Solenoidal and Dilatational Velocity Components
+    { // solenoidal x
+        MultiFab vel_decomp_onegrid;
+        vel_decomp_onegrid.define(ba_onegrid, dmap_onegrid, 1, 0);
+        vel_decomp_onegrid.setVal(0.0);
+        InverseFFTVel(spectral_field_Sx, vel_decomp_onegrid,fft_size);
+        // copy into external multifab
+        vel_decomp.ParallelCopy(vel_decomp_onegrid,0,0,1);
     }
-
-    // destroy fft plan
-    for (int i = 0; i < backward_planS.size(); ++i) {
-#ifdef AMREX_USE_CUDA
-        cufftDestroy(backward_planS[i]);
-#elif AMREX_USE_HIP
-        rocfft_plan_destroy(backward_planS[i]);
-#else
-        fftw_destroy_plan(backward_planS[i]);
-#endif
+    { // solenoidal y
+        MultiFab vel_decomp_onegrid;
+        vel_decomp_onegrid.define(ba_onegrid, dmap_onegrid, 1, 0);
+        vel_decomp_onegrid.setVal(0.0);
+        InverseFFTVel(spectral_field_Sy, vel_decomp_onegrid,fft_size);
+        // copy into external multifab
+        vel_decomp.ParallelCopy(vel_decomp_onegrid,0,1,1);
     }
-
-    
-    // Inverse FFT to get dilatational velocity 
-    Vector<FFTplan> backward_planD;
-    built_plan = false;
-    for (int comp=0; comp<3; comp++) {
-        if (!built_plan) {
-            for (MFIter mfi(vel_decomp_onegrid); mfi.isValid(); ++mfi) {
-                FFTplan fplan;
-
-#ifdef AMREX_USE_CUDA // CUDA
-                cufftResult result = cufftPlan3d(&fplan, fft_size[2], fft_size[1], fft_size[0], CUFFT_Z2D);
-                if (result != CUFFT_SUCCESS) {
-                    amrex::AllPrint() << " cufftplan3d forward failed! Error: "
-                                      << cufftError(result) << "\n";
-                }
-                built_plan = true;
-#elif AMREX_USE_HIP // HIP
-                const std::size_t lengths[] = {std::size_t(fft_size[0]),std::size_t(fft_size[1]),std::size_t(fft_size[2])};
-                rocfft_status result = rocfft_plan_create(&fplan, rocfft_placement_notinplace, 
-                                                          rocfft_transform_type_real_inverse, rocfft_precision_double,
-                                                          3, lengths, 1, nullptr);
-                assert_rocfft_status("rocfft_plan_create", result);
-                built_plan = true;
-#else // host
-                fplan = fftw_plan_dft_c2r_3d(fft_size[2], fft_size[1], fft_size[0],
-                                             reinterpret_cast<FFTcomplex*>
-                                             (spectral_field_D.back()->dataPtr(comp)),
-                                             vel_decomp_onegrid[mfi].dataPtr(comp+3),
-                                             FFTW_ESTIMATE);
-#endif
-               backward_planD.push_back(fplan);
-            }
-        }
-
-        ParallelDescriptor::Barrier();
-
-        // Backward Transform
-        for (MFIter mfi(vel_decomp_onegrid); mfi.isValid(); ++mfi) {
-            int i = mfi.LocalIndex();
-#ifdef AMREX_USE_CUDA
-            cufftSetStream(backward_planD[i], amrex::Gpu::gpuStream());
-            cufftResult result = cufftExecZ2D(backward_planD[i],
-                                              reinterpret_cast<FFTcomplex*>
-                                                  (spectral_field_D[i]->dataPtr(comp)),
-                                              vel_decomp_onegrid[mfi].dataPtr(comp+3));
-            if (result != CUFFT_SUCCESS) {
-                amrex::AllPrint() << " forward transform using cufftExec failed! Error: "
-                                  << cufftError(result) << "\n";
-	        }
-#elif AMREX_USE_HIP
-            rocfft_execution_info execinfo = nullptr;
-            rocfft_status result = rocfft_execution_info_create(&execinfo);
-            assert_rocfft_status("rocfft_execution_info_create", result);
-
-            std::size_t buffersize = 0;
-            result = rocfft_plan_get_work_buffer_size(backward_planD[i], &buffersize);
-            assert_rocfft_status("rocfft_plan_get_work_buffer_size", result);
-
-            void* buffer = amrex::The_Arena()->alloc(buffersize);
-            result = rocfft_execution_info_set_work_buffer(execinfo, buffer, buffersize);
-            assert_rocfft_status("rocfft_execution_info_set_work_buffer", result);
-
-            result = rocfft_execution_info_set_stream(execinfo, amrex::Gpu::gpuStream());
-            assert_rocfft_status("rocfft_execution_info_set_stream", result);
-
-	        amrex::Real* vel_onegrid_ptr = vel_decomp_onegrid[mfi].dataPtr(comp+3);
-	        FFTcomplex* spectral_field_ptr = reinterpret_cast<FFTcomplex*>(spectral_field_D[i]->dataPtr(comp));
-            result = rocfft_execute(backward_planD[i],
-                                    (void**) &vel_onegrid_ptr, // in
-                                    (void**) &spectral_field_ptr, // out
-                                    execinfo);
-            assert_rocfft_status("rocfft_execute", result);
-            amrex::Gpu::streamSynchronize();
-            amrex::The_Arena()->free(buffer);
-            result = rocfft_execution_info_destroy(execinfo);
-            assert_rocfft_status("rocfft_execution_info_destroy", result);
-#else
-            fftw_execute(backward_planD[i]);
-#endif
-        }
+    { // solenoidal z
+        MultiFab vel_decomp_onegrid;
+        vel_decomp_onegrid.define(ba_onegrid, dmap_onegrid, 1, 0);
+        vel_decomp_onegrid.setVal(0.0);
+        InverseFFTVel(spectral_field_Sz, vel_decomp_onegrid,fft_size);
+        // copy into external multifab
+        vel_decomp.ParallelCopy(vel_decomp_onegrid,0,2,1);
     }
-
-    // destroy fft plan
-    for (int i = 0; i < backward_planD.size(); ++i) {
-#ifdef AMREX_USE_CUDA
-        cufftDestroy(backward_planD[i]);
-#elif AMREX_USE_HIP
-        rocfft_plan_destroy(backward_planD[i]);
-#else
-        fftw_destroy_plan(backward_planD[i]);
-#endif
+    { // dilatational x
+        MultiFab vel_decomp_onegrid;
+        vel_decomp_onegrid.define(ba_onegrid, dmap_onegrid, 1, 0);
+        vel_decomp_onegrid.setVal(0.0);
+        InverseFFTVel(spectral_field_Dx, vel_decomp_onegrid,fft_size);
+        // copy into external multifab
+        vel_decomp.ParallelCopy(vel_decomp_onegrid,0,3,1);
     }
-
-    // copy into external multifab
-    vel_decomp.ParallelCopy(vel_decomp_onegrid,0,0,6);
+    { // dilatational y
+        MultiFab vel_decomp_onegrid;
+        vel_decomp_onegrid.define(ba_onegrid, dmap_onegrid, 1, 0);
+        vel_decomp_onegrid.setVal(0.0);
+        InverseFFTVel(spectral_field_Dy, vel_decomp_onegrid,fft_size);
+        // copy into external multifab
+        vel_decomp.ParallelCopy(vel_decomp_onegrid,0,4,1);
+    }
+    { // dilatational z
+        MultiFab vel_decomp_onegrid;
+        vel_decomp_onegrid.define(ba_onegrid, dmap_onegrid, 1, 0);
+        vel_decomp_onegrid.setVal(0.0);
+        InverseFFTVel(spectral_field_Dz, vel_decomp_onegrid,fft_size);
+        // copy into external multifab
+        vel_decomp.ParallelCopy(vel_decomp_onegrid,0,5,1);
+    }
     vel_decomp.mult(1.0/sqrtnpts);
+    
+
 #endif // end heFFTe
 }
 
 #if defined(HEFFTE)
-void IntegrateKScalar(BaseFab<GpuComplex<Real> >& spectral_field,
+void IntegrateKScalar(const BaseFab<GpuComplex<Real> >& spectral_field,
                       const std::string& name, const Real& scaling,
                       const Box& c_local_box,
                       const Real& sqrtnpts,
-                      const int& step)
+                      const int& step,
+                      const int& comp)
 
 {
     int npts = n_cells[0]/2;
@@ -957,15 +1050,15 @@ void IntegrateKScalar(BaseFab<GpuComplex<Real> >& spectral_field,
       phicnt_ptr[d] = 0;
     });
 
-    Array4< GpuComplex<Real> > spectral = spectral_field.array();
+    const Array4< const GpuComplex<Real> > spectral = spectral_field.const_array(comp,1);
     ParallelFor(c_local_box, [=] AMREX_GPU_DEVICE(int i, int j, int k)
     {
         if (i <= n_cells[0]/2) { // only half of kx-domain
             int ki = i;
             int kj = j;
             int kk = k;
-            if (j >= n_cells[1]/2) kj = n_cells[1]-j;
-            if (k >= n_cells[2]/2) kk = n_cells[2]-k;
+//            if (j >= n_cells[1]/2) kj = n_cells[1]-j;
+//            if (k >= n_cells[2]/2) kk = n_cells[2]-k;
 
             Real dist = (ki*ki + kj*kj + kk*kk);
             dist = std::sqrt(dist);
@@ -975,10 +1068,13 @@ void IntegrateKScalar(BaseFab<GpuComplex<Real> >& spectral_field,
                 int cell = int(dist);
                 Real real = spectral(i,j,k).real();
                 Real imag = spectral(i,j,k).imag();
-                Real cov  = scaling*(1.0/(sqrtnpts*sqrtnpts))*(real*real + imag*imag); 
+                Real cov  = (1.0/(sqrtnpts*sqrtnpts*scaling))*(real*real + imag*imag); 
                 amrex::HostDevice::Atomic::Add(&(phisum_ptr[cell]), cov);
                 amrex::HostDevice::Atomic::Add(&(phicnt_ptr[cell]),1);
             }
+        }
+        else {
+            amrex::Abort("i should not exceed n_cells[0]/2");
         }
     });
     
@@ -1013,12 +1109,13 @@ void IntegrateKScalar(BaseFab<GpuComplex<Real> >& spectral_field,
     }
 }
 #else
-void IntegrateKScalar(Vector<std::unique_ptr<BaseFab<GpuComplex<Real> > > >& spectral_field,
+void IntegrateKScalar(const Vector<std::unique_ptr<BaseFab<GpuComplex<Real> > > >& spectral_field,
                       const MultiFab& variables_onegrid,
                       const std::string& name,
                       const Real& scaling,
                       const Real& sqrtnpts,
-                      const int& step)
+                      const int& step,
+                      const int& comp)
 
 {
     int npts = n_cells[0]/2;
@@ -1041,7 +1138,7 @@ void IntegrateKScalar(Vector<std::unique_ptr<BaseFab<GpuComplex<Real> > > >& spe
         
         const Box& bx = mfi.tilebox();
 
-        Array4< GpuComplex<Real> > spectral = (*spectral_field[0]).array();
+        const Array4<const GpuComplex<Real> > spectral = (*spectral_field[0]).const_array();
 
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
@@ -1049,8 +1146,8 @@ void IntegrateKScalar(Vector<std::unique_ptr<BaseFab<GpuComplex<Real> > > >& spe
                 int ki = i;
                 int kj = j;
                 int kk = k;
-                if (j >= bx.length(1)/2) kj = bx.length(1)-j;
-                if (k >= bx.length(2)/2) kk = bx.length(2)-k;
+//                if (j >= bx.length(1)/2) kj = bx.length(1)-j;
+//                if (k >= bx.length(2)/2) kk = bx.length(2)-k;
 
                 Real dist = (ki*ki + kj*kj + kk*kk);
                 dist = std::sqrt(dist);
@@ -1060,7 +1157,7 @@ void IntegrateKScalar(Vector<std::unique_ptr<BaseFab<GpuComplex<Real> > > >& spe
                     int cell = int(dist);
                     Real real = spectral(i,j,k).real();
                     Real imag = spectral(i,j,k).imag();
-                    Real cov  = scaling*(1.0/(sqrtnpts*sqrtnpts))*(real*real + imag*imag); 
+                    Real cov  = (1.0/(scaling*sqrtnpts*sqrtnpts))*(real*real + imag*imag); 
                     amrex::HostDevice::Atomic::Add(&(phisum_ptr[cell]), cov);
                     amrex::HostDevice::Atomic::Add(&(phicnt_ptr[cell]),1);
                 }
@@ -1099,7 +1196,7 @@ void IntegrateKScalar(Vector<std::unique_ptr<BaseFab<GpuComplex<Real> > > >& spe
 #endif
 
 #if defined(HEFFTE)
-void IntegrateKVelocity(BaseFab<GpuComplex<Real> >& spectral_field,
+void IntegrateKVelocity(const BaseFab<GpuComplex<Real> >& spectral_field,
                         const std::string& name, const Real& scaling,
                         const Box& c_local_box,
                         const int& step)
@@ -1119,17 +1216,17 @@ void IntegrateKVelocity(BaseFab<GpuComplex<Real> >& spectral_field,
       phicnt_ptr[d] = 0;
     });
 
-    Array4< GpuComplex<Real> > spectralx = spectral_field.array(0,1);
-    Array4< GpuComplex<Real> > spectraly = spectral_field.array(1,1);
-    Array4< GpuComplex<Real> > spectralz = spectral_field.array(2,1);
+    const Array4<const GpuComplex<Real> > spectralx = spectral_field.const_array(0,1);
+    const Array4<const GpuComplex<Real> > spectraly = spectral_field.const_array(1,1);
+    const Array4<const GpuComplex<Real> > spectralz = spectral_field.const_array(2,1);
     ParallelFor(c_local_box, [=] AMREX_GPU_DEVICE(int i, int j, int k)
     {
         if (i <= n_cells[0]/2) { // only half of kx-domain
             int ki = i;
             int kj = j;
             int kk = k;
-            if (j >= n_cells[1]/2) kj = n_cells[1]-j;
-            if (k >= n_cells[2]/2) kk = n_cells[2]-k;
+//            if (j >= n_cells[1]/2) kj = n_cells[1]-j;
+//            if (k >= n_cells[2]/2) kk = n_cells[2]-k;
 
             Real dist = (ki*ki + kj*kj + kk*kk);
             dist = std::sqrt(dist);
@@ -1140,17 +1237,20 @@ void IntegrateKVelocity(BaseFab<GpuComplex<Real> >& spectral_field,
                 Real real, imag, cov_x, cov_y, cov_z, cov;
                 real = spectralx(i,j,k).real();
                 imag = spectralx(i,j,k).imag();
-                cov_x  = scaling*(real*real + imag*imag); 
+                cov_x  = (1.0/scaling)*(real*real + imag*imag); 
                 real = spectraly(i,j,k).real();
                 imag = spectraly(i,j,k).imag();
-                cov_y  = scaling*(real*real + imag*imag); 
+                cov_y  = (1.0/scaling)*(real*real + imag*imag); 
                 real = spectralz(i,j,k).real();
                 imag = spectralz(i,j,k).imag();
-                cov_z  = scaling*(real*real + imag*imag); 
+                cov_z  = (1.0/scaling)*(real*real + imag*imag); 
                 cov = cov_x + cov_y + cov_z;
                 amrex::HostDevice::Atomic::Add(&(phisum_ptr[cell]), cov);
                 amrex::HostDevice::Atomic::Add(&(phicnt_ptr[cell]),1);
             }
+        }
+        else {
+            amrex::Abort("i should not exceed n_cells[0]/2");
         }
     });
     
@@ -1185,7 +1285,9 @@ void IntegrateKVelocity(BaseFab<GpuComplex<Real> >& spectral_field,
     }
 }
 #else
-void IntegrateKVelocity(Vector<std::unique_ptr<BaseFab<GpuComplex<Real> > > >& spectral_field,
+void IntegrateKVelocity(const Vector<std::unique_ptr<BaseFab<GpuComplex<Real> > > >& spectral_fieldx,
+                        const Vector<std::unique_ptr<BaseFab<GpuComplex<Real> > > >& spectral_fieldy,
+                        const Vector<std::unique_ptr<BaseFab<GpuComplex<Real> > > >& spectral_fieldz,
                         const MultiFab& vel_onegrid,
                         const std::string& name,
                         const Real& scaling,
@@ -1210,9 +1312,9 @@ void IntegrateKVelocity(Vector<std::unique_ptr<BaseFab<GpuComplex<Real> > > >& s
         
         const Box& bx = mfi.tilebox();
 
-        Array4< GpuComplex<Real> > spectralx = (*spectral_field[0]).array(0,1);
-        Array4< GpuComplex<Real> > spectraly = (*spectral_field[0]).array(1,1);
-        Array4< GpuComplex<Real> > spectralz = (*spectral_field[0]).array(2,1);
+        const Array4<const GpuComplex<Real> > spectralx = (*spectral_fieldx[0]).const_array();
+        const Array4<const GpuComplex<Real> > spectraly = (*spectral_fieldy[0]).const_array();
+        const Array4<const GpuComplex<Real> > spectralz = (*spectral_fieldz[0]).const_array();
 
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
@@ -1220,8 +1322,8 @@ void IntegrateKVelocity(Vector<std::unique_ptr<BaseFab<GpuComplex<Real> > > >& s
                 int ki = i;
                 int kj = j;
                 int kk = k;
-                if (j >= bx.length(1)/2) kj = bx.length(1)-j;
-                if (k >= bx.length(2)/2) kk = bx.length(2)-k;
+//                if (j >= bx.length(1)/2) kj = bx.length(1)-j;
+//                if (k >= bx.length(2)/2) kk = bx.length(2)-k;
 
                 Real dist = (ki*ki + kj*kj + kk*kk);
                 dist = std::sqrt(dist);
@@ -1232,13 +1334,13 @@ void IntegrateKVelocity(Vector<std::unique_ptr<BaseFab<GpuComplex<Real> > > >& s
                     Real real, imag, cov_x, cov_y, cov_z, cov;
                     real = spectralx(i,j,k).real();
                     imag = spectralx(i,j,k).imag();
-                    cov_x  = scaling*(real*real + imag*imag); 
+                    cov_x  = (1.0/scaling)*(real*real + imag*imag); 
                     real = spectraly(i,j,k).real();
                     imag = spectraly(i,j,k).imag();
-                    cov_y  = scaling*(real*real + imag*imag); 
+                    cov_y  = (1.0/scaling)*(real*real + imag*imag); 
                     real = spectralz(i,j,k).real();
                     imag = spectralz(i,j,k).imag();
-                    cov_z  = scaling*(real*real + imag*imag); 
+                    cov_z  = (1.0/scaling)*(real*real + imag*imag); 
                     cov = cov_x + cov_y + cov_z;
                     amrex::HostDevice::Atomic::Add(&(phisum_ptr[cell]), cov);
                     amrex::HostDevice::Atomic::Add(&(phicnt_ptr[cell]),1);
@@ -1274,5 +1376,111 @@ void IntegrateKVelocity(Vector<std::unique_ptr<BaseFab<GpuComplex<Real> > > >& s
         }
         turb.close();
     }
+}
+#endif
+
+#if defined(HEFFTE)
+// this function not needed for HEFFTE
+#else
+void InverseFFTVel(Vector<std::unique_ptr<BaseFab<GpuComplex<Real> > > >& spectral_field, 
+                   MultiFab& vel_decomp_onegrid, const IntVect& fft_size)
+{
+
+#ifdef AMREX_USE_CUDA
+    using FFTplan = cufftHandle;
+    using FFTcomplex = cuDoubleComplex;
+#elif AMREX_USE_HIP
+    using FFTplan = rocfft_plan;
+    using FFTcomplex = double2;
+#else
+    using FFTplan = fftw_plan;
+    using FFTcomplex = fftw_complex;
+#endif
+    
+    Vector<FFTplan> backward_plan;
+    
+    for (MFIter mfi(vel_decomp_onegrid); mfi.isValid(); ++mfi) {
+        FFTplan fplan;
+#ifdef AMREX_USE_CUDA // CUDA
+        cufftResult result = cufftPlan3d(&fplan, fft_size[2], fft_size[1], fft_size[0], CUFFT_Z2D);
+        if (result != CUFFT_SUCCESS) {
+            amrex::AllPrint() << " cufftplan3d forward failed! Error: "
+                              << cufftError(result) << "\n";
+        }
+#elif AMREX_USE_HIP // HIP
+        const std::size_t lengths[] = {std::size_t(fft_size[0]),std::size_t(fft_size[1]),std::size_t(fft_size[2])};
+        rocfft_status result = rocfft_plan_create(&fplan, rocfft_placement_notinplace, 
+                                                  rocfft_transform_type_real_inverse, rocfft_precision_double,
+                                                  3, lengths, 1, nullptr);
+        assert_rocfft_status("rocfft_plan_create", result);
+        built_plan = true;
+#else // host
+        fplan = fftw_plan_dft_c2r_3d(fft_size[2], fft_size[1], fft_size[0],
+                                     reinterpret_cast<FFTcomplex*>
+                                     (spectral_field.back()->dataPtr()),
+                                     vel_decomp_onegrid[mfi].dataPtr(),
+                                     FFTW_ESTIMATE);
+#endif
+        backward_plan.push_back(fplan);
+    }
+    
+    ParallelDescriptor::Barrier();
+
+    // Backward Transform
+    for (MFIter mfi(vel_decomp_onegrid); mfi.isValid(); ++mfi) {
+        int i = mfi.LocalIndex();
+#ifdef AMREX_USE_CUDA
+        cufftSetStream(backward_plan[i], amrex::Gpu::gpuStream());
+        cufftResult result = cufftExecZ2D(backward_plan[i],
+                                          reinterpret_cast<FFTcomplex*>
+                                              (spectral_field[i]->dataPtr()),
+                                          vel_decomp_onegrid[mfi].dataPtr());
+        if (result != CUFFT_SUCCESS) {
+            amrex::AllPrint() << " forward transform using cufftExec failed! Error: "
+                              << cufftError(result) << "\n";
+	    }
+#elif AMREX_USE_HIP
+        rocfft_execution_info execinfo = nullptr;
+        rocfft_status result = rocfft_execution_info_create(&execinfo);
+        assert_rocfft_status("rocfft_execution_info_create", result);
+
+        std::size_t buffersize = 0;
+        result = rocfft_plan_get_work_buffer_size(backward_plan[i], &buffersize);
+        assert_rocfft_status("rocfft_plan_get_work_buffer_size", result);
+
+        void* buffer = amrex::The_Arena()->alloc(buffersize);
+        result = rocfft_execution_info_set_work_buffer(execinfo, buffer, buffersize);
+        assert_rocfft_status("rocfft_execution_info_set_work_buffer", result);
+
+        result = rocfft_execution_info_set_stream(execinfo, amrex::Gpu::gpuStream());
+        assert_rocfft_status("rocfft_execution_info_set_stream", result);
+
+	    amrex::Real* vel_onegrid_ptr = vel_decomp_onegrid[mfi].dataPtr();
+	    FFTcomplex* spectral_field_ptr = reinterpret_cast<FFTcomplex*>(spectral_field[i]->dataPtr());
+        result = rocfft_execute(backward_plan[i],
+                                (void**) &vel_onegrid_ptr, // in
+                                (void**) &spectral_field_ptr, // out
+                                execinfo);
+        assert_rocfft_status("rocfft_execute", result);
+        amrex::Gpu::streamSynchronize();
+        amrex::The_Arena()->free(buffer);
+        result = rocfft_execution_info_destroy(execinfo);
+        assert_rocfft_status("rocfft_execution_info_destroy", result);
+#else
+        fftw_execute(backward_plan[i]);
+#endif
+    }
+    
+    // destroy fft plan
+    for (int i = 0; i < backward_plan.size(); ++i) {
+#ifdef AMREX_USE_CUDA
+        cufftDestroy(backward_plan[i]);
+#elif AMREX_USE_HIP
+        rocfft_plan_destroy(backward_plan[i]);
+#else
+        fftw_destroy_plan(backward_plan[i]);
+#endif
+    }
+
 }
 #endif
