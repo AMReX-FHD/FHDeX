@@ -918,7 +918,7 @@ void main_driver(const char* argv)
 
 #if defined(TURB)
     // Initialize Turbulence Forcing Object
-    if (turbForcing > 1) {
+    if ((turbForcing > 1) and (turbRestartRun)) {
         turbforce.Initialize(geom);
     }
 #endif
@@ -943,8 +943,10 @@ void main_driver(const char* argv)
         if (n_ads_spec>0) sample_MFsurfchem(cu, prim, surfcov, dNadsdes, geom, dt);
 
         // FHD
-        RK3stepStag(cu, cumom, prim, vel, source, eta, zeta, kappa, chi, D, 
-            faceflux, edgeflux_x, edgeflux_y, edgeflux_z, cenflux, ranchem, geom, dt, step, turbforce);
+        if (turbRestartRun) {
+          RK3stepStag(cu, cumom, prim, vel, source, eta, zeta, kappa, chi, D, 
+              faceflux, edgeflux_x, edgeflux_y, edgeflux_z, cenflux, ranchem, geom, dt, step, turbforce);
+        }
 
         // update surface chemistry (via either surfchem_mui or MFsurfchem)
 #if defined(MUI) || defined(USE_AMREX_MPMD)
@@ -1097,12 +1099,6 @@ void main_driver(const char* argv)
             WritePlotFileStag(step, time, geom, cu, cuMeans, cuVars, cumom, cumomMeans, cumomVars,
                               prim, primMeans, primVars, vel, velMeans, velVars, coVars, surfcov, surfcovMeans, surfcovVars, eta, kappa);
             
-#if defined(TURB)
-            if (turbForcing > 0) {
-                EvaluateWritePlotFileVelGrad(step, time, geom, vel, vel_decomp);
-            }
-#endif
-
             if (plot_cross) {
                 if (do_1D) {
                     WriteSpatialCross1D(spatialCross1D, step, geom, ncross);
@@ -1144,13 +1140,18 @@ void main_driver(const char* argv)
                 Vector<Real> scaling_turb_scalar(3, dVolinv);
                 TurbSpectrumScalar(MFTurbScalar, geom, step, scaling_turb_scalar, var_names_turbScalar);
             }
+            
+            if (turbForcing > 0) {
+                EvaluateWritePlotFileVelGrad(step, time, geom, vel, vel_decomp);
+            }
 #endif
         }
 
 
 #if defined(TURB)
         // turbulence outputs
-        if ((turbForcing >= 1) and (step%1000 == 0)) {
+        if (((turbForcing >= 1) and (step%1000 == 0)) or
+            ((turbForcing >= 1) and (turbRestartRun == 0))) {
 
             Real turbKE, c_speed, u_rms, taylor_len, taylor_Re, taylor_Ma,
             skew, kurt, eps_s, eps_d, eps_ratio, kolm_s, kolm_d, kolm_t;
@@ -1184,7 +1185,9 @@ void main_driver(const char* argv)
             turboutfile << std::endl;
         }
         
-        if ((turbForcing >= 1) and (writePlt)) {
+        if (((turbForcing >= 1) and (writePlt)) or
+            ((turbForcing >= 1) and (turbRestartRun == 0))) {
+            
             Real turbKE_s, turbKE_d, delta_turbKE;
             Real u_rms_s, u_rms_d, delta_u_rms;
             Real taylor_Ma_d;

@@ -1093,7 +1093,8 @@ void IntegrateKScalar(const BaseFab<GpuComplex<Real> >& spectral_field,
         }
     });
     
-    Gpu::copy(Gpu::deviceToHost, phisum_device.begin(), phisum_device.end(), phisum_host.begin());
+    Gpu::copyAsync(Gpu::deviceToHost, phisum_device.begin(), phisum_device.end(), phisum_host.begin());
+    Gpu::streamSynchronize();
     
     if (ParallelDescriptor::IOProcessor()) {
         std::ofstream turb;
@@ -1269,7 +1270,8 @@ void IntegrateKVelocity(const BaseFab<GpuComplex<Real> >& spectral_field,
         }
     });
     
-    Gpu::copy(Gpu::deviceToHost, phisum_device.begin(), phisum_device.end(), phisum_host.begin());
+    Gpu::copyAsync(Gpu::deviceToHost, phisum_device.begin(), phisum_device.end(), phisum_host.begin());
+    Gpu::streamSynchronize();
     
     if (ParallelDescriptor::IOProcessor()) {
         std::ofstream turb;

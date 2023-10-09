@@ -639,7 +639,7 @@ void ReadCheckPoint3D(int& step,
     dmap.define(ba, ParallelDescriptor::NProcs());
     
 #if defined(TURB)
-    if (turbForcing > 1) {
+    if ((turbForcing > 1) and (turbRestartRun)) {
         turbforce.define(ba,dmap,turb_a,turb_b,turb_c,turb_d,turb_alpha);
     }
 #endif
@@ -690,7 +690,7 @@ void ReadCheckPoint3D(int& step,
 
 #if defined(TURB)
         // Read in turbulent forcing
-        if (turbForcing > 1) {
+        if ((turbForcing > 1) and (turbRestartRun)) {
             Real fs_temp;
             Real fc_temp;
             for (int i=0; i<132; ++i) {
