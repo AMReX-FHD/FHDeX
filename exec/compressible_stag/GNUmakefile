@@ -1,11 +1,12 @@
 # AMREX_HOME defines the directory in which we will find all the AMReX code.
 # If you set AMREX_HOME as an environment variable, this line will be ignored
 AMREX_HOME ?= ../../../amrex/
+HEFFTE_HOME ?= ../../../heffte/
 
 DEBUG         = FALSE
 USE_MPI       = TRUE
 USE_OMP       = FALSE
-USE_CUDA      = TRUE
+USE_CUDA      = FALSE
 USE_HIP       = FALSE
 COMP          = gnu
 DIM           = 3
@@ -13,8 +14,10 @@ TINY_PROFILE  = FALSE
 MAX_SPEC      = 8
 
 USE_PARTICLES = FALSE
-DO_TURB 	  = FALSE
-USE_HEFFTE    = FALSE
+DO_TURB       = FALSE
+USE_HEFFTE_FFTW   = FALSE
+USE_HEFFTE_CUFFT  = FALSE
+USE_HEFFTE_ROCFFT = FALSE
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
@@ -41,30 +44,19 @@ include ../../src_rng/Make.package
 VPATH_LOCATIONS   += ../../src_rng/
 INCLUDE_LOCATIONS += ../../src_rng/
 
-
 include ../../src_common/Make.package
 VPATH_LOCATIONS   += ../../src_common/
 INCLUDE_LOCATIONS += ../../src_common/
+
+include $(HEFFTE_HOME)/src/Make.package
 
 include $(AMREX_HOME)/Src/Base/Make.package
 
 include ../../src_analysis/Make.package
 VPATH_LOCATIONS   += ../../src_analysis/
 INCLUDE_LOCATIONS += ../../src_analysis/
-
+ 
 include $(AMREX_HOME)/Tools/GNUMake/Make.rules
-
-ifeq ($(USE_HEFFTE),TRUE)
-  ifeq ($(USE_CUDA),TRUE)
-    HEFFTE_HOME ?= ../../../heffte/build_gpu
-  else
-    HEFFTE_HOME ?= ../../../heffte/build
-  endif
-  libraries += -lheffte
-  VPATH_LOCATIONS += $(HEFFTE_HOME)/include
-  INCLUDE_LOCATIONS += $(HEFFTE_HOME)/include
-  LIBRARY_LOCATIONS += $(HEFFTE_HOME)/lib
-endif
 
 ifeq ($(USE_CUDA),TRUE)
   LIBRARIES += -lcufft
@@ -81,8 +73,12 @@ ifeq ($(DO_TURB), TRUE)
   DEFINES += -DTURB
 endif
 
-ifeq ($(USE_HEFFTE), TRUE)
-  DEFINES += -DHEFFTE
+ifeq ($(USE_HEFFTE_FFTW),TRUE)
+  DEFINES += -DHEFFTE_FFTW
+else ifeq ($(USE_HEFFTE_CUFFT),TRUE)
+  DEFINES += -DHEFFTE_CUFFT
+else ifeq ($(USE_HEFFTE_ROCFFT),TRUE)
+  DEFINES += -DHEFFTE_ROCFFT
 endif
 
 MAXSPECIES := $(strip $(MAX_SPEC))

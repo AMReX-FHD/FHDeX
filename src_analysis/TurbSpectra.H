@@ -6,11 +6,13 @@
 #include <AMReX_Vector.H>
 #include <AMReX_VisMF.H>
 
-// These are for heFFTe / FFTW / cuFFT / rocFFT
 
-#if defined(HEFFTE)
+// HEFFTE
+#if defined(HEFFTE_FFTW) || defined(HEFFTE_CUFFT) || defined(HEFFTE_ROCFFT)
 #include <heffte.h>
 #endif
+
+// non-HEFFTE
 #ifdef AMREX_USE_CUDA
 #include <cufft.h>
 #elif AMREX_USE_HIP
@@ -34,33 +36,48 @@
 
 using namespace amrex;
 
+#if !defined(HEFFTE_FFTW) && !defined(HEFFTE_CUFFT) && !defined(HEFFTE_ROCFFT)
 #ifdef AMREX_USE_CUDA
 std::string cufftError (const cufftResult& err);
 #endif
 #ifdef AMREX_USE_HIP
 std::string rocfftError (const rocfft_status err);
-void rocfft_status (std::string const& name, rocfft_status status);
+void Assert_rocfft_status (std::string const& name, rocfft_status status);
+#endif
 #endif
 
-#if defined(HEFFTE)
-void IntegrateKScalar(const BaseFab<GpuComplex<Real> >& spectral_field,
-                      const std::string& name, const Real& scaling,
-                      const Box& c_local_box,
-                      const Real& sqrtnpts,
-                      const int& step,
-                      const int& comp);
-void IntegrateKVelocity(const BaseFab<GpuComplex<Real> >& spectral_field,
-                        const std::string& name, const Real& scaling,
-                        const Box& c_local_box,
-                        const int& step);
-#else
+#if defined(HEFFTE_FFTW) || defined(HEFFTE_CUFFT) || defined(HEFFTE_ROCFFT)
+void IntegrateKScalarHeffte(const BaseFab<GpuComplex<Real> >& spectral_field,
+                      	    const std::string& name, const Real& scaling,
+                      	    const Box& c_local_box,
+                      	    const Real& sqrtnpts,
+                      	    const int& step);
+void IntegrateKVelocityHeffte(const BaseFab<GpuComplex<Real> >& spectral_fieldx,
+			      const BaseFab<GpuComplex<Real> >& spectral_fieldy,
+			      const BaseFab<GpuComplex<Real> >& spectral_fieldz,
+                              const std::string& name, const Real& scaling,
+                              const Box& c_local_box,
+                              const int& step);
+void TurbSpectrumScalarHeffte(const MultiFab& variables, 
+                              const amrex::Geometry& geom, 
+                              const int& step, 
+                              const amrex::Vector<amrex::Real>& var_scaling,
+                              const amrex::Vector< std::string >& var_names);
+void TurbSpectrumVelDecompHeffte(const MultiFab& vel,
+                                 MultiFab& vel_decomp,
+                                 const amrex::Geometry& geom,
+                                 const int& step,
+                                 const amrex::Real& var_scaling,
+                                 const amrex::Vector< std::string >& var_names);
+#endif
+
+#if !defined(HEFFTE_FFTW) && !defined(HEFFTE_CUFFT) && !defined(HEFFTE_ROCFFT)
 void IntegrateKScalar(const Vector<std::unique_ptr<BaseFab<GpuComplex<Real> > > >& spectral_field,
                       const MultiFab& variables_onegrid,
                       const std::string& name,
                       const Real& scaling,
                       const Real& sqrtnpts,
-                      const int& step,
-                      const int& comp);
+                      const int& step);
 void IntegrateKVelocity(const Vector<std::unique_ptr<BaseFab<GpuComplex<Real> > > >& spectral_fieldx,
                         const Vector<std::unique_ptr<BaseFab<GpuComplex<Real> > > >& spectral_fieldy,
                         const Vector<std::unique_ptr<BaseFab<GpuComplex<Real> > > >& spectral_fieldz,
@@ -68,22 +85,18 @@ void IntegrateKVelocity(const Vector<std::unique_ptr<BaseFab<GpuComplex<Real> > 
                         const std::string& name,
                         const Real& scaling,
                         const int& step);
-void InverseFFTVel(Vector<std::unique_ptr<BaseFab<GpuComplex<Real> > > >& spectral_field, 
-                   MultiFab& vel_decomp_onegrid, const IntVect& fft_size);
-#endif
-
 void TurbSpectrumScalar(const MultiFab& variables, 
                         const amrex::Geometry& geom, 
                         const int& step, 
                         const amrex::Vector<amrex::Real>& var_scaling,
                         const amrex::Vector< std::string >& var_names);
-
 void TurbSpectrumVelDecomp(const MultiFab& vel,
                            MultiFab& vel_decomp,
                            const amrex::Geometry& geom,
                            const int& step,
                            const amrex::Real& var_scaling,
                            const amrex::Vector< std::string >& var_names);
-
-
+void InverseFFTVel(Vector<std::unique_ptr<BaseFab<GpuComplex<Real> > > >& spectral_field, 
+                   MultiFab& vel_decomp_onegrid, const IntVect& fft_size);
+#endif
 #endif

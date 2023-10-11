@@ -1133,12 +1133,22 @@ void main_driver(const char* argv)
                 // decomposed velocities
                 Vector< std::string > var_names_turbVel{"vel_total","vel_solenoidal","vel_dilation"};
                 Real scaling_turb_veldecomp = dVolinv;
+#if defined(HEFFTE_FFTW) || defined(HEFFTE_CUFFT) || defined(HEFFTE_ROCFFT) // heffte
+                TurbSpectrumVelDecompHeffte(MFTurbVel, vel_decomp, geom, step, scaling_turb_veldecomp, var_names_turbVel);
+#endif
+#if !defined(HEFFTE_FFTW) && !defined(HEFFTE_CUFFT) && !defined(HEFFTE_ROCFFT)
                 TurbSpectrumVelDecomp(MFTurbVel, vel_decomp, geom, step, scaling_turb_veldecomp, var_names_turbVel);
+#endif
                 
                 // scalars
                 Vector< std::string > var_names_turbScalar{"rho","temp","press"};
                 Vector<Real> scaling_turb_scalar(3, dVolinv);
+#if defined(HEFFTE_FFTW) || defined(HEFFTE_CUFFT) || defined(HEFFTE_ROCFFT) // heffte
+                TurbSpectrumScalarHeffte(MFTurbScalar, geom, step, scaling_turb_scalar, var_names_turbScalar);
+#endif
+#if !defined(HEFFTE_FFTW) && !defined(HEFFTE_CUFFT) && !defined(HEFFTE_ROCFFT)
                 TurbSpectrumScalar(MFTurbScalar, geom, step, scaling_turb_scalar, var_names_turbScalar);
+#endif
             }
             
             if (turbForcing > 0) {

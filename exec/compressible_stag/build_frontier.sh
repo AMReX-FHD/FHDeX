@@ -1,7 +1,6 @@
 #!/usr/bin/bash
 
 ## load necessary modules 
-module load cmake/3.23.2
 module load craype-accel-amd-gfx90a
 module load rocm/5.2.0  # waiting for 5.6 for next bump
 module load cray-mpich
@@ -14,11 +13,11 @@ export MPICH_GPU_SUPPORT_ENABLED=1
 export AMREX_AMD_ARCH=gfx90a
 
 # compiler environment hints
-export CC=$(which hipcc)
-export CXX=$(which hipcc)
-export FC=$(which ftn)
-export CFLAGS="-I${ROCM_PATH}/include"
-export CXXFLAGS="-I${ROCM_PATH}/include -Wno-pass-failed"
-export LDFLAGS="-L${ROCM_PATH}/lib -lamdhip64 ${PE_MPICH_GTL_DIR_amd_gfx90a} -lmpi_gtl_hsa"
+##export CC=$(which hipcc)
+##export CXX=$(which hipcc)
+##export FC=$(which ftn)
+##export CFLAGS="-I${ROCM_PATH}/include"
+##export CXXFLAGS="-I${ROCM_PATH}/include -Wno-pass-failed"
+##export LDFLAGS="-L${ROCM_PATH}/lib -lamdhip64 ${PE_MPICH_GTL_DIR_amd_gfx90a} -lmpi_gtl_hsa"
 
-make -j18 USE_CUDA=FALSE USE_HIP=TRUE DO_TURB=TRUE MAX_SPEC=2
+make -j10 USE_CUDA=FALSE USE_HIP=TRUE DO_TURB=TRUE MAX_SPEC=2 USE_HEFFTE_ROCFFT=TRUE

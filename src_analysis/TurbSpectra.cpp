@@ -5,6 +5,7 @@
 #include "AMReX_PlotFileUtil.H"
 #include "AMReX_BoxArray.H"
 
+#if !defined(HEFFTE_FFTW) && !defined(HEFFTE_CUFFT) && !defined(HEFFTE_ROCFFT)
 #ifdef AMREX_USE_CUDA
 std::string cufftError (const cufftResult& err)
 {
@@ -48,24 +49,25 @@ std::string rocfftError (const rocfft_status err)
     }
 }
 
-void rocfft_status (std::string const& name, rocfft_status status)
+void Assert_rocfft_status (std::string const& name, rocfft_status status)
 {
     if (status != rocfft_status_success) {
         amrex::AllPrint() <<  name + " failed! Error: " + rocfftError(status) << "\n";;
     }
 }
 #endif
+#endif
 
-void TurbSpectrumScalar(const MultiFab& variables, 
-                        const amrex::Geometry& geom, 
-                        const int& step, 
-                        const amrex::Vector<amrex::Real>& scaling,
-                        const amrex::Vector< std::string >& var_names)
+#if defined(HEFFTE_FFTW) || defined(HEFFTE_CUFFT) || defined(HEFFTE_ROCFFT) // heffte
+void TurbSpectrumScalarHeffte(const MultiFab& variables, 
+                              const amrex::Geometry& geom, 
+                              const int& step, 
+                              const amrex::Vector<amrex::Real>& scaling,
+                              const amrex::Vector< std::string >& var_names)
 {
     BL_PROFILE_VAR("TurbSpectrumScalar()",TurbSpectrumScalar);
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(variables.nComp() == var_names.size(), "TurbSpectrumScalar: must have same number variable names as components of input MultiFab");
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(variables.nComp() == scaling.size(), "TurbSpectrumScalar: must have same number variable scaling as components of input MultiFab");
-#if defined(HEFFTE)
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(variables.local_size() == 1, "TurbSpectrumScalar: Must have one Box per MPI process when using heFFTe");
 
     int ncomp = variables.nComp();
@@ -111,34 +113,51 @@ void TurbSpectrumScalar(const MultiFab& variables,
         c_local_box.growHi(0,1);
     }
 
-    // each MPI rank gets storage for its piece of the fft
-    BaseFab<GpuComplex<Real> > spectral_field(c_local_box, ncomp, The_Device_Arena());
-    
-    int r2c_direction = 0;
-#ifdef AMREX_USE_CUDA
-    heffte::fft3d_r2c<heffte::backend::cufft> fft
-#elif AMREX_USE_HIP
-    heffte::fft3d_r2c<heffte::backend::rocfft> fft
-#else
-    heffte::fft3d_r2c<heffte::backend::fftw> fft
-#endif
-    ({{local_box.smallEnd(0),local_box.smallEnd(1),local_box.smallEnd(2)},
-    {local_box.bigEnd(0)  ,local_box.bigEnd(1)  ,local_box.bigEnd(2)}},
-    {{c_local_box.smallEnd(0),c_local_box.smallEnd(1),c_local_box.smallEnd(2)},
-    {c_local_box.bigEnd(0)  ,c_local_box.bigEnd(1)  ,c_local_box.bigEnd(2)}},
-    r2c_direction, ParallelDescriptor::Communicator());
-
-    using heffte_complex = typename heffte::fft_output<Real>::type;
     for (int comp=0; comp<ncomp; ++comp) {
-        heffte_complex* spectral_data = (heffte_complex*) spectral_field.dataPtr(comp);
-        fft.forward(variables[local_boxid].dataPtr(comp),spectral_data); 
+		
+	// each MPI rank gets storage for its piece of the fft
+	BaseFab<GpuComplex<Real> > spectral_field(c_local_box, 1, The_Device_Arena());
+	
+	int r2c_direction = 0;
+#if defined(HEFFTE_CUFFT)
+    	heffte::fft3d_r2c<heffte::backend::cufft> fft
+#elif defined(HEFFTE_ROCFFT)
+    	heffte::fft3d_r2c<heffte::backend::rocfft> fft
+#elif defined(HEFFTE_FFTW)
+    	heffte::fft3d_r2c<heffte::backend::fftw> fft
+#endif
+	({{local_box.smallEnd(0),local_box.smallEnd(1),local_box.smallEnd(2)},
+	{local_box.bigEnd(0)  ,local_box.bigEnd(1)  ,local_box.bigEnd(2)}},
+	{{c_local_box.smallEnd(0),c_local_box.smallEnd(1),c_local_box.smallEnd(2)},
+	{c_local_box.bigEnd(0)  ,c_local_box.bigEnd(1)  ,c_local_box.bigEnd(2)}},
+	r2c_direction, ParallelDescriptor::Communicator());
+
+	using heffte_complex = typename heffte::fft_output<Real>::type;
+        heffte_complex* spectral_data = (heffte_complex*) spectral_field.dataPtr();
+        
+	MultiFab variables_single(ba, dm, 1, 0);
+	variables_single.ParallelCopy(variables,comp,0,1);
+	
+	fft.forward(variables_single[local_boxid].dataPtr(),spectral_data);
         
         ParallelDescriptor::Barrier();
 
         // Integrate spectra over k-shells
-        IntegrateKScalar(spectral_field,var_names[comp],scaling[comp],c_local_box,sqrtnpts,step,comp);
+        IntegrateKScalarHeffte(spectral_field,var_names[comp],scaling[comp],c_local_box,sqrtnpts,step);
     }
-#else // not heFFTe
+}
+#endif
+
+#if !defined(HEFFTE_FFTW) && !defined(HEFFTE_CUFFT) && !defined(HEFFTE_ROCFFT)
+void TurbSpectrumScalar(const MultiFab& variables, 
+                        const amrex::Geometry& geom, 
+                        const int& step, 
+                        const amrex::Vector<amrex::Real>& var_scaling,
+                        const amrex::Vector< std::string >& var_names)
+{
+    BL_PROFILE_VAR("TurbSpectrumScalar()",TurbSpectrumScalar);
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(variables.nComp() == var_names.size(), "TurbSpectrumScalar: must have same number variable names as components of input MultiFab");
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(variables.nComp() == scaling.size(), "TurbSpectrumScalar: must have same number variable scaling as components of input MultiFab");
     int ncomp = variables.nComp();
 
     long npts;
@@ -165,7 +184,6 @@ void TurbSpectrumScalar(const MultiFab& variables,
     using FFTplan = fftw_plan;
     using FFTcomplex = fftw_complex;
 #endif
-
 
     // size of box including ghost cell range
     IntVect fft_size;
@@ -212,7 +230,7 @@ void TurbSpectrumScalar(const MultiFab& variables,
                 rocfft_status result = rocfft_plan_create(&fplan, rocfft_placement_notinplace, 
                                                           rocfft_transform_type_real_forward, rocfft_precision_double,
                                                           3, lengths, 1, nullptr);
-                assert_rocfft_status("rocfft_plan_create", result);
+                Assert_rocfft_status("rocfft_plan_create", result);
 #else // host
                 fplan = fftw_plan_dft_r2c_3d(fft_size[2], fft_size[1], fft_size[0],
                                               variables_onegrid[mfi].dataPtr(),
@@ -244,18 +262,18 @@ void TurbSpectrumScalar(const MultiFab& variables,
 #elif AMREX_USE_HIP
             rocfft_execution_info execinfo = nullptr;
             rocfft_status result = rocfft_execution_info_create(&execinfo);
-            assert_rocfft_status("rocfft_execution_info_create", result);
+            Assert_rocfft_status("rocfft_execution_info_create", result);
 
             std::size_t buffersize = 0;
             result = rocfft_plan_get_work_buffer_size(forward_plan[i], &buffersize);
-            assert_rocfft_status("rocfft_plan_get_work_buffer_size", result);
+            Assert_rocfft_status("rocfft_plan_get_work_buffer_size", result);
 
             void* buffer = amrex::The_Arena()->alloc(buffersize);
             result = rocfft_execution_info_set_work_buffer(execinfo, buffer, buffersize);
-            assert_rocfft_status("rocfft_execution_info_set_work_buffer", result);
+            Assert_rocfft_status("rocfft_execution_info_set_work_buffer", result);
 
             result = rocfft_execution_info_set_stream(execinfo, amrex::Gpu::gpuStream());
-            assert_rocfft_status("rocfft_execution_info_set_stream", result);
+            Assert_rocfft_status("rocfft_execution_info_set_stream", result);
 
 	        amrex::Real* variables_onegrid_ptr = variables_onegrid[mfi].dataPtr();
 	        FFTcomplex* spectral_field_ptr = reinterpret_cast<FFTcomplex*>(spectral_field[i]->dataPtr());
@@ -263,18 +281,18 @@ void TurbSpectrumScalar(const MultiFab& variables,
                                     (void**) &variables_onegrid_ptr, // in
                                     (void**) &spectral_field_ptr, // out
                                     execinfo);
-            assert_rocfft_status("rocfft_execute", result);
+            Assert_rocfft_status("rocfft_execute", result);
             amrex::Gpu::streamSynchronize();
             amrex::The_Arena()->free(buffer);
             result = rocfft_execution_info_destroy(execinfo);
-            assert_rocfft_status("rocfft_execution_info_destroy", result);
+            Assert_rocfft_status("rocfft_execution_info_destroy", result);
 #else
             fftw_execute(forward_plan[i]);
 #endif
         }
 
         // Integrate spectra over k-shells
-        IntegrateKScalar(spectral_field,variables_onegrid,var_names[comp],scaling[comp],sqrtnpts,step,comp);
+        IntegrateKScalar(spectral_field,variables_onegrid,var_names[comp],scaling[comp],sqrtnpts,step);
     }
     
     // destroy fft plan
@@ -287,20 +305,20 @@ void TurbSpectrumScalar(const MultiFab& variables,
         fftw_destroy_plan(forward_plan[i]);
 #endif
     }
-#endif // end heFFTE
 }
+#endif // end not-heFFTE
 
-void TurbSpectrumVelDecomp(const MultiFab& vel,
-                           MultiFab& vel_decomp,
-                           const amrex::Geometry& geom,
-                           const int& step,
-                           const amrex::Real& scaling,
-                           const amrex::Vector< std::string >& var_names)
+#if defined(HEFFTE_FFTW) || defined(HEFFTE_CUFFT) || defined(HEFFTE_ROCFFT) // heffte
+void TurbSpectrumVelDecompHeffte(const MultiFab& vel,
+                                 MultiFab& vel_decomp,
+                                 const amrex::Geometry& geom,
+                                 const int& step,
+                                 const amrex::Real& scaling,
+                                 const amrex::Vector< std::string >& var_names)
 {
     BL_PROFILE_VAR("TurbSpectrumVelDecomp()",TurbSpectrumVelDecomp);
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(vel.nComp() == 3, "TurbSpectrumVelDecomp: must have 3 components of input vel MultiFab");
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(var_names.size() == 3, "TurbSpectrumVelDecomp: must have 3 names for output vel spectra (total, solenoidal, dilatational");
-#if defined(HEFFTE)
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(vel.local_size() == 1, "TurbSpectrumVelDecomp: Must have one Box per MPI process when using heFFTe");
 
     const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
@@ -347,50 +365,107 @@ void TurbSpectrumVelDecomp(const MultiFab& vel,
     }
 
     // each MPI rank gets storage for its piece of the fft
-    BaseFab<GpuComplex<Real> > spectral_field_T(c_local_box, 3, The_Device_Arena()); // total
-    BaseFab<GpuComplex<Real> > spectral_field_S(c_local_box, 3, The_Device_Arena()); // solenoidal
-    BaseFab<GpuComplex<Real> > spectral_field_D(c_local_box, 3, The_Device_Arena()); // dilatational
-    
-
-    int r2c_direction = 0;
-#ifdef AMREX_USE_CUDA
-    heffte::fft3d_r2c<heffte::backend::cufft> fft
-#elif AMREX_USE_HIP
-    heffte::fft3d_r2c<heffte::backend::rocfft> fft
-#else
-    heffte::fft3d_r2c<heffte::backend::fftw> fft
-#endif
-    ({{local_box.smallEnd(0),local_box.smallEnd(1),local_box.smallEnd(2)},
-    {local_box.bigEnd(0)  ,local_box.bigEnd(1)  ,local_box.bigEnd(2)}},
-    {{c_local_box.smallEnd(0),c_local_box.smallEnd(1),c_local_box.smallEnd(2)},
-    {c_local_box.bigEnd(0)  ,c_local_box.bigEnd(1)  ,c_local_box.bigEnd(2)}},
-    r2c_direction, ParallelDescriptor::Communicator());
+    BaseFab<GpuComplex<Real> > spectral_field_Tx(c_local_box, 1, The_Device_Arena()); // totalx
+    BaseFab<GpuComplex<Real> > spectral_field_Ty(c_local_box, 1, The_Device_Arena()); // totaly
+    BaseFab<GpuComplex<Real> > spectral_field_Tz(c_local_box, 1, The_Device_Arena()); // totalz
+    BaseFab<GpuComplex<Real> > spectral_field_Sx(c_local_box, 1, The_Device_Arena()); // solenoidalx
+    BaseFab<GpuComplex<Real> > spectral_field_Sy(c_local_box, 1, The_Device_Arena()); // solenoidaly
+    BaseFab<GpuComplex<Real> > spectral_field_Sz(c_local_box, 1, The_Device_Arena()); // solenoidalz
+    BaseFab<GpuComplex<Real> > spectral_field_Dx(c_local_box, 1, The_Device_Arena()); // dilatationalx
+    BaseFab<GpuComplex<Real> > spectral_field_Dy(c_local_box, 1, The_Device_Arena()); // dilatationaly
+    BaseFab<GpuComplex<Real> > spectral_field_Dz(c_local_box, 1, The_Device_Arena()); // dilatationalz
+    spectral_field_Tx.setVal<RunOn::Device>(0.0);
+    spectral_field_Ty.setVal<RunOn::Device>(0.0);
+    spectral_field_Tz.setVal<RunOn::Device>(0.0);
+    spectral_field_Sx.setVal<RunOn::Device>(0.0);
+    spectral_field_Sy.setVal<RunOn::Device>(0.0);
+    spectral_field_Sz.setVal<RunOn::Device>(0.0);
+    spectral_field_Dx.setVal<RunOn::Device>(0.0);
+    spectral_field_Dy.setVal<RunOn::Device>(0.0);
+    spectral_field_Dz.setVal<RunOn::Device>(0.0);
     
     // ForwardTransform
+    // X
     using heffte_complex = typename heffte::fft_output<Real>::type;
     {
-        heffte_complex* spectral_data = (heffte_complex*) spectral_field_T.dataPtr(0);
-        fft.forward(vel[local_boxid].dataPtr(0),spectral_data);
+    	int r2c_direction = 0;
+#if defined(HEFFTE_CUFFT)
+    	heffte::fft3d_r2c<heffte::backend::cufft> fft
+#elif defined(HEFFTE_ROCFFT)
+    	heffte::fft3d_r2c<heffte::backend::rocfft> fft
+#elif defined(HEFFTE_FFTW)
+    	heffte::fft3d_r2c<heffte::backend::fftw> fft
+#endif
+    	({{local_box.smallEnd(0),local_box.smallEnd(1),local_box.smallEnd(2)},
+    	{local_box.bigEnd(0)  ,local_box.bigEnd(1)  ,local_box.bigEnd(2)}},
+    	{{c_local_box.smallEnd(0),c_local_box.smallEnd(1),c_local_box.smallEnd(2)},
+    	{c_local_box.bigEnd(0)  ,c_local_box.bigEnd(1)  ,c_local_box.bigEnd(2)}},
+    	r2c_direction, ParallelDescriptor::Communicator());
+        
+	MultiFab vel_single(ba, dm, 1, 0);
+	vel_single.ParallelCopy(vel, 0, 0, 1);
+	
+	heffte_complex* spectral_data = (heffte_complex*) spectral_field_Tx.dataPtr();
+        fft.forward(vel_single[local_boxid].dataPtr(),spectral_data);
+        ParallelDescriptor::Barrier();
     }
+    // Y
     {
-        heffte_complex* spectral_data = (heffte_complex*) spectral_field_T.dataPtr(1);
-        fft.forward(vel[local_boxid].dataPtr(1),spectral_data);
+    	int r2c_direction = 0;
+#if defined(HEFFTE_CUFFT)
+    	heffte::fft3d_r2c<heffte::backend::cufft> fft
+#elif defined(HEFFTE_ROCFFT)
+    	heffte::fft3d_r2c<heffte::backend::rocfft> fft
+#elif defined(HEFFTE_FFTW)
+    	heffte::fft3d_r2c<heffte::backend::fftw> fft
+#endif
+    	({{local_box.smallEnd(0),local_box.smallEnd(1),local_box.smallEnd(2)},
+    	{local_box.bigEnd(0)  ,local_box.bigEnd(1)  ,local_box.bigEnd(2)}},
+    	{{c_local_box.smallEnd(0),c_local_box.smallEnd(1),c_local_box.smallEnd(2)},
+    	{c_local_box.bigEnd(0)  ,c_local_box.bigEnd(1)  ,c_local_box.bigEnd(2)}},
+    	r2c_direction, ParallelDescriptor::Communicator());
+        
+	MultiFab vel_single(ba, dm, 1, 0);
+	vel_single.ParallelCopy(vel, 1, 0, 1);
+	
+        heffte_complex* spectral_data = (heffte_complex*) spectral_field_Ty.dataPtr();
+        fft.forward(vel_single[local_boxid].dataPtr(),spectral_data);
+        ParallelDescriptor::Barrier();
     }
+    // Z
     {
-        heffte_complex* spectral_data = (heffte_complex*) spectral_field_T.dataPtr(2);
-        fft.forward(vel[local_boxid].dataPtr(2),spectral_data);
+    	int r2c_direction = 0;
+#if defined(HEFFTE_CUFFT)
+    	heffte::fft3d_r2c<heffte::backend::cufft> fft
+#elif defined(HEFFTE_ROCFFT)
+    	heffte::fft3d_r2c<heffte::backend::rocfft> fft
+#elif defined(HEFFTE_FFTW)
+    	heffte::fft3d_r2c<heffte::backend::fftw> fft
+#endif
+    	({{local_box.smallEnd(0),local_box.smallEnd(1),local_box.smallEnd(2)},
+    	{local_box.bigEnd(0)  ,local_box.bigEnd(1)  ,local_box.bigEnd(2)}},
+    	{{c_local_box.smallEnd(0),c_local_box.smallEnd(1),c_local_box.smallEnd(2)},
+    	{c_local_box.bigEnd(0)  ,c_local_box.bigEnd(1)  ,c_local_box.bigEnd(2)}},
+    	r2c_direction, ParallelDescriptor::Communicator());
+        
+	MultiFab vel_single(ba, dm, 1, 0);
+	vel_single.ParallelCopy(vel, 2, 0, 1);
+	
+        heffte_complex* spectral_data = (heffte_complex*) spectral_field_Tz.dataPtr();
+        fft.forward(vel_single[local_boxid].dataPtr(),spectral_data);
+        ParallelDescriptor::Barrier();
     }
     
     // Decompose velocity field into solenoidal and dilatational
-    Array4< GpuComplex<Real> > spectral_tx = spectral_field_T.array(0,1);
-    Array4< GpuComplex<Real> > spectral_ty = spectral_field_T.array(1,1);
-    Array4< GpuComplex<Real> > spectral_tz = spectral_field_T.array(2,1);
-    Array4< GpuComplex<Real> > spectral_sx = spectral_field_S.array(0,1);
-    Array4< GpuComplex<Real> > spectral_sy = spectral_field_S.array(1,1);
-    Array4< GpuComplex<Real> > spectral_sz = spectral_field_S.array(2,1);
-    Array4< GpuComplex<Real> > spectral_dx = spectral_field_D.array(0,1);
-    Array4< GpuComplex<Real> > spectral_dy = spectral_field_D.array(1,1);
-    Array4< GpuComplex<Real> > spectral_dz = spectral_field_D.array(2,1);
+    Array4< GpuComplex<Real> > spectral_tx = spectral_field_Tx.array();
+    Array4< GpuComplex<Real> > spectral_ty = spectral_field_Ty.array();
+    Array4< GpuComplex<Real> > spectral_tz = spectral_field_Tz.array();
+    Array4< GpuComplex<Real> > spectral_sx = spectral_field_Sx.array();
+    Array4< GpuComplex<Real> > spectral_sy = spectral_field_Sy.array();
+    Array4< GpuComplex<Real> > spectral_sz = spectral_field_Sz.array();
+    Array4< GpuComplex<Real> > spectral_dx = spectral_field_Dx.array();
+    Array4< GpuComplex<Real> > spectral_dy = spectral_field_Dy.array();
+    Array4< GpuComplex<Real> > spectral_dz = spectral_field_Dz.array();
     ParallelFor(c_local_box, [=] AMREX_GPU_DEVICE(int i, int j, int k)
     {
 
@@ -398,7 +473,7 @@ void TurbSpectrumVelDecomp(const MultiFab& vel,
        int ny = n_cells[1]; 
        int nz = n_cells[2];
 
-       Real GxR, GxC, GyR, GyC, GzR, GzC;
+       Real GxR = 0.0, GxC = 0.0, GyR = 0.0, GyC = 0.0, GzR = 0.0, GzC = 0.0;
        
        if (i <= nx/2) { 
            // Gradient Operators
@@ -448,56 +523,183 @@ void TurbSpectrumVelDecomp(const MultiFab& vel,
            GpuComplex<Real> copy_dz((divR*GzR + divC*GzC) / Lap,
                                     (divC*GzR - divR*GzC) / Lap);
            spectral_dz(i,j,k) = copy_dz;
-           
-           // Solenoidal velocity
-           spectral_sx(i,j,k) = spectral_tx(i,j,k) - spectral_dx(i,j,k);
-           spectral_sy(i,j,k) = spectral_ty(i,j,k) - spectral_dy(i,j,k); 
-           spectral_sz(i,j,k) = spectral_tz(i,j,k) - spectral_dz(i,j,k);
        }
+           
+       // Solenoidal velocity
+       spectral_sx(i,j,k) = spectral_tx(i,j,k) - spectral_dx(i,j,k);
+       spectral_sy(i,j,k) = spectral_ty(i,j,k) - spectral_dy(i,j,k); 
+       spectral_sz(i,j,k) = spectral_tz(i,j,k) - spectral_dz(i,j,k);
 
     });
 
     ParallelDescriptor::Barrier();
 
     // Integrate K spectrum for velocities
-    IntegrateKVelocity(spectral_field_T,"vel_total",     scaling,c_local_box,step);
-    IntegrateKVelocity(spectral_field_S,"vel_solenoidal",scaling,c_local_box,step);
-    IntegrateKVelocity(spectral_field_D,"vel_dilational",scaling,c_local_box,step);
+    IntegrateKVelocityHeffte(spectral_field_Tx,spectral_field_Ty,spectral_field_Tz,"vel_total"     ,scaling,c_local_box,step);
+    IntegrateKVelocityHeffte(spectral_field_Sx,spectral_field_Sy,spectral_field_Sz,"vel_solenoidal",scaling,c_local_box,step);
+    IntegrateKVelocityHeffte(spectral_field_Dx,spectral_field_Dy,spectral_field_Dz,"vel_dilational",scaling,c_local_box,step);
     
     // inverse Fourier transform solenoidal and dilatational components 
     {
-        heffte_complex* spectral_data = (heffte_complex*) spectral_field_S.dataPtr(0);
-        fft.backward(spectral_data, vel_decomp[local_boxid].dataPtr(0));
+    	int r2c_direction = 0;
+#if defined(HEFFTE_CUFFT)
+    	heffte::fft3d_r2c<heffte::backend::cufft> fft
+#elif defined(HEFFTE_ROCFFT)
+    	heffte::fft3d_r2c<heffte::backend::rocfft> fft
+#elif defined(HEFFTE_FFTW)
+    	heffte::fft3d_r2c<heffte::backend::fftw> fft
+#endif
+    	({{local_box.smallEnd(0),local_box.smallEnd(1),local_box.smallEnd(2)},
+    	{local_box.bigEnd(0)  ,local_box.bigEnd(1)  ,local_box.bigEnd(2)}},
+    	{{c_local_box.smallEnd(0),c_local_box.smallEnd(1),c_local_box.smallEnd(2)},
+    	{c_local_box.bigEnd(0)  ,c_local_box.bigEnd(1)  ,c_local_box.bigEnd(2)}},
+    	r2c_direction, ParallelDescriptor::Communicator());
+        
+	MultiFab vel_decomp_single(ba, dm, 1, 0);
+	heffte_complex* spectral_data = (heffte_complex*) spectral_field_Sx.dataPtr();
+        fft.backward(spectral_data, vel_decomp_single[local_boxid].dataPtr());
+	
+	ParallelDescriptor::Barrier();
+	
+	vel_decomp.ParallelCopy(vel_decomp_single, 0, 0, 1);
 
     }
     {
-        heffte_complex* spectral_data = (heffte_complex*) spectral_field_S.dataPtr(1);
-        fft.backward(spectral_data, vel_decomp[local_boxid].dataPtr(1));
+    	int r2c_direction = 0;
+#if defined(HEFFTE_CUFFT)
+    	heffte::fft3d_r2c<heffte::backend::cufft> fft
+#elif defined(HEFFTE_ROCFFT)
+    	heffte::fft3d_r2c<heffte::backend::rocfft> fft
+#elif defined(HEFFTE_FFTW)
+    	heffte::fft3d_r2c<heffte::backend::fftw> fft
+#endif
+    	({{local_box.smallEnd(0),local_box.smallEnd(1),local_box.smallEnd(2)},
+    	{local_box.bigEnd(0)  ,local_box.bigEnd(1)  ,local_box.bigEnd(2)}},
+    	{{c_local_box.smallEnd(0),c_local_box.smallEnd(1),c_local_box.smallEnd(2)},
+    	{c_local_box.bigEnd(0)  ,c_local_box.bigEnd(1)  ,c_local_box.bigEnd(2)}},
+    	r2c_direction, ParallelDescriptor::Communicator());
+        
+	MultiFab vel_decomp_single(ba, dm, 1, 0);
+        heffte_complex* spectral_data = (heffte_complex*) spectral_field_Sy.dataPtr();
+        fft.backward(spectral_data, vel_decomp_single[local_boxid].dataPtr());
+	
+	ParallelDescriptor::Barrier();
+	
+	vel_decomp.ParallelCopy(vel_decomp_single, 0, 1, 1);
 
     }
     {
-        heffte_complex* spectral_data = (heffte_complex*) spectral_field_S.dataPtr(2);
-        fft.backward(spectral_data, vel_decomp[local_boxid].dataPtr(2));
+    	int r2c_direction = 0;
+#if defined(HEFFTE_CUFFT)
+    	heffte::fft3d_r2c<heffte::backend::cufft> fft
+#elif defined(HEFFTE_ROCFFT)
+    	heffte::fft3d_r2c<heffte::backend::rocfft> fft
+#elif defined(HEFFTE_FFTW)
+    	heffte::fft3d_r2c<heffte::backend::fftw> fft
+#endif
+    	({{local_box.smallEnd(0),local_box.smallEnd(1),local_box.smallEnd(2)},
+    	{local_box.bigEnd(0)  ,local_box.bigEnd(1)  ,local_box.bigEnd(2)}},
+    	{{c_local_box.smallEnd(0),c_local_box.smallEnd(1),c_local_box.smallEnd(2)},
+    	{c_local_box.bigEnd(0)  ,c_local_box.bigEnd(1)  ,c_local_box.bigEnd(2)}},
+    	r2c_direction, ParallelDescriptor::Communicator());
+        
+	MultiFab vel_decomp_single(ba, dm, 1, 0);
+        heffte_complex* spectral_data = (heffte_complex*) spectral_field_Sz.dataPtr();
+        fft.backward(spectral_data, vel_decomp_single[local_boxid].dataPtr());
+	
+	ParallelDescriptor::Barrier();
+	
+	vel_decomp.ParallelCopy(vel_decomp_single, 0, 2, 1);
 
     }
     {
-        heffte_complex* spectral_data = (heffte_complex*) spectral_field_D.dataPtr(0);
-        fft.backward(spectral_data, vel_decomp[local_boxid].dataPtr(3));
+    	int r2c_direction = 0;
+#if defined(HEFFTE_CUFFT)
+    	heffte::fft3d_r2c<heffte::backend::cufft> fft
+#elif defined(HEFFTE_ROCFFT)
+    	heffte::fft3d_r2c<heffte::backend::rocfft> fft
+#elif defined(HEFFTE_FFTW)
+    	heffte::fft3d_r2c<heffte::backend::fftw> fft
+#endif
+    	({{local_box.smallEnd(0),local_box.smallEnd(1),local_box.smallEnd(2)},
+    	{local_box.bigEnd(0)  ,local_box.bigEnd(1)  ,local_box.bigEnd(2)}},
+    	{{c_local_box.smallEnd(0),c_local_box.smallEnd(1),c_local_box.smallEnd(2)},
+    	{c_local_box.bigEnd(0)  ,c_local_box.bigEnd(1)  ,c_local_box.bigEnd(2)}},
+    	r2c_direction, ParallelDescriptor::Communicator());
+        
+	MultiFab vel_decomp_single(ba, dm, 1, 0);
+        heffte_complex* spectral_data = (heffte_complex*) spectral_field_Dx.dataPtr();
+        fft.backward(spectral_data, vel_decomp_single[local_boxid].dataPtr());
+	
+	ParallelDescriptor::Barrier();
+	
+	vel_decomp.ParallelCopy(vel_decomp_single, 0, 3, 1);
 
     }
     {
-        heffte_complex* spectral_data = (heffte_complex*) spectral_field_D.dataPtr(1);
-        fft.backward(spectral_data, vel_decomp[local_boxid].dataPtr(4));
+    	int r2c_direction = 0;
+#if defined(HEFFTE_CUFFT)
+    	heffte::fft3d_r2c<heffte::backend::cufft> fft
+#elif defined(HEFFTE_ROCFFT)
+    	heffte::fft3d_r2c<heffte::backend::rocfft> fft
+#elif defined(HEFFTE_FFTW)
+    	heffte::fft3d_r2c<heffte::backend::fftw> fft
+#endif
+    	({{local_box.smallEnd(0),local_box.smallEnd(1),local_box.smallEnd(2)},
+    	{local_box.bigEnd(0)  ,local_box.bigEnd(1)  ,local_box.bigEnd(2)}},
+    	{{c_local_box.smallEnd(0),c_local_box.smallEnd(1),c_local_box.smallEnd(2)},
+    	{c_local_box.bigEnd(0)  ,c_local_box.bigEnd(1)  ,c_local_box.bigEnd(2)}},
+    	r2c_direction, ParallelDescriptor::Communicator());
+        
+	MultiFab vel_decomp_single(ba, dm, 1, 0);
+        heffte_complex* spectral_data = (heffte_complex*) spectral_field_Dy.dataPtr();
+        fft.backward(spectral_data, vel_decomp_single[local_boxid].dataPtr());
+	
+	ParallelDescriptor::Barrier();
+	
+	vel_decomp.ParallelCopy(vel_decomp_single, 0, 4, 1);
 
     }
     {
-        heffte_complex* spectral_data = (heffte_complex*) spectral_field_D.dataPtr(2);
-        fft.backward(spectral_data, vel_decomp[local_boxid].dataPtr(5));
+    	int r2c_direction = 0;
+#if defined(HEFFTE_CUFFT)
+    	heffte::fft3d_r2c<heffte::backend::cufft> fft
+#elif defined(HEFFTE_ROCFFT)
+    	heffte::fft3d_r2c<heffte::backend::rocfft> fft
+#elif defined(HEFFTE_FFTW)
+    	heffte::fft3d_r2c<heffte::backend::fftw> fft
+#endif
+    	({{local_box.smallEnd(0),local_box.smallEnd(1),local_box.smallEnd(2)},
+    	{local_box.bigEnd(0)  ,local_box.bigEnd(1)  ,local_box.bigEnd(2)}},
+    	{{c_local_box.smallEnd(0),c_local_box.smallEnd(1),c_local_box.smallEnd(2)},
+    	{c_local_box.bigEnd(0)  ,c_local_box.bigEnd(1)  ,c_local_box.bigEnd(2)}},
+    	r2c_direction, ParallelDescriptor::Communicator());
+        
+	MultiFab vel_decomp_single(ba, dm, 1, 0);
+        heffte_complex* spectral_data = (heffte_complex*) spectral_field_Dz.dataPtr();
+        fft.backward(spectral_data, vel_decomp_single[local_boxid].dataPtr());
+	
+	ParallelDescriptor::Barrier();
+	
+	vel_decomp.ParallelCopy(vel_decomp_single, 0, 5, 1);
 
     }
 
     vel_decomp.mult(1.0/sqrtnpts);
-#else // not heFFTe
+}
+#endif
+
+#if !defined(HEFFTE_FFTW) && !defined(HEFFTE_CUFFT) && !defined(HEFFTE_ROCFFT)
+void TurbSpectrumVelDecomp(const MultiFab& vel,
+                           MultiFab& vel_decomp,
+                           const amrex::Geometry& geom,
+                           const int& step,
+                           const amrex::Real& var_scaling,
+                           const amrex::Vector< std::string >& var_names)
+{
+    BL_PROFILE_VAR("TurbSpectrumVelDecomp()",TurbSpectrumVelDecomp);
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(vel.nComp() == 3, "TurbSpectrumVelDecomp: must have 3 components of input vel MultiFab");
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(var_names.size() == 3, "TurbSpectrumVelDecomp: must have 3 names for output vel spectra (total, solenoidal, dilatational");
     const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
 
     long npts;
@@ -583,8 +785,7 @@ void TurbSpectrumVelDecomp(const MultiFab& vel,
             rocfft_status result = rocfft_plan_create(&fplan, rocfft_placement_notinplace, 
                                                       rocfft_transform_type_real_forward, rocfft_precision_double,
                                                       3, lengths, 1, nullptr);
-            assert_rocfft_status("rocfft_plan_create", result);
-            built_plan = true;
+            Assert_rocfft_status("rocfft_plan_create", result);
 #else // host
             fplan = fftw_plan_dft_r2c_3d(fft_size[2], fft_size[1], fft_size[0],
                                               vel_onegrid[mfi].dataPtr(),
@@ -613,18 +814,18 @@ void TurbSpectrumVelDecomp(const MultiFab& vel,
 #elif AMREX_USE_HIP
             rocfft_execution_info execinfo = nullptr;
             rocfft_status result = rocfft_execution_info_create(&execinfo);
-            assert_rocfft_status("rocfft_execution_info_create", result);
+            Assert_rocfft_status("rocfft_execution_info_create", result);
 
             std::size_t buffersize = 0;
             result = rocfft_plan_get_work_buffer_size(forward_plan[i], &buffersize);
-            assert_rocfft_status("rocfft_plan_get_work_buffer_size", result);
+            Assert_rocfft_status("rocfft_plan_get_work_buffer_size", result);
 
             void* buffer = amrex::The_Arena()->alloc(buffersize);
             result = rocfft_execution_info_set_work_buffer(execinfo, buffer, buffersize);
-            assert_rocfft_status("rocfft_execution_info_set_work_buffer", result);
+            Assert_rocfft_status("rocfft_execution_info_set_work_buffer", result);
 
             result = rocfft_execution_info_set_stream(execinfo, amrex::Gpu::gpuStream());
-            assert_rocfft_status("rocfft_execution_info_set_stream", result);
+            Assert_rocfft_status("rocfft_execution_info_set_stream", result);
 
 	        amrex::Real* vel_onegrid_ptr = vel_onegrid[mfi].dataPtr();
 	        FFTcomplex* spectral_field_ptr = reinterpret_cast<FFTcomplex*>(spectral_fieldx[i]->dataPtr());
@@ -632,11 +833,11 @@ void TurbSpectrumVelDecomp(const MultiFab& vel,
                                     (void**) &vel_onegrid_ptr, // in
                                     (void**) &spectral_field_ptr, // out
                                     execinfo);
-            assert_rocfft_status("rocfft_execute", result);
+            Assert_rocfft_status("rocfft_execute", result);
             amrex::Gpu::streamSynchronize();
             amrex::The_Arena()->free(buffer);
             result = rocfft_execution_info_destroy(execinfo);
-            assert_rocfft_status("rocfft_execution_info_destroy", result);
+            Assert_rocfft_status("rocfft_execution_info_destroy", result);
 #else
             fftw_execute(forward_plan[i]);
 #endif
@@ -699,8 +900,7 @@ void TurbSpectrumVelDecomp(const MultiFab& vel,
             rocfft_status result = rocfft_plan_create(&fplan, rocfft_placement_notinplace, 
                                                       rocfft_transform_type_real_forward, rocfft_precision_double,
                                                       3, lengths, 1, nullptr);
-            assert_rocfft_status("rocfft_plan_create", result);
-            built_plan = true;
+            Assert_rocfft_status("rocfft_plan_create", result);
 #else // host
             fplan = fftw_plan_dft_r2c_3d(fft_size[2], fft_size[1], fft_size[0],
                                               vel_onegrid[mfi].dataPtr(),
@@ -729,18 +929,18 @@ void TurbSpectrumVelDecomp(const MultiFab& vel,
 #elif AMREX_USE_HIP
             rocfft_execution_info execinfo = nullptr;
             rocfft_status result = rocfft_execution_info_create(&execinfo);
-            assert_rocfft_status("rocfft_execution_info_create", result);
+            Assert_rocfft_status("rocfft_execution_info_create", result);
 
             std::size_t buffersize = 0;
             result = rocfft_plan_get_work_buffer_size(forward_plan[i], &buffersize);
-            assert_rocfft_status("rocfft_plan_get_work_buffer_size", result);
+            Assert_rocfft_status("rocfft_plan_get_work_buffer_size", result);
 
             void* buffer = amrex::The_Arena()->alloc(buffersize);
             result = rocfft_execution_info_set_work_buffer(execinfo, buffer, buffersize);
-            assert_rocfft_status("rocfft_execution_info_set_work_buffer", result);
+            Assert_rocfft_status("rocfft_execution_info_set_work_buffer", result);
 
             result = rocfft_execution_info_set_stream(execinfo, amrex::Gpu::gpuStream());
-            assert_rocfft_status("rocfft_execution_info_set_stream", result);
+            Assert_rocfft_status("rocfft_execution_info_set_stream", result);
 
 	        amrex::Real* vel_onegrid_ptr = vel_onegrid[mfi].dataPtr();
 	        FFTcomplex* spectral_field_ptr = reinterpret_cast<FFTcomplex*>(spectral_fieldy[i]->dataPtr());
@@ -748,11 +948,11 @@ void TurbSpectrumVelDecomp(const MultiFab& vel,
                                     (void**) &vel_onegrid_ptr, // in
                                     (void**) &spectral_field_ptr, // out
                                     execinfo);
-            assert_rocfft_status("rocfft_execute", result);
+            Assert_rocfft_status("rocfft_execute", result);
             amrex::Gpu::streamSynchronize();
             amrex::The_Arena()->free(buffer);
             result = rocfft_execution_info_destroy(execinfo);
-            assert_rocfft_status("rocfft_execution_info_destroy", result);
+            Assert_rocfft_status("rocfft_execution_info_destroy", result);
 #else
             fftw_execute(forward_plan[i]);
 #endif
@@ -815,8 +1015,7 @@ void TurbSpectrumVelDecomp(const MultiFab& vel,
             rocfft_status result = rocfft_plan_create(&fplan, rocfft_placement_notinplace, 
                                                       rocfft_transform_type_real_forward, rocfft_precision_double,
                                                       3, lengths, 1, nullptr);
-            assert_rocfft_status("rocfft_plan_create", result);
-            built_plan = true;
+            Assert_rocfft_status("rocfft_plan_create", result);
 #else // host
             fplan = fftw_plan_dft_r2c_3d(fft_size[2], fft_size[1], fft_size[0],
                                               vel_onegrid[mfi].dataPtr(),
@@ -845,18 +1044,18 @@ void TurbSpectrumVelDecomp(const MultiFab& vel,
 #elif AMREX_USE_HIP
             rocfft_execution_info execinfo = nullptr;
             rocfft_status result = rocfft_execution_info_create(&execinfo);
-            assert_rocfft_status("rocfft_execution_info_create", result);
+            Assert_rocfft_status("rocfft_execution_info_create", result);
 
             std::size_t buffersize = 0;
             result = rocfft_plan_get_work_buffer_size(forward_plan[i], &buffersize);
-            assert_rocfft_status("rocfft_plan_get_work_buffer_size", result);
+            Assert_rocfft_status("rocfft_plan_get_work_buffer_size", result);
 
             void* buffer = amrex::The_Arena()->alloc(buffersize);
             result = rocfft_execution_info_set_work_buffer(execinfo, buffer, buffersize);
-            assert_rocfft_status("rocfft_execution_info_set_work_buffer", result);
+            Assert_rocfft_status("rocfft_execution_info_set_work_buffer", result);
 
             result = rocfft_execution_info_set_stream(execinfo, amrex::Gpu::gpuStream());
-            assert_rocfft_status("rocfft_execution_info_set_stream", result);
+            Assert_rocfft_status("rocfft_execution_info_set_stream", result);
 
 	        amrex::Real* vel_onegrid_ptr = vel_onegrid[mfi].dataPtr();
 	        FFTcomplex* spectral_field_ptr = reinterpret_cast<FFTcomplex*>(spectral_fieldz[i]->dataPtr());
@@ -864,11 +1063,11 @@ void TurbSpectrumVelDecomp(const MultiFab& vel,
                                     (void**) &vel_onegrid_ptr, // in
                                     (void**) &spectral_field_ptr, // out
                                     execinfo);
-            assert_rocfft_status("rocfft_execute", result);
+            Assert_rocfft_status("rocfft_execute", result);
             amrex::Gpu::streamSynchronize();
             amrex::The_Arena()->free(buffer);
             result = rocfft_execution_info_destroy(execinfo);
-            assert_rocfft_status("rocfft_execution_info_destroy", result);
+            Assert_rocfft_status("rocfft_execution_info_destroy", result);
 #else
             fftw_execute(forward_plan[i]);
 #endif
@@ -909,7 +1108,7 @@ void TurbSpectrumVelDecomp(const MultiFab& vel,
            int ny = n_cells[1]; 
            int nz = n_cells[2];
 
-           Real GxR, GxC, GyR, GyC, GzR, GzC;
+           Real GxR = 0.0, GxC = 0.0, GyR = 0.0, GyC = 0.0, GzR = 0.0, GzC = 0.0;
            
            if (i <= nx/2) {
                // Gradient Operators
@@ -954,12 +1153,12 @@ void TurbSpectrumVelDecomp(const MultiFab& vel,
                    GpuComplex<Real> copy_dz((divR*GzR + divC*GzC) / Lap,
                                             (divC*GzR - divR*GzC) / Lap);
                    spectral_dz(i,j,k) = copy_dz;
-                   
-                   // Solenoidal velocity
-                   spectral_sx(i,j,k) = spectral_tx(i,j,k) - spectral_dx(i,j,k);
-                   spectral_sy(i,j,k) = spectral_ty(i,j,k) - spectral_dy(i,j,k); 
-                   spectral_sz(i,j,k) = spectral_tz(i,j,k) - spectral_dz(i,j,k);
                }
+                   
+               // Solenoidal velocity
+               spectral_sx(i,j,k) = spectral_tx(i,j,k) - spectral_dx(i,j,k);
+               spectral_sy(i,j,k) = spectral_ty(i,j,k) - spectral_dy(i,j,k); 
+               spectral_sz(i,j,k) = spectral_tz(i,j,k) - spectral_dz(i,j,k);
            }
         });
     }
@@ -1022,18 +1221,15 @@ void TurbSpectrumVelDecomp(const MultiFab& vel,
         vel_decomp.ParallelCopy(vel_decomp_onegrid,0,5,1);
     }
     vel_decomp.mult(1.0/sqrtnpts);
-    
-
-#endif // end heFFTe
 }
+#endif // end heFFTe
 
-#if defined(HEFFTE)
-void IntegrateKScalar(const BaseFab<GpuComplex<Real> >& spectral_field,
-                      const std::string& name, const Real& scaling,
-                      const Box& c_local_box,
-                      const Real& sqrtnpts,
-                      const int& step,
-                      const int& comp)
+#if defined(HEFFTE_FFTW) || defined(HEFFTE_CUFFT) || defined(HEFFTE_ROCFFT)
+void IntegrateKScalarHeffte(const BaseFab<GpuComplex<Real> >& spectral_field,
+                      	    const std::string& name, const Real& scaling,
+                            const Box& c_local_box,
+                            const Real& sqrtnpts,
+                            const int& step)
 
 {
     int npts = n_cells[0]/2;
@@ -1050,15 +1246,13 @@ void IntegrateKScalar(const BaseFab<GpuComplex<Real> >& spectral_field,
       phicnt_ptr[d] = 0;
     });
 
-    const Array4< const GpuComplex<Real> > spectral = spectral_field.const_array(comp,1);
+    const Array4< const GpuComplex<Real> > spectral = spectral_field.const_array();
     ParallelFor(c_local_box, [=] AMREX_GPU_DEVICE(int i, int j, int k)
     {
         if (i <= n_cells[0]/2) { // only half of kx-domain
             int ki = i;
             int kj = j;
             int kk = k;
-//            if (j >= n_cells[1]/2) kj = n_cells[1]-j;
-//            if (k >= n_cells[2]/2) kk = n_cells[2]-k;
 
             Real dist = (ki*ki + kj*kj + kk*kk);
             dist = std::sqrt(dist);
@@ -1109,14 +1303,15 @@ void IntegrateKScalar(const BaseFab<GpuComplex<Real> >& spectral_field,
         turb.close();
     }
 }
-#else
+#endif
+
+#if !defined(HEFFTE_FFTW) && !defined(HEFFTE_CUFFT) && !defined(HEFFTE_ROCFFT)
 void IntegrateKScalar(const Vector<std::unique_ptr<BaseFab<GpuComplex<Real> > > >& spectral_field,
                       const MultiFab& variables_onegrid,
                       const std::string& name,
                       const Real& scaling,
                       const Real& sqrtnpts,
-                      const int& step,
-                      const int& comp)
+                      const int& step)
 
 {
     int npts = n_cells[0]/2;
@@ -1147,8 +1342,6 @@ void IntegrateKScalar(const Vector<std::unique_ptr<BaseFab<GpuComplex<Real> > > 
                 int ki = i;
                 int kj = j;
                 int kk = k;
-//                if (j >= bx.length(1)/2) kj = bx.length(1)-j;
-//                if (k >= bx.length(2)/2) kk = bx.length(2)-k;
 
                 Real dist = (ki*ki + kj*kj + kk*kk);
                 dist = std::sqrt(dist);
@@ -1196,11 +1389,13 @@ void IntegrateKScalar(const Vector<std::unique_ptr<BaseFab<GpuComplex<Real> > > 
 }
 #endif
 
-#if defined(HEFFTE)
-void IntegrateKVelocity(const BaseFab<GpuComplex<Real> >& spectral_field,
-                        const std::string& name, const Real& scaling,
-                        const Box& c_local_box,
-                        const int& step)
+#if defined(HEFFTE_FFTW) || defined(HEFFTE_CUFFT) || defined(HEFFTE_ROCFFT)
+void IntegrateKVelocityHeffte(const BaseFab<GpuComplex<Real> >& spectral_fieldx,
+			      const BaseFab<GpuComplex<Real> >& spectral_fieldy,
+			      const BaseFab<GpuComplex<Real> >& spectral_fieldz,
+                              const std::string& name, const Real& scaling,
+                              const Box& c_local_box,
+                              const int& step)
 
 {
     int npts = n_cells[0]/2;
@@ -1217,17 +1412,15 @@ void IntegrateKVelocity(const BaseFab<GpuComplex<Real> >& spectral_field,
       phicnt_ptr[d] = 0;
     });
 
-    const Array4<const GpuComplex<Real> > spectralx = spectral_field.const_array(0,1);
-    const Array4<const GpuComplex<Real> > spectraly = spectral_field.const_array(1,1);
-    const Array4<const GpuComplex<Real> > spectralz = spectral_field.const_array(2,1);
+    const Array4<const GpuComplex<Real> > spectralx = spectral_fieldx.const_array();
+    const Array4<const GpuComplex<Real> > spectraly = spectral_fieldy.const_array();
+    const Array4<const GpuComplex<Real> > spectralz = spectral_fieldz.const_array();
     ParallelFor(c_local_box, [=] AMREX_GPU_DEVICE(int i, int j, int k)
     {
         if (i <= n_cells[0]/2) { // only half of kx-domain
             int ki = i;
             int kj = j;
             int kk = k;
-//            if (j >= n_cells[1]/2) kj = n_cells[1]-j;
-//            if (k >= n_cells[2]/2) kk = n_cells[2]-k;
 
             Real dist = (ki*ki + kj*kj + kk*kk);
             dist = std::sqrt(dist);
@@ -1286,7 +1479,9 @@ void IntegrateKVelocity(const BaseFab<GpuComplex<Real> >& spectral_field,
         turb.close();
     }
 }
-#else
+#endif
+
+#if !defined(HEFFTE_FFTW) && !defined(HEFFTE_CUFFT) && !defined(HEFFTE_ROCFFT)
 void IntegrateKVelocity(const Vector<std::unique_ptr<BaseFab<GpuComplex<Real> > > >& spectral_fieldx,
                         const Vector<std::unique_ptr<BaseFab<GpuComplex<Real> > > >& spectral_fieldy,
                         const Vector<std::unique_ptr<BaseFab<GpuComplex<Real> > > >& spectral_fieldz,
@@ -1324,8 +1519,6 @@ void IntegrateKVelocity(const Vector<std::unique_ptr<BaseFab<GpuComplex<Real> > 
                 int ki = i;
                 int kj = j;
                 int kk = k;
-//                if (j >= bx.length(1)/2) kj = bx.length(1)-j;
-//                if (k >= bx.length(2)/2) kk = bx.length(2)-k;
 
                 Real dist = (ki*ki + kj*kj + kk*kk);
                 dist = std::sqrt(dist);
@@ -1381,9 +1574,7 @@ void IntegrateKVelocity(const Vector<std::unique_ptr<BaseFab<GpuComplex<Real> > 
 }
 #endif
 
-#if defined(HEFFTE)
-// this function not needed for HEFFTE
-#else
+#if !defined(HEFFTE_FFTW) && !defined(HEFFTE_CUFFT) && !defined(HEFFTE_ROCFFT)
 void InverseFFTVel(Vector<std::unique_ptr<BaseFab<GpuComplex<Real> > > >& spectral_field, 
                    MultiFab& vel_decomp_onegrid, const IntVect& fft_size)
 {
@@ -1414,8 +1605,7 @@ void InverseFFTVel(Vector<std::unique_ptr<BaseFab<GpuComplex<Real> > > >& spectr
         rocfft_status result = rocfft_plan_create(&fplan, rocfft_placement_notinplace, 
                                                   rocfft_transform_type_real_inverse, rocfft_precision_double,
                                                   3, lengths, 1, nullptr);
-        assert_rocfft_status("rocfft_plan_create", result);
-        built_plan = true;
+        Assert_rocfft_status("rocfft_plan_create", result);
 #else // host
         fplan = fftw_plan_dft_c2r_3d(fft_size[2], fft_size[1], fft_size[0],
                                      reinterpret_cast<FFTcomplex*>
@@ -1444,18 +1634,18 @@ void InverseFFTVel(Vector<std::unique_ptr<BaseFab<GpuComplex<Real> > > >& spectr
 #elif AMREX_USE_HIP
         rocfft_execution_info execinfo = nullptr;
         rocfft_status result = rocfft_execution_info_create(&execinfo);
-        assert_rocfft_status("rocfft_execution_info_create", result);
+        Assert_rocfft_status("rocfft_execution_info_create", result);
 
         std::size_t buffersize = 0;
         result = rocfft_plan_get_work_buffer_size(backward_plan[i], &buffersize);
-        assert_rocfft_status("rocfft_plan_get_work_buffer_size", result);
+        Assert_rocfft_status("rocfft_plan_get_work_buffer_size", result);
 
         void* buffer = amrex::The_Arena()->alloc(buffersize);
         result = rocfft_execution_info_set_work_buffer(execinfo, buffer, buffersize);
-        assert_rocfft_status("rocfft_execution_info_set_work_buffer", result);
+        Assert_rocfft_status("rocfft_execution_info_set_work_buffer", result);
 
         result = rocfft_execution_info_set_stream(execinfo, amrex::Gpu::gpuStream());
-        assert_rocfft_status("rocfft_execution_info_set_stream", result);
+        Assert_rocfft_status("rocfft_execution_info_set_stream", result);
 
 	    amrex::Real* vel_onegrid_ptr = vel_decomp_onegrid[mfi].dataPtr();
 	    FFTcomplex* spectral_field_ptr = reinterpret_cast<FFTcomplex*>(spectral_field[i]->dataPtr());
@@ -1463,11 +1653,11 @@ void InverseFFTVel(Vector<std::unique_ptr<BaseFab<GpuComplex<Real> > > >& spectr
                                 (void**) &vel_onegrid_ptr, // in
                                 (void**) &spectral_field_ptr, // out
                                 execinfo);
-        assert_rocfft_status("rocfft_execute", result);
+        Assert_rocfft_status("rocfft_execute", result);
         amrex::Gpu::streamSynchronize();
         amrex::The_Arena()->free(buffer);
         result = rocfft_execution_info_destroy(execinfo);
-        assert_rocfft_status("rocfft_execution_info_destroy", result);
+        Assert_rocfft_status("rocfft_execution_info_destroy", result);
 #else
         fftw_execute(backward_plan[i]);
 #endif
