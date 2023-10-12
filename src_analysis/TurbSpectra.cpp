@@ -152,7 +152,7 @@ void TurbSpectrumScalarHeffte(const MultiFab& variables,
 void TurbSpectrumScalar(const MultiFab& variables, 
                         const amrex::Geometry& geom, 
                         const int& step, 
-                        const amrex::Vector<amrex::Real>& var_scaling,
+                        const amrex::Vector<amrex::Real>& scaling,
                         const amrex::Vector< std::string >& var_names)
 {
     BL_PROFILE_VAR("TurbSpectrumScalar()",TurbSpectrumScalar);
@@ -694,7 +694,7 @@ void TurbSpectrumVelDecomp(const MultiFab& vel,
                            MultiFab& vel_decomp,
                            const amrex::Geometry& geom,
                            const int& step,
-                           const amrex::Real& var_scaling,
+                           const amrex::Real& scaling,
                            const amrex::Vector< std::string >& var_names)
 {
     BL_PROFILE_VAR("TurbSpectrumVelDecomp()",TurbSpectrumVelDecomp);
