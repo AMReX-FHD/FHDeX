@@ -1,0 +1,126 @@
+# random number seed
+# 0 = unpredictable seed based on clock
+# positive = fixed seed
+seed = 0
+
+# Problem specification
+prob_lo = 0.0 0.0 0.0 # physical lo coordinate
+prob_hi = 1.28e-04 1.28e-04 1.28e-04 # physical hi coordinate
+
+# Number of ghost cells, conserved, and primitive variables
+# ---------------------
+ngc = 2 2 2
+nvars = 7
+nprimvars = 10
+
+# number of cells in domain
+n_cells = 16 16 16
+# max number of cells in a box
+max_grid_size = 4 4 4
+
+# Time-step control
+fixed_dt = 1.e-12
+
+# Controls for number of steps between actions
+max_step = 1000000
+plot_int = 100000
+chk_int  = -1
+restart  = -1
+
+
+# Multispecies toggle
+# if algorithm_type = 1, single component
+# if algorithm_type = 2, multispecies
+algorithm_type = 2
+
+# Viscous tensor form
+# if visc_type = 1, L = not-symmetric (bulk viscosity = 0)
+# if visc_type = 2, L = symmetric (bulk viscosity = 0)
+# if visc_type = 3, L = symmetric + bulk viscosity
+visc_type = 2
+
+# Advection method
+# if advection_type = 1, interpolate conserved quantities
+# if advection_type = 2, interpolate primitive quantities
+advection_type = 2
+
+# Problem specification
+# if prob_type = 1, constant species concentration
+# if prob_type = 2, Rayleigh-Taylor instability
+# if prob_type = 3, diffusion barrier
+prob_type = 1
+
+# Initial parameters
+k_B = 1.38064852e-16	# [units: cm2*g*s-2*K-1]
+Runiv = 8.314462175e7
+T_init = 350 
+rho0 = 1.855335e-03 
+
+struct_fact_int = 1
+n_steps_skip = 100000
+
+# Boundary conditions:
+# NOTE: setting bc_vel to periodic sets all the other bc's to periodic)
+# bc_vel:   -1 = periodic
+#            1 = slip
+#            2 = no-slip
+# bc_mass:  -1 = periodic
+#            1 = wall
+#            2 = concentration (set bc_Yk or bc_Xk in compressible namelist)
+#            3 = reservoir (set bc_Yk or bc_Xk in compressible namelist)
+# bc_therm: -1 = periodic
+#            1 = adiabatic
+#            2 = isothermal (set with t_lo/hi in common namelist)
+bc_vel_lo   = -1 -1 -1
+bc_vel_hi   = -1 -1 -1
+bc_mass_lo  = -1 -1 -1
+bc_mass_hi  = -1 -1 -1
+bc_therm_lo = -1 -1 -1
+bc_therm_hi = -1 -1 -1
+
+# Temperature if thermal BC specified
+t_hi = 350 350 350 
+t_lo = 350 350 350 
+
+#Kinetic species info
+#--------------
+nspecies = 2
+
+molmass = 46.0055 92.0110 
+diameter = 3.765e-08 4.621e-08 
+rhobar = 7.267597e-01 2.732403e-01
+# Enter negative dof to use hcv & hcp values
+dof = 7.279582 18.049065
+hcv = -1 -1
+hcp = -1 -1
+e0 = 4.684542e+09 -1.730892e+09
+
+plot_means = 1
+plot_vars = 1
+
+
+# dimerization reaction
+# react1 : 2A -> A_2
+# react2 : A_2 -> 2A
+# spec1 = A
+# spec2 = A_2
+
+nreaction = 2
+
+T0_chem = 350
+
+rate_const = 5.194896e+26 2.326169e+27
+
+alpha_param = 0 0
+beta_param  = 0 0
+
+stoich_1R = 2 0
+stoich_1P = 0 1
+stoich_2R = 0 1
+stoich_2P = 2 0
+
+# 0 = Deterministic Chemistry
+# 1 = CLE (Chemical Langevin Equation)
+# 2 = SSA (Stochastic Simulation Algorithm)
+
+reaction_type = 1
