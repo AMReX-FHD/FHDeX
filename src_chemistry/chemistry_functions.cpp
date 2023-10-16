@@ -4,6 +4,8 @@
 AMREX_GPU_MANAGED int chemistry::nreaction;
 
 AMREX_GPU_MANAGED GpuArray<amrex::Real, MAX_REACTION> chemistry::rate_const;
+AMREX_GPU_MANAGED GpuArray<amrex::Real, MAX_REACTION> chemistry::alpha_param;
+AMREX_GPU_MANAGED GpuArray<amrex::Real, MAX_REACTION> chemistry::beta_param;
 AMREX_GPU_MANAGED amrex::Real chemistry::T0_chem;
 
 AMREX_GPU_MANAGED Array2D<int,0, MAX_REACTION,0, MAX_SPECIES> chemistry::stoich_coeffs_R; 
@@ -29,6 +31,16 @@ void InitializeChemistryNamespace()
     pp.getarr("rate_const",k_tmp,0,nreaction);
     for (int m=0; m<nreaction; m++) rate_const[m] = k_tmp[m];
 
+    // get alpha parameter
+    std::vector<amrex::Real> alpha_tmp(MAX_REACTION);
+    pp.queryarr("alpha_param",alpha_tmp,0,nreaction);
+    for (int m=0; m<nreaction; m++) alpha_param[m] = alpha_tmp[m];
+    
+    // get beta parameter
+    std::vector<amrex::Real> beta_tmp(MAX_REACTION);
+    pp.queryarr("beta_param",beta_tmp,0,nreaction);
+    for (int m=0; m<nreaction; m++) beta_param[m] = beta_tmp[m];
+    
     T0_chem = 0.;
     // get temperature T0 for rate constants
     pp.query("T0_chem",T0_chem);
