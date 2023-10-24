@@ -1,0 +1,13 @@
+* this file:            README
+
+* slurm execution       submit_job.sh
+                        job_script.sh (for Pinnacles:--partition pi.ckim103 or dept.appliedmath) 
+    -> output               slurm-*.out
+
+* FHD inputs file       inputs_NO2_dimerization_eq
+    -> output               plt*
+* parameter analysis    params_NO2_dimerization_eq.py
+                        params_NO2_N2O4_thermochem.py
+
+* clean-up              clean.sh
+* comparison            diff.sh

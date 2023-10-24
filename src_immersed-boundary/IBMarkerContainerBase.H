@@ -78,10 +78,42 @@ public:
         return pti.GetArrayOfStructs().numParticles();
     };
 
+    // Get the next particle ID -- can be used to find the number of particles
+    // initialized on this GPU already
+    int NextID() {
+        return ParticleType::the_next_id;
+    }
+
+    const Gpu::ManagedDeviceVector<int> & getNumIDs() {
+        return num_ids;
+    }
+
+    int getNumIDs(int rank) {
+        return num_ids[rank];
+    }
+
+    const Gpu::ManagedDeviceVector<int> & getCPUOffset() {
+        return cpu_offset;
+    }
+
+    int getCPUOffset(int cpu) {
+        return cpu_offset[cpu];
+    }
+
+    int getTotalNumIDs() {
+        return total_num_ids;
+    }
+
     // Get total number of markers accross all ranks.
+    // TODO: clean up this version
     int getTotalMarkers(){
         return totalMarkers;
     };
+
+    // Load bonds from data file.
+    void loadBonds(int totalP, char* filename);
+
+
     /****************************************************************************
      *                                                                          *
      * Marker Spreading and Interpolation                                       *
@@ -251,9 +283,15 @@ public:
      *                                                                          *
      ***************************************************************************/
 
+    void UpdatePIDMap();
+
     void PullDown(int lev, Real * list, int element, int totalParticles);
 
+    void PullDown(int lev, Vector<Real> & list, int element);
+
     void PullDownInt(int lev, int * list, int element, int totalParticles);
+
+    void PullDownInt(int lev, Vector<int> & list, int element);
 
     void PushUpAdd(int lev, Real * list, int element, int totalParticles);
 
@@ -279,7 +317,6 @@ protected:
     void ReadStaticParameters();
 
     Real integrate_es(Real beta_in, int w_in);
-   
 
     AmrCore * m_amr_core;
 
@@ -287,30 +324,32 @@ protected:
     Gpu::ManagedDeviceVector<int> idsRankSorted;
     Gpu::ManagedDeviceVector<int> rankTotals;
 
+    Gpu::ManagedDeviceVector<int> head_index;
+    Gpu::ManagedDeviceVector<int> num_bond;
+    Gpu::ManagedDeviceVector<int> bond_atom;
+    Gpu::ManagedDeviceVector<amrex::Real> bond_coeff1;
+    Gpu::ManagedDeviceVector<amrex::Real> bond_coeff2;
+
     Gpu::ManagedDeviceVector<amrex::Real> pinMatrix;
 
     int totalMarkers;
     int totalPinnedMarkers; 
 
-
+    // TODO: why is this static inline?
     static inline Gpu::ManagedDeviceVector<Real> norm_es;
-    
 
 private:
 
     // Positions on faces
     Vector<std::array<MultiFab, AMREX_SPACEDIM>> face_coords;
-   
 
-
-
-//    Vector<int> ranksIdSorted;
-//    Vector<int> idsRankSorted;
-//    Vector<int> rankTotals;
-//    int totalMarkers;
-
+    // Number of paricle IDs for each rank:
+    Gpu::ManagedDeviceVector<int> num_ids;
+    // Offset of each rank in the particle list
+    Gpu::ManagedDeviceVector<int> cpu_offset;
+    // Number of markers -- TODO: deal with duplicaton with totalMarkers
+    int total_num_ids;
 };
-
 
 
 #include "IBMarkerContainerBaseI.H"

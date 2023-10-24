@@ -198,7 +198,7 @@ void ShiftCCToFace_onegrid(MultiFab& face_in, int face_comp,
         Abort("ShiftCCToFace_onegrid requires face_in contain only one box");
     }
     
-    int dir;
+    int dir=0;
     if (face_in.is_nodal(0)) {
         dir = 0;
     } else if (face_in.is_nodal(1)) {
@@ -211,10 +211,10 @@ void ShiftCCToFace_onegrid(MultiFab& face_in, int face_comp,
         Abort("ShiftCCToFace_onegrid requires a face-centered MultiFab");
     }
 
-    Box bx = cc_in.boxArray()[0];
+    Box bx0 = cc_in.boxArray()[0];
     
-    int lo = bx.smallEnd(dir);
-    int hi = bx.bigEnd(dir);
+    int lo = bx0.smallEnd(dir);
+    int hi = bx0.bigEnd(dir);
     
     // Loop over boxes (note that mfi takes a cell-centered multifab as an argument)
     for (MFIter mfi(cc_in,TilingIfNotGPU()); mfi.isValid(); ++mfi) {

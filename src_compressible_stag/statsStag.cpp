@@ -3,6 +3,7 @@
 
 #include "common_functions.H"
 
+
 ///////////////////////////////////////////
 // Evaluate Stats for the 3D case /////////
 /// ///////////////////////////////////////
@@ -15,20 +16,28 @@ void evaluateStatsStag3D(MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
                          std::array<MultiFab, AMREX_SPACEDIM>& cumomMean,
                          std::array<MultiFab, AMREX_SPACEDIM>& cumomVar,
                          MultiFab& coVar, 
+                         MultiFab& theta, MultiFab& thetaMean, MultiFab& thetaVar,
                          Vector<Real>& dataSliceMeans_xcross,
                          Vector<Real>& spatialCross3D, const int ncross,
                          const amrex::Box& domain,
-                         const int steps)
+                         const int steps,
+                         const Geometry& geom)
 {
     BL_PROFILE_VAR("evaluateStatsStag3D()",evaluateStatsStag3D);
     
     //// Evaluate Means
-    if (plot_means) EvaluateStatsMeans(cons,consMean,prim_in,primMean,vel,velMean,cumom,cumomMean,steps);
+    if (plot_means) {
+        EvaluateStatsMeans(cons,consMean,prim_in,primMean,vel,velMean,cumom,cumomMean,theta,thetaMean,steps);
+        consMean.FillBoundary(geom.periodicity());
+        primMean.FillBoundary(geom.periodicity());
+    }
 
     //// Evaluate Variances and Covariances
     if ((plot_vars) or (plot_covars)) {
         EvaluateVarsCoVars(cons,consMean,consVar,prim_in,primMean,primVar,velMean,velVar,
-                           cumom,cumomMean,cumomVar,coVar,steps);
+                           cumom,cumomMean,cumomVar,coVar,theta,thetaMean,thetaVar,steps);
+        consVar.FillBoundary(geom.periodicity());
+        primVar.FillBoundary(geom.periodicity());
     }
 
     //// Evaluate Spatial Correlations
@@ -72,18 +81,26 @@ void evaluateStatsStag2D(MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
                          std::array<MultiFab, AMREX_SPACEDIM>& cumomMean,
                          std::array<MultiFab, AMREX_SPACEDIM>& cumomVar,
                          MultiFab& coVar, 
-                         MultiFab& spatialCross2D, const int ncross,
-                         const int steps)
+                         MultiFab& theta, MultiFab& thetaMean, MultiFab& thetaVar,
+                         MultiFab& /*spatialCross2D*/, const int /*ncross*/,
+                         const int steps,
+                         const Geometry& geom)
 {
     BL_PROFILE_VAR("evaluateStatsStag2D()",evaluateStatsStag2D);
     
     //// Evaluate Means
-    if (plot_means) EvaluateStatsMeans(cons,consMean,prim_in,primMean,vel,velMean,cumom,cumomMean,steps);
+    if (plot_means) {
+        EvaluateStatsMeans(cons,consMean,prim_in,primMean,vel,velMean,cumom,cumomMean,theta,thetaMean,steps);
+        consMean.FillBoundary(geom.periodicity());
+        primMean.FillBoundary(geom.periodicity());
+    }
 
     //// Evaluate Variances and Covariances
     if ((plot_vars) or (plot_covars)) {
         EvaluateVarsCoVars(cons,consMean,consVar,prim_in,primMean,primVar,velMean,velVar,
-                           cumom,cumomMean,cumomVar,coVar,steps);
+                           cumom,cumomMean,cumomVar,coVar,theta,thetaMean,thetaVar,steps);
+        consVar.FillBoundary(geom.periodicity());
+        primVar.FillBoundary(geom.periodicity());
     }
 
     //// Evaluate Spatial Correlations (do later)
@@ -113,18 +130,26 @@ void evaluateStatsStag1D(MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
                          std::array<MultiFab, AMREX_SPACEDIM>& cumomMean,
                          std::array<MultiFab, AMREX_SPACEDIM>& cumomVar,
                          MultiFab& coVar, 
+                         MultiFab& theta, MultiFab& thetaMean, MultiFab& thetaVar,
                          MultiFab& spatialCross1D, const int ncross,
-                         const int steps)
+                         const int steps,
+                         const Geometry& geom)
 {
     BL_PROFILE_VAR("evaluateStatsStag1D()",evaluateStatsStag1D);
     
     //// Evaluate Means
-    if (plot_means) EvaluateStatsMeans(cons,consMean,prim_in,primMean,vel,velMean,cumom,cumomMean,steps);
+    if (plot_means) {
+        EvaluateStatsMeans(cons,consMean,prim_in,primMean,vel,velMean,cumom,cumomMean,theta,thetaMean,steps);
+        consMean.FillBoundary(geom.periodicity());
+        primMean.FillBoundary(geom.periodicity());
+    }
 
     //// Evaluate Variances and Covariances
     if ((plot_vars) or (plot_covars)) {
         EvaluateVarsCoVars(cons,consMean,consVar,prim_in,primMean,primVar,velMean,velVar,
-                           cumom,cumomMean,cumomVar,coVar,steps);
+                           cumom,cumomMean,cumomVar,coVar,theta,thetaMean,thetaVar,steps);
+        consVar.FillBoundary(geom.periodicity());
+        primVar.FillBoundary(geom.periodicity());
     }
 
     //// Evaluate Spatial Correlations
@@ -165,10 +190,11 @@ void evaluateStatsStag1D(MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
 ///////////////////////
 void EvaluateStatsMeans(MultiFab& cons, MultiFab& consMean,
                         MultiFab& prim_in, MultiFab& primMean,
-                        const std::array<MultiFab, AMREX_SPACEDIM>& vel,
+                        const std::array<MultiFab, AMREX_SPACEDIM>& /*vel*/,
                         std::array<MultiFab, AMREX_SPACEDIM>& velMean,
                         const std::array<MultiFab, AMREX_SPACEDIM>& cumom,
                         std::array<MultiFab, AMREX_SPACEDIM>& cumomMean,
+                        MultiFab& theta, MultiFab& thetaMean,
                         const int steps)
 {
     BL_PROFILE_VAR("EvaluateStatsMeans()",EvaluateStatsMeans);
@@ -179,23 +205,9 @@ void EvaluateStatsMeans(MultiFab& cons, MultiFab& consMean,
     // Loop over boxes
     for ( MFIter mfi(prim_in,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
         
-        const Box& bx  = mfi.tilebox();
-        const Box& bxg = mfi.growntilebox(ngc[0]);
         const Box& tbx = mfi.nodaltilebox(0);
         const Box& tby = mfi.nodaltilebox(1);
         const Box& tbz = mfi.nodaltilebox(2);
-
-        const Array4<      Real> cu        = cons.array(mfi);
-        const Array4<      Real> cumeans   = consMean.array(mfi);
-        const Array4<      Real> prim      = prim_in.array(mfi);
-        const Array4<      Real> primmeans = primMean.array(mfi);
-
-        const Array4<      Real> velxmeans = velMean[0].array(mfi);
-        const Array4<      Real> velymeans = velMean[1].array(mfi);
-        const Array4<      Real> velzmeans = velMean[2].array(mfi);
-        const Array4<const Real> velx      = vel[0].array(mfi);
-        const Array4<const Real> vely      = vel[1].array(mfi);
-        const Array4<const Real> velz      = vel[2].array(mfi);
 
         const Array4<const Real> momx      = cumom[0].array(mfi);
         const Array4<const Real> momy      = cumom[1].array(mfi);
@@ -218,13 +230,38 @@ void EvaluateStatsMeans(MultiFab& cons, MultiFab& consMean,
         {
             momzmeans(i,j,k) = (momzmeans(i,j,k)*stepsminusone + momz(i,j,k))*stepsinv;
         });
+    
+    }
 
+    for ( MFIter mfi(prim_in,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
+
+        const Box& bxg = mfi.growntilebox(ngc[0]);
+        const Array4<      Real> cu        = cons.array(mfi);
+        const Array4<      Real> cumeans   = consMean.array(mfi);
+        
         // update mean density (required in the ghost region as well)
         amrex::ParallelFor(bxg, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             cumeans(i,j,k,0) = (cumeans(i,j,k,0)*stepsminusone + cu(i,j,k,0))*stepsinv;
         });
+    }
 
+    for ( MFIter mfi(prim_in,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
+        
+        const Box& bx  = mfi.tilebox();
+
+        const Array4<      Real> cu        = cons.array(mfi);
+        const Array4<      Real> cumeans   = consMean.array(mfi);
+        const Array4<      Real> prim      = prim_in.array(mfi);
+        const Array4<      Real> primmeans = primMean.array(mfi);
+        
+        const Array4<const Real> momxmeans = cumomMean[0].array(mfi);
+        const Array4<const Real> momymeans = cumomMean[1].array(mfi);
+        const Array4<const Real> momzmeans = cumomMean[2].array(mfi);
+        
+        const Array4<      Real> surfcov      = (nspec_surfcov>0) ? theta.array(mfi) : cons.array(mfi);
+        const Array4<      Real> surfcovmeans = (nspec_surfcov>0) ? thetaMean.array(mfi) : consMean.array(mfi);
+        
         // update mean other values (primitive and conserved) 
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {    
@@ -269,7 +306,29 @@ void EvaluateStatsMeans(MultiFab& cons, MultiFab& consMean,
             //primmeans(i,j,k,5) = (primmeans(i,j,k,5)*stepsminusone + prim(i,j,k,5))*stepsinv; // Pmean
             GetPressureGas(primmeans(i,j,k,5), fracvec, cumeans(i,j,k,0), primmeans(i,j,k,4)); // Pmean
 
+            if (nspec_surfcov>0) {
+                for (int m=0; m<nspec_surfcov; ++m) {
+                    surfcovmeans(i,j,k,m) = (surfcovmeans(i,j,k,m)*stepsminusone + surfcov(i,j,k,m))*stepsinv;
+                }
+            }
         });
+    }
+
+    for ( MFIter mfi(prim_in,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
+        
+        const Box& tbx = mfi.nodaltilebox(0);
+        const Box& tby = mfi.nodaltilebox(1);
+        const Box& tbz = mfi.nodaltilebox(2);
+        
+        const Array4<      Real> velxmeans = velMean[0].array(mfi);
+        const Array4<      Real> velymeans = velMean[1].array(mfi);
+        const Array4<      Real> velzmeans = velMean[2].array(mfi);
+        
+        const Array4<const Real> momxmeans = cumomMean[0].array(mfi);
+        const Array4<const Real> momymeans = cumomMean[1].array(mfi);
+        const Array4<const Real> momzmeans = cumomMean[2].array(mfi);
+        
+        const Array4<      Real> cumeans   = consMean.array(mfi);
 
         // update mean velocities
         amrex::ParallelFor(tbx, tby, tbz,
@@ -303,6 +362,7 @@ void EvaluateVarsCoVars(const MultiFab& cons, const MultiFab& consMean, MultiFab
                         const std::array<MultiFab, AMREX_SPACEDIM>& cumomMean,
                         std::array<MultiFab, AMREX_SPACEDIM>& cumomVar,
                         MultiFab& coVar,
+                        const MultiFab& theta, const MultiFab& thetaMean, MultiFab& thetaVar,
                         const int steps)
 {
     BL_PROFILE_VAR("EvaluateVarsCoVars()",EvaluateVarsCoVars);
@@ -311,21 +371,14 @@ void EvaluateVarsCoVars(const MultiFab& cons, const MultiFab& consMean, MultiFab
     double stepsinv = 1./steps;
 
     // Loop over boxes
-    for ( MFIter mfi(prim_in,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
+    for ( MFIter mfi(cons,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
         
-        const Box& bx = mfi.tilebox();
         const Box& tbx = mfi.nodaltilebox(0);
         const Box& tby = mfi.nodaltilebox(1);
         const Box& tbz = mfi.nodaltilebox(2);
 
         const Array4<const Real> cu        = cons.array(mfi);
         const Array4<const Real> cumeans   = consMean.array(mfi);
-        const Array4<      Real> cuvars    = consVar.array(mfi);
-        const Array4<const Real> prim      = prim_in.array(mfi);
-        const Array4<const Real> primmeans = primMean.array(mfi);
-        const Array4<      Real> primvars  = primVar.array(mfi);
-
-        const Array4<      Real> covars    = coVar.array(mfi);
 
         const Array4<const Real> velxmeans = velMean[0].array(mfi);
         const Array4<const Real> velymeans = velMean[1].array(mfi);
@@ -377,6 +430,37 @@ void EvaluateVarsCoVars(const MultiFab& cons, const MultiFab& consMean, MultiFab
             velzvars(i,j,k) = (velzvars(i,j,k)*stepsminusone + delvelz*delvelz)*stepsinv; // <vz vz>
         });
 
+    }
+
+    // Loop over boxes
+    for ( MFIter mfi(prim_in,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
+        
+        const Box& bx = mfi.tilebox();
+
+        const Array4<const Real> cu        = cons.array(mfi);
+        const Array4<const Real> cumeans   = consMean.array(mfi);
+        const Array4<      Real> cuvars    = consVar.array(mfi);
+        const Array4<const Real> prim      = prim_in.array(mfi);
+        const Array4<const Real> primmeans = primMean.array(mfi);
+        const Array4<      Real> primvars  = primVar.array(mfi);
+
+        const Array4<      Real> covars    = coVar.array(mfi);
+
+        const Array4<const Real> velxmeans = velMean[0].array(mfi);
+        const Array4<const Real> velymeans = velMean[1].array(mfi);
+        const Array4<const Real> velzmeans = velMean[2].array(mfi);
+
+        const Array4<const Real> momx      = cumom[0].array(mfi);
+        const Array4<const Real> momy      = cumom[1].array(mfi);
+        const Array4<const Real> momz      = cumom[2].array(mfi);
+        const Array4<const Real> momxmeans = cumomMean[0].array(mfi);
+        const Array4<const Real> momymeans = cumomMean[1].array(mfi);
+        const Array4<const Real> momzmeans = cumomMean[2].array(mfi);
+
+        const Array4<const Real> surfcov      = (nspec_surfcov>0) ? theta.array(mfi) : cons.array(mfi);
+        const Array4<const Real> surfcovmeans = (nspec_surfcov>0) ? thetaMean.array(mfi) : consMean.array(mfi);
+        const Array4<      Real> surfcovvars  = (nspec_surfcov>0) ? thetaVar.array(mfi) : consVar.array(mfi);
+        
         // other cell-centered variances and covariances (temperature fluctuation and variance)
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {    
@@ -439,18 +523,18 @@ void EvaluateVarsCoVars(const MultiFab& cons, const MultiFab& consMean, MultiFab
 
             Real delg = vx*deljx + vy*deljy + vz*deljz;
 
-            primvars(i,j,k,nprimvars)   = (primvars(i,j,k,nprimvars)*stepsminusone + delg*delg)*stepsinv; // gvar
+            primvars(i,j,k,nprimvars+0) = (primvars(i,j,k,nprimvars+0)*stepsminusone + delg*delg)*stepsinv; // gvar
             primvars(i,j,k,nprimvars+1) = (primvars(i,j,k,nprimvars+1)*stepsminusone + delg*delenergy)*stepsinv; // kgcross
             primvars(i,j,k,nprimvars+2) = (primvars(i,j,k,nprimvars+2)*stepsminusone + delrho*delenergy)*stepsinv; // krcross
             primvars(i,j,k,nprimvars+3) = (primvars(i,j,k,nprimvars+3)*stepsminusone + delrho*delg)*stepsinv; // rgcross
 
-            //primvars(i,j,k,4) = (primvars(i,j,k,4)*stepsminusone + cvinv*cvinv*densitymeaninv*densitymeaninv*
-            //                     (cuvars(i,j,k,4) + primvars(i,j,k,nprimvars) - 2*primvars(i,j,k,nprimvars+1)
-            //                      + qmean*(qmean*cuvars(i,j,k,0) - 2*primvars(i,j,k,nprimvars+2) + 2*primvars(i,j,k,nprimvars+3))))*stepsinv; // <T T>
-            //
-            // use instantaneous value until fixed for multispecies
+            primvars(i,j,k,nprimvars+4) = (primvars(i,j,k,nprimvars+4)*stepsminusone + cvinv*cvinv*densitymeaninv*densitymeaninv*
+                                 (cuvars(i,j,k,4) + primvars(i,j,k,nprimvars+0) - 2*primvars(i,j,k,nprimvars+1)
+                                  + qmean*(qmean*cuvars(i,j,k,0) - 2*primvars(i,j,k,nprimvars+2) + 2*primvars(i,j,k,nprimvars+3))))*stepsinv; // <T T>
+            
+            // use instantaneous value (the above presumably does not work for multispecies)
             Real delT = prim(i,j,k,4) - primmeans(i,j,k,4);
-            primvars(i,j,k,4)   = (primvars(i,j,k,4)*stepsminusone + delT*delT)*stepsinv;
+            primvars(i,j,k,4)   = (primvars(i,j,k,4)*stepsminusone + delT*delT)*stepsinv; // <T T> -- direct
 
             //Real deltemp = (delenergy - delg - qmean*delrho)*cvinv*densitymeaninv;
             Real deltemp = delT; 
@@ -481,6 +565,13 @@ void EvaluateVarsCoVars(const MultiFab& cons, const MultiFab& consMean, MultiFab
             covars(i,j,k,23) = (covars(i,j,k,23)*stepsminusone + delYk[nspecies-1]*delvelx)*stepsinv; // <Ykheaviest velx>
             covars(i,j,k,24) = (covars(i,j,k,24)*stepsminusone + delrhoYk[0]*delvelx)*stepsinv; // <rhoYklightest velx>
             covars(i,j,k,25) = (covars(i,j,k,25)*stepsminusone + delrhoYk[nspecies-1]*delvelx)*stepsinv; // <rhoYkheaviest velx>
+
+            if (nspec_surfcov>0) {
+                for (int m=0; m<nspec_surfcov; ++m) {
+                    Real delsurfcov = surfcov(i,j,k,m) - surfcovmeans(i,j,k,m);
+                    surfcovvars(i,j,k,m) = (surfcovvars(i,j,k,m)*stepsminusone + delsurfcov*delsurfcov)*stepsinv;
+                }
+            }
         });
 
     } // end MFIter
@@ -618,9 +709,6 @@ void GetPencilCross(amrex::Gpu::DeviceVector<Real>& data_xcross_in,
 
         const Box& bx = mfi.validbox();
 
-        const auto lo = amrex::lbound(bx);
-        const auto hi = amrex::ubound(bx);
-
         const Array4<const Real> cumeans   = consMean.array(mfi);
         const Array4<const Real> primmeans = primMean.array(mfi);
         const Array4<const Real> prim      = prim_in.array(mfi);
@@ -671,7 +759,7 @@ void EvaluateSpatialCorrelations3D(Vector<Real>& spatialCross,
                                    amrex::Gpu::HostVector<Real>& prim_avg, 
                                    amrex::Gpu::HostVector<Real>& primmeans_avg, 
                                    const int steps,
-                                   const int nstats,
+                                   const int /*nstats*/,
                                    const int ncross)
 {
     
@@ -1132,17 +1220,12 @@ void EvaluateSpatialCorrelations1D(MultiFab& spatialCross1D,
 
         const Box& bx = mfi.validbox();
 
-        const auto lo = amrex::lbound(bx);
-        const auto hi = amrex::ubound(bx);
-
         const Array4<const Real> cumeans   = consMean.array(mfi);
         const Array4<const Real> primmeans = primMean.array(mfi);
         const Array4<const Real> prim      = prim_in.array(mfi);
         const Array4<const Real> cu        = cons.array(mfi);
 
         const Array4<const Real> velx      = vel[0].array(mfi);
-        const Array4<const Real> vely      = vel[1].array(mfi);
-        const Array4<const Real> velz      = vel[2].array(mfi);
         const Array4<const Real> velxmeans = velMean[0].array(mfi);
         const Array4<const Real> velymeans = velMean[1].array(mfi);
         const Array4<const Real> velzmeans = velMean[2].array(mfi);

@@ -1,0 +1,23 @@
+ &input_param
+
+   dt = 1.d-12
+   cfl = 0.125d0
+   npts = 100
+   nstep =  200
+   nout =    20
+   nstat = -10
+   icor = 16
+
+   seed = 10299
+
+   uinit = 1250.
+   jmidl = 41
+   jmidr = 60
+   midfact = .0d0
+   jpartl = 1
+   jpartr = 100
+   is_hybrid = 1
+
+/
+
+

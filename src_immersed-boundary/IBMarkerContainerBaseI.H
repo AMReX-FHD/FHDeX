@@ -152,6 +152,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::RFD(
     Real delta = 1e-4*dx[0];
     Real deltaover2 = delta/2.0;
     Real force = variance_coef_mom*k_B*T_init[0]/delta;
+    const Geometry & geom = this->Geom(0);
 
     for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
 
@@ -263,6 +264,10 @@ void IBMarkerContainerBase<StructReal, StructInt>::RFD(
         });
 
     }
+
+    f_out[0].SumBoundary(geom.periodicity());
+    f_out[1].SumBoundary(geom.periodicity());
+    f_out[2].SumBoundary(geom.periodicity());
 }
 
 
@@ -274,9 +279,9 @@ void IBMarkerContainerBase<StructReal, StructInt>::initRankLists(int totalM)
 
     totalMarkers = totalM; 
 
-    ranksIdSorted.resize(totalMarkers,0);
-    idsRankSorted.resize(totalMarkers,0);
-    rankTotals.resize(ParallelDescriptor::NProcs(),0);
+    ranksIdSorted.resize(totalMarkers, 0);
+    idsRankSorted.resize(totalMarkers, 0);
+    rankTotals.resize(ParallelDescriptor::NProcs(), 0);
     
     const int lev = 0;
 
@@ -289,7 +294,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::initRankLists(int totalM)
 	auto& aos   = ptile.GetArrayOfStructs();
 	ParticleType* particles = aos().dataPtr();
 
-        //THIS DOES NOT COMPILE WITH CUDA?
+        // THIS DOES NOT COMPILE WITH CUDA?
         for(int i=0; i<np;i++)
         {
             ParticleType & part = particles[i];
@@ -299,8 +304,8 @@ void IBMarkerContainerBase<StructReal, StructInt>::initRankLists(int totalM)
         }
     }
 
-//    ParallelDescriptor::ReduceIntSum(idsRankSorted);
-//    ParallelDescriptor::ReduceIntSum(rankTotals);
+    // ParallelDescriptor::ReduceIntSum(idsRankSorted);
+    // ParallelDescriptor::ReduceIntSum(rankTotals);
 
     for (int i=0; i<totalMarkers; ++i) {
         int temp = idsRankSorted[i];
@@ -315,6 +320,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::initRankLists(int totalM)
     }
 
 }
+
 
 template <typename StructReal, typename StructInt>
 void IBMarkerContainerBase<StructReal, StructInt>::loadPinMatrix(int totalP, char* filename) 
@@ -346,6 +352,67 @@ void IBMarkerContainerBase<StructReal, StructInt>::loadPinMatrix(int totalP, cha
 
     ifs.close();
     //matFile.close();
+
+}
+
+// load bond info into two giant arrays, one for bonded particle IDs and one for bond type
+template <typename StructReal, typename StructInt>
+void IBMarkerContainerBase<StructReal, StructInt>::loadBonds(int totalP, char* filename)
+{
+    // timer for profiling
+    BL_PROFILE_VAR("loadBonds()",loadBonds);
+
+    int atom1, atom2, atom_current;
+    Real k_bond, x0_bond;
+
+    head_index.resize(totalP,0);
+    num_bond.resize(totalP,0);
+    bond_atom.resize(common::nbonds,0);
+    bond_coeff1.resize(common::nbonds,0);
+    bond_coeff2.resize(common::nbonds,0);
+
+    int bcount = 0;
+    atom_current = -1;
+
+    std::ifstream bondFile(filename); // bond file is generated so that atom2 >= atom1
+    std::string line;
+    while (std::getline(bondFile, line)) {
+    //for(int i_bond=0; i_bond < common::nbonds; i_bond++) {
+
+        std::istringstream ss(line);
+
+        ss >> atom1;
+        ss >> atom2;
+        ss >> k_bond;
+        ss >> x0_bond;
+
+        //Print() << atom1 << " " << atom2 << " " << k_bond << std::endl;
+
+        if(atom1>atom_current)
+        {
+            atom_current = atom1;
+            head_index[atom_current] = bcount;
+        }
+
+        bond_coeff1[bcount] = k_bond;
+        bond_coeff2[bcount] = x0_bond;
+        bond_atom[bcount] = atom2;
+        num_bond[atom1] = num_bond[atom1]+1;
+
+        bcount++;
+    }
+
+    if (bcount != common::nbonds) {
+        Abort("Missing bond info!");
+    } else {
+        Print() << "Loaded " << bcount << " bonds." << std::endl;
+    }
+
+    bondFile.close();
+
+    for (int i=0; i<totalP; i++) {
+        Print() << i << " of " << totalP << ": " << head_index[i] << " " << num_bond[i] << std::endl;
+    }
 
 }
 
@@ -494,29 +561,29 @@ void IBMarkerContainerBase<StructReal, StructInt>::PullDown(
 
         if (element >= 0) {
 
-                //std::cout << "Proc " << ParallelDescriptor::MyProc() << " 1a start\n";
+            //std::cout << "Proc " << ParallelDescriptor::MyProc() << " 1a start\n";
             AMREX_FOR_1D( np, i,
             {
                 ParticleType & part = particles[i];
                 int id = part.id();
-                
+                //TODO: Why "radius"?!
                 list[id-1] = particles[i].rdata(StructReal::radius + element);
             });
-                //std::cout << "Proc " << ParallelDescriptor::MyProc() << " 1a finish\n";
+            //std::cout << "Proc " << ParallelDescriptor::MyProc() << " 1a finish\n";
 
         } else {
 
-                //std::cout << "Proc " << ParallelDescriptor::MyProc() << " 1b start\n";
+            //std::cout << "Proc " << ParallelDescriptor::MyProc() << " 1b start\n";
             AMREX_FOR_1D( np, i,
             {
                 ParticleType & part = particles[i];
                 int id = part.id();
                 list[id-1] = part.pos((-element)-1);
 
-              //  std::cout << "Proc " << ParallelDescriptor::MyProc() << " storing " << part.pos((-element)-1)
-                //                               << " from " << i << " in position " << id-1 << std::endl;
+            //  std::cout << "Proc " << ParallelDescriptor::MyProc() << " storing " << part.pos((-element)-1)
+            //                               << " from " << i << " in position " << id-1 << std::endl;
             });
-                //std::cout << "Proc " << ParallelDescriptor::MyProc() << " 1b finish\n";
+            //std::cout << "Proc " << ParallelDescriptor::MyProc() << " 1b finish\n";
         }
 
     }
@@ -539,6 +606,82 @@ void IBMarkerContainerBase<StructReal, StructInt>::PullDown(
     //std::cout << "Proc " << ParallelDescriptor::MyProc() << " 3\n";
     
 }
+
+
+template <typename StructReal, typename StructInt>
+void IBMarkerContainerBase<StructReal, StructInt>::UpdatePIDMap() {
+
+    BL_PROFILE_VAR("UpdatePIDMap()", UpdatePIDMap);
+
+    int rank = ParallelDescriptor::MyProc();
+    int size = ParallelDescriptor::NProcs();
+
+    // Number of IDs associated with this rank
+    num_ids[rank] = this->NextID() - 1;
+
+    ParallelDescriptor::ReduceIntSum(
+        Vector<std::reference_wrapper<int>>(std::begin(num_ids), std::end(num_ids))
+    );
+
+    int offset = 0;
+    for (int i=0; i < size; i++) {
+        cpu_offset[i] = offset;
+        offset += num_ids[i];
+    }
+
+    total_num_ids = offset;
+}
+
+
+template <typename StructReal, typename StructInt>
+void IBMarkerContainerBase<StructReal, StructInt>::PullDown(
+            int lev, Vector<Real> & list, int element
+) {
+    // timer for profiling
+    BL_PROFILE_VAR("PullDown()", PullDown);
+    
+//    Gpu::ManagedDeviceVector<int> cpu_offset;
+//    Gpu::ManagedDeviceVector<int> cpu_offset;
+    
+    int* cpu_offset_ptr = cpu_offset.data();
+
+    for (int i = 0; i < total_num_ids; ++i) { list[i] = 0;}
+
+    for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
+        PairIndex index(pti.index(), pti.LocalTileIndex());
+        const int np = this->GetParticles(lev)[index].numRealParticles();
+        auto & plev  = this->GetParticles(lev);
+        auto & ptile = plev[index];
+        auto & aos   = ptile.GetArrayOfStructs();
+        ParticleType * particles = aos().dataPtr();
+
+        if (element >= 0) {
+            AMREX_FOR_1D(np, i, {
+                ParticleType & part = particles[i];
+                int id  = part.id();
+                int cpu = part.cpu();
+
+                // Particle IDs start at 1, CPUs at 0 -- urgh!
+                list[id-1 + cpu_offset_ptr[cpu]] = particles[i].rdata(element);
+            });
+        } else {
+            AMREX_FOR_1D(np, i, {
+                ParticleType & part = particles[i];
+                int id  = part.id();
+                int cpu = part.cpu();
+
+                // Particle IDs start at 1, CPUs at 0 -- urgh!
+                list[id-1 + cpu_offset_ptr[cpu]] = part.pos((-element)-1);
+            });
+        }
+
+    }
+
+    ParallelDescriptor::ReduceRealSum(
+        Vector<std::reference_wrapper<Real>>(begin(list), end(list))
+    );
+}
+
 
 template <typename StructReal, typename StructInt>
 void IBMarkerContainerBase<StructReal, StructInt>::PullDownInt(
@@ -571,6 +714,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::PullDownInt(
                 ParticleType & part = particles[i];
                 int id = part.id();
                 //std::cout << id << " of " << totalParticles << std::endl;
+                // TODO: Why "sorted"?
                 list[id-1] = particles[i].idata(StructInt::sorted + element);
             });
 
@@ -604,6 +748,57 @@ void IBMarkerContainerBase<StructReal, StructInt>::PullDownInt(
 }
 
 
+template <typename StructReal, typename StructInt>
+void IBMarkerContainerBase<StructReal, StructInt>::PullDownInt(
+            int lev, Vector<int> & list, int element
+) {
+    // timer for profiling
+    BL_PROFILE_VAR("PullDownInt()", PullDownInt);
+    
+    int* cpu_offset_ptr = cpu_offset.data();
+
+    for (int i = 0; i < total_num_ids; ++i) { list[i] = 0;}
+
+    for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
+        PairIndex index(pti.index(), pti.LocalTileIndex());
+        const int np = this->GetParticles(lev)[index].numRealParticles();
+        auto & plev  = this->GetParticles(lev);
+        auto & ptile = plev[index];
+        auto & aos   = ptile.GetArrayOfStructs();
+        ParticleType * particles = aos().dataPtr();
+
+        if (element >= 0) {
+            AMREX_FOR_1D(np, i, {
+                ParticleType & part = particles[i];
+                int id  = part.id();
+                int cpu = part.cpu();
+
+                // Particle IDs start at 1, CPUs at 0 -- urgh!
+                list[id-1 + cpu_offset_ptr[cpu]] = particles[i].idata(element);
+            });
+        } else {
+            AMREX_FOR_1D(np, i, {
+                ParticleType & part = particles[i];
+                int id  = part.id();
+                int cpu = part.cpu();
+
+                // Particle IDs start at 1, CPUs at 0 -- urgh!
+                if (element == -1) {
+                    list[id-1 + cpu_offset_ptr[cpu]] = part.id();
+                } else if (element == -2) {
+                    list[id-1 + cpu_offset_ptr[cpu]] = part.cpu();
+                } else{
+                    list[id-1 + cpu_offset_ptr[cpu]] = -1;
+                }
+            });
+        }
+
+    }
+
+    ParallelDescriptor::ReduceIntSum(
+        Vector<std::reference_wrapper<int>>(begin(list), end(list))
+    );
+}
 
 template <typename StructReal, typename StructInt>
 void IBMarkerContainerBase<StructReal, StructInt>::PushUpAdd(
@@ -979,7 +1174,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadKernelGpu(const AoS& ao
    
                       }
 
-                      
+                      //std::cout << "Adding " << p.rdata(StructReal::forcex + 0) << ", " << weight*invvol << std::endl;
                       amrex::Gpu::Atomic::Add(&fout_x(i,j,k), p.rdata(StructReal::forcex + 0)*weight*invvol);
                       amrex::Gpu::Atomic::Add(&fweights_x(i,j,k), weight);
                     }
@@ -1103,6 +1298,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadMarkersGpu(
             f_weights_fab[d] = & f_weights[d][pti];
             coords_fab[d]    = & coords[d][pti];
         }
+
         SpreadKernelGpu(particles, tile_box, f_out_fab, f_weights_fab, coords_fab, dx, & ghost);
     }
 }
@@ -2006,7 +2202,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::PrintMarkerData(int lev) cons
     // ParIter skips tiles without particles => Iterate over MultiFab instead
     // of ParticleIter. Note also that AmrexParticleContainer uses strange
     // tiling => don't turn off tiling (particles are stored in tile)
-    for(MFIter pti = this->MakeMFIter(lev, true); pti.isValid(); ++pti) {
+    for(MFIter pti = this->MakeMFIter(lev, this->do_tiling); pti.isValid(); ++pti) {
         // MuliFabs are indexed using a pair: (BoxArray index, tile index):
         TileIndex index(pti.index(), pti.LocalTileIndex());
 
@@ -2089,10 +2285,15 @@ void IBMarkerContainerBase<StructReal, StructInt>::InitInternals(int ngrow) {
 
     /****************************************************************************
      *                                                                          *
-     * Fill auxiallry data used by interpolsation                               *
+     * Fill auxiallry data used by interpolation                                *
      *   -> face_coords: the face-centered coordinates used by the fluid grids  *
      *                                                                          *
      ***************************************************************************/
+
+    // Number of particle IDs for each rank:
+    num_ids.resize(ParallelDescriptor::NProcs(), 0);
+    // Offset of each rank in the particle list
+    cpu_offset.resize(ParallelDescriptor::NProcs(), 0);
 
     // TODO: this is only assuming 1 fluid level (level 0)
     int lev = 0;
@@ -2104,8 +2305,18 @@ void IBMarkerContainerBase<StructReal, StructInt>::InitInternals(int ngrow) {
     // Determine the minimal ngrow (which depends on the kernel order): This
     // needs to be AT LEAST 1 larger than the `gs` value used in
     // [spread,interpolate]_kernel
-    int ngc_min_fluid = *(std::max_element(common::pkernel_fluid.begin(), common::pkernel_fluid.begin()+common::nspecies)) == 3 ? 3 : 5; // GALEN - FLUID KERNEL
-    int ngc_min_es    = *(std::max_element(common::pkernel_es.begin(), common::pkernel_es.begin()+common::nspecies)) == 3 ? 3 : 5;
+    int ngc_min_fluid = * (
+        std::max_element(
+            common::pkernel_fluid.begin(),
+            common::pkernel_fluid.begin() + common::nspecies
+        )
+    ) == 3 ? 3 : 5; // GALEN - FLUID KERNEL
+    int ngc_min_es = * (
+        std::max_element(
+            common::pkernel_es.begin(),
+            common::pkernel_es.begin() + common::nspecies
+        )
+    ) == 3 ? 3 : 5;
 
     // Let's be on the safe side and use the larger out of the
     // fluid/electro-static kernels
@@ -2120,15 +2331,13 @@ void IBMarkerContainerBase<StructReal, StructInt>::InitInternals(int ngrow) {
     const Geometry & geom = this->Geom(lev);
     FindFaceCoords(face_coords[lev], geom);
    
-    //Vector<Real> IBMarkerContainerBase<StructReal, StructInt>::norm_es;
     norm_es.resize(common::nspecies);
     for (int i=0; i<common::nspecies; ++i) {
-        norm_es[i] = integrate_es(common::eskernel_beta[i], common::eskernel_fluid[i]);
-        //std::cout << "normalization factor " << i << " are " << IBMarkerContainerBase::norm_es[i] << std::endl;
+        norm_es[i] = integrate_es(
+            common::eskernel_beta[i], common::eskernel_fluid[i]
+        );
     }
-
 }
-
 
 
 template <typename StructReal, typename StructInt>
@@ -2138,12 +2347,12 @@ void IBMarkerContainerBase<StructReal, StructInt>::ReadStaticParameters() {
     if (!initialized) {
         ParmParse pp("particles");
 
-#ifndef AMREX_USE_GPU
-        // AMReX default is false => enable by default
-        this->do_tiling = true;
-        // Allow user to overwrite
-        pp.query("do_tiling",  this->do_tiling);
-#endif
+//#ifndef AMREX_USE_GPU
+//        // AMReX default is false => enable by default
+//        this->do_tiling = true;
+//        // Allow user to overwrite
+//        pp.query("do_tiling",  this->do_tiling);
+//#endif
         
         // If tiling is enabled, make sure that the tile size is at least the
         // number of ghost cells (otherwise strange things happen)
@@ -2164,6 +2373,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::ReadStaticParameters() {
         initialized = true;
     }
 }
+
 
 template <typename StructReal, typename StructInt>
 Real IBMarkerContainerBase<StructReal, StructInt>::integrate_es(Real beta_in, int w_in) {

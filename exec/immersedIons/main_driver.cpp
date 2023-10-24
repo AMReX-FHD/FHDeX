@@ -917,7 +917,7 @@ void main_driver(const char* argv)
 
 
 //    // Writes instantaneous flow field and some other stuff? Check with Guy.
-    WritePlotFileHydro(0, time, geom, umac, pres, umacM);
+    //WritePlotFileHydro(0, time, geom, umac, pres, umacM);
     remove("bulkFlowEst");
     //Time stepping loop
 
@@ -1199,7 +1199,7 @@ void main_driver(const char* argv)
                     dt = dt*2;
                     Print() << "\n\nNew dt: " << dt << std::endl<< std::endl<< std::endl;
             }
-        }else
+          }else
         {
         
             if(istep == 20)
@@ -1232,17 +1232,92 @@ void main_driver(const char* argv)
             }
         }
 
-            //particles.SetPosition(1, prob_hi[0]*0.51, prob_hi[1]*(pow(0.5,istep)) + prob_hi[1]*1e-8, prob_hi[2]*0.51);
+
+//            particles.SetPosition(1, prob_hi[0]*0.501, prob_hi[1]*0.501, prob_hi[2]*0.501);
+//              particles.SetForce(1,1,0,0);
+//          int kk =1;
+//          //Print() << "Moving " << ionParticle[0].total << " particles.\n";
+//          while(kk<ionParticle[0].total)
+//          {
+////            Real x1 = prob_lo[0] + 0.25*(prob_hi[0]-prob_lo[0]) + amrex::Random()*(prob_hi[0]-prob_lo[0])/2.0;
+//            Real x1 = prob_lo[0] + amrex::Random()*(prob_hi[0]-prob_lo[0]);
+//            Real y1 = prob_lo[1] + amrex::Random()*(prob_hi[1]-prob_lo[1]);
+//            Real z1 = prob_lo[2] + amrex::Random()*(prob_hi[2]-prob_lo[2]);
+////          
+////            Real seprad = ionParticle[0].d/2.0;
+////  
+////            Real x2 = x1 + 0.0*ionParticle[0].d/2.0;
+////            Real y2 = y1;
+////            Real z2 = z1;
+//////            
+//            particles.SetPosition(kk,x1 ,y1, z1);
+////            particles.SetPosition(kk+1,x2 ,y2, z2);
+//            
+//           // Print() << "Seperating particles " << kk << " and " << kk+1 << " by " << (x1 -x2)/seprad << " radii.\n";
+//            
+//            kk = kk+2;
+//            
+
+//          }
+
+//          kk =1;          
+//          while(kk<ionParticle[0].total)
+//          {
+//            Real xPos[ionParticle[0].total];
+//            Real yPos[ionParticle[0].total];
+//            Real zPos[ionParticle[0].total];
+//            
+//            particles.PullDown(0, xPos, -1, ionParticle[0].total);
+//            particles.PullDown(0, yPos, -2, ionParticle[0].total);
+//            particles.PullDown(0, zPos, -3, ionParticle[0].total);
+//            
+//            Real x1 = xPos[kk-1];
+//            Real y1 = yPos[kk-1];
+//            Real z1 = zPos[kk-1];
+////          
+//            Real seprad = ionParticle[0].d/2.0;
+//  
+//            Real x2 = x1 + 6.0*ionParticle[0].d/2.0;
+//            Real y2 = y1;
+//            Real z2 = z1;
+//////            
+////            particles.SetPosition(kk,x1 ,y1, z1);
+//            particles.SetPosition(kk+1,x2 ,y2, z2);
+//            
+//           // Print() << "Seperating particles " << kk << " and " << kk+1 << " by " << (x1 -x2)/seprad << " radii.\n";
+//            
+//            kk = kk+2;
+//            
+
+//          }
+//            
+//            x1 = 0.5*prob_hi[0] + (amrex::Random()-0.5)*(prob_hi[0]-prob_lo[0])*0.25;
+//            y1 = 0.1875*dxp[0];
+//            z1 = 0.5*prob_hi[2] + (amrex::Random()-0.5)*(prob_hi[2]-prob_lo[2])*0.25;
             
-            //particles.SetPosition(1, prob_hi[0]*0.751, prob_hi[1]*0.8, prob_hi[2]*0.251);
-            //particles.SetPosition(2, prob_hi[0]*0.251, prob_hi[1]*0.23906250001, prob_hi[2]*0.751);
+            
+//            Real costheta = 2.*amrex::Random() - 1.;
+//            Real sintheta = sqrt(1. - costheta*costheta);
+
+//            Real phi = amrex::Random() * 2. * 3.14159265358979;
+//            Real cosphi = std::cos(phi);
+//            Real sinphi = std::sin(phi);
+
+//            Real dr = 2*dxp[0];
+
+//            Real x2 = x1 + dr*cosphi;
+//            Real y2 = y1;
+//            Real z2 = z1 + dr*sinphi;;
+//            
+//            particles.SetPosition(1,x1 ,y1, z1);
+//            particles.SetPosition(2,x2 ,y2, z2);
 
     
         //Most of these functions are sensitive to the order of execution. We can fix this, but for now leave them in this order.
 
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             external[d].setVal(eamp[d]*cos(efreq[d]*time + ephase[d]));  // external field
-            source    [d].setVal(0.0);      // reset source terms
+            source    [d].setVal(body_force_density[d]);      // reset source terms
             sourceTemp[d].setVal(0.0);      // reset source terms
             sourceRFD[d].setVal(0.0);      // reset source terms
             particles.ResetMarkers(0);
@@ -1261,7 +1336,7 @@ void main_driver(const char* argv)
             // set velx/y/z and forcex/y/z for each particle to zero
             particles.ResetMarkers(0);
         }
-	    //particles.SetForce(1,1,0,0);
+//	    particles.SetForce(1,0.00001,0,0);
 //        Real origin[3];
 //        origin[0] = prob_hi[0]/2.0;
 //        origin[1] = prob_hi[1]/2.0;
@@ -1292,10 +1367,10 @@ void main_driver(const char* argv)
         if (es_tog==2) {
             // compute pairwise Coulomb force (currently hard-coded to work with y-wall).
 	    particles.computeForcesCoulombGPU(simParticles);
-	}
+	     }
 
         // compute other forces and spread to grid
-        particles.SpreadIonsGPU(dx, dxp, geom, umac, efieldCC, source, sourceTemp);
+        particles.SpreadIonsGPU(dx, dxp, geom, umac, RealFaceCoords, efieldCC, source, sourceTemp);
 
         //particles.BuildCorrectionTable(dxp,1);
 
@@ -1304,6 +1379,8 @@ void main_driver(const char* argv)
             sMflux.fillMomStochastic();
 
             // compute stochastic momentum force
+            //sMflux.StochMomFluxDivWideSplit(stochMfluxdiv,0,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
+            //sMflux.StochMomFluxDivOrder3(stochMfluxdiv,0,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
             sMflux.StochMomFluxDiv(stochMfluxdiv,0,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
 
             // integrator containing inertial terms and predictor/corrector requires 2 RNG stages
@@ -1311,6 +1388,11 @@ void main_driver(const char* argv)
                 sMflux.StochMomFluxDiv(stochMfluxdivC,0,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
             }
         }
+        
+        
+        MultiFab::Add(source[0],sourceRFD[0],0,0,sourceRFD[0].nComp(),sourceRFD[0].nGrow());
+        MultiFab::Add(source[1],sourceRFD[1],0,0,sourceRFD[1].nComp(),sourceRFD[1].nGrow());
+        MultiFab::Add(source[2],sourceRFD[2],0,0,sourceRFD[2].nComp(),sourceRFD[2].nGrow());
 
 
         if (fluid_tog == 1) {
@@ -1359,11 +1441,6 @@ void main_driver(const char* argv)
 
 //                particles.invertMatrix();
 
-
-                MultiFab::Add(source[0],sourceRFD[0],0,0,sourceRFD[0].nComp(),sourceRFD[0].nGrow());
-                MultiFab::Add(source[1],sourceRFD[1],0,0,sourceRFD[1].nComp(),sourceRFD[1].nGrow());
-                MultiFab::Add(source[2],sourceRFD[2],0,0,sourceRFD[2].nComp(),sourceRFD[2].nGrow());
-
                 advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
                 particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
                 particles.velNorm();
@@ -1375,7 +1452,7 @@ void main_driver(const char* argv)
                         sourceTemp[d].setVal(0.0);      // reset source terms
                     }
 
-                particles.SpreadIonsGPU(dx, geom, umac, source, sourceTemp);
+                particles.SpreadIonsGPU(dx, geom, umac, RealFaceCoords, source, sourceTemp);
 
                 MultiFab::Add(source[0],sourceRFD[0],0,0,sourceRFD[0].nComp(),sourceRFD[0].nGrow());
                 MultiFab::Add(source[1],sourceRFD[1],0,0,sourceRFD[1].nComp(),sourceRFD[1].nGrow());
@@ -1395,6 +1472,10 @@ void main_driver(const char* argv)
         else if (fluid_tog == 2) {
             Abort("Don't use fluid_tog=2 (inertial Low Mach solver)");
         }
+       
+        //Real check;
+        //particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords,check);
+        //particles.TwoParticleCorrelation();
 
         // total particle move (1=single step, 2=midpoint)
         if (move_tog != 0)
@@ -1417,6 +1498,7 @@ void main_driver(const char* argv)
 
             Print() << "Finish move.\n";
         }
+
 
         /*
         // FIXME - AJN
@@ -1540,7 +1622,7 @@ void main_driver(const char* argv)
                             potential, potentialM);
         }
 
-        //particles.PrintParticles();
+//        particles.PrintParticles();
 
         // timer for time step
         Real time2 = ParallelDescriptor::second() - time1;

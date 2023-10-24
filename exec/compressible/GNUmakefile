@@ -9,6 +9,7 @@ USE_CUDA      = FALSE
 COMP          = gnu
 DIM           = 3
 TINY_PROFILE  = FALSE
+MAX_SPEC      = 8
 
 USE_PARTICLES = FALSE
 
@@ -24,6 +25,10 @@ INCLUDE_LOCATIONS += ../../src_compressible/
 include ../../src_chemistry/Make.package
 VPATH_LOCATIONS   += ../../src_chemistry/
 INCLUDE_LOCATIONS += ../../src_chemistry/
+
+include ../../src_MFsurfchem/Make.package
+VPATH_LOCATIONS   += ../../src_MFsurfchem/
+INCLUDE_LOCATIONS += ../../src_MFsurfchem/
 
 include ../../src_rng/Make.package
 VPATH_LOCATIONS   += ../../src_rng/
@@ -51,3 +56,7 @@ ifeq ($(USE_CUDA),TRUE)
 else
   LIBRARIES += -L$(FFTW_DIR) -lfftw3_mpi -lfftw3
 endif
+
+MAXSPECIES := $(strip $(MAX_SPEC))
+DEFINES += -DMAX_SPECIES=$(MAXSPECIES)
+

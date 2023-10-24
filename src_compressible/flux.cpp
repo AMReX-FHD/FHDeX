@@ -11,8 +11,8 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                    std::array<MultiFab, AMREX_SPACEDIM>& cornz_in,
                    MultiFab& visccorn_in,
                    MultiFab& rancorn_in,
-                   const amrex::Geometry geom,
-		   const amrex::Vector< amrex::Real >& stoch_weights,
+                   const amrex::Geometry& geom,
+		   const amrex::Vector< amrex::Real >& /*stoch_weights*/,
                    const amrex::Real dt)
 {
     BL_PROFILE_VAR("calculateFlux()",calculateFlux);
@@ -54,7 +54,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                          const Array4<Real>& ranfluxz = stochFlux_in[2].array(mfi));
 
             const Array4<const Real> prim = prim_in.array(mfi);
-            const Array4<const Real> cons = cons_in.array(mfi);
+            // const Array4<const Real> cons = cons_in.array(mfi);
 
             const Array4<const Real> rancorn = rancorn_in.array(mfi);
         
@@ -887,22 +887,22 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 
                     }
                     if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
-                        muzepp = 0.25*(eta(i+1,j,k)*prim(i+1,j,k,4) + 
+                        muzepp = 0.5*(eta(i+1,j,k)*prim(i+1,j,k,4) +
                                        eta(i,j,k)*prim(i,j,k,4) +
                                        eta(i+1,j+1,k)*prim(i+1,j+1,k,4) + 
                                        eta(i,j+1,k)*prim(i,j+1,k,4) )/3.;
 
-                        muzemp = 0.25*(eta(i-1,j+1,k)*prim(i-1,j+1,k,4) + 
+                        muzemp = 0.5*(eta(i-1,j+1,k)*prim(i-1,j+1,k,4) +
                                        eta(i,j+1,k)*prim(i,j+1,k,4) +
                                        eta(i-1,j,k)*prim(i-1,j,k,4) + 
                                        eta(i,j,k)*prim(i,j,k,4) )/3.;
 
-                        muzepm = 0.25*(eta(i+1,j,k)*prim(i+1,j,k,4) + 
-                                       eta(i,j,k-2)*prim(i,j,k,4) +
+                        muzepm = 0.5*(eta(i+1,j,k)*prim(i+1,j,k,4) +
+                                       eta(i,j,k)*prim(i,j,k,4) +
                                        eta(i+1,j-1,k)*prim(i+1,j-1,k,4) + 
-                                       eta(i,j-1,k-2)*prim(i,j-1,k,4) )/3.;
+                                       eta(i,j-1,k)*prim(i,j-1,k,4) )/3.;
 
-                        muzemm = 0.25*(eta(i-1,j-1,k)*prim(i-1,j-1,k,4) + 
+                        muzemm = 0.5*(eta(i-1,j-1,k)*prim(i-1,j-1,k,4) +
                                        eta(i,j-1,k)*prim(i,j-1,k,4) +
                                        eta(i-1,j,k)*prim(i-1,j,k,4) + 
                                        eta(i,j,k)*prim(i,j,k,4) )/3.;
@@ -945,9 +945,9 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                                            zeta(i,j,k)*prim(i,j,k,4) )/3.;
 
                             muzepm += 0.5*(zeta(i+1,j,k)*prim(i+1,j,k,4) + 
-                                           zeta(i,j,k-2)*prim(i,j,k,4) +
+                                           zeta(i,j,k)*prim(i,j,k,4) +
                                            zeta(i+1,j-1,k)*prim(i+1,j-1,k,4) + 
-                                           zeta(i,j-1,k-2)*prim(i,j-1,k,4) )/3.;
+                                           zeta(i,j-1,k)*prim(i,j-1,k,4) )/3.;
 
                             muzemm += 0.5*(zeta(i-1,j-1,k)*prim(i-1,j-1,k,4) + 
                                            zeta(i,j-1,k)*prim(i,j-1,k,4) +
@@ -1162,7 +1162,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                      const Array4<Real>& fluxz = flux_in[2].array(mfi));
 
         const Array4<const Real> prim = prim_in.array(mfi);
-        const Array4<const Real> cons = cons_in.array(mfi);
+        // const Array4<const Real> cons = cons_in.array(mfi);
         
         const Array4<const Real> eta   = eta_in.array(mfi);
         const Array4<const Real> zeta  = zeta_in.array(mfi);
@@ -1677,7 +1677,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
             if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
                 DX[2] = 0.5*dx[2];
                 muxp = 0.25*(eta(i-1,j-1,k) + eta(i-1,j,k) + eta(i,j-1,k) + eta(i,j,k));
-                if (amrex::Math::abs(visc_type) == 3) zetaxp = 0.25*(zeta(i-1,j-1,k-1) + zeta(i-1,j,k-1) + zeta(i,j-1,k-1) + zeta(i,j,k-1));
+                if (amrex::Math::abs(visc_type) == 3) zetaxp = 0.25*(zeta(i-1,j-1,k) + zeta(i-1,j,k) + zeta(i,j-1,k) + zeta(i,j,k));
                 else zetaxp = 0.;
             }
 

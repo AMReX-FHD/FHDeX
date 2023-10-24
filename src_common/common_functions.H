@@ -114,7 +114,7 @@ void ComputeDivCC(const MultiFab& vel_in,
     
 ///////////////////////////
 // in Debug.cpp
-void PrintMF(const MultiFab& MF);
+void PrintMF(const MultiFab& MF, int comp_lo, int comp_hi);
 
 void outputMFAscii(const MultiFab& output, std::string filename);
 
@@ -163,7 +163,7 @@ void MultiFabPhysBC(MultiFab& data, const Geometry& geom, int scomp, int ncomp, 
 
 void MultiFabPhysBCDomainVel(MultiFab& vel, const Geometry& geom, int dim);
 
-void MultiFabPhysBCMacVel(MultiFab& vel, const Geometry& geom, int dim);
+void MultiFabPhysBCMacVel(MultiFab& vel, const Geometry& geom, int dim, int is_inhomogeneous=0);
 
 void ZeroEdgevalWalls(std::array<MultiFab, AMREX_SPACEDIM>& edge, const Geometry& geom,
                       int scomp, int ncomp);
@@ -219,6 +219,12 @@ void CCMoments(const MultiFab & m1,
                  amrex::MultiFab& mscr,
 		 const int & power,
 		 Real & prod_val);
+
+void FCMoments(const std::array<MultiFab, AMREX_SPACEDIM>& m1,
+		       const amrex::Vector<int>& comps,
+               std::array<MultiFab, AMREX_SPACEDIM>&  mscr,
+		       const int& power,
+		       amrex::Vector<amrex::Real>& prod_val);
 
 void StagL2Norm(const std::array<MultiFab, AMREX_SPACEDIM> & m1,
 		const int & comp,

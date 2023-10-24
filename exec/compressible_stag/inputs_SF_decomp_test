@@ -1,0 +1,113 @@
+  # amrex.fpe_trap_invalid=1
+  # amrex.fpe_trap_overflow=1
+  # amrex.fpe_trap_zero=1
+
+
+  # Problem specification
+  # mean free path (Ar): lambda = 6.26e-6 cm
+  # dx = dy = dz = 2*lambda = 1.252e-5
+  prob_lo = 0.0 0.0 0.0      # physical lo coordinate
+  prob_hi = 0.005008 0.005008 0.005008 # physical hi coordinate
+  prob_hi = 0.001252 0.001252 0.001252 # physical hi coordinate
+
+  # Number of ghost cells, conserved, and primitive variables
+  # ---------------------
+  ngc = 2 2 2
+  nspecies = 2
+  nvars = 7
+  nprimvars = 10
+
+  # number of cells in domain
+  n_cells = 64 64 64
+  n_cells = 16 16 16
+  # max number of cells in a box
+  max_grid_size = 64 64 64
+
+  # Time-step control
+  fixed_dt = 6.25e-10
+  stoch_stress_form = 1
+
+  # Controls for number of steps between actions
+  max_step = 1000000
+  plot_int = 10000
+  chk_int  = 50000
+  max_step = 100
+  plot_int = 10
+
+  # Multispecies toggle
+  # if algorithm_type = 1, single component
+  # if algorithm_type = 2, multispecies
+  algorithm_type = 2
+
+  # Viscous tensor form
+  # if visc_type = 1, L = not-symmetric (bulk viscosity = 0)
+  # if visc_type = 2, L = symmetric (bulk viscosity = 0)
+  # if visc_type = 3, L = symmetric + bulk viscosity
+  visc_type = 2
+
+  # Advection method
+  # if advection_type = 1, interpolate primitive quantities
+  # if advection_type = 2, interpolate conserved quantities
+  advection_type = 1
+
+  # Problem specification
+  # if prob_type = 1, constant species concentration
+  # if prob_type = 2, Rayleigh-Taylor instability
+  # if prob_type = 3, diffusion barrier
+  prob_type = 1
+
+  # Initial parameters
+  k_B = 1.38064852e-16 # [units: cm2*g*s-2*K-1]
+  Runiv = 8.314462175e7
+  T_init = 273
+  rho0 = 0.0017775409151219938
+  rhobar = 0.5 0.5
+  #mach0 = 0.5
+  turbForcing = 2
+  turb_a      = 6486.000000000001 # forcing for solenoidal 1/T_L
+  turb_b      = 4823117954.373371 # forcing for solenoidal sigma/sqrt{T_L}
+  turb_c      = 6486.000000000001  # forcing for compressional 1/T_L
+  turb_d      = 4823117954.373371  # forcing for compressional sigma/sqrt{T_L}
+  turb_alpha  = 1.0  # fraction of solenoidal forcing
+
+  struct_fact_int = -10
+  n_steps_skip = 0
+
+  # Boundary conditions:
+  # NOTE: setting bc_vel to periodic sets all the other bc's to periodic)
+  # bc_vel:   -1 = periodic
+  #            1 = slip
+  #            2 = no-slip
+  # bc_mass:  -1 = periodic
+  #            1 = wall
+  #            2 = reservoir (set bc_Yk or bc_Xk in compressible namelist)
+  # bc_therm: -1 = periodic
+  #            1 = adiabatic
+  #            2 = isothermal (set with t_lo/hi in common namelist)
+  bc_vel_lo = -1 -1 -1
+  bc_vel_hi = -1 -1 -1
+  bc_mass_lo  = -1 -1 -1
+  bc_mass_hi  = -1 -1 -1
+  bc_therm_lo = -1 -1 -1
+  bc_therm_hi = -1 -1 -1
+
+  # Temperature if thermal BC specified
+  t_lo = 273 273 273
+  t_hi = 273 273 273
+
+  #Kinetic species info
+  #--------------
+  molmass  = 39.9480 39.9480
+  diameter = 3.66e-8 3.66e-8
+
+  # Enter negative dof to use hcv & hcp values
+  dof =  3 3
+  hcv = -1 -1
+  hcp = -1 -1
+
+  # write out means and variances to plotfile
+  transport_type = 1
+  plot_means = 0
+  plot_vars = 0
+  plot_covars = 0
+

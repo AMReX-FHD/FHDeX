@@ -135,8 +135,8 @@
   # for Neumann, the value is -/+ qtot/(eps*A)
   # qtot is total charge in domain (qval*#ions)
   # A is total surface area
-  potential_lo = 0 -6867618242941.29 0
-  potential_hi = 0  6867618242941.29 0
+  potential_lo = 0  6867618242941.29 0
+  potential_hi = 0  -6867618242941.29 0
   
 
 

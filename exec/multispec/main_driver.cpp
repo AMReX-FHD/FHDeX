@@ -44,6 +44,10 @@ void main_driver(const char* argv)
     InitializeMultispecNamespace();
     InitializeGmresNamespace();
 
+    if (visc_type > 0 && mixture_type != 0) {
+      Abort("positive visc_type and non-zero mixture_type not compatible");
+    }
+    
     if (algorithm_type == 6) {
         RhototBCInit();
     }
@@ -137,7 +141,6 @@ void main_driver(const char* argv)
         if (fixed_dt <= 0.) {
             Abort("main_driver.cpp: only fixed_dt > 0 supported");
         }
-        dt = fixed_dt;
 
         // Initialize the boxarray "ba" from the single box "bx"
         ba.define(domain);
@@ -159,6 +162,9 @@ void main_driver(const char* argv)
             }
         }
 
+//      added by JBB to allow reset of dt on restart
+        if (fixed_dt >0) dt=fixed_dt;
+
         rho_old.define   (ba, dmap, nspecies, ng_s);
         rhotot_old.define(ba, dmap, 1       , ng_s);
         pi.define        (ba, dmap, 1       , 1);
@@ -166,6 +172,9 @@ void main_driver(const char* argv)
             Epot.define(ba, dmap, 1, 1);
         }
     }
+
+    // moved this to here so can change dt from value in checkpoint
+    dt = fixed_dt;
     
     // data structures to help with reservoirs
     // 
@@ -336,7 +345,7 @@ void main_driver(const char* argv)
     */
 
     // initialize eta and kappa
-    eta.setVal(visc_coef);
+    ComputeEta(rho_old, rhotot_old, eta);
     kappa.setVal(0.);
     // replace with more general initialization routine
     //
@@ -347,7 +356,7 @@ void main_driver(const char* argv)
     else {
         AverageCCToEdge(eta,eta_ed,0,1,SPEC_BC_COMP,geom);
     }
-
+    
     // now that we have eta, we can initialize the inhomogeneous velocity bc's
     // set inhomogeneous velocity bc's to values supplied in inhomogeneous_bc_val
     //
@@ -359,7 +368,8 @@ void main_driver(const char* argv)
         // set normal velocity of physical domain boundaries
         MultiFabPhysBCDomainVel(umac[i],geom,i);
         // set transverse velocity behind physical boundaries
-        MultiFabPhysBCMacVel(umac[i],geom,i);
+        int is_inhomogeneous = 1;
+        MultiFabPhysBCMacVel(umac[i],geom,i,is_inhomogeneous);
         // fill periodic and interior ghost cells
         umac[i].FillBoundary(geom.periodicity());
         // protect against roundoff issues and sync up
@@ -377,7 +387,8 @@ void main_driver(const char* argv)
                 // set normal velocity of physical domain boundaries
                 MultiFabPhysBCDomainVel(umac[i],geom,i);
                 // set transverse velocity behind physical boundaries
-                MultiFabPhysBCMacVel(umac[i],geom,i);
+                int is_inhomogeneous = 1;
+                MultiFabPhysBCMacVel(umac[i],geom,i,is_inhomogeneous);
                 // fill periodic and interior ghost cells
                 umac[i].FillBoundary(geom.periodicity());
             }
@@ -465,7 +476,7 @@ void main_driver(const char* argv)
       From this perspective it may be useful to keep initial_projection even in overdamped
       because different gmres tolerances may be needed in the first step than in the rest
     */
-    if (algorithm_type != 2 && algorithm_type != 6) {
+    if (algorithm_type != 2) {
         InitialProjection(umac,rho_old,rhotot_old,diff_mass_fluxdiv,stoch_mass_fluxdiv,
                           stoch_mass_flux,sMassFlux,Temp,eta,eta_ed,dt,time,geom,
                           charge_old,grad_Epot_old,Epot,permittivity);
@@ -518,6 +529,7 @@ void main_driver(const char* argv)
         */
 
     }
+    
 
     // Time stepping loop
     for(int istep=init_step; istep<=max_step; ++istep) {

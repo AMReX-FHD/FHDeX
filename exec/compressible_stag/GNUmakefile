@@ -5,12 +5,15 @@ AMREX_HOME ?= ../../../amrex/
 DEBUG         = FALSE
 USE_MPI       = TRUE
 USE_OMP       = FALSE
-USE_CUDA      = TRUE
+USE_CUDA      = FALSE
+USE_HIP       = FALSE
 COMP          = gnu
 DIM           = 3
 TINY_PROFILE  = FALSE
+MAX_SPEC      = 8
 
 USE_PARTICLES = FALSE
+DO_TURB 	  = FALSE
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
@@ -28,6 +31,10 @@ INCLUDE_LOCATIONS += ../../src_compressible/
 include ../../src_chemistry/Make.package
 VPATH_LOCATIONS   += ../../src_chemistry/
 INCLUDE_LOCATIONS += ../../src_chemistry/
+
+include ../../src_MFsurfchem/Make.package
+VPATH_LOCATIONS   += ../../src_MFsurfchem/
+INCLUDE_LOCATIONS += ../../src_MFsurfchem/
 
 include ../../src_rng/Make.package
 VPATH_LOCATIONS   += ../../src_rng/
@@ -52,6 +59,18 @@ endif
 
 ifeq ($(USE_CUDA),TRUE)
   LIBRARIES += -lcufft
+else ifeq ($(USE_HIP),TRUE)
+  # Use rocFFT.  ROC_PATH is defined in amrex
+  INCLUDE_LOCATIONS += $(ROC_PATH)/rocfft/include
+  LIBRARY_LOCATIONS += $(ROC_PATH)/rocfft/lib
+  LIBRARIES += -L$(ROC_PATH)/rocfft/lib -lrocfft
 else
   LIBRARIES += -L$(FFTW_DIR) -lfftw3_mpi -lfftw3
 endif
+
+ifeq ($(DO_TURB), TRUE)
+  DEFINES += -DTURB
+endif
+
+MAXSPECIES := $(strip $(MAX_SPEC))
+DEFINES += -DMAX_SPECIES=$(MAXSPECIES)

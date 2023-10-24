@@ -23,7 +23,7 @@ void writePlotFile(const MultiFab& mfcuInst,
     BL_PROFILE_VAR("writePlotFile()",writePlotFile);
 
     int ncon    = (nspecies+1)*5;
-    int nprim   = (nspecies+1)*9;
+    int nprim   = (nspecies+1)*10;
     int ncovar  = 25;
     int nvars   = ncovar + ncon + nprim + ncross; // covariances + prim. vars + cons. vars
 
@@ -109,6 +109,7 @@ void writePlotFile(const MultiFab& mfcuInst,
     primNames[cnt++] = "TInstant";
     primNames[cnt++] = "PInstant";
     primNames[cnt++] = "EInstant";
+    primNames[cnt++] = "cInstant";
 
     for(int ispec=0;ispec<nspecies;ispec++) {
       primNames[cnt++] = amrex::Concatenate("nInstant_",ispec,2);
@@ -120,6 +121,7 @@ void writePlotFile(const MultiFab& mfcuInst,
       primNames[cnt++] = amrex::Concatenate("TInstant_",ispec,2);
       primNames[cnt++] = amrex::Concatenate("PInstant_",ispec,2);
       primNames[cnt++] = amrex::Concatenate("EInstant_",ispec,2);
+      primNames[cnt++] = amrex::Concatenate("cInstant_",ispec,2);
     }
     MultiFab::Copy(mfprimplt, mfprimInst, 0, nprim*0, nprim, 0);
 
@@ -133,6 +135,7 @@ void writePlotFile(const MultiFab& mfcuInst,
     primNames[cnt++] = "TMean";
     primNames[cnt++] = "PMean";
     primNames[cnt++] = "EMean";
+    primNames[cnt++] = "cMean";
 
     for(int ispec=0;ispec<nspecies;ispec++) {
       primNames[cnt++] = amrex::Concatenate("nMean_",ispec,2);
@@ -144,6 +147,7 @@ void writePlotFile(const MultiFab& mfcuInst,
       primNames[cnt++] = amrex::Concatenate("TMean_",ispec,2);
       primNames[cnt++] = amrex::Concatenate("PMean_",ispec,2);
       primNames[cnt++] = amrex::Concatenate("EMean_",ispec,2);
+      primNames[cnt++] = amrex::Concatenate("cMean_",ispec,2);
     }
     MultiFab::Copy(mfprimplt, mfprimMeans, 0, nprim*1, nprim, 0);
     WriteSingleLevelPlotfile(pltprim, mfprimplt, primNames, geom, time, step);
@@ -174,7 +178,7 @@ void writePlotFile(const MultiFab& mfcuInst,
 
     // Primitive Variances
     varNames[cnt++] = "nVar";
-    varNames[cnt++] = "rhoVar";
+    varNames[cnt++] = "rhoVarP";
     varNames[cnt++] = "uVar";
     varNames[cnt++] = "vVar";
     varNames[cnt++] = "wVar";
@@ -182,10 +186,11 @@ void writePlotFile(const MultiFab& mfcuInst,
     varNames[cnt++] = "TVar";
     varNames[cnt++] = "PVar";
     varNames[cnt++] = "EVar";
+    varNames[cnt++] = "cVar";
 
     for(int ispec=0;ispec<nspecies;ispec++) {
       varNames[cnt++] = amrex::Concatenate("nVar_",ispec,2);
-      varNames[cnt++] = amrex::Concatenate("rhoVar_",ispec,2);
+      varNames[cnt++] = amrex::Concatenate("rhoVarP_",ispec,2);
       varNames[cnt++] = amrex::Concatenate("uVar_",ispec,2);
       varNames[cnt++] = amrex::Concatenate("vVar_",ispec,2);
       varNames[cnt++] = amrex::Concatenate("wVar_",ispec,2);
@@ -193,6 +198,7 @@ void writePlotFile(const MultiFab& mfcuInst,
       varNames[cnt++] = amrex::Concatenate("TVar_",ispec,2);
       varNames[cnt++] = amrex::Concatenate("PVar_",ispec,2);
       varNames[cnt++] = amrex::Concatenate("EVar_",ispec,2);
+      varNames[cnt++] = amrex::Concatenate("cVar_",ispec,2);
     }
     MultiFab::Copy(mfvarplt, mfprimVars, 0, istart, nprim, 0);
     istart += nprim;
@@ -208,17 +214,17 @@ void writePlotFile(const MultiFab& mfcuInst,
     varNames[cnt++] = "Jy.Jz";
     varNames[cnt++] = "Jy.K";
     varNames[cnt++] = "Jz.K";
-    varNames[cnt++] = "rho.G";
-    varNames[cnt++] = "Jx.G";
-    varNames[cnt++] = "Jy.G";
-    varNames[cnt++] = "Jz.G";
-    varNames[cnt++] = "K.G";
+    varNames[cnt++] = "rho0.Jx0";
+    varNames[cnt++] = "rho1.Jx1";
+    varNames[cnt++] = "rho0.Jx1";
+    varNames[cnt++] = "rho0.u0";
+    varNames[cnt++] = "rho1.u1";
     varNames[cnt++] = "rho.u";
     varNames[cnt++] = "rho.v";
-    varNames[cnt++] = "rho.w";
-    varNames[cnt++] = "u.v";
-    varNames[cnt++] = "u.w";
-    varNames[cnt++] = "v.w";
+    varNames[cnt++] = "rho0.u";
+    varNames[cnt++] = "rho0.v";
+    varNames[cnt++] = "rho0.Jx";
+    varNames[cnt++] = "rho1.Jx";
     varNames[cnt++] = "rho.T";
     varNames[cnt++] = "u.T";
     varNames[cnt++] = "v.T";
@@ -234,14 +240,14 @@ void writePlotFile(const MultiFab& mfcuInst,
     varNames[cnt++] = "Jy*.Jy";
     varNames[cnt++] = "Jz*.Jz";
     varNames[cnt++] = "Jx*.rho";
-    varNames[cnt++] = "Jy*.rho";
-    varNames[cnt++] = "Jz*.rho";
-    varNames[cnt++] = "K*.rho";
-    varNames[cnt++] = "rho*.Jx";
-    varNames[cnt++] = "Jy*.Jx";
-    varNames[cnt++] = "Jz*.Jx";
-    varNames[cnt++] = "K*.Jx";
-    varNames[cnt++] = "rho*.Jy";
+    varNames[cnt++] = "Jx*.rho_00";
+    varNames[cnt++] = "Jx_00*.rho_00";
+    varNames[cnt++] = "Jx*.rho_01";
+    varNames[cnt++] = "Jx_01*.rho_01";
+    varNames[cnt++] = "Jx_00*.rho_01";
+    varNames[cnt++] = "Jx_01*.rho_00";
+    varNames[cnt++] = "Jx_00*.rho";
+    varNames[cnt++] = "Jx_01*.rho";
     varNames[cnt++] = "Jx*.Jy";
     varNames[cnt++] = "Jz*.Jy";
     varNames[cnt++] = "K*.Jy";   
@@ -266,13 +272,29 @@ void writePlotFile(const MultiFab& mfcuInst,
     varNames[cnt++] = "T*.rho";
     varNames[cnt++] = "u*.rho";
     varNames[cnt++] = "T*.u";
-    varNames[cnt++] = "rho0*.rho0";
-    if(nspecies > 1)
-    {    
-        varNames[cnt++] = "rho1*.rho1";
-        varNames[cnt++] = "rho1*.rho0";
-        varNames[cnt++] = "rho0*.rho1";
-    }
+//    for(int i=0;i<nspecies;i++)
+//    {
+//        for(int j=0;j<nspecies;j++)
+//        {
+//               std::string a = amrex::Concatenate("rho_",i,2);
+//               std::string b = amrex::Concatenate("*.rho_",j,2);
+//               varNames[cnt++] = a+b;
+//        }
+//    }
+
+    varNames[cnt++] = "rho_00*.rho_00";
+    //varNames[cnt++] = "rho_01*.rho_00";
+    //varNames[cnt++] = "rho_00*.rho_01";
+    varNames[cnt++] = "rho_01*.rho_01";
+    varNames[cnt++] = "ux_00*.rho_00";
+    varNames[cnt++] = "ux*.rho_00";
+    varNames[cnt++] = "rho_01*.rho_00";
+    varNames[cnt++] = "ux*.rho_01";
+//    for(int i=0;i<nspecies;i++)
+//    {
+//        varNames[cnt++] = amrex::Concatenate("u*.rho_",i,2);
+//        
+//    }
 
     //WriteHorizontalAverage(mfspatialCorr1d,mfcrossav,0,ncross);
     MultiFab::Copy(mfvarplt, mfspatialCorr1d, 0, istart, ncross, 0);

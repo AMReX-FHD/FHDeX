@@ -1,0 +1,5 @@
+copy SPPARKS_MUI under exec/compressible_mui
+--> cp -R ../../compressible_stag_mui/SPPARKS_MUI/* .
+
+compile SPPARKS with mui option
+--> make -j8 mui

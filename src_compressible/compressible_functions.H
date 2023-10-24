@@ -18,7 +18,7 @@ void InitializeCompressibleNamespace();
 void GetHcGas();
 
 void InitConsVar(MultiFab& cons,
-                 const amrex::Geometry geom);
+                 const amrex::Geometry& geom);
 
 void calculateFlux(const MultiFab& cons, const MultiFab& prim,
                    const MultiFab& eta, const MultiFab& zeta, const MultiFab& kappa,
@@ -30,7 +30,7 @@ void calculateFlux(const MultiFab& cons, const MultiFab& prim,
                    std::array<MultiFab, AMREX_SPACEDIM>& cornz,
                    MultiFab& visccorn,
                    MultiFab& rancorn,
-                   const Geometry geom,
+                   const Geometry& geom,
 		   const Vector< Real >& stoch_weights,
 	           const Real dt);
 
@@ -48,7 +48,7 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
              std::array<MultiFab, AMREX_SPACEDIM>& corny,
              std::array<MultiFab, AMREX_SPACEDIM>& cornz,
              MultiFab& visccorn, MultiFab& rancorn, MultiFab& ranchem,
-             const Geometry geom, const Real dt);
+             const Geometry& geom, const Real dt);
 
 void conservedToPrimitive(MultiFab& prim_in, const MultiFab& cons_in);
 
@@ -64,13 +64,13 @@ void SetupCWall();
 void setBC(MultiFab& prim, MultiFab& cons);
 
 void BCWallSpeciesFlux(std::array< MultiFab, AMREX_SPACEDIM >& flux,
-                       const amrex::Geometry geom);
+                       const amrex::Geometry& geom);
 
 void StochFlux(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in,
-               const amrex::Geometry geom);
+               const amrex::Geometry& geom);
 
 void MembraneFlux(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in,
-                  const amrex::Geometry geom);
+                  const amrex::Geometry& geom);
 /////////////////////////////////////
 
 void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
@@ -79,11 +79,11 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
                    const int steps, const Real* dx);
 
 void doMembrane(MultiFab& cons, MultiFab& prim, std::array<MultiFab, AMREX_SPACEDIM>& flux,
-                const Geometry geom, const Real* dx, const Real dt);
+                const Geometry& geom, const Real* dx, const Real dt);
 
 void WritePlotFile(int step,
                    const Real time,
-                   const Geometry geom,
+                   const Geometry& geom,
 	           const MultiFab& cu,
 	           const MultiFab& cuMeans,
 	           const MultiFab& cuVars,
@@ -108,7 +108,7 @@ void yzAverage(const MultiFab& consMean,
 void WriteCheckPoint(int step,
                      const Real time,
                      int statsCount,
-                     const Geometry geom,
+                     const Geometry& geom,
                      const MultiFab& cu,
                      const MultiFab& cuMeans,
                      const MultiFab& cuVars,
@@ -123,7 +123,7 @@ void WriteCheckPoint(int step,
 void ReadCheckPoint(int& step,
                      Real& time,
                      int& statsCount,
-                     Geometry geom,
+                     Geometry& geom,
                      MultiFab& cu,
                      MultiFab& cuMeans,
                      MultiFab& cuVars,
@@ -198,6 +198,25 @@ void GetPressureGas ( Real& pressure,
     pressure = density*(Runiv/molmix)*temp;
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void GetSoundSpeed (Real& c, 
+                    const GpuArray<Real,MAX_SPECIES>& Yk,
+                    Real const temp)
+{
+    Real molmix = 0.;
+    Real cvmix = 0.;
+    Real cpmix = 0.;
+
+    for (int n=0; n<nspecies; ++n) {
+        molmix += Yk[n]/molmass[n];
+        cvmix += Yk[n]*hcv[n];
+        cpmix += Yk[n]*hcp[n];
+    }
+    molmix = 1./molmix;
+    Real gamma = cpmix/cvmix;
+
+    c = sqrt(gamma*(Runiv/molmix)*temp);
+}
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void Decomp ( int const neq,
@@ -229,7 +248,7 @@ void Decomp ( int const neq,
         ip[k-1]=ip[i];
         ip[i]=j;
         if (apm < eps) {
-            std::printf("%e",a[(ip[neq-1]-1)*nspecies+neq-1]);
+           // std::printf("%e",a[(ip[neq-1]-1)*nspecies+neq-1]);
             Abort("singular matrix in decomp");
         }
         for (l=ip1-1; l<neq; ++l) {
@@ -243,7 +262,7 @@ void Decomp ( int const neq,
         }
     }
     if(std::abs(a[(ip[neq-1]-1)*nspecies+neq-1]) < eps) {
-            std::printf("%e",a[(ip[neq-1]-1)*nspecies+neq-1]);
+            //std::printf("%e",a[(ip[neq-1]-1)*nspecies+neq-1]);
             Abort("singular matrix in decomp");
     }
 }
@@ -278,7 +297,7 @@ void Decomp2 ( int const neq,
         ip[k-1]=ip[i];
         ip[i]=j;
         if (apm < eps) {
-            std::printf("%e",a[(ip[neq-1]-1)*2*nspecies+neq-1]);
+            //std::printf("%e",a[(ip[neq-1]-1)*2*nspecies+neq-1]);
             Abort("singular matrix in decomp");
         }
         for (l=ip1-1; l<neq; ++l) {
@@ -292,7 +311,7 @@ void Decomp2 ( int const neq,
         }
     }
     if(std::abs(a[(ip[neq-1]-1)*2*nspecies+neq-1]) < eps) {
-            std::printf("%e",a[(ip[neq-1]-1)*2*nspecies+neq-1]);
+            //std::printf("%e",a[(ip[neq-1]-1)*2*nspecies+neq-1]);
             Abort("singular matrix in decomp");
     }
             
@@ -407,7 +426,7 @@ void Decompnp ( int const neq,
         }
     }
     if (std::abs(a[(neq-1)*ndim+neq-1])<eps) {
-        std::printf("%e",a[(neq-1)*ndim+neq-1]);
+        //std::printf("%e",a[(neq-1)*ndim+neq-1]);
         Abort("singular matrix in decomp");
     }            
 }
@@ -894,7 +913,7 @@ void LambdaLin ( const GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& Dbin,
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void ThermalDiff ( int iloc, int jloc, int kloc,
-                   const GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& sigma11,
+                   const GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& /*sigma11*/,
                    const GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& a_ij1,
                    const GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& a_ij2,
                    const GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& alphabar,
@@ -1031,7 +1050,7 @@ void IdealMixtureTransportVW ( int iloc, int jloc, int kloc,
                                Real const density,
                                Real const temperature,
                                Real const pressure,
-                               const GpuArray<Real,MAX_SPECIES>& Yk,
+                               const GpuArray<Real,MAX_SPECIES>& /*Yk*/,
                                const GpuArray<Real,MAX_SPECIES>& Xk,
                                Real& eta,
                                Real& kappa,
@@ -1134,7 +1153,7 @@ void IdealMixtureTransportVW ( int iloc, int jloc, int kloc,
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 // Transport Coefficients from Giovangigli
 void IdealMixtureTransportGIO (int iloc, int jloc, int kloc,
-                               Real const density,
+                               Real const /*density*/,
                                Real const temperature,
                                Real const pressure,
                                const GpuArray<Real,MAX_SPECIES>& Yk,
@@ -1338,8 +1357,8 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void IdealMixtureTransportHCBBin ( int iloc, int jloc, int kloc,
                                    Real const density,
                                    Real const temperature,
-                                   Real const pressure,
-                                   const GpuArray<Real,MAX_SPECIES>& Yk,
+                                   Real const /*pressure*/,
+                                   const GpuArray<Real,MAX_SPECIES>& /*Yk*/,
                                    const GpuArray<Real,MAX_SPECIES>& Xk,
                                    Real& eta,
                                    Real& kappa,
@@ -1439,7 +1458,7 @@ void IdealMixtureTransportHCBBin ( int iloc, int jloc, int kloc,
     Real thermal_diff = 1.299*conc*onc*(S1*conc - S0*onc)/(6.0*kappax*(Xkappa + Ykappa));
 
     // Barodiffusion
-    Real baro_diff    = (m0 - m1)*yytr[1]*yytr[0]*(yytr[0]/m0 + yytr[1]/m1);
+    // Real baro_diff    = (m0 - m1)*yytr[1]*yytr[0]*(yytr[0]/m0 + yytr[1]/m1);
 
     // Fill the Diffusion Matrix
     Real mR = m0/m1;

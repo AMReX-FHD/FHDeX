@@ -1,0 +1,51 @@
+
+
+  # Problem specification
+  prob_lo = 0.       0.       # physical lo coordinate
+  prob_hi = 13.04e-9 13.04e-9 # physical hi coordinate
+  
+  # number of cells in domain
+  n_cells = 32 32
+  # max number of cells in a box
+  max_grid_size = 16 16
+
+  # algorithm_type = 0 (1D in x; each row is an independent trial)
+  # algorithm_type = 1 (1D in y; each col is an independent trial)
+  # algorithm_type = 2 (2D)
+  algorithm_type = 2
+
+  # time step
+  cfl = 0.1
+
+  # Controls for number of steps between actions
+  max_step = 100000000
+  plot_int = 1000000
+
+  n_steps_skip = 1000000
+  do_fft_diag = 0
+
+  # Stochastic parameters
+  seed = 1
+  variance_coef_mass = 1.
+
+  k_B = 1.38e-23   # Boltzmann's constant [units: J/K]
+  T_init = 85.     # [units: K]
+
+  visc_coef = 2.44e-4       # dynamic viscosity [units: kg/m s]
+  thinfilm_gamma = 1.52e-2  # surface tension [N/m]
+  thinfilm_h0   = 4.85e-9   # equilibrium height [m]
+
+  # correlation coordinates
+  thinfilm_icorr = 8
+  thinfilm_jcorr = 8
+
+  # Boundary conditions
+  # ----------------------
+  # BC specifications:
+
+  # -1 = periodic
+  #  0 = 90 degree contact angle, dh/dn=0
+  #  1 = pinned, h=h0
+  # note for 1D, the non-periodic direction bc doesn't matter
+  bc_mass_lo = -1 -1
+  bc_mass_hi = -1 -1

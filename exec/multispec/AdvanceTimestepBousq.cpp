@@ -55,6 +55,7 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     // For BDS we need to project edge states onto constraints
     // int proj_type = (use_charged_fluid && electroneutral) ? 4 : 3;
+    int proj_type = 3;
     
     Real theta_alpha = 1./dt;
 
@@ -121,7 +122,7 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         }
     }
     
-    if (use_multiphase) {
+    if (use_multiphase || use_flory_huggins) {
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             div_reversible_stress[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 0);
         }
@@ -132,6 +133,11 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         MultiFab::Copy(umac_old[d],umac[d],0,0,1,1);
     }
 
+    // bds-specific MultiFabs
+    MultiFab rho_update;
+    MultiFab bds_force;
+    std::array< MultiFab, AMREX_SPACEDIM > umac_tmp;      
+    
     //////////////////////////////////////////////
     // Step 1: solve for v^{n+1,*} and pi^{n+1/2,*} using GMRES
     //////////////////////////////////////////////
@@ -223,6 +229,15 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             MultiFab::Saxpy(gmres_rhs_v[d],1.,div_reversible_stress[d],0,0,1,0);
         }
+    } else if (use_flory_huggins ==1){
+
+        // compute reversible stress tensor ---added term
+        ComputeDivFHReversibleStress(div_reversible_stress,rhotot_old,rho_old,geom);
+
+        // add divergence of reversible stress to gmres_rhs_v
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            MultiFab::Saxpy(gmres_rhs_v[d],1.,div_reversible_stress[d],0,0,1,0);
+        }
 
     }
 
@@ -258,7 +273,8 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         // set normal velocity of physical domain boundaries
         MultiFabPhysBCDomainVel(umac[i],geom,i);
         // set transverse velocity behind physical boundaries
-        MultiFabPhysBCMacVel(umac[i],geom,i);
+        int is_inhomogeneous = 1;
+        MultiFabPhysBCMacVel(umac[i],geom,i,is_inhomogeneous);
         // fill periodic and interior ghost cells
         umac[i].FillBoundary(geom.periodicity());
     }
@@ -329,7 +345,8 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         // set normal velocity of physical domain boundaries
         MultiFabPhysBCDomainVel(umac[i],geom,i);
         // set transverse velocity behind physical boundaries
-        MultiFabPhysBCMacVel(umac[i],geom,i);
+        int is_inhomogeneous = 1;
+        MultiFabPhysBCMacVel(umac[i],geom,i,is_inhomogeneous);
         // fill periodic and interior ghost cells
         umac[i].FillBoundary(geom.periodicity());
     }
@@ -352,28 +369,61 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     end if
     */
 
-    if (advection_type >= 1) {
+    if (advection_type == 1 || advection_type == 2) {
 
-        Abort("AdvanceTimestepBousq.cpp advection_type >= 1 not supported");
+      // bds advection
+      rho_update.define(ba,dmap,nspecies,0);
+      bds_force.define(ba,dmap,nspecies,1);
+      for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        umac_tmp[d].define(convert(ba,nodal_flag_dir[d]),dmap,1,1);
+      }
 
-    } else {
+      for (int d=0; d<AMREX_SPACEDIM; ++d ) {
+	// create average of umac^n and umac^{n+1,*}
+	umac_tmp[d].setVal(0.,0,1,1);
+	MultiFab::Saxpy(umac_tmp[d],0.5,umac_old[d],0,0,1,1);
+	MultiFab::Saxpy(umac_tmp[d],0.5,umac    [d],0,0,1,1);
+      }
+
+      // add the diff/stoch/react terms to rho_update
+      MultiFab::Copy(rho_update,diff_mass_fluxdiv,0,0,nspecies,0);
+      if (variance_coef_mass != 0.){
+	MultiFab::Add(rho_update,stoch_mass_fluxdiv,0,0,nspecies,0);
+      }
+      /*
+      if (nreactions > 0) {
+	// call multifab_plus_plus_c(rho_update(n),1,chem_rate(n),1,nspecies,0)
+      }
+      */
+
+      // set to zero to make sure ghost cells behind physical boundaries don't have NaNs
+      bds_force.setVal(0,0,1,1);
+      MultiFab::Copy(bds_force,rho_update,0,0,nspecies,0);
+      bds_force.FillBoundary(geom.periodicity());
+
+      // bds increments rho_update with the advection term
+      BDS(rho_update, nspecies, SPEC_BC_COMP, rho_old, umac_tmp, bds_force, geom, 0.5*dt, proj_type);
+      
+    } else if (advection_type == 0) {
 
         // compute adv_mass_fluxdiv = -rho_i^n * v^n and then
         // increment adv_mass_fluxdiv by -rho_i^n * v^{n+1,*}
         MkAdvSFluxdiv(umac_old,rho_fc,adv_mass_fluxdiv,geom,0,nspecies,false);
         MkAdvSFluxdiv(umac    ,rho_fc,adv_mass_fluxdiv,geom,0,nspecies,true);
+    } else {      
+
+      Abort("Invalid advection_type");
+
     }
 
     //////////////////////////////////////////////
     /// Step 3: density prediction to t^{n+1/2}
     //////////////////////////////////////////////
 
-    if (advection_type >= 1) {
-        /*
-        do n=1,nlevs
-          call multifab_saxpy_4(rho_new(n),rho_old(n),0.5d0*dt,rho_update(n))
-        end do
-        */
+    if (advection_type == 1 || advection_type == 2) {
+
+        MultiFab::LinComb(rho_new,1.,rho_old,0,0.5*dt,rho_update,0,0,nspecies,0);
+ 
     } else {
 
         // compute rho_i^{n+1/2} (store in rho_new)
@@ -411,8 +461,12 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     }
 
     // compute (eta,kappa)^{n+1/2}
-    if (mixture_type != 0) {
-        Abort("AdvanceTimestepBousq mixture_type != 0");
+    ComputeEta(rho_new, rhotot_new, eta);
+    if (AMREX_SPACEDIM == 2) {
+        AverageCCToNode(eta,eta_ed[0],0,1,SPEC_BC_COMP,geom);
+    }
+    else {
+        AverageCCToEdge(eta,eta_ed,0,1,SPEC_BC_COMP,geom);
     }
 
     //////////////////////////////////////////////
@@ -468,6 +522,11 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         // compute reversible stress tensor ---added term (will add to gmres_rhs_v later)
         ComputeDivReversibleStress(div_reversible_stress,rhotot_new,rho_new,geom);
 
+    } else if (use_flory_huggins ==1){
+
+        // compute reversible stress tensor ---added term
+          ComputeDivFHReversibleStress(div_reversible_stress,rhotot_new,rho_new,geom);
+
     }
 
     if (use_charged_fluid) {
@@ -484,9 +543,26 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     end if
     */
 
-    if (advection_type >= 1) {
+    if (advection_type == 1 || advection_type == 2) {
 
-    } else {
+      // add the diff/stoch/react terms to rho_update
+      MultiFab::Copy(rho_update,diff_mass_fluxdiv,0,0,nspecies,0);
+      if (variance_coef_mass != 0.) {
+	MultiFab::Add(rho_update,stoch_mass_fluxdiv,0,0,nspecies,0);
+      }
+      /*
+      if (nreactions > 0) {
+	call multifab_plus_plus_c(rho_update(n),1,chem_rate(n),1,nspecies,0)
+      }
+      */
+
+      bds_force.setVal(0,0,1,1);
+      MultiFab::Copy(bds_force,rho_update,0,0,nspecies,0);
+      bds_force.FillBoundary(geom.periodicity());
+      
+      BDS(rho_update, nspecies, SPEC_BC_COMP, rho_old, umac_tmp, bds_force, geom, dt, proj_type);
+							       
+    } else if (advection_type == 0) {
         // compute adv_mass_fluxdiv = -rho_i^{n+1/2} * v^n and
         // increment adv_mass_fluxdiv by -rho_i^{n+1/2} * v^{n+1,*}
         MkAdvSFluxdiv(umac_old,rho_fc,adv_mass_fluxdiv,geom,0,nspecies,false);
@@ -497,14 +573,10 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // Step 5: density integration to t^{n+1}
     //////////////////////////////////////////////
 
-    if (advection_type >= 1) {
+    if (advection_type == 1 || advection_type == 2) {
 
-        /*
-        do n=1,nlevs
-           call multifab_saxpy_4(rho_new(n),rho_old(n),dt,rho_update(n))
-        end do
-        */
-
+        MultiFab::LinComb(rho_new,1.,rho_old,0,0.5*dt,rho_update,0,0,nspecies,0);
+ 
     } else {
 
         // compute rho_i^{n+1}
@@ -544,12 +616,14 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
             Abort("AdvanceTimestepInertial dielectric_type != 0");
         }
     }
-
-    /*
-    // compute (eta,kappa)^{n+1}
-    call compute_eta_kappa(mla,eta,eta_ed,kappa,rho_new,rhotot_new,Temp,dx, &
-                           the_bc_tower%bc_tower_array)
-    */
+    
+    ComputeEta(rho_new, rhotot_new, eta);
+    if (AMREX_SPACEDIM == 2) {
+        AverageCCToNode(eta,eta_ed[0],0,1,SPEC_BC_COMP,geom);
+    }
+    else {
+        AverageCCToEdge(eta,eta_ed,0,1,SPEC_BC_COMP,geom);
+    }
 
     //////////////////////////////////////////////
     // Step 6: solve for v^{n+1} and pi^{n+1/2} using GMRES
@@ -602,7 +676,7 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         // call mk_grav_force_bousq(mla,gmres_rhs_v,.true.,rho_fc,the_bc_tower)
     }
 
-    if (use_multiphase) {
+    if (use_multiphase || use_flory_huggins) {
         // add divergence of reversible stress to gmres_rhs_v
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             MultiFab::Saxpy(gmres_rhs_v[d],1.,div_reversible_stress[d],0,0,1,0);
@@ -633,7 +707,8 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         // set normal velocity of physical domain boundaries
         MultiFabPhysBCDomainVel(umac[i],geom,i);
         // set transverse velocity behind physical boundaries
-        MultiFabPhysBCMacVel(umac[i],geom,i);
+        int is_inhomogeneous = 1;
+        MultiFabPhysBCMacVel(umac[i],geom,i,is_inhomogeneous);
         // fill periodic and interior ghost cells
         umac[i].FillBoundary(geom.periodicity());
     }
@@ -695,7 +770,8 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         // set normal velocity of physical domain boundaries
         MultiFabPhysBCDomainVel(umac[i],geom,i);
         // set transverse velocity behind physical boundaries
-        MultiFabPhysBCMacVel(umac[i],geom,i);
+        int is_inhomogeneous = 1;
+        MultiFabPhysBCMacVel(umac[i],geom,i,is_inhomogeneous);
         // fill periodic and interior ghost cells
         umac[i].FillBoundary(geom.periodicity());
     }

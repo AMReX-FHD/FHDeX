@@ -89,7 +89,8 @@ void advanceStokes(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     for (int i=0; i<AMREX_SPACEDIM; i++) {
         MultiFabPhysBCDomainVel(umac[i], geom, i);
-        MultiFabPhysBCMacVel(umac[i], geom, i);
+        int is_inhomogeneous = 1;
+        MultiFabPhysBCMacVel(umac[i], geom, i, is_inhomogeneous);
         umac[i].FillBoundary(geom.periodicity());
     }
 }
@@ -225,7 +226,10 @@ void advanceLowMach(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
   ///////////////////////////////////////////
 
   for (int d=0; d<AMREX_SPACEDIM; ++d) {
-    umac[d].FillBoundary(geom.periodicity());
+      MultiFabPhysBCDomainVel(umac[d], geom, d);
+      int is_inhomogeneous = 1;
+      MultiFabPhysBCMacVel(umac[d], geom, d, is_inhomogeneous);
+      umac[d].FillBoundary(geom.periodicity());
   }
 
   //////////////////////////
@@ -268,7 +272,10 @@ void advanceLowMach(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
   }
 
   for (int d=0; d<AMREX_SPACEDIM; d++) {
-    uMom[d].FillBoundary(geom.periodicity());
+      MultiFabPhysBCDomainVel(uMom[d], geom, d);
+      int is_inhomogeneous = 1;
+      MultiFabPhysBCMacVel(uMom[d], geom, d, is_inhomogeneous);
+      uMom[d].FillBoundary(geom.periodicity());
   }
 
   MkAdvMFluxdiv(umac,uMom,advFluxdiv,dx,0);
@@ -309,6 +316,9 @@ void advanceLowMach(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // let rho = 1
     uMom[d].mult(1.0, 1);
 
+    MultiFabPhysBCDomainVel(uMom[d], geom, d);
+    int is_inhomogeneous = 1;
+    MultiFabPhysBCMacVel(uMom[d], geom, d, is_inhomogeneous);
     uMom[d].FillBoundary(geom.periodicity());
   }
 

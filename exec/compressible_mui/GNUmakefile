@@ -1,7 +1,7 @@
 # AMREX_HOME defines the directory in which we will find all the AMReX code.
 # If you set AMREX_HOME as an environment variable, this line will be ignored
 AMREX_HOME ?= ../../../amrex/
-MUI_HOME ?= MUI/
+MUI_HOME ?= ../../src_mui/
 
 DEBUG         = FALSE
 USE_MPI       = TRUE
@@ -24,6 +24,10 @@ INCLUDE_LOCATIONS += ../../src_compressible/
 include ../../src_chemistry/Make.package
 VPATH_LOCATIONS   += ../../src_chemistry/
 INCLUDE_LOCATIONS += ../../src_chemistry/
+
+include ../../src_MFsurfchem/Make.package
+VPATH_LOCATIONS   += ../../src_MFsurfchem/
+INCLUDE_LOCATIONS += ../../src_MFsurfchem/
 
 include ../../src_surfchem_mui/Make.package
 VPATH_LOCATIONS   += ../../src_surfchem_mui/

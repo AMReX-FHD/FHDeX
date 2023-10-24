@@ -39,10 +39,6 @@ void InitialProjection(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     if (algorithm_type == 2) {
         Abort("InitialProjection.cpp: should not call initial_projection for overdamped scheme");
     }
-
-    if (algorithm_type == 6) {
-        Abort("InitialProjection.cpp: should not call initial_projection for Boussinesq algorithm 6");
-    }
     
     BoxArray ba = rho.boxArray();
     DistributionMapping dmap = rho.DistributionMap();
@@ -50,7 +46,7 @@ void InitialProjection(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     Real dt_eff;
     
     Vector<Real> weights;
-    if (algorithm_type == 5) {
+    if (algorithm_type == 5 || algorithm_type == 6) {
         weights = {1., 0.};
         // for midpoint scheme where predictor goes to t^{n+1/2}
         dt_eff = 0.5*dt;
@@ -92,13 +88,16 @@ void InitialProjection(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     //
     //
     //
-    
-    if (variance_coef_mass != 0.) {
+
+    // don't fill random numbers for Boussinesq (algorithm_type=6)
+    // since rhobars are equal the RHS of constraint is zero regardless
+    // by not filling we preserve the random number sequences for regression purposes
+    if (variance_coef_mass != 0. && algorithm_type != 6) {
         sMassFlux.fillMassStochastic();
     }
         
     ComputeMassFluxdiv(rho,rhotot,Temp,diff_mass_fluxdiv,stoch_mass_fluxdiv,
-                       diff_mass_flux,stoch_mass_flux,sMassFlux,dt,time,geom,weights,
+                       diff_mass_flux,stoch_mass_flux,sMassFlux,dt_eff,time,geom,weights,
                        charge_old,grad_Epot_old,Epot,permittivity);
 
     // assumble total fluxes to be used in reservoirs
@@ -173,7 +172,8 @@ void InitialProjection(std::array< MultiFab, AMREX_SPACEDIM >& umac,
             // set normal velocity of physical domain boundaries
             MultiFabPhysBCDomainVel(umac[i],geom,i);
             // set transverse velocity behind physical boundaries
-            MultiFabPhysBCMacVel(umac[i],geom,i);
+            int is_inhomogeneous = 1;
+            MultiFabPhysBCMacVel(umac[i],geom,i,is_inhomogeneous);
             // fill periodic and interior ghost cells
             umac[i].FillBoundary(geom.periodicity());
         }

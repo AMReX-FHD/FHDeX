@@ -9,9 +9,12 @@ USE_CUDA  = FALSE
 COMP      = gnu
 DIM       = 2
 DSMC      = FALSE
+MAX_SPEC      = 8
+# MAX_ELEM needs to be MAX_SPEC*(MAX_SPEC-1)/2
+MAX_ELEM      = 28
 
 TINY_PROFILE = TRUE
-USE_PARTICLES = TRUE
+USE_PARTICLES = FALSE
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
@@ -59,3 +62,10 @@ ifeq ($(USE_CUDA),TRUE)
 else
   LIBRARIES += -L$(FFTW_DIR) -lfftw3_mpi -lfftw3
 endif
+
+MAXSPECIES := $(strip $(MAX_SPEC))
+DEFINES += -DMAX_SPECIES=$(MAXSPECIES)
+
+MAXELEMENT := $(strip $(MAX_ELEM))
+DEFINES += -DMAX_ELEMENT=$(MAXELEMENT)
+
