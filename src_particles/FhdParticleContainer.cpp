@@ -986,6 +986,7 @@ void FhdParticleContainer::SpreadIonsGPU(const Real* dxFluid, const Real* dxE, c
                                       std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp)
 {
     BL_PROFILE_VAR("SpreadIons()",SpreadIons);
+    Print() << "Spread here!" << endl;
 
     const int lev = 0;
     const Real* dx = Geom(lev).CellSize();
@@ -2195,20 +2196,29 @@ FhdParticleContainer::fillMobilityMatrix(int id, int comp)
     
     int lev = 0;
 
-    Real velx[totalMarkers];
-    Real vely[totalMarkers];
-    Real velz[totalMarkers];
-    int  pinned[totalMarkers];
-    Real  forcex[totalMarkers];
-    Real  forcey[totalMarkers];
-    Real  forcez[totalMarkers];
+    //Real velx[totalMarkers];
+    //Real vely[totalMarkers];
+    //Real velz[totalMarkers];
+    //int  pinned[totalMarkers];
+    //Real  forcex[totalMarkers];
+    //Real  forcey[totalMarkers];
+    //Real  forcez[totalMarkers];
 
     int idMap[totalMarkers];
 
-    PullDown(0, velx, FHD_realData::velx, totalMarkers);
-    PullDown(0, vely, FHD_realData::vely, totalMarkers);
-    PullDown(0, velz, FHD_realData::velz, totalMarkers);
-    PullDownInt(0, pinned, FHD_intData::pinned, totalMarkers);
+    Gpu::ManagedVector<Real> velx(totalMarkers);
+    Gpu::ManagedVector<Real> vely(totalMarkers);
+    Gpu::ManagedVector<Real> velz(totalMarkers);
+    Gpu::ManagedVector<int>  pinned(totalMarkers);
+    Real* pvelx = velx.data();
+    Real* pvely = vely.data();
+    Real* pvelz = velz.data();
+    int* ppinned = pinned.data();
+
+    PullDown(0, pvelx, FHD_realData::velx, totalMarkers);
+    PullDown(0, pvely, FHD_realData::vely, totalMarkers);
+    PullDown(0, pvelz, FHD_realData::velz, totalMarkers);
+    PullDownInt(0, ppinned, FHD_intData::pinned, totalMarkers);
 
     for(FhdParIter pti(* this, lev); pti.isValid(); ++pti)
     {
@@ -2222,9 +2232,9 @@ FhdParticleContainer::fillMobilityMatrix(int id, int comp)
         {
             ParticleType & part = particles[i];
 
-            velx[part.id()-1] = part.rdata(FHD_realData::velx);
-            vely[part.id()-1] = part.rdata(FHD_realData::vely);
-            velz[part.id()-1] = part.rdata(FHD_realData::velz);
+            pvelx[part.id()-1] = part.rdata(FHD_realData::velx);
+            pvely[part.id()-1] = part.rdata(FHD_realData::vely);
+            pvelz[part.id()-1] = part.rdata(FHD_realData::velz);
 
         }
 //        );
@@ -2236,11 +2246,11 @@ FhdParticleContainer::fillMobilityMatrix(int id, int comp)
 
     for(int i=0;i<totalMarkers;i++)
     {
-        if(pinned[i] == 1)
+        if(ppinned[i] == 1)
         {
-            velpin[k] = velx[i];
-            velpin[k+1] = vely[i];
-            velpin[k+2] = velz[i];
+            velpin[k]   = pvelx[i];
+            velpin[k+1] = pvely[i];
+            velpin[k+2] = pvelz[i];
 
             k = k+3;
         }
@@ -2249,7 +2259,7 @@ FhdParticleContainer::fillMobilityMatrix(int id, int comp)
     k=1;
     for(int i=0;i<totalMarkers;i++)
     {
-        if(pinned[i] == 1)
+        if(ppinned[i] == 1)
         {
             idMap[i] = k;
             k++;

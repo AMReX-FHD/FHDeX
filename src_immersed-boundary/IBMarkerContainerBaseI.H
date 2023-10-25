@@ -444,18 +444,33 @@ template <typename StructReal, typename StructInt>
 void IBMarkerContainerBase<StructReal, StructInt>::pinnedParticleInversion() 
 {
    // Print() << "inv1, " << totalMarkers;
-    Real velx[totalMarkers];
-    Real vely[totalMarkers];
-    Real velz[totalMarkers];
-    int  pinned[totalMarkers];
-    Real  forcex[totalMarkers];
-    Real  forcey[totalMarkers];
-    Real  forcez[totalMarkers];
+    //Real velx[totalMarkers];
+    //Real vely[totalMarkers];
+    //Real velz[totalMarkers];
+    //int  pinned[totalMarkers];
+    //Real  forcex[totalMarkers];
+    //Real  forcey[totalMarkers];
+    //Real  forcez[totalMarkers];
 
-    PullDown(0, velx, StructReal::velx, totalMarkers);
-    PullDown(0, vely, StructReal::vely, totalMarkers);
-    PullDown(0, velz, StructReal::velz, totalMarkers);
-    PullDownInt(0, pinned, StructInt::pinned, totalMarkers);
+    Gpu::ManagedVector<Real> velx(totalMarkers);
+    Gpu::ManagedVector<Real> vely(totalMarkers);
+    Gpu::ManagedVector<Real> velz(totalMarkers);
+    Gpu::ManagedVector<int>  pinned(totalMarkers);
+    Gpu::ManagedVector<Real>  forcex(totalMarkers);
+    Gpu::ManagedVector<Real>  forcey(totalMarkers);
+    Gpu::ManagedVector<Real>  forcez(totalMarkers);
+    Real* pvelx = velx.data();
+    Real* pvely = vely.data();
+    Real* pvelz = velz.data();
+    int* ppinned = pinned.data();
+    Real* pforcex = forcex.data();
+    Real* pforcey = forcey.data();
+    Real* pforcez = forcez.data();
+
+    PullDown(0, pvelx, StructReal::velx, totalMarkers);
+    PullDown(0, pvely, StructReal::vely, totalMarkers);
+    PullDown(0, pvelz, StructReal::velz, totalMarkers);
+    PullDownInt(0, ppinned, StructInt::pinned, totalMarkers);
   //  Print() << "inv2\n";
     
     Real rhs[totalPinnedMarkers*3];
@@ -464,11 +479,11 @@ void IBMarkerContainerBase<StructReal, StructInt>::pinnedParticleInversion()
     Real rhsNorm = 0;
     for(int i=0;i<totalMarkers;i++)
     {
-        if(pinned[i] == 1)
+        if(ppinned[i] == 1)
         {
-            rhs[k] = -velx[i];
-            rhs[k+1] = -vely[i];
-            rhs[k+2] = -velz[i];
+            rhs[k]   = -pvelx[i];
+            rhs[k+1] = -pvely[i];
+            rhs[k+2] = -pvelz[i];
 
            // Print() << velx[i] << ", " << vely[i] << ", " << velz[i] << std::endl;
           //  Print() << rhs[k] << ", " << rhs[k+1] << ", " << rhs[k+2] << std::endl;
@@ -493,11 +508,11 @@ void IBMarkerContainerBase<StructReal, StructInt>::pinnedParticleInversion()
     k=0;
     for(int i=0;i<totalMarkers;i++)
     {
-        if(pinned[i] == 1)
+        if(ppinned[i] == 1)
         {
-            forcex[i] = lhs[k];
-            forcey[i] = lhs[k+1];
-            forcez[i] = lhs[k+2];
+            pforcex[i] = lhs[k];
+            pforcey[i] = lhs[k+1];
+            pforcez[i] = lhs[k+2];
 
             k = k+3;
 
@@ -522,9 +537,9 @@ void IBMarkerContainerBase<StructReal, StructInt>::pinnedParticleInversion()
                 ParticleType & part = particles[i];
                 if(part.idata(StructInt::pinned) == 1)
                 {
-                    part.rdata(StructReal::forcex) = forcex[part.id()-1];
-                    part.rdata(StructReal::forcey) = forcey[part.id()-1];
-                    part.rdata(StructReal::forcez) = forcez[part.id()-1];
+                    part.rdata(StructReal::forcex) = pforcex[part.id()-1];
+                    part.rdata(StructReal::forcey) = pforcey[part.id()-1];
+                    part.rdata(StructReal::forcez) = pforcez[part.id()-1];
 
                     //Print() << part.id() << ", " << part.rdata(StructReal::forcex) << ", " << part.rdata(StructReal::forcey) << ", " << part.rdata(StructReal::forcez) << std::endl;
                 }

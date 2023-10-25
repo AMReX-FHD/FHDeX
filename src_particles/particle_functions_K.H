@@ -961,7 +961,7 @@ void collect_charge_gpu (FhdParticleContainer::AoS& aos, FArrayBox& charge, F f,
     auto arr = charge.array();
     const IntVect nodal_flag = charge.box().type();
     
-    amrex::ParallelFor(Np, [=] AMREX_GPU_HOST_DEVICE (int ip) noexcept
+    amrex::ParallelFor(Np, [=] AMREX_GPU_DEVICE (int ip) noexcept
     {
         FhdParticleContainer::ParticleType& p = pstruct[ip];
 
@@ -1014,7 +1014,7 @@ void emf_gpu (FhdParticleContainer::AoS& aos, F f,
 
     constexpr int twoks = 2*F::ks;
        
-    amrex::ParallelFor(Np, [=] AMREX_GPU_HOST_DEVICE (int ip) noexcept
+    amrex::ParallelFor(Np, [=] AMREX_GPU_DEVICE (int ip) noexcept
     {
         FhdParticleContainer::ParticleType& p = pstruct[ip];
         //Print() << p.idata(FHD_intData::species) << "\n";
@@ -1086,7 +1086,7 @@ void spread_ions_fhd_gpu (FhdParticleContainer::AoS& aos, F f,
 
     constexpr int twoks = 2*F::ks;
        
-    amrex::ParallelFor(Np, [=] AMREX_GPU_HOST_DEVICE (int ip) noexcept
+    amrex::ParallelFor(Np, [=] AMREX_GPU_DEVICE (int ip) noexcept
     {
         FhdParticleContainer::ParticleType& p = pstruct[ip];
 

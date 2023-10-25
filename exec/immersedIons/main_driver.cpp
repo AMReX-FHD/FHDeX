@@ -884,7 +884,7 @@ void main_driver(const char* argv)
         for (MFIter mfi(beta_es[d]); mfi.isValid(); ++mfi) {
 	    auto& d_fab = beta_es[d][mfi];
 #ifdef AMREX_USE_GPU
-            FArrayBox h_fab(d_fab.box(), The_Pinned_Arena());
+            FArrayBox h_fab(d_fab.box(), 1, The_Pinned_Arena());
             auto const& h_data = h_fab.array();
 #else
             auto const& h_data = d_fab.array();
