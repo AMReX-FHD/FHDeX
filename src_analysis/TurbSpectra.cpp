@@ -120,6 +120,7 @@ void TurbSpectrumScalarHeffte(const MultiFab& variables,
 	using heffte_complex = typename heffte::fft_output<Real>::type;
 	
 	int r2c_direction = 0;
+  for (int comp=0; comp<ncomp; ++comp) {    
 #if defined(HEFFTE_CUFFT)
     	heffte::fft3d_r2c<heffte::backend::cufft> fft
 #elif defined(HEFFTE_ROCFFT)
@@ -127,19 +128,19 @@ void TurbSpectrumScalarHeffte(const MultiFab& variables,
 #elif defined(HEFFTE_FFTW)
     	heffte::fft3d_r2c<heffte::backend::fftw> fft
 #endif
-	({{local_box.smallEnd(0),local_box.smallEnd(1),local_box.smallEnd(2)},
-	{local_box.bigEnd(0)  ,local_box.bigEnd(1)  ,local_box.bigEnd(2)}},
-	{{c_local_box.smallEnd(0),c_local_box.smallEnd(1),c_local_box.smallEnd(2)},
-	{c_local_box.bigEnd(0)  ,c_local_box.bigEnd(1)  ,c_local_box.bigEnd(2)}},
-	r2c_direction, ParallelDescriptor::Communicator());
+      ({{local_box.smallEnd(0),local_box.smallEnd(1),local_box.smallEnd(2)},
+      {local_box.bigEnd(0)  ,local_box.bigEnd(1)  ,local_box.bigEnd(2)}},
+      {{c_local_box.smallEnd(0),c_local_box.smallEnd(1),c_local_box.smallEnd(2)},
+      {c_local_box.bigEnd(0)  ,c_local_box.bigEnd(1)  ,c_local_box.bigEnd(2)}},
+      r2c_direction, ParallelDescriptor::Communicator());
 
-  for (int comp=0; comp<ncomp; ++comp) {    
-    heffte_complex* spectral_data = (heffte_complex*) spectral_field.dataPtr();        
-	  variables_single.ParallelCopy(variables,comp,0,1);
-    fft.forward(variables_single[local_boxid].dataPtr(),spectral_data);        
-    ParallelDescriptor::Barrier();
-    // Integrate spectra over k-shells
-    IntegrateKScalarHeffte(spectral_field,var_names[comp],scaling[comp],c_local_box,sqrtnpts,step);
+      heffte_complex* spectral_data = (heffte_complex*) spectral_field.dataPtr();        
+      variables_single.ParallelCopy(variables,comp,0,1);
+      fft.forward(variables_single[local_boxid].dataPtr(),spectral_data);        
+      Gpu::streamSynchronize();
+      
+      // Integrate spectra over k-shells
+      IntegrateKScalarHeffte(spectral_field,var_names[comp],scaling[comp],c_local_box,sqrtnpts,step);
   }
 }
 #endif
@@ -373,39 +374,68 @@ void TurbSpectrumVelDecompHeffte(const MultiFab& vel,
 	  MultiFab vel_single(ba, dm, 1, 0);
     	
     int r2c_direction = 0;
-#if defined(HEFFTE_CUFFT)
-    heffte::fft3d_r2c<heffte::backend::cufft> fft
-#elif defined(HEFFTE_ROCFFT)
-    heffte::fft3d_r2c<heffte::backend::rocfft> fft
-#elif defined(HEFFTE_FFTW)
-    heffte::fft3d_r2c<heffte::backend::fftw> fft
-#endif
-    ({{local_box.smallEnd(0),local_box.smallEnd(1),local_box.smallEnd(2)},
-    {local_box.bigEnd(0)  ,local_box.bigEnd(1)  ,local_box.bigEnd(2)}},
-    {{c_local_box.smallEnd(0),c_local_box.smallEnd(1),c_local_box.smallEnd(2)},
-    {c_local_box.bigEnd(0)  ,c_local_box.bigEnd(1)  ,c_local_box.bigEnd(2)}},
-    r2c_direction, ParallelDescriptor::Communicator());
     
     // ForwardTransform
     // X
     using heffte_complex = typename heffte::fft_output<Real>::type;
     {
-	    vel_single.ParallelCopy(vel, 0, 0, 1);
+#if defined(HEFFTE_CUFFT)
+      heffte::fft3d_r2c<heffte::backend::cufft> fft
+#elif defined(HEFFTE_ROCFFT)
+      heffte::fft3d_r2c<heffte::backend::rocfft> fft
+#elif defined(HEFFTE_FFTW)
+      heffte::fft3d_r2c<heffte::backend::fftw> fft
+#endif
+      ({{local_box.smallEnd(0),local_box.smallEnd(1),local_box.smallEnd(2)},
+      {local_box.bigEnd(0)  ,local_box.bigEnd(1)  ,local_box.bigEnd(2)}},
+      {{c_local_box.smallEnd(0),c_local_box.smallEnd(1),c_local_box.smallEnd(2)},
+      {c_local_box.bigEnd(0)  ,c_local_box.bigEnd(1)  ,c_local_box.bigEnd(2)}},
+      r2c_direction, ParallelDescriptor::Communicator());
+	    
+      vel_single.ParallelCopy(vel, 0, 0, 1);
 	    heffte_complex* spectral_data = (heffte_complex*) spectral_field_Tx.dataPtr();
       fft.forward(vel_single[local_boxid].dataPtr(),spectral_data);
     }
     // Y
     {
+#if defined(HEFFTE_CUFFT)
+      heffte::fft3d_r2c<heffte::backend::cufft> fft
+#elif defined(HEFFTE_ROCFFT)
+      heffte::fft3d_r2c<heffte::backend::rocfft> fft
+#elif defined(HEFFTE_FFTW)
+      heffte::fft3d_r2c<heffte::backend::fftw> fft
+#endif
+      ({{local_box.smallEnd(0),local_box.smallEnd(1),local_box.smallEnd(2)},
+      {local_box.bigEnd(0)  ,local_box.bigEnd(1)  ,local_box.bigEnd(2)}},
+      {{c_local_box.smallEnd(0),c_local_box.smallEnd(1),c_local_box.smallEnd(2)},
+      {c_local_box.bigEnd(0)  ,c_local_box.bigEnd(1)  ,c_local_box.bigEnd(2)}},
+      r2c_direction, ParallelDescriptor::Communicator());
+	    
       vel_single.ParallelCopy(vel, 1, 0, 1);
       heffte_complex* spectral_data = (heffte_complex*) spectral_field_Ty.dataPtr();
       fft.forward(vel_single[local_boxid].dataPtr(),spectral_data);
     }
     // Z
     {
+#if defined(HEFFTE_CUFFT)
+      heffte::fft3d_r2c<heffte::backend::cufft> fft
+#elif defined(HEFFTE_ROCFFT)
+      heffte::fft3d_r2c<heffte::backend::rocfft> fft
+#elif defined(HEFFTE_FFTW)
+      heffte::fft3d_r2c<heffte::backend::fftw> fft
+#endif
+      ({{local_box.smallEnd(0),local_box.smallEnd(1),local_box.smallEnd(2)},
+      {local_box.bigEnd(0)  ,local_box.bigEnd(1)  ,local_box.bigEnd(2)}},
+      {{c_local_box.smallEnd(0),c_local_box.smallEnd(1),c_local_box.smallEnd(2)},
+      {c_local_box.bigEnd(0)  ,c_local_box.bigEnd(1)  ,c_local_box.bigEnd(2)}},
+      r2c_direction, ParallelDescriptor::Communicator());
+	    
       vel_single.ParallelCopy(vel, 2, 0, 1);
       heffte_complex* spectral_data = (heffte_complex*) spectral_field_Tz.dataPtr();
       fft.forward(vel_single[local_boxid].dataPtr(),spectral_data);
     }
+    
+    Gpu::streamSynchronize();
     
     // Decompose velocity field into solenoidal and dilatational
     Array4< GpuComplex<Real> > spectral_tx = spectral_field_Tx.array();
@@ -483,7 +513,7 @@ void TurbSpectrumVelDecompHeffte(const MultiFab& vel,
 
     });
 
-    ParallelDescriptor::Barrier();
+    Gpu::streamSynchronize();
 
     // Integrate K spectrum for velocities
     IntegrateKVelocityHeffte(spectral_field_Tx,spectral_field_Ty,spectral_field_Tz,"vel_total"     ,scaling,c_local_box,step);
@@ -493,42 +523,127 @@ void TurbSpectrumVelDecompHeffte(const MultiFab& vel,
 	  MultiFab vel_decomp_single(ba, dm, 1, 0);
     // inverse Fourier transform solenoidal and dilatational components 
     {
+#if defined(HEFFTE_CUFFT)
+      heffte::fft3d_r2c<heffte::backend::cufft> fft
+#elif defined(HEFFTE_ROCFFT)
+      heffte::fft3d_r2c<heffte::backend::rocfft> fft
+#elif defined(HEFFTE_FFTW)
+      heffte::fft3d_r2c<heffte::backend::fftw> fft
+#endif
+      ({{local_box.smallEnd(0),local_box.smallEnd(1),local_box.smallEnd(2)},
+      {local_box.bigEnd(0)  ,local_box.bigEnd(1)  ,local_box.bigEnd(2)}},
+      {{c_local_box.smallEnd(0),c_local_box.smallEnd(1),c_local_box.smallEnd(2)},
+      {c_local_box.bigEnd(0)  ,c_local_box.bigEnd(1)  ,c_local_box.bigEnd(2)}},
+      r2c_direction, ParallelDescriptor::Communicator());
+	    
       heffte_complex* spectral_data = (heffte_complex*) spectral_field_Sx.dataPtr();
       fft.backward(spectral_data, vel_decomp_single[local_boxid].dataPtr());
-      ParallelDescriptor::Barrier();
+    
+      Gpu::streamSynchronize();
       vel_decomp.ParallelCopy(vel_decomp_single, 0, 0, 1);
     }
     {
+#if defined(HEFFTE_CUFFT)
+      heffte::fft3d_r2c<heffte::backend::cufft> fft
+#elif defined(HEFFTE_ROCFFT)
+      heffte::fft3d_r2c<heffte::backend::rocfft> fft
+#elif defined(HEFFTE_FFTW)
+      heffte::fft3d_r2c<heffte::backend::fftw> fft
+#endif
+      ({{local_box.smallEnd(0),local_box.smallEnd(1),local_box.smallEnd(2)},
+      {local_box.bigEnd(0)  ,local_box.bigEnd(1)  ,local_box.bigEnd(2)}},
+      {{c_local_box.smallEnd(0),c_local_box.smallEnd(1),c_local_box.smallEnd(2)},
+      {c_local_box.bigEnd(0)  ,c_local_box.bigEnd(1)  ,c_local_box.bigEnd(2)}},
+      r2c_direction, ParallelDescriptor::Communicator());
+	    
       heffte_complex* spectral_data = (heffte_complex*) spectral_field_Sy.dataPtr();
       fft.backward(spectral_data, vel_decomp_single[local_boxid].dataPtr());
-      ParallelDescriptor::Barrier();
+    
+      Gpu::streamSynchronize();
       vel_decomp.ParallelCopy(vel_decomp_single, 0, 1, 1);
     }
     {
+#if defined(HEFFTE_CUFFT)
+      heffte::fft3d_r2c<heffte::backend::cufft> fft
+#elif defined(HEFFTE_ROCFFT)
+      heffte::fft3d_r2c<heffte::backend::rocfft> fft
+#elif defined(HEFFTE_FFTW)
+      heffte::fft3d_r2c<heffte::backend::fftw> fft
+#endif
+      ({{local_box.smallEnd(0),local_box.smallEnd(1),local_box.smallEnd(2)},
+      {local_box.bigEnd(0)  ,local_box.bigEnd(1)  ,local_box.bigEnd(2)}},
+      {{c_local_box.smallEnd(0),c_local_box.smallEnd(1),c_local_box.smallEnd(2)},
+      {c_local_box.bigEnd(0)  ,c_local_box.bigEnd(1)  ,c_local_box.bigEnd(2)}},
+      r2c_direction, ParallelDescriptor::Communicator());
+	    
       heffte_complex* spectral_data = (heffte_complex*) spectral_field_Sz.dataPtr();
       fft.backward(spectral_data, vel_decomp_single[local_boxid].dataPtr());
-      ParallelDescriptor::Barrier();
+    
+      Gpu::streamSynchronize();
       vel_decomp.ParallelCopy(vel_decomp_single, 0, 2, 1);
     }
     {
+#if defined(HEFFTE_CUFFT)
+      heffte::fft3d_r2c<heffte::backend::cufft> fft
+#elif defined(HEFFTE_ROCFFT)
+      heffte::fft3d_r2c<heffte::backend::rocfft> fft
+#elif defined(HEFFTE_FFTW)
+      heffte::fft3d_r2c<heffte::backend::fftw> fft
+#endif
+      ({{local_box.smallEnd(0),local_box.smallEnd(1),local_box.smallEnd(2)},
+      {local_box.bigEnd(0)  ,local_box.bigEnd(1)  ,local_box.bigEnd(2)}},
+      {{c_local_box.smallEnd(0),c_local_box.smallEnd(1),c_local_box.smallEnd(2)},
+      {c_local_box.bigEnd(0)  ,c_local_box.bigEnd(1)  ,c_local_box.bigEnd(2)}},
+      r2c_direction, ParallelDescriptor::Communicator());
+	    
       heffte_complex* spectral_data = (heffte_complex*) spectral_field_Dx.dataPtr();
       fft.backward(spectral_data, vel_decomp_single[local_boxid].dataPtr());
-      ParallelDescriptor::Barrier();
+    
+      Gpu::streamSynchronize();
       vel_decomp.ParallelCopy(vel_decomp_single, 0, 3, 1);
     }
     {
+#if defined(HEFFTE_CUFFT)
+      heffte::fft3d_r2c<heffte::backend::cufft> fft
+#elif defined(HEFFTE_ROCFFT)
+      heffte::fft3d_r2c<heffte::backend::rocfft> fft
+#elif defined(HEFFTE_FFTW)
+      heffte::fft3d_r2c<heffte::backend::fftw> fft
+#endif
+      ({{local_box.smallEnd(0),local_box.smallEnd(1),local_box.smallEnd(2)},
+      {local_box.bigEnd(0)  ,local_box.bigEnd(1)  ,local_box.bigEnd(2)}},
+      {{c_local_box.smallEnd(0),c_local_box.smallEnd(1),c_local_box.smallEnd(2)},
+      {c_local_box.bigEnd(0)  ,c_local_box.bigEnd(1)  ,c_local_box.bigEnd(2)}},
+      r2c_direction, ParallelDescriptor::Communicator());
+	    
       heffte_complex* spectral_data = (heffte_complex*) spectral_field_Dy.dataPtr();
       fft.backward(spectral_data, vel_decomp_single[local_boxid].dataPtr());
-      ParallelDescriptor::Barrier();
+    
+      Gpu::streamSynchronize();
       vel_decomp.ParallelCopy(vel_decomp_single, 0, 4, 1);
     }
     {
+#if defined(HEFFTE_CUFFT)
+      heffte::fft3d_r2c<heffte::backend::cufft> fft
+#elif defined(HEFFTE_ROCFFT)
+      heffte::fft3d_r2c<heffte::backend::rocfft> fft
+#elif defined(HEFFTE_FFTW)
+      heffte::fft3d_r2c<heffte::backend::fftw> fft
+#endif
+      ({{local_box.smallEnd(0),local_box.smallEnd(1),local_box.smallEnd(2)},
+      {local_box.bigEnd(0)  ,local_box.bigEnd(1)  ,local_box.bigEnd(2)}},
+      {{c_local_box.smallEnd(0),c_local_box.smallEnd(1),c_local_box.smallEnd(2)},
+      {c_local_box.bigEnd(0)  ,c_local_box.bigEnd(1)  ,c_local_box.bigEnd(2)}},
+      r2c_direction, ParallelDescriptor::Communicator());
+	    
       heffte_complex* spectral_data = (heffte_complex*) spectral_field_Dz.dataPtr();
       fft.backward(spectral_data, vel_decomp_single[local_boxid].dataPtr());
-      ParallelDescriptor::Barrier();
+    
+      Gpu::streamSynchronize();
       vel_decomp.ParallelCopy(vel_decomp_single, 0, 5, 1);
     }
 
+    
     vel_decomp.mult(1.0/sqrtnpts);
 
 }
@@ -1108,8 +1223,8 @@ void IntegrateKScalarHeffte(const BaseFab<GpuComplex<Real> >& spectral_field,
                 Real real = spectral(i,j,k).real();
                 Real imag = spectral(i,j,k).imag();
                 Real cov  = (1.0/(sqrtnpts*sqrtnpts*scaling))*(real*real + imag*imag); 
-                amrex::HostDevice::Atomic::Add(&(phisum_ptr[cell]), cov);
-                amrex::HostDevice::Atomic::Add(&(phicnt_ptr[cell]),1);
+                amrex::Gpu::Atomic::Add(&(phisum_ptr[cell]), cov);
+                amrex::Gpu::Atomic::Add(&(phicnt_ptr[cell]),1);
             }
         }
         else {
@@ -1117,12 +1232,10 @@ void IntegrateKScalarHeffte(const BaseFab<GpuComplex<Real> >& spectral_field,
         }
     });
     
-    ParallelDescriptor::Barrier();
+    Gpu::streamSynchronize();
         
-    for (int d=1; d<npts; ++d) {
-        ParallelDescriptor::ReduceRealSum(phisum_device[d]);
-        ParallelDescriptor::ReduceIntSum(phicnt_device[d]);
-    }
+    ParallelDescriptor::ReduceRealSum(phisum_device.dataPtr(),npts);
+    ParallelDescriptor::ReduceIntSum(phicnt_device.dataPtr(),npts);
         
     Real dk = 1.;
     amrex::ParallelFor(npts, [=] AMREX_GPU_DEVICE (int d) noexcept
@@ -1293,12 +1406,10 @@ void IntegrateKVelocityHeffte(const BaseFab<GpuComplex<Real> >& spectral_fieldx,
         }
     });
     
-    ParallelDescriptor::Barrier();
+    Gpu::streamSynchronize();
         
-    for (int d=1; d<npts; ++d) {
-        ParallelDescriptor::ReduceRealSum(phisum_device[d]);
-        ParallelDescriptor::ReduceIntSum(phicnt_device[d]);
-    }
+    ParallelDescriptor::ReduceRealSum(phisum_device.dataPtr(),npts);
+    ParallelDescriptor::ReduceIntSum(phicnt_device.dataPtr(),npts);
         
     Real dk = 1.;
     amrex::ParallelFor(npts, [=] AMREX_GPU_DEVICE (int d) noexcept
