@@ -1194,21 +1194,57 @@ void IntegrateKScalarHeffte(const BaseFab<GpuComplex<Real> >& spectral_field,
 {
     int npts = n_cells[0]/2;
     
-    Gpu::DeviceVector<Real> phisum_device(npts);
-    Gpu::DeviceVector<int>  phicnt_device(npts);
+//    Gpu::DeviceVector<Real> phisum_device(npts);
+//    Gpu::DeviceVector<int>  phicnt_device(npts);
     Gpu::HostVector<Real> phisum_host(npts);
-    Real* phisum_ptr = phisum_device.dataPtr();  // pointer to data
-    int*  phicnt_ptr = phicnt_device.dataPtr();  // pointer to data
+    Gpu::HostVector<int>  phicnt_host(npts);
+//    Gpu::HostVector<Real> phisum_host(npts);
+//    Real* phisum_ptr = phisum_device.dataPtr();  // pointer to data
+//    int*  phicnt_ptr = phicnt_device.dataPtr();  // pointer to data
     
-    amrex::ParallelFor(npts, [=] AMREX_GPU_DEVICE (int d) noexcept
-    {
-      phisum_ptr[d] = 0.;
-      phicnt_ptr[d] = 0;
-    });
+//    amrex::ParallelFor(npts, [=] AMREX_GPU_DEVICE (int d) noexcept
+//    {
+//      phisum_ptr[d] = 0.;
+//      phicnt_ptr[d] = 0;
+//    });
+    for (int d=0; d<npts; ++d) {
+	phisum_host[d] = 0.;
+	phicnt_host[d] = 0;
+    }
 
     const Array4< const GpuComplex<Real> > spectral = spectral_field.const_array();
-    ParallelFor(c_local_box, [=] AMREX_GPU_DEVICE(int i, int j, int k)
-    {
+//    ParallelFor(c_local_box, [=] AMREX_GPU_DEVICE(int i, int j, int k)
+//    {
+//        if (i <= n_cells[0]/2) { // only half of kx-domain
+//            int ki = i;
+//            int kj = j;
+//            int kk = k;
+//
+//            Real dist = (ki*ki + kj*kj + kk*kk);
+//            dist = std::sqrt(dist);
+//        
+//            if ( dist <= n_cells[0]/2-0.5) {
+//                dist = dist+0.5;
+//                int cell = int(dist);
+//                Real real = spectral(i,j,k).real();
+//                Real imag = spectral(i,j,k).imag();
+//                Real cov  = (1.0/(sqrtnpts*sqrtnpts*scaling))*(real*real + imag*imag); 
+//                amrex::Gpu::Atomic::Add(&(phisum_ptr[cell]), cov);
+//                amrex::Gpu::Atomic::Add(&(phicnt_ptr[cell]),1);
+//            }
+//        }
+//        else {
+//            amrex::Abort("i should not exceed n_cells[0]/2");
+//        }
+//    });
+    
+    // Gpu::streamSynchronize();
+
+    const auto lo = amrex::lbound(c_local_box);
+    const auto hi = amrex::ubound(c_local_box);
+    for (auto k = lo.z; k <= hi.z; ++k) {
+    for (auto j = lo.y; j <= hi.y; ++j) {
+    for (auto i = lo.x; i <= hi.x; ++i) {
         if (i <= n_cells[0]/2) { // only half of kx-domain
             int ki = i;
             int kj = j;
@@ -1223,30 +1259,38 @@ void IntegrateKScalarHeffte(const BaseFab<GpuComplex<Real> >& spectral_field,
                 Real real = spectral(i,j,k).real();
                 Real imag = spectral(i,j,k).imag();
                 Real cov  = (1.0/(sqrtnpts*sqrtnpts*scaling))*(real*real + imag*imag); 
-                amrex::Gpu::Atomic::Add(&(phisum_ptr[cell]), cov);
-                amrex::Gpu::Atomic::Add(&(phicnt_ptr[cell]),1);
+                amrex::HostDevice::Atomic::Add(&(phisum_host[cell]), cov);
+                amrex::HostDevice::Atomic::Add(&(phicnt_host[cell]),1);
             }
-        }
-        else {
-            amrex::Abort("i should not exceed n_cells[0]/2");
-        }
-    });
+	}
+	else {
+	    amrex::Abort("i should not exceed n_cells[0]/2");
+	}
+    }
+    }
+    }
     
-    Gpu::streamSynchronize();
+    ParallelDescriptor::Barrier();
         
-    ParallelDescriptor::ReduceRealSum(phisum_device.dataPtr(),npts);
-    ParallelDescriptor::ReduceIntSum(phicnt_device.dataPtr(),npts);
+    ParallelDescriptor::ReduceRealSum(phisum_host.dataPtr(),npts);
+    ParallelDescriptor::ReduceIntSum(phicnt_host.dataPtr(),npts);
         
     Real dk = 1.;
-    amrex::ParallelFor(npts, [=] AMREX_GPU_DEVICE (int d) noexcept
-    {
-        if (d != 0) {
-        phisum_ptr[d] *= 4.*M_PI*(d*d*dk+dk*dk*dk/12.)/phicnt_ptr[d];
-        }
-    });
+//    amrex::ParallelFor(npts, [=] AMREX_GPU_DEVICE (int d) noexcept
+//    {
+//        if (d != 0) {
+//        phisum_ptr[d] *= 4.*M_PI*(d*d*dk+dk*dk*dk/12.)/phicnt_ptr[d];
+//        }
+//    });
     
-    Gpu::copyAsync(Gpu::deviceToHost, phisum_device.begin(), phisum_device.end(), phisum_host.begin());
-    Gpu::streamSynchronize();
+    for (int d=0; d<npts; ++d) {
+        if (d != 0) {
+            phisum_host[d] *= 4.*M_PI*(d*d*dk+dk*dk*dk/12.)/phicnt_host[d];
+        }
+    }
+    
+//    Gpu::copyAsync(Gpu::deviceToHost, phisum_device.begin(), phisum_device.end(), phisum_host.begin());
+//    Gpu::streamSynchronize();
     
     if (ParallelDescriptor::IOProcessor()) {
         std::ofstream turb;
@@ -1358,23 +1402,67 @@ void IntegrateKVelocityHeffte(const BaseFab<GpuComplex<Real> >& spectral_fieldx,
 {
     int npts = n_cells[0]/2;
     
-    Gpu::DeviceVector<Real> phisum_device(npts);
-    Gpu::DeviceVector<int>  phicnt_device(npts);
+//    Gpu::DeviceVector<Real> phisum_device(npts);
+//    Gpu::DeviceVector<int>  phicnt_device(npts);
     Gpu::HostVector<Real> phisum_host(npts);
-    Real* phisum_ptr = phisum_device.dataPtr();  // pointer to data
-    int*  phicnt_ptr = phicnt_device.dataPtr();  // pointer to data
+    Gpu::HostVector<int>  phicnt_host(npts);
+//    Gpu::HostVector<Real> phisum_host(npts);
+//    Real* phisum_ptr = phisum_device.dataPtr();  // pointer to data
+//    int*  phicnt_ptr = phicnt_device.dataPtr();  // pointer to data
     
-    amrex::ParallelFor(npts, [=] AMREX_GPU_DEVICE (int d) noexcept
-    {
-      phisum_ptr[d] = 0.;
-      phicnt_ptr[d] = 0;
-    });
+//    amrex::ParallelFor(npts, [=] AMREX_GPU_DEVICE (int d) noexcept
+//    {
+//      phisum_ptr[d] = 0.;
+//      phicnt_ptr[d] = 0;
+//    });
+    for (int d=0; d<npts; ++d) {
+	phisum_host[d] = 0.;
+	phicnt_host[d] = 0;
+    }
 
     const Array4<const GpuComplex<Real> > spectralx = spectral_fieldx.const_array();
     const Array4<const GpuComplex<Real> > spectraly = spectral_fieldy.const_array();
     const Array4<const GpuComplex<Real> > spectralz = spectral_fieldz.const_array();
-    ParallelFor(c_local_box, [=] AMREX_GPU_DEVICE(int i, int j, int k)
-    {
+//    ParallelFor(c_local_box, [=] AMREX_GPU_DEVICE(int i, int j, int k)
+//    {
+//        if (i <= n_cells[0]/2) { // only half of kx-domain
+//            int ki = i;
+//            int kj = j;
+//            int kk = k;
+//
+//            Real dist = (ki*ki + kj*kj + kk*kk);
+//            dist = std::sqrt(dist);
+//        
+//            if ( dist <= n_cells[0]/2-0.5) {
+//                dist = dist+0.5;
+//                int cell = int(dist);
+//                Real real, imag, cov_x, cov_y, cov_z, cov;
+//                real = spectralx(i,j,k).real();
+//                imag = spectralx(i,j,k).imag();
+//                cov_x  = (1.0/scaling)*(real*real + imag*imag); 
+//                real = spectraly(i,j,k).real();
+//                imag = spectraly(i,j,k).imag();
+//                cov_y  = (1.0/scaling)*(real*real + imag*imag); 
+//                real = spectralz(i,j,k).real();
+//                imag = spectralz(i,j,k).imag();
+//                cov_z  = (1.0/scaling)*(real*real + imag*imag); 
+//                cov = cov_x + cov_y + cov_z;
+//                amrex::Gpu::Atomic::Add(&(phisum_ptr[cell]), cov);
+//                amrex::Gpu::Atomic::Add(&(phicnt_ptr[cell]),1);
+//            }
+//        }
+//        else {
+//            amrex::Abort("i should not exceed n_cells[0]/2");
+//        }
+//    });
+//    
+//    Gpu::streamSynchronize();
+
+    const auto lo = amrex::lbound(c_local_box);
+    const auto hi = amrex::ubound(c_local_box);
+    for (auto k = lo.z; k <= hi.z; ++k) {
+    for (auto j = lo.y; j <= hi.y; ++j) {
+    for (auto i = lo.x; i <= hi.x; ++i) {
         if (i <= n_cells[0]/2) { // only half of kx-domain
             int ki = i;
             int kj = j;
@@ -1397,30 +1485,38 @@ void IntegrateKVelocityHeffte(const BaseFab<GpuComplex<Real> >& spectral_fieldx,
                 imag = spectralz(i,j,k).imag();
                 cov_z  = (1.0/scaling)*(real*real + imag*imag); 
                 cov = cov_x + cov_y + cov_z;
-                amrex::HostDevice::Atomic::Add(&(phisum_ptr[cell]), cov);
-                amrex::HostDevice::Atomic::Add(&(phicnt_ptr[cell]),1);
+                amrex::HostDevice::Atomic::Add(&(phisum_host[cell]), cov);
+                amrex::HostDevice::Atomic::Add(&(phicnt_host[cell]),1);
             }
-        }
-        else {
-            amrex::Abort("i should not exceed n_cells[0]/2");
-        }
-    });
+	}
+	else {
+	    amrex::Abort("i should not exceed n_cells[0]/2");
+	}
+    }
+    }
+    }
     
-    Gpu::streamSynchronize();
+    ParallelDescriptor::Barrier();
         
-    ParallelDescriptor::ReduceRealSum(phisum_device.dataPtr(),npts);
-    ParallelDescriptor::ReduceIntSum(phicnt_device.dataPtr(),npts);
+    ParallelDescriptor::ReduceRealSum(phisum_host.dataPtr(),npts);
+    ParallelDescriptor::ReduceIntSum(phicnt_host.dataPtr(),npts);
         
     Real dk = 1.;
-    amrex::ParallelFor(npts, [=] AMREX_GPU_DEVICE (int d) noexcept
-    {
-        if (d != 0) {
-        phisum_ptr[d] *= 4.*M_PI*(d*d*dk+dk*dk*dk/12.)/phicnt_ptr[d];
-        }
-    });
+//    amrex::ParallelFor(npts, [=] AMREX_GPU_DEVICE (int d) noexcept
+//    {
+//        if (d != 0) {
+//        phisum_ptr[d] *= 4.*M_PI*(d*d*dk+dk*dk*dk/12.)/phicnt_ptr[d];
+//        }
+//    });
     
-    Gpu::copyAsync(Gpu::deviceToHost, phisum_device.begin(), phisum_device.end(), phisum_host.begin());
-    Gpu::streamSynchronize();
+    for (int d=0; d<npts; ++d) {
+        if (d != 0) {
+            phisum_host[d] *= 4.*M_PI*(d*d*dk+dk*dk*dk/12.)/phicnt_host[d];
+        }
+    }
+    
+//    Gpu::copyAsync(Gpu::deviceToHost, phisum_device.begin(), phisum_device.end(), phisum_host.begin());
+//    Gpu::streamSynchronize();
     
     if (ParallelDescriptor::IOProcessor()) {
         std::ofstream turb;
