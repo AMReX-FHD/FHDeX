@@ -219,6 +219,7 @@ void main_driver(const char* argv)
     if ((all_correl == 1) and (cross_cell > 0) and (cross_cell < n_cells[0]-1)) {
         amrex::Print() << "Correlations will be done at four equi-distant x* because all_correl = 1" << "\n";
     }
+    if ((membrane_cell > 0) and ((membrane_type < 0) or (membrane_type > 1))) Abort("membrane_type needs to be 0 (SSA) or 1 (Langevin)");
 
     // contains yz-averaged running & instantaneous averages of conserved variables (2*nvars) + primitive variables [vx, vy, vz, T, Yk]: 2*4 + 2*nspecies 
     Vector<Real> dataSliceMeans_xcross(2*nvars+8+2*nspecies, 0.0); 

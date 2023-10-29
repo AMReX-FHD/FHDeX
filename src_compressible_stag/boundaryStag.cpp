@@ -270,7 +270,7 @@ void setBCStag(MultiFab& prim_in, MultiFab& cons_in,
         Abort("setBC: momentum and velocity need the same number of ghost cells");
     }
 
-    if (membrane_cell >= 0) { // set adiabatic slip BC at the membrane
+    if ((membrane_cell >= 0) and (membrane_type == 1)) { // set adiabatic slip BC at the membrane (Langevin)
         BCMem(prim_in, cons_in, cumom_in, vel_in, geom);
     }
 

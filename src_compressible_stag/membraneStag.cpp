@@ -2,6 +2,7 @@
 #include "compressible_functions.H"
 #include "common_functions.H"
 #include "rng_functions.H"
+#include "reservoirStag_K.H"
 #include <math.h>
 
 void doMembraneStag(MultiFab& cons, 
@@ -470,3 +471,239 @@ void applyEffusion(std::array<MultiFab, AMREX_SPACEDIM>& faceflux,
     }
 
 }
+
+///////////////////////////////////////////////////////////////////////////
+// compute momentum and fluxes at the membrane ////////////////////////////
+// for SSA-type membrane; for now membrane is always perpendicular to x ///
+///////////////////////////////////////////////////////////////////////////
+void 
+ComputeFluxMomMembrane(const MultiFab& cons0_in, const MultiFab& prim0_in,
+                       const std::array<MultiFab, AMREX_SPACEDIM>& vel0,
+                       std::array<MultiFab, AMREX_SPACEDIM>& cumom_mem,
+                       std::array<MultiFab, AMREX_SPACEDIM>& faceflux_mem,
+                       const amrex::Geometry& geom,
+                       const amrex::Real dt)
+{
+    BL_PROFILE_VAR("ComputeFluxMomMembrane()",ComputeFluxMomMembrane);
+
+    const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
+    Box dom(geom.Domain());
+
+    Real N_A = Runiv/k_B; // Avagadro's number
+    
+    GpuArray<Real,MAX_SPECIES> mass;
+    for (int l=0;l<nspecies;++l) {
+        mass[l] = molmass[l]/(N_A);
+    }
+
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        cumom_mem[d].setVal(0.0);
+        faceflux_mem[d].setVal(0.0);
+    }
+
+    Real area, vol;
+    area = dx[1]*dx[2];
+    vol  = dx[0]*dx[1]*dx[2];
+
+    // face-based flux (mass and energy) and normal momentum /////
+    //////////////////////////////////////////////////////////////
+    for (MFIter mfi(faceflux_mem[0]); mfi.isValid(); ++mfi) {
+        
+        const Box& bx = mfi.validbox();
+        
+        const Array4<const Real> cons0   = cons0_in.array(mfi);
+        const Array4<const Real> prim0   = prim0_in.array(mfi);
+        const Array4<const Real>& xvel0  = (vel0[0]).array(mfi);
+        const Array4<const Real>& yvel0  = (vel0[1]).array(mfi);
+        const Array4<const Real>& zvel0  = (vel0[2]).array(mfi);
+        
+        const Array4<Real>& xmom  = (cumom_mem[0]).array(mfi);
+        const Array4<Real>& xflux = (faceflux_mem[0]).array(mfi);
+
+        // membrane on hi side of bx
+        if ((membrane_cell >= bx.smallEnd(0)) and (membrane_cell <= bx.bigEnd(0))) {
+            amrex::ParallelForRNG(bx, 
+            [=] AMREX_GPU_DEVICE (int i, int j, int k, amrex::RandomEngine const& engine) noexcept
+            {
+                if (i == membrane_cell) {
+                    ////////////////// left cell ///////////////////////
+                    
+                    ////////////////////////////////////////////////////
+                    // number of particles in FHD cell (for correction)
+                    //Real N = 0.0;
+                    //GpuArray<Real,MAX_SPECIES> N_i;
+                    //for (int n=0;n<nspecies;++n) {
+                    //    N_i[n] = vol*(cons0(i-1,j,k,5+n)/mass[n]);
+                    //    N += N_i[n];
+                    //}
+                    ////////////////////////////////////////////////////
+                    
+                    Real T = prim0(i-1,j,k,4);
+                    Real Vx, Vy, Vz;
+                    Vx = 0.5*(xvel0(i-1,j,k) + xvel0(i,j,k)); // normal
+//                    Vx = 0.0;
+                    Vy = 0.5*(yvel0(i-1,j,k) + yvel0(i-1,j+1,k)); // tangential
+                    Vz = 0.5*(zvel0(i-1,j,k) + zvel0(i-1,j,k+1)); // tangential
+                    Real mass_cross; // total mass into membrane
+                    GpuArray<Real,3> mom_cross; // total momentum into membrane
+                    Real en_cross; // total energy into membrane
+                    GpuArray<Real,MAX_SPECIES> spec_mass_cross;
+                    GpuArray<Real,MAX_SPECIES> rhoYk;
+                    for (int n=0;n<nspecies;++n) {
+                        rhoYk[n] = cons0(i-1,j,k,5+n);
+                    }
+                    if (do_1D) {
+                        poisson_process_membrane(mass,rhoYk,T,Vx,nspecies,area,k_B,dt,
+                                                 mass_cross,mom_cross,en_cross,spec_mass_cross,1,Vy,Vz,
+                                                 transmission,engine);
+                    }
+                    else if (do_2D) {
+                        poisson_process_membrane(mass,rhoYk,T,Vx,nspecies,area,k_B,dt,
+                                                 mass_cross,mom_cross,en_cross,spec_mass_cross,2,Vy,Vz,
+                                                 transmission,engine);
+                    }
+                    else {
+                        poisson_process_membrane(mass,rhoYk,T,Vx,nspecies,area,k_B,dt,
+                                                 mass_cross,mom_cross,en_cross,spec_mass_cross,3,Vy,Vz,
+                                                 transmission,engine);
+                    }
+                    xflux(i,j,k,0) += mass_cross/(dt*area); // update mass flux
+                    xflux(i,j,k,4) += en_cross/(dt*area); // update energy flux
+                    for (int n=0;n<nspecies;++n) {
+                        xflux(i,j,k,5+n) += spec_mass_cross[n]/(dt*area); // update species flux
+                    }
+                    
+                    if (do_1D) {
+                        xmom(i,j,k) += mom_cross[0]/vol;
+                    }
+                    else if (do_2D) {
+                        xmom(i,j,k) += mom_cross[0]/vol;
+//                        xflux(i,j,k,1) += mom_cross[1]/dt/area; // tangential flux
+                        xflux(i,j,k,1) += 0.0;
+                    }
+                    else {
+                        xmom(i,j,k) += mom_cross[0]/vol;
+//                        xflux(i,j,k,1) += mom_cross[1]/dt/area; // tangential flux
+//                        xflux(i,j,k,2) += mom_cross[2]/dt/area; // tangential flux
+                        xflux(i,j,k,1) += 0.0;
+                        xflux(i,j,k,2) += 0.0;
+                    }
+                    
+                    ////////////////////////////////////////////////////
+
+                    ////////////////// right cell //////////////////////
+
+                    T = prim0(i,j,k,4);
+                    Vx = -0.5*(xvel0(i,j,k)+xvel0(i+1,j,k)); // normal
+//                    Vx = 0.0;
+                    Vy =  0.5*(yvel0(i,j,k)+yvel0(i,j+1,k)); // tangential
+                    Vz =  0.5*(zvel0(i,j,k)+zvel0(i,j,k+1)); // tangential
+                    for (int n=0;n<nspecies;++n) {
+                        rhoYk[n] = cons0(i,j,k,5+n);
+                    }
+                    if (do_1D) {
+                        poisson_process_membrane(mass,rhoYk,T,Vx,nspecies,area,k_B,dt,
+                                                 mass_cross,mom_cross,en_cross,spec_mass_cross,1,Vy,Vz,
+                                                 transmission,engine);
+                    }
+                    else if (do_2D) {
+                        poisson_process_membrane(mass,rhoYk,T,Vx,nspecies,area,k_B,dt,
+                                                 mass_cross,mom_cross,en_cross,spec_mass_cross,2,Vy,Vz,
+                                                 transmission,engine);
+                    }
+                    else {
+                        poisson_process_membrane(mass,rhoYk,T,Vx,nspecies,area,k_B,dt,
+                                                 mass_cross,mom_cross,en_cross,spec_mass_cross,3,Vy,Vz,
+                                                 transmission,engine);
+                    }
+                    xflux(i,j,k,0) -= mass_cross/(dt*area); // update mass flux
+                    xflux(i,j,k,4) -= en_cross/(dt*area); // update energy flux
+                    for (int n=0;n<nspecies;++n) {
+                        xflux(i,j,k,5+n) -= spec_mass_cross[n]/(dt*area); // update species flux
+                    }
+                    
+                    if (do_1D) {
+                        xmom(i,j,k) -= mom_cross[0]/vol;
+                    }
+                    else if (do_2D) {
+                        xmom(i,j,k) -= mom_cross[0]/vol;
+//                        xflux(i,j,k,1) -= mom_cross[1]/dt/area; // tangential flux
+                        xflux(i,j,k,1) -= 0.0;
+                    }
+                    else {
+                        xmom(i,j,k) -= mom_cross[0]/vol;
+//                        xflux(i,j,k,1) -= mom_cross[1]/dt/area; // tangential flux
+//                        xflux(i,j,k,2) -= mom_cross[2]/dt/area; // tangential flux
+                        xflux(i,j,k,1) -= 0.0;
+                        xflux(i,j,k,2) -= 0.0;
+                    }
+                    ////////////////////////////////////////////////////
+                }
+            });
+        }
+    }
+
+    cumom_mem[0].OverrideSync(geom.periodicity());
+    faceflux_mem[0].OverrideSync(geom.periodicity());
+}
+
+///////////////////////////////////////////////////////////////////////////
+// reset fluxes at the membrane  //////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////
+void 
+ResetMembraneFluxes(const std::array<MultiFab, AMREX_SPACEDIM>& faceflux_mem,
+                    std::array<MultiFab, AMREX_SPACEDIM>& faceflux,
+                    std::array< MultiFab, 2 >& edgeflux_x,
+                    std::array< MultiFab, 2 >& edgeflux_y,
+                    std::array< MultiFab, 2 >& edgeflux_z,
+                    const amrex::Geometry& geom)
+{
+    BL_PROFILE_VAR("ResetMembraneFluxes()",ResetMembraneFluxes);
+
+    for (MFIter mfi(faceflux[0]); mfi.isValid(); ++mfi) {
+        const Box& bx = mfi.validbox();
+        const Array4<Real>& xflux           = (faceflux[0]).array(mfi);
+        const Array4<const Real>& xflux_mem = (faceflux_mem[0]).array(mfi);
+
+        if ((membrane_cell >= bx.smallEnd(0)) and (membrane_cell <= bx.bigEnd(0))) {
+            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                if (i == membrane_cell) {
+                    xflux(i,j,k,0) = xflux_mem(i,j,k,0); // mass flux
+                    xflux(i,j,k,4) = xflux_mem(i,j,k,4); // energy flux
+                    for (int n=0;n<nspecies;++n) {
+                        xflux(i,j,k,5+n) = xflux_mem(i,j,k,5+n); // species flux
+                    }
+                }
+            });
+        }
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////
+// reset momentum at the membrane /////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////
+void 
+ResetMembraneMom(std::array<MultiFab, AMREX_SPACEDIM>& cumom,
+                 const std::array<MultiFab, AMREX_SPACEDIM>& cumom_mem,
+                 const amrex::Geometry& geom)
+{
+    BL_PROFILE_VAR("ResetMembraneMom()",ResetMembraneMom);
+
+    for (MFIter mfi(cumom[0]); mfi.isValid(); ++mfi) {
+        const Box& bx = mfi.validbox();
+        const Array4<Real>& xmom           = (cumom[0]).array(mfi);
+        const Array4<const Real>& xmom_mem = (cumom_mem[0]).array(mfi);
+
+        if ((membrane_cell >= bx.smallEnd(0)) and (membrane_cell <= bx.bigEnd(0))) {
+            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                if (i == membrane_cell) {
+                    xmom(i,j,k) = xmom_mem(i,j,k);
+//                    xmom(i,j,k) = 0.0;
+                }
+            });
+        }
+    }
+}
+

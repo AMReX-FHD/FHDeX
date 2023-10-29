@@ -3,6 +3,7 @@
 
 AMREX_GPU_MANAGED int compressible::transport_type;
 AMREX_GPU_MANAGED int compressible::membrane_cell;
+AMREX_GPU_MANAGED int compressible::membrane_type;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> compressible::transmission;
 AMREX_GPU_MANAGED int compressible::do_1D;
 AMREX_GPU_MANAGED int compressible::do_2D;
@@ -38,6 +39,12 @@ void InitializeCompressibleNamespace()
     membrane_cell = -1; // location of membrane (default)
     pp.query("membrane_cell",membrane_cell);
     if (membrane_cell >= 0) amrex::Print() << "Membrane cell is: " << membrane_cell << "\n";
+
+    // get membrane type
+    membrane_type = 0; // membrane type (0: SSA; 1: Langevin)
+    pp.query("membrane_type",membrane_type);
+    if (membrane_type == 0) amrex::Print() << "SSA membrane type" << "\n";
+    if (membrane_type == 1) amrex::Print() << "Langevin membrane type" << "\n";
 
     // get membrane transmission
     for (int i=0; i<MAX_SPECIES; ++i) {

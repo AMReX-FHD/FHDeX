@@ -36,11 +36,26 @@ void RK3stepStag(MultiFab& cu,
     // Reservoir stuff
     std::array< MultiFab, AMREX_SPACEDIM > cumom_res; // MFab for storing momentum from reservoir update
     std::array< MultiFab, AMREX_SPACEDIM > faceflux_res; // MFab for storing fluxes (face-based) from reservoir update
-    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        cumom_res[d].define(convert(cu.boxArray(),nodal_flag_dir[d]), cu.DistributionMap(), 1, 0);
-        faceflux_res[d].define(convert(cu.boxArray(),nodal_flag_dir[d]), cu.DistributionMap(), nvars, 0);
+    if (do_reservoir) {
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            cumom_res[d].define(convert(cu.boxArray(),nodal_flag_dir[d]), cu.DistributionMap(), 1, 0);
+            faceflux_res[d].define(convert(cu.boxArray(),nodal_flag_dir[d]), cu.DistributionMap(), nvars, 0);
+        }
     }
     // Reservoir stuff
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////
+    
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // Membrane stuff
+    std::array< MultiFab, AMREX_SPACEDIM > cumom_mem; // MFab for storing momentum from membrane update
+    std::array< MultiFab, AMREX_SPACEDIM > faceflux_mem; // MFab for storing fluxes (face-based) from membrane update
+    if ((membrane_cell>=0) and (membrane_type == 0)) {
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            cumom_mem[d].define(convert(cu.boxArray(),nodal_flag_dir[d]), cu.DistributionMap(), 1, 0);
+            faceflux_mem[d].define(convert(cu.boxArray(),nodal_flag_dir[d]), cu.DistributionMap(), nvars, 0);
+        }
+    }
+    // Membrane stuff
     ////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     std::array< MultiFab, AMREX_SPACEDIM > cupmom;
@@ -335,8 +350,12 @@ void RK3stepStag(MultiFab& cu,
         geom, stoch_weights,dt);
 
     // reservoir timers
-    Real aux1, aux2, aux3, aux4, aux5, aux6; 
+    Real aux1, aux2, aux3, aux4, aux5, aux6;
+    // membrane timers
+    Real auxm1, auxm2, auxm3, auxm4, auxm5, auxm6;
     
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // Reservoir stuff
     // add to the total continuum fluxes based on RK3 weight
     if (do_reservoir) {
         aux1 = ParallelDescriptor::second();
@@ -350,6 +369,26 @@ void RK3stepStag(MultiFab& cu,
         aux2 = ParallelDescriptor::second() - aux1;
         ParallelDescriptor::ReduceRealMax(aux2,  ParallelDescriptor::IOProcessorNumber());
     }
+    // Reservoir stuff
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////
+    
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // Membrane stuff (SSA)
+    // add to the total continuum fluxes based on RK3 weight
+    if ((membrane_cell>=0) and (membrane_type == 0)) {
+        auxm1 = ParallelDescriptor::second();
+        ComputeFluxMomMembrane(cu,prim,vel,cumom_mem,
+                               faceflux_mem,geom,dt); // compute fluxes and momentum from membrane particle update
+        ResetMembraneFluxes(faceflux_mem, faceflux,
+                            edgeflux_x,
+                            edgeflux_y,
+                            edgeflux_z,
+                            geom); // reset fluxes at the membrane from particle update
+        auxm2 = ParallelDescriptor::second() - auxm1;
+        ParallelDescriptor::ReduceRealMax(auxm2,  ParallelDescriptor::IOProcessorNumber());
+    }
+    // Membrane stuff (SSA)
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     if (nreaction>0) {
         MultiFab::LinComb(ranchem,
@@ -535,9 +574,21 @@ void RK3stepStag(MultiFab& cu,
         BCMomTrans(cupmom[i], vel[i], geom, i);
     }
 
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // Reservoir stuff
     if (do_reservoir) {
         ResetReservoirMom(cupmom, cumom_res, geom); // set momentum at the reservoir interface to its value from particle update
     }
+    // Reservoir stuff
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // Membrane stuff (SSA)
+    if ((membrane_cell>=0) and (membrane_type == 0)) {
+        ResetMembraneMom(cupmom, cumom_mem, geom); // set momentum at the membrane to its value from particle update
+    }
+    // Membrane stuff (SSA)
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     // Fill boundaries for conserved variables
     for (int d=0; d<AMREX_SPACEDIM; d++) {
@@ -663,6 +714,8 @@ void RK3stepStag(MultiFab& cu,
         stochface, stochedge_x, stochedge_y, stochedge_z, stochcen, 
         geom, stoch_weights,dt);
 
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // Reservoir stuff
     // add to the total continuum fluxes based on RK3 weight
     if (do_reservoir) {
         aux3 = ParallelDescriptor::second();
@@ -677,6 +730,27 @@ void RK3stepStag(MultiFab& cu,
         aux4 = ParallelDescriptor::second() - aux3;
         ParallelDescriptor::ReduceRealMax(aux4,  ParallelDescriptor::IOProcessorNumber());
     }
+    // Reservoir stuff
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////
+    
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // Membrane stuff (SSA)
+    // add to the total continuum fluxes based on RK3 weight
+    if ((membrane_cell>=0) and (membrane_type == 0)) {
+        auxm3 = ParallelDescriptor::second();
+        ComputeFluxMomMembrane(cup,prim,vel,cumom_mem,
+                               faceflux_mem,
+                               geom,0.25*dt); // compute fluxes and momentum from membrane particle update
+        ResetMembraneFluxes(faceflux_mem, faceflux,
+                            edgeflux_x,
+                            edgeflux_y,
+                            edgeflux_z,
+                            geom); // reset fluxes at the membrane from particle update
+        auxm4 = ParallelDescriptor::second() - auxm3;
+        ParallelDescriptor::ReduceRealMax(auxm4,  ParallelDescriptor::IOProcessorNumber());
+    }
+    // Membrane stuff (SSA)
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     if (nreaction>0) {
         MultiFab::LinComb(ranchem,
@@ -869,9 +943,21 @@ void RK3stepStag(MultiFab& cu,
         BCMomTrans(cup2mom[i], vel[i], geom, i);
     }
 
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // Reservoir stuff
     if (do_reservoir) {
         ResetReservoirMom(cup2mom, cumom_res, geom); // set momentum at the reservoir interface to its value from particle update
     }
+    // Reservoir stuff
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // Membrane stuff (SSA)
+    if ((membrane_cell>=0) and (membrane_type == 0)) {
+        ResetMembraneMom(cup2mom, cumom_mem, geom); // set momentum at the membrane to its value from particle update
+    }
+    // Membrane stuff (SSA)
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     // Fill  boundaries for conserved variables
     for (int d=0; d<AMREX_SPACEDIM; d++) {
@@ -997,6 +1083,8 @@ void RK3stepStag(MultiFab& cu,
         stochface, stochedge_x, stochedge_y, stochedge_z, stochcen, 
         geom, stoch_weights,dt);
     
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // Reservoir stuff
     // add to the total continuum fluxes based on RK3 weight
     if (do_reservoir) {
         aux5 = ParallelDescriptor::second();
@@ -1011,6 +1099,27 @@ void RK3stepStag(MultiFab& cu,
         aux6 = ParallelDescriptor::second() - aux5;
         ParallelDescriptor::ReduceRealMax(aux6,  ParallelDescriptor::IOProcessorNumber());
     }
+    // Reservoir stuff
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////
+    
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // Membrane stuff (SSA)
+    // add to the total continuum fluxes based on RK3 weight
+    if ((membrane_cell>=0) and (membrane_type == 0)) {
+        auxm5 = ParallelDescriptor::second();
+        ComputeFluxMomMembrane(cup2,prim,vel,cumom_mem,
+                               faceflux_mem,
+                               geom,(2.0/3.0)*dt); // compute fluxes and momentum from membrane particle update
+        ResetMembraneFluxes(faceflux_mem, faceflux,
+                            edgeflux_x,
+                            edgeflux_y,
+                            edgeflux_z,
+                            geom); // reset fluxes at the membrane from particle update
+        auxm6 = ParallelDescriptor::second() - auxm5;
+        ParallelDescriptor::ReduceRealMax(auxm6,  ParallelDescriptor::IOProcessorNumber());
+    }
+    // Membrane stuff (SSA)
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     if (nreaction>0) {
         MultiFab::LinComb(ranchem,
@@ -1210,9 +1319,21 @@ void RK3stepStag(MultiFab& cu,
         BCMomTrans(cumom[i], vel[i], geom, i);
     }
 
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // Reservoir stuff
     if (do_reservoir) {
         ResetReservoirMom(cumom, cumom_res, geom); // set momentum at the reservoir interface to its value from particle update
     }
+    // Reservoir stuff
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // Membrane stuff (SSA)
+    if ((membrane_cell>=0) and (membrane_type == 0)) {
+        ResetMembraneMom(cumom, cumom_mem, geom); // set momentum at the membrane to its value from particle update
+    }
+    // Membrane stuff (SSA)
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////
     
     // Fill  boundaries for conserved variables
     for (int d=0; d<AMREX_SPACEDIM; d++) {
@@ -1230,17 +1351,34 @@ void RK3stepStag(MultiFab& cu,
     prim.FillBoundary(geom.periodicity());
     cu.FillBoundary(geom.periodicity()); 
 
-    // Membrane setup
-    if (membrane_cell >= 0) {
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // Membrane stuff (Langevin)
+    if ((membrane_cell >= 0) and (membrane_type == 1)) {
         doMembraneStag(cu,cumom,prim,vel,faceflux,edgeflux_x,geom,dt);
     }
+    // Membrane stuff (Langevin)
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     // Correctly set momentum and velocity at the walls & temperature, pressure, density & mass/mole fractions in ghost cells
     setBCStag(prim, cu, cumom, vel, geom);
 
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // Reservoir stuff
     if (do_reservoir) {
         if (step%100 == 0) {
             amrex::Print() << "Step: " << step << " Reservoir generator time: " << aux2 + aux4 + aux6 << " seconds\n";
         }
     }
+    // Reservoir stuff
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // Membrane stuff
+    if ((membrane_cell >= 0) and (membrane_type == 0)) {
+        if (step%100 == 0) {
+            amrex::Print() << "Step: " << step << " Membrane (SSA) time: " << auxm2 + auxm4 + auxm6 << " seconds\n";
+        }
+    }
+    // Membrane
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////
 }

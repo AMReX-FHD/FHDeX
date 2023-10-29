@@ -151,6 +151,27 @@ void applyEffusion(std::array<MultiFab, AMREX_SPACEDIM>& faceflux,
                    std::array< MultiFab, AMREX_SPACEDIM >& cumom);
 
 void 
+ResetMembraneMom(std::array<MultiFab, AMREX_SPACEDIM>& cumom,
+                 const std::array<MultiFab, AMREX_SPACEDIM>& cumom_mem,
+                 const amrex::Geometry& geom);
+
+void 
+ResetMembraneFluxes(const std::array<MultiFab, AMREX_SPACEDIM>& faceflux_mem,
+                    std::array<MultiFab, AMREX_SPACEDIM>& faceflux,
+                    std::array< MultiFab, 2 >& edgeflux_x,
+                    std::array< MultiFab, 2 >& edgeflux_y,
+                    std::array< MultiFab, 2 >& edgeflux_z,
+                    const amrex::Geometry& geom);
+
+void 
+ComputeFluxMomMembrane(const MultiFab& cons0_in, const MultiFab& prim0_in,
+                       const std::array<MultiFab, AMREX_SPACEDIM>& vel0,
+                       std::array<MultiFab, AMREX_SPACEDIM>& cumom_mem,
+                       std::array<MultiFab, AMREX_SPACEDIM>& faceflux_mem,
+                       const amrex::Geometry& geom,
+                       const amrex::Real dt);
+
+void 
 ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
                         const std::array<MultiFab, AMREX_SPACEDIM>& vel0,
                         std::array<MultiFab, AMREX_SPACEDIM>& cumom_res,
