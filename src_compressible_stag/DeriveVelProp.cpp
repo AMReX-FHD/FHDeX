@@ -30,7 +30,6 @@ void GetTurbQty(std::array< MultiFab, AMREX_SPACEDIM >& vel,
     MultiFab ccTemp;
     MultiFab ccTempA;
     MultiFab ccTempDiv;
-    MultiFab eta_kin; // kinematic viscosity
     std::array< MultiFab, NUM_EDGE > curlU;
     std::array< MultiFab, NUM_EDGE > eta_edge;
     std::array< MultiFab, NUM_EDGE > curlUtemp;
@@ -42,7 +41,6 @@ void GetTurbQty(std::array< MultiFab, AMREX_SPACEDIM >& vel,
     ccTemp.define(prim.boxArray(),prim.DistributionMap(),1,0);
     ccTempA.define(prim.boxArray(),prim.DistributionMap(),1,0);
     ccTempDiv.define(prim.boxArray(),prim.DistributionMap(),1,0);
-    eta_kin.define(prim.boxArray(),prim.DistributionMap(),1,ngc);
 #if (AMREX_SPACEDIM == 3)
     curlU[0].define(convert(prim.boxArray(),nodal_flag_xy), prim.DistributionMap(), 1, 0);
     curlU[1].define(convert(prim.boxArray(),nodal_flag_xz), prim.DistributionMap(), 1, 0);
@@ -63,19 +61,6 @@ void GetTurbQty(std::array< MultiFab, AMREX_SPACEDIM >& vel,
     curlUtemp[0].define(convert(prim.boxArray(),nodal_flag_xy), prim.DistributionMap(), 1, 0);
 #endif
 
-    // Get Kinematic Viscosity
-    for ( MFIter mfi(eta,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
-        // grow the box by ngc
-        const Box& bx = amrex::grow(mfi.tilebox(), ngc);
-        const Array4<Real> & eta_kin_fab = eta_kin.array(mfi);
-        const Array4<const Real>& eta_fab = eta.array(mfi);
-        const Array4<const Real>& prim_fab = prim.array(mfi);
-        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-        {
-            eta_kin_fab(i,j,k) = eta_fab(i,j,k) / prim_fab(i,j,k,0);
-        });
-    }
-
     // Setup temp variables
     Real temp;
     Vector<Real> tempvec(3);
@@ -87,14 +72,38 @@ void GetTurbQty(std::array< MultiFab, AMREX_SPACEDIM >& vel,
     Vector<Real> eps_s_vec(3); // solenoidal dissipation
 
     // turbulent kinetic energy
-    StagInnerProd(cumom,0,vel,0,macTemp,rhouu);
+//   StagInnerProd(cumom,0,vel,0,macTemp,rhouu);
+    {
+        auto mask = cumom[0].OwnerMask(geom.periodicity());
+	rhouu[0] = MultiFab::Dot(cumom[0],0,vel[0],0,1,0);
+    }
+    {
+        auto mask = cumom[1].OwnerMask(geom.periodicity());
+	rhouu[1] = MultiFab::Dot(cumom[1],0,vel[1],0,1,0);
+    }
+    {
+        auto mask = cumom[2].OwnerMask(geom.periodicity());
+	rhouu[2] = MultiFab::Dot(cumom[2],0,vel[2],0,1,0);
+    }
     rhouu[0] /= (n_cells[0]+1)*n_cells[1]*n_cells[2];
     rhouu[1] /= (n_cells[1]+1)*n_cells[2]*n_cells[0];
     rhouu[2] /= (n_cells[2]+1)*n_cells[0]*n_cells[1];
     turbKE = 0.5*( rhouu[0] + rhouu[1] + rhouu[2] );
 
     // RMS velocity
-    StagInnerProd(vel,0,vel,0,macTemp,uu);
+//    StagInnerProd(vel,0,vel,0,macTemp,uu);
+    {
+        auto mask = vel[0].OwnerMask(geom.periodicity());
+	uu[0] = MultiFab::Dot(vel[0],0,vel[0],0,1,0);
+    }
+    {
+        auto mask = vel[1].OwnerMask(geom.periodicity());
+	uu[1] = MultiFab::Dot(vel[1],0,vel[1],0,1,0);
+    }
+    {
+        auto mask = vel[2].OwnerMask(geom.periodicity());
+	uu[2] = MultiFab::Dot(vel[2],0,vel[2],0,1,0);
+    }
     uu[0] /= (n_cells[0]+1)*n_cells[1]*n_cells[2];
     uu[1] /= (n_cells[1]+1)*n_cells[2]*n_cells[0];
     uu[2] /= (n_cells[2]+1)*n_cells[0]*n_cells[1];
@@ -167,17 +176,30 @@ void GetTurbQty(std::array< MultiFab, AMREX_SPACEDIM >& vel,
     // Compute \omega (curl)
     ComputeCurlFaceToEdge(vel,curlU,geom);
     
-    // Solenoidal dissipation: <eta_kin \omega_i \omega_i>/<rho>
-    AverageCCToEdge(eta_kin,eta_edge,0,1,SPEC_BC_COMP,geom);
+    // Solenoidal dissipation: <eta \omega_i \omega_i>
+    AverageCCToEdge(eta,eta_edge,0,1,SPEC_BC_COMP,geom);
     EdgeInnerProd(curlU,0,curlU,0,curlUtemp,tempvec);
-    EdgeInnerProd(curlUtemp,0,eta_edge,0,curlU,eps_s_vec);
+//    EdgeInnerProd(curlUtemp,0,eta_edge,0,curlU,eps_s_vec);
+    {
+        auto mask = curlUtemp[0].OwnerMask(geom.periodicity());
+	eps_s_vec[0] = MultiFab::Dot(curlUtemp[0],0,eta_edge[0],0,1,0);
+    }
+    {
+        auto mask = curlUtemp[1].OwnerMask(geom.periodicity());
+	eps_s_vec[1] = MultiFab::Dot(curlUtemp[1],0,eta_edge[1],0,1,0);
+    }
+    {
+        auto mask = curlUtemp[2].OwnerMask(geom.periodicity());
+	eps_s_vec[2] = MultiFab::Dot(curlUtemp[2],0,eta_edge[2],0,1,0);
+    }
     eps_s_vec[0] /= (n_cells[0]+1)*(n_cells[1]+1)*n_cells[2];
     eps_s_vec[1] /= (n_cells[0]+1)*(n_cells[2]+1)*n_cells[1];
     eps_s_vec[2] /= (n_cells[1]+1)*(n_cells[2]+1)*n_cells[0];
     eps_s = (eps_s_vec[0] + eps_s_vec[1] + eps_s_vec[2]);
 
-    // Dilational dissipation (4/3)*<eta_kin (\sum_i du_i/dx_i)^2>/<rho>
-    CCInnerProd(ccTempDiv,0,eta_kin,0,ccTemp,eps_d);
+    // Dilational dissipation (4/3)*<eta (\sum_i du_i/dx_i)^2>
+//    CCInnerProd(ccTempDiv,0,eta,0,ccTemp,eps_d);
+    eps_d = MultiFab::Dot(eta, 0, ccTempDiv, 0, 1, 0);
     eps_d *= dProb*(4.0/3.0);
 
     // Ratio of Dilational to Solenoidal dissipation
@@ -185,10 +207,12 @@ void GetTurbQty(std::array< MultiFab, AMREX_SPACEDIM >& vel,
     Real eps_t = eps_s + eps_d;
 
     // Kolmogorov scales
-    Real eta_kin_avg = ComputeSpatialMean(eta_kin, 0);
-    kolm_s = pow((eta_kin_avg*eta_kin_avg*eta_kin_avg/eps_s),0.25);
-    kolm_d = pow((eta_kin_avg*eta_kin_avg*eta_kin_avg/eps_d),0.25);
-    kolm_t = pow((eta_kin_avg*eta_kin_avg*eta_kin_avg/eps_t),0.25);
+    kolm_s = pow((eta_avg*eta_avg*eta_avg/(rho_avg*rho_avg*eps_s)),0.25);
+    kolm_s = pow((eta_avg*eta_avg*eta_avg/(rho_avg*rho_avg*eps_d)),0.25);
+    kolm_s = pow((eta_avg*eta_avg*eta_avg/(rho_avg*rho_avg*eps_t)),0.25);
+//    kolm_s = pow((eta_avg*eta_avg*eta_avg/eps_s),0.25);
+//    kolm_d = pow((eta_avg*eta_avg*eta_avg/eps_d),0.25);
+//    kolm_t = pow((eta_avg*eta_avg*eta_avg/eps_t),0.25);
 
 }
 #endif
