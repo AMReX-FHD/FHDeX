@@ -208,8 +208,8 @@ void GetTurbQty(std::array< MultiFab, AMREX_SPACEDIM >& vel,
 
     // Kolmogorov scales
     kolm_s = pow((eta_avg*eta_avg*eta_avg/(rho_avg*rho_avg*eps_s)),0.25);
-    kolm_s = pow((eta_avg*eta_avg*eta_avg/(rho_avg*rho_avg*eps_d)),0.25);
-    kolm_s = pow((eta_avg*eta_avg*eta_avg/(rho_avg*rho_avg*eps_t)),0.25);
+    kolm_d = pow((eta_avg*eta_avg*eta_avg/(rho_avg*rho_avg*eps_d)),0.25);
+    kolm_t = pow((eta_avg*eta_avg*eta_avg/(rho_avg*rho_avg*eps_t)),0.25);
 //    kolm_s = pow((eta_avg*eta_avg*eta_avg/eps_s),0.25);
 //    kolm_d = pow((eta_avg*eta_avg*eta_avg/eps_d),0.25);
 //    kolm_t = pow((eta_avg*eta_avg*eta_avg/eps_t),0.25);
