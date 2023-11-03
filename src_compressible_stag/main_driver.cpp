@@ -947,6 +947,9 @@ void main_driver(const char* argv)
           RK3stepStag(cu, cumom, prim, vel, source, eta, zeta, kappa, chi, D, 
               faceflux, edgeflux_x, edgeflux_y, edgeflux_z, cenflux, ranchem, geom, dt, step, turbforce);
         }
+	else {
+	  calculateTransportCoeffs(prim, eta, zeta, kappa, chi, D);
+	}
 
         // update surface chemistry (via either surfchem_mui or MFsurfchem)
 #if defined(MUI) || defined(USE_AMREX_MPMD)
