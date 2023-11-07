@@ -135,8 +135,8 @@ void main_driver(const char* argv)
     // define DistributionMapping
     dmap.define(ba);
 
-    MultiFab height (ba, dmap, 1, 1);
-    MultiFab Laph   (ba, dmap, 1, 1);
+    MultiFab height(ba, dmap, 1, 1);
+    MultiFab Laph(ba, dmap, 1, 1);
     MultiFab disjoining(ba, dmap, 1, 1);
     Laph.setVal(0.); // prevent intermediate NaN calculations behind physical boundaries
     disjoining.setVal(0.);
@@ -462,14 +462,14 @@ void main_driver(const char* argv)
             {
                 fluxx(i,j,k) = x_flux_fac * (
                                std::sqrt(ConstNoise*std::pow(hfacex(i,j,k),3.) / (dt*dVol)) * randfacex(i,j,k)
-                               + Const3dx * std::pow(hfacex(i,j,k),3.)*gradLaphx(i,j,k)
+                               + Const3dx         * std::pow(hfacex(i,j,k),3.)*gradLaphx(i,j,k)
                                + Const3dx_nogamma * std::pow(hfacex(i,j,k),3.)*gradDisjoiningx(i,j,k));
             },
                                [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 fluxy(i,j,k) = y_flux_fac * (
                                std::sqrt(ConstNoise*std::pow(hfacey(i,j,k),3.) / (dt*dVol)) * randfacey(i,j,k)
-                               + Const3dx * std::pow(hfacey(i,j,k),3.)*gradLaphy(i,j,k)
+                               + Const3dx         * std::pow(hfacey(i,j,k),3.)*gradLaphy(i,j,k)
                                + Const3dx_nogamma * std::pow(hfacex(i,j,k),3.)*gradDisjoiningy(i,j,k) );
             });
 
