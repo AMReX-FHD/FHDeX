@@ -135,9 +135,11 @@ void main_driver(const char* argv)
     // define DistributionMapping
     dmap.define(ba);
 
-    MultiFab height(ba, dmap, 1, 1);
-    MultiFab Laph  (ba, dmap, 1, 1);
+    MultiFab height (ba, dmap, 1, 1);
+    MultiFab Laph   (ba, dmap, 1, 1);
+    MultiFab disjoining(ba, dmap, 1, 1);
     Laph.setVal(0.); // prevent intermediate NaN calculations behind physical boundaries
+    disjoining.setVal(0.);
 
     // for statsitics
 
@@ -169,6 +171,11 @@ void main_driver(const char* argv)
                  gradLaph[1].define(convert(ba,nodal_flag_y), dmap, 1, 0);,
                  gradLaph[2].define(convert(ba,nodal_flag_z), dmap, 1, 0););
     
+    std::array< MultiFab, AMREX_SPACEDIM > gradDisjoining;
+    AMREX_D_TERM(gradDisjoining[0].define(convert(ba,nodal_flag_x), dmap, 1, 0);,
+                 gradDisjoining[1].define(convert(ba,nodal_flag_y), dmap, 1, 0);,
+                 gradDisjoining[2].define(convert(ba,nodal_flag_z), dmap, 1, 0););
+
     std::array< MultiFab, AMREX_SPACEDIM > flux;
     AMREX_D_TERM(flux[0]    .define(convert(ba,nodal_flag_x), dmap, 1, 0);,
                  flux[1]    .define(convert(ba,nodal_flag_y), dmap, 1, 0);,
@@ -205,6 +212,7 @@ void main_driver(const char* argv)
     // constant factor in noise term
     Real ConstNoise = 2.*k_B*T_init[0] / (3.*visc_coef);
     Real Const3dx = thinfilm_gamma / (3.*visc_coef);
+    Real Const3dx_nogamma = 1. / (3.*visc_coef);
 
     Real time = 0.;
 
@@ -301,7 +309,7 @@ void main_driver(const char* argv)
             AMREX_D_TERM(const Array4<Real> & gradhx = gradh[0].array(mfi);,
                          const Array4<Real> & gradhy = gradh[1].array(mfi);,
                          const Array4<Real> & gradhz = gradh[2].array(mfi););
-            
+
             const Array4<Real> & h = height.array(mfi);
 
             amrex::ParallelFor(bx_x, bx_y,
@@ -365,12 +373,16 @@ void main_driver(const char* argv)
 
         }
 
-        // compute Laph
+        // compute Laph and disjoining
         for ( MFIter mfi(Laph,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
 
             const Box& bx = mfi.tilebox();
 
             const Array4<Real> & L = Laph.array(mfi);
+
+            const Array4<Real> & h = height.array(mfi);
+
+            const Array4<Real> & Disjoining = disjoining.array(mfi);
         
             AMREX_D_TERM(const Array4<Real> & gradhx = gradh[0].array(mfi);,
                          const Array4<Real> & gradhy = gradh[1].array(mfi);,
@@ -380,11 +392,13 @@ void main_driver(const char* argv)
             {
                 L(i,j,k) = x_flux_fac * (gradhx(i+1,j,k) - gradhx(i,j,k)) / dx[0]
                          + y_flux_fac * (gradhy(i,j+1,k) - gradhy(i,j,k)) / dx[1];
+
+                Disjoining(i,j,k) = thinfilm_hamaker / (6.*M_PI*std::pow(h(i,j,k),3.));
             });
         }
         Laph.FillBoundary(geom.periodicity());
 
-        // compute gradLaph
+        // compute gradLaph and gradDisjoining
         for ( MFIter mfi(height,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
 
             AMREX_D_TERM(const Box & bx_x = mfi.nodaltilebox(0);,
@@ -394,17 +408,25 @@ void main_driver(const char* argv)
             AMREX_D_TERM(const Array4<Real> & gradLaphx = gradLaph[0].array(mfi);,
                          const Array4<Real> & gradLaphy = gradLaph[1].array(mfi);,
                          const Array4<Real> & gradLaphz = gradLaph[2].array(mfi););
+
+            AMREX_D_TERM(const Array4<Real> & gradDisjoiningx = gradDisjoining[0].array(mfi);,
+                         const Array4<Real> & gradDisjoiningy = gradDisjoining[1].array(mfi);,
+                         const Array4<Real> & gradDisjoiningz = gradDisjoining[2].array(mfi););
             
             const Array4<Real> & L = Laph.array(mfi);
+
+            const Array4<Real> & Disjoining = disjoining.array(mfi);
 
             amrex::ParallelFor(bx_x, bx_y,
                                [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 gradLaphx(i,j,k) = ( L(i,j,k) - L(i-1,j,k) ) / dx[0];
+                gradDisjoiningx(i,j,k) = ( Disjoining(i,j,k) -Disjoining(i-1,j,k) ) / dx[0];
             },
                                [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 gradLaphy(i,j,k) = ( L(i,j,k) - L(i,j-1,k) ) / dx[1];
+                gradDisjoiningy(i,j,k) = ( Disjoining(i,j,k) -Disjoining(i,j-1,k) ) / dx[1];
             });
         }
 
@@ -431,18 +453,24 @@ void main_driver(const char* argv)
                          const Array4<Real> & randfacey = randface[1].array(mfi);,
                          const Array4<Real> & randfacez = randface[2].array(mfi););
 
+            AMREX_D_TERM(const Array4<Real> & gradDisjoiningx = gradDisjoining[0].array(mfi);,
+                         const Array4<Real> & gradDisjoiningy = gradDisjoining[1].array(mfi);,
+                         const Array4<Real> & gradDisjoiningz = gradDisjoining[2].array(mfi););
+
             amrex::ParallelFor(bx_x, bx_y,
                                [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 fluxx(i,j,k) = x_flux_fac * (
                                std::sqrt(ConstNoise*std::pow(hfacex(i,j,k),3.) / (dt*dVol)) * randfacex(i,j,k)
-                               + Const3dx * std::pow(hfacex(i,j,k),3.)*gradLaphx(i,j,k) );
+                               + Const3dx * std::pow(hfacex(i,j,k),3.)*gradLaphx(i,j,k)
+                               + Const3dx_nogamma * std::pow(hfacex(i,j,k),3.)*gradDisjoiningx(i,j,k));
             },
                                [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 fluxy(i,j,k) = y_flux_fac * (
                                std::sqrt(ConstNoise*std::pow(hfacey(i,j,k),3.) / (dt*dVol)) * randfacey(i,j,k)
-                               + Const3dx * std::pow(hfacey(i,j,k),3.)*gradLaphy(i,j,k) );
+                               + Const3dx * std::pow(hfacey(i,j,k),3.)*gradLaphy(i,j,k)
+                               + Const3dx_nogamma * std::pow(hfacex(i,j,k),3.)*gradDisjoiningy(i,j,k) );
             });
 
             // lo x-faces
