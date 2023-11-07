@@ -116,13 +116,13 @@ void compute_chemistry_source_CLE(amrex::Real dt, amrex::Real dV,
             GpuArray<amrex::Real,MAX_REACTION> avg_react_rate;
             for (int m=0; m<nreaction; m++)
             {
+                // rate constants
                 avg_react_rate[m] = rate_const[m];
+                avg_react_rate[m] *= exp(-alpha_param[m]/k_B*(1/T-1/T0));
+                avg_react_rate[m] *= pow(T/T0,beta_param[m]);
 
                 for (int n=0; n<nspecies; n++)
                 {
-                    // corrections for fluctuating temperature
-                    avg_react_rate[m] *= exp(stoich_coeffs_R(m,n)*m_s[n]*e0[n]/k_B*(1/T-1/T0));
-                    avg_react_rate[m] *= pow(T/T0,-stoich_coeffs_R(m,n)*m_s[n]*hcp[n]/k_B);
                     // rate in terms of pressure (more precisely activity)
                     avg_react_rate[m] *= pow(pres/pres0*Xk[n],stoich_coeffs_R(m,n));
                 }
