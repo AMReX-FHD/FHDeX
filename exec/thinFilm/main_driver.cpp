@@ -309,7 +309,7 @@ void main_driver(const char* argv)
             AMREX_D_TERM(const Array4<Real> & gradhx = gradh[0].array(mfi);,
                          const Array4<Real> & gradhy = gradh[1].array(mfi);,
                          const Array4<Real> & gradhz = gradh[2].array(mfi););
-
+            
             const Array4<Real> & h = height.array(mfi);
 
             amrex::ParallelFor(bx_x, bx_y,

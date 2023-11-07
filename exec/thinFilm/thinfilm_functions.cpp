@@ -28,6 +28,7 @@ void InitializeThinfilmNamespace() {
     
     pp.get("thinfilm_h0",thinfilm_h0);
     pp.get("thinfilm_gamma",thinfilm_gamma);
+
     pp.query("thinfilm_pertamp",thinfilm_pertamp);
     pp.query("thinfilm_hamaker",thinfilm_hamaker);
 
