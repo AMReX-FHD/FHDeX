@@ -136,7 +136,7 @@ void main_driver(const char* argv)
     dmap.define(ba);
 
     MultiFab height(ba, dmap, 1, 1);
-    MultiFab Laph(ba, dmap, 1, 1);
+    MultiFab Laph  (ba, dmap, 1, 1);
     MultiFab disjoining(ba, dmap, 1, 1);
     Laph.setVal(0.); // prevent intermediate NaN calculations behind physical boundaries
     disjoining.setVal(0.);
