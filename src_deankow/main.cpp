@@ -32,6 +32,7 @@ void main_main ()
 
     // AMREX_SPACEDIM: number of dimensions
     int n_cell, max_grid_size, nsteps, plot_int;
+    int alg_type;
     amrex::Real npts_scale;
     amrex::Real cfl;
     Vector<int> bc_lo(AMREX_SPACEDIM,0);
@@ -60,6 +61,9 @@ void main_main ()
 
 	npts_scale = 1.;
 	pp.query ("npts_scale",npts_scale);
+
+	alg_type = 0;
+	pp.query ("alg_type",alg_type);
 
 	cfl=.9;
 	pp.query ("cfl",cfl);
@@ -104,7 +108,12 @@ void main_main ()
     int Nghost = 1;
 
     // Ncomp = number of components for each array
-    int Ncomp  = 1;
+    int Ncomp;
+    if(alg_type == 0){
+       Ncomp = 1;
+    } else {
+       Ncomp = 2;
+    }
 
     // How Boxes are distrubuted among MPI processes
     DistributionMapping dm(ba);
@@ -143,7 +152,7 @@ void main_main ()
 
     GpuArray<Real,AMREX_SPACEDIM> dx = geom.CellSizeArray();
 
-    init_phi(phi_new, geom,npts_scale);
+    init_phi(phi_new, geom,npts_scale, Ncomp);
 
     //Boundary conditions are assigned to phi_old such that the ghost cells at the boundary will
     //be filled to satisfy those conditions.
@@ -212,8 +221,8 @@ void main_main ()
         // flux(dir) has one component, zero ghost cells, and is nodal in direction dir
         BoxArray edge_ba = ba;
         edge_ba.surroundingNodes(dir);
-        flux[dir].define(edge_ba, dm, 1, 0);
-        stochFlux[dir].define(edge_ba, dm, 1, 0);
+        flux[dir].define(edge_ba, dm, Ncomp, 0);
+        stochFlux[dir].define(edge_ba, dm, Ncomp, 0);
     }
 
     AMREX_D_TERM(stochFlux[0].setVal(0.0);,
@@ -223,10 +232,10 @@ void main_main ()
 
     for (int n = 1; n <= nsteps; ++n)
     {
-        MultiFab::Copy(phi_old, phi_new, 0, 0, 1, 0);
+        MultiFab::Copy(phi_old, phi_new, 0, 0, Ncomp, 0);
 
         // new_phi = old_phi + dt * (something)
-        advance(phi_old, phi_new, flux, stochFlux, dt, npts_scale, geom, bc);
+        advance(phi_old, phi_new, flux, stochFlux, dt, npts_scale, geom, bc, Ncomp);
         time = time + dt;
 
         // Tell the I/O Processor to write out which step we're doing
