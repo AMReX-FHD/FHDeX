@@ -397,6 +397,7 @@ void main_driver(const char* argv)
             });
         }
         Laph.FillBoundary(geom.periodicity());
+        disjoining.FillBoundary(geom.periodicity());
 
         // compute gradLaph and gradDisjoining
         for ( MFIter mfi(height,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
@@ -517,8 +518,11 @@ void main_driver(const char* argv)
             
             const Array4<Real> & h = height.array(mfi);
 
+            // amrex::Print{} << "HEIGHT " << time << " " << h(0,0,0) << " " << h(31,0,0) << std::endl;
+
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
+
                 h(i,j,k) -= dt * ( (fluxx(i+1,j,k) - fluxx(i,j,k)) / dx[0]
                                   +(fluxy(i,j+1,k) - fluxy(i,j,k)) / dx[1]);
             });
@@ -539,6 +543,8 @@ void main_driver(const char* argv)
             // copy distributed data into 1D data
             height_onegrid.ParallelCopy(height, 0, 0, 1);
 
+            amrex::Real sumh = 0.;
+
             for ( MFIter mfi(height_onegrid,false); mfi.isValid(); ++mfi ) {
 
                 std::ofstream hstream;
@@ -558,9 +564,14 @@ void main_driver(const char* argv)
                 for (auto j = lo.y; j <= hi.y; ++j) {
                 for (auto i = lo.x; i <= hi.x; ++i) {
                     hstream << std::setprecision(15) << mfdata(i,j,0) << " ";
+                    sumh += mfdata(i,j,0);
+                    if(j==0 && i==0){
+                       amrex::Print{} << "HEIGHT " << time << " " << mfdata(0,0,0) << " " << mfdata(31,0,0) << std::endl;
+                    }
                 }
                 hstream << "\n";
                 }
+                amrex::Print{} << "SUM " << sumh << std::endl;
 
             } // end MFIter
             
