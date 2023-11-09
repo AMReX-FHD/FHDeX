@@ -683,7 +683,12 @@ void main_driver(const char* argv)
         
         if (plot_int > 0) {
             WritePlotFileStag(0, 0.0, geom, cu, cuMeans, cuVars, cumom, cumomMeans, cumomVars, 
-                          prim, primMeans, primVars, vel, velMeans, velVars, coVars, surfcov, surfcovMeans, surfcovVars, eta, kappa);
+                          prim, primMeans, primVars, vel, velMeans, velVars, coVars, surfcov, surfcovMeans, surfcovVars, eta, kappa, zeta);
+#if defined(TURB)
+            if (turbForcing > 0) {
+                EvaluateWritePlotFileVelGrad(0, 0.0, geom, vel, vel_decomp);
+            }
+#endif
 
             if (plot_cross) {
                 if (do_1D) {
@@ -1004,7 +1009,7 @@ void main_driver(const char* argv)
 
         // timer
         Real ts2 = ParallelDescriptor::second() - ts1;
-        ParallelDescriptor::ReduceRealMax(ts2);
+        ParallelDescriptor::ReduceRealMax(ts2, ParallelDescriptor::IOProcessorNumber());
         if (step%100 == 0) {
             amrex::Print() << "Advanced step " << step << " in " << ts2 << " seconds\n";
         }
@@ -1100,7 +1105,7 @@ void main_driver(const char* argv)
             //yzAverage(cuMeans, cuVars, primMeans, primVars, spatialCross,
             //          cuMeansAv, cuVarsAv, primMeansAv, primVarsAv, spatialCrossAv);
             WritePlotFileStag(step, time, geom, cu, cuMeans, cuVars, cumom, cumomMeans, cumomVars,
-                              prim, primMeans, primVars, vel, velMeans, velVars, coVars, surfcov, surfcovMeans, surfcovVars, eta, kappa);
+                              prim, primMeans, primVars, vel, velMeans, velVars, coVars, surfcov, surfcovMeans, surfcovVars, eta, kappa, zeta);
             
             if (plot_cross) {
                 if (do_1D) {
@@ -1451,7 +1456,7 @@ void main_driver(const char* argv)
 
         // timer
         Real aux2 = ParallelDescriptor::second() - aux1;
-        ParallelDescriptor::ReduceRealMax(aux2);
+        ParallelDescriptor::ReduceRealMax(aux2,  ParallelDescriptor::IOProcessorNumber());
         if (step%100 == 0) {
             amrex::Print() << "Aux time (stats, struct fac, plotfiles) " << aux2 << " seconds\n";
         }
@@ -1499,6 +1504,6 @@ void main_driver(const char* argv)
 
     // timer
     Real stop_time = ParallelDescriptor::second() - strt_time;
-    ParallelDescriptor::ReduceRealMax(stop_time);
+    ParallelDescriptor::ReduceRealMax(stop_time, ParallelDescriptor::IOProcessorNumber());
     amrex::Print() << "Run time = " << stop_time << std::endl;
 }
