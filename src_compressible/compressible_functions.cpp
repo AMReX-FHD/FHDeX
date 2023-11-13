@@ -9,6 +9,7 @@ AMREX_GPU_MANAGED int compressible::do_2D;
 AMREX_GPU_MANAGED int compressible::all_correl;
 AMREX_GPU_MANAGED int compressible::nspec_surfcov = 0;
 AMREX_GPU_MANAGED bool compressible::do_reservoir = false;
+AMREX_GPU_MANAGED amrex::Real compressible::zeta_ratio = -1.0;
 
 void InitializeCompressibleNamespace()
 {
@@ -69,6 +70,11 @@ void InitializeCompressibleNamespace()
         (bc_mass_hi[0] == 4) or (bc_mass_hi[1] == 4) or (bc_mass_hi[2] == 4)) {
         do_reservoir = true;
     }
+
+    // bulk viscosity ratio
+    pp.query("zeta_ratio",zeta_ratio);
+    if ((amrex::Math::abs(visc_type) == 3) and (zeta_ratio < 0.0)) amrex::Abort("need non-negative zeta_ratio (ratio of bulk to shear viscosity) for visc_type = 3 (use bulk viscosity)");
+    if ((amrex::Math::abs(visc_type) == 3) and (zeta_ratio >= 0.0)) amrex::Print() << "bulk viscosity model selected; bulk viscosity ratio is: " << zeta_ratio << "\n";
 
     return;
 }

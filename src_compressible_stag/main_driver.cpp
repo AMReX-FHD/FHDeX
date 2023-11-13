@@ -717,7 +717,7 @@ void main_driver(const char* argv)
         
         if (plot_int > 0) {
             WritePlotFileStag(0, 0.0, geom, cu, cuMeans, cuVars, cumom, cumomMeans, cumomVars, 
-                          prim, primMeans, primVars, vel, velMeans, velVars, coVars, surfcov, surfcovMeans, surfcovVars, eta, kappa);
+                          prim, primMeans, primVars, vel, velMeans, velVars, coVars, surfcov, surfcovMeans, surfcovVars, eta, kappa, zeta);
 #if defined(TURB)
             if (turbForcing > 0) {
                 EvaluateWritePlotFileVelGrad(0, 0.0, geom, vel, vel_decomp);
@@ -1145,7 +1145,7 @@ void main_driver(const char* argv)
             //yzAverage(cuMeans, cuVars, primMeans, primVars, spatialCross,
             //          cuMeansAv, cuVarsAv, primMeansAv, primVarsAv, spatialCrossAv);
             WritePlotFileStag(step, time, geom, cu, cuMeans, cuVars, cumom, cumomMeans, cumomVars,
-                              prim, primMeans, primVars, vel, velMeans, velVars, coVars, surfcov, surfcovMeans, surfcovVars, eta, kappa);
+                              prim, primMeans, primVars, vel, velMeans, velVars, coVars, surfcov, surfcovMeans, surfcovVars, eta, kappa, zeta);
             
 #if defined(TURB)
             if (turbForcing > 0) {
