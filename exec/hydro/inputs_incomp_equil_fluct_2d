@@ -49,8 +49,6 @@
   bc_vel_lo = -1 -1
   bc_vel_hi = -1 -1
 
-algorithm_type = 2
-
 
 
   mg_verbose = 0                  # multigrid verbosity
