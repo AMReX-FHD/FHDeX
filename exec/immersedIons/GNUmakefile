@@ -2,7 +2,7 @@
 # If you set AMREX_HOME as an environment variable, this line will be ignored
 AMREX_HOME ?= ../../../amrex/
 FHDeX ?= ../../
-FIONS = $(FHDeX)/exec/immersedIons
+FIONS = .
 
 DEBUG     = FALSE
 USE_MPI   = TRUE
@@ -11,6 +11,7 @@ USE_CUDA  = FALSE
 COMP      = gnu
 DIM       = 3
 DSMC      = FALSE
+MAX_SPEC      = 8
 
 TINY_PROFILE  = FALSE
 USE_PARTICLES = TRUE
@@ -57,8 +58,8 @@ VPATH_LOCATIONS   += $(FHDeX)/src_electrostatic
 INCLUDE_LOCATIONS += $(FHDeX)/src_electrostatic
 
 include $(FHDeX)/src_immersed-boundary/MakeBase.package
-VPATH_LOCATIONS   += $(FHDeX)src_immersed-boundary
-INCLUDE_LOCATIONS += $(FHDeX)src_immersed-boundary
+VPATH_LOCATIONS   += $(FHDeX)/src_immersed-boundary
+INCLUDE_LOCATIONS += $(FHDeX)/src_immersed-boundary
 
 include $(FIONS)/Make.package
 
@@ -85,3 +86,6 @@ ifeq ($(USE_CUDA),TRUE)
 else
   LIBRARIES += -L$(FFTW_DIR) -lfftw3_mpi -lfftw3
 endif
+
+MAXSPECIES := $(strip $(MAX_SPEC))
+DEFINES += -DMAX_SPECIES=$(MAXSPECIES)

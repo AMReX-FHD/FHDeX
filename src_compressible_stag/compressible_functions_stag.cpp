@@ -33,30 +33,149 @@ void InitConsVarStag(MultiFab& cons,
 
     // compute some values and overwrite based on prob_type
         
-    // compute internal energy
-    Real intEnergy;
-    GpuArray<Real,MAX_SPECIES  > massvec;
-    for(int i=0;i<nspecies;i++) {
-        massvec[i] = rhobar[i];
-    }
-    GetEnergy(intEnergy, massvec, T_init[0]);
+    { // Put the following in a block to avoid warnings on shadowing
+        // compute internal energy
+        Real intEnergy;
+        GpuArray<Real,MAX_SPECIES  > massvec;
+        for(int i=0;i<nspecies;i++) {
+            massvec[i] = rhobar[i];
+        }
+        GetEnergy(intEnergy, massvec, T_init[0]);
 
-    cons.setVal(0.0,0,nvars,ngc);
-    cons.setVal(rho0,0,1,ngc);           // density
-    cons.setVal(0,1,3,ngc);              // x/y/z momentum
-    cons.setVal(rho0*intEnergy,4,1,ngc); // total energy
-    for(int i=0;i<nspecies;i++) {
-        cons.setVal(rho0*rhobar[i],5+i,1,ngc); // mass densities
-    }
+        cons.setVal(0.0,0,nvars,ngc);
+        cons.setVal(rho0,0,1,ngc);           // density
+        cons.setVal(0,1,3,ngc);              // x/y/z momentum
+        cons.setVal(rho0*intEnergy,4,1,ngc); // total energy
+        for(int i=0;i<nspecies;i++) {
+            cons.setVal(rho0*rhobar[i],5+i,1,ngc); // mass densities
+        }
 
-    for (int d=0; d<AMREX_SPACEDIM; d++) { // staggered momentum & velocities
-        momStag[d].setVal(0.,ngc);
+        for (int d=0; d<AMREX_SPACEDIM; d++) { // staggered momentum & velocities
+            momStag[d].setVal(0.,ngc);
+        }
     }
     
     for ( MFIter mfi(cons); mfi.isValid(); ++mfi ) {
         const Array4<      Real> cu = cons.array(mfi);
+        
+        AMREX_D_TERM(const Array4<Real>& momx = momStag[0].array(mfi);,
+                     const Array4<Real>& momy = momStag[1].array(mfi);,
+                     const Array4<Real>& momz = momStag[2].array(mfi););
 
         const Box& bx = mfi.tilebox();
+        const Box& xbx = mfi.tilebox(momStag[0].ixType().toIntVect());
+        const Box& ybx = mfi.tilebox(momStag[1].ixType().toIntVect());
+        const Box& zbx = mfi.tilebox(momStag[2].ixType().toIntVect());
+        
+        amrex::ParallelFor(xbx, ybx, zbx,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+
+            GpuArray<Real,AMREX_SPACEDIM> itVec;
+            GpuArray<Real,AMREX_SPACEDIM> pos;
+            GpuArray<Real,AMREX_SPACEDIM> relpos;
+
+            AMREX_D_TERM(itVec[0] = (i+0.0)*dx[0]; ,
+                         itVec[1] = (j+0.5)*dx[1]; ,
+                         itVec[2] = (k+0.5)*dx[2]);
+            
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                pos[d] = reallo[d] + itVec[d];
+                relpos[d] = pos[d] - center[d];
+            }
+
+            if (prob_type == 4) { // Taylor-Green Vortex
+                
+                if (mach0 < 0.0) amrex::Abort("need an initial mach number via mach0 parameter in inputs file"); 
+                Real x=itVec[0];
+                Real y=itVec[1];
+                Real z=itVec[2];
+                Real Lx = realhi[0] - reallo[0];
+                Real Ly = realhi[1] - reallo[1];
+                Real Lz = realhi[2] - reallo[2];
+
+                // problem scale
+                Real sound_speed; GetSoundSpeed(sound_speed, rhobar, T_init[0]);
+                Real vel_scale = mach0*sound_speed; // speed scale
+                Real press_scale; GetPressureGas(press_scale, rhobar, rho0, T_init[0]); // pressure scale
+                Real press = press_scale + (rho0*vel_scale*vel_scale/16.0) * (cos(4.*pi*x/Lx) + cos(4.*pi*y/Ly)) * (cos(4.*pi*z/Lz) + 2.0); // cell pressure
+                Real rho = rho0; // GetDensity(press, rho, T_init[0], rhobar); // cell density
+                Real ux = vel_scale * sin(2.*pi*x/Lx) * cos(2.*pi*y/Ly) * cos(2.*pi*z/Lz); // x-face velocity
+                momx(i,j,k) = rho*ux; // x-face momentum
+            }
+
+        },
+
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+
+            GpuArray<Real,AMREX_SPACEDIM> itVec;
+            GpuArray<Real,AMREX_SPACEDIM> pos;
+            GpuArray<Real,AMREX_SPACEDIM> relpos;
+
+            AMREX_D_TERM(itVec[0] = (i+0.5)*dx[0]; ,
+                         itVec[1] = (j+0.0)*dx[1]; ,
+                         itVec[2] = (k+0.5)*dx[2]);
+            
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                pos[d] = reallo[d] + itVec[d];
+                relpos[d] = pos[d] - center[d];
+            }
+
+            if (prob_type == 4) { // Taylor-Green Vortex
+                
+                Real x=itVec[0];
+                Real y=itVec[1];
+                Real z=itVec[2];
+                Real Lx = realhi[0] - reallo[0];
+                Real Ly = realhi[1] - reallo[1];
+                Real Lz = realhi[2] - reallo[2];
+
+                // problem scale
+                Real sound_speed; GetSoundSpeed(sound_speed, rhobar, T_init[0]);
+                Real vel_scale = mach0*sound_speed; // speed scale
+                Real press_scale; GetPressureGas(press_scale, rhobar, rho0, T_init[0]); // pressure scale
+                Real press = press_scale + (rho0*vel_scale*vel_scale/16.0) * (cos(4.*pi*x/Lx) + cos(4.*pi*y/Ly)) * (cos(4.*pi*z/Lz) + 2.0); // cell pressure
+                Real rho = rho0; //GetDensity(press, rho, T_init[0], rhobar); // cell density
+                Real uy = -vel_scale * cos(2.*pi*x/Lx) * sin(2.*pi*y/Ly) * cos(2.*pi*z/Lz); // y-face velocity
+                momy(i,j,k) = rho*uy; // y-face momentum
+            }
+
+        },
+
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+
+            GpuArray<Real,AMREX_SPACEDIM> itVec;
+            GpuArray<Real,AMREX_SPACEDIM> pos;
+            GpuArray<Real,AMREX_SPACEDIM> relpos;
+
+            AMREX_D_TERM(itVec[0] = (i+0.5)*dx[0]; ,
+                         itVec[1] = (j+0.5)*dx[1]; ,
+                         itVec[2] = (k+0.0)*dx[2]);
+            
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                pos[d] = reallo[d] + itVec[d];
+                relpos[d] = pos[d] - center[d];
+            }
+
+            if (prob_type == 4) { // Taylor-Green Vortex
+                
+                Real x=itVec[0];
+                Real y=itVec[1];
+                Real z=itVec[2];
+                Real Lx = realhi[0] - reallo[0];
+                Real Ly = realhi[1] - reallo[1];
+                Real Lz = realhi[2] - reallo[2];
+
+                // problem scale
+                Real sound_speed; GetSoundSpeed(sound_speed, rhobar, T_init[0]);
+                Real vel_scale = mach0*sound_speed; // speed scale
+                Real press_scale; GetPressureGas(press_scale, rhobar, rho0, T_init[0]); // pressure scale
+                Real press = press_scale + (rho0*vel_scale*vel_scale/16.0) * (cos(4.*pi*x/Lx) + cos(4.*pi*y/Ly)) * (cos(4.*pi*z/Lz) + 2.0); // cell pressure
+                Real rho = rho0; //GetDensity(press, rho, T_init[0], rhobar); // cell density
+                Real uz = 0.0; // z-face velocity
+                momz(i,j,k) = rho*uz; // z-face momentum
+            }
+
+        });
 
         amrex::ParallelFor(bx,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
@@ -134,23 +253,34 @@ void InitConsVarStag(MultiFab& cons,
                                                            cu(i,j,k,2)*cu(i,j,k,2) +
                                                            cu(i,j,k,3)*cu(i,j,k,3)) / cu(i,j,k,0);
             } else if (prob_type == 4) { // Taylor Green Vortex
-
+                
                 Real x=itVec[0];
                 Real y=itVec[1];
                 Real z=itVec[2];
+                Real Lx = realhi[0] - reallo[0];
+                Real Ly = realhi[1] - reallo[1];
+                Real Lz = realhi[2] - reallo[2];
 
-                cu(i,j,k,0) = 1.784e-3;
-                cu(i,j,k,1) =  velscale*cu(i,j,k,0)*sin(2.*pi*x/Lf)*cos(2.*pi*y/Lf)*cos(2.*pi*z/Lf);
-                cu(i,j,k,2) = -velscale*cu(i,j,k,0)*cos(2.*pi*x/Lf)*sin(2.*pi*y/Lf)*cos(2.*pi*z/Lf);
-                cu(i,j,k,3) = 0.;
-                Real pres = 1.01325e6+cu(i,j,k,0)*velscale*velscale*cos(2.*pi*x/Lf)*cos(4.*pi*y/Lf)*(cos(4.*pi*z/Lf)+2.);
-                cu(i,j,k,4) = pres/(5./3.-1.) + 0.5*(cu(i,j,k,1)*cu(i,j,k,1) +
-                                                     cu(i,j,k,2)*cu(i,j,k,2) +
-                                                     cu(i,j,k,3)*cu(i,j,k,3)) / cu(i,j,k,0);
-                cu(i,j,k,5) = cu(i,j,k,0);
-                cu(i,j,k,6) = 0.;
+                // problem scale
+                Real sound_speed; GetSoundSpeed(sound_speed, rhobar, T_init[0]);
+                Real vel_scale = mach0*sound_speed; // speed scale
+                Real press_scale; GetPressureGas(press_scale, rhobar, rho0, T_init[0]); // pressure scale
+                Real press = press_scale + (rho0*vel_scale*vel_scale/16.0) * (cos(4.*pi*x/Lx) + cos(4.*pi*y/Ly)) * (cos(4.*pi*z/Lz) + 2.0); // cell pressure
+                Real rho = rho0; //GetDensity(press, rho, T_init[0], rhobar); // cell density
+
+                cu(i,j,k,0) = rho;
+                for (int ns=0;ns<nspecies;++ns) cu(i,j,k,5+ns) = cu(i,j,k,0)*rhobar[ns]; 
+                Real intEnergy;
+                GetEnergy(intEnergy, rhobar, T_init[0]);
+
+                cu(i,j,k,1) = 0.5*(momx(i+1,j,k) + momx(i,j,k));
+                cu(i,j,k,2) = 0.5*(momy(i,j+1,k) + momx(i,j,k));
+                cu(i,j,k,3) = 0.5*(momz(i,j,k+1) + momx(i,j,k));
+                cu(i,j,k,4) = cu(i,j,k,0)*intEnergy + 0.5*(cu(i,j,k,1)*cu(i,j,k,1) +
+                                                              cu(i,j,k,2)*cu(i,j,k,2) +
+                                                              cu(i,j,k,3)*cu(i,j,k,3)) / cu(i,j,k,0);
                 
-            } else if (prob_type == 5) { // Taylor Green Vortex
+            } else if (prob_type == 5) {
 
                 Real intEnergy;
                 
@@ -431,8 +561,8 @@ void InitConsVarStag(MultiFab& cons,
                }
                molmixB = 1.0/molmixB;
                molmixT = 1.0/molmixT;
-               Real rgasmixB = Runiv/molmixB;
-               Real rgasmixT = Runiv/molmixT;
+               //Real rgasmixB = Runiv/molmixB;
+               //Real rgasmixT = Runiv/molmixT;
 
                Real Lz = realhi[2] - reallo[2];
                Real Lz2 = Lz/2.0;
@@ -493,6 +623,29 @@ void InitConsVarStag(MultiFab& cons,
                cu(i,j,k,4) = density*intEnergy;
            }
 
+           else if (prob_type == 111) { // pressure and density checkerboard pattern
+
+               for (int ns=0;ns<nspecies;++ns) massvec[ns] = rhobar[ns];
+               Real intEnergy;
+               GetEnergy(intEnergy, massvec, T_init[0]);
+
+               // Set checkerboarded density -- will automatically set checkerboarded pressure for same T, Y
+               Real rhomin = rho0*0.5;
+               Real rhomax = rho0*1.5;
+
+               if ((i+j+k) % 2 == 0) {
+                   cu(i,j,k,0) = rhomin;
+                   for (int ns=0;ns<nspecies;++ns) cu(i,j,k,5+ns) = rhomin*massvec[ns];
+                   cu(i,j,k,4) = rhomin*intEnergy;
+               }
+               else {
+                   cu(i,j,k,0) = rhomax;
+                   for (int ns=0;ns<nspecies;++ns) cu(i,j,k,5+ns) = rhomax*massvec[ns];
+                   cu(i,j,k,4) = rhomax*intEnergy;
+               }
+
+           }
+
 
 
         });
@@ -532,4 +685,92 @@ void PrintFluxes(std::array<MultiFab, AMREX_SPACEDIM>& faceflux_in, std::array< 
     outputMFAscii(cenflux_in[0],cenx);
     outputMFAscii(cenflux_in[1],ceny);
     outputMFAscii(cenflux_in[2],cenz);
+}
+
+
+void ComputeSoundSpeed(MultiFab& sound_speed_in, const MultiFab& prim_in)
+{
+    for ( MFIter mfi(prim_in); mfi.isValid(); ++mfi ) {
+        const Array4<const Real> prim = prim_in.array(mfi);
+        const Array4<      Real> sound_speed = sound_speed_in.array(mfi);
+        const Box& bx = mfi.tilebox();
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+            Real T = prim(i,j,k,4);
+            GpuArray<Real,MAX_SPECIES> Yk;
+            for (int ns=0; ns<nspecies; ++ns) {
+                Yk[ns] = prim(i,j,k,6+ns);
+            }
+            GetSoundSpeed(sound_speed(i,j,k),Yk,T);
+        });
+    } // end MFIter
+}
+
+amrex::Real GetMaxAcousticCFL(const MultiFab& prim_in, const std::array<MultiFab, AMREX_SPACEDIM>& vel_in, const Real& dt, const Geometry& geom)
+{
+    const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
+    
+    std::array< MultiFab, AMREX_SPACEDIM > CFL;
+    for (int d=0; d<AMREX_SPACEDIM; d++) {
+        CFL[d].define(convert(prim_in.boxArray(),nodal_flag_dir[d]), prim_in.DistributionMap(), 1, 0);
+        CFL[d].setVal(0.0);
+    }
+
+    for ( MFIter mfi(prim_in,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
+        
+        const Box& tbx = mfi.nodaltilebox(0);
+        const Box& tby = mfi.nodaltilebox(1);
+        const Box& tbz = mfi.nodaltilebox(2);
+
+        const Array4<Real const> & prim = prim_in.array(mfi);
+
+        AMREX_D_TERM(const Array4<Real>& cflx = CFL[0].array(mfi);,
+                     const Array4<Real>& cfly = CFL[1].array(mfi);,
+                     const Array4<Real>& cflz = CFL[2].array(mfi););
+
+
+        AMREX_D_TERM(Array4<Real const> const& velx = vel_in[0].array(mfi);,
+                     Array4<Real const> const& vely = vel_in[1].array(mfi);,
+                     Array4<Real const> const& velz = vel_in[2].array(mfi););
+
+        amrex::ParallelFor(tbx, tby, tbz,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+            Real temp = 0.5*(prim(i-1,j,k,4) + prim(i,j,k,4));
+            GpuArray<Real,MAX_SPECIES> Yk;
+            for (int ns=0; ns<nspecies; ++ns) {
+                Yk[ns] = 0.5*(prim(i-1,j,k,6+ns) + prim(i,j,k,6+ns));
+            }
+            Real sound_speed;
+            GetSoundSpeed(sound_speed,Yk,temp);
+            cflx(i,j,k) = (sound_speed + std::abs(velx(i,j,k)))*dt/dx[0];
+        },
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+            Real temp = 0.5*(prim(i,j-1,k,4) + prim(i,j,k,4));
+            GpuArray<Real,MAX_SPECIES> Yk;
+            for (int ns=0; ns<nspecies; ++ns) {
+                Yk[ns] = 0.5*(prim(i,j-1,k,6+ns) + prim(i,j,k,6+ns));
+            }
+            Real sound_speed;
+            GetSoundSpeed(sound_speed,Yk,temp);
+            cfly(i,j,k) = (sound_speed + std::abs(vely(i,j,k)))*dt/dx[1];
+        },
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+            Real temp = 0.5*(prim(i,j,k-1,4) + prim(i,j,k,4));
+            GpuArray<Real,MAX_SPECIES> Yk;
+            for (int ns=0; ns<nspecies; ++ns) {
+                Yk[ns] = 0.5*(prim(i,j,k-1,6+ns) + prim(i,j,k,6+ns));
+            }
+            Real sound_speed;
+            GetSoundSpeed(sound_speed,Yk,temp);
+            cflz(i,j,k) = (sound_speed + std::abs(velz(i,j,k)))*dt/dx[2];
+        });
+    }
+
+    Real cflx_max = CFL[0].max(0);
+    Real cfly_max = CFL[1].max(0);
+    Real cflz_max = CFL[2].max(0);
+
+    Real cfl_max = std::max(cflx_max, std::max(cfly_max, cflz_max));
+
+    return cfl_max;
+
 }

@@ -6,7 +6,6 @@ CEXE_sources   += stats.cpp
 CEXE_sources   += writePlotFile.cpp
 
 CEXE_sources   += particleGen.cpp
-CEXE_sources   += DsmcCollide.cpp
 CEXE_sources   += externalF.cpp
 CEXE_sources   += updateTimeStep.cpp
 

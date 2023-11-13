@@ -1,8 +1,10 @@
 namespace common {
 
 //////////////
-#define MAX_SPECIES 8
-#define MAX_ELEMENT 28 // needs to be MAX_SPECIES*(MAX_SPECIES-1)/2
+#define ADJ 0.99999
+#define ADJALT 0.00002
+#define WRITE_BUFFER 1000
+#define MAX_BONDS 12
 //////////////
     
     // misc global variables
@@ -66,9 +68,11 @@ namespace common {
     // Physical parameters
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> grav;
     extern AMREX_GPU_MANAGED int nspecies;
+    extern AMREX_GPU_MANAGED int nbonds;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> molmass;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> rhobar;
     extern AMREX_GPU_MANAGED amrex::Real rho0;
+    extern AMREX_GPU_MANAGED amrex::Real mach0; // initial mach number
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> diameter;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> dof;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> e0;
@@ -86,7 +90,10 @@ namespace common {
 
     // Algorithm control / selection
     extern AMREX_GPU_MANAGED int      algorithm_type;
-    extern int                        advection_type;
+    // 0 = centered
+    // 1 = unlimited bilinear bds
+    // 2 = limited bilinear bds
+    extern AMREX_GPU_MANAGED int      advection_type;
     extern int                        barodiffusion_type;
 
     // random number seed
@@ -112,6 +119,8 @@ namespace common {
     extern amrex::Real                perturb_width;
     extern AMREX_GPU_MANAGED amrex::Real smoothing_width;
     extern AMREX_GPU_MANAGED amrex::Real radius_cyl;
+    extern AMREX_GPU_MANAGED amrex::Real radius_outer;
+    extern AMREX_GPU_MANAGED amrex::Real film_thickness;
     extern amrex::Real                initial_variance_mom;
     extern amrex::Real                initial_variance_mass;
     extern amrex::Real                domega;
@@ -303,6 +312,8 @@ namespace common {
     extern amrex::Vector<amrex::Real> eamp;
     extern amrex::Vector<amrex::Real> efreq;
     extern amrex::Vector<amrex::Real> ephase;
+    
+    extern amrex::Vector<amrex::Real> body_force_density;
 
     extern int                        plot_ascii;
     extern int                        plot_means;
@@ -312,8 +323,11 @@ namespace common {
     extern int                        particle_motion;
 
     // parameters for turbulent forcing example
-    extern amrex::Real                turb_a;
-    extern amrex::Real                turb_b;
-    extern int                        turbForcing;
+    extern AMREX_GPU_MANAGED amrex::Real turb_a;
+    extern AMREX_GPU_MANAGED amrex::Real turb_b;
+    extern AMREX_GPU_MANAGED amrex::Real turb_c;
+    extern AMREX_GPU_MANAGED amrex::Real turb_d;
+    extern AMREX_GPU_MANAGED amrex::Real turb_alpha;
+    extern AMREX_GPU_MANAGED int         turbForcing;
 
 }

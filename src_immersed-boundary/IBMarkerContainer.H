@@ -110,7 +110,6 @@ public:
         ::MyConstIBMarIter;
 
 
-
     IBMarkerContainer(AmrCore * amr_core, int n_nbhd);
     IBMarkerContainer(const Geometry & geom, const DistributionMapping & dmap,
                       const BoxArray & ba, int n_nbhd);
@@ -222,7 +221,28 @@ public:
                                   bool unique = false) const;
     Vector<IBM_info> IBMarkerInfo(int lev, bool unique = false) const;
 
+    static int immbdy_idx(const std::tuple<int, int, int> & t) {
+        return std::get<0>(t);
+    }
 
+    static int marker_idx(const std::tuple<int, int, int> & t) {
+        return std::get<1>(t);
+    }
+
+    static int storage_idx(const std::tuple<int, int, int> & t) {
+        return std::get<2>(t);
+    }
+
+    const Vector<std::tuple<int, int, int>> & get_sorted_map() const {
+        return sorted_map;
+    }
+
+    const Vector<int> & get_reduced_map() const {
+        return reduced_map;
+    }
+
+
+    void UpdatePIDMap();
 
 
     static bool use_neighbor_list;
@@ -243,6 +263,8 @@ public:
 private:
 
     int n_list;
+    Vector<std::tuple<int, int, int>> sorted_map;
+    Vector<int> reduced_map;
 };
 
 

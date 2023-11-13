@@ -5,7 +5,7 @@
 void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
                    const MultiFab& prim_in, MultiFab& primMean, MultiFab& primVar,
                    MultiFab& spatialCross, MultiFab& miscStats, Real* miscVals,
-                   const int steps, const amrex::Real* dx)
+                   const int steps, const amrex::Real* /*dx*/)
 {
     BL_PROFILE_VAR("evaluateStats()",evaluateStats);
     
@@ -246,11 +246,12 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
                 cv = cv + hcv[l]*cumeans(i,j,k,5+l)/cumeans(i,j,k,0);
             }
 
-            Real cvinv = 1.0/cv;
-            Real cvinvS = 1.0/yzAvMeans[i*nstats+16];
-            Real cvinvSstar = 1.0/miscVals[12];
+            // Real cvinv = 1.0/cv;
+            // Real cvinvS = 1.0/yzAvMeans[i*nstats+16];
+            // Real cvinvSstar = 1.0/miscVals[12];
 
             // Vars
+#if 0
             Real qmean = cv*primmeans(i,j,k,4)-0.5*(  primmeans(i,j,k,1)*primmeans(i,j,k,1)
                                                     + primmeans(i,j,k,2)*primmeans(i,j,k,2)
                                                     + primmeans(i,j,k,3)*primmeans(i,j,k,3));
@@ -262,10 +263,11 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
             Real qmeanSstar =  miscVals[12]*yzAvMeans[i*nstats+18]-0.5*(  miscVals[2]*miscVals[2]
                                                                           + miscVals[14]*miscVals[14]
                                                                           + miscVals[15]*miscVals[15]);
+#endif
 
             Real densitymeaninv = 1.0/cumeans(i,j,k,0);
-            Real densitymeaninvS = 1.0/yzAvMeans[i*nstats+1];
-            Real densitymeaninvSstar = 1.0/miscVals[3];
+//            Real densitymeaninvS = 1.0/yzAvMeans[i*nstats+1];
+//            Real densitymeaninvSstar = 1.0/miscVals[3];
 
             Real delrho = cu(i,j,k,0) - cumeans(i,j,k,0);
             Real delpx = cu(i,j,k,1) - cumeans(i,j,k,1);
@@ -275,15 +277,15 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
 
             Real delrhoS = yzAvMeans[i*nstats+0] - yzAvMeans[i*nstats+1]; // rho(x) - <rho(x)>, sliced
             Real delES = yzAvMeans[i*nstats+3] - yzAvMeans[i*nstats+2]; // E(x) - <E(x)>, sliced
-            Real delpxS = yzAvMeans[i*nstats+5] - yzAvMeans[i*nstats+4];
-            Real delpyS = yzAvMeans[i*nstats+7] - yzAvMeans[i*nstats+6];
-            Real delpzS = yzAvMeans[i*nstats+9] - yzAvMeans[i*nstats+8];
+//            Real delpxS = yzAvMeans[i*nstats+5] - yzAvMeans[i*nstats+4];
+//            Real delpyS = yzAvMeans[i*nstats+7] - yzAvMeans[i*nstats+6];
+//            Real delpzS = yzAvMeans[i*nstats+9] - yzAvMeans[i*nstats+8];
 
             Real delrhoSstar = miscVals[4] - miscVals[3];
-            Real delESstar = miscVals[6] - miscVals[7];
+            // Real delESstar = miscVals[6] - miscVals[7];
             Real delpxSstar = miscVals[1] - miscVals[0];
-            Real delpySstar = miscVals[8] - miscVals[9];
-            Real delpzSstar = miscVals[10] - miscVals[11];
+//            Real delpySstar = miscVals[8] - miscVals[9];
+//            Real delpzSstar = miscVals[10] - miscVals[11];
 
             cuvars(i,j,k,0) = (cuvars(i,j,k,0)*stepsminusone + delrho*delrho)*stepsinv;
             cuvars(i,j,k,1) = (cuvars(i,j,k,1)*stepsminusone + delpx*delpx)*stepsinv;
@@ -302,9 +304,9 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
       
             Real delg = primmeans(i,j,k,1)*delpx + primmeans(i,j,k,2)*delpy + primmeans(i,j,k,3)*delpz;
 
-            Real delgS = yzAvMeans[i*nstats+11]*delpxS + yzAvMeans[i*nstats+13]*delpyS + yzAvMeans[i*nstats+15]*delpzS;
+            // Real delgS = yzAvMeans[i*nstats+11]*delpxS + yzAvMeans[i*nstats+13]*delpyS + yzAvMeans[i*nstats+15]*delpzS;
 
-            Real delgSstar = miscVals[2]*delpxSstar + miscVals[14]*delpySstar + miscVals[15]*delpzSstar;
+            // Real delgSstar = miscVals[2]*delpxSstar + miscVals[14]*delpySstar + miscVals[15]*delpzSstar;
 
             primvars(i,j,k,nprimvars) = (primvars(i,j,k,nprimvars)*stepsminusone + delg*delg)*stepsinv; // gvar
 
@@ -321,11 +323,11 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
                                   + qmean*(qmean*cuvars(i,j,k,0) - 2*primvars(i,j,k,nprimvars+2) + 2*primvars(i,j,k,nprimvars+3))))*stepsinv;
             */
 
-            Real deltemp = (delenergy - delg - qmean*delrho)*cvinv*densitymeaninv;
+            // Real deltemp = (delenergy - delg - qmean*delrho)*cvinv*densitymeaninv;
 
-            Real deltempS = (delES - delgS - qmeanS*delrhoS)*cvinvS*densitymeaninvS;
+            // Real deltempS = (delES - delgS - qmeanS*delrhoS)*cvinvS*densitymeaninvS;
 
-            Real deltempSstar = (delESstar - delgSstar - qmeanSstar*delrhoSstar)*cvinvSstar*densitymeaninvSstar;
+            // Real deltempSstar = (delESstar - delgSstar - qmeanSstar*delrhoSstar)*cvinvSstar*densitymeaninvSstar;
 
             miscstats(i,j,k,0) = (miscstats(i,j,k,0)*stepsminusone + miscVals[1]*yzAvMeans[i*nstats+0])*stepsinv; // <p(x*)rho(x)>, sliced
 

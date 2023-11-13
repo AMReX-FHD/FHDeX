@@ -37,6 +37,8 @@ void ComputeMassFluxdiv(MultiFab& rho,
  // if( use_flory_huggins == 1 ) 
   MultiFab massfrac(       ba, dmap, nspecies , ng);  // molar concentration
 
+ // rhoWchi.setVal(0.);
+
   std::array< MultiFab, AMREX_SPACEDIM > sqrtLonsager_fc;
   for (int d=0; d<AMREX_SPACEDIM; ++d) {
       sqrtLonsager_fc[d].define(convert(ba,nodal_flag_dir[d]), dmap, nspecies2, 0);
@@ -78,7 +80,7 @@ void ComputeMassFluxdiv(MultiFab& rho,
   // the advance_timestep routines
   // external_source(rho,diff_mass_fluxdiv,stage_time,geom);
   //if (prob_type == 4 || prob_type == 5) {
-  if (prob_type == 5) {
+  if (prob_type == 4 ) {
       Abort("ComputMassFluxdiv: external source not implemented yet for this prob_type");
   }
 

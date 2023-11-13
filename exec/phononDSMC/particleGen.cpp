@@ -21,6 +21,8 @@ void FhdParticleContainer::InitParticles(Real & dt)
 	Real umax = 0, vmax = 0, wmax = 0;
 	Real spd;
 	Real u[nspecies],v[nspecies],w[nspecies];
+	
+	Print() << "LOAD PARTICLES\n";
 
 	for (MFIter mfi = MakeMFIter(lev, true); mfi.isValid(); ++mfi)
 	{
@@ -40,22 +42,59 @@ void FhdParticleContainer::InitParticles(Real & dt)
 			if(particle_input>0)
 			{
 				std::ifstream particleFile("particles.dat");
-				while(true)
+				for(int i_spec=0; i_spec < nspecies; i_spec++)
 				{
-					ParticleType p;
-					p.id()  = ParticleType::NextID();
-					p.cpu() = ParallelDescriptor::MyProc();
-					p.idata(FHD_intData::sorted) = -1;
+					Real R     = k_B/properties[i_spec].mass;
+					Real stdev = sqrt(T_init[i_spec]*R);
+					for (int i_part=0; i_part<properties[i_spec].total;i_part++)
+					{
+					    ParticleType p;
+					    p.id()  = ParticleType::NextID();
+					    p.cpu() = ParallelDescriptor::MyProc();
+					    p.idata(FHD_intData::sorted) = -1;
+					    
+                        particleFile >> p.pos(0);                       
+                        particleFile >> p.pos(1);
+                        particleFile >> p.pos(2);
+                        
+                        Print() << "part: " << p.pos(0) << ", " << p.pos(1) << ", " << p.pos(2) << endl;
 
-					spd = sqrt(pow(vpart[0],2)+pow(vpart[1],2)+pow(vpart[2],2));
-					if(spd>spdmax){ spdmax=spd; }
+						p.idata(FHD_intData::species) = i_spec;
+						p.rdata(FHD_realData::R) = R;
+						p.rdata(FHD_realData::timeFrac) = 1;
+						p.pos(0) = prob_lo[0] + amrex::Random()*(prob_hi[0]-prob_lo[0]);
+						p.pos(1) = prob_lo[1] + amrex::Random()*(prob_hi[1]-prob_lo[1]);
+						p.pos(2) = prob_lo[2] + amrex::Random()*(prob_hi[2]-prob_lo[2]);
+						p.idata(FHD_intData::i) = -100;
+						p.idata(FHD_intData::j) = -100;
+						p.idata(FHD_intData::k) = -100;
 
-					if(vpart[0]>umax) { umax=vpart[0]; }
-					if(vpart[1]>vmax) { vmax=vpart[1]; }
-					if(vpart[2]>wmax) { wmax=vpart[2]; }
+						vpart[0] = stdev*amrex::RandomNormal(0.,1.);
+						vpart[1] = stdev*amrex::RandomNormal(0.,1.);
+						vpart[2] = stdev*amrex::RandomNormal(0.,1.);
+						
+						p.rdata(FHD_realData::velx) = vpart[0];
+						p.rdata(FHD_realData::vely) = vpart[1];
+						p.rdata(FHD_realData::velz) = vpart[2];
+						spd = sqrt(pow(vpart[0],2)+pow(vpart[1],2)+pow(vpart[2],2));
 
+						if(spd>spdmax){ spdmax=spd; }
+						// For calculating timstep from Courant number
+						if(vpart[0]>umax) { umax=vpart[0]; }
+						if(vpart[1]>vmax) { vmax=vpart[1]; }
+						if(vpart[2]>wmax) { wmax=vpart[2]; }
 
-					if( particleFile.eof() ) break;
+						u[p.idata(FHD_intData::species)] += vpart[0];
+						v[p.idata(FHD_intData::species)] += vpart[1];
+						w[p.idata(FHD_intData::species)] += vpart[2];
+
+						p.rdata(FHD_realData::boostx) = 0;
+						p.rdata(FHD_realData::boosty) = 0;
+						p.rdata(FHD_realData::boostz) = 0;
+						particle_tile.push_back(p);
+						pcount++;
+					}
+
 				}
 				particleFile.close();
 			}
@@ -95,16 +134,7 @@ void FhdParticleContainer::InitParticles(Real & dt)
 						p.rdata(FHD_realData::velz) = vpart[2];
 						spd = sqrt(pow(vpart[0],2)+pow(vpart[1],2)+pow(vpart[2],2));
 
-						if(spd>spdmax){ spdmax=spd; }
-						// For calculating timstep from Courant number
-						if(vpart[0]>umax) { umax=vpart[0]; }
-						if(vpart[1]>vmax) { vmax=vpart[1]; }
-						if(vpart[2]>wmax) { wmax=vpart[2]; }
-
-						u[p.idata(FHD_intData::species)] += vpart[0];
-						v[p.idata(FHD_intData::species)] += vpart[1];
-						w[p.idata(FHD_intData::species)] += vpart[2];
-
+	
 						p.rdata(FHD_realData::boostx) = 0;
 						p.rdata(FHD_realData::boosty) = 0;
 						p.rdata(FHD_realData::boostz) = 0;
@@ -150,56 +180,10 @@ void FhdParticleContainer::InitParticles(Real & dt)
 //	amrex::Print() << "My dt " << dt << "\n";
 
 	Redistribute();
-	SortParticles();
+//	SortParticlesDB();
 	
 	// Zero bulk velocities in each cell
-	for (FhdParIter pti(* this, lev); pti.isValid(); ++pti)
-	{
-		const int grid_id = pti.index();
-		const int tile_id = pti.LocalTileIndex();
-		const Box& tile_box  = pti.tilebox();
-
-		auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
-		auto& particles = particle_tile.GetArrayOfStructs();
-		const long np = particles.numParticles();
-
-		IntVect smallEnd = tile_box.smallEnd();
-		IntVect bigEnd = tile_box.bigEnd();
 	
-		for (int i = smallEnd[0]; i <= bigEnd[0]; i++) {
-		for (int j = smallEnd[1]; j <= bigEnd[1]; j++) {
-		for (int k = smallEnd[2]; k <= bigEnd[2]; k++) {
-			const IntVect& iv = {i,j,k};
-			long imap = tile_box.index(iv);
-			for (int niter=0; niter<3; niter++) {
-			for (int ispec=0; ispec<nspecies; ispec++){
-				Real ucom=0., vcom=0., wcom=0.;
-				int np = m_cell_vectors[ispec][grid_id][imap].size();
-				double lmass = properties[ispec].mass;
-				for (int ip = 0; ip<np; ip++) {
-					int ipart = m_cell_vectors[ispec][grid_id][imap][ip];
-					ParticleType & part = particles[ipart];
-					ucom += part.rdata(FHD_realData::velx);
-					vcom += part.rdata(FHD_realData::vely);
-					wcom += part.rdata(FHD_realData::velz);
-				}
-				ucom /= (double)np;
-				vcom /= (double)np;
-				wcom /= (double)np;
-				for (int ip = 0; ip<np; ip++)
-				{
-					int ipart = m_cell_vectors[ispec][grid_id][imap][ip];
-					ParticleType & part = particles[ipart];
-					part.rdata(FHD_realData::velx) = part.rdata(FHD_realData::velx) - ucom;
-					part.rdata(FHD_realData::vely) = part.rdata(FHD_realData::vely) - vcom;
-					part.rdata(FHD_realData::velz) = part.rdata(FHD_realData::velz) - wcom;
-				}
-			}
-			}
-		}
-		}
-		}
-	}
 }
 
 void FhdParticleContainer::ReInitParticles()

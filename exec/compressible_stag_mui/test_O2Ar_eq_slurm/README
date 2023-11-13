@@ -1,0 +1,34 @@
+* make sure in ../GNUmakefile
+ - USE_MUI       = FALSE
+ - USE_SLURM     = FALSE
+ - USE_AMREX_MPMD = TRUE
+
+* this file:            README
+
+* slurm execution       submit_job.sh
+                        amrex_job_script.sh (for Pinnacles:--partition pi.ckim103 or dept.appliedmath) 
+    -> output               slurm-*.out
+
+* FHD inputs file       inputs_fhd_stag
+    -> output               plt*
+* parameter analysis    params_O2Ar.py 
+
+* clean-up              clean.sh
+* comparison            diff.sh
+
+---analysis codes--- 
+* var: rho1,rhoE,temp,j zavg.sh
+                        zavg.plt (5%, check val1, val2, val3, val4, ncellx, ncelly, ncellz, dz)
+    -> output               zavg.png
+                            res.zavg
+* mean: rho1            zavg_rhoY1mean.sh
+                        zavg_rhoY1mean.plt (1%, check val, ncellx, ncelly, ncellz, dz)
+    -> output               zavg_rhoY1mean.png
+                            res.zavg_rhoY1mean
+* surface coverage      ads.sh
+                        ads.py (check Ncellx, Ncelly, meantheta1, vartheta1)
+                        ads.plt (check val1, val2)
+    -> output               ads.png
+                            res.ads
+                            res.ads_mean
+                            res.ads_var

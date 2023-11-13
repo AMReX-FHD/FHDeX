@@ -18,7 +18,7 @@ void WriteHorizontalAverage(const MultiFab& mf_in, const int& dir, const int& in
     Real h = geom.CellSize(dir);
 
     // dummy variables
-    int r;
+    int r=0;
     int comp;
 
     // no tiling or GPU to easily avoid race conditions
@@ -57,7 +57,7 @@ void WriteHorizontalAverage(const MultiFab& mf_in, const int& dir, const int& in
     ParallelDescriptor::ReduceRealSum(average.dataPtr(),npts*(ncomp+1));
 
     // divide by the number of cells
-    int navg;
+    int navg=0;
     if (dir == 0) {
         navg = n_cells[1]*n_cells[2];
     } else if (dir == 1) {
@@ -103,7 +103,7 @@ void WriteHorizontalAverageToMF(const MultiFab& mf_in, MultiFab& mf_out,
     Vector<Real> average(npts*(ncomp),0.);
 
     // dummy variables
-    int r;
+    int r=0;
     int comp;
 
     // no tiling or GPU to easily avoid race conditions
@@ -141,7 +141,7 @@ void WriteHorizontalAverageToMF(const MultiFab& mf_in, MultiFab& mf_out,
     ParallelDescriptor::ReduceRealSum(average.dataPtr(),npts*(ncomp));
 
     // divide by the number of cells
-    int navg;
+    int navg=0;
     if (dir == 0) {
         navg = n_cells[1]*n_cells[2];
     } else if (dir == 1) {
@@ -214,7 +214,7 @@ void ComputeVerticalAverage(const MultiFab& mf, MultiFab& mf_flat,
     Box domain(geom.Domain());
 
     // these are the transverse directions (i.e., NOT the dir direction)
-    int dir1, dir2;
+    int dir1=0, dir2=0;
 #if (AMREX_SPACEDIM == 2)
     dir1 = 1-dir;
 #elif (AMREX_SPACEDIM == 3)

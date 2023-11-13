@@ -114,7 +114,7 @@ void ComputeDivCC(const MultiFab& vel_in,
     
 ///////////////////////////
 // in Debug.cpp
-void PrintMF(const MultiFab& MF);
+void PrintMF(const MultiFab& MF, int comp_lo, int comp_hi);
 
 void outputMFAscii(const MultiFab& output, std::string filename);
 
@@ -219,6 +219,12 @@ void CCMoments(const MultiFab & m1,
                  amrex::MultiFab& mscr,
 		 const int & power,
 		 Real & prod_val);
+
+void FCMoments(const std::array<MultiFab, AMREX_SPACEDIM>& m1,
+		       const amrex::Vector<int>& comps,
+               std::array<MultiFab, AMREX_SPACEDIM>&  mscr,
+		       const int& power,
+		       amrex::Vector<amrex::Real>& prod_val);
 
 void StagL2Norm(const std::array<MultiFab, AMREX_SPACEDIM> & m1,
 		const int & comp,
