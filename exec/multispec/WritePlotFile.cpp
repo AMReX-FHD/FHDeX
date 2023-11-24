@@ -15,6 +15,8 @@ void WritePlotFile(int step,
 		   const MultiFab& rhotot,
 		   const MultiFab& rho,
 		   const MultiFab& pres,
+                   std::array< MultiFab, AMREX_SPACEDIM >& gibbs_duhem,
+		   const MultiFab& pressure_jump,
                    const MultiFab& charge,
                    const MultiFab& Epot)
 {
@@ -32,7 +34,9 @@ void WritePlotFile(int step,
     // averaged vel  AMREX_SPACEDIM
     // shifted  vel  AMREX_SPACEDIM
     // pres          1
-    int nPlot = 2*AMREX_SPACEDIM + 2*nspecies + 2;
+    // gibbs duhem   AMREX_SPACEDIM
+    // pressure jump 1
+    int nPlot = 3*AMREX_SPACEDIM + 2*nspecies + 3;
 
     if (use_charged_fluid) {
         // charge
@@ -75,6 +79,14 @@ void WritePlotFile(int step,
 
     varNames[cnt++] = "pres";
 
+    for (int i=0; i<AMREX_SPACEDIM; ++i) {
+        std::string x = "gibbs_duhem";
+        x += (120+i);
+        varNames[cnt++] = x;
+    }
+
+    varNames[cnt++] = "pressure_jump";
+
     if (use_charged_fluid) {
         varNames[cnt++] = "charge";
         varNames[cnt++] = "Epot";
@@ -112,6 +124,14 @@ void WritePlotFile(int step,
 
     // copy pressure into plotfile
     MultiFab::Copy(plotfile, pres, 0, cnt, 1, 0);
+    cnt++;
+
+    // average staggered gibbs duhem pressure gradients and copy into plotfile
+    AverageFaceToCC(gibbs_duhem,plotfile,cnt);
+    cnt+=AMREX_SPACEDIM;
+
+    // copy pressure jump into plotfile
+    MultiFab::Copy(plotfile, pressure_jump, 0, cnt, 1, 0);
     cnt++;
 
     // copy charge and Epot into plotfile

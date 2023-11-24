@@ -57,5 +57,10 @@ namespace multispec {
     extern amrex::Real                L_pos;
     extern amrex::Real                L_trans;
     extern amrex::Real                L_zero;
+
+    // pressure correction computation
+    extern AMREX_GPU_MANAGED int      pressure_jump_projection;
+    extern AMREX_GPU_MANAGED int      gibbs_duhem_kappa_flag;
+
 }
 

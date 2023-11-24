@@ -1,4 +1,3 @@
-
 #include "multispec_test_functions.H"
 
 #include "StochMomFlux.H"
@@ -218,6 +217,11 @@ void main_driver(const char* argv)
     MultiFab diff_mass_fluxdiv(ba, dmap, nspecies, 0);
     MultiFab eta              (ba, dmap, 1       , 1);
     MultiFab kappa            (ba, dmap, 1       , 1);
+    MultiFab pressure_jump    (ba, dmap, 1       , 1);
+    std::array< MultiFab, AMREX_SPACEDIM > gibbs_duhem;
+    for (int dim=0; dim < AMREX_SPACEDIM; dim++)
+	gibbs_duhem[dim].define(convert(ba,nodal_flag_dir[dim]),dmap,1,0);
+
     
     /////////////////////////////////////////
 
@@ -395,6 +399,12 @@ void main_driver(const char* argv)
         }
     }
 
+    // initialize pressure jump
+    pressure_jump.setVal(0.);
+    // initialize gibbs duhem pressure gradient
+    for (int dim=0; dim < AMREX_SPACEDIM; dim++)
+	gibbs_duhem[dim].setVal(0.);
+
     ///////////////////////////////////////////
     // Initialize structure factor object for analysis
     ///////////////////////////////////////////
@@ -506,7 +516,7 @@ void main_driver(const char* argv)
         
         // write initial plotfile and structure factor
         if (plot_int > 0) {
-            WritePlotFile(0,0.,geom,umac,rhotot_old,rho_old,pi,charge_old,Epot);
+            WritePlotFile(0,0.,geom,umac,rhotot_old,rho_old,pi,gibbs_duhem,pressure_jump,charge_old,Epot);
             if (n_steps_skip == 0 && struct_fact_int > 0) {
                 structFact.WritePlotFile(0,0.,geom,"plt_SF");
             }
@@ -552,7 +562,7 @@ void main_driver(const char* argv)
                                  pi,eta,eta_ed,kappa,Temp,Temp_ed,
                                  diff_mass_fluxdiv,stoch_mass_fluxdiv,stoch_mass_flux,
                                  grad_Epot_old,grad_Epot_new,
-                                 charge_old,charge_new,Epot,permittivity,
+                                 charge_old,charge_new,Epot,permittivity,gibbs_duhem,pressure_jump,
                                  sMassFlux,sMomFlux,
                                  dt,time,istep,geom);
         }
@@ -591,7 +601,7 @@ void main_driver(const char* argv)
 
         // write plotfile at specific intervals
         if (plot_int > 0 && istep%plot_int == 0) {
-            WritePlotFile(istep,time,geom,umac,rhotot_new,rho_new,pi,charge_new,Epot);
+            WritePlotFile(istep,time,geom,umac,rhotot_new,rho_new,pi,gibbs_duhem,pressure_jump,charge_new,Epot);
             if (istep > n_steps_skip && struct_fact_int > 0) {
                 structFact.WritePlotFile(istep,time,geom,"plt_SF");
             }
