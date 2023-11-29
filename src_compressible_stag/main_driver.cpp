@@ -952,9 +952,9 @@ void main_driver(const char* argv)
           RK3stepStag(cu, cumom, prim, vel, source, eta, zeta, kappa, chi, D, 
               faceflux, edgeflux_x, edgeflux_y, edgeflux_z, cenflux, ranchem, geom, dt, step, turbforce);
         }
-	else {
-	  calculateTransportCoeffs(prim, eta, zeta, kappa, chi, D);
-	}
+	  else {
+	      calculateTransportCoeffs(prim, eta, zeta, kappa, chi, D);
+	  }
 
         // update surface chemistry (via either surfchem_mui or MFsurfchem)
 #if defined(MUI) || defined(USE_AMREX_MPMD)
@@ -1177,7 +1177,7 @@ void main_driver(const char* argv)
                 vel[i].FillBoundary(geom.periodicity());
                 cumom[i].FillBoundary(geom.periodicity());
             }
-            GetTurbQty(vel, cumom, prim, eta, geom,
+            GetTurbQty(vel, cumom, prim, eta, zeta, geom,
                        turbKE, c_speed, u_rms,
                        taylor_len, taylor_Re, taylor_Ma,
                        skew, kurt,

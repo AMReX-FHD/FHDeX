@@ -8,6 +8,7 @@ void GetTurbQty(std::array< MultiFab, AMREX_SPACEDIM >& vel,
                 std::array< MultiFab, AMREX_SPACEDIM >& cumom,
                 MultiFab& prim,
                 MultiFab& eta,
+                MultiFab& zeta,
                 const amrex::Geometry& geom,
                 Real& turbKE, Real& c_speed,
                 Real& u_rms,
@@ -26,6 +27,7 @@ void GetTurbQty(std::array< MultiFab, AMREX_SPACEDIM >& vel,
     // Setup temp MultiFabs
     std::array< MultiFab, AMREX_SPACEDIM > macTemp;
     MultiFab gradU;
+    MultiFab eta_bulk_diss;
     MultiFab sound_speed;
     MultiFab ccTemp;
     MultiFab ccTempA;
@@ -41,6 +43,7 @@ void GetTurbQty(std::array< MultiFab, AMREX_SPACEDIM >& vel,
     ccTemp.define(prim.boxArray(),prim.DistributionMap(),1,0);
     ccTempA.define(prim.boxArray(),prim.DistributionMap(),1,0);
     ccTempDiv.define(prim.boxArray(),prim.DistributionMap(),1,0);
+    if (visc_type == 3) eta_bulk_diss.define(prim.boxArray(),prim.DistributionMap(),1,0);
 #if (AMREX_SPACEDIM == 3)
     curlU[0].define(convert(prim.boxArray(),nodal_flag_xy), prim.DistributionMap(), 1, 0);
     curlU[1].define(convert(prim.boxArray(),nodal_flag_xz), prim.DistributionMap(), 1, 0);
@@ -199,8 +202,18 @@ void GetTurbQty(std::array< MultiFab, AMREX_SPACEDIM >& vel,
 
     // Dilational dissipation (4/3)*<eta (\sum_i du_i/dx_i)^2>
 //    CCInnerProd(ccTempDiv,0,eta,0,ccTemp,eps_d);
-    eps_d = MultiFab::Dot(eta, 0, ccTempDiv, 0, 1, 0);
-    eps_d *= dProb*(4.0/3.0);
+    if (visc_type == 3) {
+      // get eta_bulk_diss = kappa + 4/3 eta
+      MultiFab::LinComb(eta_bulk_diss, 1.0, zeta, 0, 
+                        1.3333333333, eta, 0, 
+                        0, 1, 0);
+      eps_d = MultiFab::Dot(eta_bulk_diss, 0, ccTempDiv, 0, 1, 0);
+      eps_d *= dProb;
+    }
+    else {
+      eps_d = MultiFab::Dot(eta, 0, ccTempDiv, 0, 1, 0);
+      eps_d *= dProb*(4.0/3.0);
+    }
 
     // Ratio of Dilational to Solenoidal dissipation
     eps_ratio = eps_d/eps_s;
