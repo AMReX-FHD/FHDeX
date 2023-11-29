@@ -82,13 +82,14 @@ void WriteCheckPoint(int step,
 	}
     }
 
+    int comm_rank = 0;
+    int n_ranks = 1;
+#if AMREX_USE_MPI
     // C++ random number engine
     // have each MPI process write its random number state to a different file
-    int comm_rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &comm_rank);
-
-    int n_ranks;
     MPI_Comm_size(MPI_COMM_WORLD, &n_ranks);
+#endif
 
     // don't write out all the rng states at once (overload filesystem)
     // one at a time write out the rng states to different files, one for each MPI rank
@@ -195,13 +196,14 @@ void ReadCheckPoint(int& step,
 #endif
     }
 
+    int comm_rank = 0;
+    int n_ranks = 1;
+#if AMREX_USE_MPI
     // C++ random number engine
     // each MPI process reads in its own file
-    int comm_rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &comm_rank);
-
-    int n_ranks;
     MPI_Comm_size(MPI_COMM_WORLD, &n_ranks);
+#endif
 
     if (seed < 0) {
 
