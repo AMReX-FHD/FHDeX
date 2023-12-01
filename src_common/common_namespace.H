@@ -146,6 +146,7 @@ namespace common {
     //  1 = wall
     //  2 = concentration (for compressible codes), reservoir (for low Mach multispecies codes)
     //  3 = reservoir (for compressible codes)
+    //  4 = contact angle BC for Flory-Huggins
     extern AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>          bc_mass_lo;
     extern AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>          bc_mass_hi;
 

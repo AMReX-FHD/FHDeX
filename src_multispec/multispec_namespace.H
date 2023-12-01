@@ -24,6 +24,9 @@ namespace multispec {
     extern AMREX_GPU_MANAGED amrex::Array2D<amrex::Real,0,MAX_SPECIES-1,0,MAX_SPECIES-1>  fh_kappa;
     extern AMREX_GPU_MANAGED amrex::Array2D<amrex::Real,0,MAX_SPECIES-1,0,MAX_SPECIES-1>  fh_chi;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> fh_monomers;
+    extern AMREX_GPU_MANAGED amrex::Real fh_tension;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM>          contact_angle_lo;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM>          contact_angle_hi;
     extern AMREX_GPU_MANAGED amrex::Real monomer_mass;
     extern AMREX_GPU_MANAGED amrex::Real kc_tension;
     extern AMREX_GPU_MANAGED amrex::Real alpha_gex;

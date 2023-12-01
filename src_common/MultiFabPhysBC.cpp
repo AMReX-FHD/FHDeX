@@ -1,4 +1,5 @@
-#include "common_functions.H"
+//#include "common_functions.H"
+#include "multispec_functions.H"
 #include "InhomogeneousBCVal.H"
 
 // Ghost cell filling routine.
@@ -17,6 +18,11 @@ void MultiFabPhysBC(MultiFab& phi, const Geometry& geom, int scomp, int ncomp, i
 
     // Physical Domain
     Box dom(geom.Domain());
+
+    Real coeff;
+    if( use_flory_huggins == 1 ){
+       coeff = 6.*fh_tension/(fh_kappa(0,1)*rhobar[0]*k_B*T_init[0]/monomer_mass);
+    }
 
     GpuArray<Real,3> dx;
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
@@ -52,7 +58,28 @@ void MultiFabPhysBC(MultiFab& phi, const Geometry& geom, int scomp, int ncomp, i
         
         if (bx.smallEnd(0) < lo) {
             Real x = prob_lo[0];
-            if (bc_lo[0] == FOEXTRAP) {
+
+            // if (bc_lo[0] == FOEXTRAP && bccomp==SPEC_BC_COMP && bc_mass_lo[0] == 4 ) {
+            //
+            //  bc_mass_lo == 4 equivalent to bc_lo == SPEC_CONTACT_BC
+            //
+            if (bccomp==SPEC_BC_COMP && bc_mass_lo[0] == 4 ) {
+                // amrex::Print() << " entering regular bc with contact angles lo " << bc_lo[0] << " " << bccomp << " " << bc_mass_lo[0] << std::endl;
+                amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    if (i < lo) {
+                    //    amrex::Print() << "j lo " << j << std::endl;
+                        data(i,j,k,scomp+0) = data(lo,j,k,scomp+0) + 0.5*dx[0]*coeff*std::cos(contact_angle_lo[0])*data(lo,j,k,scomp+0)*data(lo,j,k,scomp+1);
+                        data(i,j,k,scomp+0) = amrex::min(1.,amrex::max(0.,data(i,j,k,scomp+0)));
+                        data(i,j,k,scomp+1) = 1.-data(i,j,k,scomp+0);
+                    //    amrex::Print() << "data left " << j << " "  << data(i,j,k,scomp) <<  " " << data(i,j,k,scomp+1) << std::endl;
+                    //    if(j == 18){
+                    //        amrex::Print() << "coeff and cos " << coeff << " " << contact_angle_lo[0] << " " << coeff * std::cos(contact_angle_lo[0]) << std::endl;
+                    //    }
+                    }
+                });
+
+           } else if (bc_lo[0] == FOEXTRAP) {
                 amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (i < lo) {
@@ -76,7 +103,22 @@ void MultiFabPhysBC(MultiFab& phi, const Geometry& geom, int scomp, int ncomp, i
         
         if (bx.bigEnd(0) > hi) {
             Real x = prob_hi[0];
-            if (bc_hi[0] == FOEXTRAP) {
+
+            // if (bc_hi[0] == FOEXTRAP && bccomp==SPEC_BC_COMP && bc_mass_hi[0] == 4 ) {
+            if (bccomp==SPEC_BC_COMP && bc_mass_hi[0] == 4 ) {
+                // amrex::Print() << " entering regular bc with contact angles hi " << bc_hi[0] << " " << bccomp << " " << bc_mass_hi[0] << std::endl;
+                amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    if (i > hi) {
+                  //       amrex::Print() << "j hi " << j << std::endl;
+                        data(i,j,k,scomp+0) = data(hi,j,k,scomp+0) + 0.5*dx[0]*coeff*std::cos(contact_angle_hi[0])*data(hi,j,k,scomp+0)*data(hi,j,k,scomp+1);
+                        data(i,j,k,scomp+0) = amrex::min(1.,amrex::max(0.,data(i,j,k,scomp+0)));
+                        data(i,j,k,scomp+1) = 1.-data(i,j,k,scomp+0);
+                  //       amrex::Print() << "data right " << j << " " <<  data(i,j,k,scomp) << " " << data(i,j,k,scomp+1) << std::endl;
+                    }
+                });
+
+            } else if (bc_hi[0] == FOEXTRAP) {
                 amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (i > hi) {
@@ -107,7 +149,22 @@ void MultiFabPhysBC(MultiFab& phi, const Geometry& geom, int scomp, int ncomp, i
         
         if (bx.smallEnd(1) < lo) {
             Real y = prob_lo[1];
-            if (bc_lo[1] == FOEXTRAP) {
+            if (bccomp==SPEC_BC_COMP && bc_mass_lo[1] == 4 ) {
+                // amrex::Print() << " entering regular bc with contact angles lo " << bc_lo[0] << " " << bccomp << " " << bc_mass_lo[0] << std::endl;
+                amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    if (j < lo) {
+                        data(i,j,k,scomp+0) = data(i,lo,k,scomp+0) + 0.5*dx[1]*coeff*std::cos(contact_angle_lo[1])*data(i,lo,k,scomp+0)*data(i,lo,k,scomp+1);
+                        data(i,j,k,scomp+0) = amrex::min(1.,amrex::max(0.,data(i,j,k,scomp+0)));
+                        data(i,j,k,scomp+1) = 1.-data(i,j,k,scomp+0);
+                        //amrex::Print() << "data left " << j << " "  << data(i,j,k,scomp) <<  " " << data(i,j,k,scomp+1) << std::endl;
+                        //if(j == 18){
+                        //    amrex::Print() << "coeff and cos " << coeff << " " << contact_angle_lo[0] << " " << coeff * std::cos(contact_angle_lo[0]) << std::endl;
+                        //}
+                    }
+                });
+
+            } else if (bc_lo[1] == FOEXTRAP) {
                 amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (j < lo) {
@@ -131,7 +188,22 @@ void MultiFabPhysBC(MultiFab& phi, const Geometry& geom, int scomp, int ncomp, i
 
         if (bx.bigEnd(1) > hi) {
             Real y = prob_hi[1];
-            if (bc_hi[1] == FOEXTRAP) {
+            if (bccomp==SPEC_BC_COMP && bc_mass_hi[1] == 4 ) {
+                // amrex::Print() << " entering regular bc with contact angles lo " << bc_lo[0] << " " << bccomp << " " << bc_mass_lo[0] << std::endl;
+                amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    if (j > hi) {
+                        data(i,j,k,scomp+0) = data(i,hi,k,scomp+0) + 0.5*dx[1]*coeff*std::cos(contact_angle_hi[1])*data(i,hi,k,scomp+0)*data(i,hi,k,scomp+1);
+                        data(i,j,k,scomp+0) = amrex::min(1.,amrex::max(0.,data(i,j,k,scomp+0)));
+                        data(i,j,k,scomp+1) = 1.-data(i,j,k,scomp+0);
+                        //amrex::Print() << "data left " << j << " "  << data(i,j,k,scomp) <<  " " << data(i,j,k,scomp+1) << std::endl;
+                        //if(j == 18){
+                        //    amrex::Print() << "coeff and cos " << coeff << " " << contact_angle_lo[0] << " " << coeff * std::cos(contact_angle_lo[0]) << std::endl;
+                        //}
+                    }
+                });
+
+            } else if (bc_hi[1] == FOEXTRAP) {
                 amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (j > hi) {
@@ -163,7 +235,22 @@ void MultiFabPhysBC(MultiFab& phi, const Geometry& geom, int scomp, int ncomp, i
         
         if (bx.smallEnd(2) < lo) {
             Real z = prob_lo[2];
-            if (bc_lo[2] == FOEXTRAP) {
+            if (bccomp==SPEC_BC_COMP && bc_mass_hi[2] == 4 ) {
+                // amrex::Print() << " entering regular bc with contact angles lo " << bc_lo[0] << " " << bccomp << " " << bc_mass_lo[0] << std::endl;
+                amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    if (k < lo) {
+                        data(i,j,k,scomp+0) = data(i,j,lo,scomp+0) + 0.5*dx[2]*coeff*std::cos(contact_angle_lo[2])*data(i,j,lo,scomp+0)*data(i,j,lo,scomp+1);
+                        data(i,j,k,scomp+0) = amrex::min(1.,amrex::max(0.,data(i,j,k,scomp+0)));
+                        data(i,j,k,scomp+1) = 1.-data(i,j,k,scomp+0);
+                        //amrex::Print() << "data left " << j << " "  << data(i,j,k,scomp) <<  " " << data(i,j,k,scomp+1) << std::endl;
+                        //if(j == 18){
+                        //    amrex::Print() << "coeff and cos " << coeff << " " << contact_angle_lo[0] << " " << coeff * std::cos(contact_angle_lo[0]) << std::endl;
+                        //}
+                    }
+                });
+
+            } esle if (bc_lo[2] == FOEXTRAP) {
                 amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (k < lo) {
@@ -187,7 +274,22 @@ void MultiFabPhysBC(MultiFab& phi, const Geometry& geom, int scomp, int ncomp, i
 
         if (bx.bigEnd(2) > hi) {
             Real z= prob_hi[2];
-            if (bc_hi[2] == FOEXTRAP) {
+            if (bccomp==SPEC_BC_COMP && bc_mass_hi[2] == 4 ) {
+                // amrex::Print() << " entering regular bc with contact angles lo " << bc_lo[0] << " " << bccomp << " " << bc_mass_lo[0] << std::endl;
+                amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    if (k > hi) {
+                        data(i,j,k,scomp+0) = data(i,j,hi,scomp+0) + 0.5*dx[2]*coeff*std::cos(contact_angle_hi[2])*data(i,j,hi,scomp+0)*data(i,j,hi,scomp+1);
+                        data(i,j,k,scomp+0) = amrex::min(1.,amrex::max(0.,data(i,j,k,scomp+0)));
+                        data(i,j,k,scomp+1) = 1.-data(i,j,k,scomp+0);
+                        //amrex::Print() << "data left " << j << " "  << data(i,j,k,scomp) <<  " " << data(i,j,k,scomp+1) << std::endl;
+                        //if(j == 18){
+                        //    amrex::Print() << "coeff and cos " << coeff << " " << contact_angle_lo[0] << " " << coeff * std::cos(contact_angle_lo[0]) << std::endl;
+                        //}
+                    }
+                });
+
+            } else if (bc_hi[2] == FOEXTRAP) {
                 amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (k > hi) {

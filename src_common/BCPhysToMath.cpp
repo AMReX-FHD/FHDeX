@@ -43,6 +43,10 @@ void BCPhysToMath(int bccomp, amrex::Vector<int>& bc_lo, amrex::Vector<int>& bc_
                 // reservoir -> dirichlet
                 bc_lo[i] = EXT_DIR;
             }
+            else if (bc_mass_lo[i] == 4) {
+                // reservoir -> dirichlet
+                bc_lo[i] = SPEC_CONTACT_BC;
+            }
             if (bc_mass_hi[i] == 1) {
                 // wall -> first-order extrapolation
                 bc_hi[i] = FOEXTRAP;
@@ -50,6 +54,10 @@ void BCPhysToMath(int bccomp, amrex::Vector<int>& bc_lo, amrex::Vector<int>& bc_
             else if (bc_mass_hi[i] == 2) {
                 // reservoir -> dirichlet
                 bc_hi[i] = EXT_DIR;
+            }
+            else if (bc_mass_hi[i] == 4) {
+                // reservoir -> dirichlet
+                bc_hi[i] = SPEC_CONTACT_BC;
             }
         }
     }
