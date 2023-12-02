@@ -48,6 +48,7 @@ void compute_flux_x (int i, int j, int k,
                      amrex::Array4<amrex::Real const> const& phi, amrex::Real dxinv,
                      int lo, int hi, int dom_lo, int dom_hi, int bc_lo, int bc_hi,int Ncomp)
 {
+    int coeff_index = Ncomp-1;
     if (lo == dom_lo &&
         (bc_lo == BCType::foextrap ||
          bc_lo == BCType::ext_dir))
@@ -77,12 +78,14 @@ void compute_flux_x (int i, int j, int k,
     else
     {
 //	amrex::Real phiavg = 2.*(phi(i,j,k)*phi(i-1,j,k))/(phi(i,j,k)+phi(i-1,j,k)+1.e-16);
-        Real phip = std::max(phi(i,j,k,1),0.);
-        Real phim = std::max(phi(i-1,j,k,1),0.);
+        Real phip = std::max(phi(i,j,k,coeff_index),0.);
+        Real phim = std::max(phi(i-1,j,k,coeff_index),0.);
 	amrex::Real phiavg = 2.*(phip*phim)/(phip+phim+1.e-16);
         fluxx(i,j,k,0) = 0.5*(phi(i,j,k,0)-phi(i-1,j,k,0)) * dxinv
 	  + stochfluxx(i,j,k) * std::sqrt(phiavg);
-        fluxx(i,j,k,1) = 0.5*(phi(i,j,k,1)-phi(i-1,j,k,1)) * dxinv;
+        if(Ncomp == 2){
+           fluxx(i,j,k,1) = 0.5*(phi(i,j,k,1)-phi(i-1,j,k,1)) * dxinv;
+        }
     }
 }
 
@@ -93,6 +96,7 @@ void compute_flux_y (int i, int j, int k,
                      amrex::Array4<amrex::Real const> const& phi, amrex::Real dyinv,
                      int lo, int hi, int dom_lo, int dom_hi, int bc_lo, int bc_hi, int Ncomp)
 {
+    int coeff_index = Ncomp-1;
     if (lo == dom_lo &&
         (bc_lo == BCType::foextrap ||
          bc_lo == BCType::ext_dir))
@@ -122,12 +126,14 @@ void compute_flux_y (int i, int j, int k,
     else
     {
 //	amrex::Real phiavg = 2.*(phi(i,j,k)*phi(i,j-1,k))/(phi(i,j,k)+phi(i,j-1,k)+1.e-16);
-        Real phip = std::max(phi(i,j,k,1),0.);
-        Real phim = std::max(phi(i,j-1,k,1),0.);
+        Real phip = std::max(phi(i,j,k,coeff_index),0.);
+        Real phim = std::max(phi(i,j-1,k,coeff_index),0.);
 	amrex::Real phiavg = 2.*(phip*phim)/(phip+phim+1.e-16);
         fluxy(i,j,k,0) = 0.5*(phi(i,j,k,0)-phi(i,j-1,k,0)) * dyinv
 	+ stochfluxy(i,j,k)* std::sqrt(phiavg);
-        fluxy(i,j,k,1) = 0.5*(phi(i,j,k,1)-phi(i,j-1,k,1)) * dyinv;
+        if(Ncomp == 2){
+           fluxy(i,j,k,1) = 0.5*(phi(i,j,k,1)-phi(i,j-1,k,1)) * dyinv;
+        }
     }
 }
 
@@ -140,17 +146,18 @@ void compute_flux_z (int i, int j, int k,
                      amrex::Array4<amrex::Real const> const& phi, amrex::Real dzinv,
                      int lo, int hi, int dom_lo, int dom_hi, int bc_lo, int bc_hi)
 {
+    int coeff_index = Ncomp-1;
     if (lo == dom_lo &&
         (bc_lo == BCType::foextrap ||
          bc_lo == BCType::ext_dir))
     {
         if(k == lo)
         {
-            fluxz(i,j,k) = 0.5*(phi(i,j,k)-phi(i,j,k-1)) * dzinv / 0.5;
+            fluxz(i,j,k,0) = 0.5*(phi(i,j,k,0)-phi(i,j,k-1,0)) * dzinv / 0.5;
         }
         else
         {
-            fluxz(i,j,k) = 0.5*(phi(i,j,k)-phi(i,j,k-1)) * dzinv;
+            fluxz(i,j,k,0) = 0.5*(phi(i,j,k,0)-phi(i,j,k-1,0)) * dzinv;
         }
     }
     else if (hi == dom_hi &&
@@ -159,21 +166,24 @@ void compute_flux_z (int i, int j, int k,
     {
         if(k == hi+1)
         {
-            fluxz(i,j,k) = 0.5*(phi(i,j,k)-phi(i,j,k-1)) * dzinv / 0.5;
+            fluxz(i,j,k,0) = 0.5*(phi(i,j,k,0)-phi(i,j,k-1,0)) * dzinv / 0.5;
         }
         else
         {
-            fluxz(i,j,k) = 0.5*(phi(i,j,k)-phi(i,j,k-1)) * dzinv;
+            fluxz(i,j,k,0) = 0.5*(phi(i,j,k,0)-phi(i,j,k-1,0)) * dzinv;
         }
     }
     else
     {
 //	amrex::Real phiavg = 2.*(phi(i,j,k)*phi(i,j,k-1))/(phi(i,j,k)+phi(i,j,k-1)+1.e-16);
-        Real phip = std::max(phi(i,j,k),0.);
-        Real phim = std::max(phi(i,j,k-1),0.);
+        Real phip = std::max(phi(i,j,k,coeff_index),0.);
+        Real phim = std::max(phi(i,j,k-1,coeff_index),0.);
 	amrex::Real phiavg = 2.*(phip*phim)/(phip+phim+1.e-16);
-        fluxz(i,j,k) = 0.5*(phi(i,j,k)-phi(i,j,k-1)) * dzinv
+        fluxz(i,j,k,0) = 0.5*(phi(i,j,k,0)-phi(i,j,k-1,0)) * dzinv
 	 +stochfluxz(i,j,k) * std::sqrt(phiavg);
+        if(Ncomp == 2){
+           fluxz(i,j,k,1) = 0.5*(phi(i,j,k,1)-phi(i,j,k-1,1)) * dzinv;
+        }
     }
 }
 #endif
