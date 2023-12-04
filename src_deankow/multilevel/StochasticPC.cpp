@@ -24,6 +24,55 @@ StochasticPC:: InitParticles (MultiFab& phi_fine)
         const Box& tile_box  = mfi.tilebox();
 
         const Array4<Real const>& phi_arr = phi_fine.const_array(mfi);
+        /*
+        Gpu::DeviceVector<unsigned int> counts(tile_box.numPts(), 0);
+        unsigned int* pcount = counts.dataPtr();
+
+        Gpu::DeviceVector<unsigned int> offsets(tile_box.numPts()+1, 0);
+        unsigned int* poffset = offsets.dataPtr();
+
+        // launch kernel to fill counts with num parts in each cell
+
+        // fill offets
+        Gpu::exclusive_scan(counts.begin(), counts.end(), offsets.begin());
+
+        auto num_to_add = offets[tile_box.numPts()];
+
+        auto& particles = GetParticles(lev);
+        auto& particle_tile = particles[std::make_pair(mfi.index(), mfi.LocalTileIndex())];
+
+        auto old_size = particle_tile.GetArrayOfStructs().size();
+        auto new_size = old_size + num_to_add;
+        particle_tile.resize(new_size);
+
+        ParticleType* pstruct = particle_tile.GetArrayOfStructs()().data();
+
+        if (num_to_add == 0) continue;
+
+        // launch kernel to fill data
+        amrex::ParallelForRNG(tile_box,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k, amrex::RandomEngine const& engine) noexcept
+        {
+            int ix = i - lo.x;
+            int iy = j - lo.y;
+            int iz = k - lo.z;
+            int nx = hi.x-lo.x+1;
+            int ny = hi.y-lo.y+1;
+            int nz = hi.z-lo.z+1;
+            unsigned int uix = amrex::min(nx-1,amrex::max(0,ix));
+            unsigned int uiy = amrex::min(ny-1,amrex::max(0,iy));
+            unsigned int uiz = amrex::min(nz-1,amrex::max(0,iz));
+            unsigned int cellid = (uix * ny + uiy) * nz + uiz;
+
+            auto start = poffset[cellid];
+            auto stop = poffset[cellid+1];
+
+            for (unsigned int ip = start; ip < stop; ++ip) {
+                ParticleType& p = pstruct[ip];
+                p.pos(0) = ...
+            }
+        }
+        */
 
         Gpu::HostVector<ParticleType> host_particles;
         for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv)) 
