@@ -64,8 +64,8 @@ void init_phi (int i, int j, int k,
 #if 1
     // 2D Test for multilevel
     Real rad = Real(0.1);
-    Real xcent = Real(0.5);
-    Real ycent = Real(0.5);
+    Real xcent = Real(0.25);
+    Real ycent = Real(0.75);
     Real x = prob_lo[0] + (i+Real(0.5)) * dx[0] - xcent;
     Real y = prob_lo[1] + (j+Real(0.5)) * dx[1] - ycent;
     Real r2 = (x*x + y*y);

@@ -174,7 +174,7 @@ struct ParticleData {
             amrex::MultiFab phi_grown2(phi_grown.boxArray(),phi_grown.DistributionMap(),1,1);
             phi_grown2.setVal(0.);
             stochastic_particles->RefluxCrseToFine(phi_fine.boxArray(), phi_grown2);
-            phi_grown2.SumBoundary();
+            phi_grown2.SumBoundary(geom_fine.periodicity());
             phi_grown2.mult(1./cell_vol);
             phi_crse_new.ParallelAdd(phi_grown2,0,0,1);  
 
