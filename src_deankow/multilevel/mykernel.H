@@ -14,7 +14,7 @@ void init_phi (int i, int j, int k,
     Real cellvol = dx[0]*dx[1];
 
 #if(AMREX_SPACEDIM > 2)
-    celvol *=dx[2];
+    cellvol *=dx[2];
 #endif
 
 
@@ -65,10 +65,15 @@ void init_phi (int i, int j, int k,
     // 2D Test for multilevel
     Real rad = Real(0.1);
     Real xcent = Real(0.25);
-    Real ycent = Real(0.75);
+    Real ycent = Real(0.25);
     Real x = prob_lo[0] + (i+Real(0.5)) * dx[0] - xcent;
     Real y = prob_lo[1] + (j+Real(0.5)) * dx[1] - ycent;
     Real r2 = (x*x + y*y);
+#if (AMREX_SPACEDIM == 3)
+    Real zcent = Real(0.75);
+    Real z = prob_lo[2] + (k+Real(0.5)) * dx[2] - zcent;
+    r2 = (x*x + y*y+z*z);
+#endif
 
     if ( r2 > rad*rad) {
         phi(i,j,k,0) = 50./cellvol;
@@ -186,7 +191,7 @@ void compute_flux_z (int i, int j, int k,
                      amrex::Array4<amrex::Real> const& fluxz,
                      amrex::Array4<amrex::Real> const& stochfluxz,
                      amrex::Array4<amrex::Real const> const& phi, amrex::Real dzinv,
-                     int lo, int hi, int dom_lo, int dom_hi, int bc_lo, int bc_hi)
+                     int lo, int hi, int dom_lo, int dom_hi, int bc_lo, int bc_hi, int Ncomp)
 {
     int coeff_index = Ncomp-1;
     if (lo == dom_lo &&
@@ -218,8 +223,8 @@ void compute_flux_z (int i, int j, int k,
     else
     {
 //	amrex::Real phiavg = 2.*(phi(i,j,k)*phi(i,j,k-1))/(phi(i,j,k)+phi(i,j,k-1)+1.e-16);
-        Real phip = std::max(phi(i,j,k,coeff_index),0.);
-        Real phim = std::max(phi(i,j,k-1,coeff_index),0.);
+        amrex::Real phip = std::max(phi(i,j,k,coeff_index),0.);
+        amrex::Real phim = std::max(phi(i,j,k-1,coeff_index),0.);
 	amrex::Real phiavg = 2.*(phip*phim)/(phip+phim+1.e-16);
         fluxz(i,j,k,0) = 0.5*(phi(i,j,k,0)-phi(i,j,k-1,0)) * dzinv
 	 +stochfluxz(i,j,k) * std::sqrt(phiavg);

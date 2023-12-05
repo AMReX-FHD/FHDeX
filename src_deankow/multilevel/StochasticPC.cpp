@@ -130,7 +130,11 @@ StochasticPC::AddParticles (MultiFab& phi_fine, BoxArray& ba_to_exclude)
     const Real* dx = Geom(lev).CellSize();
     const Real* plo = Geom(lev).ProbLo();
 
+#if (AMREX_SPACEDIM == 2)
     Real cell_vol = dx[0]*dx[1];
+#elif (AMREX_SPACEDIM == 3)
+    Real cell_vol = dx[0]*dx[1]*dx[2];
+#endif
 
     for (MFIter mfi(phi_fine); mfi.isValid(); ++mfi)
     {
@@ -265,8 +269,15 @@ StochasticPC::RefluxFineToCrse (const BoxArray& ba_to_keep, MultiFab& phi_for_re
             {
                 ParticleType& p = pstruct[i];
     
-                IntVect old_pos(static_cast<int>(p.rdata(RealIdx::xold)/dx[0]),static_cast<int>(p.rdata(RealIdx::yold)/dx[0]));
+#if (AMREX_SPACEDIM == 2)
+                IntVect old_pos(static_cast<int>(p.rdata(RealIdx::xold)/dx[0]),static_cast<int>(p.rdata(RealIdx::yold)/dx[1]));
                 IntVect new_pos(static_cast<int>(p.pos(0)              /dx[0]),static_cast<int>(p.pos(1)              /dx[1]));
+#else
+                IntVect old_pos(static_cast<int>(p.rdata(RealIdx::xold)/dx[0]),static_cast<int>(p.rdata(RealIdx::yold)/dx[1]),
+                                static_cast<int>(p.rdata(RealIdx::zold)/dx[2]));
+                IntVect new_pos(static_cast<int>(p.pos(0)              /dx[0]),static_cast<int>(p.pos(1)              /dx[1]),
+                                static_cast<int>(p.pos(2)              /dx[2]));
+#endif
 
                 if ( ba_to_keep.contains(old_pos) && !ba_to_keep.contains(new_pos)) {
                    phi_arr(new_pos,0) += 1.;
@@ -301,8 +312,15 @@ StochasticPC::RefluxCrseToFine (const BoxArray& ba_to_keep, MultiFab& phi_for_re
             {
                 ParticleType& p = pstruct[i];
     
+#if (AMREX_SPACEDIM == 2)
                 IntVect old_pos(static_cast<int>(p.rdata(RealIdx::xold)/dx[0]),static_cast<int>(p.rdata(RealIdx::yold)/dx[1]));
                 IntVect new_pos(static_cast<int>(p.pos(0)              /dx[0]),static_cast<int>(p.pos(1)              /dx[1]));
+#else
+                IntVect old_pos(static_cast<int>(p.rdata(RealIdx::xold)/dx[0]),static_cast<int>(p.rdata(RealIdx::yold)/dx[1]),
+                                static_cast<int>(p.rdata(RealIdx::zold)/dx[2]));
+                IntVect new_pos(static_cast<int>(p.pos(0)              /dx[0]),static_cast<int>(p.pos(1)              /dx[1]),
+                                static_cast<int>(p.pos(2)              /dx[2]));
+#endif
 
                 // Make a box of the cell holding the particle in its previous position
                 Box bx(old_pos,old_pos);
