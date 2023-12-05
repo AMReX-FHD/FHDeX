@@ -232,7 +232,6 @@ void AmrCoreAdv::MakeFBA(const BoxArray& ba)
     for (auto& b : com_bl) {
         Box bx(b);
         if (!domain.contains(bx)) {
-           amrex::Print() << "B BEFORE " << b << std::endl;
            Geom(1).periodicShift(domain, bx, pshifts);
            for (const auto& iv : pshifts)
            {
@@ -249,10 +248,6 @@ void AmrCoreAdv::MakeFBA(const BoxArray& ba)
            com_bl_fixed.push_back(b);
         }
     }
-//  for (auto& b : com_bl_fixed) {
-//      Box bx(b);
-//      amrex::Print() << "B AFTER FIX " << b << std::endl;
-//  }
     com_bl_fixed.catenate(valid_bl);
     grown_fba.define(com_bl_fixed);
 }

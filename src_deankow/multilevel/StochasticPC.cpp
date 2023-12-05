@@ -77,66 +77,34 @@ StochasticPC:: InitParticles (MultiFab& phi_fine)
         Gpu::HostVector<ParticleType> host_particles;
         for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv)) 
         {
-              // Real rannum = amrex::Random();
-              Real rannum = 0.;
-              int npart_in_cell = int(phi_arr(iv,0)*cell_vol+rannum);
+            Real rannum = amrex::Random();
+            int npart_in_cell = int(phi_arr(iv,0)*cell_vol+rannum);
 
-              if (npart_in_cell > 0) {
-#if 1
-                 for (int npart = 0; npart < npart_in_cell; npart++)
-                 {
+            for (int npart = 0; npart < npart_in_cell; npart++)
+            {
 #if (AMREX_SPACEDIM == 2)
-                     Real r[2] = {amrex::Random(), amrex::Random()}; 
+                Real r[2] = {amrex::Random(), amrex::Random()}; 
 #elif (AMREX_SPACEDIM == 3)
-                     Real r[3] = {amrex::Random(), amrex::Random(), amrex::Random()}; 
+                Real r[3] = {amrex::Random(), amrex::Random(), amrex::Random()}; 
 #endif
-                     AMREX_D_TERM( Real x = plo[0] + (iv[0] + r[0])*dx[0];,
-                                   Real y = plo[1] + (iv[1] + r[1])*dx[1];,
-                                   Real z = plo[2] + (iv[2] + r[2])*dx[2];);
+                AMREX_D_TERM( Real x = plo[0] + (iv[0] + r[0])*dx[0];,
+                              Real y = plo[1] + (iv[1] + r[1])*dx[1];,
+                              Real z = plo[2] + (iv[2] + r[2])*dx[2];);
 
-                     ParticleType p;
-                     p.id()  = ParticleType::NextID();
-                     p.cpu() = ParallelDescriptor::MyProc();
-   
-                     AMREX_D_TERM( p.pos(0) = x;,
-                                   p.pos(1) = y;,
-                                   p.pos(2) = z;);
+                ParticleType p;
+                p.id()  = ParticleType::NextID();
+                p.cpu() = ParallelDescriptor::MyProc();
 
-                     AMREX_D_TERM( p.rdata(RealIdx::xold) = x;,
-                                   p.rdata(RealIdx::yold) = y;,
-                                   p.rdata(RealIdx::zold) = z;);
+                AMREX_D_TERM( p.pos(0) = x;,
+                              p.pos(1) = y;,
+                              p.pos(2) = z;);
 
-                     host_particles.push_back(p);
-                 }
-#else
-                   amrex::ParallelForRNG( npart_in_cell,
-                   [=] AMREX_GPU_DEVICE (int npart, RandomEngine const& engine) noexcept
-                   {
-#if (AMREX_SPACEDIM == 2)
-                     Real r[2] = {amrex::Random(engine), amrex::Random(engine)}; 
-#elif (AMREX_SPACEDIM == 3)
-                     Real r[3] = {amrex::Random(engine), amrex::Random(engine), amrex::Random(engine)}; 
-#endif
-                     AMREX_D_TERM( Real x = plo[0] + (iv[0] + r[0])*dx[0];,
-                                   Real y = plo[1] + (iv[1] + r[1])*dx[1];,
-                                   Real z = plo[2] + (iv[2] + r[2])*dx[2];);
+                AMREX_D_TERM( p.rdata(RealIdx::xold) = x;,
+                              p.rdata(RealIdx::yold) = y;,
+                              p.rdata(RealIdx::zold) = z;);
 
-                     ParticleType p;
-                     p.id()  = ParticleType::NextID();
-                     p.cpu() = ParallelDescriptor::MyProc();
-   
-                     AMREX_D_TERM( p.pos(0) = x;,
-                                   p.pos(1) = y;,
-                                   p.pos(2) = z;);
-
-                     AMREX_D_TERM( p.rdata(RealIdx::xold) = x;,
-                                   p.rdata(RealIdx::yold) = y;,
-                                   p.rdata(RealIdx::zold) = z;);
-
-                     host_particles.push_back(p);
-                 });
-#endif
-              }
+                host_particles.push_back(p);
+            }
         }
 
         auto& particles = GetParticles(lev);
@@ -145,7 +113,6 @@ StochasticPC:: InitParticles (MultiFab& phi_fine)
         auto new_size = old_size + host_particles.size();
         particle_tile.resize(new_size);
 
-        amrex::Print() << "INIT: OLD SIZE OF PARTICLES " << old_size << std::endl;
         amrex::Print() << "INIT: NEW SIZE OF PARTICLES " << new_size << std::endl;
 
         Gpu::copy(Gpu::hostToDevice,
@@ -176,8 +143,7 @@ StochasticPC::AddParticles (MultiFab& phi_fine, BoxArray& ba_to_exclude)
         Gpu::HostVector<ParticleType> host_particles;
         for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv)) 
         {
-              // Real rannum = amrex::Random();
-              Real rannum = 0.;
+              Real rannum = amrex::Random();
               int npart_in_cell = int(phi_arr(iv,0)*cell_vol+rannum);
 
               if (npart_in_cell > 0) {
@@ -271,7 +237,7 @@ StochasticPC::RemoveParticlesNotInBA (const BoxArray& ba_to_keep)
                 ParticleType& p = pstruct[i];
                 p.id() = -1;
             });
-        }
+}
     }
     Redistribute();
 }
@@ -303,7 +269,6 @@ StochasticPC::RefluxFineToCrse (const BoxArray& ba_to_keep, MultiFab& phi_for_re
                 IntVect new_pos(static_cast<int>(p.pos(0)              /dx[0]),static_cast<int>(p.pos(1)              /dx[1]));
 
                 if ( ba_to_keep.contains(old_pos) && !ba_to_keep.contains(new_pos)) {
-                   //amrex::Print() <<" Particle crossed out of fine grids " << old_pos << " " << new_pos << std::endl;
                    phi_arr(new_pos,0) += 1.;
                 }
     
@@ -318,9 +283,7 @@ StochasticPC::RefluxCrseToFine (const BoxArray& ba_to_keep, MultiFab& phi_for_re
     BL_PROFILE("StochasticPC::RefluxCrseToFine");
     const int lev = 1;
 
-    const auto dx = Geom(lev).CellSizeArray();
-
-    amrex::Print() << " PHI FOR REFLUX " << phi_for_reflux.boxArray() << std::endl;
+    const auto dx     = Geom(lev).CellSizeArray();
 
     for(ParIterType pti(*this, lev); pti.isValid(); ++pti)
     {
@@ -330,28 +293,42 @@ StochasticPC::RefluxCrseToFine (const BoxArray& ba_to_keep, MultiFab& phi_for_re
         const int np = aos.numParticles();
         auto *pstruct = aos().data();
 
-        if (ba_to_keep.contains(pti.tilebox())) {
-
+        if (ba_to_keep.contains(pti.tilebox())) 
+        {
             Array4<Real> phi_arr = phi_for_reflux.array(gid);
-            amrex::Print() << "BOX(Phi_arr) " << Box(phi_arr) << std::endl;
 
             amrex::ParallelFor(np, [=] AMREX_GPU_DEVICE (int i)
             {
                 ParticleType& p = pstruct[i];
     
-                IntVect old_pos(static_cast<int>(p.rdata(RealIdx::xold)/dx[0]),static_cast<int>(p.rdata(RealIdx::yold)/dx[0]));
+                IntVect old_pos(static_cast<int>(p.rdata(RealIdx::xold)/dx[0]),static_cast<int>(p.rdata(RealIdx::yold)/dx[1]));
                 IntVect new_pos(static_cast<int>(p.pos(0)              /dx[0]),static_cast<int>(p.pos(1)              /dx[1]));
-    
-                if (!ba_to_keep.contains(old_pos) && ba_to_keep.contains(new_pos)) {
-                      if (!Box(phi_arr).contains(old_pos)) {
-                         amrex::Print() <<" Particle crossed into fine grids from " << old_pos << " to " << new_pos << std::endl;
-                         amrex::Print() << "Grid index is " << gid << std::endl;
-                         amrex::Print() << "BUT WE HAVE A PROBLEM " << std::endl;
-                      }
-                      phi_arr(old_pos,0) -= 1.;
-                }
-            });
 
+                // Make a box of the cell holding the particle in its previous position
+                Box bx(old_pos,old_pos);
+    
+                if (!ba_to_keep.contains(old_pos) && ba_to_keep.contains(new_pos)) 
+                {
+                    if (Box(phi_arr).contains(old_pos)) {
+
+                        phi_arr(old_pos,0) -= 1.;
+
+                    } else {
+#if (AMREX_SPACEDIM == 2)
+                        Vector<IntVect> pshifts(9);
+#else
+                        Vector<IntVect> pshifts(27);
+#endif
+                        Geom(lev).periodicShift(Box(phi_arr), bx, pshifts);
+                        for (const auto& iv : pshifts) {
+                            if (Box(phi_arr).contains(old_pos+iv)) {
+                                phi_arr(old_pos+iv,0) -= 1.;
+                                break;
+                            }
+                        } // pshifts
+                    } // else
+                } // if crossed the coarse-fine boundary
+            }); // i
         } // if in ba_to_keep
     } // pti
 }
@@ -362,6 +339,8 @@ StochasticPC::AdvectWithRandomWalk (int lev, Real dt)
     BL_PROFILE("StochasticPC::AdvectWithRandomWalk");
     const auto dx = Geom(lev).CellSizeArray();
 
+    Real stddev = std::sqrt(dt);
+
     for(ParIterType pti(*this, lev); pti.isValid(); ++pti)
     {
         auto& ptile = ParticlesAt(lev, pti);
@@ -369,9 +348,6 @@ StochasticPC::AdvectWithRandomWalk (int lev, Real dt)
         const int np = aos.numParticles();
         auto *pstruct = aos().data();
 
-        Real stddev = std::sqrt(dt);
-
-#if 0
         amrex::ParallelForRNG( np, [=] AMREX_GPU_DEVICE (int i, RandomEngine const& engine) noexcept
         {
             ParticleType& p = pstruct[i];
@@ -379,54 +355,17 @@ StochasticPC::AdvectWithRandomWalk (int lev, Real dt)
                           p.rdata(RealIdx::yold) = p.pos(1);,
                           p.rdata(RealIdx::zold) = p.pos(2););
 
-            amrex::Real incx = amrex::RandomNormal(0.,stddev,engine);
-            amrex::Real incy = amrex::RandomNormal(0.,stddev,engine);
+            AMREX_D_TERM( Real incx = amrex::RandomNormal(0.,stddev,engine);,
+                          Real incy = amrex::RandomNormal(0.,stddev,engine);,
+                          Real incz = amrex::RandomNormal(0.,stddev,engine););
 
-            incx = std::max(-dx[0], std::min( dx[0], incx));
-            incy = std::max(-dx[1], std::min( dx[1], incy));
+            AMREX_D_TERM( incx = std::max(-dx[0], std::min( dx[0], incx));,
+                          incy = std::max(-dx[1], std::min( dx[1], incy));,
+                          incz = std::max(-dx[2], std::min( dx[2], incz)););
 
-            p.pos(0) += static_cast<ParticleReal> (incx);
-            p.pos(1) += static_cast<ParticleReal> (incy);
-
-#if AMREX_SPACEDIM > 2
-            amrex::Real incz = amrex::RandomNormal(0.,stddev,engine);
-            incz = std::max(-dx[2], std::min( dx[2], incz));
-            p.pos(2) += static_cast<ParticleReal> (incz);
-#endif
-        });
-
-#else
-        amrex::ParallelFor(np, [=] AMREX_GPU_DEVICE (int i)
-        {
-            ParticleType& p = pstruct[i];
-            AMREX_D_TERM( p.rdata(RealIdx::xold) = p.pos(0);,
-                          p.rdata(RealIdx::yold) = p.pos(1);,
-                          p.rdata(RealIdx::zold) = p.pos(2););
-
-            amrex::Real incx = amrex::RandomNormal(0.,stddev);
-            amrex::Real incy = amrex::RandomNormal(0.,stddev);
-
-            incx = std::max(-dx[0], std::min( dx[0], incx));
-            incy = std::max(-dx[1], std::min( dx[1], incy));
-
-            p.pos(0) += static_cast<ParticleReal> (incx);
-            p.pos(1) += static_cast<ParticleReal> (incy);
-
-#if (AMREX_SPACEDIM > 2)
-            amrex::Real incz = amrex::RandomNormal(0.,stddev,engine);
-            incz = std::max(-dx[2], std::min( dx[2], incz));
-            p.pos(2) += static_cast<ParticleReal> (incz);
-#endif
-
-            // p.pos(0) += static_cast<ParticleReal> (1.0 * dx[0]);
-            // p.pos(1) += static_cast<ParticleReal> ((2*amrex::Random(engine)-1)*move_dir*dx[1]);
-#if AMREX_SPACEDIM > 2
-            // p.pos(2) += static_cast<ParticleReal> ((2*amrex::Random(engine)-1)*move_dir*dx[2]);
-#endif
-        });
-#endif
+            AMREX_D_TERM( p.pos(0) += static_cast<ParticleReal> (incx);,
+                          p.pos(1) += static_cast<ParticleReal> (incy);,
+                          p.pos(2) += static_cast<ParticleReal> (incz););
+        }); // np
     } // pti
-
-    // amrex::Print() << "AT  END  OF ADVECT, NUM PART AT LEVEL 0: " << NumberOfParticlesAtLevel(0) << std::endl;;
-    // amrex::Print() << "AT  END  OF ADVECT, NUM PART AT LEVEL 1: " << NumberOfParticlesAtLevel(1) << std::endl;;
 }
