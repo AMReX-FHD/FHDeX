@@ -4,6 +4,7 @@ n_cell = 256
 max_grid_size = 256
 npts_scale = 1000000.
 cfl = .01
+alg_type = 0
 
 # 0 = periodic
 # 2 = homogeneous Neumann (zero flux)

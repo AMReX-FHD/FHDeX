@@ -6,28 +6,52 @@
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void init_phi (int i, int j, int k,
                amrex::Array4<amrex::Real> const& phi,
-               GpuArray<amrex::Real,AMREX_SPACEDIM> const& dx,
-               GpuArray<amrex::Real,AMREX_SPACEDIM> const& prob_lo,
-               amrex::Real npts_scale,int Ncomp)
+               amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dx,
+               amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& prob_lo,
+               amrex::Real /*npts_scale*/, int Ncomp)
 {
     using amrex::Real;;
+    Real cellvol = dx[0]*dx[1];
 
-    Real x = prob_lo[0] + (i+Real(0.5)) * dx[0];
-    Real y = prob_lo[1] + (j+Real(0.5)) * dx[1];
+#if(AMREX_SPACEDIM > 2)
+    cellvol *=dx[2];
+#endif
+
+
+#if 0
+    Real rad = Real(0.1);
+    Real xcent = Real(0.5);
+    Real ycent = Real(0.5);
+    Real x = prob_lo[0] + (i+Real(0.5)) * dx[0] - xcent;
+    Real y = prob_lo[1] + (j+Real(0.5)) * dx[1] - ycent;
+
 #if (AMREX_SPACEDIM > 2)
-    Real z = prob_lo[2] + (k+Real(0.5)) * dx[2];
-    Real r2 = ((x-Real(0.25))*(x-Real(0.25))+(y-Real(0.25))*(y-Real(0.25))+(z-Real(0.25))*(z-Real(0.25)))/Real(0.01);
+    Real zcent = Real(0.5);
+    Real z = prob_lo[2] + (k+Real(0.5)) * dx[2] - zcent;
+    Real r2 = (x*x + y*y + z*z) / (rad*rad);
 #else
     Real z = Real(0.);
-    Real r2 = ((x-Real(0.25))*(x-Real(0.25))+(y-Real(0.25))*(y-Real(0.25)))/Real(0.01);
+    Real r2 = (x*x + y*y) / (rad*rad);
 #endif
+
+    // Gaussian 
     phi(i,j,k,0) = Real(1.) + std::exp(-r2);
-    if( x > 0.5){
-    phi(i,j,k,0) = 1.5*npts_scale;
+#endif
+
+#if 0
+    // Jump in x-direction
+    Real x = prob_lo[0] + (i+Real(0.5)) * dx[0];
+    Real y = prob_lo[1] + (j+Real(0.5)) * dx[1];
+    if ( x > 0.5) {
+        phi(i,j,k,0) = 1.5*npts_scale;
     } else {
-    phi(i,j,k,0) = 0.5*npts_scale;
+        phi(i,j,k,0) = 0.5*npts_scale;
     }
-    if(i==4 && j ==4)
+#endif
+
+#if 0
+    // Delta function 
+    if (i==4 && j ==4)
     {
        phi(i,j,k,0) = 1./(dx[0]*dx[1]);
     }
@@ -35,7 +59,30 @@ void init_phi (int i, int j, int k,
     {
        phi(i,j,k,0) = 0;;
     }
-    if(Ncomp == 2){
+#endif
+
+#if 1
+    // 2D Test for multilevel
+    Real rad = Real(0.1);
+    Real xcent = Real(0.25);
+    Real ycent = Real(0.25);
+    Real x = prob_lo[0] + (i+Real(0.5)) * dx[0] - xcent;
+    Real y = prob_lo[1] + (j+Real(0.5)) * dx[1] - ycent;
+    Real r2 = (x*x + y*y);
+#if (AMREX_SPACEDIM == 3)
+    Real zcent = Real(0.75);
+    Real z = prob_lo[2] + (k+Real(0.5)) * dx[2] - zcent;
+    r2 = (x*x + y*y+z*z);
+#endif
+
+    if ( r2 > rad*rad) {
+        phi(i,j,k,0) = 50./cellvol;
+    } else {
+        phi(i,j,k,0) = 0./cellvol;
+    }
+#endif
+
+    if (Ncomp == 2){
         phi(i,j,k,1) = phi(i,j,k,0);
     }
 }
@@ -48,9 +95,10 @@ void compute_flux_x (int i, int j, int k,
                      amrex::Array4<amrex::Real const> const& phi, amrex::Real dxinv,
                      int lo, int hi, int dom_lo, int dom_hi, int bc_lo, int bc_hi,int Ncomp)
 {
+    int coeff_index = Ncomp-1;
     if (lo == dom_lo &&
-        (bc_lo == BCType::foextrap ||
-         bc_lo == BCType::ext_dir))
+        (bc_lo == amrex::BCType::foextrap ||
+         bc_lo == amrex::BCType::ext_dir))
     {
         if(i == lo)
         {
@@ -62,8 +110,8 @@ void compute_flux_x (int i, int j, int k,
         }
     }
     else if (hi == dom_hi &&
-             (bc_hi == BCType::foextrap ||
-              bc_hi == BCType::ext_dir))
+             (bc_hi == amrex::BCType::foextrap ||
+              bc_hi == amrex::BCType::ext_dir))
     {
         if(i == hi+1)
         {
@@ -77,12 +125,14 @@ void compute_flux_x (int i, int j, int k,
     else
     {
 //	amrex::Real phiavg = 2.*(phi(i,j,k)*phi(i-1,j,k))/(phi(i,j,k)+phi(i-1,j,k)+1.e-16);
-        Real phip = std::max(phi(i,j,k,1),0.);
-        Real phim = std::max(phi(i-1,j,k,1),0.);
+        amrex::Real phip = std::max(phi(i,j,k,coeff_index),0.);
+        amrex::Real phim = std::max(phi(i-1,j,k,coeff_index),0.);
 	amrex::Real phiavg = 2.*(phip*phim)/(phip+phim+1.e-16);
         fluxx(i,j,k,0) = 0.5*(phi(i,j,k,0)-phi(i-1,j,k,0)) * dxinv
-	  + stochfluxx(i,j,k) * std::sqrt(phiavg);
-        fluxx(i,j,k,1) = 0.5*(phi(i,j,k,1)-phi(i-1,j,k,1)) * dxinv;
+    	                    + stochfluxx(i,j,k) * std::sqrt(phiavg);
+        if(Ncomp == 2){
+           fluxx(i,j,k,1) = 0.5*(phi(i,j,k,1)-phi(i-1,j,k,1)) * dxinv;
+        }
     }
 }
 
@@ -93,9 +143,10 @@ void compute_flux_y (int i, int j, int k,
                      amrex::Array4<amrex::Real const> const& phi, amrex::Real dyinv,
                      int lo, int hi, int dom_lo, int dom_hi, int bc_lo, int bc_hi, int Ncomp)
 {
+    int coeff_index = Ncomp-1;
     if (lo == dom_lo &&
-        (bc_lo == BCType::foextrap ||
-         bc_lo == BCType::ext_dir))
+        (bc_lo == amrex::BCType::foextrap ||
+         bc_lo == amrex::BCType::ext_dir))
     {
         if(j == lo)
         {
@@ -107,8 +158,8 @@ void compute_flux_y (int i, int j, int k,
         }
     }
     else if (hi == dom_hi &&
-             (bc_hi == BCType::foextrap ||
-              bc_hi == BCType::ext_dir))
+             (bc_hi == amrex::BCType::foextrap ||
+              bc_hi == amrex::BCType::ext_dir))
     {
         if(j == hi+1)
         {
@@ -122,12 +173,14 @@ void compute_flux_y (int i, int j, int k,
     else
     {
 //	amrex::Real phiavg = 2.*(phi(i,j,k)*phi(i,j-1,k))/(phi(i,j,k)+phi(i,j-1,k)+1.e-16);
-        Real phip = std::max(phi(i,j,k,1),0.);
-        Real phim = std::max(phi(i,j-1,k,1),0.);
+        amrex::Real phip = std::max(phi(i,j,k,coeff_index),0.);
+        amrex::Real phim = std::max(phi(i,j-1,k,coeff_index),0.);
 	amrex::Real phiavg = 2.*(phip*phim)/(phip+phim+1.e-16);
         fluxy(i,j,k,0) = 0.5*(phi(i,j,k,0)-phi(i,j-1,k,0)) * dyinv
 	+ stochfluxy(i,j,k)* std::sqrt(phiavg);
-        fluxy(i,j,k,1) = 0.5*(phi(i,j,k,1)-phi(i,j-1,k,1)) * dyinv;
+        if(Ncomp == 2){
+           fluxy(i,j,k,1) = 0.5*(phi(i,j,k,1)-phi(i,j-1,k,1)) * dyinv;
+        }
     }
 }
 
@@ -138,42 +191,46 @@ void compute_flux_z (int i, int j, int k,
                      amrex::Array4<amrex::Real> const& fluxz,
                      amrex::Array4<amrex::Real> const& stochfluxz,
                      amrex::Array4<amrex::Real const> const& phi, amrex::Real dzinv,
-                     int lo, int hi, int dom_lo, int dom_hi, int bc_lo, int bc_hi)
+                     int lo, int hi, int dom_lo, int dom_hi, int bc_lo, int bc_hi, int Ncomp)
 {
+    int coeff_index = Ncomp-1;
     if (lo == dom_lo &&
-        (bc_lo == BCType::foextrap ||
-         bc_lo == BCType::ext_dir))
+        (bc_lo == amrex::BCType::foextrap ||
+         bc_lo == amrex::BCType::ext_dir))
     {
         if(k == lo)
         {
-            fluxz(i,j,k) = 0.5*(phi(i,j,k)-phi(i,j,k-1)) * dzinv / 0.5;
+            fluxz(i,j,k,0) = 0.5*(phi(i,j,k,0)-phi(i,j,k-1,0)) * dzinv / 0.5;
         }
         else
         {
-            fluxz(i,j,k) = 0.5*(phi(i,j,k)-phi(i,j,k-1)) * dzinv;
+            fluxz(i,j,k,0) = 0.5*(phi(i,j,k,0)-phi(i,j,k-1,0)) * dzinv;
         }
     }
     else if (hi == dom_hi &&
-             (bc_hi == BCType::foextrap ||
-              bc_hi == BCType::ext_dir))
+             (bc_hi == amrex::BCType::foextrap ||
+              bc_hi == amrex::BCType::ext_dir))
     {
         if(k == hi+1)
         {
-            fluxz(i,j,k) = 0.5*(phi(i,j,k)-phi(i,j,k-1)) * dzinv / 0.5;
+            fluxz(i,j,k,0) = 0.5*(phi(i,j,k,0)-phi(i,j,k-1,0)) * dzinv / 0.5;
         }
         else
         {
-            fluxz(i,j,k) = 0.5*(phi(i,j,k)-phi(i,j,k-1)) * dzinv;
+            fluxz(i,j,k,0) = 0.5*(phi(i,j,k,0)-phi(i,j,k-1,0)) * dzinv;
         }
     }
     else
     {
 //	amrex::Real phiavg = 2.*(phi(i,j,k)*phi(i,j,k-1))/(phi(i,j,k)+phi(i,j,k-1)+1.e-16);
-        Real phip = std::max(phi(i,j,k),0.);
-        Real phim = std::max(phi(i,j,k-1),0.);
+        amrex::Real phip = std::max(phi(i,j,k,coeff_index),0.);
+        amrex::Real phim = std::max(phi(i,j,k-1,coeff_index),0.);
 	amrex::Real phiavg = 2.*(phip*phim)/(phip+phim+1.e-16);
-        fluxz(i,j,k) = 0.5*(phi(i,j,k)-phi(i,j,k-1)) * dzinv
+        fluxz(i,j,k,0) = 0.5*(phi(i,j,k,0)-phi(i,j,k-1,0)) * dzinv
 	 +stochfluxz(i,j,k) * std::sqrt(phiavg);
+        if(Ncomp == 2){
+           fluxz(i,j,k,1) = 0.5*(phi(i,j,k,1)-phi(i,j,k-1,1)) * dzinv;
+        }
     }
 }
 #endif
