@@ -1,4 +1,4 @@
-CEXE_sources += main.cpp
+CEXE_sources += ${EBASE}.cpp
 
 INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Base
 include $(AMREX_HOME)/Src/Base/Make.package
