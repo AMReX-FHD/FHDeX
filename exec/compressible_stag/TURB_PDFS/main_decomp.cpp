@@ -3,6 +3,7 @@
 
 #include <AMReX_ParmParse.H>
 #include <AMReX_PlotFileUtil.H>
+#include <AMReX_VisMF.H>
 
 using namespace amrex;
 using namespace std;
@@ -44,9 +45,12 @@ int main (int argc, char* argv[])
         
         std::string iFile         = amrex::Concatenate("vel_grad_decomp",step,9);
 
-        Vector<std::string> scalar_out(2);
+        Vector<std::string> scalar_out(5);
         scalar_out[0] = amrex::Concatenate("vort_pdf",step,9);
         scalar_out[1] = amrex::Concatenate("div_pdf",step,9);
+        scalar_out[2] = amrex::Concatenate("vortx_pdf",step,9);
+        scalar_out[3] = amrex::Concatenate("vorty_pdf",step,9);
+        scalar_out[4] = amrex::Concatenate("vortz_pdf",step,9);
         Vector<std::string> Lap_out_sol(5);
         Lap_out_sol[0] = amrex::Concatenate("L0_pdf_sol",step,9);
         Lap_out_sol[1] = amrex::Concatenate("L1_pdf_sol",step,9);
@@ -86,13 +90,17 @@ int main (int argc, char* argv[])
 
         // read in variable names from header
         int flag = 0;
-        int vort_ind, div_ind, velx_sol_ind, velx_dil_ind;
+        int vort_ind, div_ind, velx_sol_ind, vely_sol_ind, velz_sol_ind, velx_dil_ind, vely_dil_ind, velz_dil_ind;
         for (int n=0; n<ncomp; ++n) {
             x >> str;
             if (str == "vort") vort_ind = flag;
             if (str == "div")  div_ind = flag;
             if (str == "ux_s") velx_sol_ind = flag;
+            if (str == "uy_s") vely_sol_ind = flag;
+            if (str == "uz_s") velz_sol_ind = flag;
             if (str == "ux_d") velx_dil_ind = flag;
+            if (str == "uy_d") vely_dil_ind = flag;
+            if (str == "uz_d") velz_dil_ind = flag;
             flag ++;
         }
 
@@ -157,17 +165,34 @@ int main (int argc, char* argv[])
         ////////////// velocity Laplacian PDFs///////////// ////////////////////
         ////////////////////////////////////////////////////////////////////////
         MultiFab vel_grown(ba,dmap,6,1);
+        MultiFab vel_sol  (ba,dmap,3,1);
         MultiFab laplacian(ba,dmap,6,1);
 
         // copy shifted velocity components from mf into vel_grown
-        Copy(vel_grown,mf,velx_sol_ind,0,3,0); // sol
-        Copy(laplacian,mf,velx_sol_ind,0,3,0); // sol
-        Copy(vel_grown,mf,velx_dil_ind,3,3,0); // dil
-        Copy(laplacian,mf,velx_dil_ind,3,3,0); // dil
+        Copy(vel_grown,mf,velx_sol_ind,0,1,0); // sol
+        Copy(vel_grown,mf,vely_sol_ind,1,1,0); // sol
+        Copy(vel_grown,mf,velz_sol_ind,2,1,0); // sol
+        
+        Copy(laplacian,mf,velx_sol_ind,0,1,0); // sol
+        Copy(laplacian,mf,vely_sol_ind,1,1,0); // sol
+        Copy(laplacian,mf,velz_sol_ind,2,1,0); // sol
+        
+        Copy(vel_grown,mf,velx_dil_ind,3,1,0); // dil
+        Copy(vel_grown,mf,vely_dil_ind,4,1,0); // dil
+        Copy(vel_grown,mf,velz_dil_ind,5,1,0); // dil
+        
+        Copy(laplacian,mf,velx_dil_ind,3,1,0); // dil
+        Copy(laplacian,mf,vely_dil_ind,4,1,0); // dil
+        Copy(laplacian,mf,velz_dil_ind,5,1,0); // dil
+
+        Copy(vel_sol,mf,velx_sol_ind,0,1,0); // sol
+        Copy(vel_sol,mf,vely_sol_ind,1,1,0); // sol
+        Copy(vel_sol,mf,velz_sol_ind,2,1,0); // sol
 
         // fill ghost cells of vel_grown
         vel_grown.FillBoundary(geom.periodicity());
         laplacian.FillBoundary(geom.periodicity());
+        vel_sol  .FillBoundary(geom.periodicity());
 
         for (int m=0; m<5; ++m) {
             
@@ -367,28 +392,74 @@ int main (int argc, char* argv[])
         ////////////////////////////////////////////////////////////////////////
         ///////////////////////// scalar  PDFs /////////////////////////////////
         ////////////////////////////////////////////////////////////////////////
-        MultiFab scalar(ba,dmap,2,0);
+        MultiFab scalar(ba,dmap,5,0); // vort_mag, div, vort_x, vort_y, vort_z
+        scalar.setVal(0.0);
         Copy(scalar,mf,vort_ind,0,1,0);
         Copy(scalar,mf,div_ind,1,1,0);
 
+        // Compute vorticity components and store in scalar
+        for ( MFIter mfi(vel_sol,false); mfi.isValid(); ++mfi ) {
+
+            const Box& bx = mfi.validbox();
+            const auto lo = amrex::lbound(bx);
+            const auto hi = amrex::ubound(bx);
+
+            Array4<Real const> const& sol = vel_sol.array(mfi);
+            Array4<Real>       const& sca = scalar .array(mfi);
+
+            for (auto k = lo.z; k <= hi.z; ++k) {
+            for (auto j = lo.y; j <= hi.y; ++j) {
+            for (auto i = lo.x; i <= hi.x; ++i) {
+                // dw/dy - dv/dz
+                sca(i,j,k,2) =
+                    (sol(i,j+1,k,velz_sol_ind) - sol(i,j-1,k,velz_sol_ind)) / (2.*dx[1]) -
+                    (sol(i,j,k+1,vely_sol_ind) - sol(i,j,k-1,vely_sol_ind)) / (2.*dx[2]);
+
+                // dv/dx - du/dy
+                sca(i,j,k,4) =
+                    (sol(i+1,j,k,vely_sol_ind) - sol(i-1,j,k,vely_sol_ind)) / (2.*dx[0]) -
+                    (sol(i,j+1,k,velx_sol_ind) - sol(i,j-1,k,velx_sol_ind)) / (2.*dx[1]);
+
+                // du/dz - dw/dx                
+                sca(i,j,k,3) =
+                    (sol(i,j,k+1,velx_sol_ind) - sol(i,j,k-1,velx_sol_ind)) / (2.*dx[2]) -
+                    (sol(i+1,j,k,velz_sol_ind) - sol(i-1,j,k,velz_sol_ind)) / (2.*dx[0]);
+
+            }
+            }
+            }
+        }
+
         // compute spatial mean
-        Real mean_vort   = scalar.sum(0) / (ncells);
-        Real mean_div    = scalar.sum(1) / (ncells);
+        Real mean_vort    = scalar.sum(0) / (ncells);
+        Real mean_div     = scalar.sum(1) / (ncells);
+        Real mean_vortx   = scalar.sum(2) / (ncells);
+        Real mean_vorty   = scalar.sum(3) / (ncells);
+        Real mean_vortz   = scalar.sum(4) / (ncells);
 
         // get fluctuations
-        scalar.plus(-1.0*mean_vort,   0, 1);
-        scalar.plus(-1.0*mean_div,    1, 1);
+        scalar.plus(-1.0*mean_vort,    0, 1);
+        scalar.plus(-1.0*mean_div,     1, 1);
+        scalar.plus(-1.0*mean_vortx,   2, 1);
+        scalar.plus(-1.0*mean_vorty,   3, 1);
+        scalar.plus(-1.0*mean_vortz,   4, 1);
 
         // get rms
-        Real rms_vort   = scalar.norm2(0) / sqrt(ncells);
-        Real rms_div    = scalar.norm2(1) / sqrt(ncells);
+        Real rms_vort    = scalar.norm2(0) / sqrt(ncells);
+        Real rms_div     = scalar.norm2(1) / sqrt(ncells);
+        Real rms_vortx   = scalar.norm2(2) / sqrt(ncells);
+        Real rms_vorty   = scalar.norm2(3) / sqrt(ncells);
+        Real rms_vortz   = scalar.norm2(4) / sqrt(ncells);
 
         // scale by rms
-        scalar.mult(1.0/rms_vort,   0, 1);
-        scalar.mult(1.0/rms_div,    1, 1);
+        scalar.mult(1.0/rms_vort,    0, 1);
+        scalar.mult(1.0/rms_div,     1, 1);
+        scalar.mult(1.0/rms_vortx,   2, 1);
+        scalar.mult(1.0/rms_vorty,   3, 1);
+        scalar.mult(1.0/rms_vortz,   4, 1);
 
         // now compute pdfs
-        for (int m = 0; m < 2; ++m) {
+        for (int m = 0; m < 5; ++m) {
 
             Vector<Real> bins(nbins+1,0.);
 
@@ -452,4 +523,5 @@ int main (int argc, char* argv[])
     amrex::Finalize();
 
 }
+
 
