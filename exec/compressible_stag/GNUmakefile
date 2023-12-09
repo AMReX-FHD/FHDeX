@@ -75,6 +75,7 @@ endif
 
 ifeq ($(USE_HEFFTE_FFTW),TRUE)
   DEFINES += -DHEFFTE_FFTW
+  LIBRARIES += -L$(FFTW_DIR) -lfftw3_mpi -lfftw3 -lfftw3f
 else ifeq ($(USE_HEFFTE_CUFFT),TRUE)
   DEFINES += -DHEFFTE_CUFFT
 else ifeq ($(USE_HEFFTE_ROCFFT),TRUE)
