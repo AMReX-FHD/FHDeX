@@ -6,9 +6,15 @@
 using namespace amrex;
 
 void
-StochasticPC:: InitParticles (MultiFab& phi_fine)
+StochasticPC::InitParticles (MultiFab& phi_fine)
 {
-    BL_PROFILE("StochasticPC::InitParticles");
+    AddParticles(phi_fine, BoxArray{});
+}
+
+void
+StochasticPC:: AddParticles (MultiFab& phi_fine, const BoxArray& ba_to_exclude)
+{
+    BL_PROFILE("StochasticPC::AddParticles");
 
     const int lev = 1;
     const Real* dx = Geom(lev).CellSize();
@@ -26,6 +32,8 @@ StochasticPC:: InitParticles (MultiFab& phi_fine)
     for (MFIter mfi(phi_fine); mfi.isValid(); ++mfi)
     {
         const Box& tile_box  = mfi.tilebox();
+
+        if (ba_to_exclude.contains(tile_box)) {continue;}
 
         const Array4<Real const>& phi_arr = phi_fine.const_array(mfi);
 
@@ -70,7 +78,7 @@ StochasticPC:: InitParticles (MultiFab& phi_fine)
         amrex::Print() << "INIT: NEW SIZE OF PARTICLES " << new_size << std::endl;
 
         // now fill in the data
-        ParticleType* pstruct = particle_tile.GetArrayOfStructs()().data();
+        ParticleType* pstruct = particle_tile.GetArrayOfStructs()().data() + old_size;
         unsigned int* poffset = offsets.dataPtr();
         amrex::ParallelForRNG(tile_box,
         [=] AMREX_GPU_DEVICE (int i, int j, int k, amrex::RandomEngine const& engine) noexcept
@@ -105,106 +113,6 @@ StochasticPC:: InitParticles (MultiFab& phi_fine)
             }
         });
     }
-}
-
-void
-StochasticPC::AddParticles (MultiFab& phi_fine, BoxArray& ba_to_exclude)
-{
-    BL_PROFILE("StochasticPC::AddParticles");
-    const int lev = 1;
-    const Real* dx = Geom(lev).CellSize();
-    const Real* plo = Geom(lev).ProbLo();
-
-#if (AMREX_SPACEDIM == 2)
-    Real cell_vol = dx[0]*dx[1];
-#elif (AMREX_SPACEDIM == 3)
-    Real cell_vol = dx[0]*dx[1]*dx[2];
-#endif
-
-    for (MFIter mfi(phi_fine); mfi.isValid(); ++mfi)
-    {
-        const Box& tile_box  = mfi.tilebox();
-
-        if (!ba_to_exclude.contains(tile_box)) {
-
-        const Array4<Real const>& phi_arr = phi_fine.const_array(mfi);
-
-        Gpu::HostVector<ParticleType> host_particles;
-        for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv)) 
-        {
-              Real rannum = amrex::Random();
-              int npart_in_cell = int(phi_arr(iv,0)*cell_vol+rannum);
-
-              if (npart_in_cell > 0) {
-#if 1
-                 for (int npart = 0; npart < npart_in_cell; npart++)
-                 {
-#if (AMREX_SPACEDIM == 2)
-                     Real r[2] = {amrex::Random(), amrex::Random()}; 
-#elif (AMREX_SPACEDIM == 3)
-                     Real r[3] = {amrex::Random(), amrex::Random(), amrex::Random()}; 
-#endif
-                     AMREX_D_TERM( Real x = plo[0] + (iv[0] + r[0])*dx[0];,
-                                   Real y = plo[1] + (iv[1] + r[1])*dx[1];,
-                                   Real z = plo[2] + (iv[2] + r[2])*dx[2];);
-
-                     ParticleType p;
-                     p.id()  = ParticleType::NextID();
-                     p.cpu() = ParallelDescriptor::MyProc();
-   
-                     AMREX_D_TERM( p.pos(0) = x;,
-                                   p.pos(1) = y;,
-                                   p.pos(2) = z;);
-
-                     AMREX_D_TERM( p.rdata(RealIdx::xold) = x;,
-                                   p.rdata(RealIdx::yold) = y;,
-                                   p.rdata(RealIdx::zold) = z;);
-
-                     host_particles.push_back(p);
-                 }
-#else
-                   amrex::ParallelForRNG( npart_in_cell,
-                   [=] AMREX_GPU_DEVICE (int npart, RandomEngine const& engine) noexcept
-                   {
-#if (AMREX_SPACEDIM == 2)
-                     Real r[2] = {amrex::Random(engine), amrex::Random(engine)}; 
-#elif (AMREX_SPACEDIM == 3)
-                     Real r[3] = {amrex::Random(engine), amrex::Random(engine), amrex::Random(engine)}; 
-#endif
-                     AMREX_D_TERM( Real x = plo[0] + (iv[0] + r[0])*dx[0];,
-                                   Real y = plo[1] + (iv[1] + r[1])*dx[1];,
-                                   Real z = plo[2] + (iv[2] + r[2])*dx[2];);
-
-                     ParticleType p;
-                     p.id()  = ParticleType::NextID();
-                     p.cpu() = ParallelDescriptor::MyProc();
-   
-                     AMREX_D_TERM( p.pos(0) = x;,
-                                   p.pos(1) = y;,
-                                   p.pos(2) = z;);
-
-                     AMREX_D_TERM( p.rdata(RealIdx::xold) = x;,
-                                   p.rdata(RealIdx::yold) = y;,
-                                   p.rdata(RealIdx::zold) = z;);
-
-                     host_particles.push_back(p);
-                 });
-#endif
-              } // npart_in_cell
-        } // iv
-
-        auto& particles = GetParticles(lev);
-        auto& particle_tile = particles[std::make_pair(mfi.index(), mfi.LocalTileIndex())];
-        auto old_size = particle_tile.GetArrayOfStructs().size();
-        auto new_size = old_size + host_particles.size();
-        particle_tile.resize(new_size);
-
-        Gpu::copy(Gpu::hostToDevice,
-                  host_particles.begin(),
-                  host_particles.end(),
-                  particle_tile.GetArrayOfStructs().begin() + old_size);
-        } // not in ba_to_exclude
-    } // mfi
 }
 
 void
