@@ -19,6 +19,34 @@ struct IntIdx
     };
 };
 
+/*
+
+  Helper function that converts global 3D index to *local* id index
+  in a given box.
+
+ */
+struct FlatIndex {
+    amrex::Dim3 lo;
+    amrex::Dim3 hi;
+    FlatIndex (amrex::Box bx)
+        : lo(amrex::lbound(bx)), hi(amrex::ubound(bx)) {}
+
+    AMREX_GPU_HOST_DEVICE
+    unsigned int operator() (int i, int j, int k) const {
+        int ix = i - lo.x;
+        int iy = j - lo.y;
+        int iz = k - lo.z;
+        int nx = hi.x-lo.x+1;
+        int ny = hi.y-lo.y+1;
+        int nz = hi.z-lo.z+1;
+        unsigned int uix = amrex::min(nx-1,amrex::max(0,ix));
+        unsigned int uiy = amrex::min(ny-1,amrex::max(0,iy));
+        unsigned int uiz = amrex::min(nz-1,amrex::max(0,iz));
+        unsigned int cellid = (uix * ny + uiy) * nz + uiz;
+        return cellid;
+    }
+};
+
 class StochasticPC
     : public amrex::ParticleContainer<RealIdx::ncomps, IntIdx::ncomps, 0, 0,
                                       amrex::DefaultAllocator>

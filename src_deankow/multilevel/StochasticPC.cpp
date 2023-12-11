@@ -1,5 +1,6 @@
 #include "StochasticPC.H"
 
+#include <AMReX_GpuContainers.H>
 #include <AMReX_TracerParticle_mod_K.H>
 
 using namespace amrex;
@@ -19,81 +20,80 @@ StochasticPC:: InitParticles (MultiFab& phi_fine)
     const Real cell_vol = dx[0]*dx[1]*dx[2];
 #endif
 
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (amrex::Gpu::notInLaunchRegion())
+#endif
     for (MFIter mfi(phi_fine); mfi.isValid(); ++mfi)
     {
         const Box& tile_box  = mfi.tilebox();
 
         const Array4<Real const>& phi_arr = phi_fine.const_array(mfi);
-        /*
-        Gpu::DeviceVector<unsigned int> counts(tile_box.numPts(), 0);
+
+        // count the number of particles to create in each cell
+        auto flat_index = FlatIndex(tile_box);
+        Gpu::DeviceVector<unsigned int> counts(tile_box.numPts()+1, 0);
         unsigned int* pcount = counts.dataPtr();
-
-        Gpu::DeviceVector<unsigned int> offsets(tile_box.numPts()+1, 0);
-        unsigned int* poffset = offsets.dataPtr();
-
-        // launch kernel to fill counts with num parts in each cell
-
-        // fill offets
-        Gpu::exclusive_scan(counts.begin(), counts.end(), offsets.begin());
-
-        auto num_to_add = offets[tile_box.numPts()];
-
-        auto& particles = GetParticles(lev);
-        auto& particle_tile = particles[std::make_pair(mfi.index(), mfi.LocalTileIndex())];
-
-        auto old_size = particle_tile.GetArrayOfStructs().size();
-        auto new_size = old_size + num_to_add;
-        particle_tile.resize(new_size);
-
-        ParticleType* pstruct = particle_tile.GetArrayOfStructs()().data();
-
-        if (num_to_add == 0) continue;
-
-        // launch kernel to fill data
         amrex::ParallelForRNG(tile_box,
         [=] AMREX_GPU_DEVICE (int i, int j, int k, amrex::RandomEngine const& engine) noexcept
         {
-            int ix = i - lo.x;
-            int iy = j - lo.y;
-            int iz = k - lo.z;
-            int nx = hi.x-lo.x+1;
-            int ny = hi.y-lo.y+1;
-            int nz = hi.z-lo.z+1;
-            unsigned int uix = amrex::min(nx-1,amrex::max(0,ix));
-            unsigned int uiy = amrex::min(ny-1,amrex::max(0,iy));
-            unsigned int uiz = amrex::min(nz-1,amrex::max(0,iz));
-            unsigned int cellid = (uix * ny + uiy) * nz + uiz;
+            Real rannum = amrex::Random(engine);
+            int npart_in_cell = int(phi_arr(i,j,k,0)*cell_vol+rannum);
+            pcount[flat_index(i, j, k)] += npart_in_cell;
+        });
+
+        // fill offsets
+        Gpu::DeviceVector<unsigned int> offsets(tile_box.numPts()+1, 0);
+        Gpu::exclusive_scan(counts.begin(), counts.end(), offsets.begin());
+
+        // the last offset is the total number of particles to add
+        unsigned int num_to_add;
+        Gpu::copy(Gpu::deviceToHost, offsets.begin() + tile_box.numPts(), offsets.end(), &num_to_add);
+        if (num_to_add == 0) continue;
+
+        // Get the ids and cpu numbers to assign
+        int my_cpu = ParallelDescriptor::MyProc();
+        Long id_start;
+#ifdef AMREX_USE_OMP
+#pragma omp critical (init_particles_next_id)
+#endif
+        {
+            id_start = ParticleType::NextID();
+            ParticleType::NextID(id_start+num_to_add);
+        }
+
+        // resize particle storage
+        auto& particles = GetParticles(lev);
+        auto& particle_tile = particles[std::make_pair(mfi.index(), mfi.LocalTileIndex())];
+        auto old_size = particle_tile.GetArrayOfStructs().size();
+        auto new_size = old_size + num_to_add;
+        particle_tile.resize(new_size);
+        amrex::Print() << "INIT: NEW SIZE OF PARTICLES " << new_size << std::endl;
+
+        // now fill in the data
+        ParticleType* pstruct = particle_tile.GetArrayOfStructs()().data();
+        unsigned int* poffset = offsets.dataPtr();
+        amrex::ParallelForRNG(tile_box,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k, amrex::RandomEngine const& engine) noexcept
+        {
+            auto cellid = flat_index(i, j, k);
 
             auto start = poffset[cellid];
             auto stop = poffset[cellid+1];
 
             for (unsigned int ip = start; ip < stop; ++ip) {
                 ParticleType& p = pstruct[ip];
-                p.pos(0) = ...
-            }
-        }
-        */
 
-        Gpu::HostVector<ParticleType> host_particles;
-        for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv)) 
-        {
-            Real rannum = amrex::Random();
-            int npart_in_cell = int(phi_arr(iv,0)*cell_vol+rannum);
-
-            for (int npart = 0; npart < npart_in_cell; npart++)
-            {
 #if (AMREX_SPACEDIM == 2)
-                Real r[2] = {amrex::Random(), amrex::Random()}; 
+                Real r[2] = {amrex::Random(engine), amrex::Random(engine)};
 #elif (AMREX_SPACEDIM == 3)
-                Real r[3] = {amrex::Random(), amrex::Random(), amrex::Random()}; 
+                Real r[3] = {amrex::Random(engine), amrex::Random(engine), amrex::Random(engine)};
 #endif
-                AMREX_D_TERM( Real x = plo[0] + (iv[0] + r[0])*dx[0];,
-                              Real y = plo[1] + (iv[1] + r[1])*dx[1];,
-                              Real z = plo[2] + (iv[2] + r[2])*dx[2];);
+                AMREX_D_TERM( Real x = plo[0] + (i + r[0])*dx[0];,
+                              Real y = plo[1] + (j + r[1])*dx[1];,
+                              Real z = plo[2] + (k + r[2])*dx[2];);
 
-                ParticleType p;
-                p.id()  = ParticleType::NextID();
-                p.cpu() = ParallelDescriptor::MyProc();
+                p.id()  = ip + id_start;
+                p.cpu() = my_cpu;
 
                 AMREX_D_TERM( p.pos(0) = x;,
                               p.pos(1) = y;,
@@ -102,23 +102,8 @@ StochasticPC:: InitParticles (MultiFab& phi_fine)
                 AMREX_D_TERM( p.rdata(RealIdx::xold) = x;,
                               p.rdata(RealIdx::yold) = y;,
                               p.rdata(RealIdx::zold) = z;);
-
-                host_particles.push_back(p);
             }
-        }
-
-        auto& particles = GetParticles(lev);
-        auto& particle_tile = particles[std::make_pair(mfi.index(), mfi.LocalTileIndex())];
-        auto old_size = particle_tile.GetArrayOfStructs().size();
-        auto new_size = old_size + host_particles.size();
-        particle_tile.resize(new_size);
-
-        amrex::Print() << "INIT: NEW SIZE OF PARTICLES " << new_size << std::endl;
-
-        Gpu::copy(Gpu::hostToDevice,
-                  host_particles.begin(),
-                  host_particles.end(),
-                  particle_tile.GetArrayOfStructs().begin() + old_size);
+        });
     }
 }
 
@@ -293,7 +278,7 @@ StochasticPC::RefluxCrseToFine (const BoxArray& ba_to_keep, MultiFab& phi_for_re
 {
     BL_PROFILE("StochasticPC::RefluxCrseToFine");
     const int lev = 1;
-
+    const auto geom_lev = Geom(lev);
     const auto dx     = Geom(lev).CellSizeArray();
 
     for(ParIterType pti(*this, lev); pti.isValid(); ++pti)
@@ -337,7 +322,7 @@ StochasticPC::RefluxCrseToFine (const BoxArray& ba_to_keep, MultiFab& phi_for_re
 #else
                         Vector<IntVect> pshifts(27);
 #endif
-                        Geom(lev).periodicShift(Box(phi_arr), bx, pshifts);
+                        geom_lev.periodicShift(Box(phi_arr), bx, pshifts);
                         for (const auto& iv : pshifts) {
                             if (Box(phi_arr).contains(old_pos+iv)) {
                                 phi_arr(old_pos+iv,0) -= 1.;
