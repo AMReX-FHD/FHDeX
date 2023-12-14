@@ -72,6 +72,26 @@ public:
     void RemoveParticlesNotInBA (const amrex::BoxArray& ba_to_keep);
     void RefluxCrseToFine (const amrex::BoxArray& ba_to_keep, amrex::MultiFab& phi_for_reflux);
     void RefluxFineToCrse (const amrex::BoxArray& ba_to_keep, amrex::MultiFab& phi_for_reflux);
+
+protected:
+    amrex::ParticleLocator<amrex::DenseBins<amrex::Box> > m_reflux_particle_locator;
 };
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+amrex::IntVect getNewCell (StochasticPC::ParticleType const& p,
+                           amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
+                           amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi,
+                           const amrex::Box& domain) noexcept;
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+amrex::IntVect getOldCell (StochasticPC::ParticleType const& p,
+                           amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
+                           amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi,
+                           const amrex::Box& domain) noexcept;
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+amrex::IntVect periodicCorrectOldCell (const amrex::IntVect& old_pos,
+                                       const amrex::IntVect& new_pos,
+                                       const amrex::GpuArray<int,AMREX_SPACEDIM>& is_periodic,
+                                       const amrex::Box& domain) noexcept;
 #endif

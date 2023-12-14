@@ -1,6 +1,7 @@
 #include "StochasticPC.H"
 
 #include <AMReX_GpuContainers.H>
+#include <AMReX_Math.H>
 #include <AMReX_TracerParticle_mod_K.H>
 
 using namespace amrex;
@@ -17,8 +18,8 @@ StochasticPC:: AddParticles (MultiFab& phi_fine, const BoxArray& ba_to_exclude)
     BL_PROFILE("StochasticPC::AddParticles");
 
     const int lev = 1;
-    const Real* dx = Geom(lev).CellSize();
-    const Real* plo = Geom(lev).ProbLo();
+    const auto dx = Geom(lev).CellSizeArray();
+    const auto plo = Geom(lev).ProbLoArray();
 
 #if (AMREX_SPACEDIM == 2)
     const Real cell_vol = dx[0]*dx[1];
@@ -140,12 +141,20 @@ StochasticPC::RemoveParticlesNotInBA (const BoxArray& ba_to_keep)
 }
 
 void
-StochasticPC::RefluxFineToCrse (const BoxArray& ba_to_keep, MultiFab& phi_for_reflux) 
+StochasticPC::RefluxFineToCrse (const BoxArray& ba_to_keep, MultiFab& phi_for_reflux)
 {
     BL_PROFILE("StochasticPC::RefluxFineToCrse");
     const int lev = 1;
+    const auto geom_lev   = Geom(lev);
+    const auto dxi_lev    = Geom(lev).InvCellSizeArray();
+    const auto plo_lev    = Geom(lev).ProbLoArray();
+    const auto domain_lev = Geom(lev).Domain();
 
-    const auto dx = Geom(lev).CellSizeArray();
+    if (!m_reflux_particle_locator.isValid(ba_to_keep)) {
+        m_reflux_particle_locator.build(ba_to_keep, Geom(lev));
+    }
+    m_reflux_particle_locator.setGeometry(Geom(lev));
+    auto assign_grid = m_reflux_particle_locator.getGridAssignor();
 
     for(ParIterType pti(*this, lev); pti.isValid(); ++pti)
     {
@@ -161,33 +170,76 @@ StochasticPC::RefluxFineToCrse (const BoxArray& ba_to_keep, MultiFab& phi_for_re
             amrex::ParallelFor(np, [=] AMREX_GPU_DEVICE (int i)
             {
                 ParticleType& p = pstruct[i];
-    
-#if (AMREX_SPACEDIM == 2)
-                IntVect old_pos(static_cast<int>(p.rdata(RealIdx::xold)/dx[0]),static_cast<int>(p.rdata(RealIdx::yold)/dx[1]));
-                IntVect new_pos(static_cast<int>(p.pos(0)              /dx[0]),static_cast<int>(p.pos(1)              /dx[1]));
-#else
-                IntVect old_pos(static_cast<int>(p.rdata(RealIdx::xold)/dx[0]),static_cast<int>(p.rdata(RealIdx::yold)/dx[1]),
-                                static_cast<int>(p.rdata(RealIdx::zold)/dx[2]));
-                IntVect new_pos(static_cast<int>(p.pos(0)              /dx[0]),static_cast<int>(p.pos(1)              /dx[1]),
-                                static_cast<int>(p.pos(2)              /dx[2]));
-#endif
-
-                if ( ba_to_keep.contains(old_pos) && !ba_to_keep.contains(new_pos)) {
+                auto old_pos = getOldCell(p, plo_lev, dxi_lev, domain_lev);
+                auto new_pos = getNewCell(p, plo_lev, dxi_lev, domain_lev);
+                if ( (assign_grid(old_pos) >= 0) && (assign_grid(new_pos) < 0)) {
                    phi_arr(new_pos,0) += 1.;
                 }
-    
             });
         } // if not in ba_to_keep
     } // pti
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+IntVect getNewCell (StochasticPC::ParticleType const& p,
+                    GpuArray<Real,AMREX_SPACEDIM> const& plo,
+                    GpuArray<Real,AMREX_SPACEDIM> const& dxi,
+                    const Box& domain) noexcept
+{
+    return getParticleCell(p, plo, dxi, domain);;
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+IntVect getOldCell (StochasticPC::ParticleType const& p,
+                    GpuArray<Real,AMREX_SPACEDIM> const& plo,
+                    GpuArray<Real,AMREX_SPACEDIM> const& dxi,
+                    const Box& domain) noexcept
+{
+    IntVect iv(
+               AMREX_D_DECL(int(Math::floor((p.rdata(RealIdx::xold)-plo[0])*dxi[0])),
+                            int(Math::floor((p.rdata(RealIdx::yold)-plo[1])*dxi[1])),
+                            int(Math::floor((p.rdata(RealIdx::zold)-plo[2])*dxi[2]))));
+    iv += domain.smallEnd();
+    return iv;
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+IntVect periodicCorrectOldCell (const IntVect& old_pos, const IntVect& new_pos,
+                                const GpuArray<int,AMREX_SPACEDIM>& is_per,
+                                const Box& domain) noexcept
+{
+    IntVect shifted = old_pos;
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+    {
+        if (!is_per[idim]) { continue; }
+        if (Real(new_pos[idim] - old_pos[idim]) > 0.5*Real(domain.length(idim))) {
+            shifted[idim] += domain.length(idim);
+            continue;
+        }
+        if (Real(new_pos[idim] - old_pos[idim]) < -0.5*Real(domain.length(idim))) {
+            shifted[idim] -= domain.length(idim);
+            continue;
+        }
+    }
+    return shifted;
+}
+
 void
-StochasticPC::RefluxCrseToFine (const BoxArray& ba_to_keep, MultiFab& phi_for_reflux) 
+StochasticPC::RefluxCrseToFine (const BoxArray& ba_to_keep, MultiFab& phi_for_reflux)
 {
     BL_PROFILE("StochasticPC::RefluxCrseToFine");
     const int lev = 1;
-    const auto geom_lev = Geom(lev);
-    const auto dx     = Geom(lev).CellSizeArray();
+    const auto geom_lev   = Geom(lev);
+    const auto dxi_lev    = Geom(lev).InvCellSizeArray();
+    const auto plo_lev    = Geom(lev).ProbLoArray();
+    const auto domain_lev = Geom(lev).Domain();
+    const auto is_per     = Geom(lev).isPeriodicArray();
+
+    if (!m_reflux_particle_locator.isValid(ba_to_keep)) {
+        m_reflux_particle_locator.build(ba_to_keep, Geom(lev));
+    }
+    m_reflux_particle_locator.setGeometry(Geom(lev));
+    auto assign_grid = m_reflux_particle_locator.getGridAssignor();
 
     for(ParIterType pti(*this, lev); pti.isValid(); ++pti)
     {
@@ -197,46 +249,28 @@ StochasticPC::RefluxCrseToFine (const BoxArray& ba_to_keep, MultiFab& phi_for_re
         const int np = aos.numParticles();
         auto *pstruct = aos().data();
 
-        if (ba_to_keep.contains(pti.tilebox())) 
+        if (ba_to_keep.contains(pti.tilebox()))
         {
             Array4<Real> phi_arr = phi_for_reflux.array(gid);
 
             amrex::ParallelFor(np, [=] AMREX_GPU_DEVICE (int i)
             {
                 ParticleType& p = pstruct[i];
-    
-#if (AMREX_SPACEDIM == 2)
-                IntVect old_pos(static_cast<int>(p.rdata(RealIdx::xold)/dx[0]),static_cast<int>(p.rdata(RealIdx::yold)/dx[1]));
-                IntVect new_pos(static_cast<int>(p.pos(0)              /dx[0]),static_cast<int>(p.pos(1)              /dx[1]));
-#else
-                IntVect old_pos(static_cast<int>(p.rdata(RealIdx::xold)/dx[0]),static_cast<int>(p.rdata(RealIdx::yold)/dx[1]),
-                                static_cast<int>(p.rdata(RealIdx::zold)/dx[2]));
-                IntVect new_pos(static_cast<int>(p.pos(0)              /dx[0]),static_cast<int>(p.pos(1)              /dx[1]),
-                                static_cast<int>(p.pos(2)              /dx[2]));
-#endif
+
+                auto old_pos = getOldCell(p, plo_lev, dxi_lev, domain_lev);
+                auto new_pos = getNewCell(p, plo_lev, dxi_lev, domain_lev);
 
                 // Make a box of the cell holding the particle in its previous position
                 Box bx(old_pos,old_pos);
-    
-                if (!ba_to_keep.contains(old_pos) && ba_to_keep.contains(new_pos)) 
+
+                if ( (assign_grid(old_pos) < 0) && (assign_grid(new_pos) >= 0))
                 {
                     if (Box(phi_arr).contains(old_pos)) {
-
                         phi_arr(old_pos,0) -= 1.;
-
                     } else {
-#if (AMREX_SPACEDIM == 2)
-                        Vector<IntVect> pshifts(9);
-#else
-                        Vector<IntVect> pshifts(27);
-#endif
-                        geom_lev.periodicShift(Box(phi_arr), bx, pshifts);
-                        for (const auto& iv : pshifts) {
-                            if (Box(phi_arr).contains(old_pos+iv)) {
-                                phi_arr(old_pos+iv,0) -= 1.;
-                                break;
-                            }
-                        } // pshifts
+                        auto shifted_pos = periodicCorrectOldCell(old_pos, new_pos,
+                                                                  is_per, domain_lev);
+                        phi_arr(shifted_pos,0) -= 1.;
                     } // else
                 } // if crossed the coarse-fine boundary
             }); // i
