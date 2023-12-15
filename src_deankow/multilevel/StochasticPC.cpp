@@ -173,7 +173,7 @@ StochasticPC::RefluxFineToCrse (const BoxArray& ba_to_keep, MultiFab& phi_for_re
                 auto old_pos = getOldCell(p, plo_lev, dxi_lev, domain_lev);
                 auto new_pos = getNewCell(p, plo_lev, dxi_lev, domain_lev);
                 if ( (assign_grid(old_pos) >= 0) && (assign_grid(new_pos) < 0)) {
-                   phi_arr(new_pos,0) += 1.;
+                   Gpu::Atomic::AddNoRet(&phi_arr(new_pos,0), 1.0);
                 }
             });
         } // if not in ba_to_keep
@@ -266,11 +266,11 @@ StochasticPC::RefluxCrseToFine (const BoxArray& ba_to_keep, MultiFab& phi_for_re
                 if ( (assign_grid(old_pos) < 0) && (assign_grid(new_pos) >= 0))
                 {
                     if (Box(phi_arr).contains(old_pos)) {
-                        phi_arr(old_pos,0) -= 1.;
+                        Gpu::Atomic::AddNoRet(&phi_arr(old_pos,0), -1.0);
                     } else {
                         auto shifted_pos = periodicCorrectOldCell(old_pos, new_pos,
                                                                   is_per, domain_lev);
-                        phi_arr(shifted_pos,0) -= 1.;
+                        Gpu::Atomic::AddNoRet(&phi_arr(shifted_pos,0), -1.0);
                     } // else
                 } // if crossed the coarse-fine boundary
             }); // i
