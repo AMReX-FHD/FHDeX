@@ -17,7 +17,11 @@ void advance (amrex::MultiFab& phi_old,
               amrex::Real npts_scale,
               amrex::Geometry const& geom,
               Vector<BCRec> const& BoundaryCondition,
-              int Ncomp);
+              int Ncomp,
+              amrex::Real phileft,
+              amrex::Real phiright,
+              int avg_type);
 
-void init_phi (amrex::MultiFab& phi_new, amrex::Geometry const& geom, amrex::Real npts_scale, int Ncomp);
+void init_phi (amrex::MultiFab& phi_new, amrex::Geometry const& geom, amrex::Real npts_scale, int Ncomp,
+               amrex::Real phileft, amrex::Real phiright);
 #endif

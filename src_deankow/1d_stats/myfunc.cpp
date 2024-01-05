@@ -13,7 +13,7 @@ void advance (MultiFab& phi_old,
 	      Real npts_scale,
               Geometry const& geom,
               Vector<BCRec> const& BoundaryCondition,
-              int Ncomp)
+              int Ncomp, amrex::Real phileft, amrex::Real phiright, int avg_type)
 {
 
     // Fill the ghost cells of each grid from the other grids
@@ -89,7 +89,8 @@ void advance (MultiFab& phi_old,
             [=] AMREX_GPU_DEVICE (int i, int j, int k)
             {
                 compute_flux_x(i,j,k,fluxx,stochfluxx,phi,dxinv,
-                               lo.x, hi.x, dom_lo.x, dom_hi.x, bc.lo(0), bc.hi(0),Ncomp);
+                               lo.x, hi.x, dom_lo.x, dom_hi.x, bc.lo(0), bc.hi(0),Ncomp,
+                               phileft,phiright,avg_type);
             });
 
 //        amrex::ParallelFor(ybx,
@@ -132,7 +133,8 @@ void advance (MultiFab& phi_old,
     }
 }
 
-void init_phi(amrex::MultiFab& phi_new, amrex::Geometry const& geom, amrex::Real npts_scale,int Ncomp){
+void init_phi(amrex::MultiFab& phi_new, amrex::Geometry const& geom, amrex::Real npts_scale,int Ncomp,
+              amrex::Real phileft, amrex::Real phiright){
 
     GpuArray<Real,AMREX_SPACEDIM> dx = geom.CellSizeArray();
     GpuArray<Real,AMREX_SPACEDIM> prob_lo = geom.ProbLoArray();
@@ -146,7 +148,7 @@ void init_phi(amrex::MultiFab& phi_new, amrex::Geometry const& geom, amrex::Real
         amrex::ParallelFor(vbx,
         [=] AMREX_GPU_DEVICE(int i, int j, int k)
         {
-            init_phi(i,j,k,phiNew,dx,prob_lo, npts_scale,Ncomp);
+            init_phi(i,j,k,phiNew,dx,prob_lo, npts_scale,Ncomp,phileft, phiright);
         });
     }
 }

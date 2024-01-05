@@ -33,8 +33,9 @@ void main_main ()
     // AMREX_SPACEDIM: number of dimensions
     int n_cell, max_grid_size, nsteps, plot_int;
     int nskip, nstat, ncopies, icor, istat;
-    int alg_type;
+    int alg_type, avg_type;
     int seed;
+    amrex::Real phileft, phiright;
     amrex::Real npts_scale;
     amrex::Real cfl;
     Vector<int> bc_lo(AMREX_SPACEDIM,0);
@@ -80,6 +81,15 @@ void main_main ()
 
 	alg_type = 0;
 	pp.query ("alg_type",alg_type);
+
+	avg_type = 0;
+	pp.query ("avg_type",avg_type);
+
+        phileft = 32;
+	pp.query ("phileft",phileft);
+
+        phiright = 32;
+	pp.query ("phiright",phiright);
 
         seed = 0;
         pp.query("seed",seed);
@@ -193,7 +203,7 @@ void main_main ()
 
     GpuArray<Real,AMREX_SPACEDIM> dx = geom.CellSizeArray();
 
-    init_phi(phi_new, geom,npts_scale, Ncomp);
+    init_phi(phi_new, geom,npts_scale, Ncomp, phileft, phiright);
 
     //Boundary conditions are assigned to phi_old such that the ghost cells at the boundary will
     //be filled to satisfy those conditions.
@@ -279,7 +289,7 @@ void main_main ()
         MultiFab::Copy(phi_old, phi_new, 0, 0, Ncomp, 0);
 
         // new_phi = old_phi + dt * (something)
-        advance(phi_old, phi_new, flux, stochFlux, dt, npts_scale, geom, bc, Ncomp);
+        advance(phi_old, phi_new, flux, stochFlux, dt, npts_scale, geom, bc, Ncomp, phileft, phiright, avg_type);
         time = time + dt;
 
         // Tell the I/O Processor to write out which step we're doing

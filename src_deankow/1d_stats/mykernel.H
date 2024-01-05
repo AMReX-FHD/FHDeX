@@ -15,8 +15,8 @@ amrex::Real reg_sqrt (amrex::Real phi, amrex::Real deltaN) noexcept
    } else {
      smsqrt=std::sqrt(phiabs);
    }
-     //return (  (phi > 0.) ? smsqrt : -smsqrt);
-     return (  phi/std::sqrt(deltaN));
+     return (  (phi > 0.) ? smsqrt : -smsqrt);
+     //return (  phi/std::sqrt(deltaN));
 }
 
 
@@ -26,13 +26,9 @@ void init_phi (int i, int j, int k,
                amrex::Array4<amrex::Real> const& phi,
                GpuArray<amrex::Real,AMREX_SPACEDIM> const& dx,
                GpuArray<amrex::Real,AMREX_SPACEDIM> const& prob_lo,
-               amrex::Real npts_scale,int Ncomp)
+               amrex::Real npts_scale,int Ncomp, amrex::Real phileft, amrex::Real phiright)
 {
     using amrex::Real;;
-    Real cellvol = dx[0]*dx[1];
-    amrex::Real phileft,phiright;
-    phileft = 5./cellvol;
-    phiright = 5./cellvol;
 
     amrex::Real slope = phiright-phileft;
    
@@ -61,12 +57,10 @@ void compute_flux_x (int i, int j, int k,
                      amrex::Array4<amrex::Real> const& fluxx,
                      amrex::Array4<amrex::Real> const& stochfluxx,
                      amrex::Array4<amrex::Real const> const& phi, amrex::Real dxinv,
-                     int lo, int hi, int dom_lo, int dom_hi, int bc_lo, int bc_hi,int Ncomp)
+                     int lo, int hi, int dom_lo, int dom_hi, int bc_lo, int bc_hi,int Ncomp,
+                     amrex::Real phileft, amrex::Real phiright, int avg_type)
 {
-    amrex::Real cellvol = 1./dxinv;
-    amrex::Real phileft,phiright;
-    phileft = 5./cellvol;
-    phiright = 5./cellvol;
+//    amrex::Real cellvol = 1./dxinv;
 //    phileft = .1;
 //    phiright = .1;
     //amrex::Real deltaN = std::pow(0.5*(phileft+phiright),2./3.);
@@ -90,7 +84,7 @@ void compute_flux_x (int i, int j, int k,
     {
         fluxx(i,j,k,0) = 0.5*(phi(i,j,k,0)-phileft) * dxinv / 0.5 + std::sqrt(2.*phileft)*stochfluxx(i,j,k);
         if(Ncomp == 2){
-           fluxx(i,j,k,1) = 0.5*(phi(i,j,k,0)-phileft) * dxinv / 0.5 ;
+           fluxx(i,j,k,1) = 0.5*(phi(i,j,k,1)-phileft) * dxinv / 0.5 ;
         }
     } else if ( i == dom_hi+1 && bc_lo == BCType::foextrap )
     {
@@ -102,22 +96,38 @@ void compute_flux_x (int i, int j, int k,
     {
         fluxx(i,j,k,0) = 0.5*(phiright-phi(i-1,j,k,0)) * dxinv / 0.5 + std::sqrt(2.*phiright)*stochfluxx(i,j,k);
         if(Ncomp == 2){
-           fluxx(i,j,k,1) = 0.5*(phiright-phi(i,j,k,0)) * dxinv / 0.5 ;
+           fluxx(i,j,k,1) = 0.5*(phiright-phi(i-1,j,k,1)) * dxinv / 0.5 ;
         }
     } else
     {
 //	amrex::Real phiavg = 2.*(phi(i,j,k)*phi(i-1,j,k))/(phi(i,j,k)+phi(i-1,j,k)+1.e-16);
-        Real phip = std::max(phi(i,j,k,coeff_index),0.);
-        Real phim = std::max(phi(i-1,j,k,coeff_index),0.);
-        //Real phip = phi(i,j,k,coeff_index);
-        //Real phim = phi(i-1,j,k,coeff_index);
-	//amrex::Real phiavg = 2.*(phip*phim)/(phip+phim+1.e-16);
-	amrex::Real phiavg = 0.5*(phip+phim);
+        amrex::Real phiavg, phip, phim, noise_coeff;
+        if(avg_type == 0 || avg_type == 2 ) {
+
+            phip = std::max(phi(i,j,k,coeff_index),0.);
+            phim = std::max(phi(i-1,j,k,coeff_index),0.);
+	    phiavg = 0.5*(phip+phim);
+            noise_coeff = std::sqrt(phiavg);
+
+        } else if (avg_type == 1) {
+
+            phip = std::max(phi(i,j,k,coeff_index),0.);
+            phim = std::max(phi(i-1,j,k,coeff_index),0.);
+	    phiavg = 2.*(phip*phim)/(phip+phim+1.e-16);
+            noise_coeff = std::sqrt(phiavg);
+
+        } else if (avg_type == 3) {
+
+             phip = phi(i,j,k,coeff_index);
+             phim = phi(i-1,j,k,coeff_index);
+	     phiavg = 0.5*(phip+phim);
+             noise_coeff = reg_sqrt(phiavg,deltaN);
+        }
 //        phiavg = .1;
 //        amrex::Print() << "test " << std::sqrt(phiavg) << " " << phiavg/std::sqrt(deltaN) << " " << deltaN << std::endl;
         //phiavg = 1600.;
         fluxx(i,j,k,0) = 0.5*(phi(i,j,k,0)-phi(i-1,j,k,0)) * dxinv
-    	  + stochfluxx(i,j,k) * std::sqrt(phiavg);
+    	  + stochfluxx(i,j,k) * noise_coeff;
 //	  + stochfluxx(i,j,k) * reg_sqrt(phiavg,deltaN);
 //          + stochfluxx(i,j,k) * phiavg/std::sqrt(deltaN);
         if(Ncomp == 2){
