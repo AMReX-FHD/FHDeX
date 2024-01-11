@@ -11,7 +11,7 @@ void MultiFabPhysBCFH(MultiFab& phi, const Geometry& geom, int scomp, int ncomp,
     
     // bccomp definitions are in BCPhysToMath.cpp
 
-    amrex::Print() << " entering special FH bc routine " << std::endl;
+//    amrex::Print() << " entering special FH bc routine " << std::endl;
     
     if (geom.isAllPeriodic() || phi.nGrow() == 0) {
         return;
@@ -55,7 +55,7 @@ void MultiFabPhysBCFH(MultiFab& phi, const Geometry& geom, int scomp, int ncomp,
         if (bx.smallEnd(0) < lo) {
             Real x = prob_lo[0];
             if (bc_mass_lo[0] == 1) {
-                amrex::Print() << " entering special FH bc routine lo " <<  bc_mass_lo[0] << std::endl;
+//                amrex::Print() << " entering special FH bc routine lo " <<  bc_mass_lo[0] << std::endl;
                 amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (i < lo) {
@@ -66,27 +66,27 @@ void MultiFabPhysBCFH(MultiFab& phi, const Geometry& geom, int scomp, int ncomp,
                 });
             }
             else if (bc_mass_lo[0] == 4) {
-                amrex::Print() << " entering special FH bc routine lo " <<  bc_mass_lo[0] << std::endl;
+//                amrex::Print() << " entering special FH bc routine lo " <<  bc_mass_lo[0] << std::endl;
                 amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (i < lo) {
                         data(i,j,k,scomp+0) = data(lo,j,k,scomp+0) + dx[0]*std::cos(contact_angle_lo[0])*data(lo,j,k,scomp+0)*data(lo,j,k,scomp+1)*coeff;
                         data(i,j,k,scomp+0) = amrex::min(1.,amrex::max(0.,data(i,j,k,scomp+0)));
                         data(i,j,k,scomp+1) = 1.-data(i,j,k,scomp+0);
-                        amrex::Print() << " Fh data left " << j << " " << data(i,j,k,scomp) <<" " << data(i,j,k,scomp+1) <<  std::endl;
+//                        amrex::Print() << " Fh data left " << j << " " << data(i,j,k,scomp) <<" " << data(i,j,k,scomp+1) <<  std::endl;
 
-                        if(j == 18){
-                            Real foo = std::cos(contact_angle_lo[0])* coeff;
-                            amrex::Print() << "coeff and cos " << coeff << " " << contact_angle_lo[0] << " " << foo << std::endl;
-                        }
+//                        if(j == 18){
+//                            Real foo = std::cos(contact_angle_lo[0])* coeff;
+//                            amrex::Print() << "coeff and cos " << coeff << " " << contact_angle_lo[0] << " " << foo << std::endl;
+//                        }
 
                         //data(i,j,k,scomp+1) = data(lo,j,k,scomp+1) + 0.5*dx[0]*data(lo,j,k,scomp+0)*data(lo,j,k,scomp+1);
                     }
                 });
 
             }
-            else{
-               amrex::Print{} << "Should not be here " << std::endl;
+            else if ( bc_mass_lo[0] != -1) {
+               amrex::Print{} << "Should not be here lo x " << bc_mass_lo[0]  << std::endl;
                Abort("Wrong parameter in FH boundary condition");
             }
         }
@@ -104,22 +104,22 @@ void MultiFabPhysBCFH(MultiFab& phi, const Geometry& geom, int scomp, int ncomp,
                 });
             }
             else if (bc_mass_hi[0] == 4) {
-                amrex::Print() << " entering special FH bc routine hi " <<  bc_mass_hi[0] << std::endl;
+//                amrex::Print() << " entering special FH bc routine hi " <<  bc_mass_hi[0] << std::endl;
                 amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (i > hi) {
                         data(i,j,k,scomp+0) = data(hi,j,k,scomp+0) + dx[0]*std::cos(contact_angle_hi[0])*data(hi,j,k,scomp+0)*data(hi,j,k,scomp+1)*coeff;
                         data(i,j,k,scomp+0) = amrex::min(1.,amrex::max(0.,data(i,j,k,scomp+0)));
                         data(i,j,k,scomp+1) = 1.-data(i,j,k,scomp+0);
-                        amrex::Print() << " Fh data right " << j << " " << data(i,j,k,scomp) << " " << data(i,j,k,scomp+1) << std::endl;
+//                        amrex::Print() << " Fh data right " << j << " " << data(i,j,k,scomp) << " " << data(i,j,k,scomp+1) << std::endl;
 
                         //data(i,j,k,scomp+1) = data(lo,j,k,scomp+1) + 0.5*dx[0]*data(lo,j,k,scomp+0)*data(lo,j,k,scomp+1);
                     }
                 });
 
             }
-            else{
-               amrex::Print{} << "Should not be here " << std::endl;
+            else if ( bc_mass_hi[0] != -1) {
+               amrex::Print{} << "Should not be here hi x " << bc_mass_hi[0]  << std::endl;
                Abort("Wrong parameter in FH boundary condition");
             }
         }
@@ -156,8 +156,8 @@ void MultiFabPhysBCFH(MultiFab& phi, const Geometry& geom, int scomp, int ncomp,
                 });
 
             }
-            else{
-               amrex::Print{} << "Should not be here " << std::endl;
+            else if ( bc_mass_lo[1] != -1) {
+               amrex::Print{} << "Should not be here lo y " << bc_mass_lo[1]  << std::endl;
                Abort("Wrong parameter in FH boundary condition");
             }
         }
@@ -187,8 +187,8 @@ void MultiFabPhysBCFH(MultiFab& phi, const Geometry& geom, int scomp, int ncomp,
                 });
 
             }
-            else{
-               amrex::Print{} << "Should not be here " << std::endl;
+            else if ( bc_mass_hi[1] != -1) {
+               amrex::Print{} << "Should not be here hi y " << bc_mass_hi[1]  << std::endl;
                Abort("Wrong parameter in FH boundary condition");
             }
         }
@@ -226,7 +226,7 @@ void MultiFabPhysBCFH(MultiFab& phi, const Geometry& geom, int scomp, int ncomp,
                 });
 
             }
-            else{
+            else if ( bc_mass_lo[2] != -1) {
                amrex::Print{} << "Should not be here " << std::endl;
                Abort("Wrong parameter in FH boundary condition");
             }
@@ -257,7 +257,7 @@ void MultiFabPhysBCFH(MultiFab& phi, const Geometry& geom, int scomp, int ncomp,
                 });
 
             }
-            else{
+            else if ( bc_mass_hi[2] != -1) {
                amrex::Print{} << "Should not be here " << std::endl;
                Abort("Wrong parameter in FH boundary condition");
             }

@@ -196,7 +196,6 @@ void FillRhototGhost(MultiFab& rhotot_in, const MultiFab& conc_in, const Geometr
                             rhoinv += conc(lo-1,j,k,n)/rhobar_gpu[n];
                         }
                         rhotot(i,j,k) = 1./rhoinv;
-                        amrex::Print() << " rhotot lo" << j << " " << rhotot(i,j,k) << std::endl;
                     }
                 });
             }
@@ -212,7 +211,6 @@ void FillRhototGhost(MultiFab& rhotot_in, const MultiFab& conc_in, const Geometr
                             rhoinv += conc(hi+1,j,k,n)/rhobar_gpu[n];
                         }
                         rhotot(i,j,k) = 1./rhoinv;
-                        amrex::Print() << " rhotot hi" << j << " " << rhotot(i,j,k) << std::endl;
                     }
                 });
             }

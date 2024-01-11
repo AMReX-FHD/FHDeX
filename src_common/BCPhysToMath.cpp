@@ -31,8 +31,35 @@ void BCPhysToMath(int bccomp, amrex::Vector<int>& bc_lo, amrex::Vector<int>& bc_
             }
         }
     }
-    else if (bccomp == RHO_BC_COMP ||
-             bccomp == SPEC_BC_COMP ||
+    else if (bccomp == RHO_BC_COMP ) { // density
+        for (int i=0; i<AMREX_SPACEDIM; ++i) {
+            if (bc_mass_lo[i] == 1) {
+                // wall -> first-order extrapolation
+                bc_lo[i] = FOEXTRAP;
+            }
+            else if (bc_mass_lo[i] == 2) {
+                // reservoir -> dirichlet
+                bc_lo[i] = EXT_DIR;
+            }
+            else if (bc_mass_lo[i] == 4) {
+                // reservoir -> dirichlet
+                bc_lo[i] = FOEXTRAP;
+            }
+            if (bc_mass_hi[i] == 1) {
+                // wall -> first-order extrapolation
+                bc_hi[i] = FOEXTRAP;
+            }
+            else if (bc_mass_hi[i] == 2) {
+                // reservoir -> dirichlet
+                bc_hi[i] = EXT_DIR;
+            }
+            else if (bc_mass_hi[i] == 4) {
+                // reservoir -> dirichlet
+                bc_hi[i] = FOEXTRAP;
+            }
+        }
+    }
+    else if (bccomp == SPEC_BC_COMP ||
              bccomp == MOLFRAC_BC_COMP) { // density, species, or mole fraction
         for (int i=0; i<AMREX_SPACEDIM; ++i) {
             if (bc_mass_lo[i] == 1) {

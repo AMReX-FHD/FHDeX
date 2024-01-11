@@ -250,7 +250,7 @@ void MultiFabPhysBC(MultiFab& phi, const Geometry& geom, int scomp, int ncomp, i
                     }
                 });
 
-            } esle if (bc_lo[2] == FOEXTRAP) {
+            } else if (bc_lo[2] == FOEXTRAP) {
                 amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (k < lo) {
