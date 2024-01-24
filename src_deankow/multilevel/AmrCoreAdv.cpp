@@ -768,7 +768,7 @@ AmrCoreAdv::EstTimeStep (int lev, Real /*time*/)
 std::string
 AmrCoreAdv::PlotFileName (int lev) const
 {
-    return amrex::Concatenate(plot_file, lev, 5);
+    return amrex::Concatenate(plot_file, lev, 6);
 }
 
 // put together an array of multifabs for writing

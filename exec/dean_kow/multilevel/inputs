@@ -2,7 +2,7 @@
 # Run until nsteps == max_step or time == stop_time,
 #     whichever comes first
 # *****************************************************************
-max_step  = 100
+max_step  = 2500
 
 seed = 1024
 
@@ -35,9 +35,9 @@ amr.v              = 1       # verbosity in Amr
 # Resolution and refinement
 # *****************************************************************
 
-amr.n_cell          = 64 64
-amr.max_grid_size_x = 32 16
-amr.max_grid_size_y = 32 16
+amr.n_cell          = 256 256
+amr.max_grid_size_x = 64 64
+amr.max_grid_size_y = 64 64
 
 amr.max_level       = 1
 amr.use_particles   = 1      # Turn particles on or off
@@ -74,6 +74,8 @@ adv.do_reflux = 1
 # *****************************************************************
 adv.phierr = 10000      # this for 32x32 (5 * 32 * 32 =  5120)
 adv.phierr = 100000     # this for 64x64 (5 * 64 * 64 = 20480)
+adv.phierr = 160000     # this for 128x128 (5 * 128 * 128 = 81920)
+adv.phierr = 400000     # this for 256x256 (5 * 256 * 256 = 327680)
 
 # *****************************************************************
 # Plotfile name and frequency

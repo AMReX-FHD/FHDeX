@@ -63,9 +63,9 @@ void init_phi (int i, int j, int k,
 
 #if 1
     // 2D Test for multilevel
-    Real rad = Real(0.1);
-    Real xcent = Real(0.25);
-    Real ycent = Real(0.25);
+    Real rad = Real(0.2);
+    Real xcent = Real(0.5);
+    Real ycent = Real(0.5);
     Real x = prob_lo[0] + (i+Real(0.5)) * dx[0] - xcent;
     Real y = prob_lo[1] + (j+Real(0.5)) * dx[1] - ycent;
     Real r2 = (x*x + y*y);
@@ -76,7 +76,7 @@ void init_phi (int i, int j, int k,
 #endif
 
     if ( r2 > rad*rad) {
-        phi(i,j,k,0) = 50./cellvol;
+        phi(i,j,k,0) = 15./cellvol;
     } else {
         phi(i,j,k,0) = 0./cellvol;
     }
@@ -127,7 +127,8 @@ void compute_flux_x (int i, int j, int k,
 //	amrex::Real phiavg = 2.*(phi(i,j,k)*phi(i-1,j,k))/(phi(i,j,k)+phi(i-1,j,k)+1.e-16);
         amrex::Real phip = std::max(phi(i,j,k,coeff_index),0.);
         amrex::Real phim = std::max(phi(i-1,j,k,coeff_index),0.);
-	amrex::Real phiavg = 2.*(phip*phim)/(phip+phim+1.e-16);
+	//amrex::Real phiavg = 2.*(phip*phim)/(phip+phim+1.e-16);
+	amrex::Real phiavg = 0.5*(phip+phim);
         fluxx(i,j,k,0) = 0.5*(phi(i,j,k,0)-phi(i-1,j,k,0)) * dxinv
     	                    + stochfluxx(i,j,k) * std::sqrt(phiavg);
         if(Ncomp == 2){
@@ -175,7 +176,8 @@ void compute_flux_y (int i, int j, int k,
 //	amrex::Real phiavg = 2.*(phi(i,j,k)*phi(i,j-1,k))/(phi(i,j,k)+phi(i,j-1,k)+1.e-16);
         amrex::Real phip = std::max(phi(i,j,k,coeff_index),0.);
         amrex::Real phim = std::max(phi(i,j-1,k,coeff_index),0.);
-	amrex::Real phiavg = 2.*(phip*phim)/(phip+phim+1.e-16);
+	//amrex::Real phiavg = 2.*(phip*phim)/(phip+phim+1.e-16);
+	amrex::Real phiavg = 0.5*(phip+phim);
         fluxy(i,j,k,0) = 0.5*(phi(i,j,k,0)-phi(i,j-1,k,0)) * dyinv
 	+ stochfluxy(i,j,k)* std::sqrt(phiavg);
         if(Ncomp == 2){
