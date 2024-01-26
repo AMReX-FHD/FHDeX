@@ -72,7 +72,7 @@ void DsmcParticleContainer::MoveParticlesDSMC(const Real dt, const paramPlane* p
                        m_vector_size[grid_id].dataPtr(),
                        ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
                        ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),
-                       ZFILL(plo),ZFILL(phi),ZFILL(dx), &dt,
+                       AMREX_ZFILL(plo),AMREX_ZFILL(phi),ZFILL(dx), &dt,
                        paramPlaneList, &paramPlaneCount, &time, flux);
 
         lFlux += flux[0]; rFlux += flux[1];

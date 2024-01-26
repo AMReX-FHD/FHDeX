@@ -85,8 +85,8 @@ AmrCoreAdv::AmrCoreAdv ()
 
 /*
     // walls (Neumann)
-    int bc_lo[] = {FOEXTRAP, FOEXTRAP, FOEXTRAP};
-    int bc_hi[] = {FOEXTRAP, FOEXTRAP, FOEXTRAP};
+    int bc_lo[] = {amrex::BCType::foextrap, amrex::BCType::foextrap, amrex::BCType::foextrap};
+    int bc_hi[] = {amrex::BCType::foextrap, amrex::BCType::foextrap, amrex::BCType::foextrap};
 */
 
     bcs.resize(1);     // Setup 1-component
@@ -371,10 +371,11 @@ void AmrCoreAdv::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba
         {
             const Box& vbx = mfi.validbox();
             auto const& phi_arr = phi_new[lev].array(mfi);
+            auto npts_scale_local = npts_scale;
             amrex::ParallelFor(vbx,
             [=] AMREX_GPU_DEVICE(int i, int j, int k)
             {
-                init_phi(i,j,k,phi_arr,dx,problo,npts_scale,Ncomp);
+                init_phi(i,j,k,phi_arr,dx,problo,npts_scale_local,Ncomp);
             });
         }
     } else {
