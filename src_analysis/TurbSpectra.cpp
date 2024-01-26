@@ -1,5 +1,5 @@
-#include "common_functions.H"
 #include "TurbSpectra.H"
+#include "common_functions.H"
 
 #include <AMReX_MultiFabUtil.H>
 #include "AMReX_PlotFileUtil.H"

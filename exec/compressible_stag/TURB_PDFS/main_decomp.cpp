@@ -46,11 +46,11 @@ int main (int argc, char* argv[])
         std::string iFile         = amrex::Concatenate("vel_grad_decomp",step,9);
 
         Vector<std::string> scalar_out(5);
-        scalar_out[0] = amrex::Concatenate("vort_pdf",step,9);
-        scalar_out[1] = amrex::Concatenate("div_pdf",step,9);
-        scalar_out[2] = amrex::Concatenate("vortx_pdf",step,9);
-        scalar_out[3] = amrex::Concatenate("vorty_pdf",step,9);
-        scalar_out[4] = amrex::Concatenate("vortz_pdf",step,9);
+        scalar_out[0] = amrex::Concatenate("div_pdf",step,9);
+        scalar_out[1] = amrex::Concatenate("vortx_pdf",step,9);
+        scalar_out[2] = amrex::Concatenate("vorty_pdf",step,9);
+        scalar_out[3] = amrex::Concatenate("vortz_pdf",step,9);
+        scalar_out[4] = amrex::Concatenate("vort_pdf",step,9);
         Vector<std::string> Lap_out_sol(5);
         Lap_out_sol[0] = amrex::Concatenate("L0_pdf_sol",step,9);
         Lap_out_sol[1] = amrex::Concatenate("L1_pdf_sol",step,9);
@@ -392,10 +392,9 @@ int main (int argc, char* argv[])
         ////////////////////////////////////////////////////////////////////////
         ///////////////////////// scalar  PDFs /////////////////////////////////
         ////////////////////////////////////////////////////////////////////////
-        MultiFab scalar(ba,dmap,5,0); // vort_mag, div, vort_x, vort_y, vort_z
+        MultiFab scalar(ba,dmap,4,0);    // vort_mag, div, vort_x, vort_y, vort_z
         scalar.setVal(0.0);
-        Copy(scalar,mf,vort_ind,0,1,0);
-        Copy(scalar,mf,div_ind,1,1,0);
+        Copy(scalar,mf,div_ind,0,1,0);
 
         // Compute vorticity components and store in scalar
         for ( MFIter mfi(vel_sol,false); mfi.isValid(); ++mfi ) {
@@ -404,19 +403,19 @@ int main (int argc, char* argv[])
             const auto lo = amrex::lbound(bx);
             const auto hi = amrex::ubound(bx);
 
-            Array4<Real const> const& sol = vel_sol.array(mfi);
-            Array4<Real>       const& sca = scalar .array(mfi);
+            Array4<Real const> const& sol  = vel_sol   .array(mfi);
+            Array4<Real>       const& sca  = scalar    .array(mfi);
 
             for (auto k = lo.z; k <= hi.z; ++k) {
             for (auto j = lo.y; j <= hi.y; ++j) {
             for (auto i = lo.x; i <= hi.x; ++i) {
                 // dw/dy - dv/dz
-                sca(i,j,k,2) =
+                sca(i,j,k,1) =
                     (sol(i,j+1,k,velz_sol_ind) - sol(i,j-1,k,velz_sol_ind)) / (2.*dx[1]) -
                     (sol(i,j,k+1,vely_sol_ind) - sol(i,j,k-1,vely_sol_ind)) / (2.*dx[2]);
 
                 // dv/dx - du/dy
-                sca(i,j,k,4) =
+                sca(i,j,k,2) =
                     (sol(i+1,j,k,vely_sol_ind) - sol(i-1,j,k,vely_sol_ind)) / (2.*dx[0]) -
                     (sol(i,j+1,k,velx_sol_ind) - sol(i,j-1,k,velx_sol_ind)) / (2.*dx[1]);
 
@@ -431,35 +430,31 @@ int main (int argc, char* argv[])
         }
 
         // compute spatial mean
-        Real mean_vort    = scalar.sum(0) / (ncells);
-        Real mean_div     = scalar.sum(1) / (ncells);
-        Real mean_vortx   = scalar.sum(2) / (ncells);
-        Real mean_vorty   = scalar.sum(3) / (ncells);
-        Real mean_vortz   = scalar.sum(4) / (ncells);
+        Real mean_div     = scalar.sum(0) / (ncells);
+        Real mean_vortx   = scalar.sum(1) / (ncells);
+        Real mean_vorty   = scalar.sum(2) / (ncells);
+        Real mean_vortz   = scalar.sum(3) / (ncells);
 
         // get fluctuations
-        scalar.plus(-1.0*mean_vort,    0, 1);
-        scalar.plus(-1.0*mean_div,     1, 1);
-        scalar.plus(-1.0*mean_vortx,   2, 1);
-        scalar.plus(-1.0*mean_vorty,   3, 1);
-        scalar.plus(-1.0*mean_vortz,   4, 1);
+        scalar.plus(-1.0*mean_div,     0, 1);
+        scalar.plus(-1.0*mean_vortx,   1, 1);
+        scalar.plus(-1.0*mean_vorty,   2, 1);
+        scalar.plus(-1.0*mean_vortz,   3, 1);
 
         // get rms
-        Real rms_vort    = scalar.norm2(0) / sqrt(ncells);
-        Real rms_div     = scalar.norm2(1) / sqrt(ncells);
-        Real rms_vortx   = scalar.norm2(2) / sqrt(ncells);
-        Real rms_vorty   = scalar.norm2(3) / sqrt(ncells);
-        Real rms_vortz   = scalar.norm2(4) / sqrt(ncells);
+        Real rms_div     = scalar.norm2(0) / sqrt(ncells);
+        Real rms_vortx   = scalar.norm2(1) / sqrt(ncells);
+        Real rms_vorty   = scalar.norm2(2) / sqrt(ncells);
+        Real rms_vortz   = scalar.norm2(3) / sqrt(ncells);
 
         // scale by rms
-        scalar.mult(1.0/rms_vort,    0, 1);
-        scalar.mult(1.0/rms_div,     1, 1);
-        scalar.mult(1.0/rms_vortx,   2, 1);
-        scalar.mult(1.0/rms_vorty,   3, 1);
-        scalar.mult(1.0/rms_vortz,   4, 1);
+        scalar.mult(1.0/rms_div,     0, 1);
+        scalar.mult(1.0/rms_vortx,   1, 1);
+        scalar.mult(1.0/rms_vorty,   2, 1);
+        scalar.mult(1.0/rms_vortz,   3, 1);
 
         // now compute pdfs
-        for (int m = 0; m < 5; ++m) {
+        for (int m = 0; m < 4; ++m) {
 
             Vector<Real> bins(nbins+1,0.);
 
@@ -518,6 +513,238 @@ int main (int argc, char* argv[])
                 outfile.close();
             }
         }
+
+        // total vorticity PDF
+        {
+          Vector<Real> bins(nbins+1,0.);
+
+          int halfbin = nbins/2;
+          Real hbinwidth = range/nbins;
+          Real binwidth = 2.*range/nbins;
+          amrex::Long count=0;
+          amrex::Long totbin=0;
+          for (int ind=0 ; ind < nbins+1; ind++) bins[ind]=0;
+
+          for ( MFIter mfi(scalar,false); mfi.isValid(); ++mfi ) {
+
+              const Box& bx = mfi.validbox();
+              const auto lo = amrex::lbound(bx);
+              const auto hi = amrex::ubound(bx);
+              
+              const Array4<Real>& sca = scalar.array(mfi);
+
+              for (auto n = 1;    n < 4;     ++n) { 
+              for (auto k = lo.z; k <= hi.z; ++k) {
+              for (auto j = lo.y; j <= hi.y; ++j) {
+              for (auto i = lo.x; i <= hi.x; ++i) {
+
+                  int index = floor((sca(i,j,k,n) + hbinwidth)/binwidth);
+                  index += halfbin;
+                  
+                  if( index >=0 && index <= nbins) {
+                      bins[index] += 1;
+                      totbin++;
+                  }
+
+                  count++;
+                      
+              }
+              }
+              }
+              }
+
+          } // end MFIter
+
+          ParallelDescriptor::ReduceRealSum(bins.dataPtr(),nbins+1);
+          ParallelDescriptor::ReduceLongSum(count);
+          ParallelDescriptor::ReduceLongSum(totbin);
+          Print() << "Points outside of range "<< count - totbin << " " << 
+                     (double)(count-totbin)/count << std::endl;
+
+          // print out contents of bins to the screen
+          for (int i=0; i<nbins+1; ++i) {
+              Print() << "For scalar m = "<< 4 << " " <<  (i-halfbin)*binwidth << " " 
+                      << bins[i]/(count*binwidth) << std::endl;
+          }
+          if (ParallelDescriptor::IOProcessor()) {
+              std::ofstream outfile;
+              outfile.open(scalar_out[4]);
+              for (int i=0; i<nbins+1; ++i) {
+                  outfile << (i-halfbin)*binwidth << " " << bins[i]/(count*binwidth) << std::endl;
+              }
+              outfile.close();
+          }
+        
+        }
+
+        // solenoidal  and dilataional velocity PDF
+        MultiFab vel_decomp(ba,dmap,6,0);
+
+        Copy(vel_decomp,mf,velx_sol_ind,0,1,0); // sol
+        Copy(vel_decomp,mf,vely_sol_ind,1,1,0); // sol
+        Copy(vel_decomp,mf,velz_sol_ind,2,1,0); // sol
+        Copy(vel_decomp,mf,velx_dil_ind,3,1,0); // dil
+        Copy(vel_decomp,mf,vely_dil_ind,4,1,0); // dil
+        Copy(vel_decomp,mf,velz_dil_ind,5,1,0); // dil
+
+        // compute spatial mean
+        Real mean_solx   = vel_decomp.sum(0) / (ncells);
+        Real mean_soly   = vel_decomp.sum(1) / (ncells);
+        Real mean_solz   = vel_decomp.sum(2) / (ncells);
+        Real mean_dilx   = vel_decomp.sum(3) / (ncells);
+        Real mean_dily   = vel_decomp.sum(4) / (ncells);
+        Real mean_dilz   = vel_decomp.sum(5) / (ncells);
+
+        // get fluctuations
+        vel_decomp.plus(-1.0*mean_solx,     0, 1);
+        vel_decomp.plus(-1.0*mean_soly,     1, 1);
+        vel_decomp.plus(-1.0*mean_solz,     2, 1);
+        vel_decomp.plus(-1.0*mean_dilx,     3, 1);
+        vel_decomp.plus(-1.0*mean_dily,     4, 1);
+        vel_decomp.plus(-1.0*mean_dilz,     5, 1);
+
+        // get rms
+        Real rms_solx   = vel_decomp.norm2(0) / sqrt(ncells);
+        Real rms_soly   = vel_decomp.norm2(1) / sqrt(ncells);
+        Real rms_solz   = vel_decomp.norm2(2) / sqrt(ncells);
+        Real rms_dilx   = vel_decomp.norm2(3) / sqrt(ncells);
+        Real rms_dily   = vel_decomp.norm2(4) / sqrt(ncells);
+        Real rms_dilz   = vel_decomp.norm2(5) / sqrt(ncells);
+
+        // scale by rms
+        vel_decomp.mult(1.0/rms_solx,   0, 1);
+        vel_decomp.mult(1.0/rms_soly,   1, 1);
+        vel_decomp.mult(1.0/rms_solz,   2, 1);
+        vel_decomp.mult(1.0/rms_dilx,   3, 1);
+        vel_decomp.mult(1.0/rms_dily,   4, 1);
+        vel_decomp.mult(1.0/rms_dilz,   5, 1);
+
+        // solenoidal 
+        {
+          Vector<Real> bins(nbins+1,0.);
+
+          int halfbin = nbins/2;
+          Real hbinwidth = range/nbins;
+          Real binwidth = 2.*range/nbins;
+          amrex::Long count=0;
+          amrex::Long totbin=0;
+          for (int ind=0 ; ind < nbins+1; ind++) bins[ind]=0;
+
+          for ( MFIter mfi(vel_decomp,false); mfi.isValid(); ++mfi ) {
+
+              const Box& bx = mfi.validbox();
+              const auto lo = amrex::lbound(bx);
+              const auto hi = amrex::ubound(bx);
+              
+              const Array4<Real>& vel = vel_decomp.array(mfi);
+
+              for (auto n = 0;    n < 3;     ++n) { 
+              for (auto k = lo.z; k <= hi.z; ++k) {
+              for (auto j = lo.y; j <= hi.y; ++j) {
+              for (auto i = lo.x; i <= hi.x; ++i) {
+
+                  int index = floor((vel(i,j,k,n) + hbinwidth)/binwidth);
+                  index += halfbin;
+                  
+                  if( index >=0 && index <= nbins) {
+                      bins[index] += 1;
+                      totbin++;
+                  }
+
+                  count++;
+                      
+              }
+              }
+              }
+              }
+
+          } // end MFIter
+
+          ParallelDescriptor::ReduceRealSum(bins.dataPtr(),nbins+1);
+          ParallelDescriptor::ReduceLongSum(count);
+          ParallelDescriptor::ReduceLongSum(totbin);
+          Print() << "Points outside of range "<< count - totbin << " " << 
+                     (double)(count-totbin)/count << std::endl;
+
+          // print out contents of bins to the screen
+          for (int i=0; i<nbins+1; ++i) {
+              Print() << "For solenoid. vel. " <<  (i-halfbin)*binwidth << " " 
+                      << bins[i]/(count*binwidth) << std::endl;
+          }
+          if (ParallelDescriptor::IOProcessor()) {
+              std::ofstream outfile;
+              outfile.open(amrex::Concatenate("solenoidal_pdf",step,9));
+              for (int i=0; i<nbins+1; ++i) {
+                  outfile << (i-halfbin)*binwidth << " " << bins[i]/(count*binwidth) << std::endl;
+              }
+              outfile.close();
+          }
+        
+        }
+
+        // dilatational
+        {
+          Vector<Real> bins(nbins+1,0.);
+
+          int halfbin = nbins/2;
+          Real hbinwidth = range/nbins;
+          Real binwidth = 2.*range/nbins;
+          amrex::Long count=0;
+          amrex::Long totbin=0;
+          for (int ind=0 ; ind < nbins+1; ind++) bins[ind]=0;
+
+          for ( MFIter mfi(vel_decomp,false); mfi.isValid(); ++mfi ) {
+
+              const Box& bx = mfi.validbox();
+              const auto lo = amrex::lbound(bx);
+              const auto hi = amrex::ubound(bx);
+              
+              const Array4<Real>& vel = vel_decomp.array(mfi);
+
+              for (auto n = 3;    n < 6;     ++n) { 
+              for (auto k = lo.z; k <= hi.z; ++k) {
+              for (auto j = lo.y; j <= hi.y; ++j) {
+              for (auto i = lo.x; i <= hi.x; ++i) {
+
+                  int index = floor((vel(i,j,k,n) + hbinwidth)/binwidth);
+                  index += halfbin;
+                  
+                  if( index >=0 && index <= nbins) {
+                      bins[index] += 1;
+                      totbin++;
+                  }
+
+                  count++;
+                      
+              }
+              }
+              }
+              }
+
+          } // end MFIter
+
+          ParallelDescriptor::ReduceRealSum(bins.dataPtr(),nbins+1);
+          ParallelDescriptor::ReduceLongSum(count);
+          ParallelDescriptor::ReduceLongSum(totbin);
+          Print() << "Points outside of range "<< count - totbin << " " << 
+                     (double)(count-totbin)/count << std::endl;
+
+          // print out contents of bins to the screen
+          for (int i=0; i<nbins+1; ++i) {
+              Print() << "For dilation. vel. " <<  (i-halfbin)*binwidth << " " 
+                      << bins[i]/(count*binwidth) << std::endl;
+          }
+          if (ParallelDescriptor::IOProcessor()) {
+              std::ofstream outfile;
+              outfile.open(amrex::Concatenate("dilatational_pdf",step,9));
+              for (int i=0; i<nbins+1; ++i) {
+                  outfile << (i-halfbin)*binwidth << " " << bins[i]/(count*binwidth) << std::endl;
+              }
+              outfile.close();
+          }
+        
+        }
+
     }
         
     amrex::Finalize();
