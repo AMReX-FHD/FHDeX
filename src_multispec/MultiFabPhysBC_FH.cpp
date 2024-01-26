@@ -33,7 +33,12 @@ void MultiFabPhysBCFH(MultiFab& phi, const Geometry& geom, int scomp, int ncomp,
 
     Real kappa_coeff = fh_kappa(0,1);
 
-    Real coeff = 6.*fh_tension/(kappa_coeff*scale);
+//    amrex::Print() << "scale and coeff " << scale << " " << kappa_coeff << " " << scale*kappa_coeff << " " << fh_tension <<std::endl;
+
+    //Real coeff = 6.*fh_tension/(kappa_coeff*scale);
+    Real coeff = 3.*fh_tension/(kappa_coeff*scale);
+
+//    amrex::Print() << " coeff " << coeff << std::endl;
 
     for (MFIter mfi(phi, TilingIfNotGPU()); mfi.isValid(); ++mfi) {
 
@@ -147,10 +152,13 @@ void MultiFabPhysBCFH(MultiFab& phi, const Geometry& geom, int scomp, int ncomp,
                 amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (j < lo) {
-                        data(i,j,k,scomp+0) = data(i,lo,k,scomp+0) + dx[1]*std::cos(contact_angle_lo[1])*data(i,lo,k,scomp+0)*data(i,lo,k,scomp+1)/coeff;
+                        data(i,j,k,scomp+0) = data(i,lo,k,scomp+0) + dx[1]*std::cos(contact_angle_lo[1])*data(i,lo,k,scomp+0)*data(i,lo,k,scomp+1)*coeff;
                         data(i,j,k,scomp+0) = amrex::min(1.,amrex::max(0.,data(i,j,k,scomp+0)));
                         data(i,j,k,scomp+1) = 1.-data(i,j,k,scomp+0);
 
+//                        if(j == lo-1 && i > 60 && i < 70){
+//                           amrex::Print() << " normal derivative " << cos(contact_angle_lo[1])*data(i,lo,k,scomp+0)*data(i,lo,k,scomp+1)*coeff << std::endl;
+//                        }
                         //data(i,j,k,scomp+1) = data(lo,j,k,scomp+1) + 0.5*dx[0]*data(lo,j,k,scomp+0)*data(lo,j,k,scomp+1);
                     }
                 });

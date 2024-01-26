@@ -45,12 +45,21 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
             */
             Real rad = L[0] / 4.;
 	    rad = radius_cyl;
+
+            amrex::Real alpha;
+
+            alpha = 3.*3.14159265/4.;
+            
+            alpha = contact_angle_lo[1];
             
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 Real x,y,z;
+//                AMREX_D_TERM(x = prob_lo[0] + (i+0.5)*dx[0] - center[0];,
+//                             y = prob_lo[1] + (j+0.5)*dx[1] - center[1];,
+//                             z = prob_lo[2] + (k+0.5)*dx[2] - center[2];);
                 AMREX_D_TERM(x = prob_lo[0] + (i+0.5)*dx[0] - center[0];,
-                             y = prob_lo[1] + (j+0.5)*dx[1] - center[1];,
+                             y = prob_lo[1] + (j+0.5)*dx[1] - rad*std::cos(alpha) ;,
                              z = prob_lo[2] + (k+0.5)*dx[2] - center[2];);
 
                 Real r = (AMREX_SPACEDIM == 1) ? std::sqrt(x*x+y*y) : std::sqrt(x*x+y*y+z*z);

@@ -328,6 +328,7 @@ void ComputeFHHigherOrderTerm(MultiFab& molarconc,
     Real dxinv = 1./dx[0];
     Real twodxinv = 2.*dxinv;
     Real sixth = 1./6.;
+    Real third = 1./3.;
     Real twelveinv = 1./12.;
     Real one44inv = 1./144.;
     
@@ -343,9 +344,15 @@ void ComputeFHHigherOrderTerm(MultiFab& molarconc,
         amrex::ParallelFor(bx, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
 #if (AMREX_SPACEDIM == 2)
-            lap(i,j,k,n) = ( phi(i+1,j-1,k,n)-2.*phi(i,j-1,k,n)+phi(i-1,j-1,k,n) + phi(i-1,j+1,k,n)-2.*phi(i-1,j,k,n)+phi(i-1,j-1,k,n) ) * (sixth*dxinv*dxinv)
-                + 4.*( phi(i+1,j,k,n)-2.*phi(i,j,k,n)+phi(i-1,j,k,n) + phi(i,j+1,k,n)-2.*phi(i,j,k,n)+phi(i,j-1,k,n) ) * (sixth*dxinv*dxinv)
-                + ( phi(i+1,j+1,k,n)-2.*phi(i,j+1,k,n)+phi(i-1,j+1,k,n) + phi(i+1,j+1,k,n)-2.*phi(i+1,j,k,n)+phi(i+1,j-1,k,n) ) * (sixth*dxinv*dxinv);
+//            lap(i,j,k,n) = ( phi(i+1,j-1,k,n)-2.*phi(i,j-1,k,n)+phi(i-1,j-1,k,n) + phi(i-1,j+1,k,n)-2.*phi(i-1,j,k,n)+phi(i-1,j-1,k,n) ) * (sixth*dxinv*dxinv)
+//                + 4.*( phi(i+1,j,k,n)-2.*phi(i,j,k,n)+phi(i-1,j,k,n) + phi(i,j+1,k,n)-2.*phi(i,j,k,n)+phi(i,j-1,k,n) ) * (sixth*dxinv*dxinv)
+//                + ( phi(i+1,j+1,k,n)-2.*phi(i,j+1,k,n)+phi(i-1,j+1,k,n) + phi(i+1,j+1,k,n)-2.*phi(i+1,j,k,n)+phi(i+1,j-1,k,n) ) * (sixth*dxinv*dxinv);
+            lap(i,j,k,n) = (phi(i-1,j-1,k,n) + phi(i,j-1,k,n) + phi(i+1,j-1,k,n) + phi(i-1,j,k,n) - 8.*phi(i,j,k,n) + phi(i+1,j,k,n) 
+                         +  phi(i-1,j+1,k,n) + phi(i,j+1,k,n) + phi(i+1,j+1,k,n)) * (third*dxinv*dxinv);
+#if 0
+            lap(i,j,k,n) = (phi(i-1,j-1,k,n) + 4.*phi(i,j-1,k,n) + phi(i+1,j-1,k,n) + 4.* phi(i-1,j,k,n) - 20.*phi(i,j,k,n) +  4.*phi(i+1,j,k,n) 
+                         +  phi(i-1,j+1,k,n) + 4.*phi(i,j+1,k,n) + phi(i+1,j+1,k,n)) * (sixth*dxinv*dxinv);
+#endif
 #elif (AMREX_SPACEDIM == 3)
 #if 0
             lap(i,j,k,n) = 

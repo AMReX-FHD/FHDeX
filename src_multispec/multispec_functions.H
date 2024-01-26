@@ -27,6 +27,10 @@ void ComputeDivFHReversibleStress(std::array<MultiFab,AMREX_SPACEDIM>& div_rever
                                 MultiFab& rho_in,
                                 const Geometry& geom);
 
+void ComputeDisjoiningPressure(std::array<MultiFab,AMREX_SPACEDIM>& disjoining_pressure,
+                                const MultiFab& rhotot_in,
+                                MultiFab& rho_in,
+                                const Geometry& geom);
 
 /////////////////////////////////////////////////////////////////////////////////
 // in ComputeDivReversibleStress.cpp

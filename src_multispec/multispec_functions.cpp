@@ -18,12 +18,14 @@ AMREX_GPU_MANAGED int                                       multispec::is_ideal_
 int                                                         multispec::use_lapack;
 AMREX_GPU_MANAGED int                                       multispec::use_multiphase;
 AMREX_GPU_MANAGED int                                       multispec::use_flory_huggins;
+AMREX_GPU_MANAGED int                                       multispec::use_disjoin_pres;
 AMREX_GPU_MANAGED amrex::Real                               multispec::kc_tension;
 AMREX_GPU_MANAGED amrex::Real                               multispec::alpha_gex;
 AMREX_GPU_MANAGED amrex::Array2D<Real,0,MAX_SPECIES-1,0,MAX_SPECIES-1> multispec::fh_kappa;
 AMREX_GPU_MANAGED amrex::Array2D<Real,0,MAX_SPECIES-1,0,MAX_SPECIES-1> multispec::fh_chi;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> multispec::fh_monomers;
 AMREX_GPU_MANAGED amrex::Real                               multispec::fh_tension;
+AMREX_GPU_MANAGED amrex::Real                               multispec::hamaker_A;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM>      multispec::contact_angle_lo;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM>      multispec::contact_angle_hi;
 AMREX_GPU_MANAGED amrex::Real                               multispec::monomer_mass;
@@ -83,11 +85,13 @@ void InitializeMultispecNamespace() {
     use_lapack = 0;         // Use LAPACK or iterative method for diffusion matrix (recommend False)
     use_multiphase = 0;     // for RTIL
     use_flory_huggins = 0;   // for flory huggins
+    use_disjoin_pres = 0;   // for flory huggins
     kc_tension = 0;         // for RTIL
     alpha_gex = 0;          // for RTIL
     n_gex = 1;              // for RTIL
     chi_iterations = 10;    // number of iterations used in Dbar2chi_iterative
     fh_tension = 0.;
+    hamaker_A = 0.;
 
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
         contact_angle_lo[i] = 90.;        // spacedim-vector specifying external E field
@@ -192,9 +196,11 @@ void InitializeMultispecNamespace() {
     pp.query("use_lapack",use_lapack);
     pp.query("use_multiphase",use_multiphase);
     pp.query("use_flory_huggins",use_flory_huggins);
+    pp.query("use_disjoin_pres",use_disjoin_pres);
     pp.query("monomer_mass",monomer_mass);
     pp.query("kc_tension",kc_tension);
     pp.query("fh_tension",fh_tension);
+    pp.query("hamaker_A",hamaker_A);
     pp.query("alpha_gex",alpha_gex);
     pp.query("n_gex",n_gex);
     pp.query("chi_iterations",chi_iterations);
