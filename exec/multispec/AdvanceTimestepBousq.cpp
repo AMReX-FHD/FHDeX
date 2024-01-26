@@ -42,7 +42,7 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
   
     BL_PROFILE_VAR("AdvanceTimestepBousq()",AdvanceTimestepBousq);
 
-    int use_disjoin_pres = 0;
+   // int use_disjoin_pres = 0;
 
     BoxArray ba = rho_old.boxArray();
     DistributionMapping dmap = rho_old.DistributionMap();
