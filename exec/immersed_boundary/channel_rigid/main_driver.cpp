@@ -324,20 +324,20 @@ void main_driver(const char * argv) {
         AMREX_D_TERM(dm=0; init_vel(BL_TO_FORTRAN_BOX(bx),
                                     BL_TO_FORTRAN_ANYD(umac[0][mfi]), geom.CellSize(),
                                     geom.ProbLo(), geom.ProbHi(), & dm,
-                                    ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));,
+                                    AMREX_ZFILL(realDomain.lo()), AMREX_ZFILL(realDomain.hi()));,
                      dm=1; init_vel(BL_TO_FORTRAN_BOX(bx),
                                     BL_TO_FORTRAN_ANYD(umac[1][mfi]), geom.CellSize(),
                                     geom.ProbLo(), geom.ProbHi(), & dm,
-                                    ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));,
+                                    AMREX_ZFILL(realDomain.lo()), AMREX_ZFILL(realDomain.hi()));,
                      dm=2; init_vel(BL_TO_FORTRAN_BOX(bx),
                                     BL_TO_FORTRAN_ANYD(umac[2][mfi]), geom.CellSize(),
                                     geom.ProbLo(), geom.ProbHi(), & dm,
-                                    ZFILL(realDomain.lo()), ZFILL(realDomain.hi())););
+                                    AMREX_ZFILL(realDomain.lo()), AMREX_ZFILL(realDomain.hi())););
 
     	// initialize tracer
         init_s_vel(BL_TO_FORTRAN_BOX(bx),
     		   BL_TO_FORTRAN_ANYD(tracer[mfi]),
-    		   dx, ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
+    		   dx, AMREX_ZFILL(realDomain.lo()), AMREX_ZFILL(realDomain.hi()));
 
     }
 
@@ -454,7 +454,7 @@ void main_driver(const char * argv) {
     //         const Box& bx = mfi.validbox();
     //         init_s_vel(BL_TO_FORTRAN_BOX(bx),
     //                    BL_TO_FORTRAN_ANYD(mf_cc[0][mfi]),
-    //                    dx, ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
+    //                    dx, AMREX_ZFILL(realDomain.lo()), AMREX_ZFILL(realDomain.hi()));
     //     }
     // }
 

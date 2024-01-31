@@ -17,6 +17,9 @@ TINY_PROFILE = FALSE
 
 ###################################################
 
+#EBASE     = main
+EBASE     = main_decomp
+
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
 include ./Make.package

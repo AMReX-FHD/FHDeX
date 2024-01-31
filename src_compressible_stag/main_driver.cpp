@@ -1,3 +1,4 @@
+#include "TurbSpectra.H"
 #include "common_functions.H"
 #include "compressible_functions.H"
 #include "compressible_functions_stag.H"
@@ -8,7 +9,6 @@
 #include "rng_functions.H"
 
 #include "StructFact.H"
-#include "TurbSpectra.H"
 
 #if defined(TURB)
 #include "TurbForcingComp.H"

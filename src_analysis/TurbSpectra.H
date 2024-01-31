@@ -1,16 +1,15 @@
 #ifndef _TurbSpectra_H_
 #define _TurbSpectra_H_
 
-#include <AMReX.H>
-#include <AMReX_MultiFab.H>
-#include <AMReX_Vector.H>
-#include <AMReX_VisMF.H>
-
-
 // HEFFTE
 #if defined(HEFFTE_FFTW) || defined(HEFFTE_CUFFT) || defined(HEFFTE_ROCFFT)
 #include <heffte.h>
 #endif
+
+#include <AMReX.H>
+#include <AMReX_MultiFab.H>
+#include <AMReX_Vector.H>
+#include <AMReX_VisMF.H>
 
 // non-HEFFTE
 #ifdef AMREX_USE_CUDA

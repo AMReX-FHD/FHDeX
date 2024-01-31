@@ -156,41 +156,13 @@ int main (int argc, char* argv[])
 
         // copy shifted velocity components from mf into vel_grown
         Copy(vel_grown,mf,velx_ind,0,3,0);
+        Copy(laplacian,mf,velx_ind,0,3,0);
 
         // fill ghost cells of vel_grown
         vel_grown.FillBoundary(geom.periodicity());
+        laplacian.FillBoundary(geom.periodicity());
 
         for (int m=0; m<5; ++m) {
-        
-            for ( MFIter mfi(vel_grown,false); mfi.isValid(); ++mfi ) {
-
-                const Box& bx = mfi.validbox();
-                const auto lo = amrex::lbound(bx);
-                const auto hi = amrex::ubound(bx);
-
-                const Array4<Real>& vel = vel_grown.array(mfi);
-                const Array4<Real>& lap = laplacian.array(mfi);
-
-                for (auto n=0; n<3; ++n) {
-                for (auto k = lo.z; k <= hi.z; ++k) {
-                for (auto j = lo.y; j <= hi.y; ++j) {
-                for (auto i = lo.x; i <= hi.x; ++i) {
-
-                    lap(i,j,k,n) = -(vel(i+1,j,k,n) - 2.*vel(i,j,k,n) + vel(i-1,j,k,n)) / (dx[0]*dx[0])
-                                   -(vel(i,j+1,k,n) - 2.*vel(i,j,k,n) + vel(i,j-1,k,n)) / (dx[1]*dx[1])
-                                   -(vel(i,j,k+1,n) - 2.*vel(i,j,k,n) + vel(i,j,k+1,n)) / (dx[2]*dx[2]);
-                }
-                }
-                }
-                }
-
-            } // end MFIter
-
-            // copy lap into vel_grown
-            Copy(vel_grown,laplacian,0,0,3,0);
-
-            // fill ghost cells of vel_grown
-            vel_grown.FillBoundary(geom.periodicity());
             
             Vector<Real> L2(3,0.);
             for (int i=0; i<3; i++)
@@ -306,6 +278,37 @@ int main (int argc, char* argv[])
                 }
                 outfile.close();
             }
+        
+            for ( MFIter mfi(vel_grown,false); mfi.isValid(); ++mfi ) {
+
+                const Box& bx = mfi.validbox();
+                const auto lo = amrex::lbound(bx);
+                const auto hi = amrex::ubound(bx);
+
+                const Array4<Real>& vel = vel_grown.array(mfi);
+                const Array4<Real>& lap = laplacian.array(mfi);
+
+                for (auto n=0; n<3; ++n) {
+                for (auto k = lo.z; k <= hi.z; ++k) {
+                for (auto j = lo.y; j <= hi.y; ++j) {
+                for (auto i = lo.x; i <= hi.x; ++i) {
+
+                    lap(i,j,k,n) = -(vel(i+1,j,k,n) - 2.*vel(i,j,k,n) + vel(i-1,j,k,n)) / (dx[0]*dx[0])
+                                   -(vel(i,j+1,k,n) - 2.*vel(i,j,k,n) + vel(i,j-1,k,n)) / (dx[1]*dx[1])
+                                   -(vel(i,j,k+1,n) - 2.*vel(i,j,k,n) + vel(i,j,k+1,n)) / (dx[2]*dx[2]);
+                }
+                }
+                }
+                }
+
+            } // end MFIter
+
+            // copy lap into vel_grown
+            Copy(vel_grown,laplacian,0,0,3,0);
+
+            // fill ghost cells of vel_grown
+            vel_grown.FillBoundary(geom.periodicity());
+
         } // end loop
         ////////////////////////////////////////////////////////////////////////
         ////////////// velocity Laplacian PDFs /////////////////////////////////

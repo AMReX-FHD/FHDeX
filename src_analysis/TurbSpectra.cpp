@@ -1,5 +1,5 @@
-#include "common_functions.H"
 #include "TurbSpectra.H"
+#include "common_functions.H"
 
 #include <AMReX_MultiFabUtil.H>
 #include "AMReX_PlotFileUtil.H"
@@ -512,13 +512,21 @@ void TurbSpectrumVelDecompHeffte(const MultiFab& vel,
        Real GxR = 0.0, GxC = 0.0, GyR = 0.0, GyC = 0.0, GzR = 0.0, GzC = 0.0;
        
        if (i <= nx/2) { 
+           
+           // Get the wavevector
+           int ki = i;
+           int kj = j;
+           if (j >= ny/2) kj = ny - j;
+           int kk = k;
+           if (k >= nz/2) kk = nz - k;
+
            // Gradient Operators
-           GxR = (cos(2.0*M_PI*i/nx)-1.0)/dx[0];
-           GxC = (sin(2.0*M_PI*i/nx)-0.0)/dx[0];
-           GyR = (cos(2.0*M_PI*j/ny)-1.0)/dx[1];
-           GyC = (sin(2.0*M_PI*j/ny)-0.0)/dx[1];
-           GzR = (cos(2.0*M_PI*k/nz)-1.0)/dx[2];
-           GzC = (sin(2.0*M_PI*k/nz)-0.0)/dx[2];
+           GxR = (cos(2.0*M_PI*ki/nx)-1.0)/dx[0];
+           GxC = (sin(2.0*M_PI*ki/nx)-0.0)/dx[0];
+           GyR = (cos(2.0*M_PI*kj/ny)-1.0)/dx[1];
+           GyC = (sin(2.0*M_PI*kj/ny)-0.0)/dx[1];
+           GzR = (cos(2.0*M_PI*kk/nz)-1.0)/dx[2];
+           GzC = (sin(2.0*M_PI*kk/nz)-0.0)/dx[2];
        }
        else { // conjugate
             amrex::Abort("check the code; i should not go beyond bx.length(0)/2");
@@ -1210,6 +1218,14 @@ void TurbSpectrumVelDecomp(const MultiFab& vel,
            Real GxR = 0.0, GxC = 0.0, GyR = 0.0, GyC = 0.0, GzR = 0.0, GzC = 0.0;
            
            if (i <= nx/2) {
+           
+               // Get the wavevector
+               int ki = i;
+               int kj = j;
+               if (j >= ny/2) kj = ny - j;
+               int kk = k;
+               if (k >= nz/2) kk = nz - k;
+
                // Gradient Operators
                GxR = (cos(2.0*M_PI*i/nx)-1.0)/dx[0];
                GxC = (sin(2.0*M_PI*i/nx)-0.0)/dx[0];
@@ -1353,6 +1369,9 @@ void IntegrateKScalarHeffte(const MultiFab& cov_mag,
 //    }
 
     int comp_gpu = comp;
+    int nx = n_cells[0]; 
+    int ny = n_cells[1]; 
+    int nz = n_cells[2];
     for ( MFIter mfi(cov_mag,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
         
         const Box& bx = mfi.tilebox();
@@ -1363,7 +1382,9 @@ void IntegrateKScalarHeffte(const MultiFab& cov_mag,
         {
             int ki = i; 
             int kj = j;
+            if (j >= ny/2) kj = ny - j;
             int kk = k;
+            if (k >= nz/2) kk = nz - k;
 
             Real dist = (ki*ki + kj*kj + kk*kk);
             dist = std::sqrt(dist);
@@ -1378,38 +1399,6 @@ void IntegrateKScalarHeffte(const MultiFab& cov_mag,
     }
     
     Gpu::streamSynchronize();
-
-//    const auto lo = amrex::lbound(c_local_box);
-//    const auto hi = amrex::ubound(c_local_box);
-//    for (auto k = lo.z; k <= hi.z; ++k) {
-//    for (auto j = lo.y; j <= hi.y; ++j) {
-//    for (auto i = lo.x; i <= hi.x; ++i) {
-//        if (i <= n_cells[0]/2) { // only half of kx-domain
-//            int ki = i;
-//            int kj = j;
-//            int kk = k;
-//
-//            Real dist = (ki*ki + kj*kj + kk*kk);
-//            dist = std::sqrt(dist);
-//        
-//            if ( dist <= n_cells[0]/2-0.5) {
-//                dist = dist+0.5;
-//                int cell = int(dist);
-//                Real real = spectral(i,j,k).real();
-//                Real imag = spectral(i,j,k).imag();
-//                Real cov  = (1.0/(sqrtnpts*sqrtnpts*scaling))*(real*real + imag*imag); 
-//                amrex::HostDevice::Atomic::Add(&(phisum_host[cell]), cov);
-//                amrex::HostDevice::Atomic::Add(&(phicnt_host[cell]),1);
-//            }
-//	}
-//	else {
-//	    amrex::Abort("i should not exceed n_cells[0]/2");
-//	}
-//    }
-//    }
-//    }
-//    
-//    ParallelDescriptor::Barrier();
         
     ParallelDescriptor::ReduceRealSum(phisum_device.dataPtr(),npts);
     ParallelDescriptor::ReduceIntSum(phicnt_device.dataPtr(),npts);
@@ -1421,12 +1410,6 @@ void IntegrateKScalarHeffte(const MultiFab& cov_mag,
         phisum_ptr[d] *= 4.*M_PI*(d*d*dk+dk*dk*dk/12.)/phicnt_ptr[d];
         }
     });
-    
-//    for (int d=0; d<npts; ++d) {
-//        if (d != 0) {
-//            phisum_host[d] *= 4.*M_PI*(d*d*dk+dk*dk*dk/12.)/phicnt_host[d];
-//        }
-//    }
     
     Gpu::copyAsync(Gpu::deviceToHost, phisum_device.begin(), phisum_device.end(), phisum_host.begin());
     Gpu::streamSynchronize();
@@ -1471,18 +1454,23 @@ void IntegrateKScalar(const Vector<std::unique_ptr<BaseFab<GpuComplex<Real> > > 
       phicnt_ptr[d] = 0;
     });
 
+    int nx = n_cells[0]; 
+    int ny = n_cells[1]; 
+    int nz = n_cells[2];
     for ( MFIter mfi(variables_onegrid,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
         
-        const Box& bx = mfi.tilebox();
+        const Box& bx = mfi.fabbox();
 
-        const Array4<const GpuComplex<Real> > spectral = (*spectral_field[0]).const_array(mfi);
+        const Array4<const GpuComplex<Real> > spectral = (*spectral_field[0]).const_array();
 
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             if (i <= bx.length(0)/2) { // only half of kx-domain
                 int ki = i;
                 int kj = j;
+                if (j >= ny/2) kj = ny - j;
                 int kk = k;
+                if (k >= nz/2) kk = nz - k;
 
                 Real dist = (ki*ki + kj*kj + kk*kk);
                 dist = std::sqrt(dist);
@@ -1541,8 +1529,6 @@ void IntegrateKVelocityHeffte(const MultiFab& cov_mag,
     
     Gpu::DeviceVector<Real> phisum_device(npts);
     Gpu::DeviceVector<int>  phicnt_device(npts);
-//    Gpu::HostVector<Real> phisum_host(npts);
-//    Gpu::HostVector<int>  phicnt_host(npts);
    
     Gpu::HostVector<Real> phisum_host(npts);
     
@@ -1554,12 +1540,11 @@ void IntegrateKVelocityHeffte(const MultiFab& cov_mag,
       phisum_ptr[d] = 0.;
       phicnt_ptr[d] = 0;
     });
-//    for (int d=0; d<npts; ++d) {
-//	phisum_host[d] = 0.;
-//	phicnt_host[d] = 0;
-//    }
-//
+    
     int comp_gpu = comp;
+    int nx = n_cells[0]; 
+    int ny = n_cells[1]; 
+    int nz = n_cells[2];
     for ( MFIter mfi(cov_mag,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
         
         const Box& bx = mfi.tilebox();
@@ -1570,7 +1555,9 @@ void IntegrateKVelocityHeffte(const MultiFab& cov_mag,
         {
             int ki = i; 
             int kj = j;
+            if (j >= ny/2) kj = ny - j;
             int kk = k;
+            if (k >= nz/2) kk = nz - k;
 
             Real dist = (ki*ki + kj*kj + kk*kk);
             dist = std::sqrt(dist);
@@ -1586,46 +1573,6 @@ void IntegrateKVelocityHeffte(const MultiFab& cov_mag,
     
     Gpu::streamSynchronize();
 
-//    const auto lo = amrex::lbound(c_local_box);
-//    const auto hi = amrex::ubound(c_local_box);
-//    for (auto k = lo.z; k <= hi.z; ++k) {
-//    for (auto j = lo.y; j <= hi.y; ++j) {
-//    for (auto i = lo.x; i <= hi.x; ++i) {
-//        if (i <= n_cells[0]/2) { // only half of kx-domain
-//            int ki = i;
-//            int kj = j;
-//            int kk = k;
-//
-//            Real dist = (ki*ki + kj*kj + kk*kk);
-//            dist = std::sqrt(dist);
-//        
-//            if ( dist <= n_cells[0]/2-0.5) {
-//                dist = dist+0.5;
-//                int cell = int(dist);
-//                Real real, imag, cov_x, cov_y, cov_z, cov;
-//                real = spectralx(i,j,k).real();
-//                imag = spectralx(i,j,k).imag();
-//                cov_x  = (1.0/scaling)*(real*real + imag*imag); 
-//                real = spectraly(i,j,k).real();
-//                imag = spectraly(i,j,k).imag();
-//                cov_y  = (1.0/scaling)*(real*real + imag*imag); 
-//                real = spectralz(i,j,k).real();
-//                imag = spectralz(i,j,k).imag();
-//                cov_z  = (1.0/scaling)*(real*real + imag*imag); 
-//                cov = cov_x + cov_y + cov_z;
-//                amrex::HostDevice::Atomic::Add(&(phisum_host[cell]), cov);
-//                amrex::HostDevice::Atomic::Add(&(phicnt_host[cell]),1);
-//            }
-//	}
-//	else {
-//	    amrex::Abort("i should not exceed n_cells[0]/2");
-//	}
-//    }
-//    }
-//    }
-//    
-//    ParallelDescriptor::Barrier();
-        
     ParallelDescriptor::ReduceRealSum(phisum_device.dataPtr(),npts);
     ParallelDescriptor::ReduceIntSum(phicnt_device.dataPtr(),npts);
         
@@ -1636,12 +1583,6 @@ void IntegrateKVelocityHeffte(const MultiFab& cov_mag,
         phisum_ptr[d] *= 4.*M_PI*(d*d*dk+dk*dk*dk/12.)/phicnt_ptr[d];
         }
     });
-    
-//    for (int d=0; d<npts; ++d) {
-//        if (d != 0) {
-//            phisum_host[d] *= 4.*M_PI*(d*d*dk+dk*dk*dk/12.)/phicnt_host[d];
-//        }
-//    }
     
     Gpu::copyAsync(Gpu::deviceToHost, phisum_device.begin(), phisum_device.end(), phisum_host.begin());
     Gpu::streamSynchronize();
@@ -1685,20 +1626,25 @@ void IntegrateKVelocity(const Vector<std::unique_ptr<BaseFab<GpuComplex<Real> > 
       phicnt_ptr[d] = 0;
     });
 
+    int nx = n_cells[0]; 
+    int ny = n_cells[1]; 
+    int nz = n_cells[2];
     for ( MFIter mfi(vel_onegrid,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
         
-        const Box& bx = mfi.tilebox();
+        const Box& bx = mfi.fabbox();
 
-        const Array4<const GpuComplex<Real> > spectralx = (*spectral_fieldx[0]).const_array(mfi);
-        const Array4<const GpuComplex<Real> > spectraly = (*spectral_fieldy[0]).const_array(mfi);
-        const Array4<const GpuComplex<Real> > spectralz = (*spectral_fieldz[0]).const_array(mfi);
+        const Array4<const GpuComplex<Real> > spectralx = (*spectral_fieldx[0]).const_array();
+        const Array4<const GpuComplex<Real> > spectraly = (*spectral_fieldy[0]).const_array();
+        const Array4<const GpuComplex<Real> > spectralz = (*spectral_fieldz[0]).const_array();
 
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             if (i <= bx.length(0)/2) { // only half of kx-domain
                 int ki = i;
                 int kj = j;
+                if (j >= ny/2) kj = ny - j;
                 int kk = k;
+                if (k >= nz/2) kk = nz - k;
 
                 Real dist = (ki*ki + kj*kj + kk*kk);
                 dist = std::sqrt(dist);
