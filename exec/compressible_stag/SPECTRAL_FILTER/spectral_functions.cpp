@@ -22,7 +22,7 @@ namespace {
 void SpectralReadCheckPoint(amrex::Geometry& geom,
                             const amrex::Box& domain,
                             amrex::MultiFab& prim,
-                            std::array<MultiFab, AMREX_SPACEDIM>& vel,
+                            std::array<MultiFab, 3>& vel,
                             BoxArray& ba, DistributionMapping& dmap,
                             const amrex::Vector<int> n_cells,
                             const int nprimvars,
@@ -101,7 +101,7 @@ void SpectralReadCheckPoint(amrex::Geometry& geom,
 
         prim.define(ba,dmap,nprimvars,ngc);
         // velocity and momentum (instantaneous, means, variances)
-        for (int d=0; d<AMREX_SPACEDIM; d++) {
+        for (int d=0; d<3; d++) {
             vel[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ngc);
         }
     }
@@ -141,7 +141,7 @@ void SpectralVelDecomp(const MultiFab& vel,
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(vel.local_size() == 1, 
         "SpectralVelDecomp: Must have one Box per MPI process when using heFFTe");
 
-    const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
+    const GpuArray<Real, 3> dx = geom.CellSizeArray();
     
     long npts;
     Box domain = geom.Domain();
@@ -280,13 +280,21 @@ void SpectralVelDecomp(const MultiFab& vel,
        Real GxR = 0.0, GxC = 0.0, GyR = 0.0, GyC = 0.0, GzR = 0.0, GzC = 0.0;
        
        if (i <= nx/2) { 
+           
+           // Get the wavevector
+           int ki = i;
+           int kj = j;
+           if (j >= ny/2) kj = ny - j;
+           int kk = k;
+           if (k >= nz/2) kk = nz - k;
+
            // Gradient Operators
-           GxR = (cos(2.0*M_PI*i/nx)-1.0)/dx[0];
-           GxC = (sin(2.0*M_PI*i/nx)-0.0)/dx[0];
-           GyR = (cos(2.0*M_PI*j/ny)-1.0)/dx[1];
-           GyC = (sin(2.0*M_PI*j/ny)-0.0)/dx[1];
-           GzR = (cos(2.0*M_PI*k/nz)-1.0)/dx[2];
-           GzC = (sin(2.0*M_PI*k/nz)-0.0)/dx[2];
+           GxR = (cos(2.0*M_PI*ki/nx)-1.0)/dx[0];
+           GxC = (sin(2.0*M_PI*ki/nx)-0.0)/dx[0];
+           GyR = (cos(2.0*M_PI*kj/ny)-1.0)/dx[1];
+           GyC = (sin(2.0*M_PI*kj/ny)-0.0)/dx[1];
+           GzR = (cos(2.0*M_PI*kk/nz)-1.0)/dx[2];
+           GzC = (sin(2.0*M_PI*kk/nz)-0.0)/dx[2];
        }
        else { // conjugate
             amrex::Abort("check the code; i should not go beyond bx.length(0)/2");
@@ -295,58 +303,67 @@ void SpectralVelDecomp(const MultiFab& vel,
        // Get the wavenumber
        int ki = i;
        int kj = j;
+       if (j >= ny/2) kj = ny - j;
        int kk = k;
+       if (k >= nz/2) kk = nz - k;
        Real knum = (ki*ki + kj*kj + kk*kk);
        knum = std::sqrt(knum);
 
        // Scale Total velocity FFT components with Filtering
        if ((knum >= kmin) and (knum <= kmax)) {
+         
          spectral_tx(i,j,k) *= (1.0/sqrtnpts);
          spectral_ty(i,j,k) *= (1.0/sqrtnpts);
          spectral_tz(i,j,k) *= (1.0/sqrtnpts);
+
+         // Inverse Laplacian
+         Real Lap = GxR*GxR + GxC*GxC + GyR*GyR + GyC*GyC + GzR*GzR + GzC*GzC;
+
+         // Divergence of vel
+         Real divR = spectral_tx(i,j,k).real()*GxR - spectral_tx(i,j,k).imag()*GxC +
+                     spectral_ty(i,j,k).real()*GyR - spectral_ty(i,j,k).imag()*GyC +
+                     spectral_tz(i,j,k).real()*GzR - spectral_tz(i,j,k).imag()*GzC ;
+         Real divC = spectral_tx(i,j,k).real()*GxC + spectral_tx(i,j,k).imag()*GxR +
+                     spectral_ty(i,j,k).real()*GyC + spectral_ty(i,j,k).imag()*GyR +
+                     spectral_tz(i,j,k).real()*GzC + spectral_tz(i,j,k).imag()*GzR ;
+
+         if (Lap < 1.0e-12) { // zero mode for no bulk motion
+             spectral_dx(i,j,k) *= 0.0;
+             spectral_dy(i,j,k) *= 0.0;
+             spectral_dz(i,j,k) *= 0.0;
+         }
+         else {
+
+             // Dilatational velocity 
+             GpuComplex<Real> copy_dx((divR*GxR + divC*GxC) / Lap, 
+                                      (divC*GxR - divR*GxC) / Lap);
+             spectral_dx(i,j,k) = copy_dx;
+
+             GpuComplex<Real> copy_dy((divR*GyR + divC*GyC) / Lap,
+                                      (divC*GyR - divR*GyC) / Lap);
+             spectral_dy(i,j,k) = copy_dy;
+
+             GpuComplex<Real> copy_dz((divR*GzR + divC*GzC) / Lap,
+                                      (divC*GzR - divR*GzC) / Lap);
+             spectral_dz(i,j,k) = copy_dz;
+         }
+             
+         // Solenoidal velocity
+         spectral_sx(i,j,k) = spectral_tx(i,j,k) - spectral_dx(i,j,k);
+         spectral_sy(i,j,k) = spectral_ty(i,j,k) - spectral_dy(i,j,k); 
+         spectral_sz(i,j,k) = spectral_tz(i,j,k) - spectral_dz(i,j,k);
        }
        else {
-         spectral_tx(i,j,k) *= 0.0;
-         spectral_ty(i,j,k) *= 0.0;
-         spectral_tz(i,j,k) *= 0.0;
+         spectral_tx(i,j,k) = 0.0;
+         spectral_ty(i,j,k) = 0.0;
+         spectral_tz(i,j,k) = 0.0;
+         spectral_sx(i,j,k) = 0.0;
+         spectral_sy(i,j,k) = 0.0;
+         spectral_sz(i,j,k) = 0.0;
+         spectral_dx(i,j,k) = 0.0;
+         spectral_dy(i,j,k) = 0.0;
+         spectral_dz(i,j,k) = 0.0;
        }
-
-       // Inverse Laplacian
-       Real Lap = GxR*GxR + GxC*GxC + GyR*GyR + GyC*GyC + GzR*GzR + GzC*GzC;
-
-       // Divergence of vel
-       Real divR = spectral_tx(i,j,k).real()*GxR - spectral_tx(i,j,k).imag()*GxC +
-                   spectral_ty(i,j,k).real()*GyR - spectral_ty(i,j,k).imag()*GyC +
-                   spectral_tz(i,j,k).real()*GzR - spectral_tz(i,j,k).imag()*GzC ;
-       Real divC = spectral_tx(i,j,k).real()*GxC + spectral_tx(i,j,k).imag()*GxR +
-                   spectral_ty(i,j,k).real()*GyC + spectral_ty(i,j,k).imag()*GyR +
-                   spectral_tz(i,j,k).real()*GzC + spectral_tz(i,j,k).imag()*GzR ;
-
-       if (Lap < 1.0e-12) { // zero mode for no bulk motion
-           spectral_dx(i,j,k) *= 0.0;
-           spectral_dy(i,j,k) *= 0.0;
-           spectral_dz(i,j,k) *= 0.0;
-       }
-       else {
-
-           // Dilatational velocity 
-           GpuComplex<Real> copy_dx((divR*GxR + divC*GxC) / Lap, 
-                                    (divC*GxR - divR*GxC) / Lap);
-           spectral_dx(i,j,k) = copy_dx;
-
-           GpuComplex<Real> copy_dy((divR*GyR + divC*GyC) / Lap,
-                                    (divC*GyR - divR*GyC) / Lap);
-           spectral_dy(i,j,k) = copy_dy;
-
-           GpuComplex<Real> copy_dz((divR*GzR + divC*GzC) / Lap,
-                                    (divC*GzR - divR*GzC) / Lap);
-           spectral_dz(i,j,k) = copy_dz;
-       }
-           
-       // Solenoidal velocity
-       spectral_sx(i,j,k) = spectral_tx(i,j,k) - spectral_dx(i,j,k);
-       spectral_sy(i,j,k) = spectral_ty(i,j,k) - spectral_dy(i,j,k); 
-       spectral_sz(i,j,k) = spectral_tz(i,j,k) - spectral_dz(i,j,k);
 
     });
 
@@ -555,7 +572,7 @@ void SpectralScalarDecomp(const MultiFab& scalar,
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(scalar.local_size() == 1, 
         "SpectralScalarDecomp: Must have one Box per MPI process when using heFFTe");
 
-    const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
+    const GpuArray<Real, 3> dx = geom.CellSizeArray();
     
     long npts;
     Box domain = geom.Domain();
@@ -695,7 +712,9 @@ void SpectralWritePlotFile(const int step,
                            const amrex::Real& kmax,
                            const amrex::Geometry& geom,
                            const amrex::MultiFab& vel_decomp_in,
-                           const amrex::MultiFab& scalar_in)
+                           const amrex::MultiFab& scalar_in,
+                           const amrex::MultiFab& vel_total,
+                           const amrex::MultiFab& scalar_total)
 {
 
     MultiFab output;
@@ -719,10 +738,12 @@ void SpectralWritePlotFile(const int step,
     // 15: vorticity w2
     // 16: vorticity w3
     // 17: vorticity mag: sqrt(w1**2 + w2**2 + w3**2)
-    output.define(vel_decomp_in.boxArray(), vel_decomp_in.DistributionMap(), 18, 0);
+    // 18: ux_org
+    // 19: scalar_org
+    output.define(vel_decomp_in.boxArray(), vel_decomp_in.DistributionMap(), 20, 0);
     output.setVal(0.0);
 
-    const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
+    const GpuArray<Real, 3> dx = geom.CellSizeArray();
 
     for ( MFIter mfi(output,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
         
@@ -733,6 +754,10 @@ void SpectralWritePlotFile(const int step,
         const Array4<const Real>&  v_decomp         = vel_decomp_in.array(mfi);
 
         const Array4<const Real>&  sca              = scalar_in.array(mfi);
+
+        const Array4<const Real>&  v_tot            = vel_total.array(mfi);
+
+        const Array4<const Real>&  sca_tot          = scalar_total.array(mfi);
         
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
@@ -772,6 +797,12 @@ void SpectralWritePlotFile(const int step,
 
             // vorticity magnitude: sqrt(w1*w1 + w2*w2 + w3*w3)
             out(i,j,k,17) = std::sqrt( out(i,j,k,14)*out(i,j,k,14) + out(i,j,k,15)*out(i,j,k,15) + out(i,j,k,16)*out(i,j,k,16) );
+
+            // original velx
+            out(i,j,k,18) = v_tot(i,j,k,0);
+
+            // original scalar
+            out(i,j,k,19) = sca_tot(i,j,k,0);
         });
     }
 
@@ -780,11 +811,12 @@ void SpectralWritePlotFile(const int step,
     std::ostringstream os;
     os << std::setprecision(3) << kmin;
     plotfilename += os.str();;
+    plotfilename += "_";
     std::ostringstream oss;
     oss << std::setprecision(3) << kmax;
     plotfilename += oss.str();
 
-    amrex::Vector<std::string> varNames(18);
+    amrex::Vector<std::string> varNames(20);
     varNames[0] = "ux";
     varNames[1] = "uy";
     varNames[2] = "uz";
@@ -803,6 +835,8 @@ void SpectralWritePlotFile(const int step,
     varNames[15] = "w2";
     varNames[16] = "w3";
     varNames[17] = "vort";
+    varNames[18] = "ux_org";
+    varNames[19] = "rho_org";
     WriteSingleLevelPlotfile(plotfilename,output,varNames,geom,0.0,step);
 }
 
@@ -850,7 +884,7 @@ void ShiftFaceToCC(const MultiFab& face_in, int face_comp,
     }
 }
 
-void ComputeGrad(const MultiFab & phi_in, std::array<MultiFab, AMREX_SPACEDIM> & gphi,
+void ComputeGrad(const MultiFab & phi_in, std::array<MultiFab, 3> & gphi,
                  int start_incomp, int start_outcomp, int ncomp, int bccomp, const Geometry & geom,
                  int increment)
 {
@@ -859,11 +893,11 @@ void ComputeGrad(const MultiFab & phi_in, std::array<MultiFab, AMREX_SPACEDIM> &
     // Physical Domain
     Box dom(geom.Domain());
     
-    const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
+    const GpuArray<Real, 3> dx = geom.CellSizeArray();
 
     // if not incrementing, initialize data to zero
     if (increment == 0) {
-        for (int dir=0; dir<AMREX_SPACEDIM; ++dir) {
+        for (int dir=0; dir<3; ++dir) {
             gphi[dir].setVal(0.,start_outcomp,ncomp,0);
         }
     }
@@ -916,7 +950,7 @@ void FCMoments(const std::array<MultiFab, 3>& m1,
   SumStag(mscr,prod_val);
 }
 
-void SumStag(const std::array<MultiFab, AMREX_SPACEDIM>& m1,
+void SumStag(const std::array<MultiFab, 3>& m1,
 	     amrex::Vector<amrex::Real>& sum)
 {
   BL_PROFILE_VAR("SumStag()",SumStag);

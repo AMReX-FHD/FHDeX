@@ -109,14 +109,14 @@ void main_driver(const char* argv)
     
     MultiFab MFTurbScalar;
     MultiFab MFTurbVel;
-    MultiFab vel_decomp_filter;
-    MultiFab scalar_filter;
+    MultiFab vel_decomp_filter_heffte;
+    MultiFab scalar_filter_heffte;
     MFTurbVel.define(ba, dmap, 3, 0);
     MFTurbScalar.define(ba, dmap, 1, 0);
-    vel_decomp_filter.define(ba, dmap, 9, 0);
-    scalar_filter.define(ba, dmap, 1, 0);
-    vel_decomp_filter.setVal(0.0);
-    scalar_filter.setVal(0.0);
+    vel_decomp_filter_heffte.define(ba, dmap, 9, 0);
+    scalar_filter_heffte.define(ba, dmap, 1, 0);
+    vel_decomp_filter_heffte.setVal(0.0);
+    scalar_filter_heffte.setVal(0.0);
 
     // Set BC: 1) fill boundary 2) physical
     for (int d=0; d<3; d++) {
@@ -129,32 +129,40 @@ void main_driver(const char* argv)
     }
     MultiFab::Copy(MFTurbScalar, prim, 0, 0, 1, 0);
     
-    SpectralVelDecomp(MFTurbVel, vel_decomp_filter, kmin, kmax, geom, n_cells);
-    SpectralScalarDecomp(MFTurbScalar, scalar_filter, kmin, kmax, geom, n_cells);
+    SpectralVelDecomp(MFTurbVel, vel_decomp_filter_heffte, kmin, kmax, geom, n_cells);
+    SpectralScalarDecomp(MFTurbScalar, scalar_filter_heffte, kmin, kmax, geom, n_cells);
 
-    SpectralWritePlotFile(restart, kmin, kmax, geom, vel_decomp_filter, scalar_filter);
+    MultiFab vel_decomp_filter;
+    MultiFab scalar_filter;
+    vel_decomp_filter.define(ba, dmap, 9, 2);
+    scalar_filter.define(ba, dmap, 1, 2);
+    MultiFab::Copy(vel_decomp_filter,vel_decomp_filter_heffte,0,0,9,0);
+    MultiFab::Copy(scalar_filter,scalar_filter_heffte,0,0,1,0);
+    vel_decomp_filter.FillBoundary(geom.periodicity());
+    scalar_filter.FillBoundary(geom.periodicity());
+
+    SpectralWritePlotFile(restart, kmin, kmax, geom, vel_decomp_filter, scalar_filter, MFTurbVel, MFTurbScalar);
 
     // Turbulence Diagnostics
     Real u_rms, u_rms_s, u_rms_d, delta_u_rms;
     Real taylor_len, taylor_Re_eta;
     Real skew, skew_s, skew_d, kurt, kurt_s, kurt_d;
+    Vector<Real> var(9, 0.0);
     {
-      vel_decomp_filter.FillBoundary(geom.periodicity());
-    
       Vector<Real> dProb(3);
       dProb[0] = 1.0/((n_cells[0]+1)*n_cells[1]*n_cells[2]);
       dProb[1] = 1.0/((n_cells[1]+1)*n_cells[2]*n_cells[0]);
       dProb[2] = 1.0/((n_cells[2]+1)*n_cells[0]*n_cells[1]);
 
       // Setup temp MultiFabs
-      std::array< MultiFab, AMREX_SPACEDIM > gradU;
-      std::array< MultiFab, AMREX_SPACEDIM > faceTemp;
+      std::array< MultiFab, 3 > gradU;
+      std::array< MultiFab, 3 > faceTemp;
       MultiFab sound_speed;
       MultiFab ccTemp;
       MultiFab ccTempA;
-      AMREX_D_TERM(gradU[0].define(convert(prim.boxArray(),nodal_flag_x), prim.DistributionMap(), 6, 0);,
-                   gradU[1].define(convert(prim.boxArray(),nodal_flag_y), prim.DistributionMap(), 6, 0);,
-                   gradU[2].define(convert(prim.boxArray(),nodal_flag_z), prim.DistributionMap(), 6, 0););   
+      AMREX_D_TERM(gradU[0].define(convert(prim.boxArray(),nodal_flag_x), prim.DistributionMap(), 9, 0);,
+                   gradU[1].define(convert(prim.boxArray(),nodal_flag_y), prim.DistributionMap(), 9, 0);,
+                   gradU[2].define(convert(prim.boxArray(),nodal_flag_z), prim.DistributionMap(), 9, 0););   
       AMREX_D_TERM(faceTemp[0].define(convert(prim.boxArray(),nodal_flag_x), prim.DistributionMap(), 1, 0);,
                    faceTemp[1].define(convert(prim.boxArray(),nodal_flag_y), prim.DistributionMap(), 1, 0);,
                    faceTemp[2].define(convert(prim.boxArray(),nodal_flag_z), prim.DistributionMap(), 1, 0););   
@@ -189,18 +197,18 @@ void main_driver(const char* argv)
 
       // turbulent kinetic energy (solenoidal)
       ccTemp.setVal(0.0);
-      MultiFab::AddProduct(ccTemp,vel_decomp_filter,3,vel_decomp_filter,0,0,1,0); //uu
-      MultiFab::AddProduct(ccTemp,vel_decomp_filter,4,vel_decomp_filter,1,0,1,0); //vv
-      MultiFab::AddProduct(ccTemp,vel_decomp_filter,5,vel_decomp_filter,2,0,1,0); //ww
+      MultiFab::AddProduct(ccTemp,vel_decomp_filter,3,vel_decomp_filter,3,0,1,0); //uu
+      MultiFab::AddProduct(ccTemp,vel_decomp_filter,4,vel_decomp_filter,4,0,1,0); //vv
+      MultiFab::AddProduct(ccTemp,vel_decomp_filter,5,vel_decomp_filter,5,0,1,0); //ww
       u_rms_s = ccTemp.sum(0)/npts;
       u_rms_s = sqrt(u_rms_s/3.0);
       MultiFab::Multiply(ccTemp,prim,0,0,1,0); // rho*(uu+vv+ww)
 
       // turbulent kinetic energy (dilatational)
       ccTemp.setVal(0.0);
-      MultiFab::AddProduct(ccTemp,vel_decomp_filter,6,vel_decomp_filter,0,0,1,0); //uu
-      MultiFab::AddProduct(ccTemp,vel_decomp_filter,7,vel_decomp_filter,1,0,1,0); //vv
-      MultiFab::AddProduct(ccTemp,vel_decomp_filter,8,vel_decomp_filter,2,0,1,0); //ww
+      MultiFab::AddProduct(ccTemp,vel_decomp_filter,6,vel_decomp_filter,6,0,1,0); //uu
+      MultiFab::AddProduct(ccTemp,vel_decomp_filter,7,vel_decomp_filter,7,0,1,0); //vv
+      MultiFab::AddProduct(ccTemp,vel_decomp_filter,8,vel_decomp_filter,8,0,1,0); //ww
       u_rms_d = ccTemp.sum(0)/npts;
       u_rms_d = sqrt(u_rms_d/3.0);
       MultiFab::Multiply(ccTemp,prim,0,0,1,0); // rho*(uu+vv+ww)
@@ -298,36 +306,57 @@ void main_driver(const char* argv)
                (pow(gradU2_s[0],2.0) + pow(gradU2_s[1],2.0) + pow(gradU2_s[2],2.0)); 
       kurt_d = (gradU4_d[0] + gradU4_d[1] + gradU4_d[2])/
                (pow(gradU2_d[0],2.0) + pow(gradU2_d[1],2.0) + pow(gradU2_d[2],2.0)); 
+    
+      // velocity variances
+      for (int i=0;i<9;++i) {
+        ccTemp.setVal(0.0);
+        MultiFab::AddProduct(ccTemp,vel_decomp_filter,i,vel_decomp_filter,i,0,1,0);
+        Real mean = vel_decomp_filter.sum(i)/npts;
+        Real mean2 = ccTemp.sum(0)/npts;
+        var[i] = mean2 - mean*mean;
+      }
+
     }
     std::string turbfilename = "turbstats_";
     std::ostringstream os;
     os << std::setprecision(3) << kmin;
-    turbfilename += os.str();;
+    turbfilename += os.str();
+    turbfilename += "_";
     std::ostringstream oss;
     oss << std::setprecision(3) << kmax;
     turbfilename += oss.str();
     
     std::ofstream turboutfile;
-    turboutfile.open(turbfilename, std::ios::app);
-    turboutfile << "u_rms " << "u_rms_s " << "u_rms_d " << "delta_u_rms " 
-                << "TaylorLen " << "TaylorRe*Eta "
-                << "skew " << "skew_s " << "skew_d "
-                << "kurt " << "kurt_s " << "kurt_d "
-                << std::endl;
-     turboutfile << u_rms << " ";
-     turboutfile << u_rms_s << " ";
-     turboutfile << u_rms_d << " ";
-     turboutfile << delta_u_rms << " ";
-     turboutfile << taylor_len << " ";
-     turboutfile << taylor_Re_eta << " ";
-     turboutfile << skew << " ";
-     turboutfile << skew_s << " ";
-     turboutfile << skew_d << " ";
-     turboutfile << kurt << " ";
-     turboutfile << kurt_s << " ";
-     turboutfile << kurt_d << " ";
-     turboutfile << std::endl;
+    if (ParallelDescriptor::IOProcessor()) {
+      turboutfile.open(turbfilename, std::ios::app);
+    }
+    if (ParallelDescriptor::IOProcessor()) {
+      turboutfile << "u_rms " << "u_rms_s " << "u_rms_d " << "delta_u_rms " 
+                  << "TaylorLen " << "TaylorRe*Eta "
+                  << "skew " << "skew_s " << "skew_d "
+                  << "kurt " << "kurt_s " << "kurt_d "
+                  << "var ux " << "var uy " << "var uz "
+                  << "var uxs " << "var uys " << "var uzs "
+                  << "var uxd " << "var uyd " << "var uzd "
+                  << std::endl;
 
+      turboutfile << u_rms << " ";
+      turboutfile << u_rms_s << " ";
+      turboutfile << u_rms_d << " ";
+      turboutfile << delta_u_rms << " ";
+      turboutfile << taylor_len << " ";
+      turboutfile << taylor_Re_eta << " ";
+      turboutfile << skew << " ";
+      turboutfile << skew_s << " ";
+      turboutfile << skew_d << " ";
+      turboutfile << kurt << " ";
+      turboutfile << kurt_s << " ";
+      turboutfile << kurt_d << " ";
+      for (int i=0;i<9;++i) {
+        turboutfile << var[i] << " ";
+      }
+      turboutfile << std::endl;
+    }
     // timer
     Real ts2 = ParallelDescriptor::second() - ts1;
     ParallelDescriptor::ReduceRealMax(ts2,  ParallelDescriptor::IOProcessorNumber());
@@ -354,5 +383,5 @@ void main_driver(const char* argv)
     amrex::Print() << "Curent     FAB megabyte spread across MPI nodes: ["
                    << min_fab_megabytes << " ... " << max_fab_megabytes << "]\n";
     
-    turboutfile.close();
+    if (ParallelDescriptor::IOProcessor()) turboutfile.close();
 }

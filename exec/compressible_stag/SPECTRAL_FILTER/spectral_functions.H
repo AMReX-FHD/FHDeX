@@ -44,7 +44,7 @@ void Assert_rocfft_status (std::string const& name, rocfft_status status);
 void SpectralReadCheckPoint(amrex::Geometry& geom,
                             const amrex::Box& domain,
                             amrex::MultiFab& prim,
-                            std::array<MultiFab, AMREX_SPACEDIM>& vel,
+                            std::array<MultiFab, 3>& vel,
                             BoxArray& ba, DistributionMapping& dmap,
                             const amrex::Vector<int> n_cells,
                             const int nprimvars,
@@ -71,7 +71,9 @@ void SpectralWritePlotFile(const int step,
                            const amrex::Real& kmax,
                            const amrex::Geometry& geom,
                            const amrex::MultiFab& vel_decomp_in,
-                           const amrex::MultiFab& scalar_in);
+                           const amrex::MultiFab& scalar_in,
+                           const amrex::MultiFab& vel_total,
+                           const amrex::MultiFab& scalar_total);
 
 void Read_Copy_MF_Checkpoint(amrex::MultiFab& mf, std::string mf_name, 
                              const std::string& checkpointname, 
@@ -83,11 +85,11 @@ void ShiftFaceToCC(const MultiFab& face_in, int face_in_comp,
                    MultiFab& cc_in, int cc_in_comp,
                    int ncomp);
 
-void ComputeGrad(const MultiFab & phi_in, std::array<MultiFab, AMREX_SPACEDIM> & gphi,
+void ComputeGrad(const MultiFab & phi_in, std::array<MultiFab, 3> & gphi,
                  int start_incomp, int start_outcomp, int ncomp, int bccomp, const Geometry & geom,
                  int increment);
 
-void SumStag(const std::array<MultiFab, AMREX_SPACEDIM>& m1,
+void SumStag(const std::array<MultiFab, 3>& m1,
 	     amrex::Vector<amrex::Real>& sum);
 
 void FCMoments(const std::array<MultiFab, 3>& m1,
