@@ -512,13 +512,21 @@ void TurbSpectrumVelDecompHeffte(const MultiFab& vel,
        Real GxR = 0.0, GxC = 0.0, GyR = 0.0, GyC = 0.0, GzR = 0.0, GzC = 0.0;
        
        if (i <= nx/2) { 
+           
+           // Get the wavevector
+           int ki = i;
+           int kj = j;
+           if (j >= ny/2) kj = ny - j;
+           int kk = k;
+           if (k >= nz/2) kk = nz - k;
+
            // Gradient Operators
-           GxR = (cos(2.0*M_PI*i/nx)-1.0)/dx[0];
-           GxC = (sin(2.0*M_PI*i/nx)-0.0)/dx[0];
-           GyR = (cos(2.0*M_PI*j/ny)-1.0)/dx[1];
-           GyC = (sin(2.0*M_PI*j/ny)-0.0)/dx[1];
-           GzR = (cos(2.0*M_PI*k/nz)-1.0)/dx[2];
-           GzC = (sin(2.0*M_PI*k/nz)-0.0)/dx[2];
+           GxR = (cos(2.0*M_PI*ki/nx)-1.0)/dx[0];
+           GxC = (sin(2.0*M_PI*ki/nx)-0.0)/dx[0];
+           GyR = (cos(2.0*M_PI*kj/ny)-1.0)/dx[1];
+           GyC = (sin(2.0*M_PI*kj/ny)-0.0)/dx[1];
+           GzR = (cos(2.0*M_PI*kk/nz)-1.0)/dx[2];
+           GzC = (sin(2.0*M_PI*kk/nz)-0.0)/dx[2];
        }
        else { // conjugate
             amrex::Abort("check the code; i should not go beyond bx.length(0)/2");
@@ -1210,6 +1218,14 @@ void TurbSpectrumVelDecomp(const MultiFab& vel,
            Real GxR = 0.0, GxC = 0.0, GyR = 0.0, GyC = 0.0, GzR = 0.0, GzC = 0.0;
            
            if (i <= nx/2) {
+           
+               // Get the wavevector
+               int ki = i;
+               int kj = j;
+               if (j >= ny/2) kj = ny - j;
+               int kk = k;
+               if (k >= nz/2) kk = nz - k;
+
                // Gradient Operators
                GxR = (cos(2.0*M_PI*i/nx)-1.0)/dx[0];
                GxC = (sin(2.0*M_PI*i/nx)-0.0)/dx[0];
@@ -1353,6 +1369,9 @@ void IntegrateKScalarHeffte(const MultiFab& cov_mag,
 //    }
 
     int comp_gpu = comp;
+    int nx = n_cells[0]; 
+    int ny = n_cells[1]; 
+    int nz = n_cells[2];
     for ( MFIter mfi(cov_mag,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
         
         const Box& bx = mfi.tilebox();
@@ -1363,7 +1382,9 @@ void IntegrateKScalarHeffte(const MultiFab& cov_mag,
         {
             int ki = i; 
             int kj = j;
+            if (j >= ny/2) kj = ny - j;
             int kk = k;
+            if (k >= nz/2) kk = nz - k;
 
             Real dist = (ki*ki + kj*kj + kk*kk);
             dist = std::sqrt(dist);
@@ -1433,6 +1454,9 @@ void IntegrateKScalar(const Vector<std::unique_ptr<BaseFab<GpuComplex<Real> > > 
       phicnt_ptr[d] = 0;
     });
 
+    int nx = n_cells[0]; 
+    int ny = n_cells[1]; 
+    int nz = n_cells[2];
     for ( MFIter mfi(variables_onegrid,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
         
         const Box& bx = mfi.fabbox();
@@ -1444,7 +1468,9 @@ void IntegrateKScalar(const Vector<std::unique_ptr<BaseFab<GpuComplex<Real> > > 
             if (i <= bx.length(0)/2) { // only half of kx-domain
                 int ki = i;
                 int kj = j;
+                if (j >= ny/2) kj = ny - j;
                 int kk = k;
+                if (k >= nz/2) kk = nz - k;
 
                 Real dist = (ki*ki + kj*kj + kk*kk);
                 dist = std::sqrt(dist);
@@ -1516,6 +1542,9 @@ void IntegrateKVelocityHeffte(const MultiFab& cov_mag,
     });
     
     int comp_gpu = comp;
+    int nx = n_cells[0]; 
+    int ny = n_cells[1]; 
+    int nz = n_cells[2];
     for ( MFIter mfi(cov_mag,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
         
         const Box& bx = mfi.tilebox();
@@ -1526,7 +1555,9 @@ void IntegrateKVelocityHeffte(const MultiFab& cov_mag,
         {
             int ki = i; 
             int kj = j;
+            if (j >= ny/2) kj = ny - j;
             int kk = k;
+            if (k >= nz/2) kk = nz - k;
 
             Real dist = (ki*ki + kj*kj + kk*kk);
             dist = std::sqrt(dist);
@@ -1595,6 +1626,9 @@ void IntegrateKVelocity(const Vector<std::unique_ptr<BaseFab<GpuComplex<Real> > 
       phicnt_ptr[d] = 0;
     });
 
+    int nx = n_cells[0]; 
+    int ny = n_cells[1]; 
+    int nz = n_cells[2];
     for ( MFIter mfi(vel_onegrid,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
         
         const Box& bx = mfi.fabbox();
@@ -1608,7 +1642,9 @@ void IntegrateKVelocity(const Vector<std::unique_ptr<BaseFab<GpuComplex<Real> > 
             if (i <= bx.length(0)/2) { // only half of kx-domain
                 int ki = i;
                 int kj = j;
+                if (j >= ny/2) kj = ny - j;
                 int kk = k;
+                if (k >= nz/2) kk = nz - k;
 
                 Real dist = (ki*ki + kj*kj + kk*kk);
                 dist = std::sqrt(dist);
