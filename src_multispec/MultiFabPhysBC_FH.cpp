@@ -31,7 +31,9 @@ void MultiFabPhysBCFH(MultiFab& phi, const Geometry& geom, int scomp, int ncomp,
     int nghost = phi.nGrow();
     int bccomp = SPEC_BC_COMP;
 
-    Real kappa_coeff = fh_kappa(0,1);
+    amrex::Real kappa_coeff = fh_kappa(0,1);
+    amrex::Real ce = c_init_1[0];
+    amrex::Real omce = 1.-ce;
 
 //    amrex::Print() << "scale and coeff " << scale << " " << kappa_coeff << " " << scale*kappa_coeff << " " << fh_tension <<std::endl;
 
@@ -75,7 +77,9 @@ void MultiFabPhysBCFH(MultiFab& phi, const Geometry& geom, int scomp, int ncomp,
                 amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (i < lo) {
-                        data(i,j,k,scomp+0) = data(lo,j,k,scomp+0) + dx[0]*std::cos(contact_angle_lo[0])*data(lo,j,k,scomp+0)*data(lo,j,k,scomp+1)*coeff;
+                        amrex::Real scratch = (data(lo,j,k,scomp+0)-ce)/(omce-ce);
+                        data(i,j,k,scomp+0) = data(lo,j,k,scomp+0) + dx[0]*std::cos(contact_angle_lo[0])*scratch*(1.-scratch)*coeff;
+                        //data(i,j,k,scomp+0) = data(lo,j,k,scomp+0) + dx[0]*std::cos(contact_angle_lo[0])*data(lo,j,k,scomp+0)*data(lo,j,k,scomp+1)*coeff;
                         data(i,j,k,scomp+0) = amrex::min(1.,amrex::max(0.,data(i,j,k,scomp+0)));
                         data(i,j,k,scomp+1) = 1.-data(i,j,k,scomp+0);
 //                        amrex::Print() << " Fh data left " << j << " " << data(i,j,k,scomp) <<" " << data(i,j,k,scomp+1) <<  std::endl;
@@ -113,7 +117,9 @@ void MultiFabPhysBCFH(MultiFab& phi, const Geometry& geom, int scomp, int ncomp,
                 amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (i > hi) {
-                        data(i,j,k,scomp+0) = data(hi,j,k,scomp+0) + dx[0]*std::cos(contact_angle_hi[0])*data(hi,j,k,scomp+0)*data(hi,j,k,scomp+1)*coeff;
+                        amrex::Real scratch = (data(hi,j,k,scomp+0)-ce)/(omce-ce);
+                        data(i,j,k,scomp+0) = data(hi,j,k,scomp+0) + dx[0]*std::cos(contact_angle_hi[0])*scratch*(1.-scratch)*coeff;
+                        //data(i,j,k,scomp+0) = data(hi,j,k,scomp+0) + dx[0]*std::cos(contact_angle_hi[0])*data(hi,j,k,scomp+0)*data(hi,j,k,scomp+1)*coeff;
                         data(i,j,k,scomp+0) = amrex::min(1.,amrex::max(0.,data(i,j,k,scomp+0)));
                         data(i,j,k,scomp+1) = 1.-data(i,j,k,scomp+0);
 //                        amrex::Print() << " Fh data right " << j << " " << data(i,j,k,scomp) << " " << data(i,j,k,scomp+1) << std::endl;
@@ -152,7 +158,10 @@ void MultiFabPhysBCFH(MultiFab& phi, const Geometry& geom, int scomp, int ncomp,
                 amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (j < lo) {
-                        data(i,j,k,scomp+0) = data(i,lo,k,scomp+0) + dx[1]*std::cos(contact_angle_lo[1])*data(i,lo,k,scomp+0)*data(i,lo,k,scomp+1)*coeff;
+                        //amrex::Real scratch = (data(i,lo,k,scomp+0)-.0348115)/(.9651885-.0348115);
+                        //data(i,j,k,scomp+0) = data(i,lo,k,scomp+0) + dx[1]*std::cos(contact_angle_lo[1])*data(i,lo,k,scomp+0)*data(i,lo,k,scomp+1)*coeff;
+                        amrex::Real scratch = (data(i,lo,k,scomp+0)-ce)/(omce-ce);
+                        data(i,j,k,scomp+0) = data(i,lo,k,scomp+0) + dx[1]*std::cos(contact_angle_lo[1])*scratch*(1.-scratch)*coeff;
                         data(i,j,k,scomp+0) = amrex::min(1.,amrex::max(0.,data(i,j,k,scomp+0)));
                         data(i,j,k,scomp+1) = 1.-data(i,j,k,scomp+0);
 
@@ -186,7 +195,9 @@ void MultiFabPhysBCFH(MultiFab& phi, const Geometry& geom, int scomp, int ncomp,
                 amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (j > hi) {
-                        data(i,j,k,scomp+0) = data(i,hi,k,scomp+0) + dx[1]*std::cos(contact_angle_hi[1])*data(i,hi,k,scomp+0)*data(i,hi,k,scomp+1)*coeff;
+                        amrex::Real scratch = (data(i,hi,k,scomp+0)-ce)/(omce-ce);
+                        data(i,j,k,scomp+0) = data(i,hi,k,scomp+0) + dx[1]*std::cos(contact_angle_hi[1])*scratch*(1.-scratch)*coeff;
+                        //data(i,j,k,scomp+0) = data(i,hi,k,scomp+0) + dx[1]*std::cos(contact_angle_hi[1])*data(i,hi,k,scomp+0)*data(i,hi,k,scomp+1)*coeff;
                         data(i,j,k,scomp+0) = amrex::min(1.,amrex::max(0.,data(i,j,k,scomp+0)));
                         data(i,j,k,scomp+1) = 1.-data(i,j,k,scomp+0);
 
@@ -225,7 +236,9 @@ void MultiFabPhysBCFH(MultiFab& phi, const Geometry& geom, int scomp, int ncomp,
                 amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (k < lo) {
-                        data(i,j,k,scomp+0) = data(i,j,lo,scomp+0) + dx[2]*std::cos(contact_angle_lo[2])*data(i,j,lo,scomp+0)*data(i,j,lo,scomp+1)*coeff;
+                        amrex::Real scratch = (data(i,j,lo,scomp+0)-ce)/(omce-ce);
+                        data(i,j,k,scomp+0) = data(i,j,lo,scomp+0) + dx[2]*std::cos(contact_angle_lo[2])*scratch*(1.-scratch)*coeff;
+                        //data(i,j,k,scomp+0) = data(i,j,lo,scomp+0) + dx[2]*std::cos(contact_angle_lo[2])*data(i,j,lo,scomp+0)*data(i,j,lo,scomp+1)*coeff;
                         data(i,j,k,scomp+0) = amrex::min(1.,amrex::max(0.,data(i,j,k,scomp+0)));
                         data(i,j,k,scomp+1) = 1.-data(i,j,k,scomp+0);
 
@@ -256,7 +269,9 @@ void MultiFabPhysBCFH(MultiFab& phi, const Geometry& geom, int scomp, int ncomp,
                 amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (k < hi) {
-                        data(i,j,k,scomp+0) = data(i,j,hi,scomp+0) + dx[2]*std::cos(contact_angle_hi[2])*data(i,j,hi,scomp+0)*data(i,j,hi,scomp+1)*coeff;
+                        amrex::Real scratch = (data(i,j,hi,scomp+0)-ce)/(omce-ce);
+                        data(i,j,k,scomp+0) = data(i,j,hi,scomp+0) + dx[2]*std::cos(contact_angle_hi[2])*scratch*(1.-scratch)*coeff;
+                        //data(i,j,k,scomp+0) = data(i,j,hi,scomp+0) + dx[2]*std::cos(contact_angle_hi[2])*data(i,j,hi,scomp+0)*data(i,j,hi,scomp+1)*coeff;
                         data(i,j,k,scomp+0) = amrex::min(1.,amrex::max(0.,data(i,j,k,scomp+0)));
                         data(i,j,k,scomp+1) = 1.-data(i,j,k,scomp+0);
 
