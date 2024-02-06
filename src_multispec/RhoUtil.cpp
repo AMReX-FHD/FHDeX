@@ -187,7 +187,7 @@ void FillRhototGhost(MultiFab& rhotot_in, const MultiFab& conc_in, const Geometr
         int hi = dom.bigEnd(0);
    
         if (bx.smallEnd(0) < lo) {
-            if (bc_lo[0] == FOEXTRAP || bc_lo[0] == EXT_DIR) {
+            if (bc_lo[0] == amrex::BCType::foextrap || bc_lo[0] == amrex::BCType::ext_dir) {
                 amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (i < lo) {
@@ -202,7 +202,7 @@ void FillRhototGhost(MultiFab& rhotot_in, const MultiFab& conc_in, const Geometr
         }
         
         if (bx.bigEnd(0) > hi) {
-            if (bc_hi[0] == FOEXTRAP || bc_hi[0] == EXT_DIR) {
+            if (bc_hi[0] == amrex::BCType::foextrap || bc_hi[0] == amrex::BCType::ext_dir) {
                 amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (i > hi) {
@@ -224,7 +224,7 @@ void FillRhototGhost(MultiFab& rhotot_in, const MultiFab& conc_in, const Geometr
         hi = dom.bigEnd(1);
         
         if (bx.smallEnd(1) < lo) {
-            if (bc_lo[1] == FOEXTRAP || bc_lo[1] == EXT_DIR) {
+            if (bc_lo[1] == amrex::BCType::foextrap || bc_lo[1] == amrex::BCType::ext_dir) {
                 amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (j < lo) {
@@ -239,7 +239,7 @@ void FillRhototGhost(MultiFab& rhotot_in, const MultiFab& conc_in, const Geometr
         }
 
         if (bx.bigEnd(1) > hi) {
-            if (bc_hi[1] == FOEXTRAP || bc_hi[1] == EXT_DIR) {
+            if (bc_hi[1] == amrex::BCType::foextrap || bc_hi[1] == amrex::BCType::ext_dir) {
                 amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (j > hi) {
@@ -262,7 +262,7 @@ void FillRhototGhost(MultiFab& rhotot_in, const MultiFab& conc_in, const Geometr
         hi = dom.bigEnd(2);
         
         if (bx.smallEnd(2) < lo) {
-            if (bc_lo[2] == FOEXTRAP || bc_lo[2] == EXT_DIR) {
+            if (bc_lo[2] == amrex::BCType::foextrap || bc_lo[2] == amrex::BCType::ext_dir) {
                 amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (k < lo) {
@@ -277,7 +277,7 @@ void FillRhototGhost(MultiFab& rhotot_in, const MultiFab& conc_in, const Geometr
         }
 
         if (bx.bigEnd(2) > hi) {
-            if (bc_hi[2] == FOEXTRAP || bc_hi[2] == EXT_DIR) {
+            if (bc_hi[2] == amrex::BCType::foextrap || bc_hi[2] == amrex::BCType::ext_dir) {
                 amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (k > hi) {
