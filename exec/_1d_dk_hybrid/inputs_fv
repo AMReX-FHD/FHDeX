@@ -3,18 +3,22 @@
    dt = 1.d-12
    cfl = 0.125d0
    npts = 100
-   nstep =  200
-   nout =    20
+   nstep =  2000
+   nout =    100
    nstat = -10
    icor = 16
 
-   seed = 10299
+   seed = 1022349098
 
-   uinit = 1250.
-   jmidl = 41
-   jmidr = 60
+   uinit = 2000.
+   jmidl = 26
+   jmidr = 75
    midfact = .0d0
    is_hybrid = 0
+   ires = 0
+   iper = 1
+   uleft = 2000.
+   uright = 2000.
 
 /
 

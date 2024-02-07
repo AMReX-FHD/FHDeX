@@ -62,7 +62,8 @@
 
          umin =  max(u(j-1),0.d0)
          uplus = max(u(j),0.d0)
-         uave = 2.d0*(uplus*umin)/(uplus+umin+1.d-16)
+c        uave = 2.d0*(uplus*umin)/(uplus+umin+1.d-16)
+         uave = 0.5*(uplus+umin)
          
          factor = 1.d0
 
@@ -79,7 +80,8 @@
          varflux = factor*sqrt(uave)
 
 
-         flux(j) = flux(j)+varflux*(ranflux(j,1)+weight*ranflux(j,2))
+c        flux(j) = flux(j)+varflux*(ranflux(j,1)+weight*ranflux(j,2))
+         flux(j) = flux(j)+varflux*ranflux(j,1)
      1             *dorand/sqrt(dx*dt)
 
       enddo
