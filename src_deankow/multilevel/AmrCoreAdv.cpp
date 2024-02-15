@@ -19,11 +19,6 @@
 using namespace amrex;
 using namespace std::chrono;
 
-#ifdef AMREX_PARTICLES
-ParticleData AmrCoreAdv::particleData;
-#endif
-
-
 // constructor - reads in parameters from inputs file
 //             - sizes multilevel arrays and data structures
 //             - initializes BCRec boundary condition object
@@ -887,7 +882,7 @@ AmrCoreAdv::WriteCheckpointFile () const
    }
 
 #ifdef AMREX_PARTICLES
-    particleData.Checkpoint(checkpointname);
+   particleData.Checkpoint(checkpointname);
 #endif
 
 }

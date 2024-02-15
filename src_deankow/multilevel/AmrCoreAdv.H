@@ -81,7 +81,7 @@ public:
     amrex::Real EstTimeStep (int lev, amrex::Real time);
 
 #ifdef AMREX_PARTICLES
-    static ParticleData particleData;
+    ParticleData particleData;
 #endif
 
 
