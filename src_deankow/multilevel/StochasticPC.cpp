@@ -32,7 +32,7 @@ StochasticPC:: AddParticles (MultiFab& phi_fine, const BoxArray& ba_to_exclude)
 #endif
     for (MFIter mfi(phi_fine); mfi.isValid(); ++mfi)
     {
-        const Box& tile_box  = mfi.tilebox();
+        Box tile_box  = mfi.tilebox() & Geom(lev).Domain();
 
         if (ba_to_exclude.contains(tile_box)) {continue;}
 

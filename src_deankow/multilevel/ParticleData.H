@@ -101,7 +101,7 @@ struct ParticleData {
         stochastic_particles->Redistribute();
     }
 
-    void Checkpoint(const std::string& filename)
+    void Checkpoint (const std::string& filename) const
     {
         if (use_particles) {
             stochastic_particles->Checkpoint(filename, "stochastic_particles", true, particle_varnames);
