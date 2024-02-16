@@ -226,22 +226,7 @@ void AmrCoreAdv::MakeFBA(const BoxArray& ba)
     BoxList com_bl_fixed;
     for (auto& b : com_bl) {
         Box bx(b);
-        if (!domain.contains(bx)) {
-           Geom(1).periodicShift(domain, bx, pshifts);
-           for (const auto& iv : pshifts)
-           {
-              Box new_bx(b); new_bx.shift(iv); new_bx &= domain;
-              if (new_bx.ok()) {
-                  com_bl_fixed.push_back(new_bx);
-              }
-           }
-           Box b_itself(b); b_itself &= domain;
-           if (b_itself.ok()) {
-               com_bl_fixed.push_back((b&domain));
-           }
-        } else {
-           com_bl_fixed.push_back(b);
-        }
+        com_bl_fixed.push_back(b);
     }
     com_bl_fixed.catenate(valid_bl);
     grown_fba.define(com_bl_fixed);
