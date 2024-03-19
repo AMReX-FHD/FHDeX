@@ -129,9 +129,13 @@ void main_driver(const char* argv)
     MultiFab Epot;
     std::array< MultiFab, AMREX_SPACEDIM > grad_Epot_old;
     
+    /***/
+    MultiFab phi_old;
+    MultiFab phitot_old;
+    
     if (restart > 0) {
         ReadCheckPoint(init_step,time,dt,
-                       rho_old,rhotot_old,pi,umac,Epot,grad_Epot_old,
+                       rho_old,rhotot_old,phi_old,phitot_old,pi,umac,Epot,grad_Epot_old,
                        ba,dmap);
     }
     else {
@@ -171,6 +175,10 @@ void main_driver(const char* argv)
         if (use_charged_fluid) {
             Epot.define(ba, dmap, 1, 1);
         }
+        
+    	  /***/
+        phi_old.define 		(ba, dmap, nspecies, ng_s);
+        phitot_old.define	(ba, dmap, 1       , ng_s);
     }
 
     // moved this to here so can change dt from value in checkpoint
@@ -191,8 +199,9 @@ void main_driver(const char* argv)
 
     if (restart < 0) {
     
+    	  /***/
         // initialize rho and umac in valid region only
-        InitRhoUmac(umac,rho_old,geom);
+        InitRhoUmac(umac,rho_old,phi_old,geom);
 
         // initialize pi, including ghost cells
         pi.setVal(0.);
@@ -207,6 +216,9 @@ void main_driver(const char* argv)
     // pressure ghost cells
     pi.FillBoundary(geom.periodicity());
     MultiFabPhysBC(pi,geom,0,1,PRES_BC_COMP);
+    	  /***/
+    ComputeRhotot(phi_old,phitot_old);
+    FillRhoRhototGhost(phi_old,phitot_old,geom);
 
     //=======================================================
     // Build multifabs for all the variables
@@ -218,6 +230,10 @@ void main_driver(const char* argv)
     MultiFab diff_mass_fluxdiv(ba, dmap, nspecies, 0);
     MultiFab eta              (ba, dmap, 1       , 1);
     MultiFab kappa            (ba, dmap, 1       , 1);
+    
+    	  /***/
+    MultiFab phi_new       	(ba, dmap, nspecies, ng_s);
+    MultiFab phitot_new       (ba, dmap, 1       , ng_s);
     
     /////////////////////////////////////////
 
@@ -506,7 +522,7 @@ void main_driver(const char* argv)
         
         // write initial plotfile and structure factor
         if (plot_int > 0) {
-            WritePlotFile(0,0.,geom,umac,rhotot_old,rho_old,pi,charge_old,Epot);
+            WritePlotFile(0,0.,geom,umac,rhotot_old,rho_old,pi,charge_old,Epot,phitot_old,phi_old);
             if (n_steps_skip == 0 && struct_fact_int > 0) {
                 structFact.WritePlotFile(0,0.,geom,"plt_SF");
             }
@@ -548,12 +564,14 @@ void main_driver(const char* argv)
         }
         else if (algorithm_type == 6) {
             // boussinesq
+    	  /***/
             AdvanceTimestepBousq(umac,rho_old,rho_new,rhotot_old,rhotot_new,
                                  pi,eta,eta_ed,kappa,Temp,Temp_ed,
                                  diff_mass_fluxdiv,stoch_mass_fluxdiv,stoch_mass_flux,
                                  grad_Epot_old,grad_Epot_new,
                                  charge_old,charge_new,Epot,permittivity,
                                  sMassFlux,sMomFlux,
+                                 phi_old,phi_new,phitot_old,phitot_new,
                                  dt,time,istep,geom);
         }
         else {
@@ -591,7 +609,7 @@ void main_driver(const char* argv)
 
         // write plotfile at specific intervals
         if (plot_int > 0 && istep%plot_int == 0) {
-            WritePlotFile(istep,time,geom,umac,rhotot_new,rho_new,pi,charge_new,Epot);
+            WritePlotFile(istep,time,geom,umac,rhotot_new,rho_new,pi,charge_new,Epot,phitot_new,phi_new);
             if (istep > n_steps_skip && struct_fact_int > 0) {
                 structFact.WritePlotFile(istep,time,geom,"plt_SF");
             }
@@ -599,7 +617,7 @@ void main_driver(const char* argv)
 
         // write checkpoint at specific intervals
         if (chk_int > 0 && istep%chk_int == 0) {
-            WriteCheckPoint(istep,time,dt,rho_new,rhotot_new,pi,umac,Epot,grad_Epot_new);
+            WriteCheckPoint(istep,time,dt,rho_new,rhotot_new,phi_new,phitot_new,pi,umac,Epot,grad_Epot_new);
         }
 
         // set old state to new state

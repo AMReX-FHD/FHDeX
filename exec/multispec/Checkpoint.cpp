@@ -23,6 +23,8 @@ void WriteCheckPoint(int step,
                      const amrex::Real dt,
                      const MultiFab& rho,
                      const MultiFab& rhotot,
+                     const MultiFab& phi,
+                     const MultiFab& phitot,
                      const MultiFab& pi,
                      std::array< MultiFab, AMREX_SPACEDIM >& umac,
                      const MultiFab& Epot,
@@ -145,6 +147,10 @@ void WriteCheckPoint(int step,
                  amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "rho"));
     VisMF::Write(rhotot,
                  amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "rhotot"));
+    VisMF::Write(phi,
+                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "phi"));
+    VisMF::Write(phitot,
+                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "phitot"));
     VisMF::Write(pi,
                  amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "pi"));
 
@@ -159,6 +165,8 @@ void ReadCheckPoint(int& step,
                     amrex::Real& dt,
                     MultiFab& rho,
                     MultiFab& rhotot,
+                    MultiFab& phi,
+                    MultiFab& phitot,
                     MultiFab& pi,
                     std::array< MultiFab, AMREX_SPACEDIM >& umac,
                     MultiFab& Epot,
@@ -237,6 +245,8 @@ void ReadCheckPoint(int& step,
         
         rho   .define(ba, dmap, nspecies, ng_s);
         rhotot.define(ba, dmap,        1, ng_s);
+        phi   .define(ba, dmap, nspecies, ng_s);
+        phitot.define(ba, dmap,        1, ng_s);
         pi    .define(ba, dmap,        1, 1);
 
         if (use_charged_fluid) {
@@ -327,6 +337,10 @@ void ReadCheckPoint(int& step,
                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "rho"));
     VisMF::Read(rhotot,
                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "rhotot"));
+    VisMF::Read(phi,
+                amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "phi"));
+    VisMF::Read(phitot,
+                amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "phitot"));
     VisMF::Read(pi,
                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "pi"));
 

@@ -16,7 +16,9 @@ void WritePlotFile(int step,
 		   const MultiFab& rho,
 		   const MultiFab& pres,
                    const MultiFab& charge,
-                   const MultiFab& Epot)
+                   const MultiFab& Epot,
+		   const MultiFab& phitot,
+		   const MultiFab& phi)
 {
     
     BL_PROFILE_VAR("WritePlotFile()",WritePlotFile);
@@ -28,11 +30,13 @@ void WritePlotFile(int step,
 
     // rhotot        1
     // rho           nspecies
+    // phitot        1
+    // phi           nspecies
     // c             nspecies
     // averaged vel  AMREX_SPACEDIM
     // shifted  vel  AMREX_SPACEDIM
     // pres          1
-    int nPlot = 2*AMREX_SPACEDIM + 2*nspecies + 2;
+    int nPlot = 2*AMREX_SPACEDIM + 3*nspecies + 3;
 
     if (use_charged_fluid) {
         // charge
@@ -54,7 +58,15 @@ void WritePlotFile(int step,
         x += (49+i);
         varNames[cnt++] = x;
     }
+    
+    varNames[cnt++] = "phi";
 
+    for (int i=0; i<nspecies; ++i) {
+        std::string x = "phi";
+        x += (49+i);
+        varNames[cnt++] = x;
+    }
+    
     for (int i=0; i<nspecies; ++i) {
         std::string x = "c";
         x += (49+i);
@@ -90,6 +102,16 @@ void WritePlotFile(int step,
     // copy densities into plotfile
     for (int i=0; i<nspecies; ++i) {
         MultiFab::Copy(plotfile, rho, i, cnt, 1, 0);
+        cnt++;
+    }
+    
+    // copy phitot into plotfile
+    MultiFab::Copy(plotfile, phitot, 0, cnt, 1, 0);
+    cnt++;
+    
+    // copy phi's into plotfile
+    for (int i=0; i<nspecies; ++i) {
+        MultiFab::Copy(plotfile, phi, i, cnt, 1, 0);
         cnt++;
     }
     

@@ -9,6 +9,7 @@
 
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_MultiFabUtil.H>
+#include <AMReX_Print.H>
 
 
 // argv contains the name of the inputs file entered at the command line
@@ -33,6 +34,10 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                           MultiFab& permittivity,
                           StochMassFlux& sMassFlux,
                           StochMomFlux& sMomFlux,
+                          MultiFab& phi_old,
+                          MultiFab& phi_new,
+                          MultiFab& phitot_old,
+                          MultiFab& phitot_new,
                           const Real& dt,
                           const Real& time,
                           const int& istep,
@@ -122,7 +127,7 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         }
     }
     
-    if (use_multiphase || use_flory_huggins) {
+    if (use_multiphase || use_flory_huggins || use_ice_nucleation) {
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             div_reversible_stress[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 0);
         }
@@ -199,7 +204,8 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     if (any_grav) {
         Abort("AdvanceTimestepBousq.cpp gravity not implemented");
     }
-
+    
+if (use_ice_nucleation ==0) {
     if (variance_coef_mass != 0.) {
         sMassFlux.fillMassStochastic();
     }
@@ -217,7 +223,7 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     ComputeMassFluxdiv(rho_old,rhotot_old,Temp,diff_mass_fluxdiv,stoch_mass_fluxdiv,
                        diff_mass_flux,stoch_mass_flux,sMassFlux,0.5*dt,time,geom,weights_mass,
                        charge_old,grad_Epot_old,Epot,permittivity);
-    
+                       
     // here is a reasonable place to call something to compute in reversible stress term
     // in this case want to get divergence so it looks like a add to rhs for stokes solver
     if (use_multiphase) {
@@ -240,6 +246,18 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         }
 
     }
+ } else {
+
+    	  ComputeRhotot(phi_old,phitot_old);
+        // compute reversible stress tensor ---added term
+        ComputeDivFHReversibleStress(div_reversible_stress,phitot_old,phi_old,geom);
+
+        // add divergence of reversible stress to gmres_rhs_v
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            MultiFab::Saxpy(gmres_rhs_v[d],1.,div_reversible_stress[d],0,0,1,0);
+        }
+
+}
 
     if (use_charged_fluid) {
 
@@ -358,6 +376,7 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         eta_ed[d].mult(2.,0,1,0);
     }
 
+if (use_ice_nucleation ==0){
     //////////////////////////////////////////////
     // Step 2: compute reactions and mass fluxes at t^n
     //////////////////////////////////////////////
@@ -368,7 +387,7 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     end if
     */
-
+    
     if (advection_type == 1 || advection_type == 2) {
 
       // bds advection
@@ -415,7 +434,7 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
       Abort("Invalid advection_type");
 
     }
-
+    
     //////////////////////////////////////////////
     /// Step 3: density prediction to t^{n+1/2}
     //////////////////////////////////////////////
@@ -440,7 +459,7 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         end if
         */
     }
-
+    
     // compute rhotot^{n+1/2} from rho^{n+1/2} in VALID REGION
     ComputeRhotot(rho_new,rhotot_new);
 
@@ -449,6 +468,17 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     
     // average rho_i^{n+1/2} to faces
     AverageCCToFace(rho_new,rho_fc,0,nspecies,SPEC_BC_COMP,geom);
+
+} else {
+    // compute rhotot^{n+1/2} from rho^{n+1/2} in VALID REGION
+    ComputeRhotot(rho_old,rhotot_new);
+
+    // fill rho and rhotot ghost cells at t^{n+1/2}
+    FillRhoRhototGhost(rho_old,rhotot_new,geom);
+    
+    // average rho_i^{n+1/2} to faces
+    //AverageCCToFace(rho_old,rho_fc,0,nspecies,SPEC_BC_COMP,geom);
+}
 
     if (use_charged_fluid) {
         // compute total charge at t^{n+1/2}
@@ -461,7 +491,11 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     }
 
     // compute (eta,kappa)^{n+1/2}
+if (use_ice_nucleation ==0){
     ComputeEta(rho_new, rhotot_new, eta);
+} else {
+    ComputeEta(phi_old, phitot_old, eta);
+}
     if (AMREX_SPACEDIM == 2) {
         AverageCCToNode(eta,eta_ed[0],0,1,SPEC_BC_COMP,geom);
     }
@@ -469,6 +503,7 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         AverageCCToEdge(eta,eta_ed,0,1,SPEC_BC_COMP,geom);
     }
 
+if (use_ice_nucleation ==0){
     //////////////////////////////////////////////
     // Step 4: compute mass fluxes and reactions at t^{n+1/2}
     //////////////////////////////////////////////
@@ -525,7 +560,7 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     } else if (use_flory_huggins ==1){
 
         // compute reversible stress tensor ---added term
-          ComputeDivFHReversibleStress(div_reversible_stress,rhotot_new,rho_new,geom);
+        ComputeDivFHReversibleStress(div_reversible_stress,rhotot_new,rho_new,geom);
 
     }
 
@@ -568,7 +603,7 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         MkAdvSFluxdiv(umac_old,rho_fc,adv_mass_fluxdiv,geom,0,nspecies,false);
         MkAdvSFluxdiv(umac    ,rho_fc,adv_mass_fluxdiv,geom,0,nspecies,true);
     }
-
+    
     //////////////////////////////////////////////
     // Step 5: density integration to t^{n+1}
     //////////////////////////////////////////////
@@ -606,6 +641,111 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     // average rho^{n+1} to faces
     AverageCCToFace(rhotot_new,rhotot_fc_new,0,1,RHO_BC_COMP,geom);
+    	
+} else {
+    	AverageCCToFace(rhotot_old,rhotot_fc_new,0,1,RHO_BC_COMP,geom);
+   	
+	   amrex::Real EnScale 		= rhobar[0]*k_B*T_init[0]*fh_chi(1,0)/monomer_mass; 				// 2.79e09
+	   amrex::Real GradEnCoef	= rhobar[0]*k_B*T_init[0]*fh_kappa(1,0)/monomer_mass;				// 2.73e-6
+	   amrex::Real PotWellDepr	= -2.687e-05*T_init[0]*T_init[0]+0.009943*T_init[0]-0.7128;		// For polynomial potential
+   	amrex::Real Mobility 	= 4.997e6*exp(-4438.0/T_init[0]);										// AC Mobility from MATLAB simulations
+   	
+   	MultiFab phi_prd(ba,dmap,1,2);
+   	
+	   FillRhoRhototGhost(phi_old,phitot_old,geom);
+	   
+	   // predict phi at t+1/2
+	   for (MFIter mfi(phi_prd); mfi.isValid(); ++mfi )
+	   {
+	       Box bx = mfi.tilebox();
+	       const Array4<Real>& phiOld = phi_old.array(mfi);
+	       const Array4<Real>& phiPrd = phi_prd.array(mfi);
+	      
+	       const amrex::Array4<amrex::Real>& u = umac[0].array(mfi);
+	       const amrex::Array4<amrex::Real>& v = umac[1].array(mfi);
+	       const amrex::Array4<amrex::Real>& u_old = umac_old[0].array(mfi);
+	       const amrex::Array4<amrex::Real>& v_old = umac_old[1].array(mfi);
+#if (AMREX_SPACEDIM == 3)
+	       const amrex::Array4<amrex::Real>& w = umac[2].array(mfi);
+	       const amrex::Array4<amrex::Real>& w_old = umac_old[2].array(mfi);
+#endif
+	       int n=0;
+	       amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+	       {
+	       	
+	           phiPrd(i,j,k) = phiOld(i,j,k,n)
+	           		+ dt/2 * Mobility * 2 * GradEnCoef *
+	               ( (phiOld(i+1,j,k,n) - 2.*phiOld(i,j,k,n) + phiOld(i-1,j,k,n)) / (dx[0]*dx[0])
+	                +(phiOld(i,j+1,k,n) - 2.*phiOld(i,j,k,n) + phiOld(i,j-1,k,n)) / (dx[1]*dx[1])
+	               )
+	               - dt/2 * ((u(i+1,j,k)+u_old(i+1,j,k))/2*(phiOld(i+1,j,k,n)+phiOld(i,j,k,n))/2-(u(i,j,k)+u_old(i,j,k))/2*(phiOld(i,j,k,n)+phiOld(i-1,j,k,n))/2)/dx[0]
+	               - dt/2 * ((v(i,j+1,k)+v_old(i,j+1,k))/2*(phiOld(i,j+1,k,n)+phiOld(i,j,k,n))/2-(v(i,j,k)+v_old(i,j,k))/2*(phiOld(i,j,k,n)+phiOld(i,j-1,k,n))/2)/dx[1]
+#if (AMREX_SPACEDIM == 3)
+	               + dt/2 * Mobility * 2 * GradEnCoef * (phiOld(i,j,k+1,n) - 2.*phiOld(i,j,k,n) + phiOld(i,j,k-1,n)) / (dx[2]*dx[2])
+	               - dt/2 * ((w(i,j,k+1)+w_old(i,j,k+1))/2*(phiOld(i,j,k+1,n)+phiOld(i,j,k,n))/2-(w(i,j,k)+w_old(i,j,k))/2*(phiOld(i,j,k,n)+phiOld(i,j,k-1,n))/2)/dx[2]
+               	+ variance_coef_mass*sqrt(2.0*k_B*T_init[0]*Mobility*dt/(dx[0]*dx[1]*dx[2]))*amrex::RandomNormal(0,1)/sqrt(2)
+#elif (AMREX_SPACEDIM == 2)
+               	+ variance_coef_mass*sqrt(2.0*k_B*T_init[0]*Mobility*dt/(dx[0]*dx[1]*cell_depth))*amrex::RandomNormal(0,1)/sqrt(2)
+#endif
+						- dt/2 * Mobility * EnScale*(2*phiOld(i,j,k,n)*(phiOld(i,j,k,n)-1)*(phiOld(i,j,k,n)-1)+2*phiOld(i,j,k,n)*phiOld(i,j,k,n)*(phiOld(i,j,k,n)-1) - PotWellDepr)
+	               ;
+	       });
+	   }
+	   
+	   phi_prd.FillBoundary(geom.periodicity());
+	   // advance phi to t+1
+	   for (MFIter mfi(phi_new); mfi.isValid(); ++mfi )
+	   {
+	       Box bx = mfi.tilebox();
+	       const Array4<Real>& phiNew = phi_new.array(mfi);
+	       const Array4<Real>& phiOld = phi_old.array(mfi);
+	       const Array4<Real>& phiPrd = phi_prd.array(mfi);
+	      
+	       const amrex::Array4<amrex::Real>& u = umac[0].array(mfi);
+	       const amrex::Array4<amrex::Real>& v = umac[1].array(mfi);
+	       const amrex::Array4<amrex::Real>& u_old = umac_old[0].array(mfi);
+	       const amrex::Array4<amrex::Real>& v_old = umac_old[1].array(mfi);
+#if (AMREX_SPACEDIM == 3)
+	       const amrex::Array4<amrex::Real>& w = umac[2].array(mfi);
+	       const amrex::Array4<amrex::Real>& w_old = umac_old[2].array(mfi);
+#endif
+	       int n=0;
+	       amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+	       {
+	       	
+	           phiNew(i,j,k,n) = phiOld(i,j,k,n)
+	           		+ dt * Mobility * 2 * GradEnCoef *
+	               ( (phiPrd(i+1,j,k) - 2.*phiPrd(i,j,k) + phiPrd(i-1,j,k)) / (dx[0]*dx[0])
+	                +(phiPrd(i,j+1,k) - 2.*phiPrd(i,j,k) + phiPrd(i,j-1,k)) / (dx[1]*dx[1])
+	               )
+	               - dt * ((u(i+1,j,k)+u_old(i+1,j,k))/2*(phiPrd(i+1,j,k)+phiPrd(i,j,k))/2-(u(i,j,k)+u_old(i,j,k))/2*(phiPrd(i,j,k)+phiPrd(i-1,j,k))/2)/dx[0]
+	               - dt * ((v(i,j+1,k)+v_old(i,j+1,k))/2*(phiPrd(i,j+1,k)+phiPrd(i,j,k))/2-(v(i,j,k)+v_old(i,j,k))/2*(phiPrd(i,j,k)+phiPrd(i,j-1,k))/2)/dx[1]
+#if (AMREX_SPACEDIM == 3)
+	               + dt * Mobility * 2 * GradEnCoef * (phiPrd(i,j,k+1) - 2.*phiPrd(i,j,k) + phiPrd(i,j,k-1)) / (dx[2]*dx[2])
+	               - dt * ((w(i,j,k+1)+w_old(i,j,k+1))/2*(phiPrd(i,j,k+1)+phiPrd(i,j,k))/2-(w(i,j,k)+w_old(i,j,k))/2*(phiPrd(i,j,k)+phiPrd(i,j,k-1))/2)/dx[2]
+               	+ variance_coef_mass*sqrt(2.0*k_B*T_init[0]*Mobility*dt/(dx[0]*dx[1]*dx[2]))*amrex::RandomNormal(0,1)
+#elif (AMREX_SPACEDIM == 2)
+               	+ variance_coef_mass*sqrt(2.0*k_B*T_init[0]*Mobility*dt/(dx[0]*dx[1]*cell_depth))*amrex::RandomNormal(0,1)
+#endif
+						- dt * Mobility * EnScale*(2*phiPrd(i,j,k)*(phiPrd(i,j,k)-1)*(phiPrd(i,j,k)-1)+2*phiPrd(i,j,k)*phiPrd(i,j,k)*(phiPrd(i,j,k)-1) - PotWellDepr)
+	               ;
+	            
+			      phiNew(i,j,k,n+1) = 1-phiNew(i,j,k,n);
+	       });
+	   }
+	
+    	ComputeRhotot(phi_new,phitot_new);
+      // compute reversible stress tensor ---added term
+      ComputeDivFHReversibleStress(div_reversible_stress,phitot_new,phi_new,geom);
+	   
+		MultiFab::Copy(phi_old,phi_new,0,0,nspecies,0);
+		
+		amrex::Print() << "Advanced phi (phi1_avg = " << phi_new.sum(0)/(n_cells[0]*n_cells[1]
+#if (AMREX_SPACEDIM == 3)
+																				*n_cells[2]
+#endif
+																		 					) <<")\n";
+}
 
     if (use_charged_fluid) {
         // compute total charge at t^{n+1}
@@ -617,14 +757,18 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         }
     }
     
+if (use_ice_nucleation ==0){
     ComputeEta(rho_new, rhotot_new, eta);
+} else {
+    ComputeEta(phi_new, phitot_new, eta);
+}
     if (AMREX_SPACEDIM == 2) {
         AverageCCToNode(eta,eta_ed[0],0,1,SPEC_BC_COMP,geom);
     }
     else {
         AverageCCToEdge(eta,eta_ed,0,1,SPEC_BC_COMP,geom);
     }
-
+    
     //////////////////////////////////////////////
     // Step 6: solve for v^{n+1} and pi^{n+1/2} using GMRES
     //////////////////////////////////////////////
@@ -676,7 +820,7 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         // call mk_grav_force_bousq(mla,gmres_rhs_v,.true.,rho_fc,the_bc_tower)
     }
 
-    if (use_multiphase || use_flory_huggins) {
+    if (use_multiphase || use_flory_huggins || use_ice_nucleation) {
         // add divergence of reversible stress to gmres_rhs_v
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             MultiFab::Saxpy(gmres_rhs_v[d],1.,div_reversible_stress[d],0,0,1,0);
@@ -783,6 +927,7 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         eta_ed[d].mult(2.,0,1,0);
     }
 
+if (use_ice_nucleation ==0) {
     // if writing a plotfile for electro-explicit option, compute Epot using new densities
     // use existing machinery to compute all mass fluxes - yes this is overkill
     // but better than writing a separate routine for now
@@ -800,5 +945,6 @@ void AdvanceTimestepBousq(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                                charge_old,grad_Epot_old,Epot,permittivity,0);
         }
     }
+ }
     
 }

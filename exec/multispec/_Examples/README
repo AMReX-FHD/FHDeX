@@ -1,0 +1,13 @@
+This directory contains the inputs files which can be used to study propagation of ice front in a supercooled liquid.
+
+General instructions:
+1. Remember to change the values of thermophysical properties according to the table given within.
+2. You can turn stochasticity on/off by setting variance_coef_* to 1/0.
+
+In ./
+inputs_slab_3d:         inputs to measure the propagation speed of ice/water interface at various temperatures in a pillar geometry.
+inputs_nucleus_3d:      inputs for simulationg growth of an ice nucleus at various temperatures in a cubic domain.
+
+In ./_Validation/
+inputs_laplace:         to measure laplace pressure inside an ice nucleus in a deterministic setting.
+inputs_spectrum:        to measure the spectral energy in a long slab and compare with theory.
