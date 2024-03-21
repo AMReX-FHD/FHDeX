@@ -20,6 +20,10 @@ AMREX_GPU_MANAGED int                                       multispec::use_multi
 AMREX_GPU_MANAGED int                                       multispec::use_flory_huggins;
 AMREX_GPU_MANAGED int                                       multispec::use_ice_nucleation;
 AMREX_GPU_MANAGED int                                       multispec::use_log_potential;
+AMREX_GPU_MANAGED amrex::Real                               multispec::EnScale;
+AMREX_GPU_MANAGED amrex::Real                               multispec::GradEnCoef;
+AMREX_GPU_MANAGED amrex::Real                               multispec::PotWellDepr;
+AMREX_GPU_MANAGED amrex::Real                               multispec::Mobility;
 AMREX_GPU_MANAGED amrex::Real                               multispec::kc_tension;
 AMREX_GPU_MANAGED amrex::Real                               multispec::alpha_gex;
 AMREX_GPU_MANAGED amrex::Array2D<Real,0,MAX_SPECIES-1,0,MAX_SPECIES-1> multispec::fh_kappa;
@@ -85,8 +89,12 @@ void InitializeMultispecNamespace() {
     use_lapack = 0;         // Use LAPACK or iterative method for diffusion matrix (recommend False)
     use_multiphase = 0;     // for RTIL
     use_flory_huggins = 0;   // for flory huggins
-    use_ice_nucleation = 0;   // for ice nucleation simulations
-    use_log_potential = 0;		// use quartic potential by default
+    use_ice_nucleation 	= 0;   																			// for ice nucleation simulations
+    use_log_potential 	= 0;																				// use quartic potential by default
+    EnScale 				= 2.79e09;
+    GradEnCoef 			= 2.73e-6;
+    PotWellDepr 			= -2.687e-05*T_init[0]*T_init[0]+0.009943*T_init[0]-0.7128;		// For polynomial potential
+    Mobility 				= 0.0001808*T_init[0]*T_init[0]-0.08481*T_init[0]+9.968;			// AC Mobility
     kc_tension = 0;         // for RTIL
     alpha_gex = 0;          // for RTIL
     n_gex = 1;              // for RTIL

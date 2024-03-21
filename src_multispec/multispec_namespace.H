@@ -21,8 +21,6 @@ namespace multispec {
     extern AMREX_GPU_MANAGED int      use_lapack;
     extern AMREX_GPU_MANAGED int      use_multiphase;
     extern AMREX_GPU_MANAGED int      use_flory_huggins;
-    extern AMREX_GPU_MANAGED int      use_ice_nucleation;
-    extern AMREX_GPU_MANAGED int      use_log_potential;
     extern AMREX_GPU_MANAGED amrex::Array2D<amrex::Real,0,MAX_SPECIES-1,0,MAX_SPECIES-1>  fh_kappa;
     extern AMREX_GPU_MANAGED amrex::Array2D<amrex::Real,0,MAX_SPECIES-1,0,MAX_SPECIES-1>  fh_chi;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> fh_monomers;
@@ -62,5 +60,13 @@ namespace multispec {
     extern amrex::Real                L_pos;
     extern amrex::Real                L_trans;
     extern amrex::Real                L_zero;
+    
+    // ice-nucleation
+    extern AMREX_GPU_MANAGED int      		use_ice_nucleation;
+    extern AMREX_GPU_MANAGED int      		use_log_potential;
+    extern AMREX_GPU_MANAGED amrex::Real 	EnScale;
+    extern AMREX_GPU_MANAGED amrex::Real 	GradEnCoef;
+    extern AMREX_GPU_MANAGED amrex::Real 	PotWellDepr;
+    extern AMREX_GPU_MANAGED amrex::Real 	Mobility;
 }
 
