@@ -95,11 +95,12 @@ void InitialProjection(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     if (variance_coef_mass != 0. && algorithm_type != 6) {
         sMassFlux.fillMassStochastic();
     }
-        
+
+if (use_ice_nucleation ==0) {        
     ComputeMassFluxdiv(rho,rhotot,Temp,diff_mass_fluxdiv,stoch_mass_fluxdiv,
                        diff_mass_flux,stoch_mass_flux,sMassFlux,dt_eff,time,geom,weights,
                        charge_old,grad_Epot_old,Epot,permittivity);
-
+}
     // assumble total fluxes to be used in reservoirs
     //
     //
