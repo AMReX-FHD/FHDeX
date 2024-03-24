@@ -234,8 +234,8 @@ void main_driver(const char* argv)
     	  /***/
     MultiFab phi_new       	(ba, dmap, nspecies, ng_s);
     MultiFab phitot_new       (ba, dmap, 1       , ng_s);
-    MultiFab local_MobScale   (ba, dmap, 1		 , 0);
-    local_MobScale.setVal(1.0);	// Change this near to wall BC
+    //MultiFab local_MobScale   (ba, dmap, 1		 , 0);
+    //local_MobScale.setVal(1.0);	// Change this near to wall BC
     /////////////////////////////////////////
 
     // eta and Temp on nodes (2d) or edges (3d)
@@ -572,7 +572,7 @@ void main_driver(const char* argv)
                                  grad_Epot_old,grad_Epot_new,
                                  charge_old,charge_new,Epot,permittivity,
                                  sMassFlux,sMomFlux,
-                                 phi_old,phi_new,phitot_old,phitot_new,local_MobScale,
+                                 phi_old,phi_new,phitot_old,phitot_new,
                                  dt,time,istep,geom);
         }
         else {

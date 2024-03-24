@@ -208,6 +208,7 @@ void InitializeMultispecNamespace() {
     pp.query("use_log_potential",use_log_potential);
     pp.query("monomer_mass",monomer_mass);
     pp.query("kc_tension",kc_tension);
+    pp.query("Mobility",Mobility);
     pp.query("fh_tension",fh_tension);
     pp.query("alpha_gex",alpha_gex);
     pp.query("n_gex",n_gex);
