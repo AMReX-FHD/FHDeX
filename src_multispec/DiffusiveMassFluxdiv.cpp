@@ -212,7 +212,7 @@ void ComputeHigherOrderTerm(MultiFab& molarconc,
 #endif
 
         // boundary conditions
-        if (bc_lo[0] == FOEXTRAP || bc_lo[0] == EXT_DIR || bc_lo[0] == SPEC_CONTACT_BC) {
+        if (bc_lo[0] == BCType::foextrap || bc_lo[0] == BCType::ext_dir || bc_lo[0] == SPEC_CONTACT_BC) {
             if (bx_x.smallEnd(0) <= dom.smallEnd(0)) {
                 int lo = dom.smallEnd(0);
                 amrex::ParallelFor(bx_x, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
@@ -224,7 +224,7 @@ void ComputeHigherOrderTerm(MultiFab& molarconc,
             }
         }
             
-        if (bc_hi[0] == FOEXTRAP || bc_hi[0] == EXT_DIR || bc_hi[0] == SPEC_CONTACT_BC) {
+        if (bc_hi[0] == BCType::foextrap || bc_hi[0] == BCType::ext_dir || bc_hi[0] == SPEC_CONTACT_BC) {
             if (bx_x.bigEnd(0) >= dom.bigEnd(0)+1) {
                 int hi = dom.bigEnd(0)+1;
                 amrex::ParallelFor(bx_x, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
@@ -236,7 +236,7 @@ void ComputeHigherOrderTerm(MultiFab& molarconc,
             }
         }
         
-        if (bc_lo[1] == FOEXTRAP || bc_lo[1] == EXT_DIR || bc_lo[1] == SPEC_CONTACT_BC) {
+        if (bc_lo[1] == BCType::foextrap || bc_lo[1] == BCType::ext_dir || bc_lo[1] == SPEC_CONTACT_BC) {
             if (bx_y.smallEnd(1) <= dom.smallEnd(1)) {
                 int lo = dom.smallEnd(1);
                 amrex::ParallelFor(bx_y, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
@@ -248,7 +248,7 @@ void ComputeHigherOrderTerm(MultiFab& molarconc,
             }
         }
             
-        if (bc_hi[1] == FOEXTRAP || bc_hi[1] == EXT_DIR || bc_hi[1] == SPEC_CONTACT_BC) {
+        if (bc_hi[1] == BCType::foextrap || bc_hi[1] == BCType::ext_dir || bc_hi[1] == SPEC_CONTACT_BC) {
             if (bx_y.bigEnd(1) >= dom.bigEnd(1)+1) {
                 int hi = dom.bigEnd(1)+1;
                 amrex::ParallelFor(bx_y, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
@@ -261,7 +261,7 @@ void ComputeHigherOrderTerm(MultiFab& molarconc,
         }
 
 #if (AMREX_SPACEDIM == 3)
-        if (bc_lo[2] == FOEXTRAP || bc_lo[2] == EXT_DIR || bc_lo[2] == SPEC_CONTACT_BC) {
+        if (bc_lo[2] == BCType::foextrap || bc_lo[2] == BCType::ext_dir || bc_lo[2] == SPEC_CONTACT_BC) {
             if (bx_z.smallEnd(2) <= dom.smallEnd(2)) {
                 int lo = dom.smallEnd(2);
                 amrex::ParallelFor(bx_z, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
@@ -273,7 +273,7 @@ void ComputeHigherOrderTerm(MultiFab& molarconc,
             }
         }
             
-        if (bc_hi[2] == FOEXTRAP || bc_hi[2] == EXT_DIR || bc_hi[2] == SPEC_CONTACT_BC) {
+        if (bc_hi[2] == BCType::foextrap || bc_hi[2] == BCType::ext_dir || bc_hi[2] == SPEC_CONTACT_BC) {
             if (bx_z.bigEnd(2) >= dom.bigEnd(2)+1) {
                 int hi = dom.bigEnd(2)+1;
                 amrex::ParallelFor(bx_z, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
@@ -462,7 +462,7 @@ void ComputeFHHigherOrderTerm(MultiFab& molarconc,
 #endif
 
         // boundary conditions
-        if (bc_lo[0] == FOEXTRAP || bc_lo[0] == EXT_DIR || bc_lo[0] == SPEC_CONTACT_BC) {
+        if (bc_lo[0] == BCType::foextrap || bc_lo[0] == BCType::ext_dir || bc_lo[0] == SPEC_CONTACT_BC) {
             if (bx_x.smallEnd(0) <= dom.smallEnd(0)) {
                 int lo = dom.smallEnd(0);
                 amrex::ParallelFor(bx_x, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
@@ -474,7 +474,7 @@ void ComputeFHHigherOrderTerm(MultiFab& molarconc,
             }
         }
             
-        if (bc_hi[0] == FOEXTRAP || bc_hi[0] == EXT_DIR || bc_hi[0] == SPEC_CONTACT_BC) {
+        if (bc_hi[0] == BCType::foextrap || bc_hi[0] == BCType::ext_dir || bc_hi[0] == SPEC_CONTACT_BC) {
             if (bx_x.bigEnd(0) >= dom.bigEnd(0)+1) {
                 int hi = dom.bigEnd(0)+1;
                 amrex::ParallelFor(bx_x, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
@@ -486,7 +486,7 @@ void ComputeFHHigherOrderTerm(MultiFab& molarconc,
             }
         }
         
-        if (bc_lo[1] == FOEXTRAP || bc_lo[1] == EXT_DIR || bc_lo[1] == SPEC_CONTACT_BC) {
+        if (bc_lo[1] == BCType::foextrap || bc_lo[1] == BCType::ext_dir || bc_lo[1] == SPEC_CONTACT_BC) {
             if (bx_y.smallEnd(1) <= dom.smallEnd(1)) {
                 int lo = dom.smallEnd(1);
                 amrex::ParallelFor(bx_y, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
@@ -498,7 +498,7 @@ void ComputeFHHigherOrderTerm(MultiFab& molarconc,
             }
         }
             
-        if (bc_hi[1] == FOEXTRAP || bc_hi[1] == EXT_DIR || bc_hi[1] == SPEC_CONTACT_BC) {
+        if (bc_hi[1] == BCType::foextrap || bc_hi[1] == BCType::ext_dir || bc_hi[1] == SPEC_CONTACT_BC) {
             if (bx_y.bigEnd(1) >= dom.bigEnd(1)+1) {
                 int hi = dom.bigEnd(1)+1;
                 amrex::ParallelFor(bx_y, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
@@ -511,7 +511,7 @@ void ComputeFHHigherOrderTerm(MultiFab& molarconc,
         }
 
 #if (AMREX_SPACEDIM == 3)
-        if (bc_lo[2] == FOEXTRAP || bc_lo[2] == EXT_DIR || bc_lo[2] == SPEC_CONTACT_BC) {
+        if (bc_lo[2] == BCType::foextrap || bc_lo[2] == BCType::ext_dir || bc_lo[2] == SPEC_CONTACT_BC) {
             if (bx_z.smallEnd(2) <= dom.smallEnd(2)) {
                 int lo = dom.smallEnd(2);
                 amrex::ParallelFor(bx_z, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
@@ -523,7 +523,7 @@ void ComputeFHHigherOrderTerm(MultiFab& molarconc,
             }
         }
             
-        if (bc_hi[2] == FOEXTRAP || bc_hi[2] == EXT_DIR || bc_hi[2] == SPEC_CONTACT_BC) {
+        if (bc_hi[2] == BCType::foextrap || bc_hi[2] == BCType::ext_dir || bc_hi[2] == SPEC_CONTACT_BC) {
             if (bx_z.bigEnd(2) >= dom.bigEnd(2)+1) {
                 int hi = dom.bigEnd(2)+1;
                 amrex::ParallelFor(bx_z, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
