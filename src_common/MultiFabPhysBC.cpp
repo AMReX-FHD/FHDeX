@@ -58,24 +58,14 @@ void MultiFabPhysBC(MultiFab& phi, const Geometry& geom, int scomp, int ncomp, i
         
         if (bx.smallEnd(0) < lo) {
             Real x = prob_lo[0];
-
-            // if (bc_lo[0] == amrex::BCType::foextrap && bccomp==SPEC_BC_COMP && bc_mass_lo[0] == 4 ) {
-            //
-            //  bc_mass_lo == 4 equivalent to bc_lo == SPEC_CONTACT_BC
-            //
             if (bccomp==SPEC_BC_COMP && bc_mass_lo[0] == 4 ) {
                 // amrex::Print() << " entering regular bc with contact angles lo " << bc_lo[0] << " " << bccomp << " " << bc_mass_lo[0] << std::endl;
                 amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (i < lo) {
-                    //    amrex::Print() << "j lo " << j << std::endl;
                         data(i,j,k,scomp+0) = data(lo,j,k,scomp+0) + 0.5*dx[0]*coeff*std::cos(contact_angle_lo[0])*data(lo,j,k,scomp+0)*data(lo,j,k,scomp+1);
                         data(i,j,k,scomp+0) = amrex::min(1.,amrex::max(0.,data(i,j,k,scomp+0)));
                         data(i,j,k,scomp+1) = 1.-data(i,j,k,scomp+0);
-                    //    amrex::Print() << "data left " << j << " "  << data(i,j,k,scomp) <<  " " << data(i,j,k,scomp+1) << std::endl;
-                    //    if(j == 18){
-                    //        amrex::Print() << "coeff and cos " << coeff << " " << contact_angle_lo[0] << " " << coeff * std::cos(contact_angle_lo[0]) << std::endl;
-                    //    }
                     }
                 });
 
@@ -103,8 +93,6 @@ void MultiFabPhysBC(MultiFab& phi, const Geometry& geom, int scomp, int ncomp, i
         
         if (bx.bigEnd(0) > hi) {
             Real x = prob_hi[0];
-
-            // if (bc_hi[0] == amrex::BCType::foextrap && bccomp==SPEC_BC_COMP && bc_mass_hi[0] == 4 ) {
             if (bccomp==SPEC_BC_COMP && bc_mass_hi[0] == 4 ) {
                 // amrex::Print() << " entering regular bc with contact angles hi " << bc_hi[0] << " " << bccomp << " " << bc_mass_hi[0] << std::endl;
                 amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
