@@ -23,7 +23,7 @@ AMREX_GPU_MANAGED int                                       multispec::use_log_p
 AMREX_GPU_MANAGED amrex::Real                               multispec::EnScale;
 AMREX_GPU_MANAGED amrex::Real                               multispec::GradEnCoef;
 AMREX_GPU_MANAGED amrex::Real                               multispec::PotWellDepr;
-AMREX_GPU_MANAGED amrex::Real                               multispec::Mobility;
+AMREX_GPU_MANAGED amrex::Real                               multispec::M_phi;
 AMREX_GPU_MANAGED amrex::Real                               multispec::kc_tension;
 AMREX_GPU_MANAGED amrex::Real                               multispec::alpha_gex;
 AMREX_GPU_MANAGED amrex::Array2D<Real,0,MAX_SPECIES-1,0,MAX_SPECIES-1> multispec::fh_kappa;
@@ -94,7 +94,7 @@ void InitializeMultispecNamespace() {
     EnScale 				= 2.79e09;
     GradEnCoef 			= 2.73e-6;
     PotWellDepr 			= -2.687e-05*T_init[0]*T_init[0]+0.009943*T_init[0]-0.7128;		// For polynomial potential
-    Mobility 				= 0.0001808*T_init[0]*T_init[0]-0.08481*T_init[0]+9.968;			// AC Mobility
+    M_phi 					= 674918.6*exp(-4229.416/T_init[0]);									// AC Mobility
     kc_tension = 0;         // for RTIL
     alpha_gex = 0;          // for RTIL
     n_gex = 1;              // for RTIL
@@ -208,7 +208,7 @@ void InitializeMultispecNamespace() {
     pp.query("use_log_potential",use_log_potential);
     pp.query("monomer_mass",monomer_mass);
     pp.query("kc_tension",kc_tension);
-    pp.query("Mobility",Mobility);
+    pp.query("M_phi",M_phi);
     pp.query("fh_tension",fh_tension);
     pp.query("alpha_gex",alpha_gex);
     pp.query("n_gex",n_gex);
@@ -311,4 +311,16 @@ void InitializeMultispecNamespace() {
     pp.query("zero_charge_on_wall_type",zero_charge_on_wall_type);
     pp.query("zero_eps_on_wall_left_end",zero_eps_on_wall_left_end);
     pp.query("zero_eps_on_wall_right_start",zero_eps_on_wall_right_start);
+    
+    
+    for (int i=0; i<nspecies; ++i) {
+        for (int j=0; j<nspecies; ++j) {
+            fh_kappa(i,j) = 0.;
+            fh_chi(i,j) = 0.;
+            if (i != j){
+            	fh_kappa(i,j) = GradEnCoef*monomer_mass/(rho0*k_B*T_init[0]);
+            	fh_chi(i,j) = EnScale*monomer_mass/(rho0*k_B*T_init[0]);
+            }
+        }
+    }
 }

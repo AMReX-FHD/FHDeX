@@ -669,25 +669,26 @@ if (use_ice_nucleation ==0){
 	       {
 	       	
 	           phiPrd(i,j,k) = phiOld(i,j,k,n)
-	           		+ dt/2 * Mobility * 2 * GradEnCoef *
+	           		+ dt/2 * M_phi * 2 * GradEnCoef *
 	               ( (phiOld(i+1,j,k,n) - 2.*phiOld(i,j,k,n) + phiOld(i-1,j,k,n)) / (dx[0]*dx[0])
 	                +(phiOld(i,j+1,k,n) - 2.*phiOld(i,j,k,n) + phiOld(i,j-1,k,n)) / (dx[1]*dx[1])
 	               )
 	               - dt/2 * ((u(i+1,j,k)+u_old(i+1,j,k))/2*(phiOld(i+1,j,k,n)+phiOld(i,j,k,n))/2-(u(i,j,k)+u_old(i,j,k))/2*(phiOld(i,j,k,n)+phiOld(i-1,j,k,n))/2)/dx[0]
 	               - dt/2 * ((v(i,j+1,k)+v_old(i,j+1,k))/2*(phiOld(i,j+1,k,n)+phiOld(i,j,k,n))/2-(v(i,j,k)+v_old(i,j,k))/2*(phiOld(i,j,k,n)+phiOld(i,j-1,k,n))/2)/dx[1]
 #if (AMREX_SPACEDIM == 3)
-	               + dt/2 * Mobility * 2 * GradEnCoef * (phiOld(i,j,k+1,n) - 2.*phiOld(i,j,k,n) + phiOld(i,j,k-1,n)) / (dx[2]*dx[2])
+	               + dt/2 * M_phi * 2 * GradEnCoef * (phiOld(i,j,k+1,n) - 2.*phiOld(i,j,k,n) + phiOld(i,j,k-1,n)) / (dx[2]*dx[2])
 	               - dt/2 * ((w(i,j,k+1)+w_old(i,j,k+1))/2*(phiOld(i,j,k+1,n)+phiOld(i,j,k,n))/2-(w(i,j,k)+w_old(i,j,k))/2*(phiOld(i,j,k,n)+phiOld(i,j,k-1,n))/2)/dx[2]
-               	+ variance_coef_mass*sqrt(2.0*k_B*T_init[0]*Mobility*dt/(dx[0]*dx[1]*dx[2]))*amrex::RandomNormal(0,1)/sqrt(2)
+               	+ variance_coef_mass*sqrt(2.0*k_B*T_init[0]*M_phi*dt/(dx[0]*dx[1]*dx[2]))*amrex::RandomNormal(0,1)/sqrt(2)
 #elif (AMREX_SPACEDIM == 2)
-               	+ variance_coef_mass*sqrt(2.0*k_B*T_init[0]*Mobility*dt/(dx[0]*dx[1]*cell_depth))*amrex::RandomNormal(0,1)/sqrt(2)
+               	+ variance_coef_mass*sqrt(2.0*k_B*T_init[0]*M_phi*dt/(dx[0]*dx[1]*cell_depth))*amrex::RandomNormal(0,1)/sqrt(2)
 #endif
-						- dt/2 * Mobility * EnScale*(2*phiOld(i,j,k,n)*(phiOld(i,j,k,n)-1)*(phiOld(i,j,k,n)-1)+2*phiOld(i,j,k,n)*phiOld(i,j,k,n)*(phiOld(i,j,k,n)-1) - PotWellDepr)
+						- dt/2 * M_phi * EnScale*(2*phiOld(i,j,k,n)*(phiOld(i,j,k,n)-1)*(phiOld(i,j,k,n)-1)+2*phiOld(i,j,k,n)*phiOld(i,j,k,n)*(phiOld(i,j,k,n)-1) - PotWellDepr)
 	               ;
 	       });
 	   }
 	   
 	   phi_prd.FillBoundary(geom.periodicity());
+      MultiFabPhysBC(phi_prd,geom,0,nspecies,SPEC_BC_COMP);
 	   // advance phi to t+1
 	   for (MFIter mfi(phi_new); mfi.isValid(); ++mfi )
 	   {
@@ -709,20 +710,20 @@ if (use_ice_nucleation ==0){
 	       {
 	       	
 	           phiNew(i,j,k,n) = phiOld(i,j,k,n)
-	           		+ dt * Mobility * 2 * GradEnCoef *
+	           		+ dt * M_phi * 2 * GradEnCoef *
 	               ( (phiPrd(i+1,j,k) - 2.*phiPrd(i,j,k) + phiPrd(i-1,j,k)) / (dx[0]*dx[0])
 	                +(phiPrd(i,j+1,k) - 2.*phiPrd(i,j,k) + phiPrd(i,j-1,k)) / (dx[1]*dx[1])
 	               )
 	               - dt * ((u(i+1,j,k)+u_old(i+1,j,k))/2*(phiPrd(i+1,j,k)+phiPrd(i,j,k))/2-(u(i,j,k)+u_old(i,j,k))/2*(phiPrd(i,j,k)+phiPrd(i-1,j,k))/2)/dx[0]
 	               - dt * ((v(i,j+1,k)+v_old(i,j+1,k))/2*(phiPrd(i,j+1,k)+phiPrd(i,j,k))/2-(v(i,j,k)+v_old(i,j,k))/2*(phiPrd(i,j,k)+phiPrd(i,j-1,k))/2)/dx[1]
 #if (AMREX_SPACEDIM == 3)
-	               + dt * Mobility * 2 * GradEnCoef * (phiPrd(i,j,k+1) - 2.*phiPrd(i,j,k) + phiPrd(i,j,k-1)) / (dx[2]*dx[2])
+	               + dt * M_phi * 2 * GradEnCoef * (phiPrd(i,j,k+1) - 2.*phiPrd(i,j,k) + phiPrd(i,j,k-1)) / (dx[2]*dx[2])
 	               - dt * ((w(i,j,k+1)+w_old(i,j,k+1))/2*(phiPrd(i,j,k+1)+phiPrd(i,j,k))/2-(w(i,j,k)+w_old(i,j,k))/2*(phiPrd(i,j,k)+phiPrd(i,j,k-1))/2)/dx[2]
-               	+ variance_coef_mass*sqrt(2.0*k_B*T_init[0]*Mobility*dt/(dx[0]*dx[1]*dx[2]))*amrex::RandomNormal(0,1)
+               	+ variance_coef_mass*sqrt(2.0*k_B*T_init[0]*M_phi*dt/(dx[0]*dx[1]*dx[2]))*amrex::RandomNormal(0,1)
 #elif (AMREX_SPACEDIM == 2)
-               	+ variance_coef_mass*sqrt(2.0*k_B*T_init[0]*Mobility*dt/(dx[0]*dx[1]*cell_depth))*amrex::RandomNormal(0,1)
+               	+ variance_coef_mass*sqrt(2.0*k_B*T_init[0]*M_phi*dt/(dx[0]*dx[1]*cell_depth))*amrex::RandomNormal(0,1)
 #endif
-						- dt * Mobility * EnScale*(2*phiPrd(i,j,k)*(phiPrd(i,j,k)-1)*(phiPrd(i,j,k)-1)+2*phiPrd(i,j,k)*phiPrd(i,j,k)*(phiPrd(i,j,k)-1) - PotWellDepr)
+						- dt * M_phi * EnScale*(2*phiPrd(i,j,k)*(phiPrd(i,j,k)-1)*(phiPrd(i,j,k)-1)+2*phiPrd(i,j,k)*phiPrd(i,j,k)*(phiPrd(i,j,k)-1) - PotWellDepr)
 	               ;
 	            
 			      phiNew(i,j,k,n+1) = 1-phiNew(i,j,k,n);
@@ -734,8 +735,6 @@ if (use_ice_nucleation ==0){
       ComputeDivFHReversibleStress(div_reversible_stress,phitot_new,phi_new,geom);
 	   
 		MultiFab::Copy(phi_old,phi_new,0,0,nspecies,0);
-		
-		amrex::Print() << "Mobility = " << Mobility <<"\n";
 		
 		amrex::Print() << "Advanced phi (phi1_avg = " << phi_new.sum(0)/(n_cells[0]*n_cells[1]
 #if (AMREX_SPACEDIM == 3)
