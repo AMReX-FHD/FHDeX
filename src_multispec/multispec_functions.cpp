@@ -19,7 +19,6 @@ int                                                         multispec::use_lapac
 AMREX_GPU_MANAGED int                                       multispec::use_multiphase;
 AMREX_GPU_MANAGED int                                       multispec::use_flory_huggins;
 AMREX_GPU_MANAGED int                                       multispec::use_ice_nucleation;
-AMREX_GPU_MANAGED int                                       multispec::use_log_potential;
 AMREX_GPU_MANAGED amrex::Real                               multispec::EnScale;
 AMREX_GPU_MANAGED amrex::Real                               multispec::GradEnCoef;
 AMREX_GPU_MANAGED amrex::Real                               multispec::PotWellDepr;
@@ -29,9 +28,6 @@ AMREX_GPU_MANAGED amrex::Real                               multispec::alpha_gex
 AMREX_GPU_MANAGED amrex::Array2D<Real,0,MAX_SPECIES-1,0,MAX_SPECIES-1> multispec::fh_kappa;
 AMREX_GPU_MANAGED amrex::Array2D<Real,0,MAX_SPECIES-1,0,MAX_SPECIES-1> multispec::fh_chi;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> multispec::fh_monomers;
-AMREX_GPU_MANAGED amrex::Real                               multispec::fh_tension;
-AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM>      multispec::contact_angle_lo;
-AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM>      multispec::contact_angle_hi;
 AMREX_GPU_MANAGED amrex::Real                               multispec::monomer_mass;
 AMREX_GPU_MANAGED int                                       multispec::n_gex;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> multispec::c_init_1;
@@ -90,7 +86,6 @@ void InitializeMultispecNamespace() {
     use_multiphase = 0;     // for RTIL
     use_flory_huggins = 0;   // for flory huggins
     use_ice_nucleation 	= 0;   																			// for ice nucleation simulations
-    use_log_potential 	= 0;																				// use quartic potential by default
     EnScale 				= 2.79e09;
     GradEnCoef 			= 2.73e-6;
     PotWellDepr 			= -2.687e-05*T_init[0]*T_init[0]+0.009943*T_init[0]-0.7128;		// For polynomial potential
@@ -99,12 +94,6 @@ void InitializeMultispecNamespace() {
     alpha_gex = 0;          // for RTIL
     n_gex = 1;              // for RTIL
     chi_iterations = 10;    // number of iterations used in Dbar2chi_iterative
-    fh_tension = 0.;
-
-    for (int i=0; i<AMREX_SPACEDIM; ++i) {
-        contact_angle_lo[i] = 90.;        // spacedim-vector specifying external E field
-        contact_angle_hi[i] = 90.;        // spacedim-vector specifying external E field
-    }
 
     // Initial and boundary conditions 
     //----------------------
@@ -205,11 +194,9 @@ void InitializeMultispecNamespace() {
     pp.query("use_multiphase",use_multiphase);
     pp.query("use_flory_huggins",use_flory_huggins);
     pp.query("use_ice_nucleation",use_ice_nucleation);
-    pp.query("use_log_potential",use_log_potential);
+    pp.query("M_phi",M_phi);
     pp.query("monomer_mass",monomer_mass);
     pp.query("kc_tension",kc_tension);
-    pp.query("M_phi",M_phi);
-    pp.query("fh_tension",fh_tension);
     pp.query("alpha_gex",alpha_gex);
     pp.query("n_gex",n_gex);
     pp.query("chi_iterations",chi_iterations);
@@ -226,17 +213,6 @@ void InitializeMultispecNamespace() {
         for (int j=0; j<nspecies; ++j) {
             fh_chi(i,j) = temp[i*nspecies+j];
         }
-        }
-    }
-   // contact angles in degrees.  converty to radians
-    if(pp.queryarr("contact_angle_lo",temp)) {
-        for (int i=0; i<AMREX_SPACEDIM; ++i) {
-            contact_angle_lo[i] = temp[i]*M_PI/180.;
-        }
-    }
-    if(pp.queryarr("contact_angle_hi",temp)) {
-        for (int i=0; i<AMREX_SPACEDIM; ++i) {
-            contact_angle_hi[i] = temp[i]*M_PI/180.;
         }
     }
     if(pp.queryarr("fh_monomers",temp)) {
@@ -311,8 +287,7 @@ void InitializeMultispecNamespace() {
     pp.query("zero_charge_on_wall_type",zero_charge_on_wall_type);
     pp.query("zero_eps_on_wall_left_end",zero_eps_on_wall_left_end);
     pp.query("zero_eps_on_wall_right_start",zero_eps_on_wall_right_start);
-    
-    
+        
     for (int i=0; i<nspecies; ++i) {
         for (int j=0; j<nspecies; ++j) {
             fh_kappa(i,j) = 0.;

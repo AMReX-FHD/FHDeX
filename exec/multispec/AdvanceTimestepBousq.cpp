@@ -9,7 +9,6 @@
 
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_MultiFabUtil.H>
-#include <AMReX_Print.H>
 
 
 // argv contains the name of the inputs file entered at the command line
