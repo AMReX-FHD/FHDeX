@@ -54,11 +54,11 @@ void ComputeMassFluxdiv(MultiFab& rho,
                         MultiFab& permittivity,
                         const int& zero_initial_Epot=1);
 
-void ComputeHigherOrderTerm(MultiFab& molarconc,
+void ComputeHigherOrderTerm(const MultiFab& molarconc,
                             std::array<MultiFab,AMREX_SPACEDIM>& diff_mass_flux,
                             const Geometry& geom);
 
-void ComputeFHHigherOrderTerm(MultiFab& molarconc,
+void ComputeFHHigherOrderTerm(const MultiFab& molarconc,
                             std::array<MultiFab,AMREX_SPACEDIM>& diff_mass_flux,
                             const Geometry& geom);
 
@@ -67,7 +67,7 @@ void ComputeFHHigherOrderTerm(MultiFab& molarconc,
 
 void DiffusiveMassFluxdiv(const MultiFab& rho,
 			  const MultiFab& rhotot,
-			  MultiFab& molarconc,
+			  const MultiFab& molarconc,
 			  const MultiFab& rhoWchi,
 			  const MultiFab& Gamma,
 			  MultiFab& diff_mass_fluxdiv,
@@ -76,7 +76,7 @@ void DiffusiveMassFluxdiv(const MultiFab& rho,
 
 void DiffusiveMassFlux(const MultiFab& rho,
 		       const MultiFab& rhotot,
-		       MultiFab& molarconc,
+		       const MultiFab& molarconc,
 		       const MultiFab& rhoWchi,
 		       const MultiFab& Gamma,
 		       std::array< MultiFab, AMREX_SPACEDIM >& diff_mass_flux,
