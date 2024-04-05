@@ -734,10 +734,10 @@ if (use_ice_nucleation ==0){
       ComputeDivFHReversibleStress(div_reversible_stress,phitot_new,phi_new,geom);
 	   
 		MultiFab::Copy(phi_old,phi_new,0,0,nspecies,0);
-		amrex::Print() << "fh_kappa " <<  fh_kappa(0,0)*monomer_mass/(rhobar[0]*k_B*T_init[0])<<"\n";
-		amrex::Print() << "fh_kappa " <<  fh_kappa(1,0)*monomer_mass/(rhobar[0]*k_B*T_init[0])<<"\n";
-		amrex::Print() << "fh_kappa " <<  fh_kappa(0,1)*monomer_mass/(rhobar[0]*k_B*T_init[0])<<"\n";
-		amrex::Print() << "fh_kappa " <<  fh_kappa(1,1)*monomer_mass/(rhobar[0]*k_B*T_init[0])<<"\n";
+		amrex::Print() << "fh_kappa " <<  fh_kappa(0,0)*rhobar[0]*k_B*T_init[0]/monomer_mass<<"\n";
+		amrex::Print() << "fh_kappa " <<  fh_kappa(1,0)*rhobar[0]*k_B*T_init[0]/monomer_mass<<"\n";
+		amrex::Print() << "fh_kappa " <<  fh_kappa(0,1)*rhobar[0]*k_B*T_init[0]/monomer_mass<<"\n";
+		amrex::Print() << "fh_kappa " <<  fh_kappa(1,1)*rhobar[0]*k_B*T_init[0]/monomer_mass<<"\n";
 		
 		amrex::Print() << "Advanced phi (phi1_avg = " << phi_new.sum(0)/(n_cells[0]*n_cells[1]
 #if (AMREX_SPACEDIM == 3)
