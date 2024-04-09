@@ -234,6 +234,11 @@ void main_driver(const char* argv)
     	  /***/
     MultiFab phi_new       	(ba, dmap, nspecies, ng_s);
     MultiFab phitot_new       (ba, dmap, 1       , ng_s);
+    amrex::Print() << "===============================\n";
+    amrex::Print() << "Temperature:\t" << T_init[0] <<" K\n";
+    amrex::Print() << "M_phi:\t\t" << M_phi <<" cm^2/(dyne.s)\n";
+    amrex::Print() << "===============================\n";
+		
     //MultiFab local_MobScale   (ba, dmap, 1		 , 0);
     //local_MobScale.setVal(1.0);	// Change this near to wall BC
     /////////////////////////////////////////
