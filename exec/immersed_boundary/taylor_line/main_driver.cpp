@@ -538,7 +538,7 @@ void main_driver(const char * argv) {
              init_vel(BL_TO_FORTRAN_BOX(bx),
                       BL_TO_FORTRAN_ANYD(umac[d][mfi]), geom.CellSize(),
                       geom.ProbLo(), geom.ProbHi(), & d,
-                      ZFILL(realDomain.lo()), ZFILL(realDomain.hi()),
+                      AMREX_ZFILL(realDomain.lo()), AMREX_ZFILL(realDomain.hi()),
                       &prob_type);
     }
 

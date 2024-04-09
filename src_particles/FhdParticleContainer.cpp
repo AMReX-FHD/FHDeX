@@ -645,8 +645,8 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
 
                         while(runtime > 0)
                         {
-                            //find_inter(&part, &runtime, paramPlaneList, &paramPlaneCount, &intsurf, &inttime, &intside, ZFILL(plo), ZFILL(phi));
-                            find_inter_gpu(part, runtime, paramPlaneList, paramPlaneCount, &intsurf, &inttime, &intside, ZFILL(plo), ZFILL(phi));
+                            //find_inter(&part, &runtime, paramPlaneList, &paramPlaneCount, &intsurf, &inttime, &intside, AMREX_ZFILL(plo), AMREX_ZFILL(phi));
+                            find_inter_gpu(part, runtime, paramPlaneList, paramPlaneCount, &intsurf, &inttime, &intside, AMREX_ZFILL(plo), AMREX_ZFILL(phi));
 		            
                             for (int d=0; d<AMREX_SPACEDIM; ++d)
                             {
@@ -852,8 +852,8 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
 
                 while(runtime > 0)
                 {
-                    //find_inter(&part, &runtime, paramPlaneList, &paramPlaneCount, &intsurf, &inttime, &intside, ZFILL(plo), ZFILL(phi));
-                    find_inter_gpu(part, runtime, paramPlaneList, paramPlaneCount, &intsurf, &inttime, &intside, ZFILL(plo), ZFILL(phi));
+                    //find_inter(&part, &runtime, paramPlaneList, &paramPlaneCount, &intsurf, &inttime, &intside, AMREX_ZFILL(plo), AMREX_ZFILL(phi));
+                    find_inter_gpu(part, runtime, paramPlaneList, paramPlaneCount, &intsurf, &inttime, &intside, AMREX_ZFILL(plo), AMREX_ZFILL(phi));
                     //Print() << "PART " << part.id() << ", " << intsurf << "\n";
                     //cin.get();
 
@@ -1013,7 +1013,7 @@ void FhdParticleContainer::SpreadIonsGPU(const Real* dxFluid, const Real* dxE, c
 
         emf_gpu(particles,
                       efield[0][pti], efield[1][pti], efield[2][pti],
-                      ZFILL(plo), ZFILL(dxE));
+                      AMREX_ZFILL(plo), AMREX_ZFILL(dxE));
 
     }
 
@@ -1021,8 +1021,8 @@ void FhdParticleContainer::SpreadIonsGPU(const Real* dxFluid, const Real* dxE, c
     {
         //spread_ions_fhd_gpu(particles,                         
         //                 sourceTemp[0][pti], sourceTemp[1][pti], sourceTemp[2][pti],
-        //                 ZFILL(plo),
-        //                 ZFILL(dxFluid));
+        //                 AMREX_ZFILL(plo),
+        //                 AMREX_ZFILL(dxFluid));
 
         SpreadMarkersGpu(lev, sourceTemp, coords, dxFluid, 1);
     }
@@ -1089,8 +1089,8 @@ void FhdParticleContainer::SpreadIonsGPU(const Real* dxFluid, const Geometry geo
         {
             //spread_ions_fhd_gpu(particles,                         
             //                 sourceTemp[0][pti], sourceTemp[1][pti], sourceTemp[2][pti],
-            //                 ZFILL(plo),
-            //                 ZFILL(dxFluid));
+            //                 AMREX_ZFILL(plo),
+            //                 AMREX_ZFILL(dxFluid));
 	    SpreadMarkersGpu(lev, sourceTemp, coords, dxFluid, 1);
         }
 
@@ -1814,7 +1814,7 @@ void FhdParticleContainer::collectFieldsGPU(const Real dt, const Real* dxPotenti
         auto& particles = particle_tile.GetArrayOfStructs();
         const int np = particles.numParticles();
 
-        collect_charge_gpu(particles, chargeTemp[pti], ZFILL(geomP.ProbLo()), ZFILL(dxPotential));
+        collect_charge_gpu(particles, chargeTemp[pti], AMREX_ZFILL(geomP.ProbLo()), AMREX_ZFILL(dxPotential));
     }
 
     MultiFabPhysBCCharge(chargeTemp, geomP);
