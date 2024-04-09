@@ -440,6 +440,68 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
             });
 
 
+        } else if (prob_type == 17) {
+
+            /*
+	       torus
+            */
+	    amrex::Real rad = radius_cyl;
+            amrex::Real alpha = contact_angle_lo[1];
+
+	    int nsub = 10;
+	    Real factor = nsub;
+	    Real dxsub = dx[0]/factor;
+	    Real dysub = dx[1]/factor;
+	    Real dzsub = dx[2]/factor;
+            Real x,y,z;
+	    amrex::Print() << "smoothing width " << smoothing_width << " radius " << rad << std::endl;
+            
+            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+               for (int n=0; n<nspecies; ++n) {
+                   c(i,j,k,n) = 0.;
+               }
+            Real x,y,z;
+
+            for(int i1=0; i1<nsub; ++i1) {
+            for(int j1=0; j1<nsub; ++j1) {
+            for(int k1=0; k1<nsub; ++k1) {
+
+                AMREX_D_TERM(x = prob_lo[0] + i*dx[0] + (i1+0.5)*dxsub - center[0];,
+                             y = prob_lo[1] + j*dx[1] + (j1+0.5)*dysub - rad*std::cos(alpha);,
+                             z = prob_lo[2] + k*dx[2] + (k1+0.5)*dzsub - center[2];);
+
+                Real r = (AMREX_SPACEDIM == 2) ? std::sqrt(x*x+y*y) : std::sqrt(x*x+y*y+z*z);
+
+                if (smoothing_width == 0.) {
+
+                    // discontinuous interface
+                    if (r < rad) {
+                        for (int n=0; n<nspecies; ++n) {
+                            c(i,j,k,n) += c_init_1[n];
+                        }
+                    } else {
+                        for (int n=0; n<nspecies; ++n) {
+                            c(i,j,k,n) += c_init_2[n];
+                        }
+                    }
+                    
+                } else {
+                    // smooth interface
+                    for (int n=0; n<nspecies; ++n) {
+                        c(i,j,k,n) += c_init_1[n] + (c_init_2[n]-c_init_1[n]) *
+                            0.5*(1. + std::tanh((r-rad)/(smoothing_width*dx[0])));
+                    }
+                }
+             }    
+             }    
+             }    
+               for (int n=0; n<nspecies; ++n) {
+                   c(i,j,k,n) = c(i,j,k,n)/(factor*factor*factor);
+               }
+            });
+
+
         } else if (prob_type == 20) {
 
             /*

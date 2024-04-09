@@ -529,6 +529,25 @@ void main_driver(const char* argv)
         */
 
     }
+
+
+    int tstat_int = 10;
+
+     Gpu::DeviceVector<amrex::Real> cent_mass(3);
+     Gpu::DeviceVector<amrex::Real> cent_massb(3);
+     Gpu::DeviceVector<amrex::Real> cent_massc(3);
+     Gpu::DeviceVector<amrex::Real> mass(3);
+     GpuArray<amrex::Real,AMREX_SPACEDIM> center;
+     Real* cent_mass_gpu = cent_mass.dataPtr();
+     Real* cent_massb_gpu = cent_massb.dataPtr();
+     Real* cent_massc_gpu = cent_massc.dataPtr();
+     Real* mass_gpu = mass.dataPtr();
+
+     for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        center[d] = 0.5*(prob_hi[d]+prob_lo[d]);
+      }
+     center[1] = 0.;
+
     
 
     // Time stepping loop
@@ -580,6 +599,123 @@ void main_driver(const char* argv)
             }
             structFact.FortStructure(structFactMF,geom);
         }
+
+#if 1
+        if ((istep-n_steps_skip)%tstat_int == 0) {
+
+                cent_mass_gpu[0]=0.;
+                cent_mass_gpu[1]=0.;
+                cent_mass_gpu[2]=0.;
+                cent_massb_gpu[0]=0.;
+                cent_massb_gpu[1]=0.;
+                cent_massb_gpu[2]=0.;
+                cent_massc_gpu[0]=0.;
+                cent_massc_gpu[1]=0.;
+                cent_massc_gpu[2]=0.;
+                mass_gpu[0]=0.;
+                mass_gpu[1]=0.;
+                mass_gpu[2]=0.;
+
+                for (MFIter mfi(rho_new,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
+
+                Box bx = mfi.tilebox();
+                const Array4<Real>& data_arr = rho_new.array(mfi);
+
+                amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+
+                   Real x,y,z;
+                   AMREX_D_TERM(x = prob_lo[0] + (i+0.5)*dx[0] - center[0];,
+                             y = prob_lo[1] + (j+0.5)*dx[1] - center[1];,
+                             z = prob_lo[2] + (k+0.5)*dx[2] - center[2];);
+
+
+                     // amrex::Real local_mass =  data_arr(i,j,k,1);
+                     // if( local_mass < 0.15){
+                     //     local_mass = 0.;
+                     // }
+                     // amrex::HostDevice::Atomic::Add(&mass_gpu[1],local_mass);
+                      amrex::Real sig_noise = 4.;
+                      amrex::Real alpha = (data_arr(i,j,k,1)-sig_noise*c_init_1[0])/(1.-(sig_noise+1.)*c_init_1[0]);
+                      //alpha = std::min(1.,std::max(0.,alpha));
+                      alpha = std::max(0.,alpha);
+//                    if(alpha > 1.){
+//                       amrex::Print() << i << " " << j << " " << k << " " << alpha << " " << data_arr(i,j,k,1) << " " << c_init_1[0] << std::endl;
+//                    }
+                      amrex::Real beta = (data_arr(i,j,k,1)-c_init_1[0])/(1.-2.*c_init_1[0]);
+                      if(beta < (sig_noise-1.)*c_init_1[0]/(1.-2.*c_init_1[0])){
+                         beta = 0.;
+                      }
+                      amrex::Real gam = (data_arr(i,j,k,1)-sig_noise*c_init_1[0])/(1.-2.*sig_noise*c_init_1[0]);
+                      gam = std::min(1.,std::max(0.,gam));
+                      //alpha = std::min(1.,alpha);
+                      //amrex::Real beta = (alpha>0.) ? 1. : 0. ;
+                      amrex::HostDevice::Atomic::Add(&mass_gpu[0],alpha);
+                      amrex::HostDevice::Atomic::Add(&mass_gpu[1],beta);
+                      amrex::HostDevice::Atomic::Add(&mass_gpu[2],gam);
+                      AMREX_D_TERM(
+                      amrex::HostDevice::Atomic::Add(&cent_mass_gpu[0],x*alpha);,
+                      amrex::HostDevice::Atomic::Add(&cent_mass_gpu[1],y*alpha);,
+                      amrex::HostDevice::Atomic::Add(&cent_mass_gpu[2],z*alpha););
+                      AMREX_D_TERM(
+                      amrex::HostDevice::Atomic::Add(&cent_massb_gpu[0],x*beta);,
+                      amrex::HostDevice::Atomic::Add(&cent_massb_gpu[1],y*beta);,
+                      amrex::HostDevice::Atomic::Add(&cent_massb_gpu[2],z*beta););
+                      AMREX_D_TERM(
+                      amrex::HostDevice::Atomic::Add(&cent_massc_gpu[0],x*gam);,
+                      amrex::HostDevice::Atomic::Add(&cent_massc_gpu[1],y*gam);,
+                      amrex::HostDevice::Atomic::Add(&cent_massc_gpu[2],z*gam););
+		                      });
+                }
+
+                ParallelDescriptor::ReduceRealSum(mass_gpu[0]);
+                ParallelDescriptor::ReduceRealSum(mass_gpu[1]);
+                ParallelDescriptor::ReduceRealSum(mass_gpu[2]);
+                for (int d = 0 ; d < AMREX_SPACEDIM; d++){
+
+                    ParallelDescriptor::ReduceRealSum(cent_mass_gpu[d]);
+                    ParallelDescriptor::ReduceRealSum(cent_massb_gpu[d]);
+                    ParallelDescriptor::ReduceRealSum(cent_massc_gpu[d]);
+
+                }
+
+#if (AMREX_SPACEDIM == 2 )
+                amrex::Real cent_massx = cent_mass_gpu[0] / mass_gpu[0];
+                amrex::Real cent_massy = cent_mass_gpu[1] / mass_gpu[0];
+                if (ParallelDescriptor::IOProcessor()) {
+                  amrex::Print{} << "center " << time+dt << " " << cent_massx << " " << cent_massy << std::endl;
+                  amrex::Print{} << "mass " << time+dt << " " << mass_gpu[0] << std::endl;
+                }
+                //amrex::Real F0 = 4.e9;
+                //amrex::Print{} << "force " << time+dt << " " << F0*mass_gpu[0]*dx[0]*dx[1] << std::endl;
+#else
+                amrex::Real cent_massx = cent_mass_gpu[0] / mass_gpu[0];
+                amrex::Real cent_massy = cent_mass_gpu[1] / mass_gpu[0];
+                amrex::Real cent_massz = cent_mass_gpu[2] / mass_gpu[0];
+                amrex::Real cent_massbx = cent_massb_gpu[0] / mass_gpu[1];
+                amrex::Real cent_massby = cent_massb_gpu[1] / mass_gpu[1];
+                amrex::Real cent_massbz = cent_massb_gpu[2] / mass_gpu[1];
+                amrex::Real cent_masscx = cent_massc_gpu[0] / mass_gpu[2];
+                amrex::Real cent_masscy = cent_massc_gpu[1] / mass_gpu[2];
+                amrex::Real cent_masscz = cent_massc_gpu[2] / mass_gpu[2];
+
+                if (ParallelDescriptor::IOProcessor()) {
+                   amrex::Print{} << "centerA " << time+dt << " " << cent_massx << " " << cent_massy << " " << cent_massz  << std::endl;
+                   amrex::Print{} << "centerB " << time+dt << " " << cent_massbx << " " << cent_massby << " " << cent_massbz  << std::endl;
+                   amrex::Print{} << "centerC " << time+dt << " " << cent_masscx << " " << cent_masscy << " " << cent_masscz  << std::endl;
+                   amrex::Print{} << "massA " << time+dt << " " << mass_gpu[0] << std::endl;
+                   amrex::Print{} << "massB " << time+dt << " " << mass_gpu[1] << std::endl;
+                   amrex::Print{} << "massC " << time+dt << " " << mass_gpu[2] << std::endl;
+                }
+                //amrex::Print{} << "mass " << time+dt << " " << mass_gpu[0] << " " <<  mass_gpu[0]*dx[0]*dx[1]*dx[2] << " " <<
+                //                                               mass_gpu[1] << " " <<  mass_gpu[1]*dx[0]*dx[1]*dx[2] << std::endl;
+                //amrex::Real F0 = 4.45e12;
+                //amrex::Print{} << "force " << time+dt << " " << F0*mass_gpu[0]*dx[0]*dx[1]*dx[2] << std::endl;
+#endif
+	}
+#endif
+
+
 	
 
         Real step_stop_time = ParallelDescriptor::second() - step_strt_time;
