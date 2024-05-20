@@ -91,9 +91,6 @@ void compute_chemistry_source_CLE(amrex::Real dt, amrex::Real dV,
 
     if (T0_chem<=0.) amrex::Abort("ERROR: T0_chem>0 expected");
 
-    GpuArray<amrex::Real,MAX_SPECIES> m_s;
-    for (int n=0; n<nspecies; n++) m_s[n] = molmass[n]/(Runiv/k_B);
-
     for (MFIter mfi(prim); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.validbox();
@@ -105,26 +102,26 @@ void compute_chemistry_source_CLE(amrex::Real dt, amrex::Real dV,
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
         {
             amrex::Real pres = prim_arr(i,j,k,5);
-            amrex::Real pres0 = 1.013250e6;
-
             amrex::Real T = prim_arr(i,j,k,4);
             amrex::Real T0 = T0_chem;
+            amrex::Real ctot = pres/Runiv/T;
+            amrex::Real Navo = Runiv/k_B;
 
-            GpuArray<amrex::Real,MAX_SPECIES> Xk;
-            for (int n=0; n<nspecies; n++) Xk[n] = prim_arr(i,j,k,6+nspecies+n);
+            GpuArray<amrex::Real,MAX_SPECIES> ck;   // molar concentrations
+            for (int n=0; n<nspecies; n++) ck[n] = prim_arr(i,j,k,6+nspecies+n)*ctot;
 
             GpuArray<amrex::Real,MAX_REACTION> avg_react_rate;
             for (int m=0; m<nreaction; m++)
             {
                 // rate constants
                 avg_react_rate[m] = rate_const[m];
-                avg_react_rate[m] *= exp(-alpha_param[m]/k_B*(1/T-1/T0));
+                avg_react_rate[m] *= exp(-alpha_param[m]/Runiv*(1/T-1/T0));
                 avg_react_rate[m] *= pow(T/T0,beta_param[m]);
 
                 for (int n=0; n<nspecies; n++)
                 {
-                    // rate in terms of pressure (more precisely activity)
-                    avg_react_rate[m] *= pow(pres/pres0*Xk[n],stoich_coeffs_R(m,n));
+                    // rate in terms of molar concentrations
+                    avg_react_rate[m] *= pow(ck[n],stoich_coeffs_R(m,n));
                 }
             }
 
@@ -139,8 +136,8 @@ void compute_chemistry_source_CLE(amrex::Real dt, amrex::Real dV,
 
                 for (int n=0; n<nspecies; n++)
                 {
-                    sourceArr[n] += m_s[n]*stoich_coeffs_PR(m,n)*avg_react_rate[m];
-                    sourceArr[n] += m_s[n]*stoich_coeffs_PR(m,n)*sqrt(avg_react_rate[m])*W;
+                    sourceArr[n] += molmass[n]*stoich_coeffs_PR(m,n)*avg_react_rate[m];
+                    sourceArr[n] += molmass[n]*stoich_coeffs_PR(m,n)*sqrt(avg_react_rate[m]/Navo)*W;
                 }
             }
 
