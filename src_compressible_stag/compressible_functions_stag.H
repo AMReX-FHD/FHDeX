@@ -32,7 +32,8 @@ void WritePlotFileStag(int step,
                        const MultiFab& surfcovMeans,
                        const MultiFab& surfcovVars,
                        const MultiFab& eta, 
-                       const MultiFab& kappa);
+                       const MultiFab& kappa,
+                       const MultiFab& zeta);
 
 void WriteSpatialCross3D(const Vector<Real>& spatialCross, int step, const Geometry& geom, const int ncross);
 
