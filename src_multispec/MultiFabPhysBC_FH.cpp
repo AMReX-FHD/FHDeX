@@ -32,13 +32,14 @@ void MultiFabPhysBCFH(MultiFab& phi, const Geometry& geom, int scomp, int ncomp,
     int bccomp = SPEC_BC_COMP;
 
     amrex::Real kappa_coeff = fh_kappa(0,1);
-    amrex::Real ce = c_init_1[0];
+    amrex::Real ce = fh_ce;
     amrex::Real omce = 1.-ce;
+    amrex::Real hack = 1./(1.-2.*ce);
 
 //    amrex::Print() << "scale and coeff " << scale << " " << kappa_coeff << " " << scale*kappa_coeff << " " << fh_tension <<std::endl;
 
     //Real coeff = 6.*fh_tension/(kappa_coeff*scale);
-    Real coeff = 3.*fh_tension/(kappa_coeff*scale);
+    Real coeff = 3.*fh_tension*hack/(kappa_coeff*scale);
 
 //    amrex::Print() << " coeff " << coeff << std::endl;
 

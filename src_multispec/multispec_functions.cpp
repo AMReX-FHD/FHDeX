@@ -25,6 +25,7 @@ AMREX_GPU_MANAGED amrex::Array2D<Real,0,MAX_SPECIES-1,0,MAX_SPECIES-1> multispec
 AMREX_GPU_MANAGED amrex::Array2D<Real,0,MAX_SPECIES-1,0,MAX_SPECIES-1> multispec::fh_chi;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> multispec::fh_monomers;
 AMREX_GPU_MANAGED amrex::Real                               multispec::fh_tension;
+AMREX_GPU_MANAGED amrex::Real                               multispec::fh_ce;
 AMREX_GPU_MANAGED amrex::Real                               multispec::hamaker_A;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM>      multispec::contact_angle_lo;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM>      multispec::contact_angle_hi;
@@ -91,6 +92,7 @@ void InitializeMultispecNamespace() {
     n_gex = 1;              // for RTIL
     chi_iterations = 10;    // number of iterations used in Dbar2chi_iterative
     fh_tension = 0.;
+    fh_ce = 0.;
     hamaker_A = 0.;
 
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
@@ -200,6 +202,7 @@ void InitializeMultispecNamespace() {
     pp.query("monomer_mass",monomer_mass);
     pp.query("kc_tension",kc_tension);
     pp.query("fh_tension",fh_tension);
+    pp.query("fh_ce",fh_ce);
     pp.query("hamaker_A",hamaker_A);
     pp.query("alpha_gex",alpha_gex);
     pp.query("n_gex",n_gex);
