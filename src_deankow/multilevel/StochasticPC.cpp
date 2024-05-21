@@ -36,6 +36,13 @@ StochasticPC:: AddParticles (MultiFab& phi_fine, const BoxArray& ba_to_exclude)
 
         if (ba_to_exclude.contains(tile_box)) {continue;}
 
+        if (!m_reflux_particle_locator.isValid(ba_to_exclude)) {
+            m_reflux_particle_locator.build(ba_to_exclude, Geom(lev));
+        }
+        m_reflux_particle_locator.setGeometry(Geom(lev));
+
+        auto assign_grid = m_reflux_particle_locator.getGridAssignor();
+
         const Array4<Real const>& phi_arr = phi_fine.const_array(mfi);
 
         // count the number of particles to create in each cell
@@ -45,6 +52,7 @@ StochasticPC:: AddParticles (MultiFab& phi_fine, const BoxArray& ba_to_exclude)
         amrex::ParallelForRNG(tile_box,
         [=] AMREX_GPU_DEVICE (int i, int j, int k, amrex::RandomEngine const& engine) noexcept
         {
+            if (assign_grid(IntVect(AMREX_D_DECL(i, j, k))) >= 0) {return;}
             Real rannum = amrex::Random(engine);
             int npart_in_cell = int(phi_arr(i,j,k,0)*cell_vol+rannum);
             pcount[flat_index(i, j, k)] += npart_in_cell;
@@ -129,13 +137,22 @@ StochasticPC::RemoveParticlesNotInBA (const BoxArray& ba_to_keep)
         const int np = aos.numParticles();
         auto *pstruct = aos().data();
 
-        if (!ba_to_keep.contains(pti.tilebox())) {
-            amrex::ParallelFor(np, [=] AMREX_GPU_DEVICE (int i)
-            {
-                ParticleType& p = pstruct[i];
+        if (ba_to_keep.contains(pti.tilebox())) {continue;}
+
+        if (!m_reflux_particle_locator.isValid(ba_to_keep)) {
+            m_reflux_particle_locator.build(ba_to_keep, Geom(lev));
+        }
+        m_reflux_particle_locator.setGeometry(Geom(lev));
+
+        auto assign_grid = m_reflux_particle_locator.getGridAssignor();
+
+        amrex::ParallelFor(np, [=] AMREX_GPU_DEVICE (int i)
+        {
+            ParticleType& p = pstruct[i];
+            if (assign_grid(p) < 0) {
                 p.id() = -1;
-            });
-}
+            }
+        });
     }
     Redistribute();
 }
@@ -249,8 +266,7 @@ StochasticPC::RefluxCrseToFine (const BoxArray& ba_to_keep, MultiFab& phi_for_re
         const int np = aos.numParticles();
         auto *pstruct = aos().data();
 
-        if (ba_to_keep.contains(pti.tilebox()))
-        {
+        if (ba_to_keep.contains(pti.tilebox())) {
             Array4<Real> phi_arr = phi_for_reflux.array(gid);
 
             amrex::ParallelFor(np, [=] AMREX_GPU_DEVICE (int i)
