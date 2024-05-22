@@ -267,6 +267,7 @@ AmrCoreAdv::RemakeLevel (int lev, Real time, const BoxArray& ba,
     const int ncomp = phi_new[lev].nComp();
     const int ng = phi_new[lev].nGrow();
 
+    BoxArray old_fine_ba = phi_old[1].boxArray();
     amrex::Print() << " REGRIDDING: NEW GRIDS AT LEVEL " << lev << " " << ba << std::endl;
 
     if (lev == 1) {
@@ -291,7 +292,7 @@ AmrCoreAdv::RemakeLevel (int lev, Real time, const BoxArray& ba,
 
 #ifdef AMREX_PARTICLES
         if (lev == 1) {
-            particleData.regrid_particles(grown_fba);
+            particleData.regrid_particles(grown_fba, old_fine_ba, phi_new[1]);
         }
 #endif
 }
