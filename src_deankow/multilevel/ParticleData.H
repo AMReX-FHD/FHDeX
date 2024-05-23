@@ -93,14 +93,26 @@ struct ParticleData {
         }
     }
 
-    void regrid_particles(const amrex::BoxArray& new_fine_ba, const amrex::BoxArray& old_fine_ba, amrex::MultiFab& phi_fine)
+    void regrid_particles(const amrex::BoxArray& new_fine_ba, const amrex::BoxArray& new_ungrown_ba, const amrex::BoxArray& old_fine_ba, amrex::MultiFab& phi_fine)
     {
         amrex::DistributionMapping new_dm { new_fine_ba, amrex::ParallelDescriptor::NProcs() };
         stochastic_particles->SetParticleDistributionMap(1, new_dm);
-        stochastic_particles->SetParticleBoxArray(1, new_fine_ba);
+        stochastic_particles->SetParticleBoxArray(1, new_ungrown_ba);
         stochastic_particles->Redistribute();
         stochastic_particles->RemoveParticlesAtLevel(0);
         stochastic_particles->AddParticles(phi_fine, old_fine_ba);
+        phi_fine.setVal(0.0);
+        const int lev = 1;
+        const auto dx = stochastic_particles->Geom(lev).CellSizeArray();
+
+#if (AMREX_SPACEDIM == 2)
+    const amrex::Real cell_vol = dx[0]*dx[1];
+#else
+    const amrex::Real cell_vol = dx[0]*dx[1]*dx[2];
+#endif
+        stochastic_particles->Increment(phi_fine, lev);
+        phi_fine.mult(1./cell_vol);
+        stochastic_particles->SetParticleBoxArray(1, new_fine_ba);
     }
 
     void Checkpoint (const std::string& filename) const

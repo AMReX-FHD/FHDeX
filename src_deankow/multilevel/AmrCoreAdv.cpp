@@ -146,7 +146,9 @@ AmrCoreAdv::Evolve ()
         Real sum_phi_new = phi_new[0].sum();
 
         amrex::Print() << "Coarse STEP " << step+1 << " ends." << " TIME = " << cur_time
-                       << " DT = " << dt[0] << " Sum(Phi) = " << sum_phi_old << " " << sum_phi_new << std::endl;
+                       << " DT = " << dt[0] << " Sum(Phi) = " << std::setw(24) <<  std::setprecision(16)
+                       << std::scientific << sum_phi_old << " " << std::setw(2l) << std::setprecision(16)
+                       << std::scientific <<  sum_phi_new << std::endl;
 
         // sync up time
         for (lev = 0; lev <= finest_level; ++lev) {
@@ -292,7 +294,7 @@ AmrCoreAdv::RemakeLevel (int lev, Real time, const BoxArray& ba,
 
 #ifdef AMREX_PARTICLES
         if (lev == 1) {
-            particleData.regrid_particles(grown_fba, old_fine_ba, phi_new[1]);
+            particleData.regrid_particles(grown_fba, ba, old_fine_ba, phi_new[1]);
         }
 #endif
 }
@@ -629,6 +631,13 @@ AmrCoreAdv::timeStepNoSubcycling (Real time, int iteration)
         if (istep[0] % regrid_int == 0)
         {
             regrid(0, time);
+
+            AverageDown();
+
+            Real sum_phi_reg = phi_new[0].sum();
+            amrex::Print() << " Sum(Phi) new after regrid = " << std::setw(24) <<  std::setprecision(16) << std::scientific << sum_phi_reg << std::endl;
+            sum_phi_reg = phi_old[0].sum();
+            amrex::Print() << " Sum(Phi) old after regrid = " << std::setw(24) <<  std::setprecision(16) << std::scientific << sum_phi_reg << std::endl;
         }
     }
 
