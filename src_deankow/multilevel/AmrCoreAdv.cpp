@@ -146,9 +146,10 @@ AmrCoreAdv::Evolve ()
         Real sum_phi_new = phi_new[0].sum();
 
         amrex::Print() << "Coarse STEP " << step+1 << " ends." << " TIME = " << cur_time
-                       << " DT = " << dt[0] << " Sum(Phi) = " << std::setw(24) <<  std::setprecision(16)
-                       << std::scientific << sum_phi_old << " " << std::setw(2l) << std::setprecision(16)
-                       << std::scientific <<  sum_phi_new << std::endl;
+                       << " DT = " << dt[0] << " Sum_old Sum_new Diff (Phi) = "    << std::setw(20) << std::setprecision(12)
+                       << std::scientific <<  sum_phi_old << " " << std::setw(2l) << std::setprecision(12)
+                       << std::scientific <<  sum_phi_new << " " << std::setw(2l) << std::setprecision(12)
+                       << std::scientific << (sum_phi_new - sum_phi_old) << std::endl;
 
         // sync up time
         for (lev = 0; lev <= finest_level; ++lev) {
@@ -201,6 +202,9 @@ AmrCoreAdv::InitData ()
 #endif
         AverageDown();
         phi_new[0].FillBoundary();
+
+        MultiFab::Copy(phi_old[0], phi_new[0],0,0,1,0);
+        phi_old[0].FillBoundary();
 
         if (chk_int > 0) {
             WriteCheckpointFile();
@@ -634,10 +638,11 @@ AmrCoreAdv::timeStepNoSubcycling (Real time, int iteration)
 
             AverageDown();
 
-            Real sum_phi_reg = phi_new[0].sum();
-            amrex::Print() << " Sum(Phi) new after regrid = " << std::setw(24) <<  std::setprecision(16) << std::scientific << sum_phi_reg << std::endl;
-            sum_phi_reg = phi_old[0].sum();
-            amrex::Print() << " Sum(Phi) old after regrid = " << std::setw(24) <<  std::setprecision(16) << std::scientific << sum_phi_reg << std::endl;
+            Real sum_phi_reg_new = phi_new[0].sum();
+            Real sum_phi_reg_old = phi_old[0].sum();
+            amrex::Print() << " Sum(Phi) new / old / diff / %diff  after regrid = " << std::setw(24) <<  std::setprecision(16) << std::scientific << 
+                   sum_phi_reg_new << " " << sum_phi_reg_old << " " << (sum_phi_reg_new-sum_phi_reg_old) << " " << 
+                   (sum_phi_reg_new-sum_phi_reg_old)/sum_phi_reg_old << std::endl;
         }
     }
 

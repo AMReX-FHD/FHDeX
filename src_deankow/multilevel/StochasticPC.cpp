@@ -27,6 +27,11 @@ StochasticPC:: AddParticles (MultiFab& phi_fine, const BoxArray& ba_to_exclude)
     const Real cell_vol = dx[0]*dx[1]*dx[2];
 #endif
 
+    // We use sum to count how much phi is gained/lost when we use phi to compute an integer
+    // number of particles
+    // Gpu::DeviceVector<Real> my_sum(1, 0.);
+    // Real* sum = my_sum.dataPtr();
+
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (amrex::Gpu::notInLaunchRegion())
 #endif
@@ -47,8 +52,10 @@ StochasticPC:: AddParticles (MultiFab& phi_fine, const BoxArray& ba_to_exclude)
 
         // count the number of particles to create in each cell
         auto flat_index = FlatIndex(tile_box);
+
         Gpu::DeviceVector<unsigned int> counts(tile_box.numPts()+1, 0);
         unsigned int* pcount = counts.dataPtr();
+
         amrex::ParallelForRNG(tile_box,
         [=] AMREX_GPU_DEVICE (int i, int j, int k, amrex::RandomEngine const& engine) noexcept
         {
@@ -56,6 +63,11 @@ StochasticPC:: AddParticles (MultiFab& phi_fine, const BoxArray& ba_to_exclude)
             Real rannum = amrex::Random(engine);
             int npart_in_cell = int(phi_arr(i,j,k,0)*cell_vol+rannum);
             pcount[flat_index(i, j, k)] += npart_in_cell;
+            // if (phi_arr(i,j,k) > 0.) {
+            //     amrex::Print() << " IJK/NPART/PHI/RAN " << IntVect(i,j) << " " << npart_in_cell << " given phi " << 
+            //         (phi_arr(i,j,k,0)*cell_vol) << " " << rannum << std::endl; 
+            // }
+            // sum[0] += npart_in_cell - (phi_arr(i,j,k,0)*cell_vol);
         });
 
         // fill offsets
@@ -122,6 +134,7 @@ StochasticPC:: AddParticles (MultiFab& phi_fine, const BoxArray& ba_to_exclude)
             }
         });
     }
+    // amrex::Print() << "SUM / DENS ADDED THROUGH REGRID " << sum[0] << " " << sum[0] / cell_vol << std::endl;
 }
 
 void
