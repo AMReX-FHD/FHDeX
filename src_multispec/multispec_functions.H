@@ -22,6 +22,14 @@ void InitializeMultispecNamespace();
 
 /////////////////////////////////////////////////////////////////////////////////
 // in ComputeDivReversibleStress.cpp
+void ComputeDivFHReversibleStress(std::array<MultiFab,AMREX_SPACEDIM>& div_reversible_stress,
+                                const MultiFab& rhotot_in,
+                                MultiFab& rho_in,
+                                const Geometry& geom);
+
+
+/////////////////////////////////////////////////////////////////////////////////
+// in ComputeDivReversibleStress.cpp
 void ComputeDivReversibleStress(std::array<MultiFab,AMREX_SPACEDIM>& div_reversible_stress,
                                 const MultiFab& rhotot_in,
                                 MultiFab& rho_in,
@@ -47,6 +55,10 @@ void ComputeMassFluxdiv(MultiFab& rho,
                         const int& zero_initial_Epot=1);
 
 void ComputeHigherOrderTerm(const MultiFab& molarconc,
+                            std::array<MultiFab,AMREX_SPACEDIM>& diff_mass_flux,
+                            const Geometry& geom);
+
+void ComputeFHHigherOrderTerm(const MultiFab& molarconc,
                             std::array<MultiFab,AMREX_SPACEDIM>& diff_mass_flux,
                             const Geometry& geom);
 
@@ -77,6 +89,10 @@ void ComputeMixtureProperties(const MultiFab& rho,
 			      MultiFab& D_bar,
 			      MultiFab& D_therm,
 			      MultiFab& Hessian);
+
+void ComputeEta(const MultiFab& rho_in,
+                const MultiFab& rhotot_in,
+                MultiFab& eta_in);
 
 /////////////////////////////////////////////////////////////////////////////////
 // in CorrectionFlux.cpp
@@ -182,8 +198,15 @@ void ComputeMolconcMolmtot(const MultiFab& rho,
 			   MultiFab& molarconc,
 			   MultiFab& molmtot);
 
+void ComputeMassfrac(const MultiFab& rho,
+			   const MultiFab& rhotot,
+			   MultiFab& massfrac);
+
 void ComputeGamma(const MultiFab& molarconc,
 		  const MultiFab& Hessian,
+		  MultiFab& Gamma);
+
+void ComputeFHGamma(const MultiFab& massfrac,
 		  MultiFab& Gamma);
 
 void ComputeRhoWChi(const MultiFab& rho,
@@ -273,6 +296,29 @@ void GetMolTot ( GpuArray<Real, MAX_SPECIES>& W,
     }
 
     molmtot_in = 1.0 / sumWOverN;
+}
+
+/**
+ * \brief Compute total molar mass
+ *
+ * \param[in] W Mass fractions.
+ * \param[in] molmass_in
+ * \param[in] nspecies_in Number of species
+ * \param[out] molmtot Total molar mass
+ */
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void GetMonomerTot ( GpuArray<Real, MAX_SPECIES>& W,
+                GpuArray<Real, MAX_SPECIES>& monomer_in,
+                Real& monomertot,
+                int nspecies_in)
+{
+    Real sumWOverN = 0.0;
+
+    for (int n=0; n<nspecies_in; ++n){
+        sumWOverN += W[n] / monomer_in[n];
+    }
+
+    monomertot = 1.0 / sumWOverN;
 }
 
 /**
@@ -415,10 +461,21 @@ void ComputeGammaLocal (
             w2 = 0.0;
         }
 
-        GammaN(1,2) = w1 * n_gex * n_gex * alpha_gex * std::pow(w1,n_gex-1) * std::pow(w2,n_gex-1);
-        GammaN(2,1) = w2 * n_gex * n_gex * alpha_gex * std::pow(w2,n_gex-1) * std::pow(w1,n_gex-1);
-        GammaN(1,1) = 1.0 + w1 * n_gex * (n_gex-1) * alpha_gex * std::pow(w1,n_gex-2) * std::pow(w2,n_gex);
-        GammaN(2,2) = 1.0 + w2 * n_gex * (n_gex-1) * alpha_gex * std::pow(w2,n_gex-2) * std::pow(w1,n_gex);
+        if( n_gex == 1 ){
+
+           GammaN(1,2) = w1 * n_gex * n_gex * alpha_gex * std::pow(w1,n_gex-1) * std::pow(w2,n_gex-1);
+           GammaN(2,1) = w2 * n_gex * n_gex * alpha_gex * std::pow(w2,n_gex-1) * std::pow(w1,n_gex-1);
+           GammaN(1,1) = 1.0 ;
+           GammaN(2,2) = 1.0 ;
+
+        } else {
+
+           GammaN(1,2) = w1 * n_gex * n_gex * alpha_gex * std::pow(w1,n_gex-1) * std::pow(w2,n_gex-1);
+           GammaN(2,1) = w2 * n_gex * n_gex * alpha_gex * std::pow(w2,n_gex-1) * std::pow(w1,n_gex-1);
+           GammaN(1,1) = 1.0 + w1 * n_gex * (n_gex-1) * alpha_gex * std::pow(w1,n_gex-2) * std::pow(w2,n_gex);
+           GammaN(2,2) = 1.0 + w2 * n_gex * (n_gex-1) * alpha_gex * std::pow(w2,n_gex-2) * std::pow(w1,n_gex);
+
+        }
 
     } else {
 
@@ -433,6 +490,25 @@ void ComputeGammaLocal (
         GammaIPlusMatmul(GammaN, X_xxT, HessianN);
 
     }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void ComputeFHGammaLocal (
+                GpuArray<Real, MAX_SPECIES>& massFrac,
+                Array2D<Real, 0, MAX_SPECIES-1, 0, MAX_SPECIES-1>& GammaN){
+
+        Real Nbar;
+
+        GetMonomerTot ( massFrac, fh_monomers, Nbar, nspecies);
+    
+        for (int n=0; n<nspecies; n++){
+           for (int m=0; m<nspecies; m++){
+              Real wn = std::max(std::min( massFrac[n],1.),0.);
+              GammaN(n,m) = Nbar*wn*fh_chi(n,m);
+           }
+           GammaN(n,n) += Nbar/ fh_monomers[n];
+        }
+
 }
 
 
@@ -500,6 +576,14 @@ void ComputeChiSub(int nspecies_sub,
     ComputeMolconcMolmtotLocal(nspecies_sub, molmass_sub, rhoN_sub, rhotot_sub, MolarConcN_sub, molmtot_sub);
 
     // compute chi_sub
+//	  amrex::Print() << " entering reduced system "  << nspecies_sub << std::endl;
+//	  for (int n=1; n<=nspecies_sub; ++n){
+//		  amrex::Print() << "n , dest,molmass rho massf " << n << " " << dest(n) << " " << molmass_sub[n-1] << " " <<
+//			  rhoN_sub[n-1] << " " << MolarConcN_sub[n-1] << std::endl;
+//	          for (int m=1; m<=nspecies_sub; ++m){
+//			  amrex::Print() << "m d chi " << m << " " << D_barN_sub(n,m) << " " <<  chi_sub(n,m) << std::endl;
+//		  }
+//	  }
     ComputeChi(nspecies_sub, molmass_sub, rhoN_sub, rhotot_sub, MolarConcN_sub, chi_sub, D_barN_sub);
 
 
@@ -586,7 +670,7 @@ void Matrix2DSetEqual (
  *
  */
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void Dbar2chiIterative (
+void Dbar2chiIterative ( int nspecies_in,
                Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES>& D_bar,
                GpuArray<Real, MAX_SPECIES>& Xk,
                GpuArray<Real, MAX_SPECIES>& molmass_local,
@@ -596,27 +680,32 @@ void Dbar2chiIterative (
     Array2D<Real, 1, MAX_SPECIES, 1, MAX_SPECIES> Pmat, Deltamat, Zmat, Jmat, PJ, matrix1, matrix2;
 
     // mole fractions correction
-    for (int ii=1; ii<=nspecies; ++ii){
+    Real sum = 0.;
+    for (int ii=1; ii<=nspecies_in; ++ii){
        Xkp(ii) = Xk[ii-1];
+       sum += Xkp(ii);
     }
+//    if(amrex::abs(sum-1.) > 1.e-12){
+//	    amrex::Print() << " bad x in dbarier " << sum  << std::endl;
+//    }
 
     // molecular weight of mixture - EGLIB
     Real MWmix = 0.0;
-    for (int ii=1; ii<=nspecies; ++ii){
+    for (int ii=1; ii<=nspecies_in; ++ii){
         MWmix = MWmix + Xkp(ii)*molmass_local[ii-1];
 
     }
 
     // mass fractions correction - EGLIB
-    for (int ii=1; ii<=nspecies; ++ii){
+    for (int ii=1; ii<=nspecies_in; ++ii){
         Ykp(ii) = molmass_local[ii-1] / MWmix * Xkp(ii);
     }
 
     // Find Di matrix
     Real term2;
-    for (int i=1; i<=nspecies; ++i){
+    for (int i=1; i<=nspecies_in; ++i){
         term2 = 0.0;
-        for (int j=1; j<=nspecies; ++j){
+        for (int j=1; j<=nspecies_in; ++j){
             if (j!=i){
                 term2 = term2 + Xkp(j)/D_bar(i,j);
             }
@@ -625,15 +714,15 @@ void Dbar2chiIterative (
     }
 
     // Compute Mmat and Minv
-    for (int i=1; i<=nspecies; ++i){
+    for (int i=1; i<=nspecies_in; ++i){
         Mmat(i) = Xkp(i)/Di(i);
         Minv(i) = Di(i)/Xkp(i);
     }
 
     // Compute P matrix
-    MatrixToZeros(nspecies, Pmat);
-    for (int i=1; i<=nspecies; ++i){
-        for (int j=1; j<=nspecies; ++j){
+    MatrixToZeros(nspecies_in, Pmat);
+    for (int i=1; i<=nspecies_in; ++i){
+        for (int j=1; j<=nspecies_in; ++j){
             Pmat(i,j) = - Ykp(j);
             if (i==j){
                 Pmat(i,j) =  Pmat(i,j) + 1.0;
@@ -642,14 +731,14 @@ void Dbar2chiIterative (
     }
 
     // Compute Deltamat
-    MatrixToZeros(nspecies, Deltamat);
+    MatrixToZeros(nspecies_in, Deltamat);
     Real term1;
 
-    for (int i=1; i<=nspecies; ++i){
-        for (int j=1; j<=nspecies; ++j){
+    for (int i=1; i<=nspecies_in; ++i){
+        for (int j=1; j<=nspecies_in; ++j){
             if (i==j){
                 term1 = 0.0;
-                for (int k=1; k<=nspecies; ++k){
+                for (int k=1; k<=nspecies_in; ++k){
                     if (k!=i){
                         term1 = term1 + Xkp(i)*Xkp(k)/D_bar(i,k);
                     }
@@ -663,22 +752,22 @@ void Dbar2chiIterative (
     }
 
     // Compute Zmat
-    for (int i=1; i<=nspecies; ++i){
+    for (int i=1; i<=nspecies_in; ++i){
         Zmat(i,i) = Zmat(i,i) + Mmat(i);
     }
 
     // Compute Jmat
-    for (int i=1; i<=nspecies; ++i){
-        for (int j=1; j<=nspecies; ++j){
+    for (int i=1; i<=nspecies_in; ++i){
+        for (int j=1; j<=nspecies_in; ++j){
             Jmat(i,j) = Minv(i)*Zmat(i,j);
         }
     }
 
     // Compute PJ
-    MatrixToZeros(nspecies, PJ);
-    for (int i=1; i<=nspecies; ++i){
-        for (int j=1; j<=nspecies; ++j){
-            for (int k=1; k<=nspecies; ++k){
+    MatrixToZeros(nspecies_in, PJ);
+    for (int i=1; i<=nspecies_in; ++i){
+        for (int j=1; j<=nspecies_in; ++j){
+            for (int k=1; k<=nspecies_in; ++k){
                 PJ(i,j) = PJ(i,j) + Pmat(i,k)*Jmat(k,j);
             }
         }
@@ -686,10 +775,10 @@ void Dbar2chiIterative (
 
     // Compute P M^-1 Pt; store it in matrix2
     Real scr;
-    for (int i=1; i<=nspecies; ++i){
-        for (int j=1; j<=nspecies; ++j){
+    for (int i=1; i<=nspecies_in; ++i){
+        for (int j=1; j<=nspecies_in; ++j){
             scr = 0.0;
-            for (int k=1; k<=nspecies; ++k){
+            for (int k=1; k<=nspecies_in; ++k){
                 // notice the change in indices for Pmat to represent Pmat^t
                 scr = scr + Pmat(i,k)*Minv(k)*Pmat(j,k);
             }
@@ -700,10 +789,10 @@ void Dbar2chiIterative (
 
 
     for (int jj=1; jj<=chi_iterations; ++jj){
-        for (int i=1; i<=nspecies; ++i){
-            for (int j=1; j<=nspecies; ++j){
+        for (int i=1; i<=nspecies_in; ++i){
+            for (int j=1; j<=nspecies_in; ++j){
                     scr = 0.0;
-                for (int k=1; k<=nspecies; ++k){
+                for (int k=1; k<=nspecies_in; ++k){
                     scr = scr + PJ(i,k)*chi(k,j);
                 }
                 matrix1(i,j) = scr + matrix2(i,j);
@@ -779,7 +868,7 @@ void ComputeChi (int nspecies_in,
        //call amrex_error('compute_chi: use_lapack not supported')
     }
 
-    Dbar2chiIterative(D_barN,MolarConcN,molmass_in,chi);
+    Dbar2chiIterative(nspecies_in, D_barN,MolarConcN,molmass_in,chi);
 
 }
 
@@ -877,6 +966,13 @@ void ComputeRhoWChiLocal (
           // consisting of non-trace species
           nspecies_sub = nspecies - ntrace;
 
+//	  amrex::Print() << " entering subspecies " << ntrace << " " << nspecies_sub << std::endl;
+//	  for (int n=1; n<=nspecies; ++n){
+//		  amrex::Print() << "n , dest,molmass rho " << n << " " << dest(n) << " " << molmass_in[n-1] << " " << rhoN[n-1] << std::endl;
+//	          for (int m=1; m<=nspecies; ++m){
+//			  amrex::Print() << "m d rhowchi " << m << " " << D_barN(n,m) << " " <<  rhoWchiN(n,m) << std::endl;
+//		  }
+//	  }
           ComputeChiSub(nspecies_sub,
                         dest,
                         molmass_in,

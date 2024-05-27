@@ -205,20 +205,9 @@ void EvaluateStatsMeans(MultiFab& cons, MultiFab& consMean,
     // Loop over boxes
     for ( MFIter mfi(prim_in,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
         
-        const Box& bx  = mfi.tilebox();
-        const Box& bxg = mfi.growntilebox(ngc[0]);
         const Box& tbx = mfi.nodaltilebox(0);
         const Box& tby = mfi.nodaltilebox(1);
         const Box& tbz = mfi.nodaltilebox(2);
-
-        const Array4<      Real> cu        = cons.array(mfi);
-        const Array4<      Real> cumeans   = consMean.array(mfi);
-        const Array4<      Real> prim      = prim_in.array(mfi);
-        const Array4<      Real> primmeans = primMean.array(mfi);
-
-        const Array4<      Real> velxmeans = velMean[0].array(mfi);
-        const Array4<      Real> velymeans = velMean[1].array(mfi);
-        const Array4<      Real> velzmeans = velMean[2].array(mfi);
 
         const Array4<const Real> momx      = cumom[0].array(mfi);
         const Array4<const Real> momy      = cumom[1].array(mfi);
@@ -226,9 +215,6 @@ void EvaluateStatsMeans(MultiFab& cons, MultiFab& consMean,
         const Array4<      Real> momxmeans = cumomMean[0].array(mfi);
         const Array4<      Real> momymeans = cumomMean[1].array(mfi);
         const Array4<      Real> momzmeans = cumomMean[2].array(mfi);
-
-        const Array4<      Real> surfcov      = (nspec_surfcov>0) ? theta.array(mfi) : cons.array(mfi);
-        const Array4<      Real> surfcovmeans = (nspec_surfcov>0) ? thetaMean.array(mfi) : consMean.array(mfi);
 
         // update mean momentum
         amrex::ParallelFor(tbx, tby, tbz,
@@ -244,13 +230,38 @@ void EvaluateStatsMeans(MultiFab& cons, MultiFab& consMean,
         {
             momzmeans(i,j,k) = (momzmeans(i,j,k)*stepsminusone + momz(i,j,k))*stepsinv;
         });
+    
+    }
 
+    for ( MFIter mfi(prim_in,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
+
+        const Box& bxg = mfi.growntilebox(ngc[0]);
+        const Array4<      Real> cu        = cons.array(mfi);
+        const Array4<      Real> cumeans   = consMean.array(mfi);
+        
         // update mean density (required in the ghost region as well)
         amrex::ParallelFor(bxg, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             cumeans(i,j,k,0) = (cumeans(i,j,k,0)*stepsminusone + cu(i,j,k,0))*stepsinv;
         });
+    }
 
+    for ( MFIter mfi(prim_in,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
+        
+        const Box& bx  = mfi.tilebox();
+
+        const Array4<      Real> cu        = cons.array(mfi);
+        const Array4<      Real> cumeans   = consMean.array(mfi);
+        const Array4<      Real> prim      = prim_in.array(mfi);
+        const Array4<      Real> primmeans = primMean.array(mfi);
+        
+        const Array4<const Real> momxmeans = cumomMean[0].array(mfi);
+        const Array4<const Real> momymeans = cumomMean[1].array(mfi);
+        const Array4<const Real> momzmeans = cumomMean[2].array(mfi);
+        
+        const Array4<      Real> surfcov      = (nspec_surfcov>0) ? theta.array(mfi) : cons.array(mfi);
+        const Array4<      Real> surfcovmeans = (nspec_surfcov>0) ? thetaMean.array(mfi) : consMean.array(mfi);
+        
         // update mean other values (primitive and conserved) 
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {    
@@ -301,6 +312,23 @@ void EvaluateStatsMeans(MultiFab& cons, MultiFab& consMean,
                 }
             }
         });
+    }
+
+    for ( MFIter mfi(prim_in,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
+        
+        const Box& tbx = mfi.nodaltilebox(0);
+        const Box& tby = mfi.nodaltilebox(1);
+        const Box& tbz = mfi.nodaltilebox(2);
+        
+        const Array4<      Real> velxmeans = velMean[0].array(mfi);
+        const Array4<      Real> velymeans = velMean[1].array(mfi);
+        const Array4<      Real> velzmeans = velMean[2].array(mfi);
+        
+        const Array4<const Real> momxmeans = cumomMean[0].array(mfi);
+        const Array4<const Real> momymeans = cumomMean[1].array(mfi);
+        const Array4<const Real> momzmeans = cumomMean[2].array(mfi);
+        
+        const Array4<      Real> cumeans   = consMean.array(mfi);
 
         // update mean velocities
         amrex::ParallelFor(tbx, tby, tbz,
@@ -343,21 +371,14 @@ void EvaluateVarsCoVars(const MultiFab& cons, const MultiFab& consMean, MultiFab
     double stepsinv = 1./steps;
 
     // Loop over boxes
-    for ( MFIter mfi(prim_in,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
+    for ( MFIter mfi(cons,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
         
-        const Box& bx = mfi.tilebox();
         const Box& tbx = mfi.nodaltilebox(0);
         const Box& tby = mfi.nodaltilebox(1);
         const Box& tbz = mfi.nodaltilebox(2);
 
         const Array4<const Real> cu        = cons.array(mfi);
         const Array4<const Real> cumeans   = consMean.array(mfi);
-        const Array4<      Real> cuvars    = consVar.array(mfi);
-        const Array4<const Real> prim      = prim_in.array(mfi);
-        const Array4<const Real> primmeans = primMean.array(mfi);
-        const Array4<      Real> primvars  = primVar.array(mfi);
-
-        const Array4<      Real> covars    = coVar.array(mfi);
 
         const Array4<const Real> velxmeans = velMean[0].array(mfi);
         const Array4<const Real> velymeans = velMean[1].array(mfi);
@@ -375,10 +396,6 @@ void EvaluateVarsCoVars(const MultiFab& cons, const MultiFab& consMean, MultiFab
         const Array4<      Real> momxvars  = cumomVar[0].array(mfi);
         const Array4<      Real> momyvars  = cumomVar[1].array(mfi);
         const Array4<      Real> momzvars  = cumomVar[2].array(mfi);
-
-        const Array4<const Real> surfcov      = (nspec_surfcov>0) ? theta.array(mfi) : cons.array(mfi);
-        const Array4<const Real> surfcovmeans = (nspec_surfcov>0) ? thetaMean.array(mfi) : consMean.array(mfi);
-        const Array4<      Real> surfcovvars  = (nspec_surfcov>0) ? thetaVar.array(mfi) : consVar.array(mfi);
 
         // update momentum and velocity variances
         amrex::ParallelFor(tbx, tby, tbz,
@@ -413,6 +430,37 @@ void EvaluateVarsCoVars(const MultiFab& cons, const MultiFab& consMean, MultiFab
             velzvars(i,j,k) = (velzvars(i,j,k)*stepsminusone + delvelz*delvelz)*stepsinv; // <vz vz>
         });
 
+    }
+
+    // Loop over boxes
+    for ( MFIter mfi(prim_in,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
+        
+        const Box& bx = mfi.tilebox();
+
+        const Array4<const Real> cu        = cons.array(mfi);
+        const Array4<const Real> cumeans   = consMean.array(mfi);
+        const Array4<      Real> cuvars    = consVar.array(mfi);
+        const Array4<const Real> prim      = prim_in.array(mfi);
+        const Array4<const Real> primmeans = primMean.array(mfi);
+        const Array4<      Real> primvars  = primVar.array(mfi);
+
+        const Array4<      Real> covars    = coVar.array(mfi);
+
+        const Array4<const Real> velxmeans = velMean[0].array(mfi);
+        const Array4<const Real> velymeans = velMean[1].array(mfi);
+        const Array4<const Real> velzmeans = velMean[2].array(mfi);
+
+        const Array4<const Real> momx      = cumom[0].array(mfi);
+        const Array4<const Real> momy      = cumom[1].array(mfi);
+        const Array4<const Real> momz      = cumom[2].array(mfi);
+        const Array4<const Real> momxmeans = cumomMean[0].array(mfi);
+        const Array4<const Real> momymeans = cumomMean[1].array(mfi);
+        const Array4<const Real> momzmeans = cumomMean[2].array(mfi);
+
+        const Array4<const Real> surfcov      = (nspec_surfcov>0) ? theta.array(mfi) : cons.array(mfi);
+        const Array4<const Real> surfcovmeans = (nspec_surfcov>0) ? thetaMean.array(mfi) : consMean.array(mfi);
+        const Array4<      Real> surfcovvars  = (nspec_surfcov>0) ? thetaVar.array(mfi) : consVar.array(mfi);
+        
         // other cell-centered variances and covariances (temperature fluctuation and variance)
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {    

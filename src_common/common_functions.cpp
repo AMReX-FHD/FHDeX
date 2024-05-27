@@ -51,9 +51,11 @@ int                        common::print_int;
 int                        common::project_eos_int;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::grav;
 AMREX_GPU_MANAGED int      common::nspecies;
+AMREX_GPU_MANAGED int      common::nbonds;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::molmass;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::rhobar;
 AMREX_GPU_MANAGED amrex::Real common::rho0;
+AMREX_GPU_MANAGED amrex::Real common::mach0;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::diameter;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::dof;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::e0;
@@ -78,6 +80,9 @@ int                        common::stoch_stress_form;
 amrex::Vector<amrex::Real> common::u_init;
 amrex::Real                common::perturb_width;
 AMREX_GPU_MANAGED amrex::Real common::smoothing_width;
+AMREX_GPU_MANAGED amrex::Real common::radius_cyl;
+AMREX_GPU_MANAGED amrex::Real common::radius_outer;
+AMREX_GPU_MANAGED amrex::Real common::film_thickness;
 amrex::Real                common::initial_variance_mom;
 amrex::Real                common::initial_variance_mass;
 amrex::Real                common::domega;
@@ -230,6 +235,7 @@ AMREX_GPU_MANAGED int      common::images;
 amrex::Vector<amrex::Real> common::eamp;
 amrex::Vector<amrex::Real> common::efreq;
 amrex::Vector<amrex::Real> common::ephase;
+amrex::Vector<amrex::Real> common::body_force_density;
 
 int                        common::plot_ascii;
 int                        common::plot_means;
@@ -238,9 +244,12 @@ int                        common::plot_covars;
 int                        common::plot_cross;
 int                        common::particle_motion;
 
-amrex::Real                common::turb_a;
-amrex::Real                common::turb_b;
-int                        common::turbForcing;
+AMREX_GPU_MANAGED amrex::Real common::turb_a;
+AMREX_GPU_MANAGED amrex::Real common::turb_b;
+AMREX_GPU_MANAGED amrex::Real common::turb_c;
+AMREX_GPU_MANAGED amrex::Real common::turb_d;
+AMREX_GPU_MANAGED amrex::Real common::turb_alpha;
+AMREX_GPU_MANAGED int         common::turbForcing;
 
 
 void InitializeCommonNamespace() {
@@ -305,6 +314,8 @@ void InitializeCommonNamespace() {
     eamp.resize(3);    
     efreq.resize(3);
     ephase.resize(3);
+    body_force_density.resize(3);
+    
 
     // specify default values first, then read in values from inputs file
 
@@ -394,6 +405,7 @@ void InitializeCommonNamespace() {
         rhobar[i] = 1.;
     }
     rho0 = 1.;
+    mach0 = -1.0;
 
     // Kinetic parameters
     nspecies = 2;
@@ -401,6 +413,7 @@ void InitializeCommonNamespace() {
         molmass[i] = 1.;
         diameter[i] = 1.;
     }
+    nbonds = 0;
 
     // dof (no default)
     for (int i=0; i<MAX_SPECIES; ++i) {
@@ -451,6 +464,9 @@ void InitializeCommonNamespace() {
     u_init[1] = 0.;
     perturb_width = 0.;
     smoothing_width = 1.;
+    radius_cyl = 0.;
+    radius_outer = 0.;
+    film_thickness = 0.;
     initial_variance_mom = 0.;
     initial_variance_mass = 0.;
     domega = 0.;
@@ -586,6 +602,8 @@ void InitializeCommonNamespace() {
         eamp[i] = 0.;
         efreq[i] = 0.;
         ephase[i] = 0.;
+        body_force_density[i] = 0.;
+        
     }
 
     // plot_ascii (no default)
@@ -598,6 +616,9 @@ void InitializeCommonNamespace() {
     // turblent forcing parameters
     turb_a = 1.;
     turb_b = 1.;
+    turb_c = 1.;
+    turb_d = 1.;
+    turb_alpha = 1.;
     turbForcing = 0;
 
     // DSMC Granular
@@ -624,6 +645,7 @@ void InitializeCommonNamespace() {
     // pp.getarr and queryarr("string",inputs,start_indx,count); can be used for arrays
 
     pp.query("nspecies",nspecies);
+    pp.query("nbonds",nbonds);
     
     if (pp.queryarr("prob_lo",temp)) {
         for (int i=0; i<3; ++i) {
@@ -708,6 +730,7 @@ void InitializeCommonNamespace() {
         }
     }
     pp.query("rho0",rho0);
+    pp.query("mach0",mach0);
     if (pp.queryarr("diameter",temp,0,nspecies)) {
         for (int i=0; i<nspecies; ++i) {
             diameter[i] = temp[i];
@@ -755,6 +778,9 @@ void InitializeCommonNamespace() {
     pp.queryarr("u_init",u_init,0,2);
     pp.query("perturb_width",perturb_width);
     pp.query("smoothing_width",smoothing_width);
+    pp.query("radius_cyl",radius_cyl);
+    pp.query("radius_outer",radius_outer);
+    pp.query("film_thickness",film_thickness);
     pp.query("initial_variance_mom",initial_variance_mom);
     pp.query("initial_variance_mass",initial_variance_mass);
     pp.query("domega",domega);
@@ -1105,6 +1131,7 @@ void InitializeCommonNamespace() {
     pp.queryarr("eamp",eamp,0,3);
     pp.queryarr("efreq",efreq,0,3);
     pp.queryarr("ephase",ephase,0,3);
+    pp.queryarr("body_force_density",body_force_density,0,3);
     pp.query("plot_ascii",plot_ascii);
     pp.query("plot_means",plot_means);
     pp.query("plot_vars",plot_vars);
@@ -1113,10 +1140,13 @@ void InitializeCommonNamespace() {
     pp.query("particle_motion",particle_motion);
     pp.query("turb_a",turb_a);
     pp.query("turb_b",turb_b);
+    pp.query("turb_c",turb_c);
+    pp.query("turb_d",turb_d);
+    pp.query("turb_alpha",turb_alpha);
     pp.query("turbForcing",turbForcing);
 
     if (nspecies > MAX_SPECIES) {
-        Abort("InitializeCommonNamespace: nspecies > MAX_SPECIES");
+        Abort("InitializeCommonNamespace: nspecies > MAX_SPECIES; re-compile with a larger MAX_SPEC as a compiler input");
     }
 
     if (wallspeed_x_lo[0] != 0.) {

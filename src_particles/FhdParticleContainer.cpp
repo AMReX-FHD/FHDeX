@@ -110,7 +110,14 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
     remove("conductivityEst");
     remove("currentEst");
     remove("nearestNeighbour");
-
+    
+    remove("part1X");
+    remove("part1Y");
+    remove("part1Z");
+    remove("part2X");
+    remove("part2Y");            
+    remove("part2Z");
+    
     Real dr = threepmRange/threepmBins;
 
     threepmVals[0] = 0;
@@ -582,7 +589,6 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
     if(all_dry != 1)
     {
     InterpolateMarkersGpu(0, dxFluid, umac, RealFaceCoords,check);
-
     if(move_tog == 2)
     {
         //// Set up reducing operation across gpu (instead of ParallelFor)
@@ -639,8 +645,8 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
 
                         while(runtime > 0)
                         {
-                            //find_inter(&part, &runtime, paramPlaneList, &paramPlaneCount, &intsurf, &inttime, &intside, ZFILL(plo), ZFILL(phi));
-                            find_inter_gpu(part, runtime, paramPlaneList, paramPlaneCount, &intsurf, &inttime, &intside, ZFILL(plo), ZFILL(phi));
+                            //find_inter(&part, &runtime, paramPlaneList, &paramPlaneCount, &intsurf, &inttime, &intside, AMREX_ZFILL(plo), AMREX_ZFILL(phi));
+                            find_inter_gpu(part, runtime, paramPlaneList, paramPlaneCount, &intsurf, &inttime, &intside, AMREX_ZFILL(plo), AMREX_ZFILL(phi));
 		            
                             for (int d=0; d<AMREX_SPACEDIM; ++d)
                             {
@@ -749,7 +755,7 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
 	    ParticleType* particles = aos().dataPtr();
             long np = this->GetParticles(lev).at(index).numParticles();
 
-            amrex::ParallelForRNG(np, [=] AMREX_GPU_DEVICE (int i, amrex::RandomEngine const& engine) noexcept
+        amrex::ParallelForRNG(np, [=] AMREX_GPU_DEVICE (int i, amrex::RandomEngine const& engine) noexcept
             //for (int i = 0; i < np; ++ i) 
 	    {
                 ParticleType & part = particles[i];
@@ -846,8 +852,8 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
 
                 while(runtime > 0)
                 {
-                    //find_inter(&part, &runtime, paramPlaneList, &paramPlaneCount, &intsurf, &inttime, &intside, ZFILL(plo), ZFILL(phi));
-                    find_inter_gpu(part, runtime, paramPlaneList, paramPlaneCount, &intsurf, &inttime, &intside, ZFILL(plo), ZFILL(phi));
+                    //find_inter(&part, &runtime, paramPlaneList, &paramPlaneCount, &intsurf, &inttime, &intside, AMREX_ZFILL(plo), AMREX_ZFILL(phi));
+                    find_inter_gpu(part, runtime, paramPlaneList, paramPlaneCount, &intsurf, &inttime, &intside, AMREX_ZFILL(plo), AMREX_ZFILL(phi));
                     //Print() << "PART " << part.id() << ", " << intsurf << "\n";
                     //cin.get();
 
@@ -1007,7 +1013,7 @@ void FhdParticleContainer::SpreadIonsGPU(const Real* dxFluid, const Real* dxE, c
 
         emf_gpu(particles,
                       efield[0][pti], efield[1][pti], efield[2][pti],
-                      ZFILL(plo), ZFILL(dxE));
+                      AMREX_ZFILL(plo), AMREX_ZFILL(dxE));
 
     }
 
@@ -1015,8 +1021,8 @@ void FhdParticleContainer::SpreadIonsGPU(const Real* dxFluid, const Real* dxE, c
     {
         //spread_ions_fhd_gpu(particles,                         
         //                 sourceTemp[0][pti], sourceTemp[1][pti], sourceTemp[2][pti],
-        //                 ZFILL(plo),
-        //                 ZFILL(dxFluid));
+        //                 AMREX_ZFILL(plo),
+        //                 AMREX_ZFILL(dxFluid));
 
         SpreadMarkersGpu(lev, sourceTemp, coords, dxFluid, 1);
     }
@@ -1083,8 +1089,8 @@ void FhdParticleContainer::SpreadIonsGPU(const Real* dxFluid, const Geometry geo
         {
             //spread_ions_fhd_gpu(particles,                         
             //                 sourceTemp[0][pti], sourceTemp[1][pti], sourceTemp[2][pti],
-            //                 ZFILL(plo),
-            //                 ZFILL(dxFluid));
+            //                 AMREX_ZFILL(plo),
+            //                 AMREX_ZFILL(dxFluid));
 	    SpreadMarkersGpu(lev, sourceTemp, coords, dxFluid, 1);
         }
 
@@ -1142,10 +1148,15 @@ void FhdParticleContainer::RadialDistribution(long totalParticles, const int ste
 
     // collect particle positions onto one processor
     PullDown(0, posx, -1, totalParticles);
+    Print() << "HERE1\n";
     PullDown(0, posy, -2, totalParticles);
+        Print() << "HERE2\n";
     PullDown(0, posz, -3, totalParticles);
+        Print() << "HERE3\n";
     PullDown(0, charge, 27, totalParticles);
+        Print() << "HERE4\n";
     PullDownInt(0, species, 4, totalParticles);
+        Print() << "HERE5\n";
     
     // outer radial extent
     totalDist = totalBins*binSize;
@@ -1803,7 +1814,7 @@ void FhdParticleContainer::collectFieldsGPU(const Real dt, const Real* dxPotenti
         auto& particles = particle_tile.GetArrayOfStructs();
         const int np = particles.numParticles();
 
-        collect_charge_gpu(particles, chargeTemp[pti], ZFILL(geomP.ProbLo()), ZFILL(dxPotential));
+        collect_charge_gpu(particles, chargeTemp[pti], AMREX_ZFILL(geomP.ProbLo()), AMREX_ZFILL(dxPotential));
     }
 
     MultiFabPhysBCCharge(chargeTemp, geomP);
@@ -2016,6 +2027,47 @@ FhdParticleContainer::PrintParticles()
 }
 
 void
+FhdParticleContainer::TwoParticleCorrelation()
+{
+    BL_PROFILE_VAR("TwoParticleCorrelation()",PrintParticles);
+    
+    int lev =0;
+
+    for(FhdParIter pti(* this, lev); pti.isValid(); ++pti)
+    {
+        PairIndex index(pti.index(), pti.LocalTileIndex());
+
+        AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
+        long np = this->GetParticles(lev).at(index).numParticles();
+        
+        for(int i=0;i < np;i++)
+        {
+
+            ParticleType & part = particles[i];
+
+            string fileX = Concatenate("partX", part.id());
+            string fileY = Concatenate("partY", part.id());
+            string fileZ = Concatenate("partZ", part.id());
+ 
+            std::ofstream ofs1(fileX, std::ofstream::app);
+            ofs1 << setprecision(15) << part.rdata(FHD_realData::velx) << std::endl;                                                                                                                                                   
+
+            std::ofstream ofs2(fileY, std::ofstream::app);
+            ofs2 << setprecision(15) << part.rdata(FHD_realData::vely) << std::endl;                                                                                                                                                   
+        
+            std::ofstream ofs3(fileZ, std::ofstream::app);
+            ofs3 << setprecision(15) << part.rdata(FHD_realData::velz) << std::endl;
+                
+            ofs1.close();
+            ofs2.close();
+            ofs3.close(); 
+
+        }
+
+    }
+}
+
+void
 FhdParticleContainer::SetPosition(int id, Real x, Real y, Real z)
 {
     BL_PROFILE_VAR("SetPosition()",SetPosition);
@@ -2041,7 +2093,7 @@ FhdParticleContainer::SetPosition(int id, Real x, Real y, Real z)
                 part.pos(1) = y;
                 part.pos(2) = z;
 
-                std::cout << "Rank " << ParallelDescriptor::MyProc() << " particle " << id << " moving to " << x << ", " << y << ", " << z << std::endl;
+                //std::cout << "Rank " << ParallelDescriptor::MyProc() << " particle " << id << " moving to " << x << ", " << y << ", " << z << std::endl;
             }
         }
     }
