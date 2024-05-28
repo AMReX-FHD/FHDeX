@@ -333,8 +333,6 @@ void main_driver(const char* argv)
 		
 		particles.CalcSelections(dt);
 		particles.CollideParticles(dt);
-
-		//particles.Source(dt, paramPlaneList, paramPlaneCount, cuInst);
 		
 		if(istep%2!=0)
         {        
@@ -361,7 +359,7 @@ void main_driver(const char* argv)
 		
 		    }
         }
-		
+		particles.Source(dt, paramPlaneList, paramPlaneCount, cuInst);
 		//particles.externalForce(dt);
 		particles.MoveParticlesCPP(dt, paramPlaneList, paramPlaneCount);
 		//particles.updateTimeStep(geom,dt);

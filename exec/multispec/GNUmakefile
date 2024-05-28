@@ -7,10 +7,10 @@ USE_MPI   = TRUE
 USE_OMP   = FALSE
 USE_CUDA  = FALSE
 COMP      = gnu
-DIM       = 2
+DIM       = 3
 DSMC      = FALSE
 
-TINY_PROFILE = TRUE
+TINY_PROFILE = FALSE
 USE_PARTICLES = FALSE
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
@@ -47,6 +47,7 @@ INCLUDE_LOCATIONS += ../../src_common/
 include $(AMREX_HOME)/Src/Base/Make.package
 include $(AMREX_HOME)/Src/Boundary/Make.package
 include $(AMREX_HOME)/Src/LinearSolvers/MLMG/Make.package
+include $(AMREX_HOME)/Src/AmrCore/Make.package
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.rules
 
