@@ -51,9 +51,11 @@ int                        common::print_int;
 int                        common::project_eos_int;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::grav;
 AMREX_GPU_MANAGED int      common::nspecies;
+AMREX_GPU_MANAGED int      common::nbonds;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::molmass;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::rhobar;
 AMREX_GPU_MANAGED amrex::Real common::rho0;
+AMREX_GPU_MANAGED amrex::Real common::mach0;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::diameter;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::dof;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::e0;
@@ -242,9 +244,12 @@ int                        common::plot_covars;
 int                        common::plot_cross;
 int                        common::particle_motion;
 
-amrex::Real                common::turb_a;
-amrex::Real                common::turb_b;
-int                        common::turbForcing;
+AMREX_GPU_MANAGED amrex::Real common::turb_a;
+AMREX_GPU_MANAGED amrex::Real common::turb_b;
+AMREX_GPU_MANAGED amrex::Real common::turb_c;
+AMREX_GPU_MANAGED amrex::Real common::turb_d;
+AMREX_GPU_MANAGED amrex::Real common::turb_alpha;
+AMREX_GPU_MANAGED int         common::turbForcing;
 
 
 void InitializeCommonNamespace() {
@@ -400,6 +405,7 @@ void InitializeCommonNamespace() {
         rhobar[i] = 1.;
     }
     rho0 = 1.;
+    mach0 = -1.0;
 
     // Kinetic parameters
     nspecies = 2;
@@ -407,6 +413,7 @@ void InitializeCommonNamespace() {
         molmass[i] = 1.;
         diameter[i] = 1.;
     }
+    nbonds = 0;
 
     // dof (no default)
     for (int i=0; i<MAX_SPECIES; ++i) {
@@ -609,6 +616,9 @@ void InitializeCommonNamespace() {
     // turblent forcing parameters
     turb_a = 1.;
     turb_b = 1.;
+    turb_c = 1.;
+    turb_d = 1.;
+    turb_alpha = 1.;
     turbForcing = 0;
 
     // DSMC Granular
@@ -635,6 +645,7 @@ void InitializeCommonNamespace() {
     // pp.getarr and queryarr("string",inputs,start_indx,count); can be used for arrays
 
     pp.query("nspecies",nspecies);
+    pp.query("nbonds",nbonds);
     
     if (pp.queryarr("prob_lo",temp)) {
         for (int i=0; i<3; ++i) {
@@ -719,6 +730,7 @@ void InitializeCommonNamespace() {
         }
     }
     pp.query("rho0",rho0);
+    pp.query("mach0",mach0);
     if (pp.queryarr("diameter",temp,0,nspecies)) {
         for (int i=0; i<nspecies; ++i) {
             diameter[i] = temp[i];
@@ -1128,10 +1140,13 @@ void InitializeCommonNamespace() {
     pp.query("particle_motion",particle_motion);
     pp.query("turb_a",turb_a);
     pp.query("turb_b",turb_b);
+    pp.query("turb_c",turb_c);
+    pp.query("turb_d",turb_d);
+    pp.query("turb_alpha",turb_alpha);
     pp.query("turbForcing",turbForcing);
 
     if (nspecies > MAX_SPECIES) {
-        Abort("InitializeCommonNamespace: nspecies > MAX_SPECIES");
+        Abort("InitializeCommonNamespace: nspecies > MAX_SPECIES; re-compile with a larger MAX_SPEC as a compiler input");
     }
 
     if (wallspeed_x_lo[0] != 0.) {

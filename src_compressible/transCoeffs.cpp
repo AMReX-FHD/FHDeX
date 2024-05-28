@@ -37,8 +37,8 @@ void calculateTransportCoeffs(const MultiFab& prim_in,
             
             Real sumYk = 0.;
             for (int n=0; n<nspecies; ++n) {
-	        if (prim(i,j,k,6+n) <= 0.0) std::printf("Negative mass fraction encountered\n");
-   	        if (prim(i,j,k,6+n) >= 1.0) std::printf("Greater than unity mass fraction encountered\n");
+	        if (prim(i,j,k,6+n) <= 0.0) amrex::Abort("Negative mass fraction encountered");
+   	        if (prim(i,j,k,6+n) >= 1.0) amrex::Abort("Greater than unity mass fraction encountered");
                 Yk_fixed[n] = amrex::max(0.,amrex::min(1.,prim(i,j,k,6+n)));
                 sumYk += Yk_fixed[n];
             }
@@ -74,6 +74,12 @@ void calculateTransportCoeffs(const MultiFab& prim_in,
                     Dij(i,j,k,n) *= prim(i,j,k,0);
                 }
             }
+
+            // set bulk viscosity
+            if (amrex::Math::abs(visc_type) == 3) {
+                zeta(i,j,k) = zeta_ratio * eta(i,j,k);
+            }
+
 
         });
     }

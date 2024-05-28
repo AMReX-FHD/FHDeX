@@ -152,6 +152,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::RFD(
     Real delta = 1e-4*dx[0];
     Real deltaover2 = delta/2.0;
     Real force = variance_coef_mom*k_B*T_init[0]/delta;
+    const Geometry & geom = this->Geom(0);
 
     for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
 
@@ -263,6 +264,10 @@ void IBMarkerContainerBase<StructReal, StructInt>::RFD(
         });
 
     }
+
+    f_out[0].SumBoundary(geom.periodicity());
+    f_out[1].SumBoundary(geom.periodicity());
+    f_out[2].SumBoundary(geom.periodicity());
 }
 
 
@@ -347,6 +352,67 @@ void IBMarkerContainerBase<StructReal, StructInt>::loadPinMatrix(int totalP, cha
 
     ifs.close();
     //matFile.close();
+
+}
+
+// load bond info into two giant arrays, one for bonded particle IDs and one for bond type
+template <typename StructReal, typename StructInt>
+void IBMarkerContainerBase<StructReal, StructInt>::loadBonds(int totalP, char* filename)
+{
+    // timer for profiling
+    BL_PROFILE_VAR("loadBonds()",loadBonds);
+
+    int atom1, atom2, atom_current;
+    Real k_bond, x0_bond;
+
+    head_index.resize(totalP,0);
+    num_bond.resize(totalP,0);
+    bond_atom.resize(common::nbonds,0);
+    bond_coeff1.resize(common::nbonds,0);
+    bond_coeff2.resize(common::nbonds,0);
+
+    int bcount = 0;
+    atom_current = -1;
+
+    std::ifstream bondFile(filename); // bond file is generated so that atom2 >= atom1
+    std::string line;
+    while (std::getline(bondFile, line)) {
+    //for(int i_bond=0; i_bond < common::nbonds; i_bond++) {
+
+        std::istringstream ss(line);
+
+        ss >> atom1;
+        ss >> atom2;
+        ss >> k_bond;
+        ss >> x0_bond;
+
+        //Print() << atom1 << " " << atom2 << " " << k_bond << std::endl;
+
+        if(atom1>atom_current)
+        {
+            atom_current = atom1;
+            head_index[atom_current] = bcount;
+        }
+
+        bond_coeff1[bcount] = k_bond;
+        bond_coeff2[bcount] = x0_bond;
+        bond_atom[bcount] = atom2;
+        num_bond[atom1] = num_bond[atom1]+1;
+
+        bcount++;
+    }
+
+    if (bcount != common::nbonds) {
+        Abort("Missing bond info!");
+    } else {
+        Print() << "Loaded " << bcount << " bonds." << std::endl;
+    }
+
+    bondFile.close();
+
+    for (int i=0; i<totalP; i++) {
+        Print() << i << " of " << totalP << ": " << head_index[i] << " " << num_bond[i] << std::endl;
+    }
 
 }
 

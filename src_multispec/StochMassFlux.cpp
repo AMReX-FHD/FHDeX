@@ -70,11 +70,11 @@ void StochMassFlux::StochMassFluxBC() {
     BL_PROFILE_VAR("StochMassFluxBC()",StochMassFluxBC);
     
     // lo-x domain boundary
-    if (bc_mass_lo[0] == 1 || bc_mass_lo[0] == 2) {
+    if (bc_mass_lo[0] == 1 || bc_mass_lo[0] == 2 || bc_mass_lo[0] == 4) {
 
         // 1 = wall        : multiply fluxes on wall by 0
         // 2 = reservoir   : multiply fluxes on wall by sqrt(2)
-        Real factor = (bc_mass_lo[0] == 1) ? 0. : sqrt(2.);
+        Real factor = (bc_mass_lo[0] == 1 || bc_mass_lo[0] == 4) ? 0. : sqrt(2.);
 
         // domain grown nodally based on stoch_W_fc_weighted[0] nodality (x)
         const Box& dom_x = amrex::convert(geom.Domain(), stoch_W_fc_weighted[0].ixType());
@@ -100,11 +100,11 @@ void StochMassFlux::StochMassFluxBC() {
     }
 
     // hi-x domain boundary
-    if (bc_mass_hi[0] == 1 || bc_mass_hi[0] == 2) {
+    if (bc_mass_hi[0] == 1 || bc_mass_hi[0] == 2 || bc_mass_hi[0] == 4) {
 
         // 1 = wall        : multiply fluxes on wall by 0
         // 2 = reservoir   : multiply fluxes on wall by sqrt(2)
-        Real factor = (bc_mass_hi[0] == 1) ? 0. : sqrt(2.);
+        Real factor = (bc_mass_hi[0] == 1 || bc_mass_hi[0] == 4) ? 0. : sqrt(2.);
 
         // domain grown nodally based on stoch_W_fc_weighted[0] nodality (x)
         const Box& dom_x = amrex::convert(geom.Domain(), stoch_W_fc_weighted[0].ixType());
@@ -131,11 +131,11 @@ void StochMassFlux::StochMassFluxBC() {
     }
 
     // lo-y domain boundary
-    if (bc_mass_lo[1] == 1 || bc_mass_lo[1] == 2) {
+    if (bc_mass_lo[1] == 1 || bc_mass_lo[1] == 2 || bc_mass_lo[1] == 4) {
 
         // 1 = wall        : multiply fluxes on wall by 0
         // 2 = reservoir   : multiply fluxes on wall by sqrt(2)
-        Real factor = (bc_mass_lo[1] == 1) ? 0. : sqrt(2.);
+        Real factor = (bc_mass_lo[1] == 1 || bc_mass_lo[1] == 4) ? 0. : sqrt(2.);
 
         // domain grown nodally based on stoch_W_fc_weighted[1] nodality (y)
         const Box& dom_y = amrex::convert(geom.Domain(), stoch_W_fc_weighted[1].ixType());
@@ -161,11 +161,11 @@ void StochMassFlux::StochMassFluxBC() {
     }
 
     // hi-y domain boundary
-    if (bc_mass_hi[1] == 1 || bc_mass_hi[1] == 2) {
+    if (bc_mass_hi[1] == 1 || bc_mass_hi[1] == 2 || bc_mass_hi[1] == 4) {
 
         // 1 = wall        : multiply fluxes on wall by 0
         // 2 = reservoir   : multiply fluxes on wall by sqrt(2)
-        Real factor = (bc_mass_hi[1] == 1) ? 0. : sqrt(2.);
+        Real factor = (bc_mass_hi[1] == 1 || bc_mass_hi[1] == 4) ? 0. : sqrt(2.);
 
         // domain grown nodally based on stoch_W_fc_weighted[1] nodality (y)
         const Box& dom_y = amrex::convert(geom.Domain(), stoch_W_fc_weighted[1].ixType());
@@ -193,11 +193,11 @@ void StochMassFlux::StochMassFluxBC() {
 #if (AMREX_SPACEDIM == 3)
     
     // lo-z domain boundary
-    if (bc_mass_lo[2] == 1 || bc_mass_lo[2] == 2) {
+    if (bc_mass_lo[2] == 1 || bc_mass_lo[2] == 2 || bc_mass_lo[2] == 4) {
 
         // 1 = wall        : multiply fluxes on wall by 0
         // 2 = reservoir   : multiply fluxes on wall by sqrt(2)
-        Real factor = (bc_mass_lo[2] == 1) ? 0. : sqrt(2.);
+        Real factor = (bc_mass_lo[2] == 1 || bc_mass_lo[2] == 4) ? 0. : sqrt(2.);
 
         // domain grown nodally based on stoch_W_fc_weighted[2] nodality (z)
         const Box& dom_z = amrex::convert(geom.Domain(), stoch_W_fc_weighted[2].ixType());
@@ -223,11 +223,11 @@ void StochMassFlux::StochMassFluxBC() {
     }
     
     // hi-z domain boundary
-    if (bc_mass_hi[2] == 1 || bc_mass_hi[2] == 2) {
+    if (bc_mass_hi[2] == 1 || bc_mass_hi[2] == 2 || bc_mass_hi[2] == 4) {
 
         // 1 = wall        : multiply fluxes on wall by 0
         // 2 = reservoir   : multiply fluxes on wall by sqrt(2)
-        Real factor = (bc_mass_hi[2] == 1) ? 0. : sqrt(2.);
+        Real factor = (bc_mass_hi[2] == 1 || bc_mass_hi[2] == 4) ? 0. : sqrt(2.);
 
         // domain grown nodally based on stoch_W_fc_weighted[2] nodality (z)
         const Box& dom_z = amrex::convert(geom.Domain(), stoch_W_fc_weighted[2].ixType());

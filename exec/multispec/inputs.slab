@@ -22,7 +22,7 @@
   fixed_dt = 1.e-13
 
   # Controls for number of steps between actions
-  max_step = 1000000
+  max_step = 10000
   plot_int = 100
   chk_int = 100
   restart = -1
@@ -34,7 +34,7 @@
   # positive = assume constant coefficients
   # negative = assume spatially-varying coefficients
   visc_coef = 0.002464   # [units: g*cm-1*s-1] dynamic (shear) viscosity of water
-  visc_type = 1
+  visc_type = -2
   
   # Stochastic parameters
   seed = 1

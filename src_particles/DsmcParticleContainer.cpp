@@ -220,7 +220,7 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, paramPlane* paramPlan
 			while(runtime > 0)
 			{
 				find_inter_gpu(part, runtime, paramPlaneListPtr, paramPlaneCount,
-					&intsurf, &inttime, &intside, ZFILL(plo), ZFILL(phi));
+					&intsurf, &inttime, &intside, AMREX_ZFILL(plo), AMREX_ZFILL(phi));
 
 				for (int d=0; d<(AMREX_SPACEDIM); ++d)
 				{
@@ -418,7 +418,7 @@ void FhdParticleContainer::MovePhononsCPP(const Real dt, paramPlane* paramPlaneL
 //                printf("DT: %e\n", dt);
 //                cout << "DT: " << dt << endl;
 				find_inter_gpu(part, runtime, paramPlaneListPtr, paramPlaneCount,
-					&intsurf, &inttime, &intside, ZFILL(plo), ZFILL(phi));
+					&intsurf, &inttime, &intside, AMREX_ZFILL(plo), AMREX_ZFILL(phi));
 				
 				Real tauImpurityInv = pow(part.rdata(FHD_realData::omega),4)/tau_i_p;
 				Real tauTAInv = part.rdata(FHD_realData::omega)*pow(T_init[0],4)/tau_ta_p;

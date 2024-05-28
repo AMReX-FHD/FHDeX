@@ -110,6 +110,9 @@ public:
         return totalMarkers;
     };
 
+    // Load bonds from data file.
+    void loadBonds(int totalP, char* filename);
+
 
     /****************************************************************************
      *                                                                          *
@@ -320,6 +323,12 @@ protected:
     Gpu::ManagedDeviceVector<int> ranksIdSorted;
     Gpu::ManagedDeviceVector<int> idsRankSorted;
     Gpu::ManagedDeviceVector<int> rankTotals;
+
+    Gpu::ManagedDeviceVector<int> head_index;
+    Gpu::ManagedDeviceVector<int> num_bond;
+    Gpu::ManagedDeviceVector<int> bond_atom;
+    Gpu::ManagedDeviceVector<amrex::Real> bond_coeff1;
+    Gpu::ManagedDeviceVector<amrex::Real> bond_coeff2;
 
     Gpu::ManagedDeviceVector<amrex::Real> pinMatrix;
 
