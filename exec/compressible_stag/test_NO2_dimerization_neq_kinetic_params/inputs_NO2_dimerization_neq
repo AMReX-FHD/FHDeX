@@ -23,13 +23,13 @@ fixed_dt = 1.e-12
 
 # Controls for number of steps between actions
 # First run (equilibration) set max_step = 10000, set nreaction = 0 (no reaction)
-# Second run set max_step = 20000, set nreaction = 2 (see below)
-max_step = 10000 # Comment (uncomment) this if restart = 10000 (-1)
-#max_step = 20000  # Comment (uncomment) this if restart = -1 (10000)
-plot_int = 100
+# Second run set max_step = 200000, set nreaction = 2 (see below)
+#max_step = 10000 # Comment (uncomment) this if restart = 10000 (-1)
+max_step = 200000  # Comment (uncomment) this if restart = -1 (10000)
+plot_int = 1000
 chk_int  = 10000
-restart  = -1    # Comment (uncomment) this if max_step = 20000 (10000)
-#restart = 10000   # Comment (uncomment) this if max_step = 10000 (20000)
+#restart  = -1    # Comment (uncomment) this if max_step = 200000 (10000)
+restart = 10000   # Comment (uncomment) this if max_step = 10000 (200000)
 
 # Multispecies toggle
 # if algorithm_type = 1, single component
@@ -108,12 +108,18 @@ plot_vars = 1
 # spec1 = A
 # spec2 = A_2
 
-nreaction = 0 # Comment (uncomment) this if max_step = 20000 (10000)
-#nreaction = 2  # Comment (uncomment) this if max_step = 10000 (20000)
+#nreaction = 0 # Comment (uncomment) this if max_step = 200000 (10000)
+nreaction = 2  # Comment (uncomment) this if max_step = 10000 (200000)
 
 T0_chem = 350
 
-rate_const = 5.194896e+26 2.326169e+27
+rate_const = 2.9205234388124427e+26 1.3077511247845772e+27
+
+# These are the kinetic parameters for the expression of the rate constants
+#alpha_param = 0 0 # k(T) = k(T0)
+#beta_param  = 0 0 # k(T) = k(T0)
+alpha_param = -8.863943e-14 8.917095e-13 # Temperature Correction
+beta_param  = -1.355050 -2.100000        # Temperature Correction
 
 stoich_1R = 2 0
 stoich_1P = 0 1
