@@ -1043,7 +1043,8 @@ void FhdParticleContainer::Source(const Real dt, paramPlane* paramPlaneList, con
 				{
 					for(int j=nspecies-1; j>=0; j--)
 					{
-						Real density = paramPlaneList[i].densityRight[j];						
+						Real density = paramPlaneList[i].densityRight[j]*rho_lo[0]/properties[j].mass;						
+						//Real density = paramPlaneList[i].densityRight[j];						
 						Real temp = paramPlaneList[i].temperatureRight;
 						Real area = paramPlaneList[i].area/ParallelDescriptor::NProcs();
 						Real fluxMean = density*area*sqrt(properties[j].R*temp/(2.0*M_PI))/particle_neff;
@@ -1117,7 +1118,8 @@ void FhdParticleContainer::Source(const Real dt, paramPlane* paramPlaneList, con
 					
 					for(int j=nspecies-1; j>=0; j--)
 					{
-						Real density = paramPlaneList[i].densityRight[j];
+						Real density = paramPlaneList[i].densityRight[j]*rho_lo[0]/properties[j].mass;
+						//Real density = paramPlaneList[i].densityRight[j];
 						
 						Real xMom = paramPlaneList[i].xMomFluxRight[j];												
 						Real yMom = paramPlaneList[i].yMomFluxRight[j];
@@ -1299,7 +1301,8 @@ void FhdParticleContainer::Source(const Real dt, paramPlane* paramPlaneList, con
 					//Print() << "Type 1\n";
 					for(int j=nspecies-1; j>=0; j--)
 					{
-						Real density = paramPlaneList[i].densityLeft[j];
+						Real density = paramPlaneList[i].densityLeft[j]*rho_lo[0]/properties[j].mass;
+						//Real density = paramPlaneList[i].densityLeft[j];
 						Real temp = paramPlaneList[i].temperatureLeft;
 						Real area = paramPlaneList[i].area/ParallelDescriptor::NProcs();
 						Real fluxMean = density*area*sqrt(properties[j].R*temp/(2.0*M_PI))/particle_neff;
@@ -1374,7 +1377,8 @@ void FhdParticleContainer::Source(const Real dt, paramPlane* paramPlaneList, con
 					
 					for(int j=nspecies-1; j>=0; j--)
 					{
-						Real density = paramPlaneList[i].densityLeft[j];						
+						Real density = paramPlaneList[i].densityLeft[j]*rho_lo[0]/properties[j].mass;						
+						//Real density = paramPlaneList[i].densityLeft[j];						
 
                         int totalAttemptsInt = amrex::RandomPoisson(density*vol);
 

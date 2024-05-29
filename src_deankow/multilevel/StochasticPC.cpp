@@ -27,6 +27,11 @@ StochasticPC:: AddParticles (MultiFab& phi_fine, const BoxArray& ba_to_exclude)
     const Real cell_vol = dx[0]*dx[1]*dx[2];
 #endif
 
+    // We use sum to count how much phi is gained/lost when we use phi to compute an integer
+    // number of particles
+    // Gpu::DeviceVector<Real> my_sum(1, 0.);
+    // Real* sum = my_sum.dataPtr();
+
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (amrex::Gpu::notInLaunchRegion())
 #endif
@@ -36,18 +41,33 @@ StochasticPC:: AddParticles (MultiFab& phi_fine, const BoxArray& ba_to_exclude)
 
         if (ba_to_exclude.contains(tile_box)) {continue;}
 
+        if (!m_reflux_particle_locator.isValid(ba_to_exclude)) {
+            m_reflux_particle_locator.build(ba_to_exclude, Geom(lev));
+        }
+        m_reflux_particle_locator.setGeometry(Geom(lev));
+
+        auto assign_grid = m_reflux_particle_locator.getGridAssignor();
+
         const Array4<Real const>& phi_arr = phi_fine.const_array(mfi);
 
         // count the number of particles to create in each cell
         auto flat_index = FlatIndex(tile_box);
+
         Gpu::DeviceVector<unsigned int> counts(tile_box.numPts()+1, 0);
         unsigned int* pcount = counts.dataPtr();
+
         amrex::ParallelForRNG(tile_box,
         [=] AMREX_GPU_DEVICE (int i, int j, int k, amrex::RandomEngine const& engine) noexcept
         {
+            if (assign_grid(IntVect(AMREX_D_DECL(i, j, k))) >= 0) {return;}
             Real rannum = amrex::Random(engine);
             int npart_in_cell = int(phi_arr(i,j,k,0)*cell_vol+rannum);
             pcount[flat_index(i, j, k)] += npart_in_cell;
+            // if (phi_arr(i,j,k) > 0.) {
+            //     amrex::Print() << " IJK/NPART/PHI/RAN " << IntVect(i,j) << " " << npart_in_cell << " given phi " << 
+            //         (phi_arr(i,j,k,0)*cell_vol) << " " << rannum << std::endl; 
+            // }
+            // sum[0] += npart_in_cell - (phi_arr(i,j,k,0)*cell_vol);
         });
 
         // fill offsets
@@ -114,6 +134,7 @@ StochasticPC:: AddParticles (MultiFab& phi_fine, const BoxArray& ba_to_exclude)
             }
         });
     }
+    // amrex::Print() << "SUM / DENS ADDED THROUGH REGRID " << sum[0] << " " << sum[0] / cell_vol << std::endl;
 }
 
 void
@@ -129,13 +150,22 @@ StochasticPC::RemoveParticlesNotInBA (const BoxArray& ba_to_keep)
         const int np = aos.numParticles();
         auto *pstruct = aos().data();
 
-        if (!ba_to_keep.contains(pti.tilebox())) {
-            amrex::ParallelFor(np, [=] AMREX_GPU_DEVICE (int i)
-            {
-                ParticleType& p = pstruct[i];
+        if (ba_to_keep.contains(pti.tilebox())) {continue;}
+
+        if (!m_reflux_particle_locator.isValid(ba_to_keep)) {
+            m_reflux_particle_locator.build(ba_to_keep, Geom(lev));
+        }
+        m_reflux_particle_locator.setGeometry(Geom(lev));
+
+        auto assign_grid = m_reflux_particle_locator.getGridAssignor();
+
+        amrex::ParallelFor(np, [=] AMREX_GPU_DEVICE (int i)
+        {
+            ParticleType& p = pstruct[i];
+            if (assign_grid(p) < 0) {
                 p.id() = -1;
-            });
-}
+            }
+        });
     }
     Redistribute();
 }
@@ -249,8 +279,7 @@ StochasticPC::RefluxCrseToFine (const BoxArray& ba_to_keep, MultiFab& phi_for_re
         const int np = aos.numParticles();
         auto *pstruct = aos().data();
 
-        if (ba_to_keep.contains(pti.tilebox()))
-        {
+        if (ba_to_keep.contains(pti.tilebox())) {
             Array4<Real> phi_arr = phi_for_reflux.array(gid);
 
             amrex::ParallelFor(np, [=] AMREX_GPU_DEVICE (int i)
