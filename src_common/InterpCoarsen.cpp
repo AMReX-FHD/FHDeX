@@ -70,6 +70,7 @@ void FaceFillCoarse(std::array<MultiFab*, AMREX_SPACEDIM> & mfCoarse,std::array<
                      Array4<Real const> const& phiz_f_fab = mfFine[2]->array(mfi););
 
 
+#if (AMREX_SPACEDIM == 3)
         amrex::ParallelFor(bx_x, bx_y, bx_z, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             phix_c_fab(i,j,k) = 0.125* ( phix_f_fab(2*i  ,2*j,2*k  ) + phix_f_fab(2*i  ,2*j+1,2*k  )
@@ -97,7 +98,10 @@ void FaceFillCoarse(std::array<MultiFab*, AMREX_SPACEDIM> & mfCoarse,std::array<
                              + 0.0625* ( phiz_f_fab(2*i,2*j  ,2*k-1) + phiz_f_fab(2*i+1,2*j  ,2*k-1)
                                         +phiz_f_fab(2*i,2*j+1,2*k-1) + phiz_f_fab(2*i+1,2*j+1,2*k-1) );
         });
-
+#else
+        amrex::Abort("FaceFillCoarse for 2D needs to be written");
+#endif
+        
         }
         for(int d=0;d<AMREX_SPACEDIM;d++)
         {
