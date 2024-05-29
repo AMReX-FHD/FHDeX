@@ -22,7 +22,6 @@
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_ArrayLim.H>
 #include <AMReX_BC_TYPES.H>
-#include <AMReX_FillPatchUtil.H>
 #include <AMReX_PhysBCFunct.H>
 #include "common_namespace.H"
 
