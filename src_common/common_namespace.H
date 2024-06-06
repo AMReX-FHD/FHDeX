@@ -227,6 +227,7 @@ namespace common {
     extern amrex::Real                tau_i;
     extern amrex::Real                tau_la;
     extern amrex::Real                tau_ta;
+    extern int                        toggleTimeFrac;    
 
     // structure factor and radial/cartesian pair correlation function analysis
     extern int                        struct_fact_int;

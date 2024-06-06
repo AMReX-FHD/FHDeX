@@ -1969,6 +1969,7 @@ void BuildParamplanesPhonon(paramPlane* paramPlaneList, const int paramplanes, c
             paramPlaneList[i].yPosRecRight = new double[WRITE_BUFFER];
             paramPlaneList[i].zPosRecRight = new double[WRITE_BUFFER];                        
             paramPlaneList[i].freqRecRight = new double[WRITE_BUFFER];
+            paramPlaneList[i].timeRecRight = new double[WRITE_BUFFER];            
         }
         if(paramPlaneList[i].momentumConsLeft > 0)
         {
@@ -1979,6 +1980,7 @@ void BuildParamplanesPhonon(paramPlane* paramPlaneList, const int paramplanes, c
             paramPlaneList[i].yPosRecLeft = new double[WRITE_BUFFER];
             paramPlaneList[i].zPosRecLeft = new double[WRITE_BUFFER];
             paramPlaneList[i].freqRecLeft = new double[WRITE_BUFFER];                                   
+            paramPlaneList[i].timeRecLeft = new double[WRITE_BUFFER];            
         }
 
 

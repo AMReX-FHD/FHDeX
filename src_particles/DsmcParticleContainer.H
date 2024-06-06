@@ -23,6 +23,7 @@ struct FHD_realData {
 		lambda,
 		radius,
 		mass,
+		travelTime,
 		count
 	};
 
@@ -40,6 +41,7 @@ struct FHD_realData {
 			"lambda",
 			"radius",
 			"mass",
+			"travelTime"
 		};
 	};
 };
