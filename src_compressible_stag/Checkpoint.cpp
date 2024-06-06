@@ -45,6 +45,7 @@ void WriteCheckPoint3D(int step,
                        const amrex::MultiFab& surfcov,
                        const amrex::MultiFab& surfcovMeans,
                        const amrex::MultiFab& surfcovVars,
+		       const amrex::MultiFab& surfcovcoVars,
                        const Vector<Real>& spatialCross, int ncross,
                        TurbForcingComp& turbforce)
 
@@ -230,6 +231,8 @@ void WriteCheckPoint3D(int step,
                      amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "surfcovMeans"));
         VisMF::Write(surfcovVars,
                      amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "surfcovVars"));
+	VisMF::Write(surfcovcoVars,
+		     amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "surfcovcoVars"));
     }
 }
 
@@ -612,6 +615,7 @@ void ReadCheckPoint3D(int& step,
                      amrex::MultiFab& surfcov,
                      amrex::MultiFab& surfcovMeans,
                      amrex::MultiFab& surfcovVars,
+		     amrex::MultiFab& surfcovcoVars,
                      Vector<Real>& spatialCross,
                      int ncross,
                      TurbForcingComp& turbforce,
@@ -733,6 +737,7 @@ void ReadCheckPoint3D(int& step,
             surfcov.define(ba,dmap,n_ads_spec,0);
             surfcovMeans.define(ba,dmap,n_ads_spec,0);
             surfcovVars.define(ba,dmap,n_ads_spec,0);
+	    surfcovcoVars.define(ba,dmap,n_ads_spec*6,0);
         }
 
     }
@@ -830,6 +835,7 @@ void ReadCheckPoint3D(int& step,
             for (int m=0;m<n_ads_spec;m++) {
                 surfcovMeans.setVal(0.0);
                 surfcovVars.setVal(0.0);
+		surfcovcoVars.setVal(0.0);
             }
         }
     }
@@ -859,6 +865,7 @@ void ReadCheckPoint3D(int& step,
         if (n_ads_spec>0) {
             Read_Copy_MF_Checkpoint(surfcovMeans,"surfcovMeans",checkpointname,ba_old,dmap_old,n_ads_spec,0);
             Read_Copy_MF_Checkpoint(surfcovVars,"surfcovVars",checkpointname,ba_old,dmap_old,n_ads_spec,0);
+	    Read_Copy_MF_Checkpoint(surfcovcoVars,"surfcovcoVars",checkpointname,ba_old,dmap_old,n_ads_spec*6,0);
         }
     }
 
