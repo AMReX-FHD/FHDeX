@@ -4,8 +4,8 @@
                         job_script.sh (for Pinnacles:--partition test, pi.ckim103, or dept.appliedmath) 
     -> output               slurm-*.out
 
-* FHD inputs files      inputs_NO2_dimerization_neq0 (equilibration)
-                        inputs_NO2_dimerization_neq1 (actual noneq simulation)
+* FHD inputs files      inputs_NO2_dimerization_neq_bulk0 (equilibration)
+                        inputs_NO2_dimerization_neq_bulk1 (actual noneq simulation)
     -> output               plt*
 
 * clean-up              clean.sh

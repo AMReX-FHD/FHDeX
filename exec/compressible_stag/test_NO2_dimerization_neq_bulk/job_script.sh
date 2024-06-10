@@ -6,10 +6,10 @@
 
 # COMMANDS HERE
 
-srun -n 32 ../main3d.gnu.MPI.ex inputs_NO2_dimerization_neq0
+srun -n 32 ../main3d.gnu.MPI.ex inputs_NO2_dimerization_neq_bulk0
 
 srun echo "*** equilibration is done!"
 srun echo "*** waiting 30 sec..."
 srun sleep 30
 
-srun -n 32 ../main3d.gnu.MPI.ex inputs_NO2_dimerization_neq1
+srun -n 32 ../main3d.gnu.MPI.ex inputs_NO2_dimerization_neq_bulk1
