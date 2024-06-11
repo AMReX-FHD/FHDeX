@@ -218,7 +218,56 @@ void advance_stokes(std::array<MultiFab, AMREX_SPACEDIM >& umac,
 						   
     
     //Step 2:
+    Vector<Real> anchor_marker_forces(6); //storing 6 force components of 2 anchored markers on the flagellum
+    Vector<Real> anchor_particle_forces(6); //storing 6 force components of 2 anchored particles on the cell body
+
+    for (IBMarIter pti(ib_mc, ib_lev); pti.isValid(); ++pti) {
+        // Get marker data (local to current thread)
+        TileIndex index(pti.index(), pti.LocalTileIndex());
+        AoS & markers = ib_mc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
+
+        long np = ib_mc.GetParticles(ib_lev).at(index).numParticles();
+
+        for (int i = 0; i < np; ++i) {
+
+            ParticleType & mark = markers[i];
+
+            if(mark.idata(IBMInt::id_1) == 0) {
+		anchor_marker_forces[1] = mark.rdata(IBMReal::forcex);
+                anchor_marker_forces[2] = mark.rdata(IBMReal::forcey);
+                anchor_marker_forces[3] = mark.rdata(IBMReal::forcez);
+            }
+            if(mark.idata(IBMInt::id_1) == 1) {
+                anchor_marker_forces[4] = mark.rdata(IBMReal::forcex);
+                anchor_marker_forces[5] = mark.rdata(IBMReal::forcey);
+                anchor_marker_forces[6] = mark.rdata(IBMReal::forcez);
+            }                
+        }
+    }
+
+    // updating from 6/12
+    for (FhdParIter pti(particles, ib_lev); pti.isValid(); ++pti) {
+        // Get particle data (local to current thread)
+        TileIndex index(pti.index(), pti.LocalTileIndex());
+        auto & markers = particles.GetParticles(ib_lev).at(index).GetArrayOfStructs();
+
+        long np = particles.GetParticles(ib_lev).at(index).numParticles();
+
+        //Real get_anchor_markers[6]; //storing 6 coordinates of 2 anchored markers
+
+        for (int i = 0; i < np; ++i) {
+
+            auto & mark = markers[i];
+
+            if(mark.idata(FHD_intData::id_global) == 0)   //anchor particle in the inner layer of the cell body
+                for (int d=0; d<AMREX_SPACEDIM; ++d) mark.rdata(component + d) = anchor_markers[d];
+            if(mark.idata(FHD_intData::id_global) == 1)   //anchor particle in the outer layer of the cell body
+                for (int d=0; d<AMREX_SPACEDIM; ++d) mark.rdata(component + d) = anchor_markers[d+3];
+        }
+    }
     
+
+
 
     // Sum predictor forces added to neighbors back to the real markers
     ib_mc.sumNeighbors(IBMReal::forcex, AMREX_SPACEDIM, 0, 0);
