@@ -87,7 +87,7 @@ void InitializeChemistryNamespace()
 void compute_chemistry_source_CLE(amrex::Real dt, amrex::Real dV,
                                   MultiFab& prim, MultiFab& source, MultiFab& ranchem)
 {
-    if (reaction_type!=1) amrex::Abort("ERROR: compute_chemistry_source_CLE assumes reaction_type=1");
+    if (reaction_type!=0 && reaction_type!=1) amrex::Abort("ERROR: compute_chemistry_source_CLE only works for reaction_type = 0 or 1");
 
     if (T0_chem<=0.) amrex::Abort("ERROR: T0_chem>0 expected");
 
@@ -136,8 +136,11 @@ void compute_chemistry_source_CLE(amrex::Real dt, amrex::Real dV,
 
                 for (int n=0; n<nspecies; n++)
                 {
+                    // mean
                     sourceArr[n] += molmass[n]*stoich_coeffs_PR(m,n)*avg_react_rate[m];
-                    sourceArr[n] += molmass[n]*stoich_coeffs_PR(m,n)*sqrt(avg_react_rate[m]/Navo)*W;
+
+                    // fluctuation
+                    if (reaction_type==1) sourceArr[n] += molmass[n]*stoich_coeffs_PR(m,n)*sqrt(avg_react_rate[m]/Navo)*W;
                 }
             }
 
