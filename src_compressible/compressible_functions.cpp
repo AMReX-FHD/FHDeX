@@ -8,6 +8,7 @@ AMREX_GPU_MANAGED int compressible::do_1D;
 AMREX_GPU_MANAGED int compressible::do_2D;
 AMREX_GPU_MANAGED int compressible::all_correl;
 AMREX_GPU_MANAGED int compressible::nspec_surfcov = 0;
+AMREX_GPU_MANAGED int compressible::turbRestartRun = 1;
 AMREX_GPU_MANAGED bool compressible::do_reservoir = false;
 AMREX_GPU_MANAGED amrex::Real compressible::zeta_ratio = -1.0;
 
@@ -64,7 +65,14 @@ void InitializeCompressibleNamespace()
     all_correl = 0;
     pp.query("all_correl",all_correl);
 
-
+    // restart for turbulence
+    // if 1: will advance time, if 0: only stats no advance time
+    pp.query("turbRestartRun",turbRestartRun);
+    if (turbRestartRun == 0) {
+      if (restart <= 0) amrex::Abort("turbRestartRun requires restarting from a checkpoint, restart > 0");
+      if (max_step != restart+1) amrex::Abort("this is a single step run; max_step should be equal to restart+1");
+    }
+    
     // do reservoir?
     if ((bc_mass_lo[0] == 4) or (bc_mass_lo[1] == 4) or (bc_mass_lo[2] == 4) or
         (bc_mass_hi[0] == 4) or (bc_mass_hi[1] == 4) or (bc_mass_hi[2] == 4)) {

@@ -1,6 +1,4 @@
-# AMREX_HOME defines the directory in which we will find all the AMReX code.
-# If you set AMREX_HOME as an environment variable, this line will be ignored
-AMREX_HOME ?= ../../../amrex/
+AMREX_HOME ?= ../../../../amrex/
 
 DEBUG         = FALSE
 USE_MPI       = TRUE
@@ -10,21 +8,17 @@ USE_HIP       = FALSE
 COMP          = gnu
 DIM           = 3
 TINY_PROFILE  = FALSE
-MAX_SPEC      = 8
-
-USE_PARTICLES = FALSE
-DO_TURB       = FALSE
 
 USE_HEFFTE_FFTW   = FALSE
 USE_HEFFTE_CUFFT  = FALSE
 USE_HEFFTE_ROCFFT = FALSE
 
 ifeq ($(USE_HEFFTE_FFTW),TRUE)
-  HEFFTE_HOME ?= ../../../heffte/
+  HEFFTE_HOME ?= ../../../../heffte/
 else ifeq ($(USE_HEFFTE_CUFFT),TRUE)
-  HEFFTE_HOME ?= ../../../heffte/
+  HEFFTE_HOME ?= ../../../../heffte/
 else ifeq ($(USE_HEFFTE_ROCFFT),TRUE)
-  HEFFTE_HOME ?= ../../../heffte/
+  HEFFTE_HOME ?= ../../../../heffte/
 endif
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
@@ -32,30 +26,6 @@ include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 VPATH_LOCATIONS   += .
 INCLUDE_LOCATIONS += .
 
-include ../../src_compressible_stag/Make.package
-VPATH_LOCATIONS   += ../../src_compressible_stag/
-INCLUDE_LOCATIONS += ../../src_compressible_stag/
-
-include ../../src_compressible/Make.package
-VPATH_LOCATIONS   += ../../src_compressible/
-INCLUDE_LOCATIONS += ../../src_compressible/
-
-include ../../src_chemistry/Make.package
-VPATH_LOCATIONS   += ../../src_chemistry/
-INCLUDE_LOCATIONS += ../../src_chemistry/
-
-include ../../src_MFsurfchem/Make.package
-VPATH_LOCATIONS   += ../../src_MFsurfchem/
-INCLUDE_LOCATIONS += ../../src_MFsurfchem/
-
-include ../../src_rng/Make.package
-VPATH_LOCATIONS   += ../../src_rng/
-INCLUDE_LOCATIONS += ../../src_rng/
-
-include ../../src_common/Make.package
-VPATH_LOCATIONS   += ../../src_common/
-INCLUDE_LOCATIONS += ../../src_common/
-
 ifeq ($(USE_HEFFTE_FFTW),TRUE)
   include $(HEFFTE_HOME)/src/Make.package
 else ifeq ($(USE_HEFFTE_CUFFT),TRUE)
@@ -64,12 +34,10 @@ else ifeq ($(USE_HEFFTE_ROCFFT),TRUE)
   include $(HEFFTE_HOME)/src/Make.package
 endif
 
+include ./Make.package
+
 include $(AMREX_HOME)/Src/Base/Make.package
 
-include ../../src_analysis/Make.package
-VPATH_LOCATIONS   += ../../src_analysis/
-INCLUDE_LOCATIONS += ../../src_analysis/
- 
 include $(AMREX_HOME)/Tools/GNUMake/Make.rules
 
 ifeq ($(USE_CUDA),TRUE)
@@ -95,6 +63,3 @@ else ifeq ($(USE_HEFFTE_CUFFT),TRUE)
 else ifeq ($(USE_HEFFTE_ROCFFT),TRUE)
   DEFINES += -DHEFFTE_ROCFFT
 endif
-
-MAXSPECIES := $(strip $(MAX_SPEC))
-DEFINES += -DMAX_SPECIES=$(MAXSPECIES)
