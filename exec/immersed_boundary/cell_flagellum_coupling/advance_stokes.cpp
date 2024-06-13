@@ -152,13 +152,82 @@ void advance_stokes(std::array<MultiFab, AMREX_SPACEDIM >& umac,
     // Interpolate particles for the cell body
     particles.ResetMarkers(0);
     particles.InterpolateMarkers(0, umacNew_buffer);
-    //particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
+    //particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check); //from Ions codes where it's done after Advance
     //particles.velNorm(); // need this?
+
+
+    //// check velocity difference btw two anchor markers on flagellum and two anchor particles on cell body////// 
+    Vector<Real> anchor_marker_vel(6); //storing 6 velocity components of 2 anchored markers on the flagellum
+    Vector<Real> anchor_particle_vel(6); //storing 6 velocity components of 2 anchored particles on the cell body
+
+    // getting velocities from two anchor markers on flagellum
+    for (IBMarIter pti(ib_mc, ib_lev); pti.isValid(); ++pti) {
+        // Get marker data (local to current thread)
+        TileIndex index(pti.index(), pti.LocalTileIndex());
+        AoS & markers = ib_mc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
+
+        long np = ib_mc.GetParticles(ib_lev).at(index).numParticles();
+
+        for (int i = 0; i < np; ++i) {
+
+            ParticleType & mark = markers[i];
+
+            if(mark.idata(IBMInt::id_1) == 0) {
+                anchor_marker_vel[0] = mark.rdata(IBMReal::velx);
+                anchor_marker_vel[1] = mark.rdata(IBMReal::vely);
+                anchor_marker_vel[2] = mark.rdata(IBMReal::velz);
+            }
+            if(mark.idata(IBMInt::id_1) == 1) {
+                anchor_marker_vel[3] = mark.rdata(IBMReal::velx);
+                anchor_marker_vel[4] = mark.rdata(IBMReal::vely);
+                anchor_marker_vel[5] = mark.rdata(IBMReal::velz);
+            }                
+        }
+    }
+
+    // getting velocities from two anchor particles on cell body
+    for (FhdParIter pti(particles, ib_lev); pti.isValid(); ++pti) {
+        // Get particle data (local to current thread)
+        TileIndex index(pti.index(), pti.LocalTileIndex());
+        auto & markers = particles.GetParticles(ib_lev).at(index).GetArrayOfStructs();
+
+        long np = particles.GetParticles(ib_lev).at(index).numParticles();
+
+        for (int i = 0; i < np; ++i) {
+
+            auto & mark = markers[i];
+
+            if(mark.idata(FHD_intData::id_global) == 0)  { //anchor particle in the inner layer of the cell body
+                anchor_particle_vel[0] = mark.rdata(IBMReal::velx);
+                anchor_particle_vel[1] = mark.rdata(IBMReal::vely);
+                anchor_particle_vel[2] = mark.rdata(IBMReal::velz);
+            }
+
+            if(mark.idata(FHD_intData::id_global) == 1)  { //anchor particle in the outer layer of the cell body
+                anchor_particle_vel[3] = mark.rdata(IBMReal::velx);
+                anchor_particle_vel[4] = mark.rdata(IBMReal::vely);
+                anchor_particle_vel[5] = mark.rdata(IBMReal::velz);
+            }
+        }
+    }
+
+    amrex::Print() << "The velocity of the first anchor marker on flagellum: " << anchor_marker_vel[0] << " i + "
+                   << anchor_marker_vel[1] << " j + " << anchor_marker_vel[2] << " k" << std::endl;
+    amrex::Print() << "The velocity of the second anchor marker on flagellum: " << anchor_marker_vel[3] << " i + "
+                   << anchor_marker_vel[4] << " j + " << anchor_marker_vel[5] << " k" << std::endl;
+
+    amrex::Print() << "The velocity of the first anchor particle on cell body: " << anchor_particle_vel[0] << " i + "
+                   << anchor_particle_vel[1] << " j + " << anchor_particle_vel[2] << " k" << std::endl;
+    amrex::Print() << "The velocity of the second anchor particle on cell body: " << anchor_particle_vel[3] << " i + "
+                   << anchor_particle_vel[4] << " j + " << anchor_particle_vel[5] << " k" << std::endl;
+
 
     //___________________________________________________________________________
     // Move markers according to velocity: x^(n+1) = x^n + dt/2 J(u^(n+1/2))
     // (constrain it to move in the z = constant plane only)
     constrain_ibm_marker(ib_mc, ib_lev, IBMReal::velz);
+    constrain_ibm_marker(particles, ib_lev, IBMReal::velz);
+
     //if(immbdy::contains_fourier)
     //    anchor_first_marker(ib_mc, ib_lev, IBMReal::velx);
     ib_mc.MoveMarkers(0, dt);
@@ -178,13 +247,13 @@ void advance_stokes(std::array<MultiFab, AMREX_SPACEDIM >& umac,
     // 3. Make anchor particles have same position as flagellum anchorpoints
     
     // Real anchor_markers[6]; //storing 2 positions or 6 coordinates of 2 anchored markers
-    Vector<Real> anchor_markers = get_anchor_markers(ib_mc, ib_lev, IBMReal::pred_posx);
-    move_anchor_particles(particles, ib_lev, IBMReal::pred_posx, anchor_markers); //working on it
+    // Vector<Real> anchor_markers = get_anchor_markers(ib_mc, ib_lev, IBMReal::pred_posx);
+    // move_anchor_particles(particles, ib_lev, IBMReal::pred_posx, anchor_markers); //working on it
     //above two can be combined into one function...
     particles.Redistribute();
     
-    Print() << "successfully move anchor particles to anchor markers' positions" << std::endl;
-    exit(0);
+    // Print() << "successfully move anchor particles to anchor markers' positions" << std::endl;
+    // exit(0);
 
 
     /////////////////////////////////////////////////////////////////
@@ -217,56 +286,67 @@ void advance_stokes(std::array<MultiFab, AMREX_SPACEDIM >& umac,
     particles.computeForcesBondGPU(simParticles);  //check Ion codes and update!!!!!!!!!!!!!!
 						   
     
-    //Step 2:
-    Vector<Real> anchor_marker_forces(6); //storing 6 force components of 2 anchored markers on the flagellum
-    Vector<Real> anchor_particle_forces(6); //storing 6 force components of 2 anchored particles on the cell body
+    //Step 2 (This may NOT be necessary as all the forces will be spread to fluid grid):??????????????????????
+//    Vector<Real> anchor_marker_forces(6); //storing 6 force components of 2 anchored markers on the flagellum
+//    Vector<Real> anchor_particle_forces(6); //storing 6 force components of 2 anchored particles on the cell body
 
-    for (IBMarIter pti(ib_mc, ib_lev); pti.isValid(); ++pti) {
-        // Get marker data (local to current thread)
-        TileIndex index(pti.index(), pti.LocalTileIndex());
-        AoS & markers = ib_mc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
 
-        long np = ib_mc.GetParticles(ib_lev).at(index).numParticles();
+    // getting forces from two anchor markers on flagellum
+//    for (IBMarIter pti(ib_mc, ib_lev); pti.isValid(); ++pti) {
+//        // Get marker data (local to current thread)
+//        TileIndex index(pti.index(), pti.LocalTileIndex());
+//        AoS & markers = ib_mc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
 
-        for (int i = 0; i < np; ++i) {
+//        long np = ib_mc.GetParticles(ib_lev).at(index).numParticles();
 
-            ParticleType & mark = markers[i];
+//        for (int i = 0; i < np; ++i) {
 
-            if(mark.idata(IBMInt::id_1) == 0) {
-		anchor_marker_forces[1] = mark.rdata(IBMReal::forcex);
-                anchor_marker_forces[2] = mark.rdata(IBMReal::forcey);
-                anchor_marker_forces[3] = mark.rdata(IBMReal::forcez);
-            }
-            if(mark.idata(IBMInt::id_1) == 1) {
-                anchor_marker_forces[4] = mark.rdata(IBMReal::forcex);
-                anchor_marker_forces[5] = mark.rdata(IBMReal::forcey);
-                anchor_marker_forces[6] = mark.rdata(IBMReal::forcez);
-            }                
-        }
-    }
+//            ParticleType & mark = markers[i];
 
-    // updating from 6/12
-    for (FhdParIter pti(particles, ib_lev); pti.isValid(); ++pti) {
+//            if(mark.idata(IBMInt::id_1) == 0) {
+//		anchor_marker_forces[0] = mark.rdata(IBMReal::forcex);
+//                anchor_marker_forces[1] = mark.rdata(IBMReal::forcey);
+//                anchor_marker_forces[2] = mark.rdata(IBMReal::forcez);
+//            }
+//            if(mark.idata(IBMInt::id_1) == 1) {
+//                anchor_marker_forces[3] = mark.rdata(IBMReal::forcex);
+//                anchor_marker_forces[4] = mark.rdata(IBMReal::forcey);
+//                anchor_marker_forces[5] = mark.rdata(IBMReal::forcez);
+//            }                
+//        }
+//    }
+
+    // getting forces from two anchor particles on cell body
+//    for (FhdParIter pti(particles, ib_lev); pti.isValid(); ++pti) {
         // Get particle data (local to current thread)
-        TileIndex index(pti.index(), pti.LocalTileIndex());
-        auto & markers = particles.GetParticles(ib_lev).at(index).GetArrayOfStructs();
+//        TileIndex index(pti.index(), pti.LocalTileIndex());
+//        auto & markers = particles.GetParticles(ib_lev).at(index).GetArrayOfStructs();
 
-        long np = particles.GetParticles(ib_lev).at(index).numParticles();
+//        long np = particles.GetParticles(ib_lev).at(index).numParticles();
 
         //Real get_anchor_markers[6]; //storing 6 coordinates of 2 anchored markers
 
-        for (int i = 0; i < np; ++i) {
+//        for (int i = 0; i < np; ++i) {
 
-            auto & mark = markers[i];
+//            auto & mark = markers[i];
 
-            if(mark.idata(FHD_intData::id_global) == 0)   //anchor particle in the inner layer of the cell body
-                for (int d=0; d<AMREX_SPACEDIM; ++d) mark.rdata(component + d) = anchor_markers[d];
-            if(mark.idata(FHD_intData::id_global) == 1)   //anchor particle in the outer layer of the cell body
-                for (int d=0; d<AMREX_SPACEDIM; ++d) mark.rdata(component + d) = anchor_markers[d+3];
-        }
-    }
+//            if(mark.idata(FHD_intData::id_global) == 0)  { //anchor particle in the inner layer of the cell body
+//                anchor_particle_forces[0] = mark.rdata(IBMReal::forcex);
+//                anchor_particle_forces[1] = mark.rdata(IBMReal::forcey);
+//                anchor_particle_forces[2] = mark.rdata(IBMReal::forcez);
+//            }
+
+//            if(mark.idata(FHD_intData::id_global) == 1)  { //anchor particle in the outer layer of the cell body
+//                anchor_particle_forces[3] = mark.rdata(IBMReal::forcex);
+//                anchor_particle_forces[4] = mark.rdata(IBMReal::forcey);
+//                anchor_particle_forces[5] = mark.rdata(IBMReal::forcez);
+//            }
+//        }
+//    }
     
-
+    /////////////////////////////////////////////////////////
+    // Continue? Add above forces between two sets of anchors? 
+    // //////////////////////////////////////////////////////
 
 
     // Sum predictor forces added to neighbors back to the real markers
