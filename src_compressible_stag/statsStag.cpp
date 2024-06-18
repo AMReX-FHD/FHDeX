@@ -301,8 +301,8 @@ void EvaluateStatsMeans(MultiFab& cons, MultiFab& consMean,
 
             Real intenergy = (cumeans(i,j,k,4)-kinenergy)/cumeans(i,j,k,0);
 
-            //primmeans(i,j,k,4) = (primmeans(i,j,k,4)*stepsminusone + prim(i,j,k,4))*stepsinv; // Tmean
-            GetTemperature(intenergy, fracvec, primmeans(i,j,k,4)); // Tmean
+            primmeans(i,j,k,4) = (primmeans(i,j,k,4)*stepsminusone + prim(i,j,k,4))*stepsinv; // Tmean
+            //GetTemperature(intenergy, fracvec, primmeans(i,j,k,4)); // Tmean
             //primmeans(i,j,k,5) = (primmeans(i,j,k,5)*stepsminusone + prim(i,j,k,5))*stepsinv; // Pmean
             GetPressureGas(primmeans(i,j,k,5), fracvec, cumeans(i,j,k,0), primmeans(i,j,k,4)); // Pmean
 
