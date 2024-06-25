@@ -221,6 +221,8 @@ void advance_stokes(std::array<MultiFab, AMREX_SPACEDIM >& umac,
     amrex::Print() << "The velocity of the second anchor particle on cell body: " << anchor_particle_vel[3] << " i + "
                    << anchor_particle_vel[4] << " j + " << anchor_particle_vel[5] << " k" << std::endl;
 
+    Print() << "Time to check if anchor particles and anchor markers share the same velocity" << std::endl;
+    //exit(0);
 
     //___________________________________________________________________________
     // Move markers according to velocity: x^(n+1) = x^n + dt/2 J(u^(n+1/2))
