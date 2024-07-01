@@ -324,6 +324,28 @@ void CCMoments(const amrex::MultiFab& m1,
   SumCC(mscr,0,prod_val,false);
 }
 
+void FCMoments(const std::array<MultiFab, AMREX_SPACEDIM>& m1,
+		       const amrex::Vector<int>& comps,
+               std::array<MultiFab, AMREX_SPACEDIM>&  mscr,
+		       const int& power,
+		       amrex::Vector<amrex::Real>& prod_val)
+{
+
+  BL_PROFILE_VAR("FCMoments()",FCMoments);
+
+  if (comps.size() != AMREX_SPACEDIM) amrex::Abort("FCMoments:: Vector of comps needs to same size as AMREX_SPACEDIM");
+  if (prod_val.size() != AMREX_SPACEDIM) amrex::Abort("FCMoments:: Vector of prod_val needs to same size as AMREX_SPACEDIM");
+
+  for (int d=0; d<AMREX_SPACEDIM; ++d) {
+    MultiFab::Copy(mscr[d],m1[d],comps[d],0,1,0);
+    for(int i=1; i<power; i++){
+      MultiFab::Multiply(mscr[d],m1[d],comps[d],0,1,0);
+    }
+  }
+  SumStag(mscr,prod_val,false);
+}
+
+
 void StagL2Norm(const std::array<MultiFab, AMREX_SPACEDIM>& m1,
 		const int& comp,
                 std::array<MultiFab, AMREX_SPACEDIM>& mscr,

@@ -215,7 +215,6 @@ struct FHD_intData {
     static Vector<std::string> names() {
         return Vector<std::string> {
             "sorted",
-            "id_global",
             "i",
             "j",
             "k",

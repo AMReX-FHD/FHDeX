@@ -1,4 +1,4 @@
-#ifndef _StructFact_H
+#ifndef _StructFact_H_
 #define _StructFact_H_
 
 #include <AMReX.H>
@@ -6,13 +6,23 @@
 #include <AMReX_Vector.H>
 #include <AMReX_VisMF.H>
 
-// These are for FFTW or cuFFT
+// These are for FFTW / cuFFT / rocFFT
+
 #ifdef AMREX_USE_CUDA
 #include <cufft.h>
+#elif AMREX_USE_HIP
+#  if __has_include(<rocfft/rocfft.h>)  // ROCm 5.3+
+#    include <rocfft/rocfft.h>
+#  else
+#    include <rocfft.h>
+#  endif
 #else
 #include <fftw3.h>
+#if AMREX_USE_MPI
 #include <fftw3-mpi.h>
 #endif
+#endif
+
 #include <AMReX_GpuComplex.H>
 
 #include <string>
@@ -33,6 +43,9 @@ class StructFact {
 
     // Total number of states to average over, updated by FortStructure()
     int nsamples = 0;
+
+    // decompose velocity field
+    bool decompose = false;
 
     // Vector containing covariance scaling
     Vector< Real > scaling;
@@ -57,9 +70,11 @@ public:
     // Vector of MultiFabs containing final magnitude of covariances
     MultiFab cov_mag;
 
-    // Vector stores real and imaginary component of dynamic structure factor
-    MultiFab dsf_real;
-    MultiFab dsf_imag;
+    // MultiFabs of real/imag for solenoidal/dilatational
+    MultiFab vel_sol_real;
+    MultiFab vel_sol_imag;
+    MultiFab vel_dil_real;
+    MultiFab vel_dil_imag;
 
     StructFact();
 
@@ -85,17 +100,32 @@ public:
                 const amrex::Vector< int >&, const amrex::Vector< int >&,
                 const int& verbosity=0);
 
+    void defineDecomp(const amrex::BoxArray&, const amrex::DistributionMapping&, 
+                      const amrex::Vector< std::string >&,
+                      const amrex::Vector< amrex::Real >&,
+                      const amrex::Vector< int >&,
+                      const amrex::Vector< int >&);
+
     void FortStructure(const amrex::MultiFab&, const amrex::Geometry&,
                        const int& reset=0);
 
-    void DynStructureDens(const amrex::MultiFab&, 
-		          const amrex::MultiFab&, const amrex::MultiFab&,
-		          const amrex::Geometry&, const Real& ktarg, const int& reset=0, const int& zero_avg=1);
+    void FortStructureDecomp(const amrex::MultiFab& vel, const amrex::Geometry& geom,
+                             const int& reset=0);
+
+    void DecomposeVelFourier(const amrex::MultiFab& vel_dft_real, 
+                             const amrex::MultiFab& vel_dft_imag, 
+                             const amrex::Geometry& geom);
 
     void Reset();
     
     void ComputeFFT(const amrex::MultiFab&, amrex::MultiFab&,
-                    amrex::MultiFab&, const amrex::Geometry&);
+                    amrex::MultiFab&, const amrex::Geometry&,
+                    bool unpack=true);
+    
+    void InverseFFT(amrex::MultiFab&, const amrex::MultiFab&,
+                    const amrex::MultiFab&, const amrex::Geometry&);
+
+    void GetDecompVel(amrex::MultiFab&, const amrex::Geometry&); 
     
     void WritePlotFile(const int, const amrex::Real, const amrex::Geometry&, 
                        std::string, const int& zero_avg=1);
@@ -108,7 +138,12 @@ public:
     void ShiftFFT(amrex::MultiFab&,  const Geometry& geom,
                   const int& zero_avg=1);
 
-    void IntegratekShells(const int& step, const amrex::Geometry& geom);
+    void IntegratekShells(const int& step, const amrex::Geometry& geom, const std::string& name="");
+
+    void IntegratekShellsScalar(const int& step, const amrex::Geometry& geom, const amrex::Vector< std::string >& names);
+
+    void IntegratekShellsDecomp(const int& step, const amrex::Geometry& geom, 
+                                const std::string& name_sol="vel_sol", const std::string& name_dil="vel_dil");
 
     void AddToExternal(amrex::MultiFab& x_mag, amrex::MultiFab& x_realimag, const amrex::Geometry&, const int& zero_avg=1);
 

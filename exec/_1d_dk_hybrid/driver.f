@@ -161,11 +161,12 @@ c        if(jpartl.gt.1 .and.jpartr .lt.npts)then
          if(is_hybrid.eq.0 .or .is_pure_part.eq.0)then
 
          do j=1,npts+1
-         do l=1,2
+c        do l=1,2
 
-            call blinvnormdist(ranflux(j,l))
+c           call blinvnormdist(ranflux(j,l))
+            call blinvnormdist(ranflux(j,1))
 
-         enddo
+c        enddo
          enddo
 
 
