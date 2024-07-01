@@ -197,13 +197,13 @@ void advance_stokes(std::array<MultiFab, AMREX_SPACEDIM >& umac,
 
             auto & mark = markers[i];
 
-            if(mark.idata(FHD_intData::id_global) == 0)  { //anchor particle in the inner layer of the cell body
+            if(mark.idata(FHD_intData::id_global) == 47)  { //anchor particle in the inner layer of the cell body
                 anchor_particle_vel[0] = mark.rdata(IBMReal::velx);
                 anchor_particle_vel[1] = mark.rdata(IBMReal::vely);
                 anchor_particle_vel[2] = mark.rdata(IBMReal::velz);
             }
 
-            if(mark.idata(FHD_intData::id_global) == 1)  { //anchor particle in the outer layer of the cell body
+            if(mark.idata(FHD_intData::id_global) == 95)  { //anchor particle in the outer layer of the cell body
                 anchor_particle_vel[3] = mark.rdata(IBMReal::velx);
                 anchor_particle_vel[4] = mark.rdata(IBMReal::vely);
                 anchor_particle_vel[5] = mark.rdata(IBMReal::velz);
@@ -228,7 +228,7 @@ void advance_stokes(std::array<MultiFab, AMREX_SPACEDIM >& umac,
     // Move markers according to velocity: x^(n+1) = x^n + dt/2 J(u^(n+1/2))
     // (constrain it to move in the z = constant plane only)
     constrain_ibm_marker(ib_mc, ib_lev, IBMReal::velz);
-    constrain_ibm_marker(particles, ib_lev, IBMReal::velz);
+    // constrain_ibm_marker(particles, ib_lev, IBMReal::velz);
 
     //if(immbdy::contains_fourier)
     //    anchor_first_marker(ib_mc, ib_lev, IBMReal::velx);
@@ -285,7 +285,9 @@ void advance_stokes(std::array<MultiFab, AMREX_SPACEDIM >& umac,
     particles.ResetMarkers(0);
 
     // Update bond forces on cell body particles
-    particles.computeForcesBondGPU(simParticles);  //check Ion codes and update!!!!!!!!!!!!!!
+    // //this calls compute_forces_bond_gpu, which then calls bond_hookian (if bond_tog == 1) or bond_fene (bond_tog == 2)
+    int simParticles = 48*2;
+    particles.computeForcesBondGPU(simParticles);
 						   
     
     //Step 2 (This may NOT be necessary as all the forces will be spread to fluid grid):??????????????????????
@@ -372,8 +374,8 @@ void advance_stokes(std::array<MultiFab, AMREX_SPACEDIM >& umac,
 
     // Spread particle forces
     particles.SpreadIonsGPU(dx, dxp, geom, umac, RealFaceCoords, efieldCC, source, sourceTemp); //needs update. copied from Ions code
-
-
+    // this includes SpreadMarkersGpu(lev, sourceTemp, coords, dxFluid, 1), sourceTemp[].SumBoundary/FillBoundary etc 
+   
     //___________________________________________________________________________
     // Compute pressure, and pressure gradient due to the BC: gp = Gp
     // Note that the pressure gradient due to the BC is left unchanged

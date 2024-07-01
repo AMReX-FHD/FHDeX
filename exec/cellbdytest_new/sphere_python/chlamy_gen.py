@@ -23,11 +23,16 @@ def create_sphere_points(center, radius, num_points):
         else:
             phi = (phi + 3.6 * inv_sqrt_n / math.sqrt(1 - ck**2)) % (2 * math.pi)
 
-        # Convert to Cartesian coordinates
-        x = center[0] + radius * np.sin(theta) * np.cos(phi)
-        y = center[1] + radius * np.sin(theta) * np.sin(phi)
-        z = center[2] + radius * np.cos(theta)
+        # Spiral around z. Convert to Cartesian coordinates
+        # x = center[0] + radius * np.sin(theta) * np.cos(phi)
+        # y = center[1] + radius * np.sin(theta) * np.sin(phi)
+        # z = center[2] + radius * np.cos(theta)
 
+        # Spiral around x. Convert to Cartesian coordinates
+        y = center[1] + radius * np.sin(theta) * np.cos(phi)
+        z = center[2] + radius * np.sin(theta) * np.sin(phi)
+        x = center[0] + radius * np.cos(theta)
+        
         # Append the coordinates to the points list
         points.append([x, y, z,])
 
@@ -38,14 +43,15 @@ def create_sphere_points(center, radius, num_points):
 
 
 # Create two point clouds representing spheres with different radii
-center = (12, 6, 6)
-radius1 = 50
-radius2 = 49
-num_points = 20
+center = (15.5, 10, 10)
+radius2 = 5.0 # 5um in cm outer radius
+radius1 = 5.0 - 10.0/20  # make sure the thickness equal to marker distance, 4.5um, on flagellum
+num_points = 48
 
 points1 = create_sphere_points(center, radius1, num_points)
 points2 = create_sphere_points(center, radius2, num_points)
 point=np.vstack((points1,points2))
+#point_all=np.vstack((points1,points2,marker_points))
 #print("coordinates:")
 #print("1:",points1)
 #print("2:",points2)
@@ -84,6 +90,7 @@ def map_points(delaunay):
             id=i,
             coord=tuple(delaunay.points[i, :]),
             neighbors=tuple(delaunay.point_neighbors(i))
+            
         )
     return pt_map
 pts = map_points(delaunay)
@@ -98,8 +105,8 @@ for i in range(delaunay.n_cells):
 
 #Generates particles.dat 
 
-scaler=1e-05  #for scaling any coord,bond length etc
-move=1e-03 # move the cell body
+scaler=1.0e-04  #for scaling any coord,bond length etc from um to cm
+move=0; # ??? 1e-03 # move the cell body
 
 with open("particles.dat", "w") as f:
     for idx in pts.keys():
@@ -138,21 +145,34 @@ if os.path.exists("particles.dat"):
     print("bonds.csv created!!!!")
 else:
     print("Failed to create bonds.csv!!! :(")
- 
+
+
+marker_points = []
+y = 10*scaler
+z = 10*scaler
+for i in range(23):
+    # Compute x of marker positions
+    x = (20 + 0.5 * i)*scaler
+    marker_points.append([x, y, z,])
+marker_points = np.array(marker_points)
+
 
 # Plot the point clouds and their Delaunay triangulations using PyVista's plotting capabilities
 edges.plot(line_width=1,color='k')
 p = pyv.Plotter()
-p.add_mesh(delaunay, color='lightblue', opacity=0.5, show_edges=True)
+p.add_axes()
+p.add_mesh(delaunay, color='lightblue', opacity=0.6, show_edges=True)
 p.add_points(point_cloud,scalars='Point ID', cmap='coolwarm', point_size=6)
 p.add_mesh(pyv.Sphere(center=center, radius=radius1), color='red', opacity=0.2)
-p.add_mesh(pyv.Sphere(center=center, radius=radius2), color='blue', opacity=0.2)
+p.add_mesh(pyv.Sphere(center=center, radius=radius2), color='green', opacity=0.2)
 p.show()
 
 
-
-
-
+p1 = pyv.Plotter()
+#p1.add_points(point_cloud, color = 'red', point_size=6)
+p1.add_points(marker_points, color = 'green', point_size=6)
+p1.add_axes()
+p1.show()
 
 
 #extra stuff for optimization or settings
