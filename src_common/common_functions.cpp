@@ -51,16 +51,18 @@ int                        common::print_int;
 int                        common::project_eos_int;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::grav;
 AMREX_GPU_MANAGED int      common::nspecies;
+AMREX_GPU_MANAGED int      common::ngroups;
 AMREX_GPU_MANAGED int      common::nbonds;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::molmass;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::rhobar;
 AMREX_GPU_MANAGED amrex::Real common::rho0;
-AMREX_GPU_MANAGED amrex::Real common::mach0;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::diameter;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::dof;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::e0;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::hcv;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::hcp;
+AMREX_GPU_MANAGED amrex::Real common::k;
+AMREX_GPU_MANAGED amrex::Real common::x0;
 
 AMREX_GPU_MANAGED amrex::Real common::variance_coef_mom;
 AMREX_GPU_MANAGED amrex::Real common::variance_coef_mass;
@@ -156,14 +158,16 @@ amrex::Real                   common::phonon_sound_speed;
 amrex::Real                   common::tau_ta;
 amrex::Real                   common::tau_la;
 amrex::Real                   common::tau_i;
-int                           common::toggleTimeFrac;
 
 int                           common::struct_fact_int;
 int                           common::radialdist_int;
 int                           common::cartdist_int;
 int                           common::n_steps_skip;
+int                           common::dsf_flag;
+int                           common::dsf_fft;
 AMREX_GPU_MANAGED amrex::Real common::binSize;
 AMREX_GPU_MANAGED amrex::Real common::searchDist;
+AMREX_GPU_MANAGED amrex::Real common::ktarg;
 int                           common::project_dir;
 int                           common::slicepoint;
 amrex::Vector<int>            common::max_grid_projection;
@@ -205,6 +209,9 @@ AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::rmax_wall;
 AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_SPECIES>         common::msd_int;
 AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_SPECIES>         common::msd_len;
 
+AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_GROUPS>         common::msd_grp_int;
+AMREX_GPU_MANAGED amrex::GpuArray<int, MAX_GROUPS>         common::msd_grp_len;
+
 int                        common::poisson_verbose;
 int                        common::poisson_bottom_verbose;
 int                        common::poisson_max_iter;
@@ -226,6 +233,8 @@ int                        common::move_tog;
 int                        common::rfd_tog;
 AMREX_GPU_MANAGED int      common::dry_move_tog;
 AMREX_GPU_MANAGED int      common::sr_tog;
+AMREX_GPU_MANAGED int      common::bond_tog;
+AMREX_GPU_MANAGED int      common::pinMatrix_tog;
 int                        common::graphene_tog;
 int	                   common::thermostat_tog;
 int	                   common::zero_net_force;
@@ -245,12 +254,9 @@ int                        common::plot_covars;
 int                        common::plot_cross;
 int                        common::particle_motion;
 
-AMREX_GPU_MANAGED amrex::Real common::turb_a;
-AMREX_GPU_MANAGED amrex::Real common::turb_b;
-AMREX_GPU_MANAGED amrex::Real common::turb_c;
-AMREX_GPU_MANAGED amrex::Real common::turb_d;
-AMREX_GPU_MANAGED amrex::Real common::turb_alpha;
-AMREX_GPU_MANAGED int         common::turbForcing;
+amrex::Real                common::turb_a;
+amrex::Real                common::turb_b;
+int                        common::turbForcing;
 
 
 void InitializeCommonNamespace() {
@@ -374,6 +380,11 @@ void InitializeCommonNamespace() {
         msd_len[i] = 0;
     }
 
+    for (int i=0; i<MAX_GROUPS; ++i) {
+        msd_grp_int[i] = 0;
+        msd_grp_len[i] = 0;
+    }
+
     // Time-step control
     fixed_dt = 1.;
     cfl = 0.5;
@@ -406,7 +417,8 @@ void InitializeCommonNamespace() {
         rhobar[i] = 1.;
     }
     rho0 = 1.;
-    mach0 = -1.0;
+    k = 2.e4;
+    x0 = 1.e-8;
 
     // Kinetic parameters
     nspecies = 2;
@@ -414,6 +426,7 @@ void InitializeCommonNamespace() {
         molmass[i] = 1.;
         diameter[i] = 1.;
     }
+    ngroups = 0;
     nbonds = 0;
 
     // dof (no default)
@@ -539,15 +552,17 @@ void InitializeCommonNamespace() {
     tau_i = 2.95e45;
     tau_ta = 9.3e13;
     tau_la = 2.0e24;
-    toggleTimeFrac = 1;
 
     // structure factor and radial/cartesian pair correlation function analysis
     struct_fact_int = 0;
     radialdist_int = 0;
     cartdist_int = 0;
     n_steps_skip = 0;
+    dsf_flag = 0;
+    dsf_fft = 0;
     binSize = 0.;
     searchDist = 0.;
+    ktarg = 0.;
 
     // projection
     project_dir = -1;
@@ -594,6 +609,8 @@ void InitializeCommonNamespace() {
     // rfd_tog (no default)
     // dry_move_tog (no default)
     // sr_tog (no default)
+    // bond_tog (no default)
+    pinMatrix_tog = 0;
     graphene_tog = 0;
     crange = 5;
     thermostat_tog = 0;
@@ -618,9 +635,6 @@ void InitializeCommonNamespace() {
     // turblent forcing parameters
     turb_a = 1.;
     turb_b = 1.;
-    turb_c = 1.;
-    turb_d = 1.;
-    turb_alpha = 1.;
     turbForcing = 0;
 
     // DSMC Granular
@@ -647,6 +661,7 @@ void InitializeCommonNamespace() {
     // pp.getarr and queryarr("string",inputs,start_indx,count); can be used for arrays
 
     pp.query("nspecies",nspecies);
+    pp.query("ngroups",ngroups);
     pp.query("nbonds",nbonds);
     
     if (pp.queryarr("prob_lo",temp)) {
@@ -732,7 +747,6 @@ void InitializeCommonNamespace() {
         }
     }
     pp.query("rho0",rho0);
-    pp.query("mach0",mach0);
     if (pp.queryarr("diameter",temp,0,nspecies)) {
         for (int i=0; i<nspecies; ++i) {
             diameter[i] = temp[i];
@@ -758,6 +772,9 @@ void InitializeCommonNamespace() {
             hcp[i] = temp[i];
         }
     }
+    pp.query("k",k);
+    pp.query("x0",x0);
+
     pp.query("variance_coef_mom",variance_coef_mom);
     pp.query("variance_coef_mass",variance_coef_mass);
     pp.query("variance_coef_ener",variance_coef_ener);
@@ -991,17 +1008,19 @@ void InitializeCommonNamespace() {
             potential_hi[i] = temp[i];
         }
     }
+    pp.query("ktarg",ktarg);
     pp.query("dsmc_boundaries",dsmc_boundaries);
     pp.query("n_burn",n_burn);
     pp.query("phonon_sound_speed",phonon_sound_speed);
     pp.query("tau_i",tau_i);
     pp.query("tau_ta",tau_ta);
     pp.query("tau_la",tau_la);
-    pp.query("toggleTimeFrac",toggleTimeFrac);
     pp.query("struct_fact_int",struct_fact_int);
     pp.query("radialdist_int",radialdist_int);
     pp.query("cartdist_int",cartdist_int);
     pp.query("n_steps_skip",n_steps_skip);
+    pp.query("dsf_flag",dsf_flag);
+    pp.query("dsf_fft",dsf_fft);
     pp.query("binSize",binSize);
     pp.query("searchDist",searchDist);
     pp.query("project_dir",project_dir);
@@ -1109,6 +1128,18 @@ void InitializeCommonNamespace() {
             rmax_wall[i] = temp[i];
         }
     }
+
+    if (pp.queryarr("msd_grp_int",temp_int,0,ngroups)) {
+        for (int i=0; i<ngroups; ++i) {
+            msd_grp_int[i] = temp_int[i];
+        }
+    }
+    if (pp.queryarr("msd_grp_len",temp_int,0,ngroups)) {
+        for (int i=0; i<ngroups; ++i) {
+            msd_grp_len[i] = temp_int[i];
+	}
+    }
+
     pp.query("poisson_verbose",poisson_verbose);
     pp.query("poisson_bottom_verbose",poisson_bottom_verbose);
     pp.query("poisson_max_iter",poisson_max_iter);
@@ -1126,6 +1157,8 @@ void InitializeCommonNamespace() {
     pp.query("rfd_tog",rfd_tog);
     pp.query("dry_move_tog",dry_move_tog);
     pp.query("sr_tog",sr_tog);
+    pp.query("bond_tog",bond_tog);
+    pp.query("pinMatrix_tog",pinMatrix_tog);
     pp.query("graphene_tog",graphene_tog);
     pp.query("thermostat_tog",thermostat_tog);
     pp.query("zero_net_force",zero_net_force);
@@ -1143,13 +1176,10 @@ void InitializeCommonNamespace() {
     pp.query("particle_motion",particle_motion);
     pp.query("turb_a",turb_a);
     pp.query("turb_b",turb_b);
-    pp.query("turb_c",turb_c);
-    pp.query("turb_d",turb_d);
-    pp.query("turb_alpha",turb_alpha);
     pp.query("turbForcing",turbForcing);
 
     if (nspecies > MAX_SPECIES) {
-        Abort("InitializeCommonNamespace: nspecies > MAX_SPECIES; re-compile with a larger MAX_SPEC as a compiler input");
+        Abort("InitializeCommonNamespace: nspecies > MAX_SPECIES");
     }
 
     if (wallspeed_x_lo[0] != 0.) {

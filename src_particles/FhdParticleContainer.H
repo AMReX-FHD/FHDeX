@@ -53,6 +53,9 @@ struct FHD_realData {
         ax,
         ay,
         az,
+        oforcex,
+        oforcey,
+        oforcez,
         travelTime,
         diffAv,
         stepCount,
@@ -63,8 +66,32 @@ struct FHD_realData {
         sigma,
         eepsilon,
         potential,
-	    p3m_radius,
+	p3m_radius,
         spring,
+        bondCoeff1_1,
+	bondCoeff1_2,
+	bondCoeff1_3,
+	bondCoeff1_4,
+	bondCoeff1_5,
+	bondCoeff1_6,
+	bondCoeff1_7,
+	bondCoeff1_8,
+	bondCoeff1_9,
+	bondCoeff1_10,
+	bondCoeff1_11,
+	bondCoeff1_12,
+        bondCoeff2_1,
+	bondCoeff2_2,
+	bondCoeff2_3,
+	bondCoeff2_4,
+	bondCoeff2_5,
+	bondCoeff2_6,
+	bondCoeff2_7,
+	bondCoeff2_8,
+	bondCoeff2_9,
+	bondCoeff2_10,
+	bondCoeff2_11,
+	bondCoeff2_12,
         omega,
         lambda,
         count    // Awesome little trick! (only works if first field is 0)
@@ -89,39 +116,66 @@ struct FHD_realData {
             "pred_forcey",
             "pred_forcez",
             "vx",
-        "vy",
-        "vz",
-        "fx",
-        "fy",
-        "fz",
-        "ux",
-        "uy",
-        "uz",
-        "mass",
-        "R",
-        "q",
-        "accelFactor",
-        "dragFactor",
-        "ox",
-        "oy",
-        "oz",
-        "ax",
-        "ay",
-        "az",
-        "travelTime",
-        "diffAv",
-        "stepCount",
-        "multi",
-        "dryDiff",
-        "wetDiff",
-        "totalDiff",
-        "sigma",
-        "eepsilon",
-        "potential",
-	    "p3m_radius",
-        "spring",
-        "omega",
-        "lambda"
+            "vy",
+            "vz",
+            "fx",
+            "fy",
+            "fz",
+            "ux",
+            "uy",
+            "uz",
+            "mass",
+            "R",
+            "q",
+            "accelFactor",
+            "dragFactor",
+            "ox",
+            "oy",
+            "oz",
+            "ax",
+            "ay",
+            "az",
+            "oforcex",
+            "oforcey",
+            "oforcez",
+            "travelTime",
+            "diffAv",
+            "stepCount",
+            "multi",
+            "dryDiff",
+            "wetDiff",
+            "totalDiff",
+            "sigma",
+            "eepsilon",
+            "potential",
+     	    "p3m_radius",
+            "spring",
+            "bondCoeff1_1",
+	    "bondCoeff1_2",
+	    "bondCoeff1_3",
+	    "bondCoeff1_4",
+	    "bondCoeff1_5",
+	    "bondCoeff1_6",
+	    "bondCoeff1_7",
+	    "bondCoeff1_8",
+	    "bondCoeff1_9",
+	    "bondCoeff1_10",
+	    "bondCoeff1_11",
+	    "bondCoeff1_12",
+            "bondCoeff2_1",
+	    "bondCoeff2_2",
+	    "bondCoeff2_3",
+	    "bondCoeff2_4",
+	    "bondCoeff2_5",
+	    "bondCoeff2_6",
+	    "bondCoeff2_7",
+	    "bondCoeff2_8",
+	    "bondCoeff2_9",
+	    "bondCoeff2_10",
+	    "bondCoeff2_11",
+	    "bondCoeff2_12",
+	    "omega",
+            "lambda"
         };
     };
 };
@@ -132,12 +186,28 @@ struct FHD_intData {
     //Analogous to particle intData (p.m_data)
     enum {
         sorted,
+	id_global,
         i,
         j,
         k,
         species,
         visible,
         pinned,
+        groupid,
+//        prev,
+//        next,
+        bond1,
+	bond2,
+	bond3,
+	bond4,
+	bond5,
+	bond6,
+	bond7,
+	bond8,
+	bond9,
+	bond10,
+	bond11,
+	bond12,
         newSpecies,
         count
     };
@@ -145,12 +215,28 @@ struct FHD_intData {
     static Vector<std::string> names() {
         return Vector<std::string> {
             "sorted",
+            "id_global",
             "i",
             "j",
             "k",
             "species",
             "visible",
             "pinned",
+	    "groupid",
+//	    "prev",
+//	    "next",
+	    "bond1", 
+	    "bond2", 
+	    "bond3", 
+	    "bond4", 
+	    "bond5", 
+	    "bond6", 
+	    "bond7", 
+	    "bond8", 
+	    "bond9", 
+	    "bond10", 
+	    "bond11", 
+	    "bond12", 
             "new_species"
         };
     };
@@ -227,10 +313,12 @@ public:
 
     void forceFunction(Real dt);
     void velNorm();
+    void velAddShear();
     void pinForce();
     void potentialDistribution(long totalParticles, const int step, const species* particleInfo);
 
     void fillMobilityMatrix(int id, int comp);
+    void fillMobilityMatrix(int id, int comp, const std::map<int,int>& id_global_map);
     void clearMobilityMatrix();
     void writeMat();
 
@@ -244,11 +332,17 @@ public:
     
     void PrintParticles();
     void SetPosition(int id, Real x, Real y, Real z);
+    void SetPosition(int id, Real x, Real y, Real z, const std::map<int,int>& id_global_map);
     void SetVel(int id, Real x, Real y, Real z);
+    void SetVel(int id, Real x, Real y, Real z, const std::map<int,int>& id_global_map);
     void SetForce(int id, Real x, Real y, Real z);
+    void SetForce(int id, Real x, Real y, Real z, const std::map<int,int>& id_global_map);
     void writeVel(int id);
+    void writeVel(int id, const std::map<int,int>& id_global_map);
 
     void MeanSqrCalc(int lev, int step);
+    void MeanSqrCalcCM(int lev, int step);
+    void stressP(int lev, int step);
 
     void BuildCorrectionTable(const Real* dx, int setMeasureFinal);
 
@@ -265,6 +359,10 @@ public:
     void computeForcesNLGPU(const MultiFab& charge, const MultiFab& coords, const Real* dx);
 
     void computeForcesCoulombGPU(long totalParticles);
+
+    void computeForcesSpringGPU(long totalParticles);
+    void computeForcesFENEGPU(long totalParticles);
+    void computeForcesBondGPU(long totalParticles);
 
     void MoveParticlesDSMC(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount,Real time, int* flux);
 
@@ -328,6 +426,7 @@ public:
     void TwoParticleCorrelation();
     
     void GetAllParticlePositions(Real* posx, Real* posy, Real* posz, int totalParticles);
+    void GetAllParticlePositions(Vector<Real>& posxVec, Vector<Real>& posyVec, Vector<Real>& poszVec, Vector<Real>& axVec, Vector<Real>& ayVec, Vector<Real>& azVec);
 
 
     /****************************************************************************
@@ -349,6 +448,8 @@ public:
 
 
     void ReBin();
+
+    void UpdatePIDMap();
 
     static bool use_neighbor_list;
     static bool sort_neighbor_list;
@@ -410,6 +511,12 @@ public:
     // primitive data for passing the above into Fortran
     std::map<int, amrex::BaseFab<int> > m_vector_size;
     std::map<int, amrex::BaseFab<int*> > m_vector_ptrs;
+
+    // mapping id_pulldown (which uses id() and cpu()) to global id
+    std::map<int,int> id_global_map;
+
+    // used to store vector of particle id_global for pinned particles
+    amrex::Vector<int> pinnedParticlesIDGlobal;
 
     // used to keep track of whether we need to rebuild the above or not
     bool m_vectors_initialized = false;

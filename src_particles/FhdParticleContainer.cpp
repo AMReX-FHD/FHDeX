@@ -3,6 +3,7 @@
 #include "particle_functions_K.H"
 #include "paramplane_functions_K.H"
 #include <math.h>
+#include "StructFact.H"
 
 bool FhdParticleContainer::use_neighbor_list  {true};
 bool FhdParticleContainer::sort_neighbor_list {false};
@@ -354,6 +355,80 @@ void FhdParticleContainer::velNorm()
 
 }
 
+void FhdParticleContainer::velAddShear()
+{
+
+   Real velShear_x;
+   Real velShear_y;
+   Real velShear_z;
+   Real xvel_y = 0.0;
+   Real xvel_z = 0.0;
+   Real yvel_x = 0.0;
+   Real yvel_z = 0.0;
+   Real zvel_x = 0.0;
+   Real zvel_y = 0.0;
+
+
+   const int lev = 0;
+
+   Real prob_lo_x = prob_lo[0];
+   Real prob_lo_y = prob_lo[1];
+   Real prob_lo_z = prob_lo[2];
+
+   if (pinned_y != prob_lo[1]) {
+      prob_lo_y = pinned_y;
+   }
+   
+   for (FhdParIter pti(*this, lev, MFItInfo().SetDynamic(false)); pti.isValid(); ++pti) {
+      
+        PairIndex index(pti.index(), pti.LocalTileIndex());
+        AoS& particles = pti.GetArrayOfStructs();
+        int np = pti.numParticles();
+
+        const Box& tile_box  = pti.tilebox();
+
+        Real maxUtile = 0;
+        Real maxDtile = 0;
+
+         for (int i = 0; i < np; ++i) {
+
+            ParticleType & part = particles[i];
+
+
+            if(part.idata(FHD_intData::pinned) == 0)
+            {   
+		if (part.pos(0) >= prob_lo_x) {
+		   yvel_x = (wallspeed_x_hi_real[1]-wallspeed_x_lo_real[1])/(prob_hi[0]-prob_lo_x)*(part.pos(0)-prob_lo_x)+wallspeed_x_lo_real[1];
+		   zvel_x = (wallspeed_x_hi_real[2]-wallspeed_x_lo_real[2])/(prob_hi[0]-prob_lo_x)*(part.pos(0)-prob_lo_x)+wallspeed_x_lo_real[2];
+		}
+		if (part.pos(1) >= prob_lo_y) {
+		   xvel_y = (wallspeed_y_hi_real[0]-wallspeed_y_lo_real[0])/(prob_hi[1]-prob_lo_y)*(part.pos(1)-prob_lo_y)+wallspeed_y_lo_real[0];
+		   //Print() << "X-velocity from shear on y-wall is " << xvel_y << std::endl;
+		   zvel_y = (wallspeed_y_hi_real[2]-wallspeed_y_lo_real[2])/(prob_hi[1]-prob_lo_y)*(part.pos(1)-prob_lo_y)+wallspeed_y_lo_real[2];
+		}
+		if (part.pos(2) >= prob_lo_z) {
+		   xvel_z = (wallspeed_z_hi_real[0]-wallspeed_z_lo_real[0])/(prob_hi[2]-prob_lo_z)*(part.pos(2)-prob_lo_z)+wallspeed_z_lo_real[0];
+		   yvel_z = (wallspeed_z_hi_real[1]-wallspeed_z_lo_real[1])/(prob_hi[2]-prob_lo_z)*(part.pos(2)-prob_lo_z)+wallspeed_z_lo_real[1];
+		}
+		
+	        velShear_x = xvel_y+xvel_z;
+		//Print() << "added shear in x is " << velShear_x << std::endl;
+                velShear_y = yvel_x+yvel_z;
+		//Print() << "added shear in y is " << velShear_y << std::endl;
+                velShear_z = zvel_x+zvel_y;
+		//Print() << "added shear in z is " << velShear_z << std::endl;
+
+                part.rdata(FHD_realData::velx) += velShear_x;
+                part.rdata(FHD_realData::vely) += velShear_y;
+                part.rdata(FHD_realData::velz) += velShear_z;
+
+                //Print() << "Velocity after adding shear" << ", " << part.rdata(FHD_realData::velx) << std::endl;
+            }
+
+         }
+    }
+}
+
 void FhdParticleContainer::computeForcesNLGPU(const MultiFab& charge, const MultiFab& coords, const Real* dx) {
 
     BL_PROFILE_VAR("computeForcesNL()",computeForcesNL);
@@ -371,7 +446,6 @@ void FhdParticleContainer::computeForcesNLGPU(const MultiFab& charge, const Mult
     if(doRedist != 0)
     {
         fillNeighbors();
-
         buildNeighborList(CHECK_PAIR{});
     }
 
@@ -387,9 +461,8 @@ void FhdParticleContainer::computeForcesNLGPU(const MultiFab& charge, const Mult
 
         if (sr_tog != 0)
         {
-
             compute_forces_nl_gpu(particles, Np, Nn,
-                              m_neighbor_list[lev][index], topList, bottomList, topListLength, bottomListLength, rcount, rdcount);           
+            m_neighbor_list[lev][index], topList, bottomList, topListLength, bottomListLength, rcount, rdcount);           
         }
 
         if (es_tog==3)
@@ -543,6 +616,873 @@ void FhdParticleContainer::computeForcesCoulombGPU(long totalParticles) {
     Print() << "Finished Coulomb calculation\n";
 }
 
+/* currently commented out for bond representations WIP
+void FhdParticleContainer::computeForcesFENEGPU(long totalParticles) {
+
+    BL_PROFILE_VAR("computeForcesFENE()",computeForcesFENE);
+
+    using namespace amrex;
+    using common::images;
+
+    GpuArray<Real, 3> plo = {prob_lo[0], prob_lo[1], prob_lo[2]};
+    GpuArray<Real, 3> phi = {prob_hi[0], prob_hi[1], prob_hi[2]};
+
+    const int lev = 0;
+    double domx, domy, domz;
+
+    domx = (phi[0] - plo[0]);
+    domy = (phi[1] - plo[1]);
+    domz = (phi[2] - plo[2]);
+
+//    Real posx[totalParticles];
+    Gpu::ManagedVector<Real> posx;
+    posx.resize(totalParticles);
+    Real * posxPtr = posx.dataPtr();
+    
+    Gpu::ManagedVector<Real> posy;
+    posy.resize(totalParticles);
+    Real * posyPtr = posy.dataPtr();
+    
+    Gpu::ManagedVector<Real> posz;
+    posz.resize(totalParticles);
+    Real * poszPtr = posz.dataPtr();
+
+    Gpu::ManagedVector<int> groupid;
+    groupid.resize(totalParticles);
+    int * groupidPtr = groupid.dataPtr();
+    
+    Gpu::ManagedVector<int> prev;
+    prev.resize(totalParticles);
+    int * prevPtr = prev.dataPtr();
+    
+    Gpu::ManagedVector<int> next;
+    next.resize(totalParticles);
+    int * nextPtr = next.dataPtr();
+
+    Print() << "Calculating FENE force for molecules\n";
+
+    // collect particle positions onto one processor
+    PullDown(0, posxPtr, FHD_realData::ax, totalParticles);
+    PullDown(0, posyPtr, FHD_realData::ay, totalParticles);
+    PullDown(0, poszPtr, FHD_realData::az, totalParticles);
+    PullDownInt(0, groupidPtr, FHD_intData::groupid, totalParticles);
+    PullDownInt(0, prevPtr, FHD_intData::prev, totalParticles);
+    PullDownInt(0, nextPtr, FHD_intData::next, totalParticles);
+
+    //Print() << groupidPtr[1] << "\n";
+    int imag = (images == 0) ? 1 : images;
+
+    Real maxdist = 0.99*amrex::min(imag * domx,
+                                   imag * domy,
+                                   imag * domz);
+    Real sumdr2[ngroups];
+    Real sumdx2[ngroups];
+    int nbonds[ngroups];
+    Real l_e2e_x[ngroups];
+    Real l_e2e_y[ngroups];
+    Real l_e2e_z[ngroups];
+    Real l2_e2e[ngroups];
+    Real pos_cmx[ngroups];
+    Real pos_cmy[ngroups];
+    Real pos_cmz[ngroups];
+    Real pos_cm[ngroups];
+    Real rg2x[ngroups];
+    Real rg2y[ngroups];
+    Real rg2z[ngroups];
+    Real rg2[ngroups];
+    int groupCount[ngroups];
+    //Real travelTime[ngroups];
+    for (int i=0; i<ngroups; i++){
+        sumdr2[i]=0;
+        sumdx2[i]=0;
+        nbonds[i]=0;
+        l_e2e_x[i]=0;
+        l_e2e_y[i]=0;
+        l_e2e_z[i]=0;
+        l2_e2e[i]=0;
+	pos_cmx[i]=0;
+	pos_cmy[i]=0;
+	pos_cmz[i]=0;
+	pos_cm[i]=0;
+	rg2x[i]=0;
+	rg2y[i]=0;
+	rg2z[i]=0;
+	rg2[i]=0;
+	groupCount[i]=0;
+        //travelTime[ngroups]=0;
+    }
+
+    for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) {
+
+        const int grid_id = pti.index();
+        const int tile_id = pti.LocalTileIndex();
+
+        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+        auto& particles = particle_tile.GetArrayOfStructs();
+        const int np = particles.numParticles();
+
+        auto pstruct = particles().dataPtr();
+       
+        // loop over particles
+//                for(int i = 0; i < np; i++)
+        AMREX_FOR_1D( np, i,
+        {
+
+            ParticleType & part = pstruct[i];
+
+	    //cout << part.idata(FHD_intData::groupid) << "\n";
+
+	    if (part.idata(FHD_intData::groupid) > 0)
+	    { 
+               double dr2;
+               double rtdr2;
+	       double rlogarg;
+               double dx;
+               double dy;
+               double dz;
+
+               int igroup = part.idata(FHD_intData::groupid)-1;
+	       // Calculate center of mass location in this for loop
+	       //   Currently need another loop to calculate radius of gyration
+	       //   TODO: calculate radius of gyration in this loop?
+	       pos_cmx[igroup] += part.rdata(FHD_realData::ax);
+	       pos_cmy[igroup] += part.rdata(FHD_realData::ay);
+	       pos_cmz[igroup] += part.rdata(FHD_realData::az);
+	       groupCount[igroup]++;
+               //travelTime[igroup] = part.rdata(FHD_realData::travelTime);
+
+	       // Calculate end-to-end vector of a polymer
+	       if (part.idata(FHD_intData::prev) == -1)// This is the start of the polymer i
+	       {
+	          l_e2e_x[igroup] -= part.rdata(FHD_realData::ax);
+	          l_e2e_y[igroup] -= part.rdata(FHD_realData::ay);
+	          l_e2e_z[igroup] -= part.rdata(FHD_realData::az);
+
+	       }
+
+	       if (part.idata(FHD_intData::next) == -1)// This is the end of the polymer i
+	       {
+	          l_e2e_x[igroup] += part.rdata(FHD_realData::ax);
+	          l_e2e_y[igroup] += part.rdata(FHD_realData::ay);
+	          l_e2e_z[igroup] += part.rdata(FHD_realData::az);
+
+	       }
+               //for(int j = 0; j < totalParticles; j++)
+               //{
+
+	           //TODO: find a way to figure out the particles before and after part in this group
+	           //if (groupidPtr[j] == 1)
+	           //{
+                       for(int ii = -images; ii <= images; ii++)
+                       {
+                          for(int jj = -images; jj <= images; jj++)
+	                  {
+                              for(int kk = -images; kk <= images; kk++)
+                              {
+
+				 // For now, one particle on the chain only interact with
+				 //   one particle before and one particle after. 
+
+	                         //Print() << part.idata(FHD_intData::prev) << "\n";
+                                 // get distance with previous particle
+				 if (part.idata(FHD_intData::prev) > -1) 
+				 {
+                                    dx = part.rdata(FHD_realData::ax)-posxPtr[part.idata(FHD_intData::prev)] - ii*domx;
+                                    dy = part.rdata(FHD_realData::ay)-posyPtr[part.idata(FHD_intData::prev)] - jj*domy;
+                                    dz = part.rdata(FHD_realData::az)-poszPtr[part.idata(FHD_intData::prev)] - kk*domz;
+
+	               	            dr2 = dx*dx + dy*dy + dz*dz;
+                                    rtdr2 = sqrt(dr2);
+				    rlogarg = 1.0 - dr2/x0/x0;
+				    //cout << rtdr2 << "\n";
+				    sumdx2[igroup] += (rtdr2-x0)*(rtdr2-x0);
+				    sumdr2[igroup] += dr2;
+				    nbonds[igroup]++;
+
+				    if (rlogarg < 0.1) {
+				       cout << "FENE bond too long" << "\n";
+				       rlogarg = 0.1;
+				    } 
+                                    part.rdata(FHD_realData::forcex) += -k*dx/rlogarg;
+                                    part.rdata(FHD_realData::forcey) += -k*dy/rlogarg;
+                                    part.rdata(FHD_realData::forcez) += -k*dz/rlogarg;
+				    //cout << part.rdata(FHD_realData::forcex) << "\n";
+				 }
+                                 
+	                         //Print() << part.idata(FHD_intData::next) << "\n";
+				 // get distance with next particle
+				 if (part.idata(FHD_intData::next) > -1) 
+				 {
+                                    dx = part.rdata(FHD_realData::ax)-posxPtr[part.idata(FHD_intData::next)] - ii*domx;
+                                    dy = part.rdata(FHD_realData::ay)-posyPtr[part.idata(FHD_intData::next)] - jj*domy;
+                                    dz = part.rdata(FHD_realData::az)-poszPtr[part.idata(FHD_intData::next)] - kk*domz;
+
+	               	            dr2 = dx*dx + dy*dy + dz*dz;
+                                    rtdr2 = sqrt(dr2);
+				    rlogarg = 1.0 - dr2/x0/x0;
+				    //cout << rtdr2 << "\n";
+
+				    if (rlogarg < 0.1) {
+				       cout << "FENE bond too long" << "\n";
+				       if (rlogarg <= -3.0) {
+					  cout << "Bad FENE bond" << "\n";
+				       }
+				       rlogarg = 0.1;
+				    } 
+                                    part.rdata(FHD_realData::forcex) += -k*dx/rlogarg;
+                                    part.rdata(FHD_realData::forcey) += -k*dy/rlogarg;
+                                    part.rdata(FHD_realData::forcez) += -k*dz/rlogarg;
+				    //cout << part.rdata(FHD_realData::forcex) << "\n";
+				    
+				 }
+
+	                      }
+	                  }
+	               }
+	           //}
+	       //}
+	    }
+        });
+    }
+    
+    for(int i=0;i<ngroups;i++)
+    {
+        Real temp = sumdr2[i];        
+        ParallelDescriptor::ReduceRealSum(temp);
+        sumdr2[i] = temp;
+
+        temp = sumdx2[i];        
+        ParallelDescriptor::ReduceRealSum(temp);
+        sumdx2[i] = temp;
+
+        temp = l_e2e_x[i];        
+        ParallelDescriptor::ReduceRealSum(temp);
+        l_e2e_x[i] = temp;
+
+        temp = l_e2e_y[i];        
+        ParallelDescriptor::ReduceRealSum(temp);
+        l_e2e_y[i] = temp;
+
+        temp = l_e2e_z[i];        
+        ParallelDescriptor::ReduceRealSum(temp);
+        l_e2e_z[i] = temp;
+
+	l2_e2e[i] = l_e2e_x[i]*l_e2e_x[i] + l_e2e_y[i]*l_e2e_y[i] + l_e2e_z[i]*l_e2e_z[i];
+
+        //temp = travelTime[i];        
+        //ParallelDescriptor::ReduceRealMax(temp);
+        //travelTime[i] = temp;
+
+        int itemp = nbonds[i];        
+        ParallelDescriptor::ReduceIntSum(itemp);
+        nbonds[i] = itemp;
+
+        itemp = groupCount[i];        
+        ParallelDescriptor::ReduceIntSum(itemp);
+        groupCount[i] = itemp;
+
+        temp = pos_cmx[i];        
+        ParallelDescriptor::ReduceRealSum(temp);
+        pos_cmx[i] = temp;
+
+        temp = pos_cmy[i];        
+        ParallelDescriptor::ReduceRealSum(temp);
+        pos_cmy[i] = temp;
+
+        temp = pos_cmz[i];        
+        ParallelDescriptor::ReduceRealSum(temp);
+        pos_cmz[i] = temp;
+
+	if (groupCount[i] != 0)
+	{
+	   pos_cmx[i] /= groupCount[i];
+	   pos_cmy[i] /= groupCount[i];
+	   pos_cmz[i] /= groupCount[i];
+	}
+    }
+
+    // Loop over all particles again to calculate radius of gyration with respect to center of mass
+    //   probably can be improved later
+    for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) {
+
+        const int grid_id = pti.index();
+        const int tile_id = pti.LocalTileIndex();
+
+        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+        auto& particles = particle_tile.GetArrayOfStructs();
+        const int np = particles.numParticles();
+
+       
+
+        auto pstruct = particles().dataPtr();
+       
+       
+       
+        AMREX_FOR_1D( np, i,
+        {
+	    
+	    ParticleType & part = pstruct[i];
+
+	    //cout << part.idata(FHD_intData::groupid) << "\n";
+
+	    if (part.idata(FHD_intData::groupid) > 0)
+	    { 
+               int igroup = part.idata(FHD_intData::groupid)-1;
+
+	       rg2x[igroup] += pow(part.rdata(FHD_realData::ax)-pos_cmx[igroup],2);
+	       rg2y[igroup] += pow(part.rdata(FHD_realData::ay)-pos_cmy[igroup],2);
+	       rg2z[igroup] += pow(part.rdata(FHD_realData::az)-pos_cmz[igroup],2);
+	    }
+
+	});
+    }
+
+    for(int i=0;i<ngroups;i++)
+    {
+        Real temp = rg2x[i];        
+        ParallelDescriptor::ReduceRealSum(temp);
+        rg2x[i] = temp;
+
+        temp = rg2y[i];        
+        ParallelDescriptor::ReduceRealSum(temp);
+        rg2y[i] = temp;
+
+        temp = rg2z[i];        
+        ParallelDescriptor::ReduceRealSum(temp);
+        rg2z[i] = temp;
+
+	rg2[i] = rg2x[i]+rg2y[i]+rg2z[i];
+
+	// For now we assume equal-mass monomers,
+	//   so it is a simple average
+	if (groupCount[i] != 0)
+	{
+	   rg2[i] /= groupCount[i];
+	}
+    }
+
+
+    if(ParallelDescriptor::MyProc() == 0) {
+
+       for(int i=0;i<ngroups;i++)
+       {
+           std::string specname = Concatenate("bondEst_",i+1);
+           std::ofstream ofs(specname, std::ofstream::app);
+
+           ofs << sumdr2[i] << "  " << sumdx2[i] << "  " << l2_e2e[i] << "  " << rg2[i] << "  " << nbonds[i] << std::endl;
+       }
+    }
+
+    Print() << "Finished FENE calculation\n";
+}
+*/
+
+/* currently commented out for bond representations WIP
+void FhdParticleContainer::computeForcesSpringGPU(long totalParticles) {
+
+    BL_PROFILE_VAR("computeForcesSpring",computeForcesSpring);
+
+    using namespace amrex;
+    using common::images;
+
+    //Real k = 2.e4;
+    //Real x0 = 1.e-8;
+    Real b = sqrt(3*k_B*T_init[0]/k);
+
+    GpuArray<Real, 3> plo = {prob_lo[0], prob_lo[1], prob_lo[2]};
+    GpuArray<Real, 3> phi = {prob_hi[0], prob_hi[1], prob_hi[2]};
+
+    const int lev = 0;
+    double domx, domy, domz;
+
+    domx = (phi[0] - plo[0]);
+    domy = (phi[1] - plo[1]);
+    domz = (phi[2] - plo[2]);
+
+//    Real posx[totalParticles];
+    Gpu::ManagedVector<Real> posx;
+    posx.resize(totalParticles);
+    Real * posxPtr = posx.dataPtr();
+    
+    Gpu::ManagedVector<Real> posy;
+    posy.resize(totalParticles);
+    Real * posyPtr = posy.dataPtr();
+    
+    Gpu::ManagedVector<Real> posz;
+    posz.resize(totalParticles);
+    Real * poszPtr = posz.dataPtr();
+
+    Gpu::ManagedVector<int> groupid;
+    groupid.resize(totalParticles);
+    int * groupidPtr = groupid.dataPtr();
+    
+    Gpu::ManagedVector<int> prev;
+    prev.resize(totalParticles);
+    int * prevPtr = prev.dataPtr();
+    
+    Gpu::ManagedVector<int> next;
+    next.resize(totalParticles);
+    int * nextPtr = next.dataPtr();
+
+    Print() << "Calculating spring force for molecules\n";
+
+    // collect particle positions onto one processor
+    PullDown(0, posxPtr, FHD_realData::ax, totalParticles);
+    PullDown(0, posyPtr, FHD_realData::ay, totalParticles);
+    PullDown(0, poszPtr, FHD_realData::az, totalParticles);
+    PullDownInt(0, groupidPtr, FHD_intData::groupid, totalParticles);
+    PullDownInt(0, prevPtr, FHD_intData::prev, totalParticles);
+    PullDownInt(0, nextPtr, FHD_intData::next, totalParticles);
+
+    //Print() << groupidPtr[1] << "\n";
+    int imag = (images == 0) ? 1 : images;
+
+    Real maxdist = 0.99*amrex::min(imag * domx,
+                                   //imag * domy,
+                                   imag * domz);
+    Real sumdr2[ngroups];
+    Real sumdx2[ngroups];
+    int nbonds[ngroups];
+    Real l_e2e_x[ngroups];
+    Real l_e2e_y[ngroups];
+    Real l_e2e_z[ngroups];
+    Real l2_e2e[ngroups];
+    Real pos_cmx[ngroups];
+    Real pos_cmy[ngroups];
+    Real pos_cmz[ngroups];
+    Real pos_cm[ngroups];
+    Real rg2x[ngroups];
+    Real rg2y[ngroups];
+    Real rg2z[ngroups];
+    Real rg2[ngroups];
+    int groupCount[ngroups];
+    //Real travelTime[ngroups];
+    for (int i=0; i<ngroups; i++){
+        sumdr2[i]=0;
+        sumdx2[i]=0;
+        nbonds[i]=0;
+        l_e2e_x[i]=0;
+        l_e2e_y[i]=0;
+        l_e2e_z[i]=0;
+        l2_e2e[i]=0;
+	pos_cmx[i]=0;
+	pos_cmy[i]=0;
+	pos_cmz[i]=0;
+	pos_cm[i]=0;
+	rg2x[i]=0;
+	rg2y[i]=0;
+	rg2z[i]=0;
+	rg2[i]=0;
+	groupCount[i]=0;
+        //travelTime[ngroups]=0;
+    }
+
+    for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) {
+
+        const int grid_id = pti.index();
+        const int tile_id = pti.LocalTileIndex();
+
+        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+        auto& particles = particle_tile.GetArrayOfStructs();
+        const int np = particles.numParticles();
+
+       
+
+        auto pstruct = particles().dataPtr();
+       
+       
+       
+        // loop over particles
+//                for(int i = 0; i < np; i++)
+        AMREX_FOR_1D( np, i,
+        {
+
+            ParticleType & part = pstruct[i];
+
+	    //cout << part.idata(FHD_intData::groupid) << "\n";
+
+	    if (part.idata(FHD_intData::groupid) > 0)
+	    { 
+               double dr2;
+               double rtdr2;
+               double dx;
+               double dy;
+               double dz;
+
+               int igroup = part.idata(FHD_intData::groupid)-1;
+	       // Calculate center of mass location in this for loop
+	       //   Currently need another loop to calculate radius of gyration
+	       //   TODO: calculate radius of gyration in this loop?
+	       pos_cmx[igroup] += part.rdata(FHD_realData::ax);
+	       pos_cmy[igroup] += part.rdata(FHD_realData::ay);
+	       pos_cmz[igroup] += part.rdata(FHD_realData::az);
+	       groupCount[igroup]++;
+               //travelTime[igroup] = part.rdata(FHD_realData::travelTime);
+
+	       // Calculate end-to-end vector of a polymer
+	       if (part.idata(FHD_intData::prev) == -1)// This is the start of the polymer i
+	       {
+	          l_e2e_x[igroup] -= part.rdata(FHD_realData::ax);
+	          l_e2e_y[igroup] -= part.rdata(FHD_realData::ay);
+	          l_e2e_z[igroup] -= part.rdata(FHD_realData::az);
+
+	       }
+
+	       if (part.idata(FHD_intData::next) == -1)// This is the end of the polymer i
+	       {
+	          l_e2e_x[igroup] += part.rdata(FHD_realData::ax);
+	          l_e2e_y[igroup] += part.rdata(FHD_realData::ay);
+	          l_e2e_z[igroup] += part.rdata(FHD_realData::az);
+
+	       }
+               //for(int j = 0; j < totalParticles; j++)
+               //{
+
+	           //TODO: find a way to figure out the particles before and after part in this group
+	           //if (groupidPtr[j] == 1)
+	           //{
+                       for(int ii = -images; ii <= images; ii++)
+                       {
+                          for(int jj = -images; jj <= images; jj++)
+	                  {
+                              for(int kk = -images; kk <= images; kk++)
+                              {
+
+				 // For now, one particle on the chain only interact with
+				 //   one particle before and one particle after. 
+
+	                         //Print() << part.idata(FHD_intData::prev) << "\n";
+                                 // get distance with previous particle
+				 if (part.idata(FHD_intData::prev) > -1) 
+				 {
+                                    dx = part.rdata(FHD_realData::ax)-posxPtr[part.idata(FHD_intData::prev)] - ii*domx;
+                                    dy = part.rdata(FHD_realData::ay)-posyPtr[part.idata(FHD_intData::prev)] - jj*domy;
+                                    dz = part.rdata(FHD_realData::az)-poszPtr[part.idata(FHD_intData::prev)] - kk*domz;
+
+	               	            dr2 = dx*dx + dy*dy + dz*dz;
+                                    rtdr2 = sqrt(dr2);
+				    if (rtdr2 > b*2+x0) {
+				       cout << "Bad Hookian bond" << "\n";
+				    }
+				    //cout << rtdr2 << "\n";
+				    sumdx2[igroup] += (rtdr2-x0)*(rtdr2-x0);
+				    sumdr2[igroup] += dr2;
+				    nbonds[igroup]++;
+
+                 	            if (rtdr2 > 0.0)
+                                    {
+                                       part.rdata(FHD_realData::forcex) += k*(-dx/rtdr2)*(rtdr2-x0);
+                                       part.rdata(FHD_realData::forcey) += k*(-dy/rtdr2)*(rtdr2-x0);
+                                       part.rdata(FHD_realData::forcez) += k*(-dz/rtdr2)*(rtdr2-x0);
+				       //cout << part.rdata(FHD_realData::forcex) << "\n";
+				    }
+				 }
+                                 
+	                         //Print() << part.idata(FHD_intData::next) << "\n";
+				 // get distance with next particle
+				 if (part.idata(FHD_intData::next) > -1) 
+				 {
+                                    dx = part.rdata(FHD_realData::ax)-posxPtr[part.idata(FHD_intData::next)] - ii*domx;
+                                    dy = part.rdata(FHD_realData::ay)-posyPtr[part.idata(FHD_intData::next)] - jj*domy;
+                                    dz = part.rdata(FHD_realData::az)-poszPtr[part.idata(FHD_intData::next)] - kk*domz;
+
+	               	            dr2 = dx*dx + dy*dy + dz*dz;
+                                    rtdr2 = sqrt(dr2);
+				    if (rtdr2 > b*2+x0) {
+				       cout << "Bad Hookian bond" << "\n";
+				    }
+				    //cout << rtdr2 << "\n";
+
+                 	            if (rtdr2 > 0.0)
+                                    {
+                                       part.rdata(FHD_realData::forcex) += k*(-dx/rtdr2)*(rtdr2-x0);
+                                       part.rdata(FHD_realData::forcey) += k*(-dy/rtdr2)*(rtdr2-x0);
+                                       part.rdata(FHD_realData::forcez) += k*(-dz/rtdr2)*(rtdr2-x0);
+				       //cout << part.rdata(FHD_realData::forcex) << "\n";
+				    }
+				 }
+
+	                      }
+	                  }
+	               }
+	           //}
+	       //}
+	    }
+        });
+    }
+    
+    for(int i=0;i<ngroups;i++)
+    {
+        Real temp = sumdr2[i];        
+        ParallelDescriptor::ReduceRealSum(temp);
+        sumdr2[i] = temp;
+
+        temp = sumdx2[i];        
+        ParallelDescriptor::ReduceRealSum(temp);
+        sumdx2[i] = temp;
+
+        temp = l_e2e_x[i];        
+        ParallelDescriptor::ReduceRealSum(temp);
+        l_e2e_x[i] = temp;
+
+        temp = l_e2e_y[i];        
+        ParallelDescriptor::ReduceRealSum(temp);
+        l_e2e_y[i] = temp;
+
+        temp = l_e2e_z[i];        
+        ParallelDescriptor::ReduceRealSum(temp);
+        l_e2e_z[i] = temp;
+
+	l2_e2e[i] = l_e2e_x[i]*l_e2e_x[i] + l_e2e_y[i]*l_e2e_y[i] + l_e2e_z[i]*l_e2e_z[i];
+
+        //temp = travelTime[i];        
+        //ParallelDescriptor::ReduceRealMax(temp);
+        //travelTime[i] = temp;
+
+        int itemp = nbonds[i];        
+        ParallelDescriptor::ReduceIntSum(itemp);
+        nbonds[i] = itemp;
+
+        itemp = groupCount[i];        
+        ParallelDescriptor::ReduceIntSum(itemp);
+        groupCount[i] = itemp;
+
+        temp = pos_cmx[i];        
+        ParallelDescriptor::ReduceRealSum(temp);
+        pos_cmx[i] = temp;
+
+        temp = pos_cmy[i];        
+        ParallelDescriptor::ReduceRealSum(temp);
+        pos_cmy[i] = temp;
+
+        temp = pos_cmz[i];        
+        ParallelDescriptor::ReduceRealSum(temp);
+        pos_cmz[i] = temp;
+
+	if (groupCount[i] != 0)
+	{
+	   pos_cmx[i] /= groupCount[i];
+	   pos_cmy[i] /= groupCount[i];
+	   pos_cmz[i] /= groupCount[i];
+	}
+    }
+
+    // Loop over all particles again to calculate radius of gyration with respect to center of mass
+    //   probably can be improved later
+    for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) {
+
+        const int grid_id = pti.index();
+        const int tile_id = pti.LocalTileIndex();
+
+        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+        auto& particles = particle_tile.GetArrayOfStructs();
+        const int np = particles.numParticles();
+
+       
+
+        auto pstruct = particles().dataPtr();
+       
+       
+       
+        AMREX_FOR_1D( np, i,
+        {
+	    
+	    ParticleType & part = pstruct[i];
+
+	    //cout << part.idata(FHD_intData::groupid) << "\n";
+
+	    if (part.idata(FHD_intData::groupid) > 0)
+	    { 
+               int igroup = part.idata(FHD_intData::groupid)-1;
+
+	       rg2x[igroup] += pow(part.rdata(FHD_realData::ax)-pos_cmx[igroup],2);
+	       rg2y[igroup] += pow(part.rdata(FHD_realData::ay)-pos_cmy[igroup],2);
+	       rg2z[igroup] += pow(part.rdata(FHD_realData::az)-pos_cmz[igroup],2);
+	    }
+
+	});
+    }
+
+    for(int i=0;i<ngroups;i++)
+    {
+        Real temp = rg2x[i];        
+        ParallelDescriptor::ReduceRealSum(temp);
+        rg2x[i] = temp;
+
+        temp = rg2y[i];        
+        ParallelDescriptor::ReduceRealSum(temp);
+        rg2y[i] = temp;
+
+        temp = rg2z[i];        
+        ParallelDescriptor::ReduceRealSum(temp);
+        rg2z[i] = temp;
+
+	rg2[i] = rg2x[i]+rg2y[i]+rg2z[i];
+
+	// For now we assume equal-mass monomers,
+	//   so it is a simple average
+	if (groupCount[i] != 0)
+	{
+	   rg2[i] /= groupCount[i];
+	}
+    }
+
+
+    if(ParallelDescriptor::MyProc() == 0) {
+
+       for(int i=0;i<ngroups;i++)
+       {
+           std::string specname = Concatenate("bondEst_",i+1);
+           std::ofstream ofs(specname, std::ofstream::app);
+
+           ofs << sumdr2[i] << "  " << sumdx2[i] << "  " << l2_e2e[i] << "  " << rg2[i] << "  " << nbonds[i] << std::endl;
+       }
+    }
+
+    Print() << "Finished spring force calculation\n";
+
+
+}
+*/
+
+void FhdParticleContainer::computeForcesBondGPU(long totalParticles) {
+
+    BL_PROFILE_VAR("computeForcesBond",computeForcesBond);
+
+    using namespace amrex;
+
+    const int lev = 0;
+
+//    Real posx[totalParticles];
+    //Gpu::ManagedVector<Real> posx;
+    //posx.resize(totalParticles);
+    //Real * posxPtr = posx.dataPtr();
+    //
+    //Gpu::ManagedVector<Real> posy;
+    //posy.resize(totalParticles);
+    //Real * posyPtr = posy.dataPtr();
+    //
+    //Gpu::ManagedVector<Real> posz;
+    //posz.resize(totalParticles);
+    //Real * poszPtr = posz.dataPtr();
+
+    //Gpu::ManagedVector<int> groupid;
+    //groupid.resize(totalParticles);
+    //int * groupidPtr = groupid.dataPtr();
+    Vector<Real> posxVec(totalParticles);
+    Vector<Real> posyVec(totalParticles);
+    Vector<Real> poszVec(totalParticles);
+    Vector<int> groupidVec(totalParticles);
+
+    Print() << "Calculating bond force for molecules\n";
+
+    // collect particle positions onto one processor
+    PullDown(0, posxVec, -1);
+    PullDown(0, posyVec, -2);
+    PullDown(0, poszVec, -3);
+    PullDownInt(0, groupidVec, FHD_intData::groupid);
+
+    //Print() << groupidPtr[1] << "\n";
+
+    /*----outside-for-loop method: building force vectors-------------------------------------------------------------------------*/
+    //Vectors for storing forces in each direction
+    //Vector<Real> fx(totalParticles);
+    //for (auto & x:fx) x = 0.;
+    //Vector<Real> fy(totalParticles);
+    //for (auto & x:fy) x = 0.;
+    //Vector<Real> fz(totalParticles);
+    //for (auto & x:fz) x = 0.;
+
+    //// calculate force vectors on rank 0, and update particle attributes using MPI/GPU
+    ////   requires bond input file have no repeated bonds, e.g. input file only has 1-2, no 2-1
+    ////   we use id_global as the indices for the force vectors
+    //for (int i_part=0; i_part<totalParticles; i_part++) { // i_part is the id_global for atom1
+
+    //    int p1 = id_global_map[i_part]; // p1 is the mapped index for atom1 based on PID Map
+
+    //    for (int i_bond=head_index[i_part]; i_bond<head_index[i_part+1]; i_bond++) { // head_index stores atom2 that is bonded to atom1, where atom1 is sorted based on id_global with ascending order
+
+    //        int p2 = id_global_map[bond_atom[i_bond]]; // bond_atom[i_bond] is the id_global for atom2; p2 is the mapped index for atom2 based on PID Map
+
+    //        Real k = bond_type[i_bond];
+    //        Real dx = posxVec[p1] - posxVec[p2];
+    //        Real dy = posyVec[p1] - posyVec[p2];
+    //        Real dz = poszVec[p1] - poszVec[p2];
+    //        Real dr2 = dx*dx + dy*dy + dz*dz;
+    //        Real rtdr2 = sqrt(dr2);
+
+    //        if (rtdr2 > 0.0)
+    //        {
+    //           RealVect f_bond;
+
+    //           if (bond_tog = 1) { // hookian bond
+    //               f_bond = bond_hookian_vec(dx, dy, dz, rtdr2, k, x0);
+    //           } else if (bond_tog == 2) { // FENE bond
+    //               f_bond = bond_fene_vec(dx, dy, dz, rtdr2, k, x0);
+    //           }
+
+    //           fx[i_part] += f_bond[0];
+    //           fy[i_part] += f_bond[1];
+    //           fz[i_part] += f_bond[2];
+    //           
+    //           fx[bond_atom[i_bond]] -= f_bond[0];
+    //           fy[bond_atom[i_bond]] -= f_bond[1];
+    //           fz[bond_atom[i_bond]] -= f_bond[2];
+    //           //cout << part.rdata(FHD_realData::forcex) << "\n";
+    //        }
+    //    }
+    //}
+    /*----outside-for-loop method: end building force vectors-------------------------------------------------------------------------*/
+
+    if (bond_tog != 0)
+    {
+        for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) {
+
+            const int grid_id = pti.index();
+            const int tile_id = pti.LocalTileIndex();
+
+            auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+            auto& particles = particle_tile.GetArrayOfStructs();
+            const int np = particles.numParticles();
+
+            auto pstruct = particles().dataPtr();
+           
+            /*----outside-for-loop method: updating particle attributes-------------------------------------------------------------------------*/
+            // loop over particles
+            //AMREX_FOR_1D( np, i,
+            //{
+
+            //    ParticleType & part = pstruct[i];
+
+            //    //cout << part.idata(FHD_intData::groupid) << "\n";
+
+            //    if (part.idata(FHD_intData::groupid) > 0)
+            //    { 
+            //       // update using force vector (no calculation here) 
+            //       part.rdata(FHD_realData::forcex) += fx[part.idata(FHD_intData::id_global)];
+            //       part.rdata(FHD_realData::forcey) += fy[part.idata(FHD_intData::id_global)];
+            //       part.rdata(FHD_realData::forcez) += fz[part.idata(FHD_intData::id_global)];
+
+            //    }
+            //});
+            /*----outside-for-loop method: end updating particle attributes-------------------------------------------------------------------------*/
+
+            /*----inside-for-loop method: updating particle attributes-------------------------------------------------------------------------*/
+            /* this section celculates bond forces inside the for loop
+             * there may be a few ways to do so:
+             * 1) init particles using full bond input file, which has repeated bond info, e.g. has both 1-2 and 2-1
+             * 2) not using full bond list, but simultaneously update forces of two bonds associated with the bond. Race condition?
+             * using 1) for now...
+             */
+            
+            compute_forces_bond_gpu(particles, np, id_global_map, posxVec, posyVec, poszVec);
+        }	
+	/*----inside-for-loop method: updating particle attributes-------------------------------------------------------------------------*/
+	
+    }
+
+}
+
 
 void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const Real* dxE, const Geometry geomF,
                                     const std::array<MultiFab, AMREX_SPACEDIM>& umac, const std::array<MultiFab, AMREX_SPACEDIM>& efield,
@@ -589,6 +1529,10 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
     if(all_dry != 1)
     {
     InterpolateMarkersGpu(0, dxFluid, umac, RealFaceCoords,check);
+    /* Uncomment this section to add external shear to particle velocities after interpolation (2-step advance for shear, Delong et al. 2014); also need to uncomment a later velAddShear().
+    //velAddShear();
+    */
+
     if(move_tog == 2)
     {
         //// Set up reducing operation across gpu (instead of ParallelFor)
@@ -623,7 +1567,8 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
 
                 ParticleType & part = particles[i];
 
-		        GpuArray<Real, 3> posOld;
+		
+	        GpuArray<Real, 3> posOld;
                 GpuArray<Real, 3> velOld;
                 GpuArray<Real, 3> posAlt;
 
@@ -641,12 +1586,12 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
                         Real runtime = 0.5*dt;
                         Real inttime = 0;
                         int midpoint = 0;
-			            int intsurf, intside, push;
+	                int intsurf, intside, push;
 
                         while(runtime > 0)
                         {
-                            //find_inter(&part, &runtime, paramPlaneList, &paramPlaneCount, &intsurf, &inttime, &intside, AMREX_ZFILL(plo), AMREX_ZFILL(phi));
-                            find_inter_gpu(part, runtime, paramPlaneList, paramPlaneCount, &intsurf, &inttime, &intside, AMREX_ZFILL(plo), AMREX_ZFILL(phi));
+                            //find_inter(&part, &runtime, paramPlaneList, &paramPlaneCount, &intsurf, &inttime, &intside, ZFILL(plo), ZFILL(phi));
+                            find_inter_gpu(part, runtime, paramPlaneList, paramPlaneCount, &intsurf, &inttime, &intside, ZFILL(plo), ZFILL(phi));
 		            
                             for (int d=0; d<AMREX_SPACEDIM; ++d)
                             {
@@ -678,7 +1623,6 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
 
                                   for (int d=0; d<AMREX_SPACEDIM; ++d)
                                   {
-                 
                                     part.pos(d) += runtime * part.rdata(FHD_realData::velx + d);
                                   }
                                   runtime = 0;
@@ -713,19 +1657,23 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
 
         //Need to add midpoint rejecting feature here.
         InterpolateMarkersGpu(0, dxFluid, umac, RealFaceCoords, check);
+        /* Uncomment this section to add external shear to particle velocities after interpolation (2-step integration for shear, Delong et al. 2014); also need to uncomment a previous velAddShear().
+        //velAddShear();
+	*/
  
         for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
 
             TileIndex index(pti.index(), pti.LocalTileIndex());
 
-        AoS & aos = this->GetParticles(lev).at(index).GetArrayOfStructs();
+            AoS & aos = this->GetParticles(lev).at(index).GetArrayOfStructs();
 	    ParticleType* particles = aos().dataPtr();
-        long np = this->GetParticles(lev).at(index).numParticles();
+            long np = this->GetParticles(lev).at(index).numParticles();
 
-        amrex::ParallelFor(np, [=] AMREX_GPU_DEVICE (int i) noexcept
+            amrex::ParallelFor(np, [=] AMREX_GPU_DEVICE (int i) noexcept
             //for (int i = 0; i < np; ++ i) 
 	    {
                 ParticleType & part = particles[i];
+
                 if(part.idata(FHD_intData::pinned) == 0)
                 {
                         for (int d=0; d<AMREX_SPACEDIM; ++d)
@@ -744,6 +1692,9 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
 
 //cin.get();
 
+    /* Uncomment this section to add shear for the whole timestep (1-step for shear)
+    velAddShear();
+    */
 
     if((dry_move_tog == 1) || (dry_move_tog == 2))
     {
@@ -852,8 +1803,8 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
 
                 while(runtime > 0)
                 {
-                    //find_inter(&part, &runtime, paramPlaneList, &paramPlaneCount, &intsurf, &inttime, &intside, AMREX_ZFILL(plo), AMREX_ZFILL(phi));
-                    find_inter_gpu(part, runtime, paramPlaneList, paramPlaneCount, &intsurf, &inttime, &intside, AMREX_ZFILL(plo), AMREX_ZFILL(phi));
+                    //find_inter(&part, &runtime, paramPlaneList, &paramPlaneCount, &intsurf, &inttime, &intside, ZFILL(plo), ZFILL(phi));
+                    find_inter_gpu(part, runtime, paramPlaneList, paramPlaneCount, &intsurf, &inttime, &intside, ZFILL(plo), ZFILL(phi));
                     //Print() << "PART " << part.id() << ", " << intsurf << "\n";
                     //cin.get();
 
@@ -1013,7 +1964,7 @@ void FhdParticleContainer::SpreadIonsGPU(const Real* dxFluid, const Real* dxE, c
 
         emf_gpu(particles,
                       efield[0][pti], efield[1][pti], efield[2][pti],
-                      AMREX_ZFILL(plo), AMREX_ZFILL(dxE));
+                      ZFILL(plo), ZFILL(dxE));
 
     }
 
@@ -1021,8 +1972,8 @@ void FhdParticleContainer::SpreadIonsGPU(const Real* dxFluid, const Real* dxE, c
     {
         //spread_ions_fhd_gpu(particles,                         
         //                 sourceTemp[0][pti], sourceTemp[1][pti], sourceTemp[2][pti],
-        //                 AMREX_ZFILL(plo),
-        //                 AMREX_ZFILL(dxFluid));
+        //                 ZFILL(plo),
+        //                 ZFILL(dxFluid));
 
         SpreadMarkersGpu(lev, sourceTemp, coords, dxFluid, 1);
     }
@@ -1089,8 +2040,8 @@ void FhdParticleContainer::SpreadIonsGPU(const Real* dxFluid, const Geometry geo
         {
             //spread_ions_fhd_gpu(particles,                         
             //                 sourceTemp[0][pti], sourceTemp[1][pti], sourceTemp[2][pti],
-            //                 AMREX_ZFILL(plo),
-            //                 AMREX_ZFILL(dxFluid));
+            //                 ZFILL(plo),
+            //                 ZFILL(dxFluid));
 	    SpreadMarkersGpu(lev, sourceTemp, coords, dxFluid, 1);
         }
 
@@ -1814,7 +2765,7 @@ void FhdParticleContainer::collectFieldsGPU(const Real dt, const Real* dxPotenti
         auto& particles = particle_tile.GetArrayOfStructs();
         const int np = particles.numParticles();
 
-        collect_charge_gpu(particles, chargeTemp[pti], AMREX_ZFILL(geomP.ProbLo()), AMREX_ZFILL(dxPotential));
+        collect_charge_gpu(particles, chargeTemp[pti], ZFILL(geomP.ProbLo()), ZFILL(dxPotential));
     }
 
     MultiFabPhysBCCharge(chargeTemp, geomP);
@@ -2007,25 +2958,26 @@ FhdParticleContainer::PrintParticles()
             if(part.idata(FHD_intData::pinned) == 0)
             {
 
-            double bigM  = part.rdata(FHD_realData::totalDiff)/(T_init[0]*k_B);
-            double absForce = sqrt(part.rdata(FHD_realData::forcex)*part.rdata(FHD_realData::forcex) + part.rdata(FHD_realData::forcey)*part.rdata(FHD_realData::forcey) + part.rdata(FHD_realData::forcez)*part.rdata(FHD_realData::forcez));
+                double bigM  = part.rdata(FHD_realData::totalDiff)/(T_init[0]*k_B);
+                double absForce = sqrt(part.rdata(FHD_realData::forcex)*part.rdata(FHD_realData::forcex) + part.rdata(FHD_realData::forcey)*part.rdata(FHD_realData::forcey) + part.rdata(FHD_realData::forcez)*part.rdata(FHD_realData::forcez));
 
-            std::cout << scientific << setprecision(15) << "Particle " << ParallelDescriptor::MyProc() << ", " << part.id() << ", force: " << part.rdata(FHD_realData::forcex) << ", " << part.rdata(FHD_realData::forcey) << ", " << part.rdata(FHD_realData::forcez) << ", " << absForce << std::endl;
-            std::cout << scientific << setprecision(15) << "Particle " << ParallelDescriptor::MyProc() << ", " << part.id() << ", position/q: " << part.pos(0) << ", " << part.pos(1) << ", " << part.pos(2) << ", " << part.rdata(FHD_realData::q) << std::endl;
-            std::cout << scientific << setprecision(15) << "Particle " << ParallelDescriptor::MyProc() << ", " << part.id() << ", vel: " << part.rdata(FHD_realData::velx) << ", " << part.rdata(FHD_realData::vely) << ", " << part.rdata(FHD_realData::velz) << std::endl;
-            std::cout << scientific << setprecision(15) << "Particle " << ParallelDescriptor::MyProc() << ", " << part.id() << ", normalised mobility: " << (part.rdata(FHD_realData::velx)/part.rdata(FHD_realData::forcex))/bigM << ", " << (part.rdata(FHD_realData::vely)/part.rdata(FHD_realData::forcey))/bigM << ", " << (part.rdata(FHD_realData::velz)/part.rdata(FHD_realData::forcez))/bigM << std::endl;
+                std::cout << scientific << setprecision(15) << "Particle " << ParallelDescriptor::MyProc() << ", " << part.idata(FHD_intData::id_global) << ", force: " << part.rdata(FHD_realData::forcex) << ", " << part.rdata(FHD_realData::forcey) << ", " << part.rdata(FHD_realData::forcez) << ", " << absForce << std::endl;
+                std::cout << scientific << setprecision(15) << "Particle " << ParallelDescriptor::MyProc() << ", " << part.idata(FHD_intData::id_global) << ", position/q: " << part.pos(0) << ", " << part.pos(1) << ", " << part.pos(2) << ", " << part.rdata(FHD_realData::q) << std::endl;
+                std::cout << scientific << setprecision(15) << "Particle " << ParallelDescriptor::MyProc() << ", " << part.idata(FHD_intData::id_global) << ", vel: " << part.rdata(FHD_realData::velx) << ", " << part.rdata(FHD_realData::vely) << ", " << part.rdata(FHD_realData::velz) << std::endl;
+                std::cout << scientific << setprecision(15) << "Particle " << ParallelDescriptor::MyProc() << ", " << part.idata(FHD_intData::id_global) << ", normalised mobility: " << (part.rdata(FHD_realData::velx)/part.rdata(FHD_realData::forcex))/bigM << ", " << (part.rdata(FHD_realData::vely)/part.rdata(FHD_realData::forcey))/bigM << ", " << (part.rdata(FHD_realData::velz)/part.rdata(FHD_realData::forcez))/bigM << std::endl;
 
-            if(part.id() == 1)
-            {
-                std::string filename = "threepmForce";
-                std::ofstream ofs(filename, std::ofstream::app);
-                ofs << part.rdata(FHD_realData::forcey) << ", " << absForce << std::endl;                                                                                                                                                   
-            }
+                if(part.idata(FHD_intData::id_global) == 0)
+                {
+                    std::string filename = "threepmForce";
+                    std::ofstream ofs(filename, std::ofstream::app);
+                    ofs << part.rdata(FHD_realData::forcey) << ", " << absForce << std::endl;                                                                                                                                                   
+                }
             }
         }
     }
 }
 
+// this method is suitable for the case in which particles are generated on Rank 0, i.e. id_global=id_pulldown
 void
 FhdParticleContainer::TwoParticleCorrelation()
 {
@@ -2103,6 +3055,45 @@ FhdParticleContainer::SetPosition(int id, Real x, Real y, Real z)
     fillNeighbors();
 }
 
+// new version which matches the new pulldown
+// using id_global here because it is easier to vector of pinned particles from input file
+void
+FhdParticleContainer::SetPosition(int id, Real x, Real y, Real z, const std::map<int,int>& id_global_map)
+{
+    BL_PROFILE_VAR("SetPosition()",SetPosition);
+    
+    int lev =0;
+
+
+    for(FhdParIter pti(* this, lev); pti.isValid(); ++pti)
+    {
+        PairIndex index(pti.index(), pti.LocalTileIndex());
+
+        AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
+        long np = this->GetParticles(lev).at(index).numParticles();
+
+        for(int i=0;i < np;i++)
+        {
+
+            ParticleType & part = particles[i];
+
+            if(part.idata(FHD_intData::id_global) == id)
+            {
+                part.pos(0) = x;
+                part.pos(1) = y;
+                part.pos(2) = z;
+
+                std::cout << "Rank " << ParallelDescriptor::MyProc() << " particle " << id << " moving to " << x << ", " << y << ", " << z << std::endl;
+            }
+        }
+    }
+    
+    clearNeighbors();
+    Redistribute();
+    fillNeighbors();
+}
+
+// this method is suitable for the case in which particles are generated on Rank 0, i.e. id_global=id_pulldown
 void
 FhdParticleContainer::SetVel(int id, Real x, Real y, Real z)
 {
@@ -2133,6 +3124,39 @@ FhdParticleContainer::SetVel(int id, Real x, Real y, Real z)
     }
 }
 
+// new version which matches the new pulldown
+// using id_global here because it is easier to vector of pinned particles from input file
+void
+FhdParticleContainer::SetVel(int id, Real x, Real y, Real z, const std::map<int,int>& id_global_map)
+{
+    BL_PROFILE_VAR("SetVel()",SetVel);
+    
+    int lev =0;
+
+    for(FhdParIter pti(* this, lev); pti.isValid(); ++pti)
+    {
+        PairIndex index(pti.index(), pti.LocalTileIndex());
+
+        AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
+        long np = this->GetParticles(lev).at(index).numParticles();
+
+        for(int i=0;i < np;i++)
+        {
+
+            ParticleType & part = particles[i];
+
+            if(part.idata(FHD_intData::id_global) == id)
+            {
+                part.rdata(FHD_realData::velx) = x;
+                part.rdata(FHD_realData::vely) = y;
+                part.rdata(FHD_realData::velz) = z;
+            }
+            std::cout << "Rank " << ParallelDescriptor::MyProc() << " particle " << id << " moving to " << x << ", " << y << ", " << z << std::endl;
+        }
+    }
+}
+
+// this method is suitable for the case in which particles are generated on Rank 0, i.e. id_global=id_pulldown
 void
 FhdParticleContainer::SetForce(int id, Real x, Real y, Real z)
 {
@@ -2169,6 +3193,44 @@ FhdParticleContainer::SetForce(int id, Real x, Real y, Real z)
     }
 }
 
+// new version which matches the new pulldown
+// using id_global here because it is easier to vector of pinned particles from input file
+void
+FhdParticleContainer::SetForce(int id, Real x, Real y, Real z, const std::map<int,int>& id_global_map)
+{
+    BL_PROFILE_VAR("SetForce()",SetVel);
+    
+    int lev =0;
+
+    for(FhdParIter pti(* this, lev); pti.isValid(); ++pti)
+    {
+        PairIndex index(pti.index(), pti.LocalTileIndex());
+
+        AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
+        long np = this->GetParticles(lev).at(index).numParticles();
+
+        for(int i=0;i < np;i++)
+        {
+
+            ParticleType & part = particles[i];
+
+            if(part.idata(FHD_intData::id_global) == id)
+            {
+                part.rdata(FHD_realData::forcex) = x;
+                part.rdata(FHD_realData::forcey) = y;
+                part.rdata(FHD_realData::forcez) = z;
+                std::cout << "Rank " << ParallelDescriptor::MyProc() << " particle " << id << " forcing with " << x << ", " << y << ", " << z << std::endl;
+            }//else
+            //{
+            //    part.rdata(FHD_realData::forcex) = 0;
+            //    part.rdata(FHD_realData::forcey) = 0;
+            //    part.rdata(FHD_realData::forcez) = 0;
+
+            //}
+        }
+    }
+}
+
 void
 FhdParticleContainer::clearMobilityMatrix()
 {
@@ -2188,7 +3250,7 @@ FhdParticleContainer::clearMobilityMatrix()
 
 }
 
-
+// this method is suitable for the case in which particles are generated on Rank 0, i.e. id_global=id_pulldown
 void
 FhdParticleContainer::fillMobilityMatrix(int id, int comp)
 {
@@ -2217,8 +3279,8 @@ FhdParticleContainer::fillMobilityMatrix(int id, int comp)
         AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
         long np = this->GetParticles(lev).at(index).numParticles();
 
-//        AMREX_FOR_1D( np, i,
-        for(int i=0;i<np;i++)
+        AMREX_FOR_1D( np, i,
+//        for(int i=0;i<np;i++)
         {
             ParticleType & part = particles[i];
 
@@ -2227,7 +3289,7 @@ FhdParticleContainer::fillMobilityMatrix(int id, int comp)
             velz[part.id()-1] = part.rdata(FHD_realData::velz);
 
         }
-//        );
+        );
 
     }
     
@@ -2270,9 +3332,9 @@ FhdParticleContainer::fillMobilityMatrix(int id, int comp)
        
         pinMatrix[(i+2)*matrixSize +j] += velpin[i+2];
 
-//        Print() << "MAT: " << i*matrixSize +j << ", " << pinMatrix[i*matrixSize+j] << std::endl;
-//        Print() << "MAT: " << (i+1)*matrixSize +j << ", " << pinMatrix[(i+1)*matrixSize+j] << std::endl;
-//        Print() << "MAT: " << (i+2)*matrixSize +j << ", " << pinMatrix[(i+2)*matrixSize+j] << std::endl;
+        Print() << "MAT: (" << i << "," << j << "), " << pinMatrix[i*matrixSize+j] << std::endl;
+        Print() << "MAT: (" << (i+1) << "," << j << "), " << pinMatrix[(i+1)*matrixSize+j] << std::endl;
+        Print() << "MAT: (" << (i+2) << "," << j << "), " << pinMatrix[(i+2)*matrixSize+j] << std::endl;
     }
 
 //    Print() << "Real ID: " << realID << std::endl;
@@ -2282,6 +3344,105 @@ FhdParticleContainer::fillMobilityMatrix(int id, int comp)
 
 }
 
+// new version which matches the new pulldown
+// using id_global here because it is easier to vector of pinned particles from input file
+void
+FhdParticleContainer::fillMobilityMatrix(int id, int comp, const std::map<int,int>& id_global_map)
+{
+    
+    int lev = 0;
+
+    Vector<Real> velx(totalMarkers);
+    Vector<Real> vely(totalMarkers);
+    Vector<Real> velz(totalMarkers);
+    Vector<int>  pinned(totalMarkers);
+    Real  forcex[totalMarkers];
+    Real  forcey[totalMarkers];
+    Real  forcez[totalMarkers];
+
+    int idMap[totalMarkers];
+
+    PullDown(0, velx, FHD_realData::velx);
+    PullDown(0, vely, FHD_realData::vely);
+    PullDown(0, velz, FHD_realData::velz);
+    PullDownInt(0, pinned, FHD_intData::pinned);
+
+    for(FhdParIter pti(* this, lev); pti.isValid(); ++pti)
+    {
+        PairIndex index(pti.index(), pti.LocalTileIndex());
+
+        AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
+        long np = this->GetParticles(lev).at(index).numParticles();
+
+        AMREX_FOR_1D( np, i,
+//        for(int i=0;i<np;i++)
+        {
+            ParticleType & part = particles[i];
+	    int id_pulldown = id_global_map.at(part.idata(FHD_intData::id_global));
+
+            velx[id_pulldown] = part.rdata(FHD_realData::velx);
+            vely[id_pulldown] = part.rdata(FHD_realData::vely);
+            velz[id_pulldown] = part.rdata(FHD_realData::velz);
+
+        }
+        );
+
+    }
+    
+    Real velpin[totalPinnedMarkers*3];
+    int k = 0;
+
+    for(int i=0;i<totalMarkers;i++)
+    {
+        if(pinned[i] == 1)
+        {
+            velpin[k] = velx[i];
+            velpin[k+1] = vely[i];
+            velpin[k+2] = velz[i];
+
+            k = k+3;
+        }
+    }
+
+    k=1;
+    for(int i=0;i<totalMarkers;i++)
+    {
+        if(pinned[i] == 1)
+        {
+            idMap[i] = k;
+            k++;
+        }
+    }
+
+    int id_pulldown = id_global_map.at(id);
+    int realID = idMap[id_pulldown];
+    Print() << realID << "\n";
+
+    int matrixSize = 3*totalPinnedMarkers;
+
+    for(int i=0;i<matrixSize;i=i+3)
+    {
+        int j = 3*(realID-1) + comp;
+
+        pinMatrix[i*matrixSize +j] += velpin[i];
+
+        pinMatrix[(i+1)*matrixSize +j] += velpin[i+1];
+       
+        pinMatrix[(i+2)*matrixSize +j] += velpin[i+2];
+
+        Print() << "MAT: (" << i << "," << j << "), " << pinMatrix[i*matrixSize+j] << std::endl;
+        Print() << "MAT: (" << (i+1) << "," << j << "), " << pinMatrix[(i+1)*matrixSize+j] << std::endl;
+        Print() << "MAT: (" << (i+2) << "," << j << "), " << pinMatrix[(i+2)*matrixSize+j] << std::endl;
+    }
+
+//    Print() << "Real ID: " << realID << std::endl;
+//    Print() << "MAT: " << pinMatrix[0] << std::endl;
+//    Print() << "MAT: " << pinMatrix[2*matrixSize] << std::endl;
+
+
+}
+
+// this method is suitable for the case in which particles are generated on Rank 0, i.e. id_global=id_pulldown
 void
 FhdParticleContainer::writeVel(int id)
 {
@@ -2330,13 +3491,62 @@ FhdParticleContainer::writeVel(int id)
     }
 }
 
+// new version which matches the new pulldown
+// using id_global here because it is easier to vector of pinned particles from input file
+void
+FhdParticleContainer::writeVel(int id, const std::map<int,int>& id_global_map)
+{
+    
+    int lev =0;
 
+    Real x = 0;
+    Real y = 0;
+    Real z = 0;
 
+    for(FhdParIter pti(* this, lev); pti.isValid(); ++pti)
+    {
+        PairIndex index(pti.index(), pti.LocalTileIndex());
+
+        AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
+        long np = this->GetParticles(lev).at(index).numParticles();
+
+        for(int i=0;i < np;i++)
+        {
+
+            ParticleType & part = particles[i];
+
+            if(part.idata(FHD_intData::id_global) == id)
+            {
+                x = part.rdata(FHD_realData::velx);
+                y = part.rdata(FHD_realData::vely);
+                z = part.rdata(FHD_realData::velz);
+            }
+        }
+    }
+
+    ParallelDescriptor::ReduceRealSum(x);
+    ParallelDescriptor::ReduceRealSum(y);
+    ParallelDescriptor::ReduceRealSum(z);
+
+    if(ParallelDescriptor::MyProc() == 0) {
+
+        std::string filename = "velOut";
+        std::ofstream ofs(filename, std::ofstream::app);
+    
+        ofs << x << std::endl;
+        ofs << y << std::endl;
+        ofs << z << std::endl;
+        
+        ofs.close();
+    }
+}
+
+// all indices in this method should correspond to id_pulldown order
 void
 FhdParticleContainer::invertMatrix() 
 {
     // timer for profiling
-    BL_PROFILE_VAR("invertMatrix()",initRankLists);
+    BL_PROFILE_VAR("invertMatrix()",invertMatrix);
 
 
     if(ParallelDescriptor::MyProc() == 0) {             
@@ -2434,6 +3644,7 @@ FhdParticleContainer::invertMatrix()
             {
                 //ofs2 << setprecision(15) << inv[i*N + j] << std::endl;
                 Real element = inv[i*N + j];
+		Print() << "INV: (" << i << "," << j << "), " << inv[i*N+j] << std::endl;
                 ofs.write( reinterpret_cast<char*>( &element ), sizeof element );
 
             }
@@ -2449,7 +3660,6 @@ FhdParticleContainer::invertMatrix()
     }
     
 }
-
 
 void
 FhdParticleContainer::writeMat()
@@ -2471,7 +3681,7 @@ FhdParticleContainer::writeMat()
             {
                 //ofs << setprecision(15) << pinMatrix[i*matrixSize +j] << std::endl;
 
-                Real element = pinMatrix[i*matrixSize +j];
+                Real element = pinMatrix[i*matrixSize +j]; // Mat is written with id_pulldown order, since it's using pinMatrix.
                 ofs.write( reinterpret_cast<char*>( &element ), sizeof element );
 
             }
@@ -2628,6 +3838,437 @@ FhdParticleContainer::MeanSqrCalc(int lev, int step) {
 }
 
 void
+FhdParticleContainer::MeanSqrCalcCM(int lev, int step) {
+
+    BL_PROFILE_VAR("MeanSqrCalcCM()",MeanSqrCalcCM);
+
+    Real diffTotal = 0;
+    Real tt = 0.; // set to zero to protect against grids with no particles
+    long nTotal = 0;
+    Real sumPosQ[3] = {0,0,0};
+    Real monoDispX = 0;
+    Real monoDispY = 0;
+    Real monoDispZ = 0;
+    Real monoSqrDisp = 0;
+    Real sqrDispX[ngroups];
+    Real sqrDispY[ngroups];
+    Real sqrDispZ[ngroups];
+    Real sqrDisp[ngroups];
+    Real cmDispX[ngroups];
+    Real cmDispY[ngroups];
+    Real cmDispZ[ngroups];
+    Real cmDisp[ngroups];
+    Real travelTime[ngroups];
+    int groupCount[ngroups]; // represent how many particles are in group i
+    
+    int stepstat[ngroups];
+    
+    for(int i=0;i<ngroups;i++)
+    {
+        stepstat[i] = fmod(step-1,msd_grp_int[i]);
+        cout << "remainder: " << stepstat[i] << endl;
+    }
+    
+    for(int i=0;i<ngroups;i++)
+    {
+        sqrDispX[i]=0;
+        sqrDispY[i]=0;
+        sqrDispZ[i]=0;
+        sqrDisp[i]=0;
+        cmDispX[i]=0;
+        cmDispY[i]=0;
+        cmDispZ[i]=0;
+        cmDisp[i]=0;
+        groupCount[i]=0;
+    }
+    
+
+
+        
+
+    for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
+
+        TileIndex index(pti.index(), pti.LocalTileIndex());
+
+        AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
+        long np = this->GetParticles(lev).at(index).numParticles();
+        nTotal += np;
+        
+        for (int i=0; i<np; ++i) {
+            ParticleType & part = particles[i];
+            int igroup = part.idata(FHD_intData::groupid)-1;
+
+            if(stepstat[igroup] == 0)
+            {
+                for (int d=0; d<AMREX_SPACEDIM; ++d){
+                    part.rdata(FHD_realData::ox + d) = part.rdata(FHD_realData::ax + d);
+                }
+                part.rdata(FHD_realData::travelTime) = 0;
+            }        
+        }
+
+	// calculate displacement of each particle in each group
+        for (int i=0; i<np; ++i) {
+            ParticleType & part = particles[i];
+
+            int igroup = part.idata(FHD_intData::groupid)-1;
+
+            Real dispX = part.rdata(FHD_realData::ax)-part.rdata(FHD_realData::ox);          
+            Real dispY = part.rdata(FHD_realData::ay)-part.rdata(FHD_realData::oy);
+            Real dispZ = part.rdata(FHD_realData::az)-part.rdata(FHD_realData::oz);
+
+            cmDispX[igroup] += dispX;
+            cmDispY[igroup] += dispY;
+            cmDispZ[igroup] += dispZ;
+            //cmDisp[igroup] += dispX + dispY + dispZ;
+
+            travelTime[igroup] = part.rdata(FHD_realData::travelTime);
+            groupCount[igroup]++;
+
+	    if(igroup == floor(ngroups/2))
+	    {
+	        monoDispX = dispX;
+	        monoDispY = dispY;
+	        monoDispZ = dispZ;
+	    }
+
+        }
+
+
+
+    }
+
+    Real temp = monoDispX;        
+    ParallelDescriptor::ReduceRealSum(temp);
+    monoDispX = temp;
+
+    temp = monoDispY;        
+    ParallelDescriptor::ReduceRealSum(temp);
+    monoDispY = temp;
+    
+    temp = monoDispZ;        
+    ParallelDescriptor::ReduceRealSum(temp);
+    monoDispZ = temp;
+
+    for(int i=0;i<ngroups;i++)
+    {
+        Real temp = cmDispX[i];        
+        ParallelDescriptor::ReduceRealSum(temp);
+        cmDispX[i] = temp;
+
+        temp = cmDispY[i];        
+        ParallelDescriptor::ReduceRealSum(temp);
+        cmDispY[i] = temp;
+
+        temp = cmDispZ[i];        
+        ParallelDescriptor::ReduceRealSum(temp);
+        cmDispZ[i] = temp;
+
+        //temp = cmDisp[i];        
+        //ParallelDescriptor::ReduceRealSum(temp);
+        //cmDisp[i] = temp;
+
+        temp = travelTime[i];        
+        ParallelDescriptor::ReduceRealMax(temp);
+        travelTime[i] = temp;
+
+        int itemp = groupCount[i];        
+        ParallelDescriptor::ReduceIntSum(itemp);
+        groupCount[i] = itemp;
+
+    }
+
+    // square displacement
+    monoSqrDisp = monoDispX*monoDispX+monoDispY*monoDispY+monoDispZ*monoDispZ;
+    for(int i=0;i<ngroups;i++)
+    {
+        sqrDispX[i] = pow(cmDispX[i],2);
+        sqrDispY[i] = pow(cmDispY[i],2);
+        sqrDispZ[i] = pow(cmDispZ[i],2);
+        sqrDisp[i]  = sqrDispX[i]+sqrDispY[i]+sqrDispZ[i];
+
+	// for now we assume equal mass for each particle,
+	//   so CM displacement is difference between average locations.
+	//   Taking average here.
+        if(groupCount[i] != 0)
+        {
+            sqrDispX[i] /= pow(groupCount[i],2);
+            sqrDispY[i] /= pow(groupCount[i],2);
+            sqrDispZ[i] /= pow(groupCount[i],2);
+            sqrDisp[i] /= pow(groupCount[i],2);
+        }        
+    }
+
+
+    if(ParallelDescriptor::MyProc() == 0) {
+
+        for(int i=0;i<ngroups;i++)
+        {
+            if(msd_grp_int[i] > 0)
+            {
+                std::string groupname = Concatenate("msdCMEst_",i+1);
+                std::ofstream ofs(groupname, std::ofstream::app);
+
+                if(stepstat[i]==0)
+                {
+                    ofs << std::endl;
+                }else if(stepstat[i]<(msd_grp_len[i]+1))
+                {  
+                    ofs << travelTime[i] << "  " << sqrDispX[i] << "  " << sqrDispY[i] << "  "<< sqrDispZ[i] << "  "<< sqrDisp[i] << "  " << monoSqrDisp << std::endl;
+                }
+        
+                ofs.close();
+            }
+        }
+    }
+    
+}
+
+void
+FhdParticleContainer::stressP(int lev, int step) {
+
+    BL_PROFILE_VAR("stressP()",stressP);
+
+    Real diffTotal = 0;
+    Real tt = 0.; // set to zero to protect against grids with no particles
+    long nTotal = 0;
+
+    // stress tensor (times volume) of interparticle force in the order of xx, yy, zz, xy, xz, yz
+    Real sumRFxx[ngroups]; 
+    Real sumRFyy[ngroups];
+    Real sumRFzz[ngroups];
+    Real sumRFxy[ngroups];
+    Real sumRFxz[ngroups];
+    Real sumRFyz[ngroups];
+
+    // calculate stressP after resetting stats
+    Real sumoRFxx[ngroups];
+    Real sumoRFyy[ngroups];
+    Real sumoRFzz[ngroups];
+    Real sumoRFxy[ngroups];
+    Real sumoRFxz[ngroups];
+    Real sumoRFyz[ngroups];
+
+    Real travelTime[ngroups];
+    int groupCount[ngroups]; // represent how many particles are in group i
+    
+    Real sumPinForcex = 0.;
+    Real sumPinForcey = 0.;
+    Real sumPinForcez = 0.;
+    Real realtime;
+    
+    int stepstat[ngroups];
+    
+    for(int i=0;i<ngroups;i++)
+    {
+        stepstat[i] = fmod(step-1,msd_grp_int[i]);
+        cout << "remainder: " << stepstat[i] << endl;
+    }
+    
+    for(int i=0;i<ngroups;i++)
+    {
+        sumRFxx[i] = 0;
+        sumRFyy[i] = 0;
+        sumRFzz[i] = 0;
+        sumRFxy[i] = 0;
+        sumRFxz[i] = 0;
+        sumRFyz[i] = 0;
+
+        sumoRFxx[i] = 0;
+        sumoRFyy[i] = 0;
+        sumoRFzz[i] = 0;
+        sumoRFxy[i] = 0;
+        sumoRFxz[i] = 0;
+        sumoRFyz[i] = 0;
+	
+	groupCount[i] = 0;
+    }
+
+
+    for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
+
+        TileIndex index(pti.index(), pti.LocalTileIndex());
+
+        AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
+        long np = this->GetParticles(lev).at(index).numParticles();
+        nTotal += np;
+        
+        for (int i=0; i<np; ++i) {
+            ParticleType & part = particles[i];
+            int igroup = part.idata(FHD_intData::groupid)-1;
+
+            if(stepstat[igroup] == 0)
+            {
+
+                for (int d=0; d<AMREX_SPACEDIM; ++d){
+                    part.rdata(FHD_realData::ox + d) = part.rdata(FHD_realData::ax + d);
+                    part.rdata(FHD_realData::oforcex + d) = part.rdata(FHD_realData::forcex + d);
+
+		    //cout << part.rdata(FHD_realData::ox + d) << endl;
+		    //cout << part.rdata(FHD_realData::oforcex + d) << endl;
+                }
+
+                part.rdata(FHD_realData::travelTime) = 0;
+            }        
+        }
+
+	// calculate rF of each particle in each group
+        for (int i=0; i<np; ++i) {
+            ParticleType & part = particles[i];
+
+	    //cout << part.rdata(FHD_realData::oforcex) << endl;
+	    //cout << part.rdata(FHD_realData::ox) << endl;
+	    //cout << part.rdata(FHD_realData::oforcey) << endl;
+	    //cout << part.rdata(FHD_realData::oy) << endl;
+            int igroup = part.idata(FHD_intData::groupid)-1;
+
+	    sumRFxx[igroup] += part.rdata(FHD_realData::forcex)*part.rdata(FHD_realData::ax);
+	    sumRFyy[igroup] += part.rdata(FHD_realData::forcey)*part.rdata(FHD_realData::ay);
+	    sumRFzz[igroup] += part.rdata(FHD_realData::forcez)*part.rdata(FHD_realData::az);
+	    sumRFxy[igroup] += part.rdata(FHD_realData::forcex)*part.rdata(FHD_realData::ay);
+	    sumRFxz[igroup] += part.rdata(FHD_realData::forcex)*part.rdata(FHD_realData::az);
+	    sumRFyz[igroup] += part.rdata(FHD_realData::forcey)*part.rdata(FHD_realData::az);
+	    //cout << sumRFxx[igroup] << endl;
+
+	    sumoRFxx[igroup] += part.rdata(FHD_realData::oforcex)*part.rdata(FHD_realData::ox);
+	    sumoRFyy[igroup] += part.rdata(FHD_realData::oforcey)*part.rdata(FHD_realData::oy);
+	    sumoRFzz[igroup] += part.rdata(FHD_realData::oforcez)*part.rdata(FHD_realData::oz);
+	    sumoRFxy[igroup] += part.rdata(FHD_realData::oforcex)*part.rdata(FHD_realData::oy);
+	    sumoRFxz[igroup] += part.rdata(FHD_realData::oforcex)*part.rdata(FHD_realData::oz);
+	    sumoRFyz[igroup] += part.rdata(FHD_realData::oforcey)*part.rdata(FHD_realData::oz);
+	    //cout << sumoRFxx[igroup] << endl;
+
+            travelTime[igroup] = part.rdata(FHD_realData::travelTime);
+            groupCount[igroup]++;
+
+	    if (part.idata(FHD_intData::pinned)==1)
+	    {
+	       sumPinForcex += part.rdata(FHD_realData::forcex);
+	       sumPinForcey += part.rdata(FHD_realData::forcey);
+	       sumPinForcez += part.rdata(FHD_realData::forcez);
+	       realtime = part.rdata(FHD_realData::travelTime);
+	    }
+        }
+
+
+
+    }
+
+    for(int i=0;i<ngroups;i++)
+    {
+        Real temp = sumRFxx[i];        
+        ParallelDescriptor::ReduceRealSum(temp);
+        sumRFxx[i] = temp;
+
+        temp = sumRFyy[i];        
+        ParallelDescriptor::ReduceRealSum(temp);
+        sumRFyy[i] = temp;
+
+        temp = sumRFzz[i];        
+        ParallelDescriptor::ReduceRealSum(temp);
+        sumRFzz[i] = temp;
+
+        temp = sumRFxy[i];        
+        ParallelDescriptor::ReduceRealSum(temp);
+        sumRFxy[i] = temp;
+
+        temp = sumRFxz[i];        
+        ParallelDescriptor::ReduceRealSum(temp);
+        sumRFxz[i] = temp;
+	
+        temp = sumRFyz[i];        
+        ParallelDescriptor::ReduceRealSum(temp);
+        sumRFyz[i] = temp;
+
+	//if (stepstat[i]==0)
+	//{
+	   temp = sumoRFxx[i];        
+           ParallelDescriptor::ReduceRealSum(temp);
+           sumoRFxx[i] = temp;
+
+           temp = sumoRFyy[i];        
+           ParallelDescriptor::ReduceRealSum(temp);
+           sumoRFyy[i] = temp;
+
+           temp = sumoRFzz[i];        
+           ParallelDescriptor::ReduceRealSum(temp);
+           sumoRFzz[i] = temp;
+
+           temp = sumoRFxy[i];        
+           ParallelDescriptor::ReduceRealSum(temp);
+           sumoRFxy[i] = temp;
+
+           temp = sumoRFxz[i];        
+           ParallelDescriptor::ReduceRealSum(temp);
+           sumoRFxz[i] = temp;
+	   
+           temp = sumoRFyz[i];        
+           ParallelDescriptor::ReduceRealSum(temp);
+           sumoRFyz[i] = temp;
+	//}
+
+        temp = travelTime[i];        
+        ParallelDescriptor::ReduceRealMax(temp);
+        travelTime[i] = temp;
+
+        temp = realtime;        
+        ParallelDescriptor::ReduceRealMax(temp);
+        realtime = temp;
+
+        int itemp = groupCount[i];        
+        ParallelDescriptor::ReduceIntSum(itemp);
+        groupCount[i] = itemp;
+
+    }
+   // cout << sumoRFyy[0] << endl;
+
+   Real temp = sumPinForcex;        
+   ParallelDescriptor::ReduceRealSum(temp);
+   sumPinForcex = temp;
+
+   temp = sumPinForcey;        
+   ParallelDescriptor::ReduceRealSum(temp);
+   sumPinForcey = temp;
+
+   temp = sumPinForcez;        
+   ParallelDescriptor::ReduceRealSum(temp);
+   sumPinForcez = temp;
+
+
+    if(ParallelDescriptor::MyProc() == 0) {
+        //cout << sumoRFyy[0] << endl;
+
+        for(int i=0;i<ngroups;i++)
+        {
+            if(msd_grp_int[i] > 0)
+            {
+                std::string groupname = Concatenate("stressPEst_",i+1);
+                std::ofstream ofs(groupname, std::ofstream::app);
+
+                if(stepstat[i]==0)
+                {
+                    ofs << std::endl;
+                }else if(stepstat[i]<(msd_grp_len[i]+1))
+                {  
+                    ofs << travelTime[i] << "  " << sumRFxx[i]*sumoRFxx[i] << "  " << sumRFyy[i]*sumoRFyy[i] << "  "<< sumRFzz[i]*sumoRFzz[i] << "  "<< sumRFxy[i]*sumoRFxy[i] << "  " << sumRFxz[i]*sumoRFxz[i] << "  " << sumRFyz[i]*sumoRFyz[i] << std::endl;
+                }
+        
+                ofs.close();
+            }
+        }
+
+        std::string filename = "pinForceEst";
+        std::ofstream ofs(filename, std::ofstream::app);
+        
+        ofs << realtime << "  " << sumPinForcex  << "  " << sumPinForcey << "  "<< sumPinForcez << std::endl;
+        
+        ofs.close();
+
+    }
+    
+}
+
+void
 FhdParticleContainer::GetAllParticlePositions(Real* posx, Real* posy, Real* posz, int totalParticles) {
 
 
@@ -2637,6 +4278,154 @@ FhdParticleContainer::GetAllParticlePositions(Real* posx, Real* posy, Real* posz
     PullDown(0, posz, -3, totalParticles);
 
 }
+
+void
+FhdParticleContainer::GetAllParticlePositions(Vector<Real>& posxVec, Vector<Real>& posyVec, Vector<Real>& poszVec, Vector<Real>& axVec, Vector<Real>& ayVec, Vector<Real>& azVec) {
+
+
+    // collect particle positions onto one processor
+    PullDown(0, posxVec, -1);
+    PullDown(0, posyVec, -2);
+    PullDown(0, poszVec, -3);
+    PullDown(0, axVec, FHD_realData::ax);
+    PullDown(0, ayVec, FHD_realData::ay);
+    PullDown(0, azVec, FHD_realData::az);
+
+}
+
+//// get all wave vectors corresponding to the cells
+//// will be used for particle-based dynamic structure factor
+//void FhdParticleContainer::GetWaveVectors() {
+//
+//    int qmaxx = n_cells[0];
+//    int qmaxy = n_cells[1];
+//    int qmaxz = n_cells[2];
+//
+//    Real wavearray[qmaxx*qmaxy*qmaxz, 5];
+//    Real temparray[qmaxx*qmaxy*qmaxz, 5];
+//
+//    for(int i=0;i<qmaxx*qmaxy*qmaxz;i++)
+//    {
+//        wavearray[i][0] = 0;
+//        wavearray[i][1] = 0;
+//        wavearray[i][2] = 0;
+//        wavearray[i][3] = 0;
+//        wavearray[i][4] = 0;
+//
+//        temparray[i][0] = 0;
+//        temparray[i][1] = 0;
+//        temparray[i][2] = 0;
+//        temparray[i][3] = 0;
+//        temparray[i][4] = 0;
+//	
+//    }
+//
+//    int counter = 0;
+//    for(int k=0; k<qmaxz; k++){
+//	for(int j=0; j<(int)amrex::Math::floor(sqrt(qmaxy*qmaxy-k*k)); j++){
+//            for(int i=0; i<(int)amrex::Math::floor(sqrt(qmaxx*qmaxx-k*k-j*j)); i++){
+//                Real qsq = i*i + j*j + k*k;
+//                wavearray[counter][0] = i;
+//                wavearray[counter][1] = j;
+//                wavearray[counter][2] = k;
+//                wavearray[counter][3] = qsq;
+//                counter++;
+//	    }
+//	}
+//    }
+//
+//    Real sortarray[counter];
+//    int sortind[counter];
+//
+//    for(int i=0; i<counter; i++)
+//    {
+//        sortarray[i] = wavearray[i][3];
+//        
+//    }
+//
+//    merge_sort(sortarray,sortind);
+//
+//
+//    for(int i=0; i<counter; i++)
+//    {
+//        temparray[i][0] = sortarray[sortind[i]][0];
+//        temparray[i][1] = sortarray[sortind[i]][1];
+//        temparray[i][2] = sortarray[sortind[i]][2];
+//        temparray[i][3] = sortarray[sortind[i]][3];
+//        
+//    }
+//
+//    wavearray = temparray;
+//
+//    int flag[counter];
+//    for(int i=1; i<counter; i++) 
+//    {
+//	    flag[i] = 0;
+//    }
+//
+//    int val = -1;
+//    int binnum = 0;
+//    int bookmark;
+//    for(int i=1; i<counter; i++)
+//    {
+//      if (wavearray[i][4] == val) {
+//         for(int j=bookmark; j<i-1; j++) {
+//            if (((wavearray[i][0] == wavearray[j][0]) && 
+//                 (wavearray[i][1] == wavearray[j][1]) && 
+//                 (wavearray[i][2] == wavearray[j][2])     ) ||
+//                 ((-wavearray[i][0] == wavearray[j][0]) &&
+//                  (-wavearray[i][1] == wavearray[j][1]) &&
+//                  (-wavearray[i][2] == wavearray[j][2])     )) {
+//                  flag[i] = 1;
+//                  break;
+//	    }
+//	 }
+//      }else{
+//         val = wavearray[i][4];
+//         binnum = binnum + 1;
+//         bookmark = i;
+//      }
+//    }
+//    int newcounter = 0;
+//    for(int i=1; i<counter; i++) {
+//	    temparray[i][0] = 0;
+//	    temparray[i][1] = 0;
+//	    temparray[i][2] = 0;
+//	    temparray[i][3] = 0;
+//	    temparray[i][4] = 0;
+//    }
+//    for(int i=1; i<counter; i++) {
+//       if (flag[i] == 0) {
+//          newcounter = newcounter + 1;
+//          temparray[newcounter][0] = wavearray[i][0];
+//          temparray[newcounter][1] = wavearray[i][1];
+//          temparray[newcounter][2] = wavearray[i][2];
+//          temparray[newcounter][3] = wavearray[i][3];
+//          temparray[newcounter][4] = wavearray[i][4];
+//       }
+//    }
+//    wavearray = temparray;
+//
+//    int multiplicity[newcounter];
+//    Real msq_by_bin[newcounter];
+//    for(int i=1; i<newcounter; i++) {
+//	    multiplicity(i) = 0;
+//    }
+//    binnum = 0;
+//    val = -1;
+//    for(int i=1; i<newcounter; i++) {
+//       if (wavearray[i][3] == val) {
+//          wavearray[i][4] = binnum;
+//          multiplicity[binnum] = multiplicity[binnum] + 1;
+//          msq_by_bin[binnum] = wavearray[i][3]; // wasteful but correct
+//       }else{
+//          binnum = binnum + 1;
+//          wavearray[i][4] = binnum;
+//          multiplicity[binnum] = 1;
+//          val = wavearray[i][3];
+//       }
+//    }
+//}
 
 void
 FhdParticleContainer::BuildCorrectionTable(const Real* dx, int setMeasureFinal) {
@@ -2846,4 +4635,23 @@ void FhdParticleContainer::PostRestart()
 {
     BL_PROFILE_VAR("PostRestart()",PostRestart);
     
+}
+
+// Map id_global to index in the pulldown'd vector (with new pulldown that uses id() and cpu())
+void FhdParticleContainer::UpdatePIDMap() {
+    // Calls UpdatePIDMap from base class (IBMarkerContainerBase)
+    IBMarkerContainerBase<FHD_realData, FHD_intData>::UpdatePIDMap();
+
+    //Gpu::ManagedVector<int> globalid;
+    //globalid.resize(totalParticles);
+    //int * globalidPtr = globalid.dataPtr();
+    Vector<int> globalidVec(getTotalNumIDs());
+
+    PullDownInt(0, globalidVec, FHD_intData::id_global);
+    
+    for (int i=0; i<globalidVec.size(); i++) {
+        id_global_map.insert(std::make_pair(globalidVec[i],i));
+	//Print() << "id_global and id_pulldown " << globalidVec[i] << " " << i << std::endl;
+    }
+
 }

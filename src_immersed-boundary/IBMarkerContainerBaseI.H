@@ -141,6 +141,12 @@ int IBMarkerContainerBase<StructReal, StructInt>::getTotalPinnedMarkers() {
 }
 
 template <typename StructReal, typename StructInt>
+Real IBMarkerContainerBase<StructReal, StructInt>::getPinnedY() {
+
+    return pinned_y;
+}
+
+template <typename StructReal, typename StructInt>
 void IBMarkerContainerBase<StructReal, StructInt>::RFD(
             int lev, const Real * dx,
                   std::array<MultiFab, AMREX_SPACEDIM> & f_out,
@@ -177,6 +183,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::RFD(
                     // using pred_pos to temporarily store the random direction -
                     // hopefully this doesn't cause problems elsewhere
     //                part.rdata(StructReal::pred_posx + d) =  get_particle_normal_func();
+//                    if (d != 1) {
                     part.rdata(StructReal::pred_posx + d) = amrex::RandomNormal(0.,1.,engine);
 
                     // move particle to q^n + (dt/2) * Wtilde
@@ -187,6 +194,8 @@ void IBMarkerContainerBase<StructReal, StructInt>::RFD(
 
                     part.rdata(StructReal::forcex + d) =
                         force * part.rdata(StructReal::pred_posx + d);
+		    //std::cout << "Particle " << part.id() << "+" << d << ": " <<part.rdata(StructReal::forcex + d) << std::endl;
+//		    }
 
                 }
             }
@@ -218,6 +227,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::RFD(
             for (int d=0; d<AMREX_SPACEDIM; ++d) {
                 // move particle to q^n - (dt/2) * Wtilde (by subtracting dt *
                 // Wtilde)
+ //               if (d != 1) {
                 part.pos(d) -= delta * part.rdata(StructReal::pred_posx + d);
                 // scale by -k_B*T/delta
                 // NOTE: this assumed that the pred_pos* fields are
@@ -225,6 +235,8 @@ void IBMarkerContainerBase<StructReal, StructInt>::RFD(
 
                 part.rdata(StructReal::forcex + d) =
                     -force * part.rdata(StructReal::pred_posx + d);
+		//std::cout << "Particle " << part.id() << "-" << d << ": " <<part.rdata(StructReal::forcex + d)<< std::endl;
+//		}
 
             }
             }
@@ -256,9 +268,11 @@ void IBMarkerContainerBase<StructReal, StructInt>::RFD(
             for (int d=0; d<AMREX_SPACEDIM; ++d) {
                 // move particle back to original position q^n (by adding dt/2
                 // * Wtilde)
+//		if (d != 1) {
                 part.pos(d) += deltaover2 * part.rdata(StructReal::pred_posx + d);
                 // scale by 0
                 part.rdata(StructReal::forcex + d) = 0;
+//		}
             }
             }
         });
@@ -326,7 +340,7 @@ template <typename StructReal, typename StructInt>
 void IBMarkerContainerBase<StructReal, StructInt>::loadPinMatrix(int totalP, char* filename) 
 {
     // timer for profiling
-    BL_PROFILE_VAR("initRankLists()",initRankLists);
+    BL_PROFILE_VAR("loadPinMatrix()",loadPinMatrix);
 
     totalPinnedMarkers = totalP; 
 
@@ -336,6 +350,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::loadPinMatrix(int totalP, cha
 
     //std::ifstream matFile("invOut");
 
+    // this loop is in the order of id_pulldown
     for(int i=0; i<pow(3*totalP,2); i++)
     {
         double read;
@@ -485,6 +500,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::pinnedParticleInversion()
             //Print() << i << ", " << j << ", " << i*3*totalPinnedMarkers + j << ", " << pinMatrix[i*totalPinnedMarkers + j] << std::endl;
 
         }
+        //Print() << "LHS debug " << i <<  ", " << lhs[i] << std::endl;
     }
 
     k=0;
@@ -532,6 +548,107 @@ void IBMarkerContainerBase<StructReal, StructInt>::pinnedParticleInversion()
     }
 }
 
+//Find a more efficient way to do this...
+//Using new pulldown. Need id_global_map that maps id_global to id_pulldown
+template <typename StructReal, typename StructInt>
+void IBMarkerContainerBase<StructReal, StructInt>::pinnedParticleInversion(const std::map<int,int>& id_global_map) 
+{
+   // Print() << "inv1, " << totalMarkers;
+    Vector<Real> velx(totalMarkers);
+    Vector<Real> vely(totalMarkers);
+    Vector<Real> velz(totalMarkers);
+    Vector<int>  pinned(totalMarkers);
+    Real  forcex[totalMarkers];
+    Real  forcey[totalMarkers];
+    Real  forcez[totalMarkers];
+
+    PullDown(0, velx, StructReal::velx);
+    PullDown(0, vely, StructReal::vely);
+    PullDown(0, velz, StructReal::velz);
+    PullDownInt(0, pinned, StructInt::pinned);
+  //  Print() << "inv2\n";
+    
+    Real rhs[totalPinnedMarkers*3];
+    Real lhs[totalPinnedMarkers*3];
+    int k = 0;
+    Real rhsNorm = 0;
+    // this loop is looping over id_pulldown
+    for(int i=0;i<totalMarkers;i++)
+    {
+        if(pinned[i] == 1)
+        {
+            rhs[k] = -velx[i];
+            rhs[k+1] = -vely[i];
+            rhs[k+2] = -velz[i];
+
+           // Print() << velx[i] << ", " << vely[i] << ", " << velz[i] << std::endl;
+          //  Print() << rhs[k] << ", " << rhs[k+1] << ", " << rhs[k+2] << std::endl;
+            rhsNorm = rhsNorm + rhs[k]*rhs[k] + rhs[k+1]*rhs[k+1] + rhs[k+2]*rhs[k+2];
+
+            k = k+3;
+        }
+    }
+    //Print() << "rhsNorm: " << sqrt(rhsNorm) << std::endl;
+    //Print() << 3*totalPinnedMarkers << std::endl;
+    for(int i=0;i<(3*totalPinnedMarkers);i++)
+    {
+        lhs[i]=0;
+        for(int j=0;j<(3*totalPinnedMarkers);j++)
+        {
+            lhs[i] = lhs[i] + pinMatrix[i*3*totalPinnedMarkers + j]*rhs[j];
+            //Print() << i << ", " << j << ", " << i*3*totalPinnedMarkers + j << ", " << pinMatrix[i*totalPinnedMarkers + j] << std::endl;
+
+        }
+        //Print() << "LHS debug " << i <<  ", " << lhs[i] << std::endl;
+    }
+
+    k=0;
+    // this loop is looping over id_pulldown
+    for(int i=0;i<totalMarkers;i++)
+    {
+        if(pinned[i] == 1)
+        {
+            forcex[i] = lhs[k];
+            forcey[i] = lhs[k+1];
+            forcez[i] = lhs[k+2];
+
+            k = k+3;
+
+            //Print() << forcex[i] << ", " << forcey[i] << ", " << forcez[i] << std::endl;
+        }
+
+    }
+
+    int lev=0;
+    for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
+
+        PairIndex index(pti.index(), pti.LocalTileIndex());
+        const int np = this->GetParticles(lev)[index].numRealParticles();
+        auto& plev = this->GetParticles(lev);
+        auto& ptile = plev[index];
+        auto& aos   = ptile.GetArrayOfStructs();
+        ParticleType* particles = aos().dataPtr();
+
+        AMREX_FOR_1D( np, i,
+//        for(int i=0; i<np; i++)
+        {
+            ParticleType & part = particles[i];
+            if(part.idata(StructInt::pinned) == 1)
+            {
+	        // map id_global back to id_pulldown, and update
+	        int id_pulldown = id_global_map.at(part.idata(StructInt::id_global));
+                part.rdata(StructReal::forcex) = forcex[id_pulldown];
+                part.rdata(StructReal::forcey) = forcey[id_pulldown];
+                part.rdata(StructReal::forcez) = forcez[id_pulldown];
+
+                //Print() << part.id() << ", " << part.rdata(StructReal::forcex) << ", " << part.rdata(StructReal::forcey) << ", " << part.rdata(StructReal::forcez) << std::endl;
+            }
+
+        }
+        );
+
+    }
+}
 
 template <typename StructReal, typename StructInt>
 void IBMarkerContainerBase<StructReal, StructInt>::PullDown(
@@ -617,11 +734,39 @@ void IBMarkerContainerBase<StructReal, StructInt>::UpdatePIDMap() {
     int size = ParallelDescriptor::NProcs();
 
     // Number of IDs associated with this rank
-    num_ids[rank] = this->NextID() - 1;
+    if (amrex::FileExists("num_ids")) {
+       std::ifstream numIDFile("num_ids");
+       for (int i_rank=0; i_rank<size; i_rank++) {
+           int buf_rank, buf_num_ids;
+           numIDFile >> buf_rank;
+           numIDFile >> buf_num_ids;        
+	   num_ids[buf_rank] = buf_num_ids;
+       }
+       numIDFile.close();
+       Print() << "Finished reading NextID info (for checkpoint).\n";
+    } else {
+       num_ids[rank] = this->NextID() - 1;
+       std::cout << "num_ids on rank " << rank << ": " << num_ids[rank] << std::endl;
 
-    ParallelDescriptor::ReduceIntSum(
-        Vector<std::reference_wrapper<int>>(std::begin(num_ids), std::end(num_ids))
-    );
+       ParallelDescriptor::ReduceIntSum(
+           Vector<std::reference_wrapper<int>>(std::begin(num_ids), std::end(num_ids))
+       );
+
+       if (ParallelDescriptor::MyProc()==0){
+          std::string filename = "num_ids";
+          std::ofstream ofs2(filename, std::ofstream::app);
+          //ofstream ofs( filename, ios::binary );
+
+          for (int i=0;i<size;i++)
+          {
+              ofs2 << i << " " << num_ids[i] << std::endl;
+          }
+
+          ofs2.close();
+          //ofs.close();
+          Print() << "Finished writing NextID info.\n";
+       }
+    }
 
     int offset = 0;
     for (int i=0; i < size; i++) {
@@ -1094,6 +1239,10 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadKernelGpu(const AoS& ao
         {
             gs = 4;
         }
+        else if (pkernel_fluid[p.idata(StructInt::species)-1] == 131)
+        {
+            gs = 2;
+        }
         else if (eskernel_fluid[p.idata(StructInt::species)-1] > 0)
         {
             gs = static_cast<int>(floor(eskernel_fluid[p.idata(StructInt::species)-1]*0.5)+1);
@@ -1167,6 +1316,17 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadKernelGpu(const AoS& ao
                          {
                             weight*=Kernel6P()(pos_grid[ii]);
                          }
+                         else if (pkernel_fluid[p.idata(StructInt::species)-1] == 131)
+                         {
+		            if (ii==1) 
+			    {
+			       weight*=Kernel3P()(pos_grid[ii]);
+                            }
+			    else
+			    {
+			       weight*=Kernel1P()(pos_grid[ii]);
+			    }
+                         }
 			 else if (eskernel_fluid[p.idata(StructInt::species)-1] > 0)
                          {
                             weight*=KernelES()(pos_grid[ii],eskernel_beta[p.idata(StructInt::species)-1], eskernel_fluid[p.idata(StructInt::species)-1])/norm_ptr[p.idata(StructInt::species)-1];
@@ -1210,6 +1370,17 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadKernelGpu(const AoS& ao
                          {
                             weight*=Kernel6P()(pos_grid[ii]);
                          }
+                         else if (pkernel_fluid[p.idata(StructInt::species)-1] == 131)
+                         {
+		            if (ii==1) 
+			    {
+			       weight*=Kernel3P()(pos_grid[ii]);
+                            }
+			    else
+			    {
+			       weight*=Kernel1P()(pos_grid[ii]);
+			    }
+                         }
 			 else if (eskernel_fluid[p.idata(StructInt::species)-1] > 0)
                          {
                             weight*=KernelES()(pos_grid[ii],eskernel_beta[p.idata(StructInt::species)-1], eskernel_fluid[p.idata(StructInt::species)-1])/norm_ptr[p.idata(StructInt::species)-1];
@@ -1252,6 +1423,17 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadKernelGpu(const AoS& ao
                          else if (pkernel_fluid[p.idata(StructInt::species)-1] == 6)
                          {
                             weight*=Kernel6P()(pos_grid[ii]);
+                         }
+                         else if (pkernel_fluid[p.idata(StructInt::species)-1] == 131)
+                         {
+		            if (ii==1) 
+			    {
+			       weight*=Kernel3P()(pos_grid[ii]);
+                            }
+			    else
+			    {
+			       weight*=Kernel1P()(pos_grid[ii]);
+			    }
                          }
 			 else if (eskernel_fluid[p.idata(StructInt::species)-1] > 0)
                          {
@@ -1692,6 +1874,10 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateKernelGpu(AoS& aos
         {
             gs = 2;
         }
+        else if (pkernel_fluid[p.idata(StructInt::species)-1] == 131)
+        {
+            gs = 2;
+        }
         else if (pkernel_fluid[p.idata(StructInt::species)-1] == 4)
         {
             gs = 3;
@@ -1796,6 +1982,17 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateKernelGpu(AoS& aos
                      {
                         weight*=Kernel6P()(pos_grid[ii]);
                      }
+                     else if (pkernel_fluid[p.idata(StructInt::species)-1] == 131)
+                     {
+		        if (ii==1) 
+		        {
+		           weight*=Kernel3P()(pos_grid[ii]);
+                        }
+		        else
+		        {
+		           weight*=Kernel1P()(pos_grid[ii]);
+		        }
+                     }
 		     else if (eskernel_fluid[p.idata(StructInt::species)-1] > 0)
                      {
                         weight*=KernelES()(pos_grid[ii],eskernel_beta[p.idata(StructInt::species)-1], eskernel_fluid[p.idata(StructInt::species)-1])/norm_ptr[p.idata(StructInt::species)-1];
@@ -1852,6 +2049,17 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateKernelGpu(AoS& aos
                      {
                         weight*=Kernel6P()(pos_grid[ii]);
                      }
+                     else if (pkernel_fluid[p.idata(StructInt::species)-1] == 131)
+                     {
+		        if (ii==1) 
+		        {
+		           weight*=Kernel3P()(pos_grid[ii]);
+                        }
+		        else
+		        {
+		           weight*=Kernel1P()(pos_grid[ii]);
+		        }
+                     }
 		     else if (eskernel_fluid[p.idata(StructInt::species)-1] > 0)
                      {
                         weight*=KernelES()(pos_grid[ii],eskernel_beta[p.idata(StructInt::species)-1], eskernel_fluid[p.idata(StructInt::species)-1])/norm_ptr[p.idata(StructInt::species)-1];
@@ -1902,6 +2110,17 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateKernelGpu(AoS& aos
                      else if (pkernel_fluid[p.idata(StructInt::species)-1] == 6)
                      {
                         weight*=Kernel6P()(pos_grid[ii]);
+                     }
+                     else if (pkernel_fluid[p.idata(StructInt::species)-1] == 131)
+                     {
+		        if (ii==1) 
+		        {
+		           weight*=Kernel3P()(pos_grid[ii]);
+                        }
+		        else
+		        {
+		           weight*=Kernel1P()(pos_grid[ii]);
+		        }
                      }
 		     else if (eskernel_fluid[p.idata(StructInt::species)-1] > 0)
                      {

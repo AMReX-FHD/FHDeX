@@ -123,8 +123,10 @@ public:
     void initRankLists(int totalM);
     void loadPinMatrix(int totalP, char* filename);
     void pinnedParticleInversion();
+    void pinnedParticleInversion(const std::map<int,int>& id_global_map);
 
     int getTotalPinnedMarkers();
+    Real getPinnedY();
 
     //___________________________________________________________________________
     // Static spreading operators applied to raw data arrays
@@ -308,6 +310,12 @@ public:
 
     std::array<MultiFab, AMREX_SPACEDIM> f_weights;
 
+    GpuArray<Real, 3> wallspeed_x_lo_real;
+    GpuArray<Real, 3> wallspeed_y_lo_real;
+    GpuArray<Real, 3> wallspeed_z_lo_real;
+    GpuArray<Real, 3> wallspeed_x_hi_real;
+    GpuArray<Real, 3> wallspeed_y_hi_real;
+    GpuArray<Real, 3> wallspeed_z_hi_real;
 
 protected:
 
@@ -335,6 +343,7 @@ protected:
     int totalMarkers;
     int totalPinnedMarkers; 
 
+    Real pinned_y;
     // TODO: why is this static inline?
     static inline Gpu::ManagedDeviceVector<Real> norm_es;
 
@@ -342,6 +351,10 @@ private:
 
     // Positions on faces
     Vector<std::array<MultiFab, AMREX_SPACEDIM>> face_coords;
+//    Vector<int> ranksIdSorted;
+//    Vector<int> idsRankSorted;
+//    Vector<int> rankTotals;
+//    int totalMarkers;
 
     // Number of paricle IDs for each rank:
     Gpu::ManagedDeviceVector<int> num_ids;

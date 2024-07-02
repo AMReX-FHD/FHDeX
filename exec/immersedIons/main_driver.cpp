@@ -94,6 +94,9 @@ void main_driver(const char* argv)
             ang = tempang;
         }   
     }
+    //if (bond_tog != 0) {
+    //    ang = std::max(ang, 8);
+    //}
     
     int ngp = 1;
     // using maximum number of peskin kernel points to determine the ghost cells for the whole grid.
@@ -107,6 +110,11 @@ void main_driver(const char* argv)
     else if (*(std::max_element(pkernel_es.begin(),pkernel_es.begin()+nspecies)) == 6) {
         ngp = 4;
     } 
+
+    //// TODO: need a better way to determine ghost cells for bonds
+    //if (bond_tog != 0) {
+    //    ngp = std::max(ngp, 6);
+    //}
 
     // staggered velocities
     // umac needs extra ghost cells for Peskin kernels
@@ -131,6 +139,10 @@ void main_driver(const char* argv)
     // MF for charge mean and variance
     MultiFab chargeM;
     
+    // variables that save FFT (real and imag parts) at t0
+    MultiFab struct_cc_numdens0_real;
+    MultiFab struct_cc_numdens0_imag;
+
     if (restart < 0) {
 
         if (seed > 0) {
@@ -241,13 +253,17 @@ void main_driver(const char* argv)
         
         chargeM.define(bp, dmap, 1, 1);  // mean
         chargeM.setVal(0);
+
+        struct_cc_numdens0_real.define(bc, dmap, 1, 0);
+        struct_cc_numdens0_imag.define(bc, dmap, 1, 0);
     }
     else {
         
         // restart from checkpoint
         ReadCheckPoint(step,time,statsCount,umac,umacM,pres,
                        particleMeans,particleVars,chargeM,
-                       potential,potentialM);
+                       potential,potentialM,
+		       struct_cc_numdens0_real,struct_cc_numdens0_imag);
 
         // grab DistributionMap from umac
         dmap = umac[0].DistributionMap();
@@ -504,10 +520,10 @@ void main_driver(const char* argv)
                 << " wet radius: " << wetRad[i] << "\n"
                 << " dry radius: " << (k_B*T_init[0])/(6*3.14159265359*(ionParticle[i].dryDiff)*visc_coef) << "\n";
 
-        if (ionParticle[i].dryDiff < 0) {
-            Print() << "Negative dry diffusion in species " << i << "\n";
-            Abort();
-        }
+        //if (ionParticle[i].dryDiff < 0) {
+        //    Print() << "Negative dry diffusion in species " << i << "\n";
+        //    Abort();
+        //}
 
         ionParticle[i].Neff = particle_neff; // From DSMC, this will be set to 1 for electolyte calcs
         ionParticle[i].R = k_B/ionParticle[i].m; //used a lot in kinetic stats cals, bu not otherwise necessary for electrolytes
@@ -551,6 +567,8 @@ void main_driver(const char* argv)
 
     // see the variable list used above above for particleMeans
     MultiFab particleInstant(bc, dmap, 8+nspecies, 0);
+    // also initialize a MultiFab to store variables at t0, which is used in dynamic structure factor
+    MultiFab particleInstant0(bc, dmap, 8+nspecies, 0);
     
     //-----------------------------
     //  Hydro setup
@@ -704,6 +722,23 @@ void main_driver(const char* argv)
         touched[d].setVal(0.0);
     }
 
+    // simple shear
+    std::array< MultiFab, AMREX_SPACEDIM > externalV;
+    AMREX_D_TERM(externalV[0].define(convert(ba,nodal_flag_x), dmap, 1, ang);,
+                 externalV[1].define(convert(ba,nodal_flag_y), dmap, 1, ang);,
+                 externalV[2].define(convert(ba,nodal_flag_z), dmap, 1, ang););
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        externalV[d].setVal(0.0);  // simple shear
+    }
+    
+    // uniform velocity due to shear
+    std::array< MultiFab, AMREX_SPACEDIM > externalVU;
+    AMREX_D_TERM(externalVU[0].define(convert(ba,nodal_flag_x), dmap, 1, ang);,
+                 externalVU[1].define(convert(ba,nodal_flag_y), dmap, 1, ang);,
+                 externalVU[2].define(convert(ba,nodal_flag_z), dmap, 1, ang););
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        externalVU[d].setVal(0.0);  // simple shear
+    }
     //Define parametric paramplanes for particle interaction - declare array for paramplanes and then define properties in BuildParamplanes
 
 
@@ -795,11 +830,48 @@ void main_driver(const char* argv)
         }
     }
     else {
+        if (!amrex::FileExists("num_ids")) {
+	   Abort("num_ids file is needed to use the new PullDown functions when checkpointing.");
+        }
         ReadCheckPointParticles(particles, ionParticle, dxp);
+    }
+
+    particles.UpdatePIDMap();
+
+    for (int i=0; i<simParticles; i++) {
+        Print() << "id_global and id_pulldown " << i << " " << particles.id_global_map[i] << std::endl;
     }
 
     //Find coordinates of cell faces (fluid grid). May be used for interpolating fields to particle locations
     FindFaceCoords(RealFaceCoords, geom); //May not be necessary to pass Geometry?
+
+    //Calculate external simple shear flow, used to update umac due to shear
+    //AllPrint() << "pin_y " << particles.getPinnedY() << std::endl;
+    SimpleShear(externalV, geom, RealFaceCoords, particles.getPinnedY());
+    UniformVel(externalVU, geom);
+    //for (MFIter mfi(externalV[0]); mfi.isValid(); ++mfi)
+    //{
+    //    Array4<Real> const& xvel = (externalV[0]).array(mfi);
+    //    AllPrint() << "xvel below pinned particles from MF is " << xvel(4,16,4) << std::endl;
+    //    AllPrint() << "xvel above pinned particles from MF is " << xvel(4,48,4) << std::endl;
+    //}
+    Print() << "Pinned particles y location is " << particles.getPinnedY() << std::endl;
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+	// record actual shear speed, used to update particle velocity due to shear
+        particles.wallspeed_x_lo_real[d] = wallspeed_x_lo[d];
+        particles.wallspeed_y_lo_real[d] = wallspeed_y_lo[d];
+        particles.wallspeed_z_lo_real[d] = wallspeed_z_lo[d];
+        particles.wallspeed_x_hi_real[d] = wallspeed_x_hi[d];
+        particles.wallspeed_y_hi_real[d] = wallspeed_y_hi[d];
+        particles.wallspeed_z_hi_real[d] = wallspeed_z_hi[d];
+	// reset shear speed to 0 before GMRES solver
+        wallspeed_x_lo[d] = 0.;
+        wallspeed_y_lo[d] = 0.;
+        wallspeed_z_lo[d] = 0.;
+        wallspeed_x_hi[d] = 0.;
+        wallspeed_y_hi[d] = 0.;
+        wallspeed_z_hi[d] = 0.;
+    }
     
     //----------------------    
     // Electrostatic setup
@@ -844,6 +916,44 @@ void main_driver(const char* argv)
         external[d].define(bp, dmap, 1, ngp);
     }
     
+    ///////////////////////////////////////////
+    // structure factor for numdens-numdens
+    ///////////////////////////////////////////
+
+    // names of variables in struct_cc_dens
+    Vector< std::string > var_names_dens(1);
+    var_names_dens[0] = "dens";
+
+    // multifab that stores real t0 data on which FFT will be performed
+    MultiFab struct_cc_numdens0;
+    struct_cc_numdens0.define(bc, dmap, 1, 0);
+
+    // variables that store FFT at current time t
+    MultiFab struct_cc_numdens;
+    struct_cc_numdens.define(bc, dmap, 1, 0);
+
+    // these are the number of pairs we want to report
+    int nvar_sf_numdens = 1;
+    amrex::Vector< int > s_pairA_numdens(nvar_sf_numdens);
+    amrex::Vector< int > s_pairB_numdens(nvar_sf_numdens);
+
+    // Select which variable pairs to include in structure factor:
+    s_pairA_numdens[0] = 0; // numdens-numdens
+    s_pairB_numdens[0] = 0;
+
+    Vector<Real> scaling_numdens(nvar_sf_numdens);
+    for (int i=0; i<nvar_sf_numdens; ++i) {
+        scaling_numdens[i] = 1.;
+    }
+
+    StructFact structFact_numdens(bc,dmap,var_names_dens,scaling_numdens,
+                                 s_pairA_numdens,s_pairB_numdens);
+
+    //// number of pairs for numdens-numdens, used for copying particle stats multifab
+    //// declaration of StructFact is inside FhdParticleContainer::DynStructFact
+    //int nvar_sf_numdens = 1;
+
+
     ///////////////////////////////////////////
     // structure factor for charge-charge
     ///////////////////////////////////////////
@@ -914,15 +1024,38 @@ void main_driver(const char* argv)
     StructFact structFact_vel(ba,dmap,var_names_vel,scaling_vel,
                               s_pairA_vel,s_pairB_vel);
 
+    // vectors used for dsf
+    Gpu::ManagedVector<Real> posx;
+    posx.resize(simParticles);
+    Real * posxPtr = posx.dataPtr();
+    Vector<Real> posxVec(simParticles);
+    Vector<Real> axVec(simParticles);
+
+    Gpu::ManagedVector<Real> posy;
+    posy.resize(simParticles);
+    Real * posyPtr = posy.dataPtr();
+    Vector<Real> posyVec(simParticles);
+    Vector<Real> ayVec(simParticles);
+
+    Gpu::ManagedVector<Real> posz;
+    posz.resize(simParticles);
+    Real * poszPtr = posz.dataPtr();
+    Vector<Real> poszVec(simParticles);
+    Vector<Real> azVec(simParticles);
 
 
 //    // Writes instantaneous flow field and some other stuff? Check with Guy.
     //WritePlotFileHydro(0, time, geom, umac, pres, umacM);
+    WritePlotFile(0, time, geom, geomC, geomP,
+                  particleInstant, particleMeans, particles,
+                  charge, chargeM, potential, potentialM, efieldCC);
+
     remove("bulkFlowEst");
+    remove("partPos");
     //Time stepping loop
 
 
-
+    int init_step = step;
     if(ramp_step==2){
         dt = dt*1e-7;
 	if(step < 100 && step > 50) dt = dt*2;
@@ -1321,7 +1454,15 @@ void main_driver(const char* argv)
             sourceTemp[d].setVal(0.0);      // reset source terms
             sourceRFD[d].setVal(0.0);      // reset source terms
             particles.ResetMarkers(0);
+	    umac[d].setVal(0.0);
         }
+
+	//// subtract shear velocity to previous umac
+	//if (istep > 1) {
+	//   MultiFab::Subtract(umac[0],externalV[0],0,0,externalV[0].nComp(),externalV[0].nGrow());
+	//   MultiFab::Subtract(umac[1],externalV[1],0,0,externalV[1].nComp(),externalV[1].nGrow());
+	//   MultiFab::Subtract(umac[2],externalV[2],0,0,externalV[2].nComp(),externalV[2].nGrow());
+	//}
 
         //particles.BuildCorrectionTable(dxp,0);
 
@@ -1342,14 +1483,13 @@ void main_driver(const char* argv)
 //        origin[1] = prob_hi[1]/2.0;
 //        origin[2] = prob_hi[2]/2.0;
 
-       // particles.forceFunction(dt);
+        //particles.forceFunction(dt);
 
         // sr_tog is short range forces
         // es_tog is electrostatic solve (0=off, 1=Poisson, 2=Pairwise, 3=P3M)
 	
 
         if (sr_tog != 0 || es_tog==3) {
-
             // compute short range forces (if sr_tog=1)
             // compute P3M short range correction (if es_tog=3)
             particles.computeForcesNLGPU(charge, RealCenteredCoords, dxp);
@@ -1369,6 +1509,15 @@ void main_driver(const char* argv)
 	    particles.computeForcesCoulombGPU(simParticles);
 	     }
 
+	//particles.computeForcesSpringGPU(simParticles);
+	//particles.computeForcesFENEGPU(simParticles);
+	if (bond_tog != 0) {
+	    particles.computeForcesBondGPU(simParticles);
+	}
+
+	//particles.SetForce(1,0,0,-1, particles.id_global_map);
+        //particles.SetForce(0,0,0,1, particles.id_global_map);
+
         // compute other forces and spread to grid
         particles.SpreadIonsGPU(dx, dxp, geom, umac, RealFaceCoords, efieldCC, source, sourceTemp);
 
@@ -1387,7 +1536,7 @@ void main_driver(const char* argv)
             if (fluid_tog ==2) {
                 sMflux.StochMomFluxDiv(stochMfluxdivC,0,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
             }
-        }
+	}
         
         
         MultiFab::Add(source[0],sourceRFD[0],0,0,sourceRFD[0].nComp(),sourceRFD[0].nGrow());
@@ -1402,50 +1551,72 @@ void main_driver(const char* argv)
 
                 Real check;
 
-//                particles.clearMobilityMatrix();
-//                for(int ii=115;ii<=2194;ii++)
-//                {
-//                    particles.SetForce(ii,1,0,0);
-//                    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-//                        source    [d].setVal(0.0);      // reset source terms
-//                        sourceTemp[d].setVal(0.0);      // reset source terms
-//                    }
-//                    particles.SpreadIonsGPU(dx, dxp, geom, umac, efieldCC, source, sourceTemp);                
-//                    advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
-//                    particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
-//                    particles.fillMobilityMatrix(ii,0);
+		/* */
+		// Uncomment this section to calculate mobility matrix for pinned particles; this should only run for 1 step
+		//   if discos-particle wall is regular, we can just calculate mobility matrix on one particle and shift it around.
+		if (pinMatrix_tog == 1)
+		{
+                    particles.clearMobilityMatrix();
+                    for(int ii=0;ii<particles.getTotalPinnedMarkers();ii++)
+                    {
+                        int id_global_pinned = particles.pinnedParticlesIDGlobal[ii];
 
-//                    particles.SetForce(ii,0,1,0);
-//                    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-//                        source    [d].setVal(0.0);      // reset source terms
-//                        sourceTemp[d].setVal(0.0);      // reset source terms
-//                    }
-//                    particles.SpreadIonsGPU(dx, dxp, geom, umac, efieldCC, source, sourceTemp);                
-//                    advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
-//                    particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
-//                    particles.fillMobilityMatrix(ii,1);
+                        particles.SetForce(id_global_pinned,1,0,0,particles.id_global_map);
+                        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                            source    [d].setVal(0.0);      // reset source terms
+                            sourceTemp[d].setVal(0.0);      // reset source terms
+                        }
+                        particles.SpreadIonsGPU(dx, dxp, geom, umac, RealFaceCoords, efieldCC, source, sourceTemp);                
+                        advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
+                        particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
+                        particles.fillMobilityMatrix(id_global_pinned,0,particles.id_global_map);
 
-//                    particles.SetForce(ii,0,0,1);
-//                    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-//                        source    [d].setVal(0.0);      // reset source terms
-//                        sourceTemp[d].setVal(0.0);      // reset source terms
-//                    }
-//                    particles.SpreadIonsGPU(dx, dxp, geom, umac, efieldCC, source, sourceTemp);                
-//                    advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
-//                    particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
-//                    particles.fillMobilityMatrix(ii,2);
+                        //particles.PrintParticles();
+
+                        particles.SetForce(id_global_pinned,0,1,0,particles.id_global_map);
+                        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                            source    [d].setVal(0.0);      // reset source terms
+                            sourceTemp[d].setVal(0.0);      // reset source terms
+                        }
+                        particles.SpreadIonsGPU(dx, dxp, geom, umac, RealFaceCoords, efieldCC, source, sourceTemp);                
+                        advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
+                        particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
+                        particles.fillMobilityMatrix(id_global_pinned,1,particles.id_global_map);
+
+                        particles.SetForce(id_global_pinned,0,0,1,particles.id_global_map);
+                        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                            source    [d].setVal(0.0);      // reset source terms
+                            sourceTemp[d].setVal(0.0);      // reset source terms
+                        }
+                        particles.SpreadIonsGPU(dx, dxp, geom, umac, RealFaceCoords, efieldCC, source, sourceTemp);                
+                        advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
+                        particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
+                        particles.fillMobilityMatrix(id_global_pinned,2,particles.id_global_map);
 
 
-//                }
-//                particles.writeMat();
+                    }
+                    particles.writeMat();
 
-//                particles.invertMatrix();
+                    particles.invertMatrix();
+
+		    if(ParallelDescriptor::MyProc() == 0) {
+		        Abort("Finish calculating pinned mobility matrix, thus program aborts. To use pinned mobility matrix, set pinMatrix_tog=0 and rerun");
+		    }
+		}
+                /* */             
 
                 advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
+		//MultiFab::Add(umac[0],externalVU[0],0,0,externalVU[0].nComp(),externalVU[0].nGrow());
+		//MultiFab::Add(umac[1],externalVU[1],0,0,externalVU[1].nComp(),externalVU[1].nGrow());
+		//MultiFab::Add(umac[2],externalVU[2],0,0,externalVU[2].nComp(),externalVU[2].nGrow());
                 particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
                 particles.velNorm();
+		
+		//particles.PrintParticles();
 
-                particles.pinnedParticleInversion();
+                particles.pinnedParticleInversion(particles.id_global_map);
+
+		//particles.PrintParticles();
 
                 for (int d=0; d<AMREX_SPACEDIM; ++d) {
                         source    [d].setVal(0.0);      // reset source terms
@@ -1459,12 +1630,21 @@ void main_driver(const char* argv)
                 MultiFab::Add(source[2],sourceRFD[2],0,0,sourceRFD[2].nComp(),sourceRFD[2].nGrow());
 
                 advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
+		//MultiFab::Add(umac[0],externalV[0],0,0,externalV[0].nComp(),externalV[0].nGrow());
+		//MultiFab::Add(umac[1],externalV[1],0,0,externalV[1].nComp(),externalV[1].nGrow());
+		//MultiFab::Add(umac[2],externalV[2],0,0,externalV[2].nComp(),externalV[2].nGrow());
                 particles.InterpolateMarkersGpu(0, dx, umac, RealFaceCoords, check);
                 particles.velNorm();
 
+		//particles.PrintParticles();
+
             }else
             {
+		// TODO: still missing RFD here?
                 advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
+		//MultiFab::Add(umac[0],externalV[0],0,0,externalV[0].nComp(),externalV[0].nGrow());
+		//MultiFab::Add(umac[1],externalV[1],0,0,externalV[0].nComp(),externalV[1].nGrow());
+		//MultiFab::Add(umac[2],externalV[2],0,0,externalV[0].nComp(),externalV[2].nGrow());
 
             }
 
@@ -1485,20 +1665,51 @@ void main_driver(const char* argv)
             particles.MoveIonsCPP(dt, dx, dxp, geom, umac, efield, RealFaceCoords, source, sourceTemp, pparamPlaneList,
                                paramPlaneCount, 3 /*this number currently does nothing, but we will use it later*/);
 
+	    
+	    //particles.PrintParticles();
+	    
             // reset statistics after step n_steps_skip
             // if n_steps_skip is negative, we use it as an interval
             if ((n_steps_skip > 0 && istep == n_steps_skip) ||
                 (n_steps_skip < 0 && istep%n_steps_skip == 0) ) {
 
-                //particles.MeanSqrCalc(0, 1);
+                particles.MeanSqrCalcCM(0, 1);
+                particles.stressP(0, 1);
             }
             else {
-                //particles.MeanSqrCalc(0, 0);
+                particles.MeanSqrCalcCM(0, 0);
+                particles.stressP(0, 0);
             }
 
             Print() << "Finish move.\n";
         }
 
+	/* uncomment this section if using Delong et al method: add shear velocity to umac
+	 *   also need to add shear velocity in MoveIonsCPP (1-step or 2-step)
+	MultiFab::Add(umac[0],externalV[0],0,0,externalV[0].nComp(),externalV[0].nGrow());
+	MultiFab::Add(umac[1],externalV[1],0,0,externalV[1].nComp(),externalV[1].nGrow());
+	MultiFab::Add(umac[2],externalV[2],0,0,externalV[2].nComp(),externalV[2].nGrow());
+	*/
+
+        // collect particle positions onto one processor
+	particles.GetAllParticlePositions(posxVec,posyVec,poszVec,axVec,ayVec,azVec);
+        if (dsf_flag == 1)
+        {
+	   if (ParallelDescriptor::MyProc()==0){
+              std::string filename = Concatenate("partPos_restart", init_step, 9);
+              std::ofstream ofs2(filename, std::ofstream::app);
+              //ofstream ofs( filename, ios::binary );
+   
+              for (int i=0;i<simParticles;i++)
+              {
+                  ofs2 << istep << " " << i << " " << posxVec[i] << " " << posyVec[i] << " " << poszVec[i] << " " << axVec[i] << " " << ayVec[i] << " " << azVec[i] << std::endl;
+              }
+   
+              ofs2.close();
+              //ofs.close();
+              Print() << "Finished writing particle positions.\n";
+	   }
+        }
 
         /*
         // FIXME - AJN
@@ -1558,6 +1769,28 @@ void main_driver(const char* argv)
         // compute particle fields, means, anv variances
         // also write out time-averaged current to currentEst
         particles.EvaluateStats(particleInstant, particleMeans, ionParticle[0], dt,statsCount);
+	
+	if (dsf_fft) {
+	   // save t0 stats
+	   if ((n_steps_skip > 0 && istep == n_steps_skip) ||
+               (n_steps_skip < 0 && istep%n_steps_skip == 0) ||
+	       istep == 1) {
+
+               Print() << "resetting dsf stats at " << istep << " step.\n";
+	       MultiFab::Copy(struct_cc_numdens0, particleInstant, 0, 0, nvar_sf_numdens, 0);
+	       structFact_numdens.ComputeFFT(struct_cc_numdens0, struct_cc_numdens0_real, struct_cc_numdens0_imag,geomC);
+
+           }
+
+	   // compute dynamic structure factor, using particleInstant and particleInstant0
+           MultiFab::Copy(struct_cc_numdens, particleInstant, 0, 0, nvar_sf_numdens, 0);
+	   structFact_numdens.DynStructureDens(struct_cc_numdens, 
+	   		                 struct_cc_numdens0_real, struct_cc_numdens0_imag, 
+	   			         geomC, ktarg);
+
+           Print() << "Finish dynamic structure factor.\n";
+	}
+
 
         // compute the mean and variance of umac
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
@@ -1619,7 +1852,8 @@ void main_driver(const char* argv)
         if (chk_int > 0 && istep%chk_int == 0) {
             WriteCheckPoint(istep, time, statsCount, umac, umacM, pres,
                             particles, particleMeans, particleVars, chargeM,
-                            potential, potentialM);
+                            potential, potentialM,
+			    struct_cc_numdens0_real, struct_cc_numdens0_imag);
         }
 
 //        particles.PrintParticles();

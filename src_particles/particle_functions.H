@@ -25,4 +25,13 @@ void FindFaceCoords(std::array<MultiFab, AMREX_SPACEDIM> & RealFaceCoords,
 
 void FindCenterCoords(MultiFab & RealCenterCoords, const Geometry & geom);
 
+void SimpleShear(std::array<MultiFab, AMREX_SPACEDIM> & externalV,
+                    const Geometry & geom,
+		    const std::array<MultiFab, AMREX_SPACEDIM> & coords,
+		    const Real pinned_y);
+
+void UniformVel(std::array<MultiFab, AMREX_SPACEDIM> & externalV,
+                    const Geometry & geom);
+
+
 #endif
