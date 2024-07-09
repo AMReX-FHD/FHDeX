@@ -286,7 +286,7 @@ void advance_stokes(std::array<MultiFab, AMREX_SPACEDIM >& umac,
 
     // Update bond forces on cell body particles
     // //this calls compute_forces_bond_gpu, which then calls bond_hookian (if bond_tog == 1) or bond_fene (bond_tog == 2)
-    int simParticles = 48*2;
+    int simParticles = particle_count[0];
     particles.computeForcesBondGPU(simParticles);
 						   
     
@@ -372,8 +372,23 @@ void advance_stokes(std::array<MultiFab, AMREX_SPACEDIM >& umac,
     for (int d=0; d<AMREX_SPACEDIM; ++d)
         fc_force_corr[d].SumBoundary(geom.periodicity());
 
+
     // Spread particle forces
-    particles.SpreadIonsGPU(dx, dxp, geom, umac, RealFaceCoords, efieldCC, source, sourceTemp); //needs update. copied from Ions code
+    std::array< MultiFab, AMREX_SPACEDIM > sourceTemp;
+    AMREX_D_TERM(sourceTemp[0].define(convert(ba,nodal_flag_x), dmap, 1, 6);,
+                 sourceTemp[1].define(convert(ba,nodal_flag_y), dmap, 1, 6);,
+                 sourceTemp[2].define(convert(ba,nodal_flag_z), dmap, 1, 6););
+
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        sourceTemp[d].setVal(0.0);
+    }
+    
+    particles.SpreadMarkers(0, sourceTemp);
+    for (int d=0; d<AMREX_SPACEDIM; ++d)
+        sourceTemp[d].SumBoundary(geom.periodicity());
+
+
+    //particles.SpreadIonsGPU(dx, dxp, geom, umac, RealFaceCoords, efieldCC, source, sourceTemp); //needs update. copied from Ions code
     // this includes SpreadMarkersGpu(lev, sourceTemp, coords, dxFluid, 1), sourceTemp[].SumBoundary/FillBoundary etc 
    
     //___________________________________________________________________________

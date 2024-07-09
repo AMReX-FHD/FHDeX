@@ -138,4 +138,8 @@ void WritePlotFile(const int step,
                    const FhdParticleContainer & particles,
                    const IBMarkerContainer & ib_pc);
 
+//void FhdParticleContainer::InitParticles(int totalParticles, const Real* dxp);
+
+//void FhdParticleContainer::ReInitParticles();
+
 #endif

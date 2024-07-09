@@ -90,7 +90,7 @@
   # 1 = use particles.dat file
   particle_placement = 1
   # -1 = calculate based on n0
-  particle_count = 8
+  particle_count = 96
   # number of groups (polymer groups)
   ngroups = 1
   # number of bonds (be careful about whether there are repeated bonds)
