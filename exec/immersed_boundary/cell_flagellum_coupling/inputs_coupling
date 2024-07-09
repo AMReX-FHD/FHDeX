@@ -94,7 +94,7 @@
   # number of groups (polymer groups)
   ngroups = 1
   # number of bonds (be careful about whether there are repeated bonds)
-  nbonds = 24
+  nbonds = 1540
 
   #k = 1.0e-3
   #x0 = 8.0e-8
