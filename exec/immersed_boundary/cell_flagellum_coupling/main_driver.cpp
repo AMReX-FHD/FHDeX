@@ -1,11 +1,14 @@
 #include <main_driver.H>
 #include <main_driver_F.H>
 
+#include "species.H"
+#include "paramPlane.H"
+
 #include <hydro_functions.H>
 
 //#include <analysis_functions_F.H>
 #include <StochMomFlux.H>
-//#include <StructFact.H>
+#include <StructFact.H>
 
 #include <common_functions.H>
 
@@ -481,9 +484,19 @@ void main_driver(const char * argv) {
             << ib_nghost << " ghost cells" << std::endl; 
     
 
+    //Species type defined in species.H
+    //array of length nspecies
+
+    species ionParticle[nspecies];
+
+    double realParticles = 0;
+    double simParticles = 0;
+
     // Initialize immersed boundary container for the cell body
     FhdParticleContainer particles(geom, geom, dmap, ba, ba, 0, 0);
-    particles.InitParticles(particle_count[0], dx);
+//    particles.InitParticles(particle_count[0], dx);
+    particles.InitParticles(ionParticle, dx);
+
     particles.UpdatePIDMap(); //This is the PIDmapping without sorting.
     //particles.fillNeighbors(); //Need this???
 

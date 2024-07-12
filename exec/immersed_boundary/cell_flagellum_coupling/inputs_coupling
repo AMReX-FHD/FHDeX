@@ -14,12 +14,43 @@
   max_grid_size = 32 16 16
   #max_particle_tile_size = 256 256 256
 
+  # above settings are for fluid grid. EM and particle grid (the grid for finding neighbour lists) are coarsened or refined off these grids. <1 = refine, >1 = coarsen.
+  #Leave these on 1 until properly tested
+  particle_grid_refine = 1
+  es_grid_refine = 1
+
   # Time-step control
   fixed_dt = 1e-4
 
   # Controls for number of steps between actions
   max_step = 5000
   plot_int = 200
+
+  plot_ascii = 0
+  struct_fact_int = -1
+  n_steps_skip = -10000
+  chk_int  = 1000
+  restart = -700
+  particle_restart = -700
+  dsf_flag = 1
+
+  radialdist_int = 0
+  cartdist_int = 0
+  binsize = 0.5e-8
+  searchDist = 1.e-7
+  ktarg = 7.07e7
+
+  all_dry = 0
+  fluid_tog = 1 # 0=Do nothing, 1=Do stokes solve, 2=Do low Mach solve
+  es_tog = 0 # Do electrostatic solve 0=off, 1=Poisson, 2=Pairwise Coulomb (Doesn't work in parallel), 3=PPPM
+  drag_tog = 0 # Apply drag force to fluid
+  rfd_tog = 1 # Apply RFD force to fluid
+  move_tog = 0 # # Total particle move. 0 = off, 1 = single step, 2 = midpoint
+  dry_move_tog = 0 # Dry particle move 0 = off, 1 = on, 2 = on but without dry stochastic drift correction
+  wall_mob = 0 #0= no dry adjustment to mobility due to walls, 1=Infinte plane, 2=other model
+  sr_tog = 0 # 0=No short range forces, 1=Short range LJ forces without walls, 2= with walls, 3=Wall with alternative model
+  bond_tog = 1 # 0=No bonds, 1=Hookian bonds, 2=FENE bonds
+  pinMatrix_tog = 0 # 0=normal runs, 1=calculate pinned mobility matrix for 1 step
 
   # Viscous friction L phi operator
   # if abs(visc_type) = 1, L = div beta grad
@@ -91,13 +122,35 @@
   particle_placement = 1
   # -1 = calculate based on n0
   particle_count = 96
+  # real particles per simulator particle
+  particle_neff = 1
+  # ignore if particle_count is positive
+  particle_n0 = 3.011e20 # 0.5M
   # number of groups (polymer groups)
   ngroups = 1
   # number of bonds (be careful about whether there are repeated bonds)
   nbonds = 1540
 
-  #k = 1.0e-3
+  #k = 1.0e-3  # these two are defined in particles.dat
   #x0 = 8.0e-8
+
+  #Species info
+  #--------------
+  nspecies = 1
+  mass = 1.28e-21
+  diameter = -2.488e-8
+  qval = 0.0
+  diff = 4.37e-06 # From internet
+ #If diameter is negative, this value will be used. If diameter is positive, it will be ignored. This is the total wet+dry diffusion. The wet component arises from the grid size and peskin kernel, the dry component is set to recover the value entered here.
+
+  msd_grp_int = 10
+
+  p_int_tog = 1 # 1 - species pair does interact, 0 it doesn't. Non self interacting particles also ignore walls for coulomb, the see walls for short range though.
+  eepsilon = 1e-16 # LJ parameter
+  sigma = 4e-8 #Close range repulsion diameter (from Freund JCP 2002)
+  rmin = 0.25 #Minimum range to prevent blow up of force. Fraction of sigma
+  rmax = 1.12 #Maximum range
+
 
   # Flagellar markers
 
