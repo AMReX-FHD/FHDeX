@@ -130,21 +130,20 @@ void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
     Vector<Real> pos_z(ib_mc.getTotalNumIDs());
     ib_mc.PullDown(0, pos_z, -3);
 
-    //id_1 records actual ids on a given ib flagellum
+    //id_1 records marker ids on a given ib
     Vector<int> ids(ib_mc.getTotalNumIDs());
     ib_mc.PullDownInt(0, ids, IBMInt::id_1);
-    //cpu_1 records the order of ib flagellum when generated
+    //cpu_1 records the id of each of ib
     Vector<int> ibs(ib_mc.getTotalNumIDs());
     ib_mc.PullDownInt(0, ibs, IBMInt::cpu_1);
 
-    Print() << "real_id = ";
+    Print() << "maker_id = ";
     for (auto & i:ids) Print() << i << " ";
     Print() << std::endl;
 
-    Print() << "number of flagellum = ";
+    Print() << "ib_id = ";
     for (auto & i:ibs) Print() << i << " ";
     Print() << std::endl;
-   
 
     //Vectors for storing forces in each direction
     Vector<Real> fx(ib_mc.getTotalNumIDs());
@@ -160,33 +159,27 @@ void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
 
     int index_start = 0;
 
-    for (int i_ib=0; i_ib < n_immbdy; ++i_ib) {   
+    for (int i_ib=0; i_ib < n_immbdy; ++i_ib) {
 
         if (n_marker[i_ib] <= 0) continue;
 
         int N       = ib_flagellum::n_marker[i_ib];
-    	Real L      = ib_flagellum::length[i_ib];
-    	Real l_link = L/(N-1);
+        Real L      = ib_flagellum::length[i_ib];
+        Real l_link = L/(N-1);
 
-    	Real k_spr  = ib_flagellum::k_spring[i_ib];
-    	Real k_driv = ib_flagellum::k_driving[i_ib]; 
+        Real k_spr  = ib_flagellum::k_spring[i_ib];
+    	  Real k_driv = ib_flagellum::k_driving[i_ib]; 
 
         for (int ind = index_start; ind <(index_start + N - 1); ++ind){
             int i_0 = IBMarkerContainer::storage_idx(sorted_ibs[ind]);
             int i_1 = IBMarkerContainer::storage_idx(sorted_ibs[ind+1]);
 
-            // Print() << "I_0 = " << i_0 << " I_1 = " << i_1 << " PL = " << geom.ProbLength(0)/2 << std::endl;
-
             if ((pos_x[i_1] - pos_x[i_0]) < -geom.ProbLength(0)/2) {
-                // Print() << "X " << pos_x[i_1] << "-" << pos_x[i_0] << "=" << pos_x[i_1] - pos_x[i_0] << std::endl;
                 pos_x[i_1] = pos_x[i_1] + geom.ProbLength(0);
-                // Print() << "X " << pos_x[i_1] << std::endl;
             }
 
             if ((pos_x[i_1] - pos_x[i_0]) > geom.ProbLength(0)/2) {
-                // Print() << "X " << pos_x[i_1] << "-" << pos_x[i_0] << "=" << pos_x[i_1] - pos_x[i_0] << std::endl;
                 pos_x[i_1] = pos_x[i_1] - geom.ProbLength(0);
-                // Print() << "X " << pos_x[i_1] << std::endl;
             }
 
             if ((pos_y[i_1] - pos_y[i_0]) < -geom.ProbLength(1)/2) {
@@ -213,82 +206,88 @@ void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
                 int i_c = IBMarkerContainer::storage_idx(sorted_ibs[ind]);
 
                 if(IBMarkerContainer::immbdy_idx(sorted_ibs[ind]) != i_ib) {
-                    Print() << IBMarkerContainer::immbdy_idx(sorted_ibs[ind]) << " i_ib = " << i_ib << std::endl;
-                    Abort("Mismatched flagella detected in predictor!!! flee for your lunch!");
+                    Print() << IBMarkerContainer::immbdy_idx(sorted_ibs[ind])
+                            << " i_ib = " << i_ib << std::endl;
+                    Abort("Mismatched flagella detected in predictor!!!");
                 }
 
-                if(ind>index_start and ind<index_start+N-1) {   //exclude the first and last marker on the flagellum that doesn't have either next or previous marker
-                       //Getting indexes for the previous/minus and next/plus markers in the PullDown Vectors
+                if(ind>index_start and ind<index_start+N-1) {
+                    //exclude the first and last marker on the flagellum that
+                    //doesn't have either next or previous marker Getting
+                    //indexes for the previous/minus and next/plus markers in
+                    //the PullDown Vectors
+
+                    int i_p = IBMarkerContainer::storage_idx(sorted_ibs[ind+1]);
+                    int i_m = IBMarkerContainer::storage_idx(sorted_ibs[ind-1]);
+
+                    RealVect      pos = {pos_x[i_c],   pos_y[i_c],   pos_z[i_c]};
+                    RealVect next_pos = {pos_x[i_p],   pos_y[i_p],   pos_z[i_p]};
+                    RealVect prev_pos = {pos_x[i_m],   pos_y[i_m],   pos_z[i_m]};
+
+                    RealVect r_p = next_pos - pos, r_m = pos - prev_pos;
+
+                    Real lp_m = r_m.vectorLength(),         lp_p = r_p.vectorLength();
+                    Real fm_0 = k_spr * (lp_m-l_link)/lp_m, fp_0 = k_spr * (lp_p-l_link)/lp_p;
+
+                    Print() << "Updating spring forces..." << std::endl;
+
+                    //update spring forces between previous/minus and current markers
+                    fx[i_m] += fm_0 * r_m[0]; fy[i_m] += fm_0 * r_m[1]; fz[i_m] += fm_0 * r_m[2];
+                    fx[i_c] -= fm_0 * r_m[0]; fy[i_c] -= fm_0 * r_m[1]; fz[i_c] -= fm_0 * r_m[2];
+
+                    //update spring forces between next/plus and current markers
+                    fx[i_c] += fp_0 * r_p[0]; fy[i_c] += fp_0 * r_p[1]; fz[i_c] += fp_0 * r_p[2];
+                    fx[i_p] -= fp_0 * r_p[0]; fy[i_p] -= fp_0 * r_p[1]; fz[i_p] -= fp_0 * r_p[2];
+                }
+
+                // update bending forces for curent, minus/prev, and next/plus
+                if(immbdy::contains_fourier) {
+                    //for periodic waveform of flagellum in Fourier series
+                    Vector<RealVect> marker_positions = equil_pos(i_ib, time, geom);
+                    RealVect target_pos = marker_positions[ids[i_c]];
+
+                    fx[i_c] += k_driv*(target_pos[0] - pos_x[i_c]);
+                    fy[i_c] += k_driv*(target_pos[1] - pos_y[i_c]);
+                    fz[i_c] += k_driv*(target_pos[2] - pos_z[i_c]);
+                } else {
+                    // for harmonic waveform of Taylor lines
+                    if(ind > index_start && ind < index_start+N-1) {
+                        //exclude the first and last markers on the flagellum
+                        //that doesn't have either next or previous marker
+
+                        Print() << "Updating bending forces..." << std::endl;
 
                         int i_p = IBMarkerContainer::storage_idx(sorted_ibs[ind+1]);
                         int i_m = IBMarkerContainer::storage_idx(sorted_ibs[ind-1]);
 
-                        RealVect      pos = {pos_x[i_c],   pos_y[i_c],   pos_z[i_c]};
-                        RealVect next_pos = {pos_x[i_p],   pos_y[i_p],   pos_z[i_p]};
-                        RealVect prev_pos = {pos_x[i_m],   pos_y[i_m],   pos_z[i_m]};
+                        RealVect      pos = {pos_x[i_c], pos_y[i_c], pos_z[i_c]};
+                        RealVect next_pos = {pos_x[i_p], pos_y[i_p], pos_z[i_p]};
+                        RealVect prev_pos = {pos_x[i_m], pos_y[i_m], pos_z[i_m]};
 
-                        RealVect r_p = next_pos - pos, r_m = pos - prev_pos;
+                        const RealVect & r = pos, & r_m = prev_pos, & r_p = next_pos;
 
-                        Real lp_m = r_m.vectorLength(),         lp_p = r_p.vectorLength();
-                        Real fm_0 = k_spr * (lp_m-l_link)/lp_m, fp_0 = k_spr * (lp_p-l_link)/lp_p;
+                        // Set bending forces to zero before passing to 'driving_f'
+                        RealVect f_p = RealVect{AMREX_D_DECL(0., 0., 0.)};
+                        RealVect f   = RealVect{AMREX_D_DECL(0., 0., 0.)};
+                        RealVect f_m = RealVect{AMREX_D_DECL(0., 0., 0.)};
 
-			Print() << "Updating spring forces..." << std::endl;
+                        // calling the active bending force calculation
 
-                        //update spring forces between previous/minus and current markers
-                        fx[i_m] += fm_0 * r_m[0];   fy[i_m] += fm_0 * r_m[1];   fz[i_m] += fm_0 * r_m[2];
-                        fx[i_c] -= fm_0 * r_m[0];   fy[i_c] -= fm_0 * r_m[1];   fz[i_c] -= fm_0 * r_m[2];
+                        Real th = theta(
+                                        driv_amp, time, i_ib, ids[i_c] - 1
+                                       );
+                        driving_f(f, f_p, f_m, r, r_p, r_m, driv_u, th, k_driv);
 
-                        //update spring forces between next/plus and current markers
-                        fx[i_c] += fp_0 * r_p[0];   fy[i_c] += fp_0 * r_p[1];   fz[i_c] += fp_0 * r_p[2];
-                        fx[i_p] -= fp_0 * r_p[0];   fy[i_p] -= fp_0 * r_p[1];   fz[i_p] -= fp_0 * r_p[2];
+                        // updating the force on the minus, current, and plus particles.
+                        fx[i_m] += f_m[0];   fy[i_m] += f_m[1];   fz[i_m] += f_m[2];
+                        fx[i_c] += f[0];     fy[i_c] += f[1];     fz[i_c] += f[2];
+                        fx[i_p] += f_p[0];   fy[i_p] += f_p[1];   fz[i_p] += f_p[2];
+                    }
                 }
+        }
+        index_start += N;
+    }
 
-                // update bending forces for curent, minus/prev, and next/plus
-                if(immbdy::contains_fourier) {  //for periodic waveform of flagellum in Fourier series
-			Vector<RealVect> marker_positions = equil_pos(i_ib, time, geom);
-                        RealVect target_pos = marker_positions[ids[i_c]];
-
-                        fx[i_c] += k_driv*(target_pos[0] - pos_x[i_c]);
-                        fy[i_c] += k_driv*(target_pos[1] - pos_y[i_c]);
-                        fz[i_c] += k_driv*(target_pos[2] - pos_z[i_c]);
-
-                } else {                        // for harmonic waveform of Taylor lines
-
-                        if(ind>index_start and ind<index_start+N-1) {   //exclude the first and last markers on the flagellum that doesn't have either next or previous marker
- 
- 				Print() << "Updating bending forces..." << std::endl;
-
-                                int i_p = IBMarkerContainer::storage_idx(sorted_ibs[ind+1]);
-                                int i_m = IBMarkerContainer::storage_idx(sorted_ibs[ind-1]);
-
-                                RealVect      pos = {pos_x[i_c], pos_y[i_c], pos_z[i_c]};
-                                RealVect next_pos = {pos_x[i_p], pos_y[i_p], pos_z[i_p]};
-                                RealVect prev_pos = {pos_x[i_m], pos_y[i_m], pos_z[i_m]};
-
-                                const RealVect & r = pos, & r_m = prev_pos, & r_p = next_pos;
-
-                                // Set bending forces to zero before passing to 'driving_f'
-                                RealVect f_p = RealVect{AMREX_D_DECL(0., 0., 0.)};
-                                RealVect f   = RealVect{AMREX_D_DECL(0., 0., 0.)};
-                                RealVect f_m = RealVect{AMREX_D_DECL(0., 0., 0.)};
-
-                                // calling the active bending force calculation
-
-                                Real th = theta(
-                                                driv_amp, time, i_ib, ids[i_c] - 1
-                                               );
-                                driving_f(f, f_p, f_m, r, r_p, r_m, driv_u, th, k_driv);
-
-                                // updating the force on the minus, current, and plus particles.
-                                fx[i_m] += f_m[0];   fy[i_m] += f_m[1];   fz[i_m] += f_m[2];
-                                fx[i_c] += f[0];     fy[i_c] += f[1];     fz[i_c] += f[2];
-                                fx[i_p] += f_p[0];   fy[i_p] += f_p[1];   fz[i_p] += f_p[2];
-                         }
-                }
-       }
-       index_start += N;
-    }	
-		
     // Fianlly, Iterating through all markers and add forces
     for (IBMarIter pti(ib_mc, ib_lev); pti.isValid(); ++pti) {
 
@@ -317,112 +316,6 @@ void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
     }
     BL_PROFILE_VAR_STOP(UpdateForces);
 };
-
-
-        
-
-   // for (IBMarIter pti(ib_mc, ib_lev); pti.isValid(); ++pti) {
-   //     // Get marker data (local to current thread)
-   //     TileIndex index(pti.index(), pti.LocalTileIndex());
-   //     AoS & markers = ib_mc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
-   //     long np = ib_mc.GetParticles(ib_lev).at(index).numParticles();
-
-   //	for (MarkerListIndex m_index(0, 0); m_index.first<np; ++m_index.first) {
-
-   //         ParticleType & mark = markers[m_index.first];
-
-   //         int id      = mark.idate(IBMInt::id_1);   //id # on the flagellum
-   //	    int i_ib    = mark.idata(IBMInt::cpu_1);  // flagellum #
-   //         int N       = ib_flagellum::n_marker[i_ib];
-            //Real L      = ib_flagellum::length[i_ib];
-            //Real l_link = L/(N-1);
-
-            //Real k_spr  = ib_flagellum::k_spring[i_ib];
-            //Real k_driv = ib_flagellum::k_driving[i_ib];
-
-	    // Get previous and next markers connected to current marker (if they exist)
-            //ParticleType * next_marker = NULL;
-            //ParticleType * prev_marker = NULL;
-
-            //int status = ib_mc.ConnectedMarkers(ib_lev, index, m_index,
-            //                                    prev_marker, next_marker);
-
-            //if (status == -1) Abort("status -1 particle detected in predictor!!! flee for your life!");
-
-            // position vectors
-            //RealVect prev_pos, pos, next_pos;
-            //for (int d=0; d<AMREX_SPACEDIM; ++d) {
-            //    pos[d] = mark.pos(d);
-            //    if (pred_pos) pos[d] += mark.rdata(IBMReal::pred_posx + d);
-            //}
-
-            //if (status == 0) {
-            //    for(int d=0; d<AMREX_SPACEDIM; ++d) {
-            //        prev_pos[d] = prev_marker->pos(d);
-            //        next_pos[d] = next_marker->pos(d);
-
-            //        if (pred_pos) {
-            //            prev_pos[d] += prev_marker->rdata(IBMReal::pred_posx + d);
-            //            next_pos[d] += next_marker->rdata(IBMReal::pred_posx + d);
-            //        }
-            //    }
-            //}
-
-            // update spring forces
-            //if (status == 0) { // has next (p) and prev (m)
-            //    RealVect r_p = next_pos - pos, r_m = pos - prev_pos;
-
-            //    Real lp_m = r_m.vectorLength(),         lp_p = r_p.vectorLength();
-            //    Real fm_0 = k_spr * (lp_m-l_link)/lp_m, fp_0 = k_spr * (lp_p-l_link)/lp_p;
-
-            //    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-            //        prev_marker->rdata(component + d) += fm_0 * r_m[d];
-            //        mark.rdata(component + d)         -= fm_0 * r_m[d];
-
-            //        mark.rdata(component + d)         += fp_0 * r_p[d];
-            //        next_marker->rdata(component + d) -= fp_0 * r_p[d];
-            //    }
-            //}
-
-            // update bending forces for curent, minus/prev, and next/plus
-            //if(immbdy::contains_fourier) {
-            //    Vector<RealVect> marker_positions = equil_pos(i_ib, time, geom);
-            //    int marker_seq_id                 = mark.idata(IBMInt::id_1);
-            //    RealVect target_pos               = marker_positions[marker_seq_id];
-            //    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-            //        mark.rdata(component + d) += k_driv*(target_pos[d] - pos[d]);
-            //    }
-            //} else {
-            //    if (status == 0) { // has next (p) and prev (m)
-
-                    // position vectors
-            //        const RealVect & r = pos, & r_m = prev_pos, & r_p = next_pos;
-
-                    // Set bending forces to zero
-            //        RealVect f_p = RealVect{AMREX_D_DECL(0., 0., 0.)};
-            //        RealVect f   = RealVect{AMREX_D_DECL(0., 0., 0.)};
-            //        RealVect f_m = RealVect{AMREX_D_DECL(0., 0., 0.)};
-
-            //        // calling the active bending force calculation
-
-            //        Real th = theta(
-            //                driv_amp, time, i_ib, mark.idata(IBMInt::id_1) - 1
-            //            );
-            //        driving_f(f, f_p, f_m, r, r_p, r_m, driv_u, th, k_driv);
-
-                    // updating the force on the minus, current, and plus particles.
-            //        for (int d=0; d<AMREX_SPACEDIM; ++d) {
-            //            prev_marker->rdata(component + d) += f_m[d];
-            //            mark.rdata(component + d)         +=   f[d];
-            //            next_marker->rdata(component + d) += f_p[d];
-            //        }
-            //    }
-            //}
-      //  }
-   // }
-   // BL_PROFILE_VAR_STOP(UpdateForces);
-//};
-
 
 
 void yeax_ibm_marker(Real mot, IBMarkerContainer & ib_mc, int ib_lev,
