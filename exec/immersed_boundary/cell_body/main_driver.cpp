@@ -529,8 +529,49 @@ void main_driver(const char * argv) {
     }
 
     //___________________________________________________________________________
-    // Load Body particles from bonds.csv and particles.dat
+    // Load body particles from bonds.csv and particles.dat
     //
+
+    lazycsv::parser<
+        lazycsv::mmap_source,         /* source type of csv data */
+        lazycsv::has_header<false>,   /* first row is header or not */
+        lazycsv::delimiter<'\t'>,     /* column delimiter */
+        lazycsv::quote_char<'"'>,     /* quote character */
+        lazycsv::trim_chars<' '>      /* trim characters of cells */
+    >particles_parser{"particles.dat"};
+
+    Vector<RealVect> bdy_marker_positions(0);
+    Vector<Real> bdy_marker_radii(0);
+    Vector<Real> bdy_marker_idx(0);
+
+    for (const auto row : particles_parser) {
+        const auto [id_p, x_p, y_p, z_p] = row.cells(0, 1, 2, 3);
+        int id   = std::stoi(id_p.trimed().data());
+        double x = std::stod(x_p.trimed().data());
+        double y = std::stod(y_p.trimed().data());
+        double z = std::stod(z_p.trimed().data());
+
+        // Compute periodic offset. Will work as long as winding number = 1
+        Real x_period = x;
+        Real y_period = y;
+        Real z_period = z;
+        if (geom.isPeriodic(0))
+            x_period = x < geom.ProbHi(0) ? x : x - geom.ProbLength(0);
+        if (geom.isPeriodic(1))
+            y_period = y < geom.ProbHi(1) ? y : y - geom.ProbLength(1);
+        if (geom.isPeriodic(1))
+            z_period = z < geom.ProbHi(2) ? z : z - geom.ProbLength(2);
+
+        bdy_marker_positions.push_back(RealVect{x_period, y_period, z_period});
+        bdy_marker_radii.push_back(0.0);
+        bdy_marker_idx.push_back(id);
+    }
+
+    // Map from Marker ID => list of neighbors
+    // Only initialized here -- will be filled by bonds.csv
+    std::map<int, std::vector<int>> bond_neighbors{};
+    for(const auto idx: bdy_marker_idx)
+        bond_neighbors[idx] = std::vector<int>{};
 
     lazycsv::parser<
         lazycsv::mmap_source,         /* source type of csv data */
@@ -540,22 +581,83 @@ void main_driver(const char * argv) {
         lazycsv::trim_chars<' '>      /* trim characters of cells */
     >bonds_parser{"bonds.csv"};
 
+    // Matp from <Marker ID, Neighbor ID> => Equilibrium Distance
+    std::map<std::tuple<int, int>, double> bond_map{};
+
     for (const auto row : bonds_parser) {
         const auto [id_1_p, id_2_p, k_p, l_0_p] = row.cells(0, 1, 2, 3);
         int id_1 = std::stoi(id_1_p.trimed().data());
         int id_2 = std::stoi(id_2_p.trimed().data());
         double l_0 = std::stod(l_0_p.trimed().data());
+        bond_map[std::tuple{id_1, id_2}] =  l_0;
+        bond_neighbors.at(id_1).push_back(id_2);
     }
 
-    exit(0);
+    Print() << "Bond data:" << std::endl;
+    for(const auto idx: bdy_marker_idx) {
+        for(const auto idx_neighbor: bond_neighbors.at(idx)){
+            Print() << "Marker: " << idx << " is connect to: " << idx_neighbor
+                    << " with equilibrium length: " << bond_map.at(std::tuple{idx, idx_neighbor})
+                    << std::endl;
+        }
+    }
 
     //---------------------------------------------------------------------------
+
+    // TODO: WARNING this hardcodes body IB ID to 1 => generalize
+    ib_mc.InitList(0, bdy_marker_radii, bdy_marker_positions, 1);
+
 
     ib_mc.UpdatePIDMap();
     ib_mc.fillNeighbors();
     ib_mc.PrintMarkerData(0);
     BL_PROFILE_VAR_STOP(CREATEMARKERS);
 
+    // TODO: Create verify method!
+    // Check that generated IDs match those in the particles.dat 
+    int N = ib_mc.getTotalNumIDs();
+    //id_1 records marker ids on a given ib
+    Vector<int> ids(N);
+    ib_mc.PullDownInt(0, ids, IBMInt::id_1);
+    //cpu_1 records the id of each of ib
+    Vector<int> ibs(N);
+    ib_mc.PullDownInt(0, ibs, IBMInt::cpu_1);
+
+    Vector<Real> pos_x(N);
+    ib_mc.PullDown(0, pos_x, -1);
+    Vector<Real> pos_y(N);
+    ib_mc.PullDown(0, pos_y, -2);
+    Vector<Real> pos_z(N);
+    ib_mc.PullDown(0, pos_z, -3);
+
+    // Get sorted ibs list
+    std::vector<std::tuple<int, int, int>> sorted_ibs = ib_mc.get_sorted_map();
+    std::vector<int> reduced_ibs = ib_mc.get_reduced_map();
+
+    for(int i=0; i<N; i++){
+        if (ibs[i] != 1) continue;
+
+        int id = ids[i];
+        int global_idx = IBMarkerContainer::storage_idx(
+                sorted_ibs[id + reduced_ibs[1]]
+        );
+
+        if (pos_x[global_idx] != bdy_marker_positions[id][0]) {
+            Print() << "mismatch x!" << std::endl;
+            Print() << "id=" << id << " pos_x=" << pos_x[id] << " csv=" << bdy_marker_positions[id][0] << std::endl;
+        }
+        if (pos_y[global_idx] != bdy_marker_positions[id][1]) {
+            Print() << "mismatch y!" << std::endl;
+            Print() << "id=" << id << " pos_y=" << pos_y[id] << " csv=" << bdy_marker_positions[id][1] << std::endl;
+        }
+        if (pos_z[global_idx] != bdy_marker_positions[id][2]) {
+            Print() << "mismatch z!" << std::endl;
+            Print() << "id=" << id << " pos_z=" << pos_z[id] << " csv=" << bdy_marker_positions[id][2] << std::endl;
+        }
+    }
+
+
+    exit(0);
 
     //___________________________________________________________________________
     // Initialize fluid velocities

@@ -273,9 +273,7 @@ void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
 
                         // calling the active bending force calculation
 
-                        Real th = theta(
-                                        driv_amp, time, i_ib, ids[i_c] - 1
-                                       );
+                        Real th = theta(driv_amp, time, i_ib, ids[i_c] - 1);
                         driving_f(f, f_p, f_m, r, r_p, r_m, driv_u, th, k_driv);
 
                         // updating the force on the minus, current, and plus particles.
@@ -304,15 +302,12 @@ void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
             int N       = ib_flagellum::n_marker[i_ib];
 
             //int i_c = id + std::distance(sorted_ibs.begin(), std::find_if(sorted_ibs.begin(), sorted_ibs.end(), [&](const auto& pair) { return pair.first == i_ib; }));
-
-	    int i_c = IBMarkerContainer::storage_idx(sorted_ibs[id + reduced_ibs[i_ib]]);
-
-	    Print() << "Adding forces to particles..." << std::endl;
-
-	    mark.rdata(IBMReal::forcex) += fx[i_c];
+            int i_c = IBMarkerContainer::storage_idx(sorted_ibs[id + reduced_ibs[i_ib]]);
+            Print() << "Adding forces to particles..." << std::endl;
+            mark.rdata(IBMReal::forcex) += fx[i_c];
             mark.rdata(IBMReal::forcey) += fy[i_c];
             mark.rdata(IBMReal::forcez) += fz[i_c];
-	}
+        }
     }
     BL_PROFILE_VAR_STOP(UpdateForces);
 };
