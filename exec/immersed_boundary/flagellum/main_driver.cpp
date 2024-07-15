@@ -27,7 +27,6 @@
 #include <IBMarkerMD.H>
 
 #include "chrono"
-#include "lazycsv.H"
 
 using namespace std::chrono;
 using namespace amrex;
