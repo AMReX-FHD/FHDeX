@@ -27,7 +27,11 @@
 #include <IBMarkerMD.H>
 
 #include "chrono"
+
+// csv parsing
 #include "lazycsv.H"
+#include "string"
+
 
 using namespace std::chrono;
 using namespace amrex;
@@ -523,6 +527,29 @@ void main_driver(const char * argv) {
 
         ib_mc.InitList(0, marker_radii, marker_positions, i_ib);
     }
+
+    //___________________________________________________________________________
+    // Load Body particles from bonds.csv and particles.dat
+    //
+
+    lazycsv::parser<
+        lazycsv::mmap_source,         /* source type of csv data */
+        lazycsv::has_header<false>,   /* first row is header or not */
+        lazycsv::delimiter<'\t'>,     /* column delimiter */
+        lazycsv::quote_char<'"'>,     /* quote character */
+        lazycsv::trim_chars<' '>      /* trim characters of cells */
+    >bonds_parser{"bonds.csv"};
+
+    for (const auto row : bonds_parser) {
+        const auto [id_1_p, id_2_p, k_p, l_0_p] = row.cells(0, 1, 2, 3);
+        int id_1 = std::stoi(id_1_p.trimed().data());
+        int id_2 = std::stoi(id_2_p.trimed().data());
+        double l_0 = std::stod(l_0_p.trimed().data());
+    }
+
+    exit(0);
+
+    //---------------------------------------------------------------------------
 
     ib_mc.UpdatePIDMap();
     ib_mc.fillNeighbors();
