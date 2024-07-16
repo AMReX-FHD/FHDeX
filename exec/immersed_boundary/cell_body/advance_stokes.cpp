@@ -154,8 +154,8 @@ void advance_stokes(std::array<MultiFab, AMREX_SPACEDIM >& umac,
     // Move markers according to velocity: x^(n+1) = x^n + dt/2 J(u^(n+1/2))
     // (constrain it to move in the z = constant plane only)
     constrain_ibm_marker(ib_mc, ib_lev, IBMReal::velz);
-    if(immbdy::contains_fourier)
-        anchor_first_marker(ib_mc, ib_lev, IBMReal::velx);
+//    if(immbdy::contains_fourier)
+//        anchor_first_marker(ib_mc, ib_lev, IBMReal::velx);
     ib_mc.MoveMarkers(0, dt);
 
     ib_mc.clearNeighbors(); // Important: clear neighbors before Redistribute
@@ -172,10 +172,15 @@ void advance_stokes(std::array<MultiFab, AMREX_SPACEDIM >& umac,
     update_ibm_marker(driv_u, driv_amp, time, ib_mc, ib_lev,
                       IBMReal::forcex, false,
                       geom);
+
+    update_bdy_marker(bond_map, bond_neighbors, time, ib_mc, ib_lev,
+		      IBMReal::forcex, false,
+		      geom);
+
     // Constrain it to move in the z = constant plane only
     constrain_ibm_marker(ib_mc, ib_lev, IBMReal::forcez);
-    if(immbdy::contains_fourier)
-        anchor_first_marker(ib_mc, ib_lev, IBMReal::forcex);
+    //if(immbdy::contains_fourier)
+    //    anchor_first_marker(ib_mc, ib_lev, IBMReal::forcex);
     // Sum predictor forces added to neighbors back to the real markers
     ib_mc.sumNeighbors(IBMReal::forcex, AMREX_SPACEDIM, 0, 0);
 

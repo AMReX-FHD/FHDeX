@@ -581,7 +581,7 @@ void main_driver(const char * argv) {
         lazycsv::trim_chars<' '>      /* trim characters of cells */
     >bonds_parser{"bonds.csv"};
 
-    // Matp from <Marker ID, Neighbor ID> => Equilibrium Distance
+    // Map from <Marker ID, Neighbor ID> => Equilibrium Distance
     std::map<std::tuple<int, int>, double> bond_map{};
 
     for (const auto row : bonds_parser) {

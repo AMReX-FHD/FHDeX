@@ -110,6 +110,115 @@ Real theta(Real amp_ramp, Real time, int i_ib, int index_marker) {
 }
 
 
+void update_bdy_marker(std::map<std::tuple<int, int>, double> & bond_map, 
+		       std::map<int, std::vector<int>> & bond_neighbors, 
+		       Real time,
+                       IBMarkerContainer & ib_mc, int ib_lev,
+                       int component, bool pred_pos,
+                       const Geometry & geom) {
+
+    BL_PROFILE_VAR("update_bdy_marker", UpdateBdyForces);
+
+    // PullDown all particle positions onto one processor
+    int size = ParallelDescriptor::NProcs();
+    auto & num_ids = ib_mc.getNumIDs();
+    auto & cpu_offset = ib_mc.getCPUOffset();
+
+    int N = ib_mc.getTotalNumIDs();
+
+    Vector<Real> pos_x(N);
+    ib_mc.PullDown(0, pos_x, -1);
+    Vector<Real> pos_y(N);
+    ib_mc.PullDown(0, pos_y, -2);
+    Vector<Real> pos_z(N);
+    ib_mc.PullDown(0, pos_z, -3);
+
+    //id_1 records marker ids on a given ib
+    Vector<int> ids(N);
+    ib_mc.PullDownInt(0, ids, IBMInt::id_1);
+    //cpu_1 records the id of each of ib
+    Vector<int> ibs(N);
+    ib_mc.PullDownInt(0, ibs, IBMInt::cpu_1);
+
+    Print() << "maker_id = ";
+    for (auto & i:ids) Print() << i << " ";
+    Print() << std::endl;
+
+    Print() << "ib_id = ";
+    for (auto & i:ibs) Print() << i << " ";
+    Print() << std::endl;
+
+    //Vectors for storing forces in each direction
+    Vector<Real> fx(N);
+    for (auto & x:fx) x = 0.;
+    Vector<Real> fy(N);
+    for (auto & x:fy) x = 0.;
+    Vector<Real> fz(N);
+    for (auto & x:fz) x = 0.;
+
+    // Get sorted ibs list
+    std::vector<std::tuple<int, int, int>> sorted_ibs = ib_mc.get_sorted_map();
+    std::vector<int> reduced_ibs = ib_mc.get_reduced_map();
+
+    Real k_bdy_spr  = ib_flagellum::k_spring[1];
+
+    for(int i=0; i<N; i++){
+        if (ibs[i] != 1) continue; //Note: cell body IB was hardcoded to 1 => generalize later
+
+        int id = ids[i];
+        int global_idx = IBMarkerContainer::storage_idx(
+                sorted_ibs[id + reduced_ibs[1]]
+        );
+
+        //RealVect      pos = {pos_x[global_idx], pos_y[global_idx, pos_z[global_idx]};
+
+        //go through each neighbor according to the bond map    
+        for(const auto idx_nbr: bond_neighbors.at(global_idx)){
+   
+            double l_0 = bond_map.at(std::tuple{global_idx, idx_nbr});
+        
+            RealVect      pos = {pos_x[global_idx], pos_y[global_idx], pos_z[global_idx]};
+	    RealVect  nbr_pos = {pos_x[idx_nbr],   pos_y[idx_nbr],   pos_z[idx_nbr]};
+
+            RealVect r_b = nbr_pos - pos;
+
+            Real l_b = r_b.vectorLength();
+            Real f0 = k_bdy_spr * (l_b-l_0)/l_b;
+
+            Print() << "Updating spring forces on cell body markers..." << std::endl;
+
+	    //update spring forces between current and neighbor markers
+            fx[global_idx] += f0 * r_b[0]; fy[global_idx] += f0 * r_b[1]; fz[global_idx] += f0 * r_b[2];
+            fx[idx_nbr]    -= f0 * r_b[0]; fy[idx_nbr]    -= f0 * r_b[1]; fz[idx_nbr]    -= f0 * r_b[2];
+        }
+    }
+
+    // Fianlly, Iterating through all markers and add forces
+    for (IBMarIter pti(ib_mc, ib_lev); pti.isValid(); ++pti) {
+
+        TileIndex index(pti.index(), pti.LocalTileIndex());
+        AoS & markers = ib_mc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
+        long np = ib_mc.GetParticles(ib_lev).at(index).numParticles();
+
+        for (MarkerListIndex m_index(0, 0); m_index.first<np; ++m_index.first) {
+
+            ParticleType & mark = markers[m_index.first];
+
+            int id      = mark.idata(IBMInt::id_1); 
+            int i_ib    = mark.idata(IBMInt::cpu_1); 
+
+            int i_c = IBMarkerContainer::storage_idx(sorted_ibs[id + reduced_ibs[i_ib]]);
+
+            Print() << "Adding forces to particles..." << std::endl;
+
+            mark.rdata(IBMReal::forcex) += fx[i_c];
+            mark.rdata(IBMReal::forcey) += fy[i_c];
+            mark.rdata(IBMReal::forcez) += fz[i_c];
+        }
+    }
+    BL_PROFILE_VAR_STOP(UpdateBdyForces);
+};
+
 
 void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
                        IBMarkerContainer & ib_mc, int ib_lev,
@@ -168,7 +277,7 @@ void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
         Real l_link = L/(N-1);
 
         Real k_spr  = ib_flagellum::k_spring[i_ib];
-    	  Real k_driv = ib_flagellum::k_driving[i_ib]; 
+        Real k_driv = ib_flagellum::k_driving[i_ib]; 
 
         for (int ind = index_start; ind <(index_start + N - 1); ++ind){
             int i_0 = IBMarkerContainer::storage_idx(sorted_ibs[ind]);
