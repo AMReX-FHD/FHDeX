@@ -110,8 +110,8 @@ Real theta(Real amp_ramp, Real time, int i_ib, int index_marker) {
 }
 
 
-void update_bdy_marker(std::map<std::tuple<int, int>, double> & bond_map, 
-		       std::map<int, std::vector<int>> & bond_neighbors, 
+void update_bdy_marker(const std::map<std::tuple<int, int>, double> & bond_map, 
+		       const std::map<int, std::vector<int>> & bond_neighbors, 
 		       Real time,
                        IBMarkerContainer & ib_mc, int ib_lev,
                        int component, bool pred_pos,
@@ -190,8 +190,8 @@ void update_bdy_marker(std::map<std::tuple<int, int>, double> & bond_map,
             Print() << "Updating spring forces on cell body markers..." << std::endl;
 
 	    //update spring forces between current and neighbor markers
-            fx[global_idx] += f0 * r_b[0]; fy[global_idx] += f0 * r_b[1]; fz[global_idx] += f0 * r_b[2];
-            fx[idx_nbr]    -= f0 * r_b[0]; fy[idx_nbr]    -= f0 * r_b[1]; fz[idx_nbr]    -= f0 * r_b[2];
+            fx[global_idx]     += f0 * r_b[0]; fy[global_idx]     += f0 * r_b[1]; fz[global_idx]     += f0 * r_b[2];
+            fx[global_idx_nbr] -= f0 * r_b[0]; fy[global_idx_nbr] -= f0 * r_b[1]; fz[global_idx_nbr] -= f0 * r_b[2];
         }
     }
 

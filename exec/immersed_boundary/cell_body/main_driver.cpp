@@ -657,7 +657,7 @@ void main_driver(const char * argv) {
     }
 
 
-    exit(0);
+//    exit(0);
 
     //___________________________________________________________________________
     // Initialize fluid velocities
@@ -771,10 +771,11 @@ void main_driver(const char * argv) {
         // Advance umac
         // advance_CN(umac, umacNew, pres, ib_mc, mfluxdiv_predict, mfluxdiv_correct,
         //            alpha_fc, force_ib, beta, gamma, beta_ed, geom, dt, time);
-        advance_stokes(umac, umacNew, pres, ib_mc, mfluxdiv_predict, mfluxdiv_correct,
+        advance_stokes(umac, umacNew, pres, ib_mc, bond_map, bond_neighbors, 
+		       mfluxdiv_predict, mfluxdiv_correct,
                        alpha_fc, force_ib, beta, gamma, beta_ed, geom, dt, time);
 
-
+        exit(0);
 
 
         //_______________________________________________________________________
