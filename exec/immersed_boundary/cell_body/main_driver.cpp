@@ -775,7 +775,7 @@ void main_driver(const char * argv) {
 		       mfluxdiv_predict, mfluxdiv_correct,
                        alpha_fc, force_ib, beta, gamma, beta_ed, geom, dt, time);
 
-        exit(0);
+        //exit(0);
 
 
         //_______________________________________________________________________
