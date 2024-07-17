@@ -160,7 +160,8 @@ void update_bdy_marker(const std::map<std::tuple<int, int>, double> & bond_map,
     std::vector<std::tuple<int, int, int>> sorted_ibs = ib_mc.get_sorted_map();
     std::vector<int> reduced_ibs = ib_mc.get_reduced_map();
 
-    Real k_bdy_spr  = ib_flagellum::k_spring[1];
+    Real k_spr  = ib_flagellum::k_spring[0];
+    Real k_bdy_spr  = k_spr; 
 
     for(int i=0; i<N; i++){
         if (ibs[i] != 1) continue; //Note: cell body IB was hardcoded to 1 => generalize later

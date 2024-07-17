@@ -105,7 +105,7 @@
   frequency  = 1
   length     = 1.2e-3
   wavelength = .8e-3
-  k_spring   = 1e-3 1e-3
+  k_spring   = 1e-3
   k_driving  = 1e-3
 
   fourier_coef_len = 4
