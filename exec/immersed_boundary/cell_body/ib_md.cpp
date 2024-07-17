@@ -166,6 +166,7 @@ void update_bdy_marker(std::map<std::tuple<int, int>, double> & bond_map,
         if (ibs[i] != 1) continue; //Note: cell body IB was hardcoded to 1 => generalize later
 
         int id = ids[i];
+        //Getting index for the current marker in the PullDown Vectors
         int global_idx = IBMarkerContainer::storage_idx(
                 sorted_ibs[id + reduced_ibs[1]]
         );
@@ -173,12 +174,13 @@ void update_bdy_marker(std::map<std::tuple<int, int>, double> & bond_map,
         //RealVect      pos = {pos_x[global_idx], pos_y[global_idx, pos_z[global_idx]};
 
         //go through each neighbor according to the bond map    
-        for(const auto idx_nbr: bond_neighbors.at(global_idx)){
+        for(const auto idx : bond_neighbors.at(id)){
    
-            double l_0 = bond_map.at(std::tuple{global_idx, idx_nbr});
+            double l_0 = bond_map.at(std::tuple{id, idx});
+	    int global_idx_nbr = IBMarkerContainer::storage_idx(sorted_ibs[idx + reduced_ibs[1]]);
         
-            RealVect      pos = {pos_x[global_idx], pos_y[global_idx], pos_z[global_idx]};
-	    RealVect  nbr_pos = {pos_x[idx_nbr],   pos_y[idx_nbr],   pos_z[idx_nbr]};
+            RealVect      pos = {pos_x[global_idx],     pos_y[global_idx],     pos_z[global_idx]};
+	    RealVect  nbr_pos = {pos_x[global_idx_nbr], pos_y[global_idx_nbr], pos_z[global_idx_nbr]};
 
             RealVect r_b = nbr_pos - pos;
 
