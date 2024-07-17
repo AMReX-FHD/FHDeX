@@ -4,19 +4,19 @@ import math
 
 file = sys.argv[1] 
 
-Ncellx = 4
-Ncelly = 4
-Ncellz = 100
+Ncellx = 16
+Ncelly = 16
+Ncellz = 16
 
-dx = 8.400000e-06
-dy = 7.274613e-06
-dz = 8.400000e-06
+dx = 9.360000e-06
+dy = 9.360000e-06
+dz = 9.360000e-06
 dv = dx*dy*dz
 
 Ntot = 90000
 
-meandens = 5.124458e+17
-meantheta = 2.053333e-01
+meandens = 6.163095e+18
+meantheta = 7.466307e-01
 
 data = np.loadtxt(file)
 surfcov0 = data[0][1]
