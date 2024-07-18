@@ -188,7 +188,7 @@ void update_bdy_marker(const std::map<std::tuple<int, int>, double> & bond_map,
             Real l_b = r_b.vectorLength();
             Real f0 = k_bdy_spr * (l_b-l_0)/l_b;
 
-            Print() << "Updating spring forces on cell body markers..." << std::endl;
+            Print() << "Updating spring forces on cell body between markers " << id << "and " << idx << std::endl;
 
 	    //update spring forces between current and neighbor markers
             fx[global_idx]     += f0 * r_b[0]; fy[global_idx]     += f0 * r_b[1]; fz[global_idx]     += f0 * r_b[2];
