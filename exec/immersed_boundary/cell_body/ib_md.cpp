@@ -38,6 +38,45 @@ void constrain_ibm_marker(IBMarkerContainer & ib_mc, int ib_lev, int component) 
 }
 
 
+void anchor_coupling_markers(IBMarkerContainer & ib_mc, int ib_lev, int component) {
+
+    BL_PROFILE_VAR("anchor_coupling_markers", TIMER_ANCHOR_COUPLING_MARKERS);
+
+//storing velocities of 2 anchor markers on cell body
+    Vector<Real> anchor_bdy_marker_1(3);
+    Vector<Real> anchor_bdy_marker_2(3);
+
+    for (IBMarIter pti(ib_mc, ib_lev); pti.isValid(); ++pti) {
+
+        // Get marker data (local to current thread)
+        TileIndex index(pti.index(), pti.LocalTileIndex());
+        AoS & markers = ib_mc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
+
+        long np = ib_mc.GetParticles(ib_lev).at(index).numParticles();
+
+	//find and record velocities of two anchor markers on cell body
+        for (int i = 0; i < np; ++i) {
+            ParticleType & mark = markers[i];
+            if((mark.idata(IBMInt::id_1) == 47)&&(mark.idata(IBMInt::cpu_1) == 1))
+                for (int d=0; d<AMREX_SPACEDIM; ++d) anchor_bdy_marker_1[d] = mark.rdata(component + d) ;
+	    if((mark.idata(IBMInt::id_1) == 95)&&(mark.idata(IBMInt::cpu_1) == 1))
+                for (int d=0; d<AMREX_SPACEDIM; ++d) anchor_bdy_marker_2[d] = mark.rdata(component + d) ;
+        }
+
+        //find and update velocities of two anchor markers on flagellum  
+	for (int i = 0; i < np; ++i) {
+            ParticleType & mark = markers[i];
+            if((mark.idata(IBMInt::id_1) == 0)&&(mark.idata(IBMInt::cpu_1) == 0))
+                for (int d=0; d<AMREX_SPACEDIM; ++d) mark.rdata(component + d) = anchor_bdy_marker_1[d] ;
+            if((mark.idata(IBMInt::id_1) == 1)&&(mark.idata(IBMInt::cpu_1) == 0))
+                for (int d=0; d<AMREX_SPACEDIM; ++d) mark.rdata(component + d) = anchor_bdy_marker_2[d] ;     
+        }
+
+    }
+
+    BL_PROFILE_VAR_STOP(TIMER_ANCHOR_COUPLING_MARKERS);
+}
+
 
 void anchor_first_marker(IBMarkerContainer & ib_mc, int ib_lev, int component) {
 

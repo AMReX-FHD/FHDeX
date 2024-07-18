@@ -156,8 +156,12 @@ void advance_stokes(std::array<MultiFab, AMREX_SPACEDIM >& umac,
     // Move markers according to velocity: x^(n+1) = x^n + dt/2 J(u^(n+1/2))
     // (constrain it to move in the z = constant plane only)
     constrain_ibm_marker(ib_mc, ib_lev, IBMReal::velz);
-//    if(immbdy::contains_fourier)
-//        anchor_first_marker(ib_mc, ib_lev, IBMReal::velx);
+
+    // anchor the first two markers on flagellum with the two markers on the cells body
+    // by ensuing they share the same velocities before moving 
+    if(immbdy::contains_fourier)
+       anchor_coupling_markers(ib_mc, ib_lev, IBMReal::velx);
+//     anchor_first_marker(ib_mc, ib_lev, IBMReal::velx);
     ib_mc.MoveMarkers(0, dt);
 
     ib_mc.clearNeighbors(); // Important: clear neighbors before Redistribute

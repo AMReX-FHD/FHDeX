@@ -25,6 +25,8 @@ using AoS             = IBMarkerContainer::AoS;
 
 void constrain_ibm_marker(IBMarkerContainer & ib_mc, int ib_lev, int component);
 
+void anchor_coupling_markers(IBMarkerContainer & ib_mc, int ib_lev, int component);
+
 void anchor_first_marker(IBMarkerContainer & ib_mc, int ib_lev, int component);
 
 Real theta(Real amp_ramp, Real time, int i_ib, int index_marker);
