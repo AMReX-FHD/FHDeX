@@ -356,7 +356,8 @@ void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
                 //Getting index for the current marker in the PullDown Vectors
                 int i_c = IBMarkerContainer::storage_idx(sorted_ibs[ind]);
 
-		RealVect x_anchor, e_anchor;
+		RealVect x_anchor = {0,0,0};
+		RealVect e_anchor = {0,0,0};
 		
 		// get the first anchor marker and the orientation along the two anchor markers
 		if (i_c == 0) {
