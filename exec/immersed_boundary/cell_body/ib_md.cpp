@@ -356,6 +356,18 @@ void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
                 //Getting index for the current marker in the PullDown Vectors
                 int i_c = IBMarkerContainer::storage_idx(sorted_ibs[ind]);
 
+		RealVect x_anchor, e_anchor;
+		
+		// get the first anchor marker and the orientation along the two anchor markers
+		if (i_c == 0) {
+		    int i_p = IBMarkerContainer::storage_idx(sorted_ibs[ind+1]);
+                    x_anchor = {pos_x[i_c],   pos_y[i_c],   pos_z[i_c]};
+                    RealVect next_pos = {pos_x[i_p],   pos_y[i_p],   pos_z[i_p]};
+		    RealVect r_p = next_pos - x_anchor;
+		    Real lp_p = r_p.vectorLength();
+		    e_anchor = r_p/lp_p;
+		}    
+
                 if(IBMarkerContainer::immbdy_idx(sorted_ibs[ind]) != i_ib) {
                     Print() << IBMarkerContainer::immbdy_idx(sorted_ibs[ind])
                             << " i_ib = " << i_ib << std::endl;
@@ -394,7 +406,7 @@ void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
                 // update bending forces for curent, minus/prev, and next/plus
                 if(immbdy::contains_fourier) {
                     //for periodic waveform of flagellum in Fourier series
-                    Vector<RealVect> marker_positions = equil_pos(i_ib, time, geom);
+                    Vector<RealVect> marker_positions = equil_pos(i_ib, time, geom, x_anchor, e_anchor);
                     RealVect target_pos = marker_positions[ids[i_c]];
 
                     fx[i_c] += k_driv*(target_pos[0] - pos_x[i_c]);
@@ -497,7 +509,7 @@ void yeax_ibm_marker(Real mot, IBMarkerContainer & ib_mc, int ib_lev,
 
 
 Vector<RealVect> equil_pos(
-        int i_ib, Real time, const Geometry & geom
+        int i_ib, Real time, const Geometry & geom, const RealVect & x_anchor, const RealVect & e_anchor
     ) {
     // TODO: make this function work on general planes and orientation -- using
     // the 3D rotation matrix defined in IBMarkerMD.cpp
@@ -507,7 +519,7 @@ Vector<RealVect> equil_pos(
 
     Real l_link = L/(N-1);
 
-    const RealVect & x_0 = offset_0[i_ib];
+    // const RealVect & x_0_inputs = offset_0[i_ib];
 
     // using fourier modes => first two nodes reserved as "anchor"
     int N_markers = immbdy::contains_fourier ? N+1 : N;
@@ -518,13 +530,14 @@ Vector<RealVect> equil_pos(
         thetas[i] = th;
     }
 
-    Real x = x_0[0];
-    Real y = x_0[1];
-    Real z = x_0[2];
+    Real x = x_anchor[0];
+    Real y = x_anchor[1];
+    Real z = x_anchor[2];
 
     // TODO: implement general orientation vector
-    Real tx = 1.;
-    Real ty = 0.;
+    Real tx = e_anchor[0];
+    Real ty = e_anchor[1];
+    Real tz = e_anchor[2]; //not used as rotation is only about z axis for now
 
     Vector<RealVect> marker_positions(N_markers);
     marker_positions[0] = RealVect{x, y, z};

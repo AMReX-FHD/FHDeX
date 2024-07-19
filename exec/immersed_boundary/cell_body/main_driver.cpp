@@ -495,19 +495,19 @@ void main_driver(const char * argv) {
 
         Real l_link = L/(N-1);
 
-        const RealVect & x_0 = offset_0[i_ib];
-
+        const RealVect & x_anchor_0 = offset_0[i_ib]; //initial position of the first marker on flagellum
+        const RealVect & e_anchor_0 = {1,0,0}; //initial orientation along the first two markers on flagellum							   
         Print() << "Initializing flagellum:" << std::endl;
-        Print() << "N=      " << N           << std::endl;
-        Print() << "L=      " << L           << std::endl;
-        Print() << "l_link= " << l_link      << std::endl;
-        Print() << "x_0=    " << x_0         << std::endl;
+        Print() << "N=          " << N           << std::endl;
+        Print() << "L=          " << L           << std::endl;
+        Print() << "l_link=     " << l_link      << std::endl;
+        Print() << "x_anchor_0= " << x_anchor_0  << std::endl;
 
 
         // using fourier modes => first two nodes reserved as "anchor"
         int N_markers = immbdy::contains_fourier ? N+1 : N;
 
-        Vector<RealVect> marker_positions = equil_pos(i_ib, 0, geom);
+	Vector<RealVect> marker_positions = equil_pos(i_ib, 0, geom, x_anchor_0, e_anchor_0);
 
         // Vector<RealVect> marker_positions(N_markers);
         // if (immbdy::contains_fourier) {
