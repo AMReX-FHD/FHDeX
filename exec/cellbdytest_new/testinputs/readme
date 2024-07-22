@@ -1,0 +1,5 @@
+before copying any different bond linkage, change files that contain csv into bonds.csv
+
+bonds.csv itself is a cube with every possible bond n=56
+crossbox has bonds                                  n=30
+nocrosslink has bonds                               n=24

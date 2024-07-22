@@ -38,6 +38,45 @@ void constrain_ibm_marker(IBMarkerContainer & ib_mc, int ib_lev, int component) 
 }
 
 
+void anchor_coupling_markers(IBMarkerContainer & ib_mc, int ib_lev, int component) {
+
+    BL_PROFILE_VAR("anchor_coupling_markers", TIMER_ANCHOR_COUPLING_MARKERS);
+
+//storing velocities of 2 anchor markers on cell body
+    Vector<Real> anchor_bdy_marker_1(3);
+    Vector<Real> anchor_bdy_marker_2(3);
+
+    for (IBMarIter pti(ib_mc, ib_lev); pti.isValid(); ++pti) {
+
+        // Get marker data (local to current thread)
+        TileIndex index(pti.index(), pti.LocalTileIndex());
+        AoS & markers = ib_mc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
+
+        long np = ib_mc.GetParticles(ib_lev).at(index).numParticles();
+
+	//find and record velocities of two anchor markers on cell body
+        for (int i = 0; i < np; ++i) {
+            ParticleType & mark = markers[i];
+            if((mark.idata(IBMInt::id_1) == 47)&&(mark.idata(IBMInt::cpu_1) == 1))
+                for (int d=0; d<AMREX_SPACEDIM; ++d) anchor_bdy_marker_1[d] = mark.rdata(component + d) ;
+	    if((mark.idata(IBMInt::id_1) == 95)&&(mark.idata(IBMInt::cpu_1) == 1))
+                for (int d=0; d<AMREX_SPACEDIM; ++d) anchor_bdy_marker_2[d] = mark.rdata(component + d) ;
+        }
+
+        //find and update velocities of two anchor markers on flagellum  
+	for (int i = 0; i < np; ++i) {
+            ParticleType & mark = markers[i];
+            if((mark.idata(IBMInt::id_1) == 0)&&(mark.idata(IBMInt::cpu_1) == 0))
+                for (int d=0; d<AMREX_SPACEDIM; ++d) mark.rdata(component + d) = anchor_bdy_marker_1[d] ;
+            if((mark.idata(IBMInt::id_1) == 1)&&(mark.idata(IBMInt::cpu_1) == 0))
+                for (int d=0; d<AMREX_SPACEDIM; ++d) mark.rdata(component + d) = anchor_bdy_marker_2[d] ;     
+        }
+
+    }
+
+    BL_PROFILE_VAR_STOP(TIMER_ANCHOR_COUPLING_MARKERS);
+}
+
 
 void anchor_first_marker(IBMarkerContainer & ib_mc, int ib_lev, int component) {
 
@@ -110,6 +149,118 @@ Real theta(Real amp_ramp, Real time, int i_ib, int index_marker) {
 }
 
 
+void update_bdy_marker(const std::map<std::tuple<int, int>, double> & bond_map, 
+		       const std::map<int, std::vector<int>> & bond_neighbors, 
+		       Real time,
+                       IBMarkerContainer & ib_mc, int ib_lev,
+                       int component, bool pred_pos,
+                       const Geometry & geom) {
+
+    BL_PROFILE_VAR("update_bdy_marker", UpdateBdyForces);
+
+    // PullDown all particle positions onto one processor
+    int size = ParallelDescriptor::NProcs();
+    auto & num_ids = ib_mc.getNumIDs();
+    auto & cpu_offset = ib_mc.getCPUOffset();
+
+    int N = ib_mc.getTotalNumIDs();
+
+    Vector<Real> pos_x(N);
+    ib_mc.PullDown(0, pos_x, -1);
+    Vector<Real> pos_y(N);
+    ib_mc.PullDown(0, pos_y, -2);
+    Vector<Real> pos_z(N);
+    ib_mc.PullDown(0, pos_z, -3);
+
+    //id_1 records marker ids on a given ib
+    Vector<int> ids(N);
+    ib_mc.PullDownInt(0, ids, IBMInt::id_1);
+    //cpu_1 records the id of each of ib
+    Vector<int> ibs(N);
+    ib_mc.PullDownInt(0, ibs, IBMInt::cpu_1);
+
+    Print() << "maker_id = ";
+    for (auto & i:ids) Print() << i << " ";
+    Print() << std::endl;
+
+    Print() << "ib_id = ";
+    for (auto & i:ibs) Print() << i << " ";
+    Print() << std::endl;
+
+    //Vectors for storing forces in each direction
+    Vector<Real> fx(N);
+    for (auto & x:fx) x = 0.;
+    Vector<Real> fy(N);
+    for (auto & x:fy) x = 0.;
+    Vector<Real> fz(N);
+    for (auto & x:fz) x = 0.;
+
+    // Get sorted ibs list
+    std::vector<std::tuple<int, int, int>> sorted_ibs = ib_mc.get_sorted_map();
+    std::vector<int> reduced_ibs = ib_mc.get_reduced_map();
+
+    Real k_spr  = ib_flagellum::k_spring[0];
+    Real k_bdy_spr  = k_spr; 
+
+    for(int i=0; i<N; i++){
+        if (ibs[i] != 1) continue; //Note: cell body IB was hardcoded to 1 => generalize later
+
+        int id = ids[i];
+        //Getting index for the current marker in the PullDown Vectors
+        int global_idx = IBMarkerContainer::storage_idx(
+                sorted_ibs[id + reduced_ibs[1]]
+        );
+
+        //RealVect      pos = {pos_x[global_idx], pos_y[global_idx, pos_z[global_idx]};
+
+        //go through each neighbor according to the bond map    
+        for(const auto idx : bond_neighbors.at(id)){
+   
+            double l_0 = bond_map.at(std::tuple{id, idx});
+	    int global_idx_nbr = IBMarkerContainer::storage_idx(sorted_ibs[idx + reduced_ibs[1]]);
+        
+            RealVect      pos = {pos_x[global_idx],     pos_y[global_idx],     pos_z[global_idx]};
+	    RealVect  nbr_pos = {pos_x[global_idx_nbr], pos_y[global_idx_nbr], pos_z[global_idx_nbr]};
+
+            RealVect r_b = nbr_pos - pos;
+
+            Real l_b = r_b.vectorLength();
+            Real f0 = k_bdy_spr * (l_b-l_0)/l_b;
+
+            Print() << "Updating spring forces on cell body between markers " << id << "and " << idx << std::endl;
+
+	    //update spring forces between current and neighbor markers
+            fx[global_idx]     += f0 * r_b[0]; fy[global_idx]     += f0 * r_b[1]; fz[global_idx]     += f0 * r_b[2];
+            fx[global_idx_nbr] -= f0 * r_b[0]; fy[global_idx_nbr] -= f0 * r_b[1]; fz[global_idx_nbr] -= f0 * r_b[2];
+        }
+    }
+
+    // Fianlly, Iterating through all markers and add forces
+    for (IBMarIter pti(ib_mc, ib_lev); pti.isValid(); ++pti) {
+
+        TileIndex index(pti.index(), pti.LocalTileIndex());
+        AoS & markers = ib_mc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
+        long np = ib_mc.GetParticles(ib_lev).at(index).numParticles();
+
+        for (MarkerListIndex m_index(0, 0); m_index.first<np; ++m_index.first) {
+
+            ParticleType & mark = markers[m_index.first];
+
+            int id      = mark.idata(IBMInt::id_1); 
+            int i_ib    = mark.idata(IBMInt::cpu_1); 
+
+            int i_c = IBMarkerContainer::storage_idx(sorted_ibs[id + reduced_ibs[i_ib]]);
+
+            Print() << "Adding forces to particles..." << std::endl;
+
+            mark.rdata(IBMReal::forcex) += fx[i_c];
+            mark.rdata(IBMReal::forcey) += fy[i_c];
+            mark.rdata(IBMReal::forcez) += fz[i_c];
+        }
+    }
+    BL_PROFILE_VAR_STOP(UpdateBdyForces);
+};
+
 
 void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
                        IBMarkerContainer & ib_mc, int ib_lev,
@@ -168,7 +319,7 @@ void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
         Real l_link = L/(N-1);
 
         Real k_spr  = ib_flagellum::k_spring[i_ib];
-    	  Real k_driv = ib_flagellum::k_driving[i_ib]; 
+        Real k_driv = ib_flagellum::k_driving[i_ib]; 
 
         for (int ind = index_start; ind <(index_start + N - 1); ++ind){
             int i_0 = IBMarkerContainer::storage_idx(sorted_ibs[ind]);
@@ -204,6 +355,19 @@ void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
 
                 //Getting index for the current marker in the PullDown Vectors
                 int i_c = IBMarkerContainer::storage_idx(sorted_ibs[ind]);
+
+		RealVect x_anchor = {0,0,0};
+		RealVect e_anchor = {0,0,0};
+		
+		// get the first anchor marker and the orientation along the two anchor markers
+		if (i_c == 0) {
+		    int i_p = IBMarkerContainer::storage_idx(sorted_ibs[ind+1]);
+                    x_anchor = {pos_x[i_c],   pos_y[i_c],   pos_z[i_c]};
+                    RealVect next_pos = {pos_x[i_p],   pos_y[i_p],   pos_z[i_p]};
+		    RealVect r_p = next_pos - x_anchor;
+		    Real lp_p = r_p.vectorLength();
+		    e_anchor = r_p/lp_p;
+		}    
 
                 if(IBMarkerContainer::immbdy_idx(sorted_ibs[ind]) != i_ib) {
                     Print() << IBMarkerContainer::immbdy_idx(sorted_ibs[ind])
@@ -243,7 +407,7 @@ void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
                 // update bending forces for curent, minus/prev, and next/plus
                 if(immbdy::contains_fourier) {
                     //for periodic waveform of flagellum in Fourier series
-                    Vector<RealVect> marker_positions = equil_pos(i_ib, time, geom);
+                    Vector<RealVect> marker_positions = equil_pos(i_ib, time, geom, x_anchor, e_anchor);
                     RealVect target_pos = marker_positions[ids[i_c]];
 
                     fx[i_c] += k_driv*(target_pos[0] - pos_x[i_c]);
@@ -273,7 +437,9 @@ void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
 
                         // calling the active bending force calculation
 
-                        Real th = theta(driv_amp, time, i_ib, ids[i_c] - 1);
+                        Real th = theta(
+                                        driv_amp, time, i_ib, ids[i_c] - 1
+                                       );
                         driving_f(f, f_p, f_m, r, r_p, r_m, driv_u, th, k_driv);
 
                         // updating the force on the minus, current, and plus particles.
@@ -302,12 +468,15 @@ void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
             int N       = ib_flagellum::n_marker[i_ib];
 
             //int i_c = id + std::distance(sorted_ibs.begin(), std::find_if(sorted_ibs.begin(), sorted_ibs.end(), [&](const auto& pair) { return pair.first == i_ib; }));
-            int i_c = IBMarkerContainer::storage_idx(sorted_ibs[id + reduced_ibs[i_ib]]);
-            Print() << "Adding forces to particles..." << std::endl;
-            mark.rdata(IBMReal::forcex) += fx[i_c];
+
+	    int i_c = IBMarkerContainer::storage_idx(sorted_ibs[id + reduced_ibs[i_ib]]);
+
+	    Print() << "Adding forces to particles..." << std::endl;
+
+	    mark.rdata(IBMReal::forcex) += fx[i_c];
             mark.rdata(IBMReal::forcey) += fy[i_c];
             mark.rdata(IBMReal::forcez) += fz[i_c];
-        }
+	}
     }
     BL_PROFILE_VAR_STOP(UpdateForces);
 };
@@ -341,7 +510,7 @@ void yeax_ibm_marker(Real mot, IBMarkerContainer & ib_mc, int ib_lev,
 
 
 Vector<RealVect> equil_pos(
-        int i_ib, Real time, const Geometry & geom
+        int i_ib, Real time, const Geometry & geom, const RealVect & x_anchor, const RealVect & e_anchor
     ) {
     // TODO: make this function work on general planes and orientation -- using
     // the 3D rotation matrix defined in IBMarkerMD.cpp
@@ -351,7 +520,7 @@ Vector<RealVect> equil_pos(
 
     Real l_link = L/(N-1);
 
-    const RealVect & x_0 = offset_0[i_ib];
+    // const RealVect & x_0_inputs = offset_0[i_ib];
 
     // using fourier modes => first two nodes reserved as "anchor"
     int N_markers = immbdy::contains_fourier ? N+1 : N;
@@ -362,13 +531,14 @@ Vector<RealVect> equil_pos(
         thetas[i] = th;
     }
 
-    Real x = x_0[0];
-    Real y = x_0[1];
-    Real z = x_0[2];
+    Real x = x_anchor[0];
+    Real y = x_anchor[1];
+    Real z = x_anchor[2];
 
     // TODO: implement general orientation vector
-    Real tx = 1.;
-    Real ty = 0.;
+    Real tx = e_anchor[0];
+    Real ty = e_anchor[1];
+    Real tz = e_anchor[2]; //not used as rotation is only about z axis for now
 
     Vector<RealVect> marker_positions(N_markers);
     marker_positions[0] = RealVect{x, y, z};
