@@ -1,0 +1,98 @@
+# *****************************************************************
+# Run until nsteps == max_step or time == stop_time,
+#     whichever comes first
+# *****************************************************************
+max_step  = 2500
+max_step  = 50
+
+seed = 1024
+
+amrex.fpe_trap_invalid = 1
+
+# *****************************************************************
+# Specific to this application
+# *****************************************************************
+npts_scale = 1000000.
+alg_type = 0
+
+# *****************************************************************
+# Are we restarting from an existing checkpoint file?
+# *****************************************************************
+#amr.restart  = chk00060 # restart from this checkpoint file
+
+# *****************************************************************
+# Problem size and geometry
+# *****************************************************************
+geometry.prob_lo     =  0.0  0.0  0.0
+geometry.prob_hi     =  1.0  1.0  1.0
+geometry.is_periodic =  1    1    1
+
+# *****************************************************************
+# VERBOSITY
+# *****************************************************************
+amr.v              = 1       # verbosity in Amr
+
+# *****************************************************************
+# Resolution and refinement
+# *****************************************************************
+
+amr.n_cell          = 32 32 
+amr.n_cell          = 256 256
+amr.max_grid_size_x = 256 256
+amr.max_grid_size_y = 256 256
+amr.max_grid_size_x = 64 64  
+amr.max_grid_size_y = 64 64
+
+amr.max_level       = 1
+amr.use_particles   = 1      # Turn particles on or off
+amr.ref_ratio       = 1
+
+#amr.max_level       = 0
+#amr.use_particles   = 0      # Turn particles on or off
+
+# *****************************************************************
+# Control of grid creation
+# *****************************************************************
+# Blocking factor for grid creation in each dimension --
+#   this ensures that every grid is coarsenable by a factor of 8 --
+#   this is mostly relevant for multigrid performance
+amr.blocking_factor_x = 16
+amr.blocking_factor_y = 16
+amr.blocking_factor_x = 8
+amr.blocking_factor_y = 8
+amr.blocking_factor_z = 8
+
+amr.regrid_int      = 10  # how often to regrid
+
+# *****************************************************************
+# Time step control
+# *****************************************************************
+adv.cfl            = 0.01    # CFL constraint
+adv.cfl            = 0.25    # CFL constraint
+
+# *****************************************************************
+# Should we reflux at coarse-fine boundaries?
+# *****************************************************************
+adv.do_reflux = 1
+
+# *****************************************************************
+# Tagging -  if phi < phierr at level 0, then refine
+# *****************************************************************
+adv.phierr = 100000     # this for 64x64 (5 * 64 * 64 = 20480)
+adv.phierr = 160000     # this for 128x128 (5 * 128 * 128 = 81920)
+adv.phierr = 400000     # this for 256x256 (5 * 256 * 256 = 327680)
+adv.phierr = 10000      # this for 32x32 (5 * 32 * 32 =  5120)
+
+# *****************************************************************
+# Plotfile name and frequency
+# *****************************************************************
+amr.plot_file  = plt    # root name of plot file
+amr.plot_int   =  1    # number of timesteps between plot files
+                        # if negative then no plot files will be written
+
+# *****************************************************************
+# Checkpoint name and frequency
+# *****************************************************************
+amr.chk_file = chk      # root name of checkpoint file
+amr.chk_int  = -1       # number of timesteps between checkpoint files
+                        # if negative then no checkpoint files will be written

@@ -370,7 +370,9 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
                 primMeans(i,j,k,iprim+8) = vsqb*rho+cv*rho*T;
                 primMeans(i,j,k,8) += primMeans(i,j,k,iprim+8);
                 
-                primMeans(i,j,k,l) = (primMeans(i,j,k,iprim+9)*stepsMinusOne+primInst(i,j,k,iprim+9))*osteps;                                   
+                primMeans(i,j,k,l) = (primMeans(i,j,k,iprim+9)*stepsMinusOne+primInst(i,j,k,iprim+9))*osteps;
+                
+                primMeans(i,j,k,iprim+9) = rho/cuMeans(i,j,k,0);                                                                     
                 
                 iprim += 10; icon += 5; icvl++;
             }
@@ -479,12 +481,17 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
             Real djy = delCon[2];
             Real djz = delCon[3];
             Real dK = delCon[4];
+            Real drho0 = delCon[5];
+            Real djx0 = delCon[6];
+            Real drho1 = delCon[10];
+            Real djx1 = delCon[11];
             
             Real du = primInst(i,j,k,2)-primMeans(i,j,k,2);
             Real du0 = primInst(i,j,k,12)-primMeans(i,j,k,12);
+            Real du1 = primInst(i,j,k,22)-primMeans(i,j,k,22);
             Real dv = primInst(i,j,k,3)-primMeans(i,j,k,3);
             Real dv0 = primInst(i,j,k,13)-primMeans(i,j,k,13);
-            Real drho0 = cuInst(i,j,k,5) - cuMeans(i,j,k,5);
+
             
             //Conserved Covariances
             coVars(i,j,k,0)  = (coVars(i,j,k, 0)*stepsMinusOne+drho*djx)*osteps; // drho.dJx
@@ -522,19 +529,19 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
             primVars(i,j,k,5) = // dG.dG <---- Is this correct? [Ask IS]
             	(primVars(i,j,k,5)*stepsMinusOne+dG*dG)*osteps;
 
-            coVars(i,j,k,10)   = (coVars(i,j,k,10)*stepsMinusOne+drho*dG)*osteps; // drho.dG
-            coVars(i,j,k,11)   = (coVars(i,j,k,11)*stepsMinusOne+djx*dG)*osteps;  // dJx.dG
-            coVars(i,j,k,12)   = (coVars(i,j,k,12)*stepsMinusOne+djy*dG)*osteps;  // dJy.dG
-            coVars(i,j,k,13)   = (coVars(i,j,k,13)*stepsMinusOne+djz*dG)*osteps;  // dJz.dG
-            coVars(i,j,k,14)   = (coVars(i,j,k,14)*stepsMinusOne+dK*dG)*osteps;   // dK.dG
+            coVars(i,j,k,10)   = (coVars(i,j,k,10)*stepsMinusOne+drho0*djx0)*osteps; // drho.dG
+            coVars(i,j,k,11)   = (coVars(i,j,k,11)*stepsMinusOne+drho1*djx1)*osteps;  // dJx.dG
+            coVars(i,j,k,12)   = (coVars(i,j,k,12)*stepsMinusOne+drho0*djx1)*osteps;  // dJy.dG
+            coVars(i,j,k,13)   = (coVars(i,j,k,13)*stepsMinusOne+drho0*du0)*osteps;  // dJz.dG
+            coVars(i,j,k,14)   = (coVars(i,j,k,14)*stepsMinusOne+drho1*du1)*osteps;   // dK.dG
 
             //coVars(i,j,k,15) = orhomean*(coVars(i,j,k,0) - umean*cuVars(i,j,k,0)); // drho.du
             coVars(i,j,k,15)  = (coVars(i,j,k,15)*stepsMinusOne+drho*du)*osteps; // drho.du
             coVars(i,j,k,16)  = (coVars(i,j,k,16)*stepsMinusOne+drho*dv)*osteps; // drho.dv            
             coVars(i,j,k,17)  = (coVars(i,j,k,17)*stepsMinusOne+drho0*du)*osteps; // drho.du
-            coVars(i,j,k,18)  = (coVars(i,j,k,18)*stepsMinusOne+drho0*dv)*osteps; // drho.du
-            coVars(i,j,k,19)  = (coVars(i,j,k,19)*stepsMinusOne+drho0*du0)*osteps; // drho.du
-            coVars(i,j,k,20)  = (coVars(i,j,k,20)*stepsMinusOne+drho0*dv0)*osteps; // drho.du
+            coVars(i,j,k,18)  = (coVars(i,j,k,18)*stepsMinusOne+drho1*du)*osteps; // drho.du
+            coVars(i,j,k,19)  = (coVars(i,j,k,19)*stepsMinusOne+drho0*djx)*osteps; // drho.du
+            coVars(i,j,k,20)  = (coVars(i,j,k,20)*stepsMinusOne+drho1*djx)*osteps; // drho.du
                                    
            // coVars(i,j,k,16) = orhomean*(coVars(i,j,k,1) - vmean*cuVars(i,j,k,0)); // drho.dv
             
@@ -713,6 +720,8 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
                 Real delrho0cross = data_xcross[19] - data_xcross[20]; 
                 Real deljx0cross = data_xcross[23] - data_xcross[24];
                 Real delux0cross = data_xcross[27] - data_xcross[28];
+                
+                Real deljx1cross = data_xcross[25] - data_xcross[26];
                 Real delrho1cross;
                 if(nspecies >1)
                 {
@@ -757,24 +766,25 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
                 // Spatial Correlation Calculations
                 
                 spatialCross(i,j,k,0) = (spatialCross(i,j,k,0)*stepsMinusOne + delrhocross*delrho)*osteps;  // <delrho(x*)delrho(x)>
-//                spatialCross(i,j,k,1) = (spatialCross(i,j,k,1)*stepsMinusOne + delKcross*delK)*osteps;      // <delK(x*)delK(x)>
-                spatialCross(i,j,k,1) = (spatialCross(i,j,k,1)*stepsMinusOne + delrhocross*delrho0)*osteps;      // <delK(x*)delK(x)>
-                spatialCross(i,j,k,2) = (spatialCross(i,j,k,1)*stepsMinusOne + delrho0cross*delrho0)*osteps;      // <delK(x*)delK(x)>
-//                spatialCross(i,j,k,2) = (spatialCross(i,j,k,2)*stepsMinusOne + deljxcross*deljx)*osteps;    // <deljx(x*)deljx(x)>
+                spatialCross(i,j,k,1) = (spatialCross(i,j,k,1)*stepsMinusOne + delKcross*delK)*osteps;      // <delK(x*)delK(x)>
+//                spatialCross(i,j,k,1) = (spatialCross(i,j,k,1)*stepsMinusOne + delrhocross*delrho0)*osteps;      // <delK(x*)delK(x)>
+//                spatialCross(i,j,k,2) = (spatialCross(i,j,k,1)*stepsMinusOne + delrho0cross*delrho0)*osteps;      // <delK(x*)delK(x)>
+                spatialCross(i,j,k,2) = (spatialCross(i,j,k,2)*stepsMinusOne + deljxcross*deljx)*osteps;    // <deljx(x*)deljx(x)>
                 spatialCross(i,j,k,3) = (spatialCross(i,j,k,3)*stepsMinusOne + deljycross*deljy)*osteps;    // <deljy(x*)deljy(x)>
                 spatialCross(i,j,k,4) = (spatialCross(i,j,k,4)*stepsMinusOne + deljzcross*deljz)*osteps;    // <deljz(x*)deljz(x)>
                 
                 spatialCross(i,j,k,5) = (spatialCross(i,j,k,5)*stepsMinusOne + deljxcross*delrho)*osteps;   // <deljx(x*)delrho(x)>
+                
                 spatialCross(i,j,k,6) = (spatialCross(i,j,k,6)*stepsMinusOne + deljxcross*delrho0)*osteps;   // <deljy(x*)delrho(x)>
                 spatialCross(i,j,k,7) = (spatialCross(i,j,k,7)*stepsMinusOne + deljx0cross*delrho0)*osteps;   // <deljz(x*)delrho(x)>
-                spatialCross(i,j,k,8) = (spatialCross(i,j,k,8)*stepsMinusOne + delKcross*delrho)*osteps;    // <delK(x*)delrho(x)>
+                spatialCross(i,j,k,8) = (spatialCross(i,j,k,8)*stepsMinusOne + deljxcross*delrho1)*osteps;    // <delK(x*)delrho(x)>
+                spatialCross(i,j,k,9) = (spatialCross(i,j,k,9)*stepsMinusOne + deljx1cross*delrho1)*osteps;   // <delrho(x*)deljx(x)>                
+                spatialCross(i,j,k,10) = (spatialCross(i,j,k,10)*stepsMinusOne + deljx0cross*delrho1)*osteps;  // <deljy(x*)deljx(x)>
+                spatialCross(i,j,k,11) = (spatialCross(i,j,k,11)*stepsMinusOne + deljx1cross*delrho0)*osteps;  // <deljz(x*)deljx(x)>
+                
+                spatialCross(i,j,k,12) = (spatialCross(i,j,k,12)*stepsMinusOne + deljx0cross*delrho)*osteps;   // <delK(x*)deljx(x)>
 
-                spatialCross(i,j,k,9) = (spatialCross(i,j,k,9)*stepsMinusOne + delrhocross*deljx)*osteps;   // <delrho(x*)deljx(x)>
-                spatialCross(i,j,k,10) = (spatialCross(i,j,k,10)*stepsMinusOne + deljycross*deljx)*osteps;  // <deljy(x*)deljx(x)>
-                spatialCross(i,j,k,11) = (spatialCross(i,j,k,11)*stepsMinusOne + deljzcross*deljx)*osteps;  // <deljz(x*)deljx(x)>
-                spatialCross(i,j,k,12) = (spatialCross(i,j,k,12)*stepsMinusOne + delKcross*deljx)*osteps;   // <delK(x*)deljx(x)>
-
-                spatialCross(i,j,k,13) = (spatialCross(i,j,k,13)*stepsMinusOne + delrhocross*deljy)*osteps; // <delrho(x*)deljy(x)>
+                spatialCross(i,j,k,13) = (spatialCross(i,j,k,13)*stepsMinusOne + deljx1cross*delrho)*osteps; // <delrho(x*)deljy(x)>
                 spatialCross(i,j,k,14) = (spatialCross(i,j,k,14)*stepsMinusOne + deljxcross*deljy)*osteps;  // <deljx(x*)deljy(x)>
                 spatialCross(i,j,k,15) = (spatialCross(i,j,k,15)*stepsMinusOne + deljzcross*deljy)*osteps;  // <deljz(x*)deljy(x)>
                 spatialCross(i,j,k,16) = (spatialCross(i,j,k,16)*stepsMinusOne + delKcross*deljy)*osteps;   // <delK(x*)deljy(x)>
@@ -842,16 +852,18 @@ void FhdParticleContainer::EvaluateStats(MultiFab& mfcuInst,
                     //spatialCross(i,j,k,cnt) = (spatialCross(i,j,k,cnt)*stepsMinusOne + delrho1cross*delrho1)*osteps;   // <delRho0(x*)delRho1(x)>
                     //cnt++;
                 }
+                spatialCross(i,j,k,cnt) = (spatialCross(i,j,k,cnt)*stepsMinusOne + delrho1cross*delrho1)*osteps;   // <delRho0(x*)delRho0(x)>
+                cnt++;
                 spatialCross(i,j,k,cnt) = (spatialCross(i,j,k,cnt)*stepsMinusOne + delux0cross*delrho0)*osteps;
                 cnt++;
-                spatialCross(i,j,k,cnt) = (1.0/meanrho0cross)*(spatialCross(i,j,k,7) - meanux0cross*spatialCross(i,j,k,2));
+                spatialCross(i,j,k,cnt) = (spatialCross(i,j,k,cnt)*stepsMinusOne + delvxcross*delrho0)*osteps;
                 cnt++;
-                spatialCross(i,j,k,cnt) = (1.0/meanrhocross)*(spatialCross(i,j,k,6) - meanuxcross*spatialCross(i,j,k,1));
+                spatialCross(i,j,k,cnt) = (spatialCross(i,j,k,cnt)*stepsMinusOne + delrho1cross*delrho0)*osteps;
                 cnt++;
-                spatialCross(i,j,k,cnt) = (1.0/meanrho0cross)*(spatialCross(i,j,k,7));
+                spatialCross(i,j,k,cnt) = (spatialCross(i,j,k,cnt)*stepsMinusOne + delvxcross*delrho1)*osteps;
                 cnt++;
-                spatialCross(i,j,k,cnt) = (1.0/meanrho0cross)*(-meanux0cross*spatialCross(i,j,k,2));
-                cnt++;
+                //spatialCross(i,j,k,cnt) = (1.0/meanrho0cross)*(-meanux0cross*spatialCross(i,j,k,2));
+                //cnt++;
 //                if(nspecies > 1)
 //                {   
 //

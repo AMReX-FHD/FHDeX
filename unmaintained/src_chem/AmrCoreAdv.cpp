@@ -57,8 +57,8 @@ void AmrCoreAdv::Initialize( )
 
 /*
     // walls (Neumann)
-    int bc_con_lo[] = {FOEXTRAP, FOEXTRAP, FOEXTRAP};
-    int bc_con_hi[] = {FOEXTRAP, FOEXTRAP, FOEXTRAP};
+    int bc_con_lo[] = {amrex::BCType::foextrap, amrex::BCType::foextrap, amrex::BCType::foextrap};
+    int bc_con_hi[] = {amrex::BCType::foextrap, amrex::BCType::foextrap, amrex::BCType::foextrap};
 */
 //    bcs.resize(1);
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)

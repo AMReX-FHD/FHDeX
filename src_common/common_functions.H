@@ -22,7 +22,7 @@
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_ArrayLim.H>
 #include <AMReX_BC_TYPES.H>
-
+#include <AMReX_PhysBCFunct.H>
 #include "common_namespace.H"
 
 using namespace common;
@@ -117,6 +117,8 @@ void ComputeDivCC(const MultiFab& vel_in,
 void PrintMF(const MultiFab& MF, int comp_lo, int comp_hi);
 
 void outputMFAscii(const MultiFab& output, std::string filename);
+void outputMFAscii2(const MultiFab& MF, int comp_lo, int comp_hi, std::string filename);
+void outputMFAsciiReduce(const MultiFab& MF, int comp, std::string filename, int rat);
 
 ///////////////////////////
 // in SqrtMF.cpp
@@ -220,6 +222,12 @@ void CCMoments(const MultiFab & m1,
 		 const int & power,
 		 Real & prod_val);
 
+void FCMoments(const std::array<MultiFab, AMREX_SPACEDIM>& m1,
+		       const amrex::Vector<int>& comps,
+               std::array<MultiFab, AMREX_SPACEDIM>&  mscr,
+		       const int& power,
+		       amrex::Vector<amrex::Real>& prod_val);
+
 void StagL2Norm(const std::array<MultiFab, AMREX_SPACEDIM> & m1,
 		const int & comp,
                 std::array<MultiFab, AMREX_SPACEDIM>& mscr,
@@ -239,5 +247,17 @@ void CCL2Norm(const MultiFab & m1,
 // in RotateFlattenedMF.cpp
 
 MultiFab RotateFlattenedMF(MultiFab const& mf);
+
+///////////////////////////
+// in InterpCoarsen.cpp
+void FaceFillCoarse(Vector<std::array< MultiFab, AMREX_SPACEDIM >>& mf, int map);
+void FaceFillCoarse(std::array<MultiFab, AMREX_SPACEDIM>* & mf, int map);
+void FaceFillCoarse(std::array<MultiFab*, AMREX_SPACEDIM> & mfCoarse,std::array<MultiFab*, AMREX_SPACEDIM> & mfFine, int map);
+
+
+void CellFillCoarse(Vector<MultiFab>& mf, Vector<Geometry> geom);
+void CellFillCoarse(Vector<MultiFab>& mf, Geometry* geom);
+void CellFillCoarse(MultiFab* & mf, Geometry* geom);
+void CellFillCoarse(const MultiFab & mfFine, Geometry geomFine, MultiFab & mfCoarse, Geometry geomCoarse);
 
 #endif

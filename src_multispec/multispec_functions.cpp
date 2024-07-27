@@ -57,6 +57,12 @@ amrex::Real                                                 multispec::L_zero;
 
 void InitializeMultispecNamespace() {
 
+    if (MAX_ELEMENT != MAX_SPECIES*(MAX_SPECIES-1)/2) {
+        Print() << "MAX_ELEMENT " << MAX_ELEMENT << std::endl;
+        Print() << "MAX_SPECIES " << MAX_SPECIES << std::endl;
+        Abort("MAX_ELEMENT != (MAX_SPECIES*MAX_SPECIES-1)/2)");
+    }
+    
     E_ext_value.resize(AMREX_SPACEDIM);
 
     // specify default values first, then read in values from inputs file

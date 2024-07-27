@@ -27,17 +27,14 @@ void conservedToPrimitiveStag(MultiFab& prim_in, std::array<MultiFab, AMREX_SPAC
     */
     
     // Loop over boxes
-    for ( MFIter mfi(prim_in,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
+    for ( MFIter mfi(cons_in,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
         
-        const Box& bx = mfi.tilebox();
-
         const Box& tbx = mfi.nodaltilebox(0);
         const Box& tby = mfi.nodaltilebox(1);
         const Box& tbz = mfi.nodaltilebox(2);
 
         //const Array4<const Real>& cons = cons_in.array(mfi);
         const Array4<      Real>& cons = cons_in.array(mfi);
-        const Array4<      Real>& prim = prim_in.array(mfi);
 
         AMREX_D_TERM(Array4<Real const> const& momx = momStag_in[0].array(mfi);,
                      Array4<Real const> const& momy = momStag_in[1].array(mfi);,
@@ -69,8 +66,26 @@ void conservedToPrimitiveStag(MultiFab& prim_in, std::array<MultiFab, AMREX_SPAC
         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
             velz(i,j,k) = 2*momz(i,j,k)/(cons(i,j,k,0) + cons(i,j,k-1,0));
         });
+    
+    }
 
+    // Loop over boxes
+    for ( MFIter mfi(prim_in,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
         
+        const Box& bx = mfi.tilebox();
+
+        //const Array4<const Real>& cons = cons_in.array(mfi);
+        const Array4<      Real>& cons = cons_in.array(mfi);
+        const Array4<      Real>& prim = prim_in.array(mfi);
+
+        AMREX_D_TERM(Array4<Real const> const& momx = momStag_in[0].array(mfi);,
+                     Array4<Real const> const& momy = momStag_in[1].array(mfi);,
+                     Array4<Real const> const& momz = momStag_in[2].array(mfi););
+
+        AMREX_D_TERM(const Array4<Real>& velx = velStag_in[0].array(mfi);,
+                     const Array4<Real>& vely = velStag_in[1].array(mfi);,
+                     const Array4<Real>& velz = velStag_in[2].array(mfi););
+
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             // method 2 to create a thread private array

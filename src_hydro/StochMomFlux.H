@@ -54,6 +54,20 @@ public:
                          const std::array< amrex::MultiFab, NUM_EDGE >&,
                          const amrex::Vector< amrex::Real >&, const amrex::Real&);
                          
+    void StochMomFluxDivWide(std::array< amrex::MultiFab, AMREX_SPACEDIM >&,
+                         const int&, const amrex::MultiFab&,
+                         const std::array< amrex::MultiFab, NUM_EDGE >&,
+                         const amrex::MultiFab&,
+                         const std::array< amrex::MultiFab, NUM_EDGE >&,
+                         const amrex::Vector< amrex::Real >&, const amrex::Real&);
+                         
+    void StochMomFluxDivWideSplit(std::array< amrex::MultiFab, AMREX_SPACEDIM >&,
+                         const int&, const amrex::MultiFab&,
+                         const std::array< amrex::MultiFab, NUM_EDGE >&,
+                         const amrex::MultiFab&,
+                         const std::array< amrex::MultiFab, NUM_EDGE >&,
+                         const amrex::Vector< amrex::Real >&, const amrex::Real&);                                                  
+                         
                              // compute stochastic momentum flux divergence
     void StochMomFluxDivOrder3(std::array< amrex::MultiFab, AMREX_SPACEDIM >&,
                          const int&, const amrex::MultiFab&,

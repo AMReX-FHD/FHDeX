@@ -11,4 +11,7 @@ namespace MFsurfchem {
     extern AMREX_GPU_MANAGED int stoch_surfcov0;
     extern AMREX_GPU_MANAGED int stoch_MFsurfchem;
 
+    extern AMREX_GPU_MANAGED amrex::Real k_beta;
+    extern AMREX_GPU_MANAGED amrex::Real e_beta;
+
 }

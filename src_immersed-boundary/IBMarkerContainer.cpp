@@ -734,29 +734,37 @@ void IBMarkerContainer::UpdatePIDMap() {
     PullDownInt(0, ids, IBMInt::id_1);
 
     for (int i = 0; i < ibs.size(); ++i) {
-            sorted_map.push_back(std::make_tuple(ibs[i], ids[i], i));
+        sorted_map.push_back(std::make_tuple(ibs[i], ids[i], i));
     }       
  
     sort(sorted_map.begin(), sorted_map.end());
 
     Print() << "Flagellum number\t" << "index in PullDown Vector" << std::endl;
     for (int i = 0; i < ibs.size(); i++) {
-             Print() << immbdy_idx(sorted_map[i])
-             << "\t" << marker_idx(sorted_map[i])
-             << "\t" << storage_idx(sorted_map[i])
-             << std::endl;
+        Print() << immbdy_idx(sorted_map[i])
+                << "\t" << marker_idx(sorted_map[i])
+                << "\t" << storage_idx(sorted_map[i])
+                << std::endl;
     }
 
     //Create a reduced vector storing only the beginning index of each flagellum in the sorted map 
-  
     int n_ibs =1 + ibs[std::distance(ibs.begin(), std::max_element(ibs.begin(), ibs.end()))];
     
-    for (int i=0; i<n_ibs; i++) {    
-	    reduced_map.push_back(std::distance(sorted_map.begin(), std::find_if(sorted_map.begin(), sorted_map.end(), [&](const auto & t) { return immbdy_idx(t) == i; })));
+    for (int i=0; i < n_ibs; i++) {
+        reduced_map.push_back(
+            std::distance(
+                sorted_map.begin(),
+                std::find_if(
+                    sorted_map.begin(),
+                    sorted_map.end(),
+                    [&](const auto & t) { return immbdy_idx(t) == i; }
+                )
+            )
+        );
     }
 
     Print() << "Flagellum number\t" << "Beginning index in the sorted map" << std::endl;
     for (int i = 0; i < n_ibs; i++) {
-             Print() << i << "\t" << reduced_map[i] << std::endl;
+        Print() << i << "\t" << reduced_map[i] << std::endl;
     }
 }

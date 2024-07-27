@@ -209,74 +209,89 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
             amrex::ParallelFor(bx_xy, bx_xz, bx_yz,
             [=] AMREX_GPU_DEVICE (int i, int j, int k) {
                 
-                Real etaT = 0.25*(eta(i-1,j-1,k)*prim(i-1,j-1,k,4) + eta(i-1,j,k)*prim(i-1,j,k,4) + 
-                                  eta(i,j-1,k)*prim(i,j-1,k,4) + eta(i,j,k)*prim(i,j,k,4));
+                if (do_1D) { // 1D
+                    tauxy_stoch(i,j,k) = 0.0;
+                }
+                else { // works for both 2D and 3D
+                    Real etaT = 0.25*(eta(i-1,j-1,k)*prim(i-1,j-1,k,4) + eta(i-1,j,k)*prim(i-1,j,k,4) + 
+                                      eta(i,j-1,k)*prim(i,j-1,k,4) + eta(i,j,k)*prim(i,j,k,4));
 
-                // Pick boundary values for Dirichlet (stored in ghost)
-                // For corner cases (xy), x wall takes preference
-                if ((j == 0) and is_lo_y_dirichlet_mass) {
-                    etaT = 0.5*(eta(i-1,j-1,k)*prim(i-1,j-1,k,4) + eta(i,j-1,k)*prim(i,j-1,k,4));
+                    // Pick boundary values for Dirichlet (stored in ghost)
+                    // For corner cases (xy), x wall takes preference
+                    if ((j == 0) and is_lo_y_dirichlet_mass) {
+                        etaT = 0.5*(eta(i-1,j-1,k)*prim(i-1,j-1,k,4) + eta(i,j-1,k)*prim(i,j-1,k,4));
+                    }
+                    if ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
+                        etaT = 0.5*(eta(i-1,j,k)*prim(i-1,j,k,4) + eta(i,j,k)*prim(i,j,k,4));
+                    }
+                    if ((i == 0) and is_lo_x_dirichlet_mass) {
+                        etaT = 0.5*(eta(i-1,j-1,k)*prim(i-1,j-1,k,4) + eta(i-1,j,k)*prim(i-1,j,k,4));
+                    }
+                    if ((i == n_cells[0]) and is_hi_x_dirichlet_mass) {
+                        etaT = 0.5*(eta(i,j-1,k)*prim(i,j-1,k,4) + eta(i,j,k)*prim(i,j,k,4));
+                    }
+                    
+                    Real fac = sqrt(2.0 * k_B * etaT * volinv * dtinv);
+                    tauxy_stoch(i,j,k) = fac*stochedgex_v(i,j,k);
                 }
-                if ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
-                    etaT = 0.5*(eta(i-1,j,k)*prim(i-1,j,k,4) + eta(i,j,k)*prim(i,j,k,4));
-                }
-                if ((i == 0) and is_lo_x_dirichlet_mass) {
-                    etaT = 0.5*(eta(i-1,j-1,k)*prim(i-1,j-1,k,4) + eta(i-1,j,k)*prim(i-1,j,k,4));
-                }
-                if ((i == n_cells[0]) and is_hi_x_dirichlet_mass) {
-                    etaT = 0.5*(eta(i,j-1,k)*prim(i,j-1,k,4) + eta(i,j,k)*prim(i,j,k,4));
-                }
-                
-                Real fac = sqrt(2.0 * k_B * etaT * volinv * dtinv);
-                tauxy_stoch(i,j,k) = fac*stochedgex_v(i,j,k);
             },
 
             [=] AMREX_GPU_DEVICE (int i, int j, int k) {
 
-                Real etaT = 0.25*(eta(i-1,j,k-1)*prim(i-1,j,k-1,4) + eta(i-1,j,k)*prim(i-1,j,k,4) + 
-                                  eta(i,j,k-1)*prim(i,j,k-1,4) + eta(i,j,k)*prim(i,j,k,4));
+                if ((do_1D) or (do_2D)) { // works for 1D and 2D
+                    tauxz_stoch(i,j,k) = 0.0;
+                }
+                else {
+                    Real etaT = 0.25*(eta(i-1,j,k-1)*prim(i-1,j,k-1,4) + eta(i-1,j,k)*prim(i-1,j,k,4) + 
+                                      eta(i,j,k-1)*prim(i,j,k-1,4) + eta(i,j,k)*prim(i,j,k,4));
 
-                // Pick boundary values for Dirichlet (stored in ghost)
-                // For corner cases (xz), x wall takes preference
-                if ((k == 0) and is_lo_z_dirichlet_mass) {
-                    etaT = 0.5*(eta(i-1,j,k-1)*prim(i-1,j,k-1,4) + eta(i,j,k-1)*prim(i,j,k-1,4));
+                    // Pick boundary values for Dirichlet (stored in ghost)
+                    // For corner cases (xz), x wall takes preference
+                    if ((k == 0) and is_lo_z_dirichlet_mass) {
+                        etaT = 0.5*(eta(i-1,j,k-1)*prim(i-1,j,k-1,4) + eta(i,j,k-1)*prim(i,j,k-1,4));
+                    }
+                    if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
+                        etaT = 0.5*(eta(i-1,j,k)*prim(i-1,j,k,4) + eta(i,j,k)*prim(i,j,k,4));
+                    }
+                    if ((i == 0) and is_lo_x_dirichlet_mass) {
+                        etaT = 0.5*(eta(i-1,j,k-1)*prim(i-1,j,k-1,4) + eta(i-1,j,k)*prim(i-1,j,k,4));
+                    }
+                    if ((i == n_cells[0]) and is_hi_x_dirichlet_mass) {
+                        etaT = 0.5*(eta(i,j,k-1)*prim(i,j,k-1,4) + eta(i,j,k)*prim(i,j,k,4));
+                    }
+                    
+                    Real fac = sqrt(2.0 * k_B * etaT * volinv * dtinv);
+                    tauxz_stoch(i,j,k) = fac*stochedgex_w(i,j,k);
                 }
-                if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
-                    etaT = 0.5*(eta(i-1,j,k)*prim(i-1,j,k,4) + eta(i,j,k)*prim(i,j,k,4));
-                }
-                if ((i == 0) and is_lo_x_dirichlet_mass) {
-                    etaT = 0.5*(eta(i-1,j,k-1)*prim(i-1,j,k-1,4) + eta(i-1,j,k)*prim(i-1,j,k,4));
-                }
-                if ((i == n_cells[0]) and is_hi_x_dirichlet_mass) {
-                    etaT = 0.5*(eta(i,j,k-1)*prim(i,j,k-1,4) + eta(i,j,k)*prim(i,j,k,4));
-                }
-                
-                Real fac = sqrt(2.0 * k_B * etaT * volinv * dtinv);
-                tauxz_stoch(i,j,k) = fac*stochedgex_w(i,j,k);
             },
 
             [=] AMREX_GPU_DEVICE (int i, int j, int k) {
 
-                Real etaT = 0.25*(eta(i,j-1,k-1)*prim(i,j-1,k-1,4) + eta(i,j-1,k)*prim(i,j-1,k,4) + 
-                                  eta(i,j,k-1)*prim(i,j,k-1,4) + eta(i,j,k)*prim(i,j,k,4));
+                if ((do_1D) or (do_2D)) { // works for 1D and 2D
+                    tauyz_stoch(i,j,k) = 0.0;
+                }
+                else {
+                    Real etaT = 0.25*(eta(i,j-1,k-1)*prim(i,j-1,k-1,4) + eta(i,j-1,k)*prim(i,j-1,k,4) + 
+                                      eta(i,j,k-1)*prim(i,j,k-1,4) + eta(i,j,k)*prim(i,j,k,4));
 
-                // Pick boundary values for Dirichlet (stored in ghost)
-                // For corner cases (yz), y wall takes preference
-                if ((k == 0) and is_lo_z_dirichlet_mass) {
-                    etaT = 0.5*(eta(i,j-1,k-1)*prim(i,j-1,k-1,4) + eta(i,j,k-1)*prim(i,j,k-1,4));
+                    // Pick boundary values for Dirichlet (stored in ghost)
+                    // For corner cases (yz), y wall takes preference
+                    if ((k == 0) and is_lo_z_dirichlet_mass) {
+                        etaT = 0.5*(eta(i,j-1,k-1)*prim(i,j-1,k-1,4) + eta(i,j,k-1)*prim(i,j,k-1,4));
+                    }
+                    if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
+                        etaT = 0.5*(eta(i,j-1,k)*prim(i,j-1,k,4) + eta(i,j,k)*prim(i,j,k,4));
+                    }
+                    if ((j == 0) and is_lo_y_dirichlet_mass) {
+                        etaT = 0.5*(eta(i,j-1,k-1)*prim(i,j-1,k-1,4) + eta(i,j-1,k)*prim(i,j-1,k,4));
+                    }
+                    if ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
+                        etaT = 0.5*(eta(i,j,k-1)*prim(i,j,k-1,4) + eta(i,j,k)*prim(i,j,k,4));
+                    }
+                    
+                    Real fac = sqrt(2.0 * k_B * etaT * volinv * dtinv);
+                    tauyz_stoch(i,j,k) = fac*stochedgey_w(i,j,k);
                 }
-                if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
-                    etaT = 0.5*(eta(i,j-1,k)*prim(i,j-1,k,4) + eta(i,j,k)*prim(i,j,k,4));
-                }
-                if ((j == 0) and is_lo_y_dirichlet_mass) {
-                    etaT = 0.5*(eta(i,j-1,k-1)*prim(i,j-1,k-1,4) + eta(i,j-1,k)*prim(i,j-1,k,4));
-                }
-                if ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
-                    etaT = 0.5*(eta(i,j,k-1)*prim(i,j,k-1,4) + eta(i,j,k)*prim(i,j,k,4));
-                }
-                
-                Real fac = sqrt(2.0 * k_B * etaT * volinv * dtinv);
-                tauyz_stoch(i,j,k) = fac*stochedgey_w(i,j,k);
             });
 
             // Loop over faces for flux calculations (4:5+ns)
@@ -310,7 +325,6 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                 // Weights for facial fluxes:
                 fweights[0] = sqrt(k_B*kxp*volinv*dtinv); //energy flux
                 wiener[0] = fweights[0]*stochfacex(i,j,k,4);
-                                
                 // heat flux
                 xflux(i,j,k,nvars) = wiener[0];
 
@@ -462,13 +476,6 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                     meanT = prim(i,j,k,4);
                 }
 
-                // Weights for facial fluxes:
-                fweights[0] = sqrt(k_B*kyp*volinv*dtinv);
-                wiener[0] = fweights[0]*stochfacey(i,j,k,4);
-
-                // heat flux
-                yflux(i,j,k,nvars) = wiener[0];
-
                 // viscous heating
                 // diagonal
                 yflux(i,j,k,nvars+1) = 0.5*vely(i,j,k)*(tauyy_stoch(i,j-1,k)+tauyy_stoch(i,j,k));
@@ -493,100 +500,116 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                                            + (velz(i,j,k)+velz(i,j-1,k))*tauyz_stoch(i,j,k));
                 }
                 yflux(i,j,k,nvars+2) = visc_shear_heat;
+
+                if (do_1D) { // 1D
+                    yflux(i,j,k,nvars) = 0.0;
+                    yflux(i,j,k,nvars+3) = 0.0;
+                    for (int ns=0; ns<nspecies; ++ns) {
+                        yflux(i,j,k,5+ns) = 0.0;
+                    }
+                }
+                else { // works for 2D and 3D
+
+                    // Weights for facial fluxes:
+                    fweights[0] = sqrt(k_B*kyp*volinv*dtinv);
+                    wiener[0] = fweights[0]*stochfacey(i,j,k,4);
+                    // heat flux
+                    yflux(i,j,k,nvars) = wiener[0];
             
-                if (algorithm_type == 2) {
+                    if (algorithm_type == 2) {
 
-                    for (int n=1; n<1+nspecies; ++n) {
-                        wiener[n] = 0.;
-                    }
-
-                    for (int ns=0; ns<nspecies; ++ns) {
-                        yy[ns] = amrex::max(0.,amrex::min(1.,prim(i,j-1,k,6+ns)));
-                        yyp[ns] = amrex::max(0.,amrex::min(1.,prim(i,j,k,6+ns)));
-                        if ((j == 0) and is_lo_y_dirichlet_mass) {
-                            yyp[ns] = amrex::max(0.,amrex::min(1.,prim(i,j-1,k,6+ns)));
+                        for (int n=1; n<1+nspecies; ++n) {
+                            wiener[n] = 0.;
                         }
-                        if ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
-                            yy[ns] = amrex::max(0.,amrex::min(1.,prim(i,j,k,6+ns)));
-                        }
-                    }
 
-                    Real sumy = 0.;
-                    Real sumyp = 0.;
-
-                    for (int n=0; n<nspecies; ++n) {
-                        sumy += yy[n];
-                        sumyp += yyp[n];
-                    }
-
-                    for (int n=0; n<nspecies; ++n) {
-                        yy[n] /= sumy;
-                        yyp[n] /= sumyp;
-                    }
-
-                    Real MWmix = 0.;
-
-                    for (int ns=0; ns<nspecies; ++ns) {
-
-                        MWmix = MWmix + 0.5*(yy[ns]+yyp[ns])/molmass[ns];
-
-                        for (int ll=0; ll<nspecies; ++ll) {
-                            DijY_edge[ns*nspecies+ll] = 0.5*(Dij(i,j-1,k,ll*nspecies+ns)*yy[ll] +
-                                                                 Dij(i,j,k,ll*nspecies+ns)*yyp[ll] +
-                                                                (Dij(i,j-1,k,ns*nspecies+ll)*yy[ns] +
-                                                                 Dij(i,j,k,ns*nspecies+ll)*yyp[ns] ));
+                        for (int ns=0; ns<nspecies; ++ns) {
+                            yy[ns] = amrex::max(0.,amrex::min(1.,prim(i,j-1,k,6+ns)));
+                            yyp[ns] = amrex::max(0.,amrex::min(1.,prim(i,j,k,6+ns)));
                             if ((j == 0) and is_lo_y_dirichlet_mass) {
-                                DijY_edge[ns*nspecies+ll] = 0.5*(Dij(i,j-1,k,ll*nspecies+ns)*yy[ll] +
-                                                                     Dij(i,j-1,k,ll*nspecies+ns)*yyp[ll] +
-                                                                    (Dij(i,j-1,k,ns*nspecies+ll)*yy[ns] +
-                                                                     Dij(i,j-1,k,ns*nspecies+ll)*yyp[ns] ));
+                                yyp[ns] = amrex::max(0.,amrex::min(1.,prim(i,j-1,k,6+ns)));
                             }
                             if ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
-                                DijY_edge[ns*nspecies+ll] = 0.5*(Dij(i,j,k,ll*nspecies+ns)*yy[ll] +
+                                yy[ns] = amrex::max(0.,amrex::min(1.,prim(i,j,k,6+ns)));
+                            }
+                        }
+
+                        Real sumy = 0.;
+                        Real sumyp = 0.;
+
+                        for (int n=0; n<nspecies; ++n) {
+                            sumy += yy[n];
+                            sumyp += yyp[n];
+                        }
+
+                        for (int n=0; n<nspecies; ++n) {
+                            yy[n] /= sumy;
+                            yyp[n] /= sumyp;
+                        }
+
+                        Real MWmix = 0.;
+
+                        for (int ns=0; ns<nspecies; ++ns) {
+
+                            MWmix = MWmix + 0.5*(yy[ns]+yyp[ns])/molmass[ns];
+
+                            for (int ll=0; ll<nspecies; ++ll) {
+                                DijY_edge[ns*nspecies+ll] = 0.5*(Dij(i,j-1,k,ll*nspecies+ns)*yy[ll] +
                                                                      Dij(i,j,k,ll*nspecies+ns)*yyp[ll] +
-                                                                    (Dij(i,j,k,ns*nspecies+ll)*yy[ns] +
+                                                                    (Dij(i,j-1,k,ns*nspecies+ll)*yy[ns] +
                                                                      Dij(i,j,k,ns*nspecies+ll)*yyp[ns] ));
+                                if ((j == 0) and is_lo_y_dirichlet_mass) {
+                                    DijY_edge[ns*nspecies+ll] = 0.5*(Dij(i,j-1,k,ll*nspecies+ns)*yy[ll] +
+                                                                         Dij(i,j-1,k,ll*nspecies+ns)*yyp[ll] +
+                                                                        (Dij(i,j-1,k,ns*nspecies+ll)*yy[ns] +
+                                                                         Dij(i,j-1,k,ns*nspecies+ll)*yyp[ns] ));
+                                }
+                                if ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
+                                    DijY_edge[ns*nspecies+ll] = 0.5*(Dij(i,j,k,ll*nspecies+ns)*yy[ll] +
+                                                                         Dij(i,j,k,ll*nspecies+ns)*yyp[ll] +
+                                                                        (Dij(i,j,k,ns*nspecies+ll)*yy[ns] +
+                                                                         Dij(i,j,k,ns*nspecies+ll)*yyp[ns] ));
+                                }
                             }
                         }
-                    }
-                    
-                    for (int ns=0; ns<nspecies; ++ns) {
-                        if (amrex::Math::abs(yy[ns]) + amrex::Math::abs(yyp[ns]) <= 1.e-12) {
-                            for (int n=0; n<nspecies; ++n) {
-                                DijY_edge[ns*nspecies+n]=0.;
-                                DijY_edge[n*nspecies+ns]=0.;
+                        
+                        for (int ns=0; ns<nspecies; ++ns) {
+                            if (amrex::Math::abs(yy[ns]) + amrex::Math::abs(yyp[ns]) <= 1.e-12) {
+                                for (int n=0; n<nspecies; ++n) {
+                                    DijY_edge[ns*nspecies+n]=0.;
+                                    DijY_edge[n*nspecies+ns]=0.;
+                                }
                             }
                         }
-                    }
 
-                    MWmix = 1. / MWmix;
+                        MWmix = 1. / MWmix;
 
-                    CholeskyDecomp(DijY_edge,nspecies,sqD);
+                        CholeskyDecomp(DijY_edge,nspecies,sqD);
 
-                    for (int ns=0; ns<nspecies; ++ns) {
-                        for (int ll=0; ll<=ns; ++ll) {
-                            fweights[1+ll] = sqrt(k_B*MWmix*volinv/(Runiv*dt))*sqD[ns*nspecies+ll];
-                            wiener[1+ns] = wiener[1+ns] + fweights[1+ll]*stochfacey(i,j,k,5+ll);
+                        for (int ns=0; ns<nspecies; ++ns) {
+                            for (int ll=0; ll<=ns; ++ll) {
+                                fweights[1+ll] = sqrt(k_B*MWmix*volinv/(Runiv*dt))*sqD[ns*nspecies+ll];
+                                wiener[1+ns] = wiener[1+ns] + fweights[1+ll]*stochfacey(i,j,k,5+ll);
+                            }
+                            yflux(i,j,k,5+ns) = wiener[1+ns];
                         }
-                        yflux(i,j,k,5+ns) = wiener[1+ns];
-                    }
 
-                    GetEnthalpies(meanT, hk);
+                        GetEnthalpies(meanT, hk);
 
-                    Real soret = 0.;
+                        Real soret = 0.;
 
-                    for (int ns=0; ns<nspecies; ++ns) {
-                        Real soret_s;
-                        soret_s = (hk[ns] + Runiv*meanT/molmass[ns]*0.5*(chi(i,j-1,k,ns)+chi(i,j,k,ns)))*wiener[1+ns];
-                        if ((j == 0) and is_lo_y_dirichlet_mass) {
-                            soret_s = (hk[ns] + Runiv*meanT/molmass[ns]*chi(i,j-1,k,ns))*wiener[1+ns];
+                        for (int ns=0; ns<nspecies; ++ns) {
+                            Real soret_s;
+                            soret_s = (hk[ns] + Runiv*meanT/molmass[ns]*0.5*(chi(i,j-1,k,ns)+chi(i,j,k,ns)))*wiener[1+ns];
+                            if ((j == 0) and is_lo_y_dirichlet_mass) {
+                                soret_s = (hk[ns] + Runiv*meanT/molmass[ns]*chi(i,j-1,k,ns))*wiener[1+ns];
+                            }
+                            if ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
+                                soret_s = (hk[ns] + Runiv*meanT/molmass[ns]*chi(i,j,k,ns))*wiener[1+ns];
+                            }
+                            soret += soret_s;
                         }
-                        if ((j == n_cells[1]) and is_hi_y_dirichlet_mass) {
-                            soret_s = (hk[ns] + Runiv*meanT/molmass[ns]*chi(i,j,k,ns))*wiener[1+ns];
-                        }
-                        soret += soret_s;
+                        yflux(i,j,k,nvars+3) = soret;
                     }
-                    yflux(i,j,k,nvars+3) = soret;
                 }
             },
 
@@ -614,13 +637,6 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                     kzp  = 2.0*kappa(i,j,k)*prim(i,j,k,4)*prim(i,j,k,4);
                     meanT = prim(i,j,k,4);
                 }
-
-                // Weights for facial fluxes:
-                fweights[0] = sqrt(k_B*kzp*volinv*dtinv);
-                wiener[0] = fweights[0]*stochfacez(i,j,k,4);
-
-                // heat flux
-                zflux(i,j,k,nvars) = wiener[0];
                     
                 // viscous heating
                 // diagonal
@@ -647,102 +663,119 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                 }
                 zflux(i,j,k,nvars+2) = visc_shear_heat;
 
-                if (algorithm_type == 2) {
-
-                for (int n=1; n<1+nspecies; ++n) {
-                    wiener[n] = 0.;
-                }
-
-                for (int ns=0; ns<nspecies; ++ns) {
-                    yy[ns] = amrex::max(0.,amrex::min(1.,prim(i,j,k-1,6+ns)));
-                    yyp[ns] = amrex::max(0.,amrex::min(1.,prim(i,j,k,6+ns)));
-                    if ((k == 0) and is_lo_z_dirichlet_mass) {
-                        yyp[ns] = amrex::max(0.,amrex::min(1.,prim(i,j,k-1,6+ns)));
-                    }
-                    if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
-                        yy[ns] = amrex::max(0.,amrex::min(1.,prim(i,j,k,6+ns)));
+                if ((do_1D) or (do_2D)) { // works for 1D and 2D
+                    zflux(i,j,k,nvars) = 0.0;
+                    zflux(i,j,k,nvars+3) = 0.0;
+                    for (int ns=0; ns<nspecies; ++ns) {
+                        zflux(i,j,k,5+ns) = 0.0;
                     }
                 }
+                else { // 3D
 
-                Real sumy = 0.;
-                Real sumyp = 0.;
+                    // Weights for facial fluxes:
+                    fweights[0] = sqrt(k_B*kzp*volinv*dtinv);
+                    wiener[0] = fweights[0]*stochfacez(i,j,k,4);
+                    // heat flux
+                    zflux(i,j,k,nvars) = wiener[0];
 
-                for (int n=0; n<nspecies; ++n) {
-                    sumy += yy[n];
-                    sumyp += yyp[n];
-                }
 
-                for (int n=0; n<nspecies; ++n) {
-                    yy[n] /= sumy;
-                    yyp[n] /= sumyp;
-                }
+                    if (algorithm_type == 2) {
 
-                Real MWmix = 0.;
-
-                for (int ns=0; ns<nspecies; ++ns) {
-
-                    MWmix = MWmix + 0.5*(yy[ns]+yyp[ns])/molmass[ns];
-
-                    for (int ll=0; ll<nspecies; ++ll) {
-                        DijY_edge[ns*nspecies+ll] = 0.5*(Dij(i,j,k-1,ll*nspecies+ns)*yy[ll] +
-                                                             Dij(i,j,k,ll*nspecies+ns)*yyp[ll] +
-                                                            (Dij(i,j,k-1,ns*nspecies+ll)*yy[ns] +
-                                                             Dij(i,j,k,ns*nspecies+ll)*yyp[ns] ));
-
-                        if ((k == 0) and is_lo_z_dirichlet_mass) {
-                            DijY_edge[ns*nspecies+ll] = 0.5*(Dij(i,j,k-1,ll*nspecies+ns)*yy[ll] +
-                                                                 Dij(i,j,k-1,ll*nspecies+ns)*yyp[ll] +
-                                                                (Dij(i,j,k-1,ns*nspecies+ll)*yy[ns] +
-                                                                 Dij(i,j,k-1,ns*nspecies+ll)*yyp[ns] ));
+                        for (int n=1; n<1+nspecies; ++n) {
+                            wiener[n] = 0.;
                         }
-                        if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
-                            DijY_edge[ns*nspecies+ll] = 0.5*(Dij(i,j,k,ll*nspecies+ns)*yy[ll] +
-                                                                 Dij(i,j,k,ll*nspecies+ns)*yyp[ll] +
-                                                                (Dij(i,j,k,ns*nspecies+ll)*yy[ns] +
-                                                                 Dij(i,j,k,ns*nspecies+ll)*yyp[ns] ));
+
+                        for (int ns=0; ns<nspecies; ++ns) {
+                            yy[ns] = amrex::max(0.,amrex::min(1.,prim(i,j,k-1,6+ns)));
+                            yyp[ns] = amrex::max(0.,amrex::min(1.,prim(i,j,k,6+ns)));
+                            if ((k == 0) and is_lo_z_dirichlet_mass) {
+                                yyp[ns] = amrex::max(0.,amrex::min(1.,prim(i,j,k-1,6+ns)));
+                            }
+                            if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
+                                yy[ns] = amrex::max(0.,amrex::min(1.,prim(i,j,k,6+ns)));
+                            }
                         }
-                    }
-                }
 
+                        Real sumy = 0.;
+                        Real sumyp = 0.;
 
-                for (int ns=0; ns<nspecies; ++ns) {
-                    if (amrex::Math::abs(yy[ns]) + amrex::Math::abs(yyp[ns]) <= 1.e-12) {
                         for (int n=0; n<nspecies; ++n) {
-                            DijY_edge[ns*nspecies+n]=0.;
-                            DijY_edge[n*nspecies+ns]=0.;
+                            sumy += yy[n];
+                            sumyp += yyp[n];
                         }
+
+                        for (int n=0; n<nspecies; ++n) {
+                            yy[n] /= sumy;
+                            yyp[n] /= sumyp;
+                        }
+
+                        Real MWmix = 0.;
+
+                        for (int ns=0; ns<nspecies; ++ns) {
+
+                            MWmix = MWmix + 0.5*(yy[ns]+yyp[ns])/molmass[ns];
+
+                            for (int ll=0; ll<nspecies; ++ll) {
+                                DijY_edge[ns*nspecies+ll] = 0.5*(Dij(i,j,k-1,ll*nspecies+ns)*yy[ll] +
+                                                                     Dij(i,j,k,ll*nspecies+ns)*yyp[ll] +
+                                                                    (Dij(i,j,k-1,ns*nspecies+ll)*yy[ns] +
+                                                                     Dij(i,j,k,ns*nspecies+ll)*yyp[ns] ));
+
+                                if ((k == 0) and is_lo_z_dirichlet_mass) {
+                                    DijY_edge[ns*nspecies+ll] = 0.5*(Dij(i,j,k-1,ll*nspecies+ns)*yy[ll] +
+                                                                         Dij(i,j,k-1,ll*nspecies+ns)*yyp[ll] +
+                                                                        (Dij(i,j,k-1,ns*nspecies+ll)*yy[ns] +
+                                                                         Dij(i,j,k-1,ns*nspecies+ll)*yyp[ns] ));
+                                }
+                                if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
+                                    DijY_edge[ns*nspecies+ll] = 0.5*(Dij(i,j,k,ll*nspecies+ns)*yy[ll] +
+                                                                         Dij(i,j,k,ll*nspecies+ns)*yyp[ll] +
+                                                                        (Dij(i,j,k,ns*nspecies+ll)*yy[ns] +
+                                                                         Dij(i,j,k,ns*nspecies+ll)*yyp[ns] ));
+                                }
+                            }
+                        }
+
+
+                        for (int ns=0; ns<nspecies; ++ns) {
+                            if (amrex::Math::abs(yy[ns]) + amrex::Math::abs(yyp[ns]) <= 1.e-12) {
+                                for (int n=0; n<nspecies; ++n) {
+                                    DijY_edge[ns*nspecies+n]=0.;
+                                    DijY_edge[n*nspecies+ns]=0.;
+                                }
+                            }
+                        }
+
+                        MWmix = 1. / MWmix;
+
+                        CholeskyDecomp(DijY_edge,nspecies,sqD);
+
+                        for (int ns=0; ns<nspecies; ++ns) {
+                            for (int ll=0; ll<=ns; ++ll) {
+                                fweights[1+ll] = sqrt(k_B*MWmix*volinv/(Runiv*dt))*sqD[ns*nspecies+ll];
+                                wiener[1+ns] = wiener[1+ns] + fweights[1+ll]*stochfacez(i,j,k,5+ll);
+                            }
+                            zflux(i,j,k,5+ns) = wiener[1+ns];
+                        }
+
+                        GetEnthalpies(meanT, hk);
+
+                        Real soret = 0.;
+
+                        for (int ns=0; ns<nspecies; ++ns) {
+                            Real soret_s;
+                            soret_s = (hk[ns] + Runiv*meanT/molmass[ns]*0.5*(chi(i,j,k-1,ns)+chi(i,j,k,ns)))*wiener[1+ns];
+                            if ((k == 0) and is_lo_z_dirichlet_mass) {
+                                soret_s = (hk[ns] + Runiv*meanT/molmass[ns]*chi(i,j,k-1,ns))*wiener[1+ns];
+                            }
+                            if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
+                                soret_s = (hk[ns] + Runiv*meanT/molmass[ns]*chi(i,j,k,ns))*wiener[1+ns];
+                            }
+                            soret += soret_s;
+                        }
+                        zflux(i,j,k,nvars+3) = soret;
+                    
                     }
-                }
-
-                MWmix = 1. / MWmix;
-
-                CholeskyDecomp(DijY_edge,nspecies,sqD);
-
-                for (int ns=0; ns<nspecies; ++ns) {
-                    for (int ll=0; ll<=ns; ++ll) {
-                        fweights[1+ll] = sqrt(k_B*MWmix*volinv/(Runiv*dt))*sqD[ns*nspecies+ll];
-                        wiener[1+ns] = wiener[1+ns] + fweights[1+ll]*stochfacez(i,j,k,5+ll);
-                    }
-                    zflux(i,j,k,5+ns) = wiener[1+ns];
-                }
-
-                GetEnthalpies(meanT, hk);
-
-                Real soret = 0.;
-
-                for (int ns=0; ns<nspecies; ++ns) {
-                    Real soret_s;
-                    soret_s = (hk[ns] + Runiv*meanT/molmass[ns]*0.5*(chi(i,j,k-1,ns)+chi(i,j,k,ns)))*wiener[1+ns];
-                    if ((k == 0) and is_lo_z_dirichlet_mass) {
-                        soret_s = (hk[ns] + Runiv*meanT/molmass[ns]*chi(i,j,k-1,ns))*wiener[1+ns];
-                    }
-                    if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
-                        soret_s = (hk[ns] + Runiv*meanT/molmass[ns]*chi(i,j,k,ns))*wiener[1+ns];
-                    }
-                    soret += soret_s;
-                }
-                zflux(i,j,k,nvars+3) = soret;
-                
                 }
                 
             }); // end lambda function

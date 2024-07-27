@@ -1,0 +1,142 @@
+
+
+  # Problem specification
+  prob_lo = 0.     0.     # physical lo coordinate
+  prob_hi = 6.4e-6 6.4e-6 # physical hi coordinate
+
+  cell_depth = 1.e-7
+
+  # refer to Init.cpp
+  prob_type = 16
+  chk_base_name = chk
+  plot_base_name= plt
+  
+  # number of cells in domain
+  n_cells = 64 64
+  # max number of cells in a box
+  max_grid_size = 32 32
+
+  # Time-step control
+  fixed_dt = 1.e-11
+
+  # Controls for number of steps between actions
+  max_step = 10000
+  plot_int = 100
+  chk_int = 100
+  restart = -1
+
+  # Viscous friction L phi operator
+  # if abs(visc_type) = 1, L = div beta grad
+  # if abs(visc_type) = 2, L = div [ beta (grad + grad^T) ]
+  # if abs(visc_type) = 3, L = div [ beta (grad + grad^T) + I (gamma - (2/3)*beta) div ]
+  # positive = assume constant coefficients
+  # negative = assume spatially-varying coefficients
+  visc_coef = 0.002464   # [units: g*cm-1*s-1] dynamic (shear) viscosity of water
+  visc_type = -2
+
+  mixture_type = 3
+  
+  # Stochastic parameters
+  seed = 1
+  variance_coef_mom = 1.
+  variance_coef_mass = 1.
+  initial_variance_mom = 0.
+
+  k_B = 1.3806488e-16   # Boltzmann's constant [units: cm2*g*s-2*K-1]
+  T_init = 84.0 	# [units: K]
+
+  algorithm_type = 6
+
+  struct_fact_int = -1
+  n_steps_skip = 0
+
+  # Boundary conditions
+  # ----------------------
+  # BC specifications:
+  # -1 = periodic
+  #  1 = slip
+  #  2 = no-slip
+  bc_vel_lo = -1 2
+  bc_vel_hi = -1 2
+
+  # -1 = periodic
+  #  1 = wall
+  #  2 = reservoir (Dirichlet values must be suppled by other means)
+  bc_mass_lo = -1 1
+  bc_mass_hi = -1 1
+
+  # -1 = periodic
+  #  1 = Dirichlet
+  #  2 = Neumann
+  bc_es_lo = -1 -1
+  bc_es_hi = -1 -1
+
+  potential_lo = 0. 0.
+  potential_hi = 0. 0.
+
+  # Thermodynamic and transport properties:
+  #----------------------
+  nspecies = 2
+  #molmass = 2.4e-22 2.4e-22  # molecular masses for nspecies (mass per molecule, *not* molar mass)
+  fh_monomers = 1. 1.
+  monomer_mass = .6e-22
+  use_flory_huggins = 1
+  fh_chi = 0. 3.571 3.571 0.
+  fh_kappa = 0. 2.7e-14 2.7e-14 0.
+
+  rhobar = 1.4 1.4     # pure component densities for all species
+  rho0 = 1.4
+
+
+
+  is_ideal_mixture = 0
+
+  # initial values for c
+  c_init_1 = 0.0348115 0.9651885
+  c_init_2 = 0.9651885 0.0348115
+  smoothing_width = .75
+  film_thickness = 6.e-7
+
+  # These are lower-triangules of symmetric matrices represented as vectors
+  # Number of elements is (nspecies*(nspecies-1)/2)
+  # The values are red row by row starting from top going down
+  # (this allows easy addition/deletion of new species/rows)
+  # So D_12; D_13, D_23; D_14, D_24, D_34; ...
+  Dbar = 5.e-5 # Maxwell-Stefan diffusion constant  
+
+  use_charged_fluid = 0
+  dielectric_const = 9.2e-20
+  charge_per_mass = 0. 0.
+
+  #use_multiphase = 1
+  #alpha_gex = 4.
+  #n_gex = 1
+  #kc_tension = 4.e-12
+
+  mg_verbose = 0                  # multigrid verbosity
+
+  # Staggered multigrid solver parameters
+  stag_mg_verbosity = 0          # verbosity
+  stag_mg_max_vcycles = 1         # max number of v-cycles
+  stag_mg_minwidth = 2            # length of box at coarsest multigrid level
+  stag_mg_bottom_solver = 0       # bottom solver type
+  # 0 = smooths only, controlled by mg_nsmooths_bottom
+  # 4 = Fancy bottom solve that coarsens additionally
+  #     and then applies stag_mg_nsmooths_bottom smooths
+  stag_mg_nsmooths_down = 2  # number of smooths at each level on the way down
+  stag_mg_nsmooths_up = 2    # number of smooths at each level on the way up
+  stag_mg_nsmooths_bottom = 8     # number of smooths at the bottom
+  stag_mg_max_bottom_nlevels = 10 # for stag_mg_bottom_solver 4, number of additional levels of multigrid
+  stag_mg_omega = 1.e0            # weighted-jacobi omega coefficient
+  stag_mg_smoother = 1            # 0 = jacobi; 1 = 2*dm-color Gauss-Seidel
+  stag_mg_rel_tol = 1.e-9         # relative tolerance stopping criteria
+
+
+  # GMRES solver parameters
+  gmres_rel_tol = 1.e-12                # relative tolerance stopping criteria
+  gmres_abs_tol = 0                     # absolute tolerance stopping criteria
+  gmres_verbose = 1                     # gmres verbosity; if greater than 1, more residuals will be printed out
+  gmres_max_outer = 20                  # max number of outer iterations
+  gmres_max_inner = 5                   # max number of inner iterations, or restart number
+  gmres_max_iter = 100                  # max number of gmres iterations
+  gmres_min_iter = 1                    # min number of gmres iterations
