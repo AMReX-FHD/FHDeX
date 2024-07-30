@@ -227,7 +227,7 @@ void update_bdy_marker(const std::map<std::tuple<int, int>, double> & bond_map,
             Real l_b = r_b.vectorLength();
             Real f0 = k_bdy_spr * (l_b-l_0)/l_b;
 
-            Print() << "Updating spring forces on cell body between markers " << id << "and " << idx << std::endl;
+//            Print() << "Updating spring forces on cell body between markers " << id << "and " << idx << std::endl;
 
 	    //update spring forces between current and neighbor markers
             fx[global_idx]     += f0 * r_b[0]; fy[global_idx]     += f0 * r_b[1]; fz[global_idx]     += f0 * r_b[2];
@@ -251,7 +251,7 @@ void update_bdy_marker(const std::map<std::tuple<int, int>, double> & bond_map,
 
             int i_c = IBMarkerContainer::storage_idx(sorted_ibs[id + reduced_ibs[i_ib]]);
 
-            Print() << "Adding forces to particles..." << std::endl;
+//            Print() << "Adding forces to particles..." << std::endl;
 
             mark.rdata(IBMReal::forcex) += fx[i_c];
             mark.rdata(IBMReal::forcey) += fy[i_c];
@@ -313,6 +313,7 @@ void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
     for (int i_ib=0; i_ib < n_immbdy; ++i_ib) {
 
         if (n_marker[i_ib] <= 0) continue;
+	if (i_ib != 0) continue; 
 
         int N       = ib_flagellum::n_marker[i_ib];
         Real L      = ib_flagellum::length[i_ib];
@@ -350,24 +351,21 @@ void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
             }
         }
 
+        //get the first anchor marker and the orientation along the two anchor markers
+        //good for one flagellum for now
+        int i_c = IBMarkerContainer::storage_idx(sorted_ibs[0]);
+	int i_p = IBMarkerContainer::storage_idx(sorted_ibs[1]);
+        RealVect x_anchor = {pos_x[i_c],   pos_y[i_c],   pos_z[i_c]};
+        RealVect next_pos = {pos_x[i_p],   pos_y[i_p],   pos_z[i_p]};
+        RealVect r_p = next_pos - x_anchor;
+        Real lp_p = r_p.vectorLength();
+        RealVect e_anchor = r_p/lp_p;
+        Vector<RealVect> marker_positions = equil_pos(i_ib, time, geom, x_anchor, e_anchor);
 
         for (int ind=index_start; ind < index_start+N; ++ind ) {    //going through the sorted ibs index
 
                 //Getting index for the current marker in the PullDown Vectors
-                int i_c = IBMarkerContainer::storage_idx(sorted_ibs[ind]);
-
-		RealVect x_anchor = {0,0,0};
-		RealVect e_anchor = {0,0,0};
-		
-		// get the first anchor marker and the orientation along the two anchor markers
-		if (i_c == 0) {
-		    int i_p = IBMarkerContainer::storage_idx(sorted_ibs[ind+1]);
-                    x_anchor = {pos_x[i_c],   pos_y[i_c],   pos_z[i_c]};
-                    RealVect next_pos = {pos_x[i_p],   pos_y[i_p],   pos_z[i_p]};
-		    RealVect r_p = next_pos - x_anchor;
-		    Real lp_p = r_p.vectorLength();
-		    e_anchor = r_p/lp_p;
-		}    
+                int i_c = IBMarkerContainer::storage_idx(sorted_ibs[ind]);  
 
                 if(IBMarkerContainer::immbdy_idx(sorted_ibs[ind]) != i_ib) {
                     Print() << IBMarkerContainer::immbdy_idx(sorted_ibs[ind])
@@ -393,7 +391,7 @@ void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
                     Real lp_m = r_m.vectorLength(),         lp_p = r_p.vectorLength();
                     Real fm_0 = k_spr * (lp_m-l_link)/lp_m, fp_0 = k_spr * (lp_p-l_link)/lp_p;
 
-                    Print() << "Updating spring forces..." << std::endl;
+                    //Print() << "Updating spring forces..." << std::endl;
 
                     //update spring forces between previous/minus and current markers
                     fx[i_m] += fm_0 * r_m[0]; fy[i_m] += fm_0 * r_m[1]; fz[i_m] += fm_0 * r_m[2];
@@ -407,7 +405,7 @@ void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
                 // update bending forces for curent, minus/prev, and next/plus
                 if(immbdy::contains_fourier) {
                     //for periodic waveform of flagellum in Fourier series
-                    Vector<RealVect> marker_positions = equil_pos(i_ib, time, geom, x_anchor, e_anchor);
+                    //Vector<RealVect> marker_positions = equil_pos(i_ib, time, geom, x_anchor, e_anchor);
                     RealVect target_pos = marker_positions[ids[i_c]];
 
                     fx[i_c] += k_driv*(target_pos[0] - pos_x[i_c]);
@@ -471,7 +469,7 @@ void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
 
 	    int i_c = IBMarkerContainer::storage_idx(sorted_ibs[id + reduced_ibs[i_ib]]);
 
-	    Print() << "Adding forces to particles..." << std::endl;
+	    //Print() << "Adding forces to particles..." << std::endl;
 
 	    mark.rdata(IBMReal::forcex) += fx[i_c];
             mark.rdata(IBMReal::forcey) += fy[i_c];
@@ -539,6 +537,12 @@ Vector<RealVect> equil_pos(
     Real tx = e_anchor[0];
     Real ty = e_anchor[1];
     Real tz = e_anchor[2]; //not used as rotation is only about z axis for now
+
+    Print() << "anchor marker on flagellum (x, y, z): "
+            << x_anchor[0] << ", " << x_anchor[1] << ", "<< x_anchor[2] << std::endl;
+    Print() << "orientation of the first two markers on flagellum (x, y, z): "
+            << e_anchor[0] << ", " << e_anchor[1] << ", "<< e_anchor[2] << std::endl;
+
 
     Vector<RealVect> marker_positions(N_markers);
     marker_positions[0] = RealVect{x, y, z};
