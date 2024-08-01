@@ -23,7 +23,7 @@
   fixed_dt = 1e-4
 
   # Controls for number of steps between actions
-  max_step = 50000
+  max_step = 100000
   plot_int = 200
 
   # Viscous friction L phi operator
@@ -98,7 +98,7 @@
 
 &ib_flagellum
 
-  n_marker  = 21
+  n_marker  = 20
   offset_0(:, 1) = 4.e-3 4.e-3 1.e-3
 
   amplitude  = 1e4
