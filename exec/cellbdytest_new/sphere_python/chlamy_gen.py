@@ -43,9 +43,9 @@ def create_sphere_points(center, radius, num_points):
 
 
 # Create two point clouds representing spheres with different radii
-center = (15.5, 20, 10)
-radius2 = 5.0 # 5um in cm outer radius
-radius1 = 5.0 - 10.0/20  # make sure the thickness equal to marker distance, 0.5um, on flagellum
+center = (36, 40, 10)
+radius2 = 4.0 # 5um in cm outer radius
+radius1 = 4.0 - 10.0/20  # make sure the thickness equal to marker distance, 0.5um, on flagellum
 num_points = 48
 
 points1 = create_sphere_points(center, radius1, num_points)

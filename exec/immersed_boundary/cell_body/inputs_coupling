@@ -1,6 +1,6 @@
   # Problem specification
   prob_lo = 0.0   0.0   0.0        # physical lo coordinate
-  prob_hi = 4.e-3 4.e-3 2.e-3      # physical hi coordinate
+  prob_hi = 8.e-3 8.e-3 2.e-3      # physical hi coordinate
 
   # if prob_type = 0, zero initial velocity
   # if prob_type = 1, vortex
@@ -9,9 +9,9 @@
   prob_type = 0
 
   # number of cells in domain
-  n_cells       = 128 128 64
+  n_cells       = 256 256 64
   # max number of cells in a box
-  max_grid_size = 32 32 16
+  max_grid_size = 64 64 16
   #max_particle_tile_size = 256 256 256
 
   # above settings are for fluid grid. EM and particle grid (the grid for finding neighbour lists) are coarsened or refined off these grids. <1 = refine, >1 = coarsen.
@@ -23,7 +23,7 @@
   fixed_dt = 1e-4
 
   # Controls for number of steps between actions
-  max_step = 10000
+  max_step = 100000
   plot_int = 200
 
   # Viscous friction L phi operator
@@ -98,8 +98,8 @@
 
 &ib_flagellum
 
-  n_marker  = 21
-  offset_0(:, 1) = 2.e-3 2.e-3 1.e-3
+  n_marker  = 20
+  offset_0(:, 1) = 4.e-3 4.e-3 1.e-3
 
   amplitude  = 1e4
   frequency  = 1
