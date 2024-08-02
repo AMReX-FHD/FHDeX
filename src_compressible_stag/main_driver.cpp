@@ -994,8 +994,8 @@ void main_driver(const char* argv)
         amrex_push(cu, prim, *mpmd_copier);
 #endif
         if (n_ads_spec>0) {
-	    if (split_MFsurfchem() == 0) sample_MFsurfchem(cu, prim, surfcov, dNadsdes, geom, dt);
-	    else if (split_MFsurfchem() == 1) {
+	    if (splitting_MFsurfchem == 0) sample_MFsurfchem(cu, prim, surfcov, dNadsdes, geom, dt);
+	    else if (splitting_MFsurfchem == 1) {
 	        sample_MFsurfchem(cu, prim, surfcov, dNadsdes, geom, dt/2.0);
 		update_MFsurfchem(cu, prim, surfcov, dNadsdes, geom);
 
@@ -1021,7 +1021,7 @@ void main_driver(const char* argv)
         RK3stepStag(cu, cumom, prim, vel, source, eta, zeta, kappa, chi, D, 
             faceflux, edgeflux_x, edgeflux_y, edgeflux_z, cenflux, ranchem, geom, dt, step, turbforce);
 
-	if (n_ads_spec>0 && split_MFsurfchem() == 1) sample_MFsurfchem(cu, prim, surfcov, dNadsdes, geom, dt/2.0);
+	if (n_ads_spec>0 && splitting_MFsurfchem == 1) sample_MFsurfchem(cu, prim, surfcov, dNadsdes, geom, dt/2.0);
 
         // update surface chemistry (via either surfchem_mui or MFsurfchem)
 #if defined(MUI) || defined(USE_AMREX_MPMD)

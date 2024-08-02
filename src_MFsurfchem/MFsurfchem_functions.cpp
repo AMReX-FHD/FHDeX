@@ -78,12 +78,6 @@ void InitializeMFSurfchemNamespace()
     return;
 }
 
-int split_MFsurfchem()
-{
-    return splitting_MFsurfchem;
-}
-
-
 void init_surfcov(MultiFab& surfcov, const amrex::Geometry& geom)
 {
     const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
