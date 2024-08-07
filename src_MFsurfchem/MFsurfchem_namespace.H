@@ -14,4 +14,6 @@ namespace MFsurfchem {
     extern AMREX_GPU_MANAGED amrex::Real k_beta;
     extern AMREX_GPU_MANAGED amrex::Real e_beta;
 
+    extern AMREX_GPU_MANAGED int splitting_MFsurfchem;
+
 }
