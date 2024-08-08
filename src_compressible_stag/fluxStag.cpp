@@ -1335,21 +1335,21 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                         meanT = prim(i,j,k-1,4);
                         meanP = prim(i,j,k-1,5);
                         // heat flux
-                        zflux(i,j,k,4) -= kzp*(prim(i,j,k,4)-prim(i,j,k-1,4))/(0.5*dx[2]);
+                        zflux(i,j,k,nvars) -= kzp*(prim(i,j,k,4)-prim(i,j,k-1,4))/(0.5*dx[2]);
                     }
                     else if ((k == n_cells[2]) and is_hi_z_dirichlet_mass) {
                         kzp   = kappa(i,j,k);
                         meanT = prim(i,j,k,4);
                         meanP = prim(i,j,k,5);
                         // heat flux
-                        zflux(i,j,k,4) -= kzp*(prim(i,j,k,4)-prim(i,j,k-1,4))/(0.5*dx[2]);
+                        zflux(i,j,k,nvars) -= kzp*(prim(i,j,k,4)-prim(i,j,k-1,4))/(0.5*dx[2]);
                     }
                     else {
                         kzp   = 0.5*(kappa(i,j,k-1)+kappa(i,j,k));
                         meanT = 0.5*(prim(i,j,k-1,4)+prim(i,j,k,4));
                         meanP = 0.5*(prim(i,j,k-1,5)+prim(i,j,k,5));
                         // heat flux
-                        zflux(i,j,k,4) -= kzp*(prim(i,j,k,4)-prim(i,j,k-1,4))/dx[2];
+                        zflux(i,j,k,nvars) -= kzp*(prim(i,j,k,4)-prim(i,j,k-1,4))/dx[2];
                     }
 
                     if (algorithm_type == 2) {
@@ -1361,7 +1361,7 @@ void calculateFluxStag(const MultiFab& cons_in, const std::array< MultiFab, AMRE
                             meanYk[ns] = 0.5*(prim(i,j,k-1,6+ns)+prim(i,j,k,6+ns));
                             Real term2 = (meanXk[ns]-meanYk[ns])*(prim(i,j,k,5)-prim(i,j,k-1,5))/dx[2]/meanP;
                             dk[ns] = term1 + term2;
-                            Real ChiX = 0.5*(chi(i,j,k,ns)*prim(i,j,k-1,6+nspecies+ns)+chi(i,j,k+1,ns)*prim(i,j,k,6+nspecies+ns));
+                            Real ChiX = 0.5*(chi(i,j,k,ns)*prim(i,j,k-1,6+nspecies+ns)+chi(i,j,k,ns)*prim(i,j,k,6+nspecies+ns));
                             soret[ns] = ChiX*(prim(i,j,k,4)-prim(i,j,k-1,4))/dx[2]/meanT;
 
                             if ((k == 0) and is_lo_z_dirichlet_mass) {
