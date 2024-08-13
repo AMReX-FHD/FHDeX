@@ -287,6 +287,9 @@ void main_driver(const char* argv)
     
     // variables are velocities
     int structVars = AMREX_SPACEDIM;
+
+    MultiFab structFactMF(ba, dmap, structVars, 0);
+    structFactMF.setVal(0.);
     
     Vector< std::string > var_names;
     var_names.resize(structVars);
@@ -301,37 +304,47 @@ void main_driver(const char* argv)
       var_names[cnt++] = x;
     }
 
-    MultiFab structFactMF(ba, dmap, structVars, 0);
-    structFactMF.setVal(0.);
-
     // need to use dVol for scaling
     Real dVol = (AMREX_SPACEDIM==2) ? dx[0]*dx[1]*cell_depth : dx[0]*dx[1]*dx[2];
     
     Real dProb = (AMREX_SPACEDIM==2) ? n_cells[0]*n_cells[1] : n_cells[0]*n_cells[1]*n_cells[2];
     dProb = 1./dProb;
+
+    // 0 = compute only specified pais listed in s_pairA and s_pairB
+    // 1 = compute all possible pairs of variables
+    int compute_all_pairs = 1;
+
+    int nPairs = (compute_all_pairs) ? structVars*(structVars+1)/2 : 2;
     
-    Vector<Real> var_scaling(structVars*(structVars+1)/2);
+    Vector<Real> var_scaling(nPairs);
     for (int d=0; d<var_scaling.size(); ++d) {
         var_scaling[d] = 1./dVol;
     }
 
-#if 1
-    // option to compute all pairs
-    StructFact structFact(ba,dmap,var_names,var_scaling);
-#else
-    // option to compute only specified pairs
-    int nPairs = 2;
-    amrex::Vector< int > s_pairA(nPairs);
-    amrex::Vector< int > s_pairB(nPairs);
+    StructFact structFact;
 
-    // Select which variable pairs to include in structure factor:
-    s_pairA[0] = 0;
-    s_pairB[0] = 0;
-    s_pairA[1] = 1;
-    s_pairB[1] = 1;
+    if (restart < 0) {
     
-    StructFact structFact(ba,dmap,var_names,var_scaling,s_pairA,s_pairB);
-#endif
+        if (compute_all_pairs) {
+            // option to compute all pairs
+            structFact.define(ba,dmap,var_names,var_scaling);
+        } else {
+            // option to compute only specified pairs
+            int nPairs = 2;
+            amrex::Vector< int > s_pairA(nPairs);
+            amrex::Vector< int > s_pairB(nPairs);
+
+            // Select which variable pairs to include in structure factor:
+            s_pairA[0] = 0;
+            s_pairB[0] = 0;
+            s_pairA[1] = 1;
+            s_pairB[1] = 1;
+    
+            structFact.define(ba,dmap,var_names,var_scaling,s_pairA,s_pairB);
+        }
+    } else {
+        structFact.ReadCheckPoint(step_start,time,"chk_SF",ba,dmap);
+    }
 
     ///////////////////////////////////////////
     // structure factor class for flattened dataset
@@ -615,6 +628,9 @@ void main_driver(const char* argv)
         if (chk_int > 0 && step%chk_int == 0) {
             // write out umac and to a checkpoint file
             WriteCheckPoint(step,time,umac,turbforce);
+            if (struct_fact_int > 0) {
+                structFact.WriteCheckPoint(step,time,"chk_SF");
+            }
         }
 
         if (turbForcing == 1) {

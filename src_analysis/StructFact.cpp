@@ -1934,3 +1934,192 @@ void StructFact::GetDecompVel(MultiFab& vel_decomp, const Geometry& geom)
     vel_decomp.ParallelCopy(vel,0,3,3);
 
 }
+
+void StructFact::WriteCheckPoint(const int& step,
+                                 const amrex::Real& time,
+                                 std::string checkfile_base)
+{
+    // checkpoint file name, e.g., chk_SF0000010 (digits is how many digits...)
+    const std::string& checkpointname = amrex::Concatenate(checkfile_base,step,9);
+
+    amrex::Print() << "Writing structure factor checkpoint " << checkpointname << "\n";
+
+    BoxArray ba = cov_real.boxArray();
+
+    // single level problem
+    int nlevels = 1;
+
+    // ---- prebuild a hierarchy of directories
+    // ---- dirName is built first.  if dirName exists, it is renamed.  then build
+    // ---- dirName/subDirPrefix_0 .. dirName/subDirPrefix_nlevels-1
+    // ---- if callBarrier is true, call ParallelDescriptor::Barrier()
+    // ---- after all directories are built
+    // ---- ParallelDescriptor::IOProcessor() creates the directories
+    amrex::PreBuildDirectorHierarchy(checkpointname, "Level_", nlevels, true);
+
+    VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+
+    // write Header file
+    if (ParallelDescriptor::IOProcessor()) {
+
+        std::ofstream HeaderFile;
+        HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
+        std::string HeaderFileName(checkpointname + "/Header");
+        HeaderFile.open(HeaderFileName.c_str(), std::ofstream::out   |
+                        std::ofstream::trunc |
+                        std::ofstream::binary);
+
+        if( !HeaderFile.good()) {
+            amrex::FileOpenFailed(HeaderFileName);
+        }
+
+        HeaderFile.precision(17);
+
+        // write out title line
+        HeaderFile << "Structure factor checkpoint file\n";
+
+        // write out the time step number
+        HeaderFile << step << "\n";
+
+        // write out time
+        HeaderFile << time << "\n";
+
+        // write out misc structure factor member objects
+        HeaderFile << NVAR << "\n";
+        HeaderFile << NVARU << "\n";
+        HeaderFile << NCOV << "\n";
+        HeaderFile << nsamples << "\n";
+        for (int i=0; i<NCOV; ++i) {
+            HeaderFile << scaling[i] << "\n";
+        }
+        for (int i=0; i<NCOV; ++i) {
+            HeaderFile << cov_names[i] << "\n";
+        }
+        for (int i=0; i<NCOV; ++i) {
+            HeaderFile << s_pairA[i] << "\n";
+        }
+        for (int i=0; i<NCOV; ++i) {
+            HeaderFile << s_pairB[i] << "\n";
+        }
+        for (int i=0; i<NVARU; ++i) {
+            HeaderFile << var_u[i] << "\n";
+        }
+
+        /*
+        // write the BoxArray
+        ba.writeOn(HeaderFile);
+        HeaderFile << '\n';
+        */
+    }
+
+    // write the MultiFab data to, e.g., chk_SF00010/Level_0/
+    VisMF::Write(cov_real,
+                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cov_real"));
+    VisMF::Write(cov_imag,
+                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cov_imag"));
+    VisMF::Write(cov_mag,
+                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cov_mag"));
+
+}
+
+namespace {
+    void GotoNextLine (std::istream& is)
+    {
+        constexpr std::streamsize bl_ignore_max { 100000 };
+        is.ignore(bl_ignore_max, '\n');
+    }
+}
+
+void StructFact::ReadCheckPoint(int& step,
+                                amrex::Real& time,
+                                std::string checkfile_base,
+                                BoxArray& ba_in,
+                                DistributionMapping& dmap_in)
+{
+    const std::string& checkpointname = amrex::Concatenate(checkfile_base,restart,9);
+
+    amrex::Print() << "Restart from checkpoint " << checkpointname << "\n";
+
+    VisMF::IO_Buffer io_buffer(VisMF::GetIOBufferSize());
+
+    std::string line, word;
+
+    // Header
+    {
+        std::string File(checkpointname + "/Header");
+        Vector<char> fileCharPtr;
+        ParallelDescriptor::ReadAndBcastFile(File, fileCharPtr);
+        std::string fileCharPtrString(fileCharPtr.dataPtr());
+        std::istringstream is(fileCharPtrString, std::istringstream::in);
+
+        // read in title line
+        std::getline(is, line);
+
+        // read in time step number
+        is >> step;
+        GotoNextLine(is);
+        ++step;
+
+        // read in time
+        is >> time;
+        GotoNextLine(is);
+
+        // write out misc structure factor member objects
+        is >> NVAR;
+        GotoNextLine(is);
+        is >> NVARU;
+        GotoNextLine(is);
+        is >> NCOV;
+        GotoNextLine(is);
+        is >> nsamples;
+        GotoNextLine(is);
+
+        scaling.resize(NCOV);
+        cov_names.resize(NCOV);
+        s_pairA.resize(NCOV);
+        s_pairB.resize(NCOV);
+        var_u.resize(NVARU);
+
+        for (int i=0; i<NCOV; ++i) {
+            is >> scaling[i];
+            GotoNextLine(is);
+        }
+        for (int i=0; i<NCOV; ++i) {
+            is >> cov_names[i];
+            GotoNextLine(is);
+        }
+        for (int i=0; i<NCOV; ++i) {
+            is >> s_pairA[i];
+            GotoNextLine(is);
+        }
+        for (int i=0; i<NCOV; ++i) {
+            is >> s_pairB[i];
+            GotoNextLine(is);
+        }
+        for (int i=0; i<NVARU; ++i) {
+            is >> var_u[i];
+            GotoNextLine(is);
+        }
+
+        // read in level 'lev' BoxArray from Header
+        /*
+        ba_in.readFrom(is);
+        GotoNextLine(is);
+        */
+
+        // build MultiFab data
+        cov_real.define(ba_in, dmap_in, NCOV, 0);
+        cov_imag.define(ba_in, dmap_in, NCOV, 0);
+        cov_mag.define( ba_in, dmap_in, NCOV, 0);
+    }
+
+    // read in the MultiFab data
+    VisMF::Read(cov_real,
+                amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cov_real"));
+    VisMF::Read(cov_imag,
+                amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cov_imag"));
+    VisMF::Read(cov_mag,
+                amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cov_mag"));
+
+
+}
