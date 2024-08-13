@@ -151,7 +151,7 @@ public:
 
     void WriteCheckPoint(const int& step,
                          const amrex::Real& time,
-                         std::string plotfile_base);
+                         std::string checkfile_base);
 
     const decltype(cov_names)& get_names() const { return cov_names; }
 };

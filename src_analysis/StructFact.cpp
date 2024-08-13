@@ -1946,6 +1946,17 @@ void StructFact::WriteCheckPoint(const int& step,
 
     BoxArray ba = cov_real.boxArray();
 
+    // single level problem
+    int nlevels = 1;
+
+    // ---- prebuild a hierarchy of directories
+    // ---- dirName is built first.  if dirName exists, it is renamed.  then build
+    // ---- dirName/subDirPrefix_0 .. dirName/subDirPrefix_nlevels-1
+    // ---- if callBarrier is true, call ParallelDescriptor::Barrier()
+    // ---- after all directories are built
+    // ---- ParallelDescriptor::IOProcessor() creates the directories
+    amrex::PreBuildDirectorHierarchy(checkpointname, "Level_", nlevels, true);
+
     VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
 
     // write Header file
@@ -1973,13 +1984,38 @@ void StructFact::WriteCheckPoint(const int& step,
         // write out time
         HeaderFile << time << "\n";
 
+        // write out misc structure factor member objects
+        HeaderFile << NVAR << "\n";
+        HeaderFile << NVARU << "\n";
+        HeaderFile << NCOV << "\n";
+        HeaderFile << nsamples << "\n";
+        for (int i=0; i<NCOV; ++i) {
+            HeaderFile << scaling[i] << "\n";
+        }
+        for (int i=0; i<NCOV; ++i) {
+            HeaderFile << cov_names[i] << "\n";
+        }
+        for (int i=0; i<NCOV; ++i) {
+            HeaderFile << s_pairA[i] << "\n";
+        }
+        for (int i=0; i<NCOV; ++i) {
+            HeaderFile << s_pairB[i] << "\n";
+        }
+        for (int i=0; i<NVARU; ++i) {
+            HeaderFile << var_u[i] << "\n";
+        }
+
         // write the BoxArray
         ba.writeOn(HeaderFile);
         HeaderFile << '\n';
     }
 
-    // write the MultiFab data to, e.g., chk00010/Level_0/
+    // write the MultiFab data to, e.g., chk_SF00010/Level_0/
     VisMF::Write(cov_real,
                  amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cov_real"));
+    VisMF::Write(cov_imag,
+                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cov_imag"));
+    VisMF::Write(cov_mag,
+                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cov_mag"));
 
 }
