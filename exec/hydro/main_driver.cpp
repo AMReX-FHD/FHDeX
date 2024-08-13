@@ -309,8 +309,14 @@ void main_driver(const char* argv)
     
     Real dProb = (AMREX_SPACEDIM==2) ? n_cells[0]*n_cells[1] : n_cells[0]*n_cells[1]*n_cells[2];
     dProb = 1./dProb;
+
+    // 0 = compute only specified pais listed in s_pairA and s_pairB
+    // 1 = compute all possible pairs of variables
+    int compute_all_pairs = 1;
+
+    int nPairs = (compute_all_pairs) ? structVars*(structVars+1)/2 : 2;
     
-    Vector<Real> var_scaling(structVars*(structVars+1)/2);
+    Vector<Real> var_scaling(nPairs);
     for (int d=0; d<var_scaling.size(); ++d) {
         var_scaling[d] = 1./dVol;
     }
@@ -318,8 +324,6 @@ void main_driver(const char* argv)
     StructFact structFact;
 
     if (restart < 0) {
-
-        int compute_all_pairs = 1;
     
         if (compute_all_pairs) {
             // option to compute all pairs
