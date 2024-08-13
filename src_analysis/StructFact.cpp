@@ -1934,3 +1934,52 @@ void StructFact::GetDecompVel(MultiFab& vel_decomp, const Geometry& geom)
     vel_decomp.ParallelCopy(vel,0,3,3);
 
 }
+
+void StructFact::WriteCheckPoint(const int& step,
+                                 const amrex::Real& time,
+                                 std::string plotfile_base)
+{
+    // checkpoint file name, e.g., chk_SF0000010 (digits is how many digits...)
+    const std::string& checkpointname = amrex::Concatenate(plotfile_base,step,9);
+
+    amrex::Print() << "Writing structure factor checkpoint " << checkpointname << "\n";
+
+    BoxArray ba = cov_real.boxArray();
+
+    VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+
+    // write Header file
+    if (ParallelDescriptor::IOProcessor()) {
+
+        std::ofstream HeaderFile;
+        HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
+        std::string HeaderFileName(checkpointname + "/Header");
+        HeaderFile.open(HeaderFileName.c_str(), std::ofstream::out   |
+                        std::ofstream::trunc |
+                        std::ofstream::binary);
+
+        if( !HeaderFile.good()) {
+            amrex::FileOpenFailed(HeaderFileName);
+        }
+
+        HeaderFile.precision(17);
+
+        // write out title line
+        HeaderFile << "Structure factor checkpoint file\n";
+
+        // write out the time step number
+        HeaderFile << step << "\n";
+
+        // write out time
+        HeaderFile << time << "\n";
+
+        // write the BoxArray
+        ba.writeOn(HeaderFile);
+        HeaderFile << '\n';
+    }
+
+    // write the MultiFab data to, e.g., chk00010/Level_0/
+    VisMF::Write(cov_real,
+                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cov_real"));
+
+}

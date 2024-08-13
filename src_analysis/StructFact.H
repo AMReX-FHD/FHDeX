@@ -149,6 +149,10 @@ public:
 
     int get_ncov() const { return NCOV; }
 
+    void WriteCheckPoint(const int& step,
+                         const amrex::Real& time,
+                         std::string plotfile_base);
+
     const decltype(cov_names)& get_names() const { return cov_names; }
 };
 
