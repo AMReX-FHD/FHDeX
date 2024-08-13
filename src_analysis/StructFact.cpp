@@ -1937,10 +1937,10 @@ void StructFact::GetDecompVel(MultiFab& vel_decomp, const Geometry& geom)
 
 void StructFact::WriteCheckPoint(const int& step,
                                  const amrex::Real& time,
-                                 std::string plotfile_base)
+                                 std::string checkfile_base)
 {
     // checkpoint file name, e.g., chk_SF0000010 (digits is how many digits...)
-    const std::string& checkpointname = amrex::Concatenate(plotfile_base,step,9);
+    const std::string& checkpointname = amrex::Concatenate(checkfile_base,step,9);
 
     amrex::Print() << "Writing structure factor checkpoint " << checkpointname << "\n";
 
@@ -2017,5 +2017,92 @@ void StructFact::WriteCheckPoint(const int& step,
                  amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cov_imag"));
     VisMF::Write(cov_mag,
                  amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cov_mag"));
+
+}
+
+namespace {
+    void GotoNextLine (std::istream& is)
+    {
+        constexpr std::streamsize bl_ignore_max { 100000 };
+        is.ignore(bl_ignore_max, '\n');
+    }
+}
+
+void StructFact::ReadCheckPoint(const int& step,
+                                const amrex::Real& time,
+                                std::string checkfile_base,
+                                BoxArray& ba_in,
+                                DistributionMapping& dmap_in)
+{
+    const std::string& checkpointname = amrex::Concatenate(checkfile_base,restart,9);
+
+    amrex::Print() << "Restart from checkpoint " << checkpointname << "\n";
+
+    VisMF::IO_Buffer io_buffer(VisMF::GetIOBufferSize());
+
+    std::string line, word;
+
+    // Header
+    {
+        std::string File(checkpointname + "/Header");
+        Vector<char> fileCharPtr;
+        ParallelDescriptor::ReadAndBcastFile(File, fileCharPtr);
+        std::string fileCharPtrString(fileCharPtr.dataPtr());
+        std::istringstream is(fileCharPtrString, std::istringstream::in);
+
+        // read in title line
+        std::getline(is, line);
+
+        // read in time step number
+        is >> step;
+        GotoNextLine(is);
+        ++step;
+
+        // read in time
+        is >> time;
+        GotoNextLine(is);
+
+        // write out misc structure factor member objects
+        is >> NVAR << "\n";
+        is >> NVARU << "\n";
+        is >> NCOV << "\n";
+        is >> nsamples << "\n";
+
+        scaling.resize(NCOV);
+        cov_names.resize(NCOV);
+        s_pairA.resize(NCOV);
+        s_pairB.resize(NCOV);
+        var_u.resize(NVARU);
+
+        for (int i=0; i<NCOV; ++i) {
+            is >> scaling[i] << "\n";
+        }
+        for (int i=0; i<NCOV; ++i) {
+            is >> cov_names[i] << "\n";
+        }
+        for (int i=0; i<NCOV; ++i) {
+            is >> s_pairA[i] << "\n";
+        }
+        for (int i=0; i<NCOV; ++i) {
+            is >> s_pairB[i] << "\n";
+        }
+        for (int i=0; i<NVARU; ++i) {
+            is >> var_u[i] << "\n";
+        }
+
+        // read in level 'lev' BoxArray from Header
+        ba.readFrom(is);
+        GotoNextLine(is);
+
+        // build MultiFab data
+        cov_real.define(ba_in, dmap_in, NCOV, 0);
+        cov_imag.define(ba_in, dmap_in, NCOV, 0);
+        cov_mag.define( ba_in, dmap_in, NCOV, 0);
+    }
+
+    // read in the MultiFab data
+    VisMF::Read(cov_real[0],
+                amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cov_real"));
+
 
 }

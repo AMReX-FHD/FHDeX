@@ -153,6 +153,12 @@ public:
                          const amrex::Real& time,
                          std::string checkfile_base);
 
+    void ReadCheckPoint(const int& step,
+                        const amrex::Real& time,
+                        std::string checkfile_base,
+                        BoxArray& ba,
+                        DistributionMapping& dmap);
+
     const decltype(cov_names)& get_names() const { return cov_names; }
 };
 
