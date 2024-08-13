@@ -287,6 +287,9 @@ void main_driver(const char* argv)
     
     // variables are velocities
     int structVars = AMREX_SPACEDIM;
+
+    MultiFab structFactMF(ba, dmap, structVars, 0);
+    structFactMF.setVal(0.);
     
     Vector< std::string > var_names;
     var_names.resize(structVars);
@@ -301,9 +304,6 @@ void main_driver(const char* argv)
       var_names[cnt++] = x;
     }
 
-    MultiFab structFactMF(ba, dmap, structVars, 0);
-    structFactMF.setVal(0.);
-
     // need to use dVol for scaling
     Real dVol = (AMREX_SPACEDIM==2) ? dx[0]*dx[1]*cell_depth : dx[0]*dx[1]*dx[2];
     
@@ -315,23 +315,32 @@ void main_driver(const char* argv)
         var_scaling[d] = 1./dVol;
     }
 
-#if 1
-    // option to compute all pairs
-    StructFact structFact(ba,dmap,var_names,var_scaling);
-#else
-    // option to compute only specified pairs
-    int nPairs = 2;
-    amrex::Vector< int > s_pairA(nPairs);
-    amrex::Vector< int > s_pairB(nPairs);
+    StructFact structFact;
 
-    // Select which variable pairs to include in structure factor:
-    s_pairA[0] = 0;
-    s_pairB[0] = 0;
-    s_pairA[1] = 1;
-    s_pairB[1] = 1;
+    if (restart < 0) {
+
+        int compute_all_pairs = 1;
     
-    StructFact structFact(ba,dmap,var_names,var_scaling,s_pairA,s_pairB);
-#endif
+        if (compute_all_pairs) {
+            // option to compute all pairs
+            structFact.define(ba,dmap,var_names,var_scaling);
+        } else {
+            // option to compute only specified pairs
+            int nPairs = 2;
+            amrex::Vector< int > s_pairA(nPairs);
+            amrex::Vector< int > s_pairB(nPairs);
+
+            // Select which variable pairs to include in structure factor:
+            s_pairA[0] = 0;
+            s_pairB[0] = 0;
+            s_pairA[1] = 1;
+            s_pairB[1] = 1;
+    
+            structFact.define(ba,dmap,var_names,var_scaling,s_pairA,s_pairB);
+        }
+    } else {
+        structFact.ReadCheckPoint(step_start,time,"chk_SF",ba,dmap);
+    }
 
     ///////////////////////////////////////////
     // structure factor class for flattened dataset

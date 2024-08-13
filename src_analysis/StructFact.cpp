@@ -2005,9 +2005,11 @@ void StructFact::WriteCheckPoint(const int& step,
             HeaderFile << var_u[i] << "\n";
         }
 
+        /*
         // write the BoxArray
         ba.writeOn(HeaderFile);
         HeaderFile << '\n';
+        */
     }
 
     // write the MultiFab data to, e.g., chk_SF00010/Level_0/
@@ -2028,8 +2030,8 @@ namespace {
     }
 }
 
-void StructFact::ReadCheckPoint(const int& step,
-                                const amrex::Real& time,
+void StructFact::ReadCheckPoint(int& step,
+                                amrex::Real& time,
                                 std::string checkfile_base,
                                 BoxArray& ba_in,
                                 DistributionMapping& dmap_in)
@@ -2063,10 +2065,14 @@ void StructFact::ReadCheckPoint(const int& step,
         GotoNextLine(is);
 
         // write out misc structure factor member objects
-        is >> NVAR << "\n";
-        is >> NVARU << "\n";
-        is >> NCOV << "\n";
-        is >> nsamples << "\n";
+        is >> NVAR;
+        GotoNextLine(is);
+        is >> NVARU;
+        GotoNextLine(is);
+        is >> NCOV;
+        GotoNextLine(is);
+        is >> nsamples;
+        GotoNextLine(is);
 
         scaling.resize(NCOV);
         cov_names.resize(NCOV);
@@ -2075,24 +2081,31 @@ void StructFact::ReadCheckPoint(const int& step,
         var_u.resize(NVARU);
 
         for (int i=0; i<NCOV; ++i) {
-            is >> scaling[i] << "\n";
+            is >> scaling[i];
+            GotoNextLine(is);
         }
         for (int i=0; i<NCOV; ++i) {
-            is >> cov_names[i] << "\n";
+            is >> cov_names[i];
+            GotoNextLine(is);
         }
         for (int i=0; i<NCOV; ++i) {
-            is >> s_pairA[i] << "\n";
+            is >> s_pairA[i];
+            GotoNextLine(is);
         }
         for (int i=0; i<NCOV; ++i) {
-            is >> s_pairB[i] << "\n";
+            is >> s_pairB[i];
+            GotoNextLine(is);
         }
         for (int i=0; i<NVARU; ++i) {
-            is >> var_u[i] << "\n";
+            is >> var_u[i];
+            GotoNextLine(is);
         }
 
         // read in level 'lev' BoxArray from Header
-        ba.readFrom(is);
+        /*
+        ba_in.readFrom(is);
         GotoNextLine(is);
+        */
 
         // build MultiFab data
         cov_real.define(ba_in, dmap_in, NCOV, 0);
@@ -2101,8 +2114,12 @@ void StructFact::ReadCheckPoint(const int& step,
     }
 
     // read in the MultiFab data
-    VisMF::Read(cov_real[0],
+    VisMF::Read(cov_real,
                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cov_real"));
+    VisMF::Read(cov_imag,
+                amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cov_imag"));
+    VisMF::Read(cov_mag,
+                amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "cov_mag"));
 
 
 }
