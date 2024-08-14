@@ -343,7 +343,7 @@ void main_driver(const char* argv)
             structFact.define(ba,dmap,var_names,var_scaling,s_pairA,s_pairB);
         }
     } else {
-        structFact.ReadCheckPoint(step_start,time,"chk_SF",ba,dmap);
+        structFact.ReadCheckPoint("chk_SF",ba,dmap);
     }
 
     ///////////////////////////////////////////
@@ -629,7 +629,7 @@ void main_driver(const char* argv)
             // write out umac and to a checkpoint file
             WriteCheckPoint(step,time,umac,turbforce);
             if (struct_fact_int > 0) {
-                structFact.WriteCheckPoint(step,time,"chk_SF");
+                structFact.WriteCheckPoint(step,"chk_SF");
             }
         }
 

@@ -150,12 +150,9 @@ public:
     int get_ncov() const { return NCOV; }
 
     void WriteCheckPoint(const int& step,
-                         const amrex::Real& time,
                          std::string checkfile_base);
 
-    void ReadCheckPoint(int& step,
-                        amrex::Real& time,
-                        std::string checkfile_base,
+    void ReadCheckPoint(std::string checkfile_base,
                         BoxArray& ba_in,
                         DistributionMapping& dmap_in);
 

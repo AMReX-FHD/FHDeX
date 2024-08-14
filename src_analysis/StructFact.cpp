@@ -1936,7 +1936,6 @@ void StructFact::GetDecompVel(MultiFab& vel_decomp, const Geometry& geom)
 }
 
 void StructFact::WriteCheckPoint(const int& step,
-                                 const amrex::Real& time,
                                  std::string checkfile_base)
 {
     // checkpoint file name, e.g., chk_SF0000010 (digits is how many digits...)
@@ -1977,12 +1976,6 @@ void StructFact::WriteCheckPoint(const int& step,
 
         // write out title line
         HeaderFile << "Structure factor checkpoint file\n";
-
-        // write out the time step number
-        HeaderFile << step << "\n";
-
-        // write out time
-        HeaderFile << time << "\n";
 
         // write out misc structure factor member objects
         HeaderFile << NVAR << "\n";
@@ -2030,9 +2023,7 @@ namespace {
     }
 }
 
-void StructFact::ReadCheckPoint(int& step,
-                                amrex::Real& time,
-                                std::string checkfile_base,
+void StructFact::ReadCheckPoint(std::string checkfile_base,
                                 BoxArray& ba_in,
                                 DistributionMapping& dmap_in)
 {
@@ -2054,15 +2045,6 @@ void StructFact::ReadCheckPoint(int& step,
 
         // read in title line
         std::getline(is, line);
-
-        // read in time step number
-        is >> step;
-        GotoNextLine(is);
-        ++step;
-
-        // read in time
-        is >> time;
-        GotoNextLine(is);
 
         // write out misc structure factor member objects
         is >> NVAR;
