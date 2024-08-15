@@ -4,9 +4,9 @@
                         job_script.sh (for Pinnacles:--partition test, pi.ckim103, or dept.appliedmath) 
     -> output               slurm-*.out
 
-* FHD inputs file       inputs_NO2_dimerization_neq
+* FHD inputs files      inputs_NO2_dimerization_neq_bulk0 (equilibration)
+                        inputs_NO2_dimerization_neq_bulk1 (actual noneq simulation)
     -> output               plt*
-* parameter analysis    params_NO2_dimerization_rate_const.py
 
 * clean-up              clean.sh
 * comparison            diff.sh

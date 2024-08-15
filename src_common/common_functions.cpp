@@ -156,6 +156,7 @@ amrex::Real                   common::phonon_sound_speed;
 amrex::Real                   common::tau_ta;
 amrex::Real                   common::tau_la;
 amrex::Real                   common::tau_i;
+int                           common::toggleTimeFrac;
 
 int                           common::struct_fact_int;
 int                           common::radialdist_int;
@@ -538,6 +539,7 @@ void InitializeCommonNamespace() {
     tau_i = 2.95e45;
     tau_ta = 9.3e13;
     tau_la = 2.0e24;
+    toggleTimeFrac = 1;
 
     // structure factor and radial/cartesian pair correlation function analysis
     struct_fact_int = 0;
@@ -995,6 +997,7 @@ void InitializeCommonNamespace() {
     pp.query("tau_i",tau_i);
     pp.query("tau_ta",tau_ta);
     pp.query("tau_la",tau_la);
+    pp.query("toggleTimeFrac",toggleTimeFrac);
     pp.query("struct_fact_int",struct_fact_int);
     pp.query("radialdist_int",radialdist_int);
     pp.query("cartdist_int",cartdist_int);
