@@ -398,7 +398,13 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 	    Real dxsub = dx[0]/factor;
 	    Real dysub = dx[1]/factor;
 	    Real dzsub = dx[2]/factor;
-            Real x,y,z;
+            amrex::Real alpha = contact_angle_lo[0];
+            amrex::Real cotalph = -std::cos(alpha) / std::sin(alpha);
+            amrex::Real length = prob_hi[0]-prob_lo[0];
+            amrex::Print() << "here" << std::endl;
+            amrex::Print() << " alpha cotange length " << alpha << std::endl;
+            
+            amrex::Print() << " alpha cotange length " << alpha << " " << cotalph << " " << length << std::endl;
 	    amrex::Print() << "smoothing width " << smoothing_width << " film_thickness " << film_thickness << std::endl;
             
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
@@ -408,15 +414,34 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                }
             Real x,y,z;
 
+            for(int i1=0; i1<nsub; ++i1) {
             for(int j1=0; j1<nsub; ++j1) {
 
                              y = prob_lo[1] + j*dx[1] + (j1+0.5)*dysub ;
+                             x = prob_lo[0] + i*dx[0] + (i1+0.5)*dxsub ;
 
+                             amrex::Real factor = std::sqrt((1.+cotalph*cotalph)*length*length/(4*cotalph*cotalph)-(x-length/2)*(x-length/2));
+                             amrex::Real fact2 = length*(cotalph + (1.+cotalph*cotalph)*std::atan(cotalph))/(4.*cotalph*cotalph);
+                             amrex::Real film_thickness_loc = film_thickness;
+
+                             if(cotalph >= 0){
+
+                                film_thickness_loc += fact2-factor;
+
+                             } else { 
+
+                                film_thickness_loc += fact2+factor;
+
+                             }
+                             
+
+
+//                             amrex::Real film_thickness_loc = film_thickness + cotalph*x*x/length - cotalph*x + cotalph*length/6.;
 
                 if (smoothing_width == 0.) {
 
                     // discontinuous interface
-                    if (y < film_thickness) {
+                    if (y < film_thickness_loc) {
                         for (int n=0; n<nspecies; ++n) {
                             c(i,j,k,n) += c_init_1[n];
                         }
@@ -430,12 +455,13 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                     // smooth interface
                     for (int n=0; n<nspecies; ++n) {
                         c(i,j,k,n) += c_init_1[n] + (c_init_2[n]-c_init_1[n]) *
-                            0.5*(1. + std::tanh((y-film_thickness)/(smoothing_width*dx[0])));
+                            0.5*(1. + std::tanh((y-film_thickness_loc)/(smoothing_width*dx[0])));
                     }
                 }
              }    
+             }    
                for (int n=0; n<nspecies; ++n) {
-                   c(i,j,k,n) = c(i,j,k,n)/factor;
+                   c(i,j,k,n) = c(i,j,k,n)/(factor*factor);
                }
             });
 
