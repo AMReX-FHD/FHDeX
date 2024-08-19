@@ -86,6 +86,7 @@ namespace common {
     extern AMREX_GPU_MANAGED amrex::Real k_B;
     extern AMREX_GPU_MANAGED amrex::Real h_bar;
     extern AMREX_GPU_MANAGED amrex::Real Runiv;
+    extern AMREX_GPU_MANAGED amrex::Real avogadro;
     extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> T_init;
 
     // Algorithm control / selection

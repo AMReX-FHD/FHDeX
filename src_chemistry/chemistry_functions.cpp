@@ -105,7 +105,7 @@ void compute_chemistry_source_CLE(amrex::Real dt, amrex::Real dV,
             amrex::Real T = prim_arr(i,j,k,4);
             amrex::Real T0 = T0_chem;
             amrex::Real ctot = pres/Runiv/T;
-            amrex::Real Navo = Runiv/k_B;
+            amrex::Real Navo = avogadro;
 
             GpuArray<amrex::Real,MAX_SPECIES> ck;   // molar concentrations
             for (int n=0; n<nspecies; n++) ck[n] = prim_arr(i,j,k,6+nspecies+n)*ctot;
@@ -176,7 +176,7 @@ void compute_chemistry_source_CLE_1(amrex::Real dt, amrex::Real dV,
     if (reaction_type==2) amrex::Abort("ERROR: reaction_type=2 not implemented yet");
     
     GpuArray<amrex::Real,MAX_SPECIES> m_s;
-    for (int n=0; n<nspecies; n++) m_s[n] = molmass[n]/(Runiv/k_B);
+    for (int n=0; n<nspecies; n++) m_s[n] = molmass[n]/(avogadro);
 
     for (MFIter mfi(mf_in); mfi.isValid(); ++mfi)
     {
@@ -229,7 +229,7 @@ void compute_chemistry_source_CLE_2(amrex::Real dt, amrex::Real dV,
     if (reaction_type!=1) amrex::Abort("ERROR: compute_chemistry_source_CLE assumes reaction_type=1");
 
     GpuArray<amrex::Real,MAX_SPECIES> m_s;
-    for (int n=0; n<nspecies; n++) m_s[n] = molmass[n]/(Runiv/k_B);
+    for (int n=0; n<nspecies; n++) m_s[n] = molmass[n]/(avogadro);
 
     for (MFIter mfi(mf_in); mfi.isValid(); ++mfi)
     {
