@@ -3,8 +3,6 @@
 
 AMREX_GPU_MANAGED int chemistry::nreaction;
 
-AMREX_GPU_MANAGED GpuArray<amrex::Real, MAX_REACTION> chemistry::rate_const;
-
 // from the fortran code, stoich_coeffs_R = stoichiometric_factors(spec,1,reac)
 // from the fortran code, stoich_coeffs_P = stoichiometric_factors(spec,2,reac)
 // stoich_coeffs_PR = stoich_coeffs_P - stoich_coeffs_R
@@ -12,9 +10,28 @@ AMREX_GPU_MANAGED Array2D<int,0, MAX_REACTION,0, MAX_SPECIES> chemistry::stoich_
 AMREX_GPU_MANAGED Array2D<int,0, MAX_REACTION,0, MAX_SPECIES> chemistry::stoich_coeffs_P;
 AMREX_GPU_MANAGED Array2D<int,0, MAX_REACTION,0, MAX_SPECIES> chemistry::stoich_coeffs_PR;
 
+// reaction rate constant for each reaction (assuming Law of Mass Action holds)
+// using rate_multiplier, reaction rates can be changed by the same factor
+// if include_discrete_LMA_correction, n^2 and n^3 in rate expressions become
+// n*(n-1/dv) and n*(n-1/dv)*(n-2/dv). 
+AMREX_GPU_MANAGED GpuArray<amrex::Real, MAX_REACTION> chemistry::rate_const;
+AMREX_GPU_MANAGED amrex::Real chemistry::rate_multiplier;
+AMREX_GPU_MANAGED int chemistry::include_discrete_LMA_correction;
+
+// if n is positive, exclude species n (=solvent) when computing reaction rates
+// in this case, the concentration of the solvent is assumed to be constant,
+// which should be reflected on rate constants.
+// if 0, no species is excluded
+// e.g. U + S -> 2U, if exclude_solvent_comput_rates=0, rate=k*n_U*n_S
+//                   if exclude_solvent_comput_rates=2, rate=k_new*n_U where k_new=k*n_S
+AMREX_GPU_MANAGED int chemistry::exclude_solvent_comput_rates;
+
 // from the fortran code this was use_Poisson_rng (0=CLE; 1=tau leaping; -1=deterministic; 2=SSA)
 // here it's being used as reaction_type (0=deterministic; 1=CLE; 2=SSA; 3=tau leap)
 AMREX_GPU_MANAGED int chemistry::reaction_type;
+
+// use mole fraction based LMA
+AMREX_GPU_MANAGED int chemistry::use_mole_frac_LMA;
 
 // specific to compressible codes
 AMREX_GPU_MANAGED GpuArray<amrex::Real, MAX_REACTION> chemistry::alpha_param;
@@ -36,11 +53,6 @@ void InitializeChemistryNamespace()
 
     // if nreaction is set to zero or not defined in the inputs file, quit the routine
     if (nreaction==0) return;
-
-    // get rate constants
-    std::vector<amrex::Real> k_tmp(MAX_REACTION);
-    pp.getarr("rate_const",k_tmp,0,nreaction);
-    for (int m=0; m<nreaction; m++) rate_const[m] = k_tmp[m];
 
     // get stoich coeffs for reactants
     for (int m=0; m<nreaction; m++)
@@ -75,8 +87,25 @@ void InitializeChemistryNamespace()
         for (int n=0; n<nspecies; n++)
             stoich_coeffs_PR(m,n) = stoich_coeffs_P(m,n)-stoich_coeffs_R(m,n);
 
+    // get rate constants
+    std::vector<amrex::Real> k_tmp(MAX_REACTION);
+    pp.getarr("rate_const",k_tmp,0,nreaction);
+    for (int m=0; m<nreaction; m++) rate_const[m] = k_tmp[m];
+
+    rate_multiplier = 1.;
+    pp.query("rate_multiplier",rate_multiplier);
+
+    include_discrete_LMA_correction = 1;
+    pp.query("include_discrete_LMA_correction",include_discrete_LMA_correction);
+
+    exclude_solvent_comput_rates = 0;
+    pp.query("exclude_solvent_comput_rates",exclude_solvent_comput_rates);
+    
     // get reaction type (0=deterministic; 1=CLE; 2=SSA; 3=tau leap)
     pp.get("reaction_type",reaction_type);
+
+    use_mole_frac_LMA = 0;
+    pp.query("use_mole_frac_LMA",use_mole_frac_LMA);
 
     // get alpha parameter for compressible code
     std::vector<amrex::Real> alpha_tmp(MAX_REACTION);
