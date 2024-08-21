@@ -22,6 +22,9 @@ void InitializeChemistryNamespace()
     nreaction = 0;
     // get number of reactions
     pp.query("nreaction",nreaction);
+    if (nreaction > MAX_REACTION) {
+        Abort("nreaction > MAX_REACTION; recompile with a new MAX_REAC in the GNUmakefile");
+    }
 
     // if nreaction is set to zero or not defined in the inputs file, quit the routine
     if (nreaction==0) return;

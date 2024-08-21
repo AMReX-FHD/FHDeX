@@ -648,6 +648,9 @@ void InitializeCommonNamespace() {
     // pp.getarr and queryarr("string",inputs,start_indx,count); can be used for arrays
 
     pp.query("nspecies",nspecies);
+    if (nspecies > MAX_SPECIES) {
+        Abort("nspecies > MAX_SPECIES; recompile with a new MAX_SPEC in the GNUmakefile");
+    }
     pp.query("nbonds",nbonds);
     
     if (pp.queryarr("prob_lo",temp)) {
