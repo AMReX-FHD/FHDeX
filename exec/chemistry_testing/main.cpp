@@ -2,9 +2,10 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_Vector.H>
 
-#include "myfunc.H"
 #include "chemistry_functions.H"
 #include "common_functions.H"
+
+#include "chemistry_testing_functions.H"
 
 using namespace amrex;
 
@@ -267,7 +268,7 @@ void main_main(const char* argv)
 
                 const Array4<Real>& sourceArr = source.array(mfi);
 
-                amrex::ParallelForRNG(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k, RandomEngine const& engine) noexcept
+                amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     for (int n=0; n<nspecies; n++) rhoNew(i,j,k,n) = rhoOld(i,j,k,n) + dt*sourceArr(i,j,k,n);
                 });

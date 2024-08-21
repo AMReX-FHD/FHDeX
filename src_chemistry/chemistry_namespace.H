@@ -1,6 +1,4 @@
 namespace chemistry {
-#define MAX_REACTION 5
-
     extern AMREX_GPU_MANAGED int nreaction;
 
     extern AMREX_GPU_MANAGED GpuArray<amrex::Real, MAX_REACTION> rate_const; 
