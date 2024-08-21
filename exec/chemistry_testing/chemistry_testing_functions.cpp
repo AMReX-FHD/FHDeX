@@ -252,3 +252,112 @@ void compute_chemistry_source_CLE_2(amrex::Real dt, amrex::Real dV,
         });
     }
 }
+
+AMREX_GPU_HOST_DEVICE void compute_reaction_rates(GpuArray<Real,MAX_SPECIES>& n_dens,
+                                                  GpuArray<Real,MAX_REACTION>& a_r)
+{
+    for (int m=0; m<nreaction; m++)
+    {
+        a_r[m] = rate_const[m];
+        
+        for (int n=0; n<nspecies; n++)
+            a_r[m] *= pow(n_dens[n],stoich_coeffs_R(m,n));
+    }
+
+    return;
+}
+
+AMREX_GPU_HOST_DEVICE void advance_reaction_det_cell(GpuArray<amrex::Real,MAX_SPECIES>& n_old,
+                                                     GpuArray<amrex::Real,MAX_SPECIES>& n_new,amrex::Real dt)
+{
+    for (int n=0; n<nspecies; n++) n_new[n] = n_old[n];
+
+    GpuArray<amrex::Real,MAX_REACTION> avg_react_rate;
+    compute_reaction_rates(n_new,avg_react_rate);
+
+    for (int m=0; m<nreaction; m++)
+    {
+        avg_react_rate[m] = std::max(0.,avg_react_rate[m]);
+        for (int n=0; n<nspecies; n++)
+            n_new[n] += dt*stoich_coeffs_PR(m,n)*avg_react_rate[m];
+    }
+
+    return;
+}
+
+AMREX_GPU_HOST_DEVICE void advance_reaction_CLE_cell(GpuArray<amrex::Real,MAX_SPECIES>& n_old,
+                                                     GpuArray<amrex::Real,MAX_SPECIES>& n_new,
+                                                     amrex::Real dt, amrex::Real dV,
+                                                     RandomEngine const& engine)
+{
+    for (int n=0; n<nspecies; n++) n_new[n] = n_old[n];
+
+    GpuArray<amrex::Real,MAX_REACTION> avg_react_rate;
+    compute_reaction_rates(n_new,avg_react_rate);
+
+    for (int m=0; m<nreaction; m++)
+    {
+        avg_react_rate[m] = std::max(0.,avg_react_rate[m]);
+
+        amrex::Real W = sqrt(dt/dV)*RandomNormal(0.,1.,engine);
+
+        for (int n=0; n<nspecies; n++)
+        {
+            n_new[n] += dt*stoich_coeffs_PR(m,n)*avg_react_rate[m];
+            n_new[n] += stoich_coeffs_PR(m,n)*sqrt(avg_react_rate[m])*W;
+        }
+    }
+
+    return;
+}
+
+AMREX_GPU_HOST_DEVICE void advance_reaction_SSA_cell(GpuArray<amrex::Real,MAX_SPECIES>& n_old,
+                                                     GpuArray<amrex::Real,MAX_SPECIES>& n_new,
+                                                     amrex::Real dt, amrex::Real dV,
+                                                     RandomEngine const& engine)
+{
+    amrex::Real t_local = 0.;
+
+    for (int n=0; n<nspecies; n++) n_new[n] = n_old[n];
+
+    while(true)
+    {
+        GpuArray<amrex::Real,MAX_REACTION> avg_react_rate;
+        compute_reaction_rates(n_new,avg_react_rate);
+
+        amrex::Real rTotal = 0.;
+        for (int m=0; m<nreaction; m++)
+        {
+            // convert reation rates to propensities
+            avg_react_rate[m] = std::max(0.,avg_react_rate[m]*dV);
+            rTotal += avg_react_rate[m];
+        }
+
+        if (rTotal==0.) break;
+
+        amrex::Real u1 = amrex::Random(engine);
+        amrex::Real tau = -log(1-u1)/rTotal;
+        t_local += tau; // update t_local
+
+        if (t_local > dt) break;
+
+        amrex::Real u2 = amrex::Random(engine);
+        u2 *= rTotal;
+
+        // find which reaction has occured
+        int which_reaction=0;
+        amrex::Real rSum = 0.;
+        for (int m=0; m<nreaction; m++)
+        {
+            rSum = rSum + avg_react_rate[m];
+            which_reaction = m;
+            if (rSum >= u2) break;
+        }
+
+        // update number densities for the reaction that has occured
+        for (int n=0; n<nspecies; n++)
+            n_new[n] += stoich_coeffs_PR(which_reaction,n)/dV;
+    }
+
+    return;
+}
