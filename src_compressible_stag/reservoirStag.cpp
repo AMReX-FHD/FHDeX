@@ -21,11 +21,9 @@ ComputeFluxMomReservoir(const MultiFab& cons0_in, const MultiFab& prim0_in,
     const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
     Box dom(geom.Domain());
 
-    Real N_A = Runiv/k_B; // Avagadro's number
-    
     GpuArray<Real,MAX_SPECIES> mass;
     for (int l=0;l<nspecies;++l) {
-        mass[l] = molmass[l]/(N_A);
+        mass[l] = molmass[l]/avogadro;
     }
 
     for (int d=0; d<AMREX_SPACEDIM; ++d) {

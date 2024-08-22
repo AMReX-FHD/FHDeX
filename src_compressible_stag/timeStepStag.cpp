@@ -357,7 +357,7 @@ void RK3stepStag(MultiFab& cu,
             stoch_weights[1], ranchem_B, 0,
             0, nreaction, 0);
 
-        compute_chemistry_source_CLE(dt, dx[0]*dx[1]*dx[2], prim, source, ranchem);
+        compute_compressible_chemistry_source_CLE(dt, dx[0]*dx[1]*dx[2], prim, source, ranchem);
     }
 
 #if defined(TURB)
@@ -684,7 +684,7 @@ void RK3stepStag(MultiFab& cu,
             stoch_weights[1], ranchem_B, 0,
             0, nreaction, 0);
 
-        compute_chemistry_source_CLE(dt, dx[0]*dx[1]*dx[2], prim, source, ranchem);
+        compute_compressible_chemistry_source_CLE(dt, dx[0]*dx[1]*dx[2], prim, source, ranchem);
     }
     
 #if defined(TURB)
@@ -1018,7 +1018,7 @@ void RK3stepStag(MultiFab& cu,
             stoch_weights[1], ranchem_B, 0,
             0, nreaction, 0);
 
-        compute_chemistry_source_CLE(dt, dx[0]*dx[1]*dx[2], prim, source, ranchem);
+        compute_compressible_chemistry_source_CLE(dt, dx[0]*dx[1]*dx[2], prim, source, ranchem);
     }
     
 #if defined(TURB)

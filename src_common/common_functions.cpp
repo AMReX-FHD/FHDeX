@@ -68,6 +68,7 @@ AMREX_GPU_MANAGED amrex::Real common::variance_coef_ener;
 AMREX_GPU_MANAGED amrex::Real common::k_B;
 AMREX_GPU_MANAGED amrex::Real common::h_bar;
 AMREX_GPU_MANAGED amrex::Real common::Runiv;
+AMREX_GPU_MANAGED amrex::Real common::avogadro;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::T_init;
 AMREX_GPU_MANAGED int      common::algorithm_type;
 int                        common::barodiffusion_type;
@@ -647,6 +648,9 @@ void InitializeCommonNamespace() {
     // pp.getarr and queryarr("string",inputs,start_indx,count); can be used for arrays
 
     pp.query("nspecies",nspecies);
+    if (nspecies > MAX_SPECIES) {
+        Abort("nspecies > MAX_SPECIES; recompile with a new MAX_SPEC in the GNUmakefile");
+    }
     pp.query("nbonds",nbonds);
     
     if (pp.queryarr("prob_lo",temp)) {
@@ -764,6 +768,13 @@ void InitializeCommonNamespace() {
     pp.query("k_B",k_B);
     pp.query("h_bar",h_bar);
     pp.query("Runiv",Runiv);
+    avogadro = Runiv / k_B;
+    if (pp.query("avogadro",avogadro) ) {
+        Runiv = k_B * avogadro;
+    }
+    if (pp.query("Runiv",Runiv) && pp.query("avogadro",avogadro)) {
+        Abort("Cannot specify both Runiv and avogadro");
+    }
     if (pp.queryarr("T_init",temp)) {
         for (int i=0; i<nspecies; ++i) {
             T_init[i] = temp[i];
