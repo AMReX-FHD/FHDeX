@@ -191,3 +191,42 @@ void compute_compressible_chemistry_source_CLE(amrex::Real dt, amrex::Real dV,
         });
     }
 }
+
+
+void chemical_rates(const MultiFab& n_cc, MultiFab& chem_rate, amrex::Geometry geom, amrex::Real dt, 
+                    const MultiFab& n_interm, Vector<Real> lin_comb_coef_in)
+{
+    int lin_comb_avg_react_rate = 1;
+    if (lin_comb_coef_in[0] == 1. && lin_comb_coef_in[1] == 0.) {
+        lin_comb_avg_react_rate = 0;
+    }
+
+    GpuArray<Real,2> lin_comb_coef;
+    lin_comb_coef[0] = lin_comb_coef_in[0];
+    lin_comb_coef[1] = lin_comb_coef_in[1];
+
+    const Real* dx = geom.CellSize();
+
+    Real dv = (AMREX_SPACEDIM == 3) ? dx[0]*dx[1]*dx[2] : dx[0]*dx[1]*cell_depth;
+
+    
+
+}
+
+AMREX_GPU_HOST_DEVICE void compute_reaction_rates(GpuArray<Real,MAX_SPECIES>& n_in,
+                                                  GpuArray<Real,MAX_REACTION>& reaction_rates,
+                                                  const amrex::Real& dv)
+{
+    GpuArray<Real,MAX_SPECIES> n_nonneg;
+
+    Real n_sum = 0.;
+    
+    for (int i=0; i<nspecies; ++i) {
+        n_nonneg[i] = std::max(0.,n_in[i]);
+        n_sum += n_nonneg[i];
+    }
+    if (n_sum < 0.) n_sum = 1./dv;
+
+    
+}
+
