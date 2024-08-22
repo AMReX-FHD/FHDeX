@@ -9,6 +9,7 @@ USE_CUDA  = FALSE
 COMP      = gnu
 DIM       = 2
 MAX_SPEC  = 8
+MAX_REAC  = 5
 
 TINY_PROFILE = FALSE
 
@@ -19,9 +20,13 @@ include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 #VPATH_LOCATIONS   += .
 #INCLUDE_LOCATIONS += .
 
-#include ../../src_reactDiff/Make.package
-#VPATH_LOCATIONS   += ../../src_reactDiff/
-#INCLUDE_LOCATIONS += ../../src_reactDiff/
+include ../../src_reactDiff/Make.package
+VPATH_LOCATIONS   += ../../src_reactDiff/
+INCLUDE_LOCATIONS += ../../src_reactDiff/
+
+include ../../src_chemistry/Make.package
+VPATH_LOCATIONS   += ../../src_chemistry/
+INCLUDE_LOCATIONS += ../../src_chemistry/
 
 include ../../src_analysis/Make.package
 VPATH_LOCATIONS   += ../../src_analysis/
@@ -53,4 +58,7 @@ endif
 
 MAXSPECIES := $(strip $(MAX_SPEC))
 DEFINES += -DMAX_SPECIES=$(MAXSPECIES)
+
+MAXREACTION := $(strip $(MAX_REAC))
+DEFINES += -DMAX_REACTION=$(MAXREACTION)
 

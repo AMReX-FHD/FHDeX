@@ -1,0 +1,3 @@
+CEXE_sources   += reactDiff_functions.cpp
+CEXE_headers   += reactDiff_functions.H
+CEXE_headers   += reactDiff_namespace.H
