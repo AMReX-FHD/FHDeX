@@ -61,7 +61,7 @@ void init_phi (int i, int j, int k,
     }
 #endif
 
-#if 1
+#if 0
     // 2D Test for multilevel
     Real rad = Real(0.2);
     Real xcent = Real(0.5);
@@ -77,6 +77,35 @@ void init_phi (int i, int j, int k,
 #endif
 
     if ( r2 > rad*rad) {
+        phi(i,j,k,0) = 15./cellvol;
+    } else {
+        phi(i,j,k,0) = 0./cellvol;
+    }
+#endif
+
+#if 1
+    // 2D Test for multilevel
+    Real rad = Real(0.4);
+    Real radi = Real(0.1);
+    Real xcent = Real(0.5);
+    Real ycent = Real(0.5);
+    Real x = prob_lo[0] + (i+Real(0.5)) * dx[0] - xcent;
+    Real y = prob_lo[1] + (j+Real(0.5)) * dx[1] - ycent;
+    Real r2 = (x*x + y*y);
+    r2 = 2.*(x-y)*(x-y)+ .5*(x+y)*(x+y);
+    Real r3 = 0.5*(x-y)*(x-y)+ 2.*(x+y)*(x+y);
+#if (AMREX_SPACEDIM == 3)
+    Real zcent = Real(0.5);
+    Real z = prob_lo[2] + (k+Real(0.5)) * dx[2] - zcent;
+    r3 = (x*x + y*y+z*z);
+    r2 = (x-.1)*(x-.1)+(y-.2)*(y-.2)+z*z;
+#endif
+
+    if ( r3 > rad*rad) {
+        //phi(i,j,k,0) = 50./cellvol;
+        phi(i,j,k,0) = 30./cellvol;
+    } else if (r2 < radi*radi) {
+        //phi(i,j,k,0) = 20./cellvol;
         phi(i,j,k,0) = 15./cellvol;
     } else {
         phi(i,j,k,0) = 0./cellvol;
