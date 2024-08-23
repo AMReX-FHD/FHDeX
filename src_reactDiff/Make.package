@@ -1,3 +1,5 @@
+CEXE_sources   += AdvanceDiffusion.cpp
+CEXE_sources   += AdvanceTimestep.cpp
 CEXE_sources   += reactDiff_functions.cpp
 CEXE_sources   += WritePlotFile.cpp
 CEXE_headers   += reactDiff_functions.H

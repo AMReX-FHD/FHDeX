@@ -11,10 +11,37 @@ using namespace reactDiff;
 using namespace amrex;
 using namespace common;
 
+////////////////////////
+// In reactDiff_functions.cpp
+////////////////////////
 void InitializeReactDiffNamespace();
+
+////////////////////////
+// In AdvanceDiffusion.cpp
+////////////////////////
+void AdvanceDiffusion(const MultiFab& n_old,
+                      MultiFab& n_new,
+                      const MultiFab& ext_src,
+                      const Real& dt,
+                      const Real& time,
+                      const Geometry& geom);
+
+////////////////////////
+// In AdvanceTimestep.cpp
+////////////////////////
+void AdvanceTimestep(const MultiFab& n_old,
+                     MultiFab& n_new,
+                     const Real& dt,
+                     const Real& time,
+                     const Geometry& geom);
+
+////////////////////////
+// In WritePlotFile.cpp
+////////////////////////
 
 void WritePlotFile(int step,
                    const amrex::Real time,
                    const amrex::Geometry& geom,
 		   const MultiFab& n_in);
+
 #endif

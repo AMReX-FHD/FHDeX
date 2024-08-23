@@ -52,27 +52,29 @@ void main_driver(const char* argv)
     const Real* dx = geom.CellSize();
 
     /////////////////////////////////////////
-    //Initialise rngs
+    // Initialize seeds for random number generator
     /////////////////////////////////////////
     if (restart < 0) {
 
+        int mySeed;
+
         if (seed > 0) {
-            // initializes the seed for C++ random number calls
-            InitRandom(seed+ParallelDescriptor::MyProc(),
-                       ParallelDescriptor::NProcs(),
-                       seed+ParallelDescriptor::MyProc());
+            // initializes the seed for C++ random number calls with a specified root seed
+            mySeed = seed;
         } else if (seed == 0) {
-            // initializes the seed for C++ random number calls based on the clock
+            // initializes the root seed for C++ random number calls based on the clock
             auto now = time_point_cast<nanoseconds>(system_clock::now());
-            int randSeed = now.time_since_epoch().count();
+            int mySeed = now.time_since_epoch().count();
             // broadcast the same root seed to all processors
-            ParallelDescriptor::Bcast(&randSeed,1,ParallelDescriptor::IOProcessorNumber());
-            InitRandom(randSeed+ParallelDescriptor::MyProc(),
-                       ParallelDescriptor::NProcs(),
-                       randSeed+ParallelDescriptor::MyProc());
+            ParallelDescriptor::Bcast(&mySeed,1,ParallelDescriptor::IOProcessorNumber());
         } else {
             Abort("Must supply non-negative seed");
         }
+
+        // MPI ranks > 0 get a seed inremented by the rank
+        InitRandom(mySeed+ParallelDescriptor::MyProc(),
+                   ParallelDescriptor::NProcs(),
+                   mySeed+ParallelDescriptor::MyProc());
 
     }
         
@@ -157,13 +159,32 @@ void main_driver(const char* argv)
     int istep = (restart < 0) ? 0 : restart;
     WritePlotFile(istep,time,geom,n_old);
 
-    
-
     ///////////////////////////////////////////
 
     // time step loop
     for(int step=step_start;step<=max_step;++step) {
         
+        AdvanceTimestep(n_old,n_new,dt,time,geom);
+
+        time += dt;
+        MultiFab::Copy(n_new,n_old,0,0,nspecies,1);
+        
+        if (stats_int > 0 && step%stats_int == 0 && step > n_steps_skip) {
+            Abort("fix structure factor snapshot");
+        }
+        
+        if (plot_int > 0 && step%plot_int == 0) {
+
+            WritePlotFile(step,time,geom,n_new);
+
+            if (stats_int > 0 && step > n_steps_skip) {
+                Abort("fix structure factor plotfile write");
+            }
+        }
+
+        if (chk_int > 0 && step%chk_int == 0) {
+            Abort("fix checkpoint write");
+        }
         
         // MultiFab memory usage
         const int IOProc = ParallelDescriptor::IOProcessorNumber();
