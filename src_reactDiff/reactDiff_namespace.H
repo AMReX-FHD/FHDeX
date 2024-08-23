@@ -46,11 +46,14 @@ namespace reactDiff {
     // initial values to be used in init_n.f90
     extern AMREX_GPU_MANAGED Array2D<amrex::Real, 0, 2 ,0, MAX_SPECIES> n_init_in;
 
+    // initialize from model file
+    extern AMREX_GPU_MANAGED int model_file_init;
+
     // initialize with all number of molecules strictly integer
     extern AMREX_GPU_MANAGED int integer_populations;
 
     // Fickian diffusion coeffs
-    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> D_fick;
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> D_Fick;
 
     // diffusion boundary stencil order
     extern AMREX_GPU_MANAGED int diffusion_stencil_order;

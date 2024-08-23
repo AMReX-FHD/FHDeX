@@ -47,11 +47,14 @@ AMREX_GPU_MANAGED amrex::Real reactDiff::volume_factor;
 // initial values to be used in init_n.f90
 AMREX_GPU_MANAGED Array2D<amrex::Real, 0, 2 ,0, MAX_SPECIES> reactDiff::n_init_in;
 
+// initialize from model file
+AMREX_GPU_MANAGED int reactDiff::model_file_init;
+
 // initialize with all number of molecules strictly integer
 AMREX_GPU_MANAGED int reactDiff::integer_populations;
 
 // Fickian diffusion coeffs
-AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> reactDiff::D_fick;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> reactDiff::D_Fick;
 
 // diffusion boundary stencil order
 AMREX_GPU_MANAGED int reactDiff::diffusion_stencil_order;
@@ -110,12 +113,15 @@ void InitializeReactDiffNamespace()
         }
     }
 
+    model_file_init = 0;
+    pp.query("model_file_init",model_file_init);
+
     integer_populations = 0;
     pp.query("integer_populations",integer_populations);
 
-    if (pp.queryarr("D_fick",temp)) {
+    if (pp.queryarr("D_Fick",temp)) {
         for (int i=0; i<nspecies; ++i) {
-            D_fick[i] = temp[i];
+            D_Fick[i] = temp[i];
         }
     }
 

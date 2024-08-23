@@ -13,4 +13,8 @@ using namespace common;
 
 void InitializeReactDiffNamespace();
 
+void WritePlotFile(int step,
+                   const amrex::Real time,
+                   const amrex::Geometry& geom,
+		   const MultiFab& n_in);
 #endif
