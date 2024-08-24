@@ -26,6 +26,11 @@ void AdvanceDiffusion(const MultiFab& n_old,
                       const Real& time,
                       const Geometry& geom);
 
+void DiffusiveNFluxdiv(MultiFab& n_in,
+                       MultiFab& diff_fluxdiv,
+                       const Geometry& geom,
+                       const Real& time);
+
 ////////////////////////
 // In AdvanceTimestep.cpp
 ////////////////////////

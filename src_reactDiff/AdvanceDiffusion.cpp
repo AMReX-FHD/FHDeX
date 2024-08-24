@@ -1,6 +1,9 @@
 #include "reactDiff_functions.H"
 #include "chemistry_functions.H"
 
+#include "AMReX_MLMG.H"
+#include <AMReX_MLABecLaplacian.H>
+
 void AdvanceDiffusion(const MultiFab& n_old,
                       MultiFab& n_new,
                       const MultiFab& ext_src,
@@ -184,5 +187,94 @@ void AdvanceDiffusion(const MultiFab& n_old,
         Abort("AdvanceDiffusion() - invalid reactDiff_diffusion_type");
     }
     
+}
+
+
+void DiffusiveNFluxdiv(MultiFab& n_in,
+                       MultiFab& diff_fluxdiv,
+                       const Geometry& geom,
+                       const Real& time) {
+
+    // fill n ghost cells
+    n_in.FillBoundary(geom.periodicity());
+    MultiFabPhysBC(n_in, geom, 0, nspecies, SPEC_BC_COMP, time);
+
+    BoxArray ba = n_in.boxArray();
+    DistributionMapping dmap = n_in.DistributionMap();
+    
+    // don't need to set much here for explicit evaluations
+    LPInfo info;
+
+    // operator of the form (ascalar * acoef - bscalar div bcoef grad) phi
+    MLABecLaplacian mlabec({geom}, {ba}, {dmap}, info);
+    mlabec.setMaxOrder(2);
+
+    // store one component at a time and take L(phi) one component at a time
+    MultiFab phi (ba,dmap,1,1);
+    MultiFab Lphi(ba,dmap,1,0);
+
+    MultiFab acoef(ba,dmap,1,0);
+    std::array< MultiFab, AMREX_SPACEDIM > bcoef;
+    AMREX_D_TERM(bcoef[0].define(convert(ba,nodal_flag_x), dmap, 1, 0);,
+                 bcoef[1].define(convert(ba,nodal_flag_y), dmap, 1, 0);,
+                 bcoef[2].define(convert(ba,nodal_flag_z), dmap, 1, 0););
+    
+    // build array of boundary conditions needed by MLABecLaplacian
+    std::array<LinOpBCType, AMREX_SPACEDIM> lo_mlmg_bc;
+    std::array<LinOpBCType, AMREX_SPACEDIM> hi_mlmg_bc;
+
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+    {
+        if (bc_spec_lo[idim] == -1 || bc_spec_hi[idim] == -1) {
+            if ( !(bc_spec_lo[idim] == -1 && bc_spec_hi[idim] == -1) ) {
+                Abort("Both bc_spec_lo and bc_spec_hi must be periodic in a given direction if the other one is");
+            }            
+            lo_mlmg_bc[idim] = LinOpBCType::Periodic;            
+            hi_mlmg_bc[idim] = LinOpBCType::Periodic;
+        }
+
+        if (bc_spec_lo[idim] == 0) {
+            lo_mlmg_bc[idim] = LinOpBCType::inhomogNeumann;
+        } else if (bc_spec_lo[idim] == 1) {
+            lo_mlmg_bc[idim] = LinOpBCType::Dirichlet;
+        } else if (bc_spec_lo[idim] != -1) {
+            Abort("Invalid bc_spec_lo");
+        }
+
+        if (bc_spec_hi[idim] == 0) {
+            hi_mlmg_bc[idim] = LinOpBCType::inhomogNeumann;
+        } else if (bc_spec_hi[idim] == 1) {
+            hi_mlmg_bc[idim] = LinOpBCType::Dirichlet;
+        } else if (bc_spec_hi[idim] != -1) {
+            Abort("Invalid bc_spec_hi");
+        }
+    }
+
+    mlabec.setDomainBC(lo_mlmg_bc,hi_mlmg_bc);
+
+    // set acoeff to 0and bcoeff to -1
+    mlabec.setScalars(0., -1.);
+
+    acoef.setVal(0.);
+    mlabec.setACoeffs(0, acoef);
+
+    for (int i=0; i<nspecies; ++i) {
+
+        // copy ith component of n_in into phi, including ghost cells
+        MultiFab::Copy(phi,n_in,i,0,1,1);
+
+        // load D_fick for species i into bcoef
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            bcoef[d].setVal(D_Fick[i]);
+        }
+        mlabec.setBCoeffs(0, amrex::GetArrOfConstPtrs(bcoef));
+
+        MLMG mlmg(mlabec);
+
+        mlmg.apply({&Lphi},{&phi});
+
+        MultiFab::Copy(diff_fluxdiv,Lphi,0,i,1,0);
+        
+    }
     
 }
