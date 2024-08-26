@@ -97,10 +97,6 @@ AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>         common::bc_mass_l
 AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>         common::bc_mass_hi;
 AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>         common::bc_therm_lo;
 AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>         common::bc_therm_hi;
-AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>         common::bc_spec_lo;
-AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>         common::bc_spec_hi;
-
-
 
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::p_lo;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::p_hi;
@@ -483,8 +479,6 @@ void InitializeCommonNamespace() {
         bc_mass_hi[i] = 0;
         bc_therm_lo[i] = 0;
         bc_therm_hi[i] = 0;
-        bc_spec_lo[i] = -1;
-        bc_spec_hi[i] = -1;
 
         // Pressure drop are periodic inflow/outflow walls (bc_[hi,lo]=-2).
         p_lo[i] = 0.;
@@ -825,16 +819,6 @@ void InitializeCommonNamespace() {
     if (pp.queryarr("bc_mass_hi",temp_int,0,AMREX_SPACEDIM)) {
         for (int i=0; i<AMREX_SPACEDIM; ++i) {
             bc_mass_hi[i] = temp_int[i];
-        }
-    }
-    if (pp.queryarr("bc_spec_lo",temp_int,0,AMREX_SPACEDIM)) {
-        for (int i=0; i<AMREX_SPACEDIM; ++i) {
-            bc_spec_lo[i] = temp_int[i];
-        }
-    }
-    if (pp.queryarr("bc_spec_hi",temp_int,0,AMREX_SPACEDIM)) {
-        for (int i=0; i<AMREX_SPACEDIM; ++i) {
-            bc_spec_hi[i] = temp_int[i];
         }
     }
     if (pp.queryarr("bc_therm_lo",temp_int,0,AMREX_SPACEDIM)) {
