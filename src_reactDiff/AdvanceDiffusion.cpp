@@ -225,28 +225,28 @@ void DiffusiveNFluxdiv(MultiFab& n_in,
 
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {
-        if (bc_spec_lo[idim] == -1 || bc_spec_hi[idim] == -1) {
-            if ( !(bc_spec_lo[idim] == -1 && bc_spec_hi[idim] == -1) ) {
-                Abort("Both bc_spec_lo and bc_spec_hi must be periodic in a given direction if the other one is");
+        if (bc_mass_lo[idim] == -1 || bc_mass_hi[idim] == -1) {
+            if ( !(bc_mass_lo[idim] == -1 && bc_mass_hi[idim] == -1) ) {
+                Abort("Both bc_mass_lo and bc_mass_hi must be periodic in a given direction if the other one is");
             }            
             lo_mlmg_bc[idim] = LinOpBCType::Periodic;            
             hi_mlmg_bc[idim] = LinOpBCType::Periodic;
         }
 
-        if (bc_spec_lo[idim] == 0) {
+        if (bc_mass_lo[idim] == 0) {
             lo_mlmg_bc[idim] = LinOpBCType::inhomogNeumann;
-        } else if (bc_spec_lo[idim] == 1) {
+        } else if (bc_mass_lo[idim] == 1) {
             lo_mlmg_bc[idim] = LinOpBCType::Dirichlet;
-        } else if (bc_spec_lo[idim] != -1) {
-            Abort("Invalid bc_spec_lo");
+        } else if (bc_mass_lo[idim] != -1) {
+            Abort("Invalid bc_mass_lo");
         }
 
-        if (bc_spec_hi[idim] == 0) {
+        if (bc_mass_hi[idim] == 0) {
             hi_mlmg_bc[idim] = LinOpBCType::inhomogNeumann;
-        } else if (bc_spec_hi[idim] == 1) {
+        } else if (bc_mass_hi[idim] == 1) {
             hi_mlmg_bc[idim] = LinOpBCType::Dirichlet;
-        } else if (bc_spec_hi[idim] != -1) {
-            Abort("Invalid bc_spec_hi");
+        } else if (bc_mass_hi[idim] != -1) {
+            Abort("Invalid bc_mass_hi");
         }
     }
 

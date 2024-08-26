@@ -34,7 +34,7 @@ void main_driver(const char* argv)
     // is the problem periodic?
     Vector<int> is_periodic(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
-        if (bc_spec_lo[i] == -1 && bc_spec_hi[i] == -1) {
+        if (bc_mass_lo[i] == -1 && bc_mass_hi[i] == -1) {
             is_periodic[i] = 1;
         }
     }
@@ -84,6 +84,10 @@ void main_driver(const char* argv)
     int step_start;
     amrex::Real time;
 
+    MultiFab n_old;
+    MultiFab n_new;
+    
+
     if (restart < 0) {
 
         step_start = 1;
@@ -98,26 +102,25 @@ void main_driver(const char* argv)
 
         dmap.define(ba);
 
+        n_old.define(ba,dmap,nspecies,1);
+        n_new.define(ba,dmap,nspecies,1);
+    
+        if (model_file_init) {
+            Abort("model_file_init not supported yet");
+        } else {
+            // Initialize n
+            InitN(n_old,geom,time);
+        }
+
+        if (std::abs(initial_variance_mass) > 0.) {
+            Abort("initial_variance_mass not supported yet");
+            // add_init_n_fluctuations()
+        }
+
     } else {
 
         // checkpoint restart
         
-    }
-
-    MultiFab n_old(ba,dmap,nspecies,1);
-    MultiFab n_new(ba,dmap,nspecies,1);
-    
-    if (model_file_init) {
-        Abort("model_file_init not supported yet");
-    } else {
-        // Initialize n
-        // Init();
-        n_old.setVal(0.);
-    }
-
-    if (std::abs(initial_variance_mass) > 0.) {
-        Abort("initial_variance_mass not supported yet");
-        // add_init_n_fluctuations()
     }
 
     Real dt;

@@ -41,6 +41,13 @@ void AdvanceTimestep(const MultiFab& n_old,
                      const Geometry& geom);
 
 ////////////////////////
+// In InitN.cpp
+////////////////////////
+void InitN(MultiFab& n_in,
+           const Geometry& geom,
+           const Real& time);
+
+////////////////////////
 // In WritePlotFile.cpp
 ////////////////////////
 

@@ -13,6 +13,7 @@
   # Controls for number of steps between actions
   max_step = 10
   plot_int = 1
+  stats_int = -1
 
   seed = 1
 
@@ -22,7 +23,13 @@
   # ----------------------
   # BC specifications:
   # -1 = periodic
-  bc_spec_lo = -1 -1
-  bc_spec_hi = -1 -1
+  #  1 = wall (Neumann)
+  #  2 = reservoir (Dirichlet)
+  bc_mass_lo = -1 -1
+  bc_mass_hi = -1 -1
 
-  stats_int = -1
+  # if wall/reservoir, these are the numerical Neumann/Dirichlet values
+  bc_Yk_x_lo = 0. 0.
+  bc_Yk_x_hi = 0. 0.
+  bc_Yk_y_lo = 0. 0.
+  bc_Yk_y_hi = 0. 0.
