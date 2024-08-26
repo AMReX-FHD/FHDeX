@@ -1,0 +1,43 @@
+# Problem specification
+prob_lo =   0.0   0.0   0.0       # physical lo coordinate
+prob_hi = 512.0 512.0 512.0       # physical hi coordinate
+
+# number of cells in domain
+n_cells = 64 64 64
+# max number of cells in a box
+max_grid_size = 32 32 32
+
+# Time-step control
+fixed_dt = 0.1
+
+# Controls for number of steps between actions
+max_step = 10
+plot_int = 1
+stats_int = -1
+
+seed = 1
+
+nspecies = 2
+
+prob_type = 5
+
+n_init_in_1 = 2.16245 1.35018
+n_init_in_2 = 0.      10.
+
+# Boundary conditions
+# ----------------------
+# BC specifications:
+# -1 = periodic
+#  1 = wall (Neumann)
+#  2 = reservoir (Dirichlet)
+bc_mass_lo = -1 -1 -1
+bc_mass_hi = -1 -1 -1
+
+# if wall/reservoir, these are the numerical Neumann/Dirichlet values
+bc_Yk_x_lo = 0. 0.
+bc_Yk_x_hi = 0. 0.
+bc_Yk_y_lo = 0. 0.
+bc_Yk_y_hi = 0. 0.
+bc_Yk_z_lo = 0. 0.
+bc_Yk_z_hi = 0. 0.
+

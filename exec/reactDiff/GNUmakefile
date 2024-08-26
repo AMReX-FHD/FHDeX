@@ -9,7 +9,7 @@ USE_CUDA  = FALSE
 COMP      = gnu
 DIM       = 2
 MAX_SPEC  = 8
-MAX_REAC  = 5
+MAX_REAC  = 7
 
 TINY_PROFILE = FALSE
 

@@ -1,0 +1,75 @@
+# Problem specification
+prob_lo =  0.0  0.0       # physical lo coordinate
+prob_hi = 32.0 32.0       # physical hi coordinate
+
+cell_depth = 10.
+
+# number of cells in domain
+n_cells = 64 64
+# max number of cells in a box
+max_grid_size = 32 32
+
+# Time-step control
+fixed_dt = 0.5
+
+# Controls for number of steps between actions
+max_step = 2
+plot_int = 1
+stats_int = -1
+
+seed = 1
+
+nspecies = 3
+
+prob_type = 0
+
+n_init_in_1 = 1685.8 533.5 56.38 # Start on the limit cycle
+
+D_Fick = 0.1 0.01 0.01
+
+temporal_integrator = 0
+reactDiff_diffusion_type = 4
+reactDiff_reaction_type = 0
+
+avg_type = 1
+
+nreactions = 7
+rate_const = 0.0002 0.0002 1. 0.03666663 4.44444555555 0.00333333 16.66665
+
+  # BPM model is:
+  #     (1) U + W --> V + W
+  #     (2) V + V --> W
+  #     (3) W     --> V + V
+  #     (4) V     --> 0
+  #     (5) 0     --> V
+  #     (6) U     --> 0
+  #     (7) 0     --> U
+stoich_1R = 1 0 1
+stoich_1P = 0 1 1
+stoich_2R = 0 2 0
+stoich_2P = 0 0 1
+stoich_3R = 0 0 1
+stoich_3P = 0 2 0
+stoich_4R = 0 1 0
+stoich_4P = 0 0 0
+stoich_5R = 0 0 0
+stoich_5P = 0 1 0
+stoich_6R = 1 0 0
+stoich_6P = 0 0 0
+stoich_7R = 0 0 0
+stoich_7P = 1 0 0
+
+rate_multiplier = 1.
+
+include_discrete_LMA_correction = 1
+
+reaction_type = 0
+
+# Boundary conditions
+# ----------------------
+# BC specifications:
+# -1 = periodic
+#  1 = wall (Neumann)
+#  2 = reservoir (Dirichlet)
+bc_mass_lo = -1 -1
+bc_mass_hi = -1 -1
