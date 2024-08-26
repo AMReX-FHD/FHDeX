@@ -59,8 +59,9 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 //                             y = prob_lo[1] + (j+0.5)*dx[1] - center[1];,
 //                             z = prob_lo[2] + (k+0.5)*dx[2] - center[2];);
                 AMREX_D_TERM(x = prob_lo[0] + (i+0.5)*dx[0] - center[0];,
-                             y = prob_lo[1] + (j+0.5)*dx[1]             ;,
+			        y = prob_lo[1] + (j+0.5)*dx[1] - center[1];,
                              z = prob_lo[2] + (k+0.5)*dx[2] - center[2];);
+				//y = prob_lo[1] + (j+0.5)*dx[1] - 1.6e-6 ;,
                              //y = prob_lo[1] + (j+0.5)*dx[1] - rad*std::cos(alpha) ;,
 
                 Real r = (AMREX_SPACEDIM == 1) ? std::sqrt(x*x+y*y) : std::sqrt(x*x+y*y+z*z);
@@ -408,15 +409,17 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                }
             Real x,y,z;
 
+            for(int i1=0; i1<nsub; ++i1) {
             for(int j1=0; j1<nsub; ++j1) {
 
+                             x = prob_lo[0] + i*dx[0] + (i1+0.5)*dxsub ;
                              y = prob_lo[1] + j*dx[1] + (j1+0.5)*dysub ;
 
 
                 if (smoothing_width == 0.) {
 
                     // discontinuous interface
-                    if (y < film_thickness) {
+                    if (y < film_thickness-x+0.5*(prob_hi[0]-prob_lo[0])) {
                         for (int n=0; n<nspecies; ++n) {
                             c(i,j,k,n) += c_init_1[n];
                         }
@@ -434,17 +437,15 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                     }
                 }
              }    
+             }    
                for (int n=0; n<nspecies; ++n) {
-                   c(i,j,k,n) = c(i,j,k,n)/factor;
+                   c(i,j,k,n) = c(i,j,k,n)/(factor*factor);
                }
             });
 
 
         } else if (prob_type == 17) {
 
-            /*
-	       torus
-            */
 	    amrex::Real rad = radius_cyl;
             amrex::Real alpha = contact_angle_lo[1];
 

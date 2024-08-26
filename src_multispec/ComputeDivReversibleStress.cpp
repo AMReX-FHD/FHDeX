@@ -548,6 +548,7 @@ void ComputeDisjoiningPressure(std::array<MultiFab,AMREX_SPACEDIM>& disjoining_p
 	});
      }
 
+     amrex::Real F0 = 4.e12;
         for (int n = 0 ; n < AMREX_SPACEDIM; n++)
             disjoining_pressure[n].setVal(0.);
 
@@ -571,19 +572,20 @@ void ComputeDisjoiningPressure(std::array<MultiFab,AMREX_SPACEDIM>& disjoining_p
             amrex::ParallelFor(bx_x, bx_y,
                            [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
-                amrex::Real alphap = (conc_arr(i,j,k,0)-c_init_1[0])/(c_init_1[1]-c_init_1[0]);
-                amrex::Real alpham = (conc_arr(i-1,j,k,0)-c_init_1[0])/(c_init_1[1]-c_init_1[0]);
+                amrex::Real alphap = (conc_arr(i,j,k,0)-fh_ce)/(1.-2.*fh_ce);
+                amrex::Real alpham = (conc_arr(i-1,j,k,0)-fh_ce)/(1.-2.*fh_ce);
 
 	        alphap = std::max(0.,std::min(1.,alphap));
                 alpham = std::max(0.,std::min(1.,alpham));
-                 djpx(i,j,k) = 0.;
-                 djpx(i,j,k) = 0.5*(alpham+alphap)* (djp(i-1,j,k)-djp(i,j,k))/dx[0];
+  //               djpx(i,j,k) = 0.;
+                djpx(i,j,k) = 0.5*(alpham+alphap)*F0;
+  //               djpx(i,j,k) = 0.5*(alpham+alphap)* (djp(i-1,j,k)-djp(i,j,k))/dx[0];
                  //djpx(i,j,k) = (djp(i,j,k)-djp(i-1,j,k))/dx[0];
             },
                            [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
-             amrex::Real alphap = (conc_arr(i,j,k,0)-c_init_1[0])/(c_init_1[1]-c_init_1[0]);
-             amrex::Real alpham = (conc_arr(i,j-1,k,0)-c_init_1[0])/(c_init_1[1]-c_init_1[0]);
+             amrex::Real alphap = (conc_arr(i,j,k,0)-fh_ce)/(1.-2.*fh_ce);
+             amrex::Real alpham = (conc_arr(i,j-1,k,0)-fh_ce)/(1.-2.*fh_ce);
 
 	     alphap = std::max(0.,std::min(1.,alphap));
              alpham = std::max(0.,std::min(1.,alpham));
@@ -601,7 +603,8 @@ void ComputeDisjoiningPressure(std::array<MultiFab,AMREX_SPACEDIM>& disjoining_p
 		 }
 	     */
 
-                 djpy(i,j,k) = 0.5*(alpham+alphap)* (djp(i,j,k)-djp(i,j-1,k))/dx[1];
+                 //djpy(i,j,k) = 0.5*(alpham+alphap)* (djp(i,j,k)-djp(i,j-1,k))/dx[1];
+                 djpy(i,j,k) = 0.;
 		 /*
   		 if( i == 255){
   		    amrex::Print() << " y grad of disjoining pressure " << j << " " << djpy(i,j,k) << " " << djp(i,j,k) << " " << djp(i,j-1,k) << " " << alphap << " " << alpham << std::endl;
@@ -615,7 +618,38 @@ void ComputeDisjoiningPressure(std::array<MultiFab,AMREX_SPACEDIM>& disjoining_p
         
             amrex::ParallelFor(bx_x, bx_y, bx_z,
                            [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-        
+
+            {
+                 //djpx(i,j,k) = (djp(i,j,k)-djp(i-1,j,k))/dx[0];
+                //amrex::Real alphap = conc_arr(i,  j,k,1);
+               // amrex::Real alpham = conc_arr(i-1,j,k,1);
+	        amrex::Real threshold = fh_ce;
+                amrex::Real alphap = (conc_arr(i,j,k,1)-threshold)/(1.-2.*threshold);
+                amrex::Real alpham = (conc_arr(i-1,j,k,1)-threshold)/(1.-2.*threshold);
+
+                alphap = std::max(0.,std::min(1.,alphap));
+                alpham = std::max(0.,std::min(1.,alpham));
+
+                amrex::Real avg = 0.5*(alphap+alpham);
+//              avg = (avg > 0.03) ? avg : 0.;
+                djpx(i,j,k) = avg*F0;
+                //if(j == 63 && k == 63){
+                //    amrex::Print() << "force " << i << " " << djpx(i,j,k) << std::endl;
+                //}
+
+            },
+                           [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                 // djpy(i,j,k) = (djp(i,j,k)-djp(i,j-1,k))/dx[1];
+                 djpy(i,j,k) = 0.;
+            },
+                           [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                 // djpz(i,j,k) = (djp(i,j,k)-djp(i,j,k-1))/dx[2];
+                 djpz(i,j,k) = 0.;
+            });
+
+/*        
             {
                  djpx(i,j,k) = (djp(i,j,k)-djp(i-1,j,k))/dx[0];
             },
@@ -628,6 +662,7 @@ void ComputeDisjoiningPressure(std::array<MultiFab,AMREX_SPACEDIM>& disjoining_p
                  djpz(i,j,k) = (djp(i,j,k)-djp(i,j,k-1))/dx[2];
             });
         
+*/
 
 #endif
 

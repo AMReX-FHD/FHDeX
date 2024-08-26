@@ -604,13 +604,16 @@ void main_driver(const char* argv)
                              Real y = offset[1] + (j+0.5)*dx[1];,
                              Real z = offset[2] + (k+0.5)*dx[2]);
                 amrex::Real sig_noise = 4.;
+                amrex::Real threshold = fh_ce;
+		threshold = .3;
                 amrex::Real alpha = (data_arr(i,j,k,1)-sig_noise*c_init_1[0])/(1.-(sig_noise+1.)*c_init_1[0]);
                 alpha = std::max(0.,alpha);
                 amrex::Real beta = (data_arr(i,j,k,1)-c_init_1[0])/(1.-2.*c_init_1[0]);
                 if(beta < (sig_noise-1.)*c_init_1[0]/(1.-2.*c_init_1[0])){
                     beta = 0.;
                 }
-                amrex::Real gam = (data_arr(i,j,k,1)-sig_noise*c_init_1[0])/(1.-2.*sig_noise*c_init_1[0]);
+                //amrex::Real gam = (data_arr(i,j,k,1)-sig_noise*c_init_1[0])/(1.-2.*sig_noise*c_init_1[0]);
+                amrex::Real gam = (data_arr(i,j,k,1)-threshold)/(1.-2.*threshold);
                 gam = std::min(1.,std::max(0.,gam));
                 return {alpha,beta,gam,
                         AMREX_D_DECL(x*alpha,y*alpha,z*alpha),
