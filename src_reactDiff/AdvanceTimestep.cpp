@@ -1,7 +1,7 @@
 #include "reactDiff_functions.H"
 #include "chemistry_functions.H"
 
-void AdvanceTimestep(const MultiFab& n_old,
+void AdvanceTimestep(MultiFab& n_old,
                      MultiFab& n_new,
                      const Real& dt,
                      const Real& time,
@@ -31,13 +31,9 @@ void AdvanceTimestep(const MultiFab& n_old,
 
         if (temporal_integrator == 0) {
             // D + R
-/*
-          call advance_diffusion(mla,n_old,n_new,dx,dt,the_bc_tower,Rn_steady)
-          do n=1,nlevs
-             call multifab_copy_c(n_old(n),1,n_new(n),1,nspecies,n_new(n)%ng)
-          end do
-          call advance_reaction (mla,n_new,n_old,dx,dt,the_bc_tower,Rn_steady)
-*/
+            AdvanceDiffusion(n_old,n_new,Rn_steady,dt,time,geom);
+            MultiFab::Copy(n_old,n_new,0,0,nspecies,1);
+            AdvanceReaction(n_old,n_new,Rn_steady,dt,time,geom);
 
         } else if (temporal_integrator == 1) {
             // (1/2)R + D + (1/2)R

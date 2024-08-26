@@ -19,7 +19,7 @@ void InitializeReactDiffNamespace();
 ////////////////////////
 // In AdvanceDiffusion.cpp
 ////////////////////////
-void AdvanceDiffusion(const MultiFab& n_old,
+void AdvanceDiffusion(MultiFab& n_old,
                       MultiFab& n_new,
                       const MultiFab& ext_src,
                       const Real& dt,
@@ -32,9 +32,19 @@ void DiffusiveNFluxdiv(MultiFab& n_in,
                        const Real& time);
 
 ////////////////////////
+// In AdvanceReaction.cpp
+////////////////////////
+void AdvanceReaction(MultiFab& n_old,
+                     MultiFab& n_new,
+                     const MultiFab& ext_src,
+                     const Real& dt,
+                     const Real& time,
+                     const Geometry& geom);
+
+////////////////////////
 // In AdvanceTimestep.cpp
 ////////////////////////
-void AdvanceTimestep(const MultiFab& n_old,
+void AdvanceTimestep(MultiFab& n_old,
                      MultiFab& n_new,
                      const Real& dt,
                      const Real& time,

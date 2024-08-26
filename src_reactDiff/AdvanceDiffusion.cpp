@@ -1,10 +1,11 @@
 #include "reactDiff_functions.H"
-#include "chemistry_functions.H"
 
 #include "AMReX_MLMG.H"
 #include <AMReX_MLABecLaplacian.H>
 
-void AdvanceDiffusion(const MultiFab& n_old,
+// Solves n_t = div ( D grad (n)) + div (sqrt(2*variance*D*n)*W) + g
+// where g is a constant in time external source
+void AdvanceDiffusion(MultiFab& n_old,
                       MultiFab& n_new,
                       const MultiFab& ext_src,
                       const Real& dt,

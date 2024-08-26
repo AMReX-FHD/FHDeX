@@ -33,7 +33,7 @@ reactDiff_reaction_type = 0
 
 avg_type = 1
 
-nreactions = 7
+nreaction = 7
 rate_const = 0.0002 0.0002 1. 0.03666663 4.44444555555 0.00333333 16.66665
 
   # BPM model is:
