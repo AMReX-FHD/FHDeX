@@ -95,10 +95,10 @@ void InitializeChemistryNamespace()
     rate_multiplier = 1.;
     pp.query("rate_multiplier",rate_multiplier);
 
-    include_discrete_LMA_correction = 1;
+    include_discrete_LMA_correction = 0;
     pp.query("include_discrete_LMA_correction",include_discrete_LMA_correction);
 
-    exclude_solvent_comput_rates = 0;
+    exclude_solvent_comput_rates = -1;
     pp.query("exclude_solvent_comput_rates",exclude_solvent_comput_rates);
     
     // get reaction type (0=deterministic; 1=CLE; 2=SSA; 3=tau leap)
@@ -194,8 +194,13 @@ void compute_compressible_chemistry_source_CLE(amrex::Real dt, amrex::Real dV,
 
 
 void chemical_rates(const MultiFab& n_cc, MultiFab& chem_rate, amrex::Geometry geom, amrex::Real dt, 
-                    const MultiFab& n_interm, Vector<Real> lin_comb_coef_in)
+                    const MultiFab& n_interm, Vector<Real> lin_comb_coef_in, Real volume_factor_in)
 {
+    if (nreaction == 1) {
+        chem_rate.setVal(0.);
+        return;
+    }
+
     int lin_comb_avg_react_rate = 1;
     if (lin_comb_coef_in[0] == 1. && lin_comb_coef_in[1] == 0.) {
         lin_comb_avg_react_rate = 0;
@@ -208,9 +213,53 @@ void chemical_rates(const MultiFab& n_cc, MultiFab& chem_rate, amrex::Geometry g
     const Real* dx = geom.CellSize();
 
     Real dv = (AMREX_SPACEDIM == 3) ? dx[0]*dx[1]*dx[2] : dx[0]*dx[1]*cell_depth;
-
+    dv *= volume_factor_in;
     
+    for (MFIter mfi(n_cc); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.validbox();
 
+        const Array4<const Real>& n_arr = n_cc.array(mfi);
+        const Array4<const Real>& n_int = n_interm.array(mfi);
+
+        const Array4<Real>& rate = chem_rate.array(mfi);
+
+        if (reaction_type == 2) { // SSA
+            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
+            {
+                Abort("chemical_rates() - SSA not supported");
+            });
+        } else {
+            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
+            {
+                if (lin_comb_avg_react_rate == 1) {
+                    Abort("chemical_rates(); lin_comb_avg_react_rate == 1 not supported");
+                } else {
+
+                    GpuArray<Real,MAX_SPECIES> n_in;
+                    GpuArray<Real,MAX_REACTION> avg_reaction_rate;
+                    GpuArray<Real,MAX_REACTION> avg_num_reactions;
+                    GpuArray<Real,MAX_REACTION> num_reactions;
+
+                    for (int n=0; n<nspecies; ++n) {
+                        rate(i,j,k,n) = 0.;
+                        n_in[n] = n_arr(i,j,k,n);
+                    }
+                    compute_reaction_rates(n_in, avg_reaction_rate, dv);
+                    for (int n=0; n<nspecies; ++n) {
+                        avg_num_reactions[n] = std::max(0.,avg_reaction_rate[n]*dv*dt);
+                    }
+                    
+                    for (int r=0; r<nreaction; ++r) {
+                        // sample_num_reactions(n,num_reactions);
+                        for (int n=0; n<nspecies; ++n) {
+                            rate(i,j,k,n) += num_reactions[r]/dv/dt * stoich_coeffs_PR(r,n);
+                        }                        
+                    }
+                }
+            });
+        }
+    }
 }
 
 AMREX_GPU_HOST_DEVICE void compute_reaction_rates(GpuArray<Real,MAX_SPECIES>& n_in,
@@ -218,15 +267,50 @@ AMREX_GPU_HOST_DEVICE void compute_reaction_rates(GpuArray<Real,MAX_SPECIES>& n_
                                                   const amrex::Real& dv)
 {
     GpuArray<Real,MAX_SPECIES> n_nonneg;
-
     Real n_sum = 0.;
-    
-    for (int i=0; i<nspecies; ++i) {
-        n_nonneg[i] = std::max(0.,n_in[i]);
-        n_sum += n_nonneg[i];
-    }
-    if (n_sum < 0.) n_sum = 1./dv;
 
+    for (int n=0; n<nspecies; ++n) {
+        n_nonneg[n] = std::max(0.,n_in[n]);
+        n_sum += n_nonneg[n];
+    }
+    if (n_sum < 0.) {
+        n_sum = 1./dv;
+    }
+
+    if (use_mole_frac_LMA && include_discrete_LMA_correction) {
+        Abort("compute_reaction_rates() - use_mole_frac_LMA && include_discrete_LMA_correction not supported");
+    } else if (include_discrete_LMA_correction == 0 && exclude_solvent_comput_rates == 0) {
+        Abort("compute_reaction_rates() -include_discrete_LMA_correction == 0 && exclude_solvent_comput_rates == 0 not supported");
+    } else { // General case of number-density based LMA is handled by slower code that includes species by species
     
+        for (int r=0; r<nreaction; ++r) {
+            reaction_rates[r] = rate_multiplier*rate_const[r];
+
+            for (int n=0; n<nspecies; ++n) {
+                if (n == exclude_solvent_comput_rates) {
+                    continue;
+                }
+                if (include_discrete_LMA_correction) {
+                    Abort("compute_reaction_rates() - include_discrete_LMA_correction == 1 not supported");
+                } else {
+                    reaction_rates[r] *= std::pow(n_nonneg[n],stoich_coeffs_R(r,n));
+                }
+            } // end loop over species
+        } // end loop over reaction
+    }
+   
+}
+
+AMREX_GPU_HOST_DEVICE void sample_num_reactions(GpuArray<Real,MAX_SPECIES>& n_in,
+                                                GpuArray<Real,MAX_REACTION>& num_reactions,
+                                                GpuArray<Real,MAX_REACTION>& avg_num_reactions)
+{
+    if (reaction_type == -1) { // deterministic
+        for (int n=0; n<nreaction; ++n) {
+            num_reactions[n] = avg_num_reactions[n];
+        }
+    } else {
+        Abort("sample_num_reactions() - reaction_type not supported");
+    }
 }
 
