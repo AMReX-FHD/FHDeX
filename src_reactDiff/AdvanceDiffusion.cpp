@@ -36,8 +36,7 @@ void AdvanceDiffusion(MultiFab& n_old,
     MultiFab diff_fluxdiv (ba,dmap,nspecies,0);
     MultiFab stoch_fluxdiv(ba,dmap,nspecies,0);
 
-    Abort("Write DiffusiveNFluxdiv()");
-    // DiffusiveNFluxdiv();
+    DiffusiveNFluxdiv(n_old,diff_fluxdiv,geom,time);
 
     if (variance_coef_mass > 0.) {
         Abort("AdvanceDiffusion() - write stochastic case");
@@ -59,7 +58,7 @@ void AdvanceDiffusion(MultiFab& n_old,
         n_new.FillBoundary(geom.periodicity());
         MultiFabPhysBC(n_new, geom, 0, nspecies, SPEC_BC_COMP, time);
 
-        if (reactDiff_diffusion_type == 4) {
+        if (reactDiff_diffusion_type == 0) {
             Abort("AdvanceDiffusion() - write trapezoidal corrector");
 
             /*

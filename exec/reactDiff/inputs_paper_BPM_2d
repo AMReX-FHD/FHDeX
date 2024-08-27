@@ -2,12 +2,12 @@
 prob_lo =  0.0  0.0       # physical lo coordinate
 prob_hi = 32.0 32.0       # physical hi coordinate
 
-cell_depth = 10.
-
-# number of cells in domain
+# number of cells in domain and maximum number of cells in a box
 n_cells = 64 64
-# max number of cells in a box
 max_grid_size = 32 32
+
+# to compute cell volume in 2D problems
+cell_depth = 10.
 
 # Time-step control
 fixed_dt = 0.5
@@ -20,30 +20,57 @@ stats_int = -1
 seed = 1
 
 nspecies = 3
+nreaction = 7
 
 prob_type = 0
 
 n_init_in_1 = 1685.8 533.5 56.38 # Start on the limit cycle
 
+# 0=D+R (first-order splitting)
+# 1=(1/2)R + D + (1/2)R (Strang option 1)
+# 2=(1/2)D + R + (1/2)D (Strang option 2)
+# -1=unsplit forward Euler
+# -2=unsplit explicit midpoint 
+# -3=unsplit multinomial diffusion
+# -4=unsplit implicit midpoint
+temporal_integrator = 0
+
+# only used for split schemes (temporal_integrator>=0)
+# 0=explicit trapezoidal predictor/corrector
+# 1=Crank-Nicolson semi-implicit
+# 2=explicit midpoint
+# 3=multinomial diffusion
+# 4=forward Euler  
+reactDiff_diffusion_type = 4
+
+# Fickian diffusion coeffs
 D_Fick = 0.1 0.01 0.01
 
-temporal_integrator = 0
-reactDiff_diffusion_type = 4
-reactDiff_reaction_type = 0
+variance_coef_mass = 0.
 
+# how to compute n on faces for stochastic weighting
+# 1=arithmetic (with C0-Heaviside), 2=geometric, 3=harmonic
+# 10=arithmetic average with discontinuous Heaviside function
+# 11=arithmetic average with C1-smoothed Heaviside function
+# 12=arithmetic average with C2-smoothed Heaviside function
 avg_type = 1
 
-nreaction = 7
-rate_const = 0.0002 0.0002 1. 0.03666663 4.44444555555 0.00333333 16.66665
+# only used for split schemes (temporal_integrator>=0)
+# 0=first-order (deterministic, tau leaping, CLE, or SSA)
+# 1=second-order (determinisitc, tau leaping, or CLE only)
+reactDiff_reaction_type = 0
 
-  # BPM model is:
-  #     (1) U + W --> V + W
-  #     (2) V + V --> W
-  #     (3) W     --> V + V
-  #     (4) V     --> 0
-  #     (5) 0     --> V
-  #     (6) U     --> 0
-  #     (7) 0     --> U
+# 0=deterministic; 1=CLE; 2=SSA; 3=tau leap
+reaction_type = 0
+
+# BPM model is:
+#     (1) U + W --> V + W
+#     (2) V + V --> W
+#     (3) W     --> V + V
+#     (4) V     --> 0
+#     (5) 0     --> V
+#     (6) U     --> 0
+#     (7) 0     --> U
 stoich_1R = 1 0 1
 stoich_1P = 0 1 1
 stoich_2R = 0 2 0
@@ -59,11 +86,13 @@ stoich_6P = 0 0 0
 stoich_7R = 0 0 0
 stoich_7P = 1 0 0
 
+# reaction rate constant for each reaction (assuming Law of Mass Action holds)
+# using rate_multiplier, reaction rates can be changed by the same factor
+# if include_discrete_LMA_correction, n^2 and n^3 in rate expressions become
+# n*(n-1/dv) and n*(n-1/dv)*(n-2/dv). 
+rate_const = 0.0002 0.0002 1. 0.03666663 4.44444555555 0.00333333 16.66665
 rate_multiplier = 1.
-
-include_discrete_LMA_correction = 1
-
-reaction_type = 0
+include_discrete_LMA_correction = 0
 
 # Boundary conditions
 # ----------------------
