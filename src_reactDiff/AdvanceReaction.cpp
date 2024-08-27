@@ -36,7 +36,7 @@ void AdvanceReaction(MultiFab& n_old,
 
         ChemicalRates(n_old,rate,geom,dt,n_old,mattingly_lin_comb_coef,volume_factor);
         
-        MultiFab::LinComb(n_new,1,n_old,0,-dt,rate,0,0,nspecies,0);
+        MultiFab::LinComb(n_new,1,n_old,0,dt,rate,0,0,nspecies,0);
         MultiFab::Saxpy(n_new,-dt,ext_src,0,0,nspecies,0); //note the negative sign 
 /*
       ! calculate rates
