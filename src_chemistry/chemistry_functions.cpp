@@ -251,7 +251,7 @@ void chemical_rates(const MultiFab& n_cc, MultiFab& chem_rate, amrex::Geometry g
                     }
                     
                     for (int r=0; r<nreaction; ++r) {
-                        // sample_num_reactions(n,num_reactions);
+                        sample_num_reactions(n_in,num_reactions,avg_num_reactions);
                         for (int n=0; n<nspecies; ++n) {
                             rate(i,j,k,n) += num_reactions[r]/dv/dt * stoich_coeffs_PR(r,n);
                         }                        
