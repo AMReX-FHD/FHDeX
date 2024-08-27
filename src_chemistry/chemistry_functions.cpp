@@ -246,15 +246,15 @@ void ChemicalRates(const MultiFab& n_cc, MultiFab& chem_rate, const amrex::Geome
                         n_in[n] = n_arr(i,j,k,n);
                     }
                     compute_reaction_rates(n_in, avg_reaction_rate, dv);
-                    for (int n=0; n<nspecies; ++n) {
-                        avg_num_reactions[n] = std::max(0.,avg_reaction_rate[n]*dv*dt);
+                    for (int r=0; r<nreaction; ++r) {
+                        avg_num_reactions[r] = std::max(0.,avg_reaction_rate[r]*dv*dt);
                     }
                     
+                    sample_num_reactions(n_in,num_reactions,avg_num_reactions);
                     for (int r=0; r<nreaction; ++r) {
-                        sample_num_reactions(n_in,num_reactions,avg_num_reactions);
                         for (int n=0; n<nspecies; ++n) {
                             rate(i,j,k,n) += num_reactions[r]/dv/dt * stoich_coeffs_PR(r,n);
-                        }                        
+                        }
                     }
                 }
             });
@@ -279,8 +279,19 @@ AMREX_GPU_HOST_DEVICE void compute_reaction_rates(GpuArray<Real,MAX_SPECIES>& n_
 
     if (use_mole_frac_LMA && include_discrete_LMA_correction) {
         Abort("compute_reaction_rates() - use_mole_frac_LMA && include_discrete_LMA_correction not supported");
-    } else if (include_discrete_LMA_correction == 0 && exclude_solvent_comput_rates == 0) {
-        Abort("compute_reaction_rates() -include_discrete_LMA_correction == 0 && exclude_solvent_comput_rates == 0 not supported");
+    } else if (include_discrete_LMA_correction == 0 && exclude_solvent_comput_rates == -1) {
+
+        if (use_mole_frac_LMA) {
+            Abort("compute_reaction_rates() - use_mole_frac_LMA not supported");
+        }
+
+        for (int r=0; r<nreaction; ++r) {
+            reaction_rates[r] = rate_multiplier*rate_const[r];
+            for (int n=0; n<nspecies; ++n) {
+                reaction_rates[r] *= std::pow(n_nonneg[n],stoich_coeffs_R(r,n));
+            }
+        }
+        
     } else { // General case of number-density based LMA is handled by slower code that includes species by species
     
         for (int r=0; r<nreaction; ++r) {
