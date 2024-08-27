@@ -193,8 +193,8 @@ void compute_compressible_chemistry_source_CLE(amrex::Real dt, amrex::Real dV,
 }
 
 
-void chemical_rates(const MultiFab& n_cc, MultiFab& chem_rate, amrex::Geometry geom, amrex::Real dt, 
-                    const MultiFab& n_interm, Vector<Real> lin_comb_coef_in, Real volume_factor_in)
+void ChemicalRates(const MultiFab& n_cc, MultiFab& chem_rate, const amrex::Geometry& geom, const amrex::Real& dt, 
+                   const MultiFab& n_interm, Vector<Real>& lin_comb_coef_in, Real volume_factor_in)
 {
     if (nreaction == 1) {
         chem_rate.setVal(0.);
@@ -227,13 +227,13 @@ void chemical_rates(const MultiFab& n_cc, MultiFab& chem_rate, amrex::Geometry g
         if (reaction_type == 2) { // SSA
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
             {
-                Abort("chemical_rates() - SSA not supported");
+                Abort("ChemicalRates() - SSA not supported");
             });
         } else {
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
             {
                 if (lin_comb_avg_react_rate == 1) {
-                    Abort("chemical_rates(); lin_comb_avg_react_rate == 1 not supported");
+                    Abort("ChemicalRates(); lin_comb_avg_react_rate == 1 not supported");
                 } else {
 
                     GpuArray<Real,MAX_SPECIES> n_in;
@@ -268,7 +268,7 @@ AMREX_GPU_HOST_DEVICE void compute_reaction_rates(GpuArray<Real,MAX_SPECIES>& n_
 {
     GpuArray<Real,MAX_SPECIES> n_nonneg;
     Real n_sum = 0.;
-
+    
     for (int n=0; n<nspecies; ++n) {
         n_nonneg[n] = std::max(0.,n_in[n]);
         n_sum += n_nonneg[n];
@@ -305,7 +305,7 @@ AMREX_GPU_HOST_DEVICE void sample_num_reactions(GpuArray<Real,MAX_SPECIES>& n_in
                                                 GpuArray<Real,MAX_REACTION>& num_reactions,
                                                 GpuArray<Real,MAX_REACTION>& avg_num_reactions)
 {
-    if (reaction_type == -1) { // deterministic
+    if (reaction_type == 0) { // deterministic
         for (int n=0; n<nreaction; ++n) {
             num_reactions[n] = avg_num_reactions[n];
         }

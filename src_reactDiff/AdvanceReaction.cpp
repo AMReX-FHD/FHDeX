@@ -27,12 +27,17 @@ void AdvanceReaction(MultiFab& n_old,
 
     MultiFab rate(ba,dmap,nspecies,0);
 
+    // only used for reactDiff_reaction_type = 1
+    Vector<Real> mattingly_lin_comb_coef(2);
+    mattingly_lin_comb_coef[0] = 1.;
+    mattingly_lin_comb_coef[1] = 0.;
+
     if (reactDiff_reaction_type == 0) { // first-order det/tau-leaping/CLE, or SSA
 
-        // ChemicalRates();
+        ChemicalRates(n_old,rate,geom,dt,n_old,mattingly_lin_comb_coef,volume_factor);
         
         MultiFab::LinComb(n_new,1,n_old,0,-dt,rate,0,0,nspecies,0);
-        MultiFab::Saxpy(n_new,-dt,ext_src,0,0,nspecies,0);
+        MultiFab::Saxpy(n_new,-dt,ext_src,0,0,nspecies,0); //note the negative sign 
 /*
       ! calculate rates
       ! rates could be deterministic or stochastic depending on use_Poisson_rng
