@@ -170,7 +170,7 @@ void main_driver(const char* argv)
         AdvanceTimestep(n_old,n_new,dt,time,geom);
 
         time += dt;
-        MultiFab::Copy(n_new,n_old,0,0,nspecies,1);
+        MultiFab::Copy(n_old,n_new,0,0,nspecies,1);
         
         if (stats_int > 0 && step%stats_int == 0 && step > n_steps_skip) {
             Abort("fix structure factor snapshot");
