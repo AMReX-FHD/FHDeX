@@ -37,21 +37,17 @@ void AdvanceTimestep(MultiFab& n_old,
 
         } else if (temporal_integrator == 1) {
             // (1/2)R + D + (1/2)R
-/*
-          call advance_reaction (mla,n_old,n_new,dx,0.5d0*dt,the_bc_tower,Rn_steady)
-          ! swap n_new/n_old to avoid calling copy()
-          call advance_diffusion(mla,n_new,n_old,dx,dt      ,the_bc_tower,Rn_steady)  
-          call advance_reaction (mla,n_old,n_new,dx,0.5d0*dt,the_bc_tower,Rn_steady)
-*/
+            AdvanceReaction(n_old,n_new,Rn_steady,0.5*dt,time,geom);
+            // swap n_new/n_old to avoid calling copy()
+            AdvanceDiffusion(n_new,n_old,Rn_steady,dt,time,geom);
+            AdvanceReaction(n_old,n_new,Rn_steady,0.5*dt,time,geom);
 
         } else if (temporal_integrator == 2) {
             // (1/2)D + R + (1/2)D
-/*
-          call advance_diffusion(mla,n_old,n_new,dx,0.5d0*dt,the_bc_tower,Rn_steady)
-          ! swap n_new/n_old to avoid calling copy()
-          call advance_reaction (mla,n_new,n_old,dx,dt      ,the_bc_tower,Rn_steady)
-          call advance_diffusion(mla,n_old,n_new,dx,0.5d0*dt,the_bc_tower,Rn_steady)
-*/
+            AdvanceDiffusion(n_old,n_new,Rn_steady,0.5*dt,time,geom);
+            // swap n_new/n_old to avoid calling copy()
+            AdvanceReaction(n_new,n_old,Rn_steady,dt,time,geom);
+            AdvanceDiffusion(n_old,n_new,Rn_steady,0.5*dt,time,geom);
 
         } else {
             Abort("AdvanceTimestep(): invalid temporal_integrator");
