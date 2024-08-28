@@ -13,8 +13,8 @@ cell_depth = 10.
 fixed_dt = 0.5
 
 # Controls for number of steps between actions
-max_step = 2
-plot_int = 1
+max_step = 20000
+plot_int = 200
 stats_int = -1
 
 seed = 1

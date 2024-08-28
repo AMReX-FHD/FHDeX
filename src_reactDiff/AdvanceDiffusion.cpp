@@ -17,10 +17,17 @@ void AdvanceDiffusion(MultiFab& n_old,
 
     // store for one component of D_Fick
     std::array< MultiFab, AMREX_SPACEDIM > diff_coef_face;
-    AMREX_D_TERM(diff_coef_face[0].define(convert(ba,nodal_flag_x), dmap, 1, 0);,
-                 diff_coef_face[1].define(convert(ba,nodal_flag_y), dmap, 1, 0);,
-                 diff_coef_face[2].define(convert(ba,nodal_flag_z), dmap, 1, 0););
+    AMREX_D_TERM(diff_coef_face[0].define(convert(ba,nodal_flag_x), dmap, nspecies, 0);,
+                 diff_coef_face[1].define(convert(ba,nodal_flag_y), dmap, nspecies, 0);,
+                 diff_coef_face[2].define(convert(ba,nodal_flag_z), dmap, nspecies, 0););
 
+    for (int i=0; i<nspecies; ++i) {
+        // load D_fick for species i
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            diff_coef_face[d].setVal(D_Fick[i],i,1,0);
+        }
+    }
+    
     // do not do diffusion if only one cell (well-mixed system)
     // there is no restriction on the number of cells
     // but we can shortcut the single cell case anyway for simplicity
@@ -36,7 +43,7 @@ void AdvanceDiffusion(MultiFab& n_old,
     MultiFab diff_fluxdiv (ba,dmap,nspecies,0);
     MultiFab stoch_fluxdiv(ba,dmap,nspecies,0);
 
-    DiffusiveNFluxdiv(n_old,diff_fluxdiv,geom,time);
+    DiffusiveNFluxdiv(n_old,diff_fluxdiv,diff_coef_face,geom,time);
 
     if (variance_coef_mass > 0.) {
         Abort("AdvanceDiffusion() - write stochastic case");
@@ -59,34 +66,27 @@ void AdvanceDiffusion(MultiFab& n_old,
         MultiFabPhysBC(n_new, geom, 0, nspecies, SPEC_BC_COMP, time);
 
         if (reactDiff_diffusion_type == 0) {
-            Abort("AdvanceDiffusion() - write trapezoidal corrector");
-
             /*
-
-          ! Trapezoidal corrector:
-          ! n_k^{n+1} = n_k^n + (dt/2) div (D_k grad n_k)^n
-          !                   + (dt/2) div (D_k grad n_k)^{n+1,*}
-          !                   +  dt    div (sqrt(2 D_k n_k / dt) Z)^n
-          !                   +  dt    ext_src
-          ! This is the same as stepping to time t+2*dt and then averaging with the state at time t:
-          !  n_new = 1/2 * (n_old + n_new + dt*div (D grad n_new) + div (sqrt(2 D_k n_k dt) Z)^n)
-          !  which is what we use below
-
-          ! compute diffusive flux divergence
-          call diffusive_n_fluxdiv(mla,n_new,diff_coef_face,diff_fluxdiv,dx,the_bc_tower)
-
-          do n=1,nlevs
-             call multifab_plus_plus_c(n_new(n),1,n_old(n),1,nspecies,0)
-             call multifab_saxpy_3(n_new(n),dt,diff_fluxdiv(n))
-             call multifab_saxpy_3(n_new(n),dt,stoch_fluxdiv(n))
-             call multifab_saxpy_3(n_new(n),dt,ext_src(n))
-             call multifab_mult_mult_s_c(n_new(n),1,0.5d0,nspecies,0)
-             call multifab_fill_boundary(n_new(n))
-             call multifab_physbc(n_new(n),1,scal_bc_comp,nspecies, &
-                                  the_bc_tower%bc_tower_array(n),dx_in=dx(n,:))
-          end do
-
+              ! Trapezoidal corrector:
+              ! n_k^{n+1} = n_k^n + (dt/2) div (D_k grad n_k)^n
+              !                   + (dt/2) div (D_k grad n_k)^{n+1,*}
+              !                   +  dt    div (sqrt(2 D_k n_k / dt) Z)^n
+              !                   +  dt    ext_src
+              ! This is the same as stepping to time t+2*dt and then averaging with the state at time t:
+              !  n_new = 1/2 * (n_old + n_new + dt*div (D grad n_new) + div (sqrt(2 D_k n_k dt) Z)^n)
+              !  which is what we use below
             */
+
+            // compute diffusive flux divergence
+            DiffusiveNFluxdiv(n_new,diff_fluxdiv,diff_coef_face,geom,time);
+
+            MultiFab::Saxpy(n_new,1.,n_old,0,0,nspecies,0);
+            MultiFab::Saxpy(n_new,dt,diff_fluxdiv ,0,0,nspecies,0);
+            MultiFab::Saxpy(n_new,dt,stoch_fluxdiv,0,0,nspecies,0);
+            MultiFab::Saxpy(n_new,dt,ext_src      ,0,0,nspecies,0);
+            n_new.mult(0.5);
+            n_new.FillBoundary(geom.periodicity());
+            MultiFabPhysBC(n_new, geom, 0, nspecies, SPEC_BC_COMP, time);
         }
         
     } else if (reactDiff_diffusion_type == 1) {
@@ -114,27 +114,33 @@ void AdvanceDiffusion(MultiFab& n_old,
        call implicit_diffusion(mla,n_old,n_new,stoch_fluxdiv,diff_coef_face,dx,dt,the_bc_tower)
         */
     } else if (reactDiff_diffusion_type == 2) {
-        Abort("AdvanceDiffusion() - write explicit midpoint scheme");
 
+        if (variance_coef_mass > 0.) {
+            Abort("AdvanceDiffusion() - write stochastic part of explicit midpoint scheme");
+        }
+        
         /*
-! explicit midpoint scheme
+       ! explicit midpoint scheme
 
        ! n_k^{n+1/2} = n_k^n + (dt/2) div (D_k grad n_k)^n
        !                     + (dt/2) div (sqrt(2 D_k n_k / (dt/2) ) Z_1)^n
        !                     + (dt/2) ext_src
-       do n=1,nlevs
-          call multifab_copy_c(n_new(n),1,n_old(n),1,nspecies,0)
-          call multifab_saxpy_3(n_new(n),dt/2.d0      ,diff_fluxdiv(n))
-          call multifab_saxpy_3(n_new(n),dt/sqrt(2.d0),stoch_fluxdiv(n))
-          call multifab_saxpy_3(n_new(n),dt/2.d0      ,ext_src(n))
-          call multifab_fill_boundary(n_new(n))
-          call multifab_physbc(n_new(n),1,scal_bc_comp,nspecies, &
-                               the_bc_tower%bc_tower_array(n),dx_in=dx(n,:))
-       end do
+        */
 
-       ! compute diffusive flux divergence at t^{n+1/2}
-       call diffusive_n_fluxdiv(mla,n_new,diff_coef_face,diff_fluxdiv,dx,the_bc_tower)
+        MultiFab::Copy(n_new,n_old,0,0,nspecies,0);
+        MultiFab::Saxpy(n_new,0.5*dt,diff_fluxdiv,0,0,nspecies,0);
+        MultiFab::Saxpy(n_new,dt/std::sqrt(2.),stoch_fluxdiv,0,0,nspecies,0);
+        MultiFab::Saxpy(n_new,0.5*dt,ext_src,0,0,nspecies,0);
+        n_new.FillBoundary(geom.periodicity());
+        MultiFabPhysBC(n_new, geom, 0, nspecies, SPEC_BC_COMP, time);
 
+        // compute diffusive flux divergence at t^{n+1/2}
+        DiffusiveNFluxdiv(n_new,diff_fluxdiv,diff_coef_face,geom,time);
+
+        if (variance_coef_mass > 0.) {
+            Abort("AdvanceDiffusion() - write stochastic part of explicit midpoint scheme");
+        }
+          /*
        if (variance_coef_mass .gt. 0.d0) then
           ! fill random flux multifabs with new random numbers
           call fill_mass_stochastic(mla,the_bc_tower%bc_tower_array)
@@ -163,7 +169,9 @@ void AdvanceDiffusion(MultiFab& n_old,
              call bl_error("advance_diffusion: invalid midpoint_stoch_flux_type")
           end select
        end if
-       
+          */
+
+       /*
        ! n_k^{n+1} = n_k^n + dt div (D_k grad n_k)^{n+1/2}
        !                   + dt div (sqrt(2 D_k n_k^n dt) Z_1 / sqrt(2) )
        !                   + dt div (sqrt(2 D_k n_k^? dt) Z_2 / sqrt(2) )
@@ -172,16 +180,14 @@ void AdvanceDiffusion(MultiFab& n_old,
        ! n_k^? = n_k^n               (midpoint_stoch_flux_type=1)
        !       = n_k^pred            (midpoint_stoch_flux_type=2)
        !       = 2*n_k^pred - n_k^n  (midpoint_stoch_flux_type=3)
-       do n=1,nlevs
-          call multifab_copy_c(n_new(n),1,n_old(n),1,nspecies,0)
-          call multifab_saxpy_3(n_new(n),dt           ,diff_fluxdiv(n))
-          call multifab_saxpy_3(n_new(n),dt/sqrt(2.d0),stoch_fluxdiv(n))
-          call multifab_saxpy_3(n_new(n),dt           ,ext_src(n))
-          call multifab_fill_boundary(n_new(n))
-          call multifab_physbc(n_new(n),1,scal_bc_comp,nspecies, &
-                               the_bc_tower%bc_tower_array(n),dx_in=dx(n,:))
-       end do
-         */
+       */
+
+        MultiFab::Copy(n_new,n_old,0,0,nspecies,0);
+        MultiFab::Saxpy(n_new,dt,diff_fluxdiv,0,0,nspecies,0);
+        MultiFab::Saxpy(n_new,dt/std::sqrt(2.),stoch_fluxdiv,0,0,nspecies,0);
+        MultiFab::Saxpy(n_new,dt,ext_src,0,0,nspecies,0);
+        n_new.FillBoundary(geom.periodicity());
+        MultiFabPhysBC(n_new, geom, 0, nspecies, SPEC_BC_COMP, time);
 
     } else {
         Abort("AdvanceDiffusion() - invalid reactDiff_diffusion_type");
@@ -192,6 +198,7 @@ void AdvanceDiffusion(MultiFab& n_old,
 
 void DiffusiveNFluxdiv(MultiFab& n_in,
                        MultiFab& diff_fluxdiv,
+                       const std::array< MultiFab, AMREX_SPACEDIM >& diff_coef_face,
                        const Geometry& geom,
                        const Real& time) {
 
@@ -265,7 +272,7 @@ void DiffusiveNFluxdiv(MultiFab& n_in,
 
         // load D_fick for species i into bcoef
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
-            bcoef[d].setVal(D_Fick[i]);
+            MultiFab::Copy(bcoef[d],diff_coef_face[d],i,0,1,0);
         }
         mlabec.setBCoeffs(0, amrex::GetArrOfConstPtrs(bcoef));
 
