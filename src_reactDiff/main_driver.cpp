@@ -31,26 +31,6 @@ void main_driver(const char* argv)
     InitializeChemistryNamespace();
     InitializeReactDiffNamespace();
 
-    // is the problem periodic?
-    Vector<int> is_periodic(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
-    for (int i=0; i<AMREX_SPACEDIM; ++i) {
-        if (bc_mass_lo[i] == -1 && bc_mass_hi[i] == -1) {
-            is_periodic[i] = 1;
-        }
-    }
-
-    // This defines the physical box, [-1,1] in each direction.
-    RealBox real_box({AMREX_D_DECL(prob_lo[0],prob_lo[1],prob_lo[2])},
-                     {AMREX_D_DECL(prob_hi[0],prob_hi[1],prob_hi[2])});
-    
-    IntVect dom_lo(AMREX_D_DECL(           0,            0,            0));
-    IntVect dom_hi(AMREX_D_DECL(n_cells[0]-1, n_cells[1]-1, n_cells[2]-1));
-    Box domain(dom_lo, dom_hi);
-
-    Geometry geom(domain,&real_box,CoordSys::cartesian,is_periodic.data());
-
-    const Real* dx = geom.CellSize();
-
     /////////////////////////////////////////
     // Initialize seeds for random number generator
     /////////////////////////////////////////
@@ -77,6 +57,35 @@ void main_driver(const char* argv)
                    mySeed+ParallelDescriptor::MyProc());
 
     }
+
+    if (nreaction > 0 && use_mole_frac_LMA) {
+        if (include_discrete_LMA_correction == 1) {
+            Abort("Error: currently use_mole_frac_LMA can be used only with include_discrete_LMA_correction=0");
+        }
+        if (exclude_solvent_comput_rates != -1) {
+            Abort("Error: currently use_mole_frac_LMA can be used only with exclude_solvent_comput_rates=-1");
+        }
+    }
+
+    // is the problem periodic?
+    Vector<int> is_periodic(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
+    for (int i=0; i<AMREX_SPACEDIM; ++i) {
+        if (bc_mass_lo[i] == -1 && bc_mass_hi[i] == -1) {
+            is_periodic[i] = 1;
+        }
+    }
+
+    // This defines the physical box, [-1,1] in each direction.
+    RealBox real_box({AMREX_D_DECL(prob_lo[0],prob_lo[1],prob_lo[2])},
+                     {AMREX_D_DECL(prob_hi[0],prob_hi[1],prob_hi[2])});
+
+    IntVect dom_lo(AMREX_D_DECL(           0,            0,            0));
+    IntVect dom_hi(AMREX_D_DECL(n_cells[0]-1, n_cells[1]-1, n_cells[2]-1));
+    Box domain(dom_lo, dom_hi);
+
+    Geometry geom(domain,&real_box,CoordSys::cartesian,is_periodic.data());
+
+    const Real* dx = geom.CellSize();
         
     BoxArray ba;
     DistributionMapping dmap;
@@ -113,8 +122,10 @@ void main_driver(const char* argv)
         }
 
         if (std::abs(initial_variance_mass) > 0.) {
-            Abort("initial_variance_mass not supported yet");
-            // add_init_n_fluctuations()
+            if (integer_populations == 0) {
+                Abort("add_init_n_fluctuations not supported yet");
+                // add_init_n_fluctuations()
+            }
         }
 
     } else {

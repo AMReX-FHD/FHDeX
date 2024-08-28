@@ -274,22 +274,69 @@ AMREX_GPU_HOST_DEVICE void compute_reaction_rates(GpuArray<Real,MAX_SPECIES>& n_
                                                   const amrex::Real& dv)
 {
     GpuArray<Real,MAX_SPECIES> n_nonneg;
+
     Real n_sum = 0.;
-    
     for (int n=0; n<nspecies; ++n) {
         n_nonneg[n] = std::max(0.,n_in[n]);
         n_sum += n_nonneg[n];
     }
     if (n_sum < 0.) {
         n_sum = 1./dv;
+        Abort("compute_reaction_rates() - n_sum < 0, is this right?");
     }
 
     if (use_mole_frac_LMA && include_discrete_LMA_correction) {
-        Abort("compute_reaction_rates() - use_mole_frac_LMA && include_discrete_LMA_correction not supported");
+
+        Abort("compute_reaction_rates() - use_mole_frac_LMA && include_discrete_LMA_correction not supported yet");
+
+/*
+      ! Use mole-fraction based LMA (general ideal mixtures) with integer corrections
+
+      do reaction=1, nreactions
+        reaction_rates(reaction) = rate_multiplier*rate_const(reaction)
+        do species=1, nspecies
+          ! Donev: Replaced case statement by if here
+          ! Donev: Made sure n_sum is never zero for empty cells to avoid division by zero
+
+          if(stoichiometric_factors(species,1,reaction)>=1) then
+            ! rate ~ N/N_sum
+            if(n_nonneg(species)>0.0d0) then ! This species is present in this cell
+               reaction_rates(reaction) = reaction_rates(reaction) * n_nonneg(species)/n_sum
+            else
+               reaction_rates(reaction) = 0.0d0
+            end if
+          end if
+          if(stoichiometric_factors(species,1,reaction)>=2) then
+            ! rate ~ (N/N_sum)*((N-1)/(N_sum-1))
+            ! Donev: Avoid division by zero or negative rates
+            if(n_nonneg(species)>1.0d0/dv) then ! There is at least one molecule of this species in this cell
+               reaction_rates(reaction) = reaction_rates(reaction) * (n_nonneg(species)-1.0d0/dv)/(n_sum-1.0d0/dv)
+            else
+               reaction_rates(reaction) = 0.0d0
+            end if
+          end if
+          if(stoichiometric_factors(species,1,reaction)>=3) then ! Donev added ternary reactions here
+            ! rate ~ (N/N_sum)*((N-1)/(N_sum-1))*((N-2)/(N_sum-2))
+            if(n_nonneg(species)>2.0d0/dv) then ! There is at least two molecules of this species in this cell
+              reaction_rates(reaction) = reaction_rates(reaction) * (n_nonneg(species)-2.0d0/dv)/(n_sum-2.0d0/dv)
+            else
+               reaction_rates(reaction) = 0.0d0
+            end if
+          end if
+          if(stoichiometric_factors(species,1,reaction)>=4) then
+            ! This is essentially impossible in practice and won't happen
+            call bl_error("Stochiometric coefficients larger then 3 not supported")
+          end if
+        end do
+      end do
+*/
+
     } else if (include_discrete_LMA_correction == 0 && exclude_solvent_comput_rates == -1) {
 
         if (use_mole_frac_LMA) {
-            Abort("compute_reaction_rates() - use_mole_frac_LMA not supported");
+            for (int n=0; n<nspecies; ++n) {
+                n_nonneg[n] /= n_sum;
+            }
         }
 
         for (int r=0; r<nreaction; ++r) {
@@ -309,7 +356,21 @@ AMREX_GPU_HOST_DEVICE void compute_reaction_rates(GpuArray<Real,MAX_SPECIES>& n_
                     continue;
                 }
                 if (include_discrete_LMA_correction) {
-                    Abort("compute_reaction_rates() - include_discrete_LMA_correction == 1 not supported");
+
+                    int coef = stoich_coeffs_R(r,n);
+                    if (coef == 0) {
+                        // Species doe not participate in reaction
+                    } else if (coef == 1) {
+                        reaction_rates[r] *= n_nonneg[n];
+                    } else if (coef == 2) {
+                        reaction_rates[r] *= n_nonneg[n]*std::max(0.,n_nonneg[n]-1./dv);
+                    } else if (coef == 3) {
+                        reaction_rates[r] *= n_nonneg[n]*std::max(0.,n_nonneg[n]-1./dv)*std::max(0.,n_nonneg[n]-2./dv);
+                    } else {
+                        // This is essentially impossible in practice and won't happen
+                        Abort("Stochiometric coefficients larger then 3 not supported");
+                    }
+
                 } else {
                     reaction_rates[r] *= std::pow(n_nonneg[n],stoich_coeffs_R(r,n));
                 }
