@@ -232,29 +232,36 @@ void ChemicalRates(const MultiFab& n_cc, MultiFab& chem_rate, const amrex::Geome
         } else {
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
             {
+                GpuArray<Real,MAX_SPECIES> n_in;
+                GpuArray<Real,MAX_SPECIES> n_int_in;
+                GpuArray<Real,MAX_REACTION> avg_reaction_rate;
+                GpuArray<Real,MAX_REACTION> avg_reaction_rate_interm;
+                GpuArray<Real,MAX_REACTION> avg_num_reactions;
+                GpuArray<Real,MAX_REACTION> num_reactions;
+
+                for (int n=0; n<nspecies; ++n) {
+                    rate(i,j,k,n) = 0.;
+                    n_in[n]     = n_arr(i,j,k,n);
+                    n_int_in[n] = n_int(i,j,k,n);
+                }
+
                 if (lin_comb_avg_react_rate == 1) {
-                    Abort("ChemicalRates(); lin_comb_avg_react_rate == 1 not supported");
+                    compute_reaction_rates(n_in    , avg_reaction_rate       , dv);
+                    compute_reaction_rates(n_int_in, avg_reaction_rate_interm, dv);
+                    for (int r=0; r<nreaction; ++r) {
+                        avg_reaction_rate[r] = lin_comb_coef[0]*avg_reaction_rate[r] + lin_comb_coef[1]*avg_reaction_rate_interm[r];
+                    }
                 } else {
-
-                    GpuArray<Real,MAX_SPECIES> n_in;
-                    GpuArray<Real,MAX_REACTION> avg_reaction_rate;
-                    GpuArray<Real,MAX_REACTION> avg_num_reactions;
-                    GpuArray<Real,MAX_REACTION> num_reactions;
-
-                    for (int n=0; n<nspecies; ++n) {
-                        rate(i,j,k,n) = 0.;
-                        n_in[n] = n_arr(i,j,k,n);
-                    }
                     compute_reaction_rates(n_in, avg_reaction_rate, dv);
-                    for (int r=0; r<nreaction; ++r) {
-                        avg_num_reactions[r] = std::max(0.,avg_reaction_rate[r]*dv*dt);
-                    }
-                    
-                    sample_num_reactions(n_in,num_reactions,avg_num_reactions);
-                    for (int r=0; r<nreaction; ++r) {
-                        for (int n=0; n<nspecies; ++n) {
-                            rate(i,j,k,n) += num_reactions[r]/dv/dt * stoich_coeffs_PR(r,n);
-                        }
+                }
+
+                for (int r=0; r<nreaction; ++r) {
+                    avg_num_reactions[r] = std::max(0.,avg_reaction_rate[r]*dv*dt);
+                }
+                sample_num_reactions(n_in,num_reactions,avg_num_reactions);
+                for (int r=0; r<nreaction; ++r) {
+                    for (int n=0; n<nspecies; ++n) {
+                        rate(i,j,k,n) += num_reactions[r]/dv/dt * stoich_coeffs_PR(r,n);
                     }
                 }
             });
