@@ -1,3 +1,4 @@
+#include "rng_functions.H"
 #include "reactDiff_functions.H"
 
 void StochasticNFluxdiv(MultiFab& n_in,
@@ -23,6 +24,11 @@ void StochasticNFluxdiv(MultiFab& n_in,
     AMREX_D_TERM(flux[0].define(convert(ba,nodal_flag_x), dmap, nspecies, 0);,
                  flux[1].define(convert(ba,nodal_flag_y), dmap, nspecies, 0);,
                  flux[2].define(convert(ba,nodal_flag_z), dmap, nspecies, 0););
+
+    std::array< MultiFab, AMREX_SPACEDIM > rand;
+    AMREX_D_TERM(rand[0].define(convert(ba,nodal_flag_x), dmap, nspecies, 0);,
+                 rand[1].define(convert(ba,nodal_flag_y), dmap, nspecies, 0);,
+                 rand[2].define(convert(ba,nodal_flag_z), dmap, nspecies, 0););
 
     const Real* dx = geom.CellSize();
 
@@ -60,11 +66,59 @@ void StochasticNFluxdiv(MultiFab& n_in,
         );
     }
 
+    // generate random numbers
+    for (int i=0; i<AMREX_SPACEDIM; ++i) {
+        for (int n=0; n<nspecies; ++n) {
+            MultiFabFillRandom(rand[i], n, 1., geom, 0);
+        }
+    }
+    
     // assemble_stoch_n_fluxes
-    //
-    //
-    //
+    for (MFIter mfi(n_in); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.validbox();
 
+        const Array4<const Real>& n_arr = n_in.array(mfi);
+
+        AMREX_D_TERM(const Array4<Real> & fluxx = flux[0].array(mfi);,
+                     const Array4<Real> & fluxy = flux[1].array(mfi);,
+                     const Array4<Real> & fluxz = flux[2].array(mfi););
+
+        AMREX_D_TERM(const Array4<Real> & randx = rand[0].array(mfi);,
+                     const Array4<Real> & randy = rand[1].array(mfi);,
+                     const Array4<Real> & randz = rand[2].array(mfi););
+
+        AMREX_D_TERM(const Array4<const Real> & coefx = diff_coef_face[0].array(mfi);,
+                     const Array4<const Real> & coefy = diff_coef_face[1].array(mfi);,
+                     const Array4<const Real> & coefz = diff_coef_face[2].array(mfi););
+
+        AMREX_D_TERM(const Box & bx_x = mfi.nodaltilebox(0);,
+                     const Box & bx_y = mfi.nodaltilebox(1);,
+                     const Box & bx_z = mfi.nodaltilebox(2););
+        
+        amrex::ParallelFor(bx_x, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+        {
+            fluxx(i,j,k,n) = std::sqrt(coefx(i,j,k,n)*fluxx(i,j,k,n)) * randx(i,j,k,n);
+        },
+                           bx_y, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+        {
+            fluxy(i,j,k,n) = std::sqrt(coefy(i,j,k,n)*fluxy(i,j,k,n)) * randy(i,j,k,n);
+        }
+#if (AMREX_SPACEDIM == 3)
+                         , bx_z, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+        {
+            fluxz(i,j,k,n) = std::sqrt(coefz(i,j,k,n)*fluxz(i,j,k,n)) * randz(i,j,k,n);            
+        }
+#endif
+        );
+    }
+
+    for (int i=0; i<AMREX_SPACEDIM; ++i) {
+        if (bc_mass_lo[i] != -1 || bc_mass_hi[i] != -1) {
+            Abort("StochasticNFluxdiv() - implement physical bc's for noise");
+        }
+    }
+    
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
         flux[i].mult(2.*variance_coef_mass/(dv*dt));
     }

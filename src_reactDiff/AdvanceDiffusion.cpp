@@ -43,7 +43,7 @@ void AdvanceDiffusion(MultiFab& n_old,
     DiffusiveNFluxdiv(n_old,diff_fluxdiv,diff_coef_face,geom,time);
 
     if (variance_coef_mass > 0.) {
-        Abort("AdvanceDiffusion() - write stochastic case");
+        StochasticNFluxdiv(n_old,stoch_fluxdiv,diff_coef_face,geom,dt,time,0);
     } else {
         stoch_fluxdiv.setVal(0.);
     }

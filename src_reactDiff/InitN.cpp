@@ -58,6 +58,10 @@ void InitN(MultiFab& n_in,
         } else {
             Abort("prob_type not implemented yet");
         }
+
+        if (integer_populations == 1) {
+            Abort("InitN() - integer_populations not supported yet");
+        }
         
     }
     
