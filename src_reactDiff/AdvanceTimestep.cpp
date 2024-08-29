@@ -17,9 +17,9 @@ void AdvanceTimestep(MultiFab& n_old,
     MultiFab Rn_steady(n_old.boxArray(), n_old.DistributionMap(), nspecies, 0);
     
     if (temporal_integrator < 0) {
+
         // unsplit schemes
-
-
+        AdvanceReactionDiffusion(n_old,n_new,Rn_steady,dt,time,geom);
 
     } else {
 

@@ -37,6 +37,16 @@ void AdvanceReaction(MultiFab& n_old,
                      const Geometry& geom);
 
 ////////////////////////
+// In AdvanceReactionDiffusion.cpp
+////////////////////////
+void AdvanceReactionDiffusion(MultiFab& n_old,
+                              MultiFab& n_new,
+                              const MultiFab& ext_src,
+                              const Real& dt,
+                              const Real& time,
+                              const Geometry& geom);
+
+////////////////////////
 // In AdvanceTimestep.cpp
 ////////////////////////
 void AdvanceTimestep(MultiFab& n_old,

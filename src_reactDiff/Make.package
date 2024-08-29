@@ -1,4 +1,5 @@
 CEXE_sources   += AdvanceReaction.cpp
+CEXE_sources   += AdvanceReactionDiffusion.cpp
 CEXE_sources   += AdvanceDiffusion.cpp
 CEXE_sources   += AdvanceTimestep.cpp
 CEXE_sources   += DiffusiveNFluxdiv.cpp
