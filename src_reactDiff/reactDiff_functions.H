@@ -26,12 +26,6 @@ void AdvanceDiffusion(MultiFab& n_old,
                       const Real& time,
                       const Geometry& geom);
 
-void DiffusiveNFluxdiv(MultiFab& n_in,
-                       MultiFab& diff_fluxdiv,
-                       const std::array< MultiFab, AMREX_SPACEDIM >& diff_coef_face,
-                       const Geometry& geom,
-                       const Real& time);
-
 ////////////////////////
 // In AdvanceReaction.cpp
 ////////////////////////
@@ -52,11 +46,35 @@ void AdvanceTimestep(MultiFab& n_old,
                      const Geometry& geom);
 
 ////////////////////////
+// In DiffusiveNFluxdiv.cpp
+////////////////////////
+void DiffusiveNFluxdiv(MultiFab& n_in,
+                       MultiFab& diff_fluxdiv,
+                       const std::array< MultiFab, AMREX_SPACEDIM >& diff_coef_face,
+                       const Geometry& geom,
+                       const Real& time);
+
+////////////////////////
 // In InitN.cpp
 ////////////////////////
 void InitN(MultiFab& n_in,
            const Geometry& geom,
            const Real& time);
+
+////////////////////////
+// In StochasticNFluxdiv.cpp
+////////////////////////
+void StochasticNFluxdiv(MultiFab& n_in,
+                        MultiFab& stoch_fluxdiv,
+                        const std::array< MultiFab, AMREX_SPACEDIM >& diff_coef_face,
+                        const Geometry& geom,
+                        const Real& dt,
+                        const Real& time,
+                        int increment_div=0);
+
+AMREX_GPU_HOST_DEVICE Real average_to_faces(const Real& value1,
+                                            const Real& value2,
+                                            const Real& dv);
 
 ////////////////////////
 // In WritePlotFile.cpp
