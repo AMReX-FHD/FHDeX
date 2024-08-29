@@ -18,6 +18,8 @@ void AdvanceTimestep(MultiFab& n_old,
     
     if (temporal_integrator < 0) {
 
+        Rn_steady.setVal(0.);
+
         // unsplit schemes
         AdvanceReactionDiffusion(n_old,n_new,Rn_steady,dt,time,geom);
 
