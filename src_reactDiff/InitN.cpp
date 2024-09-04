@@ -59,12 +59,36 @@ void InitN(MultiFab& n_in,
             Abort("prob_type not implemented yet");
         }
 
-        if (integer_populations == 1) {
-            Abort("InitN() - integer_populations not supported yet");
-        }
-        
     }
-    
+
+    if (integer_populations == 1) { // Ensure that the initial number of molecules are integers
+
+        Real dv = (AMREX_SPACEDIM == 3) ? dx[0]*dx[1]*dx[2] : dx[0]*dx[1]*cell_depth;
+
+        if (initial_variance_mass < 0.) { // Distribute the particles on the box using a multinomial sampler
+
+            Abort("integer_populations=1 with initial_variance_mass < 0. not supported yet");
+
+        } else { // Make the number of molecules in each cell Poisson distributed with desired mean
+
+            for ( MFIter mfi(n_in,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
+        
+                const Box& bx = mfi.tilebox();
+
+                const Array4<Real> & n_init = n_in.array(mfi);
+
+                amrex::ParallelForRNG(bx, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n, amrex::RandomEngine const& engine) noexcept
+                {
+                    // Generate the initial fluctuations using a Poisson random number generator
+                    // This assumes that the distribution of initial conditions is a product Poisson measure
+                    int nparticles = RandomPoisson(n_init(i,j,k,n)*dv, engine);
+                    n_init(i,j,k,n) = nparticles / dv;
+                });
+            }
+
+        }
+    }
+
     n_in.FillBoundary(geom.periodicity());
     MultiFabPhysBC(n_in, geom, 0, nspecies, SPEC_BC_COMP, time);
 }

@@ -39,6 +39,8 @@ prob_type = 0
 
 n_init_in_1 = 1685.8 533.5 56.38 # Start on the limit cycle
 
+integer_populations = 1
+
 # 0=D+R (first-order splitting)
 # 1=(1/2)R + D + (1/2)R (Strang option 1)
 # 2=(1/2)D + R + (1/2)D (Strang option 2)
@@ -60,6 +62,7 @@ reactDiff_diffusion_type = 4
 D_Fick = 0.1 0.01 0.01
 
 variance_coef_mass = 1.
+initial_variance_mass = 1.
 
 # how to compute n on faces for stochastic weighting
 # 1=arithmetic (with C0-Heaviside), 2=geometric, 3=harmonic
