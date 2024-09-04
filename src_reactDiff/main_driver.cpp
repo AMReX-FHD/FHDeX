@@ -177,12 +177,21 @@ void main_driver(const char* argv)
 
     // time step loop
     for(int step=step_start;step<=max_step;++step) {
+
+        // store the current time so we can later compute total run time.
+        Real step_strt_time = ParallelDescriptor::second();
         
         AdvanceTimestep(n_old,n_new,dt,time,geom);
 
         time += dt;
         MultiFab::Copy(n_old,n_new,0,0,nspecies,1);
-        
+
+        // Call the timer again and compute the maximum difference between the start time
+        // and stop time over all processors
+        Real step_stop_time = ParallelDescriptor::second() - step_strt_time;
+        ParallelDescriptor::ReduceRealMax(step_stop_time);
+        amrex::Print() << "Time step " << step << " complted in " << step_stop_time << " seconds\n";
+
         if (stats_int > 0 && step%stats_int == 0 && step > n_steps_skip) {
             Abort("fix structure factor snapshot");
         }

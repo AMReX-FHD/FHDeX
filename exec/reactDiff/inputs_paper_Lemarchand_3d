@@ -21,11 +21,11 @@ n_cells = 256 256 256
 max_grid_size = 64 64 64
 
 # Time-step control
-fixed_dt = 0.25
+fixed_dt = 0.01
 
 # Controls for number of steps between actions
-max_step = 2000
-plot_int = 20
+max_step = 20000
+plot_int = 200
 stats_int = -1
 
 seed = 1
@@ -37,7 +37,8 @@ prob_type = 5
 perturb_width = 16.    # scale factor for perturbed part in initial profile (for prob_type=4,5)
 smoothing_width = 1.   # scale factor for smoothing initial profile (for prob_type=4,5)
 
-n_init_in_1 = 1685.8 533.5 56.38 # Start on the limit cycle
+n_init_in_1 = 2.16245 1.35018
+n_init_in_2 = 0. 10.
 
 # 0=D+R (first-order splitting)
 # 1=(1/2)R + D + (1/2)R (Strang option 1)
@@ -59,7 +60,7 @@ reactDiff_diffusion_type = 4
 # Fickian diffusion coeffs
 D_Fick = 1. 10.
 
-variance_coef_mass = 1.
+variance_coef_mass = 1.e-3
 
 # how to compute n on faces for stochastic weighting
 # 1=arithmetic (with C0-Heaviside), 2=geometric, 3=harmonic
@@ -103,5 +104,5 @@ include_discrete_LMA_correction = 1
 # -1 = periodic
 #  1 = wall (Neumann)
 #  2 = reservoir (Dirichlet)
-bc_mass_lo = -1 -1
-bc_mass_hi = -1 -1
+bc_mass_lo = -1 -1 -1
+bc_mass_hi = -1 -1 -1
