@@ -56,12 +56,23 @@ void AdvanceTimestep(MultiFab& n_old,
                      const Geometry& geom);
 
 ////////////////////////
-// In DiffusiveNFluxdiv.cpp
+// In ImplicitDiffusion.cpp
 ////////////////////////
 void DiffusiveNFluxdiv(MultiFab& n_in,
                        MultiFab& diff_fluxdiv,
                        const std::array< MultiFab, AMREX_SPACEDIM >& diff_coef_face,
                        const Geometry& geom,
+                       const Real& time);
+
+////////////////////////
+// In DiffusiveNFluxdiv.cpp
+////////////////////////
+void ImplicitDiffusion(MultiFab& n_old,
+                       MultiFab& n_new,
+                       const MultiFab& rhs,
+                       const std::array< MultiFab, AMREX_SPACEDIM >& diff_coef_face,
+                       const Geometry& geom,
+                       const Real& dt_fac,
                        const Real& time);
 
 ////////////////////////

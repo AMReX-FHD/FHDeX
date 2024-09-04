@@ -3,6 +3,7 @@ CEXE_sources   += AdvanceReactionDiffusion.cpp
 CEXE_sources   += AdvanceDiffusion.cpp
 CEXE_sources   += AdvanceTimestep.cpp
 CEXE_sources   += DiffusiveNFluxdiv.cpp
+CEXE_sources   += ImplicitDiffusion.cpp
 CEXE_sources   += InitN.cpp
 CEXE_sources   += reactDiff_functions.cpp
 CEXE_sources   += StochasticNFluxdiv.cpp

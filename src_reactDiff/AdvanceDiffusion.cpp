@@ -87,8 +87,6 @@ void AdvanceDiffusion(MultiFab& n_old,
         }
         
     } else if (reactDiff_diffusion_type == 1) {
-        Abort("AdvanceDiffusion() - write Crank-Nicolson");
-
         /*
        ! Crank-Nicolson
        ! n_k^{n+1} = n_k^n + (dt/2)(div D_k grad n_k)^n
@@ -96,20 +94,20 @@ void AdvanceDiffusion(MultiFab& n_old,
        !                   +  dt    div (sqrt(2 D_k n_k / dt) Z)^n
        !                   +  dt    ext_src
        !
-       ! in delta formulation:
-       !
-       ! (I - div (dt/2) D_k grad) delta n_k =   dt div (D_k grad n_k^n)
-       !                                       + dt div (sqrt(2 D_k n_k / dt) Z)^n
-       !                                       + dt ext_src
-       !
+       ! ( I- (dt/2) div D_k grad) n_k^n+1 = n_k^n
+       !                                     + (dt/2)(div D_k grad n_k)^n
+       !                                     +  dt    div (sqrt(2 D_k n_k / dt) Z)^n
+       !                                     +  dt    ext_src
        ! we combine the entire rhs into stoch_fluxdiv
-       do n=1,nlevs
-          call multifab_plus_plus(stoch_fluxdiv(n),ext_src(n),0)
-          call multifab_plus_plus(stoch_fluxdiv(n),diff_fluxdiv(n),0)
-          call multifab_mult_mult_s(stoch_fluxdiv(n),dt)
-       end do
-       call implicit_diffusion(mla,n_old,n_new,stoch_fluxdiv,diff_coef_face,dx,dt,the_bc_tower)
         */
+
+        MultiFab::Saxpy(stoch_fluxdiv,1.,ext_src,0,0,nspecies,0);
+        MultiFab::Saxpy(stoch_fluxdiv,0.5,diff_fluxdiv,0,0,nspecies,0);
+        stoch_fluxdiv.mult(dt);
+        MultiFab::Saxpy(stoch_fluxdiv,1.,n_old,0,0,nspecies,0);
+
+        ImplicitDiffusion(n_old, n_new, stoch_fluxdiv, diff_coef_face, geom, 0.5*dt, time);
+
     } else if (reactDiff_diffusion_type == 2) {
 
         if (variance_coef_mass > 0.) {
