@@ -1,16 +1,30 @@
+# This inputs file is used for generating
+# - Figure 8 (Section V.C)
+# in Paper by C. Kim et al. "Stochastic simulation of reaction-diffusion
+#  systems: A fluctuating-hydrodynamics approach"
+#  J. Chem. Phys. 146, 124110 (2017).
+# You can change some relevant parameters such as
+# - initial_variance_mass: 0 (smooth initial condition) 1 (with fluctuations):
+# - variance_coef_mass: 0 (deterministic diffusion) 1 (stochastic)
+# - reaction_type: 0=deterministic; 1=CLE; 2=SSA; 3=tau leap
+# and run this inputs file.
+
+# ** in the paper, cell_depth = 1000 is used
+# ** but in the current code, cross_section cannot be set independently
+
 # Problem specification
-prob_lo =   0.0   0.0   0.0       # physical lo coordinate
-prob_hi = 512.0 512.0 512.0       # physical hi coordinate
+prob_lo =   0.0   0.0   0.0      # physical lo coordinate
+prob_hi = 512.0 512.0 512.0      # physical hi coordinate
 
 # number of cells in domain and maximum number of cells in a box
 n_cells = 256 256 256
-max_grid_size = 128 128 128
+max_grid_size = 64 64 64
 
 # Time-step control
 fixed_dt = 0.25
 
 # Controls for number of steps between actions
-max_step = 1000
+max_step = 2000
 plot_int = 20
 stats_int = -1
 
@@ -20,9 +34,10 @@ nspecies = 2
 nreaction = 4
 
 prob_type = 5
+perturb_width = 16.    # scale factor for perturbed part in initial profile (for prob_type=4,5)
+smoothing_width = 1.   # scale factor for smoothing initial profile (for prob_type=4,5)
 
-n_init_in_1 = 2.16245 1.35018
-n_init_in_2 = 0.      10.
+n_init_in_1 = 1685.8 533.5 56.38 # Start on the limit cycle
 
 # 0=D+R (first-order splitting)
 # 1=(1/2)R + D + (1/2)R (Strang option 1)
@@ -44,8 +59,6 @@ reactDiff_diffusion_type = 4
 # Fickian diffusion coeffs
 D_Fick = 1. 10.
 
-perturb_width = 16.
-smoothing_width = 2.
 variance_coef_mass = 1.
 
 # how to compute n on faces for stochastic weighting
@@ -63,7 +76,6 @@ reactDiff_reaction_type = 0
 # 0=deterministic; 1=CLE; 2=SSA; 3=tau leap
 reaction_type = 0
 
-# model is:
 #     (1) A -> 0
 #     (2) 2A + B --> 3A
 #     (3) B --> 0
@@ -81,7 +93,7 @@ stoich_4P = 0 1
 # using rate_multiplier, reaction rates can be changed by the same factor
 # if include_discrete_LMA_correction, n^2 and n^3 in rate expressions become
 # n*(n-1/dv) and n*(n-1/dv)*(n-2/dv). 
-rate_const = 4. 1.37 1. 10.
+rate_const =  4. 1.37 1. 10.
 rate_multiplier = 0.1
 include_discrete_LMA_correction = 1
 
@@ -91,6 +103,5 @@ include_discrete_LMA_correction = 1
 # -1 = periodic
 #  1 = wall (Neumann)
 #  2 = reservoir (Dirichlet)
-bc_mass_lo = -1 -1 -1
-bc_mass_hi = -1 -1 -1
-
+bc_mass_lo = -1 -1
+bc_mass_hi = -1 -1

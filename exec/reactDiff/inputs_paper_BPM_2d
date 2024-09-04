@@ -1,3 +1,16 @@
+# This inputs file is used for generating
+# - Figures 5, 6, 7 (Section V.B)
+# in Paper by C. Kim et al. "Stochastic simulation of reaction-diffusion
+#  systems: A fluctuating-hydrodynamics approach"
+#  J. Chem. Phys. 146, 124110 (2017).
+# You can change some relevant parameters such as
+# - cell_depth
+# - n_cells (64^2 or 256^2) and max_grid_size
+# - fixed_dt, max_step
+# - plot_int (plot files)
+# - temporal_integrator, reaction_type (numerical scheme)
+# and run this inputs file.
+
 # Problem specification
 prob_lo =  0.0  0.0       # physical lo coordinate
 prob_hi = 32.0 32.0       # physical hi coordinate
