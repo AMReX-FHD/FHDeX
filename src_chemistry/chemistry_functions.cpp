@@ -230,7 +230,7 @@ void ChemicalRates(const MultiFab& n_cc, MultiFab& chem_rate, const amrex::Geome
                 Abort("ChemicalRates() - SSA not supported");
             });
         } else {
-            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
+            amrex::ParallelForRNG(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k, amrex::RandomEngine const& engine) noexcept
             {
                 GpuArray<Real,MAX_SPECIES> n_in;
                 GpuArray<Real,MAX_SPECIES> n_int_in;
@@ -258,7 +258,7 @@ void ChemicalRates(const MultiFab& n_cc, MultiFab& chem_rate, const amrex::Geome
                 for (int r=0; r<nreaction; ++r) {
                     avg_num_reactions[r] = std::max(0.,avg_reaction_rate[r]*dv*dt);
                 }
-                sample_num_reactions(n_in,num_reactions,avg_num_reactions);
+                sample_num_reactions(n_in,num_reactions,avg_num_reactions,engine);
                 for (int r=0; r<nreaction; ++r) {
                     for (int n=0; n<nspecies; ++n) {
                         rate(i,j,k,n) += num_reactions[r]/dv/dt * stoich_coeffs_PR(r,n);
@@ -382,11 +382,21 @@ AMREX_GPU_HOST_DEVICE void compute_reaction_rates(GpuArray<Real,MAX_SPECIES>& n_
 
 AMREX_GPU_HOST_DEVICE void sample_num_reactions(GpuArray<Real,MAX_SPECIES>& n_in,
                                                 GpuArray<Real,MAX_REACTION>& num_reactions,
-                                                GpuArray<Real,MAX_REACTION>& avg_num_reactions)
+                                                GpuArray<Real,MAX_REACTION>& avg_num_reactions,
+                                                const amrex::RandomEngine& engine)
 {
     if (reaction_type == 0) { // deterministic
         for (int n=0; n<nreaction; ++n) {
             num_reactions[n] = avg_num_reactions[n];
+        }
+    } else if (reaction_type == 1) { // CLE
+        for (int n=0; n<nreaction; ++n) {
+            Real rand = RandomNormal(0.,1.,engine);
+            num_reactions[n] = avg_num_reactions[n] + std::sqrt(avg_num_reactions[n])*rand;
+        }
+    } else if (reaction_type == 3) { // tau leaping
+        for (int n=0; n<nreaction; ++n) {
+            num_reactions[n] = RandomPoisson(avg_num_reactions[n], engine);
         }
     } else {
         Abort("sample_num_reactions() - reaction_type not supported");

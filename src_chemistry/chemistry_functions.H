@@ -29,5 +29,6 @@ AMREX_GPU_HOST_DEVICE void compute_reaction_rates(GpuArray<Real,MAX_SPECIES>& n_
 
 AMREX_GPU_HOST_DEVICE void sample_num_reactions(GpuArray<Real,MAX_SPECIES>& n_in,
                                                 GpuArray<Real,MAX_REACTION>& num_reactions,
-                                                GpuArray<Real,MAX_REACTION>& avg_num_reactions);
+                                                GpuArray<Real,MAX_REACTION>& avg_num_reactions,
+                                                const amrex::RandomEngine& engine);
 #endif

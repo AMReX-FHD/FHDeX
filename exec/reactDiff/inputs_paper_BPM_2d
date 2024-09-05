@@ -77,7 +77,7 @@ avg_type = 1
 reactDiff_reaction_type = 0
 
 # 0=deterministic; 1=CLE; 2=SSA; 3=tau leap
-reaction_type = 0
+reaction_type = 1
 
 # BPM model is:
 #     (1) U + W --> V + W
