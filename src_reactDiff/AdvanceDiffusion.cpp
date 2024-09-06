@@ -109,10 +109,6 @@ void AdvanceDiffusion(MultiFab& n_old,
         ImplicitDiffusion(n_old, n_new, stoch_fluxdiv, diff_coef_face, geom, 0.5*dt, time);
 
     } else if (reactDiff_diffusion_type == 2) {
-
-        if (variance_coef_mass > 0.) {
-            Abort("AdvanceDiffusion() - write stochastic part of explicit midpoint scheme");
-        }
         
         /*
        ! explicit midpoint scheme
@@ -133,38 +129,34 @@ void AdvanceDiffusion(MultiFab& n_old,
         DiffusiveNFluxdiv(n_new,diff_fluxdiv,diff_coef_face,geom,time);
 
         if (variance_coef_mass > 0.) {
-            Abort("AdvanceDiffusion() - write stochastic part of explicit midpoint scheme");
-        }
-          /*
-       if (variance_coef_mass .gt. 0.d0) then
-          ! fill random flux multifabs with new random numbers
-          call fill_mass_stochastic(mla,the_bc_tower%bc_tower_array)
 
-          ! compute second-stage stochastic flux divergence and
-          ! add to first-stage stochastic flux divergence
-          select case (midpoint_stoch_flux_type)
-          case (1)
-             ! use n_old
-             call stochastic_n_fluxdiv(mla,n_old,diff_coef_face,stoch_fluxdiv,dx,dt, &
-                                       the_bc_tower,increment_in=.true.)
-          case (2)
-             ! use n_pred 
-             call stochastic_n_fluxdiv(mla,n_new,diff_coef_face,stoch_fluxdiv,dx,dt, &
-                                       the_bc_tower,increment_in=.true.)
-          case (3)
-             ! We use n_new=2*n_pred-n_old here as temporary storage since we will overwrite it shortly
-             do n=1,nlevs
-                call multifab_mult_mult_s_c(n_new(n),1,2.d0,nspecies,n_new(n)%ng)
-                call multifab_sub_sub_c(n_new(n),1,n_old(n),1,nspecies,n_new(n)%ng)
-             end do
-             ! use n_new=2*n_pred-n_old
-             call stochastic_n_fluxdiv(mla,n_new,diff_coef_face,stoch_fluxdiv,dx,dt, &
-                                       the_bc_tower,increment_in=.true.)
-          case default
-             call bl_error("advance_diffusion: invalid midpoint_stoch_flux_type")
-          end select
-       end if
-          */
+            // fill random flux multifabs with new random numbers and
+            // compute second-stage stochastic flux divergence and
+            // add to first-stage stochastic flux divergence
+            if (midpoint_stoch_flux_type == 1) {
+
+                // use n_old
+                StochasticNFluxdiv(n_old,stoch_fluxdiv,diff_coef_face,geom,dt,time,1);
+
+            } else if (midpoint_stoch_flux_type == 2) {
+
+                // use n_pred
+                StochasticNFluxdiv(n_new,stoch_fluxdiv,diff_coef_face,geom,dt,time,1);
+
+            } else if (midpoint_stoch_flux_type == 3) {
+
+                // We use n_new=2*n_pred-n_old here as temporary storage since we will overwrite it shortly
+                n_new.mult(2.);
+                MultiFab::Subtract(n_new,n_old,0,0,nspecies,1);
+
+                // use n_new=2*n_pred-n_old
+                StochasticNFluxdiv(n_new,stoch_fluxdiv,diff_coef_face,geom,dt,time,1);
+                
+            } else {
+                Abort("AdvanceDiffusion() - invalid midpoint_stoch_flux_type");
+            }
+        }
+
 
        /*
        ! n_k^{n+1} = n_k^n + dt div (D_k grad n_k)^{n+1/2}
