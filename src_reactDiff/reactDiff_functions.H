@@ -26,6 +26,14 @@ void AdvanceDiffusion(MultiFab& n_old,
                       const Real& time,
                       const Geometry& geom);
 
+void GenerateStochasticFluxdivCorrector(MultiFab& n_old,
+                                        MultiFab& n_new,
+                                        MultiFab& stoch_fluxdiv,
+                                        const std::array< MultiFab, AMREX_SPACEDIM >& diff_coef_face,
+                                        const Real& dt,
+                                        const Real& time,
+                                        const Geometry& geom);
+
 ////////////////////////
 // In AdvanceReaction.cpp
 ////////////////////////

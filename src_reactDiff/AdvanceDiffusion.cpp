@@ -129,34 +129,8 @@ void AdvanceDiffusion(MultiFab& n_old,
         DiffusiveNFluxdiv(n_new,diff_fluxdiv,diff_coef_face,geom,time);
 
         if (variance_coef_mass > 0.) {
-
-            // fill random flux multifabs with new random numbers and
-            // compute second-stage stochastic flux divergence and
-            // add to first-stage stochastic flux divergence
-            if (midpoint_stoch_flux_type == 1) {
-
-                // use n_old
-                StochasticNFluxdiv(n_old,stoch_fluxdiv,diff_coef_face,geom,dt,time,1);
-
-            } else if (midpoint_stoch_flux_type == 2) {
-
-                // use n_pred
-                StochasticNFluxdiv(n_new,stoch_fluxdiv,diff_coef_face,geom,dt,time,1);
-
-            } else if (midpoint_stoch_flux_type == 3) {
-
-                // We use n_new=2*n_pred-n_old here as temporary storage since we will overwrite it shortly
-                n_new.mult(2.);
-                MultiFab::Subtract(n_new,n_old,0,0,nspecies,1);
-
-                // use n_new=2*n_pred-n_old
-                StochasticNFluxdiv(n_new,stoch_fluxdiv,diff_coef_face,geom,dt,time,1);
-                
-            } else {
-                Abort("AdvanceDiffusion() - invalid midpoint_stoch_flux_type");
-            }
+            GenerateStochasticFluxdivCorrector(n_old,n_new,stoch_fluxdiv,diff_coef_face,dt,time,geom);
         }
-
 
        /*
        ! n_k^{n+1} = n_k^n + dt div (D_k grad n_k)^{n+1/2}
@@ -180,4 +154,39 @@ void AdvanceDiffusion(MultiFab& n_old,
         Abort("AdvanceDiffusion() - invalid reactDiff_diffusion_type");
     }
     
+}
+
+void GenerateStochasticFluxdivCorrector(MultiFab& n_old,
+                                        MultiFab& n_new,
+                                        MultiFab& stoch_fluxdiv,
+                                        const std::array< MultiFab, AMREX_SPACEDIM >& diff_coef_face,
+                                        const Real& dt,
+                                        const Real& time,
+                                        const Geometry& geom) {
+
+    // fill random flux multifabs with new random numbers and
+    // compute second-stage stochastic flux divergence and
+    // add to first-stage stochastic flux divergence
+    if (midpoint_stoch_flux_type == 1) {
+
+        // use n_old
+        StochasticNFluxdiv(n_old,stoch_fluxdiv,diff_coef_face,geom,dt,time,1);
+
+    } else if (midpoint_stoch_flux_type == 2) {
+
+        // use n_pred
+        StochasticNFluxdiv(n_new,stoch_fluxdiv,diff_coef_face,geom,dt,time,1);
+
+    } else if (midpoint_stoch_flux_type == 3) {
+
+        // We use n_new=2*n_pred-n_old here as temporary storage since we will overwrite it shortly
+        n_new.mult(2.);
+        MultiFab::Subtract(n_new,n_old,0,0,nspecies,1);
+
+        // use n_new=2*n_pred-n_old
+        StochasticNFluxdiv(n_new,stoch_fluxdiv,diff_coef_face,geom,dt,time,1);
+                
+    } else {
+        Abort("GenerateStochasticFluxdivCorrector() - invalid midpoint_stoch_flux_type");
+    }
 }
