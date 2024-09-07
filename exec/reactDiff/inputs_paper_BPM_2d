@@ -48,7 +48,7 @@ integer_populations = 1
 # -2=unsplit explicit midpoint 
 # -3=unsplit multinomial diffusion
 # -4=unsplit implicit midpoint
-temporal_integrator = 0
+temporal_integrator = -4
 
 # only used for split schemes (temporal_integrator>=0)
 # 0=explicit trapezoidal predictor/corrector

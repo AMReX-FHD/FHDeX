@@ -212,7 +212,7 @@ void ChemicalRates(const MultiFab& n_cc, MultiFab& chem_rate, const amrex::Geome
 
     const Real* dx = geom.CellSize();
 
-    Real dv = (AMREX_SPACEDIM == 3) ? dx[0]*dx[1]*dx[2] : dx[0]*dx[1]*cell_depth;
+    Real dv = (AMREX_SPACEDIM == 3) ? dx[0]*dx[1]*dx[2]*cell_depth : dx[0]*dx[1]*cell_depth;
     dv *= volume_factor_in;
     
     for (MFIter mfi(n_cc); mfi.isValid(); ++mfi)

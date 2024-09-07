@@ -160,49 +160,41 @@ void AdvanceReactionDiffusion(MultiFab& n_old,
          !                     + 1/dV * P_1( f(n_k)*(dt/2)*dV )                   ! Poisson noise
          !                     + (dt/2)       ext_src
          !
-         ! in delta form
-         !
-         ! (I - div (dt/2) D_k grad) delta n_k =   (dt/2)       div (D_k grad n_k^n)
+         ! (I - div (dt/2) D_k grad) n_k^{n+1/2} = n_k^n
          !                                       + (dt/sqrt(2)) div (sqrt(2 D_k n_k^n / (dt*dV)) Z_1
          !                                       + 1/dV * P_1( f(n_k)*(dt/2)*dV )
          !                                       + (dt/2) ext_src
-         
-         do n=1,nlevs
-            call multifab_build(rhs(n),mla%la(n),nspecies,0)
-            call multifab_build(rate2(n),mla%la(n),nspecies,0)
-         end do
+*/
 
-         ! calculate rates
-         ! rates could be deterministic or stochastic depending on use_Poisson_rng
-         call chemical_rates(mla,n_old,rate1,dx,dt/2.d0,vol_fac_in=volume_factor)
+            MultiFab rhs  (ba,dmap,nspecies,0);
+            MultiFab rate2(ba,dmap,nspecies,0);
 
-         do n=1,nlevs
-            call multifab_setval(rhs(n),0.d0)
-            call multifab_saxpy_3(rhs(n),dt/2.d0,diff_fluxdiv(n))
-            call multifab_saxpy_3(rhs(n),dt/sqrt(2.d0),stoch_fluxdiv(n))
-            call multifab_saxpy_3(rhs(n),dt/2.d0,rate1(n))
-            if(present(ext_src)) call multifab_saxpy_3(rhs(n),dt/2.d0,ext_src(n))
-         end do
+            // calculate rates
+            // rates could be deterministic or stochastic depending on use_Poisson_rng
+            ChemicalRates(n_old,rate1,geom,0.5*dt,n_old,mattingly_lin_comb_coef,volume_factor);
 
-         call implicit_diffusion(mla,n_old,n_new,rhs,diff_coef_face,dx,dt,the_bc_tower)
+            MultiFab::Copy(rhs,n_old,0,0,nspecies,0);
+            MultiFab::Saxpy(rhs,dt/std::sqrt(2.),stoch_fluxdiv,0,0,nspecies,0);
+            MultiFab::Saxpy(rhs,0.5*dt,rate1,0,0,nspecies,0);
+            MultiFab::Saxpy(rhs,0.5*dt,ext_src,0,0,nspecies,0);
 
-         ! corrector
+            ImplicitDiffusion(n_old, n_new, rhs, diff_coef_face, geom, 0.5*dt, time);
 
-         ! calculate rates from 2*a(n_pred)-a(n_old)
-         call chemical_rates(mla,n_old,rate2,dx,dt/2.d0,n_new,mattingly_lin_comb_coef,vol_fac_in=volume_factor)
+            // corrector
 
-         ! compute stochastic flux divergence and add to the ones from the predictor stage
-         if (variance_coef_mass .gt. 0.d0) then
+            // calculate rates from 2*a(n_pred)-a(n_old)
+            mattingly_lin_comb_coef[0] = -1.;
+            mattingly_lin_comb_coef[1] = 2.;
+            ChemicalRates(n_old,rate2,geom,0.5*dt,n_new,mattingly_lin_comb_coef,volume_factor);
             
-            ! first, fill random flux multifabs with new random numbers
-            call fill_mass_stochastic(mla,the_bc_tower%bc_tower_array)
+            // compute stochastic flux divergence and add to the ones from the predictor stage
+            if (variance_coef_mass > 0.) {
+                // compute n on faces to use in the stochastic flux in the corrector
+                // three possibilities
+                GenerateStochasticFluxdivCorrector(n_old,n_new,stoch_fluxdiv,diff_coef_face,dt,time,geom);
+            }
 
-            ! compute n on faces to use in the stochastic flux in the corrector
-            ! three possibilities
-            call generate_stochastic_fluxdiv_corrector()
-
-         end if
-
+/*            
          ! Crank-Nicolson
          ! n_k^{n+1} = n_k^n + (dt/2) div (D_k grad n_k)^n
          !                   + (dt/2) div (D_k grad n_k)^{n+1}
@@ -214,25 +206,22 @@ void AdvanceReactionDiffusion(MultiFab& n_old,
          !
          ! in delta form
          !
-         ! (I - div (dt/2) D_k grad) delta n_k =   dt div (D_k grad n_k^n)
-         !                   + dt div (sqrt(2 D_k n_k^n / (dt*dV)) Z_1 / sqrt(2) ) ! Gaussian noise
-         !                   + dt div (sqrt(2 D_k n_k^? / (dt*dV)) Z_2 / sqrt(2) ) ! Gaussian noise
-         !                   + 1/dV * P_1( f(n_k)*(dt/2)*dV )                        ! Poisson noise
-         !                   + 1/dV * P_2( (2*f(n_k^pred)-f(n_k))*(dt/2)*dV )        ! Poisson noise
-         !                   + dt ext_src
-
-         do n=1,nlevs
-            call multifab_setval(rhs(n),0.d0)
-            call multifab_saxpy_3(rhs(n),dt,diff_fluxdiv(n))
-            call multifab_saxpy_3(rhs(n),dt/sqrt(2.d0),stoch_fluxdiv(n))
-            call multifab_saxpy_3(rhs(n),dt/2.d0,rate1(n))
-            call multifab_saxpy_3(rhs(n),dt/2.d0,rate2(n))
-            if(present(ext_src)) call multifab_saxpy_3(rhs(n),dt,ext_src(n))
-         end do
-      
-         call implicit_diffusion(mla,n_old,n_new,rhs,diff_coef_face,dx,dt,the_bc_tower)
+         ! (I - div (dt/2) D_k grad) n_k^{n+1} = n_k^n
+         !                                     + (dt/2) div (D_k grad n_k^n)
+         !                                     + dt div (sqrt(2 D_k n_k^n / (dt*dV)) Z_1 / sqrt(2) ) ! Gaussian noise
+         !                                     + dt div (sqrt(2 D_k n_k^? / (dt*dV)) Z_2 / sqrt(2) ) ! Gaussian noise
+         !                                     + 1/dV * P_1( f(n_k)*(dt/2)*dV )                      ! Poisson noise
+         !                                     + 1/dV * P_2( (2*f(n_k^pred)-f(n_k))*(dt/2)*dV )      ! Poisson noise
+         !                                     + dt ext_src
 */
-             Abort("AdvanceReactionDiffusion() - temporal_integrator=-4 (non-SSA) not written yet");
+            MultiFab::Copy(rhs,n_old,0,0,nspecies,0);
+            MultiFab::Saxpy(rhs,0.5*dt,diff_fluxdiv,0,0,nspecies,0);
+            MultiFab::Saxpy(rhs,dt/std::sqrt(2.),stoch_fluxdiv,0,0,nspecies,0);
+            MultiFab::Saxpy(rhs,0.5*dt,rate1,0,0,nspecies,0);
+            MultiFab::Saxpy(rhs,0.5*dt,rate2,0,0,nspecies,0);
+            MultiFab::Saxpy(rhs,dt,ext_src,0,0,nspecies,0);
+
+            ImplicitDiffusion(n_old, n_new, rhs, diff_coef_face, geom, 0.5*dt, time);
 
         }
     } else {

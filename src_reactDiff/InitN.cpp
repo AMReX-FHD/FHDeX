@@ -63,7 +63,7 @@ void InitN(MultiFab& n_in,
 
     if (integer_populations == 1) { // Ensure that the initial number of molecules are integers
 
-        Real dv = (AMREX_SPACEDIM == 3) ? dx[0]*dx[1]*dx[2] : dx[0]*dx[1]*cell_depth;
+        Real dv = (AMREX_SPACEDIM == 3) ? dx[0]*dx[1]*dx[2]*cell_depth : dx[0]*dx[1]*cell_depth;
 
         if (initial_variance_mass < 0.) { // Distribute the particles on the box using a multinomial sampler
 

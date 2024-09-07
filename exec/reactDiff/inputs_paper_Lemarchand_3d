@@ -9,9 +9,6 @@
 # - reaction_type: 0=deterministic; 1=CLE; 2=SSA; 3=tau leap
 # and run this inputs file.
 
-# ** in the paper, cell_depth = 1000 is used
-# ** but in the current code, cross_section cannot be set independently
-
 # Problem specification
 prob_lo =   0.0   0.0   0.0      # physical lo coordinate
 prob_hi = 512.0 512.0 512.0      # physical hi coordinate
@@ -20,8 +17,11 @@ prob_hi = 512.0 512.0 512.0      # physical hi coordinate
 n_cells = 256 256 256
 max_grid_size = 64 64 64
 
+# volume scale factor in 3D problems
+cell_depth = 1000.
+
 # Time-step control
-fixed_dt = 0.01
+fixed_dt = 0.25
 
 # Controls for number of steps between actions
 max_step = 20000
@@ -47,7 +47,7 @@ n_init_in_2 = 0. 10.
 # -2=unsplit explicit midpoint 
 # -3=unsplit multinomial diffusion
 # -4=unsplit implicit midpoint
-temporal_integrator = 0
+temporal_integrator = -4
 
 # only used for split schemes (temporal_integrator>=0)
 # 0=explicit trapezoidal predictor/corrector
@@ -60,7 +60,7 @@ reactDiff_diffusion_type = 4
 # Fickian diffusion coeffs
 D_Fick = 1. 10.
 
-variance_coef_mass = 1.e-3
+variance_coef_mass = 1.
 
 # how to compute n on faces for stochastic weighting
 # 1=arithmetic (with C0-Heaviside), 2=geometric, 3=harmonic
@@ -75,7 +75,7 @@ avg_type = 1
 reactDiff_reaction_type = 0
 
 # 0=deterministic; 1=CLE; 2=SSA; 3=tau leap
-reaction_type = 0
+reaction_type = 1
 
 #     (1) A -> 0
 #     (2) 2A + B --> 3A

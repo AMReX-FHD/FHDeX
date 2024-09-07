@@ -32,7 +32,7 @@ void StochasticNFluxdiv(MultiFab& n_in,
 
     const Real* dx = geom.CellSize();
 
-    Real dv = (AMREX_SPACEDIM == 3) ? dx[0]*dx[1]*dx[2] : dx[0]*dx[1]*cell_depth;
+    Real dv = (AMREX_SPACEDIM == 3) ? dx[0]*dx[1]*dx[2]*cell_depth : dx[0]*dx[1]*cell_depth;
 
     // average n_in to faces, store in flux
     for (MFIter mfi(n_in); mfi.isValid(); ++mfi)
