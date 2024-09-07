@@ -15,7 +15,7 @@ prob_hi = 512.0 512.0 512.0      # physical hi coordinate
 
 # number of cells in domain and maximum number of cells in a box
 n_cells = 256 256 256
-max_grid_size = 64 64 64
+max_grid_size = 256 256 256
 
 # volume scale factor in 3D problems
 cell_depth = 1000.
@@ -24,8 +24,8 @@ cell_depth = 1000.
 fixed_dt = 0.25
 
 # Controls for number of steps between actions
-max_step = 20000
-plot_int = 200
+max_step = 800
+plot_int = 10
 stats_int = -1
 
 seed = 1
@@ -75,7 +75,7 @@ avg_type = 1
 reactDiff_reaction_type = 0
 
 # 0=deterministic; 1=CLE; 2=SSA; 3=tau leap
-reaction_type = 1
+reaction_type = 3
 
 #     (1) A -> 0
 #     (2) 2A + B --> 3A
