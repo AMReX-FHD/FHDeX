@@ -26,7 +26,8 @@ fixed_dt = 0.25
 # Controls for number of steps between actions
 max_step = 800
 plot_int = 10
-stats_int = -1
+struct_fact_int = -1
+n_steps_skip = 200
 
 seed = 1
 

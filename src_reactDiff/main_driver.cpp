@@ -2,6 +2,7 @@
 #include "common_functions.H"
 #include "chemistry_functions.H"
 #include "reactDiff_functions.H"
+#include "StructFact.H"
 
 #include <AMReX_VisMF.H>
 #include <AMReX_PlotFileUtil.H>
@@ -95,7 +96,39 @@ void main_driver(const char* argv)
 
     MultiFab n_old;
     MultiFab n_new;
+
+    ///////////////////////////////////////////
+    // Initialize structure factor object for analysis
+    ///////////////////////////////////////////
+
+    Vector< std::string > var_names;
+    var_names.resize(nspecies);
+
+    int cnt = 0;
+    std::string x;
+
+    // n0, n1, ...
+    for (int d=0; d<nspecies; d++) {
+      x = "n";
+      x += (49+d);
+      var_names[cnt++] = x;
+    }
+
+    // need to use dv for scaling
+    Real dv = (AMREX_SPACEDIM==2) ? dx[0]*dx[1]*cell_depth : dx[0]*dx[1]*dx[2]*cell_depth;
+
+    // 0 = compute only specified pais listed in s_pairA and s_pairB
+    // 1 = compute all possible pairs of variables
+    int compute_all_pairs = 1;
+
+    int nPairs = (compute_all_pairs) ? nspecies*(nspecies+1)/2 : 2;
     
+    Vector<Real> var_scaling(nPairs);
+    for (int d=0; d<var_scaling.size(); ++d) {
+        var_scaling[d] = 1./dv;
+    }
+
+    StructFact structFact;
 
     if (restart < 0) {
 
@@ -128,9 +161,29 @@ void main_driver(const char* argv)
             }
         }
 
+        // structure factor
+        if (compute_all_pairs) {
+            // option to compute all pairs
+            structFact.define(ba,dmap,var_names,var_scaling);
+        } else {
+            // option to compute only specified pairs
+            int nPairs = 2;
+            amrex::Vector< int > s_pairA(nPairs);
+            amrex::Vector< int > s_pairB(nPairs);
+
+            // Select which variable pairs to include in structure factor:
+            s_pairA[0] = 0;
+            s_pairB[0] = 0;
+            s_pairA[1] = 1;
+            s_pairB[1] = 1;
+    
+            structFact.define(ba,dmap,var_names,var_scaling,s_pairA,s_pairB);
+        }
+
     } else {
 
         // checkpoint restart
+        Abort("checkpoint read not implemented yet");
         
     }
 
@@ -165,10 +218,6 @@ void main_driver(const char* argv)
             Print() << "WARNING in advance_reaction_diffusion: use splitting based schemes (temporal_integrator>=0) for diffusion only" << std::endl;
         }
     }
-
-    if (stats_int > 0) {
-        Abort("Structure factor not implemented yet");
-    }
     
     int istep = (restart < 0) ? 0 : restart;
     WritePlotFile(istep,time,geom,n_old);
@@ -192,21 +241,26 @@ void main_driver(const char* argv)
         ParallelDescriptor::ReduceRealMax(step_stop_time);
         amrex::Print() << "Time step " << step << " complted in " << step_stop_time << " seconds\n";
 
-        if (stats_int > 0 && step%stats_int == 0 && step > n_steps_skip) {
-            Abort("fix structure factor snapshot");
+        // add a snapshot to the structure factor
+	if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip)%struct_fact_int == 0) {
+
+            // add this snapshot to the average in the structure factor
+            structFact.FortStructure(n_new,geom);
+
         }
         
         if (plot_int > 0 && step%plot_int == 0) {
 
             WritePlotFile(step,time,geom,n_new);
 
-            if (stats_int > 0 && step > n_steps_skip) {
-                Abort("fix structure factor plotfile write");
+            // write out structure factor to plotfile
+            if (step > n_steps_skip && struct_fact_int > 0) {
+                structFact.WritePlotFile(step,time,geom,"plt_SF");
             }
         }
 
         if (chk_int > 0 && step%chk_int == 0) {
-            Abort("fix checkpoint write");
+            Abort("checkpoint write not implemented yet");
         }
         
         // MultiFab memory usage
