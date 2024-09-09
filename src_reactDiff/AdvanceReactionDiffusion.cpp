@@ -73,8 +73,65 @@ void AdvanceReactionDiffusion(MultiFab& n_old,
 
         if (reaction_type == 2) { // explicit midpoint with SSA
 
-            Abort("AdvanceReactionDiffusion() - temporal_integrator=-2 (SSA) not written yet");
+            //!!!!!!!!!!!!!!
+            // predictor   !
+            //!!!!!!!!!!!!!!
+
+            /*
+         ! n_k^{**} = n_k^n + (dt/2)       div (D_k grad n_k)^n
+         !                  + (dt/sqrt(2)) div sqrt(2 D_k n_k^n / (dt*dV)) Z_1 ! Gaussian noise
+         !                  + (dt/2)       ext_src
+            */
+            MultiFab::Copy(n_new,n_old,0,0,nspecies,0);
+            MultiFab::Saxpy(n_new,0.5*dt,diff_fluxdiv,0,0,nspecies,0);
+            MultiFab::Saxpy(n_new,dt/std::sqrt(2.),stoch_fluxdiv,0,0,nspecies,0);
+            MultiFab::Saxpy(n_new,0.5*dt,ext_src,0,0,nspecies,0);
+
+            // computing rate1 = R(n^{**},dt/2) / (dt/2)
+            ChemicalRates(n_new,rate1,geom,0.5*dt,n_old,mattingly_lin_comb_coef,volume_factor);
             
+            // n_k^* = n_k^{**} + R(n^{**},dt/2)
+            MultiFab::Saxpy(n_new,0.5*dt,rate1,0,0,nspecies,0);
+            n_new.FillBoundary(geom.periodicity());
+            MultiFabPhysBC(n_new, geom, 0, nspecies, SPEC_BC_COMP, time);
+
+            //!!!!!!!!!!!!!!
+            // corrector   !
+            //!!!!!!!!!!!!!!
+
+            // compute diffusive flux divergence
+            DiffusiveNFluxdiv(n_new,diff_fluxdiv,diff_coef_face,geom,time);
+
+            // computing rate2 = R(n^*,dt/2) / (dt/2)
+            ChemicalRates(n_new,rate2,geom,0.5*dt,n_old,mattingly_lin_comb_coef,volume_factor);
+
+            // compute stochastic flux divergence and add to the ones from the predictor stage
+            if (variance_coef_mass > 0.) {
+                GenerateStochasticFluxdivCorrector(n_old,n_new,stoch_fluxdiv,diff_coef_face,dt,time,geom);
+            }
+
+            /*
+         ! n_k^{n+1} = n_k^n + dt div (D_k grad n_k)^*
+         !                   + dt div (sqrt(2 D_k n_k^n / (dt*dV)) Z_1 / sqrt(2) ) ! Gaussian noise
+         !                   + dt div (sqrt(2 D_k n_k^? / (dt*dV)) Z_2 / sqrt(2) ) ! Gaussian noise
+         !                   + R(n^{**},dt/2)
+         !                   + R(n^{*},dt/2)
+         !                   + dt ext_src
+         ! where
+         ! n_k^? = n_k^n               (midpoint_stoch_flux_type=1)
+         !       = n_k^pred            (midpoint_stoch_flux_type=2)
+         !       = 2*n_k^pred - n_k^n  (midpoint_stoch_flux_type=3)
+            */
+
+            MultiFab::Copy(n_new,n_old,0,0,nspecies,0);
+            MultiFab::Saxpy(n_new,dt,diff_fluxdiv,0,0,nspecies,0);
+            MultiFab::Saxpy(n_new,dt/std::sqrt(2.),stoch_fluxdiv,0,0,nspecies,0);
+            MultiFab::Saxpy(n_new,0.5*dt,rate1,0,0,nspecies,0);
+            MultiFab::Saxpy(n_new,0.5*dt,rate2,0,0,nspecies,0);
+            MultiFab::Saxpy(n_new,dt,ext_src,0,0,nspecies,0);
+            n_new.FillBoundary(geom.periodicity());
+            MultiFabPhysBC(n_new, geom, 0, nspecies, SPEC_BC_COMP, time);
+
         } else { // explicit midpoint for det/tau/CLE
 
             //!!!!!!!!!!!!!!
@@ -149,7 +206,59 @@ void AdvanceReactionDiffusion(MultiFab& n_old,
 
         if (reaction_type == 2) { // implicit midpoint with SSA
 
-            Abort("AdvanceReactionDiffusion() - temporal_integrator=-4 (SSA) not written yet");
+            /*
+         ! backward Euler predictor to half-time
+         ! n_k^* = n_k^n + (dt/2)       div (D_k grad n_k)^*
+         !               + (dt/sqrt(2)) div sqrt(2 D_k n_k^n / (dt*dV)) Z_1 ! Gaussian noise
+         !               + (dt/2)       ext_src
+         !
+         ! (I - div (dt/2) D_k grad) n_k^* = n_k^n
+         !                                   + (dt/sqrt(2)) div (sqrt(2 D_k n_k^n / (dt*dV)) Z_1
+         !                                   + (dt/2) ext_src
+            */
+
+            MultiFab rhs(ba,dmap,nspecies,0);
+
+            MultiFab::Copy(rhs,n_old,0,0,nspecies,0);
+            MultiFab::Saxpy(rhs,dt/std::sqrt(2.),stoch_fluxdiv,0,0,nspecies,0);
+            MultiFab::Saxpy(rhs,0.5*dt,ext_src,0,0,nspecies,0);
+
+            ImplicitDiffusion(n_old, n_new, rhs, diff_coef_face, geom, 0.5*dt, time);
+
+            // corrector
+
+            // compute R(n^*,dt) / dt
+            ChemicalRates(n_new,rate1,geom,dt,n_new,mattingly_lin_comb_coef,volume_factor);
+
+            // compute stochastic flux divergence and add to the ones from the predictor stage
+            if (variance_coef_mass > 0.) {
+                GenerateStochasticFluxdivCorrector(n_old,n_new,stoch_fluxdiv,diff_coef_face,dt,time,geom);
+            }
+
+            /*
+         ! Crank-Nicolson
+         ! n_k^{n+1} = n_k^n + (dt/2) div (D_k grad n_k)^n
+         !                   + (dt/2) div (D_k grad n_k)^{n+1}
+         !                   + dt div (sqrt(2 D_k n_k^n / (dt*dV)) Z_1 / sqrt(2) ) ! Gaussian noise
+         !                   + dt div (sqrt(2 D_k n_k^? / (dt*dV)) Z_2 / sqrt(2) ) ! Gaussian noise
+         !                   + R(n^*,dt)
+         !                   + dt ext_src
+         !
+         ! (I - div (dt/2) D_k grad) n_k^{n+1} = n_k^n
+                             + (dt/2) div (D_k grad n_k^n)
+         !                   + dt div (sqrt(2 D_k n_k^n / (dt*dV)) Z_1 / sqrt(2) ) ! Gaussian noise
+         !                   + dt div (sqrt(2 D_k n_k^? / (dt*dV)) Z_2 / sqrt(2) ) ! Gaussian noise
+         !                   + R(n^*,dt)
+         !                   + dt ext_src
+            */
+
+            MultiFab::Copy(rhs,n_old,0,0,nspecies,0);
+            MultiFab::Saxpy(rhs,0.5*dt,diff_fluxdiv,0,0,nspecies,0);
+            MultiFab::Saxpy(rhs,dt/std::sqrt(2.),stoch_fluxdiv,0,0,nspecies,0);
+            MultiFab::Saxpy(rhs,dt,rate1,0,0,nspecies,0);
+            MultiFab::Saxpy(rhs,dt,ext_src,0,0,nspecies,0);
+
+            ImplicitDiffusion(n_old, n_new, rhs, diff_coef_face, geom, 0.5*dt, time);
 
         } else { // implicit midpoint for det/tau/CLE
 
