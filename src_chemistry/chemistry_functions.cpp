@@ -277,6 +277,10 @@ void ChemicalRates(const MultiFab& n_cc, MultiFab& chem_rate, const amrex::Geome
                         n_new[n] += stoich_coeffs_PR(which_reaction,n)/dv;
                     }
                 }
+
+                for (int n=0; n<nspecies; ++n) {
+                    rate(i,j,k,n) = (n_new[n] - n_old[n] ) / dt;
+                }
             });
 
         } else {
