@@ -225,10 +225,60 @@ void ChemicalRates(const MultiFab& n_cc, MultiFab& chem_rate, const amrex::Geome
         const Array4<Real>& rate = chem_rate.array(mfi);
 
         if (reaction_type == 2) { // SSA
-            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
+
+            amrex::ParallelForRNG(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k, amrex::RandomEngine const& engine) noexcept
             {
-                Abort("ChemicalRates() - SSA not supported");
+                GpuArray<Real,MAX_SPECIES> n_old;
+                GpuArray<Real,MAX_SPECIES> n_new;
+                GpuArray<Real,MAX_REACTION> avg_reaction_rate;
+
+                Real t_local = 0.;
+                
+                for (int n=0; n<nspecies; ++n) {
+                    n_old[n] = n_arr(i,j,k,n);
+                    n_new[n] = n_arr(i,j,k,n);
+                }
+
+                while(true)
+                {
+                    compute_reaction_rates(n_new,avg_reaction_rate,dv);
+
+                    Real rTotal = 0.;
+                    for (int m=0; m<nreaction; m++)
+                    {
+                        // convert reation rates to propensities
+                        avg_reaction_rate[m] = std::max(0.,avg_reaction_rate[m]*dv);
+                        rTotal += avg_reaction_rate[m];
+                    }
+
+                    if (rTotal==0.) break;
+
+                    Real u1 = amrex::Random(engine);
+                    Real tau = -log(1-u1)/rTotal;
+                    t_local += tau; // update t_local
+
+                    if (t_local > dt) break;
+
+                    Real u2 = amrex::Random(engine);
+                    u2 *= rTotal;
+
+                    // find which reaction has occured
+                    int which_reaction=0;
+                    Real rSum = 0.;
+                    for (int m=0; m<nreaction; m++)
+                    {
+                        rSum = rSum + avg_reaction_rate[m];
+                        which_reaction = m;
+                        if (rSum >= u2) break;
+                    }
+
+                    // update number densities for the reaction that has occured
+                    for (int n=0; n<nspecies; n++) {
+                        n_new[n] += stoich_coeffs_PR(which_reaction,n)/dv;
+                    }
+                }
             });
+
         } else {
             amrex::ParallelForRNG(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k, amrex::RandomEngine const& engine) noexcept
             {
