@@ -1,24 +1,26 @@
 
   # Problem specification
   prob_lo = 0.0 0.0 0.0   # physical lo coordinate
-  prob_hi = 2.5e-2 2.5e-2 5e-2   # physical hi coordinate
+  prob_hi = 3.1e-2 3.1e-2 3.1e-2   # physical hi coordinate
 
   # refer to Init.cpp
   prob_type = 3
   
   # number of cells in domain
-  #n_cells = 32 32 32
-  n_cells = 64 64 128
+  #n_cells = 64 64 64
+  n_cells = 128 128 128
+  #n_cells = 256 256 256
   # max number of cells in a box
-  #max_grid_size = 16 16 16
-  max_grid_size = 32 32 64 
+  #max_grid_size = 32 32 16  
+  max_grid_size = 64 64 64
+  #max_grid_size = 128 64 64
 
   # Time-step control
   fixed_dt = 0.000000025
 
   # Controls for number of steps between actions
-  max_step = 1000
-  plot_int = 100
+  max_step = 30000
+  plot_int = 500
 
   # Viscous friction L phi operator
   # if abs(visc_type) = 1, L = div beta grad
@@ -85,7 +87,8 @@
   rho0 = 1.0
   #rhobar = 1. 1. 1.         # pure component densities for all species
   fh_chi = 0 0 4. 0. 0. 4. 4. 4. 0
-  fh_kappa= 0 0 4.e-9 0. 0. 4.e-9 4.e-9 4.e-9 0
+  #fh_kappa= 0 0 4.e-9 0. 0. 4.e-9 4.e-9 4.e-9 0
+  fh_kappa= 0 0 0.0390625e-10 0. 0. 0.0390625e-10 0.0390625e-10 0.0390625e-10 0  
 
 
 

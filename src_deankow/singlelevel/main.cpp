@@ -209,7 +209,7 @@ void main_main ()
     if (plot_int > 0)
     {
         int n = 0;
-        const std::string& pltfile = amrex::Concatenate("plt",n,5);
+        const std::string& pltfile = amrex::Concatenate("plt",n,6);
         WriteSingleLevelPlotfile(pltfile, phi_new, {"phi"}, geom, time, 0);
     }
 
@@ -244,13 +244,12 @@ void main_main ()
         // Write a plotfile of the current data (plot_int was defined in the inputs file)
         if (plot_int > 0 && n%plot_int == 0)
         {
-            const std::string& pltfile = amrex::Concatenate("plt",n,5);
+            const std::string& pltfile = amrex::Concatenate("plt",n,6);
             WriteSingleLevelPlotfile(pltfile, phi_new, {"phi"}, geom, time, n);
-        }
 
 //	    amrex::Real Ephi=0.;
 //	    amrex::Real Ephi2=0.;
-	    Vector<Real> Ephi(2,0.);
+	    Vector<Real> Ephi(3,0.);
             Real Ephimin = npts_scale;
 	    for ( MFIter mfi(phi_old); mfi.isValid(); ++mfi )
             {
@@ -266,6 +265,7 @@ void main_main ()
 		   Ephi[0] += phiNew(i,j,k);
 		   Ephi[1] += phiNew(i,j,k)*phiNew(i,j,k);
                    Ephimin = std::min(Ephimin,phiNew(i,j,k));
+                   Ephi[2] += (phiNew(i,j,k) < 0) ? 1. : 0. ;
                 }
                 }
                 }
@@ -274,7 +274,7 @@ void main_main ()
             }
 
             const int IOProc = ParallelDescriptor::IOProcessorNumber();
-            ParallelDescriptor::ReduceRealSum(Ephi.dataPtr(),2);
+            ParallelDescriptor::ReduceRealSum(Ephi.dataPtr(),3);
             ParallelDescriptor::ReduceRealMin(Ephimin);
 	    amrex::Real scale = n_cell*n_cell;
 	    amrex::Real scale2 =  AMREX_D_TERM( dx[0],
@@ -284,7 +284,9 @@ void main_main ()
             amrex::Print() << "phi variance = " << Ephi[1]/scale - (Ephi[0]*Ephi[0]
 			    /(scale*scale)) << std::endl;
             amrex::Print() << "phi integral = " << Ephi[0]*scale2 << std::endl;
-            amrex::Print() << "phi min = " << Ephimin << std::endl;
+            amrex::Print() << "phi min = " << Ephimin << " Number of negative points " << Ephi[2] <<  std::endl;
+
+        }
 
                 
     }

@@ -19,11 +19,6 @@
 using namespace amrex;
 using namespace std::chrono;
 
-#ifdef AMREX_PARTICLES
-ParticleData AmrCoreAdv::particleData;
-#endif
-
-
 // constructor - reads in parameters from inputs file
 //             - sizes multilevel arrays and data structures
 //             - initializes BCRec boundary condition object
@@ -151,7 +146,10 @@ AmrCoreAdv::Evolve ()
         Real sum_phi_new = phi_new[0].sum();
 
         amrex::Print() << "Coarse STEP " << step+1 << " ends." << " TIME = " << cur_time
-                       << " DT = " << dt[0] << " Sum(Phi) = " << sum_phi_old << " " << sum_phi_new << std::endl;
+                       << " DT = " << dt[0] << " Sum_old Sum_new Diff (Phi) = "    << std::setw(20) << std::setprecision(12)
+                       << std::scientific <<  sum_phi_old << " " << std::setw(2l) << std::setprecision(12)
+                       << std::scientific <<  sum_phi_new << " " << std::setw(2l) << std::setprecision(12)
+                       << std::scientific << (sum_phi_new - sum_phi_old) << std::endl;
 
         // sync up time
         for (lev = 0; lev <= finest_level; ++lev) {
@@ -205,6 +203,9 @@ AmrCoreAdv::InitData ()
         AverageDown();
         phi_new[0].FillBoundary();
 
+        MultiFab::Copy(phi_old[0], phi_new[0],0,0,1,0);
+        phi_old[0].FillBoundary();
+
         if (chk_int > 0) {
             WriteCheckpointFile();
         }
@@ -231,22 +232,7 @@ void AmrCoreAdv::MakeFBA(const BoxArray& ba)
     BoxList com_bl_fixed;
     for (auto& b : com_bl) {
         Box bx(b);
-        if (!domain.contains(bx)) {
-           Geom(1).periodicShift(domain, bx, pshifts);
-           for (const auto& iv : pshifts)
-           {
-              Box new_bx(b); new_bx.shift(iv); new_bx &= domain;
-              if (new_bx.ok()) {
-                  com_bl_fixed.push_back(new_bx);
-              }
-           }
-           Box b_itself(b); b_itself &= domain;
-           if (b_itself.ok()) {
-               com_bl_fixed.push_back((b&domain));
-           }
-        } else {
-           com_bl_fixed.push_back(b);
-        }
+        com_bl_fixed.push_back(b);
     }
     com_bl_fixed.catenate(valid_bl);
     grown_fba.define(com_bl_fixed);
@@ -262,6 +248,8 @@ AmrCoreAdv::MakeNewLevelFromCoarse (int lev, Real time, const BoxArray& ba,
 {
     const int ncomp = phi_new[lev-1].nComp();
     const int ng = phi_new[lev-1].nGrow();
+
+    amrex::Print() << " CREATE LEVEL " << lev << " " << ba << std::endl;
 
     phi_new[lev].define(ba, dm, ncomp, ng);
     phi_old[lev].define(ba, dm, ncomp, ng);
@@ -287,6 +275,7 @@ AmrCoreAdv::RemakeLevel (int lev, Real time, const BoxArray& ba,
     const int ncomp = phi_new[lev].nComp();
     const int ng = phi_new[lev].nGrow();
 
+    BoxArray old_fine_ba = phi_old[1].boxArray();
     amrex::Print() << " REGRIDDING: NEW GRIDS AT LEVEL " << lev << " " << ba << std::endl;
 
     if (lev == 1) {
@@ -311,7 +300,7 @@ AmrCoreAdv::RemakeLevel (int lev, Real time, const BoxArray& ba,
 
 #ifdef AMREX_PARTICLES
         if (lev == 1) {
-            particleData.regrid_particles(grown_fba);
+            particleData.regrid_particles(grown_fba, ba, old_fine_ba, phi_new[1]);
         }
 #endif
 }
@@ -414,6 +403,13 @@ AmrCoreAdv::ErrorEst (int lev, TagBoxArray& tags, Real /*time*/, int /*ngrow*/)
 
     const MultiFab& state = phi_new[lev];
 
+    const Real* dx  =  geom[lev].CellSize();
+#if (AMREX_SPACEDIM == 2)
+    const Real cell_vol = dx[0]*dx[1];
+#else
+    const Real cell_vol = dx[0]*dx[1]*dx[2];
+#endif
+
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if(Gpu::notInLaunchRegion())
 #endif
@@ -424,7 +420,7 @@ AmrCoreAdv::ErrorEst (int lev, TagBoxArray& tags, Real /*time*/, int /*ngrow*/)
             const Box& bx  = mfi.tilebox();
             const auto statefab = state.array(mfi);
             const auto tagfab  = tags.array(mfi);
-            Real phierror = phierr[lev];
+            Real phierror = phierr[lev]/cell_vol;
 
             amrex::ParallelFor(bx,
             [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
@@ -647,7 +643,16 @@ AmrCoreAdv::timeStepNoSubcycling (Real time, int iteration)
     {
         if (istep[0] % regrid_int == 0)
         {
+            amrex::Print() << "Regridding at step " << istep[0] << std::endl;
             regrid(0, time);
+
+            AverageDown();
+
+            Real sum_phi_reg_new = phi_new[0].sum();
+            Real sum_phi_reg_old = phi_old[0].sum();
+            amrex::Print() << " Sum(Phi) new / old / diff / %diff  after regrid = " << std::setw(24) <<  std::setprecision(16) << std::scientific << 
+                   sum_phi_reg_new << " " << sum_phi_reg_old << " " << (sum_phi_reg_new-sum_phi_reg_old) << " " << 
+                   (sum_phi_reg_new-sum_phi_reg_old)/sum_phi_reg_old << std::endl;
         }
     }
 
@@ -769,7 +774,7 @@ AmrCoreAdv::EstTimeStep (int lev, Real /*time*/)
 std::string
 AmrCoreAdv::PlotFileName (int lev) const
 {
-    return amrex::Concatenate(plot_file, lev, 5);
+    return amrex::Concatenate(plot_file, lev, 6);
 }
 
 // put together an array of multifabs for writing
@@ -800,11 +805,71 @@ AmrCoreAdv::WritePlotFile () const
 
     amrex::Print() << "Writing plotfile " << plotfilename << "\n";
 
-    // Note that because amrvis won't plot multilevel data with ref_ratio = 1,
-    //      we only write out the coarsest level data in the plotfile
-    int fake_finest_level = 0;
-    amrex::WriteMultiLevelPlotfile(plotfilename, fake_finest_level+1, mf, varnames,
-                                   Geom(), t_new[0], istep, refRatio());
+    if (finest_level == 0)
+    {
+        int fake_finest_level = 0;
+        WriteMultiLevelPlotfile(plotfilename, fake_finest_level+1, mf, varnames,
+                                Geom(), t_new[0], istep, refRatio());
+    } else { 
+
+        PhysBCFunctNoOp null_bc_for_fill;
+
+        Vector<IntVect>   r2(finest_level);
+        Vector<Geometry>  g2(finest_level+1);
+        Vector<MultiFab> mf2(finest_level+1);
+
+        int ncomp_mf = mf[0]->nComp();
+
+        mf2[0].define(grids[0], dmap[0], ncomp_mf, 0);
+
+        // Copy level 0 as is
+        MultiFab::Copy(mf2[0],*mf[0],0,0,ncomp_mf,0);
+
+        // Define a new multi-level array of Geometry's so that we pass the new "domain" at lev > 0
+        Array<int,AMREX_SPACEDIM> periodicity =
+                     {AMREX_D_DECL(Geom()[0].isPeriodic(0),Geom()[0].isPeriodic(1),Geom()[0].isPeriodic(2))};
+        g2[0].define(Geom()[0].Domain(),&(Geom()[0].ProbDomain()),0,periodicity.data());
+
+        r2[0] = IntVect(AMREX_D_DECL(2,2,2));
+        for (int lev = 1; lev <= finest_level; ++lev) {
+            if (lev > 1) {
+                r2[lev-1][0] = r2[lev-2][0] * 2;
+                r2[lev-1][1] = r2[lev-2][1] * 2;
+#if (AMREX_SPACEDIM > 2)
+                r2[lev-1][2] = r2[lev-2][2] * 2;
+#endif
+            }
+
+            mf2[lev].define(refine(grids[lev],r2[lev-1]), dmap[lev], ncomp_mf, 0);
+
+            // Set the new problem domain
+            Box d2(Geom()[lev].Domain());
+            d2.refine(r2[lev-1]);
+
+            g2[lev].define(d2,&(Geom()[lev].ProbDomain()),0,periodicity.data());
+        }
+
+        // Do piecewise interpolation of mf into mf2
+        for (int lev = 1; lev <= finest_level; ++lev) {
+            Interpolater* mapper_c = &pc_interp;
+            InterpFromCoarseLevel(mf2[lev], t_new[lev], *mf[lev],
+                                  0, 0, ncomp_mf,
+                                  geom[lev], g2[lev],
+                                  null_bc_for_fill, 0, null_bc_for_fill, 0,
+                                  r2[lev-1], mapper_c, bcs, 0);
+        }
+
+        // Define an effective ref_ratio which is isotropic to be passed into WriteMultiLevelPlotfile
+        Vector<IntVect> rr(finest_level);
+        for (int lev = 0; lev < finest_level; ++lev) {
+            rr[lev] = IntVect(AMREX_D_DECL(2,2,2));
+        }
+
+       WriteMultiLevelPlotfile(plotfilename, finest_level+1,
+                                   GetVecOfConstPtrs(mf2), varnames,
+                                   g2, t_new[0], istep, rr);
+
+    }
 }
 
 void
@@ -887,7 +952,7 @@ AmrCoreAdv::WriteCheckpointFile () const
    }
 
 #ifdef AMREX_PARTICLES
-    particleData.Checkpoint(checkpointname);
+   particleData.Checkpoint(checkpointname);
 #endif
 
 }
