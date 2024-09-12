@@ -84,10 +84,12 @@ void ComputeEta(const MultiFab& rho_in,
         
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
-                Real c = rho(i,j,k,0) / rhotot(i,j,k);
+                Real c = rho(i,j,k,1) / rhotot(i,j,k);
+                c = (c-.034815)/(.9651885-.034815);
+                eta(i,j,k) = (.1+.9*c)*visc_coef;
 
-                eta(i,j,k) = -0.99*visc_coef*c + visc_coef;
-                eta(i,j,k) = std::max(0.01*visc_coef,eta(i,j,k));
+                // eta(i,j,k) = -0.99*visc_coef*c + visc_coef;
+                eta(i,j,k) = std::max(0.1*visc_coef,eta(i,j,k));
                 eta(i,j,k) = std::min(visc_coef,eta(i,j,k));
 
                 

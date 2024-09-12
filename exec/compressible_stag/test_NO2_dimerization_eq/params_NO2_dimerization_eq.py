@@ -2,9 +2,9 @@ import math
 
 # cgs units
 
-Runiv = 8.31446261815324e7  # universal gas constant
-kB = 1.38064852e-16         # Boltzmann constant
-Navo = 6.0221409e23         # Avogadro constant
+Runiv = 8.31446e7       # universal gas constant
+kB = 1.38065e-16        # Boltzmann constant
+Navo = 6.02214e23       # Avogadro constant
 
 ##########
 
@@ -14,8 +14,8 @@ M2 = 92.0110    # N2O4
 print("- molecular masses: [%.4f, %.4f]" % (M1,M2))
 
 # mass fractions
-Y1 = 7.267597e-01 
-Y2 = 2.732403e-01 
+Y1 = 0.723969
+Y2 = 0.276031
 print("- mass fractions: [%.3f, %.3f]" % (Y1,Y2))
 
 # mole fractions
@@ -32,17 +32,17 @@ print("- average mass of a gas molecule = %e\n" % mavg)
 
 ##########
 
-temp = 350.                 # room temperature
-pres = 1.01325e6            # atmospheric pressure
-rho = pres*Mavg/Runiv/temp  # total mass density
+temp = 350.
+Ptot = 1.01325e6            # 1atm
+rho = Ptot*Mavg/Runiv/temp  # total mass density
 
 print("- temperature = %f" % temp)
-print("- pressure = %e" % pres)
+print("- pressure = %e" % Ptot)
 print("- total mass density = %e\n" % rho)
 
 ##########
 
-ntot = pres/kB/temp
+ntot = Ptot/kB/temp
 n1 = X1*ntot
 n2 = X2*ntot
 
@@ -98,10 +98,10 @@ drho2sq = rho2**2/N2
 drhosq = drho1sq+drho2sq
 djasq = rho*kB*temp/dv
 
-dof1 = 7.279582 
-dof2 = 18.049065
-e01 = 4.684542e+09
-e02 = -1.730892e+09
+dof1 = 7.279586
+dof2 = 18.049072
+e01 = 4.685624e+09
+e02 = -1.730782e+09
 
 cv1 = 0.5*dof1*Runiv/M1 
 cv2 = 0.5*dof2*Runiv/M2
@@ -135,7 +135,7 @@ print("dTsq*dv    (+/-10%%) = %e\t%e\t%e\t%e\n" % (dTsq*dv,2*dTsq*dv,0.9*dTsq*dv
 d1 = 3.765e-08
 d2 = 4.621e-08
 d12 = (d1+d2)/2
-D12 = 3./16*math.sqrt(2*math.pi*kB**3*(m1+m2)/m1/m2)/math.pi/d12**2*temp*math.sqrt(temp)/pres
+D12 = 3./16*math.sqrt(2*math.pi*kB**3*(m1+m2)/m1/m2)/math.pi/d12**2*temp*math.sqrt(temp)/Ptot
 
 u = 3*math.sqrt(kB*temp/mavg/Ntot)
 

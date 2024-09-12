@@ -18,7 +18,9 @@
 #  endif
 #else
 #include <fftw3.h>
+#if AMREX_USE_MPI
 #include <fftw3-mpi.h>
+#endif
 #endif
 
 #include <AMReX_GpuComplex.H>
@@ -146,6 +148,13 @@ public:
     void AddToExternal(amrex::MultiFab& x_mag, amrex::MultiFab& x_realimag, const amrex::Geometry&, const int& zero_avg=1);
 
     int get_ncov() const { return NCOV; }
+
+    void WriteCheckPoint(const int& step,
+                         std::string checkfile_base);
+
+    void ReadCheckPoint(std::string checkfile_base,
+                        BoxArray& ba_in,
+                        DistributionMapping& dmap_in);
 
     const decltype(cov_names)& get_names() const { return cov_names; }
 };

@@ -31,8 +31,10 @@ void WritePlotFileStag(int step,
                        const MultiFab& surfcov,
                        const MultiFab& surfcovMeans,
                        const MultiFab& surfcovVars,
+		       const MultiFab& surfcovcoVars,
                        const MultiFab& eta, 
-                       const MultiFab& kappa);
+                       const MultiFab& kappa,
+                       const MultiFab& zeta);
 
 void WriteSpatialCross3D(const Vector<Real>& spatialCross, int step, const Geometry& geom, const int ncross);
 
@@ -193,6 +195,7 @@ void WriteCheckPoint3D(int step,
                        const amrex::MultiFab& surfcov,
                        const amrex::MultiFab& surfcovMeans,
                        const amrex::MultiFab& surfcovVars,
+		       const amrex::MultiFab& surfcovcoVars,
                        const Vector<Real>& spatialCross, int ncross,
                        TurbForcingComp& turbforce);
 
@@ -217,6 +220,7 @@ void ReadCheckPoint3D(int& step,
                       amrex::MultiFab& surfcov,
                       amrex::MultiFab& surfcovMeans,
                       amrex::MultiFab& surfcovVars,
+		      amrex::MultiFab& surfcovcoVars,
                       Vector<Real>& spatialCross, int ncross,
                       TurbForcingComp& turbforce,
                       BoxArray& ba, DistributionMapping& dmap);
@@ -321,7 +325,7 @@ void evaluateStatsStag3D(MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
                          std::array<MultiFab, AMREX_SPACEDIM>& cumomMean,
                          std::array<MultiFab, AMREX_SPACEDIM>& cumomVar,
                          MultiFab& coVar, 
-                         MultiFab& theta, MultiFab& thetaMean, MultiFab& thetaVar,
+                         MultiFab& theta, MultiFab& thetaMean, MultiFab& thetaVar, MultiFab& thetacoVar,
                          Vector<Real>& dataSliceMeans_xcross,
                          Vector<Real>& spatialCross3D, const int ncross,
                          const amrex::Box& domain,
@@ -337,7 +341,7 @@ void evaluateStatsStag2D(MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
                          std::array<MultiFab, AMREX_SPACEDIM>& cumomMean,
                          std::array<MultiFab, AMREX_SPACEDIM>& cumomVar,
                          MultiFab& coVar, 
-                         MultiFab& theta, MultiFab& thetaMean, MultiFab& thetaVar,
+                         MultiFab& theta, MultiFab& thetaMean, MultiFab& thetaVar, MultiFab& thetacoVar,
                          MultiFab& spatialCross2D, const int ncross,
                          const int steps,
                          const Geometry& geom);
@@ -351,7 +355,7 @@ void evaluateStatsStag1D(MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
                          std::array<MultiFab, AMREX_SPACEDIM>& cumomMean,
                          std::array<MultiFab, AMREX_SPACEDIM>& cumomVar,
                          MultiFab& coVar, 
-                         MultiFab& theta, MultiFab& thetaMean, MultiFab& thetaVar,
+                         MultiFab& theta, MultiFab& thetaMean, MultiFab& thetaVar, MultiFab& thetacoVar,
                          MultiFab& spatialCross1D, const int ncross,
                          const int steps,
                          const Geometry& geom);
@@ -373,7 +377,7 @@ void EvaluateVarsCoVars(const MultiFab& cons, const MultiFab& consMean, MultiFab
                         const std::array<MultiFab, AMREX_SPACEDIM>& cumomMean,
                         std::array<MultiFab, AMREX_SPACEDIM>& cumomVar,
                         MultiFab& coVar,
-                        const MultiFab& theta, const MultiFab& thetaMean, MultiFab& thetaVar,
+                        const MultiFab& theta, const MultiFab& thetaMean, MultiFab& thetaVar, MultiFab& thetacoVar,
                         const int steps);
 
 void GetSliceAverageCross(Vector<Real>& dataAvMeans_x,

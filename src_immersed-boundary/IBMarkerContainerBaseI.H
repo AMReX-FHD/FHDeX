@@ -643,7 +643,8 @@ void IBMarkerContainerBase<StructReal, StructInt>::PullDown(
 //    Gpu::ManagedDeviceVector<int> cpu_offset;
 //    Gpu::ManagedDeviceVector<int> cpu_offset;
     
-    int* cpu_offset_ptr = cpu_offset.data();
+    int * cpu_offset_ptr = cpu_offset.data();
+    Real * list_ptr      = list.data();
 
     for (int i = 0; i < total_num_ids; ++i) { list[i] = 0;}
 
@@ -662,7 +663,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::PullDown(
                 int cpu = part.cpu();
 
                 // Particle IDs start at 1, CPUs at 0 -- urgh!
-                list[id-1 + cpu_offset_ptr[cpu]] = particles[i].rdata(element);
+                list_ptr[id-1 + cpu_offset_ptr[cpu]] = particles[i].rdata(element);
             });
         } else {
             AMREX_FOR_1D(np, i, {
@@ -671,7 +672,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::PullDown(
                 int cpu = part.cpu();
 
                 // Particle IDs start at 1, CPUs at 0 -- urgh!
-                list[id-1 + cpu_offset_ptr[cpu]] = part.pos((-element)-1);
+                list_ptr[id-1 + cpu_offset_ptr[cpu]] = part.pos((-element)-1);
             });
         }
 
@@ -755,7 +756,8 @@ void IBMarkerContainerBase<StructReal, StructInt>::PullDownInt(
     // timer for profiling
     BL_PROFILE_VAR("PullDownInt()", PullDownInt);
     
-    int* cpu_offset_ptr = cpu_offset.data();
+    int * cpu_offset_ptr = cpu_offset.data();
+    int * list_ptr       = list.data();
 
     for (int i = 0; i < total_num_ids; ++i) { list[i] = 0;}
 
@@ -774,7 +776,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::PullDownInt(
                 int cpu = part.cpu();
 
                 // Particle IDs start at 1, CPUs at 0 -- urgh!
-                list[id-1 + cpu_offset_ptr[cpu]] = particles[i].idata(element);
+                list_ptr[id-1 + cpu_offset_ptr[cpu]] = particles[i].idata(element);
             });
         } else {
             AMREX_FOR_1D(np, i, {
@@ -784,11 +786,11 @@ void IBMarkerContainerBase<StructReal, StructInt>::PullDownInt(
 
                 // Particle IDs start at 1, CPUs at 0 -- urgh!
                 if (element == -1) {
-                    list[id-1 + cpu_offset_ptr[cpu]] = part.id();
+                    list_ptr[id-1 + cpu_offset_ptr[cpu]] = part.id();
                 } else if (element == -2) {
-                    list[id-1 + cpu_offset_ptr[cpu]] = part.cpu();
+                    list_ptr[id-1 + cpu_offset_ptr[cpu]] = part.cpu();
                 } else{
-                    list[id-1 + cpu_offset_ptr[cpu]] = -1;
+                    list_ptr[id-1 + cpu_offset_ptr[cpu]] = -1;
                 }
             });
         }

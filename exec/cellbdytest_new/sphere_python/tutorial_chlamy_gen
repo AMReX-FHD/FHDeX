@@ -1,0 +1,16 @@
+Hi, this python script will generate the chlamy body depending on the input you set.
+
+The input that can be alter wil be: 
+radius 1&2 : control how big the body will be
+center : this set where it will appear. Make sure to off center it before using, default is (0,0,0)
+num_points : number of marker(particles on the body) that create the spiral
+k : spring constant
+scaler : scaler to whatever size you want
+move : this move the entire frame of the body
+delaunay = point_cloud.delaunay_3d(alpha=36.0,tol=0.000001,offset=2.5,progress_bar=False)    # alpha : toggle the length of the connection, 0 is infinite. tol: the max amount of neighbor it can handle,
+     												       offset: no idea what it does, but i didn't change it(change it at your own safety)
+												       progress_bar: fancy loading bar.
+
+The rest is python stuff, study python first cause you will suffer like i do if you don't. Look up pyvista for more understanding of the usage and attribute.
+
+Link to pyvista : https://docs.pyvista.org/version/stable/api/core/index.html

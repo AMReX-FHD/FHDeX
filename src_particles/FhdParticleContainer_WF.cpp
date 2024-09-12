@@ -343,13 +343,13 @@ void FhdParticleContainer::DoRFD(const Real dt, const Real* dxFluid, const Real*
         
         //Print() << "FHD\n"; 
         do_rfd(particles.data(), &np,
-                         ARLIM_3D(tile_box.loVect()),
-                         ARLIM_3D(tile_box.hiVect()),
+                         AMREX_ARLIM_3D(tile_box.loVect()),
+                         AMREX_ARLIM_3D(tile_box.hiVect()),
                          m_vector_ptrs[grid_id].dataPtr(),
                          m_vector_size[grid_id].dataPtr(),
-                         ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
-                         ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),
-                         ZFILL(plo), ZFILL(phi), ZFILL(dx), &dt, ZFILL(geomF.ProbLo()), ZFILL(dxFluid), ZFILL(dxE),
+                         AMREX_ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
+                         AMREX_ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),
+                         AMREX_ZFILL(plo), AMREX_ZFILL(phi), AMREX_ZFILL(dx), &dt, AMREX_ZFILL(geomF.ProbLo()), AMREX_ZFILL(dxFluid), AMREX_ZFILL(dxE),
                          BL_TO_FORTRAN_3D(umac[0][pti]),
                          BL_TO_FORTRAN_3D(umac[1][pti]),
 #if (AMREX_SPACEDIM == 3)
@@ -421,7 +421,7 @@ void FhdParticleContainer::DoRFD(const Real dt, const Real* dxFluid, const Real*
 //                amrex_compute_p3m_sr_correction_nl(particles.data(), &Np, 
 //                                        neighbors[lev][index].dataPtr(), &Nn,
 //                                        neighbor_list[lev][index].dataPtr(), &size, &rcount,
-//                                        BL_TO_FORTRAN_3D(charge[pti]),BL_TO_FORTRAN_3D(coords[pti]), ARLIM_3D(tile_box.loVect()), ARLIM_3D(tile_box.hiVect()), ZFILL(dx));         }
+//                                        BL_TO_FORTRAN_3D(charge[pti]),BL_TO_FORTRAN_3D(coords[pti]), AMREX_ARLIM_3D(tile_box.loVect()), AMREX_ARLIM_3D(tile_box.hiVect()), AMREX_ZFILL(dx));         }
 //    }
 
 //    if(sr_tog==1) 
@@ -537,14 +537,14 @@ void FhdParticleContainer::MoveIons(const Real dt, const Real* dxFluid, const Re
         move_ions_fhd(particles.data(), &np_tile,
                       &rejected_tile, &moves_tile, &maxspeed_tile,
                       &maxdist_tile, &diffinst_tile,
-                      ARLIM_3D(tile_box.loVect()),
-                      ARLIM_3D(tile_box.hiVect()),
+                      AMREX_ARLIM_3D(tile_box.loVect()),
+                      AMREX_ARLIM_3D(tile_box.hiVect()),
                       m_vector_ptrs[grid_id].dataPtr(),
                       m_vector_size[grid_id].dataPtr(),
-                      ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
-                      ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),
-                      ZFILL(plo), ZFILL(phi), ZFILL(dx), &dt,
-                      ZFILL(geomF.ProbLo()), ZFILL(dxFluid), ZFILL(dxE),
+                      AMREX_ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
+                      AMREX_ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),
+                      AMREX_ZFILL(plo), AMREX_ZFILL(phi), AMREX_ZFILL(dx), &dt,
+                      AMREX_ZFILL(geomF.ProbLo()), AMREX_ZFILL(dxFluid), AMREX_ZFILL(dxE),
                       BL_TO_FORTRAN_3D(umac[0][pti]),
                       BL_TO_FORTRAN_3D(umac[1][pti]),
 #if (AMREX_SPACEDIM == 3)
@@ -707,7 +707,7 @@ void FhdParticleContainer::MoveIonsGPU(const Real dt, const Real* dxFluid, const
                 while(runtime > 0)
                 {
                     printf("delt pre %e\n",inttime);
-                    find_inter_gpu(part, runtime, paramPlaneList, paramPlaneCount, &intsurf, &inttime, &intside, ZFILL(plo), ZFILL(phi));
+                    find_inter_gpu(part, runtime, paramPlaneList, paramPlaneCount, &intsurf, &inttime, &intside, AMREX_ZFILL(plo), AMREX_ZFILL(phi));
 
                     for (int d=0; d<AMREX_SPACEDIM; ++d)
                     {
@@ -810,7 +810,7 @@ void FhdParticleContainer::MoveIonsGPU(const Real dt, const Real* dxFluid, const
                 Real mbDer[3];
                 Real dry_terms[3];
 
-                //get_explicit_mobility(mb, &part, ZFILL(plo), ZFILL(phi));
+                //get_explicit_mobility(mb, &part, AMREX_ZFILL(plo), AMREX_ZFILL(phi));
                 get_explicit_mobility_gpu(mb, mbDer,part, plo, phi);
                 //dry(&dt,&part,dry_terms, mb);
                 dry_gpu(dt, part,dry_terms, mb, mbDer);
@@ -864,8 +864,8 @@ void FhdParticleContainer::MoveIonsGPU(const Real dt, const Real* dxFluid, const
 
             while(runtime > 0)
             {
-                //find_inter(&part, &runtime, paramPlaneList, &paramPlaneCount, &intsurf, &inttime, &intside, ZFILL(plo), ZFILL(phi));
-                find_inter_gpu(part, runtime, paramPlaneList, paramPlaneCount, &intsurf, &inttime, &intside, ZFILL(plo), ZFILL(phi));
+                //find_inter(&part, &runtime, paramPlaneList, &paramPlaneCount, &intsurf, &inttime, &intside, AMREX_ZFILL(plo), AMREX_ZFILL(phi));
+                find_inter_gpu(part, runtime, paramPlaneList, paramPlaneCount, &intsurf, &inttime, &intside, AMREX_ZFILL(plo), AMREX_ZFILL(phi));
                 //Print() << "PART " << part.id() << ", " << intsurf << "\n";
                 //cin.get();
 
@@ -1170,8 +1170,8 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
 
                         while(runtime > 0)
                         {
-                            //find_inter(&part, &runtime, paramPlaneList, &paramPlaneCount, &intsurf, &inttime, &intside, ZFILL(plo), ZFILL(phi));
-                            find_inter_gpu(part, runtime, paramPlaneList, paramPlaneCount, &intsurf, &inttime, &intside, ZFILL(plo), ZFILL(phi));
+                            //find_inter(&part, &runtime, paramPlaneList, &paramPlaneCount, &intsurf, &inttime, &intside, AMREX_ZFILL(plo), AMREX_ZFILL(phi));
+                            find_inter_gpu(part, runtime, paramPlaneList, paramPlaneCount, &intsurf, &inttime, &intside, AMREX_ZFILL(plo), AMREX_ZFILL(phi));
                             
                             for (int d=0; d<AMREX_SPACEDIM; ++d)
                             {
@@ -1328,8 +1328,8 @@ void FhdParticleContainer::MoveIonsCPP(const Real dt, const Real* dxFluid, const
 
                 while(runtime > 0)
                 {
-                    //find_inter(&part, &runtime, paramPlaneList, &paramPlaneCount, &intsurf, &inttime, &intside, ZFILL(plo), ZFILL(phi));
-                    find_inter_gpu(part, runtime, paramPlaneList, paramPlaneCount, &intsurf, &inttime, &intside, ZFILL(plo), ZFILL(phi));
+                    //find_inter(&part, &runtime, paramPlaneList, &paramPlaneCount, &intsurf, &inttime, &intside, AMREX_ZFILL(plo), AMREX_ZFILL(phi));
+                    find_inter_gpu(part, runtime, paramPlaneList, paramPlaneCount, &intsurf, &inttime, &intside, AMREX_ZFILL(plo), AMREX_ZFILL(phi));
                     //Print() << "PART " << part.id() << ", " << intsurf << "\n";
                     //cin.get();
 
@@ -1607,13 +1607,13 @@ void FhdParticleContainer::SpreadIons(const Real dt, const Real* dxFluid, const 
         
         //Print() << "FHD\n"; 
         spread_ions_fhd(particles.data(), &np,
-                         ARLIM_3D(tile_box.loVect()),
-                         ARLIM_3D(tile_box.hiVect()),
+                         AMREX_ARLIM_3D(tile_box.loVect()),
+                         AMREX_ARLIM_3D(tile_box.hiVect()),
                          m_vector_ptrs[grid_id].dataPtr(),
                          m_vector_size[grid_id].dataPtr(),
-                         ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
-                         ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),
-                         ZFILL(plo), ZFILL(phi), ZFILL(dx), &dt, ZFILL(geomF.ProbLo()), ZFILL(dxFluid), ZFILL(dxE),
+                         AMREX_ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
+                         AMREX_ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),
+                         AMREX_ZFILL(plo), AMREX_ZFILL(phi), AMREX_ZFILL(dx), &dt, AMREX_ZFILL(geomF.ProbLo()), AMREX_ZFILL(dxFluid), AMREX_ZFILL(dxE),
                          BL_TO_FORTRAN_3D(umac[0][pti]),
                          BL_TO_FORTRAN_3D(umac[1][pti]),
 #if (AMREX_SPACEDIM == 3)
@@ -1698,13 +1698,13 @@ void FhdParticleContainer::SpreadIonsGPU(const Real* dxFluid, const Real* dxE, c
 
         emf_gpu(particles,
                       efield[0][pti], efield[1][pti], efield[2][pti],
-                      ZFILL(plo), ZFILL(dxE));
+                      AMREX_ZFILL(plo), AMREX_ZFILL(dxE));
         if(fluid_tog != 0)
         {
             spread_ions_fhd_gpu(particles,                         
                              sourceTemp[0][pti], sourceTemp[1][pti], sourceTemp[2][pti],
-                             ZFILL(plo),
-                             ZFILL(dxFluid));
+                             AMREX_ZFILL(plo),
+                             AMREX_ZFILL(dxFluid));
         }
 
     }
@@ -1770,8 +1770,8 @@ void FhdParticleContainer::SpreadIonsGPU(const Real* dxFluid, const Geometry geo
         {
             spread_ions_fhd_gpu(particles,                         
                              sourceTemp[0][pti], sourceTemp[1][pti], sourceTemp[2][pti],
-                             ZFILL(plo),
-                             ZFILL(dxFluid));
+                             AMREX_ZFILL(plo),
+                             AMREX_ZFILL(dxFluid));
         }
 
     }
@@ -1839,13 +1839,13 @@ void FhdParticleContainer::SpreadIonsGPU(const Real* dxFluid, const Geometry geo
 
 //        emf_gpu(particles,
 //                      efield[0][pti], efield[1][pti], efield[2][pti],
-//                      ZFILL(plo), ZFILL(dxE));
+//                      AMREX_ZFILL(plo), AMREX_ZFILL(dxE));
 //        if(fluid_tog != 0)
 //        {
 //            spread_ions_fhd_gpu(particles,                         
 //                             sourceTemp[0][pti], sourceTemp[1][pti], sourceTemp[2][pti],
-//                             ZFILL(plo),
-//                             ZFILL(dxFluid));
+//                             AMREX_ZFILL(plo),
+//                             AMREX_ZFILL(dxFluid));
 //        }
 
 //    }
@@ -2647,13 +2647,13 @@ void FhdParticleContainer::collectFields(const Real dt, const Real* dxPotential,
         const int np = particles.numParticles();
         
         collect_charge(particles.data(), &np,
-                         ARLIM_3D(tile_box.loVect()),
-                         ARLIM_3D(tile_box.hiVect()),
+                         AMREX_ARLIM_3D(tile_box.loVect()),
+                         AMREX_ARLIM_3D(tile_box.hiVect()),
                          m_vector_ptrs[grid_id].dataPtr(),
                          m_vector_size[grid_id].dataPtr(),
-                         ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
-                         ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),
-                         ZFILL(plo), ZFILL(phi), ZFILL(dx), &dt, ZFILL(geomP.ProbLo()), ZFILL(dxPotential),
+                         AMREX_ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
+                         AMREX_ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),
+                         AMREX_ZFILL(plo), AMREX_ZFILL(phi), AMREX_ZFILL(dx), &dt, AMREX_ZFILL(geomP.ProbLo()), AMREX_ZFILL(dxPotential),
                          BL_TO_FORTRAN_3D(RealCenterCoords[pti]),
                          BL_TO_FORTRAN_3D(chargeTemp[pti]));
 
@@ -2701,7 +2701,7 @@ void FhdParticleContainer::collectFieldsGPU(const Real dt, const Real* dxPotenti
         auto& particles = particle_tile.GetArrayOfStructs();
         const int np = particles.numParticles();
 
-        collect_charge_gpu(particles, chargeTemp[pti], ZFILL(geomP.ProbLo()), ZFILL(dxPotential));
+        collect_charge_gpu(particles, chargeTemp[pti], AMREX_ZFILL(geomP.ProbLo()), AMREX_ZFILL(dxPotential));
     }
 
     MultiFabPhysBCCharge(chargeTemp, geomP);
@@ -2737,12 +2737,12 @@ void FhdParticleContainer::InitCollisionCells(MultiFab& collisionPairs,
         const int Np = particles.numParticles();
 
         init_cells(particles.data(),
-                         ARLIM_3D(tile_box.loVect()), 
-                         ARLIM_3D(tile_box.hiVect()),
+                         AMREX_ARLIM_3D(tile_box.loVect()), 
+                         AMREX_ARLIM_3D(tile_box.hiVect()),
                          m_vector_ptrs[grid_id].dataPtr(),
                          m_vector_size[grid_id].dataPtr(),
-                         ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
-                         ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),
+                         AMREX_ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
+                         AMREX_ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),
                          BL_TO_FORTRAN_3D(collisionPairs[pti]),
                          BL_TO_FORTRAN_3D(collisionFactor[pti]),
                          BL_TO_FORTRAN_3D(cellVols[pti]),&Np,&particleInfo.Neff,&particleInfo.cp,&particleInfo.d,&delt
@@ -2769,12 +2769,12 @@ void FhdParticleContainer::CollideParticles(MultiFab& collisionPairs,
         const int Np = particles.numParticles();
 
         collide_cells(particles.data(),
-                         ARLIM_3D(tile_box.loVect()), 
-                         ARLIM_3D(tile_box.hiVect()),
+                         AMREX_ARLIM_3D(tile_box.loVect()), 
+                         AMREX_ARLIM_3D(tile_box.hiVect()),
                          m_vector_ptrs[grid_id].dataPtr(),
                          m_vector_size[grid_id].dataPtr(),
-                         ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
-                         ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),
+                         AMREX_ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
+                         AMREX_ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),
                          BL_TO_FORTRAN_3D(collisionPairs[pti]),
                          BL_TO_FORTRAN_3D(collisionFactor[pti]),
                          BL_TO_FORTRAN_3D(cellVols[pti]),&Np,&particleInfo.Neff,&particleInfo.cp,&particleInfo.d,&delt
@@ -2801,12 +2801,12 @@ void FhdParticleContainer::InitializeFields(MultiFab& particleInstant,
         const int Np = parts.numParticles();
 
         initialize_fields(parts.data(),
-                         ARLIM_3D(tile_box.loVect()),
-                         ARLIM_3D(tile_box.hiVect()),
+                         AMREX_ARLIM_3D(tile_box.loVect()),
+                         AMREX_ARLIM_3D(tile_box.hiVect()),
                          m_vector_ptrs[grid_id].dataPtr(),
                          m_vector_size[grid_id].dataPtr(),
-                         ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
-                         ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),   
+                         AMREX_ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
+                         AMREX_ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),   
                          BL_TO_FORTRAN_3D(particleInstant[pti]),
                          BL_TO_FORTRAN_3D(cellVols[pti]),&particleInfo.Neff, &Np, &particleInfo.R, &particleInfo.T
                         );
@@ -2861,12 +2861,12 @@ void FhdParticleContainer::EvaluateStats(MultiFab& particleInstant,
         tp = tp + Np;
 
         evaluate_fields_pp(parts.data(),
-                         ARLIM_3D(tile_box.loVect()),
-                         ARLIM_3D(tile_box.hiVect()),
+                         AMREX_ARLIM_3D(tile_box.loVect()),
+                         AMREX_ARLIM_3D(tile_box.hiVect()),
                          m_vector_ptrs[grid_id].dataPtr(),
                          m_vector_size[grid_id].dataPtr(),
-                         ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
-                         ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),   
+                         AMREX_ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
+                         AMREX_ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),   
                          BL_TO_FORTRAN_3D(particleInstant[pti]),
                          BL_TO_FORTRAN_3D(cellVols[pti]),&Neff, &Np, dx
                         );
@@ -2877,8 +2877,8 @@ void FhdParticleContainer::EvaluateStats(MultiFab& particleInstant,
     {
         const Box& tile_box  = mfi.tilebox();
 
-        evaluate_means(ARLIM_3D(tile_box.loVect()),
-                       ARLIM_3D(tile_box.hiVect()),
+        evaluate_means(AMREX_ARLIM_3D(tile_box.loVect()),
+                       AMREX_ARLIM_3D(tile_box.hiVect()),
                        BL_TO_FORTRAN_3D(particleInstant[mfi]),
                        BL_TO_FORTRAN_3D(particleMeans[mfi]),
                        BL_TO_FORTRAN_3D(particleVars[mfi]),
@@ -2907,12 +2907,12 @@ void FhdParticleContainer::EvaluateStats(MultiFab& particleInstant,
         const int Np = parts.numParticles();
 
         evaluate_corrs(parts.data(),
-                       ARLIM_3D(tile_box.loVect()),
-                       ARLIM_3D(tile_box.hiVect()),
+                       AMREX_ARLIM_3D(tile_box.loVect()),
+                       AMREX_ARLIM_3D(tile_box.hiVect()),
                        m_vector_ptrs[grid_id].dataPtr(),
                        m_vector_size[grid_id].dataPtr(),
-                       ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
-                       ARLIM_3D(m_vector_ptrs[grid_id].hiVect()), 
+                       AMREX_ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
+                       AMREX_ARLIM_3D(m_vector_ptrs[grid_id].hiVect()), 
                        BL_TO_FORTRAN_3D(particleInstant[pti]),
                        BL_TO_FORTRAN_3D(particleMeans[pti]),
                        BL_TO_FORTRAN_3D(particleVars[pti]),

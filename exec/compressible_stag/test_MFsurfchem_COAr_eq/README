@@ -18,6 +18,15 @@
                         zavg.plt (5%, check val1, val2, val3, val4, ncellx, ncelly, ncellz, dz)
     -> output               zavg.png
                             res.zavg
+* covar: theta-rho,v,T  surfcoVar.sh
+                        surfcoVar.plt (check val1, val2, val3, val4, ncellx, ncelly)
+    -> output               surfcoVar.png
+                            res.surfcoVar_rhoYk-T
+                            res.surfcoVar_theta-T
+                            res.surfcoVar_theta-rhoYk
+                            res.surfcoVar_theta-vx
+                            res.surfcoVar_theta-vy
+                            res.surfcoVar_theta-vz
 * mean: rho1            zavg_rhoY1mean.sh
                         zavg_rhoY1mean.plt (1%, check val, ncellx, ncelly, ncellz, dz)
     -> output               zavg_rhoY1mean.png

@@ -23,8 +23,10 @@ void WritePlotFileStag(int step,
                        const amrex::MultiFab& surfcov,
                        const amrex::MultiFab& surfcovMeans,
                        const amrex::MultiFab& surfcovVars,
+		       const amrex::MultiFab& surfcovcoVars,
                        const amrex::MultiFab& eta,
-                       const amrex::MultiFab& kappa)
+                       const amrex::MultiFab& kappa,
+                       const amrex::MultiFab& zeta)
 {
     BL_PROFILE_VAR("writePlotFileStag()",writePlotFileStag);
     
@@ -38,11 +40,13 @@ void WritePlotFileStag(int step,
     // prim: [vx, vy, vz, T, p, Yk, Xk] -- 5 + 2*nspecies
     // shifted [vx, vy, vz] -- 3
     // eta, kappa -- 2
+    // zeta -- 1 (only when visc_type = 3)
     nplot += nvars;
     nplot += 3;
     nplot += 5 + 2*nspecies;
     nplot += 3;
     nplot += 2;
+    if (amrex::Math::abs(visc_type) == 3) nplot += 1;
 
     if (nspec_surfcov>0) nplot += nspec_surfcov;
 
@@ -80,6 +84,8 @@ void WritePlotFileStag(int step,
     // co-variances -- see the list in main_driver
     if (plot_covars == 1) {
         nplot += 26;
+
+	if (nspec_surfcov>0) nplot += nspec_surfcov*6;
     }
    
     amrex::BoxArray ba = cuMeans.boxArray();
@@ -131,6 +137,14 @@ void WritePlotFileStag(int step,
     numvars = 1;
     amrex::MultiFab::Copy(plotfile,kappa,0,cnt,numvars,0);
     cnt+=numvars;
+
+    // instantaneous
+    // zeta -- 1
+    if (amrex::Math::abs(visc_type) == 3) {
+        numvars = 1;
+        amrex::MultiFab::Copy(plotfile,zeta,0,cnt,numvars,0);
+        cnt+=numvars;
+    }
 
     // instantaneous
     // surfcov -- nspec_surfcov
@@ -235,6 +249,12 @@ void WritePlotFileStag(int step,
         numvars = 26;
         amrex::MultiFab::Copy(plotfile,coVars,0,cnt,numvars,0);
         cnt+=numvars;
+
+	if (nspec_surfcov>0) {
+	    numvars = nspec_surfcov*6;
+	    amrex::MultiFab::Copy(plotfile,surfcovcoVars,0,cnt,numvars,0);
+	    cnt+=numvars;
+	}
     }
 
     // Set variable names
@@ -277,6 +297,7 @@ void WritePlotFileStag(int step,
 
     varNames[cnt++] = "eta";
     varNames[cnt++] = "kappa";
+    if (amrex::Math::abs(visc_type) == 3) varNames[cnt++] = "zeta";
 
     if (nspec_surfcov>0) {
         x = "surfcov_";
@@ -410,6 +431,18 @@ void WritePlotFileStag(int step,
         varNames[cnt++] = "YkH-vx";
         varNames[cnt++] = "rhoYkL-vx";
         varNames[cnt++] = "rhoYkH-vx";
+
+	if (nspec_surfcov>0) {
+	    for (i=0; i<nspec_surfcov; i++) {
+		varNames[cnt++] = "rhoYk-T";
+	        varNames[cnt++] = "theta-rhoYk";
+	        varNames[cnt++] = "theta-vx";
+	        varNames[cnt++] = "theta-vy";
+	        varNames[cnt++] = "theta-vz";
+	        varNames[cnt++] = "theta-T";
+	    }
+	}
+
     }
 
     AMREX_ASSERT(cnt==nplot);

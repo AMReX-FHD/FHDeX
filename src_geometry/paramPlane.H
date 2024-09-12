@@ -135,6 +135,9 @@ typedef struct {
     
     double* freqRecRight;
     double* freqRecLeft;
+
+    double* timeRecRight;
+    double* timeRecLeft;
     
     int recCountRight;
     int recCountLeft;

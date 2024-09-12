@@ -68,6 +68,7 @@ AMREX_GPU_MANAGED amrex::Real common::variance_coef_ener;
 AMREX_GPU_MANAGED amrex::Real common::k_B;
 AMREX_GPU_MANAGED amrex::Real common::h_bar;
 AMREX_GPU_MANAGED amrex::Real common::Runiv;
+AMREX_GPU_MANAGED amrex::Real common::avogadro;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, MAX_SPECIES> common::T_init;
 AMREX_GPU_MANAGED int      common::algorithm_type;
 int                        common::barodiffusion_type;
@@ -96,10 +97,6 @@ AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>         common::bc_mass_l
 AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>         common::bc_mass_hi;
 AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>         common::bc_therm_lo;
 AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>         common::bc_therm_hi;
-AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>         common::bc_spec_lo;
-AMREX_GPU_MANAGED amrex::GpuArray<int, AMREX_SPACEDIM>         common::bc_spec_hi;
-
-
 
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::p_lo;
 AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> common::p_hi;
@@ -156,6 +153,7 @@ amrex::Real                   common::phonon_sound_speed;
 amrex::Real                   common::tau_ta;
 amrex::Real                   common::tau_la;
 amrex::Real                   common::tau_i;
+int                           common::toggleTimeFrac;
 
 int                           common::struct_fact_int;
 int                           common::radialdist_int;
@@ -481,8 +479,6 @@ void InitializeCommonNamespace() {
         bc_mass_hi[i] = 0;
         bc_therm_lo[i] = 0;
         bc_therm_hi[i] = 0;
-        bc_spec_lo[i] = -1;
-        bc_spec_hi[i] = -1;
 
         // Pressure drop are periodic inflow/outflow walls (bc_[hi,lo]=-2).
         p_lo[i] = 0.;
@@ -538,6 +534,7 @@ void InitializeCommonNamespace() {
     tau_i = 2.95e45;
     tau_ta = 9.3e13;
     tau_la = 2.0e24;
+    toggleTimeFrac = 1;
 
     // structure factor and radial/cartesian pair correlation function analysis
     struct_fact_int = 0;
@@ -645,6 +642,9 @@ void InitializeCommonNamespace() {
     // pp.getarr and queryarr("string",inputs,start_indx,count); can be used for arrays
 
     pp.query("nspecies",nspecies);
+    if (nspecies > MAX_SPECIES) {
+        Abort("nspecies > MAX_SPECIES; recompile with a new MAX_SPEC in the GNUmakefile");
+    }
     pp.query("nbonds",nbonds);
     
     if (pp.queryarr("prob_lo",temp)) {
@@ -762,6 +762,13 @@ void InitializeCommonNamespace() {
     pp.query("k_B",k_B);
     pp.query("h_bar",h_bar);
     pp.query("Runiv",Runiv);
+    avogadro = Runiv / k_B;
+    if (pp.query("avogadro",avogadro) ) {
+        Runiv = k_B * avogadro;
+    }
+    if (pp.query("Runiv",Runiv) && pp.query("avogadro",avogadro)) {
+        Abort("Cannot specify both Runiv and avogadro");
+    }
     if (pp.queryarr("T_init",temp)) {
         for (int i=0; i<nspecies; ++i) {
             T_init[i] = temp[i];
@@ -812,16 +819,6 @@ void InitializeCommonNamespace() {
     if (pp.queryarr("bc_mass_hi",temp_int,0,AMREX_SPACEDIM)) {
         for (int i=0; i<AMREX_SPACEDIM; ++i) {
             bc_mass_hi[i] = temp_int[i];
-        }
-    }
-    if (pp.queryarr("bc_spec_lo",temp_int,0,AMREX_SPACEDIM)) {
-        for (int i=0; i<AMREX_SPACEDIM; ++i) {
-            bc_spec_lo[i] = temp_int[i];
-        }
-    }
-    if (pp.queryarr("bc_spec_hi",temp_int,0,AMREX_SPACEDIM)) {
-        for (int i=0; i<AMREX_SPACEDIM; ++i) {
-            bc_spec_hi[i] = temp_int[i];
         }
     }
     if (pp.queryarr("bc_therm_lo",temp_int,0,AMREX_SPACEDIM)) {
@@ -995,6 +992,7 @@ void InitializeCommonNamespace() {
     pp.query("tau_i",tau_i);
     pp.query("tau_ta",tau_ta);
     pp.query("tau_la",tau_la);
+    pp.query("toggleTimeFrac",toggleTimeFrac);
     pp.query("struct_fact_int",struct_fact_int);
     pp.query("radialdist_int",radialdist_int);
     pp.query("cartdist_int",cartdist_int);
