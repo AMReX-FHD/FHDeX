@@ -223,6 +223,7 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, paramPlane* paramPlan
 					&intsurf, &inttime, &intside, AMREX_ZFILL(plo), AMREX_ZFILL(phi));
 
 				for (int d=0; d<(AMREX_SPACEDIM); ++d)
+				//for (int d=0; d<(AMREX_SPACEDIM-2); ++d)				
 				{
 					part.pos(d) += inttime * part.rdata(FHD_realData::velx + d)*ADJ;
 				}
@@ -237,6 +238,7 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, paramPlane* paramPlan
 					Real posAlt[3];
 
 					for (int d=0; d<(AMREX_SPACEDIM); ++d)
+    				//for (int d=0; d<(AMREX_SPACEDIM-2); ++d)					
 					{
 						posAlt[d] = inttime * part.rdata(FHD_realData::velx + d)*ADJALT;
 					}
@@ -250,6 +252,7 @@ void FhdParticleContainer::MoveParticlesCPP(const Real dt, paramPlane* paramPlan
                     }
 					if(push == 1)
 					{
+						//for (int d=0; d<(AMREX_SPACEDIM-2); ++d)
 						for (int d=0; d<(AMREX_SPACEDIM); ++d)
 						{
 							part.pos(d) += part.pos(d) + posAlt[d];
@@ -1123,6 +1126,7 @@ void FhdParticleContainer::Source(const Real dt, paramPlane* paramPlaneList, con
 					for(int j=nspecies-1; j>=0; j--)
 					{
 						Real density = paramPlaneList[i].densityRight[j]*rho_lo[0]/properties[j].mass;
+										//cout << "n: " << density << endl;
 						//Real density = paramPlaneList[i].densityRight[j];
 						
 						Real xMom = paramPlaneList[i].xMomFluxRight[j];												
