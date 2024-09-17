@@ -15,6 +15,8 @@ AMREX_GPU_MANAGED int MFsurfchem::stoch_MFsurfchem;
 AMREX_GPU_MANAGED amrex::Real MFsurfchem::k_beta;
 AMREX_GPU_MANAGED amrex::Real MFsurfchem::e_beta;
 
+AMREX_GPU_MANAGED int MFsurfchem::splitting_MFsurfchem;
+
 void InitializeMFSurfchemNamespace()
 {
     // extract inputs parameters
@@ -69,6 +71,10 @@ void InitializeMFSurfchemNamespace()
 
     e_beta = 0.5; // default value
     pp.query("e_beta",e_beta);
+
+    // get splitting type: first order (0), strang (1)
+    splitting_MFsurfchem = 0; // default value
+    pp.query("splitting_MFsurfchem",splitting_MFsurfchem);
     return;
 }
 

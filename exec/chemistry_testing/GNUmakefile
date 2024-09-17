@@ -10,7 +10,8 @@ USE_OMP      = FALSE
 USE_CUDA     = FALSE
 COMP         = gnu
 DIM          = 3
-MAX_SPEC      = 8
+MAX_SPEC     = 8
+MAX_REAC     = 5
 
 TINY_PROFILE = FALSE
 
@@ -39,4 +40,7 @@ include $(AMREX_HOME)/Tools/GNUMake/Make.rules
 
 MAXSPECIES := $(strip $(MAX_SPEC))
 DEFINES += -DMAX_SPECIES=$(MAXSPECIES)
+
+MAXREACTION := $(strip $(MAX_REAC))
+DEFINES += -DMAX_REACTION=$(MAXREACTION)
 

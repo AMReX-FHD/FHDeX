@@ -993,11 +993,35 @@ void main_driver(const char* argv)
 #elif defined(USE_AMREX_MPMD)
         amrex_push(cu, prim, *mpmd_copier);
 #endif
-        if (n_ads_spec>0) sample_MFsurfchem(cu, prim, surfcov, dNadsdes, geom, dt);
+        if (n_ads_spec>0) {
+	    if (splitting_MFsurfchem == 0) sample_MFsurfchem(cu, prim, surfcov, dNadsdes, geom, dt);
+	    else if (splitting_MFsurfchem == 1) {
+	        sample_MFsurfchem(cu, prim, surfcov, dNadsdes, geom, dt/2.0);
+		update_MFsurfchem(cu, prim, surfcov, dNadsdes, geom);
+
+		for (int d=0; d<AMREX_SPACEDIM; d++) {
+		    cumom[d].FillBoundary(geom.periodicity());
+		}
+		cu.FillBoundary(geom.periodicity());
+
+		conservedToPrimitiveStag(prim, vel, cu, cumom);
+		            // Set BC: 1) fill boundary 2) physical
+                for (int d=0; d<AMREX_SPACEDIM; d++) {
+                    vel[d].FillBoundary(geom.periodicity());
+                }
+                prim.FillBoundary(geom.periodicity());
+                cu.FillBoundary(geom.periodicity());
+
+                setBCStag(prim, cu, cumom, vel, geom);
+	    }
+	    else Abort("splitting_MFsurfchem can be 0 or 1");
+	}
 
         // FHD
         RK3stepStag(cu, cumom, prim, vel, source, eta, zeta, kappa, chi, D, 
             faceflux, edgeflux_x, edgeflux_y, edgeflux_z, cenflux, ranchem, geom, dt, step, turbforce);
+
+	if (n_ads_spec>0 && splitting_MFsurfchem == 1) sample_MFsurfchem(cu, prim, surfcov, dNadsdes, geom, dt/2.0);
 
         // update surface chemistry (via either surfchem_mui or MFsurfchem)
 #if defined(MUI) || defined(USE_AMREX_MPMD)

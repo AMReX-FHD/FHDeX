@@ -1,12 +1,12 @@
 set terminal png enhanced size 600, 480
 set output "zavg_rhoY1mean.png"
 
-val=2.383472e-05
+val=2.866559e-04
 
-ncellx = 4
-ncelly = 4
-ncellz = 100
-dz = 8.4e-6
+ncellx = 16
+ncelly = 16
+ncellz = 16
+dz = 9.36e-6
 ncell = ncellx*ncelly*ncellz
 
 set bars 0.3

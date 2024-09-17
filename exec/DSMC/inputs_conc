@@ -71,9 +71,6 @@
 	bc_mass_lo  = -1 -1 -1
 	bc_mass_hi  = -1 -1 -1
 	
-	bc_spec_lo = 1 -1 -1
-	bc_spec_hi = 0 -1 -1
-  
 	# Temperature if thermal BC specified
 	t_hi = 300 300 300
 	t_lo = 300 300 300

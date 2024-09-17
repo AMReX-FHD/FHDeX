@@ -4,12 +4,12 @@ import math
 
 file = sys.argv[1] 
 
-Ncellx = 4
-Ncelly = 4
-Ncellz = 100
+Ncellx = 16
+Ncelly = 16
+Ncellz = 16
 
-dx = 8.4e-6
-dy = math.sqrt(3)/2*dx
+dx = 9.36e-6
+dy = dx
 dz = dx
 dv = dx*dy*dz
 

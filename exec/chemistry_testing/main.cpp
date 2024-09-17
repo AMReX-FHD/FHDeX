@@ -2,9 +2,10 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_Vector.H>
 
-#include "myfunc.H"
 #include "chemistry_functions.H"
 #include "common_functions.H"
+
+#include "chemistry_testing_functions.H"
 
 using namespace amrex;
 
@@ -201,14 +202,14 @@ void main_main(const char* argv)
 
     for (int n=0; n<nspecies; n++)
     {
-        //amrex::Print() << ComputeSpatialMean(rho_old,n)*(Runiv/k_B)/molmass[n] << " ";
+        //amrex::Print() << ComputeSpatialMean(rho_old,n)*(avogadro)/molmass[n] << " ";
         amrex::Print() << ComputeSpatialMean(rho_old,n) << " ";
     }
 
 
     for (int n=0; n<nspecies; n++)
     {
-        //amrex::Print() << ComputeSpatialVariance(rho_old,n)*((Runiv/k_B)/molmass[n])*((Runiv/k_B)/molmass[n]) << " ";
+        //amrex::Print() << ComputeSpatialVariance(rho_old,n)*((avogadro)/molmass[n])*((avogadro)/molmass[n]) << " ";
         amrex::Print() << ComputeSpatialVariance(rho_old,n) << " ";
     }
 
@@ -235,7 +236,7 @@ void main_main(const char* argv)
                 {
                     GpuArray<amrex::Real,MAX_SPECIES> n_old;
                     GpuArray<amrex::Real,MAX_SPECIES> n_new;
-                    for (int n=0; n<nspecies; n++) n_old[n] = rhoOld(i,j,k,n)*(Runiv/k_B)/molmass[n];
+                    for (int n=0; n<nspecies; n++) n_old[n] = rhoOld(i,j,k,n)*(avogadro)/molmass[n];
                     switch(reaction_type){
                         case 0: // deterministic case
                             advance_reaction_det_cell(n_old,n_new,dt);
@@ -267,7 +268,7 @@ void main_main(const char* argv)
 
                 const Array4<Real>& sourceArr = source.array(mfi);
 
-                amrex::ParallelForRNG(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k, RandomEngine const& engine) noexcept
+                amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     for (int n=0; n<nspecies; n++) rhoNew(i,j,k,n) = rhoOld(i,j,k,n) + dt*sourceArr(i,j,k,n);
                 });
@@ -300,12 +301,12 @@ void main_main(const char* argv)
         amrex::Print()  << dt*step << " ";
         for (int n=0; n<nspecies; n++)
         {
-            //amrex::Print()  << ComputeSpatialMean(rho_new,n)*(Runiv/k_B)/molmass[n] << " ";
+            //amrex::Print()  << ComputeSpatialMean(rho_new,n)*(avogadro)/molmass[n] << " ";
             amrex::Print()  << ComputeSpatialMean(rho_new,n) << " ";
         }
         for (int n=0; n<nspecies; n++)
         {
-            //amrex::Print()  << ComputeSpatialVariance(rho_new,n)*((Runiv/k_B)/molmass[n])*((Runiv/k_B)/molmass[n]) << " ";
+            //amrex::Print()  << ComputeSpatialVariance(rho_new,n)*((avogadro)/molmass[n])*((avogadro)/molmass[n]) << " ";
             amrex::Print()  << ComputeSpatialVariance(rho_new,n) << " ";
         }
         amrex::Print() << "\n";
