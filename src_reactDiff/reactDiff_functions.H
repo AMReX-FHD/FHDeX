@@ -93,10 +93,12 @@ void InitN(MultiFab& n_in,
 ////////////////////////
 // In MultinomialDiffusion.cpp
 ////////////////////////
-void MultinomialDiffusion(MultiFab& n_in,
+void MultinomialDiffusion(MultiFab& n_old,
+                          MultiFab& n_new,
                           const std::array< MultiFab, AMREX_SPACEDIM >& diff_coef_face,
                           const Geometry& geom,
-                          const Real& dt);
+                          const Real& dt,
+                          const Real& time);
 
 AMREX_GPU_HOST_DEVICE void multinomial_rng(GpuArray<Real,2*AMREX_SPACEDIM>& samples,
                                            const int& N,

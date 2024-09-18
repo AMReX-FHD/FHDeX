@@ -5,20 +5,35 @@
 
 #include <random>
 
-void MultinomialDiffusion(MultiFab& n_in,
+void MultinomialDiffusion(MultiFab& n_old,
+                          MultiFab& n_new,
                           const std::array< MultiFab, AMREX_SPACEDIM >& diff_coef_face,
                           const Geometry& geom,
-                          const Real& dt) {
+                          const Real& dt,
+                          const Real& time)
+{
+    BoxArray ba = n_old.boxArray();
+    DistributionMapping dmap = n_old.DistributionMap();
+
+    MultiFab cell_update(ba, dmap, nspecies, 1);
+
+    // set new state to zero everywhere, including ghost cells
+    n_new.setVal(0.);
+
+    // copy old state into new in valid region only
+    MultiFab::Copy(n_new,n_old,0,0,nspecies,0);
 
     const GpuArray<Real,AMREX_SPACEDIM> dx = geom.CellSizeArray();
 
     Real dv = (AMREX_SPACEDIM==2) ? dx[0]*dx[1]*cell_depth : dx[0]*dx[1]*dx[2]*cell_depth;
 
-    for (MFIter mfi(n_in); mfi.isValid(); ++mfi)
+    for (MFIter mfi(n_new); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.validbox();
 
-        const Array4<Real> & n_arr = n_in.array(mfi);
+        const Array4<Real> & n_arr = n_new.array(mfi);
+
+        const Array4<Real> & update = cell_update.array(mfi);
         
         AMREX_D_TERM(const Array4<const Real> & diffx = diff_coef_face[0].array(mfi);,
                      const Array4<const Real> & diffy = diff_coef_face[1].array(mfi);,
@@ -43,8 +58,51 @@ void MultinomialDiffusion(MultiFab& n_in,
             
             multinomial_rng(fluxes, N, p);
 
+            // lo-x face
+            update(i  ,j,k,n) -= fluxes[0];
+            update(i-1,j,k,n) += fluxes[0];
+
+            // hi-x face
+            update(i  ,j,k,n) -= fluxes[1];
+            update(i+1,j,k,n) += fluxes[1];
+
+            // lo-y face
+            update(i,j,  k,n) -= fluxes[2];
+            update(i,j-1,k,n) += fluxes[2];
+
+            // hi-y face
+            update(i,j  ,k,n) -= fluxes[3];
+            update(i,j+1,k,n) += fluxes[3];
+
+#if (AMREX_SPACEDIM == 3)
+            // lo-z face
+            update(i,j,k,  n) -= fluxes[4];
+            update(i,j,k-1,n) += fluxes[4];
+
+            // hi-z face
+            update(i,j,k,  n) -= fluxes[5];
+            update(i,j,k+1,n) += fluxes[5];
+#endif
         });
     }
+
+    for (MFIter mfi(n_new); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.growntilebox(1);
+
+        const Array4<Real> & n_arr = n_new.array(mfi);
+
+        const Array4<Real> & update = cell_update.array(mfi);
+
+        amrex::ParallelFor(bx, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+        {
+            n_arr(i,j,k,n) += update(i,j,k,n) / dv;
+        });
+    }
+
+    n_new.SumBoundary(geom.periodicity());
+    n_new.FillBoundary(geom.periodicity());
+    MultiFabPhysBC(n_new, geom, 0, nspecies, SPEC_BC_COMP, time);
 }
 
 AMREX_GPU_HOST_DEVICE void multinomial_rng(GpuArray<Real,2*AMREX_SPACEDIM>& samples,
