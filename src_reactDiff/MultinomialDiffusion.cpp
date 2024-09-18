@@ -47,14 +47,14 @@ void MultinomialDiffusion(MultiFab& n_old,
 
             p[0] = diffx(i,j,k,n)*dt/(dx[0]*dx[0]);
             p[1] = diffx(i+1,j,k,n)*dt/(dx[0]*dx[0]);
-            p[2] = diffy(i,j,k,n)*dt/(dx[0]*dx[1]);
-            p[3] = diffy(i,j+1,k,n)*dt/(dx[0]*dx[1]);
+            p[2] = diffy(i,j,k,n)*dt/(dx[1]*dx[1]);
+            p[3] = diffy(i,j+1,k,n)*dt/(dx[1]*dx[1]);
 #if (AMREX_SPACEDIM == 3)
-            p[4] = diffz(i,j,k,n)*dt/(dx[0]*dx[2]);
-            p[5] = diffz(i,j,k+1,n)*dt/(dx[0]*dx[2]);
+            p[4] = diffz(i,j,k,n)*dt/(dx[2]*dx[2]);
+            p[5] = diffz(i,j,k+1,n)*dt/(dx[2]*dx[2]);
 #endif
 
-            int N = std::max(0., n_arr(i,j,k,n)*dv);
+            int N = std::max(0., std::round(n_arr(i,j,k,n)*dv));
             
             multinomial_rng(fluxes, N, p);
 
