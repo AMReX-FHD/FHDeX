@@ -1989,3 +1989,8 @@ void BuildParamplanesPhonon(paramPlane* paramPlaneList, const int paramplanes, c
     }
     planeFile.close();
 }
+
+void SetBoundaryCells(paramPlane* paramPlaneList, const int paramplanes, const Real* domainLo, const Real* domainHi, iMultiFab& bCell)
+{
+
+}
