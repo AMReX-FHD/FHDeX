@@ -66,15 +66,6 @@ void AdvanceTimestep(MultiFab& n_old,
 ////////////////////////
 // In ImplicitDiffusion.cpp
 ////////////////////////
-void DiffusiveNFluxdiv(MultiFab& n_in,
-                       MultiFab& diff_fluxdiv,
-                       const std::array< MultiFab, AMREX_SPACEDIM >& diff_coef_face,
-                       const Geometry& geom,
-                       const Real& time);
-
-////////////////////////
-// In DiffusiveNFluxdiv.cpp
-////////////////////////
 void ImplicitDiffusion(MultiFab& n_old,
                        MultiFab& n_new,
                        const MultiFab& rhs,
@@ -84,11 +75,32 @@ void ImplicitDiffusion(MultiFab& n_old,
                        const Real& time);
 
 ////////////////////////
+// In DiffusiveNFluxdiv.cpp
+////////////////////////
+void DiffusiveNFluxdiv(MultiFab& n_in,
+                       MultiFab& diff_fluxdiv,
+                       const std::array< MultiFab, AMREX_SPACEDIM >& diff_coef_face,
+                       const Geometry& geom,
+                       const Real& time);
+
+////////////////////////
 // In InitN.cpp
 ////////////////////////
 void InitN(MultiFab& n_in,
            const Geometry& geom,
            const Real& time);
+
+////////////////////////
+// In MultinomialDiffusion.cpp
+////////////////////////
+void MultinomialDiffusion(MultiFab& n_in,
+                          const std::array< MultiFab, AMREX_SPACEDIM >& diff_coef_face,
+                          const Geometry& geom,
+                          const Real& dt);
+
+AMREX_GPU_HOST_DEVICE void multinomial_rng(GpuArray<Real,2*AMREX_SPACEDIM>& samples,
+                                           const int& N,
+                                           GpuArray<Real,2*AMREX_SPACEDIM>& p);
 
 ////////////////////////
 // In StochasticNFluxdiv.cpp
