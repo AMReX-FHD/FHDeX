@@ -69,7 +69,7 @@ void InitN(MultiFab& n_in,
 
             Abort("integer_populations=1 with initial_variance_mass < 0. not supported yet");
 
-        } else { // Make the number of molecules in each cell Poisson distributed with desired mean
+        } else if (initial_variance_mass > 0.) { // Make the number of molecules in each cell Poisson distributed with desired mean
 
             for ( MFIter mfi(n_in,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
         
