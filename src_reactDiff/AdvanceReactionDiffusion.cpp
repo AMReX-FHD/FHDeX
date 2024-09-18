@@ -26,13 +26,27 @@ void AdvanceReactionDiffusion(MultiFab& n_old,
 
     MultiFab rate1(ba,dmap,nspecies,0);
 
-    if (temporal_integrator == -3) { // multinomial diffusion
-        Abort("AdvanceReactionDiffusion() - temporal_integrator=-3 not supported yet");
-    }
-
     Vector<Real> mattingly_lin_comb_coef(2);
     mattingly_lin_comb_coef[0] = 1.;
     mattingly_lin_comb_coef[1] = 0.;
+
+    if (temporal_integrator == -3) { // multinomial diffusion
+
+        // calculate rates
+        // rates could be deterministic or stochastic depending on use_Poisson_rng
+        ChemicalRates(n_old,rate1,geom,dt,n_old,mattingly_lin_comb_coef,volume_factor);
+
+        // advance multinomial diffusion
+        MultinomialDiffusion(n_old,n_new,diff_coef_face,geom,dt,time);
+
+        // add reaction contribution and external source
+        MultiFab::Saxpy(n_new,dt,rate1,0,0,nspecies,0);
+        MultiFab::Saxpy(n_new,dt,ext_src,0,0,nspecies,0);
+        n_new.FillBoundary(geom.periodicity());
+        MultiFabPhysBC(n_new, geom, 0, nspecies, SPEC_BC_COMP, time);
+        return;
+
+    }
 
     MultiFab diff_fluxdiv (ba,dmap,nspecies,0);
     MultiFab stoch_fluxdiv(ba,dmap,nspecies,0);
