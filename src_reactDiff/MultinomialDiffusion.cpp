@@ -16,6 +16,7 @@ void MultinomialDiffusion(MultiFab& n_old,
     DistributionMapping dmap = n_old.DistributionMap();
 
     MultiFab cell_update(ba, dmap, nspecies, 1);
+    cell_update.setVal(0.);
 
     // set new state to zero everywhere, including ghost cells
     n_new.setVal(0.);
@@ -118,6 +119,7 @@ AMREX_GPU_HOST_DEVICE void multinomial_rng(GpuArray<Real,2*AMREX_SPACEDIM>& samp
         sum_p += p[sample];
     }
     if (sum_p > 1.) {
+        Print() << "sum_p = " << sum_p << std::endl;
         Abort("multinomial_rng: probabilities must sum to 1 or less");
     }
 
