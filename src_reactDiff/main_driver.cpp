@@ -223,6 +223,14 @@ void main_driver(const char* argv)
     WritePlotFile(istep,time,geom,n_old);
 
     ///////////////////////////////////////////
+    
+    // Create output file for averaged density
+    std::ofstream outputFile("averagedDensity.txt");
+    outputFile << "time ";
+
+    for (int comp = 0; comp < nspecies; ++comp) {
+        outputFile << "comp_" << comp << " ";
+    }
 
     // time step loop
     for(int step=step_start;step<=max_step;++step) {
@@ -234,6 +242,19 @@ void main_driver(const char* argv)
 
         time += dt;
         MultiFab::Copy(n_old,n_new,0,0,nspecies,1);
+
+        // Compute average n for each species, print to file?
+        for (int comp = 0; comp < nspecies; ++comp) {
+            if (comp == 0) {
+                outputFile << "\n" << time << " ";
+            }
+
+            amrex::Real n_sum = n_old.sum(comp);      // or n_new depending on where you call this
+            amrex::Real n_avg = n_sum / (n_cells[0]*n_cells[1]);   // for 3D you need n_cells[2] also
+            amrex::Print() << "time = " << time << " comp " << comp << " n_avg = " << n_avg << std::endl;
+            
+            outputFile << n_avg << " ";
+        }
 
         // Call the timer again and compute the maximum difference between the start time
         // and stop time over all processors
@@ -285,6 +306,8 @@ void main_driver(const char* argv)
                        << min_fab_megabytes << " ... " << max_fab_megabytes << "]\n";
         
     }
+
+    outputFile.close();
 
     // Call the timer again and compute the maximum difference between the start time
     // and stop time over all processors
