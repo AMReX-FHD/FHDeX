@@ -66,7 +66,7 @@ void InitializeMFSurfchemNamespace()
     stoch_MFsurfchem = 1; // default value
     pp.query("stoch_MFsurfchem",stoch_MFsurfchem);
 
-    k_beta = 0.5; // default value
+    k_beta = -0.5; // default value
     pp.query("k_beta",k_beta);
 
     e_beta = 0.5; // default value
@@ -153,8 +153,8 @@ void sample_MFsurfchem(MultiFab& cu, MultiFab& prim, MultiFab& surfcov, MultiFab
                 amrex:: Real tempratio = prim_arr(i,j,k,4)/T_init[0];
 
                 for (int m=0;m<n_ads_spec;m++) {
-                    amrex::Real dens = cu_arr(i,j,k,5+m);   // mass density
-                    dens *= AVONUM/molmass[m];              // number density
+                    amrex::Real dens = prim_arr(i,j,k,5);   // total pressure
+                    dens *= prim_arr(i,j,k,6+nspecies+m);   // partial pressure
 
                     amrex::Real theta = surfcov_arr(i,j,k,m);
 
