@@ -158,7 +158,7 @@ void sample_MFsurfchem(MultiFab& cu, MultiFab& prim, MultiFab& surfcov, MultiFab
 
                     amrex::Real theta = surfcov_arr(i,j,k,m);
 
-  		    amrex::Real meanNads = ads_rate_const[m]*dens*(1-sumtheta)*Ntot*dt*pow(tempratio,k_beta);
+  		    amrex::Real meanNads = ads_rate_const[m]*pres*(1-sumtheta)*Ntot*dt*pow(tempratio,k_beta);
                     amrex::Real meanNdes = des_rate[m]*theta*Ntot*dt;
 
                     amrex::Real Nads;
