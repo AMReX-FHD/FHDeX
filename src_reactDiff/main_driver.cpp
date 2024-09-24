@@ -84,6 +84,8 @@ void main_driver(const char* argv)
     IntVect dom_hi(AMREX_D_DECL(n_cells[0]-1, n_cells[1]-1, n_cells[2]-1));
     Box domain(dom_lo, dom_hi);
 
+    long cell_count = (AMREX_SPACEDIM==2) ? n_cells[0]*n_cells[1] : n_cells[0]*n_cells[1]*n_cells[2];
+
     Geometry geom(domain,&real_box,CoordSys::cartesian,is_periodic.data());
 
     const Real* dx = geom.CellSize();
@@ -223,6 +225,15 @@ void main_driver(const char* argv)
     WritePlotFile(istep,time,geom,n_old);
 
     ///////////////////////////////////////////
+    
+    // Create output file for averaged density
+    std::ofstream outputFile("averagedDensity.txt");
+    outputFile << "time ";
+
+    for (int comp = 0; comp < nspecies; ++comp) {
+        outputFile << "comp_" << comp << " ";
+    }
+    outputFile << std::endl;
 
     // time step loop
     for(int step=step_start;step<=max_step;++step) {
@@ -234,6 +245,20 @@ void main_driver(const char* argv)
 
         time += dt;
         MultiFab::Copy(n_old,n_new,0,0,nspecies,1);
+
+        outputFile << std::setprecision(12) << time << " ";
+        amrex::Print() << "time = " << time << " n_avg = ";
+
+        // Compute average n for each species, print to file?
+        for (int comp = 0; comp < nspecies; ++comp) {
+
+            amrex::Real n_sum = n_old.sum(comp);
+            amrex::Real n_avg = n_sum / cell_count;
+            amrex::Print() << n_avg << " ";
+            outputFile << n_avg << " ";
+        }
+        amrex::Print() << std::endl;
+        outputFile << std::endl;
 
         // Call the timer again and compute the maximum difference between the start time
         // and stop time over all processors
@@ -285,6 +310,8 @@ void main_driver(const char* argv)
                        << min_fab_megabytes << " ... " << max_fab_megabytes << "]\n";
         
     }
+
+    outputFile.close();
 
     // Call the timer again and compute the maximum difference between the start time
     // and stop time over all processors
