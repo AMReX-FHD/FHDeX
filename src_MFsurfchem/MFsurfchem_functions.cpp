@@ -153,8 +153,8 @@ void sample_MFsurfchem(MultiFab& cu, MultiFab& prim, MultiFab& surfcov, MultiFab
                 amrex:: Real tempratio = prim_arr(i,j,k,4)/T_init[0];
 
                 for (int m=0;m<n_ads_spec;m++) {
-                    amrex::Real dens = prim_arr(i,j,k,5);   // total pressure
-                    dens *= prim_arr(i,j,k,6+nspecies+m);   // partial pressure
+                    amrex::Real pres = prim_arr(i,j,k,5);   // total pressure
+                    pres *= prim_arr(i,j,k,6+nspecies+m);   // partial pressure
 
                     amrex::Real theta = surfcov_arr(i,j,k,m);
 
