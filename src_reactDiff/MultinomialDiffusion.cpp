@@ -12,6 +12,10 @@ void MultinomialDiffusion(MultiFab& n_old,
                           const Real& dt,
                           const Real& time)
 {
+#if (AMREX_USE_CUDA)
+    Abort("std::MultinomailDiffusion not supported for CUDA (need sum reductions)");
+#endif
+
     BoxArray ba = n_old.boxArray();
     DistributionMapping dmap = n_old.DistributionMap();
 
@@ -132,9 +136,6 @@ AMREX_GPU_HOST_DEVICE void multinomial_rng(GpuArray<Real,2*AMREX_SPACEDIM>& samp
     for (int sample=0; sample<2*AMREX_SPACEDIM; ++sample) {
 #if 0
         // not sure why std:: binomial_distribition gives grid artifacts
-#if (AMREX_USE_CUDA)
-    Abort("std::binomial_distribution not supported for CUDA");
-#endif
         std::binomial_distribution<int> distribution(N-sum_n, p[sample]/(1.-sum_p));
         samples[sample] = distribution(generator);
 #else
