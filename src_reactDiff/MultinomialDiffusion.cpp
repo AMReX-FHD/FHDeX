@@ -124,32 +124,38 @@ AMREX_GPU_HOST_DEVICE void multinomial_rng(GpuArray<Real,2*AMREX_SPACEDIM>& samp
         Abort("multinomial_rng: probabilities must sum to 1 or less");
     }
 
+    // brute force multinomial
+    for (int sample=0; sample<2*AMREX_SPACEDIM; ++sample) {
+        samples[sample] = 0.;
+    }
+    for (int n=0; n<N; ++n) {
+        Real x = amrex::Random(engine); // uniform over [0,1)
+        Real sum_p = 0.;
+        // find the multinomial bin the RNG lands in
+        for (int sample=0; sample<2*AMREX_SPACEDIM; ++sample) {
+            sum_p += p[sample];
+            if (x <= sum_p) {
+                samples[sample] += 1.;
+                break;
+            }
+        }
+    }
+
 #if 0
     // not sure why std:: binomial_distribition gives grid artifacts
     std::default_random_engine generator;
     generator.seed(std::chrono::system_clock::now().time_since_epoch().count());
-#endif
 
     sum_p = 0.;
     int sum_n = 0;
     
     for (int sample=0; sample<2*AMREX_SPACEDIM; ++sample) {
-#if 0
-        // not sure why std:: binomial_distribition gives grid artifacts
+
         std::binomial_distribution<int> distribution(N-sum_n, p[sample]/(1.-sum_p));
         samples[sample] = distribution(generator);
-#else
-        // brute force binomial distribution
-        int success = 0;
-        Real prob = p[sample]/(1.-sum_p);
-        for (int n=0; n<N-sum_n; ++n) {
-            Real x = amrex::Random(engine);
-            if (x <= prob) success++;
-        }
-        samples[sample] = success;
-#endif
 
         sum_n += samples[sample];
         sum_p += p[sample];
     }
+#endif
 }
