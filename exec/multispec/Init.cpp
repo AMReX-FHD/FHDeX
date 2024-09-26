@@ -9,6 +9,8 @@ void InitRhoUmac(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                  MultiFab& rho_in,
                  const Geometry& geom)
 {
+
+    std::cout << "Prob type: " << prob_type << std::endl;
     
     GpuArray<Real,AMREX_SPACEDIM> dx = geom.CellSizeArray();
 
