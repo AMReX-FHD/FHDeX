@@ -102,7 +102,8 @@ void MultinomialDiffusion(MultiFab& n_old,
 
 AMREX_GPU_HOST_DEVICE void multinomial_rng(GpuArray<Real,2*AMREX_SPACEDIM>& samples,
                                            const int& N,
-                                           GpuArray<Real,2*AMREX_SPACEDIM>& p);
+                                           GpuArray<Real,2*AMREX_SPACEDIM>& p,
+                                           const amrex::RandomEngine& engine);
 
 ////////////////////////
 // In StochasticNFluxdiv.cpp
