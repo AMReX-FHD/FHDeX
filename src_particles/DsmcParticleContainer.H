@@ -223,7 +223,7 @@ public:
 	void CollideParticles2(Real dt);
 
 	void MoveParticlesCPP(const Real dt, paramPlane* paramPlaneList, const int paramPlaneCount);
-    void MovePhononsCPP(const Real dt, paramPlane* paramPlaneList, const int paramPlaneCount, const int step, const int istep);
+    void MovePhononsCPP(const Real dt, paramPlane* paramPlaneList, const int paramPlaneCount, const int step, const int istep, iMultiFab& bCell);
 	void externalForce(const Real dt);
 	void updateTimeStep(const Geometry& geom, Real& dt);
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

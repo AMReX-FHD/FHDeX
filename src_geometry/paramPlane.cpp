@@ -2,7 +2,7 @@
 #include <math.h>
 
 #include "common_functions.H"
-
+#include <AMReX_MultiFab.H>
 #include "DsmcParticleContainer.H"
 
 using namespace amrex;
@@ -1990,7 +1990,71 @@ void BuildParamplanesPhonon(paramPlane* paramPlaneList, const int paramplanes, c
     planeFile.close();
 }
 
-void SetBoundaryCells(paramPlane* paramPlaneList, const int paramplanes, const Real* domainLo, const Real* domainHi, iMultiFab& bCell)
+void SetBoundaryCells(paramPlane* paramPlaneList, const int paramplanes, const Real* domainLo, const Real* domainHi, const Geometry & Geom, iMultiFab& bCell, int paramPlaneCount)
 {
 
+	bool proc_enter = true;
+	
+	const Real* dx = Geom.CellSize();
+	
+
+	Real smallNumber = dx[0];
+	if(dx[1] < smallNumber){smallNumber = dx[1];}
+	if(dx[2] < smallNumber){smallNumber = dx[2];}
+	smallNumber = smallNumber*0.00000001;
+	
+    int procID = ParallelDescriptor::MyProc();
+
+	for(MFIter mfi = MFIter(bCell); mfi.isValid(); ++mfi)
+	{
+		if(proc_enter)
+		{
+			proc_enter = false;//Make sure this runs only once incase of tiling
+
+			const int grid_id = mfi.index();
+		    const int tile_id = mfi.LocalTileIndex();
+		
+		    Gpu::ManagedVector<paramPlane> paramPlaneListTmp;
+            paramPlaneListTmp.resize(paramPlaneCount);
+            for(int i=0;i<paramPlaneCount;i++)
+            {
+                paramPlaneListTmp[i]=paramPlaneList[i];
+
+            }
+            paramPlane* paramPlaneListPtr = paramPlaneListTmp.data();
+            
+            Array4<int> bCellArr  = bCell[mfi].array();
+
+			for(int i = 0; i< paramPlaneCount; i++)
+			{
+    			for(int j = 0; j< 100; j++)
+    			{
+			        Real uCoord = amrex::Random()*(paramPlaneList[i].uTop+2.0*fixed_dt*phonon_sound_speed)-fixed_dt*phonon_sound_speed;
+			        Real vCoord = amrex::Random()*(paramPlaneList[i].vTop+2.0*fixed_dt*phonon_sound_speed)-fixed_dt*phonon_sound_speed;
+			        
+				    Real posx = paramPlaneListPtr[i].x0 + paramPlaneListPtr[i].ux*uCoord + paramPlaneListPtr[i].vx*vCoord;
+				    Real posy = paramPlaneListPtr[i].y0 + paramPlaneListPtr[i].uy*uCoord + paramPlaneListPtr[i].vy*vCoord;
+				    Real posz = paramPlaneListPtr[i].z0 + paramPlaneListPtr[i].uz*uCoord + paramPlaneListPtr[i].vz*vCoord;
+				    
+				    Real nCoord = amrex::Random()*fixed_dt*phonon_sound_speed;
+				    
+			        posx = posx + nCoord*paramPlaneListPtr[i].lnx;
+				    posy = posy + nCoord*paramPlaneListPtr[i].lny;
+				    posz = posz + nCoord*paramPlaneListPtr[i].lnz;
+				    
+			        int cell[3];
+			        cell[0] = (int)floor((posx-prob_lo[0])/dx[0]);
+			        cell[1] = (int)floor((posy-prob_lo[1])/dx[1]);
+			        cell[2] = (int)floor((posz-prob_lo[2])/dx[2]);
+			        
+			        if((cell[0] >= 0) && (cell[0] < n_cells[0]) && (cell[1] >= 0) && (cell[1] < n_cells[1]) && (cell[2] >= 0) && (cell[2] < n_cells[2]))
+			        {
+			            bCellArr(cell[0],cell[1],cell[2]) = 1;
+			        }
+			    }
+			    
+			}
+		}
+    }
 }
+
