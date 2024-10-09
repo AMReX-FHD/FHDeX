@@ -255,7 +255,7 @@ void main_driver(const char* argv)
             amrex::Real n_sum = n_old.sum(comp);
             amrex::Real n_avg = n_sum / cell_count;
             amrex::Print() << n_avg << " ";
-            outputFile << n_avg << " ";
+            outputFile << std::setprecision(15) << n_avg << " ";
         }
         amrex::Print() << std::endl;
         outputFile << std::endl;

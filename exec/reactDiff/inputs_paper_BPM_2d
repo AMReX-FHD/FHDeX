@@ -17,17 +17,17 @@ prob_hi = 32.0 32.0       # physical hi coordinate
 
 # number of cells in domain and maximum number of cells in a box
 n_cells = 64 64
-max_grid_size = 32 32
+max_grid_size = 16 16
 
 # to compute cell volume in 2D problems
-cell_depth = 10.
+cell_depth = 1.
 
 # Time-step control
-fixed_dt = 0.5
+fixed_dt = 0.01
 
 # Controls for number of steps between actions
-max_step = 20000
-plot_int = 200
+max_step = 2000000
+plot_int = 20000
 struct_fact_int = -1
 n_steps_skip = 2000
 
@@ -49,7 +49,7 @@ integer_populations = 1
 # -2=unsplit explicit midpoint 
 # -3=unsplit multinomial diffusion
 # -4=unsplit implicit midpoint
-temporal_integrator = -4
+temporal_integrator = 1
 
 # only used for split schemes (temporal_integrator>=0)
 # 0=explicit trapezoidal predictor/corrector
@@ -57,7 +57,7 @@ temporal_integrator = -4
 # 2=explicit midpoint
 # 3=multinomial diffusion
 # 4=forward Euler  
-reactDiff_diffusion_type = 4
+reactDiff_diffusion_type = 3
 
 # Fickian diffusion coeffs
 D_Fick = 0.1 0.01 0.01
@@ -78,7 +78,7 @@ avg_type = 1
 reactDiff_reaction_type = 0
 
 # 0=deterministic; 1=CLE; 2=SSA; 3=tau leap
-reaction_type = 3
+reaction_type = 2
 
 # BPM model is:
 #     (1) U + W --> V + W
