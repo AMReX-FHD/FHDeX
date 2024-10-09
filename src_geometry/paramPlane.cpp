@@ -2051,6 +2051,19 @@ void SetBoundaryCells(paramPlane* paramPlaneList, const int paramplanes, const R
 			        {
 			            bCellArr(cell[0],cell[1],cell[2]) = 1;
 			        }
+			        
+			        posx = posx - 2.0*nCoord*paramPlaneListPtr[i].lnx;
+				    posy = posy - 2.0*nCoord*paramPlaneListPtr[i].lny;
+				    posz = posz - 2.0*nCoord*paramPlaneListPtr[i].lnz;
+				    
+			        cell[0] = (int)floor((posx-prob_lo[0])/dx[0]);
+			        cell[1] = (int)floor((posy-prob_lo[1])/dx[1]);
+			        cell[2] = (int)floor((posz-prob_lo[2])/dx[2]);
+			        
+			        if((cell[0] >= 0) && (cell[0] < n_cells[0]) && (cell[1] >= 0) && (cell[1] < n_cells[1]) && (cell[2] >= 0) && (cell[2] < n_cells[2]))
+			        {
+			            bCellArr(cell[0],cell[1],cell[2]) = 1;
+			        }			        
 			    }
 			    
 			}
