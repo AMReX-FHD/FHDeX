@@ -1,7 +1,7 @@
  # Problem specification
   prob_lo = 0.      0.       0. # physical lo coordinate
   #prob_hi = 9.6e-7 9.6e-7 9.6e-7  # physical hi coordinate
-  prob_hi = 12.8e-6 12.8e-6 12.8e-6   # physical hi coordinate
+  prob_hi = 25.6e-3 12.8e-3 25.6e-3   # physical hi coordinate
 
  # cell_depth = 1.0e-7
 
@@ -11,16 +11,16 @@
   plot_base_name= plt
 
   # number of cells in domain
-  n_cells = 128 128 128
+  n_cells = 128 64 128
   # max number of cells in a box
-  max_grid_size = 64 64 64
+  max_grid_size = 32 64 32
 
   # Time-step control
-  fixed_dt = 6.e-13
+  fixed_dt = 6.e-9
 
   # Controls for number of steps between actions
   max_step = 1000000
-  plot_int = 1000
+  plot_int = 5
   chk_int = 1000
   restart = -1
 
@@ -82,8 +82,8 @@
   fh_kappa = 0. 3.e-14 3.e-14 0.
   fh_tension = 24.3386
   fh_ce = 0.037874
-  contact_angle_lo =  90. 135. 90.
-  contact_angle_hi =  90. 135. 90.
+  contact_angle_lo =  90. 110. 90.
+  contact_angle_hi =  90. 110. 90.
 
 
   rhobar = 1. 1.     # pure component densities for all species
@@ -97,7 +97,7 @@
   c_init_1 = 0.037874 0.962126
   c_init_2 = 0.962126 0.037874
   smoothing_width = 0.
-  radius_cyl = 25.825e-7
+  radius_cyl = 0.0125
 
   # These are lower-triangules of symmetric matrices represented as vectors
   # Number of elements is (nspecies*(nspecies-1)/2)
