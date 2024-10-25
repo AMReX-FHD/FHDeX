@@ -122,7 +122,7 @@ surf_site_num_dens = 1.027285e+15
 
 # adsorption rate = ads_rate_const * num_dens
 # desoprtion rate = des_rate
-ads_rate_const = 1.770226e-11
+ads_rate_const = 1.831671e+02
 des_rate = 3.702336e+07
 
 # e_beta = 0    # no additional energy update

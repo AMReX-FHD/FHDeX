@@ -114,19 +114,19 @@ void TurbSpectrumVelDecomp(const MultiFab& vel,
     {
       vel_single.ParallelCopy(vel, 0, 0, 1);
       amrex::FFT::R2C<Real,FFT::Direction::forward> r2c(geom.Domain());
-      r2c.forward(mf,spectral_field_Tx);
+      r2c.forward(vel_single,spectral_field_Tx);
     }
     // Y
     {
       vel_single.ParallelCopy(vel, 1, 0, 1);
       amrex::FFT::R2C<Real,FFT::Direction::forward> r2c(geom.Domain());
-      r2c.forward(mf,spectral_field_Ty);
+      r2c.forward(vel_single,spectral_field_Ty);
     }
     // Z
     {
       vel_single.ParallelCopy(vel, 2, 0, 1);
       amrex::FFT::R2C<Real,FFT::Direction::forward> r2c(geom.Domain());
-      r2c.forward(mf,spectral_field_Tz);
+      r2c.forward(vel_single,spectral_field_Tz);
     }
     
     // Decompose velocity field into solenoidal and dilatational

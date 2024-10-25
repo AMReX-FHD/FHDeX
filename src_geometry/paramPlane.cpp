@@ -57,6 +57,7 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 			for(int l=0; l<nspecies; l++)
 			{
 				bc_Xk_x_lo[l] /= n_lo[0];
+				cout << "n: " << bc_Xk_x_lo[l] << endl;
 			}
 		}
 		// Number densities defined
@@ -259,6 +260,7 @@ void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const R
 			for(int l=0; l<nspecies; l++)
 			{
 				bc_Xk_x_hi[l] /= n_hi[0];
+				cout << "n: " << bc_Xk_x_lo[l] << endl;				
 			}
 		}
 		// Number densities defined
@@ -1986,4 +1988,9 @@ void BuildParamplanesPhonon(paramPlane* paramPlaneList, const int paramplanes, c
 
     }
     planeFile.close();
+}
+
+void SetBoundaryCells(paramPlane* paramPlaneList, const int paramplanes, const Real* domainLo, const Real* domainHi, iMultiFab& bCell)
+{
+
 }

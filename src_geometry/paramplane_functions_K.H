@@ -52,13 +52,15 @@ void find_inter_gpu(FhdParticleContainer::ParticleType& part, const Real delt, c
 	*intsurf = -1;
 	Real uval, vval, tval;
 	
-	pre_check_gpu(part, delt, paramplanes, ns, &flag, phi, plo, inttime);
+	//pre_check_gpu(part, delt, paramplanes, ns, &flag, phi, plo, inttime);
 
     //Complete
 	if(flag == 0)
 	{
 		for(int s=1;s<=ns;s++)
 		{
+			//if((s != 2) && (s != 3))
+			{
 			const paramPlane* surf = &paramplanes[s-1];
 
 			Real denominv = 1.0/(part.rdata(FHD_realData::velz)*surf->uy*surf->vx - part.rdata(FHD_realData::vely)*surf->uz*surf->vx - part.rdata(FHD_realData::velz)*surf->ux*surf->vy + part.rdata(FHD_realData::velx)*surf->uz*surf->vy + part.rdata(FHD_realData::vely)*surf->ux*surf->vz - part.rdata(FHD_realData::velx)*surf->uy*surf->vz);
@@ -88,6 +90,7 @@ void find_inter_gpu(FhdParticleContainer::ParticleType& part, const Real delt, c
 				{
 					*intside = 0; //0 for lhs
 				}
+			}
 			}
 		}
 	}

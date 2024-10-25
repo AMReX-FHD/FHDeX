@@ -301,6 +301,20 @@ void main_driver(const char* argv)
     MultiFab master_2D_rot_prim;
     MultiFab master_2D_rot_cons;
 
+#if defined(TURB)
+    // Structure factor for compressible turbulence
+    StructFact turbStructFactVelTotal; // total velocity
+    StructFact turbStructFactVelDecomp; // decomposed velocity
+    StructFact turbStructFactScalar; // scalars 
+#endif
+
+    // surface coverage structure factor
+    StructFact surfcovStructFact;
+    MultiFab surfcovFlattenedRotMaster;
+    Geometry surfcov_geom_flat;
+    BoxArray surfcov_ba_flat;
+    DistributionMapping surfcov_dmap_flat;
+    
     Geometry geom_flat;
     Geometry geom_flat_2D;
     BoxArray ba_flat;
@@ -869,6 +883,108 @@ void main_driver(const char* argv)
         }
     }
 
+    if (n_ads_spec>0) {
+
+        MultiFab Flattened;  // flattened multifab defined below
+
+        // we are only calling ExtractSlice here to obtain
+        // a built version of Flattened so can obtain what we need to build the
+        // structure factor and geometry objects for flattened data
+        // assume surface covered is stored in the "k" direction in the k=0 coordinate.
+        int surfcov_dir = 2;
+        int surfcov_plane = 0;
+        int surfcov_structVars = n_ads_spec;
+        int surfcov_nPairs = surfcov_structVars*(surfcov_structVars+1)/2;
+
+        Vector< std::string > surfcov_var_names;
+        surfcov_var_names.resize(surfcov_structVars);
+        for (int d=0; d<surfcov_structVars; d++) {
+            x = "surfCov";
+            x += (48+d);
+            surfcov_var_names[d] = x;
+        }
+
+        Vector<Real> surfcov_var_scaling(surfcov_nPairs);
+        for (int d=0; d<surfcov_var_scaling.size(); ++d) {
+            surfcov_var_scaling[d] = 1.;
+        }
+      
+        ExtractSlice(surfcov, Flattened, geom, surfcov_dir, surfcov_plane, 0, surfcov_structVars);
+        // we rotate this flattened MultiFab to have normal in the z-direction since
+        // our structure factor class assumes this for flattened
+        MultiFab FlattenedRot = RotateFlattenedMF(Flattened);
+        BoxArray surfcov_surfcov_ba_flat = FlattenedRot.boxArray();
+        const DistributionMapping& dmap_flat = FlattenedRot.DistributionMap();
+        surfcovFlattenedRotMaster.define(surfcov_surfcov_ba_flat,dmap_flat,surfcov_structVars,0);
+        {
+            IntVect dom_lo(AMREX_D_DECL(0,0,0));
+            IntVect dom_hi;
+
+            // yes you could simplify this code but for now
+            // these are written out fully to better understand what is happening
+            // we wanted dom_hi[AMREX_SPACEDIM-1] to be equal to 0
+            // and need to transmute the other indices depending on surfcov_dir
+#if (AMREX_SPACEDIM == 2)
+            if (surfcov_dir == 0) {
+                dom_hi[0] = n_cells[1]-1;
+            }
+            else if (surfcov_dir == 1) {
+                dom_hi[0] = n_cells[0]-1;
+            }
+            dom_hi[1] = 0;
+#elif (AMREX_SPACEDIM == 3)
+            if (surfcov_dir == 0) {
+                dom_hi[0] = n_cells[1]-1;
+                dom_hi[1] = n_cells[2]-1;
+            } else if (surfcov_dir == 1) {
+                dom_hi[0] = n_cells[0]-1;
+                dom_hi[1] = n_cells[2]-1;
+            } else if (surfcov_dir == 2) {
+                dom_hi[0] = n_cells[0]-1;
+                dom_hi[1] = n_cells[1]-1;
+            }
+            dom_hi[2] = 0;
+#endif
+            Box domain(dom_lo, dom_hi);
+
+            // This defines the physical box
+            Vector<Real> projected_hi(AMREX_SPACEDIM);
+
+            // yes you could simplify this code but for now
+            // these are written out fully to better understand what is happening
+            // we wanted projected_hi[AMREX_SPACEDIM-1] to be equal to dx[projected_dir]
+            // and need to transmute the other indices depending on surfcov_dir
+#if (AMREX_SPACEDIM == 2)
+            if (surfcov_dir == 0) {
+                projected_hi[0] = prob_hi[1];
+            } else if (surfcov_dir == 1) {
+                projected_hi[0] = prob_hi[0];
+            }
+            projected_hi[1] = prob_hi[surfcov_dir] / n_cells[surfcov_dir];
+#elif (AMREX_SPACEDIM == 3)
+            if (surfcov_dir == 0) {
+                projected_hi[0] = prob_hi[1];
+                projected_hi[1] = prob_hi[2];
+            } else if (surfcov_dir == 1) {
+                projected_hi[0] = prob_hi[0];
+                projected_hi[1] = prob_hi[2];
+            } else if (surfcov_dir == 2) {
+                projected_hi[0] = prob_hi[0];
+                projected_hi[1] = prob_hi[1];
+            }
+            projected_hi[2] = prob_hi[surfcov_dir] / n_cells[surfcov_dir];
+#endif
+
+            RealBox real_box({AMREX_D_DECL(     prob_lo[0],     prob_lo[1],     prob_lo[2])},
+                             {AMREX_D_DECL(projected_hi[0],projected_hi[1],projected_hi[2])});
+        
+            // This defines a Geometry object
+            surfcov_geom_flat.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
+        }
+
+        surfcovStructFact.define(surfcov_surfcov_ba_flat,dmap_flat,surfcov_var_names,surfcov_var_scaling);
+    }
+
     /////////////////////////////////////////////////
     // Initialize Fluxes and Sources
     /////////////////////////////////////////////////
@@ -1394,6 +1510,20 @@ void main_driver(const char* argv)
 
                 }
             }
+
+            if (n_ads_spec > 0) {
+                int surfcov_dir = 2;
+                int surfcov_plane = 0;
+                int surfcov_structVars = n_ads_spec;
+                MultiFab Flattened;  // flattened multifab defined below
+                ExtractSlice(surfcov, Flattened, geom, surfcov_dir, surfcov_plane, 0, surfcov_structVars);
+                // we rotate this flattened MultiFab to have normal in the z-direction since
+                // our structure factor class assumes this for flattened
+                MultiFab FlattenedRot = RotateFlattenedMF(Flattened);
+                surfcovFlattenedRotMaster.ParallelCopy(FlattenedRot,0,0,surfcov_structVars);
+                surfcovStructFact.FortStructure(surfcovFlattenedRotMaster,surfcov_geom_flat);
+            }
+
         }
 
         // write out structure factor
@@ -1449,6 +1579,10 @@ void main_driver(const char* argv)
                 WritePlotFilesSF_2D(cons_mag,cons_realimag,geom_flat_2D,step,time,
                                     structFactConsArray[0].get_names(),"plt_SF_cons_2D");
 
+            }
+
+            if (n_ads_spec > 0) {
+                surfcovStructFact.WritePlotFile(step,time,surfcov_geom_flat,"plt_SF_surfcov");
             }
         }
 
