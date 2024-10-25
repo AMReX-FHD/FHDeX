@@ -152,7 +152,7 @@ rcol1 = math.sqrt(kB*temp/2/math.pi/m1)*n1*(lat_const**2)
 
 sprob = 1.
 rads1 = sprob*rcol1
-kads1 = rads1/n1
+kads1 = rads1/p1
 
 kdes1 = rads1*math.exp((-delta_mu1+E_bind)*eV_cgs/(kB*temp))
 
@@ -162,7 +162,7 @@ print("- collision rate rcol1 = %e" % rcol1)
 
 print("- sticking prob = %f" % sprob)
 print("- rads1 = %e (rate)" % rads1)
-print("- kads1 = rads1/n1 (rate const) = %e" % kads1)
+print("- kads1 = rads1/p1 (rate const) = %e" % kads1)
 
 print("- kdes1 = %e" % kdes1)
 

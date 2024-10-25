@@ -120,7 +120,7 @@ void StochasticNFluxdiv(MultiFab& n_in,
     }
     
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
-        flux[i].mult(2.*variance_coef_mass/(dv*dt));
+        flux[i].mult(std::sqrt(2.*variance_coef_mass/(dv*dt)));
     }
 
     // compute flux divergence

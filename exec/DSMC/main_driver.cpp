@@ -334,7 +334,8 @@ void main_driver(const char* argv)
 		particles.CalcSelections(dt);
 		particles.CollideParticles(dt);
 		
-		if(istep%2!=0)
+//		if(istep%2!=0)
+		if(false)
         {        
 		    particles.EvaluateStats(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
 					cvlInst,cvlMeans,QMeans,coVars,spatialCross1D,statsCount++,time);
@@ -355,17 +356,19 @@ void main_driver(const char* argv)
 	            //PrintMF(structFactPrimMF,0,-1);
       	        //PrintMF(primInst,1,1);
 	            
-                structFactPrim.FortStructure(structFactPrimMF,geom);
+                //structFactPrim.FortStructure(structFactPrimMF,geom);
 		
 		    }
         }
-		particles.Source(dt, paramPlaneList, paramPlaneCount, cuInst);
+
 		//particles.externalForce(dt);
+		particles.Source(dt, paramPlaneList, paramPlaneCount, cuInst);		
 		particles.MoveParticlesCPP(dt, paramPlaneList, paramPlaneCount);
 		//particles.updateTimeStep(geom,dt);
                 //reduceMassFlux(paramPlaneList, paramPlaneCount);
 
-        if(istep%2==0)
+        if(true)
+//        if(istep%2==0)        
         {        
 		    particles.EvaluateStats(cuInst,cuMeans,cuVars,primInst,primMeans,primVars,
 					cvlInst,cvlMeans,QMeans,coVars,spatialCross1D,statsCount++,time);
@@ -386,7 +389,7 @@ void main_driver(const char* argv)
 	            //PrintMF(structFactPrimMF,0,-1);
       	        //PrintMF(primInst,1,1);
 	            
-                structFactPrim.FortStructure(structFactPrimMF,geom);
+                //structFactPrim.FortStructure(structFactPrimMF,geom);
 		
 		    }
         }

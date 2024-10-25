@@ -66,6 +66,9 @@ void main_driver(const char* argv)
     int nprimvars;
     pp.query("nprimvars",nprimvars);
 
+    int plot_filter = 0;
+    pp.query("plot_filter",plot_filter);
+
     amrex::IntVect ngc;
     for (int i=0; i<3; ++i) {
         ngc[i] = 1;           // number of ghost cells
@@ -102,7 +105,7 @@ void main_driver(const char* argv)
     Vector<int> is_periodic(3,1);  // force to be periodic -- can change later
     geom.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
 
-    const Real* dx = geom.CellSize();
+    const GpuArray<Real, 3> dx = geom.CellSizeArray();
     const RealBox& realDomain = geom.ProbDomain();
 
     SpectralReadCheckPoint(geom, domain, prim, vel, ba, dmap, n_cells, nprimvars, max_grid_size, ngc, restart);
@@ -141,13 +144,14 @@ void main_driver(const char* argv)
     vel_decomp_filter.FillBoundary(geom.periodicity());
     scalar_filter.FillBoundary(geom.periodicity());
 
-    SpectralWritePlotFile(restart, kmin, kmax, geom, vel_decomp_filter, scalar_filter, MFTurbVel, MFTurbScalar);
+    if (plot_filter) SpectralWritePlotFile(restart, kmin, kmax, geom, vel_decomp_filter, scalar_filter, MFTurbVel, MFTurbScalar);
 
     // Turbulence Diagnostics
     Real u_rms, u_rms_s, u_rms_d, delta_u_rms;
     Real taylor_len, taylor_Re_eta;
     Real skew, skew_s, skew_d, kurt, kurt_s, kurt_d;
     Vector<Real> var(9, 0.0);
+    Real skew_vort, kurt_vort, skew_div, kurt_div;
     {
       Vector<Real> dProb(3);
       dProb[0] = 1.0/((n_cells[0]+1)*n_cells[1]*n_cells[2]);
@@ -316,8 +320,61 @@ void main_driver(const char* argv)
         var[i] = mean2 - mean*mean;
       }
 
+      // skewness and kurtosis of velocity voritcity and divergence
+      MultiFab vel_stats;
+      vel_stats.define(prim.boxArray(),prim.DistributionMap(),4,0); // div, w1, w2, w3
+      for ( MFIter mfi(vel_stats,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
+        const Box& bx = mfi.tilebox();
+        const Array4<const Real>&  v_decomp = vel_decomp_filter.array(mfi);
+        const Array4<      Real>&  v_stats  = vel_stats.array(mfi);
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            // divergence
+            v_stats(i,j,k,0) = 0.5*( (v_decomp(i+1,j,k,0) - v_decomp(i-1,j,k,0))/dx[0] +
+                                  (v_decomp(i,j+1,k,1) - v_decomp(i,j-1,k,1))/dx[1] +
+                                  (v_decomp(i,j,k+1,2) - v_decomp(i,j,k-1,2))/dx[2] );
+
+            // curl w1 = u_2,1 - u_1,2
+            v_stats(i,j,k,1) = 0.5*( (v_decomp(i+1,j,k,1) - v_decomp(i-1,j,k,1))/dx[0] -
+                                  (v_decomp(i,j+1,k,0) - v_decomp(i,j-1,k,0))/dx[1] );
+
+            // curl w2 = u_1,3 - u_3,1
+            v_stats(i,j,k,2) = 0.5*( (v_decomp(i,j,k+1,0) - v_decomp(i,j,k-1,0))/dx[2] -
+                                  (v_decomp(i+1,j,k,2) - v_decomp(i-1,j,k,2))/dx[0] );
+
+            // curl w2 = u_3,2 - u_2,3
+            v_stats(i,j,k,3) = 0.5*( (v_decomp(i,j+1,k,2) - v_decomp(i,j-1,k,2))/dx[1] -
+                                  (v_decomp(i,j,k+1,1) - v_decomp(i,j,k-1,1))/dx[2] );
+          
+        });
+      }
+      // compute spatial mean
+      Real mean_div  = vel_stats.sum(0) / (npts);
+      Real mean_w1   = vel_stats.sum(1) / (npts);
+      Real mean_w2   = vel_stats.sum(2) / (npts);
+      Real mean_w3   = vel_stats.sum(3) / (npts);
+      vel_stats.plus(-1.0*mean_div, 0, 1);
+      vel_stats.plus(-1.0*mean_w1,  1, 1);
+      vel_stats.plus(-1.0*mean_w2,  2, 1);
+      vel_stats.plus(-1.0*mean_w3,  3, 1);
+
+      Vector<Real> U2(4);
+      Vector<Real> U3(4);
+      Vector<Real> U4(4);
+      for (int i=0;i<4;++i) {
+        CCMoments(vel_stats,i,ccTempA,2,U2[i]);
+        CCMoments(vel_stats,i,ccTempA,3,U3[i]);
+        CCMoments(vel_stats,i,ccTempA,4,U4[i]);
+      }
+      skew_div = U3[0]/pow(U2[0],1.5);
+      kurt_div = U4[0]/pow(U4[0],2.0);
+      skew_vort = (U3[1] + U3[2] + U3[3])/
+                  (pow(U2[1],1.5) + pow(U2[2],1.5) + pow(U2[3],1.5));
+      kurt_vort = (U4[1] + U4[2] + U4[3])/
+                  (pow(U2[1],2.0) + pow(U2[2],2.0) + pow(U2[3],2.0));
+
     }
-    std::string turbfilename = "turbstats_";
+    std::string turbfilename = amrex::Concatenate("turbstats_filtered_",restart,9);
     std::ostringstream os;
     os << std::setprecision(3) << kmin;
     turbfilename += os.str();
@@ -335,9 +392,11 @@ void main_driver(const char* argv)
                   << "TaylorLen " << "TaylorRe*Eta "
                   << "skew " << "skew_s " << "skew_d "
                   << "kurt " << "kurt_s " << "kurt_d "
-                  << "var ux " << "var uy " << "var uz "
-                  << "var uxs " << "var uys " << "var uzs "
-                  << "var uxd " << "var uyd " << "var uzd "
+                  << "var_ux " << "var_uy " << "var_uz "
+                  << "var_uxs " << "var_uys " << "var_uzs "
+                  << "var_uxd " << "var_uyd " << "var_uzd "
+                  << "skew_div " << "kurt_div "
+                  << "skew_vort " << "kurt_vort "
                   << std::endl;
 
       turboutfile << u_rms << " ";
@@ -355,6 +414,10 @@ void main_driver(const char* argv)
       for (int i=0;i<9;++i) {
         turboutfile << var[i] << " ";
       }
+      turboutfile << skew_div << " ";
+      turboutfile << kurt_div << " ";
+      turboutfile << skew_vort << " ";
+      turboutfile << kurt_vort << " ";
       turboutfile << std::endl;
     }
     // timer

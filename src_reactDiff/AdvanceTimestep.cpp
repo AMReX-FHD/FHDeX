@@ -7,7 +7,7 @@ void AdvanceTimestep(MultiFab& n_old,
                      const Real& time,
                      const Geometry& geom) {
 
-    if (temporal_integrator >0 0 && reactDiff_reaction_type != 0) {
+    if (temporal_integrator >= 0 && reactDiff_reaction_type != 0) {
         if (reaction_type == 2) {
             Abort("SSA (reaction_type==2) requires reactDiff_reaction_type=0 for split schemes");
         }

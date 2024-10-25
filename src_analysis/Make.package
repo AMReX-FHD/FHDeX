@@ -1,5 +1,12 @@
-CEXE_sources += StructFact.cpp
-CEXE_sources += TurbSpectra.cpp
-
 CEXE_headers += StructFact.H
+CEXE_sources += StructFact.cpp
+
 CEXE_headers += TurbSpectra.H
+CEXE_headers += TurbSpectra_distributed.H
+CEXE_sources += TurbSpectra_distributed.cpp
+
+#CEXE_sources += TurbSpectra_single.cpp
+#CEXE_sources += TurbSpectra_heffte.cpp
+
+#CEXE_headers += TurbSpectra_single.H
+#CEXE_headers += TurbSpectra_heffte.H

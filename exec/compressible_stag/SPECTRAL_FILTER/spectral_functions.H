@@ -98,5 +98,16 @@ void FCMoments(const std::array<MultiFab, 3>& m1,
 		       const int& power,
 		       amrex::Vector<amrex::Real>& prod_val);
 
+void SumCC(const amrex::MultiFab& m1,
+	   const int& comp,
+	   amrex::Real& sum,
+	   const bool& divide_by_ncells);
+
+void CCMoments(const amrex::MultiFab& m1,
+		 const int& comp1,
+                 amrex::MultiFab& mscr,
+		 const int& power,
+		 amrex::Real& prod_val);
+
 #endif
 
