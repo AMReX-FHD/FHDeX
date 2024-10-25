@@ -11,14 +11,15 @@ PRECISION = DOUBLE
 
 USE_MPI   = TRUE
 USE_OMP   = FALSE
-USE_CUDA  = FALSE
+USE_CUDA  = TRUE
 
 TINY_PROFILE = FALSE
 
 ###################################################
 
 #EBASE     = main
-EBASE     = main_decomp
+#EBASE     = main_decomp
+EBASE     = main_multisteps
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
