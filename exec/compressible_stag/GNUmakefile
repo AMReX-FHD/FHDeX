@@ -25,7 +25,7 @@ ifeq ($(USE_HEFFTE_FFTW),TRUE)
 else ifeq ($(USE_HEFFTE_CUFFT),TRUE)
   HEFFTE_HOME ?= ../../../heffte/
 else ifeq ($(USE_HEFFTE_ROCFFT),TRUE)
-  HEFFTE_HOME ?= ../../../heffte/
+  HEFFTE_HOME ?= ../../../heffte-org/build_noaware/
 endif
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
@@ -58,11 +58,16 @@ VPATH_LOCATIONS   += ../../src_common/
 INCLUDE_LOCATIONS += ../../src_common/
 
 ifeq ($(USE_HEFFTE_FFTW),TRUE)
-  include $(HEFFTE_HOME)/src/Make.package
+  DEFINES += -DHEFFTE_FFTW
+  LIBRARIES += -L$(FFTW_DIR) -lfftw3_mpi -lfftw3 -lfftw3f
 else ifeq ($(USE_HEFFTE_CUFFT),TRUE)
-  include $(HEFFTE_HOME)/src/Make.package
+  DEFINES += -DHEFFTE_CUFFT
 else ifeq ($(USE_HEFFTE_ROCFFT),TRUE)
-  include $(HEFFTE_HOME)/src/Make.package
+  DEFINES += -DHEFFTE_ROCFFT
+  VPATH_LOCATIONS += $(HEFFTE_HOME)/include
+  INCLUDE_LOCATIONS += $(HEFFTE_HOME)/include
+  LIBRARY_LOCATIONS += $(HEFFTE_HOME)/lib
+  LIBRARIES += -lheffte
 endif
 
 include $(AMREX_HOME)/Src/Base/Make.package
@@ -86,15 +91,6 @@ endif
 
 ifeq ($(DO_TURB), TRUE)
   DEFINES += -DTURB
-endif
-
-ifeq ($(USE_HEFFTE_FFTW),TRUE)
-  DEFINES += -DHEFFTE_FFTW
-  LIBRARIES += -L$(FFTW_DIR) -lfftw3_mpi -lfftw3 -lfftw3f
-else ifeq ($(USE_HEFFTE_CUFFT),TRUE)
-  DEFINES += -DHEFFTE_CUFFT
-else ifeq ($(USE_HEFFTE_ROCFFT),TRUE)
-  DEFINES += -DHEFFTE_ROCFFT
 endif
 
 MAXSPECIES := $(strip $(MAX_SPEC))
