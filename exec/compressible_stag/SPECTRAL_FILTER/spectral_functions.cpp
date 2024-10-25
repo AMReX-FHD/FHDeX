@@ -661,7 +661,9 @@ void SpectralScalarDecomp(const MultiFab& scalar,
        // Get the wavenumber
        int ki = i;
        int kj = j;
+       if (j >= ny/2) kj = ny - j;
        int kk = k;
+       if (k >= nz/2) kk = nz - k;
        Real knum = (ki*ki + kj*kj + kk*kk);
        knum = std::sqrt(knum);
 
@@ -1036,4 +1038,40 @@ void SumStag(const std::array<MultiFab, 3>& m1,
   sum[2] = amrex::get<0>(reduce_dataz.value());
   ParallelDescriptor::ReduceRealSum(sum[2]);
 }
+
+void CCMoments(const amrex::MultiFab& m1,
+		 const int& comp1,
+                 amrex::MultiFab& mscr,
+		 const int& power,
+		 amrex::Real& prod_val)
+{
+
+  BL_PROFILE_VAR("CCMoments()",CCMoments);
+
+  MultiFab::Copy(mscr,m1,comp1,0,1,0);
+  for(int i=1; i<power; i++){
+  MultiFab::Multiply(mscr,m1,comp1,0,1,0);
+  }
+
+  prod_val = 0.;
+  SumCC(mscr,0,prod_val,false);
+}
+
+void SumCC(const amrex::MultiFab& m1,
+	   const int& comp,
+	   amrex::Real& sum,
+	   const bool& divide_by_ncells)
+{
+  BL_PROFILE_VAR("SumCC()",SumCC);
+
+  sum = 0.;
+  sum = m1.MultiFab::sum(comp, false);
+
+  if (divide_by_ncells == 1) {
+    BoxArray ba_temp = m1.boxArray();
+    long numpts = ba_temp.numPts();
+    sum = sum/(double)(numpts);
+  }
+}
+
 
