@@ -18,7 +18,8 @@ TINY_PROFILE = FALSE
 ###################################################
 
 #EBASE     = main
-EBASE     = main_decomp
+#EBASE     = main_decomp
+EBASE     = main_multisteps
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
