@@ -33,7 +33,7 @@ void AdvanceDiffusion(MultiFab& n_old,
     }
 
     if (reactDiff_diffusion_type == 3) {
-        Abort("AdvanceDiffusion() - write multinomial case");
+        MultinomialDiffusion(n_old,n_new,diff_coef_face,geom,dt,time);
         return;
     }
 
