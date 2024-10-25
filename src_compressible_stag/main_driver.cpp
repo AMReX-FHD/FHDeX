@@ -690,6 +690,7 @@ void main_driver(const char* argv)
 #if defined(TURB)
             if (turbForcing > 0) {
                 EvaluateWritePlotFileVelGrad(0, 0.0, geom, vel, vel_decomp);
+                EvaluateWritePlotFileVelGradTiny(0, 0.0, geom, vel, vel_decomp);
             }
 #endif
 
@@ -1128,6 +1129,9 @@ void main_driver(const char* argv)
                 writePlt = ((step+1)%plot_int == 0);
             }
         }
+#if defined(TURB)
+        if ((turbRestartRun == 0) and (turbForcing >= 1)) writePlt = true;
+#endif
         
         if (writePlt) {
             //yzAverage(cuMeans, cuVars, primMeans, primVars, spatialCross,
@@ -1189,6 +1193,7 @@ void main_driver(const char* argv)
             
             if (turbForcing > 0) {
                 EvaluateWritePlotFileVelGrad(step, time, geom, vel, vel_decomp);
+                EvaluateWritePlotFileVelGradTiny(step, time, geom, vel, vel_decomp);
             }
 #endif
         }

@@ -54,6 +54,11 @@ void EvaluateWritePlotFileVelGrad(int step,
                                   const amrex::Geometry& geom,
                                   const std::array<MultiFab, AMREX_SPACEDIM>& vel,
                                   const amrex::MultiFab& vel_decomp);
+void EvaluateWritePlotFileVelGradTiny(int step,
+                                  const amrex::Real time,
+                                  const amrex::Geometry& geom,
+                                  const std::array<MultiFab, AMREX_SPACEDIM>& vel,
+                                  const amrex::MultiFab& vel_decomp);
 #endif
 
 void conservedToPrimitiveStag(MultiFab& prim_in, std::array<MultiFab, AMREX_SPACEDIM>& velStag_in,
