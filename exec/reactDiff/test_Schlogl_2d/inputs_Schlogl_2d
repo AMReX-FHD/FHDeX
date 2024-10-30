@@ -1,0 +1,101 @@
+# Problem specification
+prob_lo =  0.0  0.0       # physical lo coordinate
+prob_hi = 32.0 32.0       # physical hi coordinate
+
+# number of cells in domain and maximum number of cells in a box
+n_cells = 64 64
+max_grid_size = 16 16
+
+# to compute cell volume in 2D problems
+cell_depth = 1.
+
+# Time-step control
+fixed_dt = 0.001
+
+# Controls for number of steps between actions
+max_step = 1000000
+plot_int = 100000
+struct_fact_int = 1
+n_steps_skip = 100000
+
+seed = 0 
+
+nspecies = 1 
+nreaction = 4 
+
+prob_type = 0
+
+n_init_in_1 = 1000.
+
+integer_populations = 1
+
+# 0=D+R (first-order splitting)
+# 1=(1/2)R + D + (1/2)R (Strang option 1)
+# 2=(1/2)D + R + (1/2)D (Strang option 2)
+# -1=unsplit forward Euler
+# -2=unsplit explicit midpoint 
+# -3=unsplit multinomial diffusion
+# -4=unsplit implicit midpoint
+temporal_integrator = 1
+
+# only used for split schemes (temporal_integrator>=0)
+# 0=explicit trapezoidal predictor/corrector
+# 1=Crank-Nicolson semi-implicit
+# 2=explicit midpoint
+# 3=multinomial diffusion
+# 4=forward Euler  
+reactDiff_diffusion_type = 0
+
+# Fickian diffusion coeffs
+D_Fick = 1.
+
+variance_coef_mass = 1.
+initial_variance_mass = 1.
+
+# how to compute n on faces for stochastic weighting
+# 1=arithmetic (with C0-Heaviside), 2=geometric, 3=harmonic
+# 10=arithmetic average with discontinuous Heaviside function
+# 11=arithmetic average with C1-smoothed Heaviside function
+# 12=arithmetic average with C2-smoothed Heaviside function
+avg_type = 1
+
+# only used for split schemes (temporal_integrator>=0)
+# 0=first-order (deterministic, tau leaping, CLE, or SSA)
+# 1=second-order (determinisitc, tau leaping, or CLE only)
+reactDiff_reaction_type = 0
+
+# 0=deterministic; 1=CLE; 2=SSA; 3=tau leap
+reaction_type = 2
+
+# Schlog model is:
+#     (1) 2X --> 3X
+#     (2) 3X --> 2X
+#     (3) 0  --> X
+#     (4) X  --> 0
+stoich_1R = 2 
+stoich_1P = 3
+stoich_2R = 3 
+stoich_2P = 2 
+stoich_3R = 0 
+stoich_3P = 1 
+stoich_4R = 1 
+stoich_4P = 0
+
+# reaction rate constant for each reaction (assuming Law of Mass Action holds)
+# using rate_multiplier, reaction rates can be changed by the same factor
+# if include_discrete_LMA_correction, n^2 and n^3 in rate expressions become
+# n*(n-1/dv) and n*(n-1/dv)*(n-2/dv). 
+#rate_const = 1e-4 1e-7 200. 0.2     # thermodynamic equilibrium
+rate_const = 1e-4 2e-7 200. 0.1     # case where detailed balance is not satisfied
+
+rate_multiplier = 1.
+include_discrete_LMA_correction = 1
+
+# Boundary conditions
+# ----------------------
+# BC specifications:
+# -1 = periodic
+#  1 = wall (Neumann)
+#  2 = reservoir (Dirichlet)
+bc_mass_lo = -1 -1
+bc_mass_hi = -1 -1
