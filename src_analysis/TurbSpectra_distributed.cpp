@@ -32,14 +32,21 @@ void TurbSpectrumScalar(const MultiFab& variables,
     DistributionMapping dm = variables.DistributionMap();
     BoxArray ba            = variables.boxArray();
     
-    MultiFab cov(ba, dm, ncomp, 0);
+    // box array and dmap for FFT
+    Box cdomain = geom.Domain();
+    cdomain.setBig(0,cdomain.length(0)/2);
+    auto cba = amrex::decompose(cdomain, ParallelContext::NProcsSub(),
+                                {AMREX_D_DECL(true,true,false)});
+    DistributionMapping cdm = amrex::FFT::detail::make_iota_distromap(cba.size());
+
+    MultiFab cov(cba, cdm, ncomp, 0);
     MultiFab mf;
     mf.define(ba, dm, 1, 0);;
     
     for (int comp=0; comp<ncomp; ++comp) {    
 
         mf.ParallelCopy(variables,comp,0,1);
-        cMultiFab cmf(ba,dm,1,0);
+        cMultiFab cmf(cba,cdm,1,0);
         {
             amrex::FFT::R2C<Real,FFT::Direction::forward> r2c(geom.Domain());
             r2c.forward(mf,cmf);
@@ -93,22 +100,27 @@ void TurbSpectrumVelDecomp(const MultiFab& vel,
     // get box array and distribution map of vel
     DistributionMapping dm = vel.DistributionMap();
     BoxArray ba            = vel.boxArray();
+    
+    // box array and dmap for FFT
+    Box cdomain = geom.Domain();
+    cdomain.setBig(0,cdomain.length(0)/2);
+    auto cba = amrex::decompose(cdomain, ParallelContext::NProcsSub(),
+                                {AMREX_D_DECL(true,true,false)});
+    DistributionMapping cdm = amrex::FFT::detail::make_iota_distromap(cba.size());
 
     // each MPI rank gets storage for its piece of the fft
-    cMultiFab spectral_field_Tx(ba,dm,1,0); // totalx
-    cMultiFab spectral_field_Ty(ba,dm,1,0); // totaly
-    cMultiFab spectral_field_Tz(ba,dm,1,0); // totalz
-    cMultiFab spectral_field_Sx(ba,dm,1,0); // solenoidalx
-    cMultiFab spectral_field_Sy(ba,dm,1,0); // solenoidaly
-    cMultiFab spectral_field_Sz(ba,dm,1,0); // solenoidalz
-    cMultiFab spectral_field_Dx(ba,dm,1,0); // dilatationalx
-    cMultiFab spectral_field_Dy(ba,dm,1,0); // dilatationaly
-    cMultiFab spectral_field_Dz(ba,dm,1,0); // dilatationalz
+    cMultiFab spectral_field_Tx(cba,cdm,1,0); // totalx
+    cMultiFab spectral_field_Ty(cba,cdm,1,0); // totaly
+    cMultiFab spectral_field_Tz(cba,cdm,1,0); // totalz
+    cMultiFab spectral_field_Sx(cba,cdm,1,0); // solenoidalx
+    cMultiFab spectral_field_Sy(cba,cdm,1,0); // solenoidaly
+    cMultiFab spectral_field_Sz(cba,cdm,1,0); // solenoidalz
+    cMultiFab spectral_field_Dx(cba,cdm,1,0); // dilatationalx
+    cMultiFab spectral_field_Dy(cba,cdm,1,0); // dilatationaly
+    cMultiFab spectral_field_Dz(cba,cdm,1,0); // dilatationalz
 	
     MultiFab vel_single(ba, dm, 1, 0);
     	
-    int r2c_direction = 0;
-    
     // ForwardTransform
     // X
     {
@@ -166,60 +178,59 @@ void TurbSpectrumVelDecomp(const MultiFab& vel,
                GyC = (sin(2.0*M_PI*kj/ny)-0.0)/dx[1];
                GzR = (cos(2.0*M_PI*kk/nz)-1.0)/dx[2];
                GzC = (sin(2.0*M_PI*kk/nz)-0.0)/dx[2];
+
+               // Scale Total velocity FFT components
+               spectral_tx(i,j,k) *= (1.0/sqrtnpts);
+               spectral_ty(i,j,k) *= (1.0/sqrtnpts);
+               spectral_tz(i,j,k) *= (1.0/sqrtnpts);
+
+               // Inverse Laplacian
+               Real Lap = GxR*GxR + GxC*GxC + GyR*GyR + GyC*GyC + GzR*GzR + GzC*GzC;
+
+               // Divergence of vel
+               Real divR = spectral_tx(i,j,k).real()*GxR - spectral_tx(i,j,k).imag()*GxC +
+                           spectral_ty(i,j,k).real()*GyR - spectral_ty(i,j,k).imag()*GyC +
+                           spectral_tz(i,j,k).real()*GzR - spectral_tz(i,j,k).imag()*GzC ;
+               Real divC = spectral_tx(i,j,k).real()*GxC + spectral_tx(i,j,k).imag()*GxR +
+                           spectral_ty(i,j,k).real()*GyC + spectral_ty(i,j,k).imag()*GyR +
+                           spectral_tz(i,j,k).real()*GzC + spectral_tz(i,j,k).imag()*GzR ;
+
+               if (Lap < 1.0e-12) { // zero mode for no bulk motion
+                   spectral_dx(i,j,k) *= 0.0;
+                   spectral_dy(i,j,k) *= 0.0;
+                   spectral_dz(i,j,k) *= 0.0;
+               }
+               else {
+
+                   // Dilatational velocity 
+                   GpuComplex<Real> copy_dx((divR*GxR + divC*GxC) / Lap, 
+                                            (divC*GxR - divR*GxC) / Lap);
+                   spectral_dx(i,j,k) = copy_dx;
+
+                   GpuComplex<Real> copy_dy((divR*GyR + divC*GyC) / Lap,
+                                            (divC*GyR - divR*GyC) / Lap);
+                   spectral_dy(i,j,k) = copy_dy;
+
+                   GpuComplex<Real> copy_dz((divR*GzR + divC*GzC) / Lap,
+                                            (divC*GzR - divR*GzC) / Lap);
+                   spectral_dz(i,j,k) = copy_dz;
+               }
+                   
+               // Solenoidal velocity
+               spectral_sx(i,j,k) = spectral_tx(i,j,k) - spectral_dx(i,j,k);
+               spectral_sy(i,j,k) = spectral_ty(i,j,k) - spectral_dy(i,j,k); 
+               spectral_sz(i,j,k) = spectral_tz(i,j,k) - spectral_dz(i,j,k);
            }
            else { // conjugate
                 amrex::Abort("check the code; i should not go beyond bx.length(0)/2");
            }
 
-           // Scale Total velocity FFT components
-           spectral_tx(i,j,k) *= (1.0/sqrtnpts);
-           spectral_ty(i,j,k) *= (1.0/sqrtnpts);
-           spectral_tz(i,j,k) *= (1.0/sqrtnpts);
-
-           // Inverse Laplacian
-           Real Lap = GxR*GxR + GxC*GxC + GyR*GyR + GyC*GyC + GzR*GzR + GzC*GzC;
-
-           // Divergence of vel
-           Real divR = spectral_tx(i,j,k).real()*GxR - spectral_tx(i,j,k).imag()*GxC +
-                       spectral_ty(i,j,k).real()*GyR - spectral_ty(i,j,k).imag()*GyC +
-                       spectral_tz(i,j,k).real()*GzR - spectral_tz(i,j,k).imag()*GzC ;
-           Real divC = spectral_tx(i,j,k).real()*GxC + spectral_tx(i,j,k).imag()*GxR +
-                       spectral_ty(i,j,k).real()*GyC + spectral_ty(i,j,k).imag()*GyR +
-                       spectral_tz(i,j,k).real()*GzC + spectral_tz(i,j,k).imag()*GzR ;
-
-           if (Lap < 1.0e-12) { // zero mode for no bulk motion
-               spectral_dx(i,j,k) *= 0.0;
-               spectral_dy(i,j,k) *= 0.0;
-               spectral_dz(i,j,k) *= 0.0;
-           }
-           else {
-
-               // Dilatational velocity 
-               GpuComplex<Real> copy_dx((divR*GxR + divC*GxC) / Lap, 
-                                        (divC*GxR - divR*GxC) / Lap);
-               spectral_dx(i,j,k) = copy_dx;
-
-               GpuComplex<Real> copy_dy((divR*GyR + divC*GyC) / Lap,
-                                        (divC*GyR - divR*GyC) / Lap);
-               spectral_dy(i,j,k) = copy_dy;
-
-               GpuComplex<Real> copy_dz((divR*GzR + divC*GzC) / Lap,
-                                        (divC*GzR - divR*GzC) / Lap);
-               spectral_dz(i,j,k) = copy_dz;
-           }
-               
-           // Solenoidal velocity
-           spectral_sx(i,j,k) = spectral_tx(i,j,k) - spectral_dx(i,j,k);
-           spectral_sy(i,j,k) = spectral_ty(i,j,k) - spectral_dy(i,j,k); 
-           spectral_sz(i,j,k) = spectral_tz(i,j,k) - spectral_dz(i,j,k);
-
         });
     }
     
-    MultiFab cov(ba, dm, 3, 0); // total, solenoidal, dilatational
+    MultiFab cov(cba, cdm, 3, 0); // total, solenoidal, dilatational
     
     // Fill in the covariance multifab
-    Real sqrtnpts_gpu = sqrtnpts;
     Real scaling_gpu = scaling;
     for (MFIter mfi(cov); mfi.isValid(); ++mfi) {
         Array4<Real> const& data = cov.array(mfi);
@@ -235,35 +246,40 @@ void TurbSpectrumVelDecomp(const MultiFab& vel,
         const Box& bx = mfi.validbox();
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            Real re_x, re_y, re_z, im_x, im_y, im_z;
-            
-            re_x = spec_tx(i,j,k).real();
-            im_x = spec_tx(i,j,k).imag();
-            re_y = spec_ty(i,j,k).real();
-            im_y = spec_ty(i,j,k).imag();
-            re_z = spec_tz(i,j,k).real();
-            im_z = spec_tz(i,j,k).imag();
-            data(i,j,k,0) = (re_x*re_x + im_x*im_x + 
-                             re_y*re_y + im_y*im_y +
-                             re_z*re_z + im_z*im_z)/(scaling_gpu);
-            re_x = spec_sx(i,j,k).real();
-            im_x = spec_sx(i,j,k).imag();
-            re_y = spec_sy(i,j,k).real();
-            im_y = spec_sy(i,j,k).imag();
-            re_z = spec_sz(i,j,k).real();
-            im_z = spec_sz(i,j,k).imag();
-            data(i,j,k,1) = (re_x*re_x + im_x*im_x + 
-                             re_y*re_y + im_y*im_y +
-                             re_z*re_z + im_z*im_z)/(scaling_gpu);
-            re_x = spec_dx(i,j,k).real();
-            im_x = spec_dx(i,j,k).imag();
-            re_y = spec_dy(i,j,k).real();
-            im_y = spec_dy(i,j,k).imag();
-            re_z = spec_dz(i,j,k).real();
-            im_z = spec_dz(i,j,k).imag();
-            data(i,j,k,2) = (re_x*re_x + im_x*im_x + 
-                             re_y*re_y + im_y*im_y +
-                             re_z*re_z + im_z*im_z)/(scaling_gpu);
+            if (i <= n_cells[0]/2) {
+                Real re_x, re_y, re_z, im_x, im_y, im_z;
+                
+                re_x = spec_tx(i,j,k).real();
+                im_x = spec_tx(i,j,k).imag();
+                re_y = spec_ty(i,j,k).real();
+                im_y = spec_ty(i,j,k).imag();
+                re_z = spec_tz(i,j,k).real();
+                im_z = spec_tz(i,j,k).imag();
+                data(i,j,k,0) = (re_x*re_x + im_x*im_x + 
+                                 re_y*re_y + im_y*im_y +
+                                 re_z*re_z + im_z*im_z)/(scaling_gpu);
+                re_x = spec_sx(i,j,k).real();
+                im_x = spec_sx(i,j,k).imag();
+                re_y = spec_sy(i,j,k).real();
+                im_y = spec_sy(i,j,k).imag();
+                re_z = spec_sz(i,j,k).real();
+                im_z = spec_sz(i,j,k).imag();
+                data(i,j,k,1) = (re_x*re_x + im_x*im_x + 
+                                 re_y*re_y + im_y*im_y +
+                                 re_z*re_z + im_z*im_z)/(scaling_gpu);
+                re_x = spec_dx(i,j,k).real();
+                im_x = spec_dx(i,j,k).imag();
+                re_y = spec_dy(i,j,k).real();
+                im_y = spec_dy(i,j,k).imag();
+                re_z = spec_dz(i,j,k).real();
+                im_z = spec_dz(i,j,k).imag();
+                data(i,j,k,2) = (re_x*re_x + im_x*im_x + 
+                                 re_y*re_y + im_y*im_y +
+                                 re_z*re_z + im_z*im_z)/(scaling_gpu);
+            }
+            else {
+                amrex::Abort("check the code; i should not go beyond n_cells[0]/2");
+            }
         });
     }
 
@@ -275,37 +291,37 @@ void TurbSpectrumVelDecomp(const MultiFab& vel,
     // inverse Fourier transform solenoidal and dilatational components 
     {
       amrex::FFT::R2C<Real,FFT::Direction::backward> r2c(geom.Domain());
-	  MultiFab vel_decomp_single(ba, dm, 1, 0);
+	    MultiFab vel_decomp_single(ba, dm, 1, 0);
       r2c.backward(spectral_field_Sx,vel_decomp_single);
       vel_decomp.ParallelCopy(vel_decomp_single, 0, 0, 1);
     }
     {
       amrex::FFT::R2C<Real,FFT::Direction::backward> r2c(geom.Domain());
-	  MultiFab vel_decomp_single(ba, dm, 1, 0);
+	    MultiFab vel_decomp_single(ba, dm, 1, 0);
       r2c.backward(spectral_field_Sy,vel_decomp_single);
       vel_decomp.ParallelCopy(vel_decomp_single, 0, 1, 1);
     }
     {
       amrex::FFT::R2C<Real,FFT::Direction::backward> r2c(geom.Domain());
-	  MultiFab vel_decomp_single(ba, dm, 1, 0);
+	    MultiFab vel_decomp_single(ba, dm, 1, 0);
       r2c.backward(spectral_field_Sz,vel_decomp_single);
       vel_decomp.ParallelCopy(vel_decomp_single, 0, 2, 1);
     }
     {
       amrex::FFT::R2C<Real,FFT::Direction::backward> r2c(geom.Domain());
-	  MultiFab vel_decomp_single(ba, dm, 1, 0);
+	    MultiFab vel_decomp_single(ba, dm, 1, 0);
       r2c.backward(spectral_field_Dx,vel_decomp_single);
       vel_decomp.ParallelCopy(vel_decomp_single, 0, 3, 1);
     }
     {
       amrex::FFT::R2C<Real,FFT::Direction::backward> r2c(geom.Domain());
-	  MultiFab vel_decomp_single(ba, dm, 1, 0);
+	    MultiFab vel_decomp_single(ba, dm, 1, 0);
       r2c.backward(spectral_field_Dy,vel_decomp_single);
       vel_decomp.ParallelCopy(vel_decomp_single, 0, 4, 1);
     }
     {
       amrex::FFT::R2C<Real,FFT::Direction::backward> r2c(geom.Domain());
-	  MultiFab vel_decomp_single(ba, dm, 1, 0);
+	    MultiFab vel_decomp_single(ba, dm, 1, 0);
       r2c.backward(spectral_field_Dz,vel_decomp_single);
       vel_decomp.ParallelCopy(vel_decomp_single, 0, 5, 1);
     }
@@ -354,20 +370,25 @@ void IntegrateKScalar(const MultiFab& cov_mag,
 
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            int ki = i; 
-            int kj = j;
-            if (j >= ny/2) kj = ny - j;
-            int kk = k;
-            if (k >= nz/2) kk = nz - k;
+            if (i <= n_cells[0]/2) {
+                int ki = i; 
+                int kj = j;
+                if (j >= ny/2) kj = ny - j;
+                int kk = k;
+                if (k >= nz/2) kk = nz - k;
 
-            Real dist = (ki*ki + kj*kj + kk*kk);
-            dist = std::sqrt(dist);
-            
-            if ( dist <=  n_cells[0]/2-0.5) {
-	              dist = dist+0.5;
-                int cell = int(dist);
-		            amrex::Gpu::Atomic::Add(&(phisum_ptr[cell]), cov(i,j,k,comp_gpu));
-		            amrex::Gpu::Atomic::Add(&(phicnt_ptr[cell]),1);
+                Real dist = (ki*ki + kj*kj + kk*kk);
+                dist = std::sqrt(dist);
+                
+                if ( dist <=  n_cells[0]/2-0.5) {
+                    dist = dist+0.5;
+                    int cell = int(dist);
+                    amrex::Gpu::Atomic::Add(&(phisum_ptr[cell]), cov(i,j,k,comp_gpu));
+                    amrex::Gpu::Atomic::Add(&(phicnt_ptr[cell]),1);
+                }
+            }
+            else {
+                amrex::Abort("check the code; i should not go beyond n_cells[0]/2");
             }
         });
     }
@@ -436,20 +457,25 @@ void IntegrateKVelocity(const MultiFab& cov_mag,
 
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            int ki = i; 
-            int kj = j;
-            if (j >= ny/2) kj = ny - j;
-            int kk = k;
-            if (k >= nz/2) kk = nz - k;
+            if (i <= n_cells[0]/2) {
+                int ki = i; 
+                int kj = j;
+                if (j >= ny/2) kj = ny - j;
+                int kk = k;
+                if (k >= nz/2) kk = nz - k;
 
-            Real dist = (ki*ki + kj*kj + kk*kk);
-            dist = std::sqrt(dist);
-            
-            if ( dist <=  n_cells[0]/2-0.5) {
-	              dist = dist+0.5;
-                int cell = int(dist);
-		            amrex::Gpu::Atomic::Add(&(phisum_ptr[cell]), cov(i,j,k,comp_gpu));
-		            amrex::Gpu::Atomic::Add(&(phicnt_ptr[cell]),1);
+                Real dist = (ki*ki + kj*kj + kk*kk);
+                dist = std::sqrt(dist);
+                
+                if ( dist <=  n_cells[0]/2-0.5) {
+                    dist = dist+0.5;
+                    int cell = int(dist);
+                    amrex::Gpu::Atomic::Add(&(phisum_ptr[cell]), cov(i,j,k,comp_gpu));
+                    amrex::Gpu::Atomic::Add(&(phicnt_ptr[cell]),1);
+                }
+            }
+            else {
+                amrex::Abort("check the code; i should not go beyond n_cells[0]/2");
             }
         });
     }
