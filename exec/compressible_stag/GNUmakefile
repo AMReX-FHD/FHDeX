@@ -26,7 +26,7 @@ ifeq ($(USE_HEFFTE_FFTW),TRUE)
 else ifeq ($(USE_HEFFTE_CUFFT),TRUE)
   HEFFTE_HOME ?= ../../../heffte-org/build_aware/
 else ifeq ($(USE_HEFFTE_ROCFFT),TRUE)
-  HEFFTE_HOME ?= ../../../heffte/
+  HEFFTE_HOME ?= ../../../heffte-org/build_noaware/
 endif
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
@@ -71,10 +71,6 @@ ifeq ($(USE_HEFFTE_FFTW),TRUE)
   LIBRARIES += -L$(FFTW_DIR) -lfftw3_mpi -lfftw3 -lfftw3f
 else ifeq ($(USE_HEFFTE_CUFFT),TRUE)
   DEFINES += -DHEFFTE_CUFFT
-  VPATH_LOCATIONS += $(HEFFTE_HOME)/include
-  INCLUDE_LOCATIONS += $(HEFFTE_HOME)/include
-  LIBRARY_LOCATIONS += $(HEFFTE_HOME)/lib
-  LIBRARIES += -lheffte
 else ifeq ($(USE_HEFFTE_ROCFFT),TRUE)
   DEFINES += -DHEFFTE_ROCFFT
 endif
