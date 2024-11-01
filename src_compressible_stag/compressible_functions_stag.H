@@ -54,6 +54,11 @@ void EvaluateWritePlotFileVelGrad(int step,
                                   const amrex::Geometry& geom,
                                   const std::array<MultiFab, AMREX_SPACEDIM>& vel,
                                   const amrex::MultiFab& vel_decomp);
+void EvaluateWritePlotFileVelGradTiny(int step,
+                                  const amrex::Real time,
+                                  const amrex::Geometry& geom,
+                                  const std::array<MultiFab, AMREX_SPACEDIM>& vel,
+                                  const amrex::MultiFab& vel_decomp);
 #endif
 
 void conservedToPrimitiveStag(MultiFab& prim_in, std::array<MultiFab, AMREX_SPACEDIM>& velStag_in,
@@ -434,6 +439,7 @@ void GetTurbQty(std::array< MultiFab, AMREX_SPACEDIM >& vel,
                 std::array< MultiFab, AMREX_SPACEDIM >& cumom,
                 MultiFab& prim,
                 MultiFab& eta,
+                MultiFab& zeta,
                 const amrex::Geometry& geom,
                 Real& turbKE, Real& c_speed,
                 Real& u_rms,
