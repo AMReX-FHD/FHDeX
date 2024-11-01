@@ -23,34 +23,22 @@ void TurbSpectrumScalar(const MultiFab& variables,
 
     int ncomp = variables.nComp();
 
-    long npts;
     Box domain = geom.Domain();
-    npts = (domain.length(0)*domain.length(1)*domain.length(2));
+    auto npts = domain.numPts();
     Real sqrtnpts = std::sqrt(npts);
     
-    // get box array and distribution map of variables
-    DistributionMapping dm = variables.DistributionMap();
-    BoxArray ba            = variables.boxArray();
-    
-    // box array and dmap for FFT
-    Box cdomain = geom.Domain();
-    cdomain.setBig(0,cdomain.length(0)/2);
-    auto cba = amrex::decompose(cdomain, ParallelContext::NProcsSub(),
-                                {AMREX_D_DECL(true,true,false)});
-    DistributionMapping cdm = amrex::FFT::detail::make_iota_distromap(cba.size());
+    amrex::FFT::R2C<Real,FFT::Direction::forward> r2c(geom.Domain());
+
+    auto const& [cba, cdm] = r2c.getSpectralDataLayout();
 
     MultiFab cov(cba, cdm, ncomp, 0);
-    MultiFab mf;
-    mf.define(ba, dm, 1, 0);;
     
     for (int comp=0; comp<ncomp; ++comp) {    
 
-        mf.ParallelCopy(variables,comp,0,1);
-        cMultiFab cmf(cba,cdm,1,0);
-        {
-            amrex::FFT::R2C<Real,FFT::Direction::forward> r2c(geom.Domain());
-            r2c.forward(mf,cmf);
-        }
+	MultiFab mf(variables, amrex::make_alias, comp, 1);
+	cMultiFab cmf(cba, cdm, 1, 0);
+
+	r2c.forward(mf,cmf);
 
         // Fill in the covariance multifab
         int comp_gpu = comp;
@@ -92,21 +80,18 @@ void TurbSpectrumVelDecomp(const MultiFab& vel,
 
     const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
     
-    long npts;
     Box domain = geom.Domain();
-    npts = (domain.length(0)*domain.length(1)*domain.length(2));
+    auto npts = domain.numPts();
     Real sqrtnpts = std::sqrt(npts);
     
     // get box array and distribution map of vel
     DistributionMapping dm = vel.DistributionMap();
     BoxArray ba            = vel.boxArray();
     
+    amrex::FFT::R2C<Real,FFT::Direction::both> r2c(geom.Domain());
+
     // box array and dmap for FFT
-    Box cdomain = geom.Domain();
-    cdomain.setBig(0,cdomain.length(0)/2);
-    auto cba = amrex::decompose(cdomain, ParallelContext::NProcsSub(),
-                                {AMREX_D_DECL(true,true,false)});
-    DistributionMapping cdm = amrex::FFT::detail::make_iota_distromap(cba.size());
+    auto const& [cba, cdm] = r2c.getSpectralDataLayout();
 
     // each MPI rank gets storage for its piece of the fft
     cMultiFab spectral_field_Tx(cba,cdm,1,0); // totalx
@@ -119,26 +104,21 @@ void TurbSpectrumVelDecomp(const MultiFab& vel,
     cMultiFab spectral_field_Dy(cba,cdm,1,0); // dilatationaly
     cMultiFab spectral_field_Dz(cba,cdm,1,0); // dilatationalz
 	
-    MultiFab vel_single(ba, dm, 1, 0);
-    	
     // ForwardTransform
     // X
     {
-      vel_single.ParallelCopy(vel, 0, 0, 1);
-      amrex::FFT::R2C<Real,FFT::Direction::forward> r2c(geom.Domain());
-      r2c.forward(vel_single,spectral_field_Tx);
+	MultiFab vel_single(vel, amrex::make_alias, 0, 1);
+	r2c.forward(vel_single,spectral_field_Tx);
     }
     // Y
     {
-      vel_single.ParallelCopy(vel, 1, 0, 1);
-      amrex::FFT::R2C<Real,FFT::Direction::forward> r2c(geom.Domain());
-      r2c.forward(vel_single,spectral_field_Ty);
+	MultiFab vel_single(vel, amrex::make_alias, 1, 1);
+	r2c.forward(vel_single,spectral_field_Ty);
     }
     // Z
     {
-      vel_single.ParallelCopy(vel, 2, 0, 1);
-      amrex::FFT::R2C<Real,FFT::Direction::forward> r2c(geom.Domain());
-      r2c.forward(vel_single,spectral_field_Tz);
+	MultiFab vel_single(vel, amrex::make_alias, 2, 1);
+	r2c.forward(vel_single,spectral_field_Tz);
     }
     
     // Decompose velocity field into solenoidal and dilatational
@@ -290,40 +270,28 @@ void TurbSpectrumVelDecomp(const MultiFab& vel,
     
     // inverse Fourier transform solenoidal and dilatational components 
     {
-      amrex::FFT::R2C<Real,FFT::Direction::backward> r2c(geom.Domain());
-	    MultiFab vel_decomp_single(ba, dm, 1, 0);
-      r2c.backward(spectral_field_Sx,vel_decomp_single);
-      vel_decomp.ParallelCopy(vel_decomp_single, 0, 0, 1);
+	MultiFab vel_decomp_single(vel_decomp, amrex::make_alias, 0, 1);
+	r2c.backward(spectral_field_Sx,vel_decomp_single);
     }
     {
-      amrex::FFT::R2C<Real,FFT::Direction::backward> r2c(geom.Domain());
-	    MultiFab vel_decomp_single(ba, dm, 1, 0);
-      r2c.backward(spectral_field_Sy,vel_decomp_single);
-      vel_decomp.ParallelCopy(vel_decomp_single, 0, 1, 1);
+	MultiFab vel_decomp_single(vel_decomp, amrex::make_alias, 1, 1);
+	r2c.backward(spectral_field_Sy,vel_decomp_single);
     }
     {
-      amrex::FFT::R2C<Real,FFT::Direction::backward> r2c(geom.Domain());
-	    MultiFab vel_decomp_single(ba, dm, 1, 0);
-      r2c.backward(spectral_field_Sz,vel_decomp_single);
-      vel_decomp.ParallelCopy(vel_decomp_single, 0, 2, 1);
+	MultiFab vel_decomp_single(vel_decomp, amrex::make_alias, 2, 1);
+	r2c.backward(spectral_field_Sz,vel_decomp_single);
     }
     {
-      amrex::FFT::R2C<Real,FFT::Direction::backward> r2c(geom.Domain());
-	    MultiFab vel_decomp_single(ba, dm, 1, 0);
-      r2c.backward(spectral_field_Dx,vel_decomp_single);
-      vel_decomp.ParallelCopy(vel_decomp_single, 0, 3, 1);
+	MultiFab vel_decomp_single(vel_decomp, amrex::make_alias, 3, 1);
+	r2c.backward(spectral_field_Dx,vel_decomp_single);
     }
     {
-      amrex::FFT::R2C<Real,FFT::Direction::backward> r2c(geom.Domain());
-	    MultiFab vel_decomp_single(ba, dm, 1, 0);
-      r2c.backward(spectral_field_Dy,vel_decomp_single);
-      vel_decomp.ParallelCopy(vel_decomp_single, 0, 4, 1);
+	MultiFab vel_decomp_single(vel_decomp, amrex::make_alias, 4, 1);
+	r2c.backward(spectral_field_Dy,vel_decomp_single);
     }
     {
-      amrex::FFT::R2C<Real,FFT::Direction::backward> r2c(geom.Domain());
-	    MultiFab vel_decomp_single(ba, dm, 1, 0);
-      r2c.backward(spectral_field_Dz,vel_decomp_single);
-      vel_decomp.ParallelCopy(vel_decomp_single, 0, 5, 1);
+	MultiFab vel_decomp_single(vel_decomp, amrex::make_alias, 5, 1);
+	r2c.backward(spectral_field_Dz,vel_decomp_single);
     }
 
     vel_decomp.mult(1.0/sqrtnpts);
