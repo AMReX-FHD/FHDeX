@@ -21,14 +21,13 @@ void ComputeDivFHReversibleStress(std::array<MultiFab,AMREX_SPACEDIM>& div_rever
     // rho to conc - VALID REGION ONLY
     ConvertRhoCToC(rho_in,rhotot_in,conc,1);
 
-    Real scale_factor = rhobar[0]*k_B*T_init[0]/monomer_mass;
-
     // fill conc ghost cells
     conc.FillBoundary(geom.periodicity());
-    MultiFabPhysBC(conc,geom,0,nspecies,scale_factor);    
+    MultiFabPhysBC(conc,geom,0,nspecies,SPEC_BC_COMP);    
 
 //  JBB  check what's in this
 //    Real scale_factor = rhobar[0]*k_B*T_init[0]/molmass[0];
+    Real scale_factor = rhobar[0]*k_B*T_init[0]/monomer_mass;
     
     for ( MFIter mfi(node_grad_x_mf,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
         

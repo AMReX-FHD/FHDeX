@@ -201,6 +201,16 @@ void InitializeMultispecNamespace() {
     pp.query("n_gex",n_gex);
     pp.query("chi_iterations",chi_iterations);
     pp.query("temp_type",temp_type);
+    for (int i=0; i<nspecies; ++i) {
+        for (int j=0; j<nspecies; ++j) {
+            fh_kappa(i,j) = 0.;
+            fh_chi(i,j) = 0.;
+            if (i != j){
+            	fh_kappa(i,j) = GradEnCoef*monomer_mass/(rho0*k_B*T_init[0]);
+            	fh_chi(i,j) = EnScale*monomer_mass/(rho0*k_B*T_init[0]);
+            }
+        }
+    }
     if(pp.queryarr("fh_kappa",temp)) {
         for (int i=0; i<nspecies; ++i) {
         for (int j=0; j<nspecies; ++j) {
@@ -287,15 +297,4 @@ void InitializeMultispecNamespace() {
     pp.query("zero_charge_on_wall_type",zero_charge_on_wall_type);
     pp.query("zero_eps_on_wall_left_end",zero_eps_on_wall_left_end);
     pp.query("zero_eps_on_wall_right_start",zero_eps_on_wall_right_start);
-        
-    for (int i=0; i<nspecies; ++i) {
-        for (int j=0; j<nspecies; ++j) {
-            fh_kappa(i,j) = 0.;
-            fh_chi(i,j) = 0.;
-            if (i != j){
-            	fh_kappa(i,j) = GradEnCoef*monomer_mass/(rho0*k_B*T_init[0]);
-            	fh_chi(i,j) = EnScale*monomer_mass/(rho0*k_B*T_init[0]);
-            }
-        }
-    }
 }

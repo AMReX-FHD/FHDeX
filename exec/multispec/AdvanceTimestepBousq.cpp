@@ -470,10 +470,10 @@ if (use_ice_nucleation ==0){
 
 } else {
     // compute rhotot^{n+1/2} from rho^{n+1/2} in VALID REGION
-    ComputeRhotot(rho_old,rhotot_new);
+    ComputeRhotot(rho_new,rhotot_new);
 
     // fill rho and rhotot ghost cells at t^{n+1/2}
-    FillRhoRhototGhost(rho_old,rhotot_new,geom);
+    FillRhoRhototGhost(rho_new,rhotot_new,geom);
     
     // average rho_i^{n+1/2} to faces
     //AverageCCToFace(rho_old,rho_fc,0,nspecies,SPEC_BC_COMP,geom);
@@ -687,7 +687,7 @@ if (use_ice_nucleation ==0){
 	   }
 	   
 	   phi_prd.FillBoundary(geom.periodicity());
-      MultiFabPhysBC(phi_prd,geom,0,nspecies,SPEC_BC_COMP);
+      MultiFabPhysBC(phi_prd,geom,0,1,SPEC_BC_COMP);
 	   // advance phi to t+1
 	   for (MFIter mfi(phi_new); mfi.isValid(); ++mfi )
 	   {
@@ -728,8 +728,8 @@ if (use_ice_nucleation ==0){
 			      phiNew(i,j,k,n+1) = 1-phiNew(i,j,k,n);
 	       });
 	   }
-	
     	ComputeRhotot(phi_new,phitot_new);
+    	
       // compute reversible stress tensor ---added term
       ComputeDivFHReversibleStress(div_reversible_stress,phitot_new,phi_new,geom);
 	   
